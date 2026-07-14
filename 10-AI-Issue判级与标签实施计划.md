@@ -21,6 +21,56 @@
 - 不运行 `codex/install-vm.sh`，不覆盖 VM 当前 v2 analyzer，不启用 `IMPLEMENT_PROVIDER`，不更新 Claude Code runtime。
 - 每个任务只提交列出的文件；现有 `.DS_Store`、`.playwright-cli/`、其他工作树和无关修改保持不动。
 
+## Approved Execution Order Adjustment
+
+执行前预检确认 `worktrees/` 尚未被 Git 忽略，而且试点模板依赖中央模板。经用户批准，实际执行顺序调整为：
+
+```text
+Task 0 → Task 3 → Task 1 → Task 2 → Task 4 → Task 5 → Task 6
+```
+
+Task 0 先完成 worktree 安全准备；Task 3 先形成 canonical templates；Task 1 随后直接复制最终模板，不产生二次同步提交。其他任务内容和验收标准不变。
+
+---
+
+### Task 0: Ignore project-local worktrees before creating the pilot worktree
+
+**Files:**
+- Create: `.gitignore`
+
+**Interfaces:**
+- Consumes: the approved project-local worktree root `worktrees/`.
+- Produces: a Git-ignored worktree root required by `superpowers:using-git-worktrees` before Task 1.
+
+- [ ] **Step 1: Verify the safety check currently fails**
+
+```bash
+git check-ignore -q worktrees
+```
+
+Expected: exit status 1 because `worktrees/` is not currently ignored.
+
+- [ ] **Step 2: Add the exact ignore rule**
+
+Create `.gitignore` with:
+
+```gitignore
+/worktrees/
+```
+
+Do not add rules for `.DS_Store`, `.playwright-cli/` or any unrelated path in this task.
+
+- [ ] **Step 3: Verify and commit the safety preparation**
+
+```bash
+git check-ignore -v worktrees
+git diff --check -- .gitignore
+git add .gitignore
+git commit -m 'chore: ignore local worktrees'
+```
+
+Expected: `git check-ignore -v` reports `.gitignore` and `/worktrees/`; the commit contains only `.gitignore`.
+
 ---
 
 ## File and State Map
@@ -128,7 +178,7 @@ for name in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
 done
 ```
 
-Expected: no diff after the central template task is complete. During this bootstrap task, copy the currently approved schema from `09` §4.3 and reconcile by rerunning this check in Task 6.
+Expected: no diff. The approved execution order completes Task 3 before Task 1, so this step copies the final canonical templates directly and does not require a later reconciliation commit.
 
 - [ ] **Step 4: Write the Issue #8 summary and spec**
 
