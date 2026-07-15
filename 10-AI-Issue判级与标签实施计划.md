@@ -42,7 +42,7 @@ Task 0 先完成 worktree 安全准备；Task 3 先形成 canonical templates；
 - Consumes: the approved project-local worktree root `worktrees/`.
 - Produces: a Git-ignored worktree root required by `superpowers:using-git-worktrees` before Task 1.
 
-- [ ] **Step 1: Verify the safety check currently fails**
+- [x] **Step 1: Verify the safety check currently fails**
 
 ```bash
 git check-ignore -q worktrees
@@ -50,7 +50,7 @@ git check-ignore -q worktrees
 
 Expected: exit status 1 because `worktrees/` is not currently ignored.
 
-- [ ] **Step 2: Add the exact ignore rule**
+- [x] **Step 2: Add the exact ignore rule**
 
 Create `.gitignore` with:
 
@@ -60,7 +60,7 @@ Create `.gitignore` with:
 
 Do not add rules for `.DS_Store`, `.playwright-cli/` or any unrelated path in this task.
 
-- [ ] **Step 3: Verify and commit the safety preparation**
+- [x] **Step 3: Verify and commit the safety preparation**
 
 ```bash
 git check-ignore -v worktrees
@@ -132,7 +132,7 @@ Expected: `git check-ignore -v` reports `.gitignore` and `/worktrees/`; the comm
 - Consumes: Gitea Issue `http://gitea-ci.orb.local:3000/admin/rsdesign-new/issues/8` and the approved rules in `09` §§4.3 and 6.
 - Produces: `change/8` as the single pilot branch, a complete complex contract, and project-local v3 templates used by later controller validation.
 
-- [ ] **Step 1: Create the isolated pilot worktree**
+- [x] **Step 1: Create the isolated pilot worktree**
 
 Use `superpowers:using-git-worktrees` at execution time, then run:
 
@@ -145,7 +145,7 @@ git -C /Users/benque/Projects/rsdesign-new worktree add \
 
 Expected: a clean worktree on `change/8`; the existing `/Users/benque/Projects/rsdesign-new` checkout remains on `change/4` with its untracked `.DS_Store` files untouched.
 
-- [ ] **Step 2: Replace the project governance rules**
+- [x] **Step 2: Replace the project governance rules**
 
 Use `apply_patch` to replace the current “每个改动必须有 spec/plan” and protected-file bullets with these exact rules while preserving all project commands, Prisma constraints, UI conventions and credential rules:
 
@@ -166,7 +166,7 @@ Replace the branch rule with:
 - 提交信息: `<type>: <简述> (#<N>)`，type ∈ feat / fix / chore / docs / refactor / test
 ```
 
-- [ ] **Step 3: Install the four canonical project templates**
+- [x] **Step 3: Install the four canonical project templates**
 
 Use `apply_patch` so the four pilot templates exactly match the AISoftPlatform canonical templates after Task 3. Verify:
 
@@ -180,7 +180,7 @@ done
 
 Expected: no diff. The approved execution order completes Task 3 before Task 1, so this step copies the final canonical templates directly and does not require a later reconciliation commit.
 
-- [ ] **Step 4: Write the Issue #8 summary and spec**
+- [x] **Step 4: Write the Issue #8 summary and spec**
 
 `00-summary.md` must set:
 
@@ -215,7 +215,7 @@ The summary must cite the inspected v2 facts: current `AGENTS.md` requires spec 
 
 The spec non-goals must exclude automatic PR merge, production deployment, deletion of v2 fallback scripts, and Claude Code runtime changes.
 
-- [ ] **Step 5: Write the Issue #8 ordered plan**
+- [x] **Step 5: Write the Issue #8 ordered plan**
 
 `02-plan.md` must contain this exact phase order:
 
@@ -230,7 +230,7 @@ The spec non-goals must exclude automatic PR merge, production deployment, delet
 
 Every acceptance criterion must map to at least one `rg`, smoke, `quick_validate.py`, Gitea API assertion or real Issue verification. State “无生产部署；回滚为停止 controller、保持 `IMPLEMENT_PROVIDER=none`、继续使用现有 analyzer 与人工开发”。
 
-- [ ] **Step 6: Validate and commit the pilot contract**
+- [x] **Step 6: Validate and commit the pilot contract**
 
 Run:
 
@@ -272,7 +272,7 @@ Do not open a docs-only PR and do not add `approved`; Issue #8 remains complex c
 - Consumes: approved design in `09` §§4.3 and 6.
 - Produces: one consistent user-facing and agent-facing classification contract.
 
-- [ ] **Step 1: Add failing contract regression checks**
+- [x] **Step 1: Add failing contract regression checks**
 
 Append these checks to `codex/tests/smoke.sh`:
 
@@ -291,7 +291,7 @@ if rg -n 'complexity_recommendation|最终 `complexity` 由人|人确认 Issue �
 fi
 ```
 
-- [ ] **Step 2: Run the smoke test and confirm the intended failure**
+- [x] **Step 2: Run the smoke test and confirm the intended failure**
 
 Run:
 
@@ -301,7 +301,7 @@ bash codex/tests/smoke.sh
 
 Expected: non-zero because `03` does not yet contain `type/feature` and still contains `complexity_recommendation`.
 
-- [ ] **Step 3: Update the root contract and overview**
+- [x] **Step 3: Update the root contract and overview**
 
 Apply these exact semantic changes:
 
@@ -309,7 +309,7 @@ Apply these exact semantic changes:
 - `README.md`: change the sequence diagram from routine human complexity confirmation to AI classification and automatic routing; add the three label dimensions; keep human merge as the only delivery gate.
 - `01`: document 16 labels as seven lifecycle, seven type and two complexity labels without claiming they are already live.
 
-- [ ] **Step 4: Rewrite the daily workflow and orchestration contract**
+- [x] **Step 4: Rewrite the daily workflow and orchestration contract**
 
 In `03`, replace the recommendation model with:
 
@@ -325,7 +325,7 @@ In `04`, require the analyzer output fields from `09` §4.3, make the wrapper ow
 
 In `08`, add synthetic classifier cases for bugfix/small, feature/complex, explicit-small override, explicit-complex preservation and unclear/awaiting-triage.
 
-- [ ] **Step 5: Run the contract regression test**
+- [x] **Step 5: Run the contract regression test**
 
 Run:
 
@@ -335,7 +335,7 @@ bash codex/tests/smoke.sh
 
 Expected: `Codex platform static smoke checks passed.`
 
-- [ ] **Step 6: Commit the authoritative document update**
+- [x] **Step 6: Commit the authoritative document update**
 
 ```bash
 git add AGENTS.md README.md \
@@ -362,7 +362,7 @@ git commit -m 'docs: route issues by AI-assessed complexity'
 - Consumes: classification schema in `09` §4.3.
 - Produces: one front matter schema copied unchanged into pilot repositories.
 
-- [ ] **Step 1: Add failing template-schema checks**
+- [x] **Step 1: Add failing template-schema checks**
 
 Add:
 
@@ -382,7 +382,7 @@ done
 
 Run `bash codex/tests/smoke.sh`; expected: non-zero on the first missing `change_type` field.
 
-- [ ] **Step 2: Replace the front matter schema**
+- [x] **Step 2: Replace the front matter schema**
 
 All four templates must use this shared classification block:
 
@@ -398,7 +398,7 @@ risk_flags: []
 
 `00-summary.md` must replace `## 复杂度建议` with `## AI 判级`, include the machine-readable classification values, the evidence, any override reason and missing acceptance criteria. Complex templates must state `effective_complexity: complex`; `03-verification.md` must preserve all `NOT RUN` honesty rules.
 
-- [ ] **Step 3: Run smoke and commit**
+- [x] **Step 3: Run smoke and commit**
 
 ```bash
 bash codex/tests/smoke.sh
@@ -427,11 +427,11 @@ Expected: smoke passes; only templates and their regression checks are committed
 - Consumes: canonical type matrix, priority rules and front matter from Tasks 2–3.
 - Produces: deterministic analysis output consumed later by the Issue #8 wrapper/controller implementation.
 
-- [ ] **Step 1: Add failing skill-contract checks**
+- [x] **Step 1: Add failing skill-contract checks**
 
 Add smoke assertions for `contract_effect`, `requested_complexity`, `effective_complexity`, `type/feature`, `needs-human-decision` and the small-to-complex escalation instruction in the relevant skill files. Run smoke and expect a non-zero result before editing the skills.
 
-- [ ] **Step 2: Make gitea-analyze-change classify instead of recommend**
+- [x] **Step 2: Make gitea-analyze-change classify instead of recommend**
 
 Require exactly these five Markdown sections:
 
@@ -461,7 +461,7 @@ override_reason: ''
 
 For `needs-human-decision`, omit `effective_complexity`, set `contract_effect: unclear`, and explain the one decision needed. The skill remains read-only: it emits classification data but does not mutate Git or Gitea labels.
 
-- [ ] **Step 3: Update planning and implementation skills**
+- [x] **Step 3: Update planning and implementation skills**
 
 - `gitea-spec-plan`: require `effective_complexity: complex`; reject ceremonial spec/plan for validated small work; use the shared metadata fields.
 - `gitea-development-loop`: recompute forced-risk conditions before editing; if a small contract becomes add/change or crosses a forced risk, stop with `NEEDS_HUMAN_DECISION` and `NEXT: reclassify as complex and create spec/plan`.
@@ -469,7 +469,7 @@ For `needs-human-decision`, omit `effective_complexity`, set `contract_effect: u
 - `skill-for-codex`, onboarding and global AGENTS: describe type labels as inputs, complexity labels as AI outputs, and lifecycle labels as state.
 - `agents/openai.yaml`: change “recommend small or complex” to “classify and explain the effective complexity”.
 
-- [ ] **Step 4: Validate every changed skill**
+- [x] **Step 4: Validate every changed skill**
 
 Run:
 
@@ -490,7 +490,7 @@ bash codex/tests/smoke.sh
 
 Expected: six `Skill is valid!` results and `Codex platform static smoke checks passed.`
 
-- [ ] **Step 5: Commit the skill update**
+- [x] **Step 5: Commit the skill update**
 
 ```bash
 git add skill-for-codex codex/global-AGENTS.md codex/skills codex/tests/smoke.sh
@@ -513,7 +513,7 @@ Do not run `codex/install-vm.sh`; the checked-in skills are ahead of the current
 - Consumes: `.agent.env` names without printing their values.
 - Produces: exactly seven lifecycle, seven type and two complexity labels; repeated sync creates zero additional labels.
 
-- [ ] **Step 1: Add the canonical manifest**
+- [x] **Step 1: Add the canonical manifest**
 
 Create a JSON array containing these exact names:
 
@@ -533,7 +533,7 @@ jq -e '
 ' "$ROOT/codex/config/gitea-labels.json" >/dev/null
 ```
 
-- [ ] **Step 2: Write the non-destructive sync tool**
+- [x] **Step 2: Write the non-destructive sync tool**
 
 `codex/tools/sync-gitea-labels.sh` must:
 
@@ -547,7 +547,7 @@ jq -e '
 
 Add `bash -n` coverage to smoke. If ShellCheck is available, require it to pass.
 
-- [ ] **Step 3: Validate and commit before touching Gitea**
+- [x] **Step 3: Validate and commit before touching Gitea**
 
 ```bash
 bash -n codex/tools/sync-gitea-labels.sh
@@ -557,7 +557,7 @@ git add codex/config/gitea-labels.json codex/tools/sync-gitea-labels.sh codex/te
 git commit -m 'ops: add idempotent Gitea label taxonomy'
 ```
 
-- [ ] **Step 4: Apply the labels twice on local Gitea**
+- [x] **Step 4: Apply the labels twice on local Gitea**
 
 Start the VM if needed, but do not change services beyond normal startup:
 
@@ -571,7 +571,7 @@ orb -m gitea-ci sudo -u coder \
 
 Expected: the first run reports the number of missing labels created; the second reports `created=0 existing=16`. If the VM cannot start or the API is unavailable, stop with `BLOCKED_EXTERNAL` and do not claim live labels exist.
 
-- [ ] **Step 5: Label Issue #8 and verify effective state**
+- [x] **Step 5: Label Issue #8 and verify effective state**
 
 Using the existing credential environment without printing it, assign exactly:
 
@@ -595,7 +595,7 @@ Remove every other `type/*` and `complexity/*` label, plus every lifecycle label
 - Consumes: committed central changes, pilot `change/8`, and live Gitea labels.
 - Produces: an honest handoff to the separate Codex controller implementation phase.
 
-- [ ] **Step 1: Run all central static checks**
+- [x] **Step 1: Run all central static checks**
 
 ```bash
 bash -n codex/tests/smoke.sh
@@ -611,7 +611,7 @@ git diff --check
 
 Expected: shell syntax passes, smoke prints its success line, every skill validates, and `git diff --check` is silent.
 
-- [ ] **Step 2: Verify central/pilot template parity**
+- [x] **Step 2: Verify central/pilot template parity**
 
 ```bash
 for name in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
@@ -623,7 +623,7 @@ done
 
 Expected: no output.
 
-- [ ] **Step 3: Verify the pilot contract without claiming runtime success**
+- [x] **Step 3: Verify the pilot contract without claiming runtime success**
 
 ```bash
 git -C worktrees/rsdesign-issue-8 status --short
@@ -634,7 +634,7 @@ rg -n 'effective_complexity: complex|contract_effect: add|IMPLEMENT_PROVIDER=non
 
 Expected: clean pilot worktree, the Issue #8 contract commit is present, and the four boundaries are documented. Do not run application tests as proof of controller behavior because no controller code is implemented in this rollout.
 
-- [ ] **Step 4: Update implementation status and commit**
+- [x] **Step 4: Update implementation status and commit**
 
 In `09`, mark only the AI classification contract, template, skill and label rollout complete. Keep Loop controller, real small/complex execution, CI feedback, VM installation and Claude parity unchecked.
 
@@ -644,7 +644,7 @@ git add 09-v3平台简化与Loop-Engineering文档改造规划.md \
 git commit -m 'docs: record AI classification rollout evidence'
 ```
 
-- [ ] **Step 5: Handoff to the Issue #8 runtime implementation**
+- [x] **Step 5: Handoff to the Issue #8 runtime implementation**
 
 Report separately:
 
