@@ -9,6 +9,17 @@ for script in "$ROOT"/codex/agent/*.sh "$ROOT"/codex/install-vm.sh; do
   bash -n "$script"
 done
 
+bash -n "$ROOT/codex/tools/sync-gitea-labels.sh"
+if command -v shellcheck >/dev/null; then
+  shellcheck "$ROOT/codex/tools/sync-gitea-labels.sh"
+fi
+
+jq -e '
+  length == 16 and
+  (map(.name) | unique | length == 16) and
+  all(.[]; (.name | length > 0) and (.color | test("^[0-9a-fA-F]{6}$")))
+' "$ROOT/codex/config/gitea-labels.json" >/dev/null
+
 if rg -n -g '!**/tests/smoke.sh' 'dangerously-bypass|--yolo|danger-full-access' "$ROOT/codex"; then
   echo '检测到禁止的 Codex 绕过参数' >&2
   exit 1
