@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gitea Change Implementation"
+  short_description: "Execute one bounded implementation pass with tests"
+  default_prompt: "Use $gitea-implement-change to execute one bounded implementation pass and return honest verification evidence."

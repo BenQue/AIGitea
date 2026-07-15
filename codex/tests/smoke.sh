@@ -31,6 +31,43 @@ grep -Fq "args+=(--add-dir \"\$platform_docs\")" "$ROOT/codex/agent/common.sh"
 grep -Fq 'READY_FOR_REVIEW' "$ROOT/codex/skills/gitea-development-loop/SKILL.md"
 grep -Fq '生产环境只运行' "$ROOT/AGENTS.md"
 
+analyze_skill="$ROOT/codex/skills/gitea-analyze-change/SKILL.md"
+spec_skill="$ROOT/codex/skills/gitea-spec-plan/SKILL.md"
+loop_skill="$ROOT/codex/skills/gitea-development-loop/SKILL.md"
+
+for heading in \
+  '## 问题/需求总结' \
+  '## 影响范围' \
+  '## 初步方案与建议' \
+  '## 风险' \
+  '## AI 判级'; do
+  grep -Fq "$heading" "$analyze_skill"
+done
+if grep -Fq '## 复杂度建议' "$analyze_skill"; then
+  exit 1
+fi
+
+for field in \
+  'change_type: bugfix' \
+  'requested_complexity: auto' \
+  'assessed_complexity: small' \
+  'effective_complexity: small' \
+  'contract_effect: restore' \
+  'required_docs:' \
+  'confidence: high' \
+  "override_reason: ''"; do
+  grep -Fq "$field" "$analyze_skill"
+done
+
+grep -Fq 'needs-human-decision' "$analyze_skill"
+omit_effective="omit \`effective_complexity\`"
+grep -Fq "$omit_effective" "$analyze_skill"
+grep -Fq 'contract_effect: unclear' "$analyze_skill"
+grep -Fq 'type/feature' "$analyze_skill"
+grep -Fq 'effective_complexity: complex' "$spec_skill"
+grep -Fq 'NEEDS_HUMAN_DECISION' "$loop_skill"
+grep -Fq 'NEXT: reclassify as complex and create spec/plan' "$loop_skill"
+
 for template in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
   file="$ROOT/templates/docs/changes/_template/$template"
   front_matter="$(

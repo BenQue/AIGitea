@@ -1,0 +1,4 @@
+interface:
+  display_name: "AISoft Platform"
+  short_description: "Operate and onboard projects to AISoft delivery"
+  default_prompt: "Use $aisoft-platform to operate, troubleshoot, or onboard a project to the AISoft Gitea platform."

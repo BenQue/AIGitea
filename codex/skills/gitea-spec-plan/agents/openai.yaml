@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gitea Spec and Plan"
+  short_description: "Draft testable specs and ordered change plans"
+  default_prompt: "Use $gitea-spec-plan to turn a complex Gitea Issue into a testable spec and ordered implementation plan."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gitea Development Loop"
+  short_description: "Iterate from approved contract to review-ready PR"
+  default_prompt: "Use $gitea-development-loop to implement, verify, and repair an approved Gitea change until it is ready for human review or must escalate."

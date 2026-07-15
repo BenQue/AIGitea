@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gitea Change Analysis"
+  short_description: "Analyze Gitea issues with repository evidence"
+  default_prompt: "Use $gitea-analyze-change to analyze a Gitea Issue, draft its 00-summary.md body, and classify and explain the effective complexity."
