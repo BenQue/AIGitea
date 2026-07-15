@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 
+command -v rg >/dev/null
+
 for script in "$ROOT"/codex/agent/*.sh "$ROOT"/codex/install-vm.sh; do
   bash -n "$script"
 done
@@ -31,13 +33,17 @@ grep -Fq '生产环境只运行' "$ROOT/AGENTS.md"
 
 for template in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
   file="$ROOT/templates/docs/changes/_template/$template"
-  grep -Fq 'change_type:' "$file"
-  grep -Fq 'requested_complexity:' "$file"
-  grep -Fq 'assessed_complexity:' "$file"
-  grep -Fq 'effective_complexity:' "$file"
-  grep -Fq 'contract_effect:' "$file"
-  grep -Fq 'confidence:' "$file"
-  grep -Fq 'risk_flags:' "$file"
+  front_matter="$(
+    awk '
+      NR == 1 && $0 == "---" { in_front_matter = 1; next }
+      in_front_matter && $0 == "---" { found_end = 1; exit }
+      in_front_matter { print }
+      END { if (!in_front_matter || !found_end) exit 1 }
+    ' "$file"
+  )"
+  for field in change_type requested_complexity assessed_complexity effective_complexity contract_effect confidence risk_flags; do
+    grep -Eq "^${field}:" <<<"$front_matter"
+  done
 done
 ! rg -n 'complexity_recommendation:' "$ROOT/templates/docs/changes/_template" || exit 1
 
