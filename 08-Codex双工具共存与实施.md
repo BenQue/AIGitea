@@ -1,0 +1,137 @@
+# 08 · Codex-first Development Loop 与 Claude Code 共存计划
+
+> 版本：v3.0 文档契约 ｜ 日期：2026-07-14 ｜ 状态：Codex CLI/认证/sandbox、v3 skills 静态校验与两项只读 forward test 已通过；Loop controller 和真实 Issue 验证尚未实施。Claude Code 在 Codex 验证通过后同步。
+
+## 1. 结论
+
+平台只维护一套确定性外层：
+
+```text
+Issue / docs contract
+  → provider-neutral Loop controller
+      ├── Codex adapter（先实现和验证）
+      └── Claude adapter（后接入）
+  → deterministic verifier
+  → Gitea PR / CI
+  → 人工合并
+  → artifact / deploy / health / rollback
+```
+
+Codex 和 Claude Code 只替换模型执行器，不各自复制标签状态机、Git/Gitea 操作、测试硬门或终态判断。
+
+## 2. 共享契约
+
+- Issue 是主键；所有变更有 `00-summary.md`。
+- small 可从明确 Issue 直接进入 Loop；complex 必须有 `01-spec.md` 和 `02-plan.md`。
+- `approved` 启动 Loop，不授权合并或部署。
+- 单一 `change/N` 分支承载文档、代码、测试和最终 PR。
+- Loop 只能在合同范围内实现、自测、自修复和处理 CI feedback。
+- `READY_FOR_REVIEW` 只是通知人 review；最终 PR 合并是唯一交付硬闸门。
+- AI 可以参与非生产首次部署；生产只运行已验证脚本。
+
+## 3. 配置与认证
+
+- 仓库根 `AGENTS.md` 是共享规范源；Claude 用 `CLAUDE.md` 导入，Codex 原生读取。
+- `~/.claude/`、`~/.codex/` 和 `~/.agents/skills/` 独立保存，不复制 token。
+- provider 使用专用 `coder` 用户和最小权限 ci-bot，不拥有 `main` 合并权。
+- 两个 provider 不在同一 working tree 同时写；controller 为每个 Issue 分配隔离 worktree 和锁。
+- 生产机不安装或依赖 Claude/Codex 认证。
+
+## 4. 现有 Codex 基础
+
+已完成：
+
+- Codex CLI、ChatGPT device auth、sandbox read-only/workspace-write smoke。
+- `AGENTS.md`、VM 全局指导、四个阶段型 skills、复合 `aisoft-platform` skill。
+- `provider-poll.sh` 的 Claude/Codex/none 路由和默认 `IMPLEMENT_PROVIDER=none`。
+- 静态 smoke 与目标目录安装脚本。
+- 五个阶段型 skills 和复合 skill 通过 `quick_validate.py`；Development Loop 普通失败返回 `CONTINUE`，缺 complex 合同并要求直改生产时返回 `NEEDS_HUMAN_DECISION`。
+
+未完成：
+
+- provider-neutral Loop controller、state store、worktree lock、verifier 和 CI adapter。
+- analyzer 从 `spec/N` 迁移到 `change/N`。
+- 真实 small/complex Issue 的 Codex 闭环。
+- 非生产首次部署与故意失败回滚验证。
+- Claude adapter 与 parity 验证。
+
+> **安装暂停（Issue #8）**：当前 VM analyzer wrapper 仍是 v2，解析 `spec/N` 和旧 summary 标题。本仓库 v3 skills 与 canonical templates 已更新，但在 Issue #8 的 controller/analyzer wrapper 同步完成并通过测试前，不运行 `codex/install-vm.sh` 覆盖现有 VM 安装。
+
+## 5. Codex skills 映射
+
+| Skill | v3 职责 |
+|---|---|
+| `gitea-analyze-change` | 只读分析 Issue，输出 evidence、风险、contract effect 和结构化 AI 判级字段 |
+| `gitea-spec-plan` | 为 complex 变更收敛决策并写 spec/plan；不创建独立 spec PR |
+| `gitea-development-loop` | 读取合同，在外层 controller 约束下持续实现、验证、自修复和升级 |
+| `gitea-implement-change` | 兼容的一轮实现入口；不得冒充完整 Loop |
+| `gitea-platform-ops` | 平台诊断、非生产首次部署、故障复现、脚本修复和回滚规划 |
+| `aisoft-platform` | 平台路由、接入和完整安全边界 |
+
+## 6. Loop controller 与 provider adapter
+
+外层 controller 负责：
+
+- 从 Issue、summary 和所需 spec/plan 重新计算合同有效性，不把 `approved` 当作充分证据。
+- 调用唯一受控 wrapper 执行互斥的 type、complexity 和流程状态标签 mutation；provider 不得直接改标签。
+- 创建/锁定 `change/N` worktree。
+- 持久化当前任务、轮数、失败根因和终态。
+- 调用 Codex 或 Claude adapter。
+- 独立运行 verifier，不信任模型自述。
+- 提交/推送 feature branch、创建最终 PR、读取 CI 状态。
+- 把 CI 失败和范围内 review feedback 反馈给下一轮。
+- 三次同根因失败、合同冲突或预算耗尽时升级给人。
+
+Provider adapter 只负责：读取 controller 给出的合同和失败证据，在 worktree 内完成范围内修改并返回结构化结果。它不管理标签、合并、部署、凭据或生产状态。
+
+## 7. Codex 验证矩阵
+
+按顺序执行，前一层通过后再进入下一层：
+
+1. **Skills 静态验证**：front matter、openai.yaml、触发描述、禁止危险参数。
+2. **合成 Issue**：先用下表五类 classifier case 验证判级、互斥标签和路由，再验证缺文档拒绝与四种终态。
+3. **真实 small Issue**：`approved → Loop → tests → PR → READY_FOR_REVIEW`。
+4. **真实 complex Issue**：spec/plan 完整性、plan 顺序和 acceptance 映射。
+5. **自修复**：故意制造普通测试失败，确认不立即找人。
+6. **升级**：合同冲突、缺凭据、三次同因失败和预算上限。
+7. **CI feedback**：本地通过、CI 失败、修复、重新提交。
+8. **非生产首次部署**：两次正常执行和一次故意失败回滚。
+9. **生产负向边界**：Codex 无权部署生产，只能准备经非生产验证的修复 PR。
+
+验证结果写入对应 `docs/changes/N/03-verification.md`，真实命令与未通过项分开记录。
+
+合成 classifier case 必须覆盖：
+
+| Case | Issue 输入 | 预期结构化结果 | Wrapper 最终路由 |
+|---|---|---|---|
+| bugfix/small | 恢复已经明确的既有行为，无强制风险 | `contract_effect: restore`、`assessed_complexity: small`、`effective_complexity: small` | `type/bugfix + complexity/small`；合同完整时 `approved` |
+| feature/complex | 新增产品功能，即使代码改动很少 | `contract_effect: add`、`assessed_complexity: complex`、`effective_complexity: complex` | `type/feature + complexity/complex + spec-drafting` |
+| explicit-small override | Issue 请求 `complexity/small`，但内容是功能性更改或命中其他强制风险 | `requested_complexity: small`、`assessed_complexity: complex`、`effective_complexity: complex`，并记录 `override_reason` | 覆盖错误请求，写 `complexity/complex + spec-drafting` |
+| explicit-complex preservation | Issue 明确请求 `complexity/complex`，即使内容原本是 small 候选 | `requested_complexity: complex`、`effective_complexity: complex` | 保留 `complexity/complex`，不得自动降级 |
+| unclear/awaiting-triage | 信息不足、内容冲突或风险边界不明 | `contract_effect: unclear`、`assessed_complexity: needs-human-decision`，省略 `effective_complexity` | `awaiting-triage`，不保留任何 complexity 标签 |
+
+这些是 Issue #8 runtime 实现前必须新增并先看到失败的 classifier 合同测试；本次文档更新不代表 VM wrapper 已支持这些 case。
+
+## 8. Claude Code 接入条件
+
+只有 Codex 完成 §7 后才更新 Claude Code 运行路径：
+
+1. 盘点 VM 真实 `analyze.sh`、`implement.sh`、`poll.sh` 和 Superpowers 配置。
+2. 实现 Claude adapter，复用同一 controller、verifier、状态和终态。
+3. 更新 Claude skills/commands，但不复制 Codex skill 内容形成第二套合同。
+4. 使用 Codex 的同一组合成和真实用例做 parity 验证。
+5. 两个 provider 都通过后再决定长期默认值和降级策略。
+
+## 9. 部署边界
+
+Codex/Claude 可以在开发/测试环境协助设计和执行首次部署，把成功操作固化为 workflow 和脚本，并验证重复执行、失败停止和回滚。
+
+生产环境只接收不可变制品并运行固定脚本。生产失败后先由脚本停止/回滚；AI 读取脱敏证据，在非生产环境复现、修复、验证并准备 PR。不得让模型在生产机临场生成或执行命令。
+
+## 10. 回滚
+
+- 在 Loop 验证完成前保持 `IMPLEMENT_PROVIDER=none`。
+- 试点失败时停止新 controller，保留 analyzer，回到 Mac 人机交互开发。
+- Codex 不可用时不自动切换 Claude 执行同一 active Issue；先结束或转移状态，再显式选择 provider。
+- 不删除现有 Claude/Codex 认证、旧脚本或 skills，直到两个 provider 完成 parity 验证并另行批准清理。
+- CI、制品和生产部署不依赖 Loop，因此 Loop 回滚不影响交付平台。

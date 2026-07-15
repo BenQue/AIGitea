@@ -1,6 +1,6 @@
 # 01 · 基础设施：VM / Gitea / Runner / Verdaccio / Mailpit
 
-> as-built 记录（2026-07-11）。重建环境或内网平移时，本册就是安装手册；已踩过的坑直接标注在对应步骤旁。
+> 基础设施 as-built 记录（2026-07-11）+ v3 角色注记（2026-07-14）。重建环境或内网平移时，本册就是安装手册；标为“未来/待验证”的 Loop 能力尚未上线。
 
 ## 1. 拓扑与端口总表
 
@@ -27,10 +27,10 @@
 | 账号 | 位置 | 用途 | 关键约束 |
 |------|------|------|----------|
 | `admin` | Gitea | 你本人：合并 PR、管仓库 | 唯一有合并权的角色 |
-| `ci-bot` | Gitea | agent 的 API/git 身份 | PAT `agent-20260710`，scopes 仅 `write:issue` + `write:repository`；是仓库 Write 协作者；**被分支保护挡在 main 外** |
+| `ci-bot` | Gitea | analyzer / Loop 的 API 与 feature-branch Git 身份 | PAT `agent-20260710`，scopes 仅 `write:issue` + `write:repository`；是仓库 Write 协作者；**被分支保护挡在 main 外** |
 | `git` | VM 系统用户 | 跑 Gitea 进程 | — |
 | `gitea-runner` | VM 系统用户 | 跑 act_runner + PM2 测试环境 | `/opt/rsdesign-test`、`/opt/artifacts` 属主 |
-| `coder` | VM 系统用户 | 跑 agent 脚本与 claude CLI | `~/.agent.env`（600）、linger 已开 |
+| `coder` | VM 系统用户 | 跑 analyzer；未来承载 provider-neutral Loop controller | `~/.agent.env`（600）、linger 已开；当前 Loop 未启用 |
 | `benque` | VM 默认用户 | 运维操作、免密 sudo | 凭据文件在其家目录 |
 
 > 🕳️ 踩坑 #8：**Gitea 管理员创建的用户默认 `must_change_password=true`**——改密前该用户所有 API 返回 403（正文 "You must change your password"）。解法：`PATCH /api/v1/admin/users/{u}`，body 带 `{login_name, source_id, must_change_password:false}`。
@@ -44,7 +44,12 @@
 - 仓库 `admin/rsdesign-new`：公开；默认分支 `main`；**分支保护**：
   - 禁止直接 push（对所有人生效，含 admin——一切走 PR）
   - 必须状态检查通过：context = `CI / test (pull_request)`
-- 七个流程标签：`needs-analysis / awaiting-triage / spec-drafting / spec-review / approved / pr-open / deployed`
+- 当前 as-built 仍只有七个流程标签：`needs-analysis`、`awaiting-triage`、`spec-drafting`、`spec-review`、`approved`、`pr-open`、`deployed`。`needs-analysis` 触发分析；`approved` 在 v3 计划中用于启动 Loop；其余标签描述协作状态，不再构成三道硬闸门。
+- v3 目标标签共 16 个，分为三个正交维度：
+  - 七个类型标签：`type/bugfix`、`type/feature`、`type/docs`、`type/test`、`type/refactor`、`type/maintenance`、`type/platform`。
+  - 两个复杂度标签：`complexity/small`、`complexity/complex`；由 AI 判定有效路径，无法安全判级时两个都不写。
+  - 上述七个流程状态标签。
+- 这九个新增 `type/*` 和 `complexity/*` 标签尚未在当前 Gitea 创建或做运行时验证；Issue #8 的 wrapper/controller 工作完成并通过测试前，不得把本目标清单写成已上线状态。
 - `app.ini` 追加段（邮件，详见 [05](05-通知与多人协作.md)）：
 
 ```ini

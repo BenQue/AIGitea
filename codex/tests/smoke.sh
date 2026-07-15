@@ -47,4 +47,17 @@ for template in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
 done
 ! rg -n 'complexity_recommendation:' "$ROOT/templates/docs/changes/_template" || exit 1
 
+grep -Fq 'type/feature' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
+grep -Fq 'complexity/complex' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
+grep -Fq 'requested_complexity' "$ROOT/04-Agent编排与定时任务.md"
+grep -Fq '功能性更改' "$ROOT/AGENTS.md"
+
+if rg -n 'complexity_recommendation|最终 `complexity` 由人|人确认 Issue 验收标准与 complexity=small' \
+  "$ROOT/AGENTS.md" "$ROOT/README.md" \
+  "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md" \
+  "$ROOT/04-Agent编排与定时任务.md"; then
+  echo '检测到旧的人工确认或复杂度建议合同' >&2
+  exit 1
+fi
+
 echo 'Codex platform static smoke checks passed.'
