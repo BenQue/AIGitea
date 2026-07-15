@@ -35,28 +35,81 @@ analyze_skill="$ROOT/codex/skills/gitea-analyze-change/SKILL.md"
 spec_skill="$ROOT/codex/skills/gitea-spec-plan/SKILL.md"
 loop_skill="$ROOT/codex/skills/gitea-development-loop/SKILL.md"
 
-for heading in \
-  '## 问题/需求总结' \
-  '## 影响范围' \
-  '## 初步方案与建议' \
-  '## 风险' \
-  '## AI 判级'; do
-  grep -Fq "$heading" "$analyze_skill"
-done
+declared_analyzer_headings="$(
+  awk '
+    /Produce exactly these five level-two Markdown sections/ {
+      in_output_section_list = 1
+      next
+    }
+    in_output_section_list && /^[0-9]+\./ { exit }
+    in_output_section_list && match($0, /`## [^`]+`/) {
+      print substr($0, RSTART + 1, RLENGTH - 2)
+    }
+  ' "$analyze_skill"
+)"
+expected_analyzer_headings="$(
+  printf '%s\n' \
+    '## 问题/需求总结' \
+    '## 影响范围' \
+    '## 初步方案与建议' \
+    '## 风险' \
+    '## AI 判级'
+)"
+if [[ "$declared_analyzer_headings" != "$expected_analyzer_headings" ]]; then
+  echo 'Analyzer 输出节列表必须且只能按规定顺序包含五个二级标题' >&2
+  exit 1
+fi
 if grep -Fq '## 复杂度建议' "$analyze_skill"; then
   exit 1
 fi
 
-for field in \
+classification_schema="$(
+  awk '
+    /emit one YAML block using this schema and field order:/ {
+      waiting_for_schema = 1
+      next
+    }
+    waiting_for_schema && $0 == "```yaml" {
+      in_schema = 1
+      next
+    }
+    in_schema && $0 == "```" { exit }
+    in_schema { print }
+  ' "$analyze_skill"
+)"
+classification_fields="$(
+  awk -F: '/^[a-z_]+:/ { print $1 }' <<<"$classification_schema"
+)"
+expected_classification_fields="$(
+  printf '%s\n' \
+    change_type \
+    requested_complexity \
+    assessed_complexity \
+    effective_complexity \
+    contract_effect \
+    reason \
+    risk_flags \
+    required_docs \
+    confidence \
+    override_reason
+)"
+if [[ "$classification_fields" != "$expected_classification_fields" ]]; then
+  echo 'Analyzer 分类 YAML 必须按规定顺序包含全部顶层字段' >&2
+  exit 1
+fi
+
+for sample_field in \
   'change_type: bugfix' \
   'requested_complexity: auto' \
   'assessed_complexity: small' \
   'effective_complexity: small' \
   'contract_effect: restore' \
+  'reason: 恢复已经明确的既有行为' \
+  'risk_flags: []' \
   'required_docs:' \
   'confidence: high' \
   "override_reason: ''"; do
-  grep -Fq "$field" "$analyze_skill"
+  grep -Fxq "$sample_field" <<<"$classification_schema"
 done
 
 grep -Fq 'needs-human-decision' "$analyze_skill"

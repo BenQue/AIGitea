@@ -5,12 +5,12 @@ description: Drive a contract-ready Gitea Issue through a bounded implement-veri
 
 # Run a Gitea development loop
 
-1. Read `AGENTS.md`, the Issue and valid comments, `00-summary.md`, and any persisted Loop state.
+1. Read `AGENTS.md`, the Issue and valid comments, `00-summary.md`, and any persisted Loop state. For complex work, also read `01-spec.md` and `02-plan.md` in full before making any edit.
 2. Validate the contract before editing:
    - require measurable Issue acceptance criteria for `small`;
-   - require `01-spec.md` and `02-plan.md` for `complex`;
+   - for `complex`, require both `01-spec.md` and `02-plan.md`; validate that their metadata says `effective_complexity: complex`, the spec has measurable acceptance criteria and no unresolved material decisions, and the plan maps in-scope tasks and deterministic verification to those criteria;
    - require `03-verification.md` work for deployment or migration scope;
-   - stop if documents conflict or contain unresolved material decisions.
+   - stop if the Issue, summary, spec, and plan conflict, omit required scope, or contain unresolved material decisions.
 3. Before every edit, recompute `contract_effect` and all forced-complex risk conditions from the current Issue contract and repository evidence. Do not trust a stale `complexity/small` label or summary field.
 4. If a small contract now has `contract_effect` of `add` or `change`, or crosses any forced risk (schema/data migration, external contract, authentication/authorization/security, shared core component, cross-module/service, CI/artifact/deployment/rollback, or Agent/platform governance), make no further edits and return:
 

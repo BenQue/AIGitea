@@ -18,7 +18,7 @@
 - lockfile、包管理源和固定运行时版本。
 - 能检查关键依赖的健康端点。
 
-文档 front matter 至少包含 `issue`、`gitea_url`、`complexity`、`status`、`branch`、`pr_url`、`created` 和 `updated`。
+文档 front matter 至少包含 `issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`pr_url`、`created` 和 `updated`。
 
 ## 3. CI 与部署
 
