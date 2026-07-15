@@ -5,19 +5,60 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 command -v rg >/dev/null
 
-for script in "$ROOT"/codex/agent/*.sh "$ROOT"/codex/install-vm.sh; do
-  bash -n "$script"
+optional_runtime_sources=(
+  "$ROOT/codex/agent/analyze-codex.sh"
+  "$ROOT/codex/agent/common.sh"
+  "$ROOT/codex/agent/implement-codex.sh"
+  "$ROOT/codex/agent/provider-poll.sh"
+  "$ROOT/codex/agent/spec-start-codex.sh"
+  "$ROOT/codex/install-vm.sh"
+)
+runtime_source_count=0
+for script in "${optional_runtime_sources[@]}"; do
+  if [[ -f "$script" ]]; then
+    bash -n "$script"
+    runtime_source_count=$((runtime_source_count + 1))
+  fi
 done
+if ((runtime_source_count == 0)); then
+  echo 'SKIP: optional untracked codex/agent runtime sources and codex/install-vm.sh are absent.'
+fi
 
 bash -n "$ROOT/codex/tools/sync-gitea-labels.sh"
+bash -n "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 if command -v shellcheck >/dev/null; then
-  shellcheck "$ROOT/codex/tools/sync-gitea-labels.sh"
+  shellcheck \
+    "$ROOT/codex/tools/sync-gitea-labels.sh" \
+    "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 fi
+bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 
 jq -e '
   length == 16 and
   (map(.name) | unique | length == 16) and
-  all(.[]; (.name | length > 0) and (.color | test("^[0-9a-fA-F]{6}$")))
+  (map(.name) | sort) == [
+    "approved",
+    "awaiting-triage",
+    "complexity/complex",
+    "complexity/small",
+    "deployed",
+    "needs-analysis",
+    "pr-open",
+    "spec-drafting",
+    "spec-review",
+    "type/bugfix",
+    "type/docs",
+    "type/feature",
+    "type/maintenance",
+    "type/platform",
+    "type/refactor",
+    "type/test"
+  ] and
+  all(.[];
+    (.name | length > 0) and
+    (.description | type == "string" and length > 0) and
+    (.color | test("^[0-9a-fA-F]{6}$"))
+  )
 ' "$ROOT/codex/config/gitea-labels.json" >/dev/null
 
 if rg -n -g '!**/tests/smoke.sh' 'dangerously-bypass|--yolo|danger-full-access' "$ROOT/codex"; then
@@ -35,10 +76,18 @@ done
 [[ -f "$ROOT/skill-for-codex/agents/openai.yaml" ]]
 grep -Fq '/mnt/mac/Users/benque/Documents/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
 
-grep -Fq "ANALYSIS_PROVIDER=\"\${ANALYSIS_PROVIDER:-claude}\"" "$ROOT/codex/agent/provider-poll.sh"
-grep -Fq "IMPLEMENT_PROVIDER=\"\${IMPLEMENT_PROVIDER:-none}\"" "$ROOT/codex/agent/provider-poll.sh"
-grep -Fq "if [[ \"\$sandbox\" == read-only" "$ROOT/codex/agent/common.sh"
-grep -Fq "args+=(--add-dir \"\$platform_docs\")" "$ROOT/codex/agent/common.sh"
+if [[ -f "$ROOT/codex/agent/provider-poll.sh" ]]; then
+  grep -Fq "ANALYSIS_PROVIDER=\"\${ANALYSIS_PROVIDER:-claude}\"" "$ROOT/codex/agent/provider-poll.sh"
+  grep -Fq "IMPLEMENT_PROVIDER=\"\${IMPLEMENT_PROVIDER:-none}\"" "$ROOT/codex/agent/provider-poll.sh"
+else
+  echo 'SKIP: optional runtime contract checks for codex/agent/provider-poll.sh.'
+fi
+if [[ -f "$ROOT/codex/agent/common.sh" ]]; then
+  grep -Fq "if [[ \"\$sandbox\" == read-only" "$ROOT/codex/agent/common.sh"
+  grep -Fq "args+=(--add-dir \"\$platform_docs\")" "$ROOT/codex/agent/common.sh"
+else
+  echo 'SKIP: optional runtime contract checks for codex/agent/common.sh.'
+fi
 grep -Fq 'READY_FOR_REVIEW' "$ROOT/codex/skills/gitea-development-loop/SKILL.md"
 grep -Fq '生产环境只运行' "$ROOT/AGENTS.md"
 
@@ -132,6 +181,50 @@ grep -Fq 'effective_complexity: complex' "$spec_skill"
 grep -Fq 'NEEDS_HUMAN_DECISION' "$loop_skill"
 grep -Fq 'NEXT: reclassify as complex and create spec/plan' "$loop_skill"
 
+safe_classification_fields="$expected_classification_fields"
+unclear_classification_fields="$(
+  printf '%s\n' \
+    change_type \
+    requested_complexity \
+    assessed_complexity \
+    contract_effect \
+    reason \
+    risk_flags \
+    required_docs \
+    confidence \
+    override_reason
+)"
+
+fixture_fields() {
+  awk -F: '/^[a-z_]+:/ { print $1 }' "$1"
+}
+
+fixture_required_docs() {
+  awk '
+    /^required_docs:/ { in_docs = 1; next }
+    in_docs && /^  - / { sub(/^  - /, ""); print; next }
+    in_docs { exit }
+  ' "$1"
+}
+
+small_fixture="$ROOT/codex/tests/fixtures/classification/small.yaml"
+complex_fixture="$ROOT/codex/tests/fixtures/classification/complex.yaml"
+unclear_fixture="$ROOT/codex/tests/fixtures/classification/unclear.yaml"
+
+[[ "$(fixture_fields "$small_fixture")" == "$safe_classification_fields" ]]
+[[ "$(fixture_fields "$complex_fixture")" == "$safe_classification_fields" ]]
+[[ "$(fixture_fields "$unclear_fixture")" == "$unclear_classification_fields" ]]
+grep -Fxq 'effective_complexity: small' "$small_fixture"
+grep -Fxq 'effective_complexity: complex' "$complex_fixture"
+if grep -Eq '^effective_complexity:' "$unclear_fixture"; then
+  echo 'Unclear classification fixture must omit effective_complexity' >&2
+  exit 1
+fi
+grep -Fxq 'contract_effect: unclear' "$unclear_fixture"
+[[ "$(fixture_required_docs "$small_fixture")" == '00-summary.md' ]]
+[[ "$(fixture_required_docs "$unclear_fixture")" == '00-summary.md' ]]
+[[ "$(fixture_required_docs "$complex_fixture")" == $'00-summary.md\n01-spec.md\n02-plan.md' ]]
+
 for template in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
   file="$ROOT/templates/docs/changes/_template/$template"
   front_matter="$(
@@ -147,6 +240,13 @@ for template in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
   done
 done
 ! rg -n 'complexity_recommendation:' "$ROOT/templates/docs/changes/_template" || exit 1
+
+summary_template="$ROOT/templates/docs/changes/_template/00-summary.md"
+grep -Fq 'WRAPPER_CONDITIONAL' "$summary_template"
+grep -Fq 'delete every' "$summary_template"
+grep -Fq "\`effective_complexity:\` key from both the front matter and the \`## AI 判级\`" "$summary_template"
+grep -Eq '^reason:' "$summary_template"
+grep -Eq '^required_docs:' "$summary_template"
 
 grep -Fq 'type/feature' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
 grep -Fq 'complexity/complex' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"

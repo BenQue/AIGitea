@@ -9,14 +9,14 @@
 
 - [x] Phase D1：`AGENTS.md` 与 `README.md` 权威契约。
 - [x] Phase D2：Issue/spec/plan 与 Development Loop 分册。
-- [x] Phase D3：部署、运维、通知和内网边界。
+- [ ] Phase D3：部署、运维、通知和内网边界；当前 HEAD 的 `05`、`07` 仍含 v2 as-built/迁移术语，尚未完成 v3 统一。
 - [x] Phase D4：Codex skills、复合 skill、VM 全局指导、onboarding 与 canonical templates。
 - [x] Phase D5 文档/skill 部分：front matter、metadata、shell smoke、关键词检查和两项只读 forward test。
 - [x] AI 判级增补：权威合同、canonical templates、Codex skills、16 个 Gitea 标签与 `rsdesign-new` Issue #8 complex 试点合同。
 - [ ] Loop controller、analyzer 单分支改造、真实 Issue、CI feedback 和非生产首次部署验证。
 - [ ] Codex 验证完成后的 Claude Code adapter 与 parity 验证。
 
-本轮完成证据：中央分支提交至 `6aa8e07`；试点分支 `change/8` 提交 `ee5e9e1` 并已推送；Gitea 标签同步第二次结果为 `created=0 existing=16`；Issue #8 已读回为 `type/platform`、`complexity/complex`、`spec-drafting`，并写入 AI 判级审计评论。中央 smoke、六个 skill 校验、四份模板 parity 和试点合同静态检查均通过。VM skills 安装、controller 启动、真实 small/complex Loop、CI feedback 和 Claude Code parity 均未执行。
+本轮完成证据：Task 0–6 的中央提交记录见 `10`；试点分支 `change/8` 提交 `ee5e9e1` 并已推送；Gitea 标签同步第二次结果为 `created=0 existing=16`；Issue #8 已读回为 `type/platform`、`complexity/complex`、`spec-drafting`，并写入 AI 判级审计评论。中央 smoke、六个 skill 校验、四份模板 parity 和试点合同静态检查需要在最终 review fix 提交的干净 checkout 中再次通过后才能作为可复现完成证据。VM skills 安装、controller 启动、真实 small/complex Loop、CI feedback 和 Claude Code parity 均未执行。
 
 ## 1. 规划目标
 

@@ -59,7 +59,7 @@ docs/changes/N/
 └── 03-verification.md  # deploy/migration 必须，其他推荐
 ```
 
-统一 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`pr_url`、`created`、`updated`。无法安全判级时 `assessed_complexity` 为 `needs-human-decision` 并省略 `effective_complexity`。
+所有 change 文档的共同 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`pr_url`、`created`、`updated`；complex 的 spec/plan/verification 固定使用 `effective_complexity: complex`。`00-summary.md` 另外完整保存 analyzer schema 的 `reason`、`required_docs` 和 `override_reason`。无法安全判级时，summary 的 `assessed_complexity` 为 `needs-human-decision`，并从 front matter 与 `## AI 判级` YAML 同时省略整个 `effective_complexity` key，不保留空值或 placeholder；其他 complex 文档尚不得创建。
 
 `01-spec.md` 必须定义目标、可测验收标准、接口/数据/兼容影响和非目标。`02-plan.md` 必须把每条验收标准映射到有序任务、文件和验证命令。Loop 不得自行修改已经确认的 acceptance criteria 或扩大范围。
 
@@ -134,8 +134,9 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
 
 ## 9. 当前实施状态
 
-- AI 自动分析和七个标签保留。
-- 七个 `type/*` 与两个 `complexity/*` 是 v3 目标合同，尚未在当前 Gitea 和 v2 wrapper 上创建、测试或启用。
+- AI 自动分析和七个流程状态标签保留。
+- 七个 `type/*` 与两个 `complexity/*` 已于 2026-07-15 在当前本地 Gitea provision 并读回；第二次同步为 `created=0 existing=16`，Issue #8 当时读回 `type/platform`、`complexity/complex`、`spec-drafting`。外部状态可能漂移，使用前仍须重新 GET。
+- 当前 v2 wrapper 尚未消费新分类字段，标签的 runtime routing 未启用。
 - 现有 one-shot 自动实现仍停用。
 - Development Loop、单分支 analyzer 和 CI feedback adapter 尚未实现。
 - 在 Codex 真实 Issue 验证通过前，不启用 Claude Code Loop。

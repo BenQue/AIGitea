@@ -11,7 +11,7 @@ description: Turn a complex analyzed Gitea Issue into a testable 01-spec.md and 
 4. Keep the run document-only. Do not change product code, schema, workflows, deployment scripts, labels, or PR state.
 5. Write `01-spec.md` with goal, rationale, measurable acceptance criteria, interface/data/migration/compatibility effects, risks, and explicit non-goals.
 6. Write `02-plan.md` with ordered tasks, exact likely files, migration steps, test changes, verification commands, and rollback work when applicable.
-7. Preserve the shared classification metadata in front matter: `change_type`, `requested_complexity`, `assessed_complexity`, `effective_complexity: complex`, `contract_effect`, `confidence`, and `risk_flags`. Also use Issue `N`, `complexity: complex`, `branch: change/N`, and an honest status.
+7. Preserve the shared classification metadata in front matter: `change_type`, `requested_complexity`, `assessed_complexity`, `effective_complexity: complex`, `contract_effect`, `confidence`, and `risk_flags`. Also use Issue `N`, `branch: change/N`, and an honest status. Do not add a legacy unnamespaced `complexity:` field.
 8. Map every acceptance criterion to at least one planned deterministic check or final human review item.
 9. For CI, deployment, migration, backup, health-check, or rollback changes, require a planned `03-verification.md` with two repeat deployments and one deliberate failure/rollback exercise.
 10. Stop after the documents and list unresolved decisions. Do not open a docs-only PR; `approved` may be set only after the contract is complete.

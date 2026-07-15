@@ -95,9 +95,9 @@ sequenceDiagram
     G->>U: 📬 邮件通知(Mailpit);issue 被 Closes 自动关闭
 ```
 
-**实施状态**：AI 自动分析仍可用；Development Loop 目前只是 v3 合同，现有 one-shot 实现腿保持停用。Codex 验证完成前不得启用 Claude Code Loop 或生产相关自动操作。
+**实施状态**：AI 自动分析仍可用；Development Loop 目前只是 v3 合同，现有 one-shot 实现腿保持停用。Codex 验证完成前不得启用 Claude Code Loop 或生产相关自动操作。当前 HEAD 的 `05`、`07` 仍保留部分 v2 as-built/迁移说明，其中“三道闸门”等旧术语不代表 v3 当前合同；Phase D3 的通知与内网分册迁移尚未完成。
 
-标签采用三个正交维度：七个 `type/*` 描述变更是什么，两个 `complexity/*` 记录 AI 判定所需路径，七个流程状态标签描述当前阶段。`complexity/small` 不能绕过强制复杂规则；无法安全判级时不添加 complexity 标签。该 v3 标签扩展尚未部署到当前运行环境。
+标签采用三个正交维度：七个 `type/*` 描述变更是什么，两个 `complexity/*` 记录 AI 判定所需路径，七个流程状态标签描述当前阶段。`complexity/small` 不能绕过强制复杂规则；无法安全判级时不添加 complexity 标签。16-label taxonomy 已于 2026-07-15 在当前本地 Gitea provision 并读回，幂等复验为 `created=0 existing=16`；Issue #8 当时读回 `type/platform`、`complexity/complex`、`spec-drafting`。这是可漂移的外部状态，操作前仍应重新 GET；当前 v2 wrapper 尚未消费这些字段，runtime routing 未启用。
 
 ## 5. 文档导航
 

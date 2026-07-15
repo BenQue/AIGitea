@@ -1,0 +1,11 @@
+change_type: bugfix
+requested_complexity: auto
+assessed_complexity: small
+effective_complexity: small
+contract_effect: restore
+reason: 恢复已经明确的既有行为
+risk_flags: []
+required_docs:
+  - 00-summary.md
+confidence: high
+override_reason: ''

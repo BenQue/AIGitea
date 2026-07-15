@@ -20,6 +20,7 @@ NEXT: reclassify as complex and create spec/plan
 ```
 
 5. Work only in the controller-provided isolated `change/N` worktree. Do not manage locks, credentials, labels, PRs, documents, or deployment. Classification and lifecycle mutations belong to the wrapper/controller.
+   - Never edit an `AGENTS.md` that governs the current Loop run. If a complex contract changes that governance file, produce only a patch/proposal for an independent controlled governance step; after it is applied, a fresh run must validate and adopt the new rules.
 6. Select the smallest next incomplete plan task or acceptance criterion.
 7. Implement the minimal in-scope change and add or update tests.
 8. Run the controller-assigned deterministic checks. Treat real command output as authoritative.

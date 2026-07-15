@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Do not inherit caller-provided xtrace across credential loading or API calls.
+# The token is intentionally transported to curl through stdin configuration,
+# never through argv, stdout, or stderr.
+set +x
+
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 MANIFEST="$ROOT/codex/config/gitea-labels.json"
 ENV_FILE="${AGENT_ENV_FILE:-$HOME/.agent.env}"
@@ -13,7 +18,8 @@ fi
 # The environment file is trusted configuration. Suppress its standard output so
 # this command's successful output remains a single machine-readable summary.
 # shellcheck disable=SC1090
-source "$ENV_FILE" >/dev/null
+source "$ENV_FILE" >/dev/null 2>&1
+set +x
 
 require_env() {
   local name
@@ -37,10 +43,14 @@ if ! command -v curl >/dev/null; then
 fi
 
 API="${GITEA_URL%/}/api/v1/repos/$GITEA_OWNER/$GITEA_REPO"
-AUTH_HEADER="Authorization: token $GITEA_TOKEN"
+
+curl_with_auth() {
+  printf 'header = "Authorization: token %s"\n' "$GITEA_TOKEN" |
+    curl --config - "$@"
+}
+
 current_labels="$(
-  curl --fail --silent --show-error \
-    --header "$AUTH_HEADER" \
+  curl_with_auth --fail --silent --show-error \
     "$API/labels?limit=100"
 )"
 
@@ -53,10 +63,9 @@ while IFS= read -r label; do
     continue
   fi
 
-  curl --fail --silent --show-error \
+  curl_with_auth --fail --silent --show-error \
     --output /dev/null \
     --request POST \
-    --header "$AUTH_HEADER" \
     --header 'Content-Type: application/json' \
     --data "$label" \
     "$API/labels"
