@@ -656,3 +656,16 @@ Report separately:
 - Claude Code update remains after Codex validation.
 
 Do not mark Issue #8 `approved`, open the final PR, install skills on the VM, or start the controller as part of this plan.
+
+---
+
+## Final branch review remediation
+
+- [x] Central smoke 不再依赖 HEAD 未跟踪的 runtime sources，并在 `f553422` 的干净 checkout 中复验通过。
+- [x] README、`01`、`03`、`09` 已区分 live 16-label taxonomy 与尚未启用的 v2 wrapper/runtime routing。
+- [x] `00-summary.md`、analyzer/spec/implementation skills 与 small/complex/unclear golden fixtures 已统一 safe/unresolved schema。
+- [x] 普通 worker 的 governing `AGENTS.md` self-mod 边界已在中央 skills 中统一；试点合同把 fresh controlled governance run 记录为进入 `approved` 前的阻塞动作。
+- [x] Gitea token 改由 curl stdin config 传递，sentinel mock 已验证 argv/stdout/stderr 不含 secret，且双次同步幂等、无 PATCH/DELETE。
+- [x] Manifest smoke 锁定 16 个精确名称、六位颜色与非空描述。
+
+Deferred runtime prerequisite：试点 `AGENTS.md` 必须在后续 fresh controlled governance run 中应用已批准 proposal，并由另一个 fresh run 复核；本计划不修改该 governing 文件，也不把 Issue #8 标记为 `approved`。

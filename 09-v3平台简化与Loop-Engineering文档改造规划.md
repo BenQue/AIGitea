@@ -16,7 +16,7 @@
 - [ ] Loop controller、analyzer 单分支改造、真实 Issue、CI feedback 和非生产首次部署验证。
 - [ ] Codex 验证完成后的 Claude Code adapter 与 parity 验证。
 
-本轮完成证据：Task 0–6 的中央提交记录见 `10`；试点分支 `change/8` 提交 `ee5e9e1` 并已推送；Gitea 标签同步第二次结果为 `created=0 existing=16`；Issue #8 已读回为 `type/platform`、`complexity/complex`、`spec-drafting`，并写入 AI 判级审计评论。中央 smoke、六个 skill 校验、四份模板 parity 和试点合同静态检查需要在最终 review fix 提交的干净 checkout 中再次通过后才能作为可复现完成证据。VM skills 安装、controller 启动、真实 small/complex Loop、CI feedback 和 Claude Code parity 均未执行。
+本轮完成证据：Task 0–6 的中央提交记录见 `10`；试点分支 `change/8` 最新合同提交 `2f9a4b9` 已推送；Gitea 标签同步第二次结果为 `created=0 existing=16`；Issue #8 已读回为 `type/platform`、`complexity/complex`、`spec-drafting`，并写入 AI 判级审计评论。最终 review fix 提交 `f553422` 已通过仅含 HEAD 跟踪文件的干净 checkout 验证：optional runtime sources 缺失时 central smoke 通过、token mock 回归通过、ShellCheck 通过、六个 skill 全部有效；中央/试点四份模板 parity 与试点合同静态检查也通过。VM skills 安装、controller 启动、真实 small/complex Loop、CI feedback 和 Claude Code parity 均未执行。
 
 ## 1. 规划目标
 
