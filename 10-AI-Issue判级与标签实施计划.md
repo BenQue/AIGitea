@@ -145,7 +145,7 @@ git -C /Users/benque/Projects/rsdesign-new worktree add \
 
 Expected: a clean worktree on `change/8`; the existing `/Users/benque/Projects/rsdesign-new` checkout remains on `change/4` with its untracked `.DS_Store` files untouched.
 
-- [x] **Step 2: Replace the project governance rules**
+- [x] **Step 2: Replace the project governance rules（历史执行；self-mod 条款已被最终审查 supersede）**
 
 Use `apply_patch` to replace the current “每个改动必须有 spec/plan” and protected-file bullets with these exact rules while preserving all project commands, Prisma constraints, UI conventions and credential rules:
 
@@ -165,6 +165,8 @@ Replace the branch rule with:
 - 变更分支: `change/<N>`（summary、spec/plan、代码和验证共用）；旧 `spec/<N>` 只用于历史兼容
 - 提交信息: `<type>: <简述> (#<N>)`，type ∈ feat / fix / chore / docs / refactor / test
 ```
+
+审计说明：该步骤确实在 pilot 提交 `ee5e9e1` 中修改了 governing `AGENTS.md`。最终整分支审查判定其中“同一次运行可修改但不立即采用”的 self-mod 条款弱于中央安全模型，因此该部分不能作为后续执行先例。remediation 提交 `2f9a4b9` 没有再次修改 `AGENTS.md`，只把 fresh controlled governance run 记录为进入 `approved` 前的阻塞动作。
 
 - [x] **Step 3: Install the four canonical project templates**
 
@@ -668,4 +670,4 @@ Do not mark Issue #8 `approved`, open the final PR, install skills on the VM, or
 - [x] Gitea token 改由 curl stdin config 传递，sentinel mock 已验证 argv/stdout/stderr 不含 secret，且双次同步幂等、无 PATCH/DELETE。
 - [x] Manifest smoke 锁定 16 个精确名称、六位颜色与非空描述。
 
-Deferred runtime prerequisite：试点 `AGENTS.md` 必须在后续 fresh controlled governance run 中应用已批准 proposal，并由另一个 fresh run 复核；本计划不修改该 governing 文件，也不把 Issue #8 标记为 `approved`。
+Deferred runtime prerequisite：Task 1 的 `ee5e9e1` 曾修改试点 `AGENTS.md`，但其 self-mod 条款已被最终审查 supersede。本次 final-review remediation 没有再次修改该 governing 文件；后续必须由 fresh controlled governance run 应用已批准 proposal，并由另一个 fresh run 复核。在此之前不把 Issue #8 标记为 `approved`。
