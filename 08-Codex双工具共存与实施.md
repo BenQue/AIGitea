@@ -1,6 +1,6 @@
 # 08 · Codex-first Development Loop 与 Claude Code 共存计划
 
-> 版本：v3.0 Codex runtime candidate ｜ 日期：2026-07-16 ｜ 状态：provider-neutral Loop controller、analyzer、state/lock、verifier、Gitea adapter 和 72 项 synthetic 回归已实现；VM 安装、真实 Issue、真实 CI feedback 与非生产部署尚未验证。Claude Code 在 Codex 全矩阵通过后同步。
+> 版本：v3.0 Codex runtime candidate ｜ 日期：2026-07-16 ｜ 状态：provider-neutral runtime、72 项 synthetic、VM 禁用式安装和真实 complex Issue #8 PR/CI 已通过；真实 small、真实 CI failure feedback 与非生产部署仍待验证。Claude Code 在 Codex 全矩阵通过后同步。
 
 ## 1. 结论
 
@@ -54,15 +54,22 @@ Codex 和 Claude Code 只替换模型执行器，不各自复制标签状态机�
 - small/complex/unclear、explicit override、范围升级、同因三次、pending/failed CI feedback 和四种终态的 synthetic tests。
 - 安装幂等、xtrace/argv token 防泄漏和 Claude implementation parity gate 的 mock 回归。
 
+真实环境已完成：
+
+- 临时 HOME 两次安装清单一致；正式 VM 安装前建立回滚备份，timer 停止且 `IMPLEMENT_PROVIDER=none`。
+- Issue #8 one-shot Loop 完成本地 `npm ci`、Prisma generate、unit tests、production build，并创建 PR #9。
+- PR #9 CI 通过，controller 返回 `READY_FOR_REVIEW`；未自动合并、未部署。
+- 首次 VM 运行捕获 worktree 命令输出污染，中央提交 `bb0d5d5` 修复并增加 shell 回归后重装、重跑通过。
+
 仍未完成：
 
-- 真实 small/complex Issue 的 Codex 闭环。
+- 真实 small Issue 的 Codex 闭环。
 - 真实 Gitea PR CI failure feedback。
-- Runtime 在 gitea-ci VM 的备份、安装、停止/恢复验证。
+- timer 恢复前的完整 small/complex 自动轮询验收。
 - 非生产首次部署与故意失败回滚验证。
 - Claude adapter 与 parity 验证。
 
-> **安装暂停（Issue #8）**：中央 source 与 synthetic 已通过，但当前 VM analyzer wrapper 仍是 v2。必须先重新读取 VM 基线、做临时 HOME 两次安装和回滚准备，再安装 candidate；安装后仍保持 timer 停止或 `IMPLEMENT_PROVIDER=none`，直到真实 small/complex 验证按序完成。
+> **当前启用边界（Issue #8）**：候选文件已安装，但 systemd 明确保持 `ANALYSIS_PROVIDER=claude`、`IMPLEMENT_PROVIDER=none`，timer 为 inactive。真实 small、CI failure feedback 和非生产回滚未全绿前，只允许显式 one-shot 验证，不启用自动实现轮询。
 
 ## 5. Codex skills 映射
 

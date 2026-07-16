@@ -1,6 +1,6 @@
 # 09 · v3 平台简化与 Loop Engineering 文档改造规划
 
-> 状态：**Codex Loop runtime candidate 与 synthetic matrix 已实现；VM、真实 Issue、CI feedback 和非生产部署验证未完成**
+> 状态：**Codex runtime、synthetic、VM 禁用式安装和真实 complex Issue #8 PR/CI 已完成；真实 small、CI failure feedback 与非生产部署验证未完成**
 > 日期：2026-07-16
 > 适用范围：AISoftPlatform 平台文档、平台 skills 与 agent 编排说明
 > 当前约束：v3 文档契约现已生效；现有 analyzer/agent 脚本和 VM 运行状态仍是 v2 as-built，必须以各册“当前实施状态”为准，不得把 Loop 写成已上线。
@@ -15,10 +15,12 @@
 - [x] AI 判级增补：权威合同、canonical templates、Codex skills、16 个 Gitea 标签与 `rsdesign-new` Issue #8 complex 试点合同。
 - [x] Loop runtime source：analyzer 单分支、classification/contract、state/lock、Codex adapter、verifier、Gitea adapter、controller 与安装入口。
 - [x] Synthetic matrix：72 项 Python tests、ShellCheck、安装幂等、token 防泄漏、scope escalation、CI feedback 和终态回归。
-- [ ] 真实 Issue、真实 PR CI feedback、VM candidate 安装与非生产首次部署验证。
+- [x] VM candidate 临时/正式安装、回滚备份与 provider/timer 禁用边界验证。
+- [x] 真实 complex Issue #8：one-shot Loop、deterministic verifier、PR #9 和 CI success 到 `READY_FOR_REVIEW`。
+- [ ] 真实 small Issue、真实 PR CI failure feedback 与非生产首次部署/回滚验证。
 - [ ] Codex 验证完成后的 Claude Code adapter 与 parity 验证。
 
-前序分类合同证据见 `10`。2026-07-16 中央分支 `codex/v3-loop-runtime` 已实现 runtime candidate；`bash codex/tests/smoke.sh` 运行 72 项 Python tests、ShellCheck、label sync mock、安装幂等和 token 防泄漏回归并通过。试点治理提交 `571cf83` 与合同提交 `4482792` 已推送；fresh 无网络本地 verifier 通过 AC-8，外部模型 review 因私有内容外发策略被拒绝并记录为 `NOT RUN`。Issue #8 随后读回为 open，标签精确为 `type/platform`、`complexity/complex`、`approved`。这些 Gitea/VM 状态均可漂移，下一次操作前仍需重新 GET。VM candidate 安装、真实 small/complex、真实 CI feedback、非生产部署和 Claude Code parity 仍未执行。
+前序分类合同证据见 `10`。2026-07-16 中央分支 `codex/v3-loop-runtime` 已实现 runtime candidate；`bash codex/tests/smoke.sh` 运行 72 项 Python tests、ShellCheck、label sync mock、安装幂等和 token 防泄漏回归并通过。试点治理提交 `571cf83` 与合同提交 `4482792` 已推送；fresh 无网络本地 verifier 通过 AC-8，外部模型 review 因私有内容外发策略被拒绝并记录为 `NOT RUN`。VM 临时 HOME 安装和带回滚备份的正式安装通过，systemd 保持 `ANALYSIS_PROVIDER=claude`、`IMPLEMENT_PROVIDER=none`，timer 为 inactive。首次真实 #8 运行暴露 worktree stdout 污染并返回 `BLOCKED_EXTERNAL`，中央提交 `bb0d5d5` 修复和补回归后重装；重跑完成本地确定性验证并创建 PR #9，CI 通过，controller 到达 `READY_FOR_REVIEW`。Issue #8 随后读回为 open，标签精确为 `type/platform`、`complexity/complex`、`pr-open`；没有自动合并或部署。这些 Gitea/VM 状态均可漂移，下一次操作前仍需重新 GET。真实 small、真实 CI failure feedback、非生产部署和 Claude Code parity 仍未执行。
 
 ## 1. 规划目标
 

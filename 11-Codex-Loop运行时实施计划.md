@@ -394,7 +394,7 @@
 **Interfaces:**
 - Produces: 一个真实 small PR、Issue #8 complex PR/CI、VM 可回滚安装、非生产两次幂等部署与一次故意失败回滚证据。
 
-- [ ] **Step 1: 重新 GET 外部基线**
+- [x] **Step 1: 重新 GET 外部基线**
 
   读取 VM service/timer、provider 配置、16 标签、Issue #8、开放 PR、pilot branch 和 test environment health；只记录脱敏信息。
 
@@ -402,7 +402,7 @@
 
   选择纯文档勘误或只补测试，写清可测 acceptance criteria，添加 `needs-analysis`；不得借 small Issue 改功能或治理。
 
-- [ ] **Step 3: 在临时目标安装 runtime**
+- [x] **Step 3: 在临时目标安装 runtime**
 
   先对临时 HOME 连续运行两次 `codex/install-vm.sh`，比较文件清单与 mode；再备份 VM 当前 agent 目录并安装，但保持 timer 停止和 `IMPLEMENT_PROVIDER=none`。
 
@@ -410,9 +410,11 @@
 
   观察 analyzer → approved → controller → verifier → PR → CI；人工不介入普通失败。最终必须停在 `READY_FOR_REVIEW`，不合并。
 
-- [ ] **Step 5: 运行 Issue #8 complex Loop**
+- [x] **Step 5: 运行 Issue #8 complex Loop**
 
   重新校验 spec/plan 和 `approved`，由 controller 完成范围内剩余变更、创建最终 PR并读取 CI；最终停在 `READY_FOR_REVIEW`，不自动合并。
+
+  2026-07-16 已完成：首次运行捕获 worktree stdout 污染并安全停止；`bb0d5d5` 修复和回归后，PR #9 CI 通过并停在人工合并闸门。为让版本化 verifier 配置先进入 `main`，本次先完成 complex #8，再在人工合并后继续真实 small。
 
 - [ ] **Step 6: 非生产部署与回滚验收**
 

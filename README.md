@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.0（文档契约）｜ 更新：2026-07-14 ｜ 状态：**现有 CI/部署闭环可用；Codex Development Loop 待实现与验证，Claude Code 在 Codex 验证后同步**
+> 版本：v3.0（Codex 试点验证中）｜ 更新：2026-07-16 ｜ 状态：**Codex runtime、VM 禁用式安装和 complex Issue #8 PR/CI 已验证；真实 small 与非生产部署回滚仍待完成，Claude Code 随后同步**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 1. 当前状态（2026-07-14）
+## 1. 当前状态（2026-07-16）
 
 - ✅ 基础设施：OrbStack 双 VM（gitea-ci / prod-sim）、Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
 - ✅ 流水线：PR 触发 CI；合并 main 自动「构建 → 自包含制品 → 部署测试环境 → 健康检查」
@@ -16,7 +16,7 @@
 - ✅ 邮件通知：Gitea → Mailpit（演示层），issue/PR 事件自动发信
 - ✅ Codex 基础：CLI、认证、skills、AGENTS、sandbox、provider router 已通过 VM 基础验收
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
-- ⏳ v3 运行：Codex Loop controller、真实 Issue 验证和 Claude Code adapter 尚未实施，不得写成已上线
+- 🟡 v3 运行：Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式安装；Issue #8 已由 one-shot Loop 到达 PR #9 `READY_FOR_REVIEW`，真实 small、部署回滚和 Claude adapter 尚未完成
 - ⏸️ 待办：deploy 回帖 issue、prod-sim 离线彩排、内网平移（见 [07-内网与生产平移路线](07-内网与生产平移路线.md)）
 
 ## 2. 三层架构
@@ -31,7 +31,7 @@ flowchart TB
     subgraph VM1["🖥️ gitea-ci VM(自动化中枢——无人值守)"]
         GITEA["Gitea 1.26.4<br/>仓库/issue/PR/Actions"]
         RUNNER["act_runner(host 模式)<br/>CI + 部署流水线"]
-        AGENT["coder 用户<br/>自动分析 + Development Loop（Loop 待实现）"]
+        AGENT["coder 用户<br/>自动分析 + Development Loop（候选已安装，自动实现关闭）"]
         VERD["Verdaccio<br/>npm 缓存"]
         MAIL["Mailpit<br/>邮件捕获"]
         TEST["测试环境<br/>PM2 + Next.js :3100 / Nginx :8091"]
@@ -95,9 +95,9 @@ sequenceDiagram
     G->>U: 📬 邮件通知(Mailpit);issue 被 Closes 自动关闭
 ```
 
-**实施状态**：AI 自动分析仍可用；Development Loop 目前只是 v3 合同，现有 one-shot 实现腿保持停用。Codex 验证完成前不得启用 Claude Code Loop 或生产相关自动操作。当前 HEAD 的 `05`、`07` 仍保留部分 v2 as-built/迁移说明，其中“三道闸门”等旧术语不代表 v3 当前合同；Phase D3 的通知与内网分册迁移尚未完成。
+**实施状态**：AI 自动分析仍可用；Codex Development Loop 候选已完成 synthetic、临时 HOME、VM 禁用式安装和真实 complex Issue #8 验证，PR #9 CI 通过并停在人工合并闸门。timer 仍停止，`IMPLEMENT_PROVIDER=none`，不属于无人值守上线。真实 small、非生产两次部署与故意失败回滚完成前不得启用自动实现轮询；Claude Code Loop 和生产相关自动操作仍未启用。Phase D3 的通知与内网分册已完成 v3 边界迁移。
 
-标签采用三个正交维度：七个 `type/*` 描述变更是什么，两个 `complexity/*` 记录 AI 判定所需路径，七个流程状态标签描述当前阶段。`complexity/small` 不能绕过强制复杂规则；无法安全判级时不添加 complexity 标签。16-label taxonomy 已于 2026-07-15 在当前本地 Gitea provision 并读回，幂等复验为 `created=0 existing=16`；Issue #8 当时读回 `type/platform`、`complexity/complex`、`spec-drafting`。这是可漂移的外部状态，操作前仍应重新 GET；当前 v2 wrapper 尚未消费这些字段，runtime routing 未启用。
+标签采用三个正交维度：七个 `type/*` 描述变更是什么，两个 `complexity/*` 记录 AI 判定所需路径，七个流程状态标签描述当前阶段。`complexity/small` 不能绕过强制复杂规则；无法安全判级时不添加 complexity 标签。16-label taxonomy 已于 2026-07-15 provision 并完成幂等复验。2026-07-16 Issue #8 经真实 Loop 后读回为 `type/platform`、`complexity/complex`、`pr-open`，PR #9 CI 通过且可合并；这是可漂移外部状态，后续操作前仍须重新 GET。
 
 ## 5. 文档导航
 
