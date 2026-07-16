@@ -21,12 +21,14 @@ load_agent_env() {
   source "$env_file"
   set +a
   local name
-  for name in GITEA_URL GITEA_OWNER GITEA_REPO GITEA_TOKEN AGENT_REPO_DIR; do
+  for name in GITEA_URL GITEA_OWNER GITEA_REPO GITEA_TOKEN; do
     if [[ -z "${!name:-}" ]]; then
       printf 'missing environment: %s\n' "$name" >&2
       exit 2
     fi
   done
+  AGENT_REPO_DIR="${AGENT_REPO_DIR:-$HOME/work/$GITEA_REPO}"
+  export AGENT_REPO_DIR
 }
 
 runtime_dir() {

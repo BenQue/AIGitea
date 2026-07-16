@@ -58,6 +58,12 @@ AGENT_ENV_FILE="$ENV_FILE" ANALYSIS_PROVIDER=none IMPLEMENT_PROVIDER=none \
   AISOFT_LOOP_STATE_DIR="$TEMP_ROOT/state-none" \
   "$ROOT/codex/agent/provider-poll.sh"
 
+ENV_WITH_DEFAULT_REPO="$TEMP_ROOT/agent-default-repo.env"
+grep -v '^AGENT_REPO_DIR=' "$ENV_FILE" >"$ENV_WITH_DEFAULT_REPO"
+HOME="$TARGET_HOME" AGENT_ENV_FILE="$ENV_WITH_DEFAULT_REPO" bash -c \
+  'source "$1"; load_agent_env; test "$AGENT_REPO_DIR" = "$HOME/work/$GITEA_REPO"' \
+  _ "$ROOT/codex/agent/common.sh"
+
 if AGENT_ENV_FILE="$ENV_FILE" ANALYSIS_PROVIDER=none IMPLEMENT_PROVIDER=claude \
   AISOFT_LOOP_STATE_DIR="$TEMP_ROOT/state-claude" \
   "$ROOT/codex/agent/provider-poll.sh" >/dev/null 2>&1; then
