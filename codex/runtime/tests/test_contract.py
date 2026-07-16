@@ -1,0 +1,217 @@
+from pathlib import Path
+import tempfile
+import unittest
+
+from aisoft_loop.contract import ContractError, load_contract
+
+
+SUMMARY = """---
+issue: {number}
+gitea_url: http://gitea.test/owner/repo/issues/{number}
+change_type: {change_type}
+requested_complexity: auto
+assessed_complexity: {complexity}
+effective_complexity: {complexity}
+contract_effect: {effect}
+reason: contract evidence
+risk_flags: {risk_flags}
+required_docs:
+{required_docs}
+confidence: high
+override_reason: ''
+status: analyzed
+branch: {branch}
+pr_url:
+created: 2026-07-16
+updated: 2026-07-16
+---
+
+## 问题/需求总结
+
+Bounded change.
+"""
+
+SPEC = """---
+issue: {number}
+change_type: feature
+effective_complexity: complex
+branch: change/{number}
+---
+
+# Spec
+
+## Acceptance criteria
+
+- [ ] AC-1 Observable result is verified by a command.
+
+## 未决问题
+
+无。
+"""
+
+PLAN = """---
+issue: {number}
+change_type: feature
+effective_complexity: complex
+branch: change/{number}
+---
+
+# Implementation plan
+
+## 任务分解
+
+1. Make the bounded change.
+
+## 测试与验收映射
+
+| Acceptance criterion | Verification command or review |
+|---|---|
+| AC-1 | `python3 -m unittest` |
+"""
+
+
+class ContractTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.repo = Path(self.tempdir.name)
+
+    def tearDown(self) -> None:
+        self.tempdir.cleanup()
+
+    def issue(self, number: int = 12, *, labels: list[str] | None = None, body: str | None = None) -> dict:
+        return {
+            "number": number,
+            "state": "open",
+            "title": "Bounded test change",
+            "body": body
+            or "## Acceptance criteria\n\n- [ ] Existing behavior is restored and the regression test passes.",
+            "labels": labels
+            or ["type/bugfix", "complexity/small", "approved"],
+        }
+
+    def write_contract(
+        self,
+        *,
+        number: int = 12,
+        complexity: str = "small",
+        change_type: str = "bugfix",
+        effect: str = "restore",
+        risk_flags: str = "[]",
+        branch: str | None = None,
+        spec: bool = False,
+        plan: bool = False,
+    ) -> Path:
+        directory = self.repo / "docs" / "changes" / str(number)
+        directory.mkdir(parents=True)
+        required = ["  - 00-summary.md"]
+        if complexity == "complex":
+            required.extend(("  - 01-spec.md", "  - 02-plan.md"))
+        directory.joinpath("00-summary.md").write_text(
+            SUMMARY.format(
+                number=number,
+                complexity=complexity,
+                change_type=change_type,
+                effect=effect,
+                risk_flags=risk_flags,
+                required_docs="\n".join(required),
+                branch=branch or f"change/{number}",
+            )
+        )
+        if spec:
+            directory.joinpath("01-spec.md").write_text(SPEC.format(number=number))
+        if plan:
+            directory.joinpath("02-plan.md").write_text(PLAN.format(number=number))
+        return directory
+
+    def test_small_contract_is_accepted(self) -> None:
+        self.write_contract()
+        contract = load_contract(self.repo, self.issue())
+        self.assertEqual(contract.issue_number, 12)
+        self.assertEqual(contract.effective_complexity, "small")
+        self.assertEqual(contract.required_docs, ("00-summary.md",))
+
+    def test_small_contract_requires_measurable_acceptance(self) -> None:
+        self.write_contract()
+        with self.assertRaisesRegex(ContractError, "acceptance criteria") as caught:
+            load_contract(self.repo, self.issue(body="Please fix the bug."))
+        self.assertEqual(caught.exception.terminal_state, "NEEDS_HUMAN_DECISION")
+
+    def test_complex_contract_requires_spec_and_plan(self) -> None:
+        self.write_contract(complexity="complex", change_type="feature", effect="add")
+        issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
+        for missing in ("01-spec.md", "02-plan.md"):
+            with self.subTest(missing=missing), self.assertRaisesRegex(ContractError, missing):
+                load_contract(self.repo, issue)
+
+    def test_complete_complex_contract_is_accepted(self) -> None:
+        self.write_contract(
+            complexity="complex", change_type="feature", effect="add", spec=True, plan=True
+        )
+        issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
+        contract = load_contract(self.repo, issue)
+        self.assertEqual(contract.effective_complexity, "complex")
+        self.assertEqual(
+            contract.required_docs,
+            ("00-summary.md", "01-spec.md", "02-plan.md"),
+        )
+
+    def test_complex_contract_rejects_unresolved_questions(self) -> None:
+        directory = self.write_contract(
+            complexity="complex", change_type="feature", effect="add", spec=True, plan=True
+        )
+        directory.joinpath("01-spec.md").write_text(
+            SPEC.format(number=12).replace("无。", "需要决定是否改变 public API。")
+        )
+        issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
+        with self.assertRaisesRegex(ContractError, "未决问题"):
+            load_contract(self.repo, issue)
+
+    def test_issue_must_be_open_and_approved(self) -> None:
+        self.write_contract()
+        closed = self.issue()
+        closed["state"] = "closed"
+        without_approved = self.issue(labels=["type/bugfix", "complexity/small"])
+        for issue in (closed, without_approved):
+            with self.subTest(issue=issue), self.assertRaises(ContractError):
+                load_contract(self.repo, issue)
+
+    def test_type_and_complexity_labels_are_mutually_consistent(self) -> None:
+        self.write_contract()
+        cases = (
+            ["type/bugfix", "type/docs", "complexity/small", "approved"],
+            ["type/bugfix", "complexity/small", "complexity/complex", "approved"],
+            ["type/docs", "complexity/small", "approved"],
+            ["type/bugfix", "complexity/complex", "approved"],
+        )
+        for labels in cases:
+            with self.subTest(labels=labels), self.assertRaises(ContractError):
+                load_contract(self.repo, self.issue(labels=list(labels)))
+
+    def test_summary_issue_and_branch_must_match(self) -> None:
+        self.write_contract(number=99, branch="change/12")
+        with self.assertRaisesRegex(ContractError, "summary"):
+            load_contract(self.repo, self.issue(number=99))
+
+    def test_forced_complex_risk_cannot_run_as_small(self) -> None:
+        self.write_contract(risk_flags="\n  - security")
+        with self.assertRaisesRegex(ContractError, "forced complex"):
+            load_contract(self.repo, self.issue())
+
+    def test_governing_agents_self_modification_is_rejected(self) -> None:
+        self.write_contract()
+        body = (
+            "## Acceptance criteria\n\n"
+            "- [ ] The running implementation worker edits its governing AGENTS.md directly."
+        )
+        with self.assertRaisesRegex(ContractError, "governing AGENTS.md"):
+            load_contract(self.repo, self.issue(body=body))
+
+    def test_missing_repository_is_external_blocker(self) -> None:
+        missing = self.repo / "missing"
+        with self.assertRaises(ContractError) as caught:
+            load_contract(missing, self.issue())
+        self.assertEqual(caught.exception.terminal_state, "BLOCKED_EXTERNAL")
+
+
+if __name__ == "__main__":
+    unittest.main()
