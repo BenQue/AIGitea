@@ -64,7 +64,12 @@ class Contract:
     acceptance_criteria: tuple[str, ...]
 
 
-def load_contract(repo: Path | str, issue: Mapping[str, object]) -> Contract:
+def load_contract(
+    repo: Path | str,
+    issue: Mapping[str, object],
+    *,
+    allowed_lifecycle: tuple[str, ...] = ("approved",),
+) -> Contract:
     repo_path = Path(repo).resolve()
     if not repo_path.is_dir():
         raise ContractError(
@@ -89,9 +94,9 @@ def load_contract(repo: Path | str, issue: Mapping[str, object]) -> Contract:
         raise ContractError(
             f"Issue must have exactly one effective complexity label, got {complexity_labels}"
         )
-    if lifecycle_labels != ["approved"]:
+    if len(lifecycle_labels) != 1 or lifecycle_labels[0] not in allowed_lifecycle:
         raise ContractError(
-            f"Issue lifecycle must be approved only, got {lifecycle_labels}",
+            f"Issue lifecycle must be one of {allowed_lifecycle}, got {lifecycle_labels}",
             lifecycle_label=lifecycle_labels[0] if len(lifecycle_labels) == 1 else "awaiting-triage",
         )
 
