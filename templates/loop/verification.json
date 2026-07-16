@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "commands": [
+    {
+      "name": "project-test",
+      "argv": ["npm", "test"],
+      "timeout_seconds": 1800,
+      "required": true
+    }
+  ]
+}
