@@ -1,6 +1,6 @@
 # 08 · Codex-first Development Loop 与 Claude Code 共存计划
 
-> 版本：v3.0 Codex runtime candidate ｜ 日期：2026-07-16 ｜ 状态：provider-neutral runtime、72 项 synthetic、VM 禁用式安装和真实 complex Issue #8 PR/CI 已通过；真实 small、真实 CI failure feedback 与非生产部署仍待验证。Claude Code 在 Codex 全矩阵通过后同步。
+> 版本：v3.0 通用 Codex runtime candidate ｜ 日期：2026-07-16 ｜ 状态：provider-neutral runtime、72 项 synthetic、每项目 profile 隔离和一个真实 complex pilot 已通过；AISoftPlatform 本身不部署，完成中央回归后进入 Claude Code 通用 adapter parity。
 
 ## 1. 结论
 
@@ -17,7 +17,7 @@ Issue / docs contract
   → artifact / deploy / health / rollback
 ```
 
-Codex 和 Claude Code 只替换模型执行器，不各自复制标签状态机、Git/Gitea 操作、测试硬门或终态判断。
+Codex 和 Claude Code 只替换模型执行器，不各自复制标签状态机、Git/Gitea 操作、测试硬门或终态判断。项目差异只存在于显式 profile、仓库内合同与 versioned verifier 配置中；不得从 rsDesign 示例推断默认仓库。
 
 ## 2. 共享契约
 
@@ -53,6 +53,7 @@ Codex 和 Claude Code 只替换模型执行器，不各自复制标签状态机�
 - analyzer 从 `spec/N` 迁移到 `change/N`，wrapper 确定性校验 classification 并独占标签 mutation。
 - small/complex/unclear、explicit override、范围升级、同因三次、pending/failed CI feedback 和四种终态的 synthetic tests。
 - 安装幂等、xtrace/argv token 防泄漏和 Claude implementation parity gate 的 mock 回归。
+- `project-poll.sh`、每项目 state/worktree namespace、mode 400/600 profile 校验和禁用式 `aisoft-agent@.service/.timer` 模板。
 
 真实环境已完成：
 
@@ -60,16 +61,13 @@ Codex 和 Claude Code 只替换模型执行器，不各自复制标签状态机�
 - Issue #8 one-shot Loop 完成本地 `npm ci`、Prisma generate、unit tests、production build，并创建 PR #9。
 - PR #9 CI 通过，controller 返回 `READY_FOR_REVIEW`；未自动合并、未部署。
 - 首次 VM 运行捕获 worktree 命令输出污染，中央提交 `bb0d5d5` 修复并增加 shell 回归后重装、重跑通过。
+- 通用 profile candidate 在 VM 一次性 HOME 连续安装两次，结果为 35 files / 7 scripts；未生成 profile 或凭据，`systemd-analyze verify` 通过两个 template。输出中的 Mailpit `nobody` 警告来自既有外部 unit，与候选无关。
 
-仍未完成：
+中央通用 runtime 仍未完成：
 
-- 真实 small Issue 的 Codex 闭环。
-- 真实 Gitea PR CI failure feedback。
-- timer 恢复前的完整 small/complex 自动轮询验收。
-- 非生产首次部署与故意失败回滚验证。
 - Claude adapter 与 parity 验证。
 
-> **当前启用边界（Issue #8）**：候选文件已安装，但 systemd 明确保持 `ANALYSIS_PROVIDER=claude`、`IMPLEMENT_PROVIDER=none`，timer 为 inactive。真实 small、CI failure feedback 和非生产回滚未全绿前，只允许显式 one-shot 验证，不启用自动实现轮询。
+> **当前启用边界**：rsdesign-new Issue #8 的安装与 PR/CI 结果只作为一个 pilot evidence。现有 timer 仍 inactive、implementation none。其他仓库必须创建自己的 profile、verifier 和项目验收，不能继承 pilot 的启用结论。AISoftPlatform 没有应用部署目标，不需要为了完成中央 runtime 人为创建部署流水线。
 
 ## 5. Codex skills 映射
 
@@ -100,16 +98,16 @@ Provider adapter 只负责：读取 controller 给出的合同和失败证据，
 
 ## 7. Codex 验证矩阵
 
-按顺序执行，前一层通过后再进入下一层：
+共享 runtime 按顺序执行，前一层通过后再进入下一层；随后每个项目 profile 执行自己的接入子集：
 
 1. **Skills 静态验证**：front matter、openai.yaml、触发描述、禁止危险参数。
 2. **合成 Issue**：先用下表五类 classifier case 验证判级、互斥标签和路由，再验证缺文档拒绝与四种终态。
-3. **真实 small Issue**：`approved → Loop → tests → PR → READY_FOR_REVIEW`。
-4. **真实 complex Issue**：spec/plan 完整性、plan 顺序和 acceptance 映射。
+3. **真实集成 pilot**：至少一个项目完成 `approved → Loop → tests → PR → READY_FOR_REVIEW`；当前为 rsdesign-new complex Issue #8，不能成为硬编码默认值。
+4. **项目 profile 验收**：目标项目分别验证 real small/complex、verifier、CI feedback 和权限；失败不影响其他 profile。
 5. **自修复**：故意制造普通测试失败，确认不立即找人。
 6. **升级**：合同冲突、缺凭据、三次同因失败和预算上限。
 7. **CI feedback**：本地通过、CI 失败、修复、重新提交。
-8. **非生产首次部署**：两次正常执行和一次故意失败回滚。
+8. **非生产首次部署（仅应用项目）**：两次正常执行和一次故意失败回滚；文档/source 仓库标记 not applicable。
 9. **生产负向边界**：Codex 无权部署生产，只能准备经非生产验证的修复 PR。
 
 验证结果写入对应 `docs/changes/N/03-verification.md`，真实命令与未通过项分开记录。
@@ -128,12 +126,12 @@ Provider adapter 只负责：读取 controller 给出的合同和失败证据，
 
 ## 8. Claude Code 接入条件
 
-只有 Codex 完成 §7 后才更新 Claude Code 运行路径：
+只有共享 Codex runtime、profile 隔离和至少一个 real integration pilot 完成后才更新 Claude Code 运行路径：
 
 1. 盘点 VM 真实 `analyze.sh`、`implement.sh`、`poll.sh` 和 Superpowers 配置。
 2. 实现 Claude adapter，复用同一 controller、verifier、状态和终态。
 3. 更新 Claude skills/commands，但不复制 Codex skill 内容形成第二套合同。
-4. 使用 Codex 的同一组合成和真实用例做 parity 验证。
+4. 使用 Codex 的同一组合成用例和通用 project-profile fixture 做 parity；rsDesign 数据、端口和部署脚本不进入 adapter。
 5. 两个 provider 都通过后再决定长期默认值和降级策略。
 
 ## 9. 部署边界

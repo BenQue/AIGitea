@@ -1,6 +1,6 @@
 # 04 · AI 自动分析与 Development Loop 编排
 
-> v3 目标契约（2026-07-14）。当前 VM 只有自动分析与停用的 one-shot 实现脚本；本册定义待实现的 provider-neutral Loop，不把规划写成已上线能力。
+> v3 Codex runtime candidate（2026-07-16）。共享 controller 已通过 synthetic 与一个明确标注的 real complex pilot；它不是 rsDesign 专用服务，任何项目都必须使用独立 profile，并在项目级验收前保持 implementation disabled。
 
 ## 1. 设计原则
 
@@ -16,18 +16,19 @@
 
 | 组件 | 当前状态 | v3 处理 |
 |---|---|---|
-| `provider-poll.sh` | 已安装，默认 Claude analysis / implementation none | 暂不修改，Codex 验证阶段另行设计 controller |
-| Claude `analyze.sh` | 可按 `needs-analysis` 运行 | 后续改为 `change/N` 和结构化 AI 判级 |
-| `analyze-codex.sh` | 已落库，尚未真实 Issue 冒烟 | 后续随 Codex controller 实施修改 |
-| Claude/Codex one-shot implement | 保留但停用 | 不直接恢复；由 Loop 取代 |
-| systemd timer | 15 分钟单 poller | 文档阶段不改 |
+| `provider-poll.sh` | 共享 analyzer/controller poller，provider 默认显式选择 | 不保存项目坐标；只读取当前 profile 指定的 env |
+| `project-poll.sh` | 中央 source 已实现 | 校验 profile 名和 mode 400/600，为 state/worktrees 增加项目 namespace，再调用共享 poller |
+| Codex analyzer/controller | synthetic 与一个 real complex pilot 通过 | 作为通用 candidate；不因一个 pilot 通过而自动启用其他仓库 |
+| Claude one-shot/analyzer | 现有分析入口保留 | Claude implementation 在 parity 前仍拒绝启用 |
+| `aisoft-agent@.service/.timer` | 中央 source 提供禁用模板 | 安装不 enable/start；每个项目验收后由人显式启用对应 instance |
 
-> **兼容性暂停（Issue #8）**：当前 VM wrapper 仍是 v2；`analyze-codex.sh` 仍校验 `spec/N` 和旧 summary 标题，尚不理解本册的 v3 字段与标签路由。Issue #8 的 runtime wrapper/controller 修改通过自动化测试和真实验证前，不得运行 `codex/install-vm.sh` 覆盖当前 VM 安装，也不得把以下目标合同写成已上线。
+> **profile 边界**：`~/.config/aisoft/projects/<profile>.env` 绑定一个 Gitea owner/repo、clone 和 provider；`~/.local/state/aisoft-loop/projects/<profile>/` 保存该项目的锁、Issue state 与 worktrees。rsdesign-new Issue #8 只是验证证据，不是默认 profile。AISoftPlatform 本身是平台 source/documentation 仓库，不要求应用部署。
 
 ## 3. 目标组件
 
 ```text
-provider-poll / controlled trigger
+aisoft-agent@<profile>.timer / controlled trigger
+  → project-poll <profile>
   → loop-controller
       ├── contract loader
       ├── worktree + issue lock
@@ -38,7 +39,7 @@ provider-poll / controlled trigger
       └── local state store
 ```
 
-第一版只允许一个 active Issue，使用独立 worktree，避免并发写同一工作树。不得为 Claude 和 Codex 各复制一套状态机。
+第一版在每个项目 profile 内只允许一个 active Issue，使用该 profile 的独立 state、lock 和 worktree。多个 profile 默认都不启用；若后续并行启用，必须另做 VM 容量和 provider 并发验收。不得为项目、Claude 或 Codex 各复制一套状态机。
 
 ## 4. Analyzer
 
@@ -127,16 +128,16 @@ Verifier 必须由外层脚本独立运行，不信任模型自述。每条 acce
 
 1. 静态验证 skills、metadata、sandbox 和禁止参数。
 2. 合成 Issue 验证合同读取与终态。
-3. 真实 small Issue 验证自修复到 PR。
-4. 真实 complex Issue 验证 spec/plan 要求。
+3. 至少一个明确标注的真实 pilot 验证 Git/Gitea/PR/CI 集成；当前 evidence 是 rsdesign-new complex Issue #8。
+4. small/complex 路由、缺合同、自修复和失败反馈由共享 synthetic 覆盖；每个新 profile 再运行与本项目相符的 real small/complex acceptance。
 5. 验证 CI failure feedback。
 6. 验证升级条件和三次同因失败。
-7. 在开发/测试环境验证首次部署和回滚。
-8. 全部通过后再接 Claude adapter，并用同一矩阵做 parity 验证。
+7. 只有需要部署的应用 profile 才在开发/测试环境验证首次部署和回滚；AISoftPlatform 等文档/source 仓库不适用。
+8. 共享 Codex runtime 与 profile 隔离验证通过后接 Claude adapter，并用同一通用矩阵做 parity；项目级 enablement 仍是独立门禁。
 
 ## 11. 安全与回滚
 
 - controller 使用专用 `coder` 用户和最小权限 ci-bot。
 - 不打印 `.agent.env`、auth、Git credentials 或应用环境变量。
-- 第一阶段保持 `IMPLEMENT_PROVIDER=none`；文档更新不启用 Loop。
+- 新 profile 默认 `IMPLEMENT_PROVIDER=none`；复制模板、安装 unit 或文档更新都不启用 Loop。
 - Loop 试点失败时停止 controller，保留 analyzer，开发回到 Mac 人机交互，不影响 CI 和生产部署。

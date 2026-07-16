@@ -1,10 +1,10 @@
 # 新项目接入 AISoft 平台 · v3 Runbook
 
-> 以 rsdesign-new 为模板。按顺序完成，每步验收后再继续。Loop 尚未通过 Codex 验证时，保持 implementation disabled，使用 Mac 人机交互开发。
+> 本 runbook 面向任意 Gitea 项目。rsdesign-new 只是历史试点证据，不是默认仓库、目录、端口或部署合同。按顺序完成，每步验收后再继续；目标项目未通过自己的验收前保持 implementation disabled。
 
 ## 1. 参数与仓库
 
-确定 `REPO`、应用端口、Nginx 端口、技术栈、测试命令、构建命令、健康端点、数据存储和回滚方式。端口与基础设施见平台文档 `01`。
+先确定唯一 profile 名称，再确定 `GITEA_URL`、`OWNER`、`REPO`、本地只读/工作克隆、技术栈、测试命令与 verifier 配置。只有应用项目才需要应用端口、Nginx 端口、健康端点、数据存储和回滚方式；纯文档或平台规范仓库不需要虚构部署流程。
 
 把仓库放到 Gitea，验证历史完整、默认分支正确、Mac/内网客户端可以 clone 和 push feature branch。
 
@@ -46,6 +46,8 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 
 ## 5. Analyzer 接入
 
+- 从 `templates/agent/project.env.example` 复制到 VM 的 `~/.config/aisoft/projects/<profile>.env`，填入该项目自己的 Gitea 坐标、token 和 `AGENT_REPO_DIR`，设为 mode 600；不得提交该文件。
+- 每个 profile 使用 `~/.local/state/aisoft-loop/projects/<profile>/` 保存锁、Issue state 和 worktrees，不与其他仓库共享。
 - 为项目准备只读工作克隆和依赖/索引。
 - 安装 `$aisoft-platform` 与 `$gitea-analyze-change`。
 - 先用低风险 Issue 验证：读取 evidence、输出五节 summary，并以 `change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`risk_flags`、`required_docs`、`confidence` 和 `override_reason` 确定性判级。
@@ -64,6 +66,7 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 - 同一根因三次失败、合同冲突、范围扩张或高风险决策时升级给人。
 - 最终状态只允许 `READY_FOR_REVIEW`、`NEEDS_HUMAN_DECISION`、`BLOCKED_EXTERNAL`、`FAILED_LIMIT`。
 - 只有人可以合并最终 PR。
+- 使用 `aisoft-agent@<profile>.service/.timer` 作为项目级 systemd 实例；安装模板不等于启用。必须显式执行 `systemctl --user enable --now aisoft-agent@<profile>.timer`，且只有该项目验收通过后才允许这样做。
 
 ## 7. 接入验收
 
@@ -80,7 +83,7 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 9. 非生产首次部署执行两次并完成故意失败回滚。
 10. 生产负向测试证明 provider 无生产部署权限。
 
-Codex 全部通过后，再用相同矩阵接入和验证 Claude adapter。
+中央 Codex runtime/adapter 先通过共享 synthetic 与至少一个明确标注的 pilot；每个新项目仍需完成与自身技术栈、CI 和部署范围对应的验收。随后 Claude adapter 复用同一 profile、controller、verifier 和状态合同，不复制项目专用状态机。
 
 ## 8. 安全回滚
 

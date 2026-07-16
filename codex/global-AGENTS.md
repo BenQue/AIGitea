@@ -9,6 +9,7 @@ Read `/mnt/mac/Users/benque/Documents/AISoftPlatform/README.md`, then the releva
 ## Non-negotiable rules
 
 - Treat every change as an Issue linked to `change/N` and `docs/changes/N/00-summary.md`.
+- Require an explicit project profile before any repository operation. Never infer the owner, repository, clone, state directory, ports, or deployment contract from rsDesign or another example.
 - Treat one `type/*` label as an Issue-author input that AI validates against evidence, `complexity/*` as the AI's effective-complexity output, and the seven unprefixed labels as lifecycle state. Keep these dimensions separate.
 - Classify product-contract effect before routing: restore/unchanged may be small; add/change and every forced risk are complex; unclear evidence requires human triage without a complexity label.
 - Require clear Issue acceptance criteria for small work and complete `01-spec.md` plus `02-plan.md` for complex work.
@@ -18,7 +19,7 @@ Read `/mnt/mac/Users/benque/Documents/AISoftPlatform/README.md`, then the releva
 - Let the Loop repair ordinary compile, lint, type, test, build, browser, and CI failures. Do not weaken validation or hide errors.
 - Never print tokens, passwords, `.env`, auth files, agent environment files, or Git credentials.
 - Keep Claude and Codex credentials independent. Share the outer controller, verifier, labels, and terminal-state contract.
-- AI may help design and execute first deployments in development/test. Production runs only pre-validated artifacts and scripts; AI never generates or executes ad hoc production commands.
+- AI may help design and execute first deployments in development/test for applications that actually deploy. Documentation-only platform repositories do not need an application deployment flow. Production runs only pre-validated artifacts and scripts; AI never generates or executes ad hoc production commands.
 - Report observed, changed, verified, and pending separately. Never claim an unrun test passed.
 
 ## Skill routing
@@ -30,4 +31,4 @@ Read `/mnt/mac/Users/benque/Documents/AISoftPlatform/README.md`, then the releva
 - Use `$gitea-implement-change` only for one controller-assigned implementation pass.
 - Use `$gitea-platform-ops` for diagnostics, first non-production deployment, incident evidence, and rollback planning.
 
-The v3 Loop is not live until the Codex validation matrix in document `08` passes. Keep `IMPLEMENT_PROVIDER=none` during documentation and skill work.
+The shared v3 Codex Loop candidate has synthetic and one real complex pilot evidence, but each project profile remains disabled until that project's acceptance matrix passes. Keep `IMPLEMENT_PROVIDER=none` during documentation, skill work, and initial profile setup.

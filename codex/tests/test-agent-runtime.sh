@@ -18,10 +18,18 @@ find "$TARGET_HOME" -type f -print0 | sort -z | xargs -0 shasum -a 256 >"$second
 diff -u "$first_manifest" "$second_manifest"
 
 test -x "$AGENT_DIR/provider-poll.sh"
+test -x "$AGENT_DIR/project-poll.sh"
 test -x "$AGENT_DIR/analyze-codex.sh"
 test -x "$AGENT_DIR/loop-controller.sh"
 test -f "$TARGET_HOME/.local/lib/aisoft-loop/aisoft_loop/controller.py"
 test -f "$TARGET_HOME/.agents/skills/gitea-development-loop/SKILL.md"
+test -f "$TARGET_HOME/.config/systemd/user/aisoft-agent@.service"
+test -f "$TARGET_HOME/.config/systemd/user/aisoft-agent@.timer"
+test -d "$TARGET_HOME/.config/aisoft/projects"
+if find "$TARGET_HOME/.config/aisoft/projects" -type f | grep -q .; then
+  echo 'installer must not create a project profile or credential file' >&2
+  exit 1
+fi
 if mode="$(stat -f '%Lp' "$TARGET_HOME/.codex/AGENTS.md" 2>/dev/null)"; then
   :
 else
@@ -125,5 +133,42 @@ worktree_output="$(
     _ "$ROOT/codex/agent/common.sh"
 )"
 test "$worktree_output" = "$TEMP_ROOT/worktree-state/worktrees/issue-8"
+
+PROFILE_HOME="$TEMP_ROOT/profile-home"
+PROFILE_AGENT="$PROFILE_HOME/agent"
+PROFILE_CONFIG="$PROFILE_HOME/.config/aisoft/projects"
+mkdir -p "$PROFILE_AGENT" "$PROFILE_CONFIG"
+cp "$ROOT/codex/agent/project-poll.sh" "$PROFILE_AGENT/project-poll.sh"
+cat >"$PROFILE_AGENT/provider-poll.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'env=%s\nstate=%s\nworktrees=%s\n' \
+  "$AGENT_ENV_FILE" "$AISOFT_LOOP_STATE_DIR" "$LOOP_WORKTREE_ROOT"
+EOF
+chmod 755 "$PROFILE_AGENT/provider-poll.sh"
+cat >"$PROFILE_CONFIG/demo-app.env" <<'EOF'
+GITEA_URL=http://gitea.test:3000
+GITEA_OWNER=owner
+GITEA_REPO=demo-app
+GITEA_TOKEN=not-a-real-token
+AGENT_REPO_DIR=/srv/demo-app
+ANALYSIS_PROVIDER=none
+IMPLEMENT_PROVIDER=none
+EOF
+chmod 600 "$PROFILE_CONFIG/demo-app.env"
+profile_output="$(HOME="$PROFILE_HOME" "$PROFILE_AGENT/project-poll.sh" demo-app)"
+grep -Fxq "env=$PROFILE_CONFIG/demo-app.env" <<<"$profile_output"
+grep -Fxq "state=$PROFILE_HOME/.local/state/aisoft-loop/projects/demo-app" <<<"$profile_output"
+grep -Fxq "worktrees=$PROFILE_HOME/.local/state/aisoft-loop/projects/demo-app/worktrees" <<<"$profile_output"
+if HOME="$PROFILE_HOME" "$PROFILE_AGENT/project-poll.sh" '../invalid' >/dev/null 2>&1; then
+  echo 'project profile traversal must be rejected' >&2
+  exit 1
+fi
+chmod 644 "$PROFILE_CONFIG/demo-app.env"
+if HOME="$PROFILE_HOME" "$PROFILE_AGENT/project-poll.sh" demo-app >/dev/null 2>&1; then
+  echo 'group/world-readable project profile must be rejected' >&2
+  exit 1
+fi
+chmod 600 "$PROFILE_CONFIG/demo-app.env"
 
 echo 'Codex agent runtime mock regression passed.'

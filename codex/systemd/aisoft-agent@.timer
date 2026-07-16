@@ -1,0 +1,10 @@
+[Unit]
+Description=Run AISoft project agent poll every 15 minutes (%i)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+Unit=aisoft-agent@%i.service
+
+[Install]
+WantedBy=timers.target

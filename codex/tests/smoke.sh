@@ -282,4 +282,20 @@ if rg -n '对应闸门|三道闸门可以分派' "$ROOT/05-通知与多人协作
   exit 1
 fi
 
+test -x "$ROOT/codex/agent/project-poll.sh"
+test -f "$ROOT/codex/systemd/aisoft-agent@.service"
+test -f "$ROOT/codex/systemd/aisoft-agent@.timer"
+test -f "$ROOT/templates/agent/project.env.example"
+grep -Fq 'project-poll.sh %i' "$ROOT/codex/systemd/aisoft-agent@.service"
+grep -Fq 'IMPLEMENT_PROVIDER=none' "$ROOT/templates/agent/project.env.example"
+grep -Fq 'explicit project profile' "$ROOT/codex/global-AGENTS.md"
+if rg -ni 'rsdesign' \
+  "$ROOT/codex/agent" \
+  "$ROOT/codex/runtime/aisoft_loop" \
+  "$ROOT/codex/systemd" \
+  "$ROOT/templates/agent"; then
+  echo '通用 runtime 入口不得硬编码 rsDesign pilot' >&2
+  exit 1
+fi
+
 echo 'Codex platform static smoke checks passed.'

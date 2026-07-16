@@ -10,6 +10,8 @@ RUNTIME_DIR="$TARGET_HOME/.local/lib/aisoft-loop"
 install -d -m 700 \
   "$TARGET_HOME/.agents/skills" \
   "$TARGET_HOME/.codex" \
+  "$TARGET_HOME/.config/aisoft/projects" \
+  "$TARGET_HOME/.config/systemd/user" \
   "$TARGET_HOME/.local/lib" \
   "$RUNTIME_DIR" \
   "$RUNTIME_DIR/aisoft_loop" \
@@ -20,6 +22,11 @@ for skill in "$ROOT"/codex/skills/*; do
   target="$TARGET_HOME/.agents/skills/$(basename "$skill")"
   install -d -m 755 "$target"
   cp -a "$skill/." "$target/"
+done
+
+for unit in "$ROOT"/codex/systemd/aisoft-agent@.*; do
+  [[ -f "$unit" ]] || continue
+  install -m 644 "$unit" "$TARGET_HOME/.config/systemd/user/$(basename "$unit")"
 done
 
 if [[ -f "$ROOT/skill-for-codex/SKILL.md" ]]; then
@@ -47,4 +54,5 @@ fi
 echo "Codex skills installed in $TARGET_HOME/.agents/skills"
 echo "Loop runtime installed in $RUNTIME_DIR"
 echo "Agent scripts installed in $AGENT_DIR"
-echo 'No credentials, timer, provider enablement, merge, or deployment action was performed.'
+echo "Disabled project service templates installed in $TARGET_HOME/.config/systemd/user"
+echo 'No project profile, credentials, timer enablement, provider enablement, merge, or deployment action was performed.'

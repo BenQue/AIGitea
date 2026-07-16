@@ -1,0 +1,9 @@
+[Unit]
+Description=AISoft project agent poll (%i)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=%h/.config/aisoft/projects/%i.env
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/env %h/agent/project-poll.sh %i

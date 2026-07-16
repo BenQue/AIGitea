@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.0（Codex 试点验证中）｜ 更新：2026-07-16 ｜ 状态：**Codex runtime、VM 禁用式安装和 complex Issue #8 PR/CI 已验证；真实 small 与非生产部署回滚仍待完成，Claude Code 随后同步**
+> 版本：v3.0（通用 Codex runtime candidate）｜ 更新：2026-07-16 ｜ 状态：**共享 runtime、每项目 profile、synthetic 与一个真实 complex pilot 已验证；平台仓库本身不部署，完成中央回归后进入 Claude Code 通用适配**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 
@@ -16,7 +16,7 @@
 - ✅ 邮件通知：Gitea → Mailpit（演示层），issue/PR 事件自动发信
 - ✅ Codex 基础：CLI、认证、skills、AGENTS、sandbox、provider router 已通过 VM 基础验收
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
-- 🟡 v3 运行：Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式安装；Issue #8 已由 one-shot Loop 到达 PR #9 `READY_FOR_REVIEW`，真实 small、部署回滚和 Claude adapter 尚未完成
+- 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为 real complex pilot。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
 - ⏸️ 待办：deploy 回帖 issue、prod-sim 离线彩排、内网平移（见 [07-内网与生产平移路线](07-内网与生产平移路线.md)）
 
 ## 2. 三层架构
@@ -54,7 +54,7 @@ flowchart TB
 
 | # | 原则 | 落点 |
 |---|------|------|
-| 1 | **一次构建，传自包含制品** | 测试机构建 `rsdesign-new-<sha>.tar.gz`（含 node_modules + Prisma 引擎），生产只解压，永不安装 |
+| 1 | **一次构建，传自包含制品** | 对需要部署的应用，测试机构建自包含 `<repo>-<sha>.tar.gz`；rsdesign-new 是现有 as-built 示例，生产只解压已验收字节 |
 | 2 | **制品与环境配置分离** | 各机 `/opt/*/.env` 本地持有，部署时注入；制品零环境信息 |
 | 3 | **整体去 Docker 化** | PM2 + 制品 + Verdaccio 缓存，绕开弱网 docker build 之痛 |
 | 4 | **生产部署 script-only** | AI 可参与首次非生产部署；生产只执行已验证脚本和制品 |
@@ -95,9 +95,9 @@ sequenceDiagram
     G->>U: 📬 邮件通知(Mailpit);issue 被 Closes 自动关闭
 ```
 
-**实施状态**：AI 自动分析仍可用；Codex Development Loop 候选已完成 synthetic、临时 HOME、VM 禁用式安装和真实 complex Issue #8 验证，PR #9 CI 通过并停在人工合并闸门。timer 仍停止，`IMPLEMENT_PROVIDER=none`，不属于无人值守上线。真实 small、非生产两次部署与故意失败回滚完成前不得启用自动实现轮询；Claude Code Loop 和生产相关自动操作仍未启用。Phase D3 的通知与内网分册已完成 v3 边界迁移。
+**实施状态**：AI 自动分析仍可用；共享 Codex Development Loop 候选已完成 synthetic、临时 HOME、VM 禁用式安装和 rsdesign-new real complex pilot，PR #9 已由人合并，合并后两个测试入口健康。该 pilot 只证明通用 controller 能在一个应用工作，不把平台绑定到该仓库。每个目标项目由独立 profile 指定 Gitea 坐标、clone、provider、state 和 worktrees，默认 `IMPLEMENT_PROVIDER=none`。AISoftPlatform 是文档、模板、skills 与 runtime source 仓库，本身不需要应用部署流水线。Claude Code Loop 和生产相关自动操作仍未启用。
 
-标签采用三个正交维度：七个 `type/*` 描述变更是什么，两个 `complexity/*` 记录 AI 判定所需路径，七个流程状态标签描述当前阶段。`complexity/small` 不能绕过强制复杂规则；无法安全判级时不添加 complexity 标签。16-label taxonomy 已于 2026-07-15 provision 并完成幂等复验。2026-07-16 Issue #8 经真实 Loop 后读回为 `type/platform`、`complexity/complex`、`pr-open`，PR #9 CI 通过且可合并；这是可漂移外部状态，后续操作前仍须重新 GET。
+标签采用三个正交维度：七个 `type/*` 描述变更是什么，两个 `complexity/*` 记录 AI 判定所需路径，七个流程状态标签描述当前阶段。`complexity/small` 不能绕过强制复杂规则；无法安全判级时不添加 complexity 标签。16-label taxonomy 已在一个试点仓库完成幂等复验，但标签必须对每个接入仓库独立 provision 和读回，不能把试点外部状态当作平台全局状态。
 
 ## 5. 文档导航
 
@@ -117,7 +117,7 @@ sequenceDiagram
 
 | 入口 | 地址 |
 |------|------|
-| Gitea | http://gitea-ci.orb.local:3000 （仓库 `admin/rsdesign-new`） |
+| Gitea | http://gitea-ci.orb.local:3000；`admin/rsdesign-new` 仅为现有 as-built/pilot 示例，实际目标由项目 profile 指定 |
 | 测试环境应用 | http://gitea-ci.orb.local:8091 |
 | Mailpit 收件箱 | http://gitea-ci.orb.local:8025 |
 | Verdaccio | http://gitea-ci.orb.local:4873 |

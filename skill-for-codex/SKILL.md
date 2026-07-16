@@ -19,6 +19,8 @@ Use:
 
 ## Apply the v3 workflow
 
+Select the target project explicitly before any Gitea or Git mutation. A project profile binds one profile name to `GITEA_URL`, `GITEA_OWNER`, `GITEA_REPO`, `AGENT_REPO_DIR`, provider selection, and a namespaced state/worktree root. Never infer the target repository from rsDesign or another example, and never reuse one project's state directory for another project.
+
 Treat every request, defect, or platform change as a Gitea Issue `N` linked to `change/N`, `docs/changes/N/`, and a final PR with `Closes #N`.
 
 - Require `00-summary.md` for every Issue.
@@ -49,7 +51,7 @@ Accept only `READY_FOR_REVIEW`, `NEEDS_HUMAN_DECISION`, `BLOCKED_EXTERNAL`, or `
 
 ## Preserve the deployment boundary
 
-In development/test, help design and execute the first real deployment, convert manual steps into versioned scripts, run twice from a repeatable state, and exercise one deliberate failure/rollback path.
+For an onboarded application that has deployment scope, help design and execute the first real development/test deployment, convert manual steps into versioned scripts, run twice from a repeatable state, and exercise one deliberate failure/rollback path. Documentation-only platform repositories such as AISoftPlatform do not need an application deployment pipeline.
 
 In production, run only pre-validated artifacts and scripts. For failures, stop/rollback, collect sanitized evidence, reproduce and fix in non-production, verify, and prepare a PR. Never generate or execute ad hoc production commands.
 

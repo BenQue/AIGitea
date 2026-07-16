@@ -380,7 +380,7 @@
 
 ---
 
-### Task 10: 真实 Issue、VM 安装和非生产首次部署验收
+### Task 10: 真实 pilot、VM 安装与通用平台边界验收
 
 **Files:**
 - Modify in pilot: `docs/changes/<small-issue>/00-summary.md`
@@ -392,33 +392,33 @@
 - Modify: `09-v3平台简化与Loop-Engineering文档改造规划.md`
 
 **Interfaces:**
-- Produces: 一个真实 small PR、Issue #8 complex PR/CI、VM 可回滚安装、非生产两次幂等部署与一次故意失败回滚证据。
+- Produces: 一个明确标注的真实 complex pilot PR/CI、VM 可回滚安装、通用每项目 profile，以及“应用项目部署验收不等于平台仓库部署”的边界证据。
 
 - [x] **Step 1: 重新 GET 外部基线**
 
   读取 VM service/timer、provider 配置、16 标签、Issue #8、开放 PR、pilot branch 和 test environment health；只记录脱敏信息。
 
-- [ ] **Step 2: 创建真实 small Issue**
+- [x] **Step 2: 纠正项目承载边界**
 
-  选择纯文档勘误或只补测试，写清可测 acceptance criteria，添加 `needs-analysis`；不得借 small Issue 改功能或治理。
+  rsdesign-new Issue #10 曾作为 real small 候选创建，Codex 只读分析判定为 docs/small 并生成 summary；用户随即明确平台流程不得由 rsDesign 专用仓库承载。该 Issue 已取消关闭，未实现、未建 PR、未合并、未部署，analysis branch 仅保留审计。共享 small 路由继续由 synthetic tests 覆盖；真实 small 改为每个新 profile 自己的接入验收，不再是 AISoftPlatform 或 Claude adapter 的项目专用完成条件。
 
 - [x] **Step 3: 在临时目标安装 runtime**
 
   先对临时 HOME 连续运行两次 `codex/install-vm.sh`，比较文件清单与 mode；再备份 VM 当前 agent 目录并安装，但保持 timer 停止和 `IMPLEMENT_PROVIDER=none`。
 
-- [ ] **Step 4: 运行真实 small Loop**
+- [x] **Step 4: 验证通用 small 路由而不制造应用 PR**
 
-  观察 analyzer → approved → controller → verifier → PR → CI；人工不介入普通失败。最终必须停在 `READY_FOR_REVIEW`，不合并。
+  使用共享 classification/contract/controller synthetic matrix 验证 docs/bug/test/refactor small、范围升级、verifier failure 和 CI feedback。每个接入项目再用自己的真实 Issue、技术栈和 CI 验证，不从 rsDesign pilot 继承结论。
 
 - [x] **Step 5: 运行 Issue #8 complex Loop**
 
   重新校验 spec/plan 和 `approved`，由 controller 完成范围内剩余变更、创建最终 PR并读取 CI；最终停在 `READY_FOR_REVIEW`，不自动合并。
 
-  2026-07-16 已完成：首次运行捕获 worktree stdout 污染并安全停止；`bb0d5d5` 修复和回归后，PR #9 CI 通过并停在人工合并闸门。为让版本化 verifier 配置先进入 `main`，本次先完成 complex #8，再在人工合并后继续真实 small。
+  2026-07-16 已完成：首次运行捕获 worktree stdout 污染并安全停止；`bb0d5d5` 修复和回归后，PR #9 CI 通过并停在人工合并闸门，随后由人合并且测试环境健康。原计划在同一 pilot 继续 real small，后被用户的通用平台边界澄清 supersede；后续 small 属于每项目 profile 验收。
 
-- [ ] **Step 6: 非生产部署与回滚验收**
+- [x] **Step 6: 分离平台完成条件与应用部署验收**
 
-  在测试环境使用版本化脚本连续部署两次；再注入可恢复的健康检查失败，证明自动停止/回滚；不得执行生产部署或在生产生成临时命令。
+  AISoftPlatform 是文档、模板、skills 和 runtime source，不需要应用部署流水线。rsdesign-new 合并后测试健康只作为已有 as-built/pilot 证据；两次幂等部署和故意失败回滚仍是每个有部署范围的应用 profile 接入门禁，不是共享 controller 或 Claude adapter 的专用前置条件。
 
 - [ ] **Step 7: 记录与收尾验证**
 
@@ -428,8 +428,41 @@
 
   中央 runtime 分支推送并等待人 review；pilot PR 等待人合并。只有用户明确要求时才合并中央 `main`。
 
+### Task 11: 每项目 profile 与去专用化
+
+**Files:**
+- Create: `codex/agent/project-poll.sh`
+- Create: `codex/systemd/aisoft-agent@.service`
+- Create: `codex/systemd/aisoft-agent@.timer`
+- Create: `templates/agent/project.env.example`
+- Modify: `codex/install-vm.sh`
+- Modify: `codex/tests/test-agent-runtime.sh`
+- Modify: `README.md`、`04`、`08`、`09`、global/composite/ops skills 和 onboarding runbook
+
+**Interfaces:**
+- Consumes: 现有 `provider-poll.sh`、`AGENT_ENV_FILE`、`AISOFT_LOOP_STATE_DIR` 和 `LOOP_WORKTREE_ROOT`。
+- Produces: `<profile>.env → project-poll → shared provider-poll`，每项目独立 state/lock/worktrees，systemd template 安装但不 enable/start。
+
+- [x] **Step 1: 先写 profile 隔离回归**
+
+  断言 installer 复制 project wrapper 与两个 unit、不生成 profile/凭据；断言 profile traversal 和非 400/600 mode 被拒绝，state/worktrees 位于项目 namespace。测试先因文件不存在而失败。
+
+- [x] **Step 2: 实现最小通用入口**
+
+  `project-poll.sh` 只选择 profile、校验权限、设置 namespace 并 exec 共享 poller。systemd unit 只调用 wrapper；installer 不 daemon-reload、不 enable、不 start。
+
+- [x] **Step 3: 完整中央与 VM 临时安装验证**
+
+  运行 smoke、72 项 Python tests、ShellCheck、两次临时 HOME manifest、profile mock 和 VM `systemd-analyze verify`；真实结果写回状态文档。
+
+  结果：中央 smoke 通过；VM 一次性 HOME 两次安装一致，共 35 files / 7 scripts；没有 profile、credential 或 timer enablement；两个 systemd template 通过 verify。唯一输出警告来自既有 `/etc/systemd/system/mailpit.service` 的 `nobody` 用户，与本候选无关。
+
+- [ ] **Step 4: 提交并形成 Claude Code handoff**
+
+  提交中央分支，保持所有真实 project timer disabled。Claude adapter 只替换 provider，不复制 profile、state、Git/Gitea 或 verifier。
+
 ## 完成定义与 Claude Code handoff
 
-以下全部满足后，Codex 阶段才算完成：Phase D3 一致；runtime 自动测试全绿；pilot governance fresh-run 通过；真实 small 与 Issue #8 均达到 `READY_FOR_REVIEW`；CI feedback 被真实消费；临时/VM 安装可回滚；非生产部署两次幂等和一次故意失败回滚有证据；没有自动合并或生产部署。
+以下全部满足后，共享 Codex 阶段才算完成：Phase D3 一致；runtime 自动测试全绿；pilot governance fresh-run 通过；至少一个明确标注的 real integration pilot 到达 `READY_FOR_REVIEW` 并由人决定合并；临时/VM 安装可回滚；每项目 profile 和 state/worktree 隔离通过；没有自动合并或生产部署。真实 small、CI failure feedback 和非生产部署/回滚由共享 synthetic 加各目标项目接入矩阵共同承担，不要求 AISoftPlatform 自身部署，也不允许把 rsDesign 固化进 adapter。
 
 Claude Code 适配另开 complex 变更，只实现 provider adapter 和 parity 测试，复用相同 controller、state、lock、Gitea、verifier、标签、终态和验证矩阵，不复制状态机。
