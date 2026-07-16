@@ -312,12 +312,18 @@ def _section(text: str, heading: str) -> str:
 def _reject_governing_self_modification(text: str) -> None:
     if "AGENTS.md" not in text:
         return
+    candidate = re.sub(
+        r"[^。.!?\n]*(?:must\s+not|never|不得|永远不)[^。.!?\n]*AGENTS\.md[^。.!?\n]*[。.!?]?",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
     direct_self_mod = re.search(
         r"(?:running|current|governing|本次运行|当前运行).{0,50}"
         r"(?:edit|modify|write|修改|编辑|写入).{0,30}AGENTS\.md"
         r"|(?:edit|modify|write|修改|编辑|写入).{0,50}"
         r"(?:running|current|governing|本次运行|当前运行).{0,30}AGENTS\.md",
-        text,
+        candidate,
         re.IGNORECASE | re.DOTALL,
     )
     if direct_self_mod:

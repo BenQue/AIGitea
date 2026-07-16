@@ -206,6 +206,18 @@ class ContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "governing AGENTS.md"):
             load_contract(self.repo, self.issue(body=body))
 
+    def test_safe_governing_agents_prohibition_is_not_a_self_mod_request(self) -> None:
+        directory = self.write_contract(
+            complexity="complex", change_type="feature", effect="add", spec=True, plan=True
+        )
+        directory.joinpath("01-spec.md").write_text(
+            SPEC.format(number=12)
+            + "\n普通 implementation worker 永远不得编辑本运行 governing `AGENTS.md`。\n"
+        )
+        issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
+        contract = load_contract(self.repo, issue)
+        self.assertEqual(contract.effective_complexity, "complex")
+
     def test_missing_repository_is_external_blocker(self) -> None:
         missing = self.repo / "missing"
         with self.assertRaises(ContractError) as caught:
