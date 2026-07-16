@@ -90,4 +90,40 @@ if grep -Fq sentinel-runtime-token "$TEMP_ROOT/python-argv"; then
   exit 1
 fi
 
+WORKTREE_MOCK_BIN="$TEMP_ROOT/worktree-bin"
+mkdir -p "$WORKTREE_MOCK_BIN" "$TEMP_ROOT/repo"
+cat >"$WORKTREE_MOCK_BIN/git" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$*" == *' fetch -q origin main' ]]; then
+  exit 0
+fi
+if [[ "$*" == *' fetch -q origin change/8' ]]; then
+  exit 0
+fi
+if [[ "$*" == *' show-ref --verify --quiet refs/heads/change/8' ]]; then
+  exit 1
+fi
+if [[ "$*" == *' worktree add -b change/8 '* ]]; then
+  printf '%s\n' "branch 'change/8' set up to track 'origin/change/8'."
+  printf '%s\n' 'HEAD is now at deadbee synthetic'
+  exit 0
+fi
+if [[ "$*" == *' branch --show-current' ]]; then
+  printf '%s\n' 'change/8'
+  exit 0
+fi
+printf 'unexpected git argv: %s\n' "$*" >&2
+exit 2
+EOF
+chmod 755 "$WORKTREE_MOCK_BIN/git"
+worktree_output="$(
+  HOME="$TARGET_HOME" \
+  AGENT_ENV_FILE="$ENV_FILE" \
+  AISOFT_LOOP_STATE_DIR="$TEMP_ROOT/worktree-state" \
+  PATH="$WORKTREE_MOCK_BIN:$PATH" \
+  bash -c 'source "$1"; load_agent_env; prepare_change_worktree 8 false' \
+    _ "$ROOT/codex/agent/common.sh"
+)"
+test "$worktree_output" = "$TEMP_ROOT/worktree-state/worktrees/issue-8"
+
 echo 'Codex agent runtime mock regression passed.'

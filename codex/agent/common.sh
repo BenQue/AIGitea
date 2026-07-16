@@ -60,11 +60,11 @@ prepare_change_worktree() {
       if [[ "$remote_exists" == true ]]; then
         git -C "$AGENT_REPO_DIR" branch -f "$branch" "origin/$branch" >/dev/null
       fi
-      git -C "$AGENT_REPO_DIR" worktree add "$worktree" "$branch"
+      git -C "$AGENT_REPO_DIR" worktree add "$worktree" "$branch" >/dev/null
     elif [[ "$remote_exists" == true ]]; then
-      git -C "$AGENT_REPO_DIR" worktree add -b "$branch" "$worktree" "origin/$branch"
+      git -C "$AGENT_REPO_DIR" worktree add -b "$branch" "$worktree" "origin/$branch" >/dev/null
     elif [[ "$allow_create" == true ]]; then
-      git -C "$AGENT_REPO_DIR" worktree add -b "$branch" "$worktree" origin/main
+      git -C "$AGENT_REPO_DIR" worktree add -b "$branch" "$worktree" origin/main >/dev/null
     else
       printf 'remote branch %s is missing\n' "$branch" >&2
       exit 2
