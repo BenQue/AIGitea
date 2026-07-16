@@ -261,4 +261,14 @@ if rg -n 'complexity_recommendation|最终 `complexity` 由人|人确认 Issue �
   exit 1
 fi
 
+grep -Fq '首次部署' "$ROOT/02-CI与自动部署流水线.md"
+grep -Fq 'READY_FOR_REVIEW' "$ROOT/05-通知与多人协作.md"
+grep -Fq '标准故障包' "$ROOT/06-运维手册与踩坑集.md"
+grep -Fq '生产服务器永远不需要 AI API' "$ROOT/07-内网与生产平移路线.md"
+
+if rg -n '对应闸门|三道闸门可以分派' "$ROOT/05-通知与多人协作.md"; then
+  echo '通知分册仍包含 v2 三闸门现行合同' >&2
+  exit 1
+fi
+
 echo 'Codex platform static smoke checks passed.'
