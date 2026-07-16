@@ -1,6 +1,6 @@
 # 09 · v3 平台简化与 Loop Engineering 文档改造规划
 
-> 状态：**通用 Codex runtime、synthetic、每项目 profile 和一个真实 complex pilot 已完成；平台仓库不走应用部署，中央回归后转入 Claude Code adapter parity**
+> 状态：**通用 Codex runtime、synthetic、每项目 profile、VM 临时安装和一个真实 complex pilot 已完成；平台仓库不走应用部署，下一阶段为 Claude Code adapter parity**
 > 日期：2026-07-16
 > 适用范围：AISoftPlatform 平台文档、平台 skills 与 agent 编排说明
 > 当前约束：v3 文档契约和通用 Codex candidate 已生效；VM 只保留禁用式 pilot 安装，新的 project-profile template 仅完成一次性 HOME smoke，未 enable 任何项目 timer，不得把 candidate 写成无人值守上线。

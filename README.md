@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.0（通用 Codex runtime candidate）｜ 更新：2026-07-16 ｜ 状态：**共享 runtime、每项目 profile、synthetic 与一个真实 complex pilot 已验证；平台仓库本身不部署，完成中央回归后进入 Claude Code 通用适配**
+> 版本：v3.0（通用 Codex runtime candidate）｜ 更新：2026-07-16 ｜ 状态：**共享 runtime、每项目 profile、synthetic、VM 临时安装与一个真实 complex pilot 已验证；平台仓库本身不部署，已具备 Claude Code 通用适配条件**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 

@@ -420,13 +420,13 @@
 
   AISoftPlatform 是文档、模板、skills 和 runtime source，不需要应用部署流水线。rsdesign-new 合并后测试健康只作为已有 as-built/pilot 证据；两次幂等部署和故意失败回滚仍是每个有部署范围的应用 profile 接入门禁，不是共享 controller 或 Claude adapter 的专用前置条件。
 
-- [ ] **Step 7: 记录与收尾验证**
+- [x] **Step 7: 记录与收尾验证**
 
-  所有未运行项明确写 `NOT RUN`；更新文档状态，运行中央 smoke/runtime unittest/ShellCheck、pilot 项目测试、Gitea API assertions 和 `git diff --check`。
+  已更新中央状态与边界；`bash codex/tests/smoke.sh` 通过 72 项 Python tests、ShellCheck、label/profile/install mocks，VM 临时安装和 systemd verify 通过，`git diff --check` 通过。pilot PR #9 merged、Issue #8 closed、测试两个健康入口为 `ok`；误建 Issue #10 closed 且无实现 PR。
 
 - [ ] **Step 8: 提交但不自动合并**
 
-  中央 runtime 分支推送并等待人 review；pilot PR 等待人合并。只有用户明确要求时才合并中央 `main`。
+  中央 runtime 分支已提交；pilot PR #9 已由人合并。GitHub push 因分支包含内部 Gitea/VM 地址和验证细节被安全策略拒绝，必须在用户知晓该外发风险后另行明确批准；未绕过策略，也未自动合并中央 `main`。
 
 ### Task 11: 每项目 profile 与去专用化
 
@@ -457,9 +457,9 @@
 
   结果：中央 smoke 通过；VM 一次性 HOME 两次安装一致，共 35 files / 7 scripts；没有 profile、credential 或 timer enablement；两个 systemd template 通过 verify。唯一输出警告来自既有 `/etc/systemd/system/mailpit.service` 的 `nobody` 用户，与本候选无关。
 
-- [ ] **Step 4: 提交并形成 Claude Code handoff**
+- [x] **Step 4: 提交并形成 Claude Code handoff**
 
-  提交中央分支，保持所有真实 project timer disabled。Claude adapter 只替换 provider，不复制 profile、state、Git/Gitea 或 verifier。
+  中央通用化提交为 `2f34778`；所有真实 project timer 保持 disabled。Claude adapter 只替换 provider，不复制 profile、state、Git/Gitea 或 verifier。
 
 ## 完成定义与 Claude Code handoff
 

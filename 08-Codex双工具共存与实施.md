@@ -1,6 +1,6 @@
 # 08 · Codex-first Development Loop 与 Claude Code 共存计划
 
-> 版本：v3.0 通用 Codex runtime candidate ｜ 日期：2026-07-16 ｜ 状态：provider-neutral runtime、72 项 synthetic、每项目 profile 隔离和一个真实 complex pilot 已通过；AISoftPlatform 本身不部署，完成中央回归后进入 Claude Code 通用 adapter parity。
+> 版本：v3.0 通用 Codex runtime candidate ｜ 日期：2026-07-16 ｜ 状态：provider-neutral runtime、72 项 synthetic、每项目 profile 隔离、VM 临时安装和一个真实 complex pilot 已通过；AISoftPlatform 本身不部署，下一阶段为 Claude Code 通用 adapter parity。
 
 ## 1. 结论
 
@@ -59,7 +59,7 @@ Codex 和 Claude Code 只替换模型执行器，不各自复制标签状态机�
 
 - 临时 HOME 两次安装清单一致；正式 VM 安装前建立回滚备份，timer 停止且 `IMPLEMENT_PROVIDER=none`。
 - Issue #8 one-shot Loop 完成本地 `npm ci`、Prisma generate、unit tests、production build，并创建 PR #9。
-- PR #9 CI 通过，controller 返回 `READY_FOR_REVIEW`；未自动合并、未部署。
+- PR #9 CI 通过，controller 返回 `READY_FOR_REVIEW`；controller 未自动合并或部署。之后由人合并，既有应用流水线完成测试部署，两个健康入口返回 `ok`。
 - 首次 VM 运行捕获 worktree 命令输出污染，中央提交 `bb0d5d5` 修复并增加 shell 回归后重装、重跑通过。
 - 通用 profile candidate 在 VM 一次性 HOME 连续安装两次，结果为 35 files / 7 scripts；未生成 profile 或凭据，`systemd-analyze verify` 通过两个 template。输出中的 Mailpit `nobody` 警告来自既有外部 unit，与候选无关。
 
