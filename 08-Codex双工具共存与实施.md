@@ -1,6 +1,6 @@
 # 08 · Codex-first Development Loop 与 Claude Code 共存计划
 
-> 版本：v3.0 文档契约 ｜ 日期：2026-07-14 ｜ 状态：Codex CLI/认证/sandbox、v3 skills 静态校验与两项只读 forward test 已通过；Loop controller 和真实 Issue 验证尚未实施。Claude Code 在 Codex 验证通过后同步。
+> 版本：v3.0 Codex runtime candidate ｜ 日期：2026-07-16 ｜ 状态：provider-neutral Loop controller、analyzer、state/lock、verifier、Gitea adapter 和 72 项 synthetic 回归已实现；VM 安装、真实 Issue、真实 CI feedback 与非生产部署尚未验证。Claude Code 在 Codex 全矩阵通过后同步。
 
 ## 1. 结论
 
@@ -47,15 +47,22 @@ Codex 和 Claude Code 只替换模型执行器，不各自复制标签状态机�
 - 静态 smoke 与目标目录安装脚本。
 - 五个阶段型 skills 和复合 skill 通过 `quick_validate.py`；Development Loop 普通失败返回 `CONTINUE`，缺 complex 合同并要求直改生产时返回 `NEEDS_HUMAN_DECISION`。
 
-未完成：
+本地 candidate 已完成：
 
-- provider-neutral Loop controller、state store、worktree lock、verifier 和 CI adapter。
-- analyzer 从 `spec/N` 迁移到 `change/N`。
+- provider-neutral Loop controller、state store、单 active Issue lock、deterministic verifier 和 Gitea adapter。
+- analyzer 从 `spec/N` 迁移到 `change/N`，wrapper 确定性校验 classification 并独占标签 mutation。
+- small/complex/unclear、explicit override、范围升级、同因三次、pending/failed CI feedback 和四种终态的 synthetic tests。
+- 安装幂等、xtrace/argv token 防泄漏和 Claude implementation parity gate 的 mock 回归。
+
+仍未完成：
+
 - 真实 small/complex Issue 的 Codex 闭环。
+- 真实 Gitea PR CI failure feedback。
+- Runtime 在 gitea-ci VM 的备份、安装、停止/恢复验证。
 - 非生产首次部署与故意失败回滚验证。
 - Claude adapter 与 parity 验证。
 
-> **安装暂停（Issue #8）**：当前 VM analyzer wrapper 仍是 v2，解析 `spec/N` 和旧 summary 标题。本仓库 v3 skills 与 canonical templates 已更新，但在 Issue #8 的 controller/analyzer wrapper 同步完成并通过测试前，不运行 `codex/install-vm.sh` 覆盖现有 VM 安装。
+> **安装暂停（Issue #8）**：中央 source 与 synthetic 已通过，但当前 VM analyzer wrapper 仍是 v2。必须先重新读取 VM 基线、做临时 HOME 两次安装和回滚准备，再安装 candidate；安装后仍保持 timer 停止或 `IMPLEMENT_PROVIDER=none`，直到真实 small/complex 验证按序完成。
 
 ## 5. Codex skills 映射
 

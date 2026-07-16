@@ -1,6 +1,6 @@
 # 09 · v3 平台简化与 Loop Engineering 文档改造规划
 
-> 状态：**AI 复杂度判级合同、canonical templates、Codex skills 与 Gitea 标签已实施并完成 Codex 侧静态验证；Loop 运行时未实施**
+> 状态：**Codex Loop runtime candidate 与 synthetic matrix 已实现；VM、真实 Issue、CI feedback 和非生产部署验证未完成**
 > 日期：2026-07-16
 > 适用范围：AISoftPlatform 平台文档、平台 skills 与 agent 编排说明
 > 当前约束：v3 文档契约现已生效；现有 analyzer/agent 脚本和 VM 运行状态仍是 v2 as-built，必须以各册“当前实施状态”为准，不得把 Loop 写成已上线。
@@ -13,10 +13,12 @@
 - [x] Phase D4：Codex skills、复合 skill、VM 全局指导、onboarding 与 canonical templates。
 - [x] Phase D5 文档/skill 部分：front matter、metadata、shell smoke、关键词检查和两项只读 forward test。
 - [x] AI 判级增补：权威合同、canonical templates、Codex skills、16 个 Gitea 标签与 `rsdesign-new` Issue #8 complex 试点合同。
-- [ ] Loop controller、analyzer 单分支改造、真实 Issue、CI feedback 和非生产首次部署验证。
+- [x] Loop runtime source：analyzer 单分支、classification/contract、state/lock、Codex adapter、verifier、Gitea adapter、controller 与安装入口。
+- [x] Synthetic matrix：72 项 Python tests、ShellCheck、安装幂等、token 防泄漏、scope escalation、CI feedback 和终态回归。
+- [ ] 真实 Issue、真实 PR CI feedback、VM candidate 安装与非生产首次部署验证。
 - [ ] Codex 验证完成后的 Claude Code adapter 与 parity 验证。
 
-前序完成证据：Task 0–6 的中央提交记录见 `10`；试点分支 `change/8` 最新合同提交 `2f9a4b9` 已推送；Gitea 标签同步第二次结果为 `created=0 existing=16`；Issue #8 已读回为 `type/platform`、`complexity/complex`、`spec-drafting`，并写入 AI 判级审计评论。最终 review fix 提交 `f553422` 已通过仅含 HEAD 跟踪文件的干净 checkout 验证。2026-07-16 的 Phase D3 修改又由中央 smoke 锁定首次部署、`READY_FOR_REVIEW`、标准故障包和生产无 AI API 四项边界。VM skills 安装、controller 启动、真实 small/complex Loop、CI feedback 和 Claude Code parity 仍未执行。
+前序分类合同证据见 `10`。2026-07-16 中央分支 `codex/v3-loop-runtime` 已实现 runtime candidate；`bash codex/tests/smoke.sh` 运行 72 项 Python tests、ShellCheck、label sync mock、安装幂等和 token 防泄漏回归并通过。试点治理提交 `571cf83` 与合同提交 `4482792` 已推送；fresh 无网络本地 verifier 通过 AC-8，外部模型 review 因私有内容外发策略被拒绝并记录为 `NOT RUN`。Issue #8 随后读回为 open，标签精确为 `type/platform`、`complexity/complex`、`approved`。这些 Gitea/VM 状态均可漂移，下一次操作前仍需重新 GET。VM candidate 安装、真实 small/complex、真实 CI feedback、非生产部署和 Claude Code parity 仍未执行。
 
 ## 1. 规划目标
 
