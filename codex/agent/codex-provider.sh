@@ -12,7 +12,14 @@ fi
 command -v codex >/dev/null || { echo 'codex CLI is not installed' >&2; exit 2; }
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-RUNTIME_DIR="${AISOFT_LOOP_RUNTIME_DIR:-$SCRIPT_DIR/../runtime}"
+if [[ -n "${AISOFT_LOOP_RUNTIME_DIR:-}" ]]; then
+  DEFAULT_RUNTIME_DIR="$AISOFT_LOOP_RUNTIME_DIR"
+elif [[ -d "$SCRIPT_DIR/../runtime/aisoft_loop" ]]; then
+  DEFAULT_RUNTIME_DIR="$SCRIPT_DIR/../runtime"
+else
+  DEFAULT_RUNTIME_DIR="$HOME/.local/lib/aisoft-loop"
+fi
+RUNTIME_DIR="$DEFAULT_RUNTIME_DIR"
 RAW_RESULT="$(mktemp)"
 trap 'rm -f "$RAW_RESULT"' EXIT
 

@@ -7,10 +7,11 @@ command -v rg >/dev/null
 
 optional_runtime_sources=(
   "$ROOT/codex/agent/analyze-codex.sh"
+  "$ROOT/codex/agent/codex-analyzer.sh"
+  "$ROOT/codex/agent/codex-provider.sh"
   "$ROOT/codex/agent/common.sh"
-  "$ROOT/codex/agent/implement-codex.sh"
+  "$ROOT/codex/agent/loop-controller.sh"
   "$ROOT/codex/agent/provider-poll.sh"
-  "$ROOT/codex/agent/spec-start-codex.sh"
   "$ROOT/codex/install-vm.sh"
 )
 runtime_source_count=0
@@ -28,10 +29,16 @@ bash -n "$ROOT/codex/tools/sync-gitea-labels.sh"
 bash -n "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 if command -v shellcheck >/dev/null; then
   shellcheck \
+    "$ROOT"/codex/agent/*.sh \
+    "$ROOT/codex/install-vm.sh" \
     "$ROOT/codex/tools/sync-gitea-labels.sh" \
-    "$ROOT/codex/tests/test-sync-gitea-labels.sh"
+    "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
+    "$ROOT/codex/tests/test-agent-runtime.sh"
 fi
 bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
+bash "$ROOT/codex/tests/test-agent-runtime.sh"
+PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
+  -s "$ROOT/codex/runtime/tests" -v
 
 jq -e '
   length == 16 and
@@ -77,14 +84,18 @@ done
 grep -Fq '/mnt/mac/Users/benque/Documents/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
 
 if [[ -f "$ROOT/codex/agent/provider-poll.sh" ]]; then
-  grep -Fq "ANALYSIS_PROVIDER=\"\${ANALYSIS_PROVIDER:-claude}\"" "$ROOT/codex/agent/provider-poll.sh"
+  grep -Fq "ANALYSIS_PROVIDER=\"\${ANALYSIS_PROVIDER:-none}\"" "$ROOT/codex/agent/provider-poll.sh"
   grep -Fq "IMPLEMENT_PROVIDER=\"\${IMPLEMENT_PROVIDER:-none}\"" "$ROOT/codex/agent/provider-poll.sh"
+  grep -Fq 'Claude implementation remains disabled until Codex parity passes' "$ROOT/codex/agent/provider-poll.sh"
 else
   echo 'SKIP: optional runtime contract checks for codex/agent/provider-poll.sh.'
 fi
 if [[ -f "$ROOT/codex/agent/common.sh" ]]; then
-  grep -Fq "if [[ \"\$sandbox\" == read-only" "$ROOT/codex/agent/common.sh"
-  grep -Fq "args+=(--add-dir \"\$platform_docs\")" "$ROOT/codex/agent/common.sh"
+  grep -Fq 'set +x' "$ROOT/codex/agent/common.sh"
+  if rg -n 'Authorization: token|AUTH=' "$ROOT/codex/agent"; then
+    echo 'shell runtime must not construct token-bearing auth argv' >&2
+    exit 1
+  fi
 else
   echo 'SKIP: optional runtime contract checks for codex/agent/common.sh.'
 fi

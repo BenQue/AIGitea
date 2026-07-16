@@ -56,6 +56,20 @@ class GiteaClient:
     def get_issue(self, issue_number: int) -> dict[str, object]:
         return self._object("GET", f"/issues/{_number(issue_number)}")
 
+    def list_issues(self, label: str) -> list[dict[str, object]]:
+        if not label or any(character in label for character in "\r\n"):
+            raise GiteaError("Issue label filter must not be empty")
+        values = self._array(
+            "GET",
+            "/issues?type=issues&state=open&labels=" + quote(label, safe=""),
+        )
+        issues: list[dict[str, object]] = []
+        for value in values:
+            if not isinstance(value, dict):
+                raise GiteaError("Gitea Issue list response is invalid")
+            issues.append(value)
+        return issues
+
     def set_labels(self, issue_number: int, desired: set[str]) -> None:
         number = _number(issue_number)
         managed = TYPE_LABELS | COMPLEXITY_LABELS | LIFECYCLE_LABELS
