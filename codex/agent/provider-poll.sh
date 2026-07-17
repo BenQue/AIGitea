@@ -10,7 +10,7 @@ load_agent_env
 ANALYSIS_PROVIDER="${ANALYSIS_PROVIDER:-none}"
 IMPLEMENT_PROVIDER="${IMPLEMENT_PROVIDER:-none}"
 case "$ANALYSIS_PROVIDER" in claude|codex|none) ;; *) echo "invalid ANALYSIS_PROVIDER=$ANALYSIS_PROVIDER" >&2; exit 2 ;; esac
-case "$IMPLEMENT_PROVIDER" in codex|none) ;; *) echo 'Claude implementation remains disabled until Codex parity passes' >&2; exit 2 ;; esac
+case "$IMPLEMENT_PROVIDER" in claude|codex|none) ;; *) echo "invalid IMPLEMENT_PROVIDER=$IMPLEMENT_PROVIDER" >&2; exit 2 ;; esac
 
 RUNTIME_DIR="$(runtime_dir "$SCRIPT_DIR")"
 STATE_DIR="${AISOFT_LOOP_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/aisoft-loop}"
@@ -32,17 +32,15 @@ list_issues() {
 if [[ "$ANALYSIS_PROVIDER" != none ]]; then
   while IFS= read -r issue; do
     [[ -n "$issue" ]] || continue
-    if [[ "$ANALYSIS_PROVIDER" == codex ]]; then
-      "$SCRIPT_DIR/analyze-codex.sh" "$issue" || echo "Codex analysis #$issue failed" >&2
-    else
-      "$SCRIPT_DIR/analyze.sh" "$issue" || echo "Claude analysis #$issue failed" >&2
-    fi
+    "$SCRIPT_DIR/analyze-$ANALYSIS_PROVIDER.sh" "$issue" \
+      || echo "$ANALYSIS_PROVIDER analysis #$issue failed" >&2
   done < <(list_issues needs-analysis)
 fi
 
-if [[ "$IMPLEMENT_PROVIDER" == codex ]]; then
+if [[ "$IMPLEMENT_PROVIDER" != none ]]; then
   while IFS= read -r issue; do
     [[ -n "$issue" ]] || continue
-    "$SCRIPT_DIR/loop-controller.sh" "$issue" || echo "Codex Loop #$issue stopped" >&2
+    "$SCRIPT_DIR/loop-controller.sh" "$issue" \
+      || echo "$IMPLEMENT_PROVIDER Loop #$issue stopped" >&2
   done < <(list_issues approved)
 fi

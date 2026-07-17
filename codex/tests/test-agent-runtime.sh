@@ -20,6 +20,9 @@ diff -u "$first_manifest" "$second_manifest"
 test -x "$AGENT_DIR/provider-poll.sh"
 test -x "$AGENT_DIR/project-poll.sh"
 test -x "$AGENT_DIR/analyze-codex.sh"
+test -x "$AGENT_DIR/analyze-claude.sh"
+test -x "$AGENT_DIR/claude-provider.sh"
+test -x "$AGENT_DIR/claude-analyzer.sh"
 test -x "$AGENT_DIR/loop-controller.sh"
 test -f "$TARGET_HOME/.local/lib/aisoft-loop/aisoft_loop/controller.py"
 test -f "$TARGET_HOME/.agents/skills/gitea-development-loop/SKILL.md"
@@ -72,10 +75,10 @@ HOME="$TARGET_HOME" AGENT_ENV_FILE="$ENV_WITH_DEFAULT_REPO" bash -c \
   'source "$1"; load_agent_env; test "$AGENT_REPO_DIR" = "$HOME/work/$GITEA_REPO"' \
   _ "$ROOT/codex/agent/common.sh"
 
-if AGENT_ENV_FILE="$ENV_FILE" ANALYSIS_PROVIDER=none IMPLEMENT_PROVIDER=claude \
-  AISOFT_LOOP_STATE_DIR="$TEMP_ROOT/state-claude" \
+if AGENT_ENV_FILE="$ENV_FILE" ANALYSIS_PROVIDER=none IMPLEMENT_PROVIDER=gpt \
+  AISOFT_LOOP_STATE_DIR="$TEMP_ROOT/state-invalid" \
   "$ROOT/codex/agent/provider-poll.sh" >/dev/null 2>&1; then
-  echo 'Claude implementation must remain disabled before parity' >&2
+  echo 'an unsupported implementation provider must be rejected' >&2
   exit 1
 fi
 
@@ -97,6 +100,18 @@ if grep -Fq sentinel-runtime-token "$TEMP_ROOT/python-argv"; then
   echo 'agent token appeared in child argv' >&2
   exit 1
 fi
+
+for provider in claude codex; do
+  MOCK_ARGV_LOG="$TEMP_ROOT/python-argv-$provider" \
+  AGENT_ENV_FILE="$ENV_FILE" ANALYSIS_PROVIDER="$provider" IMPLEMENT_PROVIDER="$provider" \
+  AISOFT_LOOP_STATE_DIR="$TEMP_ROOT/state-$provider" \
+  PATH="$MOCK_BIN:$PATH" \
+    "$ROOT/codex/agent/provider-poll.sh"
+  if grep -Fq sentinel-runtime-token "$TEMP_ROOT/python-argv-$provider"; then
+    echo "$provider poll leaked the agent token into child argv" >&2
+    exit 1
+  fi
+done
 
 WORKTREE_MOCK_BIN="$TEMP_ROOT/worktree-bin"
 mkdir -p "$WORKTREE_MOCK_BIN" "$TEMP_ROOT/repo"

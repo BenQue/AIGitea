@@ -68,8 +68,10 @@ jq -e '
   )
 ' "$ROOT/codex/config/gitea-labels.json" >/dev/null
 
-if rg -n -g '!**/tests/smoke.sh' 'dangerously-bypass|--yolo|danger-full-access' "$ROOT/codex"; then
-  echo '检测到禁止的 Codex 绕过参数' >&2
+if rg -n -g '!**/tests/smoke.sh' \
+  'dangerously-bypass|--yolo|danger-full-access|dangerously-skip-permissions|permission-mode +bypassPermissions' \
+  "$ROOT/codex"; then
+  echo '检测到禁止的 provider 绕过参数' >&2
   exit 1
 fi
 
@@ -79,6 +81,13 @@ for skill in gitea-analyze-change gitea-spec-plan gitea-development-loop gitea-i
   grep -Fq "\$$skill" "$ROOT/codex/skills/$skill/agents/openai.yaml"
 done
 
+[[ -f "$ROOT/CLAUDE.md" ]]
+grep -Fq '@AGENTS.md' "$ROOT/CLAUDE.md"
+if [[ "$(grep -c . "$ROOT/CLAUDE.md")" -gt 5 ]]; then
+  echo 'CLAUDE.md 必须只导入共享规范源，不得复制第二套合同' >&2
+  exit 1
+fi
+
 [[ -f "$ROOT/skill-for-codex/SKILL.md" ]]
 [[ -f "$ROOT/skill-for-codex/agents/openai.yaml" ]]
 grep -Fq '/mnt/mac/Users/benque/Documents/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
@@ -86,7 +95,11 @@ grep -Fq '/mnt/mac/Users/benque/Documents/AISoftPlatform/' "$ROOT/codex/global-A
 if [[ -f "$ROOT/codex/agent/provider-poll.sh" ]]; then
   grep -Fq "ANALYSIS_PROVIDER=\"\${ANALYSIS_PROVIDER:-none}\"" "$ROOT/codex/agent/provider-poll.sh"
   grep -Fq "IMPLEMENT_PROVIDER=\"\${IMPLEMENT_PROVIDER:-none}\"" "$ROOT/codex/agent/provider-poll.sh"
-  grep -Fq 'Claude implementation remains disabled until Codex parity passes' "$ROOT/codex/agent/provider-poll.sh"
+  for provider in claude codex; do
+    [[ -f "$ROOT/codex/agent/analyze-$provider.sh" ]]
+    [[ -f "$ROOT/codex/agent/$provider-analyzer.sh" ]]
+    [[ -f "$ROOT/codex/agent/$provider-provider.sh" ]]
+  done
 else
   echo 'SKIP: optional runtime contract checks for codex/agent/provider-poll.sh.'
 fi

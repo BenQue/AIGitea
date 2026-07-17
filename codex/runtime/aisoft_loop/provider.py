@@ -80,7 +80,7 @@ class CommandProvider:
     def run(self, request: Mapping[str, object], worktree: Path) -> ProviderResult:
         environment = {
             name: os.environ[name]
-            for name in ("PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "CODEX_MODEL")
+            for name in ("PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "CODEX_MODEL", "CLAUDE_MODEL")
             if name in os.environ
         }
         with tempfile.TemporaryDirectory(prefix="aisoft-provider-") as tempdir:

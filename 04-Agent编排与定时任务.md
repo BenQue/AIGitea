@@ -19,7 +19,7 @@
 | `provider-poll.sh` | 共享 analyzer/controller poller，provider 默认显式选择 | 不保存项目坐标；只读取当前 profile 指定的 env |
 | `project-poll.sh` | 中央 source 已实现 | 校验 profile 名和 mode 400/600，为 state/worktrees 增加项目 namespace，再调用共享 poller |
 | Codex analyzer/controller | synthetic 与一个 real complex pilot 通过 | 作为通用 candidate；不因一个 pilot 通过而自动启用其他仓库 |
-| Claude one-shot/analyzer | 现有分析入口保留 | Claude implementation 在 parity 前仍拒绝启用 |
+| Claude adapter | `claude-provider.sh` / `claude-analyzer.sh` / `analyze-claude.sh` 已在中央 source，parity 测试通过 | 与 Codex 共用 controller、verifier、状态与终态；默认 `IMPLEMENT_PROVIDER=none`，启用仍需项目级验收 |
 | `aisoft-agent@.service/.timer` | 中央 source 提供禁用模板 | 安装不 enable/start；每个项目验收后由人显式启用对应 instance |
 
 > **profile 边界**：`~/.config/aisoft/projects/<profile>.env` 绑定一个 Gitea owner/repo、clone 和 provider；`~/.local/state/aisoft-loop/projects/<profile>/` 保存该项目的锁、Issue state 与 worktrees。rsdesign-new Issue #8 只是验证证据，不是默认 profile。AISoftPlatform 本身是平台 source/documentation 仓库，不要求应用部署。

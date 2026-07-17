@@ -63,9 +63,14 @@ Codex 和 Claude Code 只替换模型执行器，不各自复制标签状态机�
 - 首次 VM 运行捕获 worktree 命令输出污染，中央提交 `bb0d5d5` 修复并增加 shell 回归后重装、重跑通过。
 - 通用 profile candidate 在 VM 一次性 HOME 连续安装两次，结果为 35 files / 7 scripts；未生成 profile 或凭据，`systemd-analyze verify` 通过两个 template。输出中的 Mailpit `nobody` 警告来自既有外部 unit，与候选无关。
 
-中央通用 runtime 仍未完成：
+Claude adapter 已完成（Issue #1）：
 
-- Claude adapter 与 parity 验证。
+- `claude-provider.sh`、`claude-analyzer.sh`、`analyze-claude.sh` 进入中央 source，`install-vm.sh` 一并安装；`provider-poll.sh` 不再引用未跟踪脚本。
+- `cli.py` 按 `IMPLEMENT_PROVIDER` 显式选择 adapter，禁用与未知 provider 一律失败关闭，不静默回退 Codex。
+- 17 项 parity 测试覆盖成功、verifier 反馈、CI 反馈、范围扩张、外部阻塞、同根因三次、总轮数上限、token 脱敏与无 merge/deploy，两个 provider 走同一 controller 得到同一终态。
+- 两个 provider 的凭据独立：认证只经 `HOME` 生效，环境白名单只透传模型变量，凭据类变量有测试断言不透传。
+
+仍未完成：真实 VM 上的 Claude 一次 real Issue pilot；`IMPLEMENT_PROVIDER` 默认仍为 `none`。
 
 > **当前启用边界**：rsdesign-new Issue #8 的安装与 PR/CI 结果只作为一个 pilot evidence。现有 timer 仍 inactive、implementation none。其他仓库必须创建自己的 profile、verifier 和项目验收，不能继承 pilot 的启用结论。AISoftPlatform 没有应用部署目标，不需要为了完成中央 runtime 人为创建部署流水线。
 
