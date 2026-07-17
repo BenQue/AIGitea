@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import sys
+from typing import Mapping
 
 from .analysis import (
     AnalysisError,
@@ -21,6 +22,21 @@ from .gitea import GiteaClient, GiteaError
 from .provider import CommandProvider, ProviderError, ProviderResult
 from .state import GlobalLock, StateStore, TerminalState, default_state_root
 from .verifier import VerificationConfigError, Verifier
+
+
+IMPLEMENTATION_PROVIDERS = ("codex", "claude")
+
+
+def select_provider_script(env: Mapping[str, str], agent_dir: Path | str) -> Path:
+    """Resolve the adapter for the explicitly selected implementation provider."""
+    provider = (env.get("IMPLEMENT_PROVIDER") or "none").strip()
+    if provider == "none":
+        raise ProviderError("implementation provider is disabled")
+    if provider not in IMPLEMENTATION_PROVIDERS:
+        raise ProviderError(f"unsupported implementation provider: {provider!r}")
+    override = env.get(f"{provider.upper()}_PROVIDER_SCRIPT")
+    script = Path(override) if override else Path(agent_dir) / f"{provider}-provider.sh"
+    return script.resolve()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -92,15 +108,11 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
         print("missing required environment: " + ", ".join(missing), file=sys.stderr)
         return 2
     state_root = Path(os.environ.get("AISOFT_LOOP_STATE_DIR") or default_state_root())
-    source_provider = Path(__file__).parents[2] / "agent" / "codex-provider.sh"
-    default_provider = (
-        source_provider if source_provider.is_file() else Path.home() / "agent" / "codex-provider.sh"
-    )
-    provider_script = Path(
-        os.environ.get("CODEX_PROVIDER_SCRIPT") or default_provider
-    ).resolve()
+    source_agent = Path(__file__).parents[2] / "agent"
+    agent_dir = source_agent if source_agent.is_dir() else Path.home() / "agent"
     branch = f"change/{issue}"
     try:
+        provider_script = select_provider_script(os.environ, agent_dir)
         gitea = GiteaClient(
             os.environ["GITEA_URL"],
             os.environ["GITEA_OWNER"],
