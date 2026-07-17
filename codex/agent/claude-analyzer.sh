@@ -21,7 +21,8 @@ else
 fi
 RUNTIME_DIR="$DEFAULT_RUNTIME_DIR"
 RAW_RESULT="$(mktemp)"
-trap 'rm -f "$RAW_RESULT"' EXIT
+CLEAN_RESULT="$(mktemp)"
+trap 'rm -f "$RAW_RESULT" "$CLEAN_RESULT"' EXIT
 
 args=(
   --print
@@ -45,5 +46,6 @@ fi
   cat "$ISSUE_FILE"
 } | (cd "$REPO" && claude "${args[@]}") >"$RAW_RESULT"
 
-PYTHONPATH="$RUNTIME_DIR${PYTHONPATH:+:$PYTHONPATH}" \
-  python3 -m aisoft_loop.cli validate-analysis "$RAW_RESULT" "$RESULT_FILE"
+export PYTHONPATH="$RUNTIME_DIR${PYTHONPATH:+:$PYTHONPATH}"
+python3 -m aisoft_loop.cli extract-json "$RAW_RESULT" "$CLEAN_RESULT"
+python3 -m aisoft_loop.cli validate-analysis "$CLEAN_RESULT" "$RESULT_FILE"

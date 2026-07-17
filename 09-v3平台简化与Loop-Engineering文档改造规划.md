@@ -19,7 +19,7 @@
 - [x] 真实 complex Issue #8：one-shot Loop、deterministic verifier、PR #9 和 CI success 到 `READY_FOR_REVIEW`。
 - [x] 通用化修正：项目 profile、namespaced state/worktrees、禁用式 systemd template；rsdesign-new 明确降级为 pilot evidence。
 - [x] Claude adapter 前的中央 profile 安装 smoke：35 files / 7 scripts、两次 manifest、无 profile/凭据、systemd template verify。
-- [ ] Codex 验证完成后的 Claude Code adapter 与 parity 验证。
+- [x] Claude Code adapter 与 parity 验证（Issue #1，PR #2 已合并）：provider 选择由 `IMPLEMENT_PROVIDER` 驱动、fail-closed；17 项 parity 测试；adapter 输出规整（`extract-json`）；默认仍 `IMPLEMENT_PROVIDER=none`。真实 VM pilot 未做。
 
 前序分类合同证据见 `10`。2026-07-16 中央分支 `codex/v3-loop-runtime` 已实现 runtime candidate；`bash codex/tests/smoke.sh` 运行 72 项 Python tests、ShellCheck、label sync mock、安装幂等和 token 防泄漏回归并通过。VM 临时 HOME 安装和带回滚备份的正式安装通过，timer 保持 inactive、implementation none。rsdesign-new Issue #8 作为 real complex pilot 暴露并验证了 worktree stdout 修复、deterministic verifier、PR/CI 和人工合并闸门；PR #9 后由人合并，测试环境健康。用户随后明确 AISoftPlatform 是通用平台文档/runtime source，不应继续把 rsDesign 当作承载仓库；误建的 rsdesign-new Issue #10 在仅生成 analysis summary 后已取消关闭，未实现、未建 PR、未部署。中央 source 因此增加每项目 profile 与 namespaced state/worktrees，部署验收改为每个有部署范围的应用接入门禁，而不是 AISoftPlatform 或 Claude adapter 的项目专用前置条件。
 
@@ -587,18 +587,26 @@ rg -n 'READY_FOR_REVIEW|NEEDS_HUMAN_DECISION|effective_complexity:|type/feature|
 4. 继续使用最终 PR、CI 和现有部署流程。
 5. 不需要恢复无人值守实现，也不影响生产部署。
 
-## 13. 实施前仍需在专项设计中确定的参数
+## 13. 实施参数
 
-以下问题不阻塞文档规划，但在 agent/Loop 实施计划中必须定稿：
+`09` 早期把以下八项列为"实施前仍需定稿"。runtime candidate 与 Claude adapter 落地后，其中七项已在实现中定稿，这里回填为决策；只有一项仍开放。当前值全部取自 `codex/runtime/aisoft_loop/`，接入新项目前应以这里为准，而不是从 env 默认值反推。
 
-- 默认实现 provider，以及 Claude/Codex 的切换和降级策略。
-- 每个 Issue 的最大迭代数、时间和 token 预算。
-- Loop 状态保存在 VM 本地、Issue 评论还是仓库 verification 中。
-- PR 在本地验证后创建，还是从第一轮开始创建 Draft PR。
-- 如何读取 Gitea CI 结果并把失败反馈给下一轮。
-- review agent 只用于复杂变更，还是由路径/风险规则触发。
-- 并发 Issue 数、工作树隔离和锁策略。
-- 部署首次验收所需的故意失败场景和最低重复执行次数。
+### 13.1 已定决策
+
+| # | 决策 | 当前值 / 落点 | 理由 |
+|---|---|---|---|
+| 1 | 默认实现 provider 与切换策略 | 默认 `IMPLEMENT_PROVIDER=none`；`claude`/`codex` 显式选择；未知或禁用一律 fail-closed，**无自动回退** | 启用是每项目独立门禁；active Issue 上换 provider 必须先结束或迁移状态，避免状态不一致 |
+| 2 | 每 Issue 预算 | `LOOP_MAX_ROUNDS=8`、`LOOP_MAX_SAME_ROOT=3`、`LOOP_PROVIDER_TIMEOUT=2700` 秒（provider 硬上限 7200）；均可按项目 env 覆盖 | 同根因三次即升级（`03 §8`）；总轮数上限兜底防止无界迭代；单值可为慢项目上调 |
+| 3 | Loop 状态存储 | VM 本地 `~/.local/state/aisoft-loop/projects/<profile>/`（见 `04 §2`） | 状态不进 Issue 评论或仓库，避免污染审计记录与合同文档 |
+| 4 | PR 创建时机 | 本地 verifier 全绿后才建，不用 Draft PR | PR 一旦出现即代表"本地已验证、等 CI 与人审"，语义单一 |
+| 5 | CI 结果读取与反馈 | `get_commit_status` 映射 pending/success/failure；`success`→`READY_FOR_REVIEW`，`pending`→持久化 `stage=awaiting_ci` 返回 CONTINUE，`failure`→证据进下一轮，三次记入同根因上限 | 复用唯一交付闸门的 CI，不新造状态；失败反馈闭环但不无限重试 |
+| 6 | Provider 输出规整 | adapter 用 `extract-json` 取输出中最后一个 JSON 对象，再交严格校验器；共享 `ProviderResult`/`AnalysisResult` 校验保持严格不放宽 | Claude 会先输出散文再给 JSON；把 CLI 差异关在 adapter 内，两个 provider 的结果契约保持一致 |
+| 7 | 并发与隔离 | 每 profile 单 active Issue + `GlobalLock` + 独立 `change/N` worktree（见 `04 §3`） | 第一版不做跨 Issue 并行，避免重造编排复杂度；并行启用需另做 VM 容量验收 |
+
+### 13.2 仍开放
+
+- **Review agent 触发规则**：复杂变更是否引入独立 review agent，以及由复杂度还是风险规则触发。当前实现**未引入**（`§7.6` 记为可选）。现状即事实决策——verifier 已独立验证、controller 已校验 changed_files 与授权范围、人工合并是最终闸门，在此之前再加一个模型意见收益不明。启用前需单独设计与授权。
+- **首次部署验收的故意失败与最低重复次数**：仅对有部署范围的应用 profile 适用，随该项目接入门禁定稿；AISoftPlatform 等文档/source 仓库 not applicable（见 `08 §7`）。
 
 ## 14. 本规划的批准边界
 

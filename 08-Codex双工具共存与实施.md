@@ -69,6 +69,7 @@ Claude adapter 已完成（Issue #1）：
 - `cli.py` 按 `IMPLEMENT_PROVIDER` 显式选择 adapter，禁用与未知 provider 一律失败关闭，不静默回退 Codex。
 - 17 项 parity 测试覆盖成功、verifier 反馈、CI 反馈、范围扩张、外部阻塞、同根因三次、总轮数上限、token 脱敏与无 merge/deploy，两个 provider 走同一 controller 得到同一终态。
 - 两个 provider 的凭据独立：认证只经 `HOME` 生效，环境白名单只透传模型变量，凭据类变量有测试断言不透传。
+- adapter 输出规整：Claude 会先输出散文再给 JSON，`claude-analyzer.sh`/`claude-provider.sh` 先经 `extract-json` 取最后一个 JSON 对象再交严格校验器；共享结果校验保持严格不放宽。真实 Claude analyzer 输出已复现验证。
 
 仍未完成：真实 VM 上的 Claude 一次 real Issue pilot；`IMPLEMENT_PROVIDER` 默认仍为 `none`。
 

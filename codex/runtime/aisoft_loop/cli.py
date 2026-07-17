@@ -19,6 +19,7 @@ from .analysis import (
 )
 from .controller import Controller, LocalGit
 from .gitea import GiteaClient, GiteaError
+from .output import OutputError, extract_last_json_object
 from .provider import CommandProvider, ProviderError, ProviderResult
 from .state import GlobalLock, StateStore, TerminalState, default_state_root
 from .verifier import VerificationConfigError, Verifier
@@ -64,6 +65,12 @@ def main(argv: list[str] | None = None) -> int:
     validate_analysis.add_argument("input", type=Path)
     validate_analysis.add_argument("output", type=Path)
 
+    extract_json = subparsers.add_parser(
+        "extract-json", help="isolate the last JSON object in raw provider output"
+    )
+    extract_json.add_argument("input", type=Path)
+    extract_json.add_argument("output", type=Path)
+
     get_issue = subparsers.add_parser("get-issue", help="write one Issue JSON privately")
     get_issue.add_argument("issue", type=int)
     get_issue.add_argument("output", type=Path)
@@ -90,6 +97,8 @@ def main(argv: list[str] | None = None) -> int:
         return _validate_provider(args.input, args.output)
     if args.command == "validate-analysis":
         return _validate_analysis(args.input, args.output)
+    if args.command == "extract-json":
+        return _extract_json(args.input, args.output)
     if args.command == "get-issue":
         return _get_issue(args.issue, args.output)
     if args.command == "list-issues":
@@ -182,6 +191,17 @@ def _validate_analysis(input_path: Path, output_path: Path) -> int:
         print(f"invalid analyzer result: {exc}", file=sys.stderr)
         return 2
     output_path.write_text(_analysis_json(result) + "\n", encoding="utf-8")
+    os.chmod(output_path, 0o600)
+    return 0
+
+
+def _extract_json(input_path: Path, output_path: Path) -> int:
+    try:
+        text = extract_last_json_object(input_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, OutputError) as exc:
+        print(f"unusable provider output: {exc}", file=sys.stderr)
+        return 2
+    output_path.write_text(text + "\n", encoding="utf-8")
     os.chmod(output_path, 0o600)
     return 0
 
