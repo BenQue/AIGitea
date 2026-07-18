@@ -41,6 +41,8 @@ verification_date:
 
 ## 3. Gate A：迁移基线
 
+在 Gate A 之前，可选执行 [15](15-VMware-Fusion-Windows-ARM原型实施手册.md) 的 Fusion Windows 11 ARM 快速原型。该原型使用单独的 `ARM-NN` 记录，只用于早期发现部署脚本缺陷；即使全部通过，也不能把本文件 Gate C–H 标记为 `PASS`。
+
 | ID | 检查 | 状态 | 证据 |
 |---|---|---|---|
 | A-01 | 本地 `main`、handoff tag 与 manifest SHA 一致 | NOT RUN | |

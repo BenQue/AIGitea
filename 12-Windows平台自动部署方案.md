@@ -10,7 +10,7 @@
 - 前端：React，构建结果写入 ASP.NET Core `wwwroot`。
 - Web：IIS + ASP.NET Core Module。
 - 数据库：PostgreSQL Windows 版本。
-- 目标系统：Windows Server 2019+ x64；首个测试基线使用 Windows Server 2022 x64。
+- 目标系统：Windows Server 2019+ x64；正式非生产测试基线使用 Windows Server 2022 x64。Mac 可先用 Windows 11 ARM 快速调试脚本，但不计入正式 x64 验收。
 - 发布方式：单一 `win-x64` ZIP 制品，允许短暂计划停机。
 
 目标是让同一套版本化源码和脚本在本地测试原型、公司测试环境和公司生产环境中复用。环境差异只通过外部配置、Secret、身份和地址表达。
@@ -28,6 +28,7 @@
 | Web/DB | 生产分机；小型非生产环境可同机 |
 | 停机 | 允许计划停机完成备份、migration、切换和启动 |
 | AI | 只参与开发/测试设计与排障；生产 script-only |
+| 快速原型 | Fusion + Windows 11 ARM 只验证架构无关脚本；正式 x64/AD Gate 不变 |
 
 ## 3. 目标拓扑与信任边界
 
@@ -288,7 +289,7 @@ JEA transcript、Windows Event Log、IIS 日志、应用结构化日志和 Gitea
 - 在未验证备份时执行破坏性 PostgreSQL migration。
 - 把 Windows 目标描述为已经建成。
 
-具体迁移步骤见 [13](13-项目结果迁移与内网切换实施手册.md)，验证证据见 [14](14-Windows部署与迁移验收清单.md)。
+具体迁移步骤见 [13](13-项目结果迁移与内网切换实施手册.md)，验证证据见 [14](14-Windows部署与迁移验收清单.md)，Mac 快速原型步骤见 [15](15-VMware-Fusion-Windows-ARM原型实施手册.md)。
 
 ## 14. 参考资料
 
