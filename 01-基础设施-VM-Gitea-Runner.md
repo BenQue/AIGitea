@@ -105,3 +105,16 @@ curl -fsS http://127.0.0.1:3100/api/health               # {"status":"ok",...}
 curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8091/   # 200
 # Gitea 后台 Site Administration → Actions → Runners:gitea-ci-runner Idle
 ```
+
+## 8. Windows 与公司内网目标边界
+
+本册只记录 Mac OrbStack 上的 Linux as-built。公司内网不要求逐机复制这一拓扑，而是复用其职责分离：Gitea、Runner、制品、测试环境、部署控制端和生产运行环境分别建立明确身份与权限。
+
+Windows 新目标使用 Windows x64 Runner、IIS、ASP.NET Core、React `wwwroot`、PostgreSQL、测试 OpenSSH，以及生产 SMB + Kerberos WinRM + JEA。详细设计与实施入口：
+
+- [07-内网与生产平移路线](07-内网与生产平移路线.md)
+- [12-Windows平台自动部署方案](12-Windows平台自动部署方案.md)
+- [13-项目结果迁移与内网切换实施手册](13-项目结果迁移与内网切换实施手册.md)
+- [14-Windows部署与迁移验收清单](14-Windows部署与迁移验收清单.md)
+
+上述内容当前均为目标设计，未在公司环境执行；不得把 Linux 冒烟结果作为 Windows 或生产验收证据。
