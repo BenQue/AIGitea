@@ -21,6 +21,11 @@
 | 5432 | PostgreSQL（仅 Gitea 自身用库；**应用是 SQLite**） | systemd |
 
 > ⚠️ OrbStack 事实：`*.orb.local` 域名 Mac 与 VM 内都可解析；Mac 文件系统在 VM 内挂载于 `/mnt/mac`（root 可读，普通新建用户不一定可穿越）。VM 与 Mac 同生共死——Mac 睡眠 VM 即停，「常驻」要等内网平移才真正成立。
+>
+> ⚠️ **`/mnt/mac` 读不到 macOS 隐私保护目录（`~/Documents`、`~/Desktop`、`~/Downloads`）**——2026-07-19 实测：`ls /mnt/mac/Users/benque/Documents/` 返回 `Operation not permitted`，**`sudo` 提权同样失败**（这是 macOS TCC，不是 Unix 权限，故上一条的「root 可读」对这三个目录不成立）；同一时刻 `/mnt/mac/Users/benque/Projects/` 正常可读。
+> **影响**：本套平台文档就放在 `~/Documents/AISoftPlatform/`，因此 **VM 内的会话读不到它**，`codex/tools/` 下按该路径调用的脚本也跑不起来。
+> **绕法（择一）**：① VM 内需要平台文档时从 Gitea 克隆 `admin/aisoft-platform`（与 `~/work/` 下其它克隆同构，无需挂载）；② 在 Mac 侧读写；③ 给 OrbStack 授予「文件与文件夹 → 文稿」权限（系统设置 → 隐私与安全性）。
+> **不影响推送**：应用仓库在 `~/Projects/` 下，挂载正常；平台文档库直接从 Mac `git push` 即可（Mac 已配凭据）。
 
 ## 2. 账号体系（权限隔离的落点）
 
