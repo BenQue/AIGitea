@@ -35,6 +35,8 @@ Codex 和 Claude Code 只替换模型执行器，不各自复制标签状态机�
 - `~/.claude/`、`~/.codex/` 和 `~/.agents/skills/` 独立保存，不复制 token。
 - provider 使用专用 `coder` 用户和最小权限 ci-bot，不拥有 `main` 合并权。
 - 两个 provider 不在同一 working tree 同时写；controller 为每个 Issue 分配隔离 worktree 和锁。
+- **⚠️ 上一条同样适用于「同一工具的多个交互式会话」**——规则的判据是 **working tree**，不是 provider。VM 侧由 controller 自动分配 worktree 已覆盖；**交互式路径（人在 Mac 克隆上同时开多个 Claude / Codex 会话，一 issue 一会话）没有任何分配者，是当前唯一裸露面**。共享 checkout 的 **HEAD 是全局可变状态**：A 会话 `git checkout` 会把 B 会话的 HEAD 一起带走，B 随后的 commit 落到 A 的分支上（2026-07-19 SFMDigitalBoard 实证，症状见 06 🕳️ 15）。
+  **交互式路径纪律**：并行时非第一个会话必须自建 worktree（`git worktree add .claude/worktrees/<name> <branch>`，全程 `git -C <worktree>`）；任何 commit 前 `git branch --show-current` 必须等于目标分支。
 - 生产机不安装或依赖 Claude/Codex 认证。
 
 ## 4. 现有 Codex 基础
