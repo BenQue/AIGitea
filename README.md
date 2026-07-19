@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.0（通用 Codex runtime candidate）｜ 更新：2026-07-16 ｜ 状态：**共享 runtime、每项目 profile、synthetic、VM 临时安装与一个真实 complex pilot 已验证；平台仓库本身不部署，已具备 Claude Code 通用适配条件**
+> 版本：v3.0（通用 Codex runtime candidate）｜ 更新：2026-07-18 ｜ 状态：**Linux 试点与双 provider runtime 已验证；Windows 自动部署、结果迁移、内网切换和 Fusion ARM 快速原型目标合同已完成文档设计，尚未实施**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 
@@ -18,7 +18,10 @@
 - ✅ Claude adapter（Issue #1）：与 Codex 共用 controller/verifier/状态/终态，17 项 parity 测试通过；默认仍 `IMPLEMENT_PROVIDER=none`，真实 VM pilot 未做
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
 - 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为 real complex pilot。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
-- ⏸️ 待办：deploy 回帖 issue、prod-sim 离线彩排、内网平移（见 [07-内网与生产平移路线](07-内网与生产平移路线.md)）
+- ✅ Windows 目标设计：IIS + ASP.NET Core + React `wwwroot` 单制品、PostgreSQL、测试 OpenSSH、生产 SMB + Kerberos WinRM + JEA 的合同已确认
+- ✅ 迁移目标设计：本地 Gitea 原型结果一次性交付公司 Gitea；不迁移 Issue/PR；GitHub 只保留本地镜像，与公司无关
+- ✅ Windows 快速原型设计：Apple Silicon Mac 使用 VMware Fusion + Windows 11 ARM 调试架构无关部署脚本；不替代 Server 2022 x64 和公司 AD 验收
+- ⏸️ 待办：Windows Server 2022 x64 原型、内网 Runner/依赖缓存、迁移演练、生产 JEA 彩排与 [14](14-Windows部署与迁移验收清单.md) 全量验收
 
 ## 2. 三层架构
 
@@ -55,8 +58,8 @@ flowchart TB
 
 | # | 原则 | 落点 |
 |---|------|------|
-| 1 | **一次构建，传自包含制品** | 对需要部署的应用，测试机构建自包含 `<repo>-<sha>.tar.gz`；rsdesign-new 是现有 as-built 示例，生产只解压已验收字节 |
-| 2 | **制品与环境配置分离** | 各机 `/opt/*/.env` 本地持有，部署时注入；制品零环境信息 |
+| 1 | **一次构建，传自包含制品** | Linux 可用 `<repo>-<sha>.tar.gz`，Windows 可用 `<repo>-<change-id>-<sha>-win-x64.zip`；生产只接收测试过的相同字节 |
+| 2 | **制品与环境配置分离** | Linux `/opt/*/.env`、Windows `shared/config` 等由环境持有；制品不含环境 Secret |
 | 3 | **整体去 Docker 化** | PM2 + 制品 + Verdaccio 缓存，绕开弱网 docker build 之痛 |
 | 4 | **生产部署 script-only** | AI 可参与首次非生产部署；生产只执行已验证脚本和制品 |
 | 5 | **任何变更可逆** | 迁移前备份、releases 多版本保留、健康检查失败可回滚 |
@@ -110,9 +113,15 @@ sequenceDiagram
 | [04-AI 分析与 Development Loop](04-Agent编排与定时任务.md) | analyzer、Loop、verifier、终态、provider adapter | 调整 agent 行为 |
 | [05-通知与多人协作](05-通知与多人协作.md) | Gitea mailer、Mailpit、事件覆盖、切真实 SMTP | 配通知、加协作者 |
 | [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、14 条实证踩坑、AI 故障包、凭据位置 | 排障必读 |
-| [07-内网与生产平移路线](07-内网与生产平移路线.md) | 阶段 3/4 映射、双网拓扑、前提清单、待办增强 | 规划下一步 |
+| [07-内网与生产平移路线](07-内网与生产平移路线.md) | 原型孵化、结果迁移、权威源切换和 Linux/Windows 双目标 | 规划内网平移 |
 | [08-Codex-first 与双工具共存](08-Codex双工具共存与实施.md) | 共享 controller、Codex 验证矩阵、Claude parity 条件 | 接入或切换 provider |
 | [09-v3 文档改造规划](09-v3平台简化与Loop-Engineering文档改造规划.md) | v3 决策、影响矩阵、迁移顺序、回滚边界 | 审核或实施 v3 |
+| [10-AI Issue 判级与标签计划](10-AI-Issue判级与标签实施计划.md) | 判级、标签和 wrapper 实施记录 | 追溯 analyzer 设计 |
+| [11-Codex Loop runtime 计划](11-Codex-Loop运行时实施计划.md) | provider-neutral runtime 与验证计划 | 追溯 Loop 实现 |
+| [12-Windows 自动部署方案](12-Windows平台自动部署方案.md) | IIS/.NET/React/PostgreSQL、制品、OpenSSH、SMB/WinRM/JEA | 建设 Windows 交付链 |
+| [13-结果迁移与内网切换手册](13-项目结果迁移与内网切换实施手册.md) | 不迁 Issue/PR 的结果基线迁移、重建和切换 runbook | 执行项目迁移 |
+| [14-Windows 部署与迁移验收](14-Windows部署与迁移验收清单.md) | 构建、部署、数据库、JEA、切换和灾备证据 | 正式上线验收 |
+| [15-Fusion Windows ARM 原型](15-VMware-Fusion-Windows-ARM原型实施手册.md) | Mac 预检、Fusion/Windows 11 ARM、OpenSSH/IIS 脚本调试和 x64 升级边界 | 本地快速原型 |
 
 ## 6. 关键地址速查
 
@@ -133,3 +142,5 @@ sequenceDiagram
 - **`change/N`**：Issue N 从分析到最终 PR 共用的单一分支
 - **`docs/changes/N/`**：summary、复杂变更的 spec/plan，以及部署/迁移变更的 verification
 - **制品**：`/opt/artifacts/rsdesign-new-<sha>.tar.gz`，测过的字节 = 上线的字节
+- **Change ID（Windows 目标合同）**：原型 `<项目三字符代码>-NNNN`、正式 `PRD-NNNN`；用于分支、文档、制品和部署记录。现有 runtime 尚未实现该格式
+- **权威源切换**：迁移前本地 Gitea 是原型权威源；迁移后公司 Gitea 是唯一正式权威源，GitHub 不进入公司链路
