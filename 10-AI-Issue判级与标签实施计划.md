@@ -119,14 +119,14 @@ Expected: `git check-ignore -v` reports `.gitignore` and `/worktrees/`; the comm
 ### Task 1: Bootstrap the rsdesign-new Issue #8 contract in an isolated worktree
 
 **Files:**
-- Modify: `/Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8/AGENTS.md`
-- Replace: `/Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/_template/00-summary.md`
-- Replace: `/Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/_template/01-spec.md`
-- Replace: `/Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/_template/02-plan.md`
-- Create: `/Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/_template/03-verification.md`
-- Create: `/Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/8/00-summary.md`
-- Create: `/Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/8/01-spec.md`
-- Create: `/Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/8/02-plan.md`
+- Modify: `/Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8/AGENTS.md`
+- Replace: `/Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/_template/00-summary.md`
+- Replace: `/Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/_template/01-spec.md`
+- Replace: `/Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/_template/02-plan.md`
+- Create: `/Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/_template/03-verification.md`
+- Create: `/Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/8/00-summary.md`
+- Create: `/Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/8/01-spec.md`
+- Create: `/Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/8/02-plan.md`
 
 **Interfaces:**
 - Consumes: Gitea Issue `http://gitea-ci.orb.local:3000/admin/rsdesign-new/issues/8` and the approved rules in `09` §§4.3 and 6.
@@ -139,7 +139,7 @@ Use `superpowers:using-git-worktrees` at execution time, then run:
 ```bash
 git -C /Users/benque/Projects/rsdesign-new fetch origin
 git -C /Users/benque/Projects/rsdesign-new worktree add \
-  /Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8 \
+  /Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8 \
   -b change/8 origin/main
 ```
 
@@ -175,8 +175,8 @@ Use `apply_patch` so the four pilot templates exactly match the AISoftPlatform c
 ```bash
 for name in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
   diff -u \
-    "/Users/benque/Documents/AISoftPlatform/templates/docs/changes/_template/$name" \
-    "/Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/_template/$name"
+    "/Users/benque/MyDocs/AISoftPlatform/templates/docs/changes/_template/$name" \
+    "/Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/_template/$name"
 done
 ```
 
@@ -237,10 +237,10 @@ Every acceptance criterion must map to at least one `rg`, smoke, `quick_validate
 Run:
 
 ```bash
-git -C /Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8 diff --check
+git -C /Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8 diff --check
 rg -n 'effective_complexity: complex|type/feature|Agent 不得在同一次运行|change/<N>' \
-  /Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8/AGENTS.md \
-  /Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/8
+  /Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8/AGENTS.md \
+  /Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8/docs/changes/8
 ```
 
 Expected: no whitespace errors; all four contract markers are present.
@@ -248,11 +248,11 @@ Expected: no whitespace errors; all four contract markers are present.
 Commit only the listed governance/template/Issue files:
 
 ```bash
-git -C /Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8 add \
+git -C /Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8 add \
   AGENTS.md docs/changes/_template docs/changes/8
-git -C /Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8 commit \
+git -C /Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8 commit \
   -m 'docs: define v3 loop pilot contract (#8)'
-git -C /Users/benque/Documents/AISoftPlatform/worktrees/rsdesign-issue-8 push -u origin change/8
+git -C /Users/benque/MyDocs/AISoftPlatform/worktrees/rsdesign-issue-8 push -u origin change/8
 ```
 
 Do not open a docs-only PR and do not add `approved`; Issue #8 remains complex contract work until runtime implementation is explicitly started.
@@ -566,9 +566,9 @@ Start the VM if needed, but do not change services beyond normal startup:
 ```bash
 orb start gitea-ci
 orb -m gitea-ci sudo -u coder \
-  /mnt/mac/Users/benque/Documents/AISoftPlatform/codex/tools/sync-gitea-labels.sh
+  /mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/sync-gitea-labels.sh
 orb -m gitea-ci sudo -u coder \
-  /mnt/mac/Users/benque/Documents/AISoftPlatform/codex/tools/sync-gitea-labels.sh
+  /mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/sync-gitea-labels.sh
 ```
 
 Expected: the first run reports the number of missing labels created; the second reports `created=0 existing=16`. If the VM cannot start or the API is unavailable, stop with `BLOCKED_EXTERNAL` and do not claim live labels exist.

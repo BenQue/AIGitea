@@ -7,9 +7,9 @@ description: Operate or onboard projects to the AISoft self-hosted Gitea deliver
 
 ## Read the contract
 
-Read `README.md` and the relevant numbered document before acting. On Mac the authoritative root is `~/Documents/AISoftPlatform/`.
+Read `README.md` and the relevant numbered document before acting. On Mac the authoritative root is `~/MyDocs/AISoftPlatform/`; on gitea-ci it is `/mnt/mac/Users/benque/MyDocs/AISoftPlatform/` (readable as both `benque` and `coder`, verified 2026-07-19).
 
-⚠️ **On gitea-ci, `/mnt/mac/Users/benque/Documents/AISoftPlatform/` is NOT readable** — macOS TCC blocks `/mnt/mac` access to `~/Documents`, `~/Desktop` and `~/Downloads`, and `sudo` does not help (verified 2026-07-19: `Operation not permitted` as both `benque` and `root`, while `/mnt/mac/Users/benque/Projects/` reads fine). If you are running inside the VM and need these docs, clone `admin/aisoft-platform` from Gitea instead of reading through the mount. See 01 §1 for the alternatives.
+⚠️ **Not `~/Documents/AISoftPlatform/` — that was the location until 2026-07-19 and it is unreachable from the VM.** macOS TCC blocks `/mnt/mac` access to `~/Documents`, `~/Desktop` and `~/Downloads`, and `sudo` does not help (`Operation not permitted` as both `benque` and `root`). The repo was moved to `~/MyDocs/` precisely so the mount works; see 01 §1.
 
 Use:
 
