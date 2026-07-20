@@ -21,6 +21,12 @@
 | 5432 | PostgreSQL（仅 Gitea 自身用库；**应用是 SQLite**） | systemd |
 
 > ⚠️ OrbStack 事实：`*.orb.local` 域名 Mac 与 VM 内都可解析；Mac 文件系统在 VM 内挂载于 `/mnt/mac`（root 可读，普通新建用户不一定可穿越）。VM 与 Mac 同生共死——Mac 睡眠 VM 即停，「常驻」要等内网平移才真正成立。
+>
+> 🚫 **`/mnt/mac` 读不到 macOS 隐私保护目录（`~/Documents`、`~/Desktop`、`~/Downloads`）**——2026-07-19 实测：`ls /mnt/mac/Users/benque/Documents/` 返回 `Operation not permitted`，**`sudo` 提权同样失败**（这是 macOS TCC，不是 Unix 权限，故上一条的「root 可读」对这三个目录不成立）；同一时刻 `/mnt/mac/Users/benque/Projects/` 正常可读。
+>
+> ✅ **这就是本套平台文档不放 `~/Documents` 的原因。** 权威根目录已于 2026-07-19 从 `~/Documents/AISoftPlatform/` 迁至 **`~/MyDocs/AISoftPlatform/`**，VM 内对应 `/mnt/mac/Users/benque/MyDocs/AISoftPlatform/`（已实测 `benque` 与 **`coder`** 两个身份均可读——`coder` 是 Codex 的运行身份，这一条是迁移的验收判据）。
+> **为何选迁移而非授权**：给 OrbStack 授予「文稿」权限也能解决，但那会让 VM 内的自治 agent 获得**整个 `~/Documents`** 的读权限，且属于不进版本库的机器本地设置——换机重装即复发且无痕。迁移是一次性的、自解释的。
+> **不影响推送**：应用仓库本就在 `~/Projects/` 下，挂载一直正常；平台文档库从 Mac 直接 `git push` 即可（Mac 已配凭据）。
 
 ## 2. 账号体系（权限隔离的落点）
 

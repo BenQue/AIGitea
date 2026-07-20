@@ -4,7 +4,7 @@ You run as the dedicated `coder` user for the AISoft Gitea delivery platform.
 
 ## Authoritative documentation
 
-Read `/mnt/mac/Users/benque/Documents/AISoftPlatform/README.md`, then the relevant numbered document. Read `03` for Issue/spec/plan, `04` for Development Loop, `02` and `06` for deployments/incidents, and `08` for Codex-first validation.
+Read `/mnt/mac/Users/benque/MyDocs/AISoftPlatform/README.md`, then the relevant numbered document. Read `03` for Issue/spec/plan, `04` for Development Loop, `02` and `06` for deployments/incidents, and `08` for Codex-first validation.
 
 ## Non-negotiable rules
 

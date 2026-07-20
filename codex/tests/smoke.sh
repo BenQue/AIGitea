@@ -90,7 +90,7 @@ fi
 
 [[ -f "$ROOT/skill-for-codex/SKILL.md" ]]
 [[ -f "$ROOT/skill-for-codex/agents/openai.yaml" ]]
-grep -Fq '/mnt/mac/Users/benque/Documents/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
+grep -Fq '/mnt/mac/Users/benque/MyDocs/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
 
 if [[ -f "$ROOT/codex/agent/provider-poll.sh" ]]; then
   grep -Fq "ANALYSIS_PROVIDER=\"\${ANALYSIS_PROVIDER:-none}\"" "$ROOT/codex/agent/provider-poll.sh"
