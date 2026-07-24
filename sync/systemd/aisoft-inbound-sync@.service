@@ -1,0 +1,16 @@
+[Unit]
+Description=AISoft GitHub inbound sync for %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=aisoft-sync
+Group=aisoft-sync
+ExecStart=/opt/aisoft-sync/inbound-sync.sh reconcile %i
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/aisoft-sync
+ReadWritePaths=/var/lib/aisoft-sync

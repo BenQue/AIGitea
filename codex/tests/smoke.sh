@@ -27,6 +27,9 @@ fi
 
 bash -n "$ROOT/codex/tools/sync-gitea-labels.sh"
 bash -n "$ROOT/codex/tests/test-sync-gitea-labels.sh"
+for script in "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh; do
+  bash -n "$script"
+done
 if command -v shellcheck >/dev/null; then
   shellcheck \
     "$ROOT"/codex/agent/*.sh \
@@ -34,9 +37,12 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh"
+  shellcheck "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh
 fi
 bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 bash "$ROOT/codex/tests/test-agent-runtime.sh"
+bash "$ROOT/sync/tests/test-inbound-sync.sh"
+bash "$ROOT/sync/tests/test-install.sh"
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
   -s "$ROOT/codex/runtime/tests" -v
 
