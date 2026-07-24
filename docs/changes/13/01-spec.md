@@ -14,7 +14,7 @@ risk_flags:
   - cross-service
   - ci-deployment
 depends_on: []
-status: contract-ready
+status: implemented
 branch: change/13
 pr_url:
 created: 2026-07-24

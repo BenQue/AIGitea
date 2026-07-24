@@ -27,6 +27,9 @@ fi
 
 bash -n "$ROOT/codex/tools/sync-gitea-labels.sh"
 bash -n "$ROOT/codex/tests/test-sync-gitea-labels.sh"
+for script in "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh; do
+  bash -n "$script"
+done
 if command -v shellcheck >/dev/null; then
   shellcheck \
     "$ROOT"/codex/agent/*.sh \
@@ -34,9 +37,12 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh"
+  shellcheck "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh
 fi
 bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 bash "$ROOT/codex/tests/test-agent-runtime.sh"
+bash "$ROOT/sync/tests/test-inbound-sync.sh"
+bash "$ROOT/sync/tests/test-install.sh"
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
   -s "$ROOT/codex/runtime/tests" -v
 
@@ -288,7 +294,8 @@ fi
 grep -Fq '首次部署' "$ROOT/02-CI与自动部署流水线.md"
 grep -Fq 'READY_FOR_REVIEW' "$ROOT/05-通知与多人协作.md"
 grep -Fq '标准故障包' "$ROOT/06-运维手册与踩坑集.md"
-grep -Fq '生产服务器永远不需要 AI API' "$ROOT/07-内网与生产平移路线.md"
+grep -Fq '生产环境只执行版本化、已验证、可回滚的确定性脚本，不安装或调用 AI' \
+  "$ROOT/07-内网与生产平移路线.md"
 
 if rg -n '对应闸门|三道闸门可以分派' "$ROOT/05-通知与多人协作.md"; then
   echo '通知分册仍包含 v2 三闸门现行合同' >&2

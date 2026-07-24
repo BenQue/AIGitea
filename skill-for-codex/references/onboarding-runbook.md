@@ -85,6 +85,17 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 
 中央 Codex runtime/adapter 先通过共享 synthetic 与至少一个明确标注的 pilot；每个新项目仍需完成与自身技术栈、CI 和部署范围对应的验收。随后 Claude adapter 复用同一 profile、controller、verifier 和状态合同，不复制项目专用状态机。
 
+### GitHub 入站项目
+
+1. 从 `sync/templates/project.env.example` 创建 600 profile；GitHub 与 Gitea token
+   分别存为 400/600 文件，不写入 profile、argv 或 Git config。
+2. 运行 `sync/install.sh` 两次确认幂等。安装完成后 timer 必须仍为
+   disabled/inactive。
+3. 只运行 one-shot `inbound-sync.sh reconcile <profile>`，验证同 SHA 幂等、
+   新 SHA 建不可变分支与 PR、history rewrite/conflict fail closed、secret redaction。
+4. 真实读回 bot 不能 push/merge `main`，并由目标仓库 PR CI 与内部审批重新授权。
+5. 以上证据写入该项目 `03-verification.md` 后，才可单独批准 enable timer。
+
 ## 8. 安全回滚
 
 在 Loop 试点前记录当前 timer、provider、agent 脚本、工作树、开放 Issue/PR 和标签状态。保持 `IMPLEMENT_PROVIDER=none`，直到专项实施明确启用新 controller。
