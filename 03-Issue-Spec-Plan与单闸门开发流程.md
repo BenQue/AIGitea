@@ -140,3 +140,9 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
 - 现有 one-shot 自动实现仍停用。
 - Development Loop、单分支 analyzer 和 CI feedback adapter 尚未实现。
 - 在 Codex 真实 Issue 验证通过前，不启用 Claude Code Loop。
+
+## 10. 合批关闭与 deployed 状态
+
+合批 PR 可在 merge message body 中逐行列出多个 `Closes #N`。部署成功后的确定性
+工具必须处理全部编号并去重，不能只从 subject 猜一个 Issue。更新标签时必须保留
+type、complexity 和非生命周期标签；`deployed` 是部署后的记账状态，不授权合并。

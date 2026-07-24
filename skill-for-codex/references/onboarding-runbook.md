@@ -85,6 +85,15 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 
 中央 Codex runtime/adapter 先通过共享 synthetic 与至少一个明确标注的 pilot；每个新项目仍需完成与自身技术栈、CI 和部署范围对应的验收。随后 Claude adapter 复用同一 profile、controller、verifier 和状态合同，不复制项目专用状态机。
 
+### 合并后收尾
+
+1. 把 `codex/tools/mark-deployed-issues.sh` 复制或以固定版本纳入应用仓库，并只在
+   应用健康检查成功后调用。
+2. 用显式 `GITEA_URL/GITEA_OWNER/GITEA_REPO` 运行
+   `codex/tools/sync-gitea-repository-settings.sh`，读回 merge 后删除源分支为 true。
+3. 在应用自身 PR 中验证多 `Closes #N`、标签保留、API 失败 best-effort 和
+   `--disable` 回滚；平台仓库验证不能替代应用验收。
+
 ## 8. 安全回滚
 
 在 Loop 试点前记录当前 timer、provider、agent 脚本、工作树、开放 Issue/PR 和标签状态。保持 `IMPLEMENT_PROVIDER=none`，直到专项实施明确启用新 controller。

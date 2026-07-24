@@ -13,7 +13,7 @@ risk_flags:
   - repository-settings
   - destructive-operations
 depends_on: []
-status: contract-ready
+status: implemented
 branch: change/12
 pr_url:
 created: 2026-07-24
