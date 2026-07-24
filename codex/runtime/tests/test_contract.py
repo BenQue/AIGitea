@@ -100,14 +100,14 @@ class ContractTests(unittest.TestCase):
         branch: str | None = None,
         spec: bool = False,
         plan: bool = False,
+        depends_on: str | None = None,
     ) -> Path:
         directory = self.repo / "docs" / "changes" / str(number)
         directory.mkdir(parents=True)
         required = ["  - 00-summary.md"]
         if complexity == "complex":
             required.extend(("  - 01-spec.md", "  - 02-plan.md"))
-        directory.joinpath("00-summary.md").write_text(
-            SUMMARY.format(
+        summary = SUMMARY.format(
                 number=number,
                 complexity=complexity,
                 change_type=change_type,
@@ -116,7 +116,11 @@ class ContractTests(unittest.TestCase):
                 required_docs="\n".join(required),
                 branch=branch or f"change/{number}",
             )
-        )
+        if depends_on is not None:
+            summary = summary.replace(
+                "status: analyzed", f"depends_on: {depends_on}\nstatus: analyzed"
+            )
+        directory.joinpath("00-summary.md").write_text(summary)
         if spec:
             directory.joinpath("01-spec.md").write_text(SPEC.format(number=number))
         if plan:
@@ -129,6 +133,26 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(contract.issue_number, 12)
         self.assertEqual(contract.effective_complexity, "small")
         self.assertEqual(contract.required_docs, ("00-summary.md",))
+        self.assertEqual(contract.dependencies, ())
+
+    def test_dependencies_are_parsed_and_ordered(self) -> None:
+        self.write_contract(depends_on="\n  - 3\n  - 7")
+        contract = load_contract(self.repo, self.issue())
+        self.assertEqual(contract.dependencies, (3, 7))
+
+    def test_dependencies_reject_invalid_self_and_duplicates(self) -> None:
+        directory = self.write_contract()
+        base = directory.joinpath("00-summary.md").read_text()
+        for depends_on in ("\n  - 0", "\n  - nope", "\n  - 12", "\n  - 3\n  - 3"):
+            with self.subTest(depends_on=depends_on):
+                directory.joinpath("00-summary.md").write_text(
+                    base.replace(
+                        "status: analyzed",
+                        f"depends_on: {depends_on}\nstatus: analyzed",
+                    )
+                )
+                with self.assertRaisesRegex(ContractError, "depends_on"):
+                    load_contract(self.repo, self.issue())
 
     def test_small_contract_requires_measurable_acceptance(self) -> None:
         self.write_contract()

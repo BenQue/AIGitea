@@ -62,6 +62,7 @@ class Contract:
     document_directory: Path
     required_docs: tuple[str, ...]
     acceptance_criteria: tuple[str, ...]
+    dependencies: tuple[int, ...]
 
 
 def load_contract(
@@ -106,6 +107,7 @@ def load_contract(
         raise ContractError("summary 00-summary.md is missing")
     summary_text = summary_path.read_text(encoding="utf-8")
     summary = parse_front_matter(summary_text)
+    dependencies = _dependencies(summary.get("depends_on", []), number)
     expected_branch = f"change/{number}"
     if _as_int(summary.get("issue")) != number:
         raise ContractError("summary issue does not match the Gitea Issue number")
@@ -177,6 +179,7 @@ def load_contract(
         document_directory=directory,
         required_docs=required_docs,
         acceptance_criteria=criteria,
+        dependencies=dependencies,
     )
 
 
@@ -347,3 +350,21 @@ def _as_int(value: object) -> Optional[int]:
         return int(str(value))
     except (TypeError, ValueError):
         return None
+
+
+def _dependencies(value: object, issue_number: int) -> tuple[int, ...]:
+    if value in ("", None):
+        return ()
+    if not isinstance(value, list):
+        raise ContractError("summary depends_on must be a list of positive Issue numbers")
+    dependencies: list[int] = []
+    for item in value:
+        dependency = _as_int(item)
+        if dependency is None or dependency <= 0:
+            raise ContractError("summary depends_on must contain only positive Issue numbers")
+        if dependency == issue_number:
+            raise ContractError("summary depends_on must not reference its own Issue")
+        if dependency in dependencies:
+            raise ContractError(f"summary depends_on contains duplicate Issue #{dependency}")
+        dependencies.append(dependency)
+    return tuple(dependencies)

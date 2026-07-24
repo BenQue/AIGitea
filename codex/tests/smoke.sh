@@ -33,7 +33,9 @@ for script in \
   "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
   "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
   "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
-  "$ROOT/codex/tests/test-cleanup-merged.sh"; do
+  "$ROOT/codex/tests/test-cleanup-merged.sh" \
+  "$ROOT"/sync/*.sh \
+  "$ROOT"/sync/tests/*.sh; do
   bash -n "$script"
 done
 if command -v shellcheck >/dev/null; then
@@ -49,12 +51,15 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tests/test-cleanup-merged.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh"
+  shellcheck "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh
 fi
 bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 bash "$ROOT/codex/tests/test-agent-runtime.sh"
 bash "$ROOT/codex/tests/test-mark-deployed-issues.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh"
 bash "$ROOT/codex/tests/test-cleanup-merged.sh"
+bash "$ROOT/sync/tests/test-inbound-sync.sh"
+bash "$ROOT/sync/tests/test-install.sh"
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
   -s "$ROOT/codex/runtime/tests" -v
 

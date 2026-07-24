@@ -123,8 +123,11 @@ class FakeGitea:
         self.created_prs: list[dict[str, str]] = []
         self.comments: list[str] = []
         self.label_updates: list[set[str]] = []
+        self.dependency_issues: dict[int, dict] = {}
 
     def get_issue(self, issue_number: int) -> dict:
+        if issue_number in self.dependency_issues:
+            return dict(self.dependency_issues[issue_number])
         return dict(self.issue)
 
     def create_pr(self, issue_number: int, title: str, head: str, base: str, body: str) -> dict:
@@ -313,6 +316,80 @@ class ControllerTests(unittest.TestCase):
         second = controller.run(8)
         self.assertEqual(second.terminal_state, TerminalState.READY_FOR_REVIEW)
         self.assertEqual(len(provider.requests), 1)
+
+    def test_dependencies_wait_after_ci_without_second_provider_or_pr(self) -> None:
+        summary = self.repo / "docs" / "changes" / "8" / "00-summary.md"
+        summary.write_text(
+            summary.read_text().replace(
+                "status: analyzed", "depends_on:\n  - 7\nstatus: analyzed"
+            )
+        )
+        provider = FakeProvider([provider_result()])
+        verifier = FakeVerifier([verification(True)])
+        git = FakeGit([("src/change.txt",)])
+        gitea = FakeGitea(["success", "success"])
+        gitea.dependency_issues[7] = {
+            "number": 7,
+            "state": "closed",
+            "labels": ["type/platform", "complexity/complex", "pr-open"],
+        }
+        controller = self.controller(
+            provider=provider, verifier=verifier, git=git, gitea=gitea
+        )
+
+        first = controller.run(8)
+        self.assertEqual(first.terminal_state, TerminalState.CONTINUE)
+        self.assertIn("#7", first.message)
+        self.assertEqual(len(provider.requests), 1)
+        self.assertEqual(len(gitea.created_prs), 1)
+
+        gitea.dependency_issues[7]["labels"] = [
+            "type/platform",
+            "complexity/complex",
+            "deployed",
+        ]
+        second = controller.run(8)
+        self.assertEqual(second.terminal_state, TerminalState.READY_FOR_REVIEW)
+        self.assertEqual(len(provider.requests), 1)
+        self.assertEqual(len(gitea.created_prs), 1)
+
+    def test_dependency_must_be_closed_and_deployed(self) -> None:
+        summary = self.repo / "docs" / "changes" / "8" / "00-summary.md"
+        summary.write_text(
+            summary.read_text().replace(
+                "status: analyzed", "depends_on:\n  - 7\nstatus: analyzed"
+            )
+        )
+        gitea = FakeGitea(["success"])
+        gitea.dependency_issues[7] = {
+            "number": 7,
+            "state": "open",
+            "labels": ["deployed"],
+        }
+        result = self.controller(
+            provider=FakeProvider([provider_result()]),
+            verifier=FakeVerifier([verification(True)]),
+            git=FakeGit([("src/change.txt",)]),
+            gitea=gitea,
+        ).run(8)
+        self.assertEqual(result.terminal_state, TerminalState.CONTINUE)
+        self.assertIn("waiting for deployed dependencies", result.message)
+
+    def test_pr_body_renders_dependencies(self) -> None:
+        summary = self.repo / "docs" / "changes" / "8" / "00-summary.md"
+        summary.write_text(
+            summary.read_text().replace(
+                "status: analyzed", "depends_on:\n  - 7\nstatus: analyzed"
+            )
+        )
+        gitea = FakeGitea(["pending"])
+        self.controller(
+            provider=FakeProvider([provider_result()]),
+            verifier=FakeVerifier([verification(True)]),
+            git=FakeGit([("src/change.txt",)]),
+            gitea=gitea,
+        ).run(8)
+        self.assertIn("Dependencies:\n- #7", gitea.created_prs[0]["body"])
 
     def test_changed_files_must_match_provider_declaration(self) -> None:
         result = self.controller(

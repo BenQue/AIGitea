@@ -122,6 +122,7 @@ sequenceDiagram
 | [13-结果迁移与内网切换手册](13-项目结果迁移与内网切换实施手册.md) | 不迁 Issue/PR 的结果基线迁移、重建和切换 runbook | 执行项目迁移 |
 | [14-Windows 部署与迁移验收](14-Windows部署与迁移验收清单.md) | 构建、部署、数据库、JEA、切换和灾备证据 | 正式上线验收 |
 | [15-Fusion Windows ARM 原型](15-VMware-Fusion-Windows-ARM原型实施手册.md) | Mac 预检、Fusion/Windows 11 ARM、OpenSSH/IIS 脚本调试和 x64 升级边界 | 本地快速原型 |
+| [12-Linux GitHub → Gitea 双服务器方案](12-Linux-GitHub-Gitea-双服务器自动部署方案.md) | GitHub 入站候选、内网 PR、Linux 测试与生产分离目标合同 | 建设 Linux 内网交付链 |
 
 ## 6. 关键地址速查
 

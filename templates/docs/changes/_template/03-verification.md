@@ -8,6 +8,7 @@ effective_complexity: complex
 contract_effect: CONTRACT_EFFECT
 confidence: CONFIDENCE
 risk_flags: []
+depends_on: []
 status: pending
 branch: change/ISSUE_NUMBER
 pr_url:

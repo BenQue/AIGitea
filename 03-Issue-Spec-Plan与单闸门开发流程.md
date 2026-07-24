@@ -140,8 +140,16 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
 - 现有 one-shot 自动实现仍停用。
 - Development Loop、单分支 analyzer 和 CI feedback adapter 尚未实现。
 - 在 Codex 真实 Issue 验证通过前，不启用 Claude Code Loop。
+## 10. 依赖 Issue
 
-## 10. 合批关闭与 deployed 状态
+`00-summary.md` 可用可选字段 `depends_on` 声明 Issue 编号列表；缺省或 `[]`
+表示没有依赖。依赖只影响 PR 就绪门，不改变分支、CI 或人工合并规则：
+当前 PR 的 CI 通过后，全部依赖 Issue 必须同时为 closed 且带有 `deployed`
+生命周期标签，Loop 才能进入 `READY_FOR_REVIEW`。否则保存
+`awaiting_dependencies`，后续轮询只重查 CI 与依赖，不再次调用 provider、
+不创建第二个 PR，也不自动合并。
+
+## 11. 合批关闭与 deployed 状态
 
 合批 PR 可在 merge message body 中逐行列出多个 `Closes #N`。部署成功后的确定性
 工具必须处理全部编号并去重，不能只从 subject 猜一个 Issue。更新标签时必须保留

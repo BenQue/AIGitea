@@ -1,0 +1,11 @@
+[Unit]
+Description=Poll GitHub for %i
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+Unit=aisoft-inbound-sync@%i.service
+
+[Install]
+WantedBy=timers.target
