@@ -12,7 +12,7 @@ risk_flags:
   - shared-core-component
   - external-contract
 depends_on: []
-status: contract-ready
+status: implemented
 branch: change/11
 pr_url:
 created: 2026-07-24

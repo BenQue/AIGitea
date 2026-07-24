@@ -12,6 +12,7 @@ required_docs:
   - 00-summary.md
 confidence: CONFIDENCE
 override_reason: ''
+depends_on: []
 status: analyzed
 branch: change/ISSUE_NUMBER
 pr_url:
