@@ -90,9 +90,27 @@ class Controller:
         except ContractError as exc:
             return self._contract_failure(issue_number, state, exc)
 
-        if pr_number and state.get("stage") == "awaiting_ci":
+        if pr_number and state.get("stage") in {"awaiting_ci", "awaiting_dependencies"}:
             ci = self.gitea.get_commit_status(head_sha)
             if ci == "success":
+                waiting = self._unsatisfied_dependencies(contract)
+                if waiting:
+                    self._save_progress(
+                        issue_number,
+                        state,
+                        budget,
+                        pr_number,
+                        head_sha,
+                        "",
+                        "",
+                        "awaiting_dependencies",
+                    )
+                    return ControllerResult(
+                        TerminalState.CONTINUE,
+                        "PR CI passed; waiting for deployed dependencies: "
+                        + ", ".join(f"#{number}" for number in waiting),
+                        pr_number,
+                    )
                 return self._finish(
                     issue_number,
                     state,
@@ -267,6 +285,24 @@ class Controller:
 
             ci = self.gitea.get_commit_status(head_sha)
             if ci == "success":
+                waiting = self._unsatisfied_dependencies(contract)
+                if waiting:
+                    self._save_progress(
+                        issue_number,
+                        state,
+                        budget,
+                        pr_number,
+                        head_sha,
+                        "",
+                        "",
+                        "awaiting_dependencies",
+                    )
+                    return ControllerResult(
+                        TerminalState.CONTINUE,
+                        "local verification and PR CI passed; waiting for deployed dependencies: "
+                        + ", ".join(f"#{number}" for number in waiting),
+                        pr_number,
+                    )
                 return self._finish(
                     issue_number,
                     state,
@@ -338,6 +374,7 @@ class Controller:
             "branch": contract.branch,
             "required_docs": list(contract.required_docs),
             "acceptance_criteria": list(contract.acceptance_criteria),
+            "dependencies": list(contract.dependencies),
             "round": budget.rounds,
             "failure_evidence": redact(failure_evidence),
             "pr_number": pr_number,
@@ -353,6 +390,18 @@ class Controller:
     def _set_lifecycle(self, contract: Contract, lifecycle: str) -> None:
         labels = {f"type/{contract.change_type}", f"complexity/{contract.effective_complexity}", lifecycle}
         self.gitea.set_labels(contract.issue_number, labels)
+
+    def _unsatisfied_dependencies(self, contract: Contract) -> tuple[int, ...]:
+        waiting: list[int] = []
+        for dependency in contract.dependencies:
+            issue = self.gitea.get_issue(dependency)
+            labels = {
+                str(item.get("name")) if isinstance(item, dict) else str(item)
+                for item in issue.get("labels", [])
+            }
+            if issue.get("state") != "closed" or "deployed" not in labels:
+                waiting.append(dependency)
+        return tuple(waiting)
 
     def _contract_failure(
         self,
@@ -512,8 +561,15 @@ def _pr_body(contract: Contract) -> str:
     documents = "\n".join(
         f"- docs/changes/{contract.issue_number}/{name}" for name in contract.required_docs
     )
+    dependencies = (
+        "\n".join(f"- #{number}" for number in contract.dependencies)
+        if contract.dependencies
+        else "- None"
+    )
     return (
         f"Closes #{contract.issue_number}\n\n"
+        "Dependencies:\n"
+        f"{dependencies}\n\n"
         "Change documents:\n"
         f"{documents}\n\n"
         "Local deterministic verification passed. Final merge requires a human."
