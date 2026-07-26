@@ -30,9 +30,11 @@ LIFECYCLE_LABELS = frozenset(
         "spec-review",
         "approved",
         "pr-open",
+        "completed",
         "deployed",
     }
 )
+DELIVERY_TERMINAL_LABELS = frozenset({"completed", "deployed"})
 
 
 class ContractError(ValueError):

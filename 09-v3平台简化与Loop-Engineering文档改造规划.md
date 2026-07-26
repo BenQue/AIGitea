@@ -12,7 +12,7 @@
 - [x] Phase D3：部署、运维、通知和内网边界已统一为首次非生产部署可由 AI 协作、生产 script-only、Loop 终态和单 PR 合并闸门。
 - [x] Phase D4：Codex skills、复合 skill、VM 全局指导、onboarding 与 canonical templates。
 - [x] Phase D5 文档/skill 部分：front matter、metadata、shell smoke、关键词检查和两项只读 forward test。
-- [x] AI 判级增补：权威合同、canonical templates、Codex skills、16 个 Gitea 标签与 `rsdesign-new` Issue #8 complex 试点合同。
+- [x] AI 判级增补：权威合同、canonical templates、Codex skills、初始 16 个 Gitea 标签与 `rsdesign-new` Issue #8 complex 试点合同；Issue #19 后续扩展为 17 个。
 - [x] Loop runtime source：analyzer 单分支、classification/contract、state/lock、Codex adapter、verifier、Gitea adapter、controller 与安装入口。
 - [x] Synthetic matrix：72 项 Python tests、ShellCheck、安装幂等、token 防泄漏、scope escalation、CI feedback 和终态回归。
 - [x] VM candidate 临时/正式安装、回滚备份与 provider/timer 禁用边界验证。
@@ -28,7 +28,7 @@
 把现有“Issue → AI 分析 → 三道人工闸门 → 实现 → PR → 自动部署”收敛为：
 
 1. Issue 始终作为需求、缺陷或平台变更的发起与追踪主键。
-2. 保留 `needs-analysis` 驱动的 AI 自动分析和现有七个流程状态标签，并增加变更类型和复杂度标签。
+2. 保留 `needs-analysis` 驱动的 AI 自动分析和八个流程状态标签，并增加变更类型和复杂度标签。
 3. AI 根据 Issue 声明、仓库证据和风险规则判定有效复杂度；只在信息不足、内容冲突或边界风险无法确定时升级给人。
 4. Bug 修复、纯文档、纯测试和不改变外部行为的维护性修改可以按小变更直接进入开发 Loop。
 5. 新增功能或改变现有功能合同的变更必须先形成与 Issue 绑定的 spec 和 plan。
@@ -281,7 +281,7 @@ Change documents:
 ```text
 type/*                Issue 是什么变更
 complexity/*          AI 判定需要什么流程
-现有七个状态标签       Issue 当前处于什么阶段
+八个状态标签           Issue 当前处于什么阶段
 ```
 
 ### 6.1 变更类型标签
@@ -311,7 +311,7 @@ complexity/*          AI 判定需要什么流程
 - 缺少复杂度标签表示尚未判级，不另设 `complexity/auto`。
 - AI 判级完成后必须只保留一个最终有效复杂度标签；无法判定时不添加复杂度标签，并保持 `awaiting-triage`。
 
-### 6.3 七个流程状态标签
+### 6.3 八个流程状态标签
 
 | 标签 | v3 语义 | 是否阻塞 |
 |---|---|---|
@@ -321,9 +321,10 @@ complexity/*          AI 判定需要什么流程
 | `spec-review` | 可选的方案讨论或协作 review 状态 | 否 |
 | `approved` | 合同已明确，启动开发 Loop | 是，Loop 启动条件 |
 | `pr-open` | 最终交付 PR 已创建 | 否 |
+| `completed` | 最终 PR 已合并且该变更明确无需部署 | 否 |
 | `deployed` | 已部署并完成规定验证 | 否 |
 
-`approved` 是运行控制信号，不代表独立 spec 审批，也不授权合并或部署。受控 analyzer/controller 在完成合同完整性校验后可以自动写入该标签：小变更要求 Issue、summary 和可测验收标准完整；复杂变更还要求 spec/plan 完整且没有未解决决策。人工也可以添加或移除标签，但 controller 启动前必须重新验证合同，不能只信任标签本身。
+`completed` 与 `deployed` 是互斥的交付终态：前者用于无需部署的已合并变更，后者必须有确定性部署和验证证据。`approved` 是运行控制信号，不代表独立 spec 审批，也不授权合并或部署。受控 analyzer/controller 在完成合同完整性校验后可以自动写入该标签：小变更要求 Issue、summary 和可测验收标准完整；复杂变更还要求 spec/plan 完整且没有未解决决策。人工也可以添加或移除标签，但 controller 启动前必须重新验证合同，不能只信任标签本身。
 
 标签组合示例：
 
@@ -331,6 +332,7 @@ complexity/*          AI 判定需要什么流程
 type/bugfix + complexity/small + approved
 type/feature + complexity/complex + spec-drafting
 type/platform + complexity/complex + approved
+type/platform + complexity/complex + completed
 ```
 
 ## 7. Development Loop 合同
@@ -544,7 +546,7 @@ rg -n 'READY_FOR_REVIEW|NEEDS_HUMAN_DECISION|effective_complexity:|type/feature|
 - 所有 Issue 都有 `00-summary.md`；复杂变更必须有 spec/plan。
 - AI 以产品合同影响为核心判级，并在明确时自动路由；无法安全判定时停止在 `awaiting-triage`。
 - 新增功能和功能性修改始终为复杂变更；Bug、文档、测试和内部维护只有在不改变产品合同时才可为小变更。
-- `type/*`、`complexity/*` 和七个流程状态标签的职责及组合在所有文档中一致。
+- `type/*`、`complexity/*` 和八个流程状态标签的职责及组合在所有文档中一致。
 - Issue 明确要求 `complexity/complex` 时不得自动降级，`complexity/small` 不得绕过强制复杂规则。
 - 部署和迁移变更必须有 verification、真实命令和回滚说明。
 - `approved` 只表示 Loop 启动，不表示合并或部署授权。
@@ -572,7 +574,7 @@ rg -n 'READY_FOR_REVIEW|NEEDS_HUMAN_DECISION|effective_complexity:|type/feature|
 - 当前 systemd timer/service 状态。
 - 当前 `ANALYSIS_PROVIDER` 和 `IMPLEMENT_PROVIDER`。
 - 当前 agent 脚本版本和安装路径。
-- 当前类型、复杂度、七个流程状态标签与分支规则。
+- 当前类型、复杂度、八个流程状态标签与分支规则。
 - 当前试点仓库的工作树、开放 Issue 和 PR。
 
 第一阶段只增加新 Loop 入口并保持旧实现可恢复；在真实低风险 Issue 完成验证前，不删除旧脚本或认证路径。

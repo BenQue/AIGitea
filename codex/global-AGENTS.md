@@ -10,7 +10,7 @@ Read `/mnt/mac/Users/benque/MyDocs/AISoftPlatform/README.md`, then the relevant 
 
 - Treat every change as an Issue linked to `change/N` and `docs/changes/N/00-summary.md`.
 - Require an explicit project profile before any repository operation. Never infer the owner, repository, clone, state directory, ports, or deployment contract from rsDesign or another example.
-- Treat one `type/*` label as an Issue-author input that AI validates against evidence, `complexity/*` as the AI's effective-complexity output, and the seven unprefixed labels as lifecycle state. Keep these dimensions separate.
+- Treat one `type/*` label as an Issue-author input that AI validates against evidence, `complexity/*` as the AI's effective-complexity output, and the eight unprefixed labels as lifecycle state. Keep these dimensions separate. Use `completed` only after merge when deployment is explicitly unnecessary; reserve `deployed` for deterministic deployment and verification.
 - Classify product-contract effect before routing: restore/unchanged may be small; add/change and every forced risk are complex; unclear evidence requires human triage without a complexity label.
 - Require clear Issue acceptance criteria for small work and complete `01-spec.md` plus `02-plan.md` for complex work.
 - Treat `approved` as a Loop start signal, never as permission to merge or deploy.

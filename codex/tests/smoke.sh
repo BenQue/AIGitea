@@ -71,11 +71,12 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
   -s "$ROOT/codex/runtime/tests" -v
 
 jq -e '
-  length == 16 and
-  (map(.name) | unique | length == 16) and
+  length == 17 and
+  (map(.name) | unique | length == 17) and
   (map(.name) | sort) == [
     "approved",
     "awaiting-triage",
+    "completed",
     "complexity/complex",
     "complexity/small",
     "deployed",

@@ -30,6 +30,11 @@
     "description": "最终交付 PR 已创建，等待 CI 与人工合并"
   },
   {
+    "name": "completed",
+    "color": "1f883d",
+    "description": "最终 PR 已合并且该变更无需部署，交付已完成"
+  },
+  {
     "name": "deployed",
     "color": "006b75",
     "description": "已合并版本通过确定性流程部署并完成验证"

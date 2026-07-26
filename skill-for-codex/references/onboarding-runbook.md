@@ -67,10 +67,10 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 - 保护 `main`，禁止直接 push，要求准确的 `CI / test (pull_request)` context。
 - 建七个类型标签：`type/bugfix`、`type/feature`、`type/docs`、`type/test`、`type/refactor`、`type/maintenance`、`type/platform`。它们是 Issue 作者可提供、AI 按证据校验的变更类型输入。
 - 建两个互斥的复杂度标签：`complexity/small`、`complexity/complex`。它们是 AI 判级后的输出；无法安全判级时两者都不添加。
-- 建七个标签：`needs-analysis`、`awaiting-triage`、`spec-drafting`、`spec-review`、`approved`、`pr-open`、`deployed`。
+- 建八个标签：`needs-analysis`、`awaiting-triage`、`spec-drafting`、`spec-review`、`approved`、`pr-open`、`completed`、`deployed`。
 - 使用单一 `change/N` 分支和最终 PR `Closes #N`。
 
-三个维度正交：`type/*` 是变更类型输入，`complexity/*` 是 AI 有效复杂度输出，七个无前缀标签是生命周期状态。`needs-analysis` 触发 analyzer；`approved` 启动 Loop；`spec-review` 只是可选协作状态；`pr-open` 等最终 CI/review；`deployed` 表示部署验证完成。
+三个维度正交：`type/*` 是变更类型输入，`complexity/*` 是 AI 有效复杂度输出，八个无前缀标签是生命周期状态。`needs-analysis` 触发 analyzer；`approved` 启动 Loop；`spec-review` 只是可选协作状态；`pr-open` 等最终 CI/review；`completed` 表示最终 PR 已合并且明确无需部署；`deployed` 表示确定性部署和验证完成。两个交付终态互斥。
 
 ## 5. Analyzer 接入
 
@@ -115,11 +115,14 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 
 ### 合并后收尾
 
-1. 把 `codex/tools/mark-deployed-issues.sh` 复制或以固定版本纳入应用仓库，并只在
-   应用健康检查成功后调用。
-2. 用显式 `GITEA_URL/GITEA_OWNER/GITEA_REPO` 运行
+1. 明确无需部署的变更在最终 PR 合并后，把唯一 lifecycle 更新为 `completed`；
+   需要部署的应用不得使用该标签。
+2. 把 `codex/tools/mark-deployed-issues.sh` 复制或以固定版本纳入应用仓库，并只在
+   应用健康检查成功后调用；工具会把包括 `completed` 在内的其它 lifecycle 替换为
+   唯一 `deployed`。
+3. 用显式 `GITEA_URL/GITEA_OWNER/GITEA_REPO` 运行
    `codex/tools/sync-gitea-repository-settings.sh`，读回 merge 后删除源分支为 true。
-3. 在应用自身 PR 中验证多 `Closes #N`、标签保留、API 失败 best-effort 和
+4. 在应用自身 PR 中验证多 `Closes #N`、标签保留、API 失败 best-effort 和
    `--disable` 回滚；平台仓库验证不能替代应用验收。
 
 ### GitHub 入站项目

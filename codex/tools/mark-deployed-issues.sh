@@ -54,7 +54,7 @@ if [ -z "$deployed_id" ]; then
   exit 0
 fi
 
-lifecycle='["needs-analysis","awaiting-triage","spec-drafting","spec-review","approved","pr-open","deployed"]'
+lifecycle='["needs-analysis","awaiting-triage","spec-drafting","spec-review","approved","pr-open","completed","deployed"]'
 failed=0
 while IFS= read -r issue_number; do
   [ -n "$issue_number" ] || continue

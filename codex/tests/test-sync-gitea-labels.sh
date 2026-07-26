@@ -95,15 +95,15 @@ run_sync() {
 }
 
 run_sync "$TMP/first.stdout" "$TMP/first.stderr"
-[[ "$(<"$TMP/first.stdout")" == 'created=16 existing=16' ]]
-[[ "$(jq 'length' "$TMP/state.json")" == 16 ]]
+[[ "$(<"$TMP/first.stdout")" == 'created=17 existing=17' ]]
+[[ "$(jq 'length' "$TMP/state.json")" == 17 ]]
 
 first_post_count="$(grep -c '^POST$' "$TMP/calls.log")"
-[[ "$first_post_count" == 16 ]]
+[[ "$first_post_count" == 17 ]]
 
 run_sync "$TMP/second.stdout" "$TMP/second.stderr"
-[[ "$(<"$TMP/second.stdout")" == 'created=0 existing=16' ]]
-[[ "$(jq 'length' "$TMP/state.json")" == 16 ]]
+[[ "$(<"$TMP/second.stdout")" == 'created=0 existing=17' ]]
+[[ "$(jq 'length' "$TMP/state.json")" == 17 ]]
 [[ "$(grep -c '^POST$' "$TMP/calls.log")" == "$first_post_count" ]]
 [[ "$(grep -c '^GET$' "$TMP/calls.log")" == 2 ]]
 if grep -Eq '^(PATCH|DELETE)$' "$TMP/calls.log"; then
