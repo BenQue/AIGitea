@@ -1,6 +1,6 @@
 ---
 name: aisoft-platform
-description: Operate or onboard projects to the AISoft self-hosted Gitea delivery platform. Use for Issue analysis, small-or-complex routing, spec/plan contracts, Development Loop work, Codex/Claude provider coexistence, CI/deployment incidents, first non-production deployments, rollback planning, or production script boundaries.
+description: Operate or onboard projects to the AISoft self-hosted Gitea delivery platform. Use for private local Gitea repository, Issue, PR, Actions, branch-protection, or authentication inspection; Issue analysis; small-or-complex routing; spec/plan contracts; Development Loop work; Codex/Claude provider coexistence; CI/deployment incidents; first non-production deployments; rollback planning; or production script boundaries.
 ---
 
 # AISoft self-hosted delivery platform
@@ -22,6 +22,17 @@ Use:
 ## Apply the v3 workflow
 
 Select the target project explicitly before any Gitea or Git mutation. A project profile binds one profile name to `GITEA_URL`, `GITEA_OWNER`, `GITEA_REPO`, `AGENT_REPO_DIR`, provider selection, and a namespaced state/worktree root. Never infer the target repository from rsDesign or another example, and never reuse one project's state directory for another project.
+
+## Access private Gitea deterministically
+
+Before inspecting a private repository, Issue, PR, Actions run, branch protection, or repository setting, read [references/private-gitea-access.md](references/private-gitea-access.md).
+
+- Resolve and verify the exact Gitea remote or project profile first.
+- Do not start with an anonymous API request. A private-repository `404` or Git `Repository not found` is inconclusive.
+- Prefer the exact project profile and minimum-privilege identity. For Git refs, reuse the configured Git credential helper.
+- If no profile exists or the bot lacks repository ACL, use the VM-local administrator credential only for an authorized, sanitized, read-only helper call. Do not copy credentials to the Mac or broaden bot access.
+- Use an existing authenticated browser session as a read-only fallback when the helper is unavailable or UI evidence is required.
+- Report network, credential availability, repository ACL, and object existence as separate facts.
 
 Treat every request, defect, or platform change as a Gitea Issue `N` linked to `change/N`, `docs/changes/N/`, and a final PR with `Closes #N`.
 
@@ -62,6 +73,7 @@ In production, run only pre-validated artifacts and scripts. For failures, stop/
 - Never push directly to protected `main` or merge a PR.
 - Preserve `CI / test (pull_request)`, immutable artifacts, environment separation, real health checks, and rollback.
 - Never print tokens, passwords, `.env`, auth files, or Git credentials.
+- Never add a project profile or collaborator permission merely to make read-only inspection convenient.
 - Keep Claude and Codex configuration independent while sharing the outer controller and verifier contract.
 - Do not describe the v3 Loop as deployed until the Codex validation matrix in `08` passes.
 

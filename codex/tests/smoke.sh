@@ -58,6 +58,8 @@ bash "$ROOT/codex/tests/test-agent-runtime.sh"
 bash "$ROOT/codex/tests/test-mark-deployed-issues.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh"
 bash "$ROOT/codex/tests/test-cleanup-merged.sh"
+bash "$ROOT/codex/tests/test-gitea-readonly.sh"
+bash "$ROOT/codex/tests/test-install-skills.sh"
 bash "$ROOT/sync/tests/test-inbound-sync.sh"
 bash "$ROOT/sync/tests/test-install.sh"
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
@@ -113,6 +115,12 @@ fi
 
 [[ -f "$ROOT/skill-for-codex/SKILL.md" ]]
 [[ -f "$ROOT/skill-for-codex/agents/openai.yaml" ]]
+[[ -f "$ROOT/skill-for-codex/references/private-gitea-access.md" ]]
+grep -Fq 'private-repository `404`' "$ROOT/skill-for-codex/SKILL.md"
+grep -Fq 'never begin with anonymous API access' \
+  "$ROOT/codex/skills/gitea-platform-ops/SKILL.md"
+grep -Fq 'gitea-readonly.sh' \
+  "$ROOT/skill-for-codex/references/private-gitea-access.md"
 grep -Fq '/mnt/mac/Users/benque/MyDocs/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
 
 if [[ -f "$ROOT/codex/agent/provider-poll.sh" ]]; then
