@@ -1,4 +1,4 @@
 interface:
   display_name: "Gitea Platform Operations"
-  short_description: "Diagnose and maintain the Gitea delivery platform"
-  default_prompt: "Use $gitea-platform-ops to diagnose the platform or design and validate a safe non-production deployment flow."
+  short_description: "Onboard, inspect, and diagnose Gitea delivery"
+  default_prompt: "Use $gitea-platform-ops to onboard a repository, inspect private Gitea evidence, or diagnose the delivery platform."

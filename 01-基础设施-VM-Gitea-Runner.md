@@ -33,7 +33,7 @@
 | 账号 | 位置 | 用途 | 关键约束 |
 |------|------|------|----------|
 | `admin` | Gitea | 你本人：合并 PR、管仓库 | 唯一有合并权的角色 |
-| `ci-bot` | Gitea | analyzer / Loop 的 API 与 feature-branch Git 身份 | PAT `agent-20260710`，scopes 仅 `write:issue` + `write:repository`；是仓库 Write 协作者；**被分支保护挡在 main 外** |
+| `ci-bot` | Gitea | analyzer / Loop 的 API 与 feature-branch Git 身份 | PAT `agent-20260710`，scopes 仅 `write:issue` + `write:repository`；每个接入软件仓库由幂等 gate 配置为精确 Write 协作者；**被分支保护挡在 main 外**，不拥有 Admin 或合并权 |
 | `git` | VM 系统用户 | 跑 Gitea 进程 | — |
 | `gitea-runner` | VM 系统用户 | 跑 act_runner + PM2 测试环境 | `/opt/rsdesign-test`、`/opt/artifacts` 属主 |
 | `coder` | VM 系统用户 | 跑 analyzer；未来承载 provider-neutral Loop controller | `~/.agent.env`（600）、linger 已开；当前 Loop 未启用 |
@@ -56,6 +56,7 @@
   - 上述七个流程状态标签。
 - 2026-07-15 在线复验：第二次幂等同步为 `created=0 existing=16`；Issue #8 读回标签严格为 `type/platform`、`complexity/complex`、`spec-drafting`，并有一条 AI 判级审计评论。标签属于可漂移的 Gitea 外部状态，后续操作前应重新 GET 验证。
 - 上述结果只证明 taxonomy 已创建且 Issue #8 标签可写；当前 VM 的 v2 wrapper 尚未消费新字段，Development Loop runtime routing 仍未启用。
+- 新软件仓库接入在其它 provisioning 前运行 `ensure-gitea-collaborator.sh`：固定 `ci-bot` + `write`，回读权限、真实 bot 仓库访问和 `main` 保护不变量；失败为 `BLOCKED_EXTERNAL`。这不授权扫描并批量回补所有既有仓库，平台控制仓库也不自动纳入。
 - `app.ini` 追加段（邮件，详见 [05](05-通知与多人协作.md)）：
 
 ```ini

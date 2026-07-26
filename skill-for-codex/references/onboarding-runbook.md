@@ -6,7 +6,35 @@
 
 先确定唯一 profile 名称，再确定 `GITEA_URL`、`OWNER`、`REPO`、本地只读/工作克隆、技术栈、测试命令与 verifier 配置。只有应用项目才需要应用端口、Nginx 端口、健康端点、数据存储和回滚方式；纯文档或平台规范仓库不需要虚构部署流程。
 
-把仓库放到 Gitea，验证历史完整、默认分支正确、Mac/内网客户端可以 clone 和 push feature branch。
+把仓库放到 Gitea，验证历史完整、默认分支正确、Mac/内网客户端可以 clone 和 push feature branch。随后由 owner/admin 创建并回读 `main` 保护：禁止 direct/force push，保留目标 CI context，并启用不含 `ci-bot` 的 merge allowlist。collaborator gate 只验证并保持该规则，不负责创建或放宽保护。
+
+### 1.1 Mandatory `ci-bot` collaborator gate
+
+对每个通过 AISoftPlatform skill 初始化、接入或准备部署的本地 Gitea **软件仓库**，在 owner/admin 已创建上述 `main` 保护之后、标签、project profile、Analyzer、Loop、CI 或部署配置之前，必须运行：
+
+```bash
+AISOFT_ONBOARDING_MODE=software-repository \
+GITEA_URL=<exact-gitea-url> \
+GITEA_OWNER=<exact-owner> \
+GITEA_REPO=<exact-repo> \
+GITEA_EXPECT_URL=<exact-gitea-url> \
+GITEA_EXPECT_OWNER=<exact-owner> \
+GITEA_EXPECT_REPO=<exact-repo> \
+GITEA_ADMIN_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
+GITEA_BOT_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
+/mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/ensure-gitea-collaborator.sh
+```
+
+先以 `coder` 身份从 mode 600 project profile 只读解析非 secret 的 URL/owner/repo，再在能读取 VM-local 管理员与 `ci-bot` credential file 的 `benque` operator context 运行上述 gate。不得输出 profile/token，也不得把 token 复制到 Mac 或命令参数。若 VM 尚未安装候选工具，只能在关联平台 PR 已合并后使用 AISoftPlatform 权威 source；不得把未合并 candidate 复制到全局稳定目录。工具合同：
+
+- collaborator 固定为统一的 `ci-bot`，permission 固定为精确 `write`；没有任意用户或 `admin` 参数。
+- 当前为 `write` 时不 PUT；缺失或 `read` 时单次 PUT，随后分别以管理身份和 `ci-bot` 身份回读 `write`。
+- 管理身份在写前/写后回读 `main` branch protection；禁止 direct/force push，`ci-bot` 不得进入 push、force-push 或 merge allowlist，原有 status-check/approval/merge 字段必须保持不变。Gitea 1.26.4 的 branch-protection GET 对普通 `write` collaborator 返回 `403`，不得为让 bot 调用该管理端点而升级其权限。
+- `ci-bot` 还必须以自身 token GET 目标 private repository，作为真实访问证据。
+- 任一 credential、API、permission、branch protection 或 bot-access 验证失败，终止全部后续接入并报告 `BLOCKED_EXTERNAL`。
+- token 只能来自 mode 400/600 profile/credential file，经 curl stdin config 使用，不能出现在 argv、日志、输出、Git config 或仓库内容中。
+
+已有仓库的回补先使用同一工具的 `--check`。只从明确 AISoftPlatform project profiles/接入记录生成 `repository/current_permission/main_protection/planned_action` 清单并等待人工确认；不得枚举全部 Gitea 仓库后批量授权，不得自动纳入 AISoftPlatform 等平台控制仓库。
 
 ## 2. 共享项目契约
 
@@ -35,7 +63,7 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 
 ## 4. Gitea 治理
 
-- 给 ci-bot 最小 feature-branch、Issue 和 PR 权限，不给合并权。
+- 先通过 §1.1 collaborator gate，给 `ci-bot` 精确 `write` 仓库权限，用于 private read、Issue/评论/标签、受控 feature branch 和 PR；不给 `admin` 或合并权。
 - 保护 `main`，禁止直接 push，要求准确的 `CI / test (pull_request)` context。
 - 建七个类型标签：`type/bugfix`、`type/feature`、`type/docs`、`type/test`、`type/refactor`、`type/maintenance`、`type/platform`。它们是 Issue 作者可提供、AI 按证据校验的变更类型输入。
 - 建两个互斥的复杂度标签：`complexity/small`、`complexity/complex`。它们是 AI 判级后的输出；无法安全判级时两者都不添加。
