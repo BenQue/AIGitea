@@ -109,6 +109,38 @@ class GiteaClientTests(unittest.TestCase):
         labels = set(json.loads(transport.calls[-1][3])["labels"])
         self.assertEqual(labels, {1, 3})
 
+    def test_set_labels_accepts_completed_as_the_only_lifecycle(self) -> None:
+        all_labels = [
+            {"id": 1, "name": "type/platform"},
+            {"id": 2, "name": "complexity/complex"},
+            {"id": 3, "name": "pr-open"},
+            {"id": 4, "name": "completed"},
+            {"id": 90, "name": "priority/high"},
+        ]
+        transport = FakeTransport(
+            [
+                (
+                    200,
+                    {},
+                    issue_payload(
+                        [
+                            (1, "type/platform"),
+                            (2, "complexity/complex"),
+                            (3, "pr-open"),
+                            (90, "priority/high"),
+                        ]
+                    ),
+                ),
+                (200, {}, all_labels),
+                (200, {}, {}),
+            ]
+        )
+        self.client(transport).set_labels(
+            8, {"type/platform", "complexity/complex", "completed"}
+        )
+        labels = set(json.loads(transport.calls[-1][3])["labels"])
+        self.assertEqual(labels, {1, 2, 4, 90})
+
     def test_invalid_managed_label_combinations_are_rejected_before_http(self) -> None:
         transport = FakeTransport([])
         client = self.client(transport)
@@ -117,6 +149,7 @@ class GiteaClientTests(unittest.TestCase):
             {"type/docs", "type/test", "approved"},
             {"type/docs", "complexity/small", "complexity/complex", "approved"},
             {"type/docs", "complexity/small", "approved", "pr-open"},
+            {"type/docs", "complexity/small", "completed", "deployed"},
             {"type/docs", "approved", "unknown-managed"},
         )
         for labels in cases:

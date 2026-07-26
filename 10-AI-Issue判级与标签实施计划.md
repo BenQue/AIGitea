@@ -1,6 +1,10 @@
 # AI Issue 判级与标签实施计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+>
+> **历史说明：** 本计划记录 2026-07-15 的初始 16-label 实施，因此正文保留当时的
+> “七个流程状态”与验证数字。Issue #19 后续新增 `completed`，当前 canonical taxonomy
+> 为 17 个标签、八个流程状态；不要把后来的合同倒写成当时已存在。
 
 **Goal:** 将已经批准的“变更类型标签 → AI 复杂度判级 → 自动路由”合同同步到 AISoftPlatform 文档、模板、Codex skills、Gitea 标签和 `rsdesign-new` Issue #8 试点合同。
 

@@ -50,11 +50,11 @@
 - 仓库 `admin/rsdesign-new`：公开；默认分支 `main`；**分支保护**：
   - 禁止直接 push（对所有人生效，含 admin——一切走 PR）
   - 必须状态检查通过：context = `CI / test (pull_request)`
-- 当前本地 Gitea 已 provision 16 个规范标签，分为三个正交维度：
+- 当前 canonical manifest 定义 17 个规范标签，分为三个正交维度：
   - 七个类型标签：`type/bugfix`、`type/feature`、`type/docs`、`type/test`、`type/refactor`、`type/maintenance`、`type/platform`。
   - 两个复杂度标签：`complexity/small`、`complexity/complex`；由 AI 判定有效路径，无法安全判级时两个都不写。
-  - 上述七个流程状态标签。
-- 2026-07-15 在线复验：第二次幂等同步为 `created=0 existing=16`；Issue #8 读回标签严格为 `type/platform`、`complexity/complex`、`spec-drafting`，并有一条 AI 判级审计评论。标签属于可漂移的 Gitea 外部状态，后续操作前应重新 GET 验证。
+  - 八个流程状态标签，其中 `completed` 表示合并且无需部署，`deployed` 表示部署验证完成。
+- 2026-07-15 的初始 16-label 在线复验为 `created=0 existing=16`；Issue #19 后续把 canonical taxonomy 扩展为 17 个。标签属于可漂移的 Gitea 外部状态，后续操作前必须重新同步并 GET 验证。
 - 上述结果只证明 taxonomy 已创建且 Issue #8 标签可写；当前 VM 的 v2 wrapper 尚未消费新字段，Development Loop runtime routing 仍未启用。
 - 新软件仓库接入在其它 provisioning 前运行 `ensure-gitea-collaborator.sh`：固定 `ci-bot` + `write`，回读权限、真实 bot 仓库访问和 `main` 保护不变量；失败为 `BLOCKED_EXTERNAL`。这不授权扫描并批量回补所有既有仓库，平台控制仓库也不自动纳入。
 - `app.ini` 追加段（邮件，详见 [05](05-通知与多人协作.md)）：

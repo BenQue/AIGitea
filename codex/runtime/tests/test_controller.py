@@ -353,7 +353,31 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(len(provider.requests), 1)
         self.assertEqual(len(gitea.created_prs), 1)
 
-    def test_dependency_must_be_closed_and_deployed(self) -> None:
+    def test_completed_dependency_is_ready_after_ci(self) -> None:
+        summary = self.repo / "docs" / "changes" / "8" / "00-summary.md"
+        summary.write_text(
+            summary.read_text().replace(
+                "status: analyzed", "depends_on:\n  - 7\nstatus: analyzed"
+            )
+        )
+        provider = FakeProvider([provider_result()])
+        gitea = FakeGitea(["success"])
+        gitea.dependency_issues[7] = {
+            "number": 7,
+            "state": "closed",
+            "labels": ["type/platform", "complexity/complex", "completed"],
+        }
+        result = self.controller(
+            provider=provider,
+            verifier=FakeVerifier([verification(True)]),
+            git=FakeGit([("src/change.txt",)]),
+            gitea=gitea,
+        ).run(8)
+        self.assertEqual(result.terminal_state, TerminalState.READY_FOR_REVIEW)
+        self.assertEqual(len(provider.requests), 1)
+        self.assertEqual(len(gitea.created_prs), 1)
+
+    def test_dependency_must_be_closed_with_delivery_terminal(self) -> None:
         summary = self.repo / "docs" / "changes" / "8" / "00-summary.md"
         summary.write_text(
             summary.read_text().replace(
@@ -373,7 +397,9 @@ class ControllerTests(unittest.TestCase):
             gitea=gitea,
         ).run(8)
         self.assertEqual(result.terminal_state, TerminalState.CONTINUE)
-        self.assertIn("waiting for deployed dependencies", result.message)
+        self.assertIn(
+            "waiting for completed or deployed dependencies", result.message
+        )
 
     def test_pr_body_renders_dependencies(self) -> None:
         summary = self.repo / "docs" / "changes" / "8" / "00-summary.md"

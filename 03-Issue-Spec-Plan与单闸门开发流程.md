@@ -71,7 +71,7 @@ docs/changes/N/
 |---|---|---|
 | 类型 | `type/bugfix`、`type/feature`、`type/docs`、`type/test`、`type/refactor`、`type/maintenance`、`type/platform` | 变更是什么；每个 Issue 最多一个主要类型 |
 | 复杂度 | `complexity/small`、`complexity/complex` | AI 判定需要哪条流程；互斥，无法判定时都不写 |
-| 流程状态 | `needs-analysis`、`awaiting-triage`、`spec-drafting`、`spec-review`、`approved`、`pr-open`、`deployed` | Issue 当前阶段 |
+| 流程状态 | `needs-analysis`、`awaiting-triage`、`spec-drafting`、`spec-review`、`approved`、`pr-open`、`completed`、`deployed` | Issue 当前阶段 |
 
 类型的默认关系是：`type/bugfix`、`type/docs`、`type/test`、不改变外部行为的 `type/refactor` 是 small 候选；`type/feature` 和改变平台行为或治理合同的 `type/platform` 强制 complex；`type/maintenance` 由 AI 按实际合同影响判定。
 
@@ -134,8 +134,8 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
 
 ## 9. 当前实施状态
 
-- AI 自动分析和七个流程状态标签保留。
-- 七个 `type/*` 与两个 `complexity/*` 已于 2026-07-15 在当前本地 Gitea provision 并读回；第二次同步为 `created=0 existing=16`，Issue #8 当时读回 `type/platform`、`complexity/complex`、`spec-drafting`。外部状态可能漂移，使用前仍须重新 GET。
+- AI 自动分析和八个流程状态标签保留。
+- 初始七个流程状态、七个 `type/*` 与两个 `complexity/*` 已于 2026-07-15 在当前本地 Gitea provision 并读回；Issue #19 后续增加 `completed`，canonical taxonomy 为 17 个。外部状态可能漂移，使用前仍须重新同步并 GET。
 - 当前 v2 wrapper 尚未消费新分类字段，标签的 runtime routing 未启用。
 - 现有 one-shot 自动实现仍停用。
 - Development Loop、单分支 analyzer 和 CI feedback adapter 尚未实现。
@@ -144,13 +144,15 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
 
 `00-summary.md` 可用可选字段 `depends_on` 声明 Issue 编号列表；缺省或 `[]`
 表示没有依赖。依赖只影响 PR 就绪门，不改变分支、CI 或人工合并规则：
-当前 PR 的 CI 通过后，全部依赖 Issue 必须同时为 closed 且带有 `deployed`
-生命周期标签，Loop 才能进入 `READY_FOR_REVIEW`。否则保存
+当前 PR 的 CI 通过后，全部依赖 Issue 必须同时为 closed 且带有 `completed` 或
+`deployed` 生命周期终态，Loop 才能进入 `READY_FOR_REVIEW`。否则保存
 `awaiting_dependencies`，后续轮询只重查 CI 与依赖，不再次调用 provider、
 不创建第二个 PR，也不自动合并。
 
-## 11. 合批关闭与 deployed 状态
+## 11. 合批关闭与交付终态
 
 合批 PR 可在 merge message body 中逐行列出多个 `Closes #N`。部署成功后的确定性
 工具必须处理全部编号并去重，不能只从 subject 猜一个 Issue。更新标签时必须保留
-type、complexity 和非生命周期标签；`deployed` 是部署后的记账状态，不授权合并。
+type、complexity 和非生命周期标签。最终 PR 已合并且明确无需部署时使用
+`completed`；需要部署的变更只有在确定性部署与验证成功后使用 `deployed`。两者互斥，
+都不授权合并；Gitea `Closed` 本身也不证明部署成功。

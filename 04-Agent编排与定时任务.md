@@ -118,7 +118,7 @@ Verifier 必须由外层脚本独立运行，不信任模型自述。每条 acce
 | 终态 | 条件 |
 |---|---|
 | `READY_FOR_REVIEW` | 合同满足，本地 verifier 和 PR CI 通过，最终 PR 等待人合并 |
-| `awaiting_dependencies` | PR CI 已通过，但一个或多个 `depends_on` Issue 尚未同时 closed 且标记 `deployed` |
+| `awaiting_dependencies` | PR CI 已通过，但一个或多个 `depends_on` Issue 尚未同时 closed 且标记 `completed` 或 `deployed` |
 | `NEEDS_HUMAN_DECISION` | 需要需求、架构、安全、范围或破坏性操作决定 |
 | `BLOCKED_EXTERNAL` | 缺凭据、服务、网络或外部协调 |
 | `FAILED_LIMIT` | 达到重试、时间、token 或总轮数限制 |

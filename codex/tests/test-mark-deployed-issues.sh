@@ -19,14 +19,14 @@ for argument in "$@"; do
 done
 case "$url" in
   */labels?limit=100)
-    printf '%s\n' '[{"id":50,"name":"deployed"},{"id":3,"name":"approved"}]'
+    printf '%s\n' '[{"id":50,"name":"deployed"},{"id":4,"name":"completed"},{"id":3,"name":"approved"}]'
     ;;
   */issues/*/labels)
     if [ "${MOCK_FAIL:-0}" = 1 ]; then exit 22; fi
     printf '%s\t%s\n' "$url" "$data" >>"$MOCK_ROOT/puts.log"
     ;;
   */issues/*)
-    printf '%s\n' '{"labels":[{"id":1,"name":"type/platform"},{"id":2,"name":"complexity/complex"},{"id":3,"name":"approved"},{"id":9,"name":"priority/high"}]}'
+    printf '%s\n' '{"labels":[{"id":1,"name":"type/platform"},{"id":2,"name":"complexity/complex"},{"id":4,"name":"completed"},{"id":9,"name":"priority/high"}]}'
     ;;
   *) exit 22 ;;
 esac

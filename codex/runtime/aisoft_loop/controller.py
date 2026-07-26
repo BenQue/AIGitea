@@ -8,7 +8,12 @@ from pathlib import Path
 import subprocess
 from typing import Optional
 
-from .contract import Contract, ContractError, load_contract
+from .contract import (
+    DELIVERY_TERMINAL_LABELS,
+    Contract,
+    ContractError,
+    load_contract,
+)
 from .provider import ProviderError, ProviderResult
 from .state import (
     GlobalLock,
@@ -107,7 +112,7 @@ class Controller:
                     )
                     return ControllerResult(
                         TerminalState.CONTINUE,
-                        "PR CI passed; waiting for deployed dependencies: "
+                        "PR CI passed; waiting for completed or deployed dependencies: "
                         + ", ".join(f"#{number}" for number in waiting),
                         pr_number,
                     )
@@ -299,7 +304,7 @@ class Controller:
                     )
                     return ControllerResult(
                         TerminalState.CONTINUE,
-                        "local verification and PR CI passed; waiting for deployed dependencies: "
+                        "local verification and PR CI passed; waiting for completed or deployed dependencies: "
                         + ", ".join(f"#{number}" for number in waiting),
                         pr_number,
                     )
@@ -399,7 +404,9 @@ class Controller:
                 str(item.get("name")) if isinstance(item, dict) else str(item)
                 for item in issue.get("labels", [])
             }
-            if issue.get("state") != "closed" or "deployed" not in labels:
+            if issue.get("state") != "closed" or not (
+                labels & DELIVERY_TERMINAL_LABELS
+            ):
                 waiting.append(dependency)
         return tuple(waiting)
 

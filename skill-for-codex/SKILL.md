@@ -60,7 +60,7 @@ Treat every request, defect, or platform change as a Gitea Issue `N` linked to `
 - Require `00-summary.md` for every Issue.
 - Treat `type/*` labels as Issue-author inputs describing what the change is; AI verifies or corrects one primary type from repository evidence.
 - Treat `complexity/*` labels as AI classification outputs describing which path is required, never as an Issue-author override of contract impact or forced risk.
-- Treat the seven unprefixed lifecycle labels as workflow state, separate from type and complexity.
+- Treat the eight unprefixed lifecycle labels as workflow state, separate from type and complexity. `completed` means merged with no deployment required; `deployed` requires deterministic deployment and verification.
 - Classify contract impact first: `restore`/`unchanged` is only a `small` candidate, `add`/`change` is `complex`, and `unclear` requires human triage.
 - Route a clear, local, reversible restore/unchanged change with no forced risk as `small`; route feature/functional behavior, schema/data, external contract, security, shared core, cross-module/service, CI/artifact/deployment/rollback, and Agent/platform governance changes as `complex`.
 - Respect an explicit complex request, but never let a requested small value bypass AI validation or forced-complex rules.

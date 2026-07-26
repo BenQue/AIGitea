@@ -96,13 +96,18 @@ sequenceDiagram
     A->>G: 推 change/N → 最终 PR(Closes #N) → pr-open
     R->>G: PR CI 必须绿；失败反馈给 Loop
     Note over U,G: 【唯一交付闸门】人审核并合并最终 PR
-    R->>R: 构建→制品→测试部署→健康检查；生产仅运行已验收脚本
     G->>U: 📬 邮件通知(Mailpit);issue 被 Closes 自动关闭
+    alt 变更需要部署
+        R->>R: 构建→制品→测试部署→健康检查；生产仅运行已验收脚本
+        R->>G: 生命周期改为 deployed
+    else 变更明确无需部署
+        M->>G: 生命周期改为 completed
+    end
 ```
 
 **实施状态**：AI 自动分析仍可用；共享 Codex Development Loop 候选已完成 synthetic、临时 HOME、VM 禁用式安装和 rsdesign-new real complex pilot，PR #9 已由人合并，合并后两个测试入口健康。该 pilot 只证明通用 controller 能在一个应用工作，不把平台绑定到该仓库。每个目标项目由独立 profile 指定 Gitea 坐标、clone、provider、state 和 worktrees，默认 `IMPLEMENT_PROVIDER=none`。AISoftPlatform 是文档、模板、skills 与 runtime source 仓库，本身不需要应用部署流水线。Claude Code Loop 和生产相关自动操作仍未启用。
 
-标签采用三个正交维度：七个 `type/*` 描述变更是什么，两个 `complexity/*` 记录 AI 判定所需路径，七个流程状态标签描述当前阶段。`complexity/small` 不能绕过强制复杂规则；无法安全判级时不添加 complexity 标签。16-label taxonomy 已在一个试点仓库完成幂等复验，但标签必须对每个接入仓库独立 provision 和读回，不能把试点外部状态当作平台全局状态。
+标签采用三个正交维度：七个 `type/*` 描述变更是什么，两个 `complexity/*` 记录 AI 判定所需路径，八个流程状态标签描述当前阶段。`completed` 表示最终 PR 已合并且明确无需部署；`deployed` 只表示确定性部署与验证成功，两者互斥。`complexity/small` 不能绕过强制复杂规则；无法安全判级时不添加 complexity 标签。17-label taxonomy 必须对每个接入仓库独立 provision 和读回，不能把其它仓库的外部状态当作平台全局状态。
 
 ## 5. 文档导航
 
