@@ -23,6 +23,27 @@ Use:
 
 Select the target project explicitly before any Gitea or Git mutation. A project profile binds one profile name to `GITEA_URL`, `GITEA_OWNER`, `GITEA_REPO`, `AGENT_REPO_DIR`, provider selection, and a namespaced state/worktree root. Never infer the target repository from rsDesign or another example, and never reuse one project's state directory for another project.
 
+For every local Gitea **software repository** initialized, onboarded, or prepared for deployment through this skill, first let the owner/admin create and read back the protected `main` rule, then run the collaborator gate before labels, profile activation, Loop enablement, CI, or deployment work:
+
+```text
+AISOFT_ONBOARDING_MODE=software-repository \
+GITEA_URL=<exact-url> \
+GITEA_OWNER=<exact-owner> \
+GITEA_REPO=<exact-repo> \
+GITEA_EXPECT_URL=<exact-url> \
+GITEA_EXPECT_OWNER=<exact-owner> \
+GITEA_EXPECT_REPO=<exact-repo> \
+GITEA_ADMIN_CREDENTIAL_FILE=<vm-local-credential-file> \
+GITEA_BOT_CREDENTIAL_FILE=<vm-local-credential-file> \
+/mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/ensure-gitea-collaborator.sh
+```
+
+The gate is fixed to the platform-managed `ci-bot` identity and exact `write` permission. It must read back the API permission, verify real `ci-bot` repository access, and prove the existing `main` branch protection is unchanged and still excludes `ci-bot` from push, force-push, and merge allowlists. It never grants `admin` or enables merge. On any failure, stop the onboarding/deployment flow and report `BLOCKED_EXTERNAL`.
+
+Resolve these non-secret coordinates from the exact project profile first, then run the gate in the VM operator context that can read the existing administrator and `ci-bot` credential file. Do not copy either token into the project profile, Mac, command arguments, or output.
+
+Do not use the gate as an inspection shortcut. For existing repositories, first run `--check` only against the explicit AISoftPlatform profile/onboarding inventory and present repository, current permission, `main` protection, and planned action. Do not scan-and-backfill every Gitea repository or include platform control repositories without explicit human approval.
+
 ## Access private Gitea deterministically
 
 Before inspecting a private repository, Issue, PR, Actions run, branch protection, or repository setting, read [references/private-gitea-access.md](references/private-gitea-access.md).
@@ -73,7 +94,7 @@ In production, run only pre-validated artifacts and scripts. For failures, stop/
 - Never push directly to protected `main` or merge a PR.
 - Preserve `CI / test (pull_request)`, immutable artifacts, environment separation, real health checks, and rollback.
 - Never print tokens, passwords, `.env`, auth files, or Git credentials.
-- Never add a project profile or collaborator permission merely to make read-only inspection convenient.
+- Never add a project profile or collaborator permission merely to make read-only inspection convenient; collaborator mutation is reserved for the explicit software-repository onboarding gate above.
 - Keep Claude and Codex configuration independent while sharing the outer controller and verifier contract.
 - Do not describe the v3 Loop as deployed until the Codex validation matrix in `08` passes.
 

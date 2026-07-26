@@ -34,6 +34,8 @@ for script in "$ROOT"/codex/agent/*.sh; do
 done
 install -m 755 "$ROOT/codex/tools/gitea-readonly.sh" \
   "$AGENT_DIR/gitea-readonly.sh"
+install -m 755 "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
+  "$AGENT_DIR/ensure-gitea-collaborator.sh"
 
 if [[ -f "$ROOT/codex/config.toml" && ! -e "$TARGET_HOME/.codex/config.toml" ]]; then
   install -m 600 "$ROOT/codex/config.toml" "$TARGET_HOME/.codex/config.toml"

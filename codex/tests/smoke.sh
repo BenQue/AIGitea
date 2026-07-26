@@ -30,9 +30,11 @@ bash -n "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 for script in \
   "$ROOT/codex/tools/mark-deployed-issues.sh" \
   "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
+  "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
   "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
   "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
   "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
+  "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
   "$ROOT/codex/tests/test-cleanup-merged.sh" \
   "$ROOT"/sync/*.sh \
   "$ROOT"/sync/tests/*.sh; do
@@ -45,10 +47,12 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/sync-gitea-labels.sh" \
     "$ROOT/codex/tools/mark-deployed-issues.sh" \
     "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
+    "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
     "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
     "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
+    "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
     "$ROOT/codex/tests/test-cleanup-merged.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh"
   shellcheck "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh
@@ -57,6 +61,7 @@ bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 bash "$ROOT/codex/tests/test-agent-runtime.sh"
 bash "$ROOT/codex/tests/test-mark-deployed-issues.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh"
+bash "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh"
 bash "$ROOT/codex/tests/test-cleanup-merged.sh"
 bash "$ROOT/codex/tests/test-gitea-readonly.sh"
 bash "$ROOT/codex/tests/test-install-skills.sh"
@@ -116,11 +121,17 @@ fi
 [[ -f "$ROOT/skill-for-codex/SKILL.md" ]]
 [[ -f "$ROOT/skill-for-codex/agents/openai.yaml" ]]
 [[ -f "$ROOT/skill-for-codex/references/private-gitea-access.md" ]]
-grep -Fq 'private-repository `404`' "$ROOT/skill-for-codex/SKILL.md"
+grep -Fq "private-repository \`404\`" "$ROOT/skill-for-codex/SKILL.md"
 grep -Fq 'never begin with anonymous API access' \
   "$ROOT/codex/skills/gitea-platform-ops/SKILL.md"
 grep -Fq 'gitea-readonly.sh' \
   "$ROOT/skill-for-codex/references/private-gitea-access.md"
+grep -Fq 'ensure-gitea-collaborator.sh' \
+  "$ROOT/skill-for-codex/references/onboarding-runbook.md"
+grep -Fq 'BLOCKED_EXTERNAL' \
+  "$ROOT/codex/tools/ensure-gitea-collaborator.sh"
+grep -Fq 'AISOFT_ONBOARDING_MODE=software-repository' \
+  "$ROOT/skill-for-codex/SKILL.md"
 grep -Fq '/mnt/mac/Users/benque/MyDocs/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
 
 if [[ -f "$ROOT/codex/agent/provider-poll.sh" ]]; then

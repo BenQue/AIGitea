@@ -1,4 +1,4 @@
 interface:
   display_name: "AISoft Platform"
-  short_description: "Inspect and operate the AISoft Gitea platform"
-  default_prompt: "Use $aisoft-platform to inspect or operate a project on the AISoft Gitea platform."
+  short_description: "Onboard and operate the AISoft Gitea platform"
+  default_prompt: "Use $aisoft-platform to onboard or operate a project on the AISoft Gitea platform."
