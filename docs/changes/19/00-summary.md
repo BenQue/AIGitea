@@ -21,7 +21,7 @@ override_reason: ''
 depends_on: []
 status: implemented
 branch: change/19
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/20
 created: 2026-07-26
 updated: 2026-07-26
 ---
