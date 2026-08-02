@@ -1,0 +1,34 @@
+{
+  "$schema": "../schemas/profile-v1.schema.json",
+  "schema_version": "1.0",
+  "profile_id": "windows-dotnet-postgres-v1",
+  "version": "1.0.0",
+  "catalog_revision": "2026.08.0",
+  "status": "active",
+  "description": "Windows Server 2025, IIS, .NET/ASP.NET Core/EF Core 10 and PostgreSQL baseline.",
+  "required_components": [
+    {"component_id": "os.windows-server.2025", "allowed_states": ["preferred"]},
+    {"component_id": "framework.iis.server-2025", "allowed_states": ["preferred"]},
+    {"component_id": "runtime.dotnet.10", "allowed_states": ["preferred"]},
+    {"component_id": "toolchain.dotnet-sdk.10", "allowed_states": ["preferred"]},
+    {"component_id": "framework.aspnet-core.10", "allowed_states": ["preferred"]},
+    {"component_id": "orm.ef-core.10", "allowed_states": ["preferred"]},
+    {"component_id": "orm.npgsql-ef.10", "allowed_states": ["preferred"]},
+    {"component_id": "database.postgresql.18", "allowed_states": ["preferred"]}
+  ],
+  "compatibility_rules": [
+    ".NET, ASP.NET Core and EF Core must use the same major version.",
+    "Npgsql.EntityFrameworkCore.PostgreSQL must use the EF Core major and pass PostgreSQL integration tests.",
+    "IIS lifecycle inherits the pinned Windows Server build and enabled Web-Server feature manifest.",
+    "ASP.NET Core Module V2 hosting model and hosting bundle are validated together; in-process single-file deployment is not allowed."
+  ],
+  "delivery_contracts": ["windows-iis/v1"],
+  "constraints": {
+    "deployment": "Versioned, rollback-capable PowerShell/IIS deployment is owned by the application release Change, not this profile.",
+    "data_storage": "PostgreSQL storage and service identity are outside the IIS application directory.",
+    "concurrency": "IIS pool and PostgreSQL connection limits require project load evidence.",
+    "availability": "Windows failover or multi-node topology is not implied by this profile.",
+    "backup": "Database and IIS configuration backups are required before a production upgrade.",
+    "restore_drill": "The application Change must prove database restore and previous release restoration."
+  }
+}

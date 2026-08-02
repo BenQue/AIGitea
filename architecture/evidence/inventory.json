@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "collected_at": "2026-08-02",
+  "collection_mode": "sanitized-read-only",
+  "scope_authority": "Issue #23 explicitly names NewEmaint and reference projects; no separate formal asset registry was available.",
+  "projects": [
+    {
+      "project_id": "newemaint",
+      "owner": "application repository owners",
+      "purpose": "enterprise maintenance application",
+      "source": "gitea/main@ecbdc674fde1f785cafdee92c6ee88c691104a34",
+      "metadata_path": "architecture/reference/newemaint/inventory.json",
+      "confidence": "high",
+      "collection_status": "complete for repository metadata; runtime/server not inferred"
+    },
+    {
+      "project_id": "windows-reference-candidate",
+      "owner": "platform governance",
+      "purpose": "synthetic profile contract reference",
+      "source": "architecture/reference/windows/architecture.json",
+      "metadata_path": "architecture/reference/windows/gap-report.md",
+      "confidence": "high",
+      "collection_status": "reference only; no formal application mapped"
+    },
+    {
+      "project_id": "sqlite-reference-candidate",
+      "owner": "platform governance",
+      "purpose": "synthetic profile contract reference",
+      "source": "architecture/reference/sqlite/architecture.json",
+      "metadata_path": "architecture/reference/sqlite/gap-report.md",
+      "confidence": "high",
+      "collection_status": "reference only; no formal application mapped"
+    }
+  ],
+  "servers": [
+    {
+      "asset_id": "gitea-ci",
+      "owner": "platform operations",
+      "purpose": "Gitea and CI platform endpoint",
+      "source": "read-only metadata attempt",
+      "collected_at": "2026-08-02",
+      "collection_status": "unavailable: read-only SSH authorization denied; no VM start or mutation attempted",
+      "os": null,
+      "cpu": null,
+      "runtime": null,
+      "database": null,
+      "container": null,
+      "proxy": null,
+      "confidence": "none"
+    },
+    {
+      "asset_id": "prod-sim",
+      "owner": "platform operations",
+      "purpose": "production-simulation endpoint",
+      "source": "read-only metadata attempt",
+      "collected_at": "2026-08-02",
+      "collection_status": "unavailable: read-only SSH authorization denied; no mutation attempted",
+      "os": null,
+      "cpu": null,
+      "runtime": null,
+      "database": null,
+      "container": null,
+      "proxy": null,
+      "confidence": "none"
+    }
+  ],
+  "deduplication_key": "asset type plus canonical project_id/asset_id",
+  "unclassified_local_directories": "not treated as formal assets because no authoritative registry mapped ownership or purpose",
+  "excluded": ["Secret values", "credentials", ".env", "database contents", "business data", "directory-name inference"]
+}
