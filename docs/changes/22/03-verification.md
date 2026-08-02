@@ -31,8 +31,11 @@ updated: 2026-08-02
 
 - Source baseline：`origin/main@b806317cc87a58049719fff103af2c9d7c14ed56`
 - Planning baseline：`change/22@95a7a5672fce94d74a4a739a886718cadbd6534d`
-- Candidate branch：`change/22`；runtime `1a4ba61`，tests `4631d16`（文档/verification 为后续独立提交）
-- Dependency：2026-08-02 实时回读 Issue #23 为 `open + approved`，尚未达到
+- Candidate branch：`change/22@0407018e719d9066a99019b07f9699123e870400`；runtime
+  `1a4ba61`，tests `4631d16`，docs/verification `0407018`
+- Dependency：2026-08-02 实时回读 Issue #23 为 `open + approved`；其实现候选已推送至
+  `change/23@c15305c91c9dc1768343e1702d7c01b15ab7fdc0`，但正式服务器只读 inventory
+  身份缺失使 AC-1 保持 `BLOCKED_EXTERNAL`，没有创建 #23 PR，尚未达到
   `closed + completed/deployed`
 - Runtime：Python `3.14.4`；ShellCheck `/opt/homebrew/bin/shellcheck`
 - Docker/Compose：只使用 fake adapter；未安装或启动 Docker daemon，真实 Registry、offline
@@ -50,7 +53,7 @@ updated: 2026-08-02
 | JSON/schema/static doc checks | PASS | schemas/templates/fixtures 全部 `jq -e`；README、02/07/12/onboarding 统一 Docker-first + PM2 legacy 边界 |
 | `git diff --check` | PASS | 当前实现与文档无 whitespace error |
 | `PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh` | PASS | 135 项 Python tests、全部 shell mocks、installer 与 static smoke 通过 |
-| #23 dependency + architecture-release integration | BLOCKED | #23 仍 open；不得复制 catalog，不得进入 final review |
+| #23 dependency + architecture-release integration | BLOCKED_EXTERNAL | #23 候选实现已推送，但 AC-1 缺少可用只读 inventory 身份；Issue 仍 `open + approved` 且无 PR，不得复制 catalog 或进入 final review |
 | Gitea PR CI | NOT RUN | PR 尚未创建 |
 | Registry test AppServer | NOT RUN | 不在当前授权范围 |
 | offline-bundle test AppServer | NOT RUN | 不在当前授权范围 |
@@ -71,7 +74,7 @@ updated: 2026-08-02
 | AC-9 | PASS（local candidate） | 30 项定向 tests + installer + bash -n + ShellCheck + 135 项 full smoke；fake Secret marker 未进入 state/output/events |
 | AC-10 | PASS（template/docs） | 无 Secret target profile 与 NewEmaint onboarding 示例已提供；明确应用仓须独立 Change，未修改 NewEmaint/其它应用仓 |
 | AC-11 | PASS（记录结构） | 本文件分离 local candidate、PR CI、Registry/offline AppServer、重复部署、故意失败和 production，未执行项保持 `NOT RUN` |
-| AC-12 | BLOCKED | #23 未 closed + `completed/deployed`；尚未整合最新 main 或运行真实 architecture-release integration suite |
+| AC-12 | BLOCKED_EXTERNAL | #23 未 closed + `completed/deployed`，且其 AC-1 inventory 外部闸门未解；尚未整合最新 main 或运行真实 architecture-release integration suite |
 
 ## 重复部署/执行
 
@@ -91,9 +94,11 @@ updated: 2026-08-02
 
 ## 遗留风险与未完成项
 
-- #23 profile/catalog/lock 尚未交付，当前 lock fixture 只验证 #22 交叉合同；#22 不得进入
-  review-ready。依赖 terminal 后必须整合最新 `origin/main`，按 #23 实际 lock 格式调整而不是
-  复制第二份 catalog，并重跑 architecture-release integration/full smoke。
+- #23 profile/catalog/lock 候选已在 `change/23@c15305c` 交付，但其 AC-1 正式服务器只读
+  inventory 身份缺失，Issue 仍 open 且无 PR；候选分支不等于治理合同已合并。当前 lock fixture
+  只验证 #22 交叉合同，#22 不得进入 review-ready。依赖 terminal 后必须整合最新
+  `origin/main`，按 #23 已合并的实际 lock 格式调整而不是复制第二份 catalog，并重跑
+  architecture-release integration/full smoke。
 - Fake Docker 证据不等于真实 Docker Engine/Compose 版本、Gitea Registry、TLS、offline media、
   AppServer、共享 PostgreSQL/Nginx、backup/restore 或 production。
 - 未验证真实 `docker image load` 后 RepoDigest 保留、Registry authentication、offline media
