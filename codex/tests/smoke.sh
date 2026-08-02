@@ -13,6 +13,9 @@ optional_runtime_sources=(
   "$ROOT/codex/agent/loop-controller.sh"
   "$ROOT/codex/agent/provider-poll.sh"
   "$ROOT/codex/install-vm.sh"
+  "$ROOT/docker-release/bin/aisoft-docker-release"
+  "$ROOT/docker-release/install.sh"
+  "$ROOT/codex/tests/test-docker-release-install.sh"
 )
 runtime_source_count=0
 for script in "${optional_runtime_sources[@]}"; do
@@ -56,6 +59,10 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-cleanup-merged.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh"
   shellcheck "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh
+  shellcheck \
+    "$ROOT/docker-release/bin/aisoft-docker-release" \
+    "$ROOT/docker-release/install.sh" \
+    "$ROOT/codex/tests/test-docker-release-install.sh"
 fi
 bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 bash "$ROOT/codex/tests/test-agent-runtime.sh"
@@ -65,6 +72,7 @@ bash "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh"
 bash "$ROOT/codex/tests/test-cleanup-merged.sh"
 bash "$ROOT/codex/tests/test-gitea-readonly.sh"
 bash "$ROOT/codex/tests/test-install-skills.sh"
+bash "$ROOT/codex/tests/test-docker-release-install.sh"
 bash "$ROOT/sync/tests/test-inbound-sync.sh"
 bash "$ROOT/sync/tests/test-install.sh"
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
