@@ -18,7 +18,7 @@ risk_flags:
 depends_on: []
 status: verified-local
 branch: change/23
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/24
 created: 2026-08-02
 updated: 2026-08-03
 ---
@@ -30,7 +30,7 @@ updated: 2026-08-03
 - Source baseline：`origin/main@b806317cc87a58049719fff103af2c9d7c14ed56`
 - Approved planning baseline：`change/23@9ad75b85971fc58e238572d6f8a406e2a0b5b0e8`
 - Candidate branch：`change/23`，跟踪 `origin/change/23`；implementation/governance commits
-  `f4f76fc`、`d86e61e`、`02c2749`、`c15305c`
+  `f4f76fc`、`d86e61e`、`02c2749`、`c15305c`、server-inventory evidence commit `09e2d71`
 - Live Issue readback：open；labels `approved`、`complexity/complex`、`type/platform`；无评论
 - Official lifecycle evidence：PASS，逐 component 使用 Context7 单概念查询并以 official/upstream
   source readback；URL、retrieved/review date、冲突处理与 compatibility evidence 记录在
@@ -68,8 +68,8 @@ Host scope 未发现可独立列举的 framework/ORM；为遵守授权边界，�
 | official lifecycle source review | PASS | Context7 ledger、URL、retrieved/review date、冲突处理和 compatibility evidence 已提交 |
 | NewEmaint/reference project dry-run | PASS | 3 个 declaration/lock 通过 cross-check；NewEmaint 收集后 `git status` clean |
 | formal server exact inventory | PASS | 宿主机 `orb` 只读采集两台运行中服务器；exact metadata、absence、owner/source/time/confidence 与 lifecycle gap 均记录 |
-| branch push | PENDING | inventory correction 尚待本地验收完成后的原子 commit 与 fast-forward push |
-| Gitea PR CI | NOT RUN | 最终 PR 尚未创建；只在本地验收完成后创建 |
+| branch push | PASS | `origin/change/23` 已 fast-forward 到 `09e2d719aa39e9a4db759ef9b8dc7c7e3087d08a`；无 force push |
+| Gitea PR CI | PENDING | PR #24 已创建；本 verification update 推送后按 final head 回读 required status |
 | 项目 migration/test deployment/production | NOT RUN | 不在本 Change 范围 |
 
 ## Acceptance criteria 结果
@@ -99,8 +99,9 @@ Host scope 未发现可独立列举的 framework/ORM；为遵守授权边界，�
 - **AC-13 — PASS**：26 architecture tests、installer、ShellCheck、131-test full smoke 均通过。
 - **AC-14 — PASS**：candidate/reference/CI/migration/test deployment/production 状态分开记录。
 
-总体：implementation 与本地 acceptance 已通过。Catalog 和服务器结论都是 candidate/as-built
-evidence；项目 migration、测试部署、production 和人工合并均未执行。
+总体：implementation 与本地 acceptance 已通过，PR #24 已创建并停在人工合并闸门。Catalog
+和服务器结论都是 candidate/as-built evidence；项目 migration、测试部署、production 和人工合并
+均未执行。
 
 ## 重复部署/执行
 
@@ -133,6 +134,7 @@ evidence；项目 migration、测试部署、production 和人工合并均未执
   runtime/proxy/OS migration 或部署完成。
 - npm、PM2、Gitea upstream 未发布固定 per-version EOL；保留 `unknown`，按季度/安全公告复核，
   不把缺失日期解释为无限期支持。
-- 最终 PR 仅在本地验收、push 完成后创建；PR CI 和人工合并状态届时单独回读。不会自动合并。
+- PR #24 已在本地验收与 push 后创建；final-head required CI 尚待回读，人工合并保持 open，
+  不会自动合并。
 - Catalog candidate/CI 通过不等于项目升级、测试部署或 production 验收。
 - #22 必须在 #23 交付后整合 lock contract，不能复制版本事实源。
