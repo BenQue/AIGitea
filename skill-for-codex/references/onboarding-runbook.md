@@ -50,7 +50,26 @@ GITEA_BOT_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
 
 ## 3. CI 与部署
 
-适配 PR CI、main 部署、pack、deploy、health-check、promote 和 rollback。保留：
+新 Linux 软件仓库默认消费平台
+[`docker-release/v1`](../../docker-release/README.md)，而不是复制 `rsdesign-new` 的 PM2
+脚本。接入顺序：
+
+1. 项目独立 Issue/spec/plan/PR 实现 Dockerfile、Compose、migration service、业务 health、
+   Gitea Registry publish 和 offline bundle；平台 candidate 不能替代应用验收。
+2. 从 `docker-release/templates/target-profile.example.json` 生成 test/prod target profile，
+   按环境填写 hostname、`appserver-test`/`appserver-prod` role、transport、路径、Compose
+   project 和 #23 architecture identity，设为 mode `0400/0600`。模板和仓库都不填 Secret。
+3. Secret 只在目标机受保护 env file；release manifest、architecture lock、Compose、state、
+   argv、日志和 verification 不保存 Secret 值。
+4. Builder 生成以完整 Gitea merge SHA 为 ID 的 `release.json`、digest-pinned images、Compose/
+   architecture checksums 和 offline inventory。目标 AppServer 不 build/install/git pull/访问公网。
+5. 先在 `appserver-test` 连续 deploy 同 SHA 两次，故意覆盖 bundle tamper、host-role mismatch、
+   migration failure 和 health failure container rollback；再由独立生产 Gate 提升同一 identity。
+
+NewEmaint 的示例 profile 仅说明平台字段，不授权修改 NewEmaint 仓库、创建真实 Secret、执行
+migration 或部署。其首个消费实现仍须在 NewEmaint 自己的 `change/N` 和最终 PR 中完成。
+
+已有 PM2 应用在独立迁移验收前继续作为 legacy adapter。维护这些应用时保留：
 
 - 构建产物完整性检查。
 - 不可变制品和环境配置分离。
@@ -59,7 +78,7 @@ GITEA_BOT_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
 - PM2 delete+start 与 online 断言。
 - HTTP health check 和失败回滚。
 
-AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固化为脚本，连续运行两次，并故意制造一次失败验证回滚。把真实结果写入关联 Issue 的 `03-verification.md`。生产只执行验收后的脚本。
+AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固化为脚本，连续运行两次，并故意制造一次失败验证回滚。把真实结果写入关联 Issue 的 `03-verification.md`。生产只执行验收后的脚本。平台 local fake PASS、安装候选或 PR CI 不能写成真实 AppServer/production deployed。
 
 ## 4. Gitea 治理
 

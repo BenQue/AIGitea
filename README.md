@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.0（通用 Codex runtime candidate）｜ 更新：2026-07-18 ｜ 状态：**Linux 试点与双 provider runtime 已验证；Windows 自动部署、结果迁移、内网切换和 Fusion ARM 快速原型目标合同已完成文档设计，尚未实施**
+> 版本：v3.0（通用 Codex runtime candidate）｜ 更新：2026-08-02 ｜ 状态：**Linux PM2 试点与双 provider runtime 已验证；新 Linux Docker-first release contract 为本仓候选，真实 Registry/AppServer/production 尚未验收**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 1. 当前状态（2026-07-16）
+## 1. 当前状态（2026-08-02）
 
 - ✅ 基础设施：OrbStack 双 VM（gitea-ci / prod-sim）、Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
 - ✅ 流水线：PR 触发 CI；合并 main 自动「构建 → 自包含制品 → 部署测试环境 → 健康检查」
@@ -22,9 +22,15 @@
 - ✅ Windows 目标设计：IIS + ASP.NET Core + React `wwwroot` 单制品、PostgreSQL、测试 OpenSSH、生产 SMB + Kerberos WinRM + JEA 的合同已确认
 - ✅ 迁移目标设计：本地 Gitea 原型结果一次性交付公司 Gitea；不迁移 Issue/PR；GitHub 只保留本地镜像，与公司无关
 - ✅ Windows 快速原型设计：Apple Silicon Mac 使用 VMware Fusion + Windows 11 ARM 调试架构无关部署脚本；不替代 Server 2022 x64 和公司 AD 验收
+- 🟡 Linux Docker release contract（Issue #22 candidate）：提供 strict manifest/profile、Registry/offline transports、host-role preflight 和 deterministic deploy/status/rollback；当前只有 fake Docker 与 installer 证据，未安装/启动 Docker daemon，未执行真实 migration、AppServer 部署或 production promotion
 - ⏸️ 待办：Windows Server 2022 x64 原型、内网 Runner/依赖缓存、迁移演练、生产 JEA 彩排与 [14](14-Windows部署与迁移验收清单.md) 全量验收
 
 ## 2. 三层架构
+
+下图是仍在运行的 PM2/SQLite **as-built legacy 试点**，不是新 Linux 项目的默认目标。新项目
+使用受控 builder 一次构建 `linux/amd64` OCI images，由 Gitea Container Registry 或同一
+manifest 的 offline bundle 传到独立 test/prod AppServer；`gitea-ci` 只承担 SCM 与明确
+批准的 CI/CD 能力，不运行业务容器。
 
 ```mermaid
 flowchart TB
@@ -59,9 +65,9 @@ flowchart TB
 
 | # | 原则 | 落点 |
 |---|------|------|
-| 1 | **一次构建，传自包含制品** | Linux 可用 `<repo>-<sha>.tar.gz`，Windows 可用 `<repo>-<change-id>-<sha>-win-x64.zip`；生产只接收测试过的相同字节 |
+| 1 | **一次构建，传不可变制品** | 新 Linux 使用完整 Gitea merge SHA + OCI digests + Compose/architecture checksums；PM2 legacy 使用 tar.gz，Windows 使用 zip；生产只接收测试过的相同字节/identity |
 | 2 | **制品与环境配置分离** | Linux `/opt/*/.env`、Windows `shared/config` 等由环境持有；制品不含环境 Secret |
-| 3 | **整体去 Docker 化** | PM2 + 制品 + Verdaccio 缓存，绕开弱网 docker build 之痛 |
+| 3 | **新 Linux Docker-first，PM2 legacy** | builder 一次构建，test/prod 只按 digest pull 或 load；目标机不 build/install/fetch，既有 PM2 应用独立迁移验收前保持不变 |
 | 4 | **生产部署 script-only** | AI 可参与首次非生产部署；生产只执行已验证脚本和制品 |
 | 5 | **任何变更可逆** | 迁移前备份、releases 多版本保留、健康检查失败可回滚 |
 | 6 | **判级、合同与执行分离** | AI 判定有效复杂度；controller 独立校验合同；Loop 不得自行改验收标准或扩大范围 |
@@ -114,7 +120,7 @@ sequenceDiagram
 | 分册 | 内容 | 读者场景 |
 |------|------|----------|
 | [01-基础设施-VM-Gitea-Runner](01-基础设施-VM-Gitea-Runner.md) | VM/Gitea/runner/Verdaccio/Mailpit 搭建与账号体系、端口总表 | 重建环境、内网平移 |
-| [02-CI与自动部署流水线](02-CI与自动部署流水线.md) | ci.yml、deploy-test.yml、制品/部署脚本、SQLite 约束、回滚 | 改流水线、排部署问题 |
+| [02-CI与自动部署流水线](02-CI与自动部署流水线.md) | Docker-first 默认合同与 PM2/SQLite as-built legacy 证据 | 改流水线、排部署问题 |
 | [03-Issue/Spec/Plan 与单闸门流程](03-Issue-Spec-Plan与单闸门开发流程.md) | small/complex 双路径、文档绑定、标签语义、最终 PR | 日常使用平台 |
 | [04-AI 分析与 Development Loop](04-Agent编排与定时任务.md) | analyzer、Loop、verifier、终态、provider adapter | 调整 agent 行为 |
 | [05-通知与多人协作](05-通知与多人协作.md) | Gitea mailer、Mailpit、事件覆盖、切真实 SMTP | 配通知、加协作者 |
@@ -152,6 +158,7 @@ sequenceDiagram
 - **`approved`**：合同已明确、允许启动 Loop；不授权合并或部署
 - **`change/N`**：Issue N 从分析到最终 PR 共用的单一分支
 - **`docs/changes/N/`**：summary、复杂变更的 spec/plan，以及部署/迁移变更的 verification
-- **制品**：`/opt/artifacts/rsdesign-new-<sha>.tar.gz`，测过的字节 = 上线的字节
+- **Linux release**：新项目为 `release.json` + digest-pinned OCI images + Compose/architecture checksums；Registry 与 offline bundle 共享同一 release identity
+- **PM2 legacy 制品**：`/opt/artifacts/rsdesign-new-<sha>.tar.gz`，只代表既有试点；测过的字节 = 上线的字节
 - **Change ID（Windows 目标合同）**：原型 `<项目三字符代码>-NNNN`、正式 `PRD-NNNN`；用于分支、文档、制品和部署记录。现有 runtime 尚未实现该格式
 - **权威源切换**：迁移前本地 Gitea 是原型权威源；迁移后公司 Gitea 是唯一正式权威源，GitHub 不进入公司链路
