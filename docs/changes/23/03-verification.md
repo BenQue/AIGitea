@@ -69,7 +69,7 @@ Host scope 未发现可独立列举的 framework/ORM；为遵守授权边界，�
 | NewEmaint/reference project dry-run | PASS | 3 个 declaration/lock 通过 cross-check；NewEmaint 收集后 `git status` clean |
 | formal server exact inventory | PASS | 宿主机 `orb` 只读采集两台运行中服务器；exact metadata、absence、owner/source/time/confidence 与 lifecycle gap 均记录 |
 | branch push | PASS | `origin/change/23` 已 fast-forward 到 `09e2d719aa39e9a4db759ef9b8dc7c7e3087d08a`；无 force push |
-| Gitea PR CI | PENDING | PR #24 已创建；本 verification update 推送后按 final head 回读 required status |
+| Gitea PR CI | NOT RUN | PR #24 final-head readback 无 commit-status context、无 Actions run；`main` protected 但 `enable_status_check=false`，不得把 aggregate `pending` 写成 CI 运行或通过 |
 | 项目 migration/test deployment/production | NOT RUN | 不在本 Change 范围 |
 
 ## Acceptance criteria 结果
@@ -134,7 +134,7 @@ Host scope 未发现可独立列举的 framework/ORM；为遵守授权边界，�
   runtime/proxy/OS migration 或部署完成。
 - npm、PM2、Gitea upstream 未发布固定 per-version EOL；保留 `unknown`，按季度/安全公告复核，
   不把缺失日期解释为无限期支持。
-- PR #24 已在本地验收与 push 后创建；final-head required CI 尚待回读，人工合并保持 open，
-  不会自动合并。
+- PR #24 已在本地验收与 push 后创建；远端未配置 required status check 且没有 Actions run，
+  因此 Gitea PR CI 保持 `NOT RUN`。人工合并保持 open，不会自动合并。
 - Catalog candidate/CI 通过不等于项目升级、测试部署或 production 验收。
 - #22 必须在 #23 交付后整合 lock contract，不能复制版本事实源。
