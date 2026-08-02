@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aisoft.example/contracts/docker-release/offline-inventory-v1.schema.json",
+  "title": "AISoft Docker release offline image inventory v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "archive_sha256", "images"],
+  "properties": {
+    "contract_version": {"const": "docker-release-offline-inventory/v1"},
+    "archive_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "images": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["service", "reference", "digest", "image_id"],
+        "properties": {
+          "service": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,62}$"},
+          "reference": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9./:_-]*@sha256:[0-9a-f]{64}$",
+            "maxLength": 512
+          },
+          "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+          "image_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+        }
+      }
+    }
+  }
+}
