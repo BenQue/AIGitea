@@ -30,7 +30,7 @@ updated: 2026-08-02
 - Source baseline：`origin/main@b806317cc87a58049719fff103af2c9d7c14ed56`
 - Approved planning baseline：`change/23@9ad75b85971fc58e238572d6f8a406e2a0b5b0e8`
 - Candidate branch：`change/23`，跟踪 `origin/change/23`；implementation commits
-  `f4f76fc`、`d86e61e`
+  `f4f76fc`、`d86e61e`，governance/verification commit `02c2749`
 - Live Issue readback：open；labels `approved`、`complexity/complex`、`type/platform`；无评论
 - Official lifecycle evidence：PASS，逐 component 使用 Context7 单概念查询并以官方/upstream
   source readback；记录见 `architecture/evidence/official-sources.md`
@@ -55,7 +55,7 @@ updated: 2026-08-02
 | official lifecycle source review | PASS | Context7 ledger、URL、retrieved/review date、冲突处理和 compatibility evidence 已提交 |
 | NewEmaint/reference project dry-run | PASS | 3 个 declaration/lock 通过 cross-check；NewEmaint 收集后 `git status` clean |
 | formal server exact inventory | BLOCKED_EXTERNAL | read-only SSH authorization unavailable；OS/CPU/runtime/DB/container/proxy exact values 保持 null，不推测 |
-| branch push | NOT RUN | 本 verification commit 后执行并回填 |
+| branch push | PASS | fast-forward `origin/change/23` from `9ad75b8` to `02c2749`；无 force push |
 | Gitea PR CI | NOT RUN | PR 尚未创建 |
 | 项目 migration/test deployment/production | NOT RUN | 不在本 Change 范围 |
 
