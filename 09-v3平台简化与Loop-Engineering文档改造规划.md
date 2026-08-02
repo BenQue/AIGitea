@@ -1,6 +1,6 @@
 # 09 · v3 平台简化与 Loop Engineering 文档改造规划
 
-> 状态：**通用 Codex runtime、synthetic、每项目 profile、VM 临时安装和一个真实 complex pilot 已完成；平台仓库不走应用部署，下一阶段为 Claude Code adapter parity**
+> 状态：**原 v3 Loop 规划已完成；Issue #21 在不修改本次运行所遵循 `AGENTS.md` 的前提下追加 host-role fail-closed 合同，live 收口仍按独立 Gate**
 > 日期：2026-07-16
 > 适用范围：AISoftPlatform 平台文档、平台 skills 与 agent 编排说明
 > 当前约束：v3 文档契约和通用 Codex candidate 已生效；VM 只保留禁用式 pilot 安装，新的 project-profile template 仅完成一次性 HOME smoke，未 enable 任何项目 timer，不得把 candidate 写成无人值守上线。
@@ -22,6 +22,25 @@
 - [x] Claude Code adapter 与 parity 验证（Issue #1，PR #2 已合并）：provider 选择由 `IMPLEMENT_PROVIDER` 驱动、fail-closed；17 项 parity 测试；adapter 输出规整（`extract-json`）；默认仍 `IMPLEMENT_PROVIDER=none`。真实 VM pilot 未做。
 
 前序分类合同证据见 `10`。2026-07-16 中央分支 `codex/v3-loop-runtime` 已实现 runtime candidate；`bash codex/tests/smoke.sh` 运行 72 项 Python tests、ShellCheck、label sync mock、安装幂等和 token 防泄漏回归并通过。VM 临时 HOME 安装和带回滚备份的正式安装通过，timer 保持 inactive、implementation none。rsdesign-new Issue #8 作为 real complex pilot 暴露并验证了 worktree stdout 修复、deterministic verifier、PR/CI 和人工合并闸门；PR #9 后由人合并，测试环境健康。用户随后明确 AISoftPlatform 是通用平台文档/runtime source，不应继续把 rsDesign 当作承载仓库；误建的 rsdesign-new Issue #10 在仅生成 analysis summary 后已取消关闭，未实现、未建 PR、未部署。中央 source 因此增加每项目 profile 与 namespaced state/worktrees，部署验收改为每个有部署范围的应用接入门禁，而不是 AISoftPlatform 或 Claude adapter 的项目专用前置条件。
+
+### 0.1 Issue #21 主机职责增补（2026-08-02）
+
+原 v3 文档把“部署目标由项目 profile 指定”留给应用接入，但 Linux pilot 仍保留了
+`gitea-ci` 同机 PM2/SQLite 的历史假设。Issue #21 现在增加另一类、与 agent project profile
+分离的 **host profile**：
+
+- versioned schema/capability catalog 唯一定义 `scm-ci`、`appserver-test`、
+  `appserver-prod`；
+- live profile 固定 root-owned 路径，同时绑定 hostname 与 `/etc/machine-id`；
+- 单一 guard 只接受固定 action/resource，不执行任意 shell；
+- `scm-ci` 可 checkout/build/test/package/publish 和运行批准的 CI/CD 辅助服务，但在任何
+  mutation 前拒绝 application deploy/start、业务数据库和长驻 smoke；
+- guard candidate、应用迁移、服务/数据库/目录清理、制品 retention 和 OrbStack VM 删除
+  是不同事实与授权边界，分别写入 verification。
+
+本增补不回写原规划阶段的历史非目标。`§2` 中“本轮不修改脚本/不建设 prod-sim”描述的是
+2026-07-14 文档 Phase D；Issue #21 的 approved spec/plan 只在其精确范围内授权新的候选实现，
+不授权自动合并、生产部署或除 `prod-sim` 外的 destructive action。
 
 ## 1. 规划目标
 
@@ -89,7 +108,8 @@
 - Gitea 保存 Issue、代码、文档、PR 和审计记录。
 - 分支保护阻止直接推送 `main`。
 - PR CI 独立运行测试、迁移验证和构建。
-- 合并后构建不可变制品并部署测试环境。
+- `scm-ci` 合并后可构建并发布不可变制品，但不能在本机启动业务 runtime。
+- 独立 `appserver-test` 消费制品并完成 migration/start/SHA health/rollback。
 - 生产 promote 使用与测试环境验证过的同一制品。
 - 部署脚本执行备份、迁移、切换、启动、健康检查和回滚。
 

@@ -48,7 +48,41 @@ GITEA_BOT_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
 
 所有 change 文档的共同 front matter 至少包含 `issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`pr_url`、`created` 和 `updated`。`00-summary.md` 另外保存 analyzer 的 `reason`、`required_docs` 和 `override_reason`；`needs-human-decision` summary 必须在 front matter 和 `## AI 判级` YAML 中都省略 `effective_complexity`，且不得创建 complex spec/plan。
 
-## 3. CI 与部署
+## 3. Mandatory host-role gate
+
+Agent project profile（Gitea 坐标/provider/state）和 host profile（machine identity/capability）
+是两个独立合同，不能互相代替。任何承载 SCM、CI 或应用 runtime 的 Linux 主机都必须在
+自己的 complex Change 中选择且只选择一个 role：
+
+- `scm-ci`：source checkout、build、bounded test、package、registry/artifact publish、
+  批准的缓存/通知/Runner 和 artifact retention dry-run；
+- `appserver-test`：消费已批准制品，执行非生产 deploy/migration/start/health/rollback；
+- `appserver-prod`：只消费测试证明匹配的制品并运行确定性生产脚本。
+
+平台 PR 合并并发布稳定版本后，运行 `codex/install-host-role.sh` 两次验证幂等；installer
+只能复制 schema、catalog、guard 和示例，不得创建 live profile、credential、service、timer
+或部署。目标主机从 `templates/hosts/host-profile.example.json` 生成
+`/etc/aisoft/host-profile.json`，填入真实 hostname 与 `/etc/machine-id`，capability 集必须与
+catalog 中 role 完全相同；文件 root-owned、mode `400/440/600/640`，父目录不得 group/other
+writable。
+
+所有 root-owned deploy/start/database wrapper 在 mutation 前调用固定入口：
+
+```bash
+/usr/local/libexec/aisoft/verify-host-role --action <fixed-action> --resource <fixed-resource>
+```
+
+调用接口不允许覆盖 profile/hostname/machine-id，不接受任意 shell。`0` 才可继续；`20`
+表示 role deny，`30` 表示 profile/request 无效，`40` 表示 identity mismatch，`64` 表示调用
+错误，任何非零都必须零 mutation。测试 fixture 只能通过 source 后替换 OS probe，不能形成
+已安装 CLI 的测试模式或环境变量后门。
+
+在 `scm-ci` 故意请求 `start/application`，必须连续两次返回 20，并证明 PID、listener、DB
+和文件无变化。应用项目必须把部署目标指向独立 `appserver-test`；不能因为旧 pilot 曾在
+`gitea-ci` 运行 PM2 就复制 legacy workflow。host profile 安装通过也不代表应用已迁移，
+迁移/数据/回滚仍在应用自己的 Issue、branch、PR 和 live Gate 中验收。
+
+## 4. CI 与部署
 
 适配 PR CI、main 部署、pack、deploy、health-check、promote 和 rollback。保留：
 
@@ -58,10 +92,13 @@ GITEA_BOT_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
 - SQLite 的停应用后迁移。
 - PM2 delete+start 与 online 断言。
 - HTTP health check 和失败回滚。
+- `scm-ci` 只构建/测试/发布制品，AppServer 才执行 application/database mutation。
+- `/opt/artifacts` retention 先验证项目 allowlist、完整 SHA/checksum、引用、数量和期限，只
+  输出 dry-run/audit ledger；删除另行授权。
 
 AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固化为脚本，连续运行两次，并故意制造一次失败验证回滚。把真实结果写入关联 Issue 的 `03-verification.md`。生产只执行验收后的脚本。
 
-## 4. Gitea 治理
+## 5. Gitea 治理
 
 - 先通过 §1.1 collaborator gate，给 `ci-bot` 精确 `write` 仓库权限，用于 private read、Issue/评论/标签、受控 feature branch 和 PR；不给 `admin` 或合并权。
 - 保护 `main`，禁止直接 push，要求准确的 `CI / test (pull_request)` context。
@@ -72,7 +109,7 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 
 三个维度正交：`type/*` 是变更类型输入，`complexity/*` 是 AI 有效复杂度输出，八个无前缀标签是生命周期状态。`needs-analysis` 触发 analyzer；`approved` 启动 Loop；`spec-review` 只是可选协作状态；`pr-open` 等最终 CI/review；`completed` 表示最终 PR 已合并且明确无需部署；`deployed` 表示确定性部署和验证完成。两个交付终态互斥。
 
-## 5. Analyzer 接入
+## 6. Analyzer 接入
 
 - 从 `templates/agent/project.env.example` 复制到 VM 的 `~/.config/aisoft/projects/<profile>.env`，填入该项目自己的 Gitea 坐标、token 和 `AGENT_REPO_DIR`，设为 mode 600；不得提交该文件。
 - 每个 profile 使用 `~/.local/state/aisoft-loop/projects/<profile>/` 保存锁、Issue state 和 worktrees，不与其他仓库共享。
@@ -83,7 +120,7 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 - Analyzer 不修改产品代码、Git 或 Gitea 标签/评论，不创建最终 PR、不部署；wrapper/controller 负责 `00-summary.md`、分支、评论和标签状态变更。
 - 普通实现 worker 永远不得编辑约束本次运行的 `AGENTS.md`。complex spec 只能授权其生成治理 patch/proposal；目标文件之外的独立受控治理步骤负责应用，随后用 fresh run 验证并采用新规则。其他 protected files 仍要求 complex spec 精确列出文件、验证与回滚。
 
-## 6. Development Loop 接入
+## 7. Development Loop 接入
 
 只在平台 `08` 的 Codex skills 和 controller 验证完成后启用：
 
@@ -96,20 +133,21 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 - 只有人可以合并最终 PR。
 - 使用 `aisoft-agent@<profile>.service/.timer` 作为项目级 systemd 实例；安装模板不等于启用。必须显式执行 `systemctl --user enable --now aisoft-agent@<profile>.timer`，且只有该项目验收通过后才允许这样做。
 
-## 7. 接入验收
+## 8. 接入验收
 
 按顺序验证：
 
 1. Trivial PR 的 CI context 正确且受分支保护约束。
-2. 合并后测试环境确定性部署和健康检查通过。
-3. Analyzer 对真实 Issue 输出确定性分类，wrapper/controller 写入正确且互斥的标签。
-4. Small Issue 从明确合同进入 Loop 并准备绿色 PR。
-5. Complex Issue 缺 spec/plan 时拒绝，补齐后按 plan 执行。
-6. 普通测试失败由 Loop 自修复。
-7. 合同冲突、外部阻塞和三次同因失败正确升级。
-8. CI failure feedback 能进入下一轮。
-9. 非生产首次部署执行两次并完成故意失败回滚。
-10. 生产负向测试证明 provider 无生产部署权限。
+2. `scm-ci` 的 application start 负向 guard 证明零 mutation。
+3. 合并后由独立 `appserver-test` 确定性部署和精确 SHA health 通过。
+4. Analyzer 对真实 Issue 输出确定性分类，wrapper/controller 写入正确且互斥的标签。
+5. Small Issue 从明确合同进入 Loop 并准备绿色 PR。
+6. Complex Issue 缺 spec/plan 时拒绝，补齐后按 plan 执行。
+7. 普通测试失败由 Loop 自修复。
+8. 合同冲突、外部阻塞和三次同因失败正确升级。
+9. CI failure feedback 能进入下一轮。
+10. 非生产首次部署执行两次并完成故意失败回滚。
+11. 生产负向测试证明 provider 无生产部署权限。
 
 中央 Codex runtime/adapter 先通过共享 synthetic 与至少一个明确标注的 pilot；每个新项目仍需完成与自身技术栈、CI 和部署范围对应的验收。随后 Claude adapter 复用同一 profile、controller、verifier 和状态合同，不复制项目专用状态机。
 
@@ -136,7 +174,7 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 4. 真实读回 bot 不能 push/merge `main`，并由目标仓库 PR CI 与内部审批重新授权。
 5. 以上证据写入该项目 `03-verification.md` 后，才可单独批准 enable timer。
 
-## 8. 安全回滚
+## 9. 安全回滚
 
 在 Loop 试点前记录当前 timer、provider、agent 脚本、工作树、开放 Issue/PR 和标签状态。保持 `IMPLEMENT_PROVIDER=none`，直到专项实施明确启用新 controller。
 

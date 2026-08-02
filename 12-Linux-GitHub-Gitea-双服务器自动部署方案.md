@@ -1,10 +1,14 @@
-# 12 · Linux / GitHub → Gitea / 双服务器自动部署方案
+# 12 · Linux / GitHub → Gitea / 三角色职责分离自动部署方案
 
-> 目标方案（2026-07-23）｜状态：**设计已确认，尚未在公司服务器实施或验收**
+> 目标方案（2026-07-23；host-role 修订 2026-08-02）｜状态：**设计已确认，尚未在公司服务器实施或验收**
 > 适用应用：React SPA 前端 + Node.js 后端 + PostgreSQL + PM2
-> 网络约束：POC 开发机不能访问公司内网；安装 Gitea 的测试服务器可以通过 HTTPS 访问 GitHub。
+> 网络约束：POC 开发机不能访问公司内网；安装 Gitea 的 `scm-ci` 服务器可以通过 HTTPS 访问 GitHub。
 
-本册定义一个新的 Linux 应用部署 profile，目标是把 GitHub 上游代码安全地引入公司内网 Gitea，经内网 PR、CI 和人工审批后自动部署测试环境，再通过独立的生产提升 PR 把同一份不可变制品部署到生产服务器。
+本册定义一个新的 Linux 应用交付 profile：GitHub 候选进入内网 Gitea，经内网 PR、CI 和
+人工审批，在 `scm-ci` 构建一次并发布不可变制品，再由独立 `appserver-test` 部署测试环境，
+最后通过 Promotion PR 把同一制品交给 `appserver-prod`。文件名保留早期“双服务器”提案以
+维持链接；当前合同至少要求三个隔离 machine identity，不能把测试业务 runtime 与
+Gitea/通用 Runner 重新合并。
 
 现有 [01](01-基础设施-VM-Gitea-Runner.md) 和 [02](02-CI与自动部署流水线.md) 记录的是 OrbStack、Next.js、SQLite 试点的 as-built 事实；本册不修改该事实，也不能把 SQLite 脚本改名后直接用于 PostgreSQL。实施本册涉及 CI、制品、数据库迁移、权限、部署和回滚，属于 complex 变更，必须按 `AGENTS.md` 补齐 Issue、spec、plan 和 verification。
 
@@ -16,17 +20,18 @@
 |------|------|
 | 外部代码中转 | GitHub |
 | 内网正式代码库 | Gitea 普通仓库，不使用持续 Pull Mirror 写入 `main` |
-| 同步方向 | 公司测试服务器主动从 GitHub 拉取 |
+| 同步方向 | 公司 `scm-ci` 服务器主动从 GitHub 拉取 |
 | 内网审批事实源 | Gitea PR、Gitea CI 和 Gitea `main` merge |
 | GitHub PR/审批 | 仅作为来源信息，不授权内网发布 |
-| 测试发布 | 内网 PR 合并后自动构建并部署 |
+| 测试发布 | 内网 PR 合并后在 `scm-ci` 构建/发布，再由独立 `appserver-test` 部署 |
 | 生产发布 | 测试通过后创建独立 Promotion PR；人工合并后自动部署 |
 | 制品 | 测试和生产复用完全相同的 tar.gz + manifest + SHA256 |
 | React 托管 | Nginx 静态文件；普通 React SPA 不由 PM2 托管 |
 | Node 托管 | PM2 单实例 fork 起步 |
-| 测试数据库 | 服务器 A 上的独立 PostgreSQL 数据库和角色 |
-| 生产数据库 | 服务器 B 本机 PostgreSQL，不依赖服务器 A |
+| 测试数据库 | 测试 AppServer 上的独立 PostgreSQL 数据库和角色，或独立测试 DB host |
+| 生产数据库 | 生产 AppServer/独立 DB host 的 PostgreSQL，不依赖 `scm-ci` |
 | 生产运行边界 | 不 `git pull`、不 `npm install`、不现场构建、不运行 AI |
+| 主机 Gate | root-owned profile 绑定 hostname+machine-id；固定 action/resource 在 mutation 前 fail closed |
 
 最重要的不变量：
 
@@ -36,6 +41,8 @@
 4. PR job 不能获得测试部署 Secret 或生产凭据。
 5. 生产只能部署已在测试环境通过验收的同一制品 SHA256。
 6. 应用可以自动回切旧 release；PostgreSQL restore 必须由人决定。
+7. `scm-ci` 永远不能 application deploy/start、创建/使用业务数据库或留下长驻 smoke。
+8. profile 无效、权限过宽、未知 capability 或 identity mismatch 时不得进入 mutation。
 
 ---
 
@@ -45,23 +52,28 @@
 flowchart LR
     DEV["POC 开发机<br/>代码、测试、push"] -->|"push main/PR"| GH["GitHub<br/>外部上游"]
 
-    subgraph A["服务器 A：代码库、CI、制品、测试"]
+    subgraph A["服务器 A：role=scm-ci"]
         SYNC["aisoft-sync<br/>systemd timer"]
         GITEA["Gitea<br/>repo / PR / Actions / Packages"]
         RUNNER["act_runner<br/>PR CI + build"]
-        TEST["Nginx + React<br/>Node + PM2<br/>测试 PostgreSQL"]
+        ART["不可变制品<br/>manifest + SHA256 + READY"]
         PROMOTE["release-bot<br/>生产提升控制"]
     end
 
     GH -->|"服务器 A 出站 HTTPS fetch"| SYNC
     SYNC -->|"push sync/github/&lt;sha&gt;<br/>create PR"| GITEA
     GITEA -->|"PR/push event"| RUNNER
-    RUNNER -->|"不可变制品"| GITEA
-    RUNNER -->|"main merge 后"| TEST
+    RUNNER -->|"guard allow:<br/>build/test/publish"| ART
+
+    subgraph T["服务器 T：role=appserver-test"]
+        TEST["Nginx + React<br/>Node + PM2<br/>测试 PostgreSQL"]
+    end
+
+    ART -->|"受保护部署入口"| TEST
     TEST -->|"test attestation<br/>创建 Promotion PR"| GITEA
     GITEA -->|"Promotion PR 合并"| PROMOTE
 
-    subgraph B["服务器 B：生产"]
+    subgraph B["服务器 B：role=appserver-prod"]
         PROD["Nginx + React<br/>Node + PM2<br/>生产 PostgreSQL"]
     end
 
@@ -83,29 +95,20 @@ Git mirror 只能传输 commits、branches、tags 和 LFS；不能持续保留 G
 
 ## 3. 服务器职责、端口和目录
 
-### 3.1 服务器 A：Gitea、CI、制品和测试环境
+### 3.1 服务器 A：`scm-ci`
 
-职责：
-
-- 现有 Gitea 和 Gitea PostgreSQL。
-- GitHub 入站同步服务。
-- Gitea Actions `act_runner`。
-- React/Node 构建。
-- Gitea Generic Package Registry 或受控的 `/opt/artifacts`。
-- Nginx + React 测试站点。
-- PM2 + Node 测试 API。
-- 独立应用测试 PostgreSQL。
-- 独立 `release-bot` 生产提升控制。
+职责：现有 Gitea/Gitea PostgreSQL、GitHub 入站同步、`act_runner`、React/Node 构建、
+Gitea Packages 或受控 `/opt/artifacts`，以及隔离的 production promotion controller。
+明确禁止业务 Nginx vhost、PM2/API/worker、持久业务数据库和 job 结束后仍在线的 smoke。
 
 端口：
 
 | 端口 | 服务 | 暴露范围 |
 |------|------|----------|
-| 443 | `git.company.internal`、`app-test.company.internal` | 公司内网 |
+| 443 | `git.company.internal` | 公司内网 |
 | 22 | 运维 SSH | 管理网段 |
-| 3000 | Gitea upstream | 仅 `127.0.0.1`，由 Nginx 代理 |
-| 3101 | 测试 Node API | 仅 `127.0.0.1` |
-| 5432 | PostgreSQL | 仅 `127.0.0.1` |
+| 3000 | Gitea upstream | 仅 `127.0.0.1`，由平台 Nginx 代理 |
+| 5432 | 仅 Gitea/批准的 CI 数据库 | 仅 `127.0.0.1` |
 
 建议目录：
 
@@ -113,11 +116,35 @@ Git mirror 只能传输 commits、branches、tags 和 LFS；不能持续保留 G
 /var/lib/gitea/
 /etc/gitea/
 /opt/act-runner/
-
 /var/lib/aisoft-sync/
 /etc/aisoft-sync/
 /opt/aisoft-sync/
+/opt/artifacts/                 # legacy local staging 或批准的受控制品目录
+/etc/aisoft/host-profile.json  # root-owned role=scm-ci，无 Secret
+```
 
+必须设置：
+
+- Runner `concurrency=1`。
+- `gitea-runner` 无 sudo 或只有精确、root-owned 的 build/package/publish 入口。
+- Runner 不能读取 `/var/lib/gitea`、`/etc/gitea`、`/etc/aisoft-sync` 和 `release-bot` 的 SSH Key。
+- PR job 只能连接每次运行可删除的 CI 数据库，不能连接持久测试/生产库。
+- systemd 设置 `CPUQuota`、`MemoryMax`、`TasksMax` 和 job timeout。
+- Gitea、Runner workspace、制品、Gitea/CI PostgreSQL 数据和日志分别设置磁盘告警。
+- deploy/start/database wrapper 在 mutation 前调用固定 host-role guard；`scm-ci` 的
+  application 请求必须退出 20，且 workflow 不得捕获后继续。
+- host executor 的 success/failure/cancel 都验证无残留 PID、listener、临时 DB 和 deleted cwd。
+
+host runner 只适用于受信任的公司仓库和成员；如果未来允许不受信任 PR，优先把 Runner
+再拆到独立 machine 或切换到更强隔离模式，而不是让其获得 AppServer 权限。
+
+### 3.2 服务器 T：`appserver-test`
+
+测试主机只消费 `scm-ci` 发布、manifest/SHA256/READY 全部匹配的制品。它安装 Nginx、
+固定 Node/PM2 和测试 PostgreSQL，拥有独立测试 `.env`、migrator/runtime/backup 角色，
+但不运行 Gitea、通用 Runner 或 AI controller。
+
+```text
 /opt/ai-platform-test/
 ├── incoming/
 ├── releases/<merge-sha>/
@@ -129,38 +156,19 @@ Git mirror 只能传输 commits、branches、tags 和 LFS；不能持续保留 G
 
 /etc/ai-platform/test.env
 /etc/ai-platform/test-migrator.env
+/etc/aisoft/host-profile.json  # root-owned role=appserver-test
 /var/backups/ai-platform-test/
 ```
 
-服务器 A 同时承载 Gitea、Runner 和测试环境是两台服务器约束下的折中。必须设置：
+应用 deploy/start/stop、migration、business DB use 和 SHA health 各自使用 catalog 中固定
+capability；profile 或 identity 校验失败时旧 release 保持不变。首次部署仍须两次幂等、
+故意失败和回滚验收。
 
-- Runner `concurrency=1`。
-- `gitea-runner` 无 sudo 或只有精确、root-owned 的测试部署入口。
-- Runner 不能读取 `/var/lib/gitea`、`/etc/gitea`、`/etc/aisoft-sync` 和 `release-bot` 的 SSH Key。
-- PR job 只能连接每次运行可删除的 CI 数据库，不能连接持久测试库。
-- systemd 设置 `CPUQuota`、`MemoryMax`、`TasksMax` 和 job timeout。
-- Gitea、Runner workspace、制品、PostgreSQL 数据和日志分别设置磁盘容量告警。
+### 3.3 服务器 B：`appserver-prod`
 
-项目总纲采用 PM2 和自包含制品，不要求 Docker。host runner 只适用于受信任的公司仓库和成员；如果未来允许不受信任 PR，第一优先级是把 Runner 拆到第三台机器或切换到更强隔离模式。
-
-### 3.2 服务器 B：生产应用和生产数据库
-
-服务器 B 只安装运行时：
-
-- Nginx。
-- 固定、受支持且已验收的 Node.js LTS 版本。
-- 固定 PM2 版本。
-- PostgreSQL，与测试使用相同 major。
-- root-owned、版本化且已验收的部署脚本。
-
-不安装：
-
-- Gitea、act_runner、AI controller。
-- 源码工作区。
-- 用于现场构建的开发依赖。
-- GitHub 或 Gitea 写凭据。
-
-端口：
+服务器 B 只安装 Nginx、固定且已验收的 Node/PM2、与测试相同 major 的 PostgreSQL，
+以及 root-owned、版本化部署脚本；不安装 Gitea、act_runner、AI controller、源码工作区、
+现场构建依赖或 GitHub/Gitea 写凭据。
 
 | 端口 | 服务 | 暴露范围 |
 |------|------|----------|
@@ -169,8 +177,6 @@ Git mirror 只能传输 commits、branches、tags 和 LFS；不能持续保留 G
 | 3101 | Node API | 仅 `127.0.0.1` |
 | 5432 | PostgreSQL | 仅 `127.0.0.1` |
 | 80 | 可选 HTTP → HTTPS | 业务网段 |
-
-建议目录：
 
 ```text
 /opt/ai-platform-prod/
@@ -186,10 +192,13 @@ Git mirror 只能传输 commits、branches、tags 和 LFS；不能持续保留 G
 /etc/ai-platform/prod.env
 /etc/ai-platform/prod-migrator.env
 /etc/ai-platform/prod-backup.env
+/etc/aisoft/host-profile.json  # root-owned role=appserver-prod
 /var/backups/ai-platform-prod/
 ```
 
-生产 PostgreSQL 放服务器 B 可以避免服务器 A 的 Gitea、Runner、测试部署或维护窗口影响生产，但它不是高可用设计。若 RTO/RPO 要求高于单机能力，需要另增独立数据库/备份节点，而不是把生产数据库迁回服务器 A。
+生产 PostgreSQL 放服务器 B 可以避免 `scm-ci` 或测试 AppServer 的构建、部署和维护窗口影响
+生产，但它不是高可用设计。若 RTO/RPO 要求高于单机能力，需要另增独立数据库/备份节点，
+而不是把生产数据库迁回 `scm-ci`。
 
 ---
 
@@ -199,7 +208,8 @@ Git mirror 只能传输 commits、branches、tags 和 LFS；不能持续保留 G
 |------|--------|------------|---------|----------|----------|
 | POC 开发者 | push/PR | 无网络路径 | 无 | 无 | 无 |
 | `aisoft-sync` | 只读 allowlisted ref | push `sync/github/*`、创建 PR | 无 | 无 | 无 |
-| `gitea-runner` | 无需写权限 | 读 PR/`main` | 仅上传制品 | 只能调用固定测试部署入口 | 无 |
+| `gitea-runner` | 无需写权限 | 读 PR/`main` | 仅上传制品 | 无 application runtime 权限 | 无 |
+| `test-deployer` | 无 | 只读 merge SHA/attestation | 只读 | 只能调用 AppServer 固定部署入口 | 无 |
 | `ai-test` | 无 | 无 | 只读 | PM2、测试配置、测试 DB runtime | 无 |
 | `promotion-bot` | 无 | 只写 deployments 候选分支和 PR | 只读 | 读测试证明 | 无 |
 | `release-bot` | 无 | 只读已合并 production manifest | 只读 | 无 | 受限 SSH |
@@ -213,6 +223,13 @@ Git mirror 只能传输 commits、branches、tags 和 LFS；不能持续保留 G
 - `*_backup`：备份读取。
 
 所有 token、SSH Key、数据库连接串和 `.env` 使用 `600` 或必要的 `640` 权限。Secret 不放命令行 URL、不打印到日志、不进入 artifact。
+
+host contract 由 `codex/config/host-role.schema.json`、
+`codex/config/host-capabilities.json` 和固定安装入口
+`/usr/local/libexec/aisoft/verify-host-role` 定义。live profile 不含 Secret，必须 root-owned、
+同时绑定 hostname 与 `/etc/machine-id`。guard 返回 `0=allow`、`20=deny`、
+`30=invalid-profile/request`、`40=identity-mismatch`、`64=usage`；部署脚本不能把任何非 0
+结果转成 warning 后继续。
 
 ---
 
@@ -290,13 +307,19 @@ npm ping --registry=https://registry.npmjs.org/
 
 如果公司只允许访问 GitHub，应先建立 Verdaccio 或公司 npm mirror，不能等 CI 运行后再临时放开互联网。
 
+服务器 A → T 只需：
+
+- 制品下载/传输与固定测试部署入口。
+- 测试 HTTPS health 和 attestation 回读。
+- 公司 DNS/NTP。
+
 服务器 A → B 只需：
 
 - SSH/制品传输。
 - 生产 HTTPS 健康检查。
 - 公司 DNS/NTP。
 
-服务器 B 默认不需要访问 GitHub 或公共 npm registry。
+服务器 T/B 默认都不需要访问 GitHub 或公共 npm registry。
 
 ---
 
@@ -523,6 +546,8 @@ push(main)
 → pack
 → SHA256
 → publish immutable Package
+→ 调用服务器 T 的固定部署入口
+→ T 上验证 role=appserver-test
 → deploy test
 → PM2 + HTTP + commit SHA 验证
 → test attestation
@@ -537,6 +562,8 @@ push(main)
 - 任意 sync 分支 push。
 
 部署事实源必须是 `main` merge SHA，而不是 GitHub SHA；artifact manifest 同时记录两者。
+服务器 A 只发布制品和部署请求，不读取测试 `.env` 或直接操作 PM2/业务 DB。服务器 T 在
+任何 deploy/migration/start 前验证固定 host-role profile；非 0 退出时旧 release 不变。
 
 ---
 
@@ -559,6 +586,11 @@ test-attestation.json
 - manifest SHA 与请求 SHA 不一致。
 - 同一个 Package version 出现不同字节。
 - 生产所需 `test-attestation.json` 缺失或不匹配。
+
+retention 不得按文件名或 mtime 直接删除。每个项目先进入显式 allowlist，解析完整 SHA，
+重新计算 checksum，并保护 current/test attestation/production manifest/rollback window 中的
+引用；随后才按最低保留数量与期限生成 dry-run audit ledger。未知项目、非 SHA 名称、缺少
+checksum、引用不完整或共享引用一律 `BLOCKED`。apply/delete 是 ledger 之外的独立人工 Gate。
 
 tar.gz：
 
@@ -720,21 +752,27 @@ pm2 delete ai-platform-api
 
 ### 14.1 数据库布局
 
-服务器 A：
+服务器 A（`scm-ci`）：
 
 ```text
 gitea                  # 现有 Gitea DB/role
-ai_platform_test       # 持久测试环境
 ci_<run-id>            # 每个 PR 可删除的临时 DB
 ```
 
-服务器 B：
+服务器 T（`appserver-test`）：
+
+```text
+ai_platform_test       # 持久测试环境
+```
+
+服务器 B（`appserver-prod`）：
 
 ```text
 ai_platform_prod
 ```
 
-Gitea DB 和应用 DB 至少分数据库和角色。若服务器 A 资源允许，可进一步分 PostgreSQL cluster/port；两机初期不强制。
+Gitea DB、一次性 CI DB、测试应用 DB 和生产应用 DB 分属上述 trust zone 与角色；不得为了
+节省一个 PostgreSQL instance 把持久业务 DB 放回 `scm-ci`。
 
 ### 14.2 角色
 
@@ -953,7 +991,11 @@ status <40-sha>
 - Gitea PostgreSQL。
 - repositories、LFS、attachments、Packages。
 - `/etc/gitea/app.ini` 和实例密钥。
-- 应用测试 PostgreSQL（如需保留）。
+
+服务器 T：
+
+- 每次测试 migration 前 `pg_dump -Fc`。
+- 测试 uploads/config 和 restore drill 证据。
 
 服务器 B：
 
@@ -966,7 +1008,7 @@ status <40-sha>
 备份必须：
 
 - 加密。
-- 保存到 A/B 之外的 NAS 或企业备份系统。
+- 保存到 A/T/B 之外的 NAS 或企业备份系统。
 - 定义保留期。
 - 定期在隔离数据库真实 restore。
 
@@ -1004,7 +1046,7 @@ status <40-sha>
 
 ### Phase 0：参数和兼容性
 
-- [ ] 确认两台服务器 OS、CPU、磁盘、内存。
+- [ ] 确认 A/T/B 三个隔离 identity 的 OS、CPU、磁盘、内存。
 - [ ] 确认 React 是 SPA，不是 SSR。
 - [ ] 确认 Node 当前版本和受支持 LTS 目标。
 - [ ] 确认 PostgreSQL major。
@@ -1018,6 +1060,7 @@ status <40-sha>
 
 - [ ] 创建 OS service accounts。
 - [ ] 建立目录和权限。
+- [ ] 为 `scm-ci`、`appserver-test`、`appserver-prod` 安装并验证 root-owned host profile/guard。
 - [ ] 安装并 pin Node/PM2/Nginx/PostgreSQL。
 - [ ] 建测试/生产 DB 和角色。
 - [ ] 配置 loopback、防火墙、TLS、NTP。
@@ -1043,6 +1086,7 @@ status <40-sha>
 
 ### Phase 4：测试部署
 
+- [ ] 在服务器 T 建 role=`appserver-test`，证明 A 上 application start 固定拒绝。
 - [ ] 建 `/opt/ai-platform-test`。
 - [ ] 建测试 Nginx/PM2/.env。
 - [ ] 建 PostgreSQL migration 和 pre-migration backup。
@@ -1062,7 +1106,7 @@ status <40-sha>
 
 ### Phase 6：运维验收
 
-- [ ] 两台服务器重启恢复。
+- [ ] A/T/B 三个角色重启恢复。
 - [ ] 备份 restore drill。
 - [ ] 告警演练。
 - [ ] 凭据轮换。
@@ -1100,7 +1144,9 @@ status <40-sha>
 
 ```text
 SERVER_A_HOST / IP
+SERVER_T_HOST / IP
 SERVER_B_HOST / IP
+SERVER_A_MACHINE_ID / SERVER_T_MACHINE_ID / SERVER_B_MACHINE_ID
 GITEA_URL
 GITHUB_URL
 GITEA_OWNER / REPO

@@ -1,24 +1,34 @@
 # 01 · 基础设施：VM / Gitea / Runner / Verdaccio / Mailpit
 
-> 基础设施 as-built 记录（2026-07-11）+ v3 角色注记（2026-07-14）。重建环境或内网平移时，本册就是安装手册；标为“未来/待验证”的 Loop 能力尚未上线。
+> 基础设施 as-built 记录（2026-07-11）+ Issue #21 host-role 收口合同（2026-08-02）。
+> 历史端口继续保留为诊断证据，不代表它们符合当前 `scm-ci` 角色；live 迁移/清理结果只认
+> `docs/changes/21/03-verification.md`。
 
 ## 1. 拓扑与端口总表
 
-两台 OrbStack Ubuntu VM（arm64，Apple Silicon）：
+2026-08-02 删除 Gate 前的 OrbStack 只读 baseline 有三台 Ubuntu arm64 machine：
 
-| VM | 域名 / IP | 角色 |
+| Machine | 域名 / IP | 当前合同与状态 |
 |----|-----------|------|
-| `gitea-ci` | gitea-ci.orb.local / 192.168.139.49 | Gitea + runner + Verdaccio + Mailpit + 测试环境 + agent |
-| `prod-sim` | prod-sim.orb.local / 192.168.139.234 | 离线生产彩排（只收制品） |
+| `gitea-ci` | gitea-ci.orb.local / 192.168.139.49 | 目标 role=`scm-ci`：Gitea + Runner + 受控 CI/CD 辅助服务；历史业务 runtime 尚待逐项 Gate 收口 |
+| `AppServer` | AppServer.orb.local / 192.168.139.212 | role=`appserver-test` 候选；每个应用仍须在自己的 Issue/PR 中部署和验收 |
+| `prod-sim` | prod-sim.orb.local / 192.168.139.234 | 早期彩排 VM；已获精确删除授权，但 AC-10/AC-11 通过前仍是 live，不能写成 retired |
 
-| 端口（gitea-ci） | 服务 | 托管方式 |
+| 端口（gitea-ci） | 2026-08-02 实时身份 | host-role 判定 |
 |------|------|----------|
-| 3000 | Gitea 1.26.4 | systemd `gitea.service`（用户 git，配置 `/etc/gitea/app.ini`） |
-| 3100 | 测试环境 Next.js（`pm2 rsdesign-new`，用户 gitea-runner） | PM2 |
-| 8091 | Nginx 反代 → 3100 | systemd nginx（`/etc/nginx/sites-available/rsdesign-test`） |
-| 4873 | Verdaccio（npm 缓存，上游 npmmirror） | PM2（用户 benque） |
-| 1025 / 8025 | Mailpit SMTP / Web UI | systemd `mailpit.service` |
-| 5432 | PostgreSQL（仅 Gitea 自身用库；**应用是 SQLite**） | systemd |
+| 3000 | Gitea 1.26.4 / `gitea.service` | KEEP：SCM |
+| 4873 | Verdaccio / `pm2-benque.service` | KEEP：批准的 CI cache |
+| 1025 / 8025 | Mailpit SMTP / Web UI | KEEP：批准的通知辅助服务 |
+| 5432(loopback) | PostgreSQL；`gitea`、`hsdb_ci` 及遗留 `app_test` | `gitea`/`hsdb_ci` KEEP；业务 DB 必须逐对象 Gate |
+| 3100 / 8091 | `rsdesign-new@49033a12...` + Nginx | MIGRATE：AppServer healthy/数据/回滚验收和人工 Gate 后才可停止 |
+| 3212 | `act_runner.service` cgroup 内、cwd 已删除的 `sfm-board` | REMOVE candidate：先在应用仓修复 cleanup，再按 PID/cgroup Gate 终止 |
+| 8090 | MyApp Notes 静态入口，API 当前 502 | RETIRE candidate：vhost/runtime/DB/制品分别备份、查引用并获授权 |
+| 6379(loopback) | Redis，当前 keyspace 无 DB 条目 | REMOVE candidate：无引用、连接和数据证据通过后另行授权 |
+
+`scm-ci` 允许 checkout、build、test、package、registry/artifact publish、批准的缓存/通知
+服务和只读 retention inventory；application deploy/start、业务数据库、长驻 smoke 进程在
+任何 mutation 前一律拒绝。端口或目录存在不等于获准，必须同时检查进程、cgroup、owner、
+workflow、数据和引用。
 
 > ⚠️ OrbStack 事实：`*.orb.local` 域名 Mac 与 VM 内都可解析；Mac 文件系统在 VM 内挂载于 `/mnt/mac`（root 可读，普通新建用户不一定可穿越）。VM 与 Mac 同生共死——Mac 睡眠 VM 即停，「常驻」要等内网平移才真正成立。
 >
@@ -35,7 +45,7 @@
 | `admin` | Gitea | 你本人：合并 PR、管仓库 | 唯一有合并权的角色 |
 | `ci-bot` | Gitea | analyzer / Loop 的 API 与 feature-branch Git 身份 | PAT `agent-20260710`，scopes 仅 `write:issue` + `write:repository`；每个接入软件仓库由幂等 gate 配置为精确 Write 协作者；**被分支保护挡在 main 外**，不拥有 Admin 或合并权 |
 | `git` | VM 系统用户 | 跑 Gitea 进程 | — |
-| `gitea-runner` | VM 系统用户 | 跑 act_runner + PM2 测试环境 | `/opt/rsdesign-test`、`/opt/artifacts` 属主 |
+| `gitea-runner` | VM 系统用户 | 跑 act_runner、构建/测试与制品发布 | 现仍拥有 legacy `/opt/rsdesign-test`；迁移后不得长期运行业务应用 |
 | `coder` | VM 系统用户 | 跑 analyzer；未来承载 provider-neutral Loop controller | `~/.agent.env`（600）、linger 已开；当前 Loop 未启用 |
 | `benque` | VM 默认用户 | 运维操作、免密 sudo | 凭据文件在其家目录 |
 
@@ -74,9 +84,14 @@ FROM = "RSDesign Gitea" <gitea@rsdesign.local>
 ## 4. act_runner（host 模式）
 
 - 二进制 `/usr/local/bin/act_runner`（1.0.7），注册标签 `ubuntu-latest:host`，工作目录 `/opt/act-runner`，systemd 托管，运行用户 `gitea-runner`。
-- **host 模式含义**：job 直接以 gitea-runner 身份在 VM 上执行 shell——因此流水线能直接操作本机 PM2 和 `/opt` 目录；代价是构建与测试环境同机（可接受，将来可换 container 模式）。
+- **host 模式含义**：job 直接以 gitea-runner 身份在 VM 上执行 shell。它可以访问批准的
+  构建、缓存和制品路径，但不再因此获得在本机启动 PM2/业务数据库的许可。所有 application、
+  database 和 long-running smoke mutation 必须先通过固定 host-role guard；`scm-ci` 必须
+  确定性拒绝。历史“构建与测试 runtime 同机”只作 legacy 证据，不再接受为新项目默认。
 - 注册 token 可命令行生成：`sudo -u git gitea --config /etc/gitea/app.ini actions generate-runner-token`。
 - 工作区在 `/opt/act-runner/.cache/act/<hash>/hostexecutor`，**每个 workflow 一个哈希目录、跨 run 复用**（checkout 会清理）。
+- host executor 的成功、失败和取消路径都必须断言无残留业务 PID、监听端口、临时 DB 或
+  deleted cwd；job 结束后仍在线的 `sfm-board:3212` 是失败证据，不是部署。
 
 ## 5. Verdaccio（弱网救星）
 
@@ -99,21 +114,49 @@ fetch-timeout=120000
 - 捕获**任意收件人**的邮件——Gitea 用户邮箱是假地址也能收到，适合演示与联调。
 - 切真实 SMTP：只改 `app.ini [mailer]` 四行，见 [05](05-通知与多人协作.md)。
 
-## 7. 重建/平移冒烟清单
+## 7. `scm-ci` 重建/平移冒烟清单
 
 ```bash
 # 全服务在位
-systemctl status gitea act_runner mailpit nginx --no-pager | grep -E "●|Active"
+systemctl status gitea act_runner mailpit --no-pager | grep -E "●|Active"
 curl -fsS http://127.0.0.1:3000/api/v1/version          # {"version":"1.26.4"}
 curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:4873/   # 200
 curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8025/   # 200
-sudo -u gitea-runner pm2 list                            # rsdesign-new online
-curl -fsS http://127.0.0.1:3100/api/health               # {"status":"ok",...}
-curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8091/   # 200
+# host profile 安装并经独立 change 验收后：
+/usr/local/libexec/aisoft/verify-host-role --action run --resource build
+set +e
+/usr/local/libexec/aisoft/verify-host-role --action start --resource application
+test "$?" -eq 20
+set -e
 # Gitea 后台 Site Administration → Actions → Runners:gitea-ci-runner Idle
 ```
 
-## 8. Windows 与公司内网目标边界
+负向 guard 只证明 mutation 会在入口前被拒绝；它不替代 listener/process/database inventory。
+最终验收还必须证明 `3100/3212/8090/8091` 等业务入口已按各自 Gate 收口，以及
+Gitea、Runner、Verdaccio、Mailpit、HSDB CI 和有效制品消费仍正常。
+
+## 8. Versioned host profile 与 guard
+
+仓库提供：
+
+- schema：`codex/config/host-role.schema.json`；
+- capability catalog：`codex/config/host-capabilities.json`；
+- 无 Secret 示例：`templates/hosts/host-profile.example.json`；
+- 单一决策入口：`codex/tools/verify-host-role.sh`；
+- 只复制版本化文件、不创建 live profile/service/timer 的 installer：
+  `codex/install-host-role.sh`。
+
+live profile 固定为 `/etc/aisoft/host-profile.json`，必须由 root 持有，mode 只能是
+`400/440/600/640`，父目录也不得 group/other writable。profile 同时绑定
+`hostname` 与 `/etc/machine-id`，其 capability 集必须与 catalog 中该 role 完全一致；不能
+用环境变量、任意 profile 路径或调用方自报 hostname 绕过。退出码：`0=allow`、`20=deny`、
+`30=invalid-profile/request`、`40=identity-mismatch`、`64=usage`。
+
+guard 只给决定，不执行后续命令。应用仓库的 root-owned deploy/start/database wrapper
+必须先调用固定安装路径，并仅在退出码 0 时继续；测试中的 fixture 注入不属于安装 CLI
+接口。安装候选不表示已配置 live profile，更不表示服务已经迁移或部署。
+
+## 9. Windows 与公司内网目标边界
 
 本册只记录 Mac OrbStack 上的 Linux as-built。公司内网不要求逐机复制这一拓扑，而是复用其职责分离：Gitea、Runner、制品、测试环境、部署控制端和生产运行环境分别建立明确身份与权限。
 
