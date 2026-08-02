@@ -1,0 +1,171 @@
+{
+  "contract_version": "1.0",
+  "capabilities": {
+    "source.checkout": {
+      "action": "checkout",
+      "resource": "source",
+      "mutation": false,
+      "description": "Read an approved source ref into an isolated workspace."
+    },
+    "build.run": {
+      "action": "run",
+      "resource": "build",
+      "mutation": false,
+      "description": "Run a deterministic build without starting an application runtime."
+    },
+    "test.run": {
+      "action": "run",
+      "resource": "test",
+      "mutation": false,
+      "description": "Run bounded tests that clean up all temporary state."
+    },
+    "package.create": {
+      "action": "create",
+      "resource": "package",
+      "mutation": true,
+      "description": "Create a versioned package in an approved staging location."
+    },
+    "registry.publish": {
+      "action": "publish",
+      "resource": "registry",
+      "mutation": true,
+      "description": "Publish to an approved dependency or package registry."
+    },
+    "artifact.publish": {
+      "action": "publish",
+      "resource": "artifact",
+      "mutation": true,
+      "description": "Publish an immutable artifact with commit and checksum metadata."
+    },
+    "artifact.verify": {
+      "action": "verify",
+      "resource": "artifact",
+      "mutation": false,
+      "description": "Verify artifact identity, manifest and checksum."
+    },
+    "artifact.consume": {
+      "action": "consume",
+      "resource": "artifact",
+      "mutation": false,
+      "description": "Read an already approved immutable artifact."
+    },
+    "ci-auxiliary.operate": {
+      "action": "operate",
+      "resource": "ci-auxiliary-service",
+      "mutation": true,
+      "description": "Operate an explicitly approved CI cache, notification or tooling service."
+    },
+    "artifact-retention.dry-run": {
+      "action": "dry-run",
+      "resource": "artifact-retention",
+      "mutation": false,
+      "description": "Produce a retention inventory without deleting artifacts."
+    },
+    "artifact-retention.apply": {
+      "action": "apply",
+      "resource": "artifact-retention",
+      "mutation": true,
+      "description": "Apply an independently authorized artifact deletion ledger."
+    },
+    "platform-health.check": {
+      "action": "check",
+      "resource": "platform-health",
+      "mutation": false,
+      "description": "Check approved SCM and CI/CD platform services."
+    },
+    "application.deploy": {
+      "action": "deploy",
+      "resource": "application",
+      "mutation": true,
+      "description": "Install and atomically select an application release."
+    },
+    "application.start": {
+      "action": "start",
+      "resource": "application",
+      "mutation": true,
+      "description": "Start a long-running application runtime."
+    },
+    "application.stop": {
+      "action": "stop",
+      "resource": "application",
+      "mutation": true,
+      "description": "Stop an application runtime within an approved deployment transaction."
+    },
+    "business-database.create": {
+      "action": "create",
+      "resource": "business-database",
+      "mutation": true,
+      "description": "Create a persistent business database."
+    },
+    "business-database.use": {
+      "action": "use",
+      "resource": "business-database",
+      "mutation": true,
+      "description": "Use an environment business database from an application runtime."
+    },
+    "migration.run": {
+      "action": "run",
+      "resource": "migration",
+      "mutation": true,
+      "description": "Run a versioned database migration with its environment gate."
+    },
+    "application-health.check": {
+      "action": "check",
+      "resource": "application-health",
+      "mutation": false,
+      "description": "Check application health and exact release identity."
+    },
+    "long-running-smoke.run": {
+      "action": "run",
+      "resource": "long-running-smoke",
+      "mutation": true,
+      "description": "Leave a smoke process running after the bounded test step."
+    }
+  },
+  "roles": {
+    "scm-ci": {
+      "environment": "platform",
+      "description": "SCM plus explicitly allowlisted CI/CD automation; never an application runtime host.",
+      "allowed_capabilities": [
+        "source.checkout",
+        "build.run",
+        "test.run",
+        "package.create",
+        "registry.publish",
+        "artifact.publish",
+        "artifact.verify",
+        "ci-auxiliary.operate",
+        "artifact-retention.dry-run",
+        "platform-health.check"
+      ]
+    },
+    "appserver-test": {
+      "environment": "test",
+      "description": "Non-production application runtime and deployment target.",
+      "allowed_capabilities": [
+        "artifact.verify",
+        "artifact.consume",
+        "application.deploy",
+        "application.start",
+        "application.stop",
+        "business-database.use",
+        "migration.run",
+        "application-health.check"
+      ]
+    },
+    "appserver-prod": {
+      "environment": "production",
+      "description": "Production runtime that accepts only pre-validated artifacts and deterministic scripts.",
+      "allowed_capabilities": [
+        "artifact.verify",
+        "artifact.consume",
+        "application.deploy",
+        "application.start",
+        "application.stop",
+        "business-database.use",
+        "migration.run",
+        "application-health.check"
+      ]
+    }
+  }
+}

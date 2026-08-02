@@ -1,0 +1,18 @@
+{
+  "contract_version": "1.0",
+  "host_id": "00000000000000000000000000000000",
+  "hostname": "appserver-test.example.internal",
+  "role": "appserver-test",
+  "allowed_capabilities": [
+    "artifact.verify",
+    "artifact.consume",
+    "application.deploy",
+    "application.start",
+    "application.stop",
+    "business-database.use",
+    "migration.run",
+    "application-health.check"
+  ],
+  "profile_revision": 1,
+  "managed_by": "aisoft-platform"
+}
