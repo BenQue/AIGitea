@@ -129,6 +129,7 @@ sequenceDiagram
 | [14-Windows 部署与迁移验收](14-Windows部署与迁移验收清单.md) | 构建、部署、数据库、JEA、切换和灾备证据 | 正式上线验收 |
 | [15-Fusion Windows ARM 原型](15-VMware-Fusion-Windows-ARM原型实施手册.md) | Mac 预检、Fusion/Windows 11 ARM、OpenSSH/IIS 脚本调试和 x64 升级边界 | 本地快速原型 |
 | [12-Linux GitHub → Gitea 双服务器方案](12-Linux-GitHub-Gitea-双服务器自动部署方案.md) | GitHub 入站候选、内网 PR、Linux 测试与生产分离目标合同 | 建设 Linux 内网交付链 |
+| [Architecture catalog V1](architecture/README.md) | strict JSON catalog、三个 profiles、项目 declaration/lock、例外与离线 provenance | 选择技术基线、审计项目或规划升级 |
 
 ## 6. 关键地址速查
 
@@ -155,3 +156,4 @@ sequenceDiagram
 - **制品**：`/opt/artifacts/rsdesign-new-<sha>.tar.gz`，测过的字节 = 上线的字节
 - **Change ID（Windows 目标合同）**：原型 `<项目三字符代码>-NNNN`、正式 `PRD-NNNN`；用于分支、文档、制品和部署记录。现有 runtime 尚未实现该格式
 - **权威源切换**：迁移前本地 Gitea 是原型权威源；迁移后公司 Gitea 是唯一正式权威源，GitHub 不进入公司链路
+- **Architecture declaration/lock**：项目人工维护 `.aisoft/architecture.json`，平台工具生成 byte-identical `architecture.lock.json`；候选 lock 只证明合同可解析，不代表 migration 或 deployment 完成
