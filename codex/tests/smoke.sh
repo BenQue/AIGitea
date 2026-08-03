@@ -5,6 +5,11 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 command -v rg >/dev/null
 
+bash -n \
+  "$ROOT/architecture/bin/aisoft-architecture" \
+  "$ROOT/architecture/install.sh" \
+  "$ROOT/codex/tests/test-architecture-install.sh"
+
 optional_runtime_sources=(
   "$ROOT/codex/agent/analyze-codex.sh"
   "$ROOT/codex/agent/codex-analyzer.sh"
@@ -56,7 +61,12 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-cleanup-merged.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh"
   shellcheck "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh
+  shellcheck \
+    "$ROOT/architecture/bin/aisoft-architecture" \
+    "$ROOT/architecture/install.sh" \
+    "$ROOT/codex/tests/test-architecture-install.sh"
 fi
+bash "$ROOT/codex/tests/test-architecture-install.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 bash "$ROOT/codex/tests/test-agent-runtime.sh"
 bash "$ROOT/codex/tests/test-mark-deployed-issues.sh"
@@ -69,6 +79,26 @@ bash "$ROOT/sync/tests/test-inbound-sync.sh"
 bash "$ROOT/sync/tests/test-install.sh"
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
   -s "$ROOT/codex/runtime/tests" -v
+
+while IFS= read -r json_file; do
+  jq empty "$json_file"
+done < <(find "$ROOT/architecture" -type f -name '*.json' ! -path '*/fixtures/invalid/duplicate-key.json' | sort)
+
+if rg -n '(^|[[:space:]])(import yaml|from yaml)' \
+  "$ROOT/codex/runtime/aisoft_architecture" "$ROOT/architecture"; then
+  echo 'Architecture V1 must not introduce a YAML parser.' >&2
+  exit 1
+fi
+
+for reference in newemaint windows sqlite; do
+  "$ROOT/architecture/bin/aisoft-architecture" validate \
+    --catalog "$ROOT/architecture/catalog.json" \
+    --profiles-dir "$ROOT/architecture/profiles" \
+    --schema-dir "$ROOT/architecture/schemas" \
+    --project "$ROOT/architecture/reference/$reference/architecture.json" \
+    --lock "$ROOT/architecture/reference/$reference/architecture.lock.json" \
+    --today 2026-08-02 >/dev/null
+done
 
 jq -e '
   length == 17 and

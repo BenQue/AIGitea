@@ -1120,6 +1120,18 @@ RTO / RPO
 
 任何实施结果只能在真实服务器运行相应命令并记录证据后标为通过；本文档本身不证明 Gitea 同步、CI、测试部署或生产部署已经上线。
 
+### 20.1 Architecture lock input
+
+真实 Linux 项目还必须提交 strict JSON `.aisoft/architecture.json` 与生成的
+`architecture.lock.json`，默认参考 `linux-node-postgres-v1`。Release manifest 只消费
+`profile_id`、`catalog_revision` 和 lock checksum；仍由本方案拥有 build/deploy/health/
+rollback state。Mutable `latest`、只有 tag 的 OCI image、未知/EOL component、过期 exception
+或 lock drift 必须在构建或任何外部 mutation 前失败。
+
+Catalog 当前 preferred 值只代表新项目候选，不授权升级既有项目。Node、Prisma 和
+PostgreSQL major 必须拆成独立应用 Change，分别具备兼容、backup/restore 和 rollback evidence。
+具体 contract、CLI 与离线 mirror/SBOM/provenance 见 [`architecture/README.md`](architecture/README.md)。
+
 ---
 
 ## 21. 参考

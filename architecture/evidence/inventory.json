@@ -1,0 +1,266 @@
+{
+  "schema_version": "1.0",
+  "collected_at": "2026-08-03",
+  "collection_mode": "sanitized-read-only",
+  "scope_authority": "Issue #23 explicitly names NewEmaint, reference projects, gitea-ci and prod-sim; no separate formal asset registry was available.",
+  "projects": [
+    {
+      "project_id": "newemaint",
+      "owner": "application repository owners",
+      "purpose": "enterprise maintenance application",
+      "source": "gitea/main@ecbdc674fde1f785cafdee92c6ee88c691104a34",
+      "metadata_path": "architecture/reference/newemaint/inventory.json",
+      "confidence": "high",
+      "collection_status": "complete for repository metadata; runtime/server not inferred"
+    },
+    {
+      "project_id": "windows-reference-candidate",
+      "owner": "platform governance",
+      "purpose": "synthetic profile contract reference",
+      "source": "architecture/reference/windows/architecture.json",
+      "metadata_path": "architecture/reference/windows/gap-report.md",
+      "confidence": "high",
+      "collection_status": "reference only; no formal application mapped"
+    },
+    {
+      "project_id": "sqlite-reference-candidate",
+      "owner": "platform governance",
+      "purpose": "synthetic profile contract reference",
+      "source": "architecture/reference/sqlite/architecture.json",
+      "metadata_path": "architecture/reference/sqlite/gap-report.md",
+      "confidence": "high",
+      "collection_status": "reference only; no formal application mapped"
+    }
+  ],
+  "servers": [
+    {
+      "asset_id": "gitea-ci",
+      "owner": "platform operations",
+      "purpose": "Gitea SCM, CI and supporting platform services",
+      "source": "host-path read-only inventory via orb -m gitea-ci -u benque",
+      "execution_path": "host-orb-read-only",
+      "collected_at": "2026-08-03",
+      "collection_status": "complete: sanitized host metadata only; no Secret, application environment, logs, database contents or business data read",
+      "confidence": "high",
+      "os": {
+        "name": "Ubuntu",
+        "version": "26.04 LTS",
+        "codename": "resolute",
+        "kernel": "7.0.11-orbstack-00360-gc9bc4d96ac70"
+      },
+      "cpu": {
+        "architecture": "aarch64"
+      },
+      "runtimes": [
+        {"id": "node", "installed": true, "version": "20.20.2"},
+        {"id": "python", "installed": true, "version": "3.14.4"},
+        {"id": "dotnet", "installed": false}
+      ],
+      "frameworks": {
+        "items": [],
+        "collection_status": "none identified at host scope; application files were not read"
+      },
+      "orms": {
+        "items": [],
+        "collection_status": "none identified at host scope; application files and database contents were not read"
+      },
+      "databases": [
+        {
+          "id": "postgresql",
+          "installed": true,
+          "client_version": "18.4 (Ubuntu 18.4-0ubuntu0.26.04.1)",
+          "server_version": "18.4 (Ubuntu 18.4-0ubuntu0.26.04.1)",
+          "service_state": "active"
+        },
+        {"id": "sqlite", "installed": false}
+      ],
+      "containers": {
+        "docker": {"installed": false},
+        "compose": {"installed": false}
+      },
+      "proxy": {
+        "id": "nginx",
+        "installed": true,
+        "version": "1.28.3 (Ubuntu)",
+        "service_state": "active"
+      },
+      "package_managers": [
+        {"id": "apt", "version": "3.2.0 (arm64)"},
+        {"id": "npm", "version": "10.8.2"}
+      ],
+      "process_managers": [
+        {
+          "id": "pm2",
+          "installed": true,
+          "version": "7.0.3",
+          "runtime_state": "not inspected after version collection to avoid daemon lifecycle effects"
+        }
+      ],
+      "scm": [
+        {"id": "git", "installed": true, "version": "2.53.0"},
+        {"id": "gitea", "installed": true, "version": "1.26.4", "service_state": "active", "version_source": "live /api/v1/version response"}
+      ]
+    },
+    {
+      "asset_id": "prod-sim",
+      "owner": "platform operations",
+      "purpose": "production-simulation application endpoint",
+      "source": "host-path read-only inventory via orb -m prod-sim -u benque",
+      "execution_path": "host-orb-read-only",
+      "collected_at": "2026-08-03",
+      "collection_status": "complete: sanitized host metadata only; no Secret, application environment, logs, database contents or business data read",
+      "confidence": "high",
+      "os": {
+        "name": "Ubuntu",
+        "version": "26.04 LTS",
+        "codename": "resolute",
+        "kernel": "7.0.11-orbstack-00360-gc9bc4d96ac70"
+      },
+      "cpu": {
+        "architecture": "aarch64"
+      },
+      "runtimes": [
+        {"id": "node", "installed": true, "version": "20.20.2"},
+        {"id": "python", "installed": true, "version": "3.14.4"},
+        {"id": "dotnet", "installed": false}
+      ],
+      "frameworks": {
+        "items": [],
+        "collection_status": "none identified at host scope; application files were not read"
+      },
+      "orms": {
+        "items": [],
+        "collection_status": "none identified at host scope; application files and database contents were not read"
+      },
+      "databases": [
+        {
+          "id": "postgresql",
+          "installed": true,
+          "client_version": "18.4 (Ubuntu 18.4-0ubuntu0.26.04.1)",
+          "server_version": "18.4 (Ubuntu 18.4-0ubuntu0.26.04.1)",
+          "service_state": "active"
+        },
+        {"id": "sqlite", "installed": false}
+      ],
+      "containers": {
+        "docker": {"installed": false},
+        "compose": {"installed": false}
+      },
+      "proxy": {
+        "id": "nginx",
+        "installed": true,
+        "version": "1.28.3 (Ubuntu)",
+        "service_state": "active"
+      },
+      "package_managers": [
+        {"id": "apt", "version": "3.2.0 (arm64)"},
+        {"id": "npm", "version": "10.8.2"}
+      ],
+      "process_managers": [
+        {
+          "id": "pm2",
+          "installed": true,
+          "version": "7.0.3",
+          "runtime_state_after_collection": "not running",
+          "applications_observed": 0
+        }
+      ],
+      "scm": [
+        {"id": "git", "installed": false},
+        {"id": "gitea", "installation_status": "not inferred", "service_state": "inactive"}
+      ]
+    }
+  ],
+  "lifecycle_findings": [
+    {
+      "component": "Ubuntu 26.04 LTS",
+      "observed_on": ["gitea-ci", "prod-sim"],
+      "upstream_status": "active LTS",
+      "support_end": "2031-05-31",
+      "eol": "2041-04-30",
+      "catalog_status": "prohibited candidate pending 26.04.1 and AISoftPlatform soak evidence",
+      "source_url": "https://wiki.ubuntu.com/Releases",
+      "retrieved_at": "2026-08-02",
+      "review_by": "2026-11-02",
+      "action": "record as as-built only; any OS adoption or rollback work requires a separate server Change"
+    },
+    {
+      "component": "Node.js 20.20.2",
+      "observed_on": ["gitea-ci", "prod-sim"],
+      "upstream_status": "EOL",
+      "eol": "2026-04-30",
+      "source_url": "https://nodejs.org/en/about/previous-releases",
+      "retrieved_at": "2026-08-03",
+      "review_by": "2026-11-03",
+      "action": "open a separate runtime/server Change; inventory does not authorize an upgrade"
+    },
+    {
+      "component": "npm CLI 10.8.2",
+      "observed_on": ["gitea-ci", "prod-sim"],
+      "upstream_status": "no fixed CLI EOL schedule published",
+      "eol": "unknown",
+      "source_url": "https://docs.npmjs.com/about-npm-versions",
+      "retrieved_at": "2026-08-03",
+      "review_by": "2026-11-03",
+      "action": "review with the Node runtime Change because the installed Node 20 host runtime is EOL"
+    },
+    {
+      "component": "Python 3.14.4",
+      "observed_on": ["gitea-ci", "prod-sim"],
+      "upstream_status": "bugfix",
+      "eol": "2030-10 (upstream month granularity)",
+      "source_url": "https://devguide.python.org/versions/",
+      "retrieved_at": "2026-08-03",
+      "review_by": "2026-11-03",
+      "action": "continue normal patch review; no migration conclusion from inventory"
+    },
+    {
+      "component": "PostgreSQL 18.4",
+      "observed_on": ["gitea-ci", "prod-sim"],
+      "upstream_status": "active",
+      "eol": "2030-11-14",
+      "source_url": "https://www.postgresql.org/support/versioning/",
+      "retrieved_at": "2026-08-02",
+      "review_by": "2026-11-02",
+      "action": "exact installed minor matches the catalog candidate; no schema, database or application migration was performed"
+    },
+    {
+      "component": "NGINX 1.28.3",
+      "observed_on": ["gitea-ci", "prod-sim"],
+      "upstream_status": "legacy",
+      "eol": "unknown; upstream publishes no fixed EOL date",
+      "source_url": "https://nginx.org/en/download.html",
+      "retrieved_at": "2026-08-03",
+      "review_by": "2026-11-03",
+      "action": "open a separate proxy/server Change; inventory does not authorize an upgrade or restart"
+    },
+    {
+      "component": "PM2 7.0.3",
+      "observed_on": ["gitea-ci", "prod-sim"],
+      "upstream_status": "no fixed EOL policy published",
+      "eol": "unknown",
+      "source_url": "https://github.com/Unitech/pm2",
+      "retrieved_at": "2026-08-03",
+      "review_by": "2026-11-03",
+      "action": "review quarterly and validate against the selected Node LTS in a separate application/server Change"
+    },
+    {
+      "component": "Gitea 1.26.4",
+      "observed_on": ["gitea-ci"],
+      "upstream_status": "official v1.26.4 release",
+      "eol": "no fixed per-release EOL date published",
+      "source_url": "https://github.com/go-gitea/gitea/releases/tag/v1.26.4",
+      "retrieved_at": "2026-08-03",
+      "review_by": "2026-11-03",
+      "action": "continue security/release review; no Gitea upgrade, restart or configuration mutation was performed"
+    }
+  ],
+  "collection_notes": [
+    "The managed sandbox path initially reported OrbStack as unavailable. Host-path orb probes succeeded, so the earlier result is classified SANDBOX_PATH_BLOCKED and is not server-state evidence.",
+    "On prod-sim, invoking pm2 --version unexpectedly started an empty per-user PM2 daemon. The daemon had zero applications, was stopped immediately, and a command-name process listing confirmed that no PM2 daemon remained.",
+    "No VM start, stop, restart, package change, service change, application change, schema change or database change was performed."
+  ],
+  "deduplication_key": "asset type plus canonical project_id/asset_id",
+  "unclassified_local_directories": "not treated as formal assets because no authoritative registry mapped ownership or purpose",
+  "excluded": ["Secret values", "credentials", ".env", "application environment", "logs", "database contents", "business data", "directory-name inference"]
+}
