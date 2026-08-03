@@ -49,9 +49,14 @@ Gate B rollback 已清理，AppServer exact runtime、权威 artifact 与最新 
 verification PR #15 final head `dbe483d9c8991b365957610961ee18cca28f0b34`、正文含
 `Closes #13`；required Actions run/job #344 successful in 50s。用户随后人工合并，live API 与
 `origin/main` 均读回 merge SHA `480dd7d0b55eebb0b12d60e23261a64b60d9ce7e`，Issue #13 已关闭，
-第 6 步完成。平台现按顺序进入第 7 步 SFMDigitalBoard 独立仓库只读盘点；其 repo 变更、PR、
-live 3212 Gate 尚未执行，后续步骤与 `prod-sim` 删除也仍未执行；
-本结论不表示生产部署，也不把应用 Gate D 授权扩大到其它应用或任何 VM。
+第 6 步完成。平台随后按顺序进入第 7 步：保留 SFMDigitalBoard 脏 main checkout，在独立
+`change/86` 实施 process-group cleanup 与 current-run DB finalizer。应用本地 bash-n、ShellCheck、
+platform suite、148 files/949 tests 与 production build 全部 PASS；最终 PR #87 head
+`58d8df7b400181ea05ed9578b487ddad61b4422c`、正文含 `Closes #86`，required Actions run/job #346
+在 Node 22 上 successful in 1m43s。Issue #86 已从 `approved` 切换为 `pr-open`，PR open/mergeable，
+但尚未由人合并；live 3212 process stop 与 15 个历史 DB 删除仍为独立 Gate，均未执行。后续步骤
+与 `prod-sim` 删除也仍未执行；本结论不表示部署或 live cleanup，也不把任何既有 Gate D 授权
+扩大到 SFMDigitalBoard、其它应用或任何 VM。
 
 ## 环境与版本
 
@@ -87,6 +92,17 @@ live 3212 Gate 尚未执行，后续步骤与 `prod-sim` 删除也仍未执行�
   - state：人工 merged at `2026-08-03T11:30:23+08:00`
   - merge SHA：`480dd7d0b55eebb0b12d60e23261a64b60d9ce7e`
   - live Issue #13：closed；final head 为 `origin/main` 祖先
+- SFMDigitalBoard code PR：
+  `http://gitea-ci.orb.local:3000/admin/SFMDigitalBoard/pulls/87`
+  - 正式 repo：`/Users/benque/Projects/SFMDigitalBoard`；脏 main checkout 原样保留，实施 worktree
+    为 `/private/tmp/sfm-change-86`
+  - baseline/base：`d9d3b994dfa94421ccb12b51c01db5336eb61e7a`
+  - final head：`58d8df7b400181ea05ed9578b487ddad61b4422c`
+  - commits：`85bcad3`（合同文档）、`07f4a32`（实现/测试）、`58d8df7`（本地验证证据）
+  - PR open、非 draft、mergeable；正文含 `Closes #86`
+  - required CI：Actions run/job #346，`CI / verify (pull_request)`，PASS in 1m43s
+  - live Issue #86：open，标签 `pr-open`；尚未人工合并
+  - live 3212/PID `2487` 与 15 个历史 runner DB：未停止、未删除
 - 实时 Issue #21：open；标签精确包含 `type/platform`、`complexity/complex`、`approved`
 - `gitea-ci`：hostname `gitea-ci`，machine ID
   `c7a9c69b3f604cc4b4c37123ab93e472`，Ubuntu 26.04 ARM64，running
@@ -131,7 +147,7 @@ live 3212 Gate 尚未执行，后续步骤与 `prod-sim` 删除也仍未执行�
 | `bash codex/tests/test-install-host-role.sh` | PASS | 仅安装 guard/schema/catalog/example；重复执行通过；不创建 live profile、Secret、service、timer 或 deployment |
 | changed shell `bash -n` | PASS | `codex/tools/verify-host-role.sh`、`codex/install-host-role.sh` 及新增/修改 tests 均通过 |
 | ShellCheck | PASS | 所有本 Change 新增或修改的 shell 文件通过 |
-| `bash codex/tests/smoke.sh` | PASS | 实现后、文档后、blocker、跨仓库 handoff、merge evidence、Gate B/C/D evidence 记录后运行；累计十次均为 105 项 Python tests 及全部 shell/static smoke 通过，最后一次覆盖完整 Gate D 与 post-Gate test 证据 |
+| `bash codex/tests/smoke.sh` | PASS | 实现后、文档后、blocker、跨仓库 handoff、merge evidence、Gate B/C/D 与 SFM PR/CI evidence 记录后运行；累计十一次均为 105 项 Python tests 及全部 shell/static smoke 通过，最后一次覆盖 PR #87 required CI 与 live Gate 未执行边界 |
 | documentation state review | PASS | README、01/02/06/07/09/12 与 onboarding 已区分 current `scm-ci`、AppServer roles、legacy runtime 和待 Gate 清理；未修改本次运行遵循的 `AGENTS.md` |
 | `gitea-ci` baseline inventory | PASS（第 1 步只读） | Gitea/runner/Verdaccio/Mailpit/PostgreSQL/Redis/Nginx/legacy app listeners、systemd/timers、DB 脱敏元数据、artifact/目录引用和 health 已盘点；不等同于第 10 步两轮 pre-delete inventory |
 | `rsdesign-new` contract conflict resolution | PASS | 用户确认 #21 优先；live #13 title/body 已改为 AppServer migration；`change/13` 用 additive commits 删除旧 auto-restore source，历史未改写 |
@@ -153,7 +169,8 @@ live 3212 Gate 尚未执行，后续步骤与 `prod-sim` 删除也仍未执行�
 | Gate D post-delete/cross-service checks | PASS | 所有已授权对象 absent，unit `not-found/inactive`，旧 3100/8091 absent；AppServer validator、PID `278336` exact cwd、external 3100 health、target DB mode/checksum/quick_check PASS；Gitea、runner、Verdaccio、Mailpit、PostgreSQL、NGINX 与 AppServer 3202 health PASS。未触碰 SFM 3212、MyApp 8090、其它平台对象或任何 VM |
 | application post-Gate D repository verification | PASS | 应用四份 shell `bash -n`/ShellCheck、focused 1 file/7 tests、fresh temporary SQLite migration、full 70 files/326 tests、Next.js 14.2.35 production build与 diff/scope review 均 PASS；首次 sandbox Vitest invocation 在收集前因 worktree 写权限 `EPERM`，同一命令在 host context PASS，记为 `SANDBOX_PATH_BLOCKED` |
 | application final verification PR #15 | PASS human merge | final head `dbe483d...` required run/job #344 completed/success in 50s；用户人工合并为 `480dd7d...`，Issue #13 closed，final head ancestry PASS；未自动合并 |
-| SFM smoke cleanup | NOT RUN | 第 6 步已完成，开始第 7 步只读盘点；尚未进入所属应用仓库修改、尚未终止 3212 |
+| SFM smoke cleanup candidate | PASS / human merge pending | 正式 Issue #86/change/86/PR #87；success/failure/TERM/INT process-group、bounded KILL、unrelated control、exact DB/fail-closed 与两个 always-finalizer 回归均 PASS；bash-n/ShellCheck、platform suite、148 files/949 tests、build、required Node 22 run/job #346 全部 PASS。PR open/mergeable，未自动合并 |
+| SFM live 3212/history DB Gate | NOT RUN | PID `2487`、3212 listener 与 15 个历史 DB 均原样保留；必须等 PR #87 人工合并后重新读取 PID/cgroup/cwd/FD，再独立授权执行 |
 | MyApp/Redis/Nginx/artifact cleanup | NOT RUN | 未获逐项 Gate，未停止服务、未删除 DB/目录/制品 |
 | artifact retention implementation/dry-run | NOT RUN | 按计划顺序尚未进入第 9 步 |
 | `prod-sim` pre-delete two-round inventory | NOT RUN | 按计划顺序尚未进入第 10 步；第 1 步 identity baseline 不满足 AC-10 |
@@ -169,14 +186,14 @@ live 3212 Gate 尚未执行，后续步骤与 `prod-sim` 删除也仍未执行�
 | AC-3 | PASS | production profile/identity 路径固定；owner/mode/parent/hostname/machine ID 检查完整；调用方无 profile/identity override；输出脱敏测试通过 |
 | AC-4 | PASS | 指定平台文档与 onboarding 已明确 SCM/CI 与 AppServer 分离，并把同机 runtime 标为 legacy/pending Gate |
 | AC-5 | PASS complete | prerequisite/final PR CI与人工 merge、exact artifact/readiness/rollback、Gate C/D 与 post-check 全部 PASS；final merge SHA `480dd7d...`、Issue #13 closed，旧 writer/8091 absent，AppServer exact current/唯一 PID/cwd、direct/external health 与 recovery baseline 均已验证 |
-| AC-6 | NOT RUN | 未进入 SFM 独立 Issue/branch/PR 和 live Gate |
+| AC-6 | BLOCKED human merge/live Gate | Issue #86/change/86/PR #87 与 required Node 22 CI 已 PASS；尚待人工 merge，随后才能重新盘点并申请 live 3212/历史 DB Gate |
 | AC-7 | NOT RUN | 未进入 MyApp inventory/backup/restore 与删除 Gate |
 | AC-8 | NOT RUN | 已有第 1 步 baseline，但尚无收口前后成对验证 |
 | AC-9 | NOT RUN | retention tool/dry-run 与 Redis/Nginx predicate 尚未实施 |
 | AC-10 | NOT RUN | 尚未执行两轮 pre-delete inventory 与完整 dependency/unique-data/rebuild Gate |
 | AC-11 | NOT RUN | 未执行任何 VM 删除；`gitea-ci`、AppServer 和其它 VM 均未删除 |
-| AC-12 | PASS | post-Gate D 应用 bash-n/ShellCheck/focused/fresh-DB full/build 与平台 bash-n/ShellCheck/定向 tests/第十次 full smoke 全部通过；live allow/deny/幂等、故意 health failure rollback 与 Gate C/D post-state checks 均通过 |
-| AC-13 | BLOCKED later steps | 本文件已记录应用最终 merge SHA与第 6 步证据；SFMDigitalBoard/MyApp/retention/VM live Gates、platform final head/CI/PR 尚不存在 |
+| AC-12 | PASS | post-Gate D 应用与 SFM candidate bash-n/ShellCheck/定向/full/build、SFM Node 22 required CI 与平台 bash-n/ShellCheck/定向 tests/完整 smoke 全部通过；live allow/deny/幂等、故意 health failure rollback、process-tree cancellation 与 Gate C/D post-state checks 均通过 |
+| AC-13 | BLOCKED later steps | 本文件已记录 rsdesign 最终 merge SHA与 SFM PR #87 final head/CI；SFM 人工 merge/live Gate、MyApp/retention/VM live Gates、platform final head/CI/PR 尚不存在 |
 | AC-14 | PASS（截至阻塞点） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C 及本应用整体 Gate D 均有明确授权。Gate D 只清理盘点后的 `rsdesign-new` 过时对象并保留权威 artifact/active target/latest recovery；未执行其它应用 Gate、平台 retention apply、生产或任何 VM 操作，未自动合并 |
 
 ## 重复部署/执行
@@ -191,6 +208,9 @@ live 3212 Gate 尚未执行，后续步骤与 `prod-sim` 删除也仍未执行�
   rollback manifest 均通过，故未执行不必要的 final rollback。
 - 应用 Gate D：一次 exact cleanup PASS；删除后以 absent、unit `not-found`、listener、PID/cwd、
   DB checksum/quick_check、external health 与无关服务检查替代重复 destructive action。
+- SFM candidate：success、health failure、TERM 与 INT 四类 fixture 均重复验证精确 group 清理；
+  current-run DB helper 对 `ci`/`deploy` 删除 test-owned exact path，对 wrong URL/run ID/kind 均
+  fail closed。未对 live PID 或历史 DB 重复/试探 destructive action。
 - `gitea-ci` inventory：第 1 步 baseline PASS；AC-10 关联的两轮 inventory NOT RUN。
 - `prod-sim` 删除只允许执行一次；当前 NOT RUN，未来以删除前双读和删除后双读替代重复
   destructive action。
@@ -205,6 +225,10 @@ live 3212 Gate 尚未执行，后续步骤与 `prod-sim` 删除也仍未执行�
 - 应用显式 rollback：两次 PASS，previous=absent；三份 mode 700 backup 保留。
 - 应用 Gate C rollback readiness：新 manifest/`db.before` checksum/integrity PASS；final
   validation 未失败，未触发回切，old runtime/entry 恢复对象仍完整保留。
+- SFM smoke 旧实现红灯：success 后 test TCP child 仍存活；测试 trap 仅按精确 fixture PID 回收。
+  修复后故意 health failure、TERM=143、INT=130 与 ignore-TERM→bounded KILL 全部 PASS，unrelated
+  control process 存活。首次 sandbox listener 因 `EPERM` 未建立，同一命令在 host context 得到
+  真实红/绿结果，记为 `SANDBOX_PATH_BLOCKED`。
 - `prod-sim` identity/引用不满足：NOT RUN；预期停止删除。
 - `prod-sim` 删除后整机原地 rollback：不可能；恢复路径只能依据版本化最小基线重新创建。
 
@@ -218,7 +242,8 @@ live 3212 Gate 尚未执行，后续步骤与 `prod-sim` 删除也仍未执行�
 | `rsdesign-new` final cutover | 用户明确授权 Gate C；不含 cleanup/delete | PASS，AppServer exact candidate online，旧 writer/8091 stopped/disabled，可恢复对象全部保留 |
 | `rsdesign-new` exact legacy cleanup | 用户明确整体授权本应用过时对象，无需逐对象再次等待；不扩大到其它应用/VM | PASS，pre-delete ledger、exact cleanup 与 post-check 完成 |
 | `rsdesign-new` authoritative artifact/active target/latest recovery | Gate D 明确保留边界 | PASS，均保留且 checksum/integrity/health 可读 |
-| SFM process stop | 仍需应用仓 PR 与 live Gate | NOT RUN |
+| SFM repository implementation/PR | Issue #86 `approved` 合同内；repo change/PR 独立治理 | PASS，PR #87 final head required CI 通过；保持 open，未自动合并 |
+| SFM process stop/history DB delete | 仍需 PR #87 人工 merge 后重新盘点与独立 live Gate | NOT RUN |
 | MyApp service/DB/directory removal | 仍需逐对象 live Gate | NOT RUN |
 | artifact/Redis/Nginx apply | 仍需 predicate、dry-run 与 live Gate | NOT RUN |
 | exact `prod-sim` delete | 用户已授权，但仅在 AC-10 全部通过后有效 | NOT RUN |
@@ -235,10 +260,11 @@ live 3212 Gate 尚未执行，后续步骤与 `prod-sim` 删除也仍未执行�
 
 ## 当前 blocker 与恢复条件
 
-第 6 步全部 blocker 已解除并以 merge SHA `480dd7d...` 收口。当前按计划进入第 7 步：先核对
-SFMDigitalBoard 正式 repo/cwd、现有 Issue/branch/PR、workflow 与 live 3212 PID/cgroup；应用改动
-必须走其独立分支/PR。终止 live 3212 仍是独立人工 Gate，在应用代码/测试/CI/人工 merge 前不得
-执行，也不得把 `rsdesign-new` Gate D 授权扩展过来。
+第 6 步全部 blocker 已解除并以 merge SHA `480dd7d...` 收口。第 7 步 repository candidate 与
+required CI 已完成：SFMDigitalBoard PR #87 final head `58d8df7...` 为 open/mergeable，run/job #346
+PASS。当前 blocker 是人工合并 PR #87；不得自动合并。合并后须先重新读取 live 3212 PID/cgroup/
+cwd/FD 与历史 DB，再取得独立 live Gate 才能终止或删除；不得把 `rsdesign-new` Gate D 授权扩展
+过来，也不得提前进入第 8 步。
 
 ## 遗留风险与未完成项
 
@@ -252,5 +278,6 @@ SFMDigitalBoard 正式 repo/cwd、现有 Issue/branch/PR、workflow 与 live 321
 - 除已完成的 `rsdesign-new` Gate D 与精确 `prod-sim` 条件授权外，其它 destructive action 仍需
   对应应用/平台 Gate 明确授权。
 - `prod-sim` 授权不等于 AC-10 已通过；当前不得删除。
-- SFMDigitalBoard 第 7 步 repo change/PR/live Gate、平台后续步骤与所有未执行 live Gate 保持
-  `BLOCKED/NOT RUN`；第 6 步完成不等于生产部署或平台清理完成。
+- SFMDigitalBoard 第 7 步 repo candidate/PR/required CI 已 PASS；人工 merge 与 live Gate 保持
+  `BLOCKED/NOT RUN`。平台后续步骤与所有未执行 live Gate 仍为 `NOT RUN`；candidate CI 不等于
+  部署、live cleanup 或平台清理完成。
