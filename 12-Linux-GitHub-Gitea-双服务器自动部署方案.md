@@ -1,16 +1,98 @@
 # 12 · Linux / GitHub → Gitea / 双服务器自动部署方案
 
-> 目标方案（2026-07-23）｜状态：**设计已确认，尚未在公司服务器实施或验收**
-> 适用应用：React SPA 前端 + Node.js 后端 + PostgreSQL + PM2
+> 目标方案（更新 2026-08-02）｜状态：**Docker-first 平台 candidate；真实 Registry、offline media、AppServer 与 production 均未实施或验收**
+> 新 Linux 默认：OCI digest + Docker Compose；PM2 仅为已有应用的 legacy adapter
 > 网络约束：POC 开发机不能访问公司内网；安装 Gitea 的测试服务器可以通过 HTTPS 访问 GitHub。
 
-本册定义一个新的 Linux 应用部署 profile，目标是把 GitHub 上游代码安全地引入公司内网 Gitea，经内网 PR、CI 和人工审批后自动部署测试环境，再通过独立的生产提升 PR 把同一份不可变制品部署到生产服务器。
+本册定义 Linux 应用从 GitHub 候选进入公司 Gitea 后的发布边界。新项目以
+[Docker release contract v1](docker-release/README.md) 为默认：受控 builder 一次构建，测试
+与生产只消费同一 immutable digests/Compose/architecture identity；PM2/tar.gz 内容保留为
+已有应用的 legacy 设计证据。
 
 现有 [01](01-基础设施-VM-Gitea-Runner.md) 和 [02](02-CI与自动部署流水线.md) 记录的是 OrbStack、Next.js、SQLite 试点的 as-built 事实；本册不修改该事实，也不能把 SQLite 脚本改名后直接用于 PostgreSQL。实施本册涉及 CI、制品、数据库迁移、权限、部署和回滚，属于 complex 变更，必须按 `AGENTS.md` 补齐 Issue、spec、plan 和 verification。
 
 ---
 
-## 1. 已确认决策
+## 0. Docker-first canonical release contract
+
+### 0.1 职责与拓扑
+
+```mermaid
+flowchart LR
+    GH["GitHub source candidate"] --> SYNC["inbound sync"]
+    subgraph SCM["scm-ci / controlled builder"]
+        G["Gitea PR + protected main"]
+        CI["act_runner build/test"]
+        REG["Gitea Container Registry"]
+        BUNDLE["offline bundle export"]
+        G --> CI --> REG
+        CI --> BUNDLE
+    end
+    SYNC --> G
+    REG -->|"pull exact digest"| TEST["appserver-test"]
+    BUNDLE -->|"checksum + load"| TEST
+    TEST -->|"same manifest after human gate"| PROD["appserver-prod"]
+    TEST --> TDB["shared test PostgreSQL\nper-app DB/roles"]
+    PROD --> PDB["shared prod PostgreSQL\nper-app DB/roles"]
+    TN["shared test Nginx"] --> TEST
+    PN["shared prod Nginx"] --> PROD
+```
+
+- `scm-ci` 允许 source checkout、build、test、package、Registry/artifact publish 和 release
+  `verify`，禁止 business Web/API/worker、migration 和 application deploy/start。
+- `appserver-test`/`appserver-prod` 只执行受保护 target profile 派生的固定
+  `verify/deploy/status/rollback`，不接收任意 shell、路径或 Compose override。
+- Nginx 和 PostgreSQL 按环境共享；每应用拥有独立 Compose project、database、runtime/
+  migrator/backup role 和外置 Secret。应用容器不封装环境共享 Nginx/PostgreSQL。
+- Builder、test AppServer 和 prod AppServer 是独立 trust role；资源有限时也不得把
+  `scm-ci` 复用为业务 runtime。实际 hostname/role 由 #21 host profile 验证。
+
+### 0.2 Release bytes 与 transport
+
+完整 Gitea `main` merge SHA 是 release ID。`release.json` strict schema 同时绑定：
+
+- `linux/amd64`；source repository 与 merge SHA；
+- 每个 Compose service 的 immutable Registry digest 和 inspected image ID；
+- Compose checksum、runtime service、一次性 non-destructive migration identity；
+- #23 唯一 architecture catalog 的 `profile_id`、`catalog_revision` 和 lock checksum；
+- offline `images.tar` 与 `images.inventory.json` checksum。
+
+Registry transport 逐 image 执行 digest pull；offline transport 先验证 release/Compose/
+architecture/inventory/archive 和 tar path safety，再 `docker image load` 并 inspect exact identity。
+二者消费同一 manifest，不得重建“等价”image。目标机不运行 `docker build`、`npm install`、
+`git pull` 或公网下载。
+
+### 0.3 Deterministic target runtime
+
+CLI 只接受 mode `0400/0600` 的 target profile 和 40 位 release ID：
+
+```text
+aisoft-docker-release verify|deploy|status|rollback --profile <protected-json> --release-id <merge-sha>
+```
+
+所有 path/checksum/architecture/host-role/Compose safety 在 pull/load/migration/container replace
+之前 fail closed。Compose 禁止 `build:`、mutable-only image、root/privileged、host namespace、
+Docker socket、任意 bind mount 和非 loopback publish；要求 read-only rootfs、tmpfs/命名卷、
+`cap_drop: ALL`、`no-new-privileges`、资源/日志限制、网络分区、healthcheck 和 exact release
+labels。环境值只引用目标机外置 env file，不写入 manifest、state 或日志。
+
+部署以单一进程锁和原子 state 串行化；同 SHA exact healthy 为 no-op。Migration identity 在执行
+前记为 `started`，成功后记为 `completed`，failed/中断不自动重跑。`compose up --wait` 或
+exact-release health 失败时回切上一 container release；rollback 不运行 migration，PostgreSQL
+restore 永远需要独立人工审批。
+
+### 0.4 兼容与证据边界
+
+NewEmaint 只是首个消费模板，必须在应用仓另建 Issue/spec/plan/PR，实现自己的 Dockerfile、
+Compose、migration、CI publish、health 与 offline bundle；本平台 Change 不修改应用仓。平台
+fake Docker/installer PASS 不是 Registry、TLS、offline media、AppServer、真实 database 或
+production PASS。
+
+以下 §1–§21 保存 2026-07 PM2/tar.gz 双服务器设计，作为已有应用的 **legacy adapter** 与
+GitHub 入站治理参考。凡与 §0 冲突之处，新 Linux 项目以 §0 和 `docker-release/` 为准；不得
+把历史 PM2 as-built 改写成 Docker 已部署，也不得在应用独立迁移验收前删除 PM2 路径。
+
+## 1. PM2 legacy 已确认决策（历史）
 
 | 决策 | 结论 |
 |------|------|
@@ -39,7 +121,7 @@
 
 ---
 
-## 2. 目标拓扑
+## 2. PM2 legacy 目标拓扑（历史）
 
 ```mermaid
 flowchart LR
@@ -81,7 +163,7 @@ Git mirror 只能传输 commits、branches、tags 和 LFS；不能持续保留 G
 
 ---
 
-## 3. 服务器职责、端口和目录
+## 3. PM2 legacy 服务器职责、端口和目录（历史）
 
 ### 3.1 服务器 A：Gitea、CI、制品和测试环境
 
@@ -141,7 +223,7 @@ Git mirror 只能传输 commits、branches、tags 和 LFS；不能持续保留 G
 - systemd 设置 `CPUQuota`、`MemoryMax`、`TasksMax` 和 job timeout。
 - Gitea、Runner workspace、制品、PostgreSQL 数据和日志分别设置磁盘容量告警。
 
-项目总纲采用 PM2 和自包含制品，不要求 Docker。host runner 只适用于受信任的公司仓库和成员；如果未来允许不受信任 PR，第一优先级是把 Runner 拆到第三台机器或切换到更强隔离模式。
+本段只描述已有 PM2 legacy adapter；它不再是项目总纲的新 Linux 默认。host runner 只适用于受信任的公司仓库和成员；如果未来允许不受信任 PR，第一优先级是把 Runner 拆到第三台机器或切换到更强隔离模式。
 
 ### 3.2 服务器 B：生产应用和生产数据库
 
@@ -540,7 +622,7 @@ push(main)
 
 ---
 
-## 11. 不可变制品合同
+## 11. PM2 legacy tar.gz 制品合同（历史）
 
 Gitea Package version 固定为 Gitea `main` merge SHA：
 
@@ -654,7 +736,7 @@ Nginx 只需要读取 release 的 `frontend/`；不要通过加入应用 Secret 
 
 ---
 
-## 13. Node / PM2
+## 13. Node / PM2 legacy adapter（历史）
 
 Node 版本策略：
 
@@ -1000,7 +1082,7 @@ status <40-sha>
 
 ---
 
-## 18. 分阶段实施
+## 18. PM2 legacy 分阶段实施（历史）
 
 ### Phase 0：参数和兼容性
 

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aisoft.example/contracts/docker-release/target-profile-v1.schema.json",
+  "title": "AISoft Docker release target profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "profile_id",
+    "environment",
+    "host_role",
+    "expected_hostname",
+    "transport",
+    "release_root",
+    "state_root",
+    "compose_project",
+    "env_file",
+    "source_repository",
+    "architecture_profile_id",
+    "catalog_revision",
+    "wait_timeout_seconds"
+  ],
+  "properties": {
+    "contract_version": {"const": "docker-release-target/v1"},
+    "profile_id": {"$ref": "#/$defs/safeIdentifier"},
+    "environment": {"enum": ["test", "production"]},
+    "host_role": {"enum": ["scm-ci", "appserver-test", "appserver-prod"]},
+    "expected_hostname": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9.-]{0,252}$"
+    },
+    "transport": {"enum": ["registry", "offline-bundle"]},
+    "release_root": {"$ref": "#/$defs/absolutePath"},
+    "state_root": {"$ref": "#/$defs/absolutePath"},
+    "compose_project": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,62}$"
+    },
+    "env_file": {"$ref": "#/$defs/absolutePath"},
+    "source_repository": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$",
+      "maxLength": 255
+    },
+    "architecture_profile_id": {"$ref": "#/$defs/safeIdentifier"},
+    "catalog_revision": {"$ref": "#/$defs/safeIdentifier"},
+    "wait_timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 900}
+  },
+  "$defs": {
+    "safeIdentifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "absolutePath": {
+      "type": "string",
+      "pattern": "^/(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$",
+      "maxLength": 4096
+    }
+  }
+}

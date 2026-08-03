@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+runtime_dir="${AISOFT_DOCKER_RELEASE_RUNTIME_DIR:-/opt/aisoft-docker-release/docker-release-v1/runtime}"
+if [[ ! -d "$runtime_dir/aisoft_release" ]]; then
+  printf '%s\n' 'AISoft Docker release runtime is not installed' >&2
+  exit 1
+fi
+export PYTHONPATH="$runtime_dir"
+exec python3 -m aisoft_release.cli "$@"
