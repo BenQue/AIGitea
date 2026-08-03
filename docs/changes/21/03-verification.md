@@ -73,7 +73,15 @@ mutation 前所有 identity/checksum/连接/引用再次匹配；两个 vhost pa
 graceful reload PASS，8090 absent。只 drop `app_test` database 并保留同名 role；精确删除
 `/opt/app-test` 与 7 个账本 artifact。所有 target absent、recovery bundle 完整、Gitea/runner/
 Nginx/PostgreSQL/Redis/Verdaccio/Mailpit/AppServer 两应用及三台 VM 的 paired checks 全部 PASS。
-第 8 步 MyApp 部分完成；Redis/Nginx predicate 尚未进入。
+第 8 步 MyApp 部分完成；随后进入 Redis/Nginx predicate。
+随后按计划执行 Redis/Nginx metadata-only predicate。Redis 8.0.5 仅 loopback 6379，16 个 DB
+全部 0 key、SCAN=0、probe 后零 established connection、AOF disabled、RDB 88 bytes；Gitea、
+Verdaccio、HSDB、active units 与正式应用 runtime 无 live consumer。已退役 MyApp repo 仅剩未使用
+`ioredis` package declaration，SFM 命中仅为历史设计 HTML。root-only Redis recovery bundle
+`/opt/cleanup-backups/issue-21/redis/20260803T151307Z` 已保存 config、空 RDB 与两个 exact arm64
+`.deb`，RDB/package/checksum 验证 PASS。APT purge dry-run 只移除 `redis-server`/`redis-tools`，不
+autoremove。Nginx 因 `12` 分册明确分配平台 Gitea proxy 批准职责，predicate 结果为 KEEP；Redis
+live stop/purge 与目录删除尚未获独立授权，因此仍 active、未修改。
 
 ## 环境与版本
 
@@ -170,6 +178,16 @@ Nginx/PostgreSQL/Redis/Verdaccio/Mailpit/AppServer 两应用及三台 VM 的 pai
   `app_test` 与 7 个 `/opt/artifacts/app-*.tar.gz` 精确账本对象均 absent；role `app_test` 和上述
   recovery bundle 保留。未使用 DB `--force`、artifact glob、全局 Nginx stop/remove 或任何 VM
   命令；用户已明确接受 `.env` 内容无恢复路径。
+- Redis pre-Gate：version 8.0.5，PID 257，cgroup `redis-server.service`，只监听
+  `127.0.0.1/[::1]:6379`；DB0–15 均 0 key、SCAN=0、零 established connection、AOF disabled，
+  `/var/lib/redis/dump.rdb` 88 bytes。package `redis-server`/`redis-tools` 均为
+  `5:8.0.5-1` arm64；purge simulation 为 0 upgrade/0 install/2 remove，不含 autoremove。
+- Redis recovery bundle：`/opt/cleanup-backups/issue-21/redis/20260803T151307Z`，root mode 700；
+  `redis.conf`、empty `dump.rdb`、两个 cached `.deb` 与 inventory 均 mode 600。config/RDB SHA-256
+  分别为 `68ff69f4b44ebce67227ff4bd1aa5a38f1e9c155d13948183b0453e4354a89f4`、
+  `f226c4390bb2fb17cba709035316c34e44defd3a8ee8bf0822bf2e99617e63a9`；server/tools `.deb`
+  分别为 `e2116ed87d02728956ec3509522dd2c7037490a6d4f97e7af5e3e78e307a3a95`、
+  `f6a4a67b649583a6d90a58e23e047586b89400cfc2d22ea964617453d2049f20`。
 
 ## 执行结果
 
@@ -184,7 +202,7 @@ Nginx/PostgreSQL/Redis/Verdaccio/Mailpit/AppServer 两应用及三台 VM 的 pai
 | `bash codex/tests/test-install-host-role.sh` | PASS | 仅安装 guard/schema/catalog/example；重复执行通过；不创建 live profile、Secret、service、timer 或 deployment |
 | changed shell `bash -n` | PASS | `codex/tools/verify-host-role.sh`、`codex/install-host-role.sh` 及新增/修改 tests 均通过 |
 | ShellCheck | PASS | 所有本 Change 新增或修改的 shell 文件通过 |
-| `bash codex/tests/smoke.sh` | PASS | 实现后、文档后、blocker、跨仓库 handoff、merge evidence、Gate B/C/D、SFM live Gate 与 MyApp recovery/live Gate evidence 记录后运行；累计十五次均为 105 项 Python tests 及全部 shell/static smoke 通过，最后一次覆盖 MyApp exact cleanup、paired post-state、recovery keep 与授权边界 |
+| `bash codex/tests/smoke.sh` | PASS | 实现后、文档后、blocker、跨仓库 handoff、merge evidence、Gate B/C/D、SFM 与 MyApp live Gate、Redis/Nginx predicate evidence 记录后运行；累计十六次均为 105 项 Python tests 及全部 shell/static smoke 通过，最后一次覆盖 Redis recovery、purge dry-run、Nginx KEEP 与独立 live Gate 边界 |
 | documentation state review | PASS | README、01/02/06/07/09/12 与 onboarding 已区分 current `scm-ci`、AppServer roles、legacy runtime 和待 Gate 清理；未修改本次运行遵循的 `AGENTS.md` |
 | `gitea-ci` baseline inventory | PASS（第 1 步只读） | Gitea/runner/Verdaccio/Mailpit/PostgreSQL/Redis/Nginx/legacy app listeners、systemd/timers、DB 脱敏元数据、artifact/目录引用和 health 已盘点；不等同于第 10 步两轮 pre-delete inventory |
 | `rsdesign-new` contract conflict resolution | PASS | 用户确认 #21 优先；live #13 title/body 已改为 AppServer migration；`change/13` 用 additive commits 删除旧 auto-restore source，历史未改写 |
@@ -216,7 +234,10 @@ Nginx/PostgreSQL/Redis/Verdaccio/Mailpit/AppServer 两应用及三台 VM 的 pai
 | MyApp runtime/vhost recovery proof | PASS | current artifact 98,542,215 bytes，无 absolute/`..`/`.env` entry；root-only scratch 恢复 5,199 files/5 symlinks，完整 SHA/symlink manifest 与 current release 一致，scratch 已删除。current artifact 与 vhost 的 mode-600 副本、manifest 和脱敏 inventory 已保留 |
 | MyApp exact live cleanup | PASS | 用户明确授权并接受 `.env` 未备份的不可恢复边界。mutation precheck identity/recovery checksum/vhost/runtime/DB/artifact/zero-ref 全匹配；两个 vhost path 精确删除，`nginx -t` + graceful reload 后 8090 absent。无 `--force` 精确 drop `app_test`、保留 role；精确递归删除 `/opt/app-test`；以 7 个列明 path 非 glob 删除 artifacts |
 | MyApp post-state/cross-service checks | PASS | 全部 exact targets 与 deleted cwd/FD absent，mode-700 recovery bundle 及 3 个核心 checksum不变；Gitea/runner/Nginx/PostgreSQL/Redis active，Gitea health、Nginx default、Verdaccio、Mailpit、rsdesign 3100、SFM 3202 均与 pre-state 一致；AppServer、gitea-ci、prod-sim running |
-| Redis/Nginx predicate and cleanup | NOT RUN | 按计划在 MyApp Gate 后执行；Nginx 当前同时有 `default` vhost，不能把 MyApp vhost 授权扩大为全局 Nginx stop/remove |
+| Redis consumer/data predicate | PASS pre-Gate | Context7 Redis docs + redis-cli 8.0.5 help；INFO keyspace 无 DB entry，DB0–15 DBSIZE=0、SCAN=0、probe 后 6379 established=0、AOF=0、RDB 88 bytes。Gitea config、Verdaccio config、HSDB code/Secret-ref boolean、active units均无 Redis ref；rsdesign/SFM runtime 无 ref。MyApp main 仅未使用 `ioredis` dependency，live runtime 已退役且 loopback Redis 不可由 AppServer 消费 |
+| Redis recovery/purge dry-run | PASS | config 无 active Secret/include；exact config/RDB 与 cached Redis 8.0.5 arm64 `.deb` 已复制到 root-only bundle，`redis-check-rdb`、`dpkg-deb` metadata/checksum PASS。`apt-get -s purge redis-server redis-tools` 只计划移除 2 packages；`libjemalloc2`/`liblzf1` 仅提示可 autoremove，明确不执行 |
+| Redis live stop/purge/config+data removal | BLOCKED authorization | Redis service/packages、`/etc/redis`、`/var/lib/redis` 均保持原状；MyApp Gate 明确不含 Redis。需独立 Gate 后才可 disable/stop、purge 两个 exact packages，并仅在 post-purge 复核后精确删除残留 config/data dirs |
+| Nginx predicate | PASS KEEP | MyApp vhost 删除后只剩 Ubuntu default static vhost/port 80；但 versioned `12-Linux-GitHub-Gitea-双服务器自动部署方案.md` 明确把平台 Nginx proxy 分配为 Gitea 批准职责。按 AC-9 shared-reference predicate 保留 Nginx service/package/config，不申请 stop/remove |
 | artifact retention implementation/dry-run | NOT RUN | 按计划顺序尚未进入第 9 步 |
 | `prod-sim` pre-delete two-round inventory | NOT RUN | 按计划顺序尚未进入第 10 步；第 1 步 identity baseline 不满足 AC-10 |
 | `prod-sim` delete/post-check | NOT RUN | 精确删除虽已获授权，但 AC-10 的依赖、唯一数据与可重建证据尚未全部通过，因此未执行 |
@@ -240,6 +261,17 @@ Nginx/PostgreSQL/Redis/Verdaccio/Mailpit/AppServer 两应用及三台 VM 的 pai
 | `/opt/cleanup-backups/issue-21/myapp/20260803T144609Z` | root-owned mode 700；DB/artifact/vhost/inventory/manifests 均 mode 600 | **PASS kept**；3 个核心 checksum post-state 不变 |
 | Nginx service/default vhost、Redis、PostgreSQL roles/其它 DB、其它 artifacts、其它 runtime/VM | 非 MyApp Gate 对象或共享对象 | **PASS kept / not mutated** |
 
+## Redis live Gate 精确对象账本（尚未授权）
+
+| Exact object | Pre-Gate evidence | 授权后才允许的动作 / 恢复边界 |
+|---|---|---|
+| `redis-server.service` / loopback 6379 | active/enabled，PID 257；0 key、0 post-probe connection、无 live consumer | `systemctl disable --now redis-server.service`；不得 stop 其它 service |
+| packages `redis-server`、`redis-tools` | exact `5:8.0.5-1` arm64；APT simulation 只移除这 2 个 | `apt-get purge -y redis-server redis-tools`；禁止 `autoremove`，保留 `libjemalloc2`/`liblzf1` |
+| `/etc/redis` | config root hash 已保存；无 active Secret/include | package purge 后仅精确删除残留 `/etc/redis`；mode-600 config backup + exact `.deb` 可恢复 |
+| `/var/lib/redis` | 仅 88-byte empty RDB，DB0–15 均 0 key；RDB check PASS | package purge 后仅精确删除残留 `/var/lib/redis`；mode-600 empty RDB backup 保留 |
+| `/opt/cleanup-backups/issue-21/redis/20260803T151307Z` | root mode 700；config/RDB/two `.deb`/inventory 均 mode 600 | **KEEP**；不得纳入 cleanup |
+| Redis system user/group、apt cache、Nginx、Gitea/runner/Verdaccio/Mailpit/PostgreSQL/Node/HSDB、应用 runtime/artifacts、VM | 非 Redis Gate 对象或共享对象 | **KEEP / NOT AUTHORIZED** |
+
 ## Acceptance criteria 结果
 
 | Acceptance criterion | Result | Evidence |
@@ -252,12 +284,12 @@ Nginx/PostgreSQL/Redis/Verdaccio/Mailpit/AppServer 两应用及三台 VM 的 pai
 | AC-6 | PASS complete | Issue #86/change/86/PR #87、required CI、人工 merge、main CI/deploy、current-run finalizer 与 live dependency/rebuild checks 均 PASS；独立授权后精确 `TERM` PGID `2464`（无需 `KILL`）并删除 15 个历史 DB，success/failure/TERM/INT fixtures、current-run finalizer及 live post-state 均无进程/端口/DB/cwd 残留 |
 | AC-7 | PASS complete | 正式 repo/current ancestry、vhost/runtime/DB/artifact inventory、零连接/引用和 root-only per-object recovery proof 全部 PASS；独立授权后 exact cleanup 与 post-state PASS。`.env` 未读/未备份的不可恢复边界由用户明确接受 |
 | AC-8 | PASS paired checks | MyApp mutation 前后 Gitea/API+DB、act_runner、Verdaccio、Mailpit、`/opt/node22`、`/opt/hsdb-ci`、`hsdb_ci`、Nginx default、Redis、AppServer rsdesign/SFM 与 VM 状态均成对通过；保留 artifacts/recovery bundle checksum 不变 |
-| AC-9 | NOT RUN | retention tool/dry-run 与 Redis/Nginx predicate 尚未实施 |
+| AC-9 | BLOCKED Redis Gate + retention | Redis zero-data/connection/reference predicate、recovery bundle与 exact purge simulation PASS；Nginx shared approved-role predicate=KEEP。Redis live removal 尚待独立 Gate；artifact retention tool/dry-run 尚未实施 |
 | AC-10 | NOT RUN | 尚未执行两轮 pre-delete inventory 与完整 dependency/unique-data/rebuild Gate |
 | AC-11 | NOT RUN | 未执行任何 VM 删除；`gitea-ci`、AppServer 和其它 VM 均未删除 |
 | AC-12 | PASS | post-Gate D 应用与 SFM candidate bash-n/ShellCheck/定向/full/build、SFM Node 22 required CI 与平台 bash-n/ShellCheck/定向 tests/完整 smoke 全部通过；live allow/deny/幂等、故意 health failure rollback、process-tree cancellation 与 Gate C/D post-state checks 均通过 |
-| AC-13 | BLOCKED later steps | 本文件已记录 rsdesign/SFM 最终 merge SHA/CI/live Gates及 MyApp recovery/live Gate；Redis/Nginx predicate、retention/VM Gates、platform final head/CI/PR 尚不存在 |
-| AC-14 | PASS（截至当前步骤） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C、rsdesign Gate D 与 SFM 独立 live Gate 均有明确授权。各 Gate 只处理盘点后的精确对象；未执行 MyApp Gate、平台 retention apply、生产或任何 VM 操作，未自动合并 |
+| AC-13 | BLOCKED later steps | 本文件已记录 rsdesign/SFM/MyApp live Gates及 Redis/Nginx predicate/recovery；Redis live、retention/VM Gates、platform final head/CI/PR 尚不存在 |
+| AC-14 | PASS（截至当前步骤） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C、rsdesign Gate D、SFM 与 MyApp 独立 live Gate 均有明确授权。各 Gate 只处理盘点后的精确对象；未执行 Redis live Gate、平台 retention apply、生产或任何 VM 操作，未自动合并 |
 
 ## 重复部署/执行
 
@@ -313,7 +345,10 @@ Nginx/PostgreSQL/Redis/Verdaccio/Mailpit/AppServer 两应用及三台 VM 的 pai
 | SFM process stop/history DB delete | 用户在精确范围说明后明确“授权清理”；不扩大到其它对象 | PASS，PGID `2464` TERM-only 退出，15 个精确历史 run DB 删除，post-state 与无关服务/VM 检查通过 |
 | MyApp inventory/DB+runtime+vhost recovery | Issue #21 approved 合同内的非破坏性 pre-Gate | PASS，root-only recovery bundle 已保存并真实恢复验证；原 runtime/vhost/DB/artifact 未改 |
 | MyApp vhost/runtime/DB/7 artifacts | 用户明确“授权同意”，并接受 `.env` 不可恢复丢弃；不扩大到 Redis/global Nginx/其它对象 | PASS，exact cleanup、recovery keep 与 paired post-state 全部通过 |
-| artifact/Redis/Nginx apply | 仍需 predicate、dry-run 与 live Gate | NOT RUN |
+| Redis/Nginx predicate + recovery | Issue #21 approved 合同内的只读/非破坏性 pre-Gate | PASS，Redis removal candidate、Nginx KEEP；root-only Redis rollback bundle 与 purge dry-run 完成 |
+| Redis stop/purge/config+data dirs | 仍需独立 live Gate；MyApp 授权明确不含 Redis | BLOCKED / NOT RUN |
+| Nginx stop/remove | approved Gitea proxy responsibility blocks removal | KEEP / NOT AUTHORIZED |
+| artifact retention apply | 仍需 implementation、dry-run 与 live Gate | NOT RUN |
 | exact `prod-sim` delete | 用户已授权，但仅在 AC-10 全部通过后有效 | NOT RUN |
 | any other VM delete or `--all` | 未授权且明确禁止 | NOT RUN |
 
@@ -341,8 +376,9 @@ Nginx/PostgreSQL/Redis/Verdaccio/Mailpit/AppServer 两应用及三台 VM 的 pai
 第 6 步已以 merge SHA `480dd7d...` 收口。第 7 步也已完整收口：PR #87 merge SHA
 `579282d...`、Issue closed+deployed、AppServer exact current/3202 health、current-run finalizer、
 独立授权的 live PGID/历史 DB cleanup 与 post-state 全部 PASS。第 8 步 MyApp Notes inventory、
-数据库/目录/vhost recovery proof、独立 live Gate 与 paired post-state 也已完成。下一顺序是
-Redis/Nginx 引用 predicate；MyApp 授权不包含 Redis stop/remove 或 global Nginx mutation。
+数据库/目录/vhost recovery proof、独立 live Gate 与 paired post-state 也已完成。Redis/Nginx
+predicate 随后完成：Nginx 因批准的 Gitea proxy role 为 KEEP；Redis 满足 remove predicate 且
+recovery/dry-run PASS。当前 blocker 是 Redis 独立 live Gate；MyApp 授权不包含该 mutation。
 
 ## 遗留风险与未完成项
 
@@ -362,3 +398,5 @@ Redis/Nginx 引用 predicate；MyApp 授权不包含 Redis stop/remove 或 globa
 - MyApp recovery bundle 保留 DB/current artifact/vhost 与验证 manifests，但按 no-Secret 合同不
   包含已删除 `/opt/app-test/.env` 的内容；用户已明确接受其不可恢复。正式 repo/current artifact
   可重建非 Secret runtime，DB dump 已真实恢复验证。
+- Redis 当前数据为空且 rollback bundle 已验证，但 live service/package/config/data 仍在；未获
+  独立授权前不得 stop/disable/purge/delete。Nginx 必须按批准的 Gitea proxy contract 保留。
