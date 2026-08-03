@@ -33,11 +33,13 @@ for script in \
   "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
   "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
+  "$ROOT/codex/tools/artifact-retention-dry-run.sh" \
   "$ROOT/codex/tools/verify-host-role.sh" \
   "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
   "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
   "$ROOT/codex/tests/test-cleanup-merged.sh" \
+  "$ROOT/codex/tests/test-artifact-retention-dry-run.sh" \
   "$ROOT/codex/tests/test-host-role-guard.sh" \
   "$ROOT/codex/tests/test-install-host-role.sh" \
   "$ROOT"/sync/*.sh \
@@ -54,12 +56,14 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
     "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
+    "$ROOT/codex/tools/artifact-retention-dry-run.sh" \
     "$ROOT/codex/tools/verify-host-role.sh" \
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
     "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
     "$ROOT/codex/tests/test-cleanup-merged.sh" \
+    "$ROOT/codex/tests/test-artifact-retention-dry-run.sh" \
     "$ROOT/codex/tests/test-host-role-guard.sh" \
     "$ROOT/codex/tests/test-install-host-role.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh"
@@ -71,6 +75,7 @@ bash "$ROOT/codex/tests/test-mark-deployed-issues.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh"
 bash "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh"
 bash "$ROOT/codex/tests/test-cleanup-merged.sh"
+bash "$ROOT/codex/tests/test-artifact-retention-dry-run.sh"
 bash "$ROOT/codex/tests/test-gitea-readonly.sh"
 bash "$ROOT/codex/tests/test-install-skills.sh"
 bash "$ROOT/codex/tests/test-host-role-guard.sh"

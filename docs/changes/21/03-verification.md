@@ -92,6 +92,21 @@ lock 与 shared-service predicate 通过后，只 purge `redis-server`/`redis-to
 6379 全部 absent；`libjemalloc2`/`liblzf1`、APT cache、root-only recovery、Gitea/runner/Nginx/
 PostgreSQL/Verdaccio/Mailpit、AppServer 两应用及三台 VM 均保持健康。
 
+第 9 步已实现 `codex/tools/artifact-retention-dry-run.sh`：它只接受 versioned policy 与
+reference ledger，要求项目 allowlist、完整 40-hex SHA、重新计算的 `.sha256`、每项目声明的
+current/rollback/workflow/test-attestation/production-manifest 引用、最低保留数量与期限；没有
+`--apply` 或删除代码路径。policy 或引用不完整、未知项目/非 SHA 名称、缺 checksum 或 checksum
+不符均为 `BLOCKED`。定向 fixture 覆盖 protected reference、unreferenced candidate、checksum
+mismatch、incomplete references、unknown artifact 和 audit ledger。真实 `gitea-ci:/opt/artifacts`
+metadata-only inventory 得到 10 个 `rsdesign-new-<40-hex>.tar.gz`（2026-07-10 至
+2026-08-03，165,610,799–168,904,979 bytes）；没有 `.sha256` sidecar。使用临时的仅阻断
+diagnostic policy（9/36500，仅为避免未批准策略产生 candidate）和空 reference ledger 执行真实
+dry-run：10 个均 `BLOCKED missing-checksum`，`candidates=0 keep=0 blocked=10`。审计 ledger
+为 14 行、SHA-256 `7b0dd06c5bb417d417539ddb2e46691cc8d9daeb9842df79ca79ec3ab530bab5`，临时输入与
+ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。正式项目 allowlist、最小保留
+数量/期限和可验证的全量引用来源尚未获定义，因此 retention apply 保持 BLOCKED，不能根据文件名
+或 mtime 推断删除。
+
 ## 环境与版本
 
 - Planning baseline：`48d47f7edd4cc9190f80886260b974477fc20236`
@@ -293,6 +308,16 @@ PostgreSQL/Verdaccio/Mailpit、AppServer 两应用及三台 VM 均保持健康�
 | Redis user/group | `redis:101:104`、zero application/connection/reference | **PASS absent**；official postrm cleanup，用户明确接受 direct removal |
 | APT cache、`libjemalloc2`/`liblzf1`、Nginx、Gitea/runner/Verdaccio/Mailpit/PostgreSQL/Node/HSDB、应用 runtime/artifacts、VM | 明确保留或非 Redis Gate 对象 | **PASS kept / not mutated** |
 
+## Artifact retention dry-run 账本（第 9 步）
+
+| Object / contract | Evidence | Result |
+|---|---|---|
+| `codex/tools/artifact-retention-dry-run.sh` | versioned policy/reference JSON，fixed project prefix/suffix + full SHA parser，recomputed SHA-256，reference-kind completeness，optional audit ledger | **PASS implemented**；只输出 `KEEP`/`CANDIDATE`/`BLOCKED`，无 `--apply` 或删除路径 |
+| `codex/config/artifact-retention-{policy,references}.example.json` | 无 Secret 的 policy/reference schema examples | **PASS**；必须显式填写项目、最低数量/期限和每类引用 |
+| fixture and smoke integration | `bash -n`、ShellCheck、`bash codex/tests/test-artifact-retention-dry-run.sh` | **PASS**；protected/candidate/checksum/reference/unknown/audit cases 均覆盖 |
+| `gitea-ci:/opt/artifacts` | 10 个 `rsdesign-new-<40-hex>.tar.gz`，无 `.sha256` sidecar；metadata-only inventory | **BLOCKED**；checksum predicate 不满足，未读 artifact 内容，未删除任何制品 |
+| live diagnostic dry-run audit | 10 × `missing-checksum`；`summary candidates=0 keep=0 blocked=10`；14-line ledger hash `7b0dd06c...530bab5` | **PASS dry-run / BLOCKED apply**；临时 input/ledger 已精确清理，正式 retention policy/references 未被臆造 |
+
 ## Acceptance criteria 结果
 
 | Acceptance criterion | Result | Evidence |
@@ -305,11 +330,11 @@ PostgreSQL/Verdaccio/Mailpit、AppServer 两应用及三台 VM 均保持健康�
 | AC-6 | PASS complete | Issue #86/change/86/PR #87、required CI、人工 merge、main CI/deploy、current-run finalizer 与 live dependency/rebuild checks 均 PASS；独立授权后精确 `TERM` PGID `2464`（无需 `KILL`）并删除 15 个历史 DB，success/failure/TERM/INT fixtures、current-run finalizer及 live post-state 均无进程/端口/DB/cwd 残留 |
 | AC-7 | PASS complete | 正式 repo/current ancestry、vhost/runtime/DB/artifact inventory、零连接/引用和 root-only per-object recovery proof 全部 PASS；独立授权后 exact cleanup 与 post-state PASS。`.env` 未读/未备份的不可恢复边界由用户明确接受 |
 | AC-8 | PASS paired checks | MyApp mutation 前后 Gitea/API+DB、act_runner、Verdaccio、Mailpit、`/opt/node22`、`/opt/hsdb-ci`、`hsdb_ci`、Nginx default、Redis、AppServer rsdesign/SFM 与 VM 状态均成对通过；保留 artifacts/recovery bundle checksum 不变 |
-| AC-9 | BLOCKED retention | Redis zero-data/connection/reference、recovery、exact purge simulation与最终 live purge/post-state均 PASS；Nginx predicate=KEEP。artifact retention tool/dry-run 尚未实施 |
+| AC-9 | BLOCKED retention apply | Redis zero-data/connection/reference、recovery、exact purge simulation与最终 live purge/post-state均 PASS；Nginx predicate=KEEP。retention tool/fixtures/audit 与真实 dry-run 已 PASS；10 个 live artifact 全因 missing checksum fail-closed，且无批准的正式 allowlist/count/period/reference ledger，因此无 candidate、不得 apply |
 | AC-10 | NOT RUN | 尚未执行两轮 pre-delete inventory 与完整 dependency/unique-data/rebuild Gate |
 | AC-11 | NOT RUN | 未执行任何 VM 删除；`gitea-ci`、AppServer 和其它 VM 均未删除 |
 | AC-12 | PASS | post-Gate D 应用与 SFM candidate bash-n/ShellCheck/定向/full/build、SFM Node 22 required CI 与平台 bash-n/ShellCheck/定向 tests/完整 smoke 全部通过；live allow/deny/幂等、故意 health failure rollback、process-tree cancellation 与 Gate C/D post-state checks 均通过 |
-| AC-13 | BLOCKED later steps | 本文件已记录 rsdesign/SFM/MyApp/Redis live Gates；retention/VM Gates、platform final head/CI/PR 尚不存在 |
+| AC-13 | BLOCKED later steps | 本文件已记录 rsdesign/SFM/MyApp/Redis 与 retention dry-run；retention apply/VM Gates、platform final head/CI/PR 尚不存在 |
 | AC-14 | PASS（截至当前步骤） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C、rsdesign Gate D、SFM、MyApp 与 Redis live Gate 均有明确授权。Redis package postrm 的 config/data/log/user removal 已由用户进一步明确接受；未扩大到 retention、生产或任何 VM，未自动合并 |
 
 ## 重复部署/执行
@@ -379,7 +404,8 @@ PostgreSQL/Verdaccio/Mailpit、AppServer 两应用及三台 VM 均保持健康�
 | Redis/Nginx predicate + recovery | Issue #21 approved 合同内的只读/非破坏性 pre-Gate | PASS，Redis removal candidate、Nginx KEEP；root-only Redis rollback bundle 与 purge dry-run 完成 |
 | Redis stop/purge/config+data/log/user | 用户明确“Redis目前没有应用使用，请直接清除。以后有需要再安装” | PASS：仅 purge `redis-server`/`redis-tools`；postrm 清除 Redis user/config/data/log，保留 APT cache、recovery、`libjemalloc2`/`liblzf1`与其它服务/VM |
 | Nginx stop/remove | approved Gitea proxy responsibility blocks removal | KEEP / NOT AUTHORIZED |
-| artifact retention apply | 仍需 implementation、dry-run 与 live Gate | NOT RUN |
+| artifact retention tool and live dry-run | Issue #21 approved 合同内的 non-destructive implementation/dry-run | PASS；临时 diagnostic inputs only，10 个 missing checksum blocked，`/opt/artifacts` 未变 |
+| artifact retention apply | 独立 human Gate，且须先有正式 policy/reference/checksum predicate | BLOCKED / NOT AUTHORIZED |
 | exact `prod-sim` delete | 用户已授权，但仅在 AC-10 全部通过后有效 | NOT RUN |
 | any other VM delete or `--all` | 未授权且明确禁止 | NOT RUN |
 
@@ -411,6 +437,10 @@ PostgreSQL/Verdaccio/Mailpit、AppServer 两应用及三台 VM 均保持健康�
 - partial resume 在 mutation 前识别 official `redis-tools` postrm 会 `userdel redis` 并
   `rm -rf /var/lib/redis /var/log/redis /etc/redis`。初始合同范围不足时未修改 dpkg maintainer
   script、未 purge、未删除任何目录；用户随后明确授权 direct cleanup 后才执行标准 purge。
+- 第 9 步首次 sandbox `orb -m gitea-ci` read-only inventory 超时；改在 host execution path
+  成功，故只记 `SANDBOX_PATH_BLOCKED`，不把超时当作 VM 状态。live dry-run 的临时 policy 将
+  `minimum_retained=9`、`minimum_age_days=36500` 仅用于证明缺 checksum 时无 candidate；它不是
+  正式 retention policy，未写入 `/opt/artifacts` 或任何 production 配置。
 
 ## 当前 blocker 与恢复条件
 
@@ -421,7 +451,10 @@ PostgreSQL/Verdaccio/Mailpit、AppServer 两应用及三台 VM 均保持健康�
 predicate 随后完成：Nginx 因批准的 Gitea proxy role 为 KEEP；Redis 满足 remove predicate 且
 recovery/dry-run PASS。用户随后明确授权 direct cleanup；Redis package/unit/user/group/config/data/
 log/6379 的 final post-state 全部 PASS，shared services、两套 AppServer health、VM 和 recovery/
-APT cache/依赖均保持。当前下一顺序为第 9 步 artifact retention implementation/dry-run；尚未进入。
+APT cache/依赖均保持。第 9 步 implementation 与真实 dry-run 已完成；all 10 legacy artifacts
+因缺 `.sha256` sidecar fail closed，正式 retention policy/reference ledger 缺失，故 apply 保持
+BLOCKED。下一顺序为第 10 步 `prod-sim` 两轮只读 inventory；不得把 retention 的 BLOCKED 状态
+视为任何对象已清理。
 
 ## 遗留风险与未完成项
 
@@ -429,8 +462,9 @@ APT cache/依赖均保持。当前下一顺序为第 9 步 artifact retention im
   完整收口；旧 host cleanup 不可原地撤销的恢复边界保持不变。
 - 旧 host runtime/DB/entry 已清理，不能原地回切；恢复依赖已合并 exact SHA/权威 artifact 与
   AppServer 当前 target/latest Gate C recovery baseline。cleanup 本身不可原地撤销。
-- `/opt/artifacts` 保留原状；历史 artifact retention 仍属于平台第 9 步 predicate/dry-run/Gate，
-  不能把应用 Gate D 授权用于提前清理。
+- `/opt/artifacts` 保留原状；第 9 步 tool/dry-run 已证明所有 10 个 legacy rsdesign artifacts
+  缺 checksum，正式 allowlist/count/period/reference ledger 仍需由所有者定义并独立 Gate 后才能
+  申请任何 apply；不能把应用 Gate D 或 Redis 授权用于制品清理。
 - 任何 planning/baseline inventory 都可能漂移，恢复后须重新采集 live state。
 - 除已完成的 `rsdesign-new` Gate D 与精确 `prod-sim` 条件授权外，其它 destructive action 仍需
   对应应用/平台 Gate 明确授权。

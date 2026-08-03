@@ -1,0 +1,35 @@
+{
+  "contract_version": "1.0",
+  "references": [
+    {
+      "project": "example-project",
+      "kind": "current",
+      "sha": "0123456789abcdef0123456789abcdef01234567",
+      "source": "current release manifest path"
+    },
+    {
+      "project": "example-project",
+      "kind": "rollback",
+      "sha": "0123456789abcdef0123456789abcdef01234567",
+      "source": "rollback manifest path"
+    },
+    {
+      "project": "example-project",
+      "kind": "workflow",
+      "sha": "0123456789abcdef0123456789abcdef01234567",
+      "source": "workflow retention reference path"
+    },
+    {
+      "project": "example-project",
+      "kind": "test-attestation",
+      "sha": "0123456789abcdef0123456789abcdef01234567",
+      "source": "test attestation path"
+    },
+    {
+      "project": "example-project",
+      "kind": "production-manifest",
+      "sha": "0123456789abcdef0123456789abcdef01234567",
+      "source": "production manifest path"
+    }
+  ]
+}

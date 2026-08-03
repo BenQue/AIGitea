@@ -1,0 +1,20 @@
+{
+  "contract_version": "1.0",
+  "artifact_root": "/opt/artifacts",
+  "projects": [
+    {
+      "name": "example-project",
+      "filename_prefix": "example-project-",
+      "filename_suffix": ".tar.gz",
+      "minimum_retained": 2,
+      "minimum_age_days": 30,
+      "required_reference_kinds": [
+        "current",
+        "rollback",
+        "workflow",
+        "test-attestation",
+        "production-manifest"
+      ]
+    }
+  ]
+}
