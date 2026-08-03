@@ -63,7 +63,13 @@ cgroup、UID/GID、零连接以及 15 个无人打开且可重建的历史 DB �
 后在第 2 次检查前退出，未使用 `KILL`；随后只删除 15 个列明路径。PID/PGID/3212、旧 FD 与全部
 SFM run DB 均 absent，Gitea/runner、AppServer exact current/3202/数据库 health 及三台 VM 状态
 全部 PASS。第 7 步完成。后续步骤与 `prod-sim` 删除仍未执行；本 Gate 授权不扩大到 MyApp、
-其它平台对象、服务、目录、数据库或任何 VM。
+其它平台对象、服务、目录、数据库或任何 VM。按顺序进入第 8 步后，MyApp Notes 正式 repo
+`admin/myapp`、current/release SHA、8090 vhost、runtime、`app_test` DB、7 个专属 artifact、
+引用和连接 inventory 已完成。root-only recovery bundle
+`/opt/cleanup-backups/issue-21/myapp/20260803T144609Z` 的 custom DB restore、current artifact
+完整文件/符号链接 restore 和 vhost backup 均 PASS。`/opt/app-test/.env` 只记录脱敏元数据，未读、
+未复制；删除 runtime 会不可逆丢弃该 Secret。MyApp live Gate 尚未授权，因此 8090/vhost、runtime、
+DB 和 artifact 均保持原状，Redis/Nginx predicate 也尚未进入。
 
 ## 环境与版本
 
@@ -146,6 +152,16 @@ SFM run DB 均 absent，Gitea/runner、AppServer exact current/3202/数据库 he
 - `prod-sim` baseline：name `prod-sim`，ID
   `01KX3FFXSJVYPDHZVY4MZB7CQZ`，Ubuntu `resolute` ARM64，running，磁盘约
   3.9 GB。该读取仅属于计划第 1 步 baseline，不代替 AC-10 的删除前双轮 inventory。
+- MyApp Notes pre-Gate：正式 repo `admin/myapp`，`main`/current release
+  `3424b0666b34bcf94609248abfc0306ee0b9b051`；release `5d8fc9a...`、`a83a794...` 均为其
+  可达祖先。8090 static root direct/external 200，API 502，8080 backend absent；runtime
+  813,123,755 bytes、15,598 files、无 process cwd/FD reference；`app_test` owner 同名，约
+  8 MB、零其它连接。7 个专属 artifact 共 689,821,060 bytes、零打开引用。
+- MyApp recovery bundle：`/opt/cleanup-backups/issue-21/myapp/20260803T144609Z`，
+  `root:root` mode 700；内部 dump/artifact/vhost/inventory/manifests 均 mode 600。DB dump
+  SHA-256 `9337d9351d2f2ab7c92a2847de7abbf612aa601d781c2b22102e7d81339407ee`；current
+  artifact backup SHA-256 `799ab6b740a19eef379264d95fa116e33f19347b2cd2812c21c5fdfdd74d407d`；
+  vhost SHA-256 `675b1dd4e82c60e20a4bc323b263ea3b7b6689779372224333f9eed6be6e5d21`。
 
 ## 执行结果
 
@@ -160,7 +176,7 @@ SFM run DB 均 absent，Gitea/runner、AppServer exact current/3202/数据库 he
 | `bash codex/tests/test-install-host-role.sh` | PASS | 仅安装 guard/schema/catalog/example；重复执行通过；不创建 live profile、Secret、service、timer 或 deployment |
 | changed shell `bash -n` | PASS | `codex/tools/verify-host-role.sh`、`codex/install-host-role.sh` 及新增/修改 tests 均通过 |
 | ShellCheck | PASS | 所有本 Change 新增或修改的 shell 文件通过 |
-| `bash codex/tests/smoke.sh` | PASS | 实现后、文档后、blocker、跨仓库 handoff、merge evidence、Gate B/C/D 与 SFM PR/CI/merge/deploy/live Gate evidence 记录后运行；累计十三次均为 105 项 Python tests 及全部 shell/static smoke 通过，最后一次覆盖精确 TERM-only cleanup、15 个 DB 删除、post-state 与授权边界 |
+| `bash codex/tests/smoke.sh` | PASS | 实现后、文档后、blocker、跨仓库 handoff、merge evidence、Gate B/C/D、SFM live Gate 与 MyApp pre-Gate recovery evidence 记录后运行；累计十四次均为 105 项 Python tests 及全部 shell/static smoke 通过，最后一次覆盖 MyApp exact target ledger、恢复证据、Secret 排除与 live Gate 边界 |
 | documentation state review | PASS | README、01/02/06/07/09/12 与 onboarding 已区分 current `scm-ci`、AppServer roles、legacy runtime 和待 Gate 清理；未修改本次运行遵循的 `AGENTS.md` |
 | `gitea-ci` baseline inventory | PASS（第 1 步只读） | Gitea/runner/Verdaccio/Mailpit/PostgreSQL/Redis/Nginx/legacy app listeners、systemd/timers、DB 脱敏元数据、artifact/目录引用和 health 已盘点；不等同于第 10 步两轮 pre-delete inventory |
 | `rsdesign-new` contract conflict resolution | PASS | 用户确认 #21 优先；live #13 title/body 已改为 AppServer migration；`change/13` 用 additive commits 删除旧 auto-restore source，历史未改写 |
@@ -186,11 +202,34 @@ SFM run DB 均 absent，Gitea/runner、AppServer exact current/3202/数据库 he
 | SFM current-run finalizer live proof | PASS | active deploy 时只读观察到 `deploy-348.db`；job 终态后 `ci-347`/`deploy-348` 均 absent，历史清单精确回到 15 个，证明 merged `if: always()` finalizer 生效 |
 | SFM live 3212/history DB Gate | PASS | 用户明确授权本应用 live cleanup。第一次 mutation precheck 因过窄的 cwd 名称谓词 fail closed，零 signal/delete；以实时完整路径 `/opt/act-runner/.cache/act/f08f8d2d361cee6d/hostexecutor/sfm-board (deleted)` 重新核对后，host/machine ID、唯一 PID `2487`/PGID `2464`/组成员、PPID=1、UID/GID 999/986、cgroup、Node exe、deleted log/ci-87 DB、零连接、15 个精确 DB（4,546,560 bytes、无人打开）及 runner/Gitea 全部 PASS。仅向 `-2464` 发送 `TERM`，第 2 次检查前组已退出，`KILL` 未使用；只以 15 个精确路径执行非递归删除 |
 | SFM live Gate post-state/unrelated checks | PASS | PID `2487`、PGID `2464`、3212、旧 deleted FD、15 个精确路径及其它 SFM run DB 均 absent；runner/Gitea active、Gitea health PASS。AppServer `current` 仍为 merge SHA，3202 仍为 PID `287949`，实际共享 DB `/opt/sfm-board/shared/db/sfm-board.db` 为 368,640 bytes、`benque:benque`、mode 640，外部 health/database ok。AppServer、gitea-ci、prod-sim 均仍 running；未操作任何 VM |
-| MyApp/Redis/Nginx/artifact cleanup | NOT RUN | 未获逐项 Gate，未停止服务、未删除 DB/目录/制品 |
+| MyApp formal repo/release inventory | PASS | 只读 mirror 确认正式 repo `admin/myapp`、main=current `3424b066...`，另两个 release SHA 均为 main 可达祖先；repo 无 `AGENTS.md`。main workflow 只按 exact SHA 生成/消费 `/opt/artifacts/app-${SHA}.tar.gz`，无 `badrollback*` 引用；未修改应用 repo |
+| MyApp live runtime/vhost/DB inventory | PASS pre-Gate | 8090 为 root 200/API 502 的 Nginx vhost，8080 absent；vhost 仅 `app-test` 文件+enabled symlink。`/opt/app-test` 3 releases、current exact SHA，15,598 files/813,123,755 bytes、零 cwd/FD 引用。`app_test` owner 同名、backup 时 8,058,559 bytes、零其它连接；Gitea/runner/Nginx/PostgreSQL active |
+| MyApp database recovery proof | PASS | PostgreSQL 18.4 custom dump 8,094 bytes/25 archive entries（含 2 个 TABLE DATA、1 个 SEQUENCE SET），mode 600。首次让 `postgres` 直接打开 root-only archive 因权限 fail closed，EXIT trap 删除测试 DB；随后由 root 打开同一 dump 并通过 stdin、`--exit-on-error --single-transaction` 恢复到 template0 临时 DB，catalog shape/extensions 一致，临时 DB 精确删除，原 `app_test` 未改 |
+| MyApp runtime/vhost recovery proof | PASS | current artifact 98,542,215 bytes，无 absolute/`..`/`.env` entry；root-only scratch 恢复 5,199 files/5 symlinks，完整 SHA/symlink manifest 与 current release 一致，scratch 已删除。current artifact 与 vhost 的 mode-600 副本、manifest 和脱敏 inventory 已保留 |
+| MyApp exact live cleanup | BLOCKED authorization | 8090/vhost、`/opt/app-test`、`app_test` 与 7 个 exact artifact 全部仍存在。`.env` 仅记录 128-byte/owner/mode 元数据，按 no-Secret 合同未读取或复制；删除 runtime 将不可逆丢弃其内容，必须由独立 Gate 明确接受。Redis/global Nginx 不在本 Gate |
+| Redis/Nginx predicate and cleanup | NOT RUN | 按计划在 MyApp Gate 后执行；Nginx 当前同时有 `default` vhost，不能把 MyApp vhost 授权扩大为全局 Nginx stop/remove |
 | artifact retention implementation/dry-run | NOT RUN | 按计划顺序尚未进入第 9 步 |
 | `prod-sim` pre-delete two-round inventory | NOT RUN | 按计划顺序尚未进入第 10 步；第 1 步 identity baseline 不满足 AC-10 |
 | `prod-sim` delete/post-check | NOT RUN | 精确删除虽已获授权，但 AC-10 的依赖、唯一数据与可重建证据尚未全部通过，因此未执行 |
 | AISoftPlatform final PR CI | NOT RUN | 平台 final PR 尚未创建；`change/21` branch push 只保存候选与 blocker 证据，不能用应用 prerequisite PR 或 branch push 替代 final acceptance |
+
+## MyApp live Gate 精确对象账本（尚未授权）
+
+| Exact object | Pre-Gate evidence | 授权后才允许的动作 / 恢复边界 |
+|---|---|---|
+| `/etc/nginx/sites-enabled/app-test` | symlink → `/etc/nginx/sites-available/app-test`；8090 当前 static 200/API 502 | 只删除该 symlink，`nginx -t` 后 reload；不得停止 Nginx |
+| `/etc/nginx/sites-available/app-test` | root-owned mode 644，SHA-256 `675b1dd4e82c60e20a4bc323b263ea3b7b6689779372224333f9eed6be6e5d21` | 只删除该 file；mode-600 exact backup 已保留 |
+| `/opt/app-test` | 813,123,755 bytes、15,598 files、3 个 repo-reachable releases、零 process refs | 精确递归删除该目录；current artifact restore 已逐文件/链接验证。`.env` 内容未读/未复制，删除后不可恢复 |
+| PostgreSQL DB `app_test` | owner=`app_test`、约 8 MB、零其它连接；custom dump checksum `9337d935...` 已在 template0 临时库真实恢复 | 只 drop database；保留同名 role 与 root-only dump，不操作 `gitea`/`hsdb_ci`/`postgres` |
+| `/opt/artifacts/app-a83a794280a2a1392763919f43d75f0bcec83ed1.tar.gz` | 98,553,988 bytes；SHA-256 `071dee1c76dcc62fb10c9f10de4c8536aa4df47f898d0b1ef53ebc4e41f717a5`；commit reachable、零打开引用 | 仅精确 path 删除；禁止 glob |
+| `/opt/artifacts/app-5d8fc9a44f4c69702928c72f6b3136076c9c4f66.tar.gz` | 98,538,225 bytes；SHA-256 `d43a795038f622e4833dd1c9cde7d200272c875f246d1e077441da6304f8163d`；commit reachable、零打开引用 | 仅精确 path 删除；禁止 glob |
+| `/opt/artifacts/app-3424b0666b34bcf94609248abfc0306ee0b9b051.tar.gz` | 98,542,215 bytes；SHA-256 `799ab6b740a19eef379264d95fa116e33f19347b2cd2812c21c5fdfdd74d407d`；main/current、零打开引用 | 仅精确 path 删除；root-only checksum-identical recovery copy 保留，禁止 glob |
+| `/opt/artifacts/app-badrollbacktest.tar.gz` | 98,547,885 bytes；SHA-256 `5d17e10a4a9825c68c24d66ae874ac807beb6f8213f2dde65deeaf144e60879f`；main 无引用、零打开引用 | 仅精确 path 删除；禁止 glob |
+| `/opt/artifacts/app-badrollbacktest2.tar.gz` | 98,547,995 bytes；SHA-256 `db7198d2be49e7136e2e1711175b370c99cf85b389289b0ec4f9307ba1e451e5`；main 无引用、零打开引用 | 仅精确 path 删除；禁止 glob |
+| `/opt/artifacts/app-badrollbacktest3.tar.gz` | 98,546,161 bytes；SHA-256 `ae5c7c1a545edc6e8aecc5a2fc516350335b98a60d7548d102d027e250875e47`；main 无引用、零打开引用 | 仅精确 path 删除；禁止 glob |
+| `/opt/artifacts/app-badrollbackfinal.tar.gz` | 98,544,591 bytes；SHA-256 `e8f8624ac3a7e4573829502cb1a08e12ae786111fdf1646c0b456e2ea670889e`；main 无引用、零打开引用 | 仅精确 path 删除；禁止 glob |
+| `/opt/cleanup-backups/issue-21/myapp/20260803T144609Z` | root-owned mode 700；DB/artifact/vhost/inventory/manifests 均 mode 600 | **KEEP**；不得纳入 cleanup |
+| Nginx service/default vhost、Redis、PostgreSQL roles/其它 DB、其它 artifacts、其它 runtime/VM | 非 MyApp Gate 对象或共享对象 | **KEEP / NOT AUTHORIZED** |
 
 ## Acceptance criteria 结果
 
@@ -202,13 +241,13 @@ SFM run DB 均 absent，Gitea/runner、AppServer exact current/3202/数据库 he
 | AC-4 | PASS | 指定平台文档与 onboarding 已明确 SCM/CI 与 AppServer 分离，并把同机 runtime 标为 legacy/pending Gate |
 | AC-5 | PASS complete | prerequisite/final PR CI与人工 merge、exact artifact/readiness/rollback、Gate C/D 与 post-check 全部 PASS；final merge SHA `480dd7d...`、Issue #13 closed，旧 writer/8091 absent，AppServer exact current/唯一 PID/cwd、direct/external health 与 recovery baseline 均已验证 |
 | AC-6 | PASS complete | Issue #86/change/86/PR #87、required CI、人工 merge、main CI/deploy、current-run finalizer 与 live dependency/rebuild checks 均 PASS；独立授权后精确 `TERM` PGID `2464`（无需 `KILL`）并删除 15 个历史 DB，success/failure/TERM/INT fixtures、current-run finalizer及 live post-state 均无进程/端口/DB/cwd 残留 |
-| AC-7 | NOT RUN | 未进入 MyApp inventory/backup/restore 与删除 Gate |
+| AC-7 | BLOCKED live Gate authorization | 正式 repo/current ancestry、vhost/runtime/DB/artifact inventory、零连接/引用和 root-only per-object recovery proof 全部 PASS；live 对象仍原样存在。`.env` 内容按 no-Secret 合同未备份，必须在独立 Gate 中明确接受随 `/opt/app-test` 不可逆丢弃 |
 | AC-8 | NOT RUN | 已有第 1 步 baseline，但尚无收口前后成对验证 |
 | AC-9 | NOT RUN | retention tool/dry-run 与 Redis/Nginx predicate 尚未实施 |
 | AC-10 | NOT RUN | 尚未执行两轮 pre-delete inventory 与完整 dependency/unique-data/rebuild Gate |
 | AC-11 | NOT RUN | 未执行任何 VM 删除；`gitea-ci`、AppServer 和其它 VM 均未删除 |
 | AC-12 | PASS | post-Gate D 应用与 SFM candidate bash-n/ShellCheck/定向/full/build、SFM Node 22 required CI 与平台 bash-n/ShellCheck/定向 tests/完整 smoke 全部通过；live allow/deny/幂等、故意 health failure rollback、process-tree cancellation 与 Gate C/D post-state checks 均通过 |
-| AC-13 | BLOCKED later steps | 本文件已记录 rsdesign 与 SFM 最终 merge SHA、CI/deploy及 SFM live Gate；MyApp/retention/VM live Gates、platform final head/CI/PR 尚不存在 |
+| AC-13 | BLOCKED later steps | 本文件已记录 rsdesign 与 SFM 最终 merge SHA/CI/live Gates及 MyApp pre-Gate recovery；MyApp live、retention/VM Gates、platform final head/CI/PR 尚不存在 |
 | AC-14 | PASS（截至当前步骤） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C、rsdesign Gate D 与 SFM 独立 live Gate 均有明确授权。各 Gate 只处理盘点后的精确对象；未执行 MyApp Gate、平台 retention apply、生产或任何 VM 操作，未自动合并 |
 
 ## 重复部署/执行
@@ -260,7 +299,8 @@ SFM run DB 均 absent，Gitea/runner、AppServer exact current/3202/数据库 he
 | `rsdesign-new` authoritative artifact/active target/latest recovery | Gate D 明确保留边界 | PASS，均保留且 checksum/integrity/health 可读 |
 | SFM repository implementation/PR/deploy | Issue #86 `approved` 合同内；repo change/PR 独立治理 | PASS，PR #87 final head CI、人工 merge SHA、main CI/deploy、Issue closed+deployed 与 exact AppServer current/health 均已读回；未自动合并 |
 | SFM process stop/history DB delete | 用户在精确范围说明后明确“授权清理”；不扩大到其它对象 | PASS，PGID `2464` TERM-only 退出，15 个精确历史 run DB 删除，post-state 与无关服务/VM 检查通过 |
-| MyApp service/DB/directory removal | 仍需逐对象 live Gate | NOT RUN |
+| MyApp inventory/DB+runtime+vhost recovery | Issue #21 approved 合同内的非破坏性 pre-Gate | PASS，root-only recovery bundle 已保存并真实恢复验证；原 runtime/vhost/DB/artifact 未改 |
+| MyApp vhost/runtime/DB/7 artifacts | 仍需本应用独立 live Gate，并明确 `.env` 不可恢复丢弃 | BLOCKED / NOT RUN |
 | artifact/Redis/Nginx apply | 仍需 predicate、dry-run 与 live Gate | NOT RUN |
 | exact `prod-sim` delete | 用户已授权，但仅在 AC-10 全部通过后有效 | NOT RUN |
 | any other VM delete or `--all` | 未授权且明确禁止 | NOT RUN |
@@ -278,13 +318,20 @@ SFM run DB 均 absent，Gitea/runner、AppServer exact current/3202/数据库 he
   路径后全部条件通过。post-check 首次把共享 DB 元数据路径写成不存在的
   `/opt/sfm-board/shared/sfm-board.db`，只读 `stat` 失败；实际路径
   `/opt/sfm-board/shared/db/sfm-board.db` 随后以 metadata-only 检查通过，health 全程为 ok。
+- MyApp DB restore 首次以 `postgres` 直接打开 root-only mode-600 dump，因目录权限返回
+  permission denied；EXIT trap 精确删除临时 DB，原 DB 未改。复核临时 DB absent 后，改由 root
+  打开同一 dump 并通过 stdin 交给 `pg_restore`，完整恢复、catalog comparison 与 cleanup PASS。
+- PostgreSQL 本机 help 首次 grep 以 `--format...` 开头的 pattern 未加 `--`，被误解析为 grep
+  option；只读命令零 mutation。加 `grep -E --` 后复核 18.4 选项通过。
 
 ## 当前 blocker 与恢复条件
 
 第 6 步已以 merge SHA `480dd7d...` 收口。第 7 步也已完整收口：PR #87 merge SHA
 `579282d...`、Issue closed+deployed、AppServer exact current/3202 health、current-run finalizer、
-独立授权的 live PGID/历史 DB cleanup 与 post-state 全部 PASS。下一顺序是第 8 步 MyApp Notes
-inventory、数据库/目录恢复证据与独立 Gate；SFM 授权不得用于 MyApp mutation。
+独立授权的 live PGID/历史 DB cleanup 与 post-state 全部 PASS。第 8 步 MyApp Notes inventory 与
+数据库/目录/vhost recovery proof 已完成；当前 blocker 是独立 MyApp live Gate。授权必须精确
+覆盖 vhost、`/opt/app-test`、`app_test`、7 个列明 artifact，并明确接受未读取/未复制的 `.env`
+随 runtime 不可逆丢弃；不得包含 Redis、全局 Nginx、其它应用/DB/制品或任何 VM。
 
 ## 遗留风险与未完成项
 
@@ -301,3 +348,6 @@ inventory、数据库/目录恢复证据与独立 Gate；SFM 授权不得用于 
 - SFMDigitalBoard 第 7 步 repo/PR/CI/人工 merge/AppServer deploy、live Gate 与 post-state 已
   PASS；平台后续步骤与所有未执行 live Gate 仍为 `NOT RUN`。SFM cleanup 不等于 MyApp、
   retention、VM cleanup 或平台整体完成。
+- MyApp recovery bundle 保留 DB/current artifact/vhost 与验证 manifests，但按 no-Secret 合同不
+  包含 `/opt/app-test/.env` 内容；若删除 runtime，该 Secret 无原地恢复路径。正式 repo 与 current
+  artifact 可重建非 Secret runtime，DB dump 已真实恢复验证。
