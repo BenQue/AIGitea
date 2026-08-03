@@ -272,8 +272,8 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
 | Redis recovery/purge dry-run | PASS | config 无 active Secret/include；exact config/RDB 与 cached Redis 8.0.5 arm64 `.deb` 已复制到 root-only bundle，`redis-check-rdb`、`dpkg-deb` metadata/checksum PASS。`apt-get -s purge redis-server redis-tools` 只计划移除 2 packages；`libjemalloc2`/`liblzf1` 仅提示可 autoremove，明确不执行 |
 | Redis live stop/purge/config+data/log/user removal | PASS | 用户最终明确授权直接清除 Redis。完整 precheck、empty RDB offline check、exact postrm/package/cache/recovery/lock/shared-service predicates 全部通过；只 `apt-get purge -y redis-server redis-tools`，0 upgrade/0 install/2 remove，未运行 autoremove。packages/unit/user/group、config/data/log dirs、6379 listener/connections 全 absent；`libjemalloc2`/`liblzf1`、APT cache 与 recovery checksum均保留，Gitea/runner/Nginx/PostgreSQL/Mailpit及两套 AppServer health PASS |
 | Nginx predicate | PASS KEEP | MyApp vhost 删除后只剩 Ubuntu default static vhost/port 80；但 versioned `12-Linux-GitHub-Gitea-双服务器自动部署方案.md` 明确把平台 Nginx proxy 分配为 Gitea 批准职责。按 AC-9 shared-reference predicate 保留 Nginx service/package/config，不申请 stop/remove |
-| artifact retention implementation/dry-run | NOT RUN | 按计划顺序尚未进入第 9 步 |
-| `prod-sim` pre-delete two-round inventory | NOT RUN | 按计划顺序尚未进入第 10 步；第 1 步 identity baseline 不满足 AC-10 |
+| artifact retention implementation/dry-run | PASS dry-run / BLOCKED apply | tool/examples/fixture/smoke 已通过；真实 10 个 legacy artifact 均缺 `.sha256` sidecar，`candidates=0 keep=0 blocked=10`，正式 policy/reference ledger 未定义，未删除制品 |
+| `prod-sim` pre-delete two-round inventory | BLOCKED | 两次 `orb list`/`orb info` exact name+ID 均一致；但两次 guest metadata 均显示 active Nginx/Redis/PostgreSQL、80/8090/6379/5432 listeners、`app_prod` 7,984,831 bytes、current/6 releases、6 incoming artifacts、7 DB backups。不能证明无实时依赖、无唯一数据或可重建 |
 | `prod-sim` delete/post-check | NOT RUN | 精确删除虽已获授权，但 AC-10 的依赖、唯一数据与可重建证据尚未全部通过，因此未执行 |
 | AISoftPlatform final PR CI | NOT RUN | 平台 final PR 尚未创建；`change/21` branch push 只保存候选与 blocker 证据，不能用应用 prerequisite PR 或 branch push 替代 final acceptance |
 
@@ -360,8 +360,10 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
   前退出，随后在用户明确 direct cleanup 后以新一轮 exact precheck 执行一次 package purge。以
   package/unit/user/group/config/data/log/6379 absent 与 kept cache/recovery/dependency hashes 读回，
   不重复 purge 或运行 `autoremove`。
-- `gitea-ci` inventory：第 1 步 baseline PASS；AC-10 关联的两轮 inventory NOT RUN。
-- `prod-sim` 删除只允许执行一次；当前 NOT RUN，未来以删除前双读和删除后双读替代重复
+- `gitea-ci` inventory：第 1 步 baseline PASS；第 9 步 live dry-run 在 host execution path PASS，
+  10 个 artifact 因 missing checksum BLOCKED。
+- `prod-sim`：两轮 pre-delete inventory 完成但均保留 active runtime/data evidence，故 AC-10
+  BLOCKED；删除命令未运行。若未来重新获得 Gate，仍只能执行一次精确删除并以前/后双读替代重复
   destructive action。
 
 ## 故意失败与回滚
@@ -384,7 +386,8 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
 - Redis final purge precheck 首次发现停机后 logrotate 将 3 个历史 log 重排为 4 个 Redis-only log；
   zero open-ref metadata 重盘点后重跑。一次 post-check `ss` 因嵌套引号误解析，零 mutation；无
   嵌套引号的 listener/source/destination recheck 均为空。
-- `prod-sim` identity/引用不满足：NOT RUN；预期停止删除。
+- `prod-sim` identity 精确匹配但依赖/唯一数据/重建性不满足：PASS expected block；未发送任何
+  delete/stop/restart 命令。
 - `prod-sim` 删除后整机原地 rollback：不可能；恢复路径只能依据版本化最小基线重新创建。
 
 ## 操作与授权账本
@@ -406,7 +409,8 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
 | Nginx stop/remove | approved Gitea proxy responsibility blocks removal | KEEP / NOT AUTHORIZED |
 | artifact retention tool and live dry-run | Issue #21 approved 合同内的 non-destructive implementation/dry-run | PASS；临时 diagnostic inputs only，10 个 missing checksum blocked，`/opt/artifacts` 未变 |
 | artifact retention apply | 独立 human Gate，且须先有正式 policy/reference/checksum predicate | BLOCKED / NOT AUTHORIZED |
-| exact `prod-sim` delete | 用户已授权，但仅在 AC-10 全部通过后有效 | NOT RUN |
+| `prod-sim` two-round inventory | Issue #21 approved 合同内的只读 Gate | BLOCKED；发现 active Nginx/Redis/PostgreSQL、`app_prod`、release/incoming/backup assets 与 legacy deploy references |
+| exact `prod-sim` delete | 用户已授权，但仅在 AC-10 全部通过后有效 | NOT RUN；AC-10 未通过，授权尚未生效 |
 | any other VM delete or `--all` | 未授权且明确禁止 | NOT RUN |
 
 ## 观察偏差与副作用核对
@@ -453,8 +457,15 @@ recovery/dry-run PASS。用户随后明确授权 direct cleanup；Redis package/
 log/6379 的 final post-state 全部 PASS，shared services、两套 AppServer health、VM 和 recovery/
 APT cache/依赖均保持。第 9 步 implementation 与真实 dry-run 已完成；all 10 legacy artifacts
 因缺 `.sha256` sidecar fail closed，正式 retention policy/reference ledger 缺失，故 apply 保持
-BLOCKED。下一顺序为第 10 步 `prod-sim` 两轮只读 inventory；不得把 retention 的 BLOCKED 状态
-视为任何对象已清理。
+BLOCKED。第 10 步随后已完成两轮只读 inventory：`orb list` 与 `orb info prod-sim` 两次均精确
+回读 name=`prod-sim`、ID=`01KX3FFXSJVYPDHZVY4MZB7CQZ`、Ubuntu resolute/ARM64、running、
+disk_size=3,875,823,616 bytes。guest machine-id 固定为 `531d0ec7d550406bb193b31b18ea27c6`，但
+Nginx/Redis/PostgreSQL 均 active，80/8090/6379/5432 均监听；8090 root 指向
+`/opt/app-prod/current/frontend`。`app_prod` 数据库为 7,984,831 bytes，`/opt/app-prod` 有 current
+与 6 release，`/opt/incoming` 有 6 个 98 MB 级 artifact，`/opt/db-backups` 有 7 个 SQL backup。
+仓库扫描还找到该 VM 的 legacy deploy/SSH/document references。无法证明无实时依赖、无唯一数据
+或可重建性；`02` 分册的历史 rsdesign 叙述也不能替代这些当前 live assets 的归属证据。因此 AC-10 **BLOCKED**，
+不得执行 `orb delete --force prod-sim`；需要人决定迁移/保留这些 live 资产的正式归属和恢复方案。
 
 ## 遗留风险与未完成项
 
@@ -478,3 +489,6 @@ BLOCKED。下一顺序为第 10 步 `prod-sim` 两轮只读 inventory；不得�
 - Redis 已清除；可由保留的 exact cached `.deb` 与 root-only recovery bundle 在未来按需重新安装。
   `libjemalloc2`/`liblzf1`、APT cache、其它 shared services、应用 runtime/artifacts 与 VM 未变。
   Nginx 必须按批准的 Gitea proxy contract 保留。
+- `prod-sim` 不是可直接退役的空彩排机：两轮 live inventory 证明它仍有 active web/cache/database
+  runtime、`app_prod` 数据、release/incoming/backup assets。`02` 分册的历史 rsdesign 叙述不能覆盖
+  当前资产的归属与恢复；在正式迁移归属、数据恢复验证和依赖切换完成前，AC-10/11 保持 BLOCKED/NOT RUN。
