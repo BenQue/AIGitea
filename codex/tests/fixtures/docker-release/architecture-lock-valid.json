@@ -1,7 +1,0 @@
-{
-  "contract_version": "architecture-lock/v1",
-  "profile_id": "linux-node-postgres-v1",
-  "catalog_revision": "catalog-v1",
-  "resolved_components": [],
-  "source_checksums": {}
-}

@@ -16,7 +16,9 @@ from tests.release_test_support import (
     compose_model,
     create_release,
     fixture_path,
+    refresh_architecture_lock_sha,
     repository_root,
+    sha256,
     update_manifest,
     write_json,
 )
@@ -135,16 +137,66 @@ class ReleaseContractTests(unittest.TestCase):
     def test_architecture_lock_profile_and_catalog_are_cross_checked(self) -> None:
         lock_path = self.release_dir / "architecture.lock.json"
         value = json.loads(lock_path.read_text())
-        value["catalog_revision"] = "catalog-v2"
+        value["catalog_revision"] = "2026.08.1"
+        refresh_architecture_lock_sha(value)
         write_json(lock_path, value)
         update_manifest(
             self.release_dir,
             lambda manifest: manifest["architecture"].update(
-                {"sha256": __import__("hashlib").sha256(lock_path.read_bytes()).hexdigest()}
+                {"sha256": sha256(lock_path)}
             ),
         )
         profile = load_target_profile(self.profile_path)
         with self.assertRaisesRegex(ContractError, "catalog_revision"):
+            load_release_files(profile, SHA_A)
+
+    def test_architecture_lock_self_hash_is_verified(self) -> None:
+        lock_path = self.release_dir / "architecture.lock.json"
+        value = json.loads(lock_path.read_text())
+        value["project_id"] = "tampered-project"
+        write_json(lock_path, value)
+        update_manifest(
+            self.release_dir,
+            lambda manifest: manifest["architecture"].update(
+                {"sha256": sha256(lock_path)}
+            ),
+        )
+        profile = load_target_profile(self.profile_path)
+        with self.assertRaisesRegex(ContractError, "lock_sha256"):
+            load_release_files(profile, SHA_A)
+
+    def test_architecture_lock_delivery_contract_is_cross_checked(self) -> None:
+        lock_path = self.release_dir / "architecture.lock.json"
+        value = json.loads(lock_path.read_text())
+        value["delivery_contract"] = "pm2-legacy"
+        refresh_architecture_lock_sha(value)
+        write_json(lock_path, value)
+        update_manifest(
+            self.release_dir,
+            lambda manifest: manifest["architecture"].update(
+                {"sha256": sha256(lock_path)}
+            ),
+        )
+        profile = load_target_profile(self.profile_path)
+        with self.assertRaisesRegex(ContractError, "delivery_contract"):
+            load_release_files(profile, SHA_A)
+
+    def test_architecture_lock_source_url_rejects_credentials(self) -> None:
+        lock_path = self.release_dir / "architecture.lock.json"
+        value = json.loads(lock_path.read_text())
+        value["resolved_components"][0]["source_url"] = (
+            "https://user:password@example.invalid/source"
+        )
+        refresh_architecture_lock_sha(value)
+        write_json(lock_path, value)
+        update_manifest(
+            self.release_dir,
+            lambda manifest: manifest["architecture"].update(
+                {"sha256": sha256(lock_path)}
+            ),
+        )
+        profile = load_target_profile(self.profile_path)
+        with self.assertRaisesRegex(ContractError, "must not contain credentials"):
             load_release_files(profile, SHA_A)
 
 

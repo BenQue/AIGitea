@@ -1,0 +1,30 @@
+{
+  "$schema": "../schemas/profile-v1.schema.json",
+  "schema_version": "1.0",
+  "profile_id": "small-embedded-sqlite-v1",
+  "version": "1.0.0",
+  "catalog_revision": "2026.08.0",
+  "status": "active",
+  "description": "Single-instance, local-disk, bounded-concurrency embedded SQLite baseline.",
+  "required_components": [
+    {"component_id": "os.ubuntu.24-04-4", "allowed_states": ["preferred"]},
+    {"component_id": "runtime.node.24", "allowed_states": ["preferred"]},
+    {"component_id": "package.npm.11", "allowed_states": ["preferred"]},
+    {"component_id": "database.sqlite.3", "allowed_states": ["preferred"]}
+  ],
+  "compatibility_rules": [
+    "Exactly one application instance may write the database.",
+    "Database, WAL and shared-memory files must remain on a local filesystem on the same host.",
+    "WAL permits concurrent readers but SQLite still has one writer; sustained write contention is an exit trigger.",
+    "Online backup must use the SQLite backup API or a documented equivalent consistent snapshot and must be restore-tested."
+  ],
+  "delivery_contracts": ["embedded-sqlite/v1"],
+  "constraints": {
+    "deployment": "Single application instance only; horizontal scaling or shared database access is prohibited.",
+    "data_storage": "Local host filesystem only; network filesystem, container ephemeral layer and multi-host access are prohibited.",
+    "concurrency": "One writer; sustained lock contention, background write fan-out or more than one application instance requires PostgreSQL reassessment.",
+    "availability": "No high-availability claim; host failure may require restore from backup.",
+    "backup": "Scheduled online backup plus retained off-host checksum is mandatory.",
+    "restore_drill": "Restore must be exercised at least semi-annually and before any schema or runtime major Change."
+  }
+}

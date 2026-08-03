@@ -23,6 +23,12 @@
 local image ID，以及一次性 migration identity。Registry 和 offline bundle 消费同一份
 manifest；transport 不能重写 image、Compose 或 architecture identity。
 
+`architecture.lock.json` 必须是 #23 `schema_version: "1.0"` 的 canonical lock，且
+`delivery_contract` 精确为 `docker-release/v1`。Release parser 会验证 lock 的严格字段结构、
+canonical `lock_sha256`、source checksums 格式、排序/唯一性，以及 manifest/target profile
+中的 `profile_id` 与 `catalog_revision`；它只消费这些治理身份，不复制或选择 catalog 中的
+组件版本。
+
 Manifest、architecture lock、Compose、inventory 和 archive 在任何 pull/load/migration/
 container replacement 前完成路径与 checksum 验证。`release.json` 不接受未知字段，也不得
 包含 URL credential、token、密码、连接串、证书、SSH key、`.env` 内容或任意 command。

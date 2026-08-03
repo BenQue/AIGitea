@@ -1,0 +1,120 @@
+{
+  "$id": "https://aisoft.example/schemas/catalog-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {"type": "string"},
+    "catalog_id": {"minLength": 1, "type": "string"},
+    "components": {
+      "items": {"$ref": "#/$defs/component"},
+      "minItems": 1,
+      "type": "array"
+    },
+    "published_at": {"format": "date", "type": "string"},
+    "review_by": {"format": "date", "type": "string"},
+    "revision": {"pattern": "^[0-9]{4}\\.[0-9]{2}\\.[0-9]+$", "type": "string"},
+    "schema_version": {"const": "1.0", "type": "string"},
+    "update_policy": {"$ref": "#/$defs/updatePolicy"}
+  },
+  "required": ["$schema", "schema_version", "catalog_id", "revision", "published_at", "review_by", "update_policy", "components"],
+  "type": "object",
+  "$defs": {
+    "component": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {"enum": ["os", "runtime", "framework", "package-manager", "orm", "database", "container-engine", "container-compose", "proxy", "frontend", "toolchain", "oci-image"], "type": "string"},
+        "compatibility": {"items": {"minLength": 1, "type": "string"}, "minItems": 1, "type": "array"},
+        "id": {"pattern": "^[a-z0-9][a-z0-9.-]+$", "type": "string"},
+        "lifecycle": {"$ref": "#/$defs/lifecycle"},
+        "name": {"minLength": 1, "type": "string"},
+        "pin": {"$ref": "#/$defs/pin"},
+        "platforms": {"$ref": "#/$defs/platforms"},
+        "provenance": {"$ref": "#/$defs/provenance"},
+        "remediation": {"minLength": 1, "type": "string"},
+        "state": {"enum": ["preferred", "supported", "sunset", "prohibited"], "type": "string"},
+        "version": {"minLength": 1, "type": "string"}
+      },
+      "required": ["id", "category", "name", "version", "state", "pin", "platforms", "lifecycle", "provenance", "compatibility", "remediation"],
+      "type": "object"
+    },
+    "lifecycle": {
+      "additionalProperties": false,
+      "properties": {
+        "eol": {"format": "date", "type": ["string", "null"]},
+        "migrate_by": {"format": "date", "type": ["string", "null"]},
+        "released_at": {"format": "date", "type": ["string", "null"]},
+        "status": {"enum": ["active", "maintenance", "candidate", "os-bundled"], "type": "string"},
+        "support_end": {"format": "date", "type": ["string", "null"]}
+      },
+      "required": ["status", "released_at", "support_end", "eol", "migrate_by"],
+      "type": "object"
+    },
+    "pin": {
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {"enum": ["exact-version", "os-release", "os-build-feature", "oci-digest"], "type": "string"},
+        "value": {"minLength": 1, "type": "string"}
+      },
+      "required": ["strategy", "value"],
+      "type": "object"
+    },
+    "platforms": {
+      "additionalProperties": false,
+      "properties": {
+        "architectures": {"items": {"enum": ["amd64", "arm64", "ppc64le"]}, "minItems": 1, "type": "array", "uniqueItems": true},
+        "operating_systems": {"items": {"enum": ["linux", "windows", "any"]}, "minItems": 1, "type": "array", "uniqueItems": true}
+      },
+      "required": ["operating_systems", "architectures"],
+      "type": "object"
+    },
+    "provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "checksum_required": {"type": "boolean"},
+        "digest_required": {"type": "boolean"},
+        "evidence": {"minLength": 1, "type": "string"},
+        "mirror_required": {"type": "boolean"},
+        "retrieved_at": {"format": "date", "type": "string"},
+        "review_by": {"format": "date", "type": "string"},
+        "sbom_required": {"type": "boolean"},
+        "source_url": {"pattern": "^https://", "type": "string"}
+      },
+      "required": ["source_url", "retrieved_at", "review_by", "evidence", "mirror_required", "checksum_required", "sbom_required", "digest_required"],
+      "type": "object"
+    },
+    "updateClass": {
+      "additionalProperties": false,
+      "properties": {
+        "cadence": {"minLength": 1, "type": "string"},
+        "gate": {"minLength": 1, "type": "string"},
+        "route": {"minLength": 1, "type": "string"}
+      },
+      "required": ["cadence", "gate", "route"],
+      "type": "object"
+    },
+    "pinPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "ci_action": {"const": "full-commit-sha", "type": "string"},
+        "oci_image": {"const": "tag-plus-sha256-digest", "type": "string"},
+        "os_image": {"const": "release-plus-build-or-checksum", "type": "string"},
+        "package": {"const": "exact-version-and-lock", "type": "string"},
+        "repository": {"const": "signed-snapshot-and-checksum", "type": "string"}
+      },
+      "required": ["os_image", "repository", "package", "ci_action", "oci_image"],
+      "type": "object"
+    },
+    "updatePolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "major": {"$ref": "#/$defs/updateClass"},
+        "minor": {"$ref": "#/$defs/updateClass"},
+        "patch": {"$ref": "#/$defs/updateClass"},
+        "pin_policy": {"$ref": "#/$defs/pinPolicy"},
+        "security": {"$ref": "#/$defs/updateClass"}
+      },
+      "required": ["security", "patch", "minor", "major", "pin_policy"],
+      "type": "object"
+    }
+  }
+}

@@ -20,7 +20,7 @@ MIGRATE_DIGEST = "sha256:" + "3" * 64
 MIGRATE_IMAGE_ID = "sha256:" + "4" * 64
 SOURCE_REPOSITORY = "admin/NewEmaint"
 ARCHITECTURE_PROFILE = "linux-node-postgres-v1"
-CATALOG_REVISION = "catalog-v1"
+CATALOG_REVISION = "2026.08.0"
 
 
 def repository_root() -> Path:
@@ -29,6 +29,16 @@ def repository_root() -> Path:
 
 def fixture_path(name: str) -> Path:
     return repository_root() / "codex" / "tests" / "fixtures" / "docker-release" / name
+
+
+def architecture_reference_lock() -> Path:
+    return (
+        repository_root()
+        / "architecture"
+        / "reference"
+        / "newemaint"
+        / "architecture.lock.json"
+    )
 
 
 def canonical_bytes(value: object) -> bytes:
@@ -45,6 +55,16 @@ def write_json(path: Path, value: object, mode: int = 0o644) -> None:
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def sha256_value(value: object) -> str:
+    return hashlib.sha256(canonical_bytes(value)).hexdigest()
+
+
+def refresh_architecture_lock_sha(value: dict[str, object]) -> None:
+    payload = deepcopy(value)
+    payload.pop("lock_sha256", None)
+    value["lock_sha256"] = sha256_value(payload)
 
 
 def image_specs() -> list[dict[str, str]]:
@@ -111,7 +131,7 @@ def create_release(
     compose_path.write_text("# normalized by fake Docker Compose in tests\n", encoding="utf-8")
     os.chmod(compose_path, 0o644)
     architecture_path = release_dir / "architecture.lock.json"
-    architecture = json.loads(fixture_path("architecture-lock-valid.json").read_text())
+    architecture = json.loads(architecture_reference_lock().read_text())
     write_json(architecture_path, architecture)
 
     archive_path = release_dir / "images.tar"

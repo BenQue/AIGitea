@@ -10,19 +10,25 @@ from pathlib import Path, PurePosixPath
 import re
 import stat
 from typing import Mapping, Sequence
+from urllib.parse import urlsplit
 
 from .errors import ContractError
 
 
 RELEASE_VERSION = "docker-release/v1"
 PROFILE_VERSION = "docker-release-target/v1"
-ARCHITECTURE_LOCK_VERSION = "architecture-lock/v1"
+ARCHITECTURE_LOCK_SCHEMA = "./architecture/schemas/architecture-lock-v1.schema.json"
+ARCHITECTURE_LOCK_SCHEMA_VERSION = "1.0"
 OFFLINE_INVENTORY_VERSION = "docker-release-offline-inventory/v1"
 GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 SHA256_HEX = re.compile(r"^[0-9a-f]{64}$")
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
 IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+ARCHITECTURE_ID = re.compile(r"^[a-z0-9][a-z0-9-]+$")
+ARCHITECTURE_COMPONENT = re.compile(r"^[a-z0-9][a-z0-9.-]+$")
+ARCHITECTURE_REVISION = re.compile(r"^[0-9]{4}\.[0-9]{2}\.[0-9]+$")
+SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 SERVICE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,62}$")
 IMAGE_REFERENCE = re.compile(
     r"^[a-z0-9][a-z0-9./:_-]*@sha256:[0-9a-f]{64}$"
@@ -244,15 +250,7 @@ def load_release_files(profile: TargetProfile, release_id: str) -> ReleaseFiles:
     )
     architecture_lock = _load_json_object(architecture_path, "architecture lock")
     _reject_sensitive_keys(architecture_lock, "architecture lock")
-    lock_version = architecture_lock.get("contract_version")
-    if lock_version != ARCHITECTURE_LOCK_VERSION:
-        raise ContractError(
-            f"architecture lock contract_version must be {ARCHITECTURE_LOCK_VERSION}"
-        )
-    if architecture_lock.get("profile_id") != manifest.architecture_profile_id:
-        raise ContractError("architecture lock profile_id does not match release manifest")
-    if architecture_lock.get("catalog_revision") != manifest.catalog_revision:
-        raise ContractError("architecture lock catalog_revision does not match release manifest")
+    _validate_architecture_lock(architecture_lock, manifest)
     return ReleaseFiles(
         directory=directory.resolve(),
         manifest_path=manifest_path,
@@ -263,6 +261,131 @@ def load_release_files(profile: TargetProfile, release_id: str) -> ReleaseFiles:
         manifest=manifest,
         architecture_lock=architecture_lock,
     )
+
+
+def _validate_architecture_lock(
+    lock: Mapping[str, object], manifest: ReleaseManifest
+) -> None:
+    context = "architecture lock"
+    _expect_keys(
+        lock,
+        {
+            "$schema",
+            "schema_version",
+            "project_id",
+            "profile_id",
+            "profile_version",
+            "catalog_revision",
+            "delivery_contract",
+            "resolved_components",
+            "exception_ids",
+            "source_checksums",
+            "lock_sha256",
+        },
+        context,
+    )
+    schema_ref = _string(lock, "$schema", context)
+    if schema_ref != ARCHITECTURE_LOCK_SCHEMA:
+        raise ContractError(
+            f"architecture lock $schema must be {ARCHITECTURE_LOCK_SCHEMA}"
+        )
+    schema_version = _string(lock, "schema_version", context)
+    if schema_version != ARCHITECTURE_LOCK_SCHEMA_VERSION:
+        raise ContractError(
+            "architecture lock schema_version must be "
+            + ARCHITECTURE_LOCK_SCHEMA_VERSION
+        )
+    _matching_string(lock, "project_id", ARCHITECTURE_ID, context)
+    profile_id = _matching_string(lock, "profile_id", ARCHITECTURE_ID, context)
+    _matching_string(lock, "profile_version", SEMVER, context)
+    catalog_revision = _matching_string(
+        lock, "catalog_revision", ARCHITECTURE_REVISION, context
+    )
+    delivery_contract = _string(lock, "delivery_contract", context)
+    if delivery_contract != RELEASE_VERSION:
+        raise ContractError(
+            f"architecture lock delivery_contract must be {RELEASE_VERSION}"
+        )
+
+    raw_components = lock.get("resolved_components")
+    if not isinstance(raw_components, list) or not raw_components:
+        raise ContractError("architecture lock resolved_components must be a non-empty array")
+    component_ids: list[str] = []
+    for index, raw_component in enumerate(raw_components):
+        component_context = f"architecture lock resolved_components[{index}]"
+        if not isinstance(raw_component, Mapping):
+            raise ContractError(f"{component_context} must be an object")
+        _expect_required_and_optional_keys(
+            raw_component,
+            {"component_id", "version", "state", "source_url"},
+            {"digest", "migration_issue"},
+            component_context,
+        )
+        component_id = _matching_string(
+            raw_component, "component_id", ARCHITECTURE_COMPONENT, component_context
+        )
+        _string(raw_component, "version", component_context)
+        state = _string(raw_component, "state", component_context)
+        if state not in {"preferred", "supported", "sunset"}:
+            raise ContractError(f"{component_context} state is not recognized")
+        source_url = _string(raw_component, "source_url", component_context)
+        _require_https_source_url(source_url, component_context)
+        if "digest" in raw_component:
+            _matching_string(raw_component, "digest", DIGEST, component_context)
+        if "migration_issue" in raw_component:
+            migration_issue = _string(raw_component, "migration_issue", component_context)
+            if len(migration_issue) < 2:
+                raise ContractError(
+                    f"{component_context} migration_issue must contain at least two characters"
+                )
+        component_ids.append(component_id)
+    if component_ids != sorted(component_ids):
+        raise ContractError("architecture lock resolved_components must be sorted")
+    if len(component_ids) != len(set(component_ids)):
+        raise ContractError("architecture lock resolved_components contains duplicates")
+
+    raw_exceptions = lock.get("exception_ids")
+    if not isinstance(raw_exceptions, list):
+        raise ContractError("architecture lock exception_ids must be an array")
+    exception_ids: list[str] = []
+    for index, exception_id in enumerate(raw_exceptions):
+        if not isinstance(exception_id, str) or not exception_id:
+            raise ContractError(
+                f"architecture lock exception_ids[{index}] must be a non-empty string"
+            )
+        if any(ord(character) < 32 for character in exception_id):
+            raise ContractError(
+                f"architecture lock exception_ids[{index}] contains control characters"
+            )
+        exception_ids.append(exception_id)
+    if exception_ids != sorted(exception_ids):
+        raise ContractError("architecture lock exception_ids must be sorted")
+    if len(exception_ids) != len(set(exception_ids)):
+        raise ContractError("architecture lock exception_ids contains duplicates")
+
+    source_checksums = _mapping(lock, "source_checksums", context)
+    _expect_keys(
+        source_checksums,
+        {"catalog_sha256", "profile_sha256", "declaration_sha256"},
+        "architecture lock source_checksums",
+    )
+    for key in ("catalog_sha256", "profile_sha256", "declaration_sha256"):
+        _matching_string(
+            source_checksums,
+            key,
+            SHA256_HEX,
+            "architecture lock source_checksums",
+        )
+
+    declared_lock_sha = _matching_string(lock, "lock_sha256", SHA256_HEX, context)
+    hash_payload = dict(lock)
+    hash_payload.pop("lock_sha256")
+    if declared_lock_sha != _canonical_sha256(hash_payload):
+        raise ContractError("architecture lock lock_sha256 is invalid")
+    if profile_id != manifest.architecture_profile_id:
+        raise ContractError("architecture lock profile_id does not match release manifest")
+    if catalog_revision != manifest.catalog_revision:
+        raise ContractError("architecture lock catalog_revision does not match release manifest")
 
 
 def load_offline_inventory(files: ReleaseFiles) -> Mapping[str, object]:
@@ -308,6 +431,35 @@ def sha256_file(path: Path) -> str:
     except OSError as exc:
         raise ContractError(f"cannot read file for checksum: {path.name}") from exc
     return digest.hexdigest()
+
+
+def _canonical_sha256(value: object) -> str:
+    try:
+        payload = (
+            json.dumps(
+                value,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+    except (TypeError, ValueError, UnicodeError) as exc:
+        raise ContractError("architecture lock is not canonical JSON") from exc
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _require_https_source_url(value: str, context: str) -> None:
+    try:
+        parsed = urlsplit(value)
+        hostname = parsed.hostname
+    except ValueError as exc:
+        raise ContractError(f"{context} source_url is invalid") from exc
+    if parsed.scheme != "https" or not hostname:
+        raise ContractError(f"{context} source_url must use https")
+    if parsed.username is not None or parsed.password is not None:
+        raise ContractError(f"{context} source_url must not contain credentials")
 
 
 def require_external_env_file(profile: TargetProfile) -> None:
@@ -531,6 +683,21 @@ def _expect_keys(value: Mapping[str, object], required: set[str], context: str) 
     actual = set(value)
     missing = sorted(required - actual)
     unknown = sorted(actual - required)
+    if missing:
+        raise ContractError(f"{context} is missing fields: {', '.join(missing)}")
+    if unknown:
+        raise ContractError(f"{context} contains unknown fields: {', '.join(unknown)}")
+
+
+def _expect_required_and_optional_keys(
+    value: Mapping[str, object],
+    required: set[str],
+    optional: set[str],
+    context: str,
+) -> None:
+    actual = set(value)
+    missing = sorted(required - actual)
+    unknown = sorted(actual - required - optional)
     if missing:
         raise ContractError(f"{context} is missing fields: {', '.join(missing)}")
     if unknown:
