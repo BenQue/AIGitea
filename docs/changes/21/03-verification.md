@@ -57,10 +57,13 @@ platform suite、148 files/949 tests 与 production build 全部 PASS；最终 P
 `579282df2c765df706c26d68850198ea306f4f57`；merge SHA 的 CI #347 与 AppServer deploy #348
 分别 successful in 1m41s/2m1s。AppServer `current`、3202 PID cwd 均为 merge SHA，外部
 health/database 为 ok，Issue #86 closed + `deployed`。合并后的 current-run DB finalizer 已证明
-`ci-347`/`deploy-348` absent。live 3212 与 15 个历史 DB 的独立 Gate 前置检查全部通过，但尚未获
-本应用 live Gate 授权，因此均未停止/删除。后续步骤与 `prod-sim` 删除也仍未执行；已验证的
-AppServer deploy 不等于 live cleanup，也不把任何既有 Gate D 授权扩大到 SFMDigitalBoard、
-其它应用或任何 VM。
+`ci-347`/`deploy-348` absent。用户随后对本应用独立 live Gate 明确回复“授权清理”。mutation 前
+fail-closed 复核确认唯一 listener PID `2487`、PGID `2464`、组内仅该 PID、deleted cwd/log/DB、
+cgroup、UID/GID、零连接以及 15 个无人打开且可重建的历史 DB 全部匹配。精确进程组收到 `TERM`
+后在第 2 次检查前退出，未使用 `KILL`；随后只删除 15 个列明路径。PID/PGID/3212、旧 FD 与全部
+SFM run DB 均 absent，Gitea/runner、AppServer exact current/3202/数据库 health 及三台 VM 状态
+全部 PASS。第 7 步完成。后续步骤与 `prod-sim` 删除仍未执行；本 Gate 授权不扩大到 MyApp、
+其它平台对象、服务、目录、数据库或任何 VM。
 
 ## 环境与版本
 
@@ -111,7 +114,8 @@ AppServer deploy 不等于 live cleanup，也不把任何既有 Gate D 授权扩
   - live Issue #86：closed，标签 `deployed`
   - AppServer：`current` 与 PID `287949` cwd 均为 merge SHA；3202 health/database ok；shared DB
     owner `benque:benque`、mode 640、368,640 bytes，未读业务表或 Secret
-  - live 3212/PID `2487` 与 15 个历史 runner DB：未停止、未删除
+  - live Gate post-state：PID `2487`、PGID `2464`、3212 listener、旧 deleted FD 与 15 个历史
+    runner DB 均 absent；`TERM` 成功，未使用 `KILL`
 - 实时 Issue #21：open；标签精确包含 `type/platform`、`complexity/complex`、`approved`
 - `gitea-ci`：hostname `gitea-ci`，machine ID
   `c7a9c69b3f604cc4b4c37123ab93e472`，Ubuntu 26.04 ARM64，running
@@ -156,7 +160,7 @@ AppServer deploy 不等于 live cleanup，也不把任何既有 Gate D 授权扩
 | `bash codex/tests/test-install-host-role.sh` | PASS | 仅安装 guard/schema/catalog/example；重复执行通过；不创建 live profile、Secret、service、timer 或 deployment |
 | changed shell `bash -n` | PASS | `codex/tools/verify-host-role.sh`、`codex/install-host-role.sh` 及新增/修改 tests 均通过 |
 | ShellCheck | PASS | 所有本 Change 新增或修改的 shell 文件通过 |
-| `bash codex/tests/smoke.sh` | PASS | 实现后、文档后、blocker、跨仓库 handoff、merge evidence、Gate B/C/D 与 SFM PR/CI/merge/deploy/pre-Gate evidence 记录后运行；累计十二次均为 105 项 Python tests 及全部 shell/static smoke 通过，最后一次覆盖 PR #87 merge、#347/#348、current-run finalizer 与 live Gate 未执行边界 |
+| `bash codex/tests/smoke.sh` | PASS | 实现后、文档后、blocker、跨仓库 handoff、merge evidence、Gate B/C/D 与 SFM PR/CI/merge/deploy/live Gate evidence 记录后运行；累计十三次均为 105 项 Python tests 及全部 shell/static smoke 通过，最后一次覆盖精确 TERM-only cleanup、15 个 DB 删除、post-state 与授权边界 |
 | documentation state review | PASS | README、01/02/06/07/09/12 与 onboarding 已区分 current `scm-ci`、AppServer roles、legacy runtime 和待 Gate 清理；未修改本次运行遵循的 `AGENTS.md` |
 | `gitea-ci` baseline inventory | PASS（第 1 步只读） | Gitea/runner/Verdaccio/Mailpit/PostgreSQL/Redis/Nginx/legacy app listeners、systemd/timers、DB 脱敏元数据、artifact/目录引用和 health 已盘点；不等同于第 10 步两轮 pre-delete inventory |
 | `rsdesign-new` contract conflict resolution | PASS | 用户确认 #21 优先；live #13 title/body 已改为 AppServer migration；`change/13` 用 additive commits 删除旧 auto-restore source，历史未改写 |
@@ -180,7 +184,8 @@ AppServer deploy 不等于 live cleanup，也不把任何既有 Gate D 授权扩
 | application final verification PR #15 | PASS human merge | final head `dbe483d...` required run/job #344 completed/success in 50s；用户人工合并为 `480dd7d...`，Issue #13 closed，final head ancestry PASS；未自动合并 |
 | SFM smoke cleanup candidate/merge/deploy | PASS human merge | 正式 Issue #86/change/86/PR #87；success/failure/TERM/INT process-group、bounded KILL、unrelated control、exact DB/fail-closed 与两个 always-finalizer 回归均 PASS；bash-n/ShellCheck、platform suite、148 files/949 tests、build、required Node 22 #346 全部 PASS。用户人工 merge `579282d...`；main CI #347、deploy #348 PASS，Issue closed+deployed，AppServer exact current/PID cwd/3202 health PASS；未自动合并 |
 | SFM current-run finalizer live proof | PASS | active deploy 时只读观察到 `deploy-348.db`；job 终态后 `ci-347`/`deploy-348` 均 absent，历史清单精确回到 15 个，证明 merged `if: always()` finalizer 生效 |
-| SFM live 3212/history DB pre-Gate | PASS / execution NOT RUN | 3212 仍为 PID `2487`、PGID `2464`，组内仅该 PID；PPID=1、UID/GID 999/986、deleted cwd/log/ci-87 DB、cgroup=act_runner。3212 无 established connection，Nginx/systemd 无引用；15 个 DB 共 4,546,560 bytes且无人打开，均为 workflow 可重建的 run-specific seed/test DB。runner/Gitea active；尚未取得本应用 live Gate，零 stop/delete |
+| SFM live 3212/history DB Gate | PASS | 用户明确授权本应用 live cleanup。第一次 mutation precheck 因过窄的 cwd 名称谓词 fail closed，零 signal/delete；以实时完整路径 `/opt/act-runner/.cache/act/f08f8d2d361cee6d/hostexecutor/sfm-board (deleted)` 重新核对后，host/machine ID、唯一 PID `2487`/PGID `2464`/组成员、PPID=1、UID/GID 999/986、cgroup、Node exe、deleted log/ci-87 DB、零连接、15 个精确 DB（4,546,560 bytes、无人打开）及 runner/Gitea 全部 PASS。仅向 `-2464` 发送 `TERM`，第 2 次检查前组已退出，`KILL` 未使用；只以 15 个精确路径执行非递归删除 |
+| SFM live Gate post-state/unrelated checks | PASS | PID `2487`、PGID `2464`、3212、旧 deleted FD、15 个精确路径及其它 SFM run DB 均 absent；runner/Gitea active、Gitea health PASS。AppServer `current` 仍为 merge SHA，3202 仍为 PID `287949`，实际共享 DB `/opt/sfm-board/shared/db/sfm-board.db` 为 368,640 bytes、`benque:benque`、mode 640，外部 health/database ok。AppServer、gitea-ci、prod-sim 均仍 running；未操作任何 VM |
 | MyApp/Redis/Nginx/artifact cleanup | NOT RUN | 未获逐项 Gate，未停止服务、未删除 DB/目录/制品 |
 | artifact retention implementation/dry-run | NOT RUN | 按计划顺序尚未进入第 9 步 |
 | `prod-sim` pre-delete two-round inventory | NOT RUN | 按计划顺序尚未进入第 10 步；第 1 步 identity baseline 不满足 AC-10 |
@@ -196,15 +201,15 @@ AppServer deploy 不等于 live cleanup，也不把任何既有 Gate D 授权扩
 | AC-3 | PASS | production profile/identity 路径固定；owner/mode/parent/hostname/machine ID 检查完整；调用方无 profile/identity override；输出脱敏测试通过 |
 | AC-4 | PASS | 指定平台文档与 onboarding 已明确 SCM/CI 与 AppServer 分离，并把同机 runtime 标为 legacy/pending Gate |
 | AC-5 | PASS complete | prerequisite/final PR CI与人工 merge、exact artifact/readiness/rollback、Gate C/D 与 post-check 全部 PASS；final merge SHA `480dd7d...`、Issue #13 closed，旧 writer/8091 absent，AppServer exact current/唯一 PID/cwd、direct/external health 与 recovery baseline 均已验证 |
-| AC-6 | BLOCKED live Gate execution | Issue #86/change/86/PR #87、required CI、人工 merge、main CI/deploy、current-run finalizer 与 live pre-Gate dependency/rebuild checks 均 PASS；尚待本应用独立 live Gate 授权后执行 3212/历史 DB cleanup 与 post-check |
+| AC-6 | PASS complete | Issue #86/change/86/PR #87、required CI、人工 merge、main CI/deploy、current-run finalizer 与 live dependency/rebuild checks 均 PASS；独立授权后精确 `TERM` PGID `2464`（无需 `KILL`）并删除 15 个历史 DB，success/failure/TERM/INT fixtures、current-run finalizer及 live post-state 均无进程/端口/DB/cwd 残留 |
 | AC-7 | NOT RUN | 未进入 MyApp inventory/backup/restore 与删除 Gate |
 | AC-8 | NOT RUN | 已有第 1 步 baseline，但尚无收口前后成对验证 |
 | AC-9 | NOT RUN | retention tool/dry-run 与 Redis/Nginx predicate 尚未实施 |
 | AC-10 | NOT RUN | 尚未执行两轮 pre-delete inventory 与完整 dependency/unique-data/rebuild Gate |
 | AC-11 | NOT RUN | 未执行任何 VM 删除；`gitea-ci`、AppServer 和其它 VM 均未删除 |
 | AC-12 | PASS | post-Gate D 应用与 SFM candidate bash-n/ShellCheck/定向/full/build、SFM Node 22 required CI 与平台 bash-n/ShellCheck/定向 tests/完整 smoke 全部通过；live allow/deny/幂等、故意 health failure rollback、process-tree cancellation 与 Gate C/D post-state checks 均通过 |
-| AC-13 | BLOCKED later steps | 本文件已记录 rsdesign 与 SFM 最终 merge SHA、CI/deploy及 SFM pre-Gate；SFM live execution、MyApp/retention/VM live Gates、platform final head/CI/PR 尚不存在 |
-| AC-14 | PASS（截至阻塞点） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C 及本应用整体 Gate D 均有明确授权。Gate D 只清理盘点后的 `rsdesign-new` 过时对象并保留权威 artifact/active target/latest recovery；未执行其它应用 Gate、平台 retention apply、生产或任何 VM 操作，未自动合并 |
+| AC-13 | BLOCKED later steps | 本文件已记录 rsdesign 与 SFM 最终 merge SHA、CI/deploy及 SFM live Gate；MyApp/retention/VM live Gates、platform final head/CI/PR 尚不存在 |
+| AC-14 | PASS（截至当前步骤） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C、rsdesign Gate D 与 SFM 独立 live Gate 均有明确授权。各 Gate 只处理盘点后的精确对象；未执行 MyApp Gate、平台 retention apply、生产或任何 VM 操作，未自动合并 |
 
 ## 重复部署/执行
 
@@ -220,8 +225,8 @@ AppServer deploy 不等于 live cleanup，也不把任何既有 Gate D 授权扩
   DB checksum/quick_check、external health 与无关服务检查替代重复 destructive action。
 - SFM candidate：success、health failure、TERM 与 INT 四类 fixture 均重复验证精确 group 清理；
   current-run DB helper 对 `ci`/`deploy` 删除 test-owned exact path，对 wrong URL/run ID/kind 均
-  fail closed。merge 后 #347/#348 current-run DB 均 absent。未对 live PID 或历史 DB 重复/试探
-  destructive action。
+  fail closed。merge 后 #347/#348 current-run DB 均 absent。live Gate 只执行一次：`TERM` 后第 2 次
+  bounded 检查已无 PGID，因此未发送 `KILL`；15 个精确历史路径只删除一次，随后以 absent 读回。
 - `gitea-ci` inventory：第 1 步 baseline PASS；AC-10 关联的两轮 inventory NOT RUN。
 - `prod-sim` 删除只允许执行一次；当前 NOT RUN，未来以删除前双读和删除后双读替代重复
   destructive action。
@@ -254,7 +259,7 @@ AppServer deploy 不等于 live cleanup，也不把任何既有 Gate D 授权扩
 | `rsdesign-new` exact legacy cleanup | 用户明确整体授权本应用过时对象，无需逐对象再次等待；不扩大到其它应用/VM | PASS，pre-delete ledger、exact cleanup 与 post-check 完成 |
 | `rsdesign-new` authoritative artifact/active target/latest recovery | Gate D 明确保留边界 | PASS，均保留且 checksum/integrity/health 可读 |
 | SFM repository implementation/PR/deploy | Issue #86 `approved` 合同内；repo change/PR 独立治理 | PASS，PR #87 final head CI、人工 merge SHA、main CI/deploy、Issue closed+deployed 与 exact AppServer current/health 均已读回；未自动合并 |
-| SFM process stop/history DB delete | merge 后 dependency/unique-data/rebuild prechecks 已 PASS；仍需本应用独立 live Gate | NOT RUN |
+| SFM process stop/history DB delete | 用户在精确范围说明后明确“授权清理”；不扩大到其它对象 | PASS，PGID `2464` TERM-only 退出，15 个精确历史 run DB 删除，post-state 与无关服务/VM 检查通过 |
 | MyApp service/DB/directory removal | 仍需逐对象 live Gate | NOT RUN |
 | artifact/Redis/Nginx apply | 仍需 predicate、dry-run 与 live Gate | NOT RUN |
 | exact `prod-sim` delete | 用户已授权，但仅在 AC-10 全部通过后有效 | NOT RUN |
@@ -268,15 +273,18 @@ AppServer deploy 不等于 live cleanup，也不把任何既有 Gate D 授权扩
   不足失败。后检查未产生目录或 daemon，未停止、启动或更改现有进程。
 - `orb pull` 对绝对 `/opt/artifacts/...` source 返回 source-relative path error，未复制任何文件；
   随后按官方文档改用 `/mnt/mac` mode 700 staging，source/Mac/target checksum 一致。
+- SFM live Gate 第一次 mutation precheck 将 cwd 错误限定为包含 `SFMDigitalBoard`，而实时路径
+  使用 `hostexecutor/sfm-board (deleted)`；命令在发送 signal/delete 前 fail closed。改为完整实时
+  路径后全部条件通过。post-check 首次把共享 DB 元数据路径写成不存在的
+  `/opt/sfm-board/shared/sfm-board.db`，只读 `stat` 失败；实际路径
+  `/opt/sfm-board/shared/db/sfm-board.db` 随后以 metadata-only 检查通过，health 全程为 ok。
 
 ## 当前 blocker 与恢复条件
 
-第 6 步已以 merge SHA `480dd7d...` 收口。第 7 步 repository、CI、人工 merge、main CI/deploy 与
-live pre-Gate 已完成：PR #87 merge SHA `579282d...`，Issue closed+deployed，AppServer exact
-current/3202 health PASS；PID `2487` 所在 PGID `2464` 仅含自身，3212 无连接/配置依赖，15 个
-历史 DB 无打开引用且可由 workflow 重建。当前 blocker 是本应用独立 live Gate 授权；在明确授权
-前不得向 `-2464` 发信号或删除 15 个精确路径，不得把 `rsdesign-new` Gate D 授权扩展过来，也
-不得提前进入第 8 步。
+第 6 步已以 merge SHA `480dd7d...` 收口。第 7 步也已完整收口：PR #87 merge SHA
+`579282d...`、Issue closed+deployed、AppServer exact current/3202 health、current-run finalizer、
+独立授权的 live PGID/历史 DB cleanup 与 post-state 全部 PASS。下一顺序是第 8 步 MyApp Notes
+inventory、数据库/目录恢复证据与独立 Gate；SFM 授权不得用于 MyApp mutation。
 
 ## 遗留风险与未完成项
 
@@ -290,6 +298,6 @@ current/3202 health PASS；PID `2487` 所在 PGID `2464` 仅含自身，3212 无
 - 除已完成的 `rsdesign-new` Gate D 与精确 `prod-sim` 条件授权外，其它 destructive action 仍需
   对应应用/平台 Gate 明确授权。
 - `prod-sim` 授权不等于 AC-10 已通过；当前不得删除。
-- SFMDigitalBoard 第 7 步 repo/PR/CI/人工 merge/AppServer deploy 与 live pre-Gate 已 PASS；3212/
-  历史 DB execution 仍为 `BLOCKED/NOT RUN`。平台后续步骤与所有未执行 live Gate 仍为
-  `NOT RUN`；已验证 deploy 不等于 live cleanup 或平台清理完成。
+- SFMDigitalBoard 第 7 步 repo/PR/CI/人工 merge/AppServer deploy、live Gate 与 post-state 已
+  PASS；平台后续步骤与所有未执行 live Gate 仍为 `NOT RUN`。SFM cleanup 不等于 MyApp、
+  retention、VM cleanup 或平台整体完成。
