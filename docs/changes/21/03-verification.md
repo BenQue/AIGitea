@@ -82,13 +82,15 @@ Verdaccio、HSDB、active units 与正式应用 runtime 无 live consumer。已�
 `.deb`，RDB/package/checksum 验证 PASS。APT purge dry-run 只移除 `redis-server`/`redis-tools`，不
 autoremove。Nginx 因 `12` 分册明确分配平台 Gitea proxy 批准职责，predicate 结果为 KEEP；Redis
 随后获用户独立 live Gate 授权。完整 mutation precheck 再次证明 zero-key/connection/reference、
-exact package/directory identity、recovery 与 purge simulation PASS；仅
-`systemctl disable --now redis-server.service` 已成功，Redis 当前 inactive/disabled、6379 absent。
-首次 purge 在取得 dpkg lock 前 fail closed，锁随后自然释放，未 kill 进程或删除锁。继续前读回
-官方 `redis-tools` postrm（与 recovery `.deb` SHA 一致）发现 `purge` 会执行 `userdel redis` 并
-递归删除未授权的 `/var/log/redis`，同时绕过两个已授权目录的逐对象 identity Gate。两包与
-`/etc/redis`、`/var/lib/redis` 尚未删除，Redis user/group、log、依赖、APT cache 与 recovery
-全部保留；按合同冲突停止等待新决定。
+exact package/directory identity、recovery 与 purge simulation PASS；先仅
+`systemctl disable --now redis-server.service`，6379 即 absent。首次 purge 在取得 dpkg lock 前
+fail closed，锁随后自然释放，未 kill 进程或删除锁。官方 `redis-tools` postrm（与 recovery
+`.deb` SHA 一致）会删除 Redis user、config/data/log；用户随后明确“直接清除，未来需要再安装”，
+授权这一标准 package purge 范围。最终再次按 exact 包、config/data/log、empty RDB、recovery/cache、
+lock 与 shared-service predicate 通过后，只 purge `redis-server`/`redis-tools`，没有运行
+`autoremove`。Redis package/unit/user/group、`/etc/redis`、`/var/lib/redis`、`/var/log/redis` 和
+6379 全部 absent；`libjemalloc2`/`liblzf1`、APT cache、root-only recovery、Gitea/runner/Nginx/
+PostgreSQL/Verdaccio/Mailpit、AppServer 两应用及三台 VM 均保持健康。
 
 ## 环境与版本
 
@@ -195,14 +197,16 @@ exact package/directory identity、recovery 与 purge simulation PASS；仅
   `f226c4390bb2fb17cba709035316c34e44defd3a8ee8bf0822bf2e99617e63a9`；server/tools `.deb`
   分别为 `e2116ed87d02728956ec3509522dd2c7037490a6d4f97e7af5e3e78e307a3a95`、
   `f6a4a67b649583a6d90a58e23e047586b89400cfc2d22ea964617453d2049f20`。
-- Redis partial live Gate state：`redis-server.service` inactive/disabled，6379 absent；两包仍为
-  `5:8.0.5-1` installed，`/etc/redis/redis.conf` 保持原 hash。graceful stop 将 live empty RDB
-  重写为 SHA-256 `4ad87cecc0c865481e875dcc482a81a7c7016042e4acb2a8951186a4c0dbbc23`；
-  `redis-check-rdb` 证明 checksum OK、0 keys/0 expires，recovery 中原 empty RDB hash 不变。
+- Redis live Gate result：`redis-server`/`redis-tools` packages、service unit、Redis user/group、
+  `/etc/redis`、`/var/lib/redis`、`/var/log/redis` 与 6379 listener/connection 全部 absent。
+  graceful stop 曾将 live empty RDB 重写为 SHA-256
+  `4ad87cecc0c865481e875dcc482a81a7c7016042e4acb2a8951186a4c0dbbc23`；`redis-check-rdb` 证明
+  checksum OK、0 keys/0 expires，recovery 中原 empty RDB hash 不变。
 - `/var/lib/dpkg/info/redis-tools.postrm` 为 root-owned mode 755、SHA-256
   `201e00280722f1558e8c12b282e2f6d83e0a2d42cea45ad400f875ffd9df1566`，与 recovery `.deb`
-  内 postrm 一致；其 purge branch 会删除 Redis user 与 `/var/log/redis`。log 目录含 3 个未读
-  content 的历史 log、零 open refs，未纳入原 Gate，故未执行 purge。
+  内 postrm 一致；其 purge branch 删除 Redis user 与 `/var/log/redis`。用户随后明确接受直接
+  清除；重盘点后的 log 目录仅含 4 个 Redis log、零 open refs，package purge 后目录与 user/group
+  均 absent。APT cache 与 recovery bundle checksum 保持不变。
 
 ## 执行结果
 
@@ -217,7 +221,7 @@ exact package/directory identity、recovery 与 purge simulation PASS；仅
 | `bash codex/tests/test-install-host-role.sh` | PASS | 仅安装 guard/schema/catalog/example；重复执行通过；不创建 live profile、Secret、service、timer 或 deployment |
 | changed shell `bash -n` | PASS | `codex/tools/verify-host-role.sh`、`codex/install-host-role.sh` 及新增/修改 tests 均通过 |
 | ShellCheck | PASS | 所有本 Change 新增或修改的 shell 文件通过 |
-| `bash codex/tests/smoke.sh` | PASS | 实现后、文档后、blocker、跨仓库 handoff、merge evidence、Gate B/C/D、SFM、MyApp 与 Redis live Gate evidence 记录后运行；累计十七次均为 105 项 Python tests 及全部 shell/static smoke 通过，最后一次覆盖 Redis partial stop、official postrm contract blocker、paired state 与授权边界 |
+| `bash codex/tests/smoke.sh` | PASS | 实现后、文档后、blocker、跨仓库 handoff、merge evidence、Gate B/C/D、SFM、MyApp 与 Redis live Gate evidence 记录后运行；累计十八次均为 105 项 Python tests 及全部 shell/static smoke 通过，最后一次覆盖 Redis final purge、postrm authorization、retained cache/recovery/dependencies、paired state 与授权边界 |
 | documentation state review | PASS | README、01/02/06/07/09/12 与 onboarding 已区分 current `scm-ci`、AppServer roles、legacy runtime 和待 Gate 清理；未修改本次运行遵循的 `AGENTS.md` |
 | `gitea-ci` baseline inventory | PASS（第 1 步只读） | Gitea/runner/Verdaccio/Mailpit/PostgreSQL/Redis/Nginx/legacy app listeners、systemd/timers、DB 脱敏元数据、artifact/目录引用和 health 已盘点；不等同于第 10 步两轮 pre-delete inventory |
 | `rsdesign-new` contract conflict resolution | PASS | 用户确认 #21 优先；live #13 title/body 已改为 AppServer migration；`change/13` 用 additive commits 删除旧 auto-restore source，历史未改写 |
@@ -251,7 +255,7 @@ exact package/directory identity、recovery 与 purge simulation PASS；仅
 | MyApp post-state/cross-service checks | PASS | 全部 exact targets 与 deleted cwd/FD absent，mode-700 recovery bundle 及 3 个核心 checksum不变；Gitea/runner/Nginx/PostgreSQL/Redis active，Gitea health、Nginx default、Verdaccio、Mailpit、rsdesign 3100、SFM 3202 均与 pre-state 一致；AppServer、gitea-ci、prod-sim running |
 | Redis consumer/data predicate | PASS pre-Gate | Context7 Redis docs + redis-cli 8.0.5 help；INFO keyspace 无 DB entry，DB0–15 DBSIZE=0、SCAN=0、probe 后 6379 established=0、AOF=0、RDB 88 bytes。Gitea config、Verdaccio config、HSDB code/Secret-ref boolean、active units均无 Redis ref；rsdesign/SFM runtime 无 ref。MyApp main 仅未使用 `ioredis` dependency，live runtime 已退役且 loopback Redis 不可由 AppServer 消费 |
 | Redis recovery/purge dry-run | PASS | config 无 active Secret/include；exact config/RDB 与 cached Redis 8.0.5 arm64 `.deb` 已复制到 root-only bundle，`redis-check-rdb`、`dpkg-deb` metadata/checksum PASS。`apt-get -s purge redis-server redis-tools` 只计划移除 2 packages；`libjemalloc2`/`liblzf1` 仅提示可 autoremove，明确不执行 |
-| Redis live stop/purge/config+data removal | PARTIAL / BLOCKED contract conflict | 用户已明确独立授权。完整 precheck PASS 后 only `systemctl disable --now redis-server.service` 成功，当前 inactive/disabled、6379 absent。首次 purge 因 concurrent dpkg lock 在 mutation 前退出；锁自然释放后发现 official `redis-tools` postrm 会 `userdel redis` 并递归删除未授权 `/var/log/redis`，因此两包与 config/data dirs 保留，未运行 autoremove、未修改 maintainer script |
+| Redis live stop/purge/config+data/log/user removal | PASS | 用户最终明确授权直接清除 Redis。完整 precheck、empty RDB offline check、exact postrm/package/cache/recovery/lock/shared-service predicates 全部通过；只 `apt-get purge -y redis-server redis-tools`，0 upgrade/0 install/2 remove，未运行 autoremove。packages/unit/user/group、config/data/log dirs、6379 listener/connections 全 absent；`libjemalloc2`/`liblzf1`、APT cache 与 recovery checksum均保留，Gitea/runner/Nginx/PostgreSQL/Mailpit及两套 AppServer health PASS |
 | Nginx predicate | PASS KEEP | MyApp vhost 删除后只剩 Ubuntu default static vhost/port 80；但 versioned `12-Linux-GitHub-Gitea-双服务器自动部署方案.md` 明确把平台 Nginx proxy 分配为 Gitea 批准职责。按 AC-9 shared-reference predicate 保留 Nginx service/package/config，不申请 stop/remove |
 | artifact retention implementation/dry-run | NOT RUN | 按计划顺序尚未进入第 9 步 |
 | `prod-sim` pre-delete two-round inventory | NOT RUN | 按计划顺序尚未进入第 10 步；第 1 步 identity baseline 不满足 AC-10 |
@@ -276,17 +280,18 @@ exact package/directory identity、recovery 与 purge simulation PASS；仅
 | `/opt/cleanup-backups/issue-21/myapp/20260803T144609Z` | root-owned mode 700；DB/artifact/vhost/inventory/manifests 均 mode 600 | **PASS kept**；3 个核心 checksum post-state 不变 |
 | Nginx service/default vhost、Redis、PostgreSQL roles/其它 DB、其它 artifacts、其它 runtime/VM | 非 MyApp Gate 对象或共享对象 | **PASS kept / not mutated** |
 
-## Redis live Gate 精确对象账本（已授权，partial / contract blocker）
+## Redis live Gate 精确对象账本（已授权并执行）
 
 | Exact object | Pre-Gate evidence | Current result / 恢复边界 |
 |---|---|---|
-| `redis-server.service` / loopback 6379 | active/enabled，PID 257；0 key、0 post-probe connection、无 live consumer | **PASS disabled/stopped**；inactive/disabled、6379 absent；未 stop 其它 service |
-| packages `redis-server`、`redis-tools` | exact `5:8.0.5-1` arm64；APT simulation 只移除这 2 个 | **BLOCKED kept installed**；official postrm 的额外删除与 retention boundary 冲突，purge 未开始；禁止 `autoremove` |
-| `/etc/redis` | 唯一文件 `redis.conf`；config root hash 已保存，无 active Secret/include | **KEPT**；mode/hash 不变，未递归删除 |
-| `/var/lib/redis` | 唯一文件为 88-byte empty RDB，DB0–15 均 0 key | **KEPT**；stop 后重写的 RDB offline check=0 keys/0 expires；原 empty RDB recovery 保留 |
-| `/var/log/redis` | 目录 + 3 个 historical log，零 open refs；内容未读 | **BLOCKER / KEPT**；不在原 Gate，而 official postrm 会递归删除，不能据 package purge 授权扩大 |
+| `redis-server.service` / loopback 6379 | active/enabled，PID 257；0 key、0 post-probe connection、无 live consumer | **PASS absent**；先 exact disabled/stopped，package purge 后 unit `not-found`、6379/source+destination connections均 absent；未 stop 其它 service |
+| packages `redis-server`、`redis-tools` | exact `5:8.0.5-1` arm64；APT simulation 只移除这 2 个 | **PASS purged**；用户确认直接清除，only two packages removed，未执行 `autoremove` |
+| `/etc/redis` | 唯一文件 `redis.conf`；config root hash 已保存，无 active Secret/include | **PASS absent**；official postrm purge 清除，mode-600 config recovery 保留 |
+| `/var/lib/redis` | 唯一文件为 88-byte empty RDB，DB0–15 均 0 key | **PASS absent**；stop 后 RDB offline check=0 keys/0 expires；原 empty RDB recovery 保留 |
+| `/var/log/redis` | 重盘点为 4 个 Redis log，零 open refs；内容未读 | **PASS absent**；用户明确接受 package postrm direct cleanup |
 | `/opt/cleanup-backups/issue-21/redis/20260803T151307Z` | root mode 700；config/RDB/two `.deb`/inventory 均 mode 600 | **PASS kept**；四个核心 checksum 不变 |
-| Redis system user/group、apt cache、`libjemalloc2`/`liblzf1`、Nginx、Gitea/runner/Verdaccio/Mailpit/PostgreSQL/Node/HSDB、应用 runtime/artifacts、VM | 明确保留或非 Redis Gate 对象 | **PASS kept / not mutated** |
+| Redis user/group | `redis:101:104`、zero application/connection/reference | **PASS absent**；official postrm cleanup，用户明确接受 direct removal |
+| APT cache、`libjemalloc2`/`liblzf1`、Nginx、Gitea/runner/Verdaccio/Mailpit/PostgreSQL/Node/HSDB、应用 runtime/artifacts、VM | 明确保留或非 Redis Gate 对象 | **PASS kept / not mutated** |
 
 ## Acceptance criteria 结果
 
@@ -300,12 +305,12 @@ exact package/directory identity、recovery 与 purge simulation PASS；仅
 | AC-6 | PASS complete | Issue #86/change/86/PR #87、required CI、人工 merge、main CI/deploy、current-run finalizer 与 live dependency/rebuild checks 均 PASS；独立授权后精确 `TERM` PGID `2464`（无需 `KILL`）并删除 15 个历史 DB，success/failure/TERM/INT fixtures、current-run finalizer及 live post-state 均无进程/端口/DB/cwd 残留 |
 | AC-7 | PASS complete | 正式 repo/current ancestry、vhost/runtime/DB/artifact inventory、零连接/引用和 root-only per-object recovery proof 全部 PASS；独立授权后 exact cleanup 与 post-state PASS。`.env` 未读/未备份的不可恢复边界由用户明确接受 |
 | AC-8 | PASS paired checks | MyApp mutation 前后 Gitea/API+DB、act_runner、Verdaccio、Mailpit、`/opt/node22`、`/opt/hsdb-ci`、`hsdb_ci`、Nginx default、Redis、AppServer rsdesign/SFM 与 VM 状态均成对通过；保留 artifacts/recovery bundle checksum 不变 |
-| AC-9 | BLOCKED Redis postrm conflict + retention | Redis zero-data/connection/reference、recovery 与 exact purge simulation PASS，service 已授权 disabled/stopped；package purge 因 official postrm 会删除 Redis user 与未授权 `/var/log/redis` 而 fail closed。Nginx predicate=KEEP；artifact retention tool/dry-run 尚未实施 |
+| AC-9 | BLOCKED retention | Redis zero-data/connection/reference、recovery、exact purge simulation与最终 live purge/post-state均 PASS；Nginx predicate=KEEP。artifact retention tool/dry-run 尚未实施 |
 | AC-10 | NOT RUN | 尚未执行两轮 pre-delete inventory 与完整 dependency/unique-data/rebuild Gate |
 | AC-11 | NOT RUN | 未执行任何 VM 删除；`gitea-ci`、AppServer 和其它 VM 均未删除 |
 | AC-12 | PASS | post-Gate D 应用与 SFM candidate bash-n/ShellCheck/定向/full/build、SFM Node 22 required CI 与平台 bash-n/ShellCheck/定向 tests/完整 smoke 全部通过；live allow/deny/幂等、故意 health failure rollback、process-tree cancellation 与 Gate C/D post-state checks 均通过 |
-| AC-13 | BLOCKED later steps | 本文件已记录 rsdesign/SFM/MyApp live Gates及 Redis partial live Gate；Redis package/dir cleanup、retention/VM Gates、platform final head/CI/PR 尚不存在 |
-| AC-14 | PASS（截至当前步骤） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C、rsdesign Gate D、SFM、MyApp 与 Redis live Gate 均有明确授权。Redis 仅执行无冲突的 exact service stop/disable；发现 postrm 额外删除后 fail closed。未扩大到 log/user、平台 retention、生产或任何 VM，未自动合并 |
+| AC-13 | BLOCKED later steps | 本文件已记录 rsdesign/SFM/MyApp/Redis live Gates；retention/VM Gates、platform final head/CI/PR 尚不存在 |
+| AC-14 | PASS（截至当前步骤） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C、rsdesign Gate D、SFM、MyApp 与 Redis live Gate 均有明确授权。Redis package postrm 的 config/data/log/user removal 已由用户进一步明确接受；未扩大到 retention、生产或任何 VM，未自动合并 |
 
 ## 重复部署/执行
 
@@ -326,9 +331,10 @@ exact package/directory identity、recovery 与 purge simulation PASS；仅
 - MyApp live Gate 只执行一次：vhost remove/test/reload、无 force database drop、exact runtime
   recursive delete 与 7-path artifact delete 均一次成功；以 absent、paired health 和 recovery
   checksum 读回替代重复 destructive action。
-- Redis live Gate 的完整 precheck 重跑后仅执行一次 service disable/stop；purge 首次在 dpkg lock
-  前退出，后续 resume 均在新 mutation 前 fail closed。没有重复 stop、没有 package/dir/log/user
-  delete；当前以 inactive/disabled、6379 absent 与 kept-object hashes 读回状态。
+- Redis live Gate 的完整 precheck 重跑后仅执行一次 service disable/stop；首次 purge 在 dpkg lock
+  前退出，随后在用户明确 direct cleanup 后以新一轮 exact precheck 执行一次 package purge。以
+  package/unit/user/group/config/data/log/6379 absent 与 kept cache/recovery/dependency hashes 读回，
+  不重复 purge 或运行 `autoremove`。
 - `gitea-ci` inventory：第 1 步 baseline PASS；AC-10 关联的两轮 inventory NOT RUN。
 - `prod-sim` 删除只允许执行一次；当前 NOT RUN，未来以删除前双读和删除后双读替代重复
   destructive action。
@@ -348,8 +354,11 @@ exact package/directory identity、recovery 与 purge simulation PASS；仅
   control process 存活。首次 sandbox listener 因 `EPERM` 未建立，同一命令在 host context 得到
   真实红/绿结果，记为 `SANDBOX_PATH_BLOCKED`。
 - Redis purge concurrent lock：PASS expected fail closed；service stop 已完成，但 APT 在删除前退出，
-  lock 自然释放。official postrm contract conflict：PASS expected fail closed；packages/dirs/log/user
-  均保留，等待人选择新的受控执行合同。
+  lock 自然释放。official postrm contract conflict：PASS expected fail closed；用户随后明确授权直接
+  清除 Redis 后，完整新 precheck 与 standard package purge PASS。
+- Redis final purge precheck 首次发现停机后 logrotate 将 3 个历史 log 重排为 4 个 Redis-only log；
+  zero open-ref metadata 重盘点后重跑。一次 post-check `ss` 因嵌套引号误解析，零 mutation；无
+  嵌套引号的 listener/source/destination recheck 均为空。
 - `prod-sim` identity/引用不满足：NOT RUN；预期停止删除。
 - `prod-sim` 删除后整机原地 rollback：不可能；恢复路径只能依据版本化最小基线重新创建。
 
@@ -368,7 +377,7 @@ exact package/directory identity、recovery 与 purge simulation PASS；仅
 | MyApp inventory/DB+runtime+vhost recovery | Issue #21 approved 合同内的非破坏性 pre-Gate | PASS，root-only recovery bundle 已保存并真实恢复验证；原 runtime/vhost/DB/artifact 未改 |
 | MyApp vhost/runtime/DB/7 artifacts | 用户明确“授权同意”，并接受 `.env` 不可恢复丢弃；不扩大到 Redis/global Nginx/其它对象 | PASS，exact cleanup、recovery keep 与 paired post-state 全部通过 |
 | Redis/Nginx predicate + recovery | Issue #21 approved 合同内的只读/非破坏性 pre-Gate | PASS，Redis removal candidate、Nginx KEEP；root-only Redis rollback bundle 与 purge dry-run 完成 |
-| Redis stop/purge/config+data dirs | 用户已独立授权，且明确要求保留 user/group、APT cache、依赖与其它目录 | PARTIAL：service disabled/stopped；purge/config/data delete 因 official postrm 额外删除 user + `/var/log/redis` 而 BLOCKED |
+| Redis stop/purge/config+data/log/user | 用户明确“Redis目前没有应用使用，请直接清除。以后有需要再安装” | PASS：仅 purge `redis-server`/`redis-tools`；postrm 清除 Redis user/config/data/log，保留 APT cache、recovery、`libjemalloc2`/`liblzf1`与其它服务/VM |
 | Nginx stop/remove | approved Gitea proxy responsibility blocks removal | KEEP / NOT AUTHORIZED |
 | artifact retention apply | 仍需 implementation、dry-run 与 live Gate | NOT RUN |
 | exact `prod-sim` delete | 用户已授权，但仅在 AC-10 全部通过后有效 | NOT RUN |
@@ -400,8 +409,8 @@ exact package/directory identity、recovery 与 purge simulation PASS；仅
   graceful stop 重写 88-byte empty RDB；新 hash 经 offline check 证明 0 keys/0 expires，原 recovery
   hash 不变。
 - partial resume 在 mutation 前识别 official `redis-tools` postrm 会 `userdel redis` 并
-  `rm -rf /var/lib/redis /var/log/redis /etc/redis`。因 user 与 `/var/log/redis` 不在授权删除范围，
-  未修改 dpkg maintainer script、未 purge、未删除任何目录。
+  `rm -rf /var/lib/redis /var/log/redis /etc/redis`。初始合同范围不足时未修改 dpkg maintainer
+  script、未 purge、未删除任何目录；用户随后明确授权 direct cleanup 后才执行标准 purge。
 
 ## 当前 blocker 与恢复条件
 
@@ -410,10 +419,9 @@ exact package/directory identity、recovery 与 purge simulation PASS；仅
 独立授权的 live PGID/历史 DB cleanup 与 post-state 全部 PASS。第 8 步 MyApp Notes inventory、
 数据库/目录/vhost recovery proof、独立 live Gate 与 paired post-state 也已完成。Redis/Nginx
 predicate 随后完成：Nginx 因批准的 Gitea proxy role 为 KEEP；Redis 满足 remove predicate 且
-recovery/dry-run PASS。用户已授权 Redis live Gate；service 当前 inactive/disabled、6379 absent。
-当前 blocker 是 official package postrm 与 retention contract 冲突：继续 purge 会额外删除 Redis
-user 与未授权 `/var/log/redis`。需人明确选择受控 maintainer-script override，或接受这些额外
-删除后重建/恢复；未获决定前保持两包与三个 Redis 目录不变。
+recovery/dry-run PASS。用户随后明确授权 direct cleanup；Redis package/unit/user/group/config/data/
+log/6379 的 final post-state 全部 PASS，shared services、两套 AppServer health、VM 和 recovery/
+APT cache/依赖均保持。当前下一顺序为第 9 步 artifact retention implementation/dry-run；尚未进入。
 
 ## 遗留风险与未完成项
 
@@ -433,6 +441,6 @@ user 与未授权 `/var/log/redis`。需人明确选择受控 maintainer-script 
 - MyApp recovery bundle 保留 DB/current artifact/vhost 与验证 manifests，但按 no-Secret 合同不
   包含已删除 `/opt/app-test/.env` 的内容；用户已明确接受其不可恢复。正式 repo/current artifact
   可重建非 Secret runtime，DB dump 已真实恢复验证。
-- Redis 当前 inactive/disabled、6379 absent；packages、config/data/log、user/group、依赖、APT
-  cache 与 rollback bundle 保留。official postrm 的额外删除合同冲突未解决前不得继续 purge 或
-  修改 maintainer script。Nginx 必须按批准的 Gitea proxy contract 保留。
+- Redis 已清除；可由保留的 exact cached `.deb` 与 root-only recovery bundle 在未来按需重新安装。
+  `libjemalloc2`/`liblzf1`、APT cache、其它 shared services、应用 runtime/artifacts 与 VM 未变。
+  Nginx 必须按批准的 Gitea proxy contract 保留。
