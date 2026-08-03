@@ -20,7 +20,7 @@ depends_on:
   - 23
 status: verified-local
 branch: change/22
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/25
 created: 2026-08-02
 updated: 2026-08-03
 ---
@@ -36,6 +36,9 @@ updated: 2026-08-03
 - Pre-integration candidate head：
   `change/22@8cc8a0c103756dae5b343675ba95f236ad263a92`；runtime `1a4ba61`，tests
   `4631d16`，docs/verification `0407018`、`158d244`、`8cc8a0c`
+- Architecture integration merge commit：
+  `4411e25da54343334998632c9b7f2e8754fabede`，parents 为 `8cc8a0c` 与
+  `origin/main@7021224`
 - Dependency：2026-08-03 实时回读 PR #24 已由 head
   `dec1df1f5ad4ec425630a0cc84bb3084ce608fa7` 人工合并，Issue #23 为
   `closed + completed`；hard dependency terminal gate 已满足
@@ -57,7 +60,8 @@ updated: 2026-08-03
 | `git diff --check` | PASS | 当前实现与文档无 whitespace error |
 | `PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh` | PASS | 166 项 Python tests、全部 shell mocks、双 installer 与 static smoke 通过 |
 | #23 dependency + architecture-release integration | PASS | `origin/main@7021224` 已整合；由 canonical catalog/profile/project 重新生成 NewEmaint reference lock，byte-identical 后通过 #22 strict parser；未复制 catalog |
-| Gitea PR CI | NOT RUN | PR 尚未创建 |
+| Gitea PR #25 handoff | PASS | open、mergeable、head `4411e25`、base `main`；正文含 contract 路径与真实换行 `Closes #22`；未合并 |
+| Gitea PR CI | NOT RUN | PR head 无 commit-status context、无 Actions run；aggregate `pending` 来自零 status，不代表 CI 已运行 |
 | Registry test AppServer | NOT RUN | 不在当前授权范围 |
 | offline-bundle test AppServer | NOT RUN | 不在当前授权范围 |
 | production promotion | NOT RUN | 不在当前授权范围 |
