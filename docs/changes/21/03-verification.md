@@ -41,8 +41,14 @@ Gate B 结束时 AppServer candidate 离线，旧 runtime/8091 保持健康；Is
 随后单独授权 Gate C；重新 fetch 并核对 exact SHA、Issue 标签、两端身份/runtime/DB、NGINX
 symlink 与回滚路径后，旧 writer/8091 已可逆停止，停写后的 final SQLite backup 已逐跳校验并
 激活到 AppServer。exact current/唯一 PID/cwd、direct/macOS 外部 health、DB integrity、旧端
-持续停写及无关服务检查全部 PASS。Gate D cleanup、应用 final verification PR、平台后续计划
-步骤与 `prod-sim` 删除均未执行；本结论不表示生产部署或清理完成。
+持续停写及无关服务检查全部 PASS。用户随后明确把本应用全部不需要、过时对象纳入 Gate D
+整体授权，无需逐对象再次等待批准；删除前仍完成精确对象、依赖、引用、唯一数据与可重建性
+盘点。`gitea-ci` 旧 PM2 home/unit/vhost/runtime、source snapshots、两端冗余传输副本和三份
+Gate B rollback 已清理，AppServer exact runtime、权威 artifact 与最新 Gate C recovery baseline
+保留。删除后 absent、single-writer、外部 health、DB integrity 及无关服务全部 PASS。应用 final
+verification PR #15 已创建，当前 head `512368048b55be14bd74b4f4fafd29dda173372e`、正文含
+`Closes #13`、open/未合并，required CI 尚待读回。平台第 7 步以后与 `prod-sim` 删除仍未执行；
+本结论不表示生产部署，也不把应用 Gate D 授权扩大到其它应用或任何 VM。
 
 ## 环境与版本
 
@@ -69,6 +75,11 @@ symlink 与回滚路径后，旧 writer/8091 已可逆停止，停写后的 fina
   - exact artifact：168,890,220 bytes；SHA-256
     `04911201ecd91be5e77daf3678c19e404fd773fdcf5d46f40d8ea4e455913ebd`
   - PR 正文只有 `Refs #13`，因此 live Issue #13 保持 open
+- `rsdesign-new` final verification PR：
+  `http://gitea-ci.orb.local:3000/admin/rsdesign-new/pulls/15`
+  - current head：`512368048b55be14bd74b4f4fafd29dda173372e`
+  - base：`3323ab214b4222733715cacc536905392c042b60`
+  - 正文含 `Closes #13`；open、未合并；required CI pending readback
 - 实时 Issue #21：open；标签精确包含 `type/platform`、`complexity/complex`、`approved`
 - `gitea-ci`：hostname `gitea-ci`，machine ID
   `c7a9c69b3f604cc4b4c37123ab93e472`，Ubuntu 26.04 ARM64，running
@@ -80,19 +91,22 @@ symlink 与回滚路径后，旧 writer/8091 已可逆停止，停写后的 fina
     `49033a12.../app`，source SQLite SHA-256 `095c59...eeeb`、quick_check=ok
   - Gate C post-state：old PM2 entry 保留为 stopped，`3100`/`8091` absent；原 vhost file
     checksum 不变，enabled symlink 可逆保留为 sites-available 下的 disabled symlink
-  - branch-only `pm2-gitea-runner.service` candidate 仍为 `disabled/inactive`
+  - Gate D post-state：旧 `/opt/rsdesign-test`、`/opt/act-runner/.pm2`、unit/vhost 与 source
+    snapshots 均 absent；unit readback `not-found/inactive`，3100/8091 仍 absent
 - AppServer：hostname `AppServer`，machine ID
   `149f0a0e2e1a4c1982289abeb01145d5`，running
   - 新增 `jq 1.8.1`、`libjq1`、`libonig5`，0 upgrade/0 remove；profile
     `root:benque` mode 640、role=`appserver-test`
   - `/opt/incoming`、`/opt/rsdesign-test`、无 Secret `.env`、stable scripts、exact
-    artifact、mode 600 target SQLite、release 与四份 rollback backup 已建立
+    artifact、mode 600 target SQLite、release 与 rollback backup 已建立
   - Gate B end-state：`current`、同名 PM2、`3100`/`8091` 均为空
   - Gate C post-state：`current`/release marker/唯一 PID `278336` cwd 均为
     `3323ab214b4222733715cacc536905392c042b60`；3100 direct 与
     `http://AppServer.orb.local:3100/api/health` external 均为 `status=ok`；8091 absent
   - final target SQLite 为 `benque:benque` mode 600、SHA-256 `f4e576...57d7`、
     quick_check=ok；Gate C rollback manifest 为 `20260803T022232Z-...-277996`
+  - Gate D post-state：冗余 incoming transfer files 与三份 Gate B backup absent；只保留上述
+    Gate C manifest，mode 700，`db.before` checksum/integrity PASS；active runtime/DB 不变
 - `prod-sim` baseline：name `prod-sim`，ID
   `01KX3FFXSJVYPDHZVY4MZB7CQZ`，Ubuntu `resolute` ARM64，running，磁盘约
   3.9 GB。该读取仅属于计划第 1 步 baseline，不代替 AC-10 的删除前双轮 inventory。
@@ -110,7 +124,7 @@ symlink 与回滚路径后，旧 writer/8091 已可逆停止，停写后的 fina
 | `bash codex/tests/test-install-host-role.sh` | PASS | 仅安装 guard/schema/catalog/example；重复执行通过；不创建 live profile、Secret、service、timer 或 deployment |
 | changed shell `bash -n` | PASS | `codex/tools/verify-host-role.sh`、`codex/install-host-role.sh` 及新增/修改 tests 均通过 |
 | ShellCheck | PASS | 所有本 Change 新增或修改的 shell 文件通过 |
-| `bash codex/tests/smoke.sh` | PASS | 实现后、文档后、blocker、跨仓库 handoff、merge evidence、Gate B 与 Gate C evidence 记录后运行；累计八次均为 105 项 Python tests 及全部 shell/static smoke 通过，最后一次覆盖完整 Gate C 证据 |
+| `bash codex/tests/smoke.sh` | PASS | 实现后、文档后、blocker、跨仓库 handoff、merge evidence、Gate B/C/D evidence 记录后运行；累计十次均为 105 项 Python tests 及全部 shell/static smoke 通过，最后一次覆盖完整 Gate D 与 post-Gate test 证据 |
 | documentation state review | PASS | README、01/02/06/07/09/12 与 onboarding 已区分 current `scm-ci`、AppServer roles、legacy runtime 和待 Gate 清理；未修改本次运行遵循的 `AGENTS.md` |
 | `gitea-ci` baseline inventory | PASS（第 1 步只读） | Gitea/runner/Verdaccio/Mailpit/PostgreSQL/Redis/Nginx/legacy app listeners、systemd/timers、DB 脱敏元数据、artifact/目录引用和 health 已盘点；不等同于第 10 步两轮 pre-delete inventory |
 | `rsdesign-new` contract conflict resolution | PASS | 用户确认 #21 优先；live #13 title/body 已改为 AppServer migration；`change/13` 用 additive commits 删除旧 auto-restore source，历史未改写 |
@@ -126,6 +140,12 @@ symlink 与回滚路径后，旧 writer/8091 已可逆停止，停写后的 fina
 | Gate C AppServer activation/external health | PASS | stable script 返回 `ACTIVATE_OK`；rollback manifest `20260803T022232Z-...-277996`/`db.before` 完整。`APP_VALIDATION_OK`，exact current/marker/唯一 PID `278336` cwd 一致；direct 与 macOS external 3100 均 `status=ok`，target DB mode 600/integrity PASS |
 | Gate C cross-host/unrelated post-check | PASS | single writer：old pid=0/3100/8091 absent，AppServer only 3100；Gitea health、runner、AppServer 既有 listener 与 3202 health 不受影响。old DB/release/vhost/process entry、两端 snapshots/artifacts/releases 与 4 个 rollback dirs 全部保留；Gate D/delete/VM operation NOT RUN |
 | Gate C delayed stability readback | PASS | `2026-08-03T10:29+08:00` 再次 `APP_VALIDATION_OK`，PID 仍为 `278336`，external health/target DB integrity PASS，`pm2-benque.service` active/enabled；old pid=0、3100/8091 absent、source DB checksum 不变，Gitea/runner/3202 health 均 PASS |
+| `rsdesign-new` Gate D authorization/docs review | PASS | 用户整体授权本应用全部过时对象 cleanup，无需逐对象再次等待；范围不含其它应用、生产或 VM。Context7 systemd/PM2/NGINX/OrbStack 官方文档与本机 OrbStack 2.2.1、systemd 259、PM2、NGINX 1.28.3 help 复核，使用 exact-name/path 命令 |
+| Gate D pre-delete inventory/rebuild proof | PASS | 旧 runtime 4,640,403,456 bytes/8 releases；source/target SQLite size、checksum、quick_check 与 zero-file storage 盘点完成，无唯一附件；安全 `/proc` cwd/fd scan 无旧路径引用。旧 PM2 home 仅 stopped `rsdesign-new`，unit disabled/inactive 且无 reverse dependency，vhost 仅 disabled link；exact artifact/current release 与 Gate C recovery baseline 可重建/恢复，未读取业务表、`.env`、PM2 environment 或 Secret |
+| Gate D exact cleanup | PASS | named PM2 delete/save/kill 后精确删除旧 PM2 home；精确删除 unit 并 daemon-reload、精确删除 disabled vhost symlink/file且 `nginx -t`/reload PASS；精确删除旧 runtime/source snapshots、Mac staging、AppServer redundant incoming files及三份 Gate B backups。保留 `/opt/incoming` 目录、AppServer active target、唯一 Gate C recovery baseline和权威 artifact |
+| Gate D post-delete/cross-service checks | PASS | 所有已授权对象 absent，unit `not-found/inactive`，旧 3100/8091 absent；AppServer validator、PID `278336` exact cwd、external 3100 health、target DB mode/checksum/quick_check PASS；Gitea、runner、Verdaccio、Mailpit、PostgreSQL、NGINX 与 AppServer 3202 health PASS。未触碰 SFM 3212、MyApp 8090、其它平台对象或任何 VM |
+| application post-Gate D repository verification | PASS | 应用四份 shell `bash -n`/ShellCheck、focused 1 file/7 tests、fresh temporary SQLite migration、full 70 files/326 tests、Next.js 14.2.35 production build与 diff/scope review 均 PASS；首次 sandbox Vitest invocation 在收集前因 worktree 写权限 `EPERM`，同一命令在 host context PASS，记为 `SANDBOX_PATH_BLOCKED` |
+| application final verification PR #15 | PASS create / BLOCKED CI | current head `5123680...`、base exact merged main `3323ab2...`；API readback open/未合并，正文含 `Closes #13`；required CI 与人工 merge pending，不自动合并 |
 | SFM smoke cleanup | NOT RUN | 按计划顺序停在第 6 步，未进入所属应用仓库、未终止 3212 |
 | MyApp/Redis/Nginx/artifact cleanup | NOT RUN | 未获逐项 Gate，未停止服务、未删除 DB/目录/制品 |
 | artifact retention implementation/dry-run | NOT RUN | 按计划顺序尚未进入第 9 步 |
@@ -148,9 +168,9 @@ symlink 与回滚路径后，旧 writer/8091 已可逆停止，停写后的 fina
 | AC-9 | NOT RUN | retention tool/dry-run 与 Redis/Nginx predicate 尚未实施 |
 | AC-10 | NOT RUN | 尚未执行两轮 pre-delete inventory 与完整 dependency/unique-data/rebuild Gate |
 | AC-11 | NOT RUN | 未执行任何 VM 删除；`gitea-ci`、AppServer 和其它 VM 均未删除 |
-| AC-12 | PASS | 定向 tests、`bash -n`、ShellCheck、八次 full smoke、live allow/deny/幂等、故意 health failure rollback 与 Gate C post-state checks 均通过 |
-| AC-13 | BLOCKED | 本文件已记录当前精确 SHA/状态/证据，但后续 live Gate、final head、CI 与 PR 尚不存在 |
-| AC-14 | PASS（截至阻塞点） | prerequisite PR 已由人合并；Gate B prerequisite/readiness 与 Gate C 均有独立明确授权。Gate C 只改变批准的 old writer/8091、final DB transfer 与 AppServer runtime；未执行 Gate D、数据库/目录/制品删除或任何 VM 操作，未创建平台 final PR、未部署生产 |
+| AC-12 | PASS | post-Gate D 应用 bash-n/ShellCheck/focused/fresh-DB full/build 与平台 bash-n/ShellCheck/定向 tests/第十次 full smoke 全部通过；live allow/deny/幂等、故意 health failure rollback 与 Gate C/D post-state checks 均通过 |
+| AC-13 | BLOCKED | 本文件已记录当前精确 SHA/状态/证据，应用 final PR #15 已存在；其 required CI/human merge、平台后续 live Gates、platform final head/CI/PR 尚不存在 |
+| AC-14 | PASS（截至阻塞点） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C 及本应用整体 Gate D 均有明确授权。Gate D 只清理盘点后的 `rsdesign-new` 过时对象并保留权威 artifact/active target/latest recovery；未执行其它应用 Gate、平台 retention apply、生产或任何 VM 操作，未自动合并 |
 
 ## 重复部署/执行
 
@@ -162,6 +182,8 @@ symlink 与回滚路径后，旧 writer/8091 已可逆停止，停写后的 fina
 - live readiness：两次成功；每次随后显式 rollback，最终 current/PM2/listener 为空。
 - live Gate C：一次 final cutover PASS；exact-SHA single writer、direct/external health 与新
   rollback manifest 均通过，故未执行不必要的 final rollback。
+- 应用 Gate D：一次 exact cleanup PASS；删除后以 absent、unit `not-found`、listener、PID/cwd、
+  DB checksum/quick_check、external health 与无关服务检查替代重复 destructive action。
 - `gitea-ci` inventory：第 1 步 baseline PASS；AC-10 关联的两轮 inventory NOT RUN。
 - `prod-sim` 删除只允许执行一次；当前 NOT RUN，未来以删除前双读和删除后双读替代重复
   destructive action。
@@ -187,7 +209,8 @@ symlink 与回滚路径后，旧 writer/8091 已可逆停止，停写后的 fina
 | `rsdesign-new` contract/candidate/PR | 用户已确认合同优先级；应用 Issue/branch/PR 内实施 | PASS，PR #14 CI PASS 并已由人合并，Issue #13 保持 open |
 | `rsdesign-new` host prerequisites/readiness | 用户明确授权 Gate B prerequisite 与 Gate B | PASS，结束时 AppServer candidate 离线、旧 runtime 健康 |
 | `rsdesign-new` final cutover | 用户明确授权 Gate C；不含 cleanup/delete | PASS，AppServer exact candidate online，旧 writer/8091 stopped/disabled，可恢复对象全部保留 |
-| `rsdesign-new` disabled unit/vhost/data cleanup | 仍需独立 Gate D 与逐对象授权 | NOT RUN |
+| `rsdesign-new` exact legacy cleanup | 用户明确整体授权本应用过时对象，无需逐对象再次等待；不扩大到其它应用/VM | PASS，pre-delete ledger、exact cleanup 与 post-check 完成 |
+| `rsdesign-new` authoritative artifact/active target/latest recovery | Gate D 明确保留边界 | PASS，均保留且 checksum/integrity/health 可读 |
 | SFM process stop | 仍需应用仓 PR 与 live Gate | NOT RUN |
 | MyApp service/DB/directory removal | 仍需逐对象 live Gate | NOT RUN |
 | artifact/Redis/Nginx apply | 仍需 predicate、dry-run 与 live Gate | NOT RUN |
@@ -205,25 +228,25 @@ symlink 与回滚路径后，旧 writer/8091 已可逆停止，停写后的 fina
 
 ## 当前 blocker 与恢复条件
 
-合同优先级、人工合并、post-merge workflow、Gate B 与 Gate C blocker 已解除。应用 test
-migration cutover 当前为 PASS，但平台计划第 6 步还要求应用 Gate D 决定与 final verification
-PR/CI；这些对象没有从 Gate C 获得 cleanup/delete 授权，因此本轮停在此处，不进入 SFM 或
-后续平台步骤。
+合同优先级、prerequisite 人工合并、post-merge workflow、Gate B/C、应用 Gate D、post-Gate
+full tests 与 final verification PR create blocker 已解除。平台计划第 6 步仍要求 PR #15 required
+CI 与人工 merge，因此本轮继续停在第 6 步，不进入 SFM 或后续平台步骤。
 
-恢复条件：用户单独决定 Gate D。disabled unit/vhost cleanup，以及任何旧 DB、目录、release、
-artifact、backup 或 log 删除必须逐对象授权；默认保留也应写入应用 verification。随后在应用
-仓库运行 post-Gate tests、创建正文含 `Closes #13` 的 final verification PR 并等待人工 merge/
-required CI，平台才可按 `02-plan.md` 顺序进入第 7 步。Gate D 不包含生产或任何 VM 操作。
+恢复条件：等待应用 PR #15 required CI 与人工 merge；合并后重新读取 exact app main SHA/Issue
+状态，再回到平台 `change/21` 完成 AC-5 handoff。应用 Gate D 不包含生产、其它应用、artifact
+retention apply 或任何 VM 操作。
 
 ## 遗留风险与未完成项
 
-- `rsdesign-new` Gate B/C 已 PASS；Gate D 决定和应用 final verification PR/CI 仍阻塞计划
-  第 6 步完成及所有后续顺序步骤。
-- old DB/release/process entry、vhost file/disabled symlink、source readiness/final snapshots、
-  Mac mode 700 staging、AppServer incoming artifact/final snapshot、target DB/release 与四份
-  rollback backups 按禁止删除边界保留，cleanup 另需授权。
+- `rsdesign-new` Gate B/C/D、post-Gate full tests与 final verification PR create 已 PASS；PR #15
+  required CI/human merge 仍阻塞计划第 6 步完成及所有后续顺序步骤。
+- 旧 host runtime/DB/entry 已清理，不能原地回切；恢复依赖已合并 exact SHA/权威 artifact 与
+  AppServer 当前 target/latest Gate C recovery baseline。cleanup 本身不可原地撤销。
+- `/opt/artifacts` 保留原状；历史 artifact retention 仍属于平台第 9 步 predicate/dry-run/Gate，
+  不能把应用 Gate D 授权用于提前清理。
 - 任何 planning/baseline inventory 都可能漂移，恢复后须重新采集 live state。
-- 除精确 `prod-sim` 外的 destructive action 仍需逐项明确授权。
+- 除已完成的 `rsdesign-new` Gate D 与精确 `prod-sim` 条件授权外，其它 destructive action 仍需
+  对应应用/平台 Gate 明确授权。
 - `prod-sim` 授权不等于 AC-10 已通过；当前不得删除。
 - 应用 final verification PR/CI、平台后续步骤与所有未执行 live Gate 保持
-  `BLOCKED/NOT RUN`；Gate C PASS 不等于生产部署或 cleanup 完成。
+  `BLOCKED/NOT RUN`；Gate D PASS 不等于生产部署或平台清理完成。
