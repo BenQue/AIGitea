@@ -46,8 +46,9 @@ symlink 与回滚路径后，旧 writer/8091 已可逆停止，停写后的 fina
 盘点。`gitea-ci` 旧 PM2 home/unit/vhost/runtime、source snapshots、两端冗余传输副本和三份
 Gate B rollback 已清理，AppServer exact runtime、权威 artifact 与最新 Gate C recovery baseline
 保留。删除后 absent、single-writer、外部 health、DB integrity 及无关服务全部 PASS。应用 final
-verification PR #15 已创建，当前 head `512368048b55be14bd74b4f4fafd29dda173372e`、正文含
-`Closes #13`、open/未合并，required CI 尚待读回。平台第 7 步以后与 `prod-sim` 删除仍未执行；
+verification PR #15 当前 final head `dbe483d9c8991b365957610961ee18cca28f0b34`、正文含
+`Closes #13`；required Actions run/job #344 successful in 50s，PR open/未合并。平台第 7 步以后
+与 `prod-sim` 删除仍未执行；
 本结论不表示生产部署，也不把应用 Gate D 授权扩大到其它应用或任何 VM。
 
 ## 环境与版本
@@ -77,9 +78,10 @@ verification PR #15 已创建，当前 head `512368048b55be14bd74b4f4fafd29dda17
   - PR 正文只有 `Refs #13`，因此 live Issue #13 保持 open
 - `rsdesign-new` final verification PR：
   `http://gitea-ci.orb.local:3000/admin/rsdesign-new/pulls/15`
-  - current head：`512368048b55be14bd74b4f4fafd29dda173372e`
+  - final head：`dbe483d9c8991b365957610961ee18cca28f0b34`
   - base：`3323ab214b4222733715cacc536905392c042b60`
-  - 正文含 `Closes #13`；open、未合并；required CI pending readback
+  - 正文含 `Closes #13`；required Actions run/job #344，
+    `CI / test (pull_request)`，PASS in 50s；open、未合并
 - 实时 Issue #21：open；标签精确包含 `type/platform`、`complexity/complex`、`approved`
 - `gitea-ci`：hostname `gitea-ci`，machine ID
   `c7a9c69b3f604cc4b4c37123ab93e472`，Ubuntu 26.04 ARM64，running
@@ -145,7 +147,7 @@ verification PR #15 已创建，当前 head `512368048b55be14bd74b4f4fafd29dda17
 | Gate D exact cleanup | PASS | named PM2 delete/save/kill 后精确删除旧 PM2 home；精确删除 unit 并 daemon-reload、精确删除 disabled vhost symlink/file且 `nginx -t`/reload PASS；精确删除旧 runtime/source snapshots、Mac staging、AppServer redundant incoming files及三份 Gate B backups。保留 `/opt/incoming` 目录、AppServer active target、唯一 Gate C recovery baseline和权威 artifact |
 | Gate D post-delete/cross-service checks | PASS | 所有已授权对象 absent，unit `not-found/inactive`，旧 3100/8091 absent；AppServer validator、PID `278336` exact cwd、external 3100 health、target DB mode/checksum/quick_check PASS；Gitea、runner、Verdaccio、Mailpit、PostgreSQL、NGINX 与 AppServer 3202 health PASS。未触碰 SFM 3212、MyApp 8090、其它平台对象或任何 VM |
 | application post-Gate D repository verification | PASS | 应用四份 shell `bash -n`/ShellCheck、focused 1 file/7 tests、fresh temporary SQLite migration、full 70 files/326 tests、Next.js 14.2.35 production build与 diff/scope review 均 PASS；首次 sandbox Vitest invocation 在收集前因 worktree 写权限 `EPERM`，同一命令在 host context PASS，记为 `SANDBOX_PATH_BLOCKED` |
-| application final verification PR #15 | PASS create / BLOCKED CI | current head `5123680...`、base exact merged main `3323ab2...`；API readback open/未合并，正文含 `Closes #13`；required CI 与人工 merge pending，不自动合并 |
+| application final verification PR #15 | PASS required CI / BLOCKED human merge | final head `dbe483d...`、base exact merged main `3323ab2...`；API readback open/未合并，正文含 `Closes #13`；required run/job #344 completed/success in 50s，不自动合并 |
 | SFM smoke cleanup | NOT RUN | 按计划顺序停在第 6 步，未进入所属应用仓库、未终止 3212 |
 | MyApp/Redis/Nginx/artifact cleanup | NOT RUN | 未获逐项 Gate，未停止服务、未删除 DB/目录/制品 |
 | artifact retention implementation/dry-run | NOT RUN | 按计划顺序尚未进入第 9 步 |
@@ -169,7 +171,7 @@ verification PR #15 已创建，当前 head `512368048b55be14bd74b4f4fafd29dda17
 | AC-10 | NOT RUN | 尚未执行两轮 pre-delete inventory 与完整 dependency/unique-data/rebuild Gate |
 | AC-11 | NOT RUN | 未执行任何 VM 删除；`gitea-ci`、AppServer 和其它 VM 均未删除 |
 | AC-12 | PASS | post-Gate D 应用 bash-n/ShellCheck/focused/fresh-DB full/build 与平台 bash-n/ShellCheck/定向 tests/第十次 full smoke 全部通过；live allow/deny/幂等、故意 health failure rollback 与 Gate C/D post-state checks 均通过 |
-| AC-13 | BLOCKED | 本文件已记录当前精确 SHA/状态/证据，应用 final PR #15 已存在；其 required CI/human merge、平台后续 live Gates、platform final head/CI/PR 尚不存在 |
+| AC-13 | BLOCKED | 本文件已记录当前精确 SHA/状态/证据，应用 final PR #15 exact-head required CI 已 PASS；其 human merge、平台后续 live Gates、platform final head/CI/PR 尚不存在 |
 | AC-14 | PASS（截至阻塞点） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C 及本应用整体 Gate D 均有明确授权。Gate D 只清理盘点后的 `rsdesign-new` 过时对象并保留权威 artifact/active target/latest recovery；未执行其它应用 Gate、平台 retention apply、生产或任何 VM 操作，未自动合并 |
 
 ## 重复部署/执行
@@ -229,17 +231,17 @@ verification PR #15 已创建，当前 head `512368048b55be14bd74b4f4fafd29dda17
 ## 当前 blocker 与恢复条件
 
 合同优先级、prerequisite 人工合并、post-merge workflow、Gate B/C、应用 Gate D、post-Gate
-full tests 与 final verification PR create blocker 已解除。平台计划第 6 步仍要求 PR #15 required
-CI 与人工 merge，因此本轮继续停在第 6 步，不进入 SFM 或后续平台步骤。
+full tests、final verification PR create 与 exact-head required CI blocker 已解除。平台计划第 6 步
+仍要求 PR #15 人工 merge，因此本轮继续停在第 6 步，不进入 SFM 或后续平台步骤。
 
-恢复条件：等待应用 PR #15 required CI 与人工 merge；合并后重新读取 exact app main SHA/Issue
-状态，再回到平台 `change/21` 完成 AC-5 handoff。应用 Gate D 不包含生产、其它应用、artifact
+恢复条件：等待应用 PR #15 人工 merge；合并后重新读取 exact app main SHA/Issue 状态，再回到
+平台 `change/21` 完成 AC-5 handoff。应用 Gate D 不包含生产、其它应用、artifact
 retention apply 或任何 VM 操作。
 
 ## 遗留风险与未完成项
 
-- `rsdesign-new` Gate B/C/D、post-Gate full tests与 final verification PR create 已 PASS；PR #15
-  required CI/human merge 仍阻塞计划第 6 步完成及所有后续顺序步骤。
+- `rsdesign-new` Gate B/C/D、post-Gate full tests、final verification PR create 与 exact-head
+  required CI 已 PASS；PR #15 human merge 仍阻塞计划第 6 步完成及所有后续顺序步骤。
 - 旧 host runtime/DB/entry 已清理，不能原地回切；恢复依赖已合并 exact SHA/权威 artifact 与
   AppServer 当前 target/latest Gate C recovery baseline。cleanup 本身不可原地撤销。
 - `/opt/artifacts` 保留原状；历史 artifact retention 仍属于平台第 9 步 predicate/dry-run/Gate，
@@ -248,5 +250,5 @@ retention apply 或任何 VM 操作。
 - 除已完成的 `rsdesign-new` Gate D 与精确 `prod-sim` 条件授权外，其它 destructive action 仍需
   对应应用/平台 Gate 明确授权。
 - `prod-sim` 授权不等于 AC-10 已通过；当前不得删除。
-- 应用 final verification PR/CI、平台后续步骤与所有未执行 live Gate 保持
+- 应用 final verification PR human merge、平台后续步骤与所有未执行 live Gate 保持
   `BLOCKED/NOT RUN`；Gate D PASS 不等于生产部署或平台清理完成。
