@@ -17,7 +17,7 @@ risk_flags:
   - migration
   - platform-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/26
 pr_url:
 created: 2026-08-04

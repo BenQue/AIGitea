@@ -24,7 +24,7 @@ required_docs:
 confidence: high
 override_reason: ''
 depends_on: []
-status: spec-drafting
+status: approved
 branch: change/26
 pr_url:
 created: 2026-08-04
