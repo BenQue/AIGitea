@@ -76,7 +76,7 @@ class ArchitectureTransitionTests(unittest.TestCase):
                 "owner": "fixture-owner",
                 "reason": "Exercise the governed transition path.",
                 "risk": "The older major may miss preferred behavior or support.",
-                "controls": ["Pinned bytes and an independently tracked migration."],
+                "controls": ["Pinned bytes and component-scoped migration controls."],
                 "created_at": created_at,
                 "expires_at": expires_at,
                 "migration_issue": migration_issue,
@@ -125,6 +125,36 @@ class ArchitectureTransitionTests(unittest.TestCase):
         self.assertEqual(component["exception_expires_at"], "2026-12-01")
         self.assertEqual(lock["exception_ids"], ["ARCH-EX-2026-001"])
         self.assertEqual(canonical_bytes(lock), canonical_bytes(self._build()))
+
+    def test_multiple_transitions_may_share_one_umbrella_issue(self) -> None:
+        umbrella_issue = "https://gitea.example/projects/app/issues/152"
+        self._declare_transition(
+            "runtime.node.24",
+            "runtime.node.22",
+            migration_issue=umbrella_issue,
+        )
+        self._declare_transition(
+            "database.postgresql.18",
+            "database.postgresql.16",
+            migration_issue=umbrella_issue,
+        )
+
+        lock = self._build()
+        transitions = [
+            item
+            for item in lock["resolved_components"]
+            if item["component_id"]
+            in {"runtime.node.22", "database.postgresql.16"}
+        ]
+        self.assertEqual(len(transitions), 2)
+        self.assertEqual(
+            {item["migration_issue"] for item in transitions},
+            {umbrella_issue},
+        )
+        self.assertEqual(
+            {item["exception_id"] for item in transitions},
+            {"ARCH-EX-2026-001", "ARCH-EX-2026-002"},
+        )
 
     def test_profile_transition_contract_fails_closed(self) -> None:
         components = validate_catalog(self.catalog, self.catalog_schema, TODAY)

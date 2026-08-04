@@ -37,25 +37,27 @@ updated: 2026-08-04
 3. 先用正反 fixtures 固化 profile slot contract：preferred exact path、显式 transition allowlist、
    same-category、唯一解析、allowed state、migration Issue 与 exception 一一绑定、UTC expiry/EOL
    boundary；再同步修改 JSON Schema 和 validator。
-4. 增加所需 catalog components，递增 catalog revision 与 Linux profile version，为每个 current
-   component 只加入必要 transition allowlist；Windows/SQLite profile 只更新 revision/checksum，
-   不改变 resolved target semantics。
-5. 在未修改 NewEmaint 仓库的前提下，先回读 owner 提供的独立 migration Issue URLs。若缺失，
-   在 verification 中把 current reference 标为 `BLOCKED_EXTERNAL`；只有用户另行授权创建并
-   回读真实 Issues 后，才生成带 180-day/migrate-by 上限的 exceptions 与 canonical current lock。
-6. 将现有 NewEmaint target reference 迁移到明确的 `target-candidate` 目录，生成/比对 current
-   与 target locks 和 gap report；记录 catalog/profile revision 导致的预期 checksum drift，
-   禁止修改 resolved target component 集来掩盖差异。
+4. 增加所需 catalog components，递增 catalog revision 与 Linux profile version，为每个可用
+   current component 只加入必要 transition allowlist；unsupported Next.js 14 只保留 prohibited
+   现状证据。Windows/SQLite profile 只更新 revision/checksum，不改变 resolved target semantics。
+5. 在用户书面授权后，只在 NewEmaint 创建一个 umbrella migration Issue。Issue 列出
+   target-candidate 的 12 个 exact components、应用兼容性、数据库 backup/restore/rollback、
+   OCI provenance、test deployment、production approval 和非授权边界；关联 #26 与 #51，使用
+   authenticated GET 回读，绝不创建第二个 component migration Issue。
+6. 将现有 NewEmaint target reference 迁移到明确的 `target-candidate` 目录，只生成/比对 target
+   lock 与 gap report；记录 catalog/profile revision 导致的预期 checksum drift。明确
+   `current-transition/` 不存在，禁止修改 resolved target component 集来掩盖差异。
 7. 在 `aisoft_release` target profile parser 增加可选受保护 `architecture_project_id`，并在
    release file validation 中于 Docker 调用前校验 lock project/profile/catalog/checksum；添加
    target/current substitution、tamper 和 expiry integration fixtures。
-8. 更新 architecture/Docker release README、onboarding 与 installer manifest；连续运行两次
-   architecture/release installer，证明安装内容和 generated lock byte-identical。
+8. 更新 architecture/Docker release README、onboarding 与 installer manifest；补充多个
+   component 共享一个 umbrella Issue 仍保留独立 exception 的测试；连续运行两次 architecture/
+   release installer，证明安装内容和 generated lock byte-identical。
 9. 运行 focused architecture/release unittest、CLI fixtures、`bash -n`、ShellCheck、
-   `bash codex/tests/smoke.sh` 与 `git diff --check`；填写 `03-verification.md`，将 local、external
-   Issue gate、PR CI、NewEmaint consumer、Docker/Registry/AppServer/migration/production 分开。
-10. 在合同获书面批准后才提交实现。完成 local acceptance 后推送 `change/26`，创建仅含
-    `Closes #26` 的最终 PR，停止在人工合并闸门；不自动 merge 或部署。
+   `bash codex/tests/smoke.sh` 与 `git diff --check`；填写 `03-verification.md`，将 platform-local、
+   external Issue、PR CI、NewEmaint consumer、Docker/Registry/AppServer/migration/production 分开。
+10. 完成全部 revised acceptance 后推送 `change/26`，创建正文只含唯一 closing directive
+    `Closes #26` 的最终 PR，回读 final head/CI 后停止在人工合并闸门；不自动 merge 或部署。
 
 ## 涉及文件
 
@@ -80,27 +82,28 @@ updated: 2026-08-04
 
 ## 数据库迁移
 
-无。本 Change 只维护 platform catalog/profile/schema/lock/reference 和 release preflight。
-NewEmaint PostgreSQL major migration 必须使用独立 Issue、backup/restore、兼容性测试和部署 Gate；
-不得因生成 transition lock 而运行 migration、连接业务数据库或修改 schema。
+无。本 Change 只维护 platform catalog/profile/schema/lock/reference、release preflight，并创建一个
+NewEmaint 治理 Issue。该 Issue 后续必须在 NewEmaint 自己的 Change 中设计 PostgreSQL
+backup/restore、兼容性测试、migration 和 rollback；本 Change 不连接或修改数据库。
 
 ## 测试与验收映射
 
 | Acceptance criterion | Verification command or review |
 |---|---|
 | AC-1 | Profile JSON Schema 正反 fixtures；三个 profile ID/slot/category/transition allowlist review |
-| AC-2 | `PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_architecture_schema codex.runtime.tests.test_architecture_governance -v` 与 fail-closed diagnostic assertions |
+| AC-2 | `PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_architecture_schema codex.runtime.tests.test_architecture_governance codex.runtime.tests.test_architecture_transitions -v` 与 fail-closed diagnostics |
 | AC-3 | Catalog validation + official source ledger + exact OCI tag/digest readback；source/digest 失败 fixture |
-| AC-4 | Live NewEmaint Issue GET readback、current declaration validation、exception 180-day/migrate-by boundaries；未授权时 `BLOCKED_EXTERNAL` |
+| AC-4 | Live NewEmaint Issue list preflight、duplicate-safe creation、exact-title count 1、authenticated GET readback、正文 target/gate/non-authorization assertions；`current-transition/` absence |
 | AC-5 | preferred fixtures/target lock semantic diff 与 catalog/profile revision migration review |
 | AC-6 | `aisoft-architecture lock` 连续两次 byte/hash equality；declaration/exception/digest/checksum/self-hash tamper tests |
-| AC-7 | `test_release_architecture_integration.py` 的 current accept、target substitute/tamper/expired reject 与 Docker call count 0 |
-| AC-8 | Architecture/Docker/onboarding/gap docs review 与 forbidden-claim assertions |
-| AC-9 | focused unittest、两个 installer repeatability、`bash -n`、ShellCheck、full smoke、`git diff --check` 和 verification status review |
+| AC-7 | `test_release_architecture_integration.py` 的 identity/checksum、target/current substitution/tamper/expired reject 与 Docker call count 0 |
+| AC-8 | Architecture/Docker/onboarding/NewEmaint reference/gap docs review 与 forbidden-claim assertions |
+| AC-9 | focused unittest、两个 installer repeatability、`bash -n`、ShellCheck、full smoke、`git diff --check` 和 final-head CI status |
 
 ## 部署与回滚
 
 本 Change 不部署应用、不安装/启动 Docker、不操作 Registry/AppServer/database/Secret。Installer
 只在临时目录连续运行两次。故意失败至少覆盖 category mismatch、duplicate transition、EOL、
 expired exception、fake migration Issue format、target/current substitution 和 lock tamper，均须在
-Docker mutation 前停止。代码/contract 回滚使用 revert PR；真实项目升级和环境回滚另建 Change。
+Docker mutation 前停止。代码/contract 回滚使用 revert PR；NewEmaint umbrella Issue 可关闭或
+重定范围，但不能作为应用字节回滚。真实项目升级与环境回滚另行批准。

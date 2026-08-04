@@ -3,15 +3,20 @@
 本目录只保存 AISoftPlatform 对 NewEmaint authoritative remote main 的脱敏只读证据：
 
 - `inventory.json`：在精确 commit 上观察到的 current facts；不含 Secret 或业务数据。
-- `gap-report.md`：current、target 与外部 migration Gate 的差异。
+- `gap-report.md`：current facts、preferred target 与后续应用 Gate 的差异。
 - `target-candidate/`：project ID `newemaint-target-candidate` 的目标 declaration/lock；它不是
   current lock，也不是 migration、Docker release、部署或验收证据。
 
-`current-transition/` 当前故意不存在。只有 NewEmaint 中每个实际 major migration 都有真实、
-可读、独立的 HTTPS Issue，platform exception 与 Issue 一一绑定且未过期，并且所有 resolved
-components 仍为 `supported`/`sunset` 而非 `prohibited`/EOL 时，才允许以 project ID
-`newemaint` 生成 canonical current declaration/lock。
+Issue #26 采用 target-only 验收，`current-transition/` 故意不存在。NewEmaint
+[#52](http://gitea-ci.orb.local:3000/admin/NewEMaint/issues/52) 是唯一 umbrella migration
+tracking Issue，逐项列出全部 preferred components 和应用/数据库/制品/环境 Gate；无需为每个
+component 再创建 Issue。
 
-Issue #26 当前为 `BLOCKED_EXTERNAL`：未获授权创建 NewEmaint migration Issues，且官方支持
-策略已将 Next.js 14 标为 unsupported。Transition 不能绕过 prohibited、EOL、digest、expiry、
-source checksum 或 lock self-hash；target candidate 也不能复制成 current。
+一个 Issue 不等于一个 exception 或一次性部署。若未来仍需合法 transition，每个 component
+仍必须有自己的 owner、risk、controls、expiry 和 exception；多个 exception 可引用同一个明确
+覆盖这些 components 的 umbrella Issue。`prohibited`/EOL component 无论是否有 Issue 都不能
+进入 lock。NewEmaint 完成实际迁移后，只能根据真实 supported/preferred release bytes 生成
+project ID `newemaint` 的 current lock，不能复制 `target-candidate`。
+
+创建 #52 只建立治理跟踪，不授权 package/image/schema/server/database/Secret mutation、部署、
+生产操作或合并。NewEmaint consumer/build/migration/deployment 在本 Change 中全部 `NOT RUN`。

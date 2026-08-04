@@ -29,7 +29,9 @@ canonical `lock_sha256`、source checksums 格式、排序/唯一性，以及 ma
 中的 `profile_id` 与 `catalog_revision`。Transition resolved component 还必须同时包含绝对
 HTTPS migration Issue、exception ID 与未到期 expiry，且 `exception_ids` 集合必须精确匹配；
 preferred component 不得携带 transition metadata。Parser 只消费这些治理身份，不复制或
-选择 catalog 中的组件版本。
+选择 catalog 中的组件版本。多个 transition component 可以引用同一个逐项列明范围的 umbrella
+Issue，但仍必须使用不同的 component-scoped exception ID/expiry；Issue 存在或状态变化都不
+等于 migration 完成，release identity 仍必须与全部真实 bytes 一致。
 
 Manifest、architecture lock、Compose、inventory 和 archive 在任何 pull/load/migration/
 container replacement 前完成路径与 checksum 验证。`release.json` 不接受未知字段，也不得

@@ -293,7 +293,7 @@ def validate_project(
         if not migration_issue:
             fail(
                 "TRANSITION_MIGRATION_REQUIRED",
-                "Transition component 必须引用独立 migration Issue。",
+                "Transition component 必须引用真实 migration Issue。",
                 "$.components",
             )
         if not _is_absolute_issue_url(migration_issue):

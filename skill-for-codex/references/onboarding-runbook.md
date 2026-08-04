@@ -212,14 +212,17 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 3. 用 `aisoft-architecture lock` 生成并提交 `architecture.lock.json`，连续两次输出必须
    byte-identical；随后用 `validate --lock` 检查 drift。
 4. 每个 transition 必须引用应用仓中真实可读的绝对 HTTPS migration Issue，并有唯一匹配的
-   owner/reason/risk/controls exception；expiry 不得超过创建日起 180 天或 component
-   `migrate_by`，到期当日 fail closed。Preferred 不需要 exception；`prohibited`/EOL 不可绕过。
+   owner/reason/risk/controls exception；多个 component 可以引用一个逐项列明范围的 umbrella
+   Issue，但不能共享 exception。expiry 不得超过创建日起 180 天或 component `migrate_by`，
+   到期当日 fail closed。Preferred 不需要 exception；`prohibited`/EOL 不可绕过。
 5. Docker target profile 可声明 `architecture_project_id`；一旦声明，release lock project、
    profile、catalog、checksum/self-hash 和 transition expiry 必须全部匹配，且在 Docker 调用前
    验证。已有未声明该字段的 v1 target profile 保持兼容。
 6. Current lock 表达实际 release bytes，target candidate 只表达目标。Candidate lock 不等于
-   项目已迁移或已部署，也不能复制成 current。每个 runtime/framework/ORM/database/container
-   major 都在应用仓另建 complex Change；#22 只接收治理 identity/checksum，不授权 migration。
+   项目已迁移或已部署，也不能复制成 current。多个相互依赖的 runtime/framework/ORM/database/
+   container major 可以由应用仓一个 complex umbrella Change 统一治理，但必须逐 component
+   保留 compatibility/test/rollback Gate，不能报告部分完成；#22 只接收治理 identity/checksum，
+   不授权 migration。
 
 平台 installer 只复制 versioned validator/catalog/schema/template，不创建项目 declaration、
 凭据、service 或 timer。离线环境先验证官方 checksum/signature、SBOM/provenance 和 OCI digest，
