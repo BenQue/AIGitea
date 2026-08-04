@@ -19,7 +19,7 @@ risk_flags:
   - rollback
   - platform-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/27
 pr_url:
 created: 2026-08-04
