@@ -96,12 +96,29 @@ writable。
 3. Secret 只在目标机受保护 env file；release manifest、architecture lock、Compose、state、
    argv、日志和 verification 不保存 Secret 值。
 4. Builder 生成以完整 Gitea merge SHA 为 ID 的 `release.json`、digest-pinned images、Compose/
-   architecture checksums 和 offline inventory。目标 AppServer 不 build/install/git pull/访问公网。
+   architecture checksums 和 offline inventory。V2 对每个 service 同时记录 Registry digest
+   `reference`、content `image_id`、deterministic `transport_reference`/`runtime_reference`；后两者
+   必须等于 `aisoft.local/<lower-owner>/<lower-repo>/<service>:<full-sha>`。Builder 先按 digest
+   inspect，再 tag、重复 inspect exact ID/`linux/amd64`，最后按 tag save。目标 AppServer 不
+   build/install/git pull/访问公网。
 5. 先在 `appserver-test` 连续 deploy 同 SHA 两次，故意覆盖 bundle tamper、host-role mismatch、
    migration failure 和 health failure container rollback；再由独立生产 Gate 提升同一 identity。
 
 NewEmaint 的示例 profile 仅说明平台字段，不授权修改 NewEmaint 仓库、创建真实 Secret、执行
 migration 或部署。其首个消费实现仍须在 NewEmaint 自己的 `change/N` 和最终 PR 中完成。
+
+Offline consumer 只接受 `docker-release-offline-bundle/v2` +
+`docker-release-offline-inventory/v2`，在 load 前验证 archive/inventory/Compose/architecture
+checksums、tar member 与逐 service tag allowlist；load 后按 runtime tag 验证 exact image ID 与
+`linux/amd64`，不依赖 `RepoDigests`。既有 legacy manifest 只保留 Registry digest path；legacy
+offline bundle 必须从受控 producer 重新发布，禁止手改 archive/inventory 冒充 V2。
+
+接入 Docker target 前还要读取平台 versioned image-store matrix。Runtime 只接受由同 fixture
+真实 E2E 支持的唯一 row；Engine 29 不能自动等同 containerd，必须用 `DriverStatus` marker
+只读检测。Issue #27 已在两个独立 disposable Engine 29 containerd daemon 上完成 Registry 与
+offline transport、Compose runtime/identity/health 和 exact cleanup E2E，containerd row 由已提交的
+`issue-27-containerd-a75181cd7209` evidence 固定为 `supported`。Classic 没有同等级真实证据，继续
+`rejected`；不得把 fake tests、源码结论或应用 synthetic verifier 写成 classic 环境 PASS。
 
 已有 PM2 应用在独立迁移验收前继续作为 legacy adapter。维护这些应用时保留：
 

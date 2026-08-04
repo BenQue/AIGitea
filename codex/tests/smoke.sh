@@ -21,6 +21,8 @@ optional_runtime_sources=(
   "$ROOT/docker-release/bin/aisoft-docker-release"
   "$ROOT/docker-release/install.sh"
   "$ROOT/codex/tests/test-docker-release-install.sh"
+  "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
+  "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh"
 )
 runtime_source_count=0
 for script in "${optional_runtime_sources[@]}"; do
@@ -80,6 +82,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/docker-release/bin/aisoft-docker-release" \
     "$ROOT/docker-release/install.sh" \
     "$ROOT/codex/tests/test-docker-release-install.sh" \
+    "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh" \
+    "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh" \
     "$ROOT/architecture/bin/aisoft-architecture" \
     "$ROOT/architecture/install.sh" \
     "$ROOT/codex/tests/test-architecture-install.sh"
@@ -97,6 +101,9 @@ bash "$ROOT/codex/tests/test-install-skills.sh"
 bash "$ROOT/codex/tests/test-host-role-guard.sh"
 bash "$ROOT/codex/tests/test-install-host-role.sh"
 bash "$ROOT/codex/tests/test-docker-release-install.sh"
+bash "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
+harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh")"
+grep -Fq 'NOT RUN: Docker image-store E2E' <<<"$harness_output"
 bash "$ROOT/sync/tests/test-inbound-sync.sh"
 bash "$ROOT/sync/tests/test-install.sh"
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
@@ -105,6 +112,19 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
 while IFS= read -r json_file; do
   jq empty "$json_file"
 done < <(find "$ROOT/architecture" -type f -name '*.json' ! -path '*/fixtures/invalid/duplicate-key.json' | sort)
+
+while IFS= read -r json_file; do
+  jq empty "$json_file"
+done < <(
+  find "$ROOT/docker-release" "$ROOT/codex/tests/fixtures/docker-release" \
+    -type f -name '*.json' | sort
+)
+
+jq -e '
+  .contract_version == "docker-image-store-compatibility/v1" and
+  (.rows | length == 2) and
+  all(.rows[]; .status == "rejected" and .evidence == null)
+' "$ROOT/docker-release/compatibility/image-stores-v1.json" >/dev/null
 
 if rg -n '(^|[[:space:]])(import yaml|from yaml)' \
   "$ROOT/codex/runtime/aisoft_architecture" "$ROOT/architecture"; then

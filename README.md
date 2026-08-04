@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.2（host-role + Docker-first contract candidate）｜ 更新：2026-08-04 ｜ 状态：**Linux PM2 试点与双 provider runtime 已验证；`scm-ci`/AppServer live 职责收口已验证并待最终 PR，新 Linux Docker-first release contract 为候选，真实 Registry/production 尚未验收**
+> 版本：v3.2（host-role + Docker-first contract candidate）｜ 更新：2026-08-04 ｜ 状态：**Linux PM2 试点与双 provider runtime 已验证；`scm-ci`/AppServer live 职责收口已验证并待最终 PR；Docker offline V2 已完成 platform-local 与 disposable containerd E2E，classic、业务 Registry/AppServer 与 production 尚未验收**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 
@@ -26,6 +26,7 @@
 - ✅ 迁移目标设计：本地 Gitea 原型结果一次性交付公司 Gitea；不迁移 Issue/PR；GitHub 只保留本地镜像，与公司无关
 - ✅ Windows 快速原型设计：Apple Silicon Mac 使用 VMware Fusion + Windows 11 ARM 调试架构无关部署脚本；不替代 Server 2022 x64 和公司 AD 验收
 - 🟡 Linux Docker release contract（Issue #22 candidate）：提供 strict manifest/profile、Registry/offline transports、host-role preflight 和 deterministic deploy/status/rollback；当前只有 fake Docker 与 installer 证据，未安装/启动 Docker daemon，未执行真实 migration、AppServer 部署或 production promotion
+- ✅ Docker offline V2（Issue #27 candidate）：四类 image identity、release-scoped tag、strict V2 inventory/archive、Engine/Compose/image-store capability gate 与 fake tests 已完成；两个独立 disposable Engine 29 containerd daemon 的 Registry push/pull、save/load、offline pull rejection、Compose `--pull never --no-build`、identity/health 和 exact cleanup E2E 已 `PASS`，containerd row 为 `supported`；classic 没有同等级真实证据，继续 `rejected`。该证据不是 NewEmaint、AppServer 或 production 部署
 - ⏸️ 待办：Windows Server 2022 x64 原型、内网 Runner/依赖缓存、迁移演练、生产 JEA 彩排与 [14](14-Windows部署与迁移验收清单.md) 全量验收
 
 ## 2. 目标职责架构

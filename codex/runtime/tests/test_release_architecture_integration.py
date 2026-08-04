@@ -148,7 +148,10 @@ class ArchitectureReleaseIntegrationTests(unittest.TestCase):
             self.assertEqual(result["architecture_project_id"], "newemaint")
             self.assertEqual(
                 docker.events,
-                [("config", SHA_A, "newemaint-test")],
+                [
+                    ("capability", "containerd", "fake-supported-row"),
+                    ("config", SHA_A, "newemaint-test"),
+                ],
             )
 
     def test_expired_or_substituted_transition_lock_has_zero_docker_calls(self) -> None:

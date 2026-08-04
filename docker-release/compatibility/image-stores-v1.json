@@ -1,0 +1,33 @@
+{
+  "contract_version": "docker-image-store-compatibility/v1",
+  "matrix_revision": "2026.08.2",
+  "rows": [
+    {
+      "row_id": "engine-29-containerd-linux-amd64",
+      "engine": {"minimum": "29.0.0", "maximum_exclusive": "30.0.0"},
+      "compose": {"minimum": "2.27.0", "maximum_exclusive": "3.0.0"},
+      "os": "linux",
+      "architecture": "amd64",
+      "image_store": "containerd",
+      "status": "supported",
+      "evidence": {
+        "kind": "real-e2e",
+        "evidence_id": "issue-27-containerd-a75181cd7209",
+        "date": "2026-08-04",
+        "source": "docs/changes/27/03-verification.md"
+      },
+      "remediation": "Expand these exact version, OS, architecture, or image-store bounds only after the same disposable real E2E passes and its evidence is committed."
+    },
+    {
+      "row_id": "engine-29-classic-linux-amd64",
+      "engine": {"minimum": "29.0.0", "maximum_exclusive": "30.0.0"},
+      "compose": {"minimum": "2.27.0", "maximum_exclusive": "3.0.0"},
+      "os": "linux",
+      "architecture": "amd64",
+      "image_store": "classic",
+      "status": "rejected",
+      "evidence": null,
+      "remediation": "Keep classic rejected until the same fixture passes an independently authorized real E2E on a disposable classic image store."
+    }
+  ]
+}

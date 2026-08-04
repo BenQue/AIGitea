@@ -8,6 +8,7 @@ import socket
 from pathlib import Path
 from typing import Mapping
 
+from .compatibility import CompatibilityDecision
 from .compose import RELEASE_LABEL, SERVICE_LABEL, validate_compose_model
 from .contract import (
     ReleaseFiles,
@@ -27,6 +28,7 @@ class VerifiedRelease:
     profile: TargetProfile
     files: ReleaseFiles
     transport: ReleaseTransport
+    compatibility: CompatibilityDecision
 
 
 class ReleaseRuntime:
@@ -54,6 +56,9 @@ class ReleaseRuntime:
             "architecture_profile_id": context.files.manifest.architecture_profile_id,
             "architecture_project_id": context.files.architecture_lock["project_id"],
             "catalog_revision": context.files.manifest.catalog_revision,
+            "image_store": context.compatibility.capability.image_store,
+            "compatibility_matrix_revision": context.compatibility.matrix_revision,
+            "compatibility_row": context.compatibility.row_id,
         }
 
     def deploy(self, profile_path: Path | str, release_id: str) -> dict[str, object]:
@@ -68,6 +73,7 @@ class ReleaseRuntime:
                 return self._result(context, "healthy-noop", state)
             self._ensure_migration_not_uncertain(context, state)
             context.transport.prepare()
+            context.transport.assert_local_images()
             self._run_migration(context, state, store)
             try:
                 self._start_and_assert(context)
@@ -152,9 +158,15 @@ class ReleaseRuntime:
         # Offline checksum/inventory/tar safety is completed before even a
         # read-only Docker config call, so tamper evidence has zero Docker calls.
         transport.preflight()
+        compatibility = self.docker.assert_runtime_compatible()
         model = self.docker.compose_config(files.compose_path, profile.compose_project)
         validate_compose_model(model, files.manifest)
-        return VerifiedRelease(profile=profile, files=files, transport=transport)
+        return VerifiedRelease(
+            profile=profile,
+            files=files,
+            transport=transport,
+            compatibility=compatibility,
+        )
 
     def _ensure_migration_not_uncertain(
         self, context: VerifiedRelease, state: Mapping[str, object]
@@ -193,6 +205,7 @@ class ReleaseRuntime:
         state["last_result"] = "migration-started"
         store.save(state)
         try:
+            context.transport.assert_local_images()
             self.docker.run_migration(
                 context.files.compose_path,
                 context.profile.compose_project,
@@ -217,6 +230,7 @@ class ReleaseRuntime:
         store.save(state)
 
     def _start_and_assert(self, context: VerifiedRelease) -> None:
+        context.transport.assert_local_images()
         self.docker.compose_up(
             context.files.compose_path,
             context.profile.compose_project,
@@ -258,7 +272,10 @@ class ReleaseRuntime:
             if labels.get(SERVICE_LABEL) != service:
                 raise DeploymentError(f"runtime service {service} service label is stale")
             image = manifest.image_for(service)
-            if config.get("Image") != image.reference or value.get("Image") != image.image_id:
+            if (
+                config.get("Image") != image.runtime_reference
+                or value.get("Image") != image.image_id
+            ):
                 raise DeploymentError(f"runtime service {service} image identity is stale")
             health = state.get("Health")
             if state.get("Running") is not True or not isinstance(health, Mapping):

@@ -8,7 +8,12 @@ import tempfile
 import unittest
 
 from aisoft_release.compose import validate_compose_model
-from aisoft_release.contract import load_release_files, load_target_profile
+from aisoft_release.contract import (
+    load_offline_inventory,
+    load_release_files,
+    load_target_profile,
+    runtime_image_reference,
+)
 from aisoft_release.errors import ContractError
 
 from tests.release_test_support import (
@@ -31,6 +36,8 @@ class ReleaseSchemaTests(unittest.TestCase):
             "release-manifest-v1.schema.json",
             "target-profile-v1.schema.json",
             "offline-inventory-v1.schema.json",
+            "offline-inventory-v2.schema.json",
+            "image-store-compatibility-v1.schema.json",
         )
         for name in names:
             with self.subTest(name=name):
@@ -59,6 +66,42 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertEqual(files.manifest.platform, "linux/amd64")
         self.assertEqual(files.architecture_lock["profile_id"], "linux-node-postgres-v1")
         self.assertEqual(files.manifest.runtime_services, ("web",))
+        self.assertEqual(
+            files.manifest.images[0].runtime_reference,
+            "aisoft.local/admin/newemaint/web:" + SHA_A,
+        )
+        self.assertEqual(
+            files.manifest.offline_bundle.contract_version,
+            "docker-release-offline-bundle/v2",
+        )
+        inventory = load_offline_inventory(files)
+        self.assertEqual(inventory["contract_version"], "docker-release-offline-inventory/v2")
+
+    def test_legacy_registry_manifest_remains_strictly_readable(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path, _, _ = create_release(
+                root, migration=False, identity_version="legacy"
+            )
+            files = load_release_files(load_target_profile(profile_path), SHA_A)
+            image = files.manifest.images[0]
+            self.assertFalse(image.is_v2)
+            self.assertEqual(image.runtime_reference, image.reference)
+            self.assertIsNone(files.manifest.offline_bundle.contract_version)
+
+    def test_runtime_tag_is_deterministic_and_rejects_unsafe_components(self) -> None:
+        self.assertEqual(
+            runtime_image_reference("admin/NewEmaint", "web", SHA_A),
+            "aisoft.local/admin/newemaint/web:" + SHA_A,
+        )
+        for repository, service in (
+            ("admin/NewEmaint", "unsafe_"),
+            ("admin/unsafe--repo", "web"),
+        ):
+            with self.subTest(repository=repository, service=service), self.assertRaises(
+                ContractError
+            ):
+                runtime_image_reference(repository, service, SHA_A)
 
     def test_legacy_profile_without_optional_architecture_project_id_loads(self) -> None:
         value = json.loads(self.profile_path.read_text())
@@ -117,6 +160,30 @@ class ReleaseContractTests(unittest.TestCase):
             ),
             "destructive migration": lambda value: value["migration"].update(
                 {"destructive": True}
+            ),
+            "transport release mismatch": lambda value: value["images"][0].update(
+                {
+                    "transport_reference": "aisoft.local/admin/newemaint/web:"
+                    + "b" * 40
+                }
+            ),
+            "runtime transport mismatch": lambda value: value["images"][0].update(
+                {
+                    "runtime_reference": "aisoft.local/admin/newemaint/other:"
+                    + SHA_A
+                }
+            ),
+            "duplicate image id": lambda value: value["images"][1].update(
+                {"image_id": value["images"][0]["image_id"]}
+            ),
+            "mixed v2 legacy image": lambda value: value["images"][0].pop(
+                "transport_reference"
+            ),
+            "v2 images with legacy bundle": lambda value: value["offline_bundle"].pop(
+                "contract_version"
+            ),
+            "unknown offline contract": lambda value: value["offline_bundle"].update(
+                {"contract_version": "docker-release-offline-bundle/v3"}
             ),
         }
         for name, transform in variants.items():

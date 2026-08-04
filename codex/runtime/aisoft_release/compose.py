@@ -59,9 +59,9 @@ def validate_compose_model(
         build = config.get("build")
         if build is not None and build is not False:
             raise ContractError(f"Compose service {service_name} must not define build")
-        if config.get("image") != image.reference:
+        if config.get("image") != image.runtime_reference:
             raise ContractError(
-                f"Compose service {service_name} image must match immutable manifest reference"
+                f"Compose service {service_name} image must match manifest runtime reference"
             )
         privileged = config.get("privileged")
         if privileged is not None and privileged is not False:

@@ -7,15 +7,20 @@ install_root="${AISOFT_DOCKER_RELEASE_INSTALL_ROOT:-/}"
 runtime_root="$install_root/opt/aisoft-docker-release/docker-release-v1"
 runtime_dir="$runtime_root/runtime/aisoft_release"
 schema_dir="$runtime_root/schema"
+compatibility_dir="$runtime_root/compatibility"
 example_dir="$install_root/etc/aisoft-docker-release/examples/docker-release-v1"
 bin_dir="$install_root/usr/local/bin"
 
-install -d -m 0755 "$runtime_dir" "$schema_dir" "$example_dir" "$bin_dir"
+install -d -m 0755 \
+  "$runtime_dir" "$schema_dir" "$compatibility_dir" "$example_dir" "$bin_dir"
 for source in "$repo_root"/codex/runtime/aisoft_release/*.py; do
   install -m 0644 "$source" "$runtime_dir/$(basename "$source")"
 done
 for source in "$source_root"/schema/*.json; do
   install -m 0644 "$source" "$schema_dir/$(basename "$source")"
+done
+for source in "$source_root"/compatibility/*.json; do
+  install -m 0644 "$source" "$compatibility_dir/$(basename "$source")"
 done
 install -m 0644 "$source_root/templates/target-profile.example.json" \
   "$example_dir/target-profile.example.json"
