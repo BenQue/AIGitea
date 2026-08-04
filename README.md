@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.0（通用 Codex runtime candidate）｜ 更新：2026-08-02 ｜ 状态：**Linux PM2 试点与双 provider runtime 已验证；新 Linux Docker-first release contract 为本仓候选，真实 Registry/AppServer/production 尚未验收**
+> 版本：v3.2（host-role + Docker-first contract candidate）｜ 更新：2026-08-04 ｜ 状态：**Linux PM2 试点与双 provider runtime 已验证；`scm-ci`/AppServer live 职责收口已验证并待最终 PR，新 Linux Docker-first release contract 为候选，真实 Registry/production 尚未验收**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 
@@ -8,10 +8,13 @@
 
 ---
 
-## 1. 当前状态（2026-08-02）
+## 1. 当前状态（2026-08-04）
 
-- ✅ 基础设施：OrbStack 双 VM（gitea-ci / prod-sim）、Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
-- ✅ 流水线：PR 触发 CI；合并 main 自动「构建 → 自包含制品 → 部署测试环境 → 健康检查」
+- ✅ 基础设施核心：`gitea-ci` 上的 Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
+- ✅ 主机职责隔离候选：versioned host profile、capability catalog 和 fail-closed guard 已实现；Issue #21 已完成 `gitea-ci` 历史业务 runtime/DB/代理的逐项迁移或清理及 live post-check，等待最终 PR 人工合并
+- 🟡 流水线：PR CI、构建和不可变制品链已验证；历史“合并 main 后在 `gitea-ci` 启动测试应用”仅作 as-built 证据，新接入必须部署到独立 `appserver-test`
+- ✅ Legacy 制品收口：`gitea-ci:/opt/artifacts` 只保留 AppServer current 对应的 `rsdesign-new-3323ab...tar.gz`；9 个可由 Gitea commits 重建且无引用的旧版本已按精确路径删除，Gitea repositories 与 AppServer 未修改
+- ✅ `prod-sim`：Issue #21 两轮 name+ID/依赖/唯一数据/可重建检查与所有者 disposition 完成后，仅以 `orb delete --force prod-sim` 精确退役；`gitea-ci` 与 AppServer paired health 保持通过
 - ✅ v2 试点证据：issue #4 已走通三闸门闭环，证明 Issue/文档/PR/部署关联可行
 - ✅ 邮件通知：Gitea → Mailpit（演示层），issue/PR 事件自动发信
 - ✅ Codex 基础：CLI、认证、skills、AGENTS、sandbox、provider router 已通过 VM 基础验收
@@ -25,9 +28,9 @@
 - 🟡 Linux Docker release contract（Issue #22 candidate）：提供 strict manifest/profile、Registry/offline transports、host-role preflight 和 deterministic deploy/status/rollback；当前只有 fake Docker 与 installer 证据，未安装/启动 Docker daemon，未执行真实 migration、AppServer 部署或 production promotion
 - ⏸️ 待办：Windows Server 2022 x64 原型、内网 Runner/依赖缓存、迁移演练、生产 JEA 彩排与 [14](14-Windows部署与迁移验收清单.md) 全量验收
 
-## 2. 三层架构
+## 2. 目标职责架构
 
-下图是仍在运行的 PM2/SQLite **as-built legacy 试点**，不是新 Linux 项目的默认目标。新项目
+下图保留 PM2/SQLite **as-built legacy 试点**的交付关系，不是新 Linux 项目的默认目标。新项目
 使用受控 builder 一次构建 `linux/amd64` OCI images，由 Gitea Container Registry 或同一
 manifest 的 offline bundle 传到独立 test/prod AppServer；`gitea-ci` 只承担 SCM 与明确
 批准的 CI/CD 能力，不运行业务容器。
@@ -39,27 +42,38 @@ flowchart TB
         BROWSER["浏览器<br/>确认合同·合并最终 PR"]
     end
 
-    subgraph VM1["🖥️ gitea-ci VM(自动化中枢——无人值守)"]
+    subgraph VM1["🖥️ gitea-ci · role=scm-ci"]
         GITEA["Gitea 1.26.4<br/>仓库/issue/PR/Actions"]
-        RUNNER["act_runner(host 模式)<br/>CI + 部署流水线"]
+        RUNNER["act_runner(host 模式)<br/>checkout/build/test/package"]
         AGENT["coder 用户<br/>自动分析 + Development Loop（候选已安装，自动实现关闭）"]
         VERD["Verdaccio<br/>npm 缓存"]
         MAIL["Mailpit<br/>邮件捕获"]
-        TEST["测试环境<br/>PM2 + Next.js :3100 / Nginx :8091"]
+        ART["不可变制品<br/>checksum + 引用保护"]
+        GUARD["host-role guard<br/>application/DB mutation fail closed"]
     end
 
-    subgraph VM2["🔒 prod-sim VM(离线生产彩排)"]
-        PROD["只收制品<br/>备份→迁移→重启→回滚"]
+    subgraph TESTHOST["🧪 AppServer · role=appserver-test"]
+        TEST["测试应用 runtime<br/>迁移→启动→SHA health→回滚"]
+    end
+
+    subgraph PRODHOST["🔒 批准的生产主机 · role=appserver-prod"]
+        PROD["只收已验证制品<br/>确定性部署与回滚"]
     end
 
     DEV -->|"git push 分支 / 开 PR"| GITEA
     BROWSER -->|"确认合同 / 合并 PR"| GITEA
     AGENT -->|"分析 Issue·迭代分支·准备 PR"| GITEA
     GITEA -->|"PR/Push 事件"| RUNNER
-    RUNNER -->|"部署制品"| TEST
-    RUNNER -.->|"人工触发 promote(rsync)"| PROD
+    RUNNER --> GUARD
+    GUARD -->|"允许 build/test/publish"| ART
+    ART -->|"独立项目部署 Gate"| TEST
+    TEST -.->|"人工批准 promote"| PROD
     GITEA -->|"通知邮件"| MAIL
 ```
+
+上图是新项目与收口后的强制职责合同，不是对当前 live 状态的虚假描述。Issue #21 的
+`03-verification.md` 分别记录 `gitea-ci` 历史 runtime、AppServer 迁移、数据清理和
+`prod-sim` 退役是否 `PASS`、`BLOCKED` 或 `NOT RUN`。
 
 ## 3. 核心设计原则（不可妥协项）
 
@@ -72,6 +86,7 @@ flowchart TB
 | 5 | **任何变更可逆** | 迁移前备份、releases 多版本保留、健康检查失败可回滚 |
 | 6 | **判级、合同与执行分离** | AI 判定有效复杂度；controller 独立校验合同；Loop 不得自行改验收标准或扩大范围 |
 | 7 | **只有一个交付闸门** | 最终 PR 合并是唯一交付硬闸门；PR CI 必须绿且只有人能合并 `main` |
+| 8 | **主机职责 fail closed** | root-owned profile 同时绑定 hostname 与 machine-id；未知 capability、身份漂移或宽松权限都必须在 mutation 前失败 |
 
 ## 4. 端到端流程（双路径、单合并闸门）
 
@@ -134,7 +149,7 @@ sequenceDiagram
 | [13-结果迁移与内网切换手册](13-项目结果迁移与内网切换实施手册.md) | 不迁 Issue/PR 的结果基线迁移、重建和切换 runbook | 执行项目迁移 |
 | [14-Windows 部署与迁移验收](14-Windows部署与迁移验收清单.md) | 构建、部署、数据库、JEA、切换和灾备证据 | 正式上线验收 |
 | [15-Fusion Windows ARM 原型](15-VMware-Fusion-Windows-ARM原型实施手册.md) | Mac 预检、Fusion/Windows 11 ARM、OpenSSH/IIS 脚本调试和 x64 升级边界 | 本地快速原型 |
-| [12-Linux GitHub → Gitea 双服务器方案](12-Linux-GitHub-Gitea-双服务器自动部署方案.md) | GitHub 入站候选、内网 PR、Linux 测试与生产分离目标合同 | 建设 Linux 内网交付链 |
+| [12-Linux GitHub → Gitea 职责分离方案](12-Linux-GitHub-Gitea-双服务器自动部署方案.md) | GitHub 入站候选、内网 PR、`scm-ci`/测试/生产三角色目标合同 | 建设 Linux 内网交付链 |
 | [Architecture catalog V1](architecture/README.md) | strict JSON catalog、三个 profiles、项目 declaration/lock、例外与离线 provenance | 选择技术基线、审计项目或规划升级 |
 
 ## 6. 关键地址速查
@@ -142,7 +157,7 @@ sequenceDiagram
 | 入口 | 地址 |
 |------|------|
 | Gitea | http://gitea-ci.orb.local:3000；`admin/rsdesign-new` 仅为现有 as-built/pilot 示例，实际目标由项目 profile 指定 |
-| 测试环境应用 | http://gitea-ci.orb.local:8091 |
+| 测试环境应用 | 由目标项目的 `appserver-test` profile 指定；`gitea-ci:8091` 只是 Issue #21 待迁移的 legacy 入口 |
 | Mailpit 收件箱 | http://gitea-ci.orb.local:8025 |
 | Verdaccio | http://gitea-ci.orb.local:4873 |
 | 凭据文件 | gitea-ci VM `~benque/gitea-ci-credentials.txt`（admin/ci-bot；600） |
@@ -159,6 +174,8 @@ sequenceDiagram
 - **`approved`**：合同已明确、允许启动 Loop；不授权合并或部署
 - **`change/N`**：Issue N 从分析到最终 PR 共用的单一分支
 - **`docs/changes/N/`**：summary、复杂变更的 spec/plan，以及部署/迁移变更的 verification
+- **Host profile**：无 Secret 的主机身份与 capability 合同；live 文件固定为 root-owned `/etc/aisoft/host-profile.json`
+- **制品**：带项目、完整 SHA 和 checksum 的不可变字节；`/opt/artifacts` 是本地 legacy staging，必须经过引用保护和 retention dry-run，不能按文件名或年龄直接删除
 - **Linux release**：新项目为 `release.json` + digest-pinned OCI images + Compose/architecture checksums；Registry 与 offline bundle 共享同一 release identity
 - **PM2 legacy 制品**：`/opt/artifacts/rsdesign-new-<sha>.tar.gz`，只代表既有试点；测过的字节 = 上线的字节
 - **Change ID（Windows 目标合同）**：原型 `<项目三字符代码>-NNNN`、正式 `PRD-NNNN`；用于分支、文档、制品和部署记录。现有 runtime 尚未实现该格式

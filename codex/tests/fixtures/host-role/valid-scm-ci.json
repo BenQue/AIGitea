@@ -1,0 +1,20 @@
+{
+  "contract_version": "1.0",
+  "host_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "hostname": "fixture-scm-ci",
+  "role": "scm-ci",
+  "allowed_capabilities": [
+    "source.checkout",
+    "build.run",
+    "test.run",
+    "package.create",
+    "registry.publish",
+    "artifact.publish",
+    "artifact.verify",
+    "ci-auxiliary.operate",
+    "artifact-retention.dry-run",
+    "platform-health.check"
+  ],
+  "profile_revision": 1,
+  "managed_by": "aisoft-platform"
+}

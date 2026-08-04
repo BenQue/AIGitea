@@ -36,14 +36,20 @@ fi
 bash -n "$ROOT/codex/tools/sync-gitea-labels.sh"
 bash -n "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 for script in \
+  "$ROOT/codex/install-host-role.sh" \
   "$ROOT/codex/tools/mark-deployed-issues.sh" \
   "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
   "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
+  "$ROOT/codex/tools/artifact-retention-dry-run.sh" \
+  "$ROOT/codex/tools/verify-host-role.sh" \
   "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
   "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
   "$ROOT/codex/tests/test-cleanup-merged.sh" \
+  "$ROOT/codex/tests/test-artifact-retention-dry-run.sh" \
+  "$ROOT/codex/tests/test-host-role-guard.sh" \
+  "$ROOT/codex/tests/test-install-host-role.sh" \
   "$ROOT"/sync/*.sh \
   "$ROOT"/sync/tests/*.sh; do
   bash -n "$script"
@@ -52,16 +58,22 @@ if command -v shellcheck >/dev/null; then
   shellcheck \
     "$ROOT"/codex/agent/*.sh \
     "$ROOT/codex/install-vm.sh" \
+    "$ROOT/codex/install-host-role.sh" \
     "$ROOT/codex/tools/sync-gitea-labels.sh" \
     "$ROOT/codex/tools/mark-deployed-issues.sh" \
     "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
     "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
+    "$ROOT/codex/tools/artifact-retention-dry-run.sh" \
+    "$ROOT/codex/tools/verify-host-role.sh" \
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
     "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
     "$ROOT/codex/tests/test-cleanup-merged.sh" \
+    "$ROOT/codex/tests/test-artifact-retention-dry-run.sh" \
+    "$ROOT/codex/tests/test-host-role-guard.sh" \
+    "$ROOT/codex/tests/test-install-host-role.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh"
   shellcheck "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh
   shellcheck \
@@ -79,8 +91,11 @@ bash "$ROOT/codex/tests/test-mark-deployed-issues.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh"
 bash "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh"
 bash "$ROOT/codex/tests/test-cleanup-merged.sh"
+bash "$ROOT/codex/tests/test-artifact-retention-dry-run.sh"
 bash "$ROOT/codex/tests/test-gitea-readonly.sh"
 bash "$ROOT/codex/tests/test-install-skills.sh"
+bash "$ROOT/codex/tests/test-host-role-guard.sh"
+bash "$ROOT/codex/tests/test-install-host-role.sh"
 bash "$ROOT/codex/tests/test-docker-release-install.sh"
 bash "$ROOT/sync/tests/test-inbound-sync.sh"
 bash "$ROOT/sync/tests/test-install.sh"
