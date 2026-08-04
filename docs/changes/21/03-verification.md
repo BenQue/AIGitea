@@ -17,9 +17,9 @@ risk_flags:
   - rollback
   - platform-governance
 depends_on: []
-status: pr-ready
+status: pr-open
 branch: change/21
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/28
 created: 2026-08-02
 updated: 2026-08-04
 ---
@@ -286,7 +286,7 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
 | artifact capacity decision | PASS keep | 10 个文件合计 1,685,669,209 bytes（1.570 GiB），仅约占 302,096,367,616-byte 文件系统的 0.56%；可用 202,563,907,584 bytes（188.65 GiB）、使用率 33%。按用户条件决定不清理，并在 Gitea/Nginx/runner/PostgreSQL/Mailpit/Verdaccio health PASS 后进入最终验证 |
 | `prod-sim` pre-delete two-round inventory | PASS with direct owner disposition | 两次 `orb list`/`orb info` exact name+ID 一致；盘点显示 active Nginx/Redis/PostgreSQL、`app_prod`、release/incoming/backup assets。用户随后明确确认这是无实际功能的原型并授权其全部当前资产永久丢弃；这不是“资产不存在”的断言，而是所有者对不可恢复丢失的直接 disposition |
 | `prod-sim` delete/post-check | PASS | 只执行 `orb delete --force prod-sim`；post `orb list` 仅含 AppServer/gitea-ci running，`orb info prod-sim` rc=1 `machine not found`，DNS rc=127、8090 HTTP rc=6，gitea-ci 与 AppServer paired health PASS |
-| AISoftPlatform final PR CI | NOT RUN | 平台 final PR 尚未创建；`change/21` branch push 只保存候选与 blocker 证据，不能用应用 prerequisite PR 或 branch push 替代 final acceptance |
+| AISoftPlatform final PR #28 | PASS open / CI PENDING | PR open、非 draft、mergeable；base=`main`、head=`change/21@8f8d791...`，正文含 `Closes #21` 与四份合同/证据文档。创建后首次 status readback 为 `pending` 且 `total_count=0`，不得写成 CI PASS；本行的文档提交会形成新的 final head，须以推送后的实时 CI 为准 |
 
 ## MyApp live Gate 精确对象账本（已授权并执行）
 
@@ -345,7 +345,7 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
 | AC-10 | PASS with direct owner disposition | 两轮 `orb list`/`orb info` 精确 name/ID、guest OS/architecture/resources/mount/listener/timer/data metadata、repository reference scan 均完成。live assets 仍存在，但用户明确确认无实际功能并授权永久丢弃；最小可重建基线仅保留 OS=`Ubuntu 26.04 resolute`、ARM64、disk=3,875,823,616 bytes、10 CPU、16,820,465,664-byte memory、machine ID、runtime/data metadata，未读取 `.env` 或业务数据 |
 | AC-11 | PASS | 唯一 destructive command 为 `orb delete --force prod-sim`。删除后 `orb list` 无该 VM、`orb info` 明确失败、DNS/8090 connection 失败；AppServer 与 gitea-ci 仍 running，Gitea/runner/Nginx/PostgreSQL/Mailpit/Verdaccio 与 3100/3202 health 全部 PASS |
 | AC-12 | PASS | post-Gate D 应用与 SFM candidate bash-n/ShellCheck/定向/full/build、SFM Node 22 required CI 与平台 bash-n/ShellCheck/定向 tests/完整 smoke 全部通过；live allow/deny/幂等、故意 health failure rollback、process-tree cancellation 与 Gate C/D post-state checks 均通过 |
-| AC-13 | PASS PR-ready evidence | 本文件已记录 rsdesign/SFM/MyApp/Redis、retention safe-retain 与 prod-sim final Gate；platform final PR/CI 将在本分支最终验证与 push 后记录，不把未运行的远端 CI 写成 PASS |
+| AC-13 | PASS PR-open evidence / CI pending | 本文件已记录 rsdesign/SFM/MyApp/Redis、retention safe-retain、prod-sim final Gate 与 platform PR #28；首次 CI readback 仍 pending/零 context，不把未运行的远端 CI 写成 PASS |
 | AC-14 | PASS（截至当前步骤） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C、rsdesign Gate D、SFM、MyApp、Redis 与 exact prod-sim delete 均有明确授权。用户的 prod-sim 直接 disposition 只覆盖该 VM 及其内部资产；未扩大到 retention、生产、gitea-ci、AppServer 或其它 VM，未自动合并 |
 
 ## 重复部署/执行
