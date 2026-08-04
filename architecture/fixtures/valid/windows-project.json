@@ -1,0 +1,20 @@
+{
+  "$schema": "../../schemas/project-architecture-v1.schema.json",
+  "schema_version": "1.0",
+  "project_id": "fixture-windows",
+  "profile_id": "windows-dotnet-postgres-v1",
+  "profile_version": "1.0.0",
+  "catalog_revision": "2026.08.0",
+  "delivery_contract": "windows-iis/v1",
+  "components": [
+    {"component_id": "os.windows-server.2025", "version": "2025-build-26100"},
+    {"component_id": "framework.iis.server-2025", "version": "10.0-server-2025-role"},
+    {"component_id": "runtime.dotnet.10", "version": "10.0.9"},
+    {"component_id": "toolchain.dotnet-sdk.10", "version": "10.0.301"},
+    {"component_id": "framework.aspnet-core.10", "version": "10.0.9"},
+    {"component_id": "orm.ef-core.10", "version": "10.0.9"},
+    {"component_id": "orm.npgsql-ef.10", "version": "10.0.3"},
+    {"component_id": "database.postgresql.18", "version": "18.4"}
+  ],
+  "exceptions": []
+}

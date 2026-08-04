@@ -1,0 +1,88 @@
+{
+  "name": "newemaint-test",
+  "services": {
+    "web": {
+      "image": "registry.internal/admin/newemaint-web@sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "user": "10001:10001",
+      "read_only": true,
+      "cap_drop": ["ALL"],
+      "security_opt": ["no-new-privileges:true"],
+      "tmpfs": ["/tmp:size=64m,mode=1777"],
+      "deploy": {
+        "resources": {
+          "limits": {
+            "cpus": "0.50",
+            "memory": "536870912"
+          }
+        }
+      },
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "5"
+        }
+      },
+      "networks": {
+        "edge": null,
+        "backend": null
+      },
+      "ports": [
+        {
+          "host_ip": "127.0.0.1",
+          "published": "3000",
+          "target": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "labels": {
+        "com.aisoft.release.id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "com.aisoft.release.service": "web"
+      },
+      "healthcheck": {
+        "test": ["CMD", "/app/healthcheck"],
+        "interval": "10s",
+        "timeout": "3s",
+        "retries": 5
+      }
+    },
+    "migrate": {
+      "image": "registry.internal/admin/newemaint-migrate@sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "user": "10001:10001",
+      "read_only": true,
+      "cap_drop": ["ALL"],
+      "security_opt": ["no-new-privileges:true"],
+      "tmpfs": ["/tmp:size=64m,mode=1777"],
+      "deploy": {
+        "resources": {
+          "limits": {
+            "cpus": "0.25",
+            "memory": "268435456"
+          }
+        }
+      },
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "5"
+        }
+      },
+      "networks": {
+        "backend": null
+      },
+      "labels": {
+        "com.aisoft.release.id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "com.aisoft.release.service": "migrate"
+      }
+    }
+  },
+  "networks": {
+    "edge": {
+      "internal": false
+    },
+    "backend": {
+      "internal": true
+    }
+  }
+}

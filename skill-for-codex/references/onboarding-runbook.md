@@ -84,7 +84,26 @@ writable。
 
 ## 4. CI 与部署
 
-适配 PR CI、main 部署、pack、deploy、health-check、promote 和 rollback。保留：
+新 Linux 软件仓库默认消费平台
+[`docker-release/v1`](../../docker-release/README.md)，而不是复制 `rsdesign-new` 的 PM2
+脚本。接入顺序：
+
+1. 项目独立 Issue/spec/plan/PR 实现 Dockerfile、Compose、migration service、业务 health、
+   Gitea Registry publish 和 offline bundle；平台 candidate 不能替代应用验收。
+2. 从 `docker-release/templates/target-profile.example.json` 生成 test/prod target profile，
+   按环境填写 hostname、`appserver-test`/`appserver-prod` role、transport、路径、Compose
+   project 和 #23 architecture identity，设为 mode `0400/0600`。模板和仓库都不填 Secret。
+3. Secret 只在目标机受保护 env file；release manifest、architecture lock、Compose、state、
+   argv、日志和 verification 不保存 Secret 值。
+4. Builder 生成以完整 Gitea merge SHA 为 ID 的 `release.json`、digest-pinned images、Compose/
+   architecture checksums 和 offline inventory。目标 AppServer 不 build/install/git pull/访问公网。
+5. 先在 `appserver-test` 连续 deploy 同 SHA 两次，故意覆盖 bundle tamper、host-role mismatch、
+   migration failure 和 health failure container rollback；再由独立生产 Gate 提升同一 identity。
+
+NewEmaint 的示例 profile 仅说明平台字段，不授权修改 NewEmaint 仓库、创建真实 Secret、执行
+migration 或部署。其首个消费实现仍须在 NewEmaint 自己的 `change/N` 和最终 PR 中完成。
+
+已有 PM2 应用在独立迁移验收前继续作为 legacy adapter。维护这些应用时保留：
 
 - 构建产物完整性检查。
 - 不可变制品和环境配置分离。
@@ -96,7 +115,7 @@ writable。
 - `/opt/artifacts` retention 先验证项目 allowlist、完整 SHA/checksum、引用、数量和期限，只
   输出 dry-run/audit ledger；删除另行授权。
 
-AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固化为脚本，连续运行两次，并故意制造一次失败验证回滚。把真实结果写入关联 Issue 的 `03-verification.md`。生产只执行验收后的脚本。
+AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固化为脚本，连续运行两次，并故意制造一次失败验证回滚。把真实结果写入关联 Issue 的 `03-verification.md`。生产只执行验收后的脚本。平台 local fake PASS、安装候选或 PR CI 不能写成真实 AppServer/production deployed。
 
 ## 5. Gitea 治理
 
@@ -179,3 +198,22 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 在 Loop 试点前记录当前 timer、provider、agent 脚本、工作树、开放 Issue/PR 和标签状态。保持 `IMPLEMENT_PROVIDER=none`，直到专项实施明确启用新 controller。
 
 试点失败时停止 controller，保留 analyzer，开发回到 Mac 人机交互；CI、制品和生产部署不受影响。未经单独批准，不删除旧脚本、认证或 provider 配置。
+
+## 9. Architecture declaration onboarding
+
+在 collaborator/branch-protection gate 通过后、任何 dependency upgrade 或部署前：
+
+1. 从平台 `architecture/templates/project-architecture.example.json` 复制为项目
+   `.aisoft/architecture.json`；只使用 strict JSON，V1 不接受 YAML。
+2. 选择一个 versioned profile，按仓库 lock、Dockerfile/schema 和脱敏 runtime metadata
+   声明精确 component；禁止目录名推测、Secret、`latest`、semver range 和 mutable-only OCI。
+3. 用 `aisoft-architecture lock` 生成并提交 `architecture.lock.json`，连续两次输出必须
+   byte-identical；随后用 `validate --lock` 检查 drift。
+4. `sunset` 必须有 migration Issue；临时 exception 还要 owner/reason/risk/controls/expiry，
+   到期当日 fail closed。`prohibited`/EOL 不可绕过。
+5. Candidate lock 不等于项目已迁移或已部署。每个 runtime/framework/ORM/database/container
+   major 都在应用仓另建 complex Change；#22 只接收 profile、catalog revision 和 lock checksum。
+
+平台 installer 只复制 versioned validator/catalog/schema/template，不创建项目 declaration、
+凭据、service 或 timer。离线环境先验证官方 checksum/signature、SBOM/provenance 和 OCI digest，
+再导入批准 mirror；production lock 不由自动 updater 修改。

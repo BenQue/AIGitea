@@ -1,20 +1,100 @@
 # 12 · Linux / GitHub → Gitea / 三角色职责分离自动部署方案
 
-> 目标方案（2026-07-23；host-role 修订 2026-08-02）｜状态：**设计已确认，尚未在公司服务器实施或验收**
-> 适用应用：React SPA 前端 + Node.js 后端 + PostgreSQL + PM2
+> 目标方案（更新 2026-08-02；host-role 集成 2026-08-04）｜状态：**Docker-first 平台 candidate；真实 Registry、offline media 与 production 均未实施或验收**
+> 新 Linux 默认：OCI digest + Docker Compose；PM2 仅为已有应用的 legacy adapter
 > 网络约束：POC 开发机不能访问公司内网；安装 Gitea 的 `scm-ci` 服务器可以通过 HTTPS 访问 GitHub。
 
-本册定义一个新的 Linux 应用交付 profile：GitHub 候选进入内网 Gitea，经内网 PR、CI 和
-人工审批，在 `scm-ci` 构建一次并发布不可变制品，再由独立 `appserver-test` 部署测试环境，
-最后通过 Promotion PR 把同一制品交给 `appserver-prod`。文件名保留早期“双服务器”提案以
-维持链接；当前合同至少要求三个隔离 machine identity，不能把测试业务 runtime 与
-Gitea/通用 Runner 重新合并。
+本册定义 Linux 应用从 GitHub 候选进入公司 Gitea 后的发布边界。新项目以
+[Docker release contract v1](docker-release/README.md) 为默认：受控 builder 一次构建，测试
+与生产只消费同一 immutable digests/Compose/architecture identity；PM2/tar.gz 内容保留为
+已有应用的 legacy 设计证据。文件名保留早期“双服务器”提案以维持链接；当前 host-role
+合同至少要求 `scm-ci`、`appserver-test`、`appserver-prod` 三个隔离 machine identity，不能
+把业务 runtime 与 Gitea/通用 Runner 重新合并。
 
 现有 [01](01-基础设施-VM-Gitea-Runner.md) 和 [02](02-CI与自动部署流水线.md) 记录的是 OrbStack、Next.js、SQLite 试点的 as-built 事实；本册不修改该事实，也不能把 SQLite 脚本改名后直接用于 PostgreSQL。实施本册涉及 CI、制品、数据库迁移、权限、部署和回滚，属于 complex 变更，必须按 `AGENTS.md` 补齐 Issue、spec、plan 和 verification。
 
 ---
 
-## 1. 已确认决策
+## 0. Docker-first canonical release contract
+
+### 0.1 职责与拓扑
+
+```mermaid
+flowchart LR
+    GH["GitHub source candidate"] --> SYNC["inbound sync"]
+    subgraph SCM["scm-ci / controlled builder"]
+        G["Gitea PR + protected main"]
+        CI["act_runner build/test"]
+        REG["Gitea Container Registry"]
+        BUNDLE["offline bundle export"]
+        G --> CI --> REG
+        CI --> BUNDLE
+    end
+    SYNC --> G
+    REG -->|"pull exact digest"| TEST["appserver-test"]
+    BUNDLE -->|"checksum + load"| TEST
+    TEST -->|"same manifest after human gate"| PROD["appserver-prod"]
+    TEST --> TDB["shared test PostgreSQL\nper-app DB/roles"]
+    PROD --> PDB["shared prod PostgreSQL\nper-app DB/roles"]
+    TN["shared test Nginx"] --> TEST
+    PN["shared prod Nginx"] --> PROD
+```
+
+- `scm-ci` 允许 source checkout、build、test、package、Registry/artifact publish 和 release
+  `verify`，禁止 business Web/API/worker、migration 和 application deploy/start。
+- `appserver-test`/`appserver-prod` 只执行受保护 target profile 派生的固定
+  `verify/deploy/status/rollback`，不接收任意 shell、路径或 Compose override。
+- Nginx 和 PostgreSQL 按环境共享；每应用拥有独立 Compose project、database、runtime/
+  migrator/backup role 和外置 Secret。应用容器不封装环境共享 Nginx/PostgreSQL。
+- Builder、test AppServer 和 prod AppServer 是独立 trust role；资源有限时也不得把
+  `scm-ci` 复用为业务 runtime。实际 hostname/role 由 #21 host profile 验证。
+
+### 0.2 Release bytes 与 transport
+
+完整 Gitea `main` merge SHA 是 release ID。`release.json` strict schema 同时绑定：
+
+- `linux/amd64`；source repository 与 merge SHA；
+- 每个 Compose service 的 immutable Registry digest 和 inspected image ID；
+- Compose checksum、runtime service、一次性 non-destructive migration identity；
+- #23 唯一 architecture catalog 的 `profile_id`、`catalog_revision` 和 lock checksum；
+- offline `images.tar` 与 `images.inventory.json` checksum。
+
+Registry transport 逐 image 执行 digest pull；offline transport 先验证 release/Compose/
+architecture/inventory/archive 和 tar path safety，再 `docker image load` 并 inspect exact identity。
+二者消费同一 manifest，不得重建“等价”image。目标机不运行 `docker build`、`npm install`、
+`git pull` 或公网下载。
+
+### 0.3 Deterministic target runtime
+
+CLI 只接受 mode `0400/0600` 的 target profile 和 40 位 release ID：
+
+```text
+aisoft-docker-release verify|deploy|status|rollback --profile <protected-json> --release-id <merge-sha>
+```
+
+所有 path/checksum/architecture/host-role/Compose safety 在 pull/load/migration/container replace
+之前 fail closed。Compose 禁止 `build:`、mutable-only image、root/privileged、host namespace、
+Docker socket、任意 bind mount 和非 loopback publish；要求 read-only rootfs、tmpfs/命名卷、
+`cap_drop: ALL`、`no-new-privileges`、资源/日志限制、网络分区、healthcheck 和 exact release
+labels。环境值只引用目标机外置 env file，不写入 manifest、state 或日志。
+
+部署以单一进程锁和原子 state 串行化；同 SHA exact healthy 为 no-op。Migration identity 在执行
+前记为 `started`，成功后记为 `completed`，failed/中断不自动重跑。`compose up --wait` 或
+exact-release health 失败时回切上一 container release；rollback 不运行 migration，PostgreSQL
+restore 永远需要独立人工审批。
+
+### 0.4 兼容与证据边界
+
+NewEmaint 只是首个消费模板，必须在应用仓另建 Issue/spec/plan/PR，实现自己的 Dockerfile、
+Compose、migration、CI publish、health 与 offline bundle；本平台 Change 不修改应用仓。平台
+fake Docker/installer PASS 不是 Registry、TLS、offline media、AppServer、真实 database 或
+production PASS。
+
+以下 §1–§21 保存 2026-07 PM2/tar.gz 双服务器设计，作为已有应用的 **legacy adapter** 与
+GitHub 入站治理参考。凡与 §0 冲突之处，新 Linux 项目以 §0 和 `docker-release/` 为准；不得
+把历史 PM2 as-built 改写成 Docker 已部署，也不得在应用独立迁移验收前删除 PM2 路径。
+
+## 1. PM2 legacy 已确认决策（历史）
 
 | 决策 | 结论 |
 |------|------|
@@ -46,7 +126,7 @@ Gitea/通用 Runner 重新合并。
 
 ---
 
-## 2. 目标拓扑
+## 2. PM2 legacy 目标拓扑（历史）
 
 ```mermaid
 flowchart LR
@@ -93,7 +173,7 @@ Git mirror 只能传输 commits、branches、tags 和 LFS；不能持续保留 G
 
 ---
 
-## 3. 服务器职责、端口和目录
+## 3. PM2 legacy 服务器职责、端口和目录（历史）
 
 ### 3.1 服务器 A：`scm-ci`
 
@@ -165,6 +245,8 @@ capability；profile 或 identity 校验失败时旧 release 保持不变。首�
 故意失败和回滚验收。
 
 ### 3.3 服务器 B：`appserver-prod`
+
+本段只描述已有 PM2 legacy adapter；它不再是项目总纲的新 Linux 默认。
 
 服务器 B 只安装 Nginx、固定且已验收的 Node/PM2、与测试相同 major 的 PostgreSQL，
 以及 root-owned、版本化部署脚本；不安装 Gitea、act_runner、AI controller、源码工作区、
@@ -567,7 +649,7 @@ push(main)
 
 ---
 
-## 11. 不可变制品合同
+## 11. PM2 legacy tar.gz 制品合同（历史）
 
 Gitea Package version 固定为 Gitea `main` merge SHA：
 
@@ -686,7 +768,7 @@ Nginx 只需要读取 release 的 `frontend/`；不要通过加入应用 Secret 
 
 ---
 
-## 13. Node / PM2
+## 13. Node / PM2 legacy adapter（历史）
 
 Node 版本策略：
 
@@ -1042,7 +1124,7 @@ status <40-sha>
 
 ---
 
-## 18. 分阶段实施
+## 18. PM2 legacy 分阶段实施（历史）
 
 ### Phase 0：参数和兼容性
 
@@ -1165,6 +1247,18 @@ RTO / RPO
 ```
 
 任何实施结果只能在真实服务器运行相应命令并记录证据后标为通过；本文档本身不证明 Gitea 同步、CI、测试部署或生产部署已经上线。
+
+### 20.1 Architecture lock input
+
+真实 Linux 项目还必须提交 strict JSON `.aisoft/architecture.json` 与生成的
+`architecture.lock.json`，默认参考 `linux-node-postgres-v1`。Release manifest 只消费
+`profile_id`、`catalog_revision` 和 lock checksum；仍由本方案拥有 build/deploy/health/
+rollback state。Mutable `latest`、只有 tag 的 OCI image、未知/EOL component、过期 exception
+或 lock drift 必须在构建或任何外部 mutation 前失败。
+
+Catalog 当前 preferred 值只代表新项目候选，不授权升级既有项目。Node、Prisma 和
+PostgreSQL major 必须拆成独立应用 Change，分别具备兼容、backup/restore 和 rollback evidence。
+具体 contract、CLI 与离线 mirror/SBOM/provenance 见 [`architecture/README.md`](architecture/README.md)。
 
 ---
 

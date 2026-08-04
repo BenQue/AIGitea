@@ -1,0 +1,50 @@
+{
+  "$id": "https://aisoft.example/schemas/project-architecture-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {"type": "string"},
+    "catalog_revision": {"pattern": "^[0-9]{4}\\.[0-9]{2}\\.[0-9]+$", "type": "string"},
+    "components": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "component_id": {"pattern": "^[a-z0-9][a-z0-9.-]+$", "type": "string"},
+          "digest": {"pattern": "^sha256:[0-9a-f]{64}$", "type": "string"},
+          "migration_issue": {"minLength": 2, "type": "string"},
+          "version": {"minLength": 1, "type": "string"}
+        },
+        "required": ["component_id", "version"],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "delivery_contract": {"enum": ["docker-release/v1", "pm2-legacy", "windows-iis/v1", "embedded-sqlite/v1"], "type": "string"},
+    "exceptions": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "component_id": {"pattern": "^[a-z0-9][a-z0-9.-]+$", "type": "string"},
+          "controls": {"items": {"minLength": 1, "type": "string"}, "minItems": 1, "type": "array"},
+          "created_at": {"format": "date", "type": "string"},
+          "expires_at": {"format": "date", "type": "string"},
+          "id": {"pattern": "^ARCH-EX-[0-9]{4}-[0-9]{3}$", "type": "string"},
+          "migration_issue": {"minLength": 2, "type": "string"},
+          "owner": {"minLength": 1, "type": "string"},
+          "reason": {"minLength": 1, "type": "string"},
+          "risk": {"minLength": 1, "type": "string"}
+        },
+        "required": ["id", "component_id", "owner", "reason", "risk", "controls", "created_at", "expires_at", "migration_issue"],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "profile_id": {"pattern": "^[a-z0-9][a-z0-9-]+$", "type": "string"},
+    "profile_version": {"pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "type": "string"},
+    "project_id": {"pattern": "^[a-z0-9][a-z0-9-]+$", "type": "string"},
+    "schema_version": {"const": "1.0", "type": "string"}
+  },
+  "required": ["$schema", "schema_version", "project_id", "profile_id", "profile_version", "catalog_revision", "delivery_contract", "components", "exceptions"],
+  "type": "object"
+}

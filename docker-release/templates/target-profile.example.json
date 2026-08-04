@@ -1,0 +1,16 @@
+{
+  "contract_version": "docker-release-target/v1",
+  "profile_id": "newemaint-test-example",
+  "environment": "test",
+  "host_role": "appserver-test",
+  "expected_hostname": "appserver-test.example.internal",
+  "transport": "registry",
+  "release_root": "/opt/aisoft-releases/newemaint",
+  "state_root": "/var/lib/aisoft-docker-release/newemaint-test",
+  "compose_project": "newemaint-test",
+  "env_file": "/etc/newemaint/test.env",
+  "source_repository": "admin/NewEmaint",
+  "architecture_profile_id": "linux-node-postgres-v1",
+  "catalog_revision": "replace-with-catalog-revision",
+  "wait_timeout_seconds": 180
+}

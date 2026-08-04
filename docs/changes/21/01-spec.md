@@ -21,7 +21,7 @@ status: approved
 branch: change/21
 pr_url:
 created: 2026-08-02
-updated: 2026-08-02
+updated: 2026-08-04
 ---
 
 # Spec
@@ -61,7 +61,9 @@ updated: 2026-08-02
   `/opt/hsdb-ci`、`hsdb_ci` 和仍被引用的制品在收口前后均通过真实健康/消费检查。
 - [ ] **AC-9** `/opt/artifacts` 使用项目 allowlist、SHA/checksum、引用保护、保留数量/期限、
   dry-run 和审计日志；不得按文件名或年龄直接批量删除。Redis 仅在无引用、连接和数据后
-  移除；Nginx 仅在不再承担 Gitea 入口或其它批准职责时移除。
+  移除；Nginx 仅在不再承担 Gitea 入口或其它批准职责时移除。对不满足 checksum/reference
+  前置的 legacy artifact，fail-closed 保留即为本 Change 的安全终态；若其容量不构成压力，
+  不要求为完成本 Change 补签历史 checksum 或执行删除，未来任何 apply 仍须独立策略与 Gate。
 - [ ] **AC-10** 删除前同时由 `orb info prod-sim` 和 `orb list` 回读精确 name/ID，盘点其
   进程、监听、挂载、timer、数据和仓库引用；唯一数据、实时依赖或身份差异使 Gate
   `BLOCKED`。

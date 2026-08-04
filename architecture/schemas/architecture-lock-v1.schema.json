@@ -1,0 +1,45 @@
+{
+  "$id": "https://aisoft.example/schemas/architecture-lock-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {"type": "string"},
+    "catalog_revision": {"pattern": "^[0-9]{4}\\.[0-9]{2}\\.[0-9]+$", "type": "string"},
+    "delivery_contract": {"type": "string"},
+    "exception_ids": {"items": {"type": "string"}, "type": "array", "uniqueItems": true},
+    "lock_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "profile_id": {"type": "string"},
+    "profile_version": {"type": "string"},
+    "project_id": {"type": "string"},
+    "resolved_components": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "component_id": {"type": "string"},
+          "digest": {"pattern": "^sha256:[0-9a-f]{64}$", "type": "string"},
+          "migration_issue": {"type": "string"},
+          "source_url": {"pattern": "^https://", "type": "string"},
+          "state": {"enum": ["preferred", "supported", "sunset"]},
+          "version": {"type": "string"}
+        },
+        "required": ["component_id", "version", "state", "source_url"],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "schema_version": {"const": "1.0", "type": "string"},
+    "source_checksums": {
+      "additionalProperties": false,
+      "properties": {
+        "catalog_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "declaration_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "profile_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+      },
+      "required": ["catalog_sha256", "profile_sha256", "declaration_sha256"],
+      "type": "object"
+    }
+  },
+  "required": ["$schema", "schema_version", "project_id", "profile_id", "profile_version", "catalog_revision", "delivery_contract", "resolved_components", "exception_ids", "source_checksums", "lock_sha256"],
+  "type": "object"
+}

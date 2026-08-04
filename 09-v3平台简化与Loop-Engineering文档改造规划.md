@@ -642,3 +642,15 @@ rg -n 'READY_FOR_REVIEW|NEEDS_HUMAN_DECISION|effective_complexity:|type/feature|
 - 建设或部署生产环境。
 
 进入文档实施、Loop 设计、脚本实施和真实 Issue 试点前，分别需要明确授权。
+
+## 15. Architecture catalog 与 Loop 的边界
+
+Issue #23 引入的 V1 contract 位于 [`architecture/`](architecture/README.md)：strict JSON
+catalog、三个 profiles、project declaration、deterministic lock 和 fail-closed validator。
+Loop/CI 只能验证 pinned `profile_id`、`catalog_revision` 和 lock checksum；它不能用 profile
+名称推断 host capability，也不能把 `docker-release/v1`、`pm2-legacy` 或 `windows-iis/v1`
+解释成部署授权。
+
+Catalog 更新继续使用本文件定义的复杂 Issue/spec/plan/final PR/CI/human merge 流程。Security
+更新可加速但不绕过 Issue 和人工合并；major 永远是独立 Change。Candidate/reference dry-run、
+项目 migration、测试部署与 production 状态必须分开记录，未运行保持 `NOT RUN`。
