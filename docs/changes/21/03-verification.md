@@ -114,6 +114,18 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
 “fail-closed dry-run + 小容量安全保留”完成；现有文件、内容与 `/opt/artifacts` 均未修改。
 未来若要删除，仍必须补齐正式 policy/reference/checksum 并重新取得独立 apply Gate。
 
+同日用户随后把保留策略收窄为 AppServer current deployment：只保留已部署的 NewEmaint、
+NewRSdesign 和 SFMDigitalBoard，允许删除其它非 AppServer current 的旧制品，但明确不触碰 Gitea
+代码库。重新盘点证明 10 个文件全部属于 `admin/rsdesign-new`；NewEmaint current
+`28358f9931cf38a0fa852e6b1d9c038b4742db54` 与 SFMDigitalBoard current
+`579282df2c765df706c26d68850198ea306f4f57` 没有文件混在该目录。NewRSdesign current link、唯一
+release 与 PID `278336` cwd 均绑定 `3323ab214b4222733715cacc536905392c042b60`，因此只保护该
+168,890,220-byte artifact。其余 9 个 SHA 均存在于保留的 Gitea bare repository、是
+`main@480dd7d0...` 可达祖先或本身、零打开引用，并在删除前逐个计算 SHA-256。随后使用 9 个
+显式绝对路径执行一次 `rm --`，未使用 glob；回收 1,516,778,989 bytes（约 1.413 GiB）。删除后
+只剩受保护的 `3323ab...` artifact，checksum 不变；Gitea repository 未写入，平台服务及 AppServer
+3100/3202 health 全部 PASS。
+
 ## 环境与版本
 
 - Planning baseline：`48d47f7edd4cc9190f80886260b974477fc20236`
@@ -245,7 +257,7 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
 | `bash codex/tests/test-install-host-role.sh` | PASS | 仅安装 guard/schema/catalog/example；重复执行通过；不创建 live profile、Secret、service、timer 或 deployment |
 | changed shell `bash -n` | PASS | `codex/tools/verify-host-role.sh`、`codex/install-host-role.sh` 及新增/修改 tests 均通过 |
 | ShellCheck | PASS | 所有本 Change 新增或修改的 shell 文件通过 |
-| `bash codex/tests/smoke.sh` | PASS | 历史十九次均为 105 项 Python tests 及全部 shell/static smoke 通过；2026-08-04 集成 latest main 的 Docker release/architecture 后最终运行 166 项 Python tests 及全部 shell/static smoke 通过，同时覆盖 retention safe-retain 与 prod-sim final evidence |
+| `bash codex/tests/smoke.sh` | PASS | 历史十九次均为 105 项 Python tests 及全部 shell/static smoke 通过；2026-08-04 集成 latest main 后以及 artifact current-only cleanup 证据更新后均运行 166 项 Python tests 及全部 shell/static smoke，通过 Docker release/architecture、retention 与 prod-sim final evidence |
 | latest-main integration | PASS | `change/21@c4b13fd...` 合并 `origin/main@63f571ac...`；手工整合 README、Linux host-role/Docker-first 文档和 smoke 聚合入口，保留 Issue #21/#22/#23 合同；无冲突标记，`git diff --check` PASS |
 | documentation state review | PASS | README、01/02/06/07/09/12 与 onboarding 已区分 current `scm-ci`、AppServer roles、legacy runtime 和待 Gate 清理；未修改本次运行遵循的 `AGENTS.md` |
 | `gitea-ci` baseline inventory | PASS（第 1 步只读） | Gitea/runner/Verdaccio/Mailpit/PostgreSQL/Redis/Nginx/legacy app listeners、systemd/timers、DB 脱敏元数据、artifact/目录引用和 health 已盘点；不等同于第 10 步两轮 pre-delete inventory |
@@ -284,9 +296,11 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
 | Nginx predicate | PASS KEEP | MyApp vhost 删除后只剩 Ubuntu default static vhost/port 80；但 versioned `12-Linux-GitHub-Gitea-双服务器自动部署方案.md` 明确把平台 Nginx proxy 分配为 Gitea 批准职责。按 AC-9 shared-reference predicate 保留 Nginx service/package/config，不申请 stop/remove |
 | artifact retention implementation/dry-run | PASS dry-run / BLOCKED apply | tool/examples/fixture/smoke 已通过；真实 10 个 legacy artifact 均缺 `.sha256` sidecar，`candidates=0 keep=0 blocked=10`，正式 policy/reference ledger 未定义，未删除制品 |
 | artifact capacity decision | PASS keep | 10 个文件合计 1,685,669,209 bytes（1.570 GiB），仅约占 302,096,367,616-byte 文件系统的 0.56%；可用 202,563,907,584 bytes（188.65 GiB）、使用率 33%。按用户条件决定不清理，并在 Gitea/Nginx/runner/PostgreSQL/Mailpit/Verdaccio health PASS 后进入最终验证 |
+| artifact owner disposition + exact cleanup | PASS | 用户随后明确只保护 AppServer current 的 NewEmaint/NewRSdesign/SFMDigitalBoard，并授权其它非 current 旧制品删除。10 个文件全部映射 `admin/rsdesign-new`；只保留 current/唯一 release/PID cwd 对应 `3323ab...`，其余 9 个逐项 checksum、零 open ref、Gitea commit/main ancestry PASS 后以 9 个绝对路径一次 `rm --`，未用 glob；回收 1,516,778,989 bytes |
+| artifact cleanup post-state | PASS | `/opt/artifacts` 只剩 `rsdesign-new-3323ab...tar.gz`（168,890,220 bytes，SHA-256 `04911201...5913ebd`）；NewEmaint/SFM current 未在这 10 个文件中。Gitea/runner/Nginx/PostgreSQL/Mailpit/Verdaccio 与 AppServer 3100/3202 paired health PASS，Gitea repository 未修改 |
 | `prod-sim` pre-delete two-round inventory | PASS with direct owner disposition | 两次 `orb list`/`orb info` exact name+ID 一致；盘点显示 active Nginx/Redis/PostgreSQL、`app_prod`、release/incoming/backup assets。用户随后明确确认这是无实际功能的原型并授权其全部当前资产永久丢弃；这不是“资产不存在”的断言，而是所有者对不可恢复丢失的直接 disposition |
 | `prod-sim` delete/post-check | PASS | 只执行 `orb delete --force prod-sim`；post `orb list` 仅含 AppServer/gitea-ci running，`orb info prod-sim` rc=1 `machine not found`，DNS rc=127、8090 HTTP rc=6，gitea-ci 与 AppServer paired health PASS |
-| AISoftPlatform final PR #28 | PASS open / CI PENDING | PR open、非 draft、mergeable；base=`main`、head=`change/21@8f8d791...`，正文含 `Closes #21` 与四份合同/证据文档。创建后首次 status readback 为 `pending` 且 `total_count=0`，不得写成 CI PASS；本行的文档提交会形成新的 final head，须以推送后的实时 CI 为准 |
+| AISoftPlatform final PR #28 | PASS open / CI NOT CONFIGURED | PR open、非 draft、mergeable，正文含 `Closes #21` 与四份合同/证据文档；artifact Gate 前 head 为 `d9de0f16...`。`main` branch protection 为 `enable_status_check=false`、contexts null，commit status `pending`/0 context 表示无 required CI，不写成 CI PASS；本次 evidence commit push 后以实时 head 为准 |
 
 ## MyApp live Gate 精确对象账本（已授权并执行）
 
@@ -329,6 +343,27 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
 | `gitea-ci:/opt/artifacts` | 10 个 `rsdesign-new-<40-hex>.tar.gz`，无 `.sha256` sidecar；metadata-only inventory | **BLOCKED**；checksum predicate 不满足，未读 artifact 内容，未删除任何制品 |
 | live diagnostic dry-run audit | 10 × `missing-checksum`；`summary candidates=0 keep=0 blocked=10`；14-line ledger hash `7b0dd06c...530bab5` | **PASS dry-run / BLOCKED apply**；临时 input/ledger 已精确清理，正式 retention policy/references 未被臆造 |
 
+## Artifact AppServer-current 清理账本（后续所有者 Gate）
+
+以下 10 个对象均属于 `admin/rsdesign-new`。删除前每个 SHA 均为 Gitea `main` 可达 commit、
+每个文件均为零打开引用；NewEmaint 与 SFMDigitalBoard current SHA 不在该集合中。
+
+| SHA | Bytes | SHA-256 | Result |
+|---|---:|---|---|
+| `114071684c014039790c974824ed659e1a4ae72e` | 165,610,799 | `5590d15bd8c5b12a21544dc238b1c6dfc015edd1b22a25b335791f98fa2ee10f` | PASS exact removed；Gitea 可重建 |
+| `1141c1bfd62f44f508b8b52d37ffbaa07b9018c5` | 168,889,717 | `44870fdd674838216a40582fbdafeddfce512e82bfcb23392b5b14a796ebe45f` | PASS exact removed；Gitea 可重建 |
+| `1869058bbf5d80fccdaedac5677541f3a5dbd1a7` | 168,897,373 | `324005ebf5c18060bed8a9b732f6d58e2f05a77015cd55881c27710a05d9564c` | PASS exact removed；Gitea 可重建 |
+| `1c7705c794596c0c801cfc0f4d94bb1c1b9062f1` | 168,901,926 | `ed7e5620e72f9b15492edef1243819b59313281b745b2eb2140198ef25cbde9f` | PASS exact removed；Gitea 可重建 |
+| `2e94939611e9e86f2bd6f56c18a683d87138728a` | 168,886,328 | `69571fa287bf4197acfe0401a74eb585ab076ab1beb06e2440a6153322395baa` | PASS exact removed；Gitea 可重建 |
+| `3323ab214b4222733715cacc536905392c042b60` | 168,890,220 | `04911201ecd91be5e77daf3678c19e404fd773fdcf5d46f40d8ea4e455913ebd` | **PASS kept**；AppServer current、唯一 release、PID cwd 与 rollback protected |
+| `3b147c8777dfc32a745cb27412dec0447e8efcb5` | 168,897,390 | `f6c160f021006b188bc812385996f54f60972449db41ddea7e4d54dc5517ba75` | PASS exact removed；Gitea 可重建 |
+| `480dd7d0b55eebb0b12d60e23261a64b60d9ce7e` | 168,896,810 | `4c6ae04dac8c2747e56f1634defa7474eec2b3d6421b8c45106991af20eb12bc` | PASS exact removed；Gitea main 保留、artifact 可重建，未部署 |
+| `49033a12d14862708fa9c20cfce7c0f974f27d7d` | 168,893,667 | `d42d2780f39300455a62c3f5544b8083fd533aa1eed3480abf4c35b673402a86` | PASS exact removed；Gitea 可重建 |
+| `e5533dafab569b5cfae0a57b8e89b5313a945f7f` | 168,904,979 | `b54112f6d4722e974aca17c1398e5e58e7c183567351e25fd5c8b88342d9ec82` | PASS exact removed；Gitea 可重建 |
+
+Post-state：只剩 1 个文件、168,890,220 bytes；文件系统可用 203,693,916,160 bytes。删除命令
+没有 Gitea repository、AppServer 路径、数据库、service、VM 或其它 artifact 参数。
+
 ## Acceptance criteria 结果
 
 | Acceptance criterion | Result | Evidence |
@@ -340,13 +375,13 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
 | AC-5 | PASS complete | prerequisite/final PR CI与人工 merge、exact artifact/readiness/rollback、Gate C/D 与 post-check 全部 PASS；final merge SHA `480dd7d...`、Issue #13 closed，旧 writer/8091 absent，AppServer exact current/唯一 PID/cwd、direct/external health 与 recovery baseline 均已验证 |
 | AC-6 | PASS complete | Issue #86/change/86/PR #87、required CI、人工 merge、main CI/deploy、current-run finalizer 与 live dependency/rebuild checks 均 PASS；独立授权后精确 `TERM` PGID `2464`（无需 `KILL`）并删除 15 个历史 DB，success/failure/TERM/INT fixtures、current-run finalizer及 live post-state 均无进程/端口/DB/cwd 残留 |
 | AC-7 | PASS complete | 正式 repo/current ancestry、vhost/runtime/DB/artifact inventory、零连接/引用和 root-only per-object recovery proof 全部 PASS；独立授权后 exact cleanup 与 post-state PASS。`.env` 未读/未备份的不可恢复边界由用户明确接受 |
-| AC-8 | PASS paired checks | MyApp mutation 前后 Gitea/API+DB、act_runner、Verdaccio、Mailpit、`/opt/node22`、`/opt/hsdb-ci`、`hsdb_ci`、Nginx default、Redis、AppServer rsdesign/SFM 与 VM 状态均成对通过；保留 artifacts/recovery bundle checksum 不变 |
-| AC-9 | PASS safe retain | Redis zero-data/connection/reference、recovery、exact purge 与 post-state PASS；Nginx predicate=KEEP。retention tool/fixtures/audit 与真实 dry-run PASS；10 个 legacy artifact 因 missing checksum fail-closed。容量仅 1.570 GiB、约占文件系统 0.56%，可用 188.65 GiB，按用户条件决定安全保留，无 candidate、未 apply；未来删除仍需正式 policy/reference/checksum 与独立 Gate |
+| AC-8 | PASS paired checks | MyApp、Redis、prod-sim 与后续 artifact cleanup 前后，Gitea/API+DB、act_runner、Verdaccio、Mailpit、`/opt/node22`、`/opt/hsdb-ci`、`hsdb_ci`、Nginx、AppServer rsdesign/SFM 与 VM 状态均成对通过；受保护 `3323ab...` artifact checksum 不变，Gitea repositories 未修改 |
+| AC-9 | PASS exact current-only cleanup | Redis zero-data/connection/reference、recovery、exact purge 与 post-state PASS；Nginx predicate=KEEP。retention tool/fixtures/audit 与真实 dry-run先证明 missing-checksum fail-closed。用户后续以 AppServer current 为保护策略并明确授权；10 个文件均映射 `admin/rsdesign-new`，现场补算 checksum/零 open ref/Gitea 可重建性后只保留 deployed `3323ab...`，以 9 个绝对路径删除其余对象，未用 glob，回收 1,516,778,989 bytes |
 | AC-10 | PASS with direct owner disposition | 两轮 `orb list`/`orb info` 精确 name/ID、guest OS/architecture/resources/mount/listener/timer/data metadata、repository reference scan 均完成。live assets 仍存在，但用户明确确认无实际功能并授权永久丢弃；最小可重建基线仅保留 OS=`Ubuntu 26.04 resolute`、ARM64、disk=3,875,823,616 bytes、10 CPU、16,820,465,664-byte memory、machine ID、runtime/data metadata，未读取 `.env` 或业务数据 |
 | AC-11 | PASS | 唯一 destructive command 为 `orb delete --force prod-sim`。删除后 `orb list` 无该 VM、`orb info` 明确失败、DNS/8090 connection 失败；AppServer 与 gitea-ci 仍 running，Gitea/runner/Nginx/PostgreSQL/Mailpit/Verdaccio 与 3100/3202 health 全部 PASS |
 | AC-12 | PASS | post-Gate D 应用与 SFM candidate bash-n/ShellCheck/定向/full/build、SFM Node 22 required CI 与平台 bash-n/ShellCheck/定向 tests/完整 smoke 全部通过；live allow/deny/幂等、故意 health failure rollback、process-tree cancellation 与 Gate C/D post-state checks 均通过 |
-| AC-13 | PASS PR-open evidence / CI pending | 本文件已记录 rsdesign/SFM/MyApp/Redis、retention safe-retain、prod-sim final Gate 与 platform PR #28；首次 CI readback 仍 pending/零 context，不把未运行的远端 CI 写成 PASS |
-| AC-14 | PASS（截至当前步骤） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C、rsdesign Gate D、SFM、MyApp、Redis 与 exact prod-sim delete 均有明确授权。用户的 prod-sim 直接 disposition 只覆盖该 VM 及其内部资产；未扩大到 retention、生产、gitea-ci、AppServer 或其它 VM，未自动合并 |
+| AC-13 | PASS PR-open evidence / CI not configured | 本文件已记录 rsdesign/SFM/MyApp/Redis、artifact current-only cleanup、prod-sim final Gate 与 platform PR #28；branch protection 无 required status checks，不把 pending/零 context 写成 CI PASS |
+| AC-14 | PASS（截至当前步骤） | prerequisite PR 已由人合并；Gate B prerequisite/readiness、Gate C、rsdesign Gate D、SFM、MyApp、Redis、exact prod-sim delete 与后续 9-path artifact cleanup 均有明确授权和独立边界。artifact Gate 不包含 Gitea repositories、AppServer、数据库、service、VM 或未列明路径；未自动合并 |
 
 ## 重复部署/执行
 
@@ -372,7 +407,9 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
   package/unit/user/group/config/data/log/6379 absent 与 kept cache/recovery/dependency hashes 读回，
   不重复 purge 或运行 `autoremove`。
 - `gitea-ci` inventory：第 1 步 baseline PASS；第 9 步 live dry-run 在 host execution path PASS，
-  10 个 artifact 因 missing checksum BLOCKED。
+  10 个 artifact 因 missing checksum BLOCKED。后续所有者 Gate 先补算 10 个 checksum，再只执行
+  一次 9-path exact cleanup；以 9 个 absent、受保护 `3323ab...` checksum、AppServer current/health
+  与 Gitea repository ancestry/health 读回替代重复 destructive action。
 - `prod-sim`：两轮 pre-delete inventory 已记录 active runtime/data evidence；用户随后直接确认
   原型无实际功能并允许永久丢失，因此执行一次且仅一次 `orb delete --force prod-sim`。post list/info、
   DNS/8090 connection 与另外两台 VM health 均已读回，未进行重复 destructive action。
@@ -400,6 +437,8 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
 - `prod-sim` identity 精确匹配但依赖/唯一数据/重建性不满足：PASS expected block；未发送任何
   delete/stop/restart 命令。
 - `prod-sim` 删除后整机原地 rollback：不可能；恢复路径只能依据版本化最小基线重新创建。
+- 9 个旧 artifact 删除不可原地 rollback；恢复路径是保留的 `admin/rsdesign-new` commits 与
+  versioned build workflow。当前部署 `3323ab...` artifact、AppServer release/data/rollback 均未删。
 
 ## 操作与授权账本
 
@@ -419,7 +458,7 @@ ledger 由 EXIT trap 精确移除；`/opt/artifacts` 没有被改写或删除。
 | Redis stop/purge/config+data/log/user | 用户明确“Redis目前没有应用使用，请直接清除。以后有需要再安装” | PASS：仅 purge `redis-server`/`redis-tools`；postrm 清除 Redis user/config/data/log，保留 APT cache、recovery、`libjemalloc2`/`liblzf1`与其它服务/VM |
 | Nginx stop/remove | approved Gitea proxy responsibility blocks removal | KEEP / NOT AUTHORIZED |
 | artifact retention tool and live dry-run | Issue #21 approved 合同内的 non-destructive implementation/dry-run | PASS；临时 diagnostic inputs only，10 个 missing checksum blocked，`/opt/artifacts` 未变 |
-| artifact retention apply | 容量证据显示不构成压力，用户按条件选择完成验证/PR；未来删除仍须正式 policy/reference/checksum 与独立 human Gate | NOT NEEDED / NOT RUN；10 个文件安全保留 |
+| artifact current-only exact cleanup | 用户随后明确“只会保留在 appserver 里已经部署的 NewEmaint，NewRSdesign，和 SFMDigitalBoard；其它非 appserv 的旧制品都可以删除；Gitea 代码库不会动” | PASS；10 个均属 rsdesign-new，只保留 deployed `3323ab...`，9 个逐项 checksum/零引用/Gitea 可重建后以绝对路径删除；未触碰 Gitea/AppServer/其它 artifact |
 | `prod-sim` two-round inventory | Issue #21 approved 合同内的只读 Gate；随后用户明确确认无实际功能且全部内部资产可永久丢弃 | PASS with direct owner disposition；active Nginx/Redis/PostgreSQL、`app_prod`、release/incoming/backup assets 与 legacy deploy references 已记录但不迁移 |
 | exact `prod-sim` delete | 用户明确“可以删除”，仅覆盖该 VM | PASS；仅 `orb delete --force prod-sim`，未用 `--all`，未操作 gitea-ci/AppServer/其它 VM |
 | any other VM delete or `--all` | 未授权且明确禁止 | NOT RUN |
@@ -468,8 +507,11 @@ recovery/dry-run PASS。用户随后明确授权 direct cleanup；Redis package/
 log/6379 的 final post-state 全部 PASS，shared services、两套 AppServer health、VM 和 recovery/
 APT cache/依赖均保持。第 9 步 implementation 与真实 dry-run 已完成；all 10 legacy artifacts
 因缺 `.sha256` sidecar fail closed。2026-08-04 容量复核确认它们合计 1.570 GiB、仅约占文件系统
-0.56%，且仍有 188.65 GiB 可用；按用户条件决策安全保留并完成验证，retention apply 不再是本
-Change 的完成条件。第 10 步随后已完成两轮只读 inventory：`orb list` 与 `orb info prod-sim` 两次均精确
+0.56%，且仍有 188.65 GiB 可用；最初按用户条件决策安全保留并创建 PR。用户随后进一步指定
+AppServer current-only 保留策略并明确授权其它旧制品删除。重新盘点确认 10 个文件全部属于
+rsdesign-new，NewEmaint/SFM 不在集合；补算 checksum、Gitea ancestry 与零引用后精确删除 9 个，
+只保留 deployed `3323ab...`，paired health PASS。第 10 步此前已完成两轮只读 inventory：
+`orb list` 与 `orb info prod-sim` 两次均精确
 回读 name=`prod-sim`、ID=`01KX3FFXSJVYPDHZVY4MZB7CQZ`、Ubuntu resolute/ARM64、running、
 disk_size=3,875,823,616 bytes。guest machine-id 固定为 `531d0ec7d550406bb193b31b18ea27c6`，但
 Nginx/Redis/PostgreSQL 均 active，80/8090/6379/5432 均监听；8090 root 指向
@@ -480,8 +522,8 @@ Nginx/Redis/PostgreSQL 均 active，80/8090/6379/5432 均监听；8090 root 指�
 再次匹配 exact name/ID 并显示 gitea-ci/AppServer healthy。随后仅执行
 `orb delete --force prod-sim`。post-state 中该 VM 不在 `orb list`，`orb info prod-sim` 返回
 `machine not found`，DNS/8090 connection 失败；gitea-ci 与 AppServer paired health 仍 PASS。
-第 11 步完成。当前无 destructive 或外部合同 blocker；完成 latest-main 集成、本地最终测试和
-branch push 后可创建最终 PR，远端 CI 仍须按实际结果记录。
+第 11 步完成；后续 artifact owner Gate 也已完成。当前无 destructive 或外部合同 blocker；PR #28
+保持 open，更新最终验证提交并 push 后仍停在人工作审/合并闸门。
 
 ## 遗留风险与未完成项
 
@@ -489,15 +531,14 @@ branch push 后可创建最终 PR，远端 CI 仍须按实际结果记录。
   完整收口；旧 host cleanup 不可原地撤销的恢复边界保持不变。
 - 旧 host runtime/DB/entry 已清理，不能原地回切；恢复依赖已合并 exact SHA/权威 artifact 与
   AppServer 当前 target/latest Gate C recovery baseline。cleanup 本身不可原地撤销。
-- `/opt/artifacts` 保留原状；第 9 步 tool/dry-run 已证明所有 10 个 legacy rsdesign artifacts
-  缺 checksum。它们合计仅 1.570 GiB、约占文件系统 0.56%，按用户条件决定安全保留；未来若容量
-  或保留要求变化，仍须定义正式 allowlist/count/period/reference ledger、补齐可信 checksum 并
-  取得独立 Gate 后才能申请 apply，不能把应用 Gate D 或 Redis 授权用于制品清理。
+- `/opt/artifacts` 现在只保留 deployed `rsdesign-new-3323ab...tar.gz`。其余 9 个 artifact 已按
+  所有者 current-only Gate 精确删除，不能原地恢复；所有 commit 与 Gitea main 保留，可由版本化
+  workflow 重建。未来新增清理仍须重新盘点 current/rollback/reference/checksum，不能沿用本次授权。
 - 任何 planning/baseline inventory 都可能漂移，恢复后须重新采集 live state。
 - 除已完成的 `rsdesign-new` Gate D 与精确 `prod-sim` 条件授权外，其它 destructive action 仍需
   对应应用/平台 Gate 明确授权。
 - SFMDigitalBoard 第 7 步 repo/PR/CI/人工 merge/AppServer deploy、live Gate 与 post-state 已
-  PASS；其 cleanup 授权未扩展到其它对象。MyApp、Redis、retention safe-retain 与 `prod-sim`
+  PASS；其 cleanup 授权未扩展到其它对象。MyApp、Redis、artifact current-only cleanup 与 `prod-sim`
   各自依合同和独立授权完成，不能互相替代证据。
 - MyApp recovery bundle 保留 DB/current artifact/vhost 与验证 manifests，但按 no-Secret 合同不
   包含已删除 `/opt/app-test/.env` 的内容；用户已明确接受其不可恢复。正式 repo/current artifact

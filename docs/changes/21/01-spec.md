@@ -64,6 +64,9 @@ updated: 2026-08-04
   移除；Nginx 仅在不再承担 Gitea 入口或其它批准职责时移除。对不满足 checksum/reference
   前置的 legacy artifact，fail-closed 保留即为本 Change 的安全终态；若其容量不构成压力，
   不要求为完成本 Change 补签历史 checksum 或执行删除，未来任何 apply 仍须独立策略与 Gate。
+  2026-08-04 所有者进一步授权以 AppServer current deployment 为保护集合：只在精确 SHA、现场
+  checksum、零打开引用和 Gitea commit 可重建性全部通过时删除其它列明 legacy artifact；该授权
+  不包含 Gitea repository、AppServer runtime/release/data 或未列明路径，禁止 glob 删除。
 - [ ] **AC-10** 删除前同时由 `orb info prod-sim` 和 `orb list` 回读精确 name/ID，盘点其
   进程、监听、挂载、timer、数据和仓库引用；唯一数据、实时依赖或身份差异使 Gate
   `BLOCKED`。

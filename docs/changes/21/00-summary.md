@@ -42,7 +42,7 @@ SCM 加经过 allowlist 批准的 CI/CD 组件，不再允许业务 Web/API、�
 
 - 新增 machine-readable host-role/capability 合同和 fail-closed guard。
 - 纠正 README、基础设施、CI/部署、运维和内网平移文档中的同机测试假设。
-- 编排 `rsdesign-new` 迁移、SFM smoke 清理、MyApp Notes 退役、制品保留、Redis/Nginx
+- 编排 `rsdesign-new` 迁移、SFM smoke 清理、MyApp Notes 退役、制品保留/清理、Redis/Nginx
   收口；应用仓库修改仍须在各自仓库走 Issue/PR。
 - 精确删除 OrbStack machine `prod-sim`，并保留可重建而非虚假的原地回滚证据。
 

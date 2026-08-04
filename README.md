@@ -13,6 +13,7 @@
 - ✅ 基础设施核心：`gitea-ci` 上的 Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
 - ✅ 主机职责隔离候选：versioned host profile、capability catalog 和 fail-closed guard 已实现；Issue #21 已完成 `gitea-ci` 历史业务 runtime/DB/代理的逐项迁移或清理及 live post-check，等待最终 PR 人工合并
 - 🟡 流水线：PR CI、构建和不可变制品链已验证；历史“合并 main 后在 `gitea-ci` 启动测试应用”仅作 as-built 证据，新接入必须部署到独立 `appserver-test`
+- ✅ Legacy 制品收口：`gitea-ci:/opt/artifacts` 只保留 AppServer current 对应的 `rsdesign-new-3323ab...tar.gz`；9 个可由 Gitea commits 重建且无引用的旧版本已按精确路径删除，Gitea repositories 与 AppServer 未修改
 - ✅ `prod-sim`：Issue #21 两轮 name+ID/依赖/唯一数据/可重建检查与所有者 disposition 完成后，仅以 `orb delete --force prod-sim` 精确退役；`gitea-ci` 与 AppServer paired health 保持通过
 - ✅ v2 试点证据：issue #4 已走通三闸门闭环，证明 Issue/文档/PR/部署关联可行
 - ✅ 邮件通知：Gitea → Mailpit（演示层），issue/PR 事件自动发信
