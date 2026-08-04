@@ -21,7 +21,7 @@ risk_flags:
 depends_on: []
 status: verified-local
 branch: change/27
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/30
 created: 2026-08-04
 updated: 2026-08-04
 ---
@@ -165,8 +165,8 @@ pull 拒绝、Compose `--pull never --no-build`、运行身份/健康和 exact c
 
 ## Remaining Gate and rollback
 
-Issue #27 的 platform-local 与 required real containerd acceptance 已完成。最终 PR 只包含
-`Closes #27`，并停在人工合并闸门；不得自动 merge 或直接关闭 Issue。Classic row 保持 rejected，
+Issue #27 的 platform-local 与 required real containerd acceptance 已完成。最终 PR #30 的正文
+只包含 `Closes #27`，当前停在人工合并闸门；不得自动 merge 或直接关闭 Issue。Classic row 保持 rejected，
 直至未来独立授权的同等级 real E2E 通过。两台 disposable VM 当前保留且 Docker service active；
 未获得删除 VM 或恢复 daemon 配置的授权，因此不执行清理性基础设施变更。
 
