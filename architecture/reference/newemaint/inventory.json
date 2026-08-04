@@ -1,13 +1,13 @@
 {
   "schema_version": "1.0",
   "collection_mode": "sanitized-read-only",
-  "collected_at": "2026-08-02",
+  "collected_at": "2026-08-04",
   "authority": {
     "remote": "gitea",
     "ref": "gitea/main",
-    "commit": "ecbdc674fde1f785cafdee92c6ee88c691104a34"
+    "commit": "dfdb93ca1e36b222ae38a747e78a5db263302c86"
   },
-  "repository_status_after_collection": "clean",
+  "repository_status_after_collection": "pre-existing-dirty-no-writes",
   "observations": [
     {"component": "package-manager", "declared": "npm@10.0.0", "exact": true, "source": "git:gitea/main:package.json"},
     {"component": "node-runtime", "declared": ">=22 <23", "exact": false, "source": "git:gitea/main:package.json"},
@@ -15,7 +15,8 @@
     {"component": "node-container-legacy", "declared": "node:18-alpine", "exact": false, "source": "git:gitea/main:deploy/Server/{asset-service,user-service,work-order-service}/Dockerfile"},
     {"component": "next", "declared": "14.2.33", "exact": true, "source": "git:gitea/main:apps/web/package.json"},
     {"component": "react-declaration", "declared": "major 18 range", "exact": false, "source": "git:gitea/main:apps/web/package.json"},
-    {"component": "react-lock", "declared": "19.1.0", "exact": true, "source": "git:gitea/main:package-lock.json"},
+    {"component": "react-web-lock", "declared": "18.3.1", "exact": true, "source": "git:gitea/main:package-lock.json:apps/web"},
+    {"component": "react-root-lock", "declared": "19.1.0", "exact": true, "source": "git:gitea/main:package-lock.json:root"},
     {"component": "typescript-lock", "declared": "5.8.3", "exact": true, "source": "git:gitea/main:package-lock.json"},
     {"component": "prisma-declaration", "declared": "major 5 ranges", "exact": false, "source": "git:gitea/main:package manifests"},
     {"component": "prisma-lock", "declared": "5.22.0", "exact": true, "source": "git:gitea/main:package-lock.json"},

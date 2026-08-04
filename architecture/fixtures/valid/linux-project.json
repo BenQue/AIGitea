@@ -3,8 +3,8 @@
   "schema_version": "1.0",
   "project_id": "fixture-linux",
   "profile_id": "linux-node-postgres-v1",
-  "profile_version": "1.0.0",
-  "catalog_revision": "2026.08.0",
+  "profile_version": "1.1.0",
+  "catalog_revision": "2026.08.1",
   "delivery_contract": "docker-release/v1",
   "components": [
     {"component_id": "os.ubuntu.24-04-4", "version": "24.04.4"},

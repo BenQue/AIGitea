@@ -45,11 +45,20 @@ class ArchitectureGovernanceTests(unittest.TestCase):
 
     def test_newemaint_evidence_is_dry_run_only(self) -> None:
         inventory = load_json(ARCH / "reference/newemaint/inventory.json")
-        self.assertEqual(inventory["authority"]["commit"], "ecbdc674fde1f785cafdee92c6ee88c691104a34")
-        self.assertEqual(inventory["repository_status_after_collection"], "clean")
+        self.assertEqual(
+            inventory["authority"]["commit"],
+            "dfdb93ca1e36b222ae38a747e78a5db263302c86",
+        )
+        self.assertEqual(
+            inventory["repository_status_after_collection"],
+            "pre-existing-dirty-no-writes",
+        )
         report = (ARCH / "reference/newemaint/gap-report.md").read_text(encoding="utf-8")
         self.assertIn("NOT MIGRATED, NOT DEPLOYED", report)
-        self.assertIn("must not be merged", report)
+        self.assertIn("BLOCKED_EXTERNAL", report)
+        self.assertIn("target-candidate", report)
+        self.assertIn("prohibited", report)
+        self.assertFalse((ARCH / "reference/newemaint/current-transition").exists())
 
     def test_governance_docs_keep_candidate_and_delivery_boundaries(self) -> None:
         required = {

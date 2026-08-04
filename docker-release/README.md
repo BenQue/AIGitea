@@ -26,8 +26,10 @@ manifest；transport 不能重写 image、Compose 或 architecture identity。
 `architecture.lock.json` 必须是 #23 `schema_version: "1.0"` 的 canonical lock，且
 `delivery_contract` 精确为 `docker-release/v1`。Release parser 会验证 lock 的严格字段结构、
 canonical `lock_sha256`、source checksums 格式、排序/唯一性，以及 manifest/target profile
-中的 `profile_id` 与 `catalog_revision`；它只消费这些治理身份，不复制或选择 catalog 中的
-组件版本。
+中的 `profile_id` 与 `catalog_revision`。Transition resolved component 还必须同时包含绝对
+HTTPS migration Issue、exception ID 与未到期 expiry，且 `exception_ids` 集合必须精确匹配；
+preferred component 不得携带 transition metadata。Parser 只消费这些治理身份，不复制或
+选择 catalog 中的组件版本。
 
 Manifest、architecture lock、Compose、inventory 和 archive 在任何 pull/load/migration/
 container replacement 前完成路径与 checksum 验证。`release.json` 不接受未知字段，也不得
@@ -38,6 +40,13 @@ container replacement 前完成路径与 checksum 验证。`release.json` 不接
 Target profile 是 root/operator 管理的环境配置，部署时必须是 mode `0400` 或 `0600`、非
 symlink，且 owner 是 root 或当前调用者。它只声明环境、host role、hostname、transport、
 固定目录、Compose project、外置 env file 路径和 architecture 期望值；模板不包含 Secret。
+`architecture_project_id` 是 v1 可选字段，因此旧 target profile 不声明时仍兼容；一旦声明，
+lock `project_id` 必须精确匹配。NewEmaint current adoption 必须声明 `newemaint`，不能用
+`newemaint-target-candidate` target lock 替换。Project/profile/catalog、release checksum、lock
+self-hash 或 exception expiry 任一不匹配，都会在 Docker config/pull/load/migration/up 前拒绝。
+
+Current lock 表达实际 release bytes；target candidate 只表达期望架构。Transition 不授权依赖、
+schema、image 或 database migration，也不能绕过 `prohibited`/EOL/digest/expiry/checksum。
 
 `scm-ci` 只允许 `verify`，`deploy`、`status` 和 `rollback` 只允许
 `appserver-test`/`appserver-prod`。这一 preflight 只消费 #21 的 host-role 语义，不授权或执行

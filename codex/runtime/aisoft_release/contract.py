@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime, timezone
 import hashlib
 import json
 import os
@@ -28,6 +29,8 @@ IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 ARCHITECTURE_ID = re.compile(r"^[a-z0-9][a-z0-9-]+$")
 ARCHITECTURE_COMPONENT = re.compile(r"^[a-z0-9][a-z0-9.-]+$")
 ARCHITECTURE_REVISION = re.compile(r"^[0-9]{4}\.[0-9]{2}\.[0-9]+$")
+ARCHITECTURE_EXCEPTION_ID = re.compile(r"^ARCH-EX-[0-9]{4}-[0-9]{3}$")
+ARCHITECTURE_ISSUE_PATH = re.compile(r"^/.+/issues/[1-9][0-9]*$")
 SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 SERVICE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,62}$")
 IMAGE_REFERENCE = re.compile(
@@ -107,6 +110,7 @@ class TargetProfile:
     env_file: Path
     source_repository: str
     architecture_profile_id: str
+    architecture_project_id: str | None
     catalog_revision: str
     wait_timeout_seconds: int
 
@@ -129,7 +133,7 @@ def load_target_profile(path: Path | str, *, require_protected: bool = True) -> 
         _require_protected_file(profile_path, "target profile")
     value = _load_json_object(profile_path, "target profile")
     _reject_sensitive_keys(value, "target profile")
-    _expect_keys(
+    _expect_required_and_optional_keys(
         value,
         {
             "contract_version",
@@ -147,6 +151,7 @@ def load_target_profile(path: Path | str, *, require_protected: bool = True) -> 
             "catalog_revision",
             "wait_timeout_seconds",
         },
+        {"architecture_project_id"},
         "target profile",
     )
     contract_version = _string(value, "contract_version", "target profile")
@@ -180,6 +185,14 @@ def load_target_profile(path: Path | str, *, require_protected: bool = True) -> 
     architecture_profile_id = _matching_string(
         value, "architecture_profile_id", IDENTIFIER, "target profile"
     )
+    architecture_project_id = None
+    if "architecture_project_id" in value:
+        architecture_project_id = _matching_string(
+            value,
+            "architecture_project_id",
+            ARCHITECTURE_ID,
+            "target profile",
+        )
     catalog_revision = _matching_string(
         value, "catalog_revision", IDENTIFIER, "target profile"
     )
@@ -202,12 +215,18 @@ def load_target_profile(path: Path | str, *, require_protected: bool = True) -> 
         env_file=env_file,
         source_repository=source_repository,
         architecture_profile_id=architecture_profile_id,
+        architecture_project_id=architecture_project_id,
         catalog_revision=catalog_revision,
         wait_timeout_seconds=wait_timeout,
     )
 
 
-def load_release_files(profile: TargetProfile, release_id: str) -> ReleaseFiles:
+def load_release_files(
+    profile: TargetProfile,
+    release_id: str,
+    *,
+    today: date | None = None,
+) -> ReleaseFiles:
     if not isinstance(release_id, str) or not GIT_SHA.fullmatch(release_id):
         raise ContractError("release_id must be a lowercase 40-character Git SHA")
     release_root = profile.release_root
@@ -250,7 +269,12 @@ def load_release_files(profile: TargetProfile, release_id: str) -> ReleaseFiles:
     )
     architecture_lock = _load_json_object(architecture_path, "architecture lock")
     _reject_sensitive_keys(architecture_lock, "architecture lock")
-    _validate_architecture_lock(architecture_lock, manifest)
+    _validate_architecture_lock(
+        architecture_lock,
+        manifest,
+        profile.architecture_project_id,
+        today or datetime.now(timezone.utc).date(),
+    )
     return ReleaseFiles(
         directory=directory.resolve(),
         manifest_path=manifest_path,
@@ -264,7 +288,10 @@ def load_release_files(profile: TargetProfile, release_id: str) -> ReleaseFiles:
 
 
 def _validate_architecture_lock(
-    lock: Mapping[str, object], manifest: ReleaseManifest
+    lock: Mapping[str, object],
+    manifest: ReleaseManifest,
+    expected_project_id: str | None,
+    today: date,
 ) -> None:
     context = "architecture lock"
     _expect_keys(
@@ -295,7 +322,11 @@ def _validate_architecture_lock(
             "architecture lock schema_version must be "
             + ARCHITECTURE_LOCK_SCHEMA_VERSION
         )
-    _matching_string(lock, "project_id", ARCHITECTURE_ID, context)
+    project_id = _matching_string(lock, "project_id", ARCHITECTURE_ID, context)
+    if expected_project_id is not None and project_id != expected_project_id:
+        raise ContractError(
+            "architecture lock project_id does not match target profile"
+        )
     profile_id = _matching_string(lock, "profile_id", ARCHITECTURE_ID, context)
     _matching_string(lock, "profile_version", SEMVER, context)
     catalog_revision = _matching_string(
@@ -311,6 +342,7 @@ def _validate_architecture_lock(
     if not isinstance(raw_components, list) or not raw_components:
         raise ContractError("architecture lock resolved_components must be a non-empty array")
     component_ids: list[str] = []
+    component_exception_ids: list[str] = []
     for index, raw_component in enumerate(raw_components):
         component_context = f"architecture lock resolved_components[{index}]"
         if not isinstance(raw_component, Mapping):
@@ -318,7 +350,12 @@ def _validate_architecture_lock(
         _expect_required_and_optional_keys(
             raw_component,
             {"component_id", "version", "state", "source_url"},
-            {"digest", "migration_issue"},
+            {
+                "digest",
+                "migration_issue",
+                "exception_id",
+                "exception_expires_at",
+            },
             component_context,
         )
         component_id = _matching_string(
@@ -332,12 +369,41 @@ def _validate_architecture_lock(
         _require_https_source_url(source_url, component_context)
         if "digest" in raw_component:
             _matching_string(raw_component, "digest", DIGEST, component_context)
-        if "migration_issue" in raw_component:
-            migration_issue = _string(raw_component, "migration_issue", component_context)
-            if len(migration_issue) < 2:
+        transition_fields = {
+            "migration_issue",
+            "exception_id",
+            "exception_expires_at",
+        }
+        present_transition_fields = transition_fields.intersection(raw_component)
+        if state == "preferred":
+            if present_transition_fields:
                 raise ContractError(
-                    f"{component_context} migration_issue must contain at least two characters"
+                    f"{component_context} preferred component must not contain transition metadata"
                 )
+        elif present_transition_fields != transition_fields:
+            raise ContractError(
+                f"{component_context} transition component requires migration_issue, exception_id and exception_expires_at"
+            )
+        else:
+            migration_issue = _string(
+                raw_component, "migration_issue", component_context
+            )
+            _require_https_issue_url(migration_issue, component_context)
+            exception_id = _matching_string(
+                raw_component,
+                "exception_id",
+                ARCHITECTURE_EXCEPTION_ID,
+                component_context,
+            )
+            expires_at = _iso_date(
+                _string(raw_component, "exception_expires_at", component_context),
+                f"{component_context} exception_expires_at",
+            )
+            if expires_at <= today:
+                raise ContractError(
+                    f"{component_context} architecture exception is expired"
+                )
+            component_exception_ids.append(exception_id)
         component_ids.append(component_id)
     if component_ids != sorted(component_ids):
         raise ContractError("architecture lock resolved_components must be sorted")
@@ -362,6 +428,10 @@ def _validate_architecture_lock(
         raise ContractError("architecture lock exception_ids must be sorted")
     if len(exception_ids) != len(set(exception_ids)):
         raise ContractError("architecture lock exception_ids contains duplicates")
+    if exception_ids != sorted(component_exception_ids):
+        raise ContractError(
+            "architecture lock exception_ids do not match resolved transition components"
+        )
 
     source_checksums = _mapping(lock, "source_checksums", context)
     _expect_keys(
@@ -460,6 +530,33 @@ def _require_https_source_url(value: str, context: str) -> None:
         raise ContractError(f"{context} source_url must use https")
     if parsed.username is not None or parsed.password is not None:
         raise ContractError(f"{context} source_url must not contain credentials")
+
+
+def _require_https_issue_url(value: str, context: str) -> None:
+    try:
+        parsed = urlsplit(value)
+        hostname = parsed.hostname
+    except ValueError as exc:
+        raise ContractError(f"{context} migration_issue is invalid") from exc
+    if (
+        parsed.scheme != "https"
+        or not hostname
+        or parsed.query
+        or parsed.fragment
+        or not ARCHITECTURE_ISSUE_PATH.fullmatch(parsed.path)
+    ):
+        raise ContractError(
+            f"{context} migration_issue must be an absolute HTTPS Issue URL"
+        )
+    if parsed.username is not None or parsed.password is not None:
+        raise ContractError(f"{context} migration_issue must not contain credentials")
+
+
+def _iso_date(value: str, context: str) -> date:
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise ContractError(f"{context} must be YYYY-MM-DD") from exc
 
 
 def require_external_env_file(profile: TargetProfile) -> None:

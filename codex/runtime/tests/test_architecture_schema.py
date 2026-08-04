@@ -12,7 +12,7 @@ from aisoft_architecture.validator import validate_catalog, validate_profile
 
 ROOT = Path(__file__).resolve().parents[3]
 ARCH = ROOT / "architecture"
-TODAY = date(2026, 8, 2)
+TODAY = date(2026, 8, 4)
 
 
 class ArchitectureSchemaTests(unittest.TestCase):
@@ -38,7 +38,7 @@ class ArchitectureSchemaTests(unittest.TestCase):
 
     def test_catalog_and_all_profiles_validate(self) -> None:
         components = validate_catalog(self.catalog, self.catalog_schema, TODAY)
-        self.assertEqual(len(components), 24)
+        self.assertEqual(len(components), 29)
         profile_ids = []
         for path in sorted((ARCH / "profiles").glob("*.json")):
             profile = load_json(path)
