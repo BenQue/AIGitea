@@ -45,6 +45,8 @@ pull 拒绝、Compose `--pull never --no-build`、运行身份/健康和 exact c
 - Approved baseline / 当前未提交实现的 parent：
   `a75181cd72097bb0183b6b8f909da2965d5bb4b8`。
 - 开始时 live `origin/main`：`8d5dae9569b6e61e88b40490ae04941614c62f8d`。
+- 最终集成的 live `origin/main`：`951fa6e3a9f7d21ea2e1ab1d7cf1931f191734b2`（已合并 Issue #26 / PR #29）；
+  按批准 plan 合入后，新增 architecture transition 与 release capability ordering 的交叉回归已修复并重跑。
 - Worktree：显式 `change/27`，upstream `origin/change/27`；编辑前 HEAD 等于 approved baseline、
   divergence `0/0`、worktree clean。未在 detached HEAD、`main` 或 `codex/*` 分支编辑/提交。
 - Runtime：Python `3.14.4`；ShellCheck `/opt/homebrew/bin/shellcheck`。
@@ -91,13 +93,14 @@ pull 拒绝、Compose `--pull never --no-build`、运行身份/健康和 exact c
 
 | Command / check | Result | Evidence |
 |---|---|---|
-| `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -B -m unittest discover -s codex/runtime/tests -p 'test_release_*.py' -v` | PASS | 54 项 release schema/parser/capability/transport/runner/TOCTOU/safety tests通过 |
-| `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -B -m unittest discover -s codex/runtime/tests -p 'test_architecture_*.py' -v` | PASS | 26 项 canonical architecture regression 通过 |
+| `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -B -m unittest discover -s codex/runtime/tests -p 'test_release_*.py' -v` | PASS | 合入 latest main/#26 后 58 项 release schema/parser/capability/transport/runner/TOCTOU/safety/integration tests 通过 |
+| `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -B -m unittest discover -s codex/runtime/tests -p 'test_architecture_*.py' -v` | PASS | 合入 latest main/#26 后 34 项 canonical architecture/transition regression 通过 |
 | `bash codex/tests/test-docker-release-install.sh` | PASS | 临时 install root 连续安装两次 byte-identical；V2 schemas/matrix/runtime path 完整，未调用 Docker |
 | `bash codex/tests/test-docker-image-store-e2e-harness.sh` | PASS（fake） | default 零 Docker call；授权 marker 下 fake read-only preflight `mutations:0`，回读 daemon ID/data root；安全 `ssh://user@host` positive 与 credential-bearing SSH negative；同 daemon endpoint pair fail closed |
 | `bash -n`（全部修改 shell） | PASS | installer、smoke、fake harness 与 real harness 语法通过 |
 | `shellcheck`（全部修改 shell） | PASS | ShellCheck 可用且零 finding |
-| `PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh` | PASS | 185 项 Python tests、全部 shell mocks/installers、fake harness 与 static checks 通过 |
+| `PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh` | PASS | 合入 latest main/#26 后 197 项 Python tests、全部 shell mocks/installers、fake harness 与 static checks 通过 |
+| Latest main/#26 integration | FAIL → FIXED → PASS | 首轮 focused test 发现 transition positive path 的旧期望缺少 #27 capability event；更新为严格要求 `capability → config` 后，58+34 focused 与 197-test full smoke 均通过 |
 | `git diff --check` | PASS | 当前 platform-local candidate 无 whitespace error |
 | `codex/tests/integration/test-docker-image-store-e2e.sh --preflight` | PASS（real read-only） | 两个 SSH endpoint 回读 exact Engine/Compose/store/daemon ID/data root；输出 `PASS_READ_ONLY` 与 `mutations:0`；该模式本身没有执行 Docker mutation |
 | `codex/tests/integration/test-docker-image-store-e2e.sh --execute` attempt 1 | FAIL（real，已修复） | producer 首个 Registry container 在 systemd cgroup scope 创建阶段失败，错误为 `Failed to determine whether process is a kernel thread: Inappropriate ioctl for device`；自动 cleanup 恢复基线且未生成 evidence。经授权切换两台专用 daemon 为已验证的 `cgroupfs` 并重启 |
@@ -118,7 +121,7 @@ pull 拒绝、Compose `--pull never --no-build`、运行身份/健康和 exact c
 | AC-7 | **PASS（real containerd E2E）** | 双 daemon、digest-pinned Registry fixture、Registry push/pull、tag/save/load、consumer offline Registry pull rejection、Compose `--pull never --no-build`、health/identity 与 exact cleanup 全部通过；immutable evidence 已校验 |
 | AC-8 | PASS（rejection branch） | Classic committed row 为 `rejected + evidence:null`，preflight 在 mutation 前拒绝；同等级 classic real E2E `NOT RUN`，没有写 PASS |
 | AC-9 | PASS（fake） | Archive/inventory/digest/tag/ID/platform/service/Compose/architecture/release/wrong-store/TOCTOU 负例 fail closed；pre-load mutation 0，post-load failure 不 migration/up，post-start mismatch 走 previous-container rollback且不 restore DB |
-| AC-10 | PASS（Issue #27 required scope） | NewEmaint V2 synthetic fixture、54+26 tests、双 installer、fake harness、bash-n、ShellCheck、185-test smoke、diff check 与 real containerd E2E 通过；classic 和 external deployment 项保持真实 `REJECTED`/`NOT RUN` |
+| AC-10 | PASS（Issue #27 required scope） | NewEmaint V2 synthetic fixture、58+34 tests、双 installer、fake harness、bash-n、ShellCheck、197-test smoke、diff check 与 real containerd E2E 通过；classic 和 external deployment 项保持真实 `REJECTED`/`NOT RUN` |
 
 ## Fake / real / external evidence matrix
 
