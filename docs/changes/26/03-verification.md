@@ -19,7 +19,7 @@ risk_flags:
 depends_on: []
 status: verified-local
 branch: change/26
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/29
 created: 2026-08-04
 updated: 2026-08-04
 ---
@@ -34,7 +34,8 @@ updated: 2026-08-04
   commit `a373b5ab4918fc8dcac8b8a3d25eacac8a646545`。本轮从该 clean、已推送 HEAD
   开始，将用户书面批准的合同收敛为 target-only + 一个 umbrella Issue。
 - Live Issue readback：AISoftPlatform #26 为 `open`；labels 精确为 `approved`、
-  `complexity/complex`、`type/platform`；编辑前无 `change/26` PR。
+  `complexity/complex`、`type/platform`；编辑前无 `change/26` PR。PR 创建后 lifecycle 已
+  正常更新为 `pr-open`，Issue 保持 open。
 - NewEmaint authority：live `gitea/main@dfdb93ca1e36b222ae38a747e78a5db263302c86`；
   本轮未写 NewEmaint repository。唯一 umbrella migration tracking 为
   [#52](http://gitea-ci.orb.local:3000/admin/NewEMaint/issues/52)。
@@ -60,7 +61,9 @@ updated: 2026-08-04
 | NewEmaint umbrella Issue #52 | PASS | 创建前 authenticated list 无同标题 Issue；创建后 exact-title count 为 1、state `open`、label `needs-analysis`，正文回读确认 #26/#51、12 个 exact targets 与非授权声明全部存在 |
 | `current-transition/` absence | PASS | 目录故意不存在并由 governance test 固化；#52 不使 unsupported Next.js 14 合法，也不替代真实 current bytes |
 | `git diff --check` | PASS | revised implementation/docs diff 无 whitespace error |
-| Gitea final PR / PR CI | NOT RUN | 先完成 local acceptance、commit/push 与 final head，再创建正文只含 `Closes #26` 的 PR；当前无 PR/CI 可报告 |
+| branch push | PASS | target-only/umbrella commit `ced969d1957448bb8870efd3ed7645023ba116cf` 已普通 fast-forward push 到 `origin/change/26`，没有 force push |
+| Gitea final PR | PASS | [PR #29](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/29) open、mergeable、49 files、base `main`、head `change/26@ced969d`；正文精确且只含 `Closes #26`；Issue #26 为 open + `pr-open` |
+| Gitea PR CI | NOT RUN | `ced969d` aggregate 为 `pending`，但 `total_count=0`、statuses 空、匹配 Actions runs 为 0；live main protection `enable_status_check=false`。不得把零 context aggregate pending 写成 CI 运行或通过 |
 | NewEmaint consumer/build/migration | NOT RUN | 未修改或运行 NewEmaint package、lockfile、Dockerfile、schema、image、migration 或 application tests |
 | Docker/Registry/AppServer/database/Secret | NOT RUN | 未连接 Docker daemon/Registry/AppServer/database，未读取或修改 Secret |
 | deployment / production | NOT RUN | 不在授权范围；target candidate、Issue、push 或 local tests 都不是部署证据 |
@@ -79,9 +82,10 @@ updated: 2026-08-04
 | AC-8 | PASS | Architecture README、NewEmaint reference/gap、Docker release README 与 onboarding 统一 preferred/transition/current/target/umbrella 边界，并明确 target 不是 migration/deployment evidence、umbrella/transition 不绕过 prohibited/EOL/digest/expiry/checksum |
 | AC-9 | PASS（local）/ NOT RUN（PR/external runtime） | 34 architecture + 39 release focused tests、178-test full smoke、双 installer、`bash -n`、ShellCheck、`git diff --check` 均通过。PR CI、NewEmaint consumer、真实 Docker/Registry/AppServer/migration/production 分开记录 |
 
-总体终态：**VERIFIED_LOCAL**。Platform target components、transition contract、canonical lock 与
-Docker release preflight 已实现；唯一 NewEmaint umbrella tracking #52 已创建并回读。现在允许
-提交并 fast-forward push `change/26`，随后创建最终 PR并停在人工合并闸门；这不授权迁移或部署。
+总体终态：**VERIFIED_LOCAL / PR OPEN**。Platform target components、transition contract、
+canonical lock 与 Docker release preflight 已实现；唯一 NewEmaint umbrella tracking #52 已
+创建并回读；最终 PR #29 已创建并停在人工合并闸门。没有 CI context 可运行，这不授权迁移、
+部署或自动合并。
 
 ## 重复执行
 
@@ -119,4 +123,5 @@ Docker release preflight 已实现；唯一 NewEmaint umbrella tracking #52 已�
   Next.js，并以真实完整 release bytes 生成 `newemaint` current lock。
 - Node/npm、Prisma、PostgreSQL、Next/React、TypeScript、OS/container/proxy 与 OCI/image 的实际
   compatibility、backup/restore、migration、test deploy 和 rollback 全部属于 #52 后续合同。
-- Gitea PR、PR CI、人工合并、Issue close/lifecycle、真实部署与 production 验收尚未执行。
+- Gitea PR #29 已 open；PR CI 因零 status/Actions context 为 `NOT RUN`。人工合并、Issue close/
+  terminal lifecycle、真实部署与 production 验收尚未执行。
