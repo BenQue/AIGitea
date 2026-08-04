@@ -17,6 +17,8 @@
         "properties": {
           "component_id": {"type": "string"},
           "digest": {"pattern": "^sha256:[0-9a-f]{64}$", "type": "string"},
+          "exception_expires_at": {"format": "date", "type": "string"},
+          "exception_id": {"pattern": "^ARCH-EX-[0-9]{4}-[0-9]{3}$", "type": "string"},
           "migration_issue": {"type": "string"},
           "source_url": {"pattern": "^https://", "type": "string"},
           "state": {"enum": ["preferred", "supported", "sunset"]},

@@ -21,7 +21,8 @@ MIGRATE_DIGEST = "sha256:" + "3" * 64
 MIGRATE_IMAGE_ID = "sha256:" + "4" * 64
 SOURCE_REPOSITORY = "admin/NewEmaint"
 ARCHITECTURE_PROFILE = "linux-node-postgres-v1"
-CATALOG_REVISION = "2026.08.0"
+ARCHITECTURE_PROJECT = "newemaint-target-candidate"
+CATALOG_REVISION = "2026.08.1"
 
 
 def repository_root() -> Path:
@@ -38,6 +39,7 @@ def architecture_reference_lock() -> Path:
         / "architecture"
         / "reference"
         / "newemaint"
+        / "target-candidate"
         / "architecture.lock.json"
     )
 
@@ -268,6 +270,7 @@ def create_release(
         "env_file": str(env_file),
         "source_repository": SOURCE_REPOSITORY,
         "architecture_profile_id": ARCHITECTURE_PROFILE,
+        "architecture_project_id": ARCHITECTURE_PROJECT,
         "catalog_revision": CATALOG_REVISION,
         "wait_timeout_seconds": 30,
     }

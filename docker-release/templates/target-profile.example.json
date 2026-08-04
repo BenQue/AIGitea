@@ -11,6 +11,7 @@
   "env_file": "/etc/newemaint/test.env",
   "source_repository": "admin/NewEmaint",
   "architecture_profile_id": "linux-node-postgres-v1",
+  "architecture_project_id": "newemaint",
   "catalog_revision": "replace-with-catalog-revision",
   "wait_timeout_seconds": 180
 }

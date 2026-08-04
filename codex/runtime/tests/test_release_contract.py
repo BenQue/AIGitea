@@ -103,6 +103,14 @@ class ReleaseContractTests(unittest.TestCase):
             ):
                 runtime_image_reference(repository, service, SHA_A)
 
+    def test_legacy_profile_without_optional_architecture_project_id_loads(self) -> None:
+        value = json.loads(self.profile_path.read_text())
+        value.pop("architecture_project_id")
+        write_json(self.profile_path, value, mode=0o600)
+        profile = load_target_profile(self.profile_path)
+        self.assertIsNone(profile.architecture_project_id)
+        self.assertEqual(load_release_files(profile, SHA_A).manifest.release_id, SHA_A)
+
     def test_profile_requires_private_mode_and_rejects_unknown_fields(self) -> None:
         os.chmod(self.profile_path, 0o644)
         with self.assertRaisesRegex(ContractError, "0400 or 0600"):
@@ -204,7 +212,7 @@ class ReleaseContractTests(unittest.TestCase):
     def test_architecture_lock_profile_and_catalog_are_cross_checked(self) -> None:
         lock_path = self.release_dir / "architecture.lock.json"
         value = json.loads(lock_path.read_text())
-        value["catalog_revision"] = "2026.08.1"
+        value["catalog_revision"] = "2026.08.2"
         refresh_architecture_lock_sha(value)
         write_json(lock_path, value)
         update_manifest(
@@ -220,7 +228,7 @@ class ReleaseContractTests(unittest.TestCase):
     def test_architecture_lock_self_hash_is_verified(self) -> None:
         lock_path = self.release_dir / "architecture.lock.json"
         value = json.loads(lock_path.read_text())
-        value["project_id"] = "tampered-project"
+        value["source_checksums"]["catalog_sha256"] = "0" * 64
         write_json(lock_path, value)
         update_manifest(
             self.release_dir,
@@ -230,6 +238,22 @@ class ReleaseContractTests(unittest.TestCase):
         )
         profile = load_target_profile(self.profile_path)
         with self.assertRaisesRegex(ContractError, "lock_sha256"):
+            load_release_files(profile, SHA_A)
+
+    def test_architecture_lock_project_id_is_bound_by_target_profile(self) -> None:
+        lock_path = self.release_dir / "architecture.lock.json"
+        value = json.loads(lock_path.read_text())
+        value["project_id"] = "substituted-project"
+        refresh_architecture_lock_sha(value)
+        write_json(lock_path, value)
+        update_manifest(
+            self.release_dir,
+            lambda manifest: manifest["architecture"].update(
+                {"sha256": sha256(lock_path)}
+            ),
+        )
+        profile = load_target_profile(self.profile_path)
+        with self.assertRaisesRegex(ContractError, "project_id"):
             load_release_files(profile, SHA_A)
 
     def test_architecture_lock_delivery_contract_is_cross_checked(self) -> None:

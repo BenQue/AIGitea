@@ -132,14 +132,14 @@ if rg -n '(^|[[:space:]])(import yaml|from yaml)' \
   exit 1
 fi
 
-for reference in newemaint windows sqlite; do
+for reference in newemaint/target-candidate windows sqlite; do
   "$ROOT/architecture/bin/aisoft-architecture" validate \
     --catalog "$ROOT/architecture/catalog.json" \
     --profiles-dir "$ROOT/architecture/profiles" \
     --schema-dir "$ROOT/architecture/schemas" \
     --project "$ROOT/architecture/reference/$reference/architecture.json" \
     --lock "$ROOT/architecture/reference/$reference/architecture.lock.json" \
-    --today 2026-08-02 >/dev/null
+    --today 2026-08-04 >/dev/null
 done
 
 jq -e '
