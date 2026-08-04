@@ -12,7 +12,7 @@ from aisoft_architecture.lockfile import build_lock, validate_lock
 
 ROOT = Path(__file__).resolve().parents[3]
 ARCH = ROOT / "architecture"
-TODAY = date(2026, 8, 2)
+TODAY = date(2026, 8, 4)
 
 
 class ArchitectureLockTests(unittest.TestCase):
@@ -79,13 +79,24 @@ class ArchitectureLockTests(unittest.TestCase):
         self.assertEqual(caught.exception.diagnostic.code, "EXCEPTION_EXPIRED")
 
     def test_sunset_requires_migration_issue(self) -> None:
-        component = next(item for item in self.catalog["components"] if item["id"] == "database.sqlite.3")
-        component["state"] = "sunset"
-        component["lifecycle"]["support_end"] = "2027-08-02"
-        component["lifecycle"]["eol"] = "2027-08-02"
-        component["lifecycle"]["migrate_by"] = "2027-05-02"
-        requirement = next(item for item in self.profile["required_components"] if item["component_id"] == "database.sqlite.3")
-        requirement["allowed_states"].append("sunset")
+        self.profile = load_json(
+            ARCH / "profiles/linux-node-postgres-v1.json"
+        )
+        self.project = load_json(ARCH / "fixtures/valid/linux-project.json")
+        node22 = next(
+            item
+            for item in self.catalog["components"]
+            if item["id"] == "runtime.node.22"
+        )
+        node24_index = next(
+            index
+            for index, item in enumerate(self.project["components"])
+            if item["component_id"] == "runtime.node.24"
+        )
+        self.project["components"][node24_index] = {
+            "component_id": node22["id"],
+            "version": node22["version"],
+        }
         with self.assertRaises(ArchitectureError) as caught:
             self.build()
         self.assertEqual(caught.exception.diagnostic.code, "SUNSET_MIGRATION_REQUIRED")
@@ -128,7 +139,7 @@ class ArchitectureLockTests(unittest.TestCase):
         self.assertEqual(caught.exception.diagnostic.code, "SCHEMA_REQUIRED")
 
     def test_committed_reference_locks_cross_check(self) -> None:
-        for reference in ("newemaint", "windows", "sqlite"):
+        for reference in ("newemaint/target-candidate", "windows", "sqlite"):
             with self.subTest(reference=reference):
                 project = load_json(ARCH / "reference" / reference / "architecture.json")
                 profile = load_json(ARCH / "profiles" / f"{project['profile_id']}.json")

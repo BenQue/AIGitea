@@ -2,9 +2,9 @@
   "$schema": "./schemas/catalog-v1.schema.json",
   "schema_version": "1.0",
   "catalog_id": "aisoft-enterprise-architecture",
-  "revision": "2026.08.0",
-  "published_at": "2026-08-02",
-  "review_by": "2026-11-02",
+  "revision": "2026.08.1",
+  "published_at": "2026-08-04",
+  "review_by": "2026-11-04",
   "update_policy": {
     "security": {"cadence": "on upstream advisory", "gate": "Issue, focused CI, rollback evidence, human merge", "route": "expedited Change; never direct production mutation"},
     "patch": {"cadence": "monthly review", "gate": "compatibility tests, lock regeneration, human merge", "route": "catalog Change or project Change as ownership requires"},
@@ -79,8 +79,8 @@
       "state": "sunset",
       "pin": {"strategy": "exact-version", "value": "22.22.3"},
       "platforms": {"operating_systems": ["linux", "windows"], "architectures": ["amd64", "arm64"]},
-      "lifecycle": {"status": "maintenance", "released_at": "2026-06-22", "support_end": "2027-04-30", "eol": "2027-04-30", "migrate_by": "2027-01-31"},
-      "provenance": {"source_url": "https://nodejs.org/en/about/previous-releases", "retrieved_at": "2026-08-02", "review_by": "2026-11-02", "evidence": "Node.js official schedule places v22 in Maintenance LTS with April 2027 EOL.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
+      "lifecycle": {"status": "maintenance", "released_at": "2026-05-13", "support_end": "2027-04-30", "eol": "2027-04-30", "migrate_by": "2027-01-31"},
+      "provenance": {"source_url": "https://nodejs.org/en/download/archive/v22.22.3", "retrieved_at": "2026-08-04", "review_by": "2026-11-04", "evidence": "The official archive verifies exact v22.22.3; the release schedule places v22 in Maintenance LTS through April 2027. Context7 identifies a newer v22 patch, so this approved transition fact is exact but is not described as latest.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
       "compatibility": ["Prisma 7 supports Node ^22.12, but adoption still requires a separate ORM migration.", "Existing projects require a migration Issue and may not combine runtime and database majors without separate gates."],
       "remediation": "Open a project Change for Node 24 and reference it from the declaration before adopting this sunset entry."
     },
@@ -96,6 +96,19 @@
       "provenance": {"source_url": "https://docs.npmjs.com/cli/v11", "retrieved_at": "2026-08-02", "review_by": "2026-11-02", "evidence": "npm CLI v11 official docs identify 11.19.0 and supported Node engine ranges; npm publishes no fixed EOL schedule.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
       "compatibility": ["Use npm ci so package-lock and package.json mismatch fails.", "Pin packageManager/devEngines and mirror package tarball integrity metadata."],
       "remediation": "Review quarterly because upstream does not publish a fixed EOL date."
+    },
+    {
+      "id": "package.npm.10",
+      "category": "package-manager",
+      "name": "npm CLI",
+      "version": "10.0.0",
+      "state": "sunset",
+      "pin": {"strategy": "exact-version", "value": "10.0.0"},
+      "platforms": {"operating_systems": ["linux", "windows"], "architectures": ["amd64", "arm64"]},
+      "lifecycle": {"status": "maintenance", "released_at": "2023-08-31", "support_end": null, "eol": "2027-01-31", "migrate_by": "2027-01-31"},
+      "provenance": {"source_url": "https://docs.npmjs.com/cli/v10/using-npm/changelog/", "retrieved_at": "2026-08-04", "review_by": "2026-11-04", "evidence": "Official npm v10 changelog records 10.0.0; registry metadata pins its integrity and Node engine range. npm publishes no fixed v10 EOL, so 2027-01-31 is an AISoftPlatform transition deadline, not an upstream support promise.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
+      "compatibility": ["npm 10.0.0 supports Node ^18.17 or >=20.5, including the pinned Node 22 transition runtime.", "A project must pin packageManager and package-lock integrity; a semver range is not an architecture identity."],
+      "remediation": "Track npm 11 adoption independently and expire the temporary npm 10 exception no later than 2027-01-31."
     },
     {
       "id": "orm.prisma.7",
@@ -293,6 +306,19 @@
       "remediation": "Apply Active LTS security patches promptly; perform a 14-to-16 framework migration in its own application Change."
     },
     {
+      "id": "framework.next.14",
+      "category": "framework",
+      "name": "Next.js",
+      "version": "14.2.33",
+      "state": "prohibited",
+      "pin": {"strategy": "exact-version", "value": "14.2.33"},
+      "platforms": {"operating_systems": ["linux", "windows"], "architectures": ["amd64", "arm64"]},
+      "lifecycle": {"status": "maintenance", "released_at": "2023-10-26", "support_end": "2025-10-26", "eol": "2025-10-26", "migrate_by": "2025-10-26"},
+      "provenance": {"source_url": "https://nextjs.org/support-policy", "retrieved_at": "2026-08-04", "review_by": "2026-11-04", "evidence": "Vercel's official support policy marks 14.x unsupported; the dates reflect the published two-year major-version support window. Registry metadata verifies exact package 14.2.33 and its Node >=18.17 and React ^18.2 peer constraints, but exact availability does not make an unsupported line adoptable.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
+      "compatibility": ["NewEmaint remote main resolves Next.js 14.2.33 and React 18.3.1, but Next.js 14 is outside upstream support.", "This entry is evidence-only and cannot be placed in a profile transition allowlist or a current architecture lock."],
+      "remediation": "Create and complete an application-owned Next.js migration to a supported major before producing a current release lock."
+    },
+    {
       "id": "frontend.react.19",
       "category": "frontend",
       "name": "React",
@@ -304,6 +330,19 @@
       "provenance": {"source_url": "https://react.dev/versions", "retrieved_at": "2026-08-02", "review_by": "2026-11-02", "evidence": "React official documentation identifies 19.3 as the latest stable line; React publishes no fixed EOL schedule.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
       "compatibility": ["Framework-specific support, such as Next.js peer compatibility, must be validated in the project Change.", "Use an exact package lock and offline integrity metadata."],
       "remediation": "Do not upgrade a framework solely because the catalog has a newer React preferred entry."
+    },
+    {
+      "id": "frontend.react.18",
+      "category": "frontend",
+      "name": "React",
+      "version": "18.3.1",
+      "state": "sunset",
+      "pin": {"strategy": "exact-version", "value": "18.3.1"},
+      "platforms": {"operating_systems": ["any"], "architectures": ["amd64", "arm64"]},
+      "lifecycle": {"status": "maintenance", "released_at": "2024-04-26", "support_end": null, "eol": "2027-01-31", "migrate_by": "2027-01-31"},
+      "provenance": {"source_url": "https://github.com/facebook/react/blob/main/CHANGELOG.md", "retrieved_at": "2026-08-04", "review_by": "2026-11-04", "evidence": "React's official changelog records 18.3.1 as the final 18.3 release and a bridge toward React 19. React publishes no fixed v18 EOL, so 2027-01-31 is an AISoftPlatform transition deadline, not an upstream support promise.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
+      "compatibility": ["Next.js 14.2.33 accepts React ^18.2, and NewEmaint's lock resolves 18.3.1 in apps/web.", "React 18 transition approval cannot override a prohibited framework component in the same application lock."],
+      "remediation": "Migrate React with a supported framework major and expire any temporary exception no later than 2027-01-31."
     },
     {
       "id": "toolchain.typescript.6",
@@ -319,6 +358,19 @@
       "remediation": "Run the application typecheck and framework compatibility suite before changing the project declaration."
     },
     {
+      "id": "toolchain.typescript.5",
+      "category": "toolchain",
+      "name": "TypeScript",
+      "version": "5.8.3",
+      "state": "sunset",
+      "pin": {"strategy": "exact-version", "value": "5.8.3"},
+      "platforms": {"operating_systems": ["any"], "architectures": ["amd64", "arm64"]},
+      "lifecycle": {"status": "maintenance", "released_at": null, "support_end": null, "eol": "2027-01-31", "migrate_by": "2027-01-31"},
+      "provenance": {"source_url": "https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-8.html", "retrieved_at": "2026-08-04", "review_by": "2026-11-04", "evidence": "Official TypeScript 5.8 release documentation and registry metadata verify exact 5.8.3. TypeScript publishes no fixed 5.8 EOL, so 2027-01-31 is an AISoftPlatform transition deadline, not an upstream support promise.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
+      "compatibility": ["TypeScript 5.8.3 satisfies Prisma 5.22 and Next.js 14 compiler requirements observed in NewEmaint.", "The project must pass its exact typecheck and framework build before any current adoption."],
+      "remediation": "Move to the preferred TypeScript major within the supported framework migration and before the exception deadline."
+    },
+    {
       "id": "oci.node.24-bookworm-slim",
       "category": "oci-image",
       "name": "Docker Official Image node bookworm-slim",
@@ -330,6 +382,19 @@
       "provenance": {"source_url": "https://hub.docker.com/_/node", "retrieved_at": "2026-08-02", "review_by": "2026-11-02", "evidence": "Docker official registry manifest inspection returned the multi-platform index digest and upstream docker-node revision 303e6c3b.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": true},
       "compatibility": ["The index contains linux/amd64, linux/arm64/v8 and linux/ppc64le manifests plus attestations.", "Production identity must retain both the human-readable tag and this sha256 digest."],
       "remediation": "Import the manifest and attestations into the offline mirror, verify digest and SBOM, then reference the digest in the project declaration."
+    },
+    {
+      "id": "oci.node.22-bookworm-slim",
+      "category": "oci-image",
+      "name": "Docker Official Image node bookworm-slim",
+      "version": "22.22.3-bookworm-slim",
+      "state": "sunset",
+      "pin": {"strategy": "oci-digest", "value": "sha256:16d364eebf6b62da439dc993d9b80940c78b0ca38438452f011ab9a25c752644"},
+      "platforms": {"operating_systems": ["linux"], "architectures": ["amd64"]},
+      "lifecycle": {"status": "maintenance", "released_at": null, "support_end": "2027-04-30", "eol": "2027-04-30", "migrate_by": "2027-01-31"},
+      "provenance": {"source_url": "https://hub.docker.com/_/node", "retrieved_at": "2026-08-04", "review_by": "2026-11-04", "evidence": "Docker Official Image registry inspection for node:22.22.3-bookworm-slim returned multi-platform index sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 and linux/amd64 child manifest sha256:16d364eebf6b62da439dc993d9b80940c78b0ca38438452f011ab9a25c752644. The platform pin is the architecture-specific child digest.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": true},
+      "compatibility": ["This catalog identity is valid only for linux/amd64; a multi-platform index digest cannot substitute for the selected child manifest.", "The paired runtime.node.22 transition remains Maintenance LTS and requires its own exception and migration Issue."],
+      "remediation": "Import and verify the linux/amd64 manifest and attestations, then migrate to the preferred Node 24 image before 2027-01-31."
     }
   ]
 }

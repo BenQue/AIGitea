@@ -1,17 +1,17 @@
 {
   "$schema": "../../schemas/project-architecture-v1.schema.json",
   "schema_version": "1.0",
-  "project_id": "newemaint-target-candidate",
+  "project_id": "fixture-linux-transition",
   "profile_id": "linux-node-postgres-v1",
-  "profile_version": "1.0.0",
-  "catalog_revision": "2026.08.0",
+  "profile_version": "1.1.0",
+  "catalog_revision": "2026.08.1",
   "delivery_contract": "docker-release/v1",
   "components": [
     {"component_id": "os.ubuntu.24-04-4", "version": "24.04.4"},
     {"component_id": "runtime.node.24", "version": "24.18.0"},
     {"component_id": "package.npm.11", "version": "11.19.0"},
     {"component_id": "orm.prisma.7", "version": "7.8.0"},
-    {"component_id": "database.postgresql.18", "version": "18.4"},
+    {"component_id": "database.postgresql.16", "version": "16.14", "migration_issue": "https://gitea.example/fixtures/app/issues/101"},
     {"component_id": "container.docker-engine.29", "version": "29.7.1"},
     {"component_id": "container.compose.5", "version": "5.1.4"},
     {"component_id": "proxy.nginx.1-30", "version": "1.30.4"},
@@ -20,5 +20,17 @@
     {"component_id": "toolchain.typescript.6", "version": "6.0.2"},
     {"component_id": "oci.node.24-bookworm-slim", "version": "24.18.0-bookworm-slim", "digest": "sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d"}
   ],
-  "exceptions": []
+  "exceptions": [
+    {
+      "id": "ARCH-EX-2026-001",
+      "component_id": "database.postgresql.16",
+      "owner": "fixture-owner",
+      "reason": "Positive fixture for the governed supported transition path.",
+      "risk": "The project remains on an older database major.",
+      "controls": ["Exact version pin, independent migration Issue and bounded exception."],
+      "created_at": "2026-08-04",
+      "expires_at": "2026-12-01",
+      "migration_issue": "https://gitea.example/fixtures/app/issues/101"
+    }
+  ]
 }

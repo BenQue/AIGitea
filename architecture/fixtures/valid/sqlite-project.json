@@ -4,7 +4,7 @@
   "project_id": "fixture-sqlite",
   "profile_id": "small-embedded-sqlite-v1",
   "profile_version": "1.0.0",
-  "catalog_revision": "2026.08.0",
+  "catalog_revision": "2026.08.1",
   "delivery_contract": "embedded-sqlite/v1",
   "components": [
     {"component_id": "os.ubuntu.24-04-4", "version": "24.04.4"},

@@ -27,7 +27,21 @@
         "additionalProperties": false,
         "properties": {
           "allowed_states": {"items": {"enum": ["preferred", "supported", "sunset"]}, "minItems": 1, "type": "array", "uniqueItems": true},
-          "component_id": {"pattern": "^[a-z0-9][a-z0-9.-]+$", "type": "string"}
+          "component_id": {"pattern": "^[a-z0-9][a-z0-9.-]+$", "type": "string"},
+          "transitions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "allowed_states": {"items": {"enum": ["supported", "sunset"]}, "minItems": 1, "type": "array", "uniqueItems": true},
+                "component_id": {"pattern": "^[a-z0-9][a-z0-9.-]+$", "type": "string"}
+              },
+              "required": ["component_id", "allowed_states"],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          }
         },
         "required": ["component_id", "allowed_states"],
         "type": "object"

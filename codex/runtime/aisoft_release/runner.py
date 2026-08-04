@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 import socket
 from pathlib import Path
 from typing import Mapping
@@ -29,9 +30,16 @@ class VerifiedRelease:
 
 
 class ReleaseRuntime:
-    def __init__(self, docker: object | None = None, *, hostname: str | None = None) -> None:
+    def __init__(
+        self,
+        docker: object | None = None,
+        *,
+        hostname: str | None = None,
+        today: date | None = None,
+    ) -> None:
         self.docker = docker or DockerAdapter()
         self.hostname = hostname or socket.gethostname()
+        self.today = today
 
     def verify(self, profile_path: Path | str, release_id: str) -> dict[str, object]:
         context = self._verify_context(profile_path, release_id, "verify", require_env=False)
@@ -44,6 +52,7 @@ class ReleaseRuntime:
             "platform": context.files.manifest.platform,
             "transport": context.profile.transport,
             "architecture_profile_id": context.files.manifest.architecture_profile_id,
+            "architecture_project_id": context.files.architecture_lock["project_id"],
             "catalog_revision": context.files.manifest.catalog_revision,
         }
 
@@ -136,7 +145,7 @@ class ReleaseRuntime:
     ) -> VerifiedRelease:
         profile = load_target_profile(profile_path, require_protected=True)
         _host_role_preflight(profile, action, self.hostname)
-        files = load_release_files(profile, release_id)
+        files = load_release_files(profile, release_id, today=self.today)
         if require_env:
             require_external_env_file(profile)
         transport = select_transport(profile.transport, self.docker, files)

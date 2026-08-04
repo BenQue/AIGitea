@@ -23,6 +23,9 @@ def build_lock(
     components = validate_catalog(catalog, catalog_schema, today)
     validate_profile(profile, profile_schema, catalog, components)
     validate_project(project, project_schema, profile, catalog, components, today)
+    exceptions_by_component = {
+        exception["component_id"]: exception for exception in project["exceptions"]
+    }
     resolved = []
     for declared in sorted(project["components"], key=lambda item: item["component_id"]):
         component = components[declared["component_id"]]
@@ -36,6 +39,10 @@ def build_lock(
             item["digest"] = declared["digest"]
         if "migration_issue" in declared:
             item["migration_issue"] = declared["migration_issue"]
+        exception = exceptions_by_component.get(declared["component_id"])
+        if exception is not None:
+            item["exception_id"] = exception["id"]
+            item["exception_expires_at"] = exception["expires_at"]
         resolved.append(item)
     lock: dict[str, Any] = {
         "$schema": "./architecture/schemas/architecture-lock-v1.schema.json",

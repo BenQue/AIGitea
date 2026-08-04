@@ -1,9 +1,28 @@
 # Official source and compatibility evidence
 
 Catalog evidence retrieved: 2026-08-02 · Server-inventory supplement retrieved: 2026-08-03 ·
-Next review: 2026-11-02 for catalog entries and 2026-11-03 for the supplement · Method: one
+Issue #26 transition supplement retrieved: 2026-08-04 · Next review: 2026-11-02 for original
+catalog entries, 2026-11-03 for server inventory and 2026-11-04 for transition evidence · Method: one
 Context7 query per concept, with official/upstream readback where lifecycle or exact release metadata
 was required.
+
+## Issue #26 transition evidence supplement
+
+| Component | Official/upstream readback | Exact conclusion and conflict handling |
+|---|---|---|
+| Node.js 22 | <https://nodejs.org/en/download/archive/v22.22.3> and <https://nodejs.org/en/about/previous-releases> | `22.22.3` exists and v22 is Maintenance LTS to April 2027, but Context7's current official-doc extraction identifies a newer v22 patch. The catalog preserves the approved exact NewEmaint transition fact as `sunset`; it does not call it latest. |
+| npm 10 | <https://docs.npmjs.com/cli/v10/using-npm/changelog/> plus official npm registry metadata | Exact `10.0.0`, integrity and Node engine `^18.17 || >=20.5` were read back. npm has no fixed v10 EOL table, so the catalog date is explicitly a platform exception deadline, not an upstream support promise. |
+| Prisma 5 | <https://github.com/prisma/prisma/releases/tag/5.22.0> and <https://www.prisma.io/docs/orm/more/upgrade-guides/upgrading-versions/upgrading-to-prisma-7> | Existing exact `5.22.0` is preserved as sunset. Context7 confirms that Prisma 7 changes generator output, driver adapter and configuration contracts, so migration remains an independent application Change. |
+| PostgreSQL 16 | <https://www.postgresql.org/support/versioning/> and <https://www.postgresql.org/docs/release/16.14/> | Exact `16.14` is a supported current minor and major 16 remains supported through 2028-11-09. It is an allowlisted `supported` transition, not proof of NewEmaint database migration or topology. |
+| Next.js 14 | <https://nextjs.org/support-policy>, <https://nextjs.org/docs/pages/guides/upgrading/version-14> and official npm registry metadata | Exact `14.2.33` exists and declares Node >=18.17 / React ^18.2, but the current official policy marks 14.x **unsupported**. It is therefore catalogued as `prohibited`, intentionally omitted from transition allowlists and cannot appear in a valid current lock. |
+| React 18 | <https://github.com/facebook/react/blob/main/CHANGELOG.md> plus official npm registry metadata | Exact `18.3.1` exists and is described as a bridge to React 19. It is recorded as sunset with a platform deadline; framework peer compatibility remains project-owned. |
+| TypeScript 5 | <https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-8.html> plus official npm registry metadata | Exact `5.8.3` exists. Upstream publishes no fixed 5.8 EOL, so the platform transition deadline is not presented as upstream support. |
+| Node 22 OCI | <https://hub.docker.com/_/node> and Docker Registry V2 manifest readback | `node:22.22.3-bookworm-slim` resolves to index `sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752`; the catalog pins the selected `linux/amd64` child manifest `sha256:16d364eebf6b62da439dc993d9b80940c78b0ca38438452f011ab9a25c752644`. Index and child digests are not interchangeable. |
+
+The supplement used Context7 resolution/query for Node.js (`/nodejs/nodejs.org`), Prisma
+(`/prisma/web`) and Next.js (`/vercel/next.js`), then official readback for exact release, support and
+registry identities. NewEmaint remote main was read only at
+`dfdb93ca1e36b222ae38a747e78a5db263302c86`; no application file or environment was modified.
 
 | Concept | Official/upstream source | Catalog conclusion | Compatibility evidence / conflict handling |
 |---|---|---|---|
@@ -23,7 +42,7 @@ was required.
 | Docker Compose | <https://github.com/docker/compose/releases/tag/v5.1.4> | Compose 5.1.4 preferred | Official release assets include checksums, provenance and SBOM. Image resolution must retain digest identity. |
 | Node OCI image | <https://hub.docker.com/_/node> | `node:24.18.0-bookworm-slim@sha256:6f7b…1452d` | Read-only official registry inspection on 2026-08-02 returned the multi-platform index and docker-node revision; catalog requires tag plus digest and offline attestations. |
 | NGINX | <https://nginx.org/en/download.html> | stable 1.30.4 preferred; observed 1.28.3 is legacy | The official download page lists 1.30.4 as stable and 1.28.3 under Legacy versions. Upstream has no fixed EOL date, so security/monthly review remains mandatory and remediation requires a separate proxy/server Change. |
-| Next.js | <https://nextjs.org/blog> | 16.2.11 Active LTS preferred | Vercel's July 2026 security release identifies the exact patched Active LTS. Context7 v16.2 docs require Node >=20.9, React >=18.2 and TypeScript >=5.1; Next 14 adoption is a separate framework migration. |
+| Next.js | <https://nextjs.org/blog> and <https://nextjs.org/support-policy> | 16.2.11 Active LTS preferred; 14.2.33 prohibited | Vercel's July 2026 security release identifies the exact patched Active LTS. Context7 v16.2 docs require Node >=20.9, React >=18.2 and TypeScript >=5.1; official policy now marks 14.x unsupported, so migration Issues or exceptions cannot make it an allowed transition. |
 | React | <https://react.dev/versions> | 19.3.0 preferred candidate for compatible projects | Framework peer compatibility is project-owned; catalog presence never authorizes a Next.js/application upgrade. No fixed upstream EOL. |
 | TypeScript | <https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html> | 6.0.2 preferred candidate | Prisma minimum is satisfied, but TypeScript 6 deprecations require application typecheck and framework tests. No fixed upstream EOL. |
 | npm CLI | <https://docs.npmjs.com/cli/v11> and <https://docs.npmjs.com/about-npm-versions> | npm 11.19.0 preferred with Node 24; 10.8.2 observed | `npm ci` enforces package-lock parity; exact package-manager identity and mirrored integrity metadata are required. npm publishes no fixed CLI EOL schedule. The observed npm 10.8.2 must be reviewed together with its EOL Node 20 host runtime. |
