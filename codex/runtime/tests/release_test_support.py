@@ -9,6 +9,7 @@ from pathlib import Path
 import tarfile
 from typing import Mapping
 
+from aisoft_release.compatibility import CompatibilityDecision, DockerCapability
 from aisoft_release.errors import DeploymentError
 
 
@@ -67,21 +68,26 @@ def refresh_architecture_lock_sha(value: dict[str, object]) -> None:
     value["lock_sha256"] = sha256_value(payload)
 
 
-def image_specs() -> list[dict[str, str]]:
-    return [
-        {
-            "service": "web",
-            "reference": "registry.internal/admin/newemaint-web@" + WEB_DIGEST,
-            "digest": WEB_DIGEST,
-            "image_id": WEB_IMAGE_ID,
-        },
-        {
-            "service": "migrate",
-            "reference": "registry.internal/admin/newemaint-migrate@" + MIGRATE_DIGEST,
-            "digest": MIGRATE_DIGEST,
-            "image_id": MIGRATE_IMAGE_ID,
-        },
-    ]
+def runtime_reference(service: str, release_id: str) -> str:
+    return f"aisoft.local/admin/newemaint/{service}:{release_id}"
+
+
+def image_specs(
+    release_id: str = SHA_A, *, identity_version: str = "v2"
+) -> list[dict[str, str]]:
+    images = json.loads(fixture_path("newemaint-v2-images.json").read_text())
+    for image in images:
+        image.pop("platform")
+        image["transport_reference"] = runtime_reference(image["service"], release_id)
+        image["runtime_reference"] = runtime_reference(image["service"], release_id)
+    if identity_version == "v2":
+        return images
+    if identity_version == "legacy":
+        for image in images:
+            image.pop("transport_reference")
+            image.pop("runtime_reference")
+        return images
+    raise ValueError("identity_version must be v2 or legacy")
 
 
 def migration_identity(release_id: str) -> str:
@@ -89,27 +95,78 @@ def migration_identity(release_id: str) -> str:
     return "sha256:" + character * 64
 
 
-def compose_model(release_id: str, *, migration: bool = True) -> dict[str, object]:
+def compose_model(
+    release_id: str,
+    *,
+    migration: bool = True,
+    identity_version: str = "v2",
+) -> dict[str, object]:
     model = json.loads(fixture_path("compose-config-valid.json").read_text())
     services = model["services"]
     assert isinstance(services, dict)
+    references = {
+        image["service"]: image.get("runtime_reference") or image["reference"]
+        for image in image_specs(release_id, identity_version=identity_version)
+    }
     for name, config in services.items():
         assert isinstance(config, dict)
         labels = config["labels"]
         assert isinstance(labels, dict)
         labels["com.aisoft.release.id"] = release_id
+        config["image"] = references[str(name)]
     if not migration:
         services.pop("migrate")
     return model
 
 
-def create_archive(path: Path, *, unsafe_name: str | None = None) -> None:
-    manifest = b"[]\n"
+def create_archive(
+    path: Path,
+    images: list[dict[str, str]],
+    *,
+    unsafe_name: str | None = None,
+) -> None:
     with tarfile.open(path, mode="w") as archive:
-        info = tarfile.TarInfo(unsafe_name or "manifest.json")
-        info.size = len(manifest)
+        if unsafe_name is not None:
+            manifest_bytes = b"[]\n"
+            info = tarfile.TarInfo(unsafe_name)
+            info.size = len(manifest_bytes)
+            info.mode = 0o644
+            archive.addfile(info, io.BytesIO(manifest_bytes))
+            os.chmod(path, 0o644)
+            return
+        manifest: list[dict[str, object]] = []
+        repositories: dict[str, dict[str, str]] = {}
+        for index, image in enumerate(images):
+            image_hex = image["image_id"].removeprefix("sha256:")
+            layer_path = f"layers/{index}/layer.tar"
+            config_path = image_hex + ".json"
+            tag = image.get("transport_reference")
+            repo_tags = [tag] if tag is not None else []
+            manifest.append(
+                {"Config": config_path, "RepoTags": repo_tags, "Layers": [layer_path]}
+            )
+            for member_name, payload in (
+                (config_path, b"{}\n"),
+                (layer_path, b"fixture-layer\n"),
+            ):
+                member = tarfile.TarInfo(member_name)
+                member.size = len(payload)
+                member.mode = 0o644
+                archive.addfile(member, io.BytesIO(payload))
+            if tag is not None:
+                repository, nested_tag = tag.rsplit(":", 1)
+                repositories.setdefault(repository, {})[nested_tag] = str(index)
+        manifest_bytes = canonical_bytes(manifest)
+        info = tarfile.TarInfo("manifest.json")
+        info.size = len(manifest_bytes)
         info.mode = 0o644
-        archive.addfile(info, io.BytesIO(manifest))
+        archive.addfile(info, io.BytesIO(manifest_bytes))
+        if repositories:
+            repositories_bytes = canonical_bytes(repositories)
+            repositories_info = tarfile.TarInfo("repositories")
+            repositories_info.size = len(repositories_bytes)
+            repositories_info.mode = 0o644
+            archive.addfile(repositories_info, io.BytesIO(repositories_bytes))
     os.chmod(path, 0o644)
 
 
@@ -120,6 +177,7 @@ def create_release(
     transport: str = "registry",
     role: str = "appserver-test",
     migration: bool = True,
+    identity_version: str = "v2",
 ) -> tuple[Path, dict[str, object], dict[str, object]]:
     release_root = root / "releases"
     release_dir = release_root / release_id
@@ -135,14 +193,22 @@ def create_release(
     write_json(architecture_path, architecture)
 
     archive_path = release_dir / "images.tar"
-    create_archive(archive_path)
-    inventory = {
-        "contract_version": "docker-release-offline-inventory/v1",
-        "archive_sha256": sha256(archive_path),
-        "images": image_specs(),
-    }
+    images = image_specs(release_id, identity_version=identity_version)
     if not migration:
-        inventory["images"] = image_specs()[:1]
+        images = images[:1]
+    create_archive(archive_path, images)
+    inventory = {
+        "contract_version": (
+            "docker-release-offline-inventory/v2"
+            if identity_version == "v2"
+            else "docker-release-offline-inventory/v1"
+        ),
+        "archive_sha256": sha256(archive_path),
+        "images": deepcopy(images),
+    }
+    if identity_version == "v2":
+        for image in inventory["images"]:
+            image["platform"] = "linux/amd64"
     inventory_path = release_dir / "images.inventory.json"
     write_json(inventory_path, inventory)
 
@@ -159,7 +225,7 @@ def create_release(
             "catalog_revision": CATALOG_REVISION,
             "sha256": sha256(architecture_path),
         },
-        "images": image_specs() if migration else image_specs()[:1],
+        "images": images,
         "runtime_services": ["web"],
         "migration": (
             {
@@ -172,6 +238,11 @@ def create_release(
             else None
         ),
         "offline_bundle": {
+            **(
+                {"contract_version": "docker-release-offline-bundle/v2"}
+                if identity_version == "v2"
+                else {}
+            ),
             "archive_path": "images.tar",
             "archive_sha256": sha256(archive_path),
             "inventory_path": "images.inventory.json",
@@ -202,7 +273,15 @@ def create_release(
     }
     profile_path = root / "target-profile.json"
     write_json(profile_path, profile, mode=0o600)
-    return profile_path, compose_model(release_id, migration=migration), manifest
+    return (
+        profile_path,
+        compose_model(
+            release_id,
+            migration=migration,
+            identity_version=identity_version,
+        ),
+        manifest,
+    )
 
 
 def update_manifest(release_dir: Path, transform: object) -> dict[str, object]:
@@ -218,10 +297,17 @@ class FakeDocker:
         self.events: list[tuple[object, ...]] = []
         self.models: dict[str, Mapping[str, object]] = {}
         self.images: dict[str, Mapping[str, object]] = {}
+        self.manifests: dict[str, Mapping[str, object]] = {}
         self.current_release: str | None = None
         self.fail_up_for: set[str] = set()
         self.unhealthy_for: set[str] = set()
         self.fail_migration_for: set[str] = set()
+        self.tamper_container_image_for: set[str] = set()
+        self.tamper_container_reference_for: set[str] = set()
+        self.tamper_container_release_label_for: set[str] = set()
+        self.wrong_loaded_image_for: set[str] = set()
+        self.omit_runtime_tag_on_load_for: set[str] = set()
+        self.capability_error: DeploymentError | None = None
 
     def register(
         self,
@@ -230,11 +316,13 @@ class FakeDocker:
         manifest: Mapping[str, object],
     ) -> None:
         self.models[release_id] = deepcopy(model)
+        self.manifests[release_id] = deepcopy(manifest)
         for image in manifest["images"]:
             assert isinstance(image, Mapping)
             self.images[str(image["reference"])] = {
                 "Id": image["image_id"],
                 "RepoDigests": [image["reference"]],
+                "RepoTags": [],
                 "Os": "linux",
                 "Architecture": "amd64",
             }
@@ -244,8 +332,25 @@ class FakeDocker:
         return [
             event
             for event in self.events
-            if event[0] in {"pull", "load", "migration", "up"}
+            if event[0] in {"pull", "tag", "save", "load", "migration", "up"}
         ]
+
+    def assert_runtime_compatible(self) -> CompatibilityDecision:
+        capability = DockerCapability(
+            engine_version="29.0.1",
+            compose_version="2.40.3",
+            os="linux",
+            architecture="amd64",
+            image_store="containerd",
+        )
+        self.events.append(("capability", "containerd", "fake-supported-row"))
+        if self.capability_error is not None:
+            raise self.capability_error
+        return CompatibilityDecision(
+            matrix_revision="test.fake.1",
+            row_id="fake-supported-row",
+            capability=capability,
+        )
 
     def compose_config(self, compose_path: Path, project: str) -> Mapping[str, object]:
         release = compose_path.parent.name
@@ -255,8 +360,35 @@ class FakeDocker:
     def pull_image(self, reference: str) -> None:
         self.events.append(("pull", reference))
 
+    def tag_image(self, source_reference: str, target_reference: str) -> None:
+        self.events.append(("tag", source_reference, target_reference))
+        source = deepcopy(self.images[source_reference])
+        source["RepoTags"] = [target_reference]
+        self.images[target_reference] = source
+
+    def save_images(self, references: list[str], archive_path: Path) -> None:
+        self.events.append(("save", tuple(references), archive_path.name))
+
     def load_archive(self, archive_path: Path) -> None:
-        self.events.append(("load", archive_path.parent.name))
+        release = archive_path.parent.name
+        self.events.append(("load", release))
+        manifest = self.manifests[release]
+        for image in manifest["images"]:
+            assert isinstance(image, Mapping)
+            runtime = str(image.get("runtime_reference") or image["reference"])
+            self.images[runtime] = {
+                "Id": (
+                    "sha256:" + "e" * 64
+                    if release in self.wrong_loaded_image_for
+                    else image["image_id"]
+                ),
+                "RepoDigests": [],
+                "RepoTags": (
+                    [] if release in self.omit_runtime_tag_on_load_for else [runtime]
+                ),
+                "Os": "linux",
+                "Architecture": "amd64",
+            }
 
     def inspect_image(self, reference: str) -> Mapping[str, object]:
         self.events.append(("inspect-image", reference))
@@ -303,9 +435,23 @@ class FakeDocker:
         labels = config["labels"]
         image_reference = config["image"]
         image = self.images[str(image_reference)]
+        inspected_labels = deepcopy(labels)
+        if release in self.tamper_container_release_label_for:
+            inspected_labels["com.aisoft.release.id"] = "f" * 40
         return {
-            "Image": image["Id"],
-            "Config": {"Image": image_reference, "Labels": deepcopy(labels)},
+            "Image": (
+                "sha256:" + "f" * 64
+                if release in self.tamper_container_image_for
+                else image["Id"]
+            ),
+            "Config": {
+                "Image": (
+                    "aisoft.local/admin/newemaint/wrong:" + release
+                    if release in self.tamper_container_reference_for
+                    else image_reference
+                ),
+                "Labels": inspected_labels,
+            },
             "State": {
                 "Running": True,
                 "Health": {

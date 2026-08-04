@@ -19,7 +19,8 @@ RELEASE_VERSION = "docker-release/v1"
 PROFILE_VERSION = "docker-release-target/v1"
 ARCHITECTURE_LOCK_SCHEMA = "./architecture/schemas/architecture-lock-v1.schema.json"
 ARCHITECTURE_LOCK_SCHEMA_VERSION = "1.0"
-OFFLINE_INVENTORY_VERSION = "docker-release-offline-inventory/v1"
+OFFLINE_BUNDLE_V2 = "docker-release-offline-bundle/v2"
+OFFLINE_INVENTORY_V2 = "docker-release-offline-inventory/v2"
 GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 SHA256_HEX = re.compile(r"^[0-9a-f]{64}$")
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -33,6 +34,15 @@ SERVICE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,62}$")
 IMAGE_REFERENCE = re.compile(
     r"^[a-z0-9][a-z0-9./:_-]*@sha256:[0-9a-f]{64}$"
 )
+TRANSPORT_REFERENCE = re.compile(
+    r"^aisoft\.local/[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?/"
+    r"[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?/"
+    r"[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?:[0-9a-f]{40}$"
+)
+V2_REPOSITORY_COMPONENT = re.compile(
+    r"^[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$"
+)
+V2_SERVICE_COMPONENT = re.compile(r"^[a-z0-9]+(?:[_-][a-z0-9]+)*$")
 HOSTNAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.-]{0,252}$")
 COMPOSE_PROJECT = re.compile(r"^[a-z0-9][a-z0-9_-]{0,62}$")
 SENSITIVE_KEY = re.compile(
@@ -49,6 +59,12 @@ class ImageSpec:
     reference: str
     digest: str
     image_id: str
+    transport_reference: str | None
+    runtime_reference: str
+
+    @property
+    def is_v2(self) -> bool:
+        return self.transport_reference is not None
 
 
 @dataclass(frozen=True)
@@ -61,6 +77,7 @@ class MigrationSpec:
 
 @dataclass(frozen=True)
 class OfflineBundleSpec:
+    contract_version: str | None
     archive_path: str
     archive_sha256: str
     inventory_path: str
@@ -390,6 +407,10 @@ def _validate_architecture_lock(
 
 def load_offline_inventory(files: ReleaseFiles) -> Mapping[str, object]:
     spec = files.manifest.offline_bundle
+    if spec.contract_version != OFFLINE_BUNDLE_V2:
+        raise ContractError(
+            "legacy offline bundle must be republished as " + OFFLINE_BUNDLE_V2
+        )
     inventory_path = _release_file(
         files.directory, spec.inventory_path, "offline inventory"
     )
@@ -403,9 +424,9 @@ def load_offline_inventory(files: ReleaseFiles) -> Mapping[str, object]:
         {"contract_version", "archive_sha256", "images"},
         "offline inventory",
     )
-    if inventory.get("contract_version") != OFFLINE_INVENTORY_VERSION:
+    if inventory.get("contract_version") != OFFLINE_INVENTORY_V2:
         raise ContractError(
-            f"offline inventory contract_version must be {OFFLINE_INVENTORY_VERSION}"
+            f"offline inventory contract_version must be {OFFLINE_INVENTORY_V2}"
         )
     if inventory.get("archive_sha256") != spec.archive_sha256:
         raise ContractError("offline inventory archive checksum does not match manifest")
@@ -413,7 +434,12 @@ def load_offline_inventory(files: ReleaseFiles) -> Mapping[str, object]:
     if not isinstance(raw_images, list) or not raw_images:
         raise ContractError("offline inventory images must be a non-empty array")
     parsed = tuple(
-        _parse_image(item, f"offline inventory images[{index}]")
+        _parse_inventory_image(
+            item,
+            f"offline inventory images[{index}]",
+            files.manifest.source_repository,
+            files.manifest.release_id,
+        )
         for index, item in enumerate(raw_images)
     )
     _require_unique_images(parsed, "offline inventory")
@@ -524,11 +550,20 @@ def _parse_manifest(value: Mapping[str, object], requested_release: str) -> Rele
         architecture, "sha256", SHA256_HEX, "release manifest architecture"
     )
 
+    offline = _mapping(value, "offline_bundle", "release manifest")
+    offline_bundle = _parse_offline_bundle(offline)
+
     raw_images = value.get("images")
     if not isinstance(raw_images, list) or not raw_images:
         raise ContractError("release manifest images must be a non-empty array")
     images = tuple(
-        _parse_image(item, f"release manifest images[{index}]")
+        _parse_image(
+            item,
+            f"release manifest images[{index}]",
+            source_repository=source_repository,
+            release_id=release_id,
+            v2=offline_bundle.contract_version == OFFLINE_BUNDLE_V2,
+        )
         for index, item in enumerate(raw_images)
     )
     _require_unique_images(images, "release manifest")
@@ -584,26 +619,6 @@ def _parse_manifest(value: Mapping[str, object], requested_release: str) -> Rele
             database_restore=restore,
         )
 
-    offline = _mapping(value, "offline_bundle", "release manifest")
-    _expect_keys(
-        offline,
-        {"archive_path", "archive_sha256", "inventory_path", "inventory_sha256"},
-        "release manifest offline_bundle",
-    )
-    offline_bundle = OfflineBundleSpec(
-        archive_path=_relative_path(
-            offline, "archive_path", "release manifest offline_bundle"
-        ),
-        archive_sha256=_matching_string(
-            offline, "archive_sha256", SHA256_HEX, "release manifest offline_bundle"
-        ),
-        inventory_path=_relative_path(
-            offline, "inventory_path", "release manifest offline_bundle"
-        ),
-        inventory_sha256=_matching_string(
-            offline, "inventory_sha256", SHA256_HEX, "release manifest offline_bundle"
-        ),
-    )
     release_paths = {
         compose_path,
         architecture_path,
@@ -631,26 +646,164 @@ def _parse_manifest(value: Mapping[str, object], requested_release: str) -> Rele
     )
 
 
-def _parse_image(value: object, context: str) -> ImageSpec:
+def _parse_offline_bundle(value: Mapping[str, object]) -> OfflineBundleSpec:
+    context = "release manifest offline_bundle"
+    legacy_fields = {
+        "archive_path",
+        "archive_sha256",
+        "inventory_path",
+        "inventory_sha256",
+    }
+    if "contract_version" in value:
+        _expect_keys(value, legacy_fields | {"contract_version"}, context)
+        contract_version = _string(value, "contract_version", context)
+        if contract_version != OFFLINE_BUNDLE_V2:
+            raise ContractError(
+                f"offline bundle contract_version must be {OFFLINE_BUNDLE_V2}"
+            )
+    else:
+        _expect_keys(value, legacy_fields, context)
+        contract_version = None
+    return OfflineBundleSpec(
+        contract_version=contract_version,
+        archive_path=_relative_path(value, "archive_path", context),
+        archive_sha256=_matching_string(
+            value, "archive_sha256", SHA256_HEX, context
+        ),
+        inventory_path=_relative_path(value, "inventory_path", context),
+        inventory_sha256=_matching_string(
+            value, "inventory_sha256", SHA256_HEX, context
+        ),
+    )
+
+
+def _parse_image(
+    value: object,
+    context: str,
+    *,
+    source_repository: str,
+    release_id: str,
+    v2: bool,
+) -> ImageSpec:
     if not isinstance(value, Mapping):
         raise ContractError(f"{context} must be an object")
-    _expect_keys(value, {"service", "reference", "digest", "image_id"}, context)
+    fields = {"service", "reference", "digest", "image_id"}
+    if v2:
+        fields |= {"transport_reference", "runtime_reference"}
+    _expect_keys(value, fields, context)
     service = _matching_string(value, "service", SERVICE, context)
     reference = _matching_string(value, "reference", IMAGE_REFERENCE, context)
     digest = _matching_string(value, "digest", DIGEST, context)
     image_id = _matching_string(value, "image_id", DIGEST, context)
     if not reference.endswith("@" + digest):
         raise ContractError(f"{context} reference does not end with its declared digest")
-    return ImageSpec(service=service, reference=reference, digest=digest, image_id=image_id)
+    if not v2:
+        return ImageSpec(
+            service=service,
+            reference=reference,
+            digest=digest,
+            image_id=image_id,
+            transport_reference=None,
+            runtime_reference=reference,
+        )
+    transport_reference = _matching_string(
+        value, "transport_reference", TRANSPORT_REFERENCE, context
+    )
+    runtime_reference = _matching_string(
+        value, "runtime_reference", TRANSPORT_REFERENCE, context
+    )
+    expected = runtime_image_reference(source_repository, service, release_id)
+    if transport_reference != expected or runtime_reference != expected:
+        raise ContractError(
+            f"{context} transport/runtime reference is not the deterministic release tag"
+        )
+    return ImageSpec(
+        service=service,
+        reference=reference,
+        digest=digest,
+        image_id=image_id,
+        transport_reference=transport_reference,
+        runtime_reference=runtime_reference,
+    )
+
+
+def _parse_inventory_image(
+    value: object,
+    context: str,
+    source_repository: str,
+    release_id: str,
+) -> ImageSpec:
+    if not isinstance(value, Mapping):
+        raise ContractError(f"{context} must be an object")
+    _expect_keys(
+        value,
+        {
+            "service",
+            "reference",
+            "digest",
+            "image_id",
+            "transport_reference",
+            "runtime_reference",
+            "platform",
+        },
+        context,
+    )
+    if value.get("platform") != "linux/amd64":
+        raise ContractError(f"{context} platform must be linux/amd64")
+    image_value = {key: nested for key, nested in value.items() if key != "platform"}
+    return _parse_image(
+        image_value,
+        context,
+        source_repository=source_repository,
+        release_id=release_id,
+        v2=True,
+    )
+
+
+def runtime_image_reference(
+    source_repository: str, service: str, release_id: str
+) -> str:
+    if not GIT_SHA.fullmatch(release_id):
+        raise ContractError("runtime image reference requires a 40-character release SHA")
+    if not V2_SERVICE_COMPONENT.fullmatch(service):
+        raise ContractError("v2 image service cannot form a safe Docker repository component")
+    parts = source_repository.split("/")
+    if len(parts) != 2 or any(
+        not V2_REPOSITORY_COMPONENT.fullmatch(part) for part in parts
+    ):
+        raise ContractError(
+            "v2 source repository cannot form deterministic Docker repository components"
+        )
+    return (
+        "aisoft.local/"
+        + parts[0].lower()
+        + "/"
+        + parts[1].lower()
+        + "/"
+        + service
+        + ":"
+        + release_id
+    )
 
 
 def _require_unique_images(images: Sequence[ImageSpec], context: str) -> None:
     services = [item.service for item in images]
     references = [item.reference for item in images]
+    image_ids = [item.image_id for item in images]
+    transport_references = [
+        item.transport_reference for item in images if item.transport_reference is not None
+    ]
+    runtime_references = [item.runtime_reference for item in images]
     if len(set(services)) != len(services):
         raise ContractError(f"{context} contains duplicate image services")
     if len(set(references)) != len(references):
         raise ContractError(f"{context} contains duplicate image references")
+    if len(set(image_ids)) != len(image_ids):
+        raise ContractError(f"{context} contains duplicate image IDs")
+    if len(set(transport_references)) != len(transport_references):
+        raise ContractError(f"{context} contains duplicate transport references")
+    if len(set(runtime_references)) != len(runtime_references):
+        raise ContractError(f"{context} contains duplicate runtime references")
 
 
 def _load_json_object(path: Path, context: str) -> Mapping[str, object]:

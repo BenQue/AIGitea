@@ -8,17 +8,82 @@ from pathlib import Path
 import subprocess
 from typing import Mapping, Sequence
 
+from .compatibility import (
+    CompatibilityDecision,
+    DockerCapability,
+    require_supported,
+)
 from .errors import DeploymentError
 
 
 MAX_OUTPUT_BYTES = 16 * 1024 * 1024
+MAX_METADATA_OUTPUT_BYTES = 64 * 1024
 
 
 class DockerAdapter:
     """Only fixed Docker operations used by the release state machine."""
 
-    def __init__(self, executable: str = "docker") -> None:
+    def __init__(
+        self,
+        executable: str = "docker",
+        *,
+        compatibility_path: Path | str | None = None,
+    ) -> None:
         self.executable = executable
+        self.compatibility_path = compatibility_path
+
+    def assert_runtime_compatible(self) -> CompatibilityDecision:
+        return require_supported(self.detect_capability(), self.compatibility_path)
+
+    def detect_capability(self) -> DockerCapability:
+        server = self._json_object(
+            [
+                self.executable,
+                "version",
+                "--format",
+                "{{json .Server}}",
+            ],
+            None,
+            "Docker server version detection",
+            max_output_bytes=MAX_METADATA_OUTPUT_BYTES,
+        )
+        engine_version = _exact_version(server.get("Version"), "Docker Engine")
+        os_name = server.get("Os")
+        architecture = server.get("Arch")
+        if os_name != "linux" or architecture != "amd64":
+            raise DeploymentError("Docker server must report exact linux/amd64")
+        compose_raw = self._run(
+            [self.executable, "compose", "version", "--short"],
+            None,
+            "Docker Compose version detection",
+            max_output_bytes=MAX_METADATA_OUTPUT_BYTES,
+        ).strip()
+        compose_version = _exact_version(compose_raw.removeprefix("v"), "Docker Compose")
+        driver_raw = self._run(
+            [self.executable, "info", "--format", "{{.Driver}}"],
+            None,
+            "Docker image driver detection",
+            max_output_bytes=MAX_METADATA_OUTPUT_BYTES,
+        ).strip()
+        driver_status = self._json_value(
+            [
+                self.executable,
+                "info",
+                "--format",
+                "{{json .DriverStatus}}",
+            ],
+            None,
+            "Docker image-store detection",
+            max_output_bytes=MAX_METADATA_OUTPUT_BYTES,
+        )
+        image_store = _normalize_image_store(driver_raw, driver_status)
+        return DockerCapability(
+            engine_version=engine_version,
+            compose_version=compose_version,
+            os=str(os_name),
+            architecture=str(architecture),
+            image_store=image_store,
+        )
 
     def compose_config(self, compose_path: Path, project: str) -> Mapping[str, object]:
         args = self._compose_base(compose_path, project) + [
@@ -35,6 +100,33 @@ class DockerAdapter:
             [self.executable, "image", "pull", reference],
             None,
             "immutable image pull",
+        )
+
+    def tag_image(self, source_reference: str, target_reference: str) -> None:
+        self._run(
+            [self.executable, "image", "tag", source_reference, target_reference],
+            None,
+            "release-scoped image tag",
+        )
+
+    def save_images(self, references: Sequence[str], archive_path: Path) -> None:
+        if not references:
+            raise DeploymentError("offline image save requires at least one reference")
+        if archive_path.exists() or archive_path.is_symlink():
+            raise DeploymentError("offline image save refuses to overwrite an archive path")
+        if not archive_path.parent.is_dir() or archive_path.parent.is_symlink():
+            raise DeploymentError("offline image save parent directory is invalid")
+        self._run(
+            [
+                self.executable,
+                "image",
+                "save",
+                "--output",
+                str(archive_path),
+                *references,
+            ],
+            archive_path.parent,
+            "offline image save",
         )
 
     def load_archive(self, archive_path: Path) -> None:
@@ -90,6 +182,7 @@ class DockerAdapter:
             str(wait_timeout_seconds),
             "--pull",
             "never",
+            "--no-build",
             "--remove-orphans",
         ]
         self._run(args, compose_path.parent, "compose up wait")
@@ -143,21 +236,47 @@ class DockerAdapter:
         return args
 
     def _json_object(
-        self, args: Sequence[str], cwd: Path | None, operation: str
+        self,
+        args: Sequence[str],
+        cwd: Path | None,
+        operation: str,
+        *,
+        max_output_bytes: int = MAX_OUTPUT_BYTES,
     ) -> Mapping[str, object]:
-        raw = self._run(args, cwd, operation)
-        try:
-            value = json.loads(raw, object_pairs_hook=_unique_object)
-        except (json.JSONDecodeError, ValueError) as exc:
-            raise DeploymentError(f"{operation} returned invalid JSON") from exc
+        value = self._json_value(
+            args,
+            cwd,
+            operation,
+            max_output_bytes=max_output_bytes,
+        )
         if isinstance(value, list) and len(value) == 1 and isinstance(value[0], Mapping):
             value = value[0]
         if not isinstance(value, Mapping):
             raise DeploymentError(f"{operation} did not return a JSON object")
         return value
 
+    def _json_value(
+        self,
+        args: Sequence[str],
+        cwd: Path | None,
+        operation: str,
+        *,
+        max_output_bytes: int = MAX_OUTPUT_BYTES,
+    ) -> object:
+        raw = self._run(args, cwd, operation, max_output_bytes=max_output_bytes)
+        try:
+            value = json.loads(raw, object_pairs_hook=_unique_object)
+        except (json.JSONDecodeError, ValueError) as exc:
+            raise DeploymentError(f"{operation} returned invalid JSON") from exc
+        return value
+
     def _run(
-        self, args: Sequence[str], cwd: Path | None, operation: str
+        self,
+        args: Sequence[str],
+        cwd: Path | None,
+        operation: str,
+        *,
+        max_output_bytes: int = MAX_OUTPUT_BYTES,
     ) -> str:
         if not args or any(not isinstance(item, str) or "\x00" in item for item in args):
             raise DeploymentError("Docker adapter received invalid fixed arguments")
@@ -175,7 +294,10 @@ class DockerAdapter:
             )
         except OSError as exc:
             raise DeploymentError(f"{operation} could not start") from exc
-        if len(completed.stdout) > MAX_OUTPUT_BYTES or len(completed.stderr) > MAX_OUTPUT_BYTES:
+        if (
+            len(completed.stdout) > max_output_bytes
+            or len(completed.stderr) > max_output_bytes
+        ):
             raise DeploymentError(f"{operation} exceeded the bounded output limit")
         if completed.returncode != 0:
             # Docker/Compose can echo interpolated values in errors. Never include
@@ -204,6 +326,39 @@ def _docker_environment() -> dict[str, str]:
         "XDG_RUNTIME_DIR",
     }
     return {key: value for key, value in os.environ.items() if key in allowed}
+
+
+def _exact_version(value: object, product: str) -> str:
+    if not isinstance(value, str):
+        raise DeploymentError(f"{product} version output is missing")
+    parts = value.split(".")
+    if len(parts) != 3 or any(not part.isdigit() for part in parts):
+        raise DeploymentError(f"{product} version output is not exact major.minor.patch")
+    return value
+
+
+def _normalize_image_store(driver: str, status: object) -> str:
+    if status is None:
+        entries: list[object] = []
+    elif isinstance(status, list):
+        entries = status
+    else:
+        raise DeploymentError("Docker DriverStatus output is invalid")
+    driver_types: list[str] = []
+    for entry in entries:
+        if (
+            not isinstance(entry, list)
+            or len(entry) != 2
+            or not all(isinstance(item, str) for item in entry)
+        ):
+            raise DeploymentError("Docker DriverStatus output is invalid")
+        if entry[0] == "driver-type":
+            driver_types.append(entry[1])
+    if driver_types == ["io.containerd.snapshotter.v1"] and driver == "overlayfs":
+        return "containerd"
+    if not driver_types and driver == "overlay2":
+        return "classic"
+    raise DeploymentError("Docker image store is unknown, ambiguous, or conflicting")
 
 
 def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:

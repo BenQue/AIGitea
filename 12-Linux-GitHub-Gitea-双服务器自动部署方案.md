@@ -54,15 +54,18 @@ flowchart LR
 完整 Gitea `main` merge SHA 是 release ID。`release.json` strict schema 同时绑定：
 
 - `linux/amd64`；source repository 与 merge SHA；
-- 每个 Compose service 的 immutable Registry digest 和 inspected image ID；
+- 每个 Compose service 的 immutable Registry digest、inspected image ID，以及由 source
+  repository/service/full SHA 确定的 transport/runtime tag；
 - Compose checksum、runtime service、一次性 non-destructive migration identity；
 - #23 唯一 architecture catalog 的 `profile_id`、`catalog_revision` 和 lock checksum；
 - offline `images.tar` 与 `images.inventory.json` checksum。
 
-Registry transport 逐 image 执行 digest pull；offline transport 先验证 release/Compose/
-architecture/inventory/archive 和 tar path safety，再 `docker image load` 并 inspect exact identity。
-二者消费同一 manifest，不得重建“等价”image。目标机不运行 `docker build`、`npm install`、
-`git pull` 或公网下载。
+Registry transport 逐 image 执行 digest pull，验证 `RepoDigests`/image ID 后创建 runtime tag；
+offline producer 只在 digest/tag 指向同一 ID/platform 后按 tag save。Consumer 先验证
+release/Compose/architecture/inventory/archive 和 tar member/reference allowlist，再
+`docker image load` 并按 runtime tag inspect exact ID/platform，不要求 `RepoDigests`。二者消费
+同一 manifest，不得重建“等价”image。目标机不运行 `docker build`、`npm install`、`git pull`
+或公网下载。
 
 ### 0.3 Deterministic target runtime
 
@@ -72,8 +75,9 @@ CLI 只接受 mode `0400/0600` 的 target profile 和 40 位 release ID：
 aisoft-docker-release verify|deploy|status|rollback --profile <protected-json> --release-id <merge-sha>
 ```
 
-所有 path/checksum/architecture/host-role/Compose safety 在 pull/load/migration/container replace
-之前 fail closed。Compose 禁止 `build:`、mutable-only image、root/privileged、host namespace、
+所有 path/checksum/architecture/host-role/Compose safety 和 Engine/Compose/image-store matrix 在
+pull/load/migration/container replace 之前 fail closed；Engine major 不替代 `DriverStatus` store
+marker，classic 无同级 real E2E 时拒绝。Compose 禁止 `build:`、mutable-only image、root/privileged、host namespace、
 Docker socket、任意 bind mount 和非 loopback publish；要求 read-only rootfs、tmpfs/命名卷、
 `cap_drop: ALL`、`no-new-privileges`、资源/日志限制、网络分区、healthcheck 和 exact release
 labels。环境值只引用目标机外置 env file，不写入 manifest、state 或日志。

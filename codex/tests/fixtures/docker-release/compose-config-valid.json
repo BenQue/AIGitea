@@ -2,7 +2,7 @@
   "name": "newemaint-test",
   "services": {
     "web": {
-      "image": "registry.internal/admin/newemaint-web@sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "image": "aisoft.local/admin/newemaint/web:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "user": "10001:10001",
       "read_only": true,
       "cap_drop": ["ALL"],
@@ -47,7 +47,7 @@
       }
     },
     "migrate": {
-      "image": "registry.internal/admin/newemaint-migrate@sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "image": "aisoft.local/admin/newemaint/migrate:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "user": "10001:10001",
       "read_only": true,
       "cap_drop": ["ALL"],

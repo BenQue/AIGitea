@@ -32,6 +32,9 @@ cmp "$first_manifest" "$second_manifest"
 
 test -x "$test_root/root/usr/local/bin/aisoft-docker-release"
 test -f "$test_root/root/opt/aisoft-docker-release/docker-release-v1/schema/release-manifest-v1.schema.json"
+test -f "$test_root/root/opt/aisoft-docker-release/docker-release-v1/schema/offline-inventory-v2.schema.json"
+test -f "$test_root/root/opt/aisoft-docker-release/docker-release-v1/schema/image-store-compatibility-v1.schema.json"
+test -f "$test_root/root/opt/aisoft-docker-release/docker-release-v1/compatibility/image-stores-v1.json"
 test -f "$test_root/root/etc/aisoft-docker-release/examples/docker-release-v1/target-profile.example.json"
 test ! -e "$test_root/root/etc/aisoft-docker-release/targets"
 test ! -e "$test_root/root/var/lib/aisoft-docker-release"
@@ -40,6 +43,17 @@ test ! -e "$FAKE_DOCKER_LOG"
 
 AISOFT_DOCKER_RELEASE_RUNTIME_DIR="$test_root/root/opt/aisoft-docker-release/docker-release-v1/runtime" \
   "$test_root/root/usr/local/bin/aisoft-docker-release" --help >/dev/null
+installed_matrix="$(
+  PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH="$test_root/root/opt/aisoft-docker-release/docker-release-v1/runtime" \
+    python3 -B -c 'from aisoft_release.compatibility import default_compatibility_path; print(default_compatibility_path())'
+)"
+expected_matrix="$(
+  cd -- "$test_root/root/opt/aisoft-docker-release/docker-release-v1/compatibility"
+  pwd -P
+)/image-stores-v1.json"
+test "$installed_matrix" = \
+  "$expected_matrix"
 test ! -e "$FAKE_DOCKER_LOG"
 
 printf '%s\n' 'docker release install tests passed'

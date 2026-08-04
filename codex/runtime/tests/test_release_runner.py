@@ -45,8 +45,18 @@ class ReleaseRunnerTests(unittest.TestCase):
             state["migrations"][migration_identity(SHA_A)]["status"], "completed"
         )
         names = [str(event[0]) for event in self.docker.events]
+        self.assertLess(names.index("capability"), names.index("pull"))
         self.assertLess(names.index("pull"), names.index("migration"))
+        self.assertLess(names.index("tag"), names.index("migration"))
         self.assertLess(names.index("migration"), names.index("up"))
+        migration_index = names.index("migration")
+        self.assertTrue(
+            any(
+                event[0] == "inspect-image"
+                and event[1] == "aisoft.local/admin/newemaint/migrate:" + SHA_A
+                for event in self.docker.events[:migration_index]
+            )
+        )
         self.assertEqual((self.root / "state" / "state.json").stat().st_mode & 0o777, 0o600)
         self.assertEqual((self.root / "state").stat().st_mode & 0o777, 0o700)
         self.assertEqual(list((self.root / "state").glob("*.tmp")), [])
@@ -74,6 +84,36 @@ class ReleaseRunnerTests(unittest.TestCase):
         up_releases = [event[1] for event in self.docker.events if event[0] == "up"]
         self.assertEqual(up_releases[-2:], [SHA_B, SHA_A])
         self.assertEqual(self.docker.current_release, SHA_A)
+
+    def test_post_start_container_identity_toctou_mismatch_rolls_back(self) -> None:
+        for mismatch in ("image-id", "config-image", "release-label"):
+            with self.subTest(mismatch=mismatch), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                profile, model_a, manifest_a = create_release(root, SHA_A)
+                _, model_b, manifest_b = create_release(root, SHA_B)
+                docker = FakeDocker()
+                docker.register(SHA_A, model_a, manifest_a)
+                docker.register(SHA_B, model_b, manifest_b)
+                runtime = ReleaseRuntime(docker, hostname="test-host")
+                runtime.deploy(profile, SHA_A)
+                if mismatch == "image-id":
+                    docker.tamper_container_image_for.add(SHA_B)
+                elif mismatch == "config-image":
+                    docker.tamper_container_reference_for.add(SHA_B)
+                else:
+                    docker.tamper_container_release_label_for.add(SHA_B)
+                with self.assertRaisesRegex(DeploymentError, "previous container release"):
+                    runtime.deploy(profile, SHA_B)
+                state = json.loads((root / "state" / "state.json").read_text())
+                self.assertEqual(state["current_release"], SHA_A)
+                self.assertEqual(
+                    state["migrations"][migration_identity(SHA_B)]["status"],
+                    "completed",
+                )
+                up_releases = [
+                    event[1] for event in docker.events if event[0] == "up"
+                ]
+                self.assertEqual(up_releases[-2:], [SHA_B, SHA_A])
 
     def test_migration_failure_is_recorded_and_never_automatically_retried(self) -> None:
         self.docker.fail_migration_for.add(SHA_A)
