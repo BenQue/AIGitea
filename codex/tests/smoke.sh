@@ -139,7 +139,7 @@ for reference in newemaint/target-candidate windows sqlite; do
     --schema-dir "$ROOT/architecture/schemas" \
     --project "$ROOT/architecture/reference/$reference/architecture.json" \
     --lock "$ROOT/architecture/reference/$reference/architecture.lock.json" \
-    --today 2026-08-04 >/dev/null
+    --today 2026-08-05 >/dev/null
 done
 
 jq -e '

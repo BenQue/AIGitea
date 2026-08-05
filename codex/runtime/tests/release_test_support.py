@@ -22,7 +22,7 @@ MIGRATE_IMAGE_ID = "sha256:" + "4" * 64
 SOURCE_REPOSITORY = "admin/NewEmaint"
 ARCHITECTURE_PROFILE = "linux-node-postgres-v1"
 ARCHITECTURE_PROJECT = "newemaint-target-candidate"
-CATALOG_REVISION = "2026.08.1"
+CATALOG_REVISION = "2026.08.2"
 
 
 def repository_root() -> Path:

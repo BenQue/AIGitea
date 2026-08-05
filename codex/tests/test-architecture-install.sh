@@ -20,7 +20,7 @@ cmp "$FIRST_MANIFEST" "$SECOND_MANIFEST"
   --profiles-dir "$PREFIX/share/aisoft-architecture/profiles" \
   --schema-dir "$PREFIX/share/aisoft-architecture/schemas" \
   --project "$PREFIX/share/aisoft-architecture/templates/project-architecture.example.json" \
-  --today 2026-08-04 >/dev/null
+  --today 2026-08-05 >/dev/null
 
 [[ ! -e "$PREFIX/.aisoft" ]]
 [[ ! -e "$PREFIX/architecture.lock.json" ]]

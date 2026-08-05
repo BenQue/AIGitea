@@ -2,9 +2,9 @@
   "$schema": "./schemas/catalog-v1.schema.json",
   "schema_version": "1.0",
   "catalog_id": "aisoft-enterprise-architecture",
-  "revision": "2026.08.1",
-  "published_at": "2026-08-04",
-  "review_by": "2026-11-04",
+  "revision": "2026.08.2",
+  "published_at": "2026-08-05",
+  "review_by": "2026-11-05",
   "update_policy": {
     "security": {"cadence": "on upstream advisory", "gate": "Issue, focused CI, rollback evidence, human merge", "route": "expedited Change; never direct production mutation"},
     "patch": {"cadence": "monthly review", "gate": "compatibility tests, lock regeneration, human merge", "route": "catalog Change or project Change as ownership requires"},
@@ -322,13 +322,21 @@
       "id": "frontend.react.19",
       "category": "frontend",
       "name": "React",
-      "version": "19.3.0",
+      "version": "19.2.8",
       "state": "preferred",
-      "pin": {"strategy": "exact-version", "value": "19.3.0"},
+      "pin": {"strategy": "exact-version", "value": "19.2.8"},
+      "package_release": {
+        "channel": "stable",
+        "retrieved_at": "2026-08-05",
+        "packages": [
+          {"name": "react", "version": "19.2.8", "registry_url": "https://registry.npmjs.org/react/19.2.8", "integrity": "sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw==", "released_at": "2026-07-21"},
+          {"name": "react-dom", "version": "19.2.8", "registry_url": "https://registry.npmjs.org/react-dom/19.2.8", "integrity": "sha512-rVprimfGBG3DR+Tq0IQG2DT5PxKth1WIGDmj5yPmlzr4YBe7uyE+Du4oVqTDXZSHGGGXRtTJEGSSePyQCMBglQ==", "released_at": "2026-07-21"}
+        ]
+      },
       "platforms": {"operating_systems": ["any"], "architectures": ["amd64", "arm64"]},
       "lifecycle": {"status": "active", "released_at": null, "support_end": null, "eol": null, "migrate_by": null},
-      "provenance": {"source_url": "https://react.dev/versions", "retrieved_at": "2026-08-02", "review_by": "2026-11-02", "evidence": "React official documentation identifies 19.3 as the latest stable line; React publishes no fixed EOL schedule.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
-      "compatibility": ["Framework-specific support, such as Next.js peer compatibility, must be validated in the project Change.", "Use an exact package lock and offline integrity metadata."],
+      "provenance": {"source_url": "https://react.dev/versions", "retrieved_at": "2026-08-05", "review_by": "2026-11-05", "evidence": "Official npm Registry metadata records react and react-dom 19.2.8 as the stable latest releases. React publishes no fixed EOL schedule.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
+      "compatibility": ["next@16.2.11 peerDependencies accept react and react-dom ^19.0.0; React/react-dom must remain the same exact stable version.", "Use an exact package lock and offline integrity metadata."],
       "remediation": "Do not upgrade a framework solely because the catalog has a newer React preferred entry."
     },
     {
