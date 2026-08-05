@@ -27,6 +27,7 @@
         "id": {"pattern": "^[a-z0-9][a-z0-9.-]+$", "type": "string"},
         "lifecycle": {"$ref": "#/$defs/lifecycle"},
         "name": {"minLength": 1, "type": "string"},
+        "package_release": {"$ref": "#/$defs/packageRelease"},
         "pin": {"$ref": "#/$defs/pin"},
         "platforms": {"$ref": "#/$defs/platforms"},
         "provenance": {"$ref": "#/$defs/provenance"},
@@ -56,6 +57,28 @@
         "value": {"minLength": 1, "type": "string"}
       },
       "required": ["strategy", "value"],
+      "type": "object"
+    },
+    "packageRelease": {
+      "additionalProperties": false,
+      "properties": {
+        "channel": {"minLength": 1, "type": "string"},
+        "packages": {"items": {"$ref": "#/$defs/packageReleasePackage"}, "minItems": 1, "type": "array"},
+        "retrieved_at": {"format": "date", "type": "string"}
+      },
+      "required": ["channel", "packages", "retrieved_at"],
+      "type": "object"
+    },
+    "packageReleasePackage": {
+      "additionalProperties": false,
+      "properties": {
+        "integrity": {"pattern": "^sha512-", "type": "string"},
+        "name": {"minLength": 1, "type": "string"},
+        "registry_url": {"pattern": "^https://registry\\.npmjs\\.org/", "type": "string"},
+        "released_at": {"format": "date", "type": "string"},
+        "version": {"minLength": 1, "type": "string"}
+      },
+      "required": ["name", "version", "registry_url", "integrity", "released_at"],
       "type": "object"
     },
     "platforms": {

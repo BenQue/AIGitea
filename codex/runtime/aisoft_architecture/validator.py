@@ -17,6 +17,9 @@ ISSUE_RE = re.compile(r"^(?:https://[^\s]+/issues/[1-9][0-9]*|#[1-9][0-9]*)$")
 ABSOLUTE_ISSUE_PATH_RE = re.compile(r"^/.+/issues/[1-9][0-9]*$")
 ALLOWED_STATES = {"preferred", "supported", "sunset", "prohibited"}
 MAX_EXCEPTION_DAYS = 180
+REACT_COMPONENT_ID = "frontend.react.19"
+REACT_PACKAGE_NAMES = {"react", "react-dom"}
+REACT_PRERELEASE_RE = re.compile(r"(?:^|[-.])(canary|experimental|alpha|beta|rc)(?:[-.]|$)", re.IGNORECASE)
 
 
 def _as_date(value: str, path: str) -> date:
@@ -58,6 +61,53 @@ def _component_map(catalog: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return result
 
 
+def _validate_react_package_release(component: dict[str, Any], today: date, path: str) -> None:
+    """Validate the audited npm stable-release snapshot without network access."""
+    release = component.get("package_release")
+    if release is None:
+        fail(
+            "REACT_RELEASE_METADATA_REQUIRED",
+            "React preferred component 必须记录 React/react-dom 的稳定 npm 发布元数据。",
+            path,
+        )
+    if release["channel"] != "stable":
+        fail(
+            "REACT_RELEASE_CHANNEL_INVALID",
+            "React catalog 只接受 stable 发布通道，禁止 Canary、Experimental 或预发布通道。",
+            f"{path}.package_release.channel",
+        )
+    if _as_date(release["retrieved_at"], f"{path}.package_release.retrieved_at") > today:
+        fail(
+            "REACT_RELEASE_FROM_FUTURE",
+            "React npm 发布元数据的读取日期不得晚于校验日期。",
+            f"{path}.package_release.retrieved_at",
+        )
+    packages = release["packages"]
+    names = [item["name"] for item in packages]
+    if set(names) != REACT_PACKAGE_NAMES or len(names) != len(REACT_PACKAGE_NAMES):
+        fail(
+            "REACT_PACKAGE_SET_INVALID",
+            "React release metadata 必须且只能同时包含 react 与 react-dom。",
+            f"{path}.package_release.packages",
+        )
+    for index, package in enumerate(packages):
+        package_path = f"{path}.package_release.packages[{index}]"
+        version = package["version"]
+        if (
+            not EXACT_VERSION_RE.fullmatch(version)
+            or any(marker in version.lower() for marker in ("latest", "^", "~", "*", ">", "<"))
+            or REACT_PRERELEASE_RE.search(version)
+        ):
+            fail("REACT_PACKAGE_VERSION_NOT_EXACT", "React npm package 必须使用精确版本。", f"{package_path}.version")
+        if version != component["version"]:
+            code = "REACT_DOM_VERSION_MISMATCH" if package["name"] == "react-dom" else "REACT_STABLE_RELEASE_UNAVAILABLE"
+            fail(code, "React/react-dom 必须与 catalog 的已核验稳定精确版本一致。", f"{package_path}.version")
+        if package["registry_url"] != f"https://registry.npmjs.org/{package['name']}/{version}":
+            fail("REACT_REGISTRY_SOURCE_INVALID", "React npm source 必须指向精确版本的官方 Registry 元数据。", f"{package_path}.registry_url")
+        if _as_date(package["released_at"], f"{package_path}.released_at") > today:
+            fail("REACT_RELEASE_FROM_FUTURE", "React npm 发布日期不得晚于校验日期。", f"{package_path}.released_at")
+
+
 def validate_catalog(catalog: dict[str, Any], schema: dict[str, Any], today: date) -> dict[str, dict[str, Any]]:
     validate_schema(catalog, schema)
     if not REVISION_RE.fullmatch(catalog["revision"]):
@@ -80,6 +130,10 @@ def validate_catalog(catalog: dict[str, Any], schema: dict[str, Any], today: dat
             fail("PIN_NOT_IMMUTABLE", "Pin value 不得使用 latest 或 range。", f"{base}.pin.value")
         if pin["strategy"] == "oci-digest" and not DIGEST_RE.fullmatch(pin["value"]):
             fail("OCI_DIGEST_REQUIRED", "OCI identity 必须包含 sha256 digest。", f"{base}.pin.value")
+        if pin["strategy"] == "exact-version" and pin["value"] != component["version"]:
+            fail("PIN_VERSION_MISMATCH", "精确 pin 必须与 component version 相同。", f"{base}.pin.value")
+        if component["id"] == REACT_COMPONENT_ID:
+            _validate_react_package_release(component, today, base)
         lifecycle = component["lifecycle"]
         released = _as_optional_date(lifecycle["released_at"], f"{base}.lifecycle.released_at")
         support_end = _as_optional_date(lifecycle["support_end"], f"{base}.lifecycle.support_end")

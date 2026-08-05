@@ -212,7 +212,7 @@ class ReleaseContractTests(unittest.TestCase):
     def test_architecture_lock_profile_and_catalog_are_cross_checked(self) -> None:
         lock_path = self.release_dir / "architecture.lock.json"
         value = json.loads(lock_path.read_text())
-        value["catalog_revision"] = "2026.08.2"
+        value["catalog_revision"] = "2026.08.1"
         refresh_architecture_lock_sha(value)
         write_json(lock_path, value)
         update_manifest(

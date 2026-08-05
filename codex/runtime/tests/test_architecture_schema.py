@@ -12,7 +12,7 @@ from aisoft_architecture.validator import validate_catalog, validate_profile
 
 ROOT = Path(__file__).resolve().parents[3]
 ARCH = ROOT / "architecture"
-TODAY = date(2026, 8, 4)
+TODAY = date(2026, 8, 5)
 
 
 class ArchitectureSchemaTests(unittest.TestCase):
@@ -99,6 +99,72 @@ class ArchitectureSchemaTests(unittest.TestCase):
         bad_dates["components"][0]["lifecycle"]["support_end"] = "2020-01-01"
         cases.append((bad_dates, "LIFECYCLE_DATE_ORDER"))
 
+        for candidate, code in cases:
+            with self.subTest(code=code), self.assertRaises(ArchitectureError) as caught:
+                validate_catalog(candidate, self.catalog_schema, TODAY)
+            self.assertEqual(caught.exception.diagnostic.code, code)
+
+    def test_react_stable_release_contract_fails_closed(self) -> None:
+        react_index = next(
+            index
+            for index, component in enumerate(self.catalog["components"])
+            if component["id"] == "frontend.react.19"
+        )
+
+        unavailable = deepcopy(self.catalog)
+        unavailable["components"][react_index]["version"] = "19.3.0"
+        unavailable["components"][react_index]["pin"]["value"] = "19.3.0"
+
+        canary = deepcopy(self.catalog)
+        canary["components"][react_index]["package_release"]["channel"] = "canary"
+
+        canary_version = deepcopy(self.catalog)
+        canary_version["components"][react_index]["version"] = "19.3.0-canary-deadbeef"
+        canary_version["components"][react_index]["pin"]["value"] = "19.3.0-canary-deadbeef"
+        for package in canary_version["components"][react_index]["package_release"]["packages"]:
+            package["version"] = "19.3.0-canary-deadbeef"
+            package["registry_url"] = f"https://registry.npmjs.org/{package['name']}/19.3.0-canary-deadbeef"
+
+        mutable = deepcopy(self.catalog)
+        mutable["components"][react_index]["version"] = "latest"
+        mutable["components"][react_index]["pin"]["value"] = "latest"
+
+        range_pin = deepcopy(self.catalog)
+        range_pin["components"][react_index]["pin"]["value"] = "^19.2.8"
+
+        dom_mismatch = deepcopy(self.catalog)
+        dom = next(
+            package
+            for package in dom_mismatch["components"][react_index]["package_release"]["packages"]
+            if package["name"] == "react-dom"
+        )
+        dom["version"] = "19.2.7"
+        dom["registry_url"] = "https://registry.npmjs.org/react-dom/19.2.7"
+
+        missing_package = deepcopy(self.catalog)
+        missing_package["components"][react_index]["package_release"]["packages"].pop()
+
+        extra_package = deepcopy(self.catalog)
+        extra_package["components"][react_index]["package_release"]["packages"].append(
+            {
+                "name": "react-server-dom-webpack",
+                "version": "19.2.8",
+                "registry_url": "https://registry.npmjs.org/react-server-dom-webpack/19.2.8",
+                "integrity": "sha512-fixture",
+                "released_at": "2026-07-21",
+            }
+        )
+
+        cases = [
+            (unavailable, "REACT_STABLE_RELEASE_UNAVAILABLE"),
+            (canary, "REACT_RELEASE_CHANNEL_INVALID"),
+            (canary_version, "REACT_PACKAGE_VERSION_NOT_EXACT"),
+            (mutable, "VERSION_NOT_EXACT"),
+            (range_pin, "PIN_NOT_IMMUTABLE"),
+            (dom_mismatch, "REACT_DOM_VERSION_MISMATCH"),
+            (missing_package, "REACT_PACKAGE_SET_INVALID"),
+            (extra_package, "REACT_PACKAGE_SET_INVALID"),
+        ]
         for candidate, code in cases:
             with self.subTest(code=code), self.assertRaises(ArchitectureError) as caught:
                 validate_catalog(candidate, self.catalog_schema, TODAY)

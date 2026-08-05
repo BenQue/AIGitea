@@ -3,8 +3,8 @@
   "schema_version": "1.0",
   "project_id": "invalid-mutable-oci",
   "profile_id": "linux-node-postgres-v1",
-  "profile_version": "1.1.0",
-  "catalog_revision": "2026.08.1",
+  "profile_version": "1.1.1",
+  "catalog_revision": "2026.08.2",
   "delivery_contract": "docker-release/v1",
   "components": [
     {"component_id": "os.ubuntu.24-04-4", "version": "24.04.4"},
@@ -16,7 +16,7 @@
     {"component_id": "container.compose.5", "version": "5.1.4"},
     {"component_id": "proxy.nginx.1-30", "version": "1.30.4"},
     {"component_id": "framework.next.16", "version": "16.2.11"},
-    {"component_id": "frontend.react.19", "version": "19.3.0"},
+    {"component_id": "frontend.react.19", "version": "19.2.8"},
     {"component_id": "toolchain.typescript.6", "version": "6.0.2"},
     {"component_id": "oci.node.24-bookworm-slim", "version": "24.18.0-bookworm-slim"}
   ],
