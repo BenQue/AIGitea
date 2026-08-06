@@ -1,10 +1,24 @@
 # Official source and compatibility evidence
 
 Catalog evidence retrieved: 2026-08-02 · Server-inventory supplement retrieved: 2026-08-03 ·
-Issue #26 transition supplement retrieved: 2026-08-04 · Next review: 2026-11-02 for original
-catalog entries, 2026-11-03 for server inventory and 2026-11-04 for transition evidence · Method: one
+Issue #26 transition supplement retrieved: 2026-08-04 · Issue #33 security supplement retrieved:
+2026-08-06 · Next review: 2026-11-02 for original catalog entries, 2026-11-03 for server inventory,
+2026-11-04 for transition evidence and 2026-11-06 for security evidence · Method: one
 Context7 query per concept, with official/upstream readback where lifecycle or exact release metadata
 was required.
+
+## Issue #33 Next.js and Prisma security supplement
+
+| Package set | Official/upstream readback | Exact conclusion and compatibility |
+|---|---|---|
+| Next.js | Context7 `/vercel/next.js`; npm Registry [next@16.3.0](https://registry.npmjs.org/next/16.3.0) | `latest` stable is exact `16.3.0`, released 2026-08-03 with immutable `sha512-NEdG…E2A==`; engine is Node `>=20.9.0`, and peers accept React/ReactDOM `^19.0.0`. Node 24.18.0 + React/ReactDOM 19.2.8 satisfy metadata constraints; application build/browser checks remain project-owned. |
+| Prisma | Context7 `/prisma/prisma`; npm Registry [prisma@7.9.1](https://registry.npmjs.org/prisma/7.9.1), [client@7.9.1](https://registry.npmjs.org/%40prisma%2Fclient/7.9.1), [adapter-pg@7.9.1](https://registry.npmjs.org/%40prisma%2Fadapter-pg/7.9.1) | All three package `latest` tags resolve to exact `7.9.1`, released 2026-07-27 with distinct immutable integrity values. CLI/Client engine is `^20.19 || ^22.12 || >=24.0`; Node 24.18.0 is accepted. The platform requires the three package versions to match. |
+| Security trigger | [NewEmaint #52 comment 2077](http://gitea-ci.orb.local:3000/admin/NewEMaint/issues/52#issuecomment-2077) | Strict `npm audit` on a clean Node 24/npm 11 lock identified `next@16.2.11` and `prisma@7.8.0` as affected and recommended `16.3.0`/`7.9.1`. `sharp` and `xlsx` remain application-owned and are excluded from #33. |
+
+Context7 established framework/ORM compatibility and CLI semantics; exact version, dist-tag, release date,
+engine, peer and integrity values were read directly from the official npm Registry on 2026-08-06. The
+committed validator consumes only these audited snapshots and never contacts the network while validating
+or generating locks.
 
 ## Issue #26 transition evidence supplement
 
@@ -33,7 +47,7 @@ registry identities. NewEmaint remote main was read only at
 | Python 3.14 lifecycle | <https://peps.python.org/pep-0745/> and <https://devguide.python.org/versions/> | Observed 3.14.4 is in bugfix support; EOL 2030-10 | Python 3.14 receives about 24 months of bugfix releases and then source-only security fixes until approximately October 2030. No Python migration conclusion is inferred from inventory. |
 | .NET lifecycle and release metadata | <https://github.com/dotnet/core/blob/main/release-notes/10.0/releases.json> | .NET/ASP.NET Core 10.0.9, SDK 10.0.301, LTS to 2028-11-14 | Context7 official release metadata is the pinned evidence. Runtime, ASP.NET Core and EF Core stay major-aligned; quarterly refresh handles a newer serviced patch. |
 | ASP.NET Core IIS hosting | <https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/iis/> | ASP.NET Core Module V2 and hosting bundle follow .NET major | In-process single-file deployment is unsupported; the profile requires a reviewed folder or out-of-process model. |
-| Prisma 7 | <https://www.prisma.io/docs/orm/more/upgrade-guides/upgrading-versions/upgrading-to-prisma-7> and <https://github.com/prisma/prisma/releases/tag/7.8.0> | Prisma 7.8.0 preferred; Prisma 5.22.0 sunset | Prisma 7 requires Node ^20.19, ^22.12 or ^24, TypeScript >=5.4, `prisma-client` output and a driver adapter. Upstream has no fixed EOL table, so null means unknown, not indefinite support. |
+| Prisma 7 | <https://www.prisma.io/docs/orm/more/upgrade-guides/upgrading-versions/upgrading-to-prisma-7> and <https://github.com/prisma/prisma/releases/tag/7.9.1> | Prisma 7.9.1 preferred; Prisma 5.22.0 sunset | Prisma 7.9.1 requires Node ^20.19, ^22.12 or >=24.0, TypeScript >=5.4, `prisma-client` output and a same-version driver adapter. Upstream has no fixed EOL table, so null means unknown, not indefinite support. |
 | EF Core providers | <https://learn.microsoft.com/en-us/ef/core/providers/> | EF Core 10 stays same major as Npgsql EF provider 10 | Microsoft warns providers typically do not work across major versions. Npgsql exact 10.0.3 metadata is from the official NuGet feed. |
 | Npgsql EF provider | <https://www.nuget.org/packages/Npgsql.EntityFrameworkCore.PostgreSQL/10.0.3> | 10.0.3 preferred with EF Core 10 | Package major compatibility is necessary but not sufficient; PostgreSQL 18 still needs project integration tests. |
 | PostgreSQL lifecycle | <https://www.postgresql.org/support/versioning/> | 18.4 preferred; 16.14 supported | PostgreSQL supports each major for five years and recommends the current minor. Major adoption requires its own backup/restore/rollback Change. |
@@ -42,8 +56,8 @@ registry identities. NewEmaint remote main was read only at
 | Docker Compose | <https://github.com/docker/compose/releases/tag/v5.1.4> | Compose 5.1.4 preferred | Official release assets include checksums, provenance and SBOM. Image resolution must retain digest identity. |
 | Node OCI image | <https://hub.docker.com/_/node> | `node:24.18.0-bookworm-slim@sha256:6f7b…1452d` | Read-only official registry inspection on 2026-08-02 returned the multi-platform index and docker-node revision; catalog requires tag plus digest and offline attestations. |
 | NGINX | <https://nginx.org/en/download.html> | stable 1.30.4 preferred; observed 1.28.3 is legacy | The official download page lists 1.30.4 as stable and 1.28.3 under Legacy versions. Upstream has no fixed EOL date, so security/monthly review remains mandatory and remediation requires a separate proxy/server Change. |
-| Next.js | <https://nextjs.org/blog> and <https://nextjs.org/support-policy> | 16.2.11 Active LTS preferred; 14.2.33 prohibited | Vercel's July 2026 security release identifies the exact patched Active LTS. Context7 v16.2 docs require Node >=20.9, React >=18.2 and TypeScript >=5.1; official policy now marks 14.x unsupported, so migration Issues or exceptions cannot make it an allowed transition. |
-| React | <https://react.dev/versions> plus npm Registry metadata for [react@19.2.8](https://registry.npmjs.org/react/19.2.8) and [react-dom@19.2.8](https://registry.npmjs.org/react-dom/19.2.8) | 19.2.8 preferred stable pair for compatible projects | Registry readback on 2026-08-05 confirms both packages publish the same exact `latest` stable version and immutable integrity metadata. `19.3.0` is not an installable stable release; Canary/Experimental and ranges are prohibited. `next@16.2.11` accepts both packages through `^19.0.0`. Framework peer compatibility and application build/browser tests remain project-owned. |
+| Next.js | <https://nextjs.org/blog> and <https://nextjs.org/support-policy> | 16.3.0 stable exact preferred; 14.2.33 prohibited | Context7 v16 docs and exact Registry metadata require Node >=20.9 and accept React/ReactDOM ^19.0.0. Official policy marks 14.x unsupported, so migration Issues or exceptions cannot make it an allowed transition. |
+| React | <https://react.dev/versions> plus npm Registry metadata for [react@19.2.8](https://registry.npmjs.org/react/19.2.8) and [react-dom@19.2.8](https://registry.npmjs.org/react-dom/19.2.8) | 19.2.8 preferred stable pair for compatible projects | Registry readback on 2026-08-05 confirms both packages publish the same exact `latest` stable version and immutable integrity metadata. `19.3.0` is not an installable stable release; Canary/Experimental and ranges are prohibited. `next@16.3.0` accepts both packages through `^19.0.0`. Framework peer compatibility and application build/browser tests remain project-owned. |
 | TypeScript | <https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html> | 6.0.2 preferred candidate | Prisma minimum is satisfied, but TypeScript 6 deprecations require application typecheck and framework tests. No fixed upstream EOL. |
 | npm CLI | <https://docs.npmjs.com/cli/v11> and <https://docs.npmjs.com/about-npm-versions> | npm 11.19.0 preferred with Node 24; 10.8.2 observed | `npm ci` enforces package-lock parity; exact package-manager identity and mirrored integrity metadata are required. npm publishes no fixed CLI EOL schedule. The observed npm 10.8.2 must be reviewed together with its EOL Node 20 host runtime. |
 | PM2 | <https://github.com/Unitech/pm2> | 7.0.3 observed; no catalog adoption conclusion | Upstream documents updating to the latest release but publishes no fixed support/EOL table. Exact installed metadata is retained and reviewed quarterly; Node compatibility must be validated in a separate application/server Change. |
@@ -65,7 +79,7 @@ not replace Context7; it resolved exact release-table values or extraction confl
 | Node.js | `/nodejs/nodejs.org` | LTS/Current lifecycle and production eligibility |
 | Python | `/python/cpython` | Python 3.14 bugfix/security lifecycle and five-year support model |
 | .NET / ASP.NET Core | `/dotnet/core` | .NET 10 serviced runtime/SDK metadata and LTS end date |
-| Prisma | `/prisma/web` | Prisma 7 Node/TypeScript/generator/adapter compatibility |
+| Prisma | `/prisma/prisma` | Prisma 7 Node/TypeScript/generator/adapter compatibility plus validate/generate CLI semantics |
 | EF Core | `/dotnet/entityframework.docs` | provider major-version compatibility and support policy |
 | Npgsql EF provider | `/npgsql/efcore.pg` | EF Core/PostgreSQL provider compatibility; exact package read back from official NuGet |
 | PostgreSQL | `/websites/postgresql_current` | supported majors, current minor and five-year lifecycle |
@@ -73,7 +87,7 @@ not replace Context7; it resolved exact release-table values or extraction confl
 | Docker Engine | `/docker/docs` | exact-version install, supported Ubuntu releases and digest pinning |
 | Docker Compose | `/docker/compose` | digest resolution and plugin release artifacts |
 | NGINX | `/websites/nginx` | stable/mainline selection and exact package pinning |
-| Next.js | `/vercel/next.js/v16.2.9` | v16 Node/React/TypeScript compatibility and upgrade guidance; exact 16.2.11 security patch read back from Vercel's official release blog |
+| Next.js | `/vercel/next.js` | v16 Node/React compatibility and upgrade guidance; exact 16.3.0 stable metadata read back from npm Registry |
 | React | `/react/react/v19.2.7` | current stable release semantics |
 | TypeScript | `/microsoft/typescript/v6.0.2` | current stable toolchain and 6.0 migration constraints |
 | npm | `/npm/cli` | v11 Node engine support, `npm ci` and exact package-manager pinning |

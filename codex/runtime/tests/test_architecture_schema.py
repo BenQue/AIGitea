@@ -12,7 +12,7 @@ from aisoft_architecture.validator import validate_catalog, validate_profile
 
 ROOT = Path(__file__).resolve().parents[3]
 ARCH = ROOT / "architecture"
-TODAY = date(2026, 8, 5)
+TODAY = date(2026, 8, 6)
 
 
 class ArchitectureSchemaTests(unittest.TestCase):
@@ -164,6 +164,132 @@ class ArchitectureSchemaTests(unittest.TestCase):
             (dom_mismatch, "REACT_DOM_VERSION_MISMATCH"),
             (missing_package, "REACT_PACKAGE_SET_INVALID"),
             (extra_package, "REACT_PACKAGE_SET_INVALID"),
+        ]
+        for candidate, code in cases:
+            with self.subTest(code=code), self.assertRaises(ArchitectureError) as caught:
+                validate_catalog(candidate, self.catalog_schema, TODAY)
+            self.assertEqual(caught.exception.diagnostic.code, code)
+
+    def test_next_stable_release_contract_fails_closed(self) -> None:
+        next_index = next(
+            index
+            for index, component in enumerate(self.catalog["components"])
+            if component["id"] == "framework.next.16"
+        )
+
+        missing_metadata = deepcopy(self.catalog)
+        del missing_metadata["components"][next_index]["package_release"]
+
+        old_version = deepcopy(self.catalog)
+        old_version["components"][next_index]["version"] = "16.2.11"
+        old_version["components"][next_index]["pin"]["value"] = "16.2.11"
+
+        mutable_channel = deepcopy(self.catalog)
+        mutable_channel["components"][next_index]["package_release"]["channel"] = "latest"
+
+        canary = deepcopy(self.catalog)
+        component = canary["components"][next_index]
+        component["version"] = "16.3.1-canary.4"
+        component["pin"]["value"] = "16.3.1-canary.4"
+        package = component["package_release"]["packages"][0]
+        package["version"] = "16.3.1-canary.4"
+        package["registry_url"] = "https://registry.npmjs.org/next/16.3.1-canary.4"
+
+        mutable_package = deepcopy(self.catalog)
+        package = mutable_package["components"][next_index]["package_release"]["packages"][0]
+        package["version"] = "latest"
+        package["registry_url"] = "https://registry.npmjs.org/next/latest"
+
+        extra_package = deepcopy(self.catalog)
+        extra_package["components"][next_index]["package_release"]["packages"].append(
+            {
+                "name": "next-canary",
+                "version": "16.3.0",
+                "registry_url": "https://registry.npmjs.org/next-canary/16.3.0",
+                "integrity": "sha512-fixture",
+                "released_at": "2026-08-03",
+            }
+        )
+
+        bad_registry = deepcopy(self.catalog)
+        bad_registry["components"][next_index]["package_release"]["packages"][0][
+            "registry_url"
+        ] = "https://registry.npmjs.org/next/latest"
+
+        future = deepcopy(self.catalog)
+        future["components"][next_index]["package_release"]["retrieved_at"] = "2026-08-07"
+
+        cases = [
+            (missing_metadata, "NEXT_RELEASE_METADATA_REQUIRED"),
+            (old_version, "NEXT_STABLE_RELEASE_UNAVAILABLE"),
+            (mutable_channel, "NEXT_RELEASE_CHANNEL_INVALID"),
+            (canary, "NEXT_PACKAGE_VERSION_NOT_EXACT"),
+            (mutable_package, "NEXT_PACKAGE_VERSION_NOT_EXACT"),
+            (extra_package, "NEXT_PACKAGE_SET_INVALID"),
+            (bad_registry, "NEXT_REGISTRY_SOURCE_INVALID"),
+            (future, "NEXT_RELEASE_FROM_FUTURE"),
+        ]
+        for candidate, code in cases:
+            with self.subTest(code=code), self.assertRaises(ArchitectureError) as caught:
+                validate_catalog(candidate, self.catalog_schema, TODAY)
+            self.assertEqual(caught.exception.diagnostic.code, code)
+
+    def test_prisma_stable_release_contract_fails_closed(self) -> None:
+        prisma_index = next(
+            index
+            for index, component in enumerate(self.catalog["components"])
+            if component["id"] == "orm.prisma.7"
+        )
+
+        old_version = deepcopy(self.catalog)
+        old_version["components"][prisma_index]["version"] = "7.8.0"
+        old_version["components"][prisma_index]["pin"]["value"] = "7.8.0"
+
+        mutable_channel = deepcopy(self.catalog)
+        mutable_channel["components"][prisma_index]["package_release"]["channel"] = "latest"
+
+        client_mismatch = deepcopy(self.catalog)
+        client = next(
+            package
+            for package in client_mismatch["components"][prisma_index]["package_release"]["packages"]
+            if package["name"] == "@prisma/client"
+        )
+        client["version"] = "7.8.0"
+        client["registry_url"] = "https://registry.npmjs.org/%40prisma%2Fclient/7.8.0"
+
+        missing_package = deepcopy(self.catalog)
+        missing_package["components"][prisma_index]["package_release"]["packages"].pop()
+
+        canary = deepcopy(self.catalog)
+        adapter = next(
+            package
+            for package in canary["components"][prisma_index]["package_release"]["packages"]
+            if package["name"] == "@prisma/adapter-pg"
+        )
+        adapter["version"] = "7.10.0-dev.49"
+        adapter["registry_url"] = "https://registry.npmjs.org/%40prisma%2Fadapter-pg/7.10.0-dev.49"
+
+        bad_registry = deepcopy(self.catalog)
+        client = next(
+            package
+            for package in bad_registry["components"][prisma_index]["package_release"]["packages"]
+            if package["name"] == "@prisma/client"
+        )
+        client["registry_url"] = "https://registry.npmjs.org/@prisma/client/7.9.1"
+
+        future = deepcopy(self.catalog)
+        future["components"][prisma_index]["package_release"]["packages"][0][
+            "released_at"
+        ] = "2026-08-07"
+
+        cases = [
+            (old_version, "PRISMA_PACKAGE_VERSION_MISMATCH"),
+            (mutable_channel, "PRISMA_RELEASE_CHANNEL_INVALID"),
+            (client_mismatch, "PRISMA_PACKAGE_VERSION_MISMATCH"),
+            (missing_package, "PRISMA_PACKAGE_SET_INVALID"),
+            (canary, "PRISMA_PACKAGE_VERSION_NOT_EXACT"),
+            (bad_registry, "PRISMA_REGISTRY_SOURCE_INVALID"),
+            (future, "PRISMA_RELEASE_FROM_FUTURE"),
         ]
         for candidate, code in cases:
             with self.subTest(code=code), self.assertRaises(ArchitectureError) as caught:

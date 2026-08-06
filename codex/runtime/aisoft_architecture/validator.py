@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from datetime import date
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 from .errors import fail
 from .schema import validate_schema
@@ -17,9 +17,15 @@ ISSUE_RE = re.compile(r"^(?:https://[^\s]+/issues/[1-9][0-9]*|#[1-9][0-9]*)$")
 ABSOLUTE_ISSUE_PATH_RE = re.compile(r"^/.+/issues/[1-9][0-9]*$")
 ALLOWED_STATES = {"preferred", "supported", "sunset", "prohibited"}
 MAX_EXCEPTION_DAYS = 180
-REACT_COMPONENT_ID = "frontend.react.19"
-REACT_PACKAGE_NAMES = {"react", "react-dom"}
-REACT_PRERELEASE_RE = re.compile(r"(?:^|[-.])(canary|experimental|alpha|beta|rc)(?:[-.]|$)", re.IGNORECASE)
+PACKAGE_RELEASE_CONTRACTS = {
+    "framework.next.16": ("NEXT", {"next"}),
+    "frontend.react.19": ("REACT", {"react", "react-dom"}),
+    "orm.prisma.7": ("PRISMA", {"prisma", "@prisma/client", "@prisma/adapter-pg"}),
+}
+PACKAGE_PRERELEASE_RE = re.compile(
+    r"(?:^|[-.])(canary|experimental|alpha|beta|preview|rc|dev)(?:[-.]|$)",
+    re.IGNORECASE,
+)
 
 
 def _as_date(value: str, path: str) -> date:
@@ -61,33 +67,42 @@ def _component_map(catalog: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return result
 
 
-def _validate_react_package_release(component: dict[str, Any], today: date, path: str) -> None:
-    """Validate the audited npm stable-release snapshot without network access."""
+def _package_error(prefix: str, suffix: str) -> str:
+    return f"{prefix}_{suffix}"
+
+
+def _package_registry_url(name: str, version: str) -> str:
+    return f"https://registry.npmjs.org/{quote(name, safe='')}/{version}"
+
+
+def _validate_package_release(component: dict[str, Any], today: date, path: str) -> None:
+    """Validate an audited npm stable-release snapshot without network access."""
+    prefix, expected_names = PACKAGE_RELEASE_CONTRACTS[component["id"]]
     release = component.get("package_release")
     if release is None:
         fail(
-            "REACT_RELEASE_METADATA_REQUIRED",
-            "React preferred component 必须记录 React/react-dom 的稳定 npm 发布元数据。",
+            _package_error(prefix, "RELEASE_METADATA_REQUIRED"),
+            "受治理的 npm component 必须记录完整稳定发布元数据。",
             path,
         )
     if release["channel"] != "stable":
         fail(
-            "REACT_RELEASE_CHANNEL_INVALID",
-            "React catalog 只接受 stable 发布通道，禁止 Canary、Experimental 或预发布通道。",
+            _package_error(prefix, "RELEASE_CHANNEL_INVALID"),
+            "受治理的 npm component 只接受 stable 通道，禁止 dist-tag 或预发布通道。",
             f"{path}.package_release.channel",
         )
     if _as_date(release["retrieved_at"], f"{path}.package_release.retrieved_at") > today:
         fail(
-            "REACT_RELEASE_FROM_FUTURE",
-            "React npm 发布元数据的读取日期不得晚于校验日期。",
+            _package_error(prefix, "RELEASE_FROM_FUTURE"),
+            "npm 发布元数据的读取日期不得晚于校验日期。",
             f"{path}.package_release.retrieved_at",
         )
     packages = release["packages"]
     names = [item["name"] for item in packages]
-    if set(names) != REACT_PACKAGE_NAMES or len(names) != len(REACT_PACKAGE_NAMES):
+    if set(names) != expected_names or len(names) != len(expected_names):
         fail(
-            "REACT_PACKAGE_SET_INVALID",
-            "React release metadata 必须且只能同时包含 react 与 react-dom。",
+            _package_error(prefix, "PACKAGE_SET_INVALID"),
+            "npm release metadata 的 package 集合缺失、重复或包含未授权 package。",
             f"{path}.package_release.packages",
         )
     for index, package in enumerate(packages):
@@ -96,16 +111,37 @@ def _validate_react_package_release(component: dict[str, Any], today: date, path
         if (
             not EXACT_VERSION_RE.fullmatch(version)
             or any(marker in version.lower() for marker in ("latest", "^", "~", "*", ">", "<"))
-            or REACT_PRERELEASE_RE.search(version)
+            or PACKAGE_PRERELEASE_RE.search(version)
         ):
-            fail("REACT_PACKAGE_VERSION_NOT_EXACT", "React npm package 必须使用精确版本。", f"{package_path}.version")
+            fail(
+                _package_error(prefix, "PACKAGE_VERSION_NOT_EXACT"),
+                "受治理的 npm package 必须使用精确稳定版本。",
+                f"{package_path}.version",
+            )
         if version != component["version"]:
-            code = "REACT_DOM_VERSION_MISMATCH" if package["name"] == "react-dom" else "REACT_STABLE_RELEASE_UNAVAILABLE"
-            fail(code, "React/react-dom 必须与 catalog 的已核验稳定精确版本一致。", f"{package_path}.version")
-        if package["registry_url"] != f"https://registry.npmjs.org/{package['name']}/{version}":
-            fail("REACT_REGISTRY_SOURCE_INVALID", "React npm source 必须指向精确版本的官方 Registry 元数据。", f"{package_path}.registry_url")
+            if prefix == "REACT":
+                code = (
+                    "REACT_DOM_VERSION_MISMATCH"
+                    if package["name"] == "react-dom"
+                    else "REACT_STABLE_RELEASE_UNAVAILABLE"
+                )
+            elif prefix == "PRISMA":
+                code = "PRISMA_PACKAGE_VERSION_MISMATCH"
+            else:
+                code = "NEXT_STABLE_RELEASE_UNAVAILABLE"
+            fail(code, "package 必须与 catalog 的已核验稳定精确版本一致。", f"{package_path}.version")
+        if package["registry_url"] != _package_registry_url(package["name"], version):
+            fail(
+                _package_error(prefix, "REGISTRY_SOURCE_INVALID"),
+                "npm source 必须指向精确版本的官方 Registry 元数据。",
+                f"{package_path}.registry_url",
+            )
         if _as_date(package["released_at"], f"{package_path}.released_at") > today:
-            fail("REACT_RELEASE_FROM_FUTURE", "React npm 发布日期不得晚于校验日期。", f"{package_path}.released_at")
+            fail(
+                _package_error(prefix, "RELEASE_FROM_FUTURE"),
+                "npm package 发布日期不得晚于校验日期。",
+                f"{package_path}.released_at",
+            )
 
 
 def validate_catalog(catalog: dict[str, Any], schema: dict[str, Any], today: date) -> dict[str, dict[str, Any]]:
@@ -132,8 +168,8 @@ def validate_catalog(catalog: dict[str, Any], schema: dict[str, Any], today: dat
             fail("OCI_DIGEST_REQUIRED", "OCI identity 必须包含 sha256 digest。", f"{base}.pin.value")
         if pin["strategy"] == "exact-version" and pin["value"] != component["version"]:
             fail("PIN_VERSION_MISMATCH", "精确 pin 必须与 component version 相同。", f"{base}.pin.value")
-        if component["id"] == REACT_COMPONENT_ID:
-            _validate_react_package_release(component, today, base)
+        if component["id"] in PACKAGE_RELEASE_CONTRACTS:
+            _validate_package_release(component, today, base)
         lifecycle = component["lifecycle"]
         released = _as_optional_date(lifecycle["released_at"], f"{base}.lifecycle.released_at")
         support_end = _as_optional_date(lifecycle["support_end"], f"{base}.lifecycle.support_end")

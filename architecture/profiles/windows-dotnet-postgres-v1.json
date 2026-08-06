@@ -3,7 +3,7 @@
   "schema_version": "1.0",
   "profile_id": "windows-dotnet-postgres-v1",
   "version": "1.0.0",
-  "catalog_revision": "2026.08.2",
+  "catalog_revision": "2026.08.3",
   "status": "active",
   "description": "Windows Server 2025, IIS, .NET/ASP.NET Core/EF Core 10 and PostgreSQL baseline.",
   "required_components": [

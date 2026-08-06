@@ -2,8 +2,8 @@
   "$schema": "../schemas/profile-v1.schema.json",
   "schema_version": "1.0",
   "profile_id": "linux-node-postgres-v1",
-  "version": "1.1.1",
-  "catalog_revision": "2026.08.2",
+  "version": "1.1.2",
+  "catalog_revision": "2026.08.3",
   "status": "active",
   "description": "Ubuntu LTS, Node LTS, Prisma, PostgreSQL and digest-pinned OCI baseline.",
   "required_components": [
@@ -22,8 +22,8 @@
   ],
   "compatibility_rules": [
     "Node must be an upstream LTS version supported by the selected Prisma major.",
-    "Prisma 7 requires Node ^20.19, ^22.12 or ^24, TypeScript >=5.4 and a driver adapter.",
-    "next@16.2.11 accepts React/react-dom ^19.0.0; the catalog requires both npm packages to use the same audited stable exact version, while project build/browser compatibility remains required.",
+    "Prisma 7.9.1 requires Node ^20.19, ^22.12 or >=24.0, TypeScript >=5.4 and same-version prisma, @prisma/client and @prisma/adapter-pg packages.",
+    "next@16.3.0 accepts React/react-dom ^19.0.0; the catalog requires both npm packages to use the same audited stable exact version, while project build/browser compatibility remains required.",
     "A transition selects exactly one component per slot, requires an absolute HTTPS migration Issue plus one matching unexpired exception, and never permits a prohibited component.",
     "Next.js 14 is recorded as prohibited evidence and intentionally has no transition allowlist entry.",
     "PostgreSQL major adoption requires a separate backup, restore and rollback-capable project Change.",
