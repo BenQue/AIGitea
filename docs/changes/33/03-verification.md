@@ -14,9 +14,9 @@ risk_flags:
   - compatibility
   - platform-governance
 depends_on: []
-status: local-verified
+status: pr-open
 branch: change/33
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/34
 created: 2026-08-06
 updated: 2026-08-06
 ---
@@ -29,8 +29,9 @@ AISoftPlatform-local implementation 与验证为 **PASS**。Catalog `2026.08.3`�
 `1.1.2`、NewEmaint target candidate 与三套 committed reference locks 已一致更新；Next.js
 `16.3.0`、Prisma 三包 `7.9.1`、React/ReactDOM `19.2.8` 均保持 exact identity。
 
-最终 PR CI、人工 merge、merge commit 读回与 NewEmaint #52 消费尚未发生，分别为 `NOT RUN` /
-`BLOCKED_EXTERNAL`，不计作平台本地实现失败，也不得报告为已交付或已解除应用安全 Gate。
+最终 PR #34 已创建；其 latest-head CI 在 handoff commit 推送后重新判定。人工 merge、merge commit
+读回与 NewEmaint #52 消费尚未发生，仍为 `BLOCKED_EXTERNAL`，不得报告为已交付或已解除应用
+安全 Gate。
 
 ## Acceptance criteria evidence
 
@@ -75,7 +76,7 @@ Prisma Client `7.9.1`。Schema/config 只包含虚拟 PostgreSQL URL，未连接
 
 ## NOT RUN / 外部门禁
 
-- Gitea PR CI：`NOT RUN`，PR 尚未创建。
+- Gitea PR #34：`OPEN`；latest-head CI 在最终 handoff push 后读回，本文不预填结果。
 - 人工 merge 与 exact merge commit：`BLOCKED_EXTERNAL`，只有人可合并。
 - NewEmaint package/lock/audit/build/browser/current lock：`NOT RUN`，不在 #33 mutation scope。
 - Docker、Registry、server、database、Secret、deployment、production：`NOT RUN`，未授权且未执行。
