@@ -7,9 +7,9 @@
 
 - 所有输入仅接受 strict JSON；V1 明确拒绝 `.yaml`/`.yml`，没有 YAML parser。
 - `catalog.json` 固定 component 的精确版本、状态、lifecycle、官方来源和 provenance 要求。
-- React preferred entry 还固定 `react`/`react-dom` 同版本的 npm stable-release snapshot、精确
-  Registry URL 和 integrity；validator 拒绝未被该 snapshot 覆盖的版本、Canary/Experimental、
-  `latest`、范围和两包版本不一致，且不会在 lock 生成时访问网络。
+- Next.js、React 与 Prisma preferred entries 固定 component-scoped npm stable-release snapshot、
+  精确 Registry URL 和 integrity；validator 拒绝未被 snapshot 覆盖的版本、Canary/Experimental、
+  `latest`、范围、package 集合漂移和同组件 package 版本不一致，且不会在 lock 生成时访问网络。
 - `profiles/*.json` 的每个 slot 保留唯一 `preferred` component，并可由 profile owner 维护同
   category 的 closed `transitions` allowlist；delivery 能力仍由 #22/应用 Change 提供。
 - 项目人工维护 `.aisoft/architecture.json`，提交生成的 `architecture.lock.json`。

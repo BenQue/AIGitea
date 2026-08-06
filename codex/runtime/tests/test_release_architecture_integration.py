@@ -64,7 +64,7 @@ class ArchitectureReleaseIntegrationTests(unittest.TestCase):
             cls.profile_schema,
             project,
             cls.project_schema,
-            date(2026, 8, 5),
+            date(2026, 8, 6),
         )
 
     @staticmethod
@@ -92,7 +92,7 @@ class ArchitectureReleaseIntegrationTests(unittest.TestCase):
             self.profile_schema,
             self.project,
             self.project_schema,
-            date(2026, 8, 5),
+            date(2026, 8, 6),
         )
         reference = load_json(
             self.architecture_root
@@ -143,7 +143,7 @@ class ArchitectureReleaseIntegrationTests(unittest.TestCase):
             result = ReleaseRuntime(
                 docker,
                 hostname="test-host",
-                today=date(2026, 8, 5),
+                today=date(2026, 8, 6),
             ).verify(profile_path, SHA_A)
             self.assertEqual(result["architecture_project_id"], "newemaint")
             self.assertEqual(
@@ -179,7 +179,7 @@ class ArchitectureReleaseIntegrationTests(unittest.TestCase):
                     ReleaseRuntime(
                         docker,
                         hostname="test-host",
-                        today=date(2026, 8, 5),
+                        today=date(2026, 8, 6),
                     ).verify(profile_path, SHA_A)
                 self.assertEqual(docker.events, [])
 

@@ -2,9 +2,9 @@
   "$schema": "./schemas/catalog-v1.schema.json",
   "schema_version": "1.0",
   "catalog_id": "aisoft-enterprise-architecture",
-  "revision": "2026.08.2",
-  "published_at": "2026-08-05",
-  "review_by": "2026-11-05",
+  "revision": "2026.08.3",
+  "published_at": "2026-08-06",
+  "review_by": "2026-11-06",
   "update_policy": {
     "security": {"cadence": "on upstream advisory", "gate": "Issue, focused CI, rollback evidence, human merge", "route": "expedited Change; never direct production mutation"},
     "patch": {"cadence": "monthly review", "gate": "compatibility tests, lock regeneration, human merge", "route": "catalog Change or project Change as ownership requires"},
@@ -114,13 +114,22 @@
       "id": "orm.prisma.7",
       "category": "orm",
       "name": "Prisma ORM",
-      "version": "7.8.0",
+      "version": "7.9.1",
       "state": "preferred",
-      "pin": {"strategy": "exact-version", "value": "7.8.0"},
+      "pin": {"strategy": "exact-version", "value": "7.9.1"},
+      "package_release": {
+        "channel": "stable",
+        "retrieved_at": "2026-08-06",
+        "packages": [
+          {"name": "prisma", "version": "7.9.1", "registry_url": "https://registry.npmjs.org/prisma/7.9.1", "integrity": "sha512-aPqePoZIqwlAchbgbFDO/wHqGB+7H1nj9gaM+OsL9h77S5S3TnLd9BgD3LnoeDikULo7cl2HSUrEyQ55Z7DYbg==", "released_at": "2026-07-27"},
+          {"name": "@prisma/client", "version": "7.9.1", "registry_url": "https://registry.npmjs.org/%40prisma%2Fclient/7.9.1", "integrity": "sha512-+xgrh2EhJVF79wC0yX5G4PI1Rdcm7Qn/nekNQ+t/O153wtNggruHal+fXHSa0QE+Tp/Cw5wvxeCEhZZ59xGm8Q==", "released_at": "2026-07-27"},
+          {"name": "@prisma/adapter-pg", "version": "7.9.1", "registry_url": "https://registry.npmjs.org/%40prisma%2Fadapter-pg/7.9.1", "integrity": "sha512-Ho2RK1KanQxLNSC0sR5bpiiVep10sWPLXCcxK+KXfI/Q69TMRbiafSvLPv3V9snimX72rMCqGlyJ4sBO4lKTAw==", "released_at": "2026-07-27"}
+        ]
+      },
       "platforms": {"operating_systems": ["linux", "windows"], "architectures": ["amd64", "arm64"]},
-      "lifecycle": {"status": "active", "released_at": "2026-04-22", "support_end": null, "eol": null, "migrate_by": null},
-      "provenance": {"source_url": "https://github.com/prisma/prisma/releases/tag/7.8.0", "retrieved_at": "2026-08-02", "review_by": "2026-11-02", "evidence": "Official Prisma release and v7 upgrade documentation; upstream publishes no fixed EOL date for this line.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
-      "compatibility": ["Requires Node ^20.19, ^22.12 or ^24 and TypeScript >=5.4.", "Prisma 7 uses prisma-client with an explicit output path and a database driver adapter."],
+      "lifecycle": {"status": "active", "released_at": "2026-07-27", "support_end": null, "eol": null, "migrate_by": null},
+      "provenance": {"source_url": "https://github.com/prisma/prisma/releases/tag/7.9.1", "retrieved_at": "2026-08-06", "review_by": "2026-11-06", "evidence": "Official Prisma source and npm Registry metadata identify 7.9.1 as the stable exact CLI, Client and PostgreSQL adapter baseline; upstream publishes no fixed EOL date for this line.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
+      "compatibility": ["Prisma 7.9.1 requires Node ^20.19, ^22.12 or >=24.0 and TypeScript >=5.4.", "Prisma 7 uses prisma-client with an explicit output path and a same-version database driver adapter."],
       "remediation": "Treat Prisma 5 to 7 as an independent migration with generated-client, config and adapter tests."
     },
     {
@@ -296,13 +305,20 @@
       "id": "framework.next.16",
       "category": "framework",
       "name": "Next.js",
-      "version": "16.2.11",
+      "version": "16.3.0",
       "state": "preferred",
-      "pin": {"strategy": "exact-version", "value": "16.2.11"},
+      "pin": {"strategy": "exact-version", "value": "16.3.0"},
+      "package_release": {
+        "channel": "stable",
+        "retrieved_at": "2026-08-06",
+        "packages": [
+          {"name": "next", "version": "16.3.0", "registry_url": "https://registry.npmjs.org/next/16.3.0", "integrity": "sha512-NEdGOzH+08eTXMUp9UYkA99Nhi5N6Thrhc1jgFOQgfgnGK/dA2hRwBpXep+exdFQrnwlRf/3Wixyp8lLBUpE2A==", "released_at": "2026-08-03"}
+        ]
+      },
       "platforms": {"operating_systems": ["linux", "windows"], "architectures": ["amd64", "arm64"]},
-      "lifecycle": {"status": "active", "released_at": "2026-07-20", "support_end": null, "eol": null, "migrate_by": null},
-      "provenance": {"source_url": "https://nextjs.org/blog", "retrieved_at": "2026-08-02", "review_by": "2026-11-02", "evidence": "Vercel's July 2026 official security release names 16.2.11 as Active LTS; Context7 v16.2 compatibility docs require Node >=20.9, React >=18.2 and TypeScript >=5.1. No fixed EOL date is published.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
-      "compatibility": ["Node 24, React 19 and TypeScript 6 satisfy documented minimum versions, but project build/browser tests remain mandatory.", "A Next.js 14 to 16 migration uses the official codemod guidance and remains independent from Node, Prisma and PostgreSQL major Changes."],
+      "lifecycle": {"status": "active", "released_at": "2026-08-03", "support_end": null, "eol": null, "migrate_by": null},
+      "provenance": {"source_url": "https://registry.npmjs.org/next/16.3.0", "retrieved_at": "2026-08-06", "review_by": "2026-11-06", "evidence": "Official Next.js source documentation and npm Registry metadata identify 16.3.0 as the stable exact security baseline; Next.js 16 requires Node >=20.9 and accepts React/ReactDOM ^19.0.0. No fixed EOL date is published.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
+      "compatibility": ["Next.js 16.3.0 requires Node >=20.9 and accepts React/react-dom ^19.0.0; Node 24 and React 19.2.8 satisfy those constraints, but project build/browser tests remain mandatory.", "A Next.js 14 to 16 migration uses the official codemod guidance and remains independent from Node, Prisma and PostgreSQL major Changes."],
       "remediation": "Apply Active LTS security patches promptly; perform a 14-to-16 framework migration in its own application Change."
     },
     {
@@ -336,7 +352,7 @@
       "platforms": {"operating_systems": ["any"], "architectures": ["amd64", "arm64"]},
       "lifecycle": {"status": "active", "released_at": null, "support_end": null, "eol": null, "migrate_by": null},
       "provenance": {"source_url": "https://react.dev/versions", "retrieved_at": "2026-08-05", "review_by": "2026-11-05", "evidence": "Official npm Registry metadata records react and react-dom 19.2.8 as the stable latest releases. React publishes no fixed EOL schedule.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
-      "compatibility": ["next@16.2.11 peerDependencies accept react and react-dom ^19.0.0; React/react-dom must remain the same exact stable version.", "Use an exact package lock and offline integrity metadata."],
+      "compatibility": ["next@16.3.0 peerDependencies accept react and react-dom ^19.0.0; React/react-dom must remain the same exact stable version.", "Use an exact package lock and offline integrity metadata."],
       "remediation": "Do not upgrade a framework solely because the catalog has a newer React preferred entry."
     },
     {

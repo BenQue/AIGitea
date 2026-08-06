@@ -12,7 +12,7 @@ from aisoft_architecture.lockfile import build_lock, validate_lock
 
 ROOT = Path(__file__).resolve().parents[3]
 ARCH = ROOT / "architecture"
-TODAY = date(2026, 8, 5)
+TODAY = date(2026, 8, 6)
 
 
 class ArchitectureLockTests(unittest.TestCase):
@@ -131,6 +131,25 @@ class ArchitectureLockTests(unittest.TestCase):
         with self.assertRaises(ArchitectureError) as caught:
             self.build()
         self.assertEqual(caught.exception.diagnostic.code, "DELIVERY_CONTRACT_INCOMPATIBLE")
+
+    def test_old_next_and_prisma_project_versions_fail_closed(self) -> None:
+        self.profile = load_json(ARCH / "profiles/linux-node-postgres-v1.json")
+        baseline = load_json(ARCH / "fixtures/valid/linux-project.json")
+        for component_id, old_version in (
+            ("framework.next.16", "16.2.11"),
+            ("orm.prisma.7", "7.8.0"),
+        ):
+            with self.subTest(component_id=component_id):
+                self.project = deepcopy(baseline)
+                declared = next(
+                    item
+                    for item in self.project["components"]
+                    if item["component_id"] == component_id
+                )
+                declared["version"] = old_version
+                with self.assertRaises(ArchitectureError) as caught:
+                    self.build()
+                self.assertEqual(caught.exception.diagnostic.code, "PROJECT_VERSION_DRIFT")
 
     def test_incomplete_exception_fails_schema(self) -> None:
         self.project["exceptions"] = [{"id": "ARCH-EX-2026-002"}]
