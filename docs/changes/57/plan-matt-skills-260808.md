@@ -12,9 +12,9 @@ risk_flags:
   - platform-governance
   - shared-core
 depends_on: []
-status: approved
+status: pr-open
 branch: change/57
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/59
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -31,7 +31,7 @@ updated: 2026-08-08
 | T04 | to-spec/to-tickets Gitea tracker adapters | T01, T02 | completed |
 | T05 | implement Agent commit 与 Controller post-validation | T01 | completed |
 | T06 | 完整 Matt snapshot manifest 与更新分级检查 | T04, T05 | completed |
-| T07 | 文档、全量验证和最终 PR | T02, T03, T04, T05, T06 | in-progress |
+| T07 | 文档、全量验证和最终 PR | T02, T03, T04, T05, T06 | completed |
 
 ## Tasks
 

@@ -12,9 +12,9 @@ risk_flags:
   - platform-governance
   - shared-core
 depends_on: []
-status: verified-local
+status: ready-for-review
 branch: change/57
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/59
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -39,6 +39,8 @@ updated: 2026-08-08
 | `python3 -m aisoft_loop.matt_snapshot verify ...` | PASS | tag `v1.2.2`、35 skills、exact upstream commit 与 manifest hash 一致 |
 | `git diff --check` | PASS | 无 whitespace error |
 | 高置信 Secret pattern scan | PASS | private key、GitHub PAT、OpenAI-style key 未命中；既有 sentinel fixture 明确排除 |
+| Gitea PR #59 pre-handoff read-back | PASS | open、base `main`、implementation head `e650fd9ffd1d4076ac3ac378ba9edf86c4ba9061`、`mergeable: true`；本记录的纯文档 handoff commit 会再推进 head |
+| Gitea commit status contexts | NOT CONFIGURED | combined state 为 `pending`，但 `total_count: 0` 且 `statuses` 为空；不得表述为 CI 已运行或通过 |
 
 ## Acceptance criteria 结果
 
@@ -54,7 +56,7 @@ updated: 2026-08-08
 - 当前 Gitea 仓库的 24-label live provision/read-back：`NOT RUN`。source manifest 与 mock transport 已通过；不在 PR 合并前推广 live taxonomy。
 - 用户级或 VM live Matt skills 切换：`NOT RUN`。安装器仅在临时 HOME 验证，未修改现有全局 skills 或 Claude plugin。
 - 根级 `AGENTS.md` 与 `codex/global-AGENTS.md` 的 Matt 路由更新：`DEFERRED`。本次运行不得修改其正在遵循的根级说明；合并后必须走独立 governance step。
-- PR required CI：`NOT RUN`，创建并 push 最终 PR 后读取真实状态。
+- PR required CI：`NOT CONFIGURED`。当前 live head 没有任何 status context；本仓库 manifest 的 required contexts 也为空。
 - PR merge：`NOT RUN`，只允许人工操作。
 - Deployment：`NOT RUN / NOT APPLICABLE`，本 Change 不部署应用或生产环境。
 
