@@ -26,9 +26,9 @@ updated: 2026-08-08
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 根级 change 文档与仓库初始化合同 | - | pending |
-| T02 | VM Codex 的 Matt 主流程与兼容 adapter 路由 | T01 | pending |
-| T03 | 静态合同测试、完整验证与最终 PR | T01, T02 | pending |
+| T01 | 根级 change 文档与仓库初始化合同 | - | completed |
+| T02 | VM Codex 的 Matt 主流程与兼容 adapter 路由 | T01 | completed |
+| T03 | 静态合同测试、完整验证与最终 PR | T01, T02 | in-progress |
 
 ## Tasks
 

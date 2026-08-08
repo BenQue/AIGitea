@@ -19,6 +19,7 @@ documents:
   summary: summary-matt-root-rules-260808.md
   spec: spec-matt-root-rules-260808.md
   plan: plan-matt-root-rules-260808.md
+  verification: verification-matt-root-rules-260808.md
 confidence: high
 override_reason: ''
 depends_on:
