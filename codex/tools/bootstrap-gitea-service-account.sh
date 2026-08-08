@@ -85,6 +85,7 @@ scopes="$(jq -r '.scopes | join(",")' <<<"$spec")"
 }
 
 account_marker="$credential_root/$username.account-created-by-issue-35"
+password_policy_marker="$credential_root/$username.must-change-password-unset-by-issue-35"
 token_marker="$credential_root/$username-$token_kind.token-created-by-issue-35"
 
 account_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
@@ -106,7 +107,8 @@ case "$account_status" in
     }
     ;;
   404)
-    [[ ! -e "$account_marker" && ! -e "$credential_output" && ! -e "$token_marker" ]] || {
+    [[ ! -e "$account_marker" && ! -e "$password_policy_marker" &&
+       ! -e "$credential_output" && ! -e "$token_marker" ]] || {
       printf '%s\n' 'BLOCKED_EXTERNAL: account state conflicts with existing managed files' >&2
       exit 2
     }
@@ -131,6 +133,32 @@ case "$account_status" in
     exit 2
     ;;
 esac
+
+if [[ -e "$password_policy_marker" || -L "$password_policy_marker" ]]; then
+  [[ -f "$password_policy_marker" && ! -L "$password_policy_marker" ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: password policy marker is not a regular file' >&2
+    exit 2
+  }
+  mode="$(stat -c '%a' "$password_policy_marker" 2>/dev/null || stat -f '%Lp' "$password_policy_marker")"
+  [[ "$mode" == 600 || "$mode" == 400 ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: password policy marker mode must be 400 or 600' >&2
+    exit 2
+  }
+  expected_policy_marker="$(printf 'issue=35\nusername=%s\npolicy=must-change-password-unset' "$username")"
+  [[ "$(cat "$password_policy_marker")" == "$expected_policy_marker" ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: password policy marker content mismatch' >&2
+    exit 2
+  }
+else
+  # Gitea 1.26.4 can create bot users with MustChangePassword=true even though
+  # password flags are rejected for bots. Use the dedicated policy command;
+  # this does not set a password and is recorded before any PAT is generated.
+  # shellcheck disable=SC2024
+  sudo -n -u git "$GITEA_BIN" --config "$GITEA_CONFIG" admin user must-change-password \
+    --unset "$username" >"$tmp_dir/account-password-policy.log"
+  install -m 600 /dev/null "$password_policy_marker"
+  printf 'issue=35\nusername=%s\npolicy=must-change-password-unset\n' "$username" >"$password_policy_marker"
+fi
 
 if [[ -e "$credential_output" ]]; then
   [[ -f "$credential_output" && ! -L "$credential_output" ]] || {

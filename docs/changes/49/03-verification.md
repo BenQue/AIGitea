@@ -62,3 +62,11 @@ updated: 2026-08-08
 账号/PAT、仓库授权、visibility/protection、真实项目正反向验证和 `ci-bot` retirement：`NOT RUN`，
 必须等待 PR #49 人工合并并从新的 exact protected-main SHA 恢复。业务 VM/数据库和公司内网：
 `NOT RUN`，不在本 Change 范围。
+
+## 合并后读回
+
+- PR #50 已由人合并；final head `6d6c173000300750a52bacb7ed016344f47a0d9e`，protected-main
+  merge commit `04ab0cce79166ff202318ed48d9b6851b132c511`，ancestry `PASS`。
+- Issue #49 的 bot create password flag 修复生效；首个 manager bot 与 audit PAT 已实际创建。
+- 随后的 token identity 仍被 live Gitea 1.26.4 的 MustChangePassword 状态拒绝。专用 CLI 精确恢复
+  manager 后 identity `PASS`，但脚本尚未持久化该步骤；Issue #51 独立治理，其余账号/仓库操作暂停。
