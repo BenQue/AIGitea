@@ -13,7 +13,7 @@ risk_flags:
   - shared-core
 depends_on:
   - 57
-status: spec-review
+status: approved
 branch: change/60
 pr_url:
 created: 2026-08-08

@@ -23,7 +23,7 @@ confidence: high
 override_reason: ''
 depends_on:
   - 57
-status: spec-review
+status: approved
 branch: change/60
 pr_url:
 created: 2026-08-08
@@ -90,4 +90,4 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- 需要人工确认本 spec/plan 后，才可把生命周期从 `spec-review` 切换为 `approved`。
+- 无；用户已于 2026-08-08 明确批准本 spec/plan。

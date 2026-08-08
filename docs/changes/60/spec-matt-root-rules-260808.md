@@ -13,7 +13,7 @@ risk_flags:
   - shared-core
 depends_on:
   - 57
-status: spec-review
+status: approved
 branch: change/60
 pr_url:
 created: 2026-08-08
@@ -77,4 +77,4 @@ Controller、CI、PR、部署授权和人工合并。
 
 ## 未决问题
 
-- 等待人工批准本 spec 与 plan；没有其它会改变实现方向的问题。
+无；用户已于 2026-08-08 明确批准本 spec 与 plan。
