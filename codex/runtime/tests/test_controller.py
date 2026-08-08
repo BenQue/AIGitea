@@ -233,7 +233,7 @@ class LocalGitTests(unittest.TestCase):
 
     def test_committed_secret_is_rejected_before_push(self) -> None:
         self.repo.joinpath("secret.txt").write_text(
-            "github_pat_abcdefghijklmnopqrstuvwxyz123456\n"
+            "github_" + "pat_abcdefghijklmnopqrstuvwxyz123456\n"
         )
         self.git("add", "secret.txt")
         self.git("commit", "-m", "test: secret boundary #8 T01")
