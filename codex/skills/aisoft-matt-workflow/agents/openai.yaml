@@ -1,0 +1,4 @@
+interface:
+  display_name: "AISoft Matt Workflow"
+  short_description: "Run Matt skills inside AISoftPlatform governance"
+  default_prompt: "Use $aisoft-matt-workflow to initialize or run the governed Matt triage, spec, tickets, and implementation flow for one Gitea Issue."
