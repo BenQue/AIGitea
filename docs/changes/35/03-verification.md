@@ -81,6 +81,12 @@ service restart、OrbStack VM 或公司内网部署。
   前 connection refused，脚本按设计恢复 pre config。稍后读回为 service active/health pass，且
   live/pre SHA-256 完全相同；service policy 仍为 `DRIFT`，因此 apply 未成功。
 - follow-up Issue #41 负责 bounded readiness retry；其 PR 人工合并前继续暂停账号/ACL rollout。
+- PR #42 合并后的 exact main `ec5fce7f4e944c961b58b6373fb9023755ab964f` 已真实应用 service
+  policy：首次 connection refused 被 bounded retry 吸收，最终 health pass；live config 与
+  `app.ini.post` SHA-256 均为 `c8f212b8060f197fc1a84bda77f78c987d750161d55e9f63cb19df677296abd1`，
+  两次连续 post-check 均为 `PASS`。
+- account bootstrap 前的 installed Gitea 1.26.4 预检发现 bot 不接受显式 must-change-password flag；
+  未创建任何账号/PAT。follow-up Issue #43 修复该 CLI 兼容性，合并前继续暂停账号/ACL rollout。
 - PR #36：已创建，`change/35 -> main`；初始 head
   `c8dbe794a93fb95970dceb4a931b920c9795785b` 为 `mergeable=true`、`merged=false`。本次 metadata
   回填会产生新 head，required CI 必须只认最终 SHA。

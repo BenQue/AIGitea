@@ -71,6 +71,13 @@ mode="$(stat -c '%a' "$output" 2>/dev/null || stat -f '%Lp' "$output")"
 [[ "$mode" == 600 ]]
 [[ -f "$TMP/credentials/hsdb-agent.account-created-by-issue-35" ]]
 [[ -f "$TMP/credentials/hsdb-agent-project-agent.token-created-by-issue-35" ]]
+create_argv="$(grep 'admin user create' "$TMP/gitea-argv.log")"
+[[ "$create_argv" == *"--user-type bot"* ]]
+[[ "$create_argv" == *"--random-password"* ]]
+if [[ "$create_argv" == *"must-change-password"* ]]; then
+  printf '%s\n' 'bot create argv must omit must-change-password' >&2
+  exit 1
+fi
 
 result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \

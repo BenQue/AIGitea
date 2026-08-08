@@ -48,3 +48,9 @@ updated: 2026-08-08
 - live service apply/restart：`NOT RUN`，等待本 PR 人工合并。
 - Gitea accounts/PAT/repository ACL/visibility/protection、`ci-bot` retirement、业务 VM/数据库、
   公司内网：`NOT RUN`。
+
+## Post-merge live read-back
+
+- PR #42 已人工合并到 `main@ec5fce7f4e944c961b58b6373fb9023755ab964f`。
+- bounded readiness 真实捕获首次 connection refused，随后 service-policy apply/health 成功；两次连续
+  policy check 均为 `PASS`，pre/post backup 已保存。Issue #41 目标真实验证完成。
