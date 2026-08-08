@@ -34,7 +34,12 @@ printf '%s\n' "$*" >>"$MOCK_ROOT/gitea-argv.log"
 case "$*" in
   *"admin user create"*)
     touch "$MOCK_ROOT/account-present"
+    touch "$MOCK_ROOT/must-change-password-present"
     printf 'generated password: do-not-log-this-password\n'
+    ;;
+  *"admin user must-change-password --unset hsdb-agent"*)
+    rm -f "$MOCK_ROOT/must-change-password-present"
+    printf 'updated one user\n'
     ;;
   *"admin user generate-access-token"*)
     printf 'sentinel-generated-token\n'
@@ -54,6 +59,7 @@ case "$*" in
   *"/api/v1/user"*)
     read -r auth
     [[ "$auth" == *sentinel-generated-token* ]]
+    [[ ! -e "$MOCK_ROOT/must-change-password-present" ]]
     printf '{"login":"hsdb-agent","is_admin":false}\n'
     ;;
   *) exit 2 ;;
@@ -81,6 +87,9 @@ result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
 mode="$(stat -c '%a' "$output" 2>/dev/null || stat -f '%Lp' "$output")"
 [[ "$mode" == 600 ]]
 [[ -f "$TMP/credentials/hsdb-agent.account-created-by-issue-35" ]]
+policy_marker="$TMP/credentials/hsdb-agent.must-change-password-unset-by-issue-35"
+[[ -f "$policy_marker" ]]
+[[ "$(stat -c '%a' "$policy_marker" 2>/dev/null || stat -f '%Lp' "$policy_marker")" == 600 ]]
 [[ -f "$TMP/credentials/hsdb-agent-project-agent.token-created-by-issue-35" ]]
 [[ "$(grep -c '^test -f ' "$TMP/sudo-config-check.log")" == 1 ]]
 [[ "$(grep -c '^test -r ' "$TMP/sudo-config-check.log")" == 1 ]]
@@ -90,6 +99,9 @@ if [[ "$create_argv" == *"password"* ]]; then
   printf '%s\n' 'bot create argv must omit all password flags' >&2
   exit 1
 fi
+policy_argv="$(grep 'admin user must-change-password' "$TMP/gitea-argv.log")"
+[[ "$policy_argv" == *"admin user must-change-password --unset hsdb-agent"* ]]
+[[ "$(grep -c 'admin user must-change-password' "$TMP/gitea-argv.log")" == 1 ]]
 
 result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
@@ -98,6 +110,31 @@ result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --credential-output "$output")"
 [[ "$(jq -r '.result' <<<"$result")" == no-op ]]
 [[ "$(grep -c 'generate-access-token' "$TMP/gitea-argv.log")" == 1 ]]
+[[ "$(grep -c 'admin user must-change-password' "$TMP/gitea-argv.log")" == 1 ]]
+
+rm "$policy_marker"
+touch "$TMP/must-change-password-present"
+result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  --manifest "$ROOT/codex/config/gitea-governance.json" \
+  --username hsdb-agent \
+  --token-kind project-agent \
+  --credential-output "$output")"
+[[ "$(jq -r '.result' <<<"$result")" == no-op ]]
+[[ -f "$policy_marker" ]]
+[[ "$(grep -c 'admin user must-change-password' "$TMP/gitea-argv.log")" == 2 ]]
+
+chmod 644 "$policy_marker"
+if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  --manifest "$ROOT/codex/config/gitea-governance.json" \
+  --username hsdb-agent \
+  --token-kind project-agent \
+  --credential-output "$output" \
+  >"$TMP/policy-marker-negative.out" 2>"$TMP/policy-marker-negative.err"; then
+  printf '%s\n' 'unsafe password policy marker mode unexpectedly succeeded' >&2
+  exit 1
+fi
+grep -Fq 'password policy marker mode must be 400 or 600' "$TMP/policy-marker-negative.err"
+chmod 600 "$policy_marker"
 
 if grep -Fq sentinel-generated-token "$TMP/gitea-argv.log" ||
    grep -Fq sentinel-generated-token "$TMP/curl-argv.log" ||

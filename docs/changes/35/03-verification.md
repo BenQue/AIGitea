@@ -97,6 +97,13 @@ service restart、OrbStack VM 或公司内网部署。
   仍全部为 404，legacy credential 为 mode 600 且 admin token marker 唯一。第一个 manager bootstrap
   随后被 Gitea 1.26.4 拒绝：bot user 不接受 `--random-password`。失败后 manager 仍为 404，managed
   credential root 为 mode 700 且 0 个文件，PAT/ACL/repository mutation 均未发生；Issue #49 独立修复。
+- PR #50 已人工合并：head `6d6c173000300750a52bacb7ed016344f47a0d9e`，protected-main merge
+  commit `04ab0cce79166ff202318ed48d9b6851b132c511`。新的 exact-main/manifest/merge gate、两次
+  service-policy check 与 Gitea health 均 `PASS`。首个 manager bot 与 audit PAT/markers 创建后，PAT
+  identity 被 HTTP 403 `You must change your password` 阻止；其余 9 个 agents 尚未开始。用 live CLI
+  专用 `must-change-password --unset aisoft-platform-manager` 精确恢复后，manager 读回
+  `active=true`、`is_admin=false`，audit PAT identity `PASS`，且没有设置密码。Issue #51 将该恢复纳入
+  fail-closed、带 mode 600 marker 的幂等 bootstrap；合并前继续暂停其余账号和仓库 mutation。
 - PR #36：已创建，`change/35 -> main`；初始 head
   `c8dbe794a93fb95970dceb4a931b920c9795785b` 为 `mergeable=true`、`merged=false`。本次 metadata
   回填会产生新 head，required CI 必须只认最终 SHA。
@@ -108,7 +115,8 @@ service restart、OrbStack VM 或公司内网部署。
 - 同次 VM-local admin read-back：`main` direct push=false、force push=false、
   merge whitelist=true 且 usernames 仅 `admin`；`block_admin_merge_override=false` 是 manifest 在
   人工合并后逐仓库收敛的已知 drift，当前未修改。
-- Gitea service accounts/PAT：`BLOCKED`（Issue #49 bot password flag 兼容性；首个账号未创建，PAT 未生成）。
+- Gitea service accounts/PAT：`PARTIAL / BLOCKED`（manager + audit PAT 已恢复并验证；manager mutation
+  PAT 与 9 个 project-agent 账号/PAT 等待 Issue #51）。
 - `DISABLE_REGISTRATION` / default private / Gitea restart：`PASS`；两次连续 post-check 通过。
 - 仓库 visibility/collaborator/protection/default branch cleanup：`NOT RUN`。
 - project profiles 与 shared `ci-bot` retirement：`NOT RUN`。
@@ -119,6 +127,7 @@ service restart、OrbStack VM 或公司内网部署。
 ## 回滚证据
 
 工具的 repository rollback/no-op、service config backup/restore 和 invalid-candidate fail-closed 已在
-mock/synthetic 环境 `PASS`。真实 service pre/post 已保存于 root-only evidence；账号/仓库 mutation
-尚未开始，因此账号/ACL rollback 为 `NOT RUN / NOT NEEDED`。逐仓库 snapshot、apply/no-op 与 rollback
-只能在 Issue #49 人工合并并通过新的 exact-main 预检后执行。
+mock/synthetic 环境 `PASS`。真实 service pre/post 已保存于 root-only evidence；manager 账号/audit PAT
+已按 marker 管理且验证通过，不回退为必须改密，也不删除。仓库 ACL mutation 尚未开始，因此 ACL
+rollback 为 `NOT RUN / NOT NEEDED`。逐仓库 snapshot、apply/no-op 与 rollback 只能在 Issue #51 人工
+合并并通过新的 exact-main 预检后执行。
