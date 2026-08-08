@@ -14,9 +14,9 @@ risk_flags:
 depends_on:
   - 35
   - 41
-status: approved
+status: pr-open
 branch: change/43
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/44
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -39,4 +39,6 @@ updated: 2026-08-08
   shell/integration mock regressions 通过。
 - `bash -n`、ShellCheck、`git diff --check`：`PASS`；changed files 未加入 credential、PAT、
   password、`.env` 或其它 Secret material。
+- PR #44 初始 head `7f12a911957d6a0dcb1544dd0b05ac23d197162f`：`open`、
+  `mergeable=true`、`merged=false`；metadata 回填后必须重新读回 final head。
 - live account/PAT/ACL/visibility/protection：`NOT RUN`，等待本 PR 人工合并。
