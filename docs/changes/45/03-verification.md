@@ -16,9 +16,9 @@ depends_on:
   - 35
   - 43
   - 46
-status: approved
+status: pr-open
 branch: change/45
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/48
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -49,7 +49,9 @@ updated: 2026-08-08
   `Codex platform static smoke checks passed.`，exit 0。
 - `bash -n`、ShellCheck、`git diff --check`：`PASS`；changed files 未加入 credential、PAT、password、
   config content、`.env` 或其它 Secret material。
-- PR、remote status/Actions、live account/PAT/ACL/visibility/protection：`NOT RUN`。
+- PR #48 initial head `1b777b4acbcf4b80797c0929476f4eae74a1fc3c`：`open`、
+  `mergeable=true`、`merged=false`；metadata 回填将产生 final head，必须重新读回。
+- remote status/Actions、live account/PAT/ACL/visibility/protection：`NOT RUN`。
 
 ## 合并与后续边界
 
