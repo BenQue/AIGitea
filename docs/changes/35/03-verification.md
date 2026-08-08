@@ -16,7 +16,7 @@ risk_flags:
   - platform-governance
   - deployment
 depends_on: []
-status: pr-open
+status: deployed
 branch: change/35
 pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/36
 created: 2026-08-08
@@ -104,6 +104,10 @@ service restart、OrbStack VM 或公司内网部署。
   专用 `must-change-password --unset aisoft-platform-manager` 精确恢复后，manager 读回
   `active=true`、`is_admin=false`，audit PAT identity `PASS`，且没有设置密码。Issue #51 将该恢复纳入
   fail-closed、带 mode 600 marker 的幂等 bootstrap；合并前继续暂停其余账号和仓库 mutation。
+- PR #52 已人工合并：head `6a594b58178c18ae5d759a240f1adf1b3e9780a6`，protected-main merge
+  commit `0f50bfdbb49783ba958fe6d732d2159ffa78ac35`，ancestry `PASS`。本次 final rollout 全部从该
+  exact-main clone 执行；manifest、`verify-merged`、两次 service-policy check 与 Gitea health 均
+  `PASS`。
 - PR #36：已创建，`change/35 -> main`；初始 head
   `c8dbe794a93fb95970dceb4a931b920c9795785b` 为 `mergeable=true`、`merged=false`。本次 metadata
   回填会产生新 head，required CI 必须只认最终 SHA。
@@ -115,11 +119,16 @@ service restart、OrbStack VM 或公司内网部署。
 - 同次 VM-local admin read-back：`main` direct push=false、force push=false、
   merge whitelist=true 且 usernames 仅 `admin`；`block_admin_merge_override=false` 是 manifest 在
   人工合并后逐仓库收敛的已知 drift，当前未修改。
-- Gitea service accounts/PAT：`PARTIAL / BLOCKED`（manager + audit PAT 已恢复并验证；manager mutation
-  PAT 与 9 个 project-agent 账号/PAT 等待 Issue #51）。
+- Gitea service accounts/PAT：`PASS`；1 个 manager、9 个 project agents 均为非 site-admin，manager
+  audit/mutation 与 9 个 project-agent 共 11 个最小 scope PAT。10 个 account marker、10 个 policy
+  marker、11 个 token 与 11 个 token marker 共 42 个受管文件全部 mode 600；最终 11 个 bootstrap
+  全部 `no-op`。
 - `DISABLE_REGISTRATION` / default private / Gitea restart：`PASS`；两次连续 post-check 通过。
-- 仓库 visibility/collaborator/protection/default branch cleanup：`NOT RUN`。
-- project profiles 与 shared `ci-bot` retirement：`NOT RUN`。
+- 仓库 visibility/collaborator/protection/default branch cleanup：`PASS`；9 个仓库首轮 apply 后第二轮
+  全部 `no-op`，manager audit 为 `PASS`，planned actions/blockers/cross-project violations 均为空。
+- project-agent 真实验证与 shared `ci-bot` retirement：`PASS`；9/9 evidence gate 通过，6 个仓库
+  `ci-bot` collaborator retired、3 个原本 missing，第二轮 9 个全部 `no-op`。`ci-bot` 账号保留，
+  manifest 仓库 collaborator access 为 0。
 - OrbStack VM/应用部署/数据库：`NOT RUN`，且不在本 PR 实施范围。
 - 公司内网 Gitea/服务器：`NOT RUN`，未连接。
 - PR #36 merge：`PASS`，由人执行；后续 follow-up PR 继续保持人工 merge gate。
@@ -127,7 +136,29 @@ service restart、OrbStack VM 或公司内网部署。
 ## 回滚证据
 
 工具的 repository rollback/no-op、service config backup/restore 和 invalid-candidate fail-closed 已在
-mock/synthetic 环境 `PASS`。真实 service pre/post 已保存于 root-only evidence；manager 账号/audit PAT
-已按 marker 管理且验证通过，不回退为必须改密，也不删除。仓库 ACL mutation 尚未开始，因此 ACL
-rollback 为 `NOT RUN / NOT NEEDED`。逐仓库 snapshot、apply/no-op 与 rollback 只能在 Issue #51 人工
-合并并通过新的 exact-main 预检后执行。
+mock/synthetic 环境 `PASS`。真实 service pre/post 与 9 仓库 manager/apply/no-op、project validation、
+`ci-bot` retirement evidence 已保存于
+`/var/lib/aisoft/backups/gitea-governance/issue35-0f50bfd`：92 个文件 mode 600、所有目录 mode 700。
+每个仓库均有 mutation 前后 snapshot；post-check 全部通过，因此真实 rollback 为 `NOT RUN / NOT
+NEEDED`。账号/PAT 按 marker 管理且最终幂等验证通过，不删除或回设必须改密。
+
+## Final live rollout
+
+- manager 在 manifest 精确 9 仓库为 Admin；project agent 仅各自仓库 Write。其它 project agent 对
+  private 仓库实际认证读取为 403/404，manager audit 的跨项目 Write/Admin 违规为 0。
+- public allowlist 精确为 `admin/aisoft-platform`、`admin/myapp`、`admin/smoke-test`；其余 6 个仓库
+  private。全部 default branch 为 `main`，merged-branch cleanup 已启用。
+- 全部 `main`：direct push=false、force push=false、merge whitelist 仅 `admin`、
+  `block_admin_merge_override=true`；required status contexts/approvals 与 manifest byte-exact。
+- 每个 project agent 真实完成 authenticated repository read、temporary label create/use/delete、Issue
+  create/comment/close、feature branch push/delete、PR create/close。`main` push 均被 protected branch
+  拒绝；使用错误 head SHA 的 merge 请求均返回 live Gitea 1.26.4 精确
+  `405 User not allowed to merge PR`，PR 未合并且 `main` SHA 前后相同。
+- `smoke-test` 前两次 canary 因先按 403 merge denial、再按 200 close success 的错误 API 假设而
+  fail closed；临时对象均由 trap 清理，Issue/PR closed。live Swagger 校准为 merge denial 405、
+  Issue/PR PATCH success 201 后，r3 与其余 8 仓库全部 `PASS`。在途 validation Actions 为 0。
+- final service-policy 两次 `PASS`，Gitea systemd active、health HTTP 200。Issue #35 lifecycle 已更新为
+  `deployed`；配套修复 Issues #38/#41/#43/#45/#46/#49/#51 均为 `completed`。
+- 业务 VM/数据库 deployment、project deploy OS account 创建和公司内网迁移继续 `NOT RUN`。manifest
+  只锁定 VM identity policy：每项目独立 deploy identity、禁止共享、禁止复用 Gitea credential；公司
+  内网必须重新 inventory/mapping approval，不能复制本机账号/token/Issue/PR。
