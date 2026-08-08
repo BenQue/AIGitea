@@ -86,9 +86,8 @@ mode="$(stat -c '%a' "$output" 2>/dev/null || stat -f '%Lp' "$output")"
 [[ "$(grep -c '^test -r ' "$TMP/sudo-config-check.log")" == 1 ]]
 create_argv="$(grep 'admin user create' "$TMP/gitea-argv.log")"
 [[ "$create_argv" == *"--user-type bot"* ]]
-[[ "$create_argv" == *"--random-password"* ]]
-if [[ "$create_argv" == *"must-change-password"* ]]; then
-  printf '%s\n' 'bot create argv must omit must-change-password' >&2
+if [[ "$create_argv" == *"password"* ]]; then
+  printf '%s\n' 'bot create argv must omit all password flags' >&2
   exit 1
 fi
 

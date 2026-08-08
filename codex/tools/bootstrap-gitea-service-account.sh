@@ -116,8 +116,7 @@ case "$account_status" in
     sudo -n -u git "$GITEA_BIN" --config "$GITEA_CONFIG" admin user create \
       --username "$username" \
       --email "$username@aisoft.local" \
-      --user-type bot \
-      --random-password >"$tmp_dir/account-create.log"
+      --user-type bot >"$tmp_dir/account-create.log"
     install -m 600 /dev/null "$account_marker"
     printf 'issue=35\nusername=%s\n' "$username" >"$account_marker"
     account_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
