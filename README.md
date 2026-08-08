@@ -18,7 +18,7 @@
 - ✅ v2 试点证据：issue #4 已走通三闸门闭环，证明 Issue/文档/PR/部署关联可行
 - ✅ 邮件通知：Gitea → Mailpit（演示层），issue/PR 事件自动发信
 - ✅ Codex 基础：CLI、认证、skills、AGENTS、sandbox、provider router 已通过 VM 基础验收
-- 🟡 私有 Gitea 接入：credential-aware 只读访问、skills-only 安装和固定 `ci-bot` + `write` collaborator gate 已进入 Issue #17 / PR #18 候选；现有仓库只完成只读盘点前置设计，未获批量回补授权，未安装全局稳定版本
+- 🟡 Gitea 身份与可见性：Issue #35 候选已把共享 `ci-bot` 迁移为“平台 manager + 每项目 agent”，并固定 private 默认与三个 public 例外；live 账号、PAT、visibility、protection、注册策略和 service restart 在最终 PR 人工合并前均 `NOT RUN`
 - ✅ Claude adapter（Issue #1）：与 Codex 共用 controller/verifier/状态/终态，17 项 parity 测试通过；默认仍 `IMPLEMENT_PROVIDER=none`，真实 VM pilot 未做
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
 - 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为 real complex pilot。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
@@ -88,6 +88,8 @@ flowchart TB
 | 6 | **判级、合同与执行分离** | AI 判定有效复杂度；controller 独立校验合同；Loop 不得自行改验收标准或扩大范围 |
 | 7 | **只有一个交付闸门** | 最终 PR 合并是唯一交付硬闸门；PR CI 必须绿且只有人能合并 `main` |
 | 8 | **主机职责 fail closed** | root-owned profile 同时绑定 hostname 与 machine-id；未知 capability、身份漂移或宽松权限都必须在 mutation 前失败 |
+| 9 | **平台审计与项目写入分离** | 平台 manager 只在显式受管仓库 Admin；每项目 agent 只对自己的仓库 Write；`main` merge allowlist 只含人工身份 |
+| 10 | **仓库 private 默认、public 显式例外** | 当前只允许 `aisoft-platform`、`myapp`、`smoke-test` public；内部应用 private；公司内网重建执行同一分类策略 |
 
 ## 4. 端到端流程（双路径、单合并闸门）
 
@@ -161,12 +163,16 @@ sequenceDiagram
 | 测试环境应用 | 由目标项目的 `appserver-test` profile 指定；`gitea-ci:8091` 只是 Issue #21 待迁移的 legacy 入口 |
 | Mailpit 收件箱 | http://gitea-ci.orb.local:8025 |
 | Verdaccio | http://gitea-ci.orb.local:4873 |
-| 凭据文件 | gitea-ci VM `~benque/gitea-ci-credentials.txt`（admin/ci-bot；600） |
+| 凭据文件 | as-built：gitea-ci VM `~benque/gitea-ci-credentials.txt`（admin/ci-bot；600）；Issue #35 合并后由独立 mode 600 文件承载 manager audit/mutation 和每项目 PAT，互不复用 |
 | Mac 工作克隆 | `~/Projects/rsdesign-new`（与 RSDesignTool monorepo 完全独立） |
 
 私有仓库检查不得从匿名 API 开始。先解析目标 project profile/remote，再按 [06 §1.1](06-运维手册与踩坑集.md#11-私有-gitea-的只读检查) 使用最小权限 profile、既有 Git credential、VM-local 管理员只读 helper 或已登录浏览器；`404`/`Repository not found` 在认证与 ACL 未核对前不构成“不存在”证据。
 
-本地 Gitea 软件仓库通过 AISoftPlatform skill 初始化、接入或准备部署时，必须先按 onboarding runbook 运行固定 `ci-bot` + `write` collaborator gate，并回读权限、真实 bot 仓库访问和现有 `main` 分支保护。失败终态为 `BLOCKED_EXTERNAL`，不得静默继续。现有仓库的回补必须先给出显式接入清单并由人确认，不得扫描后批量修改全部仓库或平台控制仓库。
+Issue #35 发布前，固定 `ci-bot` + `write` collaborator gate 仅作为已有 profile 的兼容路径；
+不得继续用共享 bot 接入新项目。发布后必须以
+[`codex/config/gitea-governance.json`](codex/config/gitea-governance.json) 的 exact repository 与
+project agent 为准：先只读 check，再一次处理一个明确仓库，回读 manager/agent 权限、visibility、
+`main` protection 和 merge allowlist。未知仓库只报告，不得扫描后批量授权、公开或修改。
 
 ## 7. 术语
 

@@ -1,0 +1,168 @@
+{
+  "contract_version": "gitea-governance/v1",
+  "environment": "local-orbstack",
+  "gitea_version": "1.26.4",
+  "base_url": "http://gitea-ci.orb.local:3000",
+  "owner": "admin",
+  "default_branch": "main",
+  "unknown_repository_action": "report-only",
+  "human_merge_identity": "admin",
+  "site_admin": {
+    "username": "admin",
+    "routine_automation_allowed": false,
+    "approved_bootstrap_allowed": true,
+    "break_glass_only": true
+  },
+  "platform_manager": {
+    "username": "aisoft-platform-manager",
+    "site_admin": false,
+    "repository_permission": "admin",
+    "ordinary_git_allowed": false,
+    "merge_allowed": false,
+    "audit_token_scopes": [
+      "read:issue",
+      "read:repository",
+      "read:user"
+    ],
+    "mutation_token_scopes": [
+      "write:issue",
+      "write:repository",
+      "read:user"
+    ]
+  },
+  "project_agent_policy": {
+    "repository_permission": "write",
+    "merge_allowed": false,
+    "cross_project_write_allowed": false,
+    "token_scopes": [
+      "write:issue",
+      "write:repository",
+      "read:user"
+    ]
+  },
+  "shared_bot_migration": {
+    "username": "ci-bot",
+    "default_action": "keep",
+    "retirement_requires_project_validation": true
+  },
+  "server_policy": {
+    "disable_registration": true,
+    "default_private": "private",
+    "force_private": false,
+    "require_signin_view": false
+  },
+  "repository_policy": {
+    "default_visibility": "private",
+    "public_allowlist": [
+      "admin/aisoft-platform",
+      "admin/myapp",
+      "admin/smoke-test"
+    ],
+    "default_delete_branch_after_merge": true,
+    "protect_default_branch": true,
+    "direct_push_allowed": false,
+    "force_push_allowed": false,
+    "merge_allowlist_usernames": [
+      "admin"
+    ],
+    "block_admin_merge_override": true,
+    "preserve_unmanaged_protection_fields": true
+  },
+  "repositories": [
+    {
+      "name": "aisoft-platform",
+      "classification": "public-platform",
+      "visibility": "public",
+      "project_agent": "aisoft-platform-agent",
+      "status_check_contexts": [],
+      "required_approvals": 0
+    },
+    {
+      "name": "HSDB",
+      "classification": "internal-application",
+      "visibility": "private",
+      "project_agent": "hsdb-agent",
+      "status_check_contexts": [
+        "CI / test (pull_request)"
+      ],
+      "required_approvals": 0
+    },
+    {
+      "name": "myapp",
+      "classification": "public-test",
+      "visibility": "public",
+      "project_agent": "myapp-agent",
+      "status_check_contexts": [],
+      "required_approvals": 0
+    },
+    {
+      "name": "NewEMaint",
+      "classification": "internal-application",
+      "visibility": "private",
+      "project_agent": "newemaint-agent",
+      "status_check_contexts": [
+        "CI / verify (pull_request)"
+      ],
+      "required_approvals": 0
+    },
+    {
+      "name": "rsdesign-new",
+      "classification": "internal-application",
+      "visibility": "private",
+      "project_agent": "rsdesign-agent",
+      "status_check_contexts": [
+        "CI / test (pull_request)"
+      ],
+      "required_approvals": 0
+    },
+    {
+      "name": "SapTableMigrate",
+      "classification": "internal-application",
+      "visibility": "private",
+      "project_agent": "sap-table-migrate-agent",
+      "status_check_contexts": [],
+      "required_approvals": 0
+    },
+    {
+      "name": "SFMDigitalBoard",
+      "classification": "internal-application",
+      "visibility": "private",
+      "project_agent": "sfm-board-agent",
+      "status_check_contexts": [
+        "CI / verify (pull_request)"
+      ],
+      "required_approvals": 0
+    },
+    {
+      "name": "smoke-test",
+      "classification": "public-test",
+      "visibility": "public",
+      "project_agent": "smoke-test-agent",
+      "status_check_contexts": [],
+      "required_approvals": 0
+    },
+    {
+      "name": "WMPDA",
+      "classification": "internal-application",
+      "visibility": "private",
+      "project_agent": "wmpda-agent",
+      "status_check_contexts": [],
+      "required_approvals": 0
+    }
+  ],
+  "vm_identity_policy": {
+    "orbstack_lifecycle_controller": "mac-host-user-with-explicit-approval",
+    "scm_ci_operator": "platform-operator",
+    "project_deploy_identity_required": true,
+    "shared_project_deploy_identity_allowed": false,
+    "gitea_credentials_reusable_for_os_access": false,
+    "production_ai_access_allowed": false
+  },
+  "intranet_migration_policy": {
+    "visibility_strategy": "same-classification-policy",
+    "copy_local_accounts": false,
+    "copy_local_tokens_or_secrets": false,
+    "copy_local_issues_or_pull_requests": false,
+    "requires_target_inventory_and_mapping_approval": true
+  }
+}

@@ -41,12 +41,17 @@ for script in \
   "$ROOT/codex/install-host-role.sh" \
   "$ROOT/codex/tools/mark-deployed-issues.sh" \
   "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
+  "$ROOT/codex/tools/gitea-governance.sh" \
+  "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
   "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
   "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
   "$ROOT/codex/tools/artifact-retention-dry-run.sh" \
   "$ROOT/codex/tools/verify-host-role.sh" \
   "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
   "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
+  "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
+  "$ROOT/codex/tests/test-sync-gitea-service-policy.sh" \
   "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
   "$ROOT/codex/tests/test-cleanup-merged.sh" \
   "$ROOT/codex/tests/test-artifact-retention-dry-run.sh" \
@@ -64,6 +69,9 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/sync-gitea-labels.sh" \
     "$ROOT/codex/tools/mark-deployed-issues.sh" \
     "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
+    "$ROOT/codex/tools/gitea-governance.sh" \
+    "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+    "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
     "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
     "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
     "$ROOT/codex/tools/artifact-retention-dry-run.sh" \
@@ -71,6 +79,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
     "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
+    "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
+    "$ROOT/codex/tests/test-sync-gitea-service-policy.sh" \
     "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
     "$ROOT/codex/tests/test-cleanup-merged.sh" \
     "$ROOT/codex/tests/test-artifact-retention-dry-run.sh" \
@@ -93,6 +103,8 @@ bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 bash "$ROOT/codex/tests/test-agent-runtime.sh"
 bash "$ROOT/codex/tests/test-mark-deployed-issues.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh"
+bash "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh"
+bash "$ROOT/codex/tests/test-sync-gitea-service-policy.sh"
 bash "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh"
 bash "$ROOT/codex/tests/test-cleanup-merged.sh"
 bash "$ROOT/codex/tests/test-artifact-retention-dry-run.sh"
@@ -108,6 +120,10 @@ bash "$ROOT/sync/tests/test-inbound-sync.sh"
 bash "$ROOT/sync/tests/test-install.sh"
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
   -s "$ROOT/codex/runtime/tests" -v
+
+PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_gitea_governance.cli \
+  --manifest "$ROOT/codex/config/gitea-governance.json" validate >/dev/null
+jq empty "$ROOT/codex/config/gitea-governance.json"
 
 while IFS= read -r json_file; do
   jq empty "$json_file"
@@ -201,8 +217,14 @@ grep -Fq 'gitea-readonly.sh' \
   "$ROOT/skill-for-codex/references/private-gitea-access.md"
 grep -Fq 'ensure-gitea-collaborator.sh' \
   "$ROOT/skill-for-codex/references/onboarding-runbook.md"
+grep -Fq 'gitea-governance.json' \
+  "$ROOT/skill-for-codex/references/onboarding-runbook.md"
+grep -Fq 'retire-shared-bot' \
+  "$ROOT/codex/skills/gitea-platform-ops/SKILL.md"
 grep -Fq 'BLOCKED_EXTERNAL' \
   "$ROOT/codex/tools/ensure-gitea-collaborator.sh"
+grep -Fq 'BLOCKED_EXTERNAL' \
+  "$ROOT/codex/tools/bootstrap-gitea-service-account.sh"
 grep -Fq 'AISOFT_ONBOARDING_MODE=software-repository' \
   "$ROOT/skill-for-codex/SKILL.md"
 grep -Fq '/mnt/mac/Users/benque/MyDocs/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
