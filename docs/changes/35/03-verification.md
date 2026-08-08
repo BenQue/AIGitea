@@ -66,6 +66,14 @@ service restart、OrbStack VM 或公司内网部署。
 - PR #36：已创建，`change/35 -> main`；初始 head
   `c8dbe794a93fb95970dceb4a931b920c9795785b` 为 `mergeable=true`、`merged=false`。本次 metadata
   回填会产生新 head，required CI 必须只认最终 SHA。
+- 2026-08-08 PR read-back（本 evidence commit 之前）：head
+  `f17dba38a0bd1e2afda194a6c2cabbc95d8d1127`，`open`、`mergeable=true`、`merged=false`；commit
+  statuses `[]`，`change/35` Actions runs `0`。当前 `main` protection 的
+  `enable_status_check=false`，因此 remote CI 为 `NOT CONFIGURED / NOT RUN`，不能把本地 214 tests
+  写成 remote CI PASS。
+- 同次 VM-local admin read-back：`main` direct push=false、force push=false、
+  merge whitelist=true 且 usernames 仅 `admin`；`block_admin_merge_override=false` 是 manifest 在
+  人工合并后逐仓库收敛的已知 drift，当前未修改。
 - Gitea service accounts/PAT：`NOT RUN`（最终 PR 未人工合并）。
 - `DISABLE_REGISTRATION` / default private / Gitea restart：`NOT RUN`。
 - 仓库 visibility/collaborator/protection/default branch cleanup：`NOT RUN`。
