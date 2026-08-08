@@ -10,10 +10,16 @@ Use this procedure before inspecting a private repository, Issue, PR, Actions ru
 
 ## Use the authenticated access ladder
 
-1. **Project profile API**: use the exact mode 400/600 profile as `coder` and the read-only helper. This is the preferred Issue/PR/Actions path.
+1. **Project profile API**: use the exact mode 400/600 project-agent profile as `coder` and the read-only
+   helper. This is the preferred Issue/PR/Actions path and must bind only one repository.
 2. **Configured Git credential**: use the checkout's Gitea remote for `git ls-remote`, fetch, or ancestry checks. If the host sandbox blocks `.orb.local`, retry through the approved host-network path; do not call that an authentication failure.
-3. **VM-local admin read-only fallback**: when no project profile exists or the bot lacks repository ACL, use the existing mode 600 administrator credential file only inside `gitea-ci`, through the read-only helper. Do not copy the token to the Mac or add bot permissions.
-4. **Authenticated browser fallback**: use an existing signed-in browser session for read-only UI evidence when the helper is unavailable or the UI itself matters.
+3. **Platform manager audit PAT**: Issue #35 live reconciliation 后，跨项目 settings/protection inventory
+   使用 manager 的独立 read-only PAT 和 `gitea-governance.sh check`；不得用 mutation PAT 或普通 Git
+   代替。候选 PR 合并前该身份仍是 `NOT RUN`。
+4. **VM-local admin read-only fallback**: when no project profile/manager exists or ACL blocks the exact
+   target, use the existing mode 600 administrator credential file only inside `gitea-ci`, through the
+   read-only helper. Do not copy the token to the Mac or add bot permissions.
+5. **Authenticated browser fallback**: use an existing signed-in browser session for read-only UI evidence when the helper is unavailable or the UI itself matters.
 
 Never begin a private-repository existence check with an anonymous API request. Anonymous `404` and Git `Repository not found` are inconclusive: they can mean private visibility or ACL failure.
 
@@ -55,4 +61,7 @@ Pipe the JSON to a narrow `jq` projection. Do not print environment files, crede
 
 ## Mutation boundary
 
-`gitea-readonly.sh` only performs GET. Use a purpose-built authenticated script or an explicitly authorized browser action for comments, labels, Issue/PR creation, settings, permissions, merge, or close operations. Never broaden a bot's ACL merely to make inspection convenient.
+`gitea-readonly.sh` only performs GET. Issue/comment/label/branch/PR 使用 exact project agent；跨项目
+settings/permissions/protection mutation 只能由已合并 Issue #35 的 purpose-built governance 命令一次
+处理一个 manifest repository。merge 永远保留给人工身份。Never broaden a bot's ACL merely to make
+inspection convenient.

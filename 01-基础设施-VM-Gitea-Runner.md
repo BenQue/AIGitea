@@ -40,14 +40,20 @@ workflow、数据和引用。
 
 ## 2. 账号体系（权限隔离的落点）
 
-| 账号 | 位置 | 用途 | 关键约束 |
-|------|------|------|----------|
-| `admin` | Gitea | 你本人：合并 PR、管仓库 | 唯一有合并权的角色 |
-| `ci-bot` | Gitea | analyzer / Loop 的 API 与 feature-branch Git 身份 | PAT `agent-20260710`，scopes 仅 `write:issue` + `write:repository`；每个接入软件仓库由幂等 gate 配置为精确 Write 协作者；**被分支保护挡在 main 外**，不拥有 Admin 或合并权 |
-| `git` | VM 系统用户 | 跑 Gitea 进程 | — |
-| `gitea-runner` | VM 系统用户 | 跑 act_runner、构建/测试与制品发布 | 现仍拥有 legacy `/opt/rsdesign-test`；迁移后不得长期运行业务应用 |
-| `coder` | VM 系统用户 | 跑 analyzer；未来承载 provider-neutral Loop controller | `~/.agent.env`（600）、linger 已开；当前 Loop 未启用 |
-| `benque` | VM 默认用户 | 运维操作、免密 sudo | 凭据文件在其家目录 |
+下表同时区分 live as-built 与 Issue #35 target。候选 PR 未人工合并、未执行 post-merge
+reconciliation 前，不得把 target 账号或权限写成已经存在。
+
+| 账号/角色 | 状态 | 位置 | 用途 | 关键约束 |
+|------|------|------|------|----------|
+| `admin` | live | Gitea | 人工 break-glass、用户/仓库引导、最终 PR merge | 唯一 merge identity；不用于日常 Agent Git/API |
+| `ci-bot` | live legacy | Gitea | 已有 analyzer / Loop profile 的 API 与 feature Git | 精确 Write、无 Admin/merge；新项目不再接入；每个 project agent 真实验收后才逐仓库退出 |
+| `aisoft-platform-manager` | Issue #35 target，`NOT RUN` | Gitea | 跨项目读取 settings/protection/Actions，执行已批准 reconciliation | 不是 site admin；仅显式 9 仓库 Admin；audit/mutation PAT 分离；不得普通 Git 或 merge |
+| `<project>-agent` | Issue #35 target，`NOT RUN` | Gitea | 仅本项目 Issue/branch/commit/push/PR | 精确 Write；唯一项目绑定；不得跨项目 Write/Admin，不得 push/merge `main` |
+| `git` | live | VM 系统用户 | 跑 Gitea 进程 | 不承载 Agent 或部署身份 |
+| `gitea-runner` | live | VM 系统用户 | 跑 act_runner、构建/测试与制品发布 | 不持有平台 manager、项目 PAT 或生产管理员权限，不长期运行业务应用 |
+| `coder` | live | VM 系统用户 | 跑 analyzer/controller | 每项目 mode 600 profile/credential/state/worktree 分离；当前 Loop 未普遍启用 |
+| `benque` / platform operator | live | VM 默认用户 | 本地平台引导与运维 | 只在 purpose-built 工具和明确批准中使用 sudo/admin credential；不作为项目 deploy identity |
+| `<project>-deploy` | 每应用部署 Change target | AppServer/公司服务器 | 只操作本项目 release/runtime/data/service | 不跨项目，不复用 Gitea PAT；生产仍只运行已验证脚本且无 AI 登录 |
 
 > 🕳️ 踩坑 #8：**Gitea 管理员创建的用户默认 `must_change_password=true`**——改密前该用户所有 API 返回 403（正文 "You must change your password"）。解法：`PATCH /api/v1/admin/users/{u}`，body 带 `{login_name, source_id, must_change_password:false}`。
 >
@@ -57,7 +63,7 @@ workflow、数据和引用。
 
 - 单二进制 `/usr/local/bin/gitea`（1.26.4），systemd 托管，数据 `/var/lib/gitea`，DB 用本机 PostgreSQL（`gitea` 库）。
 - Actions 默认启用（1.21+）。
-- 仓库 `admin/rsdesign-new`：公开；默认分支 `main`；**分支保护**：
+- 仓库 `admin/rsdesign-new`：2026-08-08 live 仍公开，Issue #35 target 为 private；默认分支 `main`；**分支保护**：
   - 禁止直接 push（对所有人生效，含 admin——一切走 PR）
   - 必须状态检查通过：context = `CI / test (pull_request)`
 - 当前 canonical manifest 定义 17 个规范标签，分为三个正交维度：
@@ -66,7 +72,13 @@ workflow、数据和引用。
   - 八个流程状态标签，其中 `completed` 表示合并且无需部署，`deployed` 表示部署验证完成。
 - 2026-07-15 的初始 16-label 在线复验为 `created=0 existing=16`；Issue #19 后续把 canonical taxonomy 扩展为 17 个。标签属于可漂移的 Gitea 外部状态，后续操作前必须重新同步并 GET 验证。
 - 上述结果只证明 taxonomy 已创建且 Issue #8 标签可写；当前 VM 的 v2 wrapper 尚未消费新字段，Development Loop runtime routing 仍未启用。
-- 新软件仓库接入在其它 provisioning 前运行 `ensure-gitea-collaborator.sh`：固定 `ci-bot` + `write`，回读权限、真实 bot 仓库访问和 `main` 保护不变量；失败为 `BLOCKED_EXTERNAL`。这不授权扫描并批量回补所有既有仓库，平台控制仓库也不自动纳入。
+- Issue #35 发布前，`ensure-gitea-collaborator.sh` 的固定 `ci-bot` + `write` 只服务已有 profile
+  的迁移兼容。发布后新项目必须先进入 strict governance manifest，再创建唯一 project agent，
+  使用 `gitea-governance.sh check` 做只读 diff，最后以 exact repository 单次 apply；未知仓库只
+  report。manager/agent/visibility/protection 任一读回失败均为 `BLOCKED_EXTERNAL`。
+- visibility policy：默认 private；当前 public allowlist 只能是 `admin/aisoft-platform`、
+  `admin/myapp`、`admin/smoke-test`。内部应用即使只能在内网访问也保持 private；新 public 例外
+  必须先经独立 Issue/PR 修改 manifest。
 - `app.ini` 追加段（邮件，详见 [05](05-通知与多人协作.md)）：
 
 ```ini

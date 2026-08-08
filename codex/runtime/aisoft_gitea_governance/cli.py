@@ -1,0 +1,269 @@
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import stat
+import subprocess
+import sys
+from pathlib import Path
+
+from .client import ApiError, GiteaClient
+from .contract import ContractError, GovernanceContract, load_contract, validate_full_sha
+from .reconcile import (
+    apply_repository,
+    audit_cross_project_writes,
+    bootstrap_repository_manager,
+    capture_snapshot,
+    planned_actions,
+    retire_shared_bot,
+    rollback_repository,
+    verify_account,
+    verify_token_identity,
+)
+
+
+TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="gitea-governance")
+    parser.add_argument("--manifest", required=True)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    subparsers.add_parser("validate")
+
+    account_spec = subparsers.add_parser("account-spec")
+    account_spec.add_argument("--username", required=True)
+    account_spec.add_argument(
+        "--token-kind",
+        required=True,
+        choices=("manager-audit", "manager-mutation", "project-agent"),
+    )
+
+    verify_merged = subparsers.add_parser("verify-merged")
+    verify_merged.add_argument("--issue", required=True, type=int)
+    verify_merged.add_argument("--merged-sha", required=True)
+    verify_merged.add_argument("--platform-root", required=True)
+
+    check = subparsers.add_parser("check")
+    check.add_argument("--token-file", required=True)
+    check.add_argument("--repository")
+
+    for command in ("bootstrap-manager", "apply", "rollback", "retire-shared-bot"):
+        subparser = subparsers.add_parser(command)
+        subparser.add_argument("--token-file", required=True)
+        subparser.add_argument("--repository", required=True)
+        subparser.add_argument("--issue", required=True, type=int)
+        subparser.add_argument("--merged-sha", required=True)
+        subparser.add_argument("--platform-root", required=True)
+        if command in {"bootstrap-manager", "apply"}:
+            subparser.add_argument("--evidence-dir", required=True)
+        if command == "rollback":
+            subparser.add_argument("--snapshot", required=True)
+        if command == "retire-shared-bot":
+            subparser.add_argument("--validation-file", required=True)
+    return parser
+
+
+def _read_token(path_value: str) -> str:
+    path = Path(path_value)
+    try:
+        info = path.lstat()
+    except OSError as exc:
+        raise ContractError(f"cannot stat token file: {exc}") from exc
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
+        raise ContractError("token file must be a regular non-symlink file")
+    mode = stat.S_IMODE(info.st_mode)
+    if mode not in {0o400, 0o600}:
+        raise ContractError("token file mode must be 400 or 600")
+    try:
+        token = path.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        raise ContractError(f"cannot read token file: {exc}") from exc
+    if not TOKEN_RE.fullmatch(token):
+        raise ContractError("token file must contain exactly one safe raw token")
+    return token
+
+
+def _git_output(root: Path, *arguments: str) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), *arguments],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        raise ContractError("merged platform Git evidence check failed") from None
+    return result.stdout
+
+
+def _verify_merged_contract(
+    contract: GovernanceContract,
+    issue: int,
+    sha_value: str,
+    root_value: str,
+) -> str:
+    if issue != 35:
+        raise ContractError("live mutation requires exact approved Issue #35")
+    sha = validate_full_sha(sha_value)
+    root = Path(root_value).resolve()
+    if not root.is_dir():
+        raise ContractError("platform root does not exist")
+    _git_output(root, "merge-base", "--is-ancestor", sha, "origin/main")
+    relative_manifest = contract.path.resolve().relative_to(root).as_posix()
+    merged_bytes = _git_output(root, "show", f"{sha}:{relative_manifest}").encode("utf-8")
+    current_bytes = contract.path.read_bytes()
+    if merged_bytes != current_bytes:
+        raise ContractError("current manifest is not byte-identical to the approved merged SHA")
+    return sha
+
+
+def _client(contract: GovernanceContract, token_file: str) -> GiteaClient:
+    token = _read_token(token_file)
+    return GiteaClient(contract.base_url, token)
+
+
+def _json(value: object) -> None:
+    print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
+
+
+def _check(
+    client: GiteaClient,
+    contract: GovernanceContract,
+    repository_name: str | None,
+) -> int:
+    verify_token_identity(client, contract.platform_manager, require_site_admin=False)
+    repositories = (
+        (contract.repository(repository_name),)
+        if repository_name
+        else contract.repositories
+    )
+    results = []
+    drift = False
+    for repository in repositories:
+        snapshot = capture_snapshot(client, contract, repository)
+        plan = planned_actions(contract, repository, snapshot)
+        results.append(plan)
+        drift = drift or bool(plan["planned_actions"] or plan["blockers"])
+    # Once accounts exist, they must never be site administrators. A missing
+    # account is represented as planned provisioning rather than an exception.
+    account_status = []
+    for repository in repositories:
+        try:
+            verify_account(client, repository.project_agent, must_be_site_admin=False)
+            account_status.append({"username": repository.project_agent, "state": "present-non-admin"})
+        except ApiError as exc:
+            if exc.status != 404:
+                raise
+            account_status.append({"username": repository.project_agent, "state": "missing"})
+            drift = True
+    cross_project_violations = audit_cross_project_writes(client, contract)
+    drift = drift or bool(cross_project_violations)
+    _json({
+        "contract_version": "gitea-governance/v1",
+        "mode": "read-only",
+        "repositories": results,
+        "project_accounts": account_status,
+        "cross_project_write_violations": cross_project_violations,
+        "result": "DRIFT" if drift else "PASS",
+    })
+    return 1 if drift else 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    arguments = _parser().parse_args(argv)
+    try:
+        contract = load_contract(arguments.manifest)
+        if arguments.command == "validate":
+            _json({
+                "contract_version": contract.raw["contract_version"],
+                "environment": contract.raw["environment"],
+                "owner": contract.owner,
+                "platform_manager": contract.platform_manager,
+                "repository_count": len(contract.repositories),
+                "public_allowlist": contract.raw["repository_policy"]["public_allowlist"],
+                "result": "PASS",
+            })
+            return 0
+        if arguments.command == "account-spec":
+            accounts = contract.declared_service_accounts()
+            if arguments.username not in accounts:
+                raise ContractError("service account is not declared by the manifest")
+            if arguments.username == contract.platform_manager:
+                if arguments.token_kind == "manager-audit":
+                    scopes = contract.raw["platform_manager"]["audit_token_scopes"]
+                elif arguments.token_kind == "manager-mutation":
+                    scopes = contract.raw["platform_manager"]["mutation_token_scopes"]
+                else:
+                    raise ContractError("platform manager requires a manager token kind")
+            else:
+                if arguments.token_kind != "project-agent":
+                    raise ContractError("project account requires project-agent token kind")
+                scopes = contract.raw["project_agent_policy"]["token_scopes"]
+            _json({
+                "username": arguments.username,
+                "token_kind": arguments.token_kind,
+                "scopes": scopes,
+                "site_admin": False,
+                "user_type": "bot",
+            })
+            return 0
+        if arguments.command == "verify-merged":
+            sha = _verify_merged_contract(
+                contract,
+                arguments.issue,
+                arguments.merged_sha,
+                arguments.platform_root,
+            )
+            _json({"issue": arguments.issue, "merged_sha": sha, "result": "PASS"})
+            return 0
+
+        client = _client(contract, arguments.token_file)
+        if arguments.command == "check":
+            return _check(client, contract, arguments.repository)
+
+        _verify_merged_contract(
+            contract,
+            arguments.issue,
+            arguments.merged_sha,
+            arguments.platform_root,
+        )
+        repository = contract.repository(arguments.repository)
+        if arguments.command == "bootstrap-manager":
+            _json(bootstrap_repository_manager(
+                client,
+                contract,
+                repository,
+                Path(arguments.evidence_dir),
+            ))
+            return 0
+        if arguments.command == "apply":
+            _json(apply_repository(client, contract, repository, Path(arguments.evidence_dir)))
+            return 0
+        if arguments.command == "rollback":
+            snapshot_path = Path(arguments.snapshot)
+            try:
+                snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise ContractError(f"cannot read rollback snapshot: {exc}") from exc
+            _json(rollback_repository(client, contract, repository, snapshot))
+            return 0
+        if arguments.command == "retire-shared-bot":
+            _json(retire_shared_bot(
+                client,
+                contract,
+                repository,
+                Path(arguments.validation_file),
+            ))
+            return 0
+        raise ContractError("unsupported command")
+    except (ContractError, ApiError) as exc:
+        print(f"BLOCKED_EXTERNAL: {exc}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

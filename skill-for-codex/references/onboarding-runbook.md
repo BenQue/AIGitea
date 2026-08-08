@@ -6,11 +6,64 @@
 
 先确定唯一 profile 名称，再确定 `GITEA_URL`、`OWNER`、`REPO`、本地只读/工作克隆、技术栈、测试命令与 verifier 配置。只有应用项目才需要应用端口、Nginx 端口、健康端点、数据存储和回滚方式；纯文档或平台规范仓库不需要虚构部署流程。
 
-把仓库放到 Gitea，验证历史完整、默认分支正确、Mac/内网客户端可以 clone 和 push feature branch。随后由 owner/admin 创建并回读 `main` 保护：禁止 direct/force push，保留目标 CI context，并启用不含 `ci-bot` 的 merge allowlist。collaborator gate 只验证并保持该规则，不负责创建或放宽保护。
+把仓库放到 Gitea，验证历史完整、默认分支正确、Mac/内网客户端可以 clone 和 push feature
+branch。随后先把 exact repository、classification、visibility、project agent 和 required status
+contexts 纳入 `codex/config/gitea-governance.json` 并经平台 PR 人工合并；未知仓库不能继续接入。
 
-### 1.1 Mandatory `ci-bot` collaborator gate
+### 1.1 Mandatory governance manifest 与 project-agent gate
 
-对每个通过 AISoftPlatform skill 初始化、接入或准备部署的本地 Gitea **软件仓库**，在 owner/admin 已创建上述 `main` 保护之后、标签、project profile、Analyzer、Loop、CI 或部署配置之前，必须运行：
+Issue #35 发布后，按顺序执行：
+
+1. `gitea-governance.sh --manifest ... validate` 验证 strict contract；public 必须在 exact allowlist，
+   其它仓库默认 private。
+2. 以 `bootstrap-gitea-service-account.sh` 一次创建一个 manifest-declared bot/PAT。manager audit、
+   manager mutation 和每项目 token 使用独立 mode 600 file；账号/PAT 不复制到其它项目。
+3. 仅以人工 site admin credential 对一个 exact repository 运行 `bootstrap-manager`，把非 site-admin
+   `aisoft-platform-manager` 校准为 repository Admin；pre/post snapshot 均须保存。
+4. 使用 manager audit token 运行 `gitea-governance.sh check`，显示 current/expected/planned action、
+   cross-project Write violations 和 protection blockers。默认只读。
+5. 使用 manager mutation token 对一个 exact repository 运行 `apply`；命令必须携带 Issue #35、
+   已合并 platform SHA、platform root 和独立 evidence directory。工具校准 visibility、project-agent
+   Write、merge 后删分支和 `main` protection，同时保留 exact status/approval contract。
+6. 项目 profile 改用自己的 token，真实验证 private repo read、Issue/comment/label、feature push、
+   PR、main push denied、main merge denied。只有 exact JSON evidence 全 PASS 后才允许
+   `retire-shared-bot`。
+
+所有 `main` 均禁止 direct/force push；merge allowlist 只能是人工 `admin`。platform manager、
+project agent 与 legacy `ci-bot` 不得进入 push/force-push/merge allowlist。任一 credential、API、
+permission、visibility、protection、cross-project 或 read-back 失败均终止为 `BLOCKED_EXTERNAL`。
+
+标准入口（只替换尖括号；token file 只写路径，不打印内容）：
+
+```bash
+PLATFORM_ROOT=/mnt/mac/Users/benque/MyDocs/AISoftPlatform
+MANIFEST="$PLATFORM_ROOT/codex/config/gitea-governance.json"
+
+"$PLATFORM_ROOT/codex/tools/gitea-governance.sh" \
+  --manifest "$MANIFEST" validate
+
+"$PLATFORM_ROOT/codex/tools/gitea-governance.sh" \
+  --manifest "$MANIFEST" check \
+  --token-file <manager-audit-token-file> \
+  --repository admin/<repo>
+
+"$PLATFORM_ROOT/codex/tools/gitea-governance.sh" \
+  --manifest "$MANIFEST" apply \
+  --token-file <manager-mutation-token-file> \
+  --repository admin/<repo> \
+  --issue 35 \
+  --merged-sha <full-origin-main-sha-containing-issue-35> \
+  --platform-root "$PLATFORM_ROOT" \
+  --evidence-dir <new-mode-700-evidence-directory>
+```
+
+`bootstrap-manager` 使用人工 site-admin credential，但除此以外参数与 apply 相同；它只给一个
+exact repository 添加 manager Admin 并写 pre/post snapshot，不修改 visibility、agent 或 protection。
+
+### 1.2 Legacy `ci-bot` collaborator gate（迁移期）
+
+Issue #35 live reconciliation 前，已有 profile 可以继续运行下列 fixed gate 保持服务；不得用它接入
+新项目：
 
 ```bash
 AISOFT_ONBOARDING_MODE=software-repository \
@@ -34,7 +87,9 @@ GITEA_BOT_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
 - 任一 credential、API、permission、branch protection 或 bot-access 验证失败，终止全部后续接入并报告 `BLOCKED_EXTERNAL`。
 - token 只能来自 mode 400/600 profile/credential file，经 curl stdin config 使用，不能出现在 argv、日志、输出、Git config 或仓库内容中。
 
-已有仓库的回补先使用同一工具的 `--check`。只从明确 AISoftPlatform project profiles/接入记录生成 `repository/current_permission/main_protection/planned_action` 清单并等待人工确认；不得枚举全部 Gitea 仓库后批量授权，不得自动纳入 AISoftPlatform 等平台控制仓库。
+已有仓库的回补先使用同一工具的 `--check`。只从明确 AISoftPlatform project profiles/接入记录
+生成 `repository/current_permission/main_protection/planned_action` 清单并等待人工确认；不得枚举
+全部 Gitea 仓库后批量授权。新 project agent 验收前保留 `ci-bot`，验收后逐仓库退出。
 
 ## 2. 共享项目契约
 
@@ -136,7 +191,8 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 
 ## 5. Gitea 治理
 
-- 先通过 §1.1 collaborator gate，给 `ci-bot` 精确 `write` 仓库权限，用于 private read、Issue/评论/标签、受控 feature branch 和 PR；不给 `admin` 或合并权。
+- 先通过 §1.1 manifest/project-agent gate；platform manager 为 exact-repo Admin，项目 agent 为
+  exact-repo Write，二者均不给 merge。§1.2 `ci-bot` 只服务尚未迁移的已有 profile。
 - 保护 `main`，禁止直接 push，要求准确的 `CI / test (pull_request)` context。
 - 建七个类型标签：`type/bugfix`、`type/feature`、`type/docs`、`type/test`、`type/refactor`、`type/maintenance`、`type/platform`。它们是 Issue 作者可提供、AI 按证据校验的变更类型输入。
 - 建两个互斥的复杂度标签：`complexity/small`、`complexity/complex`。它们是 AI 判级后的输出；无法安全判级时两者都不添加。
@@ -174,16 +230,18 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 按顺序验证：
 
 1. Trivial PR 的 CI context 正确且受分支保护约束。
-2. `scm-ci` 的 application start 负向 guard 证明零 mutation。
-3. 合并后由独立 `appserver-test` 确定性部署和精确 SHA health 通过。
-4. Analyzer 对真实 Issue 输出确定性分类，wrapper/controller 写入正确且互斥的标签。
-5. Small Issue 从明确合同进入 Loop 并准备绿色 PR。
-6. Complex Issue 缺 spec/plan 时拒绝，补齐后按 plan 执行。
-7. 普通测试失败由 Loop 自修复。
-8. 合同冲突、外部阻塞和三次同因失败正确升级。
-9. CI failure feedback 能进入下一轮。
-10. 非生产首次部署执行两次并完成故意失败回滚。
-11. 生产负向测试证明 provider 无生产部署权限。
+2. governance check 证明 visibility 与 public allowlist/private default 一致，project agent 没有
+   cross-project Write/Admin，manager/project agent/legacy bot 均不能 merge `main`。
+3. `scm-ci` 的 application start 负向 guard 证明零 mutation。
+4. 合并后由独立 `appserver-test` 确定性部署和精确 SHA health 通过。
+5. Analyzer 对真实 Issue 输出确定性分类，wrapper/controller 写入正确且互斥的标签。
+6. Small Issue 从明确合同进入 Loop 并准备绿色 PR。
+7. Complex Issue 缺 spec/plan 时拒绝，补齐后按 plan 执行。
+8. 普通测试失败由 Loop 自修复。
+9. 合同冲突、外部阻塞和三次同因失败正确升级。
+10. CI failure feedback 能进入下一轮。
+11. 非生产首次部署执行两次并完成故意失败回滚。
+12. 生产负向测试证明 provider 无生产部署权限。
 
 中央 Codex runtime/adapter 先通过共享 synthetic 与至少一个明确标注的 pilot；每个新项目仍需完成与自身技术栈、CI 和部署范围对应的验收。随后 Claude adapter 复用同一 profile、controller、verifier 和状态合同，不复制项目专用状态机。
 
