@@ -14,9 +14,9 @@ risk_flags:
   - platform-governance
 depends_on:
   - 27
-status: approved
+status: pr-open
 branch: change/46
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/47
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -47,4 +47,6 @@ updated: 2026-08-08
   `Codex platform static smoke checks passed.`，exit 0。
 - `bash -n codex/tests/smoke.sh`、ShellCheck、`git diff --check`：`PASS`。
 - compatibility matrix/runtime/VM/Docker/制品/部署/company intranet mutation：`NOT RUN`。
+- PR #47 initial head `74607184f2e2729e17809941f5a1feec87daf939`：`open`、
+  `mergeable=true`、`merged=false`；metadata 回填将产生 final head，必须重新读回。
 - PR merge：`NOT RUN`，必须人工执行。
