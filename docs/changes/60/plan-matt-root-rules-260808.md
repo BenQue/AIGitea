@@ -13,9 +13,9 @@ risk_flags:
   - shared-core
 depends_on:
   - 57
-status: approved
+status: pr-open
 branch: change/60
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/62
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -28,7 +28,7 @@ updated: 2026-08-08
 |---|---|---|---|
 | T01 | 根级 change 文档与仓库初始化合同 | - | completed |
 | T02 | VM Codex 的 Matt 主流程与兼容 adapter 路由 | T01 | completed |
-| T03 | 静态合同测试、完整验证与最终 PR | T01, T02 | in-progress |
+| T03 | 静态合同测试、完整验证与最终 PR | T01, T02 | completed |
 
 ## Tasks
 

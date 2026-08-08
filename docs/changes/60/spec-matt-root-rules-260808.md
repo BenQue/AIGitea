@@ -13,9 +13,9 @@ risk_flags:
   - shared-core
 depends_on:
   - 57
-status: approved
+status: pr-open
 branch: change/60
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/62
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -53,7 +53,7 @@ Controller、CI、PR、部署授权和人工合并。
 - [x] **AC-7** 更新相关静态 smoke 断言，验证新命名、三份初始化模板、Matt 主路径、兼容 adapter、人工
   merge 与默认 provider 边界；完整 Python suite、`bash codex/tests/smoke.sh`、相关 `bash -n`、
   ShellCheck（若可用）、`git diff --check` 和 Secret 检查通过。
-- [ ] **AC-8** Change 只产生一个 `Closes #60` PR，并停止在人工 merge gate；不执行应用部署。
+- [x] **AC-8** Change 只产生一个 `Closes #60` PR，并停止在人工 merge gate；不执行应用部署。
 
 ## 接口、数据与兼容性影响
 

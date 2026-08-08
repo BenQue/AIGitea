@@ -13,9 +13,9 @@ risk_flags:
   - shared-core
 depends_on:
   - 57
-status: pending-pr
+status: ready-for-review
 branch: change/60
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/62
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -29,6 +29,7 @@ updated: 2026-08-08
 - Approved contract head: `2f8f4e84a599c6ffe090f9286d95e2bbb4694d58`
 - T01 commit: `bbbdf63`
 - T02 commit: `8124dfa`
+- T03 implementation/verification commit: `e5ac4d9`
 - Python: `3.14.4`
 - ShellCheck: `/opt/homebrew/bin/shellcheck`
 
@@ -45,7 +46,9 @@ updated: 2026-08-08
 | `git diff --check` | PASS | 当前实现无 whitespace error；最终文档提交前后均需重跑 |
 | 高置信 Secret pattern scan | PASS | 当前 Issue diff 未命中 private key、GitHub/OpenAI-style key、Authorization token 或长值 credential assignment |
 | Gitea Issue #60 authenticated read-back | PASS | 2026-08-08：Issue open；labels 精确含 `approved`、`complexity/complex`、`type/platform` |
-| 最终 Gitea PR | NOT RUN | 等待本 T03 提交、push 与唯一 `Closes #60` PR 创建后回填 |
+| Gitea PR #62 pre-handoff read-back | PASS | 唯一、open、非 draft、`mergeable: true`、base `main`、head `change/60@e5ac4d9`、7 个预期文件且正文包含 `Closes #60`；本纯文档 handoff commit 会再推进 head |
+| Gitea dependency #57 read-back | PASS | Issue closed 且唯一 lifecycle 为 `completed` |
+| Gitea commit status contexts | NOT CONFIGURED | `e5ac4d9` combined state 为 `pending`，但 `total_count: 0` 且 statuses 为 null/空；不得表述为 CI 已运行或通过 |
 
 ## Acceptance criteria 结果
 
@@ -56,7 +59,7 @@ updated: 2026-08-08
 - AC-5：PASS。Agent local commit、Controller push/PR/CI、human merge、独立部署授权与 `IMPLEMENT_PROVIDER=none` 均有静态断言。
 - AC-6：PASS。`triage/ready-for-agent` 与 `approved` 分离；auto-merge、protected-main push、force-push、静默全局 skill 更新、越权 live 标签与部署均被禁止。
 - AC-7：PASS。focused syntax/ShellCheck、修正 import path 后的 240-test suite、完整 smoke、diff 与 Secret 检查通过；原始 Python 入口失败单独保留。
-- AC-8：PENDING。实现验证完成；尚待创建唯一最终 PR 并停止在人工 merge gate。
+- AC-8：PASS。唯一最终 PR #62 已创建并停止在人工 merge gate；未合并或部署。
 
 ## 未运行与独立门禁
 
@@ -72,4 +75,4 @@ updated: 2026-08-08
 
 ## 遗留风险
 
-- Gitea required CI 与最终 PR 状态必须在 PR 创建后只读回查；未配置或未运行的 context 不得写成通过。
+- Gitea 当前没有 required status context；PR #62 的 combined state 因零 context 显示 `pending`，不是 CI 通过证据。若后续配置 required CI，必须在最终 head 上重新运行并通过后才可人工合并。
