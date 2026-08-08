@@ -19,9 +19,9 @@ risk_flags:
   - rollback
   - platform-governance
 depends_on: []
-status: approved
+status: pr-open
 branch: change/37
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/40
 created: 2026-08-08
 updated: 2026-08-08
 ---

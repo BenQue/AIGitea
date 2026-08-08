@@ -19,9 +19,9 @@ risk_flags:
   - rollback
   - platform-governance
 depends_on: []
-status: implementation-verified
+status: pr-open
 branch: change/37
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/40
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -37,7 +37,7 @@ updated: 2026-08-08
 - `e59359f2e2811d78a252ec95cbb6e573b5501863..69251fd4...` 在
   `docker-release/**` 与 `codex/runtime/aisoft_release/**` 无 byte drift；变化仅位于其它
   governance tests。因此 NewEmaint 当前 pinned contract 与实现 baseline 可直接比较。
-- Gitea Issue #37 为 open，labels 为 `approved`、`complexity/complex`、`type/platform`；
+- Gitea Issue #37 为 open，当前 labels 为 `pr-open`、`complexity/complex`、`type/platform`；
   创建前没有相关 open Issue/PR。
 - `main` direct push=false、merge whitelist=true、required approvals=0、
   `enable_status_check=false`；exact main commit statuses total=0，Actions runs=0。Remote CI
@@ -47,6 +47,12 @@ updated: 2026-08-08
 - DockerLab host-path read-back：Ubuntu 24.04.4 LTS、amd64、Docker 29.7.1、Compose 5.1.4、
   containerd 2.2.6；0 containers、0 images、0 volumes、0 build cache，3000/3030 无 listener，
   `127.0.0.1:3000` connection refused。
+
+PR #40 已创建：`change/37 -> main`。初始 implementation head
+`b17654a93066964633fb0562ee02dba527062eb9` 实时为 open、mergeable=true、merged=false，
+commit statuses total=0，matching Actions runs=0。本文档 handoff 回填会产生新的 PR head；remote CI
+仍只能按最终 exact head 读回，不能把本地 tests 写成 remote CI PASS。Issue lifecycle 已从
+`approved` 收敛为 `pr-open`，type/complexity labels 保持不变。
 
 ## 失败事实与实现结果
 
