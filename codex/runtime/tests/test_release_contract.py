@@ -34,10 +34,13 @@ class ReleaseSchemaTests(unittest.TestCase):
         schema_root = repository_root() / "docker-release" / "schema"
         names = (
             "release-manifest-v1.schema.json",
+            "release-manifest-v2.schema.json",
             "target-profile-v1.schema.json",
             "offline-inventory-v1.schema.json",
             "offline-inventory-v2.schema.json",
             "image-store-compatibility-v1.schema.json",
+            "state-v2.schema.json",
+            "command-gate-v1.schema.json",
         )
         for name in names:
             with self.subTest(name=name):
@@ -63,6 +66,12 @@ class ReleaseContractTests(unittest.TestCase):
         profile = load_target_profile(self.profile_path)
         files = load_release_files(profile, SHA_A)
         self.assertEqual(files.manifest.release_id, SHA_A)
+        self.assertEqual(files.manifest.contract_version, "docker-release/v2")
+        self.assertEqual(
+            files.manifest.architecture_project_id,
+            "newemaint-target-candidate",
+        )
+        self.assertEqual(files.compose_model, self.model)
         self.assertEqual(files.manifest.platform, "linux/amd64")
         self.assertEqual(files.architecture_lock["profile_id"], "linux-node-postgres-v1")
         self.assertEqual(files.manifest.runtime_services, ("web",))
@@ -157,6 +166,9 @@ class ReleaseContractTests(unittest.TestCase):
             ),
             "architecture mismatch": lambda value: value["architecture"].update(
                 {"profile_id": "different-profile"}
+            ),
+            "missing architecture project": lambda value: value["architecture"].pop(
+                "project_id"
             ),
             "destructive migration": lambda value: value["migration"].update(
                 {"destructive": True}

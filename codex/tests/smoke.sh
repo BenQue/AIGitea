@@ -23,6 +23,7 @@ optional_runtime_sources=(
   "$ROOT/codex/install-host-access-broker.sh"
   "$ROOT/codex/install-vm.sh"
   "$ROOT/docker-release/bin/aisoft-docker-release"
+  "$ROOT/docker-release/bin/aisoft-docker-release-gate"
   "$ROOT/docker-release/install.sh"
   "$ROOT/codex/tests/test-docker-release-install.sh"
   "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
@@ -104,6 +105,7 @@ if command -v shellcheck >/dev/null; then
   shellcheck "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh
   shellcheck \
     "$ROOT/docker-release/bin/aisoft-docker-release" \
+    "$ROOT/docker-release/bin/aisoft-docker-release-gate" \
     "$ROOT/docker-release/install.sh" \
     "$ROOT/codex/tests/test-docker-release-install.sh" \
     "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh" \

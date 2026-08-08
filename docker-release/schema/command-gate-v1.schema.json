@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aisoft.example/contracts/docker-release/command-gate-v1.schema.json",
+  "title": "AISoft Docker release fixed action grant v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "action", "target_id", "profile", "audit_log"],
+  "properties": {
+    "contract_version": {"const": "docker-release-command-gate/v1"},
+    "action": {"enum": ["verify-target", "stage", "migrate", "activate", "status", "rollback"]},
+    "target_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+    "profile": {"type": "string", "pattern": "^/[^\\u0000]+$", "maxLength": 4096},
+    "audit_log": {"type": "string", "pattern": "^/[^\\u0000]+$", "maxLength": 4096}
+  }
+}

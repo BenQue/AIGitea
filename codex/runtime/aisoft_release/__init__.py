@@ -7,12 +7,14 @@ from .contract import (
     ReleaseFiles,
     ReleaseManifest,
     TargetProfile,
+    load_release_artifact,
     load_release_files,
     load_target_profile,
 )
 from .errors import (
     ContractError,
     DeploymentError,
+    GateError,
     HostRoleError,
     ReleaseError,
     StateError,
@@ -23,6 +25,7 @@ __all__ = [
     "ContractError",
     "DeploymentError",
     "HostRoleError",
+    "GateError",
     "ImageSpec",
     "MigrationSpec",
     "OfflineBundleSpec",
@@ -32,6 +35,7 @@ __all__ = [
     "StateError",
     "TargetProfile",
     "TransportError",
+    "load_release_artifact",
     "load_release_files",
     "load_target_profile",
 ]

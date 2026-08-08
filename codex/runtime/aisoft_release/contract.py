@@ -16,7 +16,11 @@ from urllib.parse import urlsplit
 from .errors import ContractError
 
 
-RELEASE_VERSION = "docker-release/v1"
+RELEASE_VERSION_V1 = "docker-release/v1"
+RELEASE_VERSION_V2 = "docker-release/v2"
+# Kept as the architecture catalog delivery-family identifier and as the
+# legacy producer contract exported to existing callers.
+RELEASE_VERSION = RELEASE_VERSION_V1
 PROFILE_VERSION = "docker-release-target/v1"
 ARCHITECTURE_LOCK_SCHEMA = "./architecture/schemas/architecture-lock-v1.schema.json"
 ARCHITECTURE_LOCK_SCHEMA_VERSION = "1.0"
@@ -96,8 +100,11 @@ class ReleaseManifest:
     platform: str
     compose_path: str
     compose_sha256: str
+    compose_model_path: str | None
+    compose_model_sha256: str | None
     architecture_path: str
     architecture_profile_id: str
+    architecture_project_id: str | None
     catalog_revision: str
     architecture_lock_sha256: str
     images: tuple[ImageSpec, ...]
@@ -137,11 +144,13 @@ class ReleaseFiles:
     directory: Path
     manifest_path: Path
     compose_path: Path
+    compose_model_path: Path | None
     architecture_lock_path: Path
     archive_path: Path
     inventory_path: Path
     manifest: ReleaseManifest
     architecture_lock: Mapping[str, object]
+    compose_model: Mapping[str, object] | None
 
 
 def load_target_profile(path: Path | str, *, require_protected: bool = True) -> TargetProfile:
@@ -244,41 +253,77 @@ def load_release_files(
     *,
     today: date | None = None,
 ) -> ReleaseFiles:
-    if not isinstance(release_id, str) or not GIT_SHA.fullmatch(release_id):
-        raise ContractError("release_id must be a lowercase 40-character Git SHA")
-    release_root = profile.release_root
-    directory = release_root / release_id
-    _require_directory(directory, "release directory")
-    if directory.is_symlink():
-        raise ContractError("release directory must not be a symlink")
-    _assert_within(directory.resolve(), release_root.resolve(), "release directory")
-    manifest_path = _release_file(directory, "release.json", "release manifest")
-    raw = _load_json_object(manifest_path, "release manifest")
-    _reject_sensitive_keys(raw, "release manifest")
-    manifest = _parse_manifest(raw, release_id)
+    files = load_release_artifact(
+        profile.release_root,
+        release_id,
+        expected_architecture_project_id=profile.architecture_project_id,
+        today=today,
+    )
+    manifest = files.manifest
     if manifest.source_repository != profile.source_repository:
         raise ContractError("release source_repository does not match target profile")
     if manifest.architecture_profile_id != profile.architecture_profile_id:
         raise ContractError("release architecture profile does not match target profile")
     if manifest.catalog_revision != profile.catalog_revision:
         raise ContractError("release catalog revision does not match target profile")
+    return files
+
+
+def load_release_artifact(
+    release_root: Path | str,
+    release_id: str,
+    *,
+    expected_architecture_project_id: str | None = None,
+    today: date | None = None,
+) -> ReleaseFiles:
+    """Load and checksum a release without reading any target profile facts."""
+    if not isinstance(release_id, str) or not GIT_SHA.fullmatch(release_id):
+        raise ContractError("release_id must be a lowercase 40-character Git SHA")
+    root = Path(release_root)
+    if not root.is_absolute():
+        raise ContractError("release_root must be an absolute path")
+    directory = root / release_id
+    _require_directory(directory, "release directory")
+    if directory.is_symlink():
+        raise ContractError("release directory must not be a symlink")
+    _assert_within(directory.resolve(), root.resolve(), "release directory")
+    manifest_path = _release_file(directory, "release.json", "release manifest")
+    raw = _load_json_object(manifest_path, "release manifest")
+    _reject_sensitive_keys(raw, "release manifest")
+    manifest = _parse_manifest(raw, release_id)
     compose_path = _release_file(directory, manifest.compose_path, "Compose file")
+    compose_model_path = None
+    compose_model = None
+    if manifest.compose_model_path is not None:
+        compose_model_path = _release_file(
+            directory, manifest.compose_model_path, "normalized Compose model"
+        )
+        compose_model = _load_json_object(
+            compose_model_path, "normalized Compose model"
+        )
+        _reject_sensitive_keys(compose_model, "normalized Compose model")
     architecture_path = _release_file(
         directory, manifest.architecture_path, "architecture lock"
     )
     archive_path = _release_path(directory, manifest.offline_bundle.archive_path)
     inventory_path = _release_path(directory, manifest.offline_bundle.inventory_path)
-    _validate_release_inventory(
-        directory,
-        {
-            manifest_path,
-            compose_path,
-            architecture_path,
-            archive_path,
-            inventory_path,
-        },
-    )
+    allowed = {
+        manifest_path,
+        compose_path,
+        architecture_path,
+        archive_path,
+        inventory_path,
+    }
+    if compose_model_path is not None:
+        allowed.add(compose_model_path)
+    _validate_release_inventory(directory, allowed)
     _require_checksum(compose_path, manifest.compose_sha256, "Compose file")
+    if compose_model_path is not None and manifest.compose_model_sha256 is not None:
+        _require_checksum(
+            compose_model_path,
+            manifest.compose_model_sha256,
+            "normalized Compose model",
+        )
     _require_checksum(
         architecture_path,
         manifest.architecture_lock_sha256,
@@ -286,21 +331,34 @@ def load_release_files(
     )
     architecture_lock = _load_json_object(architecture_path, "architecture lock")
     _reject_sensitive_keys(architecture_lock, "architecture lock")
+    bound_project_id = (
+        manifest.architecture_project_id or expected_architecture_project_id
+    )
     _validate_architecture_lock(
         architecture_lock,
         manifest,
-        profile.architecture_project_id,
+        bound_project_id,
         today or datetime.now(timezone.utc).date(),
     )
+    if (
+        expected_architecture_project_id is not None
+        and manifest.architecture_project_id is not None
+        and manifest.architecture_project_id != expected_architecture_project_id
+    ):
+        raise ContractError(
+            "release architecture project does not match target profile"
+        )
     return ReleaseFiles(
         directory=directory.resolve(),
         manifest_path=manifest_path,
         compose_path=compose_path,
+        compose_model_path=compose_model_path,
         architecture_lock_path=architecture_path,
         archive_path=archive_path,
         inventory_path=inventory_path,
         manifest=manifest,
         architecture_lock=architecture_lock,
+        compose_model=compose_model,
     )
 
 
@@ -608,8 +666,10 @@ def _parse_manifest(value: Mapping[str, object], requested_release: str) -> Rele
         "release manifest",
     )
     contract_version = _string(value, "contract_version", "release manifest")
-    if contract_version != RELEASE_VERSION:
-        raise ContractError(f"release contract_version must be {RELEASE_VERSION}")
+    if contract_version not in {RELEASE_VERSION_V1, RELEASE_VERSION_V2}:
+        raise ContractError(
+            "release contract_version must be docker-release/v1 or docker-release/v2"
+        )
     release_id = _matching_string(value, "release_id", GIT_SHA, "release manifest")
     merge_sha = _matching_string(value, "merge_sha", GIT_SHA, "release manifest")
     if release_id != requested_release or merge_sha != release_id:
@@ -622,24 +682,43 @@ def _parse_manifest(value: Mapping[str, object], requested_release: str) -> Rele
         raise ContractError("release platform must be linux/amd64")
 
     compose = _mapping(value, "compose", "release manifest")
-    _expect_keys(compose, {"path", "sha256"}, "release manifest compose")
+    compose_required = {"path", "sha256"}
+    if contract_version == RELEASE_VERSION_V2:
+        compose_required |= {"model_path", "model_sha256"}
+    _expect_keys(compose, compose_required, "release manifest compose")
     compose_path = _relative_path(compose, "path", "release manifest compose")
     compose_sha = _matching_string(
         compose, "sha256", SHA256_HEX, "release manifest compose"
     )
+    compose_model_path = None
+    compose_model_sha = None
+    if contract_version == RELEASE_VERSION_V2:
+        compose_model_path = _relative_path(
+            compose, "model_path", "release manifest compose"
+        )
+        compose_model_sha = _matching_string(
+            compose, "model_sha256", SHA256_HEX, "release manifest compose"
+        )
 
     architecture = _mapping(value, "architecture", "release manifest")
-    _expect_keys(
-        architecture,
-        {"path", "profile_id", "catalog_revision", "sha256"},
-        "release manifest architecture",
-    )
+    architecture_required = {"path", "profile_id", "catalog_revision", "sha256"}
+    if contract_version == RELEASE_VERSION_V2:
+        architecture_required.add("project_id")
+    _expect_keys(architecture, architecture_required, "release manifest architecture")
     architecture_path = _relative_path(
         architecture, "path", "release manifest architecture"
     )
     architecture_profile = _matching_string(
         architecture, "profile_id", IDENTIFIER, "release manifest architecture"
     )
+    architecture_project = None
+    if contract_version == RELEASE_VERSION_V2:
+        architecture_project = _matching_string(
+            architecture,
+            "project_id",
+            ARCHITECTURE_ID,
+            "release manifest architecture",
+        )
     catalog_revision = _matching_string(
         architecture, "catalog_revision", IDENTIFIER, "release manifest architecture"
     )
@@ -649,6 +728,13 @@ def _parse_manifest(value: Mapping[str, object], requested_release: str) -> Rele
 
     offline = _mapping(value, "offline_bundle", "release manifest")
     offline_bundle = _parse_offline_bundle(offline)
+    if (
+        contract_version == RELEASE_VERSION_V2
+        and offline_bundle.contract_version != OFFLINE_BUNDLE_V2
+    ):
+        raise ContractError(
+            "docker-release/v2 requires docker-release-offline-bundle/v2"
+        )
 
     raw_images = value.get("images")
     if not isinstance(raw_images, list) or not raw_images:
@@ -722,7 +808,11 @@ def _parse_manifest(value: Mapping[str, object], requested_release: str) -> Rele
         offline_bundle.archive_path,
         offline_bundle.inventory_path,
     }
-    if len(release_paths) != 4 or "release.json" in release_paths:
+    expected_path_count = 4
+    if compose_model_path is not None:
+        release_paths.add(compose_model_path)
+        expected_path_count += 1
+    if len(release_paths) != expected_path_count or "release.json" in release_paths:
         raise ContractError("release file paths must be distinct")
     return ReleaseManifest(
         contract_version=contract_version,
@@ -732,8 +822,11 @@ def _parse_manifest(value: Mapping[str, object], requested_release: str) -> Rele
         platform=platform,
         compose_path=compose_path,
         compose_sha256=compose_sha,
+        compose_model_path=compose_model_path,
+        compose_model_sha256=compose_model_sha,
         architecture_path=architecture_path,
         architecture_profile_id=architecture_profile,
+        architecture_project_id=architecture_project,
         catalog_revision=catalog_revision,
         architecture_lock_sha256=architecture_sha,
         images=images,

@@ -109,6 +109,12 @@ def select_transport(kind: str, docker: object, files: ReleaseFiles) -> ReleaseT
     raise ContractError("target profile transport is not recognized")
 
 
+def validate_offline_artifact(files: ReleaseFiles) -> None:
+    """Validate the producer bundle without constructing or calling Docker."""
+
+    OfflineBundleTransport(object(), files).preflight()
+
+
 def produce_offline_archive(
     docker: object, manifest: ReleaseManifest, archive_path: Path
 ) -> None:

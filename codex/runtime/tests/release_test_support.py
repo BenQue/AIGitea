@@ -387,6 +387,7 @@ def create_release(
     role: str = "appserver-test",
     migration: bool = True,
     identity_version: str = "v2",
+    contract_version: str | None = None,
 ) -> tuple[Path, dict[str, object], dict[str, object]]:
     release_root = root / "releases"
     release_dir = release_root / release_id
@@ -397,6 +398,28 @@ def create_release(
     compose_path = release_dir / "compose.yaml"
     compose_path.write_text("# normalized by fake Docker Compose in tests\n", encoding="utf-8")
     os.chmod(compose_path, 0o644)
+    normalized_model = compose_model(
+        release_id,
+        migration=migration,
+        identity_version=identity_version,
+    )
+    if contract_version is None:
+        contract_version = (
+            "docker-release/v2" if identity_version == "v2" else "docker-release/v1"
+        )
+    compose_contract: dict[str, object] = {
+        "path": "compose.yaml",
+        "sha256": sha256(compose_path),
+    }
+    if contract_version == "docker-release/v2":
+        compose_model_path = release_dir / "compose.model.json"
+        write_json(compose_model_path, normalized_model)
+        compose_contract.update(
+            {
+                "model_path": "compose.model.json",
+                "model_sha256": sha256(compose_model_path),
+            }
+        )
     architecture_path = release_dir / "architecture.lock.json"
     architecture = json.loads(architecture_reference_lock().read_text())
     write_json(architecture_path, architecture)
@@ -422,15 +445,20 @@ def create_release(
     write_json(inventory_path, inventory)
 
     manifest: dict[str, object] = {
-        "contract_version": "docker-release/v1",
+        "contract_version": contract_version,
         "release_id": release_id,
         "source_repository": SOURCE_REPOSITORY,
         "merge_sha": release_id,
         "platform": "linux/amd64",
-        "compose": {"path": "compose.yaml", "sha256": sha256(compose_path)},
+        "compose": compose_contract,
         "architecture": {
             "path": "architecture.lock.json",
             "profile_id": ARCHITECTURE_PROFILE,
+            **(
+                {"project_id": ARCHITECTURE_PROJECT}
+                if contract_version == "docker-release/v2"
+                else {}
+            ),
             "catalog_revision": CATALOG_REVISION,
             "sha256": sha256(architecture_path),
         },
@@ -485,11 +513,7 @@ def create_release(
     write_json(profile_path, profile, mode=0o600)
     return (
         profile_path,
-        compose_model(
-            release_id,
-            migration=migration,
-            identity_version=identity_version,
-        ),
+        normalized_model,
         manifest,
     )
 

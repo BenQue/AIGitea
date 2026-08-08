@@ -74,7 +74,7 @@ class ArchitectureReleaseIntegrationTests(unittest.TestCase):
         update_manifest(
             lock_path.parent,
             lambda manifest: manifest["architecture"].update(
-                {"sha256": sha256(lock_path)}
+                {"sha256": sha256(lock_path), "project_id": lock["project_id"]}
             ),
         )
 
