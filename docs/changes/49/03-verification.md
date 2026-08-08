@@ -17,9 +17,9 @@ depends_on:
   - 43
   - 45
   - 46
-status: approved
+status: pr-open
 branch: change/49
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/50
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -53,6 +53,9 @@ updated: 2026-08-08
   installer/mock/integration harness 与 static checks 通过，末行
   `Codex platform static smoke checks passed.`，exit 0。
 - `bash -n`、ShellCheck、`git diff --check` 与 changed-file Secret filename scan：`PASS`。
+- PR #50 initial head `a9323e0bf2a83f374d1c4c313156a2c53bd340de`：`open`、
+  `mergeable=true`、`merged=false`。本次 metadata 回填会产生 final head，required CI 与人工审核必须
+  只认最终 SHA。
 
 ## Live / external boundary
 
