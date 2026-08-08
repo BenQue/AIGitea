@@ -23,7 +23,7 @@ description: Diagnose or improve the documented Gitea, act_runner, PM2, artifact
 12. Only projects with application deployment scope need deployment acceptance. Documentation-only platform repositories do not need synthetic PM2, artifact, or rollback flows.
 13. Keep Gitea identities, OrbStack host control, VM operator accounts, and per-project deploy identities separate. A Gitea PAT never authorizes SSH, sudo, VM lifecycle, database, or production access.
 14. In development/test, participate interactively in first deployment design and execution. Convert every successful manual step into a versioned script.
-15. Before accepting a deployment flow, run it twice from a repeatable state and deliberately exercise one failure/rollback path. Record commands and results in `03-verification.md`.
+15. Before accepting a deployment flow, run it twice from a repeatable state and deliberately exercise one failure/rollback path. Record commands and results in the mapped `verification` document.
 16. For SQLite, stop the app before migration, back up with `sqlite3 .backup` under WAL, switch the release symlink, use PM2 delete+start, assert online, then health-check.
 17. In production, allow only pre-validated artifacts and scripts. Do not generate or execute ad hoc production commands, modify scripts in place, bypass checks, or auto-retry dangerous operations.
 18. For production failures, stop/rollback first, analyze sanitized evidence, reproduce and fix in non-production, verify, and prepare a PR before a human reruns production scripts.

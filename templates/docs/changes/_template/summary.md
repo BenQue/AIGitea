@@ -9,7 +9,9 @@ contract_effect: CONTRACT_EFFECT
 reason: CLASSIFICATION_REASON
 risk_flags: []
 required_docs:
-  - 00-summary.md
+  - summary
+documents:
+  summary: summary-SHORT-SLUG-YYMMDD.md
 confidence: CONFIDENCE
 override_reason: ''
 depends_on: []
@@ -46,7 +48,7 @@ contract_effect: CONTRACT_EFFECT
 reason: CLASSIFICATION_REASON
 risk_flags: []
 required_docs:
-  - 00-summary.md
+  - summary
 confidence: CONFIDENCE
 override_reason: ''
 ```
@@ -60,6 +62,7 @@ override_reason: ''
 - 无；如有则逐项列出。
 
 `## AI 判级` YAML 使用 analyzer 的唯一字段集合和顺序。`small` 的
-`required_docs` 只能是 `00-summary.md`；`complex` 必须依次包含
-`00-summary.md`、`01-spec.md`、`02-plan.md`，部署或迁移再追加
-`03-verification.md`；unresolved 只保留 `00-summary.md`。
+新合同的 `required_docs` 使用语义角色：`small` 和 unresolved 只包含 `summary`；
+`complex` 必须依次包含 `summary`、`spec`、`plan`，部署或迁移再追加
+`verification`。`documents` 把每个角色映射到同目录的
+`<role>-<short-slug>-<YYMMDD>.md`；所有角色共用 2–4 词短 slug。
