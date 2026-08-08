@@ -1,9 +1,9 @@
 ---
 issue: 58
 gitea_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/58
-status: in-progress
+status: pr-open
 branch: change/58
-pr_url: null
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/64
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -72,12 +72,12 @@ full SHA、transport 与逐 service exact image ID。Activation failure只执行
 
 | Check | Status | Evidence |
 |---|---|---|
-| Local `change/58` | PASS | 单个 coherent commit，基于 fresh `origin/main`；worktree clean |
-| Gitea write credential | PASS | 用户在 macOS Keychain 更新临时 `admin` credential；`git push --dry-run origin change/58` 显示可创建新 branch，token value 未被读取或打印 |
-| Remote `change/58` | NOT RUN | write dry-run 已通过；等待 exact local final-head 测试和真实 push |
+| Local `change/58` | PASS | coherent Issue branch，基于 fresh `origin/main`；实现头已通过 77 focused / 275 smoke |
+| Gitea write credential | PASS | 用户在 macOS Keychain 更新临时 `admin` credential；显式绑定 username 后真实 push PASS，token value 未被读取或打印 |
+| Remote `change/58` | PASS | initial implementation head `48970a6b64548021dcca05790742308942b8cba7` 与本地一致；本次 metadata 回填将生成 final head |
 | Authenticated API fallback | NOT RUN | Git write path 已恢复，不再需要 Swagger/API fallback |
-| Final PR | NOT RUN | 远端 branch 不存在，未创建占位或空 PR |
-| Final-head CI | NOT RUN | PR 未创建；live `main` 的 required status check 当前未启用 |
+| Final PR | PASS | PR #64 `change/58 -> main` 为 Open、mergeable、未合并；正文包含真实换行的 `Closes #58` |
+| Final-head CI | NOT CONFIGURED / NOT RUN | live `main` protection 的 `Enable Status Check` 未勾选、patterns 为空；不得将本地 275 tests 写成 remote CI PASS |
 
-Credential gate 已解除。下一步必须推送同一 `change/58`、创建唯一 `Closes #58` PR，再在 exact
-remote final head 读取 required CI/Actions 状态并更新本文件；不得修改权限、绕过保护或自动 merge。
+最终 metadata commit 推送后必须 read back PR #64 的 exact remote final head、Open/mergeable/unmerged
+状态和 required CI 配置。不得修改权限、绕过保护、自动 merge 或把 PR 状态解释为 deployment。
