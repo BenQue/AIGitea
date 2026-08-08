@@ -4,9 +4,11 @@ Use this procedure before inspecting a private repository, Issue, PR, Actions ru
 
 ## Resolve the exact target
 
-1. Read the current checkout's Gitea remote and the explicitly selected AISoft project profile.
-2. Match `GITEA_URL`, `GITEA_OWNER`, and `GITEA_REPO` to the requested repository before using credentials.
-3. Never source the generic `~/.agent.env` when an exact project profile is available. Never infer the repository from a pilot or example.
+1. After Issue #61 is released, select the exact project and an allowlisted operation through
+   `/usr/local/libexec/aisoft/host-access-broker`; target and identity come from the strict manifests.
+2. Before that release, read the current checkout's Gitea remote and the explicitly selected AISoft project profile.
+3. Match `GITEA_URL`, `GITEA_OWNER`, and `GITEA_REPO` to the requested repository before using credentials.
+4. Never source the generic `~/.agent.env` when an exact project profile is available. Never infer the repository from a pilot or example.
 
 ## Use the authenticated access ladder
 
@@ -15,7 +17,7 @@ Use this procedure before inspecting a private repository, Issue, PR, Actions ru
 2. **Configured Git credential**: use the checkout's Gitea remote for `git ls-remote`, fetch, or ancestry checks. If the host sandbox blocks `.orb.local`, retry through the approved host-network path; do not call that an authentication failure.
 3. **Platform manager audit PAT**: Issue #35 live reconciliation 后，跨项目 settings/protection inventory
    使用 manager 的独立 read-only PAT 和 `gitea-governance.sh check`；不得用 mutation PAT 或普通 Git
-   代替。候选 PR 合并前该身份仍是 `NOT RUN`。
+   代替。
 4. **VM-local admin read-only fallback**: when no project profile/manager exists or ACL blocks the exact
    target, use the existing mode 600 administrator credential file only inside `gitea-ci`, through the
    read-only helper. Do not copy the token to the Mac or add bot permissions.
@@ -23,7 +25,23 @@ Use this procedure before inspecting a private repository, Issue, PR, Actions ru
 
 Never begin a private-repository existence check with an anonymous API request. Anonymous `404` and Git `Repository not found` are inconclusive: they can mean private visibility or ACL failure.
 
+The normal post-#61 path does not run `orbstack-access-diagnostics`. That skill is emergency-only when the
+broker itself fails and sanitized host/sandbox evidence still contradicts. Normal acceptance must record zero
+diagnostics invocations. The broker never accepts a URL, owner/repository, checkout/credential path, shell,
+force/refspec, or merge argument.
+
 ## Helper commands
+
+Preferred post-#61 host command:
+
+```bash
+/usr/local/libexec/aisoft/host-access-broker \
+  --project <manifest-project-id> \
+  --operation gitea.issue.read \
+  --number <issue-number>
+```
+
+The following helpers are compatibility/fallback paths, not the normal host entrypoint.
 
 With an exact project profile:
 

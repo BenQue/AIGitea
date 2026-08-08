@@ -33,6 +33,12 @@ Issue #35 发布后，按顺序执行：
 project agent 与 legacy `ci-bot` 不得进入 push/force-push/merge allowlist。任一 credential、API、
 permission、visibility、protection、cross-project 或 read-back 失败均终止为 `BLOCKED_EXTERNAL`。
 
+Issue #61 发布后，已在 host-access manifest 中的项目从 fixed broker 访问 host；Mac checkout 只用
+repo-local Keychain helper，VM profile 只用 `GITEA_IDENTITY` + fixed mode 600 token file。broker 不
+接受新 repository/profile/credential path，因此它不是 onboarding v2：新项目仍必须先通过独立
+AISoftPlatform Issue/PR 同时更新 governance 与 host-access manifests，再执行本节的账号/权限流程。
+`orbstack-access-diagnostics` 不得作为接入前置，只在 broker failure 且真实状态仍矛盾时 emergency 使用。
+
 标准入口（只替换尖括号；token file 只写路径，不打印内容）：
 
 ```bash

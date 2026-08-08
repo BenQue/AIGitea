@@ -30,17 +30,29 @@ list_issues() {
 }
 
 if [[ "$ANALYSIS_PROVIDER" != none ]]; then
+  if ! analysis_issues="$(list_issues needs-analysis)"; then
+    echo 'BLOCKED_EXTERNAL: failed to list needs-analysis Issues' >&2
+    exit 20
+  fi
   while IFS= read -r issue; do
     [[ -n "$issue" ]] || continue
-    "$SCRIPT_DIR/analyze-$ANALYSIS_PROVIDER.sh" "$issue" \
-      || echo "$ANALYSIS_PROVIDER analysis #$issue failed" >&2
-  done < <(list_issues needs-analysis)
+    if ! "$SCRIPT_DIR/analyze-$ANALYSIS_PROVIDER.sh" "$issue"; then
+      echo "BLOCKED_EXTERNAL: $ANALYSIS_PROVIDER analysis #$issue failed" >&2
+      exit 20
+    fi
+  done <<<"$analysis_issues"
 fi
 
 if [[ "$IMPLEMENT_PROVIDER" != none ]]; then
+  if ! implementation_issues="$(list_issues approved)"; then
+    echo 'BLOCKED_EXTERNAL: failed to list approved Issues' >&2
+    exit 20
+  fi
   while IFS= read -r issue; do
     [[ -n "$issue" ]] || continue
-    "$SCRIPT_DIR/loop-controller.sh" "$issue" \
-      || echo "$IMPLEMENT_PROVIDER Loop #$issue stopped" >&2
-  done < <(list_issues approved)
+    if ! "$SCRIPT_DIR/loop-controller.sh" "$issue"; then
+      echo "BLOCKED_EXTERNAL: $IMPLEMENT_PROVIDER Loop #$issue stopped" >&2
+      exit 20
+    fi
+  done <<<"$implementation_issues"
 fi
