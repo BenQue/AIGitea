@@ -15,9 +15,9 @@ override_reason: ''
 depends_on:
   - 35
   - 51
-status: approved
+status: pr-open
 branch: change/55
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/56
 created: 2026-08-08
 updated: 2026-08-08
 ---
