@@ -112,8 +112,7 @@ case "$account_status" in
       --username "$username" \
       --email "$username@aisoft.local" \
       --user-type bot \
-      --random-password \
-      --must-change-password=false >"$tmp_dir/account-create.log"
+      --random-password >"$tmp_dir/account-create.log"
     install -m 600 /dev/null "$account_marker"
     printf 'issue=35\nusername=%s\n' "$username" >"$account_marker"
     account_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
