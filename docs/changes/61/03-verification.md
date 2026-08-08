@@ -19,9 +19,9 @@ depends_on:
   - 35
   - 51
   - 55
-status: implementing
+status: pr-open
 branch: change/61
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/63
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -67,7 +67,15 @@ root、mock HTTP/identity 与 temp HOME/credential 只证明 candidate，不证�
 
 ## Remote PR / CI
 
-待 push/PR 后回填 final head、mergeable/merged、commit statuses 与 Actions runs。
+- PR #63 已创建：`change/61 -> main`，初始 head
+  `e006784c8be1e6b7b68c23184ac040bd51d2e646`，read-back 为 `open`、`mergeable=true`、
+  `merged=false`。本次 metadata 回填会产生新 head，最终 SHA 以 handoff read-back 为准。
+- 初始 head commit statuses：`[]`；`change/61` Actions runs：`0`。
+- `aisoft-platform-manager` audit identity read-back：`is_admin=false`；当前 `main` protection 为
+  `enable_status_check=false`、contexts `[]`，因此 remote CI 是 `NOT CONFIGURED / NOT RUN`，不能把本地
+  258 tests 写成远端 CI PASS。
+- 同次只读 protection read-back：direct push=false、force push=false、merge whitelist=true 且唯一
+  username 为 `admin`。未执行 protection、权限或 merge mutation。
 
 ## Live / external boundary
 
