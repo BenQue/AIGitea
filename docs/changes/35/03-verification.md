@@ -92,6 +92,11 @@ service restart、OrbStack VM 或公司内网部署。
   fail closed：调用者 `benque` 无法遍历 root:git 的 `/etc/gitea/app.ini`，旧脚本因此把受保护 config
   误判为不存在；credential root、账号和 PAT 均未创建。实际 Gitea CLI 本就以 `sudo -n -u git`
   执行，follow-up Issue #45 只把 config `test -f/-r` 改为同一 OS user，不扩大 caller 权限。
+- PR #48 已人工合并到 `main@d3759c39d66bb60de1d783eac5181a4ee086036f`；exact-main、manifest、
+  `verify-merged`、两次 service-policy check、Gitea active/health 均 `PASS`。10 个 declared account
+  仍全部为 404，legacy credential 为 mode 600 且 admin token marker 唯一。第一个 manager bootstrap
+  随后被 Gitea 1.26.4 拒绝：bot user 不接受 `--random-password`。失败后 manager 仍为 404，managed
+  credential root 为 mode 700 且 0 个文件，PAT/ACL/repository mutation 均未发生；Issue #49 独立修复。
 - PR #36：已创建，`change/35 -> main`；初始 head
   `c8dbe794a93fb95970dceb4a931b920c9795785b` 为 `mergeable=true`、`merged=false`。本次 metadata
   回填会产生新 head，required CI 必须只认最终 SHA。
@@ -103,7 +108,7 @@ service restart、OrbStack VM 或公司内网部署。
 - 同次 VM-local admin read-back：`main` direct push=false、force push=false、
   merge whitelist=true 且 usernames 仅 `admin`；`block_admin_merge_override=false` 是 manifest 在
   人工合并后逐仓库收敛的已知 drift，当前未修改。
-- Gitea service accounts/PAT：`NOT RUN`（Issue #45 config identity preflight 阻塞；无 mutation）。
+- Gitea service accounts/PAT：`BLOCKED`（Issue #49 bot password flag 兼容性；首个账号未创建，PAT 未生成）。
 - `DISABLE_REGISTRATION` / default private / Gitea restart：`PASS`；两次连续 post-check 通过。
 - 仓库 visibility/collaborator/protection/default branch cleanup：`NOT RUN`。
 - project profiles 与 shared `ci-bot` retirement：`NOT RUN`。
@@ -116,4 +121,4 @@ service restart、OrbStack VM 或公司内网部署。
 工具的 repository rollback/no-op、service config backup/restore 和 invalid-candidate fail-closed 已在
 mock/synthetic 环境 `PASS`。真实 service pre/post 已保存于 root-only evidence；账号/仓库 mutation
 尚未开始，因此账号/ACL rollback 为 `NOT RUN / NOT NEEDED`。逐仓库 snapshot、apply/no-op 与 rollback
-只能在 Issue #45 人工合并并通过 exact-main 预检后执行。
+只能在 Issue #49 人工合并并通过新的 exact-main 预检后执行。

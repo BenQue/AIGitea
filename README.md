@@ -18,7 +18,7 @@
 - ✅ v2 试点证据：issue #4 已走通三闸门闭环，证明 Issue/文档/PR/部署关联可行
 - ✅ 邮件通知：Gitea → Mailpit（演示层），issue/PR 事件自动发信
 - ✅ Codex 基础：CLI、认证、skills、AGENTS、sandbox、provider router 已通过 VM 基础验收
-- 🟡 Gitea 身份与可见性：Issue #35 已合并，registration/private-default service policy 已在 live Gitea 应用并连续读回 `PASS`；manager/project-agent 账号与 PAT 在任何 mutation 前因受保护 config 的调用身份预检问题安全停止，等待 Issue #45 人工合并后继续，visibility/protection 与 `ci-bot` retirement 仍 `NOT RUN`
+- 🟡 Gitea 身份与可见性：Issue #35 与 config preflight 修复已合并，registration/private-default service policy 已在 live Gitea 应用并连续读回 `PASS`；manager/project-agent bootstrap 随后因 Gitea 1.26.4 拒绝 bot 的 `--random-password` 在首个账号创建前安全停止，等待 Issue #49 人工合并后继续，PAT、visibility/protection 与 `ci-bot` retirement 仍 `NOT RUN`
 - ✅ Claude adapter（Issue #1）：与 Codex 共用 controller/verifier/状态/终态，17 项 parity 测试通过；默认仍 `IMPLEMENT_PROVIDER=none`，真实 VM pilot 未做
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
 - 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为 real complex pilot。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用

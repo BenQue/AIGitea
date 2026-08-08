@@ -58,3 +58,11 @@ updated: 2026-08-08
 PR merge 必须由人执行。候选测试不授权读取 `/etc/gitea/app.ini`、创建 live account/PAT、改变仓库
 策略、退休 `ci-bot` 或连接公司内网；只有合并后的 exact protected-main source 才能恢复 Issue #35
 rollout。
+
+## 合并后读回
+
+- PR #48 已由人合并；head `cb27a9c07f8260f653886daf3b5363bce9ca3b3a`，protected-main merge
+  commit `d3759c39d66bb60de1d783eac5181a4ee086036f`，且 head 为 main ancestor。
+- exact merged source 的 config `sudo -n -u git test -f/-r` preflight 已通过，证明 Issue #45 目标完成。
+- 随后的账号创建进入 Gitea CLI 后被另一个独立兼容性问题阻止：bot user 不接受
+  `--random-password`。失败没有创建账号或 PAT；Issue #49 负责修复，不回写或扩大 Issue #45 合同。
