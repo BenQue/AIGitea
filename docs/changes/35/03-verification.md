@@ -16,9 +16,9 @@ risk_flags:
   - platform-governance
   - deployment
 depends_on: []
-status: implementation
+status: pr-open
 branch: change/35
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/36
 created: 2026-08-08
 updated: 2026-08-08
 ---
@@ -63,6 +63,9 @@ service restart、OrbStack VM 或公司内网部署。
 
 ## Live Gitea / VM / 公司内网
 
+- PR #36：已创建，`change/35 -> main`；初始 head
+  `c8dbe794a93fb95970dceb4a931b920c9795785b` 为 `mergeable=true`、`merged=false`。本次 metadata
+  回填会产生新 head，required CI 必须只认最终 SHA。
 - Gitea service accounts/PAT：`NOT RUN`（最终 PR 未人工合并）。
 - `DISABLE_REGISTRATION` / default private / Gitea restart：`NOT RUN`。
 - 仓库 visibility/collaborator/protection/default branch cleanup：`NOT RUN`。
