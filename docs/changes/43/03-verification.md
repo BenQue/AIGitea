@@ -42,3 +42,12 @@ updated: 2026-08-08
 - PR #44 初始 head `7f12a911957d6a0dcb1544dd0b05ac23d197162f`：`open`、
   `mergeable=true`、`merged=false`；metadata 回填后必须重新读回 final head。
 - live account/PAT/ACL/visibility/protection：`NOT RUN`，等待本 PR 人工合并。
+
+## Post-merge live read-back
+
+- PR #44 已人工合并到 `main@3b01e29dad23e6d78d83c48014d69ea78a37a83e`；bot create argv 的
+  must-change-password 兼容性阻塞已移除。
+- account bootstrap 随后在更早的 config precheck 安全停止：caller 无权遍历 root:git config，旧实现
+  以 caller 执行 `-f` 而误判文件不存在；没有创建 credential root、账号或 PAT。
+- 上述问题不属于 Issue #43 的 bot CLI flag 合同，已由 Issue #45 独立治理；仓库 ACL/visibility/
+  protection、`ci-bot` retirement 继续 `NOT RUN`。

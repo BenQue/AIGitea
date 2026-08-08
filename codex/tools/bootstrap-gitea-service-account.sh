@@ -42,10 +42,15 @@ GITEA_CONFIG="${GITEA_CONFIG:-/etc/gitea/app.ini}"
 GITEA_LOCAL_URL="${GITEA_LOCAL_URL:-http://127.0.0.1:3000}"
 credential_root="${AISOFT_CREDENTIAL_ROOT:-/home/benque/.config/aisoft/credentials}"
 
-[[ -x "$GITEA_BIN" && -f "$GITEA_CONFIG" ]] || {
-  printf '%s\n' 'BLOCKED_EXTERNAL: Gitea binary or config is unavailable' >&2
+[[ -x "$GITEA_BIN" ]] || {
+  printf '%s\n' 'BLOCKED_EXTERNAL: Gitea binary is unavailable to the caller' >&2
   exit 2
 }
+if ! sudo -n -u git test -f "$GITEA_CONFIG" ||
+   ! sudo -n -u git test -r "$GITEA_CONFIG"; then
+  printf '%s\n' 'BLOCKED_EXTERNAL: Gitea config is unavailable to the service user' >&2
+  exit 2
+fi
 [[ "$GITEA_LOCAL_URL" == http://127.0.0.1:* || "$GITEA_LOCAL_URL" == https://127.0.0.1:* ]] || {
   printf '%s\n' 'BLOCKED_EXTERNAL: GITEA_LOCAL_URL must use loopback' >&2
   exit 2

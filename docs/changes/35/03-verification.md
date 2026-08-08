@@ -87,6 +87,11 @@ service restart、OrbStack VM 或公司内网部署。
   两次连续 post-check 均为 `PASS`。
 - account bootstrap 前的 installed Gitea 1.26.4 预检发现 bot 不接受显式 must-change-password flag；
   未创建任何账号/PAT。follow-up Issue #43 修复该 CLI 兼容性，合并前继续暂停账号/ACL rollout。
+- PR #44 已人工合并到 `main@3b01e29dad23e6d78d83c48014d69ea78a37a83e`；merged source 的
+  manifest 与 service policy check 均为 `PASS`。随后第一个 account bootstrap 仍在 mutation 前
+  fail closed：调用者 `benque` 无法遍历 root:git 的 `/etc/gitea/app.ini`，旧脚本因此把受保护 config
+  误判为不存在；credential root、账号和 PAT 均未创建。实际 Gitea CLI 本就以 `sudo -n -u git`
+  执行，follow-up Issue #45 只把 config `test -f/-r` 改为同一 OS user，不扩大 caller 权限。
 - PR #36：已创建，`change/35 -> main`；初始 head
   `c8dbe794a93fb95970dceb4a931b920c9795785b` 为 `mergeable=true`、`merged=false`。本次 metadata
   回填会产生新 head，required CI 必须只认最终 SHA。
@@ -98,16 +103,17 @@ service restart、OrbStack VM 或公司内网部署。
 - 同次 VM-local admin read-back：`main` direct push=false、force push=false、
   merge whitelist=true 且 usernames 仅 `admin`；`block_admin_merge_override=false` 是 manifest 在
   人工合并后逐仓库收敛的已知 drift，当前未修改。
-- Gitea service accounts/PAT：`NOT RUN`（最终 PR 未人工合并）。
-- `DISABLE_REGISTRATION` / default private / Gitea restart：`NOT RUN`。
+- Gitea service accounts/PAT：`NOT RUN`（Issue #45 config identity preflight 阻塞；无 mutation）。
+- `DISABLE_REGISTRATION` / default private / Gitea restart：`PASS`；两次连续 post-check 通过。
 - 仓库 visibility/collaborator/protection/default branch cleanup：`NOT RUN`。
 - project profiles 与 shared `ci-bot` retirement：`NOT RUN`。
 - OrbStack VM/应用部署/数据库：`NOT RUN`，且不在本 PR 实施范围。
 - 公司内网 Gitea/服务器：`NOT RUN`，未连接。
-- PR merge：`NOT RUN`，必须人工执行。
+- PR #36 merge：`PASS`，由人执行；后续 follow-up PR 继续保持人工 merge gate。
 
 ## 回滚证据
 
 工具的 repository rollback/no-op、service config backup/restore 和 invalid-candidate fail-closed 已在
-mock/synthetic 环境 `PASS`。真实 pre-snapshot、逐仓库 rollback/no-op 和 service config
-backup/restore 只能在最终 PR 人工合并后执行；当前保持 `NOT RUN`。
+mock/synthetic 环境 `PASS`。真实 service pre/post 已保存于 root-only evidence；账号/仓库 mutation
+尚未开始，因此账号/ACL rollback 为 `NOT RUN / NOT NEEDED`。逐仓库 snapshot、apply/no-op 与 rollback
+只能在 Issue #45 人工合并并通过 exact-main 预检后执行。

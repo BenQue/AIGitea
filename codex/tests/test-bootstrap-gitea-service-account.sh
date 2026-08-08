@@ -3,17 +3,27 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP="$(mktemp -d)"
-trap 'rm -rf -- "$TMP"' EXIT
-mkdir -p "$TMP/bin" "$TMP/credentials"
+cleanup() {
+  chmod 700 "$TMP/protected-config" 2>/dev/null || true
+  rm -rf -- "$TMP"
+}
+trap cleanup EXIT
+mkdir -p "$TMP/bin" "$TMP/credentials" "$TMP/protected-config"
 chmod 700 "$TMP/credentials"
-touch "$TMP/gitea.ini"
-chmod 600 "$TMP/gitea.ini"
+touch "$TMP/protected-config/gitea.ini"
+chmod 600 "$TMP/protected-config/gitea.ini"
+chmod 000 "$TMP/protected-config"
 
 cat >"$TMP/bin/sudo" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
 [[ "$1" == -n && "$2" == -u && "$3" == git ]]
 shift 3
+if [[ "${1:-}" == test && ( "${2:-}" == -f || "${2:-}" == -r ) &&
+      "${3:-}" == "$MOCK_GITEA_CONFIG" ]]; then
+  printf '%s\n' "$*" >>"$MOCK_ROOT/sudo-config-check.log"
+  exit 0
+fi
 exec "$@"
 MOCK
 
@@ -52,11 +62,12 @@ MOCK
 
 chmod +x "$TMP/bin/sudo" "$TMP/bin/gitea" "$TMP/bin/curl"
 export MOCK_ROOT="$TMP"
+export MOCK_GITEA_CONFIG="$TMP/protected-config/gitea.ini"
 export PATH="$TMP/bin:$PATH"
 export AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-35
 export AISOFT_CREDENTIAL_ROOT="$TMP/credentials"
 export GITEA_BIN="$TMP/bin/gitea"
-export GITEA_CONFIG="$TMP/gitea.ini"
+export GITEA_CONFIG="$MOCK_GITEA_CONFIG"
 export GITEA_LOCAL_URL=http://127.0.0.1:3000
 
 output="$TMP/credentials/hsdb-agent-project-agent.token"
@@ -71,6 +82,8 @@ mode="$(stat -c '%a' "$output" 2>/dev/null || stat -f '%Lp' "$output")"
 [[ "$mode" == 600 ]]
 [[ -f "$TMP/credentials/hsdb-agent.account-created-by-issue-35" ]]
 [[ -f "$TMP/credentials/hsdb-agent-project-agent.token-created-by-issue-35" ]]
+[[ "$(grep -c '^test -f ' "$TMP/sudo-config-check.log")" == 1 ]]
+[[ "$(grep -c '^test -r ' "$TMP/sudo-config-check.log")" == 1 ]]
 create_argv="$(grep 'admin user create' "$TMP/gitea-argv.log")"
 [[ "$create_argv" == *"--user-type bot"* ]]
 [[ "$create_argv" == *"--random-password"* ]]
