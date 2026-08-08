@@ -17,6 +17,7 @@ class AnalysisError(ValueError):
 @dataclass(frozen=True)
 class AnalysisResult:
     classification: Classification
+    document_slug: str
     problem_summary: str
     impact: str
     approach: str
@@ -32,6 +33,7 @@ class AnalysisResult:
             raise AnalysisError("analyzer output is not valid JSON") from exc
         expected = {
             "classification",
+            "document_slug",
             "problem_summary",
             "impact",
             "approach",
@@ -41,9 +43,16 @@ class AnalysisResult:
         }
         if not isinstance(raw, dict) or set(raw) != expected:
             raise AnalysisError("analyzer output must use the exact result schema")
-        for field in ("classification", "problem_summary", "impact", "approach"):
+        for field in ("classification", "document_slug", "problem_summary", "impact", "approach"):
             if not isinstance(raw[field], str) or not raw[field].strip():
                 raise AnalysisError(f"analyzer field {field} must be a non-empty string")
+        document_slug = raw["document_slug"].strip()
+        if len(document_slug) > 32 or not re.fullmatch(
+            r"[a-z0-9]+(?:-[a-z0-9]+){1,3}", document_slug
+        ):
+            raise AnalysisError(
+                "analyzer field document_slug must use 2-4 lowercase kebab-case words and at most 32 characters"
+            )
         for field in ("risks", "evidence", "missing_acceptance_criteria"):
             value = raw[field]
             if not isinstance(value, list) or not all(
@@ -58,6 +67,7 @@ class AnalysisResult:
             raise AnalysisError(f"invalid analyzer classification: {exc}") from exc
         return cls(
             classification=classification,
+            document_slug=document_slug,
             problem_summary=raw["problem_summary"].strip(),
             impact=raw["impact"].strip(),
             approach=raw["approach"].strip(),
@@ -109,11 +119,19 @@ def render_summary(
     if not isinstance(number, int) or number <= 0:
         raise AnalysisError("Issue number must be a positive integer")
     classification_lines = _normalized_classification(result.classification, route)
+    document_lines = ["documents:"]
+    for role in route.required_docs:
+        if role not in {"summary", "spec", "plan", "verification"}:
+            raise AnalysisError("new analyzer output must use semantic required_docs roles")
+        document_lines.append(
+            f"  {role}: {document_filename(role, result.document_slug, date)}"
+        )
     front_matter = [
         "---",
         f"issue: {number}",
         f"gitea_url: {gitea_url.rstrip('/')}/{owner}/{repo}/issues/{number}",
         *classification_lines,
+        *document_lines,
         f"status: {route.lifecycle_label}",
         f"branch: change/{number}",
         "pr_url:",
@@ -161,6 +179,26 @@ def render_summary(
 {missing}
 """
     return "\n".join(front_matter) + body
+
+
+def document_filename(role: str, slug: str, created: str) -> str:
+    if role not in {"summary", "spec", "plan", "verification"}:
+        raise AnalysisError(f"unsupported document role: {role}")
+    if len(slug) > 32 or not re.fullmatch(
+        r"[a-z0-9]+(?:-[a-z0-9]+){1,3}", slug
+    ):
+        raise AnalysisError("document_slug violates the short kebab-case contract")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", created):
+        raise AnalysisError("document creation date must use YYYY-MM-DD")
+    compact_date = created[2:4] + created[5:7] + created[8:10]
+    name = f"{role}-{slug}-{compact_date}.md"
+    if len(name) > 64:
+        raise AnalysisError("document basename exceeds 64 characters")
+    return name
+
+
+def summary_filename(result: AnalysisResult, created: str) -> str:
+    return document_filename("summary", result.document_slug, created)
 
 
 def route_labels(result: AnalysisResult, route: Route) -> set[str]:

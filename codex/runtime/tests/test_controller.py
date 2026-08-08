@@ -1,9 +1,16 @@
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
-from aisoft_loop.controller import Controller, ControllerResult
+from aisoft_loop.contract import Contract
+from aisoft_loop.controller import (
+    Controller,
+    ControllerResult,
+    LocalGit,
+    select_frontier_ticket,
+)
 from aisoft_loop.provider import ProviderError, ProviderResult
 from aisoft_loop.state import GlobalLock, StateStore, TerminalState
 from aisoft_loop.verifier import VerificationReport, VerificationResult
@@ -90,21 +97,31 @@ class FakeVerifier:
 class FakeGit:
     def __init__(self, changed: list[tuple[str, ...]]) -> None:
         self.changed = list(changed)
-        self.commits: list[tuple[tuple[str, ...], str]] = []
+        self.validations: list[tuple[str, int, str]] = []
         self.pushes = 0
         self.sha_counter = 0
 
     def changed_files(self) -> tuple[str, ...]:
-        return self.changed.pop(0)
+        raise AssertionError("controller must validate provider commits, not uncommitted files")
 
     def commit_and_push(self, paths: tuple[str, ...], message: str) -> str:
-        self.commits.append((paths, message))
+        raise AssertionError("controller must not create provider commits")
+
+    def validate_provider_commit(
+        self, base_sha: str, issue_number: int, ticket_id: str
+    ) -> tuple[str, ...]:
+        self.validations.append((base_sha, issue_number, ticket_id))
+        files = self.changed.pop(0) if self.changed else ()
+        if files:
+            self.sha_counter += 1
+        return files
+
+    def push(self) -> str:
         self.pushes += 1
-        self.sha_counter += 1
-        return f"abc{self.sha_counter}"
+        return self.head_sha()
 
     def head_sha(self) -> str:
-        return f"abc{max(self.sha_counter, 1)}"
+        return f"abc{self.sha_counter}"
 
 
 class FakeGitea:
@@ -171,6 +188,137 @@ class ProviderResultTests(unittest.TestCase):
                 ProviderResult.from_json(json.dumps(mutation))
 
 
+class LocalGitTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.repo = Path(self.tempdir.name)
+        self.git("init", "-b", "change/8")
+        self.git("config", "user.name", "AISoft Test")
+        self.git("config", "user.email", "test@example.invalid")
+        self.repo.joinpath("README.md").write_text("baseline\n")
+        self.git("add", "README.md")
+        self.git("commit", "-m", "test: baseline")
+        self.base = self.git("rev-parse", "HEAD").stdout.strip()
+
+    def tearDown(self) -> None:
+        self.tempdir.cleanup()
+
+    def git(self, *args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ("git", *args),
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_valid_agent_commit_is_accepted(self) -> None:
+        self.repo.joinpath("change.txt").write_text("done\n")
+        self.git("add", "change.txt")
+        self.git("commit", "-m", "feat: implement #8 T01")
+        changed = LocalGit(self.repo, "change/8").validate_provider_commit(
+            self.base, 8, "T01"
+        )
+        self.assertEqual(changed, ("change.txt",))
+
+    def test_uncommitted_or_mislabeled_agent_work_is_rejected(self) -> None:
+        local = LocalGit(self.repo, "change/8")
+        self.repo.joinpath("change.txt").write_text("dirty\n")
+        with self.assertRaisesRegex(ProviderError, "clean worktree"):
+            local.validate_provider_commit(self.base, 8, "T01")
+        self.git("add", "change.txt")
+        self.git("commit", "-m", "feat: missing audit ids")
+        with self.assertRaisesRegex(ProviderError, "#8 and T01"):
+            local.validate_provider_commit(self.base, 8, "T01")
+
+    def test_committed_secret_is_rejected_before_push(self) -> None:
+        self.repo.joinpath("secret.txt").write_text(
+            "github_" + "pat_abcdefghijklmnopqrstuvwxyz123456\n"
+        )
+        self.git("add", "secret.txt")
+        self.git("commit", "-m", "test: secret boundary #8 T01")
+        with self.assertRaisesRegex(ProviderError, "secret scan"):
+            LocalGit(self.repo, "change/8").validate_provider_commit(
+                self.base, 8, "T01"
+            )
+
+
+class FrontierTicketTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.directory = Path(self.tempdir.name)
+
+    def tearDown(self) -> None:
+        self.tempdir.cleanup()
+
+    def contract(self, plan: str) -> Contract:
+        self.directory.joinpath("plan-short-flow-260808.md").write_text(plan)
+        return Contract(
+            issue_number=57,
+            title="Matt workflow",
+            change_type="platform",
+            effective_complexity="complex",
+            contract_effect="change",
+            risk_flags=("agent-governance",),
+            branch="change/57",
+            document_directory=self.directory,
+            required_docs=(
+                "summary-short-flow-260808.md",
+                "spec-short-flow-260808.md",
+                "plan-short-flow-260808.md",
+            ),
+            acceptance_criteria=("bounded",),
+            dependencies=(),
+        )
+
+    def test_selects_first_unblocked_pending_ticket(self) -> None:
+        contract = self.contract(
+            """## Ticket graph
+
+| Ticket | Delivers | Blocked by | Status |
+|---|---|---|---|
+| T01 | resolver | - | completed |
+| T02 | writers | T01 | pending |
+| T03 | labels | T02 | pending |
+"""
+        )
+        self.assertEqual(select_frontier_ticket(contract), "T02")
+
+    def test_runtime_completion_advances_without_rewriting_plan(self) -> None:
+        contract = self.contract(
+            """| Ticket | Blocked by | Status |
+|---|---|---|
+| T01 | - | pending |
+| T02 | T01 | pending |
+"""
+        )
+        self.assertEqual(
+            select_frontier_ticket(contract, completed_tickets=("T01",)),
+            "T02",
+        )
+
+    def test_repair_round_reuses_last_completed_ticket(self) -> None:
+        contract = self.contract(
+            """| Ticket | Blocked by | Status |
+|---|---|---|
+| T01 | - | completed |
+| T02 | T01 | completed |
+"""
+        )
+        self.assertEqual(select_frontier_ticket(contract, repair=True), "T02")
+
+    def test_new_plan_without_usable_frontier_fails_closed(self) -> None:
+        contract = self.contract(
+            """| Ticket | Blocked by | Status |
+|---|---|---|
+| T01 | T02 | pending |
+| T02 | T01 | pending |
+"""
+        )
+        with self.assertRaisesRegex(ProviderError, "no unblocked pending frontier"):
+            select_frontier_ticket(contract)
+
+
 class ControllerTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
@@ -206,10 +354,75 @@ class ControllerTests(unittest.TestCase):
             max_same_root=max_same_root,
         )
 
+    def make_complex_contract(self, gitea: FakeGitea) -> None:
+        directory = self.repo / "docs" / "changes" / "8"
+        directory.joinpath("00-summary.md").write_text(
+            """---
+issue: 8
+gitea_url: http://gitea.test/owner/repo/issues/8
+change_type: platform
+requested_complexity: complex
+assessed_complexity: complex
+effective_complexity: complex
+contract_effect: change
+reason: governed workflow change
+risk_flags:
+  - agent-governance
+required_docs:
+  - 00-summary.md
+  - 01-spec.md
+  - 02-plan.md
+confidence: high
+override_reason: ''
+status: approved
+branch: change/8
+created: 2026-07-16
+updated: 2026-07-16
+---
+"""
+        )
+        directory.joinpath("01-spec.md").write_text(
+            """---
+issue: 8
+effective_complexity: complex
+branch: change/8
+---
+
+## Acceptance criteria
+
+- [ ] AC-1 The workflow is deterministic.
+
+## 未决问题
+
+无。
+"""
+        )
+        directory.joinpath("02-plan.md").write_text(
+            """---
+issue: 8
+effective_complexity: complex
+branch: change/8
+---
+
+## Ticket graph
+
+| Ticket | Blocked by | Status |
+|---|---|---|
+| T01 | - | pending |
+| T02 | T01 | pending |
+
+| Acceptance criterion | Verification command or review |
+|---|---|
+| AC-1 | `python3 -m unittest` |
+"""
+        )
+        gitea.issue["labels"] = ["type/platform", "complexity/complex", "approved"]
+
     def test_happy_path_reaches_ready_for_review(self) -> None:
         gitea = FakeGitea(["success"])
+        provider = FakeProvider([provider_result()])
         result = self.controller(
-            provider=FakeProvider([provider_result()]),
+            provider=provider,
             verifier=FakeVerifier([verification(True)]),
             git=FakeGit([("src/change.txt",)]),
             gitea=gitea,
@@ -219,6 +432,34 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(len(gitea.created_prs), 1)
         self.assertEqual(gitea.label_updates[-1], {"type/bugfix", "complexity/small", "pr-open"})
         self.assertIn("READY_FOR_REVIEW", gitea.comments[-1])
+        self.assertEqual(provider.requests[0]["skill"], "$implement")
+        self.assertEqual(provider.requests[0]["ticket_id"], "T01")
+        self.assertNotIn("commit", provider.requests[0]["forbidden_actions"])
+        self.assertIn("push", provider.requests[0]["forbidden_actions"])
+
+    def test_complex_loop_implements_each_frontier_ticket_before_pr(self) -> None:
+        gitea = FakeGitea(["success"])
+        self.make_complex_contract(gitea)
+        provider = FakeProvider(
+            [
+                provider_result(changed_files=("src/one.txt",)),
+                provider_result(changed_files=("src/two.txt",)),
+            ]
+        )
+        git = FakeGit([("src/one.txt",), ("src/two.txt",)])
+        result = self.controller(
+            provider=provider,
+            verifier=FakeVerifier([verification(True), verification(True)]),
+            git=git,
+            gitea=gitea,
+        ).run(8)
+        self.assertEqual(result.terminal_state, TerminalState.READY_FOR_REVIEW)
+        self.assertEqual(
+            [request["ticket_id"] for request in provider.requests],
+            ["T01", "T02"],
+        )
+        self.assertEqual(git.pushes, 2)
+        self.assertEqual(len(gitea.created_prs), 1)
 
     def test_verifier_failure_is_fed_to_next_provider_turn(self) -> None:
         provider = FakeProvider([provider_result("CONTINUE"), provider_result()])

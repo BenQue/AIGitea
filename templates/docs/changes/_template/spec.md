@@ -16,7 +16,7 @@ created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---
 
-# Spec
+# Spec template
 
 ## 目标与原因
 

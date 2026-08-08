@@ -16,8 +16,11 @@ from .analysis import (
     analyze_route,
     render_summary,
     route_labels,
+    summary_filename,
 )
 from .controller import Controller, LocalGit
+from .contract import ContractError, resolve_documents
+from .documents import publish_plan, publish_spec
 from .gitea import GiteaClient, GiteaError
 from .output import OutputError, extract_last_json_object
 from .provider import CommandProvider, ProviderError, ProviderResult
@@ -79,11 +82,11 @@ def main(argv: list[str] | None = None) -> int:
     list_issues.add_argument("label")
 
     render_analysis = subparsers.add_parser(
-        "render-analysis", help="render a validated 00-summary.md"
+        "render-analysis", help="render a validated named summary document"
     )
     render_analysis.add_argument("issue_json", type=Path)
     render_analysis.add_argument("result_json", type=Path)
-    render_analysis.add_argument("output_summary", type=Path)
+    render_analysis.add_argument("output_directory", type=Path)
 
     apply_analysis = subparsers.add_parser(
         "apply-analysis", help="apply analyzer labels and audit comment"
@@ -91,6 +94,21 @@ def main(argv: list[str] | None = None) -> int:
     apply_analysis.add_argument("issue", type=int)
     apply_analysis.add_argument("result_json", type=Path)
     apply_analysis.add_argument("summary_url")
+
+    resolve_document_names = subparsers.add_parser(
+        "resolve-documents", help="resolve one Issue's active change document names"
+    )
+    resolve_document_names.add_argument("issue", type=int)
+    resolve_document_names.add_argument("--repo", required=True, type=Path)
+
+    for command, help_text in (
+        ("publish-spec", "publish to the Issue's mapped spec path"),
+        ("publish-plan", "publish to the Issue's mapped plan path"),
+    ):
+        publish = subparsers.add_parser(command, help=help_text)
+        publish.add_argument("issue", type=int)
+        publish.add_argument("body", type=Path)
+        publish.add_argument("--repo", required=True, type=Path)
 
     args = parser.parse_args(argv)
     if args.command == "validate-provider":
@@ -104,9 +122,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "list-issues":
         return _list_issues(args.label)
     if args.command == "render-analysis":
-        return _render_analysis(args.issue_json, args.result_json, args.output_summary)
+        return _render_analysis(args.issue_json, args.result_json, args.output_directory)
     if args.command == "apply-analysis":
         return _apply_analysis(args.issue, args.result_json, args.summary_url)
+    if args.command == "resolve-documents":
+        return _resolve_documents(args.repo, args.issue)
+    if args.command == "publish-spec":
+        return _publish_document(args.repo, args.issue, args.body, "spec")
+    if args.command == "publish-plan":
+        return _publish_document(args.repo, args.issue, args.body, "plan")
     return _run(args.issue, args.repo, args.verification_config)
 
 
@@ -233,13 +257,14 @@ def _list_issues(label: str) -> int:
     return 0
 
 
-def _render_analysis(issue_path: Path, result_path: Path, output_path: Path) -> int:
+def _render_analysis(issue_path: Path, result_path: Path, output_directory: Path) -> int:
     try:
         issue = json.loads(issue_path.read_text(encoding="utf-8"))
         if not isinstance(issue, dict):
             raise AnalysisError("Issue JSON must be an object")
         result = AnalysisResult.from_json(result_path.read_text(encoding="utf-8"))
         route = analyze_route(issue, result)
+        created = date.today().isoformat()
         output = render_summary(
             issue,
             result,
@@ -247,11 +272,13 @@ def _render_analysis(issue_path: Path, result_path: Path, output_path: Path) -> 
             _required_env("GITEA_URL"),
             _required_env("GITEA_OWNER"),
             _required_env("GITEA_REPO"),
-            date=date.today().isoformat(),
+            date=created,
         )
+        output_path = output_directory / summary_filename(result, created)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(output, encoding="utf-8")
         os.chmod(output_path, 0o644)
+        print(output_path)
         return 0
     except (OSError, UnicodeError, json.JSONDecodeError, AnalysisError, RuntimeError) as exc:
         print(str(exc), file=sys.stderr)
@@ -281,6 +308,37 @@ def _apply_analysis(issue_number: int, result_path: Path, summary_url: str) -> i
         return 2
 
 
+def _resolve_documents(repo: Path, issue_number: int) -> int:
+    try:
+        print(
+            json.dumps(
+                resolve_documents(repo, issue_number),
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+        return 0
+    except (OSError, UnicodeError, ContractError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+
+def _publish_document(repo: Path, issue_number: int, body_path: Path, role: str) -> int:
+    try:
+        issue = _gitea_from_env().get_issue(issue_number)
+        body = body_path.read_text(encoding="utf-8")
+        destination = (
+            publish_spec(repo, issue, body)
+            if role == "spec"
+            else publish_plan(repo, issue, body)
+        )
+        print(destination)
+        return 0
+    except (GiteaError, OSError, UnicodeError, ContractError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+
 def _gitea_from_env() -> GiteaClient:
     return GiteaClient(
         _required_env("GITEA_URL"),
@@ -301,6 +359,7 @@ def _analysis_json(result: AnalysisResult) -> str:
     return json.dumps(
         {
             "classification": _classification_yaml(result),
+            "document_slug": result.document_slug,
             "problem_summary": result.problem_summary,
             "impact": result.impact,
             "approach": result.approach,

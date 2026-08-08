@@ -5,11 +5,11 @@ description: Drive a contract-ready Gitea Issue through a bounded implement-veri
 
 # Run a Gitea development loop
 
-1. Read `AGENTS.md`, the Issue and valid comments, `00-summary.md`, and any persisted Loop state. For complex work, also read `01-spec.md` and `02-plan.md` in full before making any edit.
+1. Read `AGENTS.md`, the Issue and valid comments, resolve the active summary from its strict name and `documents` mapping, and read any persisted Loop state. For complex work, also read the mapped spec and plan in full before making any edit. Fall back to fixed legacy basenames only for legacy summaries.
 2. Validate the contract before editing:
    - require measurable Issue acceptance criteria for `small`;
-   - for `complex`, require both `01-spec.md` and `02-plan.md`; validate that their metadata says `effective_complexity: complex`, the spec has measurable acceptance criteria and no unresolved material decisions, and the plan maps in-scope tasks and deterministic verification to those criteria;
-   - require `03-verification.md` work for deployment or migration scope;
+   - for `complex`, require both mapped `spec` and `plan`; validate that their metadata says `effective_complexity: complex`, the spec has measurable acceptance criteria and no unresolved material decisions, and the plan maps in-scope tasks and deterministic verification to those criteria;
+   - require mapped `verification` work for deployment or migration scope;
    - stop if the Issue, summary, spec, and plan conflict, omit required scope, or contain unresolved material decisions.
 3. Before every edit, recompute `contract_effect` and all forced-complex risk conditions from the current Issue contract and repository evidence. Do not trust a stale `complexity/small` label or summary field.
 4. If a small contract now has `contract_effect` of `add` or `change`, or crosses any forced risk (schema/data migration, external contract, authentication/authorization/security, shared core component, cross-module/service, CI/artifact/deployment/rollback, or Agent/platform governance), make no further edits and return:
@@ -21,8 +21,8 @@ NEXT: reclassify as complex and create spec/plan
 
 5. Work only in the controller-provided isolated `change/N` worktree. Do not manage locks, credentials, labels, PRs, documents, or deployment. Classification and lifecycle mutations belong to the wrapper/controller.
    - Never edit an `AGENTS.md` that governs the current Loop run. If a complex contract changes that governance file, produce only a patch/proposal for an independent controlled governance step; after it is applied, a fresh run must validate and adopt the new rules.
-6. Select the smallest next incomplete plan task or acceptance criterion.
-7. Implement the minimal in-scope change and add or update tests.
+6. Select the first unblocked `Txx` frontier task from the mapped plan; for a legacy or small contract without a ticket graph use the synthetic `T01`.
+7. Dispatch the complete Matt `$implement Issue #N ticket Txx` flow. It implements, tests, reviews and commits locally; every commit subject contains `#N` and `Txx` and the worktree must be clean.
 8. Run the controller-assigned deterministic checks. Treat real command output as authoritative.
 9. On ordinary compile, lint, type, test, build, browser, or CI failure:
    - identify the root cause;
@@ -49,4 +49,4 @@ NEXT:
 HUMAN_DECISION:
 ```
 
-Never rewrite the accepted contract, hide failures, merge a PR, or deploy.
+Never rewrite the accepted contract, hide failures, push, merge a PR, or deploy.

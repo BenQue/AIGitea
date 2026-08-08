@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from typing import Callable, Mapping, Optional
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
-from .contract import COMPLEXITY_LABELS, LIFECYCLE_LABELS, TYPE_LABELS
+from .contract import (
+    COMPLEXITY_LABELS,
+    LIFECYCLE_LABELS,
+    TRIAGE_CATEGORY_LABELS,
+    TRIAGE_LABELS,
+    TRIAGE_STATE_LABELS,
+    TYPE_LABELS,
+)
 from .verifier import redact
 
 
@@ -71,22 +79,42 @@ class GiteaClient:
         return issues
 
     def set_labels(self, issue_number: int, desired: set[str]) -> None:
-        number = _number(issue_number)
-        managed = TYPE_LABELS | COMPLEXITY_LABELS | LIFECYCLE_LABELS
-        unknown = desired - managed
-        type_names = desired & TYPE_LABELS
-        complexity_names = desired & COMPLEXITY_LABELS
-        lifecycle_names = desired & LIFECYCLE_LABELS
+        self._reconcile_labels(issue_number, platform_labels=desired)
+
+    def set_triage_labels(self, issue_number: int, desired: set[str]) -> None:
+        categories = desired & TRIAGE_CATEGORY_LABELS
+        states = desired & TRIAGE_STATE_LABELS
+        unknown = desired - TRIAGE_LABELS
         if unknown:
-            raise GiteaError(f"unknown managed labels: {sorted(unknown)}")
-        if len(type_names) != 1:
-            raise GiteaError("desired labels must contain exactly one type label")
-        if len(complexity_names) > 1:
-            raise GiteaError("desired labels may contain at most one complexity label")
-        if len(lifecycle_names) != 1:
-            raise GiteaError("desired labels must contain exactly one lifecycle label")
-        if lifecycle_names != {"awaiting-triage"} and len(complexity_names) != 1:
-            raise GiteaError("resolved lifecycle labels require one complexity label")
+            raise GiteaError(f"unknown triage labels: {sorted(unknown)}")
+        if len(categories) != 1 or len(states) != 1 or len(desired) != 2:
+            raise GiteaError("triage labels require exactly one category and one state")
+        self._reconcile_labels(issue_number, triage_labels=desired)
+
+    def _reconcile_labels(
+        self,
+        issue_number: int,
+        *,
+        platform_labels: Optional[set[str]] = None,
+        triage_labels: Optional[set[str]] = None,
+    ) -> None:
+        number = _number(issue_number)
+        platform_managed = TYPE_LABELS | COMPLEXITY_LABELS | LIFECYCLE_LABELS
+        if platform_labels is not None:
+            unknown = platform_labels - platform_managed
+            type_names = platform_labels & TYPE_LABELS
+            complexity_names = platform_labels & COMPLEXITY_LABELS
+            lifecycle_names = platform_labels & LIFECYCLE_LABELS
+            if unknown:
+                raise GiteaError(f"unknown managed labels: {sorted(unknown)}")
+            if len(type_names) != 1:
+                raise GiteaError("desired labels must contain exactly one type label")
+            if len(complexity_names) > 1:
+                raise GiteaError("desired labels may contain at most one complexity label")
+            if len(lifecycle_names) != 1:
+                raise GiteaError("desired labels must contain exactly one lifecycle label")
+            if lifecycle_names != {"awaiting-triage"} and len(complexity_names) != 1:
+                raise GiteaError("resolved lifecycle labels require one complexity label")
 
         issue = self.get_issue(number)
         current = issue.get("labels")
@@ -100,6 +128,7 @@ class GiteaClient:
                     ids_by_name[str(item["name"])] = int(item["id"])
                 except (KeyError, TypeError, ValueError) as exc:
                     raise GiteaError("repository label response is invalid") from exc
+        desired = (platform_labels or set()) | (triage_labels or set())
         missing = desired - set(ids_by_name)
         if missing:
             raise GiteaError(f"required Gitea labels are missing: {sorted(missing)}")
@@ -109,7 +138,9 @@ class GiteaClient:
             if not isinstance(item, Mapping):
                 continue
             name = item.get("name")
-            if isinstance(name, str) and name not in managed:
+            replace_platform = platform_labels is not None and name in platform_managed
+            replace_triage = triage_labels is not None and name in TRIAGE_LABELS
+            if isinstance(name, str) and not replace_platform and not replace_triage:
                 try:
                     final_ids.add(int(item["id"]))
                 except (KeyError, TypeError, ValueError) as exc:
@@ -134,7 +165,11 @@ class GiteaClient:
         number = _number(issue_number)
         if f"Closes #{number}" not in body:
             raise GiteaError(f"PR body must contain Closes #{number}")
-        if f"docs/changes/{number}/00-summary.md" not in body:
+        summary_link = re.compile(
+            rf"docs/changes/{number}/(?:00-summary\.md|"
+            r"summary-[a-z0-9]+(?:-[a-z0-9]+){1,3}-\d{6}\.md)"
+        )
+        if not summary_link.search(body):
             raise GiteaError("PR body must link the Issue summary document")
         if not title.strip() or head != f"change/{number}" or not base.strip():
             raise GiteaError("PR title, change/N head, and base are required")

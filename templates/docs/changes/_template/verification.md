@@ -16,7 +16,7 @@ created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---
 
-# Verification
+# Verification template
 
 ## 环境与版本
 

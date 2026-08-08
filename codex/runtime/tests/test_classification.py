@@ -18,7 +18,7 @@ def classification_text(**overrides: str) -> str:
         "contract_effect": "restore",
         "reason": "restore existing behavior",
         "risk_flags": "[]",
-        "required_docs": "\n  - 00-summary.md",
+        "required_docs": "\n  - summary",
         "confidence": "high",
         "override_reason": "''",
     }
@@ -139,13 +139,13 @@ class ClassificationTests(unittest.TestCase):
 
     def test_required_docs_follow_effective_route(self) -> None:
         parsed = Classification.from_yaml(classification_text())
-        self.assertEqual(parsed.route().required_docs, ("00-summary.md",))
+        self.assertEqual(parsed.route().required_docs, ("summary",))
         forced = Classification.from_yaml(
             classification_text(risk_flags="\n  - deployment")
         )
         self.assertEqual(
             forced.route().required_docs,
-            ("00-summary.md", "01-spec.md", "02-plan.md"),
+            ("summary", "spec", "plan"),
         )
 
 

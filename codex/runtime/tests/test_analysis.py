@@ -3,12 +3,19 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from aisoft_loop.analysis import AnalysisError, AnalysisResult, analyze_route, render_summary
+from aisoft_loop.analysis import (
+    AnalysisError,
+    AnalysisResult,
+    analyze_route,
+    render_summary,
+    summary_filename,
+)
 
 
 def result_payload(classification: str) -> dict:
     return {
         "classification": classification,
+        "document_slug": "pilot-fix",
         "problem_summary": "Restore existing behavior.",
         "impact": "One documented path.",
         "approach": "Add a regression test and minimal fix.",
@@ -26,7 +33,7 @@ contract_effect: restore
 reason: restore existing behavior
 risk_flags: []
 required_docs:
-  - 00-summary.md
+  - summary
 confidence: high
 override_reason: ''
 """
@@ -35,8 +42,8 @@ COMPLEX = SMALL.replace("bugfix", "feature").replace(
     "assessed_complexity: small\neffective_complexity: small\ncontract_effect: restore",
     "assessed_complexity: complex\neffective_complexity: complex\ncontract_effect: add",
 ).replace(
-    "risk_flags: []\nrequired_docs:\n  - 00-summary.md",
-    "risk_flags:\n  - functional-change\nrequired_docs:\n  - 00-summary.md\n  - 01-spec.md\n  - 02-plan.md",
+    "risk_flags: []\nrequired_docs:\n  - summary",
+    "risk_flags:\n  - functional-change\nrequired_docs:\n  - summary\n  - spec\n  - plan",
 )
 
 UNCLEAR = SMALL.replace(
@@ -115,7 +122,7 @@ class AnalysisResultTests(unittest.TestCase):
         )
         self.assertIn("effective_complexity: complex", summary)
         self.assertIn("forced complex", summary)
-        self.assertIn("01-spec.md", summary)
+        self.assertIn("  - spec", summary)
 
     def test_unclear_summary_omits_every_effective_key(self) -> None:
         result = AnalysisResult.from_json(json.dumps(result_payload(UNCLEAR)))
@@ -148,6 +155,13 @@ class AnalysisResultTests(unittest.TestCase):
         self.assertIn("branch: change/8", summary)
         self.assertIn("## AI 判级", summary)
         self.assertIn("Existing test documents", summary)
+        self.assertIn("documents:\n  summary: summary-pilot-fix-260716.md", summary)
+        self.assertEqual(summary_filename(result, "2026-07-16"), "summary-pilot-fix-260716.md")
+
+    def test_document_slug_must_be_short_lowercase_kebab_case(self) -> None:
+        for slug in ("one", "TOO-LONG", "one_two", "one-two-three-four-five", "x" * 33 + "-ok"):
+            with self.subTest(slug=slug), self.assertRaisesRegex(AnalysisError, "document_slug"):
+                AnalysisResult.from_json(json.dumps({**result_payload(SMALL), "document_slug": slug}))
 
 
 if __name__ == "__main__":

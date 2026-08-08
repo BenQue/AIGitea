@@ -1,6 +1,6 @@
 ---
 name: gitea-analyze-change
-description: Analyze a Gitea Issue against the current repository and produce an evidence-backed 00-summary.md body with a deterministic change type, contract effect, and effective complexity classification. Use for needs-analysis Issues before spec/plan or Development Loop work; never modify product code or Gitea state.
+description: Analyze a Gitea Issue against the current repository and produce an evidence-backed named summary document with a deterministic change type, contract effect, and effective complexity classification. Use for needs-analysis Issues before spec/plan or Development Loop work; never modify product code or Gitea state.
 ---
 
 # Analyze a Gitea change
@@ -26,7 +26,7 @@ contract_effect: restore
 reason: 恢复已经明确的既有行为
 risk_flags: []
 required_docs:
-  - 00-summary.md
+  - summary
 confidence: high
 override_reason: ''
 ```
@@ -46,7 +46,8 @@ Allowed values are:
    - `unclear` is `needs-human-decision`.
 8. Apply complexity in this priority order: forced-complex risk, explicit `complex`, validated explicit `small`, then AI assessment. Never downgrade an explicit `complex`. If explicit `small` conflicts with evidence, set `effective_complexity: complex` and explain the conflict in `override_reason`.
 9. Force `complex` for a feature or functional behavior change, schema/data migration, external contract, authentication/authorization/security, shared core component, cross-module/service change, CI/artifact/deployment/rollback change, or Agent/platform governance change. Otherwise use `small` only for a clear, local, reversible restore/unchanged change with measurable acceptance criteria.
-10. Use stable `risk_flags` names that directly identify every forced condition. Set `required_docs` to `00-summary.md` for `small`, and to `00-summary.md`, `01-spec.md`, and `02-plan.md` for `complex`; include `03-verification.md` for deployment or migration work.
+10. Use stable `risk_flags` names that directly identify every forced condition. Set semantic `required_docs` to `summary` for `small`, and to `summary`, `spec`, and `plan` for `complex`; include `verification` for deployment or migration work.
+11. Return a meaningful `document_slug` with 2–4 lowercase English `kebab-case` words, preferably no more than 24 and never more than 32 characters. The wrapper locks it into `<role>-<slug>-<YYMMDD>.md` names and the summary `documents` mapping.
 11. For `needs-human-decision`, set `assessed_complexity: needs-human-decision` and `contract_effect: unclear`, omit `effective_complexity`, and state the single decision needed in `reason`. The wrapper must omit that key from both summary front matter and the `## AI 判级` YAML block; it must not leave an empty value or placeholder. Do not choose a fallback complexity or emit multiple questions.
 12. Identify missing acceptance criteria that must be resolved before `approved` can start a Development Loop. Do not claim tests ran unless they actually ran.
 

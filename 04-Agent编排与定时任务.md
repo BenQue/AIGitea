@@ -1,13 +1,14 @@
-# 04 · AI 自动分析与 Development Loop 编排
+# 04 · Matt skills 与 Development Loop 编排
 
-> v3 Codex runtime candidate（2026-07-16）。共享 controller 已通过 synthetic 与一个明确标注的 real complex pilot；它不是 rsDesign 专用服务，任何项目都必须使用独立 profile，并在项目级验收前保持 implementation disabled。
+> v3.3 source candidate（2026-08-08）。Issue #57 使用完整 Matt Pocock skills 作为开发编排层；共享 controller 继续承担平台治理、确定性验证和远端 mutation。本候选必须经最终 PR 人工合并后才成为仓库基线。
 
 ## 1. 设计原则
 
 - Analyzer 与 Development Loop 分离。
+- Matt `triage → to-spec → to-tickets → implement` 保持原始技能语义，通过 Gitea tracker adapter 对齐平台阶段。
 - `needs-analysis` 触发分析，`approved` 触发 Loop。
 - Issue/spec/plan 是不可由 Loop 擅自改写的执行合同。
-- 外层 controller 管状态、锁、Git/Gitea、验证和终态；模型只做范围内分析与修改。
+- Agent 可以按 frontier `Txx` 在 exact `change/N` 创建本地原子 commit；外层 controller 管状态、锁、commit 后置校验、push、PR、CI、验证和终态。
 - Codex 与 Claude Code 只作为 provider adapter，共用同一 controller 和 verifier。
 - 只有人可以合并最终 PR。
 - 生产部署不由 analyzer、Loop 或 provider 执行。
@@ -31,6 +32,7 @@ aisoft-agent@<profile>.timer / controlled trigger
   → project-poll <profile>
   → loop-controller
       ├── contract loader
+      ├── Matt tracker / workflow adapters
       ├── worktree + issue lock
       ├── Codex adapter（先验证）
       ├── Claude adapter（Codex 验证后）
@@ -47,7 +49,7 @@ Analyzer：
 
 1. 读取 Issue、`AGENTS.md`、仓库和相关测试。
 2. 只读分析产品代码，识别主要 type、产品合同影响、风险和有效复杂度，输出固定结构；模型不得直接修改 Issue 标签。
-3. 外层 wrapper 校验结构化输出，在 `change/N` 写 `00-summary.md`、提交、推送和评论，并独占所有标签 mutation。
+3. 外层 wrapper 校验结构化输出，在 `change/N` 写 `summary-<slug>-<YYMMDD>.md`、提交、推送和评论，并独占所有标签 mutation；legacy Issue 只读固定数字 basename。
 4. 不实现代码、不创建最终 PR、不启动部署。
 
 所有 Issue 都经过 analyzer；是否需要 spec/plan 由有效复杂度决定。Analyzer 至少输出：
@@ -61,7 +63,8 @@ contract_effect: restore # restore | unchanged | add | change | unclear
 reason: 恢复已经明确的既有行为
 risk_flags: []
 required_docs:
-  - 00-summary.md
+  - summary
+document_slug: restore-login-flow
 confidence: high # high | medium | low
 override_reason:
 ```
@@ -78,10 +81,10 @@ Wrapper 必须按强制风险规则和显式标签优先级复核结果，再执
 每次收到启动信号时，controller 都必须从 Issue、有效评论、summary 和所需 spec/plan 重新计算合同有效性，不能把现有 `approved` 当作充分证据。启动前必须满足：
 
 - Issue 为 open 且带 `approved`。
-- `change/N` 和 `00-summary.md` 存在。
+- `change/N` 和唯一映射的 `summary` 存在；新合同必须通过 `documents` 映射解析，legacy 合同才允许固定数字 basename。
 - 恰有一个由当前证据支持的 `complexity/small` 或 `complexity/complex` 标签，且 type、复杂度和强制风险规则无冲突。
 - `complexity/small` 时 Issue 有可测验收标准，summary 字段完整，且没有强制复杂风险。
-- `complexity/complex` 时 `01-spec.md` 和 `02-plan.md` 完整、验收映射明确且无未决问题。
+- `complexity/complex` 时映射的 `spec` 和 `plan` 完整、验收映射明确、Ticket graph 有可执行 frontier 且无未决问题。
 - 没有另一个 active Issue 占用第一版 controller。
 
 任一条件不满足时 controller 必须拒绝启动、由 wrapper 修正到 `awaiting-triage` 或 `spec-drafting`，并输出 `NEEDS_HUMAN_DECISION` 或 `BLOCKED_EXTERNAL`；不得猜测合同，也不得因 `approved` 已存在而跳过复核。
@@ -90,10 +93,11 @@ Wrapper 必须按强制风险规则和显式标签优先级复核结果，再执
 
 ```text
 加载合同和持久化状态
-  → 选择下一个未完成 plan task
-  → provider 在隔离 worktree 实现最小改动
+  → 从 plan Ticket graph 选择第一个未阻塞 frontier Txx
+  → provider 显式调用 $implement，在隔离 worktree 实现并本地提交
+  → controller 校验 branch、ancestry、commit subject、改动范围与 clean tree
   → verifier 独立运行要求的命令
-  → 通过：记录进度并进入下一项
+  → 通过：controller push，记录进度并进入下一项
   → 失败：归因并把真实输出反馈给下一轮
   → 判断完成、继续或升级
 ```
@@ -139,6 +143,7 @@ Verifier 必须由外层脚本独立运行，不信任模型自述。每条 acce
 ## 11. 安全与回滚
 
 - controller 使用专用 `coder` 用户和最小权限 ci-bot。
+- Agent 不持有 push、PR、merge 或 deploy 权限；commit subject 必须包含 `#N` 与当前 `Txx`，修复使用追加 commit。
 - 不打印 `.agent.env`、auth、Git credentials 或应用环境变量。
 - 新 profile 默认 `IMPLEMENT_PROVIDER=none`；复制模板、安装 unit 或文档更新都不启用 Loop。
 - Loop 试点失败时停止 controller，保留 analyzer，开发回到 Mac 人机交互，不影响 CI 和生产部署。

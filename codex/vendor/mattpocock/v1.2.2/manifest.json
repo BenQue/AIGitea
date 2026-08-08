@@ -1,0 +1,306 @@
+{
+  "schema_version": 1,
+  "source": "https://github.com/mattpocock/skills",
+  "tag": "v1.2.2",
+  "tag_object": "8651af486bb7c9e695ab1c6f44bd9a79fabb9999",
+  "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302",
+  "license": "MIT",
+  "license_sha256": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5",
+  "adapter_contract_version": 1,
+  "critical_skills": [
+    "implement",
+    "setup-matt-pocock-skills",
+    "to-spec",
+    "to-tickets",
+    "triage"
+  ],
+  "skill_count": 35,
+  "skills": [
+    {
+      "name": "ask-matt",
+      "path": "skills/engineering/ask-matt/SKILL.md",
+      "sha256": "17591a41e89061e4a0b505737a7b87d5f19454fd128f84cdf4502741180cd1ee",
+      "control_sha256": "be8f4d30ee21a5c691a391b941371ae0005c61084888a5fdddea7d7340ced912",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "code-review",
+      "path": "skills/engineering/code-review/SKILL.md",
+      "sha256": "3d1655abc0ebeb45d8aa44fbf0a88534cfafc192708c0b5df676cbdba6466155",
+      "control_sha256": "8c34e8fda4c8614442ce6be8c89463bf425ce87c022650bc39987e14dfce5cdd",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "codebase-design",
+      "path": "skills/engineering/codebase-design/SKILL.md",
+      "sha256": "6b60cdf273fb4ce914cec6736b5c2890e4bd2b03fd771154c3797ab0eee9133c",
+      "control_sha256": "cf33b558fd462d9819612b29f2e88c29aca0d8f0e8fd950d72f155c2e453484d",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "diagnosing-bugs",
+      "path": "skills/engineering/diagnosing-bugs/SKILL.md",
+      "sha256": "a1f8e587f291c8760b5b6982e3e1dd85b764732ee753c82788ecaece058b1fd1",
+      "control_sha256": "9266a140a336cf96d02a30c4467c9bf42a4c963daa713acf84c51c33182d7b3d",
+      "disable_model_invocation": false,
+      "tool_files": [
+        "scripts/hitl-loop.template.sh"
+      ]
+    },
+    {
+      "name": "domain-modeling",
+      "path": "skills/engineering/domain-modeling/SKILL.md",
+      "sha256": "2c564c40a58135c9501631ad4a6a86568b46c29f615fe98378ca80f4a44be409",
+      "control_sha256": "1ee3c6e5f08dbf318182e2f5b29f52e4597f1b8446f756345022d2172e503ebb",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "grill-with-docs",
+      "path": "skills/engineering/grill-with-docs/SKILL.md",
+      "sha256": "e63451e556cce4111cefbf774407822fcf779c22f784fc29bac0362bb2277e4d",
+      "control_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "implement",
+      "path": "skills/engineering/implement/SKILL.md",
+      "sha256": "62581fa199b12359ce4a87e9753f9cab2dcc53e410927e52491724dbe76fec92",
+      "control_sha256": "55dc98524decfc851c169a2e3e6a6cd803d4d450b7b30d479343fd92dad2343f",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "improve-codebase-architecture",
+      "path": "skills/engineering/improve-codebase-architecture/SKILL.md",
+      "sha256": "7aac6a144b25376222ab5b5e81938f5c4a3d7919adeeda7091865b2a82d784dc",
+      "control_sha256": "33fd407bfd1f658c17e5f0135436761d74f8f5de6bc7bed13e3de1c81ca620bd",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "prototype",
+      "path": "skills/engineering/prototype/SKILL.md",
+      "sha256": "07e6ecf9ff5a1ad000eba69d4b6cba5e7781ddbad366ac9175c82e86623d3294",
+      "control_sha256": "de20e96aab34f15e9532247a41ed3f549f0788a7e2c6de7adbf4bee4af535185",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "research",
+      "path": "skills/engineering/research/SKILL.md",
+      "sha256": "82dc5508ffef0cf9a8567e7372a73810af9d0913cd349f58fe6d1ce23a689d5b",
+      "control_sha256": "3db15b19253dda999ea5dff56d37d26e1deaac94e423d50a7fb62419a7497bd4",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "resolving-merge-conflicts",
+      "path": "skills/engineering/resolving-merge-conflicts/SKILL.md",
+      "sha256": "40551fbba29be2163d5f635ad21b87ed3c098fde4298fbd0454ae13564e8839b",
+      "control_sha256": "1b4efb34ca1ecabd47ee5570906973633e2e8a5a7c37115fd999ba57cc50c3e4",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "setup-matt-pocock-skills",
+      "path": "skills/engineering/setup-matt-pocock-skills/SKILL.md",
+      "sha256": "efb4f69abe214a89b887214a5da4fef00e1b59f9352e59668a3d46d0057fbade",
+      "control_sha256": "fa2bb9502e4eef27ba8a6ffc6f98685763f256472b0cdb46a07f1e62bb72457c",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "tdd",
+      "path": "skills/engineering/tdd/SKILL.md",
+      "sha256": "f7d766e69b95969a364a25734a1478e025a1e36eea55248cba28e68abb1f0f5e",
+      "control_sha256": "2a6d520e7611c0931be9af064d6ff6bc004140281dc7ba19ea6b542b6f30a038",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "to-spec",
+      "path": "skills/engineering/to-spec/SKILL.md",
+      "sha256": "d5b23d7714a31aa6bb2d02882aa6521bbde5427af09f813270492d33829a9989",
+      "control_sha256": "952e3e1e317d6ebf9171dddfcd675b5bfc50be1cd5914e9bb6dcf35db10b9e17",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "to-tickets",
+      "path": "skills/engineering/to-tickets/SKILL.md",
+      "sha256": "f1b3352734ad85c32d843223f07f5f18fb9668e9d4cb60cf949102c7e012cf53",
+      "control_sha256": "58161ff42fe444f08007a5dd868ba1ff86968db6d4df884276a3343924cb662d",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "triage",
+      "path": "skills/engineering/triage/SKILL.md",
+      "sha256": "5ebb322d8ec81a32f6e1f8b8195ce3e311598e0ca76e536043dbccaf2ab99be3",
+      "control_sha256": "7b8e8f508bf65d5abc195b3efa008794b8cdb1ddfa78c4f92f6a246e99c0c805",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "wayfinder",
+      "path": "skills/engineering/wayfinder/SKILL.md",
+      "sha256": "8075f35daf5ccad18264f0978a99d80a0f113c220d8a5cb1d1c7519bb85c9082",
+      "control_sha256": "2ee7ce27c5f0c5d6e270ed75a568fbb30ae5ec74266975af03022f13c293c69a",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "wizard",
+      "path": "skills/engineering/wizard/SKILL.md",
+      "sha256": "b0cfc4b5b75840b363855e2837e94d9e7ce3a3a9646bf3637a7867bdf04da741",
+      "control_sha256": "1aa4a50dd638233caea9ceba1bdcf2f5230233bf340a9c8bcb33a62b3bb21107",
+      "disable_model_invocation": false,
+      "tool_files": [
+        "template.sh"
+      ]
+    },
+    {
+      "name": "claude-handoff",
+      "path": "skills/in-progress/claude-handoff/SKILL.md",
+      "sha256": "c7c100e627d7ccb7beae411837ebde45482d3c86e08d82c53da3468aa476b4c8",
+      "control_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "loop-me",
+      "path": "skills/in-progress/loop-me/SKILL.md",
+      "sha256": "9a346d9bae669995a827af416217d0097ee8e848e05620808f53df7048dd0c81",
+      "control_sha256": "d2f976bab1acbd08795ae0bb8817e0676f814b10cffdd4383537b69ac5fe86f9",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "setup-ts-deep-modules",
+      "path": "skills/in-progress/setup-ts-deep-modules/SKILL.md",
+      "sha256": "fe4100ee3297df14d9c9e7c2c8b720a6be36af82f6c04250fccdfbdf460b97da",
+      "control_sha256": "899db6c61d4d2d4528d7fbfdf16d8f31dbdf0be669d22cab95810d3fc34a87e7",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "writing-beats",
+      "path": "skills/in-progress/writing-beats/SKILL.md",
+      "sha256": "1a4ba6188068eedc305b22520c71ba414a42b420db2607b340f91d6410809205",
+      "control_sha256": "557091f175ea2e8e9a85d5f1b87256b9cdd426ec09ef7606e6073230d5197e95",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "writing-fragments",
+      "path": "skills/in-progress/writing-fragments/SKILL.md",
+      "sha256": "c55d610f1ce1b3128752bd2ca36673bdb861f771bd5e0d5f7ecda33496a05997",
+      "control_sha256": "c2ba219ed0a8904adcbaefe42a28ba2829cb1d1114441c252332228007805a30",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "writing-shape",
+      "path": "skills/in-progress/writing-shape/SKILL.md",
+      "sha256": "04d46a4558f4fae49bacb93da3bef51ecf48dfa00da567f48f2b16f1b048e678",
+      "control_sha256": "bb042f1adf2b046d1c8cb7100ad46e3e630ec25d52137dcbb2568c58c59267b2",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "git-guardrails-claude-code",
+      "path": "skills/misc/git-guardrails-claude-code/SKILL.md",
+      "sha256": "9a53d299525ed694c75cf7889b3ecf515806c5bec008b6ea25d5a47a6d7ffb8b",
+      "control_sha256": "280f2b8906d7afa91ee60cd9a8dfd581a3b596990b6e3d9f0629c3fbbe87a540",
+      "disable_model_invocation": false,
+      "tool_files": [
+        "scripts/block-dangerous-git.sh"
+      ]
+    },
+    {
+      "name": "migrate-to-shoehorn",
+      "path": "skills/misc/migrate-to-shoehorn/SKILL.md",
+      "sha256": "cda65c6b0f17a4759e6f700fe4850a325e8fc0614c9ef228de0f05efab25531d",
+      "control_sha256": "9946296240411fd43acdf5db2e8ec8f2bcc1aa795026d5ab712033f510309968",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "scaffold-exercises",
+      "path": "skills/misc/scaffold-exercises/SKILL.md",
+      "sha256": "ff41da067a268a360589f241785dcdc22814a8cf11a1298b3a7ed63dd0b09f75",
+      "control_sha256": "b61eb0f46d4ddd41924b6a144b70a73785e3c0c4cf6b92594931ac6ec96097bd",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "setup-pre-commit",
+      "path": "skills/misc/setup-pre-commit/SKILL.md",
+      "sha256": "3c68a45623bd7d2b74c019763d772424e1c52e07b775bee833451d7eeff25a3a",
+      "control_sha256": "a74d31914d79a60cb1c040d933bdb3b2eb911c69f03623312ad21c9c9d1696e0",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "grill-me",
+      "path": "skills/productivity/grill-me/SKILL.md",
+      "sha256": "07c749b9082aa039e0beaa25504e3e505773f5dc0586a7f0e0b742a0361b3403",
+      "control_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "grilling",
+      "path": "skills/productivity/grilling/SKILL.md",
+      "sha256": "4e8097d6b30606406a502e8aed994dbf1b25b70bea46fbd14f6e3f14ff900c7b",
+      "control_sha256": "0e1b9968f550037d0ff7a0929073f1a8e323be5d6203b5c8ee322e97f834a2e0",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "handoff",
+      "path": "skills/productivity/handoff/SKILL.md",
+      "sha256": "d3fa95374feefb3e51f25d06dddd984778425f78663a650d52399406ad40b042",
+      "control_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "teach",
+      "path": "skills/productivity/teach/SKILL.md",
+      "sha256": "3d3ea2714abf72e5611aee287011959092b622ff0ccc637cdab235e8275d1d2b",
+      "control_sha256": "4912418d642908f03f23a6a67cf206432d385dcb547b75a22a7f9fd785ae8169",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "to-questionnaire",
+      "path": "skills/productivity/to-questionnaire/SKILL.md",
+      "sha256": "a5ab5f76f8d32f1463b544824fe1f1c676eadcfcd3e5686047e5e7651e90c3a2",
+      "control_sha256": "7e0d12a9283285e30bf3d8e4efd72421a61e424e29074b13d6c8e95a6310ea17",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "wait-what",
+      "path": "skills/productivity/wait-what/SKILL.md",
+      "sha256": "0ddd10d997af90be2e17d93812d1f7422deed47f229e06a294d6136042f6363a",
+      "control_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "writing-for-agents",
+      "path": "skills/productivity/writing-for-agents/SKILL.md",
+      "sha256": "c182cc8fa7cd00be717558913eaec36defe8f6371cd5299dc9bf2d59ae8744ba",
+      "control_sha256": "38cc447da6e849d104018538e983af3ce258b917eae9a5d8b5259dcaa44c72c8",
+      "disable_model_invocation": false,
+      "tool_files": []
+    }
+  ]
+}

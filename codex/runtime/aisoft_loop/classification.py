@@ -24,9 +24,14 @@ FULL_FIELDS = (
 )
 UNCLEAR_FIELDS = tuple(name for name in FULL_FIELDS if name != "effective_complexity")
 LIST_FIELDS = frozenset({"risk_flags", "required_docs"})
-ALLOWED_DOCS = frozenset(
-    {"00-summary.md", "01-spec.md", "02-plan.md", "03-verification.md"}
+DOCUMENT_ROLES = ("summary", "spec", "plan", "verification")
+LEGACY_DOCUMENTS = (
+    "00-summary.md",
+    "01-spec.md",
+    "02-plan.md",
+    "03-verification.md",
 )
+ALLOWED_DOCS = frozenset(DOCUMENT_ROLES + LEGACY_DOCUMENTS)
 FORCED_COMPLEX_RISKS = frozenset(
     {
         "functional-change",
@@ -135,23 +140,40 @@ class Classification:
         _enum("confidence", self.confidence, {"high", "medium", "low"})
         if not self.reason.strip():
             raise ClassificationError("reason must not be empty")
-        if not self.required_docs or self.required_docs[0] != "00-summary.md":
-            raise ClassificationError("required_docs must start with 00-summary.md")
+        if not self.required_docs or self.required_docs[0] not in {
+            "summary",
+            "00-summary.md",
+        }:
+            raise ClassificationError("required_docs must start with summary")
         unknown_docs = set(self.required_docs) - ALLOWED_DOCS
         if unknown_docs:
             raise ClassificationError(f"unsupported required_docs: {sorted(unknown_docs)}")
+        styles = {
+            "role" if name in DOCUMENT_ROLES else "legacy" for name in self.required_docs
+        }
+        if len(styles) != 1:
+            raise ClassificationError("required_docs must not mix document roles and legacy filenames")
         if len(set(self.risk_flags)) != len(self.risk_flags):
             raise ClassificationError("risk_flags must not contain duplicates")
         if len(set(self.required_docs)) != len(self.required_docs):
             raise ClassificationError("required_docs must not contain duplicates")
 
     def route(self) -> Route:
+        role_based = self.required_docs[0] == "summary"
+        unresolved_docs = ("summary",) if role_based else ("00-summary.md",)
+        complex_docs = (
+            ("summary", "spec", "plan")
+            if role_based
+            else ("00-summary.md", "01-spec.md", "02-plan.md")
+        )
+        if self.required_docs[-1] in {"verification", "03-verification.md"}:
+            complex_docs += (self.required_docs[-1],)
         if (
             self.assessed_complexity == "needs-human-decision"
             or self.contract_effect == "unclear"
             or self.confidence == "low"
         ):
-            return Route(None, "awaiting-triage", None, ("00-summary.md",))
+            return Route(None, "awaiting-triage", None, unresolved_docs)
 
         forced_reasons: list[str] = []
         if self.requested_complexity == "complex":
@@ -173,7 +195,7 @@ class Classification:
                 "complex",
                 "spec-drafting",
                 "complexity/complex",
-                ("00-summary.md", "01-spec.md", "02-plan.md"),
+                complex_docs,
                 override,
             )
 
@@ -183,7 +205,7 @@ class Classification:
             "small",
             "approved",
             "complexity/small",
-            ("00-summary.md",),
+            unresolved_docs,
             self.override_reason,
         )
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import re
 import subprocess
 from typing import Optional
 
@@ -158,9 +159,26 @@ class Controller:
             except ContractError as exc:
                 return self._contract_failure(issue_number, state, exc, budget=budget)
 
-            request = self._provider_request(
-                contract, budget, failure_evidence, pr_number
-            )
+            try:
+                request = self._provider_request(
+                    contract,
+                    budget,
+                    failure_evidence,
+                    pr_number,
+                    tuple(str(item) for item in state.get("completed_tickets", [])),
+                )
+            except ProviderError as exc:
+                self._set_lifecycle(contract, "awaiting-triage")
+                return self._finish(
+                    issue_number,
+                    state,
+                    TerminalState.NEEDS_HUMAN_DECISION,
+                    redact(str(exc)),
+                    pr_number,
+                    budget=budget,
+                    comment=True,
+                )
+            provider_base_sha = self.git.head_sha()
             try:
                 provider_result = self.provider.run(request, self.repo)
             except ProviderError as exc:
@@ -188,6 +206,41 @@ class Controller:
                 )
                 continue
 
+            ticket_id = str(request["ticket_id"])
+            try:
+                actual_files = tuple(
+                    sorted(
+                        self.git.validate_provider_commit(
+                            provider_base_sha,
+                            issue_number,
+                            ticket_id,
+                        )
+                    )
+                )
+            except ProviderError as exc:
+                self._set_lifecycle(contract, "awaiting-triage")
+                return self._finish(
+                    issue_number,
+                    state,
+                    TerminalState.NEEDS_HUMAN_DECISION,
+                    redact(str(exc)),
+                    pr_number,
+                    budget=budget,
+                    comment=True,
+                )
+            declared_files = tuple(sorted(provider_result.changed_files))
+            if actual_files != declared_files or not _paths_allowed(contract, actual_files):
+                self._set_lifecycle(contract, "awaiting-triage")
+                return self._finish(
+                    issue_number,
+                    state,
+                    TerminalState.NEEDS_HUMAN_DECISION,
+                    "provider changed files outside its declared or authorized scope",
+                    pr_number,
+                    budget=budget,
+                    comment=True,
+                )
+
             if provider_result.status == "NEEDS_HUMAN_DECISION":
                 self._set_lifecycle(contract, "awaiting-triage")
                 return self._finish(
@@ -205,20 +258,6 @@ class Controller:
                     state,
                     TerminalState.BLOCKED_EXTERNAL,
                     redact(provider_result.escalation),
-                    pr_number,
-                    budget=budget,
-                    comment=True,
-                )
-
-            actual_files = tuple(sorted(self.git.changed_files()))
-            declared_files = tuple(sorted(provider_result.changed_files))
-            if actual_files != declared_files or not _paths_allowed(contract, actual_files):
-                self._set_lifecycle(contract, "awaiting-triage")
-                return self._finish(
-                    issue_number,
-                    state,
-                    TerminalState.NEEDS_HUMAN_DECISION,
-                    "provider changed files outside its declared or authorized scope",
                     pr_number,
                     budget=budget,
                     comment=True,
@@ -257,10 +296,7 @@ class Controller:
             failure_evidence = ""
             failure_kind = ""
             if actual_files:
-                head_sha = self.git.commit_and_push(
-                    actual_files,
-                    f"fix: implement #{issue_number} within approved contract",
-                )
+                head_sha = self.git.push()
             else:
                 head_sha = self.git.head_sha()
 
@@ -276,6 +312,42 @@ class Controller:
                     "implementing",
                 )
                 continue
+
+            completed_tickets = {
+                str(item) for item in state.get("completed_tickets", [])
+            }
+            completed_tickets.add(ticket_id)
+            state["completed_tickets"] = sorted(completed_tickets)
+            if contract.effective_complexity == "complex":
+                try:
+                    select_frontier_ticket(
+                        contract,
+                        completed_tickets=tuple(completed_tickets),
+                    )
+                except ProviderError as exc:
+                    if "no pending ticket" not in str(exc):
+                        self._set_lifecycle(contract, "awaiting-triage")
+                        return self._finish(
+                            issue_number,
+                            state,
+                            TerminalState.NEEDS_HUMAN_DECISION,
+                            redact(str(exc)),
+                            pr_number,
+                            budget=budget,
+                            comment=True,
+                        )
+                else:
+                    self._save_progress(
+                        issue_number,
+                        state,
+                        budget,
+                        pr_number,
+                        head_sha,
+                        "",
+                        "",
+                        "implementing",
+                    )
+                    continue
 
             if pr_number is None:
                 pr = self.gitea.create_pr(
@@ -368,8 +440,25 @@ class Controller:
         budget: LoopBudget,
         failure_evidence: str,
         pr_number: Optional[int],
+        completed_tickets: tuple[str, ...] = (),
     ) -> dict[str, object]:
+        ticket_id = select_frontier_ticket(
+            contract,
+            repair=bool(failure_evidence),
+            completed_tickets=completed_tickets,
+        )
+        document_paths = [
+            f"docs/changes/{contract.issue_number}/{name}"
+            for name in contract.required_docs
+        ]
         return {
+            "skill": "$implement",
+            "ticket_id": ticket_id,
+            "prompt": (
+                f"$implement Issue #{contract.issue_number} ticket {ticket_id} using "
+                + ", ".join(document_paths)
+                + f". Commit only to {contract.branch}; do not push, open or merge a PR, or deploy."
+            ),
             "issue_number": contract.issue_number,
             "title": contract.title,
             "change_type": contract.change_type,
@@ -386,11 +475,17 @@ class Controller:
             "forbidden_actions": [
                 "edit governing AGENTS.md",
                 "change Issue labels",
-                "commit or push",
+                "push",
                 "create or merge PR",
                 "deploy",
             ],
+            "commit_requirements": [
+                f"commit only on {contract.branch}",
+                f"include #{contract.issue_number} and {ticket_id} in every commit subject",
+                "leave the worktree clean",
+            ],
         }
+
 
     def _set_lifecycle(self, contract: Contract, lifecycle: str) -> None:
         labels = {f"type/{contract.change_type}", f"complexity/{contract.effective_complexity}", lifecycle}
@@ -498,23 +593,62 @@ class LocalGit:
         if current != branch:
             raise ProviderError(f"worktree branch must be {branch}, got {current or 'detached'}")
 
-    def changed_files(self) -> tuple[str, ...]:
-        tracked = self._run(("git", "diff", "--name-only", "-z", "HEAD")).stdout
-        untracked = self._run(
-            ("git", "ls-files", "--others", "--exclude-standard", "-z")
-        ).stdout
-        return tuple(sorted(set(_nul_paths(tracked) + _nul_paths(untracked))))
-
-    def commit_and_push(self, paths: tuple[str, ...], message: str) -> str:
-        if paths:
-            self._run(("git", "add", "--", *paths))
-            staged = subprocess.run(
-                ("git", "diff", "--cached", "--quiet"), cwd=self.repo, check=False
+    def validate_provider_commit(
+        self, base_sha: str, issue_number: int, ticket_id: str
+    ) -> tuple[str, ...]:
+        current = self._run(("git", "branch", "--show-current")).stdout.strip()
+        if current != self.branch:
+            raise ProviderError(
+                f"provider left the worktree on {current or 'detached'}, expected {self.branch}"
             )
-            if staged.returncode == 1:
-                self._run(("git", "commit", "-m", message))
-            elif staged.returncode != 0:
-                raise ProviderError("git failed while checking staged changes")
+        if self._run(("git", "status", "--porcelain")).stdout:
+            raise ProviderError("provider must leave a clean worktree after committing")
+        if not re.fullmatch(r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})", base_sha):
+            raise ProviderError("provider base SHA is invalid")
+        ancestry = subprocess.run(
+            ("git", "merge-base", "--is-ancestor", base_sha, "HEAD"),
+            cwd=self.repo,
+            shell=False,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if ancestry.returncode != 0:
+            raise ProviderError("provider rewrote or replaced the approved branch history")
+        if self.head_sha() == base_sha:
+            return ()
+        history = self._run(("git", "rev-list", "--parents", f"{base_sha}..HEAD")).stdout
+        for line in history.splitlines():
+            if len(line.split()) > 2:
+                raise ProviderError("provider commits must not contain merge commits")
+        subjects = self._run(("git", "log", "--format=%s", f"{base_sha}..HEAD")).stdout
+        for subject in subjects.splitlines():
+            if f"#{issue_number}" not in subject or ticket_id not in subject:
+                raise ProviderError(
+                    f"every provider commit subject must contain #{issue_number} and {ticket_id}"
+                )
+        patch = self._run(
+            ("git", "diff", "--no-ext-diff", "--unified=0", base_sha, "HEAD", "--")
+        ).stdout
+        additions = "\n".join(
+            line[1:]
+            for line in patch.splitlines()
+            if line.startswith("+") and not line.startswith("+++")
+        )
+        if re.search(
+            r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"
+            r"|\bghp_[A-Za-z0-9]{20,}\b"
+            r"|\bgithub_pat_[A-Za-z0-9_]{20,}\b"
+            r"|\bsk-[A-Za-z0-9]{20,}\b",
+            additions,
+        ):
+            raise ProviderError("provider commit failed the built-in secret scan")
+        changed = self._run(
+            ("git", "diff", "--name-only", "-z", base_sha, "HEAD")
+        ).stdout
+        return tuple(sorted(set(_nul_paths(changed))))
+
+    def push(self) -> str:
         self._run(("git", "push", "-u", "origin", self.branch))
         return self.head_sha()
 
@@ -535,6 +669,119 @@ class LocalGit:
         if completed.returncode != 0:
             raise ProviderError(redact(completed.stderr or completed.stdout)[-4000:])
         return completed
+
+
+def select_frontier_ticket(
+    contract: Contract,
+    *,
+    repair: bool = False,
+    completed_tickets: tuple[str, ...] = (),
+) -> str:
+    """Select the first unblocked pending ticket from a complex plan.
+
+    Legacy plans predate ticket graphs and keep the historical T01 fallback.
+    New plans fail closed when their graph is absent, malformed, or blocked.
+    A repair round may return the last completed ticket so CI or verification
+    fixes remain attached to an existing audit identifier.
+    """
+    if contract.effective_complexity != "complex":
+        return "T01"
+
+    plan_names = [
+        name
+        for name in contract.required_docs
+        if name == "02-plan.md" or name.startswith("plan-")
+    ]
+    if len(plan_names) != 1:
+        raise ProviderError("complex contract must resolve exactly one plan document")
+    plan_name = plan_names[0]
+    plan_text = contract.document_directory.joinpath(plan_name).read_text(
+        encoding="utf-8"
+    )
+    graph = _ticket_graph(plan_text)
+    if not graph:
+        if plan_name == "02-plan.md":
+            return "T01"
+        raise ProviderError("new plan must contain a valid Ticket graph table")
+
+    completed = {
+        ticket_id
+        for ticket_id, _, status in graph
+        if status in {"complete", "completed", "done"}
+    } | set(completed_tickets)
+    known = {row[0] for row in graph}
+    unknown_completed = completed - known
+    if unknown_completed:
+        raise ProviderError(
+            "completed ticket state is not declared by the plan: "
+            + ", ".join(sorted(unknown_completed))
+        )
+    pending = [
+        (ticket_id, blockers)
+        for ticket_id, blockers, status in graph
+        if ticket_id not in completed
+        and status in {"pending", "ready", "in-progress", "in_progress", "implementing"}
+    ]
+    for ticket_id, blockers in pending:
+        if all(blocker in completed for blocker in blockers):
+            return ticket_id
+
+    if repair and len(completed) == len(graph):
+        return graph[-1][0]
+    if pending:
+        raise ProviderError("Ticket graph has no unblocked pending frontier")
+    raise ProviderError("Ticket graph has no pending ticket")
+
+
+def _ticket_graph(plan_text: str) -> tuple[tuple[str, tuple[str, ...], str], ...]:
+    lines = plan_text.splitlines()
+    for index, line in enumerate(lines):
+        headers = _table_cells(line)
+        normalized = [cell.lower().replace("_", " ") for cell in headers]
+        if not {"ticket", "blocked by", "status"}.issubset(normalized):
+            continue
+        if index + 1 >= len(lines) or not _is_table_separator(lines[index + 1]):
+            continue
+        ticket_index = normalized.index("ticket")
+        blockers_index = normalized.index("blocked by")
+        status_index = normalized.index("status")
+        rows: list[tuple[str, tuple[str, ...], str]] = []
+        for row_line in lines[index + 2 :]:
+            cells = _table_cells(row_line)
+            if not cells:
+                break
+            if max(ticket_index, blockers_index, status_index) >= len(cells):
+                return ()
+            ticket_id = cells[ticket_index].strip().upper()
+            if not re.fullmatch(r"T\d{2,}", ticket_id):
+                return ()
+            blockers_text = cells[blockers_index].strip()
+            blockers = tuple(
+                match.upper()
+                for match in re.findall(r"T\d{2,}", blockers_text, re.IGNORECASE)
+            )
+            if blockers_text not in {"", "-", "none", "None"} and not blockers:
+                return ()
+            rows.append((ticket_id, blockers, cells[status_index].strip().lower()))
+        if len({row[0] for row in rows}) != len(rows):
+            return ()
+        known = {row[0] for row in rows}
+        if any(blocker not in known for _, blockers, _ in rows for blocker in blockers):
+            return ()
+        return tuple(rows)
+    return ()
+
+
+def _table_cells(line: str) -> list[str]:
+    stripped = line.strip()
+    if not stripped.startswith("|") or not stripped.endswith("|"):
+        return []
+    return [cell.strip() for cell in stripped[1:-1].split("|")]
+
+
+def _is_table_separator(line: str) -> bool:
+    cells = _table_cells(line)
+    return bool(cells) and all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells)
 
 
 def _paths_allowed(contract: Contract, paths: tuple[str, ...]) -> bool:
