@@ -2,7 +2,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from aisoft_loop.contract import ContractError, load_contract
+from aisoft_loop.contract import ContractError, load_contract, resolve_documents
 
 
 SUMMARY = """---
@@ -69,6 +69,34 @@ branch: change/{number}
 | AC-1 | `python3 -m unittest` |
 """
 
+NEW_SUMMARY = """---
+issue: {number}
+gitea_url: http://gitea.test/owner/repo/issues/{number}
+change_type: {change_type}
+requested_complexity: auto
+assessed_complexity: {complexity}
+effective_complexity: {complexity}
+contract_effect: {effect}
+reason: contract evidence
+risk_flags: {risk_flags}
+required_docs:
+{required_docs}
+documents:
+{documents}
+confidence: high
+override_reason: ''
+status: analyzed
+branch: {branch}
+pr_url:
+created: 2026-08-08
+updated: 2026-08-08
+---
+
+## 问题/需求总结
+
+Bounded change.
+"""
+
 
 class ContractTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -127,6 +155,57 @@ class ContractTests(unittest.TestCase):
             directory.joinpath("02-plan.md").write_text(PLAN.format(number=number))
         return directory
 
+    def write_new_contract(
+        self,
+        *,
+        number: int = 57,
+        complexity: str = "small",
+        change_type: str = "bugfix",
+        effect: str = "restore",
+        slug: str = "bounded-fix",
+        spec: bool = False,
+        plan: bool = False,
+    ) -> Path:
+        directory = self.repo / "docs" / "changes" / str(number)
+        directory.mkdir(parents=True)
+        summary_name = f"summary-{slug}-260808.md"
+        required = ["  - summary"]
+        documents = [f"  summary: {summary_name}"]
+        if complexity == "complex":
+            required.extend(("  - spec", "  - plan"))
+            documents.extend(
+                (
+                    f"  spec: spec-{slug}-260808.md",
+                    f"  plan: plan-{slug}-260808.md",
+                )
+            )
+        directory.joinpath(summary_name).write_text(
+            NEW_SUMMARY.format(
+                number=number,
+                complexity=complexity,
+                change_type=change_type,
+                effect=effect,
+                risk_flags="[]",
+                required_docs="\n".join(required),
+                documents="\n".join(documents),
+                branch=f"change/{number}",
+            )
+        )
+        if spec:
+            directory.joinpath(f"spec-{slug}-260808.md").write_text(
+                SPEC.format(number=number).replace(
+                    "branch: change/{number}", f"branch: change/{number}"
+                ).replace("---\n\n# Spec", "created: 2026-08-08\n---\n\n# Spec")
+            )
+        if plan:
+            directory.joinpath(f"plan-{slug}-260808.md").write_text(
+                PLAN.format(number=number).replace(
+                    "---\n\n# Implementation plan",
+                    "created: 2026-08-08\n---\n\n# Implementation plan",
+                )
+            )
+        return directory
+
     def test_small_contract_is_accepted(self) -> None:
         self.write_contract()
         contract = load_contract(self.repo, self.issue())
@@ -134,6 +213,60 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(contract.effective_complexity, "small")
         self.assertEqual(contract.required_docs, ("00-summary.md",))
         self.assertEqual(contract.dependencies, ())
+
+    def test_new_named_small_contract_is_resolved_from_explicit_mapping(self) -> None:
+        self.write_new_contract()
+        self.assertEqual(
+            resolve_documents(self.repo, 57),
+            {"summary": "summary-bounded-fix-260808.md"},
+        )
+        contract = load_contract(self.repo, self.issue(number=57))
+        self.assertEqual(contract.required_docs, ("summary-bounded-fix-260808.md",))
+
+    def test_new_named_complex_contract_is_resolved_from_explicit_mapping(self) -> None:
+        self.write_new_contract(
+            complexity="complex",
+            change_type="feature",
+            effect="add",
+            spec=True,
+            plan=True,
+        )
+        issue = self.issue(
+            number=57,
+            labels=["type/feature", "complexity/complex", "approved"],
+        )
+        contract = load_contract(self.repo, issue)
+        self.assertEqual(
+            contract.required_docs,
+            (
+                "summary-bounded-fix-260808.md",
+                "spec-bounded-fix-260808.md",
+                "plan-bounded-fix-260808.md",
+            ),
+        )
+
+    def test_new_named_contract_rejects_slug_and_created_date_drift(self) -> None:
+        directory = self.write_new_contract()
+        summary = directory.joinpath("summary-bounded-fix-260808.md")
+        original = summary.read_text()
+        mutations = (
+            ("summary-bounded-fix-260808.md", "summary-other-fix-260808.md"),
+            ("created: 2026-08-08", "created: 2026-08-09"),
+        )
+        for old, new in mutations:
+            with self.subTest(new=new):
+                summary.write_text(original.replace(old, new))
+                with self.assertRaises(ContractError):
+                    load_contract(self.repo, self.issue(number=57))
+        summary.write_text(original)
+
+    def test_new_named_contract_rejects_ambiguous_summary(self) -> None:
+        directory = self.write_new_contract()
+        directory.joinpath("summary-second-copy-260808.md").write_text(
+            directory.joinpath("summary-bounded-fix-260808.md").read_text()
+        )
+        with self.assertRaisesRegex(ContractError, "exactly one new summary"):
+            load_contract(self.repo, self.issue(number=57))
 
     def test_dependencies_are_parsed_and_ordered(self) -> None:
         self.write_contract(depends_on="\n  - 3\n  - 7")

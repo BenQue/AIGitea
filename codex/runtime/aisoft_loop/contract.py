@@ -10,6 +10,19 @@ from typing import Mapping, Optional
 from .classification import Classification, ClassificationError
 
 
+DOCUMENT_ROLES = ("summary", "spec", "plan", "verification")
+LEGACY_DOCUMENTS = {
+    "summary": "00-summary.md",
+    "spec": "01-spec.md",
+    "plan": "02-plan.md",
+    "verification": "03-verification.md",
+}
+NEW_DOCUMENT_RE = re.compile(
+    r"^(summary|spec|plan|verification)-"
+    r"([a-z0-9]+(?:-[a-z0-9]+){1,3})-(\d{6})\.md$"
+)
+
+
 TYPE_LABELS = frozenset(
     {
         "type/bugfix",
@@ -35,6 +48,17 @@ LIFECYCLE_LABELS = frozenset(
     }
 )
 DELIVERY_TERMINAL_LABELS = frozenset({"completed", "deployed"})
+TRIAGE_CATEGORY_LABELS = frozenset({"triage/bug", "triage/enhancement"})
+TRIAGE_STATE_LABELS = frozenset(
+    {
+        "triage/needs-triage",
+        "triage/needs-info",
+        "triage/ready-for-agent",
+        "triage/ready-for-human",
+        "triage/wontfix",
+    }
+)
+TRIAGE_LABELS = TRIAGE_CATEGORY_LABELS | TRIAGE_STATE_LABELS
 
 
 class ContractError(ValueError):
@@ -65,6 +89,17 @@ class Contract:
     required_docs: tuple[str, ...]
     acceptance_criteria: tuple[str, ...]
     dependencies: tuple[int, ...]
+
+
+def resolve_documents(repo: Path | str, issue_number: int) -> dict[str, str]:
+    """Resolve one Issue's active document roles without requiring Loop readiness."""
+    repo_path = Path(repo).resolve()
+    if not repo_path.is_dir():
+        raise ContractError(f"repository is unavailable: {repo_path}")
+    if not isinstance(issue_number, int) or issue_number <= 0:
+        raise ContractError("Issue number must be a positive integer")
+    _, _, _, documents = _document_context(repo_path, issue_number)
+    return documents
 
 
 def load_contract(
@@ -103,12 +138,8 @@ def load_contract(
             lifecycle_label=lifecycle_labels[0] if len(lifecycle_labels) == 1 else "awaiting-triage",
         )
 
-    directory = repo_path / "docs" / "changes" / str(number)
-    summary_path = directory / "00-summary.md"
-    if not summary_path.is_file():
-        raise ContractError("summary 00-summary.md is missing")
+    directory, summary_path, summary, documents = _document_context(repo_path, number)
     summary_text = summary_path.read_text(encoding="utf-8")
-    summary = parse_front_matter(summary_text)
     dependencies = _dependencies(summary.get("depends_on", []), number)
     expected_branch = f"change/{number}"
     if _as_int(summary.get("issue")) != number:
@@ -140,7 +171,7 @@ def load_contract(
             lifecycle_label="spec-drafting" if route.effective_complexity == "complex" else "awaiting-triage",
         )
 
-    required_docs = route.required_docs
+    required_docs = _required_document_names(route.required_docs, documents)
     missing_docs = [name for name in required_docs if not directory.joinpath(name).is_file()]
     if missing_docs:
         lifecycle = "spec-drafting" if route.effective_complexity == "complex" else "awaiting-triage"
@@ -156,10 +187,12 @@ def load_contract(
         if not criteria:
             raise ContractError("small Issue requires measurable acceptance criteria")
     else:
-        spec_text = directory.joinpath("01-spec.md").read_text(encoding="utf-8")
-        plan_text = directory.joinpath("02-plan.md").read_text(encoding="utf-8")
-        _validate_complex_document_front_matter(spec_text, number, expected_branch, "01-spec.md")
-        _validate_complex_document_front_matter(plan_text, number, expected_branch, "02-plan.md")
+        spec_name = documents["spec"]
+        plan_name = documents["plan"]
+        spec_text = directory.joinpath(spec_name).read_text(encoding="utf-8")
+        plan_text = directory.joinpath(plan_name).read_text(encoding="utf-8")
+        _validate_complex_document_front_matter(spec_text, number, expected_branch, spec_name)
+        _validate_complex_document_front_matter(plan_text, number, expected_branch, plan_name)
         criteria = _acceptance_criteria(spec_text)
         if not criteria:
             raise ContractError("01-spec.md requires measurable acceptance criteria")
@@ -210,6 +243,23 @@ def parse_front_matter(text: str) -> dict[str, object]:
             assert isinstance(values[active], list)
             values[active].append(item)
             continue
+        if raw_line.startswith("  "):
+            if active != "documents" or ":" not in raw_line[2:]:
+                raise ContractError(f"unsupported front matter syntax at line {line_number}")
+            name, raw_value = raw_line[2:].split(":", 1)
+            if not re.fullmatch(r"[a-z_]+", name):
+                raise ContractError(f"invalid documents key at line {line_number}")
+            if not isinstance(values[active], dict):
+                values[active] = {}
+            mapping = values[active]
+            assert isinstance(mapping, dict)
+            if name in mapping:
+                raise ContractError(f"duplicate documents key {name}")
+            value = raw_value.strip()
+            if not value:
+                raise ContractError(f"empty documents value at line {line_number}")
+            mapping[name] = _safe_scalar(value, line_number)
+            continue
         if raw_line[0].isspace() or ":" not in raw_line:
             raise ContractError(f"unsupported front matter syntax at line {line_number}")
         name, raw_value = raw_line.split(":", 1)
@@ -224,6 +274,103 @@ def parse_front_matter(text: str) -> dict[str, object]:
         else:
             values[name] = ""
     return values
+
+
+def _find_summary(directory: Path) -> Path:
+    legacy = directory / LEGACY_DOCUMENTS["summary"]
+    candidates = sorted(
+        path
+        for path in directory.iterdir()
+        if path.is_file() and NEW_DOCUMENT_RE.fullmatch(path.name)
+        and path.name.startswith("summary-")
+    ) if directory.is_dir() else []
+    if legacy.is_file() and candidates:
+        raise ContractError("both legacy and new summary documents exist")
+    if legacy.is_file():
+        return legacy
+    if len(candidates) != 1:
+        raise ContractError("exactly one new summary document is required")
+    return candidates[0]
+
+
+def _document_context(
+    repo: Path, issue_number: int
+) -> tuple[Path, Path, dict[str, object], dict[str, str]]:
+    directory = repo / "docs" / "changes" / str(issue_number)
+    summary_path = _find_summary(directory)
+    summary = parse_front_matter(summary_path.read_text(encoding="utf-8"))
+    documents = _resolve_documents(directory, summary_path, summary)
+    return directory, summary_path, summary, documents
+
+
+def _resolve_documents(
+    directory: Path, summary_path: Path, summary: Mapping[str, object]
+) -> dict[str, str]:
+    raw = summary.get("documents")
+    if summary_path.name == LEGACY_DOCUMENTS["summary"]:
+        if raw not in (None, ""):
+            raise ContractError("legacy summary must not declare documents mapping")
+        return dict(LEGACY_DOCUMENTS)
+    if not isinstance(raw, Mapping) or not raw:
+        raise ContractError("new summary requires a documents mapping")
+    unknown = set(raw) - set(DOCUMENT_ROLES)
+    if unknown:
+        raise ContractError(f"unknown document roles: {sorted(unknown)}")
+    documents: dict[str, str] = {}
+    slugs: set[str] = set()
+    for role, value in raw.items():
+        if not isinstance(value, str) or Path(value).name != value or len(value) > 64:
+            raise ContractError(f"documents.{role} must be a safe basename of at most 64 characters")
+        match = NEW_DOCUMENT_RE.fullmatch(value)
+        if not match or match.group(1) != role:
+            raise ContractError(f"documents.{role} has an invalid role, slug, or date")
+        slug = match.group(2)
+        if len(slug) > 32:
+            raise ContractError(f"documents.{role} slug exceeds 32 characters")
+        slugs.add(slug)
+        documents[str(role)] = value
+    if len(slugs) != 1:
+        raise ContractError("all new change documents must use the same slug")
+    if documents.get("summary") != summary_path.name:
+        raise ContractError("documents.summary must reference the active summary")
+    declared_names = set(documents.values())
+    present_names = {
+        path.name
+        for path in directory.iterdir()
+        if path.is_file() and NEW_DOCUMENT_RE.fullmatch(path.name)
+    }
+    undeclared = present_names - declared_names
+    if undeclared:
+        raise ContractError("new change documents are not declared: " + ", ".join(sorted(undeclared)))
+    for role, name in documents.items():
+        path = directory / name
+        if not path.is_file():
+            continue
+        front_matter = summary if path == summary_path else parse_front_matter(
+            path.read_text(encoding="utf-8")
+        )
+        created = front_matter.get("created")
+        match = NEW_DOCUMENT_RE.fullmatch(name)
+        assert match is not None
+        if not isinstance(created, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", created):
+            raise ContractError(f"documents.{role} requires created: YYYY-MM-DD")
+        if created[2:4] + created[5:7] + created[8:10] != match.group(3):
+            raise ContractError(f"documents.{role} date must match its created field")
+    return documents
+
+
+def _required_document_names(
+    required: tuple[str, ...], documents: Mapping[str, str]
+) -> tuple[str, ...]:
+    role_based = required and required[0] == "summary"
+    if role_based:
+        missing_roles = [role for role in required if role not in documents]
+        if missing_roles:
+            raise ContractError("documents mapping is missing required roles: " + ", ".join(missing_roles))
+        return tuple(documents[role] for role in required)
+    if any(name not in LEGACY_DOCUMENTS.values() for name in required):
+        raise ContractError("legacy required_docs contains unsupported filenames")
+    return required
 
 
 def _classification_from_front_matter(front_matter: Mapping[str, object]) -> Classification:

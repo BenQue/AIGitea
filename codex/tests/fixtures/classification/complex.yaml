@@ -7,8 +7,8 @@ reason: 新增产品功能必须走 complex 路径
 risk_flags:
   - functional-change
 required_docs:
-  - 00-summary.md
-  - 01-spec.md
-  - 02-plan.md
+  - summary
+  - spec
+  - plan
 confidence: high
 override_reason: ''

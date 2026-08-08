@@ -5,6 +5,6 @@ contract_effect: unclear
 reason: 需要明确变更是否会改变外部行为
 risk_flags: []
 required_docs:
-  - 00-summary.md
+  - summary
 confidence: low
 override_reason: ''
