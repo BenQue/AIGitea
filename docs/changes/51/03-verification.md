@@ -17,7 +17,7 @@ depends_on:
   - 43
   - 45
   - 49
-status: pr-open
+status: completed
 branch: change/51
 pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/52
 created: 2026-08-08
@@ -60,3 +60,13 @@ updated: 2026-08-08
 
 manager mutation PAT、9 个 project agents/PAT、仓库授权、visibility/protection、真实项目验证和
 `ci-bot` retirement：`NOT RUN`，等待 PR #51 人工合并。业务 VM/数据库和公司内网：`NOT RUN`。
+
+## 合并后 live 结果
+
+- PR #52 已由人合并；final head `6a594b58178c18ae5d759a240f1adf1b3e9780a6`，protected-main merge
+  commit `0f50bfdbb49783ba958fe6d732d2159ffa78ac35`，ancestry `PASS`。
+- exact-main bootstrap 为既有 manager 补齐 policy marker，创建 manager mutation PAT 和其余 9 个
+  project-agent 账号/PAT；首轮结果符合半状态恢复，随后 11 个 token 全部 `no-op`。42 个受管文件
+  mode 600，10 个账号均非 site-admin。
+- Issue #51 的 policy unset/marker 路径已被完整 live rollout 使用并验证，生命周期为 `completed`。
+  后续仓库策略、project-agent 真实验证和 `ci-bot` retirement 结果记录于 Issue #35 final evidence。
