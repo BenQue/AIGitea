@@ -76,6 +76,11 @@ service restart、OrbStack VM 或公司内网部署。
   `/var/lib/aisoft/backups/gitea-policy/20260808-issue-35-69251fd4` 只有 mode 600 `app.ini.pre`。
 - follow-up Issue #38 负责修复 doctor effective user；其 PR 人工合并前，Issue #35 的 live
   service/account/ACL rollout 暂停，不能标为 deployed。
+- PR #39 合并后的 exact main `0396779c3566ba0dbd84da745e6c482fd65a2082` 已通过新一轮
+  `verify-merged`；`git`-user doctor 真实通过。随后 restart 的单次即时 healthz 请求在 Gitea ready
+  前 connection refused，脚本按设计恢复 pre config。稍后读回为 service active/health pass，且
+  live/pre SHA-256 完全相同；service policy 仍为 `DRIFT`，因此 apply 未成功。
+- follow-up Issue #41 负责 bounded readiness retry；其 PR 人工合并前继续暂停账号/ACL rollout。
 - PR #36：已创建，`change/35 -> main`；初始 head
   `c8dbe794a93fb95970dceb4a931b920c9795785b` 为 `mergeable=true`、`merged=false`。本次 metadata
   回填会产生新 head，required CI 必须只认最终 SHA。

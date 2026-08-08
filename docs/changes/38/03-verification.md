@@ -45,3 +45,10 @@ updated: 2026-08-08
   `mergeable=true`、`merged=false`；本 metadata 回填会产生新 head，最终 merge identity 必须重新读回。
 - live service apply/restart：`NOT RUN`，必须等待本 PR 人工合并。
 - Gitea accounts/PAT/repository ACL/visibility/protection、业务 VM/数据库、公司内网：`NOT RUN`。
+
+## Post-merge live read-back
+
+- PR #39 已人工合并到 `main@0396779c3566ba0dbd84da745e6c482fd65a2082`；Issue #38 的目标
+  已真实验证：candidate doctor 通过 `sudo -n -u git` 成功完成。
+- rollout 随后被独立的 restart readiness 缺陷阻断：单次即时 health curl 在 Gitea ready 前失败；
+  config 已逐字恢复且服务稍后健康。该后续缺陷由 Issue #41 处理，不扩大 Issue #38 合同。
