@@ -6,14 +6,19 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET_HOME="${1:-$HOME}"
 AGENT_DIR="${2:-$TARGET_HOME/agent}"
 RUNTIME_DIR="$TARGET_HOME/.local/lib/aisoft-loop"
+SHARE_DIR="$TARGET_HOME/.local/share/aisoft"
 
 install -d -m 700 \
   "$TARGET_HOME/.codex" \
   "$TARGET_HOME/.config/aisoft/projects" \
   "$TARGET_HOME/.config/systemd/user" \
   "$TARGET_HOME/.local/lib" \
+  "$TARGET_HOME/.local/share" \
+  "$SHARE_DIR" \
   "$RUNTIME_DIR" \
   "$RUNTIME_DIR/aisoft_loop" \
+  "$RUNTIME_DIR/aisoft_host_access" \
+  "$RUNTIME_DIR/aisoft_gitea_governance" \
   "$AGENT_DIR"
 
 bash "$ROOT/codex/install-skills.sh" "$TARGET_HOME"
@@ -26,6 +31,16 @@ done
 for source_file in "$ROOT"/codex/runtime/aisoft_loop/*.py; do
   install -m 644 "$source_file" "$RUNTIME_DIR/aisoft_loop/$(basename "$source_file")"
 done
+for source_file in "$ROOT"/codex/runtime/aisoft_host_access/*.py; do
+  install -m 644 "$source_file" "$RUNTIME_DIR/aisoft_host_access/$(basename "$source_file")"
+done
+for source_file in "$ROOT"/codex/runtime/aisoft_gitea_governance/*.py; do
+  install -m 644 "$source_file" "$RUNTIME_DIR/aisoft_gitea_governance/$(basename "$source_file")"
+done
+install -m 644 "$ROOT/codex/config/host-access-broker.json" \
+  "$SHARE_DIR/host-access-broker.json"
+install -m 644 "$ROOT/codex/config/gitea-governance.json" \
+  "$SHARE_DIR/gitea-governance.json"
 find "$RUNTIME_DIR" -type d -exec chmod 755 {} +
 find "$RUNTIME_DIR" -type f -exec chmod 644 {} +
 
@@ -36,7 +51,6 @@ install -m 755 "$ROOT/codex/tools/gitea-readonly.sh" \
   "$AGENT_DIR/gitea-readonly.sh"
 install -m 755 "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
   "$AGENT_DIR/ensure-gitea-collaborator.sh"
-
 if [[ -f "$ROOT/codex/config.toml" && ! -e "$TARGET_HOME/.codex/config.toml" ]]; then
   install -m 600 "$ROOT/codex/config.toml" "$TARGET_HOME/.codex/config.toml"
 fi
@@ -47,5 +61,6 @@ fi
 echo "Codex skills installed in $TARGET_HOME/.agents/skills"
 echo "Loop runtime installed in $RUNTIME_DIR"
 echo "Agent scripts installed in $AGENT_DIR"
+echo "Host access/profile contracts installed in $SHARE_DIR"
 echo "Disabled project service templates installed in $TARGET_HOME/.config/systemd/user"
 echo 'No project profile, credentials, timer enablement, provider enablement, merge, or deployment action was performed.'

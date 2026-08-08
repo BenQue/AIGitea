@@ -1,0 +1,222 @@
+{
+  "contract_version": "host-access-broker/v1",
+  "environment": "local-orbstack",
+  "governance_contract_version": "gitea-governance/v1",
+  "human_merge_identity": "admin",
+  "identity_bindings": {
+    "manager_audit": {
+      "identity": "aisoft-platform-manager",
+      "credential_kind": "macos-keychain",
+      "service": "aisoft.gitea.manager-audit",
+      "account": "aisoft-platform-manager"
+    },
+    "manager_mutation": {
+      "identity": "aisoft-platform-manager",
+      "credential_kind": "macos-keychain",
+      "service": "aisoft.gitea.manager-mutation",
+      "account": "aisoft-platform-manager"
+    },
+    "project_agent": {
+      "credential_kind": "macos-keychain",
+      "service": "aisoft.gitea.project-agent",
+      "account_source": "manifest-project-agent"
+    }
+  },
+  "mac_host": {
+    "credential_helper": "/usr/local/libexec/aisoft/git-credential-aisoft-host",
+    "orbstack_binary": "/usr/local/bin/orb",
+    "orbstack_machine": "gitea-ci",
+    "orbstack_user": "benque",
+    "vm_profile_tool": "/usr/local/libexec/aisoft/project-profile-migration"
+  },
+  "vm_profile_policy": {
+    "runtime_user": "coder",
+    "runtime_home": "/home/coder",
+    "profile_root": ".config/aisoft/projects",
+    "token_root": ".config/aisoft/credentials",
+    "backup_root": ".local/state/aisoft-profile-backups/issue-61",
+    "source_credential_root": "/home/benque/.config/aisoft/credentials",
+    "source_credential_owner": "benque",
+    "allowed_file_modes": [
+      "400",
+      "600"
+    ]
+  },
+  "operations": [
+    {
+      "name": "gitea.repo.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "gitea.issue.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "number"
+      ]
+    },
+    {
+      "name": "gitea.pulls.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "state"
+      ]
+    },
+    {
+      "name": "gitea.protection.read",
+      "identity_route": "manager-audit",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "git.fetch.main",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "git.fetch.change",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "branch"
+      ]
+    },
+    {
+      "name": "git.push.change",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "branch"
+      ]
+    },
+    {
+      "name": "mac.git.bind",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": []
+    },
+    {
+      "name": "orbstack.vm.status",
+      "identity_route": "host-operator",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "vm.profile.plan",
+      "identity_route": "host-operator",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "vm.profile.apply",
+      "identity_route": "host-operator",
+      "mutating": true,
+      "arguments": []
+    },
+    {
+      "name": "vm.profile.read-back",
+      "identity_route": "host-operator",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "vm.profile.rollback",
+      "identity_route": "host-operator",
+      "mutating": true,
+      "arguments": []
+    }
+  ],
+  "projects": [
+    {
+      "project_id": "aisoft-platform",
+      "repository": "aisoft-platform",
+      "project_agent": "aisoft-platform-agent",
+      "mac_checkout": "/Users/benque/MyDocs/AISoftPlatform",
+      "vm_profile": null
+    },
+    {
+      "project_id": "hsdb",
+      "repository": "HSDB",
+      "project_agent": "hsdb-agent",
+      "mac_checkout": "/Users/benque/Projects/HSDB",
+      "vm_profile": {
+        "name": "hsdb",
+        "repo_dir": "work/HSDB",
+        "analysis_provider": "none",
+        "implement_provider": "none",
+        "timer_unit": null
+      }
+    },
+    {
+      "project_id": "myapp",
+      "repository": "myapp",
+      "project_agent": "myapp-agent",
+      "mac_checkout": null,
+      "vm_profile": null
+    },
+    {
+      "project_id": "newemaint",
+      "repository": "NewEMaint",
+      "project_agent": "newemaint-agent",
+      "mac_checkout": "/Users/benque/Projects/NewEmaint",
+      "vm_profile": {
+        "name": "emaintenance",
+        "repo_dir": "work/NewEMaint",
+        "analysis_provider": "claude",
+        "implement_provider": "none",
+        "timer_unit": "aisoft-agent@emaintenance.timer"
+      }
+    },
+    {
+      "project_id": "rsdesign-new",
+      "repository": "rsdesign-new",
+      "project_agent": "rsdesign-agent",
+      "mac_checkout": "/Users/benque/Projects/RSDesignTool/rsdesign-new",
+      "vm_profile": {
+        "name": "rsdesign",
+        "repo_dir": "work/rsdesign-new",
+        "analysis_provider": "claude",
+        "implement_provider": "none",
+        "timer_unit": null
+      }
+    },
+    {
+      "project_id": "sap-table-migrate",
+      "repository": "SapTableMigrate",
+      "project_agent": "sap-table-migrate-agent",
+      "mac_checkout": null,
+      "vm_profile": null
+    },
+    {
+      "project_id": "sfm-digital-board",
+      "repository": "SFMDigitalBoard",
+      "project_agent": "sfm-board-agent",
+      "mac_checkout": "/Users/benque/Projects/SFMDigitalBoard",
+      "vm_profile": {
+        "name": "sfm",
+        "repo_dir": "work/SFMDigitalBoard",
+        "analysis_provider": "claude",
+        "implement_provider": "none",
+        "timer_unit": "aisoft-agent@sfm.timer"
+      }
+    },
+    {
+      "project_id": "smoke-test",
+      "repository": "smoke-test",
+      "project_agent": "smoke-test-agent",
+      "mac_checkout": null,
+      "vm_profile": null
+    },
+    {
+      "project_id": "wmpda",
+      "repository": "WMPDA",
+      "project_agent": "wmpda-agent",
+      "mac_checkout": null,
+      "vm_profile": null
+    }
+  ]
+}

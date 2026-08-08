@@ -17,6 +17,10 @@ optional_runtime_sources=(
   "$ROOT/codex/agent/common.sh"
   "$ROOT/codex/agent/loop-controller.sh"
   "$ROOT/codex/agent/provider-poll.sh"
+  "$ROOT/codex/tools/host-access-broker.sh"
+  "$ROOT/codex/tools/project-profile-migration.sh"
+  "$ROOT/codex/tools/git-credential-aisoft-host.sh"
+  "$ROOT/codex/install-host-access-broker.sh"
   "$ROOT/codex/install-vm.sh"
   "$ROOT/docker-release/bin/aisoft-docker-release"
   "$ROOT/docker-release/install.sh"
@@ -39,6 +43,7 @@ bash -n "$ROOT/codex/tools/sync-gitea-labels.sh"
 bash -n "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 for script in \
   "$ROOT/codex/install-host-role.sh" \
+  "$ROOT/codex/install-host-access-broker.sh" \
   "$ROOT/codex/tools/mark-deployed-issues.sh" \
   "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tools/gitea-governance.sh" \
@@ -48,6 +53,9 @@ for script in \
   "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
   "$ROOT/codex/tools/artifact-retention-dry-run.sh" \
   "$ROOT/codex/tools/verify-host-role.sh" \
+  "$ROOT/codex/tools/host-access-broker.sh" \
+  "$ROOT/codex/tools/project-profile-migration.sh" \
+  "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
   "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
   "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
@@ -57,6 +65,7 @@ for script in \
   "$ROOT/codex/tests/test-artifact-retention-dry-run.sh" \
   "$ROOT/codex/tests/test-host-role-guard.sh" \
   "$ROOT/codex/tests/test-install-host-role.sh" \
+  "$ROOT/codex/tests/test-host-access-broker.sh" \
   "$ROOT"/sync/*.sh \
   "$ROOT"/sync/tests/*.sh; do
   bash -n "$script"
@@ -66,6 +75,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT"/codex/agent/*.sh \
     "$ROOT/codex/install-vm.sh" \
     "$ROOT/codex/install-host-role.sh" \
+    "$ROOT/codex/install-host-access-broker.sh" \
     "$ROOT/codex/tools/sync-gitea-labels.sh" \
     "$ROOT/codex/tools/mark-deployed-issues.sh" \
     "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
@@ -76,6 +86,9 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
     "$ROOT/codex/tools/artifact-retention-dry-run.sh" \
     "$ROOT/codex/tools/verify-host-role.sh" \
+    "$ROOT/codex/tools/host-access-broker.sh" \
+    "$ROOT/codex/tools/project-profile-migration.sh" \
+    "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
     "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
@@ -86,6 +99,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-artifact-retention-dry-run.sh" \
     "$ROOT/codex/tests/test-host-role-guard.sh" \
     "$ROOT/codex/tests/test-install-host-role.sh" \
+    "$ROOT/codex/tests/test-host-access-broker.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh"
   shellcheck "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh
   shellcheck \
@@ -112,6 +126,7 @@ bash "$ROOT/codex/tests/test-gitea-readonly.sh"
 bash "$ROOT/codex/tests/test-install-skills.sh"
 bash "$ROOT/codex/tests/test-host-role-guard.sh"
 bash "$ROOT/codex/tests/test-install-host-role.sh"
+bash "$ROOT/codex/tests/test-host-access-broker.sh"
 bash "$ROOT/codex/tests/test-docker-release-install.sh"
 bash "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
 harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh")"
@@ -124,6 +139,11 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
 PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_gitea_governance.cli \
   --manifest "$ROOT/codex/config/gitea-governance.json" validate >/dev/null
 jq empty "$ROOT/codex/config/gitea-governance.json"
+PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_host_access.cli \
+  --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+  --governance-manifest "$ROOT/codex/config/gitea-governance.json" \
+  validate >/dev/null
+jq empty "$ROOT/codex/config/host-access-broker.json"
 
 while IFS= read -r json_file; do
   jq empty "$json_file"
