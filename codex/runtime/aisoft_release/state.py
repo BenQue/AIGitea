@@ -15,7 +15,9 @@ from .contract import DIGEST, GIT_SHA, IDENTIFIER
 from .errors import StateError
 
 
-STATE_VERSION = "docker-release-state/v1"
+STATE_VERSION_V1 = "docker-release-state/v1"
+STATE_VERSION_V2 = "docker-release-state/v2"
+STATE_VERSION = STATE_VERSION_V2
 SENSITIVE_KEY = re.compile(
     r"(?:^|[_-])(?:auth|authorization|token|password|secret|credential|"
     r"connection[_-]?string|certificate|ssh[_-]?key)(?:$|[_-])",
@@ -35,6 +37,7 @@ class StateStore:
             "profile_id": self.profile_id,
             "current_release": None,
             "previous_release": None,
+            "staged_releases": {},
             "migrations": {},
             "last_result": "never-deployed",
         }
@@ -49,6 +52,14 @@ class StateStore:
             raise StateError("deployment state is unreadable or corrupt") from exc
         if not isinstance(value, dict):
             raise StateError("deployment state root must be an object")
+        version = value.get("contract_version")
+        if version == STATE_VERSION_V1:
+            self._validate_v1(value)
+            value = {
+                **value,
+                "contract_version": STATE_VERSION_V2,
+                "staged_releases": {},
+            }
         self._validate(value)
         return value
 
@@ -103,6 +114,7 @@ class StateStore:
             "profile_id",
             "current_release",
             "previous_release",
+            "staged_releases",
             "migrations",
             "last_result",
         }
@@ -118,6 +130,30 @@ class StateStore:
                 not isinstance(release, str) or not GIT_SHA.fullmatch(release)
             ):
                 raise StateError(f"deployment state {field} is invalid")
+        staged = value.get("staged_releases")
+        if not isinstance(staged, Mapping):
+            raise StateError("deployment state staged_releases must be an object")
+        for release_id, record in staged.items():
+            if not isinstance(release_id, str) or not GIT_SHA.fullmatch(release_id):
+                raise StateError("deployment state staged release_id is invalid")
+            if not isinstance(record, Mapping) or set(record) != {
+                "status",
+                "transport",
+                "image_ids",
+            }:
+                raise StateError("deployment state staging record is invalid")
+            if record.get("status") != "completed":
+                raise StateError("deployment state staging status is invalid")
+            if record.get("transport") not in {"registry", "offline-bundle"}:
+                raise StateError("deployment state staging transport is invalid")
+            image_ids = record.get("image_ids")
+            if not isinstance(image_ids, Mapping) or not image_ids:
+                raise StateError("deployment state staging image_ids is invalid")
+            for service, image_id in image_ids.items():
+                if not isinstance(service, str) or not IDENTIFIER.fullmatch(service):
+                    raise StateError("deployment state staging service is invalid")
+                if not isinstance(image_id, str) or not DIGEST.fullmatch(image_id):
+                    raise StateError("deployment state staging image_id is invalid")
         migrations = value.get("migrations")
         if not isinstance(migrations, Mapping):
             raise StateError("deployment state migrations must be an object")
@@ -135,6 +171,24 @@ class StateStore:
         if not isinstance(result, str) or not IDENTIFIER.fullmatch(result):
             raise StateError("deployment state last_result is invalid")
         _reject_sensitive(value)
+
+    def _validate_v1(self, value: Mapping[str, object]) -> None:
+        expected = {
+            "contract_version",
+            "profile_id",
+            "current_release",
+            "previous_release",
+            "migrations",
+            "last_result",
+        }
+        if set(value) != expected:
+            raise StateError("legacy deployment state fields do not match state contract")
+        migrated = {
+            **value,
+            "contract_version": STATE_VERSION_V2,
+            "staged_releases": {},
+        }
+        self._validate(migrated)
 
 
 class DeploymentLock:

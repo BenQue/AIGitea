@@ -5,7 +5,7 @@
 > 网络约束：POC 开发机不能访问公司内网；安装 Gitea 的 `scm-ci` 服务器可以通过 HTTPS 访问 GitHub。
 
 本册定义 Linux 应用从 GitHub 候选进入公司 Gitea 后的发布边界。新项目以
-[Docker release contract v1](docker-release/README.md) 为默认：受控 builder 一次构建，测试
+[Docker release contract v1/v2](docker-release/README.md) 为默认：受控 builder 一次构建，测试
 与生产只消费同一 immutable digests/Compose/architecture identity；PM2/tar.gz 内容保留为
 已有应用的 legacy 设计证据。文件名保留早期“双服务器”提案以维持链接；当前 host-role
 合同至少要求 `scm-ci`、`appserver-test`、`appserver-prod` 三个隔离 machine identity，不能
@@ -40,10 +40,12 @@ flowchart LR
     PN["shared prod Nginx"] --> PROD
 ```
 
-- `scm-ci` 允许 source checkout、build、test、package、Registry/artifact publish 和 release
-  `verify`，禁止 business Web/API/worker、migration 和 application deploy/start。
+- `scm-ci` 允许 source checkout、build、test、package、Registry/artifact publish、artifact-only
+  `verify-artifact` 和 read-only `verify-target`，禁止 business Web/API/worker、migration 和
+  application deploy/start。
 - `appserver-test`/`appserver-prod` 只执行受保护 target profile 派生的固定
-  `verify/deploy/status/rollback`，不接收任意 shell、路径或 Compose override。
+  `verify-target/stage/migrate/activate/status/rollback`；legacy `verify/deploy` 只为既有调用方保留，
+  不接收任意 shell、路径或 Compose override。
 - Nginx 和 PostgreSQL 按环境共享；每应用拥有独立 Compose project、database、runtime/
   migrator/backup role 和外置 Secret。应用容器不封装环境共享 Nginx/PostgreSQL。
 - Builder、test AppServer 和 prod AppServer 是独立 trust role；资源有限时也不得把
@@ -57,6 +59,7 @@ flowchart LR
 - 每个 Compose service 的 immutable Registry digest、inspected image ID，以及由 source
   repository/service/full SHA 确定的 transport/runtime tag；
 - Compose checksum、runtime service、一次性 non-destructive migration identity；
+- v2 producer-normalized Compose model path/checksum，供不依赖 target binary 的 artifact verification；
 - #23 唯一 architecture catalog 的 `profile_id`、`catalog_revision` 和 lock checksum；
 - offline `images.tar` 与 `images.inventory.json` checksum。
 
@@ -69,10 +72,12 @@ release/Compose/architecture/inventory/archive 和 tar member/reference allowlis
 
 ### 0.3 Deterministic target runtime
 
-CLI 只接受 mode `0400/0600` 的 target profile 和 40 位 release ID：
+Artifact CLI 只接受 absolute release root 和 40 位 release ID；target phase CLI 只接受 mode
+`0400/0600` 的 target profile 和 40 位 release ID：
 
 ```text
-aisoft-docker-release verify|deploy|status|rollback --profile <protected-json> --release-id <merge-sha>
+aisoft-docker-release verify-artifact --release-root <absolute-root> --release-id <merge-sha>
+aisoft-docker-release verify-target|stage|migrate|activate|status|rollback --profile <protected-json> --release-id <merge-sha>
 ```
 
 所有 path/checksum/architecture/host-role/Compose safety 和 Engine/Compose/image-store matrix 在
@@ -82,10 +87,14 @@ Docker socket、任意 bind mount 和非 loopback publish；要求 read-only roo
 `cap_drop: ALL`、`no-new-privileges`、资源/日志限制、网络分区、healthcheck 和 exact release
 labels。环境值只引用目标机外置 env file，不写入 manifest、state 或日志。
 
-部署以单一进程锁和原子 state 串行化；同 SHA exact healthy 为 no-op。Migration identity 在执行
+部署以单一进程锁和原子 state v2 receipt 串行化；staging exact image IDs、migration identity、
+current/previous release 分开记录。同 SHA exact healthy 为 no-op。Migration identity 在执行
 前记为 `started`，成功后记为 `completed`，failed/中断不自动重跑。`compose up --wait` 或
 exact-release health 失败时回切上一 container release；rollback 不运行 migration，PostgreSQL
 restore 永远需要独立人工审批。
+
+最小权限入口使用 root-owned、逐 action grant：调用者只传 fixed action、target ID 与 full SHA，
+由 gate 映射固定 profile/CLI argv并记录审计；不得授予任意 shell、Docker command 或 profile path。
 
 ### 0.4 兼容与证据边界
 

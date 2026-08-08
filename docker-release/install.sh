@@ -24,8 +24,12 @@ for source in "$source_root"/compatibility/*.json; do
 done
 install -m 0644 "$source_root/templates/target-profile.example.json" \
   "$example_dir/target-profile.example.json"
+install -m 0644 "$source_root/templates/action-grant.example.json" \
+  "$example_dir/action-grant.example.json"
 install -m 0755 "$source_root/bin/aisoft-docker-release" \
   "$bin_dir/aisoft-docker-release"
+install -m 0755 "$source_root/bin/aisoft-docker-release-gate" \
+  "$bin_dir/aisoft-docker-release-gate"
 
 printf '%s\n' 'installed Docker release runtime, schemas, CLI and non-secret example'
 printf '%s\n' 'no target profile, secret, Docker login, systemd unit or deployment was created'

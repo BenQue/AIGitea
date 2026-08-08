@@ -1,0 +1,7 @@
+{
+  "contract_version": "docker-release-command-gate/v1",
+  "action": "verify-target",
+  "target_id": "newemaint-test-example",
+  "profile": "/etc/aisoft-docker-release/targets/newemaint-test.json",
+  "audit_log": "/var/log/aisoft-docker-release/newemaint-test-actions.jsonl"
+}

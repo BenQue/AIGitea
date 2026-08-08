@@ -146,7 +146,7 @@ writable。
 ## 4. CI 与部署
 
 新 Linux 软件仓库默认消费平台
-[`docker-release/v1`](../../docker-release/README.md)，而不是复制 `rsdesign-new` 的 PM2
+[`docker-release/v2`](../../docker-release/README.md)，而不是复制 `rsdesign-new` 的 PM2
 脚本。接入顺序：
 
 1. 项目独立 Issue/spec/plan/PR 实现 Dockerfile、Compose、migration service、业务 health、
@@ -157,13 +157,16 @@ writable。
 3. Secret 只在目标机受保护 env file；release manifest、architecture lock、Compose、state、
    argv、日志和 verification 不保存 Secret 值。
 4. Builder 生成以完整 Gitea merge SHA 为 ID 的 `release.json`、digest-pinned images、Compose/
-   architecture checksums 和 offline inventory。V2 对每个 service 同时记录 Registry digest
+   architecture checksums、producer-normalized Compose model 和 offline inventory。V2 对每个 service 同时记录 Registry digest
    `reference`、content `image_id`、deterministic `transport_reference`/`runtime_reference`；后两者
    必须等于 `aisoft.local/<lower-owner>/<lower-repo>/<service>:<full-sha>`。Builder 先按 digest
    inspect，再 tag、重复 inspect exact ID/`linux/amd64`，最后按 tag save。目标 AppServer 不
    build/install/git pull/访问公网。
-5. 先在 `appserver-test` 连续 deploy 同 SHA 两次，故意覆盖 bundle tamper、host-role mismatch、
-   migration failure 和 health failure container rollback；再由独立生产 Gate 提升同一 identity。
+5. 先运行 artifact-only `verify-artifact`，再用逐 action root-owned grant 分别执行 read-only
+   `verify-target`、`stage`、`migrate`、`activate`、`status` 和 `rollback`。Stage 不读取 database
+   Secret、不运行 migration/up；migrate 不 stage/up；activate 不 stage/migrate。故意覆盖 bundle
+   tamper、host-role mismatch、missing receipt、migration failure 和 health failure rollback；再由
+   独立生产 Gate 提升同一 identity。Legacy `deploy` 只为既有 v1 调用方保留。
 
 NewEmaint 的示例 profile 仅说明平台字段，不授权修改 NewEmaint 仓库、创建真实 Secret、执行
 migration 或部署。其首个消费实现仍须在 NewEmaint 自己的 `change/N` 和最终 PR 中完成。
@@ -180,6 +183,8 @@ offline bundle 必须从受控 producer 重新发布，禁止手改 archive/inve
 offline transport、Compose runtime/identity/health 和 exact cleanup E2E，containerd row 由已提交的
 `issue-27-containerd-a75181cd7209` evidence 固定为 `supported`。Classic 没有同等级真实证据，继续
 `rejected`；不得把 fake tests、源码结论或应用 synthetic verifier 写成 classic 环境 PASS。
+Compose 5.1.4 同样需要同等级 disposable Engine 29/containerd consumer E2E 与 committed evidence；
+在此之前不得扩展 supported matrix。
 
 已有 PM2 应用在独立迁移验收前继续作为 legacy adapter。维护这些应用时保留：
 

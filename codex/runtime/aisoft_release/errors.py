@@ -21,6 +21,10 @@ class HostRoleError(ReleaseError):
     code = "HOST_ROLE_DENIED"
 
 
+class GateError(ReleaseError):
+    code = "ACTION_GATE_DENIED"
+
+
 class TransportError(ReleaseError):
     code = "TRANSPORT_FAILED"
 

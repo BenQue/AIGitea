@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aisoft.example/contracts/docker-release/state-v2.schema.json",
+  "title": "AISoft Docker release state v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "profile_id", "current_release", "previous_release", "staged_releases", "migrations", "last_result"],
+  "properties": {
+    "contract_version": {"const": "docker-release-state/v2"},
+    "profile_id": {"$ref": "#/$defs/identifier"},
+    "current_release": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/gitSha"}]},
+    "previous_release": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/gitSha"}]},
+    "staged_releases": {
+      "type": "object",
+      "propertyNames": {"$ref": "#/$defs/gitSha"},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "transport", "image_ids"],
+        "properties": {
+          "status": {"const": "completed"},
+          "transport": {"enum": ["registry", "offline-bundle"]},
+          "image_ids": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": {"$ref": "#/$defs/identifier"},
+            "additionalProperties": {"$ref": "#/$defs/digest"}
+          }
+        }
+      }
+    },
+    "migrations": {
+      "type": "object",
+      "propertyNames": {"$ref": "#/$defs/digest"},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "release_id"],
+        "properties": {
+          "status": {"enum": ["started", "completed", "failed"]},
+          "release_id": {"$ref": "#/$defs/gitSha"}
+        }
+      }
+    },
+    "last_result": {"$ref": "#/$defs/identifier"}
+  },
+  "$defs": {
+    "gitSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "identifier": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"}
+  }
+}
