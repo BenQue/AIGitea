@@ -63,6 +63,19 @@ service restart、OrbStack VM 或公司内网部署。
 
 ## Live Gitea / VM / 公司内网
 
+- 2026-08-08 人工合并读回：PR #36 `merged=true`，head
+  `7a4bbb24b8915b91bab76ad525b9185acc096f40`，exact protected-main merge commit
+  `69251fd4d07665385eb6d9142038848c2b9392d7`；Issue #35 已关闭。
+- 本轮 OrbStack 双路径探针再次确认 sandbox 为 `SANDBOX_PATH_BLOCKED`，host path 上 OrbStack、
+  `gitea-ci`、DNS、HTTP 200 和 `orb exec` 均通过。merged source 从 live bare repo 克隆到一次性
+  `/tmp/aisoft-issue35-69251fd4`，HEAD/manifest 校验通过。
+- service-policy live pre-check 为 `DRIFT`：registration=false、default-private=last；Gitea
+  service active、health pass。首次 apply 在安装 candidate/restart 前 fail closed：merged script
+  错误地以 root 运行 Gitea doctor，Gitea 1.26.4 拒绝；同 candidate 以 systemd user `git` 运行
+  doctor exit 0。live `app.ini` 保持原值，备份目录
+  `/var/lib/aisoft/backups/gitea-policy/20260808-issue-35-69251fd4` 只有 mode 600 `app.ini.pre`。
+- follow-up Issue #38 负责修复 doctor effective user；其 PR 人工合并前，Issue #35 的 live
+  service/account/ACL rollout 暂停，不能标为 deployed。
 - PR #36：已创建，`change/35 -> main`；初始 head
   `c8dbe794a93fb95970dceb4a931b920c9795785b` 为 `mergeable=true`、`merged=false`。本次 metadata
   回填会产生新 head，required CI 必须只认最终 SHA。

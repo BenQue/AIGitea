@@ -25,6 +25,17 @@ printf '%s\n' "$*" >>"$MOCK_ROOT/gitea-argv.log"
 [[ ! -f "$MOCK_ROOT/doctor-fail" ]]
 MOCK
 
+cat >"$TMP/bin/sudo" <<'MOCK'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >>"$MOCK_ROOT/sudo-argv.log"
+[[ "${1:-}" == -n ]]
+[[ "${2:-}" == -u ]]
+[[ "${3:-}" == git ]]
+shift 3
+exec "$@"
+MOCK
+
 cat >"$TMP/bin/systemctl" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -43,12 +54,13 @@ printf '%s\n' "$*" >>"$MOCK_ROOT/curl-argv.log"
 printf '{"status":"pass"}\n'
 MOCK
 
-chmod +x "$TMP/bin/gitea" "$TMP/bin/systemctl" "$TMP/bin/curl"
+chmod +x "$TMP/bin/gitea" "$TMP/bin/sudo" "$TMP/bin/systemctl" "$TMP/bin/curl"
 export MOCK_ROOT="$TMP"
 export PATH="$TMP/bin:$PATH"
 export AISOFT_ALLOW_TEST_CONFIG=true
 export AISOFT_SERVICE_POLICY_MODE=approved-issue-35
 export GITEA_BIN="$TMP/bin/gitea"
+export SUDO_BIN="$TMP/bin/sudo"
 export SYSTEMCTL_BIN="$TMP/bin/systemctl"
 export GITEA_HEALTH_URL=http://127.0.0.1:3000/api/healthz
 
@@ -101,5 +113,18 @@ if bash "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
 fi
 cmp "$TMP/app.ini.before-failure" "$TMP/app.ini"
 [[ "$(grep -c '^restart gitea.service$' "$TMP/systemctl-argv.log")" == 2 ]]
+[[ "$(grep -c '^-n -u git .*doctor check --all$' "$TMP/sudo-argv.log")" == 2 ]]
+
+if GITEA_SERVICE_USER='git;root' bash "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
+  --manifest "$ROOT/codex/config/gitea-governance.json" \
+  --config "$TMP/app.ini" --apply \
+  --merged-sha 1111111111111111111111111111111111111111 \
+  --platform-root "$ROOT" \
+  --evidence-dir "$TMP/evidence-unsafe-user" \
+  >"$TMP/unsafe-user.out" 2>"$TMP/unsafe-user.err"; then
+  printf '%s\n' 'unsafe Gitea service user unexpectedly passed' >&2
+  exit 1
+fi
+grep -Fq 'unsafe Gitea service user' "$TMP/unsafe-user.err"
 
 printf '%s\n' 'Gitea service policy tests passed'

@@ -37,7 +37,7 @@ done
   exit 2
 }
 
-for command in python3 jq git install mktemp stat; do
+for command in python3 jq git install mktemp stat chmod chown id; do
   command -v "$command" >/dev/null || {
     printf 'BLOCKED_EXTERNAL: required command is missing: %s\n' "$command" >&2
     exit 2
@@ -97,6 +97,8 @@ fi
 
 GITEA_BIN="${GITEA_BIN:-/usr/local/bin/gitea}"
 GITEA_HEALTH_URL="${GITEA_HEALTH_URL:-http://127.0.0.1:3000/api/healthz}"
+GITEA_SERVICE_USER="${GITEA_SERVICE_USER:-git}"
+SUDO_BIN="${SUDO_BIN:-sudo}"
 SYSTEMCTL_BIN="${SYSTEMCTL_BIN:-systemctl}"
 [[ -x "$GITEA_BIN" ]] || {
   printf '%s\n' 'BLOCKED_EXTERNAL: Gitea binary is unavailable' >&2
@@ -146,6 +148,20 @@ if [[ "$mode" == rollback ]]; then
 fi
 
 [[ -n "$evidence_dir" ]] || usage
+[[ "$GITEA_SERVICE_USER" =~ ^[a-z_][a-z0-9_-]*$ ]] || {
+  printf '%s\n' 'BLOCKED_EXTERNAL: unsafe Gitea service user' >&2
+  exit 2
+}
+command -v "$SUDO_BIN" >/dev/null || {
+  printf '%s\n' 'BLOCKED_EXTERNAL: sudo command is unavailable' >&2
+  exit 2
+}
+if [[ "${AISOFT_ALLOW_TEST_CONFIG:-}" != true ]]; then
+  id -u "$GITEA_SERVICE_USER" >/dev/null 2>&1 || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: Gitea service user does not exist' >&2
+    exit 2
+  }
+fi
 if [[ "${AISOFT_ALLOW_TEST_CONFIG:-}" != true ]]; then
   case "$evidence_dir" in
     /var/lib/aisoft/backups/gitea-policy/*) ;;
@@ -171,8 +187,14 @@ python3 -m aisoft_gitea_governance.service_policy \
   --manifest "$manifest" render --config "$config" \
   --output "$tmp_dir/app.ini.candidate" >/dev/null
 check_policy "$tmp_dir/app.ini.candidate" >/dev/null
+chmod 600 "$tmp_dir/app.ini.candidate"
+if [[ "${AISOFT_ALLOW_TEST_CONFIG:-}" != true ]]; then
+  chown "$GITEA_SERVICE_USER" "$tmp_dir" "$tmp_dir/app.ini.candidate"
+  chmod 700 "$tmp_dir"
+fi
 
-"$GITEA_BIN" --config "$tmp_dir/app.ini.candidate" doctor check --all >/dev/null
+"$SUDO_BIN" -n -u "$GITEA_SERVICE_USER" \
+  "$GITEA_BIN" --config "$tmp_dir/app.ini.candidate" doctor check --all >/dev/null
 install_config "$tmp_dir/app.ini.candidate"
 
 if ! restart_and_verify; then
