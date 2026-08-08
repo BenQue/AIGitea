@@ -83,5 +83,40 @@
     "name": "complexity/complex",
     "color": "b60205",
     "description": "需要规格与计划或触发强制复杂风险规则的变更"
+  },
+  {
+    "name": "triage/bug",
+    "color": "d73a4a",
+    "description": "Matt triage category：缺陷或既有行为未按预期工作"
+  },
+  {
+    "name": "triage/enhancement",
+    "color": "a2eeef",
+    "description": "Matt triage category：功能、改进、维护或其他非缺陷请求"
+  },
+  {
+    "name": "triage/needs-triage",
+    "color": "fbca04",
+    "description": "Matt triage state：尚未完成分类与下一处理者判断"
+  },
+  {
+    "name": "triage/needs-info",
+    "color": "d93f0b",
+    "description": "Matt triage state：需要 Issue 作者补充信息"
+  },
+  {
+    "name": "triage/ready-for-agent",
+    "color": "0e8a16",
+    "description": "Matt triage state：Agent 可处理下一阶段；不等于平台 approved"
+  },
+  {
+    "name": "triage/ready-for-human",
+    "color": "5319e7",
+    "description": "Matt triage state：等待人工判断、评审或合并"
+  },
+  {
+    "name": "triage/wontfix",
+    "color": "6a737d",
+    "description": "Matt triage state：不实施；不得映射为 completed 或 deployed"
   }
 ]

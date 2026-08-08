@@ -90,6 +90,74 @@ class GiteaClientTests(unittest.TestCase):
         self.assertEqual(method, "PUT")
         self.assertEqual(set(json.loads(body)["labels"]), {1, 3, 5, 90})
 
+    def test_platform_projection_preserves_existing_triage_labels(self) -> None:
+        all_labels = [
+            {"id": 1, "name": "type/bugfix"},
+            {"id": 2, "name": "complexity/small"},
+            {"id": 3, "name": "approved"},
+            {"id": 20, "name": "triage/bug"},
+            {"id": 21, "name": "triage/ready-for-agent"},
+        ]
+        transport = FakeTransport(
+            [
+                (200, {}, issue_payload([(20, "triage/bug"), (21, "triage/ready-for-agent")])),
+                (200, {}, all_labels),
+                (200, {}, {}),
+            ]
+        )
+        self.client(transport).set_labels(
+            8, {"type/bugfix", "complexity/small", "approved"}
+        )
+        self.assertEqual(set(json.loads(transport.calls[-1][3])["labels"]), {1, 2, 3, 20, 21})
+
+    def test_triage_projection_preserves_platform_and_unmanaged_labels(self) -> None:
+        all_labels = [
+            {"id": 1, "name": "type/platform"},
+            {"id": 2, "name": "complexity/complex"},
+            {"id": 3, "name": "spec-drafting"},
+            {"id": 20, "name": "triage/enhancement"},
+            {"id": 21, "name": "triage/needs-triage"},
+            {"id": 22, "name": "triage/ready-for-agent"},
+            {"id": 90, "name": "priority/high"},
+        ]
+        transport = FakeTransport(
+            [
+                (
+                    200,
+                    {},
+                    issue_payload(
+                        [
+                            (1, "type/platform"),
+                            (2, "complexity/complex"),
+                            (3, "spec-drafting"),
+                            (20, "triage/enhancement"),
+                            (21, "triage/needs-triage"),
+                            (90, "priority/high"),
+                        ]
+                    ),
+                ),
+                (200, {}, all_labels),
+                (200, {}, {}),
+            ]
+        )
+        self.client(transport).set_triage_labels(
+            8, {"triage/enhancement", "triage/ready-for-agent"}
+        )
+        self.assertEqual(set(json.loads(transport.calls[-1][3])["labels"]), {1, 2, 3, 20, 22, 90})
+
+    def test_invalid_triage_projection_is_rejected_before_http(self) -> None:
+        transport = FakeTransport([])
+        client = self.client(transport)
+        for labels in (
+            {"triage/bug"},
+            {"triage/bug", "triage/enhancement", "triage/needs-info"},
+            {"triage/bug", "triage/needs-info", "triage/ready-for-agent"},
+            {"triage/bug", "triage/needs-info", "unknown"},
+        ):
+            with self.subTest(labels=labels), self.assertRaises(GiteaError):
+                client.set_triage_labels(8, set(labels))
+        self.assertEqual(transport.calls, [])
+
     def test_unclear_route_has_no_complexity_label(self) -> None:
         all_labels = [
             {"id": 1, "name": "type/maintenance"},
@@ -158,7 +226,12 @@ class GiteaClientTests(unittest.TestCase):
         self.assertEqual(transport.calls, [])
 
     def test_create_pr_requires_issue_closure_and_contract_link(self) -> None:
-        transport = FakeTransport([(201, {}, {"number": 4, "state": "open"})])
+        transport = FakeTransport(
+            [
+                (201, {}, {"number": 4, "state": "open"}),
+                (201, {}, {"number": 5, "state": "open"}),
+            ]
+        )
         client = self.client(transport)
         for body in ("Closes #8", "docs/changes/8/00-summary.md"):
             with self.subTest(body=body), self.assertRaises(GiteaError):
@@ -171,6 +244,14 @@ class GiteaClientTests(unittest.TestCase):
             "Closes #8\n\nChange documents:\n- docs/changes/8/00-summary.md",
         )
         self.assertEqual(result["number"], 4)
+        named = client.create_pr(
+            8,
+            "Pilot",
+            "change/8",
+            "main",
+            "Closes #8\n\nChange documents:\n- docs/changes/8/summary-pilot-fix-260808.md",
+        )
+        self.assertEqual(named["number"], 5)
         payload = json.loads(transport.calls[-1][3])
         self.assertEqual(payload["head"], "change/8")
         self.assertNotIn("merge", payload)
