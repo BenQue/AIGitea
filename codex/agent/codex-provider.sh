@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One provider turn: Codex may edit the worktree but owns no Git/Gitea/deploy mutation.
+# One provider turn: Codex uses Matt implement and owns local commits only.
 set -euo pipefail
 
 REQUEST_FILE="${1:-}"
@@ -37,10 +37,11 @@ fi
 
 {
   printf '%s\n' \
-    "Use \$gitea-development-loop for exactly one bounded provider turn." \
+    "Use \$implement for exactly one bounded provider turn." \
     'Read AGENTS.md and the immutable request JSON below.' \
     'Work only inside the requested contract. Run useful local checks, but do not claim they replace the outer verifier.' \
-    'Do not edit any governing AGENTS.md. Do not commit, push, change Issue labels, open/merge a PR, or deploy.' \
+    'Commit the verified ticket changes to the current change/N branch using the request commit requirements.' \
+    'Do not edit any governing AGENTS.md. Do not push, change Issue labels, open/merge a PR, rebase, force-push, or deploy.' \
     'Finish with only one JSON object using exactly these fields:' \
     '{"status":"CONTINUE|COMPLETE|NEEDS_HUMAN_DECISION|BLOCKED_EXTERNAL","summary":"...","changed_files":["relative/path"],"root_cause":"","escalation":""}' \
     '' \
