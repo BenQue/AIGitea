@@ -19,11 +19,51 @@ from tests.release_test_support import (
     SHA_A,
     WEB_IMAGE_ID,
     create_archive,
+    create_oci_archive,
     create_release,
     sha256,
     update_manifest,
     write_json,
 )
+
+
+def replace_with_oci_archive(
+    release_dir: Path,
+    manifest: dict[str, object],
+    *,
+    image_store: str,
+    ref_name_form: str = "tag",
+    tamper: str | None = None,
+) -> dict[str, object]:
+    archive = release_dir / "images.tar"
+    images = deepcopy(manifest["images"])
+    create_oci_archive(
+        archive,
+        images,
+        image_store=image_store,
+        ref_name_form=ref_name_form,
+        tamper=tamper,
+    )
+    inventory = release_dir / "images.inventory.json"
+    inventory_value = json.loads(inventory.read_text())
+    inventory_value["archive_sha256"] = sha256(archive)
+    inventory_value["images"] = deepcopy(images)
+    for image in inventory_value["images"]:
+        image["platform"] = "linux/amd64"
+    write_json(inventory, inventory_value)
+    return update_manifest(
+        release_dir,
+        lambda item: item.update(
+            {
+                "images": images,
+                "offline_bundle": {
+                    **item["offline_bundle"],
+                    "archive_sha256": sha256(archive),
+                    "inventory_sha256": sha256(inventory),
+                },
+            }
+        ),
+    )
 
 
 class ReleaseTransportTests(unittest.TestCase):
@@ -191,6 +231,80 @@ class ReleaseTransportTests(unittest.TestCase):
             self.assertFalse(any(event[0] == "pull" for event in docker.events))
             runtime_reference = str(manifest["images"][0]["runtime_reference"])
             self.assertEqual(docker.images[runtime_reference]["RepoDigests"], [])
+
+    def test_docker_29_oci_archive_shapes_pass_read_only_preflight(self) -> None:
+        cases = (
+            ("containerd", "tag"),
+            ("containerd", "full"),
+            ("classic", "tag"),
+            ("classic", "full"),
+        )
+        for image_store, ref_name_form in cases:
+            with (
+                self.subTest(
+                    image_store=image_store, ref_name_form=ref_name_form
+                ),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                root = Path(directory)
+                profile, model, manifest = create_release(
+                    root, transport="offline-bundle", migration=False
+                )
+                release_dir = root / "releases" / SHA_A
+                updated = replace_with_oci_archive(
+                    release_dir,
+                    manifest,
+                    image_store=image_store,
+                    ref_name_form=ref_name_form,
+                )
+                docker = FakeDocker()
+                docker.register(SHA_A, model, updated)
+                result = ReleaseRuntime(docker, hostname="test-host").verify(
+                    profile, SHA_A
+                )
+                self.assertTrue(result["ok"])
+                self.assertEqual(docker.mutations, [])
+
+    def test_docker_29_oci_archive_tamper_fails_before_load(self) -> None:
+        cases = (
+            ("containerd", "reference"),
+            ("containerd", "top-content"),
+            ("containerd", "attestation-reference"),
+            ("containerd", "graph-config"),
+            ("containerd", "extra-descriptor"),
+            ("containerd", "layer-source-size"),
+            ("containerd", "descriptor-size-bool"),
+            ("containerd", "index-schema-version"),
+            ("classic", "reference"),
+            ("classic", "top-content"),
+            ("classic", "graph-config"),
+            ("classic", "classic-metadata-parent"),
+            ("classic", "classic-metadata-content"),
+            ("classic", "layer-source-size"),
+        )
+        for image_store, tamper in cases:
+            with (
+                self.subTest(image_store=image_store, tamper=tamper),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                root = Path(directory)
+                profile, model, manifest = create_release(
+                    root, transport="offline-bundle", migration=False
+                )
+                release_dir = root / "releases" / SHA_A
+                updated = replace_with_oci_archive(
+                    release_dir,
+                    manifest,
+                    image_store=image_store,
+                    tamper=tamper,
+                )
+                docker = FakeDocker()
+                docker.register(SHA_A, model, updated)
+                with self.assertRaises(TransportError):
+                    ReleaseRuntime(docker, hostname="test-host").verify(
+                        profile, SHA_A
+                    )
+                self.assertEqual(docker.mutations, [])
 
     def test_archive_reference_and_config_tamper_fail_before_load(self) -> None:
         transforms = {
