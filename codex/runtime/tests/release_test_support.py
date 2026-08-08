@@ -172,6 +172,213 @@ def create_archive(
     os.chmod(path, 0o644)
 
 
+def create_oci_archive(
+    path: Path,
+    images: list[dict[str, str]],
+    *,
+    image_store: str,
+    ref_name_form: str = "tag",
+    tamper: str | None = None,
+) -> None:
+    if image_store not in {"containerd", "classic"}:
+        raise ValueError("image_store must be containerd or classic")
+    blobs: dict[str, bytes] = {}
+    docker_manifest: list[dict[str, object]] = []
+    repositories: dict[str, dict[str, str]] = {}
+    top_descriptors: list[dict[str, object]] = []
+
+    def add_blob(payload: bytes) -> tuple[str, str]:
+        digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+        path_name = "blobs/sha256/" + digest.removeprefix("sha256:")
+        blobs[path_name] = payload
+        return digest, path_name
+
+    for image in images:
+        service = image["service"]
+        tag = image["transport_reference"]
+        config_payload = canonical_bytes(
+            {"architecture": "amd64", "fixture_service": service, "os": "linux"}
+        )
+        config_digest, config_path = add_blob(config_payload)
+        layer_payload = (f"fixture-layer:{service}\n").encode("utf-8")
+        layer_digest, layer_path = add_blob(layer_payload)
+        runnable_manifest = {
+            "schemaVersion": 2,
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "config": {
+                "mediaType": "application/vnd.oci.image.config.v1+json",
+                "digest": config_digest,
+                "size": len(config_payload),
+            },
+            "layers": [
+                {
+                    "mediaType": "application/vnd.oci.image.layer.v1.tar",
+                    "digest": layer_digest,
+                    "size": len(layer_payload),
+                }
+            ],
+        }
+        runnable_bytes = canonical_bytes(runnable_manifest)
+        runnable_digest, _runnable_path = add_blob(runnable_bytes)
+        runnable_descriptor: dict[str, object] = {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": runnable_digest,
+            "size": len(runnable_bytes),
+            "platform": {"architecture": "amd64", "os": "linux"},
+        }
+
+        if image_store == "containerd":
+            attestation_config = canonical_bytes({})
+            attestation_config_digest, _ = add_blob(attestation_config)
+            attestation_payload = canonical_bytes(
+                {"_type": "https://in-toto.io/Statement/v1", "subject": []}
+            )
+            attestation_layer_digest, _ = add_blob(attestation_payload)
+            attestation_manifest = {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                "config": {
+                    "mediaType": "application/vnd.oci.empty.v1+json",
+                    "digest": attestation_config_digest,
+                    "size": len(attestation_config),
+                },
+                "layers": [
+                    {
+                        "mediaType": "application/vnd.in-toto+json",
+                        "digest": attestation_layer_digest,
+                        "size": len(attestation_payload),
+                    }
+                ],
+            }
+            attestation_bytes = canonical_bytes(attestation_manifest)
+            attestation_digest, _attestation_path = add_blob(attestation_bytes)
+            attestation_reference = (
+                "sha256:" + "f" * 64
+                if tamper == "attestation-reference"
+                else runnable_digest
+            )
+            image_index = {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.oci.image.index.v1+json",
+                "manifests": [
+                    runnable_descriptor,
+                    {
+                        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                        "digest": attestation_digest,
+                        "size": len(attestation_bytes),
+                        "annotations": {
+                            "vnd.docker.reference.digest": attestation_reference,
+                            "vnd.docker.reference.type": "attestation-manifest",
+                        },
+                        "platform": {
+                            "architecture": "unknown",
+                            "os": "unknown",
+                        },
+                    },
+                ],
+            }
+            top_bytes = canonical_bytes(image_index)
+            top_digest, top_path = add_blob(top_bytes)
+            top_media_type = "application/vnd.oci.image.index.v1+json"
+            image["image_id"] = top_digest
+            image["digest"] = top_digest
+            image["reference"] = image["reference"].split("@", 1)[0] + "@" + top_digest
+        else:
+            top_bytes = runnable_bytes
+            top_digest = runnable_digest
+            top_path = _runnable_path
+            top_media_type = "application/vnd.oci.image.manifest.v1+json"
+            image["image_id"] = config_digest
+            metadata_id = hashlib.sha256(
+                ("classic-layer:" + service).encode("utf-8")
+            ).hexdigest()
+            classic_metadata: dict[str, object] = {
+                "architecture": "amd64",
+                "config": {},
+                "container_config": {},
+                "created": "2026-08-08T00:00:00Z",
+                "id": metadata_id,
+                "os": "linux",
+            }
+            if tamper == "classic-metadata-parent":
+                classic_metadata["parent"] = "f" * 64
+            metadata_payload = canonical_bytes(classic_metadata)
+            _metadata_digest, metadata_path = add_blob(metadata_payload)
+            if tamper == "classic-metadata-content":
+                blobs[metadata_path] = metadata_payload + b" "
+        if tamper == "top-content":
+            blobs[top_path] = top_bytes + b" "
+
+        exact_tag = tag.rsplit(":", 1)[1]
+        ref_name = tag if ref_name_form == "full" else exact_tag
+        if tamper == "reference":
+            ref_name = "b" * 40
+        annotations = {
+            "io.containerd.image.name": tag,
+            "org.opencontainers.image.ref.name": ref_name,
+        }
+        top_descriptors.append(
+            {
+                "mediaType": top_media_type,
+                "digest": top_digest,
+                "size": (
+                    True if tamper == "descriptor-size-bool" else len(top_bytes)
+                ),
+                "annotations": annotations,
+            }
+        )
+        docker_config = config_path
+        if tamper == "graph-config":
+            _wrong_digest, docker_config = add_blob(
+                canonical_bytes({"fixture_service": service, "wrong": True})
+            )
+        layer_source_size = (
+            len(layer_payload) + 1
+            if tamper == "layer-source-size"
+            else len(layer_payload)
+        )
+        docker_manifest.append(
+            {
+                "Config": docker_config,
+                "RepoTags": [tag],
+                "Layers": [layer_path],
+                "LayerSources": {
+                    layer_digest: {
+                        "digest": layer_digest,
+                        "mediaType": "application/vnd.oci.image.layer.v1.tar",
+                        "size": layer_source_size,
+                    }
+                },
+            }
+        )
+        repository, nested_tag = tag.rsplit(":", 1)
+        repositories.setdefault(repository, {})[nested_tag] = layer_digest
+
+    if tamper == "extra-descriptor":
+        top_descriptors.append(deepcopy(top_descriptors[0]))
+    with tarfile.open(path, mode="w") as archive:
+        members = {
+            **blobs,
+            "manifest.json": canonical_bytes(docker_manifest),
+            "repositories": canonical_bytes(repositories),
+            "index.json": canonical_bytes(
+                {
+                    "schemaVersion": (
+                        1 if tamper == "index-schema-version" else 2
+                    ),
+                    "manifests": top_descriptors,
+                }
+            ),
+            "oci-layout": canonical_bytes({"imageLayoutVersion": "1.0.0"}),
+        }
+        for member_name, payload in members.items():
+            member = tarfile.TarInfo(member_name)
+            member.size = len(payload)
+            member.mode = 0o644
+            archive.addfile(member, io.BytesIO(payload))
+    os.chmod(path, 0o644)
+
+
 def create_release(
     root: Path,
     release_id: str = SHA_A,

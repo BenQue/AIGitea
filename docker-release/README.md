@@ -41,6 +41,13 @@ V2 image entry 明确区分四类 identity：
 - `transport_reference` 是 producer 创建并按其执行 `docker image save` 的 release-scoped tag。
 - `runtime_reference` 是 Compose `image:`；V2 首版要求与 transport tag byte-identical。
 
+`image_id` 是 daemon 对 exact runtime reference 返回的 inspect identity，不等同于所有 archive
+中的 Config digest。Docker 29 classic archive 的 inspect identity 是 image config digest；带
+provenance 的 containerd archive 可以把 top-level OCI image index digest 作为 inspect identity，
+而其 runnable `linux/amd64` manifest 再指向独立 config digest。Preflight 因此验证完整
+`index descriptor -> runnable manifest -> config/layers` graph，并要求 Docker `manifest.json`
+的 Config/layers 与 runnable manifest byte-exact 对应；它不会在这几类 digest 之间猜测或互换。
+
 Tag 由 lower-case source owner/repository、service 和完整 release SHA 确定，只是搬运和本地
 解析别名，不是信任根。Producer 必须先按 digest pull/inspect，再创建 tag、重复 inspect exact
 image ID/platform，最后按 tag save。Offline consumer 按 runtime tag inspect `RepoTags`、image ID
@@ -68,6 +75,18 @@ tag，`manifest.json` 的 `RepoTags`、config image ID、layer member 与可选 
 references 都在 load 前进入 allowlist 检查。既有未声明四类 identity 的 Registry manifest
 继续按 digest 路径读取；legacy offline bundle 在任何 Docker call 前稳定拒绝，迁移方式只能是
 由受控 producer 重新 pull/build、tag、save 并发布完整 V2 bundle，不能原地编辑 tar/inventory。
+
+Docker 29 OCI `index.json` reference binding 接受两种 exact 表达：完整
+`org.opencontainers.image.ref.name`，或由同一 descriptor 的
+`io.containerd.image.name=<full transport reference>` 与
+`org.opencontainers.image.ref.name=<exact release tag>` 共同表达。Tag-only annotation 不能用于
+推断 repository；两字段不一致、其它 repository/tag、重复 descriptor、悬空 blob 或 content digest
+不匹配都在 load 前拒绝。Containerd attestation child 还必须声明
+`vnd.docker.reference.type=attestation-manifest` 并精确指向唯一 runnable manifest。
+
+Docker 29 classic save 可能额外写入 legacy layer metadata。它们只有在 content-addressed filename、
+strict Linux metadata、完整无环 parent graph、leaf/config 数量和每个 image layer chain 长度都与
+Docker manifest 一致时才进入 allowlist；不存在“允许任意额外 blob”的 fallback。
 
 ## Docker capability gate
 
