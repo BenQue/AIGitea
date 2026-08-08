@@ -1,6 +1,6 @@
-# 08 · Codex-first Development Loop 与 Claude Code 共存计划
+# 08 · Matt 编排、Development Loop 与双工具共存
 
-> 版本：v3.0 通用 Codex runtime candidate ｜ 日期：2026-07-16 ｜ 状态：provider-neutral runtime、72 项 synthetic、每项目 profile 隔离、VM 临时安装和一个真实 complex pilot 已通过；AISoftPlatform 本身不部署，下一阶段为 Claude Code 通用 adapter parity。
+> 版本：v3.3 source candidate ｜ 日期：2026-08-08 ｜ 状态：Issue #57 将完整 Matt Pocock skills 固定为开发编排层；provider-neutral runtime、项目 profile、确定性 verifier 与人工合并门保持平台所有。最终 PR 合并前不得称为 live baseline。
 
 ## 1. 结论
 
@@ -8,6 +8,7 @@
 
 ```text
 Issue / docs contract
+  → Matt triage / to-spec / to-tickets / implement
   → provider-neutral Loop controller
       ├── Codex adapter（先实现和验证）
       └── Claude adapter（后接入）
@@ -17,15 +18,16 @@ Issue / docs contract
   → artifact / deploy / health / rollback
 ```
 
-Codex 和 Claude Code 只替换模型执行器，不各自复制标签状态机、Git/Gitea 操作、测试硬门或终态判断。项目差异只存在于显式 profile、仓库内合同与 versioned verifier 配置中；不得从 rsDesign 示例推断默认仓库。
+Matt skills 提供完整开发编排语义，Codex 和 Claude Code 只替换模型执行器；三者都不复制或取代平台标签状态机、Git/Gitea 远端操作、测试硬门和终态判断。项目差异只存在于显式 profile、仓库内合同、`docs/agents/` tracker 配置与 versioned verifier 中。
 
 ## 2. 共享契约
 
-- Issue 是主键；所有变更有 `00-summary.md`。
-- small 可从明确 Issue 直接进入 Loop；complex 必须有 `01-spec.md` 和 `02-plan.md`。
+- Issue 是主键；Issue #57 起所有新变更有映射的 `summary-<slug>-<YYMMDD>.md`，旧 Issue 保持 legacy basename。
+- small 可从明确 Issue 直接进入 Loop；complex 必须有映射的 `spec-*` 和 `plan-*`。
 - `approved` 启动 Loop，不授权合并或部署。
 - 单一 `change/N` 分支承载文档、代码、测试和最终 PR。
 - Loop 只能在合同范围内实现、自测、自修复和处理 CI feedback。
+- Agent 可按 `Txx` 本地 commit；Controller 验证后才 push 和创建最终 PR。
 - `READY_FOR_REVIEW` 只是通知人 review；最终 PR 合并是唯一交付硬闸门。
 - AI 可以参与非生产首次部署；生产只运行已验证脚本。
 
@@ -77,16 +79,20 @@ Claude adapter 已完成（Issue #1）：
 
 > **当前启用边界**：rsdesign-new Issue #8 的安装与 PR/CI 结果只作为一个 pilot evidence。现有 timer 仍 inactive、implementation none。其他仓库必须创建自己的 profile、verifier 和项目验收，不能继承 pilot 的启用结论。AISoftPlatform 没有应用部署目标，不需要为了完成中央 runtime 人为创建部署流水线。
 
-## 5. Codex skills 映射
+## 5. Matt skills 与平台映射
 
-| Skill | v3 职责 |
+| Skill | 平台映射 |
 |---|---|
-| `gitea-analyze-change` | 只读分析 Issue，输出 evidence、风险、contract effect 和结构化 AI 判级字段 |
-| `gitea-spec-plan` | 为 complex 变更收敛决策并写 spec/plan；不创建独立 spec PR |
-| `gitea-development-loop` | 读取合同，在外层 controller 约束下持续实现、验证、自修复和升级 |
-| `gitea-implement-change` | 兼容的一轮实现入口；不得冒充完整 Loop |
-| `gitea-platform-ops` | 平台诊断、非生产首次部署、故障复现、脚本修复和回滚规划 |
-| `aisoft-platform` | 平台路由、接入和完整安全边界 |
+| `triage` | 保持 Matt verify/grill/brief；用 namespaced triage 标签投影，不替代 `approved` |
+| `to-spec` | 写既有 Issue 映射的 `spec-*`，不创建新 Issue 或独立 spec PR |
+| `to-tickets` | 写映射的 `plan-*`，保留 `Txx`、`blocked_by`、AC 与验证映射；默认不创建子 Issue |
+| `implement` | 只实现 Controller 指定的 frontier `Txx`，运行测试并在 exact `change/N` 本地原子 commit |
+| `aisoft-matt-workflow` | 仓库初始化与四阶段 adapter；保护平台 Issue、合同、CI、PR、合并和部署边界 |
+| 既有 `gitea-*` skills | 兼容 adapter；逐步把调用转向 Matt，但不删除确定性 runtime 接口 |
+
+仓库初始化先完成 Gitea profile、protected `main`、required CI、项目 Agent 权限与 24-label read-back，再运行 `codex/install-skills.sh <target-home>` 安装已验证 snapshot。首次进入项目时显式调用 `$setup-matt-pocock-skills`，tracker 选择 `Other`，并把 `templates/docs/agents/` 三个模板安装为 `docs/agents/issue-tracker.md`、`triage-labels.md`、`domain.md`。若 setup 要修改本次运行正在遵循的 `AGENTS.md`，本轮只提交 proposal，下一次独立授权再应用。
+
+完整性与更新策略：仓库 vendor 一个可复现的完整 upstream release，不裁剪或改写其 `SKILL.md`；平台差异只写 adapter。更新先进入隔离 staging，核对 tag object、commit、license、全部 skill/hash 与 adapter conformance，再与当前 manifest 分类。仅文案或兼容修正可生成 maintenance 候选；skill 增删、关键流程、调用策略、工具/网络/Git 副作用或 adapter contract 变化一律进入 complex Issue。安装器原子切换 `current`，保留 `previous` 作为 N-1 rollback，不直接对 live global skills 执行不受控 latest update，也不修改 Claude-owned plugin。
 
 ## 6. Loop controller 与 provider adapter
 
@@ -98,11 +104,11 @@ Claude adapter 已完成（Issue #1）：
 - 持久化当前任务、轮数、失败根因和终态。
 - 调用 Codex 或 Claude adapter。
 - 独立运行 verifier，不信任模型自述。
-- 提交/推送 feature branch、创建最终 PR、读取 CI 状态。
+- 校验 Agent commit 的 branch、ancestry、subject、scope、clean tree 与测试后，push feature branch、创建最终 PR并读取 CI 状态。
 - 把 CI 失败和范围内 review feedback 反馈给下一轮。
 - 三次同根因失败、合同冲突或预算耗尽时升级给人。
 
-Provider adapter 只负责：读取 controller 给出的合同和失败证据，在 worktree 内完成范围内修改并返回结构化结果。它不管理标签、合并、部署、凭据或生产状态。
+Provider adapter 只负责：读取 controller 给出的合同和失败证据，显式调用 `$implement #N Txx`，在 worktree 内完成范围内修改、测试和本地 commit，并返回结构化结果。它不 push、不管理标签/PR、合并、部署、凭据或生产状态。
 
 ## 7. Codex 验证矩阵
 
@@ -118,7 +124,7 @@ Provider adapter 只负责：读取 controller 给出的合同和失败证据，
 8. **非生产首次部署（仅应用项目）**：两次正常执行和一次故意失败回滚；文档/source 仓库标记 not applicable。
 9. **生产负向边界**：Codex 无权部署生产，只能准备经非生产验证的修复 PR。
 
-验证结果写入对应 `docs/changes/N/03-verification.md`，真实命令与未通过项分开记录。
+验证结果写入对应映射的 `verification-*`（legacy Issue 仍用 `03-verification.md`），真实命令与未通过项分开记录。
 
 合成 classifier case 必须覆盖：
 
@@ -136,7 +142,7 @@ Provider adapter 只负责：读取 controller 给出的合同和失败证据，
 
 只有共享 Codex runtime、profile 隔离和至少一个 real integration pilot 完成后才更新 Claude Code 运行路径：
 
-1. 盘点 VM 真实 `analyze.sh`、`implement.sh`、`poll.sh` 和 Superpowers 配置。
+1. 盘点 VM 真实 `analyze.sh`、`implement.sh`、`poll.sh`、Matt snapshot 与 tracker 配置。
 2. 实现 Claude adapter，复用同一 controller、verifier、状态和终态。
 3. 更新 Claude skills/commands，但不复制 Codex skill 内容形成第二套合同。
 4. 使用 Codex 的同一组合成用例和通用 project-profile fixture 做 parity；rsDesign 数据、端口和部署脚本不进入 adapter。

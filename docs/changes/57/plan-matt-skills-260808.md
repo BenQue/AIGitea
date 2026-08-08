@@ -25,13 +25,13 @@ updated: 2026-08-08
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 新旧 change 文档合同与确定性 resolver | - | pending |
-| T02 | 新格式 analyzer、模板、skills 和 PR 链接 | T01 | pending |
-| T03 | 正交 triage 标签及单一 LabelProjector | T01 | pending |
-| T04 | to-spec/to-tickets Gitea tracker adapters | T01, T02 | pending |
-| T05 | implement Agent commit 与 Controller post-validation | T01 | pending |
-| T06 | 完整 Matt snapshot manifest 与更新分级检查 | T04, T05 | pending |
-| T07 | 文档、全量验证和最终 PR | T02, T03, T04, T05, T06 | pending |
+| T01 | 新旧 change 文档合同与确定性 resolver | - | completed |
+| T02 | 新格式 analyzer、模板、skills 和 PR 链接 | T01 | completed |
+| T03 | 正交 triage 标签及单一 LabelProjector | T01 | completed |
+| T04 | to-spec/to-tickets Gitea tracker adapters | T01, T02 | completed |
+| T05 | implement Agent commit 与 Controller post-validation | T01 | completed |
+| T06 | 完整 Matt snapshot manifest 与更新分级检查 | T04, T05 | completed |
+| T07 | 文档、全量验证和最终 PR | T02, T03, T04, T05, T06 | in-progress |
 
 ## Tasks
 
@@ -77,7 +77,7 @@ updated: 2026-08-08
 
 ### T07 — Documentation and delivery
 
-- 更新 README、编号分册、模板说明和 source skills，但不在当前运行中修改根 `AGENTS.md`。
+- 更新 README、编号分册、模板说明和 source skills，但不在当前运行中修改生效中的根级代理说明文件。
 - 运行 focused unit tests、完整 Python suite、smoke、`bash -n`、ShellCheck（可用时）、diff 与 Secret checks。
 - Agent 创建范围内原子 commits；Controller fast-forward push `change/57` 并创建唯一 `Closes #57` PR。
 - 等待 required CI，停止在人工 merge gate；部署为 `NOT RUN`。

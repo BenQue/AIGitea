@@ -52,33 +52,33 @@ skills 和测试对这些名字存在硬编码。新命名必须从本 Issue 起
 
 ## Acceptance criteria
 
-- [ ] **AC-1** Issue #57 及其后的新 change 文档使用
+- [x] **AC-1** Issue #57 及其后的新 change 文档使用
   `<summary|spec|plan|verification>-<short-slug>-<YYMMDD>.md`；slug 为 2–4 个小写英文
   `kebab-case` 词，优先不超过 24 字符、硬上限 32 字符，完整 basename 不超过 64 字符。
-- [ ] **AC-2** 文件名日期等于该文件首次创建日期；普通更新只改变 `updated`，不得重命名；同一 Issue
+- [x] **AC-2** 文件名日期等于该文件首次创建日期；普通更新只改变 `updated`，不得重命名；同一 Issue
   的 active 文档共用一个锁定 slug，每个角色最多一个 active 文件。
-- [ ] **AC-3** 新 summary 使用 `documents` 角色映射和语义 `required_docs`；解析器只读取显式映射，验证
+- [x] **AC-3** 新 summary 使用 `documents` 角色映射和语义 `required_docs`；解析器只读取显式映射，验证
   basename、角色、slug、日期、目录边界、重复角色和 front matter，不通过无约束 glob 猜测文件。
-- [ ] **AC-4** Issue #57 之前的 `00-summary.md`、`01-spec.md`、`02-plan.md`、`03-verification.md`
+- [x] **AC-4** Issue #57 之前的 `00-summary.md`、`01-spec.md`、`02-plan.md`、`03-verification.md`
   继续可读；新模板、analyzer 和 adapter 不再生成旧名称，也不重命名历史文件。
-- [ ] **AC-5** `triage/bug|enhancement` 与五个 `triage/*` state 作为正交标签投影；每个已 triage Issue
+- [x] **AC-5** `triage/bug|enhancement` 与五个 `triage/*` state 作为正交标签投影；每个已 triage Issue
   恰好一个 Matt category 和 state；`triage/ready-for-agent` 永远不能单独启动 Loop，平台仍只认
   通过合同校验的 `approved`。
-- [ ] **AC-6** `$to-spec` 与 `$to-tickets` 保持 Matt 原流程，通过 Gitea tracker adapter 分别更新当前
+- [x] **AC-6** `$to-spec` 与 `$to-tickets` 保持 Matt 原流程，通过 Gitea tracker adapter 分别更新当前
   Issue 的 spec 与 plan；默认不创建子 Issue，只有 complex spec 显式授权才允许多 Issue 模式。
-- [ ] **AC-7** plan 保留 vertical slice、`blocked_by`、frontier task 和 expand-contract，并以 `T01` 起的
+- [x] **AC-7** plan 保留 vertical slice、`blocked_by`、frontier task 和 expand-contract，并以 `T01` 起的
  稳定 ID 映射每条 AC、验证方式和非合同性的 expected touch points。
-- [ ] **AC-8** Controller 显式调用 `$implement Issue #N ticket Txx`；Agent 只可在当前 `change/N`
+- [x] **AC-8** Controller 显式调用 `$implement Issue #N ticket Txx`；Agent 只可在当前 `change/N`
   修改授权文件并创建包含 `#N` 与 `Txx` 的原子 commit，不得 push、开 PR、merge、rebase、force-push
   或 deploy。
-- [ ] **AC-9** Controller 在 push 前验证 exact branch、旧 head ancestry、无 merge commit、授权路径、
+- [x] **AC-9** Controller 在 push 前验证 exact branch、旧 head ancestry、无 merge commit、授权路径、
   Secret 扫描、clean worktree 和确定性 tests；失败通过追加修复 commit 处理，不默认 amend 审计历史。
-- [ ] **AC-10** 每个 Issue 最终只有一个 `Closes #N` PR；Controller 可 fast-forward push、创建/更新 PR、
+- [x] **AC-10** 每个 Issue 最终只有一个 `Closes #N` PR；Controller 可 fast-forward push、创建/更新 PR、
   等待 CI 和投影状态，但最终 merge 必须由人工操作，部署保持独立授权。
-- [ ] **AC-11** Matt snapshot 保持完整且不修改上游文件；manifest 固定 source、tag、exact commit、skill
+- [x] **AC-11** Matt snapshot 保持完整且不修改上游文件；manifest 固定 source、tag、exact commit、skill
   清单、hash、license 与 adapter contract。skill 增删/改名、主流程、权限、工具、网络或 Git 副作用变化
   必须升级为 complex，不能直接推广。
-- [ ] **AC-12** 文档、模板、skills、runtime 和 tests 一致更新；focused tests、完整 Python suite、
+- [x] **AC-12** 文档、模板、skills、runtime 和 tests 一致更新；focused tests、完整 Python suite、
   `bash codex/tests/smoke.sh`、相关 `bash -n`、ShellCheck（可用时）和 `git diff --check` 通过。
 
 ## Implementation Decisions
@@ -88,7 +88,7 @@ skills 和测试对这些名字存在硬编码。新命名必须从本 Issue 起
 - 新旧格式由 summary 是否存在显式 `documents` 映射区分；不得用 Issue 编号推断新旧格式。
 - `triage/*` 表示 Matt category/state；现有 `type/*`、`complexity/*`、lifecycle 继续是平台权威。
 - Agent 拥有本地 commit，Controller 拥有远端 mutation；人工拥有 merge。
-- 当前运行遵守现有根 `AGENTS.md`，本 Change 不在执行中自修改该文件；根规则更新留给合并后的独立治理步骤。
+- 当前运行遵守现有根级代理说明，本 Change 不在执行中自修改该文件；根规则更新留给合并后的独立治理步骤。
 
 ## Testing Decisions
 
@@ -119,7 +119,7 @@ skills 和测试对这些名字存在硬编码。新命名必须从本 Issue 起
 - 不删除或批量更新本机 GSD、Superpowers、Matt 或 Claude 插件。
 - 不自动迁移历史 Issue、业务仓库或全局用户配置。
 - 不修改生产、公司内网、数据库或部署环境。
-- 不在本次正在遵循根 `AGENTS.md` 的运行中修改该文件。
+- 不在本次运行中修改当前生效的根级代理说明文件。
 
 ## Further Notes
 

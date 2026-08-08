@@ -15,10 +15,12 @@ required_docs:
   - summary
   - spec
   - plan
+  - verification
 documents:
   summary: summary-matt-skills-260808.md
   spec: spec-matt-skills-260808.md
   plan: plan-matt-skills-260808.md
+  verification: verification-matt-skills-260808.md
 confidence: high
 override_reason: ''
 depends_on: []
@@ -79,6 +81,7 @@ required_docs:
   - summary
   - spec
   - plan
+  - verification
 confidence: high
 override_reason: ''
 ```

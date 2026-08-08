@@ -172,8 +172,8 @@ for reference in newemaint/target-candidate windows sqlite; do
 done
 
 jq -e '
-  length == 17 and
-  (map(.name) | unique | length == 17) and
+  length == 24 and
+  (map(.name) | unique | length == 24) and
   (map(.name) | sort) == [
     "approved",
     "awaiting-triage",
@@ -185,6 +185,13 @@ jq -e '
     "pr-open",
     "spec-drafting",
     "spec-review",
+    "triage/bug",
+    "triage/enhancement",
+    "triage/needs-info",
+    "triage/needs-triage",
+    "triage/ready-for-agent",
+    "triage/ready-for-human",
+    "triage/wontfix",
     "type/bugfix",
     "type/docs",
     "type/feature",
@@ -200,6 +207,11 @@ jq -e '
   )
 ' "$ROOT/codex/config/gitea-labels.json" >/dev/null
 
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$ROOT/codex/runtime" \
+  python3 -m aisoft_loop.matt_snapshot verify \
+  "$ROOT/codex/vendor/mattpocock/v1.2.2" \
+  "$ROOT/codex/vendor/mattpocock/v1.2.2/manifest.json" >/dev/null
+
 if rg -n -g '!**/tests/smoke.sh' \
   'dangerously-bypass|--yolo|danger-full-access|dangerously-skip-permissions|permission-mode +bypassPermissions' \
   "$ROOT/codex"; then
@@ -207,7 +219,7 @@ if rg -n -g '!**/tests/smoke.sh' \
   exit 1
 fi
 
-for skill in gitea-analyze-change gitea-spec-plan gitea-development-loop gitea-implement-change gitea-platform-ops; do
+for skill in aisoft-matt-workflow gitea-analyze-change gitea-spec-plan gitea-development-loop gitea-implement-change gitea-platform-ops; do
   [[ -f "$ROOT/codex/skills/$skill/SKILL.md" ]]
   [[ -f "$ROOT/codex/skills/$skill/agents/openai.yaml" ]]
   grep -Fq "\$$skill" "$ROOT/codex/skills/$skill/agents/openai.yaml"
@@ -395,11 +407,11 @@ if grep -Eq '^effective_complexity:' "$unclear_fixture"; then
   exit 1
 fi
 grep -Fxq 'contract_effect: unclear' "$unclear_fixture"
-[[ "$(fixture_required_docs "$small_fixture")" == '00-summary.md' ]]
-[[ "$(fixture_required_docs "$unclear_fixture")" == '00-summary.md' ]]
-[[ "$(fixture_required_docs "$complex_fixture")" == $'00-summary.md\n01-spec.md\n02-plan.md' ]]
+[[ "$(fixture_required_docs "$small_fixture")" == 'summary' ]]
+[[ "$(fixture_required_docs "$unclear_fixture")" == 'summary' ]]
+[[ "$(fixture_required_docs "$complex_fixture")" == $'summary\nspec\nplan' ]]
 
-for template in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
+for template in summary.md spec.md plan.md verification.md; do
   file="$ROOT/templates/docs/changes/_template/$template"
   front_matter="$(
     awk '
@@ -415,7 +427,7 @@ for template in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
 done
 ! rg -n 'complexity_recommendation:' "$ROOT/templates/docs/changes/_template" || exit 1
 
-summary_template="$ROOT/templates/docs/changes/_template/00-summary.md"
+summary_template="$ROOT/templates/docs/changes/_template/summary.md"
 grep -Fq 'WRAPPER_CONDITIONAL' "$summary_template"
 grep -Fq 'delete every' "$summary_template"
 grep -Fq "\`effective_complexity:\` key from both the front matter and the \`## AI 判级\`" "$summary_template"

@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.2（host-role + Docker-first contract candidate）｜ 更新：2026-08-04 ｜ 状态：**Linux PM2 试点与双 provider runtime 已验证；`scm-ci`/AppServer live 职责收口已验证并待最终 PR；Docker offline V2 已完成 platform-local 与 disposable containerd E2E，classic、业务 Registry/AppServer 与 production 尚未验收**
+> 版本：v3.3（Matt orchestration + deterministic governance candidate）｜ 更新：2026-08-08 ｜ 状态：**Issue #57 正在以完整 Matt Pocock skills 替换开发编排层；AISoftPlatform 的 Issue/合同/验证/PR/部署治理层保持不变，最终 PR 尚待人工合并**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 
@@ -18,6 +18,7 @@
 - ✅ v2 试点证据：issue #4 已走通三闸门闭环，证明 Issue/文档/PR/部署关联可行
 - ✅ 邮件通知：Gitea → Mailpit（演示层），issue/PR 事件自动发信
 - ✅ Codex 基础：CLI、认证、skills、AGENTS、sandbox、provider router 已通过 VM 基础验收
+- 🟡 Matt 开发编排层（Issue #57 candidate）：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在 `change/N` 本地提交，Controller 才能 push/建 PR/读取 CI，合并仍只由人操作
 - ✅ Gitea 身份与可见性：Issue #35 已在本机 OrbStack 标记 `deployed`；1 个非 site-admin manager、9 个单项目 agent 与 11 个最小 scope PAT 已完成幂等验证，public 精确为 `aisoft-platform`/`myapp`/`smoke-test`，其余 6 个 private，9 个 `main` 只允许人工 `admin` 合并；真实 Issue/label/Git/PR 正反向验证 9/9 `PASS`，共享 `ci-bot` 已从全部 manifest 仓库移除 collaborator 权限但账号保留
 - ✅ Claude adapter（Issue #1）：与 Codex 共用 controller/verifier/状态/终态，17 项 parity 测试通过；默认仍 `IMPLEMENT_PROVIDER=none`，真实 VM pilot 未做
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
@@ -113,11 +114,11 @@ sequenceDiagram
         A->>G: 写 summary + type/* + complexity/small；合同完整则 approved
     else effective_complexity=complex
         A->>G: 写 summary + type/* + complexity/complex + spec-drafting
-        U->>M: 收敛决策，写 01-spec.md + 02-plan.md
+        U->>M: 用 to-spec/to-tickets 收敛映射的 spec-* + plan-*
         M->>G: 文档提交到同一 change/N；合同完整则 approved
     end
-    A->>A: 实现→测试→失败分析→修复→再验证
-    A->>G: 推 change/N → 最终 PR(Closes #N) → pr-open
+    A->>A: $implement frontier Txx → 本地原子 commit → verifier
+    A->>G: Controller 校验后推 change/N → 最终 PR(Closes #N) → pr-open
     R->>G: PR CI 必须绿；失败反馈给 Loop
     Note over U,G: 【唯一交付闸门】人审核并合并最终 PR
     G->>U: 📬 邮件通知(Mailpit);issue 被 Closes 自动关闭
@@ -131,7 +132,7 @@ sequenceDiagram
 
 **实施状态**：AI 自动分析仍可用；共享 Codex Development Loop 候选已完成 synthetic、临时 HOME、VM 禁用式安装和 rsdesign-new real complex pilot，PR #9 已由人合并，合并后两个测试入口健康。该 pilot 只证明通用 controller 能在一个应用工作，不把平台绑定到该仓库。每个目标项目由独立 profile 指定 Gitea 坐标、clone、provider、state 和 worktrees，默认 `IMPLEMENT_PROVIDER=none`。AISoftPlatform 是文档、模板、skills 与 runtime source 仓库，本身不需要应用部署流水线。Claude Code Loop 和生产相关自动操作仍未启用。
 
-标签采用三个正交维度：七个 `type/*` 描述变更是什么，两个 `complexity/*` 记录 AI 判定所需路径，八个流程状态标签描述当前阶段。`completed` 表示最终 PR 已合并且明确无需部署；`deployed` 只表示确定性部署与验证成功，两者互斥。`complexity/small` 不能绕过强制复杂规则；无法安全判级时不添加 complexity 标签。17-label taxonomy 必须对每个接入仓库独立 provision 和读回，不能把其它仓库的外部状态当作平台全局状态。
+平台标签采用三个正交维度：七个 `type/*`、两个 `complexity/*` 和八个 lifecycle，共 17 个；Matt 另加两个 `triage/*` category 与五个 `triage/*` state。source manifest 共 provision 24 个标签，但 `triage/ready-for-agent` 不替代平台 `approved`。`completed` 与 `deployed` 互斥，任何接入仓库都必须独立同步并读回，不能把其它仓库状态当作平台全局状态。
 
 ## 5. 文档导航
 
@@ -140,7 +141,7 @@ sequenceDiagram
 | [01-基础设施-VM-Gitea-Runner](01-基础设施-VM-Gitea-Runner.md) | VM/Gitea/runner/Verdaccio/Mailpit 搭建与账号体系、端口总表 | 重建环境、内网平移 |
 | [02-CI与自动部署流水线](02-CI与自动部署流水线.md) | Docker-first 默认合同与 PM2/SQLite as-built legacy 证据 | 改流水线、排部署问题 |
 | [03-Issue/Spec/Plan 与单闸门流程](03-Issue-Spec-Plan与单闸门开发流程.md) | small/complex 双路径、文档绑定、标签语义、最终 PR | 日常使用平台 |
-| [04-AI 分析与 Development Loop](04-Agent编排与定时任务.md) | analyzer、Loop、verifier、终态、provider adapter | 调整 agent 行为 |
+| [04-Matt 编排与 Development Loop](04-Agent编排与定时任务.md) | Matt skills、analyzer、Loop、verifier、终态、provider adapter | 调整 agent 行为 |
 | [05-通知与多人协作](05-通知与多人协作.md) | Gitea mailer、Mailpit、事件覆盖、切真实 SMTP | 配通知、加协作者 |
 | [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、私有 Gitea 访问、16 条实证踩坑、AI 故障包、凭据位置 | 排障必读 |
 | [07-内网与生产平移路线](07-内网与生产平移路线.md) | 原型孵化、结果迁移、权威源切换和 Linux/Windows 双目标 | 规划内网平移 |
