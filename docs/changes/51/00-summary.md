@@ -24,9 +24,9 @@ depends_on:
   - 43
   - 45
   - 49
-status: approved
+status: pr-open
 branch: change/51
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/52
 created: 2026-08-08
 updated: 2026-08-08
 ---
