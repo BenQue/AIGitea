@@ -139,7 +139,20 @@ done < <(
 jq -e '
   .contract_version == "docker-image-store-compatibility/v1" and
   (.rows | length == 2) and
-  all(.rows[]; .status == "rejected" and .evidence == null)
+  ([.rows[].row_id] | sort) == [
+    "engine-29-classic-linux-amd64",
+    "engine-29-containerd-linux-amd64"
+  ] and
+  (.rows[] | select(.row_id == "engine-29-containerd-linux-amd64") |
+    .image_store == "containerd" and
+    .status == "supported" and
+    .evidence.kind == "real-e2e" and
+    .evidence.evidence_id == "issue-27-containerd-a75181cd7209" and
+    .evidence.source == "docs/changes/27/03-verification.md") and
+  (.rows[] | select(.row_id == "engine-29-classic-linux-amd64") |
+    .image_store == "classic" and
+    .status == "rejected" and
+    .evidence == null)
 ' "$ROOT/docker-release/compatibility/image-stores-v1.json" >/dev/null
 
 if rg -n '(^|[[:space:]])(import yaml|from yaml)' \
