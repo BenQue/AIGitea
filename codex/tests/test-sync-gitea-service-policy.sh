@@ -51,6 +51,13 @@ cat >"$TMP/bin/curl" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >>"$MOCK_ROOT/curl-argv.log"
+if [[ -f "$MOCK_ROOT/health-failures-remaining" ]]; then
+  remaining="$(<"$MOCK_ROOT/health-failures-remaining")"
+  if ((remaining > 0)); then
+    printf '%s\n' "$((remaining - 1))" >"$MOCK_ROOT/health-failures-remaining"
+    exit 7
+  fi
+fi
 printf '{"status":"pass"}\n'
 MOCK
 
@@ -63,6 +70,8 @@ export GITEA_BIN="$TMP/bin/gitea"
 export SUDO_BIN="$TMP/bin/sudo"
 export SYSTEMCTL_BIN="$TMP/bin/systemctl"
 export GITEA_HEALTH_URL=http://127.0.0.1:3000/api/healthz
+export GITEA_HEALTH_ATTEMPTS=3
+export GITEA_HEALTH_INTERVAL_SECONDS=0
 
 if bash "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
@@ -72,6 +81,7 @@ if bash "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
 fi
 [[ "$(jq -r '.result' "$TMP/check-before.json")" == DRIFT ]]
 
+printf '%s\n' 2 >"$TMP/health-failures-remaining"
 result="$(bash "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
   --config "$TMP/app.ini" --apply \
@@ -84,6 +94,7 @@ grep -Eq '^REQUIRE_SIGNIN_VIEW = false$' "$TMP/app.ini"
 grep -Eq '^DEFAULT_PRIVATE = private$' "$TMP/app.ini"
 grep -Eq '^FORCE_PRIVATE = false$' "$TMP/app.ini"
 [[ "$(grep -c '^restart gitea.service$' "$TMP/systemctl-argv.log")" == 1 ]]
+[[ "$(grep -c 'api/healthz$' "$TMP/curl-argv.log")" == 3 ]]
 
 bash "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
@@ -99,6 +110,24 @@ bash "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
 grep -Eq '^DISABLE_REGISTRATION = false$' "$TMP/app.ini"
 grep -Eq '^DEFAULT_PRIVATE = last$' "$TMP/app.ini"
 
+cp "$TMP/app.ini" "$TMP/app.ini.before-health-timeout"
+printf '%s\n' 4 >"$TMP/health-failures-remaining"
+if bash "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
+  --manifest "$ROOT/codex/config/gitea-governance.json" \
+  --config "$TMP/app.ini" --apply \
+  --merged-sha 1111111111111111111111111111111111111111 \
+  --platform-root "$ROOT" \
+  --evidence-dir "$TMP/evidence-health-timeout" \
+  >"$TMP/health-timeout.out" 2>"$TMP/health-timeout.err"; then
+  printf '%s\n' 'exhausted health retry budget unexpectedly passed' >&2
+  exit 1
+fi
+cmp "$TMP/app.ini.before-health-timeout" "$TMP/app.ini"
+grep -Fq 'service restart/health failed; original config restored' "$TMP/health-timeout.err"
+[[ "$(grep -c '^restart gitea.service$' "$TMP/systemctl-argv.log")" == 4 ]]
+[[ "$(grep -c 'api/healthz$' "$TMP/curl-argv.log")" == 9 ]]
+rm -f "$TMP/health-failures-remaining"
+
 cp "$TMP/app.ini" "$TMP/app.ini.before-failure"
 touch "$TMP/doctor-fail"
 if bash "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
@@ -112,8 +141,8 @@ if bash "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
   exit 1
 fi
 cmp "$TMP/app.ini.before-failure" "$TMP/app.ini"
-[[ "$(grep -c '^restart gitea.service$' "$TMP/systemctl-argv.log")" == 2 ]]
-[[ "$(grep -c '^-n -u git .*doctor check --all$' "$TMP/sudo-argv.log")" == 2 ]]
+[[ "$(grep -c '^restart gitea.service$' "$TMP/systemctl-argv.log")" == 4 ]]
+[[ "$(grep -c '^-n -u git .*doctor check --all$' "$TMP/sudo-argv.log")" == 3 ]]
 
 if GITEA_SERVICE_USER='git;root' bash "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
@@ -126,5 +155,17 @@ if GITEA_SERVICE_USER='git;root' bash "$ROOT/codex/tools/sync-gitea-service-poli
   exit 1
 fi
 grep -Fq 'unsafe Gitea service user' "$TMP/unsafe-user.err"
+
+if GITEA_HEALTH_ATTEMPTS=0 bash "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
+  --manifest "$ROOT/codex/config/gitea-governance.json" \
+  --config "$TMP/app.ini" --apply \
+  --merged-sha 1111111111111111111111111111111111111111 \
+  --platform-root "$ROOT" \
+  --evidence-dir "$TMP/evidence-unsafe-health-budget" \
+  >"$TMP/unsafe-health-budget.out" 2>"$TMP/unsafe-health-budget.err"; then
+  printf '%s\n' 'unsafe health retry budget unexpectedly passed' >&2
+  exit 1
+fi
+grep -Fq 'unsafe Gitea health attempts' "$TMP/unsafe-health-budget.err"
 
 printf '%s\n' 'Gitea service policy tests passed'

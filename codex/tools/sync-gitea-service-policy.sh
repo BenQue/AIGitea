@@ -97,11 +97,21 @@ fi
 
 GITEA_BIN="${GITEA_BIN:-/usr/local/bin/gitea}"
 GITEA_HEALTH_URL="${GITEA_HEALTH_URL:-http://127.0.0.1:3000/api/healthz}"
+GITEA_HEALTH_ATTEMPTS="${GITEA_HEALTH_ATTEMPTS:-30}"
+GITEA_HEALTH_INTERVAL_SECONDS="${GITEA_HEALTH_INTERVAL_SECONDS:-1}"
 GITEA_SERVICE_USER="${GITEA_SERVICE_USER:-git}"
 SUDO_BIN="${SUDO_BIN:-sudo}"
 SYSTEMCTL_BIN="${SYSTEMCTL_BIN:-systemctl}"
 [[ -x "$GITEA_BIN" ]] || {
   printf '%s\n' 'BLOCKED_EXTERNAL: Gitea binary is unavailable' >&2
+  exit 2
+}
+if [[ ! "$GITEA_HEALTH_ATTEMPTS" =~ ^[1-9][0-9]*$ ]] || ((GITEA_HEALTH_ATTEMPTS > 60)); then
+  printf '%s\n' 'BLOCKED_EXTERNAL: unsafe Gitea health attempts' >&2
+  exit 2
+fi
+[[ "$GITEA_HEALTH_INTERVAL_SECONDS" =~ ^[01]$ ]] || {
+  printf '%s\n' 'BLOCKED_EXTERNAL: unsafe Gitea health interval' >&2
   exit 2
 }
 
@@ -110,9 +120,18 @@ config_gid="$(stat -c '%g' "$config" 2>/dev/null || stat -f '%g' "$config")"
 config_mode="$(stat -c '%a' "$config" 2>/dev/null || stat -f '%Lp' "$config")"
 
 restart_and_verify() {
+  local attempt
   "$SYSTEMCTL_BIN" restart gitea.service
-  "$SYSTEMCTL_BIN" is-active --quiet gitea.service
-  curl --fail --silent --show-error "$GITEA_HEALTH_URL" >/dev/null
+  for ((attempt = 1; attempt <= GITEA_HEALTH_ATTEMPTS; attempt++)); do
+    if "$SYSTEMCTL_BIN" is-active --quiet gitea.service &&
+      curl --fail --silent --show-error "$GITEA_HEALTH_URL" >/dev/null; then
+      return 0
+    fi
+    if ((attempt < GITEA_HEALTH_ATTEMPTS)); then
+      sleep "$GITEA_HEALTH_INTERVAL_SECONDS"
+    fi
+  done
+  return 1
 }
 
 install_config() {
