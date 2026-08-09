@@ -6,7 +6,9 @@ Use this procedure before inspecting a private repository, Issue, PR, Actions ru
 
 1. After Issue #61 is released, select the exact project and an allowlisted operation through
    `/usr/local/libexec/aisoft/host-access-broker`; target and identity come from the strict manifests.
-2. Before that release, read the current checkout's Gitea remote and the explicitly selected AISoft project profile.
+2. Broker Git operations resolve the remote name only from the project manifest. Missing
+   `git_remote_name` means `origin`; a declared value such as NewEmaint's `gitea` is fixed and cannot be supplied by
+   the caller.
 3. Match `GITEA_URL`, `GITEA_OWNER`, and `GITEA_REPO` to the requested repository before using credentials.
 4. Never source the generic `~/.agent.env` when an exact project profile is available. Never infer the repository from a pilot or example.
 
@@ -30,6 +32,12 @@ broker itself fails and sanitized host/sandbox evidence still contradicts. Norma
 diagnostics invocations. The broker never accepts a URL, owner/repository, checkout/credential path, shell,
 force/refspec, or merge argument.
 
+For project onboarding, keep access, Secret mutation, binding, and acceptance separate. Run
+`host.access.audit`; if a protected credential is missing, stop for separate explicit approval. Then run
+`mac.git.bind` and read back with `host.onboarding.check`. The final check fails closed on credential metadata,
+identity/scope, permission, protection/required CI, canonical checkout, manifest remote fetch/push URL, or exact
+repo-local helper drift. It is read-only and does not provision credentials or alter remotes.
+
 ## Helper commands
 
 Preferred post-#61 host command:
@@ -39,6 +47,14 @@ Preferred post-#61 host command:
   --project <manifest-project-id> \
   --operation gitea.issue.read \
   --number <issue-number>
+```
+
+Project onboarding readback takes no target overrides:
+
+```bash
+/usr/local/libexec/aisoft/host-access-broker \
+  --project <manifest-project-id> \
+  --operation host.onboarding.check
 ```
 
 The following helpers are compatibility/fallback paths, not the normal host entrypoint.

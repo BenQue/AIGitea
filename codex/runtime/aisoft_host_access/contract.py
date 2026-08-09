@@ -13,6 +13,7 @@ from aisoft_gitea_governance.contract import (
 
 
 IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+GIT_REMOTE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 CHANGE_BRANCH_RE = re.compile(r"^change/[1-9][0-9]*$")
 
 
@@ -38,6 +39,14 @@ def _identifier(value: Any, context: str) -> str:
     _require(
         isinstance(value, str) and bool(IDENTIFIER_RE.fullmatch(value)),
         f"{context} must be a safe identifier",
+    )
+    return value
+
+
+def _git_remote_name(value: Any, context: str) -> str:
+    _require(
+        isinstance(value, str) and bool(GIT_REMOTE_NAME_RE.fullmatch(value)),
+        f"{context} must be a strict Git remote name",
     )
     return value
 
@@ -83,6 +92,7 @@ class ProjectContract:
     project_id: str
     repository: str
     project_agent: str
+    git_remote_name: str
     mac_checkout: str | None
     vm_profile: VMProfileContract | None
 
@@ -141,6 +151,7 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "gitea.commit.status.read": ("project-agent", False, ("sha",)),
     "gitea.protection.read": ("manager-audit", False, ()),
     "host.access.audit": ("manager-audit", False, ()),
+    "host.onboarding.check": ("manager-audit", False, ()),
     "git.fetch.main": ("project-agent", False, ()),
     "git.fetch.change": ("project-agent", False, ("branch",)),
     "git.push.change": ("project-agent", True, ("branch",)),
@@ -296,11 +307,22 @@ def load_access_contract(
     profile_repositories: set[str] = set()
     for index, item in enumerate(projects_raw):
         _require(isinstance(item, dict), f"projects[{index}] must be an object")
-        _exact_keys(item, {"project_id", "repository", "project_agent", "mac_checkout",
-                           "vm_profile"}, f"projects[{index}]")
+        required_project_keys = {
+            "project_id", "repository", "project_agent", "mac_checkout", "vm_profile",
+        }
+        project_keys = set(item)
+        _require(
+            project_keys in {frozenset(required_project_keys),
+                             frozenset(required_project_keys | {"git_remote_name"})},
+            f"projects[{index}] keys mismatch",
+        )
         project_id = _identifier(item["project_id"], f"projects[{index}].project_id")
         repository = _identifier(item["repository"], f"projects[{index}].repository")
         project_agent = _identifier(item["project_agent"], f"projects[{index}].project_agent")
+        git_remote_name = _git_remote_name(
+            item.get("git_remote_name", "origin"),
+            f"projects[{index}].git_remote_name",
+        )
         _require(project_id not in project_ids, f"duplicate project_id: {project_id}")
         _require(repository not in repositories, f"duplicate repository mapping: {repository}")
         project_ids.add(project_id)
@@ -335,7 +357,7 @@ def load_access_contract(
             }, "timer_unit is not allowlisted")
             vm_profile = VMProfileContract(profile_name, repo_dir, analysis, implementation, timer)
         projects.append(ProjectContract(project_id, repository, project_agent,
-                                        mac_checkout, vm_profile))
+                                        git_remote_name, mac_checkout, vm_profile))
 
     _require(repositories == set(governance_by_name),
              "host access projects must exactly cover governance repositories")

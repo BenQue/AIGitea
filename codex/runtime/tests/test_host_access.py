@@ -66,6 +66,41 @@ class HostAccessContractTests(unittest.TestCase):
         with self.assertRaises(AccessContractError):
             self.contract.operation("git.push.main")
 
+    def test_manifest_fixed_remote_defaults_and_rejects_unsafe_names(self) -> None:
+        remotes = {project.project_id: project.git_remote_name
+                   for project in self.contract.projects}
+        self.assertEqual(remotes["newemaint"], "gitea")
+        self.assertTrue(all(
+            remote == "origin" for project_id, remote in remotes.items()
+            if project_id != "newemaint"
+        ))
+        raw = json.loads(ACCESS.read_text())
+        newemaint = next(
+            project for project in raw["projects"]
+            if project["project_id"] == "newemaint"
+        )
+        self.assertEqual(newemaint["git_remote_name"], "gitea")
+        self.assertTrue(all(
+            "git_remote_name" not in project for project in raw["projects"]
+            if project["project_id"] != "newemaint"
+        ))
+
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "access.json"
+            for invalid in (
+                "", "../gitea", "https://attacker.invalid", "gitea remote",
+                "+gitea", "gitea..backup", "gitea.lock",
+            ):
+                with self.subTest(invalid=invalid):
+                    candidate = json.loads(ACCESS.read_text())
+                    next(
+                        project for project in candidate["projects"]
+                        if project["project_id"] == "newemaint"
+                    )["git_remote_name"] = invalid
+                    path.write_text(json.dumps(candidate))
+                    with self.assertRaises(AccessContractError):
+                        load_access_contract(path, GOVERNANCE)
+
     def test_governed_issue_and_pull_operations_have_exact_typed_fields(self) -> None:
         expected = {
             "gitea.issue.create": ("title", "body"),
@@ -90,6 +125,10 @@ class HostAccessContractTests(unittest.TestCase):
         self.assertEqual(audit.identity_route, "manager-audit")
         self.assertFalse(audit.mutating)
         self.assertEqual(audit.arguments, ())
+        onboarding = self.contract.operation("host.onboarding.check")
+        self.assertEqual(onboarding.identity_route, "manager-audit")
+        self.assertFalse(onboarding.mutating)
+        self.assertEqual(onboarding.arguments, ())
 
     def test_identity_routes_are_least_privilege(self) -> None:
         project = self.contract.project("newemaint")
@@ -654,12 +693,15 @@ class HostAccessBrokerTests(unittest.TestCase):
                 self.assertNotIn(secret, str(caught.exception))
                 self.assertNotIn("token-agent", str(caught.exception))
 
-    def _temporary_checkout_contract(self, checkout: Path):
-        project = self.contract.project("aisoft-platform")
+    def _temporary_project_checkout_contract(self, project_id: str, checkout: Path):
+        project = self.contract.project(project_id)
         replacement = replace(project, mac_checkout=str(checkout))
         projects = tuple(replacement if item.project_id == project.project_id else item
                          for item in self.contract.projects)
         return replace(self.contract, projects=projects)
+
+    def _temporary_checkout_contract(self, checkout: Path):
+        return self._temporary_project_checkout_contract("aisoft-platform", checkout)
 
     @staticmethod
     def _git(argv, *, cwd: Path | None = None) -> str:
@@ -722,6 +764,153 @@ class HostAccessBrokerTests(unittest.TestCase):
             self.assertNotIn("token", config.lower())
             self.assertNotIn("keychain", config.lower())
 
+    def test_newemaint_uses_gitea_remote_and_preserves_github_origin(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            checkout = Path(temporary) / "repo"
+            self._git(["init", "-q", "-b", "main", str(checkout)])
+            github = "https://github.com/BenQue/NewEmaint.git"
+            gitea = "http://gitea-ci.orb.local:3000/admin/NewEMaint.git"
+            self._git(["remote", "add", "origin", github], cwd=checkout)
+            self._git(["remote", "add", "gitea", gitea], cwd=checkout)
+            contract = self._temporary_project_checkout_contract("newemaint", checkout)
+            commands = []
+
+            def runner(argv, *, cwd=None, env=None):
+                commands.append(list(argv))
+                if argv[:3] == ["git", "fetch", "gitea"]:
+                    return subprocess.CompletedProcess(argv, 0, "", "")
+                return subprocess.run(
+                    list(argv), cwd=cwd, env=env, check=False, text=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                )
+
+            broker = HostAccessBroker(
+                contract,
+                credentials=StaticCredentials(),
+                transport=lambda method, url, headers, body: (
+                    200, {}, b'{"login":"newemaint-agent","is_admin":false}'
+                ),
+                runner=runner,
+                invocation_cwd=str(checkout),
+            )
+            fetched = broker.execute("newemaint", "git.fetch.main")
+            fetched_change = broker.execute(
+                "newemaint", "git.fetch.change", branch="change/73"
+            )
+            first = broker.execute("newemaint", "mac.git.bind")
+            second = broker.execute("newemaint", "mac.git.bind")
+
+            self.assertEqual(fetched["remote_name"], "gitea")
+            self.assertEqual(fetched_change["remote_name"], "gitea")
+            self.assertEqual(first["result"], "updated")
+            self.assertEqual(second["result"], "no-op")
+            self.assertIn([
+                "git", "fetch", "gitea",
+                "refs/heads/main:refs/remotes/gitea/main",
+            ], commands)
+            self.assertIn([
+                "git", "fetch", "gitea",
+                "refs/heads/change/73:refs/remotes/gitea/change/73",
+            ], commands)
+            self.assertEqual(self._git(["remote", "get-url", "origin"], cwd=checkout), github)
+            self.assertEqual(self._git(["remote", "get-url", "gitea"], cwd=checkout), gitea)
+            self.assertEqual(
+                self._git([
+                    "config", "--local", "--get",
+                    f"credential.{gitea}.username",
+                ], cwd=checkout),
+                "newemaint-agent",
+            )
+
+    def test_remote_fetch_or_push_url_drift_fails_before_credentials(self) -> None:
+        class FailIfResolved:
+            def resolve(self, project, operation):
+                raise AssertionError("credential resolution must not run")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            checkout = Path(temporary) / "repo"
+            self._git(["init", "-q", "-b", "main", str(checkout)])
+            expected = "http://gitea-ci.orb.local:3000/admin/NewEMaint.git"
+            self._git(["remote", "add", "origin", "https://github.com/BenQue/NewEmaint.git"], cwd=checkout)
+            self._git(["remote", "add", "gitea", expected], cwd=checkout)
+            self._git([
+                "remote", "set-url", "--add", "--push", "gitea",
+                "http://attacker.invalid/admin/NewEMaint.git",
+            ], cwd=checkout)
+            contract = self._temporary_project_checkout_contract("newemaint", checkout)
+            broker = HostAccessBroker(
+                contract,
+                credentials=FailIfResolved(),
+                invocation_cwd=str(checkout),
+            )
+            before = self._git(["config", "--local", "--list"], cwd=checkout)
+            with self.assertRaises(BrokerError) as caught:
+                broker.execute("newemaint", "git.fetch.main")
+            self.assertEqual(caught.exception.code, "TARGET_MISMATCH")
+            self.assertEqual(self._git(["config", "--local", "--list"], cwd=checkout), before)
+
+    def test_onboarding_check_combines_access_remote_and_repo_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            checkout = Path(temporary) / "repo"
+            self._git(["init", "-q", "-b", "main", str(checkout)])
+            remote = "http://gitea-ci.orb.local:3000/admin/aisoft-platform.git"
+            self._git(["remote", "add", "origin", remote], cwd=checkout)
+            contract = self._temporary_checkout_contract(checkout)
+            protection = {
+                "enable_push": False,
+                "enable_force_push": False,
+                "enable_merge_whitelist": True,
+                "merge_whitelist_usernames": ["admin"],
+                "enable_status_check": False,
+                "status_check_contexts": [],
+                "required_approvals": 0,
+                "block_admin_merge_override": True,
+            }
+
+            def transport(method, url, headers, body):
+                token = headers["Authorization"].removeprefix("token ")
+                if url.endswith("/api/v1/user"):
+                    login = "aisoft-platform-manager" if token.startswith("token-manager") else "aisoft-platform-agent"
+                    return 200, {}, json.dumps({"login": login, "is_admin": False}).encode()
+                if url.endswith("/api/v1/notifications"):
+                    scopes = {
+                        "token-manager": "read:issue,read:repository,read:user",
+                        "token-manager-mutation": "write:issue,write:repository,read:user",
+                        "token-agent": "write:issue,write:repository,read:user",
+                    }[token]
+                    return 403, {}, json.dumps({"message": "token scope=" + scopes}).encode()
+                if url.endswith("/collaborators/aisoft-platform-manager/permission"):
+                    return 200, {}, b'{"permission":"admin"}'
+                if url.endswith("/collaborators/aisoft-platform-agent/permission"):
+                    return 200, {}, b'{"permission":"write"}'
+                if url.endswith("/branch_protections/main"):
+                    return 200, {}, json.dumps(protection).encode()
+                raise AssertionError(f"unexpected URL: {url}")
+
+            broker = HostAccessBroker(
+                contract,
+                credentials=StaticCredentials(),
+                transport=transport,
+                invocation_cwd=str(checkout),
+            )
+            broker.execute("aisoft-platform", "mac.git.bind")
+            config_before = self._git(["config", "--local", "--list"], cwd=checkout)
+            value = broker.execute("aisoft-platform", "host.onboarding.check")
+            self.assertEqual(value["status"], "PASS")
+            self.assertEqual(value["checkout"]["remote_name"], "origin")
+            self.assertEqual(value["checkout"]["remote_url"], remote)
+            self.assertEqual(value["checkout"]["binding"], "PASS")
+            self.assertEqual(value["access"]["status"], "PASS")
+            self.assertEqual(self._git(["config", "--local", "--list"], cwd=checkout), config_before)
+
+            self._git([
+                "config", "--local", "--replace-all",
+                f"credential.{remote}.username", "wrong-agent",
+            ], cwd=checkout)
+            with self.assertRaises(BrokerError) as caught:
+                broker.execute("aisoft-platform", "host.onboarding.check")
+            self.assertEqual(caught.exception.code, "ONBOARDING_MISMATCH")
+
     def test_main_force_or_arbitrary_refspec_have_no_push_surface(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             checkout = Path(temporary) / "repo"
@@ -782,6 +971,48 @@ class HostAccessBrokerTests(unittest.TestCase):
             flattened = "\n".join(" ".join(argv) for argv, _cwd, _env in commands)
             self.assertNotIn("--force", flattened)
             self.assertNotIn(":refs/heads/main", flattened)
+
+    def test_newemaint_push_uses_manifest_gitea_remote(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            canonical, linked = self._linked_change_worktree(temporary)
+            self._git(["remote", "rename", "origin", "gitea"], cwd=canonical)
+            self._git([
+                "remote", "set-url", "gitea",
+                "http://gitea-ci.orb.local:3000/admin/NewEMaint.git",
+            ], cwd=canonical)
+            contract = self._temporary_project_checkout_contract("newemaint", canonical)
+            commands = []
+
+            def runner(argv, *, cwd=None, env=None):
+                commands.append(list(argv))
+                if argv[:3] in (["git", "fetch", "gitea"], ["git", "push", "gitea"]):
+                    return subprocess.CompletedProcess(argv, 0, "", "")
+                return subprocess.run(
+                    list(argv), cwd=cwd, env=env, check=False, text=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                )
+
+            broker = HostAccessBroker(
+                contract,
+                credentials=StaticCredentials(),
+                transport=lambda method, url, headers, body: (
+                    200, {}, b'{"login":"newemaint-agent","is_admin":false}'
+                ),
+                runner=runner,
+                invocation_cwd=str(linked),
+            )
+            value = broker.execute(
+                "newemaint", "git.push.change", branch="change/70"
+            )
+            self.assertEqual(value["remote_name"], "gitea")
+            self.assertIn([
+                "git", "fetch", "gitea",
+                "refs/heads/main:refs/remotes/gitea/main",
+            ], commands)
+            self.assertIn([
+                "git", "push", "gitea",
+                "refs/heads/change/70:refs/heads/change/70",
+            ], commands)
 
     def test_push_rejects_wrong_common_dir_detached_dirty_and_wrong_change(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1025,7 +1256,10 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
         self.assertEqual(json.loads(stdout.getvalue()), {"number": 71})
 
-        for forbidden in ("--url", "--owner", "--repository", "--method", "--raw-body"):
+        for forbidden in (
+            "--url", "--owner", "--repository", "--method", "--raw-body",
+            "--remote", "--remote-name", "--refspec", "--command",
+        ):
             with self.subTest(forbidden=forbidden), self.assertRaises(SystemExit):
                 host_access_cli_main(argv + [forbidden, "attacker.invalid"])
 
@@ -1051,7 +1285,9 @@ class GovernedHostRunnerTests(unittest.TestCase):
         self.assertEqual(first.issue_read(70)["number"], 70)
         self.assertEqual(second.issue_comment(70, "fresh-session canary")["number"], 70)
         self.assertEqual(first.push_change(70)["status"], "PASS")
+        self.assertEqual(first.onboarding_check()["status"], "PASS")
         self.assertEqual([call[0][0] for call in calls], [
+            "/usr/local/libexec/aisoft/host-access-broker",
             "/usr/local/libexec/aisoft/host-access-broker",
             "/usr/local/libexec/aisoft/host-access-broker",
             "/usr/local/libexec/aisoft/host-access-broker",
