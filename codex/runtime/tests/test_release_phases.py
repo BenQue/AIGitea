@@ -17,6 +17,7 @@ from tests.release_test_support import (
     SHA_B,
     create_release,
     migration_identity,
+    update_compose_model,
     write_json,
 )
 
@@ -63,6 +64,25 @@ class ReleasePhaseTests(unittest.TestCase):
             self.runtime.verify_artifact(self.release_root, SHA_A)
         self.assertEqual(self.docker.events, [])
 
+    def test_artifact_sensitive_external_references_keep_zero_call_boundary(self) -> None:
+        update_compose_model(
+            self.release_root / SHA_A,
+            lambda model: model["services"]["web"].update(
+                {
+                    "environment": {
+                        "JWT_SECRET": "${JWT_SECRET:?required}",
+                        "DATABASE_URL": "${DATABASE_URL:?required}",
+                    }
+                }
+            ),
+        )
+        self.profile.unlink()
+        (self.root / "target.env").unlink()
+        result = self.runtime.verify_artifact(self.release_root, SHA_A)
+        self.assertEqual(result["target_facts"], "NOT_READ")
+        self.assertEqual(result["docker_calls"], 0)
+        self.assertEqual(self.docker.events, [])
+
     def test_target_readiness_is_read_only_and_compares_producer_model(self) -> None:
         result = self.runtime.verify_target(self.profile, SHA_A)
         self.assertEqual(result["action"], "verify-target")
@@ -74,6 +94,34 @@ class ReleasePhaseTests(unittest.TestCase):
         self.docker.events.clear()
         self.docker.models[SHA_A] = deepcopy(self.docker.models[SHA_A])
         self.docker.models[SHA_A]["name"] = "drifted-project"
+        with self.assertRaisesRegex(ContractError, "does not match producer"):
+            self.runtime.verify_target(self.profile, SHA_A)
+        self.assertEqual(self.docker.mutations, [])
+
+    def test_target_sensitive_environment_model_equality_is_not_weakened(self) -> None:
+        environment = {
+            "JWT_SECRET": "${JWT_SECRET:?required}",
+            "DATABASE_URL": "${DATABASE_URL:?required}",
+        }
+        update_compose_model(
+            self.release_root / SHA_A,
+            lambda model: model["services"]["web"].update(
+                {"environment": environment}
+            ),
+        )
+        target_model = deepcopy(self.docker.models[SHA_A])
+        target_model["services"]["web"]["environment"] = deepcopy(environment)
+        self.docker.models[SHA_A] = target_model
+        result = self.runtime.verify_target(self.profile, SHA_A)
+        self.assertEqual(result["action"], "verify-target")
+        self.assertEqual(self.docker.mutations, [])
+
+        self.docker.events.clear()
+        drifted_model = deepcopy(self.docker.models[SHA_A])
+        drifted_model["services"]["web"]["environment"]["JWT_SECRET"] = (
+            "${OTHER_SECRET:?required}"
+        )
+        self.docker.models[SHA_A] = drifted_model
         with self.assertRaisesRegex(ContractError, "does not match producer"):
             self.runtime.verify_target(self.profile, SHA_A)
         self.assertEqual(self.docker.mutations, [])
@@ -185,6 +233,21 @@ class ReleasePhaseTests(unittest.TestCase):
 
 
 class ReleaseStateMigrationTests(unittest.TestCase):
+    def test_sensitive_state_field_remains_forbidden(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            store = StateStore(root, "newemaint-test")
+            value = store.empty()
+            value["staged_releases"] = {
+                SHA_A: {
+                    "status": "completed",
+                    "transport": "registry",
+                    "image_ids": {"api_secret": "sha256:" + "1" * 64},
+                }
+            }
+            with self.assertRaisesRegex(StateError, "sensitive field"):
+                store.save(value)
+
     def test_v1_state_is_deterministically_loaded_as_v2(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

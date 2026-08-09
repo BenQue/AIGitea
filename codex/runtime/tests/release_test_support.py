@@ -526,6 +526,18 @@ def update_manifest(release_dir: Path, transform: object) -> dict[str, object]:
     return value
 
 
+def update_compose_model(release_dir: Path, transform: object) -> dict[str, object]:
+    path = release_dir / "compose.model.json"
+    value = json.loads(path.read_text())
+    transform(value)
+    write_json(path, value)
+    update_manifest(
+        release_dir,
+        lambda manifest: manifest["compose"].update({"model_sha256": sha256(path)}),
+    )
+    return value
+
+
 class FakeDocker:
     def __init__(self) -> None:
         self.events: list[tuple[object, ...]] = []

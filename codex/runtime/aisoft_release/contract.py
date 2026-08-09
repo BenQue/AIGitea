@@ -14,6 +14,7 @@ from typing import Mapping, Sequence
 from urllib.parse import urlsplit
 
 from .errors import ContractError
+from .security import SENSITIVE_KEY, reject_sensitive_compose_fields
 
 
 RELEASE_VERSION_V1 = "docker-release/v1"
@@ -52,11 +53,6 @@ V2_REPOSITORY_COMPONENT = re.compile(
 V2_SERVICE_COMPONENT = re.compile(r"^[a-z0-9]+(?:[_-][a-z0-9]+)*$")
 HOSTNAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.-]{0,252}$")
 COMPOSE_PROJECT = re.compile(r"^[a-z0-9][a-z0-9_-]{0,62}$")
-SENSITIVE_KEY = re.compile(
-    r"(?:^|[_-])(?:auth|authorization|token|password|secret|credential|"
-    r"connection[_-]?string|certificate|ssh[_-]?key)(?:$|[_-])",
-    re.IGNORECASE,
-)
 MAX_JSON_BYTES = 8 * 1024 * 1024
 
 
@@ -301,7 +297,7 @@ def load_release_artifact(
         compose_model = _load_json_object(
             compose_model_path, "normalized Compose model"
         )
-        _reject_sensitive_keys(compose_model, "normalized Compose model")
+        reject_sensitive_compose_fields(compose_model)
     architecture_path = _release_file(
         directory, manifest.architecture_path, "architecture lock"
     )
