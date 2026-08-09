@@ -186,34 +186,47 @@ def load_access_contract(
     _require(isinstance(bindings, dict), "identity_bindings must be an object")
     _exact_keys(bindings, {"manager_audit", "manager_mutation", "project_agent"},
                 "identity_bindings")
-    for key, service in (
-        ("manager_audit", "aisoft.gitea.manager-audit"),
-        ("manager_mutation", "aisoft.gitea.manager-mutation"),
+    for key, relative_path in (
+        ("manager_audit", "manager/audit.token"),
+        ("manager_mutation", "manager/mutation.token"),
     ):
         binding = bindings[key]
         _require(isinstance(binding, dict), f"{key} binding must be an object")
-        _exact_keys(binding, {"identity", "credential_kind", "service", "account"}, key)
+        _exact_keys(binding, {"identity", "credential_kind", "relative_path"}, key)
         _require(binding["identity"] == governance.platform_manager,
                  f"{key} identity must be the platform manager")
-        _require(binding["credential_kind"] == "macos-keychain",
-                 f"{key} must use macOS Keychain")
-        _require(binding["service"] == service, f"{key} must use its fixed Keychain service")
-        _require(binding["account"] == governance.platform_manager,
-                 f"{key} account must be the platform manager")
+        _require(binding["credential_kind"] == "protected-file",
+                 f"{key} must use a protected file")
+        _require(_relative_path(binding["relative_path"], f"{key}.relative_path") == relative_path,
+                 f"{key} must use its fixed relative path")
     project_binding = bindings["project_agent"]
     _require(isinstance(project_binding, dict), "project_agent binding must be an object")
-    _exact_keys(project_binding, {"credential_kind", "service", "account_source"},
+    _exact_keys(project_binding,
+                {"credential_kind", "relative_path_template", "account_source"},
                 "project_agent binding")
     _require(project_binding == {
-        "credential_kind": "macos-keychain",
-        "service": "aisoft.gitea.project-agent",
+        "credential_kind": "protected-file",
+        "relative_path_template": "projects/{project_id}/project-agent.token",
         "account_source": "manifest-project-agent",
-    }, "project agents must use the fixed Keychain binding")
+    }, "project agents must use the fixed protected-file binding")
 
     mac = raw["mac_host"]
     _require(isinstance(mac, dict), "mac_host must be an object")
-    _exact_keys(mac, {"credential_helper", "orbstack_binary", "orbstack_machine",
-                      "orbstack_user", "vm_profile_tool"}, "mac_host")
+    _exact_keys(mac, {
+        "credential_root", "credential_owner", "credential_directory_mode",
+        "credential_file_mode", "credential_helper", "orbstack_binary",
+        "orbstack_machine", "orbstack_user", "vm_profile_tool",
+    }, "mac_host")
+    _require(
+        _absolute_path(mac["credential_root"], "credential_root") ==
+        "/Users/benque/Library/Application Support/AISoftPlatform/credentials",
+        "credential root must be fixed outside repositories",
+    )
+    _require(mac["credential_owner"] == "benque", "credential owner must be benque")
+    _require(mac["credential_directory_mode"] == "700",
+             "credential directories must use mode 700")
+    _require(mac["credential_file_mode"] == "600",
+             "credential files must use mode 600")
     _require(_absolute_path(mac["credential_helper"], "credential_helper") ==
              "/usr/local/libexec/aisoft/git-credential-aisoft-host",
              "credential helper path must be fixed")

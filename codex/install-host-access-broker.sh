@@ -7,8 +7,6 @@ INSTALL_ROOT="${AISOFT_HOST_ACCESS_INSTALL_ROOT:-/}"
 LIB_ROOT="$INSTALL_ROOT/usr/local/lib/aisoft-host-access"
 LIBEXEC_ROOT="$INSTALL_ROOT/usr/local/libexec/aisoft"
 SHARE_ROOT="$INSTALL_ROOT/usr/local/share/aisoft"
-BUILD_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/aisoft-host-access.XXXXXX")"
-trap 'rm -rf -- "$BUILD_ROOT"' EXIT
 
 install -d -m 0755 "$LIB_ROOT/aisoft_host_access" "$LIB_ROOT/aisoft_gitea_governance" \
   "$LIBEXEC_ROOT" "$SHARE_ROOT"
@@ -27,18 +25,24 @@ install_versioned() {
   CHANGED=1
 }
 
+remove_legacy_keychain_helper() {
+  local target
+  for target in \
+    "$LIBEXEC_ROOT/keychain-acl-audit" \
+    "$LIBEXEC_ROOT/keychain-acl-audit.previous"; do
+    if [[ -e "$target" || -L "$target" ]]; then
+      rm -f -- "$target"
+      CHANGED=1
+    fi
+  done
+}
+
 for source in "$ROOT"/codex/runtime/aisoft_host_access/*.py; do
   install_versioned "$source" "$LIB_ROOT/aisoft_host_access/$(basename "$source")" 0644
 done
 for source in "$ROOT"/codex/runtime/aisoft_gitea_governance/*.py; do
   install_versioned "$source" "$LIB_ROOT/aisoft_gitea_governance/$(basename "$source")" 0644
 done
-/usr/bin/clang -Wall -Wextra -Werror -Wno-deprecated-declarations \
-  -fmodules-cache-path="$BUILD_ROOT/module-cache" \
-  -o "$BUILD_ROOT/keychain-acl-audit" \
-  "$ROOT/codex/runtime/aisoft_host_access/keychain_acl_audit.c"
-install_versioned "$BUILD_ROOT/keychain-acl-audit" \
-  "$LIBEXEC_ROOT/keychain-acl-audit" 0755
 install_versioned "$ROOT/codex/config/host-access-broker.json" \
   "$SHARE_ROOT/host-access-broker.json" 0644
 install_versioned "$ROOT/codex/config/gitea-governance.json" \
@@ -49,6 +53,7 @@ install_versioned "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
   "$LIBEXEC_ROOT/git-credential-aisoft-host" 0755
 install_versioned "$ROOT/codex/tools/project-profile-migration.sh" \
   "$LIBEXEC_ROOT/project-profile-migration" 0755
+remove_legacy_keychain_helper
 
 if [[ "$CHANGED" == 1 ]]; then
   printf '%s\n' 'installed host-access-broker/v1 candidate'

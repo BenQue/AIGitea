@@ -33,16 +33,16 @@ updated: 2026-08-09
 |---|---|---|---|
 | T01 | strict audit + Issue typed mutation/readback tracer bullet | - | complete |
 | T02 | isolated worktree exact change push + broker-only runner tracer bullet | T01 | complete |
-| T03 | PR typed lifecycle + installer/fresh-session/security/full-smoke closure | T01, T02 | complete |
+| T03 | protected-file credential boundary + PR/installer/security/full-smoke closure | T01, T02 | complete |
 | T04 | single live canary, push, unique PR and final-head handoff | T01, T02, T03 | in-progress |
 
 ## T01 — Access audit and Issue operations
 
 - Extend the exact manifest/contract with aggregate access audit and Issue create/update/comment typed fields.
 - Verify fixed manager/project-agent credentials, live identities, declared scope evidence, exact repository permission,
-  fixed default-Keychain credential bindings, separately recorded ACL evidence, and protection without exposing Secret data.
+  fixed protected-file bindings, file metadata, and protection without exposing Secret data or paths.
 - Add public-seam tests for successful Issue create/read/update/comment and early rejection of unknown/raw fields,
-  wrong identity/scope/permission, missing/duplicate/allow-any Keychain item and unsafe text.
+  wrong identity/scope/permission, missing/mode/owner/type/symlink/hardlink credential drift and unsafe text.
 
 ## T02 — Isolated worktree push and runner
 
@@ -54,8 +54,9 @@ updated: 2026-08-09
 ## T03 — PR lifecycle and integration gate
 
 - Add PR create/read/update typed operations with fixed base/head, `Closes #N`, semantic summary link and de-dup.
-- Cover current credential-helper protocol, Secret redaction, fake Keychain audit and broker-only fresh-session behavior.
-- Run installer twice in a fake root and assert byte-identical/no-op, no credentials/ACL/profile/service/timer/deploy state.
+- Cover current credential-helper protocol, protected-file metadata/Secret redaction and broker-only fresh-session behavior.
+- Run installer twice in a fake root and assert byte-identical/no-op, exact legacy Keychain helper removal, and no
+  credentials/ACL/profile/service/timer/deploy state.
 - Run focused Python/shell, `bash -n`, ShellCheck, strict JSON, document resolver, Secret scan, diff and full smoke.
 
 ## T04 — Delivery canary
@@ -71,7 +72,7 @@ updated: 2026-08-09
 
 - `docs/changes/70/` semantic documents.
 - `codex/config/host-access-broker.json`.
-- `codex/runtime/aisoft_host_access/{contract,broker,cli,runner}.py` and `keychain_acl_audit.c`.
+- `codex/runtime/aisoft_host_access/{contract,broker,cli,runner}.py`.
 - `codex/runtime/tests/test_host_access.py` and `codex/tests/test-host-access-broker.sh`.
 - broker-only controller/runner adapter under `codex/agent/` and its runtime test.
 - `codex/install-host-access-broker.sh`, `README.md`, `06-运维手册与踩坑集.md`.
@@ -85,8 +86,8 @@ accounts, permissions, `ci-bot`, VM/profile/service/runtime, business projects o
 |---|---|
 | AC-1 | public broker CLI/transport tests for strict Issue/PR operations and unknown/raw input negatives |
 | AC-2 | real temp Git repository + linked worktree exact push and denial matrix |
-| AC-3, AC-6 | fresh-task exact-prefix live canary; approval prompts recorded separately from Keychain ACL |
-| AC-4, AC-5 | fake security output parser/command argv tests plus live redacted aggregate audit |
+| AC-3, AC-6 | fresh-task exact-prefix live canary; broker approval and absence of credential prompts recorded separately |
+| AC-4, AC-5 | real temp protected-file negative matrix plus live redacted aggregate audit |
 | AC-7 | catalog/schema assertions: zero merge/protection/ACL/account/PAT/permission mutation operations |
 | AC-8 | focused unit/shell, installer twice, runner integration, full platform smoke, syntax/ShellCheck/JSON/Secret/diff |
 | AC-9 | live branch protection + final-head status readback |
@@ -95,6 +96,6 @@ accounts, permissions, `ci-bot`, VM/profile/service/runtime, business projects o
 ## Rollback
 
 Candidate code rollback is a normal revert. Candidate host install preserves `.previous` source/runtime/manifest/wrapper
-bytes and the bootstrap records exact hashes; if health or canary fails, restore only those previous broker bytes and
-re-run read-only validation. No credential, ACL, account, permission, protection, Issue/PR deletion, branch rewrite,
-merge or deployment rollback action is authorized by this plan.
+bytes; reverting to the previous installer recreates its obsolete tombstone helper without touching a Keychain item.
+Credential provisioning is a separate explicit gate and installer never creates/updates credential files. No account,
+PAT, ACL, permission, protection, Issue/PR deletion, branch rewrite, merge or deployment rollback action is authorized.

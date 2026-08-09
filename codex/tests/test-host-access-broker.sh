@@ -25,8 +25,13 @@ jq -e '
     (.name | contains("url") | not)) and
   .human_merge_identity == "admin" and
   .identity_bindings.manager_audit.identity == "aisoft-platform-manager" and
+  .identity_bindings.manager_audit.credential_kind == "protected-file" and
   .identity_bindings.manager_mutation.identity == "aisoft-platform-manager" and
+  .identity_bindings.manager_mutation.credential_kind == "protected-file" and
   .identity_bindings.project_agent.account_source == "manifest-project-agent" and
+  .identity_bindings.project_agent.credential_kind == "protected-file" and
+  .mac_host.credential_directory_mode == "700" and
+  .mac_host.credential_file_mode == "600" and
   ([.operations[] | select(.name == "gitea.issue.create")][0].arguments == ["title", "body"]) and
   ([.operations[] | select(.name == "gitea.pull.create")][0].arguments == ["issue", "title", "body"]) and
   ([.operations[] | select(.name == "gitea.commit.status.read")][0].arguments == ["sha"]) and
@@ -36,9 +41,9 @@ jq -e '
     ["HSDB", "NewEMaint", "SFMDigitalBoard", "rsdesign-new"]
 ' "$ROOT/codex/config/host-access-broker.json" >/dev/null
 
-if rg -n 'dump-keychain|security -A|find-generic-password.*ci-bot' \
+if rg -ni 'keychain|/usr/bin/security|find-generic-password|dump-keychain|security -A' \
   "$ROOT/codex/runtime/aisoft_host_access"; then
-  echo 'host access runtime contains a forbidden broad Keychain query' >&2
+  echo 'host access runtime contains a forbidden Keychain surface' >&2
   exit 1
 fi
 
@@ -88,6 +93,11 @@ for invalid_request in \
 done
 
 export AISOFT_HOST_ACCESS_INSTALL_ROOT="$TMP/install-root"
+mkdir -p "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft"
+printf '%s\n' legacy-helper > \
+  "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/keychain-acl-audit"
+printf '%s\n' legacy-helper-previous > \
+  "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/keychain-acl-audit.previous"
 first="$("$ROOT/codex/install-host-access-broker.sh")"
 grep -Fq 'no credential, Git config, project profile, token, service, timer, VM, merge, or deployment mutation' \
   <<<"$first"
@@ -104,20 +114,14 @@ find "$AISOFT_HOST_ACCESS_INSTALL_ROOT" -type f -print0 |
 diff -u "$first_manifest" "$second_manifest"
 
 test -x "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/host-access-broker"
-test -x "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/keychain-acl-audit"
+test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/keychain-acl-audit"
+test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/keychain-acl-audit.previous"
 test -x "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/git-credential-aisoft-host"
 test -x "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/project-profile-migration"
 test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/share/aisoft/host-access-broker.json"
 test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/lib/aisoft-host-access/aisoft_host_access/broker.py"
 test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/etc/aisoft/host-profile.json"
 test ! -d "$AISOFT_HOST_ACCESS_INSTALL_ROOT/etc/systemd"
-set +e
-acl_denied="$("$AISOFT_HOST_ACCESS_INSTALL_ROOT"/usr/local/libexec/aisoft/keychain-acl-audit \
-  --project unknown 2>&1)"
-acl_status=$?
-set -e
-test "$acl_status" = 20
-test "$acl_denied" = 'interactive Keychain ACL audit is disabled'
 if find "$AISOFT_HOST_ACCESS_INSTALL_ROOT" -type f \
   \( -name '*.token' -o -name '*.env' \) | grep -q .; then
   echo 'broker installer created a credential or project profile' >&2

@@ -46,14 +46,16 @@ fetch/change push、Mac binding 与 OrbStack/profile operations。
 
 因此日常交互式 Codex 仍需退回 direct Git/Gitea/Keychain host path：Issue/PR mutation 没有 typed
 operation，独立 worktree 不能通过 broker push，且一次治理流程会拆成多条 host execution approval。
-Keychain item ACL 与 Codex host approval 是两层独立控制；任一层单独通过都不能宣告端到端零提示。
+三个 live candidate 进一步证明 Keychain item ACL metadata 与 Codex host approval 任一层单独通过都不能
+宣告端到端零提示。用户因此明确批准 #70 用 repo-external project-scoped protected files 取代 Mac runtime
+Keychain；这只 supersede #61 的 Mac credential-store 选择，不改变其 identity/target/merge 边界。
 
 ## 影响范围
 
 - strict host-access manifest、broker runtime/CLI 与 fixed installed wrapper。
 - project-agent scoped Issue create/read/update/comment、PR create/read/update 与聚合 access audit。
 - 独立 worktree exact `change/N` Git fetch/push 和 controller/runner broker adapter。
-- Keychain metadata/ACL、token identity/scope、repository permission 的脱敏 fail-closed 验证。
+- protected-file metadata、token identity/scope、repository permission 的脱敏 fail-closed 验证。
 - installer、security negatives、fresh-session integration、full platform smoke 与 live canary runbook。
 
 ## 初步方案与建议
@@ -74,9 +76,9 @@ other ref/force/delete/cross-project。
   在 credential resolution 与 transport 前拒绝。
 - worktree identity 若只比较 remote string，可能把另一 checkout 或 project 误认为合法；必须同时验证
   common-dir、remote、branch、head ancestry 和 dirty/commit边界。
-- Keychain ACL read-back 只能证明 credential item 层；Codex exact-prefix approval 必须用 fresh task 的
-  repeated broker calls 单独验收。
-- 任何 token、Keychain password data、Authorization header 或 credential protocol values 均不得进入
+- mode/owner/type/link metadata 只能证明 credential-file 层；Codex exact-prefix approval 必须用 fresh task
+  的 repeated broker calls 单独验收。
+- 任何 token、credential path、Authorization header 或 credential protocol values 均不得进入
   argv、stdout/stderr、日志、repository、Issue/PR 或 fixture。
 
 ## AI 判级
@@ -107,7 +109,7 @@ override_reason: ''
 ### 判级证据
 
 - 新增 authentication/authorization/security external contract 与 shared controller/runner behavior。
-- 修改 Gitea mutation、Git push、Keychain audit 和 host approval interface，命中强制 complex 规则。
+- 修改 Gitea mutation、Git push、credential-store 和 host approval interface，命中强制 complex 规则。
 - Issue #70 已实时读回 `approved` + `complexity/complex` + `type/platform`，验收与禁止项完整。
 
 ### 缺失的 acceptance criteria 或决策

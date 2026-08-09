@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import json
 import os
+import pwd
 import re
+import stat
 import subprocess
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 from typing import Callable, Mapping, Sequence
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlparse
@@ -20,6 +23,7 @@ CREDENTIAL_PROTOCOL_MAX_LINE_BYTES = 65535
 TITLE_MAX_BYTES = 255
 BODY_MAX_BYTES = 65536
 COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+MAX_CREDENTIAL_BYTES = 4096
 
 
 class BrokerError(RuntimeError):
@@ -116,9 +120,20 @@ class CredentialProtocolRequest:
 
 
 class CredentialResolver:
-    def __init__(self, contract: AccessContract, *, runner: CommandRunner = _default_runner) -> None:
+    def __init__(self, contract: AccessContract, *, expected_uid: int | None = None) -> None:
         self.contract = contract
-        self.runner = runner
+        mac = contract.raw["mac_host"]
+        self.root = mac["credential_root"]
+        if expected_uid is None:
+            try:
+                expected_uid = pwd.getpwnam(mac["credential_owner"]).pw_uid
+            except KeyError as exc:
+                raise BrokerError(
+                    "CREDENTIAL_OWNER_INVALID", "credential owner is unavailable"
+                ) from exc
+        self.expected_uid = expected_uid
+        self.directory_mode = int(mac["credential_directory_mode"], 8)
+        self.file_mode = int(mac["credential_file_mode"], 8)
 
     def resolve(
         self,
@@ -129,30 +144,116 @@ class CredentialResolver:
         if route == "project-agent":
             binding = self.contract.raw["identity_bindings"]["project_agent"]
             identity = project.project_agent
+            relative_path = binding["relative_path_template"].format(
+                project_id=project.project_id
+            )
         elif route == "manager-audit":
             binding = self.contract.raw["identity_bindings"]["manager_audit"]
             identity = self.contract.governance.platform_manager
+            relative_path = binding["relative_path"]
         elif route == "manager-mutation":
             binding = self.contract.raw["identity_bindings"]["manager_mutation"]
             identity = self.contract.governance.platform_manager
+            relative_path = binding["relative_path"]
         else:
             raise BrokerError("IDENTITY_ROUTE_INVALID", "operation does not use a credential")
-        account = identity if route == "project-agent" else binding["account"]
-        result = self.runner([
-            "/usr/bin/security",
-            "find-generic-password",
-            "-w",
-            "-s",
-            binding["service"],
-            "-a",
-            account,
-        ])
-        if result.returncode != 0:
-            raise BrokerError("CREDENTIAL_UNAVAILABLE", "approved credential binding is unavailable")
-        token = result.stdout.strip()
+        token = self._read_token(relative_path)
         if not token or not TOKEN_RE.fullmatch(token):
             raise BrokerError("CREDENTIAL_INVALID", "approved credential binding is invalid")
         return ResolvedCredential(identity, token)
+
+    def _read_token(self, relative_path: str) -> str:
+        parsed = PurePosixPath(relative_path)
+        if (
+            parsed.is_absolute()
+            or not parsed.parts
+            or any(part in {"", ".", ".."} for part in parsed.parts)
+        ):
+            raise BrokerError("CREDENTIAL_BINDING_INVALID", "credential binding is invalid")
+
+        directory_fd: int | None = None
+        credential_fd: int | None = None
+        directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+        try:
+            directory_fd = self._open_root(directory_flags)
+            self._validate_directory(os.fstat(directory_fd))
+            for component in parsed.parts[:-1]:
+                next_fd = os.open(component, directory_flags, dir_fd=directory_fd)
+                os.close(directory_fd)
+                directory_fd = next_fd
+                self._validate_directory(os.fstat(directory_fd))
+            credential_fd = os.open(
+                parsed.parts[-1], os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory_fd
+            )
+            metadata = os.fstat(credential_fd)
+            if not stat.S_ISREG(metadata.st_mode):
+                raise BrokerError(
+                    "CREDENTIAL_TYPE_INVALID", "credential must be a regular file"
+                )
+            if metadata.st_uid != self.expected_uid:
+                raise BrokerError(
+                    "CREDENTIAL_OWNER_INVALID", "credential owner does not match"
+                )
+            if stat.S_IMODE(metadata.st_mode) != self.file_mode:
+                raise BrokerError(
+                    "CREDENTIAL_MODE_INVALID", "credential file mode does not match"
+                )
+            if metadata.st_nlink != 1:
+                raise BrokerError(
+                    "CREDENTIAL_LINK_INVALID", "credential file link count does not match"
+                )
+            data = os.read(credential_fd, MAX_CREDENTIAL_BYTES + 1)
+        except BrokerError:
+            raise
+        except OSError as exc:
+            raise BrokerError(
+                "CREDENTIAL_UNAVAILABLE", "approved credential binding is unavailable"
+            ) from exc
+        finally:
+            if credential_fd is not None:
+                os.close(credential_fd)
+            if directory_fd is not None:
+                os.close(directory_fd)
+
+        if len(data) > MAX_CREDENTIAL_BYTES:
+            raise BrokerError("CREDENTIAL_INVALID", "approved credential binding is invalid")
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise BrokerError("CREDENTIAL_INVALID", "approved credential binding is invalid") from exc
+        token = text[:-1] if text.endswith("\n") else text
+        if text not in {token, f"{token}\n"}:
+            raise BrokerError("CREDENTIAL_INVALID", "approved credential binding is invalid")
+        return token
+
+    def _open_root(self, directory_flags: int) -> int:
+        parsed = PurePosixPath(self.root)
+        if not parsed.is_absolute() or len(parsed.parts) < 2:
+            raise BrokerError("CREDENTIAL_BINDING_INVALID", "credential root is invalid")
+        current_fd = os.open("/", directory_flags)
+        try:
+            for component in parsed.parts[1:]:
+                next_fd = os.open(component, directory_flags, dir_fd=current_fd)
+                os.close(current_fd)
+                current_fd = next_fd
+            return current_fd
+        except Exception:
+            os.close(current_fd)
+            raise
+
+    def _validate_directory(self, metadata: os.stat_result) -> None:
+        if not stat.S_ISDIR(metadata.st_mode):
+            raise BrokerError(
+                "CREDENTIAL_DIRECTORY_INVALID", "credential directory is invalid"
+            )
+        if metadata.st_uid != self.expected_uid:
+            raise BrokerError(
+                "CREDENTIAL_OWNER_INVALID", "credential directory owner does not match"
+            )
+        if stat.S_IMODE(metadata.st_mode) != self.directory_mode:
+            raise BrokerError(
+                "CREDENTIAL_MODE_INVALID", "credential directory mode does not match"
+            )
 
 
 class HostAccessBroker:
@@ -166,7 +267,7 @@ class HostAccessBroker:
         invocation_cwd: str | None = None,
     ) -> None:
         self.contract = contract
-        self.credentials = credentials or CredentialResolver(contract, runner=runner)
+        self.credentials = credentials or CredentialResolver(contract)
         self.transport = transport
         self.runner = runner
         self.invocation_cwd = os.path.realpath(invocation_cwd or os.getcwd())
@@ -554,7 +655,7 @@ class HostAccessBroker:
         }
         for credential in credentials.values():
             self._verify_identity(credential)
-        keychain = self._keychain_contract(project)
+        credential_store = self._credential_store_contract(project)
 
         expected_scopes = {
             "manager_audit": set(
@@ -620,7 +721,7 @@ class HostAccessBroker:
             },
             "token_scopes": token_scopes,
             "repository_permission": permissions,
-            "keychain": keychain,
+            "credential_store": credential_store,
             "protection": {
                 "branch": self.contract.governance.default_branch,
                 "can_push": False,
@@ -664,28 +765,28 @@ class HostAccessBroker:
             raise BrokerError("TOKEN_SCOPE_MISMATCH", "credential token scopes are unsafe")
         return scopes
 
-    def _keychain_contract(self, project: ProjectContract) -> dict[str, object]:
-        bindings = {
-            "manager_audit": self.contract.raw["identity_bindings"]["manager_audit"],
-            "manager_mutation": self.contract.raw["identity_bindings"]["manager_mutation"],
-            "project_agent": {
-                "service": self.contract.raw["identity_bindings"]["project_agent"]["service"],
-                "account": project.project_agent,
+    def _credential_store_contract(self, project: ProjectContract) -> dict[str, object]:
+        manager = self.contract.governance.platform_manager
+        return {
+            "manager_audit": {
+                "identity": manager,
+                "kind": "protected-file",
+                "scope": "platform-manager-audit",
             },
+            "manager_mutation": {
+                "identity": manager,
+                "kind": "protected-file",
+                "scope": "platform-manager-mutation",
+            },
+            "project_agent": {
+                "identity": project.project_agent,
+                "kind": "protected-file",
+                "scope": f"project:{project.project_id}",
+            },
+            "directory_mode": self.contract.raw["mac_host"]["credential_directory_mode"],
+            "file_mode": self.contract.raw["mac_host"]["credential_file_mode"],
+            "path_disclosure": "DENIED",
         }
-        result: dict[str, object] = {}
-        for route, binding in bindings.items():
-            service = binding["service"]
-            account = binding["account"]
-            result[route] = {
-                "account": account,
-                "service": service,
-                "item_class": "generic-password",
-                "permanence": "default-user-keychain",
-                "credential_reader": "/usr/bin/security",
-                "acl_exact_readback": "SEPARATE_BOOTSTRAP_EVIDENCE",
-            }
-        return result
 
     def _orbstack_status(
         self,

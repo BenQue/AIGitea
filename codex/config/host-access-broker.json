@@ -6,23 +6,25 @@
   "identity_bindings": {
     "manager_audit": {
       "identity": "aisoft-platform-manager",
-      "credential_kind": "macos-keychain",
-      "service": "aisoft.gitea.manager-audit",
-      "account": "aisoft-platform-manager"
+      "credential_kind": "protected-file",
+      "relative_path": "manager/audit.token"
     },
     "manager_mutation": {
       "identity": "aisoft-platform-manager",
-      "credential_kind": "macos-keychain",
-      "service": "aisoft.gitea.manager-mutation",
-      "account": "aisoft-platform-manager"
+      "credential_kind": "protected-file",
+      "relative_path": "manager/mutation.token"
     },
     "project_agent": {
-      "credential_kind": "macos-keychain",
-      "service": "aisoft.gitea.project-agent",
+      "credential_kind": "protected-file",
+      "relative_path_template": "projects/{project_id}/project-agent.token",
       "account_source": "manifest-project-agent"
     }
   },
   "mac_host": {
+    "credential_root": "/Users/benque/Library/Application Support/AISoftPlatform/credentials",
+    "credential_owner": "benque",
+    "credential_directory_mode": "700",
+    "credential_file_mode": "600",
     "credential_helper": "/usr/local/libexec/aisoft/git-credential-aisoft-host",
     "orbstack_binary": "/usr/local/bin/orb",
     "orbstack_machine": "gitea-ci",

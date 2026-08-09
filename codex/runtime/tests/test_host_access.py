@@ -103,14 +103,41 @@ class HostAccessContractTests(unittest.TestCase):
         )
         self.assertNotEqual(project.project_agent, self.contract.governance.human_merge_identity)
 
-    def test_native_acl_helper_is_a_fail_closed_non_querying_tombstone(self) -> None:
-        source = (
-            ROOT / "codex/runtime/aisoft_host_access/keychain_acl_audit.c"
-        ).read_text()
-        self.assertNotIn("SecItemCopyMatching", source)
-        self.assertNotIn("SecKeychainItemCopyAccess", source.split("*/", 1)[-1])
-        self.assertNotIn("aisoft.gitea.", source)
-        self.assertIn("return 20", source)
+    def test_mac_credentials_are_project_scoped_protected_files(self) -> None:
+        bindings = self.contract.raw["identity_bindings"]
+        self.assertEqual(bindings["manager_audit"], {
+            "identity": "aisoft-platform-manager",
+            "credential_kind": "protected-file",
+            "relative_path": "manager/audit.token",
+        })
+        self.assertEqual(bindings["manager_mutation"], {
+            "identity": "aisoft-platform-manager",
+            "credential_kind": "protected-file",
+            "relative_path": "manager/mutation.token",
+        })
+        self.assertEqual(bindings["project_agent"], {
+            "credential_kind": "protected-file",
+            "relative_path_template": "projects/{project_id}/project-agent.token",
+            "account_source": "manifest-project-agent",
+        })
+        mac = self.contract.raw["mac_host"]
+        self.assertEqual(
+            mac["credential_root"],
+            "/Users/benque/Library/Application Support/AISoftPlatform/credentials",
+        )
+        self.assertEqual(mac["credential_owner"], "benque")
+        self.assertEqual(mac["credential_directory_mode"], "700")
+        self.assertEqual(mac["credential_file_mode"], "600")
+
+        runtime = "\n".join(
+            path.read_text() for path in
+            (ROOT / "codex/runtime/aisoft_host_access").glob("*")
+            if path.is_file()
+        )
+        self.assertNotIn("/usr/bin/security", runtime)
+        self.assertNotIn("SecKeychain", runtime)
+        self.assertNotIn("SecItemCopyMatching", runtime)
+        self.assertNotIn("macos-keychain", runtime)
 
     def test_extra_key_and_project_agent_mismatch_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -125,6 +152,28 @@ class HostAccessContractTests(unittest.TestCase):
             path.write_text(json.dumps(raw))
             with self.assertRaises(AccessContractError):
                 load_access_contract(path, GOVERNANCE)
+
+    def test_keychain_or_arbitrary_credential_file_contract_is_rejected(self) -> None:
+        mutations = (
+            ("identity_bindings", "manager_audit", "credential_kind", "macos-keychain"),
+            ("identity_bindings", "manager_audit", "relative_path", "../audit.token"),
+            ("identity_bindings", "project_agent", "relative_path_template", "{project_id}.token"),
+            ("mac_host", "credential_root", None, "/Users/benque/MyDocs/AISoftPlatform/.git/token"),
+            ("mac_host", "credential_directory_mode", None, "755"),
+            ("mac_host", "credential_file_mode", None, "644"),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "access.json"
+            for mutation in mutations:
+                with self.subTest(mutation=mutation):
+                    raw = json.loads(ACCESS.read_text())
+                    if mutation[0] == "identity_bindings":
+                        raw[mutation[0]][mutation[1]][mutation[2]] = mutation[3]
+                    else:
+                        raw[mutation[0]][mutation[1]] = mutation[3]
+                    path.write_text(json.dumps(raw))
+                    with self.assertRaises(AccessContractError):
+                        load_access_contract(path, GOVERNANCE)
 
     def test_unknown_project_operation_and_arbitrary_argument_are_denied(self) -> None:
         broker = HostAccessBroker(self.contract, credentials=StaticCredentials())
@@ -388,7 +437,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 )
             self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
 
-    def test_access_audit_validates_fixed_identities_scopes_permissions_protection_and_keychain_contract(self) -> None:
+    def test_access_audit_validates_identities_scopes_permissions_protection_and_file_contract(self) -> None:
         seen_commands = []
 
         def runner(argv, **kwargs):
@@ -444,60 +493,112 @@ class HostAccessBrokerTests(unittest.TestCase):
             "manager_mutation": ["read:user", "write:issue", "write:repository"],
             "project_agent": ["read:user", "write:issue", "write:repository"],
         })
-        self.assertEqual(value["keychain"], {
+        self.assertEqual(value["credential_store"], {
             "manager_audit": {
-                "account": "aisoft-platform-manager",
-                "service": "aisoft.gitea.manager-audit",
-                "item_class": "generic-password",
-                "permanence": "default-user-keychain",
-                "credential_reader": "/usr/bin/security",
-                "acl_exact_readback": "SEPARATE_BOOTSTRAP_EVIDENCE",
+                "identity": "aisoft-platform-manager",
+                "kind": "protected-file",
+                "scope": "platform-manager-audit",
             },
             "manager_mutation": {
-                "account": "aisoft-platform-manager",
-                "service": "aisoft.gitea.manager-mutation",
-                "item_class": "generic-password",
-                "permanence": "default-user-keychain",
-                "credential_reader": "/usr/bin/security",
-                "acl_exact_readback": "SEPARATE_BOOTSTRAP_EVIDENCE",
+                "identity": "aisoft-platform-manager",
+                "kind": "protected-file",
+                "scope": "platform-manager-mutation",
             },
             "project_agent": {
-                "account": "aisoft-platform-agent",
-                "service": "aisoft.gitea.project-agent",
-                "item_class": "generic-password",
-                "permanence": "default-user-keychain",
-                "credential_reader": "/usr/bin/security",
-                "acl_exact_readback": "SEPARATE_BOOTSTRAP_EVIDENCE",
+                "identity": "aisoft-platform-agent",
+                "kind": "protected-file",
+                "scope": "project:aisoft-platform",
             },
+            "directory_mode": "700",
+            "file_mode": "600",
+            "path_disclosure": "DENIED",
         })
         flattened = "\n".join(" ".join(argv) for argv in seen_commands)
         self.assertNotIn("ci-bot", flattened)
-        self.assertNotIn(" -A", flattened)
-        self.assertNotIn(" -g", flattened)
-        self.assertNotIn(" -w", flattened)
-        self.assertNotIn("dump-keychain", flattened)
-        self.assertNotIn("find-generic-password", flattened)
-        self.assertNotIn("/usr/local/libexec/aisoft/keychain-acl-audit", flattened)
+        self.assertNotIn("security", flattened)
 
-    def test_credential_resolver_uses_issue_61_exact_binding_without_keychain_path_probe(self) -> None:
-        seen = []
+    def _credential_contract(self, root: Path):
+        raw = json.loads(json.dumps(self.contract.raw))
+        raw["mac_host"]["credential_root"] = str(root)
+        return replace(self.contract, raw=raw)
 
-        def runner(argv, **kwargs):
-            seen.append(list(argv))
-            return subprocess.CompletedProcess(argv, 1, "", "unavailable")
+    @staticmethod
+    def _write_credential(root: Path, relative: str, token: str) -> Path:
+        root.mkdir(mode=0o700)
+        current = root
+        parts = Path(relative).parts
+        for component in parts[:-1]:
+            current /= component
+            current.mkdir(mode=0o700)
+        target = current / parts[-1]
+        target.write_text(token + "\n")
+        target.chmod(0o600)
+        return target
 
-        resolver = CredentialResolver(self.contract, runner=runner)
-        with self.assertRaises(BrokerError) as caught:
-            resolver.resolve(
+    def test_credential_resolver_reads_only_fixed_protected_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve() / "credentials"
+            target = self._write_credential(
+                root, "projects/aisoft-platform/project-agent.token", "sentinel-secret-token"
+            )
+            resolver = CredentialResolver(
+                self._credential_contract(root), expected_uid=os.getuid(),
+            )
+            credential = resolver.resolve(
                 self.contract.project("aisoft-platform"),
                 self.contract.operation("gitea.issue.read"),
             )
-        self.assertEqual(caught.exception.code, "CREDENTIAL_UNAVAILABLE")
-        self.assertEqual(seen, [[
-            "/usr/bin/security", "find-generic-password", "-w",
-            "-s", "aisoft.gitea.project-agent",
-            "-a", "aisoft-platform-agent",
-        ]])
+            self.assertEqual(credential.identity, "aisoft-platform-agent")
+            self.assertEqual(credential.token, "sentinel-secret-token")
+            self.assertEqual(stat.S_IMODE(target.stat().st_mode), 0o600)
+
+    def test_credential_resolver_rejects_file_and_directory_drift_without_secret_leak(self) -> None:
+        secret = "sentinel-secret-token"
+        cases = (
+            "missing", "file-mode", "directory-mode", "symlink", "ancestor-symlink",
+            "hardlink", "owner", "multiline",
+        )
+        for case in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as temporary:
+                temporary_root = Path(temporary).resolve()
+                root = temporary_root / "credentials"
+                target = self._write_credential(
+                    root, "projects/aisoft-platform/project-agent.token", secret
+                )
+                contract_root = root
+                expected_uid = os.getuid()
+                if case == "missing":
+                    target.unlink()
+                elif case == "file-mode":
+                    target.chmod(0o644)
+                elif case == "directory-mode":
+                    target.parent.chmod(0o755)
+                elif case == "symlink":
+                    target.unlink()
+                    target.symlink_to(Path(temporary) / "elsewhere")
+                elif case == "ancestor-symlink":
+                    real_parent = temporary_root / "real-parent"
+                    real_parent.mkdir(mode=0o700)
+                    root.rename(real_parent / "credentials")
+                    linked_parent = temporary_root / "linked-parent"
+                    linked_parent.symlink_to(real_parent, target_is_directory=True)
+                    contract_root = linked_parent / "credentials"
+                elif case == "hardlink":
+                    os.link(target, Path(temporary) / "second-link")
+                elif case == "owner":
+                    expected_uid += 1
+                elif case == "multiline":
+                    target.write_text(secret + "\nsecond-line\n")
+                resolver = CredentialResolver(
+                    self._credential_contract(contract_root), expected_uid=expected_uid,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    resolver.resolve(
+                        self.contract.project("aisoft-platform"),
+                        self.contract.operation("gitea.issue.read"),
+                    )
+                self.assertNotIn(secret, str(caught.exception))
+                self.assertNotIn(str(root), str(caught.exception))
 
     def test_identity_mismatch_fails_before_target_request(self) -> None:
         calls = []
@@ -538,26 +639,6 @@ class HostAccessBrokerTests(unittest.TestCase):
                 self.assertEqual(caught.exception.code, f"HTTP_{status}")
                 self.assertNotIn(secret, str(caught.exception))
                 self.assertNotIn("token-agent", str(caught.exception))
-
-    def test_keychain_secret_is_not_in_command_argv(self) -> None:
-        seen = []
-
-        def runner(argv, **kwargs):
-            seen.append(list(argv))
-            return subprocess.CompletedProcess(argv, 0, "sentinel-secret-token\n", "")
-
-        resolver = CredentialResolver(self.contract, runner=runner)
-        credential = resolver.resolve(
-            self.contract.project("hsdb"), self.contract.operation("gitea.repo.read")
-        )
-        self.assertEqual(credential.identity, "hsdb-agent")
-        self.assertEqual(credential.token, "sentinel-secret-token")
-        self.assertEqual(len(seen), 1)
-        self.assertFalse(any("sentinel-secret-token" in value for value in seen[0]))
-        self.assertEqual(seen[0], [
-            "/usr/bin/security", "find-generic-password", "-w",
-            "-s", "aisoft.gitea.project-agent", "-a", "hsdb-agent",
-        ])
 
     def _temporary_checkout_contract(self, checkout: Path):
         project = self.contract.project("aisoft-platform")
