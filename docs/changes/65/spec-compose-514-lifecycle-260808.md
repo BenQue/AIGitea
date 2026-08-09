@@ -93,7 +93,10 @@ exact row，并提交 immutable evidence。
   resource/state readback 共同验证。
 - [ ] **AC-7 Negative fail-closed**：artifact tamper 在 Docker call 前拒绝；duplicate daemon identity
   在 resource creation 前拒绝；wrong store/wrong Compose 在 transport/migration/up 前拒绝；phase 前置
-  receipt 缺失时下一阶段拒绝。Negative run 的 mutation count 与残留 inventory 必须为 0。
+  receipt 缺失时下一阶段拒绝。除独立的read-only duplicate-daemon preflight外，real negative gates必须在
+  AC-3完整happy lifecycle之后执行；missing-receipt使用独立空state root，不改写成功lifecycle state。
+  Negative run 的 mutation count 与残留 inventory 必须为 0；后置negative失败时failure bundle仍须保存
+  已完成的happy-path lifecycle results，且不得生成最终PASS evidence。
 - [ ] **AC-8 Exact cleanup and evidence**：每次 success/failure 都精确处理本 Issue 创建的 Registry、
   PostgreSQL、migration/runtime container、image/tag、network、volume、build 与临时文件；禁止 prune。
   Evidence 保存 before/created/after inventory、exact commands、versions、daemon IDs、release SHA、archive
@@ -110,6 +113,10 @@ exact row，并提交 immutable evidence。
 
 - 复用现有 `ReleaseRuntime` 与 `DockerAdapter(compatibility_path=...)` public seam；不修改 Issue #58 已
   合并的 CLI/lifecycle contract，也不为了测试增加 live target override。
+- 2026-08-09 real T02 证明 Docker 29 containerd 的无 provenance direct OCI manifest 可把
+  content-verified top-level manifest descriptor digest作为daemon inspect `image_id`。经用户单独批准，
+  archive preflight仅把该 descriptor digest或同一manifest的content-verified Config digest视为合法
+  direct manifest identity；任意其它digest继续在image load前fail closed。此修订不改变CLI/schema。
 - `verify-artifact` 不接触 target；其余 lifecycle 只指向 consumer daemon。Producer 只负责构建 fixture、
   ephemeral Registry、digest/tag 与 V2 offline archive/inventory。
 - Run-scoped candidate matrix 由 harness 在临时目录生成，包含 production matrix 原有 rows 和 AC-9 exact
@@ -121,6 +128,9 @@ exact row，并提交 immutable evidence。
 - Docker fixed-argv wrapper 只记录 sanitized argv 和 phase boundary，不记录 env-file 内容、Secret、
   Docker stderr 或 credential；真实 subprocess 继续 `shell=false`。Direct Docker calls 使用30秒边界，
   lifecycle wrapper 使用120秒边界，二者均在5秒 grace后KILL；timeout binary本身也绑定approval plan。
+- Real execute先完成并固定public happy lifecycle evidence，再运行隔离的negative gates。Negative harness
+  自身失败不得把已经完成的lifecycle事实误写成`NOT RUN`；只能使整次T02不产生PASS evidence并触发
+  exact cleanup/failure bundle。
 - PostgreSQL fixture 使用独立、digest-pinned/preloaded server image和 disposable network/volume；migration
   service 使用不同 image ID 的 release image，通过 external database network 运行，且 migration SQL
   只创建 fixture-owned schema/table/marker。后台migration在任何Docker call前建立 `pid == pgid` 握手；

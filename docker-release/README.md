@@ -50,11 +50,13 @@ V2 image entry 明确区分四类 identity：
 - `runtime_reference` 是 Compose `image:`；V2 首版要求与 transport tag byte-identical。
 
 `image_id` 是 daemon 对 exact runtime reference 返回的 inspect identity，不等同于所有 archive
-中的 Config digest。Docker 29 classic archive 的 inspect identity 是 image config digest；带
-provenance 的 containerd archive 可以把 top-level OCI image index digest 作为 inspect identity，
-而其 runnable `linux/amd64` manifest 再指向独立 config digest。Preflight 因此验证完整
-`index descriptor -> runnable manifest -> config/layers` graph，并要求 Docker `manifest.json`
-的 Config/layers 与 runnable manifest byte-exact 对应；它不会在这几类 digest 之间猜测或互换。
+中的 Config digest。Docker 29 classic archive 可以使用 image config digest；containerd archive
+可以使用 content-verified top-level OCI descriptor digest：无 provenance 时是 direct image manifest，
+带 provenance 时是 image index，而其 runnable `linux/amd64` manifest 再指向独立 config digest。
+Direct OCI manifest 也允许 daemon 返回其 content-verified Config digest。Preflight 因此验证完整
+`index/manifest descriptor -> runnable manifest -> config/layers` graph，并要求 Docker
+`manifest.json` 的 Config/layers 与 OCI graph byte-exact 对应；只有该 graph 已验证的 top-level
+descriptor digest 或 Config digest能作为 direct manifest `image_id`，任意其它 digest仍 fail closed。
 
 Tag 由 lower-case source owner/repository、service 和完整 release SHA 确定，只是搬运和本地
 解析别名，不是信任根。Producer 必须先按 digest pull/inspect，再创建 tag、重复 inspect exact
@@ -121,8 +123,13 @@ identity/health 与 exact cleanup；因此 containerd row 由 evidence
 `issue-27-containerd-a75181cd7209`（2026-08-04，来源
 `docs/changes/27/03-verification.md`）固定为 `supported`。Classic 没有同等级真实证据，继续
 `rejected + evidence:null`；不能依据 fake adapter、源码阅读或偶然 `RepoDigests` 标记 PASS。
-Compose 5.1.4 当前没有同等级 disposable Engine 29/containerd consumer E2E 与 committed evidence，
-因此不得加入 supported row；本 Change 不修改 compatibility matrix。
+Issue #65 又在两个task-owned disposable Engine `29.7.1`、Compose `5.1.4`、containerd `2.2.6`
+daemon 上完成public `docker-release/v2` lifecycle、Registry/offline transport、disposable PostgreSQL
+migration、negative boundaries与exact cleanup；因此只增加Engine `>=29.7.1,<29.7.2`、Compose
+`>=5.1.4,<5.1.5`、linux/amd64/containerd row，evidence为
+`issue-65-compose-5.1.4-97445947fff7`（2026-08-09，来源
+`docs/changes/65/verification-compose-514-lifecycle-260808.md`）。这不表示Compose其它5.x、classic、
+其它Engine/OS/architecture或业务部署受支持。
 
 Disposable harness 位于
 [`codex/tests/integration/test-docker-image-store-e2e.sh`](../codex/tests/integration/test-docker-image-store-e2e.sh)。

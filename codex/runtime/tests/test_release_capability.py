@@ -126,12 +126,67 @@ class DockerCapabilityTests(unittest.TestCase):
             path,
         )
         self.assertEqual(decision.row_id, "engine-29-containerd-linux-amd64")
-        self.assertEqual(decision.matrix_revision, "2026.08.2")
+        self.assertEqual(decision.matrix_revision, "2026.08.3")
         with self.assertRaisesRegex(DeploymentError, "is rejected"):
             require_supported(
                 DockerCapability("29.0.1", "2.40.3", "linux", "amd64", "classic"),
                 path,
             )
+
+    def test_committed_compose_514_evidence_row_is_supported(self) -> None:
+        path = (
+            repository_root()
+            / "docker-release"
+            / "compatibility"
+            / "image-stores-v1.json"
+        )
+        decision = require_supported(
+            DockerCapability("29.7.1", "5.1.4", "linux", "amd64", "containerd"),
+            path,
+        )
+        self.assertEqual(
+            decision.row_id,
+            "engine-29.7.1-compose-5.1.4-containerd-linux-amd64",
+        )
+        self.assertEqual(decision.matrix_revision, "2026.08.3")
+
+    def test_committed_compose_514_row_rejects_neighboring_bounds_and_classic(self) -> None:
+        path = (
+            repository_root()
+            / "docker-release"
+            / "compatibility"
+            / "image-stores-v1.json"
+        )
+        unsupported = (
+            DockerCapability("29.7.1", "5.1.3", "linux", "amd64", "containerd"),
+            DockerCapability("29.7.1", "5.1.5", "linux", "amd64", "containerd"),
+            DockerCapability("29.7.1", "5.2.0", "linux", "amd64", "containerd"),
+            DockerCapability("29.7.0", "5.1.4", "linux", "amd64", "containerd"),
+            DockerCapability("29.7.2", "5.1.4", "linux", "amd64", "containerd"),
+            DockerCapability("29.7.1", "5.1.4", "linux", "amd64", "classic"),
+        )
+        for capability in unsupported:
+            with self.subTest(capability=capability):
+                with self.assertRaisesRegex(DeploymentError, "exactly one"):
+                    require_supported(capability, path)
+
+    def test_duplicate_or_overlapping_matrix_rows_fail_closed(self) -> None:
+        capability = DockerCapability("29.0.1", "2.40.3", "linux", "amd64", "containerd")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "matrix.json"
+            duplicate = matrix()
+            duplicate["rows"].append(dict(duplicate["rows"][0]))  # type: ignore[union-attr,index]
+            path.write_text(json.dumps(duplicate, separators=(",", ":")) + "\n")
+            with self.assertRaisesRegex(ContractError, "duplicate row IDs"):
+                require_supported(capability, path)
+
+            overlapping = matrix()
+            second = dict(overlapping["rows"][0])  # type: ignore[index]
+            second["row_id"] = "fixture-containerd-overlap"
+            overlapping["rows"].append(second)  # type: ignore[union-attr]
+            path.write_text(json.dumps(overlapping, separators=(",", ":")) + "\n")
+            with self.assertRaisesRegex(DeploymentError, "exactly one"):
+                require_supported(capability, path)
 
 
 if __name__ == "__main__":

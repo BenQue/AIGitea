@@ -49,6 +49,19 @@ file_mode() {
   stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1"
 }
 
+tracked_tree_sha256() {
+  local base="$1"
+  local pathspec="$2"
+  local file
+  git -C "$root" ls-files -- "$pathspec" |
+    while IFS= read -r file; do
+      [[ -f "$base/$file" && ! -L "$base/$file" ]] ||
+        fail "release runtime tracked file is missing or unsafe: $file"
+      printf '%s\0%s\0%s\0' "$file" "$(file_mode "$base/$file")" \
+        "$(sha256_file "$base/$file")"
+    done | shasum -a 256 | awk '{print $1}'
+}
+
 case "$mode" in
   --not-run)
     not_run
@@ -66,7 +79,7 @@ else
     fail 'Issue #65 execute authorization marker is missing'
 fi
 
-for command in awk date docker git jq shasum sort stat timeout; do
+for command in awk date docker git jq shasum sort stat tar timeout; do
   command -v "$command" >/dev/null 2>&1 || fail "required command is unavailable: $command"
 done
 
@@ -94,6 +107,9 @@ postgres_image="${AISOFT_65_E2E_POSTGRES_IMAGE:-}"
 registry_port="${AISOFT_65_E2E_REGISTRY_PORT:-}"
 evidence_path="${AISOFT_65_E2E_EVIDENCE_PATH:-}"
 duplicate_evidence_path="${AISOFT_65_E2E_DUPLICATE_DAEMON_EVIDENCE_PATH:-}"
+go_toolchain_archive="${AISOFT_65_E2E_GO_TOOLCHAIN_ARCHIVE:-}"
+go_toolchain_archive_sha256="${AISOFT_65_E2E_GO_TOOLCHAIN_ARCHIVE_SHA256:-}"
+go_toolchain_version="${AISOFT_65_E2E_GO_TOOLCHAIN_VERSION:-}"
 
 [[ -n "$producer_host" && -n "$consumer_host" ]] || fail 'two Docker hosts are required'
 [[ "$producer_host" != "$consumer_host" ]] || fail 'producer and consumer Docker hosts must differ'
@@ -128,6 +144,26 @@ if [[ "$mode" != "--duplicate-daemon-negative" ]]; then
     fail 'AISOFT_65_E2E_DUPLICATE_DAEMON_EVIDENCE_PATH must be an absolute regular file'
   [[ "$(file_mode "$duplicate_evidence_path")" == "444" ]] ||
     fail 'duplicate-daemon negative evidence mode must be 0444'
+  [[ "$go_toolchain_archive" == /* && "$go_toolchain_archive" != *".."* &&
+    -f "$go_toolchain_archive" && ! -L "$go_toolchain_archive" ]] ||
+    fail 'AISOFT_65_E2E_GO_TOOLCHAIN_ARCHIVE must be an absolute regular file'
+  [[ "$(file_mode "$go_toolchain_archive")" == "444" ]] ||
+    fail 'Go toolchain archive mode must be 0444'
+  [[ "$go_toolchain_archive_sha256" =~ ^[0-9a-f]{64}$ ]] ||
+    fail 'AISOFT_65_E2E_GO_TOOLCHAIN_ARCHIVE_SHA256 must be a SHA-256'
+  [[ "$(sha256_file "$go_toolchain_archive")" == "$go_toolchain_archive_sha256" ]] ||
+    fail 'Go toolchain archive SHA-256 does not match the approved input'
+  [[ "$go_toolchain_version" =~ ^go[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
+    fail 'AISOFT_65_E2E_GO_TOOLCHAIN_VERSION must be an exact Go version'
+  go_toolchain_entries="$(tar -tzf "$go_toolchain_archive")" ||
+    fail 'Go toolchain archive is unreadable'
+  while IFS= read -r entry; do
+    [[ -n "$entry" && "$entry" != /* && "$entry" != ".." &&
+      "$entry" != ../* && "$entry" != */../* && "$entry" != */.. ]] ||
+      fail 'Go toolchain archive contains an unsafe path'
+  done <<<"$go_toolchain_entries"
+  grep -Fxq 'go/bin/go' <<<"$go_toolchain_entries" ||
+    fail 'Go toolchain archive is missing go/bin/go'
 fi
 
 prefix="aisoft-65-${source_sha:0:12}"
@@ -144,6 +180,7 @@ registry_web_tag="127.0.0.1:${registry_port}/admin/aisoft-platform/web:${source_
 registry_migrate_tag="127.0.0.1:${registry_port}/admin/aisoft-platform/migrate:${source_sha}"
 runtime_web="aisoft.local/admin/aisoft-platform/web:${source_sha}"
 runtime_migrate="aisoft.local/admin/aisoft-platform/migrate:${source_sha}"
+registry_storage_tmpfs_bytes=268435456
 orchestrator_log=""
 
 log_orchestrator_argv() {
@@ -189,6 +226,7 @@ detect_capability() {
     jq -er '[.Components[]? | select(.Name == "containerd") | .Version] |
       if length == 1 then .[0] else error("containerd component count") end' <<<"$server"
   )"
+  containerd_version="${containerd_version#v}"
   jq -e '.Os == "linux" and .Arch == "amd64"' <<<"$server" >/dev/null ||
     fail "$side Docker server must report linux/amd64"
   [[ "$engine_version" == "29.7.1" ]] || fail "$side Docker Engine must be exact 29.7.1"
@@ -387,21 +425,52 @@ resources_json="$(
 
 [[ "$(git -C "$root" rev-parse "$source_sha^{commit}")" == "$source_sha" ]] ||
   fail 'Issue #65 source SHA is not available in the AISoftPlatform repository'
-git -C "$root" diff --quiet "$source_sha" -- docker-release codex/runtime/aisoft_release ||
-  fail 'merged docker-release/v2 or release runtime bytes differ from the fixed source SHA'
-[[ -z "$(git -C "$root" status --porcelain --untracked-files=all -- docker-release codex/runtime/aisoft_release)" ]] ||
-  fail 'docker-release/v2 or release runtime contains tracked or untracked drift from the fixed source SHA'
+final_evidence_path="$root/docs/changes/65/issue-65-compose-5.1.4-${source_sha:0:12}.json"
+final_evidence_sha256='b58bb7b57d53a104f922e66c7dc1342bc1b5b133038f60fa8f2ace8d8dbdeb89'
+post_evidence=0
+if [[ -e "$final_evidence_path" || -L "$final_evidence_path" ]]; then
+  [[ -f "$final_evidence_path" && ! -L "$final_evidence_path" && \
+    "$(file_mode "$final_evidence_path")" == "444" && \
+    "$(sha256_file "$final_evidence_path")" == "$final_evidence_sha256" ]] ||
+    fail 'Issue #65 final evidence bytes or mode are invalid'
+  jq -e --arg source_sha "$source_sha" '
+    .result == "PASS" and .source.sha == $source_sha and
+    .versions == {engine:"29.7.1",compose:"5.1.4",containerd:"2.2.6",os:"linux",architecture:"amd64",image_store:"containerd"} and
+    .cleanup == "PASS" and
+    .inventory.producer_before == .inventory.producer_after and
+    .inventory.consumer_before == .inventory.consumer_after
+  ' "$final_evidence_path" >/dev/null || fail 'Issue #65 final evidence contract is invalid'
+  post_evidence=1
+fi
+if [[ "$post_evidence" == "1" ]]; then
+  expected_docker_release_diff=$'docker-release/README.md\ndocker-release/compatibility/image-stores-v1.json'
+else
+  expected_docker_release_diff='docker-release/README.md'
+fi
+[[ "$(git -C "$root" diff --name-only "$source_sha" -- docker-release)" == \
+  "$expected_docker_release_diff" ]] ||
+  fail 'docker-release differs outside the Issue #65 evidence-gated scope'
+[[ -z "$(git -C "$root" ls-files --others --exclude-standard -- docker-release)" ]] ||
+  fail 'docker-release contains an untracked file'
+[[ "$(git -C "$root" diff --name-only "$source_sha" -- codex/runtime/aisoft_release)" == \
+  'codex/runtime/aisoft_release/transport.py' ]] ||
+  fail 'release runtime differs outside the separately approved transport.py revision'
+[[ -z "$(git -C "$root" ls-files --others --exclude-standard -- codex/runtime/aisoft_release)" ]] ||
+  fail 'release runtime contains an untracked file'
 source_tree="$(git -C "$root" rev-parse "$source_sha^{tree}")"
-docker_release_tree="$(git -C "$root" rev-parse "$source_sha:docker-release")"
-runtime_tree="$(git -C "$root" rev-parse "$source_sha:codex/runtime/aisoft_release")"
+docker_release_tree="$(tracked_tree_sha256 "$root" docker-release)"
+runtime_tree="$(tracked_tree_sha256 "$root" codex/runtime/aisoft_release)"
 harness_sha="$(sha256_file "$root/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh")"
 driver_sha="$(sha256_file "$driver_source")"
 wrapper_sha="$(sha256_file "$wrapper_source")"
 web_source_sha="$(sha256_file "$web_source")"
 migration_source_sha="$(sha256_file "$migration_source")"
 approval_date="$(date +%F)"
-candidate_matrix_json="$(
-  jq \
+if [[ "$post_evidence" == "1" ]]; then
+  candidate_matrix_json="$(jq '.' "$root/docker-release/compatibility/image-stores-v1.json")"
+else
+  candidate_matrix_json="$(
+    jq \
     --arg source "docs/changes/65/verification-compose-514-lifecycle-260808.md" \
     --arg evidence "issue-65-compose-5.1.4-${source_sha:0:12}" \
     --arg date "$approval_date" '
@@ -414,8 +483,9 @@ candidate_matrix_json="$(
       evidence:{kind:"real-e2e",evidence_id:$evidence,date:$date,source:$source},
       remediation:"Expand only after the same task-owned disposable real lifecycle E2E passes and its immutable evidence is committed."
     }]
-  ' "$root/docker-release/compatibility/image-stores-v1.json"
-)"
+    ' "$root/docker-release/compatibility/image-stores-v1.json"
+  )"
+fi
 candidate_matrix_sha="$(printf '%s\n' "$candidate_matrix_json" | shasum -a 256 | awk '{print $1}')"
 architecture_source_path="$root/architecture/reference/newemaint/target-candidate/architecture.lock.json"
 architecture_source_sha="$(sha256_file "$architecture_source_path")"
@@ -440,6 +510,9 @@ approval_plan_json="$(
     --arg docker_client_sha "$docker_client_sha" \
     --arg timeout_client_path "$timeout_client_path" \
     --arg timeout_client_sha "$timeout_client_sha" \
+    --arg go_toolchain_archive "$go_toolchain_archive" \
+    --arg go_toolchain_archive_sha256 "$go_toolchain_archive_sha256" \
+    --arg go_toolchain_version "$go_toolchain_version" \
     --arg producer_host "$producer_host" \
     --arg consumer_host "$consumer_host" \
     --arg producer_id "$producer_id" \
@@ -454,6 +527,7 @@ approval_plan_json="$(
     --argjson producer_inventory "$producer_inventory_before" \
     --argjson consumer_inventory "$consumer_inventory_before" \
     --arg registry_port "$registry_port" \
+    --argjson registry_storage_tmpfs_bytes "$registry_storage_tmpfs_bytes" \
     --arg producer_build_web "$producer_build_web" \
     --arg producer_build_migrate "$producer_build_migrate" \
     --arg registry_web_tag "$registry_web_tag" \
@@ -463,11 +537,11 @@ approval_plan_json="$(
     --arg evidence_path "$evidence_path" \
     --arg execution_lock "$root/docs/changes/65/.issue65-${source_sha}.execution-lock" '
     {contract_version:"aisoft-issue-65-execution-plan/v1",
-     source:{sha:$source_sha,tree:$source_tree,docker_release_tree:$docker_release_tree,runtime_tree:$runtime_tree,harness_sha256:$harness_sha,driver_sha256:$driver_sha,wrapper_sha256:$wrapper_sha,web_fixture_sha256:$web_source_sha,migration_fixture_sha256:$migration_source_sha,approval_date:$approval_date,candidate_matrix:{sha256:$candidate_matrix_sha,document:$candidate_matrix},architecture_input:{path:$architecture_source_path,sha256:$architecture_source_sha},docker_client:{path:$docker_client_path,sha256:$docker_client_sha},timeout_client:{path:$timeout_client_path,sha256:$timeout_client_sha,direct_seconds:30,lifecycle_seconds:120,kill_after_seconds:5,migration_foreground_in_owned_pgid:true,other_lifecycle_isolated_group:true}},
+     source:{sha:$source_sha,tree:$source_tree,docker_release_tree:$docker_release_tree,runtime_tree:$runtime_tree,harness_sha256:$harness_sha,driver_sha256:$driver_sha,wrapper_sha256:$wrapper_sha,web_fixture_sha256:$web_source_sha,migration_fixture_sha256:$migration_source_sha,approval_date:$approval_date,candidate_matrix:{sha256:$candidate_matrix_sha,document:$candidate_matrix},architecture_input:{path:$architecture_source_path,sha256:$architecture_source_sha},docker_client:{path:$docker_client_path,sha256:$docker_client_sha},timeout_client:{path:$timeout_client_path,sha256:$timeout_client_sha,direct_seconds:30,lifecycle_seconds:120,kill_after_seconds:5,migration_foreground_in_owned_pgid:true,other_lifecycle_isolated_group:true},go_toolchain:{archive_path:$go_toolchain_archive,archive_sha256:$go_toolchain_archive_sha256,version:$go_toolchain_version,snapshot_extract:true,global_install:false}},
      producer:{endpoint:$producer_host,logical_id:$producer_id,capability:$producer},
      consumer:{endpoint:$consumer_host,logical_id:$consumer_id,capability:$consumer},
      prerequisites:$prerequisites,duplicate_daemon_negative:{path:$duplicate_daemon_evidence_path,sha256:$duplicate_daemon_evidence_sha256,evidence:$duplicate_daemon_evidence},registry_port:($registry_port|tonumber),resources:$resources,evidence_path:$evidence_path,execution_lock:$execution_lock,baseline_inventory:{producer:$producer_inventory,consumer:$consumer_inventory},
-     mutations:{producer:{images:[$producer_build_web,$producer_build_migrate,$registry_web_tag,$registry_migrate_tag,$runtime_web,$runtime_migrate],containers:[$resources.registry_container,($resources.registry_container|sub("-registry$";"-migration-seed"))],registry_push_pull:true,archive_save:true},consumer:{registry_pull_probe:true,offline_load_tags:[$runtime_web,$runtime_migrate],containers:[$resources.postgres_container],compose_project:{name:$resources.compose_project,owned_label:("com.docker.compose.project="+$resources.compose_project)},networks:[$resources.database_network,$resources.compose_backend_network],volumes:[$resources.database_volume],migration_fixture:true,compose_activate:true}},
+     mutations:{producer:{images:[$producer_build_web,$producer_build_migrate,$registry_web_tag,$registry_migrate_tag,$runtime_web,$runtime_migrate],containers:[$resources.registry_container,($resources.registry_container|sub("-registry$";"-migration-seed"))],registry_push_pull:true,registry_storage:{kind:"tmpfs",bytes:$registry_storage_tmpfs_bytes},archive_save:true},consumer:{registry_pull_probe:true,offline_load_tags:[$runtime_web,$runtime_migrate],containers:[$resources.postgres_container],compose_project:{name:$resources.compose_project,owned_label:("com.docker.compose.project="+$resources.compose_project)},networks:[$resources.database_network,$resources.compose_backend_network],volumes:[$resources.database_volume],migration_fixture:true,compose_activate:true}},
      cleanup:{prune:false,delete_only_declared_resources:true,inventory_must_equal_baseline:true,failure_bundle_suffix:".failure.<pid>.json",execution_lock_create_remove:true,retain_lock_if_process_group_not_quiesced:true}}
   '
 )"
@@ -490,11 +564,13 @@ fi
 
 [[ "${AISOFT_65_E2E_APPROVED_PLAN_SHA256:-}" == "$approval_plan_sha256" ]] ||
   fail 'Issue #65 execute parameters do not match the separately approved preflight plan SHA-256'
-for command in awk chmod cp date go grep ln mktemp openssl python3 rm rmdir sed sleep tar timeout; do
+for command in awk chmod cp date grep ln mktemp openssl python3 rm rmdir sed sleep tar timeout; do
   command -v "$command" >/dev/null 2>&1 || fail "required execute command is unavailable: $command"
 done
 
-workdir="$(mktemp -d "${TMPDIR:-/tmp}/aisoft-issue65.XXXXXX")"
+temp_parent="${TMPDIR:-/tmp}"
+workdir="$(mktemp -d "${temp_parent%/}/aisoft-issue65.XXXXXX")"
+workdir="$(cd -P -- "$workdir" && pwd -P)"
 release_root="$workdir/releases"
 release_dir="$release_root/$source_sha"
 state_root="$workdir/state"
@@ -519,6 +595,9 @@ snapshot_wrapper="$input_snapshot_root/docker-wrapper.sh"
 snapshot_web_source="$input_snapshot_root/server.go"
 snapshot_migration_source="$input_snapshot_root/migrate.sh"
 snapshot_architecture="$input_snapshot_root/architecture.lock.json"
+snapshot_go_archive="$input_snapshot_root/go-toolchain.tar.gz"
+snapshot_go_root="$input_snapshot_root/go"
+snapshot_go_binary="$snapshot_go_root/bin/go"
 resources_created=0
 cleanup_verified=0
 cleanup_attempted=0
@@ -526,6 +605,7 @@ background_pid=""
 failure_producer_created=null
 failure_consumer_created=null
 failure_snapshot_status=NOT_CAPTURED
+failure_checkpoint=input-snapshot
 evidence_temp=""
 execution_lock="$root/docs/changes/65/.issue65-${source_sha}.execution-lock"
 lock_owned=0
@@ -538,7 +618,12 @@ cp "$wrapper_source" "$snapshot_wrapper"
 cp "$web_source" "$snapshot_web_source"
 cp "$migration_source" "$snapshot_migration_source"
 cp "$architecture_source_path" "$snapshot_architecture"
-git -C "$root" archive "$source_sha" codex/runtime/aisoft_release | tar -x -C "$input_snapshot_root"
+while IFS= read -r runtime_file; do
+  mkdir -p "$(dirname -- "$input_snapshot_root/$runtime_file")"
+  cp "$root/$runtime_file" "$input_snapshot_root/$runtime_file"
+done < <(git -C "$root" ls-files 'codex/runtime/aisoft_release/**')
+[[ "$(tracked_tree_sha256 "$input_snapshot_root" codex/runtime/aisoft_release)" == "$runtime_tree" ]] ||
+  fail 'release runtime snapshot differs from the separately approved runtime bytes'
 cp "$snapshot_wrapper" "$wrapper"
 chmod 0755 "$wrapper"
 driver="$snapshot_driver"
@@ -553,10 +638,10 @@ chmod 0600 "$docker_config/issue65-real-docker-path" "$docker_config/issue65-tim
 : >"$orchestrator_log"
 chmod 0600 "$phase_log" "$orchestrator_log"
 
-producer_created_refs=()
-consumer_created_refs=()
-producer_created_ids=()
-consumer_created_ids=()
+producer_created_refs=("")
+consumer_created_refs=("")
+producer_created_ids=("")
+consumer_created_ids=("")
 
 record_created_image_id() {
   local side="$1"
@@ -651,8 +736,9 @@ cleanup_resources() {
 write_failure_bundle() {
   local failure_result="$1"
   local cleanup_result="$2"
-  local bundle_path bundle_temp lifecycle_argv orchestrator_argv state_json
-  local producer_after_json consumer_after_json
+  local bundle_path bundle_temp lifecycle_argv orchestrator_argv state_json registry_log_json artifact_error_json
+  local producer_after_json consumer_after_json phase_errors_json lifecycle_results_json
+  local diagnostic_name diagnostic_path diagnostic_json result_name result_path result_json
   bundle_path="${evidence_path}.failure.$$.json"
   bundle_temp="${bundle_path}.tmp"
   [[ ! -e "$bundle_path" && ! -L "$bundle_path" && ! -e "$bundle_temp" && ! -L "$bundle_temp" ]] ||
@@ -660,9 +746,37 @@ write_failure_bundle() {
   lifecycle_argv="$(jq -s '.' "$phase_log" 2>/dev/null || printf '%s' '[]')"
   orchestrator_argv="$(jq -s '.' "$orchestrator_log" 2>/dev/null || printf '%s' '[]')"
   state_json='null'
+  registry_log_json='null'
+  artifact_error_json='null'
+  phase_errors_json='{}'
+  lifecycle_results_json='{}'
   if [[ -f "$state_root/state.json" && ! -L "$state_root/state.json" ]]; then
     state_json="$(jq -c '.' "$state_root/state.json" 2>/dev/null || printf '%s' 'null')"
   fi
+  if [[ -f "$workdir/registry-container.log" && ! -L "$workdir/registry-container.log" ]]; then
+    registry_log_json="$(jq -Rs '.' "$workdir/registry-container.log" 2>/dev/null || printf '%s' 'null')"
+  fi
+  if [[ -f "$workdir/verify-artifact.error" && ! -L "$workdir/verify-artifact.error" ]] &&
+    jq -e '.ok == false' "$workdir/verify-artifact.error" >/dev/null 2>&1; then
+    artifact_error_json="$(jq -c '.' "$workdir/verify-artifact.error")"
+  fi
+  for diagnostic_name in tamper wrong-compose wrong-store missing-receipt verify-target stage migrate activate status same-sha-noop; do
+    diagnostic_path="$workdir/${diagnostic_name}.error"
+    if [[ -f "$diagnostic_path" && ! -L "$diagnostic_path" ]] &&
+      jq -e '.ok == false' "$diagnostic_path" >/dev/null 2>&1; then
+      diagnostic_json="$(jq -c '.' "$diagnostic_path")"
+      phase_errors_json="$(jq -c --arg name "$diagnostic_name" --argjson value "$diagnostic_json" \
+        '. + {($name):$value}' <<<"$phase_errors_json")"
+    fi
+  done
+  for result_name in verify-artifact verify-target stage migrate migrate-noop activate status same-sha-noop; do
+    result_path="$workdir/${result_name}.json"
+    if [[ -f "$result_path" && ! -L "$result_path" ]] && jq -e 'type == "object"' "$result_path" >/dev/null 2>&1; then
+      result_json="$(jq -c '.' "$result_path")"
+      lifecycle_results_json="$(jq -c --arg name "$result_name" --argjson value "$result_json" \
+        '. + {($name):$value}' <<<"$lifecycle_results_json")"
+    fi
+  done
   producer_after_json="${producer_inventory_after:-null}"
   consumer_after_json="${consumer_inventory_after:-null}"
   if ! jq -n \
@@ -672,6 +786,7 @@ write_failure_bundle() {
     --arg execution_lock "$execution_lock" \
     --arg process_group_pid "${background_pid:-}" \
     --arg failure_snapshot_status "$failure_snapshot_status" \
+    --arg failure_checkpoint "$failure_checkpoint" \
     --argjson resources "$resources_json" \
     --argjson producer_capability "$producer_capability" \
     --argjson consumer_capability "$consumer_capability" \
@@ -684,6 +799,10 @@ write_failure_bundle() {
     --argjson state "$state_json" \
     --argjson lifecycle_argv "$lifecycle_argv" \
     --argjson orchestrator_argv "$orchestrator_argv" \
+    --argjson registry_log "$registry_log_json" \
+    --argjson artifact_error "$artifact_error_json" \
+    --argjson phase_errors "$phase_errors_json" \
+    --argjson lifecycle_results "$lifecycle_results_json" \
     --arg failure_result "$failure_result" \
     --arg cleanup_result "$cleanup_result" '
     {contract_version:"docker-release-v2-lifecycle-e2e-failure/v1",date:$date,result:$failure_result,cleanup:$cleanup_result,
@@ -691,7 +810,7 @@ write_failure_bundle() {
      producer:$producer_capability,consumer:$consumer_capability,
      process_group:(if $cleanup_result == "BLOCKED_PROCESS_GROUP" then {pid:($process_group_pid|tonumber),pgid:($process_group_pid|tonumber),quiesced:false} else null end),
      inventory:{snapshot_status:$failure_snapshot_status,producer_before:$producer_before,consumer_before:$consumer_before,producer_created:$producer_created,consumer_created:$consumer_created,producer_after:$producer_after,consumer_after:$consumer_after},
-     state:$state,docker_argv:{lifecycle:$lifecycle_argv,orchestrator:$orchestrator_argv},
+     state:$state,lifecycle_results:$lifecycle_results,docker_argv:{lifecycle:$lifecycle_argv,orchestrator:$orchestrator_argv},diagnostics:{checkpoint:$failure_checkpoint,registry_log:$registry_log,artifact_error:$artifact_error,phase_errors:$phase_errors},
      remediation:"Inspect only exact declared resources; prune and broad deletion are forbidden. If cleanup is BLOCKED_PROCESS_GROUP, confirm the recorded PGID and exact resources are quiescent before manually removing the retained execution lock."}
   ' >"$bundle_temp"; then
     rm -f -- "$bundle_temp"
@@ -834,6 +953,8 @@ lock_owned=1
   fail 'Docker client bytes drifted after the separately approved plan was bound'
 [[ "$(sha256_file "$timeout_client_path")" == "$timeout_client_sha" ]] ||
   fail 'timeout client bytes drifted after the separately approved plan was bound'
+[[ "$(sha256_file "$go_toolchain_archive")" == "$go_toolchain_archive_sha256" ]] ||
+  fail 'Go toolchain archive bytes drifted after the separately approved plan was bound'
 [[ "$(sha256_file "$architecture_source_path")" == "$architecture_source_sha" ]] ||
   fail 'architecture lock bytes drifted after the separately approved plan was bound'
 [[ "$(sha256_file "$root/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh")" == "$harness_sha" ]] ||
@@ -845,6 +966,16 @@ lock_owned=1
   "$(sha256_file "$snapshot_migration_source")" == "$migration_source_sha" && \
   "$(sha256_file "$snapshot_architecture")" == "$architecture_source_sha" ]] ||
   fail 'Issue #65 immutable input snapshot differs from the separately approved plan'
+
+cp "$go_toolchain_archive" "$snapshot_go_archive"
+[[ "$(sha256_file "$snapshot_go_archive")" == "$go_toolchain_archive_sha256" ]] ||
+  fail 'Go toolchain archive snapshot differs from the separately approved plan'
+tar -xzf "$snapshot_go_archive" -C "$input_snapshot_root"
+[[ -f "$snapshot_go_binary" && -x "$snapshot_go_binary" && ! -L "$snapshot_go_binary" ]] ||
+  fail 'Go toolchain snapshot does not contain an executable go binary'
+go_version_output="$(GOROOT="$snapshot_go_root" GOTOOLCHAIN=local "$snapshot_go_binary" version)"
+[[ "$go_version_output" == "go version $go_toolchain_version "* ]] ||
+  fail 'Go toolchain snapshot version differs from the separately approved plan'
 assert_resource_absent
 
 evidence_date="$approval_date"
@@ -853,8 +984,9 @@ printf '%s\n' "$candidate_matrix_json" >"$candidate_matrix"
   fail 'approved candidate matrix bytes drifted before execution'
 chmod 0444 "$candidate_matrix"
 
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-  go build -trimpath -ldflags '-s -w -buildid=' -o "$web_rootfs/server" "$snapshot_web_source"
+GOROOT="$snapshot_go_root" GOTOOLCHAIN=local CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+  "$snapshot_go_binary" build -trimpath -ldflags '-s -w -buildid=' \
+  -o "$web_rootfs/server" "$snapshot_web_source"
 tar --format=ustar -C "$web_rootfs" -cf "$web_rootfs_tar" server
 resources_created=1
 producer_created_refs+=("$producer_build_web")
@@ -874,7 +1006,7 @@ docker_producer container commit \
   --change 'ENTRYPOINT ["/usr/local/bin/issue65-migrate"]' \
   --change "LABEL com.aisoft.e2e.release-id=$source_sha" \
   "$migration_seed_container" "$producer_build_migrate" >/dev/null
-docker_producer container rm "$migration_seed_container" >/dev/null
+docker_producer container rm --volumes "$migration_seed_container" >/dev/null
 migrate_image_id="$(docker_producer image inspect --format '{{.Id}}' "$producer_build_migrate")"
 [[ "$migrate_image_id" != "$web_image_id" ]] || fail 'fixture web and migration image IDs must differ'
 [[ "$migrate_image_id" != "$producer_postgres_image_id" && "$web_image_id" != "$producer_postgres_image_id" ]] ||
@@ -883,7 +1015,7 @@ record_created_image_id producer "$migrate_image_id"
 
 docker_producer container run --detach --name "$registry_container" \
   --publish "127.0.0.1:${registry_port}:5000" \
-  --tmpfs '/var/lib/registry:rw,nosuid,nodev,noexec,size=67108864' \
+  --tmpfs "/var/lib/registry:rw,nosuid,nodev,noexec,size=${registry_storage_tmpfs_bytes}" \
   "$registry_image" >/dev/null
 producer_created_refs+=("$registry_web_tag" "$registry_migrate_tag")
 docker_producer image tag "$producer_build_web" "$registry_web_tag"
@@ -897,6 +1029,7 @@ push_registry_image() {
     fi
     sleep 0.5
   done
+  docker_producer container logs "$registry_container" >"$workdir/registry-container.log" 2>&1 || true
   fail "producer-local Registry did not accept image after 20 bounded attempts: $reference"
 }
 push_registry_image "$registry_web_tag" "$workdir/registry-web-push.log"
@@ -1036,10 +1169,17 @@ run_driver() {
       "$action" "$@" --release-id "$source_sha" --release-root "$release_root" \
       --compatibility-matrix "$candidate_matrix" --docker "$wrapper" --hostname "$consumer_id"
   else
-    PYTHONDONTWRITEBYTECODE=1 python3 -I -S -B "$driver" \
-      "$action" "$@" --release-id "$source_sha" --profile "$profile_path" \
-      --compatibility-matrix "$candidate_matrix" --docker "$wrapper" --hostname "$consumer_id"
+    run_driver_with_profile "$action" "$profile_path" "$@"
   fi
+}
+
+run_driver_with_profile() {
+  local action="$1"
+  local selected_profile="$2"
+  shift 2
+  PYTHONDONTWRITEBYTECODE=1 python3 -I -S -B "$driver" \
+    "$action" "$@" --release-id "$source_sha" --profile "$selected_profile" \
+    --compatibility-matrix "$candidate_matrix" --docker "$wrapper" --hostname "$consumer_id"
 }
 
 run_migrate_background() {
@@ -1054,9 +1194,13 @@ capture_phase() {
   local action="$1"
   local output_path="$2"
   local log_path="$3"
-  local start_line
+  local start_line error_path
+  error_path="${log_path%.log}.error"
   start_line="$(wc -l <"$phase_log" | tr -d ' ')"
-  run_driver "$action" >"$output_path"
+  if ! run_driver "$action" >"$output_path" 2>"$error_path"; then
+    sed -n '1,20p' "$error_path" >&2
+    return 1
+  fi
   sed -n "$((start_line + 1)),\$p" "$phase_log" >"$log_path"
   jq -e '.ok == true' "$output_path" >/dev/null
 }
@@ -1066,7 +1210,7 @@ assert_phase_lacks() {
   shift
   local pattern
   for pattern in "$@"; do
-    if rg -n "$pattern" "$log_path"; then
+    if grep -En "$pattern" "$log_path"; then
       fail "phase log contains forbidden mutation pattern: $pattern"
     fi
   done
@@ -1082,10 +1226,13 @@ mutation_count() {
   )] | length' "$1"
 }
 
+failure_checkpoint=verify-artifact
 artifact_result="$workdir/verify-artifact.json"
 capture_phase verify-artifact "$artifact_result" "$workdir/verify-artifact.log"
 [[ ! -s "$workdir/verify-artifact.log" ]] || fail 'verify-artifact must make zero Docker calls'
 
+run_post_lifecycle_negative_gates() {
+failure_checkpoint=artifact-tamper-negative
 tamper_producer_before="$(inventory producer)"
 tamper_consumer_before="$(inventory consumer)"
 tampered_root="$workdir/tampered-root"
@@ -1101,12 +1248,16 @@ if PYTHONDONTWRITEBYTECODE=1 python3 -I -S -B "$driver" \
 fi
 [[ "$(wc -l <"$phase_log" | tr -d ' ')" == "$tamper_log_lines" ]] ||
   fail 'tampered artifact made a Docker call'
-jq -e '.ok == false and .error_code == "INVALID_CONTRACT"' "$workdir/tamper.error" >/dev/null
+jq -e '.ok == false and .error_code == "INVALID_CONTRACT"' "$workdir/tamper.error" >/dev/null || {
+  sed -n '1,20p' "$workdir/tamper.error" >&2
+  fail 'tampered artifact rejection returned an unexpected error contract'
+}
 tamper_producer_after="$(inventory producer)"
 tamper_consumer_after="$(inventory consumer)"
 [[ "$tamper_producer_before" == "$tamper_producer_after" && "$tamper_consumer_before" == "$tamper_consumer_after" ]] ||
   fail 'tampered artifact negative changed Docker inventory'
 
+failure_checkpoint=wrong-compose-negative
 wrong_compose_producer_before="$(inventory producer)"
 wrong_compose_consumer_before="$(inventory consumer)"
 printf '%s\n' wrong-compose >"$docker_config/issue65-docker-mode"
@@ -1116,7 +1267,10 @@ if run_driver verify-target >"$workdir/wrong-compose.output" 2>"$workdir/wrong-c
 fi
 sed -n "$((wrong_compose_start + 1)),\$p" "$phase_log" >"$workdir/wrong-compose.log"
 assert_phase_lacks "$workdir/wrong-compose.log" '"image","(pull|load|tag)"' '"compose".*"(run|up)"'
-jq -e '.ok == false and .error_code == "DEPLOYMENT_FAILED"' "$workdir/wrong-compose.error" >/dev/null
+jq -e '.ok == false and .error_code == "DEPLOYMENT_FAILED"' "$workdir/wrong-compose.error" >/dev/null || {
+  sed -n '1,20p' "$workdir/wrong-compose.error" >&2
+  fail 'wrong Compose rejection returned an unexpected error contract'
+}
 wrong_compose_mutations="$(mutation_count "$workdir/wrong-compose.log")"
 [[ "$wrong_compose_mutations" == "0" ]] || fail 'wrong Compose negative performed a Docker mutation'
 wrong_compose_producer_after="$(inventory producer)"
@@ -1124,6 +1278,7 @@ wrong_compose_consumer_after="$(inventory consumer)"
 [[ "$wrong_compose_producer_before" == "$wrong_compose_producer_after" && "$wrong_compose_consumer_before" == "$wrong_compose_consumer_after" ]] ||
   fail 'wrong Compose negative changed Docker inventory'
 
+failure_checkpoint=wrong-store-negative
 wrong_store_producer_before="$(inventory producer)"
 wrong_store_consumer_before="$(inventory consumer)"
 printf '%s\n' wrong-store >"$docker_config/issue65-docker-mode"
@@ -1133,7 +1288,10 @@ if run_driver verify-target >"$workdir/wrong-store.output" 2>"$workdir/wrong-sto
 fi
 sed -n "$((wrong_store_start + 1)),\$p" "$phase_log" >"$workdir/wrong-store.log"
 assert_phase_lacks "$workdir/wrong-store.log" '"image","(pull|load|tag)"' '"compose".*"(run|up)"'
-jq -e '.ok == false and .error_code == "DEPLOYMENT_FAILED"' "$workdir/wrong-store.error" >/dev/null
+jq -e '.ok == false and .error_code == "DEPLOYMENT_FAILED"' "$workdir/wrong-store.error" >/dev/null || {
+  sed -n '1,20p' "$workdir/wrong-store.error" >&2
+  fail 'wrong image-store rejection returned an unexpected error contract'
+}
 wrong_store_mutations="$(mutation_count "$workdir/wrong-store.log")"
 [[ "$wrong_store_mutations" == "0" ]] || fail 'wrong image-store negative performed a Docker mutation'
 wrong_store_producer_after="$(inventory producer)"
@@ -1142,15 +1300,27 @@ wrong_store_consumer_after="$(inventory consumer)"
   fail 'wrong image-store negative changed Docker inventory'
 printf '%s\n' normal >"$docker_config/issue65-docker-mode"
 
+failure_checkpoint=missing-receipt-negative
 missing_receipt_producer_before="$(inventory producer)"
 missing_receipt_consumer_before="$(inventory consumer)"
+missing_receipt_state_root="$workdir/missing-receipt-state"
+missing_receipt_profile="$workdir/missing-receipt-profile.json"
+mkdir -p "$missing_receipt_state_root"
+chmod 0700 "$missing_receipt_state_root"
+jq --arg state_root "$missing_receipt_state_root" '.state_root = $state_root' \
+  "$profile_path" >"$missing_receipt_profile"
+chmod 0600 "$missing_receipt_profile"
 missing_receipt_start="$(wc -l <"$phase_log" | tr -d ' ')"
-if run_driver migrate >"$workdir/missing-receipt.output" 2>"$workdir/missing-receipt.error"; then
+if run_driver_with_profile migrate "$missing_receipt_profile" \
+  >"$workdir/missing-receipt.output" 2>"$workdir/missing-receipt.error"; then
   fail 'migrate without a staging receipt unexpectedly passed'
 fi
 sed -n "$((missing_receipt_start + 1)),\$p" "$phase_log" >"$workdir/missing-receipt.log"
 assert_phase_lacks "$workdir/missing-receipt.log" '"image","(pull|load|tag)"' '"compose".*"(run|up)"'
-jq -e '.ok == false and .error_code == "DEPLOYMENT_FAILED"' "$workdir/missing-receipt.error" >/dev/null
+jq -e '.ok == false and .error_code == "DEPLOYMENT_FAILED"' "$workdir/missing-receipt.error" >/dev/null || {
+  sed -n '1,20p' "$workdir/missing-receipt.error" >&2
+  fail 'missing staging receipt rejection returned an unexpected error contract'
+}
 missing_receipt_mutations="$(mutation_count "$workdir/missing-receipt.log")"
 [[ "$missing_receipt_mutations" == "0" ]] || fail 'missing staging receipt negative performed a Docker mutation'
 missing_receipt_producer_after="$(inventory producer)"
@@ -1191,7 +1361,9 @@ negative_json="$(
      missing_staging_receipt:{result:"REJECTED",mutation_count:$missing_receipt_mutations,error:$missing_receipt_error,inventory:{producer_before:$missing_receipt_producer_before,consumer_before:$missing_receipt_consumer_before,producer_after:$missing_receipt_producer_after,consumer_after:$missing_receipt_consumer_after}}}
   '
 )"
+}
 
+failure_checkpoint=verify-target
 target_result="$workdir/verify-target.json"
 capture_phase verify-target "$target_result" "$workdir/verify-target.log"
 assert_phase_lacks "$workdir/verify-target.log" '"image","(pull|load|tag)"' '"compose".*"(run|up)"'
@@ -1210,6 +1382,7 @@ if docker_consumer image inspect "$registry_web_reference" >/dev/null 2>&1; then
   fail 'failed consumer Registry probe left a new digest reference'
 fi
 
+failure_checkpoint=stage
 stage_result="$workdir/stage.json"
 consumer_created_refs+=("$runtime_web" "$runtime_migrate")
 record_created_image_id consumer "$web_image_id"
@@ -1218,12 +1391,13 @@ capture_phase stage "$stage_result" "$workdir/stage.log"
 assert_phase_lacks "$workdir/stage.log" '"compose".*"(run|up)"'
 jq -e '.action == "staged"' "$stage_result" >/dev/null
 
+failure_checkpoint=postgresql-fixture
 docker_consumer network create --internal "$database_network" >/dev/null
 docker_consumer volume create "$database_volume" >/dev/null
 docker_consumer container run --detach --name "$postgres_container" \
   --network "$database_network" \
   --env-file "$env_file" \
-  --mount "type=volume,source=${database_volume},target=/var/lib/postgresql/data" \
+  --mount "type=volume,source=${database_volume},target=/var/lib/postgresql" \
   --health-cmd 'pg_isready --username issue65 --dbname issue65' \
   --health-interval 2s --health-timeout 2s --health-retries 30 \
   "$postgres_image" >/dev/null
@@ -1235,6 +1409,7 @@ for _ in {1..60}; do
 done
 [[ "${postgres_health:-}" == "healthy" ]] || fail 'disposable PostgreSQL fixture did not become healthy'
 
+failure_checkpoint=migrate
 migrate_result="$workdir/migrate.json"
 migration_started_state="$workdir/migration-started-state.json"
 migration_process_ready="$workdir/migration-process-group.json"
@@ -1296,6 +1471,7 @@ sed -n "$((migrate_start_line + 1)),\$p" "$phase_log" >"$workdir/migrate.log"
 jq -e '.ok == true' "$migrate_result" >/dev/null
 assert_phase_lacks "$workdir/migrate.log" '"image","(pull|load|tag)"' '"compose".*"up"'
 jq -e '.action == "migration-completed"' "$migrate_result" >/dev/null
+failure_checkpoint=migrate-noop
 migrate_noop_result="$workdir/migrate-noop.json"
 capture_phase migrate "$migrate_noop_result" "$workdir/migrate-noop.log"
 assert_phase_lacks "$workdir/migrate-noop.log" '"image","(pull|load|tag)"' '"compose".*"(run|up)"'
@@ -1308,14 +1484,17 @@ database_marker_count="$(
 )"
 [[ "$database_marker_count" == "1" ]] || fail 'disposable PostgreSQL migration marker is not exact'
 
+failure_checkpoint=activate
 activate_result="$workdir/activate.json"
 capture_phase activate "$activate_result" "$workdir/activate.log"
 assert_phase_lacks "$workdir/activate.log" '"image","(pull|load|tag)"' '"compose".*"run"'
 jq -e '.action == "activated"' "$activate_result" >/dev/null
+failure_checkpoint=status
 status_result="$workdir/status.json"
 capture_phase status "$status_result" "$workdir/status.log"
 assert_phase_lacks "$workdir/status.log" '"image","(pull|load|tag)"' '"compose".*"(run|up)"'
 jq -e '.ok == true and .action == "healthy"' "$status_result" >/dev/null
+failure_checkpoint=same-sha-noop
 noop_result="$workdir/same-sha-noop.json"
 capture_phase activate "$noop_result" "$workdir/same-sha-noop.log"
 assert_phase_lacks "$workdir/same-sha-noop.log" '"image","(pull|load|tag)"' '"compose".*"(run|up)"'
@@ -1361,6 +1540,12 @@ jq -e '
   .migrate_noop == 0 and .activate > 0 and .status == 0 and .same_sha_noop == 0
 ' <<<"$phase_mutation_counts_json" >/dev/null || fail 'phase mutation counts violate lifecycle isolation'
 
+# Compatibility is established by the required happy path first. Negative gates run
+# afterwards against isolated state so a harness-only negative failure cannot erase
+# the already captured lifecycle result from the sanitized failure bundle.
+run_post_lifecycle_negative_gates
+
+failure_checkpoint=created-inventory
 producer_inventory_created="$(inventory producer)"
 consumer_inventory_created="$(inventory consumer)"
 jq -e --arg registry "$registry_container" '.containers | contains($registry)' \
@@ -1376,16 +1561,28 @@ jq -e \
   (.volumes | contains($database_volume))
 ' <<<"$consumer_inventory_created" >/dev/null || fail 'created consumer inventory is missing an exact fixture resource'
 
+failure_checkpoint=cleanup
 if ! cleanup_resources; then
   fail 'Issue #65 fixture cleanup failed; inspect only the exact recorded identifiers'
 fi
 resources_created=0
 [[ "$cleanup_verified" == "1" ]] || fail 'Issue #65 cleanup was not independently verified'
 
-git -C "$root" diff --quiet "$source_sha" -- docker-release codex/runtime/aisoft_release ||
-  fail 'docker-release/v2 or release runtime drifted during the real lifecycle run'
-[[ -z "$(git -C "$root" status --porcelain --untracked-files=all -- docker-release codex/runtime/aisoft_release)" ]] ||
-  fail 'docker-release/v2 or release runtime gained tracked or untracked drift during the real lifecycle run'
+[[ "$(git -C "$root" diff --name-only "$source_sha" -- docker-release)" == \
+  "$expected_docker_release_diff" ]] ||
+  fail 'docker-release drifted outside the Issue #65 evidence-gated scope'
+[[ -z "$(git -C "$root" ls-files --others --exclude-standard -- docker-release)" ]] ||
+  fail 'docker-release gained an untracked file during the real lifecycle run'
+[[ "$(tracked_tree_sha256 "$root" docker-release)" == "$docker_release_tree" ]] ||
+  fail 'docker-release bytes drifted during the real lifecycle run'
+[[ "$(git -C "$root" diff --name-only "$source_sha" -- codex/runtime/aisoft_release)" == \
+  'codex/runtime/aisoft_release/transport.py' ]] ||
+  fail 'release runtime drifted outside the separately approved transport.py revision'
+[[ -z "$(git -C "$root" ls-files --others --exclude-standard -- codex/runtime/aisoft_release)" ]] ||
+  fail 'release runtime gained an untracked file during the real lifecycle run'
+[[ "$(tracked_tree_sha256 "$root" codex/runtime/aisoft_release)" == "$runtime_tree" && \
+  "$(tracked_tree_sha256 "$input_snapshot_root" codex/runtime/aisoft_release)" == "$runtime_tree" ]] ||
+  fail 'release runtime bytes drifted during the real lifecycle run'
 [[ "$(sha256_file "$root/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh")" == "$harness_sha" && \
   "$(sha256_file "$driver_source")" == "$driver_sha" && \
   "$(sha256_file "$wrapper_source")" == "$wrapper_sha" && \
@@ -1394,6 +1591,7 @@ git -C "$root" diff --quiet "$source_sha" -- docker-release codex/runtime/aisoft
   "$(sha256_file "$architecture_source_path")" == "$architecture_source_sha" && \
   "$(sha256_file "$docker_client_path")" == "$docker_client_sha" && \
   "$(sha256_file "$timeout_client_path")" == "$timeout_client_sha" && \
+  "$(sha256_file "$go_toolchain_archive")" == "$go_toolchain_archive_sha256" && \
   "$(sha256_file "$duplicate_evidence_path")" == "$duplicate_daemon_evidence_sha256" ]] ||
   fail 'a separately approved Issue #65 input changed during the real lifecycle run'
 [[ "$(sha256_file "$snapshot_driver")" == "$driver_sha" && \
@@ -1402,6 +1600,7 @@ git -C "$root" diff --quiet "$source_sha" -- docker-release codex/runtime/aisoft
   "$(sha256_file "$snapshot_web_source")" == "$web_source_sha" && \
   "$(sha256_file "$snapshot_migration_source")" == "$migration_source_sha" && \
   "$(sha256_file "$snapshot_architecture")" == "$architecture_source_sha" && \
+  "$(sha256_file "$snapshot_go_archive")" == "$go_toolchain_archive_sha256" && \
   "$(sha256_file "$candidate_matrix")" == "$candidate_matrix_sha" ]] ||
   fail 'an immutable Issue #65 execution snapshot changed during the real lifecycle run'
 argv_log_json="$(jq -Rs 'split("\n") | map(select(length > 0) | fromjson)' "$phase_log")"
@@ -1422,6 +1621,8 @@ jq -n \
   --arg wrapper_sha "$wrapper_sha" \
   --arg web_source_sha "$web_source_sha" \
   --arg migration_source_sha "$migration_source_sha" \
+  --arg go_toolchain_archive_sha "$go_toolchain_archive_sha256" \
+  --arg go_toolchain_version "$go_toolchain_version" \
   --arg candidate_matrix_sha "$candidate_matrix_sha" \
   --arg archive_sha "$archive_sha" \
   --arg inventory_sha "$inventory_sha" \
@@ -1459,7 +1660,7 @@ jq -n \
   --argjson phase_mutation_counts "$phase_mutation_counts_json" \
   --argjson negative "$negative_json" '
   {contract_version:"docker-release-v2-lifecycle-e2e-evidence/v1",evidence_id:$evidence_id,date:$date,result:"PASS",approval_plan_sha256:$approval_plan_sha256,
-   source:{sha:$source_sha,tree:$source_tree,docker_release_tree:$docker_release_tree,runtime_tree:$runtime_tree,harness_sha256:$harness_sha,driver_sha256:$driver_sha,wrapper_sha256:$wrapper_sha,web_fixture_sha256:$web_source_sha,migration_fixture_sha256:$migration_source_sha,candidate_matrix_sha256:$candidate_matrix_sha},
+   source:{sha:$source_sha,tree:$source_tree,docker_release_tree:$docker_release_tree,runtime_tree:$runtime_tree,harness_sha256:$harness_sha,driver_sha256:$driver_sha,wrapper_sha256:$wrapper_sha,web_fixture_sha256:$web_source_sha,migration_fixture_sha256:$migration_source_sha,candidate_matrix_sha256:$candidate_matrix_sha,go_toolchain:{archive_sha256:$go_toolchain_archive_sha,version:$go_toolchain_version,snapshot_extract:true,global_install:false}},
    versions:{engine:"29.7.1",compose:"5.1.4",containerd:"2.2.6",os:"linux",architecture:"amd64",image_store:"containerd"},
    producer:$producer,consumer:$consumer,prerequisites:$prerequisites,resources:$resources,
    artifact:{archive_sha256:$archive_sha,inventory_sha256:$inventory_sha,compose_source_sha256:$compose_source_sha,compose_model_sha256:$compose_model_sha,architecture_sha256:$architecture_sha,postgres_image_id:$postgres_image_id,web_image_id:$web_image_id,migrate_image_id:$migrate_image_id},
@@ -1475,6 +1676,9 @@ jq -e --arg approved_plan_sha256 "$approval_plan_sha256" '
   .contract_version == "docker-release-v2-lifecycle-e2e-evidence/v1" and
   .result == "PASS" and
   .approval_plan_sha256 == $approved_plan_sha256 and
+  (.source.go_toolchain.archive_sha256 | test("^[0-9a-f]{64}$")) and
+  (.source.go_toolchain.version | test("^go[0-9]+\\.[0-9]+\\.[0-9]+$")) and
+  .source.go_toolchain.snapshot_extract == true and .source.go_toolchain.global_install == false and
   .versions == {engine:"29.7.1",compose:"5.1.4",containerd:"2.2.6",os:"linux",architecture:"amd64",image_store:"containerd"} and
   .producer.daemon_id != .consumer.daemon_id and
   .producer.docker_root_dir != .consumer.docker_root_dir and

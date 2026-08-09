@@ -70,11 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     except ReleaseError as exc:
         print(
             json.dumps(
-                {
-                    "ok": False,
-                    "error_code": exc.code,
-                    "message": exc.safe_message,
-                },
+                _release_error_payload(exc),
                 sort_keys=True,
                 separators=(",", ":"),
             ),
@@ -88,6 +84,23 @@ def main(argv: list[str] | None = None) -> int:
 def _usage_error(message: str) -> int:
     print(json.dumps({"ok": False, "message": message}, sort_keys=True), file=sys.stderr)
     return 2
+
+
+def _release_error_payload(exc: ReleaseError) -> dict[str, object]:
+    """Keep one safe typed cause for the Issue #65 failure evidence."""
+
+    payload: dict[str, object] = {
+        "ok": False,
+        "error_code": exc.code,
+        "message": exc.safe_message,
+    }
+    cause = exc.__cause__
+    if isinstance(cause, ReleaseError):
+        payload["cause"] = {
+            "error_code": cause.code,
+            "message": cause.safe_message,
+        }
+    return payload
 
 
 def _write_process_group_ready(path: Path) -> None:

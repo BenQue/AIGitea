@@ -43,10 +43,10 @@ updated: 2026-08-09
 ## 问题/需求总结
 
 AISoftPlatform `main@97445947fff79a4c2db6fa764feb21660e281556` 已合并 Issue #58 的
-`docker-release/v2` 分阶段 lifecycle，但 Compose 5.1.4 的真实 consumer E2E 仍按合同保持
-`BLOCKED / NOT RUN`。当前 compatibility matrix revision `2026.08.2` 仅覆盖 Compose
-`>=2.27.0,<3.0.0`，因此 Engine 29.7.1、Compose 5.1.4、linux/amd64、containerd store 的
-`verify-target` 正确 fail closed。
+`docker-release/v2` 分阶段 lifecycle。Issue #65开始时Compose 5.1.4真实consumer E2E保持
+`BLOCKED / NOT RUN`，compatibility matrix revision `2026.08.2`仅覆盖Compose `>=2.27.0,<3.0.0`。
+现已在两个task-owned disposable daemon完成Engine 29.7.1、Compose 5.1.4、linux/amd64、containerd
+完整lifecycle/negative/cleanup evidence，并仅把matrix晋级为revision `2026.08.3`的exact非重叠row。
 
 Issue #65 要求使用两套不同 daemon ID/data root 的 task-owned disposable producer/consumer，
 对 merged `docker-release/v2` 依次验证 artifact、target、stage、migration、activation、status 与

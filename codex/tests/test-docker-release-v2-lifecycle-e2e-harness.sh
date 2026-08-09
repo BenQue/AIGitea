@@ -31,7 +31,7 @@ host="$2"
 shift 2
 
 if [[ "${1:-}" == "version" && "${2:-}" == "--format" ]]; then
-  printf '%s\n' '{"Version":"29.7.1","Os":"linux","Arch":"amd64","Components":[{"Name":"Engine","Version":"29.7.1"},{"Name":"containerd","Version":"2.2.6"}]}'
+  printf '%s\n' '{"Version":"29.7.1","Os":"linux","Arch":"amd64","Components":[{"Name":"Engine","Version":"29.7.1"},{"Name":"containerd","Version":"v2.2.6"}]}'
 elif [[ "${1:-}" == "compose" && "${2:-}" == "version" ]]; then
   printf '%s\n' "${FAKE_65_COMPOSE_VERSION:-5.1.4}"
 elif [[ "${1:-}" == "info" && "${3:-}" == "{{.Driver}}" ]]; then
@@ -76,6 +76,20 @@ postgres_image="registry.example/library/postgres@sha256:$(printf '2%.0s' {1..64
 release_id='97445947fff79a4c2db6fa764feb21660e281556'
 evidence_path="$root/docs/changes/65/fake-evidence-${release_id}.json"
 duplicate_evidence_path="$test_root/duplicate-daemon-negative.json"
+go_toolchain_fixture="$test_root/go-toolchain-fixture"
+go_toolchain_archive="$test_root/go1.26.5.fake-amd64.tar.gz"
+mkdir -p "$go_toolchain_fixture/go/bin"
+cat >"$go_toolchain_fixture/go/bin/go" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' 'go version go1.26.5 fake/amd64'
+SH
+chmod 0755 "$go_toolchain_fixture/go/bin/go"
+tar -czf "$go_toolchain_archive" -C "$go_toolchain_fixture" go
+chmod 0444 "$go_toolchain_archive"
+export AISOFT_65_E2E_GO_TOOLCHAIN_ARCHIVE="$go_toolchain_archive"
+go_toolchain_archive_sha256="$(shasum -a 256 "$go_toolchain_archive" | awk '{print $1}')"
+export AISOFT_65_E2E_GO_TOOLCHAIN_ARCHIVE_SHA256="$go_toolchain_archive_sha256"
+export AISOFT_65_E2E_GO_TOOLCHAIN_VERSION=go1.26.5
 
 FAKE_65_SAME_DAEMON=1 \
   AISOFT_65_E2E_READONLY_AUTHORIZED=issue-65-disposable-preflight-approved \
@@ -202,6 +216,27 @@ if wait "$process_group_pid"; then
 fi
 grep -Fq 'INVALID_CONTRACT' "$test_root/process-group.error"
 grep -Fq 'PYTHONDONTWRITEBYTECODE=1 exec python3 -I -S -B' "$harness"
+PYTHONDONTWRITEBYTECODE=1 python3 -I -S -B - \
+  "$root/codex/tests/integration/docker-release-v2-lifecycle-driver.py" <<'PY'
+import importlib.util
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location("issue65_driver", path)
+assert spec is not None and spec.loader is not None
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+outer = module.ReleaseError("outer-safe")
+inner = module.ReleaseError("inner-safe")
+outer.__cause__ = inner
+assert module._release_error_payload(outer) == {
+    "ok": False,
+    "error_code": "RELEASE_ERROR",
+    "message": "outer-safe",
+    "cause": {"error_code": "RELEASE_ERROR", "message": "inner-safe"},
+}
+PY
 
 default_log_lines="$(wc -l <"$FAKE_65_DOCKER_LOG" | tr -d ' ')"
 default_output="$(bash "$harness")"
@@ -249,6 +284,12 @@ expect_input_rejected_before_docker port 'Registry port is out of range' \
   AISOFT_65_E2E_REGISTRY_PORT=80
 expect_input_rejected_before_docker evidence-path 'must be an absolute normalized path' \
   AISOFT_65_E2E_EVIDENCE_PATH=docs/changes/65/fake.json
+expect_input_rejected_before_docker go-toolchain-archive \
+  'AISOFT_65_E2E_GO_TOOLCHAIN_ARCHIVE must be an absolute regular file' \
+  AISOFT_65_E2E_GO_TOOLCHAIN_ARCHIVE="$test_root/missing-go-toolchain.tar.gz"
+expect_input_rejected_before_docker go-toolchain-sha \
+  'Go toolchain archive SHA-256 does not match the approved input' \
+  AISOFT_65_E2E_GO_TOOLCHAIN_ARCHIVE_SHA256="$(printf '0%.0s' {1..64})"
 mkdir -p "$test_root/evidence-outside/subdir"
 evidence_ancestor_link="$root/docs/changes/65/fake-ancestor-link-${release_id}"
 ln -s "$test_root/evidence-outside" "$evidence_ancestor_link"
@@ -324,6 +365,12 @@ jq -e --arg release "$release_id" '
   (.approval_plan.source.architecture_input.sha256 | test("^[0-9a-f]{64}$")) and
   (.approval_plan.source.docker_client.sha256 | test("^[0-9a-f]{64}$")) and
   (.approval_plan.source.timeout_client.sha256 | test("^[0-9a-f]{64}$")) and
+  .approval_plan.source.go_toolchain.archive_path == $ENV.AISOFT_65_E2E_GO_TOOLCHAIN_ARCHIVE and
+  .approval_plan.source.go_toolchain.archive_sha256 == $ENV.AISOFT_65_E2E_GO_TOOLCHAIN_ARCHIVE_SHA256 and
+  .approval_plan.source.go_toolchain.version == "go1.26.5" and
+  .approval_plan.source.go_toolchain.snapshot_extract == true and
+  .approval_plan.source.go_toolchain.global_install == false and
+  .approval_plan.mutations.producer.registry_storage == {kind:"tmpfs",bytes:268435456} and
   .approval_plan.mutations.consumer.networks == ["aisoft-65-97445947fff7-database","aisoft-65-97445947fff7-backend"] and
   .approval_plan.baseline_inventory.producer == .inventory.producer and
   .approval_plan.baseline_inventory.consumer == .inventory.consumer and
@@ -332,6 +379,26 @@ jq -e --arg release "$release_id" '
 canonical_plan="$(jq -cS '.approval_plan' <<<"$preflight_output")"
 canonical_plan_sha="$(printf '%s' "$canonical_plan" | shasum -a 256 | awk '{print $1}')"
 [[ "$canonical_plan_sha" == "$(jq -er '.approval_plan_sha256' <<<"$preflight_output")" ]]
+grep -Fq 'docker_producer container rm --volumes' "$harness"
+grep -Fq 'consumer_created_refs=("")' "$harness"
+grep -Fq "phase_errors:\$phase_errors" "$harness"
+grep -Fq 'failure_checkpoint=wrong-compose-negative' "$harness"
+happy_noop_line="$(grep -n '^failure_checkpoint=same-sha-noop$' "$harness" | cut -d: -f1)"
+negative_call_line="$(grep -n '^run_post_lifecycle_negative_gates$' "$harness" | cut -d: -f1)"
+[[ -n "$happy_noop_line" && -n "$negative_call_line" && "$happy_noop_line" -lt "$negative_call_line" ]] || {
+  printf '%s\n' 'Issue #65 real negative gates must run after the complete happy lifecycle' >&2
+  exit 1
+}
+grep -Fq "lifecycle_results:\$lifecycle_results" "$harness"
+grep -Fq "temp_parent=\"\${TMPDIR:-/tmp}\"" "$harness"
+grep -Fq "workdir=\"\$(mktemp -d \"\${temp_parent%/}/aisoft-issue65.XXXXXX\")\"" "$harness"
+grep -Fq "workdir=\"\$(cd -P -- \"\$workdir\" && pwd -P)\"" "$harness"
+grep -Fq 'target=/var/lib/postgresql"' "$harness"
+if grep -Fq 'target=/var/lib/postgresql/data"' "$harness"; then
+  printf '%s\n' 'Issue #65 PostgreSQL 18 fixture must not use the pre-18 volume target' >&2
+  exit 1
+fi
+grep -Fq "chmod 0700 \"\$missing_receipt_state_root\"" "$harness"
 [[ "$(jq -er '.approval_plan.duplicate_daemon_negative.sha256' <<<"$preflight_output")" == \
   "$(shasum -a 256 "$duplicate_evidence_path" | awk '{print $1}')" ]]
 

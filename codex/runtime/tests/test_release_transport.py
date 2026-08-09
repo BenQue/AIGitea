@@ -265,6 +265,53 @@ class ReleaseTransportTests(unittest.TestCase):
                 self.assertTrue(result["ok"])
                 self.assertEqual(docker.mutations, [])
 
+    def test_docker_29_containerd_direct_manifest_identity_passes_preflight(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile, model, manifest = create_release(
+                root, transport="offline-bundle", migration=False
+            )
+            release_dir = root / "releases" / SHA_A
+            updated = replace_with_oci_archive(
+                release_dir,
+                manifest,
+                image_store="containerd-direct",
+            )
+            docker = FakeDocker()
+            docker.register(SHA_A, model, updated)
+
+            result = ReleaseRuntime(docker, hostname="test-host").verify(
+                profile, SHA_A
+            )
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(docker.mutations, [])
+
+    def test_docker_29_containerd_direct_manifest_rejects_unrelated_image_id(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile, model, manifest = create_release(
+                root, transport="offline-bundle", migration=False
+            )
+            release_dir = root / "releases" / SHA_A
+            updated = replace_with_oci_archive(
+                release_dir,
+                manifest,
+                image_store="containerd-direct",
+                tamper="declared-image-id",
+            )
+            docker = FakeDocker()
+            docker.register(SHA_A, model, updated)
+
+            with self.assertRaises(TransportError):
+                ReleaseRuntime(docker, hostname="test-host").verify(profile, SHA_A)
+
+            self.assertEqual(docker.mutations, [])
+
     def test_docker_29_oci_archive_tamper_fails_before_load(self) -> None:
         cases = (
             ("containerd", "reference"),

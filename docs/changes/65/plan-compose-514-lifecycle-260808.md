@@ -35,8 +35,8 @@ updated: 2026-08-09
 | Ticket | Delivers | blocked_by | Status |
 |---|---|---|---|
 | T01 | 安全、确定性、默认零 Docker call 的 v2 lifecycle harness 与 fake/negative/cleanup/evidence tests | [] | complete |
-| T02 | 用户单独批准环境中的 Engine 29.7.1 + Compose 5.1.4 + containerd real lifecycle evidence | [T01] | blocked-approval |
-| T03 | 仅按 T02 PASS evidence 晋级 exact matrix row、完成文档/final gates/单一 PR | [T02] | pending |
+| T02 | 用户单独批准环境中的 Engine 29.7.1 + Compose 5.1.4 + containerd real lifecycle evidence | [T01] | complete |
+| T03 | 仅按 T02 PASS evidence 晋级 exact matrix row、完成文档/final gates/单一 PR | [T02] | in-progress |
 
 ## Tasks
 
@@ -64,16 +64,23 @@ updated: 2026-08-09
 
 ### T02 — Execute the separately approved real E2E
 
+- 2026-08-09 first artifact-diagnostic run在`verify-artifact`证明Docker 29 containerd direct OCI manifest
+  使用top-level descriptor digest作为inspect identity，而runtime仅接受Config digest；failure cleanup
+  恢复两端baseline。用户随后批准本Issue内的最窄runtime/test/README/spec修订，但每个修订后real execute
+  仍须重新生成canonical plan并单独批准。
 - 在任何 create/start/config/install前，把 exact VM/daemon/resource names、package/binary bytes、ports、
   images、network、volume、commands、cleanup和失败处理列给用户，并取得单独书面批准。
 - 对两个不同 task-owned endpoint执行只读 preflight；固定 Engine `29.7.1`、Compose `5.1.4`、containerd
   `2.2.6`、linux/amd64、`DriverStatus` marker、daemon ID/data root和baseline inventory。
-- 执行 duplicate daemon、wrong Compose、wrong store和artifact tamper negative cases；证明各自对应的真实
-  mutation count为0且inventory不变。
+- 在任何resource creation前执行独立duplicate-daemon read-only negative；其余wrong Compose、wrong store、
+  artifact tamper与missing-receipt negatives统一后置到完整happy lifecycle之后，并证明各自真实mutation
+  count为0且inventory不变。missing-receipt使用独立空state root。
 - 在producer构建/标记fixture、启动loopback Registry、push/pull digest、生成V2 offline bundle；在
   consumer证明 Registry pull rejected 后用 platform offline stage加载exact bytes。
 - 只在consumer启动 disposable PostgreSQL fixture；按顺序执行 verify-artifact、verify-target、stage、
   migrate、activate、status与same-SHA activate no-op，并逐步验证phase isolation、receipts、identity/health。
+- 后置negative gate失败时，sanitized failure bundle必须保留已完成的happy lifecycle JSON/state/argv；该run
+  仍为FAIL且不能生成PASS evidence，但不得再把真实lifecycle记为`NOT RUN`。
 - 成功后先精确cleanup并回读baseline，再生成mode `0444` immutable PASS evidence；失败时cleanup后只记录
   failure，禁止生成PASS evidence或修改production matrix。
 - 更新verification中T02结果；提交包含 `#65 T02` 的原子 evidence commit。
@@ -97,13 +104,17 @@ updated: 2026-08-09
 - `codex/tests/integration/`：Issue #65 real lifecycle harness。
 - `codex/tests/`：harness fake/static regression与full smoke入口。
 - `codex/tests/fixtures/docker-release-v2-lifecycle/`：最小v2/PostgreSQL fixture source与validation inputs。
+- `codex/runtime/aisoft_release/transport.py`、`codex/runtime/tests/release_test_support.py`、
+  `codex/runtime/tests/test_release_transport.py`：仅限用户2026-08-09批准的direct OCI manifest
+  descriptor/Config identity修复与fail-closed回归。
 - `docker-release/compatibility/image-stores-v1.json`：仅T02 PASS后由T03修改。
 - `codex/runtime/tests/test_release_capability.py`：exact new row正反tests。
 - `docker-release/README.md`、`02-CI与自动部署流水线.md`、onboarding runbook：evidence与采用边界。
 - `docs/changes/65/`：mapped summary/spec/plan/verification。
 
-以上路径是当前expected touch points，不授权修改lifecycle runtime、CLI/schema、AGENTS、Gitea workflow、
-业务仓库或环境配置。若实现必须改变这些合同，立即返回 `NEEDS_HUMAN_DECISION`。
+除上面精确列出的`transport.py` identity validator修订外，不授权修改其它lifecycle runtime、CLI/schema、
+AGENTS、Gitea workflow、业务仓库或环境配置。若实现必须继续改变这些合同，立即返回
+`NEEDS_HUMAN_DECISION`。
 
 ## Acceptance criteria mapping
 

@@ -1,0 +1,4150 @@
+{
+  "contract_version": "docker-release-v2-lifecycle-e2e-evidence/v1",
+  "evidence_id": "issue-65-compose-5.1.4-97445947fff7",
+  "date": "2026-08-09",
+  "result": "PASS",
+  "approval_plan_sha256": "f9d36a7a1602ac684f97e22959daca3b24a3915fa7058f29253b37309ad1027e",
+  "source": {
+    "sha": "97445947fff79a4c2db6fa764feb21660e281556",
+    "tree": "cecc2c6648216acfb77f8141e364454e828bbed5",
+    "docker_release_tree": "eae0b589adbc5c5862a10c06514200d5a3c9325d160f9adfd0f2150a9a20725a",
+    "runtime_tree": "a0b4e2fb4d0999b8b982daa8dd83a556cba92274ba53e74b9aea724f1009ab1d",
+    "harness_sha256": "e98a906688101a6afa640568190b3e445509cf22617f769b75e72665e4e39844",
+    "driver_sha256": "86591ac703a77c8af995faef8a0c9312969307873076e52353a98b199065f50b",
+    "wrapper_sha256": "4f780497cf884db7ee81821910465b4591929f882bd0ff6cb3355560b37d9383",
+    "web_fixture_sha256": "c04ac5ebd8a30685ffe28e39072f1e3743812bb3da2783e0abc5c95c02ce425b",
+    "migration_fixture_sha256": "e98e881d044840912459d2498ae472f2f4728ed6c1ce8c5a7e03aebbf7e791a8",
+    "candidate_matrix_sha256": "10e0390ba44fb83f8bbb870d251e640126d2f7981443eecbf7b38c61e3bdce6c",
+    "go_toolchain": {
+      "archive_sha256": "efb87ff28af9a188d0536ef5d42e63dd52ba8263cd7344a993cc48dd11dedb6a",
+      "version": "go1.26.5",
+      "snapshot_extract": true,
+      "global_install": false
+    }
+  },
+  "versions": {
+    "engine": "29.7.1",
+    "compose": "5.1.4",
+    "containerd": "2.2.6",
+    "os": "linux",
+    "architecture": "amd64",
+    "image_store": "containerd"
+  },
+  "producer": {
+    "engine": "29.7.1",
+    "compose": "5.1.4",
+    "containerd": "2.2.6",
+    "os": "linux",
+    "architecture": "amd64",
+    "image_store": "containerd",
+    "daemon_id": "494f46cb-3bf9-4077-9495-7ab7192d41bc",
+    "docker_root_dir": "/var/lib/docker"
+  },
+  "consumer": {
+    "engine": "29.7.1",
+    "compose": "5.1.4",
+    "containerd": "2.2.6",
+    "os": "linux",
+    "architecture": "amd64",
+    "image_store": "containerd",
+    "daemon_id": "e810cc9d-72da-426f-8eef-6123a9b4a535",
+    "docker_root_dir": "/var/lib/docker-aisoft-65-consumer"
+  },
+  "prerequisites": {
+    "registry_image": "docker.io/library/registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+    "registry_image_id": "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+    "postgres_image": "docker.io/library/postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+    "postgres_image_id": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+  },
+  "resources": {
+    "registry_container": "aisoft-65-97445947fff7-registry",
+    "postgres_container": "aisoft-65-97445947fff7-postgres",
+    "compose_project": "aisoft-65-97445947fff7-consumer",
+    "database_network": "aisoft-65-97445947fff7-database",
+    "compose_backend_network": "aisoft-65-97445947fff7-backend",
+    "database_volume": "aisoft-65-97445947fff7-pgdata"
+  },
+  "artifact": {
+    "archive_sha256": "70d2bef504deb93825739c3b24643ceaeff59f897b19d7d909a3be176870c948",
+    "inventory_sha256": "f71c310624d0aba053ea566158045f0937daec628bd097ada4bf99695e3879e2",
+    "compose_source_sha256": "827406ceae053f624f339b18faa4a9bb801a518007a1005ce9fab2419fb8814c",
+    "compose_model_sha256": "585a8bacc7b67fd69654506b8efef49de02d8bacb1dadb6ca35724d59d0160a2",
+    "architecture_sha256": "af90e11a9037ced8f56f9dcccf5632a905dbb9ebcb31cfb4f0a4df385d48dd47",
+    "postgres_image_id": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+    "web_image_id": "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17",
+    "migrate_image_id": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+  },
+  "lifecycle": {
+    "verify_artifact": {
+      "action": "verify-artifact",
+      "architecture_profile_id": "linux-node-postgres-v1",
+      "architecture_project_id": "newemaint-target-candidate",
+      "catalog_revision": "2026.08.3",
+      "contract_version": "docker-release/v2",
+      "docker_calls": 0,
+      "ok": true,
+      "platform": "linux/amd64",
+      "release_id": "97445947fff79a4c2db6fa764feb21660e281556",
+      "source_repository": "admin/aisoft-platform",
+      "target_facts": "NOT_READ"
+    },
+    "verify_target": {
+      "action": "verify-target",
+      "architecture_profile_id": "linux-node-postgres-v1",
+      "architecture_project_id": "newemaint-target-candidate",
+      "catalog_revision": "2026.08.3",
+      "compatibility_matrix_revision": "2026.08.3",
+      "compatibility_row": "engine-29.7.1-compose-5.1.4-containerd-linux-amd64",
+      "image_store": "containerd",
+      "ok": true,
+      "platform": "linux/amd64",
+      "profile_id": "aisoft-65-compose-514",
+      "release_id": "97445947fff79a4c2db6fa764feb21660e281556",
+      "source_repository": "admin/aisoft-platform",
+      "transport": "offline-bundle"
+    },
+    "stage": {
+      "action": "staged",
+      "current_release": null,
+      "database_restore": "NOT_RUN_MANUAL_ONLY",
+      "ok": true,
+      "previous_release": null,
+      "profile_id": "aisoft-65-compose-514",
+      "release_id": "97445947fff79a4c2db6fa764feb21660e281556"
+    },
+    "migration_started": {
+      "contract_version": "docker-release-state/v2",
+      "current_release": null,
+      "last_result": "migration-started",
+      "migrations": {
+        "sha256:0c9540068ebdf6d19aaf1cfd8633179691dcfa668d6142f1d349263ebc32e70b": {
+          "release_id": "97445947fff79a4c2db6fa764feb21660e281556",
+          "status": "started"
+        }
+      },
+      "previous_release": null,
+      "profile_id": "aisoft-65-compose-514",
+      "staged_releases": {
+        "97445947fff79a4c2db6fa764feb21660e281556": {
+          "image_ids": {
+            "migrate": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03",
+            "web": "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+          },
+          "status": "completed",
+          "transport": "offline-bundle"
+        }
+      }
+    },
+    "migrate": {
+      "action": "migration-completed",
+      "current_release": null,
+      "database_restore": "NOT_RUN_MANUAL_ONLY",
+      "ok": true,
+      "previous_release": null,
+      "profile_id": "aisoft-65-compose-514",
+      "release_id": "97445947fff79a4c2db6fa764feb21660e281556"
+    },
+    "migrate_noop": {
+      "action": "migration-noop",
+      "current_release": null,
+      "database_restore": "NOT_RUN_MANUAL_ONLY",
+      "ok": true,
+      "previous_release": null,
+      "profile_id": "aisoft-65-compose-514",
+      "release_id": "97445947fff79a4c2db6fa764feb21660e281556"
+    },
+    "activate": {
+      "action": "activated",
+      "current_release": "97445947fff79a4c2db6fa764feb21660e281556",
+      "database_restore": "NOT_RUN_MANUAL_ONLY",
+      "ok": true,
+      "previous_release": null,
+      "profile_id": "aisoft-65-compose-514",
+      "release_id": "97445947fff79a4c2db6fa764feb21660e281556"
+    },
+    "status": {
+      "action": "healthy",
+      "current_release": "97445947fff79a4c2db6fa764feb21660e281556",
+      "database_restore": "NOT_RUN_MANUAL_ONLY",
+      "ok": true,
+      "previous_release": null,
+      "profile_id": "aisoft-65-compose-514",
+      "release_id": "97445947fff79a4c2db6fa764feb21660e281556"
+    },
+    "same_sha_noop": {
+      "action": "healthy-noop",
+      "current_release": "97445947fff79a4c2db6fa764feb21660e281556",
+      "database_restore": "NOT_RUN_MANUAL_ONLY",
+      "ok": true,
+      "previous_release": null,
+      "profile_id": "aisoft-65-compose-514",
+      "release_id": "97445947fff79a4c2db6fa764feb21660e281556"
+    },
+    "state": {
+      "contract_version": "docker-release-state/v2",
+      "current_release": "97445947fff79a4c2db6fa764feb21660e281556",
+      "last_result": "healthy-noop",
+      "migrations": {
+        "sha256:0c9540068ebdf6d19aaf1cfd8633179691dcfa668d6142f1d349263ebc32e70b": {
+          "release_id": "97445947fff79a4c2db6fa764feb21660e281556",
+          "status": "completed"
+        }
+      },
+      "previous_release": null,
+      "profile_id": "aisoft-65-compose-514",
+      "staged_releases": {
+        "97445947fff79a4c2db6fa764feb21660e281556": {
+          "image_ids": {
+            "migrate": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03",
+            "web": "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+          },
+          "status": "completed",
+          "transport": "offline-bundle"
+        }
+      }
+    },
+    "phase_argv": {
+      "verify_artifact": [],
+      "verify_target": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ]
+      ],
+      "stage": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "load",
+          "--input",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/images.tar"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      ],
+      "migrate": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "--env-file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/target.env",
+          "run",
+          "--rm",
+          "--no-deps",
+          "--pull",
+          "never",
+          "migrate"
+        ]
+      ],
+      "migrate_noop": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      ],
+      "activate": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "--env-file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/target.env",
+          "up",
+          "--detach",
+          "--wait",
+          "--wait-timeout",
+          "90",
+          "--pull",
+          "never",
+          "--no-build",
+          "--remove-orphans"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "--env-file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/target.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "c4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19"
+        ]
+      ],
+      "status": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "--env-file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/target.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "c4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19"
+        ]
+      ],
+      "same_sha_noop": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "--env-file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/target.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "c4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19"
+        ]
+      ]
+    },
+    "phase_mutation_counts": {
+      "verify_artifact": 0,
+      "verify_target": 0,
+      "stage": 1,
+      "migrate": 1,
+      "migrate_noop": 0,
+      "activate": 1,
+      "status": 0,
+      "same_sha_noop": 0
+    }
+  },
+  "negative": {
+    "duplicate_daemon": {
+      "contract_version": "aisoft-issue-65-duplicate-daemon-negative/v1",
+      "result": "REJECTED_BEFORE_MUTATION",
+      "mutations": 0,
+      "source_sha": "97445947fff79a4c2db6fa764feb21660e281556",
+      "harness_sha256": "e98a906688101a6afa640568190b3e445509cf22617f769b75e72665e4e39844",
+      "producer_endpoint": "ssh://aisoft-65-producer@issue65-producer",
+      "consumer_endpoint": "ssh://aisoft-65-producer@issue65-producer-alias",
+      "producer": {
+        "engine": "29.7.1",
+        "compose": "5.1.4",
+        "containerd": "2.2.6",
+        "os": "linux",
+        "architecture": "amd64",
+        "image_store": "containerd",
+        "daemon_id": "494f46cb-3bf9-4077-9495-7ab7192d41bc",
+        "docker_root_dir": "/var/lib/docker"
+      },
+      "consumer": {
+        "engine": "29.7.1",
+        "compose": "5.1.4",
+        "containerd": "2.2.6",
+        "os": "linux",
+        "architecture": "amd64",
+        "image_store": "containerd",
+        "daemon_id": "494f46cb-3bf9-4077-9495-7ab7192d41bc",
+        "docker_root_dir": "/var/lib/docker"
+      },
+      "shared_daemon_id": "494f46cb-3bf9-4077-9495-7ab7192d41bc",
+      "shared_docker_root_dir": "/var/lib/docker",
+      "inventory": {
+        "producer_before": {
+          "containers": "",
+          "images": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "repo_digests": "postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+          "volumes": ""
+        },
+        "consumer_before": {
+          "containers": "",
+          "images": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "repo_digests": "postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+          "volumes": ""
+        },
+        "producer_after": {
+          "containers": "",
+          "images": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "repo_digests": "postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+          "volumes": ""
+        },
+        "consumer_after": {
+          "containers": "",
+          "images": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "repo_digests": "postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+          "volumes": ""
+        }
+      }
+    },
+    "artifact_tamper": {
+      "result": "REJECTED",
+      "docker_calls": 0,
+      "error": {
+        "error_code": "INVALID_CONTRACT",
+        "message": "normalized Compose model checksum does not match release manifest",
+        "ok": false
+      },
+      "inventory": {
+        "producer_before": {
+          "containers": "5b46371604711c5aa00668fd385dcb37cdf5cd2af3d19db23af3e6bfb33c952b aisoft-65-97445947fff7-registry",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft-65-97445947fff7-migrate-build:fixture@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft-65-97445947fff7-web-build:fixture@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "repo_digests": "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\n127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft-65-97445947fff7-migrate-build@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft-65-97445947fff7-web-build@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+          "volumes": ""
+        },
+        "consumer_before": {
+          "containers": "3f4b1ba71bf43b53957a176a64d75f1dbc72e3a98c2e260dd7602f888daf4f12 aisoft-65-97445947fff7-postgres\n54fefdc0d3891d1c4cd77225f081cac3da7a7dd32cf973dae65bc8260b65e0ed aisoft-65-97445947fff7-consumer-migrate-1\nc4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19 aisoft-65-97445947fff7-consumer-web-1",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "repo_digests": "aisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "networks": "12e3c5b227115918b37b72bac84f547bc994193b65c9e21f1b4cc5cbaffd2f92 aisoft-65-97445947fff7-database\n672af18b38ed91b012d7da5305d9026eb820445fa62c31af2757af523ee75d49 bridge\n71bb9ac903b5af98389cc95f9e7ffb314c97c4ec86a2f17fa2622c0b5121c70e none\nf20781b38d75e8dc3201d7015bbb02ceeed619a0c43f3dd38d82ab3b7cd9052a aisoft-65-97445947fff7-backend\nfc4144b88de2f8cc548d656ca92a8ecb49bf132a30596eaea4055dbc0bed42d6 host",
+          "volumes": "aisoft-65-97445947fff7-pgdata\nfd59f1e9267eea1ef42f14b45ec2de7fb906a77ef573a21d63f757bc262fdff8"
+        },
+        "producer_after": {
+          "containers": "5b46371604711c5aa00668fd385dcb37cdf5cd2af3d19db23af3e6bfb33c952b aisoft-65-97445947fff7-registry",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft-65-97445947fff7-migrate-build:fixture@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft-65-97445947fff7-web-build:fixture@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "repo_digests": "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\n127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft-65-97445947fff7-migrate-build@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft-65-97445947fff7-web-build@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+          "volumes": ""
+        },
+        "consumer_after": {
+          "containers": "3f4b1ba71bf43b53957a176a64d75f1dbc72e3a98c2e260dd7602f888daf4f12 aisoft-65-97445947fff7-postgres\n54fefdc0d3891d1c4cd77225f081cac3da7a7dd32cf973dae65bc8260b65e0ed aisoft-65-97445947fff7-consumer-migrate-1\nc4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19 aisoft-65-97445947fff7-consumer-web-1",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "repo_digests": "aisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "networks": "12e3c5b227115918b37b72bac84f547bc994193b65c9e21f1b4cc5cbaffd2f92 aisoft-65-97445947fff7-database\n672af18b38ed91b012d7da5305d9026eb820445fa62c31af2757af523ee75d49 bridge\n71bb9ac903b5af98389cc95f9e7ffb314c97c4ec86a2f17fa2622c0b5121c70e none\nf20781b38d75e8dc3201d7015bbb02ceeed619a0c43f3dd38d82ab3b7cd9052a aisoft-65-97445947fff7-backend\nfc4144b88de2f8cc548d656ca92a8ecb49bf132a30596eaea4055dbc0bed42d6 host",
+          "volumes": "aisoft-65-97445947fff7-pgdata\nfd59f1e9267eea1ef42f14b45ec2de7fb906a77ef573a21d63f757bc262fdff8"
+        }
+      }
+    },
+    "wrong_compose": {
+      "result": "REJECTED",
+      "mutation_count": 0,
+      "error": {
+        "error_code": "DEPLOYMENT_FAILED",
+        "message": "Docker runtime capability is not covered by exactly one compatibility row",
+        "ok": false
+      },
+      "inventory": {
+        "producer_before": {
+          "containers": "5b46371604711c5aa00668fd385dcb37cdf5cd2af3d19db23af3e6bfb33c952b aisoft-65-97445947fff7-registry",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft-65-97445947fff7-migrate-build:fixture@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft-65-97445947fff7-web-build:fixture@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "repo_digests": "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\n127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft-65-97445947fff7-migrate-build@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft-65-97445947fff7-web-build@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+          "volumes": ""
+        },
+        "consumer_before": {
+          "containers": "3f4b1ba71bf43b53957a176a64d75f1dbc72e3a98c2e260dd7602f888daf4f12 aisoft-65-97445947fff7-postgres\n54fefdc0d3891d1c4cd77225f081cac3da7a7dd32cf973dae65bc8260b65e0ed aisoft-65-97445947fff7-consumer-migrate-1\nc4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19 aisoft-65-97445947fff7-consumer-web-1",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "repo_digests": "aisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "networks": "12e3c5b227115918b37b72bac84f547bc994193b65c9e21f1b4cc5cbaffd2f92 aisoft-65-97445947fff7-database\n672af18b38ed91b012d7da5305d9026eb820445fa62c31af2757af523ee75d49 bridge\n71bb9ac903b5af98389cc95f9e7ffb314c97c4ec86a2f17fa2622c0b5121c70e none\nf20781b38d75e8dc3201d7015bbb02ceeed619a0c43f3dd38d82ab3b7cd9052a aisoft-65-97445947fff7-backend\nfc4144b88de2f8cc548d656ca92a8ecb49bf132a30596eaea4055dbc0bed42d6 host",
+          "volumes": "aisoft-65-97445947fff7-pgdata\nfd59f1e9267eea1ef42f14b45ec2de7fb906a77ef573a21d63f757bc262fdff8"
+        },
+        "producer_after": {
+          "containers": "5b46371604711c5aa00668fd385dcb37cdf5cd2af3d19db23af3e6bfb33c952b aisoft-65-97445947fff7-registry",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft-65-97445947fff7-migrate-build:fixture@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft-65-97445947fff7-web-build:fixture@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "repo_digests": "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\n127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft-65-97445947fff7-migrate-build@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft-65-97445947fff7-web-build@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+          "volumes": ""
+        },
+        "consumer_after": {
+          "containers": "3f4b1ba71bf43b53957a176a64d75f1dbc72e3a98c2e260dd7602f888daf4f12 aisoft-65-97445947fff7-postgres\n54fefdc0d3891d1c4cd77225f081cac3da7a7dd32cf973dae65bc8260b65e0ed aisoft-65-97445947fff7-consumer-migrate-1\nc4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19 aisoft-65-97445947fff7-consumer-web-1",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "repo_digests": "aisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "networks": "12e3c5b227115918b37b72bac84f547bc994193b65c9e21f1b4cc5cbaffd2f92 aisoft-65-97445947fff7-database\n672af18b38ed91b012d7da5305d9026eb820445fa62c31af2757af523ee75d49 bridge\n71bb9ac903b5af98389cc95f9e7ffb314c97c4ec86a2f17fa2622c0b5121c70e none\nf20781b38d75e8dc3201d7015bbb02ceeed619a0c43f3dd38d82ab3b7cd9052a aisoft-65-97445947fff7-backend\nfc4144b88de2f8cc548d656ca92a8ecb49bf132a30596eaea4055dbc0bed42d6 host",
+          "volumes": "aisoft-65-97445947fff7-pgdata\nfd59f1e9267eea1ef42f14b45ec2de7fb906a77ef573a21d63f757bc262fdff8"
+        }
+      }
+    },
+    "wrong_store": {
+      "result": "REJECTED",
+      "mutation_count": 0,
+      "error": {
+        "error_code": "DEPLOYMENT_FAILED",
+        "message": "Docker runtime capability is not covered by exactly one compatibility row",
+        "ok": false
+      },
+      "inventory": {
+        "producer_before": {
+          "containers": "5b46371604711c5aa00668fd385dcb37cdf5cd2af3d19db23af3e6bfb33c952b aisoft-65-97445947fff7-registry",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft-65-97445947fff7-migrate-build:fixture@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft-65-97445947fff7-web-build:fixture@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "repo_digests": "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\n127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft-65-97445947fff7-migrate-build@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft-65-97445947fff7-web-build@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+          "volumes": ""
+        },
+        "consumer_before": {
+          "containers": "3f4b1ba71bf43b53957a176a64d75f1dbc72e3a98c2e260dd7602f888daf4f12 aisoft-65-97445947fff7-postgres\n54fefdc0d3891d1c4cd77225f081cac3da7a7dd32cf973dae65bc8260b65e0ed aisoft-65-97445947fff7-consumer-migrate-1\nc4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19 aisoft-65-97445947fff7-consumer-web-1",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "repo_digests": "aisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "networks": "12e3c5b227115918b37b72bac84f547bc994193b65c9e21f1b4cc5cbaffd2f92 aisoft-65-97445947fff7-database\n672af18b38ed91b012d7da5305d9026eb820445fa62c31af2757af523ee75d49 bridge\n71bb9ac903b5af98389cc95f9e7ffb314c97c4ec86a2f17fa2622c0b5121c70e none\nf20781b38d75e8dc3201d7015bbb02ceeed619a0c43f3dd38d82ab3b7cd9052a aisoft-65-97445947fff7-backend\nfc4144b88de2f8cc548d656ca92a8ecb49bf132a30596eaea4055dbc0bed42d6 host",
+          "volumes": "aisoft-65-97445947fff7-pgdata\nfd59f1e9267eea1ef42f14b45ec2de7fb906a77ef573a21d63f757bc262fdff8"
+        },
+        "producer_after": {
+          "containers": "5b46371604711c5aa00668fd385dcb37cdf5cd2af3d19db23af3e6bfb33c952b aisoft-65-97445947fff7-registry",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft-65-97445947fff7-migrate-build:fixture@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft-65-97445947fff7-web-build:fixture@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "repo_digests": "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\n127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft-65-97445947fff7-migrate-build@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft-65-97445947fff7-web-build@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+          "volumes": ""
+        },
+        "consumer_after": {
+          "containers": "3f4b1ba71bf43b53957a176a64d75f1dbc72e3a98c2e260dd7602f888daf4f12 aisoft-65-97445947fff7-postgres\n54fefdc0d3891d1c4cd77225f081cac3da7a7dd32cf973dae65bc8260b65e0ed aisoft-65-97445947fff7-consumer-migrate-1\nc4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19 aisoft-65-97445947fff7-consumer-web-1",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "repo_digests": "aisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "networks": "12e3c5b227115918b37b72bac84f547bc994193b65c9e21f1b4cc5cbaffd2f92 aisoft-65-97445947fff7-database\n672af18b38ed91b012d7da5305d9026eb820445fa62c31af2757af523ee75d49 bridge\n71bb9ac903b5af98389cc95f9e7ffb314c97c4ec86a2f17fa2622c0b5121c70e none\nf20781b38d75e8dc3201d7015bbb02ceeed619a0c43f3dd38d82ab3b7cd9052a aisoft-65-97445947fff7-backend\nfc4144b88de2f8cc548d656ca92a8ecb49bf132a30596eaea4055dbc0bed42d6 host",
+          "volumes": "aisoft-65-97445947fff7-pgdata\nfd59f1e9267eea1ef42f14b45ec2de7fb906a77ef573a21d63f757bc262fdff8"
+        }
+      }
+    },
+    "missing_staging_receipt": {
+      "result": "REJECTED",
+      "mutation_count": 0,
+      "error": {
+        "error_code": "DEPLOYMENT_FAILED",
+        "message": "operation requires a completed exact image staging receipt",
+        "ok": false
+      },
+      "inventory": {
+        "producer_before": {
+          "containers": "5b46371604711c5aa00668fd385dcb37cdf5cd2af3d19db23af3e6bfb33c952b aisoft-65-97445947fff7-registry",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft-65-97445947fff7-migrate-build:fixture@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft-65-97445947fff7-web-build:fixture@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "repo_digests": "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\n127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft-65-97445947fff7-migrate-build@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft-65-97445947fff7-web-build@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+          "volumes": ""
+        },
+        "consumer_before": {
+          "containers": "3f4b1ba71bf43b53957a176a64d75f1dbc72e3a98c2e260dd7602f888daf4f12 aisoft-65-97445947fff7-postgres\n54fefdc0d3891d1c4cd77225f081cac3da7a7dd32cf973dae65bc8260b65e0ed aisoft-65-97445947fff7-consumer-migrate-1\nc4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19 aisoft-65-97445947fff7-consumer-web-1",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "repo_digests": "aisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "networks": "12e3c5b227115918b37b72bac84f547bc994193b65c9e21f1b4cc5cbaffd2f92 aisoft-65-97445947fff7-database\n672af18b38ed91b012d7da5305d9026eb820445fa62c31af2757af523ee75d49 bridge\n71bb9ac903b5af98389cc95f9e7ffb314c97c4ec86a2f17fa2622c0b5121c70e none\nf20781b38d75e8dc3201d7015bbb02ceeed619a0c43f3dd38d82ab3b7cd9052a aisoft-65-97445947fff7-backend\nfc4144b88de2f8cc548d656ca92a8ecb49bf132a30596eaea4055dbc0bed42d6 host",
+          "volumes": "aisoft-65-97445947fff7-pgdata\nfd59f1e9267eea1ef42f14b45ec2de7fb906a77ef573a21d63f757bc262fdff8"
+        },
+        "producer_after": {
+          "containers": "5b46371604711c5aa00668fd385dcb37cdf5cd2af3d19db23af3e6bfb33c952b aisoft-65-97445947fff7-registry",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft-65-97445947fff7-migrate-build:fixture@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft-65-97445947fff7-web-build:fixture@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "repo_digests": "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\n127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft-65-97445947fff7-migrate-build@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft-65-97445947fff7-web-build@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+          "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+          "volumes": ""
+        },
+        "consumer_after": {
+          "containers": "3f4b1ba71bf43b53957a176a64d75f1dbc72e3a98c2e260dd7602f888daf4f12 aisoft-65-97445947fff7-postgres\n54fefdc0d3891d1c4cd77225f081cac3da7a7dd32cf973dae65bc8260b65e0ed aisoft-65-97445947fff7-consumer-migrate-1\nc4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19 aisoft-65-97445947fff7-consumer-web-1",
+          "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "repo_digests": "aisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+          "networks": "12e3c5b227115918b37b72bac84f547bc994193b65c9e21f1b4cc5cbaffd2f92 aisoft-65-97445947fff7-database\n672af18b38ed91b012d7da5305d9026eb820445fa62c31af2757af523ee75d49 bridge\n71bb9ac903b5af98389cc95f9e7ffb314c97c4ec86a2f17fa2622c0b5121c70e none\nf20781b38d75e8dc3201d7015bbb02ceeed619a0c43f3dd38d82ab3b7cd9052a aisoft-65-97445947fff7-backend\nfc4144b88de2f8cc548d656ca92a8ecb49bf132a30596eaea4055dbc0bed42d6 host",
+          "volumes": "aisoft-65-97445947fff7-pgdata\nfd59f1e9267eea1ef42f14b45ec2de7fb906a77ef573a21d63f757bc262fdff8"
+        }
+      }
+    }
+  },
+  "postgres": {
+    "kind": "DISPOSABLE_FIXTURE",
+    "migration_marker_count": 1,
+    "restore": "NOT_RUN"
+  },
+  "docker_argv": {
+    "lifecycle": [
+      [
+        "version",
+        "--format",
+        "{{json .Server}}"
+      ],
+      [
+        "compose",
+        "version",
+        "--short"
+      ],
+      [
+        "info",
+        "--format",
+        "{{.Driver}}"
+      ],
+      [
+        "info",
+        "--format",
+        "{{json .DriverStatus}}"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "config",
+        "--format",
+        "json",
+        "--no-interpolate",
+        "--no-env-resolution"
+      ],
+      [
+        "version",
+        "--format",
+        "{{json .Server}}"
+      ],
+      [
+        "compose",
+        "version",
+        "--short"
+      ],
+      [
+        "info",
+        "--format",
+        "{{.Driver}}"
+      ],
+      [
+        "info",
+        "--format",
+        "{{json .DriverStatus}}"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "config",
+        "--format",
+        "json",
+        "--no-interpolate",
+        "--no-env-resolution"
+      ],
+      [
+        "image",
+        "load",
+        "--input",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/images.tar"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "version",
+        "--format",
+        "{{json .Server}}"
+      ],
+      [
+        "compose",
+        "version",
+        "--short"
+      ],
+      [
+        "info",
+        "--format",
+        "{{.Driver}}"
+      ],
+      [
+        "info",
+        "--format",
+        "{{json .DriverStatus}}"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "config",
+        "--format",
+        "json",
+        "--no-interpolate",
+        "--no-env-resolution"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "--env-file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/target.env",
+        "run",
+        "--rm",
+        "--no-deps",
+        "--pull",
+        "never",
+        "migrate"
+      ],
+      [
+        "version",
+        "--format",
+        "{{json .Server}}"
+      ],
+      [
+        "compose",
+        "version",
+        "--short"
+      ],
+      [
+        "info",
+        "--format",
+        "{{.Driver}}"
+      ],
+      [
+        "info",
+        "--format",
+        "{{json .DriverStatus}}"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "config",
+        "--format",
+        "json",
+        "--no-interpolate",
+        "--no-env-resolution"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "version",
+        "--format",
+        "{{json .Server}}"
+      ],
+      [
+        "compose",
+        "version",
+        "--short"
+      ],
+      [
+        "info",
+        "--format",
+        "{{.Driver}}"
+      ],
+      [
+        "info",
+        "--format",
+        "{{json .DriverStatus}}"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "config",
+        "--format",
+        "json",
+        "--no-interpolate",
+        "--no-env-resolution"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "--env-file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/target.env",
+        "up",
+        "--detach",
+        "--wait",
+        "--wait-timeout",
+        "90",
+        "--pull",
+        "never",
+        "--no-build",
+        "--remove-orphans"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "--env-file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/target.env",
+        "ps",
+        "--quiet",
+        "web"
+      ],
+      [
+        "container",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "c4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19"
+      ],
+      [
+        "version",
+        "--format",
+        "{{json .Server}}"
+      ],
+      [
+        "compose",
+        "version",
+        "--short"
+      ],
+      [
+        "info",
+        "--format",
+        "{{.Driver}}"
+      ],
+      [
+        "info",
+        "--format",
+        "{{json .DriverStatus}}"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "config",
+        "--format",
+        "json",
+        "--no-interpolate",
+        "--no-env-resolution"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "--env-file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/target.env",
+        "ps",
+        "--quiet",
+        "web"
+      ],
+      [
+        "container",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "c4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19"
+      ],
+      [
+        "version",
+        "--format",
+        "{{json .Server}}"
+      ],
+      [
+        "compose",
+        "version",
+        "--short"
+      ],
+      [
+        "info",
+        "--format",
+        "{{.Driver}}"
+      ],
+      [
+        "info",
+        "--format",
+        "{{json .DriverStatus}}"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "config",
+        "--format",
+        "json",
+        "--no-interpolate",
+        "--no-env-resolution"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "--env-file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/target.env",
+        "ps",
+        "--quiet",
+        "web"
+      ],
+      [
+        "container",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "c4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19"
+      ],
+      [
+        "version",
+        "--format",
+        "{{json .Server}}"
+      ],
+      [
+        "compose",
+        "version",
+        "--short"
+      ],
+      [
+        "info",
+        "--format",
+        "{{.Driver}}"
+      ],
+      [
+        "info",
+        "--format",
+        "{{json .DriverStatus}}"
+      ],
+      [
+        "version",
+        "--format",
+        "{{json .Server}}"
+      ],
+      [
+        "compose",
+        "version",
+        "--short"
+      ],
+      [
+        "info",
+        "--format",
+        "{{.Driver}}"
+      ],
+      [
+        "info",
+        "--format",
+        "{{json .DriverStatus}}"
+      ],
+      [
+        "version",
+        "--format",
+        "{{json .Server}}"
+      ],
+      [
+        "compose",
+        "version",
+        "--short"
+      ],
+      [
+        "info",
+        "--format",
+        "{{.Driver}}"
+      ],
+      [
+        "info",
+        "--format",
+        "{{json .DriverStatus}}"
+      ],
+      [
+        "compose",
+        "--project-name",
+        "aisoft-65-97445947fff7-consumer",
+        "--file",
+        "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+        "config",
+        "--format",
+        "json",
+        "--no-interpolate",
+        "--no-env-resolution"
+      ]
+    ],
+    "orchestrator": [
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "inspect",
+          "aisoft-65-97445947fff7-registry"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "inspect",
+          "aisoft-65-97445947fff7-migration-seed"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "inspect",
+          "aisoft-65-97445947fff7-postgres"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "inspect",
+          "aisoft-65-97445947fff7-database"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "inspect",
+          "aisoft-65-97445947fff7-backend"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "inspect",
+          "aisoft-65-97445947fff7-pgdata"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "aisoft-65-97445947fff7-web-build:fixture"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "aisoft-65-97445947fff7-migrate-build:fixture"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--quiet",
+          "--filter",
+          "label=com.docker.compose.project=aisoft-65-97445947fff7-consumer"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "import",
+          "--platform",
+          "linux/amd64",
+          "--change",
+          "USER 65532:65532",
+          "--change",
+          "ENTRYPOINT [\"/server\"]",
+          "--change",
+          "LABEL com.aisoft.e2e.release-id=97445947fff79a4c2db6fa764feb21660e281556",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/web-rootfs.tar",
+          "aisoft-65-97445947fff7-web-build:fixture"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{.Id}}",
+          "aisoft-65-97445947fff7-web-build:fixture"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "create",
+          "--name",
+          "aisoft-65-97445947fff7-migration-seed",
+          "docker.io/library/postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "cp",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/input-snapshot/migrate.sh",
+          "aisoft-65-97445947fff7-migration-seed:/usr/local/bin/issue65-migrate"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "commit",
+          "--change",
+          "USER 999:999",
+          "--change",
+          "ENTRYPOINT [\"/usr/local/bin/issue65-migrate\"]",
+          "--change",
+          "LABEL com.aisoft.e2e.release-id=97445947fff79a4c2db6fa764feb21660e281556",
+          "aisoft-65-97445947fff7-migration-seed",
+          "aisoft-65-97445947fff7-migrate-build:fixture"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "rm",
+          "--volumes",
+          "aisoft-65-97445947fff7-migration-seed"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{.Id}}",
+          "aisoft-65-97445947fff7-migrate-build:fixture"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "run",
+          "--detach",
+          "--name",
+          "aisoft-65-97445947fff7-registry",
+          "--publish",
+          "127.0.0.1:5065:5000",
+          "--tmpfs",
+          "/var/lib/registry:rw,nosuid,nodev,noexec,size=268435456",
+          "docker.io/library/registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "tag",
+          "aisoft-65-97445947fff7-web-build:fixture",
+          "127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "tag",
+          "aisoft-65-97445947fff7-migrate-build:fixture",
+          "127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "push",
+          "127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "push",
+          "127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "pull",
+          "127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "pull",
+          "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "tag",
+          "127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "tag",
+          "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{.Id}}",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{.Id}}",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "save",
+          "--output",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/images.tar",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "pull",
+          "127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "create",
+          "--internal",
+          "aisoft-65-97445947fff7-database"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "create",
+          "aisoft-65-97445947fff7-pgdata"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "run",
+          "--detach",
+          "--name",
+          "aisoft-65-97445947fff7-postgres",
+          "--network",
+          "aisoft-65-97445947fff7-database",
+          "--env-file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/target.env",
+          "--mount",
+          "type=volume,source=aisoft-65-97445947fff7-pgdata,target=/var/lib/postgresql",
+          "--health-cmd",
+          "pg_isready --username issue65 --dbname issue65",
+          "--health-interval",
+          "2s",
+          "--health-timeout",
+          "2s",
+          "--health-retries",
+          "30",
+          "docker.io/library/postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "inspect",
+          "--format",
+          "{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}",
+          "aisoft-65-97445947fff7-postgres"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "inspect",
+          "--format",
+          "{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}",
+          "aisoft-65-97445947fff7-postgres"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "inspect",
+          "--format",
+          "{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}",
+          "aisoft-65-97445947fff7-postgres"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "inspect",
+          "--format",
+          "{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}",
+          "aisoft-65-97445947fff7-postgres"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "inspect",
+          "--format",
+          "{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}",
+          "aisoft-65-97445947fff7-postgres"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "exec",
+          "aisoft-65-97445947fff7-postgres",
+          "psql",
+          "--username",
+          "issue65",
+          "--dbname",
+          "issue65",
+          "--tuples-only",
+          "--no-align",
+          "--command",
+          "SELECT count(*) FROM issue65_fixture.migration_receipt WHERE marker = '97445947fff79a4c2db6fa764feb21660e281556'"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "compose",
+          "--project-name",
+          "aisoft-65-97445947fff7-consumer",
+          "--file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/releases/97445947fff79a4c2db6fa764feb21660e281556/compose.json",
+          "--env-file",
+          "/private/var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/aisoft-issue65.ZmTijN/target.env",
+          "down",
+          "--volumes",
+          "--remove-orphans"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "inspect",
+          "aisoft-65-97445947fff7-postgres"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "rm",
+          "--force",
+          "--volumes",
+          "aisoft-65-97445947fff7-postgres"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "inspect",
+          "aisoft-65-97445947fff7-registry"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "rm",
+          "--force",
+          "--volumes",
+          "aisoft-65-97445947fff7-registry"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "inspect",
+          "aisoft-65-97445947fff7-migration-seed"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "inspect",
+          "aisoft-65-97445947fff7-database"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "rm",
+          "aisoft-65-97445947fff7-database"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "inspect",
+          "aisoft-65-97445947fff7-backend"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "inspect",
+          "aisoft-65-97445947fff7-pgdata"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "rm",
+          "aisoft-65-97445947fff7-pgdata"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "rm",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "rm",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "aisoft-65-97445947fff7-web-build:fixture"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "rm",
+          "aisoft-65-97445947fff7-web-build:fixture"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "aisoft-65-97445947fff7-migrate-build:fixture"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "rm",
+          "aisoft-65-97445947fff7-migrate-build:fixture"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "rm",
+          "127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "rm",
+          "127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "rm",
+          "aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "rm",
+          "aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "inspect",
+          "aisoft-65-97445947fff7-registry"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "inspect",
+          "aisoft-65-97445947fff7-migration-seed"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "inspect",
+          "aisoft-65-97445947fff7-postgres"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "inspect",
+          "aisoft-65-97445947fff7-database"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "inspect",
+          "aisoft-65-97445947fff7-backend"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "inspect",
+          "aisoft-65-97445947fff7-pgdata"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--quiet",
+          "--filter",
+          "label=com.docker.compose.project=aisoft-65-97445947fff7-consumer"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "producer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "container",
+          "ls",
+          "--all",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Names}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--digests",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Repository}}:{{.Tag}}@{{.Digest}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "ls",
+          "--all",
+          "--quiet",
+          "--no-trunc"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .RepoDigests}}",
+          "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "network",
+          "ls",
+          "--no-trunc",
+          "--format",
+          "{{.ID}} {{.Name}}"
+        ]
+      },
+      {
+        "side": "consumer",
+        "argv": [
+          "volume",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ]
+      }
+    ]
+  },
+  "inventory": {
+    "producer_before": {
+      "containers": "",
+      "images": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "repo_digests": "postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+      "volumes": ""
+    },
+    "consumer_before": {
+      "containers": "",
+      "images": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+      "repo_digests": "postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+      "networks": "672af18b38ed91b012d7da5305d9026eb820445fa62c31af2757af523ee75d49 bridge\n71bb9ac903b5af98389cc95f9e7ffb314c97c4ec86a2f17fa2622c0b5121c70e none\nfc4144b88de2f8cc548d656ca92a8ecb49bf132a30596eaea4055dbc0bed42d6 host",
+      "volumes": ""
+    },
+    "producer_created": {
+      "containers": "5b46371604711c5aa00668fd385dcb37cdf5cd2af3d19db23af3e6bfb33c952b aisoft-65-97445947fff7-registry",
+      "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 127.0.0.1:5065/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft-65-97445947fff7-migrate-build:fixture@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 127.0.0.1:5065/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft-65-97445947fff7-web-build:fixture@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@<none>\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "repo_digests": "127.0.0.1:5065/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\n127.0.0.1:5065/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft-65-97445947fff7-migrate-build@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft-65-97445947fff7-web-build@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\naisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+      "volumes": ""
+    },
+    "consumer_created": {
+      "containers": "3f4b1ba71bf43b53957a176a64d75f1dbc72e3a98c2e260dd7602f888daf4f12 aisoft-65-97445947fff7-postgres\n54fefdc0d3891d1c4cd77225f081cac3da7a7dd32cf973dae65bc8260b65e0ed aisoft-65-97445947fff7-consumer-migrate-1\nc4da3c91adcb6ef981dfc37c3521ec4ef4a82ba17bf26b8048bf25971a394d19 aisoft-65-97445947fff7-consumer-web-1",
+      "images": "sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03 aisoft.local/admin/aisoft-platform/migrate:97445947fff79a4c2db6fa764feb21660e281556@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\nsha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17 aisoft.local/admin/aisoft-platform/web:97445947fff79a4c2db6fa764feb21660e281556@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\nsha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+      "repo_digests": "aisoft.local/admin/aisoft-platform/migrate@sha256:4c180d014a36e8d2847a71f539d923bd82d4063ba7a00d72e9e6757d9c85ed03\naisoft.local/admin/aisoft-platform/web@sha256:8244640d298f621173b9e638b61fe4cd77fdc0e00e7c144efd186a8c895a8f17\npostgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+      "networks": "12e3c5b227115918b37b72bac84f547bc994193b65c9e21f1b4cc5cbaffd2f92 aisoft-65-97445947fff7-database\n672af18b38ed91b012d7da5305d9026eb820445fa62c31af2757af523ee75d49 bridge\n71bb9ac903b5af98389cc95f9e7ffb314c97c4ec86a2f17fa2622c0b5121c70e none\nf20781b38d75e8dc3201d7015bbb02ceeed619a0c43f3dd38d82ab3b7cd9052a aisoft-65-97445947fff7-backend\nfc4144b88de2f8cc548d656ca92a8ecb49bf132a30596eaea4055dbc0bed42d6 host",
+      "volumes": "aisoft-65-97445947fff7-pgdata\nfd59f1e9267eea1ef42f14b45ec2de7fb906a77ef573a21d63f757bc262fdff8"
+    },
+    "producer_after": {
+      "containers": "",
+      "images": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "repo_digests": "postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+      "volumes": ""
+    },
+    "consumer_after": {
+      "containers": "",
+      "images": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+      "repo_digests": "postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382",
+      "networks": "672af18b38ed91b012d7da5305d9026eb820445fa62c31af2757af523ee75d49 bridge\n71bb9ac903b5af98389cc95f9e7ffb314c97c4ec86a2f17fa2622c0b5121c70e none\nfc4144b88de2f8cc548d656ca92a8ecb49bf132a30596eaea4055dbc0bed42d6 host",
+      "volumes": ""
+    }
+  },
+  "transport": {
+    "registry": "PASS",
+    "offline_v2": "PASS",
+    "consumer_registry_pull": "REJECTED_AS_REQUIRED",
+    "compose_pull": "never",
+    "compose_build": "forbidden"
+  },
+  "cleanup": "PASS",
+  "external": {
+    "newemaint": "NOT_RUN",
+    "dockerlab": "NOT_RUN",
+    "appserver": "NOT_RUN",
+    "production": "NOT_RUN",
+    "business_database": "NOT_RUN",
+    "business_secrets": "NOT_RUN",
+    "disposable_credential": "EPHEMERAL_NOT_RECORDED"
+  }
+}
