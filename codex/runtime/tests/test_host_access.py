@@ -1,21 +1,26 @@
 from __future__ import annotations
 
+import io
 import json
 import os
 import stat
 import subprocess
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
 from aisoft_host_access.broker import (
     BrokerError,
     CredentialResolver,
     HostAccessBroker,
     ResolvedCredential,
+    _parse_credential_protocol,
     credential_from_protocol,
 )
+from aisoft_host_access.cli import main as host_access_cli_main
 from aisoft_host_access.contract import AccessContractError, load_access_contract
 from aisoft_host_access.profiles import ProfileMigrator
 
@@ -263,6 +268,149 @@ class HostAccessBrokerTests(unittest.TestCase):
             identity_verifier=lambda credential: None,
         )
         self.assertEqual(output, "username=hsdb-agent\npassword=token-agent\n")
+
+    def test_credential_protocol_accepts_current_git_multivalue_shape(self) -> None:
+        protocol_input = (
+            ROOT / "codex/tests/fixtures/host-access/git-credential-get-current.txt"
+        ).read_text() + "\n"
+        request = _parse_credential_protocol(protocol_input)
+        self.assertEqual(request.scalars, {
+            "protocol": "http",
+            "host": "gitea-ci.orb.local:3000",
+            "path": "admin/aisoft-platform.git",
+            "username": "aisoft-platform-agent",
+        })
+        self.assertEqual(
+            request.multivalued["capability[]"],
+            ("authtype", "state"),
+        )
+        self.assertEqual(
+            request.multivalued["wwwauth[]"],
+            ('Basic realm="sanitized-fixture"',),
+        )
+        output = credential_from_protocol(
+            self.contract,
+            "get",
+            protocol_input,
+            resolver=StaticCredentials(),
+            identity_verifier=lambda credential: None,
+        )
+        self.assertEqual(
+            output,
+            "username=aisoft-platform-agent\npassword=token-agent\n",
+        )
+
+    def test_unknown_multivalued_attributes_are_ordered_and_ignored(self) -> None:
+        protocol_input = (
+            "future-capability[]=first\n"
+            "future-capability[]=second\n"
+            "protocol=http\n"
+            "host=gitea-ci.orb.local:3000\n"
+            "path=admin/HSDB.git\n"
+            "username=hsdb-agent\n\n"
+        )
+        request = _parse_credential_protocol(protocol_input)
+        self.assertEqual(
+            request.multivalued["future-capability[]"],
+            ("first", "second"),
+        )
+        output = credential_from_protocol(
+            self.contract,
+            "get",
+            protocol_input,
+            resolver=StaticCredentials(),
+            identity_verifier=lambda credential: None,
+        )
+        self.assertEqual(output, "username=hsdb-agent\npassword=token-agent\n")
+
+    def test_unknown_duplicate_and_malformed_scalar_fields_fail_closed(self) -> None:
+        valid = (
+            "protocol=http\n"
+            "host=gitea-ci.orb.local:3000\n"
+            "path=admin/HSDB.git\n"
+            "username=hsdb-agent\n"
+        )
+        cases = {
+            "unknown scalar": valid + "authtype=basic\n",
+            "duplicate protocol": "protocol=https\n" + valid,
+            "duplicate host": valid + "host=gitea-ci.orb.local:3000\n",
+            "duplicate path": valid + "path=admin/HSDB.git\n",
+            "duplicate username": valid + "username=hsdb-agent\n",
+            "missing protocol": valid.removeprefix("protocol=http\n"),
+            "missing host": valid.replace("host=gitea-ci.orb.local:3000\n", ""),
+            "missing path": valid.replace("path=admin/HSDB.git\n", ""),
+            "empty key": valid + "=value\n",
+            "empty multivalue key": valid + "[]=value\n",
+            "missing equals": valid + "malformed\n",
+            "nul byte": valid + "capability[]=bad\x00value\n",
+            "carriage return": valid + "capability[]=bad\rvalue\n",
+            "nonempty after terminator": valid + "\ncapability[]=late\n",
+            "oversized line": valid + "capability[]=" + ("x" * 65536) + "\n",
+        }
+        for name, protocol_input in cases.items():
+            with self.subTest(name=name), self.assertRaises(BrokerError) as caught:
+                _parse_credential_protocol(protocol_input)
+            self.assertEqual(caught.exception.code, "CREDENTIAL_PROTOCOL_INVALID")
+
+    def test_target_and_identity_mismatch_fail_before_credential_resolution(self) -> None:
+        class FailIfResolved:
+            def resolve(self, project, operation):
+                raise AssertionError("credential resolution must not run")
+
+        cases = (
+            "protocol=https\nhost=gitea-ci.orb.local:3000\npath=admin/HSDB.git\n",
+            "protocol=http\nhost=attacker.invalid\npath=admin/HSDB.git\n",
+            "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/unknown.git\n",
+            "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/HSDB.git\nusername=newemaint-agent\n",
+        )
+        for protocol_input in cases:
+            with self.subTest(protocol_input=protocol_input), self.assertRaises(BrokerError):
+                credential_from_protocol(
+                    self.contract,
+                    "get",
+                    protocol_input,
+                    resolver=FailIfResolved(),
+                    identity_verifier=lambda credential: None,
+                )
+
+    def test_cli_credential_helper_supports_current_shape_and_non_get_actions(self) -> None:
+        protocol_input = (
+            ROOT / "codex/tests/fixtures/host-access/git-credential-get-current.txt"
+        ).read_text() + "\n"
+        argv = [
+            "--access-manifest", str(ACCESS),
+            "--governance-manifest", str(GOVERNANCE),
+            "credential-helper", "get",
+        ]
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with (
+            patch("sys.stdin", io.StringIO(protocol_input)),
+            patch.object(
+                CredentialResolver,
+                "resolve",
+                return_value=ResolvedCredential("aisoft-platform-agent", "token-agent"),
+            ),
+            patch.object(HostAccessBroker, "_verify_identity", return_value=None),
+            redirect_stdout(stdout),
+            redirect_stderr(stderr),
+        ):
+            self.assertEqual(host_access_cli_main(argv), 0)
+        self.assertEqual(
+            stdout.getvalue(),
+            "username=aisoft-platform-agent\npassword=token-agent\n",
+        )
+        self.assertEqual(stderr.getvalue(), "")
+
+        for action in ("store", "erase"):
+            with self.subTest(action=action):
+                stdout = io.StringIO()
+                with (
+                    patch("sys.stdin", io.StringIO(protocol_input)),
+                    redirect_stdout(stdout),
+                ):
+                    self.assertEqual(host_access_cli_main(argv[:-1] + [action]), 0)
+                self.assertEqual(stdout.getvalue(), "")
 
 
 class ProfileMigrationTests(unittest.TestCase):
