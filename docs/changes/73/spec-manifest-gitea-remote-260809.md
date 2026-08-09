@@ -17,7 +17,7 @@ risk_flags:
 depends_on: []
 status: approved
 branch: change/73
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/74
 created: 2026-08-09
 updated: 2026-08-09
 ---

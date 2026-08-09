@@ -15,9 +15,9 @@ risk_flags:
   - shared-core
   - platform-governance
 depends_on: []
-status: approved
+status: awaiting-merge
 branch: change/73
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/74
 created: 2026-08-09
 updated: 2026-08-09
 ---
@@ -31,7 +31,7 @@ updated: 2026-08-09
 | T01 | triage、semantic contract、live baseline 与 approval gate | - | complete |
 | T02 | manifest remote compatibility + all Git operation tracer bullet | T01 | complete |
 | T03 | fail-closed onboarding check/bind + installer/controller/helper/documentation tracer bullet | T02 | complete |
-| T04 | complete local verification + exact broker delivery/PR/CI handoff | T02, T03 | in progress |
+| T04 | complete local verification + exact broker delivery/PR/CI handoff | T02, T03 | complete (pre-merge) |
 
 ## T01 — Contract and approval gate
 

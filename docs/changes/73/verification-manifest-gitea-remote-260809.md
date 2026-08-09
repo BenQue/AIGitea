@@ -15,9 +15,9 @@ risk_flags:
   - shared-core
   - platform-governance
 depends_on: []
-status: pending
+status: awaiting-merge
 branch: change/73
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/74
 created: 2026-08-09
 updated: 2026-08-09
 ---
@@ -63,14 +63,20 @@ updated: 2026-08-09
 - AC-5：`PASS (local/mock aggregate)`（access/protection/required-CI + canonical/remote/helper 聚合 readback 与 drift denial 通过；live candidate adoption 未运行）。
 - AC-6：`PASS`（无 Keychain/Secret/ACL/protection mutation surface；`ci-bot` 未访问）。
 - AC-7：`PASS (candidate local)`；live post-merge install/fresh-session project canary 仍按 AC-9 为 `NOT RUN`。
-- AC-8：local branch/docs/validation `PASS`；remote push/PR/final-head CI 尚 `NOT RUN`。
+- AC-8：`PASS (pre-merge)`；唯一 branch/docs/PR 均已读回，remote CI 为
+  `NOT CONFIGURED / NOT RUN`，merge/deploy 保持 `NOT RUN`。
 - AC-9：`NOT RUN BY DESIGN`；只允许平台 PR 人工合并后逐项目执行。
 
 ## Remote PR and CI
 
-- `change/73` remote push：`NOT RUN`。
-- unique `Closes #73` PR：`NOT RUN`。
-- final-head required CI：`NOT RUN`；创建 PR 后按届时 live protection 重新分类。
+- `change/73` remote push：`PASS`；installed broker 从 fresh `origin/main=4e26ba063350579e7b2dfad633a2085e505243d0`
+  校验 clean exact branch、fresh ancestry 与 no merge commit 后非强制同名 push。
+- unique `Closes #73` PR：`PASS`；PR
+  [#74](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/74) 为 open、non-draft、
+  `change/73 → main`、`merged=false`、`mergeable=true`，body 精确包含 `Closes #73` 与 semantic summary。
+- final-head required CI：`NOT CONFIGURED / NOT RUN`；live protection
+  `enable_status_check=false`、contexts `[]`，final metadata head status readback 为 `total_count=0`、
+  `statuses=null`。不得把 Gitea aggregate `state=pending` 误写成已配置 CI。
 - PR merge：`NOT RUN`；human only。
 
 ## Post-merge project adoption gate
