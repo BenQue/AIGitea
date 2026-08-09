@@ -32,18 +32,18 @@ updated: 2026-08-09
 | Check | Result | Evidence |
 |---|---|---|
 | isolated worktree | PASS | `/Users/benque/.codex/worktrees/fc5b/AISoftPlatform`; canonical and other worktrees untouched |
-| fresh default baseline | PASS | `origin/main` fetched 2026-08-09 11:17:33 +08:00 to `7ef7fa23af202343335f99ea746b4dd7a64cbd71`; worktree created 11:31:49 and `change/70` created from that SHA |
-| Issue #70 | PASS | installed broker live read: open, labels `approved` + `complexity/complex` + `type/platform`; body matches this contract |
-| local/remote-tracking de-dup | PASS | before branch creation, local `change/70` and `origin/change/70` refs absent; live remote de-dup still pending aggregate audit |
-| #35/#61/#67 ancestry | PASS (local fetched ref) | local `origin/main` contains merge commits `69251fd4`, `58daf44b`, `dd5b2b9`; live Issue/PR state read-back pending aggregate audit |
-| installed source bytes | STALE CANDIDATE | installed bytes matched commit `ef4a295`; that third Keychain candidate failed live and is superseded by the uninstalled protected-file candidate |
-| installed operation catalog | CONFIRMED DEFECT | 13 operations; no Issue/PR writes; `git.push.change` runs only in manifest canonical checkout |
+| fresh default baseline | PASS | task started from fetched `7ef7fa23af202343335f99ea746b4dd7a64cbd71`; immediately before delivery the broker fetched new `origin/main` `6a4b7e77aea84b69c28be3abb21966957857a174` and the unpushed branch rebased without conflict |
+| Issue #70 | PASS | installed broker live read: open, labels `approved` + `complexity/complex` + `type/platform`; typed comment mutation/read-back produced exactly one comment |
+| local/remote de-dup | PASS | before branch creation, local/remote `change/70` refs were absent; typed open-PR read returned `[]` immediately before delivery |
+| #35/#61/#67 merged facts | PASS | live PR read-back: #36 from `change/35`, #63 for Issue #61 and #68 from `change/67` each returned `state=closed`, `merged=true`; the three Issues are closed |
+| installed source bytes | PASS | all installed runtime/config/wrapper bytes equal the rebased candidate; exact legacy `keychain-acl-audit` and `.previous` paths are absent |
+| installed operation catalog | PASS | exact 21 operations; strict Issue/PR/status/audit and linked-worktree Git operations are present; merge operation count is zero |
 | repo-local Git credential binding | PASS (local metadata) | fixed helper + `credential.useHttpPath=true` + `aisoft-platform-agent`; no token in config |
-| sandbox broker credential | BLOCKED_EXTERNAL (historical) | old Keychain candidate returned `CREDENTIAL_UNAVAILABLE`; protected-file candidate is not installed/provisioned |
-| host broker Issue read | PASS | same installed broker successfully read #70 through fixed project-agent binding |
-| Codex repeated approval | FAIL | six parallel read-only broker invocations generated repeated host approvals; batch terminated, no mutation occurred |
-| Keychain route | RETIRED BY CONTRACT | three candidates generated interactive access despite ACL metadata; user rejected remaining dialogs and explicitly approved complete Mac runtime Keychain removal |
-| live accounts/token scopes/permission/protection/open PR | NOT RUN | deferred to one candidate aggregate audit to avoid repeated approval prompts |
+| protected-file credential route | PASS | fixed bindings resolve as owner `benque`, directory mode `700`, file mode `600`, regular non-symlink single-hardlink files; credential bytes/path are redacted |
+| host broker Issue read | PASS | two consecutive installed-broker reads of #70 succeeded through `aisoft-platform-agent`, followed by typed comment mutation and read-back |
+| Codex exact-prefix approval | PASS (current fresh task) | after the single purpose-built broker prefix grant, repeated read/audit/comment operations completed without another host-execution approval |
+| Keychain route | RETIRED / ABSENT | three historical candidates prompted despite ACL metadata; final runtime/manifest/installed bytes contain no Keychain lookup surface or legacy helper |
+| live accounts/token scopes/permission/protection | PASS | aggregate audit validated all three identities and exact scopes, manager `admin`, project-agent `write`, protected-file metadata and human-only protected-main merge boundary |
 | `ci-bot` | NOT ACCESSED / NOT MODIFIED | no query or mutation performed |
 
 ## Candidate tests
@@ -61,24 +61,33 @@ updated: 2026-08-09
 - Keychain surface scan: `PASS` — runtime/manifest 无 `/usr/bin/security`、Security.framework、
   `find-generic-password` 或 `macos-keychain`；legacy C helper source 已删除。
 - `bash -n` / ShellCheck / strict JSON / `git diff --check`: `PASS`。
-- Full platform smoke: `PASS (protected-file candidate)` — 305 tests，最终输出
-  `Codex platform static smoke checks passed.`。
+- Pre-rebase full platform smoke: `PASS (305 tests)` on the #70 candidate before Issue #65 was merged to `main`。
+- Final fresh-main full platform smoke: `FAIL (inherited Issue #65 gate)` — both final runs stop at
+  `FAIL: Issue #65 final evidence bytes or mode are invalid`。The evidence SHA-256 equals the exact expected
+  `b58bb7b57d53a104f922e66c7dc1342bc1b5b133038f60fa8f2ace8d8dbdeb89`, but `origin/main` stores the file as
+  Git mode `100644`/worktree mode `644` while the newly merged #65 test requires `444`。The #70 diff does not touch
+  `docs/changes/65/` or either #65 lifecycle test; the explicit #70 boundary forbids changing or bypassing that E2E。
 
 ## Live canary and delivery
 
-- Protected-file candidate install/read-back/second no-op: `NOT RUN`.
-- Exact manager/project credential-file provision/read-back: `NOT RUN`; installer 不创建/复制/更新 token。
-- Issue #70 typed mutation/read-back: `NOT RUN`.
+- Protected-file candidate install/read-back/second no-op: `PASS`; both user-run installer invocations completed and
+  final installed bytes were compared to the repository candidate。
+- Exact manager/project credential-file provision/read-back: `PASS`; one approved provision copied only the three fixed
+  manifest bindings from the existing VM protected store, then metadata/read audit passed without credential output。
+- Issue #70 typed mutation/read-back: `PASS`; comment id `2743`, read-back `comments=1`, state remains open。
 - exact `change/70` push/read-back: `NOT RUN`.
 - unique `Closes #70` PR create/update/read-back: `NOT RUN`.
-- final-head protection/required CI: `NOT RUN`.
+- live protection: `PASS`; direct/force push disabled, merge allowlist is only `admin`, admin override blocked。
+- final-head required CI: `NOT CONFIGURED / NOT RUN`; live protection has `enable_status_check=false` and empty
+  `status_check_contexts`, so local tests cannot be presented as remote CI PASS。
 - Historical Keychain prompt after exact-prefix approval: `FAIL (first candidate)` — aggregate exact ACL probe caused multiple
   per-item prompts and then `CREDENTIAL_UNAVAILABLE`; no Gitea mutation occurred。`FAIL (second candidate)` — native
   probe 已移除，但新增的 `default-keychain` path 仍导致一次 project-agent credential prompt，并在任何 Gitea
   request 前 fail closed。`FAIL (third candidate)` — 恢复 #61 exact binding 后仍弹窗，任务在用户授权前主动
   终止；用户拒绝全部遗留 dialogs。Final protected-file candidate 没有 Keychain runtime surface，live 结果
-  仍为 `NOT RUN`。
-- repeated Codex host approval after exact-prefix approval: `NOT RUN (final candidate)`.
+  现已由 protected-file candidate 取代，且 installed runtime 没有 Keychain access surface。
+- repeated Codex host approval after exact-prefix approval: `PASS (current fresh task)`; subsequent typed operations did
+  not request per-command approval。A separate post-merge fresh task remains required before this becomes a post-merge PASS。
 - PR merge: `NOT RUN`; human only.
 
 ## Post-merge gate
@@ -89,6 +98,8 @@ updated: 2026-08-09
 
 ## Forbidden-scope audit
 
-- protection/ACL/account/PAT/permission/merge mutation: `NOT RUN`.
-- Docker/VM/profile/service/Secret/database/migration/Nginx/deployment/restart/prune: `NOT RUN`.
+- protection/ACL/account/PAT/permission/merge mutation: `NOT PERFORMED`.
+- Docker/VM/profile/service/database/migration/Nginx/deployment/restart/prune: `NOT PERFORMED`.
+- Secret mutation: `PERFORMED ONLY WITH EXPLICIT APPROVAL` for the exact three-file protected-store provision; no token
+  creation/rotation/revocation, output or repository write occurred。
 - NewEmaint, Issue #65 E2E or any business project: `NOT MODIFIED`.
