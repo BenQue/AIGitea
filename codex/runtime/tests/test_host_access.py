@@ -23,6 +23,7 @@ from aisoft_host_access.broker import (
 from aisoft_host_access.cli import main as host_access_cli_main
 from aisoft_host_access.contract import AccessContractError, load_access_contract
 from aisoft_host_access.profiles import ProfileMigrator
+from aisoft_host_access.runner import GovernedHostRunner
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -35,8 +36,9 @@ class StaticCredentials:
         self.mismatch = mismatch
 
     def resolve(self, project, operation):
-        if operation.identity_route == "manager-audit":
-            return ResolvedCredential("aisoft-platform-manager", "token-manager")
+        if operation.identity_route in {"manager-audit", "manager-mutation"}:
+            token = "token-manager" if operation.identity_route == "manager-audit" else "token-manager-mutation"
+            return ResolvedCredential("aisoft-platform-manager", token)
         identity = "wrong-agent" if self.mismatch else project.project_agent
         return ResolvedCredential(identity, "token-agent")
 
@@ -64,6 +66,31 @@ class HostAccessContractTests(unittest.TestCase):
         with self.assertRaises(AccessContractError):
             self.contract.operation("git.push.main")
 
+    def test_governed_issue_and_pull_operations_have_exact_typed_fields(self) -> None:
+        expected = {
+            "gitea.issue.create": ("title", "body"),
+            "gitea.issue.read": ("number",),
+            "gitea.issue.update": ("number", "title", "body"),
+            "gitea.issue.comment": ("number", "comment"),
+            "gitea.pull.create": ("issue", "title", "body"),
+            "gitea.pull.read": ("number",),
+            "gitea.pull.update": ("number", "issue", "title", "body"),
+            "gitea.commit.status.read": ("sha",),
+        }
+        for name, arguments in expected.items():
+            with self.subTest(name=name):
+                operation = self.contract.operation(name)
+                self.assertEqual(operation.identity_route, "project-agent")
+                self.assertEqual(operation.arguments, arguments)
+        forbidden_words = ("merge", "url", "owner", "repository", "method", "path", "json")
+        for operation in self.contract.operations:
+            self.assertFalse(any(word in operation.name for word in forbidden_words))
+            self.assertTrue(set(operation.arguments).isdisjoint(forbidden_words))
+        audit = self.contract.operation("host.access.audit")
+        self.assertEqual(audit.identity_route, "manager-audit")
+        self.assertFalse(audit.mutating)
+        self.assertEqual(audit.arguments, ())
+
     def test_identity_routes_are_least_privilege(self) -> None:
         project = self.contract.project("newemaint")
         self.assertEqual(
@@ -75,6 +102,42 @@ class HostAccessContractTests(unittest.TestCase):
             "aisoft-platform-manager",
         )
         self.assertNotEqual(project.project_agent, self.contract.governance.human_merge_identity)
+
+    def test_mac_credentials_are_project_scoped_protected_files(self) -> None:
+        bindings = self.contract.raw["identity_bindings"]
+        self.assertEqual(bindings["manager_audit"], {
+            "identity": "aisoft-platform-manager",
+            "credential_kind": "protected-file",
+            "relative_path": "manager/audit.token",
+        })
+        self.assertEqual(bindings["manager_mutation"], {
+            "identity": "aisoft-platform-manager",
+            "credential_kind": "protected-file",
+            "relative_path": "manager/mutation.token",
+        })
+        self.assertEqual(bindings["project_agent"], {
+            "credential_kind": "protected-file",
+            "relative_path_template": "projects/{project_id}/project-agent.token",
+            "account_source": "manifest-project-agent",
+        })
+        mac = self.contract.raw["mac_host"]
+        self.assertEqual(
+            mac["credential_root"],
+            "/Users/benque/Library/Application Support/AISoftPlatform/credentials",
+        )
+        self.assertEqual(mac["credential_owner"], "benque")
+        self.assertEqual(mac["credential_directory_mode"], "700")
+        self.assertEqual(mac["credential_file_mode"], "600")
+
+        runtime = "\n".join(
+            path.read_text() for path in
+            (ROOT / "codex/runtime/aisoft_host_access").glob("*")
+            if path.is_file()
+        )
+        self.assertNotIn("/usr/bin/security", runtime)
+        self.assertNotIn("SecKeychain", runtime)
+        self.assertNotIn("SecItemCopyMatching", runtime)
+        self.assertNotIn("macos-keychain", runtime)
 
     def test_extra_key_and_project_agent_mismatch_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -89,6 +152,28 @@ class HostAccessContractTests(unittest.TestCase):
             path.write_text(json.dumps(raw))
             with self.assertRaises(AccessContractError):
                 load_access_contract(path, GOVERNANCE)
+
+    def test_keychain_or_arbitrary_credential_file_contract_is_rejected(self) -> None:
+        mutations = (
+            ("identity_bindings", "manager_audit", "credential_kind", "macos-keychain"),
+            ("identity_bindings", "manager_audit", "relative_path", "../audit.token"),
+            ("identity_bindings", "project_agent", "relative_path_template", "{project_id}.token"),
+            ("mac_host", "credential_root", None, "/Users/benque/MyDocs/AISoftPlatform/.git/token"),
+            ("mac_host", "credential_directory_mode", None, "755"),
+            ("mac_host", "credential_file_mode", None, "644"),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "access.json"
+            for mutation in mutations:
+                with self.subTest(mutation=mutation):
+                    raw = json.loads(ACCESS.read_text())
+                    if mutation[0] == "identity_bindings":
+                        raw[mutation[0]][mutation[1]][mutation[2]] = mutation[3]
+                    else:
+                        raw[mutation[0]][mutation[1]] = mutation[3]
+                    path.write_text(json.dumps(raw))
+                    with self.assertRaises(AccessContractError):
+                        load_access_contract(path, GOVERNANCE)
 
     def test_unknown_project_operation_and_arbitrary_argument_are_denied(self) -> None:
         broker = HostAccessBroker(self.contract, credentials=StaticCredentials())
@@ -125,6 +210,409 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertEqual(
             broker.execute("hsdb", "gitea.protection.read")["branch_name"], "main"
         )
+
+    def test_commit_status_read_is_exact_sha_bound(self) -> None:
+        calls = []
+
+        def transport(method, url, headers, body):
+            if url.endswith("/api/v1/user"):
+                return 200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+            calls.append(url)
+            return 200, {}, b'{"state":"success","statuses":[]}'
+
+        broker = HostAccessBroker(
+            self.contract, credentials=StaticCredentials(), transport=transport,
+        )
+        sha = "a" * 40
+        value = broker.execute(
+            "aisoft-platform", "gitea.commit.status.read", sha=sha
+        )
+        self.assertEqual(value["state"], "success")
+        self.assertEqual(calls, [
+            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/commits/"
+            + sha + "/status"
+        ])
+        for invalid in ("main", "a" * 39, "a" * 41, "g" * 40, "a" * 40 + "/status"):
+            with self.subTest(invalid=invalid), self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.commit.status.read", sha=invalid
+                )
+            self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+
+    def test_issue_create_update_comment_and_read_use_fixed_typed_routes(self) -> None:
+        calls = []
+
+        def transport(method, url, headers, body):
+            token = headers["Authorization"].removeprefix("token ")
+            if url.endswith("/api/v1/user"):
+                return 200, {}, json.dumps({
+                    "login": "aisoft-platform-agent" if token == "token-agent" else "unexpected",
+                    "is_admin": False,
+                }).encode()
+            calls.append((method, url, json.loads(body) if body else None))
+            number = 70 if url.endswith("/issues") else 70
+            return 200, {}, json.dumps({"number": number, "state": "open"}).encode()
+
+        broker = HostAccessBroker(
+            self.contract,
+            credentials=StaticCredentials(),
+            transport=transport,
+        )
+        created = broker.execute(
+            "aisoft-platform",
+            "gitea.issue.create",
+            title="governed canary",
+            body="Issue body without raw HTTP fields",
+        )
+        updated = broker.execute(
+            "aisoft-platform",
+            "gitea.issue.update",
+            number=70,
+            title="governed canary updated",
+            body="Updated body",
+        )
+        comment = broker.execute(
+            "aisoft-platform",
+            "gitea.issue.comment",
+            number=70,
+            comment="governed broker canary",
+        )
+        read_back = broker.execute("aisoft-platform", "gitea.issue.read", number=70)
+        self.assertEqual(created["number"], 70)
+        self.assertEqual(updated["number"], 70)
+        self.assertEqual(comment["number"], 70)
+        self.assertEqual(read_back["number"], 70)
+        self.assertEqual(calls, [
+            (
+                "POST",
+                "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/issues",
+                {"title": "governed canary", "body": "Issue body without raw HTTP fields"},
+            ),
+            (
+                "PATCH",
+                "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/issues/70",
+                {"title": "governed canary updated", "body": "Updated body"},
+            ),
+            (
+                "POST",
+                "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/issues/70/comments",
+                {"body": "governed broker canary"},
+            ),
+            (
+                "GET",
+                "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/issues/70",
+                None,
+            ),
+        ])
+
+    def test_issue_typed_fields_reject_unsafe_or_oversized_text_before_credentials(self) -> None:
+        class FailIfResolved:
+            def resolve(self, project, operation):
+                raise AssertionError("credential resolution must not run")
+
+        broker = HostAccessBroker(self.contract, credentials=FailIfResolved())
+        invalid = (
+            {"title": "", "body": "valid"},
+            {"title": "bad\rtitle", "body": "valid"},
+            {"title": "valid", "body": "bad\x00body"},
+            {"title": "x" * 256, "body": "valid"},
+            {"title": "valid", "body": "x" * 65537},
+        )
+        for fields in invalid:
+            with self.subTest(fields=fields), self.assertRaises(BrokerError) as caught:
+                broker.execute("aisoft-platform", "gitea.issue.create", **fields)
+            self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+
+    def test_pull_create_update_and_read_are_deduplicated_and_issue_bound(self) -> None:
+        calls = []
+
+        def transport(method, url, headers, body):
+            if url.endswith("/api/v1/user"):
+                return 200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+            payload = json.loads(body) if body else None
+            calls.append((method, url, payload))
+            if url.endswith("/pulls?state=open&limit=50&page=1"):
+                return 200, {}, b'[]'
+            return 200, {}, json.dumps({
+                "number": 71,
+                "head": {"ref": "change/70"},
+                "base": {"ref": "main"},
+                "merged": False,
+            }).encode()
+
+        broker = HostAccessBroker(
+            self.contract,
+            credentials=StaticCredentials(),
+            transport=transport,
+        )
+        body = "Closes #70\n\nContract: docs/changes/70/summary-governed-host-writes-260809.md"
+        created = broker.execute(
+            "aisoft-platform", "gitea.pull.create",
+            issue=70, title="fix(host-access): governed writes", body=body,
+        )
+        updated = broker.execute(
+            "aisoft-platform", "gitea.pull.update",
+            number=71, issue=70, title="fix(host-access): governed writes", body=body,
+        )
+        read_back = broker.execute("aisoft-platform", "gitea.pull.read", number=71)
+        self.assertEqual(created["number"], 71)
+        self.assertEqual(updated["number"], 71)
+        self.assertEqual(read_back["number"], 71)
+        self.assertEqual(calls, [
+            (
+                "GET",
+                "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/pulls?state=open&limit=50&page=1",
+                None,
+            ),
+            (
+                "POST",
+                "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/pulls",
+                {
+                    "title": "fix(host-access): governed writes",
+                    "body": body,
+                    "head": "change/70",
+                    "base": "main",
+                },
+            ),
+            (
+                "GET",
+                "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/pulls/71",
+                None,
+            ),
+            (
+                "PATCH",
+                "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/pulls/71",
+                {"title": "fix(host-access): governed writes", "body": body},
+            ),
+            (
+                "GET",
+                "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/pulls/71",
+                None,
+            ),
+        ])
+
+    def test_pull_create_returns_existing_unique_open_pr_without_posting(self) -> None:
+        calls = []
+
+        def transport(method, url, headers, body):
+            if url.endswith("/api/v1/user"):
+                return 200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+            calls.append(method)
+            return 200, {}, json.dumps([{
+                "number": 71,
+                "head": {"ref": "change/70"},
+                "base": {"ref": "main"},
+                "merged": False,
+            }]).encode()
+
+        broker = HostAccessBroker(
+            self.contract,
+            credentials=StaticCredentials(),
+            transport=transport,
+        )
+        value = broker.execute(
+            "aisoft-platform", "gitea.pull.create", issue=70,
+            title="fix(host-access): governed writes",
+            body="Closes #70\n\ndocs/changes/70/summary-governed-host-writes-260809.md",
+        )
+        self.assertEqual(value["number"], 71)
+        self.assertEqual(calls, ["GET"])
+
+    def test_pull_body_contract_is_rejected_before_credentials(self) -> None:
+        class FailIfResolved:
+            def resolve(self, project, operation):
+                raise AssertionError("credential resolution must not run")
+
+        broker = HostAccessBroker(self.contract, credentials=FailIfResolved())
+        for body in (
+            "docs/changes/70/summary-governed-host-writes-260809.md",
+            "Closes #70",
+            "Closes #71\ndocs/changes/70/summary-governed-host-writes-260809.md",
+            "Closes #70\ndocs/changes/71/summary-wrong-change-260809.md",
+        ):
+            with self.subTest(body=body), self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.pull.create", issue=70,
+                    title="governed write", body=body,
+                )
+            self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+
+    def test_access_audit_validates_identities_scopes_permissions_protection_and_file_contract(self) -> None:
+        seen_commands = []
+        protection = {
+            "enable_push": False,
+            "enable_force_push": False,
+            "enable_merge_whitelist": True,
+            "merge_whitelist_usernames": ["admin"],
+            "enable_status_check": False,
+            "status_check_contexts": [],
+            "required_approvals": 0,
+            "block_admin_merge_override": True,
+        }
+
+        def runner(argv, **kwargs):
+            seen_commands.append(list(argv))
+            raise AssertionError(f"unexpected command: {argv!r}")
+
+        def transport(method, url, headers, body):
+            self.assertEqual(method, "GET")
+            self.assertIsNone(body)
+            token = headers["Authorization"].removeprefix("token ")
+            if url.endswith("/api/v1/user"):
+                login = "aisoft-platform-manager" if token.startswith("token-manager") else "aisoft-platform-agent"
+                return 200, {}, json.dumps({"login": login, "is_admin": False}).encode()
+            if url.endswith("/api/v1/notifications"):
+                scopes = {
+                    "token-manager": "read:issue,read:repository,read:user",
+                    "token-manager-mutation": "write:issue,write:repository,read:user",
+                    "token-agent": "write:issue,write:repository,read:user",
+                }[token]
+                return 403, {}, json.dumps({
+                    "message": "token does not have required scope, token scope=" + scopes,
+                }).encode()
+            if url.endswith("/collaborators/aisoft-platform-manager/permission"):
+                return 200, {}, b'{"permission":"admin"}'
+            if url.endswith("/collaborators/aisoft-platform-agent/permission"):
+                return 200, {}, b'{"permission":"write"}'
+            if url.endswith("/branch_protections/main"):
+                return 200, {}, json.dumps(protection).encode()
+            raise AssertionError(f"unexpected URL: {url}")
+
+        broker = HostAccessBroker(
+            self.contract,
+            credentials=StaticCredentials(),
+            transport=transport,
+            runner=runner,
+        )
+        value = broker.execute("aisoft-platform", "host.access.audit")
+        self.assertEqual(value["status"], "PASS")
+        self.assertEqual(value["repository_permission"], {
+            "manager": "admin", "project_agent": "write",
+        })
+        self.assertEqual(value["token_scopes"], {
+            "manager_audit": ["read:issue", "read:repository", "read:user"],
+            "manager_mutation": ["read:user", "write:issue", "write:repository"],
+            "project_agent": ["read:user", "write:issue", "write:repository"],
+        })
+        self.assertEqual(value["credential_store"], {
+            "manager_audit": {
+                "identity": "aisoft-platform-manager",
+                "kind": "protected-file",
+                "scope": "platform-manager-audit",
+            },
+            "manager_mutation": {
+                "identity": "aisoft-platform-manager",
+                "kind": "protected-file",
+                "scope": "platform-manager-mutation",
+            },
+            "project_agent": {
+                "identity": "aisoft-platform-agent",
+                "kind": "protected-file",
+                "scope": "project:aisoft-platform",
+            },
+            "directory_mode": "700",
+            "file_mode": "600",
+            "path_disclosure": "DENIED",
+        })
+        for field in ("enable_push", "enable_force_push"):
+            with self.subTest(field=field, drift="enabled"):
+                protection[field] = True
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("aisoft-platform", "host.access.audit")
+                self.assertEqual(caught.exception.code, "PROTECTION_MISMATCH")
+                protection[field] = False
+            with self.subTest(field=field, drift="missing"):
+                protection.pop(field)
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("aisoft-platform", "host.access.audit")
+                self.assertEqual(caught.exception.code, "PROTECTION_MISMATCH")
+                protection[field] = False
+        flattened = "\n".join(" ".join(argv) for argv in seen_commands)
+        self.assertNotIn("ci-bot", flattened)
+        self.assertNotIn("security", flattened)
+
+    def _credential_contract(self, root: Path):
+        raw = json.loads(json.dumps(self.contract.raw))
+        raw["mac_host"]["credential_root"] = str(root)
+        return replace(self.contract, raw=raw)
+
+    @staticmethod
+    def _write_credential(root: Path, relative: str, token: str) -> Path:
+        root.mkdir(mode=0o700)
+        current = root
+        parts = Path(relative).parts
+        for component in parts[:-1]:
+            current /= component
+            current.mkdir(mode=0o700)
+        target = current / parts[-1]
+        target.write_text(token + "\n")
+        target.chmod(0o600)
+        return target
+
+    def test_credential_resolver_reads_only_fixed_protected_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve() / "credentials"
+            target = self._write_credential(
+                root, "projects/aisoft-platform/project-agent.token", "sentinel-secret-token"
+            )
+            resolver = CredentialResolver(
+                self._credential_contract(root), expected_uid=os.getuid(),
+            )
+            credential = resolver.resolve(
+                self.contract.project("aisoft-platform"),
+                self.contract.operation("gitea.issue.read"),
+            )
+            self.assertEqual(credential.identity, "aisoft-platform-agent")
+            self.assertEqual(credential.token, "sentinel-secret-token")
+            self.assertEqual(stat.S_IMODE(target.stat().st_mode), 0o600)
+
+    def test_credential_resolver_rejects_file_and_directory_drift_without_secret_leak(self) -> None:
+        secret = "sentinel-secret-token"
+        cases = (
+            "missing", "file-mode", "directory-mode", "symlink", "ancestor-symlink",
+            "hardlink", "owner", "multiline",
+        )
+        for case in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as temporary:
+                temporary_root = Path(temporary).resolve()
+                root = temporary_root / "credentials"
+                target = self._write_credential(
+                    root, "projects/aisoft-platform/project-agent.token", secret
+                )
+                contract_root = root
+                expected_uid = os.getuid()
+                if case == "missing":
+                    target.unlink()
+                elif case == "file-mode":
+                    target.chmod(0o644)
+                elif case == "directory-mode":
+                    target.parent.chmod(0o755)
+                elif case == "symlink":
+                    target.unlink()
+                    target.symlink_to(Path(temporary) / "elsewhere")
+                elif case == "ancestor-symlink":
+                    real_parent = temporary_root / "real-parent"
+                    real_parent.mkdir(mode=0o700)
+                    root.rename(real_parent / "credentials")
+                    linked_parent = temporary_root / "linked-parent"
+                    linked_parent.symlink_to(real_parent, target_is_directory=True)
+                    contract_root = linked_parent / "credentials"
+                elif case == "hardlink":
+                    os.link(target, Path(temporary) / "second-link")
+                elif case == "owner":
+                    expected_uid += 1
+                elif case == "multiline":
+                    target.write_text(secret + "\nsecond-line\n")
+                resolver = CredentialResolver(
+                    self._credential_contract(contract_root), expected_uid=expected_uid,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    resolver.resolve(
+                        self.contract.project("aisoft-platform"),
+                        self.contract.operation("gitea.issue.read"),
+                    )
+                self.assertNotIn(secret, str(caught.exception))
+                self.assertNotIn(str(root), str(caught.exception))
 
     def test_identity_mismatch_fails_before_target_request(self) -> None:
         calls = []
@@ -166,27 +654,39 @@ class HostAccessBrokerTests(unittest.TestCase):
                 self.assertNotIn(secret, str(caught.exception))
                 self.assertNotIn("token-agent", str(caught.exception))
 
-    def test_keychain_secret_is_not_in_command_argv(self) -> None:
-        seen = []
-
-        def runner(argv, **kwargs):
-            seen.append(list(argv))
-            return subprocess.CompletedProcess(argv, 0, "sentinel-secret-token\n", "")
-
-        resolver = CredentialResolver(self.contract, runner=runner)
-        credential = resolver.resolve(
-            self.contract.project("hsdb"), self.contract.operation("gitea.repo.read")
-        )
-        self.assertEqual(credential.identity, "hsdb-agent")
-        self.assertEqual(credential.token, "sentinel-secret-token")
-        self.assertFalse(any("sentinel-secret-token" in value for value in seen[0]))
-
     def _temporary_checkout_contract(self, checkout: Path):
         project = self.contract.project("aisoft-platform")
         replacement = replace(project, mac_checkout=str(checkout))
         projects = tuple(replacement if item.project_id == project.project_id else item
                          for item in self.contract.projects)
         return replace(self.contract, projects=projects)
+
+    @staticmethod
+    def _git(argv, *, cwd: Path | None = None) -> str:
+        return subprocess.run(
+            ["git", *argv], cwd=cwd, check=True, text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        ).stdout.strip()
+
+    def _linked_change_worktree(self, temporary: str):
+        canonical = Path(temporary) / "canonical"
+        linked = Path(temporary) / "linked"
+        self._git(["init", "-q", "-b", "main", str(canonical)])
+        self._git(["config", "user.name", "Host Broker Test"], cwd=canonical)
+        self._git(["config", "user.email", "host-broker@example.invalid"], cwd=canonical)
+        (canonical / "README.md").write_text("baseline\n")
+        self._git(["add", "README.md"], cwd=canonical)
+        self._git(["commit", "-q", "-m", "baseline"], cwd=canonical)
+        self._git([
+            "remote", "add", "origin",
+            "http://gitea-ci.orb.local:3000/admin/aisoft-platform.git",
+        ], cwd=canonical)
+        self._git(["update-ref", "refs/remotes/origin/main", "HEAD"], cwd=canonical)
+        self._git(["worktree", "add", "-q", "-b", "change/70", str(linked)], cwd=canonical)
+        (linked / "change.txt").write_text("change 70\n")
+        self._git(["add", "change.txt"], cwd=linked)
+        self._git(["commit", "-q", "-m", "change 70"], cwd=linked)
+        return canonical, linked
 
     def test_repo_local_binding_is_idempotent_and_secret_free(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -241,6 +741,96 @@ class HostAccessBrokerTests(unittest.TestCase):
             for branch in ("main", "change/1:main", "+change/1", "change/0"):
                 with self.subTest(branch=branch), self.assertRaises(BrokerError):
                     broker.execute("aisoft-platform", "git.push.change", branch=branch)
+
+    def test_push_uses_current_linked_worktree_and_exact_same_change_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            canonical, linked = self._linked_change_worktree(temporary)
+            contract = self._temporary_checkout_contract(canonical)
+            commands = []
+
+            def runner(argv, *, cwd=None, env=None):
+                commands.append((list(argv), cwd, dict(env or {})))
+                if argv[:3] == ["git", "fetch", "origin"]:
+                    return subprocess.CompletedProcess(argv, 0, "", "")
+                if argv[:3] == ["git", "push", "origin"]:
+                    return subprocess.CompletedProcess(argv, 0, "", "")
+                return subprocess.run(
+                    list(argv), cwd=cwd, env=env, check=False, text=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                )
+
+            broker = HostAccessBroker(
+                contract,
+                credentials=StaticCredentials(),
+                transport=lambda method, url, headers, body: (
+                    200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+                ),
+                runner=runner,
+                invocation_cwd=str(linked),
+            )
+            value = broker.execute(
+                "aisoft-platform", "git.push.change", branch="change/70"
+            )
+            self.assertEqual(value["checkout"], os.path.realpath(linked))
+            pushes = [call for call in commands if call[0][:2] == ["git", "push"]]
+            self.assertEqual(len(pushes), 1)
+            self.assertEqual(pushes[0][0], [
+                "git", "push", "origin",
+                "refs/heads/change/70:refs/heads/change/70",
+            ])
+            self.assertEqual(pushes[0][1], os.path.realpath(linked))
+            flattened = "\n".join(" ".join(argv) for argv, _cwd, _env in commands)
+            self.assertNotIn("--force", flattened)
+            self.assertNotIn(":refs/heads/main", flattened)
+
+    def test_push_rejects_wrong_common_dir_detached_dirty_and_wrong_change(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            canonical, linked = self._linked_change_worktree(temporary)
+            contract = self._temporary_checkout_contract(canonical)
+
+            def broker_for(cwd: Path):
+                return HostAccessBroker(
+                    contract,
+                    credentials=StaticCredentials(),
+                    transport=lambda method, url, headers, body: (
+                        200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+                    ),
+                    invocation_cwd=str(cwd),
+                )
+
+            other = Path(temporary) / "other"
+            self._git(["init", "-q", "-b", "change/70", str(other)])
+            self._git([
+                "remote", "add", "origin",
+                "http://gitea-ci.orb.local:3000/admin/aisoft-platform.git",
+            ], cwd=other)
+            with self.assertRaises(BrokerError) as wrong_repo:
+                broker_for(other).execute(
+                    "aisoft-platform", "git.push.change", branch="change/70"
+                )
+            self.assertEqual(wrong_repo.exception.code, "TARGET_MISMATCH")
+
+            (linked / "dirty.txt").write_text("dirty\n")
+            with self.assertRaises(BrokerError) as dirty:
+                broker_for(linked).execute(
+                    "aisoft-platform", "git.push.change", branch="change/70"
+                )
+            self.assertEqual(dirty.exception.code, "WORKTREE_DIRTY")
+            (linked / "dirty.txt").unlink()
+
+            self._git(["checkout", "--detach", "-q"], cwd=linked)
+            with self.assertRaises(BrokerError) as detached:
+                broker_for(linked).execute(
+                    "aisoft-platform", "git.push.change", branch="change/70"
+                )
+            self.assertEqual(detached.exception.code, "TARGET_MISMATCH")
+
+            self._git(["switch", "-q", "change/70"], cwd=linked)
+            with self.assertRaises(BrokerError) as wrong_change:
+                broker_for(linked).execute(
+                    "aisoft-platform", "git.push.change", branch="change/71"
+                )
+            self.assertEqual(wrong_change.exception.code, "TARGET_MISMATCH")
 
     def test_credential_protocol_denies_cross_project_and_wrong_identity(self) -> None:
         resolver = StaticCredentials()
@@ -411,6 +1001,81 @@ class HostAccessBrokerTests(unittest.TestCase):
                 ):
                     self.assertEqual(host_access_cli_main(argv[:-1] + [action]), 0)
                 self.assertEqual(stdout.getvalue(), "")
+
+    def test_cli_exposes_only_typed_issue_and_pull_fields(self) -> None:
+        body = "Closes #70\ndocs/changes/70/summary-governed-host-writes-260809.md"
+        argv = [
+            "--access-manifest", str(ACCESS),
+            "--governance-manifest", str(GOVERNANCE),
+            "broker", "--project", "aisoft-platform",
+            "--operation", "gitea.pull.create",
+            "--issue", "70", "--title", "fix(host-access): governed writes",
+            "--body", body,
+        ]
+        stdout = io.StringIO()
+        with (
+            patch.object(HostAccessBroker, "execute", return_value={"number": 71}) as execute,
+            redirect_stdout(stdout),
+        ):
+            self.assertEqual(host_access_cli_main(argv), 0)
+        execute.assert_called_once_with(
+            "aisoft-platform", "gitea.pull.create",
+            number=None, state=None, branch=None, issue=70,
+            title="fix(host-access): governed writes", body=body, comment=None, sha=None,
+        )
+        self.assertEqual(json.loads(stdout.getvalue()), {"number": 71})
+
+        for forbidden in ("--url", "--owner", "--repository", "--method", "--raw-body"):
+            with self.subTest(forbidden=forbidden), self.assertRaises(SystemExit):
+                host_access_cli_main(argv + [forbidden, "attacker.invalid"])
+
+
+class GovernedHostRunnerTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.contract = load_access_contract(ACCESS, GOVERNANCE)
+
+    def test_fresh_runner_instances_use_only_fixed_broker_and_typed_arguments(self) -> None:
+        calls = []
+
+        def command_runner(argv, **kwargs):
+            calls.append((list(argv), kwargs))
+            payload = {"status": "PASS", "number": 70}
+            return subprocess.CompletedProcess(argv, 0, json.dumps(payload) + "\n", "")
+
+        first = GovernedHostRunner(
+            self.contract, "aisoft-platform", command_runner=command_runner,
+        )
+        second = GovernedHostRunner(
+            self.contract, "aisoft-platform", command_runner=command_runner,
+        )
+        self.assertEqual(first.issue_read(70)["number"], 70)
+        self.assertEqual(second.issue_comment(70, "fresh-session canary")["number"], 70)
+        self.assertEqual(first.push_change(70)["status"], "PASS")
+        self.assertEqual([call[0][0] for call in calls], [
+            "/usr/local/libexec/aisoft/host-access-broker",
+            "/usr/local/libexec/aisoft/host-access-broker",
+            "/usr/local/libexec/aisoft/host-access-broker",
+        ])
+        flattened = "\n".join(" ".join(call[0]) for call in calls)
+        self.assertNotIn("curl", flattened)
+        self.assertNotIn("/usr/bin/security", flattened)
+        self.assertNotIn("git push", flattened)
+        self.assertNotIn("ci-bot", flattened)
+        self.assertNotIn("--url", flattened)
+        self.assertNotIn("--owner", flattened)
+        self.assertNotIn("--repository", flattened)
+
+    def test_runner_has_no_merge_or_arbitrary_operation_surface(self) -> None:
+        runner = GovernedHostRunner(
+            self.contract,
+            "aisoft-platform",
+            command_runner=lambda argv, **kwargs: subprocess.CompletedProcess(
+                argv, 0, '{"status":"PASS"}\n', ""
+            ),
+        )
+        self.assertFalse(hasattr(runner, "merge"))
+        self.assertFalse(hasattr(runner, "execute"))
+        self.assertFalse(hasattr(runner, "request"))
 
 
 class ProfileMigrationTests(unittest.TestCase):
