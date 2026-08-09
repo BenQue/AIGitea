@@ -14,9 +14,9 @@ risk_flags:
   - artifact
   - deployment
 depends_on: []
-status: implementing
+status: pr-open
 branch: change/66
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/69
 created: 2026-08-09
 updated: 2026-08-09
 ---
@@ -30,7 +30,7 @@ updated: 2026-08-09
 | T01 | Issue #66 contract、fresh baseline 与 red regression coverage | - | completed |
 | T02 | 路径精确、value 严格的 Compose sensitive-field validation | T01 | completed |
 | T03 | CLI/runner/phase/equality regression 与 adopter documentation | T02 | completed |
-| T04 | 完整平台验证、verification、原子 commit 与唯一 PR handoff | T03 | in_progress |
+| T04 | 完整平台验证、verification、原子 commit 与唯一 PR handoff | T03 | completed |
 
 ## Tasks
 

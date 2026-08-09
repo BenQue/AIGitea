@@ -14,9 +14,9 @@ risk_flags:
   - artifact
   - deployment
 depends_on: []
-status: local-verified
+status: pr-open
 branch: change/66
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/69
 created: 2026-08-09
 updated: 2026-08-09
 ---
@@ -35,7 +35,7 @@ updated: 2026-08-09
 
 | Check | Result | Evidence |
 |---|---|---|
-| Issue #66 | PASS | live `open`；正文与 AC 一致；0 comments；无已有 branch/PR |
+| Issue #66 / PR #69 | PASS | Issue live `open` + `complexity/complex`/`pr-open`/`type/platform`；唯一 PR `open`、`mergeable=true`、`merged=false` |
 | Issue #58 / PR #64 | PASS | closed/merged；merge SHA `97445947fff79a4c2db6fa764feb21660e281556` |
 | Issue #67 / PR #68 | PASS | closed/merged；merge SHA `dd5b2b9e0b22e4cd20effef5e22edce8765b6813`；exact-main broker/helper 重装与二次 no-op PASS；`aisoft-platform-agent` 真实 push/read-back/delete canary PASS |
 | Protected main | PASS | live `main.protected=true` |
@@ -61,7 +61,9 @@ updated: 2026-08-09
 | Compatibility matrix zero diff | PASS | `git diff --quiet origin/main -- docker-release/compatibility/image-stores-v1.json` → exit 0 |
 | High-confidence credential scan | PASS | changed runtime/release production files 未命中 private key、GitHub PAT、OpenAI-style key pattern |
 | `git diff --check` | PASS | 无 whitespace error |
-| Final-head PR/CI readback | NOT RUN | 尚未提交/推送/创建 PR |
+| PR creation readback | PASS | implementation head local/remote/PR 均为 `1111ad3acb28f0209113114ab0cf4812c386a92b`；base `dd5b2b9e0b22e4cd20effef5e22edce8765b6813`；PR #69 `open`、`mergeable=true`、`merged=false` |
+| Required CI contract | NOT CONFIGURED / NOT RUN | implementation-head statuses `[]`；combined `pending` 但 `total_count=0`；live `main.enable_status_check=false`、contexts `[]`；Actions runs 匿名 API 为 401 |
+| Final docs-head live readback | POST-COMMIT GATE | 本 metadata commit push 后匿名回读 exact remote/PR head 与相同 required-CI 合同；结果只进入最终 handoff，避免为记录自身 SHA 再生成新 SHA |
 
 ## Acceptance criteria 结果
 
@@ -75,7 +77,7 @@ updated: 2026-08-09
 - AC-6：PASS。敏感 environment producer/target model 相同则通过，引用 drift 则在 mutation 前拒绝。
 - AC-7：PASS。legacy v1、schema/state/phase/transport tests 保持通过，compatibility matrix zero diff。
 - AC-8：PASS。86 release tests、289 full smoke、installer/fake/syntax/ShellCheck/compile/diff checks 通过。
-- AC-9：PARTIAL / NOT RUN。单一 local branch 已满足；commit、push、唯一 PR 与 final-head status 尚待执行。
+- AC-9：PASS。单一 `change/66` 已非 force push，唯一 PR #69 含 `Closes #66`；final-head required CI 为 `NOT CONFIGURED / NOT RUN`，停在人工 merge gate。
 
 ## 真实环境与独立门禁
 
@@ -97,6 +99,6 @@ updated: 2026-08-09
 
 ## 遗留风险与未完成项
 
-- Gitea 写入可能因新的 `admin` credential 缺失而阻塞；不得查询或借用 `ci-bot`。
-- live required status 当前为 `NOT CONFIGURED`；PR 创建后必须按 final head 重新回读，不能用本地 PASS
-  冒充 remote CI。
+- 永久 `aisoft-platform-agent` Keychain/helper push 与 PR 写入路径已 PASS；未使用人工 `admin` 或 `ci-bot`。
+- live required status 为 `NOT CONFIGURED / NOT RUN`，不能把本地 289-test PASS 冒充 remote CI。
+- PR #69 仍须由用户人工审核并 merge；merge 后再回读 exact merged SHA/bytes，作为 NewEmaint #59 恢复依据。

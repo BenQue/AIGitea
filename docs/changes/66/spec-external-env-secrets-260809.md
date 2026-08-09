@@ -14,9 +14,9 @@ risk_flags:
   - artifact
   - deployment
 depends_on: []
-status: implementing
+status: pr-open
 branch: change/66
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/69
 created: 2026-08-09
 updated: 2026-08-09
 ---
