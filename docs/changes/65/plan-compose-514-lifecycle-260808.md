@@ -36,7 +36,7 @@ updated: 2026-08-09
 |---|---|---|---|
 | T01 | 安全、确定性、默认零 Docker call 的 v2 lifecycle harness 与 fake/negative/cleanup/evidence tests | [] | complete |
 | T02 | 用户单独批准环境中的 Engine 29.7.1 + Compose 5.1.4 + containerd real lifecycle evidence | [T01] | complete |
-| T03 | 仅按 T02 PASS evidence 晋级 exact matrix row、完成文档/final gates/单一 PR | [T02] | in-progress |
+| T03 | 仅按 T02 PASS evidence 晋级 exact matrix row、完成文档/final gates/单一 PR | [T02] | complete |
 
 ## Tasks
 

@@ -86,7 +86,7 @@ updated: 2026-08-09
 | Exact range positive/negative tests | PASS | public `require_supported`证明5.1.4 exact支持；5.1.3/5.1.5/5.2.0、Engine邻界、classic拒绝；duplicate/overlap fail closed |
 | Freshly refreshed delivery base | PASS | final handoff前fetch到`origin/main@7ef7fa23af202343335f99ea746b4dd7a64cbd71`，已合入#66/#67；post-evidence gate仍只允许#65相对该base修改`transport.py`、README与exact matrix，T02 immutable evidence继续绑定原approved source `97445947…` |
 | Final required local gates | PASS | 合入fresh main后`bash codex/tests/smoke.sh`通过294 tests与static smoke；focused release、installer、fake harness、`bash -n`、ShellCheck、JSON、Secret与`git diff --check`均PASS |
-| Single Closes #65 PR | NOT RUN | pending Controller handoff |
+| Single Closes #65 PR | PASS | project-agent创建唯一[PR #71](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/71)：`change/65 → main`、open、unmerged、mergeable；remote head与本地final head回读一致 |
 | Human merge | NOT RUN | forbidden for Agent/Controller |
 | Business deployment | NOT RUN / OUT OF SCOPE | NewEmaint/DockerLab/AppServer/production explicitly excluded |
 
@@ -103,7 +103,7 @@ updated: 2026-08-09
 | AC-7 | PASS | 全部real negatives按预期拒绝、mutation 0、inventory不变 |
 | AC-8 | PASS | success/failure exact cleanup、before==after与immutable PASS/failure evidence已验证 |
 | AC-9 | PASS | 仅按real evidence增加exact非重叠Compose 5.1.4 row；其它5.x/classic继续不支持 |
-| AC-10 | PARTIAL | implementation/final-head required local gates PASS；唯一`Closes #65` PR与remote readback pending |
+| AC-10 | PASS | final-head required local gates PASS；唯一`Closes #65` PR已创建并回读open/unmerged，remote CI如实记录为`NOT CONFIGURED / NOT RUN` |
 
 ## Rollback and remaining gates
 
