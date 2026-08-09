@@ -17,6 +17,9 @@ TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 CREDENTIAL_SCALAR_FIELDS = frozenset({"protocol", "host", "path", "username"})
 CREDENTIAL_REQUIRED_FIELDS = frozenset({"protocol", "host", "path"})
 CREDENTIAL_PROTOCOL_MAX_LINE_BYTES = 65535
+TITLE_MAX_BYTES = 255
+BODY_MAX_BYTES = 65536
+COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
 class BrokerError(RuntimeError):
@@ -25,6 +28,39 @@ class BrokerError(RuntimeError):
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
         self.code = code
+
+
+def _positive_number(value: int | None, label: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise BrokerError("ARGUMENT_INVALID", f"{label} number must be a positive integer")
+    return value
+
+
+def _typed_text(label: str, value: str | None, max_bytes: int) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise BrokerError("ARGUMENT_INVALID", f"{label} must not be empty")
+    if "\0" in value or "\r" in value:
+        raise BrokerError("ARGUMENT_INVALID", f"{label} contains forbidden characters")
+    try:
+        size = len(value.encode("utf-8"))
+    except UnicodeEncodeError as exc:
+        raise BrokerError("ARGUMENT_INVALID", f"{label} is not valid UTF-8 text") from exc
+    if size > max_bytes:
+        raise BrokerError("ARGUMENT_INVALID", f"{label} exceeds its typed size limit")
+    return value
+
+
+def _pull_body(issue: int | None, value: str | None) -> str:
+    number = _positive_number(issue, "Issue")
+    body = _typed_text("pull request body", value, BODY_MAX_BYTES)
+    if not re.search(rf"(?<![0-9])Closes #{number}(?![0-9])", body):
+        raise BrokerError("ARGUMENT_INVALID", "pull request body must close its exact Issue")
+    summary = re.compile(
+        rf"docs/changes/{number}/summary-[a-z0-9]+(?:-[a-z0-9]+)*-[0-9]{{6}}\.md"
+    )
+    if not summary.search(body):
+        raise BrokerError("ARGUMENT_INVALID", "pull request body must link its semantic summary")
+    return body
 
 
 Transport = Callable[
@@ -127,11 +163,13 @@ class HostAccessBroker:
         credentials: CredentialResolver | None = None,
         transport: Transport = _default_transport,
         runner: CommandRunner = _default_runner,
+        invocation_cwd: str | None = None,
     ) -> None:
         self.contract = contract
         self.credentials = credentials or CredentialResolver(contract, runner=runner)
         self.transport = transport
         self.runner = runner
+        self.invocation_cwd = os.path.realpath(invocation_cwd or os.getcwd())
 
     def execute(
         self,
@@ -141,14 +179,29 @@ class HostAccessBroker:
         number: int | None = None,
         state: str | None = None,
         branch: str | None = None,
+        issue: int | None = None,
+        title: str | None = None,
+        body: str | None = None,
+        comment: str | None = None,
+        sha: str | None = None,
     ) -> object:
         try:
             project = self.contract.project(project_id)
             operation = self.contract.operation(operation_name)
         except AccessContractError as exc:
             raise BrokerError("REQUEST_DENIED", str(exc)) from exc
+        arguments = {
+            "number": number,
+            "state": state,
+            "branch": branch,
+            "issue": issue,
+            "title": title,
+            "body": body,
+            "comment": comment,
+            "sha": sha,
+        }
         supplied = {
-            key for key, value in {"number": number, "state": state, "branch": branch}.items()
+            key for key, value in arguments.items()
             if value is not None
         }
         if supplied != set(operation.arguments):
@@ -156,9 +209,21 @@ class HostAccessBroker:
 
         try:
             if operation_name.startswith("gitea."):
-                return self._gitea(project, operation, number=number, state=state)
+                return self._gitea(
+                    project,
+                    operation,
+                    number=number,
+                    state=state,
+                    issue=issue,
+                    title=title,
+                    body=body,
+                    comment=comment,
+                    sha=sha,
+                )
             if operation_name.startswith("git.") or operation_name == "mac.git.bind":
                 return self._git(project, operation, branch=branch)
+            if operation_name == "host.access.audit":
+                return self._access_audit(project, operation)
             if operation_name == "orbstack.vm.status":
                 return self._orbstack_status(project, operation)
             if operation_name.startswith("vm.profile."):
@@ -174,7 +239,49 @@ class HostAccessBroker:
         *,
         number: int | None,
         state: str | None,
+        issue: int | None,
+        title: str | None,
+        body: str | None,
+        comment: str | None,
+        sha: str | None,
     ) -> object:
+        method = "GET"
+        payload: object | None = None
+        if operation.name == "gitea.issue.create":
+            method = "POST"
+            payload = {
+                "title": _typed_text("Issue title", title, TITLE_MAX_BYTES),
+                "body": _typed_text("Issue body", body, BODY_MAX_BYTES),
+            }
+        elif operation.name == "gitea.issue.update":
+            method = "PATCH"
+            _positive_number(number, "Issue")
+            payload = {
+                "title": _typed_text("Issue title", title, TITLE_MAX_BYTES),
+                "body": _typed_text("Issue body", body, BODY_MAX_BYTES),
+            }
+        elif operation.name == "gitea.issue.comment":
+            method = "POST"
+            _positive_number(number, "Issue")
+            payload = {"body": _typed_text("Issue comment", comment, BODY_MAX_BYTES)}
+        elif operation.name == "gitea.pull.create":
+            _positive_number(issue, "Issue")
+            method = "POST"
+            payload = {
+                "title": _typed_text("pull request title", title, TITLE_MAX_BYTES),
+                "body": _pull_body(issue, body),
+            }
+        elif operation.name == "gitea.pull.update":
+            method = "PATCH"
+            _positive_number(number, "pull request")
+            _positive_number(issue, "Issue")
+            payload = {
+                "title": _typed_text("pull request title", title, TITLE_MAX_BYTES),
+                "body": _pull_body(issue, body),
+            }
+        elif operation.name == "gitea.commit.status.read":
+            if not isinstance(sha, str) or COMMIT_SHA_RE.fullmatch(sha) is None:
+                raise BrokerError("ARGUMENT_INVALID", "commit status requires an exact lowercase SHA-1")
         credential = self.credentials.resolve(project, operation)
         self._verify_identity(credential)
         owner = quote(self.contract.governance.owner, safe="")
@@ -183,20 +290,73 @@ class HostAccessBroker:
         repo_api = f"{base}/api/v1/repos/{owner}/{repository}"
         if operation.name == "gitea.repo.read":
             url = repo_api
+        elif operation.name == "gitea.issue.create":
+            url = f"{repo_api}/issues"
         elif operation.name == "gitea.issue.read":
-            if not isinstance(number, int) or isinstance(number, bool) or number <= 0:
-                raise BrokerError("ARGUMENT_INVALID", "Issue number must be a positive integer")
+            _positive_number(number, "Issue")
             url = f"{repo_api}/issues/{number}"
+        elif operation.name == "gitea.issue.update":
+            url = f"{repo_api}/issues/{number}"
+        elif operation.name == "gitea.issue.comment":
+            url = f"{repo_api}/issues/{number}/comments"
         elif operation.name == "gitea.pulls.read":
             if state not in {"open", "closed", "all"}:
                 raise BrokerError("ARGUMENT_INVALID", "pull state must be open, closed, or all")
             url = f"{repo_api}/pulls?state={state}&limit=50&page=1"
+        elif operation.name == "gitea.pull.create":
+            assert issue is not None
+            open_pulls = self._request_json(
+                f"{repo_api}/pulls?state=open&limit=50&page=1",
+                credential.token,
+            )
+            if not isinstance(open_pulls, list):
+                raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea pull list is invalid")
+            matches = [
+                item for item in open_pulls
+                if isinstance(item, dict)
+                and isinstance(item.get("head"), dict)
+                and isinstance(item.get("base"), dict)
+                and item["head"].get("ref") == f"change/{issue}"
+                and item["base"].get("ref") == self.contract.governance.default_branch
+            ]
+            if len(matches) > 1:
+                raise BrokerError("TARGET_MISMATCH", "multiple open pull requests target the change branch")
+            if matches:
+                return matches[0]
+            pull_body = payload if isinstance(payload, dict) else {}
+            payload = {
+                **pull_body,
+                "head": f"change/{issue}",
+                "base": self.contract.governance.default_branch,
+            }
+            url = f"{repo_api}/pulls"
+        elif operation.name == "gitea.pull.read":
+            _positive_number(number, "pull request")
+            url = f"{repo_api}/pulls/{number}"
+        elif operation.name == "gitea.pull.update":
+            assert issue is not None and number is not None
+            current_pull = self._request_json(
+                f"{repo_api}/pulls/{number}", credential.token
+            )
+            if (
+                not isinstance(current_pull, dict)
+                or not isinstance(current_pull.get("head"), dict)
+                or not isinstance(current_pull.get("base"), dict)
+                or current_pull["head"].get("ref") != f"change/{issue}"
+                or current_pull["base"].get("ref") != self.contract.governance.default_branch
+                or current_pull.get("merged") is True
+            ):
+                raise BrokerError("TARGET_MISMATCH", "pull request does not match the exact change target")
+            url = f"{repo_api}/pulls/{number}"
         elif operation.name == "gitea.protection.read":
             branch = quote(self.contract.governance.default_branch, safe="")
             url = f"{repo_api}/branch_protections/{branch}"
+        elif operation.name == "gitea.commit.status.read":
+            assert sha is not None
+            url = f"{repo_api}/commits/{sha}/status"
         else:
             raise BrokerError("OPERATION_UNIMPLEMENTED", "Gitea operation is not implemented")
-        return self._request_json(url, credential.token)
+        return self._request_json(url, credential.token, method=method, payload=payload)
 
     def _verify_identity(self, credential: ResolvedCredential) -> None:
         url = f"{self.contract.governance.base_url}/api/v1/user"
@@ -206,10 +366,24 @@ class HostAccessBroker:
         if credential.identity != self.contract.governance.human_merge_identity and value.get("is_admin") is True:
             raise BrokerError("IDENTITY_MISMATCH", "automation identity unexpectedly has site-admin permission")
 
-    def _request_json(self, url: str, token: str) -> object:
+    def _request_json(
+        self,
+        url: str,
+        token: str,
+        *,
+        method: str = "GET",
+        payload: object | None = None,
+    ) -> object:
+        body_data = None
+        headers = {"Accept": "application/json", "Authorization": f"token {token}"}
+        if payload is not None:
+            body_data = json.dumps(
+                payload, ensure_ascii=False, separators=(",", ":")
+            ).encode("utf-8")
+            headers["Content-Type"] = "application/json"
         try:
             status, _headers, body = self.transport(
-                "GET", url, {"Accept": "application/json", "Authorization": f"token {token}"}, None
+                method, url, headers, body_data
             )
         except BrokerError:
             raise
@@ -231,11 +405,12 @@ class HostAccessBroker:
         *,
         branch: str | None,
     ) -> object:
-        credential = self.credentials.resolve(project, operation)
-        self._verify_identity(credential)
-        checkout = project.mac_checkout
-        if checkout is None:
+        canonical = project.mac_checkout
+        if canonical is None:
             raise BrokerError("TARGET_UNAVAILABLE", "project has no approved Mac checkout")
+        checkout = canonical if operation.name == "mac.git.bind" else self.invocation_cwd
+        if operation.name != "mac.git.bind":
+            checkout = self._validated_project_worktree(canonical, checkout)
         expected_remote = (
             f"{self.contract.governance.base_url}/{self.contract.governance.owner}/"
             f"{project.repository}.git"
@@ -244,7 +419,30 @@ class HostAccessBroker:
         if remote != expected_remote:
             raise BrokerError("TARGET_MISMATCH", "checkout origin does not match the manifest target")
         if operation.name == "mac.git.bind":
+            credential = self.credentials.resolve(project, operation)
+            self._verify_identity(credential)
             return self._bind_git(project, checkout, expected_remote)
+
+        safe_branch = None
+        if branch is not None:
+            safe_branch = self.contract.change_branch(branch)
+        if operation.name == "git.push.change":
+            assert safe_branch is not None
+            current = self._run(["git", "branch", "--show-current"], cwd=checkout).stdout.strip()
+            if current != safe_branch:
+                raise BrokerError("TARGET_MISMATCH", "worktree branch does not match requested change branch")
+            status = self._run(["git", "status", "--porcelain"], cwd=checkout).stdout
+            if status:
+                raise BrokerError("WORKTREE_DIRTY", "change worktree must be clean before push")
+            head = self._run(["git", "rev-parse", "HEAD"], cwd=checkout).stdout.strip()
+            branch_head = self._run(
+                ["git", "rev-parse", f"refs/heads/{safe_branch}"], cwd=checkout
+            ).stdout.strip()
+            if head != branch_head:
+                raise BrokerError("TARGET_MISMATCH", "worktree HEAD does not match its exact branch")
+
+        credential = self.credentials.resolve(project, operation)
+        self._verify_identity(credential)
 
         helper = self.contract.raw["mac_host"]["credential_helper"]
         env = dict(os.environ)
@@ -260,15 +458,23 @@ class HostAccessBroker:
         if operation.name == "git.fetch.main":
             argv = ["git", "fetch", "origin", "main"]
         elif operation.name == "git.fetch.change":
-            assert branch is not None
-            safe_branch = self.contract.change_branch(branch)
+            assert safe_branch is not None
             argv = ["git", "fetch", "origin", safe_branch]
         elif operation.name == "git.push.change":
-            assert branch is not None
-            safe_branch = self.contract.change_branch(branch)
-            current = self._run(["git", "branch", "--show-current"], cwd=checkout).stdout.strip()
-            if current != safe_branch:
-                raise BrokerError("TARGET_MISMATCH", "checkout branch does not match requested change branch")
+            assert safe_branch is not None
+            self._run(["git", "fetch", "origin", "main"], cwd=checkout, env=env)
+            ancestor = self.runner(
+                ["git", "merge-base", "--is-ancestor", "origin/main", "HEAD"],
+                cwd=checkout,
+            )
+            if ancestor.returncode != 0:
+                raise BrokerError("BASE_BRANCH_STALE", "change branch is not based on fetched origin/main")
+            merge_commits = self._run(
+                ["git", "rev-list", "--min-parents=2", "origin/main..HEAD"],
+                cwd=checkout,
+            ).stdout.strip()
+            if merge_commits:
+                raise BrokerError("MERGE_COMMIT_DENIED", "change branch contains a merge commit")
             argv = ["git", "push", "origin", f"refs/heads/{safe_branch}:refs/heads/{safe_branch}"]
         else:
             raise BrokerError("OPERATION_UNIMPLEMENTED", "Git operation is not implemented")
@@ -278,7 +484,24 @@ class HostAccessBroker:
             "project": project.project_id,
             "operation": operation.name,
             "identity": project.project_agent,
+            "checkout": checkout,
         }
+
+    def _validated_project_worktree(self, canonical: str, candidate: str) -> str:
+        canonical_root = self._run(
+            ["git", "rev-parse", "--show-toplevel"], cwd=canonical
+        ).stdout.strip()
+        candidate_root = self._run(
+            ["git", "rev-parse", "--show-toplevel"], cwd=candidate
+        ).stdout.strip()
+
+        def common_dir(root: str) -> str:
+            raw = self._run(["git", "rev-parse", "--git-common-dir"], cwd=root).stdout.strip()
+            return os.path.realpath(raw if os.path.isabs(raw) else os.path.join(root, raw))
+
+        if common_dir(canonical_root) != common_dir(candidate_root):
+            raise BrokerError("TARGET_MISMATCH", "current worktree is outside the manifest repository")
+        return os.path.realpath(candidate_root)
 
     def _bind_git(self, project: ProjectContract, checkout: str, remote: str) -> object:
         helper = self.contract.raw["mac_host"]["credential_helper"]
@@ -310,6 +533,200 @@ class HostAccessBroker:
             "result": "updated" if changed else "no-op",
             "identity": project.project_agent,
         }
+
+    def _access_audit(
+        self,
+        project: ProjectContract,
+        operation: OperationContract,
+    ) -> object:
+        keychain = self._keychain_audit(project)
+        operations = {
+            "manager_audit": operation,
+            "manager_mutation": OperationContract(
+                "host.access.audit", "manager-mutation", False, ()
+            ),
+            "project_agent": OperationContract(
+                "host.access.audit", "project-agent", False, ()
+            ),
+        }
+        credentials = {
+            route: self.credentials.resolve(project, route_operation)
+            for route, route_operation in operations.items()
+        }
+        for credential in credentials.values():
+            self._verify_identity(credential)
+
+        expected_scopes = {
+            "manager_audit": set(
+                self.contract.governance.raw["platform_manager"]["audit_token_scopes"]
+            ),
+            "manager_mutation": set(
+                self.contract.governance.raw["platform_manager"]["mutation_token_scopes"]
+            ),
+            "project_agent": set(
+                self.contract.governance.raw["project_agent_policy"]["token_scopes"]
+            ),
+        }
+        token_scopes: dict[str, list[str]] = {}
+        for route, credential in credentials.items():
+            actual = self._probe_token_scopes(credential)
+            if actual != expected_scopes[route]:
+                raise BrokerError("TOKEN_SCOPE_MISMATCH", "credential token scopes do not match the manifest")
+            token_scopes[route] = sorted(actual)
+
+        owner = quote(self.contract.governance.owner, safe="")
+        repository = quote(project.repository, safe="")
+        repo_api = f"{self.contract.governance.base_url}/api/v1/repos/{owner}/{repository}"
+        manager_token = credentials["manager_audit"].token
+        permissions: dict[str, str] = {}
+        for key, identity, expected in (
+            ("manager", credentials["manager_audit"].identity, "admin"),
+            ("project_agent", project.project_agent, "write"),
+        ):
+            value = self._request_json(
+                f"{repo_api}/collaborators/{quote(identity, safe='')}/permission",
+                manager_token,
+            )
+            if not isinstance(value, dict) or value.get("permission") != expected:
+                raise BrokerError("PERMISSION_MISMATCH", "repository permission does not match the manifest")
+            permissions[key] = expected
+
+        default_branch = quote(self.contract.governance.default_branch, safe="")
+        protection = self._request_json(
+            f"{repo_api}/branch_protections/{default_branch}", manager_token
+        )
+        expected_merge = [self.contract.governance.human_merge_identity]
+        repository_contract = self.contract.governance.repository(project.repository)
+        expected_contexts = sorted(repository_contract.status_check_contexts)
+        if (
+            not isinstance(protection, dict)
+            or protection.get("can_push") is not False
+            or protection.get("can_force_push") is not False
+            or protection.get("enable_merge_whitelist") is not True
+            or protection.get("merge_whitelist_usernames") != expected_merge
+            or protection.get("enable_status_check") is not bool(expected_contexts)
+            or sorted(protection.get("status_check_contexts", [])) != expected_contexts
+            or protection.get("required_approvals") != repository_contract.required_approvals
+            or protection.get("block_admin_merge_override") is not True
+        ):
+            raise BrokerError("PROTECTION_MISMATCH", "protected main does not match the governance boundary")
+
+        return {
+            "status": "PASS",
+            "project": project.project_id,
+            "operation": operation.name,
+            "identities": {
+                route: credential.identity for route, credential in credentials.items()
+            },
+            "token_scopes": token_scopes,
+            "repository_permission": permissions,
+            "keychain": keychain,
+            "protection": {
+                "branch": self.contract.governance.default_branch,
+                "can_push": False,
+                "can_force_push": False,
+                "merge_whitelist_usernames": expected_merge,
+                "enable_status_check": protection["enable_status_check"],
+                "status_check_contexts": expected_contexts,
+                "required_approvals": repository_contract.required_approvals,
+                "block_admin_merge_override": True,
+            },
+        }
+
+    def _probe_token_scopes(self, credential: ResolvedCredential) -> set[str]:
+        url = f"{self.contract.governance.base_url}/api/v1/notifications"
+        try:
+            status, _headers, raw = self.transport(
+                "GET",
+                url,
+                {
+                    "Accept": "application/json",
+                    "Authorization": f"token {credential.token}",
+                },
+                None,
+            )
+        except Exception as exc:
+            raise BrokerError("TRANSPORT_ERROR", "host transport failed") from exc
+        if status != 403:
+            raise BrokerError("TOKEN_SCOPE_MISMATCH", "token scope probe did not fail closed")
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+            message = payload["message"]
+        except (UnicodeError, json.JSONDecodeError, KeyError, TypeError) as exc:
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "token scope probe response is invalid") from exc
+        if not isinstance(message, str):
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "token scope probe response is invalid")
+        match = re.search(r"token scope=([A-Za-z0-9:,_-]+)", message)
+        if match is None:
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "token scope evidence is unavailable")
+        scopes = {item for item in match.group(1).split(",") if item}
+        if not scopes or "all" in scopes or any(item.startswith("write:admin") for item in scopes):
+            raise BrokerError("TOKEN_SCOPE_MISMATCH", "credential token scopes are unsafe")
+        return scopes
+
+    def _keychain_audit(self, project: ProjectContract) -> dict[str, object]:
+        bindings = {
+            "manager_audit": self.contract.raw["identity_bindings"]["manager_audit"],
+            "manager_mutation": self.contract.raw["identity_bindings"]["manager_mutation"],
+            "project_agent": {
+                "service": self.contract.raw["identity_bindings"]["project_agent"]["service"],
+                "account": project.project_agent,
+            },
+        }
+        audit_result = self.runner([
+            "/usr/local/libexec/aisoft/keychain-acl-audit",
+            "--project", project.project_id,
+        ])
+        if audit_result.returncode != 0:
+            raise BrokerError("KEYCHAIN_UNAVAILABLE", "exact Keychain ACL metadata is unavailable")
+        try:
+            payload = json.loads(audit_result.stdout)
+        except (TypeError, UnicodeError, json.JSONDecodeError) as exc:
+            raise BrokerError("KEYCHAIN_INVALID", "exact Keychain ACL response is invalid") from exc
+        if (
+            not isinstance(payload, dict)
+            or set(payload) != {"status", "items"}
+            or payload.get("status") != "PASS"
+            or not isinstance(payload.get("items"), list)
+        ):
+            raise BrokerError("KEYCHAIN_INVALID", "exact Keychain ACL response is invalid")
+        items = payload["items"]
+        result: dict[str, object] = {}
+        for route, binding in bindings.items():
+            service = binding["service"]
+            account = binding["account"]
+            matches = [
+                item for item in items
+                if isinstance(item, dict)
+                and item.get("route") == route
+                and item.get("service") == service
+                and item.get("account") == account
+            ]
+            if len(matches) != 1:
+                raise BrokerError("KEYCHAIN_ITEM_MISMATCH", "fixed Keychain item is missing or duplicated")
+            item = matches[0]
+            if (
+                set(item) != {
+                    "route", "service", "account", "item_class", "permanence",
+                    "password_required", "trusted_applications",
+                }
+                or item.get("item_class") != "generic-password"
+                or item.get("permanence") != "default-user-keychain"
+                or item.get("password_required") is not False
+                or item.get("trusted_applications") != ["/usr/bin/security"]
+            ):
+                raise BrokerError("KEYCHAIN_ACL_INVALID", "fixed Keychain item ACL is not minimal")
+            result[route] = {
+                "account": account,
+                "service": service,
+                "item_class": "generic-password",
+                "permanence": "default-user-keychain",
+                "password_required": False,
+                "trusted_applications": ["/usr/bin/security"],
+            }
+        if len(items) != len(bindings):
+            raise BrokerError("KEYCHAIN_ITEM_MISMATCH", "exact Keychain audit returned unexpected items")
+        return result
 
     def _orbstack_status(
         self,

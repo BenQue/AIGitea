@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.3（Matt orchestration + deterministic governance candidate）｜ 更新：2026-08-08 ｜ 状态：**Issue #57 正在以完整 Matt Pocock skills 替换开发编排层；AISoftPlatform 的 Issue/合同/验证/PR/部署治理层保持不变，最终 PR 尚待人工合并**
+> 版本：v3.3（Matt orchestration + deterministic governance candidate）｜ 更新：2026-08-09 ｜ 状态：**Issue #70 正在补齐 governed host writes 的 non-interactive contract；最终 PR 仍只由人合并**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 1. 当前状态（2026-08-04）
+## 1. 当前状态（2026-08-09）
 
 - ✅ 基础设施核心：`gitea-ci` 上的 Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
 - ✅ 主机职责隔离候选：versioned host profile、capability catalog 和 fail-closed guard 已实现；Issue #21 已完成 `gitea-ci` 历史业务 runtime/DB/代理的逐项迁移或清理及 live post-check，等待最终 PR 人工合并
@@ -20,7 +20,7 @@
 - ✅ Codex 基础：CLI、认证、skills、AGENTS、sandbox、provider router 已通过 VM 基础验收
 - 🟡 Matt 开发编排层（Issue #57 candidate）：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在 `change/N` 本地提交，Controller 才能 push/建 PR/读取 CI，合并仍只由人操作
 - ✅ Gitea 身份与可见性：Issue #35 已在本机 OrbStack 标记 `deployed`；1 个非 site-admin manager、9 个单项目 agent 与 11 个最小 scope PAT 已完成幂等验证，public 精确为 `aisoft-platform`/`myapp`/`smoke-test`，其余 6 个 private，9 个 `main` 只允许人工 `admin` 合并；真实 Issue/label/Git/PR 正反向验证 9/9 `PASS`，共享 `ci-bot` 已从全部 manifest 仓库移除 collaborator 权限但账号保留
-- 🟡 Host access broker（Issue #61 candidate）：strict `host-access-broker/v1` 将 Gitea/Git/OrbStack 请求绑定到 exact project/operation/identity，拒绝任意 shell/URL/credential path/merge；Mac repo binding、四个 VM profiles 和 active poll 的 live 安装/迁移/重启均等待最终 PR 人工合并，当前为 `NOT RUN`
+- 🟡 Host access broker（Issue #70 candidate）：Issue #61 的 `host-access-broker/v1` 与 Issue #67 credential protocol 修复已合并并安装；#70 正在补齐 strict typed Issue/PR mutation、独立 worktree exact `change/N` push、脱敏 access audit 与 exact-prefix fresh-session canary。Keychain ACL 与 Codex host execution approval 分层判定，最终 merge 仍只由人工 `admin` 执行
 - ✅ Claude adapter（Issue #1）：与 Codex 共用 controller/verifier/状态/终态，17 项 parity 测试通过；默认仍 `IMPLEMENT_PROVIDER=none`，真实 VM pilot 未做
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
 - 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为 real complex pilot。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
@@ -171,12 +171,12 @@ sequenceDiagram
 
 私有仓库检查不得从匿名 API 开始。先解析目标 project profile/remote，再按 [06 §1.1](06-运维手册与踩坑集.md#11-私有-gitea-的只读检查) 使用最小权限 profile、既有 Git credential、VM-local 管理员只读 helper 或已登录浏览器；`404`/`Repository not found` 在认证与 ACL 未核对前不构成“不存在”证据。
 
-Issue #61 发布并完成 post-merge 安装后，正常 host 访问统一使用
+Issue #61 已发布并完成 post-merge 安装；正常 host 访问统一使用
 `/usr/local/libexec/aisoft/host-access-broker`：调用方只传 `--project`、allowlisted `--operation` 和
 typed argument，target/identity/checkout/credential store 均来自 strict manifest。broker 自身失败且
 host/sandbox 真实状态仍矛盾时才允许 emergency 使用 `orbstack-access-diagnostics`；正常 Gitea/Git/VM
-验收不得先调用诊断技能。Issue #61 PR 合并前 broker、Mac credential binding、VM profile/token 与
-timer/service mutation 均未安装或执行。
+验收不得先调用诊断技能。Issue #70 发布前，新增 Issue/PR writes、独立 worktree push 与 fresh-session
+零重复授权只属于 candidate/live-canary 证据；不得把既有 Keychain ACL 单层 `PASS` 写成端到端 `PASS`。
 
 Issue #35 发布前，固定 `ci-bot` + `write` collaborator gate 仅作为已有 profile 的兼容路径；
 不得继续用共享 bot 接入新项目。发布后必须以

@@ -58,6 +58,34 @@
       ]
     },
     {
+      "name": "gitea.issue.create",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "title",
+        "body"
+      ]
+    },
+    {
+      "name": "gitea.issue.update",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "title",
+        "body"
+      ]
+    },
+    {
+      "name": "gitea.issue.comment",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "comment"
+      ]
+    },
+    {
       "name": "gitea.pulls.read",
       "identity_route": "project-agent",
       "mutating": false,
@@ -66,7 +94,50 @@
       ]
     },
     {
+      "name": "gitea.pull.create",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "issue",
+        "title",
+        "body"
+      ]
+    },
+    {
+      "name": "gitea.pull.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "number"
+      ]
+    },
+    {
+      "name": "gitea.pull.update",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "issue",
+        "title",
+        "body"
+      ]
+    },
+    {
+      "name": "gitea.commit.status.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "sha"
+      ]
+    },
+    {
       "name": "gitea.protection.read",
+      "identity_route": "manager-audit",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "host.access.audit",
       "identity_route": "manager-audit",
       "mutating": false,
       "arguments": []

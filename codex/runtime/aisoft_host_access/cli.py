@@ -25,6 +25,11 @@ def build_parser() -> argparse.ArgumentParser:
     broker.add_argument("--number", type=int)
     broker.add_argument("--state", choices=("open", "closed", "all"))
     broker.add_argument("--branch")
+    broker.add_argument("--issue", type=int)
+    broker.add_argument("--title")
+    broker.add_argument("--body")
+    broker.add_argument("--comment")
+    broker.add_argument("--sha")
 
     profile = commands.add_parser("profile")
     profile.add_argument("--project", required=True)
@@ -66,6 +71,11 @@ def main(argv: list[str] | None = None) -> int:
                 number=args.number,
                 state=args.state,
                 branch=args.branch,
+                issue=args.issue,
+                title=args.title,
+                body=args.body,
+                comment=args.comment,
+                sha=args.sha,
             )
             _json(value)
             return 0
