@@ -7,6 +7,10 @@ from typing import Mapping
 
 from .contract import ReleaseManifest
 from .errors import ContractError
+from .security import (
+    is_external_environment_reference,
+    reject_sensitive_compose_fields,
+)
 
 
 RELEASE_LABEL = "com.aisoft.release.id"
@@ -15,12 +19,12 @@ DOCKER_SOCKET_PATHS = {"/var/run/docker.sock", "/run/docker.sock"}
 NUMERIC_USER = re.compile(r"^[1-9][0-9]*(?::[1-9][0-9]*)?$")
 MEMORY_LIMIT = re.compile(r"^[1-9][0-9]*(?:[kKmMgG][bB]?)?$")
 LOG_SIZE = re.compile(r"^[1-9][0-9]*(?:[kKmMgG][bB]?)$")
-ENV_REFERENCE = re.compile(r"^\$\{[A-Za-z_][A-Za-z0-9_]*(?::[?+-][^}]*)?\}$")
 
 
 def validate_compose_model(
     model: Mapping[str, object], manifest: ReleaseManifest
 ) -> None:
+    reject_sensitive_compose_fields(model)
     services = model.get("services")
     if not isinstance(services, Mapping) or not services:
         raise ContractError("Compose model must contain services")
@@ -185,9 +189,7 @@ def _validate_environment(config: Mapping[str, object], service: str) -> None:
     for key, value in environment.items():
         if not isinstance(key, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
             raise ContractError(f"Compose service {service} has an invalid environment key")
-        if value is not None and (
-            not isinstance(value, str) or not ENV_REFERENCE.fullmatch(value)
-        ):
+        if value is not None and not is_external_environment_reference(value):
             raise ContractError(
                 f"Compose service {service} environment values must be external references"
             )
