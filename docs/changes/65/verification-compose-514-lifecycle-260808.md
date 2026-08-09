@@ -84,7 +84,8 @@ updated: 2026-08-09
 |---|---|---|
 | Production matrix exact Compose 5.1.4 row | PASS | revision `2026.08.3`只新增Engine `>=29.7.1,<29.7.2`、Compose `>=5.1.4,<5.1.5`、linux/amd64/containerd supported row；旧rows不变 |
 | Exact range positive/negative tests | PASS | public `require_supported`证明5.1.4 exact支持；5.1.3/5.1.5/5.2.0、Engine邻界、classic拒绝；duplicate/overlap fail closed |
-| Final required local gates | PASS | `bash codex/tests/smoke.sh`通过280 tests与static smoke；focused release、installer、fake harness、`bash -n`、ShellCheck、JSON、Secret与`git diff --check`均PASS |
+| Freshly refreshed delivery base | PASS | final handoff前fetch到`origin/main@7ef7fa23af202343335f99ea746b4dd7a64cbd71`，已合入#66/#67；post-evidence gate仍只允许#65相对该base修改`transport.py`、README与exact matrix，T02 immutable evidence继续绑定原approved source `97445947…` |
+| Final required local gates | PASS | 合入fresh main后`bash codex/tests/smoke.sh`通过294 tests与static smoke；focused release、installer、fake harness、`bash -n`、ShellCheck、JSON、Secret与`git diff --check`均PASS |
 | Single Closes #65 PR | NOT RUN | pending Controller handoff |
 | Human merge | NOT RUN | forbidden for Agent/Controller |
 | Business deployment | NOT RUN / OUT OF SCOPE | NewEmaint/DockerLab/AppServer/production explicitly excluded |

@@ -428,6 +428,7 @@ resources_json="$(
 final_evidence_path="$root/docs/changes/65/issue-65-compose-5.1.4-${source_sha:0:12}.json"
 final_evidence_sha256='b58bb7b57d53a104f922e66c7dc1342bc1b5b133038f60fa8f2ace8d8dbdeb89'
 post_evidence=0
+delivery_base_sha="$source_sha"
 if [[ -e "$final_evidence_path" || -L "$final_evidence_path" ]]; then
   [[ -f "$final_evidence_path" && ! -L "$final_evidence_path" && \
     "$(file_mode "$final_evidence_path")" == "444" && \
@@ -441,18 +442,21 @@ if [[ -e "$final_evidence_path" || -L "$final_evidence_path" ]]; then
     .inventory.consumer_before == .inventory.consumer_after
   ' "$final_evidence_path" >/dev/null || fail 'Issue #65 final evidence contract is invalid'
   post_evidence=1
+  delivery_base_sha='7ef7fa23af202343335f99ea746b4dd7a64cbd71'
+  [[ "$(git -C "$root" rev-parse "$delivery_base_sha^{commit}")" == "$delivery_base_sha" ]] ||
+    fail 'Issue #65 post-evidence delivery base is unavailable'
 fi
 if [[ "$post_evidence" == "1" ]]; then
   expected_docker_release_diff=$'docker-release/README.md\ndocker-release/compatibility/image-stores-v1.json'
 else
   expected_docker_release_diff='docker-release/README.md'
 fi
-[[ "$(git -C "$root" diff --name-only "$source_sha" -- docker-release)" == \
+[[ "$(git -C "$root" diff --name-only "$delivery_base_sha" -- docker-release)" == \
   "$expected_docker_release_diff" ]] ||
   fail 'docker-release differs outside the Issue #65 evidence-gated scope'
 [[ -z "$(git -C "$root" ls-files --others --exclude-standard -- docker-release)" ]] ||
   fail 'docker-release contains an untracked file'
-[[ "$(git -C "$root" diff --name-only "$source_sha" -- codex/runtime/aisoft_release)" == \
+[[ "$(git -C "$root" diff --name-only "$delivery_base_sha" -- codex/runtime/aisoft_release)" == \
   'codex/runtime/aisoft_release/transport.py' ]] ||
   fail 'release runtime differs outside the separately approved transport.py revision'
 [[ -z "$(git -C "$root" ls-files --others --exclude-standard -- codex/runtime/aisoft_release)" ]] ||
@@ -1568,14 +1572,14 @@ fi
 resources_created=0
 [[ "$cleanup_verified" == "1" ]] || fail 'Issue #65 cleanup was not independently verified'
 
-[[ "$(git -C "$root" diff --name-only "$source_sha" -- docker-release)" == \
+[[ "$(git -C "$root" diff --name-only "$delivery_base_sha" -- docker-release)" == \
   "$expected_docker_release_diff" ]] ||
   fail 'docker-release drifted outside the Issue #65 evidence-gated scope'
 [[ -z "$(git -C "$root" ls-files --others --exclude-standard -- docker-release)" ]] ||
   fail 'docker-release gained an untracked file during the real lifecycle run'
 [[ "$(tracked_tree_sha256 "$root" docker-release)" == "$docker_release_tree" ]] ||
   fail 'docker-release bytes drifted during the real lifecycle run'
-[[ "$(git -C "$root" diff --name-only "$source_sha" -- codex/runtime/aisoft_release)" == \
+[[ "$(git -C "$root" diff --name-only "$delivery_base_sha" -- codex/runtime/aisoft_release)" == \
   'codex/runtime/aisoft_release/transport.py' ]] ||
   fail 'release runtime drifted outside the separately approved transport.py revision'
 [[ -z "$(git -C "$root" ls-files --others --exclude-standard -- codex/runtime/aisoft_release)" ]] ||
