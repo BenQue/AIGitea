@@ -24,6 +24,7 @@ from tests.release_test_support import (
     refresh_architecture_lock_sha,
     repository_root,
     sha256,
+    update_compose_model,
     update_manifest,
     write_json,
 )
@@ -302,6 +303,116 @@ class ReleaseContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "must not contain credentials"):
             load_release_files(profile, SHA_A)
 
+    def test_sensitive_environment_keys_allow_strict_external_references(self) -> None:
+        update_compose_model(
+            self.release_dir,
+            lambda model: model["services"]["web"].update(
+                {
+                    "environment": {
+                        "JWT_SECRET": "${JWT_SECRET:?required}",
+                        "DATABASE_URL": "${DATABASE_URL:?required}",
+                    }
+                }
+            ),
+        )
+        files = load_release_files(load_target_profile(self.profile_path), SHA_A)
+        self.assertEqual(
+            files.compose_model["services"]["web"]["environment"]["JWT_SECRET"],
+            "${JWT_SECRET:?required}",
+        )
+
+    def test_sensitive_environment_key_exceptions_fail_closed(self) -> None:
+        variants = {
+            "literal secret": {"JWT_SECRET": "embedded-secret"},
+            "literal password": {"DATABASE_PASSWORD": "embedded-password"},
+            "literal token": {"API_TOKEN": "embedded-token"},
+            "null sensitive value": {"JWT_SECRET": None},
+            "default literal": {"JWT_SECRET": "${JWT_SECRET:-embedded}"},
+            "alternate literal": {"JWT_SECRET": "${JWT_SECRET:+embedded}"},
+        }
+        for name, environment in variants.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                profile_path, _, _ = create_release(root)
+                release_dir = root / "releases" / SHA_A
+                update_compose_model(
+                    release_dir,
+                    lambda model, value=environment: model["services"]["web"].update(
+                        {"environment": value}
+                    ),
+                )
+                with self.assertRaisesRegex(ContractError, "forbidden sensitive field"):
+                    load_release_files(load_target_profile(profile_path), SHA_A)
+
+    def test_sensitive_field_outside_environment_remains_forbidden(self) -> None:
+        update_compose_model(
+            self.release_dir,
+            lambda model: model["services"]["web"].update(
+                {"api_secret": "${API_SECRET:?required}"}
+            ),
+        )
+        with self.assertRaisesRegex(
+            ContractError, r"services\.web\.api_secret"
+        ):
+            load_release_files(load_target_profile(self.profile_path), SHA_A)
+
+    def test_non_compose_sensitive_field_boundaries_remain_forbidden(self) -> None:
+        with self.subTest(context="target profile"), tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path, _, _ = create_release(root)
+            profile = json.loads(profile_path.read_text())
+            profile["api_token"] = "${API_TOKEN:?required}"
+            write_json(profile_path, profile, mode=0o600)
+            with self.assertRaisesRegex(ContractError, "target profile.*api_token"):
+                load_target_profile(profile_path)
+
+        with self.subTest(context="release manifest"), tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path, _, _ = create_release(root)
+            update_manifest(
+                root / "releases" / SHA_A,
+                lambda manifest: manifest.update(
+                    {"api_token": "${API_TOKEN:?required}"}
+                ),
+            )
+            with self.assertRaisesRegex(ContractError, "release manifest.*api_token"):
+                load_release_files(load_target_profile(profile_path), SHA_A)
+
+        with self.subTest(context="architecture lock"), tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path, _, _ = create_release(root)
+            release_dir = root / "releases" / SHA_A
+            lock_path = release_dir / "architecture.lock.json"
+            lock = json.loads(lock_path.read_text())
+            lock["api_token"] = "${API_TOKEN:?required}"
+            write_json(lock_path, lock)
+            update_manifest(
+                release_dir,
+                lambda manifest: manifest["architecture"].update(
+                    {"sha256": sha256(lock_path)}
+                ),
+            )
+            with self.assertRaisesRegex(ContractError, "architecture lock.*api_token"):
+                load_release_files(load_target_profile(profile_path), SHA_A)
+
+        with self.subTest(context="offline inventory"), tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path, _, _ = create_release(root)
+            release_dir = root / "releases" / SHA_A
+            inventory_path = release_dir / "images.inventory.json"
+            inventory = json.loads(inventory_path.read_text())
+            inventory["api_token"] = "${API_TOKEN:?required}"
+            write_json(inventory_path, inventory)
+            update_manifest(
+                release_dir,
+                lambda manifest: manifest["offline_bundle"].update(
+                    {"inventory_sha256": sha256(inventory_path)}
+                ),
+            )
+            files = load_release_files(load_target_profile(profile_path), SHA_A)
+            with self.assertRaisesRegex(ContractError, "offline inventory.*api_token"):
+                load_offline_inventory(files)
+
 
 class ComposeSecurityTests(unittest.TestCase):
     def test_valid_compose_model_passes(self) -> None:
@@ -309,6 +420,17 @@ class ComposeSecurityTests(unittest.TestCase):
             root = Path(directory)
             profile_path, model, _ = create_release(root)
             manifest = load_release_files(load_target_profile(profile_path), SHA_A).manifest
+            validate_compose_model(model, manifest)
+
+    def test_sensitive_environment_keys_with_strict_references_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path, model, _ = create_release(root)
+            manifest = load_release_files(load_target_profile(profile_path), SHA_A).manifest
+            model["services"]["web"]["environment"] = {
+                "JWT_SECRET": "${JWT_SECRET:?required}",
+                "DATABASE_URL": "${DATABASE_URL}",
+            }
             validate_compose_model(model, manifest)
 
     def test_unsafe_compose_variants_are_rejected(self) -> None:
@@ -337,6 +459,27 @@ class ComposeSecurityTests(unittest.TestCase):
             "literal environment": lambda model: model["services"]["web"].update(
                 {"environment": {"DATABASE_URL": "postgresql://embedded"}}
             ),
+            "literal secret": lambda model: model["services"]["web"].update(
+                {"environment": {"JWT_SECRET": "embedded-secret"}}
+            ),
+            "literal token": lambda model: model["services"]["web"].update(
+                {"environment": {"API_TOKEN": "embedded-token"}}
+            ),
+            "literal password": lambda model: model["services"]["web"].update(
+                {"environment": {"DATABASE_PASSWORD": "embedded-password"}}
+            ),
+            "unsafe default": lambda model: model["services"]["web"].update(
+                {"environment": {"JWT_SECRET": "${JWT_SECRET:-embedded}"}}
+            ),
+            "unsafe alternate": lambda model: model["services"]["web"].update(
+                {"environment": {"JWT_SECRET": "${JWT_SECRET:+embedded}"}}
+            ),
+            "null sensitive value": lambda model: model["services"]["web"].update(
+                {"environment": {"JWT_SECRET": None}}
+            ),
+            "sensitive field outside environment": lambda model: model["services"][
+                "web"
+            ].update({"api_secret": "${API_SECRET:?required}"}),
             "capabilities": lambda model: model["services"]["web"].update(
                 {"cap_drop": []}
             ),

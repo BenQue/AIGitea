@@ -58,6 +58,24 @@ test "$profile_status" = 20
 grep -Fq 'BLOCKED_EXTERNAL' <<<"$profile_output"
 grep -Fq 'TARGET_DENIED' <<<"$profile_output"
 
+for invalid_request in \
+  $'protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/aisoft-platform.git\nmalformed\n' \
+  $'protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/aisoft-platform.git\nauthtype=basic\n' \
+  $'protocol=http\nprotocol=https\nhost=gitea-ci.orb.local:3000\npath=admin/aisoft-platform.git\n'; do
+  set +e
+  helper_output="$(printf '%s' "$invalid_request" | \
+    "$ROOT/codex/tools/git-credential-aisoft-host.sh" get 2>&1)"
+  helper_status=$?
+  set -e
+  test "$helper_status" = 20
+  grep -Fq 'BLOCKED_EXTERNAL' <<<"$helper_output"
+  grep -Fq 'CREDENTIAL_PROTOCOL_INVALID' <<<"$helper_output"
+  if grep -Fq 'CREDENTIAL_UNAVAILABLE' <<<"$helper_output"; then
+    echo 'credential helper reached the credential store before protocol rejection' >&2
+    exit 1
+  fi
+done
+
 export AISOFT_HOST_ACCESS_INSTALL_ROOT="$TMP/install-root"
 first="$("$ROOT/codex/install-host-access-broker.sh")"
 grep -Fq 'no credential, Git config, project profile, token, service, timer, VM, merge, or deployment mutation' \

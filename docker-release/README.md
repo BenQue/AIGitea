@@ -84,6 +84,12 @@ Manifest、architecture lock、Compose、inventory 和 archive 在任何 pull/lo
 container replacement 前完成路径与 checksum 验证。`release.json` 不接受未知字段，也不得
 包含 URL credential、token、密码、连接串、证书、SSH key、`.env` 内容或任意 command。
 
+Normalized Compose model 的 environment value 只接受 `${NAME}` 或 `${NAME:?required}` 形式的
+纯外部引用。敏感命名的 key 仅在 `services.<service>.environment` 这个精确位置且 value 符合上述
+语法时允许；`${NAME:-literal}`、`${NAME:+literal}`、literal Secret/connection URL/token/password
+和其它位置的 sensitive field 全部 fail closed。该例外不适用于 manifest、architecture lock、
+offline inventory、target profile 或 state。
+
 V2 offline sub-contract 为 `docker-release-offline-bundle/v2`，inventory 为
 `docker-release-offline-inventory/v2`。Archive 必须恢复 manifest 中逐 service 唯一的 transport
 tag，`manifest.json` 的 `RepoTags`、config image ID、layer member 与可选 OCI/repositories

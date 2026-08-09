@@ -14,6 +14,9 @@ from .contract import AccessContract, AccessContractError, OperationContract, Pr
 
 
 TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+CREDENTIAL_SCALAR_FIELDS = frozenset({"protocol", "host", "path", "username"})
+CREDENTIAL_REQUIRED_FIELDS = frozenset({"protocol", "host", "path"})
+CREDENTIAL_PROTOCOL_MAX_LINE_BYTES = 65535
 
 
 class BrokerError(RuntimeError):
@@ -68,6 +71,12 @@ def _default_runner(
 class ResolvedCredential:
     identity: str
     token: str
+
+
+@dataclass(frozen=True)
+class CredentialProtocolRequest:
+    scalars: Mapping[str, str]
+    multivalued: Mapping[str, tuple[str, ...]]
 
 
 class CredentialResolver:
@@ -359,6 +368,47 @@ class HostAccessBroker:
         return result
 
 
+def _parse_credential_protocol(protocol_input: str) -> CredentialProtocolRequest:
+    scalars: dict[str, str] = {}
+    multivalued: dict[str, list[str]] = {}
+    terminated = False
+    for line in protocol_input.split("\n"):
+        if line == "":
+            terminated = True
+            continue
+        if terminated or "\0" in line or "\r" in line or "=" not in line:
+            raise BrokerError("CREDENTIAL_PROTOCOL_INVALID", "Git credential request is invalid")
+        try:
+            line_size = len(line.encode("utf-8"))
+        except UnicodeEncodeError as exc:
+            raise BrokerError(
+                "CREDENTIAL_PROTOCOL_INVALID", "Git credential request is invalid"
+            ) from exc
+        if line_size > CREDENTIAL_PROTOCOL_MAX_LINE_BYTES:
+            raise BrokerError("CREDENTIAL_PROTOCOL_INVALID", "Git credential request is invalid")
+        key, value = line.split("=", 1)
+        if not key:
+            raise BrokerError("CREDENTIAL_PROTOCOL_INVALID", "Git credential request is invalid")
+        if key.endswith("[]"):
+            if key == "[]":
+                raise BrokerError("CREDENTIAL_PROTOCOL_INVALID", "Git credential request is invalid")
+            multivalued.setdefault(key, []).append(value)
+            continue
+        if key not in CREDENTIAL_SCALAR_FIELDS:
+            raise BrokerError(
+                "CREDENTIAL_PROTOCOL_INVALID", "Git credential fields are not allowlisted"
+            )
+        if key in scalars:
+            raise BrokerError("CREDENTIAL_PROTOCOL_INVALID", "Git credential field is duplicated")
+        scalars[key] = value
+    if not CREDENTIAL_REQUIRED_FIELDS.issubset(scalars):
+        raise BrokerError("CREDENTIAL_PROTOCOL_INVALID", "Git credential fields are not allowlisted")
+    return CredentialProtocolRequest(
+        scalars=scalars,
+        multivalued={key: tuple(values) for key, values in multivalued.items()},
+    )
+
+
 def credential_from_protocol(
     contract: AccessContract,
     action: str,
@@ -369,19 +419,8 @@ def credential_from_protocol(
 ) -> str:
     if action != "get":
         return ""
-    fields: dict[str, str] = {}
-    for line in protocol_input.splitlines():
-        if not line:
-            continue
-        if "=" not in line:
-            raise BrokerError("CREDENTIAL_PROTOCOL_INVALID", "Git credential request is invalid")
-        key, value = line.split("=", 1)
-        if key in fields:
-            raise BrokerError("CREDENTIAL_PROTOCOL_INVALID", "Git credential field is duplicated")
-        fields[key] = value
-    _require_keys = {"protocol", "host", "path"}
-    if set(fields) - {"protocol", "host", "path", "username"} or not _require_keys.issubset(fields):
-        raise BrokerError("CREDENTIAL_PROTOCOL_INVALID", "Git credential fields are not allowlisted")
+    request = _parse_credential_protocol(protocol_input)
+    fields = request.scalars
     parsed = urlparse(contract.governance.base_url)
     if fields["protocol"] != parsed.scheme or fields["host"] != parsed.netloc:
         raise BrokerError("TARGET_MISMATCH", "Git credential host does not match the manifest")
