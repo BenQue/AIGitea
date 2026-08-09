@@ -29,9 +29,11 @@ updated: 2026-08-09
 - Worktree: `/Users/benque/.codex/worktrees/e23a/AISoftPlatform`
 - Branch: `change/67`
 - Fresh protected-main baseline: `97445947fff79a4c2db6fa764feb21660e281556`
+- Candidate implementation commit: `997f4e4f65045d23368c1eb6053e5d7e20b09e6f`
 - Git: `git version 2.50.1 (Apple Git-155)`
 - Installed helper: `/usr/local/libexec/aisoft/git-credential-aisoft-host`
-- Issue: `#67`，open，initial labels `type/platform` + `complexity/complex` + `spec-drafting`
+- Issue: `#67`，open；initial lifecycle `spec-drafting`，contract resolver 通过后 labels 读回为
+  `type/platform` + `complexity/complex` + `approved`
 
 ## 实时只读 baseline
 
@@ -53,7 +55,7 @@ updated: 2026-08-09
 | `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_host_access -v` | PASS | 23 tests；ordered multi-values、current shape、unknown arrays、CLI get/store/erase、scalar/malformed/target/identity negatives 全部通过 |
 | `PYTHONDONTWRITEBYTECODE=1 bash codex/tests/test-host-access-broker.sh` | PASS | malformed/unknown/duplicate scalar 均在 credential store 前返回 exit 20；installer second-run byte-identical |
 | full platform smoke 首轮 | FAIL | 新增 shell assertion 触发 ShellCheck `SC2251`；未误记为 runtime/test PASS，已改为显式 `if` 分支 |
-| `PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh` 修正后与 final-tree 重跑 | PASS | final-tree run 为 `Ran 280 tests in 10.597s`、`OK`，最终输出 `Codex platform static smoke checks passed.` |
+| `PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh` 修正后与 exact candidate commit 重跑 | PASS | `997f4e4f65045d23368c1eb6053e5d7e20b09e6f` run 为 `Ran 280 tests in 9.816s`、`OK`，最终输出 `Codex platform static smoke checks passed.` |
 | `bash -n` / ShellCheck 0.11.0 | PASS | 修改/相关 helper shell 语法有效且无 finding |
 | strict JSON / document resolver / Secret scan / `git diff --check` | PASS | host manifest 可解析；四份语义文档 mapping 精确；高置信 credential/private-key pattern 无命中；无 whitespace error |
 
