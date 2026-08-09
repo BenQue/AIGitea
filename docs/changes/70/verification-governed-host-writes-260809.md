@@ -50,7 +50,8 @@ updated: 2026-08-09
 
 - T01: `PASS (revised candidate)` — Issue create/read/update/comment、PR create/read/update、SHA status read、
   identity/scope/permission/protection audit 的 public seam 与 fail-closed negatives 通过；runtime 不调用 native
-  ACL reader 或 `dump-keychain`，credential resolver 固定 default user Keychain + service/account。
+  ACL reader、`default-keychain` 或 `dump-keychain`，credential resolver 恢复 Issue #61 已验证的固定
+  `find-generic-password -s <service> -a <account>` 形状，不附加 Keychain path。
 - T02: `PASS` — real temporary canonical + linked worktree 验证同一 Git common-dir、同名 `change/N`、
   clean HEAD、fresh `origin/main` ancestry 与 exact ref；wrong repo/detached/dirty/other N/merge/refspec 均拒绝。
 - T03: `PASS (candidate/static)` — `GovernedHostRunner` 两个 fresh instances 只生成 fixed installed broker
@@ -71,7 +72,10 @@ updated: 2026-08-09
 - unique `Closes #70` PR create/update/read-back: `NOT RUN`.
 - final-head protection/required CI: `NOT RUN`.
 - Keychain prompt after exact-prefix approval: `FAIL (first candidate)` — aggregate exact ACL probe caused multiple
-  per-item prompts and then `CREDENTIAL_UNAVAILABLE`; no Gitea mutation occurred。Final candidate removes this path。
+  per-item prompts and then `CREDENTIAL_UNAVAILABLE`; no Gitea mutation occurred。`FAIL (second candidate)` — native
+  probe 已移除，但新增的 `default-keychain` path 仍导致一次 project-agent credential prompt，并在任何 Gitea
+  request 前 fail closed。Third candidate 同时移除 native probe 与 Keychain path，恢复 #61 exact binding；live
+  结果仍为 `NOT RUN`。
 - repeated Codex host approval after exact-prefix approval: `NOT RUN (final candidate)`.
 - PR merge: `NOT RUN`; human only.
 

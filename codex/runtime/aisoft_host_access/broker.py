@@ -119,7 +119,6 @@ class CredentialResolver:
     def __init__(self, contract: AccessContract, *, runner: CommandRunner = _default_runner) -> None:
         self.contract = contract
         self.runner = runner
-        self._default_keychain_path: str | None = None
 
     def resolve(
         self,
@@ -139,20 +138,6 @@ class CredentialResolver:
         else:
             raise BrokerError("IDENTITY_ROUTE_INVALID", "operation does not use a credential")
         account = identity if route == "project-agent" else binding["account"]
-        if self._default_keychain_path is None:
-            default_result = self.runner([
-                "/usr/bin/security", "default-keychain", "-d", "user",
-            ])
-            default_keychain = default_result.stdout.strip().strip('"')
-            if (
-                default_result.returncode != 0
-                or not default_keychain.startswith("/")
-                or not default_keychain.endswith(".keychain-db")
-            ):
-                raise BrokerError(
-                    "KEYCHAIN_UNAVAILABLE", "default user Keychain is unavailable"
-                )
-            self._default_keychain_path = default_keychain
         result = self.runner([
             "/usr/bin/security",
             "find-generic-password",
@@ -161,7 +146,6 @@ class CredentialResolver:
             binding["service"],
             "-a",
             account,
-            self._default_keychain_path,
         ])
         if result.returncode != 0:
             raise BrokerError("CREDENTIAL_UNAVAILABLE", "approved credential binding is unavailable")

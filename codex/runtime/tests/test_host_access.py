@@ -479,7 +479,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertNotIn("find-generic-password", flattened)
         self.assertNotIn("/usr/local/libexec/aisoft/keychain-acl-audit", flattened)
 
-    def test_credential_resolver_rejects_invalid_default_keychain_before_secret_read(self) -> None:
+    def test_credential_resolver_uses_issue_61_exact_binding_without_keychain_path_probe(self) -> None:
         seen = []
 
         def runner(argv, **kwargs):
@@ -492,9 +492,11 @@ class HostAccessBrokerTests(unittest.TestCase):
                 self.contract.project("aisoft-platform"),
                 self.contract.operation("gitea.issue.read"),
             )
-        self.assertEqual(caught.exception.code, "KEYCHAIN_UNAVAILABLE")
+        self.assertEqual(caught.exception.code, "CREDENTIAL_UNAVAILABLE")
         self.assertEqual(seen, [[
-            "/usr/bin/security", "default-keychain", "-d", "user",
+            "/usr/bin/security", "find-generic-password", "-w",
+            "-s", "aisoft.gitea.project-agent",
+            "-a", "aisoft-platform-agent",
         ]])
 
     def test_identity_mismatch_fails_before_target_request(self) -> None:
@@ -542,10 +544,6 @@ class HostAccessBrokerTests(unittest.TestCase):
 
         def runner(argv, **kwargs):
             seen.append(list(argv))
-            if argv[1] == "default-keychain":
-                return subprocess.CompletedProcess(
-                    argv, 0, '"/Users/test/Library/Keychains/login.keychain-db"\n', ""
-                )
             return subprocess.CompletedProcess(argv, 0, "sentinel-secret-token\n", "")
 
         resolver = CredentialResolver(self.contract, runner=runner)
@@ -554,11 +552,12 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
         self.assertEqual(credential.identity, "hsdb-agent")
         self.assertEqual(credential.token, "sentinel-secret-token")
-        self.assertEqual(len(seen), 2)
-        self.assertFalse(any("sentinel-secret-token" in value for value in seen[1]))
-        self.assertEqual(
-            seen[1][-1], "/Users/test/Library/Keychains/login.keychain-db"
-        )
+        self.assertEqual(len(seen), 1)
+        self.assertFalse(any("sentinel-secret-token" in value for value in seen[0]))
+        self.assertEqual(seen[0], [
+            "/usr/bin/security", "find-generic-password", "-w",
+            "-s", "aisoft.gitea.project-agent", "-a", "hsdb-agent",
+        ])
 
     def _temporary_checkout_contract(self, checkout: Path):
         project = self.contract.project("aisoft-platform")
