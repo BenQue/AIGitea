@@ -1,6 +1,6 @@
 {
   "contract_version": "docker-image-store-compatibility/v1",
-  "matrix_revision": "2026.08.2",
+  "matrix_revision": "2026.08.3",
   "rows": [
     {
       "row_id": "engine-29-containerd-linux-amd64",
@@ -28,6 +28,28 @@
       "status": "rejected",
       "evidence": null,
       "remediation": "Keep classic rejected until the same fixture passes an independently authorized real E2E on a disposable classic image store."
+    },
+    {
+      "row_id": "engine-29.7.1-compose-5.1.4-containerd-linux-amd64",
+      "engine": {
+        "minimum": "29.7.1",
+        "maximum_exclusive": "29.7.2"
+      },
+      "compose": {
+        "minimum": "5.1.4",
+        "maximum_exclusive": "5.1.5"
+      },
+      "os": "linux",
+      "architecture": "amd64",
+      "image_store": "containerd",
+      "status": "supported",
+      "evidence": {
+        "kind": "real-e2e",
+        "evidence_id": "issue-65-compose-5.1.4-97445947fff7",
+        "date": "2026-08-09",
+        "source": "docs/changes/65/verification-compose-514-lifecycle-260808.md"
+      },
+      "remediation": "Expand only after the same task-owned disposable real lifecycle E2E passes and its immutable evidence is committed."
     }
   ]
 }

@@ -592,9 +592,9 @@ def _validate_oci_index_references(
                 )
             )
             config_digest = _oci_config_digest(descriptor)
-            if entry.image.image_id != config_digest:
+            if entry.image.image_id not in {digest, config_digest}:
                 raise ContractError(
-                    "OCI image manifest Config does not match the declared image ID "
+                    "OCI image manifest content does not match the declared image ID "
                     f"for {entry.image.service}"
                 )
         elif media_type == OCI_INDEX_MEDIA_TYPE:

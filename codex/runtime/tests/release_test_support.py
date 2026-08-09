@@ -180,8 +180,10 @@ def create_oci_archive(
     ref_name_form: str = "tag",
     tamper: str | None = None,
 ) -> None:
-    if image_store not in {"containerd", "classic"}:
-        raise ValueError("image_store must be containerd or classic")
+    if image_store not in {"containerd", "containerd-direct", "classic"}:
+        raise ValueError(
+            "image_store must be containerd, containerd-direct or classic"
+        )
     blobs: dict[str, bytes] = {}
     docker_manifest: list[dict[str, object]] = []
     repositories: dict[str, dict[str, str]] = {}
@@ -283,6 +285,14 @@ def create_oci_archive(
             image["image_id"] = top_digest
             image["digest"] = top_digest
             image["reference"] = image["reference"].split("@", 1)[0] + "@" + top_digest
+        elif image_store == "containerd-direct":
+            top_bytes = runnable_bytes
+            top_digest = runnable_digest
+            top_path = _runnable_path
+            top_media_type = "application/vnd.oci.image.manifest.v1+json"
+            image["image_id"] = top_digest
+            image["digest"] = top_digest
+            image["reference"] = image["reference"].split("@", 1)[0] + "@" + top_digest
         else:
             top_bytes = runnable_bytes
             top_digest = runnable_digest
@@ -351,6 +361,10 @@ def create_oci_archive(
                 },
             }
         )
+        if tamper == "declared-image-id":
+            image["image_id"] = "sha256:" + (
+                "d" if service == "web" else "e"
+            ) * 64
         repository, nested_tag = tag.rsplit(":", 1)
         repositories.setdefault(repository, {})[nested_tag] = layer_digest
 

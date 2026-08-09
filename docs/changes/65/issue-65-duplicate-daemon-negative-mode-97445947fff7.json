@@ -1,0 +1,61 @@
+{
+  "contract_version": "aisoft-issue-65-duplicate-daemon-negative/v1",
+  "result": "REJECTED_BEFORE_MUTATION",
+  "mutations": 0,
+  "source_sha": "97445947fff79a4c2db6fa764feb21660e281556",
+  "harness_sha256": "e98a906688101a6afa640568190b3e445509cf22617f769b75e72665e4e39844",
+  "producer_endpoint": "ssh://aisoft-65-producer@issue65-producer",
+  "consumer_endpoint": "ssh://aisoft-65-producer@issue65-producer-alias",
+  "producer": {
+    "engine": "29.7.1",
+    "compose": "5.1.4",
+    "containerd": "2.2.6",
+    "os": "linux",
+    "architecture": "amd64",
+    "image_store": "containerd",
+    "daemon_id": "494f46cb-3bf9-4077-9495-7ab7192d41bc",
+    "docker_root_dir": "/var/lib/docker"
+  },
+  "consumer": {
+    "engine": "29.7.1",
+    "compose": "5.1.4",
+    "containerd": "2.2.6",
+    "os": "linux",
+    "architecture": "amd64",
+    "image_store": "containerd",
+    "daemon_id": "494f46cb-3bf9-4077-9495-7ab7192d41bc",
+    "docker_root_dir": "/var/lib/docker"
+  },
+  "shared_daemon_id": "494f46cb-3bf9-4077-9495-7ab7192d41bc",
+  "shared_docker_root_dir": "/var/lib/docker",
+  "inventory": {
+    "producer_before": {
+      "containers": "",
+      "images": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "repo_digests": "postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+      "volumes": ""
+    },
+    "consumer_before": {
+      "containers": "",
+      "images": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "repo_digests": "postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+      "volumes": ""
+    },
+    "producer_after": {
+      "containers": "",
+      "images": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "repo_digests": "postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+      "volumes": ""
+    },
+    "consumer_after": {
+      "containers": "",
+      "images": "sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382 postgres:<none>@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nsha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 registry:<none>@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "repo_digests": "postgres@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382\nregistry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
+      "networks": "8a9a04c65c74c2c5b97f06b5198700f90c9edadba1c50baf599741d2453c81ed bridge\n92cde007af3f86349cd0b07017757bec471516beb411e98e35ad49eabdb83cd5 host\na0251326235feb380482fdfbb7065a002330cacea51e89627b725304b8d6cafe none",
+      "volumes": ""
+    }
+  }
+}

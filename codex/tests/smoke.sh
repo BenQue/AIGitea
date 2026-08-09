@@ -28,6 +28,10 @@ optional_runtime_sources=(
   "$ROOT/codex/tests/test-docker-release-install.sh"
   "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
   "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh"
+  "$ROOT/codex/tests/test-docker-release-v2-lifecycle-e2e-harness.sh"
+  "$ROOT/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh"
+  "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/docker-wrapper.sh"
+  "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/migrate.sh"
 )
 runtime_source_count=0
 for script in "${optional_runtime_sources[@]}"; do
@@ -110,6 +114,10 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-docker-release-install.sh" \
     "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh" \
     "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh" \
+    "$ROOT/codex/tests/test-docker-release-v2-lifecycle-e2e-harness.sh" \
+    "$ROOT/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh" \
+    "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/docker-wrapper.sh" \
+    "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/migrate.sh" \
     "$ROOT/architecture/bin/aisoft-architecture" \
     "$ROOT/architecture/install.sh" \
     "$ROOT/codex/tests/test-architecture-install.sh"
@@ -133,6 +141,10 @@ bash "$ROOT/codex/tests/test-docker-release-install.sh"
 bash "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
 harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh")"
 grep -Fq 'NOT RUN: Docker image-store E2E' <<<"$harness_output"
+bash "$ROOT/codex/tests/test-docker-release-v2-lifecycle-e2e-harness.sh"
+lifecycle_harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh")"
+grep -Fq 'NOT RUN: Docker release v2 lifecycle E2E requires separate Issue #65 authorization.' \
+  <<<"$lifecycle_harness_output"
 bash "$ROOT/sync/tests/test-inbound-sync.sh"
 bash "$ROOT/sync/tests/test-install.sh"
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
@@ -160,10 +172,12 @@ done < <(
 
 jq -e '
   .contract_version == "docker-image-store-compatibility/v1" and
-  (.rows | length == 2) and
+  .matrix_revision == "2026.08.3" and
+  (.rows | length == 3) and
   ([.rows[].row_id] | sort) == [
     "engine-29-classic-linux-amd64",
-    "engine-29-containerd-linux-amd64"
+    "engine-29-containerd-linux-amd64",
+    "engine-29.7.1-compose-5.1.4-containerd-linux-amd64"
   ] and
   (.rows[] | select(.row_id == "engine-29-containerd-linux-amd64") |
     .image_store == "containerd" and
@@ -174,7 +188,17 @@ jq -e '
   (.rows[] | select(.row_id == "engine-29-classic-linux-amd64") |
     .image_store == "classic" and
     .status == "rejected" and
-    .evidence == null)
+    .evidence == null) and
+  (.rows[] | select(.row_id == "engine-29.7.1-compose-5.1.4-containerd-linux-amd64") |
+    .engine == {"minimum": "29.7.1", "maximum_exclusive": "29.7.2"} and
+    .compose == {"minimum": "5.1.4", "maximum_exclusive": "5.1.5"} and
+    .os == "linux" and
+    .architecture == "amd64" and
+    .image_store == "containerd" and
+    .status == "supported" and
+    .evidence.kind == "real-e2e" and
+    .evidence.evidence_id == "issue-65-compose-5.1.4-97445947fff7" and
+    .evidence.source == "docs/changes/65/verification-compose-514-lifecycle-260808.md")
 ' "$ROOT/docker-release/compatibility/image-stores-v1.json" >/dev/null
 
 if rg -n '(^|[[:space:]])(import yaml|from yaml)' \
