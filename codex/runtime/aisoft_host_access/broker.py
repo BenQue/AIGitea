@@ -701,8 +701,8 @@ class HostAccessBroker:
         expected_contexts = sorted(repository_contract.status_check_contexts)
         if (
             not isinstance(protection, dict)
-            or protection.get("can_push") is not False
-            or protection.get("can_force_push") is not False
+            or protection.get("enable_push") is not False
+            or protection.get("enable_force_push") is not False
             or protection.get("enable_merge_whitelist") is not True
             or protection.get("merge_whitelist_usernames") != expected_merge
             or protection.get("enable_status_check") is not bool(expected_contexts)

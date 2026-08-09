@@ -439,6 +439,16 @@ class HostAccessBrokerTests(unittest.TestCase):
 
     def test_access_audit_validates_identities_scopes_permissions_protection_and_file_contract(self) -> None:
         seen_commands = []
+        protection = {
+            "enable_push": False,
+            "enable_force_push": False,
+            "enable_merge_whitelist": True,
+            "merge_whitelist_usernames": ["admin"],
+            "enable_status_check": False,
+            "status_check_contexts": [],
+            "required_approvals": 0,
+            "block_admin_merge_override": True,
+        }
 
         def runner(argv, **kwargs):
             seen_commands.append(list(argv))
@@ -465,16 +475,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             if url.endswith("/collaborators/aisoft-platform-agent/permission"):
                 return 200, {}, b'{"permission":"write"}'
             if url.endswith("/branch_protections/main"):
-                return 200, {}, json.dumps({
-                    "can_push": False,
-                    "can_force_push": False,
-                    "enable_merge_whitelist": True,
-                    "merge_whitelist_usernames": ["admin"],
-                    "enable_status_check": False,
-                    "status_check_contexts": [],
-                    "required_approvals": 0,
-                    "block_admin_merge_override": True,
-                }).encode()
+                return 200, {}, json.dumps(protection).encode()
             raise AssertionError(f"unexpected URL: {url}")
 
         broker = HostAccessBroker(
@@ -513,6 +514,19 @@ class HostAccessBrokerTests(unittest.TestCase):
             "file_mode": "600",
             "path_disclosure": "DENIED",
         })
+        for field in ("enable_push", "enable_force_push"):
+            with self.subTest(field=field, drift="enabled"):
+                protection[field] = True
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("aisoft-platform", "host.access.audit")
+                self.assertEqual(caught.exception.code, "PROTECTION_MISMATCH")
+                protection[field] = False
+            with self.subTest(field=field, drift="missing"):
+                protection.pop(field)
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("aisoft-platform", "host.access.audit")
+                self.assertEqual(caught.exception.code, "PROTECTION_MISMATCH")
+                protection[field] = False
         flattened = "\n".join(" ".join(argv) for argv in seen_commands)
         self.assertNotIn("ci-bot", flattened)
         self.assertNotIn("security", flattened)
