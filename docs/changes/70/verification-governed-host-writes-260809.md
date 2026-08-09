@@ -42,14 +42,15 @@ updated: 2026-08-09
 | sandbox broker credential | BLOCKED_EXTERNAL | `CREDENTIAL_UNAVAILABLE`; sandbox Keychain path unavailable |
 | host broker Issue read | PASS | same installed broker successfully read #70 through fixed project-agent binding |
 | Codex repeated approval | FAIL | six parallel read-only broker invocations generated repeated host approvals; batch terminated, no mutation occurred |
-| Keychain ACL shape | NOT RUN | must be re-read by the candidate aggregate audit; historical evidence is not promoted to current PASS |
+| Keychain ACL shape | PASS, INTERACTIVE ONLY | first installed candidate reached all three exact ACL checks, proving default-user generic-password items with `/usr/bin/security` and no require-password; however custom helper access generated per-item prompts and is therefore forbidden from the final runtime path |
 | live accounts/token scopes/permission/protection/open PR | NOT RUN | deferred to one candidate aggregate audit to avoid repeated approval prompts |
 | `ci-bot` | NOT ACCESSED / NOT MODIFIED | no query or mutation performed |
 
 ## Candidate tests
 
-- T01: `PASS` — Issue create/read/update/comment、PR create/read/update、SHA status read、access audit 的
-  public seam 与 fail-closed negatives 通过；audit 只调用 exact native ACL helper，不运行 `dump-keychain`。
+- T01: `PASS (revised candidate)` — Issue create/read/update/comment、PR create/read/update、SHA status read、
+  identity/scope/permission/protection audit 的 public seam 与 fail-closed negatives 通过；runtime 不调用 native
+  ACL reader 或 `dump-keychain`，credential resolver 固定 default user Keychain + service/account。
 - T02: `PASS` — real temporary canonical + linked worktree 验证同一 Git common-dir、同名 `change/N`、
   clean HEAD、fresh `origin/main` ancestry 与 exact ref；wrong repo/detached/dirty/other N/merge/refspec 均拒绝。
 - T03: `PASS (candidate/static)` — `GovernedHostRunner` 两个 fresh instances 只生成 fixed installed broker
@@ -57,7 +58,8 @@ updated: 2026-08-09
   第二次明确 `no-op`；native helper catalog 与 9 个 manifest project-agent byte-exact，unknown project 在
   Keychain query 前 exit 20。
 - Focused host-access suite: `PASS` — 38 tests。
-- C hardening: `PASS` — `clang -Wall -Wextra -Werror`；exact item-ref/decrypt-ACL helper 不请求 password data。
+- C hardening: `PASS` — `clang -Wall -Wextra -Werror`；兼容 helper 是无 Security.framework/query surface 的
+  exit-20 tombstone。
 - `bash -n` / ShellCheck / strict JSON / `git diff --check`: `PASS`。
 - Full platform smoke: `PASS` — 304 tests，最终输出 `Codex platform static smoke checks passed.`。
 
@@ -68,8 +70,9 @@ updated: 2026-08-09
 - exact `change/70` push/read-back: `NOT RUN`.
 - unique `Closes #70` PR create/update/read-back: `NOT RUN`.
 - final-head protection/required CI: `NOT RUN`.
-- Keychain prompt after exact-prefix approval: `NOT RUN`.
-- repeated Codex host approval after exact-prefix approval: `NOT RUN`.
+- Keychain prompt after exact-prefix approval: `FAIL (first candidate)` — aggregate exact ACL probe caused multiple
+  per-item prompts and then `CREDENTIAL_UNAVAILABLE`; no Gitea mutation occurred。Final candidate removes this path。
+- repeated Codex host approval after exact-prefix approval: `NOT RUN (final candidate)`.
 - PR merge: `NOT RUN`; human only.
 
 ## Post-merge gate

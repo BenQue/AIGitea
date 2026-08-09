@@ -3,7 +3,6 @@ from __future__ import annotations
 import io
 import json
 import os
-import re
 import stat
 import subprocess
 import tempfile
@@ -104,18 +103,14 @@ class HostAccessContractTests(unittest.TestCase):
         )
         self.assertNotEqual(project.project_agent, self.contract.governance.human_merge_identity)
 
-    def test_native_acl_helper_catalog_matches_manifest_projects_exactly(self) -> None:
+    def test_native_acl_helper_is_a_fail_closed_non_querying_tombstone(self) -> None:
         source = (
             ROOT / "codex/runtime/aisoft_host_access/keychain_acl_audit.c"
         ).read_text()
-        pairs = set(re.findall(
-            r'\{"([a-z0-9-]+)", "([a-z0-9-]+-agent)"\}', source
-        ))
-        self.assertEqual(pairs, {
-            (project.project_id, project.project_agent)
-            for project in self.contract.projects
-        })
-        self.assertNotIn('{"ci-bot",', source)
+        self.assertNotIn("SecItemCopyMatching", source)
+        self.assertNotIn("SecKeychainItemCopyAccess", source.split("*/", 1)[-1])
+        self.assertNotIn("aisoft.gitea.", source)
+        self.assertIn("return 20", source)
 
     def test_extra_key_and_project_agent_mismatch_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -393,41 +388,11 @@ class HostAccessBrokerTests(unittest.TestCase):
                 )
             self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
 
-    @staticmethod
-    def _keychain_audit_payload(*, include_trusted_application: bool = True) -> str:
-        application = ["/usr/bin/security"] if include_trusted_application else []
-        return json.dumps({
-            "status": "PASS",
-            "items": [
-                {
-                    "route": route,
-                    "service": service,
-                    "account": account,
-                    "item_class": "generic-password",
-                    "permanence": "default-user-keychain",
-                    "password_required": False,
-                    "trusted_applications": application,
-                }
-                for route, service, account in (
-                    ("manager_audit", "aisoft.gitea.manager-audit", "aisoft-platform-manager"),
-                    ("manager_mutation", "aisoft.gitea.manager-mutation", "aisoft-platform-manager"),
-                    ("project_agent", "aisoft.gitea.project-agent", "aisoft-platform-agent"),
-                )
-            ],
-        })
-
-    def test_access_audit_validates_fixed_identities_scopes_permissions_protection_and_acl(self) -> None:
+    def test_access_audit_validates_fixed_identities_scopes_permissions_protection_and_keychain_contract(self) -> None:
         seen_commands = []
 
         def runner(argv, **kwargs):
             seen_commands.append(list(argv))
-            if argv == [
-                "/usr/local/libexec/aisoft/keychain-acl-audit",
-                "--project", "aisoft-platform",
-            ]:
-                return subprocess.CompletedProcess(
-                    argv, 0, self._keychain_audit_payload(), ""
-                )
             raise AssertionError(f"unexpected command: {argv!r}")
 
         def transport(method, url, headers, body):
@@ -485,24 +450,24 @@ class HostAccessBrokerTests(unittest.TestCase):
                 "service": "aisoft.gitea.manager-audit",
                 "item_class": "generic-password",
                 "permanence": "default-user-keychain",
-                "password_required": False,
-                "trusted_applications": ["/usr/bin/security"],
+                "credential_reader": "/usr/bin/security",
+                "acl_exact_readback": "SEPARATE_BOOTSTRAP_EVIDENCE",
             },
             "manager_mutation": {
                 "account": "aisoft-platform-manager",
                 "service": "aisoft.gitea.manager-mutation",
                 "item_class": "generic-password",
                 "permanence": "default-user-keychain",
-                "password_required": False,
-                "trusted_applications": ["/usr/bin/security"],
+                "credential_reader": "/usr/bin/security",
+                "acl_exact_readback": "SEPARATE_BOOTSTRAP_EVIDENCE",
             },
             "project_agent": {
                 "account": "aisoft-platform-agent",
                 "service": "aisoft.gitea.project-agent",
                 "item_class": "generic-password",
                 "permanence": "default-user-keychain",
-                "password_required": False,
-                "trusted_applications": ["/usr/bin/security"],
+                "credential_reader": "/usr/bin/security",
+                "acl_exact_readback": "SEPARATE_BOOTSTRAP_EVIDENCE",
             },
         })
         flattened = "\n".join(" ".join(argv) for argv in seen_commands)
@@ -512,25 +477,25 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertNotIn(" -w", flattened)
         self.assertNotIn("dump-keychain", flattened)
         self.assertNotIn("find-generic-password", flattened)
+        self.assertNotIn("/usr/local/libexec/aisoft/keychain-acl-audit", flattened)
 
-    def test_access_audit_rejects_allow_any_or_missing_trusted_application_acl(self) -> None:
+    def test_credential_resolver_rejects_invalid_default_keychain_before_secret_read(self) -> None:
+        seen = []
+
         def runner(argv, **kwargs):
-            return subprocess.CompletedProcess(
-                argv, 0,
-                self._keychain_audit_payload(include_trusted_application=False), "",
-            )
+            seen.append(list(argv))
+            return subprocess.CompletedProcess(argv, 1, "", "unavailable")
 
-        broker = HostAccessBroker(
-            self.contract,
-            credentials=StaticCredentials(),
-            transport=lambda method, url, headers, body: (
-                200, {}, b'{"login":"aisoft-platform-manager","is_admin":false}'
-            ),
-            runner=runner,
-        )
+        resolver = CredentialResolver(self.contract, runner=runner)
         with self.assertRaises(BrokerError) as caught:
-            broker.execute("aisoft-platform", "host.access.audit")
-        self.assertEqual(caught.exception.code, "KEYCHAIN_ACL_INVALID")
+            resolver.resolve(
+                self.contract.project("aisoft-platform"),
+                self.contract.operation("gitea.issue.read"),
+            )
+        self.assertEqual(caught.exception.code, "KEYCHAIN_UNAVAILABLE")
+        self.assertEqual(seen, [[
+            "/usr/bin/security", "default-keychain", "-d", "user",
+        ]])
 
     def test_identity_mismatch_fails_before_target_request(self) -> None:
         calls = []
@@ -577,6 +542,10 @@ class HostAccessBrokerTests(unittest.TestCase):
 
         def runner(argv, **kwargs):
             seen.append(list(argv))
+            if argv[1] == "default-keychain":
+                return subprocess.CompletedProcess(
+                    argv, 0, '"/Users/test/Library/Keychains/login.keychain-db"\n', ""
+                )
             return subprocess.CompletedProcess(argv, 0, "sentinel-secret-token\n", "")
 
         resolver = CredentialResolver(self.contract, runner=runner)
@@ -585,7 +554,11 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
         self.assertEqual(credential.identity, "hsdb-agent")
         self.assertEqual(credential.token, "sentinel-secret-token")
-        self.assertFalse(any("sentinel-secret-token" in value for value in seen[0]))
+        self.assertEqual(len(seen), 2)
+        self.assertFalse(any("sentinel-secret-token" in value for value in seen[1]))
+        self.assertEqual(
+            seen[1][-1], "/Users/test/Library/Keychains/login.keychain-db"
+        )
 
     def _temporary_checkout_contract(self, checkout: Path):
         project = self.contract.project("aisoft-platform")

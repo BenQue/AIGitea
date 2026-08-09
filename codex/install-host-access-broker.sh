@@ -35,7 +35,6 @@ for source in "$ROOT"/codex/runtime/aisoft_gitea_governance/*.py; do
 done
 /usr/bin/clang -Wall -Wextra -Werror -Wno-deprecated-declarations \
   -fmodules-cache-path="$BUILD_ROOT/module-cache" \
-  -framework Security -framework CoreFoundation \
   -o "$BUILD_ROOT/keychain-acl-audit" \
   "$ROOT/codex/runtime/aisoft_host_access/keychain_acl_audit.c"
 install_versioned "$BUILD_ROOT/keychain-acl-audit" \

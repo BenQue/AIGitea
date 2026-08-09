@@ -71,11 +71,12 @@ the broker adapter instead of reconstructing host commands.
 - Aggregate audit uses only fixed manifest credentials. It validates each credential through `/api/v1/user`, checks
   expected declared scopes using Gitea token metadata where supported, checks the project-agent's exact repository
   permission, and reads protected `main`. Unsupported scope introspection is `NOT CONFIGURED`, never `PASS`.
-- Keychain ACL audit uses a compiled Security.framework helper whose project/account catalog is byte-checked against
-  the manifest. It performs exact `kSecClassGenericPassword` + service/account queries, requests item references but
-  never `kSecReturnData`, and inspects only the matching decrypt ACL. It rejects missing/duplicate/allow-any items and
-  returns only item class/permanence/trusted application/password-required shape; `dump-keychain`, `security -A`,
-  password export and any `ci-bot` query are absent.
+- Runtime credential lookup uses only `/usr/bin/security` with fixed service/account and the exact default user
+  Keychain path. The broker never invokes a custom Security.framework ACL reader: macOS authorizes
+  `SecKeychainItemCopyAccess` per item, which amplified one aggregate audit into multiple prompts during the first live
+  candidate. The compiled helper remains only as an exit-20 compatibility tombstone. Exact ACL shape is separate
+  bootstrap evidence; normal Issue/change/PR calls neither enumerate Keychain items nor inspect ACLs. `dump-keychain`,
+  `security -A`, password export and any `ci-bot` query remain absent.
 - The controller/runner adapter invokes only the broker executable and typed fields. No fallback to direct `curl`,
   `/usr/bin/security`, generic `git fetch/push`, or broad host command is permitted.
 
@@ -86,7 +87,8 @@ the broker adapter instead of reconstructing host commands.
 - Use one RED→GREEN vertical slice at a time: Issue mutation, audit drift, worktree push, PR mutation, runner integration.
 - Security negatives assert rejection occurs before credential resolution or network/Git mutation and error messages
   contain no token, Authorization header, Keychain data or submitted secret-shaped content.
-- Shell integration tests exercise the installed wrapper/native ACL helper layout twice, fake Keychain metadata/ACL, fresh-session
+- Shell integration tests exercise the installed wrapper/fail-closed ACL tombstone layout twice, fake fixed-default
+  Keychain credential lookup, fresh-session
   approval contract, no-op install and absence of direct fallback commands.
 - Static/fake tests are candidate evidence only. Live Issue/branch/PR/protection and prompt behavior remain separate.
 

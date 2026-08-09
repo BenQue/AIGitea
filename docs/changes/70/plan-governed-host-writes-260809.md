@@ -40,7 +40,7 @@ updated: 2026-08-09
 
 - Extend the exact manifest/contract with aggregate access audit and Issue create/update/comment typed fields.
 - Verify fixed manager/project-agent credentials, live identities, declared scope evidence, exact repository permission,
-  fixed Keychain item metadata/ACL through exact Security.framework item references, and protection without exposing Secret data.
+  fixed default-Keychain credential bindings, separately recorded ACL evidence, and protection without exposing Secret data.
 - Add public-seam tests for successful Issue create/read/update/comment and early rejection of unknown/raw fields,
   wrong identity/scope/permission, missing/duplicate/allow-any Keychain item and unsafe text.
 

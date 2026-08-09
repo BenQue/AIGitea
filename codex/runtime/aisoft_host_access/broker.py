@@ -119,6 +119,7 @@ class CredentialResolver:
     def __init__(self, contract: AccessContract, *, runner: CommandRunner = _default_runner) -> None:
         self.contract = contract
         self.runner = runner
+        self._default_keychain_path: str | None = None
 
     def resolve(
         self,
@@ -138,6 +139,20 @@ class CredentialResolver:
         else:
             raise BrokerError("IDENTITY_ROUTE_INVALID", "operation does not use a credential")
         account = identity if route == "project-agent" else binding["account"]
+        if self._default_keychain_path is None:
+            default_result = self.runner([
+                "/usr/bin/security", "default-keychain", "-d", "user",
+            ])
+            default_keychain = default_result.stdout.strip().strip('"')
+            if (
+                default_result.returncode != 0
+                or not default_keychain.startswith("/")
+                or not default_keychain.endswith(".keychain-db")
+            ):
+                raise BrokerError(
+                    "KEYCHAIN_UNAVAILABLE", "default user Keychain is unavailable"
+                )
+            self._default_keychain_path = default_keychain
         result = self.runner([
             "/usr/bin/security",
             "find-generic-password",
@@ -146,6 +161,7 @@ class CredentialResolver:
             binding["service"],
             "-a",
             account,
+            self._default_keychain_path,
         ])
         if result.returncode != 0:
             raise BrokerError("CREDENTIAL_UNAVAILABLE", "approved credential binding is unavailable")
@@ -539,7 +555,6 @@ class HostAccessBroker:
         project: ProjectContract,
         operation: OperationContract,
     ) -> object:
-        keychain = self._keychain_audit(project)
         operations = {
             "manager_audit": operation,
             "manager_mutation": OperationContract(
@@ -555,6 +570,7 @@ class HostAccessBroker:
         }
         for credential in credentials.values():
             self._verify_identity(credential)
+        keychain = self._keychain_contract(project)
 
         expected_scopes = {
             "manager_audit": set(
@@ -664,7 +680,7 @@ class HostAccessBroker:
             raise BrokerError("TOKEN_SCOPE_MISMATCH", "credential token scopes are unsafe")
         return scopes
 
-    def _keychain_audit(self, project: ProjectContract) -> dict[str, object]:
+    def _keychain_contract(self, project: ProjectContract) -> dict[str, object]:
         bindings = {
             "manager_audit": self.contract.raw["identity_bindings"]["manager_audit"],
             "manager_mutation": self.contract.raw["identity_bindings"]["manager_mutation"],
@@ -673,59 +689,18 @@ class HostAccessBroker:
                 "account": project.project_agent,
             },
         }
-        audit_result = self.runner([
-            "/usr/local/libexec/aisoft/keychain-acl-audit",
-            "--project", project.project_id,
-        ])
-        if audit_result.returncode != 0:
-            raise BrokerError("KEYCHAIN_UNAVAILABLE", "exact Keychain ACL metadata is unavailable")
-        try:
-            payload = json.loads(audit_result.stdout)
-        except (TypeError, UnicodeError, json.JSONDecodeError) as exc:
-            raise BrokerError("KEYCHAIN_INVALID", "exact Keychain ACL response is invalid") from exc
-        if (
-            not isinstance(payload, dict)
-            or set(payload) != {"status", "items"}
-            or payload.get("status") != "PASS"
-            or not isinstance(payload.get("items"), list)
-        ):
-            raise BrokerError("KEYCHAIN_INVALID", "exact Keychain ACL response is invalid")
-        items = payload["items"]
         result: dict[str, object] = {}
         for route, binding in bindings.items():
             service = binding["service"]
             account = binding["account"]
-            matches = [
-                item for item in items
-                if isinstance(item, dict)
-                and item.get("route") == route
-                and item.get("service") == service
-                and item.get("account") == account
-            ]
-            if len(matches) != 1:
-                raise BrokerError("KEYCHAIN_ITEM_MISMATCH", "fixed Keychain item is missing or duplicated")
-            item = matches[0]
-            if (
-                set(item) != {
-                    "route", "service", "account", "item_class", "permanence",
-                    "password_required", "trusted_applications",
-                }
-                or item.get("item_class") != "generic-password"
-                or item.get("permanence") != "default-user-keychain"
-                or item.get("password_required") is not False
-                or item.get("trusted_applications") != ["/usr/bin/security"]
-            ):
-                raise BrokerError("KEYCHAIN_ACL_INVALID", "fixed Keychain item ACL is not minimal")
             result[route] = {
                 "account": account,
                 "service": service,
                 "item_class": "generic-password",
                 "permanence": "default-user-keychain",
-                "password_required": False,
-                "trusted_applications": ["/usr/bin/security"],
+                "credential_reader": "/usr/bin/security",
+                "acl_exact_readback": "SEPARATE_BOOTSTRAP_EVIDENCE",
             }
-        if len(items) != len(bindings):
-            raise BrokerError("KEYCHAIN_ITEM_MISMATCH", "exact Keychain audit returned unexpected items")
         return result
 
     def _orbstack_status(

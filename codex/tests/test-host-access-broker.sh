@@ -117,7 +117,7 @@ acl_denied="$("$AISOFT_HOST_ACCESS_INSTALL_ROOT"/usr/local/libexec/aisoft/keycha
 acl_status=$?
 set -e
 test "$acl_status" = 20
-test "$acl_denied" = 'exact Keychain ACL audit failed'
+test "$acl_denied" = 'interactive Keychain ACL audit is disabled'
 if find "$AISOFT_HOST_ACCESS_INSTALL_ROOT" -type f \
   \( -name '*.token' -o -name '*.env' \) | grep -q .; then
   echo 'broker installer created a credential or project profile' >&2
