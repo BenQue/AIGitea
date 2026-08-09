@@ -15,9 +15,9 @@ risk_flags:
   - platform-governance
 depends_on:
   - 61
-status: approved
+status: pr-open
 branch: change/67
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/68
 created: 2026-08-09
 updated: 2026-08-09
 ---
@@ -30,7 +30,7 @@ updated: 2026-08-09
 |---|---|---|---|
 | T01 | strict scalar 与 ordered multi-valued protocol parser 及 unit/security regressions | - | completed |
 | T02 | credential-helper/live-shape regression、runbook 与完整本地验证 | T01 | completed |
-| T03 | 原子提交、受控 bootstrap push、唯一 PR 与 final-head remote gate | T01, T02 | in-progress |
+| T03 | 原子提交、受控 bootstrap push、唯一 PR 与 final-head remote gate | T01, T02 | completed |
 
 ## Tasks
 

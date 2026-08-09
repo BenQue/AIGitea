@@ -15,9 +15,9 @@ risk_flags:
   - platform-governance
 depends_on:
   - 61
-status: approved
+status: pr-open
 branch: change/67
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/68
 created: 2026-08-09
 updated: 2026-08-09
 ---
@@ -55,7 +55,7 @@ catalog、Gitea 权限或部署状态。
 - [x] **AC-7** focused unit、credential-helper shell、`bash -n`、ShellCheck（若可用）、strict JSON、
   Secret scan、`git diff --check` 和完整 `bash codex/tests/smoke.sh` 全部通过；本地 PASS 与 remote CI
   分开记录。
-- [ ] **AC-8** 只创建唯一 `change/67` 与唯一 `Closes #67` PR。final required CI 按 live protection
+- [x] **AC-8** 只创建唯一 `change/67` 与唯一 `Closes #67` PR。final required CI 按 live protection
   判定；最终 merge 仅由人工执行，不修改 protection/ACL/merge 权限。
 - [ ] **AC-9** 人工 merge 后只能从 exact merged protected-main bytes 重装 broker/helper，验证第二次
   install 为 no-op，再以 `aisoft-platform-agent` 完成真实 feature branch push 和 read-back；合并前这些

@@ -15,9 +15,9 @@ risk_flags:
   - platform-governance
 depends_on:
   - 61
-status: in-progress
+status: ready-for-review
 branch: change/67
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/68
 created: 2026-08-09
 updated: 2026-08-09
 ---
@@ -68,15 +68,21 @@ updated: 2026-08-09
 - AC-5：PASS。23 个 focused tests 覆盖 spec matrix。
 - AC-6：PASS。live probe 只保存七个字段名；shell negatives 验证 early fail。
 - AC-7：PASS。首轮 ShellCheck finding 已修复，focused、shell、280-test smoke、syntax、ShellCheck、JSON、Secret、diff 全部重跑通过。
-- AC-8：IN PROGRESS。唯一 branch 已建立；commit/push/PR/final-head remote gate 尚未执行。
+- AC-8：PASS。唯一 branch、原子 commits 与唯一 PR #68 已建立；live protection 未配置 required CI，
+  final-head status 只读回查不写成 remote CI PASS。
 - AC-9：NOT RUN。只允许人工 merge 后执行 exact merged-byte install/no-op/live Git canary。
 
 ## Bootstrap、PR 与 remote CI
 
-- Standard fixed-helper push：`NOT RUN`。
-- Compatibility adapter：`NOT RUN`；只有 standard push 被已知 defect 阻塞时才允许。
-- Unique `Closes #67` PR：`NOT RUN`。
-- Final-head remote status contexts：`NOT RUN`；live protection 当前未配置 required CI。
+- Standard fixed-helper push：`FAIL (EXPECTED DEFECT)`；installed helper 在 Keychain 前返回
+  `CREDENTIAL_PROTOCOL_INVALID: Git credential field is duplicated`，远端分支仍不存在。
+- Compatibility adapter：`PASS`；单条 `git -c` 仅把 helper 临时指向 committed repo-local candidate
+  wrapper，仍使用 fixed manifest/service/account 和 strict identity/target check。未记录 protocol values、
+  challenge 或 Secret，未把 token 写入 argv、文件、日志或 terminal。初始远端 head 匿名读回为
+  `002ad63969b5d82c9e6bd4b5536f2e3829ed430e`。这只是 bootstrap，不是 post-merge fix evidence。
+- Unique `Closes #67` PR：`PASS`；PR #68 初始读回为 `change/67@002ad639... -> main`、`open`、
+  `merged=false`；本 handoff docs commit 会推进 final head，以后续匿名 read-back 为准。
+- Final-head remote status contexts：`NOT RUN`；live protection 当前未配置 required CI，最终 push 后只读回查。
 - PR merge：`NOT RUN`；只允许人工执行。
 
 ## Post-merge live gate
