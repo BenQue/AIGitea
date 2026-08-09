@@ -18,9 +18,9 @@ depends_on:
   - 35
   - 61
   - 67
-status: approved
+status: awaiting-merge
 branch: change/70
-pr_url: null
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/72
 created: 2026-08-09
 updated: 2026-08-09
 ---
@@ -34,7 +34,7 @@ updated: 2026-08-09
 | T01 | strict audit + Issue typed mutation/readback tracer bullet | - | complete |
 | T02 | isolated worktree exact change push + broker-only runner tracer bullet | T01 | complete |
 | T03 | protected-file credential boundary + PR/installer/security/full-smoke closure | T01, T02 | complete |
-| T04 | single live canary, push, unique PR and final-head handoff | T01, T02, T03 | in-progress |
+| T04 | single live canary, push, unique PR and final-head handoff | T01, T02, T03 | complete (pre-merge) |
 
 ## T01 — Access audit and Issue operations
 

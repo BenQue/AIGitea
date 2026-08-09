@@ -18,9 +18,9 @@ depends_on:
   - 35
   - 61
   - 67
-status: implementing
+status: awaiting-merge
 branch: change/70
-pr_url: null
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/72
 created: 2026-08-09
 updated: 2026-08-09
 ---
@@ -75,11 +75,15 @@ updated: 2026-08-09
 - Exact manager/project credential-file provision/read-back: `PASS`; one approved provision copied only the three fixed
   manifest bindings from the existing VM protected store, then metadata/read audit passed without credential output。
 - Issue #70 typed mutation/read-back: `PASS`; comment id `2743`, read-back `comments=1`, state remains open。
-- exact `change/70` push/read-back: `NOT RUN`.
-- unique `Closes #70` PR create/update/read-back: `NOT RUN`.
+- exact `change/70` push/read-back: `PASS`; first delivery head
+  `d643cd286ea28b42b6fcea95c14a7fde6e681989` was fetched back from `origin/change/70` and matched local HEAD。
+- unique `Closes #70` PR create/read-back: `PASS`; PR #72 is the only open PR, `head=change/70`, `base=main`,
+  `merged=false`, `mergeable=true`。The final documentation commit is pushed through the same exact operation and
+  read back again before handoff; its SHA is external evidence because a commit cannot contain its own SHA。
 - live protection: `PASS`; direct/force push disabled, merge allowlist is only `admin`, admin override blocked。
-- final-head required CI: `NOT CONFIGURED / NOT RUN`; live protection has `enable_status_check=false` and empty
-  `status_check_contexts`, so local tests cannot be presented as remote CI PASS。
+- final-head required CI: `NOT CONFIGURED / NOT RUN`; live protection has `enable_status_check=false`, empty
+  `status_check_contexts`, and the commit-status read returned `total_count=0`/`statuses=null`, so its aggregate
+  `pending` is not a required-CI failure or PASS, and local tests cannot be presented as remote CI PASS。
 - Historical Keychain prompt after exact-prefix approval: `FAIL (first candidate)` — aggregate exact ACL probe caused multiple
   per-item prompts and then `CREDENTIAL_UNAVAILABLE`; no Gitea mutation occurred。`FAIL (second candidate)` — native
   probe 已移除，但新增的 `default-keychain` path 仍导致一次 project-agent credential prompt，并在任何 Gitea

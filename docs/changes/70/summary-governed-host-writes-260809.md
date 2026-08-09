@@ -30,9 +30,9 @@ depends_on:
   - 35
   - 61
   - 67
-status: approved
+status: awaiting-merge
 branch: change/70
-pr_url: null
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/72
 created: 2026-08-09
 updated: 2026-08-09
 ---
@@ -40,8 +40,8 @@ updated: 2026-08-09
 ## 问题/需求总结
 
 Issue #61 建立了 fixed `host-access-broker/v1`、project-agent Keychain binding 和人工 merge 边界；
-Issue #67 只修复 Git credential protocol 的合法 multi-valued attributes。当前 installed broker 与
-protected-main source 字节一致，但 operation catalog 只覆盖 Gitea read、固定 canonical checkout 的 Git
+Issue #67 只修复 Git credential protocol 的合法 multi-valued attributes。任务开始时的 installed broker 与
+当时 protected-main source 字节一致，但 operation catalog 只覆盖 Gitea read、固定 canonical checkout 的 Git
 fetch/change push、Mac binding 与 OrbStack/profile operations。
 
 因此日常交互式 Codex 仍需退回 direct Git/Gitea/Keychain host path：Issue/PR mutation 没有 typed
