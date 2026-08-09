@@ -90,6 +90,9 @@ class GovernedHostRunner:
     def access_audit(self) -> Mapping[str, object]:
         return self._call("host.access.audit")
 
+    def onboarding_check(self) -> Mapping[str, object]:
+        return self._call("host.onboarding.check")
+
     def _call(self, operation: str, *arguments: str) -> Mapping[str, object]:
         expected = self._contract.operation(operation)
         argv = [

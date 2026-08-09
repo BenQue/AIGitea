@@ -145,6 +145,12 @@
       "arguments": []
     },
     {
+      "name": "host.onboarding.check",
+      "identity_route": "manager-audit",
+      "mutating": false,
+      "arguments": []
+    },
+    {
       "name": "git.fetch.main",
       "identity_route": "project-agent",
       "mutating": false,
@@ -235,6 +241,7 @@
       "project_id": "newemaint",
       "repository": "NewEMaint",
       "project_agent": "newemaint-agent",
+      "git_remote_name": "gitea",
       "mac_checkout": "/Users/benque/Projects/NewEmaint",
       "vm_profile": {
         "name": "emaintenance",

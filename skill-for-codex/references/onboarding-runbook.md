@@ -33,11 +33,29 @@ Issue #35 发布后，按顺序执行：
 project agent 与 legacy `ci-bot` 不得进入 push/force-push/merge allowlist。任一 credential、API、
 permission、visibility、protection、cross-project 或 read-back 失败均终止为 `BLOCKED_EXTERNAL`。
 
-Issue #61 发布后，已在 host-access manifest 中的项目从 fixed broker 访问 host；Mac checkout 只用
-repo-local Keychain helper，VM profile 只用 `GITEA_IDENTITY` + fixed mode 600 token file。broker 不
-接受新 repository/profile/credential path，因此它不是 onboarding v2：新项目仍必须先通过独立
-AISoftPlatform Issue/PR 同时更新 governance 与 host-access manifests，再执行本节的账号/权限流程。
+Issue #61/#70 发布后，已在 host-access manifest 中的项目从 fixed broker 访问 host；Mac checkout 只用
+repo-local protected-file helper，VM profile 只用 `GITEA_IDENTITY` + fixed mode 600 token file。Issue #73
+candidate 允许项目在 manifest 中声明 strict `git_remote_name`；未声明兼容 `origin`，NewEmaint 固定
+`gitea`。调用方不能传 remote name/URL/owner/repository/refspec，broker 也不创建或改写 remote。
+新项目仍必须先通过独立 AISoftPlatform Issue/PR 同时更新 governance 与 host-access manifests，再执行
+本节的账号/权限流程。
 `orbstack-access-diagnostics` 不得作为接入前置，只在 broker failure 且真实状态仍矛盾时 emergency 使用。
+
+平台 manifest PR 人工合并并安装后，逐项目按以下顺序接入：
+
+1. `host.access.audit` 只读核对 protected-file metadata、token identity/scope、repository permission 与
+   protected `main`/required CI。
+2. credential 缺失时停止；credential provision/create/rotation 必须获得独立明确审批，Issue `approved`
+   不构成 Secret mutation approval。
+3. `mac.git.bind` 只在 canonical checkout 写 repo-local exact Gitea URL scoped helper/username 和
+   `credential.useHttpPath=true`；不写 token/path，不修改 remote。
+4. `host.onboarding.check` 只读聚合 access audit、canonical checkout、manifest remote fetch/push URL 和
+   exact helper binding；任一缺失或 drift 均 fail closed。
+5. 最后运行本项目 fresh-session typed Issue/change/PR/required-CI canary。一个项目的 PASS 不授权另一个
+   项目；每个项目使用独立 adoption Issue 与 evidence。
+
+平台 #73 PR 人工合并前不得创建 NewEmaint adoption Issue；合并后才单独完成 NewEmaint binding/live
+canary。其它项目不得批量启用。
 
 标准入口（只替换尖括号；token file 只写路径，不打印内容）：
 

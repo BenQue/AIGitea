@@ -13,12 +13,12 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 9 and
-  .operation_count == 21 and
+  .operation_count == 22 and
   .merge_operation_count == 0
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 21) and
+  ([.operations[].name] | length == 22) and
   all(.operations[];
     (.name | contains("merge") | not) and
     (.name | contains("shell") | not) and
@@ -37,6 +37,9 @@ jq -e '
   ([.operations[] | select(.name == "gitea.commit.status.read")][0].arguments == ["sha"]) and
   ([.operations[] | select(.name == "git.push.change")][0].arguments == ["branch"]) and
   ([.operations[] | select(.name == "host.access.audit")][0].arguments == []) and
+  ([.operations[] | select(.name == "host.onboarding.check")][0].arguments == []) and
+  ([.projects[] | select(.project_id == "newemaint")][0].git_remote_name == "gitea") and
+  ([.projects[] | select(.project_id != "newemaint") | has("git_remote_name")] | all(. == false)) and
   ([.projects[] | select(.vm_profile != null) | .repository] | sort) ==
     ["HSDB", "NewEMaint", "SFMDigitalBoard", "rsdesign-new"]
 ' "$ROOT/codex/config/host-access-broker.json" >/dev/null

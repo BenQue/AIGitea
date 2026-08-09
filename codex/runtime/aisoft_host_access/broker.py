@@ -325,6 +325,8 @@ class HostAccessBroker:
                 return self._git(project, operation, branch=branch)
             if operation_name == "host.access.audit":
                 return self._access_audit(project, operation)
+            if operation_name == "host.onboarding.check":
+                return self._onboarding_check(project, operation)
             if operation_name == "orbstack.vm.status":
                 return self._orbstack_status(project, operation)
             if operation_name.startswith("vm.profile."):
@@ -512,13 +514,7 @@ class HostAccessBroker:
         checkout = canonical if operation.name == "mac.git.bind" else self.invocation_cwd
         if operation.name != "mac.git.bind":
             checkout = self._validated_project_worktree(canonical, checkout)
-        expected_remote = (
-            f"{self.contract.governance.base_url}/{self.contract.governance.owner}/"
-            f"{project.repository}.git"
-        )
-        remote = self._run(["git", "remote", "get-url", "origin"], cwd=checkout).stdout.strip()
-        if remote != expected_remote:
-            raise BrokerError("TARGET_MISMATCH", "checkout origin does not match the manifest target")
+        remote_name, expected_remote = self._validated_remote(project, checkout)
         if operation.name == "mac.git.bind":
             credential = self.credentials.resolve(project, operation)
             self._verify_identity(credential)
@@ -556,27 +552,40 @@ class HostAccessBroker:
             "GIT_CONFIG_KEY_2": "credential.useHttpPath",
             "GIT_CONFIG_VALUE_2": "true",
         })
+        main_refspec = f"refs/heads/main:refs/remotes/{remote_name}/main"
         if operation.name == "git.fetch.main":
-            argv = ["git", "fetch", "origin", "main"]
+            argv = ["git", "fetch", remote_name, main_refspec]
         elif operation.name == "git.fetch.change":
             assert safe_branch is not None
-            argv = ["git", "fetch", "origin", safe_branch]
+            change_refspec = (
+                f"refs/heads/{safe_branch}:refs/remotes/{remote_name}/{safe_branch}"
+            )
+            argv = ["git", "fetch", remote_name, change_refspec]
         elif operation.name == "git.push.change":
             assert safe_branch is not None
-            self._run(["git", "fetch", "origin", "main"], cwd=checkout, env=env)
+            self._run(
+                ["git", "fetch", remote_name, main_refspec], cwd=checkout, env=env
+            )
+            remote_main = f"refs/remotes/{remote_name}/main"
             ancestor = self.runner(
-                ["git", "merge-base", "--is-ancestor", "origin/main", "HEAD"],
+                ["git", "merge-base", "--is-ancestor", remote_main, "HEAD"],
                 cwd=checkout,
             )
             if ancestor.returncode != 0:
-                raise BrokerError("BASE_BRANCH_STALE", "change branch is not based on fetched origin/main")
+                raise BrokerError(
+                    "BASE_BRANCH_STALE",
+                    "change branch is not based on the freshly fetched manifest main",
+                )
             merge_commits = self._run(
-                ["git", "rev-list", "--min-parents=2", "origin/main..HEAD"],
+                ["git", "rev-list", "--min-parents=2", f"{remote_main}..HEAD"],
                 cwd=checkout,
             ).stdout.strip()
             if merge_commits:
                 raise BrokerError("MERGE_COMMIT_DENIED", "change branch contains a merge commit")
-            argv = ["git", "push", "origin", f"refs/heads/{safe_branch}:refs/heads/{safe_branch}"]
+            argv = [
+                "git", "push", remote_name,
+                f"refs/heads/{safe_branch}:refs/heads/{safe_branch}",
+            ]
         else:
             raise BrokerError("OPERATION_UNIMPLEMENTED", "Git operation is not implemented")
         self._run(argv, cwd=checkout, env=env)
@@ -586,7 +595,35 @@ class HostAccessBroker:
             "operation": operation.name,
             "identity": project.project_agent,
             "checkout": checkout,
+            "remote_name": remote_name,
         }
+
+    def _expected_git_url(self, project: ProjectContract) -> str:
+        return (
+            f"{self.contract.governance.base_url}/{self.contract.governance.owner}/"
+            f"{project.repository}.git"
+        )
+
+    def _validated_remote(self, project: ProjectContract, checkout: str) -> tuple[str, str]:
+        remote_name = project.git_remote_name
+        expected_remote = self._expected_git_url(project)
+        try:
+            fetch = self._run(
+                ["git", "remote", "get-url", "--all", remote_name], cwd=checkout
+            ).stdout.splitlines()
+            push = self._run(
+                ["git", "remote", "get-url", "--push", "--all", remote_name],
+                cwd=checkout,
+            ).stdout.splitlines()
+        except BrokerError as exc:
+            raise BrokerError(
+                "TARGET_MISMATCH", "manifest Git remote is unavailable"
+            ) from exc
+        if fetch != [expected_remote] or push != [expected_remote]:
+            raise BrokerError(
+                "TARGET_MISMATCH", "manifest Git remote URLs do not match the target"
+            )
+        return remote_name, expected_remote
 
     def _validated_project_worktree(self, canonical: str, candidate: str) -> str:
         canonical_root = self._run(
@@ -604,9 +641,9 @@ class HostAccessBroker:
             raise BrokerError("TARGET_MISMATCH", "current worktree is outside the manifest repository")
         return os.path.realpath(candidate_root)
 
-    def _bind_git(self, project: ProjectContract, checkout: str, remote: str) -> object:
+    def _bind_git(self, project: ProjectContract, checkout: str, remote_url: str) -> object:
         helper = self.contract.raw["mac_host"]["credential_helper"]
-        url_key = f"credential.{remote}"
+        url_key = f"credential.{remote_url}"
         desired = {
             "credential.useHttpPath": "true",
             f"{url_key}.username": project.project_agent,
@@ -633,6 +670,72 @@ class HostAccessBroker:
             "operation": "mac.git.bind",
             "result": "updated" if changed else "no-op",
             "identity": project.project_agent,
+        }
+
+    def _onboarding_check(
+        self,
+        project: ProjectContract,
+        operation: OperationContract,
+    ) -> object:
+        access_operation = self.contract.operation("host.access.audit")
+        access = self._access_audit(project, access_operation)
+        if project.mac_checkout is None:
+            raise BrokerError("ONBOARDING_MISMATCH", "canonical checkout is not configured")
+        checkout = os.path.realpath(project.mac_checkout)
+        try:
+            root = os.path.realpath(
+                self._run(["git", "rev-parse", "--show-toplevel"], cwd=checkout)
+                .stdout.strip()
+            )
+        except BrokerError as exc:
+            raise BrokerError(
+                "ONBOARDING_MISMATCH", "canonical checkout is unavailable"
+            ) from exc
+        if root != checkout:
+            raise BrokerError(
+                "ONBOARDING_MISMATCH", "canonical checkout does not match the manifest"
+            )
+        try:
+            remote_name, remote_url = self._validated_remote(project, checkout)
+        except BrokerError as exc:
+            raise BrokerError(
+                "ONBOARDING_MISMATCH", "canonical Git remote does not match the manifest"
+            ) from exc
+
+        helper = self.contract.raw["mac_host"]["credential_helper"]
+        url_key = f"credential.{remote_url}"
+        expected_scalars = {
+            "credential.useHttpPath": "true",
+            f"{url_key}.username": project.project_agent,
+        }
+        for key, expected in expected_scalars.items():
+            result = self.runner(["git", "config", "--local", "--get", key], cwd=checkout)
+            if result.returncode != 0 or result.stdout.strip() != expected:
+                raise BrokerError(
+                    "ONBOARDING_MISMATCH", "repo-local credential binding does not match"
+                )
+        helper_result = self.runner(
+            ["git", "config", "--local", "--get-all", f"{url_key}.helper"],
+            cwd=checkout,
+        )
+        if (
+            helper_result.returncode != 0
+            or helper_result.stdout.splitlines() != ["", helper]
+        ):
+            raise BrokerError(
+                "ONBOARDING_MISMATCH", "repo-local credential helper binding does not match"
+            )
+
+        return {
+            "status": "PASS",
+            "project": project.project_id,
+            "operation": operation.name,
+            "access": access,
+            "checkout": {
+                "remote_name": remote_name,
+                "remote_url": remote_url,
+                "binding": "PASS",
+            },
         }
 
     def _access_audit(
