@@ -94,17 +94,55 @@ runtime_dir() {
 }
 
 prepare_change_worktree() {
-  local issue="$1" allow_create="${2:-false}"
-  local state_dir worktree_root worktree branch remote_exists=false
+  local issue="$1" allow_create="${2:-false}" slug="${3:-}"
+  local state_dir worktree_root worktree branch expected_branch="" remote_exists=false
+  local output ref parsed_branch
+  local -a branches=()
   require_issue_number "$issue"
   state_dir="${AISOFT_LOOP_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/aisoft-loop}"
   worktree_root="${LOOP_WORKTREE_ROOT:-$state_dir/worktrees}"
-  worktree="$worktree_root/issue-$issue"
-  branch="change/$issue"
   install -d -m 700 "$state_dir" "$worktree_root"
   git -C "$AGENT_REPO_DIR" fetch -q origin main
-  if git -C "$AGENT_REPO_DIR" fetch -q origin "$branch"; then
+  if [[ -n "$slug" ]]; then
+    expected_branch="$(python3 -m aisoft_loop.cli change-name "$issue" "$slug")"
+  fi
+  if ! output="$(git -C "$AGENT_REPO_DIR" ls-remote --heads origin \
+    "refs/heads/change/$issue" "refs/heads/change/$issue-*")"; then
+    printf 'cannot enumerate remote change names for Issue #%s\n' "$issue" >&2
+    exit 2
+  fi
+  while IFS=$'\t' read -r _ ref; do
+    [[ -n "$ref" ]] || continue
+    if [[ "$ref" == "refs/heads/change/$issue" || \
+          "$ref" == "refs/heads/change/$issue-"* ]]; then
+      if ! parsed_branch="$(python3 -m aisoft_loop.cli parse-change-branch \
+        "${ref#refs/heads/}")"; then
+        printf 'invalid remote change ref for Issue #%s\n' "$issue" >&2
+        exit 2
+      fi
+      branches+=("$parsed_branch")
+    fi
+  done <<<"$output"
+  if (( ${#branches[@]} > 1 )); then
+    printf 'CHANGE_NAME_CONFLICT for Issue #%s: %s\n' "$issue" "${branches[*]}" >&2
+    exit 2
+  elif (( ${#branches[@]} == 1 )); then
+    branch="${branches[0]}"
     remote_exists=true
+    if [[ -n "$expected_branch" && "$branch" != "$expected_branch" ]]; then
+      printf 'CHANGE_NAME_CONFLICT for Issue #%s: expected %s, found %s\n' \
+        "$issue" "$expected_branch" "$branch" >&2
+      exit 2
+    fi
+  elif [[ "$allow_create" == true && -n "$expected_branch" ]]; then
+    branch="$expected_branch"
+  else
+    printf 'remote change branch for Issue #%s is missing\n' "$issue" >&2
+    exit 2
+  fi
+  worktree="$worktree_root/issue-${branch#change/}"
+  if [[ "$remote_exists" == true ]]; then
+    git -C "$AGENT_REPO_DIR" fetch -q origin "$branch"
   fi
   if [[ ! -e "$worktree/.git" ]]; then
     if git -C "$AGENT_REPO_DIR" show-ref --verify --quiet "refs/heads/$branch"; then

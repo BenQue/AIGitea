@@ -24,14 +24,14 @@ This skill adapts the complete vendored Matt skills to AISoftPlatform. It does n
 
 1. `$triage #N` — preserve Matt's complete verify/grill/brief flow. Mutate triage labels through the platform label
    projector; `ready-for-agent` never implies `approved`.
-2. Run the platform analyzer. It creates `summary-<short-slug>-<YYMMDD>.md` and its explicit `documents` mapping.
+2. Run the platform analyzer. It validates one immutable slug and creates the exact `change/N-short-description`, `docs/changes/N-short-description/`, `issue-N-short-description` tuple plus mapped summary. Existing legacy names are discovered from evidence, never selected by a caller flag.
 3. For complex work, run `$to-spec #N`. Publish to the mapped `spec` file and keep lifecycle `spec-drafting` until the
    complete contract is validated.
 4. Run `$to-tickets #N`. Publish the approved `Txx` vertical-slice dependency graph to the mapped `plan` file. Default
    mode stays inside the parent Issue.
 5. After contract validation sets `approved`, the Controller dispatches `$implement #N Txx` for one frontier ticket.
    The Agent owns tests, review and one or more atomic local commits; the Controller owns remote mutation.
-6. Controller verification, fast-forward push, one final `Closes #N` PR and required CI follow. Stop at the human merge
+6. Controller verification, fast-forward push, one final PR with exact readable head, mapped summary and one `Closes #N` line, then required CI follow. Stop at the human merge
    gate. Deployment is independent.
 
 ## Stable adapter interfaces

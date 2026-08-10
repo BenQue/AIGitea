@@ -7,6 +7,8 @@ import json
 import re
 from typing import Mapping
 
+from aisoft_change_name import ChangeName, ChangeNameError, validate_slug
+
 from .classification import Classification, ClassificationError, Route
 
 
@@ -47,12 +49,12 @@ class AnalysisResult:
             if not isinstance(raw[field], str) or not raw[field].strip():
                 raise AnalysisError(f"analyzer field {field} must be a non-empty string")
         document_slug = raw["document_slug"].strip()
-        if len(document_slug) > 32 or not re.fullmatch(
-            r"[a-z0-9]+(?:-[a-z0-9]+){1,3}", document_slug
-        ):
+        try:
+            validate_slug(document_slug)
+        except ChangeNameError as exc:
             raise AnalysisError(
                 "analyzer field document_slug must use 2-4 lowercase kebab-case words and at most 32 characters"
-            )
+            ) from exc
         for field in ("risks", "evidence", "missing_acceptance_criteria"):
             value = raw[field]
             if not isinstance(value, list) or not all(
@@ -133,7 +135,7 @@ def render_summary(
         *classification_lines,
         *document_lines,
         f"status: {route.lifecycle_label}",
-        f"branch: change/{number}",
+        f"branch: {ChangeName.new(number, result.document_slug).branch}",
         "pr_url:",
         f"created: {date}",
         f"updated: {date}",
@@ -184,10 +186,11 @@ def render_summary(
 def document_filename(role: str, slug: str, created: str) -> str:
     if role not in {"summary", "spec", "plan", "verification"}:
         raise AnalysisError(f"unsupported document role: {role}")
-    if len(slug) > 32 or not re.fullmatch(
-        r"[a-z0-9]+(?:-[a-z0-9]+){1,3}", slug
-    ):
+    try:
+        validate_slug(slug)
+    except ChangeNameError as exc:
         raise AnalysisError("document_slug violates the short kebab-case contract")
+
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", created):
         raise AnalysisError("document creation date must use YYYY-MM-DD")
     compact_date = created[2:4] + created[5:7] + created[8:10]

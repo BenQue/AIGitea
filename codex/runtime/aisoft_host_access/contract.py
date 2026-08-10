@@ -10,11 +10,11 @@ from aisoft_gitea_governance.contract import (
     GovernanceContract,
     load_contract as load_governance_contract,
 )
+from aisoft_change_name import ChangeName, ChangeNameError
 
 
 IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 GIT_REMOTE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
-CHANGE_BRANCH_RE = re.compile(r"^change/[1-9][0-9]*$")
 
 
 class AccessContractError(ValueError):
@@ -133,9 +133,12 @@ class AccessContract:
         raise AccessContractError("operation has an unknown identity route")
 
     def change_branch(self, value: str) -> str:
-        _require(bool(CHANGE_BRANCH_RE.fullmatch(value)),
-                 "Git branch must be an exact change/N branch")
-        return value
+        try:
+            return ChangeName.parse_branch(value).branch
+        except ChangeNameError as exc:
+            raise AccessContractError(
+                "Git branch must be an exact change/N or change/N-short-description branch"
+            ) from exc
 
 
 EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {

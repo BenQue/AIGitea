@@ -8,7 +8,7 @@
 - Matt `triage → to-spec → to-tickets → implement` 保持原始技能语义，通过 Gitea tracker adapter 对齐平台阶段。
 - `needs-analysis` 触发分析，`approved` 触发 Loop。
 - Issue/spec/plan 是不可由 Loop 擅自改写的执行合同。
-- Agent 可以按 frontier `Txx` 在 exact `change/N` 创建本地原子 commit；外层 controller 管状态、锁、commit 后置校验、push、PR、CI、验证和终态。
+- Agent 可以按 frontier `Txx` 在 exact `change/N-short-description` 创建本地原子 commit；外层 controller 管状态、锁、commit 后置校验、push、PR、CI、验证和终态。
 - Codex 与 Claude Code 只作为 provider adapter，共用同一 controller 和 verifier。
 - 只有人可以合并最终 PR。
 - 生产部署不由 analyzer、Loop 或 provider 执行。
@@ -49,7 +49,7 @@ Analyzer：
 
 1. 读取 Issue、`AGENTS.md`、仓库和相关测试。
 2. 只读分析产品代码，识别主要 type、产品合同影响、风险和有效复杂度，输出固定结构；模型不得直接修改 Issue 标签。
-3. 外层 wrapper 校验结构化输出，在 `change/N` 写 `summary-<slug>-<YYMMDD>.md`、提交、推送和评论，并独占所有标签 mutation；legacy Issue 只读固定数字 basename。
+3. 外层 wrapper 先校验 analyzer 输出的 slug，再创建 `change/N-short-description`、`issue-N-short-description` worktree 与同名文档目录，写 summary、提交、推送和评论；legacy Issue 仅从已有远端/历史证据解析。
 4. 不实现代码、不创建最终 PR、不启动部署。
 
 所有 Issue 都经过 analyzer；是否需要 spec/plan 由有效复杂度决定。Analyzer 至少输出：
@@ -81,7 +81,7 @@ Wrapper 必须按强制风险规则和显式标签优先级复核结果，再执
 每次收到启动信号时，controller 都必须从 Issue、有效评论、summary 和所需 spec/plan 重新计算合同有效性，不能把现有 `approved` 当作充分证据。启动前必须满足：
 
 - Issue 为 open 且带 `approved`。
-- `change/N` 和唯一映射的 `summary` 存在；新合同必须通过 `documents` 映射解析，legacy 合同才允许固定数字 basename。
+- exact change branch、同 `(N, slug)` 文档目录和唯一映射的 `summary` 存在；新合同必须通过 `documents` 映射解析，legacy 合同才允许固定数字目录/basename。
 - 恰有一个由当前证据支持的 `complexity/small` 或 `complexity/complex` 标签，且 type、复杂度和强制风险规则无冲突。
 - `complexity/small` 时 Issue 有可测验收标准，summary 字段完整，且没有强制复杂风险。
 - `complexity/complex` 时映射的 `spec` 和 `plan` 完整、验收映射明确、Ticket graph 有可执行 frontier 且无未决问题。

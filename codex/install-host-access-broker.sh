@@ -43,6 +43,8 @@ done
 for source in "$ROOT"/codex/runtime/aisoft_gitea_governance/*.py; do
   install_versioned "$source" "$LIB_ROOT/aisoft_gitea_governance/$(basename "$source")" 0644
 done
+install_versioned "$ROOT/codex/runtime/aisoft_change_name.py" \
+  "$LIB_ROOT/aisoft_change_name.py" 0644
 install_versioned "$ROOT/codex/config/host-access-broker.json" \
   "$SHARE_ROOT/host-access-broker.json" 0644
 install_versioned "$ROOT/codex/config/gitea-governance.json" \

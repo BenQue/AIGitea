@@ -229,8 +229,8 @@ override_reason:
 
 ```text
 Issue #N
-  ↔ change/N
-  ↔ docs/changes/N/
+  ↔ change/N-short-description
+  ↔ docs/changes/N-short-description/
   ↔ PR（Closes #N）
   ↔ commit / CI / deployment SHA
 ```
@@ -366,7 +366,7 @@ type/platform + complexity/complex + completed
 - 可验证的 acceptance criteria。
 - 明确的非目标和禁止修改范围。
 - 仓库 `AGENTS.md`。
-- 隔离的 `change/N` 分支。
+- 隔离且同 `(N, slug)` 的 `change/N-short-description` 分支与 worktree。
 
 复杂变更额外读取：
 
@@ -623,7 +623,7 @@ rg -n 'READY_FOR_REVIEW|NEEDS_HUMAN_DECISION|effective_complexity:|type/feature|
 | 4 | PR 创建时机 | 本地 verifier 全绿后才建，不用 Draft PR | PR 一旦出现即代表"本地已验证、等 CI 与人审"，语义单一 |
 | 5 | CI 结果读取与反馈 | `get_commit_status` 映射 pending/success/failure；`success`→`READY_FOR_REVIEW`，`pending`→持久化 `stage=awaiting_ci` 返回 CONTINUE，`failure`→证据进下一轮，三次记入同根因上限 | 复用唯一交付闸门的 CI，不新造状态；失败反馈闭环但不无限重试 |
 | 6 | Provider 输出规整 | adapter 用 `extract-json` 取输出中最后一个 JSON 对象，再交严格校验器；共享 `ProviderResult`/`AnalysisResult` 校验保持严格不放宽 | Claude 会先输出散文再给 JSON；把 CLI 差异关在 adapter 内，两个 provider 的结果契约保持一致 |
-| 7 | 并发与隔离 | 每 profile 单 active Issue + `GlobalLock` + 独立 `change/N` worktree（见 `04 §3`） | 第一版不做跨 Issue 并行，避免重造编排复杂度；并行启用需另做 VM 容量验收 |
+| 7 | 并发与隔离 | 每 profile 单 active Issue + `GlobalLock` + 独立 `change/N-short-description` worktree（见 `04 §3`） | 第一版不做跨 Issue 并行，避免重造编排复杂度；并行启用需另做 VM 容量验收 |
 
 ### 13.2 仍开放
 

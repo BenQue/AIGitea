@@ -152,7 +152,7 @@ class AnalysisResultTests(unittest.TestCase):
             date="2026-07-16",
         )
         self.assertIn("issue: 8", summary)
-        self.assertIn("branch: change/8", summary)
+        self.assertIn("branch: change/8-pilot-fix", summary)
         self.assertIn("## AI 判级", summary)
         self.assertIn("Existing test documents", summary)
         self.assertIn("documents:\n  summary: summary-pilot-fix-260716.md", summary)

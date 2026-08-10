@@ -10,6 +10,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+from aisoft_change_name import ChangeName, ChangeNameError
+
 from .contract import (
     COMPLEXITY_LABELS,
     LIFECYCLE_LABELS,
@@ -163,16 +165,26 @@ class GiteaClient:
         body: str,
     ) -> dict[str, object]:
         number = _number(issue_number)
-        if f"Closes #{number}" not in body:
-            raise GiteaError(f"PR body must contain Closes #{number}")
+        closes = re.findall(r"(?m)^Closes #([1-9][0-9]*)[ \t]*$", body)
+        if closes != [str(number)]:
+            raise GiteaError(f"PR body must contain exactly one line: Closes #{number}")
+        try:
+            change_name = ChangeName.parse_branch(head, allow_legacy=False)
+        except ChangeNameError as exc:
+            raise GiteaError("new PR head must use change/N-short-description") from exc
+        if change_name.issue_number != number:
+            raise GiteaError("PR head Issue number does not match")
+        assert change_name.slug is not None
         summary_link = re.compile(
-            rf"docs/changes/{number}/(?:00-summary\.md|"
-            r"summary-[a-z0-9]+(?:-[a-z0-9]+){1,3}-\d{6}\.md)"
+            rf"(?<![A-Za-z0-9_./-])docs/changes/"
+            rf"{number}-{re.escape(change_name.slug)}/"
+            rf"summary-{re.escape(change_name.slug)}-\d{{6}}\.md"
+            rf"(?![A-Za-z0-9_./-])"
         )
-        if not summary_link.search(body):
+        if len(summary_link.findall(body)) != 1:
             raise GiteaError("PR body must link the Issue summary document")
-        if not title.strip() or head != f"change/{number}" or not base.strip():
-            raise GiteaError("PR title, change/N head, and base are required")
+        if not title.strip() or not base.strip():
+            raise GiteaError("PR title, readable change head, and base are required")
         return self._object(
             "POST",
             "/pulls",

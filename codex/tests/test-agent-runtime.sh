@@ -29,6 +29,7 @@ test -x "$AGENT_DIR/ensure-gitea-collaborator.sh"
 test -f "$TARGET_HOME/.local/lib/aisoft-loop/aisoft_loop/controller.py"
 test -f "$TARGET_HOME/.local/lib/aisoft-loop/aisoft_host_access/broker.py"
 test -f "$TARGET_HOME/.local/lib/aisoft-loop/aisoft_gitea_governance/contract.py"
+test -f "$TARGET_HOME/.local/lib/aisoft-loop/aisoft_change_name.py"
 test -f "$TARGET_HOME/.local/share/aisoft/host-access-broker.json"
 test -f "$TARGET_HOME/.local/share/aisoft/gitea-governance.json"
 test -f "$TARGET_HOME/.agents/skills/gitea-development-loop/SKILL.md"
@@ -147,6 +148,10 @@ cat >"$WORKTREE_MOCK_BIN/git" <<'EOF'
 if [[ "$*" == *' fetch -q origin main' ]]; then
   exit 0
 fi
+if [[ "$*" == *' ls-remote --heads origin refs/heads/change/8 refs/heads/change/8-*' ]]; then
+  printf '%s\t%s\n' 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef' 'refs/heads/change/8'
+  exit 0
+fi
 if [[ "$*" == *' fetch -q origin change/8' ]]; then
   exit 0
 fi
@@ -170,11 +175,20 @@ worktree_output="$(
   HOME="$TARGET_HOME" \
   AGENT_ENV_FILE="$ENV_FILE" \
   AISOFT_LOOP_STATE_DIR="$TEMP_ROOT/worktree-state" \
+  PYTHONPATH="$ROOT/codex/runtime" \
   PATH="$WORKTREE_MOCK_BIN:$PATH" \
   bash -c 'source "$1"; load_agent_env; prepare_change_worktree 8 false' \
     _ "$ROOT/codex/agent/common.sh"
 )"
 test "$worktree_output" = "$TEMP_ROOT/worktree-state/worktrees/issue-8"
+
+test "$(PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_loop.cli \
+  change-name 75 readable-change-names)" = 'change/75-readable-change-names'
+if PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_loop.cli \
+  change-name 75 legacy-fix >/dev/null 2>&1; then
+  echo 'reserved readable change slug must be rejected' >&2
+  exit 1
+fi
 
 PROFILE_HOME="$TEMP_ROOT/profile-home"
 PROFILE_AGENT="$PROFILE_HOME/agent"

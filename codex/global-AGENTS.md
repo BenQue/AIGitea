@@ -4,21 +4,23 @@ You run as the dedicated `coder` user for the AISoft Gitea delivery platform.
 
 ## Authoritative documentation
 
-Read `/mnt/mac/Users/benque/MyDocs/AISoftPlatform/README.md`, then the relevant numbered document. Read `03` for Issue/spec/plan, `04` for Matt orchestration and the Development Loop, `02` and `06` for deployments/incidents, and `08` for provider-neutral validation. Resolve change documents from the mapped `summary` document's `documents` field; use legacy numeric basenames only for read compatibility.
+Read `/mnt/mac/Users/benque/MyDocs/AISoftPlatform/README.md`, then the relevant numbered document. Read `03` for Issue/spec/plan, `04` for Matt orchestration and the Development Loop, `02` and `06` for deployments/incidents, and `08` for provider-neutral validation. Resolve change documents from the mapped `summary` document's `documents` field; use evidence-derived legacy numeric paths and basenames only for read or maintenance compatibility.
 
 ## Non-negotiable rules
 
-- Treat every change as an Issue linked to exact `change/N`, `docs/changes/N/`, and one final PR. New documents use `<role>-<short-slug>-<YYMMDD>.md`; the mapped `summary` is mandatory.
+- Treat every new change as an Issue linked by one exact `N-short-description`: branch `change/N-short-description`, semantic directory `docs/changes/N-short-description/`, worktree basename `issue-N-short-description`, and one final PR. The Issue number remains the unique key. The shared slug uses 2–4 lowercase ASCII kebab-case segments, at most 32 characters, and at least one letter; every branch, directory, worktree, document basename, and front-matter value must match it exactly.
+- New documents use `<role>-<short-description>-<YYMMDD>.md`; the mapped `summary` is mandatory. Existing remote/history-backed `change/N`, `docs/changes/N/`, and pre-#57 numeric basenames remain read/maintenance compatibility only. New writers, first pushes, and first PRs must reject pure numeric names, and callers cannot enable legacy mode themselves.
 - Require an explicit project profile before any repository operation. Never infer the owner, repository, clone, state directory, ports, or deployment contract from rsDesign or another example.
 - Treat one `type/*` label as an Issue-author input that AI validates against evidence, `complexity/*` as the AI's effective-complexity output, and the eight unprefixed labels as lifecycle state. Keep these dimensions separate. Use `completed` only after merge when deployment is explicitly unnecessary; reserve `deployed` for deterministic deployment and verification.
 - Classify product-contract effect before routing: restore/unchanged may be small; add/change and every forced risk are complex; unclear evidence requires human triage without a complexity label.
-- Require clear Issue acceptance criteria and a mapped `summary` for small work, and mapped `spec` plus `plan` documents for complex work. `00-summary.md`, `01-spec.md`, `02-plan.md`, and `03-verification.md` are read-only legacy fallbacks for Issues before #57, never new-writer targets.
+- Require clear Issue acceptance criteria and a mapped `summary` for small work, and mapped `spec` plus `plan` documents for complex work. `00-summary.md`, `01-spec.md`, `02-plan.md`, and `03-verification.md` are legacy fallbacks for Issues before #57, never new-writer targets.
 - Treat `approved` as a Loop start signal, never as permission to merge or deploy.
 - Keep final PR merge as the only delivery gate. Never push directly to protected `main` or merge a PR.
 - Treat `triage/ready-for-agent` as a Matt workflow state, never as a substitute for platform `approved`.
-- Keep the accepted contract immutable during implementation. Escalate conflicts, scope expansion, destructive migration, security/permission/architecture decisions, and direct production changes.
+- Keep the accepted contract immutable during implementation. Escalate conflicts, multiple active slugs/branches/directories/PRs for one Issue, scope expansion, destructive migration, security/permission/architecture decisions, and direct production changes.
 - Let the Loop repair ordinary compile, lint, type, test, build, browser, and CI failures. Do not weaken validation or hide errors.
-- The Agent may create local atomic commits only on exact `change/N` for the controller-assigned frontier `Txx`. Only the Controller may validate and fast-forward push that branch, create or update the single final PR, read CI, and project remote state. Only a human may merge; deployment requires separate authorization.
+- The Agent may create local atomic commits only on exact `change/N-short-description` for the controller-assigned frontier `Txx`; existing `change/N` may be maintained only after the Controller proves remote/history legacy evidence. Only the Controller may validate the exact Issue/slug and single active branch/docs/PR, fast-forward push that branch, create or update the final PR, read CI, and project remote state. Only a human may merge; deployment requires separate authorization.
+- Never edit an `AGENTS.md` that governs the current classification or ordinary implementation run. A complex spec may authorize a separate governance-only application step; that step changes only governance contracts and stops, and a later fresh run must reread the new rules before runtime implementation.
 - Never force-push, silently install or update global skills, mutate live labels outside an accepted contract, auto-merge, or deploy without separate authorization.
 - Never print tokens, passwords, `.env`, auth files, agent environment files, or Git credentials.
 - Keep Claude and Codex credentials independent. Share the outer controller, verifier, labels, and terminal-state contract.

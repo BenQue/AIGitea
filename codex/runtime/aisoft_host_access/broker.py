@@ -13,6 +13,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
+from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
+
 from .contract import AccessContract, AccessContractError, OperationContract, ProjectContract
 
 
@@ -54,17 +56,42 @@ def _typed_text(label: str, value: str | None, max_bytes: int) -> str:
     return value
 
 
-def _pull_body(issue: int | None, value: str | None) -> str:
+def _pull_body(
+    issue: int | None,
+    value: str | None,
+    *,
+    allow_legacy: bool = False,
+) -> tuple[str, ChangeName]:
     number = _positive_number(issue, "Issue")
     body = _typed_text("pull request body", value, BODY_MAX_BYTES)
-    if not re.search(rf"(?<![0-9])Closes #{number}(?![0-9])", body):
-        raise BrokerError("ARGUMENT_INVALID", "pull request body must close its exact Issue")
+    closes = re.findall(r"(?m)^Closes #([1-9][0-9]*)[ \t]*$", body)
+    if closes != [str(number)]:
+        raise BrokerError(
+            "ARGUMENT_INVALID",
+            "pull request body must contain exactly one line: Closes #N",
+        )
     summary = re.compile(
-        rf"docs/changes/{number}/summary-[a-z0-9]+(?:-[a-z0-9]+)*-[0-9]{{6}}\.md"
+        rf"(?<![A-Za-z0-9_./-])docs/changes/"
+        rf"({number}-({SLUG_PATTERN}))/summary-({SLUG_PATTERN})-[0-9]{{6}}\.md"
+        rf"(?![A-Za-z0-9_./-])"
     )
-    if not summary.search(body):
-        raise BrokerError("ARGUMENT_INVALID", "pull request body must link its semantic summary")
-    return body
+    matches = summary.findall(body)
+    if len(matches) == 1 and matches[0][1] == matches[0][2]:
+        try:
+            change_name = ChangeName.parse_directory(
+                matches[0][0], issue_number=number, allow_legacy=False
+            )
+        except ChangeNameError as exc:
+            raise BrokerError("ARGUMENT_INVALID", str(exc)) from exc
+        return body, change_name
+    if allow_legacy:
+        legacy = re.compile(
+            rf"(?<![A-Za-z0-9_./-])docs/changes/{number}/(?:00-summary\.md|"
+            rf"summary-{SLUG_PATTERN}-[0-9]{{6}}\.md)(?![A-Za-z0-9_./-])"
+        )
+        if len(legacy.findall(body)) == 1:
+            return body, ChangeName(number)
+    raise BrokerError("ARGUMENT_INVALID", "pull request body must link its semantic summary")
 
 
 Transport = Callable[
@@ -350,6 +377,7 @@ class HostAccessBroker:
     ) -> object:
         method = "GET"
         payload: object | None = None
+        pull_change: ChangeName | None = None
         if operation.name == "gitea.issue.create":
             method = "POST"
             payload = {
@@ -370,17 +398,19 @@ class HostAccessBroker:
         elif operation.name == "gitea.pull.create":
             _positive_number(issue, "Issue")
             method = "POST"
+            pull_body, pull_change = _pull_body(issue, body)
             payload = {
                 "title": _typed_text("pull request title", title, TITLE_MAX_BYTES),
-                "body": _pull_body(issue, body),
+                "body": pull_body,
             }
         elif operation.name == "gitea.pull.update":
             method = "PATCH"
             _positive_number(number, "pull request")
             _positive_number(issue, "Issue")
+            pull_body, pull_change = _pull_body(issue, body, allow_legacy=True)
             payload = {
                 "title": _typed_text("pull request title", title, TITLE_MAX_BYTES),
-                "body": _pull_body(issue, body),
+                "body": pull_body,
             }
         elif operation.name == "gitea.commit.status.read":
             if not isinstance(sha, str) or COMMIT_SHA_RE.fullmatch(sha) is None:
@@ -407,21 +437,35 @@ class HostAccessBroker:
                 raise BrokerError("ARGUMENT_INVALID", "pull state must be open, closed, or all")
             url = f"{repo_api}/pulls?state={state}&limit=50&page=1"
         elif operation.name == "gitea.pull.create":
-            assert issue is not None
-            open_pulls = self._request_json(
-                f"{repo_api}/pulls?state=open&limit=50&page=1",
-                credential.token,
-            )
-            if not isinstance(open_pulls, list):
-                raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea pull list is invalid")
-            matches = [
-                item for item in open_pulls
-                if isinstance(item, dict)
-                and isinstance(item.get("head"), dict)
-                and isinstance(item.get("base"), dict)
-                and item["head"].get("ref") == f"change/{issue}"
-                and item["base"].get("ref") == self.contract.governance.default_branch
-            ]
+            assert issue is not None and pull_change is not None
+            open_pulls = self._open_pulls(repo_api, credential.token)
+            same_issue: list[tuple[ChangeName, dict[str, object]]] = []
+            for item in open_pulls:
+                if (
+                    not isinstance(item, dict)
+                    or not isinstance(item.get("head"), dict)
+                    or not isinstance(item.get("base"), dict)
+                    or item["base"].get("ref") != self.contract.governance.default_branch
+                ):
+                    continue
+                try:
+                    candidate = ChangeName.parse_branch(str(item["head"].get("ref")))
+                except ChangeNameError:
+                    continue
+                if candidate.issue_number == issue:
+                    same_issue.append((candidate, item))
+            try:
+                selected = select_change_name(
+                    issue, (candidate for candidate, _ in same_issue), required=False
+                )
+            except ChangeNameError as exc:
+                raise BrokerError("CHANGE_NAME_CONFLICT", str(exc)) from exc
+            if selected is not None and selected != pull_change:
+                raise BrokerError(
+                    "CHANGE_NAME_CONFLICT",
+                    "an open pull request already uses another name for this Issue",
+                )
+            matches = [item for candidate, item in same_issue if candidate == pull_change]
             if len(matches) > 1:
                 raise BrokerError("TARGET_MISMATCH", "multiple open pull requests target the change branch")
             if matches:
@@ -429,7 +473,7 @@ class HostAccessBroker:
             pull_body = payload if isinstance(payload, dict) else {}
             payload = {
                 **pull_body,
-                "head": f"change/{issue}",
+                "head": pull_change.branch,
                 "base": self.contract.governance.default_branch,
             }
             url = f"{repo_api}/pulls"
@@ -437,7 +481,7 @@ class HostAccessBroker:
             _positive_number(number, "pull request")
             url = f"{repo_api}/pulls/{number}"
         elif operation.name == "gitea.pull.update":
-            assert issue is not None and number is not None
+            assert issue is not None and number is not None and pull_change is not None
             current_pull = self._request_json(
                 f"{repo_api}/pulls/{number}", credential.token
             )
@@ -445,7 +489,7 @@ class HostAccessBroker:
                 not isinstance(current_pull, dict)
                 or not isinstance(current_pull.get("head"), dict)
                 or not isinstance(current_pull.get("base"), dict)
-                or current_pull["head"].get("ref") != f"change/{issue}"
+                or current_pull["head"].get("ref") != pull_change.branch
                 or current_pull["base"].get("ref") != self.contract.governance.default_branch
                 or current_pull.get("merged") is True
             ):
@@ -460,6 +504,19 @@ class HostAccessBroker:
         else:
             raise BrokerError("OPERATION_UNIMPLEMENTED", "Gitea operation is not implemented")
         return self._request_json(url, credential.token, method=method, payload=payload)
+
+    def _open_pulls(self, repo_api: str, token: str) -> list[object]:
+        pulls: list[object] = []
+        for page in range(1, 101):
+            value = self._request_json(
+                f"{repo_api}/pulls?state=open&limit=50&page={page}", token
+            )
+            if not isinstance(value, list):
+                raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea pull list is invalid")
+            pulls.extend(value)
+            if len(value) < 50:
+                return pulls
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea pull list exceeds the bounded scan")
 
     def _verify_identity(self, credential: ResolvedCredential) -> None:
         url = f"{self.contract.governance.base_url}/api/v1/user"
@@ -521,8 +578,10 @@ class HostAccessBroker:
             return self._bind_git(project, checkout, expected_remote)
 
         safe_branch = None
+        change_name: ChangeName | None = None
         if branch is not None:
             safe_branch = self.contract.change_branch(branch)
+            change_name = ChangeName.parse_branch(safe_branch)
         if operation.name == "git.push.change":
             assert safe_branch is not None
             current = self._run(["git", "branch", "--show-current"], cwd=checkout).stdout.strip()
@@ -562,10 +621,29 @@ class HostAccessBroker:
             )
             argv = ["git", "fetch", remote_name, change_refspec]
         elif operation.name == "git.push.change":
-            assert safe_branch is not None
+            assert safe_branch is not None and change_name is not None
             self._run(
                 ["git", "fetch", remote_name, main_refspec], cwd=checkout, env=env
             )
+            remote_names = self._remote_change_names(
+                remote_name, change_name.issue_number, checkout, env
+            )
+            try:
+                selected = select_change_name(
+                    change_name.issue_number, remote_names, required=False
+                )
+            except ChangeNameError as exc:
+                raise BrokerError("CHANGE_NAME_CONFLICT", str(exc)) from exc
+            if selected is not None and selected != change_name:
+                raise BrokerError(
+                    "CHANGE_NAME_CONFLICT",
+                    "remote already uses another change name for this Issue",
+                )
+            if change_name.is_legacy and selected is None:
+                raise BrokerError(
+                    "LEGACY_BRANCH_MISSING",
+                    "legacy change branches may be maintained only when remote evidence exists",
+                )
             remote_main = f"refs/remotes/{remote_name}/main"
             ancestor = self.runner(
                 ["git", "merge-base", "--is-ancestor", remote_main, "HEAD"],
@@ -597,6 +675,40 @@ class HostAccessBroker:
             "checkout": checkout,
             "remote_name": remote_name,
         }
+
+    def _remote_change_names(
+        self,
+        remote_name: str,
+        issue_number: int,
+        checkout: str,
+        env: Mapping[str, str],
+    ) -> list[ChangeName]:
+        result = self.runner(
+            [
+                "git",
+                "ls-remote",
+                "--heads",
+                remote_name,
+                f"refs/heads/change/{issue_number}",
+                f"refs/heads/change/{issue_number}-*",
+            ],
+            cwd=checkout,
+            env=env,
+        )
+        if result.returncode != 0:
+            raise BrokerError("TRANSPORT_ERROR", "cannot enumerate remote change names")
+        names: list[ChangeName] = []
+        for line in result.stdout.splitlines():
+            fields = line.split("\t")
+            if len(fields) != 2 or not fields[1].startswith("refs/heads/"):
+                raise BrokerError("RESPONSE_SCHEMA_INVALID", "Git remote returned an invalid ref")
+            try:
+                name = ChangeName.parse_branch(fields[1].removeprefix("refs/heads/"))
+            except ChangeNameError as exc:
+                raise BrokerError("RESPONSE_SCHEMA_INVALID", "Git remote returned an invalid change ref") from exc
+            if name.issue_number == issue_number:
+                names.append(name)
+        return names
 
     def _expected_git_url(self, project: ProjectContract) -> str:
         return (

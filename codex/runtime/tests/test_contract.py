@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
@@ -102,6 +103,9 @@ class ContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         self.repo = Path(self.tempdir.name)
+        subprocess.run(("git", "init", "-q", "-b", "main"), cwd=self.repo, check=True)
+        subprocess.run(("git", "config", "user.name", "AISoft Test"), cwd=self.repo, check=True)
+        subprocess.run(("git", "config", "user.email", "test@example.invalid"), cwd=self.repo, check=True)
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()
@@ -153,7 +157,30 @@ class ContractTests(unittest.TestCase):
             directory.joinpath("01-spec.md").write_text(SPEC.format(number=number))
         if plan:
             directory.joinpath("02-plan.md").write_text(PLAN.format(number=number))
+        subprocess.run(("git", "add", directory.relative_to(self.repo)), cwd=self.repo, check=True)
+        subprocess.run(
+            ("git", "commit", "-q", "-m", f"test: legacy Issue {number} evidence"),
+            cwd=self.repo,
+            check=True,
+        )
         return directory
+
+    def test_untracked_numeric_directory_is_not_legacy_evidence(self) -> None:
+        directory = self.repo / "docs" / "changes" / "12"
+        directory.mkdir(parents=True)
+        directory.joinpath("00-summary.md").write_text(
+            SUMMARY.format(
+                number=12,
+                complexity="small",
+                change_type="bugfix",
+                effect="restore",
+                risk_flags="[]",
+                required_docs="  - 00-summary.md",
+                branch="change/12",
+            )
+        )
+        with self.assertRaisesRegex(ContractError, "history evidence"):
+            load_contract(self.repo, self.issue())
 
     def write_new_contract(
         self,
@@ -166,7 +193,7 @@ class ContractTests(unittest.TestCase):
         spec: bool = False,
         plan: bool = False,
     ) -> Path:
-        directory = self.repo / "docs" / "changes" / str(number)
+        directory = self.repo / "docs" / "changes" / f"{number}-{slug}"
         directory.mkdir(parents=True)
         summary_name = f"summary-{slug}-260808.md"
         required = ["  - summary"]
@@ -188,18 +215,20 @@ class ContractTests(unittest.TestCase):
                 risk_flags="[]",
                 required_docs="\n".join(required),
                 documents="\n".join(documents),
-                branch=f"change/{number}",
+                branch=f"change/{number}-{slug}",
             )
         )
         if spec:
             directory.joinpath(f"spec-{slug}-260808.md").write_text(
-                SPEC.format(number=number).replace(
-                    "branch: change/{number}", f"branch: change/{number}"
-                ).replace("---\n\n# Spec", "created: 2026-08-08\n---\n\n# Spec")
+                SPEC.format(number=number)
+                .replace(f"branch: change/{number}", f"branch: change/{number}-{slug}")
+                .replace("---\n\n# Spec", "created: 2026-08-08\n---\n\n# Spec")
             )
         if plan:
             directory.joinpath(f"plan-{slug}-260808.md").write_text(
-                PLAN.format(number=number).replace(
+                PLAN.format(number=number)
+                .replace(f"branch: change/{number}", f"branch: change/{number}-{slug}")
+                .replace(
                     "---\n\n# Implementation plan",
                     "created: 2026-08-08\n---\n\n# Implementation plan",
                 )
@@ -266,6 +295,12 @@ class ContractTests(unittest.TestCase):
             directory.joinpath("summary-bounded-fix-260808.md").read_text()
         )
         with self.assertRaisesRegex(ContractError, "exactly one new summary"):
+            load_contract(self.repo, self.issue(number=57))
+
+    def test_legacy_and_readable_directories_for_same_issue_are_a_conflict(self) -> None:
+        self.write_contract(number=57)
+        self.write_new_contract(number=57)
+        with self.assertRaisesRegex(ContractError, "CHANGE_NAME_CONFLICT"):
             load_contract(self.repo, self.issue(number=57))
 
     def test_dependencies_are_parsed_and_ordered(self) -> None:

@@ -233,27 +233,38 @@ class GiteaClientTests(unittest.TestCase):
             ]
         )
         client = self.client(transport)
-        for body in ("Closes #8", "docs/changes/8/00-summary.md"):
+        for body in (
+            "Closes #8",
+            "docs/changes/8-pilot-fix/summary-pilot-fix-260808.md",
+        ):
             with self.subTest(body=body), self.assertRaises(GiteaError):
-                client.create_pr(8, "Pilot", "change/8", "main", body)
+                client.create_pr(8, "Pilot", "change/8-pilot-fix", "main", body)
+        with self.assertRaisesRegex(GiteaError, "N-short-description"):
+            client.create_pr(
+                8,
+                "Pilot",
+                "change/8",
+                "main",
+                "Closes #8\n\ndocs/changes/8/00-summary.md",
+            )
+        with self.assertRaisesRegex(GiteaError, "summary document"):
+            client.create_pr(
+                8,
+                "Pilot",
+                "change/8-pilot-fix",
+                "main",
+                "Closes #8\n\nother/docs/changes/8-pilot-fix/summary-pilot-fix-260808.md",
+            )
         result = client.create_pr(
             8,
             "Pilot",
-            "change/8",
+            "change/8-pilot-fix",
             "main",
-            "Closes #8\n\nChange documents:\n- docs/changes/8/00-summary.md",
+            "Closes #8\n\nChange documents:\n- docs/changes/8-pilot-fix/summary-pilot-fix-260808.md",
         )
         self.assertEqual(result["number"], 4)
-        named = client.create_pr(
-            8,
-            "Pilot",
-            "change/8",
-            "main",
-            "Closes #8\n\nChange documents:\n- docs/changes/8/summary-pilot-fix-260808.md",
-        )
-        self.assertEqual(named["number"], 5)
         payload = json.loads(transport.calls[-1][3])
-        self.assertEqual(payload["head"], "change/8")
+        self.assertEqual(payload["head"], "change/8-pilot-fix")
         self.assertNotIn("merge", payload)
 
     def test_ci_status_mapping(self) -> None:
