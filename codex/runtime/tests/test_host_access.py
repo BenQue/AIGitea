@@ -141,6 +141,10 @@ class HostAccessContractTests(unittest.TestCase):
             "aisoft-platform-manager",
         )
         self.assertNotEqual(project.project_agent, self.contract.governance.human_merge_identity)
+        self.assertEqual(
+            self.contract.change_branch("change/75-readable-change-names"),
+            "change/75-readable-change-names",
+        )
 
     def test_mac_credentials_are_project_scoped_protected_files(self) -> None:
         bindings = self.contract.raw["identity_bindings"]
@@ -374,7 +378,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 return 200, {}, b'[]'
             return 200, {}, json.dumps({
                 "number": 71,
-                "head": {"ref": "change/70"},
+                "head": {"ref": "change/70-governed-host-writes"},
                 "base": {"ref": "main"},
                 "merged": False,
             }).encode()
@@ -384,7 +388,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             credentials=StaticCredentials(),
             transport=transport,
         )
-        body = "Closes #70\n\nContract: docs/changes/70/summary-governed-host-writes-260809.md"
+        body = "Closes #70\n\nContract: docs/changes/70-governed-host-writes/summary-governed-host-writes-260809.md"
         created = broker.execute(
             "aisoft-platform", "gitea.pull.create",
             issue=70, title="fix(host-access): governed writes", body=body,
@@ -409,7 +413,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 {
                     "title": "fix(host-access): governed writes",
                     "body": body,
-                    "head": "change/70",
+                    "head": "change/70-governed-host-writes",
                     "base": "main",
                 },
             ),
@@ -439,7 +443,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             calls.append(method)
             return 200, {}, json.dumps([{
                 "number": 71,
-                "head": {"ref": "change/70"},
+                "head": {"ref": "change/70-governed-host-writes"},
                 "base": {"ref": "main"},
                 "merged": False,
             }]).encode()
@@ -452,10 +456,57 @@ class HostAccessBrokerTests(unittest.TestCase):
         value = broker.execute(
             "aisoft-platform", "gitea.pull.create", issue=70,
             title="fix(host-access): governed writes",
-            body="Closes #70\n\ndocs/changes/70/summary-governed-host-writes-260809.md",
+            body="Closes #70\n\ndocs/changes/70-governed-host-writes/summary-governed-host-writes-260809.md",
         )
         self.assertEqual(value["number"], 71)
         self.assertEqual(calls, ["GET"])
+
+    def test_pull_create_rejects_legacy_and_conflicting_open_name(self) -> None:
+        class FailIfResolved:
+            def resolve(self, project, operation):
+                raise AssertionError("credential resolution must not run for legacy body")
+
+        legacy = HostAccessBroker(self.contract, credentials=FailIfResolved())
+        with self.assertRaises(BrokerError) as caught:
+            legacy.execute(
+                "aisoft-platform",
+                "gitea.pull.create",
+                issue=70,
+                title="legacy first PR",
+                body="Closes #70\n\ndocs/changes/70/00-summary.md",
+            )
+        self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+
+        def transport(method, url, headers, body):
+            if url.endswith("/api/v1/user"):
+                return 200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+            if url.endswith("/pulls?state=open&limit=50&page=1"):
+                return 200, {}, json.dumps([{
+                    "number": 72,
+                    "head": {"ref": "change/70-other-change-name"},
+                    "base": {"ref": "main"},
+                    "merged": False,
+                }]).encode()
+            raise AssertionError("conflict must stop before PR creation")
+
+        conflict = HostAccessBroker(
+            self.contract,
+            credentials=StaticCredentials(),
+            transport=transport,
+        )
+        with self.assertRaises(BrokerError) as caught:
+            conflict.execute(
+                "aisoft-platform",
+                "gitea.pull.create",
+                issue=70,
+                title="readable first PR",
+                body=(
+                    "Closes #70\n\n"
+                    "docs/changes/70-governed-host-writes/"
+                    "summary-governed-host-writes-260809.md"
+                ),
+            )
+        self.assertEqual(caught.exception.code, "CHANGE_NAME_CONFLICT")
 
     def test_pull_body_contract_is_rejected_before_credentials(self) -> None:
         class FailIfResolved:
@@ -464,10 +515,11 @@ class HostAccessBrokerTests(unittest.TestCase):
 
         broker = HostAccessBroker(self.contract, credentials=FailIfResolved())
         for body in (
-            "docs/changes/70/summary-governed-host-writes-260809.md",
+            "docs/changes/70-governed-host-writes/summary-governed-host-writes-260809.md",
             "Closes #70",
-            "Closes #71\ndocs/changes/70/summary-governed-host-writes-260809.md",
+            "Closes #71\ndocs/changes/70-governed-host-writes/summary-governed-host-writes-260809.md",
             "Closes #70\ndocs/changes/71/summary-wrong-change-260809.md",
+            "Closes #70\nCloses #70\ndocs/changes/70-governed-host-writes/summary-governed-host-writes-260809.md",
         ):
             with self.subTest(body=body), self.assertRaises(BrokerError) as caught:
                 broker.execute(
@@ -475,6 +527,36 @@ class HostAccessBrokerTests(unittest.TestCase):
                     title="governed write", body=body,
                 )
             self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+
+    def test_existing_legacy_pull_can_be_updated_from_read_back_evidence(self) -> None:
+        calls = []
+
+        def transport(method, url, headers, body):
+            if url.endswith("/api/v1/user"):
+                return 200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+            calls.append((method, url, json.loads(body) if body else None))
+            return 200, {}, json.dumps({
+                "number": 71,
+                "head": {"ref": "change/70"},
+                "base": {"ref": "main"},
+                "merged": False,
+            }).encode()
+
+        broker = HostAccessBroker(
+            self.contract,
+            credentials=StaticCredentials(),
+            transport=transport,
+        )
+        value = broker.execute(
+            "aisoft-platform",
+            "gitea.pull.update",
+            number=71,
+            issue=70,
+            title="maintain historical PR",
+            body="Closes #70\n\ndocs/changes/70/00-summary.md",
+        )
+        self.assertEqual(value["number"], 71)
+        self.assertEqual([call[0] for call in calls], ["GET", "PATCH"])
 
     def test_access_audit_validates_identities_scopes_permissions_protection_and_file_contract(self) -> None:
         seen_commands = []
@@ -941,6 +1023,10 @@ class HostAccessBrokerTests(unittest.TestCase):
                 commands.append((list(argv), cwd, dict(env or {})))
                 if argv[:3] == ["git", "fetch", "origin"]:
                     return subprocess.CompletedProcess(argv, 0, "", "")
+                if argv[:4] == ["git", "ls-remote", "--heads", "origin"]:
+                    return subprocess.CompletedProcess(
+                        argv, 0, "a" * 40 + "\trefs/heads/change/70\n", ""
+                    )
                 if argv[:3] == ["git", "push", "origin"]:
                     return subprocess.CompletedProcess(argv, 0, "", "")
                 return subprocess.run(
@@ -987,6 +1073,10 @@ class HostAccessBrokerTests(unittest.TestCase):
                 commands.append(list(argv))
                 if argv[:3] in (["git", "fetch", "gitea"], ["git", "push", "gitea"]):
                     return subprocess.CompletedProcess(argv, 0, "", "")
+                if argv[:4] == ["git", "ls-remote", "--heads", "gitea"]:
+                    return subprocess.CompletedProcess(
+                        argv, 0, "a" * 40 + "\trefs/heads/change/70\n", ""
+                    )
                 return subprocess.run(
                     list(argv), cwd=cwd, env=env, check=False, text=True,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -1013,6 +1103,51 @@ class HostAccessBrokerTests(unittest.TestCase):
                 "git", "push", "gitea",
                 "refs/heads/change/70:refs/heads/change/70",
             ], commands)
+
+    def test_readable_first_push_is_allowed_but_conflicting_remote_name_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            canonical, linked = self._linked_change_worktree(temporary)
+            self._git(["branch", "-m", "change/70-readable-change-name"], cwd=linked)
+            contract = self._temporary_checkout_contract(canonical)
+
+            def make_broker(remote_output: str):
+                def runner(argv, *, cwd=None, env=None):
+                    if argv[:3] == ["git", "fetch", "origin"]:
+                        return subprocess.CompletedProcess(argv, 0, "", "")
+                    if argv[:4] == ["git", "ls-remote", "--heads", "origin"]:
+                        return subprocess.CompletedProcess(argv, 0, remote_output, "")
+                    if argv[:3] == ["git", "push", "origin"]:
+                        return subprocess.CompletedProcess(argv, 0, "", "")
+                    return subprocess.run(
+                        list(argv), cwd=cwd, env=env, check=False, text=True,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    )
+
+                return HostAccessBroker(
+                    contract,
+                    credentials=StaticCredentials(),
+                    transport=lambda method, url, headers, body: (
+                        200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+                    ),
+                    runner=runner,
+                    invocation_cwd=str(linked),
+                )
+
+            value = make_broker("").execute(
+                "aisoft-platform",
+                "git.push.change",
+                branch="change/70-readable-change-name",
+            )
+            self.assertEqual(value["status"], "PASS")
+
+            conflict = "a" * 40 + "\trefs/heads/change/70-other-change-name\n"
+            with self.assertRaises(BrokerError) as caught:
+                make_broker(conflict).execute(
+                    "aisoft-platform",
+                    "git.push.change",
+                    branch="change/70-readable-change-name",
+                )
+            self.assertEqual(caught.exception.code, "CHANGE_NAME_CONFLICT")
 
     def test_push_rejects_wrong_common_dir_detached_dirty_and_wrong_change(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
