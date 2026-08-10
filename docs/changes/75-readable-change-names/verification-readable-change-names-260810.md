@@ -13,9 +13,9 @@ risk_flags:
   - shared-core
   - platform-governance
 depends_on: []
-status: implementation-verified
+status: ready-for-review
 branch: change/75-readable-change-names
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/76
 created: 2026-08-10
 updated: 2026-08-10
 ---
@@ -57,19 +57,19 @@ updated: 2026-08-10
 - AC-6 PR binding：`PASS`。new PR 拒绝 numeric head，要求 exact readable head、同 slug summary 与唯一 `Closes #N`；existing legacy PR update 只依赖 readback evidence。
 - AC-7 Documentation and scaffolding：`PASS`。fresh governance commit 已更新 root/global AGENTS；本 run 更新 README、03/04/06/07/08/09、skills、templates、agent messages 和 installer tests，历史 change 文档未批量改名。
 - AC-8 Verification matrix：`PASS`。325 Python tests、agent/broker installer shell tests、`bash -n`、ShellCheck、`git diff --check` 与 full smoke 均通过。full smoke 对 Issue #65 immutable evidence 临时恢复既定 `0444` mode 后通过，结束已恢复 checkout `0644`，无 tracked diff。
-- AC-9 Governed delivery and install：local isolated branch与 candidate broker tests `PASS`；push/PR/CI/protection `NOT RUN`；merge/install/downstream `NOT RUN`。
+- AC-9 Governed delivery and install：source candidate broker exact push `PASS`；唯一 PR #76 create/readback `PASS`，head `change/75-readable-change-names`、base `main`、body 与 mapped summary 匹配。`main` protection `PASS`（push/force 禁止，merge whitelist 仅 `admin`）；required status contexts 为空，commit status 为 `pending` 且 `total_count=0`，因此 CI 是 `NOT CONFIGURED / NOT RUN`，不是通过。merge/install/downstream `NOT RUN`。
 
 ## Forbidden-scope audit
 
 - canonical checkout tracked/untracked files：`NOT MODIFIED`。
 - `ci-bot`、credential/token contents、Keychain、PAT/ACL/permission/protection：`NOT ACCESSED / NOT MODIFIED`。
-- remote branch/Issue/PR mutation：`NOT RUN`（下一步只执行 spec 授权的 exact candidate push 与唯一 PR create/readback）。
+- remote branch/Issue/PR mutation：`PASS`（仅执行 spec 授权的 exact candidate push 与唯一 PR #76 create/readback；Issue、labels、protection 未修改）。
 - VM/service、Docker、Secret、database、migration、deployment、restart、prune、production：`NOT RUN`。
 - automatic merge、historical rename/delete/cleanup：`NOT RUN`。
 
 ## Post-merge gates
 
-- unique readable branch/PR final-head readback：`NOT RUN`。
+- unique readable branch/PR readback：`PASS`；最终 evidence commit 后再读回 exact final head。
 - human merge：`NOT RUN`。
 - exact protected-main install + second no-op + byte readback：`NOT RUN`。
 - `.previous` rollback availability：`NOT RUN`。

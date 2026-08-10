@@ -15,7 +15,7 @@ risk_flags:
 depends_on: []
 status: approved
 branch: change/75-readable-change-names
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/76
 created: 2026-08-10
 updated: 2026-08-10
 ---
@@ -29,7 +29,7 @@ updated: 2026-08-10
 | T01 | live baseline、semantic contract、bootstrap/fresh-run handoff | - | complete |
 | T02 | shared ChangeName + document/controller/worktree vertical slice | T01 | complete |
 | T03 | broker + PR + duplicate/legacy fail-closed vertical slice | T02 | complete |
-| T04 | governance/docs/templates + full verification + governed PR handoff | T02, T03 | in_progress |
+| T04 | governance/docs/templates + full verification + governed PR handoff | T02, T03 | complete |
 
 ## T01 — Contract and safe handoff
 
