@@ -7,6 +7,8 @@ from pathlib import Path
 import re
 from typing import Mapping, Optional
 
+from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
+
 from .classification import Classification, ClassificationError
 
 
@@ -19,7 +21,7 @@ LEGACY_DOCUMENTS = {
 }
 NEW_DOCUMENT_RE = re.compile(
     r"^(summary|spec|plan|verification)-"
-    r"([a-z0-9]+(?:-[a-z0-9]+){1,3})-(\d{6})\.md$"
+    rf"({SLUG_PATTERN})-(\d{{6}})\.md$"
 )
 
 
@@ -102,6 +104,14 @@ def resolve_documents(repo: Path | str, issue_number: int) -> dict[str, str]:
     return documents
 
 
+def resolve_change_name(repo: Path | str, issue_number: int) -> ChangeName:
+    """Resolve the one evidence-backed legacy or readable change tuple."""
+    repo_path = Path(repo).resolve()
+    if not repo_path.is_dir():
+        raise ContractError(f"repository is unavailable: {repo_path}")
+    return _change_directory(repo_path, issue_number)[0]
+
+
 def load_contract(
     repo: Path | str,
     issue: Mapping[str, object],
@@ -139,9 +149,13 @@ def load_contract(
         )
 
     directory, summary_path, summary, documents = _document_context(repo_path, number)
+    try:
+        change_name = ChangeName.parse_directory(directory.name, issue_number=number)
+    except ChangeNameError as exc:
+        raise ContractError(str(exc)) from exc
     summary_text = summary_path.read_text(encoding="utf-8")
     dependencies = _dependencies(summary.get("depends_on", []), number)
-    expected_branch = f"change/{number}"
+    expected_branch = change_name.branch
     if _as_int(summary.get("issue")) != number:
         raise ContractError("summary issue does not match the Gitea Issue number")
     if summary.get("branch") != expected_branch:
@@ -296,15 +310,41 @@ def _find_summary(directory: Path) -> Path:
 def _document_context(
     repo: Path, issue_number: int
 ) -> tuple[Path, Path, dict[str, object], dict[str, str]]:
-    directory = repo / "docs" / "changes" / str(issue_number)
+    change_name, directory = _change_directory(repo, issue_number)
     summary_path = _find_summary(directory)
     summary = parse_front_matter(summary_path.read_text(encoding="utf-8"))
-    documents = _resolve_documents(directory, summary_path, summary)
+    documents = _resolve_documents(directory, summary_path, summary, change_name)
     return directory, summary_path, summary, documents
 
 
+def _change_directory(repo: Path, issue_number: int) -> tuple[ChangeName, Path]:
+    root = repo / "docs" / "changes"
+    candidates: list[tuple[ChangeName, Path]] = []
+    if root.is_dir():
+        for path in root.iterdir():
+            if not path.is_dir():
+                continue
+            try:
+                name = ChangeName.parse_directory(path.name, issue_number=issue_number)
+            except ChangeNameError:
+                continue
+            candidates.append((name, path))
+    try:
+        selected = select_change_name(issue_number, (name for name, _ in candidates))
+    except ChangeNameError as exc:
+        raise ContractError(str(exc)) from exc
+    assert selected is not None
+    for name, path in candidates:
+        if name == selected:
+            return name, path
+    raise AssertionError("selected change directory is unavailable")
+
+
 def _resolve_documents(
-    directory: Path, summary_path: Path, summary: Mapping[str, object]
+    directory: Path,
+    summary_path: Path,
+    summary: Mapping[str, object],
+    change_name: ChangeName,
 ) -> dict[str, str]:
     raw = summary.get("documents")
     if summary_path.name == LEGACY_DOCUMENTS["summary"]:
@@ -331,6 +371,8 @@ def _resolve_documents(
         documents[str(role)] = value
     if len(slugs) != 1:
         raise ContractError("all new change documents must use the same slug")
+    if change_name.slug is not None and slugs != {change_name.slug}:
+        raise ContractError("document slug must match the readable change directory")
     if documents.get("summary") != summary_path.name:
         raise ContractError("documents.summary must reference the active summary")
     declared_names = set(documents.values())

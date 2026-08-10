@@ -166,7 +166,7 @@ class ContractTests(unittest.TestCase):
         spec: bool = False,
         plan: bool = False,
     ) -> Path:
-        directory = self.repo / "docs" / "changes" / str(number)
+        directory = self.repo / "docs" / "changes" / f"{number}-{slug}"
         directory.mkdir(parents=True)
         summary_name = f"summary-{slug}-260808.md"
         required = ["  - summary"]
@@ -188,18 +188,20 @@ class ContractTests(unittest.TestCase):
                 risk_flags="[]",
                 required_docs="\n".join(required),
                 documents="\n".join(documents),
-                branch=f"change/{number}",
+                branch=f"change/{number}-{slug}",
             )
         )
         if spec:
             directory.joinpath(f"spec-{slug}-260808.md").write_text(
-                SPEC.format(number=number).replace(
-                    "branch: change/{number}", f"branch: change/{number}"
-                ).replace("---\n\n# Spec", "created: 2026-08-08\n---\n\n# Spec")
+                SPEC.format(number=number)
+                .replace(f"branch: change/{number}", f"branch: change/{number}-{slug}")
+                .replace("---\n\n# Spec", "created: 2026-08-08\n---\n\n# Spec")
             )
         if plan:
             directory.joinpath(f"plan-{slug}-260808.md").write_text(
-                PLAN.format(number=number).replace(
+                PLAN.format(number=number)
+                .replace(f"branch: change/{number}", f"branch: change/{number}-{slug}")
+                .replace(
                     "---\n\n# Implementation plan",
                     "created: 2026-08-08\n---\n\n# Implementation plan",
                 )
@@ -266,6 +268,12 @@ class ContractTests(unittest.TestCase):
             directory.joinpath("summary-bounded-fix-260808.md").read_text()
         )
         with self.assertRaisesRegex(ContractError, "exactly one new summary"):
+            load_contract(self.repo, self.issue(number=57))
+
+    def test_legacy_and_readable_directories_for_same_issue_are_a_conflict(self) -> None:
+        self.write_contract(number=57)
+        self.write_new_contract(number=57)
+        with self.assertRaisesRegex(ContractError, "CHANGE_NAME_CONFLICT"):
             load_contract(self.repo, self.issue(number=57))
 
     def test_dependencies_are_parsed_and_ordered(self) -> None:

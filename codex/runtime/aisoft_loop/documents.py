@@ -9,7 +9,12 @@ import subprocess
 import tempfile
 from typing import Mapping
 
-from .contract import ContractError, parse_front_matter, resolve_documents
+from .contract import (
+    ContractError,
+    parse_front_matter,
+    resolve_change_name,
+    resolve_documents,
+)
 
 
 def publish_spec(
@@ -42,7 +47,8 @@ def _publish(
     number = issue.get("number")
     if not isinstance(number, int) or number <= 0 or issue.get("state") != "open":
         raise ContractError("publisher requires an existing open Gitea Issue")
-    branch = f"change/{number}"
+    change_name = resolve_change_name(repo_path, number)
+    branch = change_name.branch
     current = _git_branch(repo_path)
     if current != branch:
         raise ContractError(f"current branch must be {branch}, got {current or 'detached'}")
@@ -51,7 +57,7 @@ def _publish(
     name = documents.get(role)
     if not name:
         raise ContractError(f"documents mapping does not declare {role}")
-    directory = repo_path / "docs" / "changes" / str(number)
+    directory = repo_path / "docs" / "changes" / change_name.directory_name
     destination = directory / name
     if directory.is_symlink() or destination.is_symlink():
         raise ContractError("change document paths must not be symlinks")

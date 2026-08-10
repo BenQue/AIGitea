@@ -19,7 +19,7 @@ from .analysis import (
     summary_filename,
 )
 from .controller import Controller, LocalGit
-from .contract import ContractError, resolve_documents
+from .contract import ContractError, resolve_change_name, resolve_documents
 from .documents import publish_plan, publish_spec
 from .gitea import GiteaClient, GiteaError
 from .output import OutputError, extract_last_json_object
@@ -68,6 +68,11 @@ def main(argv: list[str] | None = None) -> int:
     validate_analysis.add_argument("input", type=Path)
     validate_analysis.add_argument("output", type=Path)
 
+    analysis_slug = subparsers.add_parser(
+        "analysis-slug", help="print the validated readable slug from analyzer JSON"
+    )
+    analysis_slug.add_argument("input", type=Path)
+
     extract_json = subparsers.add_parser(
         "extract-json", help="isolate the last JSON object in raw provider output"
     )
@@ -115,6 +120,8 @@ def main(argv: list[str] | None = None) -> int:
         return _validate_provider(args.input, args.output)
     if args.command == "validate-analysis":
         return _validate_analysis(args.input, args.output)
+    if args.command == "analysis-slug":
+        return _analysis_slug(args.input)
     if args.command == "extract-json":
         return _extract_json(args.input, args.output)
     if args.command == "get-issue":
@@ -143,8 +150,8 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
     state_root = Path(os.environ.get("AISOFT_LOOP_STATE_DIR") or default_state_root())
     source_agent = Path(__file__).parents[2] / "agent"
     agent_dir = source_agent if source_agent.is_dir() else Path.home() / "agent"
-    branch = f"change/{issue}"
     try:
+        branch = resolve_change_name(repo, issue).branch
         provider_script = select_provider_script(os.environ, agent_dir)
         gitea = GiteaClient(
             os.environ["GITEA_URL"],
@@ -216,6 +223,16 @@ def _validate_analysis(input_path: Path, output_path: Path) -> int:
         return 2
     output_path.write_text(_analysis_json(result) + "\n", encoding="utf-8")
     os.chmod(output_path, 0o600)
+    return 0
+
+
+def _analysis_slug(input_path: Path) -> int:
+    try:
+        result = AnalysisResult.from_json(input_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, AnalysisError) as exc:
+        print(f"invalid analyzer result: {exc}", file=sys.stderr)
+        return 2
+    print(result.document_slug)
     return 0
 
 

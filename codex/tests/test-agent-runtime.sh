@@ -147,6 +147,10 @@ cat >"$WORKTREE_MOCK_BIN/git" <<'EOF'
 if [[ "$*" == *' fetch -q origin main' ]]; then
   exit 0
 fi
+if [[ "$*" == *' ls-remote --heads origin refs/heads/change/8 refs/heads/change/8-*' ]]; then
+  printf '%s\t%s\n' 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef' 'refs/heads/change/8'
+  exit 0
+fi
 if [[ "$*" == *' fetch -q origin change/8' ]]; then
   exit 0
 fi

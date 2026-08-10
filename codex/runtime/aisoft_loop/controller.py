@@ -447,10 +447,8 @@ class Controller:
             repair=bool(failure_evidence),
             completed_tickets=completed_tickets,
         )
-        document_paths = [
-            f"docs/changes/{contract.issue_number}/{name}"
-            for name in contract.required_docs
-        ]
+        document_root = contract.document_directory.relative_to(self.repo).as_posix()
+        document_paths = [f"{document_root}/{name}" for name in contract.required_docs]
         return {
             "skill": "$implement",
             "ticket_id": ticket_id,
@@ -812,8 +810,10 @@ def _verification_evidence(report: VerificationReport) -> str:
 
 
 def _pr_body(contract: Contract) -> str:
+    document_root = contract.document_directory.parts[-3:]
+    document_prefix = "/".join(document_root)
     documents = "\n".join(
-        f"- docs/changes/{contract.issue_number}/{name}" for name in contract.required_docs
+        f"- {document_prefix}/{name}" for name in contract.required_docs
     )
     dependencies = (
         "\n".join(f"- #{number}" for number in contract.dependencies)
