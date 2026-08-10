@@ -25,7 +25,7 @@ Matt skills 提供完整开发编排语义，Codex 和 Claude Code 只替换模�
 - Issue 是主键；Issue #57 起所有新变更有映射的 `summary-<slug>-<YYMMDD>.md`，旧 Issue 保持 legacy basename。
 - small 可从明确 Issue 直接进入 Loop；complex 必须有映射的 `spec-*` 和 `plan-*`。
 - `approved` 启动 Loop，不授权合并或部署。
-- 单一 `change/N` 分支承载文档、代码、测试和最终 PR。
+- 单一 `change/N-short-description` 分支承载同 `(N, slug)` 的文档、代码、测试和最终 PR；legacy `change/N` 仅在已有证据下维护。
 - Loop 只能在合同范围内实现、自测、自修复和处理 CI feedback。
 - Agent 可按 `Txx` 本地 commit；Controller 验证后才 push 和创建最终 PR。
 - `READY_FOR_REVIEW` 只是通知人 review；最终 PR 合并是唯一交付硬闸门。
@@ -54,7 +54,7 @@ Matt skills 提供完整开发编排语义，Codex 和 Claude Code 只替换模�
 本地 candidate 已完成：
 
 - provider-neutral Loop controller、state store、单 active Issue lock、deterministic verifier 和 Gitea adapter。
-- analyzer 从 `spec/N` 迁移到 `change/N`，wrapper 确定性校验 classification 并独占标签 mutation。
+- analyzer 从 `spec/N` 迁移到 readable `change/N-short-description`，wrapper 确定性校验 classification/slug 并独占标签 mutation。
 - small/complex/unclear、explicit override、范围升级、同因三次、pending/failed CI feedback 和四种终态的 synthetic tests。
 - 安装幂等、xtrace/argv token 防泄漏和 Claude implementation parity gate 的 mock 回归。
 - `project-poll.sh`、每项目 state/worktree namespace、mode 400/600 profile 校验和禁用式 `aisoft-agent@.service/.timer` 模板。
@@ -86,7 +86,7 @@ Claude adapter 已完成（Issue #1）：
 | `triage` | 保持 Matt verify/grill/brief；用 namespaced triage 标签投影，不替代 `approved` |
 | `to-spec` | 写既有 Issue 映射的 `spec-*`，不创建新 Issue 或独立 spec PR |
 | `to-tickets` | 写映射的 `plan-*`，保留 `Txx`、`blocked_by`、AC 与验证映射；默认不创建子 Issue |
-| `implement` | 只实现 Controller 指定的 frontier `Txx`，运行测试并在 exact `change/N` 本地原子 commit |
+| `implement` | 只实现 Controller 指定的 frontier `Txx`，运行测试并在当前 exact readable change branch 本地原子 commit |
 | `aisoft-matt-workflow` | 仓库初始化与四阶段 adapter；保护平台 Issue、合同、CI、PR、合并和部署边界 |
 | 既有 `gitea-*` skills | 兼容 adapter；逐步把调用转向 Matt，但不删除确定性 runtime 接口 |
 
@@ -100,7 +100,7 @@ Claude adapter 已完成（Issue #1）：
 
 - 从 Issue、summary 和所需 spec/plan 重新计算合同有效性，不把 `approved` 当作充分证据。
 - 调用唯一受控 wrapper 执行互斥的 type、complexity 和流程状态标签 mutation；provider 不得直接改标签。
-- 创建/锁定 `change/N` worktree。
+- 解析/锁定同 `(N, slug)` 的 `change/N-short-description` 与 `issue-N-short-description` worktree。
 - 持久化当前任务、轮数、失败根因和终态。
 - 调用 Codex 或 Claude adapter。
 - 独立运行 verifier，不信任模型自述。

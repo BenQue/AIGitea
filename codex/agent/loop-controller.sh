@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prepare one isolated change/N worktree, then run or resume the deterministic controller.
+# Resolve one evidence-backed change name, prepare its isolated worktree, then run the controller.
 set -euo pipefail
 set +x
 

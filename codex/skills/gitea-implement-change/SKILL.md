@@ -14,7 +14,7 @@ description: Compatibility adapter that delegates one contract-ready Gitea ticke
 7. For Prisma schema changes, create a backward-compatible migration; never use `prisma db push` or edit database files.
 8. Run the assigned verification commands and return their real output summary.
 9. Fix failures caused by this pass when the cause is clear and remains in scope. Do not weaken tests or hide errors.
-10. Commit verified changes on the current `change/N`. Every commit subject contains `#N` and the assigned `Txx`;
+10. Commit verified changes on the current exact `change/N-short-description`. Every commit subject contains `#N` and the assigned `Txx`;
     do not amend published history, create merge commits, rebase or change branches. Leave the worktree clean.
 11. Return changed files, commands/results, remaining failures, root-cause hypothesis, commit SHA and whether another Loop iteration is needed.
 12. Do not push, change labels, open/merge PRs, or deploy. The deterministic Controller owns remote mutation and only a human owns merge.

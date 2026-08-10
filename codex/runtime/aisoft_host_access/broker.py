@@ -71,7 +71,9 @@ def _pull_body(
             "pull request body must contain exactly one line: Closes #N",
         )
     summary = re.compile(
-        rf"docs/changes/({number}-({SLUG_PATTERN}))/summary-({SLUG_PATTERN})-[0-9]{{6}}\.md"
+        rf"(?<![A-Za-z0-9_./-])docs/changes/"
+        rf"({number}-({SLUG_PATTERN}))/summary-({SLUG_PATTERN})-[0-9]{{6}}\.md"
+        rf"(?![A-Za-z0-9_./-])"
     )
     matches = summary.findall(body)
     if len(matches) == 1 and matches[0][1] == matches[0][2]:
@@ -84,8 +86,8 @@ def _pull_body(
         return body, change_name
     if allow_legacy:
         legacy = re.compile(
-            rf"docs/changes/{number}/(?:00-summary\.md|"
-            rf"summary-{SLUG_PATTERN}-[0-9]{{6}}\.md)"
+            rf"(?<![A-Za-z0-9_./-])docs/changes/{number}/(?:00-summary\.md|"
+            rf"summary-{SLUG_PATTERN}-[0-9]{{6}}\.md)(?![A-Za-z0-9_./-])"
         )
         if len(legacy.findall(body)) == 1:
             return body, ChangeName(number)
@@ -436,12 +438,7 @@ class HostAccessBroker:
             url = f"{repo_api}/pulls?state={state}&limit=50&page=1"
         elif operation.name == "gitea.pull.create":
             assert issue is not None and pull_change is not None
-            open_pulls = self._request_json(
-                f"{repo_api}/pulls?state=open&limit=50&page=1",
-                credential.token,
-            )
-            if not isinstance(open_pulls, list):
-                raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea pull list is invalid")
+            open_pulls = self._open_pulls(repo_api, credential.token)
             same_issue: list[tuple[ChangeName, dict[str, object]]] = []
             for item in open_pulls:
                 if (
@@ -507,6 +504,19 @@ class HostAccessBroker:
         else:
             raise BrokerError("OPERATION_UNIMPLEMENTED", "Gitea operation is not implemented")
         return self._request_json(url, credential.token, method=method, payload=payload)
+
+    def _open_pulls(self, repo_api: str, token: str) -> list[object]:
+        pulls: list[object] = []
+        for page in range(1, 101):
+            value = self._request_json(
+                f"{repo_api}/pulls?state=open&limit=50&page={page}", token
+            )
+            if not isinstance(value, list):
+                raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea pull list is invalid")
+            pulls.extend(value)
+            if len(value) < 50:
+                return pulls
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea pull list exceeds the bounded scan")
 
     def _verify_identity(self, credential: ResolvedCredential) -> None:
         url = f"{self.contract.governance.base_url}/api/v1/user"

@@ -176,8 +176,10 @@ class GiteaClient:
             raise GiteaError("PR head Issue number does not match")
         assert change_name.slug is not None
         summary_link = re.compile(
-            rf"docs/changes/{number}-{re.escape(change_name.slug)}/"
+            rf"(?<![A-Za-z0-9_./-])docs/changes/"
+            rf"{number}-{re.escape(change_name.slug)}/"
             rf"summary-{re.escape(change_name.slug)}-\d{{6}}\.md"
+            rf"(?![A-Za-z0-9_./-])"
         )
         if len(summary_link.findall(body)) != 1:
             raise GiteaError("PR body must link the Issue summary document")

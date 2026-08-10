@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
@@ -102,6 +103,9 @@ class ContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         self.repo = Path(self.tempdir.name)
+        subprocess.run(("git", "init", "-q", "-b", "main"), cwd=self.repo, check=True)
+        subprocess.run(("git", "config", "user.name", "AISoft Test"), cwd=self.repo, check=True)
+        subprocess.run(("git", "config", "user.email", "test@example.invalid"), cwd=self.repo, check=True)
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()
@@ -153,7 +157,30 @@ class ContractTests(unittest.TestCase):
             directory.joinpath("01-spec.md").write_text(SPEC.format(number=number))
         if plan:
             directory.joinpath("02-plan.md").write_text(PLAN.format(number=number))
+        subprocess.run(("git", "add", directory.relative_to(self.repo)), cwd=self.repo, check=True)
+        subprocess.run(
+            ("git", "commit", "-q", "-m", f"test: legacy Issue {number} evidence"),
+            cwd=self.repo,
+            check=True,
+        )
         return directory
+
+    def test_untracked_numeric_directory_is_not_legacy_evidence(self) -> None:
+        directory = self.repo / "docs" / "changes" / "12"
+        directory.mkdir(parents=True)
+        directory.joinpath("00-summary.md").write_text(
+            SUMMARY.format(
+                number=12,
+                complexity="small",
+                change_type="bugfix",
+                effect="restore",
+                risk_flags="[]",
+                required_docs="  - 00-summary.md",
+                branch="change/12",
+            )
+        )
+        with self.assertRaisesRegex(ContractError, "history evidence"):
+            load_contract(self.repo, self.issue())
 
     def write_new_contract(
         self,

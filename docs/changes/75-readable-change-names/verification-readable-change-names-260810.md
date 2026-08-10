@@ -13,7 +13,7 @@ risk_flags:
   - shared-core
   - platform-governance
 depends_on: []
-status: contract-ready
+status: implementation-verified
 branch: change/75-readable-change-names
 pr_url:
 created: 2026-08-10
@@ -49,21 +49,21 @@ updated: 2026-08-10
 
 ## Candidate implementation results
 
-- AC-1 Shared parser：`NOT RUN`。
-- AC-2 New default and legacy compatibility：`NOT RUN`。
-- AC-3 Single active name：`NOT RUN`。
-- AC-4 Controller and worktree：`NOT RUN`。
-- AC-5 Broker Git boundary：`NOT RUN`。
-- AC-6 PR binding：`NOT RUN`。
-- AC-7 Documentation and scaffolding：`NOT RUN`；root `AGENTS.md` intentionally deferred to fresh run。
-- AC-8 Verification matrix：`NOT RUN`。
-- AC-9 Governed delivery and install：local isolated branch `PASS`；push/PR/CI/merge/install/downstream `NOT RUN`。
+- AC-1 Shared parser：`PASS`。`aisoft_change_name.ChangeName` 统一校验/投影 branch、directory、worktree；valid、legacy internal parse、reserved/all-numeric/length/segment 与 mismatch matrix 通过。
+- AC-2 New default and legacy compatibility：`PASS`。analyzer writer 使用 readable tuple；legacy 只能由 resolver、remote ref 或 existing PR evidence 进入维护路径，public CLI 无 legacy flag。
+- AC-3 Single active name：`PASS`。directory、remote refs 与 open PR 的 legacy/readable 或 multi-slug 冲突均返回 `CHANGE_NAME_CONFLICT`。
+- AC-4 Controller and worktree：`PASS`。analyzer 先校验 slug 后创建 readable worktree；provider/document/PR paths 使用 exact resolved directory；dirty/detached/branch/ancestry 原有门保持通过。
+- AC-5 Broker Git boundary：`PASS`。manifest-fixed remote 的 readable first push、exact maintenance、legacy evidence、wrong/force/main/refspec/cross-project/dirty/detached negatives 通过；未增加 remote/URL/refspec/merge surface。
+- AC-6 PR binding：`PASS`。new PR 拒绝 numeric head，要求 exact readable head、同 slug summary 与唯一 `Closes #N`；existing legacy PR update 只依赖 readback evidence。
+- AC-7 Documentation and scaffolding：`PASS`。fresh governance commit 已更新 root/global AGENTS；本 run 更新 README、03/04/06/07/08/09、skills、templates、agent messages 和 installer tests，历史 change 文档未批量改名。
+- AC-8 Verification matrix：`PASS`。325 Python tests、agent/broker installer shell tests、`bash -n`、ShellCheck、`git diff --check` 与 full smoke 均通过。full smoke 对 Issue #65 immutable evidence 临时恢复既定 `0444` mode 后通过，结束已恢复 checkout `0644`，无 tracked diff。
+- AC-9 Governed delivery and install：local isolated branch与 candidate broker tests `PASS`；push/PR/CI/protection `NOT RUN`；merge/install/downstream `NOT RUN`。
 
 ## Forbidden-scope audit
 
 - canonical checkout tracked/untracked files：`NOT MODIFIED`。
 - `ci-bot`、credential/token contents、Keychain、PAT/ACL/permission/protection：`NOT ACCESSED / NOT MODIFIED`。
-- remote branch/Issue/PR mutation：`NOT RUN`。
+- remote branch/Issue/PR mutation：`NOT RUN`（下一步只执行 spec 授权的 exact candidate push 与唯一 PR create/readback）。
 - VM/service、Docker、Secret、database、migration、deployment、restart、prune、production：`NOT RUN`。
 - automatic merge、historical rename/delete/cleanup：`NOT RUN`。
 

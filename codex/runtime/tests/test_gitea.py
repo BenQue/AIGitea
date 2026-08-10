@@ -247,6 +247,14 @@ class GiteaClientTests(unittest.TestCase):
                 "main",
                 "Closes #8\n\ndocs/changes/8/00-summary.md",
             )
+        with self.assertRaisesRegex(GiteaError, "summary document"):
+            client.create_pr(
+                8,
+                "Pilot",
+                "change/8-pilot-fix",
+                "main",
+                "Closes #8\n\nother/docs/changes/8-pilot-fix/summary-pilot-fix-260808.md",
+            )
         result = client.create_pr(
             8,
             "Pilot",

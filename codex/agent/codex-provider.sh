@@ -40,7 +40,7 @@ fi
     "Use \$implement for exactly one bounded provider turn." \
     'Read AGENTS.md and the immutable request JSON below.' \
     'Work only inside the requested contract. Run useful local checks, but do not claim they replace the outer verifier.' \
-    'Commit the verified ticket changes to the current change/N branch using the request commit requirements.' \
+    'Commit the verified ticket changes to the current exact readable change branch using the request commit requirements.' \
     'Do not edit any governing AGENTS.md. Do not push, change Issue labels, open/merge a PR, rebase, force-push, or deploy.' \
     'Finish with only one JSON object using exactly these fields:' \
     '{"status":"CONTINUE|COMPLETE|NEEDS_HUMAN_DECISION|BLOCKED_EXTERNAL","summary":"...","changed_files":["relative/path"],"root_cause":"","escalation":""}' \

@@ -10,7 +10,7 @@ confidence: CONFIDENCE
 risk_flags: []
 depends_on: []
 status: contract-drafting
-branch: change/ISSUE_NUMBER
+branch: change/ISSUE_NUMBER-SHORT-SLUG
 pr_url:
 created: YYYY-MM-DD
 updated: YYYY-MM-DD

@@ -105,10 +105,10 @@ docs directories 与 open PR 中最多存在一个 active slug。
 
 ## 治理文件授权与运行隔离
 
-本 spec 明确授权 future fresh implementation run 在本 Issue 范围内修改 root `AGENTS.md`、
-`codex/global-AGENTS.md`、Agent/Controller/broker、skills、templates、tests 和相关平台文档，使其采用本命名合同。
-正在读取当前 root `AGENTS.md` 的分析/spec run 不得修改该文件；它只发布本合同。fresh run 必须重新读取本
-spec/plan，并以未被本次运行动态改写的旧治理规则启动，随后才能提交已授权的治理更新。
+root `AGENTS.md` 与 `codex/global-AGENTS.md` 的规则变更已由独立 governance-only step 提交；后续 runtime
+implementation run 以重新读取后的 ruleset 作为 immutable input。本 spec 继续授权在 Issue #75
+范围内修改 Agent/Controller/broker、skills、templates、tests 和相关平台文档；若还需改变 governing rules，必须
+停止并建立新的独立治理合同。
 
 ## Acceptance criteria
 

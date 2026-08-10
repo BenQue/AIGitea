@@ -520,6 +520,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             "Closes #71\ndocs/changes/70-governed-host-writes/summary-governed-host-writes-260809.md",
             "Closes #70\ndocs/changes/71/summary-wrong-change-260809.md",
             "Closes #70\nCloses #70\ndocs/changes/70-governed-host-writes/summary-governed-host-writes-260809.md",
+            "Closes #70\nother/docs/changes/70-governed-host-writes/summary-governed-host-writes-260809.md",
         ):
             with self.subTest(body=body), self.assertRaises(BrokerError) as caught:
                 broker.execute(

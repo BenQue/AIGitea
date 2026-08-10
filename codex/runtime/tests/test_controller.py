@@ -327,6 +327,11 @@ class ControllerTests(unittest.TestCase):
         directory.mkdir(parents=True)
         directory.joinpath("00-summary.md").write_text(SUMMARY)
         self.repo = self.root / "repo"
+        subprocess.run(("git", "init", "-q", "-b", "main"), cwd=self.repo, check=True)
+        subprocess.run(("git", "config", "user.name", "AISoft Test"), cwd=self.repo, check=True)
+        subprocess.run(("git", "config", "user.email", "test@example.invalid"), cwd=self.repo, check=True)
+        subprocess.run(("git", "add", "."), cwd=self.repo, check=True)
+        subprocess.run(("git", "commit", "-q", "-m", "test: legacy contract evidence"), cwd=self.repo, check=True)
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()

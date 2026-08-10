@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.3（Matt orchestration + deterministic governance candidate）｜ 更新：2026-08-09 ｜ 状态：**Issue #73 正在为 host access broker 增加 manifest-fixed Gitea remote 与逐项目 onboarding contract；最终 PR 仍只由人合并**
+> 版本：v3.4（readable change-name contract candidate）｜ 更新：2026-08-10 ｜ 状态：**Issue #75 正在统一 `change/N-short-description` 命名并保持证据驱动的 legacy 兼容；最终 PR 仍只由人合并**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 1. 当前状态（2026-08-09）
+## 1. 当前状态（2026-08-10）
 
 - ✅ 基础设施核心：`gitea-ci` 上的 Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
 - ✅ 主机职责隔离候选：versioned host profile、capability catalog 和 fail-closed guard 已实现；Issue #21 已完成 `gitea-ci` 历史业务 runtime/DB/代理的逐项迁移或清理及 live post-check，等待最终 PR 人工合并
@@ -18,9 +18,9 @@
 - ✅ v2 试点证据：issue #4 已走通三闸门闭环，证明 Issue/文档/PR/部署关联可行
 - ✅ 邮件通知：Gitea → Mailpit（演示层），issue/PR 事件自动发信
 - ✅ Codex 基础：CLI、认证、skills、AGENTS、sandbox、provider router 已通过 VM 基础验收
-- 🟡 Matt 开发编排层（Issue #57 candidate）：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在 `change/N` 本地提交，Controller 才能 push/建 PR/读取 CI，合并仍只由人操作
+- 🟡 Matt 开发编排层：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在当前 exact change branch 本地提交，Controller 才能 push/建 PR/读取 CI，合并仍只由人操作
 - ✅ Gitea 身份与可见性：Issue #35 已在本机 OrbStack 标记 `deployed`；1 个非 site-admin manager、9 个单项目 agent 与 11 个最小 scope PAT 已完成幂等验证，public 精确为 `aisoft-platform`/`myapp`/`smoke-test`，其余 6 个 private，9 个 `main` 只允许人工 `admin` 合并；真实 Issue/label/Git/PR 正反向验证 9/9 `PASS`，共享 `ci-bot` 已从全部 manifest 仓库移除 collaborator 权限但账号保留
-- 🟡 Host access broker（Issue #73 candidate）：Issue #61/#67/#70 已合并并安装 strict typed Issue/PR mutation、独立 worktree exact `change/N` push、repo-external project-scoped protected-file credential boundary、脱敏 access audit 与 fresh-session canary；#73 candidate 为 project manifest 增加 optional strict `git_remote_name`（缺省 `origin`，NewEmaint 固定 `gitea`），并增加逐项目 fail-closed onboarding readback。Mac runtime 不访问 Keychain，最终 merge 仍只由人工 `admin` 执行
+- 🟡 Host access broker：Issue #61/#67/#70/#73 已建立 strict typed Issue/PR mutation、manifest-fixed remote、独立 worktree exact change-ref push、repo-external project-scoped protected-file credential boundary与逐项目 fail-closed onboarding readback。Issue #75 candidate 增加 readable ref、同 Issue 唯一性和 legacy evidence gate；Mac runtime 不访问 Keychain，最终 merge 仍只由人工 `admin` 执行
 - ✅ Claude adapter（Issue #1）：与 Codex 共用 controller/verifier/状态/终态，17 项 parity 测试通过；默认仍 `IMPLEMENT_PROVIDER=none`，真实 VM pilot 未做
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
 - 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为 real complex pilot。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
@@ -117,10 +117,10 @@ sequenceDiagram
     else effective_complexity=complex
         A->>G: 写 summary + type/* + complexity/complex + spec-drafting
         U->>M: 用 to-spec/to-tickets 收敛映射的 spec-* + plan-*
-        M->>G: 文档提交到同一 change/N；合同完整则 approved
+        M->>G: 文档提交到同一 change/N-short-description；合同完整则 approved
     end
     A->>A: $implement frontier Txx → 本地原子 commit → verifier
-    A->>G: Controller 校验后推 change/N → 最终 PR(Closes #N) → pr-open
+    A->>G: Controller 校验后推 change/N-short-description → 最终 PR(Closes #N) → pr-open
     R->>G: PR CI 必须绿；失败反馈给 Loop
     Note over U,G: 【唯一交付闸门】人审核并合并最终 PR
     G->>U: 📬 邮件通知(Mailpit);issue 被 Closes 自动关闭
@@ -191,8 +191,8 @@ project agent 为准：先只读 check，再一次处理一个明确仓库，回
 - **Issue 合同**：Issue、有效评论、summary，以及复杂变更的 spec/plan 共同定义的执行边界
 - **Development Loop**：在合同内反复实现、验证、自修复和处理 CI 反馈，直到完成或升级给人
 - **`approved`**：合同已明确、允许启动 Loop；不授权合并或部署
-- **`change/N`**：Issue N 从分析到最终 PR 共用的单一分支
-- **`docs/changes/N/`**：summary、复杂变更的 spec/plan，以及部署/迁移变更的 verification
+- **`change/N-short-description`**：Issue N 从分析到最终 PR 共用的单一 readable 分支；`short-description` 是锁定的 2–4 段 lowercase ASCII kebab-case slug
+- **`docs/changes/N-short-description/`**：与分支使用相同 `N + slug` 的文档目录；`change/N` 与 `docs/changes/N/` 仅在远端/历史证据存在时作为 legacy 维护入口
 - **Host profile**：无 Secret 的主机身份与 capability 合同；live 文件固定为 root-owned `/etc/aisoft/host-profile.json`
 - **Host access broker**：Mac host 上的 versioned/allowlisted 访问入口；把 exact project/operation 映射到 Gitea/Git/OrbStack target 与最小权限 identity，不接受任意 shell、URL、credential path 或 merge
 - **制品**：带项目、完整 SHA 和 checksum 的不可变字节；`/opt/artifacts` 是本地 legacy staging，必须经过引用保护和 retention dry-run，不能按文件名或年龄直接删除

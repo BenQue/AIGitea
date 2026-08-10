@@ -19,7 +19,7 @@ STATUS: NEEDS_HUMAN_DECISION
 NEXT: reclassify as complex and create spec/plan
 ```
 
-5. Work only in the controller-provided isolated `change/N` worktree. Do not manage locks, credentials, labels, PRs, documents, or deployment. Classification and lifecycle mutations belong to the wrapper/controller.
+5. Work only in the controller-provided isolated `change/N-short-description` worktree whose basename is `issue-N-short-description`. Do not manage names, locks, credentials, labels, PRs, documents, or deployment. Classification and lifecycle mutations belong to the wrapper/controller.
    - Never edit an `AGENTS.md` that governs the current Loop run. If a complex contract changes that governance file, produce only a patch/proposal for an independent controlled governance step; after it is applied, a fresh run must validate and adopt the new rules.
 6. Select the first unblocked `Txx` frontier task from the mapped plan; for a legacy or small contract without a ticket graph use the synthetic `T01`.
 7. Dispatch the complete Matt `$implement Issue #N ticket Txx` flow. It implements, tests, reviews and commits locally; every commit subject contains `#N` and `Txx` and the worktree must be clean.

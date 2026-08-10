@@ -96,7 +96,7 @@ runtime_dir() {
 prepare_change_worktree() {
   local issue="$1" allow_create="${2:-false}" slug="${3:-}"
   local state_dir worktree_root worktree branch expected_branch="" remote_exists=false
-  local output line ref
+  local output ref parsed_branch
   local -a branches=()
   require_issue_number "$issue"
   state_dir="${AISOFT_LOOP_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/aisoft-loop}"
@@ -104,18 +104,23 @@ prepare_change_worktree() {
   install -d -m 700 "$state_dir" "$worktree_root"
   git -C "$AGENT_REPO_DIR" fetch -q origin main
   if [[ -n "$slug" ]]; then
-    [[ "$slug" =~ ^[a-z0-9]+(-[a-z0-9]+){1,3}$ && ${#slug} -le 32 && "$slug" =~ [a-z] ]] || {
-      printf 'invalid readable change slug: %s\n' "$slug" >&2
-      exit 2
-    }
-    expected_branch="change/$issue-$slug"
+    expected_branch="$(python3 -m aisoft_loop.cli change-name "$issue" "$slug")"
   fi
-  output="$(git -C "$AGENT_REPO_DIR" ls-remote --heads origin \
-    "refs/heads/change/$issue" "refs/heads/change/$issue-*" || true)"
+  if ! output="$(git -C "$AGENT_REPO_DIR" ls-remote --heads origin \
+    "refs/heads/change/$issue" "refs/heads/change/$issue-*")"; then
+    printf 'cannot enumerate remote change names for Issue #%s\n' "$issue" >&2
+    exit 2
+  fi
   while IFS=$'\t' read -r _ ref; do
     [[ -n "$ref" ]] || continue
-    if [[ "$ref" =~ ^refs/heads/change/$issue(-[a-z0-9]+(-[a-z0-9]+){1,3})?$ ]]; then
-      branches+=("${ref#refs/heads/}")
+    if [[ "$ref" == "refs/heads/change/$issue" || \
+          "$ref" == "refs/heads/change/$issue-"* ]]; then
+      if ! parsed_branch="$(python3 -m aisoft_loop.cli parse-change-branch \
+        "${ref#refs/heads/}")"; then
+        printf 'invalid remote change ref for Issue #%s\n' "$issue" >&2
+        exit 2
+      fi
+      branches+=("$parsed_branch")
     fi
   done <<<"$output"
   if (( ${#branches[@]} > 1 )); then
@@ -136,8 +141,8 @@ prepare_change_worktree() {
     exit 2
   fi
   worktree="$worktree_root/issue-${branch#change/}"
-  if [[ "$remote_exists" == true ]] && git -C "$AGENT_REPO_DIR" fetch -q origin "$branch"; then
-    remote_exists=true
+  if [[ "$remote_exists" == true ]]; then
+    git -C "$AGENT_REPO_DIR" fetch -q origin "$branch"
   fi
   if [[ ! -e "$worktree/.git" ]]; then
     if git -C "$AGENT_REPO_DIR" show-ref --verify --quiet "refs/heads/$branch"; then

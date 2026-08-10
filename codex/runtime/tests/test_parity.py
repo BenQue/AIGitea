@@ -5,6 +5,7 @@ import io
 import json
 import os
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
@@ -207,6 +208,11 @@ class ProviderParityMatrixTests(unittest.TestCase):
             repo = root / "repo"
             (repo / "docs" / "changes" / "8").mkdir(parents=True)
             (repo / "docs" / "changes" / "8" / "00-summary.md").write_text(SUMMARY)
+            subprocess.run(("git", "init", "-q", "-b", "main"), cwd=repo, check=True)
+            subprocess.run(("git", "config", "user.name", "AISoft Test"), cwd=repo, check=True)
+            subprocess.run(("git", "config", "user.email", "test@example.invalid"), cwd=repo, check=True)
+            subprocess.run(("git", "add", "docs/changes/8/00-summary.md"), cwd=repo, check=True)
+            subprocess.run(("git", "commit", "-q", "-m", "test: legacy contract evidence"), cwd=repo, check=True)
             (repo / ".parity-queue").write_text("\n".join(results))
 
             agent = root / "agent"

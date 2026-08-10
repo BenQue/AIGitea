@@ -16,7 +16,7 @@ confidence: CONFIDENCE
 override_reason: ''
 depends_on: []
 status: analyzed
-branch: change/ISSUE_NUMBER
+branch: change/ISSUE_NUMBER-SHORT-SLUG
 pr_url:
 created: YYYY-MM-DD
 updated: YYYY-MM-DD

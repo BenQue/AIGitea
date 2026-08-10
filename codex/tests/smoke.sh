@@ -328,7 +328,7 @@ global_agents="$ROOT/codex/global-AGENTS.md"
 literal_dollar='$'
 literal_backtick='`'
 for instruction in "$root_agents" "$global_agents"; do
-  grep -Fq '<role>-<short-slug>-<YYMMDD>.md' "$instruction"
+  grep -Fq '<role>-<short-description>-<YYMMDD>.md' "$instruction"
   grep -Fq "${literal_dollar}aisoft-matt-workflow" "$instruction"
   grep -Fq "${literal_dollar}setup-matt-pocock-skills" "$instruction"
   grep -Fq 'templates/docs/agents/issue-tracker.md' "$instruction"
@@ -345,7 +345,7 @@ for instruction in "$root_agents" "$global_agents"; do
   grep -Fq 'gitea-platform-ops' "$instruction"
   grep -Fq 'triage/ready-for-agent' "$instruction"
   grep -Fq 'approved' "$instruction"
-  grep -Fq "exact ${literal_backtick}change/N${literal_backtick}" "$instruction"
+  grep -Fq "exact ${literal_backtick}change/N-short-description${literal_backtick}" "$instruction"
   grep -Fq 'Controller' "$instruction"
   grep -Fq 'IMPLEMENT_PROVIDER=none' "$instruction"
   for legacy_basename in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do

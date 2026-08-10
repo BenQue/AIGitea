@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import re
+import subprocess
 from typing import Mapping, Optional
 
 from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
@@ -334,6 +335,19 @@ def _change_directory(repo: Path, issue_number: int) -> tuple[ChangeName, Path]:
     except ChangeNameError as exc:
         raise ContractError(str(exc)) from exc
     assert selected is not None
+    if selected.is_legacy:
+        relative = Path("docs") / "changes" / selected.directory_name
+        result = subprocess.run(
+            ("git", "log", "-1", "--format=%H", "--", relative.as_posix()),
+            cwd=repo,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            raise ContractError(
+                "legacy change directory requires repository history evidence"
+            )
     for name, path in candidates:
         if name == selected:
             return name, path

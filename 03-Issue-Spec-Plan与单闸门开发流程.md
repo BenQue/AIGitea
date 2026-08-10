@@ -6,8 +6,8 @@
 
 ```text
 Issue #N
-  ↔ change/N
-  ↔ docs/changes/N/<role>-<short-slug>-<YYMMDD>.md
+  ↔ change/N-short-description
+  ↔ docs/changes/N-short-description/<role>-<short-description>-<YYMMDD>.md
   ↔ final PR（Closes #N）
   ↔ commit / CI / deployment SHA
 ```
@@ -16,7 +16,7 @@ Issue #N
 - 小变更可以不写 spec/plan，但 Issue 必须有可验证的 acceptance criteria。
 - 复杂变更必须有映射的 `spec` 和 `plan` 文档。
 - 部署、迁移和高风险运维变更必须有映射的 `verification` 文档。
-- 新 Issue 从分析开始使用单一 `change/N` 分支；旧 `spec/N` 仅作迁移兼容。
+- 新 Issue 从分析开始使用单一 `change/N-short-description` 分支；已有 `change/N` 与更早的 `spec/N` 只按历史证据兼容，不作为新 writer 的可选格式。
 - 文档与代码进入同一个最终 PR，不再强制独立 docs-only spec PR。
 
 ## 2. AI 判级与路由
@@ -52,14 +52,16 @@ Issue 作者可以显式选择复杂度，但 `complexity/small` 不能绕过强
 ## 3. 文档合同
 
 ```text
-docs/changes/N/
+docs/changes/N-short-description/
 ├── summary-<slug>-YYMMDD.md       # 必须
 ├── spec-<slug>-YYMMDD.md          # complex 必须
 ├── plan-<slug>-YYMMDD.md          # complex 必须
 └── verification-<slug>-YYMMDD.md  # deploy/migration 必须，其他推荐
 ```
 
-文件名固定为 `<role>-<short-slug>-<YYMMDD>.md`：slug 使用 2–4 个小写英文 `kebab-case` 词，优先不超过 24 字符、硬上限 32 字符，完整 basename 不超过 64 字符；同一 Issue 的文档共用一个创建后锁定的 slug。日期等于各文件首次创建日期，普通更新只修改 `updated`，不重命名。
+文件名固定为 `<role>-<short-description>-<YYMMDD>.md`：slug 使用 2–4 段 lowercase ASCII `kebab-case`、至少包含一个字母、硬上限 32 字符，完整 basename 不超过 64 字符；分支、目录、worktree、文档和 front matter 必须使用同一 `(N, slug)`。slug 创建后不可修改；纠错应开新 Issue。日期等于各文件首次创建日期，普通更新只修改 `updated`，不重命名。
+
+新 worktree basename 固定为 `issue-N-short-description`。`main`、`master`、`head`、`merge`、`pull`、`pr`、`refs`、`change`、`changes`、`docs`、`worktree`、`tmp`、`temp`、`legacy` 是保留 slug，`tmp-`、`temp-`、`legacy-` 前缀同样禁止。同一 Issue 同时出现 legacy/readable 名称或多个 slug 时必须以 `CHANGE_NAME_CONFLICT` 停止。
 
 所有 change 文档的共同 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`pr_url`、`created`、`updated`；complex 的 spec/plan/verification 固定使用 `effective_complexity: complex`。summary 另外完整保存 analyzer schema 的 `reason`、语义 `required_docs`、`documents` 角色到真实 basename 的映射和 `override_reason`。无法安全判级时，summary 的 `assessed_complexity` 为 `needs-human-decision`，并从 front matter 与 `## AI 判级` YAML 同时省略整个 `effective_complexity` key，不保留空值或 placeholder；其他 complex 文档尚不得创建。
 
@@ -126,8 +128,8 @@ Issue + needs-analysis
 
 PR 必须：
 
-- 使用 `Closes #N`。
-- 链接 `docs/changes/N/` 中本变更要求的文档。
+- body 恰有一行 `Closes #N`，不能额外关闭其他 Issue。
+- head 精确为 `change/N-short-description`，并链接 `docs/changes/N-short-description/` 中同 slug 的 summary 与要求文档。
 - 说明验收标准与测试证据。
 - 说明迁移、部署和回滚影响（若适用）。
 - 通过受保护 `main` 要求的 `CI / test (pull_request)`。

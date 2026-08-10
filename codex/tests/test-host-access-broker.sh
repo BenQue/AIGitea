@@ -123,6 +123,7 @@ test -x "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/git-credentia
 test -x "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/project-profile-migration"
 test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/share/aisoft/host-access-broker.json"
 test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/lib/aisoft-host-access/aisoft_host_access/broker.py"
+test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/lib/aisoft-host-access/aisoft_change_name.py"
 test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/etc/aisoft/host-profile.json"
 test ! -d "$AISOFT_HOST_ACCESS_INSTALL_ROOT/etc/systemd"
 if find "$AISOFT_HOST_ACCESS_INSTALL_ROOT" -type f \

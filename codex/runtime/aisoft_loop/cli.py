@@ -10,6 +10,8 @@ from pathlib import Path
 import sys
 from typing import Mapping
 
+from aisoft_change_name import ChangeName, ChangeNameError
+
 from .analysis import (
     AnalysisError,
     AnalysisResult,
@@ -73,6 +75,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     analysis_slug.add_argument("input", type=Path)
 
+    change_name = subparsers.add_parser(
+        "change-name", help="validate and print one new readable change branch"
+    )
+    change_name.add_argument("issue", type=int)
+    change_name.add_argument("slug")
+
+    parse_change_branch = subparsers.add_parser(
+        "parse-change-branch", help="parse one existing readable or legacy branch"
+    )
+    parse_change_branch.add_argument("branch")
+
     extract_json = subparsers.add_parser(
         "extract-json", help="isolate the last JSON object in raw provider output"
     )
@@ -122,6 +135,10 @@ def main(argv: list[str] | None = None) -> int:
         return _validate_analysis(args.input, args.output)
     if args.command == "analysis-slug":
         return _analysis_slug(args.input)
+    if args.command == "change-name":
+        return _change_name(args.issue, args.slug)
+    if args.command == "parse-change-branch":
+        return _parse_change_branch(args.branch)
     if args.command == "extract-json":
         return _extract_json(args.input, args.output)
     if args.command == "get-issue":
@@ -151,8 +168,8 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
     source_agent = Path(__file__).parents[2] / "agent"
     agent_dir = source_agent if source_agent.is_dir() else Path.home() / "agent"
     try:
-        branch = resolve_change_name(repo, issue).branch
         provider_script = select_provider_script(os.environ, agent_dir)
+        branch = resolve_change_name(repo, issue).branch
         gitea = GiteaClient(
             os.environ["GITEA_URL"],
             os.environ["GITEA_OWNER"],
@@ -233,6 +250,24 @@ def _analysis_slug(input_path: Path) -> int:
         print(f"invalid analyzer result: {exc}", file=sys.stderr)
         return 2
     print(result.document_slug)
+    return 0
+
+
+def _change_name(issue_number: int, slug: str) -> int:
+    try:
+        print(ChangeName.new(issue_number, slug).branch)
+    except ChangeNameError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    return 0
+
+
+def _parse_change_branch(branch: str) -> int:
+    try:
+        print(ChangeName.parse_branch(branch).branch)
+    except ChangeNameError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     return 0
 
 

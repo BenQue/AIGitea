@@ -27,9 +27,9 @@ updated: 2026-08-10
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | live baseline、semantic contract、bootstrap/fresh-run handoff | - | complete |
-| T02 | shared ChangeName + document/controller/worktree vertical slice | T01 | pending |
-| T03 | broker + PR + duplicate/legacy fail-closed vertical slice | T02 | pending |
-| T04 | governance/docs/templates + full verification + governed PR handoff | T02, T03 | pending |
+| T02 | shared ChangeName + document/controller/worktree vertical slice | T01 | complete |
+| T03 | broker + PR + duplicate/legacy fail-closed vertical slice | T02 | complete |
+| T04 | governance/docs/templates + full verification + governed PR handoff | T02, T03 | in_progress |
 
 ## T01 — Contract and safe handoff
 
@@ -39,7 +39,7 @@ updated: 2026-08-10
   保持不变。
 - 建立唯一 mapped semantic summary/spec/plan/verification，收敛 grammar、reserved words、immutability、legacy
   evidence、duplicate handling、PR exact closure、candidate bootstrap 与 post-merge install/rollback。
-- 当前 run 不修改 governing root `AGENTS.md`；T02 必须由 fresh implementation run 重新读取并验证本合同后开始。
+- governance-only step 已提交 root/global 规则；T02 由 fresh implementation run 重新读取新规则并验证本合同后开始。
 
 ## T02 — Shared ChangeName, documents, controller and worktree
 
@@ -69,8 +69,8 @@ updated: 2026-08-10
 
 ## T04 — Governance, verification and delivery
 
-- 在 fresh run 按 spec 明确授权更新 root `AGENTS.md`、`codex/global-AGENTS.md`、README、03/04/06/08、agent
-  shell comments/messages、skills、templates、onboarding/private-access examples；历史文档不批量改写。
+- 读回已独立提交的 root `AGENTS.md`、`codex/global-AGENTS.md` 新规则；本 runtime run 更新 README、03/04/06/07/08/09、
+  agent shell comments/messages、skills、templates、onboarding/private-access examples；历史文档不批量改写。
 - 更新 `codex/tests/smoke.sh` 与 cleanup/deployment fallback tests，确保新 creation examples readable，legacy
   history parser 仍可读；任何硬编码 pure `change/N` 的 active writer 必须消除或明确 compatibility-only。
 - 运行 focused Python/shell/real Git tests，再运行 full smoke；修改 shell 执行 `bash -n`、ShellCheck（若可用），
@@ -87,10 +87,10 @@ updated: 2026-08-10
 - `codex/runtime/aisoft_host_access/{contract,broker,runner}.py`、config/installer/wrapper（仅必要处）。
 - `codex/agent/{common,analyze-codex,analyze-claude,loop-controller,*-provider}.sh`。
 - `codex/runtime/tests/`、`codex/tests/test-host-access-broker.sh`、`codex/tests/smoke.sh` 及相关 fixtures。
-- root `AGENTS.md`、`codex/global-AGENTS.md`、README、03/04/06/08、skills、templates 与 onboarding references。
+- root `AGENTS.md`、`codex/global-AGENTS.md`（已完成的独立 governance commit 证据），README、03/04/06/07/08/09、skills、templates 与 onboarding references。
 - `codex/tools/mark-deployed-issues.sh`、cleanup tool 仅在 parser/read compatibility 必要时修改。
 
-以上是 scope guidance。root `AGENTS.md` 只允许 T04 的 fresh implementation run 修改；不授权 Secret、credential、
+以上是 scope guidance。本 runtime implementation run 将 governing ruleset 视为 immutable input；不授权 Secret、credential、
 permission/protection、VM/service、Docker、数据库、部署、生产、自动 merge 或历史 cleanup。
 
 ## 数据库迁移
