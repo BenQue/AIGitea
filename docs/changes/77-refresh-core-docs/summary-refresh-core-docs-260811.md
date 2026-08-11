@@ -17,7 +17,7 @@ override_reason: ''
 depends_on: []
 status: ready-for-review
 branch: change/77-refresh-core-docs
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/78
 created: 2026-08-11
 updated: 2026-08-11
 ---
@@ -99,4 +99,4 @@ override_reason: ''
 | 归档 PDF 完整性与内容复核 | PASS | 移动后 SHA-256 仍为 `b0b09ed8ebf11d69ca2ba6284442d0d498397d928e1bc29394b9d89d0aac7cfb`；已渲染检查其 v2/三闸门/旧 runtime 内容，适合归档、不适合继续作为当前入口 |
 | canonical checkout 精确清理 | PASS | 仅删除盘点出的 4 个未跟踪 `.DS_Store`，并确认 canonical checkout 不再有未跟踪文件；未递归删除其他路径 |
 | Registry、AppServer、数据库、真实部署与生产验收 | NOT RUN | 本 Change 仅做文档一致性和可恢复归档，不授权或执行环境 mutation |
-| PR、远端 CI、人工合并 | NOT RUN | 将在提交并创建 PR 后回填；最终合并仍由人完成 |
+| PR、远端 CI、人工合并 | NOT CONFIGURED / NOT RUN | PR #78 已创建且保持 `open`；`main` 保护规则为 `enable_status_check=false`、`status_check_contexts=[]`，head status 为 `total_count=0`/`pending`，因此不能声称 CI 通过；人工合并未执行 |
