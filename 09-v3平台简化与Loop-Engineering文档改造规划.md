@@ -1,9 +1,9 @@
 # 09 · v3 平台简化与 Loop Engineering 文档改造规划
 
-> 状态：**原 v3 Loop 规划已完成；Issue #21 在不修改本次运行所遵循 `AGENTS.md` 的前提下追加 host-role fail-closed 合同，live 收口仍按独立 Gate**
+> 状态：**原 v3 Loop 规划已完成；Issue #21 host-role/live 收口与 Issue #57/#60/#75 编排、根级路由和 readable Change 合同均已进入后续 protected-main 基线**
 > 日期：2026-07-16
 > 适用范围：AISoftPlatform 平台文档、平台 skills 与 agent 编排说明
-> 当前约束：v3 文档契约和通用 Codex candidate 已生效；VM 只保留禁用式 pilot 安装，新的 project-profile template 仅完成一次性 HOME smoke，未 enable 任何项目 timer，不得把 candidate 写成无人值守上线。
+> 当前约束：本文件保留规划与决策演进，不是 live 状态表。source 能力、一次性 HOME smoke 或历史 pilot 均不能写成某项目已启用、已部署或 production 已验收；当前入口见 README、03/04/06/08。
 
 ## 0. 实施状态
 
@@ -21,7 +21,7 @@
 - [x] Claude adapter 前的中央 profile 安装 smoke：35 files / 7 scripts、两次 manifest、无 profile/凭据、systemd template verify。
 - [x] Claude Code adapter 与 parity 验证（Issue #1，PR #2 已合并）：provider 选择由 `IMPLEMENT_PROVIDER` 驱动、fail-closed；17 项 parity 测试；adapter 输出规整（`extract-json`）；默认仍 `IMPLEMENT_PROVIDER=none`。真实 VM pilot 未做。
 
-前序分类合同证据见 `10`。2026-07-16 中央分支 `codex/v3-loop-runtime` 已实现 runtime candidate；`bash codex/tests/smoke.sh` 运行 72 项 Python tests、ShellCheck、label sync mock、安装幂等和 token 防泄漏回归并通过。VM 临时 HOME 安装和带回滚备份的正式安装通过，timer 保持 inactive、implementation none。rsdesign-new Issue #8 作为 real complex pilot 暴露并验证了 worktree stdout 修复、deterministic verifier、PR/CI 和人工合并闸门；PR #9 后由人合并，测试环境健康。用户随后明确 AISoftPlatform 是通用平台文档/runtime source，不应继续把 rsDesign 当作承载仓库；误建的 rsdesign-new Issue #10 在仅生成 analysis summary 后已取消关闭，未实现、未建 PR、未部署。中央 source 因此增加每项目 profile 与 namespaced state/worktrees，部署验收改为每个有部署范围的应用接入门禁，而不是 AISoftPlatform 或 Claude adapter 的项目专用前置条件。
+前序分类合同证据见 [归档的 10](archive/10-AI-Issue判级与标签实施计划.md)。2026-07-16 中央分支 `codex/v3-loop-runtime` 已实现 runtime candidate；`bash codex/tests/smoke.sh` 运行 72 项 Python tests、ShellCheck、label sync mock、安装幂等和 token 防泄漏回归并通过。VM 临时 HOME 安装和带回滚备份的正式安装通过，timer 保持 inactive、implementation none。rsdesign-new Issue #8 作为 real complex pilot 暴露并验证了 worktree stdout 修复、deterministic verifier、PR/CI 和人工合并闸门；PR #9 后由人合并，测试环境健康。用户随后明确 AISoftPlatform 是通用平台文档/runtime source，不应继续把 rsDesign 当作承载仓库；误建的 rsdesign-new Issue #10 在仅生成 analysis summary 后已取消关闭，未实现、未建 PR、未部署。中央 source 因此增加每项目 profile 与 namespaced state/worktrees，部署验收改为每个有部署范围的应用接入门禁，而不是 AISoftPlatform 或 Claude adapter 的项目专用前置条件。
 
 ### 0.1 Issue #21 主机职责增补（2026-08-02）
 

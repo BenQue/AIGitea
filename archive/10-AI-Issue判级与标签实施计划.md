@@ -1,5 +1,9 @@
 # AI Issue 判级与标签实施计划
 
+> **归档资料：** 本文件记录 2026-07 的一次性实施过程，不是当前执行计划。当前合同见
+> [README](../README.md)、[03](../03-Issue-Spec-Plan与单闸门开发流程.md) 与
+> [04](../04-Agent编排与定时任务.md)；正文命令、路径和状态不得直接重放。
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > **历史说明：** 本计划记录 2026-07-15 的初始 16-label 实施，因此正文保留当时的

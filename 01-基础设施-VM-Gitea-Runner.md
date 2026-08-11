@@ -1,29 +1,29 @@
 # 01 · 基础设施：VM / Gitea / Runner / Verdaccio / Mailpit
 
-> 基础设施 as-built 记录（2026-07-11）+ Issue #21 host-role 收口合同（2026-08-02）。
-> 历史端口继续保留为诊断证据，不代表它们符合当前 `scm-ci` 角色；live 迁移/清理结果只认
-> `docs/changes/21/03-verification.md`。
+> 基础设施 as-built 起点为 2026-07-11；本册当前状态已按 Issue #21（2026-08-04 完成）和
+> Issue #35（2026-08-09 最后回读）收口。环境事实会漂移，执行操作前仍须实时只读核对；历史细节见
+> `docs/changes/21/03-verification.md` 与 `docs/changes/35/03-verification.md`。
 
 ## 1. 拓扑与端口总表
 
-2026-08-02 删除 Gate 前的 OrbStack 只读 baseline 有三台 Ubuntu arm64 machine：
+最后一次完整 host-role 收口证据区分两台保留机器与一台已退役机器：
 
 | Machine | 域名 / IP | 当前合同与状态 |
 |----|-----------|------|
-| `gitea-ci` | gitea-ci.orb.local / 192.168.139.49 | 目标 role=`scm-ci`：Gitea + Runner + 受控 CI/CD 辅助服务；历史业务 runtime 尚待逐项 Gate 收口 |
-| `AppServer` | AppServer.orb.local / 192.168.139.212 | role=`appserver-test` 候选；每个应用仍须在自己的 Issue/PR 中部署和验收 |
-| `prod-sim` | prod-sim.orb.local / 192.168.139.234 | 早期彩排 VM；已获精确删除授权，但 AC-10/AC-11 通过前仍是 live，不能写成 retired |
+| `gitea-ci` | gitea-ci.orb.local / 192.168.139.49（历史地址） | role=`scm-ci` 已配置；保留 Gitea、Runner、受控缓存/通知/CI 资源，业务 runtime/DB/代理已按 Issue #21 收口 |
+| `AppServer` | AppServer.orb.local / 192.168.139.212（历史地址） | role=`appserver-test`；每个应用仍须在自己的 Issue/PR 中独立部署和验收 |
+| `prod-sim` | 历史地址 192.168.139.234 | 2026-08-04 已按 name+ID、依赖、数据和可重建 Gate 精确退役；不得再作为脚本目标 |
 
-| 端口（gitea-ci） | 2026-08-02 实时身份 | host-role 判定 |
+| 端口（gitea-ci） | Issue #21 最终证据 | host-role 判定 |
 |------|------|----------|
 | 3000 | Gitea 1.26.4 / `gitea.service` | KEEP：SCM |
 | 4873 | Verdaccio / `pm2-benque.service` | KEEP：批准的 CI cache |
 | 1025 / 8025 | Mailpit SMTP / Web UI | KEEP：批准的通知辅助服务 |
-| 5432(loopback) | PostgreSQL；`gitea`、`hsdb_ci` 及遗留 `app_test` | `gitea`/`hsdb_ci` KEEP；业务 DB 必须逐对象 Gate |
-| 3100 / 8091 | `rsdesign-new@49033a12...` + Nginx | MIGRATE：AppServer healthy/数据/回滚验收和人工 Gate 后才可停止 |
-| 3212 | `act_runner.service` cgroup 内、cwd 已删除的 `sfm-board` | REMOVE candidate：先在应用仓修复 cleanup，再按 PID/cgroup Gate 终止 |
-| 8090 | MyApp Notes 静态入口，API 当前 502 | RETIRE candidate：vhost/runtime/DB/制品分别备份、查引用并获授权 |
-| 6379(loopback) | Redis，当前 keyspace 无 DB 条目 | REMOVE candidate：无引用、连接和数据证据通过后另行授权 |
+| 5432(loopback) | PostgreSQL 保留 `gitea`、`hsdb_ci`；遗留 `app_test` 已备份、恢复验证并删除 | KEEP 仅限批准的 SCM/CI 数据；新业务 DB 拒绝 |
+| 3100 / 8091 | 旧 `rsdesign-new` runtime/vhost 已删除，应用转至 AppServer | ABSENT；不得恢复为 `scm-ci` 业务入口 |
+| 3212 | 孤儿 smoke 进程与 15 个临时 DB 已精确清理，应用 cleanup 修复已合并/部署 | ABSENT；job 必须在成功、失败和取消路径清理 |
+| 8090 | MyApp runtime/vhost/DB 已备份、恢复验证并精确清理 | ABSENT；不得恢复历史演示部署 |
+| 6379(loopback) | Redis 无引用/连接/数据验证通过后已卸载并清理 | ABSENT；重新引入须新合同 |
 
 `scm-ci` 允许 checkout、build、test、package、registry/artifact publish、批准的缓存/通知
 服务和只读 retention inventory；application deploy/start、业务数据库、长驻 smoke 进程在
@@ -40,30 +40,30 @@ workflow、数据和引用。
 
 ## 2. 账号体系（权限隔离的落点）
 
-下表同时区分 live as-built 与 Issue #35 target。候选 PR 未人工合并、未执行 post-merge
-reconciliation 前，不得把 target 账号或权限写成已经存在。
+下表采用 Issue #35 最后一次 live reconciliation 与后续 broker 证据。账号、PAT 和 ACL 仍是外部状态，
+每次操作前必须通过 manifest 工具或 host access broker 重新读回。
 
 | 账号/角色 | 状态 | 位置 | 用途 | 关键约束 |
 |------|------|------|------|----------|
 | `admin` | live | Gitea | 人工 break-glass、用户/仓库引导、最终 PR merge | 唯一 merge identity；不用于日常 Agent Git/API |
-| `ci-bot` | live legacy | Gitea | 已有 analyzer / Loop profile 的 API 与 feature Git | 精确 Write、无 Admin/merge；新项目不再接入；每个 project agent 真实验收后才逐仓库退出 |
-| `aisoft-platform-manager` | Issue #35 target，`NOT RUN` | Gitea | 跨项目读取 settings/protection/Actions，执行已批准 reconciliation | 不是 site admin；仅显式 9 仓库 Admin；audit/mutation PAT 分离；不得普通 Git 或 merge |
-| `<project>-agent` | Issue #35 target，`NOT RUN` | Gitea | 仅本项目 Issue/branch/commit/push/PR | 精确 Write；唯一项目绑定；不得跨项目 Write/Admin，不得 push/merge `main` |
+| `ci-bot` | 账号保留、manifest 仓库 collaborator 已移除 | Gitea | 仅作历史兼容证据 | 不得用于新接入、普通项目 Git/API 或 merge |
+| `aisoft-platform-manager` | live，Issue #35=`deployed` | Gitea | 跨项目读取 settings/protection/Actions，执行明确批准的 reconciliation | 不是 site admin；仅显式 9 仓库 Admin；audit/mutation PAT 分离；不得普通 Git 或 merge |
+| `<project>-agent` | live，9 个 manifest 项目逐一验证 | Gitea | 仅本项目 Issue/branch/commit/push/PR | 精确 Write；唯一项目绑定；不得跨项目 Write/Admin，不得 push/merge `main` |
 | `git` | live | VM 系统用户 | 跑 Gitea 进程 | 不承载 Agent 或部署身份 |
 | `gitea-runner` | live | VM 系统用户 | 跑 act_runner、构建/测试与制品发布 | 不持有平台 manager、项目 PAT 或生产管理员权限，不长期运行业务应用 |
 | `coder` | live | VM 系统用户 | 跑 analyzer/controller | 每项目 mode 600 profile/credential/state/worktree 分离；当前 Loop 未普遍启用 |
 | `benque` / platform operator | live | VM 默认用户 | 本地平台引导与运维 | 只在 purpose-built 工具和明确批准中使用 sudo/admin credential；不作为项目 deploy identity |
 | `<project>-deploy` | 每应用部署 Change target | AppServer/公司服务器 | 只操作本项目 release/runtime/data/service | 不跨项目，不复用 Gitea PAT；生产仍只运行已验证脚本且无 AI 登录 |
 
-> 🕳️ 踩坑 #8：**Gitea 管理员创建的用户默认 `must_change_password=true`**——改密前该用户所有 API 返回 403（正文 "You must change your password"）。解法：`PATCH /api/v1/admin/users/{u}`，body 带 `{login_name, source_id, must_change_password:false}`。
->
-> 🕳️ 踩坑 #7：**token 管理端点只认 basic auth**。给他人签发：`curl -u "admin:密码" -H "Sudo: ci-bot" -X POST .../api/v1/users/ci-bot/tokens`。
+> 🕳️ 踩坑 #8：Gitea 1.26.4 的 bot 创建流程可能留下 `must_change_password=true`，导致 API 403。
+> 当前只能通过 versioned `bootstrap-gitea-service-account.sh` 和精确 readback 处理；不得复制历史 raw
+> admin API/token 命令或在 argv 中传凭据。完整边界见 [06 §1.2](06-运维手册与踩坑集.md#12-gitea-governance-manifest-与-project-agent-gate)。
 
 ## 3. Gitea（安装要点 + as-built 配置）
 
 - 单二进制 `/usr/local/bin/gitea`（1.26.4），systemd 托管，数据 `/var/lib/gitea`，DB 用本机 PostgreSQL（`gitea` 库）。
 - Actions 默认启用（1.21+）。
-- 仓库 `admin/rsdesign-new`：2026-08-08 live 仍公开，Issue #35 target 为 private；默认分支 `main`；**分支保护**：
+- 仓库 `admin/rsdesign-new`：Issue #35 live reconciliation 后为 private；默认分支 `main`；**分支保护**：
   - 禁止直接 push（对所有人生效，含 admin——一切走 PR）
   - 必须状态检查通过：context = `CI / test (pull_request)`
 - 当前 canonical manifest 定义 17 个规范标签，分为三个正交维度：
@@ -71,9 +71,10 @@ reconciliation 前，不得把 target 账号或权限写成已经存在。
   - 两个复杂度标签：`complexity/small`、`complexity/complex`；由 AI 判定有效路径，无法安全判级时两个都不写。
   - 八个流程状态标签，其中 `completed` 表示合并且无需部署，`deployed` 表示部署验证完成。
 - 2026-07-15 的初始 16-label 在线复验为 `created=0 existing=16`；Issue #19 后续把 canonical taxonomy 扩展为 17 个。标签属于可漂移的 Gitea 外部状态，后续操作前必须重新同步并 GET 验证。
-- 上述结果只证明 taxonomy 已创建且 Issue #8 标签可写；当前 VM 的 v2 wrapper 尚未消费新字段，Development Loop runtime routing 仍未启用。
-- Issue #35 发布前，`ensure-gitea-collaborator.sh` 的固定 `ci-bot` + `write` 只服务已有 profile
-  的迁移兼容。发布后新项目必须先进入 strict governance manifest，再创建唯一 project agent，
+- taxonomy 与 runtime source 已支持当前字段；每个仓库的 live 标签集合仍须单独同步并 GET 回读，
+  `IMPLEMENT_PROVIDER=none` 的默认值也不得因 source 能力存在而推定为已启用。
+- Issue #35 live reconciliation 后，共享 `ci-bot` 已退出 manifest 仓库 collaborator。新项目必须先进入
+  strict governance manifest，再创建唯一 project agent，
   使用 `gitea-governance.sh check` 做只读 diff，最后以 exact repository 单次 apply；未知仓库只
   report。manager/agent/visibility/protection 任一读回失败均为 `BLOCKED_EXTERNAL`。
 - visibility policy：默认 private；当前 public allowlist 只能是 `admin/aisoft-platform`、
@@ -103,7 +104,7 @@ FROM = "RSDesign Gitea" <gitea@rsdesign.local>
 - 注册 token 可命令行生成：`sudo -u git gitea --config /etc/gitea/app.ini actions generate-runner-token`。
 - 工作区在 `/opt/act-runner/.cache/act/<hash>/hostexecutor`，**每个 workflow 一个哈希目录、跨 run 复用**（checkout 会清理）。
 - host executor 的成功、失败和取消路径都必须断言无残留业务 PID、监听端口、临时 DB 或
-  deleted cwd；job 结束后仍在线的 `sfm-board:3212` 是失败证据，不是部署。
+  deleted cwd；历史 `sfm-board:3212` 已清理，其 Change 只作为此门禁的回归证据。
 
 ## 5. Verdaccio（弱网救星）
 
@@ -144,8 +145,8 @@ set -e
 ```
 
 负向 guard 只证明 mutation 会在入口前被拒绝；它不替代 listener/process/database inventory。
-最终验收还必须证明 `3100/3212/8090/8091` 等业务入口已按各自 Gate 收口，以及
-Gitea、Runner、Verdaccio、Mailpit、HSDB CI 和有效制品消费仍正常。
+Issue #21 已证明当时 `3100/3212/8090/8091` 等业务入口收口，并回读 Gitea、Runner、Verdaccio、
+Mailpit、HSDB CI 和有效制品消费。重建或后续运维仍须重新验证，不能把 2026-08-04 证据当作永久健康。
 
 ## 8. Versioned host profile 与 guard
 
@@ -166,7 +167,7 @@ live profile 固定为 `/etc/aisoft/host-profile.json`，必须由 root 持有�
 
 guard 只给决定，不执行后续命令。应用仓库的 root-owned deploy/start/database wrapper
 必须先调用固定安装路径，并仅在退出码 0 时继续；测试中的 fixture 注入不属于安装 CLI
-接口。安装候选不表示已配置 live profile，更不表示服务已经迁移或部署。
+接口。source 或 installer 存在不表示目标主机已配置 live profile，更不表示服务已经迁移或部署。
 
 ## 9. Windows 与公司内网目标边界
 

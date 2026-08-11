@@ -1,6 +1,6 @@
 # 04 · Matt skills 与 Development Loop 编排
 
-> v3.3 source candidate（2026-08-08）。Issue #57 使用完整 Matt Pocock skills 作为开发编排层；共享 controller 继续承担平台治理、确定性验证和远端 mutation。本候选必须经最终 PR 人工合并后才成为仓库基线。
+> v3.4 source baseline（更新 2026-08-11）。Issue #57/#60 已把完整 Matt Pocock skills 与根级路由合并为开发编排层；Issue #75 已统一 readable Change 名称。共享 controller 继续承担平台治理、确定性验证和远端 mutation；每项目启用、CI 和部署仍分别验收。
 
 ## 1. 设计原则
 
@@ -19,7 +19,7 @@
 |---|---|---|
 | `provider-poll.sh` | 共享 analyzer/controller poller，provider 默认显式选择 | 不保存项目坐标；只读取当前 profile 指定的 env |
 | `project-poll.sh` | 中央 source 已实现 | 校验 profile 名和 mode 400/600，为 state/worktrees 增加项目 namespace，再调用共享 poller |
-| Codex analyzer/controller | synthetic 与一个 real complex pilot 通过 | 作为通用 candidate；不因一个 pilot 通过而自动启用其他仓库 |
+| Codex analyzer/controller | source 已发布；synthetic 与一个 real complex pilot 通过 | 作为通用 baseline；不因一个 pilot 通过而自动启用其他仓库 |
 | Claude adapter | `claude-provider.sh` / `claude-analyzer.sh` / `analyze-claude.sh` 已在中央 source，parity 测试通过 | 与 Codex 共用 controller、verifier、状态与终态；默认 `IMPLEMENT_PROVIDER=none`，启用仍需项目级验收 |
 | `aisoft-agent@.service/.timer` | 中央 source 提供禁用模板 | 安装不 enable/start；每个项目验收后由人显式启用对应 instance |
 
