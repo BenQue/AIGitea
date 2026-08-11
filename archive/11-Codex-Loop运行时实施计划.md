@@ -3,6 +3,7 @@
 > **归档资料：** 本文件记录 provider-neutral Loop 的首轮实施过程，不是当前执行计划。当前 source、
 > provider 与启用边界见 [04](../04-Agent编排与定时任务.md) 和
 > [08](../08-Codex双工具共存与实施.md)；正文命令、测试数字和状态不得直接当作当前事实。
+> 文中 checkbox 是 2026-07-16 的进度快照、不是当前待办，任何 agent 不得据此重跑任务。
 >
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

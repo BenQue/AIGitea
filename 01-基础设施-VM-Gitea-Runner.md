@@ -66,7 +66,7 @@ workflow、数据和引用。
 - 仓库 `admin/rsdesign-new`：Issue #35 live reconciliation 后为 private；默认分支 `main`；**分支保护**：
   - 禁止直接 push（对所有人生效，含 admin——一切走 PR）
   - 必须状态检查通过：context = `CI / test (pull_request)`
-- 当前 canonical manifest 定义 17 个规范标签，分为三个正交维度：
+- 当前 canonical manifest 共定义 24 个规范标签：平台三维 17 个（下列三个维度），加 Matt triage 维度 7 个 `triage/*`（category 2 个 + state 5 个，语义见 03 §4 与 `templates/docs/agents/triage-labels.md`）：
   - 七个类型标签：`type/bugfix`、`type/feature`、`type/docs`、`type/test`、`type/refactor`、`type/maintenance`、`type/platform`。
   - 两个复杂度标签：`complexity/small`、`complexity/complex`；由 AI 判定有效路径，无法安全判级时两个都不写。
   - 八个流程状态标签，其中 `completed` 表示合并且无需部署，`deployed` 表示部署验证完成。
