@@ -77,27 +77,26 @@ Before inspecting a private repository, Issue, PR, Actions run, branch protectio
 - Use an existing authenticated browser session as a read-only fallback when the helper is unavailable or UI evidence is required.
 - Report network, credential availability, repository ACL, and object existence as separate facts.
 
-Treat every request, defect, or platform change as a Gitea Issue `N` linked to `change/N`, `docs/changes/N/`, and a final PR with `Closes #N`.
+Treat every new request, defect, or platform change as a Gitea Issue `N` bound to one immutable readable tuple: branch `change/N-short-description`, semantic directory `docs/changes/N-short-description/`, worktree basename `issue-N-short-description`, and one final PR with `Closes #N`. The Issue number remains the unique key; the shared slug is for humans. Pre-#57 numeric names (`change/N`, `docs/changes/N/`, `00-summary.md`…`03-verification.md`) are evidence-derived read/maintenance compatibility only — never new-writer targets.
 
-- Require `00-summary.md` for every Issue.
+- Require a mapped `summary` document for every Issue. New documents use `<role>-<short-description>-<YYMMDD>.md`; the summary front matter's `documents` field maps `summary`/`spec`/`plan`/`verification` roles to real basenames. Resolve them with `python3 -m aisoft_loop.cli resolve-documents N --repo <checkout>`, never with a broad glob.
 - Treat `type/*` labels as Issue-author inputs describing what the change is; AI verifies or corrects one primary type from repository evidence.
 - Treat `complexity/*` labels as AI classification outputs describing which path is required, never as an Issue-author override of contract impact or forced risk.
-- Treat the eight unprefixed lifecycle labels as workflow state, separate from type and complexity. `completed` means merged with no deployment required; `deployed` requires deterministic deployment and verification.
+- Treat the eight unprefixed lifecycle labels as workflow state, separate from type and complexity. `completed` means merged with no deployment required; `deployed` requires deterministic deployment and verification. The Matt triage dimension (`triage/*`: 2 category + 5 state labels; 24-label manifest in total) is orthogonal to all three, and `triage/ready-for-agent` never substitutes for platform `approved`.
 - Classify contract impact first: `restore`/`unchanged` is only a `small` candidate, `add`/`change` is `complex`, and `unclear` requires human triage.
 - Route a clear, local, reversible restore/unchanged change with no forced risk as `small`; route feature/functional behavior, schema/data, external contract, security, shared core, cross-module/service, CI/artifact/deployment/rollback, and Agent/platform governance changes as `complex`.
 - Respect an explicit complex request, but never let a requested small value bypass AI validation or forced-complex rules.
-- Require `01-spec.md` plus `02-plan.md` for effective complexity `complex`; do not create ceremonial spec/plan for validated `small` work.
-- Require `03-verification.md` for deployment and migration work.
+- Require mapped `spec` plus `plan` documents for effective complexity `complex`; do not create ceremonial spec/plan for validated `small` work.
+- Require a mapped `verification` document for deployment and migration work.
 - Treat `approved` as permission to start the Development Loop, not permission to merge or deploy.
 - Keep final PR merge as the only delivery gate.
 
-Use the narrow skill for the task:
+The primary per-Issue development path is the complete Matt workflow behind the platform adapter: initialize with `$aisoft-matt-workflow` (which chains `$setup-matt-pocock-skills` with the `templates/docs/agents/` tracker/triage/domain files), then run `$triage #N` → `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`. Platform-validated `small` work may skip spec/plan only after triage, mapped summary, classification, and `approved` revalidation.
 
-- `$gitea-analyze-change` for read-only evidence analysis and effective complexity classification.
-- `$gitea-spec-plan` for complex document-only planning.
-- `$gitea-development-loop` for repeated implement-verify-repair work.
-- `$gitea-implement-change` only for one controller-bounded implementation pass.
-- `$gitea-platform-ops` for platform evidence, first non-production deployment, incidents, and rollback.
+The `gitea-*` skills are compatibility adapters, not a second development method:
+
+- `$gitea-analyze-change`, `$gitea-spec-plan`, `$gitea-development-loop`, `$gitea-implement-change` remain only for Gitea label projection, semantic document resolution/publication, Controller integration, and legacy callers.
+- `$gitea-platform-ops` stays independent for platform evidence, first non-production deployment, incidents, and rollback.
 
 ## Preserve the Development Loop boundary
 
