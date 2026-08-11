@@ -119,8 +119,12 @@ GITEA_BOT_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
 
 在仓库加入：
 
-- 项目真实命令和禁令对应的 `AGENTS.md`。
-- 一行 `@AGENTS.md` 的 `CLAUDE.md`。
+- 从平台 `templates/project/AGENTS.md` 复制并按项目填充的 `AGENTS.md`（前两节为平台常驻
+  指针，除更新事实外不删改；「项目事实」节写真实命令、健康端点、交付形态与禁改边界——
+  交付形态由本项目 delivery profile 决定，平台只统一流程不变量，不强制统一部署方案）。
+- 从 `templates/project/CLAUDE.md` 复制的一行 `@AGENTS.md`。
+- 已接入的存量仓库回补同一指针：逐仓独立 Issue + 小 PR（经该仓 project-agent 通道），把
+  AGENTS.md 对齐模板前两节；不得批量脚本改写全部仓库。
 - 从平台仓库 `templates/docs/changes/_template/` 复制 `summary.md`、`spec.md`、`plan.md`、`verification.md` 四个语义模板。新 change 文档实名使用 `<role>-<short-description>-<YYMMDD>.md`，并在 summary front matter 的 `documents` 字段把 `summary`/`spec`/`plan`/`verification` 显式映射到真实 basename；`00-summary.md` 等纯数字名仅作 pre-#57 legacy 读取兼容，不得作为新写入目标。
 - Matt 编排初始化：显式调用 `$setup-matt-pocock-skills`，tracker 选 `Other`，使用平台 `templates/docs/agents/issue-tracker.md`、`triage-labels.md`、`domain.md` 三件套（经 `$aisoft-matt-workflow` 校验平台边界后执行），不得另建第二套 Gitea 模板。
 - lockfile、包管理源和固定运行时版本。
