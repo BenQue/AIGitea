@@ -98,6 +98,11 @@ git submodule status --recursive
 | C-10 | manifest 中 Change ID、commit SHA、RID 和 migration 正确 | NOT RUN | |
 | C-11 | 制品不包含 Secret、环境地址和构建缓存 | NOT RUN | |
 | C-12 | Gitea Package 相同版本不能被静默覆盖 | NOT RUN | |
+| C-13 | 项目 `.aisoft/architecture.json` 与 `architecture.lock.json` 在基线内，lock 自校验通过 | NOT RUN | |
+| C-14 | manifest 的 `architecture_profile_id`/`catalog_revision`/lock checksum 与 lock 精确一致 | NOT RUN | |
+
+Linux/Docker 项目的构建与部署验收不使用本清单，走各自 delivery profile 的门
+（`docker-release/` 合同与 13 §0）；本清单聚焦 Windows/IIS/ZIP 链路。
 
 ## 6. Gate D：Windows 测试部署
 
