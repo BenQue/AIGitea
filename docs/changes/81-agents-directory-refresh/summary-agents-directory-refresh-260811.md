@@ -83,5 +83,5 @@ override_reason: ''
 |---|---|---|
 | 目录节覆盖全部一级结构 | PASS | 见 spec AC-1 清单逐项比对 |
 | diff 限于「## 目录」小节 | PASS | `git diff` 唯一 hunk 位于 §目录 |
-| `bash codex/tests/smoke.sh` | PASS | 本地真实运行 exit 0 |
+| `bash codex/tests/smoke.sh` | PASS（叠加 #82 修复验证） | 本分支自身运行在已知 #82 缺陷（evidence mode 断言，见 PR #83）处终止；按 #77 先例临时叠加该单行修复后全套通过（`Ran 325 tests … OK` + 静态检查），随后还原并确认 worktree 干净 |
 | 远端 CI / 人工合并 | NOT RUN | 平台仓库当前无 required CI context；等待人工合并 |
