@@ -430,10 +430,11 @@ final_evidence_sha256='b58bb7b57d53a104f922e66c7dc1342bc1b5b133038f60fa8f2ace8d8
 post_evidence=0
 delivery_base_sha="$source_sha"
 if [[ -e "$final_evidence_path" || -L "$final_evidence_path" ]]; then
+  # Git preserves only the executable bit, so a fresh checkout cannot hold a
+  # committed mode of 444; byte immutability is enforced by the exact sha256.
   [[ -f "$final_evidence_path" && ! -L "$final_evidence_path" && \
-    "$(file_mode "$final_evidence_path")" == "444" && \
     "$(sha256_file "$final_evidence_path")" == "$final_evidence_sha256" ]] ||
-    fail 'Issue #65 final evidence bytes or mode are invalid'
+    fail 'Issue #65 final evidence bytes are invalid'
   jq -e --arg source_sha "$source_sha" '
     .result == "PASS" and .source.sha == $source_sha and
     .versions == {engine:"29.7.1",compose:"5.1.4",containerd:"2.2.6",os:"linux",architecture:"amd64",image_store:"containerd"} and
