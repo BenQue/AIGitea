@@ -1,5 +1,9 @@
 # Codex-first Development Loop 运行时实施计划
 
+> **归档资料：** 本文件记录 provider-neutral Loop 的首轮实施过程，不是当前执行计划。当前 source、
+> provider 与启用边界见 [04](../04-Agent编排与定时任务.md) 和
+> [08](../08-Codex双工具共存与实施.md)；正文命令、测试数字和状态不得直接当作当前事实。
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 完成 Phase D3 文档迁移，并实现、测试和非生产验证 provider-neutral Development Loop；Codex 全矩阵通过后才进入 Claude Code adapter 适配。

@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.4（readable change-name contract candidate）｜ 更新：2026-08-10 ｜ 状态：**Issue #75 正在统一 `change/N-short-description` 命名并保持证据驱动的 legacy 兼容；最终 PR 仍只由人合并**
+> 版本：v3.4（readable Change contract baseline）｜ 更新：2026-08-11 ｜ 状态：**protected `main` 已包含 Issue #75 的 `change/N-short-description` 合同并保留证据驱动的 legacy 兼容；任何新 Change 仍须经唯一 PR 与人工合并**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 
@@ -8,10 +8,10 @@
 
 ---
 
-## 1. 当前状态（2026-08-10）
+## 1. 当前状态（2026-08-11）
 
 - ✅ 基础设施核心：`gitea-ci` 上的 Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
-- ✅ 主机职责隔离候选：versioned host profile、capability catalog 和 fail-closed guard 已实现；Issue #21 已完成 `gitea-ci` 历史业务 runtime/DB/代理的逐项迁移或清理及 live post-check，等待最终 PR 人工合并
+- ✅ 主机职责隔离：Issue #21 已人工合并并以 `completed` 关闭；versioned host profile、capability catalog 和 fail-closed guard 已实现，`gitea-ci` 历史业务 runtime/DB/代理已逐项迁移或清理并完成 live post-check
 - 🟡 流水线：PR CI、构建和不可变制品链已验证；历史“合并 main 后在 `gitea-ci` 启动测试应用”仅作 as-built 证据，新接入必须部署到独立 `appserver-test`
 - ✅ Legacy 制品收口：`gitea-ci:/opt/artifacts` 只保留 AppServer current 对应的 `rsdesign-new-3323ab...tar.gz`；9 个可由 Gitea commits 重建且无引用的旧版本已按精确路径删除，Gitea repositories 与 AppServer 未修改
 - ✅ `prod-sim`：Issue #21 两轮 name+ID/依赖/唯一数据/可重建检查与所有者 disposition 完成后，仅以 `orb delete --force prod-sim` 精确退役；`gitea-ci` 与 AppServer paired health 保持通过
@@ -20,15 +20,15 @@
 - ✅ Codex 基础：CLI、认证、skills、AGENTS、sandbox、provider router 已通过 VM 基础验收
 - 🟡 Matt 开发编排层：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在当前 exact change branch 本地提交，Controller 才能 push/建 PR/读取 CI，合并仍只由人操作
 - ✅ Gitea 身份与可见性：Issue #35 已在本机 OrbStack 标记 `deployed`；1 个非 site-admin manager、9 个单项目 agent 与 11 个最小 scope PAT 已完成幂等验证，public 精确为 `aisoft-platform`/`myapp`/`smoke-test`，其余 6 个 private，9 个 `main` 只允许人工 `admin` 合并；真实 Issue/label/Git/PR 正反向验证 9/9 `PASS`，共享 `ci-bot` 已从全部 manifest 仓库移除 collaborator 权限但账号保留
-- 🟡 Host access broker：Issue #61/#67/#70/#73 已建立 strict typed Issue/PR mutation、manifest-fixed remote、独立 worktree exact change-ref push、repo-external project-scoped protected-file credential boundary与逐项目 fail-closed onboarding readback。Issue #75 candidate 增加 readable ref、同 Issue 唯一性和 legacy evidence gate；Mac runtime 不访问 Keychain，最终 merge 仍只由人工 `admin` 执行
+- ✅ Host access broker source：Issue #61/#67/#70/#73/#75 均已进入 protected `main`，提供 strict typed Issue/PR mutation、manifest-fixed remote、readable exact change-ref push、repo-external project-scoped credential boundary、同 Issue 唯一性与逐项目 fail-closed onboarding readback；Mac runtime 不访问 Keychain，merge surface 仍为 0，最终 merge 只由人工 `admin` 执行。已安装 bytes 和每个下游项目 adoption 仍须独立读回，不能由 source 合并推定
 - ✅ Claude adapter（Issue #1）：与 Codex 共用 controller/verifier/状态/终态，17 项 parity 测试通过；默认仍 `IMPLEMENT_PROVIDER=none`，真实 VM pilot 未做
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
 - 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为 real complex pilot。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
 - ✅ Windows 目标设计：IIS + ASP.NET Core + React `wwwroot` 单制品、PostgreSQL、测试 OpenSSH、生产 SMB + Kerberos WinRM + JEA 的合同已确认
 - ✅ 迁移目标设计：本地 Gitea 原型结果一次性交付公司 Gitea；不迁移 Issue/PR；GitHub 只保留本地镜像，与公司无关
 - ✅ Windows 快速原型设计：Apple Silicon Mac 使用 VMware Fusion + Windows 11 ARM 调试架构无关部署脚本；不替代 Server 2022 x64 和公司 AD 验收
-- 🟡 Linux Docker release contract（Issue #22 candidate）：提供 strict manifest/profile、Registry/offline transports、host-role preflight 和 deterministic deploy/status/rollback；当前只有 fake Docker 与 installer 证据，未安装/启动 Docker daemon，未执行真实 migration、AppServer 部署或 production promotion
-- ✅ Docker offline V2（Issue #27 candidate）：四类 image identity、release-scoped tag、strict V2 inventory/archive、Engine/Compose/image-store capability gate 与 fake tests 已完成；两个独立 disposable Engine 29 containerd daemon 的 Registry push/pull、save/load、offline pull rejection、Compose `--pull never --no-build`、identity/health 和 exact cleanup E2E 已 `PASS`，containerd row 为 `supported`；classic 没有同等级真实证据，继续 `rejected`。该证据不是 NewEmaint、AppServer 或 production 部署
+- 🟡 Linux Docker release source（Issue #22 已合并）：提供 strict manifest/profile、Registry/offline transports、host-role preflight 和 deterministic deploy/status/rollback；合同已进入 source，但具体业务 Registry/AppServer 与 production promotion 仍未验收
+- ✅ Docker offline V2 source/evidence（Issue #27 已合并）：四类 image identity、release-scoped tag、strict V2 inventory/archive、Engine/Compose/image-store capability gate 与 fake tests 已完成；两个独立 disposable Engine 29 containerd daemon 的 Registry push/pull、save/load、offline pull rejection、Compose `--pull never --no-build`、identity/health 和 exact cleanup E2E 已 `PASS`，containerd row 为 `supported`；classic 没有同等级真实证据，继续 `rejected`。该证据不是 NewEmaint、AppServer 或 production 部署
 - ✅ Docker release 分阶段职责与Compose 5.1.4 evidence（Issue #58/#65）：artifact-only verification、read-only target readiness、独立 stage/migrate/activate、state v2 receipt 与 fixed action gate已由两个task-owned disposable Engine 29.7.1/containerd daemon、Compose 5.1.4及disposable PostgreSQL migration真实验证；matrix仅支持exact Engine `[29.7.1,29.7.2)`/Compose `[5.1.4,5.1.5)` row。v1 legacy CLI保持兼容；本状态不表示已部署到NewEmaint、AppServer或production
 - ⏸️ 待办：Windows Server 2022 x64 原型、内网 Runner/依赖缓存、迁移演练、生产 JEA 彩排与 [14](14-Windows部署与迁移验收清单.md) 全量验收
 
@@ -49,7 +49,7 @@ flowchart TB
     subgraph VM1["🖥️ gitea-ci · role=scm-ci"]
         GITEA["Gitea 1.26.4<br/>仓库/issue/PR/Actions"]
         RUNNER["act_runner(host 模式)<br/>checkout/build/test/package"]
-        AGENT["coder 用户<br/>自动分析 + Development Loop（候选已安装，自动实现关闭）"]
+        AGENT["coder 用户<br/>自动分析 + Development Loop（禁用式安装已验证，自动实现关闭）"]
         VERD["Verdaccio<br/>npm 缓存"]
         MAIL["Mailpit<br/>邮件捕获"]
         ART["不可变制品<br/>checksum + 引用保护"]
@@ -77,7 +77,7 @@ flowchart TB
 
 上图是新项目与收口后的强制职责合同，不是对当前 live 状态的虚假描述。Issue #21 的
 `03-verification.md` 分别记录 `gitea-ci` 历史 runtime、AppServer 迁移、数据清理和
-`prod-sim` 退役是否 `PASS`、`BLOCKED` 或 `NOT RUN`。
+`prod-sim` 退役的最终 `PASS` 证据；后续环境健康仍须重新只读核对。
 
 ## 3. 核心设计原则（不可妥协项）
 
@@ -132,7 +132,7 @@ sequenceDiagram
     end
 ```
 
-**实施状态**：AI 自动分析仍可用；共享 Codex Development Loop 候选已完成 synthetic、临时 HOME、VM 禁用式安装和 rsdesign-new real complex pilot，PR #9 已由人合并，合并后两个测试入口健康。该 pilot 只证明通用 controller 能在一个应用工作，不把平台绑定到该仓库。每个目标项目由独立 profile 指定 Gitea 坐标、clone、provider、state 和 worktrees，默认 `IMPLEMENT_PROVIDER=none`。AISoftPlatform 是文档、模板、skills 与 runtime source 仓库，本身不需要应用部署流水线。Claude Code Loop 和生产相关自动操作仍未启用。
+**实施状态**：AI 自动分析仍可用；共享 Codex Development Loop source 已完成 synthetic、临时 HOME、VM 禁用式安装和 rsdesign-new real complex pilot，PR #9 已由人合并，合并后两个测试入口在当次验收中健康。该 pilot 只证明通用 controller 能在一个应用工作，不把平台绑定到该仓库。每个目标项目由独立 profile 指定 Gitea 坐标、clone、provider、state 和 worktrees，默认 `IMPLEMENT_PROVIDER=none`。AISoftPlatform 是文档、模板、skills 与 runtime source 仓库，本身不需要应用部署流水线。Claude Code real Issue pilot 和生产相关自动操作仍未启用。
 
 平台标签采用三个正交维度：七个 `type/*`、两个 `complexity/*` 和八个 lifecycle，共 17 个；Matt 另加两个 `triage/*` category 与五个 `triage/*` state。source manifest 共 provision 24 个标签，但 `triage/ready-for-agent` 不替代平台 `approved`。`completed` 与 `deployed` 互斥，任何接入仓库都必须独立同步并读回，不能把其它仓库状态当作平台全局状态。
 
@@ -149,39 +149,41 @@ sequenceDiagram
 | [07-内网与生产平移路线](07-内网与生产平移路线.md) | 原型孵化、结果迁移、权威源切换和 Linux/Windows 双目标 | 规划内网平移 |
 | [08-Codex-first 与双工具共存](08-Codex双工具共存与实施.md) | 共享 controller、Codex 验证矩阵、Claude parity 条件 | 接入或切换 provider |
 | [09-v3 文档改造规划](09-v3平台简化与Loop-Engineering文档改造规划.md) | v3 决策、影响矩阵、迁移顺序、回滚边界 | 审核或实施 v3 |
-| [10-AI Issue 判级与标签计划](10-AI-Issue判级与标签实施计划.md) | 判级、标签和 wrapper 实施记录 | 追溯 analyzer 设计 |
-| [11-Codex Loop runtime 计划](11-Codex-Loop运行时实施计划.md) | provider-neutral runtime 与验证计划 | 追溯 Loop 实现 |
+| [10-AI Issue 判级与标签计划（历史）](archive/10-AI-Issue判级与标签实施计划.md) | 2026-07 初始判级、标签和 wrapper 实施记录 | 仅作历史追溯 |
+| [11-Codex Loop runtime 计划（历史）](archive/11-Codex-Loop运行时实施计划.md) | provider-neutral runtime 首轮实施记录 | 仅作历史追溯 |
 | [12-Windows 自动部署方案](12-Windows平台自动部署方案.md) | IIS/.NET/React/PostgreSQL、制品、OpenSSH、SMB/WinRM/JEA | 建设 Windows 交付链 |
 | [13-结果迁移与内网切换手册](13-项目结果迁移与内网切换实施手册.md) | 不迁 Issue/PR 的结果基线迁移、重建和切换 runbook | 执行项目迁移 |
 | [14-Windows 部署与迁移验收](14-Windows部署与迁移验收清单.md) | 构建、部署、数据库、JEA、切换和灾备证据 | 正式上线验收 |
 | [15-Fusion Windows ARM 原型](15-VMware-Fusion-Windows-ARM原型实施手册.md) | Mac 预检、Fusion/Windows 11 ARM、OpenSSH/IIS 脚本调试和 x64 升级边界 | 本地快速原型 |
 | [12-Linux GitHub → Gitea 职责分离方案](12-Linux-GitHub-Gitea-双服务器自动部署方案.md) | GitHub 入站候选、内网 PR、`scm-ci`/测试/生产三角色目标合同 | 建设 Linux 内网交付链 |
 | [Architecture catalog V1](architecture/README.md) | strict JSON catalog、三个 profiles、项目 declaration/lock、例外与离线 provenance | 选择技术基线、审计项目或规划升级 |
+| [历史资料索引](archive/README.md) | 已被当前合同替代的方案、实施计划与 v2 一页 PDF | 追溯历史，不作为当前操作入口 |
 
 ## 6. 关键地址速查
 
 | 入口 | 地址 |
 |------|------|
 | Gitea | http://gitea-ci.orb.local:3000；`admin/rsdesign-new` 仅为现有 as-built/pilot 示例，实际目标由项目 profile 指定 |
-| 测试环境应用 | 由目标项目的 `appserver-test` profile 指定；`gitea-ci:8091` 只是 Issue #21 待迁移的 legacy 入口 |
+| 测试环境应用 | 由目标项目的 `appserver-test` profile 指定；历史 `gitea-ci:8091` 已在 Issue #21 收口，不得作为当前入口 |
 | Mailpit 收件箱 | http://gitea-ci.orb.local:8025 |
 | Verdaccio | http://gitea-ci.orb.local:4873 |
-| 凭据文件 | as-built：gitea-ci VM `~benque/gitea-ci-credentials.txt`（admin/ci-bot；600）；Issue #35 合并后由独立 mode 600 文件承载 manager audit/mutation 和每项目 PAT，互不复用 |
+| 凭据边界 | manager audit/mutation 与每项目 agent 使用 repo-external 独立 mode 600 protected credential；历史 admin/`ci-bot` 文件不是正常入口，凭据不得进入仓库、argv 或日志 |
 | Mac 工作克隆 | `~/Projects/rsdesign-new`（与 RSDesignTool monorepo 完全独立） |
 
 私有仓库检查不得从匿名 API 开始。先解析目标 project profile/remote，再按 [06 §1.1](06-运维手册与踩坑集.md#11-私有-gitea-的只读检查) 使用最小权限 profile、既有 Git credential、VM-local 管理员只读 helper 或已登录浏览器；`404`/`Repository not found` 在认证与 ACL 未核对前不构成“不存在”证据。
 
-Issue #61 已发布并完成 post-merge 安装；正常 host 访问统一使用
+Issue #61/#67/#70 的 broker 与 protected-file 修正已发布；Issue #73 的 manifest-fixed remote source
+已进入 protected `main`，逐项目安装/adoption 仍以各自 verification 为准。正常 host 访问统一使用
 `/usr/local/libexec/aisoft/host-access-broker`：调用方只传 `--project`、allowlisted `--operation` 和
 typed argument，target/identity/checkout/credential store 均来自 strict manifest。broker 自身失败且
 host/sandbox 真实状态仍矛盾时才允许 emergency 使用 `orbstack-access-diagnostics`；正常 Gitea/Git/VM
-验收不得先调用诊断技能。Issue #73 candidate 中，Git remote name 只能来自 manifest，调用方仍不能传
+验收不得先调用诊断技能。Git remote name 只能来自 manifest，调用方仍不能传
 remote/URL/refspec。项目 adoption 必须逐项目完成 `host.access.audit`、单独获批的 credential provision
 （仅当缺失）、`mac.git.bind`、`host.onboarding.check` 和 fresh-session typed canary；不得把静态 file
 metadata 或单层 `PASS` 写成端到端 `PASS`。
 
-Issue #35 发布前，固定 `ci-bot` + `write` collaborator gate 仅作为已有 profile 的兼容路径；
-不得继续用共享 bot 接入新项目。发布后必须以
+Issue #35 live reconciliation 已完成；共享 `ci-bot` 账号保留但已退出 manifest 仓库 collaborator。
+不得再用共享 bot 接入或维持项目。当前必须以
 [`codex/config/gitea-governance.json`](codex/config/gitea-governance.json) 的 exact repository 与
 project agent 为准：先只读 check，再一次处理一个明确仓库，回读 manager/agent 权限、visibility、
 `main` protection 和 merge allowlist。未知仓库只报告，不得扫描后批量授权、公开或修改。

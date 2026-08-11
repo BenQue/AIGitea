@@ -1,6 +1,6 @@
 # 08 · Matt 编排、Development Loop 与双工具共存
 
-> 版本：v3.3 source candidate ｜ 日期：2026-08-08 ｜ 状态：Issue #57 将完整 Matt Pocock skills 固定为开发编排层；provider-neutral runtime、项目 profile、确定性 verifier 与人工合并门保持平台所有。最终 PR 合并前不得称为 live baseline。
+> 版本：v3.4 source baseline ｜ 更新：2026-08-11 ｜ 状态：Issue #57/#60 已把完整 Matt Pocock skills 与根级路由合并为开发编排层，Issue #75 已统一 readable Change 名称；provider-neutral runtime、项目 profile、确定性 verifier 与人工合并门仍由平台控制。source 合并不等于任一项目已启用或部署。
 
 ## 1. 结论
 
@@ -22,7 +22,7 @@ Matt skills 提供完整开发编排语义，Codex 和 Claude Code 只替换模�
 
 ## 2. 共享契约
 
-- Issue 是主键；Issue #57 起所有新变更有映射的 `summary-<slug>-<YYMMDD>.md`，旧 Issue 保持 legacy basename。
+- Issue 是主键；新变更使用 `summary-<slug>-<YYMMDD>.md` 与同 slug 的 readable branch/directory，旧 Issue 保持证据驱动的 legacy basename/path。
 - small 可从明确 Issue 直接进入 Loop；complex 必须有映射的 `spec-*` 和 `plan-*`。
 - `approved` 启动 Loop，不授权合并或部署。
 - 单一 `change/N-short-description` 分支承载同 `(N, slug)` 的文档、代码、测试和最终 PR；legacy `change/N` 仅在已有证据下维护。
@@ -35,7 +35,7 @@ Matt skills 提供完整开发编排语义，Codex 和 Claude Code 只替换模�
 
 - 仓库根 `AGENTS.md` 是共享规范源；Claude 用 `CLAUDE.md` 导入，Codex 原生读取。
 - `~/.claude/`、`~/.codex/` 和 `~/.agents/skills/` 独立保存，不复制 token。
-- provider 使用专用 `coder` 用户和最小权限 ci-bot，不拥有 `main` 合并权。
+- provider 使用专用 runtime 用户和 manifest-declared project agent，不拥有 `main` 合并权；共享 `ci-bot` 已退出 manifest 仓库 collaborator，不得恢复为普通身份。
 - 两个 provider 不在同一 working tree 同时写；controller 为每个 Issue 分配隔离 worktree 和锁。
 - **⚠️ 上一条同样适用于「同一工具的多个交互式会话」**——规则的判据是 **working tree**，不是 provider。VM 侧由 controller 自动分配 worktree 已覆盖；**交互式路径（人在 Mac 克隆上同时开多个 Claude / Codex 会话，一 issue 一会话）没有任何分配者，是当前唯一裸露面**。共享 checkout 的 **HEAD 是全局可变状态**：A 会话 `git checkout` 会把 B 会话的 HEAD 一起带走，B 随后的 commit 落到 A 的分支上（2026-07-19 SFMDigitalBoard 实证，症状见 06 🕳️ 15）。
   **交互式路径纪律**：并行时非第一个会话必须自建 worktree（`git worktree add .claude/worktrees/<name> <branch>`，全程 `git -C <worktree>`）；任何 commit 前 `git branch --show-current` 必须等于目标分支。
@@ -51,7 +51,7 @@ Matt skills 提供完整开发编排语义，Codex 和 Claude Code 只替换模�
 - 静态 smoke 与目标目录安装脚本。
 - 五个阶段型 skills 和复合 skill 通过 `quick_validate.py`；Development Loop 普通失败返回 `CONTINUE`，缺 complex 合同并要求直改生产时返回 `NEEDS_HUMAN_DECISION`。
 
-本地 candidate 已完成：
+当前 source baseline 已完成：
 
 - provider-neutral Loop controller、state store、单 active Issue lock、deterministic verifier 和 Gitea adapter。
 - analyzer 从 `spec/N` 迁移到 readable `change/N-short-description`，wrapper 确定性校验 classification/slug 并独占标签 mutation。
@@ -65,7 +65,7 @@ Matt skills 提供完整开发编排语义，Codex 和 Claude Code 只替换模�
 - Issue #8 one-shot Loop 完成本地 `npm ci`、Prisma generate、unit tests、production build，并创建 PR #9。
 - PR #9 CI 通过，controller 返回 `READY_FOR_REVIEW`；controller 未自动合并或部署。之后由人合并，既有应用流水线完成测试部署，两个健康入口返回 `ok`。
 - 首次 VM 运行捕获 worktree 命令输出污染，中央提交 `bb0d5d5` 修复并增加 shell 回归后重装、重跑通过。
-- 通用 profile candidate 在 VM 一次性 HOME 连续安装两次，结果为 35 files / 7 scripts；未生成 profile 或凭据，`systemd-analyze verify` 通过两个 template。输出中的 Mailpit `nobody` 警告来自既有外部 unit，与候选无关。
+- 通用 profile installer 在 VM 一次性 HOME 连续安装两次，结果为 35 files / 7 scripts；未生成 profile 或凭据，`systemd-analyze verify` 通过两个 template。输出中的 Mailpit `nobody` 警告来自既有外部 unit，与该 smoke 无关。
 
 Claude adapter 已完成（Issue #1）：
 

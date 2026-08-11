@@ -1,6 +1,6 @@
 # 12 · Linux / GitHub → Gitea / 三角色职责分离自动部署方案
 
-> 目标方案（更新 2026-08-02；host-role 集成 2026-08-04）｜状态：**Docker-first 平台 candidate；真实 Registry、offline media 与 production 均未实施或验收**
+> 目标方案（更新 2026-08-11）｜状态：**Docker-first source 与 disposable Engine 29.7.1/containerd/Compose 5.1.4 lifecycle evidence 已进入 protected `main`；业务 Registry、业务 offline delivery、AppServer 与 production 仍未实施或验收**
 > 新 Linux 默认：OCI digest + Docker Compose；PM2 仅为已有应用的 legacy adapter
 > 网络约束：POC 开发机不能访问公司内网；安装 Gitea 的 `scm-ci` 服务器可以通过 HTTPS 访问 GitHub。
 

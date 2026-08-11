@@ -1,6 +1,6 @@
 # 03 · Issue / Spec / Plan 与单闸门开发流程
 
-> v3 当前文档契约（2026-08-08）。Issue 是所有工作的主键；小变更允许从明确的 Issue 直接进入 Development Loop，复杂变更必须先完成 spec/plan。最终 PR 合并是唯一交付硬闸门。Issue #57 起使用短主题与创建日期命名；更早的固定数字 basename 只作兼容读取。
+> v3 当前文档契约（更新 2026-08-11）。Issue 是所有工作的主键；小变更允许从明确的 Issue 直接进入 Development Loop，复杂变更必须先完成 spec/plan。最终 PR 合并是唯一交付硬闸门。Issue #75 已把 readable branch/directory 合同合并进 protected `main`；既有固定数字路径只作证据驱动的 legacy 兼容。
 
 ## 1. 绑定模型
 
@@ -142,9 +142,9 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
 
 ## 9. 当前实施状态
 
-- Issue #57 的 source candidate 已实现新旧文档 resolver、新 writer、Matt triage projector、frontier ticket 选择、Agent commit 后置校验和固定 upstream snapshot；合并前不宣称为 live active。
+- Issue #57/#60 已把文档 resolver、writer、Matt triage projector、frontier ticket、Agent commit 后置校验、固定 upstream snapshot 与根级路由合并进 source；Issue #75 又统一了 readable branch/directory/worktree/PR 绑定。
 - platform canonical taxonomy 仍为 17 个；Matt 增加 7 个 namespaced triage 标签，source manifest 共 24 个。外部状态可能漂移，部署到每个仓库前必须同步并 GET 读回。
-- 旧 Issue 与历史文档不重命名；Issue #57 起的新 writer 只产生语义 basename。
+- 旧 Issue 与历史文档不重命名；新 writer 只产生语义 basename，并从 Issue #75 起要求目录、branch、worktree 与同一 slug 一致。
 - Provider 默认仍为 `IMPLEMENT_PROVIDER=none`；每个项目必须在独立 profile 完成真实验收后才能启用。
 - `READY_FOR_REVIEW` 仍停止在人工 merge gate；本次治理变更不部署。
 ## 10. 依赖 Issue
