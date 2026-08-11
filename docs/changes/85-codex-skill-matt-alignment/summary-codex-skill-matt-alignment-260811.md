@@ -22,7 +22,7 @@ override_reason: ''
 depends_on: []
 status: ready-for-review
 branch: change/85-codex-skill-matt-alignment
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/86
 created: 2026-08-11
 updated: 2026-08-11
 ---
