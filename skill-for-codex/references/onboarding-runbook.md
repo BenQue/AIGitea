@@ -121,11 +121,12 @@ GITEA_BOT_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
 
 - 项目真实命令和禁令对应的 `AGENTS.md`。
 - 一行 `@AGENTS.md` 的 `CLAUDE.md`。
-- 从平台仓库 `templates/docs/changes/_template/` 复制 `00-summary.md`、`01-spec.md`、`02-plan.md`、`03-verification.md`。
+- 从平台仓库 `templates/docs/changes/_template/` 复制 `summary.md`、`spec.md`、`plan.md`、`verification.md` 四个语义模板。新 change 文档实名使用 `<role>-<short-description>-<YYMMDD>.md`，并在 summary front matter 的 `documents` 字段把 `summary`/`spec`/`plan`/`verification` 显式映射到真实 basename；`00-summary.md` 等纯数字名仅作 pre-#57 legacy 读取兼容，不得作为新写入目标。
+- Matt 编排初始化：显式调用 `$setup-matt-pocock-skills`，tracker 选 `Other`，使用平台 `templates/docs/agents/issue-tracker.md`、`triage-labels.md`、`domain.md` 三件套（经 `$aisoft-matt-workflow` 校验平台边界后执行），不得另建第二套 Gitea 模板。
 - lockfile、包管理源和固定运行时版本。
 - 能检查关键依赖的健康端点。
 
-所有 change 文档的共同 front matter 至少包含 `issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`pr_url`、`created` 和 `updated`。`00-summary.md` 另外保存 analyzer 的 `reason`、`required_docs` 和 `override_reason`；`needs-human-decision` summary 必须在 front matter 和 `## AI 判级` YAML 中都省略 `effective_complexity`，且不得创建 complex spec/plan。
+所有 change 文档的共同 front matter 至少包含 `issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`pr_url`、`created` 和 `updated`。映射的 `summary` 文档另外保存 analyzer 的 `reason`、`required_docs` 和 `override_reason`；`needs-human-decision` summary 必须在 front matter 和 `## AI 判级` YAML 中都省略 `effective_complexity`，且不得创建 complex spec/plan。
 
 ## 3. Mandatory host-role gate
 
@@ -216,7 +217,7 @@ Compose 5.1.4 同样需要同等级 disposable Engine 29/containerd consumer E2E
 - `/opt/artifacts` retention 先验证项目 allowlist、完整 SHA/checksum、引用、数量和期限，只
   输出 dry-run/audit ledger；删除另行授权。
 
-AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固化为脚本，连续运行两次，并故意制造一次失败验证回滚。把真实结果写入关联 Issue 的 `03-verification.md`。生产只执行验收后的脚本。平台 local fake PASS、安装候选或 PR CI 不能写成真实 AppServer/production deployed。
+AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固化为脚本，连续运行两次，并故意制造一次失败验证回滚。把真实结果写入关联 Issue 映射的 `verification` 文档。生产只执行验收后的脚本。平台 local fake PASS、安装候选或 PR CI 不能写成真实 AppServer/production deployed。
 
 ## 5. Gitea 治理
 
@@ -226,9 +227,10 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 - 建七个类型标签：`type/bugfix`、`type/feature`、`type/docs`、`type/test`、`type/refactor`、`type/maintenance`、`type/platform`。它们是 Issue 作者可提供、AI 按证据校验的变更类型输入。
 - 建两个互斥的复杂度标签：`complexity/small`、`complexity/complex`。它们是 AI 判级后的输出；无法安全判级时两者都不添加。
 - 建八个标签：`needs-analysis`、`awaiting-triage`、`spec-drafting`、`spec-review`、`approved`、`pr-open`、`completed`、`deployed`。
-- 使用单一 `change/N` 分支和最终 PR `Closes #N`。
+- 建七个 Matt triage 标签：`triage/bug`、`triage/enhancement`（category）与 `triage/needs-triage`、`triage/needs-info`、`triage/ready-for-agent`、`triage/ready-for-human`、`triage/wontfix`（state）；canonical manifest 共 24 个。`triage/ready-for-agent` 不等于平台 `approved`。
+- 新 Change 使用单一 `change/N-short-description` 分支和最终 PR `Closes #N`（编号仍是唯一主键，slug 只用于人类识别）；已存在于 remote/history 的 `change/N` 仅作证据驱动的维护兼容。
 
-三个维度正交：`type/*` 是变更类型输入，`complexity/*` 是 AI 有效复杂度输出，八个无前缀标签是生命周期状态。`needs-analysis` 触发 analyzer；`approved` 启动 Loop；`spec-review` 只是可选协作状态；`pr-open` 等最终 CI/review；`completed` 表示最终 PR 已合并且明确无需部署；`deployed` 表示确定性部署和验证完成。两个交付终态互斥。
+四个维度正交：`type/*` 是变更类型输入，`complexity/*` 是 AI 有效复杂度输出，八个无前缀标签是生命周期状态，`triage/*` 是 Matt 编排状态。`needs-analysis` 触发 analyzer；`approved` 启动 Loop；`spec-review` 只是可选协作状态；`pr-open` 等最终 CI/review；`completed` 表示最终 PR 已合并且明确无需部署；`deployed` 表示确定性部署和验证完成。两个交付终态互斥。
 
 ## 6. Analyzer 接入
 
@@ -238,7 +240,7 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 - 安装 `$aisoft-platform` 与 `$gitea-analyze-change`。
 - 先用低风险 Issue 验证：读取 evidence、输出五节 summary，并以 `change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`risk_flags`、`required_docs`、`confidence` 和 `override_reason` 确定性判级。
 - 用功能新增验证 `type/feature` 和 `effective_complexity: complex`；用信息不足的 Issue 验证 `needs-human-decision`、`contract_effect: unclear` 且不输出 `effective_complexity`。
-- Analyzer 不修改产品代码、Git 或 Gitea 标签/评论，不创建最终 PR、不部署；wrapper/controller 负责 `00-summary.md`、分支、评论和标签状态变更。
+- Analyzer 不修改产品代码、Git 或 Gitea 标签/评论，不创建最终 PR、不部署；wrapper/controller 负责映射的 `summary` 文档、readable 分支、评论和标签状态变更。
 - 普通实现 worker 永远不得编辑约束本次运行的 `AGENTS.md`。complex spec 只能授权其生成治理 patch/proposal；目标文件之外的独立受控治理步骤负责应用，随后用 fresh run 验证并采用新规则。其他 protected files 仍要求 complex spec 精确列出文件、验证与回滚。
 
 ## 7. Development Loop 接入
@@ -295,7 +297,7 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 3. 只运行 one-shot `inbound-sync.sh reconcile <profile>`，验证同 SHA 幂等、
    新 SHA 建不可变分支与 PR、history rewrite/conflict fail closed、secret redaction。
 4. 真实读回 bot 不能 push/merge `main`，并由目标仓库 PR CI 与内部审批重新授权。
-5. 以上证据写入该项目 `03-verification.md` 后，才可单独批准 enable timer。
+5. 以上证据写入该项目映射的 `verification` 文档后，才可单独批准 enable timer。
 
 ## 9. 安全回滚
 
