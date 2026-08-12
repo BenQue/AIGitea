@@ -76,5 +76,5 @@ override_reason: ''
 | 指定残余文本 | PASS | 当前路径均为双权威；冻结/切换/唯一权威仅在备选限定语境 |
 | 脚本/runtime/manifest | NOT CHANGED | diff 仅 4 份权威文档 + 本 summary |
 | `bash codex/tests/smoke.sh` | PASS | 325 tests OK；Codex platform static smoke checks passed |
-| 远端 PR CI | PENDING | push/PR 后读取 final-head status |
+| 远端 PR candidate CI | FAIL | head `e761badaa7a384514fd407b471fb75b95b1cf8cd`，run/job #408，4s；该分支未含 #96，按 smoke 顺序与已知 VM 缺陷推断先在 host-role tests 早停，typed status 不含 job log |
 | 部署/环境/标签 | NOT RUN | 本 Change 不授权 |
