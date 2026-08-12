@@ -101,3 +101,8 @@ override_reason: ''
   spec-review，待人复核后按 plan 推进 T02 外部验证与 T03/T04 实施。标签投影
   （complexity/complex + type/platform + spec-drafting）属 controller/projector 职责，
   Mac 会话 broker 无标签 typed 操作，未在本会话执行。
+- 2026-08-12（晚）：人工复核 spec 通过；NewEMaint #65/PR #66 人工合并，T02 外部闸门
+  清除。实战反馈回灌：pointer-sections 放宽后两节标题要求（参照实现纯新增结构获
+  合并背书）、labels-readback 增加受管命名空间冲突检测（实测 12 个 manifest 外标签、
+  其中 4 个冲突）、delivery-profile 改为事实命中型检查。T01/T03/T04 待实施
+  （检查器实现可派 Codex）。

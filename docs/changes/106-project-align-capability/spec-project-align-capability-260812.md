@@ -54,12 +54,12 @@ codex/tools/aisoft-project-check.sh --repo <目标仓库checkout> [--kind softwa
 
 | id | 判定 | 事实源 |
 |---|---|---|
-| `pointer-sections` | 目标仓 `AGENTS.md`「平台声明（常驻指针）」「每 Issue 开发路径」两节与模板当前版本逐字节一致（剥离模板复制注释；标题行 `<项目名>` 占位除外）；「工具分工」「项目事实」节标题在位；`CLAUDE.md` 内容恰为 `@AGENTS.md` | `templates/project/AGENTS.md`、`templates/project/CLAUDE.md` |
+| `pointer-sections` | 目标仓 `AGENTS.md`「平台声明（常驻指针）」「每 Issue 开发路径」两节与模板当前版本逐字节一致（剥离模板复制注释；标题行 `<项目名>` 占位除外）；`CLAUDE.md` 内容恰为 `@AGENTS.md`。不要求「工具分工」「项目事实」标题在位——项目可保留自有章节结构（NewEMaint #65/PR #66 纯新增对齐已由人合并背书），交付形态事实由 `delivery-profile` 检查负责 | `templates/project/AGENTS.md`、`templates/project/CLAUDE.md` |
 | `change-templates` | 目标仓 `docs/changes/_template/{summary,spec,plan,verification}.md` 与平台同名模板 byte-identical | `templates/docs/changes/_template/` |
 | `architecture-lock` | `.aisoft/architecture.json` 存在且 strict JSON；`architecture.lock.json` 已提交且 `aisoft-architecture validate --lock` 通过 | `architecture/bin/aisoft-architecture` |
-| `labels-readback`（远程） | GET `/repos/{owner}/{repo}/labels` 与 canonical manifest 24 个标签逐名存在；name 缺失或 color/description 漂移均 GAP | `codex/config/gitea-labels.json` |
+| `labels-readback`（远程） | GET `/repos/{owner}/{repo}/labels` 与 canonical manifest 24 个标签逐名存在，name 缺失或 color/description 漂移均 GAP；此外非 manifest 标签若侵入受管命名空间（`type/*`、`complexity/*`、`triage/*` 前缀）同样 GAP（NewEMaint 实测存在 `complexity/standard`、`type/data|reliability|security` 等冲突遗留），其余项目本地标签仅输出 `INFO:` 行不计 GAP | `codex/config/gitea-labels.json` |
 | `ci-context`（远程） | governance manifest 中该仓库的 required status contexts 与 live branch protection 读回一致；禁止直推在位 | `codex/config/gitea-governance.json` |
-| `delivery-profile` | `AGENTS.md`「项目事实」节交付形态行已填写（无 `<...>` 占位符残留），值为显式文字 | 目标仓 `AGENTS.md` |
+| `delivery-profile` | `AGENTS.md` 全文存在明确交付形态声明：命中已知 delivery profile 标识符集合（`docker-release/v2`、`PM2`、`Windows/IIS` 等固定列表）之一，或模板「交付形态」行已填写；任何命中行不得残留 `<...>` 占位符。不要求特定节标题 | 目标仓 `AGENTS.md` |
 
 输出合同：逐项一行 `PASS: <id>`、`GAP: <id> — <单行原因>` 或 `SKIP: <id> — <单行原因>`，
 末行 `result: pass=<n> gap=<n> skip=<n>`。退出码 `0`=无 GAP、`1`=≥1 GAP、`64`=用法错误。
@@ -84,8 +84,9 @@ codex/tools/aisoft-project-check.sh --repo <目标仓库checkout> [--kind softwa
       且 smoke 全绿。
 - [ ] AC-5 onboarding-runbook 开头声明「初始化新项目与更新存量项目是同一对齐
       操作」，§2 与 §8 指向 align reference 与检查器命令；不复制 checklist 正文。
-- [ ] AC-6 NewEMaint 人工对齐（NewEMaint 侧独立 Issue）已完成并把反馈回灌
-      checklist/检查合同；最终 PR 描述引用该证据链接。
+- [ ] AC-6 NewEMaint 人工对齐（NewEMaint #65，PR #66 已于 2026-08-12 人工合并）反馈
+      已回灌检查合同（pointer-sections 放宽后两节标题要求、labels-readback 增加
+      冲突命名空间检测、delivery-profile 改为事实命中）；最终 PR 描述引用该证据链接。
 - [ ] AC-7 不修改平台 `AGENTS.md`、broker、labels/governance manifest、CI 定义与
       任何业务仓库；不安装或更新任何 live skill（安装走既有 install 流程另行执行）。
 
@@ -130,6 +131,7 @@ codex/tools/aisoft-project-check.sh --repo <目标仓库checkout> [--kind softwa
 
 ## 未决问题
 
-无。pointer-sections 比对语义（前两节逐字节、后两节在位）以模板注释为准并由
-NewEMaint 人工对齐验证；若验证推翻该语义，按 plan T02 回灌修订本 spec 后再进入
-T03/T04，不在实施中自行放宽。
+无。pointer-sections 比对语义原以「前两节逐字节 + 后两节标题在位」起草；NewEMaint
+人工对齐（#65/PR #66，2026-08-12 人工合并）以纯新增方式保留自有章节结构并获合并
+背书，已按 T02 回灌为「前两节逐字节 + CLAUDE.md + 事实型 delivery-profile 检查」，
+同时扩充 labels-readback 的冲突命名空间检测。语义已收敛，无遗留争点。

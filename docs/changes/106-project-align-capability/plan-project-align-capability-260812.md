@@ -25,7 +25,7 @@ updated: 2026-08-12
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | align checklist reference 草案（AC-1）+ runbook「初始化=对齐」声明与指向（AC-5） | - | pending |
-| T02 | NewEMaint 人工对齐反馈回灌：按 T01 checklist 在 NewEMaint 侧独立 Issue 完成一轮人工对齐，把措辞/顺序/比对语义修订进 reference 与 spec §检查合同（AC-6） | T01；外部：NewEMaint 侧对齐 Issue 完成 | pending |
+| T02 | NewEMaint 人工对齐反馈回灌：NewEMaint #65/PR #66（2026-08-12 人工合并）完成实战盘点，反馈已修订进 spec §检查合同（pointer-sections/labels-readback/delivery-profile 三处语义）（AC-6） | -（外部闸门已清；实际先于 T01 完成，checklist reference 起草时直接采用已收敛语义） | completed |
 | T03 | 两侧 SKILL.md 对齐入口固化 + check-drift CLEAN 验证（AC-2） | T02 | pending |
 | T04 | `aisoft-project-check.sh` 检查器 + `test-project-check.sh` + smoke 接入（AC-3、AC-4；可派 Codex，#101 前置已解除） | T02 | pending |
 | T05 | 终验与 PR 汇总：smoke 全绿、边界复核（AC-7）、PR 描述引用 NewEMaint 证据 | T03、T04 | pending |
@@ -33,6 +33,12 @@ updated: 2026-08-12
 T02 的外部依赖是顺序闸门：NewEMaint 侧 Issue 未完成前不得开始 T03/T04；其反馈只允许
 修订 checklist 措辞与 pointer-sections 比对语义，不得扩大 spec 能力边界（扩界即停，
 升级给人另立 Issue）。
+
+2026-08-12 状态：#65/PR #66 已人工合并，T02 完成，T03/T04 解除阻塞。NewEMaint 实战
+盘点范围外记录的平台侧问题（VM profile 凭据、provider 漂移、broker 标签读回缺口等）
+按用户决定在 NewEMaint #65 线跟进，不进入本 change 范围。NewEMaint 剩余两项未盘点
+缺口（`docs/changes/_template/` 缺失、交付形态声明行）已在 #65 留评论记录，将由
+aisoft-project-check 首跑复现并走 NewEMaint 后续小 PR 回补。
 
 ## Expected touch points
 
