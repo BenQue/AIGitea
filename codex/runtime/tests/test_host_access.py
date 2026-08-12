@@ -1582,5 +1582,145 @@ class ProfileMigrationTests(unittest.TestCase):
         self.assertNotIn("hsdb-secret", str(caught.exception))
 
 
+class VmProfilePreflightTests(unittest.TestCase):
+    """The VM profile tool is installed separately from the Mac broker entrypoint.
+
+    A missing VM installation must be reported as itself, not collapsed into the
+    generic HOST_COMMAND_FAILED that every other host failure produces.
+    """
+
+    def setUp(self) -> None:
+        self.contract = load_access_contract(ACCESS, GOVERNANCE)
+        self.tool = self.contract.raw["mac_host"]["vm_profile_tool"]
+
+    def _broker(self, runner):
+        return HostAccessBroker(
+            self.contract, credentials=StaticCredentials(), runner=runner
+        )
+
+    @staticmethod
+    def _completed(argv, returncode, stdout="", stderr=""):
+        return subprocess.CompletedProcess(list(argv), returncode, stdout, stderr)
+
+    def _recording_runner(
+        self, *, probe_rc: int, run_rc: int = 0, stdout: str = "", stderr: str = ""
+    ):
+        calls: list[list[str]] = []
+
+        def runner(argv, *, cwd=None, env=None):
+            calls.append(list(argv))
+            if "/usr/bin/test" in argv:
+                return self._completed(argv, probe_rc)
+            return self._completed(argv, run_rc, stdout, stderr)
+
+        return runner, calls
+
+    def test_missing_vm_tool_is_reported_as_itself(self) -> None:
+        runner, calls = self._recording_runner(probe_rc=1)
+        with self.assertRaises(BrokerError) as caught:
+            self._broker(runner).execute("newemaint", "vm.profile.read-back")
+        self.assertEqual(caught.exception.code, "VM_TOOL_UNAVAILABLE")
+        self.assertNotEqual(caught.exception.code, "HOST_COMMAND_FAILED")
+        # The probe short-circuits: the privileged sudo invocation never runs.
+        self.assertEqual(len(calls), 1)
+        self.assertIn("/usr/bin/test", calls[0])
+        self.assertNotIn("/usr/bin/sudo", calls[0])
+
+    def test_missing_vm_tool_message_leaks_no_command_output(self) -> None:
+        def runner(argv, *, cwd=None, env=None):
+            return self._completed(argv, 1, "")
+
+        with self.assertRaises(BrokerError) as caught:
+            self._broker(runner).execute("newemaint", "vm.profile.plan")
+        message = str(caught.exception)
+        self.assertIn("install-host-access-broker.sh", message)
+        for secret in ("token", "GITEA_TOKEN", "command not found", "sudo:"):
+            self.assertNotIn(secret, message)
+
+    def test_present_vm_tool_returns_payload(self) -> None:
+        payload = {"project": "newemaint", "action": "read-back", "status": "PASS"}
+        runner, calls = self._recording_runner(probe_rc=0, stdout=json.dumps(payload))
+        result = self._broker(runner).execute("newemaint", "vm.profile.read-back")
+        self.assertEqual(result["project"], "newemaint")
+        # Probe first, then the real invocation.
+        self.assertEqual(len(calls), 2)
+        self.assertIn("/usr/bin/test", calls[0])
+        self.assertIn("/usr/bin/sudo", calls[1])
+        self.assertIn("read-back", calls[1])
+
+    def test_present_vm_tool_execution_failure_stays_host_command_failed(self) -> None:
+        runner, _ = self._recording_runner(probe_rc=0, run_rc=1)
+        with self.assertRaises(BrokerError) as caught:
+            self._broker(runner).execute("newemaint", "vm.profile.read-back")
+        self.assertEqual(caught.exception.code, "HOST_COMMAND_FAILED")
+
+    def test_profile_tool_governed_error_is_surfaced(self) -> None:
+        tool_error = {
+            "code": "READ_BACK_MISMATCH",
+            "message": "profile read-back bytes mismatch",
+            "status": "BLOCKED_EXTERNAL",
+        }
+        # The tool writes its error contract to stderr and leaves stdout empty.
+        runner, _ = self._recording_runner(
+            probe_rc=0, run_rc=1, stderr=json.dumps(tool_error)
+        )
+        with self.assertRaises(BrokerError) as caught:
+            self._broker(runner).execute("newemaint", "vm.profile.read-back")
+        self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
+
+    def test_malformed_profile_tool_error_fails_closed(self) -> None:
+        for payload in (
+            {"code": "lowercase", "message": "x"},
+            {"code": "OK", "message": "too short a code"},
+            {"code": "VALID_CODE", "message": ""},
+            {"code": "VALID_CODE", "message": "multi\nline"},
+            {"code": "VALID_CODE", "message": "x" * 201},
+            {"code": "VALID_CODE"},
+            ["not", "a", "dict"],
+        ):
+            with self.subTest(payload=payload):
+                runner, _ = self._recording_runner(
+                    probe_rc=0, run_rc=1, stderr=json.dumps(payload)
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    self._broker(runner).execute("newemaint", "vm.profile.read-back")
+                self.assertEqual(caught.exception.code, "HOST_COMMAND_FAILED")
+
+    def test_non_json_stderr_on_failure_fails_closed(self) -> None:
+        runner, _ = self._recording_runner(
+            probe_rc=0, run_rc=1, stderr="sudo: a raw diagnostic line"
+        )
+        with self.assertRaises(BrokerError) as caught:
+            self._broker(runner).execute("newemaint", "vm.profile.read-back")
+        self.assertEqual(caught.exception.code, "HOST_COMMAND_FAILED")
+        self.assertNotIn("sudo", str(caught.exception))
+
+    def test_present_vm_tool_target_mismatch_is_unchanged(self) -> None:
+        runner, _ = self._recording_runner(
+            probe_rc=0, stdout=json.dumps({"project": "hsdb"})
+        )
+        with self.assertRaises(BrokerError) as caught:
+            self._broker(runner).execute("newemaint", "vm.profile.read-back")
+        self.assertEqual(caught.exception.code, "TARGET_MISMATCH")
+
+    def test_present_vm_tool_invalid_json_is_unchanged(self) -> None:
+        runner, _ = self._recording_runner(probe_rc=0, stdout="not json")
+        with self.assertRaises(BrokerError) as caught:
+            self._broker(runner).execute("newemaint", "vm.profile.read-back")
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_project_without_vm_profile_never_probes(self) -> None:
+        calls: list[list[str]] = []
+
+        def runner(argv, *, cwd=None, env=None):
+            calls.append(list(argv))
+            return self._completed(argv, 0)
+
+        with self.assertRaises(BrokerError) as caught:
+            self._broker(runner).execute("myapp", "vm.profile.read-back")
+        self.assertEqual(caught.exception.code, "TARGET_UNAVAILABLE")
+        self.assertEqual(calls, [])
+
+
 if __name__ == "__main__":
     unittest.main()

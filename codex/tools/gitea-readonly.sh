@@ -73,6 +73,14 @@ case "$resource" in
 esac
 
 token="${GITEA_TOKEN:-}"
+if [[ -z "$token" && -n "${GITEA_TOKEN_FILE:-}" ]]; then
+  # Post-#61 project profiles carry GITEA_IDENTITY plus a fixed GITEA_TOKEN_FILE instead of
+  # an inline GITEA_TOKEN. Read that file through the same mode gate the profile itself uses
+  # so the preferred ladder step keeps working after profile migration.
+  secure_mode "$GITEA_TOKEN_FILE"
+  token="$(<"$GITEA_TOKEN_FILE")"
+  token="${token%%$'\n'*}"
+fi
 if [[ -z "$token" ]]; then
   credential_file="${GITEA_CREDENTIAL_FILE:-/home/benque/gitea-ci-credentials.txt}"
   secure_mode "$credential_file"
