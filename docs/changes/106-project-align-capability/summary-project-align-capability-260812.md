@@ -21,9 +21,9 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: spec-review
+status: ready-for-review
 branch: change/106-project-align-capability
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/110
 created: 2026-08-12
 updated: 2026-08-12
 ---
@@ -111,3 +111,6 @@ override_reason: ''
   正确升级三点合同疑问，裁决回灌 spec：①校验日期列入确定性输入、检查器透传
   `--today`（缺省当日 UTC）；②lock 按 NewEMaint 参照布局 `.aisoft/architecture.lock.json`
   （CLI `--lock` 本为显式路径参数）；③模板形态检查改为「交付形态」bullet 块。
+- 2026-08-12（终验）：T04 完成（Codex commit 08beb31，23 cases）；独立复验 bash -n/
+  ShellCheck/23 cases/full smoke 全 PASS，范围 ⊆ 治理授权清单；NewEMaint 实测输出与
+  #65 comment 3005 预测一致。最终 PR #110 已创建，停在人工合并。
