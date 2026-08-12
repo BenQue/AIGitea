@@ -46,6 +46,8 @@ fi
 
 bash -n "$ROOT/codex/tools/sync-gitea-labels.sh"
 bash -n "$ROOT/codex/tests/test-sync-gitea-labels.sh"
+bash -n "$ROOT/codex/tools/aisoft-project-check.sh"
+bash -n "$ROOT/codex/tests/test-project-check.sh"
 for script in \
   "$ROOT/codex/install-host-role.sh" \
   "$ROOT/codex/install-host-access-broker.sh" \
@@ -94,7 +96,9 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/host-access-broker.sh" \
     "$ROOT/codex/tools/project-profile-migration.sh" \
     "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
+    "$ROOT/codex/tools/aisoft-project-check.sh" \
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
+    "$ROOT/codex/tests/test-project-check.sh" \
     "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
     "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
@@ -124,6 +128,7 @@ if command -v shellcheck >/dev/null; then
 fi
 bash "$ROOT/codex/tests/test-architecture-install.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
+bash "$ROOT/codex/tests/test-project-check.sh"
 bash "$ROOT/codex/tests/test-agent-runtime.sh"
 bash "$ROOT/codex/tests/test-mark-deployed-issues.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh"

@@ -2,6 +2,10 @@
 
 > 本 runbook 面向任意 Gitea 项目。rsdesign-new 只是历史试点证据，不是默认仓库、目录、端口或部署合同。按顺序完成，每步验收后再继续；目标项目未通过自己的验收前保持 implementation disabled。
 
+初始化新项目与更新已接入项目是同一「对齐到平台当前合同」的幂等操作：操作入口见
+[project-align.md](project-align.md)，确定性核对用 `codex/tools/aisoft-project-check.sh`。
+本 runbook 保持唯一事实源；对齐 checklist 只指向本文与 `templates/`，不另立合同。
+
 ## 1. 参数与仓库
 
 先确定唯一 profile 名称，再确定 `GITEA_URL`、`OWNER`、`REPO`、本地只读/工作克隆、技术栈、测试命令与 verifier 配置。只有应用项目才需要应用端口、Nginx 端口、健康端点、数据存储和回滚方式；纯文档或平台规范仓库不需要虚构部署流程。
@@ -116,6 +120,10 @@ GITEA_BOT_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
 全部 Gitea 仓库后批量授权。新 project agent 验收前保留 `ci-bot`，验收后逐仓库退出。
 
 ## 2. 共享项目契约
+
+本节各项由 [project-align.md](project-align.md) 的对齐 checklist 覆盖；其中指针、语义
+模板、标签、CI context、architecture 与交付形态声明可用 `aisoft-project-check.sh`
+确定性复核。存量仓库回补与新仓首配走同一清单。
 
 在仓库加入：
 
@@ -263,6 +271,9 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 - 使用 `aisoft-agent@<profile>.service/.timer` 作为项目级 systemd 实例；安装模板不等于启用。必须显式执行 `systemctl --user enable --now aisoft-agent@<profile>.timer`，且只有该项目验收通过后才允许这样做。
 
 ## 8. 接入验收
+
+验收前后均可用 [project-align.md](project-align.md) 入口做幂等复核：接入完成的仓库
+`aisoft-project-check.sh` 应无 `GAP:`；平台合同演进后重跑同一入口即得回补清单。
 
 按顺序验证：
 

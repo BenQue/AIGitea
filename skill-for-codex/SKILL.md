@@ -123,3 +123,8 @@ In production, run only pre-validated artifacts and scripts. For failures, stop/
 - Do not describe the v3 Loop as deployed until the Codex validation matrix in `08` passes.
 
 For a new project, read [references/onboarding-runbook.md](references/onboarding-runbook.md) before changing infrastructure.
+
+Initializing a new project and re-aligning an onboarded one are the same idempotent
+operation: follow [references/project-align.md](references/project-align.md) and use the
+read-only checker `codex/tools/aisoft-project-check.sh --repo <checkout>` (PASS/GAP) to
+inventory gaps, then fix each gap through the target repository's own Issue and small PR.

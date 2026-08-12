@@ -37,9 +37,10 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 - **Codex**：维护与部署——VM headless 分析、运维排障、部署验收、平台治理演进。
 - 二者共用同一平台合同与 provider 中立机制（`ANALYSIS_PROVIDER`/`IMPLEMENT_PROVIDER` 按项目 profile 显式选择），随时可互换补位。
 
-## 接入新项目 / 私有访问
+## 接入新项目 / 项目对齐 / 私有访问
 
 - 新项目接入：先读 [references/onboarding-runbook.md](references/onboarding-runbook.md)——governance manifest + project-agent gate、host-role gate、architecture 声明、CI/部署与验收顺序都有既定约定，不得跳步。
+- 项目对齐（初始化=更新，幂等）：入口 [references/project-align.md](references/project-align.md)——checklist 盘点缺口、逐项走目标仓独立 Issue/小 PR；确定性核对用 `codex/tools/aisoft-project-check.sh --repo <checkout>`（PASS/GAP，只读）。
 - 私有 Gitea 检查：先读 [references/private-gitea-access.md](references/private-gitea-access.md)；**匿名 404 不构成不存在证据**（private-repository `404` 歧义），按 authenticated ladder 走。
 
 ## Common Mistakes
