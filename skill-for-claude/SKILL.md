@@ -11,12 +11,12 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 
 ## 现行合同（v3.4，#57/#60/#75 后）
 
-- **可读命名元组**：新变更 = Issue `N` + 分支 `change/N-短描述` + 目录 `docs/changes/N-短描述/` + worktree `issue-N-短描述` + 唯一 PR（`Closes #N`）。编号仍是唯一主键；`00-summary.md` 等纯数字名只作 pre-#57 历史读取。
+- **可读命名元组**：新变更 = Issue `N` + 分支 `change/N-短描述` + 目录 `docs/changes/N-短描述/` + worktree `issue-N-短描述` + 唯一 PR（`Closes #N`）。编号仍是唯一主键；remote/history evidence 已存在的 `change/N`、`docs/changes/N/` 与 pre-#57 纯数字文档只作读取或维护兼容，新 writer、first push 和 first PR 不得创建。
 - **语义文档**：新文档名 `<role>-<短描述>-<YYMMDD>.md`，summary front matter 的 `documents` 字段映射 summary/spec/plan/verification 到真实文件名。解析用 `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli resolve-documents N --repo <checkout>`，不要 glob 猜。
-- **判级**：contract_effect 先行（restore/unchanged → small 候选；add/change → complex；unclear → 人工澄清）。功能新增/变更、schema/迁移、外部契约、安全、共享核心、跨模块、CI/制品/部署/回滚、Agent/治理一律强制 complex。small 须有可测验收标准。
+- **判级**：contract_effect 先行（restore/unchanged → small 候选；add/change → complex；unclear → 人工澄清）。功能新增/变更、schema/迁移、外部契约、安全、共享核心、跨模块、CI/制品/部署/回滚、Agent/治理一律强制 complex。small 还须范围局部、可简单 revert，并有可测验收标准。
 - **Matt 主路径**：每个 Issue 走 `$triage #N` → `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`（经 `$aisoft-matt-workflow` 适配；small 在 triage+summary+判级+`approved` 复核后可跳过 spec/plan）。`triage/ready-for-agent` ≠ `approved`。
 - **24 标签四维正交**：7 `type/*`（作者输入）+ 2 `complexity/*`（AI 输出）+ 8 生命周期（`completed` 与 `deployed` 互斥终态）+ 7 `triage/*`（Matt 编排）。
-- **单闸门**：人合并最终 PR 是唯一交付硬闸门；任何会话/agent 不合并、不部署、不直推受保护 `main`。
+- **单闸门**：人合并最终 PR 是唯一交付硬闸门；任何会话/agent 不合并、不直推受保护 `main`，也不得擅自部署（部署需独立授权）。
 - **一切 Gitea/Git/OrbStack 访问走 broker**：`/usr/local/libexec/aisoft/host-access-broker --project <manifest项目> --operation <typed操作>`（gitea.issue.create/read/update、gitea.pull.create、git.push.change --branch、host.access.audit…）。不拼 raw token、不传 URL/refspec/shell；Git push 只允许当前 checkout 同名 readable 分支。
 - **provider 默认关**：`IMPLEMENT_PROVIDER=none` 是默认；启用是每项目独立验收门。
 - **部署边界**：AI 可参与开发/测试环境首次部署并固化为脚本（两次幂等 + 一次故意失败回滚）；生产只跑已验证脚本。新 Linux 默认 docker-release/v2（NewEMaint 为参照实现），PM2 是受支持的选项路径；各项目技术方案可不同，流程与指导思想全平台一致。

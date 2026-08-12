@@ -81,10 +81,46 @@ bash "$root/skill-for-claude/install.sh" "$tmp_home" >/dev/null
 "$root/skill-for-claude/check-drift.sh" "$tmp_home" | grep -Fqx 'CLEAN' ||
   fail 'final exact reinstall must be CLEAN'
 
+rm -f -- "$tmp_home/.claude/skills/aisoft-platform/SKILL.md"
+ln -s "$root/skill-for-claude/SKILL.md" \
+  "$tmp_home/.claude/skills/aisoft-platform/SKILL.md"
+set +e
+skill_symlink_output="$("$root/skill-for-claude/check-drift.sh" "$tmp_home" 2>&1)"
+skill_symlink_status=$?
+set -e
+[[ "$skill_symlink_status" == 1 ]] || fail 'symlink SKILL.md must make check-drift fail'
+grep -Fqx 'DRIFT: SKILL.md' <<<"$skill_symlink_output" ||
+  fail 'check-drift must reject a byte-identical SKILL.md symlink'
+bash "$root/skill-for-claude/install.sh" "$tmp_home" >/dev/null
+"$root/skill-for-claude/check-drift.sh" "$tmp_home" | grep -Fqx 'CLEAN' ||
+  fail 'reinstall must repair a symlink SKILL.md'
+
+mv "$tmp_home/.claude/skills/aisoft-platform/references" \
+  "$tmp_home/references-symlink-destination"
+ln -s "$tmp_home/references-symlink-destination" \
+  "$tmp_home/.claude/skills/aisoft-platform/references"
+set +e
+refs_symlink_output="$("$root/skill-for-claude/check-drift.sh" "$tmp_home" 2>&1)"
+refs_symlink_status=$?
+set -e
+[[ "$refs_symlink_status" == 1 ]] || fail 'symlink references directory must make check-drift fail'
+grep -Fqx 'DRIFT: references' <<<"$refs_symlink_output" ||
+  fail 'check-drift must reject a references directory symlink'
+bash "$root/skill-for-claude/install.sh" "$tmp_home" >/dev/null
+"$root/skill-for-claude/check-drift.sh" "$tmp_home" | grep -Fqx 'CLEAN' ||
+  fail 'reinstall must repair a symlink references directory'
+
 mkdir -p "$tmp_home/symlink-home/.claude/skills" "$tmp_home/symlink-destination"
 printf '%s\n' 'keep' >"$tmp_home/symlink-destination/sentinel"
 ln -s "$tmp_home/symlink-destination" \
   "$tmp_home/symlink-home/.claude/skills/aisoft-platform"
+set +e
+root_symlink_output="$("$root/skill-for-claude/check-drift.sh" "$tmp_home/symlink-home" 2>&1)"
+root_symlink_status=$?
+set -e
+[[ "$root_symlink_status" == 1 ]] || fail 'symlink skill target must make check-drift fail'
+grep -Fqx 'DRIFT: symlink target' <<<"$root_symlink_output" ||
+  fail 'check-drift must reject a symlink skill target explicitly'
 set +e
 symlink_output="$(bash "$root/skill-for-claude/install.sh" "$tmp_home/symlink-home" 2>&1)"
 symlink_status=$?
