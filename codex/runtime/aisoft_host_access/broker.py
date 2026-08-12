@@ -1029,11 +1029,30 @@ class HostAccessBroker:
             raise BrokerError("TARGET_UNAVAILABLE", "project has no approved VM profile")
         action = operation.name.removeprefix("vm.profile.")
         mac = self.contract.raw["mac_host"]
+        # The profile tool is installed by codex/install-host-access-broker.sh, which must
+        # run on the VM as well as the Mac host. Probe it first so a missing installation is
+        # reported as itself instead of collapsing into an opaque HOST_COMMAND_FAILED. The
+        # probe is a fixed exit-code test, never a parse of the underlying stderr text.
+        probe = self._run([
+            mac["orbstack_binary"], "-m", mac["orbstack_machine"],
+            "-u", mac["orbstack_user"], "/usr/bin/test", "-x", mac["vm_profile_tool"],
+        ], allow_failure=True)
+        if probe.returncode != 0:
+            raise BrokerError(
+                "VM_TOOL_UNAVAILABLE",
+                "VM profile tool is not installed; run codex/install-host-access-broker.sh on the VM",
+            )
         result = self._run([
             mac["orbstack_binary"], "-m", mac["orbstack_machine"],
             "-u", mac["orbstack_user"], "/usr/bin/sudo", "-n", mac["vm_profile_tool"],
             "--project", project.project_id, "--action", action,
-        ])
+        ], allow_failure=True)
+        if result.returncode != 0:
+            # The profile tool reports its own governed error contract on stderr (see
+            # aisoft_host_access.cli). Surface it instead of collapsing every profile
+            # problem into one opaque code. Only a well-formed code from that fixed
+            # vocabulary is propagated; anything else fails closed.
+            raise _profile_tool_error(_decode_json(result.stderr))
         try:
             payload = json.loads(result.stdout)
         except json.JSONDecodeError as exc:
@@ -1048,6 +1067,7 @@ class HostAccessBroker:
         *,
         cwd: str | None = None,
         env: Mapping[str, str] | None = None,
+        allow_failure: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         try:
             result = self.runner(argv, cwd=cwd, env=env)
@@ -1055,9 +1075,42 @@ class HostAccessBroker:
             result = self.runner(argv)
         except Exception as exc:
             raise BrokerError("HOST_COMMAND_FAILED", "structured host operation failed") from exc
-        if result.returncode != 0:
+        if result.returncode != 0 and not allow_failure:
             raise BrokerError("HOST_COMMAND_FAILED", "structured host operation failed")
         return result
+
+
+_PROFILE_TOOL_ERROR_CODE = re.compile(r"^[A-Z][A-Z0-9_]{2,47}$")
+
+
+def _decode_json(text: str | None) -> object:
+    if not text:
+        return None
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return None
+
+
+def _profile_tool_error(payload: object) -> BrokerError:
+    """Translate the profile tool's own stdout error contract into a BrokerError.
+
+    The tool is a manifest-fixed platform component with a closed error vocabulary, so
+    its code and message are safe to surface. Anything that does not match that shape
+    degrades to the generic failure rather than forwarding unvetted text.
+    """
+    if isinstance(payload, dict):
+        code = payload.get("code")
+        message = payload.get("message")
+        if (
+            isinstance(code, str)
+            and _PROFILE_TOOL_ERROR_CODE.fullmatch(code)
+            and isinstance(message, str)
+            and 0 < len(message) <= 200
+            and "\n" not in message
+        ):
+            return BrokerError(code, message)
+    return BrokerError("HOST_COMMAND_FAILED", "structured host operation failed")
 
 
 def _parse_credential_protocol(protocol_input: str) -> CredentialProtocolRequest:
