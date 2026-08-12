@@ -25,7 +25,7 @@ override_reason: 用户 2026-08-12 明确要求按 complex 推进
 depends_on: []
 status: approved
 branch: change/101-sync-stat-portability
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/105
 created: 2026-08-12
 updated: 2026-08-12
 ---
