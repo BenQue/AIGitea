@@ -92,5 +92,5 @@ override_reason: ''
 | `bash codex/tests/test-install-claude-skills.sh` | PASS | 临时 HOME；success 输出一次 |
 | `bash codex/tests/smoke.sh` | PASS | 325 tests OK；static smoke passed |
 | live Codex/Claude skill reinstall | NOT RUN | 只在本 PR 人工合并后分别执行 |
-| PR final-head CI | PENDING | push/PR 后真实读回 |
+| PR candidate CI | FAIL | head `49171eff13eb02a2fe0d954aed0cb9307103f627`，`CI / verify (pull_request)` run/job #410，4s；typed status 不含 job log，根因未确认；#101 为已知独立 blocker |
 | 合并/部署/标签/required-context | NOT RUN | 明确不授权 |
