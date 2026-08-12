@@ -106,3 +106,8 @@ override_reason: ''
   合并背书）、labels-readback 增加受管命名空间冲突检测（实测 12 个 manifest 外标签、
   其中 4 个冲突）、delivery-profile 改为事实命中型检查。T01/T03/T04 待实施
   （检查器实现可派 Codex）。
+- 2026-08-12（夜）：T01/T03 完成（align reference + runbook 声明 + 两侧 SKILL 入口，
+  临时 home 安装 drift CLEAN）。T04 派 Codex（Herdr 通道）；Codex 以 T04 BLOCKED
+  正确升级三点合同疑问，裁决回灌 spec：①校验日期列入确定性输入、检查器透传
+  `--today`（缺省当日 UTC）；②lock 按 NewEMaint 参照布局 `.aisoft/architecture.lock.json`
+  （CLI `--lock` 本为显式路径参数）；③模板形态检查改为「交付形态」bullet 块。

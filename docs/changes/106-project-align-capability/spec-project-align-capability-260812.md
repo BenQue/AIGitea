@@ -40,7 +40,7 @@ updated: 2026-08-12
 调用形态（固定参数，不接受任意 shell）：
 
 ```bash
-codex/tools/aisoft-project-check.sh --repo <目标仓库checkout> [--kind software|docs] [--remote]
+codex/tools/aisoft-project-check.sh --repo <目标仓库checkout> [--kind software|docs] [--remote] [--today YYYY-MM-DD]
 ```
 
 - `--repo`：目标仓库本地 checkout 绝对路径（必填）。
@@ -56,15 +56,16 @@ codex/tools/aisoft-project-check.sh --repo <目标仓库checkout> [--kind softwa
 |---|---|---|
 | `pointer-sections` | 目标仓 `AGENTS.md`「平台声明（常驻指针）」「每 Issue 开发路径」两节与模板当前版本逐字节一致（剥离模板复制注释；标题行 `<项目名>` 占位除外）；`CLAUDE.md` 内容恰为 `@AGENTS.md`。不要求「工具分工」「项目事实」标题在位——项目可保留自有章节结构（NewEMaint #65/PR #66 纯新增对齐已由人合并背书），交付形态事实由 `delivery-profile` 检查负责 | `templates/project/AGENTS.md`、`templates/project/CLAUDE.md` |
 | `change-templates` | 目标仓 `docs/changes/_template/{summary,spec,plan,verification}.md` 与平台同名模板 byte-identical | `templates/docs/changes/_template/` |
-| `architecture-lock` | `.aisoft/architecture.json` 存在且 strict JSON；`architecture.lock.json` 已提交且 `aisoft-architecture validate --lock` 通过 | `architecture/bin/aisoft-architecture` |
+| `architecture-lock` | `.aisoft/architecture.json` 存在且 strict JSON；`.aisoft/architecture.lock.json` 已提交（NewEMaint 参照布局；CLI 的 `--lock` 为显式路径参数，无仓根约定），且 `aisoft-architecture validate --lock` 通过；校验日期缺省当日 UTC、可经检查器 `--today` 透传复现 | `architecture/bin/aisoft-architecture` |
 | `labels-readback`（远程） | GET `/repos/{owner}/{repo}/labels` 与 canonical manifest 24 个标签逐名存在，name 缺失或 color/description 漂移均 GAP；此外非 manifest 标签若侵入受管命名空间（`type/*`、`complexity/*`、`triage/*` 前缀）同样 GAP（NewEMaint 实测存在 `complexity/standard`、`type/data|reliability|security` 等冲突遗留），其余项目本地标签仅输出 `INFO:` 行不计 GAP | `codex/config/gitea-labels.json` |
 | `ci-context`（远程） | governance manifest 中该仓库的 required status contexts 与 live branch protection 读回一致；禁止直推在位 | `codex/config/gitea-governance.json` |
-| `delivery-profile` | `AGENTS.md` 全文存在明确交付形态声明：命中已知 delivery profile 标识符集合（`docker-release/v2`、`PM2`、`Windows/IIS` 等固定列表）之一，或模板「交付形态」行已填写；任何命中行不得残留 `<...>` 占位符。不要求特定节标题 | 目标仓 `AGENTS.md` |
+| `delivery-profile` | `AGENTS.md` 全文存在明确交付形态声明：命中已知 delivery profile 标识符集合（`docker-release/v2`、`PM2`、`Windows/IIS` 等固定列表）之一，或模板「交付形态」bullet 块（该 bullet 起至下一 bullet/标题前的全部续行）已填写；命中范围内不得残留 `<...>` 占位符。不要求特定节标题 | 目标仓 `AGENTS.md` |
 
 输出合同：逐项一行 `PASS: <id>`、`GAP: <id> — <单行原因>` 或 `SKIP: <id> — <单行原因>`，
 末行 `result: pass=<n> gap=<n> skip=<n>`。退出码 `0`=无 GAP、`1`=≥1 GAP、`64`=用法错误。
 工具只读：不写目标仓、不写平台仓、无远程 mutation；本地检查零网络零凭据。相同输入
-（仓库状态 + live 状态）输出确定相同。
+（仓库状态 + live 状态 + 校验日期）输出确定相同；`--today` 透传给 architecture 校验，
+缺省为当日 UTC——transition exception 到期当日 fail closed 属对齐语义的一部分。
 
 ## Acceptance criteria
 
