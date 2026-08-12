@@ -20,10 +20,11 @@ documents:
   plan: plan-host-role-test-errexit-260812.md
 confidence: high
 override_reason: ''
-depends_on: []
+depends_on:
+  - 101
 status: ready-for-review
 branch: change/96-host-role-test-errexit
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/100
 created: 2026-08-12
 updated: 2026-08-12
 ---
@@ -34,11 +35,19 @@ updated: 2026-08-12
 返回 20 deny；失败来自测试把“guard 非零后不得执行 mutation”交给 `set -e` 在子 shell 中隐式
 中断。外层 `set +e` 在 Bash 5 会改变该继承行为，mutation marker 被写出并把最终状态覆盖为 0。
 
+用户于 2026-08-12 直接批准把后续同类 GNU/BSD 可移植性测试问题纳入 T02 代批，但限定
+test-only；若必须修改 sync runtime，必须停止并另立 Issue。PR #100 run #405 证明本 Change 的
+host-role tests 已通过，后续失败来自 production `sync/inbound-sync.sh` 在 GNU stat 上把合法 mode
+600 误判。只改测试必须注入 fake stat，反而会掩盖 Linux runtime 回归，因此本 Change 未采用该
+绕过，已按批准边界升级为 Issue #101。
+
 ## 影响范围
 
 - `codex/tests/test-host-role-guard.sh`：显式捕获 guard rc，仅 rc=0 才写 mutation marker。
 - `codex/tests/test-install-host-role.sh`：同批消除静默断言，所有失败给出明确 `FAIL:`。
 - 本 Change 的 summary/spec/plan。
+
+T02 只完成实证与升级记录，未修改 `sync/` runtime 或 tests；#101 成为 PR #100 CI 转绿的前置。
 
 ## 初步方案与建议
 
@@ -88,5 +97,7 @@ override_reason: ''
 | gitea-ci Bash 5.3 targeted tests | PASS | guard/installer success 输出各一次 |
 | `bash codex/tests/smoke.sh` | PASS | 325 tests OK；static smoke passed |
 | production guard/schema/catalog/profile | NOT CHANGED | diff 不含相关 runtime/config/live 文件 |
-| PR final-head CI | PENDING | push/PR 后读取 `CI / verify (pull_request)` |
+| PR #100 run #405 | FAIL（下游阻塞） | host-role guard/installer PASS；随后 inbound sync 因 GNU stat 误判退出 |
+| T02 test-only 调整 | NOT IMPLEMENTED | 只有 fake stat 可绕过，会掩盖 runtime 回归；按用户边界升级 #101 |
+| PR final-head CI | BLOCKED BY #101 | #101 修复并合并前，runner 会在 inbound sync 处失败 |
 | required-context 三件套 | NOT RUN | 明确留后续独立 Issue |
