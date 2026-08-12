@@ -36,17 +36,17 @@ updated: 2026-08-12
 
 ## Acceptance criteria
 
-- [ ] AC-1 两个 runtime 的 mode probe 优先执行 GNU `stat -c '%a'`；仅当命令失败或输出不是
+- [x] AC-1 两个 runtime 的 mode probe 优先执行 GNU `stat -c '%a'`；仅当命令失败或输出不是
       3–4 位 octal mode 时回退 BSD `stat -f '%Lp'`，fallback 输出也必须通过相同格式验证。
-- [ ] AC-2 inbound profile、GitHub/Gitea token 与 credential helper 继续只接受 `400/600`；`644`
+- [x] AC-2 inbound profile、GitHub/Gitea token 与 credential helper 继续只接受 `400/600`；`644`
       和无法解析的 mode 必须非零 fail closed，并给出不含路径内容或 token 的稳定诊断。
-- [ ] AC-3 tests 必须复现“GNU `stat -f` rc=0 但输出文件系统信息”的原缺陷，并证明 runtime 使用
+- [x] AC-3 tests 必须复现“GNU `stat -f` rc=0 但输出文件系统信息”的原缺陷，并证明 runtime 使用
       有效 GNU mode；Mac 真实 BSD stat 与 gitea-ci VM 真实 GNU stat 的 targeted suites 均通过。
 - [ ] AC-4 修改的 shell/test 文件通过 `bash -n` 和 ShellCheck（若环境可用）；完整
       `bash codex/tests/smoke.sh` 通过。
 - [ ] AC-5 readable tuple、mapped docs、原子 commits、broker typed push 和唯一 `Closes #101` PR
       均成立；PR final-head `CI / verify (pull_request)` 真实通过后停在人工合并。
-- [ ] AC-6 不安装 sync runtime、不 enable/start timer、不读取或打印真实 token、不执行真实
+- [x] AC-6 不安装 sync runtime、不 enable/start timer、不读取或打印真实 token、不执行真实
       GitHub/Gitea sync、不部署、不改标签、不改 required context。
 
 ## 接口、数据与兼容性影响

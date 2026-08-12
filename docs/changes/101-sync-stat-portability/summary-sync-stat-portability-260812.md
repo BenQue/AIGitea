@@ -91,9 +91,9 @@ override_reason: 用户 2026-08-12 明确要求按 complex 推进
 | 检查项 | 结果 | 证据 |
 |---|---|---|
 | mapped contract | PASS | resolver 在实现前返回 summary/spec/plan exact mapping |
-| targeted Mac BSD stat | PENDING | T02/T03 |
-| targeted VM GNU stat | PENDING | T03 |
-| `bash -n` / ShellCheck | PENDING | T03 |
+| targeted Mac BSD stat | PASS | fake-GNU 回归 + `AISOFT_TEST_USE_REAL_STAT=1` 真实 BSD；inbound/install 均通过 |
+| targeted VM GNU stat | PASS | Bash 5.3.9、uutils GNU-compatible stat 0.8.0；fake-GNU + 真实 GNU；inbound/install 均通过 |
+| `bash -n` / ShellCheck | PASS / VM NOT AVAILABLE | Mac 4 文件 syntax + ShellCheck 0 findings；VM syntax PASS，未安装 ShellCheck |
 | `bash codex/tests/smoke.sh` | PENDING | T03 |
 | PR final-head CI | PENDING | typed push/PR 后回读 |
 | install/timer/real sync/deploy/labels/required-context | NOT RUN | 明确不授权 |

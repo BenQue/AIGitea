@@ -40,6 +40,46 @@ EOF
 chmod 600 "$TMP/config/project.env"
 printf '%s\n' '[]' >"$TMP/pulls.json"
 
+real_stat="$(command -v stat)"
+if real_mode="$("$real_stat" -c '%a' "$TMP/config/project.env" 2>/dev/null)" &&
+  [[ "$real_mode" =~ ^[0-7]{3,4}$ ]]; then
+  real_stat_style=gnu
+else
+  real_stat_style=bsd
+fi
+export REAL_STAT="$real_stat" REAL_STAT_STYLE="$real_stat_style"
+
+cat >"$TMP/bin/stat" <<'MOCK'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${FAKE_STAT_UNPARSEABLE_PATH:-}" == "${3:-}" ]]; then
+  printf '%s\n' 'not-an-octal-mode'
+  exit 0
+fi
+if [[ "${AISOFT_TEST_USE_REAL_STAT:-0}" == 1 ]]; then
+  exec "$REAL_STAT" "$@"
+fi
+
+case "${1:-}" in
+  -c)
+    [[ "${2:-}" == '%a' && "$#" == 3 ]] || exit 64
+    if [[ "$REAL_STAT_STYLE" == gnu ]]; then
+      "$REAL_STAT" -c '%a' "$3"
+    else
+      "$REAL_STAT" -f '%Lp' "$3"
+    fi
+    ;;
+  -f)
+    # Reproduce GNU stat accepting BSD -f as filesystem mode and returning rc=0
+    # with output that is not a file permission mode.
+    printf 'File: "%s"\nID: deadbeef Namelen: 255 Type: fake\n' "${3:-unknown}"
+    ;;
+  *) exit 64 ;;
+esac
+MOCK
+chmod +x "$TMP/bin/stat"
+
 cat >"$TMP/bin/curl" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -70,6 +110,48 @@ export PATH="$TMP/bin:$PATH"
 export AISOFT_SYNC_CONFIG_DIR="$TMP/config"
 export AISOFT_SYNC_STATE_ROOT="$TMP/state"
 
+helper_output="$(
+  AISOFT_CREDENTIAL_USERNAME=github-sync \
+    AISOFT_CREDENTIAL_TOKEN_FILE="$TMP/github-token" \
+    bash "$ROOT/sync/git-credential-token-file.sh" get
+)"
+grep -Fxq 'username=github-sync' <<<"$helper_output"
+grep -Fxq 'password=github-sentinel-secret' <<<"$helper_output"
+
+chmod 644 "$TMP/github-token"
+if AISOFT_CREDENTIAL_USERNAME=github-sync \
+  AISOFT_CREDENTIAL_TOKEN_FILE="$TMP/github-token" \
+  bash "$ROOT/sync/git-credential-token-file.sh" get \
+  >"$TMP/helper-wide.out" 2>"$TMP/helper-wide.log"; then
+  echo 'wide credential file mode unexpectedly succeeded' >&2
+  exit 1
+fi
+grep -Fxq 'credential file mode must be 400 or 600' "$TMP/helper-wide.log"
+[[ ! -s "$TMP/helper-wide.out" ]]
+chmod 600 "$TMP/github-token"
+
+if FAKE_STAT_UNPARSEABLE_PATH="$TMP/github-token" \
+  AISOFT_CREDENTIAL_USERNAME=github-sync \
+  AISOFT_CREDENTIAL_TOKEN_FILE="$TMP/github-token" \
+  bash "$ROOT/sync/git-credential-token-file.sh" get \
+  >"$TMP/helper-unparseable.out" 2>"$TMP/helper-unparseable.log"; then
+  echo 'unparseable credential mode unexpectedly succeeded' >&2
+  exit 1
+fi
+grep -Fxq 'credential file mode could not be determined' \
+  "$TMP/helper-unparseable.log"
+[[ ! -s "$TMP/helper-unparseable.out" ]]
+
+chmod 400 "$TMP/github-token"
+helper_private_output="$(
+  AISOFT_CREDENTIAL_USERNAME=github-sync \
+    AISOFT_CREDENTIAL_TOKEN_FILE="$TMP/github-token" \
+    bash "$ROOT/sync/git-credential-token-file.sh" get
+)"
+grep -Fxq 'username=github-sync' <<<"$helper_private_output"
+grep -Fxq 'password=github-sentinel-secret' <<<"$helper_private_output"
+chmod 600 "$TMP/github-token"
+
 if bash "$ROOT/sync/inbound-sync.sh" reconcile '../unsafe' >/dev/null 2>&1; then
   echo "unsafe profile unexpectedly succeeded" >&2
   exit 1
@@ -80,6 +162,18 @@ if bash "$ROOT/sync/inbound-sync.sh" reconcile badmode >/dev/null 2>&1; then
   echo "insecure profile mode unexpectedly succeeded" >&2
   exit 1
 fi
+
+if FAKE_STAT_UNPARSEABLE_PATH="$TMP/config/project.env" \
+  bash "$ROOT/sync/inbound-sync.sh" reconcile project \
+  >"$TMP/unparseable-profile.out" 2>"$TMP/unparseable-profile.log"; then
+  echo 'unparseable profile mode unexpectedly succeeded' >&2
+  exit 1
+fi
+grep -Fxq 'profile file mode could not be determined' \
+  "$TMP/unparseable-profile.log"
+[[ ! -s "$TMP/unparseable-profile.out" ]]
+
+chmod 400 "$TMP/config/project.env" "$TMP/github-token" "$TMP/gitea-token"
 
 first="$(bash "$ROOT/sync/inbound-sync.sh" reconcile project 2>&1)"
 grep -Fq 'created sync PR #1' <<<"$first"

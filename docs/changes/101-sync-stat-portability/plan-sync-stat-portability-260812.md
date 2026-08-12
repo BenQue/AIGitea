@@ -27,8 +27,8 @@ updated: 2026-08-12
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | mapped complex contract、exact scope 与回滚/非目标 | - | completed |
-| T02 | GNU-first/BSD-fallback runtime + portability/private-mode tests | T01 | pending |
-| T03 | Mac/VM/full smoke、review、typed push、唯一 PR 与 final-head CI | T02 | pending |
+| T02 | GNU-first/BSD-fallback runtime + portability/private-mode tests | T01 | completed |
+| T03 | Mac/VM/full smoke、review、typed push、唯一 PR 与 final-head CI | T02 | in-progress |
 
 ## Expected touch points
 
