@@ -24,7 +24,7 @@ override_reason: ''
 depends_on: []
 status: analyzed
 branch: change/107-vm-profile-tool-install
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/109
 created: 2026-08-12
 updated: 2026-08-12
 ---
