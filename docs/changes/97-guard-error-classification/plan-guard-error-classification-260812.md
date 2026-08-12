@@ -52,5 +52,6 @@ updated: 2026-08-12
 
 ## 部署与回滚
 
-无部署或 live install。PR 依赖 #96/#101，保持 stacked ancestry；依赖合并后 diff 只保留 #97
-内容。回滚为人工 revert；任何 installed guard 回退/重装需另行授权。
+无部署或 live install。Git ancestry 只 stack #96；#101 是独立的逻辑/CI blocker，不在本分支 ancestry
+内。#96 人工合并后更新基线应使 diff 只保留 #97 内容；#101 合并并转绿后再回读本 PR CI。回滚为
+人工 revert；任何 installed guard 回退/重装需另行授权。

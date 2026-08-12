@@ -177,6 +177,46 @@ for malformed_kind in profile schema catalog; do
   fi
 done
 
+empty_json="$TMP/empty.json"
+whitespace_json="$TMP/whitespace.json"
+: >"$empty_json"
+printf ' \t\n' >"$whitespace_json"
+
+for blank_variant in empty whitespace; do
+  case "$blank_variant" in
+    empty) blank_path="$empty_json" ;;
+    whitespace) blank_path="$whitespace_json" ;;
+  esac
+  for blank_kind in profile schema catalog; do
+    test_schema_path="$SCHEMA"
+    test_catalog_path="$CATALOG"
+    case "$blank_kind" in
+      profile) blank_profile_path="$blank_path" ;;
+      schema)
+        blank_profile_path="$valid"
+        test_schema_path="$blank_path"
+        ;;
+      catalog)
+        blank_profile_path="$valid"
+        test_catalog_path="$blank_path"
+        ;;
+    esac
+    set +e
+    blank_output="$(
+      TEST_SCHEMA_PATH="$test_schema_path" TEST_CATALOG_PATH="$test_catalog_path" \
+        run_guard "$blank_profile_path" fixture-scm-ci \
+          aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 --action run --resource build 2>&1
+    )"
+    blank_status=$?
+    set -e
+    [[ "$blank_status" == 30 ]] ||
+      fail "$blank_kind $blank_variant JSON probe returned $blank_status instead of 30"
+    grep -Fxq "decision=invalid-profile reason=${blank_kind}-invalid-json" \
+      <<<"$blank_output" ||
+      fail "$blank_kind $blank_variant JSON probe returned an unexpected reason"
+  done
+done
+
 for invalid_profile in \
   "$FIXTURES/invalid-missing-host-id.json" \
   "$FIXTURES/invalid-unknown-capability.json"; do

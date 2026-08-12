@@ -92,7 +92,7 @@ override_reason: ''
 | 检查项 | 结果 | 证据 |
 |---|---|---|
 | profile/schema/catalog permission 分类 | PASS | 三类不可读 fixture 均 rc=30 + `<kind>-permission-denied` |
-| profile/schema/catalog malformed 分类 | PASS | 三类 malformed fixture 均 rc=30 + `<kind>-invalid-json`，marker 未泄漏 |
+| profile/schema/catalog malformed 分类 | PASS | 截断、empty、whitespace fixtures 均 rc=30 + `<kind>-invalid-json`，marker 未泄漏 |
 | 既有 allow/deny/identity/owner-mode | PASS | targeted guard + full smoke 保持既有断言 |
 | Mac Bash 3.2 + ShellCheck | PASS | `bash -n` 与 ShellCheck 0 findings；targeted guard/installer PASS |
 | VM Bash 5.3 targeted | PASS | gitea-ci VM Bash 5.3.9；mounted branch guard/installer PASS |

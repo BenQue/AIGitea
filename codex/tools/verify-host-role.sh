@@ -100,7 +100,10 @@ validate_json_input() {
     invalid_result "${kind}-permission-denied"
     return "$EXIT_INVALID_PROFILE"
   fi
-  if ! jq empty "$target" >/dev/null 2>&1; then
+  # `jq empty` returns success for an empty input stream. Require at least one
+  # parsed JSON value here; contract shape validation below rejects extra or
+  # wrong-shaped values without changing this syntax/error-classification gate.
+  if ! jq -e 'true' "$target" >/dev/null 2>&1; then
     if ! path_is_readable "$target"; then
       invalid_result "${kind}-permission-denied"
     else
