@@ -18,12 +18,27 @@ STATE_ROOT="${AISOFT_SYNC_STATE_ROOT:-/var/lib/aisoft-sync}"
 config="$CONFIG_DIR/$profile.env"
 
 file_mode() {
-  stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1"
+  local path="$1" actual
+
+  if actual="$(stat -c '%a' "$path" 2>/dev/null)" &&
+    [[ "$actual" =~ ^[0-7]{3,4}$ ]]; then
+    printf '%s\n' "$actual"
+    return 0
+  fi
+  if actual="$(stat -f '%Lp' "$path" 2>/dev/null)" &&
+    [[ "$actual" =~ ^[0-7]{3,4}$ ]]; then
+    printf '%s\n' "$actual"
+    return 0
+  fi
+  return 1
 }
 require_private_file() {
   local path="$1" kind="$2" actual
   [ -f "$path" ] || { echo "$kind file is missing" >&2; exit 1; }
-  actual="$(file_mode "$path")"
+  actual="$(file_mode "$path")" || {
+    echo "$kind file mode could not be determined" >&2
+    exit 1
+  }
   case "$actual" in 400|600) ;; *) echo "$kind file mode must be 400 or 600" >&2; exit 1 ;; esac
 }
 
