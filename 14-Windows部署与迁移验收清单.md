@@ -189,19 +189,23 @@ Get-Volume
 | F-09 | 生产 IIS 不含 Git、SDK、Node、Runner、AI 和 AI 凭据 | NOT RUN | |
 | F-10 | 生产使用与测试完全相同的 ZIP/SHA256 | NOT RUN | |
 
-## 9. Gate G：权威源切换
+## 9. Gate G：持续同步与权威分工
 
 | ID | 检查 | 状态 | 证据 |
 |---|---|---|---|
-| G-01 | 本地 Gitea 已冻结正式项目写入 | NOT RUN | |
-| G-02 | 本地 Gitea 最终 bundle/备份已归档 | NOT RUN | |
-| G-03 | 公司 `main`、tag 和 handoff manifest 已最终对账 | NOT RUN | |
-| G-04 | Mac `origin` 指向公司 Gitea | NOT RUN | |
-| G-05 | Mac `prototype` 仅保留本地历史，可选 | NOT RUN | |
-| G-06 | Mac 已完成一个公司分支和 PR | NOT RUN | |
-| G-07 | 公司 CI、邮件和权限在该 PR 上生效 | NOT RUN | |
-| G-08 | 公司 Gitea 与 GitHub 无任何 mirror/webhook | NOT RUN | |
-| G-09 | 已宣布公司 Gitea 为唯一正式权威源 | NOT RUN | |
+| G-01 | 本地 Gitea 保持开发权威、受保护 `main` 与正常项目写入 | NOT RUN | |
+| G-02 | 本地 `main`/tag 经私有 GitHub 中继保持 exact ref 可核对 | NOT RUN | |
+| G-03 | 公司 `scm-ci` 只拉取 allowlisted ref 并创建唯一 sync PR | NOT RUN | |
+| G-04 | 公司 `main`、tag、handoff manifest 与批准 ref 精确对账 | NOT RUN | |
+| G-05 | 公司 CI、邮件、权限和人工合并在 sync PR 上生效 | NOT RUN | |
+| G-06 | GitHub 仅为搬运层，不持有公司 Secret、审批或部署权威 | NOT RUN | |
+| G-07 | Mac `origin` 仍指向本地 Gitea；公司 Gitea 不接收新开发 | NOT RUN | |
+| G-08 | 公司侧只运行确定性部署，无 AI runtime 或 AI 凭据 | NOT RUN | |
+| G-09 | 内网事件脱敏证据包可回流本地 Issue，修复后可重新同步 | NOT RUN | |
+
+本 Gate 不冻结本地 Gitea，也不把 Mac `origin` 改向公司。只有未来单独批准
+[13 §11](13-项目结果迁移与内网切换实施手册.md#11-phase-h最终权威切换备选路径当前不采用)
+的备选彻底下线路径时，才改用“冻结本地、remote 切换、公司唯一权威”的替代验收表。
 
 ## 10. Gate H：备份与灾难恢复
 
