@@ -11,15 +11,18 @@
 - 任何需求、缺陷、变更先建 Gitea Issue；Issue `N` 是唯一主键。
 - 新变更使用可读元组：分支 `change/N-短描述`、目录 `docs/changes/N-短描述/`、
   文档 `<role>-<短描述>-<YYMMDD>.md`（summary front matter `documents` 映射）、唯一 PR
-  `Closes #N`。纯数字命名只作历史读取。
+  `Closes #N`。纯数字名称只有在 Controller 从 manifest-fixed remote 或 Git history 读回
+  evidence 后才能读取或维护兼容；新 writer、first push 和 first PR 不得创建。
 - 只有人能合并受保护 `main`——最终 PR 合并是唯一交付硬闸门；会话/agent 不合并、不直推、
   不擅自部署。
 - Gitea/Git 写操作走 host-access broker 的 typed 操作，不拼 raw token、不绕过治理通道。
 
 ## 每 Issue 开发路径
 
-`$triage #N` → 判级（small 有可测验收即可直进；complex 先 `$to-spec #N` 出 spec）→
-`$to-tickets #N`（plan 的 Txx 依赖图）→ `approved` 复核后 `$implement #N Txx`。
+`$triage #N` → 映射的 summary → AI 判级。只有范围局部、可简单 revert、有可测验收且不触发
+任何强制风险的 small，在 `approved` 复核后才能跳过 spec/plan 直进实现；其余 complex 必须先
+`$to-spec #N` → `$to-tickets #N`（plan 的 Txx 依赖图），再经 `approved` 复核后
+`$implement #N Txx`。
 普通编译/测试/CI 失败自主修复；合同冲突、范围扩张、破坏性迁移、安全决策、三次同因失败
 必须停下升级给人。
 

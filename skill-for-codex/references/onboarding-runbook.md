@@ -125,7 +125,7 @@ GITEA_BOT_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
 - 从 `templates/project/CLAUDE.md` 复制的一行 `@AGENTS.md`。
 - 已接入的存量仓库回补同一指针：逐仓独立 Issue + 小 PR（经该仓 project-agent 通道），把
   AGENTS.md 对齐模板前两节；不得批量脚本改写全部仓库。
-- 从平台仓库 `templates/docs/changes/_template/` 复制 `summary.md`、`spec.md`、`plan.md`、`verification.md` 四个语义模板。新 change 文档实名使用 `<role>-<short-description>-<YYMMDD>.md`，并在 summary front matter 的 `documents` 字段把 `summary`/`spec`/`plan`/`verification` 显式映射到真实 basename；`00-summary.md` 等纯数字名仅作 pre-#57 legacy 读取兼容，不得作为新写入目标。
+- 从平台仓库 `templates/docs/changes/_template/` 复制 `summary.md`、`spec.md`、`plan.md`、`verification.md` 四个语义模板。新 change 文档实名使用 `<role>-<short-description>-<YYMMDD>.md`，并在 summary front matter 的 `documents` 字段把 `summary`/`spec`/`plan`/`verification` 显式映射到真实 basename；remote/history evidence 已存在的 `change/N`、`docs/changes/N/` 与 pre-#57 纯数字文档只作读取或维护兼容，新 writer、first push 和 first PR 不得创建。
 - Matt 编排初始化：显式调用 `$setup-matt-pocock-skills`，tracker 选 `Other`，使用平台 `templates/docs/agents/issue-tracker.md`、`triage-labels.md`、`domain.md` 三件套（经 `$aisoft-matt-workflow` 校验平台边界后执行），不得另建第二套 Gitea 模板。
 - lockfile、包管理源和固定运行时版本。
 - 能检查关键依赖的健康端点。
@@ -192,7 +192,9 @@ writable。
    独立生产 Gate 提升同一 identity。Legacy `deploy` 只为既有 v1 调用方保留。
 
 NewEmaint 的示例 profile 仅说明平台字段，不授权修改 NewEmaint 仓库、创建真实 Secret、执行
-migration 或部署。其首个消费实现仍须在 NewEmaint 自己的 `change/N` 和最终 PR 中完成。
+migration 或部署。其首个消费实现仍须在 NewEmaint 自己的 exact
+`change/N-short-description`、映射的 `docs/changes/N-short-description/` 语义文档和唯一最终 PR
+中完成。
 
 Offline consumer 只接受 `docker-release-offline-bundle/v2` +
 `docker-release-offline-inventory/v2`，在 load 前验证 archive/inventory/Compose/architecture
