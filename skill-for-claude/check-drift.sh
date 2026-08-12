@@ -13,9 +13,13 @@ if [[ -L "$target" ]]; then
   echo 'DRIFT: symlink target'
   exit 1
 fi
-if [[ ! -d "$target" ]]; then
+if [[ ! -e "$target" ]]; then
   echo 'NOT_INSTALLED'
   exit 0
+fi
+if [[ ! -d "$target" ]]; then
+  echo 'DRIFT: invalid target'
+  exit 1
 fi
 
 drift=0

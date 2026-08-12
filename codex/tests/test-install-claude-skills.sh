@@ -13,6 +13,16 @@ fail() {
 "$root/skill-for-claude/check-drift.sh" "$tmp_home" | grep -Fqx 'NOT_INSTALLED' ||
   fail 'check-drift must report NOT_INSTALLED for a home without the skill'
 
+mkdir -p "$tmp_home/invalid-home/.claude/skills"
+printf '%s\n' 'not-a-directory' >"$tmp_home/invalid-home/.claude/skills/aisoft-platform"
+set +e
+invalid_target_output="$("$root/skill-for-claude/check-drift.sh" "$tmp_home/invalid-home" 2>&1)"
+invalid_target_status=$?
+set -e
+[[ "$invalid_target_status" == 1 ]] || fail 'non-directory skill target must make check-drift fail'
+grep -Fqx 'DRIFT: invalid target' <<<"$invalid_target_output" ||
+  fail 'check-drift must distinguish an invalid target from NOT_INSTALLED'
+
 bash "$root/skill-for-claude/install.sh" "$tmp_home" >/dev/null
 first="$(cd "$tmp_home/.claude/skills/aisoft-platform" && find . -type f | LC_ALL=C sort)"
 first_hash="$(cd "$tmp_home/.claude/skills/aisoft-platform" && find . -type f -exec shasum -a 256 {} + | LC_ALL=C sort | shasum -a 256)"

@@ -87,7 +87,7 @@ override_reason: ''
 | 检查项 | 结果 | 证据 |
 |---|---|---|
 | broker/readable/deployment 文本 | PASS | direct fetch/rebase 与 NewEmaint `change/N` 残留 absent；模板前置齐全 |
-| drift negative fixtures | PASS | missing/content/unexpected + exact reinstall；symlink target fail closed |
+| drift negative fixtures | PASS | missing/content/unexpected/invalid target；root、`SKILL.md`、`references/` symlink fail closed；exact reinstall |
 | `bash -n` / ShellCheck | PASS | 3 个修改 shell/test 脚本 0 findings |
 | `bash codex/tests/test-install-claude-skills.sh` | PASS | 临时 HOME；success 输出一次 |
 | `bash codex/tests/smoke.sh` | PASS | 325 tests OK；static smoke passed |
