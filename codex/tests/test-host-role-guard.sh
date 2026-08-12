@@ -9,6 +9,11 @@ FIXTURES="$ROOT/codex/tests/fixtures/host-role"
 TMP="$(mktemp -d)"
 trap 'rm -rf -- "$TMP"' EXIT
 
+fail() {
+  printf 'FAIL: %s\n' "$1" >&2
+  exit 1
+}
+
 run_guard() (
   local profile="$1"
   local fixture_hostname="$2"
@@ -41,56 +46,73 @@ run_guard() (
   verify_host_role_main "$@"
 )
 
-jq empty "$SCHEMA" "$CATALOG" "$FIXTURES"/*.json >/dev/null
-jq -e '.properties.contract_version.const == "1.0"' "$SCHEMA" >/dev/null
-jq -e '.contract_version == "1.0" and (.roles | length == 3)' "$CATALOG" >/dev/null
+jq empty "$SCHEMA" "$CATALOG" "$FIXTURES"/*.json >/dev/null ||
+  fail 'host-role schema, catalog and fixtures must be valid JSON'
+jq -e '.properties.contract_version.const == "1.0"' "$SCHEMA" >/dev/null ||
+  fail 'host-role schema contract version must be 1.0'
+jq -e '.contract_version == "1.0" and (.roles | length == 3)' "$CATALOG" >/dev/null ||
+  fail 'host-role catalog must contain the exact v1 role set'
 
 valid="$FIXTURES/valid-scm-ci.json"
+set +e
 allow_one="$(run_guard "$valid" fixture-scm-ci \
-  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 --action run --resource build)"
+  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 --action run --resource build 2>&1)"
+allow_one_status=$?
+set -e
+[[ "$allow_one_status" == 0 ]] ||
+  fail "build allow probe returned $allow_one_status instead of 0"
 grep -Fxq \
   'decision=allow host=fixture-scm-ci role=scm-ci action=run resource=build' \
-  <<<"$allow_one"
+  <<<"$allow_one" || fail 'build allow probe returned an unexpected decision'
+set +e
 allow_two="$(run_guard "$valid" fixture-scm-ci \
-  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 --action run --resource build)"
-[[ "$allow_one" == "$allow_two" ]]
+  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 --action run --resource build 2>&1)"
+allow_two_status=$?
+set -e
+[[ "$allow_two_status" == 0 ]] ||
+  fail "repeated build allow probe returned $allow_two_status instead of 0"
+[[ "$allow_one" == "$allow_two" ]] || fail 'allow decisions must be deterministic'
 
 set +e
 deny_output="$(run_guard "$valid" fixture-scm-ci \
   aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 --action start --resource application 2>&1)"
 deny_status=$?
 set -e
-[[ "$deny_status" == 20 ]]
+[[ "$deny_status" == 20 ]] ||
+  fail "application start deny probe returned $deny_status instead of 20"
 grep -Fxq \
   'decision=deny host=fixture-scm-ci role=scm-ci action=start resource=application' \
-  <<<"$deny_output"
+  <<<"$deny_output" || fail 'application start deny probe returned an unexpected decision'
 
 set +e
 unknown_output="$(run_guard "$valid" fixture-scm-ci \
   aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 --action launch --resource application 2>&1)"
 unknown_status=$?
 set -e
-[[ "$unknown_status" == 30 ]]
+[[ "$unknown_status" == 30 ]] ||
+  fail "unknown capability probe returned $unknown_status instead of 30"
 grep -Fq 'decision=invalid-profile reason=unknown-action-resource-pair' \
-  <<<"$unknown_output"
+  <<<"$unknown_output" || fail 'unknown capability probe returned an unexpected reason'
 
 set +e
 identity_output="$(run_guard "$valid" wrong-host \
   aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 --action run --resource build 2>&1)"
 identity_status=$?
 set -e
-[[ "$identity_status" == 40 ]]
+[[ "$identity_status" == 40 ]] ||
+  fail "identity mismatch probe returned $identity_status instead of 40"
 grep -Fq 'decision=identity-mismatch reason=hostname-mismatch' \
-  <<<"$identity_output"
+  <<<"$identity_output" || fail 'identity mismatch probe returned an unexpected reason'
 
 set +e
 permission_output="$(run_guard "$valid" fixture-scm-ci \
   aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 666 --action run --resource build 2>&1)"
 permission_status=$?
 set -e
-[[ "$permission_status" == 30 ]]
+[[ "$permission_status" == 30 ]] ||
+  fail "profile mode probe returned $permission_status instead of 30"
 grep -Fq 'decision=invalid-profile reason=profile-path-owner-or-mode' \
-  <<<"$permission_output"
+  <<<"$permission_output" || fail 'profile mode probe returned an unexpected reason'
 
 for invalid_profile in \
   "$FIXTURES/invalid-missing-host-id.json" \
@@ -100,8 +122,10 @@ for invalid_profile in \
     aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 --action run --resource build 2>&1)"
   invalid_status=$?
   set -e
-  [[ "$invalid_status" == 30 ]]
-  grep -Fq 'decision=invalid-profile' <<<"$invalid_output"
+  [[ "$invalid_status" == 30 ]] ||
+    fail "invalid fixture $(basename "$invalid_profile") returned $invalid_status instead of 30"
+  grep -Fq 'decision=invalid-profile' <<<"$invalid_output" ||
+    fail "invalid fixture $(basename "$invalid_profile") returned an unexpected decision"
 done
 
 redacted_profile="$TMP/redacted.json"
@@ -112,23 +136,24 @@ redacted_output="$(run_guard "$redacted_profile" fixture-scm-ci \
   aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 --action run --resource build 2>&1)"
 redacted_status=$?
 set -e
-[[ "$redacted_status" == 30 ]]
+[[ "$redacted_status" == 30 ]] ||
+  fail "unexpected profile field probe returned $redacted_status instead of 30"
 if grep -Fq "$secret_marker" <<<"$redacted_output"; then
-  echo 'guard leaked an unexpected profile value' >&2
-  exit 1
+  fail 'guard leaked an unexpected profile value'
 fi
 
 mutation_marker="$TMP/mutated"
 set +e
-(
-  run_guard "$valid" fixture-scm-ci \
-    aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 \
-    --action start --resource application
-  : >"$mutation_marker"
-) >/dev/null 2>&1
+run_guard "$valid" fixture-scm-ci \
+  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 \
+  --action start --resource application >/dev/null 2>&1
 mutation_status=$?
 set -e
-[[ "$mutation_status" == 20 ]]
-[[ ! -e "$mutation_marker" ]]
+if [[ "$mutation_status" == 0 ]]; then
+  : >"$mutation_marker"
+fi
+[[ "$mutation_status" == 20 ]] ||
+  fail "guarded mutation probe returned $mutation_status instead of 20"
+[[ ! -e "$mutation_marker" ]] || fail 'denied guard decision reached the mutation marker'
 
 printf '%s\n' 'host-role guard tests passed'
