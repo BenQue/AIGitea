@@ -15,7 +15,7 @@ depends_on:
   - 101
 status: ready-for-review
 branch: change/97-guard-error-classification
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/104
 created: 2026-08-12
 updated: 2026-08-12
 ---
@@ -28,7 +28,7 @@ updated: 2026-08-12
 |---|---|---|---|
 | T01 | 六类 permission/malformed reason 与无泄漏 tests | #96 test baseline | completed |
 | T02 | 06 §1 探针身份与安全解释 | T01 | completed |
-| T03 | Mac/VM/full smoke、两轴 review、typed push 与 stacked PR | T02、#101 CI | in-progress |
+| T03 | Mac/VM/full smoke、两轴 review、typed push 与 stacked PR | T02、#101 CI | completed |
 
 ## Expected touch points
 

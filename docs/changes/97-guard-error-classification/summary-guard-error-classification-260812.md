@@ -25,7 +25,7 @@ depends_on:
   - 101
 status: ready-for-review
 branch: change/97-guard-error-classification
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/104
 created: 2026-08-12
 updated: 2026-08-12
 ---
