@@ -56,6 +56,10 @@ read_actual_host_id() {
   tr -d '[:space:]' <"$MACHINE_ID_PATH" | tr '[:upper:]' '[:lower:]'
 }
 
+path_is_readable() {
+  [[ -r "$1" ]]
+}
+
 mode_is_not_writable_by_group_or_other() {
   local mode="$1"
   [[ "$mode" =~ ^[0-7]{3}$ ]] || return 1
@@ -87,6 +91,23 @@ secure_contract_path() {
   parent_mode="${metadata_parent##* }"
   [[ "$parent_uid" == 0 ]] || return 1
   mode_is_not_writable_by_group_or_other "$parent_mode"
+}
+
+validate_json_input() {
+  local target="$1" kind="$2"
+
+  if ! path_is_readable "$target"; then
+    invalid_result "${kind}-permission-denied"
+    return "$EXIT_INVALID_PROFILE"
+  fi
+  if ! jq empty "$target" >/dev/null 2>&1; then
+    if ! path_is_readable "$target"; then
+      invalid_result "${kind}-permission-denied"
+    else
+      invalid_result "${kind}-invalid-json"
+    fi
+    return "$EXIT_INVALID_PROFILE"
+  fi
 }
 
 catalog_is_valid() {
@@ -225,10 +246,9 @@ verify_host_role_main() {
     invalid_result 'catalog-path-owner-or-mode'
     return "$EXIT_INVALID_PROFILE"
   }
-  jq empty "$PROFILE_PATH" "$SCHEMA_PATH" "$CATALOG_PATH" >/dev/null 2>&1 || {
-    invalid_result 'invalid-json'
-    return "$EXIT_INVALID_PROFILE"
-  }
+  validate_json_input "$PROFILE_PATH" profile || return "$EXIT_INVALID_PROFILE"
+  validate_json_input "$SCHEMA_PATH" schema || return "$EXIT_INVALID_PROFILE"
+  validate_json_input "$CATALOG_PATH" catalog || return "$EXIT_INVALID_PROFILE"
   schema_is_valid || {
     invalid_result 'invalid-schema-contract'
     return "$EXIT_INVALID_PROFILE"

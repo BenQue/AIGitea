@@ -29,9 +29,9 @@ run_guard() (
   # shellcheck disable=SC2034
   PROFILE_PATH="$profile"
   # shellcheck disable=SC2034
-  SCHEMA_PATH="$SCHEMA"
+  SCHEMA_PATH="${TEST_SCHEMA_PATH:-$SCHEMA}"
   # shellcheck disable=SC2034
-  CATALOG_PATH="$CATALOG"
+  CATALOG_PATH="${TEST_CATALOG_PATH:-$CATALOG}"
   # shellcheck disable=SC2329
   path_uid_mode() {
     case "$1" in
@@ -39,6 +39,8 @@ run_guard() (
       *) printf '0 644\n' ;;
     esac
   }
+  # shellcheck disable=SC2329
+  path_is_readable() { [[ "$1" != "${TEST_UNREADABLE_PATH:-}" ]]; }
   # shellcheck disable=SC2329
   read_actual_hostname() { printf '%s\n' "$fixture_hostname"; }
   # shellcheck disable=SC2329
@@ -113,6 +115,67 @@ set -e
   fail "profile mode probe returned $permission_status instead of 30"
 grep -Fq 'decision=invalid-profile reason=profile-path-owner-or-mode' \
   <<<"$permission_output" || fail 'profile mode probe returned an unexpected reason'
+
+for unreadable_kind in profile schema catalog; do
+  case "$unreadable_kind" in
+    profile) unreadable_path="$valid" ;;
+    schema) unreadable_path="$SCHEMA" ;;
+    catalog) unreadable_path="$CATALOG" ;;
+  esac
+  set +e
+  unreadable_output="$(
+    TEST_UNREADABLE_PATH="$unreadable_path" \
+      run_guard "$valid" fixture-scm-ci \
+        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 --action run --resource build 2>&1
+  )"
+  unreadable_status=$?
+  set -e
+  [[ "$unreadable_status" == 30 ]] ||
+    fail "$unreadable_kind unreadable probe returned $unreadable_status instead of 30"
+  grep -Fxq "decision=invalid-profile reason=${unreadable_kind}-permission-denied" \
+    <<<"$unreadable_output" ||
+    fail "$unreadable_kind unreadable probe returned an unexpected reason"
+done
+
+malformed_marker='MALFORMED_JSON_MARKER_MUST_NOT_LEAK_97'
+malformed_profile="$TMP/malformed-profile.json"
+malformed_schema="$TMP/malformed-schema.json"
+malformed_catalog="$TMP/malformed-catalog.json"
+printf '{"marker":"%s"' "$malformed_marker" >"$malformed_profile"
+printf '{"marker":"%s"' "$malformed_marker" >"$malformed_schema"
+printf '{"marker":"%s"' "$malformed_marker" >"$malformed_catalog"
+
+for malformed_kind in profile schema catalog; do
+  test_schema_path="$SCHEMA"
+  test_catalog_path="$CATALOG"
+  case "$malformed_kind" in
+    profile) malformed_path="$malformed_profile" ;;
+    schema)
+      malformed_path="$valid"
+      test_schema_path="$malformed_schema"
+      ;;
+    catalog)
+      malformed_path="$valid"
+      test_catalog_path="$malformed_catalog"
+      ;;
+  esac
+  set +e
+  malformed_output="$(
+    TEST_SCHEMA_PATH="$test_schema_path" TEST_CATALOG_PATH="$test_catalog_path" \
+      run_guard "$malformed_path" fixture-scm-ci \
+        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 640 --action run --resource build 2>&1
+  )"
+  malformed_status=$?
+  set -e
+  [[ "$malformed_status" == 30 ]] ||
+    fail "$malformed_kind malformed JSON probe returned $malformed_status instead of 30"
+  grep -Fxq "decision=invalid-profile reason=${malformed_kind}-invalid-json" \
+    <<<"$malformed_output" ||
+    fail "$malformed_kind malformed JSON probe returned an unexpected reason"
+  if grep -Fq "$malformed_marker" <<<"$malformed_output"; then
+    fail "$malformed_kind malformed JSON probe leaked input content"
+  fi
+done
 
 for invalid_profile in \
   "$FIXTURES/invalid-missing-host-id.json" \
