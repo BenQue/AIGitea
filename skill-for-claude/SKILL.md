@@ -5,7 +5,7 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 
 # AISoft 自托管交付平台（v3.4）
 
-自托管的「Issue → AI 分析判级 → (small 直进 / complex 先 spec/plan) → 单 PR → 人合并 → 确定性部署」平台。核心原则：**Issue 定义工作，AI 把明确合同做到可审 PR，人决定是否合并；合并之后的部署链路里没有 AI。**
+自托管的「Issue → AI 分析判级 → (small 直进 / complex 先 spec/plan) → 单 PR → 人合并 → 确定性部署」平台。核心原则：**Issue 定义工作，AI 把明确合同做到可审 PR，人决定是否合并；AI 可参与开发/测试环境首次部署并把流程固化为脚本，生产只运行已验证脚本且没有 AI。**
 
 **权威文档**：Mac 用 `~/MyDocs/AISoftPlatform/`；gitea-ci VM 用 `/mnt/mac/Users/benque/MyDocs/AISoftPlatform/`（**不是 `~/Documents/`**——macOS TCC 挡 /mnt/mac，2026-07-19 迁出）。README=总纲 · 03 流程 · 04 Matt 编排与 Loop · 06 运维踩坑与 broker · 08 双工具 · 12-Linux 内网交付 · architecture/ 与 docker-release/ 子合同。改配置前先读对应分册。
 
@@ -27,7 +27,9 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 2. `python3 -m aisoft_loop.cli change-name N <slug>` 校验命名 → `git worktree add /private/tmp/issue-N-<slug> -b change/N-<slug> origin/main`（并行会话必须各自 worktree；commit 前 `git branch --show-current` 核对——踩坑 #15）。
 3. 按判级写映射文档（complex 补 spec/plan，模板在 `templates/docs/changes/_template/`），实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。
 4. commit → broker `git.push.change --branch change/N-<slug>` → broker `gitea.pull.create --issue N`（正文含 `Closes #N` 与文档链接）→ 更新 summary 的 `pr_url` 再推一次。**到开 PR 为止。**
-5. push 报 `BASE_BRANCH_STALE` = main 已前进 → `git fetch && git rebase origin/main` 后重推。
+5. push 报 `BASE_BRANCH_STALE` = main 已前进 → 停止当前实现 pass；由 Controller 通过 broker
+   `git.fetch.main` 取得新基线，并按 ancestry policy 从更新后的 `origin/main` 重建候选，再使用
+   broker `git.push.change`。Agent 不直接 fetch/rebase/push，也不改写已发布历史。
 
 ## 工具分工（默认偏好，非硬规则）
 

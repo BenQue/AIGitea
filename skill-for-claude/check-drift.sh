@@ -15,6 +15,19 @@ if [[ ! -d "$target" ]]; then
 fi
 
 drift=0
+is_expected_relative() {
+  local relative="$1" name
+  case "$relative" in
+    SKILL.md|references) return 0 ;;
+    references/*.md)
+      name="${relative#references/}"
+      [[ "$name" != */* && -f "$refs_source/$name" ]]
+      return
+      ;;
+  esac
+  return 1
+}
+
 if ! diff -q "$root/skill-for-claude/SKILL.md" "$target/SKILL.md" >/dev/null 2>&1; then
   echo "DRIFT: SKILL.md"
   drift=1
@@ -26,6 +39,14 @@ for ref in "$refs_source"/*.md; do
     drift=1
   fi
 done
+
+while IFS= read -r -d '' installed_path; do
+  relative="${installed_path#"$target"/}"
+  if ! is_expected_relative "$relative"; then
+    echo "DRIFT: unexpected $relative"
+    drift=1
+  fi
+done < <(find "$target" -mindepth 1 -print0)
 
 if [[ "$drift" == "0" ]]; then
   echo 'CLEAN'

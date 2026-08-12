@@ -43,4 +43,56 @@ fi
 "$root/skill-for-claude/check-drift.sh" "$tmp_home" | grep -Fqx 'CLEAN' ||
   fail 'check-drift must report CLEAN right after install'
 
+printf '%s\n' 'stale' >"$tmp_home/.claude/skills/aisoft-platform/references/stale.md"
+set +e
+extra_output="$("$root/skill-for-claude/check-drift.sh" "$tmp_home" 2>&1)"
+extra_status=$?
+set -e
+[[ "$extra_status" == 1 ]] || fail 'unexpected target file must make check-drift fail'
+grep -Fqx 'DRIFT: unexpected references/stale.md' <<<"$extra_output" ||
+  fail 'check-drift must identify the unexpected target file'
+
+bash "$root/skill-for-claude/install.sh" "$tmp_home" >/dev/null
+[[ ! -e "$tmp_home/.claude/skills/aisoft-platform/references/stale.md" ]] ||
+  fail 'install.sh must prune unexpected target files'
+"$root/skill-for-claude/check-drift.sh" "$tmp_home" | grep -Fqx 'CLEAN' ||
+  fail 'reinstall after stale-file pruning must be CLEAN'
+
+printf '%s\n' 'content-drift' >>"$tmp_home/.claude/skills/aisoft-platform/SKILL.md"
+set +e
+content_output="$("$root/skill-for-claude/check-drift.sh" "$tmp_home" 2>&1)"
+content_status=$?
+set -e
+[[ "$content_status" == 1 ]] || fail 'changed installed content must make check-drift fail'
+grep -Fqx 'DRIFT: SKILL.md' <<<"$content_output" ||
+  fail 'check-drift must identify changed SKILL.md content'
+
+bash "$root/skill-for-claude/install.sh" "$tmp_home" >/dev/null
+rm -f -- "$tmp_home/.claude/skills/aisoft-platform/references/private-gitea-access.md"
+set +e
+missing_output="$("$root/skill-for-claude/check-drift.sh" "$tmp_home" 2>&1)"
+missing_status=$?
+set -e
+[[ "$missing_status" == 1 ]] || fail 'missing installed reference must make check-drift fail'
+grep -Fqx 'DRIFT: references/private-gitea-access.md' <<<"$missing_output" ||
+  fail 'check-drift must identify the missing installed reference'
+
+bash "$root/skill-for-claude/install.sh" "$tmp_home" >/dev/null
+"$root/skill-for-claude/check-drift.sh" "$tmp_home" | grep -Fqx 'CLEAN' ||
+  fail 'final exact reinstall must be CLEAN'
+
+mkdir -p "$tmp_home/symlink-home/.claude/skills" "$tmp_home/symlink-destination"
+printf '%s\n' 'keep' >"$tmp_home/symlink-destination/sentinel"
+ln -s "$tmp_home/symlink-destination" \
+  "$tmp_home/symlink-home/.claude/skills/aisoft-platform"
+set +e
+symlink_output="$(bash "$root/skill-for-claude/install.sh" "$tmp_home/symlink-home" 2>&1)"
+symlink_status=$?
+set -e
+[[ "$symlink_status" == 1 ]] || fail 'installer must reject a symlink skill target'
+grep -Fq 'refusing symlink skill target' <<<"$symlink_output" ||
+  fail 'symlink target rejection must be explicit'
+grep -Fqx 'keep' "$tmp_home/symlink-destination/sentinel" ||
+  fail 'installer must not mutate a symlink destination'
+
 echo 'claude skill install tests passed'

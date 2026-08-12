@@ -89,5 +89,6 @@ override_reason: ''
 | AC-2 清单不动的契约依据 | PASS | 清单先改时 `test_host_access` 两用例 PROTECTION_MISMATCH 复现后还原 |
 | AC-3 本地 smoke | PASS（叠加 #82 修复验证） | #77 先例：临时叠加 PR #83 单行修复后全套通过，随后还原 |
 | AC-4 runner 前置 | PASS | VM `rg 15.1.0` 安装读回；python3=3.14.4、jq/git 在位 |
+| AC-4 首次真实 workflow | FAIL | PR #90 final head `7ee2626d86457777e679f26cd9144ee7886a8d4a`，`CI / verify (pull_request)` run/job #404，5 秒失败；不是本地 smoke PASS |
 | AC-5 保护不翻转 | PASS | 本分支 diff 仅 workflow + change docs |
-| 首次真实 workflow 运行 | PENDING | 本 PR 创建后由 Gitea Actions 触发，结果见 PR checks |
+| required context | NOT CONFIGURED | manifest、`test_host_access` fixtures 与 governance apply 三件套继续等待后续独立 Change |

@@ -192,7 +192,9 @@ writable。
    独立生产 Gate 提升同一 identity。Legacy `deploy` 只为既有 v1 调用方保留。
 
 NewEmaint 的示例 profile 仅说明平台字段，不授权修改 NewEmaint 仓库、创建真实 Secret、执行
-migration 或部署。其首个消费实现仍须在 NewEmaint 自己的 `change/N` 和最终 PR 中完成。
+migration 或部署。其首个消费实现仍须在 NewEmaint 自己的 exact
+`change/N-short-description`、映射的 `docs/changes/N-short-description/` 语义文档和唯一最终 PR
+中完成。
 
 Offline consumer 只接受 `docker-release-offline-bundle/v2` +
 `docker-release-offline-inventory/v2`，在 load 前验证 archive/inventory/Compose/architecture
