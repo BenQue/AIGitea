@@ -49,8 +49,9 @@ smoke 的独立 sync runtime blocker。两者均需先人工合并，#97 不复�
 
 ## 初步方案与建议
 
-保持 secure path owner/mode 检查在前，再逐一检查 profile/schema/catalog 是否可读，最后分别执行
-`jq empty`。不可读使用 `<kind>-permission-denied`，malformed 使用 `<kind>-invalid-json`；全部 rc=30
+保持 secure path owner/mode 检查在前，再逐一检查 profile/schema/catalog 是否可读，最后分别用
+`jq -e 'true'` 要求至少一个完整 JSON value。不可读使用 `<kind>-permission-denied`，malformed/empty
+使用 `<kind>-invalid-json`；全部 rc=30
 且不输出输入内容。06 §1 固定 `-u gitea-runner`。
 
 ## 风险
