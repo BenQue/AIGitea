@@ -295,6 +295,24 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
             with self.assertRaises(AccessContractError):
                 load_access_contract(path, GOVERNANCE)
 
+    def test_profile_spec_projects_path_prepend(self) -> None:
+        expectations = {
+            "sfm": ["/opt/node22/bin", "/home/coder/.local/bin"],
+            "emaintenance": [],
+        }
+        for profile_name, expected in expectations.items():
+            with self.subTest(profile_name=profile_name):
+                buffer = io.StringIO()
+                with redirect_stdout(buffer):
+                    code = host_access_cli_main([
+                        "--access-manifest", str(ACCESS),
+                        "--governance-manifest", str(GOVERNANCE),
+                        "profile-spec", "--profile-name", profile_name,
+                    ])
+                self.assertEqual(code, 0)
+                payload = json.loads(buffer.getvalue())
+                self.assertEqual(payload["path_prepend"], expected)
+
 
 class HostAccessBrokerTests(unittest.TestCase):
     def setUp(self) -> None:
