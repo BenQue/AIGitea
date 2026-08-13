@@ -15,6 +15,7 @@ from aisoft_change_name import ChangeName, ChangeNameError
 
 IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 GIT_REMOTE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+PATH_PREPEND_ENTRY_RE = re.compile(r"^/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$")
 
 
 class AccessContractError(ValueError):
@@ -60,6 +61,23 @@ def _absolute_path(value: Any, context: str) -> str:
     return value
 
 
+def _path_prepend(value: Any, context: str) -> tuple[str, ...]:
+    """Fail-closed toolchain PATH declaration: declare-or-omit, absolute, restricted."""
+    _require(isinstance(value, list) and len(value) > 0,
+             f"{context} must be a non-empty list when declared")
+    entries: list[str] = []
+    for position, entry in enumerate(value):
+        entry_context = f"{context}[{position}]"
+        _require(
+            isinstance(entry, str) and bool(PATH_PREPEND_ENTRY_RE.fullmatch(entry)),
+            f"{entry_context} must be an absolute path using only [A-Za-z0-9._/-]",
+        )
+        _absolute_path(entry, entry_context)
+        _require(entry not in entries, f"{entry_context} must not repeat an earlier entry")
+        entries.append(entry)
+    return tuple(entries)
+
+
 def _relative_path(value: Any, context: str) -> str:
     _require(isinstance(value, str) and value and not value.startswith("/"),
              f"{context} must be HOME-relative")
@@ -85,6 +103,7 @@ class VMProfileContract:
     analysis_provider: str
     implement_provider: str
     timer_unit: str | None
+    path_prepend: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -340,8 +359,13 @@ def load_access_contract(
         vm_profile: VMProfileContract | None = None
         if vm_raw is not None:
             _require(isinstance(vm_raw, dict), f"projects[{index}].vm_profile must be an object")
-            _exact_keys(vm_raw, {"name", "repo_dir", "analysis_provider", "implement_provider",
-                                 "timer_unit"}, f"projects[{index}].vm_profile")
+            required_vm_keys = {"name", "repo_dir", "analysis_provider", "implement_provider",
+                                "timer_unit"}
+            _require(
+                set(vm_raw) in {frozenset(required_vm_keys),
+                                frozenset(required_vm_keys | {"path_prepend"})},
+                f"projects[{index}].vm_profile keys mismatch",
+            )
             profile_name = _identifier(vm_raw["name"], f"projects[{index}].vm_profile.name")
             _require(profile_name not in profile_names, f"duplicate VM profile: {profile_name}")
             profile_names.add(profile_name)
@@ -358,7 +382,11 @@ def load_access_contract(
             _require(timer is None or timer in {
                 "aisoft-agent@emaintenance.timer", "aisoft-agent@sfm.timer"
             }, "timer_unit is not allowlisted")
-            vm_profile = VMProfileContract(profile_name, repo_dir, analysis, implementation, timer)
+            path_prepend = _path_prepend(
+                vm_raw.get("path_prepend"), f"projects[{index}].vm_profile.path_prepend"
+            ) if "path_prepend" in vm_raw else ()
+            vm_profile = VMProfileContract(profile_name, repo_dir, analysis, implementation,
+                                           timer, path_prepend)
         projects.append(ProjectContract(project_id, repository, project_agent,
                                         git_remote_name, mac_checkout, vm_profile))
 

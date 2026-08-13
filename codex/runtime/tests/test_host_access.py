@@ -228,6 +228,74 @@ class HostAccessContractTests(unittest.TestCase):
             broker.execute("hsdb", "gitea.repo.read", state="all")
 
 
+class VmProfilePathPrependContractTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.contract = load_access_contract(ACCESS, GOVERNANCE)
+
+    def test_declared_and_undeclared_projects_parse_exactly(self) -> None:
+        sfm = self.contract.project("sfm-digital-board")
+        assert sfm.vm_profile is not None
+        self.assertEqual(sfm.vm_profile.path_prepend,
+                         ("/opt/node22/bin", "/home/coder/.local/bin"))
+        for project_id in ("newemaint", "hsdb", "rsdesign-new"):
+            with self.subTest(project_id=project_id):
+                project = self.contract.project(project_id)
+                assert project.vm_profile is not None
+                self.assertEqual(project.vm_profile.path_prepend, ())
+        raw = json.loads(ACCESS.read_text())
+        declared = {
+            project["project_id"]: project["vm_profile"].get("path_prepend")
+            for project in raw["projects"] if project["vm_profile"] is not None
+        }
+        self.assertEqual(declared, {
+            "sfm-digital-board": ["/opt/node22/bin", "/home/coder/.local/bin"],
+            "newemaint": None,
+            "hsdb": None,
+            "rsdesign-new": None,
+        })
+
+    def test_invalid_path_prepend_declarations_fail_closed(self) -> None:
+        invalid_values = (
+            [],
+            "not-a-list",
+            {"prepend": "/opt/node22/bin"},
+            [42],
+            [""],
+            ["relative/bin"],
+            ["/opt/../bin"],
+            ["/opt/./bin"],
+            ["/opt/node:22/bin"],
+            ["/opt/node 22/bin"],
+            ["/opt/node22/bin/"],
+            ["/"],
+            ["//opt/node22/bin"],
+            ["/opt/$HOME/bin"],
+            ["/opt/node22/bin", "/opt/node22/bin"],
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "access.json"
+            for invalid in invalid_values:
+                with self.subTest(invalid=invalid):
+                    raw = json.loads(ACCESS.read_text())
+                    sfm = next(project for project in raw["projects"]
+                               if project["project_id"] == "sfm-digital-board")
+                    sfm["vm_profile"]["path_prepend"] = invalid
+                    path.write_text(json.dumps(raw))
+                    with self.assertRaises(AccessContractError):
+                        load_access_contract(path, GOVERNANCE)
+
+    def test_unknown_vm_profile_key_still_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "access.json"
+            raw = json.loads(ACCESS.read_text())
+            sfm = next(project for project in raw["projects"]
+                       if project["project_id"] == "sfm-digital-board")
+            sfm["vm_profile"]["path_append"] = ["/opt/node22/bin"]
+            path.write_text(json.dumps(raw))
+            with self.assertRaises(AccessContractError):
+                load_access_contract(path, GOVERNANCE)
+
+
 class HostAccessBrokerTests(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = load_access_contract(ACCESS, GOVERNANCE)

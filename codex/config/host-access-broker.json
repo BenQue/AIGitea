@@ -281,7 +281,8 @@
         "repo_dir": "work/SFMDigitalBoard",
         "analysis_provider": "claude",
         "implement_provider": "none",
-        "timer_unit": "aisoft-agent@sfm.timer"
+        "timer_unit": "aisoft-agent@sfm.timer",
+        "path_prepend": ["/opt/node22/bin", "/home/coder/.local/bin"]
       }
     },
     {
