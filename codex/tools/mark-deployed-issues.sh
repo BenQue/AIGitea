@@ -6,12 +6,32 @@ warn() {
   printf 'WARN: mark-deployed: %s\n' "$*" >&2
 }
 
-for name in GITEA_URL GITEA_OWNER GITEA_REPO GITEA_TOKEN; do
+# Shared token resolution (#111): same-directory copy first (flat VM install
+# layout), then the repository layout. This tool never fails the deployment.
+tool_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$tool_dir/gitea-token.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  . "$tool_dir/gitea-token.sh"
+elif [ -f "$tool_dir/../agent/gitea-token.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  . "$tool_dir/../agent/gitea-token.sh"
+else
+  warn "shared gitea token resolver is unavailable; deployment result is unchanged"
+  exit 0
+fi
+
+for name in GITEA_URL GITEA_OWNER GITEA_REPO; do
   if [ -z "${!name:-}" ]; then
     warn "$name is unavailable; deployment result is unchanged"
     exit 0
   fi
 done
+token_rc=0
+aisoft_resolve_gitea_token || token_rc=$?
+if [ "$token_rc" -ne 0 ]; then
+  warn "usable GITEA_TOKEN_FILE or GITEA_TOKEN is unavailable; deployment result is unchanged"
+  exit 0
+fi
 if ! command -v curl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
   warn "curl and jq are required; deployment result is unchanged"
   exit 0

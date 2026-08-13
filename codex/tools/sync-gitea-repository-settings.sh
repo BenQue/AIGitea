@@ -9,9 +9,31 @@ if [ "${1:-}" = "--disable" ]; then
 fi
 [ "$#" -eq 0 ] || { echo "usage: $0 [--disable]" >&2; exit 2; }
 
-for name in GITEA_URL GITEA_OWNER GITEA_REPO GITEA_TOKEN; do
+# Shared token resolution (#111): same-directory copy first (flat VM install
+# layout), then the repository layout.
+TOOL_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$TOOL_DIR/gitea-token.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  . "$TOOL_DIR/gitea-token.sh"
+elif [ -f "$TOOL_DIR/../agent/gitea-token.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  . "$TOOL_DIR/../agent/gitea-token.sh"
+else
+  echo 'shared gitea token resolver is unavailable' >&2
+  exit 1
+fi
+
+for name in GITEA_URL GITEA_OWNER GITEA_REPO; do
   [ -n "${!name:-}" ] || { printf '%s is required\n' "$name" >&2; exit 2; }
 done
+token_rc=0
+aisoft_resolve_gitea_token || token_rc=$?
+if [ "$token_rc" -eq 1 ]; then
+  echo 'GITEA_TOKEN_FILE or GITEA_TOKEN is required' >&2
+  exit 2
+elif [ "$token_rc" -ne 0 ]; then
+  exit "$token_rc"
+fi
 command -v curl >/dev/null || { echo "curl is required" >&2; exit 2; }
 command -v jq >/dev/null || { echo "jq is required" >&2; exit 2; }
 

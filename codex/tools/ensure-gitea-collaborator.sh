@@ -29,6 +29,20 @@ blocked() {
   exit 1
 }
 
+# Shared token resolution (#111): same-directory copy first (this tool is
+# installed flat into the VM agent directory next to the library), then the
+# repository layout.
+tool_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$tool_dir/gitea-token.sh" ]]; then
+  # shellcheck disable=SC1090,SC1091
+  source "$tool_dir/gitea-token.sh"
+elif [[ -f "$tool_dir/../agent/gitea-token.sh" ]]; then
+  # shellcheck disable=SC1090,SC1091
+  source "$tool_dir/../agent/gitea-token.sh"
+else
+  blocked "shared gitea token resolver is unavailable"
+fi
+
 secure_mode() {
   local path="$1"
   local mode_value
@@ -144,7 +158,19 @@ fi
 
 bot_token=''
 if [[ "$mode" == apply ]]; then
-  bot_token="${GITEA_BOT_TOKEN:-${GITEA_TOKEN:-}}"
+  bot_token="${GITEA_BOT_TOKEN:-}"
+  if [[ -z "$bot_token" ]]; then
+    # Post-#61 profiles provide the project identity through GITEA_TOKEN_FILE;
+    # the shared resolver prefers it and only falls back to the deprecated
+    # inline GITEA_TOKEN. A failed security gate must block, not fall through.
+    token_rc=0
+    aisoft_resolve_gitea_token || token_rc=$?
+    if [[ "$token_rc" -eq 0 ]]; then
+      bot_token="$GITEA_TOKEN"
+    elif [[ "$token_rc" -ne 1 ]]; then
+      blocked "project token file failed the security gate"
+    fi
+  fi
   if [[ -z "$bot_token" ]]; then
     bot_token="$(read_role_token "$bot_credential_file" ci-bot)"
   fi

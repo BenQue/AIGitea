@@ -188,7 +188,7 @@ run_tool() {
   local stderr_file="$2"
   shift 2
   PATH="$TMP/bin:$PATH" \
-    AGENT_ENV_FILE="$TMP/profile.env" \
+    AGENT_ENV_FILE="${PROFILE_ENV:-$TMP/profile.env}" \
     GITEA_EXPECT_URL=http://mock.gitea.invalid \
     GITEA_EXPECT_OWNER=owner \
     GITEA_EXPECT_REPO=repo \
@@ -317,6 +317,50 @@ fi
 grep -Fq 'BLOCKED_EXTERNAL:' "$TMP/mode-gate.stderr"
 grep -Fq 'AISOFT_ONBOARDING_MODE=software-repository is required' \
   "$TMP/mode-gate.stderr"
+
+# Inline profile keeps working through the transition but prints the
+# deprecation notice on the apply path (#111).
+grep -Fq 'DEPRECATED: inline GITEA_TOKEN is deprecated' "$TMP/missing.stderr"
+
+# Token-file profile (#111): bot credential resolved from GITEA_TOKEN_FILE.
+printf '%s\n' "$BOT_SENTINEL" >"$TMP/bot.token"
+chmod 600 "$TMP/bot.token"
+cat >"$TMP/profile-file.env" <<EOF
+GITEA_URL=http://mock.gitea.invalid
+GITEA_OWNER=owner
+GITEA_REPO=repo
+GITEA_TOKEN_FILE=$TMP/bot.token
+EOF
+chmod 600 "$TMP/profile-file.env"
+
+reset_state missing
+PROFILE_ENV="$TMP/profile-file.env" \
+  run_tool "$TMP/file.stdout" "$TMP/file.stderr"
+grep -Fq 'permission=write action=added' "$TMP/file.stdout"
+[[ "$(jq -r '.puts' "$TMP/state.json")" == 1 ]]
+if grep -Fq 'DEPRECATED' "$TMP/file.stderr"; then
+  echo 'file profile must not print the deprecation notice' >&2
+  exit 1
+fi
+
+# Permissive token file blocks before any API call, without falling back to
+# the credential file.
+chmod 644 "$TMP/bot.token"
+reset_state missing
+if PROFILE_ENV="$TMP/profile-file.env" \
+  run_tool "$TMP/perm.stdout" "$TMP/perm.stderr"; then
+  echo 'permissive token file must block' >&2
+  exit 1
+fi
+grep -Fq 'BLOCKED_EXTERNAL: GITEA_TOKEN_FILE mode must be 400 or 600' \
+  "$TMP/perm.stderr"
+grep -Fq 'BLOCKED_EXTERNAL: project token file failed the security gate' \
+  "$TMP/perm.stderr"
+if [[ -s "$TMP/calls.log" ]]; then
+  echo 'blocked token file must not reach the Gitea API' >&2
+  exit 1
+fi
+chmod 600 "$TMP/bot.token"
 
 if rg -F "$ADMIN_SENTINEL" "$TMP/argv.log" "$TMP"/*.stdout "$TMP"/*.stderr ||
   rg -F "$BOT_SENTINEL" "$TMP/argv.log" "$TMP"/*.stdout "$TMP"/*.stderr; then
