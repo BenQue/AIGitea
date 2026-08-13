@@ -23,7 +23,7 @@ override_reason: ''
 depends_on: []
 status: ready-for-review
 branch: change/112-profile-path-prepend
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/113
 created: 2026-08-13
 updated: 2026-08-13
 ---
@@ -107,3 +107,6 @@ override_reason: ''
 - 2026-08-13：sfm 的实际 VM 重迁移（`vm.profile.plan/apply/read-back`）与 systemd
   drop-in `10-path.conf` 移除是合并后 VM 侧跟进项（见 plan §部署与回滚），不在本
   变更执行。
+- 2026-08-13：T01/T02/T03 实施完成（合同层三态校验、生成/read-back、profile-spec
+  投影与模板注释）；test_host_access 64 测试与 full smoke（342 tests）全绿；
+  最终 PR #113 已创建，停在人工合并。

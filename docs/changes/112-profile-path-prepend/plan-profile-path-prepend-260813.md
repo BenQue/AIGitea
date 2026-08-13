@@ -24,9 +24,9 @@ updated: 2026-08-13
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 合同层：`contract.py` 可选 `path_prepend` 解析 + fail-closed 校验 + `VMProfileContract` 字段；manifest 为 sfm 声明；三态合同测试（声明/未声明/非法值矩阵） | - | pending |
-| T02 | 生成与校验层：`_profile_bytes` PATH 行生成 + `_read_back` expected 映射；迁移器测试（sfm 端到端 apply/read-back、未声明项目 byte-identity、漂移 `READ_BACK_MISMATCH` 双向） | T01 | pending |
-| T03 | 投影与模板：`cli.py profile-spec` 输出 `path_prepend` 键 + `templates/agent/project.env.example` 注释 + 配套测试 | T01 | pending |
+| T01 | 合同层：`contract.py` 可选 `path_prepend` 解析 + fail-closed 校验 + `VMProfileContract` 字段；manifest 为 sfm 声明；三态合同测试（声明/未声明/非法值矩阵） | - | done |
+| T02 | 生成与校验层：`_profile_bytes` PATH 行生成 + `_read_back` expected 映射；迁移器测试（sfm 端到端 apply/read-back、未声明项目 byte-identity、漂移 `READ_BACK_MISMATCH` 双向） | T01 | done |
+| T03 | 投影与模板：`cli.py profile-spec` 输出 `path_prepend` 键 + `templates/agent/project.env.example` 注释 + 配套测试 | T01 | done |
 
 每个 ticket 一个原子 commit，独立可验证（`PYTHONPATH=codex/runtime python3 -m
 unittest tests.test_host_access` 逐票全绿）。
