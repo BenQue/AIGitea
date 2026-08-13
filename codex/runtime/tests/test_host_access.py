@@ -228,6 +228,92 @@ class HostAccessContractTests(unittest.TestCase):
             broker.execute("hsdb", "gitea.repo.read", state="all")
 
 
+class VmProfilePathPrependContractTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.contract = load_access_contract(ACCESS, GOVERNANCE)
+
+    def test_declared_and_undeclared_projects_parse_exactly(self) -> None:
+        sfm = self.contract.project("sfm-digital-board")
+        assert sfm.vm_profile is not None
+        self.assertEqual(sfm.vm_profile.path_prepend,
+                         ("/opt/node22/bin", "/home/coder/.local/bin"))
+        for project_id in ("newemaint", "hsdb", "rsdesign-new"):
+            with self.subTest(project_id=project_id):
+                project = self.contract.project(project_id)
+                assert project.vm_profile is not None
+                self.assertEqual(project.vm_profile.path_prepend, ())
+        raw = json.loads(ACCESS.read_text())
+        declared = {
+            project["project_id"]: project["vm_profile"].get("path_prepend")
+            for project in raw["projects"] if project["vm_profile"] is not None
+        }
+        self.assertEqual(declared, {
+            "sfm-digital-board": ["/opt/node22/bin", "/home/coder/.local/bin"],
+            "newemaint": None,
+            "hsdb": None,
+            "rsdesign-new": None,
+        })
+
+    def test_invalid_path_prepend_declarations_fail_closed(self) -> None:
+        invalid_values = (
+            [],
+            "not-a-list",
+            {"prepend": "/opt/node22/bin"},
+            [42],
+            [""],
+            ["relative/bin"],
+            ["/opt/../bin"],
+            ["/opt/./bin"],
+            ["/opt/node:22/bin"],
+            ["/opt/node 22/bin"],
+            ["/opt/node22/bin/"],
+            ["/"],
+            ["//opt/node22/bin"],
+            ["/opt/$HOME/bin"],
+            ["/opt/node22/bin", "/opt/node22/bin"],
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "access.json"
+            for invalid in invalid_values:
+                with self.subTest(invalid=invalid):
+                    raw = json.loads(ACCESS.read_text())
+                    sfm = next(project for project in raw["projects"]
+                               if project["project_id"] == "sfm-digital-board")
+                    sfm["vm_profile"]["path_prepend"] = invalid
+                    path.write_text(json.dumps(raw))
+                    with self.assertRaises(AccessContractError):
+                        load_access_contract(path, GOVERNANCE)
+
+    def test_unknown_vm_profile_key_still_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "access.json"
+            raw = json.loads(ACCESS.read_text())
+            sfm = next(project for project in raw["projects"]
+                       if project["project_id"] == "sfm-digital-board")
+            sfm["vm_profile"]["path_append"] = ["/opt/node22/bin"]
+            path.write_text(json.dumps(raw))
+            with self.assertRaises(AccessContractError):
+                load_access_contract(path, GOVERNANCE)
+
+    def test_profile_spec_projects_path_prepend(self) -> None:
+        expectations = {
+            "sfm": ["/opt/node22/bin", "/home/coder/.local/bin"],
+            "emaintenance": [],
+        }
+        for profile_name, expected in expectations.items():
+            with self.subTest(profile_name=profile_name):
+                buffer = io.StringIO()
+                with redirect_stdout(buffer):
+                    code = host_access_cli_main([
+                        "--access-manifest", str(ACCESS),
+                        "--governance-manifest", str(GOVERNANCE),
+                        "profile-spec", "--profile-name", profile_name,
+                    ])
+                self.assertEqual(code, 0)
+                payload = json.loads(buffer.getvalue())
+                self.assertEqual(payload["path_prepend"], expected)
+
+
 class HostAccessBrokerTests(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = load_access_contract(ACCESS, GOVERNANCE)
@@ -1506,6 +1592,55 @@ class ProfileMigrationTests(unittest.TestCase):
         self.assertEqual(self.profile.read_bytes(), old_profile)
         self.assertEqual(self.token.read_bytes(), old_token)
         self.assertEqual(stat.S_IMODE(self.profile.stat().st_mode), 0o400)
+
+    def test_undeclared_profile_bytes_are_byte_identical_to_pre_112_shape(self) -> None:
+        self.migrator().apply("newemaint")
+        expected = (
+            "AISOFT_PROJECT_ID=newemaint\n"
+            "GITEA_URL=http://gitea-ci.orb.local:3000\n"
+            "GITEA_OWNER=admin\n"
+            "GITEA_REPO=NewEMaint\n"
+            "GITEA_IDENTITY=newemaint-agent\n"
+            f"GITEA_TOKEN_FILE={self.home}/.config/aisoft/credentials/emaintenance.token\n"
+            f"AGENT_REPO_DIR={self.home}/work/NewEMaint\n"
+            "ANALYSIS_PROVIDER=claude\n"
+            "IMPLEMENT_PROVIDER=none\n"
+        ).encode("utf-8")
+        self.assertEqual(self.profile.read_bytes(), expected)
+
+    def test_declared_path_prepend_is_generated_and_drift_fails_read_back(self) -> None:
+        source = self.source / "sfm-board-agent-project-agent.token"
+        source.write_text("sfm-project-token\n")
+        source.chmod(0o600)
+        migrator = self.migrator(identity="sfm-board-agent")
+        self.assertEqual(migrator.apply("sfm-digital-board")["result"], "applied")
+        profile = self.home / ".config/aisoft/projects/sfm.env"
+        content = profile.read_text()
+        path_line = "PATH=/opt/node22/bin:/home/coder/.local/bin:$PATH"
+        self.assertTrue(content.endswith(f"IMPLEMENT_PROVIDER=none\n{path_line}\n"))
+        self.assertEqual(content.count("\nPATH="), 1)
+        self.assertEqual(migrator.read_back("sfm-digital-board")["result"], "read-back")
+        self.assertEqual(migrator.consume_check("sfm-digital-board")["result"],
+                         "consumer-ready")
+        self.assertEqual(migrator.apply("sfm-digital-board")["result"], "no-op")
+
+        profile.write_text(content.replace(path_line, "PATH=/usr/bin:$PATH"))
+        with self.assertRaises(BrokerError) as caught:
+            migrator.read_back("sfm-digital-board")
+        self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
+
+        profile.write_text(content.replace(f"{path_line}\n", ""))
+        with self.assertRaises(BrokerError) as caught:
+            migrator.read_back("sfm-digital-board")
+        self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
+
+    def test_undeclared_project_with_injected_path_line_fails_read_back(self) -> None:
+        migrator = self.migrator()
+        migrator.apply("newemaint")
+        self.profile.write_text(self.profile.read_text() + "PATH=/opt/evil/bin:$PATH\n")
+        with self.assertRaises(BrokerError) as caught:
+            migrator.read_back("newemaint")
+        self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
 
     def test_identity_mismatch_fails_before_target_mutation(self) -> None:
         before = (self.profile.read_bytes(), self.token.read_bytes())

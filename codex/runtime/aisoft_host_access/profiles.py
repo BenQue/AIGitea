@@ -273,6 +273,19 @@ class ProfileMigrator:
         token = self.home / policy["token_root"] / f"{project.vm_profile.name}.token"
         return profile, token
 
+    @staticmethod
+    def _path_value(project: ProjectContract) -> str | None:
+        """Prepend-semantics PATH line value for a declared toolchain, else None.
+
+        The profile is consumed only via bash `set -a; source`, so the literal
+        `$PATH` tail expands at source time; manifest validation restricts every
+        entry to absolute [A-Za-z0-9._/-] paths, keeping the unquoted line safe.
+        """
+        assert project.vm_profile is not None
+        if not project.vm_profile.path_prepend:
+            return None
+        return ":".join(project.vm_profile.path_prepend) + ":$PATH"
+
     def _profile_bytes(self, project: ProjectContract) -> bytes:
         assert project.vm_profile is not None
         _profile, token = self._targets(project)
@@ -288,6 +301,9 @@ class ProfileMigrator:
             f"ANALYSIS_PROVIDER={project.vm_profile.analysis_provider}",
             f"IMPLEMENT_PROVIDER={project.vm_profile.implement_provider}",
         ]
+        path_value = self._path_value(project)
+        if path_value is not None:
+            lines.append(f"PATH={path_value}")
         return ("\n".join(lines) + "\n").encode("utf-8")
 
     def _target_matches(self, path: Path, expected: bytes) -> bool:
@@ -418,6 +434,9 @@ class ProfileMigrator:
             "ANALYSIS_PROVIDER": project.vm_profile.analysis_provider,
             "IMPLEMENT_PROVIDER": project.vm_profile.implement_provider,
         }
+        path_value = self._path_value(project)
+        if path_value is not None:
+            expected["PATH"] = path_value
         if parsed != expected:
             raise BrokerError("READ_BACK_MISMATCH", "profile target mapping mismatch")
 

@@ -108,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
                 "repo_dir": str(home / project.vm_profile.repo_dir),
                 "analysis_provider": project.vm_profile.analysis_provider,
                 "implement_provider": project.vm_profile.implement_provider,
+                "path_prepend": list(project.vm_profile.path_prepend),
             })
             return 0
         if args.command == "profile-consume-check":
