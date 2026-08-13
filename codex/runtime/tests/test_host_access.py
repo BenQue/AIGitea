@@ -1575,6 +1575,55 @@ class ProfileMigrationTests(unittest.TestCase):
         self.assertEqual(self.token.read_bytes(), old_token)
         self.assertEqual(stat.S_IMODE(self.profile.stat().st_mode), 0o400)
 
+    def test_undeclared_profile_bytes_are_byte_identical_to_pre_112_shape(self) -> None:
+        self.migrator().apply("newemaint")
+        expected = (
+            "AISOFT_PROJECT_ID=newemaint\n"
+            "GITEA_URL=http://gitea-ci.orb.local:3000\n"
+            "GITEA_OWNER=admin\n"
+            "GITEA_REPO=NewEMaint\n"
+            "GITEA_IDENTITY=newemaint-agent\n"
+            f"GITEA_TOKEN_FILE={self.home}/.config/aisoft/credentials/emaintenance.token\n"
+            f"AGENT_REPO_DIR={self.home}/work/NewEMaint\n"
+            "ANALYSIS_PROVIDER=claude\n"
+            "IMPLEMENT_PROVIDER=none\n"
+        ).encode("utf-8")
+        self.assertEqual(self.profile.read_bytes(), expected)
+
+    def test_declared_path_prepend_is_generated_and_drift_fails_read_back(self) -> None:
+        source = self.source / "sfm-board-agent-project-agent.token"
+        source.write_text("sfm-project-token\n")
+        source.chmod(0o600)
+        migrator = self.migrator(identity="sfm-board-agent")
+        self.assertEqual(migrator.apply("sfm-digital-board")["result"], "applied")
+        profile = self.home / ".config/aisoft/projects/sfm.env"
+        content = profile.read_text()
+        path_line = "PATH=/opt/node22/bin:/home/coder/.local/bin:$PATH"
+        self.assertTrue(content.endswith(f"IMPLEMENT_PROVIDER=none\n{path_line}\n"))
+        self.assertEqual(content.count("\nPATH="), 1)
+        self.assertEqual(migrator.read_back("sfm-digital-board")["result"], "read-back")
+        self.assertEqual(migrator.consume_check("sfm-digital-board")["result"],
+                         "consumer-ready")
+        self.assertEqual(migrator.apply("sfm-digital-board")["result"], "no-op")
+
+        profile.write_text(content.replace(path_line, "PATH=/usr/bin:$PATH"))
+        with self.assertRaises(BrokerError) as caught:
+            migrator.read_back("sfm-digital-board")
+        self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
+
+        profile.write_text(content.replace(f"{path_line}\n", ""))
+        with self.assertRaises(BrokerError) as caught:
+            migrator.read_back("sfm-digital-board")
+        self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
+
+    def test_undeclared_project_with_injected_path_line_fails_read_back(self) -> None:
+        migrator = self.migrator()
+        migrator.apply("newemaint")
+        self.profile.write_text(self.profile.read_text() + "PATH=/opt/evil/bin:$PATH\n")
+        with self.assertRaises(BrokerError) as caught:
+            migrator.read_back("newemaint")
+        self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
+
     def test_identity_mismatch_fails_before_target_mutation(self) -> None:
         before = (self.profile.read_bytes(), self.token.read_bytes())
         with self.assertRaises(BrokerError) as caught:
