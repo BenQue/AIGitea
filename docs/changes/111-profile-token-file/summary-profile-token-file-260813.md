@@ -24,7 +24,7 @@ override_reason: ''
 depends_on: []
 status: ready-for-review
 branch: change/111-profile-token-file
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/114
 created: 2026-08-13
 updated: 2026-08-13
 ---
@@ -123,3 +123,6 @@ override_reason: ''
 - 2026-08-13：判级评论已发（Issue #111 comment 3046）；spec/plan 完成，进入
   ready-for-review。标签投影（complexity/complex + type/bugfix 等）属
   controller/projector 职责，Mac 会话 broker 无标签 typed 操作，未在本会话执行。
+- 2026-08-13（交付）：T01–T04 完成；`bash codex/tests/smoke.sh` 全绿（Python 运行时
+  335 用例 OK）；漂移防护负向自测通过（canary 被点名后移除）。最终 PR #114 已创建
+  （head b2fe9dc），停在人工合并。
