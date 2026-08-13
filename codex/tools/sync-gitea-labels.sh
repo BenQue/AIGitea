@@ -10,6 +10,20 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 MANIFEST="$ROOT/codex/config/gitea-labels.json"
 ENV_FILE="${AGENT_ENV_FILE:-$HOME/.agent.env}"
 
+# Shared token resolution (#111): same-directory copy first (flat VM install
+# layout), then the repository layout.
+TOOL_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$TOOL_DIR/gitea-token.sh" ]]; then
+  # shellcheck disable=SC1090,SC1091
+  source "$TOOL_DIR/gitea-token.sh"
+elif [[ -f "$TOOL_DIR/../agent/gitea-token.sh" ]]; then
+  # shellcheck disable=SC1090,SC1091
+  source "$TOOL_DIR/../agent/gitea-token.sh"
+else
+  echo 'shared gitea token resolver is unavailable' >&2
+  exit 1
+fi
+
 if [[ ! -f "$ENV_FILE" ]]; then
   echo 'agent environment file is required' >&2
   exit 1
@@ -31,7 +45,16 @@ require_env() {
   done
 }
 
-require_env GITEA_URL GITEA_OWNER GITEA_REPO GITEA_TOKEN
+require_env GITEA_URL GITEA_OWNER GITEA_REPO
+
+token_rc=0
+aisoft_resolve_gitea_token || token_rc=$?
+if [[ "$token_rc" -eq 1 ]]; then
+  echo 'GITEA_TOKEN_FILE or GITEA_TOKEN is required' >&2
+  exit 1
+elif [[ "$token_rc" -ne 0 ]]; then
+  exit "$token_rc"
+fi
 
 if ! command -v jq >/dev/null; then
   echo 'jq is required' >&2

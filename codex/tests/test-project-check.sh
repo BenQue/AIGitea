@@ -157,7 +157,7 @@ jq -n '{
 remote_check() {
   env \
     PATH="$TMP/bin:$PATH" \
-    AGENT_ENV_FILE="$TMP/agent.env" \
+    AGENT_ENV_FILE="${MOCK_ENV_FILE:-$TMP/agent.env}" \
     MOCK_ARGV_LOG="$TMP/curl.argv" \
     MOCK_LABELS="$TMP/labels.json" \
     MOCK_PROTECTION="$TMP/protection.json" \
@@ -178,6 +178,47 @@ for check_id in pointer-sections change-templates architecture-lock labels-readb
   expect_line "PASS: $check_id"
 done
 expect_line 'result: pass=6 gap=0 skip=0'
+expect_contains 'DEPRECATED: inline GITEA_TOKEN is deprecated'
+
+# Token-file profile (#111): the remote checks must run when the env file only
+# provides GITEA_TOKEN_FILE (post-#61 migrated profile shape).
+printf '%s\n' "$SENTINEL" >"$TMP/agent.token"
+chmod 600 "$TMP/agent.token"
+cat >"$TMP/agent-file.env" <<EOF
+GITEA_URL=http://mock.gitea.invalid
+GITEA_OWNER=admin
+GITEA_REPO=NewEMaint
+GITEA_TOKEN_FILE=$TMP/agent.token
+EOF
+chmod 600 "$TMP/agent-file.env"
+MOCK_ENV_FILE="$TMP/agent-file.env" \
+  run_case 0 remote_check --repo "$TMP/aligned" --remote
+expect_line 'PASS: labels-readback'
+expect_line 'PASS: ci-context'
+expect_line 'result: pass=6 gap=0 skip=0'
+if grep -Fq 'DEPRECATED' <<<"$last_output"; then
+  fail 'token-file profile must not print the deprecation notice'
+fi
+
+# Permissive token file fails the remote gate closed with an explicit reason.
+chmod 644 "$TMP/agent.token"
+MOCK_ENV_FILE="$TMP/agent-file.env" \
+  run_case 1 remote_check --repo "$TMP/aligned" --remote
+expect_line 'GAP: labels-readback — GITEA_TOKEN_FILE 未通过安全闸门'
+expect_line 'GAP: ci-context — GITEA_TOKEN_FILE 未通过安全闸门'
+chmod 600 "$TMP/agent.token"
+
+# Missing both token forms reports the full accepted configuration set.
+cat >"$TMP/agent-missing.env" <<EOF
+GITEA_URL=http://mock.gitea.invalid
+GITEA_OWNER=admin
+GITEA_REPO=NewEMaint
+EOF
+chmod 600 "$TMP/agent-missing.env"
+MOCK_ENV_FILE="$TMP/agent-missing.env" \
+  run_case 1 remote_check --repo "$TMP/aligned" --remote
+expect_line 'GAP: labels-readback — 远程配置缺失: GITEA_TOKEN_FILE 或 GITEA_TOKEN'
+expect_line 'GAP: ci-context — 远程配置缺失: GITEA_TOKEN_FILE 或 GITEA_TOKEN'
 
 pointer_repo="$(copy_fixture pointer-gap)"
 awk '

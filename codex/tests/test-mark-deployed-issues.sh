@@ -70,4 +70,50 @@ if grep -Fq "$GITEA_TOKEN" "$TMP/argv.log" || grep -Fq "$GITEA_TOKEN" <<<"$outpu
   echo "token leaked" >&2
   exit 1
 fi
+unset MOCK_FAIL
+
+# Inline form keeps working through the transition but prints the deprecation
+# notice (#111).
+grep -Fq 'DEPRECATED: inline GITEA_TOKEN is deprecated' <<<"$output"
+
+# Token-file form (#111): file only, labels are marked, no deprecation notice.
+FILE_TOKEN='sentinel-file-secret-token'
+printf '%s\n' "$FILE_TOKEN" >"$TMP/token"
+chmod 600 "$TMP/token"
+printf '%s\n' 'Closes #77' >"$TMP/message"
+file_output="$(env -u GITEA_TOKEN GITEA_TOKEN_FILE="$TMP/token" \
+  bash "$ROOT/codex/tools/mark-deployed-issues.sh" 2>&1)"
+grep -Fq 'marked deployed: #77' <<<"$file_output"
+grep -Fq '/issues/77/labels' "$TMP/puts.log"
+if grep -Fq 'DEPRECATED' <<<"$file_output"; then
+  echo 'file form must not print the deprecation notice' >&2
+  exit 1
+fi
+
+# Permissive token file: refuse the credential, warn, never fail deployment,
+# and never call the API.
+chmod 644 "$TMP/token"
+puts_before="$(wc -l <"$TMP/puts.log" | tr -d ' ')"
+rc=0
+perm_output="$(env -u GITEA_TOKEN GITEA_TOKEN_FILE="$TMP/token" \
+  bash "$ROOT/codex/tools/mark-deployed-issues.sh" 2>&1)" || rc=$?
+[ "$rc" -eq 0 ]
+grep -Fq 'BLOCKED_EXTERNAL: GITEA_TOKEN_FILE mode must be 400 or 600' \
+  <<<"$perm_output"
+grep -Fq 'deployment result is unchanged' <<<"$perm_output"
+[ "$(wc -l <"$TMP/puts.log" | tr -d ' ')" = "$puts_before" ]
+
+# Missing both forms: warn and keep the deployment green.
+rc=0
+missing_output="$(env -u GITEA_TOKEN \
+  bash "$ROOT/codex/tools/mark-deployed-issues.sh" 2>&1)" || rc=$?
+[ "$rc" -eq 0 ]
+grep -Fq 'usable GITEA_TOKEN_FILE or GITEA_TOKEN is unavailable' \
+  <<<"$missing_output"
+
+if grep -Fq "$FILE_TOKEN" "$TMP/argv.log" ||
+  grep -Fq "$FILE_TOKEN" <<<"$file_output$perm_output"; then
+  echo "file token leaked" >&2
+  exit 1
+fi
 echo "mark-deployed tests passed"

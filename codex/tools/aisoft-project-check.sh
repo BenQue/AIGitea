@@ -13,6 +13,20 @@ LABEL_MANIFEST="$ROOT/codex/config/gitea-labels.json"
 GOVERNANCE_MANIFEST="$ROOT/codex/config/gitea-governance.json"
 ARCHITECTURE_CLI="$ROOT/architecture/bin/aisoft-architecture"
 
+# Shared token resolution (#111): same-directory copy first (flat VM install
+# layout), then the repository layout.
+TOOL_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$TOOL_DIR/gitea-token.sh" ]]; then
+  # shellcheck disable=SC1090,SC1091
+  source "$TOOL_DIR/gitea-token.sh"
+elif [[ -f "$TOOL_DIR/../agent/gitea-token.sh" ]]; then
+  # shellcheck disable=SC1090,SC1091
+  source "$TOOL_DIR/../agent/gitea-token.sh"
+else
+  echo 'shared gitea token resolver is unavailable' >&2
+  exit 1
+fi
+
 repo=''
 kind=software
 remote=false
@@ -174,7 +188,7 @@ if [[ "$remote" == true ]]; then
     source "$ENV_FILE" >/dev/null 2>&1
     set +x
     missing_env=''
-    for name in GITEA_URL GITEA_OWNER GITEA_REPO GITEA_TOKEN; do
+    for name in GITEA_URL GITEA_OWNER GITEA_REPO; do
       if [[ -z "${!name:-}" ]]; then
         if [[ -n "$missing_env" ]]; then
           missing_env="$missing_env,$name"
@@ -183,8 +197,16 @@ if [[ "$remote" == true ]]; then
         fi
       fi
     done
+    token_rc=0
+    if [[ -z "$missing_env" ]]; then
+      aisoft_resolve_gitea_token || token_rc=$?
+    fi
     if [[ -n "$missing_env" ]]; then
       remote_reason="远程配置缺失: $missing_env"
+    elif [[ "$token_rc" -eq 1 ]]; then
+      remote_reason='远程配置缺失: GITEA_TOKEN_FILE 或 GITEA_TOKEN'
+    elif [[ "$token_rc" -ne 0 ]]; then
+      remote_reason='GITEA_TOKEN_FILE 未通过安全闸门'
     elif ! command -v jq >/dev/null || ! command -v curl >/dev/null; then
       remote_reason='远程检查需要 jq 与 curl'
     else
