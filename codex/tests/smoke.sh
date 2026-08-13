@@ -65,6 +65,7 @@ for script in \
   "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
   "$ROOT/codex/agent/gitea-token.sh" \
   "$ROOT/codex/tests/test-gitea-token-lib.sh" \
+  "$ROOT/codex/tests/test-gitea-token-consumers.sh" \
   "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
   "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
@@ -112,7 +113,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-install-host-role.sh" \
     "$ROOT/codex/tests/test-host-access-broker.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh" \
-    "$ROOT/codex/tests/test-gitea-token-lib.sh"
+    "$ROOT/codex/tests/test-gitea-token-lib.sh" \
+    "$ROOT/codex/tests/test-gitea-token-consumers.sh"
   shellcheck "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh
   shellcheck \
     "$ROOT/docker-release/bin/aisoft-docker-release" \
@@ -142,6 +144,7 @@ bash "$ROOT/codex/tests/test-cleanup-merged.sh"
 bash "$ROOT/codex/tests/test-artifact-retention-dry-run.sh"
 bash "$ROOT/codex/tests/test-gitea-readonly.sh"
 bash "$ROOT/codex/tests/test-gitea-token-lib.sh"
+bash "$ROOT/codex/tests/test-gitea-token-consumers.sh"
 bash "$ROOT/codex/tests/test-install-skills.sh"
 bash -n "$ROOT/skill-for-claude/install.sh" "$ROOT/skill-for-claude/check-drift.sh"
 bash "$ROOT/codex/tests/test-install-claude-skills.sh"
