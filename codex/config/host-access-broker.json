@@ -255,6 +255,7 @@
       "project_id": "rsdesign-new",
       "repository": "rsdesign-new",
       "project_agent": "rsdesign-agent",
+      "git_remote_name": "gitea",
       "mac_checkout": "/Users/benque/Projects/RSDesignTool/rsdesign-new",
       "vm_profile": {
         "name": "rsdesign",
@@ -275,6 +276,7 @@
       "project_id": "sfm-digital-board",
       "repository": "SFMDigitalBoard",
       "project_agent": "sfm-board-agent",
+      "git_remote_name": "gitea",
       "mac_checkout": "/Users/benque/Projects/SFMDigitalBoard",
       "vm_profile": {
         "name": "sfm",

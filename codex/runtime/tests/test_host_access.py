@@ -67,22 +67,25 @@ class HostAccessContractTests(unittest.TestCase):
             self.contract.operation("git.push.main")
 
     def test_manifest_fixed_remote_defaults_and_rejects_unsafe_names(self) -> None:
+        gitea_remote_projects = {"newemaint", "rsdesign-new", "sfm-digital-board"}
         remotes = {project.project_id: project.git_remote_name
                    for project in self.contract.projects}
-        self.assertEqual(remotes["newemaint"], "gitea")
+        for project_id in gitea_remote_projects:
+            self.assertEqual(remotes[project_id], "gitea")
         self.assertTrue(all(
             remote == "origin" for project_id, remote in remotes.items()
-            if project_id != "newemaint"
+            if project_id not in gitea_remote_projects
         ))
         raw = json.loads(ACCESS.read_text())
-        newemaint = next(
-            project for project in raw["projects"]
-            if project["project_id"] == "newemaint"
-        )
-        self.assertEqual(newemaint["git_remote_name"], "gitea")
+        for project_id in gitea_remote_projects:
+            declared = next(
+                project for project in raw["projects"]
+                if project["project_id"] == project_id
+            )
+            self.assertEqual(declared["git_remote_name"], "gitea")
         self.assertTrue(all(
             "git_remote_name" not in project for project in raw["projects"]
-            if project["project_id"] != "newemaint"
+            if project["project_id"] not in gitea_remote_projects
         ))
 
         with tempfile.TemporaryDirectory() as temporary:
