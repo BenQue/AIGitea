@@ -39,7 +39,11 @@ jq -e '
   ([.operations[] | select(.name == "host.access.audit")][0].arguments == []) and
   ([.operations[] | select(.name == "host.onboarding.check")][0].arguments == []) and
   ([.projects[] | select(.project_id == "newemaint")][0].git_remote_name == "gitea") and
-  ([.projects[] | select(.project_id != "newemaint") | has("git_remote_name")] | all(. == false)) and
+  ([.projects[] | select(.project_id == "rsdesign-new")][0].git_remote_name == "gitea") and
+  ([.projects[] | select(.project_id == "sfm-digital-board")][0].git_remote_name == "gitea") and
+  ([.projects[]
+    | select(.project_id != "newemaint" and .project_id != "rsdesign-new" and .project_id != "sfm-digital-board")
+    | has("git_remote_name")] | all(. == false)) and
   ([.projects[] | select(.vm_profile != null) | .repository] | sort) ==
     ["HSDB", "NewEMaint", "SFMDigitalBoard", "rsdesign-new"]
 ' "$ROOT/codex/config/host-access-broker.json" >/dev/null
