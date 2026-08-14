@@ -15,6 +15,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="aisoft-host-access")
     parser.add_argument("--access-manifest", required=True)
     parser.add_argument("--governance-manifest", required=True)
+    # Fixed install-time configuration supplied by the entrypoint, not a caller
+    # argument: gitea.labels.provision needs the canonical label manifest (#108).
+    parser.add_argument("--label-manifest")
     commands = parser.add_subparsers(dest="command", required=True)
 
     commands.add_parser("validate")
@@ -65,7 +68,9 @@ def main(argv: list[str] | None = None) -> int:
             })
             return 0
         if args.command == "broker":
-            value = HostAccessBroker(contract).execute(
+            value = HostAccessBroker(
+                contract, label_manifest_path=args.label_manifest
+            ).execute(
                 args.project,
                 args.operation,
                 number=args.number,

@@ -29,6 +29,7 @@ from aisoft_host_access.runner import GovernedHostRunner
 ROOT = Path(__file__).resolve().parents[3]
 ACCESS = ROOT / "codex/config/host-access-broker.json"
 GOVERNANCE = ROOT / "codex/config/gitea-governance.json"
+LABELS = ROOT / "codex/config/gitea-labels.json"
 
 
 class StaticCredentials:
@@ -370,6 +371,145 @@ class HostAccessBrokerTests(unittest.TestCase):
                     "aisoft-platform", "gitea.commit.status.read", sha=invalid
                 )
             self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+
+    def _label_broker(self, remote: list[dict[str, object]], calls: list[tuple]):
+        """Broker wired to an in-memory label repository."""
+
+        def transport(method, url, headers, body):
+            if url.endswith("/api/v1/user"):
+                return 200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+            payload = json.loads(body) if body else None
+            calls.append((method, url, payload))
+            if method == "GET":
+                page = int(url.rsplit("page=", 1)[1])
+                start = (page - 1) * 50
+                return 200, {}, json.dumps(remote[start:start + 50]).encode()
+            if method == "POST":
+                stored = dict(payload)
+                stored["id"] = len(remote) + 1
+                remote.append(stored)
+                return 200, {}, json.dumps(stored).encode()
+            if method == "PATCH":
+                label_id = int(url.rsplit("/", 1)[1])
+                for index, item in enumerate(remote):
+                    if item["id"] == label_id:
+                        remote[index] = dict(payload) | {"id": label_id}
+                        return 200, {}, json.dumps(remote[index]).encode()
+                raise AssertionError("PATCH targeted an unknown label id")
+            raise AssertionError(f"unexpected method {method}")
+
+        return HostAccessBroker(
+            self.contract,
+            credentials=StaticCredentials(),
+            transport=transport,
+            label_manifest_path=str(LABELS),
+        )
+
+    def test_label_provision_is_idempotent_and_never_deletes(self) -> None:
+        manifest = json.loads(LABELS.read_text())
+        canonical = manifest["canonical"]
+        remote: list[dict[str, object]] = []
+        calls: list[tuple] = []
+        broker = self._label_broker(remote, calls)
+
+        first = broker.execute("aisoft-platform", "gitea.labels.provision")
+        self.assertEqual(first["created"], len(canonical))
+        self.assertEqual(first["updated"], 0)
+        self.assertEqual(first["unchanged"], 0)
+        self.assertEqual(first["retired_present"], [])
+        self.assertEqual(len(remote), len(canonical))
+
+        calls.clear()
+        second = broker.execute("aisoft-platform", "gitea.labels.provision")
+        self.assertEqual(
+            (second["created"], second["updated"], second["unchanged"]),
+            (0, 0, len(canonical)),
+        )
+        self.assertEqual({method for method, _url, _payload in calls}, {"GET"})
+
+        # Gitea may echo a color back with a '#' prefix and different case, and
+        # may pad the description. None of that is drift; treating it as drift
+        # would rewrite every label on every run.
+        remote[0]["color"] = "#" + str(remote[0]["color"]).upper()
+        remote[0]["description"] = "  " + str(remote[0]["description"]) + "  "
+        calls.clear()
+        cosmetic = broker.execute("aisoft-platform", "gitea.labels.provision")
+        self.assertEqual(cosmetic["updated"], 0)
+        self.assertEqual({method for method, _url, _payload in calls}, {"GET"})
+
+        # Real drift is repaired in place, addressed by id.
+        remote[1]["color"] = "ffffff"
+        remote[2]["description"] = "drifted"
+        calls.clear()
+        repaired = broker.execute("aisoft-platform", "gitea.labels.provision")
+        self.assertEqual(repaired["updated"], 2)
+        patched = [url for method, url, _payload in calls if method == "PATCH"]
+        self.assertEqual(len(patched), 2)
+        for url in patched:
+            self.assertRegex(url, r"/labels/\d+$")
+        self.assertEqual(remote[1]["color"], canonical[1]["color"])
+
+        # And it converges: the run after a repair writes nothing.
+        calls.clear()
+        converged = broker.execute("aisoft-platform", "gitea.labels.provision")
+        self.assertEqual(converged["updated"], 0)
+        self.assertEqual({method for method, _url, _payload in calls}, {"GET"})
+
+        # Retired values are reported, kept, and never deleted.
+        retired_name = manifest["retired"][0]["name"]
+        remote.append({
+            "id": 9001,
+            "name": retired_name,
+            "color": "cccccc",
+            "description": "legacy",
+        })
+        reported = broker.execute("aisoft-platform", "gitea.labels.provision")
+        self.assertEqual(reported["retired_present"], [retired_name])
+        self.assertIn(retired_name, [item["name"] for item in remote])
+
+        self.assertNotIn(
+            "DELETE", {method for method, _url, _payload in calls}
+        )
+
+    def test_label_read_paginates_and_validates_entries(self) -> None:
+        remote = [
+            {"id": i, "name": f"label-{i}", "color": "aabbcc", "description": "d"}
+            for i in range(1, 76)
+        ]
+        calls: list[tuple] = []
+        broker = self._label_broker(remote, calls)
+        value = broker.execute("aisoft-platform", "gitea.labels.read")
+        self.assertEqual(len(value), 75)
+        self.assertEqual(len([c for c in calls if c[0] == "GET"]), 2)
+
+        remote[0] = {"id": 1, "name": "bad", "color": 7, "description": "d"}
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute("aisoft-platform", "gitea.labels.read")
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_label_surface_has_no_delete_and_requires_a_configured_manifest(self) -> None:
+        broker = HostAccessBroker(self.contract, credentials=StaticCredentials())
+        for denied in (
+            "gitea.labels.delete",
+            "gitea.label.delete",
+            "gitea.labels.remove",
+        ):
+            with self.subTest(denied=denied), self.assertRaises(BrokerError) as caught:
+                broker.execute("aisoft-platform", denied)
+            self.assertEqual(caught.exception.code, "REQUEST_DENIED")
+
+        self.assertNotIn(
+            "gitea.labels.delete",
+            {operation.name for operation in self.contract.operations},
+        )
+
+        # An install that never shipped the manifest must fail closed rather
+        # than provision an empty or guessed label set.
+        unconfigured = self._label_broker([], [])
+        unconfigured.label_manifest_path = None
+        with self.assertRaises(BrokerError) as caught:
+            unconfigured.execute("aisoft-platform", "gitea.labels.provision")
+        self.assertEqual(caught.exception.code, "REQUEST_DENIED")
 
     def test_issue_create_update_comment_and_read_use_fixed_typed_routes(self) -> None:
         calls = []

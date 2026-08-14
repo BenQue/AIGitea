@@ -133,6 +133,18 @@
       ]
     },
     {
+      "name": "gitea.labels.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "gitea.labels.provision",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": []
+    },
+    {
       "name": "gitea.protection.read",
       "identity_route": "manager-audit",
       "mutating": false,

@@ -1,122 +1,160 @@
-[
-  {
-    "name": "needs-analysis",
-    "color": "fbca04",
-    "description": "等待 AI 分析变更类型、合同影响与有效复杂度"
+{
+  "schema_version": 2,
+  "canonical": [
+    {
+      "name": "needs-analysis",
+      "color": "fbca04",
+      "description": "等待 AI 分析变更类型、合同影响与有效复杂度"
+    },
+    {
+      "name": "awaiting-triage",
+      "color": "d93f0b",
+      "description": "信息不足、内容冲突或风险边界不明，等待人工澄清"
+    },
+    {
+      "name": "spec-drafting",
+      "color": "1d76db",
+      "description": "复杂变更正在编写或完善规格与实施计划"
+    },
+    {
+      "name": "spec-review",
+      "color": "5319e7",
+      "description": "规格与实施计划已形成，正在进行可选审阅"
+    },
+    {
+      "name": "approved",
+      "color": "0e8a16",
+      "description": "Issue 合同完整，允许启动 Development Loop"
+    },
+    {
+      "name": "pr-open",
+      "color": "0052cc",
+      "description": "最终交付 PR 已创建，等待 CI 与人工合并"
+    },
+    {
+      "name": "completed",
+      "color": "1f883d",
+      "description": "最终 PR 已合并且该变更无需部署，交付已完成"
+    },
+    {
+      "name": "deployed",
+      "color": "006b75",
+      "description": "已合并版本通过确定性流程部署并完成验证"
+    },
+    {
+      "name": "type/bugfix",
+      "color": "d73a4a",
+      "description": "恢复已明确的既有产品行为或修复缺陷"
+    },
+    {
+      "name": "type/feature",
+      "color": "a2eeef",
+      "description": "新增功能或改变用户可观察的产品行为"
+    },
+    {
+      "name": "type/docs",
+      "color": "0075ca",
+      "description": "仅修改文档、说明或示例，不改变运行行为"
+    },
+    {
+      "name": "type/test",
+      "color": "c5def5",
+      "description": "仅补充或修正测试与验证覆盖"
+    },
+    {
+      "name": "type/refactor",
+      "color": "bfd4f2",
+      "description": "重构内部实现且不改变外部产品合同"
+    },
+    {
+      "name": "type/maintenance",
+      "color": "fef2c0",
+      "description": "依赖、配置或日常维护类变更"
+    },
+    {
+      "name": "type/platform",
+      "color": "7057ff",
+      "description": "平台、Agent、CI、部署或治理合同变更"
+    },
+    {
+      "name": "type/security",
+      "color": "b23c17",
+      "description": "安全缺陷、凭据处理或权限边界变更"
+    },
+    {
+      "name": "type/reliability",
+      "color": "d4a72c",
+      "description": "可用性、韧性或故障恢复相关变更"
+    },
+    {
+      "name": "type/data",
+      "color": "0b6e99",
+      "description": "数据模型、schema 或数据迁移变更"
+    },
+    {
+      "name": "complexity/small",
+      "color": "2ea44f",
+      "description": "合同不变、范围局部且可简单回滚的小变更路径"
+    },
+    {
+      "name": "complexity/complex",
+      "color": "b60205",
+      "description": "需要规格与计划或触发强制复杂风险规则的变更"
+    },
+    {
+      "name": "triage/bug",
+      "color": "d73a4a",
+      "description": "Matt triage category：缺陷或既有行为未按预期工作"
+    },
+    {
+      "name": "triage/enhancement",
+      "color": "a2eeef",
+      "description": "Matt triage category：功能、改进、维护或其他非缺陷请求"
+    },
+    {
+      "name": "triage/needs-triage",
+      "color": "fbca04",
+      "description": "Matt triage state：尚未完成分类与下一处理者判断"
+    },
+    {
+      "name": "triage/needs-info",
+      "color": "d93f0b",
+      "description": "Matt triage state：需要 Issue 作者补充信息"
+    },
+    {
+      "name": "triage/ready-for-agent",
+      "color": "0e8a16",
+      "description": "Matt triage state：Agent 可处理下一阶段；不等于平台 approved"
+    },
+    {
+      "name": "triage/ready-for-human",
+      "color": "5319e7",
+      "description": "Matt triage state：等待人工判断、评审或合并"
+    },
+    {
+      "name": "triage/wontfix",
+      "color": "6a737d",
+      "description": "Matt triage state：不实施；不得映射为 completed 或 deployed"
+    }
+  ],
+  "project_extensions": {
+    "allowed_prefixes": [
+      {
+        "prefix": "area/",
+        "description": "项目功能域维度；取值由项目自定，平台不枚举"
+      },
+      {
+        "prefix": "priority/",
+        "description": "项目优先级维度；取值由项目自定，平台不枚举"
+      }
+    ]
   },
-  {
-    "name": "awaiting-triage",
-    "color": "d93f0b",
-    "description": "信息不足、内容冲突或风险边界不明，等待人工澄清"
-  },
-  {
-    "name": "spec-drafting",
-    "color": "1d76db",
-    "description": "复杂变更正在编写或完善规格与实施计划"
-  },
-  {
-    "name": "spec-review",
-    "color": "5319e7",
-    "description": "规格与实施计划已形成，正在进行可选审阅"
-  },
-  {
-    "name": "approved",
-    "color": "0e8a16",
-    "description": "Issue 合同完整，允许启动 Development Loop"
-  },
-  {
-    "name": "pr-open",
-    "color": "0052cc",
-    "description": "最终交付 PR 已创建，等待 CI 与人工合并"
-  },
-  {
-    "name": "completed",
-    "color": "1f883d",
-    "description": "最终 PR 已合并且该变更无需部署，交付已完成"
-  },
-  {
-    "name": "deployed",
-    "color": "006b75",
-    "description": "已合并版本通过确定性流程部署并完成验证"
-  },
-  {
-    "name": "type/bugfix",
-    "color": "d73a4a",
-    "description": "恢复已明确的既有产品行为或修复缺陷"
-  },
-  {
-    "name": "type/feature",
-    "color": "a2eeef",
-    "description": "新增功能或改变用户可观察的产品行为"
-  },
-  {
-    "name": "type/docs",
-    "color": "0075ca",
-    "description": "仅修改文档、说明或示例，不改变运行行为"
-  },
-  {
-    "name": "type/test",
-    "color": "c5def5",
-    "description": "仅补充或修正测试与验证覆盖"
-  },
-  {
-    "name": "type/refactor",
-    "color": "bfd4f2",
-    "description": "重构内部实现且不改变外部产品合同"
-  },
-  {
-    "name": "type/maintenance",
-    "color": "fef2c0",
-    "description": "依赖、配置或日常维护类变更"
-  },
-  {
-    "name": "type/platform",
-    "color": "7057ff",
-    "description": "平台、Agent、CI、部署或治理合同变更"
-  },
-  {
-    "name": "complexity/small",
-    "color": "2ea44f",
-    "description": "合同不变、范围局部且可简单回滚的小变更路径"
-  },
-  {
-    "name": "complexity/complex",
-    "color": "b60205",
-    "description": "需要规格与计划或触发强制复杂风险规则的变更"
-  },
-  {
-    "name": "triage/bug",
-    "color": "d73a4a",
-    "description": "Matt triage category：缺陷或既有行为未按预期工作"
-  },
-  {
-    "name": "triage/enhancement",
-    "color": "a2eeef",
-    "description": "Matt triage category：功能、改进、维护或其他非缺陷请求"
-  },
-  {
-    "name": "triage/needs-triage",
-    "color": "fbca04",
-    "description": "Matt triage state：尚未完成分类与下一处理者判断"
-  },
-  {
-    "name": "triage/needs-info",
-    "color": "d93f0b",
-    "description": "Matt triage state：需要 Issue 作者补充信息"
-  },
-  {
-    "name": "triage/ready-for-agent",
-    "color": "0e8a16",
-    "description": "Matt triage state：Agent 可处理下一阶段；不等于平台 approved"
-  },
-  {
-    "name": "triage/ready-for-human",
-    "color": "5319e7",
-    "description": "Matt triage state：等待人工判断、评审或合并"
-  },
-  {
-    "name": "triage/wontfix",
-    "color": "6a737d",
-    "description": "Matt triage state：不实施；不得映射为 completed 或 deployed"
-  }
-]
+  "retired": [
+    {
+      "name": "complexity/standard",
+      "superseded_by": "complexity/complex",
+      "retired_in": "1cbe714",
+      "description": "已退役的复杂度取值；complexity/* 现只有 small 与 complex"
+    }
+  ]
+}

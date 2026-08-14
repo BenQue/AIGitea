@@ -56,6 +56,23 @@ def _typed_text(label: str, value: str | None, max_bytes: int) -> str:
     return value
 
 
+def _label_fields(label: Mapping[str, object]) -> tuple[str, str, str]:
+    """Comparable form of a label.
+
+    Gitea accepts colors with or without a leading '#' and in either case, so a
+    raw comparison would report cosmetic differences as drift and rewrite the
+    same label on every provision run.
+    """
+    name = label.get("name")
+    color = label.get("color")
+    description = label.get("description")
+    return (
+        name if isinstance(name, str) else "",
+        color.lstrip("#").lower() if isinstance(color, str) else "",
+        description.strip() if isinstance(description, str) else "",
+    )
+
+
 def _pull_body(
     issue: int | None,
     value: str | None,
@@ -292,12 +309,16 @@ class HostAccessBroker:
         transport: Transport = _default_transport,
         runner: CommandRunner = _default_runner,
         invocation_cwd: str | None = None,
+        label_manifest_path: str | None = None,
     ) -> None:
         self.contract = contract
         self.credentials = credentials or CredentialResolver(contract)
         self.transport = transport
         self.runner = runner
         self.invocation_cwd = os.path.realpath(invocation_cwd or os.getcwd())
+        # Fixed install-time configuration, never caller input: the broker's
+        # contract is that no path ever crosses its argument surface.
+        self.label_manifest_path = label_manifest_path
 
     def execute(
         self,
@@ -421,6 +442,10 @@ class HostAccessBroker:
         repository = quote(project.repository, safe="")
         base = self.contract.governance.base_url
         repo_api = f"{base}/api/v1/repos/{owner}/{repository}"
+        if operation.name == "gitea.labels.read":
+            return self._labels(repo_api, credential.token)
+        if operation.name == "gitea.labels.provision":
+            return self._provision_labels(repo_api, credential.token)
         if operation.name == "gitea.repo.read":
             url = repo_api
         elif operation.name == "gitea.issue.create":
@@ -504,6 +529,118 @@ class HostAccessBroker:
         else:
             raise BrokerError("OPERATION_UNIMPLEMENTED", "Gitea operation is not implemented")
         return self._request_json(url, credential.token, method=method, payload=payload)
+
+    def _labels(self, repo_api: str, token: str) -> list[dict[str, object]]:
+        labels: list[dict[str, object]] = []
+        for page in range(1, 21):
+            value = self._request_json(
+                f"{repo_api}/labels?limit=50&page={page}", token
+            )
+            if not isinstance(value, list):
+                raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea label list is invalid")
+            for item in value:
+                if (
+                    not isinstance(item, dict)
+                    or not isinstance(item.get("name"), str)
+                    or not isinstance(item.get("color"), str)
+                    or not isinstance(item.get("description"), str)
+                ):
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID", "Gitea label entry is invalid"
+                    )
+                labels.append(item)
+            if len(value) < 50:
+                return labels
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea label list exceeds the bounded scan")
+
+    def _provision_labels(self, repo_api: str, token: str) -> dict[str, object]:
+        manifest = self._label_manifest()
+        remote = {item["name"]: item for item in self._labels(repo_api, token)}
+
+        created = 0
+        updated = 0
+        unchanged = 0
+        for label in manifest["canonical"]:
+            name = label["name"]
+            current = remote.get(name)
+            if current is None:
+                self._request_json(
+                    f"{repo_api}/labels", token, method="POST", payload=label
+                )
+                created += 1
+                continue
+            if _label_fields(current) == _label_fields(label):
+                unchanged += 1
+                continue
+            label_id = current.get("id")
+            if not isinstance(label_id, int) or isinstance(label_id, bool):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Gitea label is missing a usable id"
+                )
+            self._request_json(
+                f"{repo_api}/labels/{label_id}", token, method="PATCH", payload=label
+            )
+            updated += 1
+
+        # Retired values are reported, never removed. There is no delete
+        # operation in the typed surface at all, so a retired label cannot
+        # disappear without a human acting on the Issues that still carry it.
+        retired_present = sorted(
+            entry["name"] for entry in manifest["retired"] if entry["name"] in remote
+        )
+        return {
+            "operation": "gitea.labels.provision",
+            "created": created,
+            "updated": updated,
+            "unchanged": unchanged,
+            "retired_present": retired_present,
+            "status": "PASS",
+        }
+
+    def _label_manifest(self) -> dict[str, list[dict[str, str]]]:
+        path = self.label_manifest_path
+        if not path:
+            raise BrokerError(
+                "REQUEST_DENIED", "label manifest is not configured for this broker install"
+            )
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                raw = json.load(handle)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise BrokerError("REQUEST_DENIED", "cannot read the label manifest") from exc
+        if not isinstance(raw, dict) or raw.get("schema_version") != 2:
+            raise BrokerError(
+                "REQUEST_DENIED", "label manifest must be a schema_version 2 object"
+            )
+        canonical = raw.get("canonical")
+        retired = raw.get("retired")
+        if not isinstance(canonical, list) or not canonical or not isinstance(retired, list):
+            raise BrokerError("REQUEST_DENIED", "label manifest structure is invalid")
+        for entry in canonical:
+            if (
+                not isinstance(entry, dict)
+                or not isinstance(entry.get("name"), str)
+                or not entry["name"]
+                or not isinstance(entry.get("color"), str)
+                or not re.fullmatch(r"[0-9a-fA-F]{6}", entry["color"])
+                or not isinstance(entry.get("description"), str)
+                or not entry["description"]
+            ):
+                raise BrokerError("REQUEST_DENIED", "label manifest entry is invalid")
+        for entry in retired:
+            if not isinstance(entry, dict) or not isinstance(entry.get("name"), str):
+                raise BrokerError("REQUEST_DENIED", "retired label entry is invalid")
+        return {
+            "canonical": [
+                {
+                    "name": entry["name"],
+                    "color": entry["color"],
+                    "description": entry["description"],
+                }
+                for entry in canonical
+            ],
+            "retired": [{"name": entry["name"]} for entry in retired],
+        }
 
     def _open_pulls(self, repo_api: str, token: str) -> list[object]:
         pulls: list[object] = []
