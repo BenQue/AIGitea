@@ -60,6 +60,9 @@ manifest 任何历史版本（`6aa8e07` 16 项 → `badd2eb` 17 项 → `1cbe714
 
 - `codex/config/gitea-labels.json`：结构从裸数组演进为带 `schema_version` 的对象，新增
   `project_extensions` 与 `retired` 声明。
+- `codex/agent/gitea-label-manifest.sh`（新增）：manifest 结构校验、canonical/前缀/退役取值
+  读取与受管命名空间判定的共享库，并持有 provision 与 readback 共用的归一化定义，使两者
+  对「是否漂移」不可能给出不同答案。
 - `codex/tools/sync-gitea-labels.sh`：适配新 manifest 结构，新增幂等 provision 语义与
   drift 修复；不新增删除能力。
 - `codex/tools/aisoft-project-check.sh`：`labels-readback` 按声明校验扩展前缀，受管命名空间
@@ -67,6 +70,8 @@ manifest 任何历史版本（`6aa8e07` 16 项 → `badd2eb` 17 项 → `1cbe714
 - `codex/runtime/aisoft_host_access/{contract,broker,runner}.py`：新增 `gitea.labels.read` 与
   `gitea.labels.provision` 两个 typed 操作。
 - `skill-for-codex/references/onboarding-runbook.md`：把散文步骤替换为确定性命令。
+- `skill-for-codex/references/project-align.md`：checklist 第 4 行改述 `labels-readback` 的
+  新判定依据（canonical + 声明扩展前缀 + retired）。
 - `codex/tests/test-sync-gitea-labels.sh`、`test-project-check.sh`、
   `test-host-access-broker.sh`、`codex/runtime/tests/test_host_access.py`、`smoke.sh`。
 

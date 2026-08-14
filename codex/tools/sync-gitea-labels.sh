@@ -117,15 +117,11 @@ if ((page > MAX_PAGES)); then
   exit 1
 fi
 
-# Gitea accepts colors with or without a leading '#' and in either case; compare
-# on a normalized form so cosmetic differences never look like drift and never
-# trigger an endless repair loop.
+# Compare on the shared normalized form (gitea-label-manifest.sh) so cosmetic
+# differences never look like drift, never trigger an endless repair loop, and
+# never disagree with the labels-readback check in aisoft-project-check.sh.
 normalize() {
-  jq -c '{
-    name: .name,
-    color: (.color | ltrimstr("#") | ascii_downcase),
-    description: (.description | sub("^\\s+"; "") | sub("\\s+$"; ""))
-  }'
+  jq -c "$AISOFT_LABEL_JQ_NORMALIZE"' aisoft_label_norm'
 }
 
 created=0

@@ -27,7 +27,7 @@
 | 1 | AGENTS.md 常驻指针前两节 + CLAUDE.md 一行指针 | `templates/project/`；runbook §2 | `pointer-sections` |
 | 2 | 语义 change 模板四件套在位 | `templates/docs/changes/_template/`；runbook §2 | `change-templates` |
 | 3 | Matt 编排三件套已初始化 | `templates/docs/agents/`；runbook §2 | 人工核对 |
-| 4 | 24 canonical 标签读回一致、无受管命名空间冲突标签 | `codex/config/gitea-labels.json`；runbook §5 | `labels-readback`（`--remote`） |
+| 4 | canonical 标签读回一致；受管命名空间无冲突取值、无仍在用的 retired 取值；其余标签须落在 manifest 声明的扩展前缀内 | `codex/config/gitea-labels.json`（`schema_version: 2`）；runbook §5 | `labels-readback`（`--remote`） |
 | 5 | required CI context 与治理清单一致 | `codex/config/gitea-governance.json`；runbook §5/§8 | `ci-context`（`--remote`） |
 | 6 | `.aisoft/architecture.json` 声明 + lock 有效 | runbook §9（Architecture declaration onboarding）；`architecture/bin/aisoft-architecture` | `architecture-lock` |
 | 7 | 交付形态（delivery profile）已显式声明 | runbook §4；目标仓 AGENTS.md 项目事实 | `delivery-profile` |

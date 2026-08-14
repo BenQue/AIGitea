@@ -29,6 +29,23 @@
 
 AISOFT_LABEL_MANAGED_PREFIXES=('type/' 'complexity/' 'triage/')
 
+# Shared jq prelude defining aisoft_label_norm. Gitea accepts colors with or
+# without a leading '#' and in either case, and round-trips descriptions with
+# incidental whitespace. Both the provisioner (which decides whether to PATCH)
+# and the readback check (which decides whether to report drift) must answer
+# "is this label aligned?" identically; a checker that flags drift the
+# provisioner considers a no-op would produce a permanently red project with no
+# command that fixes it. Hence one definition, sourced by both.
+# shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
+AISOFT_LABEL_JQ_NORMALIZE='
+  def aisoft_label_norm:
+    {
+      name: .name,
+      color: (.color | ltrimstr("#") | ascii_downcase),
+      description: (.description | sub("^\\s+"; "") | sub("\\s+$"; ""))
+    };
+'
+
 aisoft_label_manifest_invalid() {
   printf 'label manifest is invalid: %s\n' "$1" >&2
   return 3

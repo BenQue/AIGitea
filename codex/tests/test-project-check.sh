@@ -125,6 +125,24 @@ case "$url" in
     cp "$MOCK_LABELS" "$output_file"
     printf '200'
     ;;
+  */issues\?*)
+    if [[ "${MOCK_ISSUES_FAIL:-0}" == 1 ]]; then
+      printf '{}\n' >"$output_file"
+      printf '500'
+      exit 0
+    fi
+    query="${url#*\?}"
+    label=''
+    while IFS= read -r parameter; do
+      [[ "$parameter" == labels=* ]] && label="${parameter#labels=}"
+    done < <(tr '&' '\n' <<<"$query")
+    if [[ -n "$label" && -f "$MOCK_ISSUES_DIR/$label.json" ]]; then
+      cp "$MOCK_ISSUES_DIR/$label.json" "$output_file"
+    else
+      printf '[]\n' >"$output_file"
+    fi
+    printf '200'
+    ;;
   */branch_protections/main)
     if [[ "${MOCK_PROTECTION_STATUS:-200}" == 403 ]]; then
       printf '{}\n' >"$output_file"
@@ -147,7 +165,15 @@ GITEA_TOKEN=$SENTINEL
 EOF
 chmod 600 "$TMP/agent.env"
 : >"$TMP/curl.argv"
-cp "$ROOT/codex/config/gitea-labels.json" "$TMP/labels.json"
+mkdir -p "$TMP/issues"
+
+# The mocked GET /labels response is the canonical array, not the manifest file:
+# schema_version 2 wraps canonical in an object (#108), and the remote API keeps
+# returning a bare array.
+canonical_labels() {
+  jq "${1:-.}" <<<"$(jq '.canonical' "$ROOT/codex/config/gitea-labels.json")"
+}
+canonical_labels >"$TMP/labels.json"
 jq -n '{
   enable_push: false,
   enable_status_check: true,
@@ -160,10 +186,12 @@ remote_check() {
     AGENT_ENV_FILE="${MOCK_ENV_FILE:-$TMP/agent.env}" \
     MOCK_ARGV_LOG="$TMP/curl.argv" \
     MOCK_LABELS="$TMP/labels.json" \
+    MOCK_ISSUES_DIR="$TMP/issues" \
     MOCK_PROTECTION="$TMP/protection.json" \
     MOCK_SENTINEL="$SENTINEL" \
     MOCK_PROTECTION_STATUS="${MOCK_PROTECTION_STATUS:-200}" \
     MOCK_TRANSPORT_FAIL="${MOCK_TRANSPORT_FAIL:-0}" \
+    MOCK_ISSUES_FAIL="${MOCK_ISSUES_FAIL:-0}" \
     bash "$CHECKER" --today 2026-08-12 "$@"
 }
 
@@ -249,20 +277,53 @@ run_case 1 local_check --repo "$uncommitted_lock_repo"
 expect_line 'GAP: architecture-lock — .aisoft/architecture.lock.json 存在未提交变更'
 
 labels_repo="$(copy_fixture labels-gap)"
-jq '.[1:]' "$ROOT/codex/config/gitea-labels.json" >"$TMP/labels.json"
+canonical_labels '.[1:]' >"$TMP/labels.json"
+missing_label="$(jq -r '.canonical[0].name' "$ROOT/codex/config/gitea-labels.json")"
 run_case 1 remote_check --repo "$labels_repo" --remote
-expect_contains 'GAP: labels-readback —'
+expect_contains "GAP: labels-readback — 缺失或漂移: $missing_label"
 
-jq '.[0].color = "ffffff"' "$ROOT/codex/config/gitea-labels.json" >"$TMP/labels.json"
+canonical_labels '.[0].color = "ffffff"' >"$TMP/labels.json"
 run_case 1 remote_check --repo "$labels_repo" --remote
-expect_contains 'GAP: labels-readback —'
+expect_contains 'GAP: labels-readback — 缺失或漂移:'
 
-jq '. + [{name:"complexity/standard",color:"ffffff",description:"conflict"}]' \
-  "$ROOT/codex/config/gitea-labels.json" >"$TMP/labels.json"
+# Cosmetic-only differences must never read as drift: the checker and the
+# provisioner share one normalization (#108), so a '#'-prefixed uppercase color
+# and a padded description are aligned, not a repair loop.
+canonical_labels '
+  .[0].color = ("#" + (.[0].color | ascii_upcase)) |
+  .[0].description = "  " + .[0].description + " "
+' >"$TMP/labels.json"
+run_case 0 remote_check --repo "$labels_repo" --remote
+expect_line 'PASS: labels-readback'
+
+# AC-5: a managed-namespace conflict names the Issues that carry it.
+canonical_labels '. + [{name:"type/legacy",color:"ffffff",description:"conflict"}]' \
+  >"$TMP/labels.json"
+jq -n '[{number:12},{number:7}]' >"$TMP/issues/type%2Flegacy.json"
 run_case 1 remote_check --repo "$labels_repo" --remote
-expect_contains 'GAP: labels-readback —'
+expect_contains 'GAP: labels-readback — 受管命名空间冲突: type/legacy(#7,#12)'
 
-cp "$ROOT/codex/config/gitea-labels.json" "$TMP/labels.json"
+# AC-5: a retired value still in use is reported as retired (not merely as a
+# namespace conflict) and likewise carries its Issue list.
+canonical_labels '
+  . + [{name:"complexity/standard",color:"ffffff",description:"retired"}]
+' >"$TMP/labels.json"
+jq -n '[{number:31}]' >"$TMP/issues/complexity%2Fstandard.json"
+run_case 1 remote_check --repo "$labels_repo" --remote
+expect_contains 'GAP: labels-readback — 退役取值仍在用: complexity/standard(#31)'
+
+# An offending label nobody references is stated as such, never silently
+# rendered as an empty list.
+canonical_labels '. + [{name:"type/orphan",color:"ffffff",description:"conflict"}]' \
+  >"$TMP/labels.json"
+run_case 1 remote_check --repo "$labels_repo" --remote
+expect_contains 'GAP: labels-readback — 受管命名空间冲突: type/orphan(无 Issue 引用)'
+
+# An unreadable Issue list is reported, not collapsed into "no references".
+MOCK_ISSUES_FAIL=1 run_case 1 remote_check --repo "$labels_repo" --remote
+expect_contains 'GAP: labels-readback — 受管命名空间冲突: type/orphan(Issue 清单读取失败)'
+
+canonical_labels >"$TMP/labels.json"
 jq '.status_check_contexts = ["wrong"]' "$TMP/protection.json" \
   >"$TMP/protection.next"
 mv "$TMP/protection.next" "$TMP/protection.json"
@@ -338,13 +399,32 @@ MOCK_PROTECTION_STATUS=403 run_case 0 remote_check --repo "$TMP/aligned" --remot
 expect_line 'SKIP: ci-context — 需要 manager/audit 权限'
 expect_line 'result: pass=5 gap=0 skip=1'
 
-jq '. + [{name:"project/local",color:"ffffff",description:"local"}]' \
-  "$ROOT/codex/config/gitea-labels.json" >"$TMP/labels.json"
+# AC-4: a value under a declared extension prefix is legitimate — the platform
+# owns the dimension, the project owns the values.
+canonical_labels '
+  . + [{name:"area/web",color:"ffffff",description:"project dimension"},
+       {name:"priority/p1",color:"ffffff",description:"project dimension"}]
+' >"$TMP/labels.json"
 run_case 0 remote_check --repo "$TMP/aligned" --remote
-expect_line 'INFO: labels-readback — 非受管标签 project/local'
+expect_line 'INFO: labels-readback — 声明扩展标签 area/web'
+expect_line 'INFO: labels-readback — 声明扩展标签 priority/p1'
 expect_line 'result: pass=6 gap=0 skip=0'
 
-cp "$ROOT/codex/config/gitea-labels.json" "$TMP/labels.json"
+# AC-4: a near-miss of a declared prefix is undeclared, not a project dimension.
+# This is the case a prefix-only allow list would wave through.
+canonical_labels '. + [{name:"aera/web",color:"ffffff",description:"typo"}]' \
+  >"$TMP/labels.json"
+jq -n '[{number:5}]' >"$TMP/issues/aera%2Fweb.json"
+run_case 1 remote_check --repo "$TMP/aligned" --remote
+expect_contains 'GAP: labels-readback — 未声明标签: aera/web(#5)'
+
+# The bare prefix itself declares nothing; it is not a usable label value.
+canonical_labels '. + [{name:"area/",color:"ffffff",description:"bare prefix"}]' \
+  >"$TMP/labels.json"
+run_case 1 remote_check --repo "$TMP/aligned" --remote
+expect_contains 'GAP: labels-readback — 未声明标签: area/(无 Issue 引用)'
+
+canonical_labels >"$TMP/labels.json"
 MOCK_TRANSPORT_FAIL=1 run_case 1 remote_check --repo "$TMP/aligned" --remote
 expect_line 'GAP: labels-readback — 远程标签读取失败'
 if grep -Fq 'curl mock transport failure' <<<"$last_output"; then

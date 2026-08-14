@@ -26,10 +26,10 @@ updated: 2026-08-14
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | manifest 结构演进为 `schema_version: 2`，含 `canonical` / `project_extensions` / `retired`，附独立结构校验器与测试 | - | pending |
-| T02 | `sync-gitea-labels.sh` 适配新结构，实现 create/update/skip-retired 幂等 provision | T01 | pending |
-| T03 | broker 新增 `gitea.labels.read` 与 `gitea.labels.provision` 两个 typed 操作 | T01 | pending |
-| T04 | `aisoft-project-check.sh` 的 `labels-readback` 改为按声明校验，冲突与 retired 附所属 Issue 清单 | T01 | pending |
+| T01 | manifest 结构演进为 `schema_version: 2`，含 `canonical` / `project_extensions` / `retired`，附独立结构校验器与测试 | - | completed |
+| T02 | `sync-gitea-labels.sh` 适配新结构，实现 create/update/skip-retired 幂等 provision | T01 | completed |
+| T03 | broker 新增 `gitea.labels.read` 与 `gitea.labels.provision` 两个 typed 操作 | T01 | completed |
+| T04 | `aisoft-project-check.sh` 的 `labels-readback` 改为按声明校验，冲突与 retired 附所属 Issue 清单 | T01 | completed |
 | T05 | onboarding-runbook §5 散文步骤替换为确定性命令，并接入 `host.onboarding.check` 步骤序列 | T02, T03 | pending |
 | T06 | UQ-1 落地：按人拍板结果调整 canonical type 集合与判级证据描述 | T01 + 人决策 | pending |
 
@@ -53,7 +53,9 @@ T02 / T03 / T04 在 T01 之后互不依赖，可并行。T06 独立于实现路�
   `codex/tests/test-host-access-broker.sh`。
 - **T04**：`codex/tools/aisoft-project-check.sh:233-313`（`check_remote_labels`，含
   `:269-286` 的 drift/unmanaged 计算与 `:288-307` 的 case 分支）；
-  `codex/tests/test-project-check.sh`。
+  `codex/tests/test-project-check.sh`；
+  `skill-for-codex/references/project-align.md`（checklist 第 4 行是本检查的人类可读描述，
+  判定依据变了就必须同步，否则文档与工具互相矛盾）。
 - **T05**：`skill-for-codex/references/onboarding-runbook.md:225-247`；
   若 `host.onboarding.check` 有步骤清单则同步。
 - **T06**：`codex/config/gitea-labels.json` 的 `canonical` 数组、
