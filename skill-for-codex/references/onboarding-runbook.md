@@ -313,7 +313,11 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 ### 合并后收尾
 
 1. 明确无需部署的变更在最终 PR 合并后，把唯一 lifecycle 更新为 `completed`；
-   需要部署的应用不得使用该标签。
+   需要部署的应用不得使用该标签。推进方式是显式运行
+   `codex/tools/mark-completed-issues.sh --range <合并区间>`（或直接给 Issue 号），
+   默认只打印判定计划，加 `--apply` 才经 broker `gitea.issue.labels.set` 写入。
+   是否该用 `completed` 取自该 Issue 映射 summary 的 `required_docs` 是否含
+   `verification`，不由人另行判断；已 `deployed` 的 Issue 不会被降级。
 2. 把 `codex/tools/mark-deployed-issues.sh` 复制或以固定版本纳入应用仓库，并只在
    应用健康检查成功后调用；工具会把包括 `completed` 在内的其它 lifecycle 替换为
    唯一 `deployed`。
