@@ -280,6 +280,40 @@ jq -e '
   )
 ' "$ROOT/codex/config/gitea-labels.json" >/dev/null
 
+# 生命周期八个标签名必须只有一处事实源（#115 AC-7）。任何枚举全套名字的文件都是一份副本，
+# 因此把「枚举全套」的文件集合整个钉死，新增一份必须显式改这里、被 review 看见。
+#
+# 允许的四份分两类，缺一不可：
+#   - 事实源与其镜像：gitea-labels.json 是 manifest 本身；contract.py 的 LIFECYCLE_LABELS 是
+#     Python 侧字面量，由 codex/runtime/tests/test_contract.py 反向钉回 manifest。
+#   - 钉住事实源的测试：本文件上面那段 manifest 内容断言；test-gitea-label-manifest.sh 钉住
+#     aisoft_label_manifest_lifecycle 的输出。二者的字面量是断言而不是可被消费的来源——测试
+#     若改成同样「派生」就成了自证，无法发现派生规则本身写错。
+#
+# 生产消费者一律调用 aisoft_label_manifest_lifecycle 或 aisoft_loop.contract.LIFECYCLE_LABELS，
+# 不得再抄一遍（#115 前 mark-deployed-issues.sh 就是这样漂移出第五份的）。
+lifecycle_sources=()
+while IFS= read -r candidate; do
+  lifecycle_hits=0
+  for lifecycle_name in needs-analysis awaiting-triage spec-drafting spec-review \
+    approved pr-open completed deployed; do
+    if grep -Eq "(^|[^a-zA-Z0-9_/-])$lifecycle_name([^a-zA-Z0-9_/-]|\$)" "$candidate"; then
+      lifecycle_hits=$((lifecycle_hits + 1))
+    fi
+  done
+  if [[ "$lifecycle_hits" == 8 ]]; then
+    lifecycle_sources+=("${candidate#"$ROOT/"}")
+  fi
+done < <(rg -l --no-messages 'needs-analysis' "$ROOT/codex")
+if [[ "$(printf '%s\n' "${lifecycle_sources[@]}" | LC_ALL=C sort)" != 'codex/config/gitea-labels.json
+codex/runtime/aisoft_loop/contract.py
+codex/tests/smoke.sh
+codex/tests/test-gitea-label-manifest.sh' ]]; then
+  echo '生命周期标签列表出现第二处硬编码副本（#115 AC-7）；应从 label manifest 派生。枚举全套名字的文件：' >&2
+  printf '%s\n' "${lifecycle_sources[@]}" | LC_ALL=C sort >&2
+  exit 1
+fi
+
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$ROOT/codex/runtime" \
   python3 -m aisoft_loop.matt_snapshot verify \
   "$ROOT/codex/vendor/mattpocock/v1.2.2" \

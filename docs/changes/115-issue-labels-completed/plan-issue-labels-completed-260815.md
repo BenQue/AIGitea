@@ -26,7 +26,7 @@ updated: 2026-08-15
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | `gitea-label-manifest.sh` 新增 `aisoft_label_manifest_lifecycle`；`mark-deployed-issues.sh:77` 硬编码数组改为调用它；smoke 增加「禁止第二处硬编码 lifecycle 列表」断言（AC-7） | - | pending |
+| T01 | `gitea-label-manifest.sh` 新增 `aisoft_label_manifest_lifecycle`；`mark-deployed-issues.sh:77` 硬编码数组改为调用它；smoke 增加「禁止第二处硬编码 lifecycle 列表」断言（AC-7） | - | completed |
 | T02 | broker 新增 `gitea.issue.labels.read` 与 `gitea.issue.labels.set` 两个 typed 操作，含 `--lifecycle` 参数与 manifest 派生的取值校验（AC-1、AC-3） | T01 | pending |
 | T03 | `set` 的投影语义与守卫：只改 lifecycle 维度、`deployed` 不可被降级为 `completed`、幂等 no-op（AC-2、AC-4、AC-5） | T02 | pending |
 | T04 | `codex/tools/mark-completed-issues.sh`：解析已合并 Issue、按 `required_docs` 判定、默认 dry-run、`--apply` 才写（AC-6、AC-8） | T01、T02 | pending |

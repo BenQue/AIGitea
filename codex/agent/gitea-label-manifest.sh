@@ -172,6 +172,23 @@ aisoft_label_manifest_retired() {
   jq -r '.retired[].name' "$1"
 }
 
+# aisoft_label_manifest_lifecycle <manifest_path>
+# Emits one delivery-lifecycle label name per line (#115).
+#
+# The lifecycle dimension is exactly the unprefixed canonical names. Every other
+# dimension carries a namespace — the managed type/, complexity/ and triage/ sets
+# above, and whatever project_extensions declares — so "belongs to no namespace"
+# is what makes a canonical label a delivery state, and the rule stays correct
+# when a project declares a new prefix.
+#
+# aisoft_loop.contract.LIFECYCLE_LABELS is the Python half of the same set and is
+# pinned to this identical rule by codex/runtime/tests/test_contract.py. Both
+# halves derive; neither transcribes. A consumer that needs the eight names calls
+# one of them rather than writing a third list.
+aisoft_label_manifest_lifecycle() {
+  jq -r '.canonical[].name | select(contains("/") | not)' "$1"
+}
+
 # aisoft_label_is_managed_namespace <label_name>
 # Returns 0 when the name falls inside a platform-owned closed set.
 aisoft_label_is_managed_namespace() {
