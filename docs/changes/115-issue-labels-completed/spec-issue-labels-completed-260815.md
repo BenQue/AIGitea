@@ -13,7 +13,7 @@ risk_flags:
   - external-contract
   - cross-module
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/115-issue-labels-completed
 pr_url:
 created: 2026-08-15
