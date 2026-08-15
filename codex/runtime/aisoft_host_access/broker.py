@@ -333,6 +333,7 @@ class HostAccessBroker:
         body: str | None = None,
         comment: str | None = None,
         sha: str | None = None,
+        lifecycle: str | None = None,
     ) -> object:
         try:
             project = self.contract.project(project_id)
@@ -348,6 +349,7 @@ class HostAccessBroker:
             "body": body,
             "comment": comment,
             "sha": sha,
+            "lifecycle": lifecycle,
         }
         supplied = {
             key for key, value in arguments.items()
@@ -368,6 +370,7 @@ class HostAccessBroker:
                     body=body,
                     comment=comment,
                     sha=sha,
+                    lifecycle=lifecycle,
                 )
             if operation_name.startswith("git.") or operation_name == "mac.git.bind":
                 return self._git(project, operation, branch=branch)
@@ -395,6 +398,7 @@ class HostAccessBroker:
         body: str | None,
         comment: str | None,
         sha: str | None,
+        lifecycle: str | None,
     ) -> object:
         method = "GET"
         payload: object | None = None
@@ -436,6 +440,20 @@ class HostAccessBroker:
         elif operation.name == "gitea.commit.status.read":
             if not isinstance(sha, str) or COMMIT_SHA_RE.fullmatch(sha) is None:
                 raise BrokerError("ARGUMENT_INVALID", "commit status requires an exact lowercase SHA-1")
+        elif operation.name == "gitea.issue.labels.read":
+            _positive_number(number, "Issue")
+        elif operation.name == "gitea.issue.labels.set":
+            _positive_number(number, "Issue")
+            # Checked against the installed manifest rather than a literal tuple
+            # or argparse choices: a literal would be another copy of the eight
+            # names (#115 AC-7) and would keep accepting a state this install's
+            # manifest no longer declares. Local file read, so an out-of-range
+            # value costs no credential and no request.
+            if lifecycle not in self._lifecycle_labels():
+                raise BrokerError(
+                    "ARGUMENT_MISMATCH",
+                    "lifecycle must be one of the delivery states the label manifest declares",
+                )
         credential = self.credentials.resolve(project, operation)
         self._verify_identity(credential)
         owner = quote(self.contract.governance.owner, safe="")
@@ -446,6 +464,14 @@ class HostAccessBroker:
             return self._labels(repo_api, credential.token)
         if operation.name == "gitea.labels.provision":
             return self._provision_labels(repo_api, credential.token)
+        if operation.name == "gitea.issue.labels.read":
+            assert number is not None
+            return self._issue_labels(repo_api, credential.token, number)
+        if operation.name == "gitea.issue.labels.set":
+            assert number is not None and lifecycle is not None
+            return self._set_issue_lifecycle(
+                repo_api, credential.token, number, lifecycle
+            )
         if operation.name == "gitea.repo.read":
             url = repo_api
         elif operation.name == "gitea.issue.create":
@@ -594,6 +620,91 @@ class HostAccessBroker:
             "updated": updated,
             "unchanged": unchanged,
             "retired_present": retired_present,
+            "status": "PASS",
+        }
+
+    def _lifecycle_labels(self) -> set[str]:
+        """The delivery lifecycle dimension, derived from the installed manifest.
+
+        Same rule as aisoft_label_manifest_lifecycle and
+        aisoft_loop.contract.LIFECYCLE_LABELS: a canonical name carrying no
+        namespace prefix is a delivery state, because every other dimension
+        (type/, complexity/, triage/, and whatever project_extensions declares)
+        is namespaced. Derived here too rather than imported, because the broker
+        must stay runnable from its own install-time manifest alone and never
+        depend on aisoft_loop.
+        """
+        return {
+            entry["name"]
+            for entry in self._label_manifest()["canonical"]
+            if "/" not in entry["name"]
+        }
+
+    def _issue_labels(
+        self, repo_api: str, token: str, number: int
+    ) -> list[dict[str, object]]:
+        value = self._request_json(f"{repo_api}/issues/{number}/labels", token)
+        if not isinstance(value, list):
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea Issue label list is invalid")
+        for item in value:
+            if (
+                not isinstance(item, dict)
+                or not isinstance(item.get("name"), str)
+                or not isinstance(item.get("id"), int)
+                or isinstance(item.get("id"), bool)
+            ):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Gitea Issue label entry is invalid"
+                )
+        return value
+
+    def _set_issue_lifecycle(
+        self, repo_api: str, token: str, number: int, lifecycle: str
+    ) -> dict[str, object]:
+        """Replace the Issue's lifecycle dimension, leaving every other label.
+
+        Attaching is not defining: when the target label has no definition in
+        the repository this fails closed and names gitea.labels.provision (#108)
+        instead of creating it, so the two operation surfaces stay separate.
+        """
+        states = self._lifecycle_labels()
+        defined = {item["name"]: item for item in self._labels(repo_api, token)}
+        target = defined.get(lifecycle)
+        if target is None:
+            raise BrokerError(
+                "TARGET_MISMATCH",
+                f"the {lifecycle} label is not defined in this repository; "
+                "define it with gitea.labels.provision before attaching it",
+            )
+        target_id = target.get("id")
+        if not isinstance(target_id, int) or isinstance(target_id, bool):
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID", "Gitea label is missing a usable id"
+            )
+
+        current = self._issue_labels(repo_api, token, number)
+        before = sorted(str(item["name"]) for item in current)
+        # Everything outside the lifecycle dimension is carried across by id.
+        # This is a replacement of one dimension, not an assignment of a label
+        # set: there is no way to ask this operation to drop type/, complexity/,
+        # triage/ or a project extension label.
+        final = sorted(
+            {int(item["id"]) for item in current if item["name"] not in states}
+            | {target_id}
+        )
+        self._request_json(
+            f"{repo_api}/issues/{number}/labels",
+            token,
+            method="PUT",
+            payload={"labels": final},
+        )
+        by_id = {int(item["id"]): str(item["name"]) for item in current}
+        by_id[target_id] = lifecycle
+        return {
+            "issue": number,
+            "before": before,
+            "after": sorted(by_id[value] for value in final),
+            "result": "updated",
             "status": "PASS",
         }
 

@@ -33,6 +33,11 @@ def build_parser() -> argparse.ArgumentParser:
     broker.add_argument("--body")
     broker.add_argument("--comment")
     broker.add_argument("--sha")
+    # Deliberately no choices=: the accepted lifecycle states are derived from
+    # the installed label manifest inside the broker (#115). Listing them here
+    # would be another copy of the eight names and would drift from the manifest
+    # this install actually ships.
+    broker.add_argument("--lifecycle")
 
     profile = commands.add_parser("profile")
     profile.add_argument("--project", required=True)
@@ -81,6 +86,7 @@ def main(argv: list[str] | None = None) -> int:
                 body=args.body,
                 comment=args.comment,
                 sha=args.sha,
+                lifecycle=args.lifecycle,
             )
             _json(value)
             return 0

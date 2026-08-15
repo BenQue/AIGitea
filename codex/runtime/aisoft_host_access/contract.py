@@ -177,6 +177,13 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     # silently automatable.
     "gitea.labels.read": ("project-agent", False, ()),
     "gitea.labels.provision": ("project-agent", True, ()),
+    # Per-Issue label attachment (#115), the other half of the pair above. The
+    # naming rule from #108 holds: an operation with an issue. segment attaches,
+    # one without defines. set writes the lifecycle dimension only — type/ and
+    # complexity/ are analyzer output and triage/ is Matt output, so a typed
+    # write for those would be a supported way around their producing pipelines.
+    "gitea.issue.labels.read": ("project-agent", False, ("number",)),
+    "gitea.issue.labels.set": ("project-agent", True, ("number", "lifecycle")),
     "gitea.protection.read": ("manager-audit", False, ()),
     "host.access.audit": ("manager-audit", False, ()),
     "host.onboarding.check": ("manager-audit", False, ()),

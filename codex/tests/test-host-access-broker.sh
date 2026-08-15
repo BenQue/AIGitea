@@ -13,12 +13,12 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 9 and
-  .operation_count == 24 and
+  .operation_count == 26 and
   .merge_operation_count == 0
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 24) and
+  ([.operations[].name] | length == 26) and
   all(.operations[];
     (.name | contains("merge") | not) and
     (.name | contains("shell") | not) and
@@ -40,6 +40,11 @@ jq -e '
   ([.operations[] | select(.name == "host.onboarding.check")][0].arguments == []) and
   ([.operations[] | select(.name == "gitea.labels.read")][0].arguments == []) and
   ([.operations[] | select(.name == "gitea.labels.provision")][0].arguments == []) and
+  ([.operations[] | select(.name == "gitea.issue.labels.read")][0].arguments == ["number"]) and
+  ([.operations[] | select(.name == "gitea.issue.labels.set")][0].arguments
+    == ["number", "lifecycle"]) and
+  ([.operations[] | select(.name == "gitea.issue.labels.set")][0].mutating == true) and
+  ([.operations[] | select(.name == "gitea.issue.labels.read")][0].mutating == false) and
   ([.operations[].name] | any(test("^gitea\\.labels\\.")) ) and
   ([.operations[].name] | any(contains("delete")) | not) and
   ([.projects[] | select(.project_id == "newemaint")][0].git_remote_name == "gitea") and
@@ -78,6 +83,39 @@ set -e
 test "$labels_delete_status" = 20
 grep -Fq 'BLOCKED_EXTERNAL' <<<"$labels_delete_output"
 grep -Fq 'REQUEST_DENIED' <<<"$labels_delete_output"
+
+# gitea.issue.labels.set only accepts the lifecycle states the installed label
+# manifest declares (#115 AC-1). An out-of-range value is refused before any
+# credential is resolved or any request is made — so this case runs offline —
+# and it is refused rather than silently ignored, which would look like success
+# while leaving the Issue on its old state.
+for invalid_lifecycle in bogus type/feature triage/ready-for-agent; do
+  set +e
+  lifecycle_output="$("$ROOT/codex/tools/host-access-broker.sh" \
+    --project hsdb --operation gitea.issue.labels.set \
+    --number 1 --lifecycle "$invalid_lifecycle" 2>&1)"
+  lifecycle_status=$?
+  set -e
+  test "$lifecycle_status" = 20
+  grep -Fq 'BLOCKED_EXTERNAL' <<<"$lifecycle_output"
+  grep -Fq 'ARGUMENT_MISMATCH' <<<"$lifecycle_output"
+done
+
+# The lifecycle argument belongs to that one operation. Omitting it, or adding
+# it to the read counterpart, is a typed-contract violation rather than a
+# defaulted write.
+for mismatched in \
+  "--operation gitea.issue.labels.set --number 1" \
+  "--operation gitea.issue.labels.read --number 1 --lifecycle completed"; do
+  set +e
+  # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
+  mismatch_output="$("$ROOT/codex/tools/host-access-broker.sh" \
+    --project hsdb $mismatched 2>&1)"
+  mismatch_status=$?
+  set -e
+  test "$mismatch_status" = 20
+  grep -Fq 'ARGUMENT_MISMATCH' <<<"$mismatch_output"
+done
 
 set +e
 url_output="$("$ROOT/codex/tools/host-access-broker.sh" \
