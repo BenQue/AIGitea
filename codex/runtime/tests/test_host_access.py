@@ -645,6 +645,120 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertIn("gitea.labels.provision", str(caught.exception))
         self.assertEqual([method for method, _, _ in calls if method == "PUT"], [])
 
+    def test_issue_label_set_replaces_only_the_lifecycle_dimension(self) -> None:
+        """AC-2: the other four label dimensions survive the write untouched.
+
+        The failure this guards against is a set that assigns a label list
+        instead of replacing one dimension, which would silently strip the
+        analyzer's type/ and complexity/ output, Matt's triage/ state, and the
+        project's own area/ extension the first time it ran.
+        """
+        repository = self._provisioned_labels()
+        repository.append(
+            {"id": 900, "name": "area/web", "color": "cccccc", "description": "ext"}
+        )
+        by_name = {str(item["name"]): item for item in repository}
+        attached = [
+            by_name["type/platform"],
+            by_name["complexity/complex"],
+            by_name["triage/ready-for-agent"],
+            by_name["area/web"],
+            by_name["pr-open"],
+        ]
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, attached, calls)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.set",
+            number=115, lifecycle="completed",
+        )
+
+        self.assertEqual(value["result"], "updated")
+        self.assertEqual(
+            set(value["before"]) - set(value["after"]), {"pr-open"}
+        )
+        self.assertEqual(
+            set(value["after"]) - set(value["before"]), {"completed"}
+        )
+        self.assertEqual(
+            sorted(str(item["name"]) for item in attached),
+            ["area/web", "completed", "complexity/complex", "triage/ready-for-agent",
+             "type/platform"],
+        )
+        puts = [payload for method, _url, payload in calls if method == "PUT"]
+        self.assertEqual(len(puts), 1)
+        self.assertIn(900, puts[0]["labels"])
+
+    def test_issue_label_set_refuses_to_downgrade_deployed_to_completed(self) -> None:
+        """AC-4: deployed and completed are mutually exclusive, deployed is stronger.
+
+        Demoting a shipped change back to completed is a human decision about
+        what actually happened, so it must not be reachable through the tool
+        that walks merged Issues.
+        """
+        repository = self._provisioned_labels()
+        by_name = {str(item["name"]): item for item in repository}
+        attached = [by_name["type/platform"], by_name["deployed"]]
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, attached, calls)
+
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute(
+                "aisoft-platform", "gitea.issue.labels.set",
+                number=115, lifecycle="completed",
+            )
+        self.assertEqual(caught.exception.code, "REQUEST_DENIED")
+        self.assertEqual([method for method, _, _ in calls if method == "PUT"], [])
+        self.assertEqual(
+            sorted(str(item["name"]) for item in attached),
+            ["deployed", "type/platform"],
+        )
+
+        # The guard is specific to that demotion, not to touching a deployed
+        # Issue at all: re-asserting deployed still resolves as a no-op.
+        repeat = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.set",
+            number=115, lifecycle="deployed",
+        )
+        self.assertEqual(repeat["result"], "no-op")
+
+    def test_issue_label_set_is_idempotent(self) -> None:
+        """AC-5: already-there is a no-op with no PUT, and repeats are identical."""
+        repository = self._provisioned_labels()
+        by_name = {str(item["name"]): item for item in repository}
+        attached = [by_name["type/docs"], by_name["completed"]]
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, attached, calls)
+
+        first = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.set",
+            number=115, lifecycle="completed",
+        )
+        self.assertEqual(first["result"], "no-op")
+        self.assertEqual(first["before"], first["after"])
+        self.assertEqual([method for method, _, _ in calls if method == "PUT"], [])
+
+        second = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.set",
+            number=115, lifecycle="completed",
+        )
+        self.assertEqual(first, second)
+
+        # A second lifecycle label on the same Issue is not a no-op even when
+        # the target is already among them: the point of the operation is that
+        # the dimension ends up holding exactly one value.
+        attached.append(by_name["pr-open"])
+        calls.clear()
+        converge = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.set",
+            number=115, lifecycle="completed",
+        )
+        self.assertEqual(converge["result"], "updated")
+        self.assertEqual(
+            sorted(str(item["name"]) for item in attached), ["completed", "type/docs"]
+        )
+        self.assertEqual(len([m for m, _, _ in calls if m == "PUT"]), 1)
+
     def test_issue_create_update_comment_and_read_use_fixed_typed_routes(self) -> None:
         calls = []
 

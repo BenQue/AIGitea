@@ -684,6 +684,32 @@ class HostAccessBroker:
 
         current = self._issue_labels(repo_api, token, number)
         before = sorted(str(item["name"]) for item in current)
+        attached_states = {str(item["name"]) for item in current if item["name"] in states}
+
+        # completed and deployed are the two terminal states and deployed is the
+        # stronger one. Demoting a shipped change back to completed is a claim
+        # about what actually happened to it, so it stays a human decision and
+        # is not reachable through the tool that walks merged Issues.
+        if lifecycle == "completed" and "deployed" in attached_states:
+            raise BrokerError(
+                "REQUEST_DENIED",
+                "Issue is already deployed; downgrading it to completed is a human decision",
+            )
+
+        # Already exactly right: no PUT at all, so a repeated run cannot churn
+        # the Issue's label history or its notification stream. The comparison
+        # is against the whole lifecycle dimension, not just membership — an
+        # Issue carrying two lifecycle labels still needs the write that leaves
+        # it holding one.
+        if attached_states == {lifecycle}:
+            return {
+                "issue": number,
+                "before": before,
+                "after": before,
+                "result": "no-op",
+                "status": "PASS",
+            }
+
         # Everything outside the lifecycle dimension is carried across by id.
         # This is a replacement of one dimension, not an assignment of a label
         # set: there is no way to ask this operation to drop type/, complexity/,
