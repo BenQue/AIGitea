@@ -15,7 +15,7 @@ risk_flags:
 depends_on: []
 status: approved
 branch: change/115-issue-labels-completed
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/119
 created: 2026-08-15
 updated: 2026-08-15
 ---
