@@ -13,12 +13,12 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 9 and
-  .operation_count == 22 and
+  .operation_count == 24 and
   .merge_operation_count == 0
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 22) and
+  ([.operations[].name] | length == 24) and
   all(.operations[];
     (.name | contains("merge") | not) and
     (.name | contains("shell") | not) and
@@ -38,6 +38,10 @@ jq -e '
   ([.operations[] | select(.name == "git.push.change")][0].arguments == ["branch"]) and
   ([.operations[] | select(.name == "host.access.audit")][0].arguments == []) and
   ([.operations[] | select(.name == "host.onboarding.check")][0].arguments == []) and
+  ([.operations[] | select(.name == "gitea.labels.read")][0].arguments == []) and
+  ([.operations[] | select(.name == "gitea.labels.provision")][0].arguments == []) and
+  ([.operations[].name] | any(test("^gitea\\.labels\\.")) ) and
+  ([.operations[].name] | any(contains("delete")) | not) and
   ([.projects[] | select(.project_id == "newemaint")][0].git_remote_name == "gitea") and
   ([.projects[] | select(.project_id == "rsdesign-new")][0].git_remote_name == "gitea") and
   ([.projects[] | select(.project_id == "sfm-digital-board")][0].git_remote_name == "gitea") and
@@ -62,6 +66,18 @@ set -e
 test "$denied_status" = 20
 grep -Fq 'BLOCKED_EXTERNAL' <<<"$denied_output"
 grep -Fq 'REQUEST_DENIED' <<<"$denied_output"
+
+# Label deletion is unreachable by construction (#108 AC-7): the provisioning
+# operations exist, the delete counterpart is not allowlisted, and asking for it
+# is denied rather than silently ignored.
+set +e
+labels_delete_output="$("$ROOT/codex/tools/host-access-broker.sh" \
+  --project hsdb --operation gitea.labels.delete 2>&1)"
+labels_delete_status=$?
+set -e
+test "$labels_delete_status" = 20
+grep -Fq 'BLOCKED_EXTERNAL' <<<"$labels_delete_output"
+grep -Fq 'REQUEST_DENIED' <<<"$labels_delete_output"
 
 set +e
 url_output="$("$ROOT/codex/tools/host-access-broker.sh" \

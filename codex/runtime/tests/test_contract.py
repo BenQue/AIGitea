@@ -1,9 +1,23 @@
+import json
 from pathlib import Path
 import subprocess
 import tempfile
 import unittest
 
-from aisoft_loop.contract import ContractError, load_contract, resolve_documents
+from aisoft_loop.contract import (
+    COMPLEXITY_LABELS,
+    LIFECYCLE_LABELS,
+    TRIAGE_LABELS,
+    TYPE_LABELS,
+    ContractError,
+    load_contract,
+    resolve_documents,
+)
+
+
+LABEL_MANIFEST = (
+    Path(__file__).parents[2] / "config" / "gitea-labels.json"
+)
 
 
 SUMMARY = """---
@@ -97,6 +111,50 @@ updated: 2026-08-08
 
 Bounded change.
 """
+
+
+class LabelTaxonomyParityTests(unittest.TestCase):
+    """The manifest and the runtime must describe one closed taxonomy.
+
+    The manifest is what gets provisioned into a repository; these frozensets
+    are what the Loop and the label projector accept. When they disagree, a
+    label exists in Gitea, an author applies it, and the Loop then refuses the
+    Issue for having no type label at all — a failure whose message points
+    nowhere near the manifest that caused it (#108).
+    """
+
+    def canonical(self) -> set[str]:
+        manifest = json.loads(LABEL_MANIFEST.read_text(encoding="utf-8"))
+        return {entry["name"] for entry in manifest["canonical"]}
+
+    def test_type_labels_match_the_manifest(self) -> None:
+        canonical = self.canonical()
+        self.assertEqual(
+            TYPE_LABELS,
+            {name for name in canonical if name.startswith("type/")},
+        )
+
+    def test_every_managed_dimension_matches_the_manifest(self) -> None:
+        canonical = self.canonical()
+        self.assertEqual(
+            COMPLEXITY_LABELS,
+            {name for name in canonical if name.startswith("complexity/")},
+        )
+        self.assertEqual(
+            TRIAGE_LABELS,
+            {name for name in canonical if name.startswith("triage/")},
+        )
+        self.assertEqual(
+            LIFECYCLE_LABELS,
+            {name for name in canonical if "/" not in name},
+        )
+
+    def test_retired_values_are_not_accepted_by_the_runtime(self) -> None:
+        manifest = json.loads(LABEL_MANIFEST.read_text(encoding="utf-8"))
+        retired = {entry["name"] for entry in manifest["retired"]}
+        self.assertTrue(retired, "the retired declaration is the point of this test")
+        accepted = TYPE_LABELS | COMPLEXITY_LABELS | LIFECYCLE_LABELS | TRIAGE_LABELS
+        self.assertEqual(retired & accepted, set())
 
 
 class ContractTests(unittest.TestCase):

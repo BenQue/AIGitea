@@ -10,7 +10,7 @@ from typing import Mapping, Optional
 
 from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
 
-from .classification import Classification, ClassificationError
+from .classification import CHANGE_TYPES, Classification, ClassificationError
 
 
 DOCUMENT_ROLES = ("summary", "spec", "plan", "verification")
@@ -26,17 +26,13 @@ NEW_DOCUMENT_RE = re.compile(
 )
 
 
-TYPE_LABELS = frozenset(
-    {
-        "type/bugfix",
-        "type/feature",
-        "type/docs",
-        "type/test",
-        "type/refactor",
-        "type/maintenance",
-        "type/platform",
-    }
-)
+# The executable half of the closed taxonomy, derived from the analyzer's
+# CHANGE_TYPES so the two can never be edited apart. A type label that is
+# canonical in the manifest but missing here makes the Loop refuse the Issue
+# with "must have exactly one type label", and makes the label projector reject
+# it as unknown — a failure whose message points nowhere near its cause.
+# test_contract.py pins this set to codex/config/gitea-labels.json (#108).
+TYPE_LABELS = frozenset(f"type/{name}" for name in CHANGE_TYPES)
 COMPLEXITY_LABELS = frozenset({"complexity/small", "complexity/complex"})
 LIFECYCLE_LABELS = frozenset(
     {

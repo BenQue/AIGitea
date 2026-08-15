@@ -27,6 +27,18 @@ else
   exit 1
 fi
 
+# Shared canonical label manifest access (#108), same dual-path convention.
+if [[ -f "$TOOL_DIR/gitea-label-manifest.sh" ]]; then
+  # shellcheck disable=SC1090,SC1091
+  source "$TOOL_DIR/gitea-label-manifest.sh"
+elif [[ -f "$TOOL_DIR/../agent/gitea-label-manifest.sh" ]]; then
+  # shellcheck disable=SC1090,SC1091
+  source "$TOOL_DIR/../agent/gitea-label-manifest.sh"
+else
+  echo 'shared gitea label manifest library is unavailable' >&2
+  exit 1
+fi
+
 repo=''
 kind=software
 remote=false
@@ -230,14 +242,100 @@ api_get() {
   printf '%s' "$http_status"
 }
 
+# Issue numbers that still carry a label, as "#3,#12" (possibly with a trailing
+# "…" when the safety bound truncates). Returns non-zero when the list could not
+# be read; the caller reports that rather than silently claiming zero Issues,
+# because "nothing references this label" is the answer that would authorize
+# deleting it by hand.
+issue_numbers_for_label() {
+  local name="$1" encoded page=1 http_status page_count
+  local issues_page="$tmp_dir/issues-page.json"
+  local issues_all="$tmp_dir/issue-numbers"
+  local truncated=false
+  encoded="$(jq -rn --arg name "$name" '$name | @uri')"
+  : >"$issues_all"
+
+  while :; do
+    if ! http_status="$(
+      api_get "$API/issues?state=all&type=issues&labels=$encoded&limit=50&page=$page" \
+        "$issues_page"
+    )"; then
+      return 1
+    fi
+    [[ "$http_status" == 200 ]] || return 1
+    if ! jq -e 'type == "array" and all(.[]; type == "object" and
+      (.number | type == "number"))' "$issues_page" >/dev/null 2>&1; then
+      return 1
+    fi
+    jq -r '.[].number' "$issues_page" >>"$issues_all"
+    page_count="$(jq 'length' "$issues_page")"
+    ((page_count < 50)) && break
+    page=$((page + 1))
+    if ((page > 20)); then
+      truncated=true
+      break
+    fi
+  done
+
+  LC_ALL=C sort -n -u "$issues_all" |
+    awk -v truncated="$truncated" '
+      { printf "%s#%s", (NR > 1 ? "," : ""), $0 }
+      END {
+        if (truncated == "true") printf "%s…", (NR > 0 ? "," : "")
+        if (NR > 0 || truncated == "true") printf "\n"
+      }
+    '
+}
+
+# "type/legacy(#3,#12)" — a GAP the reader can act on without a second query.
+label_with_issues() {
+  local name="$1" numbers
+  if ! numbers="$(issue_numbers_for_label "$name")"; then
+    printf '%s(Issue 清单读取失败)' "$name"
+    return
+  fi
+  if [[ -z "$numbers" ]]; then
+    printf '%s(无 Issue 引用)' "$name"
+    return
+  fi
+  printf '%s(%s)' "$name" "$numbers"
+}
+
+append_csv() {
+  local accumulated="$1" entry="$2"
+  if [[ -n "$accumulated" ]]; then
+    printf '%s,%s' "$accumulated" "$entry"
+  else
+    printf '%s' "$entry"
+  fi
+}
+
 check_remote_labels() {
-  local page=1 http_status page_count name drift_names conflict_names
+  local page=1 http_status page_count name drift_names prefix retired_name
   local labels_all="$tmp_dir/labels-all.json"
   local labels_page="$tmp_dir/labels-page.json"
   local labels_next="$tmp_dir/labels-next.json"
-  local unmanaged="$tmp_dir/unmanaged-labels"
-  local problems=''
+  local extra="$tmp_dir/extra-labels"
+  local problems='' conflict_entries='' retired_entries='' undeclared_entries=''
+  local matched
+  local retired_names=() declared_prefixes=()
   printf '[]\n' >"$labels_all"
+
+  # Judge against a manifest that has been proven well-formed. A manifest whose
+  # structure is unverified could turn an empty canonical set into a
+  # confidently green project.
+  if ! aisoft_label_manifest_validate "$LABEL_MANIFEST" 2>/dev/null; then
+    gap labels-readback 'canonical label manifest 结构无效'
+    return
+  fi
+  while IFS= read -r retired_name; do
+    [[ -n "$retired_name" ]] || continue
+    retired_names+=("$retired_name")
+  done < <(aisoft_label_manifest_retired "$LABEL_MANIFEST")
+  while IFS= read -r prefix; do
+    [[ -n "$prefix" ]] || continue
+    declared_prefixes+=("$prefix")
+  done < <(aisoft_label_manifest_prefixes "$LABEL_MANIFEST")
 
   while :; do
     if ! http_status="$(api_get "$API/labels?limit=50&page=$page" "$labels_page")"; then
@@ -266,45 +364,78 @@ check_remote_labels() {
   done
 
   drift_names="$(
-    jq -r --slurpfile actual "$labels_all" '
-      .[] as $expected |
-      select(([$actual[0][] |
-        select(.name == $expected.name and .color == $expected.color and
-          .description == $expected.description)] | length) != 1) |
-      $expected.name
-    ' "$LABEL_MANIFEST" | LC_ALL=C sort | paste -sd, -
+    jq -r --slurpfile actual "$labels_all" \
+      "$AISOFT_LABEL_JQ_NORMALIZE"'
+        [$actual[0][] | aisoft_label_norm] as $live |
+        .canonical[] | aisoft_label_norm as $want |
+        select(($live | any(. == $want)) | not) |
+        $want.name
+      ' "$LABEL_MANIFEST" | LC_ALL=C sort | paste -sd, -
   )"
   if [[ -n "$drift_names" ]]; then
     problems="缺失或漂移: $drift_names"
   fi
 
-  jq -r --slurpfile canonical "$LABEL_MANIFEST" '
-    [$canonical[0][].name] as $managed |
+  jq -r --slurpfile manifest "$LABEL_MANIFEST" '
+    [$manifest[0].canonical[].name] as $canonical |
     .[] | .name as $name |
-    select(($managed | index($name)) == null) |
+    select(($canonical | index($name)) == null) |
     $name
-  ' "$labels_all" | LC_ALL=C sort >"$unmanaged"
+  ' "$labels_all" | LC_ALL=C sort -u >"$extra"
 
-  conflict_names=''
+  # Every remote label outside canonical is judged against what the manifest
+  # declares, not against a hard-coded allow list: retired values and managed
+  # namespaces are platform-owned closed sets and stay GAPs, declared extension
+  # prefixes are legitimate project dimensions, and anything else is undeclared
+  # — which is what catches a typo such as aera/web that a prefix check alone
+  # would wave through.
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
-    case "$name" in
-      type/*|complexity/*|triage/*)
-        if [[ -n "$conflict_names" ]]; then
-          conflict_names="$conflict_names,$name"
-        else
-          conflict_names="$name"
+
+    matched=false
+    if ((${#retired_names[@]} > 0)); then
+      for retired_name in "${retired_names[@]}"; do
+        if [[ "$name" == "$retired_name" ]]; then
+          matched=true
+          break
         fi
-        ;;
-      *) printf 'INFO: labels-readback — 非受管标签 %s\n' "$name" ;;
-    esac
-  done <"$unmanaged"
-  if [[ -n "$conflict_names" ]]; then
-    if [[ -n "$problems" ]]; then
-      problems="$problems; 受管命名空间冲突: $conflict_names"
-    else
-      problems="受管命名空间冲突: $conflict_names"
+      done
     fi
+    if [[ "$matched" == true ]]; then
+      retired_entries="$(append_csv "$retired_entries" "$(label_with_issues "$name")")"
+      continue
+    fi
+
+    if aisoft_label_is_managed_namespace "$name"; then
+      conflict_entries="$(append_csv "$conflict_entries" "$(label_with_issues "$name")")"
+      continue
+    fi
+
+    matched=false
+    if ((${#declared_prefixes[@]} > 0)); then
+      for prefix in "${declared_prefixes[@]}"; do
+        if [[ "$name" == "$prefix"?* ]]; then
+          matched=true
+          break
+        fi
+      done
+    fi
+    if [[ "$matched" == true ]]; then
+      printf 'INFO: labels-readback — 声明扩展标签 %s\n' "$name"
+      continue
+    fi
+
+    undeclared_entries="$(append_csv "$undeclared_entries" "$(label_with_issues "$name")")"
+  done <"$extra"
+
+  if [[ -n "$conflict_entries" ]]; then
+    problems="${problems:+$problems; }受管命名空间冲突: $conflict_entries"
+  fi
+  if [[ -n "$retired_entries" ]]; then
+    problems="${problems:+$problems; }退役取值仍在用: $retired_entries"
+  fi
+  if [[ -n "$undeclared_entries" ]]; then
+    problems="${problems:+$problems; }未声明标签: $undeclared_entries"
   fi
 
   if [[ -n "$problems" ]]; then

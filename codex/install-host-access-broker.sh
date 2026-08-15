@@ -49,6 +49,8 @@ install_versioned "$ROOT/codex/config/host-access-broker.json" \
   "$SHARE_ROOT/host-access-broker.json" 0644
 install_versioned "$ROOT/codex/config/gitea-governance.json" \
   "$SHARE_ROOT/gitea-governance.json" 0644
+install_versioned "$ROOT/codex/config/gitea-labels.json" \
+  "$SHARE_ROOT/gitea-labels.json" 0644
 install_versioned "$ROOT/codex/tools/host-access-broker.sh" \
   "$LIBEXEC_ROOT/host-access-broker" 0755
 install_versioned "$ROOT/codex/tools/git-credential-aisoft-host.sh" \

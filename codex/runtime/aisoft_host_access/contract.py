@@ -171,6 +171,12 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "gitea.pull.read": ("project-agent", False, ("number",)),
     "gitea.pull.update": ("project-agent", True, ("number", "issue", "title", "body")),
     "gitea.commit.status.read": ("project-agent", False, ("sha",)),
+    # Repository-level label definitions (#108), distinct from the per-Issue
+    # label attachment surface. Deliberately no delete counterpart: retiring a
+    # label is a human migration decision, and a typed delete would make it
+    # silently automatable.
+    "gitea.labels.read": ("project-agent", False, ()),
+    "gitea.labels.provision": ("project-agent", True, ()),
     "gitea.protection.read": ("manager-audit", False, ()),
     "host.access.audit": ("manager-audit", False, ()),
     "host.onboarding.check": ("manager-audit", False, ()),

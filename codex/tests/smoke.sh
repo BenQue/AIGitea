@@ -46,6 +46,8 @@ fi
 
 bash -n "$ROOT/codex/tools/sync-gitea-labels.sh"
 bash -n "$ROOT/codex/tests/test-sync-gitea-labels.sh"
+bash -n "$ROOT/codex/agent/gitea-label-manifest.sh"
+bash -n "$ROOT/codex/tests/test-gitea-label-manifest.sh"
 bash -n "$ROOT/codex/tools/aisoft-project-check.sh"
 bash -n "$ROOT/codex/tests/test-project-check.sh"
 for script in \
@@ -101,6 +103,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
     "$ROOT/codex/tools/aisoft-project-check.sh" \
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
+    "$ROOT/codex/tests/test-gitea-label-manifest.sh" \
     "$ROOT/codex/tests/test-project-check.sh" \
     "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
     "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
@@ -132,6 +135,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-architecture-install.sh"
 fi
 bash "$ROOT/codex/tests/test-architecture-install.sh"
+bash "$ROOT/codex/tests/test-gitea-label-manifest.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 bash "$ROOT/codex/tests/test-project-check.sh"
 bash "$ROOT/codex/tests/test-agent-runtime.sh"
@@ -232,9 +236,10 @@ for reference in newemaint/target-candidate windows sqlite; do
 done
 
 jq -e '
-  length == 24 and
-  (map(.name) | unique | length == 24) and
-  (map(.name) | sort) == [
+  .schema_version == 2 and
+  (.canonical | length) == 27 and
+  ([.canonical[].name] | unique | length == 27) and
+  ([.canonical[].name] | sort) == [
     "approved",
     "awaiting-triage",
     "completed",
@@ -253,14 +258,22 @@ jq -e '
     "triage/ready-for-human",
     "triage/wontfix",
     "type/bugfix",
+    "type/data",
     "type/docs",
     "type/feature",
     "type/maintenance",
     "type/platform",
     "type/refactor",
+    "type/reliability",
+    "type/security",
     "type/test"
   ] and
-  all(.[];
+  ([.project_extensions.allowed_prefixes[].prefix] | sort) == [
+    "area/",
+    "priority/"
+  ] and
+  ([.retired[].name] | sort) == ["complexity/standard"] and
+  all(.canonical[];
     (.name | length > 0) and
     (.description | type == "string" and length > 0) and
     (.color | test("^[0-9a-fA-F]{6}$"))
@@ -304,6 +317,13 @@ grep -Fq 'ensure-gitea-collaborator.sh' \
   "$ROOT/skill-for-codex/references/onboarding-runbook.md"
 grep -Fq 'gitea-governance.json' \
   "$ROOT/skill-for-codex/references/onboarding-runbook.md"
+grep -Fq 'gitea.labels.provision' \
+  "$ROOT/skill-for-codex/references/onboarding-runbook.md"
+if rg -n '建七个类型标签|建两个互斥的复杂度标签|建八个标签|建七个 Matt triage 标签' \
+  "$ROOT/skill-for-codex/references/onboarding-runbook.md"; then
+  echo 'onboarding runbook §5 仍保留手工建标签散文步骤（#108 AC-6）' >&2
+  exit 1
+fi
 grep -Fq 'retire-shared-bot' \
   "$ROOT/codex/skills/gitea-platform-ops/SKILL.md"
 grep -Fq 'BLOCKED_EXTERNAL' \

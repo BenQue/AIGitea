@@ -58,6 +58,12 @@ class GovernedHostRunner:
             "--comment", comment,
         )
 
+    def labels_read(self) -> Mapping[str, object]:
+        return self._call("gitea.labels.read")
+
+    def labels_provision(self) -> Mapping[str, object]:
+        return self._call("gitea.labels.provision")
+
     def push_change(self, issue: int) -> Mapping[str, object]:
         number = _positive_number(issue, "Issue")
         return self._call("git.push.change", "--branch", f"change/{number}")

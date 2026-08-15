@@ -27,7 +27,7 @@
 | 1 | AGENTS.md 常驻指针前两节 + CLAUDE.md 一行指针 | `templates/project/`；runbook §2 | `pointer-sections` |
 | 2 | 语义 change 模板四件套在位 | `templates/docs/changes/_template/`；runbook §2 | `change-templates` |
 | 3 | Matt 编排三件套已初始化 | `templates/docs/agents/`；runbook §2 | 人工核对 |
-| 4 | 24 canonical 标签读回一致、无受管命名空间冲突标签 | `codex/config/gitea-labels.json`；runbook §5 | `labels-readback`（`--remote`） |
+| 4 | canonical 标签读回一致；受管命名空间无冲突取值、无仍在用的 retired 取值；其余标签须落在 manifest 声明的扩展前缀内 | `codex/config/gitea-labels.json`（`schema_version: 2`）；runbook §5 | `labels-readback`（`--remote`） |
 | 5 | required CI context 与治理清单一致 | `codex/config/gitea-governance.json`；runbook §5/§8 | `ci-context`（`--remote`） |
 | 6 | `.aisoft/architecture.json` 声明 + lock 有效 | runbook §9（Architecture declaration onboarding）；`architecture/bin/aisoft-architecture` | `architecture-lock` |
 | 7 | 交付形态（delivery profile）已显式声明 | runbook §4；目标仓 AGENTS.md 项目事实 | `delivery-profile` |
@@ -36,7 +36,12 @@
 ## 边界与工具分工
 
 - 检查器只读、确定性；缺口修复始终走目标仓 Issue/小 PR，停在人工合并——本入口
-  不授权合并、部署、改 live 标签定义或批量改写。
+  不授权合并、部署或批量改写。
+- 例外只有标签一项：第 4 行的缺失/漂移由 broker `gitea.labels.provision` 幂等对齐
+  （runbook §5），因为它是把仓库收敛到已合并 manifest，不产生新合同。**修改 manifest
+  本身**——canonical 取值、`project_extensions.allowed_prefixes`、`retired`——仍须走
+  平台 Issue/PR；受管命名空间冲突与退役取值在用同样不由本入口处置，provision 只报告，
+  删除标签不在任何 typed 操作内。
 - `aisoft-project-check` 查仓库内容对齐；`gitea-governance.sh check` 查权限/保护
   校准；broker `host.onboarding.check` 查 host 接入——三者各管一段，不互相替代。
 - 纯文档/规范仓库用 `--kind docs`（architecture 与 delivery 两项按声明 SKIP），

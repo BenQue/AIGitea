@@ -63,6 +63,32 @@ class ClassificationTests(unittest.TestCase):
             )
             self.assertEqual(parsed.route().effective_complexity, "complex")
 
+    def test_security_and_data_are_forced_complex_without_risk_flags(self) -> None:
+        # AGENTS.md forces complex for 认证/权限/安全 and schema/数据迁移. The
+        # matching risk_flags do too, but they are analyzer input that can be
+        # omitted; the type label carries the same claim and cannot be. The
+        # fixture deliberately declares no risk_flags and a restore effect.
+        for change_type in ("security", "data"):
+            with self.subTest(change_type=change_type):
+                parsed = Classification.from_yaml(
+                    classification_text(change_type=change_type)
+                )
+                route = parsed.route()
+                self.assertEqual(route.effective_complexity, "complex")
+                self.assertIn(f"type/{change_type}", route.override_reason or "")
+
+    def test_reliability_routes_on_contract_effect(self) -> None:
+        # An availability fix that restores existing behavior is a small
+        # candidate; the same type with a changed contract is not.
+        restore = Classification.from_yaml(
+            classification_text(change_type="reliability")
+        )
+        self.assertEqual(restore.route().effective_complexity, "small")
+        changed = Classification.from_yaml(
+            classification_text(change_type="reliability", contract_effect="change")
+        )
+        self.assertEqual(changed.route().effective_complexity, "complex")
+
     def test_contract_add_or_change_is_forced_complex(self) -> None:
         for effect in ("add", "change"):
             parsed = Classification.from_yaml(
