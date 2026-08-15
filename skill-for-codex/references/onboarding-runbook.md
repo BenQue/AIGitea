@@ -55,7 +55,10 @@ candidate 允许项目在 manifest 中声明 strict `git_remote_name`；未声�
    `credential.useHttpPath=true`；不写 token/path，不修改 remote。
 4. `host.onboarding.check` 只读聚合 access audit、canonical checkout、manifest remote fetch/push URL 和
    exact helper binding；任一缺失或 drift 均 fail closed。
-5. 最后运行本项目 fresh-session typed Issue/change/PR/required-CI canary。一个项目的 PASS 不授权另一个
+5. `gitea.labels.provision` 以 project-agent 身份把仓库标签对齐到 canonical manifest（§5）。幂等，
+   可在平台 taxonomy 演进后反复执行；无删除路径，退役取值只报告。必须早于下一步的 canary——
+   canary 会创建 Issue 并由 controller 写入生命周期标签，标签不在位则该验收无从执行。
+6. 最后运行本项目 fresh-session typed Issue/change/PR/required-CI canary。一个项目的 PASS 不授权另一个
    项目；每个项目使用独立 adoption Issue 与 evidence。
 
 平台 #73 PR 人工合并前不得创建 NewEmaint adoption Issue；合并后才单独完成 NewEmaint binding/live
@@ -238,10 +241,24 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 - 先通过 §1.1 manifest/project-agent gate；platform manager 为 exact-repo Admin，项目 agent 为
   exact-repo Write，二者均不给 merge。§1.2 `ci-bot` 只服务尚未迁移的已有 profile。
 - 保护 `main`，禁止直接 push，要求准确的 `CI / test (pull_request)` context。
-- 建七个类型标签：`type/bugfix`、`type/feature`、`type/docs`、`type/test`、`type/refactor`、`type/maintenance`、`type/platform`。它们是 Issue 作者可提供、AI 按证据校验的变更类型输入。
-- 建两个互斥的复杂度标签：`complexity/small`、`complexity/complex`。它们是 AI 判级后的输出；无法安全判级时两者都不添加。
-- 建八个标签：`needs-analysis`、`awaiting-triage`、`spec-drafting`、`spec-review`、`approved`、`pr-open`、`completed`、`deployed`。
-- 建七个 Matt triage 标签：`triage/bug`、`triage/enhancement`（category）与 `triage/needs-triage`、`triage/needs-info`、`triage/ready-for-agent`、`triage/ready-for-human`、`triage/wontfix`（state）；canonical manifest 共 24 个。`triage/ready-for-agent` 不等于平台 `approved`。
+- 标签由平台 provision，不手工创建（§1.1 步骤 5，与 `host.access.audit` / `mac.git.bind` /
+  `host.onboarding.check` 同级）：
+
+  ```bash
+  /usr/local/libexec/aisoft/host-access-broker --project <project-id> --operation gitea.labels.provision
+  ```
+
+  幂等：缺失则创建，`color`/`description` 漂移则更新，`retired` 取值只报告不创建，任何标签都不
+  删除。已对齐时为 no-op，可在平台 taxonomy 演进后反复执行——接入与对齐是同一条命令。
+  只读核对用 `--operation gitea.labels.read`，或 `aisoft-project-check.sh --remote` 的
+  `labels-readback`（缺失/漂移、受管命名空间冲突、退役取值在用均为 `GAP`，并附所属 Issue 清单）。
+- canonical 取值集合的唯一事实源是 `codex/config/gitea-labels.json`（`schema_version: 2`）的
+  `canonical`；本文不复制枚举，复制即注定漂移。语义分工见下段四个维度。
+- `type/*`、`complexity/*`、`triage/*` 是平台拥有的封闭集合，项目不得新增取值；项目本地维度须先在
+  manifest 的 `project_extensions.allowed_prefixes` 声明前缀（当前为 `area/`、`priority/`），取值由
+  项目自定、平台不枚举。未声明前缀的标签在 `labels-readback` 中报 `GAP`，这正是拼写错误
+  （如 `aera/web`）不会被当成合法项目维度放行的原因。
+- `triage/ready-for-agent` 不等于平台 `approved`。
 - 新 Change 使用单一 `change/N-short-description` 分支和最终 PR `Closes #N`（编号仍是唯一主键，slug 只用于人类识别）；已存在于 remote/history 的 `change/N` 仅作证据驱动的维护兼容。
 
 四个维度正交：`type/*` 是变更类型输入，`complexity/*` 是 AI 有效复杂度输出，八个无前缀标签是生命周期状态，`triage/*` 是 Matt 编排状态。`needs-analysis` 触发 analyzer；`approved` 启动 Loop；`spec-review` 只是可选协作状态；`pr-open` 等最终 CI/review；`completed` 表示最终 PR 已合并且明确无需部署；`deployed` 表示确定性部署和验证完成。两个交付终态互斥。

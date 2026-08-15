@@ -36,7 +36,12 @@
 ## 边界与工具分工
 
 - 检查器只读、确定性；缺口修复始终走目标仓 Issue/小 PR，停在人工合并——本入口
-  不授权合并、部署、改 live 标签定义或批量改写。
+  不授权合并、部署或批量改写。
+- 例外只有标签一项：第 4 行的缺失/漂移由 broker `gitea.labels.provision` 幂等对齐
+  （runbook §5），因为它是把仓库收敛到已合并 manifest，不产生新合同。**修改 manifest
+  本身**——canonical 取值、`project_extensions.allowed_prefixes`、`retired`——仍须走
+  平台 Issue/PR；受管命名空间冲突与退役取值在用同样不由本入口处置，provision 只报告，
+  删除标签不在任何 typed 操作内。
 - `aisoft-project-check` 查仓库内容对齐；`gitea-governance.sh check` 查权限/保护
   校准；broker `host.onboarding.check` 查 host 接入——三者各管一段，不互相替代。
 - 纯文档/规范仓库用 `--kind docs`（architecture 与 delivery 两项按声明 SKIP），

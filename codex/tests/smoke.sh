@@ -317,6 +317,13 @@ grep -Fq 'ensure-gitea-collaborator.sh' \
   "$ROOT/skill-for-codex/references/onboarding-runbook.md"
 grep -Fq 'gitea-governance.json' \
   "$ROOT/skill-for-codex/references/onboarding-runbook.md"
+grep -Fq 'gitea.labels.provision' \
+  "$ROOT/skill-for-codex/references/onboarding-runbook.md"
+if rg -n '建七个类型标签|建两个互斥的复杂度标签|建八个标签|建七个 Matt triage 标签' \
+  "$ROOT/skill-for-codex/references/onboarding-runbook.md"; then
+  echo 'onboarding runbook §5 仍保留手工建标签散文步骤（#108 AC-6）' >&2
+  exit 1
+fi
 grep -Fq 'retire-shared-bot' \
   "$ROOT/codex/skills/gitea-platform-ops/SKILL.md"
 grep -Fq 'BLOCKED_EXTERNAL' \

@@ -30,7 +30,7 @@ updated: 2026-08-14
 | T02 | `sync-gitea-labels.sh` 适配新结构，实现 create/update/skip-retired 幂等 provision | T01 | completed |
 | T03 | broker 新增 `gitea.labels.read` 与 `gitea.labels.provision` 两个 typed 操作 | T01 | completed |
 | T04 | `aisoft-project-check.sh` 的 `labels-readback` 改为按声明校验，冲突与 retired 附所属 Issue 清单 | T01 | completed |
-| T05 | onboarding-runbook §5 散文步骤替换为确定性命令，并接入 `host.onboarding.check` 步骤序列 | T02, T03 | pending |
+| T05 | onboarding-runbook §5 散文步骤替换为确定性命令，并接入 `host.onboarding.check` 步骤序列 | T02, T03 | completed |
 | T06 | UQ-1 落地：按人拍板结果调整 canonical type 集合与判级证据描述 | T01 + 人决策 | pending |
 
 T02 / T03 / T04 在 T01 之后互不依赖，可并行。T06 独立于实现路径，只改 manifest 数据与
@@ -56,8 +56,19 @@ T02 / T03 / T04 在 T01 之后互不依赖，可并行。T06 独立于实现路�
   `codex/tests/test-project-check.sh`；
   `skill-for-codex/references/project-align.md`（checklist 第 4 行是本检查的人类可读描述，
   判定依据变了就必须同步，否则文档与工具互相矛盾）。
-- **T05**：`skill-for-codex/references/onboarding-runbook.md:225-247`；
-  若 `host.onboarding.check` 有步骤清单则同步。
+- **T05**：`skill-for-codex/references/onboarding-runbook.md` §1.1 的 typed 操作步骤序列
+  （provision 插为步骤 5，canary 顺延为 6）与 §5；`skill-for-codex/references/project-align.md`
+  的边界段落（标签缺口的修复路径是命令而非 PR，需与 §5 一致）；`codex/tests/smoke.sh`
+  新增「§5 无残留手工建标签散文」的确定性断言。
+
+  **不改 `host.onboarding.check` 的实现**：它是 manager-audit 身份的只读聚合，而
+  `gitea.labels.provision` / `gitea.labels.read` 走 project-agent。把标签读回并入该操作会让一个
+  manager-audit 检查依赖 project-agent token，是身份路由变更而非文档对齐，spec 未授权。
+  「同级」在 AC-6 中指步骤序列中的同级列出，不是聚合进同一个 typed 操作。
+
+  §5 不再复制 canonical 枚举与数量，改为指向 manifest：`24` 这个数字同时出现在
+  `README.md:137`、`01-基础设施-VM-Gitea-Runner.md:69`、`03-Issue-Spec-Plan与单闸门开发流程.md:146`，
+  属 T06 的 canonical 集合调整，本 ticket 不预判。
 - **T06**：`codex/config/gitea-labels.json` 的 `canonical` 数组、
   `skill-for-codex/references/onboarding-runbook.md:241`、判级证据描述所在文档。
 
