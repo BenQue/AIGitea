@@ -173,3 +173,20 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
 type、complexity 和非生命周期标签。最终 PR 已合并且明确无需部署时使用
 `completed`；需要部署的变更只有在确定性部署与验证成功后使用 `deployed`。两者互斥，
 都不授权合并；Gitea `Closed` 本身也不证明部署成功。
+
+### 谁推进 `completed`
+
+`deployed` 由应用部署链路在健康检查成功后回写（02 §9）。`completed` 没有对应的
+自动触发点：controller 的 lifecycle 写入全在 Development Loop 内，而 Loop 在创建
+最终 PR 时就结束了，没有任何组件处在能观察到「合并」的位置上。因此 `completed`
+由人在合并后显式运行 `codex/tools/mark-completed-issues.sh` 推进（#115）：
+
+```bash
+codex/tools/mark-completed-issues.sh --range 'origin/main~5..origin/main'
+```
+
+默认只输出逐 Issue 的判定计划、不做任何写入；确认计划无误后加 `--apply` 才经
+broker `gitea.issue.labels.set` 写入。是否该用 `completed` 的判定取自该 Issue 映射
+summary 的 `required_docs` 是否含 `verification`——含则说明该变更要部署，终态应是
+`deployed`，工具会跳过并给出理由，不接受人工传入的终态判断。已经是 `deployed` 的
+Issue 不会被降级为 `completed`：那是对「它到底发生了什么」的判断，必须由人显式做。

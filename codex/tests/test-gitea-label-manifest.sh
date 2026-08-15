@@ -46,6 +46,23 @@ retired="$(aisoft_label_manifest_retired "$MANIFEST" | LC_ALL=C sort | paste -sd
 [[ "$retired" == 'complexity/standard' ]] ||
   fail "unexpected retired labels: $retired"
 
+# The delivery lifecycle is the unprefixed dimension of the manifest (#115).
+lifecycle="$(aisoft_label_manifest_lifecycle "$MANIFEST" | LC_ALL=C sort | paste -sd, -)"
+[[ "$lifecycle" == 'approved,awaiting-triage,completed,deployed,needs-analysis,pr-open,spec-drafting,spec-review' ]] ||
+  fail "unexpected lifecycle labels: $lifecycle"
+
+# Derived, not transcribed: a new unprefixed canonical label joins the lifecycle
+# dimension, and a namespaced one never does. Without this case the reader could
+# be a hardcoded echo of today's eight names and still pass — which is the second
+# copy AC-7 exists to prevent.
+jq '.canonical += [
+      {"name":"archived","color":"cccccc","description":"unprefixed"},
+      {"name":"area/web","color":"cccccc","description":"namespaced"}
+    ]' "$MANIFEST" >"$TMP/extended.json"
+extended="$(aisoft_label_manifest_lifecycle "$TMP/extended.json" | LC_ALL=C sort | paste -sd, -)"
+[[ "$extended" == 'approved,archived,awaiting-triage,completed,deployed,needs-analysis,pr-open,spec-drafting,spec-review' ]] ||
+  fail "lifecycle must be derived from the manifest, got: $extended"
+
 # Managed namespaces are a closed set owned by the platform.
 for managed in type/security complexity/small triage/wontfix; do
   aisoft_label_is_managed_namespace "$managed" ||

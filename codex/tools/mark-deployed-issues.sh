@@ -20,6 +20,20 @@ else
   exit 0
 fi
 
+# Shared canonical label manifest access (#108), same dual-path convention. The
+# lifecycle names this tool strips are derived from the manifest rather than
+# transcribed here (#115 AC-7).
+if [ -f "$tool_dir/gitea-label-manifest.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  . "$tool_dir/gitea-label-manifest.sh"
+elif [ -f "$tool_dir/../agent/gitea-label-manifest.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  . "$tool_dir/../agent/gitea-label-manifest.sh"
+else
+  warn "shared gitea label manifest library is unavailable; deployment result is unchanged"
+  exit 0
+fi
+
 for name in GITEA_URL GITEA_OWNER GITEA_REPO; do
   if [ -z "${!name:-}" ]; then
     warn "$name is unavailable; deployment result is unchanged"
@@ -34,6 +48,38 @@ if [ "$token_rc" -ne 0 ]; then
 fi
 if ! command -v curl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
   warn "curl and jq are required; deployment result is unchanged"
+  exit 0
+fi
+
+# The lifecycle dimension is read from the canonical manifest, the same source
+# the provisioner and the Loop's contract use. A missing or malformed manifest
+# joins the other unavailable prerequisites above: warn and leave the already
+# successful deployment untouched. It must never fall back to a private copy of
+# the names — that copy drifting out of the manifest is the failure this reads
+# the manifest to avoid.
+if [ -f "$tool_dir/gitea-labels.json" ]; then
+  manifest="$tool_dir/gitea-labels.json"
+elif [ -f "$tool_dir/../config/gitea-labels.json" ]; then
+  manifest="$tool_dir/../config/gitea-labels.json"
+else
+  warn "label manifest is unavailable; deployment result is unchanged"
+  exit 0
+fi
+manifest_rc=0
+aisoft_label_manifest_validate "$manifest" || manifest_rc=$?
+if [ "$manifest_rc" -ne 0 ]; then
+  warn "label manifest is unusable; deployment result is unchanged"
+  exit 0
+fi
+lifecycle="$(
+  aisoft_label_manifest_lifecycle "$manifest" |
+    jq -Rsc 'split("\n") | map(select(length > 0))'
+)"
+# Without deployed in the derived set the projection below would add deployed
+# while leaving completed in place, putting both mutually exclusive terminal
+# states on one Issue. Refuse rather than write that.
+if ! printf '%s' "$lifecycle" | jq -e 'index("deployed")' >/dev/null 2>&1; then
+  warn "label manifest declares no deployed lifecycle state; deployment result is unchanged"
   exit 0
 fi
 
@@ -74,7 +120,6 @@ if [ -z "$deployed_id" ]; then
   exit 0
 fi
 
-lifecycle='["needs-analysis","awaiting-triage","spec-drafting","spec-review","approved","pr-open","completed","deployed"]'
 failed=0
 while IFS= read -r issue_number; do
   [ -n "$issue_number" ] || continue

@@ -111,6 +111,52 @@ missing_output="$(env -u GITEA_TOKEN \
 grep -Fq 'usable GITEA_TOKEN_FILE or GITEA_TOKEN is unavailable' \
   <<<"$missing_output"
 
+# Lifecycle names come from the shared manifest (#115 AC-7), so the manifest is
+# now a prerequisite. It must join the other missing-prerequisite cases — warn,
+# leave the successful deployment green, issue no PUT — rather than falling back
+# to a private copy of the eight names, which is exactly the second source of
+# truth this change removes.
+flat="$TMP/flat"
+mkdir -p "$flat"
+cp "$ROOT/codex/tools/mark-deployed-issues.sh" \
+  "$ROOT/codex/agent/gitea-token.sh" \
+  "$ROOT/codex/agent/gitea-label-manifest.sh" "$flat/"
+printf '%s\n' 'Closes #88' >"$TMP/message"
+
+puts_before="$(wc -l <"$TMP/puts.log" | tr -d ' ')"
+rc=0
+absent_output="$(bash "$flat/mark-deployed-issues.sh" 2>&1)" || rc=$?
+[ "$rc" -eq 0 ]
+grep -Fq 'label manifest is unavailable' <<<"$absent_output"
+grep -Fq 'deployment result is unchanged' <<<"$absent_output"
+[ "$(wc -l <"$TMP/puts.log" | tr -d ' ')" = "$puts_before" ]
+
+# A malformed manifest is refused rather than partially read: deriving the
+# lifecycle set from a half-valid manifest would strip the wrong labels.
+printf '%s\n' '{"schema_version": 1}' >"$flat/gitea-labels.json"
+rc=0
+invalid_output="$(bash "$flat/mark-deployed-issues.sh" 2>&1)" || rc=$?
+[ "$rc" -eq 0 ]
+grep -Fq 'label manifest is unusable' <<<"$invalid_output"
+[ "$(wc -l <"$TMP/puts.log" | tr -d ' ')" = "$puts_before" ]
+
+# A manifest that validates but declares no deployed state would make the tool
+# add deployed without stripping completed, leaving both mutually exclusive
+# terminal states on one Issue. Refuse instead of writing that.
+jq '(.canonical[] | select(.name == "deployed") | .name) = "area/deployed"' \
+  "$ROOT/codex/config/gitea-labels.json" >"$flat/gitea-labels.json"
+rc=0
+undeclared_output="$(bash "$flat/mark-deployed-issues.sh" 2>&1)" || rc=$?
+[ "$rc" -eq 0 ]
+grep -Fq 'declares no deployed lifecycle state' <<<"$undeclared_output"
+[ "$(wc -l <"$TMP/puts.log" | tr -d ' ')" = "$puts_before" ]
+
+# With the manifest beside it, the flat install layout marks deployed normally.
+cp "$ROOT/codex/config/gitea-labels.json" "$flat/gitea-labels.json"
+flat_output="$(bash "$flat/mark-deployed-issues.sh" 2>&1)"
+grep -Fq 'marked deployed: #88' <<<"$flat_output"
+grep -Fq '/issues/88/labels' "$TMP/puts.log"
+
 if grep -Fq "$FILE_TOKEN" "$TMP/argv.log" ||
   grep -Fq "$FILE_TOKEN" <<<"$file_output$perm_output"; then
   echo "file token leaked" >&2

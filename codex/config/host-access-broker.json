@@ -145,6 +145,23 @@
       "arguments": []
     },
     {
+      "name": "gitea.issue.labels.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "number"
+      ]
+    },
+    {
+      "name": "gitea.issue.labels.set",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "lifecycle"
+      ]
+    },
+    {
       "name": "gitea.protection.read",
       "identity_route": "manager-audit",
       "mutating": false,
