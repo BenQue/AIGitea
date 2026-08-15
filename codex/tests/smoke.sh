@@ -54,6 +54,7 @@ for script in \
   "$ROOT/codex/install-host-role.sh" \
   "$ROOT/codex/install-host-access-broker.sh" \
   "$ROOT/codex/tools/mark-deployed-issues.sh" \
+  "$ROOT/codex/tools/mark-completed-issues.sh" \
   "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tools/gitea-governance.sh" \
   "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
@@ -69,6 +70,7 @@ for script in \
   "$ROOT/codex/tests/test-gitea-token-lib.sh" \
   "$ROOT/codex/tests/test-gitea-token-consumers.sh" \
   "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
+  "$ROOT/codex/tests/test-mark-completed-issues.sh" \
   "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
   "$ROOT/codex/tests/test-sync-gitea-service-policy.sh" \
@@ -90,6 +92,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/install-host-access-broker.sh" \
     "$ROOT/codex/tools/sync-gitea-labels.sh" \
     "$ROOT/codex/tools/mark-deployed-issues.sh" \
+    "$ROOT/codex/tools/mark-completed-issues.sh" \
     "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tools/gitea-governance.sh" \
     "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
@@ -106,6 +109,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-gitea-label-manifest.sh" \
     "$ROOT/codex/tests/test-project-check.sh" \
     "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
+    "$ROOT/codex/tests/test-mark-completed-issues.sh" \
     "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
     "$ROOT/codex/tests/test-sync-gitea-service-policy.sh" \
@@ -140,6 +144,7 @@ bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 bash "$ROOT/codex/tests/test-project-check.sh"
 bash "$ROOT/codex/tests/test-agent-runtime.sh"
 bash "$ROOT/codex/tests/test-mark-deployed-issues.sh"
+bash "$ROOT/codex/tests/test-mark-completed-issues.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh"
 bash "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-service-policy.sh"
