@@ -23,11 +23,11 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: contract-drafting
+status: ready-for-review
 branch: change/108-label-provisioning
 pr_url:
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-08-15
 ---
 
 ## 问题/需求总结
@@ -69,6 +69,12 @@ manifest 任何历史版本（`6aa8e07` 16 项 → `badd2eb` 17 项 → `1cbe714
   冲突与退役取值在用时输出所属 Issue 清单。
 - `codex/runtime/aisoft_host_access/{contract,broker,runner}.py`：新增 `gitea.labels.read` 与
   `gitea.labels.provision` 两个 typed 操作。
+- `codex/runtime/aisoft_loop/{classification,contract}.py`：UQ-1 方案 A 落地——`CHANGE_TYPES`
+  扩为 10 个并成为唯一源（`TYPE_LABELS` 由其派生），`type/security` 与 `type/data` 加入
+  `FORCED_COMPLEX_TYPES`。不扩这两处，打了新 type 的 Issue 会被判级与 Loop 直接拒绝。
+- `README.md`、`01-基础设施-VM-Gitea-Runner.md`、`03-Issue-Spec-Plan与单闸门开发流程.md`：
+  标签数量表述由 17/24 更正为 20/27，并在 03 §4 补三个新 type 的判定证据与复杂度默认。
+  01 分册的历史复验证据行（16-label、Issue #19 扩为 17）保留不改。
 - `skill-for-codex/references/onboarding-runbook.md`：把散文步骤替换为确定性命令。
 - `skill-for-codex/references/project-align.md`：checklist 第 4 行改述 `labels-readback` 的
   新判定依据（canonical + 声明扩展前缀 + retired）。
@@ -143,9 +149,10 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- **未决（需人决策）**：`type/security`、`type/reliability`、`type/data` 是纳入 canonical
-  第 8–10 个 type，还是迁移到扩展维度。spec 给出建议方案与理由，进入 `approved` 前必须由
-  人拍板。
+- **已解（2026-08-15）**：`type/security`、`type/reliability`、`type/data` 采纳方案 A，成为
+  canonical 第 8–10 个 type。决策来源与落地范围见 spec UQ-1。落地后发现 type 集合另有三处
+  运行时副本（`classification.py` 的 `_enum` 与强制 complex 判定、`contract.py` 的
+  `TYPE_LABELS`），已收敛为从 `CHANGE_TYPES` 派生并加 manifest↔runtime parity 断言。
 - 已澄清（不再未决）：本 Issue 与 #115 的边界——#115 的
   `gitea.issue.labels.*` 是 Issue 级标签挂载（`/issues/{index}/labels`），本 Issue 需要的是
   仓库级标签定义 provision（`/repos/{owner}/{repo}/labels`），是两个不同的 Gitea API 面。

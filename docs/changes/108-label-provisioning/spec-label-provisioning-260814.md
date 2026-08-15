@@ -13,11 +13,11 @@ risk_flags:
   - cross-module
   - credential-handling
 depends_on: []
-status: contract-drafting
+status: ready-for-review
 branch: change/108-label-provisioning
 pr_url:
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-08-15
 ---
 
 # Spec：标签 provision 成为平台能力，canonical taxonomy 增加项目维度扩展点
@@ -46,26 +46,26 @@ provision 不是平台能力**。NewEMaint 的 12 个非 manifest 标签覆盖 3
 
 ## Acceptance criteria
 
-- [ ] **AC-1**：`codex/config/gitea-labels.json` 采用带 `schema_version` 的对象结构，声明
+- [x] **AC-1**：`codex/config/gitea-labels.json` 采用带 `schema_version` 的对象结构，声明
       `canonical`、`project_extensions.allowed_prefixes`、`retired` 三个字段；旧的裸数组
       结构被 fail-closed 拒绝并给出明确错误，不静默兼容。
-- [ ] **AC-2**：`sync-gitea-labels.sh` 对齐 manifest —— 缺失则创建，`color`/`description`
+- [x] **AC-2**：`sync-gitea-labels.sh` 对齐 manifest —— 缺失则创建，`color`/`description`
       漂移则更新，`retired` 项不创建。连续执行两次，第二次输出 `created=0 updated=0`
       且退出码 0（幂等 no-op）。
-- [ ] **AC-3**：新增 broker typed 操作 `gitea.labels.read`（project-agent、只读）与
+- [x] **AC-3**：新增 broker typed 操作 `gitea.labels.read`（project-agent、只读）与
       `gitea.labels.provision`（project-agent、mutation）。二者均无删除能力；请求删除类
       操作返回 `REQUEST_DENIED`。
-- [ ] **AC-4**：`aisoft-project-check.sh` 的 `labels-readback` 按声明判定：符合
+- [x] **AC-4**：`aisoft-project-check.sh` 的 `labels-readback` 按声明判定：符合
       `allowed_prefixes` 的标签为 PASS；不在 canonical 且不符合任何声明前缀的报 GAP
       （覆盖拼写错误场景，如 `aera/web`）。
-- [ ] **AC-5**：受管命名空间冲突（`type/*`、`complexity/*`、`triage/*` 中的非 canonical 值）
+- [x] **AC-5**：受管命名空间冲突（`type/*`、`complexity/*`、`triage/*` 中的非 canonical 值）
       与 `retired` 取值仍在用时，GAP 输出**附所属 Issue 编号清单**，而非仅标签名。
-- [ ] **AC-6**：`onboarding-runbook.md` §5 的四条散文替换为一条确定性命令，与
+- [x] **AC-6**：`onboarding-runbook.md` §5 的四条散文替换为一条确定性命令，与
       `host.access.audit` / `mac.git.bind` / `host.onboarding.check` 同级列出，并注明可重复
       执行。
-- [ ] **AC-7**：退役取值有明确迁移路径且不通过静默删除实现——工具只报告 `retired` 在用
+- [x] **AC-7**：退役取值有明确迁移路径且不通过静默删除实现——工具只报告 `retired` 在用
       及其 Issue 清单，删除标签本身不在任何 typed 操作内。
-- [ ] **AC-8**：`bash codex/tests/smoke.sh` 全绿。
+- [x] **AC-8**：`bash codex/tests/smoke.sh` 全绿。
 
 ## 接口、数据与兼容性影响
 
@@ -151,7 +151,18 @@ provision 不是平台能力**。NewEMaint 的 12 个非 manifest 标签覆盖 3
 
 > 进入 `approved` 前必须清空所有会改变实现方向的未决问题。
 
-### UQ-1（需人决策）：`type/security`、`type/reliability`、`type/data` 的归宿
+### UQ-1（已解，2026-08-15）：`type/security`、`type/reliability`、`type/data` 的归宿
+
+**决策：采纳方案 A**，三个 type 纳入 canonical，`type/*` 扩为 10 个。
+
+- 决策来源：用户 2026-08-15 指示「继续 T06，直到当前 issue #108 已被解决」。方案 B 会让本
+  Issue 重新阻塞于 #115（见下），与「解决 #108」互斥，故该指示在方案上只有一种自洽解读。
+- 落地范围（T01 + T06）：manifest `canonical` 27 项；`aisoft_loop.classification.CHANGE_TYPES`
+  与派生的 `contract.TYPE_LABELS` 同步扩为 10；`type/security` 与 `type/data` 加入
+  `FORCED_COMPLEX_TYPES`；判级证据描述见 `03-Issue-Spec-Plan与单闸门开发流程.md` §4。
+- 11 个已打这三个标签的 Issue 原地合法化，零迁移动作。
+
+以下为决策前的原始论证，保留作审计证据。
 
 `type/*` 是受管命名空间，AI 判级依赖它是**封闭集合**。两个方向互斥：
 

@@ -32,6 +32,27 @@ LEGACY_DOCUMENTS = (
     "03-verification.md",
 )
 ALLOWED_DOCS = frozenset(DOCUMENT_ROLES + LEGACY_DOCUMENTS)
+
+# The closed type taxonomy, without the label prefix. contract.TYPE_LABELS is
+# derived from this so the analyzer contract and the label projector can never
+# drift apart, and test_contract.py pins both to the canonical manifest (#108).
+CHANGE_TYPES = frozenset(
+    {
+        "bugfix",
+        "feature",
+        "docs",
+        "test",
+        "refactor",
+        "maintenance",
+        "platform",
+        "security",
+        "reliability",
+        "data",
+    }
+)
+# Types that mean "complex" by their own definition, independent of any
+# risk_flags the analyzer may or may not have emitted.
+FORCED_COMPLEX_TYPES = frozenset({"feature", "platform", "security", "data"})
 FORCED_COMPLEX_RISKS = frozenset(
     {
         "functional-change",
@@ -122,7 +143,7 @@ class Classification:
         _enum(
             "change_type",
             self.change_type,
-            {"bugfix", "feature", "docs", "test", "refactor", "maintenance", "platform"},
+            CHANGE_TYPES,
         )
         _enum("requested_complexity", self.requested_complexity, {"auto", "small", "complex"})
         _enum(
@@ -178,7 +199,15 @@ class Classification:
         forced_reasons: list[str] = []
         if self.requested_complexity == "complex":
             forced_reasons.append("explicit complexity/complex request")
-        if self.change_type in {"feature", "platform"}:
+        # security and data join feature/platform because AGENTS.md already
+        # forces complex for 认证/权限/安全 and schema/数据迁移, and those two
+        # types mean exactly that by definition. The equivalent risk_flags
+        # (security, schema-change, data-migration) also force complex, but a
+        # flag is analyzer input that can be omitted; the type label cannot be.
+        # reliability is deliberately absent: an availability fix is often a
+        # pure restore of existing behavior, so it routes on contract_effect
+        # like maintenance does.
+        if self.change_type in FORCED_COMPLEX_TYPES:
             forced_reasons.append(f"type/{self.change_type}")
         if self.contract_effect in {"add", "change"}:
             forced_reasons.append(f"contract_effect={self.contract_effect}")

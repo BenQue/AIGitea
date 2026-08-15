@@ -66,10 +66,13 @@ workflow、数据和引用。
 - 仓库 `admin/rsdesign-new`：Issue #35 live reconciliation 后为 private；默认分支 `main`；**分支保护**：
   - 禁止直接 push（对所有人生效，含 admin——一切走 PR）
   - 必须状态检查通过：context = `CI / test (pull_request)`
-- 当前 canonical manifest 共定义 24 个规范标签：平台三维 17 个（下列三个维度），加 Matt triage 维度 7 个 `triage/*`（category 2 个 + state 5 个，语义见 03 §4 与 `templates/docs/agents/triage-labels.md`）：
-  - 七个类型标签：`type/bugfix`、`type/feature`、`type/docs`、`type/test`、`type/refactor`、`type/maintenance`、`type/platform`。
-  - 两个复杂度标签：`complexity/small`、`complexity/complex`；由 AI 判定有效路径，无法安全判级时两个都不写。
-  - 八个流程状态标签，其中 `completed` 表示合并且无需部署，`deployed` 表示部署验证完成。
+- 当前 canonical manifest 共定义 27 个规范标签：平台三维 20 个（十个 `type/*`、两个
+  `complexity/*`、八个流程状态），加 Matt triage 维度 7 个 `triage/*`（category 2 个 + state 5 个）。
+  Issue #108 把 `type/*` 从 7 个扩为 10 个，并把 `complexity/standard` 记入 `retired`。
+  准确取值与语义以 `codex/config/gitea-labels.json`（`schema_version: 2`）的 `canonical` 与
+  03 §4 为准，本文不再复制枚举；`triage/*` 语义另见 `templates/docs/agents/triage-labels.md`。
+  manifest 同时声明 `project_extensions.allowed_prefixes`（`area/`、`priority/`），项目本地维度
+  在该前缀下自定取值，受管三维仍是封闭集合。
 - 2026-07-15 的初始 16-label 在线复验为 `created=0 existing=16`；Issue #19 后续把 canonical taxonomy 扩展为 17 个。标签属于可漂移的 Gitea 外部状态，后续操作前必须重新同步并 GET 验证。
 - taxonomy 与 runtime source 已支持当前字段；每个仓库的 live 标签集合仍须单独同步并 GET 回读，
   `IMPLEMENT_PROVIDER=none` 的默认值也不得因 source 能力存在而推定为已启用。

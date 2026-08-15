@@ -13,11 +13,11 @@ risk_flags:
   - cross-module
   - credential-handling
 depends_on: []
-status: contract-drafting
+status: ready-for-review
 branch: change/108-label-provisioning
 pr_url:
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-08-15
 ---
 
 # Implementation plan：标签 provision 与 taxonomy 扩展点
@@ -31,7 +31,7 @@ updated: 2026-08-14
 | T03 | broker 新增 `gitea.labels.read` 与 `gitea.labels.provision` 两个 typed 操作 | T01 | completed |
 | T04 | `aisoft-project-check.sh` 的 `labels-readback` 改为按声明校验，冲突与 retired 附所属 Issue 清单 | T01 | completed |
 | T05 | onboarding-runbook §5 散文步骤替换为确定性命令，并接入 `host.onboarding.check` 步骤序列 | T02, T03 | completed |
-| T06 | UQ-1 落地：按人拍板结果调整 canonical type 集合与判级证据描述 | T01 + 人决策 | pending |
+| T06 | UQ-1 落地：按人拍板结果调整 canonical type 集合与判级证据描述 | T01 + 人决策 | completed |
 
 T02 / T03 / T04 在 T01 之后互不依赖，可并行。T06 独立于实现路径，只改 manifest 数据与
 判级文档，故不阻塞 T02–T05 的编码。
@@ -69,8 +69,16 @@ T02 / T03 / T04 在 T01 之后互不依赖，可并行。T06 独立于实现路�
   §5 不再复制 canonical 枚举与数量，改为指向 manifest：`24` 这个数字同时出现在
   `README.md:137`、`01-基础设施-VM-Gitea-Runner.md:69`、`03-Issue-Spec-Plan与单闸门开发流程.md:146`，
   属 T06 的 canonical 集合调整，本 ticket 不预判。
-- **T06**：`codex/config/gitea-labels.json` 的 `canonical` 数组、
-  `skill-for-codex/references/onboarding-runbook.md:241`、判级证据描述所在文档。
+- **T06**：`codex/config/gitea-labels.json` 的 `canonical` 数组（T01 已落地）；
+  判级证据描述在 `03-Issue-Spec-Plan与单闸门开发流程.md` §4；数量表述在
+  `README.md`、`01-基础设施-VM-Gitea-Runner.md`（历史证据行保留不改）。
+
+  **起草时低估的范围**：type 集合不只是文档枚举，还有三处运行时副本——
+  `aisoft_loop/classification.py` 的 `change_type` `_enum`、同文件的强制 complex 判定、
+  `aisoft_loop/contract.py` 的 `TYPE_LABELS`。前者不扩就会让 `type/security` 的 Issue
+  以 `invalid change_type` 被拒；后者不扩会让 Loop 报「必须恰好一个 type 标签，实际 0 个」，
+  且 label projector 视其为 unknown。已改为 `TYPE_LABELS` 从 `CHANGE_TYPES` 派生，并在
+  `test_contract.py` 新增 manifest↔runtime 的四维 parity 断言，把三处副本收敛为一条链。
 
 ## 数据库迁移
 
