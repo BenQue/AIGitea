@@ -19,11 +19,10 @@ from aisoft_release.security import (
 )
 from aisoft_release.transport import VerifiedArchiveGraph
 
-from .contract import CompanyDeliveryError, contains_sensitive_text
+from .contract import CompanyDeliveryError
 
 
 CHUNK_BYTES = 1024 * 1024
-SCAN_OVERLAP = 512
 MAX_SIGNATURE_WINDOW_BYTES = 64 * 1024
 MAX_JSON_BYTES = 8 * 1024 * 1024
 MAX_INNER_MEMBERS = 200_000
@@ -86,6 +85,10 @@ _SOURCE_LITERAL_ASSIGNMENTS = (
         r"`((?:\\.|[^`\\])*)`"
     ),
 )
+_EXPOSED_SENSITIVE_ASSIGNMENT = re.compile(
+    rf"(?i)^\s*(?:[#;]\s*)?[\"']?(?P<key>{_SOURCE_LITERAL_KEY})[\"']?"
+    r"\s*[:=]\s*(?P<value>.*?)\s*$"
+)
 
 
 def is_external_environment_reference(value: object) -> bool:
@@ -129,25 +132,55 @@ def mask_source_placeholders(value: str) -> str:
 
 
 def scan_source_text(path: Path) -> None:
-    """Scan one regular source payload without ever returning rejected bytes."""
+    """Scan one exposed payload with structure-aware, no-echo classifiers."""
 
-    carry = ""
+    scanner = _HighConfidenceScanner()
+    retained = bytearray()
+    read_bytes = 0
     try:
         with path.open("rb") as handle:
             for chunk in iter(lambda: handle.read(CHUNK_BYTES), b""):
-                text = carry + chunk.decode("latin-1")
-                if contains_sensitive_text(mask_source_placeholders(text)):
-                    raise CompanyDeliveryError(
-                        "SENSITIVE_CONTENT",
-                        "bundle contains forbidden sensitive content",
-                    )
-                carry = text[-SCAN_OVERLAP:]
+                read_bytes += len(chunk)
+                scanner.feed(chunk)
+                if len(retained) <= MAX_JSON_BYTES:
+                    remaining = MAX_JSON_BYTES + 1 - len(retained)
+                    retained.extend(chunk[:remaining])
+        scanner.finish()
+        if read_bytes <= MAX_JSON_BYTES:
+            payload = bytes(retained)
+            _scan_exposed_sensitive_assignments(payload)
+            _scan_structured_payload(payload)
+        elif bytes(retained).lstrip()[:1] in {b"{", b"["}:
+            _json_blocked("JSON_RESOURCE_LIMIT")
     except CompanyDeliveryError:
         raise
     except OSError as exc:
         raise CompanyDeliveryError(
             "UNSAFE_PATH", "bundle payload cannot be read"
         ) from exc
+
+
+def _scan_exposed_sensitive_assignments(payload: bytes) -> None:
+    """Reject concrete top-level credentials without treating examples as secrets."""
+
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError:
+        return
+    source_document = _AUDITED_SOURCE_MARKER.search(text) is not None
+    for line in text.splitlines():
+        match = _EXPOSED_SENSITIVE_ASSIGNMENT.fullmatch(line)
+        if match is None:
+            continue
+        value = match.group("value")
+        if source_document and re.fullmatch(
+            r"[A-Za-z_][A-Za-z0-9_.]*\("
+            r"(?:[A-Za-z_][A-Za-z0-9_.]*)?\)?",
+            value.strip(),
+        ) is not None:
+            continue
+        if _is_concrete_value(value) and not _is_source_example_or_regex(value):
+            _sensitive()
 
 
 def scan_bundle_payloads(
@@ -945,7 +978,8 @@ _JWT_TEXT = re.compile(
 )
 _SOURCE_PLACEHOLDER_TEXT = re.compile(
     rf"^(?:\${IDENTIFIER}|\$\{{{IDENTIFIER}(?::\?required)?\}}|"
-    rf"%[A-Za-z]|<[^>\s]+>|\{{{IDENTIFIER}\}}|"
+    rf"\$\(<\"\${IDENTIFIER}\"\)|%[A-Za-z]|<[^>\s]+>|"
+    rf"\{{{IDENTIFIER}\}}|"
     r"(?:example|sample|placeholder|redacted|changeme|replace-me|"
     r"not-a-real|your|fake|mock|dummy|fixture|test)"
     r"(?:[-_.][A-Za-z0-9_-]+)*)$",

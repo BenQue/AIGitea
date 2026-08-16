@@ -841,6 +841,55 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
         self.assertEqual(result["docker_calls"], 0)
         self.assertEqual(result["target_facts"], "NOT_READ")
 
+    def test_top_level_scan_distinguishes_material_from_incomplete_examples(self) -> None:
+        source_fixture = (
+            self.source / "company-delivery/scanner-source-example.txt"
+        )
+        source_fixture.write_text(
+            "-----BEGIN PRIVATE KEY-----\n"
+            "Authorization: Bearer example-placeholder\n",
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", str(source_fixture)], cwd=self.source, check=True)
+        subprocess.run(
+            ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "safe source fixture"],
+            cwd=self.source,
+            check=True,
+        )
+        self.source_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=self.source, text=True
+        ).strip()
+        built = self.build(self.output_dir("out-safe-incomplete-source"))
+        self.assertTrue(
+            verify_bundle(
+                Path(built["bundle_root"]) / "handoff-manifest.json",
+                Path(built["bundle_root"]),
+            )["ok"]
+        )
+
+        header = base64.urlsafe_b64encode(
+            b'{"alg":"HS256","typ":"JWT"}'
+        ).rstrip(b"=")
+        payload = base64.urlsafe_b64encode(
+            b'{"sub":"synthetic-test"}'
+        ).rstrip(b"=")
+        signature = base64.urlsafe_b64encode(b"x" * 32).rstrip(b"=")
+        token = b".".join((header, payload, signature)).decode("ascii")
+        source_fixture.write_text(token + "\n", encoding="ascii")
+        subprocess.run(["git", "add", str(source_fixture)], cwd=self.source, check=True)
+        subprocess.run(
+            ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "credential fixture"],
+            cwd=self.source,
+            check=True,
+        )
+        self.source_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=self.source, text=True
+        ).strip()
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            self.build(self.output_dir("out-sensitive-top-level-jwt"))
+        self.assertEqual(caught.exception.code, "SENSITIVE_CONTENT")
+        self.assertNotIn(token, str(caught.exception))
+
     def test_artifact_freshness_uses_runtime_utc_date_not_created_at(self) -> None:
         runtime_date = date(2030, 1, 2)
         with mock.patch(
