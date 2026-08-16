@@ -43,6 +43,19 @@ JSON_CONTEXT_REASON_CODES = frozenset(
 JSON_SOURCE_ROLES = frozenset(
     {"SCHEMA", "SOURCE_MAP", "PACKAGE_METADATA", "I18N", "EXAMPLE", "OTHER"}
 )
+PACKAGE_METADATA_SCALAR_MAPS = frozenset(
+    {
+        "bin",
+        "dependencies",
+        "devdependencies",
+        "engines",
+        "optionaldependencies",
+        "overrides",
+        "peerdependencies",
+        "resolutions",
+        "scripts",
+    }
+)
 IDENTIFIER = r"[A-Za-z_][A-Za-z0-9_]*"
 EXTERNAL_ENV_REFERENCE = re.compile(
     rf"^\$\{{{IDENTIFIER}(?::\?required)?\}}$"
@@ -631,17 +644,35 @@ def _scan_source_literal_assignments(value: str) -> None:
 
 
 def _scan_json_value(
-    value: object, *, context: str, source_role: str = "OTHER"
+    value: object,
+    *,
+    context: str,
+    source_role: str = "OTHER",
+    package_metadata_scalar_map: bool = False,
 ) -> None:
     if isinstance(value, Mapping):
         for key, nested in value.items():
             key_text = str(key)
-            child_context = _json_child_context(key_text, nested, context)
+            child_context = _json_child_context(
+                key_text,
+                nested,
+                context,
+                package_metadata_scalar_map=package_metadata_scalar_map,
+            )
             child_source_role = _json_child_source_role(
                 key_text,
                 nested,
                 parent_context=context,
                 parent_role=source_role,
+            )
+            child_package_metadata_scalar_map = bool(
+                package_metadata_scalar_map
+                or (
+                    context == "source"
+                    and source_role == "PACKAGE_METADATA"
+                    and key_text.lower() in PACKAGE_METADATA_SCALAR_MAPS
+                    and isinstance(nested, Mapping)
+                )
             )
             if (
                 child_context == "runtime"
@@ -688,23 +719,34 @@ def _scan_json_value(
                             )
                         ):
                             _sensitive()
-                    _json_blocked(
-                        "JSON_SOURCE_SENSITIVE_AMBIGUOUS"
-                        if context == "source"
-                        else "JSON_GENERIC_SENSITIVE_AMBIGUOUS",
-                        source_role=(
-                            source_role if context == "source" else None
-                        ),
-                    )
+                    if not (
+                        context == "source"
+                        and source_role == "PACKAGE_METADATA"
+                        and package_metadata_scalar_map
+                    ):
+                        _json_blocked(
+                            "JSON_SOURCE_SENSITIVE_AMBIGUOUS"
+                            if context == "source"
+                            else "JSON_GENERIC_SENSITIVE_AMBIGUOUS",
+                            source_role=(
+                                source_role if context == "source" else None
+                            ),
+                        )
             _scan_json_value(
                 nested,
                 context=child_context,
                 source_role=child_source_role,
+                package_metadata_scalar_map=(
+                    child_package_metadata_scalar_map
+                ),
             )
     elif isinstance(value, list):
         for nested in value:
             _scan_json_value(
-                nested, context=context, source_role=source_role
+                nested,
+                context=context,
+                source_role=source_role,
+                package_metadata_scalar_map=package_metadata_scalar_map,
             )
     elif isinstance(value, (str, bytes)):
         payload = value.encode("utf-8") if isinstance(value, str) else value
@@ -755,10 +797,29 @@ def _json_document_context(value: object) -> str:
     return "generic"
 
 
-def _json_child_context(key: str, value: object, parent: str) -> str:
+def _json_child_context(
+    key: str,
+    value: object,
+    parent: str,
+    *,
+    package_metadata_scalar_map: bool = False,
+) -> str:
+    lowered = key.lower()
+    if package_metadata_scalar_map:
+        return parent
+    if lowered in {
+        "config",
+        "runtime",
+        "environment",
+        "env",
+        "credentials",
+        "database",
+        "datasource",
+        "connection",
+    } and isinstance(value, (Mapping, list)):
+        return "runtime"
     if parent in {"runtime", "source"}:
         return parent
-    lowered = key.lower()
     if lowered in {
         "$defs",
         "definitions",
@@ -774,17 +835,6 @@ def _json_child_context(key: str, value: object, parent: str) -> str:
         "sourcescontent",
     }:
         return "source"
-    if lowered in {
-        "config",
-        "runtime",
-        "environment",
-        "env",
-        "credentials",
-        "database",
-        "datasource",
-        "connection",
-    } and isinstance(value, (Mapping, list)):
-        return "runtime"
     return parent
 
 

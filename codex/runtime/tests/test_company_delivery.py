@@ -1267,6 +1267,107 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
                     "SENSITIVE_CONTENT", f"out-{name}"
                 )
 
+    def test_package_metadata_maps_are_source_but_runtime_and_material_block(self) -> None:
+        safe_package = {
+            "name": "fixture",
+            "version": "1.0.0",
+            "scripts": {
+                "generate-token": "node tools/generate-token.js",
+            },
+            "dependencies": {
+                "auth-token": "1.2.3",
+                "credential-provider": "4.5.6",
+            },
+        }
+        self.replace_archive(
+            layer_files=[
+                (
+                    "package-metadata",
+                    json.dumps(
+                        safe_package, sort_keys=True, separators=(",", ":")
+                    ).encode("utf-8"),
+                )
+            ]
+        )
+        built = self.build(self.output_dir("out-safe-package-metadata"))
+        self.assertTrue(
+            verify_bundle(
+                Path(built["bundle_root"]) / "handoff-manifest.json",
+                Path(built["bundle_root"]),
+            )["ok"]
+        )
+
+        pem_body = base64.b64encode(b"package-private-key-material" * 4)
+        pem_material = (
+            b"-----BEGIN PRIVATE KEY-----\n"
+            + pem_body
+            + b"\n-----END PRIVATE KEY-----"
+        ).decode("ascii")
+        material_values = {
+            "known-token": "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345",
+            "valid-pem": pem_material,
+            "credential-url": (
+                "https://service:concrete-value@example.invalid/app"
+            ),
+            "authorization": "Authorization: Bearer concrete-value",
+        }
+        for name, material in material_values.items():
+            with self.subTest(material=name):
+                payload = dict(safe_package)
+                payload["scripts"] = {"generate-token": material}
+                self.replace_archive(
+                    layer_files=[
+                        (
+                            "package-metadata",
+                            json.dumps(
+                                payload,
+                                sort_keys=True,
+                                separators=(",", ":"),
+                            ).encode("utf-8"),
+                        )
+                    ]
+                )
+                caught = self.assert_bundle_error(
+                    "SENSITIVE_CONTENT", f"out-package-{name}"
+                )
+                self.assertNotIn(material, str(caught))
+
+        runtime_payload = dict(safe_package)
+        runtime_payload["config"] = {"password": "runtime-concrete-value"}
+        self.replace_archive(
+            layer_files=[
+                (
+                    "package-metadata",
+                    json.dumps(
+                        runtime_payload,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8"),
+                )
+            ]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-package-runtime-concrete"
+        )
+
+        ambiguous_payload = dict(safe_package)
+        ambiguous_payload["password"] = "unclassified-concrete-value"
+        self.replace_archive(
+            layer_files=[
+                (
+                    "package-metadata",
+                    json.dumps(
+                        ambiguous_payload,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8"),
+                )
+            ]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-package-ambiguous-field"
+        )
+
     def test_unsafe_duplicate_and_unsupported_layer_fail_closed(self) -> None:
         variants: dict[str, bytes] = {}
         unsafe = io.BytesIO()
