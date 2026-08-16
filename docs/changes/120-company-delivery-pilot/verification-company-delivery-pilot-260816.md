@@ -54,6 +54,19 @@ updated: 2026-08-16
 | no-secret/manual allowlist review | NOT RUN | 不回显任何命中值 |
 | protected `main` / required CI / exact head status | NOT RUN | final push 后 typed broker readback |
 
+## Ticket implementation evidence
+
+### T01 — strict contract/model/CLI
+
+- RED：`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_company_delivery -v`
+  退出 `1`，同一 selector 在 import seam 明确失败：`ModuleNotFoundError: No module named 'aisoft_company_delivery'`。
+- GREEN：同一命令退出 `0`，`Ran 6 tests`、`OK`；覆盖 strict documents、unknown field、短 SHA、unsafe path、
+  mode/symlink、Secret sentinel、sanitized CLI 与 repository template/compatibility。
+- `bash -n company-delivery/bin/aisoft-company-delivery`：PASS。
+- `shellcheck company-delivery/bin/aisoft-company-delivery`：PASS（当前环境可用，退出 0）。
+- `find company-delivery -type f -name '*.json' ... | xargs ... jq empty`：PASS。
+- `git diff --check`：PASS。
+
 ## Acceptance criteria 结果
 
 | AC | Result | Evidence |

@@ -1,0 +1,43 @@
+{
+  "contract_version": "company-delivery-compatibility/v1",
+  "matrix_revision": "2026.08.1",
+  "pilot": "newemaint",
+  "topology": {
+    "company_vm_count": 2,
+    "company_roles": [
+      "scm-ci",
+      "appserver-prod"
+    ],
+    "nonproduction_role": "appserver-test",
+    "nonproduction_location": "local-orbstack-dockerlab"
+  },
+  "release": {
+    "contract_version": "docker-release/v2",
+    "platform": "linux/amd64",
+    "docker_engine": {
+      "minimum": "29.7.1",
+      "maximum_exclusive": "29.7.2"
+    },
+    "docker_compose": {
+      "minimum": "5.1.4",
+      "maximum_exclusive": "5.1.5"
+    },
+    "image_store": "containerd",
+    "evidence": "docs/changes/65/verification-compose-514-lifecycle-260808.md"
+  },
+  "source_candidates": {
+    "gitea": "1.26.4",
+    "os": "ubuntu-24.04",
+    "postgresql": "18.4",
+    "nginx": "1.30.4",
+    "python_minimum": "3.10.0"
+  },
+  "policy": {
+    "different_release_bytes": "BLOCKED",
+    "intranet_rebuild_without_isolated_test": "BLOCKED",
+    "unknown_architecture_or_image_store": "BLOCKED",
+    "sync_timer_during_initial_acceptance": "disabled-inactive",
+    "actions_auto_deploy_during_initial_acceptance": "disabled-inactive",
+    "production_gate_during_initial_acceptance": "disabled-inactive"
+  }
+}

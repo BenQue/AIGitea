@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ -d "$ROOT/runtime/aisoft_company_delivery" ]]; then
+  RUNTIME="$ROOT/runtime"
+elif [[ -d "$ROOT/../codex/runtime/aisoft_company_delivery" ]]; then
+  RUNTIME="$ROOT/../codex/runtime"
+else
+  printf '%s\n' 'BLOCKED: company delivery runtime is unavailable' >&2
+  exit 20
+fi
+
+export PYTHONPATH="$RUNTIME${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m aisoft_company_delivery.cli "$@"

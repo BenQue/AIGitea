@@ -34,7 +34,7 @@ updated: 2026-08-16
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | strict schema/model/CLI 基座与 RED security/contract tests（AC-3、AC-4、AC-6） | - | pending |
+| T01 | strict schema/model/CLI 基座与 RED security/contract tests（AC-3、AC-4、AC-6） | - | completed |
 | T02 | 两 role 脱敏 read-only inventory vertical slice（AC-1） | T01 | pending |
 | T03 | deterministic builder、checksum/handoff/evidence validation vertical slice（AC-3、AC-4、AC-6） | T01 | pending |
 | T04 | Stage 00–110 runbook、Gitea/backup/restore/inbound/Runner/Registry/fixed-target 合同（AC-2、AC-5、AC-7、AC-8） | T02、T03 | pending |
