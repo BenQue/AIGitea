@@ -1,0 +1,31 @@
+{
+  "contract_version": "company-delivery-evidence/v1",
+  "evidence_id": "CDP-120-STAGE-00-PASS-EXAMPLE",
+  "stage": "00",
+  "scope": "local-fake",
+  "recorded_at": "2026-08-16T08:00:00Z",
+  "operator_version": "1.0.0",
+  "source_git_sha": "0000000000000000000000000000000000000000",
+  "release_id": "0000000000000000000000000000000000000000",
+  "outcome": "PASS",
+  "observed": [
+    {
+      "code": "EXAMPLE_INPUT_PRESENT",
+      "status": "PASS",
+      "detail": "Example only; the structural input was present.",
+      "artifacts": []
+    }
+  ],
+  "changed": [],
+  "verified": [
+    {
+      "code": "EXAMPLE_CONTRACT_VERIFIED",
+      "status": "PASS",
+      "detail": "Example only; replace this fact with an actual bounded observation.",
+      "artifacts": [
+        "handoff-manifest.json"
+      ]
+    }
+  ],
+  "pending": []
+}

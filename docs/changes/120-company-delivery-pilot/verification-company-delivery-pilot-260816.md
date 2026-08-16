@@ -45,7 +45,7 @@ updated: 2026-08-16
 | `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_company_delivery -v` | PASS | `Ran 15 tests`、`OK`；T01–T03 focused contract/collector/bundle/security tests |
 | `bash -n company-delivery/bin/*` | PASS | wrapper shell syntax |
 | `shellcheck company-delivery/bin/*` | PASS | 当前环境可用，退出 `0` |
-| strict JSON/schema/example parse | PASS | `company-delivery/**/*.json` 均通过 `jq empty` |
+| strict JSON/schema/example parse | PASS | `company-delivery/**/*.json` 均通过 `jq empty`；四种 evidence outcome template 均通过 runtime validator |
 | deterministic fake bundle build x2 | PASS | 同输入 archive name/SHA256 完全相同；解包后在 `umask 077` 下重新验证；Docker calls = 0 |
 | tamper/wrong SHA/digest/arch/path/mode/Secret negatives | PASS | 全部在任何 target mutation 前 fail closed，且 Secret sentinel 不回显 |
 | full runtime unittest discovery | NOT RUN | exact command/count 待实现后记录 |
@@ -95,18 +95,35 @@ updated: 2026-08-16
 - `bash -n company-delivery/bin/aisoft-company-delivery`、`shellcheck company-delivery/bin/aisoft-company-delivery`、
   `git diff --check`：PASS。
 
+### T04 — staged manual runbook 与 live gates
+
+- RED：`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_company_delivery.CompanyDeliveryRunbookTests -v`
+  退出 `1`；`company-delivery/runbook.md` 与 PASS/FAIL/BLOCKED templates 尚不存在，NOT RUN template 也缺少
+  non-live example 标记。
+- GREEN：同一命令退出 `0`，`Ran 3 tests`、`OK`；精确解析 Stage `00,10,...,110`，逐 stage 验证前置、
+  单阶段人工批准、role、允许动作、预期输出、PASS/FAIL/BLOCKED、停止点、evidence 和回滚边界。
+- 静态 fail-closed assertions 覆盖：两台公司 VM、本地 `appserver-test`、Gitea side-by-side/controlled
+  upgrade、完整 backup 对象、isolated restore 对账、`pg_restore --list` 不等于 PASS、one-shot inbound、
+  protected main/required CI、Runner/Registry 正负验收、首次验收三个自动化入口 disabled/inactive、
+  artifact-only zero-target boundary、fixed action/target/full SHA，以及“内网重建但无隔离测试环境”固定
+  `BLOCKED`。
+- `evidence.pass|fail|blocked|not-run.example.json`：均通过 strict runtime validator；每个都明确为 structure
+  example，不是 live evidence。
+- focused full module：PASS，`Ran 18 tests`、`OK`；全部 `company-delivery/**/*.json` 通过 `jq empty`；
+  `git diff --check`：PASS。
+
 ## Acceptance criteria 结果
 
 | AC | Result | Evidence |
 |---|---|---|
 | AC-1 | PASS（local fake） | 两 role collector、固定只读 argv、脱敏、mode 与 fail-closed tests 已通过；公司 inventory 仍 `NOT RUN` |
-| AC-2 | NOT RUN | runbook review pending |
+| AC-2 | PASS（contract） | Stage 00–110 completeness parser 证明每阶段包含批准、停止、evidence 与回滚合同 |
 | AC-3 | PASS（local fake） | 两次相同输入产生相同 archive SHA；tamper/wrong SHA/digest/arch/path/mode 全部 fail closed |
 | AC-4 | PASS（local） | strict inventory/handoff/evidence contracts、templates、full `SHA256SUMS` 与 payload identity 已验证 |
-| AC-5 | NOT RUN | Gitea decision/backup/restore contract review pending |
-| AC-6 | NOT RUN | exact-byte negatives pending；真实 NewEmaint artifact 不在本仓 |
-| AC-7 | NOT RUN | inbound/SCM contract review pending；company live checks remain NOT RUN |
-| AC-8 | NOT RUN | fixed target contract review pending；production remains NOT RUN |
+| AC-5 | PASS（contract） | side-by-side/controlled-upgrade decision table、完整 backup coverage、isolated restore object reconciliation 已固定；live drill `NOT RUN` |
+| AC-6 | PASS（contract/local fake） | artifact-only zero-target tests 与不同 bytes/rebuild-without-isolation `BLOCKED` 已固定；真实 NewEmaint/company verification `NOT RUN` |
+| AC-7 | PASS（contract） | one-shot/bootstrap/protection/CI/Runner/Registry 正负矩阵与 disabled/inactive 初验边界已固定；company checks `NOT RUN` |
+| AC-8 | PASS（contract） | fixed action/`newemaint-prod`/full SHA、普通 Runner 禁权和 app rollback/DB restore 分离已固定；production `NOT RUN` |
 | AC-9 | NOT RUN | topology docs update/review pending |
 | AC-10 | NOT RUN | focused/full validation pending |
 | AC-11 | NOT RUN | unique PR/final-head readback pending；merge human-only |

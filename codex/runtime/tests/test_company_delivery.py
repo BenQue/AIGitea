@@ -580,5 +580,77 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
                 self.assertEqual(caught.exception.code, "ARTIFACT_INVALID")
 
 
+class CompanyDeliveryRunbookTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.repository_root = Path(__file__).resolve().parents[3]
+
+    def test_runbook_has_every_stage_and_required_stop_contract(self) -> None:
+        runbook = (self.repository_root / "company-delivery/runbook.md").read_text(encoding="utf-8")
+        stages = [
+            line.split()[2]
+            for line in runbook.splitlines()
+            if line.startswith("## Stage ")
+        ]
+        expected = ["00", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100", "110"]
+        self.assertEqual(stages, expected)
+        markers = (
+            "| 前置输入 |",
+            "| 人工批准记录 |",
+            "| 执行位置 / role |",
+            "| 允许动作 |",
+            "| 预期输出 |",
+            "| PASS |",
+            "| FAIL |",
+            "| BLOCKED / 停止点 |",
+            "| Evidence |",
+            "| 回滚边界 |",
+        )
+        for stage in expected:
+            section = runbook.split(f"## Stage {stage} ", 1)[1].split("\n## Stage ", 1)[0]
+            for marker in markers:
+                with self.subTest(stage=stage, marker=marker):
+                    self.assertIn(marker, section)
+        self.assertIn("任何时刻只有一个 stage 处于已批准且可执行状态", runbook)
+
+    def test_runbook_pins_fail_closed_company_boundaries(self) -> None:
+        runbook = (self.repository_root / "company-delivery/runbook.md").read_text(encoding="utf-8")
+        required = (
+            "公司要求内网重建且无隔离测试环境",
+            "不同 bytes 不得继承本地测试结论",
+            "DB、`app.ini` 与实例 keys、repositories、LFS、packages、attachments、avatars、external storage",
+            "`pg_restore --list` 不是 restore PASS",
+            "sync/inbound-sync.sh reconcile <allowlisted-profile>",
+            "aisoft-docker-release-gate <action> newemaint-prod <full-sha>",
+            "sync timer、Actions auto deploy 与 production gate 均为 `disabled/inactive`",
+            "普通 Runner 无 production SSH、sudo、业务 DB 或任意 shell 权限",
+            "公司侧 Stage 10–110：`NOT RUN`",
+        )
+        for phrase in required:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, runbook)
+        matrix = json.loads(
+            (self.repository_root / "company-delivery/compatibility/newemaint-company-pilot-v1.json")
+            .read_text(encoding="utf-8")
+        )
+        self.assertEqual(matrix["topology"]["company_vm_count"], 2)
+        self.assertEqual(matrix["policy"]["different_release_bytes"], "BLOCKED")
+        self.assertEqual(matrix["policy"]["intranet_rebuild_without_isolated_test"], "BLOCKED")
+
+    def test_all_outcome_templates_are_strict_and_non_live_examples(self) -> None:
+        templates = self.repository_root / "company-delivery/templates"
+        expected = {
+            "evidence.pass.example.json": "PASS",
+            "evidence.fail.example.json": "FAIL",
+            "evidence.blocked.example.json": "BLOCKED",
+            "evidence.not-run.example.json": "NOT RUN",
+        }
+        for name, outcome in expected.items():
+            with self.subTest(name=name):
+                value = load_evidence(templates / name, require_protected=False)
+                self.assertEqual(value["outcome"], outcome)
+                serialized = json.dumps(value, ensure_ascii=False)
+                self.assertIn("example", serialized.lower())
+
+
 if __name__ == "__main__":
     unittest.main()
