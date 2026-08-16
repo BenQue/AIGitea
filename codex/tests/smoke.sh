@@ -339,10 +339,16 @@ done
 
 [[ -f "$ROOT/CLAUDE.md" ]]
 grep -Fq '@AGENTS.md' "$ROOT/CLAUDE.md"
-if [[ "$(grep -c . "$ROOT/CLAUDE.md")" -gt 5 ]]; then
-  echo 'CLAUDE.md 必须只导入共享规范源，不得复制第二套合同' >&2
-  exit 1
-fi
+[[ "$(grep -c '^## Agent skills$' "$ROOT/CLAUDE.md")" == 1 ]]
+grep -Fq 'AISoftPlatform Gitea' "$ROOT/CLAUDE.md"
+grep -Fq 'docs/agents/issue-tracker.md' "$ROOT/CLAUDE.md"
+grep -Fq 'namespaced Matt triage labels' "$ROOT/CLAUDE.md"
+grep -Fq 'docs/agents/triage-labels.md' "$ROOT/CLAUDE.md"
+grep -Fq 'single-context' "$ROOT/CLAUDE.md"
+grep -Fq 'docs/agents/domain.md' "$ROOT/CLAUDE.md"
+for agent_doc in issue-tracker.md triage-labels.md domain.md; do
+  cmp -s "$ROOT/templates/docs/agents/$agent_doc" "$ROOT/docs/agents/$agent_doc"
+done
 
 [[ -f "$ROOT/skill-for-codex/SKILL.md" ]]
 [[ -f "$ROOT/skill-for-codex/agents/openai.yaml" ]]
