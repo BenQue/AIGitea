@@ -17,6 +17,7 @@ from typing import Mapping
 from aisoft_release.contract import load_release_artifact
 from aisoft_release.errors import ReleaseError
 from aisoft_release.runner import ReleaseRuntime
+from aisoft_release.transport import VerifiedArchiveGraph, inspect_offline_artifact
 
 from .contract import (
     GIT_SHA,
@@ -25,7 +26,7 @@ from .contract import (
     load_handoff,
     sha256_file,
 )
-from .secret_scan import mask_source_placeholders, scan_source_text
+from .secret_scan import mask_source_placeholders, scan_bundle_payloads
 
 
 SOURCE_REPOSITORY = "admin/aisoft-platform"
@@ -73,6 +74,7 @@ def build_bundle(
     _validate_output_directory(output)
     tracked = _mapped_tracked_files(repository)
     release_files = _verified_release(release_parent, release_id, _utc_today())
+    archive_graph = _verified_archive_graph(release_files)
     version = _operator_version(repository / "company-delivery/VERSION")
     bundle_name = f"aisoft-company-delivery-{version}-{source_sha}"
     bundle_root = output / bundle_name
@@ -91,7 +93,11 @@ def build_bundle(
         for source in sorted(release_files.directory.iterdir(), key=lambda item: item.name):
             _copy_regular(source, release_destination / source.name)
 
-        _scan_bundle_payloads(bundle_root)
+        _scan_bundle_payloads(
+            bundle_root,
+            archive_path=release_destination / release_files.archive_path.name,
+            archive_graph=archive_graph,
+        )
         payloads = _payload_inventory(bundle_root)
         manifest_relative = f"release/{release_id}/release.json"
         manifest_digest = sha256_file(bundle_root / manifest_relative)
@@ -190,6 +196,15 @@ def _verified_release(release_root: Path, release_id: str, today: date):
     if result.get("ok") is not True or result.get("docker_calls") != 0 or result.get("target_facts") != "NOT_READ":
         raise CompanyDeliveryError("ARTIFACT_INVALID", "artifact-only verification crossed its safety boundary")
     return files
+
+
+def _verified_archive_graph(files) -> VerifiedArchiveGraph:
+    try:
+        return inspect_offline_artifact(files)
+    except ReleaseError as exc:
+        raise CompanyDeliveryError(
+            "ARTIFACT_INVALID", "docker-release/v2 artifact graph verification failed"
+        ) from exc
 
 
 def _validate_repository(repository: Path, expected_sha: str) -> None:
@@ -318,17 +333,17 @@ def _payload_inventory(root: Path) -> list[dict[str, object]]:
     return payloads
 
 
-def _scan_bundle_payloads(root: Path) -> None:
-    for path in sorted(root.rglob("*"), key=lambda item: item.relative_to(root).as_posix()):
-        try:
-            metadata = path.lstat()
-        except OSError as exc:
-            raise CompanyDeliveryError("UNSAFE_PATH", "bundle payload is unavailable") from exc
-        if stat.S_ISDIR(metadata.st_mode):
-            continue
-        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
-            raise CompanyDeliveryError("UNSAFE_PATH", "bundle payload must be a regular non-symlink file")
-        scan_source_text(path)
+def _scan_bundle_payloads(
+    root: Path,
+    *,
+    archive_path: Path,
+    archive_graph: VerifiedArchiveGraph,
+) -> None:
+    scan_bundle_payloads(
+        root,
+        archive_path=archive_path,
+        archive_graph=archive_graph,
+    )
 
 
 def _mask_source_placeholders(value: str) -> str:

@@ -126,6 +126,9 @@ def create_archive(
     images: list[dict[str, str]],
     *,
     unsafe_name: str | None = None,
+    layer_files: list[tuple[str, bytes]] | None = None,
+    layer_archive_payload: bytes | None = None,
+    config_environment: list[str] | None = None,
 ) -> None:
     with tarfile.open(path, mode="w") as archive:
         if unsafe_name is not None:
@@ -147,9 +150,21 @@ def create_archive(
             manifest.append(
                 {"Config": config_path, "RepoTags": repo_tags, "Layers": [layer_path]}
             )
+            config: dict[str, object] = {}
+            if config_environment is not None:
+                config["config"] = {"Env": list(config_environment)}
+            layer_payload = (
+                layer_archive_payload
+                if layer_archive_payload is not None
+                else create_layer_archive_payload(
+                    layer_files
+                    if layer_files is not None
+                    else [("app/fixture.txt", b"fixture-layer\n")]
+                )
+            )
             for member_name, payload in (
-                (config_path, b"{}\n"),
-                (layer_path, b"fixture-layer\n"),
+                (config_path, canonical_bytes(config)),
+                (layer_path, layer_payload),
             ):
                 member = tarfile.TarInfo(member_name)
                 member.size = len(payload)
@@ -170,6 +185,22 @@ def create_archive(
             repositories_info.mode = 0o644
             archive.addfile(repositories_info, io.BytesIO(repositories_bytes))
     os.chmod(path, 0o644)
+
+
+def create_layer_archive_payload(
+    files: list[tuple[str, bytes]],
+    *,
+    compression: str | None = None,
+) -> bytes:
+    output = io.BytesIO()
+    mode = "w" if compression is None else f"w:{compression}"
+    with tarfile.open(fileobj=output, mode=mode) as archive:
+        for name, payload in files:
+            member = tarfile.TarInfo(name)
+            member.size = len(payload)
+            member.mode = 0o644
+            archive.addfile(member, io.BytesIO(payload))
+    return output.getvalue()
 
 
 def create_oci_archive(
@@ -202,7 +233,9 @@ def create_oci_archive(
             {"architecture": "amd64", "fixture_service": service, "os": "linux"}
         )
         config_digest, config_path = add_blob(config_payload)
-        layer_payload = (f"fixture-layer:{service}\n").encode("utf-8")
+        layer_payload = create_layer_archive_payload(
+            [("app/fixture.txt", (f"fixture-layer:{service}\n").encode("utf-8"))]
+        )
         layer_digest, layer_path = add_blob(layer_payload)
         runnable_manifest = {
             "schemaVersion": 2,

@@ -27,7 +27,14 @@ from aisoft_company_delivery.contract import (
 )
 from aisoft_company_delivery.collector import collect_inventory
 from aisoft_company_delivery.bundle import build_bundle, verify_bundle
-from tests.release_test_support import SHA_A, create_release, sha256, update_manifest
+from tests.release_test_support import (
+    SHA_A,
+    create_archive,
+    create_layer_archive_payload,
+    create_release,
+    sha256,
+    update_manifest,
+)
 
 
 SHA = "1" * 40
@@ -774,25 +781,16 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
             ["git", "rev-parse", "HEAD"], cwd=self.source, text=True
         ).strip()
 
-        archive = self.release_root / SHA_A / "images.tar"
-        payload = f"password={sentinel}\n".encode("utf-8")
-        rewritten_archive = archive.with_suffix(".rewritten")
-        with tarfile.open(archive, mode="r") as source_archive, tarfile.open(
-            rewritten_archive, mode="w"
-        ) as target_archive:
-            for member in source_archive:
-                if member.isfile():
-                    source_handle = source_archive.extractfile(member)
-                    self.assertIsNotNone(source_handle)
-                    assert source_handle is not None
-                    member_payload = source_handle.read()
-                    if member.name == "layers/0/layer.tar":
-                        member_payload += payload
-                    member.size = len(member_payload)
-                    target_archive.addfile(member, io.BytesIO(member_payload))
-                else:
-                    target_archive.addfile(member)
-        rewritten_archive.replace(archive)
+        release_dir = self.release_root / SHA_A
+        archive = release_dir / "images.tar"
+        manifest = json.loads(
+            (release_dir / "release.json").read_text(encoding="utf-8")
+        )
+        create_archive(
+            archive,
+            manifest["images"],
+            layer_files=[("etc/app.env", f"password={sentinel}\n".encode())],
+        )
         inventory_path = self.release_root / SHA_A / "images.inventory.json"
         inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
         inventory["archive_sha256"] = sha256(archive)
@@ -949,6 +947,152 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
                         source_transport="approved-bundle",
                     )
                 self.assertEqual(caught.exception.code, "ARTIFACT_INVALID")
+
+
+class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
+    setUp = CompanyDeliveryBundleTests.setUp
+    tearDown = CompanyDeliveryBundleTests.tearDown
+    output_dir = CompanyDeliveryBundleTests.output_dir
+    build = CompanyDeliveryBundleTests.build
+
+    def replace_archive(
+        self,
+        *,
+        layer_files: list[tuple[str, bytes]] | None = None,
+        layer_archive_payload: bytes | None = None,
+        config_environment: list[str] | None = None,
+    ) -> None:
+        release_dir = self.release_root / SHA_A
+        archive = release_dir / "images.tar"
+        manifest = json.loads(
+            (release_dir / "release.json").read_text(encoding="utf-8")
+        )
+        create_archive(
+            archive,
+            manifest["images"],
+            layer_files=layer_files,
+            layer_archive_payload=layer_archive_payload,
+            config_environment=config_environment,
+        )
+        inventory_path = release_dir / "images.inventory.json"
+        inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+        inventory["archive_sha256"] = sha256(archive)
+        inventory_path.write_text(
+            json.dumps(
+                inventory,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        update_manifest(
+            release_dir,
+            lambda value: value["offline_bundle"].update(
+                {
+                    "archive_sha256": sha256(archive),
+                    "inventory_sha256": sha256(inventory_path),
+                }
+            ),
+        )
+
+    def assert_bundle_error(self, code: str, output_name: str) -> CompanyDeliveryError:
+        output = self.output_dir(output_name)
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            self.build(output)
+        self.assertEqual(caught.exception.code, code)
+        self.assertEqual(list(output.iterdir()), [])
+        return caught.exception
+
+    def test_verified_graph_is_scanned_without_docker(self) -> None:
+        self.replace_archive(
+            layer_files=[
+                (
+                    "src/schema.json",
+                    b'{"properties":{"password":{"type":"string"}}}\n',
+                ),
+                ("src/example.js", b"const password = input;\n"),
+                ("bin/app", b"\x00\x7fELF\x00ordinary-binary\xff"),
+            ]
+        )
+        built = self.build(self.output_dir("out-safe-archive"))
+        result = verify_bundle(
+            Path(built["bundle_root"]) / "handoff-manifest.json",
+            Path(built["bundle_root"]),
+        )
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["docker_calls"], 0)
+        self.assertEqual(result["target_facts"], "NOT_READ")
+
+    def test_image_config_and_layer_secrets_are_rejected_without_echo(self) -> None:
+        sentinel = "never-print-this-value"
+        self.replace_archive(config_environment=[f"PASSWORD={sentinel}"])
+        config_error = self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-sensitive-config"
+        )
+        self.assertNotIn(sentinel, str(config_error))
+
+        self.replace_archive(
+            layer_files=[("etc/app.env", f"PASSWORD={sentinel}\n".encode())]
+        )
+        layer_error = self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-sensitive-layer"
+        )
+        self.assertNotIn(sentinel, str(layer_error))
+
+    def test_binary_signature_crosses_chunk_boundary_without_echo(self) -> None:
+        sentinel = b"-----BEGIN PRIVATE KEY-----"
+        payload = b"\x00" * (1024 * 1024 - 10) + sentinel + b"\x00"
+        self.replace_archive(layer_files=[("bin/payload", payload)])
+        caught = self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-sensitive-binary"
+        )
+        self.assertNotIn(sentinel.decode("ascii"), str(caught))
+
+    def test_unsafe_duplicate_and_unsupported_layer_fail_closed(self) -> None:
+        variants: dict[str, bytes] = {}
+        unsafe = io.BytesIO()
+        with tarfile.open(fileobj=unsafe, mode="w") as archive:
+            member = tarfile.TarInfo("../escape")
+            member.size = 1
+            archive.addfile(member, io.BytesIO(b"x"))
+        variants["unsafe"] = unsafe.getvalue()
+
+        duplicate = io.BytesIO()
+        with tarfile.open(fileobj=duplicate, mode="w") as archive:
+            for payload in (b"one", b"two"):
+                member = tarfile.TarInfo("etc/config")
+                member.size = len(payload)
+                archive.addfile(member, io.BytesIO(payload))
+        variants["duplicate"] = duplicate.getvalue()
+        variants["unsupported-compression"] = create_layer_archive_payload(
+            [("etc/config", b"SAFE=value\n")], compression="bz2"
+        )
+
+        for name, payload in variants.items():
+            with self.subTest(name=name):
+                self.replace_archive(layer_archive_payload=payload)
+                self.assert_bundle_error(
+                    "SENSITIVE_SCAN_BLOCKED", f"out-blocked-{name}"
+                )
+
+    def test_image_scan_resource_bounds_fail_closed(self) -> None:
+        cases = (
+            ("MAX_INNER_MEMBERS", 1, [("a", b"x"), ("b", b"y")]),
+            ("MAX_INNER_MEMBER_BYTES", 3, [("large", b"four")]),
+            ("MAX_EXPANDED_BYTES", 3, [("large", b"four")]),
+            ("MAX_JSON_BYTES", 8, [("data", b'{"safe":"bounded"}\n')]),
+        )
+        for constant, limit, files in cases:
+            with self.subTest(constant=constant):
+                self.replace_archive(layer_files=files)
+                with mock.patch(
+                    f"aisoft_company_delivery.secret_scan.{constant}", limit
+                ):
+                    self.assert_bundle_error(
+                        "SENSITIVE_SCAN_BLOCKED", f"out-bound-{constant.lower()}"
+                    )
 
 
 class CompanyDeliveryRunbookTests(unittest.TestCase):
