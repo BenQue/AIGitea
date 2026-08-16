@@ -15,6 +15,7 @@ import unittest
 from unittest import mock
 
 from aisoft_company_delivery import bundle as bundle_module
+from aisoft_company_delivery import secret_scan as secret_scan_module
 from aisoft_company_delivery.cli import main
 from aisoft_company_delivery.contract import (
     EVIDENCE_VERSION,
@@ -1335,6 +1336,56 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
         self.assertNotIn(sentinel, stderr.getvalue())
         self.assertEqual(list(output.iterdir()), [])
 
+    def test_json_reason_remains_internal_to_normal_cli(self) -> None:
+        sentinel = "never-print-json-reason-value"
+        self.replace_archive(
+            layer_files=[
+                (
+                    "ambiguous-json",
+                    json.dumps(
+                        {"password": sentinel}, separators=(",", ":")
+                    ).encode("utf-8"),
+                )
+            ]
+        )
+        output = self.output_dir("out-json-reason-cli")
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            result = main(
+                [
+                    "build-bundle",
+                    "--repository-root",
+                    str(self.source),
+                    "--source-sha",
+                    self.source_sha,
+                    "--release-root",
+                    str(self.release_root),
+                    "--release-id",
+                    SHA_A,
+                    "--output-directory",
+                    str(output),
+                    "--created-at",
+                    "2026-08-16T08:00:00Z",
+                    "--source-transport",
+                    "approved-bundle",
+                ]
+            )
+        self.assertEqual(result, 2)
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual(
+            json.loads(stderr.getvalue()),
+            {
+                "error_code": "SENSITIVE_SCAN_BLOCKED",
+                "message": "bundle secret scan could not be completed safely",
+                "ok": False,
+            },
+        )
+        self.assertNotIn(sentinel, stderr.getvalue())
+        self.assertNotIn("reason", stderr.getvalue())
+        self.assertNotIn("JSON_CONTEXT", stderr.getvalue())
+        self.assertEqual(list(output.iterdir()), [])
+
     def test_image_scan_resource_bounds_fail_closed(self) -> None:
         cases = (
             ("MAX_INNER_MEMBERS", 1, [("a", b"x"), ("b", b"y")]),
@@ -1394,6 +1445,114 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
         self.assert_bundle_error(
             "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-structured-text"
         )
+
+
+class CompanyDeliveryJsonDiagnosticTests(unittest.TestCase):
+    REASONS = (
+        "JSON_RESOURCE_LIMIT",
+        "JSON_PARSE_UNSAFE",
+        "JSON_SOURCE_ASSIGNMENT_AMBIGUOUS",
+        "JSON_RUNTIME_ENV_INVALID",
+        "JSON_SOURCE_SENSITIVE_AMBIGUOUS",
+        "JSON_GENERIC_SENSITIVE_AMBIGUOUS",
+        "JSON_REASON_UNAVAILABLE",
+    )
+
+    def emit(self, reason: str, sentinel: str) -> CompanyDeliveryError:
+        if reason == "JSON_REASON_UNAVAILABLE":
+            return CompanyDeliveryError(
+                "SENSITIVE_SCAN_BLOCKED",
+                "bundle secret scan could not be completed safely",
+            )
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            if reason == "JSON_RESOURCE_LIMIT":
+                with mock.patch.object(
+                    secret_scan_module, "MAX_JSON_BYTES", 4
+                ):
+                    secret_scan_module._scan_structured_payload(
+                        json.dumps({"safe": sentinel}).encode("utf-8")
+                    )
+            elif reason == "JSON_PARSE_UNSAFE":
+                secret_scan_module._scan_structured_payload(
+                    ('{"' + sentinel + '":}').encode("utf-8"),
+                    strict_candidate=True,
+                )
+            elif reason == "JSON_SOURCE_ASSIGNMENT_AMBIGUOUS":
+                secret_scan_module._scan_structured_payload(
+                    ('{"safe":true,password:"' + sentinel + '"}').encode(
+                        "utf-8"
+                    )
+                )
+            elif reason == "JSON_RUNTIME_ENV_INVALID":
+                secret_scan_module._scan_structured_payload(
+                    json.dumps(
+                        {"config": {"Env": [sentinel]}},
+                        separators=(",", ":"),
+                    ).encode("utf-8"),
+                    runtime_context=True,
+                )
+            elif reason == "JSON_SOURCE_SENSITIVE_AMBIGUOUS":
+                secret_scan_module._scan_structured_payload(
+                    json.dumps(
+                        {"source": {"password": sentinel}},
+                        separators=(",", ":"),
+                    ).encode("utf-8")
+                )
+            elif reason == "JSON_GENERIC_SENSITIVE_AMBIGUOUS":
+                secret_scan_module._scan_structured_payload(
+                    json.dumps(
+                        {"password": sentinel}, separators=(",", ":")
+                    ).encode("utf-8")
+                )
+            else:
+                self.fail("unexpected synthetic reason")
+        return caught.exception
+
+    def test_each_fixed_reason_is_machine_classifiable_without_echo(self) -> None:
+        self.assertEqual(
+            tuple(sorted(secret_scan_module.JSON_CONTEXT_REASON_CODES)),
+            tuple(sorted(self.REASONS)),
+        )
+        for reason in self.REASONS:
+            with self.subTest(reason=reason):
+                sentinel = "never-print-" + reason.lower()
+                error = self.emit(reason, sentinel)
+                self.assertEqual(error.code, "SENSITIVE_SCAN_BLOCKED")
+                self.assertEqual(
+                    error.safe_message,
+                    "bundle secret scan could not be completed safely",
+                )
+                self.assertEqual(
+                    secret_scan_module.json_context_reason_code(error), reason
+                )
+                self.assertNotIn(sentinel, str(error))
+                self.assertNotIn(sentinel, error.safe_message)
+
+    def test_each_fixed_diagnostic_line_has_no_dynamic_input(self) -> None:
+        for reason in self.REASONS:
+            with self.subTest(reason=reason):
+                sentinel = "never-print-" + reason.lower()
+                error = self.emit(reason, sentinel)
+                output = secret_scan_module.format_json_context_diagnostic(
+                    error
+                )
+                self.assertEqual(
+                    output,
+                    "SENSITIVE_SCAN_BLOCKED: top_level=images.tar "
+                    f"classifier=JSON_CONTEXT reason={reason}",
+                )
+                self.assertNotIn(sentinel, output)
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "JSON context diagnostic requires SENSITIVE_SCAN_BLOCKED",
+        ):
+            secret_scan_module.format_json_context_diagnostic(
+                CompanyDeliveryError(
+                    "SENSITIVE_CONTENT",
+                    "bundle contains forbidden sensitive content",
+                )
+            )
 
 
 class CompanyDeliveryRunbookTests(unittest.TestCase):

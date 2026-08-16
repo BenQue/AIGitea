@@ -29,6 +29,17 @@ MAX_JSON_BYTES = 8 * 1024 * 1024
 MAX_INNER_MEMBERS = 200_000
 MAX_INNER_MEMBER_BYTES = 2 * 1024 * 1024 * 1024
 MAX_EXPANDED_BYTES = 8 * 1024 * 1024 * 1024
+JSON_CONTEXT_REASON_CODES = frozenset(
+    {
+        "JSON_RESOURCE_LIMIT",
+        "JSON_PARSE_UNSAFE",
+        "JSON_SOURCE_ASSIGNMENT_AMBIGUOUS",
+        "JSON_RUNTIME_ENV_INVALID",
+        "JSON_SOURCE_SENSITIVE_AMBIGUOUS",
+        "JSON_GENERIC_SENSITIVE_AMBIGUOUS",
+        "JSON_REASON_UNAVAILABLE",
+    }
+)
 IDENTIFIER = r"[A-Za-z_][A-Za-z0-9_]*"
 EXTERNAL_ENV_REFERENCE = re.compile(
     rf"^\$\{{{IDENTIFIER}(?::\?required)?\}}$"
@@ -472,7 +483,7 @@ def _scan_inner_payload(handle: BinaryIO, declared_size: int) -> None:
     if read_bytes <= MAX_JSON_BYTES:
         _scan_structured_payload(bytes(retained))
     elif bytes(retained).lstrip()[:1] in {b"{", b"["}:
-        _blocked()
+        _json_blocked("JSON_RESOURCE_LIMIT")
 
 
 def _scan_structured_payload(
@@ -487,16 +498,16 @@ def _scan_structured_payload(
     if not _looks_like_json_document(stripped):
         return
     if len(payload) > MAX_JSON_BYTES:
-        _blocked()
+        _json_blocked("JSON_RESOURCE_LIMIT")
     try:
         value = json.loads(
             payload.decode("utf-8"), object_pairs_hook=_unique_object
         )
     except UnicodeDecodeError:
-        _blocked()
+        _json_blocked("JSON_PARSE_UNSAFE")
     except json.JSONDecodeError:
         if strict_candidate:
-            _blocked()
+            _json_blocked("JSON_PARSE_UNSAFE")
         text = payload.decode("utf-8")
         normalized = _remove_trailing_json_commas(text)
         if normalized != text:
@@ -507,7 +518,7 @@ def _scan_structured_payload(
             except json.JSONDecodeError:
                 value = None
             except ValueError:
-                _blocked()
+                _json_blocked("JSON_PARSE_UNSAFE")
             else:
                 _scan_json_value(
                     value,
@@ -518,10 +529,10 @@ def _scan_structured_payload(
                 return
         _scan_source_literal_assignments(text)
         if _AUDITED_SOURCE_MARKER.search(text) is None:
-            _blocked()
+            _json_blocked("JSON_PARSE_UNSAFE")
         return
     except ValueError:
-        _blocked()
+        _json_blocked("JSON_PARSE_UNSAFE")
     _scan_json_value(
         value,
         context="runtime" if runtime_context else _json_document_context(value),
@@ -599,7 +610,7 @@ def _scan_source_literal_assignments(value: str) -> None:
     for pattern in _SOURCE_LITERAL_ASSIGNMENTS:
         for match in pattern.finditer(value):
             if not _is_source_example_or_regex(match.group(1)):
-                _blocked()
+                _json_blocked("JSON_SOURCE_ASSIGNMENT_AMBIGUOUS")
 
 
 def _scan_json_value(value: object, *, context: str) -> None:
@@ -614,7 +625,7 @@ def _scan_json_value(value: object, *, context: str) -> None:
             ):
                 for entry in nested:
                     if not isinstance(entry, str) or "=" not in entry:
-                        _blocked()
+                        _json_blocked("JSON_RUNTIME_ENV_INVALID")
                     name, environment_value = entry.split("=", 1)
                     if SENSITIVE_KEY.search(name) and _is_concrete_value(
                         environment_value
@@ -652,7 +663,11 @@ def _scan_json_value(value: object, *, context: str) -> None:
                             )
                         ):
                             _sensitive()
-                    _blocked()
+                    _json_blocked(
+                        "JSON_SOURCE_SENSITIVE_AMBIGUOUS"
+                        if context == "source"
+                        else "JSON_GENERIC_SENSITIVE_AMBIGUOUS"
+                    )
             _scan_json_value(nested, context=child_context)
     elif isinstance(value, list):
         for nested in value:
@@ -984,6 +999,40 @@ def _sensitive() -> None:
     raise CompanyDeliveryError(
         "SENSITIVE_CONTENT", "bundle contains forbidden sensitive content"
     ) from None
+
+
+class _JsonContextBlocked(CompanyDeliveryError):
+    def __init__(self, reason_code: str) -> None:
+        self.json_context_reason_code = reason_code
+        super().__init__(
+            "SENSITIVE_SCAN_BLOCKED",
+            "bundle secret scan could not be completed safely",
+        )
+
+
+def json_context_reason_code(error: CompanyDeliveryError) -> str:
+    reason = getattr(error, "json_context_reason_code", None)
+    if reason in JSON_CONTEXT_REASON_CODES:
+        return reason
+    return "JSON_REASON_UNAVAILABLE"
+
+
+def format_json_context_diagnostic(error: CompanyDeliveryError) -> str:
+    if error.code != "SENSITIVE_SCAN_BLOCKED":
+        raise ValueError(
+            "JSON context diagnostic requires SENSITIVE_SCAN_BLOCKED"
+        )
+    reason = json_context_reason_code(error)
+    return (
+        "SENSITIVE_SCAN_BLOCKED: top_level=images.tar "
+        f"classifier=JSON_CONTEXT reason={reason}"
+    )
+
+
+def _json_blocked(reason_code: str) -> None:
+    if reason_code not in JSON_CONTEXT_REASON_CODES:
+        reason_code = "JSON_REASON_UNAVAILABLE"
+    raise _JsonContextBlocked(reason_code) from None
 
 
 def _blocked() -> None:
