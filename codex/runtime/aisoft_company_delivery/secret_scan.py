@@ -213,15 +213,18 @@ class _HighConfidenceScanner:
     )
     _known_github_prefix = re.compile(rb"\bgh[pousr]_[A-Za-z0-9]{20,}\b")
     _jwt = re.compile(
-        rb"\b[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\."
-        rb"[A-Za-z0-9_-]{16,}\b"
+        rb"\b[A-Za-z0-9_-]{8,4096}\.[A-Za-z0-9_-]{8,16384}\."
+        rb"[A-Za-z0-9_-]{16,16384}\b"
     )
     _credential_url = re.compile(
         rb"(?i)(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://"
-        rb"[^/\s:@]+:(?P<credential>[^/\s]+)@[^/\s]+"
+        rb"[^/\s:@\x00-\x1f\x7f]+:"
+        rb"(?P<credential>[^/\s\x00-\x1f\x7f]+)@"
+        rb"[^/\s\x00-\x1f\x7f]+"
     )
     _authorization = re.compile(
-        rb"(?i)authorization\s*:\s*(?:bearer|token)\s+(\S+)"
+        rb"(?i)authorization\s*:\s*(?:bearer|token)\s+"
+        rb"([^\x00-\x20\x7f\"'<>,;]+)"
     )
 
     def __init__(self) -> None:
@@ -231,8 +234,9 @@ class _HighConfidenceScanner:
         window = self._carry + chunk
         if self._known_github_prefix.search(window) is not None:
             _sensitive()
-        if self._jwt.search(window) is not None:
-            _sensitive()
+        for match in self._jwt.finditer(window):
+            if _looks_like_jwt_material(match.group(0)):
+                _sensitive()
         for match in self._pem.finditer(window):
             body = re.sub(rb"\s+", b"", match.group("body"))
             if len(body) < 40 or len(body) % 4 != 0:
@@ -379,7 +383,9 @@ def _scan_layer(handle: BinaryIO, budget: _ScanBudget) -> None:
                     continue
                 if member.issym() or member.islnk():
                     scanner = _HighConfidenceScanner()
-                    scanner.feed(member.linkname.encode("utf-8", errors="strict"))
+                    scanner.feed(
+                        member.linkname.encode("utf-8", errors="strict")
+                    )
                     scanner.finish()
                     continue
                 if not member.isfile():
@@ -627,6 +633,7 @@ def _json_document_context(value: object) -> str:
             )
         )
         or isinstance(lowered.get("properties"), Mapping)
+        or _looks_like_package_metadata(lowered)
         or _looks_like_source_map(lowered)
         or any(
             marker in lowered
@@ -692,9 +699,19 @@ def _looks_like_source_map(value: Mapping[str, object]) -> bool:
     )
 
 
+def _looks_like_package_metadata(value: Mapping[str, object]) -> bool:
+    lock_version = value.get("lockfileversion")
+    return (
+        isinstance(lock_version, int)
+        and not isinstance(lock_version, bool)
+        and isinstance(value.get("packages"), Mapping)
+    )
+
+
 _KNOWN_TOKEN_TEXT = re.compile(r"^gh[pousr]_[A-Za-z0-9]{20,}$")
 _JWT_TEXT = re.compile(
-    r"^[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{16,}$"
+    r"^[A-Za-z0-9_-]{8,4096}\.[A-Za-z0-9_-]{8,16384}\."
+    r"[A-Za-z0-9_-]{16,16384}$"
 )
 _SOURCE_PLACEHOLDER_TEXT = re.compile(
     rf"^(?:\${IDENTIFIER}|\$\{{{IDENTIFIER}(?::\?required)?\}}|"
@@ -733,7 +750,7 @@ def _looks_like_credential_material(value: str | bytes) -> bool:
     if _KNOWN_TOKEN_TEXT.fullmatch(normalized) is not None:
         return True
     if _JWT_TEXT.fullmatch(normalized) is not None:
-        return True
+        return _looks_like_jwt_material(normalized)
     if re.fullmatch(r"[A-Fa-f0-9]{32,}", normalized):
         return len(set(normalized.lower())) >= 8
     if len(normalized) < 20 or len(set(normalized)) < 10:
@@ -755,6 +772,46 @@ def _looks_like_credential_material(value: str | bytes) -> bool:
         for count in counts.values()
     )
     return entropy >= 3.5
+
+
+def _looks_like_jwt_material(value: str | bytes) -> bool:
+    if isinstance(value, str):
+        try:
+            payload = value.encode("ascii")
+        except UnicodeEncodeError:
+            return False
+    else:
+        payload = value
+    parts = payload.split(b".")
+    if len(parts) != 3:
+        return False
+    decoded: list[object] = []
+    for part in parts[:2]:
+        padding = b"=" * (-len(part) % 4)
+        try:
+            raw = base64.b64decode(
+                part + padding,
+                altchars=b"-_",
+                validate=True,
+            )
+            decoded.append(json.loads(raw.decode("utf-8")))
+        except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError):
+            return False
+    if not all(isinstance(item, Mapping) for item in decoded):
+        return False
+    algorithm = decoded[0].get("alg")
+    if not isinstance(algorithm, str) or not algorithm.strip():
+        return False
+    signature = parts[2]
+    try:
+        signature_bytes = base64.b64decode(
+            signature + b"=" * (-len(signature) % 4),
+            altchars=b"-_",
+            validate=True,
+        )
+    except binascii.Error:
+        return False
+    return len(signature_bytes) >= 16
 
 
 def _is_runtime_sensitive_key(value: str) -> bool:

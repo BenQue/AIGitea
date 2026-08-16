@@ -1092,7 +1092,8 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
                     "bin/source-signatures",
                     b"\x00-----BEGIN PRIVATE KEY-----\x00"
                     b"Authorization: Bearer example-placeholder\x00"
-                    b"postgres://example:placeholder@localhost/db\x00",
+                    b"postgres://example:placeholder@localhost/db\x00"
+                    b"abcdefgh.ijklmnop.qrstuvwxyz012345\x00",
                 )
             ]
         )
@@ -1153,6 +1154,8 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
             b'"authorization":"Bearer example-placeholder",'
             b'"database_url":"postgres://example:placeholder@localhost/db",'
             b'"password":"example-placeholder"}}\n',
+            b'{"name":"fixture","lockfileVersion":3,"packages":{'
+            b'"":{"password":"example-placeholder"}}}\n',
         )
         self.replace_archive(
             layer_files=[
