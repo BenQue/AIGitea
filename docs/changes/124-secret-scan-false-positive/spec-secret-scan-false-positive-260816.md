@@ -86,6 +86,23 @@ reason code 必须是无参数常量；不得拼接或伴随 OCI 内部 path、J
 `SENSITIVE_SCAN_BLOCKED`。它不得形成 release/image/path/digest 特判，也不得改变 runtime concrete、known
 token/JWT、有效 PEM、真实 userinfo URL 或完整 Authorization credential 的拒绝语义。
 
+当且仅当一级 reason 为 `JSON_SOURCE_SENSITIVE_AMBIGUOUS`，人工批准一次第二级 `source_role` 诊断。固定
+集合恰为 `SCHEMA`、`SOURCE_MAP`、`PACKAGE_METADATA`、`I18N`、`EXAMPLE`、`OTHER`。role 是无参数常量，
+不得附带或编码 key、JSON path、OCI inner path、value、snippet、offset、length、hash、count、文件名或其它
+输入派生文本；普通 `build-bundle` CLI 仍不得输出 reason 或 role。
+
+role 只从 JSON 内容结构判定，不读取或匹配 filename/path/image/release identity：schema markers/properties 为
+`SCHEMA`；完整 source-map shape 为 `SOURCE_MAP`；现有 package/lock metadata shape 为
+`PACKAGE_METADATA`；locale/messages/translations/i18n markers 为 `I18N`；显式 example/examples 或
+`kind=source` + structured source、sourcecode/sourcescontent markers 为 `EXAMPLE`。多个角色同时成立、只有
+宽泛 source 标记或无法唯一归类时必须为 `OTHER`。任何未附带有效 role 的 source ambiguity 也折叠为
+`OTHER`。
+
+`source_role` 本身不提供 PASS。只有该角色允许形成与 release 无关的通用结构规则，并以正反 synthetic
+fixtures 证明安全 source payload 通过，同时同结构 known token/JWT、有效 PEM、真实 userinfo URL、完整
+Authorization credential 与显式 runtime concrete credential 继续拒绝，才可修复。`OTHER`、角色冲突、
+无法分类或实际 credential 信号必须保持 `SENSITIVE_SCAN_BLOCKED`/`SENSITIVE_CONTENT` 并停止。
+
 ### 2. Compose 外部引用与具体值
 
 `compose.model.json` 继续以 `aisoft_release.security` 和 `validate_compose_model` 为唯一语义合同。
@@ -197,6 +214,9 @@ image digest 或 release-specific allowlist 均违反本 Spec。
 - [ ] **AC-9 Fixed diagnostic privacy**：上述七个 reason code 均有 synthetic fixture；exception、普通 CLI 和
   显式 diagnostic output 只能出现 fixed code/message/top-level/classifier/reason，不能包含输入 sentinel 或任何
   path/key/value/snippet/length/offset/hash/count；真实诊断只运行一次。
+- [ ] **AC-10 Fixed source-role privacy**：六个 `source_role` 均有成对 synthetic fixture；role 只在一级 reason
+  为 `JSON_SOURCE_SENSITIVE_AMBIGUOUS` 时出现，冲突/未知折叠为 `OTHER`；普通 CLI 不输出 role，唯一真实
+  二级诊断只输出 fixed code/top-level/classifier/reason/source_role。
 
 ## 接口、数据与兼容性影响
 

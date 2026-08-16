@@ -36,9 +36,9 @@ updated: 2026-08-16
   `b822ba2`、`28e4be4`、`44e698d`、`137fa9b`、`3ef381c`（前序 T01–T04 历史保持不变）；当前无
   push 或 PR。
 - Exact external release：`006d0c43cafebff058889e3338d1e8bdcc8b661c`；约 412MB bytes 不在仓库中。
-- 当前阶段：`BLOCKED / NEEDS_HUMAN_DECISION`。七个 fixed reason 及 synthetic no-echo tests 已完成；唯一
-  exact-release 诊断返回 `JSON_SOURCE_SENSITIVE_AMBIGUOUS`。该枚举表示 source context 仍无法可靠分类，
-  因此按批准合同立即停止，不实施任何放宽或再次真实扫描。
+- 当前阶段：`APPROVED / T04 FIXED SOURCE-ROLE DIAGNOSTIC`。一级 fixed reason 为
+  `JSON_SOURCE_SENSITIVE_AMBIGUOUS`；人工现批准六个无参数 source role、synthetic no-echo tests 与唯一一次
+  real 二级诊断。该批准不允许输出任何输入派生内容或把 role 自动解释为安全。
 
 ## 执行结果
 
@@ -76,6 +76,7 @@ updated: 2026-08-16
 | fixed-reason synthetic RED → GREEN | PASS | exact 2-test class 先因缺少固定枚举 API 产生 8 errors，后 2/2 PASS；普通 CLI no-reason test PASS；focused ArchiveScanner/Bundle/ReleaseTransport 42/42 PASS；commit `3ef381c` |
 | unique exact-release fixed diagnostic | BLOCKED | 仅输出 `top_level=images.tar`、`classifier=JSON_CONTEXT`、`reason=JSON_SOURCE_SENSITIVE_AMBIGUOUS` 与 fixed error code；无 inner path/key/value/snippet/length/offset/hash/count |
 | diagnostic cleanup/input revalidation | PASS | diagnostic temp output 已清理；candidate tree clean；artifact-only 再验证 `docker-release/v2`、`docker_calls=0`、`target_facts=NOT_READ` |
+| fixed source-role diagnostic approval | APPROVED / NOT RUN | role allowlist 固定为 `SCHEMA`、`SOURCE_MAP`、`PACKAGE_METADATA`、`I18N`、`EXAMPLE`、`OTHER`；实现/tests/唯一 real 二级诊断尚待执行 |
 | company/live checks | NOT RUN | 未连接公司内网，未访问两台公司 VM，未部署或读取 Secret/DB/target facts |
 
 ## Exact release 证据
@@ -103,6 +104,7 @@ updated: 2026-08-16
 | AC-7 | PASS（fake） | operator `1.0.1`、handoff V1、repeat build 与 verify-handoff 兼容通过 |
 | AC-8 | PARTIAL | focused/fake/diff、harness guard 与 T04 cleanup 已通过；full runtime、smoke、ShellCheck、review、CI 因 AC-1 阻塞未执行 |
 | AC-9 | PASS | 七个 fixed reason 均有成对 synthetic no-echo assertions；普通 CLI 不输出 reason；唯一 real diagnostic 只含批准的四个固定字段 |
+| AC-10 | NOT RUN | 六个 fixed source role 的成对 synthetic no-echo tests 与唯一 real 二级诊断尚待执行 |
 
 ## 重复部署
 
@@ -129,9 +131,9 @@ updated: 2026-08-16
 ## 遗留风险与未完成项
 
 - 当前 implementation/fake tests 不能写成真实 Stage 00 或公司执行 PASS。
-- 唯一 fixed-reason real diagnostic 已返回 `JSON_SOURCE_SENSITIVE_AMBIGUOUS`，明确仍属 ambiguity；当前
-  已回到 `NEEDS_HUMAN_DECISION`。不得再次扫描、读取/输出内容、扩大 source/example 分类，或使用
-  path/digest/release allowlist。
+- 一级 fixed-reason real diagnostic 已返回 `JSON_SOURCE_SENSITIVE_AMBIGUOUS`；人工现只恢复一次 fixed
+  source-role 二级诊断。若 role 为 `OTHER`、冲突、仍无法支持通用规则或出现实际 credential，必须立即回到
+  `NEEDS_HUMAN_DECISION`。
 - 任何需要读取命中值、增加 release/image/path broad allowlist、重建 release 或访问公司环境的方案都超出
   Spec，必须停止并请求新的人工决策。
 - 最终 PR、required CI、merge 与公司部署均未发生；human merge 仍是未来唯一代码交付硬闸门。
