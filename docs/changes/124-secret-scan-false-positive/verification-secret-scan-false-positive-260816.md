@@ -35,9 +35,9 @@ updated: 2026-08-16
 gate，也不代表已确认真实凭据。
 
 active verification 只要求 exact artifact identity/checksum/graph、结构感知的顶层文本 no-secret、
-deterministic handoff 和 zero Docker/target/network access。T04 已在 clean candidate `699dbbe...` 上 PASS；
-T05 的本地 full runtime 与 smoke 已 PASS。两轴 review 的初次 findings 已修复，收口复核、push、PR、CI 尚待
-本文件更新后执行；merge 与公司部署不在授权内。
+deterministic handoff 和 zero Docker/target/network access。最终 bundled operator bytes 已在 clean candidate
+`0d48c06...` 上完成 T04；T05 的本地 full runtime 与 smoke 已 PASS。两轴 review 的 findings 已修复，收口
+复核、push、PR、CI 尚待本文件更新后执行；merge 与公司部署不在授权内。
 
 ### Active RAC 结果
 
@@ -45,19 +45,22 @@ T05 的本地 full runtime 与 smoke 已 PASS。两轴 review 的初次 findings
 |---|---|---|
 | RAC-1 exact real handoff | PASS | exact `006d...` artifact-only PASS；同一 created-at 双构建 checksum 相同；双 verify-handoff PASS；输入 fingerprint 不变；临时输出清理 PASS |
 | RAC-2 opaque archive + artifact tamper | PASS | fake verified image 内部 credential-like fixture 可 opaque 搬运；既有 checksum/graph tamper 仍 fail closed |
-| RAC-3 top-level no-secret | PASS | Bundle 13/13：顶层 sentinel/JWT 阻断且 no-echo；孤立 PEM header、示例 Authorization 与精确 external references 通过 |
+| RAC-3 top-level no-secret | PASS | Bundle 14/14：顶层 sentinel/JWT 阻断且 no-echo；孤立 PEM header、示例 Authorization 与精确 external references 通过；超过 8 MiB 的非 archive payload fail closed |
 | RAC-4 local-only | PASS | `docker_calls=0`、`target_facts=NOT_READ`；真实 release 只读；未访问 Docker、网络、target 或公司环境 |
-| RAC-5 full regression/PR/CI | PARTIAL | runtime 412/412、smoke PASS；最终 review、PR 和 exact-head CI 尚待执行 |
+| RAC-5 full regression/PR/CI | PARTIAL | runtime 413/413、smoke PASS；最终 review、PR 和 exact-head CI 尚待执行 |
 
 ### Active T04/T05 evidence
 
 | Check | Result | Fixed evidence |
 |---|---|---|
-| focused Bundle + ArchiveScanner + ReleaseTransport | PASS | `Ran 43 tests ... OK` |
-| exact real-release harness | PASS | source `699dbbe0546ad1651368507a49305cb846027fcc`；artifact-only `docker-release/v2`；deterministic archive SHA256 `f5012ca407b36df3567d7ce3ed55457f1386e0efab63ca10d9db54f16b1f1573`；verify `2/2`；cleanup PASS |
+| focused Bundle + ArchiveScanner + ReleaseTransport | PASS | `Ran 44 tests ... OK` |
+| exact real-release harness | PASS | bundled operator source `0d48c0620ca296a748d0d4b566bd709de1c7b103`；artifact-only `docker-release/v2`；deterministic archive SHA256 `c04a0bcdd7e76b44ce3d4129607dd7c1bff5ca58b1b6a18d3740f3ccadad0f1d`；verify `2/2`；cleanup PASS |
 | exact release input immutability | PASS | before/after fingerprint `4d997e37c4c0197bd0f24af1d7193b3286c005f7d27211161b7a4774dfe96e0f`；unchanged PASS |
-| full runtime | PASS | `Ran 412 tests ... OK` |
+| full runtime | PASS | `Ran 413 tests ... OK` |
 | full smoke | PASS | `bash codex/tests/smoke.sh`；ShellCheck、JSON、runtime 与 static smoke 全部 PASS |
+| shell/JSON/resolver/diff | PASS | changed shell `bash -n` + ShellCheck；company JSON `jq empty`；mapped resolver exact；`git diff --check` PASS |
+| no-secret/scope review | PASS | 19 个 changed non-fixture payload 经 active scanner PASS；test 中 credential-like literals 均为 deterministic negative fixtures；412MB release 未进入 worktree/index |
+| two-axis code review | PASS | Spec 轴最终 no findings；Standards 轴 findings 已修复，optional deep scanner 仅留非阻塞维护 judgement |
 | company/live operations | NOT RUN | 不生成 Stage evidence；company Stage 00–110 均未运行；未连接公司内网或读取 Secret/DB/target facts |
 
 ## 环境与版本
@@ -66,10 +69,12 @@ T05 的本地 full runtime 与 smoke 已 PASS。两轴 review 的初次 findings
   `7950d119ab5c949d914de172dac8606369483cd4`（#120 / PR #123 merge source）。
 - Worktree：`/private/tmp/issue-124-secret-scan-false-positive`。
 - Branch：`change/124-secret-scan-false-positive`；opaque revision commits 为 `a9cd703`、`d9de9c6`、
-  `0f62837`、`13733d8`、`f2c1834`、`699dbbe`；更早 T01–T04 深度扫描 commits 保留作审计。当前无 push 或 PR。
+  `0f62837`、`13733d8`、`f2c1834`、`699dbbe`、`83b2edb`、`0d48c06`；更早 T01–T04 深度扫描 commits
+  保留作审计。当前无 push 或 PR。
 - Exact external release：`006d0c43cafebff058889e3338d1e8bdcc8b661c`；约 412MB bytes 不在仓库中。
 - 当前阶段：`approved / T05 in progress`。旧 `JSON_SOURCE_SENSITIVE_AMBIGUOUS / PACKAGE_METADATA` 与
-  `SENSITIVE_CONTENT` 是已被最新人工 opaque-artifact 风险接受覆盖的历史诊断，不再阻断 Stage 00。
+  `SENSITIVE_CONTENT` 是已被最新人工 opaque-artifact 风险接受覆盖的历史诊断，不再阻断 pre-Stage 00 local
+  regression；company Stage 00 仍为 `NOT RUN`。
 
 ## 历史执行结果（早期深度扫描阶段，仅供审计）
 
@@ -173,4 +178,4 @@ T05 的本地 full runtime 与 smoke 已 PASS。两轴 review 的初次 findings
 - `images.tar` 内部未被扫描，可能包含 credential-like 或实际凭据材料；这是用户明确接受并交由 NewEmaint
   release owner 与公司人工授权承担的风险，不得把 bundle PASS 写成 image 无 Secret。
 - 最终 review、唯一 PR 与 exact-head required CI 尚待完成；human merge 仍是唯一代码交付硬闸门。
-- 公司 Stage 10–110、Secret/DB/Nginx、service/timer、test/prod deploy 均保持 `NOT RUN`。
+- 公司 Stage 00–110、Secret/DB/Nginx、service/timer、test/prod deploy 均保持 `NOT RUN`。

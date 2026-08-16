@@ -55,7 +55,8 @@ release owner 打包进去的 credential-like 或实际凭据材料。该内容�
 人工授权承担，不能被表述成平台已证明 image 无 Secret。
 
 本 Change 继续完成本地 deterministic handoff、唯一 PR 和 required CI，停在人工合并闸门。正式可搬运包须在
-PR 人工合并后从 protected `main` 的 exact source SHA 重新生成；公司 Stage 10–110 仍为 `NOT RUN`。
+PR 人工合并后从 protected `main` 的 exact source SHA 重新生成；pre-Stage 00 local exact-release regression
+不生成 Stage evidence，公司 Stage 00–110 仍为 `NOT RUN`。
 
 ## 问题/需求总结
 
@@ -111,9 +112,11 @@ override_reason: ''
   其他 Issue 或标签定义。
 - fresh origin/main 固定为 7950d119ab5c949d914de172dac8606369483cd4，即 #120 / PR #123 merge source。
 - 用户提供的 exact release 006d0c43cafebff058889e3338d1e8bdcc8b661c 已通过 docker-release/v2 artifact-only verification，docker_calls=0 且 target_facts=NOT_READ。
-- 现有 bundle._scan_bundle_payloads 对所有 payload（包括 images.tar）按 Latin-1 原始字节套用 contains_sensitive_text；_mask_source_placeholders 仅覆盖简单变量引用。
+- 初始基线的 bundle._scan_bundle_payloads 对所有 payload（包括 images.tar）按 Latin-1 原始字节套用 contains_sensitive_text；_mask_source_placeholders 仅覆盖简单变量引用。
 - docker-release 已有 strict normalized Compose external-reference validator，以及 Docker/OCI manifest、descriptor digest、member/path/type 的 artifact-only graph 验证 seam，可作为格式化扫描的信任输入。
-- 真实 build-bundle 返回固定 SENSITIVE_CONTENT 并清理输出；Stage 00 local preparation 为 BLOCKED，公司 Stage 10+ 全部 NOT RUN。
+- 初始真实 build-bundle 返回固定 SENSITIVE_CONTENT 并清理输出；该历史阻塞现已被 opaque artifact 决定
+  覆盖。当前只有 pre-Stage 00 local exact-release regression PASS；不生成 Stage evidence，公司 Stage 00–110
+  全部 NOT RUN。
 
 ### 历史实施记录（已被最新人工简化决定覆盖）
 

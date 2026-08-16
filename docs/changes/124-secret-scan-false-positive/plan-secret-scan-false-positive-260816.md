@@ -175,8 +175,9 @@ Gitea live config 或当前治理文件，立即标记 `NEEDS_HUMAN_DECISION`，
 
 ## 部署与回滚
 
-本 Change 不部署。T04 仅在本机从 repo-external exact bytes 生成并删除临时 handoff，用于 Stage 00 local
-preparation regression；它不是 test/prod deployment。
+本 Change 不部署。T04 仅在本机从 repo-external exact bytes 生成并删除临时 handoff，用于 pre-Stage 00
+local exact-release regression；它不生成 Stage evidence，也不是 test/prod deployment。
 
 source 回滚为单 PR revert；operator `1.0.0` bundle 保持不可变。任何 scanner/real fixture 失败都删除临时
-输出并把 Stage 00 保持 `BLOCKED`；公司 Stage 10–110、服务/timer、数据库和 production 始终 `NOT RUN`。
+输出并把 pre-Stage 00 regression 记为 `BLOCKED`；公司 Stage 00–110、服务/timer、数据库和 production
+始终 `NOT RUN`。

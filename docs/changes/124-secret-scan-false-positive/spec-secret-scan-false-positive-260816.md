@@ -74,8 +74,8 @@ updated: 2026-08-16
 ### 回滚与 NOT RUN
 
 artifact identity、顶层 no-secret 或 deterministic handoff 失败仍 fail closed 并清理部分输出。source 回滚为
-单 PR revert。本 Change 不部署；公司两台 VM、Gitea/Runner/Registry、backup/restore、DB、Nginx、
-service/timer 与 Stage 10–110 全部 `NOT RUN`。
+单 PR revert。本 Change 不部署；pre-Stage 00 local exact-release regression 不生成 Stage evidence；公司两台
+VM、Gitea/Runner/Registry、backup/restore、DB、Nginx、service/timer 与 Stage 00–110 全部 `NOT RUN`。
 
 ## 历史目标与原因（已被人工简化合同覆盖）
 
