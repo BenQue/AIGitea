@@ -33,9 +33,9 @@ documents:
   verification: verification-company-delivery-pilot-260816.md
 depends_on:
   - 121
-status: approved
+status: pr-open
 branch: change/120-company-delivery-pilot
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/123
 created: 2026-08-16
 updated: 2026-08-16
 ---
