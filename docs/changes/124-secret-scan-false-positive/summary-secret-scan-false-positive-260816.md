@@ -103,4 +103,7 @@ override_reason: ''
   无 path/digest/release allowlist。人工现进一步批准结构感知分类：任意位置仅对 known token/JWT、完整有效
   PEM、含真实 userinfo 的 credential URL、完整具体 Authorization credential block 阻断；source/doc/schema/
   test-fixture 中的示例、regex 与不完整 header 不作为实际凭据，无法可靠分类仍 `SENSITIVE_SCAN_BLOCKED`。
-  Development Loop 可恢复 T04/T05；批准不包含 merge 或部署。
+  第二版 structure-aware 实现与 fake red/green 已完成，但 exact release 的三次同因重放均在首次 build
+  固定 `SENSITIVE_SCAN_BLOCKED`，第二次 build、checksum equality 与双 `verify-handoff` 均未运行。按已批准
+  的失败阈值，当前状态为 `BLOCKED / NEEDS_HUMAN_DECISION`；不得继续放宽、探查真实内容、push、创建 PR、
+  merge 或部署。

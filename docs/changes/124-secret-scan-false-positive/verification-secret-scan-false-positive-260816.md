@@ -32,13 +32,12 @@ updated: 2026-08-16
 - Planning baseline：freshly fetched `origin/main` =
   `7950d119ab5c949d914de172dac8606369483cd4`（#120 / PR #123 merge source）。
 - Worktree：`/private/tmp/issue-124-secret-scan-false-positive`。
-- Branch：`change/124-secret-scan-false-positive`；commits 为 `9b780e0`、`42087b2`、`fa0596c`、
-  `0bc3c1d`、`bd35270`、`8402590`、`647b781`、`fda8259`、`9abdb25`；当前无 push 或 PR。
+- Branch：`change/124-secret-scan-false-positive`；本轮新增 commits 为 `0d6e113`、`28bd268`、
+  `b822ba2`、`28e4be4`（前序 T01–T04 历史保持不变）；当前无 push 或 PR。
 - Exact external release：`006d0c43cafebff058889e3338d1e8bdcc8b661c`；约 412MB bytes 不在仓库中。
-- 当前阶段：`APPROVED / T04 IMPLEMENTATION RESUMED`。此前两个 clean candidate 均正确 fail closed；人工
-  现进一步批准 structure-aware 语义：runtime concrete 严格阻断，generic stream 只把完整可验证 credential
-  material 判为 `SENSITIVE_CONTENT`，source/doc/schema/test-fixture 示例、regex、不完整 header 不作为实际
-  凭据，歧义仍 blocked。新的 red/green 与 exact-release 结果尚待本轮写入。
+- 当前阶段：`BLOCKED / NEEDS_HUMAN_DECISION`。structure-aware 语义及 fake red/green 已实施，但 exact
+  release 三次同因重放均在首次 build 固定 `SENSITIVE_SCAN_BLOCKED`；按人工设定阈值停止，不继续读取、
+  输出、猜测真实内容，也不扩大分类规则。
 
 ## 执行结果
 
@@ -65,16 +64,23 @@ updated: 2026-08-16
 | T04 material-aware exact red → green | PASS（fake） | 同一 3-test selector 先 `FAILED (errors=3)`，后 `Ran 3 tests ... OK`；完整 PEM/known token/JWT/high-entropy/runtime 拒绝，source/example 通过，ambiguity blocked |
 | T04 focused regression | PASS（fake） | ArchiveScanner + Bundle + ReleaseTransport `Ran 39 tests ... OK`；`git diff --check` PASS |
 | real `006d...` post-decision replay | BLOCKED | clean `9abdb25...` artifact-only PASS；首次 build 对 `images.tar` 固定 `SENSITIVE_CONTENT`；第二次 build/双 verify 未运行；cleanup PASS |
+| revised contract docs | PASS | `0d6e113` 记录完整 PEM/known token/JWT/credential URL/Authorization、source example 与 ambiguity 边界；未加入 path/digest/release allowlist |
+| revised structure-aware red → green | PASS（fake） | exact selector 先 `FAILED`，后 4 tests PASS；最新 ArchiveScanner + Bundle + ReleaseTransport `Ran 39 tests ... OK`；commits `28bd268`、`28e4be4` |
+| input immutability harness guard | PASS（fake/static） | `b822ba2` 增加 build 前后全输入指纹比较及 post-build artifact revalidation；默认 `NOT RUN`、guard test 与 `bash -n` PASS |
+| real replay attempt 1 | BLOCKED | clean `b822ba2...`：artifact-only boundary PASS；首次 build 固定 `SENSITIVE_SCAN_BLOCKED`；第二次 build/双 verify 未运行；cleanup PASS |
+| sanitized classifier replay | BLOCKED | 仅记录 `top_level=images.tar`、`classifier=JSON_CONTEXT` 与固定 code；未记录 inner path、value、snippet 或 offset；cleanup PASS |
+| real replay attempt 3 / threshold | BLOCKED | clean `28e4be4...`：首次 build 再次固定 `SENSITIVE_SCAN_BLOCKED`；第二次 build/双 verify 未运行；cleanup PASS；触发同因三次人工升级门 |
+| post-failure artifact revalidation | PASS | exact release 再次 `ok=true`、`contract_version=docker-release/v2`、`docker_calls=0`、`target_facts=NOT_READ`；临时输出计数 0，candidate tree clean |
 | company/live checks | NOT RUN | 未连接公司内网，未访问两台公司 VM，未部署或读取 Secret/DB/target facts |
 
-## 已有 exact release 证据（本阶段不重放）
+## Exact release 证据
 
 | Layer | Result | Boundary |
 |---|---|---|
 | DockerLab 原位六文件 ↔ 本机临时副本 SHA256 | PASS（用户提供） | 只记录逐项一致结论，不记录命中值 |
 | artifact-only verifier | PASS（用户提供） | `ok=true`、`contract_version=docker-release/v2`、`docker_calls=0`、`target_facts=NOT_READ` |
 | baseline `build-bundle` | BLOCKED（用户提供） | artifact verification 后固定 `SENSITIVE_CONTENT`；输出目录已清理 |
-| candidate `build-bundle` | BLOCKED（本次重放） | clean `9abdb25...` artifact-only PASS；`images.tar` 仍固定 `SENSITIVE_CONTENT`；没有读取、记录或猜测命中值 |
+| candidate `build-bundle` | BLOCKED（本次重放） | clean `28e4be4...` artifact-only PASS；`images.tar` 固定 `SENSITIVE_SCAN_BLOCKED`；没有读取、记录或猜测命中值 |
 | Stage 00 local preparation | BLOCKED | 尚无 exact handoff bundle |
 | company Stage 10–110 | NOT RUN | 必须等待 Stage 00 PASS 及后续逐阶段人工批准 |
 
@@ -82,14 +88,14 @@ updated: 2026-08-16
 
 | AC | Result | 当前证据 / 下一 gate |
 |---|---|---|
-| AC-1 | BLOCKED | clean `9abdb25...` 首次 build 按获批安全合同 fail closed；第二次 build/checksum equality/双 verify 正确地未继续 |
+| AC-1 | BLOCKED | clean `28e4be4...` 首次 build 按获批安全合同 fail closed；同因三次阈值已触发；第二次 build/checksum equality/双 verify 正确地未继续 |
 | AC-2 | PASS | exact T01 red/green 覆盖 strict references 与 default/alternate/拼接/command substitution |
 | AC-3 | PASS（fake） | sentinel、fixed code、CLI no-echo 与完整 output cleanup 通过 |
 | AC-4 | PASS（fake） | canonical verified graph result驱动 config/metadata/layer/binary streaming；Docker 0 |
 | AC-5 | PASS（fake） | config Env、layer config、cross-chunk binary、unsafe/duplicate/compression/resource bounds 均覆盖 |
 | AC-6 | PASS（fake/review） | schema/source/doc/binary safe fixtures 通过；未增加 release/image/path/binary allowlist |
 | AC-7 | PASS（fake） | operator `1.0.1`、handoff V1、repeat build 与 verify-handoff 兼容通过 |
-| AC-8 | PARTIAL | focused/fake/diff 与 T04 cleanup 已通过；full runtime、smoke、ShellCheck、review、CI 因 AC-1 阻塞未执行 |
+| AC-8 | PARTIAL | focused/fake/diff、harness guard 与 T04 cleanup 已通过；full runtime、smoke、ShellCheck、review、CI 因 AC-1 阻塞未执行 |
 
 ## 重复部署
 
@@ -116,9 +122,9 @@ updated: 2026-08-16
 ## 遗留风险与未完成项
 
 - 当前 implementation/fake tests 不能写成真实 Stage 00 或公司执行 PASS。
-- real fixture 已按授权从两个 clean candidate 重放并 fail closed；人工现已批准第二版 structure-aware 合同。
-  当前只能在不读取/输出命中值、不使用 path/digest/release allowlist 的前提下新增成对 fake tests 并重放
-  exact bytes；若仍无法可靠分类，必须保持 `SENSITIVE_SCAN_BLOCKED` 并再次停止。
+- real fixture 在第二版 structure-aware 合同下已达到同因三次 `SENSITIVE_SCAN_BLOCKED` 阈值；当前必须
+  `NEEDS_HUMAN_DECISION`。不得继续读取/输出命中值、扩大 source/example 分类、使用 path/digest/release
+  allowlist 或再次重放 exact bytes，除非取得新的明确安全决策。
 - 任何需要读取命中值、增加 release/image/path broad allowlist、重建 release 或访问公司环境的方案都超出
   Spec，必须停止并请求新的人工决策。
 - 最终 PR、required CI、merge 与公司部署均未发生；human merge 仍是未来唯一代码交付硬闸门。

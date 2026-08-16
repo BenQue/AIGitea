@@ -34,11 +34,14 @@ updated: 2026-08-16
 | T01 | Compose/text scanner 端到端切片：严格 external-reference lexer、concrete-value/no-echo 结果与 fake bundle 正负测试（AC-2、AC-3、AC-6） | - | implemented `9b780e0` |
 | T02 | image archive 端到端切片：复用 verified Docker/OCI graph、有界 config/layer/binary scan 与 archive 负向 fixtures（AC-4、AC-5、AC-6） | - | implemented `42087b2` |
 | T03 | builder 集成切片：typed dispatcher、固定错误 code、清理/确定性、operator `1.0.1` 与文档兼容性（AC-3、AC-7） | T01、T02 | implemented `fa0596c` |
-| T04 | exact `006d...` repo-external integration：material-aware scanner 修订、artifact-only → 双构建 → checksum equality → verify-handoff；不提交 412MB bytes（AC-1） | T03 | in progress；第二版结构感知合同已获人工批准 |
-| T05 | 全量回归、静态/安全审查、mapped verification 与唯一 PR 人工合并交接（AC-8） | T04 | pending |
+| T04 | exact `006d...` repo-external integration：material-aware scanner 修订、artifact-only → 双构建 → checksum equality → verify-handoff；不提交 412MB bytes（AC-1） | T03 | **BLOCKED**；结构感知实现的三次同因真实重放均在首次 build 固定 `SENSITIVE_SCAN_BLOCKED`，已触发人工升级门 |
+| T05 | 全量回归、静态/安全审查、mapped verification 与唯一 PR 人工合并交接（AC-8） | T04 | **NOT RUN / blocked by T04** |
 
 依赖图：`T01 ─┐`、`T02 ─┴→ T03 → T04 → T05`。T01/T02 是两个独立 frontier；任何 ticket 遇到
 no-echo、scope、format 或真实 bytes 冲突都停止，不跳到下游。
+
+当前停止点：T04 已达到同因三次失败阈值。不得继续探查真实命中内容、扩大 source/example 规则或绕过
+`SENSITIVE_SCAN_BLOCKED`；恢复需要新的、明确的人工安全决策。T05、push、PR 与 CI 均未开始。
 
 ## Ticket details
 
