@@ -1100,7 +1100,9 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
                     "bin/source-signatures",
                     b"\x00-----BEGIN PRIVATE KEY-----\x00"
                     b"Authorization: Bearer example-placeholder\x00"
+                    b"Authorization: Basic\x00"
                     b"postgres://example:placeholder@localhost/db\x00"
+                    b"postgres://localhost/example\x00"
                     b"abcdefgh.ijklmnop.qrstuvwxyz012345\x00",
                 ),
                 (
@@ -1124,8 +1126,16 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
                 b"Authorization: Bearer concrete-value",
             ),
             (
+                "authorization-basic-block",
+                b"Authorization: Basic Y29uY3JldGU6dmFsdWU=",
+            ),
+            (
                 "credential-url-userinfo",
                 b"postgres://service:concrete-value@db.invalid/app",
+            ),
+            (
+                "https-credential-url-userinfo",
+                b"https://service:concrete-value@example.invalid/app",
             ),
             (
                 "jwt-material",
@@ -1174,8 +1184,8 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
             b'{"locale":"en","messages":{"password":"Password"}}\n',
             b'{"kind":"source",'
             b'"source":{'
-            b'"authorization":"Bearer example-placeholder",'
-            b'"database_url":"postgres://example:placeholder@localhost/db",'
+            b'"authorization":"Basic",'
+            b'"database_url":"postgres://localhost/example",'
             b'"password":"^(?=.*[A-Z])(?=.*\\\\d).{12,}$"}}\n',
             b'{"name":"fixture","lockfileVersion":3,"packages":{'
             b'"":{"password":"example-placeholder"}}}\n',
@@ -1240,9 +1250,14 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
                 b'"authorization":"Bearer concrete-value"}}\n',
             ),
             (
+                "source-basic-authorization",
+                b'{"kind":"source","source":{'
+                b'"authorization":"Basic Y29uY3JldGU6dmFsdWU="}}\n',
+            ),
+            (
                 "source-userinfo",
                 b'{"kind":"source","source":{'
-                b'"database_url":"postgres://service:concrete-value@db.invalid/app"}}\n',
+                b'"database_url":"https://service:concrete-value@example.invalid/app"}}\n',
             ),
         ):
             with self.subTest(source_material=name):

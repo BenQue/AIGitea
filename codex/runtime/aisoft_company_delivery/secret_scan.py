@@ -215,14 +215,14 @@ class _HighConfidenceScanner:
         rb"[A-Za-z0-9_-]{16,16384}\b"
     )
     _credential_url = re.compile(
-        rb"(?i)(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://"
+        rb"(?i)(?:[a-z][a-z0-9+.-]*:)*[a-z][a-z0-9+.-]*://"
         rb"(?P<user>[^/\s:@\x00-\x1f\x7f]+):"
-        rb"(?P<credential>[^/\s\x00-\x1f\x7f]+)@"
+        rb"(?P<credential>[^/@\s\x00-\x1f\x7f]+)@"
         rb"[^/\s\x00-\x1f\x7f]+"
     )
     _authorization = re.compile(
         rb"(?i)[\"']?authorization[\"']?\s*:\s*[\"']?"
-        rb"(?:bearer|token)\s+"
+        rb"(?:basic|bearer|digest|negotiate|token)\s+"
         rb"([^\x00-\x20\x7f\"'<>,;]+)"
     )
 
@@ -786,12 +786,21 @@ _SOURCE_PLACEHOLDER_TEXT = re.compile(
     re.IGNORECASE,
 )
 _AUTHORIZATION_VALUE_TEXT = re.compile(
-    r"^(?:bearer|token)\s+(.+)$", re.IGNORECASE
+    r"^(?:basic|bearer|digest|negotiate|token)\s+(.+)$", re.IGNORECASE
+)
+_INCOMPLETE_AUTHORIZATION_TEXT = re.compile(
+    r"^(?:authorization|(?:authorization\s*:\s*)?"
+    r"(?:basic|bearer|digest|negotiate|token))$",
+    re.IGNORECASE,
 )
 _CREDENTIAL_URL_TEXT = re.compile(
-    r"^(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://"
+    r"^(?:[a-z][a-z0-9+.-]*:)*[a-z][a-z0-9+.-]*://"
     r"(?P<user>[^/\s:@]+):(?P<credential>[^/@\s]+)@"
     r"[^/\s]+(?:/[^\s]*)?$",
+    re.IGNORECASE,
+)
+_URL_TEXT = re.compile(
+    r"^(?:[a-z][a-z0-9+.-]*:)*[a-z][a-z0-9+.-]*://[^\s]+$",
     re.IGNORECASE,
 )
 
@@ -850,6 +859,8 @@ def _is_source_example_or_regex(value: str | bytes) -> bool:
         return True
     if _RUNTIME_SENSITIVE_KEY.fullmatch(normalized) is not None:
         return True
+    if _INCOMPLETE_AUTHORIZATION_TEXT.fullmatch(normalized) is not None:
+        return True
     authorization = _AUTHORIZATION_VALUE_TEXT.fullmatch(normalized)
     if authorization is not None:
         return _is_source_example_or_regex(authorization.group(1))
@@ -858,6 +869,10 @@ def _is_source_example_or_regex(value: str | bytes) -> bool:
         return not _has_real_credential_url_userinfo(
             credential_url.group("user"), credential_url.group("credential")
         )
+    if _URL_TEXT.fullmatch(normalized) is not None:
+        authority = normalized.split("://", 1)[1].split("/", 1)[0]
+        if "@" not in authority or ":" not in authority.split("@", 1)[0]:
+            return True
     if re.fullmatch(r"/.+/[A-Za-z]*", normalized) is not None:
         return True
     if normalized.startswith("^") and normalized.endswith("$"):
