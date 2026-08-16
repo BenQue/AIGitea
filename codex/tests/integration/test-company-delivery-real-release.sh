@@ -63,6 +63,18 @@ print(value)
 ' "$field"
 }
 
+release_fingerprint() {
+  local release_directory="$1"
+  local digest_line
+  digest_line="$({
+    cd -P -- "$release_directory"
+    find . -type f -exec shasum -a 256 {} + | LC_ALL=C sort
+  } | shasum -a 256)" || fail 'release fingerprint could not be computed'
+  [[ "$digest_line" =~ ^[0-9a-f]{64}[[:space:]] ]] ||
+    fail 'release fingerprint result is invalid'
+  printf '%s\n' "${digest_line%%[[:space:]]*}"
+}
+
 if [[ "$mode" == "--not-run" ]]; then
   [[ "$#" -eq 0 || "$#" -eq 1 ]] || fail 'unexpected arguments for --not-run'
   not_run
@@ -111,7 +123,7 @@ release_root="$(cd -P -- "$release_root" && pwd -P)"
   "$release_root" != "$repository_root/"* ]] ||
   fail 'release root must remain outside the candidate repository'
 
-for command in git mktemp python3 rm stat; do
+for command in find git mktemp python3 rm shasum sort stat; do
   command -v "$command" >/dev/null 2>&1 || fail 'required local command is unavailable'
 done
 
@@ -138,6 +150,9 @@ artifact_json="$(
 )" || fail 'artifact-only verification failed'
 json_assert_artifact <<<"$artifact_json" ||
   fail 'artifact-only verification crossed its fixed boundary'
+input_fingerprint_before="$(
+  release_fingerprint "$release_root/$release_id"
+)"
 
 temp_parent="$(cd -P -- "${TMPDIR:-/tmp}" && pwd -P)"
 output_one=""
@@ -208,6 +223,19 @@ verify_two="$(
 json_assert_handoff <<<"$verify_one" || fail 'first handoff result is invalid'
 json_assert_handoff <<<"$verify_two" || fail 'second handoff result is invalid'
 
+artifact_after_json="$(
+  AISOFT_DOCKER_RELEASE_RUNTIME_DIR="$repository_root/codex/runtime" \
+    "$docker_release" verify-artifact \
+    --release-root "$release_root" --release-id "$release_id"
+)" || fail 'post-build artifact-only verification failed'
+json_assert_artifact <<<"$artifact_after_json" ||
+  fail 'post-build artifact verification crossed its fixed boundary'
+input_fingerprint_after="$(
+  release_fingerprint "$release_root/$release_id"
+)"
+[[ "$input_fingerprint_before" == "$input_fingerprint_after" ]] ||
+  fail 'input release fingerprint changed during regression'
+
 [[ -z "$(git -C "$repository_root" status --porcelain --untracked-files=all)" ]] ||
   fail 'candidate repository changed during exact release regression'
 cleanup
@@ -220,3 +248,5 @@ printf '%s\n' \
 printf 'PASS: source_sha=%s release_id=%s\n' "$source_sha" "$release_id"
 printf 'PASS: deterministic_archive_sha256=%s verify_handoff=2/2 cleanup=PASS\n' \
   "$checksum_one"
+printf 'PASS: input_release_fingerprint=%s unchanged=PASS\n' \
+  "$input_fingerprint_before"

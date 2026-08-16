@@ -38,6 +38,12 @@ grep -Fq 'docker_calls") == 0' "$harness" ||
   fail 'harness must assert zero Docker calls'
 grep -Fq 'target_facts") == "NOT_READ"' "$harness" ||
   fail 'harness must assert target facts are not read'
+grep -Fq 'input_fingerprint_before' "$harness" ||
+  fail 'harness must fingerprint the exact input before both builds'
+grep -Fq 'input_fingerprint_after' "$harness" ||
+  fail 'harness must fingerprint the exact input after both builds'
+grep -Fq 'post-build artifact-only verification failed' "$harness" ||
+  fail 'harness must revalidate all artifact checksums after both builds'
 grep -Fq 'aisoft-issue124-one.XXXXXX' "$harness" ||
   fail 'harness must create a distinct first temporary output'
 grep -Fq 'aisoft-issue124-two.XXXXXX' "$harness" ||
