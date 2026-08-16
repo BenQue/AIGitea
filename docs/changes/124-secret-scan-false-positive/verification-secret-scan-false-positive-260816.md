@@ -18,7 +18,7 @@ risk_flags:
   - compatibility
   - rollback
 depends_on: []
-status: approved
+status: blocked
 branch: change/124-secret-scan-false-positive
 pr_url:
 created: 2026-08-16
@@ -33,12 +33,13 @@ updated: 2026-08-16
   `7950d119ab5c949d914de172dac8606369483cd4`（#120 / PR #123 merge source）。
 - Worktree：`/private/tmp/issue-124-secret-scan-false-positive`。
 - Branch：`change/124-secret-scan-false-positive`；commits 为 `9b780e0`、`42087b2`、`fa0596c`、
-  `0bc3c1d`、`bd35270`；当前无 push 或 PR。
+  `0bc3c1d`、`bd35270`、`8402590`、`647b781`、`fda8259`、`9abdb25`；当前无 push 或 PR。
 - Exact external release：`006d0c43cafebff058889e3338d1e8bdcc8b661c`；约 412MB bytes 不在仓库中。
-- 当前阶段：`APPROVED / T04 IMPLEMENTATION RESUMED`。此前 clean candidate 的 artifact-only gate PASS，
-  第一次 bundle build 对 `images.tar` 返回固定 `SENSITIVE_CONTENT`，第二次 build 与 verify-handoff 正确地
-  未继续且临时输出已清理。人工现已批准 material/runtime-context/ambiguous-blocked 安全修订；新的 red/green
-  和 exact-release 结果尚待本轮写入。
+- 当前阶段：`BLOCKED / NEEDS HUMAN DECISION`。人工批准的 material/runtime-context/ambiguous-blocked 修订
+  已完成 fake red/green；clean `fda8259...` 重放先固定返回 `SENSITIVE_SCAN_BLOCKED`，修正可审计的 source
+  metadata/JWT 结构后，clean `9abdb25...` artifact-only gate 继续 PASS，但第一次 bundle build 对
+  `images.tar` 返回固定 `SENSITIVE_CONTENT`。第二次 build 与双 verify-handoff 均正确地未继续；两次临时
+  输出均已清理。
 
 ## 执行结果
 
@@ -62,6 +63,9 @@ updated: 2026-08-16
 | real `006d...` integration harness | BLOCKED | clean `0bc3c1d...` candidate 上 artifact-only PASS；首次 build 固定 `SENSITIVE_CONTENT`；第二次 build/双 verify 未运行；临时输出 cleanup PASS |
 | permitted top-level category replay | PASS / BLOCKED | `compose.model.json=PASS`、`compose.yaml=PASS`、`images.tar=SENSITIVE_CONTENT`；未输出值、片段、offset 或 inner path |
 | T04 content-classifier red → green | PASS | safe source/JSONC 与 literal/duplicate/ambiguous negatives 先 RED，后 ArchiveScanner 7/7、Bundle 11/11 PASS；commit `bd35270` |
+| T04 material-aware exact red → green | PASS（fake） | 同一 3-test selector 先 `FAILED (errors=3)`，后 `Ran 3 tests ... OK`；完整 PEM/known token/JWT/high-entropy/runtime 拒绝，source/example 通过，ambiguity blocked |
+| T04 focused regression | PASS（fake） | ArchiveScanner + Bundle + ReleaseTransport `Ran 39 tests ... OK`；`git diff --check` PASS |
+| real `006d...` post-decision replay | BLOCKED | clean `9abdb25...` artifact-only PASS；首次 build 对 `images.tar` 固定 `SENSITIVE_CONTENT`；第二次 build/双 verify 未运行；cleanup PASS |
 | company/live checks | NOT RUN | 未连接公司内网，未访问两台公司 VM，未部署或读取 Secret/DB/target facts |
 
 ## 已有 exact release 证据（本阶段不重放）
@@ -71,7 +75,7 @@ updated: 2026-08-16
 | DockerLab 原位六文件 ↔ 本机临时副本 SHA256 | PASS（用户提供） | 只记录逐项一致结论，不记录命中值 |
 | artifact-only verifier | PASS（用户提供） | `ok=true`、`contract_version=docker-release/v2`、`docker_calls=0`、`target_facts=NOT_READ` |
 | baseline `build-bundle` | BLOCKED（用户提供） | artifact verification 后固定 `SENSITIVE_CONTENT`；输出目录已清理 |
-| candidate `build-bundle` | BLOCKED（本次重放） | artifact-only PASS；`images.tar` 仍固定 `SENSITIVE_CONTENT`；没有记录或猜测命中值 |
+| candidate `build-bundle` | BLOCKED（本次重放） | clean `9abdb25...` artifact-only PASS；`images.tar` 仍固定 `SENSITIVE_CONTENT`；没有读取、记录或猜测命中值 |
 | Stage 00 local preparation | BLOCKED | 尚无 exact handoff bundle |
 | company Stage 10–110 | NOT RUN | 必须等待 Stage 00 PASS 及后续逐阶段人工批准 |
 
@@ -79,14 +83,14 @@ updated: 2026-08-16
 
 | AC | Result | 当前证据 / 下一 gate |
 |---|---|---|
-| AC-1 | BLOCKED | clean candidate 首次 build fail closed；第二次 build/checksum equality/双 verify 正确地未继续 |
+| AC-1 | BLOCKED | clean `9abdb25...` 首次 build 按获批安全合同 fail closed；第二次 build/checksum equality/双 verify 正确地未继续 |
 | AC-2 | PASS | exact T01 red/green 覆盖 strict references 与 default/alternate/拼接/command substitution |
 | AC-3 | PASS（fake） | sentinel、fixed code、CLI no-echo 与完整 output cleanup 通过 |
 | AC-4 | PASS（fake） | canonical verified graph result驱动 config/metadata/layer/binary streaming；Docker 0 |
 | AC-5 | PASS（fake） | config Env、layer config、cross-chunk binary、unsafe/duplicate/compression/resource bounds 均覆盖 |
 | AC-6 | PASS（fake/review） | schema/source/doc/binary safe fixtures 通过；未增加 release/image/path/binary allowlist |
 | AC-7 | PASS（fake） | operator `1.0.1`、handoff V1、repeat build 与 verify-handoff 兼容通过 |
-| AC-8 | PARTIAL | focused/fake/JSON/diff 与 T04 cleanup 已通过；full runtime、smoke、ShellCheck、CI 待安全决策后执行 |
+| AC-8 | PARTIAL | focused/fake/diff 与 T04 cleanup 已通过；full runtime、smoke、ShellCheck、review、CI 因 AC-1 阻塞未执行 |
 
 ## 重复部署
 
@@ -113,9 +117,11 @@ updated: 2026-08-16
 ## 遗留风险与未完成项
 
 - 当前 implementation/fake tests 不能写成真实 Stage 00 或公司执行 PASS。
-- real fixture 已按授权执行一次并 fail closed；人工已批准把 embedded source/example syntax 与 actual
-  credential material 结构化区分，同时保持 runtime-config concrete value 严格拒绝与 ambiguity blocked。
-  当前须以 red/green、exact release 双构建及独立审查证明实现满足该决定，才能继续 T05/PR。
+- real fixture 已按授权从两个 clean candidate 重放并 fail closed；人工批准的 embedded source/example 与
+  actual credential material 区分已通过 fake red/green，但 exact `images.tar` 仍触发获批合同必须拒绝的
+  `SENSITIVE_CONTENT`。在 no-echo/no-value/no-path 与禁止 broad allowlist 的边界内，不能从平台侧继续放宽。
+- 下一步需要独立授权在 NewEmaint 上定位并 remediation 后生成新的 exact release；当前 release 不得改写或
+  冒充新 bytes。没有新的安全/上游合同前，T05、push、PR 与 CI 均不得开始。
 - 任何需要读取命中值、增加 release/image/path broad allowlist、重建 release 或访问公司环境的方案都超出
   Spec，必须停止并请求新的人工决策。
 - 最终 PR、required CI、merge 与公司部署均未发生；human merge 仍是未来唯一代码交付硬闸门。
