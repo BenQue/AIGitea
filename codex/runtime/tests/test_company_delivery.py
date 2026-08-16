@@ -3,8 +3,11 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
+import tarfile
 import tempfile
 import unittest
 
@@ -19,6 +22,8 @@ from aisoft_company_delivery.contract import (
     load_inventory,
 )
 from aisoft_company_delivery.collector import collect_inventory
+from aisoft_company_delivery.bundle import build_bundle, verify_bundle
+from tests.release_test_support import SHA_A, create_release, sha256, update_manifest
 
 
 SHA = "1" * 40
@@ -387,6 +392,192 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
                 read_text=self.read_text,
                 now=lambda: "2026-08-16T08:00:00Z",
             )
+
+
+class CompanyDeliveryBundleTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name)
+        self.repository_root = Path(__file__).resolve().parents[3]
+        self.source = self.root / "source"
+        self.source.mkdir(mode=0o700)
+        for relative in (
+            "company-delivery",
+            "codex/runtime/aisoft_company_delivery",
+            "codex/runtime/aisoft_release",
+            "sync",
+            "docker-release",
+            "codex/config/host-capabilities.json",
+            "codex/config/host-role.schema.json",
+            "codex/tools/verify-host-role.sh",
+        ):
+            source = self.repository_root / relative
+            target = self.source / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if source.is_dir():
+                shutil.copytree(
+                    source,
+                    target,
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+                )
+            else:
+                shutil.copy2(source, target)
+        subprocess.run(["git", "init", "-q", "-b", "main"], cwd=self.source, check=True)
+        subprocess.run(["git", "config", "user.name", "Company Delivery Test"], cwd=self.source, check=True)
+        subprocess.run(["git", "config", "user.email", "company-delivery@test.invalid"], cwd=self.source, check=True)
+        subprocess.run(["git", "add", "."], cwd=self.source, check=True)
+        subprocess.run(
+            ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "fixture"],
+            cwd=self.source,
+            check=True,
+        )
+        self.source_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=self.source, text=True
+        ).strip()
+        fixture = self.root / "release-fixture"
+        create_release(fixture)
+        self.release_root = fixture / "releases"
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def output_dir(self, name: str) -> Path:
+        path = self.root / name
+        path.mkdir(mode=0o700)
+        return path
+
+    def build(self, output: Path) -> dict[str, object]:
+        return build_bundle(
+            repository_root=self.source,
+            source_sha=self.source_sha,
+            release_root=self.release_root,
+            release_id=SHA_A,
+            output_directory=output,
+            created_at="2026-08-16T08:00:00Z",
+            source_transport="approved-bundle",
+        )
+
+    def test_repeat_build_is_byte_identical_and_self_verifying(self) -> None:
+        first = self.build(self.output_dir("out-one"))
+        second = self.build(self.output_dir("out-two"))
+        self.assertEqual(first["archive_sha256"], second["archive_sha256"])
+        self.assertEqual(first["archive_name"], second["archive_name"])
+        manifest = Path(first["bundle_root"]) / "handoff-manifest.json"
+        verified = verify_bundle(manifest, Path(first["bundle_root"]))
+        self.assertTrue(verified["ok"])
+        self.assertEqual(verified["release_id"], SHA_A)
+        self.assertEqual(verified["docker_calls"], 0)
+        sums = (Path(first["bundle_root"]) / "SHA256SUMS").read_text(encoding="utf-8")
+        self.assertIn("  handoff-manifest.json\n", sums)
+        self.assertNotIn("  SHA256SUMS\n", sums)
+        extracted = self.root / "extracted"
+        extracted.mkdir(mode=0o700)
+        previous_umask = os.umask(0o077)
+        try:
+            with tarfile.open(first["archive_path"], mode="r:gz") as archive:
+                archive.extractall(extracted, filter="data")
+        finally:
+            os.umask(previous_umask)
+        extracted_root = extracted / str(first["bundle_name"])
+        portable = verify_bundle(extracted_root / "handoff-manifest.json", extracted_root)
+        self.assertTrue(portable["ok"])
+
+    def test_payload_tamper_and_unsafe_mode_fail_closed(self) -> None:
+        built = self.build(self.output_dir("out-tamper"))
+        bundle = Path(built["bundle_root"])
+        version = bundle / "operator/VERSION"
+        version.write_text("9.9.9\n", encoding="utf-8")
+        with self.assertRaises(CompanyDeliveryError) as tampered:
+            verify_bundle(bundle / "handoff-manifest.json", bundle)
+        self.assertEqual(tampered.exception.code, "CHECKSUM_MISMATCH")
+
+        built = self.build(self.output_dir("out-mode"))
+        bundle = Path(built["bundle_root"])
+        (bundle / "operator/VERSION").chmod(0o666)
+        with self.assertRaises(CompanyDeliveryError) as unsafe:
+            verify_bundle(bundle / "handoff-manifest.json", bundle)
+        self.assertEqual(unsafe.exception.code, "UNSAFE_MODE")
+
+        built = self.build(self.output_dir("out-parent-link"))
+        bundle = Path(built["bundle_root"])
+        operator = bundle / "operator"
+        relocated = bundle / ".operator-real"
+        operator.rename(relocated)
+        operator.symlink_to(relocated.name, target_is_directory=True)
+        with self.assertRaises(CompanyDeliveryError) as linked:
+            verify_bundle(bundle / "handoff-manifest.json", bundle)
+        self.assertEqual(linked.exception.code, "UNSAFE_PATH")
+
+    def test_short_sha_dirty_source_and_wrong_release_fail_before_output(self) -> None:
+        with self.assertRaises(CompanyDeliveryError):
+            build_bundle(
+                repository_root=self.source,
+                source_sha="1234",
+                release_root=self.release_root,
+                release_id=SHA_A,
+                output_directory=self.output_dir("out-short"),
+                created_at="2026-08-16T08:00:00Z",
+                source_transport="approved-bundle",
+            )
+        (self.source / "dirty.txt").write_text("dirty\n", encoding="utf-8")
+        with self.assertRaises(CompanyDeliveryError):
+            self.build(self.output_dir("out-dirty"))
+        (self.source / "dirty.txt").unlink()
+        with self.assertRaises(CompanyDeliveryError):
+            build_bundle(
+                repository_root=self.source,
+                source_sha=self.source_sha,
+                release_root=self.release_root,
+                release_id="b" * 40,
+                output_directory=self.output_dir("out-release"),
+                created_at="2026-08-16T08:00:00Z",
+                source_transport="approved-bundle",
+            )
+
+    def test_sensitive_release_metadata_is_rejected_without_echo(self) -> None:
+        sentinel = "never-print-this-value"
+        compose = self.release_root / SHA_A / "compose.yaml"
+        compose.write_text(f"# password={sentinel}\n", encoding="utf-8")
+        update_manifest(
+            self.release_root / SHA_A,
+            lambda value: value["compose"].update({"sha256": sha256(compose)}),
+        )
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            self.build(self.output_dir("out-sensitive"))
+        self.assertEqual(caught.exception.code, "SENSITIVE_CONTENT")
+        self.assertNotIn(sentinel, str(caught.exception))
+
+    def test_wrong_digest_merge_sha_and_architecture_are_blocked(self) -> None:
+        variants = {
+            "digest": lambda release_dir: release_dir.joinpath("images.tar").write_bytes(
+                release_dir.joinpath("images.tar").read_bytes() + b"tampered"
+            ),
+            "merge-sha": lambda release_dir: update_manifest(
+                release_dir,
+                lambda value: value.update({"merge_sha": "b" * 40}),
+            ),
+            "architecture": lambda release_dir: update_manifest(
+                release_dir,
+                lambda value: value.update({"platform": "linux/arm64"}),
+            ),
+        }
+        for name, mutate in variants.items():
+            with self.subTest(name=name):
+                fixture = self.root / f"release-{name}"
+                create_release(fixture)
+                release_root = fixture / "releases"
+                mutate(release_root / SHA_A)
+                with self.assertRaises(CompanyDeliveryError) as caught:
+                    build_bundle(
+                        repository_root=self.source,
+                        source_sha=self.source_sha,
+                        release_root=release_root,
+                        release_id=SHA_A,
+                        output_directory=self.output_dir(f"out-{name}"),
+                        created_at="2026-08-16T08:00:00Z",
+                        source_transport="approved-bundle",
+                    )
+                self.assertEqual(caught.exception.code, "ARTIFACT_INVALID")
 
 
 if __name__ == "__main__":

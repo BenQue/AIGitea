@@ -308,12 +308,20 @@ def load_handoff(
     if verify_payloads:
         if bundle_root is None:
             raise CompanyDeliveryError("INVALID_CONTRACT", "handoff payload verification requires a bundle root")
-        _verify_payloads(Path(bundle_root), parsed)
+        root = Path(bundle_root)
+        manifest_path = Path(path)
+        try:
+            if manifest_path.resolve() != (root.resolve() / "handoff-manifest.json"):
+                raise CompanyDeliveryError("UNSAFE_PATH", "handoff manifest must use the fixed bundle path")
+        except OSError as exc:
+            raise CompanyDeliveryError("UNSAFE_PATH", "handoff manifest path is unavailable") from exc
+        _verify_payloads(root, parsed)
         by_path = {relative: digest for relative, digest, _size, _mode in parsed}
         if by_path.get(str(release["manifest_path"])) != release["manifest_sha256"]:
             raise CompanyDeliveryError("CHECKSUM_MISMATCH", "release manifest identity does not match payloads")
         if by_path.get(str(compatibility["matrix_path"])) != compatibility["matrix_sha256"]:
             raise CompanyDeliveryError("CHECKSUM_MISMATCH", "compatibility identity does not match payloads")
+        _verify_checksum_manifest(root, manifest_path, parsed)
     return value
 
 
@@ -340,9 +348,24 @@ def _verify_payloads(root: Path, payloads: list[tuple[str, str, int, str]]) -> N
         raise CompanyDeliveryError("UNSAFE_PATH", "bundle root is unavailable") from exc
     if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
         raise CompanyDeliveryError("UNSAFE_PATH", "bundle root must be a non-symlink directory")
+    if stat.S_IMODE(metadata.st_mode) != 0o700:
+        raise CompanyDeliveryError("UNSAFE_MODE", "bundle root mode must be 0700")
     resolved_root = root.resolve()
     for relative, expected_sha, expected_size, expected_mode in payloads:
         target = root / relative
+        current = target.parent
+        while current != root:
+            try:
+                parent_metadata = current.lstat()
+            except OSError as exc:
+                raise CompanyDeliveryError("PAYLOAD_MISSING", "handoff payload parent is missing") from exc
+            if stat.S_ISLNK(parent_metadata.st_mode) or not stat.S_ISDIR(parent_metadata.st_mode):
+                raise CompanyDeliveryError(
+                    "UNSAFE_PATH", "handoff payload parent must be a non-symlink directory"
+                )
+            if stat.S_IMODE(parent_metadata.st_mode) != 0o700:
+                raise CompanyDeliveryError("UNSAFE_MODE", "handoff payload parent mode must be 0700")
+            current = current.parent
         try:
             target_metadata = target.lstat()
         except OSError as exc:
@@ -360,6 +383,47 @@ def _verify_payloads(root: Path, payloads: list[tuple[str, str, int, str]]) -> N
             raise CompanyDeliveryError("UNSAFE_MODE", "handoff payload mode does not match")
         if sha256_file(target) != expected_sha:
             raise CompanyDeliveryError("CHECKSUM_MISMATCH", "handoff payload checksum does not match")
+
+
+def _verify_checksum_manifest(
+    root: Path,
+    manifest_path: Path,
+    payloads: list[tuple[str, str, int, str]],
+) -> None:
+    checksum_path = root / "SHA256SUMS"
+    try:
+        metadata = checksum_path.lstat()
+    except OSError as exc:
+        raise CompanyDeliveryError("PAYLOAD_MISSING", "SHA256SUMS is missing") from exc
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+        raise CompanyDeliveryError("UNSAFE_PATH", "SHA256SUMS must be a regular non-symlink file")
+    if stat.S_IMODE(metadata.st_mode) != 0o600:
+        raise CompanyDeliveryError("UNSAFE_MODE", "SHA256SUMS mode must be 0600")
+    if metadata.st_size > MAX_JSON_BYTES:
+        raise CompanyDeliveryError("INVALID_CONTRACT", "SHA256SUMS exceeds the size limit")
+    try:
+        lines = checksum_path.read_text(encoding="ascii").splitlines()
+    except (OSError, UnicodeError) as exc:
+        raise CompanyDeliveryError("INVALID_CONTRACT", "SHA256SUMS must be bounded ASCII") from exc
+    parsed: list[tuple[str, str]] = []
+    for line in lines:
+        match = re.fullmatch(r"([0-9a-f]{64})  ([A-Za-z0-9._@/-]+)", line)
+        if match is None:
+            raise CompanyDeliveryError("INVALID_CONTRACT", "SHA256SUMS contains an invalid line")
+        relative = _relative_path(match.group(2))
+        if relative == "SHA256SUMS":
+            raise CompanyDeliveryError("INVALID_CONTRACT", "SHA256SUMS must not hash itself")
+        parsed.append((relative, match.group(1)))
+    expected = {relative: digest for relative, digest, _size, _mode in payloads}
+    expected["handoff-manifest.json"] = sha256_file(manifest_path)
+    actual = dict(parsed)
+    if len(actual) != len(parsed) or [item[0] for item in parsed] != sorted(actual):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "SHA256SUMS paths must be unique and sorted")
+    if actual != expected:
+        raise CompanyDeliveryError("CHECKSUM_MISMATCH", "SHA256SUMS does not match the handoff inventory")
+    for relative, digest in parsed:
+        if sha256_file(root / relative) != digest:
+            raise CompanyDeliveryError("CHECKSUM_MISMATCH", "SHA256SUMS payload checksum does not match")
 
 
 def _load_object(path: Path | str, label: str, *, require_protected: bool) -> dict[str, object]:
@@ -484,6 +548,6 @@ def _relative_path(value: str) -> str:
         raise CompanyDeliveryError("UNSAFE_PATH", "path is not a safe POSIX relative path")
     if str(path) != value or len(value.encode("utf-8")) > 512:
         raise CompanyDeliveryError("UNSAFE_PATH", "path is not canonical or exceeds the limit")
-    if re.fullmatch(r"[A-Za-z0-9._/-]+", value) is None:
+    if re.fullmatch(r"[A-Za-z0-9._@/-]+", value) is None:
         raise CompanyDeliveryError("UNSAFE_PATH", "path contains unsupported characters")
     return value

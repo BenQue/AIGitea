@@ -7,8 +7,9 @@ import json
 from pathlib import Path
 import sys
 
+from .bundle import build_bundle, verify_bundle
 from .collector import collect_inventory
-from .contract import CompanyDeliveryError, load_evidence, load_handoff, load_inventory
+from .contract import CompanyDeliveryError, load_evidence, load_inventory
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,20 +29,43 @@ def build_parser() -> argparse.ArgumentParser:
     collect = subparsers.add_parser("collect-inventory")
     collect.add_argument("--role", required=True, choices=("scm-ci", "appserver-prod"))
     collect.add_argument("--output", required=True, type=Path)
+
+    bundle = subparsers.add_parser("build-bundle")
+    bundle.add_argument("--repository-root", required=True, type=Path)
+    bundle.add_argument("--source-sha", required=True)
+    bundle.add_argument("--release-root", required=True, type=Path)
+    bundle.add_argument("--release-id", required=True)
+    bundle.add_argument("--output-directory", required=True, type=Path)
+    bundle.add_argument("--created-at", required=True)
+    bundle.add_argument(
+        "--source-transport",
+        required=True,
+        choices=("approved-bundle", "allowlisted-github-ref"),
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        if args.command == "collect-inventory":
+        if args.command == "build-bundle":
+            value = build_bundle(
+                repository_root=args.repository_root,
+                source_sha=args.source_sha,
+                release_root=args.release_root,
+                release_id=args.release_id,
+                output_directory=args.output_directory,
+                created_at=args.created_at,
+                source_transport=args.source_transport,
+            )
+        elif args.command == "collect-inventory":
             value = collect_inventory(args.role, args.output)
         elif args.command == "verify-inventory":
             value = load_inventory(args.input)
         elif args.command == "verify-evidence":
             value = load_evidence(args.input)
         else:
-            value = load_handoff(args.manifest, bundle_root=args.bundle_root)
+            value = verify_bundle(args.manifest, args.bundle_root)
     except CompanyDeliveryError as exc:
         print(
             json.dumps(
@@ -52,13 +76,26 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 2
-    print(
-        json.dumps(
-            {"contract_version": value["contract_version"], "ok": True},
-            sort_keys=True,
-            separators=(",", ":"),
+    output = {"contract_version": value["contract_version"], "ok": True}
+    if args.command == "build-bundle":
+        output.update(
+            {
+                "archive_name": value["archive_name"],
+                "archive_sha256": value["archive_sha256"],
+                "bundle_name": value["bundle_name"],
+                "release_id": value["release_id"],
+                "source_sha": value["source_sha"],
+            }
         )
-    )
+    elif args.command == "verify-handoff":
+        output.update(
+            {
+                "docker_calls": value["docker_calls"],
+                "release_id": value["release_id"],
+                "target_facts": value["target_facts"],
+            }
+        )
+    print(json.dumps(output, sort_keys=True, separators=(",", ":")))
     return 0
 
 

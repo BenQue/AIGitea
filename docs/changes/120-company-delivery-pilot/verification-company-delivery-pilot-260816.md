@@ -42,12 +42,12 @@ updated: 2026-08-16
 
 | Command / check | Result | Evidence |
 |---|---|---|
-| `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_company_delivery -v` | NOT RUN | focused contract/collector/bundle/security tests |
-| `bash -n company-delivery/bin/*` | NOT RUN | shell syntax |
-| `shellcheck company-delivery/bin/*` | NOT RUN | 仅环境可用时运行 |
-| strict JSON/schema/example parse | NOT RUN | `company-delivery/**/*.json` |
-| deterministic fake bundle build x2 | NOT RUN | exact archive SHA equality；不访问 Docker/network |
-| tamper/wrong SHA/digest/arch/path/mode/Secret negatives | NOT RUN | 全部应在 mutation 前 fail closed |
+| `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_company_delivery -v` | PASS | `Ran 15 tests`、`OK`；T01–T03 focused contract/collector/bundle/security tests |
+| `bash -n company-delivery/bin/*` | PASS | wrapper shell syntax |
+| `shellcheck company-delivery/bin/*` | PASS | 当前环境可用，退出 `0` |
+| strict JSON/schema/example parse | PASS | `company-delivery/**/*.json` 均通过 `jq empty` |
+| deterministic fake bundle build x2 | PASS | 同输入 archive name/SHA256 完全相同；解包后在 `umask 077` 下重新验证；Docker calls = 0 |
+| tamper/wrong SHA/digest/arch/path/mode/Secret negatives | PASS | 全部在任何 target mutation 前 fail closed，且 Secret sentinel 不回显 |
 | full runtime unittest discovery | NOT RUN | exact command/count 待实现后记录 |
 | `bash codex/tests/smoke.sh` | NOT RUN | exact final-head output 待记录 |
 | `git diff --check origin/main` | NOT RUN | candidate whitespace gate |
@@ -79,14 +79,30 @@ updated: 2026-08-16
   task-owned `__pycache__`，未改用户文件。
 - `git diff --check`：PASS。
 
+### T03 — deterministic handoff bundle
+
+- RED：`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_company_delivery.CompanyDeliveryBundleTests -v`
+  退出 `1`，同一 selector 在 bundle seam 明确失败：
+  `ModuleNotFoundError: No module named 'aisoft_company_delivery.bundle'`。
+- GREEN：同一命令退出 `0`，`Ran 5 tests`、`OK`；覆盖 clean exact source SHA、artifact-only
+  `docker-release/v2`、repeat-build archive SHA equality、portable extraction、full `SHA256SUMS`、single-byte
+  tamper、wrong release digest/merge SHA/architecture、unsafe file/parent symlink/mode、dirty source、短 SHA 与
+  Secret-bearing release metadata fail-closed/no-echo。
+- builder 输入和 payload 均来自 allowlisted tracked paths；archive 固定 mtime/uid/gid/order，sidecar 固定为
+  `<archive-sha256>  <archive-name>`；验证结果明确 `docker_calls=0`、`target_facts=NOT_READ`。
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_company_delivery -v`：
+  PASS，`Ran 15 tests`、`OK`。
+- `bash -n company-delivery/bin/aisoft-company-delivery`、`shellcheck company-delivery/bin/aisoft-company-delivery`、
+  `git diff --check`：PASS。
+
 ## Acceptance criteria 结果
 
 | AC | Result | Evidence |
 |---|---|---|
-| AC-1 | NOT RUN | implementation/focused tests pending |
+| AC-1 | PASS（local fake） | 两 role collector、固定只读 argv、脱敏、mode 与 fail-closed tests 已通过；公司 inventory 仍 `NOT RUN` |
 | AC-2 | NOT RUN | runbook review pending |
-| AC-3 | NOT RUN | deterministic bundle tests pending |
-| AC-4 | NOT RUN | schema/template validation pending |
+| AC-3 | PASS（local fake） | 两次相同输入产生相同 archive SHA；tamper/wrong SHA/digest/arch/path/mode 全部 fail closed |
+| AC-4 | PASS（local） | strict inventory/handoff/evidence contracts、templates、full `SHA256SUMS` 与 payload identity 已验证 |
 | AC-5 | NOT RUN | Gitea decision/backup/restore contract review pending |
 | AC-6 | NOT RUN | exact-byte negatives pending；真实 NewEmaint artifact 不在本仓 |
 | AC-7 | NOT RUN | inbound/SCM contract review pending；company live checks remain NOT RUN |
