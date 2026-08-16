@@ -18,7 +18,7 @@ risk_flags:
   - compatibility
   - rollback
 depends_on: []
-status: blocked
+status: approved
 branch: change/124-secret-scan-false-positive
 pr_url:
 created: 2026-08-16
@@ -35,9 +35,10 @@ updated: 2026-08-16
 - Branch：`change/124-secret-scan-false-positive`；commits 为 `9b780e0`、`42087b2`、`fa0596c`、
   `0bc3c1d`、`bd35270`；当前无 push 或 PR。
 - Exact external release：`006d0c43cafebff058889e3338d1e8bdcc8b661c`；约 412MB bytes 不在仓库中。
-- 当前阶段：`BLOCKED / NEEDS HUMAN SECURITY DECISION`。T04 已从 clean candidate HEAD 执行一次；
-  artifact-only gate PASS，但第一次 bundle build 对 `images.tar` 返回固定 `SENSITIVE_CONTENT`，因此第二次
-  build 与 verify-handoff 正确地未继续；harness 已清理临时输出。
+- 当前阶段：`APPROVED / T04 IMPLEMENTATION RESUMED`。此前 clean candidate 的 artifact-only gate PASS，
+  第一次 bundle build 对 `images.tar` 返回固定 `SENSITIVE_CONTENT`，第二次 build 与 verify-handoff 正确地
+  未继续且临时输出已清理。人工现已批准 material/runtime-context/ambiguous-blocked 安全修订；新的 red/green
+  和 exact-release 结果尚待本轮写入。
 
 ## 执行结果
 
@@ -112,8 +113,9 @@ updated: 2026-08-16
 ## 遗留风险与未完成项
 
 - 当前 implementation/fake tests 不能写成真实 Stage 00 或公司执行 PASS。
-- real fixture 已按授权执行一次并 fail closed；继续需要人工决定是否把 embedded source/example signature 与
-  actual credential material 改为结构化判定。没有该安全决策时不得弱化 scanner、继续 T05 或创建 PR。
+- real fixture 已按授权执行一次并 fail closed；人工已批准把 embedded source/example syntax 与 actual
+  credential material 结构化区分，同时保持 runtime-config concrete value 严格拒绝与 ambiguity blocked。
+  当前须以 red/green、exact release 双构建及独立审查证明实现满足该决定，才能继续 T05/PR。
 - 任何需要读取命中值、增加 release/image/path broad allowlist、重建 release 或访问公司环境的方案都超出
   Spec，必须停止并请求新的人工决策。
 - 最终 PR、required CI、merge 与公司部署均未发生；human merge 仍是未来唯一代码交付硬闸门。
