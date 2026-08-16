@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 import tarfile
 import tempfile
@@ -688,6 +689,18 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
         extracted_root = extracted / str(first["bundle_name"])
         portable = verify_bundle(extracted_root / "handoff-manifest.json", extracted_root)
         self.assertTrue(portable["ok"])
+
+    def test_restrictive_umask_preserves_allowlisted_payload_modes(self) -> None:
+        previous_umask = os.umask(0o077)
+        try:
+            built = self.build(self.output_dir("out-restrictive-umask"))
+        finally:
+            os.umask(previous_umask)
+        executable = (
+            Path(built["bundle_root"])
+            / "operator/bin/aisoft-company-delivery"
+        )
+        self.assertEqual(stat.S_IMODE(executable.stat().st_mode), 0o755)
 
     def test_operator_version_and_handoff_contract_remain_compatible(self) -> None:
         built = self.build(self.output_dir("out-version-contract"))

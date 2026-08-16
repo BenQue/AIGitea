@@ -407,6 +407,7 @@ def _copy_new_file(source: Path, destination: Path, mode: int) -> None:
     descriptor: int | None = None
     try:
         descriptor = os.open(destination, flags, mode)
+        os.fchmod(descriptor, mode)
         with source.open("rb") as reader, os.fdopen(descriptor, "wb") as writer:
             descriptor = None
             shutil.copyfileobj(reader, writer, length=1024 * 1024)
