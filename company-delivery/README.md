@@ -47,12 +47,11 @@ company-delivery/bin/aisoft-company-delivery build-bundle \
 
 `created-at` 只控制确定性 archive 的时间字段，不是安全校验时钟。每次 build 与 verify 都按运行时 UTC
 日期检查 architecture exception 是否仍有效，禁止通过回填时间绕过过期例外。builder 在写 manifest 前
-扫描全部 operator、dependency 与 release payload：普通文本只豁免精确的外部引用语法；`images.tar`
-必须先通过现有 Docker/OCI graph 验证，再流式扫描全部 reachable config、metadata、attestation 与 layer
-内容。它不 extract、不调用 Docker、不读取 target facts，也不对 outer tar header/padding 做通用 key/value
-匹配。命中 concrete Secret-like 内容只返回固定 `SENSITIVE_CONTENT`；archive、compression、JSON 或 inner
-member 无法在 8 MiB JSON、200,000 members、2 GiB/member、8 GiB expanded bounds 内安全处理时只返回固定
-`SENSITIVE_SCAN_BLOCKED`。两类错误均不回显值、片段、offset 或 inner path，并清理所有部分输出。
+扫描全部 operator、dependency 与 release 的非 archive payload：普通文本只豁免精确的外部引用语法，顶层
+concrete Secret-like 内容仍返回固定 `SENSITIVE_CONTENT`、no-echo 并清理部分输出。`images.tar` 在
+artifact-only identity/checksum/outer graph 验证后作为 opaque immutable payload 原字节搬运，不解压、不读取
+config/layer，也不声称其内部无 Secret。该风险由 release owner 与公司人工授权承担；规则按已验证 artifact
+类型统一生效，不使用 release SHA、image digest 或内部路径特判。
 
 ## 验证与 evidence
 

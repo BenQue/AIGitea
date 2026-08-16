@@ -764,7 +764,7 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "SENSITIVE_CONTENT")
         self.assertNotIn(sentinel, str(caught.exception))
 
-    def test_sensitive_operator_and_image_archive_payloads_are_rejected(self) -> None:
+    def test_sensitive_operator_is_rejected_but_verified_image_is_opaque(self) -> None:
         sentinel = "never-print-this-value"
         operator_secret = self.source / "company-delivery/operator-secret.txt"
         operator_secret.write_text(f"password={sentinel}\n", encoding="utf-8")
@@ -819,10 +819,14 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
                 }
             ),
         )
-        with self.assertRaises(CompanyDeliveryError) as archive_error:
-            self.build(self.output_dir("out-sensitive-archive"))
-        self.assertEqual(archive_error.exception.code, "SENSITIVE_CONTENT")
-        self.assertNotIn(sentinel, str(archive_error.exception))
+        built = self.build(self.output_dir("out-opaque-archive"))
+        result = verify_bundle(
+            Path(built["bundle_root"]) / "handoff-manifest.json",
+            Path(built["bundle_root"]),
+        )
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["docker_calls"], 0)
+        self.assertEqual(result["target_facts"], "NOT_READ")
 
     def test_artifact_freshness_uses_runtime_utc_date_not_created_at(self) -> None:
         runtime_date = date(2030, 1, 2)
@@ -965,7 +969,18 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
     setUp = CompanyDeliveryBundleTests.setUp
     tearDown = CompanyDeliveryBundleTests.tearDown
     output_dir = CompanyDeliveryBundleTests.output_dir
-    build = CompanyDeliveryBundleTests.build
+
+    def build(self, output: Path) -> dict[str, object]:
+        """Exercise the optional deep scanner without making it a handoff gate."""
+
+        files = bundle_module._verified_release(
+            self.release_root,
+            SHA_A,
+            bundle_module._utc_today(),
+        )
+        graph = bundle_module._verified_archive_graph(files)
+        secret_scan_module.scan_image_archive(files.archive_path, graph)
+        return CompanyDeliveryBundleTests.build(self, output)
 
     def replace_archive(
         self,
@@ -1395,7 +1410,7 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
                     "SENSITIVE_SCAN_BLOCKED", f"out-blocked-{name}"
                 )
 
-    def test_blocked_cli_is_fixed_no_echo_and_cleans_output(self) -> None:
+    def test_manual_archive_scan_is_fixed_no_echo_and_keeps_output_empty(self) -> None:
         sentinel = "never-print-this-value"
         unsafe = io.BytesIO()
         with tarfile.open(fileobj=unsafe, mode="w") as archive:
@@ -1407,37 +1422,15 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
         stdout = io.StringIO()
         stderr = io.StringIO()
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
-            result = main(
-                [
-                    "build-bundle",
-                    "--repository-root",
-                    str(self.source),
-                    "--source-sha",
-                    self.source_sha,
-                    "--release-root",
-                    str(self.release_root),
-                    "--release-id",
-                    SHA_A,
-                    "--output-directory",
-                    str(output),
-                    "--created-at",
-                    "2026-08-16T08:00:00Z",
-                    "--source-transport",
-                    "approved-bundle",
-                ]
-            )
-        self.assertEqual(result, 2)
+            with self.assertRaises(CompanyDeliveryError) as caught:
+                self.build(output)
+        self.assertEqual(caught.exception.code, "SENSITIVE_SCAN_BLOCKED")
         self.assertEqual(stdout.getvalue(), "")
-        value = json.loads(stderr.getvalue())
-        self.assertEqual(value["error_code"], "SENSITIVE_SCAN_BLOCKED")
-        self.assertEqual(
-            value["message"],
-            "bundle secret scan could not be completed safely",
-        )
+        self.assertEqual(stderr.getvalue(), "")
         self.assertNotIn(sentinel, stderr.getvalue())
         self.assertEqual(list(output.iterdir()), [])
 
-    def test_json_reason_remains_internal_to_normal_cli(self) -> None:
+    def test_json_reason_remains_internal_to_manual_archive_scan(self) -> None:
         sentinel = "never-print-json-reason-value"
         self.replace_archive(
             layer_files=[
@@ -1457,35 +1450,11 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
         stdout = io.StringIO()
         stderr = io.StringIO()
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
-            result = main(
-                [
-                    "build-bundle",
-                    "--repository-root",
-                    str(self.source),
-                    "--source-sha",
-                    self.source_sha,
-                    "--release-root",
-                    str(self.release_root),
-                    "--release-id",
-                    SHA_A,
-                    "--output-directory",
-                    str(output),
-                    "--created-at",
-                    "2026-08-16T08:00:00Z",
-                    "--source-transport",
-                    "approved-bundle",
-                ]
-            )
-        self.assertEqual(result, 2)
+            with self.assertRaises(CompanyDeliveryError) as caught:
+                self.build(output)
+        self.assertEqual(caught.exception.code, "SENSITIVE_SCAN_BLOCKED")
         self.assertEqual(stdout.getvalue(), "")
-        self.assertEqual(
-            json.loads(stderr.getvalue()),
-            {
-                "error_code": "SENSITIVE_SCAN_BLOCKED",
-                "message": "bundle secret scan could not be completed safely",
-                "ok": False,
-            },
-        )
+        self.assertEqual(stderr.getvalue(), "")
         self.assertNotIn(sentinel, stderr.getvalue())
         self.assertNotIn("reason", stderr.getvalue())
         self.assertNotIn("JSON_CONTEXT", stderr.getvalue())

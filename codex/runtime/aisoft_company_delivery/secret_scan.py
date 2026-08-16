@@ -156,7 +156,7 @@ def scan_bundle_payloads(
     archive_path: Path,
     archive_graph: VerifiedArchiveGraph,
 ) -> None:
-    """Dispatch every payload, treating only the verified image archive specially."""
+    """Scan exposed payloads while transporting the verified image archive opaquely."""
 
     scanned_archive = False
     for path in sorted(root.rglob("*"), key=lambda item: item.relative_to(root).as_posix()):
@@ -174,12 +174,23 @@ def scan_bundle_payloads(
                 "bundle payload must be a regular non-symlink file",
             )
         if path == archive_path:
-            scan_image_archive(path, archive_graph)
+            # The archive graph was verified before copying and verify-handoff
+            # revalidates the copied bytes. Normal handoff deliberately does
+            # not inspect image config or layer contents: the tested OCI image
+            # is an opaque, checksum-pinned transport payload.
+            if not archive_graph.members:
+                raise CompanyDeliveryError(
+                    "ARTIFACT_INVALID",
+                    "verified image archive graph is empty",
+                )
             scanned_archive = True
         else:
             scan_source_text(path)
     if not scanned_archive:
-        _blocked()
+        raise CompanyDeliveryError(
+            "ARTIFACT_INVALID",
+            "verified image archive payload is missing",
+        )
 
 
 def scan_image_archive(path: Path, graph: VerifiedArchiveGraph) -> None:
