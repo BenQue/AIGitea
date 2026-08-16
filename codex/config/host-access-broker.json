@@ -244,7 +244,13 @@
       "repository": "aisoft-platform",
       "project_agent": "aisoft-platform-agent",
       "mac_checkout": "/Users/benque/MyDocs/AISoftPlatform",
-      "vm_profile": null
+      "vm_profile": {
+        "name": "aisoft-platform",
+        "repo_dir": "work/AISoftPlatform",
+        "analysis_provider": "codex",
+        "implement_provider": "none",
+        "timer_unit": null
+      }
     },
     {
       "project_id": "hsdb",

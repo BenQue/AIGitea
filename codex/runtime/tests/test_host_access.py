@@ -56,6 +56,7 @@ class HostAccessContractTests(unittest.TestCase):
             if item.vm_profile is not None
         }
         self.assertEqual(profiles, {
+            "aisoft-platform": "aisoft-platform",
             "HSDB": "hsdb",
             "NewEMaint": "emaintenance",
             "rsdesign-new": "rsdesign",
@@ -252,6 +253,7 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
             for project in raw["projects"] if project["vm_profile"] is not None
         }
         self.assertEqual(declared, {
+            "aisoft-platform": None,
             "sfm-digital-board": ["/opt/node22/bin", "/home/coder/.local/bin"],
             "newemaint": None,
             "hsdb": None,
@@ -301,6 +303,7 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
 
     def test_profile_spec_projects_path_prepend(self) -> None:
         expectations = {
+            "aisoft-platform": [],
             "sfm": ["/opt/node22/bin", "/home/coder/.local/bin"],
             "emaintenance": [],
         }
@@ -316,6 +319,64 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
                 self.assertEqual(code, 0)
                 payload = json.loads(buffer.getvalue())
                 self.assertEqual(payload["path_prepend"], expected)
+
+    def test_aisoft_platform_profile_is_analyzer_only(self) -> None:
+        project = self.contract.project("aisoft-platform")
+        self.assertIsNotNone(project.vm_profile)
+        assert project.vm_profile is not None
+        self.assertEqual(project.vm_profile.name, "aisoft-platform")
+        self.assertEqual(project.vm_profile.repo_dir, "work/AISoftPlatform")
+        self.assertEqual(project.vm_profile.analysis_provider, "codex")
+        self.assertEqual(project.vm_profile.implement_provider, "none")
+        self.assertIsNone(project.vm_profile.timer_unit)
+        self.assertEqual(project.vm_profile.path_prepend, ())
+
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            code = host_access_cli_main([
+                "--access-manifest", str(ACCESS),
+                "--governance-manifest", str(GOVERNANCE),
+                "profile-spec", "--profile-name", "aisoft-platform",
+            ])
+        self.assertEqual(code, 0)
+        payload = json.loads(buffer.getvalue())
+        self.assertEqual(payload, {
+            "analysis_provider": "codex",
+            "gitea_url": "http://gitea-ci.orb.local:3000",
+            "identity": "aisoft-platform-agent",
+            "implement_provider": "none",
+            "owner": "admin",
+            "path_prepend": [],
+            "profile_name": "aisoft-platform",
+            "project_id": "aisoft-platform",
+            "repo_dir": "/home/coder/work/AISoftPlatform",
+            "repository": "aisoft-platform",
+            "token_file": "/home/coder/.config/aisoft/credentials/aisoft-platform.token",
+        })
+
+
+class MattRepositoryAdapterTests(unittest.TestCase):
+    def test_agent_configuration_matches_canonical_templates(self) -> None:
+        for name in ("issue-tracker.md", "triage-labels.md", "domain.md"):
+            with self.subTest(name=name):
+                self.assertEqual(
+                    (ROOT / "docs/agents" / name).read_bytes(),
+                    (ROOT / "templates/docs/agents" / name).read_bytes(),
+                )
+
+    def test_claude_has_one_aisoft_agent_skills_block(self) -> None:
+        content = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+        self.assertEqual(content.count("## Agent skills"), 1)
+        for expected in (
+            "AISoftPlatform Gitea",
+            "docs/agents/issue-tracker.md",
+            "namespaced Matt triage labels",
+            "docs/agents/triage-labels.md",
+            "single-context",
+            "docs/agents/domain.md",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, content)
 
 
 class HostAccessBrokerTests(unittest.TestCase):
