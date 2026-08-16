@@ -1,0 +1,24 @@
+{
+  "contract_version": "company-delivery-inventory/v1",
+  "collector_version": "1.0.0",
+  "collected_at": "2026-08-16T08:00:00Z",
+  "role": "scm-ci",
+  "scope": "company-candidate",
+  "outcome": "NOT RUN",
+  "host": {
+    "hostname_sha256": null,
+    "machine_id_sha256": null,
+    "os_id": "unknown",
+    "os_version": "unknown",
+    "kernel_version": "unknown",
+    "architecture": "unknown",
+    "cpu_count": 0,
+    "memory_bytes": 0,
+    "root_free_bytes": 0
+  },
+  "tools": [],
+  "units": [],
+  "pending": [
+    "COMPANY_INVENTORY_NOT_RUN"
+  ]
+}

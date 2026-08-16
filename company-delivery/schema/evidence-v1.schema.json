@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aisoft.example/contracts/company-delivery/evidence-v1.schema.json",
+  "title": "AISoft company delivery evidence V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "evidence_id", "stage", "scope", "recorded_at", "operator_version", "source_git_sha", "release_id", "outcome", "observed", "changed", "verified", "pending"],
+  "properties": {
+    "contract_version": {"const": "company-delivery-evidence/v1"},
+    "evidence_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+    "stage": {"enum": ["00", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100", "110"]},
+    "scope": {"enum": ["local-fake", "company-scm-ci", "company-appserver-prod", "company-cross-host"]},
+    "recorded_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+    "operator_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "source_git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "release_id": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+    "outcome": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT RUN"]},
+    "observed": {"type": "array", "items": {"$ref": "#/$defs/fact"}},
+    "changed": {"type": "array", "items": {"$ref": "#/$defs/fact"}},
+    "verified": {"type": "array", "items": {"$ref": "#/$defs/fact"}},
+    "pending": {"type": "array", "items": {"$ref": "#/$defs/fact"}}
+  },
+  "allOf": [
+    {
+      "oneOf": [
+        {"properties": {"stage": {"const": "00"}, "scope": {"enum": ["local-fake", "company-scm-ci"]}}},
+        {"properties": {"stage": {"const": "10"}, "scope": {"enum": ["company-scm-ci", "company-appserver-prod"]}}},
+        {"properties": {"stage": {"const": "20"}, "scope": {"const": "company-cross-host"}}},
+        {"properties": {"stage": {"const": "30"}, "scope": {"enum": ["company-scm-ci", "company-appserver-prod", "company-cross-host"]}}},
+        {"properties": {"stage": {"const": "40"}, "scope": {"enum": ["company-scm-ci", "company-appserver-prod", "company-cross-host"]}}},
+        {"properties": {"stage": {"const": "50"}, "scope": {"const": "company-scm-ci"}}},
+        {"properties": {"stage": {"const": "60"}, "scope": {"const": "company-scm-ci"}}},
+        {"properties": {"stage": {"const": "70"}, "scope": {"const": "company-scm-ci"}}},
+        {"properties": {"stage": {"const": "80"}, "scope": {"const": "company-scm-ci"}}},
+        {"properties": {"stage": {"const": "90"}, "scope": {"const": "company-appserver-prod"}}},
+        {"properties": {"stage": {"const": "100"}, "scope": {"const": "company-appserver-prod"}}},
+        {"properties": {"stage": {"const": "110"}, "scope": {"enum": ["company-scm-ci", "company-appserver-prod", "company-cross-host"]}}}
+      ]
+    },
+    {
+      "properties": {
+        "changed": {
+          "items": {
+            "allOf": [
+              {"$ref": "#/$defs/fact"},
+              {"properties": {"status": {"const": "PASS"}}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"outcome": {"const": "PASS"}}},
+      "then": {
+        "properties": {
+          "observed": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"const": "PASS"}}}]}},
+          "verified": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"const": "PASS"}}}]}},
+          "pending": {"maxItems": 0}
+        },
+        "anyOf": [
+          {"properties": {"observed": {"minItems": 1}}},
+          {"properties": {"changed": {"minItems": 1}}},
+          {"properties": {"verified": {"minItems": 1}}}
+        ]
+      }
+    },
+    {
+      "if": {"properties": {"outcome": {"const": "FAIL"}}},
+      "then": {
+        "properties": {
+          "observed": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"enum": ["PASS", "FAIL"]}}}]}},
+          "verified": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"enum": ["PASS", "FAIL"]}}}]}},
+          "pending": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"enum": ["BLOCKED", "NOT RUN"]}}}]}}
+        },
+        "anyOf": [
+          {"properties": {"observed": {"contains": {"properties": {"status": {"const": "FAIL"}}, "required": ["status"]}}}},
+          {"properties": {"verified": {"contains": {"properties": {"status": {"const": "FAIL"}}, "required": ["status"]}}}}
+        ]
+      }
+    },
+    {
+      "if": {"properties": {"outcome": {"const": "BLOCKED"}}},
+      "then": {
+        "properties": {
+          "observed": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"const": "PASS"}}}]}},
+          "verified": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"const": "PASS"}}}]}},
+          "pending": {
+            "minItems": 1,
+            "items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"enum": ["BLOCKED", "NOT RUN"]}}}]},
+            "contains": {"properties": {"status": {"const": "BLOCKED"}}, "required": ["status"]}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"outcome": {"const": "NOT RUN"}}},
+      "then": {
+        "properties": {
+          "observed": {"maxItems": 0},
+          "changed": {"maxItems": 0},
+          "verified": {"maxItems": 0},
+          "pending": {
+            "minItems": 1,
+            "items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"const": "NOT RUN"}}}]}
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "status", "detail", "artifacts"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"},
+        "status": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT RUN"]},
+        "detail": {"type": "string", "minLength": 1, "maxLength": 512},
+        "artifacts": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+      }
+    }
+  }
+}

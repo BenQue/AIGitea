@@ -8,6 +8,7 @@ command -v rg >/dev/null
 bash -n \
   "$ROOT/architecture/bin/aisoft-architecture" \
   "$ROOT/architecture/install.sh" \
+  "$ROOT/company-delivery/bin/aisoft-company-delivery" \
   "$ROOT/codex/tests/test-architecture-install.sh"
 
 optional_runtime_sources=(
@@ -136,6 +137,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/migrate.sh" \
     "$ROOT/architecture/bin/aisoft-architecture" \
     "$ROOT/architecture/install.sh" \
+    "$ROOT/company-delivery/bin/aisoft-company-delivery" \
     "$ROOT/codex/tests/test-architecture-install.sh"
 fi
 bash "$ROOT/codex/tests/test-architecture-install.sh"
@@ -192,6 +194,17 @@ done < <(
   find "$ROOT/docker-release" "$ROOT/codex/tests/fixtures/docker-release" \
     -type f -name '*.json' | sort
 )
+
+while IFS= read -r json_file; do
+  jq empty "$json_file"
+done < <(find "$ROOT/company-delivery" -type f -name '*.json' | sort)
+
+if rg -q -i \
+  'authorization[[:space:]]*:[[:space:]]*(bearer|token)[[:space:]]+[^<[:space:]]+|(password|passwd|pwd|token|secret|api[_-]?key)[[:space:]]*[:=][[:space:]]*[^<[:space:]]{8,}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|\bgh[pousr]_[A-Za-z0-9]{20,}\b|\b(postgres(ql)?|mysql|mongodb)://[^/[:space:]:@]+:[^@[:space:]]+@' \
+  "$ROOT/company-delivery"; then
+  echo 'company-delivery contains a concrete Secret-like value' >&2
+  exit 1
+fi
 
 jq -e '
   .contract_version == "docker-image-store-compatibility/v1" and

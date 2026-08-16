@@ -1,0 +1,29 @@
+{
+  "contract_version": "company-delivery-evidence/v1",
+  "evidence_id": "CDP-120-STAGE-40-FAIL-EXAMPLE",
+  "stage": "40",
+  "scope": "company-cross-host",
+  "recorded_at": "2026-08-16T08:00:00Z",
+  "operator_version": "1.0.0",
+  "source_git_sha": "0000000000000000000000000000000000000000",
+  "release_id": null,
+  "outcome": "FAIL",
+  "observed": [
+    {
+      "code": "EXAMPLE_RESTORE_ATTEMPTED",
+      "status": "PASS",
+      "detail": "Example only; an approved isolated restore was attempted.",
+      "artifacts": []
+    }
+  ],
+  "changed": [],
+  "verified": [
+    {
+      "code": "EXAMPLE_OBJECT_RECONCILIATION_FAILED",
+      "status": "FAIL",
+      "detail": "Example only; one required object class did not reconcile.",
+      "artifacts": []
+    }
+  ],
+  "pending": []
+}

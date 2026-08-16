@@ -1,6 +1,6 @@
 # 12 · Linux / GitHub → Gitea / 三角色职责分离自动部署方案
 
-> 目标方案（更新 2026-08-11）｜状态：**Docker-first source 与 disposable Engine 29.7.1/containerd/Compose 5.1.4 lifecycle evidence 已进入 protected `main`；业务 Registry、业务 offline delivery、AppServer 与 production 仍未实施或验收**
+> 目标方案（更新 2026-08-16）｜状态：**Docker-first source 与 disposable Engine 29.7.1/containerd/Compose 5.1.4 lifecycle evidence 已进入 protected `main`；NewEmaint 两台公司 VM operator contract 不代表业务 Registry、offline delivery、AppServer 或 production 已实施/验收**
 > 新 Linux 默认：OCI digest + Docker Compose；PM2 仅为已有应用的 legacy adapter
 > 网络约束：POC 开发机不能访问公司内网；安装 Gitea 的 `scm-ci` 服务器可以通过 HTTPS 访问 GitHub。
 
@@ -8,8 +8,9 @@
 [Docker release contract v1/v2](docker-release/README.md) 为默认：受控 builder 一次构建，测试
 与生产只消费同一 immutable digests/Compose/architecture identity；PM2/tar.gz 内容保留为
 已有应用的 legacy 设计证据。文件名保留早期“双服务器”提案以维持链接；当前 host-role
-合同至少要求 `scm-ci`、`appserver-test`、`appserver-prod` 三个隔离 machine identity，不能
-把业务 runtime 与 Gitea/通用 Runner 重新合并。
+合同要求 `scm-ci`、`appserver-test`、`appserver-prod` 三个隔离 trust role，但不要求三台公司机器。
+NewEmaint pilot 只有两台公司 Linux VM，`appserver-test` 位于本地 OrbStack DockerLab；任何物理放置都
+不能把业务 runtime/DB 与 Gitea/通用 Runner 重新合并。
 
 现有 [01](01-基础设施-VM-Gitea-Runner.md) 和 [02](02-CI与自动部署流水线.md) 记录的是 OrbStack、Next.js、SQLite 试点的 as-built 事实；本册不修改该事实，也不能把 SQLite 脚本改名后直接用于 PostgreSQL。实施本册涉及 CI、制品、数据库迁移、权限、部署和回滚，属于 complex 变更，必须按 `AGENTS.md` 补齐 Issue、spec、plan 和 verification。
 
@@ -22,18 +23,23 @@
 ```mermaid
 flowchart LR
     GH["GitHub source candidate"] --> SYNC["inbound sync"]
-    subgraph SCM["scm-ci / controlled builder"]
+    subgraph LOCAL["开发侧 / 本地 OrbStack"]
+        PRODUCER["approved linux/amd64 producer"]
+        TEST["NewEmaint DockerLab\nrole=appserver-test"]
+        BUNDLE["versioned offline bundle\nfull SHA + SHA256SUMS"]
+        PRODUCER -->|"exact docker-release/v2 bytes"| TEST
+        TEST -->|"non-production PASS"| BUNDLE
+    end
+    subgraph SCM["公司 VM 1 · gitea-ci / scm-ci"]
         G["Gitea PR + protected main"]
-        CI["act_runner build/test"]
-        REG["Gitea Container Registry"]
-        BUNDLE["offline bundle export"]
+        CI["act_runner source CI"]
+        REG["Registry / cache"]
+        VERIFY["artifact-only verification\ndocker_calls=0"]
         G --> CI --> REG
-        CI --> BUNDLE
     end
     SYNC --> G
-    REG -->|"pull exact digest"| TEST["appserver-test"]
-    BUNDLE -->|"checksum + load"| TEST
-    TEST -->|"same manifest after human gate"| PROD["appserver-prod"]
+    BUNDLE -->|"controlled offline transport"| VERIFY
+    VERIFY -->|"same exact bytes after human gate"| PROD["公司 VM 2 · appserver\nappserver-prod"]
     TEST --> TDB["shared test PostgreSQL\nper-app DB/roles"]
     PROD --> PDB["shared prod PostgreSQL\nper-app DB/roles"]
     TN["shared test Nginx"] --> TEST
@@ -49,7 +55,21 @@ flowchart LR
 - Nginx 和 PostgreSQL 按环境共享；每应用拥有独立 Compose project、database、runtime/
   migrator/backup role 和外置 Secret。应用容器不封装环境共享 Nginx/PostgreSQL。
 - Builder、test AppServer 和 prod AppServer 是独立 trust role；资源有限时也不得把
-  `scm-ci` 复用为业务 runtime。实际 hostname/role 由 #21 host profile 验证。
+  `scm-ci` 复用为业务 runtime。role 隔离不等于三台公司 VM；实际 hostname/role 由 #21 host profile
+  验证。
+
+NewEmaint pilot 的物理放置与职责固定如下，覆盖本册任何要求“公司另建服务器 T”的泛化表述：
+
+| 位置 | role | 允许职责 | 禁止 |
+|---|---|---|---|
+| 公司 VM 1 `gitea-ci` | `scm-ci` | Gitea、GitHub 入站、act_runner、Registry/cache、artifact-only verification、受控编排 | NewEmaint runtime、业务 DB、production Secret |
+| 本地 OrbStack NewEmaint DockerLab | `appserver-test` | 对 exact `docker-release/v2` bytes 做非生产 deploy/migration/health/rollback | 作为 company/live evidence |
+| 公司 VM 2 `appserver` | `appserver-prod` | NewEmaint runtime、PostgreSQL、Nginx、fixed target | Gitea、通用 Runner、源码 build、AI、任意 shell 发布 |
+
+开发侧生成 versioned + checksum-pinned operator bundle，把本地已验证的 exact `docker-release/v2` bytes
+经批准介质搬入公司。公司要求内网重建且没有隔离测试环境时固定 `BLOCKED`；不同 bytes 不得沿用本地
+测试证明。完整 Stage 00–110 合同见
+[`company-delivery/runbook.md`](company-delivery/runbook.md)。
 
 ### 0.2 Release bytes 与 transport
 
@@ -103,9 +123,16 @@ Compose、migration、CI publish、health 与 offline bundle；本平台 Change 
 fake Docker/installer PASS 不是 Registry、TLS、offline media、AppServer、真实 database 或
 production PASS。
 
+Issue #120 只交付 operator source、strict schema、模板与 local fake verification；两台公司 VM inventory、
+Gitea side-by-side/upgrade、backup/isolated restore、GitHub inbound、company PR/CI、Runner/Registry、真实
+NewEmaint handoff、AppServer 和 production 全部保持 `NOT RUN`。安装/首次验收时 sync timer、Actions auto
+deploy 与 production gate 保持 disabled/inactive。
+
 以下 §1–§21 保存 2026-07 PM2/tar.gz 双服务器设计，作为已有应用的 **legacy adapter** 与
 GitHub 入站治理参考。凡与 §0 冲突之处，新 Linux 项目以 §0 和 `docker-release/` 为准；不得
 把历史 PM2 as-built 改写成 Docker 已部署，也不得在应用独立迁移验收前删除 PM2 路径。
+其中“服务器 T”“公司内网重建”和自动部署步骤只描述该 legacy 三机方案，不适用于 NewEmaint pilot；
+NewEmaint 只能使用 §0 与 `company-delivery/runbook.md` 的两台公司 VM + 本地 test 路径。
 
 ## 1. PM2 legacy 已确认决策（历史）
 
@@ -361,7 +388,11 @@ docs/
 - 无 Secret 的 Nginx、PM2、systemd 模板。
 - 运维、回滚和验收文档。
 
-### 5.2 必须在公司内网重建
+### 5.2 PM2 legacy 必须在公司内网重建（NewEmaint 不适用）
+
+本节只约束历史 PM2/tar.gz 三机 adapter。NewEmaint 必须携带本地 DockerLab 已验证的 exact
+`docker-release/v2` bytes；若公司政策要求内网重建，又没有隔离测试环境验证新 bytes，则固定
+`BLOCKED`，不得把新构建冒充为已测试制品。
 
 - Runner 注册 token 和 Runner 状态。
 - Gitea PAT、SSH Key、Secrets。

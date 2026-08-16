@@ -1,0 +1,22 @@
+{
+  "contract_version": "company-delivery-evidence/v1",
+  "evidence_id": "CDP-120-STAGE-10-NOT-RUN",
+  "stage": "10",
+  "scope": "company-scm-ci",
+  "recorded_at": "2026-08-16T08:00:00Z",
+  "operator_version": "1.0.0",
+  "source_git_sha": "0000000000000000000000000000000000000000",
+  "release_id": null,
+  "outcome": "NOT RUN",
+  "observed": [],
+  "changed": [],
+  "verified": [],
+  "pending": [
+    {
+      "code": "COMPANY_STAGE_NOT_RUN",
+      "status": "NOT RUN",
+      "detail": "Example only; company access and execution require a future human-approved stage.",
+      "artifacts": []
+    }
+  ]
+}
