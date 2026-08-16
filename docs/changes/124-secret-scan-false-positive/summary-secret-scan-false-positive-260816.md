@@ -103,7 +103,7 @@ override_reason: ''
   无 path/digest/release allowlist。人工现进一步批准结构感知分类：任意位置仅对 known token/JWT、完整有效
   PEM、含真实 userinfo 的 credential URL、完整具体 Authorization credential block 阻断；source/doc/schema/
   test-fixture 中的示例、regex 与不完整 header 不作为实际凭据，无法可靠分类仍 `SENSITIVE_SCAN_BLOCKED`。
-  第二版 structure-aware 实现与 fake red/green 已完成，但 exact release 的三次同因重放均在首次 build
-  固定 `SENSITIVE_SCAN_BLOCKED`。人工现批准七个无参数 JSON-context reason code、synthetic no-echo tests
-  与一次 exact-release 脱敏诊断；不能在既有语义内证明通用修复时仍须 `NEEDS_HUMAN_DECISION`。批准不包含
-  内容探查、allowlist、push、PR、merge 或部署。
+  第二版 structure-aware 实现与 fixed-reason synthetic tests 已完成。唯一获准的 exact-release 脱敏诊断
+  返回 `JSON_SOURCE_SENSITIVE_AMBIGUOUS`；该固定枚举表示仍无法可靠分类，因此当前为
+  `BLOCKED / NEEDS_HUMAN_DECISION`。不得再次扫描、内容探查、扩大 source/example 语义或使用 allowlist；
+  push、PR、CI、merge 与部署均未执行。

@@ -34,15 +34,16 @@ updated: 2026-08-16
 | T01 | Compose/text scanner 端到端切片：严格 external-reference lexer、concrete-value/no-echo 结果与 fake bundle 正负测试（AC-2、AC-3、AC-6） | - | implemented `9b780e0` |
 | T02 | image archive 端到端切片：复用 verified Docker/OCI graph、有界 config/layer/binary scan 与 archive 负向 fixtures（AC-4、AC-5、AC-6） | - | implemented `42087b2` |
 | T03 | builder 集成切片：typed dispatcher、固定错误 code、清理/确定性、operator `1.0.1` 与文档兼容性（AC-3、AC-7） | T01、T02 | implemented `fa0596c` |
-| T04 | exact `006d...` repo-external integration：material-aware scanner 修订、artifact-only → 双构建 → checksum equality → verify-handoff；不提交 412MB bytes（AC-1、AC-9） | T03 | **in progress**；已获人工批准运行一次固定枚举 JSON-context 脱敏诊断 |
-| T05 | 全量回归、静态/安全审查、mapped verification 与唯一 PR 人工合并交接（AC-8） | T04 | pending；仅在 T04 全 PASS 后开始 |
+| T04 | exact `006d...` repo-external integration：material-aware scanner 修订、artifact-only → 双构建 → checksum equality → verify-handoff；不提交 412MB bytes（AC-1、AC-9） | T03 | **BLOCKED / NEEDS_HUMAN_DECISION**；唯一 real diagnostic 返回固定 `JSON_SOURCE_SENSITIVE_AMBIGUOUS`，禁止继续放宽或重放 |
+| T05 | 全量回归、静态/安全审查、mapped verification 与唯一 PR 人工合并交接（AC-8） | T04 | **NOT RUN / blocked by T04** |
 
 依赖图：`T01 ─┐`、`T02 ─┴→ T03 → T04 → T05`。T01/T02 是两个独立 frontier；任何 ticket 遇到
 no-echo、scope、format 或真实 bytes 冲突都停止，不跳到下游。
 
-恢复边界：只新增 Spec 固定的七个无参数 JSON reason code 及 synthetic no-echo tests，然后对 exact release
-运行一次诊断。若 reason 表明真实 credential material、仍无法可靠分类或需要新的安全语义，立即恢复
-`NEEDS_HUMAN_DECISION`；不得继续探查、扩大 source/example 规则或绕过 `SENSITIVE_SCAN_BLOCKED`。
+诊断结果：七个无参数 reason code 及 synthetic no-echo tests 已完成；唯一 exact-release 诊断返回
+`JSON_SOURCE_SENSITIVE_AMBIGUOUS`。该枚举明确表示仍无法可靠分类，故 T04 立即回到
+`NEEDS_HUMAN_DECISION`。不得再次扫描、探查内容、扩大 source/example 规则或绕过
+`SENSITIVE_SCAN_BLOCKED`；T05、push、PR、CI 均未开始。
 
 ## Ticket details
 

@@ -33,11 +33,12 @@ updated: 2026-08-16
   `7950d119ab5c949d914de172dac8606369483cd4`（#120 / PR #123 merge source）。
 - Worktree：`/private/tmp/issue-124-secret-scan-false-positive`。
 - Branch：`change/124-secret-scan-false-positive`；本轮新增 commits 为 `0d6e113`、`28bd268`、
-  `b822ba2`、`28e4be4`（前序 T01–T04 历史保持不变）；当前无 push 或 PR。
+  `b822ba2`、`28e4be4`、`44e698d`、`137fa9b`、`3ef381c`（前序 T01–T04 历史保持不变）；当前无
+  push 或 PR。
 - Exact external release：`006d0c43cafebff058889e3338d1e8bdcc8b661c`；约 412MB bytes 不在仓库中。
-- 当前阶段：`APPROVED / T04 FIXED-REASON DIAGNOSTIC`。此前 structure-aware 实现正确 fail closed；人工现
-  批准七个无参数 JSON-context reason code、synthetic no-echo tests 与一次 exact-release 脱敏诊断。该批准不
-  允许输出任何内部内容或放宽安全语义；诊断不能可靠证明通用修复时必须再次停止。
+- 当前阶段：`BLOCKED / NEEDS_HUMAN_DECISION`。七个 fixed reason 及 synthetic no-echo tests 已完成；唯一
+  exact-release 诊断返回 `JSON_SOURCE_SENSITIVE_AMBIGUOUS`。该枚举表示 source context 仍无法可靠分类，
+  因此按批准合同立即停止，不实施任何放宽或再次真实扫描。
 
 ## 执行结果
 
@@ -71,7 +72,10 @@ updated: 2026-08-16
 | sanitized classifier replay | BLOCKED | 仅记录 `top_level=images.tar`、`classifier=JSON_CONTEXT` 与固定 code；未记录 inner path、value、snippet 或 offset；cleanup PASS |
 | real replay attempt 3 / threshold | BLOCKED | clean `28e4be4...`：首次 build 再次固定 `SENSITIVE_SCAN_BLOCKED`；第二次 build/双 verify 未运行；cleanup PASS；触发同因三次人工升级门 |
 | post-failure artifact revalidation | PASS | exact release 再次 `ok=true`、`contract_version=docker-release/v2`、`docker_calls=0`、`target_facts=NOT_READ`；临时输出计数 0，candidate tree clean |
-| fixed-reason diagnostic approval | APPROVED / NOT RUN | reason allowlist 固定为七个无参数常量；实现、synthetic tests 与唯一一次 real diagnostic 尚待执行 |
+| fixed-reason diagnostic approval | PASS | reason allowlist 固定为七个无参数常量；批准不包含内容输出、安全放宽或重复 real diagnostic |
+| fixed-reason synthetic RED → GREEN | PASS | exact 2-test class 先因缺少固定枚举 API 产生 8 errors，后 2/2 PASS；普通 CLI no-reason test PASS；focused ArchiveScanner/Bundle/ReleaseTransport 42/42 PASS；commit `3ef381c` |
+| unique exact-release fixed diagnostic | BLOCKED | 仅输出 `top_level=images.tar`、`classifier=JSON_CONTEXT`、`reason=JSON_SOURCE_SENSITIVE_AMBIGUOUS` 与 fixed error code；无 inner path/key/value/snippet/length/offset/hash/count |
+| diagnostic cleanup/input revalidation | PASS | diagnostic temp output 已清理；candidate tree clean；artifact-only 再验证 `docker-release/v2`、`docker_calls=0`、`target_facts=NOT_READ` |
 | company/live checks | NOT RUN | 未连接公司内网，未访问两台公司 VM，未部署或读取 Secret/DB/target facts |
 
 ## Exact release 证据
@@ -82,6 +86,7 @@ updated: 2026-08-16
 | artifact-only verifier | PASS（用户提供） | `ok=true`、`contract_version=docker-release/v2`、`docker_calls=0`、`target_facts=NOT_READ` |
 | baseline `build-bundle` | BLOCKED（用户提供） | artifact verification 后固定 `SENSITIVE_CONTENT`；输出目录已清理 |
 | candidate `build-bundle` | BLOCKED（本次重放） | clean `28e4be4...` artifact-only PASS；`images.tar` 固定 `SENSITIVE_SCAN_BLOCKED`；没有读取、记录或猜测命中值 |
+| fixed-reason diagnostic | BLOCKED | clean `3ef381c...` 唯一诊断为 `JSON_SOURCE_SENSITIVE_AMBIGUOUS`；按合同不运行后续 build |
 | Stage 00 local preparation | BLOCKED | 尚无 exact handoff bundle |
 | company Stage 10–110 | NOT RUN | 必须等待 Stage 00 PASS 及后续逐阶段人工批准 |
 
@@ -89,7 +94,7 @@ updated: 2026-08-16
 
 | AC | Result | 当前证据 / 下一 gate |
 |---|---|---|
-| AC-1 | BLOCKED / resumed | clean `28e4be4...` 首次 build 按获批安全合同 fail closed；现仅获准先执行固定枚举诊断，双构建/checksum equality/双 verify 仍未运行 |
+| AC-1 | BLOCKED | 唯一固定枚举诊断为 `JSON_SOURCE_SENSITIVE_AMBIGUOUS`；无法在不新增安全语义的情况下可靠分类；双构建/checksum equality/双 verify 未运行 |
 | AC-2 | PASS | exact T01 red/green 覆盖 strict references 与 default/alternate/拼接/command substitution |
 | AC-3 | PASS（fake） | sentinel、fixed code、CLI no-echo 与完整 output cleanup 通过 |
 | AC-4 | PASS（fake） | canonical verified graph result驱动 config/metadata/layer/binary streaming；Docker 0 |
@@ -97,7 +102,7 @@ updated: 2026-08-16
 | AC-6 | PASS（fake/review） | schema/source/doc/binary safe fixtures 通过；未增加 release/image/path/binary allowlist |
 | AC-7 | PASS（fake） | operator `1.0.1`、handoff V1、repeat build 与 verify-handoff 兼容通过 |
 | AC-8 | PARTIAL | focused/fake/diff、harness guard 与 T04 cleanup 已通过；full runtime、smoke、ShellCheck、review、CI 因 AC-1 阻塞未执行 |
-| AC-9 | NOT RUN | 七个 fixed reason 的 synthetic no-echo tests 与唯一一次 real diagnostic 尚待执行 |
+| AC-9 | PASS | 七个 fixed reason 均有成对 synthetic no-echo assertions；普通 CLI 不输出 reason；唯一 real diagnostic 只含批准的四个固定字段 |
 
 ## 重复部署
 
@@ -124,9 +129,9 @@ updated: 2026-08-16
 ## 遗留风险与未完成项
 
 - 当前 implementation/fake tests 不能写成真实 Stage 00 或公司执行 PASS。
-- real fixture 在第二版 structure-aware 合同下曾达到同因三次 `SENSITIVE_SCAN_BLOCKED` 阈值；人工现只
-  恢复一次固定枚举 JSON-context 诊断。若 reason 为 unavailable、仍属 ambiguity、表明真实 credential，或
-  修复需要扩大现有语义，必须立即回到 `NEEDS_HUMAN_DECISION`。
+- 唯一 fixed-reason real diagnostic 已返回 `JSON_SOURCE_SENSITIVE_AMBIGUOUS`，明确仍属 ambiguity；当前
+  已回到 `NEEDS_HUMAN_DECISION`。不得再次扫描、读取/输出内容、扩大 source/example 分类，或使用
+  path/digest/release allowlist。
 - 任何需要读取命中值、增加 release/image/path broad allowlist、重建 release 或访问公司环境的方案都超出
   Spec，必须停止并请求新的人工决策。
 - 最终 PR、required CI、merge 与公司部署均未发生；human merge 仍是未来唯一代码交付硬闸门。
