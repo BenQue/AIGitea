@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import base64
 import binascii
-from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass
 import json
-import math
 from pathlib import Path, PurePosixPath
 import re
 import stat
@@ -206,9 +204,9 @@ class _HighConfidenceScanner:
     _pem_begin = re.compile(
         rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"
     )
-    _pem = re.compile(
+    _pem_block = re.compile(
         rb"-----BEGIN (?P<label>(?:RSA |EC |OPENSSH )?PRIVATE KEY)-----"
-        rb"[ \t]*\r?\n(?P<body>[A-Za-z0-9+/=\r\n \t]{40,65536}?)"
+        rb"[ \t]*\r?\n(?P<body>[\s\S]{0,65536}?)"
         rb"-----END (?P=label)-----"
     )
     _known_github_prefix = re.compile(rb"\bgh[pousr]_[A-Za-z0-9]{20,}\b")
@@ -218,12 +216,13 @@ class _HighConfidenceScanner:
     )
     _credential_url = re.compile(
         rb"(?i)(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://"
-        rb"[^/\s:@\x00-\x1f\x7f]+:"
+        rb"(?P<user>[^/\s:@\x00-\x1f\x7f]+):"
         rb"(?P<credential>[^/\s\x00-\x1f\x7f]+)@"
         rb"[^/\s\x00-\x1f\x7f]+"
     )
     _authorization = re.compile(
-        rb"(?i)authorization\s*:\s*(?:bearer|token)\s+"
+        rb"(?i)[\"']?authorization[\"']?\s*:\s*[\"']?"
+        rb"(?:bearer|token)\s+"
         rb"([^\x00-\x20\x7f\"'<>,;]+)"
     )
 
@@ -237,18 +236,25 @@ class _HighConfidenceScanner:
         for match in self._jwt.finditer(window):
             if _looks_like_jwt_material(match.group(0)):
                 _sensitive()
-        for match in self._pem.finditer(window):
+        for match in self._pem_block.finditer(window):
             body = re.sub(rb"\s+", b"", match.group("body"))
-            if len(body) < 40 or len(body) % 4 != 0:
-                continue
+            if (
+                re.fullmatch(rb"[A-Za-z0-9+/=]+", body) is None
+                or len(body) < 40
+                or len(body) % 4 != 0
+            ):
+                _blocked()
             try:
                 decoded = base64.b64decode(body, validate=True)
             except (binascii.Error, ValueError):
-                continue
+                _blocked()
             if len(decoded) >= 32:
                 _sensitive()
+            _blocked()
         for match in self._credential_url.finditer(window):
-            if _looks_like_credential_material(match.group("credential")):
+            if _has_real_credential_url_userinfo(
+                match.group("user"), match.group("credential")
+            ):
                 _sensitive()
         for match in self._authorization.finditer(window):
             if _looks_like_credential_material(match.group(1)):
@@ -297,7 +303,7 @@ def _pem_candidate_body(candidate: bytes) -> bytes | None:
 
 class _EnvironmentCandidate:
     _assignment = re.compile(
-        r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*[:=]\s*(.*)$"
+        r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*([:=])\s*(.*)$"
     )
     _section = re.compile(r"^\s*\[[^\]\r\n]+\]\s*$")
 
@@ -306,6 +312,11 @@ class _EnvironmentCandidate:
         self.candidate = True
         self.entries = 0
         self.sensitive = False
+        self.ambiguous = False
+        self._any_concrete_sensitive = False
+        self._nonexample_sensitive = False
+        self._has_section = False
+        self._shell_environment = True
 
     def feed(self, chunk: bytes) -> None:
         if not self.candidate:
@@ -332,6 +343,11 @@ class _EnvironmentCandidate:
         self._buffer.clear()
         if self.entries == 0:
             self.candidate = False
+        elif self._has_section or self._shell_environment:
+            if self._any_concrete_sensitive:
+                self.sensitive = True
+        elif self._nonexample_sensitive:
+            self.ambiguous = True
 
     def _line(self, payload: bytes) -> None:
         try:
@@ -342,15 +358,22 @@ class _EnvironmentCandidate:
         if not line or line.startswith(("#", ";")):
             return
         if self._section.fullmatch(line) is not None:
+            self._has_section = True
             return
         match = self._assignment.fullmatch(line)
         if match is None:
             self.candidate = False
             return
         self.entries += 1
-        key, value = match.groups()
+        key, delimiter, value = match.groups()
+        self._shell_environment = self._shell_environment and bool(
+            delimiter == "="
+            and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key)
+        )
         if _is_runtime_sensitive_key(key) and _is_concrete_value(value):
-            self.sensitive = True
+            self._any_concrete_sensitive = True
+            if not _is_source_example_or_regex(value):
+                self._nonexample_sensitive = True
 
 
 def _scan_layer(handle: BinaryIO, budget: _ScanBudget) -> None:
@@ -444,6 +467,8 @@ def _scan_inner_payload(handle: BinaryIO, declared_size: int) -> None:
     environment.finish()
     if environment.candidate and environment.sensitive:
         _sensitive()
+    if environment.candidate and environment.ambiguous:
+        _blocked()
     if read_bytes <= MAX_JSON_BYTES:
         _scan_structured_payload(bytes(retained))
     elif bytes(retained).lstrip()[:1] in {b"{", b"["}:
@@ -573,8 +598,8 @@ def _remove_trailing_json_commas(value: str) -> str:
 def _scan_source_literal_assignments(value: str) -> None:
     for pattern in _SOURCE_LITERAL_ASSIGNMENTS:
         for match in pattern.finditer(value):
-            if _looks_like_credential_material(match.group(1)):
-                _sensitive()
+            if not _is_source_example_or_regex(match.group(1)):
+                _blocked()
 
 
 def _scan_json_value(value: object, *, context: str) -> None:
@@ -600,11 +625,33 @@ def _scan_json_value(value: object, *, context: str) -> None:
             ):
                 if not _is_concrete_value(nested):
                     pass
-                elif _looks_like_credential_material(nested):
-                    _sensitive()
                 elif context == "runtime":
                     _sensitive()
-                elif context != "source":
+                elif context == "source" and _is_source_example_or_regex(
+                    nested
+                ):
+                    pass
+                else:
+                    payload = (
+                        nested.encode("utf-8")
+                        if isinstance(nested, str)
+                        else nested
+                    )
+                    scanner = _HighConfidenceScanner()
+                    scanner.feed(payload)
+                    scanner.finish()
+                    if key_text.lower() == "authorization":
+                        authorization = _AUTHORIZATION_VALUE_TEXT.fullmatch(
+                            nested.decode("ascii")
+                            if isinstance(nested, bytes)
+                            else nested
+                        )
+                        if authorization is not None and not (
+                            _is_source_example_or_regex(
+                                authorization.group(1)
+                            )
+                        ):
+                            _sensitive()
                     _blocked()
             _scan_json_value(nested, context=child_context)
     elif isinstance(value, list):
@@ -701,11 +748,28 @@ def _looks_like_source_map(value: Mapping[str, object]) -> bool:
 
 def _looks_like_package_metadata(value: Mapping[str, object]) -> bool:
     lock_version = value.get("lockfileversion")
-    return (
+    if (
         isinstance(lock_version, int)
         and not isinstance(lock_version, bool)
         and isinstance(value.get("packages"), Mapping)
-    )
+    ):
+        return True
+    if not (
+        isinstance(value.get("name"), str)
+        and isinstance(value.get("version"), str)
+    ):
+        return False
+    return any(
+        isinstance(value.get(marker), Mapping)
+        for marker in (
+            "scripts",
+            "dependencies",
+            "devdependencies",
+            "peerdependencies",
+            "optionaldependencies",
+            "engines",
+        )
+    ) or isinstance(value.get("files"), list)
 
 
 _KNOWN_TOKEN_TEXT = re.compile(r"^gh[pousr]_[A-Za-z0-9]{20,}$")
@@ -716,7 +780,8 @@ _JWT_TEXT = re.compile(
 _SOURCE_PLACEHOLDER_TEXT = re.compile(
     rf"^(?:\${IDENTIFIER}|\$\{{{IDENTIFIER}(?::\?required)?\}}|"
     rf"%[A-Za-z]|<[^>\s]+>|\{{{IDENTIFIER}\}}|"
-    r"(?:example|placeholder|redacted|changeme|dummy|fixture|test)"
+    r"(?:example|sample|placeholder|redacted|changeme|replace-me|"
+    r"not-a-real|your|fake|mock|dummy|fixture|test)"
     r"(?:[-_.][A-Za-z0-9_-]+)*)$",
     re.IGNORECASE,
 )
@@ -725,7 +790,8 @@ _AUTHORIZATION_VALUE_TEXT = re.compile(
 )
 _CREDENTIAL_URL_TEXT = re.compile(
     r"^(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://"
-    r"[^/\s:@]+:(?P<credential>[^/\s]+)@[^/\s]+$",
+    r"(?P<user>[^/\s:@]+):(?P<credential>[^/@\s]+)@"
+    r"[^/\s]+(?:/[^\s]*)?$",
     re.IGNORECASE,
 )
 
@@ -742,7 +808,9 @@ def _looks_like_credential_material(value: str | bytes) -> bool:
         normalized = authorization.group(1).strip().strip("\"'`,;)]}")
     credential_url = _CREDENTIAL_URL_TEXT.fullmatch(normalized)
     if credential_url is not None:
-        normalized = credential_url.group("credential")
+        return _has_real_credential_url_userinfo(
+            credential_url.group("user"), credential_url.group("credential")
+        )
     if not normalized or is_external_environment_reference(normalized):
         return False
     if _SOURCE_PLACEHOLDER_TEXT.fullmatch(normalized) is not None:
@@ -751,27 +819,53 @@ def _looks_like_credential_material(value: str | bytes) -> bool:
         return True
     if _JWT_TEXT.fullmatch(normalized) is not None:
         return _looks_like_jwt_material(normalized)
-    if re.fullmatch(r"[A-Fa-f0-9]{32,}", normalized):
-        return len(set(normalized.lower())) >= 8
-    if len(normalized) < 20 or len(set(normalized)) < 10:
-        return False
-    classes = sum(
-        bool(pattern.search(normalized))
-        for pattern in (
-            re.compile(r"[a-z]"),
-            re.compile(r"[A-Z]"),
-            re.compile(r"[0-9]"),
-            re.compile(r"[^A-Za-z0-9]"),
+    return not _is_source_example_or_regex(normalized)
+
+
+def _has_real_credential_url_userinfo(
+    user: str | bytes, credential: str | bytes
+) -> bool:
+    return not (
+        _is_source_example_or_regex(user)
+        or _is_source_example_or_regex(credential)
+    )
+
+
+def _is_source_example_or_regex(value: str | bytes) -> bool:
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("ascii")
+        except UnicodeDecodeError:
+            return False
+    normalized = value.strip()
+    if (
+        len(normalized) >= 2
+        and normalized[0] == normalized[-1]
+        and normalized[0] in {"\"", "'", "`"}
+    ):
+        normalized = normalized[1:-1].strip()
+    if not normalized or is_external_environment_reference(normalized):
+        return True
+    if _SOURCE_PLACEHOLDER_TEXT.fullmatch(normalized) is not None:
+        return True
+    if _RUNTIME_SENSITIVE_KEY.fullmatch(normalized) is not None:
+        return True
+    authorization = _AUTHORIZATION_VALUE_TEXT.fullmatch(normalized)
+    if authorization is not None:
+        return _is_source_example_or_regex(authorization.group(1))
+    credential_url = _CREDENTIAL_URL_TEXT.fullmatch(normalized)
+    if credential_url is not None:
+        return not _has_real_credential_url_userinfo(
+            credential_url.group("user"), credential_url.group("credential")
         )
+    if re.fullmatch(r"/.+/[A-Za-z]*", normalized) is not None:
+        return True
+    if normalized.startswith("^") and normalized.endswith("$"):
+        return True
+    return any(
+        marker in normalized
+        for marker in ("(?=", "(?!", "(?:", "\\d", "\\w", "\\s")
     )
-    if classes < 3:
-        return False
-    counts = Counter(normalized)
-    entropy = -sum(
-        (count / len(normalized)) * math.log2(count / len(normalized))
-        for count in counts.values()
-    )
-    return entropy >= 3.5
 
 
 def _looks_like_jwt_material(value: str | bytes) -> bool:

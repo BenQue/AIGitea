@@ -1063,14 +1063,22 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
         self.replace_archive(
             layer_files=[
                 (
-                    "etc/app.yaml",
-                    b"database_url: "
+                    "etc/app.conf",
+                    b"[database]\n"
+                    b"database_url="
                     b"postgres://example:placeholder@localhost/db\n",
                 )
             ]
         )
         self.assert_bundle_error(
             "SENSITIVE_CONTENT", "out-sensitive-layer-yaml"
+        )
+
+        self.replace_archive(
+            layer_files=[("ambiguous-config", b"password: concrete-value\n")]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-runtime-text"
         )
 
     def test_material_aware_byte_signatures_cross_chunk_without_echo(self) -> None:
@@ -1094,7 +1102,11 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
                     b"Authorization: Bearer example-placeholder\x00"
                     b"postgres://example:placeholder@localhost/db\x00"
                     b"abcdefgh.ijklmnop.qrstuvwxyz012345\x00",
-                )
+                ),
+                (
+                    "source-regex",
+                    b"password: ^(?=.*[A-Z])(?=.*\\d).{12,}$\n",
+                ),
             ]
         )
         built = self.build(self.output_dir("out-safe-source-signatures"))
@@ -1108,12 +1120,12 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
         for name, signature in (
             ("known-token", b"ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"),
             (
-                "authorization-material",
-                b"Authorization: Bearer Ab3!Cd5@Ef7#Gh9$Ij1%Kl3&",
+                "authorization-block",
+                b"Authorization: Bearer concrete-value",
             ),
             (
-                "credential-url-material",
-                b"postgres://service:Ab3!Cd5%40Ef7%23Gh9%24Ij1@db.invalid/app",
+                "credential-url-userinfo",
+                b"postgres://service:concrete-value@db.invalid/app",
             ),
             (
                 "jwt-material",
@@ -1129,9 +1141,20 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
                 )
 
         incomplete = pem_header + b"\n" + encoded
-        self.replace_archive(layer_files=[("bin/payload", incomplete)])
+        self.replace_archive(layer_files=[("source-incomplete-pem", incomplete)])
         self.assert_bundle_error(
             "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-incomplete-pem"
+        )
+
+        invalid_complete = (
+            pem_header
+            + b"\n"
+            + b"not-valid-base64-material" * 2
+            + b"\n-----END PRIVATE KEY-----"
+        )
+        self.replace_archive(layer_files=[("source-invalid-pem", invalid_complete)])
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-invalid-pem"
         )
 
         escaped_pem = json.dumps(
@@ -1153,9 +1176,11 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
             b'"source":{'
             b'"authorization":"Bearer example-placeholder",'
             b'"database_url":"postgres://example:placeholder@localhost/db",'
-            b'"password":"example-placeholder"}}\n',
+            b'"password":"^(?=.*[A-Z])(?=.*\\\\d).{12,}$"}}\n',
             b'{"name":"fixture","lockfileVersion":3,"packages":{'
             b'"":{"password":"example-placeholder"}}}\n',
+            b'{"name":"fixture","version":"1.0.0","scripts":{'
+            b'"password":"example-placeholder"}}\n',
         )
         self.replace_archive(
             layer_files=[
@@ -1194,6 +1219,37 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
         self.assert_bundle_error(
             "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-json-context"
         )
+
+        self.replace_archive(
+            layer_files=[
+                (
+                    "source-ambiguous-json",
+                    b'{"kind":"source","source":{'
+                    b'"password":"concrete-value"}}\n',
+                )
+            ]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-source-json"
+        )
+
+        for name, payload in (
+            (
+                "source-authorization",
+                b'{"kind":"source","source":{'
+                b'"authorization":"Bearer concrete-value"}}\n',
+            ),
+            (
+                "source-userinfo",
+                b'{"kind":"source","source":{'
+                b'"database_url":"postgres://service:concrete-value@db.invalid/app"}}\n',
+            ),
+        ):
+            with self.subTest(source_material=name):
+                self.replace_archive(layer_files=[("source-json", payload)])
+                self.assert_bundle_error(
+                    "SENSITIVE_CONTENT", f"out-{name}"
+                )
 
     def test_unsafe_duplicate_and_unsupported_layer_fail_closed(self) -> None:
         variants: dict[str, bytes] = {}
