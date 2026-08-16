@@ -48,6 +48,8 @@ grep -Fq 'aisoft-issue124-one.XXXXXX' "$harness" ||
   fail 'harness must create a distinct first temporary output'
 grep -Fq 'aisoft-issue124-two.XXXXXX' "$harness" ||
   fail 'harness must create a distinct second temporary output'
+# The guard intentionally matches literal shell source.
+# shellcheck disable=SC2016
 grep -Fq 'rm -rf -- "$path"' "$harness" ||
   fail 'harness must clean only its validated temporary outputs'
 
