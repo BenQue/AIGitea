@@ -2,7 +2,7 @@
   "contract_version": "company-delivery-evidence/v1",
   "evidence_id": "CDP-120-STAGE-20-BLOCKED-EXAMPLE",
   "stage": "20",
-  "scope": "company-scm-ci",
+  "scope": "company-cross-host",
   "recorded_at": "2026-08-16T08:00:00Z",
   "operator_version": "1.0.0",
   "source_git_sha": "0000000000000000000000000000000000000000",

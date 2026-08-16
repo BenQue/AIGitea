@@ -20,6 +20,93 @@
     "verified": {"type": "array", "items": {"$ref": "#/$defs/fact"}},
     "pending": {"type": "array", "items": {"$ref": "#/$defs/fact"}}
   },
+  "allOf": [
+    {
+      "oneOf": [
+        {"properties": {"stage": {"const": "00"}, "scope": {"enum": ["local-fake", "company-scm-ci"]}}},
+        {"properties": {"stage": {"const": "10"}, "scope": {"enum": ["company-scm-ci", "company-appserver-prod"]}}},
+        {"properties": {"stage": {"const": "20"}, "scope": {"const": "company-cross-host"}}},
+        {"properties": {"stage": {"const": "30"}, "scope": {"enum": ["company-scm-ci", "company-appserver-prod", "company-cross-host"]}}},
+        {"properties": {"stage": {"const": "40"}, "scope": {"enum": ["company-scm-ci", "company-appserver-prod", "company-cross-host"]}}},
+        {"properties": {"stage": {"const": "50"}, "scope": {"const": "company-scm-ci"}}},
+        {"properties": {"stage": {"const": "60"}, "scope": {"const": "company-scm-ci"}}},
+        {"properties": {"stage": {"const": "70"}, "scope": {"const": "company-scm-ci"}}},
+        {"properties": {"stage": {"const": "80"}, "scope": {"const": "company-scm-ci"}}},
+        {"properties": {"stage": {"const": "90"}, "scope": {"const": "company-appserver-prod"}}},
+        {"properties": {"stage": {"const": "100"}, "scope": {"const": "company-appserver-prod"}}},
+        {"properties": {"stage": {"const": "110"}, "scope": {"enum": ["company-scm-ci", "company-appserver-prod", "company-cross-host"]}}}
+      ]
+    },
+    {
+      "properties": {
+        "changed": {
+          "items": {
+            "allOf": [
+              {"$ref": "#/$defs/fact"},
+              {"properties": {"status": {"const": "PASS"}}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"outcome": {"const": "PASS"}}},
+      "then": {
+        "properties": {
+          "observed": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"const": "PASS"}}}]}},
+          "verified": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"const": "PASS"}}}]}},
+          "pending": {"maxItems": 0}
+        },
+        "anyOf": [
+          {"properties": {"observed": {"minItems": 1}}},
+          {"properties": {"changed": {"minItems": 1}}},
+          {"properties": {"verified": {"minItems": 1}}}
+        ]
+      }
+    },
+    {
+      "if": {"properties": {"outcome": {"const": "FAIL"}}},
+      "then": {
+        "properties": {
+          "observed": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"enum": ["PASS", "FAIL"]}}}]}},
+          "verified": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"enum": ["PASS", "FAIL"]}}}]}},
+          "pending": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"enum": ["BLOCKED", "NOT RUN"]}}}]}}
+        },
+        "anyOf": [
+          {"properties": {"observed": {"contains": {"properties": {"status": {"const": "FAIL"}}, "required": ["status"]}}}},
+          {"properties": {"verified": {"contains": {"properties": {"status": {"const": "FAIL"}}, "required": ["status"]}}}}
+        ]
+      }
+    },
+    {
+      "if": {"properties": {"outcome": {"const": "BLOCKED"}}},
+      "then": {
+        "properties": {
+          "observed": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"const": "PASS"}}}]}},
+          "verified": {"items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"const": "PASS"}}}]}},
+          "pending": {
+            "minItems": 1,
+            "items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"enum": ["BLOCKED", "NOT RUN"]}}}]},
+            "contains": {"properties": {"status": {"const": "BLOCKED"}}, "required": ["status"]}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"outcome": {"const": "NOT RUN"}}},
+      "then": {
+        "properties": {
+          "observed": {"maxItems": 0},
+          "changed": {"maxItems": 0},
+          "verified": {"maxItems": 0},
+          "pending": {
+            "minItems": 1,
+            "items": {"allOf": [{"$ref": "#/$defs/fact"}, {"properties": {"status": {"const": "NOT RUN"}}}]}
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "fact": {
       "type": "object",

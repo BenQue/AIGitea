@@ -199,7 +199,7 @@ while IFS= read -r json_file; do
   jq empty "$json_file"
 done < <(find "$ROOT/company-delivery" -type f -name '*.json' | sort)
 
-if rg -n -i \
+if rg -q -i \
   'authorization[[:space:]]*:[[:space:]]*(bearer|token)[[:space:]]+[^<[:space:]]+|(password|passwd|pwd|token|secret|api[_-]?key)[[:space:]]*[:=][[:space:]]*[^<[:space:]]{8,}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|\bgh[pousr]_[A-Za-z0-9]{20,}\b|\b(postgres(ql)?|mysql|mongodb)://[^/[:space:]:@]+:[^@[:space:]]+@' \
   "$ROOT/company-delivery"; then
   echo 'company-delivery contains a concrete Secret-like value' >&2

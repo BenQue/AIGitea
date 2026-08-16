@@ -40,6 +40,15 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
   不能直接作为证据。
 - `scope` 必须精确为 `local-fake`、`company-scm-ci`、`company-appserver-prod` 或
   `company-cross-host`；一个文件只对应一个 stage 和一次批准。
+- stage/scope 固定矩阵为：Stage 00=`local-fake|company-scm-ci`；Stage 10=`company-scm-ci|company-appserver-prod`；
+  Stage 20=`company-cross-host`；Stage 30/40=`company-scm-ci|company-appserver-prod|company-cross-host`；
+  Stage 50–80=`company-scm-ci`；Stage 90/100=`company-appserver-prod`；Stage 110=
+  `company-scm-ci|company-appserver-prod|company-cross-host`。其余组合一律拒绝，尤其禁止把 Stage 100 写成
+  `local-fake`。
+- `PASS` 只允许已完成的 `PASS` facts 且 `pending=[]`；`FAIL` 必须有已完成的 `FAIL` fact，且 pending 如存在
+  只能记录尚待独立批准的 `BLOCKED/NOT RUN` 处置；
+  `BLOCKED` 必须至少有一个 pending `BLOCKED` fact；`NOT RUN` 只能含 pending `NOT RUN` facts，且
+  `observed/changed/verified` 为空。`changed` 中的事实只能是 `PASS`。
 - artifacts 仅引用脱敏 JSON/checksum/receipt 的相对路径。原始 logs、backup bytes、Secret files 与 host
   addresses 不进入回流包。
 - 回流前运行 `operator/bin/aisoft-company-delivery verify-evidence --input <evidence-json>`，再对允许文件生成
@@ -69,9 +78,9 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 | 执行位置 / role | 在两台公司 VM 上由人分别运行；collector 的 `--role` 必须与批准记录一致。 |
 | 允许动作 | `operator/bin/aisoft-company-delivery collect-inventory --role scm-ci --output <new-json>` 或 `--role appserver-prod`；仅固定 OS/kernel/arch/capacity、allowlisted version 与 systemd `is-enabled/is-active` probes。 |
 | 预期输出 | 两个 mode `0600` strict inventory JSON；hostname/machine-id 只保留 SHA256 fingerprint，工具输出只保留 semver，unit 只保留 enum。 |
-| PASS | role、`linux/amd64`、容量、候选版本与 role-specific units 全部可解析且无敏感内容；两份文件均通过 `verify-inventory`。 |
+| PASS | role、`linux/amd64`、容量、候选版本与 role-specific units 全部可解析且无敏感内容；`scm-ci` 上待安装的 Gitea/act_runner 只有在命令缺失且对应 unit 同时精确为 `not-found/not-found` 时可记录 `ABSENT/confirmed-not-installed`，供 Stage 20 选择 side-by-side；两份文件均通过 `verify-inventory`。 |
 | FAIL | 已运行固定 probe 且明确得到不兼容版本、错误 architecture 或角色冲突；不保存 raw stdout/stderr。 |
-| BLOCKED / 停止点 | probe 缺失/不可解析、Secret-like output、unknown host fact、目录/mode 不安全或发现跨 role 服务；不得“补猜” inventory。 |
+| BLOCKED / 停止点 | 除上述双重确认的待安装工具外，probe 缺失/不可解析、command 与 unit 状态冲突、Secret-like output、unknown host fact、目录/mode 不安全或发现跨 role 服务；不得“补猜” inventory。 |
 | Evidence | 每台 VM 一个 inventory JSON + 一个 Stage 10 evidence JSON；只回流 fingerprint、enum、semver、数值和固定 reason。 |
 | 回滚边界 | 只读，无 live rollback；仅移除本阶段新建的 evidence copy。任何系统状态变化都视为越界并停止。 |
 

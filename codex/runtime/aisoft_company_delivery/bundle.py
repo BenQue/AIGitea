@@ -36,7 +36,12 @@ SOURCE_MAPPINGS = (
     ("company-delivery", "operator"),
     ("codex/runtime/aisoft_company_delivery", "operator/runtime/aisoft_company_delivery"),
     ("codex/runtime/aisoft_release", "operator/runtime/aisoft_release"),
-    ("sync", "operator/dependencies/sync"),
+    ("sync/git-credential-token-file.sh", "operator/dependencies/sync/git-credential-token-file.sh"),
+    ("sync/inbound-sync.sh", "operator/dependencies/sync/inbound-sync.sh"),
+    ("sync/install.sh", "operator/dependencies/sync/install.sh"),
+    ("sync/systemd/aisoft-inbound-sync@.service", "operator/dependencies/sync/systemd/aisoft-inbound-sync@.service"),
+    ("sync/systemd/aisoft-inbound-sync@.timer", "operator/dependencies/sync/systemd/aisoft-inbound-sync@.timer"),
+    ("sync/templates/project.env.example", "operator/dependencies/sync/templates/project.env.example"),
     ("docker-release", "operator/dependencies/docker-release"),
     ("codex/config/host-capabilities.json", "operator/dependencies/host-role/host-capabilities.json"),
     ("codex/config/host-role.schema.json", "operator/dependencies/host-role/host-role.schema.json"),
@@ -67,8 +72,7 @@ def build_bundle(
     _validate_repository(repository, source_sha)
     _validate_output_directory(output)
     tracked = _mapped_tracked_files(repository)
-    release_files = _verified_release(release_parent, release_id, timestamp.date())
-    _scan_release_metadata(release_files.directory, release_files.archive_path)
+    release_files = _verified_release(release_parent, release_id, _utc_today())
     version = _operator_version(repository / "company-delivery/VERSION")
     bundle_name = f"aisoft-company-delivery-{version}-{source_sha}"
     bundle_root = output / bundle_name
@@ -87,6 +91,7 @@ def build_bundle(
         for source in sorted(release_files.directory.iterdir(), key=lambda item: item.name):
             _copy_regular(source, release_destination / source.name)
 
+        _scan_bundle_payloads(bundle_root)
         payloads = _payload_inventory(bundle_root)
         manifest_relative = f"release/{release_id}/release.json"
         manifest_digest = sha256_file(bundle_root / manifest_relative)
@@ -159,8 +164,8 @@ def verify_bundle(manifest_path: Path | str, bundle_root: Path | str) -> dict[st
     release = manifest["release"]
     assert isinstance(release, Mapping)
     release_id = str(release["release_id"])
-    created = _parse_timestamp(str(manifest["created_at"]))
-    _verified_release(root / "release", release_id, created.date())
+    _parse_timestamp(str(manifest["created_at"]))
+    _verified_release(root / "release", release_id, _utc_today())
     return {
         "contract_version": HANDOFF_VERSION,
         "docker_calls": 0,
@@ -313,30 +318,58 @@ def _payload_inventory(root: Path) -> list[dict[str, object]]:
     return payloads
 
 
-def _scan_release_metadata(directory: Path, archive_path: Path) -> None:
-    for path in sorted(directory.iterdir(), key=lambda item: item.name):
-        if path == archive_path:
-            continue
+def _scan_bundle_payloads(root: Path) -> None:
+    for path in sorted(root.rglob("*"), key=lambda item: item.relative_to(root).as_posix()):
         try:
             metadata = path.lstat()
         except OSError as exc:
-            raise CompanyDeliveryError("ARTIFACT_INVALID", "release metadata is unavailable") from exc
+            raise CompanyDeliveryError("UNSAFE_PATH", "bundle payload is unavailable") from exc
+        if stat.S_ISDIR(metadata.st_mode):
+            continue
         if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
-            raise CompanyDeliveryError("UNSAFE_PATH", "release metadata must be a regular non-symlink file")
+            raise CompanyDeliveryError("UNSAFE_PATH", "bundle payload must be a regular non-symlink file")
         carry = ""
         try:
             with path.open("rb") as handle:
                 for chunk in iter(lambda: handle.read(1024 * 1024), b""):
                     text = carry + chunk.decode("latin-1")
-                    if contains_sensitive_text(text):
+                    if contains_sensitive_text(_mask_source_placeholders(text)):
                         raise CompanyDeliveryError(
-                            "SENSITIVE_CONTENT", "release metadata contains forbidden sensitive content"
+                            "SENSITIVE_CONTENT", "bundle contains forbidden sensitive content"
                         )
                     carry = text[-256:]
         except CompanyDeliveryError:
             raise
         except OSError as exc:
-            raise CompanyDeliveryError("ARTIFACT_INVALID", "release metadata cannot be read") from exc
+            raise CompanyDeliveryError("UNSAFE_PATH", "bundle payload cannot be read") from exc
+
+
+def _mask_source_placeholders(value: str) -> str:
+    identifier = r"[A-Za-z_][A-Za-z0-9_]*"
+    placeholder = (
+        r"(?:%[A-Za-z]|\$"
+        + identifier
+        + r"|\$\{"
+        + identifier
+        + r"\}|\$\(<\"\$"
+        + identifier
+        + r"\"\)|<[^>\s]+>)"
+    )
+    patterns = (
+        re.compile(
+            rf"(?i)authorization\s*:\s*(?:bearer|token)\s+{placeholder}"
+        ),
+        re.compile(
+            rf"(?i)(?:password|passwd|pwd|token|secret|api[_-]?key)\s*[:=]\s*[\"']?{placeholder}[\"']?"
+        ),
+    )
+    for pattern in patterns:
+        value = pattern.sub("SECRET_PLACEHOLDER", value)
+    return value
+
+
+def _utc_today() -> date:
+    return datetime.now(timezone.utc).date()
 
 
 def _write_deterministic_archive(root: Path, destination: Path, epoch: int) -> None:

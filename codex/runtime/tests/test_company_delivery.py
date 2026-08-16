@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+from datetime import date
 import io
 import json
 import os
@@ -10,13 +11,16 @@ import subprocess
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
 
+from aisoft_company_delivery import bundle as bundle_module
 from aisoft_company_delivery.cli import main
 from aisoft_company_delivery.contract import (
     EVIDENCE_VERSION,
     HANDOFF_VERSION,
     INVENTORY_VERSION,
     CompanyDeliveryError,
+    contains_sensitive_text,
     load_evidence,
     load_handoff,
     load_inventory,
@@ -65,18 +69,32 @@ class CompanyDeliveryContractTests(unittest.TestCase):
             },
             "tools": [
                 {
-                    "name": "docker-engine",
+                    "name": name,
                     "status": "PASS",
-                    "version": "29.7.1",
+                    "version": version,
                     "reason": None,
                 }
+                for name, version in (
+                    ("act-runner", "0.2.13"),
+                    ("docker-compose", "5.1.4"),
+                    ("docker-engine", "29.7.1"),
+                    ("git", "2.50.1"),
+                    ("gitea", "1.26.4"),
+                    ("python", "3.14.4"),
+                )
             ],
             "units": [
                 {
-                    "name": "docker.service",
-                    "enabled": "enabled",
-                    "active": "active",
+                    "name": name,
+                    "enabled": "disabled" if name.endswith(".timer") else "enabled",
+                    "active": "inactive" if name.endswith(".timer") else "active",
                 }
+                for name in (
+                    "act_runner.service",
+                    "aisoft-inbound-sync@newemaint.timer",
+                    "docker.service",
+                    "gitea.service",
+                )
             ],
             "pending": [],
         }
@@ -220,6 +238,113 @@ class CompanyDeliveryContractTests(unittest.TestCase):
                 load_evidence(path)
             self.assertNotIn(sentinel, str(caught.exception))
 
+    def test_evidence_outcome_sections_and_stage_scope_are_fail_closed(self) -> None:
+        invalid_documents: list[tuple[str, dict[str, object]]] = []
+
+        passing_with_pending = self.evidence()
+        passing_with_pending["pending"] = [
+            {
+                "code": "EXAMPLE_INPUT_UNKNOWN",
+                "status": "BLOCKED",
+                "detail": "Example input is unknown.",
+                "artifacts": [],
+            }
+        ]
+        invalid_documents.append(("pass-with-pending", passing_with_pending))
+
+        passing_with_failed_verification = self.evidence()
+        passing_with_failed_verification["verified"] = [
+            {
+                "code": "EXAMPLE_VERIFICATION_FAILED",
+                "status": "FAIL",
+                "detail": "Example verification failed.",
+                "artifacts": [],
+            }
+        ]
+        invalid_documents.append(("pass-with-fail", passing_with_failed_verification))
+
+        failed_without_failure = self.evidence()
+        failed_without_failure["outcome"] = "FAIL"
+        invalid_documents.append(("fail-without-fail-fact", failed_without_failure))
+
+        blocked_without_blocker = self.evidence()
+        blocked_without_blocker["outcome"] = "BLOCKED"
+        blocked_without_blocker["pending"] = [
+            {
+                "code": "EXAMPLE_STAGE_NOT_RUN",
+                "status": "NOT RUN",
+                "detail": "Example stage was not run.",
+                "artifacts": [],
+            }
+        ]
+        invalid_documents.append(("blocked-without-blocked-fact", blocked_without_blocker))
+
+        not_run_with_observation = self.evidence()
+        not_run_with_observation["outcome"] = "NOT RUN"
+        not_run_with_observation["pending"] = [
+            {
+                "code": "EXAMPLE_STAGE_NOT_RUN",
+                "status": "NOT RUN",
+                "detail": "Example stage was not run.",
+                "artifacts": [],
+            }
+        ]
+        invalid_documents.append(("not-run-with-observation", not_run_with_observation))
+
+        production_stage_with_local_scope = self.evidence()
+        production_stage_with_local_scope["stage"] = "100"
+        invalid_documents.append(("production-stage-local-scope", production_stage_with_local_scope))
+
+        for name, document in invalid_documents:
+            with self.subTest(name=name), self.assertRaises(CompanyDeliveryError):
+                load_evidence(self.write_json(f"{name}.json", document))
+
+    def test_failed_evidence_can_preserve_pending_manual_actions(self) -> None:
+        evidence = self.evidence()
+        evidence["outcome"] = "FAIL"
+        evidence["verified"] = [
+            {
+                "code": "EXAMPLE_ACTION_FAILED",
+                "status": "FAIL",
+                "detail": "Example approved action failed.",
+                "artifacts": [],
+            }
+        ]
+        evidence["pending"] = [
+            {
+                "code": "EXAMPLE_ROLLBACK_NOT_RUN",
+                "status": "NOT RUN",
+                "detail": "Example rollback awaits separate approval.",
+                "artifacts": [],
+            }
+        ]
+        loaded = load_evidence(self.write_json("fail-with-pending.json", evidence))
+        self.assertEqual(loaded["outcome"], "FAIL")
+
+    def test_inventory_pass_cannot_hide_incomplete_or_blocked_facts(self) -> None:
+        variants: list[tuple[str, object]] = []
+        pending = self.inventory()
+        pending["pending"] = ["EXAMPLE_FACT_UNKNOWN"]
+        variants.append(("pending", pending))
+
+        blocked_tool = self.inventory()
+        blocked_tool["tools"][0].update(
+            {"status": "BLOCKED", "version": None, "reason": "probe-failed"}
+        )
+        variants.append(("blocked-tool", blocked_tool))
+
+        incomplete = self.inventory()
+        incomplete["tools"] = incomplete["tools"][:-1]
+        variants.append(("incomplete", incomplete))
+
+        unknown_host = self.inventory()
+        unknown_host["host"]["architecture"] = "unknown"
+        variants.append(("unknown-host", unknown_host))
+
+        for name, inventory in variants:
+            with self.subTest(name=name), self.assertRaises(CompanyDeliveryError):
+                load_inventory(self.write_json(f"inventory-{name}.json", inventory))
+
     def test_protected_file_mode_and_symlink_are_fail_closed(self) -> None:
         permissive = self.write_json("permissive.json", self.inventory(), mode=0o644)
         with self.assertRaises(CompanyDeliveryError):
@@ -345,6 +470,79 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.assertEqual(gitea["status"], "BLOCKED")
         self.assertEqual(gitea["reason"], "sensitive-output-rejected")
         self.assertNotIn(sentinel, output.read_text(encoding="utf-8"))
+
+    def test_missing_tool_probe_is_not_projected_as_pass(self) -> None:
+        self.responses.pop(("gitea", "--version"))
+        output = self.root / "missing-tool-inventory.json"
+        value = collect_inventory(
+            "scm-ci",
+            output,
+            runner=self.runner,
+            read_text=self.read_text,
+            now=lambda: "2026-08-16T08:00:00Z",
+        )
+        self.assertEqual(value["outcome"], "BLOCKED")
+        self.assertIn("TOOL_PROBE_MISSING_GITEA", value["pending"])
+        gitea = next(item for item in value["tools"] if item["name"] == "gitea")
+        self.assertEqual(gitea["status"], "NOT RUN")
+        self.assertEqual(gitea["reason"], "command-missing")
+
+    def test_unrelated_semver_in_tool_error_banner_is_not_accepted(self) -> None:
+        self.responses[("gitea", "--version")] = (
+            0,
+            "dependency 9.9.9 failed before Gitea version detection\n",
+            "",
+        )
+        output = self.root / "wrong-banner-inventory.json"
+        value = collect_inventory(
+            "scm-ci",
+            output,
+            runner=self.runner,
+            read_text=self.read_text,
+            now=lambda: "2026-08-16T08:00:00Z",
+        )
+        self.assertEqual(value["outcome"], "BLOCKED")
+        gitea = next(item for item in value["tools"] if item["name"] == "gitea")
+        self.assertEqual(gitea["status"], "BLOCKED")
+        self.assertEqual(gitea["reason"], "version-output-unrecognized")
+
+    def test_confirmed_absent_scm_tools_allow_side_by_side_inventory(self) -> None:
+        for command in (("gitea", "--version"), ("act_runner", "--version")):
+            self.responses.pop(command)
+        for unit in ("gitea.service", "act_runner.service"):
+            self.responses[("systemctl", "is-enabled", unit)] = (4, "", "")
+            self.responses[("systemctl", "is-active", unit)] = (4, "", "")
+        output = self.root / "fresh-scm-inventory.json"
+        value = collect_inventory(
+            "scm-ci",
+            output,
+            runner=self.runner,
+            read_text=self.read_text,
+            now=lambda: "2026-08-16T08:00:00Z",
+        )
+        self.assertEqual(value["outcome"], "PASS")
+        tools = {item["name"]: item for item in value["tools"]}
+        for name in ("gitea", "act-runner"):
+            self.assertEqual(tools[name]["status"], "ABSENT")
+            self.assertEqual(tools[name]["reason"], "confirmed-not-installed")
+            self.assertIsNone(tools[name]["version"])
+        self.assertNotIn("TOOL_PROBE_MISSING_GITEA", value["pending"])
+        self.assertNotIn("TOOL_PROBE_MISSING_ACT_RUNNER", value["pending"])
+
+    def test_tool_present_with_missing_unit_is_blocked_before_write(self) -> None:
+        self.responses[("systemctl", "is-enabled", "gitea.service")] = (4, "", "")
+        self.responses[("systemctl", "is-active", "gitea.service")] = (4, "", "")
+        output = self.root / "tool-unit-conflict.json"
+        value = collect_inventory(
+            "scm-ci",
+            output,
+            runner=self.runner,
+            read_text=self.read_text,
+            now=lambda: "2026-08-16T08:00:00Z",
+        )
+        self.assertEqual(value["outcome"], "BLOCKED")
+        self.assertIn("TOOL_UNIT_STATE_CONFLICT_GITEA", value["pending"])
+        self.assertEqual(load_inventory(output)["outcome"], "BLOCKED")
 
     def test_appserver_inventory_uses_only_prod_role_probes(self) -> None:
         self.responses[("nginx", "-v")] = (0, "", "nginx version: nginx/1.30.4\n")
@@ -547,6 +745,107 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "SENSITIVE_CONTENT")
         self.assertNotIn(sentinel, str(caught.exception))
 
+    def test_sensitive_operator_and_image_archive_payloads_are_rejected(self) -> None:
+        sentinel = "never-print-this-value"
+        operator_secret = self.source / "company-delivery/operator-secret.txt"
+        operator_secret.write_text(f"password={sentinel}\n", encoding="utf-8")
+        subprocess.run(["git", "add", str(operator_secret)], cwd=self.source, check=True)
+        subprocess.run(
+            ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "sensitive fixture"],
+            cwd=self.source,
+            check=True,
+        )
+        self.source_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=self.source, text=True
+        ).strip()
+        with self.assertRaises(CompanyDeliveryError) as operator_error:
+            self.build(self.output_dir("out-sensitive-operator"))
+        self.assertEqual(operator_error.exception.code, "SENSITIVE_CONTENT")
+        self.assertNotIn(sentinel, str(operator_error.exception))
+
+        operator_secret.unlink()
+        subprocess.run(["git", "add", "-u"], cwd=self.source, check=True)
+        subprocess.run(
+            ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "remove fixture"],
+            cwd=self.source,
+            check=True,
+        )
+        self.source_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=self.source, text=True
+        ).strip()
+
+        archive = self.release_root / SHA_A / "images.tar"
+        payload = f"password={sentinel}\n".encode("utf-8")
+        rewritten_archive = archive.with_suffix(".rewritten")
+        with tarfile.open(archive, mode="r") as source_archive, tarfile.open(
+            rewritten_archive, mode="w"
+        ) as target_archive:
+            for member in source_archive:
+                if member.isfile():
+                    source_handle = source_archive.extractfile(member)
+                    self.assertIsNotNone(source_handle)
+                    assert source_handle is not None
+                    member_payload = source_handle.read()
+                    if member.name == "layers/0/layer.tar":
+                        member_payload += payload
+                    member.size = len(member_payload)
+                    target_archive.addfile(member, io.BytesIO(member_payload))
+                else:
+                    target_archive.addfile(member)
+        rewritten_archive.replace(archive)
+        inventory_path = self.release_root / SHA_A / "images.inventory.json"
+        inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+        inventory["archive_sha256"] = sha256(archive)
+        inventory_path.write_text(
+            json.dumps(inventory, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+        update_manifest(
+            self.release_root / SHA_A,
+            lambda value: value["offline_bundle"].update(
+                {
+                    "archive_sha256": sha256(archive),
+                    "inventory_sha256": sha256(inventory_path),
+                }
+            ),
+        )
+        with self.assertRaises(CompanyDeliveryError) as archive_error:
+            self.build(self.output_dir("out-sensitive-archive"))
+        self.assertEqual(archive_error.exception.code, "SENSITIVE_CONTENT")
+        self.assertNotIn(sentinel, str(archive_error.exception))
+
+    def test_artifact_freshness_uses_runtime_utc_date_not_created_at(self) -> None:
+        runtime_date = date(2030, 1, 2)
+        with mock.patch(
+            "aisoft_company_delivery.bundle._utc_today",
+            return_value=runtime_date,
+        ), mock.patch(
+            "aisoft_company_delivery.bundle._verified_release",
+            wraps=bundle_module._verified_release,
+        ) as verified:
+            self.build(self.output_dir("out-runtime-date"))
+        self.assertTrue(verified.call_args_list)
+        self.assertTrue(all(call.args[2] == runtime_date for call in verified.call_args_list))
+
+    def test_source_placeholder_mask_cannot_hide_literal_secret_values(self) -> None:
+        sentinel = "never-print-this-value"
+        for unsafe in (
+            f"password=${{PASSWORD:-{sentinel}}}",
+            f"password=$(printf {sentinel})",
+        ):
+            with self.subTest(value=unsafe):
+                masked = bundle_module._mask_source_placeholders(unsafe)
+                self.assertTrue(contains_sensitive_text(masked))
+        for safe in (
+            'token="$(<"$GITEA_TOKEN_FILE")"',
+            "Authorization: token %s",
+            "password=$PASSWORD",
+            "password=${PASSWORD}",
+        ):
+            with self.subTest(value=safe):
+                masked = bundle_module._mask_source_placeholders(safe)
+                self.assertFalse(contains_sensitive_text(masked))
+
     def test_wrong_digest_merge_sha_and_architecture_are_blocked(self) -> None:
         variants = {
             "digest": lambda release_dir: release_dir.joinpath("images.tar").write_bytes(
@@ -696,6 +995,8 @@ class CompanyDeliveryTopologyDocsTests(unittest.TestCase):
         self.assertIn('"$ROOT/company-delivery/bin/aisoft-company-delivery"', smoke)
         self.assertIn('find "$ROOT/company-delivery" -type f -name \'*.json\'', smoke)
         self.assertIn("python3 -m unittest discover", smoke)
+        self.assertIn("rg -q -i", smoke)
+        self.assertNotIn("rg -n -i", smoke)
 
 
 if __name__ == "__main__":

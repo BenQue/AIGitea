@@ -28,32 +28,44 @@ MAX_JSON_BYTES = 2 * 1024 * 1024
 
 OUTCOMES = {"PASS", "FAIL", "BLOCKED", "NOT RUN"}
 ROLES = {"scm-ci", "appserver-prod"}
+ROLE_TOOL_NAMES = {
+    "scm-ci": ("act-runner", "docker-compose", "docker-engine", "git", "gitea", "python"),
+    "appserver-prod": ("docker-compose", "docker-engine", "nginx", "postgresql-client", "python"),
+}
+ROLE_UNIT_NAMES = {
+    "scm-ci": (
+        "act_runner.service",
+        "aisoft-inbound-sync@newemaint.timer",
+        "docker.service",
+        "gitea.service",
+    ),
+    "appserver-prod": ("docker.service", "nginx.service", "postgresql.service"),
+}
 STAGES = {"00", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100", "110"}
 SCOPES = {"local-fake", "company-scm-ci", "company-appserver-prod", "company-cross-host"}
-TOOL_NAMES = {
-    "act-runner",
-    "docker-compose",
-    "docker-engine",
-    "git",
-    "gitea",
-    "nginx",
-    "postgresql-client",
-    "python",
+STAGE_SCOPES = {
+    "00": {"local-fake", "company-scm-ci"},
+    "10": {"company-scm-ci", "company-appserver-prod"},
+    "20": {"company-cross-host"},
+    "30": {"company-scm-ci", "company-appserver-prod", "company-cross-host"},
+    "40": {"company-scm-ci", "company-appserver-prod", "company-cross-host"},
+    "50": {"company-scm-ci"},
+    "60": {"company-scm-ci"},
+    "70": {"company-scm-ci"},
+    "80": {"company-scm-ci"},
+    "90": {"company-appserver-prod"},
+    "100": {"company-appserver-prod"},
+    "110": {"company-scm-ci", "company-appserver-prod", "company-cross-host"},
 }
+TOOL_NAMES = {name for names in ROLE_TOOL_NAMES.values() for name in names}
 TOOL_REASONS = {
     "command-missing",
+    "confirmed-not-installed",
     "probe-failed",
     "sensitive-output-rejected",
     "version-output-unrecognized",
 }
-UNIT_NAMES = {
-    "act_runner.service",
-    "aisoft-inbound-sync@newemaint.timer",
-    "docker.service",
-    "gitea.service",
-    "nginx.service",
-    "postgresql.service",
-}
+UNIT_NAMES = {name for names in ROLE_UNIT_NAMES.values() for name in names}
 ENABLED_STATES = {"enabled", "disabled", "masked", "static", "indirect", "not-found", "unknown"}
 ACTIVE_STATES = {
     "active",
@@ -131,9 +143,9 @@ def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[
     _const(value, "contract_version", INVENTORY_VERSION, "inventory")
     _matching(value, "collector_version", SEMVER, "inventory")
     _timestamp(value, "collected_at", "inventory")
-    _enum(value, "role", ROLES, "inventory")
+    role = _enum(value, "role", ROLES, "inventory")
     _const(value, "scope", "company-candidate", "inventory")
-    _enum(value, "outcome", OUTCOMES, "inventory")
+    outcome = _enum(value, "outcome", OUTCOMES, "inventory")
 
     host = _object(value, "host", "inventory")
     _exact_keys(
@@ -163,6 +175,7 @@ def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[
 
     tools = _array(value, "tools", "inventory")
     seen_tools: set[str] = set()
+    tool_statuses: dict[str, str] = {}
     for index, item in enumerate(tools):
         label = f"inventory.tools[{index}]"
         tool = _mapping(item, label)
@@ -171,17 +184,24 @@ def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[
         if name in seen_tools:
             raise CompanyDeliveryError("INVALID_CONTRACT", "inventory contains a duplicate tool")
         seen_tools.add(name)
-        status_value = _enum(tool, "status", {"PASS", "BLOCKED", "NOT RUN"}, label)
+        status_value = _enum(tool, "status", {"PASS", "ABSENT", "BLOCKED", "NOT RUN"}, label)
+        tool_statuses[name] = status_value
         version = tool["version"]
         reason = tool["reason"]
         if status_value == "PASS":
             if not isinstance(version, str) or SEMVER.fullmatch(version) is None or reason is not None:
                 raise CompanyDeliveryError("INVALID_CONTRACT", "passing tool evidence requires semver and no reason")
-        elif version is not None or reason not in TOOL_REASONS:
+        elif status_value == "ABSENT":
+            if version is not None or reason != "confirmed-not-installed":
+                raise CompanyDeliveryError(
+                    "INVALID_CONTRACT", "absent tool evidence requires the fixed confirmed reason"
+                )
+        elif version is not None or reason not in TOOL_REASONS - {"confirmed-not-installed"}:
             raise CompanyDeliveryError("INVALID_CONTRACT", "non-passing tool evidence requires one fixed reason")
 
     units = _array(value, "units", "inventory")
     seen_units: set[str] = set()
+    unit_states: dict[str, tuple[str, str]] = {}
     for index, item in enumerate(units):
         label = f"inventory.units[{index}]"
         unit = _mapping(item, label)
@@ -190,8 +210,9 @@ def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[
         if name in seen_units:
             raise CompanyDeliveryError("INVALID_CONTRACT", "inventory contains a duplicate unit")
         seen_units.add(name)
-        _enum(unit, "enabled", ENABLED_STATES, label)
-        _enum(unit, "active", ACTIVE_STATES, label)
+        enabled = _enum(unit, "enabled", ENABLED_STATES, label)
+        active = _enum(unit, "active", ACTIVE_STATES, label)
+        unit_states[name] = (enabled, active)
 
     pending = _array(value, "pending", "inventory")
     for item in pending:
@@ -199,6 +220,64 @@ def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[
             raise CompanyDeliveryError("INVALID_CONTRACT", "inventory pending codes are invalid")
     if len(pending) != len(set(pending)):
         raise CompanyDeliveryError("INVALID_CONTRACT", "inventory pending codes must be unique")
+    expected_tools = set(ROLE_TOOL_NAMES[role])
+    expected_units = set(ROLE_UNIT_NAMES[role])
+    if outcome == "NOT RUN":
+        if tools or units or not pending:
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "NOT RUN inventory cannot claim tool or unit observations"
+            )
+        return value
+    if seen_tools != expected_tools or seen_units != expected_units:
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "inventory must contain every role-specific tool and unit exactly once"
+        )
+    if outcome == "BLOCKED" and not pending:
+        raise CompanyDeliveryError("INVALID_CONTRACT", "BLOCKED inventory requires pending reason codes")
+    for tool_name, status in tool_statuses.items():
+        if status != "ABSENT":
+            continue
+        unit_name = {
+            "act-runner": "act_runner.service",
+            "gitea": "gitea.service",
+        }.get(tool_name)
+        if role != "scm-ci" or unit_name is None or unit_states[unit_name] != ("not-found", "not-found"):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "ABSENT tool evidence requires a confirmed scm-ci unit absence"
+            )
+    if outcome == "PASS":
+        complete_host = (
+            host["hostname_sha256"] is not None
+            and host["machine_id_sha256"] is not None
+            and host["os_id"] != "unknown"
+            and host["os_version"] != "unknown"
+            and host["kernel_version"] != "unknown"
+            and host["architecture"] == "amd64"
+            and all(int(host[key]) > 0 for key in ("cpu_count", "memory_bytes", "root_free_bytes"))
+        )
+        known_units = all("unknown" not in states for states in unit_states.values())
+        optional_absence_consistent = role != "scm-ci" or all(
+            (tool_statuses[tool_name] == "ABSENT")
+            == (unit_states[unit_name] == ("not-found", "not-found"))
+            for tool_name, unit_name in {
+                "act-runner": "act_runner.service",
+                "gitea": "gitea.service",
+            }.items()
+        )
+        timer_safe = unit_states.get(
+            "aisoft-inbound-sync@newemaint.timer", ("disabled", "inactive")
+        ) in {("disabled", "inactive"), ("not-found", "not-found")}
+        if (
+            pending
+            or not complete_host
+            or not known_units
+            or not optional_absence_consistent
+            or not timer_safe
+            or any(status not in {"PASS", "ABSENT"} for status in tool_statuses.values())
+        ):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "PASS inventory requires complete passing facts and no pending codes"
+            )
     return value
 
 
@@ -226,20 +305,29 @@ def load_evidence(path: Path | str, *, require_protected: bool = True) -> dict[s
     )
     _const(value, "contract_version", EVIDENCE_VERSION, "evidence")
     _matching(value, "evidence_id", SAFE_ID, "evidence")
-    _enum(value, "stage", STAGES, "evidence")
-    _enum(value, "scope", SCOPES, "evidence")
+    stage = _enum(value, "stage", STAGES, "evidence")
+    scope = _enum(value, "scope", SCOPES, "evidence")
+    if scope not in STAGE_SCOPES[stage]:
+        raise CompanyDeliveryError("INVALID_CONTRACT", "evidence stage and scope are incompatible")
     _timestamp(value, "recorded_at", "evidence")
     _matching(value, "operator_version", SEMVER, "evidence")
     _matching(value, "source_git_sha", GIT_SHA, "evidence")
     if value["release_id"] is not None:
         _matching(value, "release_id", GIT_SHA, "evidence")
     outcome = _enum(value, "outcome", OUTCOMES, "evidence")
+    section_statuses: dict[str, list[str]] = {}
     for section in ("observed", "changed", "verified", "pending"):
         facts = _array(value, section, "evidence")
+        statuses: list[str] = []
         for index, item in enumerate(facts):
-            _validate_fact(_mapping(item, f"evidence.{section}[{index}]"), f"evidence.{section}[{index}]")
-    if outcome == "NOT RUN" and value["changed"]:
-        raise CompanyDeliveryError("INVALID_CONTRACT", "NOT RUN evidence cannot claim changes")
+            statuses.append(
+                _validate_fact(
+                    _mapping(item, f"evidence.{section}[{index}]"),
+                    f"evidence.{section}[{index}]",
+                )
+            )
+        section_statuses[section] = statuses
+    _validate_evidence_outcome(outcome, section_statuses)
     return value
 
 
@@ -325,10 +413,10 @@ def load_handoff(
     return value
 
 
-def _validate_fact(value: Mapping[str, object], label: str) -> None:
+def _validate_fact(value: Mapping[str, object], label: str) -> str:
     _exact_keys(value, {"code", "status", "detail", "artifacts"}, label)
     _matching(value, "code", FACT_CODE, label)
-    _enum(value, "status", OUTCOMES, label)
+    status_value = _enum(value, "status", OUTCOMES, label)
     detail = _string(value, "detail", label)
     if not detail or len(detail.encode("utf-8")) > 512 or "\n" in detail or "\r" in detail:
         raise CompanyDeliveryError("INVALID_CONTRACT", "evidence detail must be one bounded line")
@@ -339,6 +427,48 @@ def _validate_fact(value: Mapping[str, object], label: str) -> None:
         _relative_path(artifact)
     if len(artifacts) != len(set(artifacts)):
         raise CompanyDeliveryError("INVALID_CONTRACT", "evidence artifact references must be unique")
+    return status_value
+
+
+def _validate_evidence_outcome(outcome: str, sections: Mapping[str, list[str]]) -> None:
+    observed = sections["observed"]
+    changed = sections["changed"]
+    verified = sections["verified"]
+    pending = sections["pending"]
+    completed = observed + changed + verified
+
+    if any(status != "PASS" for status in changed):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "changed evidence facts must be PASS")
+    if outcome == "PASS":
+        if pending or not completed or any(status != "PASS" for status in completed):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "PASS evidence requires only completed PASS facts and no pending facts"
+            )
+        return
+    if outcome == "FAIL":
+        if (
+            any(status not in {"PASS", "FAIL"} for status in completed)
+            or "FAIL" not in completed
+            or any(status not in {"BLOCKED", "NOT RUN"} for status in pending)
+        ):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "FAIL evidence requires a completed FAIL fact and bounded pending states"
+            )
+        return
+    if outcome == "BLOCKED":
+        if any(status != "PASS" for status in completed):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "BLOCKED evidence must keep completed facts at PASS"
+            )
+        if not pending or any(status not in {"BLOCKED", "NOT RUN"} for status in pending) or "BLOCKED" not in pending:
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "BLOCKED evidence requires at least one pending BLOCKED fact"
+            )
+        return
+    if completed or not pending or any(status != "NOT RUN" for status in pending):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "NOT RUN evidence requires only pending NOT RUN facts"
+        )
 
 
 def _verify_payloads(root: Path, payloads: list[tuple[str, str, int, str]]) -> None:

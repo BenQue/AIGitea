@@ -14,6 +14,8 @@ import subprocess
 
 from .contract import (
     INVENTORY_VERSION,
+    ROLE_TOOL_NAMES,
+    ROLE_UNIT_NAMES,
     ROLES,
     CompanyDeliveryError,
     contains_sensitive_text,
@@ -25,8 +27,6 @@ Runner = Callable[[list[str]], subprocess.CompletedProcess[str]]
 Reader = Callable[[Path], str]
 Clock = Callable[[], str]
 
-SEMVER_SEARCH = re.compile(r"(?<![0-9])([0-9]+\.[0-9]+\.[0-9]+)(?![0-9])")
-POSTGRES_VERSION_SEARCH = re.compile(r"(?<![0-9])([0-9]+\.[0-9]+)(?![0-9.])")
 SAFE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$")
 OS_ID = re.compile(r"^[a-z0-9][a-z0-9._-]{0,31}$")
 
@@ -41,36 +41,19 @@ TOOL_COMMANDS: dict[str, tuple[str, ...]] = {
     "python": ("python3", "--version"),
 }
 
-ROLE_TOOLS = {
-    "scm-ci": (
-        "act-runner",
-        "docker-compose",
-        "docker-engine",
-        "git",
-        "gitea",
-        "python",
-    ),
-    "appserver-prod": (
-        "docker-compose",
-        "docker-engine",
-        "nginx",
-        "postgresql-client",
-        "python",
-    ),
+TOOL_VERSION_PATTERNS: dict[str, re.Pattern[str]] = {
+    "act-runner": re.compile(r"act_runner version v?([0-9]+\.[0-9]+\.[0-9]+)"),
+    "docker-compose": re.compile(r"(?:Docker Compose version v?)?([0-9]+\.[0-9]+\.[0-9]+)"),
+    "docker-engine": re.compile(r"([0-9]+\.[0-9]+\.[0-9]+)"),
+    "git": re.compile(r"git version ([0-9]+\.[0-9]+\.[0-9]+)(?: \([A-Za-z0-9 ._-]+\))?"),
+    "gitea": re.compile(r"Gitea version ([0-9]+\.[0-9]+\.[0-9]+)(?: built with [^\r\n]+)?"),
+    "nginx": re.compile(r"nginx version: nginx/([0-9]+\.[0-9]+\.[0-9]+)(?: \([^\r\n]+\))?"),
+    "postgresql-client": re.compile(r"psql \(PostgreSQL\) ([0-9]+\.[0-9]+(?:\.[0-9]+)?)(?: \([^\r\n]+\))?"),
+    "python": re.compile(r"Python ([0-9]+\.[0-9]+\.[0-9]+)"),
 }
-
-ROLE_UNITS = {
-    "scm-ci": (
-        "act_runner.service",
-        "aisoft-inbound-sync@newemaint.timer",
-        "docker.service",
-        "gitea.service",
-    ),
-    "appserver-prod": (
-        "docker.service",
-        "nginx.service",
-        "postgresql.service",
-    ),
+OPTIONAL_SCM_TOOL_UNITS = {
+    "act-runner": "act_runner.service",
+    "gitea": "gitea.service",
 }
 
 ENABLED_STATES = {"enabled", "disabled", "masked", "static", "indirect"}
@@ -136,11 +119,12 @@ def collect_inventory(
         pending.append("ROOT_FREE_SPACE_UNAVAILABLE")
 
     tools: list[dict[str, object]] = []
-    for name in ROLE_TOOLS[role]:
+    for name in ROLE_TOOL_NAMES[role]:
         probe = _probe(invoke, list(TOOL_COMMANDS[name]))
         raw = (probe.stdout or "") + "\n" + (probe.stderr or "")
         if probe.missing:
             tools.append({"name": name, "status": "NOT RUN", "version": None, "reason": "command-missing"})
+            pending.append("TOOL_PROBE_MISSING_" + name.upper().replace("-", "_"))
         elif probe.returncode != 0:
             tools.append({"name": name, "status": "BLOCKED", "version": None, "reason": "probe-failed"})
             pending.append("TOOL_PROBE_FAILED_" + name.upper().replace("-", "_"))
@@ -160,14 +144,34 @@ def collect_inventory(
                 tools.append({"name": name, "status": "PASS", "version": version, "reason": None})
 
     units: list[dict[str, str]] = []
-    for unit in ROLE_UNITS[role]:
+    for unit in ROLE_UNIT_NAMES[role]:
         enabled = _unit_state(_probe(invoke, ["systemctl", "is-enabled", unit]), ENABLED_STATES)
         active = _unit_state(_probe(invoke, ["systemctl", "is-active", unit]), ACTIVE_STATES)
         units.append({"name": unit, "enabled": enabled, "active": active})
         if "unknown" in {enabled, active}:
             pending.append("UNIT_STATE_UNKNOWN_" + re.sub(r"[^A-Za-z0-9]", "_", unit).upper())
-        if unit.endswith(".timer") and (enabled != "disabled" or active != "inactive"):
+        if unit.endswith(".timer") and (enabled, active) not in {
+            ("disabled", "inactive"),
+            ("not-found", "not-found"),
+        }:
             pending.append("SYNC_TIMER_MUST_REMAIN_DISABLED")
+
+    if role == "scm-ci":
+        tools_by_name = {str(item["name"]): item for item in tools}
+        unit_states = {item["name"]: (item["enabled"], item["active"]) for item in units}
+        for name, unit in OPTIONAL_SCM_TOOL_UNITS.items():
+            tool = tools_by_name[name]
+            unit_absent = unit_states[unit] == ("not-found", "not-found")
+            if (
+                tool["status"] == "NOT RUN"
+                and tool["reason"] == "command-missing"
+                and unit_absent
+            ):
+                tool["status"] = "ABSENT"
+                tool["reason"] = "confirmed-not-installed"
+                pending.remove("TOOL_PROBE_MISSING_" + name.upper().replace("-", "_"))
+            elif tool["status"] == "PASS" and unit_absent:
+                pending.append("TOOL_UNIT_STATE_CONFLICT_" + name.upper().replace("-", "_"))
 
     value: dict[str, object] = {
         "contract_version": INVENTORY_VERSION,
@@ -206,6 +210,8 @@ class _Probe:
 def _probe(runner: Runner, argv: list[str]) -> _Probe:
     try:
         result = runner(argv)
+    except subprocess.TimeoutExpired:
+        return _Probe(124, "", "")
     except (FileNotFoundError, PermissionError, OSError):
         return _Probe(127, "", "", missing=True)
     return _Probe(int(result.returncode), str(result.stdout or ""), str(result.stderr or ""))
@@ -255,14 +261,16 @@ def _collector_version() -> str:
 
 
 def _tool_version(name: str, value: str) -> str | None:
-    match = SEMVER_SEARCH.search(value)
-    if match is not None:
-        return match.group(1)
-    if name == "postgresql-client":
-        postgres = POSTGRES_VERSION_SEARCH.search(value)
-        if postgres is not None:
-            return postgres.group(1) + ".0"
-    return None
+    normalized = value.strip()
+    if "\n" in normalized or "\r" in normalized:
+        return None
+    match = TOOL_VERSION_PATTERNS[name].fullmatch(normalized)
+    if match is None:
+        return None
+    version = match.group(1)
+    if name == "postgresql-client" and version.count(".") == 1:
+        return version + ".0"
+    return version
 
 
 def _fingerprint(value: str) -> str | None:

@@ -45,6 +45,11 @@ company-delivery/bin/aisoft-company-delivery build-bundle \
 同一组输入重复构建必须得到 byte-identical archive checksum。真实 NewEmaint bytes 缺失时保持
 `NOT RUN`；不得用 repository fixture 或 local fake bundle 作为公司 handoff。
 
+`created-at` 只控制确定性 archive 的时间字段，不是安全校验时钟。每次 build 与 verify 都按运行时 UTC
+日期检查 architecture exception 是否仍有效，禁止通过回填时间绕过过期例外。builder 在写 manifest 前
+逐字节扫描全部 operator、dependency 与 release payload（包括 image archive）；命中 concrete
+Secret-like 内容时只返回固定 `SENSITIVE_CONTENT`，不回显值。
+
 ## 验证与 evidence
 
 解包前先校验相邻 archive checksum，解包时固定 `umask 077`；解包后调用 `verify-handoff`，它会重新校验
