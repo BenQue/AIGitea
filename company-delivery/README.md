@@ -63,5 +63,6 @@ handoff、逐文件摘要、完整 `SHA256SUMS`、compatibility identity 和 rel
 `BLOCKED` 或 `NOT RUN`；必须分别记录 `observed`、`changed`、`verified`、`pending`。不得提交或传输
 Secret、原始日志、主机名/IP、用户名、配置内容、认证 header 或 credential path。
 
-完整操作合同见 [`runbook.md`](runbook.md)。当前仓库 Change 只运行 local fake tests；公司 VM、公司
-Gitea/Runner/Registry、backup/restore、NewEmaint target 和 production 均为 `NOT RUN`。
+完整操作合同见 [`runbook.md`](runbook.md)。#124 已对 repo-external exact NewEmaint release 运行本地只读
+deterministic handoff regression；这不是公司侧 handoff 或部署。公司 VM、公司 Gitea/Runner/Registry、
+backup/restore、NewEmaint target 和 production 均为 `NOT RUN`。

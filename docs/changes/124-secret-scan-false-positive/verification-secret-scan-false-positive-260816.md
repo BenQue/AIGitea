@@ -27,41 +27,51 @@ updated: 2026-08-16
 
 # Verification：真实 release 的格式化 Secret 扫描
 
-## 2026-08-16 人工简化决定与恢复状态
+## 2026-08-16 人工简化决定与当前状态
 
 用户明确接受已验证 `images.tar` 内部可能包含 credential-like 或实际凭据材料的风险，并批准停止 OCI layer
 内容级 Secret 审计；公司内网安装、授权与 Secret 配置均由人手工处理。此前
 `SENSITIVE_SCAN_BLOCKED`/`SENSITIVE_CONTENT` 的真实深度扫描记录保留为历史证据，但不再是 active Stage 00
 gate，也不代表已确认真实凭据。
 
-active verification 只要求 exact artifact identity/checksum/graph、顶层文本 no-secret、deterministic handoff
-和 zero Docker/target/network access。当前从 `BLOCKED / NEEDS_HUMAN_DECISION` 恢复为
-`approved / T04 in progress`；push、PR、CI、merge 与公司部署仍 `NOT RUN`。
+active verification 只要求 exact artifact identity/checksum/graph、结构感知的顶层文本 no-secret、
+deterministic handoff 和 zero Docker/target/network access。T04 已在 clean candidate `699dbbe...` 上 PASS；
+T05 的本地 full runtime 与 smoke 已 PASS。两轴 review 的初次 findings 已修复，收口复核、push、PR、CI 尚待
+本文件更新后执行；merge 与公司部署不在授权内。
 
 ### Active RAC 结果
 
 | RAC | Result | Evidence |
 |---|---|---|
-| RAC-1 exact real handoff | NOT RUN | 待 opaque policy 实现后重跑 |
-| RAC-2 opaque archive + artifact tamper | NOT RUN | 待 RED→GREEN |
-| RAC-3 top-level no-secret | PASS（既有 fake） | T01 strict references、sentinel/no-echo/cleanup；待收口复跑 |
-| RAC-4 local-only | PASS（截至当前） | 真实 release 保持只读；Docker/target/network/company 均未访问 |
-| RAC-5 full regression/PR/CI | NOT RUN | blocked by T04 |
+| RAC-1 exact real handoff | PASS | exact `006d...` artifact-only PASS；同一 created-at 双构建 checksum 相同；双 verify-handoff PASS；输入 fingerprint 不变；临时输出清理 PASS |
+| RAC-2 opaque archive + artifact tamper | PASS | fake verified image 内部 credential-like fixture 可 opaque 搬运；既有 checksum/graph tamper 仍 fail closed |
+| RAC-3 top-level no-secret | PASS | Bundle 13/13：顶层 sentinel/JWT 阻断且 no-echo；孤立 PEM header、示例 Authorization 与精确 external references 通过 |
+| RAC-4 local-only | PASS | `docker_calls=0`、`target_facts=NOT_READ`；真实 release 只读；未访问 Docker、网络、target 或公司环境 |
+| RAC-5 full regression/PR/CI | PARTIAL | runtime 412/412、smoke PASS；最终 review、PR 和 exact-head CI 尚待执行 |
+
+### Active T04/T05 evidence
+
+| Check | Result | Fixed evidence |
+|---|---|---|
+| focused Bundle + ArchiveScanner + ReleaseTransport | PASS | `Ran 43 tests ... OK` |
+| exact real-release harness | PASS | source `699dbbe0546ad1651368507a49305cb846027fcc`；artifact-only `docker-release/v2`；deterministic archive SHA256 `f5012ca407b36df3567d7ce3ed55457f1386e0efab63ca10d9db54f16b1f1573`；verify `2/2`；cleanup PASS |
+| exact release input immutability | PASS | before/after fingerprint `4d997e37c4c0197bd0f24af1d7193b3286c005f7d27211161b7a4774dfe96e0f`；unchanged PASS |
+| full runtime | PASS | `Ran 412 tests ... OK` |
+| full smoke | PASS | `bash codex/tests/smoke.sh`；ShellCheck、JSON、runtime 与 static smoke 全部 PASS |
+| company/live operations | NOT RUN | 不生成 Stage evidence；company Stage 00–110 均未运行；未连接公司内网或读取 Secret/DB/target facts |
 
 ## 环境与版本
 
 - Planning baseline：freshly fetched `origin/main` =
   `7950d119ab5c949d914de172dac8606369483cd4`（#120 / PR #123 merge source）。
 - Worktree：`/private/tmp/issue-124-secret-scan-false-positive`。
-- Branch：`change/124-secret-scan-false-positive`；本轮新增 commits 为 `0d6e113`、`28bd268`、
-  `b822ba2`、`28e4be4`、`44e698d`、`137fa9b`、`3ef381c`、`c013663`、`db13dc5`、`fa90e32`、
-  `7bf4792`（前序 T01–T04 历史保持不变）；当前无 push 或 PR。
+- Branch：`change/124-secret-scan-false-positive`；opaque revision commits 为 `a9cd703`、`d9de9c6`、
+  `0f62837`、`13733d8`、`f2c1834`、`699dbbe`；更早 T01–T04 深度扫描 commits 保留作审计。当前无 push 或 PR。
 - Exact external release：`006d0c43cafebff058889e3338d1e8bdcc8b661c`；约 412MB bytes 不在仓库中。
-- 当前阶段：`BLOCKED / NEEDS_HUMAN_DECISION`。唯一二级 diagnostic 为
-  `JSON_SOURCE_SENSITIVE_AMBIGUOUS / PACKAGE_METADATA`；通用 package metadata 修复与 fake matrix 通过，
-  但首次完整 real build 返回固定 `SENSITIVE_CONTENT`。按批准合同视为实际 credential signal 并立即停止。
+- 当前阶段：`approved / T05 in progress`。旧 `JSON_SOURCE_SENSITIVE_AMBIGUOUS / PACKAGE_METADATA` 与
+  `SENSITIVE_CONTENT` 是已被最新人工 opaque-artifact 风险接受覆盖的历史诊断，不再阻断 Stage 00。
 
-## 执行结果
+## 历史执行结果（早期深度扫描阶段，仅供审计）
 
 | Command / check | Result | Evidence |
 |---|---|---|
@@ -105,7 +115,7 @@ active verification 只要求 exact artifact identity/checksum/graph、顶层文
 | post-attempt cleanup/input revalidation | PASS | 临时输出已清理；candidate tree clean；artifact-only 再验证 `docker-release/v2`、`docker_calls=0`、`target_facts=NOT_READ` |
 | company/live checks | NOT RUN | 未连接公司内网，未访问两台公司 VM，未部署或读取 Secret/DB/target facts |
 
-## Exact release 证据
+## 历史 Exact release 深度扫描证据（已被 active T04 覆盖）
 
 | Layer | Result | Boundary |
 |---|---|---|
@@ -119,7 +129,7 @@ active verification 只要求 exact artifact identity/checksum/graph、顶层文
 | Stage 00 local preparation | BLOCKED | 尚无 exact handoff bundle |
 | company Stage 10–110 | NOT RUN | 必须等待 Stage 00 PASS 及后续逐阶段人工批准 |
 
-## Acceptance criteria 结果
+## 历史 Acceptance criteria 结果（已被 RAC-1–RAC-5 覆盖）
 
 | AC | Result | 当前证据 / 下一 gate |
 |---|---|---|
@@ -156,12 +166,11 @@ active verification 只要求 exact artifact identity/checksum/graph、顶层文
 | service/timer/Actions production gate | NOT RUN | 必须保持 disabled/inactive，启用需未来独立批准 |
 | database migration/restore、test/prod deploy | NOT RUN | 明确不授权 |
 
-## 遗留风险与未完成项
+## 当前遗留风险与未完成项
 
-- 当前 implementation/fake tests 不能写成真实 Stage 00 或公司执行 PASS。
-- 二级 role `PACKAGE_METADATA` 支持并已实施通用结构规则，但 subsequent real build 返回
-  `SENSITIVE_CONTENT`。这属于批准合同规定的实际 credential signal；当前已回到
-  `NEEDS_HUMAN_DECISION`，不得继续扫描、读取/输出内容或再次尝试。
-- 任何需要读取命中值、增加 release/image/path broad allowlist、重建 release 或访问公司环境的方案都超出
-  Spec，必须停止并请求新的人工决策。
-- 最终 PR、required CI、merge 与公司部署均未发生；human merge 仍是未来唯一代码交付硬闸门。
+- pre-Stage 00 local exact-release regression 已 PASS，但不生成 Stage evidence；company Stage 00–110 仍为
+  `NOT RUN`，且这不是部署成功。
+- `images.tar` 内部未被扫描，可能包含 credential-like 或实际凭据材料；这是用户明确接受并交由 NewEmaint
+  release owner 与公司人工授权承担的风险，不得把 bundle PASS 写成 image 无 Secret。
+- 最终 review、唯一 PR 与 exact-head required CI 尚待完成；human merge 仍是唯一代码交付硬闸门。
+- 公司 Stage 10–110、Secret/DB/Nginx、service/timer、test/prod deploy 均保持 `NOT RUN`。

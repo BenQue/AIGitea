@@ -247,10 +247,12 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 
 ## 2. 当前状态与强制 NOT RUN
 
-Issue #120 的开发会话只允许 repository/local fake implementation 和验证。当前允许记录：Stage 00 的
-fake/disposable contract tests；这不是实际 NewEmaint handoff。公司侧 Stage 10–110：`NOT RUN`。
+Issue #120 建立了本 runbook；Issue #124 另行批准以 repo-external exact NewEmaint release 运行本地只读
+deterministic handoff regression。该 pre-Stage 00 local exact-release regression 已 PASS，但不生成 Stage
+evidence，也不是公司侧 handoff、安装或部署；正式搬运包仍须在 #124 人工合并后从 protected `main` exact
+SHA 重新生成。公司 Stage 00–110：`NOT RUN`。
 
 以下事项不得因 source commit、merged PR、local tests 或 future company PR/CI 而写成 PASS：两台 VM
 inventory、Gitea install/upgrade、backup/isolated restore、GitHub inbound、company bootstrap、Runner、
-Registry/cache、真实 `docker-release/v2` handoff、AppServer readiness、PostgreSQL migration/restore、Nginx、
+Registry/cache、公司侧 `docker-release/v2` handoff、AppServer readiness、PostgreSQL migration/restore、Nginx、
 application deploy/health/rollback、service/timer enable/restart、DNS/TLS/firewall 和 production。
