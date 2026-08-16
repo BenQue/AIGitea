@@ -890,6 +890,29 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "SENSITIVE_CONTENT")
         self.assertNotIn(token, str(caught.exception))
 
+    def test_oversized_top_level_payload_fails_closed_without_echo(self) -> None:
+        sentinel = "never-print-this-value"
+        source_fixture = self.source / "company-delivery/oversized-payload.txt"
+        source_fixture.write_bytes(
+            b"x" * secret_scan_module.MAX_JSON_BYTES
+            + f"\npassword={sentinel}\n".encode("ascii")
+        )
+        subprocess.run(["git", "add", str(source_fixture)], cwd=self.source, check=True)
+        subprocess.run(
+            ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "oversized fixture"],
+            cwd=self.source,
+            check=True,
+        )
+        self.source_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=self.source, text=True
+        ).strip()
+        output = self.output_dir("out-oversized-top-level")
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            self.build(output)
+        self.assertEqual(caught.exception.code, "SENSITIVE_SCAN_BLOCKED")
+        self.assertNotIn(sentinel, str(caught.exception))
+        self.assertEqual(list(output.iterdir()), [])
+
     def test_artifact_freshness_uses_runtime_utc_date_not_created_at(self) -> None:
         runtime_date = date(2030, 1, 2)
         with mock.patch(

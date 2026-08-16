@@ -44,6 +44,7 @@ updated: 2026-08-16
 3. operator source、脚本、模板及 release 的 `release.json`、`compose.model.json`、`compose.yaml`、inventory、
    architecture lock 等非 archive 文件继续做顶层 no-secret 扫描。Compose 只接受完整 `${NAME}` 与
    `${NAME:?required}` 外部引用；顶层 concrete Secret 仍固定 `SENSITIVE_CONTENT`、no-echo 并清理输出。
+   单个非 archive payload 上限为 8 MiB；超过上限固定 `SENSITIVE_SCAN_BLOCKED`，不得退化为只做高置信扫描。
 4. 该策略按已验证的 artifact 类型统一生效，不按 `006d...`、image digest 或内部路径建立特判。它证明的是
    exact bytes 与运输完整性，不声称 OCI image 内部无 Secret、漏洞或恶意内容；image 内容责任属于
    NewEmaint release owner，公司真实 Secret 只在内网由人配置。

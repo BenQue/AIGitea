@@ -138,20 +138,26 @@ def scan_source_text(path: Path) -> None:
     retained = bytearray()
     read_bytes = 0
     try:
+        metadata = path.lstat()
+        if not stat.S_ISREG(metadata.st_mode):
+            raise CompanyDeliveryError(
+                "UNSAFE_PATH", "bundle payload must be a regular file"
+            )
+        if metadata.st_size > MAX_JSON_BYTES:
+            _blocked()
         with path.open("rb") as handle:
             for chunk in iter(lambda: handle.read(CHUNK_BYTES), b""):
                 read_bytes += len(chunk)
+                if read_bytes > MAX_JSON_BYTES:
+                    _blocked()
                 scanner.feed(chunk)
                 if len(retained) <= MAX_JSON_BYTES:
                     remaining = MAX_JSON_BYTES + 1 - len(retained)
                     retained.extend(chunk[:remaining])
         scanner.finish()
-        if read_bytes <= MAX_JSON_BYTES:
-            payload = bytes(retained)
-            _scan_exposed_sensitive_assignments(payload)
-            _scan_structured_payload(payload)
-        elif bytes(retained).lstrip()[:1] in {b"{", b"["}:
-            _json_blocked("JSON_RESOURCE_LIMIT")
+        payload = bytes(retained)
+        _scan_exposed_sensitive_assignments(payload)
+        _scan_structured_payload(payload)
     except CompanyDeliveryError:
         raise
     except OSError as exc:
