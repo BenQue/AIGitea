@@ -33,7 +33,7 @@ documents:
   verification: verification-company-delivery-pilot-260816.md
 depends_on:
   - 121
-status: spec-drafting
+status: approved
 branch: change/120-company-delivery-pilot
 pr_url:
 created: 2026-08-16

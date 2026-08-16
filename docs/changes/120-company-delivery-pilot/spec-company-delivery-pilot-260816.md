@@ -21,7 +21,7 @@ risk_flags:
   - platform-governance
 depends_on:
   - 121
-status: contract-drafting
+status: approved
 branch: change/120-company-delivery-pilot
 pr_url:
 created: 2026-08-16
