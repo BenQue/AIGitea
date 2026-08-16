@@ -51,6 +51,12 @@ updated: 2026-08-16
    `company-delivery-handoff/v1`。相同 clean source/release/UTC/transport 双构建必须 byte-identical，双
    `verify-handoff` PASS，external release 构建前后 fingerprint 不变。
 
+本节同时构成对根 [README.md](../../../README.md)“制品与环境配置分离”和
+[07-内网与生产平移路线.md](../../../07-内网与生产平移路线.md)“环境 Secret 与 release bytes 分离”的
+#124 范围内显式治理例外：环境 Secret 仍不得进入交接包；但平台不再对 verified `images.tar` 内部作
+“无 Secret”保证。任何部署者必须把 image 内容风险视为 release owner 与公司人工授权的责任，而不是
+`build-bundle` 的 PASS 结论。
+
 ### 修订后的 Acceptance criteria
 
 - [ ] **RAC-1 Real handoff**：exact `006d...` artifact-only PASS、双构建同 checksum、双
@@ -58,7 +64,8 @@ updated: 2026-08-16
 - [ ] **RAC-2 Opaque archive**：通用 fake verified archive 即使 layer 内含 credential-like fixture，正常
   builder 也不读取或阻断；同一 archive 被篡改或 checksum 不符仍 `ARTIFACT_INVALID`。
 - [ ] **RAC-3 Top-level no-secret**：operator/Compose/manifest 顶层 concrete sentinel 仍
-  `SENSITIVE_CONTENT`、no-echo、cleanup；合法 external references 通过。
+  `SENSITIVE_CONTENT`、no-echo、cleanup；合法 external references、孤立 PEM header 和示例 Authorization
+  通过，完整 JWT/known token/有效 PEM/真实 userinfo URL/完整 credential Authorization 仍阻断。
 - [ ] **RAC-4 Local-only**：T04 保持 Docker/target/network 访问为零，不修改或重建真实 release。
 - [ ] **RAC-5 Regression/PR**：full runtime、smoke、shell、JSON、diff/no-secret 与两轴 review 通过；唯一 PR
   body 恰一行 `Closes #124`，required CI 绑定 exact final head 通过，AI 停在人工合并闸门。
@@ -69,11 +76,11 @@ artifact identity、顶层 no-secret 或 deterministic handoff 失败仍 fail cl
 单 PR revert。本 Change 不部署；公司两台 VM、Gitea/Runner/Registry、backup/restore、DB、Nginx、
 service/timer 与 Stage 10–110 全部 `NOT RUN`。
 
-## 目标与原因
+## 历史目标与原因（已被人工简化合同覆盖）
 
 修正 `company-delivery build-bundle` 对真实 NewEmaint `docker-release/v2` 制品的 Secret 扫描误报，
-使 exact release `006d0c43cafebff058889e3338d1e8bdcc8b661c` 能在不放宽 Secret 边界的前提下生成
-确定性 handoff bundle。
+早期目标曾要求在不改变 image 内容级 Secret 边界的前提下生成确定性 handoff bundle；该目标已被上方
+opaque artifact 风险接受取代。
 
 当前已知事实分层如下：
 
@@ -84,8 +91,8 @@ service/timer 与 Stage 10–110 全部 `NOT RUN`。
 - 因未生成可交接的 exact bundle，Stage 00 local preparation 为 `BLOCKED`；公司 Stage 10–110 全部
   `NOT RUN`。
 
-本 Change 只改变 scanner 如何证明“具体 Secret”或“无法安全完成扫描”，不削弱 #120 的
-fail-closed、no-echo、exact-bytes、artifact-only、两台公司 VM 和人工逐阶段批准合同。
+早期设计只改变 scanner 的内容分类语义。当前有效合同不再扫描 image 内部，但仍保持顶层 no-echo、
+exact-bytes、artifact-only、两台公司 VM 和人工逐阶段批准边界。
 
 ## 历史深度扫描合同（保留作审计，不再是正常 build-bundle gate）
 
@@ -260,7 +267,7 @@ image digest 或 release-specific allowlist 均违反本 Spec。
   为 `JSON_SOURCE_SENSITIVE_AMBIGUOUS` 时出现，冲突/未知折叠为 `OTHER`；普通 CLI 不输出 role，唯一真实
   二级诊断只输出 fixed code/top-level/classifier/reason/source_role。
 
-## 接口、数据与兼容性影响
+## 历史接口、数据与兼容性影响（由 active revision 覆盖）
 
 - `company-delivery build-bundle` 参数与成功结果结构保持不变；新增固定失败 code
   `SENSITIVE_SCAN_BLOCKED`，`SENSITIVE_CONTENT` 的 no-echo 语义保持不变。
@@ -272,7 +279,7 @@ image digest 或 release-specific allowlist 均违反本 Spec。
   bundle 不修改、不补签，也不能冒充已经通过新 scanner。
 - 无数据库 migration、release rebuild、image rewrite、Compose rewrite 或 live configuration 变更。
 
-## 风险与回滚约束
+## 历史风险与回滚约束（由 active revision 覆盖）
 
 | 风险 | fail-closed 缓解 / 回滚 |
 |---|---|
@@ -286,7 +293,7 @@ image digest 或 release-specific allowlist 均违反本 Spec。
 若实现或 real fixture 仍失败，停止在 `BLOCKED`，删除临时输出并保留 exact release 不变；不得修改或重建
 NewEmaint bytes。source 回滚为单 PR revert；本 Change 无 live mutation，因此无数据库或环境回滚。
 
-## 非目标
+## 历史非目标（仍适用项已在 active revision 重述）
 
 - 不读取、打印、记录或猜测任何真实命中值；不把 412MB release bytes 或临时 bundle 提交到仓库。
 - 不修改 NewEmaint repository、release/Compose/image bytes，也不执行真实 release build。

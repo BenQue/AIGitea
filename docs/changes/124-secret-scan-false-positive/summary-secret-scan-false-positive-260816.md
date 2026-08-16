@@ -48,6 +48,12 @@ updated: 2026-08-16
 - 公司运行时 Secret、授权和部署动作仍只在公司内网由人处理，不进入本地 bundle、Issue、PR 或日志；
 - 这是统一 artifact-type 规则，不使用 release SHA、image digest 或内部路径特判。
 
+这是对根 [README.md](../../../README.md)“制品与环境配置分离”和
+[07-内网与生产平移路线.md](../../../07-内网与生产平移路线.md)“环境 Secret 与 release bytes 分离”的
+#124 范围内显式风险例外：平台仍保证环境 Secret 不进入交接包，但不再保证已经验证的应用镜像内部不含
+release owner 打包进去的 credential-like 或实际凭据材料。该内容风险由 NewEmaint release owner 与公司
+人工授权承担，不能被表述成平台已证明 image 无 Secret。
+
 本 Change 继续完成本地 deterministic handoff、唯一 PR 和 required CI，停在人工合并闸门。正式可搬运包须在
 PR 人工合并后从 protected `main` 的 exact source SHA 重新生成；公司 Stage 10–110 仍为 `NOT RUN`。
 
@@ -59,11 +65,11 @@ Issue #124 跟踪一个已在 exact NewEmaint docker-release/v2 release 上复�
 
 影响 company-delivery bundle 的 Secret 扫描 seam、docker-release/v2 Compose 安全规则与 Docker/OCI archive 只读解析，以及对应的 fake/negative/real external-fixture tests 和 mapped change documents。公司 VM、NewEmaint repository/release bytes、Secret、数据库、服务与部署状态均不在本 Change 的 planning 或当前执行范围。
 
-## 初步方案与建议
+## 历史初步方案（已被人工简化决定覆盖）
 
 保持统一 fixed-code/no-echo 失败接口，把原始全文件 Latin-1 正则替换为可审计的 payload 分类器：普通文本使用精确外部引用语法；compose.model.json 复用现有 normalized Compose validator；compose.yaml 只把与既有合同一致的完整参数引用视为占位符，任何 default/alternate 中的具体内容继续扫描或拒绝；images.tar 先复用 docker-release/v2 已验证的 Docker/OCI graph 与 digest allowlist，再有界解析 config 和 layer archive，对每个支持的内容类别执行同一 concrete-secret 判定，未知格式或解析失败 BLOCKED。真实 006d release 作为仓库外 integration fixture 重放，412MB bytes 永不提交。
 
-## 风险
+## 历史风险分析（已被人工简化决定覆盖）
 
 - 过宽的占位符识别可能掩盖具体 Secret，必须只接受现有 release 合同的精确语法并对 default/alternate 负测。
 - 只跳过 images.tar 或二进制内容会制造扫描盲区，必须解析已验证 graph、递归处理 layer 内容并对未知格式 fail closed。

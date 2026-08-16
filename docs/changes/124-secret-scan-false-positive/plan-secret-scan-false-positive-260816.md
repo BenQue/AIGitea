@@ -35,8 +35,8 @@ deterministic builder seam 继续复用。
 
 | Ticket | Active work | Blocked by | Status |
 |---|---|---|---|
-| T04 | 增加 opaque-archive RED fixture；移除正常 builder 的 image 内容扫描；运行 exact `006d...` artifact-only → 双构建 → checksum equality → 双 verify-handoff → input revalidation/cleanup | T03 | in progress |
-| T05 | full runtime、smoke、shell/JSON/diff、两轴 review、mapped evidence、唯一 PR 与 exact-head CI | T04 | pending |
+| T04 | 增加 opaque-archive RED fixture；移除正常 builder 的 image 内容扫描；运行 exact `006d...` artifact-only → 双构建 → checksum equality → 双 verify-handoff → input revalidation/cleanup | T03 | implemented locally；最终 clean-head replay 待 T05 evidence commit 后执行 |
+| T05 | full runtime、smoke、shell/JSON/diff、两轴 review、mapped evidence、唯一 PR 与 exact-head CI | T04 | in progress |
 
 T04 的同一 seam 必须同时证明：verified archive 内部 credential-like fixture 不再阻断；顶层 operator/Compose
 sentinel 仍阻断；archive checksum/graph tamper 仍 `ARTIFACT_INVALID`。不再运行真实 image 内容诊断，不读取或
