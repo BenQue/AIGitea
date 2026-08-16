@@ -103,7 +103,7 @@ override_reason: ''
   无 path/digest/release allowlist。人工现进一步批准结构感知分类：任意位置仅对 known token/JWT、完整有效
   PEM、含真实 userinfo 的 credential URL、完整具体 Authorization credential block 阻断；source/doc/schema/
   test-fixture 中的示例、regex 与不完整 header 不作为实际凭据，无法可靠分类仍 `SENSITIVE_SCAN_BLOCKED`。
-  第二版 structure-aware 实现与 fixed-reason synthetic tests 已完成。一级 exact-release 脱敏诊断返回
-  `JSON_SOURCE_SENSITIVE_AMBIGUOUS`；人工现批准六个 fixed source role、synthetic no-echo tests 与唯一一次
-  二级 real diagnostic。role 不自动授权 PASS；`OTHER`、冲突或无法形成通用安全规则时仍须
-  `NEEDS_HUMAN_DECISION`。push、PR、CI、merge 与部署均未执行。
+  第二版 structure-aware 实现、fixed reason/source-role tests 与通用 package metadata 规则已完成。唯一二级
+  diagnostic 为 `JSON_SOURCE_SENSITIVE_AMBIGUOUS / PACKAGE_METADATA`；通用正反 fixture 全绿，但首次完整
+  real build 返回固定 `SENSITIVE_CONTENT`。按批准合同这是实际 credential signal，当前为
+  `BLOCKED / NEEDS_HUMAN_DECISION`；不得再次扫描或探查内容。push、PR、CI、merge 与部署均未执行。

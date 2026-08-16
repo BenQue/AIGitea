@@ -34,16 +34,16 @@ updated: 2026-08-16
 | T01 | Compose/text scanner 端到端切片：严格 external-reference lexer、concrete-value/no-echo 结果与 fake bundle 正负测试（AC-2、AC-3、AC-6） | - | implemented `9b780e0` |
 | T02 | image archive 端到端切片：复用 verified Docker/OCI graph、有界 config/layer/binary scan 与 archive 负向 fixtures（AC-4、AC-5、AC-6） | - | implemented `42087b2` |
 | T03 | builder 集成切片：typed dispatcher、固定错误 code、清理/确定性、operator `1.0.1` 与文档兼容性（AC-3、AC-7） | T01、T02 | implemented `fa0596c` |
-| T04 | exact `006d...` repo-external integration：material-aware scanner 修订、artifact-only → 双构建 → checksum equality → verify-handoff；不提交 412MB bytes（AC-1、AC-9、AC-10） | T03 | **in progress**；已获人工批准唯一一次 fixed `source_role` 二级诊断 |
-| T05 | 全量回归、静态/安全审查、mapped verification 与唯一 PR 人工合并交接（AC-8） | T04 | pending；仅在 T04 全 PASS 后开始 |
+| T04 | exact `006d...` repo-external integration：material-aware scanner 修订、artifact-only → 双构建 → checksum equality → verify-handoff；不提交 412MB bytes（AC-1、AC-9、AC-10） | T03 | **BLOCKED / NEEDS_HUMAN_DECISION**；二级 role 为 `PACKAGE_METADATA`，通用修复后首次 real build 返回 `SENSITIVE_CONTENT`，按实际 credential signal 停止 |
+| T05 | 全量回归、静态/安全审查、mapped verification 与唯一 PR 人工合并交接（AC-8） | T04 | **NOT RUN / blocked by T04** |
 
 依赖图：`T01 ─┐`、`T02 ─┴→ T03 → T04 → T05`。T01/T02 是两个独立 frontier；任何 ticket 遇到
 no-echo、scope、format 或真实 bytes 冲突都停止，不跳到下游。
 
-恢复边界：一级 reason 固定为 `JSON_SOURCE_SENSITIVE_AMBIGUOUS`；本轮只新增六个无参数 source role 与
-synthetic no-echo tests，然后运行一次二级 real diagnostic。`OTHER`、冲突、无法分类、实际 credential 或
-无法在既有结构感知合同内形成通用规则时立即回到 `NEEDS_HUMAN_DECISION`。不得再次探查内容或增加
-release/image/path/digest 特判。
+本轮结果：二级 real diagnostic 固定为 `source_role=PACKAGE_METADATA`；通用 package scalar-map 正反
+fixtures 与修复已完成，但 clean candidate 的首次完整 real build 返回 `SENSITIVE_CONTENT`。该结果按批准
+合同属于实际 credential signal，故立即回到 `NEEDS_HUMAN_DECISION`；不得再运行第二/第三次尝试、诊断
+命中内容或增加 release/image/path/digest 特判。T05、push、PR、CI 均未开始。
 
 ## Ticket details
 
