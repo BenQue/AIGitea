@@ -18,7 +18,7 @@ risk_flags:
   - compatibility
   - rollback
 depends_on: []
-status: blocked
+status: approved
 branch: change/124-secret-scan-false-positive
 pr_url:
 created: 2026-08-16
@@ -35,11 +35,10 @@ updated: 2026-08-16
 - Branch：`change/124-secret-scan-false-positive`；commits 为 `9b780e0`、`42087b2`、`fa0596c`、
   `0bc3c1d`、`bd35270`、`8402590`、`647b781`、`fda8259`、`9abdb25`；当前无 push 或 PR。
 - Exact external release：`006d0c43cafebff058889e3338d1e8bdcc8b661c`；约 412MB bytes 不在仓库中。
-- 当前阶段：`BLOCKED / NEEDS HUMAN DECISION`。人工批准的 material/runtime-context/ambiguous-blocked 修订
-  已完成 fake red/green；clean `fda8259...` 重放先固定返回 `SENSITIVE_SCAN_BLOCKED`，修正可审计的 source
-  metadata/JWT 结构后，clean `9abdb25...` artifact-only gate 继续 PASS，但第一次 bundle build 对
-  `images.tar` 返回固定 `SENSITIVE_CONTENT`。第二次 build 与双 verify-handoff 均正确地未继续；两次临时
-  输出均已清理。
+- 当前阶段：`APPROVED / T04 IMPLEMENTATION RESUMED`。此前两个 clean candidate 均正确 fail closed；人工
+  现进一步批准 structure-aware 语义：runtime concrete 严格阻断，generic stream 只把完整可验证 credential
+  material 判为 `SENSITIVE_CONTENT`，source/doc/schema/test-fixture 示例、regex、不完整 header 不作为实际
+  凭据，歧义仍 blocked。新的 red/green 与 exact-release 结果尚待本轮写入。
 
 ## 执行结果
 
@@ -117,11 +116,9 @@ updated: 2026-08-16
 ## 遗留风险与未完成项
 
 - 当前 implementation/fake tests 不能写成真实 Stage 00 或公司执行 PASS。
-- real fixture 已按授权从两个 clean candidate 重放并 fail closed；人工批准的 embedded source/example 与
-  actual credential material 区分已通过 fake red/green，但 exact `images.tar` 仍触发获批合同必须拒绝的
-  `SENSITIVE_CONTENT`。在 no-echo/no-value/no-path 与禁止 broad allowlist 的边界内，不能从平台侧继续放宽。
-- 下一步需要独立授权在 NewEmaint 上定位并 remediation 后生成新的 exact release；当前 release 不得改写或
-  冒充新 bytes。没有新的安全/上游合同前，T05、push、PR 与 CI 均不得开始。
+- real fixture 已按授权从两个 clean candidate 重放并 fail closed；人工现已批准第二版 structure-aware 合同。
+  当前只能在不读取/输出命中值、不使用 path/digest/release allowlist 的前提下新增成对 fake tests 并重放
+  exact bytes；若仍无法可靠分类，必须保持 `SENSITIVE_SCAN_BLOCKED` 并再次停止。
 - 任何需要读取命中值、增加 release/image/path broad allowlist、重建 release 或访问公司环境的方案都超出
   Spec，必须停止并请求新的人工决策。
 - 最终 PR、required CI、merge 与公司部署均未发生；human merge 仍是未来唯一代码交付硬闸门。

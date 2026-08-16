@@ -96,17 +96,20 @@ sensitive field 继续 fail closed。
   重复 key、超限、非 UTF-8 或上下文歧义 fail closed。Docker config、environment 与显式 runtime-config
   surface 中，敏感 key 的任意非空 concrete scalar 必须拒绝；schema、i18n、source/doc JSON 中的字段名和
   示例文本由结构化 source 规则处理，不能仅因出现敏感单词而判为凭据。
-- 敏感 key 的 RHS 只有完整外部引用、标识符/member/function reference 等明确的非字面表达式可避免
-  “具体值”判定。任意上下文中的 known token、完整 private-key material 或高置信 credential material 必须
-  拒绝；无法可靠区分 runtime config 与 source/example 的 JSON 必须 `SENSITIVE_SCAN_BLOCKED`。
+- 敏感 key 的 RHS 只有完整外部引用、标识符/member/function/regex reference 等明确的非凭据表达式可避免
+  “具体值”判定。OCI `config.Env` 与被结构确认的 runtime-config 中，敏感键的任何非空 concrete value 必须
+  拒绝；source/doc/schema/test-fixture 中的字段名、示例、regex 或不完整 signature 不是实际凭据。无法可靠
+  区分 runtime config 与 source/example 的 payload 必须 `SENSITIVE_SCAN_BLOCKED`。
 - 任意 byte stream 都至少经过跨 chunk 的高置信 signature 扫描；不能按扩展名或是否含 NUL 直接跳过。
 
 高置信 byte signature 的对象是完整 credential material，不是孤立语法文本：
 
 - private key 仅在存在匹配的 `BEGIN`/`END`、有界且可验证的 base64 body 时判为 material；源码、schema、
   文档或 binary 中孤立的 PEM header 字符串仍会被扫描，但不能单独触发 `SENSITIVE_CONTENT`；
-- generic byte stream 中的 `Authorization` 或 credential URL 只有在其 credential 部分满足 known-prefix、
-  JWT 或高熵 material 规则时拒绝；完整 external reference 和可识别的 source/example placeholder 不拒绝；
+- 任意位置的 known token/JWT 格式与完整有效 PEM private-key material 必须拒绝；
+- generic byte stream 中的 credential URL 仅在存在非 placeholder 的完整 userinfo 时拒绝；`Authorization`
+  仅在形成完整 scheme + concrete credential block 时拒绝。源码/文档中的 placeholder、示例、regex 或不完整
+  header 继续扫描但不等同 material；
 - typed runtime-config/environment context 不依赖熵：敏感 key 中任何非空 concrete value 仍拒绝；
 - 以上规则按内容和结构判定，不得引入 filename、inner path、image digest、release SHA 或命中值 allowlist。
 
@@ -129,9 +132,9 @@ sensitive field 继续 fail closed。
    key/value concrete-literal 规则，所有三类都执行 byte-signature scan。symlink target 等 metadata 也扫描，
    但不读取链接目标。
 5. **binary 不豁免**：ELF、图片、压缩片段或其它 binary 不运行容易误报的普通 key/value 语法，却仍扫描
-   完整 PEM private-key material、known token prefix、含高置信 credential material 的 URL/authorization
-   header 等 byte signature。孤立 header、source placeholder 或示例文本不等于 material，但仍进入同一
-   有界 parser，不能通过 whole-binary skip。
+   完整 PEM private-key material、known token/JWT、含真实 userinfo 的 credential URL、完整具体
+   Authorization credential block 等 byte signature。孤立 header、source placeholder、regex 或示例文本
+   不等于 material，但仍进入同一有界 parser，不能通过 whole-binary skip。
    未知 outer/layer compression 或不能完成既定 byte scan 时 `SENSITIVE_SCAN_BLOCKED`，不能记录为 PASS。
 6. **资源上限**：JSON 继续使用现有 8 MiB bound；inner archive 总 member 数不超过 200,000、单 member
    声明大小不超过 2 GiB、所有 layer 的累计展开字节不超过 8 GiB，且全程 1 MiB 级流式读取。超限只返回

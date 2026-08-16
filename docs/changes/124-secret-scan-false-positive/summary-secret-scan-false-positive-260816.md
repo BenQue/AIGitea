@@ -29,7 +29,7 @@ documents:
   spec: spec-secret-scan-false-positive-260816.md
   plan: plan-secret-scan-false-positive-260816.md
   verification: verification-secret-scan-false-positive-260816.md
-status: needs-human-decision
+status: approved
 branch: change/124-secret-scan-false-positive
 pr_url:
 created: 2026-08-16
@@ -100,7 +100,7 @@ override_reason: ''
   `compose.model.json` 与 `compose.yaml` scanner 为 PASS，但 `images.tar` 仍固定返回 `SENSITIVE_CONTENT`，
   两份临时输出均已清理。人工已批准把 embedded source/example syntax 与完整 credential material 结构化
   区分，并保持 runtime-config concrete value 严格拒绝、JSON ambiguity fail closed、fixed-code/no-echo 与
-  无 path/digest/release allowlist。该修订的 fake red/green 已通过；但 clean `9abdb25...` 对 exact release
-  重放时，`images.tar` 仍命中获批后必须拒绝的 material/runtime 分支并返回固定 `SENSITIVE_CONTENT`。
-  Stage 00 因而继续 BLOCKED；在不读取命中值且不增加 allowlist 的边界内，平台侧不能继续放宽。T05/PR
-  未开始，下一步需要上游 NewEmaint remediation/new exact release 的独立授权；批准不包含 merge 或部署。
+  无 path/digest/release allowlist。人工现进一步批准结构感知分类：任意位置仅对 known token/JWT、完整有效
+  PEM、含真实 userinfo 的 credential URL、完整具体 Authorization credential block 阻断；source/doc/schema/
+  test-fixture 中的示例、regex 与不完整 header 不作为实际凭据，无法可靠分类仍 `SENSITIVE_SCAN_BLOCKED`。
+  Development Loop 可恢复 T04/T05；批准不包含 merge 或部署。
