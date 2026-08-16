@@ -1023,6 +1023,14 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
                     b'{"properties":{"password":{"type":"string"}}}\n',
                 ),
                 ("src/example.js", b"const password = input;\n"),
+                ("src/block.js", b"{ function fixture() { return true; } }\n"),
+                (
+                    "src/object.js",
+                    b'{"handler": function () { return true; }}\n',
+                ),
+                ("src/array.js", b'{"items": [fixture, other]}\n'),
+                ("src/trailing.jsonc", b'{"safe": true,}\n'),
+                ("etc/service.conf", b"[Unit]\nDescription=fixture\n"),
                 ("bin/app", b"\x00\x7fELF\x00ordinary-binary\xff"),
             ]
         )
@@ -1145,6 +1153,33 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
                     self.assert_bundle_error(
                         "SENSITIVE_SCAN_BLOCKED", f"out-bound-{constant.lower()}"
                     )
+
+        self.replace_archive(
+            layer_files=[("data", b'{"safe":1,"safe":2}\n')]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-duplicate-json-key"
+        )
+
+    def test_source_literal_secret_is_rejected_but_ambiguous_text_blocks(self) -> None:
+        sentinel = "never-print-this-value"
+        self.replace_archive(
+            layer_files=[
+                (
+                    "source",
+                    f'{{"password": "{sentinel}", trailing: true}}\n'.encode(),
+                )
+            ]
+        )
+        caught = self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-source-literal"
+        )
+        self.assertNotIn(sentinel, str(caught))
+
+        self.replace_archive(layer_files=[("ambiguous", b'{"safe": ???}\n')])
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-structured-text"
+        )
 
 
 class CompanyDeliveryRunbookTests(unittest.TestCase):

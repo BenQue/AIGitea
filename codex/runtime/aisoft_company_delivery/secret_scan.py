@@ -30,6 +30,31 @@ IDENTIFIER = r"[A-Za-z_][A-Za-z0-9_]*"
 EXTERNAL_ENV_REFERENCE = re.compile(
     rf"^\$\{{{IDENTIFIER}(?::\?required)?\}}$"
 )
+_AUDITED_SOURCE_MARKER = re.compile(
+    r"(?m)(?:^|[;{}]\s*)(?:async\s+)?(?:function|const|let|var|class|"
+    r"import|export|return|if|for|while)\b|=>|/\*|//|"
+    r"[{,]\s*[A-Za-z_$][A-Za-z0-9_$.-]*\s*:|"
+    r"\[\s*[A-Za-z_$][A-Za-z0-9_$.-]*\s*(?:,|\])"
+)
+_SOURCE_LITERAL_KEY = (
+    r"(?:authorization|connection[_-]?string|credential|database[_-]?url|"
+    r"password|passwd|pwd|private[_-]?key|ssh[_-]?key|token|secret|"
+    r"api[_-]?key)"
+)
+_SOURCE_LITERAL_ASSIGNMENTS = (
+    re.compile(
+        rf"(?i)[\"']?{_SOURCE_LITERAL_KEY}[\"']?\s*[:=]\s*"
+        r'"((?:\\.|[^"\\])*)"'
+    ),
+    re.compile(
+        rf"(?i)[\"']?{_SOURCE_LITERAL_KEY}[\"']?\s*[:=]\s*"
+        r"'((?:\\.|[^'\\])*)'"
+    ),
+    re.compile(
+        rf"(?i)[\"']?{_SOURCE_LITERAL_KEY}[\"']?\s*[:=]\s*"
+        r"`((?:\\.|[^`\\])*)`"
+    ),
+)
 
 
 def is_external_environment_reference(value: object) -> bool:
@@ -308,7 +333,7 @@ def _scan_outer_payload(handle: BinaryIO, declared_size: int) -> None:
     if len(payload) != declared_size or len(payload) > MAX_JSON_BYTES:
         _blocked()
     _HighConfidenceScanner().feed(payload)
-    _scan_structured_payload(payload)
+    _scan_structured_payload(payload, strict_candidate=True)
 
 
 def _scan_inner_payload(handle: BinaryIO, declared_size: int) -> None:
@@ -339,11 +364,13 @@ def _scan_inner_payload(handle: BinaryIO, declared_size: int) -> None:
         _blocked()
 
 
-def _scan_structured_payload(payload: bytes) -> None:
+def _scan_structured_payload(
+    payload: bytes, *, strict_candidate: bool = False
+) -> None:
     stripped = payload.lstrip()
     if not stripped:
         return
-    if stripped[:1] not in {b"{", b"["}:
+    if not _looks_like_json_document(stripped):
         return
     if len(payload) > MAX_JSON_BYTES:
         _blocked()
@@ -351,9 +378,106 @@ def _scan_structured_payload(payload: bytes) -> None:
         value = json.loads(
             payload.decode("utf-8"), object_pairs_hook=_unique_object
         )
-    except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+    except UnicodeDecodeError:
+        _blocked()
+    except json.JSONDecodeError:
+        if strict_candidate:
+            _blocked()
+        text = payload.decode("utf-8")
+        normalized = _remove_trailing_json_commas(text)
+        if normalized != text:
+            try:
+                value = json.loads(
+                    normalized, object_pairs_hook=_unique_object
+                )
+            except json.JSONDecodeError:
+                value = None
+            except ValueError:
+                _blocked()
+            else:
+                _scan_json_value(value)
+                return
+        _scan_source_literal_assignments(text)
+        if _AUDITED_SOURCE_MARKER.search(text) is None:
+            _blocked()
+        return
+    except ValueError:
         _blocked()
     _scan_json_value(value)
+
+
+def _looks_like_json_document(stripped: bytes) -> bool:
+    first = stripped[:1]
+    if first not in {b"{", b"["}:
+        return False
+    remainder = stripped[1:].lstrip()
+    if not remainder:
+        return True
+    if first == b"{":
+        return remainder[:1] in {b'"', b"}"}
+    return remainder[:1] in {
+        b'"',
+        b"[",
+        b"{",
+        b"]",
+        b"-",
+        b"0",
+        b"1",
+        b"2",
+        b"3",
+        b"4",
+        b"5",
+        b"6",
+        b"7",
+        b"8",
+        b"9",
+        b"f",
+        b"n",
+        b"t",
+    }
+
+
+def _remove_trailing_json_commas(value: str) -> str:
+    output: list[str] = []
+    index = 0
+    in_string = False
+    escaped = False
+    changed = False
+    while index < len(value):
+        character = value[index]
+        if in_string:
+            output.append(character)
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            index += 1
+            continue
+        if character == '"':
+            in_string = True
+            output.append(character)
+            index += 1
+            continue
+        if character == ",":
+            following = index + 1
+            while following < len(value) and value[following].isspace():
+                following += 1
+            if following < len(value) and value[following] in "]}":
+                changed = True
+                index += 1
+                continue
+        output.append(character)
+        index += 1
+    return "".join(output) if changed else value
+
+
+def _scan_source_literal_assignments(value: str) -> None:
+    for pattern in _SOURCE_LITERAL_ASSIGNMENTS:
+        for match in pattern.finditer(value):
+            if _is_concrete_value(match.group(1)):
+                _sensitive()
 
 
 def _scan_json_value(value: object) -> None:
