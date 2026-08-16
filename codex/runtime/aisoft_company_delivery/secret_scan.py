@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
+from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass
 import json
+import math
 from pathlib import Path, PurePosixPath
 import re
 import stat
@@ -22,6 +26,7 @@ from .contract import CompanyDeliveryError, contains_sensitive_text
 
 CHUNK_BYTES = 1024 * 1024
 SCAN_OVERLAP = 512
+MAX_SIGNATURE_WINDOW_BYTES = 64 * 1024
 MAX_JSON_BYTES = 8 * 1024 * 1024
 MAX_INNER_MEMBERS = 200_000
 MAX_INNER_MEMBER_BYTES = 2 * 1024 * 1024 * 1024
@@ -41,6 +46,7 @@ _SOURCE_LITERAL_KEY = (
     r"password|passwd|pwd|private[_-]?key|ssh[_-]?key|token|secret|"
     r"api[_-]?key)"
 )
+_RUNTIME_SENSITIVE_KEY = re.compile(rf"^{_SOURCE_LITERAL_KEY}$", re.IGNORECASE)
 _SOURCE_LITERAL_ASSIGNMENTS = (
     re.compile(
         rf"(?i)[\"']?{_SOURCE_LITERAL_KEY}[\"']?\s*[:=]\s*"
@@ -177,7 +183,11 @@ def scan_image_archive(path: Path, graph: VerifiedArchiveGraph) -> None:
                 if member.kind == "layer":
                     _scan_layer(handle, budget)
                 elif member.kind in {"image-config", "metadata"}:
-                    _scan_outer_payload(handle, actual.size)
+                    _scan_outer_payload(
+                        handle,
+                        actual.size,
+                        runtime_context=member.kind == "image-config",
+                    )
                 else:
                     _blocked()
     except CompanyDeliveryError:
@@ -193,10 +203,22 @@ class _ScanBudget:
 
 
 class _HighConfidenceScanner:
-    _pem = re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")
+    _pem_begin = re.compile(
+        rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"
+    )
+    _pem = re.compile(
+        rb"-----BEGIN (?P<label>(?:RSA |EC |OPENSSH )?PRIVATE KEY)-----"
+        rb"[ \t]*\r?\n(?P<body>[A-Za-z0-9+/=\r\n \t]{40,65536}?)"
+        rb"-----END (?P=label)-----"
+    )
     _known_github_prefix = re.compile(rb"\bgh[pousr]_[A-Za-z0-9]{20,}\b")
+    _jwt = re.compile(
+        rb"\b[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\."
+        rb"[A-Za-z0-9_-]{16,}\b"
+    )
     _credential_url = re.compile(
-        rb"(?i)(?:postgres(?:ql)?|mysql|mongodb)://[^/\s:@]+:[^@\s]+@"
+        rb"(?i)(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://"
+        rb"[^/\s:@]+:(?P<credential>[^/\s]+)@[^/\s]+"
     )
     _authorization = re.compile(
         rb"(?i)authorization\s*:\s*(?:bearer|token)\s+(\S+)"
@@ -207,26 +229,73 @@ class _HighConfidenceScanner:
 
     def feed(self, chunk: bytes) -> None:
         window = self._carry + chunk
-        if (
-            self._pem.search(window) is not None
-            or self._known_github_prefix.search(window) is not None
-            or self._credential_url.search(window) is not None
-        ):
+        if self._known_github_prefix.search(window) is not None:
             _sensitive()
-        for match in self._authorization.finditer(window):
+        if self._jwt.search(window) is not None:
+            _sensitive()
+        for match in self._pem.finditer(window):
+            body = re.sub(rb"\s+", b"", match.group("body"))
+            if len(body) < 40 or len(body) % 4 != 0:
+                continue
             try:
-                value = match.group(1).decode("ascii")
-            except UnicodeDecodeError:
+                decoded = base64.b64decode(body, validate=True)
+            except (binascii.Error, ValueError):
+                continue
+            if len(decoded) >= 32:
                 _sensitive()
-            if not is_external_environment_reference(value):
+        for match in self._credential_url.finditer(window):
+            if _looks_like_credential_material(match.group("credential")):
                 _sensitive()
-        self._carry = window[-SCAN_OVERLAP:]
+        for match in self._authorization.finditer(window):
+            if _looks_like_credential_material(match.group(1)):
+                _sensitive()
+        starts = list(self._pem_begin.finditer(window))
+        if starts:
+            last_start = starts[-1].start()
+            candidate = window[last_start:]
+            if len(candidate) > MAX_SIGNATURE_WINDOW_BYTES:
+                if _pem_candidate_body(candidate) is not None:
+                    _blocked()
+                self._carry = window[-MAX_SIGNATURE_WINDOW_BYTES:]
+            else:
+                self._carry = candidate
+        else:
+            self._carry = window[-MAX_SIGNATURE_WINDOW_BYTES:]
+
+    def finish(self) -> None:
+        for match in self._pem_begin.finditer(self._carry):
+            candidate = self._carry[match.start():]
+            body = _pem_candidate_body(candidate)
+            if body is not None and len(re.sub(rb"\s+", b"", body)) >= 40:
+                _blocked()
+        self._carry = b""
+
+
+def _pem_candidate_body(candidate: bytes) -> bytes | None:
+    header_end = candidate.find(b"-----", len(b"-----BEGIN "))
+    if header_end < 0:
+        return None
+    body_start = header_end + len(b"-----")
+    if candidate[body_start:body_start + 2] == b"\r\n":
+        body_start += 2
+    elif candidate[body_start:body_start + 1] == b"\n":
+        body_start += 1
+    else:
+        return None
+    body = candidate[body_start:]
+    end_marker = body.find(b"-----END ")
+    if end_marker >= 0:
+        body = body[:end_marker]
+    if re.fullmatch(rb"[A-Za-z0-9+/=\r\n \t]*", body) is None:
+        return None
+    return body
 
 
 class _EnvironmentCandidate:
     _assignment = re.compile(
-        r"^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$"
+        r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*[:=]\s*(.*)$"
     )
+    _section = re.compile(r"^\s*\[[^\]\r\n]+\]\s*$")
 
     def __init__(self) -> None:
         self._buffer = bytearray()
@@ -266,7 +335,9 @@ class _EnvironmentCandidate:
         except UnicodeDecodeError:
             self.candidate = False
             return
-        if not line or line.startswith("#"):
+        if not line or line.startswith(("#", ";")):
+            return
+        if self._section.fullmatch(line) is not None:
             return
         match = self._assignment.fullmatch(line)
         if match is None:
@@ -274,7 +345,7 @@ class _EnvironmentCandidate:
             return
         self.entries += 1
         key, value = match.groups()
-        if SENSITIVE_KEY.search(key) and _is_concrete_value(value):
+        if _is_runtime_sensitive_key(key) and _is_concrete_value(value):
             self.sensitive = True
 
 
@@ -307,9 +378,9 @@ def _scan_layer(handle: BinaryIO, budget: _ScanBudget) -> None:
                 if member.isdir():
                     continue
                 if member.issym() or member.islnk():
-                    _HighConfidenceScanner().feed(
-                        member.linkname.encode("utf-8", errors="strict")
-                    )
+                    scanner = _HighConfidenceScanner()
+                    scanner.feed(member.linkname.encode("utf-8", errors="strict"))
+                    scanner.finish()
                     continue
                 if not member.isfile():
                     _blocked()
@@ -326,14 +397,22 @@ def _scan_layer(handle: BinaryIO, budget: _ScanBudget) -> None:
         _blocked()
 
 
-def _scan_outer_payload(handle: BinaryIO, declared_size: int) -> None:
+def _scan_outer_payload(
+    handle: BinaryIO, declared_size: int, *, runtime_context: bool
+) -> None:
     if declared_size < 0 or declared_size > MAX_JSON_BYTES:
         _blocked()
     payload = handle.read(MAX_JSON_BYTES + 1)
     if len(payload) != declared_size or len(payload) > MAX_JSON_BYTES:
         _blocked()
-    _HighConfidenceScanner().feed(payload)
-    _scan_structured_payload(payload, strict_candidate=True)
+    scanner = _HighConfidenceScanner()
+    scanner.feed(payload)
+    scanner.finish()
+    _scan_structured_payload(
+        payload,
+        strict_candidate=True,
+        runtime_context=runtime_context,
+    )
 
 
 def _scan_inner_payload(handle: BinaryIO, declared_size: int) -> None:
@@ -355,6 +434,7 @@ def _scan_inner_payload(handle: BinaryIO, declared_size: int) -> None:
             retained.extend(chunk[:remaining])
     if read_bytes != declared_size:
         _blocked()
+    scanner.finish()
     environment.finish()
     if environment.candidate and environment.sensitive:
         _sensitive()
@@ -365,7 +445,10 @@ def _scan_inner_payload(handle: BinaryIO, declared_size: int) -> None:
 
 
 def _scan_structured_payload(
-    payload: bytes, *, strict_candidate: bool = False
+    payload: bytes,
+    *,
+    strict_candidate: bool = False,
+    runtime_context: bool = False,
 ) -> None:
     stripped = payload.lstrip()
     if not stripped:
@@ -395,7 +478,12 @@ def _scan_structured_payload(
             except ValueError:
                 _blocked()
             else:
-                _scan_json_value(value)
+                _scan_json_value(
+                    value,
+                    context="runtime"
+                    if runtime_context
+                    else _json_document_context(value),
+                )
                 return
         _scan_source_literal_assignments(text)
         if _AUDITED_SOURCE_MARKER.search(text) is None:
@@ -403,7 +491,10 @@ def _scan_structured_payload(
         return
     except ValueError:
         _blocked()
-    _scan_json_value(value)
+    _scan_json_value(
+        value,
+        context="runtime" if runtime_context else _json_document_context(value),
+    )
 
 
 def _looks_like_json_document(stripped: bytes) -> bool:
@@ -476,15 +567,20 @@ def _remove_trailing_json_commas(value: str) -> str:
 def _scan_source_literal_assignments(value: str) -> None:
     for pattern in _SOURCE_LITERAL_ASSIGNMENTS:
         for match in pattern.finditer(value):
-            if _is_concrete_value(match.group(1)):
+            if _looks_like_credential_material(match.group(1)):
                 _sensitive()
 
 
-def _scan_json_value(value: object) -> None:
+def _scan_json_value(value: object, *, context: str) -> None:
     if isinstance(value, Mapping):
         for key, nested in value.items():
             key_text = str(key)
-            if key_text.lower() == "env" and isinstance(nested, list):
+            child_context = _json_child_context(key_text, nested, context)
+            if (
+                child_context == "runtime"
+                and key_text.lower() in {"env", "environment"}
+                and isinstance(nested, list)
+            ):
                 for entry in nested:
                     if not isinstance(entry, str) or "=" not in entry:
                         _blocked()
@@ -493,15 +589,179 @@ def _scan_json_value(value: object) -> None:
                         environment_value
                     ):
                         _sensitive()
-            if SENSITIVE_KEY.search(key_text) and isinstance(
+            if _is_runtime_sensitive_key(key_text) and isinstance(
                 nested, (str, bytes)
             ):
-                if _is_concrete_value(nested):
+                if not _is_concrete_value(nested):
+                    pass
+                elif _looks_like_credential_material(nested):
                     _sensitive()
-            _scan_json_value(nested)
+                elif context == "runtime":
+                    _sensitive()
+                elif context != "source":
+                    _blocked()
+            _scan_json_value(nested, context=child_context)
     elif isinstance(value, list):
         for nested in value:
-            _scan_json_value(nested)
+            _scan_json_value(nested, context=context)
+    elif isinstance(value, (str, bytes)):
+        payload = value.encode("utf-8") if isinstance(value, str) else value
+        scanner = _HighConfidenceScanner()
+        scanner.feed(payload)
+        scanner.finish()
+
+
+def _json_document_context(value: object) -> str:
+    if not isinstance(value, Mapping):
+        return "generic"
+    lowered = {str(key).lower(): nested for key, nested in value.items()}
+    if (
+        any(
+            marker in lowered
+            for marker in (
+                "$schema",
+                "$defs",
+                "definitions",
+                "openapi",
+                "swagger",
+            )
+        )
+        or isinstance(lowered.get("properties"), Mapping)
+        or _looks_like_source_map(lowered)
+        or any(
+            marker in lowered
+            for marker in ("locale", "messages", "translations", "i18n")
+        )
+    ):
+        return "source"
+    if any(
+        marker in lowered and isinstance(lowered[marker], (Mapping, list))
+        for marker in (
+            "config",
+            "runtime",
+            "environment",
+            "env",
+            "credentials",
+            "database",
+            "datasource",
+            "connection",
+        )
+    ):
+        return "runtime"
+    return "generic"
+
+
+def _json_child_context(key: str, value: object, parent: str) -> str:
+    if parent in {"runtime", "source"}:
+        return parent
+    lowered = key.lower()
+    if lowered in {
+        "$defs",
+        "definitions",
+        "properties",
+        "messages",
+        "translations",
+        "i18n",
+        "examples",
+        "example",
+        "source",
+        "sourcecode",
+        "sources",
+        "sourcescontent",
+    }:
+        return "source"
+    if lowered in {
+        "config",
+        "runtime",
+        "environment",
+        "env",
+        "credentials",
+        "database",
+        "datasource",
+        "connection",
+    } and isinstance(value, (Mapping, list)):
+        return "runtime"
+    return parent
+
+
+def _looks_like_source_map(value: Mapping[str, object]) -> bool:
+    return (
+        isinstance(value.get("sources"), list)
+        and isinstance(value.get("names"), list)
+        and isinstance(value.get("mappings"), str)
+    )
+
+
+_KNOWN_TOKEN_TEXT = re.compile(r"^gh[pousr]_[A-Za-z0-9]{20,}$")
+_JWT_TEXT = re.compile(
+    r"^[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{16,}$"
+)
+_SOURCE_PLACEHOLDER_TEXT = re.compile(
+    rf"^(?:\${IDENTIFIER}|\$\{{{IDENTIFIER}(?::\?required)?\}}|"
+    rf"%[A-Za-z]|<[^>\s]+>|\{{{IDENTIFIER}\}}|"
+    r"(?:example|placeholder|redacted|changeme|dummy|fixture|test)"
+    r"(?:[-_.][A-Za-z0-9_-]+)*)$",
+    re.IGNORECASE,
+)
+_AUTHORIZATION_VALUE_TEXT = re.compile(
+    r"^(?:bearer|token)\s+(.+)$", re.IGNORECASE
+)
+_CREDENTIAL_URL_TEXT = re.compile(
+    r"^(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://"
+    r"[^/\s:@]+:(?P<credential>[^/\s]+)@[^/\s]+$",
+    re.IGNORECASE,
+)
+
+
+def _looks_like_credential_material(value: str | bytes) -> bool:
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("ascii")
+        except UnicodeDecodeError:
+            return True
+    normalized = value.strip().strip("\"'`,;)]}")
+    authorization = _AUTHORIZATION_VALUE_TEXT.fullmatch(normalized)
+    if authorization is not None:
+        normalized = authorization.group(1).strip().strip("\"'`,;)]}")
+    credential_url = _CREDENTIAL_URL_TEXT.fullmatch(normalized)
+    if credential_url is not None:
+        normalized = credential_url.group("credential")
+    if not normalized or is_external_environment_reference(normalized):
+        return False
+    if _SOURCE_PLACEHOLDER_TEXT.fullmatch(normalized) is not None:
+        return False
+    if _KNOWN_TOKEN_TEXT.fullmatch(normalized) is not None:
+        return True
+    if _JWT_TEXT.fullmatch(normalized) is not None:
+        return True
+    if re.fullmatch(r"[A-Fa-f0-9]{32,}", normalized):
+        return len(set(normalized.lower())) >= 8
+    if len(normalized) < 20 or len(set(normalized)) < 10:
+        return False
+    classes = sum(
+        bool(pattern.search(normalized))
+        for pattern in (
+            re.compile(r"[a-z]"),
+            re.compile(r"[A-Z]"),
+            re.compile(r"[0-9]"),
+            re.compile(r"[^A-Za-z0-9]"),
+        )
+    )
+    if classes < 3:
+        return False
+    counts = Counter(normalized)
+    entropy = -sum(
+        (count / len(normalized)) * math.log2(count / len(normalized))
+        for count in counts.values()
+    )
+    return entropy >= 3.5
+
+
+def _is_runtime_sensitive_key(value: str) -> bool:
+    return (
+        SENSITIVE_KEY.search(value) is not None
+        or _RUNTIME_SENSITIVE_KEY.fullmatch(value) is not None
+    )
 
 
 def _is_concrete_value(value: str | bytes) -> bool:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import contextlib
 from datetime import date
 import io
@@ -1059,14 +1060,137 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
         )
         self.assertNotIn(sentinel, str(layer_error))
 
-    def test_binary_signature_crosses_chunk_boundary_without_echo(self) -> None:
-        sentinel = b"-----BEGIN PRIVATE KEY-----"
-        payload = b"\x00" * (1024 * 1024 - 10) + sentinel + b"\x00"
+        self.replace_archive(
+            layer_files=[
+                (
+                    "etc/app.yaml",
+                    b"database_url: "
+                    b"postgres://example:placeholder@localhost/db\n",
+                )
+            ]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-sensitive-layer-yaml"
+        )
+
+    def test_material_aware_byte_signatures_cross_chunk_without_echo(self) -> None:
+        pem_header = b"-----BEGIN PRIVATE KEY-----"
+        encoded = base64.b64encode(b"fixture-private-key-material" * 4)
+        pem_material = (
+            pem_header + b"\n" + encoded + b"\n-----END PRIVATE KEY-----"
+        )
+        payload = b"\x00" * (1024 * 1024 - 10) + pem_material + b"\x00"
         self.replace_archive(layer_files=[("bin/payload", payload)])
         caught = self.assert_bundle_error(
             "SENSITIVE_CONTENT", "out-sensitive-binary"
         )
-        self.assertNotIn(sentinel.decode("ascii"), str(caught))
+        self.assertNotIn(pem_header.decode("ascii"), str(caught))
+
+        self.replace_archive(
+            layer_files=[
+                (
+                    "bin/source-signatures",
+                    b"\x00-----BEGIN PRIVATE KEY-----\x00"
+                    b"Authorization: Bearer example-placeholder\x00"
+                    b"postgres://example:placeholder@localhost/db\x00",
+                )
+            ]
+        )
+        built = self.build(self.output_dir("out-safe-source-signatures"))
+        self.assertTrue(
+            verify_bundle(
+                Path(built["bundle_root"]) / "handoff-manifest.json",
+                Path(built["bundle_root"]),
+            )["ok"]
+        )
+
+        for name, signature in (
+            ("known-token", b"ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"),
+            (
+                "authorization-material",
+                b"Authorization: Bearer Ab3!Cd5@Ef7#Gh9$Ij1%Kl3&",
+            ),
+            (
+                "credential-url-material",
+                b"postgres://service:Ab3!Cd5%40Ef7%23Gh9%24Ij1@db.invalid/app",
+            ),
+            (
+                "jwt-material",
+                b"Authorization: Bearer "
+                b"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmaXh0dXJlIn0."
+                b"YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYQ",
+            ),
+        ):
+            with self.subTest(name=name):
+                self.replace_archive(layer_files=[("bin/payload", signature)])
+                self.assert_bundle_error(
+                    "SENSITIVE_CONTENT", f"out-sensitive-{name}"
+                )
+
+        incomplete = pem_header + b"\n" + encoded
+        self.replace_archive(layer_files=[("bin/payload", incomplete)])
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-incomplete-pem"
+        )
+
+        escaped_pem = json.dumps(
+            {"example": pem_material.decode("ascii")},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        self.replace_archive(layer_files=[("source-json", escaped_pem)])
+        self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-sensitive-decoded-pem"
+        )
+
+    def test_json_context_rejects_runtime_material_and_blocks_ambiguity(self) -> None:
+        safe_documents = (
+            b'{"$schema":"https://example.invalid/schema",'
+            b'"properties":{"password":{"type":"string"}}}\n',
+            b'{"locale":"en","messages":{"password":"Password"}}\n',
+            b'{"kind":"source",'
+            b'"source":{'
+            b'"authorization":"Bearer example-placeholder",'
+            b'"database_url":"postgres://example:placeholder@localhost/db",'
+            b'"password":"example-placeholder"}}\n',
+        )
+        self.replace_archive(
+            layer_files=[
+                (f"safe-{index}", payload)
+                for index, payload in enumerate(safe_documents)
+            ]
+        )
+        built = self.build(self.output_dir("out-safe-json-contexts"))
+        self.assertTrue(
+            verify_bundle(
+                Path(built["bundle_root"]) / "handoff-manifest.json",
+                Path(built["bundle_root"]),
+            )["ok"]
+        )
+
+        runtime_values = {
+            "authorization": "Bearer example-placeholder",
+            "database_url": "postgres://example:placeholder@localhost/db",
+            "password": "example-placeholder",
+        }
+        for key, value in runtime_values.items():
+            with self.subTest(runtime_key=key):
+                payload = json.dumps(
+                    {"runtime": {key: value}},
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+                self.replace_archive(layer_files=[("runtime-config", payload)])
+                self.assert_bundle_error(
+                    "SENSITIVE_CONTENT", f"out-runtime-json-{key}"
+                )
+
+        self.replace_archive(
+            layer_files=[("ambiguous-json", b'{"password":"example"}\n')]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-json-context"
+        )
 
     def test_unsafe_duplicate_and_unsupported_layer_fail_closed(self) -> None:
         variants: dict[str, bytes] = {}
@@ -1162,7 +1286,7 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
         )
 
     def test_source_literal_secret_is_rejected_but_ambiguous_text_blocks(self) -> None:
-        sentinel = "never-print-this-value"
+        sentinel = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"
         self.replace_archive(
             layer_files=[
                 (
@@ -1175,6 +1299,22 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
             "SENSITIVE_CONTENT", "out-source-literal"
         )
         self.assertNotIn(sentinel, str(caught))
+
+        self.replace_archive(
+            layer_files=[
+                (
+                    "safe-source",
+                    b'{"password": "example-placeholder", trailing: true}\n',
+                )
+            ]
+        )
+        built = self.build(self.output_dir("out-safe-source-literal"))
+        self.assertTrue(
+            verify_bundle(
+                Path(built["bundle_root"]) / "handoff-manifest.json",
+                Path(built["bundle_root"]),
+            )["ok"]
+        )
 
         self.replace_archive(layer_files=[("ambiguous", b'{"safe": ???}\n')])
         self.assert_bundle_error(
