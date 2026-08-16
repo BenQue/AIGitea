@@ -133,6 +133,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh" \
     "$ROOT/codex/tests/test-docker-release-v2-lifecycle-e2e-harness.sh" \
     "$ROOT/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh" \
+    "$ROOT/codex/tests/integration/test-company-delivery-real-release.sh" \
+    "$ROOT/codex/tests/test-company-delivery-real-release-harness.sh" \
     "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/docker-wrapper.sh" \
     "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/migrate.sh" \
     "$ROOT/architecture/bin/aisoft-architecture" \
@@ -170,6 +172,12 @@ bash "$ROOT/codex/tests/test-docker-release-v2-lifecycle-e2e-harness.sh"
 lifecycle_harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh")"
 grep -Fq 'NOT RUN: Docker release v2 lifecycle E2E requires separate Issue #65 authorization.' \
   <<<"$lifecycle_harness_output"
+bash "$ROOT/codex/tests/test-company-delivery-real-release-harness.sh"
+company_delivery_real_output="$(
+  bash "$ROOT/codex/tests/integration/test-company-delivery-real-release.sh"
+)"
+grep -Fq 'NOT RUN: Issue #124 exact real-release regression requires explicit --execute.' \
+  <<<"$company_delivery_real_output"
 bash "$ROOT/sync/tests/test-inbound-sync.sh"
 bash "$ROOT/sync/tests/test-install.sh"
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \

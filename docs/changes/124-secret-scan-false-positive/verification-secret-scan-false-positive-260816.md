@@ -1,0 +1,115 @@
+---
+issue: 124
+gitea_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/124
+change_type: security
+requested_complexity: auto
+assessed_complexity: complex
+effective_complexity: complex
+contract_effect: change
+confidence: high
+risk_flags:
+  - security
+  - shared-core
+  - cross-module
+  - external-contract
+  - artifact
+  - deployment
+  - deployment-boundary
+  - compatibility
+  - rollback
+depends_on: []
+status: implementation
+branch: change/124-secret-scan-false-positive
+pr_url:
+created: 2026-08-16
+updated: 2026-08-16
+---
+
+# Verification：真实 release 的格式化 Secret 扫描
+
+## 环境与版本
+
+- Planning baseline：freshly fetched `origin/main` =
+  `7950d119ab5c949d914de172dac8606369483cd4`（#120 / PR #123 merge source）。
+- Worktree：`/private/tmp/issue-124-secret-scan-false-positive`。
+- Branch：`change/124-secret-scan-false-positive`；T01–T03 commit 为 `9b780e0`、`42087b2`、`fa0596c`；
+  当前无 push 或 PR。
+- Exact external release：`006d0c43cafebff058889e3338d1e8bdcc8b661c`；约 412MB bytes 不在仓库中。
+- 当前阶段：Spec/Plan 已批准，T01–T03 已实施；T04 harness default/guard check 为 PASS，真实执行仍为
+  `NOT RUN`，等待从包含 harness 的 clean candidate HEAD 重放 exact release。
+
+## 执行结果
+
+| Command / check | Result | Evidence |
+|---|---|---|
+| broker Issue #124 read-back | PASS | Issue open、0 comments；标签精确为 `approved`、`complexity/complex`、`triage/enhancement`、`triage/ready-for-agent`、`type/security`；未创建重复 Issue |
+| broker `git.fetch.main` + base pin | PASS | planning 时 `origin/main` 与 worktree base/HEAD 均为 `7950d119ab5c949d914de172dac8606369483cd4`；当前 commits 均后继该 base |
+| readable tuple validation | PASS | `change-name 124 secret-scan-false-positive` 输出 exact branch；建立单一 worktree/branch/docs tuple |
+| analyzer schema/render | PASS | validated analyzer 输出 `type/security`、forced complex、`spec-drafting`、四份 semantic documents mapping |
+| current scanner static root-cause review | PASS | `_scan_bundle_payloads` 对所有 payload 做 Latin-1 raw-byte regex；`_mask_source_placeholders` 不识别 strict `:?required`；`images.tar` 未按 graph/layer 解析 |
+| existing `docker-release/v2` seams review | PASS | strict Compose external-reference validator与 Docker/OCI path/member/digest/reachability gate 可复用；未查询外部工具文档 |
+| mapped document resolver | PASS | `resolve-documents 124 --repo .` 精确返回四个 semantic basename，全部同 slug/date |
+| planning diff whitespace | PASS | 对四个 untracked Markdown 分别执行 `git diff --no-index --check /dev/null <file>`，均无 whitespace diagnostic |
+| T01 exact red | PASS | exact 2-test selector exit 1；`${PASSWORD:?required}` 在旧 scanner 下固定失败，不含 concrete 值 |
+| T01 exact green | PASS | 同一 selector exit 0；`Ran 2 tests ... OK` |
+| T02 exact red | PASS | exact ReleaseTransport + ArchiveScanner selector exit 1；缺 graph seam/bounds/blocked behavior |
+| T02 exact green | PASS | 同一 selector exit 0；`Ran 25 tests ... OK` |
+| T03 version/no-echo red → green | PASS | 同一 2-test selector先因 `1.0.0 != 1.0.1` exit 1，再 `Ran 2 tests ... OK` |
+| fake bundle/archive suite | PASS | Bundle + ArchiveScanner `Ran 17 tests ... OK`；Docker 0、target facts NOT_READ |
+| real harness default/guard | PASS | default 明确 `NOT RUN`；参数、clean tree、external root、双 temp output 与 cleanup 静态/负向检查通过 |
+| real `006d...` integration harness | NOT RUN | harness 尚未从 clean candidate HEAD 执行；412MB bytes 不提交 |
+| company/live checks | NOT RUN | 未连接公司内网，未访问两台公司 VM，未部署或读取 Secret/DB/target facts |
+
+## 已有 exact release 证据（本阶段不重放）
+
+| Layer | Result | Boundary |
+|---|---|---|
+| DockerLab 原位六文件 ↔ 本机临时副本 SHA256 | PASS（用户提供） | 只记录逐项一致结论，不记录命中值 |
+| artifact-only verifier | PASS（用户提供） | `ok=true`、`contract_version=docker-release/v2`、`docker_calls=0`、`target_facts=NOT_READ` |
+| current `build-bundle` | BLOCKED（用户提供） | artifact verification 后固定 `SENSITIVE_CONTENT`；输出目录已清理 |
+| Stage 00 local preparation | BLOCKED | 尚无 exact handoff bundle |
+| company Stage 10–110 | NOT RUN | 必须等待 Stage 00 PASS 及后续逐阶段人工批准 |
+
+## Acceptance criteria 结果
+
+| AC | Result | 当前证据 / 下一 gate |
+|---|---|---|
+| AC-1 | NOT RUN | T04 harness 已固定；等待 clean candidate HEAD 对 repo-external `006d...` 双构建/双 verify |
+| AC-2 | PASS | exact T01 red/green 覆盖 strict references 与 default/alternate/拼接/command substitution |
+| AC-3 | PASS（fake） | sentinel、fixed code、CLI no-echo 与完整 output cleanup 通过 |
+| AC-4 | PASS（fake） | canonical verified graph result驱动 config/metadata/layer/binary streaming；Docker 0 |
+| AC-5 | PASS（fake） | config Env、layer config、cross-chunk binary、unsafe/duplicate/compression/resource bounds 均覆盖 |
+| AC-6 | PASS（fake/review） | schema/source/doc/binary safe fixtures 通过；未增加 release/image/path/binary allowlist |
+| AC-7 | PASS（fake） | operator `1.0.1`、handoff V1、repeat build 与 verify-handoff 兼容通过 |
+| AC-8 | PARTIAL | focused/fake/JSON/diff 已通过；full runtime、smoke、ShellCheck、real T04 与 CI 待执行 |
+
+## 重复部署
+
+- 第一次部署：`NOT RUN`；本 Change 不授权部署。
+- 第二次部署：`NOT RUN`；T04 的双 bundle build 是本地确定性制品验证，不是部署。
+
+## 故意失败与回滚
+
+- 基线真实 fail-closed：`BLOCKED`，`SENSITIVE_CONTENT` 且输出已清理；只记录允许的三个顶层类别，未记录值。
+- implementation red/green 与 archive negative fixtures：`PASS`；所有断言只使用 fixed code/message。
+- source revert：`NOT RUN`；fake 临时 output cleanup 为 `PASS`，真实 T04 cleanup 仍为 `NOT RUN`。
+- 数据恢复验证：`NOT RUN`；无数据库动作且不在授权内。
+
+## Company/live 状态矩阵
+
+| Scope | Result | 边界 |
+|---|---|---|
+| 公司 `gitea-ci` / `scm-ci` inventory 与 Stage 10+ | NOT RUN | 开发机不可访问公司内网；只可未来由人运行 |
+| 公司 Gitea/Runner/Registry/cache | NOT RUN | 未安装、未配置、未验证 |
+| 公司 `appserver` / `appserver-prod` | NOT RUN | 未读取 target profile、Secret、Nginx/PostgreSQL 或 host facts |
+| service/timer/Actions production gate | NOT RUN | 必须保持 disabled/inactive，启用需未来独立批准 |
+| database migration/restore、test/prod deploy | NOT RUN | 明确不授权 |
+
+## 遗留风险与未完成项
+
+- 当前 implementation/fake tests 不能写成真实 Stage 00 或公司执行 PASS。
+- real fixture 已获 T04 执行授权，但只在 candidate source clean 且 external bytes identity 保持精确时运行；
+  缺失或漂移必须 `NOT RUN/BLOCKED`。
+- 任何需要读取命中值、增加 release/image/path broad allowlist、重建 release 或访问公司环境的方案都超出
+  Spec，必须停止并请求新的人工决策。
+- 最终 PR、required CI、merge 与公司部署均未发生；human merge 仍是未来唯一代码交付硬闸门。
