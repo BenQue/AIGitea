@@ -846,6 +846,78 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
                 masked = bundle_module._mask_source_placeholders(safe)
                 self.assertFalse(contains_sensitive_text(masked))
 
+    def test_compose_external_reference_grammar(self) -> None:
+        release_dir = self.release_root / SHA_A
+        compose = release_dir / "compose.yaml"
+        model_path = release_dir / "compose.model.json"
+        for index, reference in enumerate(("${PASSWORD}", "${PASSWORD:?required}")):
+            with self.subTest(reference=reference):
+                model = json.loads(model_path.read_text(encoding="utf-8"))
+                model["services"]["web"]["environment"] = {
+                    "password": reference,
+                }
+                model_path.write_text(
+                    json.dumps(
+                        model,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+                compose.write_text(
+                    "services:\n"
+                    "  web:\n"
+                    "    environment:\n"
+                    f"      password: \"{reference}\"\n",
+                    encoding="utf-8",
+                )
+                update_manifest(
+                    release_dir,
+                    lambda value: value["compose"].update(
+                        {
+                            "sha256": sha256(compose),
+                            "model_sha256": sha256(model_path),
+                        }
+                    ),
+                )
+                built = self.build(self.output_dir(f"out-external-reference-{index}"))
+                self.assertTrue(
+                    verify_bundle(
+                        Path(built["bundle_root"]) / "handoff-manifest.json",
+                        Path(built["bundle_root"]),
+                    )["ok"]
+                )
+
+    def test_compose_default_and_command_substitution_fail_closed(self) -> None:
+        sentinel = "never-print-this-value"
+        release_dir = self.release_root / SHA_A
+        compose = release_dir / "compose.yaml"
+        unsafe_values = (
+            f"${{PASSWORD:-{sentinel}}}",
+            f"${{PASSWORD-{sentinel}}}",
+            f"${{PASSWORD:+{sentinel}}}",
+            f"prefix-${{PASSWORD}}-{sentinel}",
+            f"$(printf {sentinel})",
+            sentinel,
+        )
+        for index, value in enumerate(unsafe_values):
+            with self.subTest(index=index):
+                compose.write_text(f"# password={value}\n", encoding="utf-8")
+                update_manifest(
+                    release_dir,
+                    lambda manifest: manifest["compose"].update(
+                        {"sha256": sha256(compose)}
+                    ),
+                )
+                output = self.output_dir(f"out-unsafe-compose-{index}")
+                with self.assertRaises(CompanyDeliveryError) as caught:
+                    self.build(output)
+                self.assertEqual(caught.exception.code, "SENSITIVE_CONTENT")
+                self.assertNotIn(sentinel, str(caught.exception))
+                self.assertEqual(list(output.iterdir()), [])
+
     def test_wrong_digest_merge_sha_and_architecture_are_blocked(self) -> None:
         variants = {
             "digest": lambda release_dir: release_dir.joinpath("images.tar").write_bytes(

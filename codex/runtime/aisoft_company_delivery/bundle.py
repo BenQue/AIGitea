@@ -22,10 +22,10 @@ from .contract import (
     GIT_SHA,
     HANDOFF_VERSION,
     CompanyDeliveryError,
-    contains_sensitive_text,
     load_handoff,
     sha256_file,
 )
+from .secret_scan import mask_source_placeholders, scan_source_text
 
 
 SOURCE_REPOSITORY = "admin/aisoft-platform"
@@ -328,44 +328,11 @@ def _scan_bundle_payloads(root: Path) -> None:
             continue
         if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
             raise CompanyDeliveryError("UNSAFE_PATH", "bundle payload must be a regular non-symlink file")
-        carry = ""
-        try:
-            with path.open("rb") as handle:
-                for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                    text = carry + chunk.decode("latin-1")
-                    if contains_sensitive_text(_mask_source_placeholders(text)):
-                        raise CompanyDeliveryError(
-                            "SENSITIVE_CONTENT", "bundle contains forbidden sensitive content"
-                        )
-                    carry = text[-256:]
-        except CompanyDeliveryError:
-            raise
-        except OSError as exc:
-            raise CompanyDeliveryError("UNSAFE_PATH", "bundle payload cannot be read") from exc
+        scan_source_text(path)
 
 
 def _mask_source_placeholders(value: str) -> str:
-    identifier = r"[A-Za-z_][A-Za-z0-9_]*"
-    placeholder = (
-        r"(?:%[A-Za-z]|\$"
-        + identifier
-        + r"|\$\{"
-        + identifier
-        + r"\}|\$\(<\"\$"
-        + identifier
-        + r"\"\)|<[^>\s]+>)"
-    )
-    patterns = (
-        re.compile(
-            rf"(?i)authorization\s*:\s*(?:bearer|token)\s+{placeholder}"
-        ),
-        re.compile(
-            rf"(?i)(?:password|passwd|pwd|token|secret|api[_-]?key)\s*[:=]\s*[\"']?{placeholder}[\"']?"
-        ),
-    )
-    for pattern in patterns:
-        value = pattern.sub("SECRET_PLACEHOLDER", value)
-    return value
+    return mask_source_placeholders(value)
 
 
 def _utc_today() -> date:
