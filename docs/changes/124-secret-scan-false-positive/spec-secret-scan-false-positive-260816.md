@@ -27,6 +27,48 @@ updated: 2026-08-16
 
 # Spec：真实 release 的格式化 Secret 扫描
 
+## 2026-08-16 人工批准的简化交付合同（唯一有效修订）
+
+用户明确批准把已验证的 `images.tar` 作为 opaque immutable artifact，接受其内部可能包含 credential-like 或
+实际凭据材料的风险；公司内网安装、授权和 Secret 配置由人手工处理。若本节与下方保留的早期深度扫描设计
+冲突，以本节为准。
+
+### 有效信任边界
+
+1. `build-bundle` 仍须先通过现有 `docker-release/v2` artifact-only verifier：full release SHA、六文件
+   checksum、Compose/model、architecture lock、offline inventory 与 outer archive graph 必须合法，并保持
+   `ok=true`、`docker_calls=0`、`target_facts=NOT_READ`。
+2. 通过该 gate 后，manifest 指定的 `images.tar` 作为 opaque immutable payload 原字节搬运。builder 不解压
+   layer、不读取 config/source/package metadata、不做内容级 Secret 分类；archive 仍进入 payload inventory、
+   `SHA256SUMS`、handoff manifest 与最终 archive checksum。
+3. operator source、脚本、模板及 release 的 `release.json`、`compose.model.json`、`compose.yaml`、inventory、
+   architecture lock 等非 archive 文件继续做顶层 no-secret 扫描。Compose 只接受完整 `${NAME}` 与
+   `${NAME:?required}` 外部引用；顶层 concrete Secret 仍固定 `SENSITIVE_CONTENT`、no-echo 并清理输出。
+4. 该策略按已验证的 artifact 类型统一生效，不按 `006d...`、image digest 或内部路径建立特判。它证明的是
+   exact bytes 与运输完整性，不声称 OCI image 内部无 Secret、漏洞或恶意内容；image 内容责任属于
+   NewEmaint release owner，公司真实 Secret 只在内网由人配置。
+5. operator version 保持本 Change 尚未发布的 `1.0.1`，handoff 保持
+   `company-delivery-handoff/v1`。相同 clean source/release/UTC/transport 双构建必须 byte-identical，双
+   `verify-handoff` PASS，external release 构建前后 fingerprint 不变。
+
+### 修订后的 Acceptance criteria
+
+- [ ] **RAC-1 Real handoff**：exact `006d...` artifact-only PASS、双构建同 checksum、双
+  `verify-handoff` PASS、输入 fingerprint 不变且临时验证输出清理。
+- [ ] **RAC-2 Opaque archive**：通用 fake verified archive 即使 layer 内含 credential-like fixture，正常
+  builder 也不读取或阻断；同一 archive 被篡改或 checksum 不符仍 `ARTIFACT_INVALID`。
+- [ ] **RAC-3 Top-level no-secret**：operator/Compose/manifest 顶层 concrete sentinel 仍
+  `SENSITIVE_CONTENT`、no-echo、cleanup；合法 external references 通过。
+- [ ] **RAC-4 Local-only**：T04 保持 Docker/target/network 访问为零，不修改或重建真实 release。
+- [ ] **RAC-5 Regression/PR**：full runtime、smoke、shell、JSON、diff/no-secret 与两轴 review 通过；唯一 PR
+  body 恰一行 `Closes #124`，required CI 绑定 exact final head 通过，AI 停在人工合并闸门。
+
+### 回滚与 NOT RUN
+
+artifact identity、顶层 no-secret 或 deterministic handoff 失败仍 fail closed 并清理部分输出。source 回滚为
+单 PR revert。本 Change 不部署；公司两台 VM、Gitea/Runner/Registry、backup/restore、DB、Nginx、
+service/timer 与 Stage 10–110 全部 `NOT RUN`。
+
 ## 目标与原因
 
 修正 `company-delivery build-bundle` 对真实 NewEmaint `docker-release/v2` 制品的 Secret 扫描误报，
@@ -45,7 +87,7 @@ updated: 2026-08-16
 本 Change 只改变 scanner 如何证明“具体 Secret”或“无法安全完成扫描”，不削弱 #120 的
 fail-closed、no-echo、exact-bytes、artifact-only、两台公司 VM 和人工逐阶段批准合同。
 
-## 安全扫描合同
+## 历史深度扫描合同（保留作审计，不再是正常 build-bundle gate）
 
 ### 1. 固定结果与 no-echo
 
@@ -184,7 +226,7 @@ sensitive field 继续 fail closed。
 这里没有“允许某个 image/file 绕过扫描”的机制。允许的是版本化格式与精确语法；新增 broad filename、
 image digest 或 release-specific allowlist 均违反本 Spec。
 
-## Acceptance criteria
+## 历史 Acceptance criteria（由 RAC-1–RAC-5 覆盖）
 
 - [ ] **AC-1 Exact real release**：对 repo-external exact release
   `006d0c43cafebff058889e3338d1e8bdcc8b661c` 先复核 artifact-only
@@ -254,7 +296,7 @@ NewEmaint bytes。source 回滚为单 PR revert；本 Change 无 live mutation�
 - 不增加 binary/file/image/release broad allowlist，不用不同 bytes 替代 exact release。
 - 不修改本次运行遵循的治理文件，不自动 merge。
 
-## 未决问题
+## 历史未决问题
 
 无。扫描语法、错误分类、资源边界、真实 fixture 入口与禁止项均已在本 Spec 固定；是否批准进入
 `$implement #124 Txx` 是下一道人工流程门，不是实现方向未决。

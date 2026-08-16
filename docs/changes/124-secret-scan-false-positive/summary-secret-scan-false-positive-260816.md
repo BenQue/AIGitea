@@ -36,6 +36,21 @@ created: 2026-08-16
 updated: 2026-08-16
 ---
 
+## 2026-08-16 人工简化决定（最新且优先）
+
+用户明确批准将 `images.tar` 视为已通过 `docker-release/v2` 校验的 opaque immutable artifact，接受其内部
+可能包含 credential-like 或实际凭据材料的风险；公司内网安装、授权和 Secret 配置均由人手工处理。本决定
+覆盖下文早期“必须深度扫描全部 image layer”的约束：
+
+- `images.tar` 通过现有 artifact-only identity/checksum/graph 校验后原字节搬运；
+- builder 不解压、不读取或分类 image 内部文件，也不声称 image 内部无 Secret；
+- operator source、handoff metadata、`compose.model.json`、`compose.yaml` 与其它可见文本仍做 no-secret 检查；
+- 公司运行时 Secret、授权和部署动作仍只在公司内网由人处理，不进入本地 bundle、Issue、PR 或日志；
+- 这是统一 artifact-type 规则，不使用 release SHA、image digest 或内部路径特判。
+
+本 Change 继续完成本地 deterministic handoff、唯一 PR 和 required CI，停在人工合并闸门。正式可搬运包须在
+PR 人工合并后从 protected `main` 的 exact source SHA 重新生成；公司 Stage 10–110 仍为 `NOT RUN`。
+
 ## 问题/需求总结
 
 Issue #124 跟踪一个已在 exact NewEmaint docker-release/v2 release 上复现的 fail-closed 阻塞：artifact-only verification 保持零 Docker/零 target facts，但 company-delivery build-bundle 把合法 Compose 外部引用或镜像归档中的非 Secret 字节判为 SENSITIVE_CONTENT。当前只允许记录命中文件类别，不处理、回显或猜测任何命中值。
@@ -94,7 +109,7 @@ override_reason: ''
 - docker-release 已有 strict normalized Compose external-reference validator，以及 Docker/OCI manifest、descriptor digest、member/path/type 的 artifact-only graph 验证 seam，可作为格式化扫描的信任输入。
 - 真实 build-bundle 返回固定 SENSITIVE_CONTENT 并清理输出；Stage 00 local preparation 为 BLOCKED，公司 Stage 10+ 全部 NOT RUN。
 
-### 当前实施决策
+### 历史实施记录（已被最新人工简化决定覆盖）
 
 - T01–T03 已完成；T04 从 clean candidate HEAD 对 exact release 执行时，artifact-only gate 为 PASS，
   `compose.model.json` 与 `compose.yaml` scanner 为 PASS，但 `images.tar` 仍固定返回 `SENSITIVE_CONTENT`，

@@ -27,7 +27,25 @@ updated: 2026-08-16
 
 # Implementation plan：真实 release 的格式化 Secret 扫描
 
-## Ticket graph
+## 2026-08-16 active plan revision
+
+用户明确批准把已验证的 `images.tar` 作为 opaque immutable artifact，接受内部可能包含 credential-like 或
+实际凭据材料的风险；本节覆盖下方 T04 的早期深度扫描步骤。T01–T03 已有顶层 no-secret、artifact graph 与
+deterministic builder seam 继续复用。
+
+| Ticket | Active work | Blocked by | Status |
+|---|---|---|---|
+| T04 | 增加 opaque-archive RED fixture；移除正常 builder 的 image 内容扫描；运行 exact `006d...` artifact-only → 双构建 → checksum equality → 双 verify-handoff → input revalidation/cleanup | T03 | in progress |
+| T05 | full runtime、smoke、shell/JSON/diff、两轴 review、mapped evidence、唯一 PR 与 exact-head CI | T04 | pending |
+
+T04 的同一 seam 必须同时证明：verified archive 内部 credential-like fixture 不再阻断；顶层 operator/Compose
+sentinel 仍阻断；archive checksum/graph tamper 仍 `ARTIFACT_INVALID`。不再运行真实 image 内容诊断，不读取或
+输出 image 内部数据。
+
+T04 PASS 后，T05 仅经 host-access broker push/create PR，body 恰一行 `Closes #124`；到
+`READY_FOR_REVIEW` 停止。正式可搬运包须在人工合并后从 protected `main` exact SHA 重新生成。
+
+## 历史 Ticket graph（T04/T05 由 active revision 覆盖）
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
@@ -45,7 +63,7 @@ fixtures 与修复已完成，但 clean candidate 的首次完整 real build 返
 合同属于实际 credential signal，故立即回到 `NEEDS_HUMAN_DECISION`；不得再运行第二/第三次尝试、诊断
 命中内容或增加 release/image/path/digest 特判。T05、push、PR、CI 均未开始。
 
-## Ticket details
+## 历史 Ticket details
 
 ### T01 — Compose/text scanner
 

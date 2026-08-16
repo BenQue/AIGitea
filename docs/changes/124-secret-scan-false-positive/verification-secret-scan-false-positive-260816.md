@@ -27,6 +27,27 @@ updated: 2026-08-16
 
 # Verification：真实 release 的格式化 Secret 扫描
 
+## 2026-08-16 人工简化决定与恢复状态
+
+用户明确接受已验证 `images.tar` 内部可能包含 credential-like 或实际凭据材料的风险，并批准停止 OCI layer
+内容级 Secret 审计；公司内网安装、授权与 Secret 配置均由人手工处理。此前
+`SENSITIVE_SCAN_BLOCKED`/`SENSITIVE_CONTENT` 的真实深度扫描记录保留为历史证据，但不再是 active Stage 00
+gate，也不代表已确认真实凭据。
+
+active verification 只要求 exact artifact identity/checksum/graph、顶层文本 no-secret、deterministic handoff
+和 zero Docker/target/network access。当前从 `BLOCKED / NEEDS_HUMAN_DECISION` 恢复为
+`approved / T04 in progress`；push、PR、CI、merge 与公司部署仍 `NOT RUN`。
+
+### Active RAC 结果
+
+| RAC | Result | Evidence |
+|---|---|---|
+| RAC-1 exact real handoff | NOT RUN | 待 opaque policy 实现后重跑 |
+| RAC-2 opaque archive + artifact tamper | NOT RUN | 待 RED→GREEN |
+| RAC-3 top-level no-secret | PASS（既有 fake） | T01 strict references、sentinel/no-echo/cleanup；待收口复跑 |
+| RAC-4 local-only | PASS（截至当前） | 真实 release 保持只读；Docker/target/network/company 均未访问 |
+| RAC-5 full regression/PR/CI | NOT RUN | blocked by T04 |
+
 ## 环境与版本
 
 - Planning baseline：freshly fetched `origin/main` =
