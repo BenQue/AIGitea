@@ -65,7 +65,7 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 | 预期输出 | archive checksum PASS；validator 只输出 contract/release identity、`ok=true`、`docker_calls=0`、`target_facts=NOT_READ`；`SHA256SUMS` 覆盖全部 payload 与 handoff manifest。 |
 | PASS | archive、source/release/compatibility、逐文件 SHA256、mode、path 和 `docker-release/v2` artifact-only contract 全部一致。 |
 | FAIL | 已执行只读校验，但 checksum、schema、release graph 或 compatibility 明确不一致；记录固定错误 code，不回显输入内容。 |
-| BLOCKED / 停止点 | short SHA、不同 bytes、unknown architecture/image store、unsafe path/mode/symlink、Secret sentinel、缺文件或任何 Docker/target 访问迹象；立即停止，不搬运到 AppServer。 |
+| BLOCKED / 停止点 | short SHA、不同 bytes、unknown architecture/image store、unsafe path/mode/symlink、`SENSITIVE_CONTENT`、`SENSITIVE_SCAN_BLOCKED`、缺文件或任何 Docker/target 访问迹象；scanner 只允许 fixed code/message，不得回显值、片段、offset 或 inner path；立即停止，不搬运到 AppServer。 |
 | Evidence | 一个 Stage 00 evidence JSON、archive sidecar checksum、脱敏 validator receipt；archive 本体不回流开发侧。 |
 | 回滚边界 | 仅删除本阶段新建的 staging copy，保留原始只读介质；不得触碰 Gitea、Registry、service、DB 或 target。 |
 

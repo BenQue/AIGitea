@@ -687,6 +687,16 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
         portable = verify_bundle(extracted_root / "handoff-manifest.json", extracted_root)
         self.assertTrue(portable["ok"])
 
+    def test_operator_version_and_handoff_contract_remain_compatible(self) -> None:
+        built = self.build(self.output_dir("out-version-contract"))
+        manifest = load_handoff(
+            Path(built["bundle_root"]) / "handoff-manifest.json",
+            bundle_root=Path(built["bundle_root"]),
+        )
+        self.assertEqual(manifest["operator_version"], "1.0.1")
+        self.assertEqual(manifest["contract_version"], HANDOFF_VERSION)
+        self.assertEqual(HANDOFF_VERSION, "company-delivery-handoff/v1")
+
     def test_payload_tamper_and_unsafe_mode_fail_closed(self) -> None:
         built = self.build(self.output_dir("out-tamper"))
         bundle = Path(built["bundle_root"])
@@ -1076,6 +1086,48 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
                 self.assert_bundle_error(
                     "SENSITIVE_SCAN_BLOCKED", f"out-blocked-{name}"
                 )
+
+    def test_blocked_cli_is_fixed_no_echo_and_cleans_output(self) -> None:
+        sentinel = "never-print-this-value"
+        unsafe = io.BytesIO()
+        with tarfile.open(fileobj=unsafe, mode="w") as archive:
+            member = tarfile.TarInfo(f"../{sentinel}")
+            member.size = 1
+            archive.addfile(member, io.BytesIO(b"x"))
+        self.replace_archive(layer_archive_payload=unsafe.getvalue())
+        output = self.output_dir("out-blocked-cli")
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            result = main(
+                [
+                    "build-bundle",
+                    "--repository-root",
+                    str(self.source),
+                    "--source-sha",
+                    self.source_sha,
+                    "--release-root",
+                    str(self.release_root),
+                    "--release-id",
+                    SHA_A,
+                    "--output-directory",
+                    str(output),
+                    "--created-at",
+                    "2026-08-16T08:00:00Z",
+                    "--source-transport",
+                    "approved-bundle",
+                ]
+            )
+        self.assertEqual(result, 2)
+        self.assertEqual(stdout.getvalue(), "")
+        value = json.loads(stderr.getvalue())
+        self.assertEqual(value["error_code"], "SENSITIVE_SCAN_BLOCKED")
+        self.assertEqual(
+            value["message"],
+            "bundle secret scan could not be completed safely",
+        )
+        self.assertNotIn(sentinel, stderr.getvalue())
+        self.assertEqual(list(output.iterdir()), [])
 
     def test_image_scan_resource_bounds_fail_closed(self) -> None:
         cases = (
