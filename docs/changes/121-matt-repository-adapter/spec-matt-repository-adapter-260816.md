@@ -15,7 +15,7 @@ risk_flags:
 depends_on: []
 status: approved
 branch: change/121-matt-repository-adapter
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/122
 created: 2026-08-16
 updated: 2026-08-16
 ---

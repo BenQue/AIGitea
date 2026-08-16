@@ -25,9 +25,9 @@ documents:
   plan: plan-matt-repository-adapter-260816.md
   verification: verification-matt-repository-adapter-260816.md
 depends_on: []
-status: approved
+status: pr-open
 branch: change/121-matt-repository-adapter
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/122
 created: 2026-08-16
 updated: 2026-08-16
 ---

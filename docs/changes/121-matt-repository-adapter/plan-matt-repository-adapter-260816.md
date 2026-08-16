@@ -15,7 +15,7 @@ risk_flags:
 depends_on: []
 status: approved
 branch: change/121-matt-repository-adapter
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/122
 created: 2026-08-16
 updated: 2026-08-16
 ---
@@ -28,7 +28,7 @@ updated: 2026-08-16
 |---|---|---|---|
 | T01 | byte-identical `docs/agents` 三配置与 `CLAUDE.md` 唯一 Agent skills 路由（AC-1、AC-2、AC-5） | - | completed |
 | T02 | Analyzer-only AISoftPlatform profile、approved set 约束与 `profile-spec` 测试（AC-3、AC-4、AC-5） | T01 | completed |
-| T03 | mapped verification、全量验证、唯一 PR 与人工合并交接（AC-6、AC-7） | T01、T02 | in_progress |
+| T03 | mapped verification、全量验证、唯一 PR 与人工合并交接（AC-6、AC-7） | T01、T02 | completed |
 
 ## Expected touch points
 

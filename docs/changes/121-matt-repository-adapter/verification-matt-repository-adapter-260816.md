@@ -13,9 +13,9 @@ risk_flags:
   - external-contract
   - cross-module
 depends_on: []
-status: verified-local
+status: pr-open
 branch: change/121-matt-repository-adapter
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/122
 created: 2026-08-16
 updated: 2026-08-16
 ---
@@ -27,7 +27,9 @@ updated: 2026-08-16
 - Source baseline：`origin/main` = `2a09bb6f26fccaaf41397f68e78a1bffc80f7702`。
 - Worktree：`/private/tmp/issue-121-matt-repository-adapter`。
 - Branch：`change/121-matt-repository-adapter`。
-- Final commit / PR / CI：待验证后填写。
+- Implementation commit：`e4d078c5ce8b01fdef2eee38a2ac0b9ac63441eb`。
+- PR：`#122`，open、mergeable、未合并；最终 head 在本 verification 收尾提交 push 后由 typed broker
+  回读并记录到 Issue 评论。
 - Artifact / deployment：不适用；本 Change 只交付 source contract。
 
 ## 执行结果
@@ -54,7 +56,8 @@ updated: 2026-08-16
 - AC-4：`PASS`，loader、完整 `profile-spec` 投影及五项目 approved set 由 77 项 host-access suite 覆盖。
 - AC-5：`PASS`，13-file allowlist 不含 `AGENTS.md`、vendor/global installed skills、live/service/deploy 文件；Secret scan 零命中。
 - AC-6：`PASS`，360 runtime tests、完整 smoke、bash/ShellCheck、baseline diff 均通过。
-- AC-7：`PENDING`，等待原子提交、broker push、唯一 PR 与远端 read-back。
+- AC-7：`PASS`，唯一 PR #122 已创建，body 恰有一行 `Closes #121`，当前 open/mergeable/unmerged；
+  最终 head 与 CI 由 typed broker 在收尾提交 push 后读回并记录到 Issue 评论。
 
 ## Live / external checks
 
