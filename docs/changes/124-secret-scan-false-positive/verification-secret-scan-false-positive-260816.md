@@ -18,7 +18,7 @@ risk_flags:
   - compatibility
   - rollback
 depends_on: []
-status: implementation
+status: blocked
 branch: change/124-secret-scan-false-positive
 pr_url:
 created: 2026-08-16
@@ -32,11 +32,12 @@ updated: 2026-08-16
 - Planning baseline：freshly fetched `origin/main` =
   `7950d119ab5c949d914de172dac8606369483cd4`（#120 / PR #123 merge source）。
 - Worktree：`/private/tmp/issue-124-secret-scan-false-positive`。
-- Branch：`change/124-secret-scan-false-positive`；T01–T03 commit 为 `9b780e0`、`42087b2`、`fa0596c`；
-  当前无 push 或 PR。
+- Branch：`change/124-secret-scan-false-positive`；commits 为 `9b780e0`、`42087b2`、`fa0596c`、
+  `0bc3c1d`、`bd35270`；当前无 push 或 PR。
 - Exact external release：`006d0c43cafebff058889e3338d1e8bdcc8b661c`；约 412MB bytes 不在仓库中。
-- 当前阶段：Spec/Plan 已批准，T01–T03 已实施；T04 harness default/guard check 为 PASS，真实执行仍为
-  `NOT RUN`，等待从包含 harness 的 clean candidate HEAD 重放 exact release。
+- 当前阶段：`BLOCKED / NEEDS HUMAN SECURITY DECISION`。T04 已从 clean candidate HEAD 执行一次；
+  artifact-only gate PASS，但第一次 bundle build 对 `images.tar` 返回固定 `SENSITIVE_CONTENT`，因此第二次
+  build 与 verify-handoff 正确地未继续；harness 已清理临时输出。
 
 ## 执行结果
 
@@ -57,7 +58,9 @@ updated: 2026-08-16
 | T03 version/no-echo red → green | PASS | 同一 2-test selector先因 `1.0.0 != 1.0.1` exit 1，再 `Ran 2 tests ... OK` |
 | fake bundle/archive suite | PASS | Bundle + ArchiveScanner `Ran 17 tests ... OK`；Docker 0、target facts NOT_READ |
 | real harness default/guard | PASS | default 明确 `NOT RUN`；参数、clean tree、external root、双 temp output 与 cleanup 静态/负向检查通过 |
-| real `006d...` integration harness | NOT RUN | harness 尚未从 clean candidate HEAD 执行；412MB bytes 不提交 |
+| real `006d...` integration harness | BLOCKED | clean `0bc3c1d...` candidate 上 artifact-only PASS；首次 build 固定 `SENSITIVE_CONTENT`；第二次 build/双 verify 未运行；临时输出 cleanup PASS |
+| permitted top-level category replay | PASS / BLOCKED | `compose.model.json=PASS`、`compose.yaml=PASS`、`images.tar=SENSITIVE_CONTENT`；未输出值、片段、offset 或 inner path |
+| T04 content-classifier red → green | PASS | safe source/JSONC 与 literal/duplicate/ambiguous negatives 先 RED，后 ArchiveScanner 7/7、Bundle 11/11 PASS；commit `bd35270` |
 | company/live checks | NOT RUN | 未连接公司内网，未访问两台公司 VM，未部署或读取 Secret/DB/target facts |
 
 ## 已有 exact release 证据（本阶段不重放）
@@ -66,7 +69,8 @@ updated: 2026-08-16
 |---|---|---|
 | DockerLab 原位六文件 ↔ 本机临时副本 SHA256 | PASS（用户提供） | 只记录逐项一致结论，不记录命中值 |
 | artifact-only verifier | PASS（用户提供） | `ok=true`、`contract_version=docker-release/v2`、`docker_calls=0`、`target_facts=NOT_READ` |
-| current `build-bundle` | BLOCKED（用户提供） | artifact verification 后固定 `SENSITIVE_CONTENT`；输出目录已清理 |
+| baseline `build-bundle` | BLOCKED（用户提供） | artifact verification 后固定 `SENSITIVE_CONTENT`；输出目录已清理 |
+| candidate `build-bundle` | BLOCKED（本次重放） | artifact-only PASS；`images.tar` 仍固定 `SENSITIVE_CONTENT`；没有记录或猜测命中值 |
 | Stage 00 local preparation | BLOCKED | 尚无 exact handoff bundle |
 | company Stage 10–110 | NOT RUN | 必须等待 Stage 00 PASS 及后续逐阶段人工批准 |
 
@@ -74,14 +78,14 @@ updated: 2026-08-16
 
 | AC | Result | 当前证据 / 下一 gate |
 |---|---|---|
-| AC-1 | NOT RUN | T04 harness 已固定；等待 clean candidate HEAD 对 repo-external `006d...` 双构建/双 verify |
+| AC-1 | BLOCKED | clean candidate 首次 build fail closed；第二次 build/checksum equality/双 verify 正确地未继续 |
 | AC-2 | PASS | exact T01 red/green 覆盖 strict references 与 default/alternate/拼接/command substitution |
 | AC-3 | PASS（fake） | sentinel、fixed code、CLI no-echo 与完整 output cleanup 通过 |
 | AC-4 | PASS（fake） | canonical verified graph result驱动 config/metadata/layer/binary streaming；Docker 0 |
 | AC-5 | PASS（fake） | config Env、layer config、cross-chunk binary、unsafe/duplicate/compression/resource bounds 均覆盖 |
 | AC-6 | PASS（fake/review） | schema/source/doc/binary safe fixtures 通过；未增加 release/image/path/binary allowlist |
 | AC-7 | PASS（fake） | operator `1.0.1`、handoff V1、repeat build 与 verify-handoff 兼容通过 |
-| AC-8 | PARTIAL | focused/fake/JSON/diff 已通过；full runtime、smoke、ShellCheck、real T04 与 CI 待执行 |
+| AC-8 | PARTIAL | focused/fake/JSON/diff 与 T04 cleanup 已通过；full runtime、smoke、ShellCheck、CI 待安全决策后执行 |
 
 ## 重复部署
 
@@ -92,7 +96,7 @@ updated: 2026-08-16
 
 - 基线真实 fail-closed：`BLOCKED`，`SENSITIVE_CONTENT` 且输出已清理；只记录允许的三个顶层类别，未记录值。
 - implementation red/green 与 archive negative fixtures：`PASS`；所有断言只使用 fixed code/message。
-- source revert：`NOT RUN`；fake 临时 output cleanup 为 `PASS`，真实 T04 cleanup 仍为 `NOT RUN`。
+- source revert：`NOT RUN`；fake 与真实 T04 临时 output cleanup 均为 `PASS`。
 - 数据恢复验证：`NOT RUN`；无数据库动作且不在授权内。
 
 ## Company/live 状态矩阵
@@ -108,8 +112,8 @@ updated: 2026-08-16
 ## 遗留风险与未完成项
 
 - 当前 implementation/fake tests 不能写成真实 Stage 00 或公司执行 PASS。
-- real fixture 已获 T04 执行授权，但只在 candidate source clean 且 external bytes identity 保持精确时运行；
-  缺失或漂移必须 `NOT RUN/BLOCKED`。
+- real fixture 已按授权执行一次并 fail closed；继续需要人工决定是否把 embedded source/example signature 与
+  actual credential material 改为结构化判定。没有该安全决策时不得弱化 scanner、继续 T05 或创建 PR。
 - 任何需要读取命中值、增加 release/image/path broad allowlist、重建 release 或访问公司环境的方案都超出
   Spec，必须停止并请求新的人工决策。
 - 最终 PR、required CI、merge 与公司部署均未发生；human merge 仍是未来唯一代码交付硬闸门。

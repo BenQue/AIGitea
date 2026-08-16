@@ -29,7 +29,7 @@ documents:
   spec: spec-secret-scan-false-positive-260816.md
   plan: plan-secret-scan-false-positive-260816.md
   verification: verification-secret-scan-false-positive-260816.md
-status: approved
+status: needs-human-decision
 branch: change/124-secret-scan-false-positive
 pr_url:
 created: 2026-08-16
@@ -96,5 +96,8 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- 无；mapped Spec/Plan 已由用户批准。当前 Development Loop 已完成 T01–T03，T04 harness 等待从 clean
-  candidate HEAD 执行 repo-external exact release regression；批准不包含 merge 或部署。
+- T01–T03 已完成；T04 从 clean candidate HEAD 对 exact release 执行时，artifact-only gate 为 PASS，
+  `compose.model.json` 与 `compose.yaml` scanner 为 PASS，但 `images.tar` 仍固定返回 `SENSITIVE_CONTENT`，
+  两份临时输出均已清理。现有 Spec 同时要求所有 byte stream 的 high-confidence signature 与 layer JSON
+  quoted sensitive scalar 一律拒绝；不得为使真实 bytes 变绿而自行放宽。是否将“embedded source/example
+  signature”与“实际 credential material”改为结构化判定，需要新的人工安全决策；批准不包含 merge 或部署。
