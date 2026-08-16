@@ -33,8 +33,8 @@ updated: 2026-08-16
 ## 环境与版本
 
 - Baseline：`origin/main` = `718a14f1deb20062ae58ff8c7dd20b3377bd0214`。
-- Candidate commit SHA：`NOT RUN`（implementation 尚未完成）。
-- Operator bundle/version/checksum：`NOT RUN`。
+- Candidate commit SHA：`PENDING FINAL REVIEW`（最终 exact head 将由 typed broker/PR readback 记录）。
+- Operator source version：`1.0.0`；真实 NewEmaint bundle/checksum：`NOT RUN`（真实 release bytes 未提供）。
 - Local environment：Mac isolated worktree；fake/disposable filesystem/process fixtures only。
 - Company `gitea-ci` / `appserver`、company Gitea/Runner/Registry、NewEmaint production：`NOT RUN`。
 
@@ -48,10 +48,10 @@ updated: 2026-08-16
 | strict JSON/schema/example parse | PASS | `company-delivery/**/*.json` 均通过 `jq empty`；四种 evidence outcome template 均通过 runtime validator |
 | deterministic fake bundle build x2 | PASS | 同输入 archive name/SHA256 完全相同；解包后在 `umask 077` 下重新验证；Docker calls = 0 |
 | tamper/wrong SHA/digest/arch/path/mode/Secret negatives | PASS | 全部在任何 target mutation 前 fail closed，且 Secret sentinel 不回显 |
-| full runtime unittest discovery | NOT RUN | exact command/count 待实现后记录 |
-| `bash codex/tests/smoke.sh` | NOT RUN | exact final-head output 待记录 |
-| `git diff --check origin/main` | NOT RUN | candidate whitespace gate |
-| no-secret/manual allowlist review | NOT RUN | 不回显任何命中值 |
+| full runtime unittest discovery | PASS | `Ran 381 tests in 15.898s`、`OK` |
+| `bash codex/tests/smoke.sh` | PASS | `Ran 381 tests in 14.664s`、`OK`；`Codex platform static smoke checks passed.` |
+| `git diff --check origin/main` | PASS | implementation worktree whitespace gate |
+| no-secret/manual allowlist review | PASS（source/local） | smoke 对 `company-delivery/` concrete Secret-like value fail closed；runtime 证明 sentinel 不回显；无 live Secret 输入 |
 | protected `main` / required CI / exact head status | NOT RUN | final push 后 typed broker readback |
 
 ## Ticket implementation evidence
@@ -112,6 +112,24 @@ updated: 2026-08-16
 - focused full module：PASS，`Ran 18 tests`、`OK`；全部 `company-delivery/**/*.json` 通过 `jq empty`；
   `git diff --check`：PASS。
 
+### T05 — topology/docs 与全量 gate
+
+- RED：`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_company_delivery.CompanyDeliveryTopologyDocsTests -v`
+  退出 `1`；README/07/12-Linux/13 尚未同时链接 operator runbook、声明两台公司 VM + 本地 OrbStack
+  override、固定 rebuild-without-isolation `BLOCKED`，smoke 也尚未覆盖 wrapper/JSON。
+- GREEN：同一命令退出 `0`，`Ran 3 tests`、`OK`；四份权威文档全部锁定 NewEmaint 的两台公司 VM、
+  本地 `appserver-test`、exact bytes 与 company/live `NOT RUN`，并把历史三机/内网 rebuild 文本限定为
+  legacy/Windows 或有隔离测试环境的路径。
+- `codex/tests/smoke.sh` 已纳入 operator wrapper `bash -n`/ShellCheck、全部 company-delivery JSON parse、
+  concrete Secret-like value scan；runtime discovery 自动纳入 21 个 company-delivery tests。
+- focused module：PASS，`Ran 21 tests`、`OK`；`bash -n codex/tests/smoke.sh
+  company-delivery/bin/aisoft-company-delivery`：PASS；`shellcheck` 同一组文件：PASS；JSON parse 与
+  `git diff --check`：PASS。
+- full runtime discovery：PASS，`Ran 381 tests in 15.898s`、`OK`。
+- full platform smoke：PASS，内部再次 `Ran 381 tests in 14.664s`、`OK`，最终输出
+  `Codex platform static smoke checks passed.`。Docker image-store/lifecycle real E2E harness 仍按合同只验证
+  fake preflight/默认 `NOT RUN`，未访问 Docker 或公司环境。
+
 ## Acceptance criteria 结果
 
 | AC | Result | Evidence |
@@ -124,15 +142,15 @@ updated: 2026-08-16
 | AC-6 | PASS（contract/local fake） | artifact-only zero-target tests 与不同 bytes/rebuild-without-isolation `BLOCKED` 已固定；真实 NewEmaint/company verification `NOT RUN` |
 | AC-7 | PASS（contract） | one-shot/bootstrap/protection/CI/Runner/Registry 正负矩阵与 disabled/inactive 初验边界已固定；company checks `NOT RUN` |
 | AC-8 | PASS（contract） | fixed action/`newemaint-prod`/full SHA、普通 Runner 禁权和 app rollback/DB restore 分离已固定；production `NOT RUN` |
-| AC-9 | NOT RUN | topology docs update/review pending |
-| AC-10 | NOT RUN | focused/full validation pending |
+| AC-9 | PASS（source） | README/07/12-Linux/13 静态合同测试通过；两台公司 VM + 本地 DockerLab 且三 role capability 保持隔离 |
+| AC-10 | PASS（local） | 21 focused、381 full runtime、full smoke、JSON、bash syntax、ShellCheck、no-secret 与 diff checks 均通过 |
 | AC-11 | NOT RUN | unique PR/final-head readback pending；merge human-only |
 | AC-12 | PASS（当前边界） | 未连接公司内网，未执行任何 company/live/deploy mutation |
 
 ## 重复部署
 
-- Local deterministic bundle build 第一次：`NOT RUN`。
-- Local deterministic bundle build 第二次：`NOT RUN`。
+- Local fake deterministic bundle build 第一次：PASS（unit fixture；不是 handoff artifact）。
+- Local fake deterministic bundle build 第二次：PASS，archive SHA 与第一次相同（同一 test input）。
 - 公司 test/prod 第一次部署：`NOT RUN`。
 - 公司 test/prod 同 SHA 第二次：`NOT RUN`。
 
@@ -140,7 +158,7 @@ bundle build/verify 是制品准备，不是 deployment，不得写成公司环�
 
 ## 故意失败与回滚
 
-- Fake/local checksum tamper、wrong full SHA/digest/architecture、unsafe path/mode、Secret sentinel：`NOT RUN`。
+- Fake/local checksum tamper、wrong full SHA/digest/architecture、unsafe path/mode、Secret sentinel：PASS（均按预期 fail closed）。
 - Company Gitea install/upgrade failure：`NOT RUN`；未来只按已批准 stage 的 snapshot/side-by-side 回滚。
 - NewEmaint application rollback：`NOT RUN`。
 - PostgreSQL isolated restore drill / production restore：`NOT RUN`；本 Change 不执行数据库操作。

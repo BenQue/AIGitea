@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.4（readable Change contract baseline）｜ 更新：2026-08-11 ｜ 状态：**protected `main` 已包含 Issue #75 的 `change/N-short-description` 合同并保留证据驱动的 legacy 兼容；任何新 Change 仍须经唯一 PR 与人工合并**
+> 版本：v3.5（company delivery pilot source）｜ 更新：2026-08-16 ｜ 状态：**protected `main` 已包含 Issue #75 的 `change/N-short-description` 合同并保留证据驱动的 legacy 兼容；任何新 Change 仍须经唯一 PR 与人工合并，company/live 状态必须单独验收**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 
@@ -12,7 +12,7 @@
 
 - ✅ 基础设施核心：`gitea-ci` 上的 Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
 - ✅ 主机职责隔离：Issue #21 已人工合并并以 `completed` 关闭；versioned host profile、capability catalog 和 fail-closed guard 已实现，`gitea-ci` 历史业务 runtime/DB/代理已逐项迁移或清理并完成 live post-check
-- 🟡 流水线：PR CI、构建和不可变制品链已验证；历史“合并 main 后在 `gitea-ci` 启动测试应用”仅作 as-built 证据，新接入必须部署到独立 `appserver-test`
+- 🟡 流水线：PR CI、构建和不可变制品链已验证；历史“合并 main 后在 `gitea-ci` 启动测试应用”仅作 as-built 证据，新接入必须使用独立 `appserver-test` trust role；NewEmaint pilot 的该 role 位于本地 OrbStack DockerLab，不新增第三台公司 VM
 - ✅ Legacy 制品收口：`gitea-ci:/opt/artifacts` 只保留 AppServer current 对应的 `rsdesign-new-3323ab...tar.gz`；9 个可由 Gitea commits 重建且无引用的旧版本已按精确路径删除，Gitea repositories 与 AppServer 未修改
 - ✅ `prod-sim`：Issue #21 两轮 name+ID/依赖/唯一数据/可重建检查与所有者 disposition 完成后，仅以 `orb delete --force prod-sim` 精确退役；`gitea-ci` 与 AppServer paired health 保持通过
 - ✅ v2 试点证据：issue #4 已走通三闸门闭环，证明 Issue/文档/PR/部署关联可行
@@ -30,13 +30,14 @@
 - 🟡 Linux Docker release source（Issue #22 已合并）：提供 strict manifest/profile、Registry/offline transports、host-role preflight 和 deterministic deploy/status/rollback；合同已进入 source，但具体业务 Registry/AppServer 与 production promotion 仍未验收
 - ✅ Docker offline V2 source/evidence（Issue #27 已合并）：四类 image identity、release-scoped tag、strict V2 inventory/archive、Engine/Compose/image-store capability gate 与 fake tests 已完成；两个独立 disposable Engine 29 containerd daemon 的 Registry push/pull、save/load、offline pull rejection、Compose `--pull never --no-build`、identity/health 和 exact cleanup E2E 已 `PASS`，containerd row 为 `supported`；classic 没有同等级真实证据，继续 `rejected`。该证据不是 NewEmaint、AppServer 或 production 部署
 - ✅ Docker release 分阶段职责与Compose 5.1.4 evidence（Issue #58/#65）：artifact-only verification、read-only target readiness、独立 stage/migrate/activate、state v2 receipt 与 fixed action gate已由两个task-owned disposable Engine 29.7.1/containerd daemon、Compose 5.1.4及disposable PostgreSQL migration真实验证；matrix仅支持exact Engine `[29.7.1,29.7.2)`/Compose `[5.1.4,5.1.5)` row。v1 legacy CLI保持兼容；本状态不表示已部署到NewEmaint、AppServer或production
+- 🟡 NewEmaint 公司交付 pilot（Issue #120）：提供 versioned/checksum-pinned operator bundle、两台公司 Linux VM 的脱敏 inventory、Stage 00–110 人工 runbook 与 strict evidence；真实 release handoff、公司 Gitea/Runner/Registry、backup/restore、AppServer 和 production 全部保持 `NOT RUN`
 - ⏸️ 待办：Windows Server 2022 x64 原型、内网 Runner/依赖缓存、迁移演练、生产 JEA 彩排与 [14](14-Windows部署与迁移验收清单.md) 全量验收
 
 ## 2. 目标职责架构
 
 下图保留 PM2/SQLite **as-built legacy 试点**的交付关系，不是新 Linux 项目的默认目标。新项目
 使用受控 builder 一次构建 `linux/amd64` OCI images，由 Gitea Container Registry 或同一
-manifest 的 offline bundle 传到独立 test/prod AppServer；`gitea-ci` 只承担 SCM 与明确
+manifest 的 offline bundle 传到隔离的 test/prod trust role；`gitea-ci` 只承担 SCM 与明确
 批准的 CI/CD 能力，不运行业务容器。
 
 ```mermaid
@@ -56,11 +57,11 @@ flowchart TB
         GUARD["host-role guard<br/>application/DB mutation fail closed"]
     end
 
-    subgraph TESTHOST["🧪 AppServer · role=appserver-test"]
+    subgraph TESTHOST["🧪 本地独立 AppServer / OrbStack DockerLab · role=appserver-test"]
         TEST["测试应用 runtime<br/>迁移→启动→SHA health→回滚"]
     end
 
-    subgraph PRODHOST["🔒 批准的生产主机 · role=appserver-prod"]
+    subgraph PRODHOST["🔒 公司批准的生产主机 · role=appserver-prod"]
         PROD["只收已验证制品<br/>确定性部署与回滚"]
     end
 
@@ -78,6 +79,13 @@ flowchart TB
 上图是新项目与收口后的强制职责合同，不是对当前 live 状态的虚假描述。Issue #21 的
 `03-verification.md` 分别记录 `gitea-ci` 历史 runtime、AppServer 迁移、数据清理和
 `prod-sim` 退役的最终 `PASS` 证据；后续环境健康仍须重新只读核对。
+
+NewEmaint pilot 的物理部署固定为**两台公司 Linux VM + 本地 OrbStack DockerLab**：公司
+`gitea-ci/scm-ci` 承担 Gitea、入站、Runner、Registry/cache、artifact-only verification 与受控编排；
+本地 DockerLab 承担 `appserver-test`；公司 `appserver/appserver-prod` 承担 runtime、PostgreSQL、Nginx
+与 fixed target。公司只消费本地已验证的 exact `docker-release/v2` bytes；公司要求内网重建但没有
+隔离测试环境时固定 `BLOCKED`。执行合同见
+[`company-delivery/runbook.md`](company-delivery/runbook.md)，本仓库或 PR 状态不代表公司已执行。
 
 ## 3. 核心设计原则（不可妥协项）
 
@@ -155,7 +163,8 @@ sequenceDiagram
 | [13-结果迁移与内网切换手册](13-项目结果迁移与内网切换实施手册.md) | 不迁 Issue/PR 的结果基线迁移、重建和切换 runbook | 执行项目迁移 |
 | [14-Windows 部署与迁移验收](14-Windows部署与迁移验收清单.md) | 构建、部署、数据库、JEA、切换和灾备证据 | 正式上线验收 |
 | [15-Fusion Windows ARM 原型](15-VMware-Fusion-Windows-ARM原型实施手册.md) | Mac 预检、Fusion/Windows 11 ARM、OpenSSH/IIS 脚本调试和 x64 升级边界 | 本地快速原型 |
-| [12-Linux GitHub → Gitea 职责分离方案](12-Linux-GitHub-Gitea-双服务器自动部署方案.md) | GitHub 入站候选、内网 PR、`scm-ci`/测试/生产三角色目标合同 | 建设 Linux 内网交付链 |
+| [12-Linux GitHub → Gitea 职责分离方案](12-Linux-GitHub-Gitea-双服务器自动部署方案.md) | GitHub 入站候选、内网 PR、三 role 能力隔离；NewEmaint 为两台公司 VM + 本地 test | 建设 Linux 内网交付链 |
+| [NewEmaint 公司交付 runbook](company-delivery/runbook.md) | 两 VM inventory、exact handoff、Gitea/backup/restore/SCM/fixed-target Stage 00–110 | 逐阶段人工执行与审计 |
 | [Architecture catalog V1](architecture/README.md) | strict JSON catalog、三个 profiles、项目 declaration/lock、例外与离线 provenance | 选择技术基线、审计项目或规划升级 |
 | [历史资料索引](archive/README.md) | 已被当前合同替代的方案、实施计划与 v2 一页 PDF | 追溯历史，不作为当前操作入口 |
 
@@ -164,7 +173,7 @@ sequenceDiagram
 | 入口 | 地址 |
 |------|------|
 | Gitea | http://gitea-ci.orb.local:3000；`admin/rsdesign-new` 仅为现有 as-built/pilot 示例，实际目标由项目 profile 指定 |
-| 测试环境应用 | 由目标项目的 `appserver-test` profile 指定；历史 `gitea-ci:8091` 已在 Issue #21 收口，不得作为当前入口 |
+| 测试环境应用 | 由目标项目的 `appserver-test` profile 指定；NewEmaint pilot 固定为本地 OrbStack DockerLab，历史 `gitea-ci:8091` 已在 Issue #21 收口，不得作为当前入口 |
 | Mailpit 收件箱 | http://gitea-ci.orb.local:8025 |
 | Verdaccio | http://gitea-ci.orb.local:4873 |
 | 凭据边界 | manager audit/mutation 与每项目 agent 使用 repo-external 独立 mode 600 protected credential；历史 admin/`ci-bot` 文件不是正常入口，凭据不得进入仓库、argv 或日志 |

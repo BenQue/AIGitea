@@ -652,5 +652,51 @@ class CompanyDeliveryRunbookTests(unittest.TestCase):
                 self.assertIn("example", serialized.lower())
 
 
+class CompanyDeliveryTopologyDocsTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.repository_root = Path(__file__).resolve().parents[3]
+
+    def read(self, name: str) -> str:
+        return (self.repository_root / name).read_text(encoding="utf-8")
+
+    def test_authoritative_docs_link_two_vm_newemaint_override(self) -> None:
+        names = (
+            "README.md",
+            "07-内网与生产平移路线.md",
+            "12-Linux-GitHub-Gitea-双服务器自动部署方案.md",
+            "13-项目结果迁移与内网切换实施手册.md",
+        )
+        for name in names:
+            with self.subTest(name=name):
+                text = self.read(name)
+                self.assertIn("company-delivery/runbook.md", text)
+                self.assertIn("NewEmaint", text)
+                self.assertIn("两台公司", text)
+                self.assertIn("本地 OrbStack", text)
+
+    def test_newemaint_never_reuses_company_rebuild_as_local_evidence(self) -> None:
+        for name in (
+            "07-内网与生产平移路线.md",
+            "12-Linux-GitHub-Gitea-双服务器自动部署方案.md",
+            "13-项目结果迁移与内网切换实施手册.md",
+        ):
+            with self.subTest(name=name):
+                text = self.read(name)
+                self.assertIn("公司要求内网重建", text)
+                self.assertIn("BLOCKED", text)
+                self.assertIn("exact `docker-release/v2` bytes", text)
+        linux = self.read("12-Linux-GitHub-Gitea-双服务器自动部署方案.md")
+        self.assertNotIn(
+            "合同至少要求 `scm-ci`、`appserver-test`、`appserver-prod` 三个隔离 machine identity",
+            linux,
+        )
+
+    def test_smoke_covers_company_delivery_shell_json_and_runtime(self) -> None:
+        smoke = self.read("codex/tests/smoke.sh")
+        self.assertIn('"$ROOT/company-delivery/bin/aisoft-company-delivery"', smoke)
+        self.assertIn('find "$ROOT/company-delivery" -type f -name \'*.json\'', smoke)
+        self.assertIn("python3 -m unittest discover", smoke)
+
+
 if __name__ == "__main__":
     unittest.main()

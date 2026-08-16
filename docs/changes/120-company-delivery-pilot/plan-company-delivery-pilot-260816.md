@@ -38,7 +38,7 @@ updated: 2026-08-16
 | T02 | 两 role 脱敏 read-only inventory vertical slice（AC-1） | T01 | completed |
 | T03 | deterministic builder、checksum/handoff/evidence validation vertical slice（AC-3、AC-4、AC-6） | T01 | completed |
 | T04 | Stage 00–110 runbook、Gitea/backup/restore/inbound/Runner/Registry/fixed-target 合同（AC-2、AC-5、AC-7、AC-8） | T02、T03 | completed |
-| T05 | README/07/12/13 拓扑收口、全量验证、bundle candidate、唯一 PR/CI handoff（AC-9、AC-10、AC-11、AC-12） | T04 | pending |
+| T05 | README/07/12/13 拓扑收口、全量验证、bundle candidate、唯一 PR/CI handoff（AC-9、AC-10、AC-11、AC-12） | T04 | in progress（local implementation/validation complete；review/PR/CI pending） |
 
 每个 `$implement #120 Txx` 只推进当前 frontier；同一 ticket 先写失败测试，再做最小实现、focused 验证、
 原子 commit。发现 schema/安全/部署方向与 Spec 冲突时立即停止，不自行扩大合同。
