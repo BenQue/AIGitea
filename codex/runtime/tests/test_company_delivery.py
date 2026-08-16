@@ -3,8 +3,8 @@ from __future__ import annotations
 import contextlib
 import io
 import json
-import os
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
@@ -18,6 +18,7 @@ from aisoft_company_delivery.contract import (
     load_handoff,
     load_inventory,
 )
+from aisoft_company_delivery.collector import collect_inventory
 
 
 SHA = "1" * 40
@@ -238,6 +239,154 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         self.assertFalse(value["ok"])
         self.assertEqual(value["error_code"], "SENSITIVE_CONTENT")
         self.assertNotIn(sentinel, stderr.getvalue())
+
+
+class CompanyDeliveryCollectorTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name)
+        self.calls: list[tuple[str, ...]] = []
+        self.responses = {
+            ("hostname",): (0, "company-scm-01\n", ""),
+            ("uname", "-r"): (0, "6.8.0-90-generic\n", ""),
+            ("uname", "-m"): (0, "x86_64\n", ""),
+            ("getconf", "_NPROCESSORS_ONLN"): (0, "4\n", ""),
+            ("df", "-Pk", "/"): (0, "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/root 100 50 50 50% /\n", ""),
+            ("git", "--version"): (0, "git version 2.50.1\n", ""),
+            ("python3", "--version"): (0, "Python 3.14.4\n", ""),
+            ("gitea", "--version"): (0, "Gitea version 1.26.4 built with GNU Make\n", ""),
+            ("act_runner", "--version"): (0, "act_runner version v0.2.13\n", ""),
+            ("docker", "version", "--format", "{{.Server.Version}}"): (0, "29.7.1\n", ""),
+            ("docker", "compose", "version", "--short"): (0, "5.1.4\n", ""),
+        }
+        for unit in (
+            "act_runner.service",
+            "docker.service",
+            "gitea.service",
+        ):
+            self.responses[("systemctl", "is-enabled", unit)] = (0, "enabled\n", "")
+            self.responses[("systemctl", "is-active", unit)] = (0, "active\n", "")
+        timer = "aisoft-inbound-sync@newemaint.timer"
+        self.responses[("systemctl", "is-enabled", timer)] = (1, "disabled\n", "")
+        self.responses[("systemctl", "is-active", timer)] = (3, "inactive\n", "")
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def runner(self, argv: list[str]) -> subprocess.CompletedProcess[str]:
+        command = tuple(argv)
+        self.calls.append(command)
+        if command not in self.responses:
+            raise FileNotFoundError(command[0])
+        code, stdout, stderr = self.responses[command]
+        return subprocess.CompletedProcess(argv, code, stdout, stderr)
+
+    def read_text(self, path: Path) -> str:
+        values = {
+            Path("/etc/os-release"): 'NAME="Ubuntu"\nID=ubuntu\nVERSION_ID="24.04"\n',
+            Path("/etc/machine-id"): "machine-id-never-emitted\n",
+            Path("/proc/meminfo"): "MemTotal:        8388608 kB\nMemFree:         1024 kB\n",
+        }
+        return values[path]
+
+    def test_scm_inventory_uses_only_fixed_read_only_probes(self) -> None:
+        output = self.root / "inventory.json"
+        value = collect_inventory(
+            "scm-ci",
+            output,
+            runner=self.runner,
+            read_text=self.read_text,
+            now=lambda: "2026-08-16T08:00:00Z",
+        )
+        self.assertEqual(value["outcome"], "PASS")
+        self.assertEqual(output.stat().st_mode & 0o777, 0o600)
+        parsed = load_inventory(output)
+        rendered = output.read_text(encoding="utf-8")
+        self.assertEqual(parsed["host"]["architecture"], "amd64")
+        self.assertNotIn("company-scm-01", rendered)
+        self.assertNotIn("machine-id-never-emitted", rendered)
+        self.assertTrue(str(parsed["host"]["hostname_sha256"]).startswith("sha256:"))
+        flattened = "\n".join(" ".join(command) for command in self.calls)
+        for forbidden in ("curl", "ssh", "journalctl", " start ", " enable ", " restart ", " stop "):
+            self.assertNotIn(forbidden, flattened)
+        self.assertEqual(
+            [item for item in parsed["units"] if item["name"].endswith(".timer")],
+            [
+                {
+                    "name": "aisoft-inbound-sync@newemaint.timer",
+                    "enabled": "disabled",
+                    "active": "inactive",
+                }
+            ],
+        )
+
+    def test_sensitive_probe_output_is_blocked_without_echo(self) -> None:
+        sentinel = "never-print-this-value"
+        self.responses[("gitea", "--version")] = (
+            0,
+            f"Gitea version 1.26.4 token={sentinel}\n",
+            "",
+        )
+        output = self.root / "sensitive-inventory.json"
+        value = collect_inventory(
+            "scm-ci",
+            output,
+            runner=self.runner,
+            read_text=self.read_text,
+            now=lambda: "2026-08-16T08:00:00Z",
+        )
+        self.assertEqual(value["outcome"], "BLOCKED")
+        gitea = next(item for item in value["tools"] if item["name"] == "gitea")
+        self.assertEqual(gitea["status"], "BLOCKED")
+        self.assertEqual(gitea["reason"], "sensitive-output-rejected")
+        self.assertNotIn(sentinel, output.read_text(encoding="utf-8"))
+
+    def test_appserver_inventory_uses_only_prod_role_probes(self) -> None:
+        self.responses[("nginx", "-v")] = (0, "", "nginx version: nginx/1.30.4\n")
+        self.responses[("psql", "--version")] = (0, "psql (PostgreSQL) 18.4\n", "")
+        for unit in ("docker.service", "nginx.service", "postgresql.service"):
+            self.responses[("systemctl", "is-enabled", unit)] = (0, "enabled\n", "")
+            self.responses[("systemctl", "is-active", unit)] = (0, "active\n", "")
+        output = self.root / "appserver-inventory.json"
+        value = collect_inventory(
+            "appserver-prod",
+            output,
+            runner=self.runner,
+            read_text=self.read_text,
+            now=lambda: "2026-08-16T08:00:00Z",
+        )
+        self.assertEqual(value["outcome"], "PASS")
+        versions = {item["name"]: item["version"] for item in value["tools"]}
+        self.assertEqual(versions["nginx"], "1.30.4")
+        self.assertEqual(versions["postgresql-client"], "18.4.0")
+        self.assertNotIn(("gitea", "--version"), self.calls)
+        self.assertNotIn(("act_runner", "--version"), self.calls)
+        self.assertEqual(
+            [item["name"] for item in value["units"]],
+            ["docker.service", "nginx.service", "postgresql.service"],
+        )
+
+    def test_output_must_be_new_and_parent_mode_0700(self) -> None:
+        output = self.root / "inventory.json"
+        output.write_text("existing", encoding="utf-8")
+        with self.assertRaises(CompanyDeliveryError):
+            collect_inventory(
+                "scm-ci",
+                output,
+                runner=self.runner,
+                read_text=self.read_text,
+                now=lambda: "2026-08-16T08:00:00Z",
+            )
+        output.unlink()
+        self.root.chmod(0o755)
+        with self.assertRaises(CompanyDeliveryError):
+            collect_inventory(
+                "scm-ci",
+                output,
+                runner=self.runner,
+                read_text=self.read_text,
+                now=lambda: "2026-08-16T08:00:00Z",
+            )
 
 
 if __name__ == "__main__":

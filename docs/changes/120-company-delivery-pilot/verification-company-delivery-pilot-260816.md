@@ -67,6 +67,18 @@ updated: 2026-08-16
 - `find company-delivery -type f -name '*.json' ... | xargs ... jq empty`：PASS。
 - `git diff --check`：PASS。
 
+### T02 — sanitized read-only inventory
+
+- RED：`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_company_delivery.CompanyDeliveryCollectorTests -v`
+  退出 `1`，同一 selector 在 collector seam 明确失败：
+  `ModuleNotFoundError: No module named 'aisoft_company_delivery.collector'`。
+- GREEN：同一命令退出 `0`，`Ran 4 tests`、`OK`；覆盖 `scm-ci`/`appserver-prod` 两 role、固定 read-only argv、
+  `0600` 新文件与 `0700` parent、hostname/machine-id fingerprint、timer disabled/inactive、PostgreSQL version
+  normalization，以及 probe Secret sentinel fail-closed/no-echo。
+- `python3 -m compileall -q -f codex/runtime/aisoft_company_delivery`：PASS；只验证 Python syntax，随后删除本次生成的
+  task-owned `__pycache__`，未改用户文件。
+- `git diff --check`：PASS。
+
 ## Acceptance criteria 结果
 
 | AC | Result | Evidence |

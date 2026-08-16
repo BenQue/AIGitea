@@ -40,7 +40,12 @@ TOOL_NAMES = {
     "postgresql-client",
     "python",
 }
-TOOL_REASONS = {"command-missing", "probe-failed", "version-output-unrecognized"}
+TOOL_REASONS = {
+    "command-missing",
+    "probe-failed",
+    "sensitive-output-rejected",
+    "version-output-unrecognized",
+}
 UNIT_NAMES = {
     "act_runner.service",
     "aisoft-inbound-sync@newemaint.timer",
@@ -96,6 +101,12 @@ def sha256_file(path: Path | str) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def contains_sensitive_text(value: str) -> bool:
+    """Return only a boolean; callers must never echo the rejected value."""
+
+    return any(pattern.search(value) is not None for pattern in SENSITIVE_VALUE_PATTERNS)
 
 
 def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[str, object]:
@@ -395,9 +406,8 @@ def _reject_sensitive(value: object) -> None:
         for item in value:
             _reject_sensitive(item)
     elif isinstance(value, str):
-        for pattern in SENSITIVE_VALUE_PATTERNS:
-            if pattern.search(value):
-                raise CompanyDeliveryError("SENSITIVE_CONTENT", "document contains forbidden sensitive content")
+        if contains_sensitive_text(value):
+            raise CompanyDeliveryError("SENSITIVE_CONTENT", "document contains forbidden sensitive content")
 
 
 def _exact_keys(value: Mapping[str, object], expected: set[str], label: str) -> None:
