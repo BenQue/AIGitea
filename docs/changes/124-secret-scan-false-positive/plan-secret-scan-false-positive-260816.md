@@ -34,14 +34,15 @@ updated: 2026-08-16
 | T01 | Compose/text scanner 端到端切片：严格 external-reference lexer、concrete-value/no-echo 结果与 fake bundle 正负测试（AC-2、AC-3、AC-6） | - | implemented `9b780e0` |
 | T02 | image archive 端到端切片：复用 verified Docker/OCI graph、有界 config/layer/binary scan 与 archive 负向 fixtures（AC-4、AC-5、AC-6） | - | implemented `42087b2` |
 | T03 | builder 集成切片：typed dispatcher、固定错误 code、清理/确定性、operator `1.0.1` 与文档兼容性（AC-3、AC-7） | T01、T02 | implemented `fa0596c` |
-| T04 | exact `006d...` repo-external integration：material-aware scanner 修订、artifact-only → 双构建 → checksum equality → verify-handoff；不提交 412MB bytes（AC-1） | T03 | **BLOCKED**；结构感知实现的三次同因真实重放均在首次 build 固定 `SENSITIVE_SCAN_BLOCKED`，已触发人工升级门 |
-| T05 | 全量回归、静态/安全审查、mapped verification 与唯一 PR 人工合并交接（AC-8） | T04 | **NOT RUN / blocked by T04** |
+| T04 | exact `006d...` repo-external integration：material-aware scanner 修订、artifact-only → 双构建 → checksum equality → verify-handoff；不提交 412MB bytes（AC-1、AC-9） | T03 | **in progress**；已获人工批准运行一次固定枚举 JSON-context 脱敏诊断 |
+| T05 | 全量回归、静态/安全审查、mapped verification 与唯一 PR 人工合并交接（AC-8） | T04 | pending；仅在 T04 全 PASS 后开始 |
 
 依赖图：`T01 ─┐`、`T02 ─┴→ T03 → T04 → T05`。T01/T02 是两个独立 frontier；任何 ticket 遇到
 no-echo、scope、format 或真实 bytes 冲突都停止，不跳到下游。
 
-当前停止点：T04 已达到同因三次失败阈值。不得继续探查真实命中内容、扩大 source/example 规则或绕过
-`SENSITIVE_SCAN_BLOCKED`；恢复需要新的、明确的人工安全决策。T05、push、PR 与 CI 均未开始。
+恢复边界：只新增 Spec 固定的七个无参数 JSON reason code 及 synthetic no-echo tests，然后对 exact release
+运行一次诊断。若 reason 表明真实 credential material、仍无法可靠分类或需要新的安全语义，立即恢复
+`NEEDS_HUMAN_DECISION`；不得继续探查、扩大 source/example 规则或绕过 `SENSITIVE_SCAN_BLOCKED`。
 
 ## Ticket details
 
@@ -83,18 +84,24 @@ no-echo、scope、format 或真实 bytes 冲突都停止，不跳到下游。
 
 ### T04 — Exact real-release integration regression
 
-1. 先以同一 exact selector 固定 structure-aware red/green：完整且匹配的 PEM material、known token/JWT、
+1. 先实现 `JSON_RESOURCE_LIMIT`、`JSON_PARSE_UNSAFE`、`JSON_SOURCE_ASSIGNMENT_AMBIGUOUS`、
+   `JSON_RUNTIME_ENV_INVALID`、`JSON_SOURCE_SENSITIVE_AMBIGUOUS`、`JSON_GENERIC_SENSITIVE_AMBIGUOUS` 和
+   `JSON_REASON_UNAVAILABLE` 七个无参数 reason code；synthetic fixtures 必须证明普通 CLI 不输出 reason、显式
+   diagnostic 只输出 fixed code/top-level/classifier/reason，且所有输入 sentinel 都不出现。
+2. 对 exact release 只运行一次固定枚举诊断；不得输出 inner path、key/path、值、片段、长度、offset、hash、
+   计数或异常。只有 reason 证明可在既有结构感知语义内作通用修复时才继续；否则立即停止。
+3. 继续以同一 exact selector 固定 structure-aware red/green：完整且匹配的 PEM material、known token/JWT、
    含真实 userinfo 的 credential URL、完整具体 Authorization block 与 runtime-config concrete credential 必须
    拒绝；source/doc/schema/test-fixture 中的示例、regex、不完整 header 不得误报；context 不明确时固定
    `SENSITIVE_SCAN_BLOCKED`。不得增加 path/digest/release allowlist。
-2. 新增显式 `--execute`、默认只报 `NOT RUN` 的 integration harness；只接受 absolute repo-external
+4. 新增显式 `--execute`、默认只报 `NOT RUN` 的 integration harness；只接受 absolute repo-external
    release root、固定 release ID `006d0c43cafebff058889e3338d1e8bdcc8b661c`、clean candidate repository 与
    两个新 mode `0700` 临时输出目录。harness 不访问网络、Docker 或 target profile。
-3. 先调用现有 `verify-artifact`，断言 `ok=true`、`contract_version=docker-release/v2`、
+5. 先调用现有 `verify-artifact`，断言 `ok=true`、`contract_version=docker-release/v2`、
    `docker_calls=0`、`target_facts=NOT_READ`，并依赖 release manifest/inventory 验证六文件 exact checksum。
-4. 固定同一 `created-at`，顺序构建两次；断言两份 archive SHA256 相等、两份 `verify-handoff` PASS、source
+6. 固定同一 `created-at`，顺序构建两次；断言两份 archive SHA256 相等、两份 `verify-handoff` PASS、source
    SHA 为 candidate full HEAD、release ID 精确匹配。只输出 fixed status/identity/checksum，不输出扫描内容。
-5. 无论成功或失败都删除两个临时 bundle/output；以 `git status --short` 和 size/path guard 证明 412MB
+7. 无论成功或失败都删除两个临时 bundle/output；以 `git status --short` 和 size/path guard 证明 412MB
    bytes 未进入 index/worktree。真实失败继续记录 Stage 00 `BLOCKED`，不得修改 release bytes 或添加豁免。
 
 ### T05 — 收口与人工 merge gate

@@ -62,6 +62,30 @@ scanner 必须先完成现有 `docker-release/v2` identity/checksum/graph 验证
 shell、Docker 或 target profile，也不得把 rejected input 串接进 exception chain。任一失败仍须删除
 bundle root、archive 与 sidecar；不得留下部分 handoff。
 
+#### 有限 JSON-context 脱敏诊断
+
+人工已批准为 `classifier=JSON_CONTEXT` 增加一个仅供显式诊断消费的固定 reason code。允许集合恰为：
+
+```text
+JSON_RESOURCE_LIMIT
+JSON_PARSE_UNSAFE
+JSON_SOURCE_ASSIGNMENT_AMBIGUOUS
+JSON_RUNTIME_ENV_INVALID
+JSON_SOURCE_SENSITIVE_AMBIGUOUS
+JSON_GENERIC_SENSITIVE_AMBIGUOUS
+JSON_REASON_UNAVAILABLE
+```
+
+reason code 必须是无参数常量；不得拼接或伴随 OCI 内部 path、JSON key/path、值、片段、长度、offset、hash、
+计数或原始异常。正常 `build-bundle` CLI 仍只输出既有 fixed code/message，不输出 reason。显式诊断最多输出
+`top_level=images.tar classifier=JSON_CONTEXT reason=<one-fixed-code>`；非集合值一律折叠为
+`JSON_REASON_UNAVAILABLE` 并保持 `SENSITIVE_SCAN_BLOCKED`。
+
+该诊断只解释为什么 scanner 无法安全分类，不提供放行能力。若结果对应真实 credential material，继续返回
+`SENSITIVE_CONTENT`；若 reason 为 ambiguity、parse/resource failure 或 unavailable，继续返回
+`SENSITIVE_SCAN_BLOCKED`。它不得形成 release/image/path/digest 特判，也不得改变 runtime concrete、known
+token/JWT、有效 PEM、真实 userinfo URL 或完整 Authorization credential 的拒绝语义。
+
 ### 2. Compose 外部引用与具体值
 
 `compose.model.json` 继续以 `aisoft_release.security` 和 `validate_compose_model` 为唯一语义合同。
@@ -170,6 +194,9 @@ image digest 或 release-specific allowlist 均违反本 Spec。
 - [ ] **AC-8 Validation/evidence boundary**：focused/full unit tests、fake repeat build、tamper/security negatives、
   integration harness preflight、JSON parse、shell syntax/ShellCheck、full runtime suite、smoke、diff/no-secret checks
   通过；公司 VM/Gitea/Runner/Registry/AppServer/DB/Nginx/production、service/timer 和部署全部 `NOT RUN`。
+- [ ] **AC-9 Fixed diagnostic privacy**：上述七个 reason code 均有 synthetic fixture；exception、普通 CLI 和
+  显式 diagnostic output 只能出现 fixed code/message/top-level/classifier/reason，不能包含输入 sentinel 或任何
+  path/key/value/snippet/length/offset/hash/count；真实诊断只运行一次。
 
 ## 接口、数据与兼容性影响
 
