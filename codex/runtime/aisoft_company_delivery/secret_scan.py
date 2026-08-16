@@ -40,6 +40,9 @@ JSON_CONTEXT_REASON_CODES = frozenset(
         "JSON_REASON_UNAVAILABLE",
     }
 )
+JSON_SOURCE_ROLES = frozenset(
+    {"SCHEMA", "SOURCE_MAP", "PACKAGE_METADATA", "I18N", "EXAMPLE", "OTHER"}
+)
 IDENTIFIER = r"[A-Za-z_][A-Za-z0-9_]*"
 EXTERNAL_ENV_REFERENCE = re.compile(
     rf"^\$\{{{IDENTIFIER}(?::\?required)?\}}$"
@@ -520,11 +523,19 @@ def _scan_structured_payload(
             except ValueError:
                 _json_blocked("JSON_PARSE_UNSAFE")
             else:
+                context = (
+                    "runtime"
+                    if runtime_context
+                    else _json_document_context(value)
+                )
                 _scan_json_value(
                     value,
-                    context="runtime"
-                    if runtime_context
-                    else _json_document_context(value),
+                    context=context,
+                    source_role=(
+                        "OTHER"
+                        if context != "source"
+                        else _json_document_source_role(value)
+                    ),
                 )
                 return
         _scan_source_literal_assignments(text)
@@ -533,9 +544,15 @@ def _scan_structured_payload(
         return
     except ValueError:
         _json_blocked("JSON_PARSE_UNSAFE")
+    context = "runtime" if runtime_context else _json_document_context(value)
     _scan_json_value(
         value,
-        context="runtime" if runtime_context else _json_document_context(value),
+        context=context,
+        source_role=(
+            "OTHER"
+            if context != "source"
+            else _json_document_source_role(value)
+        ),
     )
 
 
@@ -613,11 +630,19 @@ def _scan_source_literal_assignments(value: str) -> None:
                 _json_blocked("JSON_SOURCE_ASSIGNMENT_AMBIGUOUS")
 
 
-def _scan_json_value(value: object, *, context: str) -> None:
+def _scan_json_value(
+    value: object, *, context: str, source_role: str = "OTHER"
+) -> None:
     if isinstance(value, Mapping):
         for key, nested in value.items():
             key_text = str(key)
             child_context = _json_child_context(key_text, nested, context)
+            child_source_role = _json_child_source_role(
+                key_text,
+                nested,
+                parent_context=context,
+                parent_role=source_role,
+            )
             if (
                 child_context == "runtime"
                 and key_text.lower() in {"env", "environment"}
@@ -666,12 +691,21 @@ def _scan_json_value(value: object, *, context: str) -> None:
                     _json_blocked(
                         "JSON_SOURCE_SENSITIVE_AMBIGUOUS"
                         if context == "source"
-                        else "JSON_GENERIC_SENSITIVE_AMBIGUOUS"
+                        else "JSON_GENERIC_SENSITIVE_AMBIGUOUS",
+                        source_role=(
+                            source_role if context == "source" else None
+                        ),
                     )
-            _scan_json_value(nested, context=child_context)
+            _scan_json_value(
+                nested,
+                context=child_context,
+                source_role=child_source_role,
+            )
     elif isinstance(value, list):
         for nested in value:
-            _scan_json_value(nested, context=context)
+            _scan_json_value(
+                nested, context=context, source_role=source_role
+            )
     elif isinstance(value, (str, bytes)):
         payload = value.encode("utf-8") if isinstance(value, str) else value
         scanner = _HighConfidenceScanner()
@@ -701,6 +735,7 @@ def _json_document_context(value: object) -> str:
             marker in lowered
             for marker in ("locale", "messages", "translations", "i18n")
         )
+        or _looks_like_explicit_example(lowered)
     ):
         return "source"
     if any(
@@ -751,6 +786,61 @@ def _json_child_context(key: str, value: object, parent: str) -> str:
     } and isinstance(value, (Mapping, list)):
         return "runtime"
     return parent
+
+
+def _json_document_source_role(value: object) -> str:
+    if not isinstance(value, Mapping):
+        return "OTHER"
+    lowered = {str(key).lower(): nested for key, nested in value.items()}
+    candidates: set[str] = set()
+    if any(
+        marker in lowered
+        for marker in ("$schema", "$defs", "definitions", "openapi", "swagger")
+    ) or isinstance(lowered.get("properties"), Mapping):
+        candidates.add("SCHEMA")
+    if _looks_like_source_map(lowered):
+        candidates.add("SOURCE_MAP")
+    if _looks_like_package_metadata(lowered):
+        candidates.add("PACKAGE_METADATA")
+    if any(
+        marker in lowered
+        for marker in ("locale", "messages", "translations", "i18n")
+    ):
+        candidates.add("I18N")
+    if _looks_like_explicit_example(lowered):
+        candidates.add("EXAMPLE")
+    return next(iter(candidates)) if len(candidates) == 1 else "OTHER"
+
+
+def _json_child_source_role(
+    key: str,
+    value: object,
+    *,
+    parent_context: str,
+    parent_role: str,
+) -> str:
+    if parent_context == "source":
+        return parent_role if parent_role in JSON_SOURCE_ROLES else "OTHER"
+    lowered = key.lower()
+    if lowered in {"$defs", "definitions", "properties"}:
+        return "SCHEMA"
+    if lowered in {"messages", "translations", "i18n"}:
+        return "I18N"
+    if lowered in {"examples", "example", "sourcecode", "sourcescontent"}:
+        return "EXAMPLE"
+    return "OTHER"
+
+
+def _looks_like_explicit_example(value: Mapping[str, object]) -> bool:
+    if any(marker in value for marker in ("example", "examples")):
+        return True
+    if any(marker in value for marker in ("sourcecode", "sourcescontent")):
+        return True
+    return (
+        isinstance(value.get("kind"), str)
+        and value["kind"].lower() == "source"
+        and isinstance(value.get("source"), (Mapping, list))
+    )
 
 
 def _looks_like_source_map(value: Mapping[str, object]) -> bool:
@@ -1002,8 +1092,14 @@ def _sensitive() -> None:
 
 
 class _JsonContextBlocked(CompanyDeliveryError):
-    def __init__(self, reason_code: str) -> None:
+    def __init__(
+        self, reason_code: str, source_role: str | None = None
+    ) -> None:
         self.json_context_reason_code = reason_code
+        if reason_code == "JSON_SOURCE_SENSITIVE_AMBIGUOUS":
+            self.json_source_role_code = (
+                source_role if source_role in JSON_SOURCE_ROLES else "OTHER"
+            )
         super().__init__(
             "SENSITIVE_SCAN_BLOCKED",
             "bundle secret scan could not be completed safely",
@@ -1017,22 +1113,34 @@ def json_context_reason_code(error: CompanyDeliveryError) -> str:
     return "JSON_REASON_UNAVAILABLE"
 
 
+def json_source_role_code(error: CompanyDeliveryError) -> str:
+    role = getattr(error, "json_source_role_code", None)
+    if role in JSON_SOURCE_ROLES:
+        return role
+    return "OTHER"
+
+
 def format_json_context_diagnostic(error: CompanyDeliveryError) -> str:
     if error.code != "SENSITIVE_SCAN_BLOCKED":
         raise ValueError(
             "JSON context diagnostic requires SENSITIVE_SCAN_BLOCKED"
         )
     reason = json_context_reason_code(error)
-    return (
+    output = (
         "SENSITIVE_SCAN_BLOCKED: top_level=images.tar "
         f"classifier=JSON_CONTEXT reason={reason}"
     )
+    if reason == "JSON_SOURCE_SENSITIVE_AMBIGUOUS":
+        output += f" source_role={json_source_role_code(error)}"
+    return output
 
 
-def _json_blocked(reason_code: str) -> None:
+def _json_blocked(
+    reason_code: str, *, source_role: str | None = None
+) -> None:
     if reason_code not in JSON_CONTEXT_REASON_CODES:
         reason_code = "JSON_REASON_UNAVAILABLE"
-    raise _JsonContextBlocked(reason_code) from None
+    raise _JsonContextBlocked(reason_code, source_role) from None
 
 
 def _blocked() -> None:

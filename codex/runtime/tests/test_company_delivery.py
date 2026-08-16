@@ -1343,7 +1343,11 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
                 (
                     "ambiguous-json",
                     json.dumps(
-                        {"password": sentinel}, separators=(",", ":")
+                        {
+                            "kind": "source",
+                            "source": {"password": sentinel},
+                        },
+                        separators=(",", ":"),
                     ).encode("utf-8"),
                 )
             ]
@@ -1384,6 +1388,7 @@ class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
         self.assertNotIn(sentinel, stderr.getvalue())
         self.assertNotIn("reason", stderr.getvalue())
         self.assertNotIn("JSON_CONTEXT", stderr.getvalue())
+        self.assertNotIn("source_role", stderr.getvalue())
         self.assertEqual(list(output.iterdir()), [])
 
     def test_image_scan_resource_bounds_fail_closed(self) -> None:
@@ -1456,6 +1461,14 @@ class CompanyDeliveryJsonDiagnosticTests(unittest.TestCase):
         "JSON_SOURCE_SENSITIVE_AMBIGUOUS",
         "JSON_GENERIC_SENSITIVE_AMBIGUOUS",
         "JSON_REASON_UNAVAILABLE",
+    )
+    SOURCE_ROLES = (
+        "SCHEMA",
+        "SOURCE_MAP",
+        "PACKAGE_METADATA",
+        "I18N",
+        "EXAMPLE",
+        "OTHER",
     )
 
     def emit(self, reason: str, sentinel: str) -> CompanyDeliveryError:
@@ -1539,7 +1552,12 @@ class CompanyDeliveryJsonDiagnosticTests(unittest.TestCase):
                 self.assertEqual(
                     output,
                     "SENSITIVE_SCAN_BLOCKED: top_level=images.tar "
-                    f"classifier=JSON_CONTEXT reason={reason}",
+                    f"classifier=JSON_CONTEXT reason={reason}"
+                    + (
+                        " source_role=OTHER"
+                        if reason == "JSON_SOURCE_SENSITIVE_AMBIGUOUS"
+                        else ""
+                    ),
                 )
                 self.assertNotIn(sentinel, output)
 
@@ -1553,6 +1571,99 @@ class CompanyDeliveryJsonDiagnosticTests(unittest.TestCase):
                     "bundle contains forbidden sensitive content",
                 )
             )
+
+    def emit_source_role(
+        self, role: str, sentinel: str
+    ) -> CompanyDeliveryError:
+        documents = {
+            "SCHEMA": {
+                "$schema": "https://example.invalid/schema",
+                "properties": {"password": sentinel},
+            },
+            "SOURCE_MAP": {
+                "version": 3,
+                "sources": [],
+                "names": [],
+                "mappings": "",
+                "password": sentinel,
+            },
+            "PACKAGE_METADATA": {
+                "name": "fixture",
+                "version": "1.0.0",
+                "scripts": {},
+                "password": sentinel,
+            },
+            "I18N": {
+                "locale": "en",
+                "messages": {"password": sentinel},
+            },
+            "EXAMPLE": {
+                "kind": "source",
+                "source": {"password": sentinel},
+            },
+            "OTHER": {
+                "$schema": "https://example.invalid/schema",
+                "locale": "en",
+                "password": sentinel,
+            },
+        }
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            secret_scan_module._scan_structured_payload(
+                json.dumps(
+                    documents[role], separators=(",", ":")
+                ).encode("utf-8")
+            )
+        return caught.exception
+
+    def test_each_source_role_is_fixed_and_machine_classifiable(self) -> None:
+        self.assertEqual(
+            tuple(sorted(secret_scan_module.JSON_SOURCE_ROLES)),
+            tuple(sorted(self.SOURCE_ROLES)),
+        )
+        for role in self.SOURCE_ROLES:
+            with self.subTest(role=role):
+                sentinel = "never-print-source-role-" + role.lower()
+                error = self.emit_source_role(role, sentinel)
+                self.assertEqual(
+                    secret_scan_module.json_context_reason_code(error),
+                    "JSON_SOURCE_SENSITIVE_AMBIGUOUS",
+                )
+                self.assertEqual(
+                    secret_scan_module.json_source_role_code(error), role
+                )
+                self.assertNotIn(sentinel, str(error))
+
+    def test_each_source_role_diagnostic_line_is_fixed_no_echo(self) -> None:
+        for role in self.SOURCE_ROLES:
+            with self.subTest(role=role):
+                sentinel = "never-print-source-role-" + role.lower()
+                error = self.emit_source_role(role, sentinel)
+                output = secret_scan_module.format_json_context_diagnostic(
+                    error
+                )
+                self.assertEqual(
+                    output,
+                    "SENSITIVE_SCAN_BLOCKED: top_level=images.tar "
+                    "classifier=JSON_CONTEXT "
+                    "reason=JSON_SOURCE_SENSITIVE_AMBIGUOUS "
+                    f"source_role={role}",
+                )
+                self.assertNotIn(sentinel, output)
+
+    def test_unclassified_source_marker_collapses_to_other(self) -> None:
+        sentinel = "never-print-unclassified-source-role"
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            secret_scan_module._scan_structured_payload(
+                json.dumps(
+                    {"source": {"password": sentinel}},
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            )
+        self.assertEqual(
+            secret_scan_module.json_source_role_code(caught.exception),
+            "OTHER",
+        )
+        self.assertNotIn(sentinel, str(caught.exception))
 
 
 class CompanyDeliveryRunbookTests(unittest.TestCase):
