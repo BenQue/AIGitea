@@ -31,6 +31,8 @@ documents:
   spec: spec-company-delivery-pilot-260816.md
   plan: plan-company-delivery-pilot-260816.md
   verification: verification-company-delivery-pilot-260816.md
+depends_on:
+  - 121
 status: spec-drafting
 branch: change/120-company-delivery-pilot
 pr_url:
