@@ -11,7 +11,13 @@ import stat
 from typing import Mapping
 
 
-INVENTORY_VERSION = "company-delivery-inventory/v1"
+INVENTORY_V1_VERSION = "company-delivery-inventory/v1"
+INVENTORY_V2_VERSION = "company-delivery-inventory/v2"
+# The collector remains on v1 until the T02 probe vertical slice switches it
+# atomically to v2. Historical 1.0.1 bytes continue to validate their own v1
+# evidence; transition receipts below only bind v2 inventory identities.
+INVENTORY_VERSION = INVENTORY_V1_VERSION
+TRANSITION_VERSION = "company-delivery-gitea-transition/v1"
 HANDOFF_VERSION = "company-delivery-handoff/v1"
 EVIDENCE_VERSION = "company-delivery-evidence/v1"
 RELEASE_VERSION = "docker-release/v2"
@@ -78,6 +84,47 @@ ACTIVE_STATES = {
     "unknown",
 }
 
+FIXED_GITEA_TARGET = {
+    "gitea_version": "1.26.4",
+    "gitea_artifact": "gitea-1.26.4-linux-amd64",
+    "gitea_sha256": "0faa36d151918f8f7d6e0f3ae67597d1c338583d695add146ac393109d0fc44a",
+    "postgresql_version": "18.4",
+    "postgresql_provenance_artifact": "postgresql-18.4.tar.bz2",
+    "postgresql_provenance_sha256": "81a81ec695fb0c7901407defaa1d2f7973617154cf27ba74e3a7ab8e64436094",
+    "linux_user": "aisoft-gitea",
+    "linux_group": "aisoft-gitea",
+    "gitea_unit": "aisoft-gitea.service",
+    "gitea_binary": "/opt/aisoft/gitea/1.26.4/gitea",
+    "gitea_config": "/etc/aisoft/gitea/app.ini",
+    "gitea_data": "/var/lib/aisoft-gitea",
+    "gitea_log": "/var/log/aisoft-gitea",
+    "postgresql_cluster": "aisoft-gitea",
+    "postgresql_unit": "postgresql@18-aisoft-gitea.service",
+    "postgresql_data": "/var/lib/postgresql/18/aisoft-gitea",
+    "postgresql_database": "aisoft_gitea",
+    "postgresql_role": "aisoft_gitea",
+    "gitea_http": "127.0.0.1:3000",
+    "postgresql_listen": "127.0.0.1:55432",
+}
+
+SCM_RESOURCE_KEYS = {
+    "gitea_binary",
+    "gitea_config",
+    "gitea_data",
+    "gitea_log",
+    "postgresql_data",
+}
+SCM_AUTOMATION = {
+    "gitea_ssh": "disabled",
+    "runner": "disabled-inactive",
+    "sync_timer": "disabled-inactive",
+    "actions_auto_deploy": "disabled-inactive",
+    "production_gate": "disabled-inactive",
+    "dns_tls": "NOT RUN",
+    "reverse_proxy": "NOT RUN",
+    "repository_import": "NOT RUN",
+}
+
 SENSITIVE_KEYS = {
     "authorization",
     "connection_string",
@@ -124,6 +171,15 @@ def contains_sensitive_text(value: str) -> bool:
 def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[str, object]:
     value = _load_object(path, "inventory", require_protected=require_protected)
     _reject_sensitive(value)
+    version = value.get("contract_version")
+    if version == INVENTORY_V1_VERSION:
+        return _load_inventory_v1(value)
+    if version == INVENTORY_V2_VERSION:
+        return _load_inventory_v2(value)
+    raise CompanyDeliveryError("INVALID_CONTRACT", "inventory contract version is unsupported")
+
+
+def _load_inventory_v1(value: dict[str, object]) -> dict[str, object]:
     _exact_keys(
         value,
         {
@@ -140,7 +196,7 @@ def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[
         },
         "inventory",
     )
-    _const(value, "contract_version", INVENTORY_VERSION, "inventory")
+    _const(value, "contract_version", INVENTORY_V1_VERSION, "inventory")
     _matching(value, "collector_version", SEMVER, "inventory")
     _timestamp(value, "collected_at", "inventory")
     role = _enum(value, "role", ROLES, "inventory")
@@ -278,6 +334,370 @@ def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[
             raise CompanyDeliveryError(
                 "INVALID_CONTRACT", "PASS inventory requires complete passing facts and no pending codes"
             )
+    return value
+
+
+def _load_inventory_v2(value: dict[str, object]) -> dict[str, object]:
+    _exact_keys(
+        value,
+        {
+            "contract_version",
+            "collector_version",
+            "collected_at",
+            "role",
+            "scope",
+            "outcome",
+            "mode",
+            "host",
+            "tools",
+            "units",
+            "scm",
+            "pending",
+        },
+        "inventory",
+    )
+    _const(value, "contract_version", INVENTORY_V2_VERSION, "inventory")
+
+    common = {
+        key: item
+        for key, item in value.items()
+        if key not in {"mode", "scm"}
+    }
+    common["contract_version"] = INVENTORY_V1_VERSION
+    _load_inventory_v1(common)
+
+    role = _enum(value, "role", ROLES, "inventory")
+    outcome = _enum(value, "outcome", OUTCOMES, "inventory")
+    if role == "appserver-prod":
+        if value["mode"] is not None or value["scm"] is not None:
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "appserver inventory must not contain SCM probe facts"
+            )
+        return value
+
+    mode = _enum(value, "mode", {"preflight", "post-install"}, "inventory")
+    scm = _mapping(value["scm"], "inventory.scm")
+    _exact_keys(scm, {"probe_profile", "legacy", "candidate", "automation"}, "inventory.scm")
+    _const(
+        scm,
+        "probe_profile",
+        "greenfield-parallel-replacement-v1",
+        "inventory.scm",
+    )
+    legacy = _validate_scm_legacy(_object(scm, "legacy", "inventory.scm"))
+    candidate = _validate_scm_candidate(_object(scm, "candidate", "inventory.scm"))
+    automation = _validate_scm_automation(_object(scm, "automation", "inventory.scm"))
+
+    if outcome != "PASS":
+        return value
+
+    if (
+        legacy["presence"] != "present"
+        or legacy["health"] != "healthy"
+        or legacy["version"] is None
+        or legacy["container_id_sha256"] is None
+        or legacy["publish_port_sha256"] is None
+        or legacy["baseline_sha256"] is None
+        or legacy["reason"] is not None
+    ):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "PASS SCM inventory requires a healthy fingerprinted legacy instance"
+        )
+    if automation != SCM_AUTOMATION:
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "PASS SCM inventory requires every automation entry disabled"
+        )
+
+    ports = candidate["ports"]
+    resources = candidate["resources"]
+    services = candidate["services"]
+    if mode == "preflight":
+        if set(ports.values()) != {"free"}:
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "preflight PASS requires both candidate ports free"
+            )
+        if any(state not in {"absent", "expected-empty"} for state in resources.values()):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "preflight PASS requires candidate resources absent or empty"
+            )
+        if any(
+            state != {"enabled": "not-found", "active": "not-found"}
+            for state in services.values()
+        ):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "preflight PASS requires candidate services absent"
+            )
+    else:
+        if set(ports.values()) != {"occupied"}:
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "post-install PASS requires both candidate ports occupied"
+            )
+        if set(resources.values()) != {"occupied"}:
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "post-install PASS requires candidate resources occupied"
+            )
+        if any(
+            state != {"enabled": "enabled", "active": "active"}
+            for state in services.values()
+        ):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "post-install PASS requires candidate services enabled and active"
+            )
+    return value
+
+
+def _validate_scm_legacy(value: Mapping[str, object]) -> Mapping[str, object]:
+    _exact_keys(
+        value,
+        {
+            "publish_port_sha256",
+            "presence",
+            "container_id_sha256",
+            "health",
+            "version",
+            "baseline_sha256",
+            "reason",
+        },
+        "inventory.scm.legacy",
+    )
+    for key in ("publish_port_sha256", "container_id_sha256", "baseline_sha256"):
+        if value[key] is not None:
+            _matching(value, key, SHA256_ID, "inventory.scm.legacy")
+    presence = _enum(
+        value,
+        "presence",
+        {"present", "absent", "ambiguous", "unknown"},
+        "inventory.scm.legacy",
+    )
+    health = _enum(
+        value,
+        "health",
+        {"healthy", "unhealthy", "not-run", "unknown"},
+        "inventory.scm.legacy",
+    )
+    if value["version"] is not None:
+        _matching(value, "version", SEMVER, "inventory.scm.legacy")
+    reason = value["reason"]
+    allowed_reasons = {
+        "confirmed-absent",
+        "multiple-containers",
+        "malformed-container-id",
+        "docker-probe-failed",
+        "health-probe-failed",
+        "version-unrecognized",
+        "sensitive-output-rejected",
+        "not-run",
+    }
+    if reason is not None and (not isinstance(reason, str) or reason not in allowed_reasons):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "legacy probe reason is outside the allowlist")
+    if presence == "absent" and (
+        value["container_id_sha256"] is not None
+        or health != "not-run"
+        or value["version"] is not None
+        or value["baseline_sha256"] is not None
+        or reason != "confirmed-absent"
+    ):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "absent legacy facts are inconsistent")
+    if presence == "present" and value["container_id_sha256"] is None:
+        raise CompanyDeliveryError("INVALID_CONTRACT", "present legacy facts require a container fingerprint")
+    if health == "healthy" and (presence != "present" or value["version"] is None):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "healthy legacy facts require present semver evidence")
+    return value
+
+
+def _validate_scm_candidate(value: Mapping[str, object]) -> dict[str, dict[str, object]]:
+    _exact_keys(value, {"ports", "resources", "services"}, "inventory.scm.candidate")
+    ports = _object(value, "ports", "inventory.scm.candidate")
+    _exact_keys(ports, {"gitea_http", "postgresql"}, "inventory.scm.candidate.ports")
+    for key in ports:
+        _enum(ports, key, {"free", "occupied", "unknown"}, "inventory.scm.candidate.ports")
+
+    resources = _object(value, "resources", "inventory.scm.candidate")
+    _exact_keys(resources, SCM_RESOURCE_KEYS, "inventory.scm.candidate.resources")
+    for key in resources:
+        _enum(
+            resources,
+            key,
+            {"absent", "expected-empty", "occupied", "unsafe", "unknown"},
+            "inventory.scm.candidate.resources",
+        )
+
+    services = _object(value, "services", "inventory.scm.candidate")
+    _exact_keys(services, {"gitea", "postgresql"}, "inventory.scm.candidate.services")
+    parsed_services: dict[str, dict[str, str]] = {}
+    for key in services:
+        service = _mapping(services[key], f"inventory.scm.candidate.services.{key}")
+        _exact_keys(service, {"enabled", "active"}, f"inventory.scm.candidate.services.{key}")
+        parsed_services[key] = {
+            "enabled": _enum(
+                service,
+                "enabled",
+                ENABLED_STATES,
+                f"inventory.scm.candidate.services.{key}",
+            ),
+            "active": _enum(
+                service,
+                "active",
+                ACTIVE_STATES,
+                f"inventory.scm.candidate.services.{key}",
+            ),
+        }
+    return {
+        "ports": dict(ports),
+        "resources": dict(resources),
+        "services": parsed_services,
+    }
+
+
+def _validate_scm_automation(value: Mapping[str, object]) -> dict[str, str]:
+    _exact_keys(value, set(SCM_AUTOMATION), "inventory.scm.automation")
+    parsed: dict[str, str] = {}
+    for key, required in SCM_AUTOMATION.items():
+        parsed[key] = _enum(
+            value,
+            key,
+            {required, "unknown", "NOT RUN"},
+            "inventory.scm.automation",
+        )
+    return parsed
+
+
+def load_gitea_transition(
+    path: Path | str,
+    *,
+    require_protected: bool = True,
+) -> dict[str, object]:
+    value = _load_object(path, "Gitea transition", require_protected=require_protected)
+    _reject_sensitive(value)
+    _exact_keys(
+        value,
+        {
+            "contract_version",
+            "operator_version",
+            "recorded_at",
+            "source_git_sha",
+            "reviewer_decision_id",
+            "decision",
+            "outcome",
+            "inventories",
+            "public_name_sha256",
+            "legacy_baseline_sha256",
+            "target",
+            "prerequisites",
+            "automation",
+            "stages",
+            "pending",
+        },
+        "Gitea transition",
+    )
+    _const(value, "contract_version", TRANSITION_VERSION, "Gitea transition")
+    _const(value, "operator_version", "1.1.0", "Gitea transition")
+    _timestamp(value, "recorded_at", "Gitea transition")
+    _matching(value, "source_git_sha", GIT_SHA, "Gitea transition")
+    _matching(value, "reviewer_decision_id", SAFE_ID, "Gitea transition")
+    decision = _enum(
+        value,
+        "decision",
+        {"greenfield-parallel-replacement", "controlled-upgrade-candidate", "BLOCKED"},
+        "Gitea transition",
+    )
+    outcome = _enum(value, "outcome", {"PASS", "BLOCKED"}, "Gitea transition")
+
+    inventories = _object(value, "inventories", "Gitea transition")
+    _exact_keys(
+        inventories,
+        {"scm_ci_sha256", "appserver_prod_sha256"},
+        "Gitea transition.inventories",
+    )
+    for key in inventories:
+        _matching(inventories, key, SHA256, "Gitea transition.inventories")
+    _matching(value, "public_name_sha256", SHA256_ID, "Gitea transition")
+    if value["legacy_baseline_sha256"] is not None:
+        _matching(value, "legacy_baseline_sha256", SHA256_ID, "Gitea transition")
+
+    target = _object(value, "target", "Gitea transition")
+    _exact_keys(target, set(FIXED_GITEA_TARGET), "Gitea transition.target")
+    if dict(target) != FIXED_GITEA_TARGET:
+        raise CompanyDeliveryError("INVALID_CONTRACT", "Gitea target identity has drifted")
+
+    prerequisites = _object(value, "prerequisites", "Gitea transition")
+    _exact_keys(
+        prerequisites,
+        {"legacy_backup_required", "isolated_restore_required", "stage50_prerequisite"},
+        "Gitea transition.prerequisites",
+    )
+    backup_required = _boolean(
+        prerequisites, "legacy_backup_required", "Gitea transition.prerequisites"
+    )
+    restore_required = _boolean(
+        prerequisites, "isolated_restore_required", "Gitea transition.prerequisites"
+    )
+    stage50_prerequisite = _enum(
+        prerequisites,
+        "stage50_prerequisite",
+        {"legacy-pre-post-equality", "stage-30-40-pass", "not-authorized"},
+        "Gitea transition.prerequisites",
+    )
+    automation = _object(value, "automation", "Gitea transition")
+    _exact_keys(automation, set(SCM_AUTOMATION), "Gitea transition.automation")
+    if dict(automation) != SCM_AUTOMATION:
+        raise CompanyDeliveryError("INVALID_CONTRACT", "transition automation gates must stay disabled")
+
+    stages = _object(value, "stages", "Gitea transition")
+    stage_keys = {"00", "10-scm-ci", "10-appserver-prod", "20", "30", "40", "50"}
+    _exact_keys(stages, stage_keys, "Gitea transition.stages")
+    for key in stages:
+        _enum(stages, key, OUTCOMES, "Gitea transition.stages")
+    pending = _array(value, "pending", "Gitea transition")
+    if any(not isinstance(item, str) or FACT_CODE.fullmatch(item) is None for item in pending):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "transition pending codes are invalid")
+    if len(pending) != len(set(pending)):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "transition pending codes must be unique")
+
+    stage20_pass = {
+        "00": "PASS",
+        "10-scm-ci": "PASS",
+        "10-appserver-prod": "PASS",
+        "20": "PASS",
+        "30": "NOT RUN",
+        "40": "NOT RUN",
+        "50": "NOT RUN",
+    }
+    if decision == "greenfield-parallel-replacement":
+        if (
+            outcome != "PASS"
+            or dict(stages) != stage20_pass
+            or value["legacy_baseline_sha256"] is None
+            or pending
+            or backup_required
+            or restore_required
+            or stage50_prerequisite != "legacy-pre-post-equality"
+        ):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "greenfield transition prerequisites or stage map are invalid"
+            )
+    elif decision == "controlled-upgrade-candidate":
+        if (
+            outcome != "PASS"
+            or dict(stages) != stage20_pass
+            or pending
+            or not backup_required
+            or not restore_required
+            or stage50_prerequisite != "stage-30-40-pass"
+        ):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "controlled upgrade must retain backup and restore prerequisites"
+            )
+    elif (
+        outcome != "BLOCKED"
+        or not pending
+        or stages["20"] != "BLOCKED"
+        or any(stages[key] != "NOT RUN" for key in ("30", "40", "50"))
+        or backup_required
+        or restore_required
+        or stage50_prerequisite != "not-authorized"
+    ):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "blocked transition facts are inconsistent")
     return value
 
 
@@ -667,6 +1087,13 @@ def _nonnegative_integer(value: Mapping[str, object], key: str, label: str) -> i
     item = value.get(key)
     if isinstance(item, bool) or not isinstance(item, int) or item < 0:
         raise CompanyDeliveryError("INVALID_CONTRACT", f"{label}.{key} must be a non-negative integer")
+    return item
+
+
+def _boolean(value: Mapping[str, object], key: str, label: str) -> bool:
+    item = value.get(key)
+    if not isinstance(item, bool):
+        raise CompanyDeliveryError("INVALID_CONTRACT", f"{label}.{key} must be a boolean")
     return item
 
 

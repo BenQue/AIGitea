@@ -22,9 +22,12 @@ from aisoft_company_delivery.contract import (
     EVIDENCE_VERSION,
     HANDOFF_VERSION,
     INVENTORY_VERSION,
+    INVENTORY_V2_VERSION,
+    TRANSITION_VERSION,
     CompanyDeliveryError,
     contains_sensitive_text,
     load_evidence,
+    load_gitea_transition,
     load_handoff,
     load_inventory,
 )
@@ -106,6 +109,131 @@ class CompanyDeliveryContractTests(unittest.TestCase):
                     "gitea.service",
                 )
             ],
+            "pending": [],
+        }
+
+    def inventory_v2(self) -> dict[str, object]:
+        value = self.inventory()
+        value.update(
+            {
+                "contract_version": INVENTORY_V2_VERSION,
+                "collector_version": "1.1.0",
+                "mode": "preflight",
+                "scm": {
+                    "probe_profile": "greenfield-parallel-replacement-v1",
+                    "legacy": {
+                        "publish_port_sha256": "sha256:" + DIGEST,
+                        "presence": "present",
+                        "container_id_sha256": "sha256:" + DIGEST,
+                        "health": "healthy",
+                        "version": "1.26.4",
+                        "baseline_sha256": "sha256:" + DIGEST,
+                        "reason": None,
+                    },
+                    "candidate": {
+                        "ports": {
+                            "gitea_http": "free",
+                            "postgresql": "free",
+                        },
+                        "resources": {
+                            "gitea_binary": "absent",
+                            "gitea_config": "absent",
+                            "gitea_data": "absent",
+                            "gitea_log": "absent",
+                            "postgresql_data": "absent",
+                        },
+                        "services": {
+                            "gitea": {"enabled": "not-found", "active": "not-found"},
+                            "postgresql": {"enabled": "not-found", "active": "not-found"},
+                        },
+                    },
+                    "automation": {
+                        "gitea_ssh": "disabled",
+                        "runner": "disabled-inactive",
+                        "sync_timer": "disabled-inactive",
+                        "actions_auto_deploy": "disabled-inactive",
+                        "production_gate": "disabled-inactive",
+                        "dns_tls": "NOT RUN",
+                        "reverse_proxy": "NOT RUN",
+                        "repository_import": "NOT RUN",
+                    },
+                },
+            }
+        )
+        for tool in value["tools"]:
+            if tool["name"] == "gitea":
+                tool.update(
+                    {"status": "ABSENT", "version": None, "reason": "confirmed-not-installed"}
+                )
+        for unit in value["units"]:
+            if unit["name"] == "gitea.service":
+                unit.update({"enabled": "not-found", "active": "not-found"})
+        return value
+
+    def transition(self, *, decision: str = "greenfield-parallel-replacement") -> dict[str, object]:
+        controlled = decision == "controlled-upgrade-candidate"
+        return {
+            "contract_version": TRANSITION_VERSION,
+            "operator_version": "1.1.0",
+            "recorded_at": "2026-08-17T08:00:00Z",
+            "source_git_sha": SHA,
+            "reviewer_decision_id": "APR-126-STAGE-20-001",
+            "decision": decision,
+            "outcome": "PASS",
+            "inventories": {
+                "scm_ci_sha256": DIGEST,
+                "appserver_prod_sha256": "3" * 64,
+            },
+            "public_name_sha256": "sha256:" + "4" * 64,
+            "legacy_baseline_sha256": "sha256:" + DIGEST,
+            "target": {
+                "gitea_version": "1.26.4",
+                "gitea_artifact": "gitea-1.26.4-linux-amd64",
+                "gitea_sha256": "0faa36d151918f8f7d6e0f3ae67597d1c338583d695add146ac393109d0fc44a",
+                "postgresql_version": "18.4",
+                "postgresql_provenance_artifact": "postgresql-18.4.tar.bz2",
+                "postgresql_provenance_sha256": "81a81ec695fb0c7901407defaa1d2f7973617154cf27ba74e3a7ab8e64436094",
+                "linux_user": "aisoft-gitea",
+                "linux_group": "aisoft-gitea",
+                "gitea_unit": "aisoft-gitea.service",
+                "gitea_binary": "/opt/aisoft/gitea/1.26.4/gitea",
+                "gitea_config": "/etc/aisoft/gitea/app.ini",
+                "gitea_data": "/var/lib/aisoft-gitea",
+                "gitea_log": "/var/log/aisoft-gitea",
+                "postgresql_cluster": "aisoft-gitea",
+                "postgresql_unit": "postgresql@18-aisoft-gitea.service",
+                "postgresql_data": "/var/lib/postgresql/18/aisoft-gitea",
+                "postgresql_database": "aisoft_gitea",
+                "postgresql_role": "aisoft_gitea",
+                "gitea_http": "127.0.0.1:3000",
+                "postgresql_listen": "127.0.0.1:55432",
+            },
+            "prerequisites": {
+                "legacy_backup_required": controlled,
+                "isolated_restore_required": controlled,
+                "stage50_prerequisite": (
+                    "stage-30-40-pass" if controlled else "legacy-pre-post-equality"
+                ),
+            },
+            "automation": {
+                "gitea_ssh": "disabled",
+                "runner": "disabled-inactive",
+                "sync_timer": "disabled-inactive",
+                "actions_auto_deploy": "disabled-inactive",
+                "production_gate": "disabled-inactive",
+                "dns_tls": "NOT RUN",
+                "reverse_proxy": "NOT RUN",
+                "repository_import": "NOT RUN",
+            },
+            "stages": {
+                "00": "PASS",
+                "10-scm-ci": "PASS",
+                "10-appserver-prod": "PASS",
+                "20": "PASS",
+                "30": "NOT RUN",
+                "40": "NOT RUN",
+                "50": "NOT RUN",
+            },
             "pending": [],
         }
 
@@ -195,19 +323,118 @@ class CompanyDeliveryContractTests(unittest.TestCase):
             verify_payloads=False,
             require_protected=False,
         )
+        transition = load_gitea_transition(
+            delivery / "templates/gitea-transition.example.json",
+            require_protected=False,
+        )
         compatibility = json.loads(
             (delivery / "compatibility/newemaint-company-pilot-v1.json").read_text(
                 encoding="utf-8"
             )
         )
         self.assertEqual(inventory["outcome"], "NOT RUN")
+        self.assertEqual(inventory["contract_version"], INVENTORY_V2_VERSION)
         self.assertEqual(evidence["outcome"], "NOT RUN")
+        self.assertEqual(transition["outcome"], "BLOCKED")
         self.assertEqual(handoff["release"]["platform"], "linux/amd64")
         self.assertEqual(compatibility["topology"]["company_vm_count"], 2)
         self.assertEqual(
             compatibility["policy"]["intranet_rebuild_without_isolated_test"],
             "BLOCKED",
         )
+        schemas = {
+            path.name: json.loads(path.read_text(encoding="utf-8"))
+            for path in (delivery / "schema").glob("*.schema.json")
+        }
+        self.assertEqual(
+            schemas["inventory-v2.schema.json"]["properties"]["contract_version"]["const"],
+            INVENTORY_V2_VERSION,
+        )
+        self.assertEqual(
+            schemas["gitea-transition-v1.schema.json"]["properties"]["contract_version"]["const"],
+            TRANSITION_VERSION,
+        )
+
+    def test_inventory_v2_models_scm_greenfield_facts_without_raw_values(self) -> None:
+        value = load_inventory(self.write_json("inventory-v2.json", self.inventory_v2()))
+        self.assertEqual(value["mode"], "preflight")
+        self.assertEqual(value["scm"]["legacy"]["presence"], "present")
+        self.assertEqual(value["scm"]["candidate"]["ports"]["gitea_http"], "free")
+
+        appserver = self.inventory_v2()
+        appserver["role"] = "appserver-prod"
+        appserver["mode"] = None
+        appserver["scm"] = None
+        appserver["tools"] = [
+            {"name": name, "status": "PASS", "version": version, "reason": None}
+            for name, version in (
+                ("docker-compose", "5.1.4"),
+                ("docker-engine", "29.7.1"),
+                ("nginx", "1.30.4"),
+                ("postgresql-client", "18.4.0"),
+                ("python", "3.14.4"),
+            )
+        ]
+        appserver["units"] = [
+            {"name": name, "enabled": "enabled", "active": "active"}
+            for name in ("docker.service", "nginx.service", "postgresql.service")
+        ]
+        self.assertIsNone(
+            load_inventory(self.write_json("inventory-v2-appserver.json", appserver))["scm"]
+        )
+
+    def test_inventory_v2_role_mode_and_scm_enums_are_strict(self) -> None:
+        variants: list[tuple[str, dict[str, object]]] = []
+        appserver_with_scm = self.inventory_v2()
+        appserver_with_scm["role"] = "appserver-prod"
+        variants.append(("appserver-with-scm", appserver_with_scm))
+        missing_mode = self.inventory_v2()
+        missing_mode.pop("mode")
+        variants.append(("missing-mode", missing_mode))
+        wrong_port_state = self.inventory_v2()
+        wrong_port_state["scm"]["candidate"]["ports"]["gitea_http"] = "available"
+        variants.append(("wrong-port-state", wrong_port_state))
+        raw_port = self.inventory_v2()
+        raw_port["scm"]["legacy"]["publish_port"] = 3000
+        variants.append(("raw-port", raw_port))
+        for name, value in variants:
+            with self.subTest(name=name), self.assertRaises(CompanyDeliveryError):
+                load_inventory(self.write_json(f"{name}.json", value))
+
+    def test_transition_contract_locks_greenfield_stage_map_and_target(self) -> None:
+        value = load_gitea_transition(self.write_json("transition.json", self.transition()))
+        self.assertEqual(value["decision"], "greenfield-parallel-replacement")
+        self.assertEqual(value["stages"]["30"], "NOT RUN")
+
+        variants: list[tuple[str, dict[str, object]]] = []
+        fake_backup = self.transition()
+        fake_backup["stages"]["30"] = "PASS"
+        variants.append(("fake-skipped-pass", fake_backup))
+        drift = self.transition()
+        drift["target"]["gitea_http"] = "127.0.0.1:3001"
+        variants.append(("target-drift", drift))
+        wrong_checksum = self.transition()
+        wrong_checksum["inventories"]["scm_ci_sha256"] = "short"
+        variants.append(("wrong-checksum", wrong_checksum))
+        wrong_prerequisite = self.transition()
+        wrong_prerequisite["prerequisites"]["legacy_backup_required"] = True
+        variants.append(("wrong-prerequisite", wrong_prerequisite))
+        unknown = self.transition()
+        unknown["target"]["unexpected"] = "value"
+        variants.append(("unknown-target-field", unknown))
+        for name, transition in variants:
+            with self.subTest(name=name), self.assertRaises(CompanyDeliveryError):
+                load_gitea_transition(self.write_json(f"transition-{name}.json", transition))
+
+    def test_controlled_upgrade_retains_backup_restore_prerequisites(self) -> None:
+        controlled = self.transition(decision="controlled-upgrade-candidate")
+        value = load_gitea_transition(self.write_json("controlled.json", controlled))
+        self.assertTrue(value["prerequisites"]["legacy_backup_required"])
+        self.assertEqual(value["prerequisites"]["stage50_prerequisite"], "stage-30-40-pass")
+
+        controlled["prerequisites"]["isolated_restore_required"] = False
+        with self.assertRaises(CompanyDeliveryError):
+            load_gitea_transition(self.write_json("controlled-unsafe.json", controlled))
 
     def test_unknown_fields_short_sha_and_unsafe_payload_paths_fail(self) -> None:
         inventory = self.inventory()

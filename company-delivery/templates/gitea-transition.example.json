@@ -1,0 +1,64 @@
+{
+  "contract_version": "company-delivery-gitea-transition/v1",
+  "operator_version": "1.1.0",
+  "recorded_at": "2026-08-17T08:00:00Z",
+  "source_git_sha": "0000000000000000000000000000000000000000",
+  "reviewer_decision_id": "EXAMPLE-NOT-A-LIVE-APPROVAL",
+  "decision": "BLOCKED",
+  "outcome": "BLOCKED",
+  "inventories": {
+    "scm_ci_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "appserver_prod_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "public_name_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "legacy_baseline_sha256": null,
+  "target": {
+    "gitea_version": "1.26.4",
+    "gitea_artifact": "gitea-1.26.4-linux-amd64",
+    "gitea_sha256": "0faa36d151918f8f7d6e0f3ae67597d1c338583d695add146ac393109d0fc44a",
+    "postgresql_version": "18.4",
+    "postgresql_provenance_artifact": "postgresql-18.4.tar.bz2",
+    "postgresql_provenance_sha256": "81a81ec695fb0c7901407defaa1d2f7973617154cf27ba74e3a7ab8e64436094",
+    "linux_user": "aisoft-gitea",
+    "linux_group": "aisoft-gitea",
+    "gitea_unit": "aisoft-gitea.service",
+    "gitea_binary": "/opt/aisoft/gitea/1.26.4/gitea",
+    "gitea_config": "/etc/aisoft/gitea/app.ini",
+    "gitea_data": "/var/lib/aisoft-gitea",
+    "gitea_log": "/var/log/aisoft-gitea",
+    "postgresql_cluster": "aisoft-gitea",
+    "postgresql_unit": "postgresql@18-aisoft-gitea.service",
+    "postgresql_data": "/var/lib/postgresql/18/aisoft-gitea",
+    "postgresql_database": "aisoft_gitea",
+    "postgresql_role": "aisoft_gitea",
+    "gitea_http": "127.0.0.1:3000",
+    "postgresql_listen": "127.0.0.1:55432"
+  },
+  "prerequisites": {
+    "legacy_backup_required": false,
+    "isolated_restore_required": false,
+    "stage50_prerequisite": "not-authorized"
+  },
+  "automation": {
+    "gitea_ssh": "disabled",
+    "runner": "disabled-inactive",
+    "sync_timer": "disabled-inactive",
+    "actions_auto_deploy": "disabled-inactive",
+    "production_gate": "disabled-inactive",
+    "dns_tls": "NOT RUN",
+    "reverse_proxy": "NOT RUN",
+    "repository_import": "NOT RUN"
+  },
+  "stages": {
+    "00": "NOT RUN",
+    "10-scm-ci": "NOT RUN",
+    "10-appserver-prod": "NOT RUN",
+    "20": "BLOCKED",
+    "30": "NOT RUN",
+    "40": "NOT RUN",
+    "50": "NOT RUN"
+  },
+  "pending": [
+    "COMPANY_TRANSITION_NOT_RUN"
+  ]
+}
