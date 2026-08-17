@@ -31,7 +31,7 @@ documents:
   spec: spec-gitea-parallel-replacement-260817.md
   plan: plan-gitea-parallel-replacement-260817.md
   verification: verification-gitea-parallel-replacement-260817.md
-status: spec-drafting
+status: approved
 branch: change/126-gitea-parallel-replacement
 pr_url:
 created: 2026-08-17

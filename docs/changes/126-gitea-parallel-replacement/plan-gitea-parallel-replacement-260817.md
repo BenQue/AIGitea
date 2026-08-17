@@ -22,7 +22,7 @@ risk_flags:
 depends_on:
   - 120
   - 124
-status: contract-drafting
+status: approved
 branch: change/126-gitea-parallel-replacement
 pr_url:
 created: 2026-08-17
