@@ -116,8 +116,9 @@ Change 的 Stage 10 PASS。
 
 新增 `company-delivery-gitea-transition/v1` strict receipt 和 `verify-gitea-transition`：
 
-- receipt 绑定 1.1.0 source SHA、两份 Stage 10 inventory SHA-256、public-name fingerprint、legacy baseline、
-  固定 target contract、Stage 状态和人工 reviewer decision ID。
+- receipt 绑定 1.1.0 handoff manifest/source SHA、PostgreSQL OS package-set manifest SHA-256、两份 Stage 10
+  inventory SHA-256、public-name fingerprint、legacy baseline、固定 target contract、Stage 状态和人工
+  reviewer decision ID；validator 必须读回 protected handoff/package manifest 并对账，不能只检查摘要格式。
 - 唯一 decision enum 为 `greenfield-parallel-replacement`、`controlled-upgrade-candidate`、`BLOCKED`。
 - greenfield PASS 必须读回两份 inventory：两个 role 均 `PASS`，`scm-ci` 为 preflight、legacy
   `present/healthy`、candidate ports free、固定 resources absent/expected-empty、自动化入口 disabled。

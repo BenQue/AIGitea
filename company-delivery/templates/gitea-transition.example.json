@@ -3,6 +3,8 @@
   "operator_version": "1.1.0",
   "recorded_at": "2026-08-17T08:00:00Z",
   "source_git_sha": "0000000000000000000000000000000000000000",
+  "handoff_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "postgresql_package_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "reviewer_decision_id": "EXAMPLE-NOT-A-LIVE-APPROVAL",
   "decision": "BLOCKED",
   "outcome": "BLOCKED",

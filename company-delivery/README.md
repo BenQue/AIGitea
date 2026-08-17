@@ -37,7 +37,8 @@ upstream provenance（SHA-256
 `127.0.0.1:3000` 与 `127.0.0.1:55432`；完整 paths/identity 以 compatibility matrix 为准。
 
 Stage 10 使用 inventory v2 的 legacy fingerprint/health 与 collision probes；Stage 20 用 transition v1
-绑定两份 inventory；greenfield 路径的 Stage 30/40 必须保持 `NOT RUN`，Stage 50 以
+绑定两份 inventory、已验证的 operator 1.1.0 handoff/source SHA 与 PostgreSQL OS package-set SHA-256
+manifest；greenfield 路径的 Stage 30/40 必须保持 `NOT RUN`，Stage 50 以
 `legacy-pre-post-equality` 作为独立 alternate prerequisite。legacy Docker container、image、volume、
 network、database、configuration、port、repository 和 service lifecycle 均禁止修改。SSH、Runner、timer、
 Actions auto deploy、production gate、DNS/TLS、reverse proxy 与 repository import 初始全部 disabled 或

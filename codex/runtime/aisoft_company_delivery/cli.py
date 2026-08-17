@@ -29,6 +29,8 @@ def build_parser() -> argparse.ArgumentParser:
     transition.add_argument("--input", required=True, type=Path)
     transition.add_argument("--scm-inventory", required=True, type=Path)
     transition.add_argument("--appserver-inventory", required=True, type=Path)
+    transition.add_argument("--handoff-manifest", required=True, type=Path)
+    transition.add_argument("--postgresql-package-manifest", required=True, type=Path)
 
     legacy = subparsers.add_parser("verify-legacy-health")
     legacy.add_argument("--transition", required=True, type=Path)
@@ -89,6 +91,8 @@ def main(argv: list[str] | None = None) -> int:
                 args.input,
                 args.scm_inventory,
                 args.appserver_inventory,
+                args.handoff_manifest,
+                args.postgresql_package_manifest,
             )
         elif args.command == "verify-legacy-health":
             value = verify_legacy_health(args.transition, args.post_inventory)

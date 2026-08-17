@@ -36,6 +36,15 @@
     "inventory_contract": "company-delivery-inventory/v2",
     "transition_contract": "company-delivery-gitea-transition/v1",
     "decision": "greenfield-parallel-replacement",
+    "stage20_bindings": [
+      "operator-1.1.0-handoff-manifest-sha256",
+      "operator-source-git-sha",
+      "postgresql-os-package-set-manifest-sha256",
+      "scm-ci-inventory-v2-sha256",
+      "appserver-prod-inventory-v2-sha256",
+      "legacy-baseline-sha256",
+      "public-name-sha256"
+    ],
     "target": {
       "gitea_version": "1.26.4",
       "gitea_artifact": "gitea-1.26.4-linux-amd64",

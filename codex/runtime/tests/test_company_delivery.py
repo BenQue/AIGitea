@@ -17,6 +17,7 @@ from unittest import mock
 
 from aisoft_company_delivery import bundle as bundle_module
 from aisoft_company_delivery import collector as collector_module
+from aisoft_company_delivery import contract as contract_module
 from aisoft_company_delivery import secret_scan as secret_scan_module
 from aisoft_company_delivery.cli import build_parser, main
 from aisoft_company_delivery.contract import (
@@ -223,6 +224,8 @@ class CompanyDeliveryContractTests(unittest.TestCase):
             "operator_version": "1.1.0",
             "recorded_at": "2026-08-17T08:00:00Z",
             "source_git_sha": SHA,
+            "handoff_manifest_sha256": "3" * 64,
+            "postgresql_package_manifest_sha256": "4" * 64,
             "reviewer_decision_id": "APR-126-STAGE-20-001",
             "decision": decision,
             "outcome": "PASS",
@@ -288,11 +291,18 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         *,
         prefix: str = "bound",
         decision: str = "greenfield-parallel-replacement",
-    ) -> tuple[Path, Path, Path]:
+    ) -> tuple[Path, Path, Path, Path, Path]:
         scm_value = self.inventory_v2()
         appserver_value = self.appserver_inventory_v2()
         scm_path = self.write_json(f"{prefix}-scm.json", scm_value)
         appserver_path = self.write_json(f"{prefix}-appserver.json", appserver_value)
+        handoff_path = self.write_handoff_bundle(prefix)
+        package_manifest_path = self.root / f"{prefix}-postgresql-packages.sha256"
+        package_manifest_path.write_text(
+            "5" * 64 + "  postgresql-client.pkg\n",
+            encoding="ascii",
+        )
+        package_manifest_path.chmod(0o600)
         transition = self.transition(decision=decision)
         transition["inventories"] = {
             "scm_ci_sha256": sha256(scm_path),
@@ -301,8 +311,18 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         transition["legacy_baseline_sha256"] = scm_value["scm"]["legacy"][
             "baseline_sha256"
         ]
+        transition["handoff_manifest_sha256"] = sha256(handoff_path)
+        transition["postgresql_package_manifest_sha256"] = sha256(
+            package_manifest_path
+        )
         transition_path = self.write_json(f"{prefix}-transition.json", transition)
-        return transition_path, scm_path, appserver_path
+        return (
+            transition_path,
+            scm_path,
+            appserver_path,
+            handoff_path,
+            package_manifest_path,
+        )
 
     def evidence(self) -> dict[str, object]:
         return {
@@ -361,6 +381,68 @@ class CompanyDeliveryContractTests(unittest.TestCase):
             ],
         }
 
+    def write_handoff_bundle(
+        self,
+        prefix: str,
+        *,
+        source_sha: str = SHA,
+        operator_version: str = "1.1.0",
+    ) -> Path:
+        bundle = self.root / f"{prefix}-bundle"
+        bundle.mkdir(mode=0o700)
+        payload_values = {
+            "operator/VERSION": (operator_version + "\n").encode("ascii"),
+            "operator/compatibility/newemaint-company-pilot-v1.json": b"{}\n",
+            "release/release.json": b"{}\n",
+        }
+        payloads: list[dict[str, object]] = []
+        for relative, content in payload_values.items():
+            target = bundle / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            current = target.parent
+            while current != bundle:
+                current.chmod(0o700)
+                current = current.parent
+            target.write_bytes(content)
+            target.chmod(0o644)
+            payloads.append(
+                {
+                    "path": relative,
+                    "sha256": sha256(target),
+                    "size_bytes": len(content),
+                    "mode": "0644",
+                }
+            )
+        payloads.sort(key=lambda item: str(item["path"]))
+        handoff = self.handoff()
+        handoff["operator_version"] = operator_version
+        handoff["source"]["git_sha"] = source_sha
+        handoff["release"]["manifest_sha256"] = sha256(
+            bundle / "release/release.json"
+        )
+        handoff["compatibility"]["matrix_sha256"] = sha256(
+            bundle / "operator/compatibility/newemaint-company-pilot-v1.json"
+        )
+        handoff["payloads"] = payloads
+        manifest = bundle / "handoff-manifest.json"
+        manifest.write_text(json.dumps(handoff, sort_keys=True), encoding="utf-8")
+        manifest.chmod(0o600)
+        checksums = {
+            str(item["path"]): str(item["sha256"])
+            for item in payloads
+        }
+        checksums["handoff-manifest.json"] = sha256(manifest)
+        checksum_path = bundle / "SHA256SUMS"
+        checksum_path.write_text(
+            "".join(
+                f"{digest}  {relative}\n"
+                for relative, digest in sorted(checksums.items())
+            ),
+            encoding="ascii",
+        )
+        checksum_path.chmod(0o600)
+        return manifest
+
     def test_valid_contract_documents(self) -> None:
         self.assertEqual(load_inventory(self.write_json("inventory.json", self.inventory()))["role"], "scm-ci")
         self.assertEqual(load_evidence(self.write_json("evidence.json", self.evidence()))["stage"], "00")
@@ -409,6 +491,18 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         greenfield = compatibility["greenfield_gitea"]
         self.assertEqual(greenfield["inventory_contract"], INVENTORY_V2_VERSION)
         self.assertEqual(greenfield["transition_contract"], TRANSITION_VERSION)
+        self.assertEqual(
+            greenfield["stage20_bindings"],
+            [
+                "operator-1.1.0-handoff-manifest-sha256",
+                "operator-source-git-sha",
+                "postgresql-os-package-set-manifest-sha256",
+                "scm-ci-inventory-v2-sha256",
+                "appserver-prod-inventory-v2-sha256",
+                "legacy-baseline-sha256",
+                "public-name-sha256",
+            ],
+        )
         self.assertEqual(greenfield["target"], FIXED_GITEA_TARGET)
         self.assertEqual(greenfield["initial_automation"], SCM_AUTOMATION)
         self.assertEqual(greenfield["stage_map"]["30"], "NOT RUN")
@@ -522,9 +616,18 @@ class CompanyDeliveryContractTests(unittest.TestCase):
                 str(self.root / "scm.json"),
                 "--appserver-inventory",
                 str(self.root / "appserver.json"),
+                "--handoff-manifest",
+                str(self.root / "handoff-manifest.json"),
+                "--postgresql-package-manifest",
+                str(self.root / "postgresql-packages.sha256"),
             ]
         )
         self.assertEqual(args.command, "verify-gitea-transition")
+        self.assertEqual(args.handoff_manifest, self.root / "handoff-manifest.json")
+        self.assertEqual(
+            args.postgresql_package_manifest,
+            self.root / "postgresql-packages.sha256",
+        )
         for forbidden in ("--url", "--container-id", "--unit", "--command", "--credential"):
             with self.subTest(argument=forbidden), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 build_parser().parse_args(
@@ -536,17 +639,77 @@ class CompanyDeliveryContractTests(unittest.TestCase):
                         str(self.root / "scm.json"),
                         "--appserver-inventory",
                         str(self.root / "appserver.json"),
+                        "--handoff-manifest",
+                        str(self.root / "handoff-manifest.json"),
+                        "--postgresql-package-manifest",
+                        str(self.root / "postgresql-packages.sha256"),
                         forbidden,
                         "rejected",
                     ]
                 )
 
+    def test_transition_contract_requires_stage00_and_package_manifest_bindings(self) -> None:
+        transition = self.transition()
+        transition["handoff_manifest_sha256"] = "3" * 64
+        transition["postgresql_package_manifest_sha256"] = "4" * 64
+        value = load_gitea_transition(self.write_json("transition-bindings.json", transition))
+        self.assertEqual(value["handoff_manifest_sha256"], "3" * 64)
+        self.assertEqual(value["postgresql_package_manifest_sha256"], "4" * 64)
+
+    def test_inventory_schema_pass_branches_use_explicit_properties(self) -> None:
+        schema = json.loads(
+            (
+                Path(__file__).resolve().parents[3]
+                / "company-delivery/schema/inventory-v2.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        for branch_index in (3, 4):
+            candidate = schema["allOf"][branch_index]["then"]["properties"]["scm"][
+                "properties"
+            ]["candidate"]["properties"]
+            self.assertEqual(
+                set(candidate["resources"]["properties"]),
+                {
+                    "gitea_binary",
+                    "gitea_config",
+                    "gitea_data",
+                    "gitea_log",
+                    "postgresql_data",
+                },
+            )
+            self.assertEqual(
+                set(candidate["services"]["properties"]),
+                {"gitea", "postgresql"},
+            )
+
+    def test_protected_checksum_rejects_oversize_before_hashing(self) -> None:
+        oversized = self.root / "oversized-inventory.json"
+        oversized.write_bytes(b"0" * (contract_module.MAX_JSON_BYTES + 1))
+        oversized.chmod(0o600)
+        with mock.patch.object(contract_module, "sha256_file") as digest:
+            with self.assertRaises(CompanyDeliveryError):
+                contract_module._protected_file_sha256(oversized, "oversized inventory")
+        digest.assert_not_called()
+
     def test_transition_verifier_binds_two_inventory_v2_files(self) -> None:
-        transition_path, scm_path, appserver_path = self.bound_transition_files()
-        value = verify_gitea_transition(transition_path, scm_path, appserver_path)
+        transition_path, scm_path, appserver_path, handoff_path, package_path = (
+            self.bound_transition_files()
+        )
+        value = verify_gitea_transition(
+            transition_path,
+            scm_path,
+            appserver_path,
+            handoff_path,
+            package_path,
+        )
         self.assertEqual(value["decision"], "greenfield-parallel-replacement")
         self.assertEqual(value["outcome"], "PASS")
         self.assertEqual(value["scm_inventory_sha256"], sha256(scm_path))
+        self.assertEqual(value["handoff_manifest_sha256"], sha256(handoff_path))
+        self.assertEqual(
+            value["postgresql_package_manifest_sha256"],
+            sha256(package_path),
+        )
 
         stdout = io.StringIO()
         with contextlib.redirect_stdout(stdout):
@@ -559,6 +722,10 @@ class CompanyDeliveryContractTests(unittest.TestCase):
                     str(scm_path),
                     "--appserver-inventory",
                     str(appserver_path),
+                    "--handoff-manifest",
+                    str(handoff_path),
+                    "--postgresql-package-manifest",
+                    str(package_path),
                 ]
             )
         self.assertEqual(result, 0)
@@ -567,25 +734,101 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         self.assertEqual(rendered["outcome"], "PASS")
         self.assertNotIn(str(scm_path), stdout.getvalue())
 
+    def test_transition_verifier_rejects_handoff_source_version_and_package_drift(self) -> None:
+        transition_path, scm_path, appserver_path, _handoff_path, package_path = (
+            self.bound_transition_files(prefix="source-binding")
+        )
+        transition = json.loads(transition_path.read_text(encoding="utf-8"))
+
+        wrong_source_handoff = self.write_handoff_bundle(
+            "wrong-source",
+            source_sha="9" * 40,
+        )
+        transition["handoff_manifest_sha256"] = sha256(wrong_source_handoff)
+        wrong_source_transition = self.write_json(
+            "wrong-source-transition.json",
+            transition,
+        )
+        with self.assertRaises(CompanyDeliveryError) as source_error:
+            verify_gitea_transition(
+                wrong_source_transition,
+                scm_path,
+                appserver_path,
+                wrong_source_handoff,
+                package_path,
+            )
+        self.assertEqual(source_error.exception.code, "CHECKSUM_MISMATCH")
+
+        old_handoff = self.write_handoff_bundle(
+            "old-operator",
+            operator_version="1.0.1",
+        )
+        transition["handoff_manifest_sha256"] = sha256(old_handoff)
+        old_transition = self.write_json("old-operator-transition.json", transition)
+        with self.assertRaises(CompanyDeliveryError) as version_error:
+            verify_gitea_transition(
+                old_transition,
+                scm_path,
+                appserver_path,
+                old_handoff,
+                package_path,
+            )
+        self.assertEqual(version_error.exception.code, "CHECKSUM_MISMATCH")
+
+        package_transition, package_scm, package_app, package_handoff, package_manifest = (
+            self.bound_transition_files(prefix="package-binding")
+        )
+        package_manifest.write_text(
+            "6" * 64 + "  postgresql-client.pkg\n",
+            encoding="ascii",
+        )
+        with self.assertRaises(CompanyDeliveryError) as package_error:
+            verify_gitea_transition(
+                package_transition,
+                package_scm,
+                package_app,
+                package_handoff,
+                package_manifest,
+            )
+        self.assertEqual(package_error.exception.code, "CHECKSUM_MISMATCH")
+
     def test_transition_verifier_rejects_checksum_role_mode_and_outcome_drift(self) -> None:
-        transition_path, scm_path, appserver_path = self.bound_transition_files(prefix="checksum")
+        transition_path, scm_path, appserver_path, handoff_path, package_path = (
+            self.bound_transition_files(prefix="checksum")
+        )
         appserver_value = json.loads(appserver_path.read_text(encoding="utf-8"))
         appserver_path.write_text(
             json.dumps(appserver_value, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
         with self.assertRaises(CompanyDeliveryError) as checksum_error:
-            verify_gitea_transition(transition_path, scm_path, appserver_path)
+            verify_gitea_transition(
+                transition_path,
+                scm_path,
+                appserver_path,
+                handoff_path,
+                package_path,
+            )
         self.assertEqual(checksum_error.exception.code, "CHECKSUM_MISMATCH")
 
-        wrong_role_transition, _wrong_scm, wrong_appserver = self.bound_transition_files(
-            prefix="wrong-role"
-        )
+        (
+            wrong_role_transition,
+            _wrong_scm,
+            wrong_appserver,
+            wrong_handoff,
+            wrong_package,
+        ) = self.bound_transition_files(prefix="wrong-role")
         transition = json.loads(wrong_role_transition.read_text(encoding="utf-8"))
         transition["inventories"]["scm_ci_sha256"] = sha256(wrong_appserver)
         wrong_role_transition.write_text(json.dumps(transition), encoding="utf-8")
         with self.assertRaises(CompanyDeliveryError):
-            verify_gitea_transition(wrong_role_transition, wrong_appserver, wrong_appserver)
+            verify_gitea_transition(
+                wrong_role_transition,
+                wrong_appserver,
+                wrong_appserver,
+                wrong_handoff,
+                wrong_package,
+            )
 
         blocked_scm = self.inventory_v2()
         blocked_scm["outcome"] = "BLOCKED"
@@ -606,10 +849,14 @@ class CompanyDeliveryContractTests(unittest.TestCase):
                 blocked_transition_path,
                 blocked_scm_path,
                 wrong_appserver,
+                wrong_handoff,
+                wrong_package,
             )
 
     def test_legacy_health_verifier_accepts_only_greenfield_post_install_equality(self) -> None:
-        transition_path, _scm_path, _appserver_path = self.bound_transition_files(prefix="legacy")
+        transition_path, _scm_path, _appserver_path, _handoff, _package = (
+            self.bound_transition_files(prefix="legacy")
+        )
         post = self.post_install_inventory_v2()
         post_path = self.write_json("legacy-post.json", post)
         value = verify_legacy_health(transition_path, post_path)
@@ -640,16 +887,20 @@ class CompanyDeliveryContractTests(unittest.TestCase):
             verify_legacy_health(transition_path, drift_path)
         self.assertEqual(drift_error.exception.code, "LEGACY_INVARIANT_FAILED")
 
-        controlled_path, _controlled_scm, _controlled_app = self.bound_transition_files(
-            prefix="controlled-health",
-            decision="controlled-upgrade-candidate",
+        controlled_path, _controlled_scm, _controlled_app, _handoff, _package = (
+            self.bound_transition_files(
+                prefix="controlled-health",
+                decision="controlled-upgrade-candidate",
+            )
         )
         with self.assertRaises(CompanyDeliveryError):
             verify_legacy_health(controlled_path, post_path)
 
     def test_transition_cli_rejects_sensitive_tamper_without_echo(self) -> None:
         sentinel = "never-print-this-value"
-        transition_path, scm_path, appserver_path = self.bound_transition_files(prefix="sensitive")
+        transition_path, scm_path, appserver_path, handoff_path, package_path = (
+            self.bound_transition_files(prefix="sensitive")
+        )
         transition = json.loads(transition_path.read_text(encoding="utf-8"))
         transition["token"] = sentinel
         transition_path.write_text(json.dumps(transition), encoding="utf-8")
@@ -664,6 +915,10 @@ class CompanyDeliveryContractTests(unittest.TestCase):
                     str(scm_path),
                     "--appserver-inventory",
                     str(appserver_path),
+                    "--handoff-manifest",
+                    str(handoff_path),
+                    "--postgresql-package-manifest",
+                    str(package_path),
                 ]
             )
         self.assertEqual(result, 2)

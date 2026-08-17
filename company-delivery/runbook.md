@@ -100,11 +100,11 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 
 | 字段 | 合同 |
 |---|---|
-| 前置输入 | 两份 mode `0600` Stage 10 inventory v2 PASS 及其 SHA-256；`scm-ci` 为 preflight，`appserver-prod` mode/scm 为 null；operator source SHA、public-name fingerprint、legacy baseline、固定 target tuple 与 reviewer decision ID 已准备。controlled upgrade 还要求现有实例的安装形态、DB/storage、RTO/RPO 与回滚目标已脱敏确认。 |
+| 前置输入 | 两份 mode `0600` Stage 10 inventory v2 PASS 及其 SHA-256；`scm-ci` 为 preflight，`appserver-prod` mode/scm 为 null；已验证的 operator 1.1.0 `handoff-manifest.json`、完整 PostgreSQL OS package-set SHA-256 manifest、public-name fingerprint、legacy baseline、固定 target tuple 与 reviewer decision ID 已准备。controlled upgrade 还要求现有实例的安装形态、DB/storage、RTO/RPO 与回滚目标已脱敏确认。 |
 | 人工批准记录 | 只批准一个 decision enum：`greenfield-parallel-replacement`、`controlled-upgrade-candidate` 或 `BLOCKED`；本阶段不授权安装、停止服务、写数据、备份、恢复或迁移。 |
 | 执行位置 / role | company cross-host review；技术事实来自 `gitea-ci/scm-ci`，AppServer 只确认无 Gitea/Runner 角色漂移。 |
-| 允许动作 | 复制 transition example 到新的 mode `0600` receipt，填入批准事实后运行 `operator/bin/aisoft-company-delivery verify-gitea-transition --input <transition-json> --scm-inventory <scm-json> --appserver-inventory <appserver-json>`；不得执行安装/升级命令。 |
-| 预期输出 | 一个 strict transition v1 receipt：checksum 绑定 source/two inventories、public-name fingerprint、legacy baseline、固定 target、automation、精确 stage map 与 reviewer decision；CLI 仅回显 sanitized decision/outcome。 |
+| 允许动作 | 复制 transition example 到新的 mode `0600` receipt，填入批准事实后运行 `operator/bin/aisoft-company-delivery verify-gitea-transition --input <transition-json> --scm-inventory <scm-json> --appserver-inventory <appserver-json> --handoff-manifest <bundle>/handoff-manifest.json --postgresql-package-manifest <package-set-sha256-manifest>`；不得执行安装/升级命令。 |
+| 预期输出 | 一个 strict transition v1 receipt：checksum 绑定并实际读回 operator 1.1.0 handoff/source SHA、PostgreSQL OS package-set manifest、two inventories、public-name fingerprint、legacy baseline、固定 target、automation、精确 stage map 与 reviewer decision；CLI 仅回显 sanitized decision/outcome。 |
 | PASS | `greenfield-parallel-replacement` 只允许 Stage 00/10/20 PASS 且 Stage 30/40/50 为 `NOT RUN`，Stage 50 prerequisite=`legacy-pre-post-equality`；`controlled-upgrade-candidate` 保留 `stage-30-40-pass` prerequisite。validator PASS 仍不是安装批准。 |
 | FAIL | 已知事实证明两条路径都与容量、兼容性或隔离要求冲突。 |
 | BLOCKED / 停止点 | 任一 current instance、storage、DB、backup coverage、restore isolation 或 rollback fact 未知；禁止 blind in-place upgrade，也禁止用 side-by-side 绕过未知端口/存储冲突。 |

@@ -99,13 +99,27 @@
                     }
                   },
                   "resources": {
-                    "additionalProperties": {"enum": ["absent", "expected-empty"]}
+                    "properties": {
+                      "gitea_binary": {"enum": ["absent", "expected-empty"]},
+                      "gitea_config": {"enum": ["absent", "expected-empty"]},
+                      "gitea_data": {"enum": ["absent", "expected-empty"]},
+                      "gitea_log": {"enum": ["absent", "expected-empty"]},
+                      "postgresql_data": {"enum": ["absent", "expected-empty"]}
+                    }
                   },
                   "services": {
-                    "additionalProperties": {
-                      "properties": {
-                        "enabled": {"const": "not-found"},
-                        "active": {"const": "not-found"}
+                    "properties": {
+                      "gitea": {
+                        "properties": {
+                          "enabled": {"const": "not-found"},
+                          "active": {"const": "not-found"}
+                        }
+                      },
+                      "postgresql": {
+                        "properties": {
+                          "enabled": {"const": "not-found"},
+                          "active": {"const": "not-found"}
+                        }
                       }
                     }
                   }
@@ -149,12 +163,28 @@
                       "postgresql": {"const": "occupied"}
                     }
                   },
-                  "resources": {"additionalProperties": {"const": "occupied"}},
+                  "resources": {
+                    "properties": {
+                      "gitea_binary": {"const": "occupied"},
+                      "gitea_config": {"const": "occupied"},
+                      "gitea_data": {"const": "occupied"},
+                      "gitea_log": {"const": "occupied"},
+                      "postgresql_data": {"const": "occupied"}
+                    }
+                  },
                   "services": {
-                    "additionalProperties": {
-                      "properties": {
-                        "enabled": {"const": "enabled"},
-                        "active": {"const": "active"}
+                    "properties": {
+                      "gitea": {
+                        "properties": {
+                          "enabled": {"const": "enabled"},
+                          "active": {"const": "active"}
+                        }
+                      },
+                      "postgresql": {
+                        "properties": {
+                          "enabled": {"const": "enabled"},
+                          "active": {"const": "active"}
+                        }
                       }
                     }
                   }

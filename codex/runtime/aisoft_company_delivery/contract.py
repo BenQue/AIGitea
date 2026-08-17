@@ -602,6 +602,8 @@ def load_gitea_transition(
             "operator_version",
             "recorded_at",
             "source_git_sha",
+            "handoff_manifest_sha256",
+            "postgresql_package_manifest_sha256",
             "reviewer_decision_id",
             "decision",
             "outcome",
@@ -620,6 +622,8 @@ def load_gitea_transition(
     _const(value, "operator_version", "1.1.0", "Gitea transition")
     _timestamp(value, "recorded_at", "Gitea transition")
     _matching(value, "source_git_sha", GIT_SHA, "Gitea transition")
+    _matching(value, "handoff_manifest_sha256", SHA256, "Gitea transition")
+    _matching(value, "postgresql_package_manifest_sha256", SHA256, "Gitea transition")
     _matching(value, "reviewer_decision_id", SAFE_ID, "Gitea transition")
     decision = _enum(
         value,
@@ -731,10 +735,38 @@ def verify_gitea_transition(
     transition_path: Path | str,
     scm_inventory_path: Path | str,
     appserver_inventory_path: Path | str,
+    handoff_manifest_path: Path | str,
+    postgresql_package_manifest_path: Path | str,
 ) -> dict[str, object]:
     transition = load_gitea_transition(transition_path)
     if transition["outcome"] != "PASS":
         raise CompanyDeliveryError("TRANSITION_BLOCKED", "Gitea transition is not approved to continue")
+    handoff, handoff_sha256 = _load_stable_handoff(
+        handoff_manifest_path,
+        expected_sha256=_string(
+            transition,
+            "handoff_manifest_sha256",
+            "Gitea transition",
+        ),
+    )
+    handoff_source = _object(handoff, "source", "handoff manifest")
+    if (
+        handoff["operator_version"] != "1.1.0"
+        or handoff_source["git_sha"] != transition["source_git_sha"]
+    ):
+        raise CompanyDeliveryError(
+            "CHECKSUM_MISMATCH",
+            "transition source does not match the verified 1.1.0 handoff",
+        )
+    postgresql_package_manifest_sha256 = _stable_protected_digest(
+        postgresql_package_manifest_path,
+        "PostgreSQL package manifest",
+        expected_sha256=_string(
+            transition,
+            "postgresql_package_manifest_sha256",
+            "Gitea transition",
+        ),
+    )
     inventories = _object(transition, "inventories", "Gitea transition")
     scm_inventory, scm_sha256 = _load_stable_inventory(
         scm_inventory_path,
@@ -784,6 +816,8 @@ def verify_gitea_transition(
         "decision": transition["decision"],
         "outcome": "PASS",
         "legacy_baseline_sha256": transition["legacy_baseline_sha256"],
+        "handoff_manifest_sha256": handoff_sha256,
+        "postgresql_package_manifest_sha256": postgresql_package_manifest_sha256,
         "scm_inventory_sha256": scm_sha256,
         "appserver_inventory_sha256": appserver_sha256,
     }
@@ -855,6 +889,40 @@ def _load_stable_inventory(
     return value, after
 
 
+def _load_stable_handoff(
+    path: Path | str,
+    *,
+    expected_sha256: str,
+) -> tuple[dict[str, object], str]:
+    source = Path(path)
+    before = _protected_file_sha256(source, "handoff manifest")
+    value = load_handoff(source, bundle_root=source.parent)
+    after = _protected_file_sha256(source, "handoff manifest")
+    if before != after or after != expected_sha256:
+        raise CompanyDeliveryError(
+            "CHECKSUM_MISMATCH",
+            "handoff manifest checksum does not match the transition",
+        )
+    return value, after
+
+
+def _stable_protected_digest(
+    path: Path | str,
+    label: str,
+    *,
+    expected_sha256: str,
+) -> str:
+    source = Path(path)
+    before = _protected_file_sha256(source, label)
+    after = _protected_file_sha256(source, label)
+    if before != after or after != expected_sha256:
+        raise CompanyDeliveryError(
+            "CHECKSUM_MISMATCH",
+            f"{label} checksum does not match the transition",
+        )
+    return after
+
+
 def _protected_file_sha256(path: Path, label: str) -> str:
     try:
         metadata = path.lstat()
@@ -864,6 +932,8 @@ def _protected_file_sha256(path: Path, label: str) -> str:
         raise CompanyDeliveryError("UNSAFE_PATH", f"{label} must be a regular non-symlink file")
     if stat.S_IMODE(metadata.st_mode) != 0o600:
         raise CompanyDeliveryError("UNSAFE_MODE", f"{label} mode must be 0600")
+    if metadata.st_size > MAX_JSON_BYTES:
+        raise CompanyDeliveryError("INVALID_CONTRACT", f"{label} exceeds the size limit")
     try:
         return sha256_file(path)
     except OSError as exc:
