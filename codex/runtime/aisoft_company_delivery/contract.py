@@ -29,6 +29,9 @@ REPOSITORY = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
 SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 SAFE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$")
 FACT_CODE = re.compile(r"^[A-Z][A-Z0-9_]{2,63}$")
+PACKAGE_MANIFEST_LINE = re.compile(
+    r"^([0-9a-f]{64})  ([A-Za-z0-9][A-Za-z0-9._+~:@%/-]{0,511})$"
+)
 MAX_JSON_BYTES = 2 * 1024 * 1024
 
 OUTCOMES = {"PASS", "FAIL", "BLOCKED", "NOT RUN"}
@@ -758,7 +761,7 @@ def verify_gitea_transition(
             "CHECKSUM_MISMATCH",
             "transition source does not match the verified 1.1.0 handoff",
         )
-    postgresql_package_manifest_sha256 = _stable_protected_digest(
+    postgresql_package_manifest_sha256 = _load_stable_package_manifest(
         postgresql_package_manifest_path,
         "PostgreSQL package manifest",
         expected_sha256=_string(
@@ -906,7 +909,7 @@ def _load_stable_handoff(
     return value, after
 
 
-def _stable_protected_digest(
+def _load_stable_package_manifest(
     path: Path | str,
     label: str,
     *,
@@ -914,6 +917,31 @@ def _stable_protected_digest(
 ) -> str:
     source = Path(path)
     before = _protected_file_sha256(source, label)
+    try:
+        lines = source.read_text(encoding="ascii").splitlines()
+    except UnicodeError as exc:
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT",
+            f"{label} must be bounded ASCII",
+        ) from exc
+    except OSError as exc:
+        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} is unavailable") from exc
+    parsed: list[tuple[str, str]] = []
+    for line in lines:
+        match = PACKAGE_MANIFEST_LINE.fullmatch(line)
+        if match is None:
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT",
+                f"{label} contains an invalid line",
+            )
+        package_path = _package_manifest_path(match.group(2))
+        parsed.append((package_path, match.group(1)))
+    paths = [item[0] for item in parsed]
+    if not parsed or paths != sorted(paths) or len(paths) != len(set(paths)):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT",
+            f"{label} paths must be non-empty, unique, and sorted",
+        )
     after = _protected_file_sha256(source, label)
     if before != after or after != expected_sha256:
         raise CompanyDeliveryError(
@@ -923,21 +951,44 @@ def _stable_protected_digest(
     return after
 
 
+def _package_manifest_path(value: str) -> str:
+    if "\\" in value or "\x00" in value:
+        raise CompanyDeliveryError("UNSAFE_PATH", "package manifest path is unsafe")
+    path = PurePosixPath(value)
+    if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
+        raise CompanyDeliveryError("UNSAFE_PATH", "package manifest path is unsafe")
+    if str(path) != value or len(value.encode("ascii")) > 512:
+        raise CompanyDeliveryError("UNSAFE_PATH", "package manifest path is unsafe")
+    return value
+
+
 def _protected_file_sha256(path: Path, label: str) -> str:
+    _validate_bounded_regular_file(path, label, required_mode=0o600)
+    try:
+        return sha256_file(path)
+    except OSError as exc:
+        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} is unavailable") from exc
+
+
+def _validate_bounded_regular_file(
+    path: Path,
+    label: str,
+    *,
+    required_mode: int | None,
+) -> None:
     try:
         metadata = path.lstat()
     except OSError as exc:
         raise CompanyDeliveryError("UNSAFE_PATH", f"{label} is unavailable") from exc
     if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
         raise CompanyDeliveryError("UNSAFE_PATH", f"{label} must be a regular non-symlink file")
-    if stat.S_IMODE(metadata.st_mode) != 0o600:
-        raise CompanyDeliveryError("UNSAFE_MODE", f"{label} mode must be 0600")
+    if required_mode is not None and stat.S_IMODE(metadata.st_mode) != required_mode:
+        raise CompanyDeliveryError(
+            "UNSAFE_MODE",
+            f"{label} mode must be {required_mode:04o}",
+        )
     if metadata.st_size > MAX_JSON_BYTES:
         raise CompanyDeliveryError("INVALID_CONTRACT", f"{label} exceeds the size limit")
-    try:
-        return sha256_file(path)
-    except OSError as exc:
-        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} is unavailable") from exc
 
 
 def load_evidence(path: Path | str, *, require_protected: bool = True) -> dict[str, object]:
@@ -1217,16 +1268,11 @@ def _verify_checksum_manifest(
 
 def _load_object(path: Path | str, label: str, *, require_protected: bool) -> dict[str, object]:
     source = Path(path)
-    try:
-        metadata = source.lstat()
-    except OSError as exc:
-        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} is unavailable") from exc
-    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
-        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} must be a regular non-symlink file")
-    if require_protected and stat.S_IMODE(metadata.st_mode) != 0o600:
-        raise CompanyDeliveryError("UNSAFE_MODE", f"{label} mode must be 0600")
-    if metadata.st_size > MAX_JSON_BYTES:
-        raise CompanyDeliveryError("INVALID_CONTRACT", f"{label} exceeds the size limit")
+    _validate_bounded_regular_file(
+        source,
+        label,
+        required_mode=0o600 if require_protected else None,
+    )
     try:
         text = source.read_text(encoding="utf-8")
         value = json.loads(text, object_pairs_hook=_no_duplicates)

@@ -100,7 +100,7 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 
 | 字段 | 合同 |
 |---|---|
-| 前置输入 | 两份 mode `0600` Stage 10 inventory v2 PASS 及其 SHA-256；`scm-ci` 为 preflight，`appserver-prod` mode/scm 为 null；已验证的 operator 1.1.0 `handoff-manifest.json`、完整 PostgreSQL OS package-set SHA-256 manifest、public-name fingerprint、legacy baseline、固定 target tuple 与 reviewer decision ID 已准备。controlled upgrade 还要求现有实例的安装形态、DB/storage、RTO/RPO 与回滚目标已脱敏确认。 |
+| 前置输入 | 两份 mode `0600` Stage 10 inventory v2 PASS 及其 SHA-256；`scm-ci` 为 preflight，`appserver-prod` mode/scm 为 null；已验证的 operator 1.1.0 `handoff-manifest.json`、完整 PostgreSQL OS package-set SHA-256 manifest、public-name fingerprint、legacy baseline、固定 target tuple 与 reviewer decision ID 已准备。package manifest 必须是非空、ASCII、按 artifact path 排序且路径唯一的清单，每行精确为 `<64-lowercase-hex><two-spaces><safe-relative-artifact-path>`。controlled upgrade 还要求现有实例的安装形态、DB/storage、RTO/RPO 与回滚目标已脱敏确认。 |
 | 人工批准记录 | 只批准一个 decision enum：`greenfield-parallel-replacement`、`controlled-upgrade-candidate` 或 `BLOCKED`；本阶段不授权安装、停止服务、写数据、备份、恢复或迁移。 |
 | 执行位置 / role | company cross-host review；技术事实来自 `gitea-ci/scm-ci`，AppServer 只确认无 Gitea/Runner 角色漂移。 |
 | 允许动作 | 复制 transition example 到新的 mode `0600` receipt，填入批准事实后运行 `operator/bin/aisoft-company-delivery verify-gitea-transition --input <transition-json> --scm-inventory <scm-json> --appserver-inventory <appserver-json> --handoff-manifest <bundle>/handoff-manifest.json --postgresql-package-manifest <package-set-sha256-manifest>`；不得执行安装/升级命令。 |

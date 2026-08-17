@@ -792,6 +792,43 @@ class CompanyDeliveryContractTests(unittest.TestCase):
             )
         self.assertEqual(package_error.exception.code, "CHECKSUM_MISMATCH")
 
+    def test_transition_verifier_rejects_invalid_package_manifest_content(self) -> None:
+        invalid_manifests = {
+            "empty": "",
+            "malformed": "not-a-sha256-manifest\n",
+            "duplicate": (
+                "5" * 64
+                + "  postgresql-client.pkg\n"
+                + "5" * 64
+                + "  postgresql-client.pkg\n"
+            ),
+            "unsorted": (
+                "5" * 64
+                + "  z-postgresql.pkg\n"
+                + "6" * 64
+                + "  a-postgresql.pkg\n"
+            ),
+            "unsafe-path": "5" * 64 + "  ../postgresql.pkg\n",
+        }
+        for name, content in invalid_manifests.items():
+            with self.subTest(name=name):
+                transition_path, scm_path, appserver_path, handoff_path, package_path = (
+                    self.bound_transition_files(prefix=f"invalid-package-{name}")
+                )
+                package_path.write_text(content, encoding="ascii")
+                transition = json.loads(transition_path.read_text(encoding="utf-8"))
+                transition["postgresql_package_manifest_sha256"] = sha256(package_path)
+                transition_path.write_text(json.dumps(transition), encoding="utf-8")
+                with self.assertRaises(CompanyDeliveryError) as caught:
+                    verify_gitea_transition(
+                        transition_path,
+                        scm_path,
+                        appserver_path,
+                        handoff_path,
+                        package_path,
+                    )
+                self.assertEqual(caught.exception.code, "INVALID_CONTRACT")
+
     def test_transition_verifier_rejects_checksum_role_mode_and_outcome_drift(self) -> None:
         transition_path, scm_path, appserver_path, handoff_path, package_path = (
             self.bound_transition_files(prefix="checksum")

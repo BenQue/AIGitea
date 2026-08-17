@@ -70,9 +70,8 @@ updated: 2026-08-17
 
 ## T03 — Transition/legacy invariant CLI
 
-- 新增 `verify-gitea-transition --input --scm-inventory --appserver-inventory --handoff-manifest
-  --postgresql-package-manifest`，验证 protected regular files、operator 1.1.0 handoff/source SHA、PostgreSQL
-  OS package-set manifest、SHA-256 binding、role/outcome/mode、fixed target tuple、legacy baseline 与 exact stage map。
+- 新增 `verify-gitea-transition --input --scm-inventory --appserver-inventory`，验证 protected regular files、
+  SHA-256 binding、role/outcome/mode、fixed target tuple、legacy baseline 与 exact stage map。
 - 新增 `verify-legacy-health --transition --post-inventory`；只接受 greenfield receipt + post-install scm-ci
   inventory，并比较 presence/health/version/baseline，返回 sanitized machine JSON。
 - 正向用例固定 greenfield 00/10/20 PASS + 30/40/50 NOT RUN；负向覆盖 fake PASS、inventory tamper、wrong role、
