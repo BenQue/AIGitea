@@ -1,6 +1,7 @@
 # Company delivery operator bundle
 
-本目录是 Issue #120 的 versioned、checksum-pinned、纯人工 operator workflow。它准备 NewEmaint 从本地
+本目录是 Issue #120/#126 的 versioned、checksum-pinned、纯人工 operator workflow。当前 operator
+`1.1.0` 准备 NewEmaint 从本地
 OrbStack DockerLab 验证过的 exact `docker-release/v2` bytes 搬运到公司两台 Linux VM；它不是安装记录、
 部署记录或公司环境验收结果。
 
@@ -18,11 +19,33 @@ OrbStack DockerLab 验证过的 exact `docker-release/v2` bytes 搬运到公司�
 
 - [`runbook.md`](runbook.md)：Stage 00–110，每阶段可单独批准、停止和回滚。
 - `bin/aisoft-company-delivery`：固定参数的 inventory、contract verification 与 bundle build CLI。
-- `schema/`：strict inventory/handoff/evidence V1 JSON schema。
+- `schema/`：strict inventory v1/v2、Gitea transition v1、handoff/evidence v1 JSON schema。
 - `templates/`：结构示例；所有 `example` 文件都不是 live evidence。
 - `compatibility/newemaint-company-pilot-v1.json`：两 VM 拓扑、版本候选和 fail-closed policy。
 - 构建后的 `handoff-manifest.json`、`SHA256SUMS`、`.tar.gz.sha256`：full Git SHA 与 exact release bytes 的
   可携带身份。
+
+## Gitea greenfield 并行替换合同
+
+`greenfield-parallel-replacement` 在 `scm-ci` 保留 legacy Docker Gitea 原样运行，并只在独立
+`aisoft-gitea` namespace 建立候选 systemd Gitea。目标固定为 Gitea `1.26.4`
+（`gitea-1.26.4-linux-amd64`，SHA-256
+`0faa36d151918f8f7d6e0f3ae67597d1c338583d695add146ac393109d0fc44a`）和 PostgreSQL `18.4`
+upstream provenance（SHA-256
+`81a81ec695fb0c7901407defaa1d2f7973617154cf27ba74e3a7ab8e64436094`）。新 units 为
+`aisoft-gitea.service`、`postgresql@18-aisoft-gitea.service`，只监听候选 loopback
+`127.0.0.1:3000` 与 `127.0.0.1:55432`；完整 paths/identity 以 compatibility matrix 为准。
+
+Stage 10 使用 inventory v2 的 legacy fingerprint/health 与 collision probes；Stage 20 用 transition v1
+绑定两份 inventory；greenfield 路径的 Stage 30/40 必须保持 `NOT RUN`，Stage 50 以
+`legacy-pre-post-equality` 作为独立 alternate prerequisite。legacy Docker container、image、volume、
+network、database、configuration、port、repository 和 service lifecycle 均禁止修改。SSH、Runner、timer、
+Actions auto deploy、production gate、DNS/TLS、reverse proxy 与 repository import 初始全部 disabled 或
+`NOT RUN`。
+
+新实例未来只承载新仓库；legacy migration/phase-out、traffic cutover 与旧实例退役必须另建 Change。本仓库
+没有执行公司 Stage 10–50；它们全部为 `NOT RUN`。旧 operator `1.0.1` Stage 00 仅是历史 evidence，不能
+投影成 `1.1.0` Stage 00 `PASS`。
 
 ## 构建边界
 

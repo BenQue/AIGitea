@@ -2,6 +2,11 @@
 
 > 状态：仓库交付物，未在公司执行。本 runbook 不证明公司安装、备份、恢复、CI 或生产部署成功。
 
+本册随 operator `1.1.0` 引入 `company-delivery-inventory/v2` 与
+`company-delivery-gitea-transition/v1`。旧 `1.0.1` Stage 00 只保留为历史 evidence，不能投影为
+`1.1.0` Stage 00 `PASS`；要进入本册 Stage 10，必须用同一 exact source 重新生成、校验并批准 `1.1.0`
+handoff。当前公司 Stage 10–110 全部仍为 `NOT RUN`。
+
 ## 1. 不变量与人工闸门
 
 本流程只有两台公司 Linux VM：`gitea-ci`（role=`scm-ci`）和 `appserver`
@@ -37,6 +42,9 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
    `docker-release/v2` identity/checksum/outer graph 校验的 `images.tar` 作为 opaque immutable payload 搬运，
    不做 image 内部 Secret 审计。bundle PASS 只证明 exact bytes 与运输完整性；公司真实 Secret 与授权由人
    在内网处理。
+10. `greenfield-parallel-replacement` 只能建立完全独立的新 namespace。legacy Docker Gitea 的 container、
+    image、volume、network、database、configuration、port、repository 与 service lifecycle 全部在 mutation
+    denylist；任何 legacy mutation 都必须停止并另建 Change。
 
 ### Evidence 文件与回流
 
@@ -77,27 +85,27 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 
 | 字段 | 合同 |
 |---|---|
-| 前置输入 | Stage 00 PASS、两份彼此独立的批准记录、目标 role 与预先创建的 mode `0700` evidence directory。 |
+| 前置输入 | 同一 exact source 的 operator `1.1.0` Stage 00 PASS、两份彼此独立的批准记录、目标 role、`scm-ci` legacy Gitea 的已批准 loopback publish port，以及预先创建的 mode `0700` evidence directory。旧 1.0.1 Stage 00 不满足该前置。 |
 | 人工批准记录 | 分别批准 `gitea-ci/scm-ci` 和 `appserver/appserver-prod` 的 collector；不批准 package install、network discovery、config read、service change 或 restart。 |
 | 执行位置 / role | 在两台公司 VM 上由人分别运行；collector 的 `--role` 必须与批准记录一致。 |
-| 允许动作 | `operator/bin/aisoft-company-delivery collect-inventory --role scm-ci --output <new-json>` 或 `--role appserver-prod`；仅固定 OS/kernel/arch/capacity、allowlisted version 与 systemd `is-enabled/is-active` probes。 |
-| 预期输出 | 两个 mode `0600` strict inventory JSON；hostname/machine-id 只保留 SHA256 fingerprint，工具输出只保留 semver，unit 只保留 enum。 |
-| PASS | role、`linux/amd64`、容量、候选版本与 role-specific units 全部可解析且无敏感内容；`scm-ci` 上待安装的 Gitea/act_runner 只有在命令缺失且对应 unit 同时精确为 `not-found/not-found` 时可记录 `ABSENT/confirmed-not-installed`，供 Stage 20 选择 side-by-side；两份文件均通过 `verify-inventory`。 |
+| 允许动作 | `operator/bin/aisoft-company-delivery collect-inventory --role scm-ci --mode preflight --legacy-gitea-http-port <approved-loopback-port> --output <new-json>`，或在 AppServer 运行 `operator/bin/aisoft-company-delivery collect-inventory --role appserver-prod --output <new-json>`。除 v1 allowlist 外，`scm-ci` 只增加固定 Docker `publish=<port>` presence、container ID fingerprint、固定 loopback `/api/v1/version`、候选 `127.0.0.1:3000`/`127.0.0.1:55432`、固定 path 与新 unit 状态 probe；禁止 `docker inspect`、env/config/log/raw output。 |
+| 预期输出 | 两个 mode `0600` strict inventory v2 JSON；`scm-ci` mode=`preflight`，`appserver-prod` mode/scm=`null`。hostname/machine-id、legacy port/container 只保留 SHA256 fingerprint，工具/health 只保留 semver/enum，并生成 canonical `legacy_baseline_sha256`。 |
+| PASS | 两个 role 均通过 `verify-inventory`；legacy 精确为 `present/healthy` 且有 canonical baseline，候选端口 free、固定 resources absent/expected-empty、新 units `not-found/not-found`，自动化入口均为 disabled/NOT RUN；任一 unknown、collision、ambiguous 或 raw/sensitive output 都不能 PASS。 |
 | FAIL | 已运行固定 probe 且明确得到不兼容版本、错误 architecture 或角色冲突；不保存 raw stdout/stderr。 |
 | BLOCKED / 停止点 | 除上述双重确认的待安装工具外，probe 缺失/不可解析、command 与 unit 状态冲突、Secret-like output、unknown host fact、目录/mode 不安全或发现跨 role 服务；不得“补猜” inventory。 |
 | Evidence | 每台 VM 一个 inventory JSON + 一个 Stage 10 evidence JSON；只回流 fingerprint、enum、semver、数值和固定 reason。 |
 | 回滚边界 | 只读，无 live rollback；仅移除本阶段新建的 evidence copy。任何系统状态变化都视为越界并停止。 |
 
-## Stage 20 — Gitea side-by-side / controlled upgrade 决策
+## Stage 20 — Gitea greenfield parallel replacement / controlled upgrade 决策
 
 | 字段 | 合同 |
 |---|---|
-| 前置输入 | 两份 Stage 10 inventory PASS；现有 Gitea 的版本、安装形态、DB、路径、端口、external storage、依赖、RTO/RPO 与回滚目标均已人工脱敏确认。 |
-| 人工批准记录 | 只批准一个决策结果：`side-by-side`、`controlled-upgrade-candidate` 或 `BLOCKED`；本阶段不授权安装、停止服务或写数据。 |
+| 前置输入 | 两份 mode `0600` Stage 10 inventory v2 PASS 及其 SHA-256；`scm-ci` 为 preflight，`appserver-prod` mode/scm 为 null；operator source SHA、public-name fingerprint、legacy baseline、固定 target tuple 与 reviewer decision ID 已准备。controlled upgrade 还要求现有实例的安装形态、DB/storage、RTO/RPO 与回滚目标已脱敏确认。 |
+| 人工批准记录 | 只批准一个 decision enum：`greenfield-parallel-replacement`、`controlled-upgrade-candidate` 或 `BLOCKED`；本阶段不授权安装、停止服务、写数据、备份、恢复或迁移。 |
 | 执行位置 / role | company cross-host review；技术事实来自 `gitea-ci/scm-ci`，AppServer 只确认无 Gitea/Runner 角色漂移。 |
-| 允许动作 | 对照下方 decision table 做文件化人工评审；不得执行安装/升级命令。 |
-| 预期输出 | 一个有 reviewer、输入 checksum、选择理由、backup/restore/rollback prerequisites 的脱敏 decision receipt。 |
-| PASS | 仅当 side-by-side 或 controlled upgrade 的所有必需输入都已知且可验证，才可把该路径标为候选。 |
+| 允许动作 | 复制 transition example 到新的 mode `0600` receipt，填入批准事实后运行 `operator/bin/aisoft-company-delivery verify-gitea-transition --input <transition-json> --scm-inventory <scm-json> --appserver-inventory <appserver-json>`；不得执行安装/升级命令。 |
+| 预期输出 | 一个 strict transition v1 receipt：checksum 绑定 source/two inventories、public-name fingerprint、legacy baseline、固定 target、automation、精确 stage map 与 reviewer decision；CLI 仅回显 sanitized decision/outcome。 |
+| PASS | `greenfield-parallel-replacement` 只允许 Stage 00/10/20 PASS 且 Stage 30/40/50 为 `NOT RUN`，Stage 50 prerequisite=`legacy-pre-post-equality`；`controlled-upgrade-candidate` 保留 `stage-30-40-pass` prerequisite。validator PASS 仍不是安装批准。 |
 | FAIL | 已知事实证明两条路径都与容量、兼容性或隔离要求冲突。 |
 | BLOCKED / 停止点 | 任一 current instance、storage、DB、backup coverage、restore isolation 或 rollback fact 未知；禁止 blind in-place upgrade，也禁止用 side-by-side 绕过未知端口/存储冲突。 |
 | Evidence | Stage 20 evidence JSON、两份 inventory checksum、decision receipt checksum；不含 config/database 内容。 |
@@ -105,7 +113,7 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 
 | 条件 | 唯一允许结论 |
 |---|---|
-| 无 current instance，独立目录/DB/端口/容量明确，验证前不接管 DNS/TLS/正式仓库 | `side-by-side` candidate |
+| legacy Docker Gitea `present/healthy` 且 baseline 已锁定；新 user/group/unit/path/DB/port 全部独立、无 collision；所有自动化与切流入口禁用 | `greenfield-parallel-replacement` |
 | current instance 全部事实已知，目标升级路径受支持，完整 backup 与 isolated restore 可执行 | `controlled-upgrade-candidate` |
 | unknown major/install shape/DB/storage/path/rollback，或拟直接覆盖 current | `BLOCKED` |
 | 公司要求内网重建且无隔离测试环境 | `BLOCKED`；不同 bytes 不得继承本地测试结论 |
@@ -114,46 +122,46 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 
 | 字段 | 合同 |
 |---|---|
-| 前置输入 | Stage 20 PASS、已选路径、RTO/RPO、介质/保留/加密策略、逐项 backup 清单、精确工具/版本/源与目标路径；目标空间已只读核验。 |
-| 人工批准记录 | 这是未来独立 live mutation；批准只绑定一次 snapshot ID、两台 host、逐项 allowlist 和输出位置，不授权 restore、upgrade、deploy 或 DB mutation。 |
-| 执行位置 / role | Gitea backup 在 `gitea-ci/scm-ci`；NewEmaint/PostgreSQL/Nginx 与 current release/state backup 在 `appserver/appserver-prod`。 |
-| 允许动作 | 只执行经过 Stage 20 选择并由批准附件固定的 vendor-native backup/snapshot 命令；未知安装形态下没有默认命令。覆盖 DB、`app.ini` 与实例 keys、repositories、LFS、packages、attachments、avatars、external storage，以及 AppServer DB、protected config、release/state 与 Nginx 配置。 |
+| 前置输入 | `controlled-upgrade-candidate`：Stage 20 PASS、RTO/RPO、介质/保留/加密策略、逐项 backup 清单、精确工具/版本/源与目标路径，且目标空间已只读核验。`greenfield-parallel-replacement`：transition 已验证；greenfield 路径的 Stage 30/40 必须保持 `NOT RUN`，不得为跳过的 backup/restore 伪造 PASS。 |
+| 人工批准记录 | 仅 controlled upgrade 可申请这个未来独立 live mutation；批准只绑定一次 snapshot ID、两台 host、逐项 allowlist 和输出位置，不授权 restore、upgrade、deploy 或 DB mutation。greenfield 不申请本阶段批准。 |
+| 执行位置 / role | controlled upgrade 的 Gitea backup 在 `gitea-ci/scm-ci`，NewEmaint/PostgreSQL/Nginx 与 current release/state backup 在 `appserver/appserver-prod`；greenfield 无执行位置。 |
+| 允许动作 | `controlled-upgrade-candidate` 只执行由批准附件固定的 vendor-native backup/snapshot 命令；未知安装形态下没有默认命令。覆盖 DB、`app.ini` 与实例 keys、repositories、LFS、packages、attachments、avatars、external storage，以及 AppServer DB、protected config、release/state 与 Nginx 配置。greenfield 路径不执行 Stage 30 命令。 |
 | 预期输出 | 不可变 backup identity、每项 size/checksum、工具版本、起止时间、保留位置类别和一致性窗口；Secret/data bytes 留在受控介质。 |
 | PASS | checklist 无缺项；所有对象有 immutable identity/checksum；一致性方法、恢复工具与 previous binary/release 均可取得。 |
 | FAIL | backup 命令已运行但任一对象失败、checksum 不稳定或一致性窗口未成立。 |
 | BLOCKED / 停止点 | 输出介质不安全、空间不足、external storage 未覆盖、工具/版本未知、会覆盖已有 backup、或无法证明 backup 与 snapshot 同一时点；不得进入 restore drill。 |
-| Evidence | Stage 30 evidence JSON + 脱敏 inventory/checksum receipt；不回流 backup、dump、config、key、日志或真实路径。 |
+| Evidence | controlled upgrade：Stage 30 evidence JSON + 脱敏 inventory/checksum receipt；不回流 backup、dump、config、key、日志或真实路径。greenfield：只由 transition 的固定 stage map 证明 `NOT RUN`，不创建虚假 PASS evidence。 |
 | 回滚边界 | backup 本身不改变业务数据；只按公司保留策略处理本阶段新副本。不得因 backup 失败重启、升级或 restore live DB。 |
 
 ## Stage 40 — isolated restore drill 与对象级对账
 
 | 字段 | 合同 |
 |---|---|
-| 前置输入 | Stage 30 PASS、精确 backup identity、与 live 断开的隔离 restore target、独立 volume/DB/port、禁止生产客户端连接的证明和销毁计划。 |
-| 人工批准记录 | 这是未来独立环境 mutation；只批准一个隔离 target 和一个 backup identity，不授权覆盖 live 路径、切流量或恢复 production DB。 |
-| 执行位置 / role | 在两台既有公司 VM 上经批准的隔离 namespace/container/volume 中执行；它不是第三台公司 VM。若不能与 live 隔离则 `BLOCKED`。 |
-| 允许动作 | 按 Stage 30 固定工具执行 isolated restore；Gitea 对账登录、repo refs、LFS、packages、attachments、avatars、关键 settings/protection；AppServer 对账 PostgreSQL schema/row-count invariants、protected config identity、release/state 和 Nginx syntax。 |
+| 前置输入 | `controlled-upgrade-candidate`：Stage 30 PASS、精确 backup identity、与 live 断开的隔离 restore target、独立 volume/DB/port、禁止生产客户端连接的证明和销毁计划。`greenfield-parallel-replacement`：transition 已验证且 Stage 40 精确为 `NOT RUN`。 |
+| 人工批准记录 | 仅 controlled upgrade 可申请这个未来独立环境 mutation；只批准一个隔离 target 和一个 backup identity，不授权覆盖 live 路径、切流量或恢复 production DB。greenfield 不申请本阶段批准。 |
+| 执行位置 / role | controlled upgrade 在两台既有公司 VM 上经批准的隔离 namespace/container/volume 中执行；它不是第三台公司 VM。若不能与 live 隔离则 `BLOCKED`。greenfield 无执行位置。 |
+| 允许动作 | controlled upgrade 按 Stage 30 固定工具执行 isolated restore；Gitea 对账登录、repo refs、LFS、packages、attachments、avatars、关键 settings/protection；AppServer 对账 PostgreSQL schema/row-count invariants、protected config identity、release/state 和 Nginx syntax。greenfield 路径不执行 Stage 40 命令。 |
 | 预期输出 | restore receipt、逐对象 counts/digests、隔离 login/read checks、无 production client/route 的证明和清理 receipt。`pg_restore --list` 不是 restore PASS，archive 可列出也不是 restore PASS。 |
 | PASS | restore 实际完成，所有对象类别与 baseline 对账，隔离边界和 cleanup 均通过；任何容差必须预先写入批准记录。 |
 | FAIL | restore 已运行，但登录、refs、LFS/package/attachment、DB invariant、config 或 cleanup 任一失败。 |
 | BLOCKED / 停止点 | 无隔离 target、backup identity 不匹配、需要生产 Secret 外泄、工具 major 不兼容或会连接 production endpoint；不得进入 install/upgrade。 |
-| Evidence | Stage 40 evidence JSON + 脱敏对象级 reconciliation/cleanup checksums；不回流数据行、文件内容、用户名或地址。 |
+| Evidence | controlled upgrade：Stage 40 evidence JSON + 脱敏对象级 reconciliation/cleanup checksums；不回流数据行、文件内容、用户名或地址。greenfield：只由 transition 的固定 stage map 证明 `NOT RUN`。 |
 | 回滚边界 | 删除且仅删除批准的隔离 target/volume/DB；live Gitea、业务 DB、DNS/TLS 和 AppServer 不变。无法精确清理则 FAIL 并人工接管。 |
 
-## Stage 50 — Gitea side-by-side install 或 controlled upgrade
+## Stage 50 — Gitea greenfield parallel install 或 controlled upgrade
 
 | 字段 | 合同 |
 |---|---|
-| 前置输入 | Stage 40 PASS、Stage 20 唯一决策、目标 binary/package checksum、依赖、端口/路径、maintenance window、previous snapshot 与回退命令已批准。 |
+| 前置输入 | 二选一且不得混用：greenfield 需要已验证的 Stage 20 transition（00/10/20 PASS，30/40/50 `NOT RUN`）、preflight legacy baseline、固定 target、exact bytes/checksums、maintenance window 与仅新 namespace 的回退步骤；controlled upgrade 仍要求 Stage 30/40 各自 PASS、previous snapshot 与已证明回退命令。 |
 | 人工批准记录 | 未来独立 live mutation，只批准选定路径和 exact version/checksum；不授权 DNS/TLS 切换、repo import、timer、Actions auto deploy 或 production gate。 |
 | 执行位置 / role | 仅 `gitea-ci/scm-ci`；`appserver-prod` 不执行 Gitea 变更。 |
-| 允许动作 | side-by-side 使用独立目录/DB/port，或按已证明路径做 controlled upgrade；运行最小本机 health/login/version/storage readback。不得在同一次批准中改两条路径。 |
-| 预期输出 | exact installed version/binary checksum、chosen path、health/readback、data identity 与 service state receipt；sync timer、Actions auto deploy 与 production gate 均为 `disabled/inactive`。 |
-| PASS | 实例 health、storage/DB identity、登录与只读对象检查通过，旧实例/snapshot 可回退，且所有自动化入口保持 disabled/inactive。 |
+| 允许动作 | greenfield 只按批准 tuple 建立 `aisoft-gitea` user/group、新 `aisoft-gitea.service`、`postgresql@18-aisoft-gitea.service`、固定 paths 与 loopback ports；校验 Gitea 1.26.4 和 PostgreSQL 18.4 provenance 后运行新实例最小本机 health/version/storage readback，再用 `collect-inventory --role scm-ci --mode post-install --legacy-gitea-http-port <approved-loopback-port> --output <post-json>` 与 `verify-legacy-health --transition <transition-json> --post-inventory <post-json>`。controlled upgrade 只执行既有 Stage 30/40 证明的路径。不得修改 legacy Docker resources，也不得在同一次批准中改变路径。 |
+| 预期输出 | exact installed version/checksum、chosen path、new namespace health/data/service receipt；greenfield 另有 post-install inventory v2 和 `legacy-pre-post-equality` sanitized receipt。SSH、Runner、sync timer、Actions auto deploy、production gate 均 disabled/inactive，DNS/TLS、reverse proxy、repository import 仍 `NOT RUN`。 |
+| PASS | greenfield 必须同时满足新实例固定 identity/health、`verify-legacy-health` PASS、legacy presence/health/version/baseline 完全相等，Stage 30/40 仍 `NOT RUN`；controlled upgrade 必须保有 Stage 30/40 PASS 与 snapshot 回退。两者均不能暗示 traffic cutover 或 repository migration。 |
 | FAIL | install/upgrade 已执行但 health、登录、对象 identity 或 service state 不符。 |
 | BLOCKED / 停止点 | binary checksum、migration step、rollback snapshot、端口/路径或自动化禁用状态不明确；禁止切 DNS/TLS 或导入正式仓库。 |
 | Evidence | Stage 50 evidence JSON + version/checksum/health/disabled-state 脱敏 receipt；不含 `app.ini`、keys、cookies 或日志原文。 |
-| 回滚边界 | side-by-side 停止并隔离新实例，保留旧实例；controlled upgrade 只回到 Stage 40 已证明的 binary/config/data snapshot。不得自动 restore AppServer DB。 |
+| 回滚边界 | greenfield 只停止/隔离 `aisoft-gitea.service`、`postgresql@18-aisoft-gitea.service` 和新 `aisoft-gitea` namespace；禁止停止、重启、修改、删除 legacy Docker container/image/volume/network/database/config/port/repository。controlled upgrade 只回到 Stage 40 已证明的 binary/config/data snapshot；不得自动 restore AppServer DB。 |
 
 ## Stage 60 — company Gitea bootstrap、保护与 company PR
 

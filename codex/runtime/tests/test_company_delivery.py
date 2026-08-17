@@ -21,9 +21,11 @@ from aisoft_company_delivery import secret_scan as secret_scan_module
 from aisoft_company_delivery.cli import build_parser, main
 from aisoft_company_delivery.contract import (
     EVIDENCE_VERSION,
+    FIXED_GITEA_TARGET,
     HANDOFF_VERSION,
     INVENTORY_V1_VERSION,
     INVENTORY_V2_VERSION,
+    SCM_AUTOMATION,
     TRANSITION_VERSION,
     CompanyDeliveryError,
     contains_sensitive_text,
@@ -403,6 +405,29 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         self.assertEqual(transition["outcome"], "BLOCKED")
         self.assertEqual(handoff["release"]["platform"], "linux/amd64")
         self.assertEqual(compatibility["topology"]["company_vm_count"], 2)
+        self.assertEqual(compatibility["matrix_revision"], "2026.08.2")
+        greenfield = compatibility["greenfield_gitea"]
+        self.assertEqual(greenfield["inventory_contract"], INVENTORY_V2_VERSION)
+        self.assertEqual(greenfield["transition_contract"], TRANSITION_VERSION)
+        self.assertEqual(greenfield["target"], FIXED_GITEA_TARGET)
+        self.assertEqual(greenfield["initial_automation"], SCM_AUTOMATION)
+        self.assertEqual(greenfield["stage_map"]["30"], "NOT RUN")
+        self.assertEqual(greenfield["stage_map"]["40"], "NOT RUN")
+        self.assertEqual(greenfield["stage_map"]["50"], "NOT RUN")
+        self.assertEqual(
+            set(greenfield["legacy_mutation_denylist"]),
+            {
+                "container",
+                "image",
+                "volume",
+                "network",
+                "database",
+                "configuration",
+                "port",
+                "repository",
+                "service-lifecycle",
+            },
+        )
         self.assertEqual(
             compatibility["policy"]["intranet_rebuild_without_isolated_test"],
             "BLOCKED",
@@ -1357,7 +1382,8 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
             Path(built["bundle_root"]) / "handoff-manifest.json",
             bundle_root=Path(built["bundle_root"]),
         )
-        self.assertEqual(manifest["operator_version"], "1.0.1")
+        self.assertEqual(manifest["operator_version"], "1.1.0")
+        self.assertTrue(str(built["archive_name"]).startswith("aisoft-company-delivery-1.1.0-"))
         self.assertEqual(manifest["contract_version"], HANDOFF_VERSION)
         self.assertEqual(HANDOFF_VERSION, "company-delivery-handoff/v1")
 
@@ -2514,6 +2540,13 @@ class CompanyDeliveryRunbookTests(unittest.TestCase):
             "sync timer、Actions auto deploy 与 production gate 均为 `disabled/inactive`",
             "普通 Runner 无 production SSH、sudo、业务 DB 或任意 shell 权限",
             "公司侧 Stage 10–110：`NOT RUN`",
+            "greenfield-parallel-replacement",
+            "collect-inventory --role scm-ci --mode preflight --legacy-gitea-http-port",
+            "verify-gitea-transition --input",
+            "legacy-pre-post-equality",
+            "verify-legacy-health --transition",
+            "controlled-upgrade-candidate",
+            "greenfield 路径的 Stage 30/40 必须保持 `NOT RUN`",
         )
         for phrase in required:
             with self.subTest(phrase=phrase):
@@ -2563,6 +2596,9 @@ class CompanyDeliveryTopologyDocsTests(unittest.TestCase):
                 self.assertIn("NewEmaint", text)
                 self.assertIn("两台公司", text)
                 self.assertIn("本地 OrbStack", text)
+                self.assertIn("greenfield-parallel-replacement", text)
+                self.assertIn("legacy migration/phase-out", text)
+                self.assertIn("Stage 10–50", text)
 
     def test_newemaint_never_reuses_company_rebuild_as_local_evidence(self) -> None:
         for name in (

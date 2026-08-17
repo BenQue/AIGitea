@@ -4,7 +4,7 @@
   "stage": "10",
   "scope": "company-scm-ci",
   "recorded_at": "2026-08-16T08:00:00Z",
-  "operator_version": "1.0.1",
+  "operator_version": "1.1.0",
   "source_git_sha": "0000000000000000000000000000000000000000",
   "release_id": null,
   "outcome": "NOT RUN",

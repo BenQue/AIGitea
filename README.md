@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.5（company delivery pilot source）｜ 更新：2026-08-16 ｜ 状态：**protected `main` 已包含 Issue #75 的 `change/N-short-description` 合同并保留证据驱动的 legacy 兼容；任何新 Change 仍须经唯一 PR 与人工合并，company/live 状态必须单独验收**
+> 版本：v3.5（company delivery pilot source）｜ 更新：2026-08-17 ｜ 状态：**protected `main` 已包含 Issue #75 的 `change/N-short-description` 合同并保留证据驱动的 legacy 兼容；任何新 Change 仍须经唯一 PR 与人工合并，company/live 状态必须单独验收**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
 
@@ -31,6 +31,7 @@
 - ✅ Docker offline V2 source/evidence（Issue #27 已合并）：四类 image identity、release-scoped tag、strict V2 inventory/archive、Engine/Compose/image-store capability gate 与 fake tests 已完成；两个独立 disposable Engine 29 containerd daemon 的 Registry push/pull、save/load、offline pull rejection、Compose `--pull never --no-build`、identity/health 和 exact cleanup E2E 已 `PASS`，containerd row 为 `supported`；classic 没有同等级真实证据，继续 `rejected`。该证据不是 NewEmaint、AppServer 或 production 部署
 - ✅ Docker release 分阶段职责与Compose 5.1.4 evidence（Issue #58/#65）：artifact-only verification、read-only target readiness、独立 stage/migrate/activate、state v2 receipt 与 fixed action gate已由两个task-owned disposable Engine 29.7.1/containerd daemon、Compose 5.1.4及disposable PostgreSQL migration真实验证；matrix仅支持exact Engine `[29.7.1,29.7.2)`/Compose `[5.1.4,5.1.5)` row。v1 legacy CLI保持兼容；本状态不表示已部署到NewEmaint、AppServer或production
 - 🟡 NewEmaint 公司交付 pilot（Issue #120）：提供 versioned/checksum-pinned operator bundle、两台公司 Linux VM 的脱敏 inventory、Stage 00–110 人工 runbook 与 strict evidence；真实 release handoff、公司 Gitea/Runner/Registry、backup/restore、AppServer 和 production 全部保持 `NOT RUN`
+- 🟡 Gitea 并行替换 source（Issue #126）：operator `1.1.0` 增加 inventory v2、transition v1 与 `greenfield-parallel-replacement`，只允许在 `scm-ci` 的独立 `aisoft-gitea` namespace 建立 loopback-only 新实例；`legacy migration/phase-out`、切流和退役必须另建 Change。公司 Stage 10–50 尚未执行，全部保持 `NOT RUN`；旧 1.0.1 Stage 00 不可投影为新 PASS
 - ⏸️ 待办：Windows Server 2022 x64 原型、内网 Runner/依赖缓存、迁移演练、生产 JEA 彩排与 [14](14-Windows部署与迁移验收清单.md) 全量验收
 
 ## 2. 目标职责架构
