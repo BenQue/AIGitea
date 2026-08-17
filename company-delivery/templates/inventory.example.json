@@ -1,6 +1,6 @@
 {
   "contract_version": "company-delivery-inventory/v1",
-  "collector_version": "1.0.0",
+  "collector_version": "1.0.1",
   "collected_at": "2026-08-16T08:00:00Z",
   "role": "scm-ci",
   "scope": "company-candidate",

@@ -32,6 +32,22 @@ class _DockerArchiveImage:
     layers: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class VerifiedArchiveMember:
+    """One regular member admitted by the immutable offline archive graph."""
+
+    name: str
+    size: int
+    kind: str
+
+
+@dataclass(frozen=True)
+class VerifiedArchiveGraph:
+    """Read-only member inventory produced by the canonical graph validator."""
+
+    members: tuple[VerifiedArchiveMember, ...]
+
+
 class ReleaseTransport:
     def __init__(self, docker: object, files: ReleaseFiles) -> None:
         self.docker = docker
@@ -81,10 +97,7 @@ class OfflineBundleTransport(ReleaseTransport):
                 + " before image load"
             )
         try:
-            load_offline_inventory(self.files)
-            _validate_archive_structure(
-                self.files.archive_path, self.files.manifest.images
-            )
+            inspect_offline_artifact(self.files)
         except ContractError as exc:
             raise TransportError("offline bundle preflight failed before image load") from exc
 
@@ -113,6 +126,15 @@ def validate_offline_artifact(files: ReleaseFiles) -> None:
     """Validate the producer bundle without constructing or calling Docker."""
 
     OfflineBundleTransport(object(), files).preflight()
+
+
+def inspect_offline_artifact(files: ReleaseFiles) -> VerifiedArchiveGraph:
+    """Validate inventory and archive graph, returning only immutable metadata."""
+
+    load_offline_inventory(files)
+    return _validate_archive_structure(
+        files.archive_path, files.manifest.images
+    )
 
 
 def produce_offline_archive(
@@ -173,7 +195,9 @@ def _verify_local_image(value: Mapping[str, object], image: ImageSpec) -> None:
         )
 
 
-def _validate_archive_structure(path: Path, images: tuple[ImageSpec, ...]) -> None:
+def _validate_archive_structure(
+    path: Path, images: tuple[ImageSpec, ...]
+) -> VerifiedArchiveGraph:
     try:
         with tarfile.open(path, mode="r:*") as archive:
             names: set[str] = set()
@@ -269,6 +293,27 @@ def _validate_archive_structure(path: Path, images: tuple[ImageSpec, ...]) -> No
                     raise ContractError(
                         "offline image archive contains a non-allowlisted member"
                     )
+            image_configs = {entry.config for entry in docker_images.values()}
+            image_layers = {
+                layer for entry in docker_images.values() for layer in entry.layers
+            }
+            return VerifiedArchiveGraph(
+                members=tuple(
+                    VerifiedArchiveMember(
+                        name=name,
+                        size=members[name].size,
+                        kind=(
+                            "image-config"
+                            if name in image_configs
+                            else "layer"
+                            if name in image_layers
+                            else "metadata"
+                        ),
+                    )
+                    for name in sorted(allowed_members)
+                    if members[name].isfile()
+                )
+            )
     except ContractError:
         raise
     except (

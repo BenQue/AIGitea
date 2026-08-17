@@ -33,6 +33,10 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
    测试环境时固定 `BLOCKED`。
 8. 安装与首次验收期间，sync timer、Actions auto deploy 与 production gate 均为 `disabled/inactive`；
    任一启用都需要未来独立批准。
+9. 本地 handoff builder 对 operator、manifest、Compose 与其它非 archive payload 执行 no-secret 检查；已通过
+   `docker-release/v2` identity/checksum/outer graph 校验的 `images.tar` 作为 opaque immutable payload 搬运，
+   不做 image 内部 Secret 审计。bundle PASS 只证明 exact bytes 与运输完整性；公司真实 Secret 与授权由人
+   在内网处理。
 
 ### Evidence 文件与回流
 
@@ -65,7 +69,7 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 | 预期输出 | archive checksum PASS；validator 只输出 contract/release identity、`ok=true`、`docker_calls=0`、`target_facts=NOT_READ`；`SHA256SUMS` 覆盖全部 payload 与 handoff manifest。 |
 | PASS | archive、source/release/compatibility、逐文件 SHA256、mode、path 和 `docker-release/v2` artifact-only contract 全部一致。 |
 | FAIL | 已执行只读校验，但 checksum、schema、release graph 或 compatibility 明确不一致；记录固定错误 code，不回显输入内容。 |
-| BLOCKED / 停止点 | short SHA、不同 bytes、unknown architecture/image store、unsafe path/mode/symlink、Secret sentinel、缺文件或任何 Docker/target 访问迹象；立即停止，不搬运到 AppServer。 |
+| BLOCKED / 停止点 | short SHA、不同 bytes、unknown architecture/image store、unsafe path/mode/symlink、非 archive payload 的 `SENSITIVE_CONTENT`、缺文件或任何 Docker/target 访问迹象；scanner 只允许 fixed code/message，不得回显值；立即停止，不搬运到 AppServer。`images.tar` 内部内容不属于本 gate 的扫描面。 |
 | Evidence | 一个 Stage 00 evidence JSON、archive sidecar checksum、脱敏 validator receipt；archive 本体不回流开发侧。 |
 | 回滚边界 | 仅删除本阶段新建的 staging copy，保留原始只读介质；不得触碰 Gitea、Registry、service、DB 或 target。 |
 
@@ -243,10 +247,12 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 
 ## 2. 当前状态与强制 NOT RUN
 
-Issue #120 的开发会话只允许 repository/local fake implementation 和验证。当前允许记录：Stage 00 的
-fake/disposable contract tests；这不是实际 NewEmaint handoff。公司侧 Stage 10–110：`NOT RUN`。
+Issue #120 建立了本 runbook；Issue #124 另行批准以 repo-external exact NewEmaint release 运行本地只读
+deterministic handoff regression。该 pre-Stage 00 local exact-release regression 已 PASS，但不生成 Stage
+evidence，也不是公司侧 handoff、安装或部署；正式搬运包仍须在 #124 人工合并后从 protected `main` exact
+SHA 重新生成。公司 Stage 00–110：`NOT RUN`。
 
 以下事项不得因 source commit、merged PR、local tests 或 future company PR/CI 而写成 PASS：两台 VM
 inventory、Gitea install/upgrade、backup/isolated restore、GitHub inbound、company bootstrap、Runner、
-Registry/cache、真实 `docker-release/v2` handoff、AppServer readiness、PostgreSQL migration/restore、Nginx、
+Registry/cache、公司侧 `docker-release/v2` handoff、AppServer readiness、PostgreSQL migration/restore、Nginx、
 application deploy/health/rollback、service/timer enable/restart、DNS/TLS/firewall 和 production。

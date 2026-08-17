@@ -9,7 +9,12 @@ import tempfile
 import tarfile
 import unittest
 
-from aisoft_release.contract import load_release_files, load_target_profile
+from aisoft_release import transport as transport_module
+from aisoft_release.contract import (
+    load_release_artifact,
+    load_release_files,
+    load_target_profile,
+)
 from aisoft_release.errors import DeploymentError, ReleaseError, TransportError
 from aisoft_release.runner import ReleaseRuntime
 from aisoft_release.transport import produce_offline_archive
@@ -67,6 +72,26 @@ def replace_with_oci_archive(
 
 
 class ReleaseTransportTests(unittest.TestCase):
+    def test_verified_archive_graph_matches_preflight_members(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            create_release(root, transport="offline-bundle", migration=False)
+            files = load_release_artifact(root / "releases", SHA_A)
+            graph = transport_module.inspect_offline_artifact(files)
+            self.assertEqual(
+                {member.kind for member in graph.members},
+                {"image-config", "layer", "metadata"},
+            )
+            self.assertEqual(
+                {member.name for member in graph.members},
+                {
+                    "2" * 64 + ".json",
+                    "layers/0/layer.tar",
+                    "manifest.json",
+                    "repositories",
+                },
+            )
+
     def test_registry_verify_is_read_only_and_deploy_pulls_by_digest(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

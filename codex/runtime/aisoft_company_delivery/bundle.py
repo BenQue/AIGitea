@@ -17,15 +17,16 @@ from typing import Mapping
 from aisoft_release.contract import load_release_artifact
 from aisoft_release.errors import ReleaseError
 from aisoft_release.runner import ReleaseRuntime
+from aisoft_release.transport import VerifiedArchiveGraph, inspect_offline_artifact
 
 from .contract import (
     GIT_SHA,
     HANDOFF_VERSION,
     CompanyDeliveryError,
-    contains_sensitive_text,
     load_handoff,
     sha256_file,
 )
+from .secret_scan import mask_source_placeholders, scan_bundle_payloads
 
 
 SOURCE_REPOSITORY = "admin/aisoft-platform"
@@ -73,6 +74,7 @@ def build_bundle(
     _validate_output_directory(output)
     tracked = _mapped_tracked_files(repository)
     release_files = _verified_release(release_parent, release_id, _utc_today())
+    archive_graph = _verified_archive_graph(release_files)
     version = _operator_version(repository / "company-delivery/VERSION")
     bundle_name = f"aisoft-company-delivery-{version}-{source_sha}"
     bundle_root = output / bundle_name
@@ -91,7 +93,11 @@ def build_bundle(
         for source in sorted(release_files.directory.iterdir(), key=lambda item: item.name):
             _copy_regular(source, release_destination / source.name)
 
-        _scan_bundle_payloads(bundle_root)
+        _scan_bundle_payloads(
+            bundle_root,
+            archive_path=release_destination / release_files.archive_path.name,
+            archive_graph=archive_graph,
+        )
         payloads = _payload_inventory(bundle_root)
         manifest_relative = f"release/{release_id}/release.json"
         manifest_digest = sha256_file(bundle_root / manifest_relative)
@@ -190,6 +196,15 @@ def _verified_release(release_root: Path, release_id: str, today: date):
     if result.get("ok") is not True or result.get("docker_calls") != 0 or result.get("target_facts") != "NOT_READ":
         raise CompanyDeliveryError("ARTIFACT_INVALID", "artifact-only verification crossed its safety boundary")
     return files
+
+
+def _verified_archive_graph(files) -> VerifiedArchiveGraph:
+    try:
+        return inspect_offline_artifact(files)
+    except ReleaseError as exc:
+        raise CompanyDeliveryError(
+            "ARTIFACT_INVALID", "docker-release/v2 artifact graph verification failed"
+        ) from exc
 
 
 def _validate_repository(repository: Path, expected_sha: str) -> None:
@@ -318,54 +333,21 @@ def _payload_inventory(root: Path) -> list[dict[str, object]]:
     return payloads
 
 
-def _scan_bundle_payloads(root: Path) -> None:
-    for path in sorted(root.rglob("*"), key=lambda item: item.relative_to(root).as_posix()):
-        try:
-            metadata = path.lstat()
-        except OSError as exc:
-            raise CompanyDeliveryError("UNSAFE_PATH", "bundle payload is unavailable") from exc
-        if stat.S_ISDIR(metadata.st_mode):
-            continue
-        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
-            raise CompanyDeliveryError("UNSAFE_PATH", "bundle payload must be a regular non-symlink file")
-        carry = ""
-        try:
-            with path.open("rb") as handle:
-                for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                    text = carry + chunk.decode("latin-1")
-                    if contains_sensitive_text(_mask_source_placeholders(text)):
-                        raise CompanyDeliveryError(
-                            "SENSITIVE_CONTENT", "bundle contains forbidden sensitive content"
-                        )
-                    carry = text[-256:]
-        except CompanyDeliveryError:
-            raise
-        except OSError as exc:
-            raise CompanyDeliveryError("UNSAFE_PATH", "bundle payload cannot be read") from exc
+def _scan_bundle_payloads(
+    root: Path,
+    *,
+    archive_path: Path,
+    archive_graph: VerifiedArchiveGraph,
+) -> None:
+    scan_bundle_payloads(
+        root,
+        archive_path=archive_path,
+        archive_graph=archive_graph,
+    )
 
 
 def _mask_source_placeholders(value: str) -> str:
-    identifier = r"[A-Za-z_][A-Za-z0-9_]*"
-    placeholder = (
-        r"(?:%[A-Za-z]|\$"
-        + identifier
-        + r"|\$\{"
-        + identifier
-        + r"\}|\$\(<\"\$"
-        + identifier
-        + r"\"\)|<[^>\s]+>)"
-    )
-    patterns = (
-        re.compile(
-            rf"(?i)authorization\s*:\s*(?:bearer|token)\s+{placeholder}"
-        ),
-        re.compile(
-            rf"(?i)(?:password|passwd|pwd|token|secret|api[_-]?key)\s*[:=]\s*[\"']?{placeholder}[\"']?"
-        ),
-    )
-    for pattern in patterns:
-        value = pattern.sub("SECRET_PLACEHOLDER", value)
-    return value
+    return mask_source_placeholders(value)
 
 
 def _utc_today() -> date:
@@ -425,6 +407,7 @@ def _copy_new_file(source: Path, destination: Path, mode: int) -> None:
     descriptor: int | None = None
     try:
         descriptor = os.open(destination, flags, mode)
+        os.fchmod(descriptor, mode)
         with source.open("rb") as reader, os.fdopen(descriptor, "wb") as writer:
             descriptor = None
             shutil.copyfileobj(reader, writer, length=1024 * 1024)

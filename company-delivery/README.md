@@ -47,8 +47,11 @@ company-delivery/bin/aisoft-company-delivery build-bundle \
 
 `created-at` 只控制确定性 archive 的时间字段，不是安全校验时钟。每次 build 与 verify 都按运行时 UTC
 日期检查 architecture exception 是否仍有效，禁止通过回填时间绕过过期例外。builder 在写 manifest 前
-逐字节扫描全部 operator、dependency 与 release payload（包括 image archive）；命中 concrete
-Secret-like 内容时只返回固定 `SENSITIVE_CONTENT`，不回显值。
+扫描全部 operator、dependency 与 release 的非 archive payload：普通文本只豁免精确的外部引用语法，顶层
+concrete Secret-like 内容仍返回固定 `SENSITIVE_CONTENT`、no-echo 并清理部分输出。`images.tar` 在
+artifact-only identity/checksum/outer graph 验证后作为 opaque immutable payload 原字节搬运，不解压、不读取
+config/layer，也不声称其内部无 Secret。该风险由 release owner 与公司人工授权承担；规则按已验证 artifact
+类型统一生效，不使用 release SHA、image digest 或内部路径特判。
 
 ## 验证与 evidence
 
@@ -60,5 +63,6 @@ handoff、逐文件摘要、完整 `SHA256SUMS`、compatibility identity 和 rel
 `BLOCKED` 或 `NOT RUN`；必须分别记录 `observed`、`changed`、`verified`、`pending`。不得提交或传输
 Secret、原始日志、主机名/IP、用户名、配置内容、认证 header 或 credential path。
 
-完整操作合同见 [`runbook.md`](runbook.md)。当前仓库 Change 只运行 local fake tests；公司 VM、公司
-Gitea/Runner/Registry、backup/restore、NewEmaint target 和 production 均为 `NOT RUN`。
+完整操作合同见 [`runbook.md`](runbook.md)。#124 已对 repo-external exact NewEmaint release 运行本地只读
+deterministic handoff regression；这不是公司侧 handoff 或部署。公司 VM、公司 Gitea/Runner/Registry、
+backup/restore、NewEmaint target 和 production 均为 `NOT RUN`。

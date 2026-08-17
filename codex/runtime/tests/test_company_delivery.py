@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import contextlib
 from datetime import date
 import io
@@ -7,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 import tarfile
 import tempfile
@@ -14,6 +16,7 @@ import unittest
 from unittest import mock
 
 from aisoft_company_delivery import bundle as bundle_module
+from aisoft_company_delivery import secret_scan as secret_scan_module
 from aisoft_company_delivery.cli import main
 from aisoft_company_delivery.contract import (
     EVIDENCE_VERSION,
@@ -27,7 +30,14 @@ from aisoft_company_delivery.contract import (
 )
 from aisoft_company_delivery.collector import collect_inventory
 from aisoft_company_delivery.bundle import build_bundle, verify_bundle
-from tests.release_test_support import SHA_A, create_release, sha256, update_manifest
+from tests.release_test_support import (
+    SHA_A,
+    create_archive,
+    create_layer_archive_payload,
+    create_release,
+    sha256,
+    update_manifest,
+)
 
 
 SHA = "1" * 40
@@ -680,6 +690,28 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
         portable = verify_bundle(extracted_root / "handoff-manifest.json", extracted_root)
         self.assertTrue(portable["ok"])
 
+    def test_restrictive_umask_preserves_allowlisted_payload_modes(self) -> None:
+        previous_umask = os.umask(0o077)
+        try:
+            built = self.build(self.output_dir("out-restrictive-umask"))
+        finally:
+            os.umask(previous_umask)
+        executable = (
+            Path(built["bundle_root"])
+            / "operator/bin/aisoft-company-delivery"
+        )
+        self.assertEqual(stat.S_IMODE(executable.stat().st_mode), 0o755)
+
+    def test_operator_version_and_handoff_contract_remain_compatible(self) -> None:
+        built = self.build(self.output_dir("out-version-contract"))
+        manifest = load_handoff(
+            Path(built["bundle_root"]) / "handoff-manifest.json",
+            bundle_root=Path(built["bundle_root"]),
+        )
+        self.assertEqual(manifest["operator_version"], "1.0.1")
+        self.assertEqual(manifest["contract_version"], HANDOFF_VERSION)
+        self.assertEqual(HANDOFF_VERSION, "company-delivery-handoff/v1")
+
     def test_payload_tamper_and_unsafe_mode_fail_closed(self) -> None:
         built = self.build(self.output_dir("out-tamper"))
         bundle = Path(built["bundle_root"])
@@ -745,7 +777,7 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "SENSITIVE_CONTENT")
         self.assertNotIn(sentinel, str(caught.exception))
 
-    def test_sensitive_operator_and_image_archive_payloads_are_rejected(self) -> None:
+    def test_sensitive_operator_is_rejected_but_verified_image_is_opaque(self) -> None:
         sentinel = "never-print-this-value"
         operator_secret = self.source / "company-delivery/operator-secret.txt"
         operator_secret.write_text(f"password={sentinel}\n", encoding="utf-8")
@@ -774,25 +806,16 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
             ["git", "rev-parse", "HEAD"], cwd=self.source, text=True
         ).strip()
 
-        archive = self.release_root / SHA_A / "images.tar"
-        payload = f"password={sentinel}\n".encode("utf-8")
-        rewritten_archive = archive.with_suffix(".rewritten")
-        with tarfile.open(archive, mode="r") as source_archive, tarfile.open(
-            rewritten_archive, mode="w"
-        ) as target_archive:
-            for member in source_archive:
-                if member.isfile():
-                    source_handle = source_archive.extractfile(member)
-                    self.assertIsNotNone(source_handle)
-                    assert source_handle is not None
-                    member_payload = source_handle.read()
-                    if member.name == "layers/0/layer.tar":
-                        member_payload += payload
-                    member.size = len(member_payload)
-                    target_archive.addfile(member, io.BytesIO(member_payload))
-                else:
-                    target_archive.addfile(member)
-        rewritten_archive.replace(archive)
+        release_dir = self.release_root / SHA_A
+        archive = release_dir / "images.tar"
+        manifest = json.loads(
+            (release_dir / "release.json").read_text(encoding="utf-8")
+        )
+        create_archive(
+            archive,
+            manifest["images"],
+            layer_files=[("etc/app.env", f"password={sentinel}\n".encode())],
+        )
         inventory_path = self.release_root / SHA_A / "images.inventory.json"
         inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
         inventory["archive_sha256"] = sha256(archive)
@@ -809,10 +832,86 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
                 }
             ),
         )
-        with self.assertRaises(CompanyDeliveryError) as archive_error:
-            self.build(self.output_dir("out-sensitive-archive"))
-        self.assertEqual(archive_error.exception.code, "SENSITIVE_CONTENT")
-        self.assertNotIn(sentinel, str(archive_error.exception))
+        built = self.build(self.output_dir("out-opaque-archive"))
+        result = verify_bundle(
+            Path(built["bundle_root"]) / "handoff-manifest.json",
+            Path(built["bundle_root"]),
+        )
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["docker_calls"], 0)
+        self.assertEqual(result["target_facts"], "NOT_READ")
+
+    def test_top_level_scan_distinguishes_material_from_incomplete_examples(self) -> None:
+        source_fixture = (
+            self.source / "company-delivery/scanner-source-example.txt"
+        )
+        source_fixture.write_text(
+            "-----BEGIN PRIVATE KEY-----\n"
+            "Authorization: Bearer example-placeholder\n",
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", str(source_fixture)], cwd=self.source, check=True)
+        subprocess.run(
+            ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "safe source fixture"],
+            cwd=self.source,
+            check=True,
+        )
+        self.source_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=self.source, text=True
+        ).strip()
+        built = self.build(self.output_dir("out-safe-incomplete-source"))
+        self.assertTrue(
+            verify_bundle(
+                Path(built["bundle_root"]) / "handoff-manifest.json",
+                Path(built["bundle_root"]),
+            )["ok"]
+        )
+
+        header = base64.urlsafe_b64encode(
+            b'{"alg":"HS256","typ":"JWT"}'
+        ).rstrip(b"=")
+        payload = base64.urlsafe_b64encode(
+            b'{"sub":"synthetic-test"}'
+        ).rstrip(b"=")
+        signature = base64.urlsafe_b64encode(b"x" * 32).rstrip(b"=")
+        token = b".".join((header, payload, signature)).decode("ascii")
+        source_fixture.write_text(token + "\n", encoding="ascii")
+        subprocess.run(["git", "add", str(source_fixture)], cwd=self.source, check=True)
+        subprocess.run(
+            ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "credential fixture"],
+            cwd=self.source,
+            check=True,
+        )
+        self.source_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=self.source, text=True
+        ).strip()
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            self.build(self.output_dir("out-sensitive-top-level-jwt"))
+        self.assertEqual(caught.exception.code, "SENSITIVE_CONTENT")
+        self.assertNotIn(token, str(caught.exception))
+
+    def test_oversized_top_level_payload_fails_closed_without_echo(self) -> None:
+        sentinel = "never-print-this-value"
+        source_fixture = self.source / "company-delivery/oversized-payload.txt"
+        source_fixture.write_bytes(
+            b"x" * secret_scan_module.MAX_JSON_BYTES
+            + f"\npassword={sentinel}\n".encode("ascii")
+        )
+        subprocess.run(["git", "add", str(source_fixture)], cwd=self.source, check=True)
+        subprocess.run(
+            ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "oversized fixture"],
+            cwd=self.source,
+            check=True,
+        )
+        self.source_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=self.source, text=True
+        ).strip()
+        output = self.output_dir("out-oversized-top-level")
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            self.build(output)
+        self.assertEqual(caught.exception.code, "SENSITIVE_SCAN_BLOCKED")
+        self.assertNotIn(sentinel, str(caught.exception))
+        self.assertEqual(list(output.iterdir()), [])
 
     def test_artifact_freshness_uses_runtime_utc_date_not_created_at(self) -> None:
         runtime_date = date(2030, 1, 2)
@@ -846,6 +945,78 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
                 masked = bundle_module._mask_source_placeholders(safe)
                 self.assertFalse(contains_sensitive_text(masked))
 
+    def test_compose_external_reference_grammar(self) -> None:
+        release_dir = self.release_root / SHA_A
+        compose = release_dir / "compose.yaml"
+        model_path = release_dir / "compose.model.json"
+        for index, reference in enumerate(("${PASSWORD}", "${PASSWORD:?required}")):
+            with self.subTest(reference=reference):
+                model = json.loads(model_path.read_text(encoding="utf-8"))
+                model["services"]["web"]["environment"] = {
+                    "password": reference,
+                }
+                model_path.write_text(
+                    json.dumps(
+                        model,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+                compose.write_text(
+                    "services:\n"
+                    "  web:\n"
+                    "    environment:\n"
+                    f"      password: \"{reference}\"\n",
+                    encoding="utf-8",
+                )
+                update_manifest(
+                    release_dir,
+                    lambda value: value["compose"].update(
+                        {
+                            "sha256": sha256(compose),
+                            "model_sha256": sha256(model_path),
+                        }
+                    ),
+                )
+                built = self.build(self.output_dir(f"out-external-reference-{index}"))
+                self.assertTrue(
+                    verify_bundle(
+                        Path(built["bundle_root"]) / "handoff-manifest.json",
+                        Path(built["bundle_root"]),
+                    )["ok"]
+                )
+
+    def test_compose_default_and_command_substitution_fail_closed(self) -> None:
+        sentinel = "never-print-this-value"
+        release_dir = self.release_root / SHA_A
+        compose = release_dir / "compose.yaml"
+        unsafe_values = (
+            f"${{PASSWORD:-{sentinel}}}",
+            f"${{PASSWORD-{sentinel}}}",
+            f"${{PASSWORD:+{sentinel}}}",
+            f"prefix-${{PASSWORD}}-{sentinel}",
+            f"$(printf {sentinel})",
+            sentinel,
+        )
+        for index, value in enumerate(unsafe_values):
+            with self.subTest(index=index):
+                compose.write_text(f"# password={value}\n", encoding="utf-8")
+                update_manifest(
+                    release_dir,
+                    lambda manifest: manifest["compose"].update(
+                        {"sha256": sha256(compose)}
+                    ),
+                )
+                output = self.output_dir(f"out-unsafe-compose-{index}")
+                with self.assertRaises(CompanyDeliveryError) as caught:
+                    self.build(output)
+                self.assertEqual(caught.exception.code, "SENSITIVE_CONTENT")
+                self.assertNotIn(sentinel, str(caught.exception))
+                self.assertEqual(list(output.iterdir()), [])
+
     def test_wrong_digest_merge_sha_and_architecture_are_blocked(self) -> None:
         variants = {
             "digest": lambda release_dir: release_dir.joinpath("images.tar").write_bytes(
@@ -877,6 +1048,777 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
                         source_transport="approved-bundle",
                     )
                 self.assertEqual(caught.exception.code, "ARTIFACT_INVALID")
+
+
+class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
+    setUp = CompanyDeliveryBundleTests.setUp
+    tearDown = CompanyDeliveryBundleTests.tearDown
+    output_dir = CompanyDeliveryBundleTests.output_dir
+
+    def build(self, output: Path) -> dict[str, object]:
+        """Exercise the optional deep scanner without making it a handoff gate."""
+
+        files = bundle_module._verified_release(
+            self.release_root,
+            SHA_A,
+            bundle_module._utc_today(),
+        )
+        graph = bundle_module._verified_archive_graph(files)
+        secret_scan_module.scan_image_archive(files.archive_path, graph)
+        return CompanyDeliveryBundleTests.build(self, output)
+
+    def replace_archive(
+        self,
+        *,
+        layer_files: list[tuple[str, bytes]] | None = None,
+        layer_archive_payload: bytes | None = None,
+        config_environment: list[str] | None = None,
+    ) -> None:
+        release_dir = self.release_root / SHA_A
+        archive = release_dir / "images.tar"
+        manifest = json.loads(
+            (release_dir / "release.json").read_text(encoding="utf-8")
+        )
+        create_archive(
+            archive,
+            manifest["images"],
+            layer_files=layer_files,
+            layer_archive_payload=layer_archive_payload,
+            config_environment=config_environment,
+        )
+        inventory_path = release_dir / "images.inventory.json"
+        inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+        inventory["archive_sha256"] = sha256(archive)
+        inventory_path.write_text(
+            json.dumps(
+                inventory,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        update_manifest(
+            release_dir,
+            lambda value: value["offline_bundle"].update(
+                {
+                    "archive_sha256": sha256(archive),
+                    "inventory_sha256": sha256(inventory_path),
+                }
+            ),
+        )
+
+    def assert_bundle_error(self, code: str, output_name: str) -> CompanyDeliveryError:
+        output = self.output_dir(output_name)
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            self.build(output)
+        self.assertEqual(caught.exception.code, code)
+        self.assertEqual(list(output.iterdir()), [])
+        return caught.exception
+
+    def test_verified_graph_is_scanned_without_docker(self) -> None:
+        self.replace_archive(
+            layer_files=[
+                (
+                    "src/schema.json",
+                    b'{"properties":{"password":{"type":"string"}}}\n',
+                ),
+                ("src/example.js", b"const password = input;\n"),
+                ("src/block.js", b"{ function fixture() { return true; } }\n"),
+                (
+                    "src/object.js",
+                    b'{"handler": function () { return true; }}\n',
+                ),
+                ("src/array.js", b'{"items": [fixture, other]}\n'),
+                ("src/trailing.jsonc", b'{"safe": true,}\n'),
+                ("etc/service.conf", b"[Unit]\nDescription=fixture\n"),
+                ("bin/app", b"\x00\x7fELF\x00ordinary-binary\xff"),
+            ]
+        )
+        built = self.build(self.output_dir("out-safe-archive"))
+        result = verify_bundle(
+            Path(built["bundle_root"]) / "handoff-manifest.json",
+            Path(built["bundle_root"]),
+        )
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["docker_calls"], 0)
+        self.assertEqual(result["target_facts"], "NOT_READ")
+
+    def test_image_config_and_layer_secrets_are_rejected_without_echo(self) -> None:
+        sentinel = "never-print-this-value"
+        self.replace_archive(config_environment=[f"PASSWORD={sentinel}"])
+        config_error = self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-sensitive-config"
+        )
+        self.assertNotIn(sentinel, str(config_error))
+
+        self.replace_archive(
+            layer_files=[("etc/app.env", f"PASSWORD={sentinel}\n".encode())]
+        )
+        layer_error = self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-sensitive-layer"
+        )
+        self.assertNotIn(sentinel, str(layer_error))
+
+        self.replace_archive(
+            layer_files=[
+                (
+                    "etc/app.conf",
+                    b"[database]\n"
+                    b"database_url="
+                    b"postgres://example:placeholder@localhost/db\n",
+                )
+            ]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-sensitive-layer-yaml"
+        )
+
+        self.replace_archive(
+            layer_files=[("ambiguous-config", b"password: concrete-value\n")]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-runtime-text"
+        )
+
+    def test_material_aware_byte_signatures_cross_chunk_without_echo(self) -> None:
+        pem_header = b"-----BEGIN PRIVATE KEY-----"
+        encoded = base64.b64encode(b"fixture-private-key-material" * 4)
+        pem_material = (
+            pem_header + b"\n" + encoded + b"\n-----END PRIVATE KEY-----"
+        )
+        payload = b"\x00" * (1024 * 1024 - 10) + pem_material + b"\x00"
+        self.replace_archive(layer_files=[("bin/payload", payload)])
+        caught = self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-sensitive-binary"
+        )
+        self.assertNotIn(pem_header.decode("ascii"), str(caught))
+
+        self.replace_archive(
+            layer_files=[
+                (
+                    "bin/source-signatures",
+                    b"\x00-----BEGIN PRIVATE KEY-----\x00"
+                    b"Authorization: Bearer example-placeholder\x00"
+                    b"Authorization: Basic\x00"
+                    b"postgres://example:placeholder@localhost/db\x00"
+                    b"postgres://localhost/example\x00"
+                    b"abcdefgh.ijklmnop.qrstuvwxyz012345\x00",
+                ),
+                (
+                    "source-regex",
+                    b"password: ^(?=.*[A-Z])(?=.*\\d).{12,}$\n",
+                ),
+            ]
+        )
+        built = self.build(self.output_dir("out-safe-source-signatures"))
+        self.assertTrue(
+            verify_bundle(
+                Path(built["bundle_root"]) / "handoff-manifest.json",
+                Path(built["bundle_root"]),
+            )["ok"]
+        )
+
+        for name, signature in (
+            ("known-token", b"ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"),
+            (
+                "authorization-block",
+                b"Authorization: Bearer concrete-value",
+            ),
+            (
+                "authorization-basic-block",
+                b"Authorization: Basic Y29uY3JldGU6dmFsdWU=",
+            ),
+            (
+                "credential-url-userinfo",
+                b"postgres://service:concrete-value@db.invalid/app",
+            ),
+            (
+                "https-credential-url-userinfo",
+                b"https://service:concrete-value@example.invalid/app",
+            ),
+            (
+                "jwt-material",
+                b"Authorization: Bearer "
+                b"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmaXh0dXJlIn0."
+                b"YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYQ",
+            ),
+        ):
+            with self.subTest(name=name):
+                self.replace_archive(layer_files=[("bin/payload", signature)])
+                self.assert_bundle_error(
+                    "SENSITIVE_CONTENT", f"out-sensitive-{name}"
+                )
+
+        incomplete = pem_header + b"\n" + encoded
+        self.replace_archive(layer_files=[("source-incomplete-pem", incomplete)])
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-incomplete-pem"
+        )
+
+        invalid_complete = (
+            pem_header
+            + b"\n"
+            + b"not-valid-base64-material" * 2
+            + b"\n-----END PRIVATE KEY-----"
+        )
+        self.replace_archive(layer_files=[("source-invalid-pem", invalid_complete)])
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-invalid-pem"
+        )
+
+        escaped_pem = json.dumps(
+            {"example": pem_material.decode("ascii")},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        self.replace_archive(layer_files=[("source-json", escaped_pem)])
+        self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-sensitive-decoded-pem"
+        )
+
+    def test_json_context_rejects_runtime_material_and_blocks_ambiguity(self) -> None:
+        safe_documents = (
+            b'{"$schema":"https://example.invalid/schema",'
+            b'"properties":{"password":{"type":"string"}}}\n',
+            b'{"locale":"en","messages":{"password":"Password"}}\n',
+            b'{"kind":"source",'
+            b'"source":{'
+            b'"authorization":"Basic",'
+            b'"database_url":"postgres://localhost/example",'
+            b'"password":"^(?=.*[A-Z])(?=.*\\\\d).{12,}$"}}\n',
+            b'{"name":"fixture","lockfileVersion":3,"packages":{'
+            b'"":{"password":"example-placeholder"}}}\n',
+            b'{"name":"fixture","version":"1.0.0","scripts":{'
+            b'"password":"example-placeholder"}}\n',
+        )
+        self.replace_archive(
+            layer_files=[
+                (f"safe-{index}", payload)
+                for index, payload in enumerate(safe_documents)
+            ]
+        )
+        built = self.build(self.output_dir("out-safe-json-contexts"))
+        self.assertTrue(
+            verify_bundle(
+                Path(built["bundle_root"]) / "handoff-manifest.json",
+                Path(built["bundle_root"]),
+            )["ok"]
+        )
+
+        runtime_values = {
+            "authorization": "Bearer example-placeholder",
+            "database_url": "postgres://example:placeholder@localhost/db",
+            "password": "example-placeholder",
+        }
+        for key, value in runtime_values.items():
+            with self.subTest(runtime_key=key):
+                payload = json.dumps(
+                    {"runtime": {key: value}},
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+                self.replace_archive(layer_files=[("runtime-config", payload)])
+                self.assert_bundle_error(
+                    "SENSITIVE_CONTENT", f"out-runtime-json-{key}"
+                )
+
+        self.replace_archive(
+            layer_files=[("ambiguous-json", b'{"password":"example"}\n')]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-json-context"
+        )
+
+        self.replace_archive(
+            layer_files=[
+                (
+                    "source-ambiguous-json",
+                    b'{"kind":"source","source":{'
+                    b'"password":"concrete-value"}}\n',
+                )
+            ]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-source-json"
+        )
+
+        for name, payload in (
+            (
+                "source-authorization",
+                b'{"kind":"source","source":{'
+                b'"authorization":"Bearer concrete-value"}}\n',
+            ),
+            (
+                "source-basic-authorization",
+                b'{"kind":"source","source":{'
+                b'"authorization":"Basic Y29uY3JldGU6dmFsdWU="}}\n',
+            ),
+            (
+                "source-userinfo",
+                b'{"kind":"source","source":{'
+                b'"database_url":"https://service:concrete-value@example.invalid/app"}}\n',
+            ),
+        ):
+            with self.subTest(source_material=name):
+                self.replace_archive(layer_files=[("source-json", payload)])
+                self.assert_bundle_error(
+                    "SENSITIVE_CONTENT", f"out-{name}"
+                )
+
+    def test_package_metadata_maps_are_source_but_runtime_and_material_block(self) -> None:
+        safe_package = {
+            "name": "fixture",
+            "version": "1.0.0",
+            "scripts": {
+                "generate-token": "node tools/generate-token.js",
+            },
+            "dependencies": {
+                "auth-token": "1.2.3",
+                "credential-provider": "4.5.6",
+            },
+        }
+        self.replace_archive(
+            layer_files=[
+                (
+                    "package-metadata",
+                    json.dumps(
+                        safe_package, sort_keys=True, separators=(",", ":")
+                    ).encode("utf-8"),
+                )
+            ]
+        )
+        built = self.build(self.output_dir("out-safe-package-metadata"))
+        self.assertTrue(
+            verify_bundle(
+                Path(built["bundle_root"]) / "handoff-manifest.json",
+                Path(built["bundle_root"]),
+            )["ok"]
+        )
+
+        pem_body = base64.b64encode(b"package-private-key-material" * 4)
+        pem_material = (
+            b"-----BEGIN PRIVATE KEY-----\n"
+            + pem_body
+            + b"\n-----END PRIVATE KEY-----"
+        ).decode("ascii")
+        material_values = {
+            "known-token": "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345",
+            "valid-pem": pem_material,
+            "credential-url": (
+                "https://service:concrete-value@example.invalid/app"
+            ),
+            "authorization": "Authorization: Bearer concrete-value",
+        }
+        for name, material in material_values.items():
+            with self.subTest(material=name):
+                payload = dict(safe_package)
+                payload["scripts"] = {"generate-token": material}
+                self.replace_archive(
+                    layer_files=[
+                        (
+                            "package-metadata",
+                            json.dumps(
+                                payload,
+                                sort_keys=True,
+                                separators=(",", ":"),
+                            ).encode("utf-8"),
+                        )
+                    ]
+                )
+                caught = self.assert_bundle_error(
+                    "SENSITIVE_CONTENT", f"out-package-{name}"
+                )
+                self.assertNotIn(material, str(caught))
+
+        runtime_payload = dict(safe_package)
+        runtime_payload["config"] = {"password": "runtime-concrete-value"}
+        self.replace_archive(
+            layer_files=[
+                (
+                    "package-metadata",
+                    json.dumps(
+                        runtime_payload,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8"),
+                )
+            ]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-package-runtime-concrete"
+        )
+
+        ambiguous_payload = dict(safe_package)
+        ambiguous_payload["password"] = "unclassified-concrete-value"
+        self.replace_archive(
+            layer_files=[
+                (
+                    "package-metadata",
+                    json.dumps(
+                        ambiguous_payload,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8"),
+                )
+            ]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-package-ambiguous-field"
+        )
+
+    def test_unsafe_duplicate_and_unsupported_layer_fail_closed(self) -> None:
+        variants: dict[str, bytes] = {}
+        unsafe = io.BytesIO()
+        with tarfile.open(fileobj=unsafe, mode="w") as archive:
+            member = tarfile.TarInfo("../escape")
+            member.size = 1
+            archive.addfile(member, io.BytesIO(b"x"))
+        variants["unsafe"] = unsafe.getvalue()
+
+        duplicate = io.BytesIO()
+        with tarfile.open(fileobj=duplicate, mode="w") as archive:
+            for payload in (b"one", b"two"):
+                member = tarfile.TarInfo("etc/config")
+                member.size = len(payload)
+                archive.addfile(member, io.BytesIO(payload))
+        variants["duplicate"] = duplicate.getvalue()
+        variants["unsupported-compression"] = create_layer_archive_payload(
+            [("etc/config", b"SAFE=value\n")], compression="bz2"
+        )
+
+        for name, payload in variants.items():
+            with self.subTest(name=name):
+                self.replace_archive(layer_archive_payload=payload)
+                self.assert_bundle_error(
+                    "SENSITIVE_SCAN_BLOCKED", f"out-blocked-{name}"
+                )
+
+    def test_manual_archive_scan_is_fixed_no_echo_and_keeps_output_empty(self) -> None:
+        sentinel = "never-print-this-value"
+        unsafe = io.BytesIO()
+        with tarfile.open(fileobj=unsafe, mode="w") as archive:
+            member = tarfile.TarInfo(f"../{sentinel}")
+            member.size = 1
+            archive.addfile(member, io.BytesIO(b"x"))
+        self.replace_archive(layer_archive_payload=unsafe.getvalue())
+        output = self.output_dir("out-blocked-cli")
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            with self.assertRaises(CompanyDeliveryError) as caught:
+                self.build(output)
+        self.assertEqual(caught.exception.code, "SENSITIVE_SCAN_BLOCKED")
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual(stderr.getvalue(), "")
+        self.assertNotIn(sentinel, stderr.getvalue())
+        self.assertEqual(list(output.iterdir()), [])
+
+    def test_json_reason_remains_internal_to_manual_archive_scan(self) -> None:
+        sentinel = "never-print-json-reason-value"
+        self.replace_archive(
+            layer_files=[
+                (
+                    "ambiguous-json",
+                    json.dumps(
+                        {
+                            "kind": "source",
+                            "source": {"password": sentinel},
+                        },
+                        separators=(",", ":"),
+                    ).encode("utf-8"),
+                )
+            ]
+        )
+        output = self.output_dir("out-json-reason-cli")
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            with self.assertRaises(CompanyDeliveryError) as caught:
+                self.build(output)
+        self.assertEqual(caught.exception.code, "SENSITIVE_SCAN_BLOCKED")
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual(stderr.getvalue(), "")
+        self.assertNotIn(sentinel, stderr.getvalue())
+        self.assertNotIn("reason", stderr.getvalue())
+        self.assertNotIn("JSON_CONTEXT", stderr.getvalue())
+        self.assertNotIn("source_role", stderr.getvalue())
+        self.assertEqual(list(output.iterdir()), [])
+
+    def test_image_scan_resource_bounds_fail_closed(self) -> None:
+        cases = (
+            ("MAX_INNER_MEMBERS", 1, [("a", b"x"), ("b", b"y")]),
+            ("MAX_INNER_MEMBER_BYTES", 3, [("large", b"four")]),
+            ("MAX_EXPANDED_BYTES", 3, [("large", b"four")]),
+            ("MAX_JSON_BYTES", 8, [("data", b'{"safe":"bounded"}\n')]),
+        )
+        for constant, limit, files in cases:
+            with self.subTest(constant=constant):
+                self.replace_archive(layer_files=files)
+                with mock.patch(
+                    f"aisoft_company_delivery.secret_scan.{constant}", limit
+                ):
+                    self.assert_bundle_error(
+                        "SENSITIVE_SCAN_BLOCKED", f"out-bound-{constant.lower()}"
+                    )
+
+        self.replace_archive(
+            layer_files=[("data", b'{"safe":1,"safe":2}\n')]
+        )
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-duplicate-json-key"
+        )
+
+    def test_source_literal_secret_is_rejected_but_ambiguous_text_blocks(self) -> None:
+        sentinel = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"
+        self.replace_archive(
+            layer_files=[
+                (
+                    "source",
+                    f'{{"password": "{sentinel}", trailing: true}}\n'.encode(),
+                )
+            ]
+        )
+        caught = self.assert_bundle_error(
+            "SENSITIVE_CONTENT", "out-source-literal"
+        )
+        self.assertNotIn(sentinel, str(caught))
+
+        self.replace_archive(
+            layer_files=[
+                (
+                    "safe-source",
+                    b'{"password": "example-placeholder", trailing: true}\n',
+                )
+            ]
+        )
+        built = self.build(self.output_dir("out-safe-source-literal"))
+        self.assertTrue(
+            verify_bundle(
+                Path(built["bundle_root"]) / "handoff-manifest.json",
+                Path(built["bundle_root"]),
+            )["ok"]
+        )
+
+        self.replace_archive(layer_files=[("ambiguous", b'{"safe": ???}\n')])
+        self.assert_bundle_error(
+            "SENSITIVE_SCAN_BLOCKED", "out-ambiguous-structured-text"
+        )
+
+
+class CompanyDeliveryJsonDiagnosticTests(unittest.TestCase):
+    REASONS = (
+        "JSON_RESOURCE_LIMIT",
+        "JSON_PARSE_UNSAFE",
+        "JSON_SOURCE_ASSIGNMENT_AMBIGUOUS",
+        "JSON_RUNTIME_ENV_INVALID",
+        "JSON_SOURCE_SENSITIVE_AMBIGUOUS",
+        "JSON_GENERIC_SENSITIVE_AMBIGUOUS",
+        "JSON_REASON_UNAVAILABLE",
+    )
+    SOURCE_ROLES = (
+        "SCHEMA",
+        "SOURCE_MAP",
+        "PACKAGE_METADATA",
+        "I18N",
+        "EXAMPLE",
+        "OTHER",
+    )
+
+    def emit(self, reason: str, sentinel: str) -> CompanyDeliveryError:
+        if reason == "JSON_REASON_UNAVAILABLE":
+            return CompanyDeliveryError(
+                "SENSITIVE_SCAN_BLOCKED",
+                "bundle secret scan could not be completed safely",
+            )
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            if reason == "JSON_RESOURCE_LIMIT":
+                with mock.patch.object(
+                    secret_scan_module, "MAX_JSON_BYTES", 4
+                ):
+                    secret_scan_module._scan_structured_payload(
+                        json.dumps({"safe": sentinel}).encode("utf-8")
+                    )
+            elif reason == "JSON_PARSE_UNSAFE":
+                secret_scan_module._scan_structured_payload(
+                    ('{"' + sentinel + '":}').encode("utf-8"),
+                    strict_candidate=True,
+                )
+            elif reason == "JSON_SOURCE_ASSIGNMENT_AMBIGUOUS":
+                secret_scan_module._scan_structured_payload(
+                    ('{"safe":true,password:"' + sentinel + '"}').encode(
+                        "utf-8"
+                    )
+                )
+            elif reason == "JSON_RUNTIME_ENV_INVALID":
+                secret_scan_module._scan_structured_payload(
+                    json.dumps(
+                        {"config": {"Env": [sentinel]}},
+                        separators=(",", ":"),
+                    ).encode("utf-8"),
+                    runtime_context=True,
+                )
+            elif reason == "JSON_SOURCE_SENSITIVE_AMBIGUOUS":
+                secret_scan_module._scan_structured_payload(
+                    json.dumps(
+                        {"source": {"password": sentinel}},
+                        separators=(",", ":"),
+                    ).encode("utf-8")
+                )
+            elif reason == "JSON_GENERIC_SENSITIVE_AMBIGUOUS":
+                secret_scan_module._scan_structured_payload(
+                    json.dumps(
+                        {"password": sentinel}, separators=(",", ":")
+                    ).encode("utf-8")
+                )
+            else:
+                self.fail("unexpected synthetic reason")
+        return caught.exception
+
+    def test_each_fixed_reason_is_machine_classifiable_without_echo(self) -> None:
+        self.assertEqual(
+            tuple(sorted(secret_scan_module.JSON_CONTEXT_REASON_CODES)),
+            tuple(sorted(self.REASONS)),
+        )
+        for reason in self.REASONS:
+            with self.subTest(reason=reason):
+                sentinel = "never-print-" + reason.lower()
+                error = self.emit(reason, sentinel)
+                self.assertEqual(error.code, "SENSITIVE_SCAN_BLOCKED")
+                self.assertEqual(
+                    error.safe_message,
+                    "bundle secret scan could not be completed safely",
+                )
+                self.assertEqual(
+                    secret_scan_module.json_context_reason_code(error), reason
+                )
+                self.assertNotIn(sentinel, str(error))
+                self.assertNotIn(sentinel, error.safe_message)
+
+    def test_each_fixed_diagnostic_line_has_no_dynamic_input(self) -> None:
+        for reason in self.REASONS:
+            with self.subTest(reason=reason):
+                sentinel = "never-print-" + reason.lower()
+                error = self.emit(reason, sentinel)
+                output = secret_scan_module.format_json_context_diagnostic(
+                    error
+                )
+                self.assertEqual(
+                    output,
+                    "SENSITIVE_SCAN_BLOCKED: top_level=images.tar "
+                    f"classifier=JSON_CONTEXT reason={reason}"
+                    + (
+                        " source_role=OTHER"
+                        if reason == "JSON_SOURCE_SENSITIVE_AMBIGUOUS"
+                        else ""
+                    ),
+                )
+                self.assertNotIn(sentinel, output)
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "JSON context diagnostic requires SENSITIVE_SCAN_BLOCKED",
+        ):
+            secret_scan_module.format_json_context_diagnostic(
+                CompanyDeliveryError(
+                    "SENSITIVE_CONTENT",
+                    "bundle contains forbidden sensitive content",
+                )
+            )
+
+    def emit_source_role(
+        self, role: str, sentinel: str
+    ) -> CompanyDeliveryError:
+        documents = {
+            "SCHEMA": {
+                "$schema": "https://example.invalid/schema",
+                "properties": {"password": sentinel},
+            },
+            "SOURCE_MAP": {
+                "version": 3,
+                "sources": [],
+                "names": [],
+                "mappings": "",
+                "password": sentinel,
+            },
+            "PACKAGE_METADATA": {
+                "name": "fixture",
+                "version": "1.0.0",
+                "scripts": {},
+                "password": sentinel,
+            },
+            "I18N": {
+                "locale": "en",
+                "messages": {"password": sentinel},
+            },
+            "EXAMPLE": {
+                "kind": "source",
+                "source": {"password": sentinel},
+            },
+            "OTHER": {
+                "$schema": "https://example.invalid/schema",
+                "locale": "en",
+                "password": sentinel,
+            },
+        }
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            secret_scan_module._scan_structured_payload(
+                json.dumps(
+                    documents[role], separators=(",", ":")
+                ).encode("utf-8")
+            )
+        return caught.exception
+
+    def test_each_source_role_is_fixed_and_machine_classifiable(self) -> None:
+        self.assertEqual(
+            tuple(sorted(secret_scan_module.JSON_SOURCE_ROLES)),
+            tuple(sorted(self.SOURCE_ROLES)),
+        )
+        for role in self.SOURCE_ROLES:
+            with self.subTest(role=role):
+                sentinel = "never-print-source-role-" + role.lower()
+                error = self.emit_source_role(role, sentinel)
+                self.assertEqual(
+                    secret_scan_module.json_context_reason_code(error),
+                    "JSON_SOURCE_SENSITIVE_AMBIGUOUS",
+                )
+                self.assertEqual(
+                    secret_scan_module.json_source_role_code(error), role
+                )
+                self.assertNotIn(sentinel, str(error))
+
+    def test_each_source_role_diagnostic_line_is_fixed_no_echo(self) -> None:
+        for role in self.SOURCE_ROLES:
+            with self.subTest(role=role):
+                sentinel = "never-print-source-role-" + role.lower()
+                error = self.emit_source_role(role, sentinel)
+                output = secret_scan_module.format_json_context_diagnostic(
+                    error
+                )
+                self.assertEqual(
+                    output,
+                    "SENSITIVE_SCAN_BLOCKED: top_level=images.tar "
+                    "classifier=JSON_CONTEXT "
+                    "reason=JSON_SOURCE_SENSITIVE_AMBIGUOUS "
+                    f"source_role={role}",
+                )
+                self.assertNotIn(sentinel, output)
+
+    def test_unclassified_source_marker_collapses_to_other(self) -> None:
+        sentinel = "never-print-unclassified-source-role"
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            secret_scan_module._scan_structured_payload(
+                json.dumps(
+                    {"source": {"password": sentinel}},
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            )
+        self.assertEqual(
+            secret_scan_module.json_source_role_code(caught.exception),
+            "OTHER",
+        )
+        self.assertNotIn(sentinel, str(caught.exception))
 
 
 class CompanyDeliveryRunbookTests(unittest.TestCase):
