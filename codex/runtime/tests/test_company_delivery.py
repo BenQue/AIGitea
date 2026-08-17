@@ -27,10 +27,13 @@ from aisoft_company_delivery.contract import (
     TRANSITION_VERSION,
     CompanyDeliveryError,
     contains_sensitive_text,
+    legacy_baseline_sha256,
     load_evidence,
     load_gitea_transition,
     load_handoff,
     load_inventory,
+    verify_gitea_transition,
+    verify_legacy_health,
 )
 from aisoft_company_delivery.collector import collect_inventory
 from aisoft_company_delivery.bundle import build_bundle, verify_bundle
@@ -169,6 +172,46 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         for unit in value["units"]:
             if unit["name"] == "gitea.service":
                 unit.update({"enabled": "not-found", "active": "not-found"})
+        value["scm"]["legacy"]["baseline_sha256"] = legacy_baseline_sha256(
+            value["scm"]["legacy"]
+        )
+        return value
+
+    def appserver_inventory_v2(self) -> dict[str, object]:
+        value = self.inventory_v2()
+        value["role"] = "appserver-prod"
+        value["mode"] = None
+        value["scm"] = None
+        value["tools"] = [
+            {"name": name, "status": "PASS", "version": version, "reason": None}
+            for name, version in (
+                ("docker-compose", "5.1.4"),
+                ("docker-engine", "29.7.1"),
+                ("nginx", "1.30.4"),
+                ("postgresql-client", "18.4.0"),
+                ("python", "3.14.4"),
+            )
+        ]
+        value["units"] = [
+            {"name": name, "enabled": "enabled", "active": "active"}
+            for name in ("docker.service", "nginx.service", "postgresql.service")
+        ]
+        return value
+
+    def post_install_inventory_v2(self) -> dict[str, object]:
+        value = self.inventory_v2()
+        value["mode"] = "post-install"
+        value["scm"]["candidate"]["ports"] = {
+            "gitea_http": "occupied",
+            "postgresql": "occupied",
+        }
+        value["scm"]["candidate"]["resources"] = {
+            key: "occupied" for key in value["scm"]["candidate"]["resources"]
+        }
+        value["scm"]["candidate"]["services"] = {
+            "gitea": {"enabled": "enabled", "active": "active"},
+            "postgresql": {"enabled": "enabled", "active": "active"},
+        }
         return value
 
     def transition(self, *, decision: str = "greenfield-parallel-replacement") -> dict[str, object]:
@@ -237,6 +280,27 @@ class CompanyDeliveryContractTests(unittest.TestCase):
             },
             "pending": [],
         }
+
+    def bound_transition_files(
+        self,
+        *,
+        prefix: str = "bound",
+        decision: str = "greenfield-parallel-replacement",
+    ) -> tuple[Path, Path, Path]:
+        scm_value = self.inventory_v2()
+        appserver_value = self.appserver_inventory_v2()
+        scm_path = self.write_json(f"{prefix}-scm.json", scm_value)
+        appserver_path = self.write_json(f"{prefix}-appserver.json", appserver_value)
+        transition = self.transition(decision=decision)
+        transition["inventories"] = {
+            "scm_ci_sha256": sha256(scm_path),
+            "appserver_prod_sha256": sha256(appserver_path),
+        }
+        transition["legacy_baseline_sha256"] = scm_value["scm"]["legacy"][
+            "baseline_sha256"
+        ]
+        transition_path = self.write_json(f"{prefix}-transition.json", transition)
+        return transition_path, scm_path, appserver_path
 
     def evidence(self) -> dict[str, object]:
         return {
@@ -362,24 +426,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         self.assertEqual(value["scm"]["legacy"]["presence"], "present")
         self.assertEqual(value["scm"]["candidate"]["ports"]["gitea_http"], "free")
 
-        appserver = self.inventory_v2()
-        appserver["role"] = "appserver-prod"
-        appserver["mode"] = None
-        appserver["scm"] = None
-        appserver["tools"] = [
-            {"name": name, "status": "PASS", "version": version, "reason": None}
-            for name, version in (
-                ("docker-compose", "5.1.4"),
-                ("docker-engine", "29.7.1"),
-                ("nginx", "1.30.4"),
-                ("postgresql-client", "18.4.0"),
-                ("python", "3.14.4"),
-            )
-        ]
-        appserver["units"] = [
-            {"name": name, "enabled": "enabled", "active": "active"}
-            for name in ("docker.service", "nginx.service", "postgresql.service")
-        ]
+        appserver = self.appserver_inventory_v2()
         self.assertIsNone(
             load_inventory(self.write_json("inventory-v2-appserver.json", appserver))["scm"]
         )
@@ -398,6 +445,9 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         raw_port = self.inventory_v2()
         raw_port["scm"]["legacy"]["publish_port"] = 3000
         variants.append(("raw-port", raw_port))
+        wrong_baseline = self.inventory_v2()
+        wrong_baseline["scm"]["legacy"]["baseline_sha256"] = "sha256:" + "9" * 64
+        variants.append(("wrong-baseline", wrong_baseline))
         for name, value in variants:
             with self.subTest(name=name), self.assertRaises(CompanyDeliveryError):
                 load_inventory(self.write_json(f"{name}.json", value))
@@ -436,6 +486,164 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         controlled["prerequisites"]["isolated_restore_required"] = False
         with self.assertRaises(CompanyDeliveryError):
             load_gitea_transition(self.write_json("controlled-unsafe.json", controlled))
+
+    def test_transition_verifier_cli_surface_is_explicit(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "verify-gitea-transition",
+                "--input",
+                str(self.root / "transition.json"),
+                "--scm-inventory",
+                str(self.root / "scm.json"),
+                "--appserver-inventory",
+                str(self.root / "appserver.json"),
+            ]
+        )
+        self.assertEqual(args.command, "verify-gitea-transition")
+        for forbidden in ("--url", "--container-id", "--unit", "--command", "--credential"):
+            with self.subTest(argument=forbidden), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                build_parser().parse_args(
+                    [
+                        "verify-gitea-transition",
+                        "--input",
+                        str(self.root / "transition.json"),
+                        "--scm-inventory",
+                        str(self.root / "scm.json"),
+                        "--appserver-inventory",
+                        str(self.root / "appserver.json"),
+                        forbidden,
+                        "rejected",
+                    ]
+                )
+
+    def test_transition_verifier_binds_two_inventory_v2_files(self) -> None:
+        transition_path, scm_path, appserver_path = self.bound_transition_files()
+        value = verify_gitea_transition(transition_path, scm_path, appserver_path)
+        self.assertEqual(value["decision"], "greenfield-parallel-replacement")
+        self.assertEqual(value["outcome"], "PASS")
+        self.assertEqual(value["scm_inventory_sha256"], sha256(scm_path))
+
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            result = main(
+                [
+                    "verify-gitea-transition",
+                    "--input",
+                    str(transition_path),
+                    "--scm-inventory",
+                    str(scm_path),
+                    "--appserver-inventory",
+                    str(appserver_path),
+                ]
+            )
+        self.assertEqual(result, 0)
+        rendered = json.loads(stdout.getvalue())
+        self.assertTrue(rendered["ok"])
+        self.assertEqual(rendered["outcome"], "PASS")
+        self.assertNotIn(str(scm_path), stdout.getvalue())
+
+    def test_transition_verifier_rejects_checksum_role_mode_and_outcome_drift(self) -> None:
+        transition_path, scm_path, appserver_path = self.bound_transition_files(prefix="checksum")
+        appserver_value = json.loads(appserver_path.read_text(encoding="utf-8"))
+        appserver_path.write_text(
+            json.dumps(appserver_value, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(CompanyDeliveryError) as checksum_error:
+            verify_gitea_transition(transition_path, scm_path, appserver_path)
+        self.assertEqual(checksum_error.exception.code, "CHECKSUM_MISMATCH")
+
+        wrong_role_transition, _wrong_scm, wrong_appserver = self.bound_transition_files(
+            prefix="wrong-role"
+        )
+        transition = json.loads(wrong_role_transition.read_text(encoding="utf-8"))
+        transition["inventories"]["scm_ci_sha256"] = sha256(wrong_appserver)
+        wrong_role_transition.write_text(json.dumps(transition), encoding="utf-8")
+        with self.assertRaises(CompanyDeliveryError):
+            verify_gitea_transition(wrong_role_transition, wrong_appserver, wrong_appserver)
+
+        blocked_scm = self.inventory_v2()
+        blocked_scm["outcome"] = "BLOCKED"
+        blocked_scm["pending"] = ["CANDIDATE_PORT_STATE_GITEA_HTTP"]
+        blocked_scm["scm"]["candidate"]["ports"]["gitea_http"] = "occupied"
+        blocked_scm_path = self.write_json("blocked-scm.json", blocked_scm)
+        blocked_transition = self.transition()
+        blocked_transition["inventories"] = {
+            "scm_ci_sha256": sha256(blocked_scm_path),
+            "appserver_prod_sha256": sha256(wrong_appserver),
+        }
+        blocked_transition["legacy_baseline_sha256"] = blocked_scm["scm"]["legacy"][
+            "baseline_sha256"
+        ]
+        blocked_transition_path = self.write_json("blocked-transition.json", blocked_transition)
+        with self.assertRaises(CompanyDeliveryError):
+            verify_gitea_transition(
+                blocked_transition_path,
+                blocked_scm_path,
+                wrong_appserver,
+            )
+
+    def test_legacy_health_verifier_accepts_only_greenfield_post_install_equality(self) -> None:
+        transition_path, _scm_path, _appserver_path = self.bound_transition_files(prefix="legacy")
+        post = self.post_install_inventory_v2()
+        post_path = self.write_json("legacy-post.json", post)
+        value = verify_legacy_health(transition_path, post_path)
+        self.assertEqual(value["legacy_invariant"], "PASS")
+        self.assertEqual(value["stages_30_40"], "NOT RUN")
+
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            result = main(
+                [
+                    "verify-legacy-health",
+                    "--transition",
+                    str(transition_path),
+                    "--post-inventory",
+                    str(post_path),
+                ]
+            )
+        self.assertEqual(result, 0)
+        self.assertEqual(json.loads(stdout.getvalue())["legacy_invariant"], "PASS")
+
+        drift = self.post_install_inventory_v2()
+        drift["scm"]["legacy"]["version"] = "1.26.3"
+        drift["scm"]["legacy"]["baseline_sha256"] = legacy_baseline_sha256(
+            drift["scm"]["legacy"]
+        )
+        drift_path = self.write_json("legacy-drift.json", drift)
+        with self.assertRaises(CompanyDeliveryError) as drift_error:
+            verify_legacy_health(transition_path, drift_path)
+        self.assertEqual(drift_error.exception.code, "LEGACY_INVARIANT_FAILED")
+
+        controlled_path, _controlled_scm, _controlled_app = self.bound_transition_files(
+            prefix="controlled-health",
+            decision="controlled-upgrade-candidate",
+        )
+        with self.assertRaises(CompanyDeliveryError):
+            verify_legacy_health(controlled_path, post_path)
+
+    def test_transition_cli_rejects_sensitive_tamper_without_echo(self) -> None:
+        sentinel = "never-print-this-value"
+        transition_path, scm_path, appserver_path = self.bound_transition_files(prefix="sensitive")
+        transition = json.loads(transition_path.read_text(encoding="utf-8"))
+        transition["token"] = sentinel
+        transition_path.write_text(json.dumps(transition), encoding="utf-8")
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            result = main(
+                [
+                    "verify-gitea-transition",
+                    "--input",
+                    str(transition_path),
+                    "--scm-inventory",
+                    str(scm_path),
+                    "--appserver-inventory",
+                    str(appserver_path),
+                ]
+            )
+        self.assertEqual(result, 2)
+        self.assertEqual(json.loads(stderr.getvalue())["error_code"], "SENSITIVE_CONTENT")
+        self.assertNotIn(sentinel, stderr.getvalue())
 
     def test_unknown_fields_short_sha_and_unsafe_payload_paths_fail(self) -> None:
         inventory = self.inventory()

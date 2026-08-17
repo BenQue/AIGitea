@@ -24,6 +24,7 @@ from .contract import (
     SCM_AUTOMATION,
     CompanyDeliveryError,
     contains_sensitive_text,
+    legacy_baseline_sha256,
     load_inventory,
 )
 
@@ -351,7 +352,7 @@ def _collect_scm_inventory(
                         pending.append("LEGACY_GITEA_VERSION_UNRECOGNIZED")
                     else:
                         legacy.update({"health": "healthy", "version": version, "reason": None})
-                        legacy["baseline_sha256"] = _legacy_baseline(legacy)
+                        legacy["baseline_sha256"] = legacy_baseline_sha256(legacy)
 
     ports: dict[str, str] = {}
     desired_port_state = "free" if mode == "preflight" else "occupied"
@@ -578,21 +579,6 @@ def _unique_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
             raise ValueError("duplicate key")
         value[key] = item
     return value
-
-
-def _legacy_baseline(legacy: dict[str, object]) -> str:
-    canonical = {
-        key: legacy[key]
-        for key in (
-            "publish_port_sha256",
-            "presence",
-            "container_id_sha256",
-            "health",
-            "version",
-        )
-    }
-    payload = json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
 def _parse_os_release(value: str) -> tuple[str, str]:

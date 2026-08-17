@@ -167,6 +167,23 @@ def contains_sensitive_text(value: str) -> bool:
     return any(pattern.search(value) is not None for pattern in SENSITIVE_VALUE_PATTERNS)
 
 
+def legacy_baseline_sha256(legacy: Mapping[str, object]) -> str:
+    """Return the one canonical, no-raw legacy identity used by pre/post gates."""
+
+    canonical = {
+        key: legacy.get(key)
+        for key in (
+            "publish_port_sha256",
+            "presence",
+            "container_id_sha256",
+            "health",
+            "version",
+        )
+    }
+    payload = json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
 def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[str, object]:
     value = _load_object(path, "inventory", require_protected=require_protected)
     _reject_sensitive(value)
@@ -386,6 +403,16 @@ def _load_inventory_v2(value: dict[str, object]) -> dict[str, object]:
     legacy = _validate_scm_legacy(_object(scm, "legacy", "inventory.scm"))
     candidate = _validate_scm_candidate(_object(scm, "candidate", "inventory.scm"))
     automation = _validate_scm_automation(_object(scm, "automation", "inventory.scm"))
+
+    if legacy["health"] == "healthy":
+        if legacy["baseline_sha256"] != legacy_baseline_sha256(legacy):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "healthy legacy facts require the canonical baseline fingerprint"
+            )
+    elif legacy["baseline_sha256"] is not None:
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "non-healthy legacy facts cannot claim a baseline fingerprint"
+        )
 
     if outcome != "PASS":
         return value
@@ -698,6 +725,149 @@ def load_gitea_transition(
     ):
         raise CompanyDeliveryError("INVALID_CONTRACT", "blocked transition facts are inconsistent")
     return value
+
+
+def verify_gitea_transition(
+    transition_path: Path | str,
+    scm_inventory_path: Path | str,
+    appserver_inventory_path: Path | str,
+) -> dict[str, object]:
+    transition = load_gitea_transition(transition_path)
+    if transition["outcome"] != "PASS":
+        raise CompanyDeliveryError("TRANSITION_BLOCKED", "Gitea transition is not approved to continue")
+    inventories = _object(transition, "inventories", "Gitea transition")
+    scm_inventory, scm_sha256 = _load_stable_inventory(
+        scm_inventory_path,
+        "scm-ci inventory",
+        expected_sha256=_string(inventories, "scm_ci_sha256", "Gitea transition.inventories"),
+    )
+    appserver_inventory, appserver_sha256 = _load_stable_inventory(
+        appserver_inventory_path,
+        "appserver-prod inventory",
+        expected_sha256=_string(
+            inventories,
+            "appserver_prod_sha256",
+            "Gitea transition.inventories",
+        ),
+    )
+    if (
+        scm_inventory["contract_version"] != INVENTORY_V2_VERSION
+        or scm_inventory["role"] != "scm-ci"
+        or scm_inventory["outcome"] != "PASS"
+        or scm_inventory["mode"] != "preflight"
+        or not isinstance(scm_inventory["scm"], Mapping)
+    ):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "transition requires a passing scm-ci preflight inventory v2"
+        )
+    if (
+        appserver_inventory["contract_version"] != INVENTORY_V2_VERSION
+        or appserver_inventory["role"] != "appserver-prod"
+        or appserver_inventory["outcome"] != "PASS"
+        or appserver_inventory["mode"] is not None
+        or appserver_inventory["scm"] is not None
+    ):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "transition requires a passing appserver-prod inventory v2"
+        )
+    legacy = _object(
+        _mapping(scm_inventory["scm"], "inventory.scm"),
+        "legacy",
+        "inventory.scm",
+    )
+    if legacy["baseline_sha256"] != transition["legacy_baseline_sha256"]:
+        raise CompanyDeliveryError(
+            "CHECKSUM_MISMATCH", "transition legacy baseline does not match the scm-ci inventory"
+        )
+    return {
+        "contract_version": TRANSITION_VERSION,
+        "decision": transition["decision"],
+        "outcome": "PASS",
+        "legacy_baseline_sha256": transition["legacy_baseline_sha256"],
+        "scm_inventory_sha256": scm_sha256,
+        "appserver_inventory_sha256": appserver_sha256,
+    }
+
+
+def verify_legacy_health(
+    transition_path: Path | str,
+    post_inventory_path: Path | str,
+) -> dict[str, object]:
+    transition = load_gitea_transition(transition_path)
+    if (
+        transition["decision"] != "greenfield-parallel-replacement"
+        or transition["outcome"] != "PASS"
+    ):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "legacy equality is only a greenfield Stage 50 prerequisite"
+        )
+    post_inventory, post_sha256 = _load_stable_inventory(
+        post_inventory_path,
+        "post-install scm-ci inventory",
+    )
+    if (
+        post_inventory["contract_version"] != INVENTORY_V2_VERSION
+        or post_inventory["role"] != "scm-ci"
+        or post_inventory["outcome"] != "PASS"
+        or post_inventory["mode"] != "post-install"
+        or not isinstance(post_inventory["scm"], Mapping)
+    ):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "legacy equality requires a passing post-install scm-ci inventory v2"
+        )
+    legacy = _object(
+        _mapping(post_inventory["scm"], "inventory.scm"),
+        "legacy",
+        "inventory.scm",
+    )
+    if (
+        legacy["presence"] != "present"
+        or legacy["health"] != "healthy"
+        or legacy["version"] is None
+        or legacy["baseline_sha256"] != transition["legacy_baseline_sha256"]
+    ):
+        raise CompanyDeliveryError(
+            "LEGACY_INVARIANT_FAILED", "legacy Gitea pre/post health identity has changed"
+        )
+    return {
+        "contract_version": TRANSITION_VERSION,
+        "decision": "greenfield-parallel-replacement",
+        "legacy_invariant": "PASS",
+        "post_inventory_sha256": post_sha256,
+        "stages_30_40": "NOT RUN",
+    }
+
+
+def _load_stable_inventory(
+    path: Path | str,
+    label: str,
+    *,
+    expected_sha256: str | None = None,
+) -> tuple[dict[str, object], str]:
+    source = Path(path)
+    before = _protected_file_sha256(source, label)
+    value = load_inventory(source)
+    after = _protected_file_sha256(source, label)
+    if before != after:
+        raise CompanyDeliveryError("CHECKSUM_MISMATCH", f"{label} changed during verification")
+    if expected_sha256 is not None and after != expected_sha256:
+        raise CompanyDeliveryError("CHECKSUM_MISMATCH", f"{label} checksum does not match the transition")
+    return value, after
+
+
+def _protected_file_sha256(path: Path, label: str) -> str:
+    try:
+        metadata = path.lstat()
+    except OSError as exc:
+        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} is unavailable") from exc
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} must be a regular non-symlink file")
+    if stat.S_IMODE(metadata.st_mode) != 0o600:
+        raise CompanyDeliveryError("UNSAFE_MODE", f"{label} mode must be 0600")
+    try:
+        return sha256_file(path)
+    except OSError as exc:
+        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} is unavailable") from exc
 
 
 def load_evidence(path: Path | str, *, require_protected: bool = True) -> dict[str, object]:

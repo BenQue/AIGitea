@@ -9,7 +9,13 @@ import sys
 
 from .bundle import build_bundle, verify_bundle
 from .collector import collect_inventory
-from .contract import CompanyDeliveryError, load_evidence, load_inventory
+from .contract import (
+    CompanyDeliveryError,
+    load_evidence,
+    load_inventory,
+    verify_gitea_transition,
+    verify_legacy_health,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -18,6 +24,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     inventory = subparsers.add_parser("verify-inventory")
     inventory.add_argument("--input", required=True, type=Path)
+
+    transition = subparsers.add_parser("verify-gitea-transition")
+    transition.add_argument("--input", required=True, type=Path)
+    transition.add_argument("--scm-inventory", required=True, type=Path)
+    transition.add_argument("--appserver-inventory", required=True, type=Path)
+
+    legacy = subparsers.add_parser("verify-legacy-health")
+    legacy.add_argument("--transition", required=True, type=Path)
+    legacy.add_argument("--post-inventory", required=True, type=Path)
 
     evidence = subparsers.add_parser("verify-evidence")
     evidence.add_argument("--input", required=True, type=Path)
@@ -69,10 +84,20 @@ def main(argv: list[str] | None = None) -> int:
             )
         elif args.command == "verify-inventory":
             value = load_inventory(args.input)
+        elif args.command == "verify-gitea-transition":
+            value = verify_gitea_transition(
+                args.input,
+                args.scm_inventory,
+                args.appserver_inventory,
+            )
+        elif args.command == "verify-legacy-health":
+            value = verify_legacy_health(args.transition, args.post_inventory)
         elif args.command == "verify-evidence":
             value = load_evidence(args.input)
-        else:
+        elif args.command == "verify-handoff":
             value = verify_bundle(args.manifest, args.bundle_root)
+        else:
+            raise CompanyDeliveryError("INVALID_ARGUMENT", "command is outside the operator allowlist")
     except CompanyDeliveryError as exc:
         print(
             json.dumps(
@@ -100,6 +125,16 @@ def main(argv: list[str] | None = None) -> int:
                 "docker_calls": value["docker_calls"],
                 "release_id": value["release_id"],
                 "target_facts": value["target_facts"],
+            }
+        )
+    elif args.command == "verify-gitea-transition":
+        output.update({"decision": value["decision"], "outcome": value["outcome"]})
+    elif args.command == "verify-legacy-health":
+        output.update(
+            {
+                "decision": value["decision"],
+                "legacy_invariant": value["legacy_invariant"],
+                "stages_30_40": value["stages_30_40"],
             }
         )
     print(json.dumps(output, sort_keys=True, separators=(",", ":")))
