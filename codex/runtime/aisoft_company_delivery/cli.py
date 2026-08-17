@@ -29,6 +29,8 @@ def build_parser() -> argparse.ArgumentParser:
     collect = subparsers.add_parser("collect-inventory")
     collect.add_argument("--role", required=True, choices=("scm-ci", "appserver-prod"))
     collect.add_argument("--output", required=True, type=Path)
+    collect.add_argument("--mode", choices=("preflight", "post-install"))
+    collect.add_argument("--legacy-gitea-http-port", type=_port)
 
     bundle = subparsers.add_parser("build-bundle")
     bundle.add_argument("--repository-root", required=True, type=Path)
@@ -59,7 +61,12 @@ def main(argv: list[str] | None = None) -> int:
                 source_transport=args.source_transport,
             )
         elif args.command == "collect-inventory":
-            value = collect_inventory(args.role, args.output)
+            value = collect_inventory(
+                args.role,
+                args.output,
+                mode=args.mode,
+                legacy_gitea_http_port=args.legacy_gitea_http_port,
+            )
         elif args.command == "verify-inventory":
             value = load_inventory(args.input)
         elif args.command == "verify-evidence":
@@ -97,6 +104,15 @@ def main(argv: list[str] | None = None) -> int:
         )
     print(json.dumps(output, sort_keys=True, separators=(",", ":")))
     return 0
+
+
+def _port(value: str) -> int:
+    if not value.isascii() or not value.isdecimal():
+        raise argparse.ArgumentTypeError("port must be a decimal number")
+    parsed = int(value, 10)
+    if not 1 <= parsed <= 65535:
+        raise argparse.ArgumentTypeError("port must be between 1 and 65535")
+    return parsed
 
 
 if __name__ == "__main__":

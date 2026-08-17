@@ -16,12 +16,13 @@ import unittest
 from unittest import mock
 
 from aisoft_company_delivery import bundle as bundle_module
+from aisoft_company_delivery import collector as collector_module
 from aisoft_company_delivery import secret_scan as secret_scan_module
-from aisoft_company_delivery.cli import main
+from aisoft_company_delivery.cli import build_parser, main
 from aisoft_company_delivery.contract import (
     EVIDENCE_VERSION,
     HANDOFF_VERSION,
-    INVENTORY_VERSION,
+    INVENTORY_V1_VERSION,
     INVENTORY_V2_VERSION,
     TRANSITION_VERSION,
     CompanyDeliveryError,
@@ -63,7 +64,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
 
     def inventory(self) -> dict[str, object]:
         return {
-            "contract_version": INVENTORY_VERSION,
+            "contract_version": INVENTORY_V1_VERSION,
             "collector_version": "1.0.0",
             "collected_at": "2026-08-16T08:00:00Z",
             "role": "scm-ci",
@@ -609,6 +610,8 @@ class CompanyDeliveryContractTests(unittest.TestCase):
 
 
 class CompanyDeliveryCollectorTests(unittest.TestCase):
+    legacy_port = 13000
+
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
@@ -621,21 +624,36 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
             ("df", "-Pk", "/"): (0, "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/root 100 50 50 50% /\n", ""),
             ("git", "--version"): (0, "git version 2.50.1\n", ""),
             ("python3", "--version"): (0, "Python 3.14.4\n", ""),
-            ("gitea", "--version"): (0, "Gitea version 1.26.4 built with GNU Make\n", ""),
             ("act_runner", "--version"): (0, "act_runner version v0.2.13\n", ""),
             ("docker", "version", "--format", "{{.Server.Version}}"): (0, "29.7.1\n", ""),
             ("docker", "compose", "version", "--short"): (0, "5.1.4\n", ""),
+            (
+                "docker",
+                "ps",
+                "--filter",
+                "status=running",
+                "--filter",
+                f"publish={self.legacy_port}",
+                "--format",
+                "{{.ID}}",
+            ): (0, "aaaaaaaaaaaa\n", ""),
         }
-        for unit in (
-            "act_runner.service",
-            "docker.service",
-            "gitea.service",
-        ):
+        for unit in ("act_runner.service", "docker.service"):
             self.responses[("systemctl", "is-enabled", unit)] = (0, "enabled\n", "")
             self.responses[("systemctl", "is-active", unit)] = (0, "active\n", "")
+        for unit in (
+            "gitea.service",
+            "aisoft-gitea.service",
+            "postgresql@18-aisoft-gitea.service",
+        ):
+            self.responses[("systemctl", "is-enabled", unit)] = (4, "", "")
+            self.responses[("systemctl", "is-active", unit)] = (4, "", "")
         timer = "aisoft-inbound-sync@newemaint.timer"
         self.responses[("systemctl", "is-enabled", timer)] = (1, "disabled\n", "")
         self.responses[("systemctl", "is-active", timer)] = (3, "inactive\n", "")
+        self.http_response: tuple[int, str] | None = (200, '{"version":"1.26.4"}')
+        self.port_states = {3000: "free", 55432: "free"}
+        self.resource_states: dict[Path, str] = {}
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -656,16 +674,70 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         }
         return values[path]
 
-    def test_scm_inventory_uses_only_fixed_read_only_probes(self) -> None:
-        output = self.root / "inventory.json"
-        value = collect_inventory(
+    def http_get(self, port: int) -> tuple[int, str] | None:
+        self.assertEqual(port, self.legacy_port)
+        return self.http_response
+
+    def port_probe(self, port: int) -> str:
+        return self.port_states[port]
+
+    def resource_probe(self, path: Path) -> str:
+        return self.resource_states.get(path, "absent")
+
+    def docker_command(self) -> tuple[str, ...]:
+        return (
+            "docker",
+            "ps",
+            "--filter",
+            "status=running",
+            "--filter",
+            f"publish={self.legacy_port}",
+            "--format",
+            "{{.ID}}",
+        )
+
+    def collect_scm(
+        self,
+        output: Path,
+        *,
+        mode: str = "preflight",
+        runner=None,
+        http_get=None,
+        port_probe=None,
+        resource_probe=None,
+    ) -> dict[str, object]:
+        return collect_inventory(
             "scm-ci",
             output,
-            runner=self.runner,
+            mode=mode,
+            legacy_gitea_http_port=self.legacy_port,
+            runner=runner or self.runner,
             read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
+            now=lambda: "2026-08-17T08:00:00Z",
+            http_get=http_get or self.http_get,
+            port_probe=port_probe or self.port_probe,
+            resource_probe=resource_probe or self.resource_probe,
         )
+
+    def test_scm_inventory_requires_typed_mode_and_legacy_port(self) -> None:
+        with self.assertRaises(CompanyDeliveryError):
+            collect_inventory(
+                "scm-ci",
+                self.root / "missing-scm-options.json",
+                runner=self.runner,
+                read_text=self.read_text,
+                now=lambda: "2026-08-17T08:00:00Z",
+            )
+
+    def test_scm_inventory_uses_only_fixed_read_only_probes(self) -> None:
+        output = self.root / "inventory.json"
+        value = self.collect_scm(output)
         self.assertEqual(value["outcome"], "PASS")
+        self.assertEqual(value["contract_version"], INVENTORY_V2_VERSION)
+        self.assertEqual(value["mode"], "preflight")
+        self.assertEqual(value["scm"]["legacy"]["presence"], "present")
+        self.assertEqual(value["scm"]["legacy"]["health"], "healthy")
+        self.assertIsNotNone(value["scm"]["legacy"]["baseline_sha256"])
         self.assertEqual(output.stat().st_mode & 0o777, 0o600)
         parsed = load_inventory(output)
         rendered = output.read_text(encoding="utf-8")
@@ -673,8 +745,34 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.assertNotIn("company-scm-01", rendered)
         self.assertNotIn("machine-id-never-emitted", rendered)
         self.assertTrue(str(parsed["host"]["hostname_sha256"]).startswith("sha256:"))
+        self.assertNotIn("aaaaaaaaaaaa", rendered)
+        self.assertIn(
+            (
+                "docker",
+                "ps",
+                "--filter",
+                "status=running",
+                "--filter",
+                f"publish={self.legacy_port}",
+                "--format",
+                "{{.ID}}",
+            ),
+            self.calls,
+        )
         flattened = "\n".join(" ".join(command) for command in self.calls)
-        for forbidden in ("curl", "ssh", "journalctl", " start ", " enable ", " restart ", " stop "):
+        for forbidden in (
+            "docker inspect",
+            "docker logs",
+            "docker network",
+            "docker volume",
+            "curl",
+            "ssh",
+            "journalctl",
+            " start ",
+            " enable ",
+            " restart ",
+            " stop ",
+        ):
             self.assertNotIn(forbidden, flattened)
         self.assertEqual(
             [item for item in parsed["units"] if item["name"].endswith(".timer")],
@@ -695,34 +793,22 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
             "",
         )
         output = self.root / "sensitive-inventory.json"
-        value = collect_inventory(
-            "scm-ci",
-            output,
-            runner=self.runner,
-            read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
-        )
+        value = self.collect_scm(output)
         self.assertEqual(value["outcome"], "BLOCKED")
         gitea = next(item for item in value["tools"] if item["name"] == "gitea")
         self.assertEqual(gitea["status"], "BLOCKED")
         self.assertEqual(gitea["reason"], "sensitive-output-rejected")
         self.assertNotIn(sentinel, output.read_text(encoding="utf-8"))
 
-    def test_missing_tool_probe_is_not_projected_as_pass(self) -> None:
-        self.responses.pop(("gitea", "--version"))
+    def test_missing_required_tool_probe_is_not_projected_as_pass(self) -> None:
+        self.responses.pop(("git", "--version"))
         output = self.root / "missing-tool-inventory.json"
-        value = collect_inventory(
-            "scm-ci",
-            output,
-            runner=self.runner,
-            read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
-        )
+        value = self.collect_scm(output)
         self.assertEqual(value["outcome"], "BLOCKED")
-        self.assertIn("TOOL_PROBE_MISSING_GITEA", value["pending"])
-        gitea = next(item for item in value["tools"] if item["name"] == "gitea")
-        self.assertEqual(gitea["status"], "NOT RUN")
-        self.assertEqual(gitea["reason"], "command-missing")
+        self.assertIn("TOOL_PROBE_MISSING_GIT", value["pending"])
+        git = next(item for item in value["tools"] if item["name"] == "git")
+        self.assertEqual(git["status"], "NOT RUN")
+        self.assertEqual(git["reason"], "command-missing")
 
     def test_unrelated_semver_in_tool_error_banner_is_not_accepted(self) -> None:
         self.responses[("gitea", "--version")] = (
@@ -731,52 +817,190 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
             "",
         )
         output = self.root / "wrong-banner-inventory.json"
-        value = collect_inventory(
-            "scm-ci",
-            output,
-            runner=self.runner,
-            read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
-        )
+        value = self.collect_scm(output)
         self.assertEqual(value["outcome"], "BLOCKED")
         gitea = next(item for item in value["tools"] if item["name"] == "gitea")
         self.assertEqual(gitea["status"], "BLOCKED")
         self.assertEqual(gitea["reason"], "version-output-unrecognized")
 
-    def test_confirmed_absent_scm_tools_allow_side_by_side_inventory(self) -> None:
-        for command in (("gitea", "--version"), ("act_runner", "--version")):
-            self.responses.pop(command)
-        for unit in ("gitea.service", "act_runner.service"):
-            self.responses[("systemctl", "is-enabled", unit)] = (4, "", "")
-            self.responses[("systemctl", "is-active", unit)] = (4, "", "")
-        output = self.root / "fresh-scm-inventory.json"
-        value = collect_inventory(
-            "scm-ci",
+    def test_docker_only_legacy_is_present_even_when_host_binary_and_unit_are_absent(self) -> None:
+        output = self.root / "docker-only-scm-inventory.json"
+        value = self.collect_scm(output)
+        tools = {item["name"]: item for item in value["tools"]}
+        self.assertEqual(value["outcome"], "PASS")
+        self.assertEqual(tools["gitea"]["status"], "ABSENT")
+        self.assertEqual(value["scm"]["legacy"]["presence"], "present")
+        self.assertNotIn("LEGACY_GITEA_CONFIRMED_ABSENT", value["pending"])
+
+    def test_confirmed_absent_legacy_is_distinct_and_blocks_greenfield_transition(self) -> None:
+        command = self.docker_command()
+        self.responses[command] = (0, "", "")
+        output = self.root / "legacy-absent.json"
+        value = self.collect_scm(output)
+        self.assertEqual(value["outcome"], "BLOCKED")
+        self.assertEqual(value["scm"]["legacy"]["presence"], "absent")
+        self.assertEqual(value["scm"]["legacy"]["reason"], "confirmed-absent")
+        self.assertIn("LEGACY_GITEA_CONFIRMED_ABSENT", value["pending"])
+        self.assertNotIn("aaaaaaaaaaaa", output.read_text(encoding="utf-8"))
+
+    def test_legacy_docker_probe_is_fail_closed_and_never_echoes_raw_output(self) -> None:
+        sentinel = "never-print-this-value"
+        variants = (
+            ("multiple", (0, "aaaaaaaaaaaa\nbbbbbbbbbbbb\n", ""), "multiple-containers"),
+            ("malformed", (0, "not-a-container-id\n", ""), "malformed-container-id"),
+            (
+                "sensitive",
+                (0, f"token={sentinel}\n", ""),
+                "sensitive-output-rejected",
+            ),
+            ("failure", (1, "opaque failure", "opaque error"), "docker-probe-failed"),
+        )
+        for name, response, reason in variants:
+            self.responses[self.docker_command()] = response
+            output = self.root / f"legacy-{name}.json"
+            with self.subTest(name=name):
+                value = self.collect_scm(output)
+                rendered = output.read_text(encoding="utf-8")
+                self.assertEqual(value["outcome"], "BLOCKED")
+                self.assertEqual(value["scm"]["legacy"]["reason"], reason)
+                for raw in ("aaaaaaaaaaaa", "bbbbbbbbbbbb", "not-a-container-id", sentinel, "opaque"):
+                    self.assertNotIn(raw, rendered)
+
+        def timeout_runner(argv: list[str]) -> subprocess.CompletedProcess[str]:
+            if tuple(argv) == self.docker_command():
+                raise subprocess.TimeoutExpired(argv, 15, output="raw timeout output")
+            return self.runner(argv)
+
+        timeout_output = self.root / "legacy-timeout.json"
+        timeout_value = self.collect_scm(timeout_output, runner=timeout_runner)
+        self.assertEqual(timeout_value["outcome"], "BLOCKED")
+        self.assertEqual(timeout_value["scm"]["legacy"]["reason"], "docker-probe-failed")
+        self.assertNotIn("raw timeout output", timeout_output.read_text(encoding="utf-8"))
+
+    def test_legacy_health_probe_is_bounded_strict_and_no_echo(self) -> None:
+        sentinel = "never-print-this-value"
+
+        def timeout(_port: int) -> tuple[int, str] | None:
+            raise TimeoutError("raw timeout detail")
+
+        variants = (
+            ("non-200", lambda _port: (503, "service unavailable"), "unhealthy"),
+            ("wrong-json", lambda _port: (200, '{"version":"1.26.4","extra":true}'), "unknown"),
+            ("duplicate", lambda _port: (200, '{"version":"1.26.4","version":"9.9.9"}'), "unknown"),
+            ("sensitive", lambda _port: (200, f'{{"version":"1.26.4","token":"{sentinel}"}}'), "unknown"),
+            ("oversized", lambda _port: (200, '{"version":"' + "1" * 5000 + '"}'), "unknown"),
+            ("timeout", timeout, "unknown"),
+        )
+        for name, getter, health in variants:
+            output = self.root / f"health-{name}.json"
+            with self.subTest(name=name):
+                value = self.collect_scm(output, http_get=getter)
+                self.assertEqual(value["outcome"], "BLOCKED")
+                self.assertEqual(value["scm"]["legacy"]["health"], health)
+                rendered = output.read_text(encoding="utf-8")
+                self.assertNotIn(sentinel, rendered)
+                self.assertNotIn("service unavailable", rendered)
+                self.assertNotIn("9.9.9", rendered)
+
+    def test_fixed_resource_probe_reports_state_without_names_or_contents(self) -> None:
+        missing = self.root / "missing"
+        empty = self.root / "empty"
+        empty.mkdir()
+        occupied_dir = self.root / "occupied"
+        occupied_dir.mkdir()
+        (occupied_dir / "do-not-render-this-name").write_text("content", encoding="utf-8")
+        occupied_file = self.root / "binary"
+        occupied_file.write_text("bytes", encoding="utf-8")
+        link = self.root / "link"
+        link.symlink_to(occupied_file)
+        self.assertEqual(collector_module._resource_state(missing), "absent")
+        self.assertEqual(collector_module._resource_state(empty), "expected-empty")
+        self.assertEqual(collector_module._resource_state(occupied_dir), "occupied")
+        self.assertEqual(collector_module._resource_state(occupied_file), "occupied")
+        self.assertEqual(collector_module._resource_state(link), "unsafe")
+
+    def test_candidate_port_resource_and_service_collisions_block_preflight(self) -> None:
+        self.port_states[3000] = "occupied"
+        candidate_binary = Path("/opt/aisoft/gitea/1.26.4/gitea")
+        self.resource_states[candidate_binary] = "unsafe"
+        self.responses[("systemctl", "is-enabled", "aisoft-gitea.service")] = (0, "enabled\n", "")
+        self.responses[("systemctl", "is-active", "aisoft-gitea.service")] = (0, "active\n", "")
+        output = self.root / "candidate-collision.json"
+        value = self.collect_scm(output)
+        self.assertEqual(value["outcome"], "BLOCKED")
+        self.assertEqual(value["scm"]["candidate"]["ports"]["gitea_http"], "occupied")
+        self.assertEqual(value["scm"]["candidate"]["resources"]["gitea_binary"], "unsafe")
+        self.assertIn("CANDIDATE_PORT_STATE_GITEA_HTTP", value["pending"])
+        self.assertIn("CANDIDATE_RESOURCE_STATE_GITEA_BINARY", value["pending"])
+        self.assertIn("CANDIDATE_SERVICE_STATE_GITEA", value["pending"])
+
+    def test_post_install_mode_requires_only_fixed_candidate_state_and_legacy_health(self) -> None:
+        self.port_states = {3000: "occupied", 55432: "occupied"}
+        for unit in ("aisoft-gitea.service", "postgresql@18-aisoft-gitea.service"):
+            self.responses[("systemctl", "is-enabled", unit)] = (0, "enabled\n", "")
+            self.responses[("systemctl", "is-active", unit)] = (0, "active\n", "")
+        output = self.root / "post-install.json"
+        value = self.collect_scm(
             output,
-            runner=self.runner,
-            read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
+            mode="post-install",
+            resource_probe=lambda _path: "occupied",
         )
         self.assertEqual(value["outcome"], "PASS")
-        tools = {item["name"]: item for item in value["tools"]}
-        for name in ("gitea", "act-runner"):
-            self.assertEqual(tools[name]["status"], "ABSENT")
-            self.assertEqual(tools[name]["reason"], "confirmed-not-installed")
-            self.assertIsNone(tools[name]["version"])
-        self.assertNotIn("TOOL_PROBE_MISSING_GITEA", value["pending"])
-        self.assertNotIn("TOOL_PROBE_MISSING_ACT_RUNNER", value["pending"])
+        self.assertEqual(value["mode"], "post-install")
+        self.assertEqual(value["scm"]["legacy"]["health"], "healthy")
+        self.assertEqual(
+            value["scm"]["candidate"]["services"]["postgresql"],
+            {"enabled": "enabled", "active": "active"},
+        )
+
+    def test_scm_options_are_decimal_typed_and_rejected_for_appserver(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "collect-inventory",
+                "--role",
+                "scm-ci",
+                "--mode",
+                "preflight",
+                "--legacy-gitea-http-port",
+                str(self.legacy_port),
+                "--output",
+                str(self.root / "typed.json"),
+            ]
+        )
+        self.assertEqual(args.legacy_gitea_http_port, self.legacy_port)
+        for invalid in ("0", "65536", "+3000", "3.0", "１２３"):
+            with self.subTest(port=invalid), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                build_parser().parse_args(
+                    [
+                        "collect-inventory",
+                        "--role",
+                        "scm-ci",
+                        "--mode",
+                        "preflight",
+                        "--legacy-gitea-http-port",
+                        invalid,
+                        "--output",
+                        str(self.root / "invalid.json"),
+                    ]
+                )
+        with self.assertRaises(CompanyDeliveryError):
+            collect_inventory(
+                "appserver-prod",
+                self.root / "appserver-with-scm-options.json",
+                mode="preflight",
+                legacy_gitea_http_port=self.legacy_port,
+                runner=self.runner,
+                read_text=self.read_text,
+            )
 
     def test_tool_present_with_missing_unit_is_blocked_before_write(self) -> None:
-        self.responses[("systemctl", "is-enabled", "gitea.service")] = (4, "", "")
-        self.responses[("systemctl", "is-active", "gitea.service")] = (4, "", "")
-        output = self.root / "tool-unit-conflict.json"
-        value = collect_inventory(
-            "scm-ci",
-            output,
-            runner=self.runner,
-            read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
+        self.responses[("gitea", "--version")] = (
+            0,
+            "Gitea version 1.26.4 built with GNU Make\n",
+            "",
         )
+        output = self.root / "tool-unit-conflict.json"
+        value = self.collect_scm(output)
         self.assertEqual(value["outcome"], "BLOCKED")
         self.assertIn("TOOL_UNIT_STATE_CONFLICT_GITEA", value["pending"])
         self.assertEqual(load_inventory(output)["outcome"], "BLOCKED")
@@ -793,7 +1017,7 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
             output,
             runner=self.runner,
             read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
+            now=lambda: "2026-08-17T08:00:00Z",
         )
         self.assertEqual(value["outcome"], "PASS")
         versions = {item["name"]: item["version"] for item in value["tools"]}
@@ -801,6 +1025,8 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.assertEqual(versions["postgresql-client"], "18.4.0")
         self.assertNotIn(("gitea", "--version"), self.calls)
         self.assertNotIn(("act_runner", "--version"), self.calls)
+        self.assertIsNone(value["mode"])
+        self.assertIsNone(value["scm"])
         self.assertEqual(
             [item["name"] for item in value["units"]],
             ["docker.service", "nginx.service", "postgresql.service"],
@@ -810,23 +1036,11 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         output = self.root / "inventory.json"
         output.write_text("existing", encoding="utf-8")
         with self.assertRaises(CompanyDeliveryError):
-            collect_inventory(
-                "scm-ci",
-                output,
-                runner=self.runner,
-                read_text=self.read_text,
-                now=lambda: "2026-08-16T08:00:00Z",
-            )
+            self.collect_scm(output)
         output.unlink()
         self.root.chmod(0o755)
         with self.assertRaises(CompanyDeliveryError):
-            collect_inventory(
-                "scm-ci",
-                output,
-                runner=self.runner,
-                read_text=self.read_text,
-                now=lambda: "2026-08-16T08:00:00Z",
-            )
+            self.collect_scm(output)
 
 
 class CompanyDeliveryBundleTests(unittest.TestCase):

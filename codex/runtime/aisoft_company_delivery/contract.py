@@ -13,10 +13,9 @@ from typing import Mapping
 
 INVENTORY_V1_VERSION = "company-delivery-inventory/v1"
 INVENTORY_V2_VERSION = "company-delivery-inventory/v2"
-# The collector remains on v1 until the T02 probe vertical slice switches it
-# atomically to v2. Historical 1.0.1 bytes continue to validate their own v1
-# evidence; transition receipts below only bind v2 inventory identities.
-INVENTORY_VERSION = INVENTORY_V1_VERSION
+# Current operator bytes produce v2. The v1 loader remains only so archived
+# 1.0.1 evidence can be inspected; transition receipts only bind v2 identities.
+INVENTORY_VERSION = INVENTORY_V2_VERSION
 TRANSITION_VERSION = "company-delivery-gitea-transition/v1"
 HANDOFF_VERSION = "company-delivery-handoff/v1"
 EVIDENCE_VERSION = "company-delivery-evidence/v1"
