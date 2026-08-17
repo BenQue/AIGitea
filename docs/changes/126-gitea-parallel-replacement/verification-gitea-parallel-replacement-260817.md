@@ -22,9 +22,9 @@ risk_flags:
 depends_on:
   - 120
   - 124
-status: ready-for-review
+status: pr-open
 branch: change/126-gitea-parallel-replacement
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/127
 created: 2026-08-17
 updated: 2026-08-17
 ---
@@ -38,6 +38,9 @@ updated: 2026-08-17
   与该提交逐字一致。
 - Implementation candidate：`c0ec15db16f9fada87b52ed52cf22462c7758ac5`，验证时 worktree clean。
 - Operator source version：`1.1.0`。
+- PR：`#127`，创建后 readback 为 open、mergeable、unmerged；body 恰有一行 `Closes #126` 且只链接 mapped
+  summary 一次。最终 head 在本 projection commit push 后由 typed broker 回读并记录到 Issue 评论，避免形成
+  自引用 SHA 循环。
 - Environment：Mac isolated worktree + fake runner/HTTP/port/path/release fixtures only。
 - 公司 `scm-ci`、`appserver-prod` 与所有 live Gitea/PostgreSQL/service/network/repository：`NOT RUN`。
 
@@ -49,7 +52,7 @@ updated: 2026-08-17
 | T02 | PASS | fixed Docker/loopback/collision/resource probes；RED 后 GREEN；`a35443e5d497708e255cc8e45da309d89c4acbf9` |
 | T03 | PASS | transition/handoff/package/inventory binding、legacy pre/post equality 与 CLI；RED 后 GREEN；`507ea65bd02a7e1c36bcfbb5701db399bd1cf4b3` |
 | T04 | PASS | compatibility、Stage 10–50 runbook、authority docs 与 operator `1.1.0`；RED 后 GREEN；`f3ae92a7377eeb386254ac7a703af04a9e197e8f` |
-| T05 | PASS（PR readback 待执行） | 审阅回归 `a553e7e61111d526d75039f0ffdd5eced66e7b76`；package-manifest 完整性与治理收口 `c0ec15db16f9fada87b52ed52cf22462c7758ac5` |
+| T05 | PARTIAL（final-head readback 待执行） | 审阅回归 `a553e7e61111d526d75039f0ffdd5eced66e7b76`；package-manifest 完整性与治理收口 `c0ec15db16f9fada87b52ed52cf22462c7758ac5`；唯一 PR #127 已创建 |
 
 ## 执行结果
 
@@ -67,7 +70,7 @@ updated: 2026-08-17
 | approved contract immutability | PASS | mapped spec/plan 与 approval commit `9af72f6...` 执行 `git diff --exit-code` 无差异 |
 | Standards review | PASS | 第三轮 exact `c0ec15d...`：0 hard violations、0 judgement calls |
 | Spec review | PASS | 第三轮 exact `c0ec15d...`：0 findings；前三项 package/handoff/schema findings 全部关闭 |
-| protected main / PR / exact head / CI readback | NOT RUN | 待 PR 建立后由 typed broker 回读 |
+| protected main / PR / exact head / CI readback | PARTIAL | PR #127 初次 readback：head `0737f25d7d95601cdd6e9a4fa668b15d4976d911`、base `fbc17787bc0f3cafa4113349d6190b936311ebc3`、open/mergeable/unmerged；最终 projection head、protection、required CI 与 Actions 待 push 后回读 |
 
 ## Acceptance criteria 结果
 
@@ -82,7 +85,7 @@ updated: 2026-08-17
 | AC-7 Portable operator | PASS（local fake） | `1.1.0` 双构建逐字一致、三次 handoff verify、payload/tamper/no-secret PASS；不是 company Stage 00 |
 | AC-8 Runbook | PASS | Stage 10–50 greenfield/controlled-upgrade fork、stop point、evidence 与 rollback allowlist 静态/人工复核通过 |
 | AC-9 Validation | PASS | focused 74、full 435、smoke、JSON、bash、ShellCheck、diff 与双轴 review 全部 PASS |
-| AC-10 Governed delivery | NOT RUN | 待 broker PR/readback；merge 始终不授权 |
+| AC-10 Governed delivery | PARTIAL | 唯一 PR #127 与 exact body 已读回；最终 projection head/protection/CI 将在 push 后写入 Issue audit comment；merge 始终不授权 |
 | AC-11 Execution boundary | PASS | 公司 1.1.0 Stage 00、Stage 10/20/30/40/50 与全部 live mutation 均保持 `NOT RUN` |
 
 ## 重复部署
@@ -118,5 +121,6 @@ updated: 2026-08-17
 
 - 公司 Stage 10 尚未运行，真实 OS/package manifest、legacy loopback port、capacity/collision 与 public-name
   fingerprint 尚无 evidence；在此之前 Stage 20/50 不能获批。
-- 唯一 PR、final-head/protected-main/required-CI/Actions readback 尚待 typed broker 完成；AI 不合并。
+- PR #127 已建立；final-head/protected-main/required-CI/Actions readback 尚待本 projection commit push 后由 typed
+  broker 完成并写入 Issue audit comment；AI 不合并。
 - 本文只记录本地 source/test/bundle 与 PR evidence；不得把它改写为公司安装、升级或切流量成功。

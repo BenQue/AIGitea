@@ -31,9 +31,9 @@ documents:
   spec: spec-gitea-parallel-replacement-260817.md
   plan: plan-gitea-parallel-replacement-260817.md
   verification: verification-gitea-parallel-replacement-260817.md
-status: approved
+status: pr-open
 branch: change/126-gitea-parallel-replacement
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/127
 created: 2026-08-17
 updated: 2026-08-17
 ---
