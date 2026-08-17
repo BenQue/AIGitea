@@ -16,17 +16,27 @@ import unittest
 from unittest import mock
 
 from aisoft_company_delivery import bundle as bundle_module
+from aisoft_company_delivery import collector as collector_module
+from aisoft_company_delivery import contract as contract_module
 from aisoft_company_delivery import secret_scan as secret_scan_module
-from aisoft_company_delivery.cli import main
+from aisoft_company_delivery.cli import build_parser, main
 from aisoft_company_delivery.contract import (
     EVIDENCE_VERSION,
+    FIXED_GITEA_TARGET,
     HANDOFF_VERSION,
-    INVENTORY_VERSION,
+    INVENTORY_V1_VERSION,
+    INVENTORY_V2_VERSION,
+    SCM_AUTOMATION,
+    TRANSITION_VERSION,
     CompanyDeliveryError,
     contains_sensitive_text,
+    legacy_baseline_sha256,
     load_evidence,
+    load_gitea_transition,
     load_handoff,
     load_inventory,
+    verify_gitea_transition,
+    verify_legacy_health,
 )
 from aisoft_company_delivery.collector import collect_inventory
 from aisoft_company_delivery.bundle import build_bundle, verify_bundle
@@ -60,7 +70,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
 
     def inventory(self) -> dict[str, object]:
         return {
-            "contract_version": INVENTORY_VERSION,
+            "contract_version": INVENTORY_V1_VERSION,
             "collector_version": "1.0.0",
             "collected_at": "2026-08-16T08:00:00Z",
             "role": "scm-ci",
@@ -108,6 +118,211 @@ class CompanyDeliveryContractTests(unittest.TestCase):
             ],
             "pending": [],
         }
+
+    def inventory_v2(self) -> dict[str, object]:
+        value = self.inventory()
+        value.update(
+            {
+                "contract_version": INVENTORY_V2_VERSION,
+                "collector_version": "1.1.0",
+                "mode": "preflight",
+                "scm": {
+                    "probe_profile": "greenfield-parallel-replacement-v1",
+                    "legacy": {
+                        "publish_port_sha256": "sha256:" + DIGEST,
+                        "presence": "present",
+                        "container_id_sha256": "sha256:" + DIGEST,
+                        "health": "healthy",
+                        "version": "1.26.4",
+                        "baseline_sha256": "sha256:" + DIGEST,
+                        "reason": None,
+                    },
+                    "candidate": {
+                        "ports": {
+                            "gitea_http": "free",
+                            "postgresql": "free",
+                        },
+                        "resources": {
+                            "gitea_binary": "absent",
+                            "gitea_config": "absent",
+                            "gitea_data": "absent",
+                            "gitea_log": "absent",
+                            "postgresql_data": "absent",
+                        },
+                        "services": {
+                            "gitea": {"enabled": "not-found", "active": "not-found"},
+                            "postgresql": {"enabled": "not-found", "active": "not-found"},
+                        },
+                    },
+                    "automation": {
+                        "gitea_ssh": "disabled",
+                        "runner": "disabled-inactive",
+                        "sync_timer": "disabled-inactive",
+                        "actions_auto_deploy": "disabled-inactive",
+                        "production_gate": "disabled-inactive",
+                        "dns_tls": "NOT RUN",
+                        "reverse_proxy": "NOT RUN",
+                        "repository_import": "NOT RUN",
+                    },
+                },
+            }
+        )
+        for tool in value["tools"]:
+            if tool["name"] == "gitea":
+                tool.update(
+                    {"status": "ABSENT", "version": None, "reason": "confirmed-not-installed"}
+                )
+        for unit in value["units"]:
+            if unit["name"] == "gitea.service":
+                unit.update({"enabled": "not-found", "active": "not-found"})
+        value["scm"]["legacy"]["baseline_sha256"] = legacy_baseline_sha256(
+            value["scm"]["legacy"]
+        )
+        return value
+
+    def appserver_inventory_v2(self) -> dict[str, object]:
+        value = self.inventory_v2()
+        value["role"] = "appserver-prod"
+        value["mode"] = None
+        value["scm"] = None
+        value["tools"] = [
+            {"name": name, "status": "PASS", "version": version, "reason": None}
+            for name, version in (
+                ("docker-compose", "5.1.4"),
+                ("docker-engine", "29.7.1"),
+                ("nginx", "1.30.4"),
+                ("postgresql-client", "18.4.0"),
+                ("python", "3.14.4"),
+            )
+        ]
+        value["units"] = [
+            {"name": name, "enabled": "enabled", "active": "active"}
+            for name in ("docker.service", "nginx.service", "postgresql.service")
+        ]
+        return value
+
+    def post_install_inventory_v2(self) -> dict[str, object]:
+        value = self.inventory_v2()
+        value["mode"] = "post-install"
+        value["scm"]["candidate"]["ports"] = {
+            "gitea_http": "occupied",
+            "postgresql": "occupied",
+        }
+        value["scm"]["candidate"]["resources"] = {
+            key: "occupied" for key in value["scm"]["candidate"]["resources"]
+        }
+        value["scm"]["candidate"]["services"] = {
+            "gitea": {"enabled": "enabled", "active": "active"},
+            "postgresql": {"enabled": "enabled", "active": "active"},
+        }
+        return value
+
+    def transition(self, *, decision: str = "greenfield-parallel-replacement") -> dict[str, object]:
+        controlled = decision == "controlled-upgrade-candidate"
+        return {
+            "contract_version": TRANSITION_VERSION,
+            "operator_version": "1.1.0",
+            "recorded_at": "2026-08-17T08:00:00Z",
+            "source_git_sha": SHA,
+            "handoff_manifest_sha256": "3" * 64,
+            "postgresql_package_manifest_sha256": "4" * 64,
+            "reviewer_decision_id": "APR-126-STAGE-20-001",
+            "decision": decision,
+            "outcome": "PASS",
+            "inventories": {
+                "scm_ci_sha256": DIGEST,
+                "appserver_prod_sha256": "3" * 64,
+            },
+            "public_name_sha256": "sha256:" + "4" * 64,
+            "legacy_baseline_sha256": "sha256:" + DIGEST,
+            "target": {
+                "gitea_version": "1.26.4",
+                "gitea_artifact": "gitea-1.26.4-linux-amd64",
+                "gitea_sha256": "0faa36d151918f8f7d6e0f3ae67597d1c338583d695add146ac393109d0fc44a",
+                "postgresql_version": "18.4",
+                "postgresql_provenance_artifact": "postgresql-18.4.tar.bz2",
+                "postgresql_provenance_sha256": "81a81ec695fb0c7901407defaa1d2f7973617154cf27ba74e3a7ab8e64436094",
+                "linux_user": "aisoft-gitea",
+                "linux_group": "aisoft-gitea",
+                "gitea_unit": "aisoft-gitea.service",
+                "gitea_binary": "/opt/aisoft/gitea/1.26.4/gitea",
+                "gitea_config": "/etc/aisoft/gitea/app.ini",
+                "gitea_data": "/var/lib/aisoft-gitea",
+                "gitea_log": "/var/log/aisoft-gitea",
+                "postgresql_cluster": "aisoft-gitea",
+                "postgresql_unit": "postgresql@18-aisoft-gitea.service",
+                "postgresql_data": "/var/lib/postgresql/18/aisoft-gitea",
+                "postgresql_database": "aisoft_gitea",
+                "postgresql_role": "aisoft_gitea",
+                "gitea_http": "127.0.0.1:3000",
+                "postgresql_listen": "127.0.0.1:55432",
+            },
+            "prerequisites": {
+                "legacy_backup_required": controlled,
+                "isolated_restore_required": controlled,
+                "stage50_prerequisite": (
+                    "stage-30-40-pass" if controlled else "legacy-pre-post-equality"
+                ),
+            },
+            "automation": {
+                "gitea_ssh": "disabled",
+                "runner": "disabled-inactive",
+                "sync_timer": "disabled-inactive",
+                "actions_auto_deploy": "disabled-inactive",
+                "production_gate": "disabled-inactive",
+                "dns_tls": "NOT RUN",
+                "reverse_proxy": "NOT RUN",
+                "repository_import": "NOT RUN",
+            },
+            "stages": {
+                "00": "PASS",
+                "10-scm-ci": "PASS",
+                "10-appserver-prod": "PASS",
+                "20": "PASS",
+                "30": "NOT RUN",
+                "40": "NOT RUN",
+                "50": "NOT RUN",
+            },
+            "pending": [],
+        }
+
+    def bound_transition_files(
+        self,
+        *,
+        prefix: str = "bound",
+        decision: str = "greenfield-parallel-replacement",
+    ) -> tuple[Path, Path, Path, Path, Path]:
+        scm_value = self.inventory_v2()
+        appserver_value = self.appserver_inventory_v2()
+        scm_path = self.write_json(f"{prefix}-scm.json", scm_value)
+        appserver_path = self.write_json(f"{prefix}-appserver.json", appserver_value)
+        handoff_path = self.write_handoff_bundle(prefix)
+        package_manifest_path = self.root / f"{prefix}-postgresql-packages.sha256"
+        package_manifest_path.write_text(
+            "5" * 64 + "  postgresql-client.pkg\n",
+            encoding="ascii",
+        )
+        package_manifest_path.chmod(0o600)
+        transition = self.transition(decision=decision)
+        transition["inventories"] = {
+            "scm_ci_sha256": sha256(scm_path),
+            "appserver_prod_sha256": sha256(appserver_path),
+        }
+        transition["legacy_baseline_sha256"] = scm_value["scm"]["legacy"][
+            "baseline_sha256"
+        ]
+        transition["handoff_manifest_sha256"] = sha256(handoff_path)
+        transition["postgresql_package_manifest_sha256"] = sha256(
+            package_manifest_path
+        )
+        transition_path = self.write_json(f"{prefix}-transition.json", transition)
+        return (
+            transition_path,
+            scm_path,
+            appserver_path,
+            handoff_path,
+            package_manifest_path,
+        )
 
     def evidence(self) -> dict[str, object]:
         return {
@@ -166,6 +381,68 @@ class CompanyDeliveryContractTests(unittest.TestCase):
             ],
         }
 
+    def write_handoff_bundle(
+        self,
+        prefix: str,
+        *,
+        source_sha: str = SHA,
+        operator_version: str = "1.1.0",
+    ) -> Path:
+        bundle = self.root / f"{prefix}-bundle"
+        bundle.mkdir(mode=0o700)
+        payload_values = {
+            "operator/VERSION": (operator_version + "\n").encode("ascii"),
+            "operator/compatibility/newemaint-company-pilot-v1.json": b"{}\n",
+            "release/release.json": b"{}\n",
+        }
+        payloads: list[dict[str, object]] = []
+        for relative, content in payload_values.items():
+            target = bundle / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            current = target.parent
+            while current != bundle:
+                current.chmod(0o700)
+                current = current.parent
+            target.write_bytes(content)
+            target.chmod(0o644)
+            payloads.append(
+                {
+                    "path": relative,
+                    "sha256": sha256(target),
+                    "size_bytes": len(content),
+                    "mode": "0644",
+                }
+            )
+        payloads.sort(key=lambda item: str(item["path"]))
+        handoff = self.handoff()
+        handoff["operator_version"] = operator_version
+        handoff["source"]["git_sha"] = source_sha
+        handoff["release"]["manifest_sha256"] = sha256(
+            bundle / "release/release.json"
+        )
+        handoff["compatibility"]["matrix_sha256"] = sha256(
+            bundle / "operator/compatibility/newemaint-company-pilot-v1.json"
+        )
+        handoff["payloads"] = payloads
+        manifest = bundle / "handoff-manifest.json"
+        manifest.write_text(json.dumps(handoff, sort_keys=True), encoding="utf-8")
+        manifest.chmod(0o600)
+        checksums = {
+            str(item["path"]): str(item["sha256"])
+            for item in payloads
+        }
+        checksums["handoff-manifest.json"] = sha256(manifest)
+        checksum_path = bundle / "SHA256SUMS"
+        checksum_path.write_text(
+            "".join(
+                f"{digest}  {relative}\n"
+                for relative, digest in sorted(checksums.items())
+            ),
+            encoding="ascii",
+        )
+        checksum_path.chmod(0o600)
+        return manifest
+
     def test_valid_contract_documents(self) -> None:
         self.assertEqual(load_inventory(self.write_json("inventory.json", self.inventory()))["role"], "scm-ci")
         self.assertEqual(load_evidence(self.write_json("evidence.json", self.evidence()))["stage"], "00")
@@ -195,19 +472,495 @@ class CompanyDeliveryContractTests(unittest.TestCase):
             verify_payloads=False,
             require_protected=False,
         )
+        transition = load_gitea_transition(
+            delivery / "templates/gitea-transition.example.json",
+            require_protected=False,
+        )
         compatibility = json.loads(
             (delivery / "compatibility/newemaint-company-pilot-v1.json").read_text(
                 encoding="utf-8"
             )
         )
         self.assertEqual(inventory["outcome"], "NOT RUN")
+        self.assertEqual(inventory["contract_version"], INVENTORY_V2_VERSION)
         self.assertEqual(evidence["outcome"], "NOT RUN")
+        self.assertEqual(transition["outcome"], "BLOCKED")
         self.assertEqual(handoff["release"]["platform"], "linux/amd64")
         self.assertEqual(compatibility["topology"]["company_vm_count"], 2)
+        self.assertEqual(compatibility["matrix_revision"], "2026.08.2")
+        greenfield = compatibility["greenfield_gitea"]
+        self.assertEqual(greenfield["inventory_contract"], INVENTORY_V2_VERSION)
+        self.assertEqual(greenfield["transition_contract"], TRANSITION_VERSION)
+        self.assertEqual(
+            greenfield["stage20_bindings"],
+            [
+                "operator-1.1.0-handoff-manifest-sha256",
+                "operator-source-git-sha",
+                "postgresql-os-package-set-manifest-sha256",
+                "scm-ci-inventory-v2-sha256",
+                "appserver-prod-inventory-v2-sha256",
+                "legacy-baseline-sha256",
+                "public-name-sha256",
+            ],
+        )
+        self.assertEqual(greenfield["target"], FIXED_GITEA_TARGET)
+        self.assertEqual(greenfield["initial_automation"], SCM_AUTOMATION)
+        self.assertEqual(greenfield["stage_map"]["30"], "NOT RUN")
+        self.assertEqual(greenfield["stage_map"]["40"], "NOT RUN")
+        self.assertEqual(greenfield["stage_map"]["50"], "NOT RUN")
+        self.assertEqual(
+            set(greenfield["legacy_mutation_denylist"]),
+            {
+                "container",
+                "image",
+                "volume",
+                "network",
+                "database",
+                "configuration",
+                "port",
+                "repository",
+                "service-lifecycle",
+            },
+        )
         self.assertEqual(
             compatibility["policy"]["intranet_rebuild_without_isolated_test"],
             "BLOCKED",
         )
+        schemas = {
+            path.name: json.loads(path.read_text(encoding="utf-8"))
+            for path in (delivery / "schema").glob("*.schema.json")
+        }
+        self.assertEqual(
+            schemas["inventory-v2.schema.json"]["properties"]["contract_version"]["const"],
+            INVENTORY_V2_VERSION,
+        )
+        self.assertEqual(
+            schemas["gitea-transition-v1.schema.json"]["properties"]["contract_version"]["const"],
+            TRANSITION_VERSION,
+        )
+
+    def test_inventory_v2_models_scm_greenfield_facts_without_raw_values(self) -> None:
+        value = load_inventory(self.write_json("inventory-v2.json", self.inventory_v2()))
+        self.assertEqual(value["mode"], "preflight")
+        self.assertEqual(value["scm"]["legacy"]["presence"], "present")
+        self.assertEqual(value["scm"]["candidate"]["ports"]["gitea_http"], "free")
+
+        appserver = self.appserver_inventory_v2()
+        self.assertIsNone(
+            load_inventory(self.write_json("inventory-v2-appserver.json", appserver))["scm"]
+        )
+
+    def test_inventory_v2_role_mode_and_scm_enums_are_strict(self) -> None:
+        variants: list[tuple[str, dict[str, object]]] = []
+        appserver_with_scm = self.inventory_v2()
+        appserver_with_scm["role"] = "appserver-prod"
+        variants.append(("appserver-with-scm", appserver_with_scm))
+        missing_mode = self.inventory_v2()
+        missing_mode.pop("mode")
+        variants.append(("missing-mode", missing_mode))
+        wrong_port_state = self.inventory_v2()
+        wrong_port_state["scm"]["candidate"]["ports"]["gitea_http"] = "available"
+        variants.append(("wrong-port-state", wrong_port_state))
+        raw_port = self.inventory_v2()
+        raw_port["scm"]["legacy"]["publish_port"] = 3000
+        variants.append(("raw-port", raw_port))
+        wrong_baseline = self.inventory_v2()
+        wrong_baseline["scm"]["legacy"]["baseline_sha256"] = "sha256:" + "9" * 64
+        variants.append(("wrong-baseline", wrong_baseline))
+        for name, value in variants:
+            with self.subTest(name=name), self.assertRaises(CompanyDeliveryError):
+                load_inventory(self.write_json(f"{name}.json", value))
+
+    def test_transition_contract_locks_greenfield_stage_map_and_target(self) -> None:
+        value = load_gitea_transition(self.write_json("transition.json", self.transition()))
+        self.assertEqual(value["decision"], "greenfield-parallel-replacement")
+        self.assertEqual(value["stages"]["30"], "NOT RUN")
+
+        variants: list[tuple[str, dict[str, object]]] = []
+        fake_backup = self.transition()
+        fake_backup["stages"]["30"] = "PASS"
+        variants.append(("fake-skipped-pass", fake_backup))
+        drift = self.transition()
+        drift["target"]["gitea_http"] = "127.0.0.1:3001"
+        variants.append(("target-drift", drift))
+        wrong_checksum = self.transition()
+        wrong_checksum["inventories"]["scm_ci_sha256"] = "short"
+        variants.append(("wrong-checksum", wrong_checksum))
+        wrong_prerequisite = self.transition()
+        wrong_prerequisite["prerequisites"]["legacy_backup_required"] = True
+        variants.append(("wrong-prerequisite", wrong_prerequisite))
+        unknown = self.transition()
+        unknown["target"]["unexpected"] = "value"
+        variants.append(("unknown-target-field", unknown))
+        for name, transition in variants:
+            with self.subTest(name=name), self.assertRaises(CompanyDeliveryError):
+                load_gitea_transition(self.write_json(f"transition-{name}.json", transition))
+
+    def test_controlled_upgrade_retains_backup_restore_prerequisites(self) -> None:
+        controlled = self.transition(decision="controlled-upgrade-candidate")
+        value = load_gitea_transition(self.write_json("controlled.json", controlled))
+        self.assertTrue(value["prerequisites"]["legacy_backup_required"])
+        self.assertEqual(value["prerequisites"]["stage50_prerequisite"], "stage-30-40-pass")
+
+        controlled["prerequisites"]["isolated_restore_required"] = False
+        with self.assertRaises(CompanyDeliveryError):
+            load_gitea_transition(self.write_json("controlled-unsafe.json", controlled))
+
+    def test_transition_verifier_cli_surface_is_explicit(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "verify-gitea-transition",
+                "--input",
+                str(self.root / "transition.json"),
+                "--scm-inventory",
+                str(self.root / "scm.json"),
+                "--appserver-inventory",
+                str(self.root / "appserver.json"),
+                "--handoff-manifest",
+                str(self.root / "handoff-manifest.json"),
+                "--postgresql-package-manifest",
+                str(self.root / "postgresql-packages.sha256"),
+            ]
+        )
+        self.assertEqual(args.command, "verify-gitea-transition")
+        self.assertEqual(args.handoff_manifest, self.root / "handoff-manifest.json")
+        self.assertEqual(
+            args.postgresql_package_manifest,
+            self.root / "postgresql-packages.sha256",
+        )
+        for forbidden in ("--url", "--container-id", "--unit", "--command", "--credential"):
+            with self.subTest(argument=forbidden), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                build_parser().parse_args(
+                    [
+                        "verify-gitea-transition",
+                        "--input",
+                        str(self.root / "transition.json"),
+                        "--scm-inventory",
+                        str(self.root / "scm.json"),
+                        "--appserver-inventory",
+                        str(self.root / "appserver.json"),
+                        "--handoff-manifest",
+                        str(self.root / "handoff-manifest.json"),
+                        "--postgresql-package-manifest",
+                        str(self.root / "postgresql-packages.sha256"),
+                        forbidden,
+                        "rejected",
+                    ]
+                )
+
+    def test_transition_contract_requires_stage00_and_package_manifest_bindings(self) -> None:
+        transition = self.transition()
+        transition["handoff_manifest_sha256"] = "3" * 64
+        transition["postgresql_package_manifest_sha256"] = "4" * 64
+        value = load_gitea_transition(self.write_json("transition-bindings.json", transition))
+        self.assertEqual(value["handoff_manifest_sha256"], "3" * 64)
+        self.assertEqual(value["postgresql_package_manifest_sha256"], "4" * 64)
+
+    def test_inventory_schema_pass_branches_use_explicit_properties(self) -> None:
+        schema = json.loads(
+            (
+                Path(__file__).resolve().parents[3]
+                / "company-delivery/schema/inventory-v2.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        for branch_index in (3, 4):
+            candidate = schema["allOf"][branch_index]["then"]["properties"]["scm"][
+                "properties"
+            ]["candidate"]["properties"]
+            self.assertEqual(
+                set(candidate["resources"]["properties"]),
+                {
+                    "gitea_binary",
+                    "gitea_config",
+                    "gitea_data",
+                    "gitea_log",
+                    "postgresql_data",
+                },
+            )
+            self.assertEqual(
+                set(candidate["services"]["properties"]),
+                {"gitea", "postgresql"},
+            )
+
+    def test_protected_checksum_rejects_oversize_before_hashing(self) -> None:
+        oversized = self.root / "oversized-inventory.json"
+        oversized.write_bytes(b"0" * (contract_module.MAX_JSON_BYTES + 1))
+        oversized.chmod(0o600)
+        with mock.patch.object(contract_module, "sha256_file") as digest:
+            with self.assertRaises(CompanyDeliveryError):
+                contract_module._protected_file_sha256(oversized, "oversized inventory")
+        digest.assert_not_called()
+
+    def test_transition_verifier_binds_two_inventory_v2_files(self) -> None:
+        transition_path, scm_path, appserver_path, handoff_path, package_path = (
+            self.bound_transition_files()
+        )
+        value = verify_gitea_transition(
+            transition_path,
+            scm_path,
+            appserver_path,
+            handoff_path,
+            package_path,
+        )
+        self.assertEqual(value["decision"], "greenfield-parallel-replacement")
+        self.assertEqual(value["outcome"], "PASS")
+        self.assertEqual(value["scm_inventory_sha256"], sha256(scm_path))
+        self.assertEqual(value["handoff_manifest_sha256"], sha256(handoff_path))
+        self.assertEqual(
+            value["postgresql_package_manifest_sha256"],
+            sha256(package_path),
+        )
+
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            result = main(
+                [
+                    "verify-gitea-transition",
+                    "--input",
+                    str(transition_path),
+                    "--scm-inventory",
+                    str(scm_path),
+                    "--appserver-inventory",
+                    str(appserver_path),
+                    "--handoff-manifest",
+                    str(handoff_path),
+                    "--postgresql-package-manifest",
+                    str(package_path),
+                ]
+            )
+        self.assertEqual(result, 0)
+        rendered = json.loads(stdout.getvalue())
+        self.assertTrue(rendered["ok"])
+        self.assertEqual(rendered["outcome"], "PASS")
+        self.assertNotIn(str(scm_path), stdout.getvalue())
+
+    def test_transition_verifier_rejects_handoff_source_version_and_package_drift(self) -> None:
+        transition_path, scm_path, appserver_path, _handoff_path, package_path = (
+            self.bound_transition_files(prefix="source-binding")
+        )
+        transition = json.loads(transition_path.read_text(encoding="utf-8"))
+
+        wrong_source_handoff = self.write_handoff_bundle(
+            "wrong-source",
+            source_sha="9" * 40,
+        )
+        transition["handoff_manifest_sha256"] = sha256(wrong_source_handoff)
+        wrong_source_transition = self.write_json(
+            "wrong-source-transition.json",
+            transition,
+        )
+        with self.assertRaises(CompanyDeliveryError) as source_error:
+            verify_gitea_transition(
+                wrong_source_transition,
+                scm_path,
+                appserver_path,
+                wrong_source_handoff,
+                package_path,
+            )
+        self.assertEqual(source_error.exception.code, "CHECKSUM_MISMATCH")
+
+        old_handoff = self.write_handoff_bundle(
+            "old-operator",
+            operator_version="1.0.1",
+        )
+        transition["handoff_manifest_sha256"] = sha256(old_handoff)
+        old_transition = self.write_json("old-operator-transition.json", transition)
+        with self.assertRaises(CompanyDeliveryError) as version_error:
+            verify_gitea_transition(
+                old_transition,
+                scm_path,
+                appserver_path,
+                old_handoff,
+                package_path,
+            )
+        self.assertEqual(version_error.exception.code, "CHECKSUM_MISMATCH")
+
+        package_transition, package_scm, package_app, package_handoff, package_manifest = (
+            self.bound_transition_files(prefix="package-binding")
+        )
+        package_manifest.write_text(
+            "6" * 64 + "  postgresql-client.pkg\n",
+            encoding="ascii",
+        )
+        with self.assertRaises(CompanyDeliveryError) as package_error:
+            verify_gitea_transition(
+                package_transition,
+                package_scm,
+                package_app,
+                package_handoff,
+                package_manifest,
+            )
+        self.assertEqual(package_error.exception.code, "CHECKSUM_MISMATCH")
+
+    def test_transition_verifier_rejects_invalid_package_manifest_content(self) -> None:
+        invalid_manifests = {
+            "empty": "",
+            "malformed": "not-a-sha256-manifest\n",
+            "duplicate": (
+                "5" * 64
+                + "  postgresql-client.pkg\n"
+                + "5" * 64
+                + "  postgresql-client.pkg\n"
+            ),
+            "unsorted": (
+                "5" * 64
+                + "  z-postgresql.pkg\n"
+                + "6" * 64
+                + "  a-postgresql.pkg\n"
+            ),
+            "unsafe-path": "5" * 64 + "  ../postgresql.pkg\n",
+        }
+        for name, content in invalid_manifests.items():
+            with self.subTest(name=name):
+                transition_path, scm_path, appserver_path, handoff_path, package_path = (
+                    self.bound_transition_files(prefix=f"invalid-package-{name}")
+                )
+                package_path.write_text(content, encoding="ascii")
+                transition = json.loads(transition_path.read_text(encoding="utf-8"))
+                transition["postgresql_package_manifest_sha256"] = sha256(package_path)
+                transition_path.write_text(json.dumps(transition), encoding="utf-8")
+                with self.assertRaises(CompanyDeliveryError) as caught:
+                    verify_gitea_transition(
+                        transition_path,
+                        scm_path,
+                        appserver_path,
+                        handoff_path,
+                        package_path,
+                    )
+                self.assertEqual(caught.exception.code, "INVALID_CONTRACT")
+
+    def test_transition_verifier_rejects_checksum_role_mode_and_outcome_drift(self) -> None:
+        transition_path, scm_path, appserver_path, handoff_path, package_path = (
+            self.bound_transition_files(prefix="checksum")
+        )
+        appserver_value = json.loads(appserver_path.read_text(encoding="utf-8"))
+        appserver_path.write_text(
+            json.dumps(appserver_value, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(CompanyDeliveryError) as checksum_error:
+            verify_gitea_transition(
+                transition_path,
+                scm_path,
+                appserver_path,
+                handoff_path,
+                package_path,
+            )
+        self.assertEqual(checksum_error.exception.code, "CHECKSUM_MISMATCH")
+
+        (
+            wrong_role_transition,
+            _wrong_scm,
+            wrong_appserver,
+            wrong_handoff,
+            wrong_package,
+        ) = self.bound_transition_files(prefix="wrong-role")
+        transition = json.loads(wrong_role_transition.read_text(encoding="utf-8"))
+        transition["inventories"]["scm_ci_sha256"] = sha256(wrong_appserver)
+        wrong_role_transition.write_text(json.dumps(transition), encoding="utf-8")
+        with self.assertRaises(CompanyDeliveryError):
+            verify_gitea_transition(
+                wrong_role_transition,
+                wrong_appserver,
+                wrong_appserver,
+                wrong_handoff,
+                wrong_package,
+            )
+
+        blocked_scm = self.inventory_v2()
+        blocked_scm["outcome"] = "BLOCKED"
+        blocked_scm["pending"] = ["CANDIDATE_PORT_STATE_GITEA_HTTP"]
+        blocked_scm["scm"]["candidate"]["ports"]["gitea_http"] = "occupied"
+        blocked_scm_path = self.write_json("blocked-scm.json", blocked_scm)
+        blocked_transition = self.transition()
+        blocked_transition["inventories"] = {
+            "scm_ci_sha256": sha256(blocked_scm_path),
+            "appserver_prod_sha256": sha256(wrong_appserver),
+        }
+        blocked_transition["legacy_baseline_sha256"] = blocked_scm["scm"]["legacy"][
+            "baseline_sha256"
+        ]
+        blocked_transition_path = self.write_json("blocked-transition.json", blocked_transition)
+        with self.assertRaises(CompanyDeliveryError):
+            verify_gitea_transition(
+                blocked_transition_path,
+                blocked_scm_path,
+                wrong_appserver,
+                wrong_handoff,
+                wrong_package,
+            )
+
+    def test_legacy_health_verifier_accepts_only_greenfield_post_install_equality(self) -> None:
+        transition_path, _scm_path, _appserver_path, _handoff, _package = (
+            self.bound_transition_files(prefix="legacy")
+        )
+        post = self.post_install_inventory_v2()
+        post_path = self.write_json("legacy-post.json", post)
+        value = verify_legacy_health(transition_path, post_path)
+        self.assertEqual(value["legacy_invariant"], "PASS")
+        self.assertEqual(value["stages_30_40"], "NOT RUN")
+
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            result = main(
+                [
+                    "verify-legacy-health",
+                    "--transition",
+                    str(transition_path),
+                    "--post-inventory",
+                    str(post_path),
+                ]
+            )
+        self.assertEqual(result, 0)
+        self.assertEqual(json.loads(stdout.getvalue())["legacy_invariant"], "PASS")
+
+        drift = self.post_install_inventory_v2()
+        drift["scm"]["legacy"]["version"] = "1.26.3"
+        drift["scm"]["legacy"]["baseline_sha256"] = legacy_baseline_sha256(
+            drift["scm"]["legacy"]
+        )
+        drift_path = self.write_json("legacy-drift.json", drift)
+        with self.assertRaises(CompanyDeliveryError) as drift_error:
+            verify_legacy_health(transition_path, drift_path)
+        self.assertEqual(drift_error.exception.code, "LEGACY_INVARIANT_FAILED")
+
+        controlled_path, _controlled_scm, _controlled_app, _handoff, _package = (
+            self.bound_transition_files(
+                prefix="controlled-health",
+                decision="controlled-upgrade-candidate",
+            )
+        )
+        with self.assertRaises(CompanyDeliveryError):
+            verify_legacy_health(controlled_path, post_path)
+
+    def test_transition_cli_rejects_sensitive_tamper_without_echo(self) -> None:
+        sentinel = "never-print-this-value"
+        transition_path, scm_path, appserver_path, handoff_path, package_path = (
+            self.bound_transition_files(prefix="sensitive")
+        )
+        transition = json.loads(transition_path.read_text(encoding="utf-8"))
+        transition["token"] = sentinel
+        transition_path.write_text(json.dumps(transition), encoding="utf-8")
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            result = main(
+                [
+                    "verify-gitea-transition",
+                    "--input",
+                    str(transition_path),
+                    "--scm-inventory",
+                    str(scm_path),
+                    "--appserver-inventory",
+                    str(appserver_path),
+                    "--handoff-manifest",
+                    str(handoff_path),
+                    "--postgresql-package-manifest",
+                    str(package_path),
+                ]
+            )
+        self.assertEqual(result, 2)
+        self.assertEqual(json.loads(stderr.getvalue())["error_code"], "SENSITIVE_CONTENT")
+        self.assertNotIn(sentinel, stderr.getvalue())
 
     def test_unknown_fields_short_sha_and_unsafe_payload_paths_fail(self) -> None:
         inventory = self.inventory()
@@ -382,6 +1135,8 @@ class CompanyDeliveryContractTests(unittest.TestCase):
 
 
 class CompanyDeliveryCollectorTests(unittest.TestCase):
+    legacy_port = 13000
+
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
@@ -394,21 +1149,36 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
             ("df", "-Pk", "/"): (0, "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/root 100 50 50 50% /\n", ""),
             ("git", "--version"): (0, "git version 2.50.1\n", ""),
             ("python3", "--version"): (0, "Python 3.14.4\n", ""),
-            ("gitea", "--version"): (0, "Gitea version 1.26.4 built with GNU Make\n", ""),
             ("act_runner", "--version"): (0, "act_runner version v0.2.13\n", ""),
             ("docker", "version", "--format", "{{.Server.Version}}"): (0, "29.7.1\n", ""),
             ("docker", "compose", "version", "--short"): (0, "5.1.4\n", ""),
+            (
+                "docker",
+                "ps",
+                "--filter",
+                "status=running",
+                "--filter",
+                f"publish={self.legacy_port}",
+                "--format",
+                "{{.ID}}",
+            ): (0, "aaaaaaaaaaaa\n", ""),
         }
-        for unit in (
-            "act_runner.service",
-            "docker.service",
-            "gitea.service",
-        ):
+        for unit in ("act_runner.service", "docker.service"):
             self.responses[("systemctl", "is-enabled", unit)] = (0, "enabled\n", "")
             self.responses[("systemctl", "is-active", unit)] = (0, "active\n", "")
+        for unit in (
+            "gitea.service",
+            "aisoft-gitea.service",
+            "postgresql@18-aisoft-gitea.service",
+        ):
+            self.responses[("systemctl", "is-enabled", unit)] = (4, "", "")
+            self.responses[("systemctl", "is-active", unit)] = (4, "", "")
         timer = "aisoft-inbound-sync@newemaint.timer"
         self.responses[("systemctl", "is-enabled", timer)] = (1, "disabled\n", "")
         self.responses[("systemctl", "is-active", timer)] = (3, "inactive\n", "")
+        self.http_response: tuple[int, str] | None = (200, '{"version":"1.26.4"}')
+        self.port_states = {3000: "free", 55432: "free"}
+        self.resource_states: dict[Path, str] = {}
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -429,16 +1199,70 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         }
         return values[path]
 
-    def test_scm_inventory_uses_only_fixed_read_only_probes(self) -> None:
-        output = self.root / "inventory.json"
-        value = collect_inventory(
+    def http_get(self, port: int) -> tuple[int, str] | None:
+        self.assertEqual(port, self.legacy_port)
+        return self.http_response
+
+    def port_probe(self, port: int) -> str:
+        return self.port_states[port]
+
+    def resource_probe(self, path: Path) -> str:
+        return self.resource_states.get(path, "absent")
+
+    def docker_command(self) -> tuple[str, ...]:
+        return (
+            "docker",
+            "ps",
+            "--filter",
+            "status=running",
+            "--filter",
+            f"publish={self.legacy_port}",
+            "--format",
+            "{{.ID}}",
+        )
+
+    def collect_scm(
+        self,
+        output: Path,
+        *,
+        mode: str = "preflight",
+        runner=None,
+        http_get=None,
+        port_probe=None,
+        resource_probe=None,
+    ) -> dict[str, object]:
+        return collect_inventory(
             "scm-ci",
             output,
-            runner=self.runner,
+            mode=mode,
+            legacy_gitea_http_port=self.legacy_port,
+            runner=runner or self.runner,
             read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
+            now=lambda: "2026-08-17T08:00:00Z",
+            http_get=http_get or self.http_get,
+            port_probe=port_probe or self.port_probe,
+            resource_probe=resource_probe or self.resource_probe,
         )
+
+    def test_scm_inventory_requires_typed_mode_and_legacy_port(self) -> None:
+        with self.assertRaises(CompanyDeliveryError):
+            collect_inventory(
+                "scm-ci",
+                self.root / "missing-scm-options.json",
+                runner=self.runner,
+                read_text=self.read_text,
+                now=lambda: "2026-08-17T08:00:00Z",
+            )
+
+    def test_scm_inventory_uses_only_fixed_read_only_probes(self) -> None:
+        output = self.root / "inventory.json"
+        value = self.collect_scm(output)
         self.assertEqual(value["outcome"], "PASS")
+        self.assertEqual(value["contract_version"], INVENTORY_V2_VERSION)
+        self.assertEqual(value["mode"], "preflight")
+        self.assertEqual(value["scm"]["legacy"]["presence"], "present")
+        self.assertEqual(value["scm"]["legacy"]["health"], "healthy")
+        self.assertIsNotNone(value["scm"]["legacy"]["baseline_sha256"])
         self.assertEqual(output.stat().st_mode & 0o777, 0o600)
         parsed = load_inventory(output)
         rendered = output.read_text(encoding="utf-8")
@@ -446,8 +1270,34 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.assertNotIn("company-scm-01", rendered)
         self.assertNotIn("machine-id-never-emitted", rendered)
         self.assertTrue(str(parsed["host"]["hostname_sha256"]).startswith("sha256:"))
+        self.assertNotIn("aaaaaaaaaaaa", rendered)
+        self.assertIn(
+            (
+                "docker",
+                "ps",
+                "--filter",
+                "status=running",
+                "--filter",
+                f"publish={self.legacy_port}",
+                "--format",
+                "{{.ID}}",
+            ),
+            self.calls,
+        )
         flattened = "\n".join(" ".join(command) for command in self.calls)
-        for forbidden in ("curl", "ssh", "journalctl", " start ", " enable ", " restart ", " stop "):
+        for forbidden in (
+            "docker inspect",
+            "docker logs",
+            "docker network",
+            "docker volume",
+            "curl",
+            "ssh",
+            "journalctl",
+            " start ",
+            " enable ",
+            " restart ",
+            " stop ",
+        ):
             self.assertNotIn(forbidden, flattened)
         self.assertEqual(
             [item for item in parsed["units"] if item["name"].endswith(".timer")],
@@ -468,34 +1318,22 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
             "",
         )
         output = self.root / "sensitive-inventory.json"
-        value = collect_inventory(
-            "scm-ci",
-            output,
-            runner=self.runner,
-            read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
-        )
+        value = self.collect_scm(output)
         self.assertEqual(value["outcome"], "BLOCKED")
         gitea = next(item for item in value["tools"] if item["name"] == "gitea")
         self.assertEqual(gitea["status"], "BLOCKED")
         self.assertEqual(gitea["reason"], "sensitive-output-rejected")
         self.assertNotIn(sentinel, output.read_text(encoding="utf-8"))
 
-    def test_missing_tool_probe_is_not_projected_as_pass(self) -> None:
-        self.responses.pop(("gitea", "--version"))
+    def test_missing_required_tool_probe_is_not_projected_as_pass(self) -> None:
+        self.responses.pop(("git", "--version"))
         output = self.root / "missing-tool-inventory.json"
-        value = collect_inventory(
-            "scm-ci",
-            output,
-            runner=self.runner,
-            read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
-        )
+        value = self.collect_scm(output)
         self.assertEqual(value["outcome"], "BLOCKED")
-        self.assertIn("TOOL_PROBE_MISSING_GITEA", value["pending"])
-        gitea = next(item for item in value["tools"] if item["name"] == "gitea")
-        self.assertEqual(gitea["status"], "NOT RUN")
-        self.assertEqual(gitea["reason"], "command-missing")
+        self.assertIn("TOOL_PROBE_MISSING_GIT", value["pending"])
+        git = next(item for item in value["tools"] if item["name"] == "git")
+        self.assertEqual(git["status"], "NOT RUN")
+        self.assertEqual(git["reason"], "command-missing")
 
     def test_unrelated_semver_in_tool_error_banner_is_not_accepted(self) -> None:
         self.responses[("gitea", "--version")] = (
@@ -504,52 +1342,190 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
             "",
         )
         output = self.root / "wrong-banner-inventory.json"
-        value = collect_inventory(
-            "scm-ci",
-            output,
-            runner=self.runner,
-            read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
-        )
+        value = self.collect_scm(output)
         self.assertEqual(value["outcome"], "BLOCKED")
         gitea = next(item for item in value["tools"] if item["name"] == "gitea")
         self.assertEqual(gitea["status"], "BLOCKED")
         self.assertEqual(gitea["reason"], "version-output-unrecognized")
 
-    def test_confirmed_absent_scm_tools_allow_side_by_side_inventory(self) -> None:
-        for command in (("gitea", "--version"), ("act_runner", "--version")):
-            self.responses.pop(command)
-        for unit in ("gitea.service", "act_runner.service"):
-            self.responses[("systemctl", "is-enabled", unit)] = (4, "", "")
-            self.responses[("systemctl", "is-active", unit)] = (4, "", "")
-        output = self.root / "fresh-scm-inventory.json"
-        value = collect_inventory(
-            "scm-ci",
+    def test_docker_only_legacy_is_present_even_when_host_binary_and_unit_are_absent(self) -> None:
+        output = self.root / "docker-only-scm-inventory.json"
+        value = self.collect_scm(output)
+        tools = {item["name"]: item for item in value["tools"]}
+        self.assertEqual(value["outcome"], "PASS")
+        self.assertEqual(tools["gitea"]["status"], "ABSENT")
+        self.assertEqual(value["scm"]["legacy"]["presence"], "present")
+        self.assertNotIn("LEGACY_GITEA_CONFIRMED_ABSENT", value["pending"])
+
+    def test_confirmed_absent_legacy_is_distinct_and_blocks_greenfield_transition(self) -> None:
+        command = self.docker_command()
+        self.responses[command] = (0, "", "")
+        output = self.root / "legacy-absent.json"
+        value = self.collect_scm(output)
+        self.assertEqual(value["outcome"], "BLOCKED")
+        self.assertEqual(value["scm"]["legacy"]["presence"], "absent")
+        self.assertEqual(value["scm"]["legacy"]["reason"], "confirmed-absent")
+        self.assertIn("LEGACY_GITEA_CONFIRMED_ABSENT", value["pending"])
+        self.assertNotIn("aaaaaaaaaaaa", output.read_text(encoding="utf-8"))
+
+    def test_legacy_docker_probe_is_fail_closed_and_never_echoes_raw_output(self) -> None:
+        sentinel = "never-print-this-value"
+        variants = (
+            ("multiple", (0, "aaaaaaaaaaaa\nbbbbbbbbbbbb\n", ""), "multiple-containers"),
+            ("malformed", (0, "not-a-container-id\n", ""), "malformed-container-id"),
+            (
+                "sensitive",
+                (0, f"token={sentinel}\n", ""),
+                "sensitive-output-rejected",
+            ),
+            ("failure", (1, "opaque failure", "opaque error"), "docker-probe-failed"),
+        )
+        for name, response, reason in variants:
+            self.responses[self.docker_command()] = response
+            output = self.root / f"legacy-{name}.json"
+            with self.subTest(name=name):
+                value = self.collect_scm(output)
+                rendered = output.read_text(encoding="utf-8")
+                self.assertEqual(value["outcome"], "BLOCKED")
+                self.assertEqual(value["scm"]["legacy"]["reason"], reason)
+                for raw in ("aaaaaaaaaaaa", "bbbbbbbbbbbb", "not-a-container-id", sentinel, "opaque"):
+                    self.assertNotIn(raw, rendered)
+
+        def timeout_runner(argv: list[str]) -> subprocess.CompletedProcess[str]:
+            if tuple(argv) == self.docker_command():
+                raise subprocess.TimeoutExpired(argv, 15, output="raw timeout output")
+            return self.runner(argv)
+
+        timeout_output = self.root / "legacy-timeout.json"
+        timeout_value = self.collect_scm(timeout_output, runner=timeout_runner)
+        self.assertEqual(timeout_value["outcome"], "BLOCKED")
+        self.assertEqual(timeout_value["scm"]["legacy"]["reason"], "docker-probe-failed")
+        self.assertNotIn("raw timeout output", timeout_output.read_text(encoding="utf-8"))
+
+    def test_legacy_health_probe_is_bounded_strict_and_no_echo(self) -> None:
+        sentinel = "never-print-this-value"
+
+        def timeout(_port: int) -> tuple[int, str] | None:
+            raise TimeoutError("raw timeout detail")
+
+        variants = (
+            ("non-200", lambda _port: (503, "service unavailable"), "unhealthy"),
+            ("wrong-json", lambda _port: (200, '{"version":"1.26.4","extra":true}'), "unknown"),
+            ("duplicate", lambda _port: (200, '{"version":"1.26.4","version":"9.9.9"}'), "unknown"),
+            ("sensitive", lambda _port: (200, f'{{"version":"1.26.4","token":"{sentinel}"}}'), "unknown"),
+            ("oversized", lambda _port: (200, '{"version":"' + "1" * 5000 + '"}'), "unknown"),
+            ("timeout", timeout, "unknown"),
+        )
+        for name, getter, health in variants:
+            output = self.root / f"health-{name}.json"
+            with self.subTest(name=name):
+                value = self.collect_scm(output, http_get=getter)
+                self.assertEqual(value["outcome"], "BLOCKED")
+                self.assertEqual(value["scm"]["legacy"]["health"], health)
+                rendered = output.read_text(encoding="utf-8")
+                self.assertNotIn(sentinel, rendered)
+                self.assertNotIn("service unavailable", rendered)
+                self.assertNotIn("9.9.9", rendered)
+
+    def test_fixed_resource_probe_reports_state_without_names_or_contents(self) -> None:
+        missing = self.root / "missing"
+        empty = self.root / "empty"
+        empty.mkdir()
+        occupied_dir = self.root / "occupied"
+        occupied_dir.mkdir()
+        (occupied_dir / "do-not-render-this-name").write_text("content", encoding="utf-8")
+        occupied_file = self.root / "binary"
+        occupied_file.write_text("bytes", encoding="utf-8")
+        link = self.root / "link"
+        link.symlink_to(occupied_file)
+        self.assertEqual(collector_module._resource_state(missing), "absent")
+        self.assertEqual(collector_module._resource_state(empty), "expected-empty")
+        self.assertEqual(collector_module._resource_state(occupied_dir), "occupied")
+        self.assertEqual(collector_module._resource_state(occupied_file), "occupied")
+        self.assertEqual(collector_module._resource_state(link), "unsafe")
+
+    def test_candidate_port_resource_and_service_collisions_block_preflight(self) -> None:
+        self.port_states[3000] = "occupied"
+        candidate_binary = Path("/opt/aisoft/gitea/1.26.4/gitea")
+        self.resource_states[candidate_binary] = "unsafe"
+        self.responses[("systemctl", "is-enabled", "aisoft-gitea.service")] = (0, "enabled\n", "")
+        self.responses[("systemctl", "is-active", "aisoft-gitea.service")] = (0, "active\n", "")
+        output = self.root / "candidate-collision.json"
+        value = self.collect_scm(output)
+        self.assertEqual(value["outcome"], "BLOCKED")
+        self.assertEqual(value["scm"]["candidate"]["ports"]["gitea_http"], "occupied")
+        self.assertEqual(value["scm"]["candidate"]["resources"]["gitea_binary"], "unsafe")
+        self.assertIn("CANDIDATE_PORT_STATE_GITEA_HTTP", value["pending"])
+        self.assertIn("CANDIDATE_RESOURCE_STATE_GITEA_BINARY", value["pending"])
+        self.assertIn("CANDIDATE_SERVICE_STATE_GITEA", value["pending"])
+
+    def test_post_install_mode_requires_only_fixed_candidate_state_and_legacy_health(self) -> None:
+        self.port_states = {3000: "occupied", 55432: "occupied"}
+        for unit in ("aisoft-gitea.service", "postgresql@18-aisoft-gitea.service"):
+            self.responses[("systemctl", "is-enabled", unit)] = (0, "enabled\n", "")
+            self.responses[("systemctl", "is-active", unit)] = (0, "active\n", "")
+        output = self.root / "post-install.json"
+        value = self.collect_scm(
             output,
-            runner=self.runner,
-            read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
+            mode="post-install",
+            resource_probe=lambda _path: "occupied",
         )
         self.assertEqual(value["outcome"], "PASS")
-        tools = {item["name"]: item for item in value["tools"]}
-        for name in ("gitea", "act-runner"):
-            self.assertEqual(tools[name]["status"], "ABSENT")
-            self.assertEqual(tools[name]["reason"], "confirmed-not-installed")
-            self.assertIsNone(tools[name]["version"])
-        self.assertNotIn("TOOL_PROBE_MISSING_GITEA", value["pending"])
-        self.assertNotIn("TOOL_PROBE_MISSING_ACT_RUNNER", value["pending"])
+        self.assertEqual(value["mode"], "post-install")
+        self.assertEqual(value["scm"]["legacy"]["health"], "healthy")
+        self.assertEqual(
+            value["scm"]["candidate"]["services"]["postgresql"],
+            {"enabled": "enabled", "active": "active"},
+        )
+
+    def test_scm_options_are_decimal_typed_and_rejected_for_appserver(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "collect-inventory",
+                "--role",
+                "scm-ci",
+                "--mode",
+                "preflight",
+                "--legacy-gitea-http-port",
+                str(self.legacy_port),
+                "--output",
+                str(self.root / "typed.json"),
+            ]
+        )
+        self.assertEqual(args.legacy_gitea_http_port, self.legacy_port)
+        for invalid in ("0", "65536", "+3000", "3.0", "１２３"):
+            with self.subTest(port=invalid), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                build_parser().parse_args(
+                    [
+                        "collect-inventory",
+                        "--role",
+                        "scm-ci",
+                        "--mode",
+                        "preflight",
+                        "--legacy-gitea-http-port",
+                        invalid,
+                        "--output",
+                        str(self.root / "invalid.json"),
+                    ]
+                )
+        with self.assertRaises(CompanyDeliveryError):
+            collect_inventory(
+                "appserver-prod",
+                self.root / "appserver-with-scm-options.json",
+                mode="preflight",
+                legacy_gitea_http_port=self.legacy_port,
+                runner=self.runner,
+                read_text=self.read_text,
+            )
 
     def test_tool_present_with_missing_unit_is_blocked_before_write(self) -> None:
-        self.responses[("systemctl", "is-enabled", "gitea.service")] = (4, "", "")
-        self.responses[("systemctl", "is-active", "gitea.service")] = (4, "", "")
-        output = self.root / "tool-unit-conflict.json"
-        value = collect_inventory(
-            "scm-ci",
-            output,
-            runner=self.runner,
-            read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
+        self.responses[("gitea", "--version")] = (
+            0,
+            "Gitea version 1.26.4 built with GNU Make\n",
+            "",
         )
+        output = self.root / "tool-unit-conflict.json"
+        value = self.collect_scm(output)
         self.assertEqual(value["outcome"], "BLOCKED")
         self.assertIn("TOOL_UNIT_STATE_CONFLICT_GITEA", value["pending"])
         self.assertEqual(load_inventory(output)["outcome"], "BLOCKED")
@@ -566,7 +1542,7 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
             output,
             runner=self.runner,
             read_text=self.read_text,
-            now=lambda: "2026-08-16T08:00:00Z",
+            now=lambda: "2026-08-17T08:00:00Z",
         )
         self.assertEqual(value["outcome"], "PASS")
         versions = {item["name"]: item["version"] for item in value["tools"]}
@@ -574,6 +1550,8 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.assertEqual(versions["postgresql-client"], "18.4.0")
         self.assertNotIn(("gitea", "--version"), self.calls)
         self.assertNotIn(("act_runner", "--version"), self.calls)
+        self.assertIsNone(value["mode"])
+        self.assertIsNone(value["scm"])
         self.assertEqual(
             [item["name"] for item in value["units"]],
             ["docker.service", "nginx.service", "postgresql.service"],
@@ -583,23 +1561,11 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         output = self.root / "inventory.json"
         output.write_text("existing", encoding="utf-8")
         with self.assertRaises(CompanyDeliveryError):
-            collect_inventory(
-                "scm-ci",
-                output,
-                runner=self.runner,
-                read_text=self.read_text,
-                now=lambda: "2026-08-16T08:00:00Z",
-            )
+            self.collect_scm(output)
         output.unlink()
         self.root.chmod(0o755)
         with self.assertRaises(CompanyDeliveryError):
-            collect_inventory(
-                "scm-ci",
-                output,
-                runner=self.runner,
-                read_text=self.read_text,
-                now=lambda: "2026-08-16T08:00:00Z",
-            )
+            self.collect_scm(output)
 
 
 class CompanyDeliveryBundleTests(unittest.TestCase):
@@ -708,7 +1674,8 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
             Path(built["bundle_root"]) / "handoff-manifest.json",
             bundle_root=Path(built["bundle_root"]),
         )
-        self.assertEqual(manifest["operator_version"], "1.0.1")
+        self.assertEqual(manifest["operator_version"], "1.1.0")
+        self.assertTrue(str(built["archive_name"]).startswith("aisoft-company-delivery-1.1.0-"))
         self.assertEqual(manifest["contract_version"], HANDOFF_VERSION)
         self.assertEqual(HANDOFF_VERSION, "company-delivery-handoff/v1")
 
@@ -1865,6 +2832,13 @@ class CompanyDeliveryRunbookTests(unittest.TestCase):
             "sync timer、Actions auto deploy 与 production gate 均为 `disabled/inactive`",
             "普通 Runner 无 production SSH、sudo、业务 DB 或任意 shell 权限",
             "公司侧 Stage 10–110：`NOT RUN`",
+            "greenfield-parallel-replacement",
+            "collect-inventory --role scm-ci --mode preflight --legacy-gitea-http-port",
+            "verify-gitea-transition --input",
+            "legacy-pre-post-equality",
+            "verify-legacy-health --transition",
+            "controlled-upgrade-candidate",
+            "greenfield 路径的 Stage 30/40 必须保持 `NOT RUN`",
         )
         for phrase in required:
             with self.subTest(phrase=phrase):
@@ -1914,6 +2888,9 @@ class CompanyDeliveryTopologyDocsTests(unittest.TestCase):
                 self.assertIn("NewEmaint", text)
                 self.assertIn("两台公司", text)
                 self.assertIn("本地 OrbStack", text)
+                self.assertIn("greenfield-parallel-replacement", text)
+                self.assertIn("legacy migration/phase-out", text)
+                self.assertIn("Stage 10–50", text)
 
     def test_newemaint_never_reuses_company_rebuild_as_local_evidence(self) -> None:
         for name in (

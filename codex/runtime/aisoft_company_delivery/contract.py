@@ -11,7 +11,12 @@ import stat
 from typing import Mapping
 
 
-INVENTORY_VERSION = "company-delivery-inventory/v1"
+INVENTORY_V1_VERSION = "company-delivery-inventory/v1"
+INVENTORY_V2_VERSION = "company-delivery-inventory/v2"
+# Current operator bytes produce v2. The v1 loader remains only so archived
+# 1.0.1 evidence can be inspected; transition receipts only bind v2 identities.
+INVENTORY_VERSION = INVENTORY_V2_VERSION
+TRANSITION_VERSION = "company-delivery-gitea-transition/v1"
 HANDOFF_VERSION = "company-delivery-handoff/v1"
 EVIDENCE_VERSION = "company-delivery-evidence/v1"
 RELEASE_VERSION = "docker-release/v2"
@@ -24,6 +29,9 @@ REPOSITORY = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
 SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 SAFE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$")
 FACT_CODE = re.compile(r"^[A-Z][A-Z0-9_]{2,63}$")
+PACKAGE_MANIFEST_LINE = re.compile(
+    r"^([0-9a-f]{64})  ([A-Za-z0-9][A-Za-z0-9._+~:@%/-]{0,511})$"
+)
 MAX_JSON_BYTES = 2 * 1024 * 1024
 
 OUTCOMES = {"PASS", "FAIL", "BLOCKED", "NOT RUN"}
@@ -78,6 +86,47 @@ ACTIVE_STATES = {
     "unknown",
 }
 
+FIXED_GITEA_TARGET = {
+    "gitea_version": "1.26.4",
+    "gitea_artifact": "gitea-1.26.4-linux-amd64",
+    "gitea_sha256": "0faa36d151918f8f7d6e0f3ae67597d1c338583d695add146ac393109d0fc44a",
+    "postgresql_version": "18.4",
+    "postgresql_provenance_artifact": "postgresql-18.4.tar.bz2",
+    "postgresql_provenance_sha256": "81a81ec695fb0c7901407defaa1d2f7973617154cf27ba74e3a7ab8e64436094",
+    "linux_user": "aisoft-gitea",
+    "linux_group": "aisoft-gitea",
+    "gitea_unit": "aisoft-gitea.service",
+    "gitea_binary": "/opt/aisoft/gitea/1.26.4/gitea",
+    "gitea_config": "/etc/aisoft/gitea/app.ini",
+    "gitea_data": "/var/lib/aisoft-gitea",
+    "gitea_log": "/var/log/aisoft-gitea",
+    "postgresql_cluster": "aisoft-gitea",
+    "postgresql_unit": "postgresql@18-aisoft-gitea.service",
+    "postgresql_data": "/var/lib/postgresql/18/aisoft-gitea",
+    "postgresql_database": "aisoft_gitea",
+    "postgresql_role": "aisoft_gitea",
+    "gitea_http": "127.0.0.1:3000",
+    "postgresql_listen": "127.0.0.1:55432",
+}
+
+SCM_RESOURCE_KEYS = {
+    "gitea_binary",
+    "gitea_config",
+    "gitea_data",
+    "gitea_log",
+    "postgresql_data",
+}
+SCM_AUTOMATION = {
+    "gitea_ssh": "disabled",
+    "runner": "disabled-inactive",
+    "sync_timer": "disabled-inactive",
+    "actions_auto_deploy": "disabled-inactive",
+    "production_gate": "disabled-inactive",
+    "dns_tls": "NOT RUN",
+    "reverse_proxy": "NOT RUN",
+    "repository_import": "NOT RUN",
+}
+
 SENSITIVE_KEYS = {
     "authorization",
     "connection_string",
@@ -121,9 +170,35 @@ def contains_sensitive_text(value: str) -> bool:
     return any(pattern.search(value) is not None for pattern in SENSITIVE_VALUE_PATTERNS)
 
 
+def legacy_baseline_sha256(legacy: Mapping[str, object]) -> str:
+    """Return the one canonical, no-raw legacy identity used by pre/post gates."""
+
+    canonical = {
+        key: legacy.get(key)
+        for key in (
+            "publish_port_sha256",
+            "presence",
+            "container_id_sha256",
+            "health",
+            "version",
+        )
+    }
+    payload = json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
 def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[str, object]:
     value = _load_object(path, "inventory", require_protected=require_protected)
     _reject_sensitive(value)
+    version = value.get("contract_version")
+    if version == INVENTORY_V1_VERSION:
+        return _load_inventory_v1(value)
+    if version == INVENTORY_V2_VERSION:
+        return _load_inventory_v2(value)
+    raise CompanyDeliveryError("INVALID_CONTRACT", "inventory contract version is unsupported")
+
+
+def _load_inventory_v1(value: dict[str, object]) -> dict[str, object]:
     _exact_keys(
         value,
         {
@@ -140,7 +215,7 @@ def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[
         },
         "inventory",
     )
-    _const(value, "contract_version", INVENTORY_VERSION, "inventory")
+    _const(value, "contract_version", INVENTORY_V1_VERSION, "inventory")
     _matching(value, "collector_version", SEMVER, "inventory")
     _timestamp(value, "collected_at", "inventory")
     role = _enum(value, "role", ROLES, "inventory")
@@ -279,6 +354,641 @@ def load_inventory(path: Path | str, *, require_protected: bool = True) -> dict[
                 "INVALID_CONTRACT", "PASS inventory requires complete passing facts and no pending codes"
             )
     return value
+
+
+def _load_inventory_v2(value: dict[str, object]) -> dict[str, object]:
+    _exact_keys(
+        value,
+        {
+            "contract_version",
+            "collector_version",
+            "collected_at",
+            "role",
+            "scope",
+            "outcome",
+            "mode",
+            "host",
+            "tools",
+            "units",
+            "scm",
+            "pending",
+        },
+        "inventory",
+    )
+    _const(value, "contract_version", INVENTORY_V2_VERSION, "inventory")
+
+    common = {
+        key: item
+        for key, item in value.items()
+        if key not in {"mode", "scm"}
+    }
+    common["contract_version"] = INVENTORY_V1_VERSION
+    _load_inventory_v1(common)
+
+    role = _enum(value, "role", ROLES, "inventory")
+    outcome = _enum(value, "outcome", OUTCOMES, "inventory")
+    if role == "appserver-prod":
+        if value["mode"] is not None or value["scm"] is not None:
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "appserver inventory must not contain SCM probe facts"
+            )
+        return value
+
+    mode = _enum(value, "mode", {"preflight", "post-install"}, "inventory")
+    scm = _mapping(value["scm"], "inventory.scm")
+    _exact_keys(scm, {"probe_profile", "legacy", "candidate", "automation"}, "inventory.scm")
+    _const(
+        scm,
+        "probe_profile",
+        "greenfield-parallel-replacement-v1",
+        "inventory.scm",
+    )
+    legacy = _validate_scm_legacy(_object(scm, "legacy", "inventory.scm"))
+    candidate = _validate_scm_candidate(_object(scm, "candidate", "inventory.scm"))
+    automation = _validate_scm_automation(_object(scm, "automation", "inventory.scm"))
+
+    if legacy["health"] == "healthy":
+        if legacy["baseline_sha256"] != legacy_baseline_sha256(legacy):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "healthy legacy facts require the canonical baseline fingerprint"
+            )
+    elif legacy["baseline_sha256"] is not None:
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "non-healthy legacy facts cannot claim a baseline fingerprint"
+        )
+
+    if outcome != "PASS":
+        return value
+
+    if (
+        legacy["presence"] != "present"
+        or legacy["health"] != "healthy"
+        or legacy["version"] is None
+        or legacy["container_id_sha256"] is None
+        or legacy["publish_port_sha256"] is None
+        or legacy["baseline_sha256"] is None
+        or legacy["reason"] is not None
+    ):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "PASS SCM inventory requires a healthy fingerprinted legacy instance"
+        )
+    if automation != SCM_AUTOMATION:
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "PASS SCM inventory requires every automation entry disabled"
+        )
+
+    ports = candidate["ports"]
+    resources = candidate["resources"]
+    services = candidate["services"]
+    if mode == "preflight":
+        if set(ports.values()) != {"free"}:
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "preflight PASS requires both candidate ports free"
+            )
+        if any(state not in {"absent", "expected-empty"} for state in resources.values()):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "preflight PASS requires candidate resources absent or empty"
+            )
+        if any(
+            state != {"enabled": "not-found", "active": "not-found"}
+            for state in services.values()
+        ):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "preflight PASS requires candidate services absent"
+            )
+    else:
+        if set(ports.values()) != {"occupied"}:
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "post-install PASS requires both candidate ports occupied"
+            )
+        if set(resources.values()) != {"occupied"}:
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "post-install PASS requires candidate resources occupied"
+            )
+        if any(
+            state != {"enabled": "enabled", "active": "active"}
+            for state in services.values()
+        ):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "post-install PASS requires candidate services enabled and active"
+            )
+    return value
+
+
+def _validate_scm_legacy(value: Mapping[str, object]) -> Mapping[str, object]:
+    _exact_keys(
+        value,
+        {
+            "publish_port_sha256",
+            "presence",
+            "container_id_sha256",
+            "health",
+            "version",
+            "baseline_sha256",
+            "reason",
+        },
+        "inventory.scm.legacy",
+    )
+    for key in ("publish_port_sha256", "container_id_sha256", "baseline_sha256"):
+        if value[key] is not None:
+            _matching(value, key, SHA256_ID, "inventory.scm.legacy")
+    presence = _enum(
+        value,
+        "presence",
+        {"present", "absent", "ambiguous", "unknown"},
+        "inventory.scm.legacy",
+    )
+    health = _enum(
+        value,
+        "health",
+        {"healthy", "unhealthy", "not-run", "unknown"},
+        "inventory.scm.legacy",
+    )
+    if value["version"] is not None:
+        _matching(value, "version", SEMVER, "inventory.scm.legacy")
+    reason = value["reason"]
+    allowed_reasons = {
+        "confirmed-absent",
+        "multiple-containers",
+        "malformed-container-id",
+        "docker-probe-failed",
+        "health-probe-failed",
+        "version-unrecognized",
+        "sensitive-output-rejected",
+        "not-run",
+    }
+    if reason is not None and (not isinstance(reason, str) or reason not in allowed_reasons):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "legacy probe reason is outside the allowlist")
+    if presence == "absent" and (
+        value["container_id_sha256"] is not None
+        or health != "not-run"
+        or value["version"] is not None
+        or value["baseline_sha256"] is not None
+        or reason != "confirmed-absent"
+    ):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "absent legacy facts are inconsistent")
+    if presence == "present" and value["container_id_sha256"] is None:
+        raise CompanyDeliveryError("INVALID_CONTRACT", "present legacy facts require a container fingerprint")
+    if health == "healthy" and (presence != "present" or value["version"] is None):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "healthy legacy facts require present semver evidence")
+    return value
+
+
+def _validate_scm_candidate(value: Mapping[str, object]) -> dict[str, dict[str, object]]:
+    _exact_keys(value, {"ports", "resources", "services"}, "inventory.scm.candidate")
+    ports = _object(value, "ports", "inventory.scm.candidate")
+    _exact_keys(ports, {"gitea_http", "postgresql"}, "inventory.scm.candidate.ports")
+    for key in ports:
+        _enum(ports, key, {"free", "occupied", "unknown"}, "inventory.scm.candidate.ports")
+
+    resources = _object(value, "resources", "inventory.scm.candidate")
+    _exact_keys(resources, SCM_RESOURCE_KEYS, "inventory.scm.candidate.resources")
+    for key in resources:
+        _enum(
+            resources,
+            key,
+            {"absent", "expected-empty", "occupied", "unsafe", "unknown"},
+            "inventory.scm.candidate.resources",
+        )
+
+    services = _object(value, "services", "inventory.scm.candidate")
+    _exact_keys(services, {"gitea", "postgresql"}, "inventory.scm.candidate.services")
+    parsed_services: dict[str, dict[str, str]] = {}
+    for key in services:
+        service = _mapping(services[key], f"inventory.scm.candidate.services.{key}")
+        _exact_keys(service, {"enabled", "active"}, f"inventory.scm.candidate.services.{key}")
+        parsed_services[key] = {
+            "enabled": _enum(
+                service,
+                "enabled",
+                ENABLED_STATES,
+                f"inventory.scm.candidate.services.{key}",
+            ),
+            "active": _enum(
+                service,
+                "active",
+                ACTIVE_STATES,
+                f"inventory.scm.candidate.services.{key}",
+            ),
+        }
+    return {
+        "ports": dict(ports),
+        "resources": dict(resources),
+        "services": parsed_services,
+    }
+
+
+def _validate_scm_automation(value: Mapping[str, object]) -> dict[str, str]:
+    _exact_keys(value, set(SCM_AUTOMATION), "inventory.scm.automation")
+    parsed: dict[str, str] = {}
+    for key, required in SCM_AUTOMATION.items():
+        parsed[key] = _enum(
+            value,
+            key,
+            {required, "unknown", "NOT RUN"},
+            "inventory.scm.automation",
+        )
+    return parsed
+
+
+def load_gitea_transition(
+    path: Path | str,
+    *,
+    require_protected: bool = True,
+) -> dict[str, object]:
+    value = _load_object(path, "Gitea transition", require_protected=require_protected)
+    _reject_sensitive(value)
+    _exact_keys(
+        value,
+        {
+            "contract_version",
+            "operator_version",
+            "recorded_at",
+            "source_git_sha",
+            "handoff_manifest_sha256",
+            "postgresql_package_manifest_sha256",
+            "reviewer_decision_id",
+            "decision",
+            "outcome",
+            "inventories",
+            "public_name_sha256",
+            "legacy_baseline_sha256",
+            "target",
+            "prerequisites",
+            "automation",
+            "stages",
+            "pending",
+        },
+        "Gitea transition",
+    )
+    _const(value, "contract_version", TRANSITION_VERSION, "Gitea transition")
+    _const(value, "operator_version", "1.1.0", "Gitea transition")
+    _timestamp(value, "recorded_at", "Gitea transition")
+    _matching(value, "source_git_sha", GIT_SHA, "Gitea transition")
+    _matching(value, "handoff_manifest_sha256", SHA256, "Gitea transition")
+    _matching(value, "postgresql_package_manifest_sha256", SHA256, "Gitea transition")
+    _matching(value, "reviewer_decision_id", SAFE_ID, "Gitea transition")
+    decision = _enum(
+        value,
+        "decision",
+        {"greenfield-parallel-replacement", "controlled-upgrade-candidate", "BLOCKED"},
+        "Gitea transition",
+    )
+    outcome = _enum(value, "outcome", {"PASS", "BLOCKED"}, "Gitea transition")
+
+    inventories = _object(value, "inventories", "Gitea transition")
+    _exact_keys(
+        inventories,
+        {"scm_ci_sha256", "appserver_prod_sha256"},
+        "Gitea transition.inventories",
+    )
+    for key in inventories:
+        _matching(inventories, key, SHA256, "Gitea transition.inventories")
+    _matching(value, "public_name_sha256", SHA256_ID, "Gitea transition")
+    if value["legacy_baseline_sha256"] is not None:
+        _matching(value, "legacy_baseline_sha256", SHA256_ID, "Gitea transition")
+
+    target = _object(value, "target", "Gitea transition")
+    _exact_keys(target, set(FIXED_GITEA_TARGET), "Gitea transition.target")
+    if dict(target) != FIXED_GITEA_TARGET:
+        raise CompanyDeliveryError("INVALID_CONTRACT", "Gitea target identity has drifted")
+
+    prerequisites = _object(value, "prerequisites", "Gitea transition")
+    _exact_keys(
+        prerequisites,
+        {"legacy_backup_required", "isolated_restore_required", "stage50_prerequisite"},
+        "Gitea transition.prerequisites",
+    )
+    backup_required = _boolean(
+        prerequisites, "legacy_backup_required", "Gitea transition.prerequisites"
+    )
+    restore_required = _boolean(
+        prerequisites, "isolated_restore_required", "Gitea transition.prerequisites"
+    )
+    stage50_prerequisite = _enum(
+        prerequisites,
+        "stage50_prerequisite",
+        {"legacy-pre-post-equality", "stage-30-40-pass", "not-authorized"},
+        "Gitea transition.prerequisites",
+    )
+    automation = _object(value, "automation", "Gitea transition")
+    _exact_keys(automation, set(SCM_AUTOMATION), "Gitea transition.automation")
+    if dict(automation) != SCM_AUTOMATION:
+        raise CompanyDeliveryError("INVALID_CONTRACT", "transition automation gates must stay disabled")
+
+    stages = _object(value, "stages", "Gitea transition")
+    stage_keys = {"00", "10-scm-ci", "10-appserver-prod", "20", "30", "40", "50"}
+    _exact_keys(stages, stage_keys, "Gitea transition.stages")
+    for key in stages:
+        _enum(stages, key, OUTCOMES, "Gitea transition.stages")
+    pending = _array(value, "pending", "Gitea transition")
+    if any(not isinstance(item, str) or FACT_CODE.fullmatch(item) is None for item in pending):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "transition pending codes are invalid")
+    if len(pending) != len(set(pending)):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "transition pending codes must be unique")
+
+    stage20_pass = {
+        "00": "PASS",
+        "10-scm-ci": "PASS",
+        "10-appserver-prod": "PASS",
+        "20": "PASS",
+        "30": "NOT RUN",
+        "40": "NOT RUN",
+        "50": "NOT RUN",
+    }
+    if decision == "greenfield-parallel-replacement":
+        if (
+            outcome != "PASS"
+            or dict(stages) != stage20_pass
+            or value["legacy_baseline_sha256"] is None
+            or pending
+            or backup_required
+            or restore_required
+            or stage50_prerequisite != "legacy-pre-post-equality"
+        ):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "greenfield transition prerequisites or stage map are invalid"
+            )
+    elif decision == "controlled-upgrade-candidate":
+        if (
+            outcome != "PASS"
+            or dict(stages) != stage20_pass
+            or pending
+            or not backup_required
+            or not restore_required
+            or stage50_prerequisite != "stage-30-40-pass"
+        ):
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT", "controlled upgrade must retain backup and restore prerequisites"
+            )
+    elif (
+        outcome != "BLOCKED"
+        or not pending
+        or stages["20"] != "BLOCKED"
+        or any(stages[key] != "NOT RUN" for key in ("30", "40", "50"))
+        or backup_required
+        or restore_required
+        or stage50_prerequisite != "not-authorized"
+    ):
+        raise CompanyDeliveryError("INVALID_CONTRACT", "blocked transition facts are inconsistent")
+    return value
+
+
+def verify_gitea_transition(
+    transition_path: Path | str,
+    scm_inventory_path: Path | str,
+    appserver_inventory_path: Path | str,
+    handoff_manifest_path: Path | str,
+    postgresql_package_manifest_path: Path | str,
+) -> dict[str, object]:
+    transition = load_gitea_transition(transition_path)
+    if transition["outcome"] != "PASS":
+        raise CompanyDeliveryError("TRANSITION_BLOCKED", "Gitea transition is not approved to continue")
+    handoff, handoff_sha256 = _load_stable_handoff(
+        handoff_manifest_path,
+        expected_sha256=_string(
+            transition,
+            "handoff_manifest_sha256",
+            "Gitea transition",
+        ),
+    )
+    handoff_source = _object(handoff, "source", "handoff manifest")
+    if (
+        handoff["operator_version"] != "1.1.0"
+        or handoff_source["git_sha"] != transition["source_git_sha"]
+    ):
+        raise CompanyDeliveryError(
+            "CHECKSUM_MISMATCH",
+            "transition source does not match the verified 1.1.0 handoff",
+        )
+    postgresql_package_manifest_sha256 = _load_stable_package_manifest(
+        postgresql_package_manifest_path,
+        "PostgreSQL package manifest",
+        expected_sha256=_string(
+            transition,
+            "postgresql_package_manifest_sha256",
+            "Gitea transition",
+        ),
+    )
+    inventories = _object(transition, "inventories", "Gitea transition")
+    scm_inventory, scm_sha256 = _load_stable_inventory(
+        scm_inventory_path,
+        "scm-ci inventory",
+        expected_sha256=_string(inventories, "scm_ci_sha256", "Gitea transition.inventories"),
+    )
+    appserver_inventory, appserver_sha256 = _load_stable_inventory(
+        appserver_inventory_path,
+        "appserver-prod inventory",
+        expected_sha256=_string(
+            inventories,
+            "appserver_prod_sha256",
+            "Gitea transition.inventories",
+        ),
+    )
+    if (
+        scm_inventory["contract_version"] != INVENTORY_V2_VERSION
+        or scm_inventory["role"] != "scm-ci"
+        or scm_inventory["outcome"] != "PASS"
+        or scm_inventory["mode"] != "preflight"
+        or not isinstance(scm_inventory["scm"], Mapping)
+    ):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "transition requires a passing scm-ci preflight inventory v2"
+        )
+    if (
+        appserver_inventory["contract_version"] != INVENTORY_V2_VERSION
+        or appserver_inventory["role"] != "appserver-prod"
+        or appserver_inventory["outcome"] != "PASS"
+        or appserver_inventory["mode"] is not None
+        or appserver_inventory["scm"] is not None
+    ):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "transition requires a passing appserver-prod inventory v2"
+        )
+    legacy = _object(
+        _mapping(scm_inventory["scm"], "inventory.scm"),
+        "legacy",
+        "inventory.scm",
+    )
+    if legacy["baseline_sha256"] != transition["legacy_baseline_sha256"]:
+        raise CompanyDeliveryError(
+            "CHECKSUM_MISMATCH", "transition legacy baseline does not match the scm-ci inventory"
+        )
+    return {
+        "contract_version": TRANSITION_VERSION,
+        "decision": transition["decision"],
+        "outcome": "PASS",
+        "legacy_baseline_sha256": transition["legacy_baseline_sha256"],
+        "handoff_manifest_sha256": handoff_sha256,
+        "postgresql_package_manifest_sha256": postgresql_package_manifest_sha256,
+        "scm_inventory_sha256": scm_sha256,
+        "appserver_inventory_sha256": appserver_sha256,
+    }
+
+
+def verify_legacy_health(
+    transition_path: Path | str,
+    post_inventory_path: Path | str,
+) -> dict[str, object]:
+    transition = load_gitea_transition(transition_path)
+    if (
+        transition["decision"] != "greenfield-parallel-replacement"
+        or transition["outcome"] != "PASS"
+    ):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "legacy equality is only a greenfield Stage 50 prerequisite"
+        )
+    post_inventory, post_sha256 = _load_stable_inventory(
+        post_inventory_path,
+        "post-install scm-ci inventory",
+    )
+    if (
+        post_inventory["contract_version"] != INVENTORY_V2_VERSION
+        or post_inventory["role"] != "scm-ci"
+        or post_inventory["outcome"] != "PASS"
+        or post_inventory["mode"] != "post-install"
+        or not isinstance(post_inventory["scm"], Mapping)
+    ):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "legacy equality requires a passing post-install scm-ci inventory v2"
+        )
+    legacy = _object(
+        _mapping(post_inventory["scm"], "inventory.scm"),
+        "legacy",
+        "inventory.scm",
+    )
+    if (
+        legacy["presence"] != "present"
+        or legacy["health"] != "healthy"
+        or legacy["version"] is None
+        or legacy["baseline_sha256"] != transition["legacy_baseline_sha256"]
+    ):
+        raise CompanyDeliveryError(
+            "LEGACY_INVARIANT_FAILED", "legacy Gitea pre/post health identity has changed"
+        )
+    return {
+        "contract_version": TRANSITION_VERSION,
+        "decision": "greenfield-parallel-replacement",
+        "legacy_invariant": "PASS",
+        "post_inventory_sha256": post_sha256,
+        "stages_30_40": "NOT RUN",
+    }
+
+
+def _load_stable_inventory(
+    path: Path | str,
+    label: str,
+    *,
+    expected_sha256: str | None = None,
+) -> tuple[dict[str, object], str]:
+    source = Path(path)
+    before = _protected_file_sha256(source, label)
+    value = load_inventory(source)
+    after = _protected_file_sha256(source, label)
+    if before != after:
+        raise CompanyDeliveryError("CHECKSUM_MISMATCH", f"{label} changed during verification")
+    if expected_sha256 is not None and after != expected_sha256:
+        raise CompanyDeliveryError("CHECKSUM_MISMATCH", f"{label} checksum does not match the transition")
+    return value, after
+
+
+def _load_stable_handoff(
+    path: Path | str,
+    *,
+    expected_sha256: str,
+) -> tuple[dict[str, object], str]:
+    source = Path(path)
+    before = _protected_file_sha256(source, "handoff manifest")
+    value = load_handoff(source, bundle_root=source.parent)
+    after = _protected_file_sha256(source, "handoff manifest")
+    if before != after or after != expected_sha256:
+        raise CompanyDeliveryError(
+            "CHECKSUM_MISMATCH",
+            "handoff manifest checksum does not match the transition",
+        )
+    return value, after
+
+
+def _load_stable_package_manifest(
+    path: Path | str,
+    label: str,
+    *,
+    expected_sha256: str,
+) -> str:
+    source = Path(path)
+    before = _protected_file_sha256(source, label)
+    try:
+        lines = source.read_text(encoding="ascii").splitlines()
+    except UnicodeError as exc:
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT",
+            f"{label} must be bounded ASCII",
+        ) from exc
+    except OSError as exc:
+        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} is unavailable") from exc
+    parsed: list[tuple[str, str]] = []
+    for line in lines:
+        match = PACKAGE_MANIFEST_LINE.fullmatch(line)
+        if match is None:
+            raise CompanyDeliveryError(
+                "INVALID_CONTRACT",
+                f"{label} contains an invalid line",
+            )
+        package_path = _package_manifest_path(match.group(2))
+        parsed.append((package_path, match.group(1)))
+    paths = [item[0] for item in parsed]
+    if not parsed or paths != sorted(paths) or len(paths) != len(set(paths)):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT",
+            f"{label} paths must be non-empty, unique, and sorted",
+        )
+    after = _protected_file_sha256(source, label)
+    if before != after or after != expected_sha256:
+        raise CompanyDeliveryError(
+            "CHECKSUM_MISMATCH",
+            f"{label} checksum does not match the transition",
+        )
+    return after
+
+
+def _package_manifest_path(value: str) -> str:
+    if "\\" in value or "\x00" in value:
+        raise CompanyDeliveryError("UNSAFE_PATH", "package manifest path is unsafe")
+    path = PurePosixPath(value)
+    if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
+        raise CompanyDeliveryError("UNSAFE_PATH", "package manifest path is unsafe")
+    if str(path) != value or len(value.encode("ascii")) > 512:
+        raise CompanyDeliveryError("UNSAFE_PATH", "package manifest path is unsafe")
+    return value
+
+
+def _protected_file_sha256(path: Path, label: str) -> str:
+    _validate_bounded_regular_file(path, label, required_mode=0o600)
+    try:
+        return sha256_file(path)
+    except OSError as exc:
+        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} is unavailable") from exc
+
+
+def _validate_bounded_regular_file(
+    path: Path,
+    label: str,
+    *,
+    required_mode: int | None,
+) -> None:
+    try:
+        metadata = path.lstat()
+    except OSError as exc:
+        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} is unavailable") from exc
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} must be a regular non-symlink file")
+    if required_mode is not None and stat.S_IMODE(metadata.st_mode) != required_mode:
+        raise CompanyDeliveryError(
+            "UNSAFE_MODE",
+            f"{label} mode must be {required_mode:04o}",
+        )
+    if metadata.st_size > MAX_JSON_BYTES:
+        raise CompanyDeliveryError("INVALID_CONTRACT", f"{label} exceeds the size limit")
 
 
 def load_evidence(path: Path | str, *, require_protected: bool = True) -> dict[str, object]:
@@ -558,16 +1268,11 @@ def _verify_checksum_manifest(
 
 def _load_object(path: Path | str, label: str, *, require_protected: bool) -> dict[str, object]:
     source = Path(path)
-    try:
-        metadata = source.lstat()
-    except OSError as exc:
-        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} is unavailable") from exc
-    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
-        raise CompanyDeliveryError("UNSAFE_PATH", f"{label} must be a regular non-symlink file")
-    if require_protected and stat.S_IMODE(metadata.st_mode) != 0o600:
-        raise CompanyDeliveryError("UNSAFE_MODE", f"{label} mode must be 0600")
-    if metadata.st_size > MAX_JSON_BYTES:
-        raise CompanyDeliveryError("INVALID_CONTRACT", f"{label} exceeds the size limit")
+    _validate_bounded_regular_file(
+        source,
+        label,
+        required_mode=0o600 if require_protected else None,
+    )
     try:
         text = source.read_text(encoding="utf-8")
         value = json.loads(text, object_pairs_hook=_no_duplicates)
@@ -667,6 +1372,13 @@ def _nonnegative_integer(value: Mapping[str, object], key: str, label: str) -> i
     item = value.get(key)
     if isinstance(item, bool) or not isinstance(item, int) or item < 0:
         raise CompanyDeliveryError("INVALID_CONTRACT", f"{label}.{key} must be a non-negative integer")
+    return item
+
+
+def _boolean(value: Mapping[str, object], key: str, label: str) -> bool:
+    item = value.get(key)
+    if not isinstance(item, bool):
+        raise CompanyDeliveryError("INVALID_CONTRACT", f"{label}.{key} must be a boolean")
     return item
 
 

@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aisoft.example/contracts/company-delivery/gitea-transition-v1.schema.json",
+  "title": "AISoft company delivery Gitea transition V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "operator_version", "recorded_at", "source_git_sha", "handoff_manifest_sha256", "postgresql_package_manifest_sha256", "reviewer_decision_id", "decision", "outcome", "inventories", "public_name_sha256", "legacy_baseline_sha256", "target", "prerequisites", "automation", "stages", "pending"],
+  "properties": {
+    "contract_version": {"const": "company-delivery-gitea-transition/v1"},
+    "operator_version": {"const": "1.1.0"},
+    "recorded_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+    "source_git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "handoff_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "postgresql_package_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "reviewer_decision_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+    "decision": {"enum": ["greenfield-parallel-replacement", "controlled-upgrade-candidate", "BLOCKED"]},
+    "outcome": {"enum": ["PASS", "BLOCKED"]},
+    "inventories": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scm_ci_sha256", "appserver_prod_sha256"],
+      "properties": {
+        "scm_ci_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "appserver_prod_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "public_name_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "legacy_baseline_sha256": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gitea_version", "gitea_artifact", "gitea_sha256", "postgresql_version", "postgresql_provenance_artifact", "postgresql_provenance_sha256", "linux_user", "linux_group", "gitea_unit", "gitea_binary", "gitea_config", "gitea_data", "gitea_log", "postgresql_cluster", "postgresql_unit", "postgresql_data", "postgresql_database", "postgresql_role", "gitea_http", "postgresql_listen"],
+      "properties": {
+        "gitea_version": {"const": "1.26.4"},
+        "gitea_artifact": {"const": "gitea-1.26.4-linux-amd64"},
+        "gitea_sha256": {"const": "0faa36d151918f8f7d6e0f3ae67597d1c338583d695add146ac393109d0fc44a"},
+        "postgresql_version": {"const": "18.4"},
+        "postgresql_provenance_artifact": {"const": "postgresql-18.4.tar.bz2"},
+        "postgresql_provenance_sha256": {"const": "81a81ec695fb0c7901407defaa1d2f7973617154cf27ba74e3a7ab8e64436094"},
+        "linux_user": {"const": "aisoft-gitea"},
+        "linux_group": {"const": "aisoft-gitea"},
+        "gitea_unit": {"const": "aisoft-gitea.service"},
+        "gitea_binary": {"const": "/opt/aisoft/gitea/1.26.4/gitea"},
+        "gitea_config": {"const": "/etc/aisoft/gitea/app.ini"},
+        "gitea_data": {"const": "/var/lib/aisoft-gitea"},
+        "gitea_log": {"const": "/var/log/aisoft-gitea"},
+        "postgresql_cluster": {"const": "aisoft-gitea"},
+        "postgresql_unit": {"const": "postgresql@18-aisoft-gitea.service"},
+        "postgresql_data": {"const": "/var/lib/postgresql/18/aisoft-gitea"},
+        "postgresql_database": {"const": "aisoft_gitea"},
+        "postgresql_role": {"const": "aisoft_gitea"},
+        "gitea_http": {"const": "127.0.0.1:3000"},
+        "postgresql_listen": {"const": "127.0.0.1:55432"}
+      }
+    },
+    "prerequisites": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["legacy_backup_required", "isolated_restore_required", "stage50_prerequisite"],
+      "properties": {
+        "legacy_backup_required": {"type": "boolean"},
+        "isolated_restore_required": {"type": "boolean"},
+        "stage50_prerequisite": {"enum": ["legacy-pre-post-equality", "stage-30-40-pass", "not-authorized"]}
+      }
+    },
+    "automation": {"$ref": "#/$defs/disabledAutomation"},
+    "stages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["00", "10-scm-ci", "10-appserver-prod", "20", "30", "40", "50"],
+      "properties": {
+        "00": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT RUN"]},
+        "10-scm-ci": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT RUN"]},
+        "10-appserver-prod": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT RUN"]},
+        "20": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT RUN"]},
+        "30": {"const": "NOT RUN"},
+        "40": {"const": "NOT RUN"},
+        "50": {"const": "NOT RUN"}
+      }
+    },
+    "pending": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"decision": {"const": "greenfield-parallel-replacement"}}, "required": ["decision"]},
+      "then": {
+        "properties": {
+          "outcome": {"const": "PASS"},
+          "legacy_baseline_sha256": {"type": "string"},
+          "prerequisites": {
+            "properties": {
+              "legacy_backup_required": {"const": false},
+              "isolated_restore_required": {"const": false},
+              "stage50_prerequisite": {"const": "legacy-pre-post-equality"}
+            }
+          },
+          "stages": {"$ref": "#/$defs/passingStage20"},
+          "pending": {"maxItems": 0}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"decision": {"const": "controlled-upgrade-candidate"}}, "required": ["decision"]},
+      "then": {
+        "properties": {
+          "outcome": {"const": "PASS"},
+          "prerequisites": {
+            "properties": {
+              "legacy_backup_required": {"const": true},
+              "isolated_restore_required": {"const": true},
+              "stage50_prerequisite": {"const": "stage-30-40-pass"}
+            }
+          },
+          "stages": {"$ref": "#/$defs/passingStage20"},
+          "pending": {"maxItems": 0}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"decision": {"const": "BLOCKED"}}, "required": ["decision"]},
+      "then": {
+        "properties": {
+          "outcome": {"const": "BLOCKED"},
+          "prerequisites": {
+            "properties": {
+              "legacy_backup_required": {"const": false},
+              "isolated_restore_required": {"const": false},
+              "stage50_prerequisite": {"const": "not-authorized"}
+            }
+          },
+          "stages": {"properties": {"20": {"const": "BLOCKED"}}},
+          "pending": {"minItems": 1}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "disabledAutomation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gitea_ssh", "runner", "sync_timer", "actions_auto_deploy", "production_gate", "dns_tls", "reverse_proxy", "repository_import"],
+      "properties": {
+        "gitea_ssh": {"const": "disabled"},
+        "runner": {"const": "disabled-inactive"},
+        "sync_timer": {"const": "disabled-inactive"},
+        "actions_auto_deploy": {"const": "disabled-inactive"},
+        "production_gate": {"const": "disabled-inactive"},
+        "dns_tls": {"const": "NOT RUN"},
+        "reverse_proxy": {"const": "NOT RUN"},
+        "repository_import": {"const": "NOT RUN"}
+      }
+    },
+    "passingStage20": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["00", "10-scm-ci", "10-appserver-prod", "20", "30", "40", "50"],
+      "properties": {
+        "00": {"const": "PASS"},
+        "10-scm-ci": {"const": "PASS"},
+        "10-appserver-prod": {"const": "PASS"},
+        "20": {"const": "PASS"},
+        "30": {"const": "NOT RUN"},
+        "40": {"const": "NOT RUN"},
+        "50": {"const": "NOT RUN"}
+      }
+    }
+  }
+}
