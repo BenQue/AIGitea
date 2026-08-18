@@ -1177,7 +1177,10 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.responses[("systemctl", "is-enabled", timer)] = (1, "disabled\n", "")
         self.responses[("systemctl", "is-active", timer)] = (3, "inactive\n", "")
         self.http_response: tuple[int, str] | None = (200, '{"version":"1.26.4"}')
-        self.port_states = {3000: "free", 55432: "free"}
+        self.port_calls: list[int] = []
+        # The real company scm-ci already has an unrelated application on 3000.
+        # The greenfield Gitea contract must probe only its fixed 8888 target.
+        self.port_states = {3000: "occupied", 8888: "free", 55432: "free"}
         self.resource_states: dict[Path, str] = {}
 
     def tearDown(self) -> None:
@@ -1204,6 +1207,7 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         return self.http_response
 
     def port_probe(self, port: int) -> str:
+        self.port_calls.append(port)
         return self.port_states[port]
 
     def resource_probe(self, path: Path) -> str:
@@ -1263,6 +1267,8 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.assertEqual(value["scm"]["legacy"]["presence"], "present")
         self.assertEqual(value["scm"]["legacy"]["health"], "healthy")
         self.assertIsNotNone(value["scm"]["legacy"]["baseline_sha256"])
+        self.assertEqual(self.port_calls, [8888, 55432])
+        self.assertNotIn(3000, self.port_calls)
         self.assertEqual(output.stat().st_mode & 0o777, 0o600)
         parsed = load_inventory(output)
         rendered = output.read_text(encoding="utf-8")
@@ -1409,23 +1415,30 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
             raise TimeoutError("raw timeout detail")
 
         variants = (
-            ("non-200", lambda _port: (503, "service unavailable"), "unhealthy"),
-            ("wrong-json", lambda _port: (200, '{"version":"1.26.4","extra":true}'), "unknown"),
-            ("duplicate", lambda _port: (200, '{"version":"1.26.4","version":"9.9.9"}'), "unknown"),
-            ("sensitive", lambda _port: (200, f'{{"version":"1.26.4","token":"{sentinel}"}}'), "unknown"),
-            ("oversized", lambda _port: (200, '{"version":"' + "1" * 5000 + '"}'), "unknown"),
-            ("timeout", timeout, "unknown"),
+            ("redirect", lambda _port: (302, "redirect target must stay private"), "unhealthy", "http-status-3xx"),
+            ("unauthorized", lambda _port: (401, "authentication detail"), "unhealthy", "http-status-4xx"),
+            ("unavailable", lambda _port: (503, "service unavailable"), "unhealthy", "http-status-5xx"),
+            ("wrong-json", lambda _port: (200, '{"version":"1.26.4","extra":true}'), "unknown", "response-invalid"),
+            ("duplicate", lambda _port: (200, '{"version":"1.26.4","version":"9.9.9"}'), "unknown", "response-invalid"),
+            ("sensitive", lambda _port: (200, f'{{"version":"1.26.4","token":"{sentinel}"}}'), "unknown", "sensitive-output-rejected"),
+            ("oversized", lambda _port: (200, '{"version":"' + "1" * 5000 + '"}'), "unknown", "response-invalid"),
+            ("timeout", timeout, "unknown", "request-failed"),
         )
-        for name, getter, health in variants:
+        for name, getter, health, reason in variants:
             output = self.root / f"health-{name}.json"
             with self.subTest(name=name):
                 value = self.collect_scm(output, http_get=getter)
                 self.assertEqual(value["outcome"], "BLOCKED")
                 self.assertEqual(value["scm"]["legacy"]["health"], health)
+                self.assertEqual(value["scm"]["legacy"]["reason"], reason)
                 rendered = output.read_text(encoding="utf-8")
                 self.assertNotIn(sentinel, rendered)
                 self.assertNotIn("service unavailable", rendered)
+                self.assertNotIn("authentication detail", rendered)
+                self.assertNotIn("redirect target", rendered)
                 self.assertNotIn("9.9.9", rendered)
+                self.assertNotIn("raw timeout detail", rendered)
+                self.assertNotIn("status_code", rendered)
 
     def test_fixed_resource_probe_reports_state_without_names_or_contents(self) -> None:
         missing = self.root / "missing"
@@ -1445,7 +1458,7 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.assertEqual(collector_module._resource_state(link), "unsafe")
 
     def test_candidate_port_resource_and_service_collisions_block_preflight(self) -> None:
-        self.port_states[3000] = "occupied"
+        self.port_states[8888] = "occupied"
         candidate_binary = Path("/opt/aisoft/gitea/1.26.4/gitea")
         self.resource_states[candidate_binary] = "unsafe"
         self.responses[("systemctl", "is-enabled", "aisoft-gitea.service")] = (0, "enabled\n", "")
@@ -1459,8 +1472,76 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.assertIn("CANDIDATE_RESOURCE_STATE_GITEA_BINARY", value["pending"])
         self.assertIn("CANDIDATE_SERVICE_STATE_GITEA", value["pending"])
 
+    def test_ubuntu_missing_units_and_safe_postgresql_template_pass_preflight(self) -> None:
+        self.responses.pop(("act_runner", "--version"))
+        for unit in (
+            "act_runner.service",
+            "gitea.service",
+            "aisoft-inbound-sync@newemaint.timer",
+            "aisoft-gitea.service",
+        ):
+            self.responses[("systemctl", "is-enabled", unit)] = (4, "not-found\n", "")
+            self.responses[("systemctl", "is-active", unit)] = (3, "inactive\n", "")
+        postgresql = "postgresql@18-aisoft-gitea.service"
+        self.responses[("systemctl", "is-enabled", postgresql)] = (1, "disabled\n", "")
+        self.responses[("systemctl", "is-active", postgresql)] = (3, "inactive\n", "")
+
+        output = self.root / "ubuntu-systemd-preflight.json"
+        value = self.collect_scm(output)
+
+        self.assertEqual(value["outcome"], "PASS")
+        tools = {item["name"]: item for item in value["tools"]}
+        self.assertEqual(tools["act-runner"]["status"], "ABSENT")
+        self.assertEqual(tools["gitea"]["status"], "ABSENT")
+        units = {item["name"]: item for item in value["units"]}
+        self.assertEqual(
+            units["aisoft-inbound-sync@newemaint.timer"],
+            {
+                "name": "aisoft-inbound-sync@newemaint.timer",
+                "enabled": "not-found",
+                "active": "not-found",
+            },
+        )
+        self.assertEqual(
+            value["scm"]["candidate"]["services"],
+            {
+                "gitea": {"enabled": "not-found", "active": "not-found"},
+                "postgresql": {"enabled": "disabled", "active": "inactive"},
+            },
+        )
+
+    def test_unsafe_candidate_unit_pairs_remain_blocked(self) -> None:
+        variants = (
+            ("gitea-disabled", "aisoft-gitea.service", "disabled", "inactive", "gitea"),
+            (
+                "postgresql-masked",
+                "postgresql@18-aisoft-gitea.service",
+                "masked",
+                "inactive",
+                "postgresql",
+            ),
+            (
+                "postgresql-active",
+                "postgresql@18-aisoft-gitea.service",
+                "disabled",
+                "active",
+                "postgresql",
+            ),
+        )
+        for name, unit, enabled, active, resource in variants:
+            with self.subTest(name=name):
+                self.responses[("systemctl", "is-enabled", unit)] = (0, enabled + "\n", "")
+                self.responses[("systemctl", "is-active", unit)] = (0, active + "\n", "")
+                output = self.root / f"unsafe-unit-{name}.json"
+                value = self.collect_scm(output)
+                self.assertEqual(value["outcome"], "BLOCKED")
+                self.assertIn(
+                    "CANDIDATE_SERVICE_STATE_" + resource.upper(),
+                    value["pending"],
+                )
+
     def test_post_install_mode_requires_only_fixed_candidate_state_and_legacy_health(self) -> None:
-        self.port_states = {3000: "occupied", 55432: "occupied"}
+        self.port_states = {3000: "occupied", 8888: "occupied", 55432: "occupied"}
         for unit in ("aisoft-gitea.service", "postgresql@18-aisoft-gitea.service"):
             self.responses[("systemctl", "is-enabled", unit)] = (0, "enabled\n", "")
             self.responses[("systemctl", "is-active", unit)] = (0, "active\n", "")
