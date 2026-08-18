@@ -124,7 +124,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         value.update(
             {
                 "contract_version": INVENTORY_V2_VERSION,
-                "collector_version": "1.1.0",
+                "collector_version": "1.1.1",
                 "mode": "preflight",
                 "scm": {
                     "probe_profile": "greenfield-parallel-replacement-v1",
@@ -221,7 +221,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         controlled = decision == "controlled-upgrade-candidate"
         return {
             "contract_version": TRANSITION_VERSION,
-            "operator_version": "1.1.0",
+            "operator_version": "1.1.1",
             "recorded_at": "2026-08-17T08:00:00Z",
             "source_git_sha": SHA,
             "handoff_manifest_sha256": "3" * 64,
@@ -254,7 +254,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
                 "postgresql_data": "/var/lib/postgresql/18/aisoft-gitea",
                 "postgresql_database": "aisoft_gitea",
                 "postgresql_role": "aisoft_gitea",
-                "gitea_http": "127.0.0.1:3000",
+                "gitea_http": "127.0.0.1:8888",
                 "postgresql_listen": "127.0.0.1:55432",
             },
             "prerequisites": {
@@ -386,7 +386,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         prefix: str,
         *,
         source_sha: str = SHA,
-        operator_version: str = "1.1.0",
+        operator_version: str = "1.1.1",
     ) -> Path:
         bundle = self.root / f"{prefix}-bundle"
         bundle.mkdir(mode=0o700)
@@ -487,14 +487,14 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         self.assertEqual(transition["outcome"], "BLOCKED")
         self.assertEqual(handoff["release"]["platform"], "linux/amd64")
         self.assertEqual(compatibility["topology"]["company_vm_count"], 2)
-        self.assertEqual(compatibility["matrix_revision"], "2026.08.2")
+        self.assertEqual(compatibility["matrix_revision"], "2026.08.3")
         greenfield = compatibility["greenfield_gitea"]
         self.assertEqual(greenfield["inventory_contract"], INVENTORY_V2_VERSION)
         self.assertEqual(greenfield["transition_contract"], TRANSITION_VERSION)
         self.assertEqual(
             greenfield["stage20_bindings"],
             [
-                "operator-1.1.0-handoff-manifest-sha256",
+                "operator-1.1.1-handoff-manifest-sha256",
                 "operator-source-git-sha",
                 "postgresql-os-package-set-manifest-sha256",
                 "scm-ci-inventory-v2-sha256",
@@ -733,6 +733,37 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         self.assertTrue(rendered["ok"])
         self.assertEqual(rendered["outcome"], "PASS")
         self.assertNotIn(str(scm_path), stdout.getvalue())
+
+    def test_transition_verifier_rejects_1_1_0_inventory_reuse(self) -> None:
+        for role in ("scm-ci", "appserver-prod"):
+            with self.subTest(role=role):
+                transition_path, scm_path, appserver_path, handoff_path, package_path = (
+                    self.bound_transition_files(prefix=f"old-inventory-{role}")
+                )
+                target_path = scm_path if role == "scm-ci" else appserver_path
+                inventory = json.loads(target_path.read_text(encoding="utf-8"))
+                inventory["collector_version"] = "1.1.0"
+                target_path.write_text(
+                    json.dumps(inventory, ensure_ascii=False, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                transition = json.loads(transition_path.read_text(encoding="utf-8"))
+                transition["inventories"][
+                    "scm_ci_sha256" if role == "scm-ci" else "appserver_prod_sha256"
+                ] = sha256(target_path)
+                transition_path.write_text(
+                    json.dumps(transition, ensure_ascii=False, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                with self.assertRaises(CompanyDeliveryError) as caught:
+                    verify_gitea_transition(
+                        transition_path,
+                        scm_path,
+                        appserver_path,
+                        handoff_path,
+                        package_path,
+                    )
+                self.assertEqual(caught.exception.code, "INVALID_CONTRACT")
 
     def test_transition_verifier_rejects_handoff_source_version_and_package_drift(self) -> None:
         transition_path, scm_path, appserver_path, _handoff_path, package_path = (
@@ -1755,8 +1786,8 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
             Path(built["bundle_root"]) / "handoff-manifest.json",
             bundle_root=Path(built["bundle_root"]),
         )
-        self.assertEqual(manifest["operator_version"], "1.1.0")
-        self.assertTrue(str(built["archive_name"]).startswith("aisoft-company-delivery-1.1.0-"))
+        self.assertEqual(manifest["operator_version"], "1.1.1")
+        self.assertTrue(str(built["archive_name"]).startswith("aisoft-company-delivery-1.1.1-"))
         self.assertEqual(manifest["contract_version"], HANDOFF_VERSION)
         self.assertEqual(HANDOFF_VERSION, "company-delivery-handoff/v1")
 

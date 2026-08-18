@@ -638,7 +638,7 @@ def load_gitea_transition(
         "Gitea transition",
     )
     _const(value, "contract_version", TRANSITION_VERSION, "Gitea transition")
-    _const(value, "operator_version", "1.1.0", "Gitea transition")
+    _const(value, "operator_version", OPERATOR_VERSION, "Gitea transition")
     _timestamp(value, "recorded_at", "Gitea transition")
     _matching(value, "source_git_sha", GIT_SHA, "Gitea transition")
     _matching(value, "handoff_manifest_sha256", SHA256, "Gitea transition")
@@ -770,12 +770,12 @@ def verify_gitea_transition(
     )
     handoff_source = _object(handoff, "source", "handoff manifest")
     if (
-        handoff["operator_version"] != "1.1.0"
+        handoff["operator_version"] != OPERATOR_VERSION
         or handoff_source["git_sha"] != transition["source_git_sha"]
     ):
         raise CompanyDeliveryError(
             "CHECKSUM_MISMATCH",
-            "transition source does not match the verified 1.1.0 handoff",
+            f"transition source does not match the verified {OPERATOR_VERSION} handoff",
         )
     postgresql_package_manifest_sha256 = _load_stable_package_manifest(
         postgresql_package_manifest_path,
@@ -803,6 +803,7 @@ def verify_gitea_transition(
     )
     if (
         scm_inventory["contract_version"] != INVENTORY_V2_VERSION
+        or scm_inventory["collector_version"] != OPERATOR_VERSION
         or scm_inventory["role"] != "scm-ci"
         or scm_inventory["outcome"] != "PASS"
         or scm_inventory["mode"] != "preflight"
@@ -813,6 +814,7 @@ def verify_gitea_transition(
         )
     if (
         appserver_inventory["contract_version"] != INVENTORY_V2_VERSION
+        or appserver_inventory["collector_version"] != OPERATOR_VERSION
         or appserver_inventory["role"] != "appserver-prod"
         or appserver_inventory["outcome"] != "PASS"
         or appserver_inventory["mode"] is not None

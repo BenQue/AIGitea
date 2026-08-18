@@ -207,7 +207,7 @@ bundle_two="$(json_field bundle_name <<<"$build_two")" ||
 [[ "$checksum_one" =~ ^[0-9a-f]{64}$ && "$checksum_one" == "$checksum_two" ]] ||
   fail 'deterministic archive checksums differ'
 [[ "$bundle_one" == "$bundle_two" &&
-  "$bundle_one" =~ ^aisoft-company-delivery-1\.0\.1-[0-9a-f]{40}$ ]] ||
+  "$bundle_one" =~ ^aisoft-company-delivery-1\.1\.1-[0-9a-f]{40}$ ]] ||
   fail 'bundle identities are inconsistent'
 
 verify_one="$(

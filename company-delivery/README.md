@@ -1,7 +1,7 @@
 # Company delivery operator bundle
 
-本目录是 Issue #120/#126 的 versioned、checksum-pinned、纯人工 operator workflow。当前 operator
-`1.1.0` 准备 NewEmaint 从本地
+本目录是 Issue #120/#126/#128 的 versioned、checksum-pinned、纯人工 operator workflow。当前 operator
+`1.1.1` 准备 NewEmaint 从本地
 OrbStack DockerLab 验证过的 exact `docker-release/v2` bytes 搬运到公司两台 Linux VM；它不是安装记录、
 部署记录或公司环境验收结果。
 
@@ -34,10 +34,10 @@ OrbStack DockerLab 验证过的 exact `docker-release/v2` bytes 搬运到公司�
 upstream provenance（SHA-256
 `81a81ec695fb0c7901407defaa1d2f7973617154cf27ba74e3a7ab8e64436094`）。新 units 为
 `aisoft-gitea.service`、`postgresql@18-aisoft-gitea.service`，只监听候选 loopback
-`127.0.0.1:3000` 与 `127.0.0.1:55432`；完整 paths/identity 以 compatibility matrix 为准。
+`127.0.0.1:8888` 与 `127.0.0.1:55432`；完整 paths/identity 以 compatibility matrix 为准。
 
 Stage 10 使用 inventory v2 的 legacy fingerprint/health 与 collision probes；Stage 20 用 transition v1
-绑定两份 inventory、已验证的 operator 1.1.0 handoff/source SHA 与 PostgreSQL OS package-set SHA-256
+绑定两份 inventory、已验证的 operator 1.1.1 handoff/source SHA 与 PostgreSQL OS package-set SHA-256
 manifest；greenfield 路径的 Stage 30/40 必须保持 `NOT RUN`，Stage 50 以
 `legacy-pre-post-equality` 作为独立 alternate prerequisite。legacy Docker container、image、volume、
 network、database、configuration、port、repository 和 service lifecycle 均禁止修改。SSH、Runner、timer、
@@ -45,8 +45,9 @@ Actions auto deploy、production gate、DNS/TLS、reverse proxy 与 repository i
 `NOT RUN`。
 
 新实例未来只承载新仓库；legacy migration/phase-out、traffic cutover 与旧实例退役必须另建 Change。本仓库
-没有执行公司 Stage 10–50；它们全部为 `NOT RUN`。旧 operator `1.0.1` Stage 00 仅是历史 evidence，不能
-投影成 `1.1.0` Stage 00 `PASS`。
+不会把旧 operator 的公司 evidence 投影到新合同。`1.0.1` 与 `1.1.0` Stage 00、以及 `1.1.0`
+Stage 10 inventory 仅是历史 evidence，不能作为 `1.1.1` Stage 00/10 `PASS`；`appserver-prod` 仍保持
+`NOT RUN`，直到获得独立人工批准。
 
 ## 构建边界
 
