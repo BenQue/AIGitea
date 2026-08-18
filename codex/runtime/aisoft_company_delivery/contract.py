@@ -465,7 +465,7 @@ def _load_inventory_v2(value: dict[str, object]) -> dict[str, object]:
             for name, state in services.items()
         ):
             raise CompanyDeliveryError(
-                "INVALID_CONTRACT", "preflight PASS requires candidate services absent"
+                "INVALID_CONTRACT", "preflight PASS requires exact safe candidate service states"
             )
     else:
         if set(ports.values()) != {"occupied"}:
