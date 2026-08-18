@@ -20,6 +20,7 @@ TRANSITION_VERSION = "company-delivery-gitea-transition/v1"
 HANDOFF_VERSION = "company-delivery-handoff/v1"
 EVIDENCE_VERSION = "company-delivery-evidence/v1"
 RELEASE_VERSION = "docker-release/v2"
+OPERATOR_VERSION = "1.1.1"
 
 GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -105,8 +106,17 @@ FIXED_GITEA_TARGET = {
     "postgresql_data": "/var/lib/postgresql/18/aisoft-gitea",
     "postgresql_database": "aisoft_gitea",
     "postgresql_role": "aisoft_gitea",
-    "gitea_http": "127.0.0.1:3000",
+    "gitea_http": "127.0.0.1:8888",
     "postgresql_listen": "127.0.0.1:55432",
+}
+PREFLIGHT_CANDIDATE_SERVICE_STATES = {
+    "gitea": frozenset({("not-found", "not-found")}),
+    "postgresql": frozenset(
+        {
+            ("not-found", "not-found"),
+            ("disabled", "inactive"),
+        }
+    ),
 }
 
 SCM_RESOURCE_KEYS = {
@@ -450,11 +460,12 @@ def _load_inventory_v2(value: dict[str, object]) -> dict[str, object]:
                 "INVALID_CONTRACT", "preflight PASS requires candidate resources absent or empty"
             )
         if any(
-            state != {"enabled": "not-found", "active": "not-found"}
-            for state in services.values()
+            (str(state["enabled"]), str(state["active"]))
+            not in PREFLIGHT_CANDIDATE_SERVICE_STATES[name]
+            for name, state in services.items()
         ):
             raise CompanyDeliveryError(
-                "INVALID_CONTRACT", "preflight PASS requires candidate services absent"
+                "INVALID_CONTRACT", "preflight PASS requires exact safe candidate service states"
             )
     else:
         if set(ports.values()) != {"occupied"}:
@@ -513,6 +524,11 @@ def _validate_scm_legacy(value: Mapping[str, object]) -> Mapping[str, object]:
         "malformed-container-id",
         "docker-probe-failed",
         "health-probe-failed",
+        "http-status-3xx",
+        "http-status-4xx",
+        "http-status-5xx",
+        "request-failed",
+        "response-invalid",
         "version-unrecognized",
         "sensitive-output-rejected",
         "not-run",
@@ -622,7 +638,7 @@ def load_gitea_transition(
         "Gitea transition",
     )
     _const(value, "contract_version", TRANSITION_VERSION, "Gitea transition")
-    _const(value, "operator_version", "1.1.0", "Gitea transition")
+    _const(value, "operator_version", OPERATOR_VERSION, "Gitea transition")
     _timestamp(value, "recorded_at", "Gitea transition")
     _matching(value, "source_git_sha", GIT_SHA, "Gitea transition")
     _matching(value, "handoff_manifest_sha256", SHA256, "Gitea transition")
@@ -754,12 +770,12 @@ def verify_gitea_transition(
     )
     handoff_source = _object(handoff, "source", "handoff manifest")
     if (
-        handoff["operator_version"] != "1.1.0"
+        handoff["operator_version"] != OPERATOR_VERSION
         or handoff_source["git_sha"] != transition["source_git_sha"]
     ):
         raise CompanyDeliveryError(
             "CHECKSUM_MISMATCH",
-            "transition source does not match the verified 1.1.0 handoff",
+            f"transition source does not match the verified {OPERATOR_VERSION} handoff",
         )
     postgresql_package_manifest_sha256 = _load_stable_package_manifest(
         postgresql_package_manifest_path,
@@ -787,6 +803,7 @@ def verify_gitea_transition(
     )
     if (
         scm_inventory["contract_version"] != INVENTORY_V2_VERSION
+        or scm_inventory["collector_version"] != OPERATOR_VERSION
         or scm_inventory["role"] != "scm-ci"
         or scm_inventory["outcome"] != "PASS"
         or scm_inventory["mode"] != "preflight"
@@ -797,6 +814,7 @@ def verify_gitea_transition(
         )
     if (
         appserver_inventory["contract_version"] != INVENTORY_V2_VERSION
+        or appserver_inventory["collector_version"] != OPERATOR_VERSION
         or appserver_inventory["role"] != "appserver-prod"
         or appserver_inventory["outcome"] != "PASS"
         or appserver_inventory["mode"] is not None

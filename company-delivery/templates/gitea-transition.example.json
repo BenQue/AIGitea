@@ -1,6 +1,6 @@
 {
   "contract_version": "company-delivery-gitea-transition/v1",
-  "operator_version": "1.1.0",
+  "operator_version": "1.1.1",
   "recorded_at": "2026-08-17T08:00:00Z",
   "source_git_sha": "0000000000000000000000000000000000000000",
   "handoff_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -33,7 +33,7 @@
     "postgresql_data": "/var/lib/postgresql/18/aisoft-gitea",
     "postgresql_database": "aisoft_gitea",
     "postgresql_role": "aisoft_gitea",
-    "gitea_http": "127.0.0.1:3000",
+    "gitea_http": "127.0.0.1:8888",
     "postgresql_listen": "127.0.0.1:55432"
   },
   "prerequisites": {

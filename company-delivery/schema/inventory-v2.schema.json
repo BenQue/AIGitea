@@ -116,10 +116,20 @@
                         }
                       },
                       "postgresql": {
-                        "properties": {
-                          "enabled": {"const": "not-found"},
-                          "active": {"const": "not-found"}
-                        }
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "enabled": {"const": "not-found"},
+                              "active": {"const": "not-found"}
+                            }
+                          },
+                          {
+                            "properties": {
+                              "enabled": {"const": "disabled"},
+                              "active": {"const": "inactive"}
+                            }
+                          }
+                        ]
                       }
                     }
                   }
@@ -252,7 +262,7 @@
             "health": {"enum": ["healthy", "unhealthy", "not-run", "unknown"]},
             "version": {"type": ["string", "null"], "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
             "baseline_sha256": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
-            "reason": {"type": ["string", "null"], "enum": ["confirmed-absent", "multiple-containers", "malformed-container-id", "docker-probe-failed", "health-probe-failed", "version-unrecognized", "sensitive-output-rejected", "not-run", null]}
+            "reason": {"type": ["string", "null"], "enum": ["confirmed-absent", "multiple-containers", "malformed-container-id", "docker-probe-failed", "health-probe-failed", "http-status-3xx", "http-status-4xx", "http-status-5xx", "request-failed", "response-invalid", "version-unrecognized", "sensitive-output-rejected", "not-run", null]}
           }
         },
         "candidate": {

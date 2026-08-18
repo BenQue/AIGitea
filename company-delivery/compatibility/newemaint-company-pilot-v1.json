@@ -1,6 +1,6 @@
 {
   "contract_version": "company-delivery-compatibility/v1",
-  "matrix_revision": "2026.08.2",
+  "matrix_revision": "2026.08.3",
   "pilot": "newemaint",
   "topology": {
     "company_vm_count": 2,
@@ -37,7 +37,7 @@
     "transition_contract": "company-delivery-gitea-transition/v1",
     "decision": "greenfield-parallel-replacement",
     "stage20_bindings": [
-      "operator-1.1.0-handoff-manifest-sha256",
+      "operator-1.1.1-handoff-manifest-sha256",
       "operator-source-git-sha",
       "postgresql-os-package-set-manifest-sha256",
       "scm-ci-inventory-v2-sha256",
@@ -64,7 +64,7 @@
       "postgresql_data": "/var/lib/postgresql/18/aisoft-gitea",
       "postgresql_database": "aisoft_gitea",
       "postgresql_role": "aisoft_gitea",
-      "gitea_http": "127.0.0.1:3000",
+      "gitea_http": "127.0.0.1:8888",
       "postgresql_listen": "127.0.0.1:55432"
     },
     "initial_automation": {

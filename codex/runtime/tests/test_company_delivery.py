@@ -124,7 +124,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         value.update(
             {
                 "contract_version": INVENTORY_V2_VERSION,
-                "collector_version": "1.1.0",
+                "collector_version": "1.1.1",
                 "mode": "preflight",
                 "scm": {
                     "probe_profile": "greenfield-parallel-replacement-v1",
@@ -221,7 +221,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         controlled = decision == "controlled-upgrade-candidate"
         return {
             "contract_version": TRANSITION_VERSION,
-            "operator_version": "1.1.0",
+            "operator_version": "1.1.1",
             "recorded_at": "2026-08-17T08:00:00Z",
             "source_git_sha": SHA,
             "handoff_manifest_sha256": "3" * 64,
@@ -254,7 +254,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
                 "postgresql_data": "/var/lib/postgresql/18/aisoft-gitea",
                 "postgresql_database": "aisoft_gitea",
                 "postgresql_role": "aisoft_gitea",
-                "gitea_http": "127.0.0.1:3000",
+                "gitea_http": "127.0.0.1:8888",
                 "postgresql_listen": "127.0.0.1:55432",
             },
             "prerequisites": {
@@ -386,7 +386,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         prefix: str,
         *,
         source_sha: str = SHA,
-        operator_version: str = "1.1.0",
+        operator_version: str = "1.1.1",
     ) -> Path:
         bundle = self.root / f"{prefix}-bundle"
         bundle.mkdir(mode=0o700)
@@ -487,14 +487,14 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         self.assertEqual(transition["outcome"], "BLOCKED")
         self.assertEqual(handoff["release"]["platform"], "linux/amd64")
         self.assertEqual(compatibility["topology"]["company_vm_count"], 2)
-        self.assertEqual(compatibility["matrix_revision"], "2026.08.2")
+        self.assertEqual(compatibility["matrix_revision"], "2026.08.3")
         greenfield = compatibility["greenfield_gitea"]
         self.assertEqual(greenfield["inventory_contract"], INVENTORY_V2_VERSION)
         self.assertEqual(greenfield["transition_contract"], TRANSITION_VERSION)
         self.assertEqual(
             greenfield["stage20_bindings"],
             [
-                "operator-1.1.0-handoff-manifest-sha256",
+                "operator-1.1.1-handoff-manifest-sha256",
                 "operator-source-git-sha",
                 "postgresql-os-package-set-manifest-sha256",
                 "scm-ci-inventory-v2-sha256",
@@ -733,6 +733,37 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         self.assertTrue(rendered["ok"])
         self.assertEqual(rendered["outcome"], "PASS")
         self.assertNotIn(str(scm_path), stdout.getvalue())
+
+    def test_transition_verifier_rejects_1_1_0_inventory_reuse(self) -> None:
+        for role in ("scm-ci", "appserver-prod"):
+            with self.subTest(role=role):
+                transition_path, scm_path, appserver_path, handoff_path, package_path = (
+                    self.bound_transition_files(prefix=f"old-inventory-{role}")
+                )
+                target_path = scm_path if role == "scm-ci" else appserver_path
+                inventory = json.loads(target_path.read_text(encoding="utf-8"))
+                inventory["collector_version"] = "1.1.0"
+                target_path.write_text(
+                    json.dumps(inventory, ensure_ascii=False, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                transition = json.loads(transition_path.read_text(encoding="utf-8"))
+                transition["inventories"][
+                    "scm_ci_sha256" if role == "scm-ci" else "appserver_prod_sha256"
+                ] = sha256(target_path)
+                transition_path.write_text(
+                    json.dumps(transition, ensure_ascii=False, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                with self.assertRaises(CompanyDeliveryError) as caught:
+                    verify_gitea_transition(
+                        transition_path,
+                        scm_path,
+                        appserver_path,
+                        handoff_path,
+                        package_path,
+                    )
+                self.assertEqual(caught.exception.code, "INVALID_CONTRACT")
 
     def test_transition_verifier_rejects_handoff_source_version_and_package_drift(self) -> None:
         transition_path, scm_path, appserver_path, _handoff_path, package_path = (
@@ -1177,7 +1208,10 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.responses[("systemctl", "is-enabled", timer)] = (1, "disabled\n", "")
         self.responses[("systemctl", "is-active", timer)] = (3, "inactive\n", "")
         self.http_response: tuple[int, str] | None = (200, '{"version":"1.26.4"}')
-        self.port_states = {3000: "free", 55432: "free"}
+        self.port_calls: list[int] = []
+        # The real company scm-ci already has an unrelated application on 3000.
+        # The greenfield Gitea contract must probe only its fixed 8888 target.
+        self.port_states = {3000: "occupied", 8888: "free", 55432: "free"}
         self.resource_states: dict[Path, str] = {}
 
     def tearDown(self) -> None:
@@ -1204,6 +1238,7 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         return self.http_response
 
     def port_probe(self, port: int) -> str:
+        self.port_calls.append(port)
         return self.port_states[port]
 
     def resource_probe(self, path: Path) -> str:
@@ -1263,6 +1298,8 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.assertEqual(value["scm"]["legacy"]["presence"], "present")
         self.assertEqual(value["scm"]["legacy"]["health"], "healthy")
         self.assertIsNotNone(value["scm"]["legacy"]["baseline_sha256"])
+        self.assertEqual(self.port_calls, [8888, 55432])
+        self.assertNotIn(3000, self.port_calls)
         self.assertEqual(output.stat().st_mode & 0o777, 0o600)
         parsed = load_inventory(output)
         rendered = output.read_text(encoding="utf-8")
@@ -1409,23 +1446,30 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
             raise TimeoutError("raw timeout detail")
 
         variants = (
-            ("non-200", lambda _port: (503, "service unavailable"), "unhealthy"),
-            ("wrong-json", lambda _port: (200, '{"version":"1.26.4","extra":true}'), "unknown"),
-            ("duplicate", lambda _port: (200, '{"version":"1.26.4","version":"9.9.9"}'), "unknown"),
-            ("sensitive", lambda _port: (200, f'{{"version":"1.26.4","token":"{sentinel}"}}'), "unknown"),
-            ("oversized", lambda _port: (200, '{"version":"' + "1" * 5000 + '"}'), "unknown"),
-            ("timeout", timeout, "unknown"),
+            ("redirect", lambda _port: (302, "redirect target must stay private"), "unhealthy", "http-status-3xx"),
+            ("unauthorized", lambda _port: (401, "authentication detail"), "unhealthy", "http-status-4xx"),
+            ("unavailable", lambda _port: (503, "service unavailable"), "unhealthy", "http-status-5xx"),
+            ("wrong-json", lambda _port: (200, '{"version":"1.26.4","extra":true}'), "unknown", "response-invalid"),
+            ("duplicate", lambda _port: (200, '{"version":"1.26.4","version":"9.9.9"}'), "unknown", "response-invalid"),
+            ("sensitive", lambda _port: (200, f'{{"version":"1.26.4","token":"{sentinel}"}}'), "unknown", "sensitive-output-rejected"),
+            ("oversized", lambda _port: (200, '{"version":"' + "1" * 5000 + '"}'), "unknown", "response-invalid"),
+            ("timeout", timeout, "unknown", "request-failed"),
         )
-        for name, getter, health in variants:
+        for name, getter, health, reason in variants:
             output = self.root / f"health-{name}.json"
             with self.subTest(name=name):
                 value = self.collect_scm(output, http_get=getter)
                 self.assertEqual(value["outcome"], "BLOCKED")
                 self.assertEqual(value["scm"]["legacy"]["health"], health)
+                self.assertEqual(value["scm"]["legacy"]["reason"], reason)
                 rendered = output.read_text(encoding="utf-8")
                 self.assertNotIn(sentinel, rendered)
                 self.assertNotIn("service unavailable", rendered)
+                self.assertNotIn("authentication detail", rendered)
+                self.assertNotIn("redirect target", rendered)
                 self.assertNotIn("9.9.9", rendered)
+                self.assertNotIn("raw timeout detail", rendered)
+                self.assertNotIn("status_code", rendered)
 
     def test_fixed_resource_probe_reports_state_without_names_or_contents(self) -> None:
         missing = self.root / "missing"
@@ -1445,7 +1489,7 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.assertEqual(collector_module._resource_state(link), "unsafe")
 
     def test_candidate_port_resource_and_service_collisions_block_preflight(self) -> None:
-        self.port_states[3000] = "occupied"
+        self.port_states[8888] = "occupied"
         candidate_binary = Path("/opt/aisoft/gitea/1.26.4/gitea")
         self.resource_states[candidate_binary] = "unsafe"
         self.responses[("systemctl", "is-enabled", "aisoft-gitea.service")] = (0, "enabled\n", "")
@@ -1459,8 +1503,76 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.assertIn("CANDIDATE_RESOURCE_STATE_GITEA_BINARY", value["pending"])
         self.assertIn("CANDIDATE_SERVICE_STATE_GITEA", value["pending"])
 
+    def test_ubuntu_missing_units_and_safe_postgresql_template_pass_preflight(self) -> None:
+        self.responses.pop(("act_runner", "--version"))
+        for unit in (
+            "act_runner.service",
+            "gitea.service",
+            "aisoft-inbound-sync@newemaint.timer",
+            "aisoft-gitea.service",
+        ):
+            self.responses[("systemctl", "is-enabled", unit)] = (4, "not-found\n", "")
+            self.responses[("systemctl", "is-active", unit)] = (3, "inactive\n", "")
+        postgresql = "postgresql@18-aisoft-gitea.service"
+        self.responses[("systemctl", "is-enabled", postgresql)] = (1, "disabled\n", "")
+        self.responses[("systemctl", "is-active", postgresql)] = (3, "inactive\n", "")
+
+        output = self.root / "ubuntu-systemd-preflight.json"
+        value = self.collect_scm(output)
+
+        self.assertEqual(value["outcome"], "PASS")
+        tools = {item["name"]: item for item in value["tools"]}
+        self.assertEqual(tools["act-runner"]["status"], "ABSENT")
+        self.assertEqual(tools["gitea"]["status"], "ABSENT")
+        units = {item["name"]: item for item in value["units"]}
+        self.assertEqual(
+            units["aisoft-inbound-sync@newemaint.timer"],
+            {
+                "name": "aisoft-inbound-sync@newemaint.timer",
+                "enabled": "not-found",
+                "active": "not-found",
+            },
+        )
+        self.assertEqual(
+            value["scm"]["candidate"]["services"],
+            {
+                "gitea": {"enabled": "not-found", "active": "not-found"},
+                "postgresql": {"enabled": "disabled", "active": "inactive"},
+            },
+        )
+
+    def test_unsafe_candidate_unit_pairs_remain_blocked(self) -> None:
+        variants = (
+            ("gitea-disabled", "aisoft-gitea.service", "disabled", "inactive", "gitea"),
+            (
+                "postgresql-masked",
+                "postgresql@18-aisoft-gitea.service",
+                "masked",
+                "inactive",
+                "postgresql",
+            ),
+            (
+                "postgresql-active",
+                "postgresql@18-aisoft-gitea.service",
+                "disabled",
+                "active",
+                "postgresql",
+            ),
+        )
+        for name, unit, enabled, active, resource in variants:
+            with self.subTest(name=name):
+                self.responses[("systemctl", "is-enabled", unit)] = (0, enabled + "\n", "")
+                self.responses[("systemctl", "is-active", unit)] = (0, active + "\n", "")
+                output = self.root / f"unsafe-unit-{name}.json"
+                value = self.collect_scm(output)
+                self.assertEqual(value["outcome"], "BLOCKED")
+                self.assertIn(
+                    "CANDIDATE_SERVICE_STATE_" + resource.upper(),
+                    value["pending"],
+                )
+
     def test_post_install_mode_requires_only_fixed_candidate_state_and_legacy_health(self) -> None:
-        self.port_states = {3000: "occupied", 55432: "occupied"}
+        self.port_states = {3000: "occupied", 8888: "occupied", 55432: "occupied"}
         for unit in ("aisoft-gitea.service", "postgresql@18-aisoft-gitea.service"):
             self.responses[("systemctl", "is-enabled", unit)] = (0, "enabled\n", "")
             self.responses[("systemctl", "is-active", unit)] = (0, "active\n", "")
@@ -1674,8 +1786,8 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
             Path(built["bundle_root"]) / "handoff-manifest.json",
             bundle_root=Path(built["bundle_root"]),
         )
-        self.assertEqual(manifest["operator_version"], "1.1.0")
-        self.assertTrue(str(built["archive_name"]).startswith("aisoft-company-delivery-1.1.0-"))
+        self.assertEqual(manifest["operator_version"], "1.1.1")
+        self.assertTrue(str(built["archive_name"]).startswith("aisoft-company-delivery-1.1.1-"))
         self.assertEqual(manifest["contract_version"], HANDOFF_VERSION)
         self.assertEqual(HANDOFF_VERSION, "company-delivery-handoff/v1")
 
