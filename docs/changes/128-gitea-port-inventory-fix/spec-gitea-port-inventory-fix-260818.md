@@ -18,7 +18,7 @@ depends_on:
   - 126
 status: approved
 branch: change/128-gitea-port-inventory-fix
-pr_url: null
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/129
 created: 2026-08-18
 updated: 2026-08-18
 ---
