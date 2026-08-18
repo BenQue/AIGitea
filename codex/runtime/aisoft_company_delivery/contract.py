@@ -20,6 +20,7 @@ TRANSITION_VERSION = "company-delivery-gitea-transition/v1"
 HANDOFF_VERSION = "company-delivery-handoff/v1"
 EVIDENCE_VERSION = "company-delivery-evidence/v1"
 RELEASE_VERSION = "docker-release/v2"
+OPERATOR_VERSION = "1.1.1"
 
 GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -105,8 +106,17 @@ FIXED_GITEA_TARGET = {
     "postgresql_data": "/var/lib/postgresql/18/aisoft-gitea",
     "postgresql_database": "aisoft_gitea",
     "postgresql_role": "aisoft_gitea",
-    "gitea_http": "127.0.0.1:3000",
+    "gitea_http": "127.0.0.1:8888",
     "postgresql_listen": "127.0.0.1:55432",
+}
+PREFLIGHT_CANDIDATE_SERVICE_STATES = {
+    "gitea": frozenset({("not-found", "not-found")}),
+    "postgresql": frozenset(
+        {
+            ("not-found", "not-found"),
+            ("disabled", "inactive"),
+        }
+    ),
 }
 
 SCM_RESOURCE_KEYS = {
@@ -450,8 +460,9 @@ def _load_inventory_v2(value: dict[str, object]) -> dict[str, object]:
                 "INVALID_CONTRACT", "preflight PASS requires candidate resources absent or empty"
             )
         if any(
-            state != {"enabled": "not-found", "active": "not-found"}
-            for state in services.values()
+            (str(state["enabled"]), str(state["active"]))
+            not in PREFLIGHT_CANDIDATE_SERVICE_STATES[name]
+            for name, state in services.items()
         ):
             raise CompanyDeliveryError(
                 "INVALID_CONTRACT", "preflight PASS requires candidate services absent"
@@ -513,6 +524,11 @@ def _validate_scm_legacy(value: Mapping[str, object]) -> Mapping[str, object]:
         "malformed-container-id",
         "docker-probe-failed",
         "health-probe-failed",
+        "http-status-3xx",
+        "http-status-4xx",
+        "http-status-5xx",
+        "request-failed",
+        "response-invalid",
         "version-unrecognized",
         "sensitive-output-rejected",
         "not-run",

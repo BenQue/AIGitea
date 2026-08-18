@@ -18,10 +18,12 @@ import subprocess
 from .contract import (
     FIXED_GITEA_TARGET,
     INVENTORY_V2_VERSION,
+    PREFLIGHT_CANDIDATE_SERVICE_STATES,
     ROLE_TOOL_NAMES,
     ROLE_UNIT_NAMES,
     ROLES,
     SCM_AUTOMATION,
+    SENSITIVE_KEYS,
     CompanyDeliveryError,
     contains_sensitive_text,
     legacy_baseline_sha256,
@@ -69,7 +71,7 @@ ENABLED_STATES = {"enabled", "disabled", "masked", "static", "indirect"}
 ACTIVE_STATES = {"active", "inactive", "failed", "activating", "deactivating", "maintenance"}
 LEGACY_CONTAINER_ID = re.compile(r"^[0-9a-f]{12,64}$")
 GITEA_VERSION_BODY_LIMIT = 4096
-CANDIDATE_PORTS = {"gitea_http": 3000, "postgresql": 55432}
+CANDIDATE_PORTS = {"gitea_http": 8888, "postgresql": 55432}
 CANDIDATE_RESOURCES = {
     "gitea_binary": Path(FIXED_GITEA_TARGET["gitea_binary"]),
     "gitea_config": Path(FIXED_GITEA_TARGET["gitea_config"]),
@@ -188,8 +190,7 @@ def collect_inventory(
 
     units: list[dict[str, str]] = []
     for unit in ROLE_UNIT_NAMES[role]:
-        enabled = _unit_state(_probe(invoke, ["systemctl", "is-enabled", unit]), ENABLED_STATES)
-        active = _unit_state(_probe(invoke, ["systemctl", "is-active", unit]), ACTIVE_STATES)
+        enabled, active = _unit_pair(invoke, unit)
         units.append({"name": unit, "enabled": enabled, "active": active})
         if "unknown" in {enabled, active}:
             pending.append("UNIT_STATE_UNKNOWN_" + re.sub(r"[^A-Za-z0-9]", "_", unit).upper())
@@ -322,7 +323,7 @@ def _collect_scm_inventory(
                     "presence": "present",
                     "container_id_sha256": _fingerprint(identifiers[0]),
                     "health": "unknown",
-                    "reason": "health-probe-failed",
+                    "reason": "request-failed",
                 }
             )
             try:
@@ -330,6 +331,7 @@ def _collect_scm_inventory(
             except (OSError, TimeoutError, ValueError):
                 response = None
             if response is None:
+                legacy["reason"] = "request-failed"
                 pending.append("LEGACY_GITEA_HEALTH_PROBE_FAILED")
             else:
                 status_code, body = response
@@ -338,17 +340,19 @@ def _collect_scm_inventory(
                     or not isinstance(status_code, int)
                     or not isinstance(body, str)
                 ):
+                    legacy["reason"] = "response-invalid"
                     pending.append("LEGACY_GITEA_HEALTH_PROBE_FAILED")
                 elif contains_sensitive_text(body):
                     legacy["reason"] = "sensitive-output-rejected"
                     pending.append("LEGACY_GITEA_HEALTH_OUTPUT_REJECTED")
                 elif status_code != 200:
                     legacy["health"] = "unhealthy"
+                    legacy["reason"] = _http_status_reason(status_code)
                     pending.append("LEGACY_GITEA_UNHEALTHY")
                 else:
-                    version = _gitea_api_version(body)
+                    version, reason = _gitea_api_version(body)
                     if version is None:
-                        legacy["reason"] = "version-unrecognized"
+                        legacy["reason"] = reason
                         pending.append("LEGACY_GITEA_VERSION_UNRECOGNIZED")
                     else:
                         legacy.update({"health": "healthy", "version": version, "reason": None})
@@ -381,18 +385,19 @@ def _collect_scm_inventory(
             pending.append("CANDIDATE_RESOURCE_STATE_" + name.upper())
 
     services: dict[str, dict[str, str]] = {}
-    expected_service = (
-        {"enabled": "not-found", "active": "not-found"}
-        if mode == "preflight"
-        else {"enabled": "enabled", "active": "active"}
-    )
     for name, unit in CANDIDATE_SERVICES.items():
+        enabled, active = _unit_pair(runner, unit)
         state = {
-            "enabled": _unit_state(_probe(runner, ["systemctl", "is-enabled", unit]), ENABLED_STATES),
-            "active": _unit_state(_probe(runner, ["systemctl", "is-active", unit]), ACTIVE_STATES),
+            "enabled": enabled,
+            "active": active,
         }
         services[name] = state
-        if state != expected_service:
+        allowed_states = (
+            PREFLIGHT_CANDIDATE_SERVICE_STATES[name]
+            if mode == "preflight"
+            else frozenset({("enabled", "active")})
+        )
+        if (enabled, active) not in allowed_states:
             pending.append("CANDIDATE_SERVICE_STATE_" + name.upper())
 
     generic_by_name = {item["name"]: item for item in generic_units}
@@ -557,19 +562,35 @@ def _fingerprint(value: str) -> str | None:
     return "sha256:" + hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
-def _gitea_api_version(body: str) -> str | None:
-    if len(body.encode("utf-8")) > GITEA_VERSION_BODY_LIMIT or contains_sensitive_text(body):
-        return None
+def _http_status_reason(status_code: int) -> str:
+    if 300 <= status_code <= 399:
+        return "http-status-3xx"
+    if 400 <= status_code <= 499:
+        return "http-status-4xx"
+    if 500 <= status_code <= 599:
+        return "http-status-5xx"
+    return "response-invalid"
+
+
+def _gitea_api_version(body: str) -> tuple[str | None, str]:
+    if len(body.encode("utf-8")) > GITEA_VERSION_BODY_LIMIT:
+        return None, "response-invalid"
+    if contains_sensitive_text(body):
+        return None, "sensitive-output-rejected"
     try:
         value = json.loads(body, object_pairs_hook=_unique_json_object)
     except (json.JSONDecodeError, ValueError):
-        return None
+        return None, "response-invalid"
+    if isinstance(value, dict) and any(
+        isinstance(key, str) and key.lower() in SENSITIVE_KEYS for key in value
+    ):
+        return None, "sensitive-output-rejected"
     if not isinstance(value, dict) or set(value) != {"version"}:
-        return None
+        return None, "response-invalid"
     version = value.get("version")
     if not isinstance(version, str) or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) is None:
-        return None
-    return version
+        return None, "version-unrecognized"
+    return version, "response-invalid"
 
 
 def _unique_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -650,6 +671,20 @@ def _unit_state(probe: _Probe, allowed: set[str]) -> str:
     if probe.returncode == 4:
         return "not-found"
     return "unknown"
+
+
+def _unit_pair(runner: Runner, unit: str) -> tuple[str, str]:
+    enabled = _unit_state(
+        _probe(runner, ["systemctl", "is-enabled", unit]),
+        ENABLED_STATES,
+    )
+    active = _unit_state(
+        _probe(runner, ["systemctl", "is-active", unit]),
+        ACTIVE_STATES,
+    )
+    if enabled == "not-found" and active in {"inactive", "not-found"}:
+        return "not-found", "not-found"
+    return enabled, active
 
 
 def _require_new_protected_output(path: Path) -> None:
