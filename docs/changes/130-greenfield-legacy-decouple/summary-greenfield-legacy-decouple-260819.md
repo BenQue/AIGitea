@@ -26,9 +26,9 @@ documents:
   spec: spec-greenfield-legacy-decouple-260819.md
   plan: plan-greenfield-legacy-decouple-260819.md
   verification: verification-greenfield-legacy-decouple-260819.md
-status: spec-drafting
+status: pr-open
 branch: change/130-greenfield-legacy-decouple
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/131
 created: 2026-08-19
 updated: 2026-08-19
 ---

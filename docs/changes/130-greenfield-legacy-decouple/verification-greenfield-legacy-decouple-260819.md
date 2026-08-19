@@ -15,9 +15,9 @@ risk_flags:
   - reliability
   - platform-governance
 depends_on: []
-status: verified
+status: pr-open
 branch: change/130-greenfield-legacy-decouple
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/131
 created: 2026-08-19
 updated: 2026-08-19
 ---
@@ -41,7 +41,7 @@ appserver-prod inventory、新 Stage00 archive 和所有 legacy Gitea 操作均 
 | AC-6 No-echo and security | PASS | candidate health 的 5xx、duplicate JSON、sensitive key 与 version mismatch 均 fail closed，不保存 body/Secret |
 | AC-7 Portable consistency | PASS | VERSION/runtime/schema/template/matrix/runbook/handoff 全部为 1.2.0/v3/v2；bundle repeat-build test PASS |
 | AC-8 Regression evidence | PASS | focused 41 tests、full 76 tests、platform smoke 437 tests、JSON/bash/diff gates 全部 PASS |
-| AC-9 Governed delivery | IN PROGRESS | 本地 commits 与 clean readable branch 已完成；等待 broker push、唯一 PR、CI readback |
+| AC-9 Governed delivery | IN PROGRESS | broker push 与唯一 PR #131 已读回；等待最终 head 的 CI readback |
 | AC-10 Company boundary | PASS | 本次未连接公司内网、未生成 archive、未执行 Stage20/安装/appserver inventory/legacy action |
 
 ## 命令记录
