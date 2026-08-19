@@ -1,6 +1,6 @@
 {
   "contract_version": "company-delivery-handoff/v1",
-  "operator_version": "1.1.1",
+  "operator_version": "1.2.0",
   "created_at": "2026-08-16T08:00:00Z",
   "source": {
     "repository": "admin/aisoft-platform",

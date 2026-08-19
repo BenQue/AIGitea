@@ -105,7 +105,6 @@ PYTHONPATH=codex/runtime python3 -m unittest \
 
 ```bash
 PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_company_delivery
-bash codex/tests/test-company-delivery.sh
 bash codex/tests/smoke.sh
 find codex company-delivery -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
 git diff --check origin/main...HEAD

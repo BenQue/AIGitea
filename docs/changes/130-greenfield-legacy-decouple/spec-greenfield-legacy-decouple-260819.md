@@ -58,6 +58,7 @@ controlled-upgrade，必须使用独立命令/contract/approval，不得重新�
 - `candidate.ports`：8888 与 55432
 - `candidate.resources`：Gitea binary/config/data/log 与 PostgreSQL data
 - `candidate.services`：`aisoft-gitea.service` 与 `postgresql@18-aisoft-gitea.service`
+- `candidate.health`：preflight 固定 `NOT RUN`；post-install 只读取固定 candidate `127.0.0.1:8888`
 - `automation`：runner、sync timer、production gate、DNS/TLS、reverse proxy、repository import 等固定状态
 
 collector 的 runner call graph 不得出现 `docker ps` 或其它 Docker container discovery；HTTP getter 不得用于

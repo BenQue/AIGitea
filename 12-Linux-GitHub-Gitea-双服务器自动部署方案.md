@@ -128,12 +128,12 @@ Gitea side-by-side/upgrade、backup/isolated restore、GitHub inbound、company 
 NewEmaint handoff、AppServer 和 production 全部保持 `NOT RUN`。安装/首次验收时 sync timer、Actions auto
 deploy 与 production gate 保持 disabled/inactive。
 
-Issue #126 将该 operator 升至 `1.1.0`，以 `greenfield-parallel-replacement` 明确定义 legacy Docker Gitea
-不变、新 systemd Gitea/PostgreSQL 使用独立 `aisoft-gitea` namespace 的候选路径。Stage 10 inventory v2、
-Stage 20 transition v1 以及 Stage 50 的 legacy pre/post equality 都按
-[`company-delivery/runbook.md`](company-delivery/runbook.md) 单独审批；greenfield 的 Stage 30/40 保持
-`NOT RUN`。`legacy migration/phase-out`、切流、正式仓库导入和旧实例退役另建 Change；当前公司 Stage 10–50
-全部 `NOT RUN`，旧 1.0.1 Stage 00 不能作为 1.1.0 的 PASS。
+Issue #126/#128/#130 将该 operator 演进至 `1.2.0`，以 `greenfield-isolated-install` 定义新
+systemd Gitea/PostgreSQL 使用独立 `aisoft-gitea` namespace 的候选路径。Stage 10 inventory v3 只验证
+candidate isolation，Stage 20 transition v2 不读取或绑定 legacy，Stage 50 只验证 candidate post-install
+health；全部按 [`company-delivery/runbook.md`](company-delivery/runbook.md) 单独审批，Stage 30/40 保持
+`NOT RUN`。`legacy migration/phase-out`、切流、正式仓库导入和旧实例退役另建 Change；当前 1.2.0 公司
+Stage 00–50 与安装全部 `NOT RUN`，旧 evidence 不能作为 1.2.0 的 PASS。
 
 以下 §1–§21 保存 2026-07 PM2/tar.gz 双服务器设计，作为已有应用的 **legacy adapter** 与
 GitHub 入站治理参考。凡与 §0 冲突之处，新 Linux 项目以 §0 和 `docker-release/` 为准；不得
