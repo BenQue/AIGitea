@@ -1,6 +1,6 @@
 {
-  "contract_version": "company-delivery-inventory/v2",
-  "collector_version": "1.1.1",
+  "contract_version": "company-delivery-inventory/v3",
+  "collector_version": "1.2.0",
   "collected_at": "2026-08-17T08:00:00Z",
   "role": "scm-ci",
   "scope": "company-candidate",
@@ -20,16 +20,7 @@
   "tools": [],
   "units": [],
   "scm": {
-    "probe_profile": "greenfield-parallel-replacement-v1",
-    "legacy": {
-      "publish_port_sha256": null,
-      "presence": "unknown",
-      "container_id_sha256": null,
-      "health": "not-run",
-      "version": null,
-      "baseline_sha256": null,
-      "reason": "not-run"
-    },
+    "probe_profile": "greenfield-isolated-install-v1",
     "candidate": {
       "ports": {
         "gitea_http": "unknown",
@@ -45,6 +36,11 @@
       "services": {
         "gitea": {"enabled": "unknown", "active": "unknown"},
         "postgresql": {"enabled": "unknown", "active": "unknown"}
+      },
+      "health": {
+        "status": "NOT RUN",
+        "version": null,
+        "reason": "not-run"
       }
     },
     "automation": {

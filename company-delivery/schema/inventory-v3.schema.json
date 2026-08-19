@@ -1,0 +1,336 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aisoft.example/contracts/company-delivery/inventory-v3.schema.json",
+  "title": "AISoft company delivery greenfield inventory V3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "collector_version",
+    "collected_at",
+    "role",
+    "scope",
+    "outcome",
+    "mode",
+    "host",
+    "tools",
+    "units",
+    "scm",
+    "pending"
+  ],
+  "properties": {
+    "contract_version": {"const": "company-delivery-inventory/v3"},
+    "collector_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "collected_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+    "role": {"enum": ["scm-ci", "appserver-prod"]},
+    "scope": {"const": "company-candidate"},
+    "outcome": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT RUN"]},
+    "mode": {"type": ["string", "null"], "enum": ["preflight", "post-install", null]},
+    "host": {"$ref": "#/$defs/host"},
+    "tools": {"type": "array", "items": {"$ref": "#/$defs/tool"}},
+    "units": {"type": "array", "items": {"$ref": "#/$defs/unit"}},
+    "scm": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/scm"}
+      ]
+    },
+    "pending": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"role": {"const": "appserver-prod"}}, "required": ["role"]},
+      "then": {"properties": {"mode": {"const": null}, "scm": {"const": null}}},
+      "else": {
+        "properties": {
+          "mode": {"enum": ["preflight", "post-install"]},
+          "scm": {"$ref": "#/$defs/scm"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"outcome": {"const": "NOT RUN"}}, "required": ["outcome"]},
+      "then": {
+        "properties": {
+          "tools": {"maxItems": 0},
+          "units": {"maxItems": 0},
+          "pending": {"minItems": 1}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"outcome": {"const": "BLOCKED"}}, "required": ["outcome"]},
+      "then": {"properties": {"pending": {"minItems": 1}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "role": {"const": "scm-ci"},
+          "outcome": {"const": "PASS"},
+          "mode": {"const": "preflight"}
+        },
+        "required": ["role", "outcome", "mode"]
+      },
+      "then": {
+        "properties": {
+          "scm": {
+            "properties": {
+              "candidate": {
+                "properties": {
+                  "ports": {
+                    "properties": {
+                      "gitea_http": {"const": "free"},
+                      "postgresql": {"const": "free"}
+                    }
+                  },
+                  "resources": {
+                    "properties": {
+                      "gitea_binary": {"enum": ["absent", "expected-empty"]},
+                      "gitea_config": {"enum": ["absent", "expected-empty"]},
+                      "gitea_data": {"enum": ["absent", "expected-empty"]},
+                      "gitea_log": {"enum": ["absent", "expected-empty"]},
+                      "postgresql_data": {"enum": ["absent", "expected-empty"]}
+                    }
+                  },
+                  "services": {
+                    "properties": {
+                      "gitea": {
+                        "properties": {
+                          "enabled": {"const": "not-found"},
+                          "active": {"const": "not-found"}
+                        }
+                      },
+                      "postgresql": {
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "enabled": {"const": "not-found"},
+                              "active": {"const": "not-found"}
+                            }
+                          },
+                          {
+                            "properties": {
+                              "enabled": {"const": "disabled"},
+                              "active": {"const": "inactive"}
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "health": {
+                    "properties": {
+                      "status": {"const": "NOT RUN"},
+                      "version": {"type": "null"},
+                      "reason": {"const": "not-run"}
+                    }
+                  }
+                }
+              },
+              "automation": {"$ref": "#/$defs/disabledAutomation"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "role": {"const": "scm-ci"},
+          "outcome": {"const": "PASS"},
+          "mode": {"const": "post-install"}
+        },
+        "required": ["role", "outcome", "mode"]
+      },
+      "then": {
+        "properties": {
+          "scm": {
+            "properties": {
+              "candidate": {
+                "properties": {
+                  "ports": {
+                    "properties": {
+                      "gitea_http": {"const": "occupied"},
+                      "postgresql": {"const": "occupied"}
+                    }
+                  },
+                  "resources": {
+                    "properties": {
+                      "gitea_binary": {"const": "occupied"},
+                      "gitea_config": {"const": "occupied"},
+                      "gitea_data": {"const": "occupied"},
+                      "gitea_log": {"const": "occupied"},
+                      "postgresql_data": {"const": "occupied"}
+                    }
+                  },
+                  "services": {
+                    "properties": {
+                      "gitea": {
+                        "properties": {
+                          "enabled": {"const": "enabled"},
+                          "active": {"const": "active"}
+                        }
+                      },
+                      "postgresql": {
+                        "properties": {
+                          "enabled": {"const": "enabled"},
+                          "active": {"const": "active"}
+                        }
+                      }
+                    }
+                  },
+                  "health": {
+                    "properties": {
+                      "status": {"const": "healthy"},
+                      "version": {"const": "1.26.4"},
+                      "reason": {"type": "null"}
+                    }
+                  }
+                }
+              },
+              "automation": {"$ref": "#/$defs/disabledAutomation"}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hostname_sha256", "machine_id_sha256", "os_id", "os_version", "kernel_version", "architecture", "cpu_count", "memory_bytes", "root_free_bytes"],
+      "properties": {
+        "hostname_sha256": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+        "machine_id_sha256": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+        "os_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,31}$"},
+        "os_version": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$"},
+        "kernel_version": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$"},
+        "architecture": {"enum": ["amd64", "arm64", "unknown"]},
+        "cpu_count": {"type": "integer", "minimum": 0},
+        "memory_bytes": {"type": "integer", "minimum": 0},
+        "root_free_bytes": {"type": "integer", "minimum": 0}
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "status", "version", "reason"],
+      "properties": {
+        "name": {"enum": ["act-runner", "docker-compose", "docker-engine", "git", "gitea", "nginx", "postgresql-client", "python"]},
+        "status": {"enum": ["PASS", "ABSENT", "BLOCKED", "NOT RUN"]},
+        "version": {"type": ["string", "null"]},
+        "reason": {"type": ["string", "null"]}
+      }
+    },
+    "unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "enabled", "active"],
+      "properties": {
+        "name": {"enum": ["act_runner.service", "aisoft-inbound-sync@newemaint.timer", "docker.service", "gitea.service", "nginx.service", "postgresql.service"]},
+        "enabled": {"enum": ["enabled", "disabled", "masked", "static", "indirect", "not-found", "unknown"]},
+        "active": {"enum": ["active", "inactive", "failed", "activating", "deactivating", "maintenance", "not-found", "unknown"]}
+      }
+    },
+    "scm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["probe_profile", "candidate", "automation"],
+      "properties": {
+        "probe_profile": {"const": "greenfield-isolated-install-v1"},
+        "candidate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ports", "resources", "services", "health"],
+          "properties": {
+            "ports": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["gitea_http", "postgresql"],
+              "properties": {
+                "gitea_http": {"enum": ["free", "occupied", "unknown"]},
+                "postgresql": {"enum": ["free", "occupied", "unknown"]}
+              }
+            },
+            "resources": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["gitea_binary", "gitea_config", "gitea_data", "gitea_log", "postgresql_data"],
+              "properties": {
+                "gitea_binary": {"enum": ["absent", "expected-empty", "occupied", "unsafe", "unknown"]},
+                "gitea_config": {"enum": ["absent", "expected-empty", "occupied", "unsafe", "unknown"]},
+                "gitea_data": {"enum": ["absent", "expected-empty", "occupied", "unsafe", "unknown"]},
+                "gitea_log": {"enum": ["absent", "expected-empty", "occupied", "unsafe", "unknown"]},
+                "postgresql_data": {"enum": ["absent", "expected-empty", "occupied", "unsafe", "unknown"]}
+              }
+            },
+            "services": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["gitea", "postgresql"],
+              "properties": {
+                "gitea": {"$ref": "#/$defs/serviceState"},
+                "postgresql": {"$ref": "#/$defs/serviceState"}
+              }
+            },
+            "health": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status", "version", "reason"],
+              "properties": {
+                "status": {"enum": ["healthy", "unhealthy", "unknown", "NOT RUN"]},
+                "version": {"type": ["string", "null"], "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+                "reason": {"enum": ["not-run", "request-failed", "response-invalid", "version-unrecognized", "version-mismatch", "http-status-3xx", "http-status-4xx", "http-status-5xx", "sensitive-output-rejected", null]}
+              }
+            }
+          }
+        },
+        "automation": {"$ref": "#/$defs/automation"}
+      }
+    },
+    "serviceState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "active"],
+      "properties": {
+        "enabled": {"enum": ["enabled", "disabled", "masked", "static", "indirect", "not-found", "unknown"]},
+        "active": {"enum": ["active", "inactive", "failed", "activating", "deactivating", "maintenance", "not-found", "unknown"]}
+      }
+    },
+    "automation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gitea_ssh", "runner", "sync_timer", "actions_auto_deploy", "production_gate", "dns_tls", "reverse_proxy", "repository_import"],
+      "properties": {
+        "gitea_ssh": {"enum": ["disabled", "unknown", "NOT RUN"]},
+        "runner": {"enum": ["disabled-inactive", "unknown", "NOT RUN"]},
+        "sync_timer": {"enum": ["disabled-inactive", "unknown", "NOT RUN"]},
+        "actions_auto_deploy": {"enum": ["disabled-inactive", "unknown", "NOT RUN"]},
+        "production_gate": {"enum": ["disabled-inactive", "unknown", "NOT RUN"]},
+        "dns_tls": {"enum": ["NOT RUN", "unknown"]},
+        "reverse_proxy": {"enum": ["NOT RUN", "unknown"]},
+        "repository_import": {"enum": ["NOT RUN", "unknown"]}
+      }
+    },
+    "disabledAutomation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gitea_ssh", "runner", "sync_timer", "actions_auto_deploy", "production_gate", "dns_tls", "reverse_proxy", "repository_import"],
+      "properties": {
+        "gitea_ssh": {"const": "disabled"},
+        "runner": {"const": "disabled-inactive"},
+        "sync_timer": {"const": "disabled-inactive"},
+        "actions_auto_deploy": {"const": "disabled-inactive"},
+        "production_gate": {"const": "disabled-inactive"},
+        "dns_tls": {"const": "NOT RUN"},
+        "reverse_proxy": {"const": "NOT RUN"},
+        "repository_import": {"const": "NOT RUN"}
+      }
+    }
+  }
+}

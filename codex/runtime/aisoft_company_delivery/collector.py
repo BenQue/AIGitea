@@ -17,7 +17,7 @@ import subprocess
 
 from .contract import (
     FIXED_GITEA_TARGET,
-    INVENTORY_V2_VERSION,
+    INVENTORY_V3_VERSION,
     PREFLIGHT_CANDIDATE_SERVICE_STATES,
     ROLE_TOOL_NAMES,
     ROLE_UNIT_NAMES,
@@ -26,7 +26,6 @@ from .contract import (
     SENSITIVE_KEYS,
     CompanyDeliveryError,
     contains_sensitive_text,
-    legacy_baseline_sha256,
     load_inventory,
 )
 
@@ -34,7 +33,7 @@ from .contract import (
 Runner = Callable[[list[str]], subprocess.CompletedProcess[str]]
 Reader = Callable[[Path], str]
 Clock = Callable[[], str]
-HttpGetter = Callable[[int], tuple[int, str] | None]
+CandidateHttpGetter = Callable[[], tuple[int, str] | None]
 PortProbe = Callable[[int], str]
 ResourceProbe = Callable[[Path], str]
 
@@ -69,9 +68,8 @@ OPTIONAL_SCM_TOOL_UNITS = {
 
 ENABLED_STATES = {"enabled", "disabled", "masked", "static", "indirect"}
 ACTIVE_STATES = {"active", "inactive", "failed", "activating", "deactivating", "maintenance"}
-LEGACY_CONTAINER_ID = re.compile(r"^[0-9a-f]{12,64}$")
-GITEA_VERSION_BODY_LIMIT = 4096
 CANDIDATE_PORTS = {"gitea_http": 8888, "postgresql": 55432}
+CANDIDATE_HEALTH_BODY_LIMIT = 4096
 CANDIDATE_RESOURCES = {
     "gitea_binary": Path(FIXED_GITEA_TARGET["gitea_binary"]),
     "gitea_config": Path(FIXED_GITEA_TARGET["gitea_config"]),
@@ -90,11 +88,10 @@ def collect_inventory(
     output: Path | str,
     *,
     mode: str | None = None,
-    legacy_gitea_http_port: int | None = None,
     runner: Runner | None = None,
     read_text: Reader | None = None,
     now: Clock | None = None,
-    http_get: HttpGetter | None = None,
+    candidate_http_get: CandidateHttpGetter | None = None,
     port_probe: PortProbe | None = None,
     resource_probe: ResourceProbe | None = None,
 ) -> dict[str, object]:
@@ -103,15 +100,7 @@ def collect_inventory(
     if role == "scm-ci":
         if mode not in {"preflight", "post-install"}:
             raise CompanyDeliveryError("INVALID_ARGUMENT", "scm-ci inventory requires a fixed collection mode")
-        if (
-            isinstance(legacy_gitea_http_port, bool)
-            or not isinstance(legacy_gitea_http_port, int)
-            or not 1 <= legacy_gitea_http_port <= 65535
-        ):
-            raise CompanyDeliveryError(
-                "INVALID_ARGUMENT", "legacy Gitea HTTP port must be a decimal port number"
-            )
-    elif mode is not None or legacy_gitea_http_port is not None:
+    elif mode is not None:
         raise CompanyDeliveryError(
             "INVALID_ARGUMENT", "appserver inventory does not accept SCM-only options"
         )
@@ -218,12 +207,10 @@ def collect_inventory(
                 pending.append("TOOL_UNIT_STATE_CONFLICT_" + name.upper().replace("-", "_"))
 
         assert mode is not None
-        assert legacy_gitea_http_port is not None
         scm, scm_pending = _collect_scm_inventory(
             mode=mode,
-            legacy_gitea_http_port=legacy_gitea_http_port,
             runner=invoke,
-            http_get=http_get or _http_get,
+            candidate_http_get=candidate_http_get or _candidate_http_get,
             port_probe=port_probe or _port_state,
             resource_probe=resource_probe or _resource_state,
             generic_units=units,
@@ -233,7 +220,7 @@ def collect_inventory(
         scm = None
 
     value: dict[str, object] = {
-        "contract_version": INVENTORY_V2_VERSION,
+        "contract_version": INVENTORY_V3_VERSION,
         "collector_version": _collector_version(),
         "collected_at": clock(),
         "role": role,
@@ -263,101 +250,18 @@ def collect_inventory(
 def _collect_scm_inventory(
     *,
     mode: str,
-    legacy_gitea_http_port: int,
     runner: Runner,
-    http_get: HttpGetter,
+    candidate_http_get: CandidateHttpGetter,
     port_probe: PortProbe,
     resource_probe: ResourceProbe,
     generic_units: list[dict[str, str]],
 ) -> tuple[dict[str, object], list[str]]:
     pending: list[str] = []
-    publish_port_sha256 = _fingerprint(f"loopback-publish:{legacy_gitea_http_port}")
-    legacy: dict[str, object] = {
-        "publish_port_sha256": publish_port_sha256,
-        "presence": "unknown",
-        "container_id_sha256": None,
-        "health": "not-run",
+    health: dict[str, object] = {
+        "status": "NOT RUN",
         "version": None,
-        "baseline_sha256": None,
-        "reason": "docker-probe-failed",
+        "reason": "not-run",
     }
-    docker = _probe(
-        runner,
-        [
-            "docker",
-            "ps",
-            "--filter",
-            "status=running",
-            "--filter",
-            f"publish={legacy_gitea_http_port}",
-            "--format",
-            "{{.ID}}",
-        ],
-    )
-    docker_raw = (docker.stdout or "") + "\n" + (docker.stderr or "")
-    if docker.missing or docker.returncode != 0:
-        pending.append("LEGACY_GITEA_DOCKER_PROBE_FAILED")
-    elif contains_sensitive_text(docker_raw):
-        legacy["reason"] = "sensitive-output-rejected"
-        pending.append("LEGACY_GITEA_DOCKER_OUTPUT_REJECTED")
-    else:
-        identifiers = [line.strip() for line in docker.stdout.splitlines() if line.strip()]
-        if not identifiers:
-            legacy.update(
-                {
-                    "presence": "absent",
-                    "health": "not-run",
-                    "reason": "confirmed-absent",
-                }
-            )
-            pending.append("LEGACY_GITEA_CONFIRMED_ABSENT")
-        elif len(identifiers) != 1:
-            legacy.update({"presence": "ambiguous", "reason": "multiple-containers"})
-            pending.append("LEGACY_GITEA_MULTIPLE_CONTAINERS")
-        elif LEGACY_CONTAINER_ID.fullmatch(identifiers[0]) is None:
-            legacy.update({"presence": "ambiguous", "reason": "malformed-container-id"})
-            pending.append("LEGACY_GITEA_CONTAINER_ID_INVALID")
-        else:
-            legacy.update(
-                {
-                    "presence": "present",
-                    "container_id_sha256": _fingerprint(identifiers[0]),
-                    "health": "unknown",
-                    "reason": "request-failed",
-                }
-            )
-            try:
-                response = http_get(legacy_gitea_http_port)
-            except (OSError, TimeoutError, ValueError):
-                response = None
-            if response is None:
-                legacy["reason"] = "request-failed"
-                pending.append("LEGACY_GITEA_HEALTH_PROBE_FAILED")
-            else:
-                status_code, body = response
-                if (
-                    isinstance(status_code, bool)
-                    or not isinstance(status_code, int)
-                    or not isinstance(body, str)
-                ):
-                    legacy["reason"] = "response-invalid"
-                    pending.append("LEGACY_GITEA_HEALTH_PROBE_FAILED")
-                elif contains_sensitive_text(body):
-                    legacy["reason"] = "sensitive-output-rejected"
-                    pending.append("LEGACY_GITEA_HEALTH_OUTPUT_REJECTED")
-                elif status_code != 200:
-                    legacy["health"] = "unhealthy"
-                    legacy["reason"] = _http_status_reason(status_code)
-                    pending.append("LEGACY_GITEA_UNHEALTHY")
-                else:
-                    version, reason = _gitea_api_version(body)
-                    if version is None:
-                        legacy["reason"] = reason
-                        pending.append("LEGACY_GITEA_VERSION_UNRECOGNIZED")
-                    else:
-                        legacy.update({"health": "healthy", "version": version, "reason": None})
-                        legacy["baseline_sha256"] = legacy_baseline_sha256(legacy)
-
     ports: dict[str, str] = {}
     desired_port_state = "free" if mode == "preflight" else "occupied"
     for name, port in CANDIDATE_PORTS.items():
@@ -400,6 +304,48 @@ def _collect_scm_inventory(
         if (enabled, active) not in allowed_states:
             pending.append("CANDIDATE_SERVICE_STATE_" + name.upper())
 
+    if mode == "post-install":
+        health = {
+            "status": "unknown",
+            "version": None,
+            "reason": "request-failed",
+        }
+        try:
+            response = candidate_http_get()
+        except (OSError, TimeoutError, ValueError):
+            response = None
+        if response is None:
+            pending.append("CANDIDATE_GITEA_HEALTH_PROBE_FAILED")
+        else:
+            status_code, body = response
+            if (
+                isinstance(status_code, bool)
+                or not isinstance(status_code, int)
+                or not isinstance(body, str)
+            ):
+                health["reason"] = "response-invalid"
+                pending.append("CANDIDATE_GITEA_HEALTH_PROBE_FAILED")
+            elif contains_sensitive_text(body):
+                health["reason"] = "sensitive-output-rejected"
+                pending.append("CANDIDATE_GITEA_HEALTH_OUTPUT_REJECTED")
+            elif status_code != 200:
+                health.update(
+                    {"status": "unhealthy", "reason": _http_status_reason(status_code)}
+                )
+                pending.append("CANDIDATE_GITEA_UNHEALTHY")
+            else:
+                version, reason = _gitea_api_version(body)
+                if version is None:
+                    health["reason"] = reason
+                    pending.append("CANDIDATE_GITEA_VERSION_UNRECOGNIZED")
+                elif version != FIXED_GITEA_TARGET["gitea_version"]:
+                    health.update(
+                        {"status": "unhealthy", "version": version, "reason": "version-mismatch"}
+                    )
+                    pending.append("CANDIDATE_GITEA_VERSION_MISMATCH")
+                else:
+                    health.update({"status": "healthy", "version": version, "reason": None})
+
     generic_by_name = {item["name"]: item for item in generic_units}
     timer = generic_by_name["aisoft-inbound-sync@newemaint.timer"]
     automation = dict(SCM_AUTOMATION)
@@ -411,12 +357,12 @@ def _collect_scm_inventory(
 
     return (
         {
-            "probe_profile": "greenfield-parallel-replacement-v1",
-            "legacy": legacy,
+            "probe_profile": "greenfield-isolated-install-v1",
             "candidate": {
                 "ports": ports,
                 "resources": resources,
                 "services": services,
+                "health": health,
             },
             "automation": automation,
         },
@@ -459,12 +405,12 @@ def _run(argv: list[str]) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _http_get(port: int) -> tuple[int, str] | None:
-    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+def _candidate_http_get() -> tuple[int, str] | None:
+    connection = http.client.HTTPConnection("127.0.0.1", 8888, timeout=3)
     try:
         connection.request("GET", "/api/v1/version", headers={"Accept": "application/json"})
         response = connection.getresponse()
-        payload = response.read(GITEA_VERSION_BODY_LIMIT + 1)
+        payload = response.read(CANDIDATE_HEALTH_BODY_LIMIT + 1)
     except (OSError, TimeoutError, http.client.HTTPException):
         return None
     finally:
@@ -573,7 +519,7 @@ def _http_status_reason(status_code: int) -> str:
 
 
 def _gitea_api_version(body: str) -> tuple[str | None, str]:
-    if len(body.encode("utf-8")) > GITEA_VERSION_BODY_LIMIT:
+    if len(body.encode("utf-8")) > CANDIDATE_HEALTH_BODY_LIMIT:
         return None, "response-invalid"
     if contains_sensitive_text(body):
         return None, "sensitive-output-rejected"
