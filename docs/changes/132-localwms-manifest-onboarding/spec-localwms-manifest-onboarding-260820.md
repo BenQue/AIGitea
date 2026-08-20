@@ -10,9 +10,9 @@ confidence: high
 risk_flags:
   - platform-governance
 depends_on: []
-status: spec-drafting
+status: pr-open
 branch: change/132-localwms-manifest-onboarding
-pr_url: ''''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/133
 created: 2026-08-20
 updated: 2026-08-20
 ---

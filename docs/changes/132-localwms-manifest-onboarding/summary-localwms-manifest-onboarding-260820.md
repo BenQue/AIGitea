@@ -21,9 +21,9 @@ documents:
   spec: spec-localwms-manifest-onboarding-260820.md
   plan: plan-localwms-manifest-onboarding-260820.md
   verification: verification-localwms-manifest-onboarding-260820.md
-status: spec-drafting
+status: pr-open
 branch: change/132-localwms-manifest-onboarding
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/133
 created: 2026-08-20
 updated: 2026-08-20
 ---
