@@ -12,7 +12,7 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_host_access.cli \
 jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
-  .project_count == 9 and
+  .project_count == 10 and
   .operation_count == 26 and
   .merge_operation_count == 0
 ' "$TMP/validate.json" >/dev/null

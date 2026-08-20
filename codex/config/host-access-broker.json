@@ -266,6 +266,13 @@
       }
     },
     {
+      "project_id": "localwms",
+      "repository": "LocalWMS",
+      "project_agent": "localwms-agent",
+      "mac_checkout": "/Users/benque/Projects/LocalWMS",
+      "vm_profile": null
+    },
+    {
       "project_id": "myapp",
       "repository": "myapp",
       "project_agent": "myapp-agent",

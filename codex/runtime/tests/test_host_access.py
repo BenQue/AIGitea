@@ -49,7 +49,7 @@ class HostAccessContractTests(unittest.TestCase):
         self.contract = load_access_contract(ACCESS, GOVERNANCE)
 
     def test_exact_projects_profiles_and_no_merge_surface(self) -> None:
-        self.assertEqual(len(self.contract.projects), 9)
+        self.assertEqual(len(self.contract.projects), 10)
         profiles = {
             item.repository: item.vm_profile.name
             for item in self.contract.projects
