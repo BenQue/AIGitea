@@ -1,6 +1,6 @@
 {
   "contract_version": "company-delivery-compatibility/v1",
-  "matrix_revision": "2026.08.3",
+  "matrix_revision": "2026.08.4",
   "pilot": "newemaint",
   "topology": {
     "company_vm_count": 2,
@@ -33,16 +33,15 @@
     "python_minimum": "3.10.0"
   },
   "greenfield_gitea": {
-    "inventory_contract": "company-delivery-inventory/v2",
-    "transition_contract": "company-delivery-gitea-transition/v1",
-    "decision": "greenfield-parallel-replacement",
+    "inventory_contract": "company-delivery-inventory/v3",
+    "transition_contract": "company-delivery-gitea-transition/v2",
+    "decision": "greenfield-isolated-install",
     "stage20_bindings": [
-      "operator-1.1.1-handoff-manifest-sha256",
+      "operator-1.2.0-handoff-manifest-sha256",
       "operator-source-git-sha",
       "postgresql-os-package-set-manifest-sha256",
-      "scm-ci-inventory-v2-sha256",
-      "appserver-prod-inventory-v2-sha256",
-      "legacy-baseline-sha256",
+      "scm-ci-inventory-v3-sha256",
+      "appserver-prod-inventory-v3-sha256",
       "public-name-sha256"
     ],
     "target": {
@@ -86,7 +85,8 @@
       "40": "NOT RUN",
       "50": "NOT RUN"
     },
-    "stage50_prerequisite": "legacy-pre-post-equality",
+    "stage50_prerequisite": "candidate-post-install-health",
+    "legacy_observation": "NOT RUN",
     "legacy_mutation_denylist": [
       "container",
       "image",

@@ -1,7 +1,7 @@
 # Company delivery operator bundle
 
-本目录是 Issue #120/#126/#128 的 versioned、checksum-pinned、纯人工 operator workflow。当前 operator
-`1.1.1` 准备 NewEmaint 从本地
+本目录是 Issue #120/#126/#128/#130 的 versioned、checksum-pinned、纯人工 operator workflow。当前 operator
+`1.2.0` 准备 NewEmaint 从本地
 OrbStack DockerLab 验证过的 exact `docker-release/v2` bytes 搬运到公司两台 Linux VM；它不是安装记录、
 部署记录或公司环境验收结果。
 
@@ -19,15 +19,16 @@ OrbStack DockerLab 验证过的 exact `docker-release/v2` bytes 搬运到公司�
 
 - [`runbook.md`](runbook.md)：Stage 00–110，每阶段可单独批准、停止和回滚。
 - `bin/aisoft-company-delivery`：固定参数的 inventory、contract verification 与 bundle build CLI。
-- `schema/`：strict inventory v1/v2、Gitea transition v1、handoff/evidence v1 JSON schema。
+- `schema/`：strict inventory v1/v2/v3、Gitea transition v1/v2、handoff/evidence v1 JSON schema；v1/v2
+  inventory 与 transition v1 只用于历史 evidence 兼容读取。
 - `templates/`：结构示例；所有 `example` 文件都不是 live evidence。
 - `compatibility/newemaint-company-pilot-v1.json`：两 VM 拓扑、版本候选和 fail-closed policy。
 - 构建后的 `handoff-manifest.json`、`SHA256SUMS`、`.tar.gz.sha256`：full Git SHA 与 exact release bytes 的
   可携带身份。
 
-## Gitea greenfield 并行替换合同
+## Gitea greenfield 隔离安装合同
 
-`greenfield-parallel-replacement` 在 `scm-ci` 保留 legacy Docker Gitea 原样运行，并只在独立
+`greenfield-isolated-install` 只在独立
 `aisoft-gitea` namespace 建立候选 systemd Gitea。目标固定为 Gitea `1.26.4`
 （`gitea-1.26.4-linux-amd64`，SHA-256
 `0faa36d151918f8f7d6e0f3ae67597d1c338583d695add146ac393109d0fc44a`）和 PostgreSQL `18.4`
@@ -36,17 +37,18 @@ upstream provenance（SHA-256
 `aisoft-gitea.service`、`postgresql@18-aisoft-gitea.service`，只监听候选 loopback
 `127.0.0.1:8888` 与 `127.0.0.1:55432`；完整 paths/identity 以 compatibility matrix 为准。
 
-Stage 10 使用 inventory v2 的 legacy fingerprint/health 与 collision probes；Stage 20 用 transition v1
-绑定两份 inventory、已验证的 operator 1.1.1 handoff/source SHA 与 PostgreSQL OS package-set SHA-256
-manifest；greenfield 路径的 Stage 30/40 必须保持 `NOT RUN`，Stage 50 以
-`legacy-pre-post-equality` 作为独立 alternate prerequisite。legacy Docker container、image、volume、
-network、database、configuration、port、repository 和 service lifecycle 均禁止修改。SSH、Runner、timer、
+Stage 10 使用 inventory v3，只验证 candidate 固定端口、路径、unit、tools 与 automation；collector 不接收
+legacy port、不运行 legacy Docker/HTTP probe，也不输出 legacy presence、health、version 或 baseline。Stage 20
+使用 transition v2，绑定两份 inventory、已验证的 operator 1.2.0 handoff/source SHA 与 PostgreSQL OS
+package-set SHA-256 manifest；greenfield 路径的 Stage 30/40 必须保持 `NOT RUN`，Stage 50 仅以前后 candidate
+identity/health 作为 prerequisite。legacy Docker container、image、volume、network、database、configuration、
+port、repository 和 service lifecycle 均禁止修改，且 legacy observation 固定为 `NOT RUN`。SSH、Runner、timer、
 Actions auto deploy、production gate、DNS/TLS、reverse proxy 与 repository import 初始全部 disabled 或
 `NOT RUN`。
 
 新实例未来只承载新仓库；legacy migration/phase-out、traffic cutover 与旧实例退役必须另建 Change。本仓库
-不会把旧 operator 的公司 evidence 投影到新合同。`1.0.1` 与 `1.1.0` Stage 00、以及 `1.1.0`
-Stage 10 inventory 仅是历史 evidence，不能作为 `1.1.1` Stage 00/10 `PASS`；`appserver-prod` 仍保持
+不会把旧 operator 的公司 evidence 投影到新合同。`1.0.1`、`1.1.0`、`1.1.1` Stage 00 与既有
+Stage 10 inventory 仅是历史 evidence，不能作为 `1.2.0` Stage 00/10 `PASS`；`appserver-prod` 仍保持
 `NOT RUN`，直到获得独立人工批准。
 
 ## 构建边界

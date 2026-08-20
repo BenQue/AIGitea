@@ -1,6 +1,6 @@
 {
-  "contract_version": "company-delivery-gitea-transition/v1",
-  "operator_version": "1.1.1",
+  "contract_version": "company-delivery-gitea-transition/v2",
+  "operator_version": "1.2.0",
   "recorded_at": "2026-08-17T08:00:00Z",
   "source_git_sha": "0000000000000000000000000000000000000000",
   "handoff_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -13,7 +13,6 @@
     "appserver_prod_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   },
   "public_name_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-  "legacy_baseline_sha256": null,
   "target": {
     "gitea_version": "1.26.4",
     "gitea_artifact": "gitea-1.26.4-linux-amd64",
@@ -37,8 +36,7 @@
     "postgresql_listen": "127.0.0.1:55432"
   },
   "prerequisites": {
-    "legacy_backup_required": false,
-    "isolated_restore_required": false,
+    "candidate_namespace_isolated": false,
     "stage50_prerequisite": "not-authorized"
   },
   "automation": {
