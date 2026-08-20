@@ -88,6 +88,16 @@
       "required_approvals": 0
     },
     {
+      "name": "LocalWMS",
+      "classification": "internal-application",
+      "visibility": "private",
+      "project_agent": "localwms-agent",
+      "status_check_contexts": [
+        "CI / test (pull_request)"
+      ],
+      "required_approvals": 0
+    },
+    {
       "name": "myapp",
       "classification": "public-test",
       "visibility": "public",
