@@ -81,7 +81,12 @@ class AnalysisResult:
         )
 
 
-def analyze_route(issue: Mapping[str, object], result: AnalysisResult) -> Route:
+def analyze_route(
+    issue: Mapping[str, object],
+    result: AnalysisResult,
+    *,
+    change_control: str = "production",
+) -> Route:
     labels = _label_names(issue.get("labels"))
     requested_labels = labels & {"complexity/small", "complexity/complex"}
     if len(requested_labels) > 1:
@@ -93,7 +98,7 @@ def analyze_route(issue: Mapping[str, object], result: AnalysisResult) -> Route:
         raise AnalysisError(
             "classification requested_complexity does not match the Issue declaration"
         )
-    route = result.classification.route()
+    route = result.classification.route(change_control=change_control)
     if route.effective_complexity == "small" and not _has_acceptance_criteria(
         str(issue.get("body") or "")
     ):

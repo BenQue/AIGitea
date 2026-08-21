@@ -9,6 +9,10 @@ from urllib.parse import urlparse
 
 
 IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+
+# 交付阶段。development 只适用于尚未首次生产部署的项目；它只影响强制 complex
+# 变更所需的映射文档份数，不影响分支保护、必需 CI、人工合并闸门与判级分类本身。
+CHANGE_CONTROL_PHASES = frozenset({"development", "production"})
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
@@ -21,11 +25,17 @@ def _require(condition: bool, message: str) -> None:
         raise ContractError(message)
 
 
-def _exact_keys(value: dict[str, Any], expected: set[str], context: str) -> None:
+def _exact_keys(
+    value: dict[str, Any],
+    expected: set[str],
+    context: str,
+    optional: set[str] | None = None,
+) -> None:
     actual = set(value)
-    if actual != expected:
-        missing = sorted(expected - actual)
-        extra = sorted(actual - expected)
+    allowed = expected | (optional or set())
+    missing = sorted(expected - actual)
+    extra = sorted(actual - allowed)
+    if missing or extra:
         raise ContractError(f"{context} keys mismatch: missing={missing} extra={extra}")
 
 
@@ -47,10 +57,17 @@ class RepositoryContract:
     project_agent: str
     status_check_contexts: tuple[str, ...]
     required_approvals: int
+    # 交付阶段。未在 manifest 声明时默认 "production"——缺省取更严的一档，
+    # 使既有仓库行为完全不变，也保证读不到声明时不会意外放宽。
+    change_control: str = "production"
 
     @property
     def private(self) -> bool:
         return self.visibility == "private"
+
+    @property
+    def in_development(self) -> bool:
+        return self.change_control == "development"
 
 
 @dataclass(frozen=True)
@@ -244,7 +261,8 @@ def load_contract(path: str | Path) -> GovernanceContract:
         _require(isinstance(item, dict), f"repositories[{index}] must be an object")
         _exact_keys(item, {"name", "classification", "visibility", "project_agent",
                            "status_check_contexts", "required_approvals"},
-                    f"repositories[{index}]")
+                    f"repositories[{index}]",
+                    optional={"change_control"})
         name = _identifier(item["name"], f"repositories[{index}].name")
         _require(name not in names, f"duplicate repository name: {name}")
         names.add(name)
@@ -270,6 +288,9 @@ def load_contract(path: str | Path) -> GovernanceContract:
         approvals = item["required_approvals"]
         _require(isinstance(approvals, int) and not isinstance(approvals, bool) and approvals >= 0,
                  f"required_approvals must be a non-negative integer for {name}")
+        change_control = item.get("change_control", "production")
+        _require(change_control in CHANGE_CONTROL_PHASES,
+                 f"unsupported change_control for {name}: {change_control!r}")
         repositories.append(RepositoryContract(
             name=name,
             classification=classification,
@@ -277,6 +298,7 @@ def load_contract(path: str | Path) -> GovernanceContract:
             project_agent=agent,
             status_check_contexts=tuple(contexts),
             required_approvals=approvals,
+            change_control=change_control,
         ))
 
     _require(repository_policy["public_allowlist"] == public_full_names,

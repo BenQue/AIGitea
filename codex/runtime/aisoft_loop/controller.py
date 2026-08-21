@@ -46,6 +46,7 @@ class Controller:
         lock: GlobalLock,
         max_rounds: int = 8,
         max_same_root: int = 3,
+        change_control: str = "production",
     ) -> None:
         self.repo = Path(repo).resolve()
         self.gitea = gitea
@@ -56,6 +57,9 @@ class Controller:
         self.lock = lock
         self.max_rounds = max_rounds
         self.max_same_root = max_same_root
+        # 交付阶段由调用方从 governance manifest 解析后传入；
+        # 缺省 production，保证未接线的调用方仍走既有四份文档要求。
+        self.change_control = change_control
 
     def run(self, issue_number: int) -> ControllerResult:
         try:
@@ -432,7 +436,12 @@ class Controller:
     def _revalidate(self, issue_number: int, pr_number: Optional[int]) -> Contract:
         issue = self.gitea.get_issue(issue_number)
         lifecycle = ("pr-open",) if pr_number is not None else ("approved",)
-        return load_contract(self.repo, issue, allowed_lifecycle=lifecycle)
+        return load_contract(
+            self.repo,
+            issue,
+            allowed_lifecycle=lifecycle,
+            change_control=self.change_control,
+        )
 
     def _provider_request(
         self,

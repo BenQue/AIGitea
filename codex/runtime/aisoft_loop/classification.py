@@ -179,14 +179,25 @@ class Classification:
         if len(set(self.required_docs)) != len(self.required_docs):
             raise ClassificationError("required_docs must not contain duplicates")
 
-    def route(self) -> Route:
+    def route(self, *, change_control: str = "production") -> Route:
+        if change_control not in {"development", "production"}:
+            raise ClassificationError(f"unsupported change_control: {change_control!r}")
         role_based = self.required_docs[0] == "summary"
         unresolved_docs = ("summary",) if role_based else ("00-summary.md",)
-        complex_docs = (
-            ("summary", "spec", "plan")
-            if role_based
-            else ("00-summary.md", "01-spec.md", "02-plan.md")
-        )
+        # development 阶段的强制 complex 去掉 spec/plan：它们的内容在交互开发中
+        # 已即时产生并执行，而 summary（改了什么、如何判级）是事后唯一可查的证据。
+        # verification 不在此处决定——它沿用下方与 production 完全相同的条件
+        # （analyzer 是否要求），因为 required_docs 含 verification 同时承载着
+        # 「该变更要部署，终态是 deployed 而非 completed」这一既有语义
+        # （见 mark-completed-issues.sh）。缺省 production，保持既有四份行为。
+        if change_control == "development":
+            complex_docs = ("summary",) if role_based else ("00-summary.md",)
+        else:
+            complex_docs = (
+                ("summary", "spec", "plan")
+                if role_based
+                else ("00-summary.md", "01-spec.md", "02-plan.md")
+            )
         if self.required_docs[-1] in {"verification", "03-verification.md"}:
             complex_docs += (self.required_docs[-1],)
         if (

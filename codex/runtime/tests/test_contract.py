@@ -393,6 +393,35 @@ class ContractTests(unittest.TestCase):
             with self.subTest(missing=missing), self.assertRaisesRegex(ContractError, missing):
                 load_contract(self.repo, issue)
 
+    def test_development_phase_complex_contract_needs_no_spec_or_plan(self) -> None:
+        """AC4：development 项目的强制 complex 不因缺 spec/plan 被拒。"""
+        self.write_contract(complexity="complex", change_type="feature", effect="add")
+        issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
+        contract = load_contract(self.repo, issue, change_control="development")
+        self.assertEqual(contract.effective_complexity, "complex")
+        self.assertEqual(contract.required_docs, ("00-summary.md",))
+
+    def test_development_phase_still_requires_measurable_acceptance(self) -> None:
+        """没有 spec 时验收标准改由 Issue 正文提供，但门槛本身不放宽。"""
+        self.write_contract(complexity="complex", change_type="feature", effect="add")
+        issue = self.issue(
+            labels=["type/feature", "complexity/complex", "approved"],
+            body="这个变更很重要，做完就知道了。",
+        )
+        with self.assertRaisesRegex(ContractError, "acceptance criteria"):
+            load_contract(self.repo, issue, change_control="development")
+
+    def test_production_phase_still_rejects_missing_spec_and_plan(self) -> None:
+        """AC4 的对照：production 的行为完全不变，缺省亦然。"""
+        self.write_contract(complexity="complex", change_type="feature", effect="add")
+        issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
+        for missing in ("01-spec.md", "02-plan.md"):
+            with self.subTest(missing=missing):
+                with self.assertRaisesRegex(ContractError, missing):
+                    load_contract(self.repo, issue, change_control="production")
+                with self.assertRaisesRegex(ContractError, missing):
+                    load_contract(self.repo, issue)
+
     def test_complete_complex_contract_is_accepted(self) -> None:
         self.write_contract(
             complexity="complex", change_type="feature", effect="add", spec=True, plan=True

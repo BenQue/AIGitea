@@ -20,6 +20,7 @@ from .analysis import (
     route_labels,
     summary_filename,
 )
+from .change_control import resolve_change_control
 from .controller import Controller, LocalGit
 from .contract import ContractError, resolve_change_name, resolve_documents
 from .documents import publish_plan, publish_spec
@@ -189,6 +190,7 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
             lock=GlobalLock(state_root / "loop.lock"),
             max_rounds=int(os.environ.get("LOOP_MAX_ROUNDS", "8")),
             max_same_root=int(os.environ.get("LOOP_MAX_SAME_ROOT", "3")),
+            change_control=resolve_change_control(_required_env("GITEA_REPO")),
         )
         result = controller.run(issue)
     except (GiteaError, ProviderError, VerificationConfigError, ValueError) as exc:
@@ -315,7 +317,11 @@ def _render_analysis(issue_path: Path, result_path: Path, output_directory: Path
         if not isinstance(issue, dict):
             raise AnalysisError("Issue JSON must be an object")
         result = AnalysisResult.from_json(result_path.read_text(encoding="utf-8"))
-        route = analyze_route(issue, result)
+        route = analyze_route(
+            issue,
+            result,
+            change_control=resolve_change_control(_required_env("GITEA_REPO")),
+        )
         created = date.today().isoformat()
         output = render_summary(
             issue,
@@ -342,7 +348,11 @@ def _apply_analysis(issue_number: int, result_path: Path, summary_url: str) -> i
         gitea = _gitea_from_env()
         issue = gitea.get_issue(issue_number)
         result = AnalysisResult.from_json(result_path.read_text(encoding="utf-8"))
-        route = analyze_route(issue, result)
+        route = analyze_route(
+            issue,
+            result,
+            change_control=resolve_change_control(_required_env("GITEA_REPO")),
+        )
         labels = route_labels(result, route)
         gitea.set_labels(issue_number, labels)
         effective = route.effective_complexity or "needs-human-decision"

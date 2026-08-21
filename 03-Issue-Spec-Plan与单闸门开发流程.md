@@ -14,6 +14,11 @@ Issue #N
 
 - 所有变更必须有 Issue 和映射的 `summary` 文档。
 - 小变更可以不写 spec/plan，但 Issue 必须有可验证的 acceptance criteria。
+- **交付阶段（Issue #134）**：manifest 的 `change_control` 为 `development` 的项目，其
+  强制 complex 变更同样不写 spec/plan，acceptance criteria 改由 Issue 正文提供——门槛
+  不变，只是来源从 spec 换成 Issue。未声明该字段的仓库一律按 `production` 处理，行为不变。
+  `verification` 的取舍两个阶段完全相同（由 analyzer 决定），因为它同时承载着
+  「该变更要部署，终态是 `deployed` 而非 `completed`」这一语义。
 - 复杂变更必须有映射的 `spec` 和 `plan` 文档。
 - 部署、迁移和高风险运维变更必须有映射的 `verification` 文档。
 - 新 Issue 从分析开始使用单一 `change/N-short-description` 分支；已有 `change/N` 与更早的 `spec/N` 只按历史证据兼容，不作为新 writer 的可选格式。
@@ -54,8 +59,8 @@ Issue 作者可以显式选择复杂度，但 `complexity/small` 不能绕过强
 ```text
 docs/changes/N-short-description/
 ├── summary-<slug>-YYMMDD.md       # 必须
-├── spec-<slug>-YYMMDD.md          # complex 必须
-├── plan-<slug>-YYMMDD.md          # complex 必须
+├── spec-<slug>-YYMMDD.md          # complex 必须（change_control=production）
+├── plan-<slug>-YYMMDD.md          # complex 必须（change_control=production）
 └── verification-<slug>-YYMMDD.md  # deploy/migration 必须，其他推荐
 ```
 
