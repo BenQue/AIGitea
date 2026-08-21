@@ -13,7 +13,7 @@ risk_flags:
 depends_on: []
 status: pr-open
 branch: change/134-change-control-phase
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/135
 created: 2026-08-21
 updated: 2026-08-21
 reason: 修改判级运行时的 required_docs 决策与 governance manifest schema，触及平台治理与共享核心
