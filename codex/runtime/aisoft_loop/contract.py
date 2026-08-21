@@ -114,6 +114,7 @@ def load_contract(
     issue: Mapping[str, object],
     *,
     allowed_lifecycle: tuple[str, ...] = ("approved",),
+    change_control: str = "production",
 ) -> Contract:
     repo_path = Path(repo).resolve()
     if not repo_path.is_dir():
@@ -160,7 +161,7 @@ def load_contract(
 
     try:
         classification = _classification_from_front_matter(summary)
-        route = classification.route()
+        route = classification.route(change_control=change_control)
     except ClassificationError as exc:
         raise ContractError(f"summary classification is invalid: {exc}") from exc
     if route.effective_complexity is None:
@@ -193,10 +194,19 @@ def load_contract(
 
     body = str(issue.get("body") or "")
     _reject_governing_self_modification(body)
+    spec_required = bool({"spec", "01-spec.md"} & set(route.required_docs))
     if route.effective_complexity == "small":
         criteria = _acceptance_criteria(body)
         if not criteria:
             raise ContractError("small Issue requires measurable acceptance criteria")
+    elif not spec_required:
+        # development 阶段的 complex 没有 spec，验收标准改由 Issue 正文提供。
+        # 「必须有可测验收」这条门槛不随阶段放宽——它正是 verification 得以成立的前提。
+        criteria = _acceptance_criteria(body)
+        if not criteria:
+            raise ContractError(
+                "development-phase complex Issue requires measurable acceptance criteria in the Issue body"
+            )
     else:
         spec_name = documents["spec"]
         plan_name = documents["plan"]
