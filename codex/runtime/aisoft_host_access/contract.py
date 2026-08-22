@@ -166,6 +166,13 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "gitea.issue.create": ("project-agent", True, ("title", "body")),
     "gitea.issue.update": ("project-agent", True, ("number", "title", "body")),
     "gitea.issue.comment": ("project-agent", True, ("number", "comment")),
+    # The read half of the comment surface (#138). Singular comment posts one;
+    # plural comments.read reads the collection — the same number/plural split
+    # gitea.issue.labels.* already uses. Deliberately no update or delete
+    # counterpart: rewriting or removing someone else's comment is a human
+    # decision, and a typed operation would make erasing the discussion record
+    # a supported automation.
+    "gitea.issue.comments.read": ("project-agent", False, ("number",)),
     "gitea.pulls.read": ("project-agent", False, ("state",)),
     "gitea.pull.create": ("project-agent", True, ("issue", "title", "body")),
     "gitea.pull.read": ("project-agent", False, ("number",)),

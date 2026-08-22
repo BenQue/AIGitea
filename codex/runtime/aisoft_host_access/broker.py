@@ -441,6 +441,8 @@ class HostAccessBroker:
         elif operation.name == "gitea.commit.status.read":
             if not isinstance(sha, str) or COMMIT_SHA_RE.fullmatch(sha) is None:
                 raise BrokerError("ARGUMENT_INVALID", "commit status requires an exact lowercase SHA-1")
+        elif operation.name == "gitea.issue.comments.read":
+            _positive_number(number, "Issue")
         elif operation.name == "gitea.issue.labels.read":
             _positive_number(number, "Issue")
         elif operation.name == "gitea.issue.labels.set":
@@ -465,6 +467,9 @@ class HostAccessBroker:
             return self._labels(repo_api, credential.token)
         if operation.name == "gitea.labels.provision":
             return self._provision_labels(repo_api, credential.token)
+        if operation.name == "gitea.issue.comments.read":
+            assert number is not None
+            return self._issue_comments(repo_api, credential.token, number)
         if operation.name == "gitea.issue.labels.read":
             assert number is not None
             return self._issue_labels(repo_api, credential.token, number)
@@ -640,6 +645,56 @@ class HostAccessBroker:
             for entry in self._label_manifest()["canonical"]
             if "/" not in entry["name"]
         }
+
+    def _issue_comments(
+        self, repo_api: str, token: str, number: int
+    ) -> list[dict[str, object]]:
+        """Read one Issue's comments as a bounded, projected list.
+
+        Projected rather than passed through: a raw Gitea comment embeds a full
+        user object, reactions and assets, so returning it verbatim would make a
+        governed read surface change shape whenever Gitea's does. The four
+        fields kept are the ones the delivery contract actually reads — who said
+        what, when, and where to look it up.
+
+        Paged like _open_pulls: comment count has no upper bound, and a silent
+        first-page-only read would make a partial discussion look complete.
+        """
+        comments: list[dict[str, object]] = []
+        for page in range(1, 101):
+            value = self._request_json(
+                f"{repo_api}/issues/{number}/comments?limit=50&page={page}", token
+            )
+            if not isinstance(value, list):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Gitea Issue comment list is invalid"
+                )
+            for item in value:
+                if (
+                    not isinstance(item, dict)
+                    or not isinstance(item.get("id"), int)
+                    or isinstance(item.get("id"), bool)
+                    or not isinstance(item.get("body"), str)
+                    or not isinstance(item.get("created_at"), str)
+                    or not isinstance(item.get("user"), dict)
+                    or not isinstance(item["user"].get("login"), str)
+                ):
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID", "Gitea Issue comment entry is invalid"
+                    )
+                comments.append(
+                    {
+                        "id": item["id"],
+                        "author": item["user"]["login"],
+                        "created_at": item["created_at"],
+                        "body": item["body"],
+                    }
+                )
+            if len(value) < 50:
+                return comments
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID", "Gitea Issue comment list exceeds the bounded scan"
+        )
 
     def _issue_labels(
         self, repo_api: str, token: str, number: int

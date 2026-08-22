@@ -112,6 +112,7 @@ class HostAccessContractTests(unittest.TestCase):
             "gitea.issue.read": ("number",),
             "gitea.issue.update": ("number", "title", "body"),
             "gitea.issue.comment": ("number", "comment"),
+            "gitea.issue.comments.read": ("number",),
             "gitea.pull.create": ("issue", "title", "body"),
             "gitea.pull.read": ("number",),
             "gitea.pull.update": ("number", "issue", "title", "body"),
@@ -571,6 +572,135 @@ class HostAccessBrokerTests(unittest.TestCase):
         with self.assertRaises(BrokerError) as caught:
             unconfigured.execute("aisoft-platform", "gitea.labels.provision")
         self.assertEqual(caught.exception.code, "REQUEST_DENIED")
+
+    def _issue_comment_broker(self, comments: list[dict[str, object]], calls: list[tuple]):
+        """Broker wired to an in-memory comment collection with real paging."""
+
+        def transport(method, url, headers, body):
+            if url.endswith("/api/v1/user"):
+                return 200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+            payload = json.loads(body) if body else None
+            calls.append((method, url, payload))
+            if method == "GET" and "/comments?" in url:
+                page = int(url.rsplit("page=", 1)[1])
+                start = (page - 1) * 50
+                return 200, {}, json.dumps(comments[start:start + 50]).encode()
+            raise AssertionError(f"unexpected {method} {url}")
+
+        return HostAccessBroker(
+            self.contract, credentials=StaticCredentials(), transport=transport
+        )
+
+    @staticmethod
+    def _gitea_comment(index: int) -> dict[str, object]:
+        """A comment shaped like Gitea's, noise included.
+
+        The noise is the point: the projection must drop it, so the governed
+        read surface does not change shape when Gitea's does.
+        """
+        return {
+            "id": 900 + index,
+            "body": f"comment body {index}",
+            "created_at": "2026-08-22T09:44:42+08:00",
+            "updated_at": "2026-08-22T09:44:42+08:00",
+            "html_url": "http://gitea-ci.orb.local:3000/x#issuecomment-1",
+            "issue_url": "http://gitea-ci.orb.local:3000/y",
+            "assets": [],
+            "user": {
+                "login": "localwms-agent",
+                "id": 13,
+                "email": "localwms-agent@aisoft.local",
+                "avatar_url": "http://gitea-ci.orb.local:3000/avatars/873a5ad1",
+                "is_admin": False,
+            },
+        }
+
+    def test_issue_comments_read_projects_and_is_number_bound(self) -> None:
+        calls: list[tuple] = []
+        broker = self._issue_comment_broker([self._gitea_comment(1)], calls)
+
+        value = broker.execute("aisoft-platform", "gitea.issue.comments.read", number=6)
+
+        self.assertEqual(
+            value,
+            [{
+                "id": 901,
+                "author": "localwms-agent",
+                "created_at": "2026-08-22T09:44:42+08:00",
+                "body": "comment body 1",
+            }],
+        )
+        self.assertEqual(
+            [url for method, url, _ in calls if method == "GET"],
+            ["http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform"
+             "/issues/6/comments?limit=50&page=1"],
+        )
+        # A read must not mutate: no request leaves the GET verb.
+        self.assertEqual({method for method, _, _ in calls}, {"GET"})
+
+    def test_issue_comments_read_pages_past_the_first_fifty(self) -> None:
+        """A silent first-page-only read makes a partial discussion look whole."""
+        calls: list[tuple] = []
+        broker = self._issue_comment_broker(
+            [self._gitea_comment(index) for index in range(1, 73)], calls
+        )
+
+        value = broker.execute("aisoft-platform", "gitea.issue.comments.read", number=6)
+
+        self.assertEqual(len(value), 72)
+        self.assertEqual([item["id"] for item in value], list(range(901, 973)))
+        self.assertEqual(
+            [url.rsplit("page=", 1)[1] for method, url, _ in calls if method == "GET"],
+            ["1", "2"],
+        )
+
+    def test_issue_comments_read_rejects_a_malformed_entry(self) -> None:
+        broken = self._gitea_comment(1)
+        del broken["body"]
+        broker = self._issue_comment_broker([broken], [])
+
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute("aisoft-platform", "gitea.issue.comments.read", number=6)
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_issue_comments_read_takes_only_a_positive_number(self) -> None:
+        calls: list[tuple] = []
+        broker = self._issue_comment_broker([self._gitea_comment(1)], calls)
+
+        # Absent and present-but-invalid are different failures, and the broker
+        # already separates them everywhere else: a missing typed argument is
+        # ARGUMENT_MISMATCH, a supplied nonsense value is ARGUMENT_INVALID.
+        with self.assertRaises(BrokerError) as missing:
+            broker.execute("aisoft-platform", "gitea.issue.comments.read")
+        self.assertEqual(missing.exception.code, "ARGUMENT_MISMATCH")
+
+        for rejected in (0, -1):
+            with self.subTest(number=rejected), self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.issue.comments.read", number=rejected
+                )
+            self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+
+        # comment belongs to the write half of the pair, not to this one.
+        with self.assertRaises(BrokerError) as extra:
+            broker.execute(
+                "aisoft-platform", "gitea.issue.comments.read", number=6, comment="x"
+            )
+        self.assertEqual(extra.exception.code, "ARGUMENT_MISMATCH")
+
+        # Nothing above reached the network.
+        self.assertEqual(calls, [])
+
+    def test_comment_surface_has_no_typed_update_or_delete(self) -> None:
+        """Rewriting or erasing someone else's comment stays a human action."""
+        names = {operation.name for operation in self.contract.operations}
+        self.assertIn("gitea.issue.comments.read", names)
+        for absent in (
+            "gitea.issue.comment.update",
+            "gitea.issue.comment.delete",
+            "gitea.issue.comments.delete",
+        ):
+            self.assertNotIn(absent, names)
 
     def _issue_label_broker(
         self,
