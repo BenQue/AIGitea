@@ -11,9 +11,9 @@ risk_flags:
   - agent-governance
   - platform-governance
 depends_on: []
-status: approved
+status: pr-open
 branch: change/142-loop-pr-url-backfill
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/144
 created: 2026-08-22
 updated: 2026-08-22
 reason: 新增交付链路上共享工具的子命令与确定性检查，并改动 change 文档 front matter 合同，属 Agent/治理类别，强制 complex
