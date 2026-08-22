@@ -20,10 +20,11 @@ from .analysis import (
     route_labels,
     summary_filename,
 )
+from .change_audit import audit_change_documents
 from .change_control import resolve_change_control
 from .controller import Controller, LocalGit
 from .contract import ContractError, resolve_change_name, resolve_documents
-from .documents import publish_plan, publish_spec
+from .documents import backfill_pr_url, publish_plan, publish_spec
 from .gitea import GiteaClient, GiteaError
 from .output import OutputError, extract_last_json_object
 from .provider import CommandProvider, ProviderError, ProviderResult
@@ -120,6 +121,24 @@ def main(argv: list[str] | None = None) -> int:
     resolve_document_names.add_argument("issue", type=int)
     resolve_document_names.add_argument("--repo", required=True, type=Path)
 
+    backfill = subparsers.add_parser(
+        "backfill-pr-url", help="write one change's PR URL into its summary front matter"
+    )
+    backfill.add_argument("issue", type=int)
+    backfill.add_argument("--repo", required=True, type=Path)
+    backfill.add_argument("--pr-url", required=True, dest="pr_url")
+
+    check_documents = subparsers.add_parser(
+        "check-change-documents",
+        help="assert the change document front matter contract across one checkout",
+    )
+    check_documents.add_argument("--repo", required=True, type=Path)
+    check_documents.add_argument(
+        "--porcelain",
+        action="store_true",
+        help="emit name<TAB>status<TAB>detail for tools instead of PASS/GAP lines",
+    )
+
     for command, help_text in (
         ("publish-spec", "publish to the Issue's mapped spec path"),
         ("publish-plan", "publish to the Issue's mapped plan path"),
@@ -152,11 +171,50 @@ def main(argv: list[str] | None = None) -> int:
         return _apply_analysis(args.issue, args.result_json, args.summary_url)
     if args.command == "resolve-documents":
         return _resolve_documents(args.repo, args.issue)
+    if args.command == "backfill-pr-url":
+        return _backfill_pr_url(args.repo, args.issue, args.pr_url)
+    if args.command == "check-change-documents":
+        return _check_change_documents(args.repo, args.porcelain)
     if args.command == "publish-spec":
         return _publish_document(args.repo, args.issue, args.body, "spec")
     if args.command == "publish-plan":
         return _publish_document(args.repo, args.issue, args.body, "plan")
     return _run(args.issue, args.repo, args.verification_config)
+
+
+def _backfill_pr_url(repo: Path, issue: int, pr_url: str) -> int:
+    try:
+        summary_path, changed = backfill_pr_url(repo, issue, pr_url)
+    except (ContractError, ChangeNameError, OSError, UnicodeError) as exc:
+        print(f"pr_url backfill refused: {exc}", file=sys.stderr)
+        return 2
+    print(f"{'changed' if changed else 'unchanged'} {summary_path}")
+    return 0
+
+
+def _check_change_documents(repo: Path, porcelain: bool) -> int:
+    try:
+        report = audit_change_documents(repo)
+    except OSError as exc:
+        print(f"change document audit failed: {exc}", file=sys.stderr)
+        return 2
+    for check in report.checks:
+        detail = "; ".join(check.problems)
+        if porcelain:
+            # Tab separated so aisoft-project-check.sh can split it without
+            # guessing where a Chinese-punctuated detail string ends.
+            print(f"{check.name}\t{'PASS' if check.ok else 'GAP'}\t{detail}")
+        elif check.ok:
+            print(f"PASS: {check.name}")
+        else:
+            print(f"GAP: {check.name} — {detail}")
+    if not porcelain:
+        gaps = sum(1 for check in report.checks if not check.ok)
+        print(
+            f"result: changes={report.change_count} "
+            f"pass={len(report.checks) - gaps} gap={gaps}"
+        )
+    return 0 if report.ok else 1
 
 
 def _run(issue: int, repo: Path, verification_config: Path) -> int:

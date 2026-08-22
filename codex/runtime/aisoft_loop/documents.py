@@ -11,9 +11,11 @@ from typing import Mapping
 
 from .contract import (
     ContractError,
+    PR_BEARING_STATUSES,
     parse_front_matter,
     resolve_change_name,
     resolve_documents,
+    resolve_summary,
 )
 
 
@@ -35,6 +37,125 @@ def publish_plan(
     if not _has_ticket_graph(graph):
         raise ContractError("plan must contain a valid Ticket graph table")
     return _publish(repo, issue, "plan", graph)
+
+
+def backfill_pr_url(
+    repo: Path | str,
+    issue_number: int,
+    pr_url: str,
+) -> tuple[Path, bool]:
+    """Write one change's pull request URL into its summary front matter.
+
+    pr_url is the only front matter field that cannot be known when the document
+    is created — the PR does not exist until the branch has been pushed — so it
+    is the one field that needs a writer of its own (#142). It lives in the
+    summary only: no code reads pr_url from a spec, plan or verification, so a
+    copy there is a duplicate with no consumer (spec §2).
+
+    Returns the summary path and whether the file changed. Re-running with the
+    value already in place writes nothing at all, so a repeated backfill leaves
+    no diff; a *different* non-empty value is refused rather than overwritten,
+    because one change has exactly one PR and a second value means the premise
+    behind that rule has broken somewhere the caller cannot see.
+    """
+    repo_path = Path(repo).resolve()
+    summary_path, summary = resolve_summary(repo_path, issue_number)
+    expected_prefix = _pull_url_prefix(summary, issue_number)
+    if not isinstance(pr_url, str) or not re.fullmatch(
+        rf"{re.escape(expected_prefix)}[1-9][0-9]*", pr_url
+    ):
+        raise ContractError(
+            f"pr_url must be {expected_prefix}<number>, derived from the summary gitea_url"
+        )
+
+    text = summary_path.read_text(encoding="utf-8")
+    lines = text.splitlines(keepends=True)
+    # Bounded to the front matter block. A bare "pr_url:" inside the prose — this
+    # very change's own documents contain several — must not be rewritten.
+    end = _front_matter_end(lines)
+    index = _front_matter_field(lines, end, "pr_url")
+    if index is None:
+        raise ContractError("summary front matter does not declare pr_url")
+    current = lines[index].split(":", 1)[1].strip()
+    if current and current != pr_url:
+        raise ContractError(
+            f"summary already declares a different pr_url: {current}"
+        )
+
+    changed = current != pr_url
+    if changed:
+        lines[index] = _replaced(lines[index], "pr_url", pr_url)
+    # The same fact, recorded in two fields: "this change now has a PR". Writing
+    # them together is what makes the audit satisfiable at every point in time —
+    # a summary that claims pr-open before the PR exists is simply false, and a
+    # gate that reads it would fail every change's first CI run (spec §4.1).
+    status_index = _front_matter_field(lines, end, "status")
+    if status_index is not None:
+        status = lines[status_index].split(":", 1)[1].strip()
+        if status not in PR_BEARING_STATUSES:
+            lines[status_index] = _replaced(lines[status_index], "status", "pr-open")
+            changed = True
+    if changed:
+        _atomic_write(summary_path, "".join(lines))
+    return summary_path, changed
+
+
+def _replaced(line: str, name: str, value: str) -> str:
+    terminator = "\n" if line.endswith("\n") else ""
+    return f"{name}: {value}{terminator}"
+
+
+def _pull_url_prefix(summary: Mapping[str, object], issue_number: int) -> str:
+    """Derive the only pull request URL prefix this summary can legitimately carry.
+
+    Checked against the summary's own gitea_url rather than against a configured
+    base: it makes the check offline and makes a URL from another repository, or
+    from another Issue, impossible to write without also having lied in the
+    summary itself.
+    """
+    gitea_url = summary.get("gitea_url")
+    if not isinstance(gitea_url, str) or not gitea_url:
+        raise ContractError("summary front matter must declare gitea_url")
+    match = re.fullmatch(r"(https?://\S+?)/issues/([1-9][0-9]*)", gitea_url)
+    if not match or int(match.group(2)) != issue_number:
+        raise ContractError(
+            f"summary gitea_url must be the issues/{issue_number} URL of this Issue"
+        )
+    return f"{match.group(1)}/pulls/"
+
+
+def _front_matter_end(lines: list[str]) -> int:
+    if not lines or lines[0].rstrip("\n") != "---":
+        raise ContractError("document must start with YAML front matter")
+    for index in range(1, len(lines)):
+        if lines[index].rstrip("\n") == "---":
+            return index
+    raise ContractError("document front matter is not closed")
+
+
+def _front_matter_field(lines: list[str], end: int, name: str) -> int | None:
+    for index in range(1, end):
+        if lines[index].split(":", 1)[0] == name:
+            return index
+    return None
+
+
+def _atomic_write(destination: Path, body: str) -> None:
+    fd, temporary_name = tempfile.mkstemp(
+        prefix=f".{destination.stem}-write-",
+        dir=destination.parent,
+        text=True,
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(body)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temporary, 0o644)
+        os.replace(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _publish(
@@ -81,21 +202,7 @@ def _publish(
     ):
         raise ContractError(f"{role} created date must match its immutable filename")
 
-    fd, temporary_name = tempfile.mkstemp(
-        prefix=f".{role}-publish-",
-        dir=directory,
-        text=True,
-    )
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            handle.write(body)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.chmod(temporary, 0o644)
-        os.replace(temporary, destination)
-    finally:
-        temporary.unlink(missing_ok=True)
+    _atomic_write(destination, body)
     return destination
 
 

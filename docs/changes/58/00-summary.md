@@ -21,11 +21,6 @@ required_docs:
   - summary
   - spec
   - plan
-documents:
-  summary: 00-summary.md
-  spec: 01-spec.md
-  plan: 02-plan.md
-  verification: 03-verification.md
 depends_on:
   - 22
   - 27

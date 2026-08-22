@@ -183,6 +183,13 @@ bash "$ROOT/sync/tests/test-install.sh"
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
   -s "$ROOT/codex/runtime/tests" -v
 
+# The change document front matter gate, applied to this repository itself
+# (#142). Every change directory must resolve through resolve-documents, and no
+# summary claiming a PR exists may leave pr_url empty. A platform that ships this
+# gate to target repositories has to pass it first.
+PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_loop.cli \
+  check-change-documents --repo "$ROOT" >/dev/null
+
 PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_gitea_governance.cli \
   --manifest "$ROOT/codex/config/gitea-governance.json" validate >/dev/null
 jq empty "$ROOT/codex/config/gitea-governance.json"
