@@ -14,6 +14,11 @@ from .classification import CHANGE_TYPES, Classification, ClassificationError
 
 
 DOCUMENT_ROLES = ("summary", "spec", "plan", "verification")
+# Lifecycle states that assert a pull request already exists. Read from the
+# repository rather than from Gitea on purpose (#142 spec §5.1): it keeps the
+# change document audit offline and credential-free, and "status: pr-open with
+# an empty pr_url" is a contradiction that needs no network to detect.
+PR_BEARING_STATUSES = frozenset({"pr-open", "completed", "deployed"})
 LEGACY_DOCUMENTS = {
     "summary": "00-summary.md",
     "spec": "01-spec.md",
@@ -99,6 +104,20 @@ def resolve_documents(repo: Path | str, issue_number: int) -> dict[str, str]:
         raise ContractError("Issue number must be a positive integer")
     _, _, _, documents = _document_context(repo_path, issue_number)
     return documents
+
+
+def resolve_summary(repo: Path | str, issue_number: int) -> tuple[Path, dict[str, object]]:
+    """Resolve one Issue's active summary path and its parsed front matter.
+
+    The public half of _document_context, added so callers that need the summary
+    itself — rather than the documents mapping resolve_documents returns — do not
+    reach into a private function. Every structural check resolve_documents makes
+    still runs, so a caller cannot use this to read a summary the contract would
+    have rejected.
+    """
+    repo_path = Path(repo).resolve()
+    _, summary_path, summary, _ = _document_context(repo_path, issue_number)
+    return summary_path, summary
 
 
 def resolve_change_name(repo: Path | str, issue_number: int) -> ChangeName:

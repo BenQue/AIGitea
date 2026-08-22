@@ -25,8 +25,12 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 
 1. 需求/缺陷 → broker `gitea.issue.create`（正文写可测验收标准）。
 2. `python3 -m aisoft_loop.cli change-name N <slug>` 校验命名 → `git worktree add /private/tmp/issue-N-<slug> -b change/N-<slug> origin/main`（并行会话必须各自 worktree；commit 前 `git branch --show-current` 核对——踩坑 #15）。
-3. 按判级写映射文档（complex 补 spec/plan，模板在 `templates/docs/changes/_template/`），实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。
-4. commit → broker `git.push.change --branch change/N-<slug>` → broker `gitea.pull.create --issue N`（正文含 `Closes #N` 与文档链接）→ 更新 summary 的 `pr_url` 再推一次。**到开 PR 为止。**
+3. 按判级写映射文档（complex 补 spec/plan，模板在 `templates/docs/changes/_template/`），实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。summary 此时写**真实的**前置 `status`（通常 `approved`），`pr_url` 留空——PR 还不存在。
+4. commit → broker `git.push.change --branch change/N-<slug>` → broker `gitea.pull.create --issue N`（正文含 `Closes #N` 与文档链接）→
+   `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli backfill-pr-url N --repo <checkout> --pr-url <PR URL>`
+   把 `pr_url` 与 `status: pr-open` 一起写进 summary（#142；只写 summary，spec/plan/verification 不带该键），再 commit + push 一次。**到开 PR 为止。**
+   该命令幂等：值已正确时一个字节都不写；出现第二个不同的 `pr_url` 会 fail-closed 报错而不是覆盖。
+   自查用 `python3 -m aisoft_loop.cli check-change-documents --repo <checkout>`——它对每个 change 目录断言 `resolve-documents` 成功，并拦住「`status: pr-open` 但 `pr_url` 为空」这种静默漏做。
 5. push 报 `BASE_BRANCH_STALE` = 分支不是基于最新 `main`（`main` 在你开分支后前进了）→
    broker `git.fetch.main` 取新基线 → 本地 `git rebase origin/main` → broker
    `git.push.change --branch change/N-<slug>` 重推。#136 起推送使用

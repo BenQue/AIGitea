@@ -156,6 +156,35 @@ else
   gap change-templates 'docs/changes/_template 与平台模板不一致'
 fi
 
+# Every change directory must resolve through resolve-documents, and no summary
+# whose lifecycle claims a PR exists may leave pr_url empty (#142). Porcelain is
+# tab separated so a Chinese-punctuated detail string cannot be mistaken for a
+# field separator. A crash of the audit itself is reported as a GAP rather than
+# skipped: "the checker did not run" must never read as "the repository is fine".
+if [[ ! -d "$repo/docs/changes" ]]; then
+  skip change-documents '仓库尚无 docs/changes'
+  skip change-pr-url '仓库尚无 docs/changes'
+else
+  change_audit="$tmp_dir/change-audit"
+  audit_status=0
+  PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_loop.cli \
+    check-change-documents --repo "$repo" --porcelain >"$change_audit" 2>"$tmp_dir/change-audit.err" ||
+    audit_status=$?
+  if ((audit_status > 1)) || [[ ! -s "$change_audit" ]]; then
+    gap change-documents "巡检未能运行（退出码 $audit_status）"
+    gap change-pr-url "巡检未能运行（退出码 $audit_status）"
+  else
+    while IFS=$'\t' read -r audit_name audit_result audit_detail; do
+      [[ -n "$audit_name" ]] || continue
+      if [[ "$audit_result" == PASS ]]; then
+        pass "$audit_name"
+      else
+        gap "$audit_name" "${audit_detail:-未给出细节}"
+      fi
+    done <"$change_audit"
+  fi
+fi
+
 if [[ "$kind" == docs ]]; then
   skip architecture-lock 'docs 仓库不要求 architecture lock'
 else

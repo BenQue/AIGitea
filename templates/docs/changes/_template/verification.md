@@ -11,7 +11,6 @@ risk_flags: []
 depends_on: []
 status: pending
 branch: change/ISSUE_NUMBER-SHORT-SLUG
-pr_url:
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---

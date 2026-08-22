@@ -202,10 +202,10 @@ local_check() {
 make_aligned_repo "$TMP/aligned"
 
 run_case 0 remote_check --repo "$TMP/aligned" --remote
-for check_id in pointer-sections change-templates architecture-lock labels-readback ci-context delivery-profile; do
+for check_id in pointer-sections change-templates architecture-lock labels-readback ci-context delivery-profile change-documents change-pr-url; do
   expect_line "PASS: $check_id"
 done
-expect_line 'result: pass=6 gap=0 skip=0'
+expect_line 'result: pass=8 gap=0 skip=0'
 expect_contains 'DEPRECATED: inline GITEA_TOKEN is deprecated'
 
 # Token-file profile (#111): the remote checks must run when the env file only
@@ -223,7 +223,7 @@ MOCK_ENV_FILE="$TMP/agent-file.env" \
   run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'PASS: labels-readback'
 expect_line 'PASS: ci-context'
-expect_line 'result: pass=6 gap=0 skip=0'
+expect_line 'result: pass=8 gap=0 skip=0'
 if grep -Fq 'DEPRECATED' <<<"$last_output"; then
   fail 'token-file profile must not print the deprecation notice'
 fi
@@ -373,15 +373,88 @@ mv "$bullet_boundary_repo/AGENTS.md.next" "$bullet_boundary_repo/AGENTS.md"
 run_case 0 local_check --repo "$bullet_boundary_repo"
 expect_line 'PASS: delivery-profile'
 
+# #142: the change document front matter contract is now a gate. A change that
+# resolve-documents cannot parse, or a summary that claims a PR without carrying
+# its URL, used to merge into main with nothing saying a word.
+make_change_repo() {
+  local repo="$1" status="$2" pr_url="$3"
+  make_aligned_repo "$repo"
+  local directory="$repo/docs/changes/57-matt-flow"
+  mkdir -p "$directory"
+  cat >"$directory/summary-matt-flow-260808.md" <<EOF
+---
+issue: 57
+gitea_url: http://mock.gitea.invalid/admin/NewEMaint/issues/57
+documents:
+  summary: summary-matt-flow-260808.md
+  spec: spec-matt-flow-260808.md
+status: $status
+branch: change/57-matt-flow
+pr_url:$pr_url
+created: 2026-08-08
+---
+
+# Summary
+EOF
+  cat >"$directory/spec-matt-flow-260808.md" <<'EOF'
+---
+issue: 57
+branch: change/57-matt-flow
+created: 2026-08-08
+---
+
+# Spec
+EOF
+}
+
+change_ok_repo="$TMP/change-ok"
+make_change_repo "$change_ok_repo" approved ''
+run_case 0 local_check --repo "$change_ok_repo"
+expect_line 'PASS: change-documents'
+expect_line 'PASS: change-pr-url'
+
+change_broken_repo="$TMP/change-broken"
+make_change_repo "$change_broken_repo" approved ''
+printf '# spec without front matter\n' \
+  >"$change_broken_repo/docs/changes/57-matt-flow/spec-matt-flow-260808.md"
+run_case 1 local_check --repo "$change_broken_repo"
+expect_contains 'GAP: change-documents —'
+expect_contains '57-matt-flow'
+expect_contains 'spec-matt-flow-260808.md'
+
+change_pr_repo="$TMP/change-pr-url"
+make_change_repo "$change_pr_repo" pr-open ''
+run_case 1 local_check --repo "$change_pr_repo"
+expect_line 'PASS: change-documents'
+expect_contains 'GAP: change-pr-url —'
+expect_contains 'status 为 pr-open 但 pr_url 为空'
+
+change_pr_filled_repo="$TMP/change-pr-url-filled"
+make_change_repo "$change_pr_filled_repo" pr-open \
+  ' http://mock.gitea.invalid/admin/NewEMaint/pulls/58'
+run_case 0 local_check --repo "$change_pr_filled_repo"
+expect_line 'PASS: change-pr-url'
+
+# A repository without docs/changes at all is skipped rather than reported as
+# clean: "the checker found nothing to look at" and "the repository is fine" are
+# different answers. Such a repository is by definition not aligned yet, so the
+# template check GAPs alongside it — that is the honest result, not a regression.
+no_changes_repo="$TMP/no-changes"
+make_aligned_repo "$no_changes_repo"
+rm -rf "$no_changes_repo/docs/changes"
+run_case 1 local_check --repo "$no_changes_repo"
+expect_line 'SKIP: change-documents — 仓库尚无 docs/changes'
+expect_line 'SKIP: change-pr-url — 仓库尚无 docs/changes'
+
 run_case 0 remote_check --repo "$TMP/aligned" --kind docs --remote
 expect_line 'SKIP: architecture-lock — docs 仓库不要求 architecture lock'
 expect_line 'SKIP: delivery-profile — docs 仓库不声明交付形态'
-expect_line 'result: pass=4 gap=0 skip=2'
+expect_line 'result: pass=6 gap=0 skip=2'
 
 run_case 0 local_check --repo "$TMP/aligned"
 expect_line 'SKIP: labels-readback — 未启用 --remote'
 expect_line 'SKIP: ci-context — 未启用 --remote'
-expect_line 'result: pass=4 gap=0 skip=2'
+expect_line 'result: pass=6 gap=0 skip=2'
 
 run_case 64 bash "$CHECKER"
 expect_contains 'usage:'
@@ -397,7 +470,7 @@ expect_contains 'GAP: architecture-lock —'
 
 MOCK_PROTECTION_STATUS=403 run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'SKIP: ci-context — 需要 manager/audit 权限'
-expect_line 'result: pass=5 gap=0 skip=1'
+expect_line 'result: pass=7 gap=0 skip=1'
 
 # AC-4: a value under a declared extension prefix is legitimate — the platform
 # owns the dimension, the project owns the values.
@@ -408,7 +481,7 @@ canonical_labels '
 run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'INFO: labels-readback — 声明扩展标签 area/web'
 expect_line 'INFO: labels-readback — 声明扩展标签 priority/p1'
-expect_line 'result: pass=6 gap=0 skip=0'
+expect_line 'result: pass=8 gap=0 skip=0'
 
 # AC-4: a near-miss of a declared prefix is undeclared, not a project dimension.
 # This is the case a prefix-only allow list would wave through.
