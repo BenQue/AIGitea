@@ -7,6 +7,7 @@ import re
 import stat
 import subprocess
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import PurePosixPath
 from typing import Callable, Mapping, Sequence
 from urllib.error import HTTPError, URLError
@@ -25,6 +26,34 @@ CREDENTIAL_PROTOCOL_MAX_LINE_BYTES = 65535
 TITLE_MAX_BYTES = 255
 BODY_MAX_BYTES = 65536
 COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+# Same ceiling verifier.py already uses for captured command output (#143): one
+# number for "how much text may enter an agent's context", not two.
+LOG_MAX_BYTES = 65536
+# Second-layer log redaction (#143 spec §5.2). Gitea masks its own registered
+# Actions secrets; these cover the credential a workflow got from somewhere
+# else, which is the shape an accidental leak actually takes.
+#
+# Bare 40-hex strings are deliberately absent: they are indistinguishable from
+# commit SHAs, and SHAs are among the most useful things in a CI log. Masking
+# them would trade a certain loss of function for a hypothetical gain — the
+# credential in use is already covered exactly, by value, below.
+REDACTION_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(
+        r"(?i)\b(authorization\s*:\s*(?:token|bearer|basic)\s+)\S+"
+    ),
+    re.compile(r"(?i)\b((?:https?|git|ssh)://)[^\s/@]+(?::[^\s/@]*)?(@)"),
+    re.compile(
+        r"(?i)\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|APIKEY|API_KEY"
+        r"|PRIVATE_KEY|CREDENTIAL)[A-Z0-9_]*\s*[:=]\s*)(?!\s)\S+"
+    ),
+    re.compile(r"\b(gh[pousr]_)[A-Za-z0-9]{16,}"),
+    re.compile(r"\b(github_pat_)[A-Za-z0-9_]{20,}"),
+    re.compile(
+        r"(-----BEGIN [A-Z ]*PRIVATE KEY-----)[\s\S]*?"
+        r"(-----END [A-Z ]*PRIVATE KEY-----)"
+    ),
+)
+REDACTED = "[redacted]"
 LEASE_REJECTION_MARKERS = ("stale info", "non-fast-forward", "fetch first")
 MAX_CREDENTIAL_BYTES = 4096
 
@@ -110,6 +139,60 @@ def _pull_body(
         if len(legacy.findall(body)) == 1:
             return body, ChangeName(number)
     raise BrokerError("ARGUMENT_INVALID", "pull request body must link its semantic summary")
+
+
+def _optional_text(value: object) -> str | None:
+    """Keep a string field or drop it — never coerce an unexpected type."""
+    return value if isinstance(value, str) and value else None
+
+
+def _duration_seconds(started: object, completed: object) -> int | None:
+    """Seconds between two Gitea timestamps, or None when either is unusable.
+
+    None rather than 0: a step that has not finished and a step that took no
+    measurable time are different facts, and "0s" for the first one would
+    reproduce exactly the kind of number #143 was opened because nobody could
+    check.
+    """
+    if not isinstance(started, str) or not isinstance(completed, str):
+        return None
+    try:
+        start = datetime.fromisoformat(started)
+        end = datetime.fromisoformat(completed)
+    except ValueError:
+        return None
+    if end < start:
+        return None
+    return int((end - start).total_seconds())
+
+
+def _redact_secrets(text: str, token: str) -> tuple[str, int]:
+    """Mask credentials in a job log, reporting how many masks were applied.
+
+    The count is returned rather than swallowed for the same reason truncation
+    is announced: a reader who is not told something was removed will assume
+    they are looking at the original.
+    """
+    redactions = 0
+    # The exact credential this request used is the strongest rule available:
+    # the broker holds its plaintext, so any occurrence in a log is a leak by
+    # definition, whatever shape it takes.
+    if token:
+        occurrences = text.count(token)
+        if occurrences:
+            text = text.replace(token, REDACTED)
+            redactions += occurrences
+    for pattern in REDACTION_PATTERNS:
+        def _replace(match: re.Match[str]) -> str:
+            groups = [group for group in match.groups() if group]
+            if len(groups) >= 2:
+                return f"{groups[0]}{REDACTED}{groups[-1]}"
+            prefix = groups[0] if groups else ""
+            return f"{prefix}{REDACTED}"
+
+        text, count = pattern.subn(_replace, text)
+        redactions += count
+    return text, redactions
 
 
 Transport = Callable[
@@ -334,6 +417,7 @@ class HostAccessBroker:
         body: str | None = None,
         comment: str | None = None,
         sha: str | None = None,
+        job: int | None = None,
         lifecycle: str | None = None,
     ) -> object:
         try:
@@ -350,6 +434,7 @@ class HostAccessBroker:
             "body": body,
             "comment": comment,
             "sha": sha,
+            "job": job,
             "lifecycle": lifecycle,
         }
         supplied = {
@@ -371,6 +456,7 @@ class HostAccessBroker:
                     body=body,
                     comment=comment,
                     sha=sha,
+                    job=job,
                     lifecycle=lifecycle,
                 )
             if operation_name.startswith("git.") or operation_name == "mac.git.bind":
@@ -399,6 +485,7 @@ class HostAccessBroker:
         body: str | None,
         comment: str | None,
         sha: str | None,
+        job: int | None,
         lifecycle: str | None,
     ) -> object:
         method = "GET"
@@ -441,6 +528,18 @@ class HostAccessBroker:
         elif operation.name == "gitea.commit.status.read":
             if not isinstance(sha, str) or COMMIT_SHA_RE.fullmatch(sha) is None:
                 raise BrokerError("ARGUMENT_INVALID", "commit status requires an exact lowercase SHA-1")
+        elif operation.name == "gitea.actions.run.read":
+            # Exact SHA only, the same rule gitea.commit.status.read already
+            # applies. Rejecting before any request is made is what keeps "this
+            # commit has no runs" and "you passed the wrong SHA" apart: an
+            # abbreviated SHA sent upstream would come back as an empty list,
+            # i.e. a success shaped exactly like the first answer.
+            if not isinstance(sha, str) or COMMIT_SHA_RE.fullmatch(sha) is None:
+                raise BrokerError(
+                    "ARGUMENT_INVALID", "Actions run read requires an exact lowercase SHA-1"
+                )
+        elif operation.name == "gitea.actions.job.logs.read":
+            _positive_number(job, "Actions job")
         elif operation.name == "gitea.issue.comments.read":
             _positive_number(number, "Issue")
         elif operation.name == "gitea.issue.labels.read":
@@ -467,6 +566,12 @@ class HostAccessBroker:
             return self._labels(repo_api, credential.token)
         if operation.name == "gitea.labels.provision":
             return self._provision_labels(repo_api, credential.token)
+        if operation.name == "gitea.actions.run.read":
+            assert sha is not None
+            return self._actions_runs(repo_api, credential.token, sha)
+        if operation.name == "gitea.actions.job.logs.read":
+            assert job is not None
+            return self._actions_job_logs(repo_api, credential.token, job)
         if operation.name == "gitea.issue.comments.read":
             assert number is not None
             return self._issue_comments(repo_api, credential.token, number)
@@ -645,6 +750,206 @@ class HostAccessBroker:
             for entry in self._label_manifest()["canonical"]
             if "/" not in entry["name"]
         }
+
+    def _actions_runs(
+        self, repo_api: str, token: str, sha: str
+    ) -> dict[str, object]:
+        """Project one commit's Actions runs down to step-level conclusions.
+
+        Projected rather than passed through: an upstream ActionWorkflowRun
+        embeds a full Repository plus two User objects, so returning it verbatim
+        would make a governed read surface change shape whenever Gitea's does,
+        and would disclose identities this operation has no reason to carry.
+
+        duration_seconds is computed here rather than left to the caller. "How
+        long did each step take" is the question #143 was opened to answer;
+        handing back two timestamps and expecting the reader to subtract them
+        would be doing half the job.
+        """
+        runs: list[dict[str, object]] = []
+        for item in self._paged(
+            f"{repo_api}/actions/runs?head_sha={quote(sha, safe='')}",
+            token,
+            "workflow_runs",
+        ):
+            run_id = item.get("id")
+            if not isinstance(run_id, int) or isinstance(run_id, bool):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Gitea Actions run entry is invalid"
+                )
+            runs.append(
+                {
+                    "id": run_id,
+                    "workflow": _optional_text(item.get("path")),
+                    "display_title": _optional_text(item.get("display_title")),
+                    "event": _optional_text(item.get("event")),
+                    "head_branch": _optional_text(item.get("head_branch")),
+                    "head_sha": _optional_text(item.get("head_sha")),
+                    "run_number": item.get("run_number")
+                    if isinstance(item.get("run_number"), int)
+                    and not isinstance(item.get("run_number"), bool)
+                    else None,
+                    "status": _optional_text(item.get("status")),
+                    "conclusion": _optional_text(item.get("conclusion")),
+                    "started_at": _optional_text(item.get("started_at")),
+                    "completed_at": _optional_text(item.get("completed_at")),
+                    "duration_seconds": _duration_seconds(
+                        item.get("started_at"), item.get("completed_at")
+                    ),
+                    "html_url": _optional_text(item.get("html_url")),
+                    "jobs": self._actions_jobs(repo_api, token, run_id),
+                }
+            )
+        # A well-formed SHA with no runs is an empty list, not an error: the
+        # caller can tell "nothing ran" from "the read failed" by shape alone,
+        # because a failure never reaches here — it raises BrokerError.
+        return {"sha": sha, "total_count": len(runs), "runs": runs}
+
+    def _actions_jobs(
+        self, repo_api: str, token: str, run_id: int
+    ) -> list[dict[str, object]]:
+        jobs: list[dict[str, object]] = []
+        for item in self._paged(
+            f"{repo_api}/actions/runs/{run_id}/jobs", token, "jobs"
+        ):
+            job_id = item.get("id")
+            if not isinstance(job_id, int) or isinstance(job_id, bool):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Gitea Actions job entry is invalid"
+                )
+            raw_steps = item.get("steps")
+            if raw_steps is not None and not isinstance(raw_steps, list):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Gitea Actions job steps are invalid"
+                )
+            steps: list[dict[str, object]] = []
+            for step in raw_steps or []:
+                if not isinstance(step, dict):
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID", "Gitea Actions step entry is invalid"
+                    )
+                steps.append(
+                    {
+                        "number": step.get("number")
+                        if isinstance(step.get("number"), int)
+                        and not isinstance(step.get("number"), bool)
+                        else None,
+                        "name": _optional_text(step.get("name")),
+                        "status": _optional_text(step.get("status")),
+                        "conclusion": _optional_text(step.get("conclusion")),
+                        "started_at": _optional_text(step.get("started_at")),
+                        "completed_at": _optional_text(step.get("completed_at")),
+                        "duration_seconds": _duration_seconds(
+                            step.get("started_at"), step.get("completed_at")
+                        ),
+                    }
+                )
+            jobs.append(
+                {
+                    "id": job_id,
+                    "name": _optional_text(item.get("name")),
+                    "status": _optional_text(item.get("status")),
+                    "conclusion": _optional_text(item.get("conclusion")),
+                    "started_at": _optional_text(item.get("started_at")),
+                    "completed_at": _optional_text(item.get("completed_at")),
+                    "duration_seconds": _duration_seconds(
+                        item.get("started_at"), item.get("completed_at")
+                    ),
+                    "runner_name": _optional_text(item.get("runner_name")),
+                    "steps": steps,
+                }
+            )
+        return jobs
+
+    def _paged(
+        self, url: str, token: str, key: str
+    ) -> list[Mapping[str, object]]:
+        """Bounded paging over one of Gitea's {total_count, <key>: []} envelopes.
+
+        Bounded like _open_pulls and _issue_comments: reading only the first page
+        would make a truncated run list look complete, and a truncated list of
+        steps is exactly the false reassurance this operation exists to remove.
+        """
+        separator = "&" if "?" in url else "?"
+        collected: list[Mapping[str, object]] = []
+        for page in range(1, 101):
+            value = self._request_json(
+                f"{url}{separator}limit=50&page={page}", token
+            )
+            if not isinstance(value, dict):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Gitea Actions response is invalid"
+                )
+            entries = value.get(key)
+            if entries is None:
+                return collected
+            if not isinstance(entries, list):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Gitea Actions response is invalid"
+                )
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID", "Gitea Actions entry is invalid"
+                    )
+                collected.append(entry)
+            if len(entries) < 50:
+                return collected
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID", "Gitea Actions response exceeds the bounded scan"
+        )
+
+    def _actions_job_logs(
+        self, repo_api: str, token: str, job: int
+    ) -> dict[str, object]:
+        """Read one job's log, redacted then bounded — in that order.
+
+        Redaction runs before truncation on purpose: truncating first would drop
+        whatever credentials sat in the discarded half without ever counting
+        them, and the returned redaction count is the reader's only signal that
+        anything was masked at all.
+
+        Gitea masks its own registered Actions secrets upstream. This second
+        layer covers what that one structurally cannot: a credential the workflow
+        obtained from somewhere other than a registered secret — which is the
+        common shape of an accidental leak, since forgetting to register it as a
+        secret is precisely how it ends up printed.
+        """
+        text = self._request_text(f"{repo_api}/actions/jobs/{job}/logs", token)
+        text, redactions = _redact_secrets(text, token)
+        original_bytes = len(text.encode("utf-8"))
+        body = text
+        truncated = original_bytes > LOG_MAX_BYTES
+        if truncated:
+            # Tail, not head: a failing step prints its error last, so keeping
+            # the beginning would reliably discard the part worth reading.
+            body = text.encode("utf-8")[-LOG_MAX_BYTES:].decode("utf-8", "ignore")
+            body = (
+                f"[truncated: {original_bytes - len(body.encode('utf-8'))}"
+                " leading bytes omitted]\n" + body
+            )
+        return {
+            "job": job,
+            "truncated": truncated,
+            "original_bytes": original_bytes,
+            "returned_bytes": len(body.encode("utf-8")),
+            "redactions": redactions,
+            "log": body,
+        }
+
+    def _request_text(self, url: str, token: str) -> str:
+        headers = {"Accept": "text/plain", "Authorization": f"token {token}"}
+        try:
+            status, _headers, body = self.transport("GET", url, headers, None)
+        except BrokerError:
+            raise
+        except Exception as exc:  # defensive adapter boundary
+            raise BrokerError("TRANSPORT_ERROR", "host transport failed") from exc
+        if status in {401, 403, 404}:
+            raise BrokerError(f"HTTP_{status}", f"Gitea returned HTTP {status}")
+        if status < 200 or status >= 300:
+            raise BrokerError("HTTP_ERROR", f"Gitea returned HTTP {status}")
+        return body.decode("utf-8", "replace")
 
     def _issue_comments(
         self, repo_api: str, token: str, number: int

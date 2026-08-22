@@ -117,6 +117,8 @@ class HostAccessContractTests(unittest.TestCase):
             "gitea.pull.read": ("number",),
             "gitea.pull.update": ("number", "issue", "title", "body"),
             "gitea.commit.status.read": ("sha",),
+            "gitea.actions.run.read": ("sha",),
+            "gitea.actions.job.logs.read": ("job",),
         }
         for name, arguments in expected.items():
             with self.subTest(name=name):
@@ -699,6 +701,339 @@ class HostAccessBrokerTests(unittest.TestCase):
             "gitea.issue.comment.update",
             "gitea.issue.comment.delete",
             "gitea.issue.comments.delete",
+        ):
+            self.assertNotIn(absent, names)
+
+    # --- Actions run and job log reads (#143) --------------------------------
+
+    ACTIONS_SHA = "b" * 40
+
+    def _actions_broker(
+        self,
+        runs: list[dict[str, object]],
+        jobs: dict[int, list[dict[str, object]]],
+        calls: list[tuple],
+        log: bytes | None = None,
+    ):
+        """Broker wired to an in-memory Actions run/job/log collection."""
+
+        def transport(method, url, headers, body):
+            if url.endswith("/api/v1/user"):
+                return 200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+            calls.append((method, url, headers.get("Accept")))
+            if "/actions/runs?" in url:
+                page = int(url.rsplit("page=", 1)[1])
+                start = (page - 1) * 50
+                window = runs[start:start + 50]
+                return 200, {}, json.dumps(
+                    {"total_count": len(runs), "workflow_runs": window}
+                ).encode()
+            if "/actions/runs/" in url and "/jobs?" in url:
+                run_id = int(url.split("/actions/runs/", 1)[1].split("/", 1)[0])
+                page = int(url.rsplit("page=", 1)[1])
+                start = (page - 1) * 50
+                window = jobs.get(run_id, [])[start:start + 50]
+                return 200, {}, json.dumps(
+                    {"total_count": len(jobs.get(run_id, [])), "jobs": window}
+                ).encode()
+            if "/actions/jobs/" in url and url.endswith("/logs"):
+                if log is None:
+                    return 404, {}, b"not found"
+                return 200, {}, log
+            raise AssertionError(f"unexpected {method} {url}")
+
+        return HostAccessBroker(
+            self.contract, credentials=StaticCredentials(), transport=transport
+        )
+
+    @staticmethod
+    def _gitea_run() -> dict[str, object]:
+        """A run shaped like Gitea's, embedded objects included.
+
+        The embedded repository and user objects are the point: the projection
+        must drop them, so a governed read surface does not change shape — or
+        start disclosing identities — when Gitea's does.
+        """
+        return {
+            "id": 493,
+            "path": ".gitea/workflows/ci.yml",
+            "display_title": "feat: something",
+            "event": "pull_request",
+            "head_branch": "change/16-build-hygiene-gates",
+            "head_sha": "b" * 40,
+            "run_number": 12,
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-08-22T09:44:42+08:00",
+            "completed_at": "2026-08-22T09:44:59+08:00",
+            "html_url": "http://gitea-ci.orb.local:3000/admin/LocalWMS/actions/runs/493",
+            "repository": {"id": 9, "full_name": "admin/LocalWMS"},
+            "actor": {"login": "localwms-agent", "email": "x@aisoft.local", "is_admin": False},
+            "trigger_actor": {"login": "localwms-agent", "is_admin": False},
+        }
+
+    @staticmethod
+    def _gitea_job() -> dict[str, object]:
+        return {
+            "id": 493,
+            "name": "test",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-08-22T09:44:42+08:00",
+            "completed_at": "2026-08-22T09:44:59+08:00",
+            "runner_name": "gitea-ci-host",
+            "run_id": 493,
+            "head_sha": "b" * 40,
+            "labels": ["host"],
+            "steps": [
+                {
+                    "number": 1,
+                    "name": "Set up job",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "started_at": "2026-08-22T09:44:42+08:00",
+                    "completed_at": "2026-08-22T09:44:43+08:00",
+                },
+                {
+                    "number": 2,
+                    "name": "npm ci",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "started_at": "2026-08-22T09:44:43+08:00",
+                    "completed_at": "2026-08-22T09:44:52+08:00",
+                },
+                {
+                    "number": 3,
+                    "name": "run tests",
+                    "status": "completed",
+                    "conclusion": "skipped",
+                    "started_at": None,
+                    "completed_at": None,
+                },
+            ],
+        }
+
+    def test_actions_run_read_projects_step_level_conclusions(self) -> None:
+        """The question #143 exists for: which steps ran, and for how long."""
+        calls: list[tuple] = []
+        broker = self._actions_broker(
+            [self._gitea_run()], {493: [self._gitea_job()]}, calls
+        )
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.actions.run.read", sha=self.ACTIONS_SHA
+        )
+
+        self.assertEqual(value["total_count"], 1)
+        run = value["runs"][0]
+        self.assertEqual(run["duration_seconds"], 17)
+        # The embedded repository and user objects must not survive projection.
+        self.assertNotIn("repository", run)
+        self.assertNotIn("actor", run)
+        steps = run["jobs"][0]["steps"]
+        self.assertEqual(
+            [(step["name"], step["conclusion"], step["duration_seconds"]) for step in steps],
+            [
+                ("Set up job", "success", 1),
+                ("npm ci", "success", 9),
+                # An unfinished or skipped step reports None, not 0: "took no
+                # measurable time" and "never ran" are different answers, and
+                # conflating them reproduces the unverifiable number #143 names.
+                ("run tests", "skipped", None),
+            ],
+        )
+        self.assertEqual({method for method, _, _ in calls}, {"GET"})
+
+    def test_actions_run_read_is_project_scoped_and_sha_keyed(self) -> None:
+        calls: list[tuple] = []
+        broker = self._actions_broker([self._gitea_run()], {493: []}, calls)
+
+        broker.execute(
+            "aisoft-platform", "gitea.actions.run.read", sha=self.ACTIONS_SHA
+        )
+
+        first = [url for _, url, _ in calls][0]
+        self.assertTrue(
+            first.startswith(
+                "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform"
+                "/actions/runs?head_sha=" + self.ACTIONS_SHA
+            ),
+            first,
+        )
+
+    def test_actions_run_read_separates_no_runs_from_a_failed_read(self) -> None:
+        """The reading trap #143 names, closed from both sides."""
+        calls: list[tuple] = []
+        broker = self._actions_broker([], {}, calls)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.actions.run.read", sha=self.ACTIONS_SHA
+        )
+        # A well-formed SHA with nothing to show is an empty list, and it is
+        # shaped nothing like the BrokerError a failed read raises.
+        self.assertEqual(value, {"sha": self.ACTIONS_SHA, "total_count": 0, "runs": []})
+
+    def test_actions_run_read_rejects_an_abbreviated_sha_before_any_request(self) -> None:
+        """gitea.commit.status.read answers an abbreviated SHA with a fake success."""
+        calls: list[tuple] = []
+        broker = self._actions_broker([self._gitea_run()], {493: []}, calls)
+
+        for rejected in ("b" * 7, "B" * 40, "", "b" * 41):
+            with self.subTest(sha=rejected), self.assertRaises(BrokerError) as caught:
+                broker.execute("aisoft-platform", "gitea.actions.run.read", sha=rejected)
+            self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+
+        with self.assertRaises(BrokerError) as missing:
+            broker.execute("aisoft-platform", "gitea.actions.run.read")
+        self.assertEqual(missing.exception.code, "ARGUMENT_MISMATCH")
+
+        self.assertEqual(calls, [])
+
+    def test_actions_run_read_pages_past_the_first_fifty(self) -> None:
+        calls: list[tuple] = []
+        runs = []
+        for index in range(72):
+            run = self._gitea_run()
+            run["id"] = 1000 + index
+            runs.append(run)
+        broker = self._actions_broker(runs, {}, calls)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.actions.run.read", sha=self.ACTIONS_SHA
+        )
+
+        self.assertEqual(value["total_count"], 72)
+        run_pages = [
+            url.rsplit("page=", 1)[1] for _, url, _ in calls if "/actions/runs?" in url
+        ]
+        self.assertEqual(run_pages, ["1", "2"])
+
+    def test_actions_run_read_rejects_a_malformed_entry(self) -> None:
+        broken = self._gitea_run()
+        broken["id"] = "493"
+        broker = self._actions_broker([broken], {}, [])
+
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute(
+                "aisoft-platform", "gitea.actions.run.read", sha=self.ACTIONS_SHA
+            )
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_actions_job_logs_read_redacts_credentials(self) -> None:
+        """The negative verification #143 requires: a planted credential is masked."""
+        log = (
+            "Authorization: token planted-header-credential\n"
+            "git clone https://ci:planted-url-password@gitea.example/x.git\n"
+            "NPM_TOKEN=planted-assignment-credential\n"
+            "ghp_plantedgithubtoken0123456789\n"
+            "-----BEGIN RSA PRIVATE KEY-----\nplantedkeymaterial\n"
+            "-----END RSA PRIVATE KEY-----\n"
+            "using credential token-agent to authenticate\n"
+            "checked out 0123456789abcdef0123456789abcdef01234567\n"
+        ).encode()
+        broker = self._actions_broker([], {}, [], log=log)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.actions.job.logs.read", job=493
+        )
+
+        for planted in (
+            "planted-header-credential",
+            "planted-url-password",
+            "planted-assignment-credential",
+            "plantedgithubtoken0123456789",
+            "plantedkeymaterial",
+            # The credential this very request authenticated with — the exact
+            # match rule, which needs no pattern to recognise a leak.
+            "token-agent",
+        ):
+            with self.subTest(planted=planted):
+                self.assertNotIn(planted, value["log"])
+        self.assertGreaterEqual(value["redactions"], 6)
+        # A commit SHA is bare 40-hex and must survive: masking it would trade a
+        # certain loss of the most useful field in a CI log for nothing.
+        self.assertIn("0123456789abcdef0123456789abcdef01234567", value["log"])
+
+    def test_actions_job_logs_read_marks_truncation_instead_of_hiding_it(self) -> None:
+        tail = "the failing assertion is printed last\n"
+        log = (("x" * 79 + "\n") * 2000 + tail).encode()
+        broker = self._actions_broker([], {}, [], log=log)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.actions.job.logs.read", job=493
+        )
+
+        self.assertTrue(value["truncated"])
+        self.assertEqual(value["original_bytes"], len(log))
+        self.assertLessEqual(value["returned_bytes"], len(log))
+        self.assertIn("truncated", value["log"].splitlines()[0])
+        # Tail-biased: a failing step prints its error last, so a head-biased
+        # cut would reliably discard the only part worth reading.
+        self.assertIn(tail.strip(), value["log"])
+
+    def test_actions_job_logs_read_leaves_a_short_log_untouched(self) -> None:
+        broker = self._actions_broker([], {}, [], log=b"all good\n")
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.actions.job.logs.read", job=493
+        )
+
+        self.assertFalse(value["truncated"])
+        self.assertEqual(value["redactions"], 0)
+        self.assertEqual(value["log"], "all good\n")
+        self.assertEqual(value["original_bytes"], value["returned_bytes"])
+
+    def test_actions_job_logs_read_takes_only_a_positive_job(self) -> None:
+        calls: list[tuple] = []
+        broker = self._actions_broker([], {}, calls, log=b"")
+
+        with self.assertRaises(BrokerError) as missing:
+            broker.execute("aisoft-platform", "gitea.actions.job.logs.read")
+        self.assertEqual(missing.exception.code, "ARGUMENT_MISMATCH")
+
+        for rejected in (0, -1):
+            with self.subTest(job=rejected), self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.actions.job.logs.read", job=rejected
+                )
+            self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+
+        # sha belongs to the other half of the pair, not to this one.
+        with self.assertRaises(BrokerError) as extra:
+            broker.execute(
+                "aisoft-platform",
+                "gitea.actions.job.logs.read",
+                job=493,
+                sha=self.ACTIONS_SHA,
+            )
+        self.assertEqual(extra.exception.code, "ARGUMENT_MISMATCH")
+
+        self.assertEqual(calls, [])
+
+    def test_actions_job_logs_read_surfaces_an_unknown_job_as_a_failure(self) -> None:
+        """A job id from another repository 404s against this project's URL."""
+        broker = self._actions_broker([], {}, [], log=None)
+
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute(
+                "aisoft-platform", "gitea.actions.job.logs.read", job=999999
+            )
+        self.assertEqual(caught.exception.code, "HTTP_404")
+
+    def test_actions_surface_has_no_typed_write(self) -> None:
+        """Triggering or re-running CI stays a human action."""
+        names = {operation.name for operation in self.contract.operations}
+        self.assertIn("gitea.actions.run.read", names)
+        self.assertIn("gitea.actions.job.logs.read", names)
+        for operation in self.contract.operations:
+            if operation.name.startswith("gitea.actions."):
+                self.assertFalse(operation.mutating, operation.name)
+        for absent in (
+            "gitea.actions.run.rerun",
+            "gitea.actions.run.cancel",
+            "gitea.actions.workflow.dispatch",
+            "gitea.actions.workflow.enable",
+            "gitea.actions.workflow.disable",
         ):
             self.assertNotIn(absent, names)
 
@@ -2286,7 +2621,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             "aisoft-platform", "gitea.pull.create",
             number=None, state=None, branch=None, issue=70,
             title="fix(host-access): governed writes", body=body, comment=None, sha=None,
-            lifecycle=None,
+            job=None, lifecycle=None,
         )
         self.assertEqual(json.loads(stdout.getvalue()), {"number": 71})
 
@@ -2309,7 +2644,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         execute.assert_called_once_with(
             "aisoft-platform", "gitea.issue.labels.set",
             number=115, state=None, branch=None, issue=None,
-            title=None, body=None, comment=None, sha=None, lifecycle="completed",
+            title=None, body=None, comment=None, sha=None, job=None, lifecycle="completed",
         )
 
         for forbidden in (
