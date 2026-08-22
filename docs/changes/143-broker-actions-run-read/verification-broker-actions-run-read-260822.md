@@ -79,6 +79,19 @@ $ … broker --project localwms --operation gitea.actions.job.logs.read --job 49
 
 同一条测试反向断言：裸 40 位 commit SHA **必须**原样保留。这是 spec §5.3 记录过的裁决——掩掉它会让日志失去最有用的字段，换一个假想的收益。
 
+## 2.2 顺带：用它读本 PR 自己的 CI
+
+PR #145 的 head `ea5d8725…`，CI 报 `Successful in 33s`：
+
+```
+run 503 ci.yml@refs/pull/145/head completed/success 33s
+  job 503 verify success 33s
+     0 success   0s  Run actions/checkout@v4
+     1 success  31s  Platform smoke suite
+```
+
+33 秒里 31 秒是 smoke suite——本仓的 CI 是单步跑全量 smoke，与 LocalWMS 的八步流水线形状不同，而同一个操作对两者都给得出可读的分解。
+
 ## 3. 空结果与读取失败可判读地分开
 
 ```
