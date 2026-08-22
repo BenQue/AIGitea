@@ -91,36 +91,61 @@ exit=1
 
 ### AC-8 负向：`pr_url` 空而 PR 已存在
 
-**在真实数据上命中了 Issue 描述的那个静默漏做**。`admin/LocalWMS`（本地 checkout，`4b2819bc3bf37fd1d96e52dacfc6fd8a5e4f3645`，九个 change 目录）：
+先说一处**自我纠正**：第一次跑这条验证时用的是本地 LocalWMS 工作树，它落后 `origin/main` 四个 merge。当时的输出是：
 
 ```
-$ PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo /Users/benque/Projects/LocalWMS
+$ … check-change-documents --repo /Users/benque/Projects/LocalWMS   （HEAD = 4b2819b，陈旧）
 PASS: change-documents
-GAP: change-pr-url — 6-contract-errorcode-enum: summary-contract-errorcode-enum-260822.md: status 为 pr-open 但 pr_url 为空
+GAP: change-pr-url — 6-contract-errorcode-enum: … status 为 pr-open 但 pr_url 为空
 result: changes=9 pass=1 gap=1
-exit=1
 ```
 
-变更 6 正是 Issue 正文点名的那一个（当时撞上 broker 推送死锁 #136 而只推了一次）。此前没有任何东西发现它，是人事后翻文档才看到的；现在一条离线命令就能指出来。
+那确实是 Issue 正文点名的变更 6（当时撞上 broker 推送死锁 #136 而只推了一次），检查如实指了出来。**但它不是 LocalWMS 当前的状态**：该仓的 PR #21（`0699eee`）已经把变更 6 的空值补齐了。
+
+对**当前** `origin/main` 重跑（从 `git archive origin/main docs/changes` 展开的干净副本，不依赖陈旧工作树）：
+
+```
+$ … check-change-documents --repo <origin/main 副本>
+PASS: change-documents
+PASS: change-pr-url
+result: changes=10 pass=2 gap=0
+exit=0
+```
+
+两条判据在 LocalWMS 当前 `main` 上都是绿的。检查本身在陈旧与当前两个状态上都给出了**正确**答案——这恰恰是它该有的行为；错的是第一次取证时没核对 checkout 新旧。此处保留全过程而不是只留结论，因为「本地 checkout 落后于 remote」是一个会反复出现的取证陷阱。
+
+单测覆盖负向路径：`tests.test_change_audit.test_pr_open_without_a_pr_url_is_reported`；`test-project-check.sh` 侧另有一个专门用例。
 
 ### AC-9 在 LocalWMS 当前 `main` 上如实报告，不为变绿而调整判据
 
-Issue 正文写「#5 与 #12 确实是坏的」，但 Issue 之后追加的评论说明它们已由 LocalWMS 侧 Issue #18 / PR #19 修复。本次实测与评论一致：`change-documents` 在 LocalWMS 上是 **PASS**，红的是 `change-pr-url`（变更 6）。判据没有为了迎合任何一方而调整——两条判据都按 spec §5 写死。
+Issue 正文写「#5 与 #12 确实是坏的」，但 Issue 之后追加的评论说明它们已由 LocalWMS 侧 Issue #18 / PR #19 修复。本次实测与评论一致：`change-documents` 在 LocalWMS 上是 PASS。判据没有为了迎合任何一方而调整——两条判据都按 spec §5 写死，且在构造出来的坏数据上确实变红（AC-7、单测、project-check 用例）。
 
-完整 `aisoft-project-check.sh` 在 LocalWMS 上的结果（其余 GAP 均为本变更之前就存在的对齐缺口）：
+完整 `aisoft-project-check.sh` 在 LocalWMS 本地工作树上的结果（其余 GAP 均为本变更之前就存在的对齐缺口）：
 
 ```
 GAP: pointer-sections — 平台指针两节或 CLAUDE.md 与模板不一致
 GAP: change-templates — docs/changes/_template 与平台模板不一致
 PASS: change-documents
-GAP: change-pr-url — 6-contract-errorcode-enum: … status 为 pr-open 但 pr_url 为空
 GAP: architecture-lock — .aisoft/architecture.json 缺失
 SKIP: labels-readback / ci-context — 未启用 --remote
 GAP: delivery-profile — AGENTS.md 未声明明确交付形态
-result: pass=1 gap=5 skip=2
 ```
 
-#### 实现期的两条发现（都已写回 spec，不是绕开）
+### AC-9.1 一处必须交给人裁决的冲突：LocalWMS PR #21
+
+取证过程中发现 LocalWMS 已经合并了 PR #21——标题是「统一 change 文档 front matter 的 `pr_url`——**四份都带**，并补齐变更 6 的空值」。它与本变更 spec §2 的裁决（**只有 summary 带**）方向相反。
+
+事实层面：
+
+- LocalWMS #21 合并于 `0699eee`，早于本变更；它是目标仓在**平台裁决尚不存在时**做的本地统一；
+- Issue #142 正文与评论明确把这个选择留给平台裁决（评论原话：「PR #19 刻意没有替本 Issue 选边」）；
+- 本变更的裁决依据是可从代码读出的事实（spec §2.1）：平台从非 summary 文档只读四个键，`pr_url` 不在其中。这个事实不因目标仓的选择而改变。
+
+影响面：**LocalWMS 不会因此转红**。spec §5.2 已裁决检查**不**报告非 summary 文档里残留的 `pr_url`，所以 #21 的成果在新闸门下依然全绿。冲突只存在于「今后新写的文档按哪种形状」与「模板长什么样」。
+
+这一条不由本 PR 单方面消解——合并本 PR 即采纳「只有 summary 带」；若倾向保留 LocalWMS #21 的形状，则应改本 PR 的 spec §2 与模板，而不是让两边各行其是。
+
+#### 实现期的两条发现（都已写回 spec，不是绕开）#### 实现期的两条发现（都已写回 spec，不是绕开）
 
 1. **`docs/changes/58/00-summary.md`**：巡检第一次跑在平台仓自身上时报出 `legacy summary must not declare documents mapping`——`resolve-documents 58` 今天在 `main` 上就是失败的。这正是本变更要拦的缺陷，恰好在平台仓自己。处置见 spec §7.1：删掉那五行冗余映射（与 `LEGACY_DOCUMENTS` 推断结果逐字相同，不丢信息）。
 2. **`status: pr-open` 的顺序缺陷**：历史会话在首次推送时就写 `status: pr-open`，而 PR 尚不存在、`pr_url` 必然为空——若不处理，新闸门会让**每个变更的第一次 CI** 因自己的文档变红。裁决见 spec §4.1：首推写真实的前置状态，`backfill-pr-url` 把 `pr_url` 与 `status: pr-open` 一起写下。本变更自己的四份文档就是按新顺序写的（首推 `status: approved`）。
@@ -158,7 +183,7 @@ Codex platform static smoke checks passed.   (exit 0)
 | HSDB | 已不一致 | 不一致 |
 | SFMDigitalBoard | 已不一致 | 不一致 |
 | rsdesign-new | 已不一致 | 不一致 |
-| LocalWMS | 已不一致 | 不一致 |
+| LocalWMS | 已不一致（`origin/main` 上**根本没有** `docs/changes/_template`） | 不一致 |
 
 即：**本变更只让 NewEMaint 一个仓从 PASS 转 GAP**，其余四个在此之前就已经漂移。处置路径是既有的——各仓开自己的小 Issue/小 PR 同步三份模板文件；本变更不代任何目标仓提交。
 
