@@ -33,6 +33,9 @@ def build_parser() -> argparse.ArgumentParser:
     broker.add_argument("--body")
     broker.add_argument("--comment")
     broker.add_argument("--sha")
+    # Actions job id (#143). Sourced from gitea.actions.run.read output, never
+    # scraped out of a commit status target_url.
+    broker.add_argument("--job", type=int)
     # Deliberately no choices=: the accepted lifecycle states are derived from
     # the installed label manifest inside the broker (#115). Listing them here
     # would be another copy of the eight names and would drift from the manifest
@@ -86,6 +89,7 @@ def main(argv: list[str] | None = None) -> int:
                 body=args.body,
                 comment=args.comment,
                 sha=args.sha,
+                job=args.job,
                 lifecycle=args.lifecycle,
             )
             _json(value)

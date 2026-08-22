@@ -178,6 +178,20 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "gitea.pull.read": ("project-agent", False, ("number",)),
     "gitea.pull.update": ("project-agent", True, ("number", "issue", "title", "body")),
     "gitea.commit.status.read": ("project-agent", False, ("sha",)),
+    # Actions evidence (#143). commit.status.read stops at a context, a status
+    # and a target_url that is a Web UI path nothing here can follow, so a green
+    # run could not be read and a red one could not be diagnosed at all.
+    # Two operations rather than one: the step-level summary is a few hundred
+    # bytes and answers "which steps ran and for how long" without touching a
+    # log, while a job log can be megabytes. Folding them together would make
+    # the cheap question cost the expensive answer.
+    # SHA-keyed like commit.status.read — the caller already holds the SHA, and
+    # a run id would have to be scraped out of target_url. Job ids come out of
+    # run.read, so no caller ever parses a URL.
+    # Deliberately no rerun, cancel or dispatch counterpart: triggering CI is a
+    # human decision, and a typed operation would make it a supported automation.
+    "gitea.actions.run.read": ("project-agent", False, ("sha",)),
+    "gitea.actions.job.logs.read": ("project-agent", False, ("job",)),
     # Repository-level label definitions (#108), distinct from the per-Issue
     # label attachment surface. Deliberately no delete counterpart: retiring a
     # label is a human migration decision, and a typed delete would make it

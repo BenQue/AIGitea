@@ -13,12 +13,12 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 10 and
-  .operation_count == 27 and
+  .operation_count == 29 and
   .merge_operation_count == 0
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 27) and
+  ([.operations[].name] | length == 29) and
   all(.operations[];
     (.name | contains("merge") | not) and
     (.name | contains("shell") | not) and
@@ -42,6 +42,10 @@ jq -e '
   ([.operations[] | select(.name == "gitea.labels.provision")][0].arguments == []) and
   ([.operations[] | select(.name == "gitea.issue.comments.read")][0].arguments == ["number"]) and
   ([.operations[] | select(.name == "gitea.issue.comments.read")][0].mutating == false) and
+  ([.operations[] | select(.name == "gitea.actions.run.read")][0].arguments == ["sha"]) and
+  ([.operations[] | select(.name == "gitea.actions.job.logs.read")][0].arguments == ["job"]) and
+  (all(.operations[] | select(.name | startswith("gitea.actions.")); .mutating == false)) and
+  ((.operations | map(select(.name | test("rerun|dispatch|cancel"))) | length) == 0) and
   ([.operations[] | select(.name == "gitea.issue.labels.read")][0].arguments == ["number"]) and
   ([.operations[] | select(.name == "gitea.issue.labels.set")][0].arguments
     == ["number", "lifecycle"]) and
