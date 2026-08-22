@@ -13,7 +13,7 @@ risk_flags:
 depends_on: []
 status: pr-open
 branch: change/138-broker-issue-comments-read
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/141
 created: 2026-08-22
 updated: 2026-08-22
 reason: 变更 host-access broker 的 typed 操作表，属 Agent/治理类别，强制 complex
