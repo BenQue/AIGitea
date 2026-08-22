@@ -27,9 +27,16 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 2. `python3 -m aisoft_loop.cli change-name N <slug>` 校验命名 → `git worktree add /private/tmp/issue-N-<slug> -b change/N-<slug> origin/main`（并行会话必须各自 worktree；commit 前 `git branch --show-current` 核对——踩坑 #15）。
 3. 按判级写映射文档（complex 补 spec/plan，模板在 `templates/docs/changes/_template/`），实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。
 4. commit → broker `git.push.change --branch change/N-<slug>` → broker `gitea.pull.create --issue N`（正文含 `Closes #N` 与文档链接）→ 更新 summary 的 `pr_url` 再推一次。**到开 PR 为止。**
-5. push 报 `BASE_BRANCH_STALE` = main 已前进 → 停止当前实现 pass；由 Controller 通过 broker
-   `git.fetch.main` 取得新基线，并按 ancestry policy 从更新后的 `origin/main` 重建候选，再使用
-   broker `git.push.change`。Agent 不直接 fetch/rebase/push，也不改写已发布历史。
+5. push 报 `BASE_BRANCH_STALE` = 分支不是基于最新 `main`（`main` 在你开分支后前进了）→
+   broker `git.fetch.main` 取新基线 → 本地 `git rebase origin/main` → broker
+   `git.push.change --branch change/N-<slug>` 重推。#136 起推送使用
+   `--force-with-lease=refs/heads/<branch>:<remote-sha>`，rebase 重写出的历史推得上去；
+   在此之前 rebase 会让已推送的分支永久推不动（三条约束互锁，见 `06` broker 段落）。
+   **remote 访问始终只走 broker**——不直接 `git fetch`/`git push`；rebase 是本地操作，不受此限。
+6. push 报 `REMOTE_BRANCH_MOVED` = 远端 change 分支在 broker 读取 lease 之后被改动，
+   **推送已被拒绝，远端没有被覆盖**。处置是 broker `git.fetch.change --branch change/N-<slug>`
+   看清远端到底改了什么再决定（多半是同一 Issue 有第二个写者，或分支被人工改过），
+   不要试图用更强的 force 绕过去——lease 拒绝是保护，不是需要压制的噪声。
 
 ## 工具分工（默认偏好，非硬规则）
 
