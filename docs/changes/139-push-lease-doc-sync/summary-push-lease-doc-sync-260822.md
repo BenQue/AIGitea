@@ -22,9 +22,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 136
-status: analyzed
+status: pr-open
 branch: change/139-push-lease-doc-sync
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/140
 created: 2026-08-22
 updated: 2026-08-22
 ---
