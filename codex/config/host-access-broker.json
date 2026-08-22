@@ -88,6 +88,14 @@
       ]
     },
     {
+      "name": "gitea.issue.comments.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "number"
+      ]
+    },
+    {
       "name": "gitea.pulls.read",
       "identity_route": "project-agent",
       "mutating": false,
