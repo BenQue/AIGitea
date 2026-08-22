@@ -12,9 +12,9 @@ risk_flags:
   - platform-governance
   - security
 depends_on: []
-status: approved
+status: pr-open
 branch: change/143-broker-actions-run-read
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/145
 created: 2026-08-22
 updated: 2026-08-22
 reason: 变更 host-access broker 的 typed 操作面，属 Agent/治理类别，强制 complex；新增读操作会把 runner 日志带进 agent 上下文，另命中 security 维度
