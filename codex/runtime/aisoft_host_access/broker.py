@@ -25,6 +25,7 @@ CREDENTIAL_PROTOCOL_MAX_LINE_BYTES = 65535
 TITLE_MAX_BYTES = 255
 BODY_MAX_BYTES = 65536
 COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+LEASE_REJECTION_MARKERS = ("stale info", "non-fast-forward", "fetch first")
 MAX_CREDENTIAL_BYTES = 4096
 
 
@@ -899,12 +900,14 @@ class HostAccessBroker:
             self._run(
                 ["git", "fetch", remote_name, main_refspec], cwd=checkout, env=env
             )
-            remote_names = self._remote_change_names(
+            remote_heads = self._remote_change_heads(
                 remote_name, change_name.issue_number, checkout, env
             )
             try:
                 selected = select_change_name(
-                    change_name.issue_number, remote_names, required=False
+                    change_name.issue_number,
+                    [name for name, _sha in remote_heads],
+                    required=False,
                 )
             except ChangeNameError as exc:
                 raise BrokerError("CHANGE_NAME_CONFLICT", str(exc)) from exc
@@ -934,13 +937,26 @@ class HostAccessBroker:
             ).stdout.strip()
             if merge_commits:
                 raise BrokerError("MERGE_COMMIT_DENIED", "change branch contains a merge commit")
+            # A rebase onto a freshly advanced main rewrites the change branch, so an
+            # already pushed branch can only move forward with force. The lease is the
+            # exact ref this push targets, read from the ls-remote above: an empty
+            # expectation asserts the branch is still absent, a sha asserts nobody else
+            # moved it. Both refuse rather than overwrite when the assertion is stale.
+            remote_sha = next(
+                (sha for name, sha in remote_heads if name.branch == safe_branch), ""
+            )
             argv = [
-                "git", "push", remote_name,
+                "git", "push",
+                f"--force-with-lease=refs/heads/{safe_branch}:{remote_sha}",
+                remote_name,
                 f"refs/heads/{safe_branch}:refs/heads/{safe_branch}",
             ]
         else:
             raise BrokerError("OPERATION_UNIMPLEMENTED", "Git operation is not implemented")
-        self._run(argv, cwd=checkout, env=env)
+        if operation.name == "git.push.change":
+            self._push_leased(argv, checkout, env)
+        else:
+            self._run(argv, cwd=checkout, env=env)
         return {
             "status": "PASS",
             "project": project.project_id,
@@ -950,13 +966,27 @@ class HostAccessBroker:
             "remote_name": remote_name,
         }
 
-    def _remote_change_names(
+    def _push_leased(
+        self, argv: Sequence[str], checkout: str, env: Mapping[str, str]
+    ) -> None:
+        result = self._run(argv, cwd=checkout, env=env, allow_failure=True)
+        if result.returncode == 0:
+            return
+        report = f"{result.stdout or ''}\n{result.stderr or ''}"
+        if any(marker in report for marker in LEASE_REJECTION_MARKERS):
+            raise BrokerError(
+                "REMOTE_BRANCH_MOVED",
+                "remote change branch moved after its lease was read; fetch and re-run",
+            )
+        raise BrokerError("HOST_COMMAND_FAILED", "structured host operation failed")
+
+    def _remote_change_heads(
         self,
         remote_name: str,
         issue_number: int,
         checkout: str,
         env: Mapping[str, str],
-    ) -> list[ChangeName]:
+    ) -> list[tuple[ChangeName, str]]:
         result = self.runner(
             [
                 "git",
@@ -971,18 +1001,22 @@ class HostAccessBroker:
         )
         if result.returncode != 0:
             raise BrokerError("TRANSPORT_ERROR", "cannot enumerate remote change names")
-        names: list[ChangeName] = []
+        heads: list[tuple[ChangeName, str]] = []
         for line in result.stdout.splitlines():
             fields = line.split("\t")
             if len(fields) != 2 or not fields[1].startswith("refs/heads/"):
                 raise BrokerError("RESPONSE_SCHEMA_INVALID", "Git remote returned an invalid ref")
+            if COMMIT_SHA_RE.fullmatch(fields[0]) is None:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Git remote returned an invalid object id"
+                )
             try:
                 name = ChangeName.parse_branch(fields[1].removeprefix("refs/heads/"))
             except ChangeNameError as exc:
                 raise BrokerError("RESPONSE_SCHEMA_INVALID", "Git remote returned an invalid change ref") from exc
             if name.issue_number == issue_number:
-                names.append(name)
-        return names
+                heads.append((name, fields[0]))
+        return heads
 
     def _expected_git_url(self, project: ProjectContract) -> str:
         return (
