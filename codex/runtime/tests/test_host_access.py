@@ -1566,7 +1566,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     return subprocess.CompletedProcess(
                         argv, 0, "a" * 40 + "\trefs/heads/change/70\n", ""
                     )
-                if argv[:3] == ["git", "push", "origin"]:
+                if argv[:2] == ["git", "push"]:
                     return subprocess.CompletedProcess(argv, 0, "", "")
                 return subprocess.run(
                     list(argv), cwd=cwd, env=env, check=False, text=True,
@@ -1589,12 +1589,16 @@ class HostAccessBrokerTests(unittest.TestCase):
             pushes = [call for call in commands if call[0][:2] == ["git", "push"]]
             self.assertEqual(len(pushes), 1)
             self.assertEqual(pushes[0][0], [
-                "git", "push", "origin",
+                "git", "push",
+                "--force-with-lease=refs/heads/change/70:" + "a" * 40,
+                "origin",
                 "refs/heads/change/70:refs/heads/change/70",
             ])
             self.assertEqual(pushes[0][1], os.path.realpath(linked))
+            tokens = [token for argv, _cwd, _env in commands for token in argv]
+            self.assertNotIn("--force", tokens)
+            self.assertNotIn("-f", tokens)
             flattened = "\n".join(" ".join(argv) for argv, _cwd, _env in commands)
-            self.assertNotIn("--force", flattened)
             self.assertNotIn(":refs/heads/main", flattened)
 
     def test_newemaint_push_uses_manifest_gitea_remote(self) -> None:
@@ -1610,7 +1614,7 @@ class HostAccessBrokerTests(unittest.TestCase):
 
             def runner(argv, *, cwd=None, env=None):
                 commands.append(list(argv))
-                if argv[:3] in (["git", "fetch", "gitea"], ["git", "push", "gitea"]):
+                if argv[:3] == ["git", "fetch", "gitea"] or argv[:2] == ["git", "push"]:
                     return subprocess.CompletedProcess(argv, 0, "", "")
                 if argv[:4] == ["git", "ls-remote", "--heads", "gitea"]:
                     return subprocess.CompletedProcess(
@@ -1639,7 +1643,9 @@ class HostAccessBrokerTests(unittest.TestCase):
                 "refs/heads/main:refs/remotes/gitea/main",
             ], commands)
             self.assertIn([
-                "git", "push", "gitea",
+                "git", "push",
+                "--force-with-lease=refs/heads/change/70:" + "a" * 40,
+                "gitea",
                 "refs/heads/change/70:refs/heads/change/70",
             ], commands)
 
@@ -1649,13 +1655,16 @@ class HostAccessBrokerTests(unittest.TestCase):
             self._git(["branch", "-m", "change/70-readable-change-name"], cwd=linked)
             contract = self._temporary_checkout_contract(canonical)
 
+            pushes: list[list[str]] = []
+
             def make_broker(remote_output: str):
                 def runner(argv, *, cwd=None, env=None):
                     if argv[:3] == ["git", "fetch", "origin"]:
                         return subprocess.CompletedProcess(argv, 0, "", "")
                     if argv[:4] == ["git", "ls-remote", "--heads", "origin"]:
                         return subprocess.CompletedProcess(argv, 0, remote_output, "")
-                    if argv[:3] == ["git", "push", "origin"]:
+                    if argv[:2] == ["git", "push"]:
+                        pushes.append(list(argv))
                         return subprocess.CompletedProcess(argv, 0, "", "")
                     return subprocess.run(
                         list(argv), cwd=cwd, env=env, check=False, text=True,
@@ -1678,6 +1687,13 @@ class HostAccessBrokerTests(unittest.TestCase):
                 branch="change/70-readable-change-name",
             )
             self.assertEqual(value["status"], "PASS")
+            self.assertEqual(pushes, [[
+                "git", "push",
+                "--force-with-lease=refs/heads/change/70-readable-change-name:",
+                "origin",
+                "refs/heads/change/70-readable-change-name"
+                ":refs/heads/change/70-readable-change-name",
+            ]])
 
             conflict = "a" * 40 + "\trefs/heads/change/70-other-change-name\n"
             with self.assertRaises(BrokerError) as caught:
@@ -1736,6 +1752,219 @@ class HostAccessBrokerTests(unittest.TestCase):
                     "aisoft-platform", "git.push.change", branch="change/71"
                 )
             self.assertEqual(wrong_change.exception.code, "TARGET_MISMATCH")
+
+    LEASE_BRANCH = "change/70-lease-regression-branch"
+
+    def _remote_backed_change_worktree(self, temporary: str):
+        """Build a change worktree whose origin is a real bare repository.
+
+        The manifest pins origin to an http URL, so the remote-URL binding check
+        must keep seeing that URL. Only the commands that would go over the
+        network are redirected onto the bare repo by ``_remote_backed_runner``,
+        which leaves git itself in charge of the lease semantics under test.
+        """
+        remote = Path(temporary) / "remote.git"
+        canonical = Path(temporary) / "canonical"
+        linked = Path(temporary) / "linked"
+        self._git(["init", "-q", "--bare", "-b", "main", str(remote)])
+        self._git(["init", "-q", "-b", "main", str(canonical)])
+        self._git(["config", "user.name", "Host Broker Test"], cwd=canonical)
+        self._git(["config", "user.email", "host-broker@example.invalid"], cwd=canonical)
+        (canonical / "README.md").write_text("baseline\n")
+        self._git(["add", "README.md"], cwd=canonical)
+        self._git(["commit", "-q", "-m", "baseline"], cwd=canonical)
+        self._git([
+            "remote", "add", "origin",
+            "http://gitea-ci.orb.local:3000/admin/aisoft-platform.git",
+        ], cwd=canonical)
+        self._git([
+            "push", "-q", str(remote), "refs/heads/main:refs/heads/main",
+        ], cwd=canonical)
+        self._git(["update-ref", "refs/remotes/origin/main", "HEAD"], cwd=canonical)
+        self._git([
+            "worktree", "add", "-q", "-b", self.LEASE_BRANCH, str(linked),
+        ], cwd=canonical)
+        (linked / "change.txt").write_text("change 70\n")
+        self._git(["add", "change.txt"], cwd=linked)
+        self._git(["commit", "-q", "-m", "change 70"], cwd=linked)
+        return remote, canonical, linked
+
+    def _remote_backed_runner(self, remote: Path, commands: list, after_ls_remote=None):
+        def runner(argv, *, cwd=None, env=None):
+            argv = list(argv)
+            commands.append(argv)
+            if argv[:2] in (["git", "fetch"], ["git", "push"], ["git", "ls-remote"]):
+                argv = [str(remote) if token == "origin" else token for token in argv]
+            result = subprocess.run(
+                argv, cwd=cwd, env=env, check=False, text=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            )
+            if after_ls_remote is not None and argv[:2] == ["git", "ls-remote"]:
+                after_ls_remote()
+            return result
+
+        return runner
+
+    def _remote_backed_broker(self, canonical: Path, linked: Path, runner):
+        return HostAccessBroker(
+            self._temporary_checkout_contract(canonical),
+            credentials=StaticCredentials(),
+            transport=lambda method, url, headers, body: (
+                200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+            ),
+            runner=runner,
+            invocation_cwd=str(linked),
+        )
+
+    def _remote_sha(self, remote: Path, branch: str) -> str:
+        line = self._git(["ls-remote", "--heads", str(remote), f"refs/heads/{branch}"])
+        return line.split("\t")[0] if line else ""
+
+    def _advance_remote_main(self, remote: Path, canonical: Path, message: str) -> None:
+        """Simulate a human merging some other Issue's PR into the protected main."""
+        (canonical / f"{message}.md").write_text(f"{message}\n")
+        self._git(["add", f"{message}.md"], cwd=canonical)
+        self._git(["commit", "-q", "-m", message], cwd=canonical)
+        self._git([
+            "push", "-q", str(remote), "refs/heads/main:refs/heads/main",
+        ], cwd=canonical)
+
+    def test_push_survives_main_advancing_and_a_rebase(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            commands: list = []
+            broker = self._remote_backed_broker(
+                canonical, linked, self._remote_backed_runner(remote, commands)
+            )
+
+            first = broker.execute(
+                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+            )
+            self.assertEqual(first["status"], "PASS")
+            pushed = self._remote_sha(remote, self.LEASE_BRANCH)
+            self.assertEqual(pushed, self._git(["rev-parse", "HEAD"], cwd=linked))
+
+            self._advance_remote_main(remote, canonical, "other-issue-merged")
+            with self.assertRaises(BrokerError) as stale:
+                broker.execute(
+                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                )
+            self.assertEqual(stale.exception.code, "BASE_BRANCH_STALE")
+
+            self._git(["rebase", "-q", "origin/main"], cwd=linked)
+            rebased = self._git(["rev-parse", "HEAD"], cwd=linked)
+            self.assertNotEqual(rebased, pushed)
+            self.assertNotEqual(
+                subprocess.run(
+                    ["git", "merge-base", "--is-ancestor", pushed, rebased],
+                    cwd=linked, check=False,
+                ).returncode,
+                0,
+                "the rebase must make the push a genuine non-fast-forward",
+            )
+
+            second = broker.execute(
+                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+            )
+            self.assertEqual(second["status"], "PASS")
+            self.assertEqual(self._remote_sha(remote, self.LEASE_BRANCH), rebased)
+            tokens = [token for argv in commands for token in argv]
+            self.assertNotIn("--force", tokens)
+            self.assertNotIn("-f", tokens)
+
+    def test_remote_branch_moved_after_the_lease_was_read_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            commands: list = []
+            broker = self._remote_backed_broker(
+                canonical, linked, self._remote_backed_runner(remote, commands)
+            )
+            broker.execute(
+                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+            )
+
+            intruder = Path(temporary) / "intruder"
+            self._git(["clone", "-q", "--branch", self.LEASE_BRANCH, str(remote), str(intruder)])
+            self._git(["config", "user.name", "Someone Else"], cwd=intruder)
+            self._git(["config", "user.email", "someone@example.invalid"], cwd=intruder)
+            self._git(["commit", "-q", "--allow-empty", "-m", "written by someone else"], cwd=intruder)
+
+            moved: list = []
+
+            def move_remote_branch() -> None:
+                if moved:
+                    return
+                moved.append(True)
+                self._git([
+                    "push", "-q", str(remote),
+                    f"refs/heads/{self.LEASE_BRANCH}:refs/heads/{self.LEASE_BRANCH}",
+                ], cwd=intruder)
+
+            races: list = []
+            racing = self._remote_backed_broker(
+                canonical,
+                linked,
+                self._remote_backed_runner(remote, races, after_ls_remote=move_remote_branch),
+            )
+            leased = self._remote_sha(remote, self.LEASE_BRANCH)
+            self._git(["commit", "-q", "--allow-empty", "-m", "local follow-up"], cwd=linked)
+            with self.assertRaises(BrokerError) as caught:
+                racing.execute(
+                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                )
+            self.assertEqual(caught.exception.code, "REMOTE_BRANCH_MOVED")
+            self.assertEqual(
+                self._remote_sha(remote, self.LEASE_BRANCH),
+                self._git(["rev-parse", "HEAD"], cwd=intruder),
+                "the lease must refuse rather than overwrite the other writer",
+            )
+            self.assertEqual(
+                [argv[2] for argv in races if argv[:2] == ["git", "push"]],
+                [f"--force-with-lease=refs/heads/{self.LEASE_BRANCH}:{leased}"],
+                "the refusal must come from the pre-move lease, not from luck",
+            )
+
+    def test_stale_base_branch_is_rejected_before_the_push_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            self._advance_remote_main(remote, canonical, "merged-elsewhere")
+            commands: list = []
+            broker = self._remote_backed_broker(
+                canonical, linked, self._remote_backed_runner(remote, commands)
+            )
+            with self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                )
+            self.assertEqual(caught.exception.code, "BASE_BRANCH_STALE")
+            self.assertEqual([argv for argv in commands if argv[:2] == ["git", "push"]], [])
+            self.assertEqual(self._remote_sha(remote, self.LEASE_BRANCH), "")
+
+    def test_merge_commit_is_rejected_before_the_push_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            self._advance_remote_main(remote, canonical, "merged-elsewhere")
+            self._git(["fetch", "-q", str(remote), "refs/heads/main:refs/remotes/origin/main"], cwd=linked)
+            self._git(["merge", "-q", "--no-ff", "-m", "merge main", "origin/main"], cwd=linked)
+            self.assertEqual(
+                subprocess.run(
+                    ["git", "merge-base", "--is-ancestor", "origin/main", "HEAD"],
+                    cwd=linked, check=False,
+                ).returncode,
+                0,
+                "the merge must clear the base-freshness check so the merge rule is what bites",
+            )
+            commands: list = []
+            broker = self._remote_backed_broker(
+                canonical, linked, self._remote_backed_runner(remote, commands)
+            )
+            with self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                )
+            self.assertEqual(caught.exception.code, "MERGE_COMMIT_DENIED")
+            self.assertEqual([argv for argv in commands if argv[:2] == ["git", "push"]], [])
+            self.assertEqual(self._remote_sha(remote, self.LEASE_BRANCH), "")
 
     def test_credential_protocol_denies_cross_project_and_wrong_identity(self) -> None:
         resolver = StaticCredentials()
