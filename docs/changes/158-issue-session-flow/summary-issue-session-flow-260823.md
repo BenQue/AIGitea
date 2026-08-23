@@ -10,8 +10,9 @@ confidence: high
 risk_flags:
   - platform-governance
 depends_on: []
-status: approved
+status: pr-open
 branch: change/158-issue-session-flow
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/159
 created: 2026-08-23
 updated: 2026-08-23
 reason: 新增一份 Claude 侧 Agent 行为契约（会话编排技能）并改造技能安装工具的目标树语义，属 Agent/平台治理类别，强制 complex
