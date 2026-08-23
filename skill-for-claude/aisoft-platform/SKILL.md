@@ -23,6 +23,8 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 
 ## 会话标准动作（Mac 交互开发，最常见）
 
+> **会话本身的编排**（一 Issue 一会话、何时开调度会话、PR 后的待合并提示、人合并后的收尾与归档）见 `issue-session-flow` skill；本段只覆盖单个会话内部从 Issue 到开 PR 为止的动作。
+
 1. 需求/缺陷 → broker `gitea.issue.create`（正文写可测验收标准）。
 2. `python3 -m aisoft_loop.cli change-name N <slug>` 校验命名 → `git worktree add /private/tmp/issue-N-<slug> -b change/N-<slug> origin/main`（并行会话必须各自 worktree；commit 前 `git branch --show-current` 核对——踩坑 #15）。
 3. 按判级写映射文档（complex 补 spec/plan，模板在 `templates/docs/changes/_template/`），实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。summary 此时写**真实的**前置 `status`（通常 `approved`），`pr_url` 留空——PR 还不存在。

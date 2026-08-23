@@ -1,0 +1,12 @@
+# Claude-side skills installed from this repository.
+#
+# One line per skill: <skill-name> <references-mode>
+#   shared = also install skill-for-codex/references/*.md into <skill>/references
+#            (skill-for-codex/references is the single source for both providers)
+#   none   = the skill is a single self-contained SKILL.md
+#
+# install.sh and check-drift.sh both read this file, so the skill set is
+# declared exactly once. A skill directory that carries a SKILL.md but is not
+# declared here makes install.sh fail closed rather than silently skip it.
+aisoft-platform shared
+issue-session-flow none
