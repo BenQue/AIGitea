@@ -90,6 +90,7 @@
     {
       "name": "LocalWMS",
       "classification": "internal-application",
+      "change_control": "development",
       "visibility": "private",
       "project_agent": "localwms-agent",
       "status_check_contexts": [
