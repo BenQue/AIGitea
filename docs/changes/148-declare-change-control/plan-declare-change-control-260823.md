@@ -1,7 +1,7 @@
 ---
 issue: 148
 branch: change/148-declare-change-control
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/149
 status: pr-open
 created: 2026-08-23
 updated: 2026-08-23

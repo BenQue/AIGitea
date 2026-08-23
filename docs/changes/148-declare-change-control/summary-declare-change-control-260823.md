@@ -13,7 +13,7 @@ depends_on:
   - 134
 status: pr-open
 branch: change/148-declare-change-control
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/149
 created: 2026-08-23
 updated: 2026-08-23
 reason: 改动 gitea-governance.json 的仓库条目并改变该仓库的判级输出，属平台治理类别，强制 complex
