@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
-from typing import Optional
+from typing import Optional, Sequence
 
 from .contract import (
     DELIVERY_TERMINAL_LABELS,
@@ -15,6 +15,7 @@ from .contract import (
     ContractError,
     load_contract,
 )
+from .documents import backfill_pr_number
 from .provider import ProviderError, ProviderResult
 from .state import (
     GlobalLock,
@@ -363,6 +364,43 @@ class Controller:
                 )
                 pr_number = int(pr["number"])
                 self._set_lifecycle(contract, "pr-open")
+                # The one place where the PR number exists and nothing has to
+                # wait for it (#146). Before this, the Loop path left pr_url
+                # empty forever: #142 made the backfill a deterministic command
+                # but only the interactive path ever called it, and the audit it
+                # added cannot see the gap because the summary's status stays at
+                # approved. Writing it here also updates that status, so the
+                # Gitea label and the document stop disagreeing.
+                try:
+                    summary_path, backfilled = backfill_pr_number(
+                        self.repo, issue_number, pr_number
+                    )
+                    if backfilled:
+                        relative = summary_path.relative_to(
+                            Path(self.repo).resolve()
+                        ).as_posix()
+                        self.git.commit_paths(
+                            (relative,),
+                            f"docs(change-{issue_number}): "
+                            f"回填 pr_url {pr_number} (#{issue_number})",
+                        )
+                        # head_sha moves with it, so the CI evidence this run
+                        # records covers the branch's real HEAD. Until now the
+                        # Loop declared READY_FOR_REVIEW against a commit that a
+                        # later manual backfill would supersede.
+                        head_sha = self.git.push()
+                except (ContractError, ProviderError) as exc:
+                    self._set_lifecycle(contract, "awaiting-triage")
+                    return self._finish(
+                        issue_number,
+                        state,
+                        TerminalState.NEEDS_HUMAN_DECISION,
+                        redact(str(exc)),
+                        pr_number,
+                        budget=budget,
+                        head_sha=head_sha,
+                        comment=True,
+                    )
 
             ci = self.gitea.get_commit_status(head_sha)
             if ci == "success":
@@ -654,6 +692,33 @@ class LocalGit:
             ("git", "diff", "--name-only", "-z", base_sha, "HEAD")
         ).stdout
         return tuple(sorted(set(_nul_paths(changed))))
+
+    def commit_paths(self, paths: Sequence[str], subject: str) -> str:
+        """Commit exactly these paths, refusing a worktree that holds anything else.
+
+        This is the Controller's own commit path (#146) — until now every commit
+        on a change branch came from the provider and was checked by
+        validate_provider_commit. "Exactly equal" rather than "contains" is what
+        keeps that true: a method that could sweep up whatever else happens to be
+        in the worktree would be an unguarded door next to that check. Something
+        unexpected being present is itself the anomaly, so it stops the run.
+        """
+        declared = set(paths)
+        if not declared:
+            raise ProviderError("controller commit must declare at least one path")
+        changed = {
+            line[3:].strip().strip('"')
+            for line in self._run(("git", "status", "--porcelain")).stdout.splitlines()
+            if line.strip()
+        }
+        if changed != declared:
+            raise ProviderError(
+                "controller commit must change exactly its declared paths, found: "
+                + ", ".join(sorted(changed) or ["nothing"])
+            )
+        self._run(("git", "add", "--", *sorted(declared)))
+        self._run(("git", "commit", "-m", subject))
+        return self.head_sha()
 
     def push(self) -> str:
         self._run(("git", "push", "-u", "origin", self.branch))

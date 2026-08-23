@@ -105,6 +105,28 @@ def _replaced(line: str, name: str, value: str) -> str:
     return f"{name}: {value}{terminator}"
 
 
+def backfill_pr_number(
+    repo: Path | str,
+    issue_number: int,
+    pr_number: int,
+) -> tuple[Path, bool]:
+    """Backfill by pull request number, deriving the URL from the summary itself.
+
+    The Controller reaches this with a number straight out of create_pr, not a
+    URL (#146). The URL is built from the summary's own gitea_url rather than
+    from the response's html_url on purpose: on this platform the API renders
+    html_url against one base (gitea-ci.orb.local:3000) while the runner sees
+    another (localhost:3000), and feeding that difference to the strict prefix
+    check would escalate a healthy Loop over pure cosmetics.
+    """
+    if not isinstance(pr_number, int) or isinstance(pr_number, bool) or pr_number <= 0:
+        raise ContractError("pull request number must be a positive integer")
+    repo_path = Path(repo).resolve()
+    _, summary = resolve_summary(repo_path, issue_number)
+    prefix = _pull_url_prefix(summary, issue_number)
+    return backfill_pr_url(repo_path, issue_number, f"{prefix}{pr_number}")
+
+
 def _pull_url_prefix(summary: Mapping[str, object], issue_number: int) -> str:
     """Derive the only pull request URL prefix this summary can legitimately carry.
 

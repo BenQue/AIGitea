@@ -4,7 +4,12 @@ import tempfile
 import unittest
 
 from aisoft_loop.contract import ContractError
-from aisoft_loop.documents import backfill_pr_url, publish_plan, publish_spec
+from aisoft_loop.documents import (
+    backfill_pr_number,
+    backfill_pr_url,
+    publish_plan,
+    publish_spec,
+)
 
 
 SUMMARY = """---
@@ -202,3 +207,41 @@ class BackfillPrUrlTests(unittest.TestCase):
         )
         with self.assertRaises(ContractError):
             backfill_pr_url(self.repo, 57, PULL_URL)
+
+
+class BackfillPrNumberTests(unittest.TestCase):
+    """The Controller reaches the backfill with a number, not a URL (#146)."""
+
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.repo = Path(self.tempdir.name)
+        directory = self.repo / "docs" / "changes" / "57-matt-flow"
+        directory.mkdir(parents=True)
+        self.summary = directory / "summary-matt-flow-260808.md"
+        self.summary.write_text(BACKFILL_SUMMARY, encoding="utf-8")
+
+    def tearDown(self) -> None:
+        self.tempdir.cleanup()
+
+    def test_derives_the_url_from_the_summary_gitea_url(self) -> None:
+        _, changed = backfill_pr_number(self.repo, 57, 58)
+        self.assertTrue(changed)
+        self.assertIn(f"pr_url: {PULL_URL}\n", self.summary.read_text(encoding="utf-8"))
+
+    def test_is_idempotent_like_the_url_form(self) -> None:
+        backfill_pr_number(self.repo, 57, 58)
+        before = self.summary.read_bytes()
+        _, changed = backfill_pr_number(self.repo, 57, 58)
+        self.assertFalse(changed)
+        self.assertEqual(self.summary.read_bytes(), before)
+
+    def test_a_second_pr_number_is_refused(self) -> None:
+        backfill_pr_number(self.repo, 57, 58)
+        with self.assertRaises(ContractError):
+            backfill_pr_number(self.repo, 57, 99)
+
+    def test_a_nonpositive_number_is_refused(self) -> None:
+        for rejected in (0, -1, True):
+            with self.subTest(rejected=rejected):
+                with self.assertRaises(ContractError):
+                    backfill_pr_number(self.repo, 57, rejected)

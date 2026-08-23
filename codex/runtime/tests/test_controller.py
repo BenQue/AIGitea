@@ -100,12 +100,21 @@ class FakeGit:
         self.validations: list[tuple[str, int, str]] = []
         self.pushes = 0
         self.sha_counter = 0
+        self.commits: list[tuple[tuple[str, ...], str]] = []
 
     def changed_files(self) -> tuple[str, ...]:
         raise AssertionError("controller must validate provider commits, not uncommitted files")
 
     def commit_and_push(self, paths: tuple[str, ...], message: str) -> str:
         raise AssertionError("controller must not create provider commits")
+
+    def commit_paths(self, paths: tuple[str, ...], subject: str) -> str:
+        # The Controller's own narrow commit (#146). The guard above still
+        # stands: it may commit the pr_url backfill it just wrote, and nothing
+        # else — provider work remains the provider's to commit.
+        self.commits.append((tuple(paths), subject))
+        self.sha_counter += 1
+        return self.head_sha()
 
     def validate_provider_commit(
         self, base_sha: str, issue_number: int, ticket_id: str
@@ -138,6 +147,7 @@ class FakeGitea:
         }
         self.statuses = list(statuses or ["success"])
         self.created_prs: list[dict[str, str]] = []
+        self.status_queries: list[str] = []
         self.comments: list[str] = []
         self.label_updates: list[set[str]] = []
         self.dependency_issues: dict[int, dict] = {}
@@ -154,6 +164,9 @@ class FakeGitea:
         return {"number": 3, "state": "open"}
 
     def get_commit_status(self, sha: str) -> str:
+        # Recorded so a test can assert which commit the CI evidence belongs to
+        # (#146): the answer used to be a sha the branch had already moved past.
+        self.status_queries.append(sha)
         return self.statuses.pop(0)
 
     def comment(self, issue_number: int, body: str) -> dict:
@@ -228,6 +241,48 @@ class LocalGitTests(unittest.TestCase):
             local.validate_provider_commit(self.base, 8, "T01")
         self.git("add", "change.txt")
         self.git("commit", "-m", "feat: missing audit ids")
+        with self.assertRaisesRegex(ProviderError, "#8 and T01"):
+            local.validate_provider_commit(self.base, 8, "T01")
+
+    def test_commit_paths_commits_exactly_what_it_declared(self) -> None:
+        local = LocalGit(self.repo, "change/8")
+        self.repo.joinpath("summary.md").write_text("pr_url: filled\n")
+
+        head = local.commit_paths(("summary.md",), "docs(change-8): 回填 pr_url 3 (#8)")
+
+        self.assertNotEqual(head, self.base)
+        self.assertEqual(self.git("status", "--porcelain").stdout, "")
+        self.assertEqual(
+            self.git("show", "--name-only", "--format=", "HEAD").stdout.split(),
+            ["summary.md"],
+        )
+
+    def test_commit_paths_refuses_a_worktree_holding_anything_else(self) -> None:
+        """The Controller must not be able to sweep up work it did not declare.
+
+        Every other commit on a change branch comes from the provider and is
+        checked by validate_provider_commit. A commit helper that quietly took
+        whatever else was lying around would be an unguarded door beside it.
+        """
+        local = LocalGit(self.repo, "change/8")
+        self.repo.joinpath("summary.md").write_text("pr_url: filled\n")
+        self.repo.joinpath("sneaked-in.txt").write_text("not declared\n")
+
+        with self.assertRaisesRegex(ProviderError, "exactly its declared paths"):
+            local.commit_paths(("summary.md",), "docs: backfill")
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), self.base)
+
+    def test_commit_paths_refuses_when_the_declared_path_did_not_change(self) -> None:
+        local = LocalGit(self.repo, "change/8")
+        with self.assertRaisesRegex(ProviderError, "exactly its declared paths"):
+            local.commit_paths(("summary.md",), "docs: backfill")
+
+    def test_provider_commits_are_still_held_to_the_ticket_id_rule(self) -> None:
+        """#146 grants the Controller a commit path; it relaxes nothing else."""
+        local = LocalGit(self.repo, "change/8")
+        self.repo.joinpath("change.txt").write_text("done\n")
+        self.git("add", "change.txt")
+        self.git("commit", "-m", "feat: no audit ids here")
         with self.assertRaisesRegex(ProviderError, "#8 and T01"):
             local.validate_provider_commit(self.base, 8, "T01")
 
@@ -381,6 +436,7 @@ confidence: high
 override_reason: ''
 status: approved
 branch: change/8
+pr_url:
 created: 2026-07-16
 updated: 2026-07-16
 ---
@@ -463,8 +519,119 @@ branch: change/8
             [request["ticket_id"] for request in provider.requests],
             ["T01", "T02"],
         )
-        self.assertEqual(git.pushes, 2)
+        # Two ticket pushes plus the pr_url backfill push (#146). The third one
+        # is what makes the recorded CI evidence cover the branch's real HEAD.
+        self.assertEqual(git.pushes, 3)
+        self.assertEqual(len(git.commits), 1)
         self.assertEqual(len(gitea.created_prs), 1)
+
+    # --- pr_url backfill on the Loop path (#146) -----------------------------
+
+    def summary_text(self) -> str:
+        return (self.repo / "docs" / "changes" / "8" / "00-summary.md").read_text(
+            encoding="utf-8"
+        )
+
+    def run_to_pr(self, git: FakeGit | None = None, gitea: FakeGitea | None = None):
+        git = git or FakeGit([("src/change.txt",)])
+        gitea = gitea or FakeGitea(["success"])
+        result = self.controller(
+            provider=FakeProvider([provider_result()]),
+            verifier=FakeVerifier([verification(True)]),
+            git=git,
+            gitea=gitea,
+        ).run(8)
+        return result, git, gitea
+
+    def test_pr_url_and_status_are_written_when_the_pr_is_created(self) -> None:
+        """The defect #146 exists for: the Loop path never filled pr_url at all."""
+        result, git, gitea = self.run_to_pr()
+
+        self.assertEqual(result.terminal_state, TerminalState.READY_FOR_REVIEW)
+        summary = self.summary_text()
+        self.assertIn("pr_url: http://gitea.test/owner/repo/pulls/3\n", summary)
+        # The same fact the Controller already wrote to the Gitea label. Before
+        # this change the label said pr-open while the document still said
+        # approved — one fact, two records, one of them updated.
+        self.assertIn("status: pr-open\n", summary)
+        self.assertEqual(gitea.label_updates[-1] & {"pr-open"}, {"pr-open"})
+
+    def test_the_backfill_commit_carries_only_the_summary(self) -> None:
+        _, git, _ = self.run_to_pr()
+
+        self.assertEqual(len(git.commits), 1)
+        paths, subject = git.commits[0]
+        self.assertEqual(paths, ("docs/changes/8/00-summary.md",))
+        self.assertIn("#8", subject)
+        self.assertIn("pr_url", subject)
+
+    def test_ci_is_polled_against_the_head_the_backfill_produced(self) -> None:
+        """Until now the Loop declared CI success for a superseded commit."""
+        result, git, gitea = self.run_to_pr()
+
+        self.assertEqual(result.terminal_state, TerminalState.READY_FOR_REVIEW)
+        # The push that carried the backfill is the last one, so the sha the
+        # Controller asked CI about is the branch's real HEAD.
+        self.assertEqual(gitea.status_queries[-1], git.head_sha())
+
+    def test_an_already_correct_summary_produces_no_commit_and_no_push(self) -> None:
+        self.run_to_pr()
+        before = self.summary_text()
+
+        # A second run resumes with the PR already open and the value in place.
+        git = FakeGit([("src/change.txt",)])
+        gitea = FakeGitea(["success"])
+        self.controller(
+            provider=FakeProvider([provider_result()]),
+            verifier=FakeVerifier([verification(True)]),
+            git=git,
+            gitea=gitea,
+        ).run(8)
+
+        self.assertEqual(git.commits, [])
+        self.assertEqual(self.summary_text(), before)
+
+    def test_a_summary_without_the_pr_url_key_escalates(self) -> None:
+        """fail-closed, not skipped: skipping would keep the silent gap."""
+        summary = self.repo / "docs" / "changes" / "8" / "00-summary.md"
+        summary.write_text(
+            self.summary_text().replace("pr_url:\n", ""), encoding="utf-8"
+        )
+
+        result, git, gitea = self.run_to_pr()
+
+        self.assertEqual(result.terminal_state, TerminalState.NEEDS_HUMAN_DECISION)
+        self.assertIn("pr_url", gitea.comments[-1])
+        self.assertEqual(git.commits, [])
+        self.assertEqual(gitea.label_updates[-1] & {"awaiting-triage"}, {"awaiting-triage"})
+
+    def test_a_conflicting_pr_url_escalates_instead_of_being_overwritten(self) -> None:
+        summary = self.repo / "docs" / "changes" / "8" / "00-summary.md"
+        summary.write_text(
+            self.summary_text().replace(
+                "pr_url:\n", "pr_url: http://gitea.test/owner/repo/pulls/99\n"
+            ),
+            encoding="utf-8",
+        )
+
+        result, git, _ = self.run_to_pr()
+
+        self.assertEqual(result.terminal_state, TerminalState.NEEDS_HUMAN_DECISION)
+        self.assertEqual(git.commits, [])
+        # One change has one PR; a second value means the premise broke.
+        self.assertIn("pulls/99", self.summary_text())
+
+    def test_a_refused_commit_escalates_rather_than_leaving_a_dirty_worktree(self) -> None:
+        class RefusingGit(FakeGit):
+            def commit_paths(self, paths, subject):
+                raise ProviderError(
+                    "controller commit must change exactly its declared paths"
+                )
+
+        result, git, gitea = self.run_to_pr(git=RefusingGit([("src/change.txt",)]))
+
+        self.assertEqual(result.terminal_state, TerminalState.NEEDS_HUMAN_DECISION)
+        self.assertIn("declared paths", gitea.comments[-1])
 
     def test_verifier_failure_is_fed_to_next_provider_turn(self) -> None:
         provider = FakeProvider([provider_result("CONTINUE"), provider_result()])
