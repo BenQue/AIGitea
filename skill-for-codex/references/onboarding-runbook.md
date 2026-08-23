@@ -234,6 +234,41 @@ Compose 5.1.4 同样需要同等级 disposable Engine 29/containerd consumer E2E
 - `/opt/artifacts` retention 先验证项目 allowlist、完整 SHA/checksum、引用、数量和期限，只
   输出 dry-run/audit ledger；删除另行授权。
 
+### 4.1 systemd 原生交付（`systemd-native/v1`）
+
+不使用容器承载运行时、也不经 PM2 中间层的 Linux Node 服务声明
+`architecture/profiles/linux-node-systemd-postgres-v1.json` 与 `delivery_contract`
+`systemd-native/v1`（ADR-0005）。它是默认 `docker-release/v2` 的显式偏离，必须由应用仓
+自己的 complex Change 记录裁定理由，不能由项目侧临时选取。
+
+与 `docker-release/v2` 共用的验收步骤：
+
+- 不可变、带版本、可回滚的制品；`scm-ci` 只构建/测试/发布，AppServer 才执行 application/
+  database mutation。
+- Secret 只存在于目标机受保护 env file；lock、单元文件、argv、日志和 verification 不保存
+  Secret 值。
+- migration 前完成可验证备份，向后兼容迁移，HTTP health check 与失败回滚。
+- 开发/测试环境首次部署由 AI 参与并固化为脚本：连续执行两次幂等，另做一次故意失败回滚，
+  真实结果写进映射的 `verification` 文档；生产只跑已验收脚本。
+
+不适用的步骤（不得用 fake PASS 顶替）：
+
+- digest-pinned OCI base image 与 `oci.*` component：本 profile 没有 OCI slot。
+- Gitea Registry publish、`docker-release-offline-bundle/v2` 与
+  `docker-release-offline-inventory/v2`、Compose model/checksum、image-store matrix
+  （Engine 29/containerd）与 `aisoft-docker-release` 的 stage/activate 阶段。
+- Docker target profile 的 `architecture_project_id` 绑定。release manifest 运行时要求
+  lock 的 `delivery_contract` 是 docker-release 取值，systemd-native lock 进不了该路径，
+  这是合同边界而非缺陷。
+
+改为要求：
+
+- 单元文件与 drop-in 进版本库；`EnvironmentFile` 模式 `0400/0600`；`ExecStart` 指向声明的
+  Node major。
+- 制品目录按 release 版本落盘，current 由符号链接切换；回滚即切回上一 release 并
+  `systemctl` 重启，必须实测。
+- 重启策略、健康探测与失败判定明确写出，且不得用 restart 掩盖启动失败或连接池打满。
+
 AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固化为脚本，连续运行两次，并故意制造一次失败验证回滚。把真实结果写入关联 Issue 映射的 `verification` 文档。生产只执行验收后的脚本。平台 local fake PASS、安装候选或 PR CI 不能写成真实 AppServer/production deployed。
 
 ## 5. Gitea 治理
@@ -352,17 +387,26 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 2. 选择一个 versioned profile，按仓库 lock、Dockerfile/schema 和脱敏 runtime metadata
    声明精确 component。每个 slot 只能选择 preferred 或一个同 category、显式 allowlisted 的
    `supported`/`sunset` transition；禁止目录名推测、Secret、`latest`、semver range、
-   mutable-only OCI 和 `prohibited`/EOL component。
-3. 用 `aisoft-architecture lock` 生成并提交 `architecture.lock.json`，连续两次输出必须
+   mutable-only OCI 和 `prohibited`/EOL component。profile 必须匹配仓库的真实运行形态：
+   `linux-node-postgres-v1` 用于容器化 Prisma/Next 栈，`linux-node-systemd-postgres-v1`
+   用于 systemd 直管、无容器、无前端框架且查询层不限定 Prisma 的 Node 服务（见 §4.1），
+   `small-embedded-sqlite-v1` 用于单实例本地 SQLite，`windows-dotnet-postgres-v1` 用于
+   Windows/IIS。`required_components` 没有「本项目不适用」的逃生口：没有任何 profile 能
+   如实描述该仓库时，正确处置是在平台仓开 Issue 新增 profile，而不是虚报 component 或
+   套用最接近的 profile。
+3. `delivery_contract` 必须属于所选 profile 的 `delivery_contracts`，并且如实描述交付形态：
+   `docker-release/v1` 容器、`pm2-legacy` 既有 PM2、`systemd-native/v1` systemd 原生、
+   `windows-iis/v1`、`embedded-sqlite/v1`。这些取值互相排斥，不得为了让校验通过而挑一个近似值。
+4. 用 `aisoft-architecture lock` 生成并提交 `architecture.lock.json`，连续两次输出必须
    byte-identical；随后用 `validate --lock` 检查 drift。
-4. 每个 transition 必须引用应用仓中真实可读的绝对 HTTPS migration Issue，并有唯一匹配的
+5. 每个 transition 必须引用应用仓中真实可读的绝对 HTTPS migration Issue，并有唯一匹配的
    owner/reason/risk/controls exception；多个 component 可以引用一个逐项列明范围的 umbrella
    Issue，但不能共享 exception。expiry 不得超过创建日起 180 天或 component `migrate_by`，
    到期当日 fail closed。Preferred 不需要 exception；`prohibited`/EOL 不可绕过。
-5. Docker target profile 可声明 `architecture_project_id`；一旦声明，release lock project、
+6. Docker target profile 可声明 `architecture_project_id`；一旦声明，release lock project、
    profile、catalog、checksum/self-hash 和 transition expiry 必须全部匹配，且在 Docker 调用前
    验证。已有未声明该字段的 v1 target profile 保持兼容。
-6. Current lock 表达实际 release bytes，target candidate 只表达目标。Candidate lock 不等于
+7. Current lock 表达实际 release bytes，target candidate 只表达目标。Candidate lock 不等于
    项目已迁移或已部署，也不能复制成 current。多个相互依赖的 runtime/framework/ORM/database/
    container major 可以由应用仓一个 complex umbrella Change 统一治理，但必须逐 component
    保留 compatibility/test/rollback Gate，不能报告部分完成；#22 只接收治理 identity/checksum，

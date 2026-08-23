@@ -2,6 +2,8 @@
 
 - 状态：Accepted
 - 日期：2026-08-02
+- 补充：ADR-0005 增加第四个 profile `linux-node-systemd-postgres-v1` 与 delivery contract
+  `systemd-native/v1`；本 ADR 的所有权与例外规则不变。
 
 三个 V1 profile 只声明兼容 component、边界和 delivery contract。#21 owns host role/
 capability；#22 owns release manifest/deploy state；#23 owns catalog/profile/declaration/lock

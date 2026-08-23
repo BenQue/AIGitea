@@ -19,7 +19,7 @@
       "required": ["deployment", "data_storage", "concurrency", "availability", "backup", "restore_drill"],
       "type": "object"
     },
-    "delivery_contracts": {"items": {"enum": ["docker-release/v1", "pm2-legacy", "windows-iis/v1", "embedded-sqlite/v1"]}, "minItems": 1, "type": "array", "uniqueItems": true},
+    "delivery_contracts": {"items": {"enum": ["docker-release/v1", "pm2-legacy", "windows-iis/v1", "embedded-sqlite/v1", "systemd-native/v1"]}, "minItems": 1, "type": "array", "uniqueItems": true},
     "description": {"minLength": 1, "type": "string"},
     "profile_id": {"pattern": "^[a-z0-9][a-z0-9-]+$", "type": "string"},
     "required_components": {

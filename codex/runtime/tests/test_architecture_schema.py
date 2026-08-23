@@ -44,8 +44,46 @@ class ArchitectureSchemaTests(unittest.TestCase):
             profile = load_json(path)
             validate_profile(profile, self.profile_schema, self.catalog, components)
             profile_ids.append(profile["profile_id"])
-        self.assertEqual(len(profile_ids), 3)
+        self.assertEqual(len(profile_ids), 4)
         self.assertEqual(len(profile_ids), len(set(profile_ids)))
+
+    def test_systemd_native_profile_has_no_container_or_frontend_slot(self) -> None:
+        components = validate_catalog(self.catalog, self.catalog_schema, TODAY)
+        profile = load_json(ARCH / "profiles/linux-node-systemd-postgres-v1.json")
+        validate_profile(profile, self.profile_schema, self.catalog, components)
+        self.assertEqual(profile["delivery_contracts"], ["systemd-native/v1"])
+        slots = [item["component_id"] for item in profile["required_components"]]
+        self.assertEqual(
+            slots,
+            [
+                "os.ubuntu.24-04-4",
+                "runtime.node.24",
+                "package.npm.11",
+                "database.postgresql.18",
+                "toolchain.typescript.6",
+            ],
+        )
+        # The whole point of this profile is the slots it does not force. A
+        # future edit that adds a container, OCI, proxy, ORM or frontend slot
+        # would silently re-break the systemd-native consumer this profile was
+        # created for, so the excluded categories are pinned here.
+        categories = {components[slot]["category"] for slot in slots}
+        self.assertTrue(
+            categories.isdisjoint(
+                {
+                    "container-engine",
+                    "container-compose",
+                    "oci-image",
+                    "proxy",
+                    "orm",
+                    "framework",
+                    "frontend",
+                }
+            )
+        )
+        fixture = load_json(ARCH / "fixtures/valid/linux-systemd-project.json")
+        self.assertEqual(fixture["profile_id"], profile["profile_id"])
+        self.assertEqual(fixture["delivery_contract"], "systemd-native/v1")
 
     def test_valid_fixtures_pass_schema_and_runtime(self) -> None:
         for path in sorted((ARCH / "fixtures/valid").glob("*.json")):
