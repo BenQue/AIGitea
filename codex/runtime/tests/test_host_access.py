@@ -58,6 +58,7 @@ class HostAccessContractTests(unittest.TestCase):
         self.assertEqual(profiles, {
             "aisoft-platform": "aisoft-platform",
             "HSDB": "hsdb",
+            "LocalWMS": "localwms",
             "NewEMaint": "emaintenance",
             "rsdesign-new": "rsdesign",
             "SFMDigitalBoard": "sfm",
@@ -245,7 +246,7 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
         assert sfm.vm_profile is not None
         self.assertEqual(sfm.vm_profile.path_prepend,
                          ("/opt/node22/bin", "/home/coder/.local/bin"))
-        for project_id in ("newemaint", "hsdb", "rsdesign-new"):
+        for project_id in ("newemaint", "hsdb", "rsdesign-new", "localwms"):
             with self.subTest(project_id=project_id):
                 project = self.contract.project(project_id)
                 assert project.vm_profile is not None
@@ -261,6 +262,7 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
             "newemaint": None,
             "hsdb": None,
             "rsdesign-new": None,
+            "localwms": None,
         })
 
     def test_invalid_path_prepend_declarations_fail_closed(self) -> None:
@@ -355,6 +357,44 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
             "repo_dir": "/home/coder/work/AISoftPlatform",
             "repository": "aisoft-platform",
             "token_file": "/home/coder/.config/aisoft/credentials/aisoft-platform.token",
+        })
+
+    def test_localwms_profile_is_analyzer_only_without_a_timer(self) -> None:
+        # #152 unlocks the analyzer canary for LocalWMS and nothing else: the
+        # Development Loop stays out of scope, so implement_provider must remain
+        # disabled and timer_unit must stay unset. Installing a timer template is
+        # not the same as enabling one.
+        project = self.contract.project("localwms")
+        self.assertIsNotNone(project.vm_profile)
+        assert project.vm_profile is not None
+        self.assertEqual(project.vm_profile.name, "localwms")
+        self.assertEqual(project.vm_profile.repo_dir, "work/LocalWMS")
+        self.assertEqual(project.vm_profile.analysis_provider, "claude")
+        self.assertEqual(project.vm_profile.implement_provider, "none")
+        self.assertIsNone(project.vm_profile.timer_unit)
+        self.assertEqual(project.vm_profile.path_prepend, ())
+
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            code = host_access_cli_main([
+                "--access-manifest", str(ACCESS),
+                "--governance-manifest", str(GOVERNANCE),
+                "profile-spec", "--profile-name", "localwms",
+            ])
+        self.assertEqual(code, 0)
+        payload = json.loads(buffer.getvalue())
+        self.assertEqual(payload, {
+            "analysis_provider": "claude",
+            "gitea_url": "http://gitea-ci.orb.local:3000",
+            "identity": "localwms-agent",
+            "implement_provider": "none",
+            "owner": "admin",
+            "path_prepend": [],
+            "profile_name": "localwms",
+            "project_id": "localwms",
+            "repo_dir": "/home/coder/work/LocalWMS",
+            "repository": "LocalWMS",
+            "token_file": "/home/coder/.config/aisoft/credentials/localwms.token",
         })
 
 

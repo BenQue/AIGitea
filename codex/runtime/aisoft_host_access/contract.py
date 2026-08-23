@@ -428,8 +428,9 @@ def load_access_contract(
              "host access projects must exactly cover governance repositories")
     _require(
         profile_repositories
-        == {"aisoft-platform", "NewEMaint", "HSDB", "rsdesign-new", "SFMDigitalBoard"},
-        "VM profile migration set must contain exactly the five approved repositories",
+        == {"aisoft-platform", "NewEMaint", "HSDB", "rsdesign-new", "SFMDigitalBoard",
+            "LocalWMS"},
+        "VM profile migration set must contain exactly the six approved repositories",
     )
     _require(governance.human_merge_identity not in {
         project.project_agent for project in projects

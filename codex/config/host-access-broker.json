@@ -294,7 +294,13 @@
       "repository": "LocalWMS",
       "project_agent": "localwms-agent",
       "mac_checkout": "/Users/benque/Projects/LocalWMS",
-      "vm_profile": null
+      "vm_profile": {
+        "name": "localwms",
+        "repo_dir": "work/LocalWMS",
+        "analysis_provider": "claude",
+        "implement_provider": "none",
+        "timer_unit": null
+      }
     },
     {
       "project_id": "myapp",

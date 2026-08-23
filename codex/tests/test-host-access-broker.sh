@@ -60,7 +60,8 @@ jq -e '
     | select(.project_id != "newemaint" and .project_id != "rsdesign-new" and .project_id != "sfm-digital-board")
     | has("git_remote_name")] | all(. == false)) and
   ([.projects[] | select(.vm_profile != null) | .repository] | sort) ==
-    ["HSDB", "NewEMaint", "SFMDigitalBoard", "aisoft-platform", "rsdesign-new"]
+    ["HSDB", "LocalWMS", "NewEMaint", "SFMDigitalBoard", "aisoft-platform",
+     "rsdesign-new"]
 ' "$ROOT/codex/config/host-access-broker.json" >/dev/null
 
 if rg -ni 'keychain|/usr/bin/security|find-generic-password|dump-keychain|security -A' \
