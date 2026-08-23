@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/profile-v1.schema.json",
+  "schema_version": "1.0",
+  "profile_id": "linux-node-systemd-postgres-v1",
+  "version": "1.0.0",
+  "catalog_revision": "2026.08.3",
+  "status": "active",
+  "description": "Ubuntu LTS, Node LTS and PostgreSQL baseline for a systemd-managed service without a container runtime, process manager or frontend framework slot.",
+  "required_components": [
+    {"component_id": "os.ubuntu.24-04-4", "allowed_states": ["preferred"]},
+    {"component_id": "runtime.node.24", "allowed_states": ["preferred"], "transitions": [{"component_id": "runtime.node.22", "allowed_states": ["sunset"]}]},
+    {"component_id": "package.npm.11", "allowed_states": ["preferred"], "transitions": [{"component_id": "package.npm.10", "allowed_states": ["sunset"]}]},
+    {"component_id": "database.postgresql.18", "allowed_states": ["preferred"], "transitions": [{"component_id": "database.postgresql.16", "allowed_states": ["supported"]}]},
+    {"component_id": "toolchain.typescript.6", "allowed_states": ["preferred"], "transitions": [{"component_id": "toolchain.typescript.5", "allowed_states": ["sunset"]}]}
+  ],
+  "compatibility_rules": [
+    "Node must be an upstream LTS version and is executed directly by a systemd unit; no container runtime and no process manager layer sits between systemd and the application process.",
+    "TypeScript build output must run on the declared Node major without a separate runtime image; this profile has no OCI slot and therefore no digest-pinned base image obligation.",
+    "This profile declares no ORM, framework, frontend, proxy or container slot; a project may additionally declare such catalog components, and any query builder or ORM that is not a catalog component stays pinned in the application repository lock file.",
+    "A transition selects exactly one component per slot, requires an absolute HTTPS migration Issue plus one matching unexpired exception, and never permits a prohibited component.",
+    "PostgreSQL major adoption requires a separate backup, restore and rollback-capable project Change."
+  ],
+  "delivery_contracts": ["systemd-native/v1"],
+  "constraints": {
+    "deployment": "systemd-native/v1 describes delivery ownership only and grants no deployment capability; container and PM2 delivery are out of scope for this profile, so an application that adopts either must move to the matching profile and delivery contract.",
+    "data_storage": "PostgreSQL data resides on approved local or managed persistent storage, never inside the systemd unit working directory or a release artifact directory.",
+    "concurrency": "Database connection and worker limits are owned and load-tested by each application Change; a systemd restart policy must not be used to mask a saturated pool.",
+    "availability": "Availability topology is declared outside this architecture lock and remains owned by host/release governance; a single systemd unit implies no high-availability claim.",
+    "backup": "A database major Change requires a verified backup before mutation.",
+    "restore_drill": "A restore drill plus a proven previous-release restoration is required before production adoption of a new PostgreSQL major."
+  }
+}

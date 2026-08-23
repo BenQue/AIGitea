@@ -20,7 +20,7 @@
       "minItems": 1,
       "type": "array"
     },
-    "delivery_contract": {"enum": ["docker-release/v1", "pm2-legacy", "windows-iis/v1", "embedded-sqlite/v1"], "type": "string"},
+    "delivery_contract": {"enum": ["docker-release/v1", "pm2-legacy", "windows-iis/v1", "embedded-sqlite/v1", "systemd-native/v1"], "type": "string"},
     "exceptions": {
       "items": {
         "additionalProperties": false,

@@ -38,16 +38,18 @@ class ArchitectureCliTests(unittest.TestCase):
         self.assertNotIn("environment", payload)
 
     def test_lock_twice_is_byte_identical_and_validates(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            first = Path(directory) / "first.json"
-            second = Path(directory) / "second.json"
-            project = ARCH / "fixtures/valid/linux-project.json"
-            for output in (first, second):
-                result = self.run_cli(["lock", *self.common(project), "--output", str(output)])
+        fixtures = ("linux-project.json", "linux-systemd-project.json")
+        for fixture in fixtures:
+            with self.subTest(fixture=fixture), tempfile.TemporaryDirectory() as directory:
+                first = Path(directory) / "first.json"
+                second = Path(directory) / "second.json"
+                project = ARCH / "fixtures/valid" / fixture
+                for output in (first, second):
+                    result = self.run_cli(["lock", *self.common(project), "--output", str(output)])
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(first.read_bytes(), second.read_bytes())
+                result = self.run_cli(["validate", *self.common(project), "--lock", str(first)])
                 self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(first.read_bytes(), second.read_bytes())
-            result = self.run_cli(["validate", *self.common(project), "--lock", str(first)])
-            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_failure_diagnostic_does_not_echo_input_values(self) -> None:
         result = self.run_cli(["validate", *self.common(ARCH / "fixtures/invalid/mutable-oci.json")])
