@@ -28,16 +28,49 @@ def _complex_classification() -> Classification:
 class ChangeControlContractTests(unittest.TestCase):
     """AC2：未声明的既有仓库必须默认 production，行为逐字段不变。"""
 
-    def test_every_shipped_repository_defaults_to_production(self) -> None:
+    def test_undeclared_repositories_default_to_production(self) -> None:
+        """原断言是「每个仓库都是 production」——那把「当时没有任何仓库声明过」这个事实
+        钉成了测试，Issue #148 给 LocalWMS 声明 development 时它必然变红。AC2 真正要保的是
+        **未声明者默认 production**，因此改为只遍历未声明的仓库。"""
+        raw = json.loads(MANIFEST.read_text())
+        declared = {
+            entry["name"] for entry in raw["repositories"] if "change_control" in entry
+        }
         contract = load_contract(MANIFEST)
+        checked = 0
         for repository in contract.repositories:
+            if repository.name in declared:
+                continue
             with self.subTest(repository=repository.name):
                 self.assertEqual(repository.change_control, "production")
                 self.assertFalse(repository.in_development)
+            checked += 1
+        # 防空转：等到所有仓库都显式声明的那天，上面的循环会一个都不跑，
+        # 而测试仍然「通过」。那时兜底行为就没有任何东西守着了，必须补一个合成 fixture。
+        self.assertGreater(checked, 0, "没有未声明的仓库，AC2 的兜底断言已空转")
+
+    def test_localwms_is_declared_development(self) -> None:
+        """Issue #148：机制自 #134 起就在，但十个仓库无一声明，收益一直是零。
+        这条把「LocalWMS 已降到 development」钉住——它一旦被改回去，判级会静默恢复四份文档。"""
+        contract = load_contract(MANIFEST)
+        localwms = next(
+            repository
+            for repository in contract.repositories
+            if repository.name == "LocalWMS"
+        )
+        self.assertEqual(localwms.change_control, "development")
+        self.assertTrue(localwms.in_development)
 
     def test_declared_development_is_parsed(self) -> None:
+        """本条要证的是「给一个仓声明 development 不会污染其它仓」。原来把「其它仓都是
+        production」写死了，这在 Issue #148 给 LocalWMS 声明之后不再成立——改为逐仓比对
+        manifest 里各自的声明值（缺省 production），断言的意图不变而不再依赖当时的快照。"""
         raw = json.loads(MANIFEST.read_text())
         raw["repositories"][1]["change_control"] = "development"
+        expected = {
+            entry["name"]: entry.get("change_control", "production")
+            for entry in raw["repositories"]
+        }
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "manifest.json"
             path.write_text(json.dumps(raw))
@@ -46,8 +79,10 @@ class ChangeControlContractTests(unittest.TestCase):
         self.assertEqual(declared.change_control, "development")
         self.assertTrue(declared.in_development)
         for other in contract.repositories:
-            if other.name != declared.name:
-                self.assertEqual(other.change_control, "production")
+            if other.name == declared.name:
+                continue
+            with self.subTest(repository=other.name):
+                self.assertEqual(other.change_control, expected[other.name])
 
     def test_invalid_change_control_is_rejected(self) -> None:
         """AC1：非法取值必须 fail closed，不得静默回落。"""
