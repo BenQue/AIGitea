@@ -11,9 +11,9 @@ risk_flags:
   - platform-governance
   - shared-core
 depends_on: []
-status: approved
+status: pr-open
 branch: change/152-localwms-vm-profile
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/156
 created: 2026-08-23
 updated: 2026-08-23
 reason: 改动 host-access broker 的 governance manifest 与共享合同校验（新增一个项目的 VM profile 声明），属 Agent/平台治理类别，强制 complex

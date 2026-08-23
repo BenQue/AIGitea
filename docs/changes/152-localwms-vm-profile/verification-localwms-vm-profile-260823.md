@@ -13,7 +13,7 @@ risk_flags:
 depends_on: []
 status: approved
 branch: change/152-localwms-vm-profile
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/156
 created: 2026-08-23
 updated: 2026-08-23
 ---
