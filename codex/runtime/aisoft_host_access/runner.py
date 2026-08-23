@@ -80,6 +80,19 @@ class GovernedHostRunner:
             "--lifecycle", lifecycle,
         )
 
+    def issue_labels_classify(
+        self, number: int, change_type: str, complexity: str
+    ) -> Mapping[str, object]:
+        # Both values pass through unvalidated, for the same reason lifecycle
+        # does: the broker checks them against the installed label manifest and
+        # a second check here would be a copy that drifts (#160).
+        return self._call(
+            "gitea.issue.labels.classify",
+            "--number", str(_positive_number(number, "Issue")),
+            "--change-type", change_type,
+            "--complexity", complexity,
+        )
+
     def push_change(self, issue: int) -> Mapping[str, object]:
         number = _positive_number(issue, "Issue")
         return self._call("git.push.change", "--branch", f"change/{number}")

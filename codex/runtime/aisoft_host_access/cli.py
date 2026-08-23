@@ -41,6 +41,12 @@ def build_parser() -> argparse.ArgumentParser:
     # would be another copy of the eight names and would drift from the manifest
     # this install actually ships.
     broker.add_argument("--lifecycle")
+    # The analyzer dimensions (#160), same no-choices= rule as --lifecycle: the
+    # accepted values come from the installed label manifest. Bare values, not
+    # label names — they are copied straight out of the summary front matter,
+    # and the broker is what namespaces them.
+    broker.add_argument("--change-type")
+    broker.add_argument("--complexity")
 
     profile = commands.add_parser("profile")
     profile.add_argument("--project", required=True)
@@ -91,6 +97,8 @@ def main(argv: list[str] | None = None) -> int:
                 sha=args.sha,
                 job=args.job,
                 lifecycle=args.lifecycle,
+                change_type=args.change_type,
+                complexity=args.complexity,
             )
             _json(value)
             return 0

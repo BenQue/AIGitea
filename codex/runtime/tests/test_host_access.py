@@ -1325,6 +1325,217 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
         self.assertEqual(len([m for m, _, _ in calls if m == "PUT"]), 1)
 
+    def test_issue_label_classify_projects_both_analyzer_dimensions(self) -> None:
+        """#160 AC-1: the analyzer dimensions land, everything else survives.
+
+        The gap this closes is that apply-analysis, the only writer of type/ and
+        complexity/, runs inside the Development Loop, so an Issue opened from
+        an interactive session carried neither.
+        """
+        repository = self._provisioned_labels()
+        # A project extension label (declared prefix, value not enumerated by
+        # the platform) has to survive a dimension replacement.
+        repository.append({"id": 900, "name": "area/web", "color": "ededed",
+                           "description": "project extension"})
+        by_name = {str(item["name"]): item for item in repository}
+        attached = [by_name["pr-open"], by_name["triage/ready-for-agent"],
+                    by_name["area/web"]]
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, attached, calls)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.classify",
+            number=160, change_type="platform", complexity="complex",
+        )
+        self.assertEqual(value["result"], "updated")
+        self.assertEqual(
+            value["before"], ["area/web", "pr-open", "triage/ready-for-agent"]
+        )
+        self.assertEqual(
+            value["after"],
+            ["area/web", "complexity/complex", "pr-open", "triage/ready-for-agent",
+             "type/platform"],
+        )
+        self.assertEqual(len([m for m, _, _ in calls if m == "PUT"]), 1)
+
+    def test_issue_label_classify_accepts_only_manifest_analyzer_values(self) -> None:
+        """#160 AC-2: both dimensions are checked against the installed manifest.
+
+        The values arrive bare, exactly as the summary front matter spells them,
+        and the broker namespaces them. A retired value fails here rather than
+        being attached, which is the whole reason the check is against canonical
+        rather than against the prefix.
+        """
+        repository = self._provisioned_labels()
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, [], calls)
+
+        for change_type in (
+            "bogus",
+            "type/platform",   # already namespaced: the caller passes bare values
+            "completed",       # a real label, but not this dimension
+            "Platform",        # names are exact, not case-insensitive
+            "",
+        ):
+            with self.subTest(change_type=change_type), self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.issue.labels.classify",
+                    number=160, change_type=change_type, complexity="complex",
+                )
+            self.assertEqual(caught.exception.code, "ARGUMENT_MISMATCH")
+
+        for complexity in ("bogus", "standard", "complexity/small", "Small", ""):
+            with self.subTest(complexity=complexity), self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.issue.labels.classify",
+                    number=160, change_type="platform", complexity=complexity,
+                )
+            self.assertEqual(caught.exception.code, "ARGUMENT_MISMATCH")
+
+        self.assertEqual([method for method, _, _ in calls if method == "PUT"], [])
+
+        # Every change type the manifest declares, against both complexities.
+        declared = {
+            str(entry["name"]).removeprefix("type/")
+            for entry in json.loads(LABELS.read_text())["canonical"]
+            if str(entry["name"]).startswith("type/")
+        }
+        self.assertIn("platform", declared)
+        for change_type in sorted(declared):
+            for complexity in ("small", "complex"):
+                with self.subTest(change_type=change_type, complexity=complexity):
+                    broker.execute(
+                        "aisoft-platform", "gitea.issue.labels.classify",
+                        number=160, change_type=change_type, complexity=complexity,
+                    )
+
+    def test_classification_arguments_require_both_dimensions(self) -> None:
+        """#160 AC-3: half a classification is not expressible.
+
+        A (type, complexity) pair is one judgement. The typed arguments tuple is
+        what enforces it, so there is no code path that writes one dimension and
+        leaves the other reading as an older analysis.
+        """
+        repository = self._provisioned_labels()
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, [], calls)
+
+        for kwargs in (
+            {"number": 160, "change_type": "platform"},
+            {"number": 160, "complexity": "complex"},
+            {"number": 160},
+            {"change_type": "platform", "complexity": "complex"},
+        ):
+            with self.subTest(kwargs=sorted(kwargs)), self.assertRaises(BrokerError) as caught:
+                broker.execute("aisoft-platform", "gitea.issue.labels.classify", **kwargs)
+            self.assertEqual(caught.exception.code, "ARGUMENT_MISMATCH")
+
+        # And they belong to this operation alone.
+        for operation in ("gitea.issue.labels.set", "gitea.issue.labels.read"):
+            with self.subTest(operation=operation), self.assertRaises(BrokerError) as extra:
+                broker.execute(
+                    "aisoft-platform", operation,
+                    number=160, lifecycle="completed",
+                    change_type="platform", complexity="complex",
+                )
+            self.assertEqual(extra.exception.code, "ARGUMENT_MISMATCH")
+
+        self.assertEqual(calls, [])
+
+    def test_issue_label_classify_fails_closed_when_the_label_is_not_provisioned(self) -> None:
+        """#160 AC-4: attaching is not defining, same rule as the lifecycle write."""
+        repository = [
+            item for item in self._provisioned_labels()
+            if item["name"] != "complexity/complex"
+        ]
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, [], calls)
+
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute(
+                "aisoft-platform", "gitea.issue.labels.classify",
+                number=160, change_type="platform", complexity="complex",
+            )
+        self.assertEqual(caught.exception.code, "TARGET_MISMATCH")
+        self.assertIn("gitea.labels.provision", str(caught.exception))
+        self.assertEqual([method for method, _, _ in calls if method == "PUT"], [])
+
+    def test_issue_label_classify_is_idempotent_and_converges_the_dimensions(self) -> None:
+        """#160 AC-5: no PUT when already right; one PUT when a value is stale.
+
+        The retired complexity/standard is the interesting case. It is not
+        writable — the accepted values come from canonical — but an Issue still
+        wearing it has to lose it, because the dimension it belongs to is the
+        namespace, not the canonical list.
+        """
+        repository = self._provisioned_labels()
+        repository.append({"id": 901, "name": "complexity/standard", "color": "ededed",
+                           "description": "retired"})
+        by_name = {str(item["name"]): item for item in repository}
+        attached = [by_name["type/platform"], by_name["complexity/complex"],
+                    by_name["pr-open"]]
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, attached, calls)
+
+        first = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.classify",
+            number=160, change_type="platform", complexity="complex",
+        )
+        self.assertEqual(first["result"], "no-op")
+        self.assertEqual(first["before"], first["after"])
+        self.assertEqual([method for method, _, _ in calls if method == "PUT"], [])
+        self.assertEqual(
+            first,
+            broker.execute(
+                "aisoft-platform", "gitea.issue.labels.classify",
+                number=160, change_type="platform", complexity="complex",
+            ),
+        )
+
+        # Re-projection after the summary was re-judged: one dimension moves,
+        # the lifecycle label does not.
+        calls.clear()
+        rejudged = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.classify",
+            number=160, change_type="bugfix", complexity="small",
+        )
+        self.assertEqual(rejudged["result"], "updated")
+        self.assertEqual(
+            rejudged["after"], ["complexity/small", "pr-open", "type/bugfix"]
+        )
+        self.assertEqual(len([m for m, _, _ in calls if m == "PUT"]), 1)
+
+        # An Issue carrying the retired value converges onto the current one.
+        attached.append(by_name["complexity/standard"])
+        calls.clear()
+        converged = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.classify",
+            number=160, change_type="bugfix", complexity="small",
+        )
+        self.assertEqual(converged["result"], "updated")
+        self.assertEqual(
+            converged["after"], ["complexity/small", "pr-open", "type/bugfix"]
+        )
+        self.assertEqual(len([m for m, _, _ in calls if m == "PUT"]), 1)
+
+    def test_analyzer_dimension_write_is_one_typed_operation_per_dimension(self) -> None:
+        """#160: the surface stays dimension-shaped, never a label-set write."""
+        classify = self.contract.operation("gitea.issue.labels.classify")
+        self.assertEqual(classify.identity_route, "project-agent")
+        self.assertTrue(classify.mutating)
+        self.assertEqual(classify.arguments, ("number", "change_type", "complexity"))
+
+        names = {operation.name for operation in self.contract.operations}
+        for absent in (
+            "gitea.issue.labels.add",
+            "gitea.issue.labels.replace",
+            "gitea.issue.labels.triage",
+            "gitea.issue.labels.delete",
+        ):
+            self.assertNotIn(absent, names)
+        for operation in self.contract.operations:
+            self.assertNotIn("labels", operation.arguments)
+
     def test_issue_create_update_comment_and_read_use_fixed_typed_routes(self) -> None:
         calls = []
 
@@ -2661,7 +2872,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             "aisoft-platform", "gitea.pull.create",
             number=None, state=None, branch=None, issue=70,
             title="fix(host-access): governed writes", body=body, comment=None, sha=None,
-            job=None, lifecycle=None,
+            job=None, lifecycle=None, change_type=None, complexity=None,
         )
         self.assertEqual(json.loads(stdout.getvalue()), {"number": 71})
 
@@ -2685,6 +2896,30 @@ class HostAccessBrokerTests(unittest.TestCase):
             "aisoft-platform", "gitea.issue.labels.set",
             number=115, state=None, branch=None, issue=None,
             title=None, body=None, comment=None, sha=None, job=None, lifecycle="completed",
+            change_type=None, complexity=None,
+        )
+
+        # --change-type / --complexity are typed fields on the same terms
+        # (#160): bare front matter values, no path, URL or shell fragment, and
+        # the broker alone decides which values are legal.
+        classify_argv = [
+            "--access-manifest", str(ACCESS),
+            "--governance-manifest", str(GOVERNANCE),
+            "broker", "--project", "aisoft-platform",
+            "--operation", "gitea.issue.labels.classify",
+            "--number", "160", "--change-type", "platform", "--complexity", "complex",
+        ]
+        stdout = io.StringIO()
+        with (
+            patch.object(HostAccessBroker, "execute", return_value={"result": "updated"}) as execute,
+            redirect_stdout(stdout),
+        ):
+            self.assertEqual(host_access_cli_main(classify_argv), 0)
+        execute.assert_called_once_with(
+            "aisoft-platform", "gitea.issue.labels.classify",
+            number=160, state=None, branch=None, issue=None,
+            title=None, body=None, comment=None, sha=None, job=None, lifecycle=None,
+            change_type="platform", complexity="complex",
         )
 
         for forbidden in (

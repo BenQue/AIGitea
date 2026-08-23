@@ -13,12 +13,12 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 10 and
-  .operation_count == 29 and
+  .operation_count == 30 and
   .merge_operation_count == 0
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 29) and
+  ([.operations[].name] | length == 30) and
   all(.operations[];
     (.name | contains("merge") | not) and
     (.name | contains("shell") | not) and
@@ -50,6 +50,9 @@ jq -e '
   ([.operations[] | select(.name == "gitea.issue.labels.set")][0].arguments
     == ["number", "lifecycle"]) and
   ([.operations[] | select(.name == "gitea.issue.labels.set")][0].mutating == true) and
+  ([.operations[] | select(.name == "gitea.issue.labels.classify")][0].arguments
+    == ["number", "change_type", "complexity"]) and
+  ([.operations[] | select(.name == "gitea.issue.labels.classify")][0].mutating == true) and
   ([.operations[] | select(.name == "gitea.issue.labels.read")][0].mutating == false) and
   ([.operations[].name] | any(test("^gitea\\.labels\\.")) ) and
   ([.operations[].name] | any(contains("delete")) | not) and
@@ -108,12 +111,35 @@ for invalid_lifecycle in bogus type/feature triage/ready-for-agent; do
   grep -Fq 'ARGUMENT_MISMATCH' <<<"$lifecycle_output"
 done
 
-# The lifecycle argument belongs to that one operation. Omitting it, or adding
-# it to the read counterpart, is a typed-contract violation rather than a
-# defaulted write.
+# gitea.issue.labels.classify checks both analyzer dimensions against the same
+# installed manifest (#160). standard is the case worth pinning: it is a real
+# complexity name, retired in the manifest, and must not be attachable.
+for invalid_classification in \
+  "--change-type bogus --complexity complex" \
+  "--change-type type/platform --complexity complex" \
+  "--change-type platform --complexity standard" \
+  "--change-type platform --complexity bogus"; do
+  set +e
+  # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
+  classify_output="$("$ROOT/codex/tools/host-access-broker.sh" \
+    --project hsdb --operation gitea.issue.labels.classify \
+    --number 1 $invalid_classification 2>&1)"
+  classify_status=$?
+  set -e
+  test "$classify_status" = 20
+  grep -Fq 'BLOCKED_EXTERNAL' <<<"$classify_output"
+  grep -Fq 'ARGUMENT_MISMATCH' <<<"$classify_output"
+done
+
+# The lifecycle argument belongs to that one operation, and so does each half of
+# the classification pair. Omitting one, or adding it to the read counterpart,
+# is a typed-contract violation rather than a defaulted write.
 for mismatched in \
   "--operation gitea.issue.labels.set --number 1" \
-  "--operation gitea.issue.labels.read --number 1 --lifecycle completed"; do
+  "--operation gitea.issue.labels.read --number 1 --lifecycle completed" \
+  "--operation gitea.issue.labels.classify --number 1 --change-type platform" \
+  "--operation gitea.issue.labels.classify --number 1 --complexity complex" \
+  "--operation gitea.issue.labels.read --number 1 --change-type platform --complexity complex"; do
   set +e
   # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
   mismatch_output="$("$ROOT/codex/tools/host-access-broker.sh" \
