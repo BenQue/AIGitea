@@ -11,9 +11,9 @@ risk_flags:
   - agent-governance
   - platform-governance
 depends_on: []
-status: approved
+status: pr-open
 branch: change/146-loop-controller-pr-url
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/147
 created: 2026-08-23
 updated: 2026-08-23
 reason: 改动 controller.py 与 Agent 在 change 分支上的提交行为，属 Agent/平台治理类别，强制 complex
