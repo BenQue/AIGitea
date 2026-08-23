@@ -200,11 +200,30 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "gitea.labels.provision": ("project-agent", True, ()),
     # Per-Issue label attachment (#115), the other half of the pair above. The
     # naming rule from #108 holds: an operation with an issue. segment attaches,
-    # one without defines. set writes the lifecycle dimension only — type/ and
-    # complexity/ are analyzer output and triage/ is Matt output, so a typed
-    # write for those would be a supported way around their producing pipelines.
+    # one without defines. One operation per label dimension, never one that
+    # takes a label set: set writes lifecycle, classify writes the analyzer's
+    # two dimensions, and neither can drop the other's labels or triage/.
+    #
+    # classify exists because the analyzer dimensions had exactly one writer,
+    # aisoft_loop's apply-analysis, and it only ever runs inside the Development
+    # Loop — so every Issue opened from an interactive session carried no type/
+    # and no complexity/ at all (#160). What #115 ruled out here was an
+    # arbitrary label write, which would indeed be a way around the producing
+    # pipeline. This is the projection of the pipeline's own output: its only
+    # caller is apply-classification-labels.sh, which reads change_type and
+    # effective_complexity out of the Issue's mapped summary front matter and
+    # cannot be handed a label by its caller. The bare values are namespaced and
+    # checked against the installed manifest here, so the surface still refuses
+    # anything the label contract does not define.
+    #
+    # Both dimensions are required rather than optional: a classification is a
+    # (type, complexity) pair, and the supplied-arguments check below is what
+    # makes projecting half of one unrepresentable.
     "gitea.issue.labels.read": ("project-agent", False, ("number",)),
     "gitea.issue.labels.set": ("project-agent", True, ("number", "lifecycle")),
+    "gitea.issue.labels.classify": (
+        "project-agent", True, ("number", "change_type", "complexity"),
+    ),
     "gitea.protection.read": ("manager-audit", False, ()),
     "host.access.audit": ("manager-audit", False, ()),
     "host.onboarding.check": ("manager-audit", False, ()),

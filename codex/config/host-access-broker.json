@@ -186,6 +186,16 @@
       ]
     },
     {
+      "name": "gitea.issue.labels.classify",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "change_type",
+        "complexity"
+      ]
+    },
+    {
       "name": "gitea.protection.read",
       "identity_route": "manager-audit",
       "mutating": false,

@@ -419,6 +419,8 @@ class HostAccessBroker:
         sha: str | None = None,
         job: int | None = None,
         lifecycle: str | None = None,
+        change_type: str | None = None,
+        complexity: str | None = None,
     ) -> object:
         try:
             project = self.contract.project(project_id)
@@ -436,6 +438,8 @@ class HostAccessBroker:
             "sha": sha,
             "job": job,
             "lifecycle": lifecycle,
+            "change_type": change_type,
+            "complexity": complexity,
         }
         supplied = {
             key for key, value in arguments.items()
@@ -458,6 +462,8 @@ class HostAccessBroker:
                     sha=sha,
                     job=job,
                     lifecycle=lifecycle,
+                    change_type=change_type,
+                    complexity=complexity,
                 )
             if operation_name.startswith("git.") or operation_name == "mac.git.bind":
                 return self._git(project, operation, branch=branch)
@@ -487,6 +493,8 @@ class HostAccessBroker:
         sha: str | None,
         job: int | None,
         lifecycle: str | None,
+        change_type: str | None,
+        complexity: str | None,
     ) -> object:
         method = "GET"
         payload: object | None = None
@@ -556,6 +564,26 @@ class HostAccessBroker:
                     "ARGUMENT_MISMATCH",
                     "lifecycle must be one of the delivery states the label manifest declares",
                 )
+        elif operation.name == "gitea.issue.labels.classify":
+            _positive_number(number, "Issue")
+            # Bare front matter values in, namespaced label names out: the
+            # caller copies change_type and effective_complexity straight out of
+            # the summary and never has to know how the label is spelled.
+            # Checked against the installed manifest for the same reason
+            # --lifecycle is, and a retired value fails here rather than being
+            # attached — complexity/standard is exactly the case that matters.
+            # Local file read, so an out-of-range value costs no credential and
+            # no request.
+            if f"type/{change_type}" not in self._namespaced_labels("type/"):
+                raise BrokerError(
+                    "ARGUMENT_MISMATCH",
+                    "change type must be one of the change types the label manifest declares",
+                )
+            if f"complexity/{complexity}" not in self._namespaced_labels("complexity/"):
+                raise BrokerError(
+                    "ARGUMENT_MISMATCH",
+                    "complexity must be one of the complexities the label manifest declares",
+                )
         credential = self.credentials.resolve(project, operation)
         self._verify_identity(credential)
         owner = quote(self.contract.governance.owner, safe="")
@@ -582,6 +610,12 @@ class HostAccessBroker:
             assert number is not None and lifecycle is not None
             return self._set_issue_lifecycle(
                 repo_api, credential.token, number, lifecycle
+            )
+        if operation.name == "gitea.issue.labels.classify":
+            assert number is not None
+            assert change_type is not None and complexity is not None
+            return self._set_issue_classification(
+                repo_api, credential.token, number, change_type, complexity
             )
         if operation.name == "gitea.repo.read":
             url = repo_api
@@ -749,6 +783,23 @@ class HostAccessBroker:
             entry["name"]
             for entry in self._label_manifest()["canonical"]
             if "/" not in entry["name"]
+        }
+
+    def _namespaced_labels(self, prefix: str) -> set[str]:
+        """One namespaced label dimension, derived from the installed manifest.
+
+        The mirror of _lifecycle_labels(): that one takes the canonical names
+        carrying no namespace, this one takes the names under a given prefix.
+        Derived rather than listed for the same reason — a literal would be a
+        second copy of the manifest, and it would keep accepting a value this
+        install no longer declares. complexity/standard is the live case:
+        retired in the manifest, so not writable here, while an Issue still
+        carrying it is a separate question answered in _set_issue_classification.
+        """
+        return {
+            entry["name"]
+            for entry in self._label_manifest()["canonical"]
+            if entry["name"].startswith(prefix)
         }
 
     def _actions_runs(
@@ -1022,47 +1073,98 @@ class HostAccessBroker:
     def _set_issue_lifecycle(
         self, repo_api: str, token: str, number: int, lifecycle: str
     ) -> dict[str, object]:
-        """Replace the Issue's lifecycle dimension, leaving every other label.
+        """Replace the Issue's lifecycle dimension, leaving every other label."""
+        states = self._lifecycle_labels()
 
-        Attaching is not defining: when the target label has no definition in
-        the repository this fails closed and names gitea.labels.provision (#108)
+        def guard(attached: set[str]) -> None:
+            # completed and deployed are the two terminal states and deployed is
+            # the stronger one. Demoting a shipped change back to completed is a
+            # claim about what actually happened to it, so it stays a human
+            # decision and is not reachable through the tool that walks merged
+            # Issues.
+            if lifecycle == "completed" and "deployed" in attached:
+                raise BrokerError(
+                    "REQUEST_DENIED",
+                    "Issue is already deployed; downgrading it to completed is a human decision",
+                )
+
+        return self._replace_issue_label_dimensions(
+            repo_api,
+            token,
+            number,
+            in_dimension=lambda name: name in states,
+            targets=(lifecycle,),
+            guard=guard,
+        )
+
+    def _set_issue_classification(
+        self, repo_api: str, token: str, number: int, change_type: str, complexity: str
+    ) -> dict[str, object]:
+        """Project one AI classification onto the Issue's two analyzer dimensions.
+
+        Both move in a single write because they are a single judgement: an
+        Issue left holding a type/ from this analysis and a complexity/ from an
+        older one is a state the four-dimension contract does not describe.
+
+        Dimension membership is the namespace itself, not the canonical list, so
+        an Issue still carrying the retired complexity/standard has it replaced
+        rather than kept alongside the new value. Retired labels are never
+        removed from the repository (that stays _provision_labels' report-only
+        rule); this is about which label the Issue ends up wearing.
+        """
+        return self._replace_issue_label_dimensions(
+            repo_api,
+            token,
+            number,
+            in_dimension=lambda name: name.startswith(("type/", "complexity/")),
+            targets=(f"type/{change_type}", f"complexity/{complexity}"),
+        )
+
+    def _replace_issue_label_dimensions(
+        self,
+        repo_api: str,
+        token: str,
+        number: int,
+        *,
+        in_dimension: Callable[[str], bool],
+        targets: tuple[str, ...],
+        guard: Callable[[set[str]], None] | None = None,
+    ) -> dict[str, object]:
+        """Replace whole label dimensions on one Issue, leaving every other label.
+
+        Attaching is not defining: when a target label has no definition in the
+        repository this fails closed and names gitea.labels.provision (#108)
         instead of creating it, so the two operation surfaces stay separate.
         """
-        states = self._lifecycle_labels()
         defined = {item["name"]: item for item in self._labels(repo_api, token)}
-        target = defined.get(lifecycle)
-        if target is None:
-            raise BrokerError(
-                "TARGET_MISMATCH",
-                f"the {lifecycle} label is not defined in this repository; "
-                "define it with gitea.labels.provision before attaching it",
-            )
-        target_id = target.get("id")
-        if not isinstance(target_id, int) or isinstance(target_id, bool):
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID", "Gitea label is missing a usable id"
-            )
+        target_ids: dict[str, int] = {}
+        for name in targets:
+            target = defined.get(name)
+            if target is None:
+                raise BrokerError(
+                    "TARGET_MISMATCH",
+                    f"the {name} label is not defined in this repository; "
+                    "define it with gitea.labels.provision before attaching it",
+                )
+            target_id = target.get("id")
+            if not isinstance(target_id, int) or isinstance(target_id, bool):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Gitea label is missing a usable id"
+                )
+            target_ids[name] = target_id
 
         current = self._issue_labels(repo_api, token, number)
         before = sorted(str(item["name"]) for item in current)
-        attached_states = {str(item["name"]) for item in current if item["name"] in states}
-
-        # completed and deployed are the two terminal states and deployed is the
-        # stronger one. Demoting a shipped change back to completed is a claim
-        # about what actually happened to it, so it stays a human decision and
-        # is not reachable through the tool that walks merged Issues.
-        if lifecycle == "completed" and "deployed" in attached_states:
-            raise BrokerError(
-                "REQUEST_DENIED",
-                "Issue is already deployed; downgrading it to completed is a human decision",
-            )
+        attached = {str(item["name"]) for item in current if in_dimension(str(item["name"]))}
+        if guard is not None:
+            guard(attached)
 
         # Already exactly right: no PUT at all, so a repeated run cannot churn
         # the Issue's label history or its notification stream. The comparison
-        # is against the whole lifecycle dimension, not just membership — an
-        # Issue carrying two lifecycle labels still needs the write that leaves
-        # it holding one.
-        if attached_states == {lifecycle}:
+        # is against the whole dimension, not just membership — an Issue
+        # carrying two labels from one dimension still needs the write that
+        # leaves it holding one.
+        if attached == set(targets):
             return {
                 "issue": number,
                 "before": before,
@@ -1071,13 +1173,17 @@ class HostAccessBroker:
                 "status": "PASS",
             }
 
-        # Everything outside the lifecycle dimension is carried across by id.
-        # This is a replacement of one dimension, not an assignment of a label
-        # set: there is no way to ask this operation to drop type/, complexity/,
-        # triage/ or a project extension label.
+        # Everything outside the named dimensions is carried across by id. This
+        # is a replacement of dimensions, not an assignment of a label set:
+        # there is no way to ask these operations to drop the dimensions they do
+        # not own, triage/ or a project extension label.
         final = sorted(
-            {int(item["id"]) for item in current if item["name"] not in states}
-            | {target_id}
+            {
+                int(item["id"])
+                for item in current
+                if not in_dimension(str(item["name"]))
+            }
+            | set(target_ids.values())
         )
         self._request_json(
             f"{repo_api}/issues/{number}/labels",
@@ -1086,7 +1192,7 @@ class HostAccessBroker:
             payload={"labels": final},
         )
         by_id = {int(item["id"]): str(item["name"]) for item in current}
-        by_id[target_id] = lifecycle
+        by_id.update({value: name for name, value in target_ids.items()})
         return {
             "issue": number,
             "before": before,

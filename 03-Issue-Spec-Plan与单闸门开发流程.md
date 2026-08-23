@@ -195,3 +195,33 @@ broker `gitea.issue.labels.set` 写入。是否该用 `completed` 的判定取�
 summary 的 `required_docs` 是否含 `verification`——含则说明该变更要部署，终态应是
 `deployed`，工具会跳过并给出理由，不接受人工传入的终态判断。已经是 `deployed` 的
 Issue 不会被降级为 `completed`：那是对「它到底发生了什么」的判断，必须由人显式做。
+
+### 谁投影 `type/*` 与 `complexity/*`
+
+同一个缺口的另一半（#160）。`aisoft_loop.cli apply-analysis` 是这两个维度唯一的写入点，
+它只在 Development Loop 内运行，所以 Mac 交互会话开出的 Issue 判级只落在 summary
+front matter 里，标签始终为空——四维正交合同在这条路径上从来没被满足过。
+
+由人在**判级文档写好之后**运行 `codex/tools/apply-classification-labels.sh` 投影
+（会话内的位置见 `aisoft-platform` skill 的会话标准动作）：
+
+```bash
+codex/tools/apply-classification-labels.sh 160
+codex/tools/apply-classification-labels.sh --apply 160
+```
+
+与 `mark-completed-issues.sh` 同姿态：默认只输出逐 Issue 的判定计划、不做任何写入；
+确认后加 `--apply` 才经 broker `gitea.issue.labels.classify` 写入。两个维度的取值取自该
+Issue 映射 summary 的 `change_type` 与 `effective_complexity`，**不接受人工传入标签**；
+summary 没有 `effective_complexity`（`contract_effect: unclear` 的
+needs-human-decision 形态）时跳过并说明，不臆造复杂度。broker 侧再对已安装的
+label manifest 逐维校验，retired 的 `complexity/standard` 写不进去。写入替换的是这两个
+维度，生命周期标签、`triage/*` 与 `area/`、`priority/` 等项目扩展标签原样保留。
+
+**已关闭的 Issue 不补写**，工具直接跳过且不提供 override 开关。依据：
+`aisoft_loop.cli list-issues` 的请求是 `state=open`，检索缺口只存在于 open Issue 上；
+判级事实已经在合并后的 summary 里且不可变；改写已经收尾的记录与「retired label
+只报告不移除」「`deployed` 不降级为 `completed`」是同一条姿态。
+
+> 新增 typed 操作后 broker 必须在 Mac 与 gitea-ci 两台重装才生效，
+> 未重装时新操作返回 `REQUEST_DENIED / not allowlisted`（`06` 踩坑 20）。
