@@ -20,6 +20,7 @@ NEXT: reclassify as complex and create spec/plan
 ```
 
 5. Work only in the controller-provided isolated `change/N-short-description` worktree whose basename is `issue-N-short-description`. Do not manage names, locks, credentials, labels, PRs, documents, or deployment. Classification and lifecycle mutations belong to the wrapper/controller.
+   - The controller opens the PR and then writes that PR's URL into the change summary's `pr_url` front matter, advances the summary's `status` to `pr-open`, commits exactly that one document and pushes it (#146). That commit is the controller's, not yours: never write `pr_url` yourself, and do not report the extra commit as provider work.
    - Never edit an `AGENTS.md` that governs the current Loop run. If a complex contract changes that governance file, produce only a patch/proposal for an independent controlled governance step; after it is applied, a fresh run must validate and adopt the new rules.
 6. Select the first unblocked `Txx` frontier task from the mapped plan; for a legacy or small contract without a ticket graph use the synthetic `T01`.
 7. Dispatch the complete Matt `$implement Issue #N ticket Txx` flow. It implements, tests, reviews and commits locally; every commit subject contains `#N` and `Txx` and the worktree must be clean.

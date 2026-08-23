@@ -104,6 +104,15 @@ Let the Loop handle ordinary compile, lint, type, test, build, browser, and CI f
 
 Accept only `READY_FOR_REVIEW`, `NEEDS_HUMAN_DECISION`, `BLOCKED_EXTERNAL`, or `FAILED_LIMIT` as final states. Never describe unrun checks as passed.
 
+After it opens the pull request, the Controller writes that PR's URL into the change summary's `pr_url` front
+matter field and advances the summary's `status` to `pr-open`, commits exactly that one document, and pushes it
+(#146). This is automatic — do not add a manual backfill step, and do not treat the extra commit as provider
+work. `pr_url` lives in the summary only (#142); spec, plan and verification documents do not carry it. If the
+summary does not declare `pr_url`, or already declares a different one, the Controller fails closed and returns
+`NEEDS_HUMAN_DECISION` rather than overwriting or skipping — a change has exactly one PR, so a second value
+means the premise broke. Verify any checkout with
+`PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo <checkout>`.
+
 ## Preserve the deployment boundary
 
 For an onboarded application that has deployment scope, help design and execute the first real development/test deployment, convert manual steps into versioned scripts, run twice from a repeatable state, and exercise one deliberate failure/rollback path. Documentation-only platform repositories such as AISoftPlatform do not need an application deployment pipeline.
