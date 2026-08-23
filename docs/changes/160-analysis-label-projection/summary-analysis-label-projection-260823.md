@@ -11,9 +11,9 @@ risk_flags:
   - platform-governance
   - agent-governance
 depends_on: []
-status: approved
+status: pr-open
 branch: change/160-analysis-label-projection
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/161
 created: 2026-08-23
 updated: 2026-08-23
 reason: 新增一个 typed broker 写操作与一个治理工具，扩展 Gitea 标签写路径，并给交互会话合同补一步；属平台/Agent 治理变更，强制 complex
