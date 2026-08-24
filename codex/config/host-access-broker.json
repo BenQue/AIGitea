@@ -337,8 +337,7 @@
       "project_id": "rsdesign-new",
       "repository": "rsdesign-new",
       "project_agent": "rsdesign-agent",
-      "git_remote_name": "gitea",
-      "mac_checkout": "/Users/benque/Projects/RSDesignTool/rsdesign-new",
+      "mac_checkout": "/Users/benque/Projects/rsdesign-new",
       "vm_profile": {
         "name": "rsdesign",
         "repo_dir": "work/rsdesign-new",

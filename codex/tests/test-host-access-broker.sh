@@ -57,10 +57,9 @@ jq -e '
   ([.operations[].name] | any(test("^gitea\\.labels\\.")) ) and
   ([.operations[].name] | any(contains("delete")) | not) and
   ([.projects[] | select(.project_id == "newemaint")][0].git_remote_name == "gitea") and
-  ([.projects[] | select(.project_id == "rsdesign-new")][0].git_remote_name == "gitea") and
   ([.projects[] | select(.project_id == "sfm-digital-board")][0].git_remote_name == "gitea") and
   ([.projects[]
-    | select(.project_id != "newemaint" and .project_id != "rsdesign-new" and .project_id != "sfm-digital-board")
+    | select(.project_id != "newemaint" and .project_id != "sfm-digital-board")
     | has("git_remote_name")] | all(. == false)) and
   ([.projects[] | select(.vm_profile != null) | .repository] | sort) ==
     ["HSDB", "LocalWMS", "NewEMaint", "SFMDigitalBoard", "aisoft-platform",

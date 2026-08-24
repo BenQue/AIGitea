@@ -70,7 +70,7 @@ class HostAccessContractTests(unittest.TestCase):
             self.contract.operation("git.push.main")
 
     def test_manifest_fixed_remote_defaults_and_rejects_unsafe_names(self) -> None:
-        gitea_remote_projects = {"newemaint", "rsdesign-new", "sfm-digital-board"}
+        gitea_remote_projects = {"newemaint", "sfm-digital-board"}
         remotes = {project.project_id: project.git_remote_name
                    for project in self.contract.projects}
         for project_id in gitea_remote_projects:
