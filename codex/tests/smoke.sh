@@ -83,6 +83,7 @@ for script in \
   "$ROOT/codex/tests/test-host-role-guard.sh" \
   "$ROOT/codex/tests/test-install-host-role.sh" \
   "$ROOT/codex/tests/test-host-access-broker.sh" \
+  "$ROOT/codex/tests/test-install-host-access-broker.sh" \
   "$ROOT"/sync/*.sh \
   "$ROOT"/sync/tests/*.sh; do
   bash -n "$script"
@@ -124,6 +125,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-host-role-guard.sh" \
     "$ROOT/codex/tests/test-install-host-role.sh" \
     "$ROOT/codex/tests/test-host-access-broker.sh" \
+    "$ROOT/codex/tests/test-install-host-access-broker.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh" \
     "$ROOT/codex/tests/test-gitea-token-lib.sh" \
     "$ROOT/codex/tests/test-gitea-token-consumers.sh"
@@ -169,6 +171,7 @@ bash "$ROOT/codex/tests/test-install-claude-skills.sh"
 bash "$ROOT/codex/tests/test-host-role-guard.sh"
 bash "$ROOT/codex/tests/test-install-host-role.sh"
 bash "$ROOT/codex/tests/test-host-access-broker.sh"
+bash "$ROOT/codex/tests/test-install-host-access-broker.sh"
 bash "$ROOT/codex/tests/test-docker-release-install.sh"
 bash "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
 harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh")"
