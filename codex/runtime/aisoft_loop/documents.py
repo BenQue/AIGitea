@@ -76,7 +76,15 @@ def backfill_pr_url(
     index = _front_matter_field(lines, end, "pr_url")
     if index is None:
         raise ContractError("summary front matter does not declare pr_url")
-    current = lines[index].split(":", 1)[1].strip()
+    # The value is taken from the parsed front matter, not by splitting the raw
+    # line a second time. contract._safe_scalar strips matching quotes, so
+    # `pr_url: ''` is empty to every reader in this runtime — the audit, the
+    # prefix check, the Controller. Re-parsing here was a second, weaker rule
+    # that kept the quotes, and it reported that spelling as a *different*
+    # pr_url: a report of a second pull request that never existed (#186). The
+    # raw line is still needed, but only to know which line to replace.
+    declared = summary.get("pr_url")
+    current = declared.strip() if isinstance(declared, str) else ""
     if current and current != pr_url:
         raise ContractError(
             f"summary already declares a different pr_url: {current}"
