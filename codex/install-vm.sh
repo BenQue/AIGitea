@@ -8,6 +8,23 @@ AGENT_DIR="${2:-$TARGET_HOME/agent}"
 RUNTIME_DIR="$TARGET_HOME/.local/lib/aisoft-loop"
 SHARE_DIR="$TARGET_HOME/.local/share/aisoft"
 
+# Source provenance and staleness gate (#162, #171). Must stay before the first
+# filesystem write below; `install -d` counts as a write.
+# shellcheck disable=SC1091
+source "$ROOT/codex/lib/install-source-guard.sh"
+
+aisoft_install_source_guard install-vm "$ROOT" \
+  'runtime modules' "$(
+    aisoft_install_source_file_count \
+      "$ROOT"/codex/runtime/aisoft_loop/*.py \
+      "$ROOT"/codex/runtime/aisoft_host_access/*.py \
+      "$ROOT"/codex/runtime/aisoft_gitea_governance/*.py \
+      "$ROOT/codex/runtime/aisoft_change_name.py"
+  )" \
+  operations "$(
+    aisoft_install_source_json_count "$ROOT/codex/config/host-access-broker.json" operations
+  )"
+
 install -d -m 700 \
   "$TARGET_HOME/.codex" \
   "$TARGET_HOME/.config/aisoft/projects" \

@@ -26,8 +26,10 @@ expected_operations="$(
 # wrong reason.
 make_source_tree() {
   local dest="$1"
-  mkdir -p "$dest/codex/runtime" "$dest/codex/config" "$dest/codex/tools"
+  mkdir -p "$dest/codex/runtime" "$dest/codex/config" "$dest/codex/tools" \
+    "$dest/codex/lib"
   cp "$ROOT/codex/install-host-access-broker.sh" "$dest/codex/"
+  cp "$ROOT/codex/lib/install-source-guard.sh" "$dest/codex/lib/"
   cp -R "$ROOT/codex/runtime/aisoft_host_access" "$dest/codex/runtime/"
   cp -R "$ROOT/codex/runtime/aisoft_gitea_governance" "$dest/codex/runtime/"
   cp "$ROOT/codex/runtime/aisoft_change_name.py" "$dest/codex/runtime/"

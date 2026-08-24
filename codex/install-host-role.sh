@@ -8,6 +8,16 @@ LIBEXEC_DIR="$INSTALL_ROOT/usr/local/libexec/aisoft"
 SHARE_DIR="$INSTALL_ROOT/usr/local/share/aisoft"
 CONFIG_DIR="$INSTALL_ROOT/etc/aisoft"
 
+# Source provenance and staleness gate (#162, #171). Must stay before the first
+# filesystem write below; `install -d` counts as a write.
+# shellcheck disable=SC1091
+source "$ROOT/codex/lib/install-source-guard.sh"
+
+aisoft_install_source_guard install-host-role "$ROOT" \
+  capabilities "$(
+    aisoft_install_source_json_count "$ROOT/codex/config/host-capabilities.json" capabilities
+  )"
+
 install -d -m 0755 "$LIBEXEC_DIR" "$SHARE_DIR" "$CONFIG_DIR"
 install -m 0755 "$ROOT/codex/tools/verify-host-role.sh" \
   "$LIBEXEC_DIR/verify-host-role"
