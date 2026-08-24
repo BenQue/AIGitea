@@ -40,7 +40,7 @@ fi
     'Do not edit files or mutate Git/Gitea state.' \
     'Return only one JSON object with exactly these fields:' \
     '{"classification":"the canonical classification YAML string","document_slug":"two-to-four-short-words","problem_summary":"...","impact":"...","approach":"...","risks":["..."],"evidence":["repo evidence"],"missing_acceptance_criteria":[]}' \
-    'The classification YAML must use semantic required_docs roles: summary; add spec and plan for complex; add verification for deployment or migration. Omit effective_complexity for needs-human-decision.' \
+    'The classification YAML must use semantic required_docs roles: summary; add spec and plan for complex; add verification when the acceptance evidence cannot be reproduced by diff review and required CI, which always includes deployment and migration but is not limited to them. Omit effective_complexity for needs-human-decision.' \
     'document_slug must be a meaningful lowercase kebab-case slug with 2-4 English words, preferably at most 24 and never more than 32 characters.' \
     '' \
     'ISSUE JSON:'

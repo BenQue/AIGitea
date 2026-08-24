@@ -9,7 +9,7 @@ description: Drive a contract-ready Gitea Issue through a bounded implement-veri
 2. Validate the contract before editing:
    - require measurable Issue acceptance criteria for `small`;
    - for `complex`, require both mapped `spec` and `plan`; validate that their metadata says `effective_complexity: complex`, the spec has measurable acceptance criteria and no unresolved material decisions, and the plan maps in-scope tasks and deterministic verification to those criteria;
-   - require mapped `verification` work for deployment or migration scope;
+   - require mapped `verification` work whenever the mapped summary's `required_docs` includes that role; declaring it means the change owes a verification record, not that the change deploys, so never re-derive the requirement from deployment scope;
    - stop if the Issue, summary, spec, and plan conflict, omit required scope, or contain unresolved material decisions.
 3. Before every edit, recompute `contract_effect` and all forced-complex risk conditions from the current Issue contract and repository evidence. Do not trust a stale `complexity/small` label or summary field.
 4. If a small contract now has `contract_effect` of `add` or `change`, or crosses any forced risk (schema/data migration, external contract, authentication/authorization/security, shared core component, cross-module/service, CI/artifact/deployment/rollback, or Agent/platform governance), make no further edits and return:

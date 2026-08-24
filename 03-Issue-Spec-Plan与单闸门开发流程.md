@@ -61,7 +61,7 @@ docs/changes/N-short-description/
 ├── summary-<slug>-YYMMDD.md       # 必须
 ├── spec-<slug>-YYMMDD.md          # complex 必须（change_control=production）
 ├── plan-<slug>-YYMMDD.md          # complex 必须（change_control=production）
-└── verification-<slug>-YYMMDD.md  # deploy/migration 必须，其他推荐
+└── verification-<slug>-YYMMDD.md  # 按下方「何时声明 `verification`」判定
 ```
 
 文件名固定为 `<role>-<short-description>-<YYMMDD>.md`：slug 使用 2–4 段 lowercase ASCII `kebab-case`、至少包含一个字母、硬上限 32 字符，完整 basename 不超过 64 字符；分支、目录、worktree、文档和 front matter 必须使用同一 `(N, slug)`。slug 创建后不可修改；纠错应开新 Issue。日期等于各文件首次创建日期，普通更新只修改 `updated`，不重命名。
@@ -73,6 +73,31 @@ docs/changes/N-short-description/
 新合同只使用 `summary`、`spec`、`plan`、`verification` 角色；Controller 严格读取 `documents` 映射并校验角色、slug、日期、目录边界和唯一性，不使用无约束 glob。没有映射的历史 summary 仅回退到 `00-summary.md`、`01-spec.md`、`02-plan.md`、`03-verification.md`，新 writer 不再生成这些名称，也不批量重命名历史文件。
 
 映射的 spec 必须定义目标、可测验收标准、接口/数据/兼容影响和非目标。映射的 plan 必须把每条验收标准映射到 `Txx` 垂直切片、`blocked_by`、预期 touch points 和验证命令。Loop 不得自行修改已经确认的 acceptance criteria 或扩大范围。
+
+### 何时声明 `verification`
+
+`required_docs` 含不含 `verification` 回答的是「这次变更**欠不欠一份验证记录**」，
+不是「这次变更要不要部署」（§11 的合取表已经把后一个问题交给仓库属性
+`deployment_lifecycle`）。判据因此落在**验收证据的来源**上，而不是变更的题材：
+
+| 全部验收标准的证据来源 | 声明 `verification` |
+|---|---|
+| diff review 与 required CI 就能复现 | 否 |
+| 存在只能在真实环境里执行、或只能一次性观测到的证据 | 是 |
+
+落在第二行的典型形态：部署、迁移、安装与主机侧生效；改动前的基线观测与改动前后
+对比；故意失败与回滚的现场；required CI 不跑的确定性命令（跨仓扫描、`--dry-run`
+计划、只在本地可达的环境）。部署与迁移必然落在第二行，所以它们始终必须声明——
+但它们不是唯一落在第二行的变更，这正是旧判据（按题材）漏掉的那一半。
+
+声明 `verification` **不隐含要部署**，也不改变终态判定：合并后的终态由 §11 的
+合取表决定，`deployment_lifecycle: none` 的仓库声明了 `verification` 照样到
+`completed`。作者不必为了让 Issue 能收尾而少声明一份该写的验证记录（#163、#168）。
+
+不部署时什么算合格的验证记录：每条 acceptance criterion 都有一条真实执行过的命令
+或一次真实观测支撑，命令与输出照实抄，不可达的环境与未执行项显式写明。模板见
+`templates/docs/changes/_template/verification.md`，其中 `## 部署验收` 一节只适用于
+实际部署或迁移的变更，不部署时整节删除而不是保留标题填「无」。
 
 ## 4. 平台三维标签与 Matt triage
 
