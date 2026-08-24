@@ -199,15 +199,30 @@ def _skill_front_matter(skill_file: Path) -> tuple[str, bool]:
     disable_model = False
     for line in match.group(1).splitlines():
         if line.startswith("name:"):
-            name = line.split(":", 1)[1].strip().strip("'\"")
+            name = _front_matter_value(line, skill_file, "invalid skill name")
         if line.startswith("disable-model-invocation:"):
-            value = line.split(":", 1)[1].strip().lower()
+            value = _front_matter_value(
+                line, skill_file, "invalid invocation policy"
+            ).lower()
             if value not in {"true", "false"}:
                 raise SnapshotError(f"invalid invocation policy: {skill_file}")
             disable_model = value == "true"
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name):
         raise SnapshotError(f"invalid skill name: {skill_file}")
     return name, disable_model
+
+
+# The single answer to "what is this front matter line's value" for every field
+# read above (#194). Quotes are stripped only as a matching pair, so unterminated
+# or mismatched quoting fails closed instead of being silently repaired -- this
+# module gates vendored skill integrity before install-skills.sh writes anything.
+def _front_matter_value(line: str, skill_file: Path, error: str) -> str:
+    value = line.split(":", 1)[1].strip()
+    if value.startswith(("'", '"')):
+        if len(value) < 2 or value[-1] != value[0]:
+            raise SnapshotError(f"{error}: {skill_file}")
+        value = value[1:-1]
+    return value
 
 
 def _directory_hash(directory: Path) -> str:
