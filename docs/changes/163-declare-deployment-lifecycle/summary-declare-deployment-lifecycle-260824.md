@@ -11,9 +11,9 @@ risk_flags:
   - platform-governance
   - deployment-boundary
 depends_on: []
-status: approved
+status: pr-open
 branch: change/163-declare-deployment-lifecycle
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/166
 created: 2026-08-24
 updated: 2026-08-24
 reason: 改动 governance manifest 的仓库条目 schema 与合并后终态判定规则，触及部署边界与治理写路径，属平台治理变更，强制 complex
