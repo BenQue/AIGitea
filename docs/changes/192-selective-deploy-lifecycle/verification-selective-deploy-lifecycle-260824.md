@@ -14,7 +14,7 @@ depends_on: []
 status: pending
 branch: change/192-selective-deploy-lifecycle
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-08-25
 ---
 
 # Verification · 三档 `deployment_lifecycle`
@@ -22,7 +22,8 @@ updated: 2026-08-24
 ## 基线与范围
 
 - Commit SHA：`change/192-selective-deploy-lifecycle`
-- 基线：`origin/main` = `eda2aeb`
+- 基线：证据采集时 `origin/main` = `eda2aeb`；开 PR 后 `main` 两次前进，分支最终 rebase
+  到 `a43f11c`（#190 的 PR #197 与 #194 的 PR #199），详见下方「七、rebase 与复跑」
 - 环境：Mac 交互会话，worktree `/private/tmp/issue-192-selective-deploy-lifecycle`；
   只读访问 LocalWMS checkout `/Users/benque/Projects/LocalWMS`（`origin/main` = `bc95326`）
   与 Gitea（broker `gitea.issue.read`，只读）。
@@ -123,7 +124,25 @@ Issue #192 的映射 summary 声明了 `verification`。改声明只改一份 ma
 | 3 | **红/绿对照**：把 `codex/tools/mark-completed-issues.sh` 换成 `origin/main` 的版本后重跑第 2 条 | **退出码 1**（`set -e` 在断言处中止，无输出）；换回后再跑 → passed。新增断言非空转 |
 | 4 | `bash -n codex/tools/mark-completed-issues.sh` | 退出码 0 |
 | 5 | `shellcheck codex/tools/mark-completed-issues.sh` | 无告警 |
-| 6 | `bash codex/tests/smoke.sh` | `Ran 527 tests … OK` + `Codex platform static smoke checks passed.` |
+| 6 | `bash codex/tests/smoke.sh` | `Ran 527 tests … OK` + `Codex platform static smoke checks passed.`（rebase 后复跑 `Ran 536 tests … OK`，见七） |
+
+### 七、rebase 与复跑
+
+开 PR 之后 `main` 前进了两次，PR 一度 `mergeable=false`。原因是冲突，不是闸门——
+`gitea.protection.read` 读回 `required_approvals=0`、`status_check_contexts=[]`、
+`enable_status_check=false`，唯一的门是 `merge_whitelist_usernames=["admin"]`（人合并）。
+
+分支 rebase 到 `a43f11c`，唯一冲突在 `codex/runtime/aisoft_gitea_governance/contract.py`：
+#190 在 `DEFAULT_DEPLOYMENT_LIFECYCLE` 紧下方新增了 `DEFAULT_VENDORS_CHANGE_TEMPLATES`，
+与本次改写的注释块相邻。两侧意图互不冲突，解法是**两个都保留**——本次的三档注释与取值，
+后面接 #190 原样的 vendored 模板常量块；`RepositoryContract` 的两个字段（
+`deployment_lifecycle` 与 #190 的 `vendors_change_templates`）也都在。没有丢弃任何一侧，
+也没有新增第三种行为。
+
+复跑（rebase 后，基线 `a43f11c`）：`bash codex/tests/smoke.sh` → `Ran 536 tests … OK` +
+`Codex platform static smoke checks passed.`——比上一次多的 9 条是 #190 带进来的
+`test_vendored_change_templates` 与模板同步断言，本次改动一条都没有触碰模板，
+`change-template-sync --verify-digest` 因此照常通过。
 
 ### 六、范围（AC-5）
 
