@@ -63,11 +63,11 @@ aisoft_project_target_normalize_url() {
   printf '%s\n' "$url"
 }
 
-# Every remote, both its fetch and its push URLs. Not just origin: newemaint,
-# rsdesign-new and sfm-digital-board declare git_remote_name "gitea", so their
-# Gitea remote is not origin at all, and origin points at an unrelated GitHub
-# mirror. Reading only origin would derive nothing on exactly the projects that
-# most need this.
+# Every remote, both its fetch and its push URLs. Not just origin: the manifest
+# lets a project declare a git_remote_name of its own, and the projects that do
+# keep origin pointing at an unrelated upstream mirror. Reading only origin
+# would derive nothing on exactly those checkouts, which is the same silent
+# nothing this exists to replace.
 aisoft_project_target_remote_urls() {
   local repo="$1" name url
   while IFS= read -r name; do
