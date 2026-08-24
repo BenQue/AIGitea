@@ -10,9 +10,9 @@ confidence: high
 risk_flags:
   - platform-governance
 depends_on: []
-status: approved
+status: pr-open
 branch: change/162-installer-staleness-gate
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/165
 created: 2026-08-24
 updated: 2026-08-24
 reason: 给 broker installer 增加一条 fail-closed 前置闸门并改变其成功输出契约；installer 是平台治理组件的安装面，属平台/部署脚本变更，强制 complex
