@@ -221,6 +221,54 @@ class BackfillPrUrlTests(unittest.TestCase):
         self.assertIn("status: deployed\n", text)
         self.assertIn(f"pr_url: {PULL_URL}\n", text)
 
+    def test_a_quoted_terminal_status_is_not_downgraded(self) -> None:
+        """The mirror of the bare spelling: a terminal status survives (#189).
+
+        Taking the value by splitting the raw line a second time kept the
+        quotes, so `status: 'deployed'` missed PR_BEARING_STATUSES and a change
+        that was already delivered got rewritten back to pr-open — a lifecycle
+        state contradicting the fact, written by the one path whose whole job is
+        to be idempotent.
+        """
+        for terminal in ("'deployed'", '"completed"'):
+            with self.subTest(terminal=terminal):
+                self.summary.write_text(
+                    BACKFILL_SUMMARY.replace(
+                        "status: approved", f"status: {terminal}"
+                    ),
+                    encoding="utf-8",
+                )
+                _, changed = backfill_pr_url(self.repo, 57, PULL_URL)
+                text = self.summary.read_text(encoding="utf-8")
+                self.assertIn(f"status: {terminal}\n", text)
+                self.assertIn(f"pr_url: {PULL_URL}\n", text)
+                # True for the pr_url write alone. With that value now in place
+                # a second run has nothing left to write, and the reported
+                # defect was exactly this path still reporting changed=True.
+                self.assertTrue(changed)
+                before = self.summary.read_bytes()
+                _, changed = backfill_pr_url(self.repo, 57, PULL_URL)
+                self.assertFalse(changed)
+                self.assertEqual(self.summary.read_bytes(), before)
+
+    def test_a_quoted_pr_bearing_status_is_already_in_place(self) -> None:
+        """`status: 'pr-open'` is pr-open to every reader, so nothing is written.
+
+        Not a downgrade, but the same disagreement: it turned the zero-write
+        path into a write, and normalising the spelling is not this writer's job
+        (#189).
+        """
+        self.summary.write_text(
+            BACKFILL_SUMMARY.replace("status: approved", "status: 'pr-open'").replace(
+                "pr_url:\n", f"pr_url: {PULL_URL}\n"
+            ),
+            encoding="utf-8",
+        )
+        before = self.summary.read_bytes()
+        _, changed = backfill_pr_url(self.repo, 57, PULL_URL)
+        self.assertFalse(changed)
+        self.assertEqual(self.summary.read_bytes(), before)
+
     def test_a_url_from_another_repository_is_refused(self) -> None:
         with self.assertRaises(ContractError):
             backfill_pr_url(

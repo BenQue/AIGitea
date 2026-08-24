@@ -99,7 +99,14 @@ def backfill_pr_url(
     # gate that reads it would fail every change's first CI run (spec §4.1).
     status_index = _front_matter_field(lines, end, "status")
     if status_index is not None:
-        status = lines[status_index].split(":", 1)[1].strip()
+        # Taken from the parsed front matter for the same reason as pr_url
+        # above: one runtime, one rule for what a field's value is. Splitting
+        # the raw line kept the quotes, so `status: 'deployed'` missed
+        # PR_BEARING_STATUSES and a change that was already delivered got
+        # downgraded back to pr-open — by the one writer whose contract is to
+        # be idempotent (#189). The raw line still says *where* to write.
+        declared_status = summary.get("status")
+        status = declared_status.strip() if isinstance(declared_status, str) else ""
         if status not in PR_BEARING_STATUSES:
             lines[status_index] = _replaced(lines[status_index], "status", "pr-open")
             changed = True
