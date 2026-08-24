@@ -164,6 +164,53 @@ class BackfillPrUrlTests(unittest.TestCase):
             )
         self.assertEqual(self.summary.read_bytes(), before)
 
+    def test_a_quoted_empty_pr_url_is_treated_as_empty(self) -> None:
+        """`pr_url: ''` is empty to every reader here, so it is empty to the writer.
+
+        The template spells one of its own empty keys `override_reason: ''`, so
+        the quoted form reaches summaries by being copied from the template
+        itself. Refusing it as "a different pr_url" named a second pull request
+        that never existed (#186).
+        """
+        for empty in ("''", '""'):
+            with self.subTest(empty=empty):
+                self.summary.write_text(
+                    BACKFILL_SUMMARY.replace("pr_url:\n", f"pr_url: {empty}\n"),
+                    encoding="utf-8",
+                )
+                path, changed = backfill_pr_url(self.repo, 57, PULL_URL)
+                self.assertTrue(changed)
+                text = path.read_text(encoding="utf-8")
+                self.assertIn(f"pr_url: {PULL_URL}\n", text)
+                self.assertIn("status: pr-open\n", text)
+
+    def test_a_quoted_conflicting_pr_url_is_still_refused(self) -> None:
+        """Widening what counts as empty must not widen what counts as absent (#142)."""
+        other = "http://gitea.example.invalid/admin/demo/pulls/99"
+        self.summary.write_text(
+            BACKFILL_SUMMARY.replace("pr_url:\n", f"pr_url: '{other}'\n"),
+            encoding="utf-8",
+        )
+        before = self.summary.read_bytes()
+        with self.assertRaisesRegex(
+            ContractError, "already declares a different pr_url"
+        ):
+            backfill_pr_url(self.repo, 57, PULL_URL)
+        self.assertEqual(self.summary.read_bytes(), before)
+
+    def test_a_quoted_correct_pr_url_is_already_in_place(self) -> None:
+        """Idempotence follows the value, not its spelling: nothing is written."""
+        self.summary.write_text(
+            BACKFILL_SUMMARY.replace(
+                "pr_url:\n", f"pr_url: '{PULL_URL}'\n"
+            ).replace("status: approved", "status: pr-open"),
+            encoding="utf-8",
+        )
+        before = self.summary.read_bytes()
+        _, changed = backfill_pr_url(self.repo, 57, PULL_URL)
+        self.assertFalse(changed)
+        self.assertEqual(self.summary.read_bytes(), before)
+
     def test_a_terminal_status_is_not_downgraded(self) -> None:
         self.summary.write_text(
             BACKFILL_SUMMARY.replace("status: approved", "status: deployed"),
