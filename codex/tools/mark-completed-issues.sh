@@ -15,10 +15,10 @@
 # doing nothing would read as "every Issue was already correct".
 #
 # The judgement lives here, never in the broker: which Issues are candidates,
-# whether each one's contract required a verification document, and whether the
-# project even has a deployment chain that could write deployed instead. The
-# broker performs one constrained write and knows nothing about change documents
-# or the governance manifest.
+# whether each one's contract required a verification document, and whether that
+# repository's deployment chain is guaranteed to cover the merge and write
+# deployed instead (#192). The broker performs one constrained write and knows
+# nothing about change documents or the governance manifest.
 set -euo pipefail
 set +x
 
@@ -139,9 +139,8 @@ fi
 # whether deployed is reachable at all, and skipping silently in that state is
 # precisely the bug #163 exists to fix, so it is an error — the same posture the
 # header states for every other prerequisite. A manifest that simply does not
-# declare the key is not an error: absence means the stricter default, and only
-# the narrowing value "none" is read here so the default has no second copy
-# outside aisoft_gitea_governance.contract.
+# declare the key is not an error: absence is a fourth answer handled with the
+# three declared ones below.
 [ -f "$manifest" ] || fail "governance manifest not found: $manifest"
 declared_lifecycle=""
 if ! declared_lifecycle="$(
@@ -155,6 +154,26 @@ if ! declared_lifecycle="$(
 )"; then
   fail "cannot read deployment_lifecycle for repository $repository (project $project) from $manifest: $declared_lifecycle"
 fi
+
+# What the declaration answers is not "does this repository deploy" but "will its
+# deployment chain cover this merge" (#192). Only the first of those makes waiting
+# for deployed correct: a wait that has no guaranteed end is how an Issue reaches
+# no terminal state at all, which is the failure #163 exists to fix.
+#
+# The undeclared case is the fourth answer and it shares the selective branch,
+# matched here rather than assigned into a variable: the default's name belongs to
+# aisoft_gitea_governance.contract, and a second copy of it in a second language is
+# exactly the drift that copy rule exists to prevent.
+#
+# An unrecognised value is an error, not a branch. This tool writes a terminal
+# label off this declaration; falling into either branch on a value it does not
+# understand would make a typo read as a decision.
+case "$declared_lifecycle" in
+  application-deploy) lifecycle_branch=every-merge ;;
+  application-deploy-selective | '') lifecycle_branch=selective ;;
+  none) lifecycle_branch=no-chain ;;
+  *) fail "unsupported deployment_lifecycle for repository $repository (project $project) in $manifest: $declared_lifecycle" ;;
+esac
 
 # A range is resolved once, up front, and what it resolved to is reported before
 # anything else happens (#175). origin/main~N is evaluated when this process
@@ -264,23 +283,38 @@ for issue in "${issues[@]}"; do
   fi
   # Two questions, and before #163 this one condition was made to answer both.
   # "Does this change owe a verification document?" is what required_docs says.
-  # "Does this change travel an application deployment chain?" is not a property
-  # of the change at all — in a project without such a chain no change ever does
-  # — so it is answered once by that project's manifest declaration. Conflating
-  # them left every verification-declaring platform change with neither terminal
-  # state: mark-completed skipped it and no deployment ever ran to write the
-  # other one.
+  # "Will a deployment write deployed for this merge?" is not a property of the
+  # change at all — nothing in the checkout says whether a given merge ships — so
+  # it is answered once by that repository's manifest declaration. Conflating them
+  # left every verification-declaring platform change with neither terminal state:
+  # mark-completed skipped it and no deployment ever ran to write the other one.
+  #
+  # #192 is the second half of the same mistake. Skipping is only ever right when
+  # the wait ends, so the branch below turns on whether the chain covers every
+  # merge, not on whether the chain exists. Where it does not, completed is written
+  # now: a deployment that does ship this merge overwrites it (mark-deployed-issues
+  # replaces the whole lifecycle dimension), while a missing label is never revisited
+  # by anything. The reverse mistake is impossible — the broker refuses to demote an
+  # already deployed Issue to completed.
   completed_reason=""
   completed_detail=""
   if grep -Fxq 'verification' <<<"$required_docs"; then
-    if [ "$declared_lifecycle" != none ]; then
-      emit "$issue" skip requires-deployment \
-        "required_docs contains verification and $repository has an application deployment chain, so this change ships and its terminal state is deployed, not completed" \
-        false ''
-      continue
-    fi
-    completed_reason=no-deployment-chain
-    completed_detail="required_docs contains verification, but $repository declares deployment_lifecycle none: nothing writes deployed there, so completed is the only reachable terminal state"
+    case "$lifecycle_branch" in
+      every-merge)
+        emit "$issue" skip requires-deployment \
+          "required_docs contains verification and $repository declares that its application deployment chain deploys every merge, so this change ships and its terminal state is deployed, not completed" \
+          false ''
+        continue
+        ;;
+      selective)
+        completed_reason=deployment-not-guaranteed
+        completed_detail="required_docs contains verification, but $repository's application deployment chain covers only some merges: nothing guarantees one will ever ship this Issue and write deployed, so completed is written now and a deployment that does ship it replaces completed with deployed"
+        ;;
+      no-chain)
+        completed_reason=no-deployment-chain
+        completed_detail="required_docs contains verification, but $repository declares deployment_lifecycle none: nothing writes deployed there, so completed is the only reachable terminal state"
+        ;;
+    esac
   fi
 
   if [ "$apply" -eq 0 ]; then

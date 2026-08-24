@@ -89,10 +89,15 @@ git -C "$REPO" commit -qm 'fixture documents'
 # Fixture governance manifest. The tool reads exactly two things out of it —
 # a repository entry by name, and that entry's deployment_lifecycle — so the
 # fixture carries only those. It is deliberately NOT a copy of the real
-# manifest: aisoft-platform is left undeclared here so every pre-#163 assertion
-# below keeps exercising the default path unchanged. That the real manifest
-# declares none for aisoft-platform is pinned in
+# manifest: what the real one declares is pinned in
 # codex/runtime/tests/test_deployment_lifecycle.py instead.
+#
+# The fixture's aisoft-platform entry declares application-deploy because the
+# scaffolding below needs one project whose verification-declaring Issue is
+# skipped, and after #192 the undeclared default is no longer that project: an
+# undeclared repository now lands in the selective branch and reaches completed.
+# The default therefore gets its own entry (UndeclaredRepository) and its own
+# assertions rather than being borrowed by every case above.
 # base_url and owner join the fixture (#184): they are what a checkout's Git
 # remote is compared against when the target project is derived rather than
 # defaulted.
@@ -104,9 +109,13 @@ cat >"$MANIFEST" <<JSON
   "base_url": "$FIXTURE_BASE_URL",
   "owner": "$FIXTURE_OWNER",
   "repositories": [
-    {"name": "aisoft-platform"},
+    {"name": "aisoft-platform", "deployment_lifecycle": "application-deploy"},
     {"name": "NoDeployRepository", "deployment_lifecycle": "none"},
-    {"name": "ExplicitDeployRepository", "deployment_lifecycle": "application-deploy"}
+    {"name": "ExplicitDeployRepository", "deployment_lifecycle": "application-deploy"},
+    {"name": "SelectiveRepository",
+     "deployment_lifecycle": "application-deploy-selective"},
+    {"name": "UndeclaredRepository"},
+    {"name": "UnknownLifecycleRepository", "deployment_lifecycle": "ship-it-later"}
   ]
 }
 JSON
@@ -124,6 +133,9 @@ cat >"$ACCESS_MANIFEST" <<'JSON'
     {"project_id": "aisoft-platform", "repository": "aisoft-platform"},
     {"project_id": "no-deploy-project", "repository": "NoDeployRepository"},
     {"project_id": "explicit-deploy-project", "repository": "ExplicitDeployRepository"},
+    {"project_id": "selective-project", "repository": "SelectiveRepository"},
+    {"project_id": "undeclared-project", "repository": "UndeclaredRepository"},
+    {"project_id": "unknown-lifecycle-project", "repository": "UnknownLifecycleRepository"},
     {"project_id": "dangling-project", "repository": "DanglingRepository"}
   ]
 }
@@ -352,8 +364,8 @@ grep -Fq -- '--lifecycle completed' "$TMP/broker.log"
 grep -Fq -- '--number 502' "$TMP/broker.log"
 
 # AC-2: the declaration is read as a value, not merely as presence. A project
-# that declares application-deploy explicitly must still be skipped, exactly
-# like one that declares nothing.
+# that declares application-deploy is the one branch that still waits — see the
+# #192 section below for why the undeclared default no longer joins it.
 explicit_plan="$(run --project explicit-deploy-project 502)"
 jq -e 'select(.issue == 502) | .action == "skip" and .reason == "requires-deployment"' \
   <<<"$explicit_plan" >/dev/null
@@ -396,6 +408,71 @@ for bad_case in "$TMP/absent-manifest.json" "$TMP/broken-manifest.json"; do
   }
   grep -Fq 'mark-completed:' <<<"$bad_output"
 done
+
+# --- Issue #192: waiting is only correct when the wait is guaranteed to end --
+#
+# #163 gave the repository the question "is there a deployment chain at all".
+# That is not the question a skip depends on: skipping parks the Issue until
+# something writes deployed, so what has to hold is that a deployment will cover
+# THIS merge. In a repository that deploys only some of its merges the two
+# diverge, and every change that lands in the gap gets neither terminal state --
+# the exact failure #163 exists to fix, one class of repository over.
+
+# AC-2: an explicit selective declaration reaches completed, and says on what
+# grounds. The detail has to name the gap, because "completed" on a change that
+# may yet ship is only defensible if the reader can see the reasoning.
+: >"$TMP/broker.log"
+selective_plan="$(run --project selective-project 502)"
+jq -e 'select(.issue == 502) | .action == "set-completed" and .applied == false
+  and .reason == "deployment-not-guaranteed"' <<<"$selective_plan" >/dev/null
+selective_detail="$(jq -r 'select(.issue == 502) | .detail' <<<"$selective_plan")"
+grep -Fq 'SelectiveRepository' <<<"$selective_detail"
+grep -Fq 'only some merges' <<<"$selective_detail"
+[ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
+
+selective_apply="$(run --project selective-project --apply 502)"
+jq -e 'select(.issue == 502) | .applied == true and .result == "updated"
+  and .reason == "deployment-not-guaranteed"' <<<"$selective_apply" >/dev/null
+grep -Fq -- '--lifecycle completed' "$TMP/broker.log"
+grep -Fq -- '--number 502' "$TMP/broker.log"
+
+# AC-2: the undeclared repository lands in that same branch. This is the default
+# change itself, and it is why the real-manifest LocalWMS case above resolves.
+# The two verdicts are compared rather than re-asserted, so a default that later
+# drifts away from the declaration it is supposed to mean fails right here.
+undeclared_plan="$(run --project undeclared-project 502)"
+verdict() { jq -r 'select(.issue == 502) | .action + " " + .reason' <<<"$1"; }
+[ "$(verdict "$undeclared_plan")" = "$(verdict "$selective_plan")" ]
+[ "$(verdict "$undeclared_plan")" = 'set-completed deployment-not-guaranteed' ]
+grep -Fq 'UndeclaredRepository' \
+  <<<"$(jq -r 'select(.issue == 502) | .detail' <<<"$undeclared_plan")"
+
+# AC-4: none of this touches a change that owes no verification document. It
+# reaches completed with no reason attached under every declaration, exactly as
+# before -- the first condition of the conjunction still decides on its own.
+for lifecycle_project in selective-project undeclared-project explicit-deploy-project; do
+  jq -e 'select(.issue == 501) | .action == "set-completed" and has("reason") == false' \
+    <<<"$(run --project "$lifecycle_project" 501)" >/dev/null
+done
+
+# AC-3: a declared value this tool does not understand is an error, in every
+# mode and regardless of which Issue was asked for. The check is up front, before
+# any Issue is read: this tool writes a terminal label off that declaration, so a
+# typo that fell into either branch would read as a decision rather than a
+# mistake. #163's own posture, applied to the value instead of the file.
+: >"$TMP/broker.log"
+for mode_args in "502" "--apply 502" "501"; do
+  rc=0
+  # shellcheck disable=SC2086
+  unknown_lifecycle="$(run --project unknown-lifecycle-project $mode_args 2>&1)" || rc=$?
+  [ "$rc" -ne 0 ] || {
+    echo 'an unsupported deployment_lifecycle must fail rather than be judged' >&2
+    exit 1
+  }
+  grep -Fq 'ship-it-later' <<<"$unknown_lifecycle"
+  grep -Fq 'UnknownLifecycleRepository' <<<"$unknown_lifecycle"
+done
+[ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
 
 # --- Issue #172: --project names a project id, and only that -----------------
 #
@@ -483,7 +560,12 @@ real_plan="$(
     bash "$BIN/mark-completed-issues.sh" --repo "$REPO" --project localwms 501 502
 )"
 jq -e 'select(.issue == 501) | .action == "set-completed"' <<<"$real_plan" >/dev/null
-jq -e 'select(.issue == 502) | .action == "skip" and .reason == "requires-deployment"' \
+# LocalWMS declares no deployment_lifecycle, so it is also the real-manifest case
+# for #192: before it, this exact invocation skipped #502 and nothing else ever
+# wrote a terminal label -- five merged LocalWMS Issues are closed with no label
+# at all because of it. The verdict is now completed, on stated grounds.
+jq -e 'select(.issue == 502)
+  | .action == "set-completed" and .reason == "deployment-not-guaranteed"' \
   <<<"$real_plan" >/dev/null
 grep -Fq 'LocalWMS' <<<"$(jq -r 'select(.issue == 502) | .detail' <<<"$real_plan")"
 [ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]

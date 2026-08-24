@@ -91,8 +91,10 @@ docs/changes/N-short-description/
 但它们不是唯一落在第二行的变更，这正是旧判据（按题材）漏掉的那一半。
 
 声明 `verification` **不隐含要部署**，也不改变终态判定：合并后的终态由 §11 的
-合取表决定，`deployment_lifecycle: none` 的仓库声明了 `verification` 照样到
-`completed`。作者不必为了让 Issue 能收尾而少声明一份该写的验证记录（#163、#168）。
+合取表决定，声明了 `verification` 的变更在**三档 `deployment_lifecycle` 下都到得了
+终态**——不部署的仓库与按需部署的仓库当场到 `completed`，声明「合并即部署」的仓库
+等一次必然到来的部署。作者不必为了让 Issue 能收尾而少声明一份该写的验证记录
+（#163、#168、#192）。
 
 不部署时什么算合格的验证记录：每条 acceptance criterion 都有一条真实执行过的命令
 或一次真实观测支撑，命令与输出照实抄，不可达的环境与未执行项显式写明。模板见
@@ -240,9 +242,10 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
 
 合批 PR 可在 merge message body 中逐行列出多个 `Closes #N`。部署成功后的确定性
 工具必须处理全部编号并去重，不能只从 subject 猜一个 Issue。更新标签时必须保留
-type、complexity 和非生命周期标签。最终 PR 已合并且明确无需部署时使用
-`completed`；需要部署的变更只有在确定性部署与验证成功后使用 `deployed`。两者互斥，
-都不授权合并；Gitea `Closed` 本身也不证明部署成功。
+type、complexity 和非生命周期标签。最终 PR 已合并、且没有一次必然到来的部署会认领它时
+使用 `completed`；确定性部署与验证成功后使用 `deployed`，它比 `completed` 强，会覆盖
+`completed`（反向降级是人的决定，见下）。两者互斥，都不授权合并；Gitea `Closed` 本身
+也不证明部署成功。
 
 ### 谁推进 `completed`
 
@@ -302,26 +305,58 @@ PR #169 被合进 main，`origin/main~1` 于是等于 `770d527`。写错既不�
 | 该 Issue 映射 summary 的 `required_docs` 含 `verification` | 该项目的 `deployment_lifecycle` | 终态 |
 |---|---|---|
 | 否 | 任意 | `completed` |
-| 是 | `application-deploy`（缺省） | 跳过并给出 `requires-deployment`，等部署链路写 `deployed` |
+| 是 | `application-deploy` | 跳过并给出 `requires-deployment`，等部署链路写 `deployed` |
+| 是 | `application-deploy-selective`（**缺省**） | `completed`，`reason` 记为 `deployment-not-guaranteed` |
 | 是 | `none` | `completed`，`reason` 记为 `no-deployment-chain` |
 
 两个条件回答的是两个不同的问题：`required_docs` 说的是「这次变更欠不欠一份验证记录」，
-`deployment_lifecycle` 说的是「这个仓库有没有那条会写 `deployed` 的链路」。
+`deployment_lifecycle` 说的是「这个仓库的部署链路会不会覆盖到本次 merge」。
 #163 之前只有前一个条件，它被迫兼答后一个问题，于是声明了 `verification` 的平台变更
 两个终态都没人写——#138、#146、#148 三个已合并 closed Issue 因此长期一个标签都没有。
 
-### 哪些仓库有部署链路
+### 「跳过等待」必须有一个会到来的写入者（#192）
+
+#163 给第二个条件的问法是「这个仓库**有没有**那条链路」。那不是跳过所依赖的问题：跳过是把
+Issue 停在原地等 `deployed`，所以真正要成立的是「会有一次部署覆盖**本次 merge**」。两者只在
+「合并即部署」的仓库上重合；在按需部署的仓库上分叉，落进分叉处的变更两个终态都没人写——
+`completed` 因含 `verification` 被排除，`deployed` 因这次不部署而永不写入。
+
+**这不是推演。** 缺省档下的 LocalWMS 有 15 个已合并且声明了 `verification` 的 Issue，其中 5 个
+（#13、#23、#29、#34、#35）closed 之后一个标签都没有；另外 10 个的 `completed` 是绕过这条判定
+写上去的——当前工具对那 10 个全部判 `skip`。#192 的映射 verification 记录了逐条读回。
+
+因此 `application-deploy` 的含义收紧为「**每一次 merge 都会被这条链路部署**」，只有它保留
+「跳过等待」；不保证覆盖每次 merge 的仓库用 `application-deploy-selective`，终态当场写
+`completed`。**缺省取后者，因为两个方向的错并不对称**：
+
+- 写早了会被纠正：`mark-deployed-issues.sh` 剥掉 Issue 的整个生命周期维度再写 `deployed`，
+  所以「先 `completed`、后来真部署了」的终点仍然是 `deployed`。
+- 写早了也盖不掉真部署：broker 的 `_set_issue_lifecycle` 对「已经 `deployed` 却要写
+  `completed`」直接 `REQUEST_DENIED`（本节开头那句「不会被降级」就是它）。
+- 漏写没人纠正：本节开头已经说了，没有任何组件处在能观察到合并的位置上。
+
+所以 §3 那句「作者不必为了让 Issue 能收尾而少声明一份该写的验证记录」对**三档都成立**：
+`application-deploy` 靠该取值自身的定义保证等待有终点，另外两档当场到 `completed`。
+反过来说，**声明 `application-deploy` 等于承诺这条链路覆盖每一次 merge**——不确定就不要声明，
+缺省不会落到它上面。
+
+### 哪些仓库的部署链路覆盖每一次 merge
 
 由 `codex/config/gitea-governance.json` 的仓库条目声明一次，不是每次变更重新回答——
-「走不走应用部署链路」是仓库属性：平台仓库里没有任何变更走应用部署链路。
+「这条链路覆盖不覆盖每一次 merge」是仓库属性：平台仓库里没有任何变更走应用部署链路。
 
 ```json
 { "name": "aisoft-platform", "...": "...", "deployment_lifecycle": "none" }
 ```
 
-- `application-deploy`：`02` §9 的应用部署链路会在健康检查成功后写 `deployed`。**未声明时取此值**——
-  更严的一档，保证读不到声明时不会意外放宽终态判定。
+- `application-deploy`：`02` §9 的应用部署链路存在，**且每一次 merge 都会被它部署**，在健康检查
+  成功后写 `deployed`。目前没有任何仓库声明它——声明它就是承诺覆盖每一次 merge。
+- `application-deploy-selective`：链路存在，但只覆盖一部分 merge。**未声明时取此值**——可自愈的
+  一档（理由见上一节），不是最宽或最严的一档。
 - `none`：没有那条链路，`deployed` 不可达，`completed` 是唯一终态。目前只有 `aisoft-platform` 声明。
+
+工具读到这三个取值以外的任何值都报错退出，不落进任何一档：它据此写终态标签，一个拼错的声明
+落进某一档就会读起来像一次决定。
 
 `deployment_lifecycle` 只影响合并后的终态记账：它不触发也不抑制任何部署，不改分支保护与必需 CI，
 也不改变 `required_docs` 该不该含 `verification`。manifest 读不到或查不到条目时，
