@@ -5,6 +5,7 @@ import unittest
 
 from aisoft_loop.matt_snapshot import (
     SnapshotError,
+    _skill_front_matter,
     build_manifest,
     classify_update,
     verify_snapshot,
@@ -75,6 +76,56 @@ class MattSnapshotTests(unittest.TestCase):
             self._write_skill(root, "extra", "surprise")
             with self.assertRaisesRegex(SnapshotError, "skill set"):
                 verify_snapshot(root, manifest)
+
+    def test_a_quoted_invocation_policy_is_accepted(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            for policy, expected in (
+                ("true", True),
+                ("false", False),
+                ("TRUE", True),
+                ("'true'", True),
+                ('"true"', True),
+                ("'false'", False),
+                ('"false"', False),
+            ):
+                with self.subTest(policy=policy):
+                    skill_file = self._front_matter(Path(tempdir), "demo-skill", policy)
+                    self.assertEqual(
+                        _skill_front_matter(skill_file), ("demo-skill", expected)
+                    )
+
+    def test_an_invalid_invocation_policy_still_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            for policy in ("yes", "1", "", "''", '""', "'true", 'true"'):
+                with self.subTest(policy=policy):
+                    skill_file = self._front_matter(Path(tempdir), "demo-skill", policy)
+                    with self.assertRaisesRegex(SnapshotError, "invalid invocation policy"):
+                        _skill_front_matter(skill_file)
+
+    def test_a_quoted_skill_name_is_accepted(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            for name in ("demo-skill", "'demo-skill'", '"demo-skill"'):
+                with self.subTest(name=name):
+                    skill_file = self._front_matter(Path(tempdir), name, "true")
+                    self.assertEqual(
+                        _skill_front_matter(skill_file), ("demo-skill", True)
+                    )
+
+    def test_a_malformed_quoted_skill_name_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            for name in ("'demo-skill", 'demo-skill"'):
+                with self.subTest(name=name):
+                    skill_file = self._front_matter(Path(tempdir), name, "true")
+                    with self.assertRaisesRegex(SnapshotError, "invalid skill name"):
+                        _skill_front_matter(skill_file)
+
+    def _front_matter(self, root: Path, name: str, policy: str) -> Path:
+        skill_file = root / "SKILL.md"
+        skill_file.write_text(
+            f"---\nname: {name}\ndisable-model-invocation: {policy}\n---\n\nbody\n",
+            encoding="utf-8",
+        )
+        return skill_file
 
     def _snapshot(self, root: Path, skills: dict[str, str]) -> Path:
         root.mkdir(parents=True, exist_ok=True)
