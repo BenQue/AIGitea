@@ -55,13 +55,20 @@ PR 开完立刻输出下面这个块，然后**停止**——不要接着做别�
 PR:   <url>
 变更: <一句话>
 CI:   <读回的真实状态，不是推测>
+判级: <apply-classification-labels.sh --verify N 的真实读回>
 合并后回来说「合并了」，我做收尾并归档本会话。
 ```
+
+`判级` 一行是**合并前的最后一道自查**，必须填 `codex/tools/apply-classification-labels.sh --verify N`
+的真实读回，不是印象。**不是 `projected` 就不要进入待合并**——合并把 Issue 转成 closed，
+判级投影的窗口随之永久关闭，之后没有任何工具会补写 `type/*` 与 `complexity/*`（#167）。
+读到 `projection-missing` 就回去跑 `--apply`；读到 `broker-operation-missing` 就是本机 broker
+操作表陈旧，两台重装后重跑，不要往权限方向查。未接入平台的项目跳过这一行。
 
 ## 收尾（人确认已合并后，7 步）
 
 1. 取回主干，确认 merge commit **真实存在**。人说「合并了」不是证据，`git log` 才是。
-2. 终态标签先 **dry-run**：接入平台的项目跑 `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>`，把逐 Issue 判定计划念给人。未接入的项目：确认 `Closes #N` 已把 Issue 关掉。
+2. 终态标签先 **dry-run**：接入平台的项目跑 `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>`，把逐 Issue 判定计划念给人。未接入的项目：确认 `Closes #N` 已把 Issue 关掉。同时对本 Issue 跑一次 `codex/tools/apply-classification-labels.sh --verify N`：报 `projection-window-closed` 说明合并前那一步漏了，如实报给人并按 `03` §11 记录，**不补写、不加 override**。
 3. 人点头后才加 `--apply`。**终态判定取自文档与 manifest**：summary 的 `required_docs` 含不含 `verification`，以及该项目在 `gitea-governance.json` 里有没有声明 `deployment_lifecycle: none`（没有部署链路 → `completed` 是唯一终态）。两个条件都由工具读取，不要自己判断该写 `completed` 还是 `deployed`。
 4. 文档自查：接入平台的项目跑 `check-change-documents --repo <checkout>`。
 5. 清理：**先离开 worktree**，再 `git worktree remove <path>` 与 `git branch -d change/N-slug`。站在 worktree 里删自己脚下的目录会失败。
@@ -81,6 +88,7 @@ CI:   <读回的真实状态，不是推测>
 - 「顺便在这个会话里把 #M 也做了」
 - 「PR 开完了，我接着把下一件事做了」
 - 「人说合并了，那就直接 `--apply`」
+- 「判级投影回头再补」→ 窗口在合并时关闭，没有回头
 - 「worktree 先留着，说不定还用得上」
 - 「这个小改动不值得开 Issue」→ 它需要验收标准吗？
 - 「会话先留着，回头一起归档」

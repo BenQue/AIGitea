@@ -258,3 +258,51 @@ label manifest 逐维校验，retired 的 `complexity/standard` 写不进去。�
 
 > 新增 typed 操作后 broker 必须在 Mac 与 gitea-ci 两台重装才生效，
 > 未重装时新操作返回 `REQUEST_DENIED / not allowlisted`（`06` 踩坑 20）。
+
+#### 窗口在合并时关闭（#167）
+
+「已关闭不补写」有一个直接推论：**判级投影有一个截止时间，就是合并**。#160 交付之后它仍然
+被漏掉过一次——#163 跑了计划、`--apply` 撞上未重装的 broker、PR 合并、窗口关闭——因为当时
+没有任何环节会在关闭前提醒，而工具本身也答不出「这个 Issue 现在到底有没有标签」：计划模式
+只报「我会写什么」，对已投影和从没投影过输出逐字相同。
+
+补上的是**读回与闸门**，不是补写能力：
+
+```bash
+codex/tools/apply-classification-labels.sh --verify 167
+```
+
+`--verify` 读回 Issue 当前标签并与映射 summary 比对，逐 Issue 给出
+`projected` / `projection-missing` / `projection-mismatch` / `projection-window-closed`，
+只有全部 `projected` 才退 0；读不出证据（文档缺失、判级未决、broker 不可用）一律计为失败，
+不输出「看起来没问题」。它是只读的（`gitea.issue.read` + `gitea.issue.labels.read`，都是
+既有非 mutating 操作，早于 `gitea.issue.labels.classify` 存在），永不调用写操作，与 `--apply`
+互斥。`projection-window-closed` 刻意**不给 `remedy` 字段**——没有可执行的补救就是结论本身。
+
+会话侧的落点在 `issue-session-flow` 的待合并块：`判级:` 一行必须是这条命令的真实读回，
+不是 `projected` 就不进入待合并；收尾时再跑一次，把漏掉的情形显式报出来。
+
+broker 因操作表陈旧而拒绝时，工具不再把 `REQUEST_DENIED` 原样透出，而是报
+`broker-operation-missing`，detail 里直接写明「这是安装期旧表，不是权限问题」与两台重装的
+命令（`06` 踩坑 20）——那句话读成权限问题，正是 #163 错过窗口的直接触发因素。
+
+#### 已经错过窗口的 Issue：处置结论
+
+| Issue | Gitea 实际标签 | 合并后 summary 的判级 |
+|---|---|---|
+| #138 | `['completed']` | `platform` / `complex` |
+| #146 | `['completed']` | `platform` / `complex` |
+| #148 | `['completed']` | `platform` / `complex` |
+| #163 | `['completed']` | `platform` / `complex` |
+
+（2026-08-24 经 broker `gitea.issue.labels.read` 读回。）
+
+**结论：接受这四个 Issue 缺 `type/*` 与 `complexity/*`，不补写、不改写。** 依据与「已关闭的
+Issue 不补写」同源：判级事实已经在合并后的 summary 里、不可变、可由 `resolve-documents`
+定位；`list-issues` 只查 `state=open`，四维正交合同要服务的那个检索缺口在这四个 Issue 上
+已经不存在；为它们破例等同于承认一个 override，而 override 正是 #167 明确不要的东西。
+缺口的代价一次性记在这里，换的是姿态没有例外。
+
+闸门与它们的关系要说清楚：`--verify` 只保证**窗口关闭前**被提醒，不回到过去，也不试图回去。
+要读任一已关闭 Issue 的判级，看它映射的 summary，或直接跑 `--verify N`——
+`projection-window-closed` 那一行本身就带着 `change_type` 与 `complexity` 两个值。

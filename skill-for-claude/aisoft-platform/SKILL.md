@@ -28,11 +28,17 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 1. 需求/缺陷 → broker `gitea.issue.create`（正文写可测验收标准）。
 2. `python3 -m aisoft_loop.cli change-name N <slug>` 校验命名 → `git worktree add /private/tmp/issue-N-<slug> -b change/N-<slug> origin/main`（并行会话必须各自 worktree；commit 前 `git branch --show-current` 核对——踩坑 #15）。
 3. 按判级写映射文档（complex 补 spec/plan，模板在 `templates/docs/changes/_template/`），实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。summary 此时写**真实的**前置 `status`（通常 `approved`），`pr_url` 留空——PR 还不存在。
-4. 判级投影：`codex/tools/apply-classification-labels.sh N` 先看计划，确认后
-   `--apply` 经 broker `gitea.issue.labels.classify` 把 summary 的 `change_type` 与
-   `effective_complexity` 写成 Gitea 的 `type/*` 与 `complexity/*`（#160）。
+4. 判级投影，**窗口在合并时关闭**：`codex/tools/apply-classification-labels.sh N` 先看计划，
+   确认后 `--apply` 经 broker `gitea.issue.labels.classify` 把 summary 的 `change_type` 与
+   `effective_complexity` 写成 Gitea 的 `type/*` 与 `complexity/*`（#160）；再用
+   `--verify N` 读回确认。计划模式对「已投影」与「从没投影过」输出逐字相同，
+   `--verify` 是唯一能区分两者的检查，只在两个维度都读回 `projected` 时退 0（#167）。
+   Issue 一旦被合并转 closed，工具永久拒绝补写且没有 override，`--verify` 只会报
+   `projection-window-closed`——所以这一步必须在开 PR 到合并之间做完。
+   报 `broker-operation-missing` = 本机 broker 是安装期旧表、**不是**权限问题，
+   两台重装 `sudo bash codex/install-host-access-broker.sh` 后重跑（06 踩坑 20）。
    不做这一步，判级就只活在文档里、Gitea 上看不见也检索不到——`apply-analysis` 只在
-   Loop 内跑，交互会话不经过它。生命周期与 `triage/*` 标签不受影响；已关闭的 Issue 会被跳过。
+   Loop 内跑，交互会话不经过它。生命周期与 `triage/*` 标签不受影响。
 5. commit → broker `git.push.change --branch change/N-<slug>` → broker `gitea.pull.create --issue N`（正文含 `Closes #N` 与文档链接）→
    `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli backfill-pr-url N --repo <checkout> --pr-url <PR URL>`
    把 `pr_url` 与 `status: pr-open` 一起写进 summary（#142；只写 summary，spec/plan/verification 不带该键），再 commit + push 一次。**到开 PR 为止。**
@@ -66,6 +72,8 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 - 用数字命名新建分支/文档（`change/N`、`00-summary.md`）——新写入会被 fail-closed 拒绝；readable 元组才是现行合同。
 - 绕过 broker 直接 `git push`/裸 token `curl`——治理写路径只认 broker typed 操作。
 - 把 `triage/ready-for-agent` 或 Issue `approved` 当成可以合并/部署——唯一闸门是人合并最终 PR，部署另需独立授权。
+- 把判级投影留到收尾再补——窗口在合并时关闭，closed Issue 永久拒绝补写；进入待合并前必须用 `apply-classification-labels.sh --verify N` 读回 `projected`（#167）。
+- 把 broker 的 `REQUEST_DENIED / not allowlisted` 当权限问题查——那是安装期操作表陈旧，两台重装即可（06 踩坑 20）。
 - 在共享 checkout 并行开会话不建 worktree——HEAD 是全局可变状态，B 的 commit 会落进 A 的分支（踩坑 #15）。
 - 从 rsdesign-new 或任何示例推断目标仓库/端口/部署合同——一切以显式 project profile/manifest 为准。
 - 把平台 candidate/参照实现写成业务已部署——NewEMaint 的 DockerLab 证据不等于其它项目或生产完成。
