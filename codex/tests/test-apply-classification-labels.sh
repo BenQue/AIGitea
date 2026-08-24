@@ -16,6 +16,9 @@ trap 'rm -rf -- "$TMP"' EXIT
 BIN="$TMP/bin"
 mkdir -p "$BIN"
 cp "$ROOT/codex/tools/apply-classification-labels.sh" "$BIN/"
+# The shared merge-range library travels with the tool, exercising the
+# same-directory-first branch of its lookup (#175).
+cp "$ROOT/codex/agent/change-merge-range.sh" "$BIN/"
 cat >"$BIN/host-access-broker.sh" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -208,6 +211,114 @@ range_output="$(run --range 'HEAD~2..HEAD')"
 jq -e 'select(.issue == 501) | .action == "set-classification"' <<<"$range_output" >/dev/null
 jq -e 'select(.issue == 502) | .reason == "issue-closed"' <<<"$range_output" >/dev/null
 [ "$(writes)" = 0 ]
+
+# --- Issue #175: a range says what it covered, and hands back a fixed anchor --
+
+sha_501="$(git -C "$REPO" rev-parse HEAD~1)"
+sha_502="$(git -C "$REPO" rev-parse HEAD)"
+
+# AC-2: the selector line names the range as given and every commit it covered;
+# AC-1: pinned is the Issue numbers, which no ref movement can change.
+selector_line="$(jq -c 'select(.selector == "range")' <<<"$range_output")"
+jq -e '.range == "HEAD~2..HEAD" and (.commits | length) == 2 and .pinned == "502 501"' \
+  <<<"$selector_line" >/dev/null
+jq -e --arg sha "$sha_501" '.commits[] | select(.commit == $sha) | .issues == [501]' \
+  <<<"$selector_line" >/dev/null
+
+# Every per-Issue line stands alone, in the skip path as much as the write path.
+jq -e --arg sha "$sha_501" 'select(.issue == 501) | .commit == $sha' <<<"$range_output" >/dev/null
+jq -e --arg sha "$sha_502" 'select(.issue == 502) | .commit == $sha' <<<"$range_output" >/dev/null
+
+# A bare Issue number reports no commit and emits no selector line.
+bare_output="$(run 501)"
+jq -e 'select(.issue == 501) | has("commit") | not' <<<"$bare_output" >/dev/null
+if jq -e 'select(.selector == "range")' <<<"$bare_output" >/dev/null 2>&1; then
+  echo 'a run without --range must not emit a selector line' >&2
+  exit 1
+fi
+
+# --verify carries the same exposure, and it is the worse one. The gate exists
+# because the classification window shuts at merge and never reopens (#167); a
+# verify aimed by a slid range reads back somebody else's Issue and exits 0.
+# A false green here is worse than no gate at all.
+git -C "$REPO" commit -q --allow-empty -m 'Merge pull request 601
+
+Closes #507'
+sha_507="$(git -C "$REPO" rev-parse HEAD)"
+rc=0
+verify_before="$(run --verify --range 'HEAD~1..HEAD')" || rc=$?
+[ "$rc" -ne 0 ]
+jq -e --arg sha "$sha_507" \
+  'select(.issue == 507) | .reason == "projection-missing" and .commit == $sha' \
+  <<<"$verify_before" >/dev/null
+[ "$(jq -r 'select(.selector == "range") | .pinned' <<<"$verify_before")" = 507 ]
+
+# Another session merges. 506 is already projected, so the identical --verify
+# now passes -- for an Issue the operator was never finishing.
+git -C "$REPO" commit -q --allow-empty -m 'Merge pull request 602
+
+Closes #506'
+sha_506="$(git -C "$REPO" rev-parse HEAD)"
+rc=0
+verify_after="$(run --verify --range 'HEAD~1..HEAD')" || rc=$?
+[ "$rc" -eq 0 ]
+jq -e 'select(.issue == 506) | .result == "projected"' <<<"$verify_after" >/dev/null
+if jq -e 'select(.issue == 507)' <<<"$verify_after" >/dev/null 2>&1; then
+  echo 'the fixture no longer demonstrates the slide' >&2
+  exit 1
+fi
+
+# What #175 adds is that the false green is no longer silent: the line says
+# which commit it came from, and it is not the operator's merge.
+jq -e --arg sha "$sha_506" 'select(.issue == 506) | .commit == $sha' <<<"$verify_after" >/dev/null
+[ "$sha_506" != "$sha_507" ]
+
+# AC-1: verifying by the pinned Issue number instead reaches the Issue the
+# operator is actually finishing, whatever main has done since.
+rc=0
+verify_pinned="$(run --verify 507)" || rc=$?
+[ "$rc" -ne 0 ]
+jq -e 'select(.issue == 507) | .reason == "projection-missing"' <<<"$verify_pinned" >/dev/null
+
+# AC-3: the window posture is untouched. A closed, never-projected Issue still
+# reports the window shut and still offers no remedy, whether it arrived by
+# number or by range.
+git -C "$REPO" commit -q --allow-empty -m 'Merge pull request 603
+
+Closes #509'
+rc=0
+verify_closed="$(run --verify --range 'HEAD~1..HEAD')" || rc=$?
+[ "$rc" -ne 0 ]
+jq -e 'select(.issue == 509) | .reason == "projection-window-closed" and (has("remedy") | not)' \
+  <<<"$verify_closed" >/dev/null
+
+# AC-3: nothing new crosses the broker argument surface. The commit attribution
+# is the tool's report to the operator, not an input to any read or write.
+if grep -Eq -- 'commit|--range|[0-9a-f]{40}' "$TMP/broker.log"; then
+  echo 'range resolution leaked into the broker argument surface' >&2
+  exit 1
+fi
+
+# A range that covers nothing is its own failure, not "no Issue selector given",
+# and the evidence is printed before the refusal rather than withheld by it.
+rc=0
+empty_range="$(run --range 'HEAD..HEAD' 2>&1)" || rc=$?
+[ "$rc" -ne 0 ]
+grep -Fq 'covers no commits' <<<"$empty_range"
+grep -Fq '"selector":"range"' <<<"$empty_range"
+
+# Commits that name no Issue are a different failure again.
+git -C "$REPO" commit -q --allow-empty -m 'docs: no Issue reference here'
+rc=0
+plain_range="$(run --range 'HEAD~1..HEAD' 2>&1)" || rc=$?
+[ "$rc" -ne 0 ]
+grep -Fq 'none of which names an Issue' <<<"$plain_range"
+
+# A range git cannot resolve at all fails loudly rather than selecting nothing.
+rc=0
+bad_range="$(run --range 'no-such-ref..HEAD' 2>&1)" || rc=$?
+[ "$rc" -ne 0 ]
+grep -Fq 'cannot resolve --range' <<<"$bad_range"
 
 # Refusing to guess: no Issue selector at all is an error, not an empty
 # successful run that reads as "nothing to do".

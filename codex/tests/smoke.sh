@@ -69,6 +69,8 @@ for script in \
   "$ROOT/codex/tools/project-profile-migration.sh" \
   "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
   "$ROOT/codex/agent/gitea-token.sh" \
+  "$ROOT/codex/agent/change-merge-range.sh" \
+  "$ROOT/codex/tests/test-change-merge-range.sh" \
   "$ROOT/codex/tests/test-gitea-token-lib.sh" \
   "$ROOT/codex/tests/test-gitea-token-consumers.sh" \
   "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
@@ -116,6 +118,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-mark-deployed-issues.sh" \
     "$ROOT/codex/tests/test-mark-completed-issues.sh" \
     "$ROOT/codex/tests/test-apply-classification-labels.sh" \
+    "$ROOT/codex/tests/test-change-merge-range.sh" \
     "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
     "$ROOT/codex/tests/test-sync-gitea-service-policy.sh" \
@@ -153,6 +156,7 @@ bash "$ROOT/codex/tests/test-gitea-label-manifest.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 bash "$ROOT/codex/tests/test-project-check.sh"
 bash "$ROOT/codex/tests/test-agent-runtime.sh"
+bash "$ROOT/codex/tests/test-change-merge-range.sh"
 bash "$ROOT/codex/tests/test-mark-deployed-issues.sh"
 bash "$ROOT/codex/tests/test-mark-completed-issues.sh"
 bash "$ROOT/codex/tests/test-apply-classification-labels.sh"

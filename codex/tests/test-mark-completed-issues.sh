@@ -15,6 +15,9 @@ trap 'rm -rf -- "$TMP"' EXIT
 BIN="$TMP/bin"
 mkdir -p "$BIN"
 cp "$ROOT/codex/tools/mark-completed-issues.sh" "$BIN/"
+# The shared merge-range library travels with the tool, exercising the
+# same-directory-first branch of its lookup (#175).
+cp "$ROOT/codex/agent/change-merge-range.sh" "$BIN/"
 cat >"$BIN/host-access-broker.sh" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -191,6 +194,116 @@ range_output="$(run --range 'HEAD~2..HEAD')"
 jq -e 'select(.issue == 501) | .action == "set-completed"' <<<"$range_output" >/dev/null
 jq -e 'select(.issue == 502) | .action == "skip"' <<<"$range_output" >/dev/null
 [ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
+
+# --- Issue #175: a range says what it covered, and hands back a fixed anchor --
+#
+# origin/main~N is evaluated when the tool starts, not when the operator fetched
+# and not when the operator approved the plan. Two windows follow, and main
+# moving in either one slides the range onto somebody else's merge -- silently,
+# because completed is very often the label that Issue should have anyway.
+
+sha_501="$(git -C "$REPO" rev-parse HEAD~1)"
+sha_502="$(git -C "$REPO" rev-parse HEAD)"
+
+# AC-2: the selector line names the range as given and every commit it covered,
+# so mis-aiming is visible without a second git log.
+selector_line="$(jq -c 'select(.selector == "range")' <<<"$range_output")"
+jq -e '.range == "HEAD~2..HEAD" and (.commits | length) == 2' <<<"$selector_line" >/dev/null
+jq -e --arg sha "$sha_501" '.commits[] | select(.commit == $sha) | .issues == [501]' \
+  <<<"$selector_line" >/dev/null
+
+# AC-2: and every per-Issue line stands alone -- it names the commit it came
+# from, so one line is enough to tell whether it was derived from the merge the
+# operator meant.
+jq -e --arg sha "$sha_501" 'select(.issue == 501) | .commit == $sha' <<<"$range_output" >/dev/null
+jq -e --arg sha "$sha_502" 'select(.issue == 502) | .commit == $sha' <<<"$range_output" >/dev/null
+
+# A bare Issue number was not derived from any commit, so it reports none, and
+# no selector line is emitted at all.
+bare_output="$(run 501)"
+jq -e 'select(.issue == 501) | has("commit") | not' <<<"$bare_output" >/dev/null
+if jq -e 'select(.selector == "range")' <<<"$bare_output" >/dev/null 2>&1; then
+  echo 'a run without --range must not emit a selector line' >&2
+  exit 1
+fi
+
+# The slide itself, made deterministic. C is the operator's own merge; the plan
+# is read; then another session merges D; then the operator runs --apply.
+git -C "$REPO" commit -q --allow-empty -m 'Merge pull request 601
+
+Closes #501'
+sha_c="$(git -C "$REPO" rev-parse HEAD)"
+: >"$TMP/broker.log"
+plan_before="$(run --range 'HEAD~1..HEAD')"
+[ "$(jq -r 'select(.selector == "range") | .pinned' <<<"$plan_before")" = 501 ]
+jq -e --arg sha "$sha_c" 'select(.issue == 501) | .action == "set-completed" and .commit == $sha' \
+  <<<"$plan_before" >/dev/null
+
+git -C "$REPO" commit -q --allow-empty -m 'Merge branch change/502-deployed-change into main'
+sha_d="$(git -C "$REPO" rev-parse HEAD)"
+
+# Same argument, different target. If this ever stops holding, the fixture has
+# stopped reproducing the bug and everything below it is vacuous.
+plan_after="$(run --range 'HEAD~1..HEAD')"
+[ "$(jq -r 'select(.selector == "range") | .pinned' <<<"$plan_after")" = 502 ]
+jq -e --arg sha "$sha_d" 'select(.selector == "range") | .commits[0].commit == $sha' \
+  <<<"$plan_after" >/dev/null
+
+# AC-1: the operator reruns with the pinned number the plan handed back, not
+# with the range. The Issue number cannot move, so --apply writes the Issue the
+# approved plan showed -- not the one the range now points at.
+: >"$TMP/broker.log"
+apply_pinned="$(run --apply 501)"
+jq -e 'select(.issue == 501) | .applied == true' <<<"$apply_pinned" >/dev/null
+grep -Fq -- '--number 501' "$TMP/broker.log"
+if grep -Fq -- '--number 502' "$TMP/broker.log"; then
+  echo 'the pinned rerun must not reach the Issue the range slid onto' >&2
+  exit 1
+fi
+
+# And the contrast that makes the point: rerunning --apply with the same range
+# the plan was read from now selects a different Issue entirely.
+: >"$TMP/broker.log"
+apply_range="$(run --apply --range 'HEAD~1..HEAD')"
+jq -e 'select(.issue == 502) | .action == "skip"' <<<"$apply_range" >/dev/null
+if jq -e 'select(.issue == 501)' <<<"$apply_range" >/dev/null 2>&1; then
+  echo 'the fixture no longer demonstrates the slide' >&2
+  exit 1
+fi
+
+# AC-3: nothing new crosses the broker argument surface. The commit attribution
+# is the tool's report to the operator, not an input to the write.
+if grep -Eq -- 'commit|--range|[0-9a-f]{40}' "$TMP/broker.log"; then
+  echo 'range resolution leaked into the broker argument surface' >&2
+  exit 1
+fi
+
+# A range that covers nothing is its own failure, not "no Issue selector given".
+# That message says the argument was missing; here it was present and aimed at
+# an empty set, which is the mis-aim of #175 at its most extreme.
+: >"$TMP/broker.log"
+rc=0
+empty_range="$(run --range 'HEAD..HEAD' 2>&1)" || rc=$?
+[ "$rc" -ne 0 ]
+grep -Fq 'covers no commits' <<<"$empty_range"
+grep -Fq 'origin/main~N' <<<"$empty_range"
+# The evidence is printed before the refusal, not withheld by it.
+grep -Fq '"selector":"range"' <<<"$empty_range"
+[ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
+
+# Commits that name no Issue are a different failure again: the range was aimed
+# at real commits, they simply close nothing.
+git -C "$REPO" commit -q --allow-empty -m 'docs: no Issue reference here'
+rc=0
+plain_range="$(run --range 'HEAD~1..HEAD' 2>&1)" || rc=$?
+[ "$rc" -ne 0 ]
+grep -Fq 'none of which names an Issue' <<<"$plain_range"
+
+# A range git cannot resolve at all fails loudly rather than selecting nothing.
+rc=0
+bad_range="$(run --range 'no-such-ref..HEAD' 2>&1)" || rc=$?
+[ "$rc" -ne 0 ]
+grep -Fq 'cannot resolve --range' <<<"$bad_range"
 
 # Refusing to guess: no Issue selector at all is an error, not an empty
 # successful run that reads as "nothing to do".

@@ -212,12 +212,48 @@ type、complexity 和非生命周期标签。最终 PR 已合并且明确无需�
 由人在合并后显式运行 `codex/tools/mark-completed-issues.sh` 推进（#115）：
 
 ```bash
-codex/tools/mark-completed-issues.sh --range 'origin/main~5..origin/main'
+codex/tools/mark-completed-issues.sh --range 'origin/main~5..origin/main'   # 读计划
+codex/tools/mark-completed-issues.sh --apply 167 168                        # 用计划回给的 pinned 编号写入
 ```
 
 默认只输出逐 Issue 的判定计划、不做任何写入；确认计划无误后加 `--apply` 才经
 broker `gitea.issue.labels.set` 写入。已经是 `deployed` 的 Issue 不会被降级为
 `completed`：那是对「它到底发生了什么」的判断，必须由人显式做。
+
+### 范围锚不能是会移动的 ref（#175）
+
+`origin/main~N` 在**工具启动那一刻**求值，不是在 `git.fetch.main` 那一刻，也不是在人
+点头那一刻。于是有两个窗口，任何一个里 `origin/main` 前进一次，范围就整体后移：
+
+| 窗口 | 两端 |
+|---|---|
+| W1 | `git.fetch.main` → 跑计划 |
+| W2 | 跑计划 → 跑 `--apply`（中间隔着一次人工确认，窗口更长） |
+
+`#167` 收尾时实测到 W1：`git.fetch.main` 取回时 `origin/main` = `770d527`（#167 的 merge），
+下一条命令用 `--range 'origin/main~1..origin/main'` 却返回 `{"issue":168,...}`——期间
+PR #169 被合进 main，`origin/main~1` 于是等于 `770d527`。写错既不报错也不易发现：错的
+对象是别人刚合并的 Issue，而 `completed` 恰恰常常正是它该有的标签。
+
+两条确定性做法，两个窗口各关一个：
+
+- **W1**：使用 `--range` 时，计划的第一行是
+  `{"selector":"range","range":<字面量>,"commits":[{"commit":<sha>,"subject":…,"issues":[N,…]}],"pinned":"N …"}`，
+  逐 Issue 行另带 `commit`。核对 `commits` 就是自己那次 merge，不必另行 `git log` 反推。
+  范围命中 0 个 commit、或命中的 commit 一个 Issue 都不提，都是各自独立的错误，不再复用
+  「没给选择器」那句话——那句话说的是参数缺失，与事实不符。
+- **W2**：`--apply` 用计划回给的 `pinned`（就是 Issue 编号）重跑，不再传 `--range`。
+  Issue 编号不可变，`origin/main` 之后怎么动都不影响写入对象。
+
+`codex/tools/apply-classification-labels.sh` 的 `--range` 面同样处置，包括 `--verify`：
+一次被滑走的 `--verify` 会读回别人的 Issue 并报 `projected` 退 0，而这道闸门正是判级窗口
+永久关闭前的最后一步（#167），假绿比没有闸门更糟。**`--verify N` 一律用编号。**
+
+`codex/tools/mark-deployed-issues.sh` **不接受 `--range`，本次也没有给它加**：它是部署链路
+的 hook，运行在部署已经 checkout 的那个 commit 上，锚是 `HEAD` 或显式的
+`MERGE_MESSAGE_FILE`，都是钉死的对象，中间没有第二条命令让 ref 移动；而且它的姿态是任何
+缺失前提都 warn + exit 0、绝不让已成功的部署失败，给它加一份需要人读的计划会直接违反那个
+姿态——那里没有人在读。该事实由 `codex/tests/test-mark-deployed-issues.sh` 钉住。
 
 判定是一个**合取**，两个条件都取自仓库证据，都不接受人工传入的终态判断（#163）：
 

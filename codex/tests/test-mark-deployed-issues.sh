@@ -157,6 +157,31 @@ flat_output="$(bash "$flat/mark-deployed-issues.sh" 2>&1)"
 grep -Fq 'marked deployed: #88' <<<"$flat_output"
 grep -Fq '/issues/88/labels' "$TMP/puts.log"
 
+# --- Issue #175 AC-4: this tool has no --range, and must not grow one --------
+#
+# The two operator-run label tools take a range and were taught to report what
+# it resolved to. This one is anchored on the commit the deployment checked out,
+# so an argument that looks like a range must stay inert: if it were ever
+# honoured, a deployment hook would become steerable by whatever string reached
+# its argv, which is exactly the mis-aim #175 removed from the other two.
+puts_before="$(wc -l <"$TMP/puts.log" | tr -d ' ')"
+# Its own message file: earlier cases rewrote $TMP/message, and this assertion
+# is only meaningful against a message whose Issue it names itself.
+cat >"$TMP/message-175" <<'EOF'
+Merge pull request 604
+
+Closes #91
+EOF
+export MERGE_MESSAGE_FILE="$TMP/message-175"
+range_output="$(bash "$ROOT/codex/tools/mark-deployed-issues.sh" --range 'HEAD~9..HEAD' 2>&1)"
+grep -Fq 'marked deployed: #91' <<<"$range_output"
+[ "$(wc -l <"$TMP/puts.log" | tr -d ' ')" = "$((puts_before + 1))" ]
+# The anchor stayed the merge message, not the argument.
+if grep -Fq 'HEAD~9' "$TMP/argv.log"; then
+  echo 'mark-deployed must not act on a range argument' >&2
+  exit 1
+fi
+
 if grep -Fq "$FILE_TOKEN" "$TMP/argv.log" ||
   grep -Fq "$FILE_TOKEN" <<<"$file_output$perm_output"; then
   echo "file token leaked" >&2
