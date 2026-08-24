@@ -119,7 +119,7 @@ detached HEAD 与非 git 目录两条降级路径已由
 |---|---|
 | AC-1 | `bash codex/tests/test-installer-source-guard.sh`（level 段逐 installer 断言 `source commit:` 与 §2.3 的可读量行；install-host-role / architecture / docker-release 三个 installer 的第二次运行即幂等路径由既有测试覆盖） |
 | AC-2 | 同上（behind 段断言非零退出 + `1 commit(s) behind origin/main` + 安装根零写入；no-remote 段断言 `WARNING` 后仍成功安装） |
-| AC-3 | `bash codex/tests/test-install-host-access-broker.sh` 未放宽任何断言即通过；另用同一 checkout 对新旧 broker installer 做三态输出 `diff`（level+no-op / behind / no-upstream），逐字节相同；`rg -c 'rev-list --count' codex/lib/install-source-guard.sh` 为 1 且五个 installer 各为 0 |
+| AC-3 | `bash codex/tests/test-install-host-access-broker.sh` 未放宽任何断言即通过；另用同一 checkout 对新旧 broker installer 做三态输出 `diff`（level+no-op / behind / no-upstream），逐字节相同；`rg -c 'rev-list --count' codex/lib/install-source-guard.sh` 为 2（behind 与 ahead 各一次）且五个 installer 各为 0 |
 | AC-4 | 该测试文件存在且被 `smoke.sh` 执行 |
 | AC-5 | `bash codex/tests/smoke.sh` |
 | AC-6 | review `06-运维手册与踩坑集.md` 踩坑 20 含逐 installer 的可读量与判别方法 |
