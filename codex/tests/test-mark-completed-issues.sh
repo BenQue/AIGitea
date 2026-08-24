@@ -16,8 +16,10 @@ BIN="$TMP/bin"
 mkdir -p "$BIN"
 cp "$ROOT/codex/tools/mark-completed-issues.sh" "$BIN/"
 # The shared merge-range library travels with the tool, exercising the
-# same-directory-first branch of its lookup (#175).
+# same-directory-first branch of its lookup (#175). The project target library
+# travels the same way (#184).
 cp "$ROOT/codex/agent/change-merge-range.sh" "$BIN/"
+cp "$ROOT/codex/agent/aisoft-project-target.sh" "$BIN/"
 cat >"$BIN/host-access-broker.sh" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -91,9 +93,16 @@ git -C "$REPO" commit -qm 'fixture documents'
 # below keeps exercising the default path unchanged. That the real manifest
 # declares none for aisoft-platform is pinned in
 # codex/runtime/tests/test_deployment_lifecycle.py instead.
+# base_url and owner join the fixture (#184): they are what a checkout's Git
+# remote is compared against when the target project is derived rather than
+# defaulted.
+FIXTURE_BASE_URL='http://gitea-fixture.invalid:3000'
+FIXTURE_OWNER=fixtureowner
 MANIFEST="$TMP/gitea-governance.json"
-cat >"$MANIFEST" <<'JSON'
+cat >"$MANIFEST" <<JSON
 {
+  "base_url": "$FIXTURE_BASE_URL",
+  "owner": "$FIXTURE_OWNER",
   "repositories": [
     {"name": "aisoft-platform"},
     {"name": "NoDeployRepository", "deployment_lifecycle": "none"},
@@ -120,10 +129,16 @@ cat >"$ACCESS_MANIFEST" <<'JSON'
 }
 JSON
 
+# $REPO deliberately has no Git remote, so it cannot say which project it
+# belongs to and --project has to (#184). That is the shape every assertion
+# below wants: it lets one fixture checkout stand in for four different
+# projects. The injected --project is a floor, not a lock -- a later --project in
+# "$@" wins, which is how the cases below select no-deploy-project and friends.
 run() {
   PYTHONPATH="$ROOT/codex/runtime" AISOFT_GOVERNANCE_MANIFEST="$MANIFEST" \
     AISOFT_ACCESS_MANIFEST="$ACCESS_MANIFEST" \
-    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" "$@"
+    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" \
+    --project aisoft-platform "$@"
 }
 
 run_with_manifest() {
@@ -131,7 +146,8 @@ run_with_manifest() {
   shift
   PYTHONPATH="$ROOT/codex/runtime" AISOFT_GOVERNANCE_MANIFEST="$manifest" \
     AISOFT_ACCESS_MANIFEST="$ACCESS_MANIFEST" \
-    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" "$@"
+    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" \
+    --project aisoft-platform "$@"
 }
 
 run_with_access_manifest() {
@@ -139,7 +155,8 @@ run_with_access_manifest() {
   shift
   PYTHONPATH="$ROOT/codex/runtime" AISOFT_GOVERNANCE_MANIFEST="$MANIFEST" \
     AISOFT_ACCESS_MANIFEST="$access_manifest" \
-    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" "$@"
+    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" \
+    --project aisoft-platform "$@"
 }
 
 # AC-8: the default is a plan, not a write. No --apply means no broker call at
@@ -470,5 +487,83 @@ jq -e 'select(.issue == 502) | .action == "skip" and .reason == "requires-deploy
   <<<"$real_plan" >/dev/null
 grep -Fq 'LocalWMS' <<<"$(jq -r 'select(.issue == 502) | .detail' <<<"$real_plan")"
 [ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
+
+# --- #184: which repository this run is allowed to write to ------------------
+#
+# Every case above hands the tool an explicit --project because $REPO has no Git
+# remote to derive one from. That covers the override path. What follows covers
+# the derivation itself, and the two refusals that replace the old default.
+#
+# This tool writes a terminal lifecycle label, so the default it used to carry
+# did not merely misreport: pointed at another project's checkout without
+# --project, it stamped that checkout's finishing verdict onto the platform
+# repository's same-numbered Issue.
+REPO_REMOTE="$TMP/repo-with-remote"
+cp -R "$REPO" "$REPO_REMOTE"
+git -C "$REPO_REMOTE" remote add origin \
+  "$FIXTURE_BASE_URL/$FIXTURE_OWNER/NoDeployRepository.git"
+
+run_repo() {
+  local repo="$1"
+  shift
+  PYTHONPATH="$ROOT/codex/runtime" AISOFT_GOVERNANCE_MANIFEST="$MANIFEST" \
+    AISOFT_ACCESS_MANIFEST="$ACCESS_MANIFEST" \
+    bash "$BIN/mark-completed-issues.sh" --repo "$repo" "$@"
+}
+
+# AC-1/AC-5: with no --project at all, the checkout decides, and every line says
+# which project and repository it decided on. NoDeployRepository is nothing like
+# no-deploy-project, so this travels the mapping rather than coinciding with it.
+: >"$TMP/broker.log"
+derived_plan="$(run_repo "$REPO_REMOTE" 502)"
+jq -e 'select(.issue == 502)
+  | .action == "set-completed" and .reason == "no-deployment-chain"
+    and .project == "no-deploy-project" and .repository == "NoDeployRepository"' \
+  <<<"$derived_plan" >/dev/null
+
+derived_apply="$(run_repo "$REPO_REMOTE" --apply 502)"
+jq -e 'select(.issue == 502)
+  | .applied == true and .project == "no-deploy-project"' <<<"$derived_apply" >/dev/null
+grep -Fq -- '--project no-deploy-project' "$TMP/broker.log"
+if grep -Fq -- '--project aisoft-platform' "$TMP/broker.log"; then
+  echo 'the tool wrote against a repository the checkout does not belong to' >&2
+  exit 1
+fi
+
+# AC-3: a --project contradicting the checkout is a full stop, in both modes.
+# Nothing is printed and the broker is not called -- a write refused after the
+# fact is still a write.
+for mode_args in "502" "--apply 502"; do
+  : >"$TMP/broker.log"
+  rc=0
+  # shellcheck disable=SC2086
+  mismatch_output="$(
+    run_repo "$REPO_REMOTE" --project explicit-deploy-project $mode_args 2>"$TMP/mc-mismatch.err"
+  )" || rc=$?
+  [ "$rc" -ne 0 ] || {
+    echo "--project contradicting the checkout must fail: $mode_args" >&2
+    exit 1
+  }
+  [ -z "$mismatch_output" ]
+  [ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
+  grep -Fq 'no-deploy-project' "$TMP/mc-mismatch.err"
+  grep -Fq 'explicit-deploy-project' "$TMP/mc-mismatch.err"
+done
+
+# AC-4: no remote and no --project is a refusal carrying its own remedy, not a
+# silent fall back to whichever project the tool was written in.
+for mode_args in "501" "--apply 501"; do
+  : >"$TMP/broker.log"
+  rc=0
+  # shellcheck disable=SC2086
+  undetermined="$(run_repo "$REPO" $mode_args 2>"$TMP/mc-undetermined.err")" || rc=$?
+  [ "$rc" -ne 0 ] || {
+    echo "an undeterminable target must fail: $mode_args" >&2
+    exit 1
+  }
+  [ -z "$undetermined" ]
+  [ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
+  grep -Fq -- '--project' "$TMP/mc-undetermined.err"
+done
 
 echo 'mark-completed tests passed'

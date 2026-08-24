@@ -44,7 +44,10 @@ fail() {
 tool_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo=""
 range=""
-project="aisoft-platform"
+# No default (#184). --repo already names a checkout, and a project id that is
+# never checked against it turns "I do not know" into a confident conclusion
+# about a repository nobody meant to touch.
+project=""
 apply=0
 verify=0
 issues=()
@@ -76,6 +79,23 @@ fi
 for binary in jq git python3; do
   command -v "$binary" >/dev/null 2>&1 || fail "$binary is required"
 done
+
+# Shared project target resolution (#184), same same-directory-first convention.
+# It decides which repository this run may speak about, from the checkout rather
+# than from a default, and it does so before a single Issue is read: a run that
+# cannot name its target must produce no lines at all, because a line is what
+# gets believed.
+if [ -f "$tool_dir/aisoft-project-target.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  . "$tool_dir/aisoft-project-target.sh"
+elif [ -f "$tool_dir/../agent/aisoft-project-target.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  . "$tool_dir/../agent/aisoft-project-target.sh"
+else
+  fail 'shared project target library aisoft-project-target.sh is unavailable'
+fi
+aisoft_resolve_project_target "$tool_dir" "$repo" "$project" ||
+  fail "$AISOFT_PROJECT_TARGET_ERROR"
 
 # Same-directory first, matching the flat install layout the other tools use.
 if [ -x "$tool_dir/host-access-broker.sh" ]; then
@@ -111,7 +131,7 @@ run_broker() {
   broker_detail=""
   : >"$broker_stderr_file"
   broker_stdout="$(
-    "$broker" --project "$project" --operation "$operation" "$@" 2>"$broker_stderr_file"
+    "$broker" --project "$AISOFT_PROJECT_ID" --operation "$operation" "$@" 2>"$broker_stderr_file"
   )" || status=1
   broker_stderr="$(cat "$broker_stderr_file")"
   if [ "$status" -ne 0 ]; then
@@ -201,12 +221,17 @@ fi
 # verify_issue and unresolved, which already read the loop's other per-Issue
 # state the same way.
 issue_commit=""
+# project and repository are read from the resolver, not passed in: "which
+# repository is this line about" is precisely the question #184 answered wrongly
+# and silently, and a field a call site could forget to fill would be no answer.
 emit() {
   jq -cn --argjson issue "$1" --arg action "$2" --arg reason "$3" \
     --arg detail "$4" --argjson applied "$5" --arg result "$6" \
     --arg change_type "$7" --arg complexity "$8" --arg remedy "${9:-}" \
-    --arg commit "$issue_commit" '
-    {issue: $issue, action: $action, applied: $applied}
+    --arg commit "$issue_commit" \
+    --arg project "$AISOFT_PROJECT_ID" --arg repository "$AISOFT_PROJECT_REPOSITORY" '
+    {issue: $issue, project: $project, repository: $repository,
+     action: $action, applied: $applied}
     + (if $commit == "" then {} else {commit: $commit} end)
     + (if $reason == "" then {} else {reason: $reason} end)
     + (if $detail == "" then {} else {detail: $detail} end)
