@@ -307,7 +307,7 @@
       "vm_profile": {
         "name": "localwms",
         "repo_dir": "work/LocalWMS",
-        "analysis_provider": "claude",
+        "analysis_provider": "codex",
         "implement_provider": "none",
         "timer_unit": null
       }
