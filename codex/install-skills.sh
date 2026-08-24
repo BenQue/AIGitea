@@ -10,6 +10,18 @@ matt_manifest="$matt_source/manifest.json"
 matt_vendor_root="$target_home/.agents/vendor/mattpocock"
 matt_release="$matt_vendor_root/releases/$matt_version"
 
+# Source provenance and staleness gate (#162, #171). Must stay before the first
+# filesystem write below; `install -d` counts as a write.
+# shellcheck disable=SC1091
+source "$root/codex/lib/install-source-guard.sh"
+
+aisoft_install_source_guard install-skills "$root" \
+  skills "$(
+    aisoft_install_source_file_count \
+      "$root"/codex/skills/*/SKILL.md "$root/skill-for-codex/SKILL.md"
+  )" \
+  'matt snapshot' "$matt_version"
+
 install -d -m 700 "$target_home/.agents"
 install -d -m 755 "$target_root"
 

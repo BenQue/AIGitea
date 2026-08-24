@@ -54,6 +54,8 @@ bash -n "$ROOT/codex/tests/test-project-check.sh"
 for script in \
   "$ROOT/codex/install-host-role.sh" \
   "$ROOT/codex/install-host-access-broker.sh" \
+  "$ROOT/codex/install-skills.sh" \
+  "$ROOT/codex/lib/install-source-guard.sh" \
   "$ROOT/codex/tools/mark-deployed-issues.sh" \
   "$ROOT/codex/tools/mark-completed-issues.sh" \
   "$ROOT/codex/tools/apply-classification-labels.sh" \
@@ -86,6 +88,7 @@ for script in \
   "$ROOT/codex/tests/test-install-host-role.sh" \
   "$ROOT/codex/tests/test-host-access-broker.sh" \
   "$ROOT/codex/tests/test-install-host-access-broker.sh" \
+  "$ROOT/codex/tests/test-installer-source-guard.sh" \
   "$ROOT"/sync/*.sh \
   "$ROOT"/sync/tests/*.sh; do
   bash -n "$script"
@@ -96,6 +99,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/install-vm.sh" \
     "$ROOT/codex/install-host-role.sh" \
     "$ROOT/codex/install-host-access-broker.sh" \
+    "$ROOT/codex/install-skills.sh" \
+    "$ROOT/codex/lib/install-source-guard.sh" \
     "$ROOT/codex/tools/sync-gitea-labels.sh" \
     "$ROOT/codex/tools/mark-deployed-issues.sh" \
     "$ROOT/codex/tools/mark-completed-issues.sh" \
@@ -129,6 +134,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-install-host-role.sh" \
     "$ROOT/codex/tests/test-host-access-broker.sh" \
     "$ROOT/codex/tests/test-install-host-access-broker.sh" \
+    "$ROOT/codex/tests/test-installer-source-guard.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh" \
     "$ROOT/codex/tests/test-gitea-token-lib.sh" \
     "$ROOT/codex/tests/test-gitea-token-consumers.sh"
@@ -176,6 +182,7 @@ bash "$ROOT/codex/tests/test-host-role-guard.sh"
 bash "$ROOT/codex/tests/test-install-host-role.sh"
 bash "$ROOT/codex/tests/test-host-access-broker.sh"
 bash "$ROOT/codex/tests/test-install-host-access-broker.sh"
+bash "$ROOT/codex/tests/test-installer-source-guard.sh"
 bash "$ROOT/codex/tests/test-docker-release-install.sh"
 bash "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
 harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh")"

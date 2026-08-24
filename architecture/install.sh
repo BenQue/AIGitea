@@ -25,6 +25,19 @@ done
 
 [[ -n "$PREFIX" && "$PREFIX" == /* ]] || { usage; exit 2; }
 
+# Source provenance and staleness gate (#162, #171). Must stay before the first
+# filesystem write below; `install -d` counts as a write.
+# shellcheck disable=SC1091
+source "$ROOT/codex/lib/install-source-guard.sh"
+
+aisoft_install_source_guard architecture/install "$ROOT" \
+  'catalog revision' "$(
+    aisoft_install_source_json_value "$ROOT/architecture/catalog.json" revision
+  )" \
+  components "$(
+    aisoft_install_source_json_count "$ROOT/architecture/catalog.json" components
+  )"
+
 RUNTIME_DIR="$PREFIX/lib/aisoft-architecture/aisoft_architecture"
 SHARE_DIR="$PREFIX/share/aisoft-architecture"
 install -d -m 755 "$PREFIX/bin" "$RUNTIME_DIR" "$SHARE_DIR"
