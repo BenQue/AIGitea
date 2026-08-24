@@ -99,6 +99,46 @@ docs/changes/N-short-description/
 `templates/docs/changes/_template/verification.md`，其中 `## 部署验收` 一节只适用于
 实际部署或迁移的变更，不部署时整节删除而不是保留标题填「无」。
 
+### 模板是 vendored 副本：改动必须由上游广播（#190）
+
+`templates/docs/changes/_template/` 是合同源，但每个接入项目在 `docs/changes/_template/`
+里持有一份**逐字节相同的副本**，`aisoft-project-check.sh` 的 `change-templates` 查的就是
+这个相等关系。八条对齐检查里只有它的判据横跨两个仓库，因此也只有它会**因为上游前进而
+自发变红**，与下游是否有任何提交无关（LocalWMS #78 / PR #81 是第一次真实复发）。
+
+副本原先既没有版本号也没有依赖声明，下游无从知道自己何时过期。现在这两样都有了：
+
+| 缺的东西 | 补法 |
+|---|---|
+| 谁持有副本 | `gitea-governance.json` 每个仓库的 `vendors_change_templates`；未声明取 `true` |
+| 模板是哪一版 | `codex/config/change-template-sync.json` 的 `template_digest` |
+
+改动模板的变更因此必须在**同一次变更里**刷新 digest：
+
+```bash
+bash codex/tools/change-template-sync.sh --refresh-digest
+```
+
+不刷新，平台自己的 required CI（`codex/tests/smoke.sh`）就在 `--verify-digest` 这一步变红；
+刷新时工具打印完整的下游同步清单——按声明枚举全部 holder，本机有没有那个项目的 checkout
+都一样列出。清单里每一项走目标仓自己的 Issue → change 分支 → PR，复制覆盖即可。
+
+不带参数运行是只读的现状核对，可随时重跑，也适合将来挂成非阻塞的定期任务：
+
+```bash
+bash codex/tools/change-template-sync.sh
+```
+
+它的 `current` / `stale` / `missing` 取自**本机 checkout 的工作树**，不是该仓库 `main` 的
+状态；checkout 停在别的分支时会在行尾标注。`unverified` 表示本机读不到那个 checkout，
+不表示已同步。
+
+**明确不做的事：不在任何下游项目引入阻塞式 required check。** 下游 CI 要跑这条比对就得
+每个 PR 去 clone 平台仓，等于把上游演进变成下游全部在途 PR 的阻塞——包括与模板毫不相干
+的那些——而这条 GAP 的修复代价只是一次复制覆盖。这也是 `change-templates` 至今只是一条
+GAP 提示而不是错误的原因。约束由 `change-template-sync.json` 的
+`downstream_required_check: forbidden` 与 smoke 一起钉住：改掉它，工具停机、CI 变红。
+
 ## 4. 平台三维标签与 Matt triage
 
 每个 Issue 的标签分为三个正交维度：

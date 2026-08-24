@@ -51,6 +51,8 @@ bash -n "$ROOT/codex/agent/gitea-label-manifest.sh"
 bash -n "$ROOT/codex/tests/test-gitea-label-manifest.sh"
 bash -n "$ROOT/codex/tools/aisoft-project-check.sh"
 bash -n "$ROOT/codex/tests/test-project-check.sh"
+bash -n "$ROOT/codex/tools/change-template-sync.sh"
+bash -n "$ROOT/codex/tests/test-change-template-sync.sh"
 for script in \
   "$ROOT/codex/install-host-role.sh" \
   "$ROOT/codex/install-host-access-broker.sh" \
@@ -118,6 +120,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/project-profile-migration.sh" \
     "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
     "$ROOT/codex/tools/aisoft-project-check.sh" \
+    "$ROOT/codex/tools/change-template-sync.sh" \
+    "$ROOT/codex/tests/test-change-template-sync.sh" \
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-gitea-label-manifest.sh" \
     "$ROOT/codex/tests/test-project-check.sh" \
@@ -162,6 +166,7 @@ bash "$ROOT/codex/tests/test-architecture-install.sh"
 bash "$ROOT/codex/tests/test-gitea-label-manifest.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 bash "$ROOT/codex/tests/test-project-check.sh"
+bash "$ROOT/codex/tests/test-change-template-sync.sh"
 bash "$ROOT/codex/tests/test-agent-runtime.sh"
 bash "$ROOT/codex/tests/test-change-merge-range.sh"
 bash "$ROOT/codex/tests/test-mark-deployed-issues.sh"
@@ -209,6 +214,18 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
 # gate to target repositories has to pass it first.
 PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_loop.cli \
   check-change-documents --repo "$ROOT" >/dev/null
+
+# change 文档模板的 vendored 副本没有版本号，下游因此无从知道自己何时过期（#190）。
+# digest 钉在 codex/config/change-template-sync.json 里：改了模板却不刷新它，平台
+# 自己的 required CI 在这里变红，作者被迫在同一次变更里跑 --refresh-digest，而那条
+# 命令会打印完整的下游同步清单。闸门只在**平台仓库**上，下游一个阻塞式 check 都不加
+# ——那会把上游演进变成下游全部在途 PR 的阻塞，代价远大于一次复制覆盖。
+bash "$ROOT/codex/tools/change-template-sync.sh" --verify-digest >/dev/null
+jq -e '.downstream_required_check == "forbidden"' \
+  "$ROOT/codex/config/change-template-sync.json" >/dev/null
+jq empty "$ROOT/codex/config/change-template-sync.json"
+grep -Fq '不在任何下游项目引入阻塞式 required check' \
+  "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
 
 PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_gitea_governance.cli \
   --manifest "$ROOT/codex/config/gitea-governance.json" validate >/dev/null
