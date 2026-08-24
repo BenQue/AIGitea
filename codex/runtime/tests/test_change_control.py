@@ -121,8 +121,10 @@ class ChangeControlRouteTests(unittest.TestCase):
         self.assertEqual(route.required_docs, ("summary", "verification"))
 
     def test_verification_stays_conditional_in_development(self) -> None:
-        """required_docs 含 verification 还承载「该变更要部署」的既有语义
-        （mark-completed-issues.sh）。development 不得改变这个条件。"""
+        """required_docs 含 verification 说的是「这次变更欠一份验证记录」，
+        由 analyzer 决定；development 不得改变这个条件。（#163 之前它还兼答
+        「该变更要部署」，那半边已交给 manifest 的 deployment_lifecycle；
+        本条守的是 route() 侧的条件不变。）"""
         shipping = _complex_classification()
         self.assertIn("verification", shipping.route(change_control="development").required_docs)
 

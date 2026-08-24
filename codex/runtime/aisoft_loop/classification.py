@@ -187,9 +187,11 @@ class Classification:
         # development 阶段的强制 complex 去掉 spec/plan：它们的内容在交互开发中
         # 已即时产生并执行，而 summary（改了什么、如何判级）是事后唯一可查的证据。
         # verification 不在此处决定——它沿用下方与 production 完全相同的条件
-        # （analyzer 是否要求），因为 required_docs 含 verification 同时承载着
-        # 「该变更要部署，终态是 deployed 而非 completed」这一既有语义
-        # （见 mark-completed-issues.sh）。缺省 production，保持既有四份行为。
+        # （analyzer 是否要求）。#163 之前它还兼答「该变更要部署，终态是 deployed
+        # 而非 completed」；那半边语义已经移出去了：现在由 governance manifest 的
+        # deployment_lifecycle 回答，因为那是仓库属性而不是单次变更的属性
+        # （见 mark-completed-issues.sh 与 03 §11）。这里只剩「欠不欠验证记录」，
+        # change_control 不改变它。缺省 production，保持既有四份行为。
         if change_control == "development":
             complex_docs = ("summary",) if role_based else ("00-summary.md",)
         else:

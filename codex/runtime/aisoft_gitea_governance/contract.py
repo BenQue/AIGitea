@@ -13,6 +13,14 @@ IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 # 交付阶段。development 只适用于尚未首次生产部署的项目；它只影响强制 complex
 # 变更所需的映射文档份数，不影响分支保护、必需 CI、人工合并闸门与判级分类本身。
 CHANGE_CONTROL_PHASES = frozenset({"development", "production"})
+
+# 该仓库有没有一条会回写 deployed 的应用部署链路（02 §9）。application-deploy 表示有；
+# none 表示没有，deployed 在这个仓库上不可达，合并后的唯一终态是 completed（#163）。
+# 这是仓库属性而不是单次变更的属性：平台仓库里没有任何变更走应用部署链路。
+# 未声明时取 application-deploy——更严的一档，使既有仓库行为完全不变，
+# 也保证「读不到声明」永远不会意外放宽终态判定。
+DEPLOYMENT_LIFECYCLES = frozenset({"application-deploy", "none"})
+DEFAULT_DEPLOYMENT_LIFECYCLE = "application-deploy"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
@@ -60,6 +68,8 @@ class RepositoryContract:
     # 交付阶段。未在 manifest 声明时默认 "production"——缺省取更严的一档，
     # 使既有仓库行为完全不变，也保证读不到声明时不会意外放宽。
     change_control: str = "production"
+    # 有没有应用部署链路。缺省同理取更严的一档，见 DEPLOYMENT_LIFECYCLES。
+    deployment_lifecycle: str = DEFAULT_DEPLOYMENT_LIFECYCLE
 
     @property
     def private(self) -> bool:
@@ -68,6 +78,11 @@ class RepositoryContract:
     @property
     def in_development(self) -> bool:
         return self.change_control == "development"
+
+    @property
+    def deploys(self) -> bool:
+        """是否存在一条会把生命周期推进为 deployed 的应用部署链路。"""
+        return self.deployment_lifecycle != "none"
 
 
 @dataclass(frozen=True)
@@ -262,7 +277,7 @@ def load_contract(path: str | Path) -> GovernanceContract:
         _exact_keys(item, {"name", "classification", "visibility", "project_agent",
                            "status_check_contexts", "required_approvals"},
                     f"repositories[{index}]",
-                    optional={"change_control"})
+                    optional={"change_control", "deployment_lifecycle"})
         name = _identifier(item["name"], f"repositories[{index}].name")
         _require(name not in names, f"duplicate repository name: {name}")
         names.add(name)
@@ -291,6 +306,10 @@ def load_contract(path: str | Path) -> GovernanceContract:
         change_control = item.get("change_control", "production")
         _require(change_control in CHANGE_CONTROL_PHASES,
                  f"unsupported change_control for {name}: {change_control!r}")
+        deployment_lifecycle = item.get("deployment_lifecycle",
+                                        DEFAULT_DEPLOYMENT_LIFECYCLE)
+        _require(deployment_lifecycle in DEPLOYMENT_LIFECYCLES,
+                 f"unsupported deployment_lifecycle for {name}: {deployment_lifecycle!r}")
         repositories.append(RepositoryContract(
             name=name,
             classification=classification,
@@ -299,6 +318,7 @@ def load_contract(path: str | Path) -> GovernanceContract:
             status_check_contexts=tuple(contexts),
             required_approvals=approvals,
             change_control=change_control,
+            deployment_lifecycle=deployment_lifecycle,
         ))
 
     _require(repository_policy["public_allowlist"] == public_full_names,
