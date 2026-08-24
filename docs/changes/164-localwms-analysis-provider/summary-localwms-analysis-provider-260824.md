@@ -23,9 +23,9 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: approved
+status: pr-open
 branch: change/164-localwms-analysis-provider
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/177
 created: 2026-08-24
 updated: 2026-08-24
 ---
@@ -73,7 +73,7 @@ canary 用 codex 链对 LocalWMS 三个真实 Issue 做了只读试跑，均正�
 ### 范围裁定：本次只改 `localwms`
 
 Issue 把「另外三条同病的 profile 是否一并处理」交给平台会话裁定。结论是**不一并处理**，
-另开 Issue。四条理由按重要性排列：
+另开 #178。四条理由按重要性排列：
 
 1. **两条 profile 是活的。** `sfm`（`aisoft-agent@sfm.timer`）与 `emaintenance`
    （`aisoft-agent@emaintenance.timer`）每 15 分钟真在跑。今天每一跳都走到
@@ -135,7 +135,7 @@ AC-2/AC-3 正落在 §3 表格第二行点名的形态上——「部署、迁�
   **不阻塞本变更**：`localwms` 的 `timer_unit` 是 `null`、`implement_provider` 是 `none`，
   没有任何东西会自动触发 `analyze-codex.sh`。但交接项因此比 Issue 写的更紧：
   刷新 VM runtime 应当排在 LocalWMS **第一次端到端 analyzer 运行之前**，
-  而不只是排在启用 Loop 之前。已开独立 Issue 跟踪。
+  而不只是排在启用 Loop 之前。已开 #179 跟踪。
 
 - **合并不等于生效。** broker 运行时读的是安装态副本
   `/usr/local/share/aisoft/host-access-broker.json`。合并后必须由人重装两台并跑
@@ -183,4 +183,4 @@ override_reason: ''
 
 - 无。AC-1..AC-4 在 Issue 正文中已可测。唯一的开放决策——「另外三条 profile
   是否一并处理」——由上文「范围裁定」一节基于仓库证据与风险档次判定为「不一并处理」，
-  并在 spec §6 列为非目标、另开独立 Issue 跟踪。
+  并在 spec §6 列为非目标，已开 #178 跟踪。

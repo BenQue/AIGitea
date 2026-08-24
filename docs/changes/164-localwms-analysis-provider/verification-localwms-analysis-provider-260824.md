@@ -115,8 +115,8 @@ updated: 2026-08-24
    LocalWMS 是唯一声明 `change_control: development` 的仓库，所以也是唯一一个
    陈旧 runtime 的答案与正确答案不一致的仓库。
    **不阻塞本变更**（`timer_unit: null`，无自动触发），但刷新 VM runtime 应排在
-   LocalWMS 第一次端到端 analyzer 运行之前。已开独立 Issue 跟踪。
+   LocalWMS 第一次端到端 analyzer 运行之前。已开 #179 跟踪。
 3. **analyzer 读不到 Issue 评论**（Issue #164 附带发现二）：对「正文之后由评论修订过
-   范围」的 Issue 存在系统性盲区。已开独立 Issue 跟踪。
+   范围」的 Issue 存在系统性盲区。已开 #180 跟踪。
 4. **`rsdesign` / `sfm` / `emaintenance` 三条 profile 仍声明 `claude`**，仍然跑不通。
-   本变更有意不动（spec §6 非目标 1），已开独立 Issue 跟踪。
+   本变更有意不动（spec §6 非目标 1），已开 #178 跟踪。

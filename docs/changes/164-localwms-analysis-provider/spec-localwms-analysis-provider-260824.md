@@ -94,12 +94,12 @@ AC-2 与 AC-3 只能在主机侧重装并 provision 之后取证，属合并后�
 1. **不改 `rsdesign` / `sfm` / `emaintenance` 三条同病 profile。** 裁定依据见
    summary「范围裁定」一节：证据只覆盖 localwms；`sfm` 与 `emaintenance` 有活的
    15 分钟 timer，翻它们等于把 fail-closed 空转变成两个应用仓上活的写入链，
-   属「启用」而非「订正」，须各自带 canary 与验收标准另开 Issue。
+   属「启用」而非「订正」，须各自带 canary 与验收标准另开 Issue。见 #178。
 2. **不刷新 VM 上陈旧的 `~/.local/lib/aisoft-loop`。** 修复方式是以 `coder` 身份跑
    `codex/install-vm.sh`，但它同时刷新 agent 脚本与 systemd unit 模板，影响 VM 上
    所有项目，须独立评估（Issue #164 附带发现一；本 spec 补充了它比 Issue 描述更早
-   触发的证据，见 summary 风险第一条）。另开 Issue。
-3. **不给 VM 侧补 Issue 评论读取路径**（Issue #164 附带发现二）。另开 Issue。
+   触发的证据，见 summary 风险第一条）。见 #179。
+3. **不给 VM 侧补 Issue 评论读取路径**（Issue #164 附带发现二）。见 #180。
 4. **不启用 Development Loop**：`implement_provider` 保持 `none`，`timer_unit` 保持 `null`。
 5. **不执行任何主机侧动作**：不重装、不 provision、不跑 mutating 的 `vm.profile.*`。
 6. **不修订历史文档**：`docs/changes/152-localwms-vm-profile/` 记录的是当时的真实判断，
