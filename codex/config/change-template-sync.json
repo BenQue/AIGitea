@@ -1,0 +1,13 @@
+{
+  "contract_version": "change-template-sync/v1",
+  "template_root": "templates/docs/changes/_template",
+  "documents": [
+    "summary.md",
+    "spec.md",
+    "plan.md",
+    "verification.md"
+  ],
+  "template_digest": "sha256:84356c58e0e4321feb89174dec62a41ca9e359ff00b9ba804921c544e1447073",
+  "digest_updated": "2026-08-24",
+  "downstream_required_check": "forbidden"
+}

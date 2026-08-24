@@ -73,6 +73,7 @@
       "name": "aisoft-platform",
       "classification": "public-platform",
       "deployment_lifecycle": "none",
+      "vendors_change_templates": false,
       "visibility": "public",
       "project_agent": "aisoft-platform-agent",
       "status_check_contexts": [],

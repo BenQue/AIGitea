@@ -21,6 +21,13 @@ CHANGE_CONTROL_PHASES = frozenset({"development", "production"})
 # 也保证「读不到声明」永远不会意外放宽终态判定。
 DEPLOYMENT_LIFECYCLES = frozenset({"application-deploy", "none"})
 DEFAULT_DEPLOYMENT_LIFECYCLE = "application-deploy"
+
+# 该仓库有没有 docs/changes/_template/ 下的 vendored 模板副本（#190）。副本与合同源
+# templates/docs/changes/_template/ 之间原先没有任何依赖声明，下游因此无从知道自己何时
+# 过期；这个键就是那条缺失的声明，codex/tools/change-template-sync.sh 据它广播同步清单。
+# 未声明时取 True——读不到声明只会让广播多列一个仓库，而漏列一个持有过期副本的仓库
+# 正是本 Issue 要修的失败模式。
+DEFAULT_VENDORS_CHANGE_TEMPLATES = True
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
@@ -70,6 +77,8 @@ class RepositoryContract:
     change_control: str = "production"
     # 有没有应用部署链路。缺省同理取更严的一档，见 DEPLOYMENT_LIFECYCLES。
     deployment_lifecycle: str = DEFAULT_DEPLOYMENT_LIFECYCLE
+    # 是否持有 change 文档模板的 vendored 副本，见 DEFAULT_VENDORS_CHANGE_TEMPLATES。
+    vendors_change_templates: bool = DEFAULT_VENDORS_CHANGE_TEMPLATES
 
     @property
     def private(self) -> bool:
@@ -277,7 +286,8 @@ def load_contract(path: str | Path) -> GovernanceContract:
         _exact_keys(item, {"name", "classification", "visibility", "project_agent",
                            "status_check_contexts", "required_approvals"},
                     f"repositories[{index}]",
-                    optional={"change_control", "deployment_lifecycle"})
+                    optional={"change_control", "deployment_lifecycle",
+                              "vendors_change_templates"})
         name = _identifier(item["name"], f"repositories[{index}].name")
         _require(name not in names, f"duplicate repository name: {name}")
         names.add(name)
@@ -310,6 +320,11 @@ def load_contract(path: str | Path) -> GovernanceContract:
                                         DEFAULT_DEPLOYMENT_LIFECYCLE)
         _require(deployment_lifecycle in DEPLOYMENT_LIFECYCLES,
                  f"unsupported deployment_lifecycle for {name}: {deployment_lifecycle!r}")
+        vendors_templates = item.get("vendors_change_templates",
+                                     DEFAULT_VENDORS_CHANGE_TEMPLATES)
+        _require(isinstance(vendors_templates, bool),
+                 f"vendors_change_templates must be a boolean for {name}: "
+                 f"{vendors_templates!r}")
         repositories.append(RepositoryContract(
             name=name,
             classification=classification,
@@ -319,6 +334,7 @@ def load_contract(path: str | Path) -> GovernanceContract:
             required_approvals=approvals,
             change_control=change_control,
             deployment_lifecycle=deployment_lifecycle,
+            vendors_change_templates=vendors_templates,
         ))
 
     _require(repository_policy["public_allowlist"] == public_full_names,
