@@ -17,22 +17,29 @@ BIN="$TMP/bin"
 mkdir -p "$BIN"
 cp "$ROOT/codex/tools/apply-classification-labels.sh" "$BIN/"
 # The shared merge-range library travels with the tool, exercising the
-# same-directory-first branch of its lookup (#175).
+# same-directory-first branch of its lookup (#175). The project target library
+# travels the same way (#184).
 cp "$ROOT/codex/agent/change-merge-range.sh" "$BIN/"
+cp "$ROOT/codex/agent/aisoft-project-target.sh" "$BIN/"
 cat >"$BIN/host-access-broker.sh" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >>"$MOCK_ROOT/broker.log"
 number=""
 operation=""
+project=""
 previous=""
 for argument in "$@"; do
   case "$previous" in
     --number) number="$argument" ;;
     --operation) operation="$argument" ;;
+    --project) project="$argument" ;;
   esac
   previous="$argument"
 done
+# Keyed by project as well as number, because #184 is exactly the case where two
+# repositories hold a different Issue under the same number. A mock that ignored
+# --project could not tell a right answer from a wrong one.
 # A broker install whose operation table predates this operation refuses it
 # exactly like this: typed JSON on stderr, exit 20, and a code an ACL problem
 # would also use.
@@ -43,13 +50,15 @@ if [ -f "$MOCK_ROOT/stale-$operation" ]; then
 fi
 if [ "$operation" = gitea.issue.read ]; then
   state=open
-  if [ -f "$MOCK_ROOT/state-$number" ]; then state="$(cat "$MOCK_ROOT/state-$number")"; fi
+  if [ -f "$MOCK_ROOT/state-$project-$number" ]; then
+    state="$(cat "$MOCK_ROOT/state-$project-$number")"
+  fi
   printf '{"number":%s,"state":"%s"}\n' "$number" "$state"
   exit 0
 fi
 if [ "$operation" = gitea.issue.labels.read ]; then
-  if [ -f "$MOCK_ROOT/labels-$number" ]; then
-    cat "$MOCK_ROOT/labels-$number"
+  if [ -f "$MOCK_ROOT/labels-$project-$number" ]; then
+    cat "$MOCK_ROOT/labels-$project-$number"
   else
     printf '[]\n'
   fi
@@ -102,7 +111,7 @@ summary 501 open-change 'change_type: platform' 'effective_complexity: complex'
 summary 502 closed-change 'change_type: bugfix' 'effective_complexity: small'
 summary 504 unclear-change 'change_type: platform' ''
 summary 505 typeless-change '' 'effective_complexity: small'
-printf 'closed\n' >"$TMP/state-502"
+printf 'closed\n' >"$TMP/state-fixture-project-502"
 
 # Read-back fixtures (#167). 506 is already projected, 507 carries no
 # classification labels at all, 508 carries a complexity the summary does not
@@ -113,17 +122,74 @@ summary 508 drifted-change 'change_type: platform' 'effective_complexity: comple
 summary 509 missed-change 'change_type: platform' 'effective_complexity: complex'
 printf '%s\n' \
   '[{"name":"type/platform"},{"name":"complexity/complex"},{"name":"pr-open"}]' \
-  >"$TMP/labels-506"
+  >"$TMP/labels-fixture-project-506"
 printf '%s\n' \
-  '[{"name":"type/platform"},{"name":"complexity/small"}]' >"$TMP/labels-508"
-printf 'closed\n' >"$TMP/state-509"
+  '[{"name":"type/platform"},{"name":"complexity/small"}]' >"$TMP/labels-fixture-project-508"
+printf 'closed\n' >"$TMP/state-fixture-project-509"
+
+# #184's own fixture. 601 is the false-pass shape, and it is the reason this
+# file has two manifests and a Git remote at all: a checkout whose summary
+# declares platform/complex, whose own project has no classification labels, and
+# whose *other* project happens to carry exactly type/platform +
+# complexity/complex under the same number. That coincidence is not contrived --
+# in the real platform repository it is the most common pair there is, which is
+# why the pre-#184 default read back a clean "projected" on Issues that had
+# never been projected at all.
+summary 601 falsepass-change 'change_type: platform' 'effective_complexity: complex'
+printf '%s\n' '[{"name":"type/platform"},{"name":"complexity/complex"}]' \
+  >"$TMP/labels-aisoft-platform-601"
 
 git -C "$REPO" add -A
 git -C "$REPO" commit -qm 'fixture documents'
 
+# A second checkout of the same documents with no Git remote at all. It is what
+# a clone without a Gitea remote looks like -- rsdesign-new is the real one --
+# and it is the only way to run the counterfactual below, where the tool is told
+# the wrong project and has no evidence with which to refuse.
+REPO_NOREMOTE="$TMP/repo-no-remote"
+cp -R "$REPO" "$REPO_NOREMOTE"
+
+# Fixture manifests (#184). The tool reads exactly three things out of them --
+# base_url and owner to build the expected remote URL, and the project_id ->
+# repository mapping -- so the fixtures carry only those. FixtureRepository is
+# deliberately not named like its project id, so every derivation below travels
+# the mapping rather than coinciding with it.
+FIXTURE_BASE_URL='http://gitea-fixture.invalid:3000'
+FIXTURE_OWNER=fixtureowner
+ACCESS_MANIFEST="$TMP/host-access-broker.json"
+cat >"$ACCESS_MANIFEST" <<'JSON'
+{
+  "projects": [
+    {"project_id": "fixture-project", "repository": "FixtureRepository"},
+    {"project_id": "aisoft-platform", "repository": "aisoft-platform"}
+  ]
+}
+JSON
+GOVERNANCE_MANIFEST="$TMP/gitea-governance.json"
+cat >"$GOVERNANCE_MANIFEST" <<JSON
+{
+  "base_url": "$FIXTURE_BASE_URL",
+  "owner": "$FIXTURE_OWNER"
+}
+JSON
+
+# The checkout states which repository it belongs to. Everything below relies on
+# this and passes no --project at all, which is exactly the invocation #184 was
+# reported against.
+git -C "$REPO" remote add origin \
+  "$FIXTURE_BASE_URL/$FIXTURE_OWNER/FixtureRepository.git"
+
+run_repo() {
+  local repo="$1"
+  shift
+  PYTHONPATH="$ROOT/codex/runtime" \
+    AISOFT_ACCESS_MANIFEST="$ACCESS_MANIFEST" \
+    AISOFT_GOVERNANCE_MANIFEST="$GOVERNANCE_MANIFEST" \
+    bash "$BIN/apply-classification-labels.sh" --repo "$repo" "$@"
+}
+
 run() {
-  PYTHONPATH="$ROOT/codex/runtime" bash "$BIN/apply-classification-labels.sh" \
-    --repo "$REPO" "$@"
+  run_repo "$REPO" "$@"
 }
 
 writes() {
@@ -431,6 +497,117 @@ stale_verify="$(run --verify 506)" || rc=$?
 jq -e 'select(.issue == 506) | .reason == "broker-operation-missing"' \
   <<<"$stale_verify" >/dev/null
 rm -f "$TMP/stale-gitea.issue.labels.read"
+
+# --- #184: which repository this run is allowed to speak about ---------------
+#
+# Every assertion above already travels the derivation: none of them passes
+# --project, and FixtureRepository is nothing like fixture-project, so a tool
+# that still defaulted the project id would have been asking the mock about
+# aisoft-platform this whole time.
+
+# AC-5: every line names the project and the repository it is about, in all
+# three modes. Before #184 nothing in the output distinguished a conclusion
+# about this checkout's repository from a conclusion about a different one, so
+# the only way to notice was to already suspect it.
+: >"$TMP/broker.log"
+for mode_args in "501" "--apply 501" "--verify 506"; do
+  # shellcheck disable=SC2086
+  jq -e '.project == "fixture-project" and .repository == "FixtureRepository"' \
+    <<<"$(run $mode_args)" >/dev/null
+done
+
+# AC-1: the broker is only ever asked about the project the checkout belongs to.
+grep -Fq -- '--project fixture-project' "$TMP/broker.log"
+if grep -Fq -- '--project aisoft-platform' "$TMP/broker.log"; then
+  echo 'the tool asked the broker about a repository the checkout does not belong to' >&2
+  exit 1
+fi
+
+# AC-2, the Issue this change exists for. 601's own project carries no
+# classification at all, so the read-back must fail and say what is missing.
+: >"$TMP/broker.log"
+rc=0
+falsepass_output="$(run --verify 601)" || rc=$?
+[ "$rc" -ne 0 ]
+jq -e 'select(.issue == 601)
+  | .reason == "projection-missing" and .project == "fixture-project"
+    and .repository == "FixtureRepository" and (has("result") | not)' \
+  <<<"$falsepass_output" >/dev/null
+if grep -Fq -- '--project aisoft-platform' "$TMP/broker.log"; then
+  echo 'the read-back gate reached another repository' >&2
+  exit 1
+fi
+
+# ...and the counterfactual, executed rather than argued. Told the wrong project
+# by an operator, on a checkout carrying no evidence to refuse with, the very
+# same Issue reads back as a clean pass with exit 0. That is what the removed
+# default produced on every project except aisoft-platform, and it is why a gate
+# whose window shuts permanently at merge could be walked straight past.
+#
+# It is also AC-6: an explicit --project remains authoritative when the checkout
+# cannot answer, which is the only reason a no-remote clone is still usable.
+rc=0
+counterfactual="$(run_repo "$REPO_NOREMOTE" --project aisoft-platform --verify 601)" || rc=$?
+[ "$rc" -eq 0 ]
+jq -e 'select(.issue == 601)
+  | .result == "projected" and .project == "aisoft-platform"
+    and .repository == "aisoft-platform"' <<<"$counterfactual" >/dev/null
+
+# AC-3: a --project that contradicts the checkout is a full stop, in every mode.
+# Not a warning and not a preference -- either the operator named the wrong
+# project or pointed at the wrong checkout, and both readings end in a
+# conclusion about a repository nobody meant to touch. No Issue line is printed
+# and the broker is not called at all, not even to read.
+for mode_args in "601" "--apply 601" "--verify 601"; do
+  : >"$TMP/broker.log"
+  rc=0
+  # shellcheck disable=SC2086
+  mismatch_output="$(run --project aisoft-platform $mode_args 2>"$TMP/mismatch.err")" || rc=$?
+  [ "$rc" -ne 0 ] || {
+    echo "--project contradicting the checkout must fail: $mode_args" >&2
+    exit 1
+  }
+  [ -z "$mismatch_output" ]
+  [ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
+  grep -Fq 'fixture-project' "$TMP/mismatch.err"
+  grep -Fq 'aisoft-platform' "$TMP/mismatch.err"
+done
+
+# AC-4: no evidence and no --project is a refusal, not a default. The refusal
+# carries the one thing that fixes it.
+for mode_args in "601" "--apply 601" "--verify 601"; do
+  : >"$TMP/broker.log"
+  rc=0
+  # shellcheck disable=SC2086
+  undetermined="$(run_repo "$REPO_NOREMOTE" $mode_args 2>"$TMP/undetermined.err")" || rc=$?
+  [ "$rc" -ne 0 ] || {
+    echo "an undeterminable target must fail: $mode_args" >&2
+    exit 1
+  }
+  [ -z "$undetermined" ]
+  [ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
+  grep -Fq -- '--project' "$TMP/undetermined.err"
+done
+
+# A manifest this tool cannot read is an error too. Falling back to a default
+# here would reintroduce the whole bug through the back door.
+: >"$TMP/broker.log"
+for bad_env in AISOFT_ACCESS_MANIFEST AISOFT_GOVERNANCE_MANIFEST; do
+  rc=0
+  bad_output="$(
+    env PYTHONPATH="$ROOT/codex/runtime" \
+      AISOFT_ACCESS_MANIFEST="$ACCESS_MANIFEST" \
+      AISOFT_GOVERNANCE_MANIFEST="$GOVERNANCE_MANIFEST" \
+      "$bad_env=$TMP/absent-manifest.json" \
+      bash "$BIN/apply-classification-labels.sh" --repo "$REPO" 501 2>&1
+  )" || rc=$?
+  [ "$rc" -ne 0 ] || {
+    echo "an unreadable manifest must fail: $bad_env" >&2
+    exit 1
+  }
+  grep -Fq 'apply-classification:' <<<"$bad_output"
+done
+[ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
 
 # A broker that cannot answer is a failure, not a silent skip: exit status
 # carries it so an operator cannot read the run as complete.

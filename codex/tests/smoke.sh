@@ -72,6 +72,7 @@ for script in \
   "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
   "$ROOT/codex/agent/gitea-token.sh" \
   "$ROOT/codex/agent/change-merge-range.sh" \
+  "$ROOT/codex/agent/aisoft-project-target.sh" \
   "$ROOT/codex/tests/test-change-merge-range.sh" \
   "$ROOT/codex/tests/test-gitea-token-lib.sh" \
   "$ROOT/codex/tests/test-gitea-token-consumers.sh" \

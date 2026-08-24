@@ -30,7 +30,10 @@ fail() {
 tool_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo=""
 range=""
-project="aisoft-platform"
+# No default (#184). This tool writes a terminal lifecycle label, so a project id
+# that is never checked against --repo does not merely misreport: it stamps one
+# repository's finishing verdict onto another repository's same-numbered Issue.
+project=""
 apply=0
 issues=()
 
@@ -86,7 +89,7 @@ if [ -d "$tool_dir/../runtime" ]; then
 fi
 
 # --project names one thing and one thing only: a project id in the host access
-# manifest. It used to name two, which is what #172 fixes. The broker takes the
+# manifest. It used to name two, which is what #172 fixed. The broker takes the
 # project id; the governance manifest is keyed by repository name; and those two
 # coincide for only four of the ten projects, so on the other six every run died
 # in the lookup below before it reached a single Issue.
@@ -99,30 +102,24 @@ fi
 # for the repository as well would re-derive a guarantee that exists, and hand
 # the caller a second name to get wrong.
 #
-# Same resolution order as the broker and the governance manifest below: an
-# explicit override, then the repository layout, then the flat install. The
-# override exists so tests never reach the real installed manifest.
-access_manifest="${AISOFT_ACCESS_MANIFEST:-}"
-if [ -z "$access_manifest" ]; then
-  if [ -f "$tool_dir/../config/host-access-broker.json" ]; then
-    access_manifest="$(cd -- "$tool_dir/../config" && pwd)/host-access-broker.json"
-  else
-    access_manifest=/usr/local/share/aisoft/host-access-broker.json
-  fi
+# #184 removes the other half of the same problem: which project id. It is now
+# derived from the checkout's own Git remote, and --project is an override that
+# must agree rather than a default nothing checks. Both derivations live in the
+# shared library, sourced with the same same-directory-first convention as the
+# merge range one above.
+if [ -f "$tool_dir/aisoft-project-target.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  . "$tool_dir/aisoft-project-target.sh"
+elif [ -f "$tool_dir/../agent/aisoft-project-target.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  . "$tool_dir/../agent/aisoft-project-target.sh"
+else
+  fail 'shared project target library aisoft-project-target.sh is unavailable'
 fi
-[ -f "$access_manifest" ] || fail "host access manifest not found: $access_manifest"
-repository=""
-if ! repository="$(
-  jq -er --arg id "$project" '
-    [.projects[] | select(.project_id == $id)] as $entries
-    | if ($entries | length) == 1
-      then $entries[0].repository
-      else error("not exactly one manifest project with id " + $id)
-      end
-  ' "$access_manifest" 2>&1
-)"; then
-  fail "cannot resolve repository for project id $project from $access_manifest: $repository"
-fi
+aisoft_resolve_project_target "$tool_dir" "$repo" "$project" ||
+  fail "$AISOFT_PROJECT_TARGET_ERROR"
+project="$AISOFT_PROJECT_ID"
+repository="$AISOFT_PROJECT_REPOSITORY"
 
 # Whether a project has an application deployment chain that writes deployed is a
 # property of the repository, not of any single change, so it is declared once in
@@ -193,11 +190,16 @@ fi
 # line of one iteration reports the same commit, and threading it through eight
 # call sites would say nothing the loop variable does not.
 issue_commit=""
+# project and repository are read from the resolver, not passed in: "which
+# repository is this line about" is precisely the question #184 answered wrongly
+# and silently, and a field a call site could forget to fill would be no answer.
 emit() {
   jq -cn --argjson issue "$1" --arg action "$2" --arg reason "$3" \
     --arg detail "$4" --argjson applied "$5" --arg result "$6" \
-    --arg commit "$issue_commit" '
-    {issue: $issue, action: $action, applied: $applied}
+    --arg commit "$issue_commit" \
+    --arg project "$project" --arg repository "$repository" '
+    {issue: $issue, project: $project, repository: $repository,
+     action: $action, applied: $applied}
     + (if $commit == "" then {} else {commit: $commit} end)
     + (if $reason == "" then {} else {reason: $reason} end)
     + (if $detail == "" then {} else {detail: $detail} end)

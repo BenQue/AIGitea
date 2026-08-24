@@ -214,6 +214,8 @@ type、complexity 和非生命周期标签。最终 PR 已合并且明确无需�
 ```bash
 codex/tools/mark-completed-issues.sh --range 'origin/main~5..origin/main'   # 读计划
 codex/tools/mark-completed-issues.sh --apply 167 168                        # 用计划回给的 pinned 编号写入
+# 在别的项目仓上运行时目标由 checkout 判定（#184），判定不出才需要显式 --project：
+codex/tools/mark-completed-issues.sh --repo ~/Projects/LocalWMS --range '...'  
 ```
 
 默认只输出逐 Issue 的判定计划、不做任何写入；确认计划无误后加 `--apply` 才经
@@ -348,6 +350,32 @@ codex/tools/apply-classification-labels.sh --verify 167
 
 会话侧的落点在 `issue-session-flow` 的待合并块：`判级:` 一行必须是这条命令的真实读回，
 不是 `projected` 就不进入待合并；收尾时再跑一次，把漏掉的情形显式报出来。
+
+#### 目标仓库由 checkout 判定（#184）
+
+`--verify` 只有在**读的是正确那个仓库**时才是闸门。这两个工具此前把 `--project` 默认成
+`aisoft-platform` 且从不与 `--repo` 核对：在别的项目仓上漏传 `--project`，判级值取自目标仓
+checkout，Issue 状态与标签却取自平台仓的同号 Issue。产出的不是报错，而是一个自洽、格式完好、
+**针对另一个仓库**的结论。假失败会虚报「判级已永久丢失」；假通过更致命——平台仓的同号 Issue
+只要恰好带着 `type/platform` + `complexity/complex`（那里最常见的一对组合），闸门就干净退 0。
+
+现在目标项目**由 checkout 判定**：从 `--repo` 的 Git remote URL 反查 host access manifest 的
+`projects[]`，得到 `project_id` 与 `repository`（构造方式与 broker 的 `_expected_git_url` 一致，
+所有 remote 的 fetch 与 push URL 都参与匹配——`newemaint`、`sfm-digital-board` 的 Gitea remote
+名为 `gitea` 而非 `origin`）。四种结局：
+
+| checkout 能否判定 | 是否传 `--project` | 结果 |
+|---|---|---|
+| 能 | 否 | 用判定出的项目 |
+| 能 | 是且一致 | 用该项目 |
+| 能 | 是且不一致 | **报错退出**，不产出任何 Issue 行，不调用 broker |
+| 否 | 是 | 用传入的项目（唯一可用证据是操作者的声明） |
+| 否 | 否 | **报错退出**，提示传 `--project <project_id>` |
+
+`--project` 因此从「默认」降级为「覆盖」，命名空间仍只认 broker 的 `project_id`（#172）。
+每一行 JSON 输出带 `project` 与 `repository` 两个字段，指名它在谈论哪个仓库。只有 GitHub
+remote 而没有 Gitea remote 的 checkout（`rsdesign-new`）判定不出项目，必须显式传 `--project`——
+这是 fail-closed 的预期形态，不是回归：在此之前它得到的是一个针对平台仓的错误结论。
 
 broker 因操作表陈旧而拒绝时，工具不再把 `REQUEST_DENIED` 原样透出，而是报
 `broker-operation-missing`，detail 里直接写明「这是安装期旧表，不是权限问题」与两台重装的
