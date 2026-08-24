@@ -11,7 +11,7 @@ risk_flags:
   - platform-governance
   - ci-change
 depends_on: []
-status: approved
+status: pr-open
 branch: change/190-template-sync-broadcast
 created: 2026-08-24
 updated: 2026-08-24

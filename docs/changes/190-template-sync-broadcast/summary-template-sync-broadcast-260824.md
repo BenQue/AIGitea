@@ -121,8 +121,8 @@ Issue 正文给了三个方向，本次**裁决为方向 1（上游广播）**�
 | LocalWMS | `current` | #78 刚同步过 |
 | HSDB | `stale`（四份全部） | 仍持有 pre-#57 的 `00-summary.md` 一代命名，从未迁到语义四件套 |
 | NewEMaint | `stale`（四份全部） | 上次回补停在 #67 |
-| rsdesign-new | `missing` | checkout 停在 `codex-rsdesign-new-phase0` 分支，需在 `main` 上复核后再定性 |
-| SFMDigitalBoard | `missing` | checkout 在 `main`，确实没有 `docs/changes/_template/` |
+| rsdesign-new | `stale`（四份全部） | #191/PR #195 修正 `mac_checkout` 之前读出的是 `missing`——那是路径的状态，不是仓库的状态 |
+| SFMDigitalBoard | `missing` | checkout 在 `main`，该路径上确实没有 `docs/changes/_template/` |
 | myapp / SapTableMigrate / smoke-test / WMPDA | `unverified` | 本机 `mac_checkout` 为 `null` |
 
 这些**不在本 Issue 范围内**，作为衍生 Issue 上报给人。

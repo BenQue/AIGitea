@@ -96,12 +96,17 @@ template_root_rel="$(jq -r '.template_root' "$SYNC_MANIFEST")"
 template_root="$ROOT/$template_root_rel"
 pinned_digest="$(jq -r '.template_digest' "$SYNC_MANIFEST")"
 
+# 计数用独立的整数而不是 ${#array[@]}：空数组在 bash 3.2 的 set -u 下会报 unbound，
+# 而把长度和缺省写在一起（${#array[@]:-0}）在 bash 5 里是 bad substitution——本机是
+# bash 3.2、CI runner 是 bash 5，只有绕开这个构造才两边都成立。
 documents=()
+document_count=0
 while IFS= read -r document; do
   [[ -n "$document" ]] || continue
   documents+=("$document")
+  document_count=$((document_count + 1))
 done < <(jq -r '.documents[]' "$SYNC_MANIFEST")
-((${#documents[@]} > 0)) || {
+((document_count > 0)) || {
   echo 'change-template-sync.json 的 documents 为空' >&2
   exit 1
 }
@@ -188,9 +193,11 @@ fi
 # 全部过期，本机有没有该项目的 checkout 不影响这个结论。下面的逐项比对只是附加信息，
 # 用来区分「已经同步过」与「还没同步」。
 holders=()
+holder_count=0
 while IFS= read -r holder; do
   [[ -n "$holder" ]] || continue
   holders+=("$holder")
+  holder_count=$((holder_count + 1))
 done < <(
   jq -r '.repositories[]
          | select(if has("vendors_change_templates")
@@ -205,7 +212,7 @@ not_vendored_count="$(
     "$GOVERNANCE_MANIFEST"
 )"
 
-((${#holders[@]:-0} > 0)) || {
+((holder_count > 0)) || {
   echo 'gitea-governance.json 里没有任何声明持有模板副本的仓库' >&2
   exit 1
 }
@@ -256,7 +263,7 @@ if [[ -n "$digest_message" ]]; then
 fi
 if [[ "$porcelain" == false ]]; then
   printf 'holders: %s（另有 %s 个仓库声明不持有副本）\n' \
-    "${#holders[@]}" "$not_vendored_count"
+    "$holder_count" "$not_vendored_count"
 fi
 
 for name in "${holders[@]}"; do
