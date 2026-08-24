@@ -10,9 +10,9 @@ confidence: high
 risk_flags:
   - platform-governance
 depends_on: []
-status: approved
+status: pr-open
 branch: change/171-installer-source-guard
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/185
 created: 2026-08-24
 updated: 2026-08-24
 reason: 把 #162 的 fail-closed 前置闸门与 provenance 输出抽成共用库，并接到另外四个 installer 上（第五个 docker-release/install.sh 被 #65 evidence gate 挡住，切出 #182）；installer 是平台组件的安装面，属平台/部署脚本变更，强制 complex
