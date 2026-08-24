@@ -364,12 +364,20 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
         # Development Loop stays out of scope, so implement_provider must remain
         # disabled and timer_unit must stay unset. Installing a timer template is
         # not the same as enabling one.
+        #
+        # analysis_provider is codex since #164. #152 picked claude by analogy
+        # with the other three internal-application profiles, not from evidence
+        # that the chain could run; the canary then proved it never had. On
+        # gitea-ci the claude CLI is off coder's PATH and unauthenticated, so
+        # claude-analyzer.sh:13 (command -v claude || exit 2) fails on its first
+        # line, while codex is the one analyzer chain with a produced artifact.
+        # A provider named here must be a runtime that exists on that host.
         project = self.contract.project("localwms")
         self.assertIsNotNone(project.vm_profile)
         assert project.vm_profile is not None
         self.assertEqual(project.vm_profile.name, "localwms")
         self.assertEqual(project.vm_profile.repo_dir, "work/LocalWMS")
-        self.assertEqual(project.vm_profile.analysis_provider, "claude")
+        self.assertEqual(project.vm_profile.analysis_provider, "codex")
         self.assertEqual(project.vm_profile.implement_provider, "none")
         self.assertIsNone(project.vm_profile.timer_unit)
         self.assertEqual(project.vm_profile.path_prepend, ())
@@ -384,7 +392,7 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
         self.assertEqual(code, 0)
         payload = json.loads(buffer.getvalue())
         self.assertEqual(payload, {
-            "analysis_provider": "claude",
+            "analysis_provider": "codex",
             "gitea_url": "http://gitea-ci.orb.local:3000",
             "identity": "localwms-agent",
             "implement_provider": "none",
