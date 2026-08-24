@@ -81,9 +81,34 @@ summary 502 deployed-change '  - verification'
 git -C "$REPO" add -A
 git -C "$REPO" commit -qm 'fixture documents'
 
+# Fixture governance manifest. The tool reads exactly two things out of it —
+# a repository entry by name, and that entry's deployment_lifecycle — so the
+# fixture carries only those. It is deliberately NOT a copy of the real
+# manifest: aisoft-platform is left undeclared here so every pre-#163 assertion
+# below keeps exercising the default path unchanged. That the real manifest
+# declares none for aisoft-platform is pinned in
+# codex/runtime/tests/test_deployment_lifecycle.py instead.
+MANIFEST="$TMP/gitea-governance.json"
+cat >"$MANIFEST" <<'JSON'
+{
+  "repositories": [
+    {"name": "aisoft-platform"},
+    {"name": "no-deploy-project", "deployment_lifecycle": "none"},
+    {"name": "explicit-deploy-project", "deployment_lifecycle": "application-deploy"}
+  ]
+}
+JSON
+
 run() {
-  PYTHONPATH="$ROOT/codex/runtime" bash "$BIN/mark-completed-issues.sh" \
-    --repo "$REPO" "$@"
+  PYTHONPATH="$ROOT/codex/runtime" AISOFT_GOVERNANCE_MANIFEST="$MANIFEST" \
+    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" "$@"
+}
+
+run_with_manifest() {
+  local manifest="$1"
+  shift
+  PYTHONPATH="$ROOT/codex/runtime" AISOFT_GOVERNANCE_MANIFEST="$manifest" \
+    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" "$@"
 }
 
 # AC-8: the default is a plan, not a write. No --apply means no broker call at
@@ -121,7 +146,8 @@ jq -e 'select(.issue == 501) | .applied == true and .result == "updated"' \
 
 # The tool decides; the broker only writes. Nothing about required_docs or the
 # merge range crosses the broker argument surface.
-if grep -Eq 'required_docs|verification|--repo|docs/changes' "$TMP/broker.log"; then
+if grep -Eq 'required_docs|verification|--repo|docs/changes|deployment_lifecycle' \
+  "$TMP/broker.log"; then
   echo 'judgement leaked into the broker argument surface' >&2
   exit 1
 fi
@@ -144,5 +170,85 @@ rc=0
 empty_output="$(run 2>&1)" || rc=$?
 [ "$rc" -ne 0 ]
 grep -Fq 'no Issue selector' <<<"$empty_output"
+
+# --- Issue #163: verification no longer means "deployed" on its own ----------
+#
+# Before #163 the single condition below decided both "does this change owe a
+# verification document" and "does this change travel a deployment chain". A
+# project without such a chain had neither terminal state written by anyone.
+
+# AC-2/AC-3: same Issue #502, same required_docs, project declares no chain →
+# completed becomes reachable, and the plan says on what grounds.
+: >"$TMP/broker.log"
+no_chain_plan="$(run --project no-deploy-project 502)"
+jq -e 'select(.issue == 502) | .action == "set-completed" and .applied == false
+  and .reason == "no-deployment-chain"' <<<"$no_chain_plan" >/dev/null
+grep -Fq 'deployment_lifecycle none' \
+  <<<"$(jq -r 'select(.issue == 502) | .detail' <<<"$no_chain_plan")"
+[ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
+
+no_chain_apply="$(run --project no-deploy-project --apply 502)"
+jq -e 'select(.issue == 502) | .applied == true and .result == "updated"
+  and .reason == "no-deployment-chain"' <<<"$no_chain_apply" >/dev/null
+grep -Fq -- '--lifecycle completed' "$TMP/broker.log"
+grep -Fq -- '--number 502' "$TMP/broker.log"
+
+# AC-2: the declaration is read as a value, not merely as presence. A project
+# that declares application-deploy explicitly must still be skipped, exactly
+# like one that declares nothing.
+explicit_plan="$(run --project explicit-deploy-project 502)"
+jq -e 'select(.issue == 502) | .action == "skip" and .reason == "requires-deployment"' \
+  <<<"$explicit_plan" >/dev/null
+
+# AC-4: a change that owes no verification document is unaffected by the
+# declaration — it reaches completed with no reason attached, as before.
+plain_plan="$(run --project no-deploy-project 501)"
+jq -e 'select(.issue == 501) | .action == "set-completed" and has("reason") == false' \
+  <<<"$plain_plan" >/dev/null
+
+# The production resolution path, with no override at all: a manifest sitting
+# where a repository checkout puts it relative to the tool. $BIN is the flat
+# install directory, so $BIN/../config is exactly the repository-layout branch —
+# this is what a session gets when it runs the tool out of the platform
+# checkout, and a typo in that path would otherwise reach nothing but production.
+mkdir -p "$TMP/config"
+cp "$MANIFEST" "$TMP/config/gitea-governance.json"
+layout_plan="$(
+  env -u AISOFT_GOVERNANCE_MANIFEST PYTHONPATH="$ROOT/codex/runtime" \
+    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" \
+    --project no-deploy-project 502
+)"
+jq -e 'select(.issue == 502) | .reason == "no-deployment-chain"' \
+  <<<"$layout_plan" >/dev/null
+rm -rf "$TMP/config"
+
+# AC-5: a manifest this tool cannot read is an error, not a silent skip.
+# Silently doing nothing is the failure #163 exists to fix, so it must never be
+# how an unreadable prerequisite presents itself. Absence of the key is a
+# different thing entirely and stays a default, covered above.
+printf '%s\n' 'not json' >"$TMP/broken-manifest.json"
+for bad_case in "$TMP/absent-manifest.json" "$TMP/broken-manifest.json"; do
+  rc=0
+  bad_output="$(run_with_manifest "$bad_case" 501 2>&1)" || rc=$?
+  [ "$rc" -ne 0 ] || {
+    echo "an unreadable governance manifest must fail: $bad_case" >&2
+    exit 1
+  }
+  grep -Fq 'mark-completed:' <<<"$bad_output"
+done
+
+# A project the manifest does not describe is equally unjudgeable, in both modes.
+: >"$TMP/broker.log"
+for mode_args in "501" "--apply 501"; do
+  rc=0
+  # shellcheck disable=SC2086
+  unknown_output="$(run --project absent-project $mode_args 2>&1)" || rc=$?
+  [ "$rc" -ne 0 ] || {
+    echo 'an unknown project must fail rather than be judged' >&2
+    exit 1
+  }
+  grep -Fq 'deployment_lifecycle' <<<"$unknown_output"
+done
+[ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
 
 echo 'mark-completed tests passed'

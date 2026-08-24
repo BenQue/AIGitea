@@ -15,8 +15,10 @@
 # doing nothing would read as "every Issue was already correct".
 #
 # The judgement lives here, never in the broker: which Issues are candidates,
-# and whether each one's contract required a verification document. The broker
-# performs one constrained write and knows nothing about change documents.
+# whether each one's contract required a verification document, and whether the
+# project even has a deployment chain that could write deployed instead. The
+# broker performs one constrained write and knows nothing about change documents
+# or the governance manifest.
 set -euo pipefail
 set +x
 
@@ -67,6 +69,42 @@ fi
 if [ -d "$tool_dir/../runtime" ]; then
   PYTHONPATH="$(cd -- "$tool_dir/../runtime" && pwd)${PYTHONPATH:+:$PYTHONPATH}"
   export PYTHONPATH
+fi
+
+# Whether a project has an application deployment chain that writes deployed is a
+# property of the repository, not of any single change, so it is declared once in
+# the governance manifest (#163). Same resolution order as the two lookups above:
+# an explicit override, then the repository layout, then the flat install.
+# AISOFT_GOVERNANCE_MANIFEST is the variable aisoft_loop/change_control.py already
+# defines for this file, so there is one name for "where the manifest is".
+manifest="${AISOFT_GOVERNANCE_MANIFEST:-}"
+if [ -z "$manifest" ]; then
+  if [ -f "$tool_dir/../config/gitea-governance.json" ]; then
+    manifest="$(cd -- "$tool_dir/../config" && pwd)/gitea-governance.json"
+  else
+    manifest=/usr/local/share/aisoft/gitea-governance.json
+  fi
+fi
+
+# Read once, up front. A manifest this tool cannot read leaves it unable to tell
+# whether deployed is reachable at all, and skipping silently in that state is
+# precisely the bug #163 exists to fix, so it is an error — the same posture the
+# header states for every other prerequisite. A manifest that simply does not
+# declare the key is not an error: absence means the stricter default, and only
+# the narrowing value "none" is read here so the default has no second copy
+# outside aisoft_gitea_governance.contract.
+[ -f "$manifest" ] || fail "governance manifest not found: $manifest"
+declared_lifecycle=""
+if ! declared_lifecycle="$(
+  jq -er --arg name "$project" '
+    [.repositories[] | select(.name == $name)] as $entries
+    | if ($entries | length) == 1
+      then ($entries[0].deployment_lifecycle // "")
+      else error("not exactly one manifest repository named " + $name)
+      end
+  ' "$manifest" 2>&1
+)"; then
+  fail "cannot read deployment_lifecycle for $project from $manifest: $declared_lifecycle"
 fi
 
 # Each Closes #N on its own line, with the change/N-slug branch name in the
@@ -153,15 +191,29 @@ for issue in "${issues[@]}"; do
       "summary $summary_name declares no required_docs" false ''
     continue
   fi
+  # Two questions, and before #163 this one condition was made to answer both.
+  # "Does this change owe a verification document?" is what required_docs says.
+  # "Does this change travel an application deployment chain?" is not a property
+  # of the change at all — in a project without such a chain no change ever does
+  # — so it is answered once by that project's manifest declaration. Conflating
+  # them left every verification-declaring platform change with neither terminal
+  # state: mark-completed skipped it and no deployment ever ran to write the
+  # other one.
+  completed_reason=""
+  completed_detail=""
   if grep -Fxq 'verification' <<<"$required_docs"; then
-    emit "$issue" skip requires-deployment \
-      "required_docs contains verification, so this change ships and its terminal state is deployed, not completed" \
-      false ''
-    continue
+    if [ "$declared_lifecycle" != none ]; then
+      emit "$issue" skip requires-deployment \
+        "required_docs contains verification and $project has an application deployment chain, so this change ships and its terminal state is deployed, not completed" \
+        false ''
+      continue
+    fi
+    completed_reason=no-deployment-chain
+    completed_detail="required_docs contains verification, but $project declares deployment_lifecycle none: nothing writes deployed there, so completed is the only reachable terminal state"
   fi
 
   if [ "$apply" -eq 0 ]; then
-    emit "$issue" set-completed '' '' false ''
+    emit "$issue" set-completed "$completed_reason" "$completed_detail" false ''
     continue
   fi
   [ -n "$broker" ] || fail 'host access broker is unavailable; --apply needs it to write'
@@ -175,7 +227,8 @@ for issue in "${issues[@]}"; do
     failed=1
     continue
   fi
-  emit "$issue" set-completed '' '' true "$(jq -r '.result // "unknown"' <<<"$written")"
+  emit "$issue" set-completed "$completed_reason" "$completed_detail" true \
+    "$(jq -r '.result // "unknown"' <<<"$written")"
 done
 
 exit "$failed"

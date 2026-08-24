@@ -62,7 +62,7 @@ CI:   <读回的真实状态，不是推测>
 
 1. 取回主干，确认 merge commit **真实存在**。人说「合并了」不是证据，`git log` 才是。
 2. 终态标签先 **dry-run**：接入平台的项目跑 `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>`，把逐 Issue 判定计划念给人。未接入的项目：确认 `Closes #N` 已把 Issue 关掉。
-3. 人点头后才加 `--apply`。**终态判定取自文档**（summary 的 `required_docs` 含不含 `verification`），不要自己判断该写 `completed` 还是 `deployed`。
+3. 人点头后才加 `--apply`。**终态判定取自文档与 manifest**：summary 的 `required_docs` 含不含 `verification`，以及该项目在 `gitea-governance.json` 里有没有声明 `deployment_lifecycle: none`（没有部署链路 → `completed` 是唯一终态）。两个条件都由工具读取，不要自己判断该写 `completed` 还是 `deployed`。
 4. 文档自查：接入平台的项目跑 `check-change-documents --repo <checkout>`。
 5. 清理：**先离开 worktree**，再 `git worktree remove <path>` 与 `git branch -d change/N-slug`。站在 worktree 里删自己脚下的目录会失败。
 6. 盘点衍生 Issue：有调度会话就 `send_message` 回报，没有就自己开 Issue 并派卡片。

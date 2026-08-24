@@ -191,10 +191,43 @@ codex/tools/mark-completed-issues.sh --range 'origin/main~5..origin/main'
 ```
 
 默认只输出逐 Issue 的判定计划、不做任何写入；确认计划无误后加 `--apply` 才经
-broker `gitea.issue.labels.set` 写入。是否该用 `completed` 的判定取自该 Issue 映射
-summary 的 `required_docs` 是否含 `verification`——含则说明该变更要部署，终态应是
-`deployed`，工具会跳过并给出理由，不接受人工传入的终态判断。已经是 `deployed` 的
-Issue 不会被降级为 `completed`：那是对「它到底发生了什么」的判断，必须由人显式做。
+broker `gitea.issue.labels.set` 写入。已经是 `deployed` 的 Issue 不会被降级为
+`completed`：那是对「它到底发生了什么」的判断，必须由人显式做。
+
+判定是一个**合取**，两个条件都取自仓库证据，都不接受人工传入的终态判断（#163）：
+
+| 该 Issue 映射 summary 的 `required_docs` 含 `verification` | 该项目的 `deployment_lifecycle` | 终态 |
+|---|---|---|
+| 否 | 任意 | `completed` |
+| 是 | `application-deploy`（缺省） | 跳过并给出 `requires-deployment`，等部署链路写 `deployed` |
+| 是 | `none` | `completed`，`reason` 记为 `no-deployment-chain` |
+
+两个条件回答的是两个不同的问题：`required_docs` 说的是「这次变更欠不欠一份验证记录」，
+`deployment_lifecycle` 说的是「这个仓库有没有那条会写 `deployed` 的链路」。
+#163 之前只有前一个条件，它被迫兼答后一个问题，于是声明了 `verification` 的平台变更
+两个终态都没人写——#138、#146、#148 三个已合并 closed Issue 因此长期一个标签都没有。
+
+### 哪些仓库有部署链路
+
+由 `codex/config/gitea-governance.json` 的仓库条目声明一次，不是每次变更重新回答——
+「走不走应用部署链路」是仓库属性：平台仓库里没有任何变更走应用部署链路。
+
+```json
+{ "name": "aisoft-platform", "...": "...", "deployment_lifecycle": "none" }
+```
+
+- `application-deploy`：`02` §9 的应用部署链路会在健康检查成功后写 `deployed`。**未声明时取此值**——
+  更严的一档，保证读不到声明时不会意外放宽终态判定。
+- `none`：没有那条链路，`deployed` 不可达，`completed` 是唯一终态。目前只有 `aisoft-platform` 声明。
+
+`deployment_lifecycle` 只影响合并后的终态记账：它不触发也不抑制任何部署，不改分支保护与必需 CI，
+也不改变 `required_docs` 该不该含 `verification`。manifest 读不到或查不到该项目条目时，
+工具报错退出而不是静默跳过——沉默恰恰是它要修的那个失败模式；只是**没有声明该键**不属此列，
+按缺省处理。
+
+> manifest 与 broker 同理：改了 `codex/config/gitea-governance.json` 之后，扁平安装
+> （`/usr/local/share/aisoft/gitea-governance.json`）要重装才跟上。工具优先读仓库布局下的
+> `codex/config/gitea-governance.json`，所以从平台 checkout 跑收尾时合并即生效。
 
 ### 谁投影 `type/*` 与 `complexity/*`
 
