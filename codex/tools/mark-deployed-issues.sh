@@ -1,4 +1,22 @@
 #!/usr/bin/env bash
+# Advance the Issues a successful deployment shipped to the deployed terminal
+# state (02 §9).
+#
+# This tool deliberately has no --range, and #175 deliberately did not give it
+# one. Its two sibling writers, mark-completed-issues.sh and
+# apply-classification-labels.sh, take a range from an operator and so can be
+# aimed by an expression like origin/main~1..origin/main, which is resolved when
+# the tool starts rather than when the operator fetched -- the silent mis-aim
+# #175 exists to fix. Nothing analogous can happen here. This is a deployment
+# hook: it runs on the commit the deployment already checked out, so its anchor
+# is HEAD or an explicit MERGE_MESSAGE_FILE, both of them fixed objects, and
+# there is no second command between which a ref could move.
+#
+# The posture below is the other half of the reason. Every missing prerequisite
+# is a warning and exit 0, because this must never fail an already successful
+# deployment. A plan an operator has to read and approve before the write --
+# what #175 adds to the other two -- would contradict that outright: there is no
+# operator here, and nothing to stop.
 set -u
 set +x
 

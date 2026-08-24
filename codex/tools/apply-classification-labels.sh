@@ -139,6 +139,20 @@ broker_failure_reason() {
   esac
 }
 
+# Shared merge-range resolution (#175), same same-directory-first convention.
+# It is not optional: without it a --range run has no way to report which
+# commits it covered, and reporting that is the whole reason the range is
+# resolved up front rather than piped straight into the Issue list.
+if [ -f "$tool_dir/change-merge-range.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  . "$tool_dir/change-merge-range.sh"
+elif [ -f "$tool_dir/../agent/change-merge-range.sh" ]; then
+  # shellcheck disable=SC1090,SC1091
+  . "$tool_dir/../agent/change-merge-range.sh"
+else
+  fail 'shared merge range library change-merge-range.sh is unavailable'
+fi
+
 # The runtime supplies resolve-documents. Repository layout first; otherwise
 # whatever PYTHONPATH the install already exports, as the VM agents do.
 if [ -d "$tool_dir/../runtime" ]; then
@@ -146,33 +160,54 @@ if [ -d "$tool_dir/../runtime" ]; then
   export PYTHONPATH
 fi
 
-# Each Closes #N on its own line, with the change/N-slug branch name in the
-# subject as fallback — the same convention 02 §9 documents for merge messages.
+# A range is resolved once, up front, and what it resolved to is reported before
+# anything else happens (#175). origin/main~N is evaluated when this process
+# starts, not when the operator fetched and not when the operator approved a
+# plan, so a range anchored on it can silently cover somebody else's merge. The
+# selector line names every commit the range actually covered and hands back
+# `pinned` -- the Issue numbers, which no ref movement can change -- for the
+# --apply rerun. Not called inside "$(...)": the fork would discard the result.
+#
+# --verify carries the same exposure and the same fix. A verify run aimed by a
+# slid range reads back somebody else's Issue and reports it as projected, which
+# is worse than no gate at all: #167 exists because that gate is the last thing
+# standing between a classification and a window that never reopens.
 if [ -n "$range" ]; then
-  while IFS= read -r candidate; do
-    [ -n "$candidate" ] && issues+=("$candidate")
-  done < <(
-    git -C "$repo" log --format=%B "$range" |
-      awk '
-        /^Closes #[1-9][0-9]*$/ { print substr($0, 9); next }
-        /change\/[1-9][0-9]*/ {
-          if (match($0, /change\/[1-9][0-9]*/)) {
-            print substr($0, RSTART + 7, RLENGTH - 7)
-          }
-        }
-      '
-  )
+  aisoft_merge_range_resolve "$repo" "$range" ||
+    fail "cannot resolve --range $range against $repo"
+  printf '%s\n' "$AISOFT_MERGE_RANGE_SELECTOR"
+  if [ "${#AISOFT_MERGE_RANGE_ISSUES[@]}" -gt 0 ]; then
+    issues+=("${AISOFT_MERGE_RANGE_ISSUES[@]}")
+  fi
 fi
 
+# A range that selected nothing is not the same failure as no selector at all,
+# and saying so is the point: "you gave none" sends the operator to look for a
+# missing argument, when in fact the argument was there and aimed somewhere
+# empty. That is the mis-aim of #175 in its most extreme form.
 if [ "${#issues[@]}" -eq 0 ]; then
+  if [ -n "$range" ]; then
+    if [ "$AISOFT_MERGE_RANGE_COMMIT_COUNT" -eq 0 ]; then
+      fail "--range $range covers no commits in $repo; see the selector line above. A range anchored on a moving ref such as origin/main~N resolves when this command runs, not when you fetched."
+    fi
+    fail "--range $range covers $AISOFT_MERGE_RANGE_COMMIT_COUNT commit(s), none of which names an Issue; see the selector line above for what it covered."
+  fi
   fail 'no Issue selector given; pass Issue numbers or --range <git range>'
 fi
 
+# issue_commit is set by the loop below and read here rather than passed: every
+# line of one iteration reports the same commit, and threading it through every
+# call site would say nothing the loop variable does not. It is also read by
+# verify_issue and unresolved, which already read the loop's other per-Issue
+# state the same way.
+issue_commit=""
 emit() {
   jq -cn --argjson issue "$1" --arg action "$2" --arg reason "$3" \
     --arg detail "$4" --argjson applied "$5" --arg result "$6" \
-    --arg change_type "$7" --arg complexity "$8" --arg remedy "${9:-}" '
+    --arg change_type "$7" --arg complexity "$8" --arg remedy "${9:-}" \
+    --arg commit "$issue_commit" '
     {issue: $issue, action: $action, applied: $applied}
+    + (if $commit == "" then {} else {commit: $commit} end)
     + (if $reason == "" then {} else {reason: $reason} end)
     + (if $detail == "" then {} else {detail: $detail} end)
     + (if $result == "" then {} else {result: $result} end)
@@ -284,6 +319,9 @@ for issue in "${issues[@]}"; do
   esac
   case " $seen " in *" $issue "*) continue ;; esac
   seen="$seen $issue"
+  # Empty for an Issue passed as a bare number: it was not derived from any
+  # commit, so there is no commit to name.
+  issue_commit="$(aisoft_merge_range_commit_for "$issue" || true)"
 
   documents=""
   if ! documents="$(

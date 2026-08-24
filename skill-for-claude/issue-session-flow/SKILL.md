@@ -68,8 +68,19 @@ CI:   <读回的真实状态，不是推测>
 ## 收尾（人确认已合并后，7 步）
 
 1. 取回主干，确认 merge commit **真实存在**。人说「合并了」不是证据，`git log` 才是。
-2. 终态标签先 **dry-run**：接入平台的项目跑 `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>`，把逐 Issue 判定计划念给人。未接入的项目：确认 `Closes #N` 已把 Issue 关掉。同时对本 Issue 跑一次 `codex/tools/apply-classification-labels.sh --verify N`：报 `projection-window-closed` 说明合并前那一步漏了，如实报给人并按 `03` §11 记录，**不补写、不加 override**。
-3. 人点头后才加 `--apply`。**终态判定取自文档与 manifest**：summary 的 `required_docs` 含不含 `verification`，以及该项目在 `gitea-governance.json` 里有没有声明 `deployment_lifecycle: none`（没有部署链路 → `completed` 是唯一终态）。两个条件都由工具读取，不要自己判断该写 `completed` 还是 `deployed`。
+2. 终态标签先 **dry-run**：接入平台的项目跑 `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>`，把逐 Issue 判定计划念给人。未接入的项目：确认 `Closes #N` 已把 Issue 关掉。同时对本 Issue 跑一次 `codex/tools/apply-classification-labels.sh --verify N`（**用编号，不用 `--range`**）：报 `projection-window-closed` 说明合并前那一步漏了，如实报给人并按 `03` §11 记录，**不补写、不加 override**。
+
+   念计划前先读第一行 `{"selector":"range",…}`：`commits` 是这个 range 实际覆盖的 merge，
+   逐 Issue 行的 `commit` 是产出它的那条。**核对它就是第 1 步认定的那个 merge**；
+   不是就说明范围瞄错了，重跑之前不要往下走。`origin/main~N` 在工具启动那一刻求值，
+   不是在你 fetch 那一刻——`#167` 收尾时它就静默指向了别人刚合并的 Issue（#175）。
+3. 人点头后才加 `--apply`，**并且用计划回给的 `pinned` 编号，不再传 `--range`**：
+   `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --apply <pinned>`。
+   人点头与你敲 `--apply` 之间 `origin/main` 还会移动，同一个 `--range` 第二次解析可以
+   落到另一个 Issue 上；Issue 编号不会移动。**终态判定取自文档与 manifest**：summary 的
+   `required_docs` 含不含 `verification`，以及该项目在 `gitea-governance.json` 里有没有声明
+   `deployment_lifecycle: none`（没有部署链路 → `completed` 是唯一终态）。两个条件都由工具
+   读取，不要自己判断该写 `completed` 还是 `deployed`。
 4. 文档自查：接入平台的项目跑 `check-change-documents --repo <checkout>`。
 5. 清理：**先离开 worktree**，再 `git worktree remove <path>` 与 `git branch -d change/N-slug`。站在 worktree 里删自己脚下的目录会失败。
 6. 盘点衍生 Issue：有调度会话就 `send_message` 回报，没有就自己开 Issue 并派卡片。
@@ -89,6 +100,7 @@ CI:   <读回的真实状态，不是推测>
 - 「PR 开完了，我接着把下一件事做了」
 - 「人说合并了，那就直接 `--apply`」
 - 「判级投影回头再补」→ 窗口在合并时关闭，没有回头
+- 「计划里那个编号不是我的 Issue，大概是范围多带了一个」→ 是范围瞄错了，不是多带
 - 「worktree 先留着，说不定还用得上」
 - 「这个小改动不值得开 Issue」→ 它需要验收标准吗？
 - 「会话先留着，回头一起归档」
@@ -101,6 +113,7 @@ CI:   <读回的真实状态，不是推测>
 | 会话开在平台仓却改目标项目 | 改动落错仓库，或落进别的 change 分支 |
 | PR 开完继续往下做 | 越过人的唯一交付闸门 |
 | 跳过第 1 步直接 `--apply` | 未合并的 Issue 被写成终态 |
+| `--apply` 仍然传 `--range` | 人点头之后 `origin/main` 又前进一次，写到别人刚合并的 Issue 上——而 `completed` 恰恰常常正是它该有的标签，所以不报错也看不出来（#175） |
 | 不清理 worktree | 残留累积——本机曾同时残留三个已合并 change 的 worktree |
 | 只在上下文里记依赖 | 会话一压缩，顺序关系就丢了 |
 | 靠印象填 `cwd` | 会话开在错误目录，或开在根本不存在的路径上 |
