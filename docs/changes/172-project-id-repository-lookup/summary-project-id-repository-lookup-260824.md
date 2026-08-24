@@ -10,9 +10,9 @@ confidence: high
 risk_flags:
   - platform-governance
 depends_on: []
-status: approved
+status: pr-open
 branch: change/172-project-id-repository-lookup
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/176
 created: 2026-08-24
 updated: 2026-08-24
 reason: 修改治理工具解析 manifest 的方式并给它新增一个运行前提（access manifest 必须可读），属平台治理变更，强制 complex
