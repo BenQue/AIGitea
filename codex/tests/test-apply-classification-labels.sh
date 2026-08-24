@@ -30,10 +30,26 @@ for argument in "$@"; do
   esac
   previous="$argument"
 done
+# A broker install whose operation table predates this operation refuses it
+# exactly like this: typed JSON on stderr, exit 20, and a code an ACL problem
+# would also use.
+if [ -f "$MOCK_ROOT/stale-$operation" ]; then
+  printf '%s\n' \
+    '{"code": "REQUEST_DENIED", "message": "requested operation is not allowlisted", "status": "BLOCKED_EXTERNAL"}' >&2
+  exit 20
+fi
 if [ "$operation" = gitea.issue.read ]; then
   state=open
   if [ -f "$MOCK_ROOT/state-$number" ]; then state="$(cat "$MOCK_ROOT/state-$number")"; fi
   printf '{"number":%s,"state":"%s"}\n' "$number" "$state"
+  exit 0
+fi
+if [ "$operation" = gitea.issue.labels.read ]; then
+  if [ -f "$MOCK_ROOT/labels-$number" ]; then
+    cat "$MOCK_ROOT/labels-$number"
+  else
+    printf '[]\n'
+  fi
   exit 0
 fi
 printf '{"issue":%s,"before":["pr-open"],"after":["complexity/complex","pr-open","type/platform"],"result":"updated","status":"PASS"}\n' \
@@ -84,6 +100,21 @@ summary 502 closed-change 'change_type: bugfix' 'effective_complexity: small'
 summary 504 unclear-change 'change_type: platform' ''
 summary 505 typeless-change '' 'effective_complexity: small'
 printf 'closed\n' >"$TMP/state-502"
+
+# Read-back fixtures (#167). 506 is already projected, 507 carries no
+# classification labels at all, 508 carries a complexity the summary does not
+# declare, and 509 is the one that matters: closed with the window shut.
+summary 506 projected-change 'change_type: platform' 'effective_complexity: complex'
+summary 507 unprojected-change 'change_type: platform' 'effective_complexity: complex'
+summary 508 drifted-change 'change_type: platform' 'effective_complexity: complex'
+summary 509 missed-change 'change_type: platform' 'effective_complexity: complex'
+printf '%s\n' \
+  '[{"name":"type/platform"},{"name":"complexity/complex"},{"name":"pr-open"}]' \
+  >"$TMP/labels-506"
+printf '%s\n' \
+  '[{"name":"type/platform"},{"name":"complexity/small"}]' >"$TMP/labels-508"
+printf 'closed\n' >"$TMP/state-509"
+
 git -C "$REPO" add -A
 git -C "$REPO" commit -qm 'fixture documents'
 
@@ -184,6 +215,111 @@ rc=0
 empty_output="$(run 2>&1)" || rc=$?
 [ "$rc" -ne 0 ]
 grep -Fq 'no Issue selector' <<<"$empty_output"
+
+# --- #167: the read-back and the stale-install translation ----------------
+#
+# The plan mode cannot answer "is this Issue's classification visible right
+# now": for 506 (projected) and 507 (never projected) it emits the same line.
+: >"$TMP/broker.log"
+[ "$(run 506)" = "$(run 507 | sed 's/507/506/g')" ]
+
+# AC-1: four distinguishable read-back outcomes.
+: >"$TMP/broker.log"
+rc=0
+projected_output="$(run --verify 506)" || rc=$?
+[ "$rc" -eq 0 ]
+jq -e 'select(.issue == 506)
+  | .action == "verify" and .result == "projected" and .applied == false
+    and (has("reason") | not) and (has("remedy") | not)' \
+  <<<"$projected_output" >/dev/null
+
+rc=0
+missing_output="$(run --verify 507)" || rc=$?
+[ "$rc" -ne 0 ]
+jq -e 'select(.issue == 507)
+  | .action == "verify" and .reason == "projection-missing"
+    and .remedy == "codex/tools/apply-classification-labels.sh --apply 507"' \
+  <<<"$missing_output" >/dev/null
+
+# A dimension carrying a value the summary does not declare is its own outcome:
+# reporting it as "missing" would send the reader looking for an absent label.
+rc=0
+mismatch_output="$(run --verify 508)" || rc=$?
+[ "$rc" -ne 0 ]
+jq -e 'select(.issue == 508)
+  | .action == "verify" and .reason == "projection-mismatch"
+    and (.detail | contains("complexity/small"))
+    and (.detail | contains("complexity/complex"))
+    and (has("remedy"))' \
+  <<<"$mismatch_output" >/dev/null
+
+# The Issue this change exists for. Closed and never projected: reported loudly,
+# and with no remedy, because #160 offers none and this change does not add one.
+rc=0
+closed_output="$(run --verify 509)" || rc=$?
+[ "$rc" -ne 0 ]
+jq -e 'select(.issue == 509)
+  | .action == "verify" and .reason == "projection-window-closed"
+    and (has("remedy") | not)
+    and .change_type == "platform" and .complexity == "complex"' \
+  <<<"$closed_output" >/dev/null
+
+# One non-projected Issue in a batch fails the whole run, so a gate cannot pass
+# by reading only the last line.
+rc=0
+batch_output="$(run --verify 506 507)" || rc=$?
+[ "$rc" -ne 0 ]
+jq -e 'select(.issue == 506) | .result == "projected"' <<<"$batch_output" >/dev/null
+
+# AC-1a: verify is read-only. It never reaches the write operation, for any
+# outcome -- including the closed Issue, which --apply also refuses.
+[ "$(writes)" = 0 ]
+grep -Fq -- '--operation gitea.issue.labels.read' "$TMP/broker.log"
+
+# Verify and apply are separate modes; running both would report on a state the
+# same run had just created.
+rc=0
+both_output="$(run --verify --apply 506 2>&1)" || rc=$?
+[ "$rc" -ne 0 ]
+grep -Fq 'separate modes' <<<"$both_output"
+
+# "I cannot tell" is not "yes": in verify mode an unresolvable Issue fails,
+# where the plan mode reads the same condition as nothing to project.
+rc=0
+unresolved_verify="$(run --verify 503)" || rc=$?
+[ "$rc" -ne 0 ]
+jq -e 'select(.issue == 503)
+  | .action == "verify" and .reason == "documents-unresolved"' \
+  <<<"$unresolved_verify" >/dev/null
+rc=0
+run 503 >/dev/null || rc=$?
+[ "$rc" -eq 0 ]
+
+# AC-2: a broker whose operation table predates the operation is named as a
+# stale install, not left as a bare REQUEST_DENIED that reads like an ACL
+# problem. This is the condition that cost #163 its window.
+: >"$TMP/broker.log"
+touch "$TMP/stale-gitea.issue.labels.classify"
+rc=0
+stale_output="$(run --apply 501)" || rc=$?
+[ "$rc" -ne 0 ]
+jq -e 'select(.issue == 501)
+  | .action == "set-classification" and .applied == false
+    and .reason == "broker-operation-missing"
+    and (.detail | contains("install-host-access-broker.sh"))
+    and (.detail | contains("not a permission problem"))' \
+  <<<"$stale_output" >/dev/null
+rm -f "$TMP/stale-gitea.issue.labels.classify"
+
+# The same translation covers every operation the tool calls, including the
+# read-back's own.
+touch "$TMP/stale-gitea.issue.labels.read"
+rc=0
+stale_verify="$(run --verify 506)" || rc=$?
+[ "$rc" -ne 0 ]
+jq -e 'select(.issue == 506) | .reason == "broker-operation-missing"' \
+  <<<"$stale_verify" >/dev/null
+rm -f "$TMP/stale-gitea.issue.labels.read"
 
 # A broker that cannot answer is a failure, not a silent skip: exit status
 # carries it so an operator cannot read the run as complete.
