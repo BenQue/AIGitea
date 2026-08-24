@@ -61,8 +61,11 @@ override_reason: ''
 
 - 无；如有则逐项列出。
 
-`## AI 判级` YAML 使用 analyzer 的唯一字段集合和顺序。`small` 的
-新合同的 `required_docs` 使用语义角色：`small` 和 unresolved 只包含 `summary`；
-`complex` 必须依次包含 `summary`、`spec`、`plan`，部署或迁移再追加
-`verification`。`documents` 把每个角色映射到同目录的
-`<role>-<short-slug>-<YYMMDD>.md`；所有角色共用 2–4 词短 slug。
+`## AI 判级` YAML 使用 analyzer 的唯一字段集合和顺序。
+`required_docs` 使用语义角色：`small` 和 unresolved 只包含 `summary`；
+`complex` 必须依次包含 `summary`、`spec`、`plan`；当本次变更的验收证据不能由
+diff review 与 required CI 复现时，再追加 `verification`（判据见 `03` §3
+「何时声明 `verification`」）。追加它表示这次变更**欠一份验证记录**，不表示
+这次变更要部署——部署与迁移必然需要它，但不是只有它们需要。`documents`
+把每个角色映射到同目录的 `<role>-<short-slug>-<YYMMDD>.md`；所有角色共用
+2–4 词短 slug。
