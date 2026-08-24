@@ -246,9 +246,15 @@ broker `gitea.issue.labels.set` 写入。已经是 `deployed` 的 Issue 不会�
 - `none`：没有那条链路，`deployed` 不可达，`completed` 是唯一终态。目前只有 `aisoft-platform` 声明。
 
 `deployment_lifecycle` 只影响合并后的终态记账：它不触发也不抑制任何部署，不改分支保护与必需 CI，
-也不改变 `required_docs` 该不该含 `verification`。manifest 读不到或查不到该项目条目时，
+也不改变 `required_docs` 该不该含 `verification`。manifest 读不到或查不到条目时，
 工具报错退出而不是静默跳过——沉默恰恰是它要修的那个失败模式；只是**没有声明该键**不属此列，
 按缺省处理。
+
+`--project` 收的是 `codex/config/host-access-broker.json` 里的 **project id**（`localwms`），
+不是仓库名。governance manifest 按**仓库名**（`LocalWMS`）索引，两者只在 10 个项目里的 4 个上
+同名，所以仓库名由 project id 反查得到、不由调用方提供（#172）——host-access manifest 已经
+声明了这个双射，`aisoft_host_access.contract` 也已经强制它的值都存在于 governance manifest。
+两侧任一查不到都报错退出，消息各自指名是哪一份 manifest 少了哪个键。
 
 > manifest 与 broker 同理：改了 `codex/config/gitea-governance.json` 之后，扁平安装
 > （`/usr/local/share/aisoft/gitea-governance.json`）要重装才跟上。工具优先读仓库布局下的

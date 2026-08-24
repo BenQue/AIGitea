@@ -71,12 +71,50 @@ if [ -d "$tool_dir/../runtime" ]; then
   export PYTHONPATH
 fi
 
+# --project names one thing and one thing only: a project id in the host access
+# manifest. It used to name two, which is what #172 fixes. The broker takes the
+# project id; the governance manifest is keyed by repository name; and those two
+# coincide for only four of the ten projects, so on the other six every run died
+# in the lookup below before it reached a single Issue.
+#
+# The repository is therefore derived, never passed. The host access manifest
+# already declares the mapping and aisoft_host_access.contract already enforces
+# that it is a bijection whose values all exist in the governance manifest
+# (duplicate project_id / duplicate repository mapping / repository is absent
+# from governance). Reading that declaration costs one lookup; asking the caller
+# for the repository as well would re-derive a guarantee that exists, and hand
+# the caller a second name to get wrong.
+#
+# Same resolution order as the broker and the governance manifest below: an
+# explicit override, then the repository layout, then the flat install. The
+# override exists so tests never reach the real installed manifest.
+access_manifest="${AISOFT_ACCESS_MANIFEST:-}"
+if [ -z "$access_manifest" ]; then
+  if [ -f "$tool_dir/../config/host-access-broker.json" ]; then
+    access_manifest="$(cd -- "$tool_dir/../config" && pwd)/host-access-broker.json"
+  else
+    access_manifest=/usr/local/share/aisoft/host-access-broker.json
+  fi
+fi
+[ -f "$access_manifest" ] || fail "host access manifest not found: $access_manifest"
+repository=""
+if ! repository="$(
+  jq -er --arg id "$project" '
+    [.projects[] | select(.project_id == $id)] as $entries
+    | if ($entries | length) == 1
+      then $entries[0].repository
+      else error("not exactly one manifest project with id " + $id)
+      end
+  ' "$access_manifest" 2>&1
+)"; then
+  fail "cannot resolve repository for project id $project from $access_manifest: $repository"
+fi
+
 # Whether a project has an application deployment chain that writes deployed is a
 # property of the repository, not of any single change, so it is declared once in
-# the governance manifest (#163). Same resolution order as the two lookups above:
-# an explicit override, then the repository layout, then the flat install.
-# AISOFT_GOVERNANCE_MANIFEST is the variable aisoft_loop/change_control.py already
-# defines for this file, so there is one name for "where the manifest is".
+# the governance manifest (#163), keyed by repository name — hence the lookup
+# above. AISOFT_GOVERNANCE_MANIFEST is the variable aisoft_loop/change_control.py
+# already defines for this file, so there is one name for "where the manifest is".
 manifest="${AISOFT_GOVERNANCE_MANIFEST:-}"
 if [ -z "$manifest" ]; then
   if [ -f "$tool_dir/../config/gitea-governance.json" ]; then
@@ -96,7 +134,7 @@ fi
 [ -f "$manifest" ] || fail "governance manifest not found: $manifest"
 declared_lifecycle=""
 if ! declared_lifecycle="$(
-  jq -er --arg name "$project" '
+  jq -er --arg name "$repository" '
     [.repositories[] | select(.name == $name)] as $entries
     | if ($entries | length) == 1
       then ($entries[0].deployment_lifecycle // "")
@@ -104,7 +142,7 @@ if ! declared_lifecycle="$(
       end
   ' "$manifest" 2>&1
 )"; then
-  fail "cannot read deployment_lifecycle for $project from $manifest: $declared_lifecycle"
+  fail "cannot read deployment_lifecycle for repository $repository (project $project) from $manifest: $declared_lifecycle"
 fi
 
 # Each Closes #N on its own line, with the change/N-slug branch name in the
@@ -204,12 +242,12 @@ for issue in "${issues[@]}"; do
   if grep -Fxq 'verification' <<<"$required_docs"; then
     if [ "$declared_lifecycle" != none ]; then
       emit "$issue" skip requires-deployment \
-        "required_docs contains verification and $project has an application deployment chain, so this change ships and its terminal state is deployed, not completed" \
+        "required_docs contains verification and $repository has an application deployment chain, so this change ships and its terminal state is deployed, not completed" \
         false ''
       continue
     fi
     completed_reason=no-deployment-chain
-    completed_detail="required_docs contains verification, but $project declares deployment_lifecycle none: nothing writes deployed there, so completed is the only reachable terminal state"
+    completed_detail="required_docs contains verification, but $repository declares deployment_lifecycle none: nothing writes deployed there, so completed is the only reachable terminal state"
   fi
 
   if [ "$apply" -eq 0 ]; then

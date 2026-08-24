@@ -93,14 +93,33 @@ cat >"$MANIFEST" <<'JSON'
 {
   "repositories": [
     {"name": "aisoft-platform"},
-    {"name": "no-deploy-project", "deployment_lifecycle": "none"},
-    {"name": "explicit-deploy-project", "deployment_lifecycle": "application-deploy"}
+    {"name": "NoDeployRepository", "deployment_lifecycle": "none"},
+    {"name": "ExplicitDeployRepository", "deployment_lifecycle": "application-deploy"}
+  ]
+}
+JSON
+
+# Fixture host access manifest (#172). --project carries a project id; the
+# governance manifest is keyed by repository name; the tool derives one from the
+# other. Two of the three mappings deliberately have a repository name that is
+# NOT the project id, so every assertion below travels the derivation. The third
+# keeps the coinciding shape that hid the bug for as long as it did — four of the
+# ten real projects still have it, and they must keep working.
+ACCESS_MANIFEST="$TMP/host-access-broker.json"
+cat >"$ACCESS_MANIFEST" <<'JSON'
+{
+  "projects": [
+    {"project_id": "aisoft-platform", "repository": "aisoft-platform"},
+    {"project_id": "no-deploy-project", "repository": "NoDeployRepository"},
+    {"project_id": "explicit-deploy-project", "repository": "ExplicitDeployRepository"},
+    {"project_id": "dangling-project", "repository": "DanglingRepository"}
   ]
 }
 JSON
 
 run() {
   PYTHONPATH="$ROOT/codex/runtime" AISOFT_GOVERNANCE_MANIFEST="$MANIFEST" \
+    AISOFT_ACCESS_MANIFEST="$ACCESS_MANIFEST" \
     bash "$BIN/mark-completed-issues.sh" --repo "$REPO" "$@"
 }
 
@@ -108,6 +127,15 @@ run_with_manifest() {
   local manifest="$1"
   shift
   PYTHONPATH="$ROOT/codex/runtime" AISOFT_GOVERNANCE_MANIFEST="$manifest" \
+    AISOFT_ACCESS_MANIFEST="$ACCESS_MANIFEST" \
+    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" "$@"
+}
+
+run_with_access_manifest() {
+  local access_manifest="$1"
+  shift
+  PYTHONPATH="$ROOT/codex/runtime" AISOFT_GOVERNANCE_MANIFEST="$MANIFEST" \
+    AISOFT_ACCESS_MANIFEST="$access_manifest" \
     bash "$BIN/mark-completed-issues.sh" --repo "$REPO" "$@"
 }
 
@@ -213,8 +241,10 @@ jq -e 'select(.issue == 501) | .action == "set-completed" and has("reason") == f
 # checkout, and a typo in that path would otherwise reach nothing but production.
 mkdir -p "$TMP/config"
 cp "$MANIFEST" "$TMP/config/gitea-governance.json"
+cp "$ACCESS_MANIFEST" "$TMP/config/host-access-broker.json"
 layout_plan="$(
-  env -u AISOFT_GOVERNANCE_MANIFEST PYTHONPATH="$ROOT/codex/runtime" \
+  env -u AISOFT_GOVERNANCE_MANIFEST -u AISOFT_ACCESS_MANIFEST \
+    PYTHONPATH="$ROOT/codex/runtime" \
     bash "$BIN/mark-completed-issues.sh" --repo "$REPO" \
     --project no-deploy-project 502
 )"
@@ -237,18 +267,95 @@ for bad_case in "$TMP/absent-manifest.json" "$TMP/broken-manifest.json"; do
   grep -Fq 'mark-completed:' <<<"$bad_output"
 done
 
-# A project the manifest does not describe is equally unjudgeable, in both modes.
+# --- Issue #172: --project names a project id, and only that -----------------
+#
+# Every assertion above already travels the derivation: no-deploy-project and
+# explicit-deploy-project map to repository names that are nothing like them, so
+# a tool that fed --project straight to the governance lookup would have failed
+# out well before here. What follows covers the two ways the derivation itself
+# can come up empty, which used to be indistinguishable from each other.
+
+# AC-2: the verdict is decided by the repository the project id resolves to, not
+# by the project id. Same Issue, same required_docs, two project ids whose
+# repositories differ only in their declaration — the conclusions must diverge.
+jq -e 'select(.issue == 502) | .reason == "no-deployment-chain"' <<<"$no_chain_plan" >/dev/null
+grep -Fq 'NoDeployRepository' \
+  <<<"$(jq -r 'select(.issue == 502) | .detail' <<<"$no_chain_plan")"
+grep -Fq 'ExplicitDeployRepository' \
+  <<<"$(jq -r 'select(.issue == 502) | .detail' <<<"$explicit_plan")"
+
+# AC-3, access side: a project id the host access manifest does not describe is
+# unresolvable, in both modes, and says so against the access manifest. Before
+# #172 this surfaced as a governance-manifest complaint about a missing
+# repository entry, which sent the reader off to edit the wrong file.
 : >"$TMP/broker.log"
 for mode_args in "501" "--apply 501"; do
   rc=0
   # shellcheck disable=SC2086
   unknown_output="$(run --project absent-project $mode_args 2>&1)" || rc=$?
   [ "$rc" -ne 0 ] || {
-    echo 'an unknown project must fail rather than be judged' >&2
+    echo 'an unknown project id must fail rather than be judged' >&2
     exit 1
   }
-  grep -Fq 'deployment_lifecycle' <<<"$unknown_output"
+  grep -Fq 'host-access-broker.json' <<<"$unknown_output"
+  grep -Fq 'absent-project' <<<"$unknown_output"
+  if grep -Fq 'deployment_lifecycle' <<<"$unknown_output"; then
+    echo 'a missing project id must not be reported against the governance manifest' >&2
+    exit 1
+  fi
 done
+[ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
+
+# AC-3, governance side: a project id that resolves to a repository the
+# governance manifest does not describe fails naming the repository, so the
+# reader knows which of the two files is short an entry. aisoft_host_access
+# rejects this shape at load time (contract.py: "repository is absent from
+# governance"), but this tool reads the file itself and must not assume it was
+# ever validated.
+for mode_args in "501" "--apply 501"; do
+  rc=0
+  # shellcheck disable=SC2086
+  dangling_output="$(run --project dangling-project $mode_args 2>&1)" || rc=$?
+  [ "$rc" -ne 0 ] || {
+    echo 'a repository absent from governance must fail rather than be judged' >&2
+    exit 1
+  }
+  grep -Fq 'DanglingRepository' <<<"$dangling_output"
+  grep -Fq 'deployment_lifecycle' <<<"$dangling_output"
+done
+[ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
+
+# An access manifest this tool cannot read is an error too — same posture the
+# governance manifest already has, for the same reason.
+printf '%s\n' 'not json' >"$TMP/broken-access-manifest.json"
+for bad_case in "$TMP/absent-access-manifest.json" "$TMP/broken-access-manifest.json"; do
+  rc=0
+  bad_output="$(run_with_access_manifest "$bad_case" 501 2>&1)" || rc=$?
+  [ "$rc" -ne 0 ] || {
+    echo "an unreadable host access manifest must fail: $bad_case" >&2
+    exit 1
+  }
+  grep -Fq 'mark-completed:' <<<"$bad_output"
+done
+
+# AC-1/AC-2 on the real pair. localwms -> LocalWMS is the mapping that made this
+# Issue: it is one of six real projects whose id differs from its repository, and
+# before #172 this exact invocation exited 1 without reaching an Issue. Only the
+# derivation and the resulting verdict are asserted here — what the real
+# manifests contain stays pinned in
+# codex/runtime/tests/test_deployment_lifecycle.py, so the fixture above is
+# still not a copy of production.
+: >"$TMP/broker.log"
+real_plan="$(
+  PYTHONPATH="$ROOT/codex/runtime" \
+    AISOFT_GOVERNANCE_MANIFEST="$ROOT/codex/config/gitea-governance.json" \
+    AISOFT_ACCESS_MANIFEST="$ROOT/codex/config/host-access-broker.json" \
+    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" --project localwms 501 502
+)"
+jq -e 'select(.issue == 501) | .action == "set-completed"' <<<"$real_plan" >/dev/null
+jq -e 'select(.issue == 502) | .action == "skip" and .reason == "requires-deployment"' \
+  <<<"$real_plan" >/dev/null
+grep -Fq 'LocalWMS' <<<"$(jq -r 'select(.issue == 502) | .detail' <<<"$real_plan")"
 [ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
 
 echo 'mark-completed tests passed'
