@@ -105,6 +105,9 @@ codex/skills/gitea-development-loop/SKILL.md:12:   - require mapped `verificatio
   漂移（`codex/skills/` 的三个文件已改）。与 #163 同形态，不阻塞终态判定。
 - **判级投影**：`codex/tools/apply-classification-labels.sh 168 --apply` 必须在人合并
   **之前**跑完——工具对已关闭 Issue 永久跳过，#163 就是这样丢掉自己的 `type/*` 与
-  `complexity/*` 标签的。本记录写作时尚未投影，投影结果补记在本节。
+  `complexity/*` 标签的。**已完成**：`apply-classification-labels.sh --repo . --apply 168`
+  返回 `{"issue":168,"action":"set-classification","applied":true,"result":"updated",
+  "change_type":"platform","complexity":"complex"}`；`gitea.issue.labels.read --number 168`
+  读回 `complexity/complex` 与 `type/platform` 两个标签。
 - 本变更不部署、不迁移，因此没有制品、重复执行与故意失败回滚可记录——模板的对应
   整节按其 `TEMPLATE_CONDITIONAL` 指示删除，而不是保留标题填「无」。

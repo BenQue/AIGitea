@@ -11,9 +11,9 @@ risk_flags:
   - platform-governance
   - agent-governance
 depends_on: []
-status: approved
+status: pr-open
 branch: change/168-decouple-verification-authoring
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/169
 created: 2026-08-24
 updated: 2026-08-24
 reason: 改写 analyzer 指引、analyzer runtime prompt、Loop 合同校验与平台文档合同里「何时声明 verification」的作者规则，属 Agent 与平台治理变更，强制 complex
