@@ -205,8 +205,15 @@ grep -Fq 'NOT RUN: Issue #124 exact real-release regression requires explicit --
   <<<"$company_delivery_real_output"
 bash "$ROOT/sync/tests/test-inbound-sync.sh"
 bash "$ROOT/sync/tests/test-install.sh"
+# -t 把 top_level_dir 钉在 codex/runtime，测试模块因此被载为 tests.test_xxx，
+# 而 codex/runtime/tests 不再进入 sys.path。不带 -t 时 top_level_dir 默认取 -s
+# 的值，tests/ 自己被塞进 sys.path，于是同目录测试之间的裸模块名互导
+# （from test_controller import ...）在 required CI 下永远解析得成功——#203 那条
+# bug 正是因此潜伏到有人换了调用方式才暴露（#205）。加 -t 让 CI 本身以严格模块名
+# 运行整套测试，覆盖的不只是 test_import_hygiene.py 的 AST 扫描认得的写法。
+# 两种调用发现并执行的 538 条测试逐条一致，见 #205 的 verification 记录。
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest discover \
-  -s "$ROOT/codex/runtime/tests" -v
+  -s "$ROOT/codex/runtime/tests" -t "$ROOT/codex/runtime" -v
 
 # The change document front matter gate, applied to this repository itself
 # (#142). Every change directory must resolve through resolve-documents, and no
