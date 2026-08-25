@@ -1563,10 +1563,10 @@ class HostAccessBroker:
         project: ProjectContract,
         operation: OperationContract,
     ) -> object:
+        if project.mac_checkout is None:
+            raise BrokerError("TARGET_UNAVAILABLE", "project has no approved Mac checkout")
         access_operation = self.contract.operation("host.access.audit")
         access = self._access_audit(project, access_operation)
-        if project.mac_checkout is None:
-            raise BrokerError("ONBOARDING_MISMATCH", "canonical checkout is not configured")
         checkout = os.path.realpath(project.mac_checkout)
         try:
             root = os.path.realpath(
