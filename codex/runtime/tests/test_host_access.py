@@ -2256,6 +2256,35 @@ class HostAccessBrokerTests(unittest.TestCase):
                 broker.execute("aisoft-platform", "host.onboarding.check")
             self.assertEqual(caught.exception.code, "ONBOARDING_MISMATCH")
 
+    def test_null_mac_checkout_onboarding_check_is_target_unavailable(self) -> None:
+        """`mac_checkout: null` is a complete declaration, not onboarding drift."""
+
+        def transport(method, url, headers, body):
+            raise AssertionError("transport must not run")
+
+        self.assertIsNone(self.contract.project("myapp").mac_checkout)
+        broker = HostAccessBroker(
+            self.contract,
+            credentials=StaticCredentials(),
+            transport=transport,
+        )
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute("myapp", "host.onboarding.check")
+        self.assertEqual(caught.exception.code, "TARGET_UNAVAILABLE")
+        self.assertEqual(str(caught.exception), "project has no approved Mac checkout")
+
+    def test_null_mac_checkout_is_decided_before_credentials(self) -> None:
+        """The declared absence of a Mac path outranks any credential finding."""
+
+        class FailIfResolved:
+            def resolve(self, project, operation):
+                raise AssertionError("credential resolution must not run")
+
+        broker = HostAccessBroker(self.contract, credentials=FailIfResolved())
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute("myapp", "host.onboarding.check")
+        self.assertEqual(caught.exception.code, "TARGET_UNAVAILABLE")
+
     def test_main_force_or_arbitrary_refspec_have_no_push_surface(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             checkout = Path(temporary) / "repo"
