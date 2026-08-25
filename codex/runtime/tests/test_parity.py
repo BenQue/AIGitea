@@ -15,7 +15,7 @@ from aisoft_loop.controller import Controller
 from aisoft_loop.provider import CommandProvider, ProviderError
 from aisoft_loop.state import GlobalLock, StateStore, TerminalState
 
-from test_controller import SUMMARY, FakeGit, FakeGitea, FakeVerifier, verification
+from tests.test_controller import SUMMARY, FakeGit, FakeGitea, FakeVerifier, verification
 
 
 PROVIDERS = ("codex", "claude")
