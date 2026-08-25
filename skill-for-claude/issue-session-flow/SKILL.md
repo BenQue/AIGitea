@@ -78,9 +78,11 @@ CI:   <读回的真实状态，不是推测>
    `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --apply <pinned>`。
    人点头与你敲 `--apply` 之间 `origin/main` 还会移动，同一个 `--range` 第二次解析可以
    落到另一个 Issue 上；Issue 编号不会移动。**终态判定取自文档与 manifest**：summary 的
-   `required_docs` 含不含 `verification`，以及该项目在 `gitea-governance.json` 里有没有声明
-   `deployment_lifecycle: none`（没有部署链路 → `completed` 是唯一终态）。两个条件都由工具
-   读取，不要自己判断该写 `completed` 还是 `deployed`。
+   `required_docs` 含不含 `verification`，以及该项目在 `gitea-governance.json` 里的
+   `deployment_lifecycle`——只有 `application-deploy`（合并即部署）会让计划显示 `skip
+   requires-deployment` 去等一次必然到来的部署，`none` 与缺省的 `application-deploy-selective`
+   都当场到 `completed`（#192）。两个条件都由工具读取，不要自己判断该写 `completed` 还是
+   `deployed`；计划里出现你不认识的 `reason` 时读 `detail`，它写着依据。
 4. 文档自查：接入平台的项目跑 `check-change-documents --repo <checkout>`。
 5. 清理：**先离开 worktree**，再 `git worktree remove <path>` 与 `git branch -d change/N-slug`。站在 worktree 里删自己脚下的目录会失败。
 6. 盘点衍生 Issue：有调度会话就 `send_message` 回报，没有就自己开 Issue 并派卡片。

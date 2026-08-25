@@ -14,13 +14,26 @@ IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 # 变更所需的映射文档份数，不影响分支保护、必需 CI、人工合并闸门与判级分类本身。
 CHANGE_CONTROL_PHASES = frozenset({"development", "production"})
 
-# 该仓库有没有一条会回写 deployed 的应用部署链路（02 §9）。application-deploy 表示有；
-# none 表示没有，deployed 在这个仓库上不可达，合并后的唯一终态是 completed（#163）。
-# 这是仓库属性而不是单次变更的属性：平台仓库里没有任何变更走应用部署链路。
-# 未声明时取 application-deploy——更严的一档，使既有仓库行为完全不变，
-# 也保证「读不到声明」永远不会意外放宽终态判定。
-DEPLOYMENT_LIFECYCLES = frozenset({"application-deploy", "none"})
-DEFAULT_DEPLOYMENT_LIFECYCLE = "application-deploy"
+# 会回写 deployed 的应用部署链路（02 §9）与**本仓库每一次 merge** 的关系。#163 只问了
+# 「有没有这条链路」，#192 把它收紧成「这条链路会不会覆盖到本次 merge」——因为
+# mark-completed-issues.sh 用它决定的是「跳过、等 deployed」，而只有等待有保证的终点时
+# 跳过才成立：
+#   application-deploy           有链路，且每一次 merge 都会被它部署；等待必然结束。
+#   application-deploy-selective 有链路，但只覆盖一部分 merge；等待没有保证的终点，
+#                                因此终态写 completed，真部署时由部署链路覆盖为 deployed。
+#   none                         没有链路，deployed 不可达，completed 是唯一终态。
+# 这仍然是仓库属性而不是单次变更的属性：平台仓库里没有任何变更走应用部署链路。
+#
+# 未声明时取 application-deploy-selective——**可自愈的一档**，不是最宽或最严的一档。
+# #163 曾取 application-deploy，理由是「缺省更严」；但两个方向并不对称：早写的 completed
+# 会被 mark-deployed-issues.sh 剥掉整个生命周期维度重写成 deployed，而 broker 的
+# _set_issue_lifecycle 又拒绝把已经 deployed 的 Issue 降级为 completed，所以这个方向的错
+# 有人纠正；漏写方向没有任何组件会回头补（03 §11：没有任何组件处在能观察到合并的位置上），
+# 实测就是 LocalWMS 上 5 个已合并 Issue 至今一个标签都没有（#192）。
+DEPLOYMENT_LIFECYCLES = frozenset(
+    {"application-deploy", "application-deploy-selective", "none"}
+)
+DEFAULT_DEPLOYMENT_LIFECYCLE = "application-deploy-selective"
 
 # 该仓库有没有 docs/changes/_template/ 下的 vendored 模板副本（#190）。副本与合同源
 # templates/docs/changes/_template/ 之间原先没有任何依赖声明，下游因此无从知道自己何时
@@ -75,7 +88,8 @@ class RepositoryContract:
     # 交付阶段。未在 manifest 声明时默认 "production"——缺省取更严的一档，
     # 使既有仓库行为完全不变，也保证读不到声明时不会意外放宽。
     change_control: str = "production"
-    # 有没有应用部署链路。缺省同理取更严的一档，见 DEPLOYMENT_LIFECYCLES。
+    # 那条应用部署链路会不会覆盖本仓库的每一次 merge。缺省取可自愈的一档，
+    # 见 DEPLOYMENT_LIFECYCLES。
     deployment_lifecycle: str = DEFAULT_DEPLOYMENT_LIFECYCLE
     # 是否持有 change 文档模板的 vendored 副本，见 DEFAULT_VENDORS_CHANGE_TEMPLATES。
     vendors_change_templates: bool = DEFAULT_VENDORS_CHANGE_TEMPLATES
@@ -90,7 +104,11 @@ class RepositoryContract:
 
     @property
     def deploys(self) -> bool:
-        """是否存在一条会把生命周期推进为 deployed 的应用部署链路。"""
+        """是否存在一条会把生命周期推进为 deployed 的应用部署链路。
+
+        存在不等于「每一次 merge 都会被它部署」：那是 application-deploy 这一档单独
+        声明的更强事实，终态判定要的正是后者（#192）。
+        """
         return self.deployment_lifecycle != "none"
 
 
