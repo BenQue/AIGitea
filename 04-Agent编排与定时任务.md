@@ -7,7 +7,7 @@
 - Analyzer 与 Development Loop 分离。
 - Matt `triage → to-spec → to-tickets → implement` 保持原始技能语义，通过 Gitea tracker adapter 对齐平台阶段。
 - `needs-analysis` 触发分析，`approved` 触发 Loop。
-- Issue/spec/plan 是不可由 Loop 擅自改写的执行合同。
+- Issue、summary 与路由要求的 spec/plan 是不可由 Loop 擅自改写的执行合同。
 - Agent 可以按 frontier `Txx` 在 exact `change/N-short-description` 创建本地原子 commit；外层 controller 管状态、锁、commit 后置校验、push、PR、CI、验证和终态。
 - Codex 与 Claude Code 只作为 provider adapter，共用同一 controller 和 verifier。
 - 只有人可以合并最终 PR。
@@ -55,7 +55,7 @@ Analyzer：
 所有 Issue 都经过 analyzer；是否需要 spec/plan 由有效复杂度决定。Analyzer 至少输出：
 
 ```yaml
-change_type: bugfix # bugfix | feature | docs | test | refactor | maintenance | platform
+change_type: bugfix # bugfix | feature | docs | test | refactor | maintenance | platform | security | reliability | data
 requested_complexity: auto # auto | small | complex
 assessed_complexity: small # small | complex | needs-human-decision
 effective_complexity: small # small | complex；needs-human-decision 时省略
@@ -72,19 +72,23 @@ override_reason:
 Wrapper 必须按强制风险规则和显式标签优先级复核结果，再执行互斥标签变更：
 
 - 明确 small：只保留一个 `type/*` 和 `complexity/small`；合同完整时写入 `approved`，否则进入 `awaiting-triage`。
-- 明确 complex：只保留一个 `type/*` 和 `complexity/complex`，进入 `spec-drafting`；spec/plan 合同完整后才可写入 `approved`。
+- 明确 complex：只保留一个 `type/*` 和 `complexity/complex`；production 进入 `spec-drafting`，
+  spec/plan 合同完整后才可写入 `approved`；development 由 Issue 正文提供可测验收标准，
+  不生成 spec/plan，合同完整后可写入 `approved`。
 - `assessed_complexity: needs-human-decision`、`contract_effect: unclear`、低置信度冲突或风险边界不明：移除两个 complexity 标签，保持 `awaiting-triage`。
 - Issue 显式要求 `complexity/complex` 时不得降级；显式 `complexity/small` 触发强制复杂规则时必须覆盖为 complex，并在 summary 和 Issue 评论记录 `override_reason`。
 
 ## 5. Loop 启动条件
 
-每次收到启动信号时，controller 都必须从 Issue、有效评论、summary 和所需 spec/plan 重新计算合同有效性，不能把现有 `approved` 当作充分证据。启动前必须满足：
+每次收到启动信号时，controller 都必须从 Issue、有效评论、summary 和当前路由所需文档重新计算合同有效性，不能把现有 `approved` 当作充分证据。启动前必须满足：
 
 - Issue 为 open 且带 `approved`。
 - exact change branch、同 `(N, slug)` 文档目录和唯一映射的 `summary` 存在；新合同必须通过 `documents` 映射解析，legacy 合同才允许固定数字目录/basename。
 - 恰有一个由当前证据支持的 `complexity/small` 或 `complexity/complex` 标签，且 type、复杂度和强制风险规则无冲突。
 - `complexity/small` 时 Issue 有可测验收标准，summary 字段完整，且没有强制复杂风险。
-- `complexity/complex` 时映射的 `spec` 和 `plan` 完整、验收映射明确、Ticket graph 有可执行 frontier 且无未决问题。
+- `complexity/complex` 时，production 要求映射的 `spec` 和 `plan` 完整、验收映射明确、
+  Ticket graph 有可执行 frontier 且无未决问题；development 要求 Issue 正文有可测验收标准，
+  Controller 使用合成 `T01`。
 - 没有另一个 active Issue 占用第一版 controller。
 
 任一条件不满足时 controller 必须拒绝启动、由 wrapper 修正到 `awaiting-triage` 或 `spec-drafting`，并输出 `NEEDS_HUMAN_DECISION` 或 `BLOCKED_EXTERNAL`；不得猜测合同，也不得因 `approved` 已存在而跳过复核。
@@ -93,7 +97,7 @@ Wrapper 必须按强制风险规则和显式标签优先级复核结果，再执
 
 ```text
 加载合同和持久化状态
-  → 从 plan Ticket graph 选择第一个未阻塞 frontier Txx
+  → 从 plan Ticket graph 选择第一个未阻塞 frontier Txx；development complex 无 plan 时使用 T01
   → provider 显式调用 $implement，在隔离 worktree 实现并本地提交
   → controller 校验 branch、ancestry、commit subject、改动范围与 clean tree
   → verifier 独立运行要求的命令

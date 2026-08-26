@@ -400,6 +400,7 @@ class ContractTests(unittest.TestCase):
         contract = load_contract(self.repo, issue, change_control="development")
         self.assertEqual(contract.effective_complexity, "complex")
         self.assertEqual(contract.required_docs, ("00-summary.md",))
+        self.assertEqual(contract.change_control, "development")
 
     def test_development_phase_still_requires_measurable_acceptance(self) -> None:
         """没有 spec 时验收标准改由 Issue 正文提供，但门槛本身不放宽。"""
@@ -421,6 +422,11 @@ class ContractTests(unittest.TestCase):
                     load_contract(self.repo, issue, change_control="production")
                 with self.assertRaisesRegex(ContractError, missing):
                     load_contract(self.repo, issue)
+
+    def test_contract_defaults_to_production_change_control(self) -> None:
+        self.write_contract()
+        contract = load_contract(self.repo, self.issue())
+        self.assertEqual(contract.change_control, "production")
 
     def test_complete_complex_contract_is_accepted(self) -> None:
         self.write_contract(

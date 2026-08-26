@@ -134,7 +134,7 @@ GITEA_BOT_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
   指针，除更新事实外不删改；「项目事实」节写真实命令、健康端点、交付形态与禁改边界——
   交付形态由本项目 delivery profile 决定，平台只统一流程不变量，不强制统一部署方案）。
 - 从 `templates/project/CLAUDE.md` 复制的一行 `@AGENTS.md`。
-- 已接入的存量仓库回补同一指针：逐仓独立 Issue + 小 PR（经该仓 project-agent 通道），把
+- 已接入的存量仓库回补同一指针：逐仓独立 Issue + AI 判级的单一 PR（经该仓 project-agent 通道），把
   AGENTS.md 对齐模板前两节；不得批量脚本改写全部仓库。
 - 从平台仓库 `templates/docs/changes/_template/` 复制 `summary.md`、`spec.md`、`plan.md`、`verification.md` 四个语义模板。复制出来的是 vendored 副本，该仓库因此是 `gitea-governance.json` 里的 holder（`vendors_change_templates` 未声明即为 `true`），后续由上游广播 `codex/tools/change-template-sync.sh` 通知同步；确认不持有副本的仓库才显式声明 `false`。新 change 文档实名使用 `<role>-<short-description>-<YYMMDD>.md`，并在 summary front matter 的 `documents` 字段把 `summary`/`spec`/`plan`/`verification` 显式映射到真实 basename；remote/history evidence 已存在的 `change/N`、`docs/changes/N/` 与 pre-#57 纯数字文档只作读取或维护兼容，新 writer、first push 和 first PR 不得创建。
 - Matt 编排初始化：显式调用 `$setup-matt-pocock-skills`，tracker 选 `Other`，使用平台 `templates/docs/agents/issue-tracker.md`、`triage-labels.md`、`domain.md` 三件套（经 `$aisoft-matt-workflow` 校验平台边界后执行），不得另建第二套 Gitea 模板。
@@ -336,7 +336,8 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 4. 合并后由独立 `appserver-test` 确定性部署和精确 SHA health 通过。
 5. Analyzer 对真实 Issue 输出确定性分类，wrapper/controller 写入正确且互斥的标签。
 6. Small Issue 从明确合同进入 Loop 并准备绿色 PR。
-7. Complex Issue 缺 spec/plan 时拒绝，补齐后按 plan 执行。
+7. Production complex Issue 缺 spec/plan 时拒绝，补齐后按 plan 执行；development complex
+   从 Issue 读取可测验收标准并使用合成 `T01`，不生成仪式性 spec/plan。
 8. 普通测试失败由 Loop 自修复。
 9. 合同冲突、外部阻塞和三次同因失败正确升级。
 10. CI failure feedback 能进入下一轮。

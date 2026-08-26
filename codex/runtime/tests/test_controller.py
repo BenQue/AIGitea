@@ -306,8 +306,19 @@ class FrontierTicketTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.tempdir.cleanup()
 
-    def contract(self, plan: str) -> Contract:
-        self.directory.joinpath("plan-short-flow-260808.md").write_text(plan)
+    def contract(
+        self,
+        plan: str | None,
+        *,
+        change_control: str = "production",
+    ) -> Contract:
+        required_docs = [
+            "summary-short-flow-260808.md",
+            "spec-short-flow-260808.md",
+        ]
+        if plan is not None:
+            self.directory.joinpath("plan-short-flow-260808.md").write_text(plan)
+            required_docs.append("plan-short-flow-260808.md")
         return Contract(
             issue_number=57,
             title="Matt workflow",
@@ -317,14 +328,20 @@ class FrontierTicketTests(unittest.TestCase):
             risk_flags=("agent-governance",),
             branch="change/57",
             document_directory=self.directory,
-            required_docs=(
-                "summary-short-flow-260808.md",
-                "spec-short-flow-260808.md",
-                "plan-short-flow-260808.md",
-            ),
+            required_docs=tuple(required_docs),
             acceptance_criteria=("bounded",),
             dependencies=(),
+            change_control=change_control,
         )
+
+    def test_development_complex_without_plan_uses_synthetic_ticket(self) -> None:
+        contract = self.contract(None, change_control="development")
+        self.assertEqual(select_frontier_ticket(contract), "T01")
+
+    def test_production_complex_without_plan_still_fails_closed(self) -> None:
+        contract = self.contract(None)
+        with self.assertRaisesRegex(ProviderError, "exactly one plan"):
+            select_frontier_ticket(contract)
 
     def test_selects_first_unblocked_pending_ticket(self) -> None:
         contract = self.contract(

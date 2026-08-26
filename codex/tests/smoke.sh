@@ -57,6 +57,7 @@ for script in \
   "$ROOT/codex/install-host-role.sh" \
   "$ROOT/codex/install-host-access-broker.sh" \
   "$ROOT/codex/install-skills.sh" \
+  "$ROOT/codex/check-drift.sh" \
   "$ROOT/codex/lib/install-source-guard.sh" \
   "$ROOT/codex/tools/mark-deployed-issues.sh" \
   "$ROOT/codex/tools/mark-completed-issues.sh" \
@@ -71,6 +72,7 @@ for script in \
   "$ROOT/codex/tools/verify-host-role.sh" \
   "$ROOT/codex/tools/host-access-broker.sh" \
   "$ROOT/codex/tools/project-profile-migration.sh" \
+  "$ROOT/codex/tools/aisoft-platform-readiness.sh" \
   "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
   "$ROOT/codex/agent/gitea-token.sh" \
   "$ROOT/codex/agent/change-merge-range.sh" \
@@ -92,6 +94,8 @@ for script in \
   "$ROOT/codex/tests/test-host-access-broker.sh" \
   "$ROOT/codex/tests/test-install-host-access-broker.sh" \
   "$ROOT/codex/tests/test-installer-source-guard.sh" \
+  "$ROOT/codex/tests/test-codex-drift.sh" \
+  "$ROOT/codex/tests/test-platform-readiness.sh" \
   "$ROOT"/sync/*.sh \
   "$ROOT"/sync/tests/*.sh; do
   bash -n "$script"
@@ -103,6 +107,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/install-host-role.sh" \
     "$ROOT/codex/install-host-access-broker.sh" \
     "$ROOT/codex/install-skills.sh" \
+    "$ROOT/codex/check-drift.sh" \
     "$ROOT/codex/lib/install-source-guard.sh" \
     "$ROOT/codex/tools/sync-gitea-labels.sh" \
     "$ROOT/codex/tools/mark-deployed-issues.sh" \
@@ -118,6 +123,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/verify-host-role.sh" \
     "$ROOT/codex/tools/host-access-broker.sh" \
     "$ROOT/codex/tools/project-profile-migration.sh" \
+    "$ROOT/codex/tools/aisoft-platform-readiness.sh" \
     "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
     "$ROOT/codex/tools/aisoft-project-check.sh" \
     "$ROOT/codex/tools/change-template-sync.sh" \
@@ -140,6 +146,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-host-access-broker.sh" \
     "$ROOT/codex/tests/test-install-host-access-broker.sh" \
     "$ROOT/codex/tests/test-installer-source-guard.sh" \
+    "$ROOT/codex/tests/test-codex-drift.sh" \
+    "$ROOT/codex/tests/test-platform-readiness.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh" \
     "$ROOT/codex/tests/test-gitea-token-lib.sh" \
     "$ROOT/codex/tests/test-gitea-token-consumers.sh"
@@ -182,6 +190,8 @@ bash "$ROOT/codex/tests/test-gitea-readonly.sh"
 bash "$ROOT/codex/tests/test-gitea-token-lib.sh"
 bash "$ROOT/codex/tests/test-gitea-token-consumers.sh"
 bash "$ROOT/codex/tests/test-install-skills.sh"
+bash "$ROOT/codex/tests/test-codex-drift.sh"
+bash "$ROOT/codex/tests/test-platform-readiness.sh"
 bash -n "$ROOT/skill-for-claude/install.sh" "$ROOT/skill-for-claude/check-drift.sh"
 bash "$ROOT/codex/tests/test-install-claude-skills.sh"
 bash "$ROOT/codex/tests/test-host-role-guard.sh"

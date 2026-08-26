@@ -93,6 +93,7 @@ class Contract:
     required_docs: tuple[str, ...]
     acceptance_criteria: tuple[str, ...]
     dependencies: tuple[int, ...]
+    change_control: str = "production"
 
 
 def resolve_documents(repo: Path | str, issue_number: int) -> dict[str, str]:
@@ -255,6 +256,7 @@ def load_contract(
         required_docs=required_docs,
         acceptance_criteria=criteria,
         dependencies=dependencies,
+        change_control=change_control,
     )
 
 
