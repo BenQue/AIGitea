@@ -82,16 +82,18 @@ Treat every new request, defect, or platform change as a Gitea Issue `N` bound t
 - Require a mapped `summary` document for every Issue. New documents use `<role>-<short-description>-<YYMMDD>.md`; the summary front matter's `documents` field maps `summary`/`spec`/`plan`/`verification` roles to real basenames. Resolve them with `python3 -m aisoft_loop.cli resolve-documents N --repo <checkout>`, never with a broad glob.
 - Treat `type/*` labels as Issue-author inputs describing what the change is; AI verifies or corrects one primary type from repository evidence.
 - Treat `complexity/*` labels as AI classification outputs describing which path is required, never as an Issue-author override of contract impact or forced risk.
-- Treat the eight unprefixed lifecycle labels as workflow state, separate from type and complexity. `completed` means merged with no deployment required; `deployed` requires deterministic deployment and verification. The Matt triage dimension (`triage/*`: 2 category + 5 state labels; 24-label manifest in total) is orthogonal to all three, and `triage/ready-for-agent` never substitutes for platform `approved`.
+- Treat the eight unprefixed lifecycle labels as workflow state, separate from the 10 `type/*` labels and two complexity labels. `completed` means merged with no deployment required; `deployed` requires deterministic deployment and verification. The Matt triage dimension (`triage/*`: 2 category + 5 state labels; 27-label manifest in total) is orthogonal to all three, and `triage/ready-for-agent` never substitutes for platform `approved`.
 - Classify contract impact first: `restore`/`unchanged` is only a `small` candidate, `add`/`change` is `complex`, and `unclear` requires human triage.
 - Route a clear, local, reversible restore/unchanged change with no forced risk as `small`; route feature/functional behavior, schema/data, external contract, security, shared core, cross-module/service, CI/artifact/deployment/rollback, and Agent/platform governance changes as `complex`.
 - Respect an explicit complex request, but never let a requested small value bypass AI validation or forced-complex rules.
-- Require mapped `spec` plus `plan` documents for effective complexity `complex`; do not create ceremonial spec/plan for validated `small` work.
-- Require a mapped `verification` document for deployment and migration work.
+- Require mapped `spec` plus `plan` documents for production-phase effective complexity `complex`; development-phase complex takes measurable acceptance criteria from the Issue and uses synthetic `T01`. Do not create ceremonial spec/plan for validated `small` or development-phase complex work.
+- Require a mapped `verification` document whenever acceptance evidence cannot be reproduced by diff review and required CI. Deployment and migration always qualify, but `verification` does not imply deployment.
 - Treat `approved` as permission to start the Development Loop, not permission to merge or deploy.
 - Keep final PR merge as the only delivery gate.
 
-The primary per-Issue development path is the complete Matt workflow behind the platform adapter: initialize with `$aisoft-matt-workflow` (which chains `$setup-matt-pocock-skills` with the `templates/docs/agents/` tracker/triage/domain files), then run `$triage #N` → `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`. Platform-validated `small` work may skip spec/plan only after triage, mapped summary, classification, and `approved` revalidation.
+The primary per-Issue development path is the complete Matt workflow behind the platform adapter: initialize with `$aisoft-matt-workflow` (which chains `$setup-matt-pocock-skills` with the `templates/docs/agents/` tracker/triage/domain files), then run `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`. Platform-validated `small` and development-phase complex work skip spec/plan only after triage, mapped summary, classification, measurable Issue acceptance criteria, and `approved` revalidation.
+
+Codex is the default primary handler from Issue analysis through implementation, tests, PR/CI repair and the ready-to-merge handoff. Claude Code remains an equal provider for complex design discussion, focused review, existing Claude sessions, or a project profile that selects it. Both use this one contract; neither defines a separate classification, document, or delivery workflow.
 
 The `gitea-*` skills are compatibility adapters, not a second development method:
 
@@ -101,6 +103,8 @@ The `gitea-*` skills are compatibility adapters, not a second development method
 ## Preserve the Development Loop boundary
 
 Let the Loop handle ordinary compile, lint, type, test, build, browser, and CI failures. Escalate contract conflicts, scope expansion, destructive migrations, new security/permission/architecture decisions, missing external dependencies, unreliable verification, three same-root-cause attempts, or configured limits.
+
+After the user approves an Issue contract or an explicit implementation plan, continue through in-scope implementation, tests, repair, push and PR preparation without asking for intermediate confirmations. The current delivery boundary still stops at the final PR for human merge; `issue-session-flow` owns that task-level handoff and post-merge cleanup.
 
 Accept only `READY_FOR_REVIEW`, `NEEDS_HUMAN_DECISION`, `BLOCKED_EXTERNAL`, or `FAILED_LIMIT` as final states. Never describe unrun checks as passed.
 
@@ -136,4 +140,4 @@ For a new project, read [references/onboarding-runbook.md](references/onboarding
 Initializing a new project and re-aligning an onboarded one are the same idempotent
 operation: follow [references/project-align.md](references/project-align.md) and use the
 read-only checker `codex/tools/aisoft-project-check.sh --repo <checkout>` (PASS/GAP) to
-inventory gaps, then fix each gap through the target repository's own Issue and small PR.
+inventory gaps, then fix each gap through the target repository's own Issue and an AI-classified PR; never assume every alignment gap is `small`.

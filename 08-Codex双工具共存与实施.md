@@ -23,7 +23,8 @@ Matt skills 提供完整开发编排语义，Codex 和 Claude Code 只替换模�
 ## 2. 共享契约
 
 - Issue 是主键；新变更使用 `summary-<slug>-<YYMMDD>.md` 与同 slug 的 readable branch/directory，旧 Issue 保持证据驱动的 legacy basename/path。
-- small 可从明确 Issue 直接进入 Loop；complex 必须有映射的 `spec-*` 和 `plan-*`。
+- small 可从明确 Issue 直接进入 Loop；production complex 必须有映射的 `spec-*` 和
+  `plan-*`，development complex 从 Issue 正文读取验收标准并使用合成 `T01`。
 - `approved` 启动 Loop，不授权合并或部署。
 - 单一 `change/N-short-description` 分支承载同 `(N, slug)` 的文档、代码、测试和最终 PR；legacy `change/N` 仅在已有证据下维护。
 - Loop 只能在合同范围内实现、自测、自修复和处理 CI feedback。
@@ -90,7 +91,7 @@ Claude adapter 已完成（Issue #1）：
 | `aisoft-matt-workflow` | 仓库初始化与四阶段 adapter；保护平台 Issue、合同、CI、PR、合并和部署边界 |
 | 既有 `gitea-*` skills | 兼容 adapter；逐步把调用转向 Matt，但不删除确定性 runtime 接口 |
 
-仓库初始化先完成 Gitea profile、protected `main`、required CI、项目 Agent 权限与 24-label read-back，再运行 `codex/install-skills.sh <target-home>` 安装已验证 snapshot。首次进入项目时显式调用 `$setup-matt-pocock-skills`，tracker 选择 `Other`，并把 `templates/docs/agents/` 三个模板安装为 `docs/agents/issue-tracker.md`、`triage-labels.md`、`domain.md`。若 setup 要修改本次运行正在遵循的 `AGENTS.md`，本轮只提交 proposal，下一次独立授权再应用。
+仓库初始化先完成 Gitea profile、protected `main`、required CI、项目 Agent 权限与 27-label read-back，再运行 `codex/install-skills.sh <target-home>` 安装已验证 snapshot。首次进入项目时显式调用 `$setup-matt-pocock-skills`，tracker 选择 `Other`，并把 `templates/docs/agents/` 三个模板安装为 `docs/agents/issue-tracker.md`、`triage-labels.md`、`domain.md`。若 setup 要修改本次运行正在遵守的 `AGENTS.md`，本轮只提交 proposal，下一次独立授权再应用。
 
 完整性与更新策略：仓库 vendor 一个可复现的完整 upstream release，不裁剪或改写其 `SKILL.md`；平台差异只写 adapter。更新先进入隔离 staging，核对 tag object、commit、license、全部 skill/hash 与 adapter conformance，再与当前 manifest 分类。仅文案或兼容修正可生成 maintenance 候选；skill 增删、关键流程、调用策略、工具/网络/Git 副作用或 adapter contract 变化一律进入 complex Issue。安装器原子切换 `current`，保留 `previous` 作为 N-1 rollback，不直接对 live global skills 执行不受控 latest update，也不修改 Claude-owned plugin。
 
@@ -98,7 +99,8 @@ Claude adapter 已完成（Issue #1）：
 
 外层 controller 负责：
 
-- 从 Issue、summary 和所需 spec/plan 重新计算合同有效性，不把 `approved` 当作充分证据。
+- 从 Issue、summary 和路由所需文档重新计算合同有效性，不把 `approved` 当作充分证据；
+  production complex 使用 spec/plan，development complex 使用 Issue 验收标准和合成 `T01`。
 - 调用唯一受控 wrapper 执行互斥的 type、complexity 和流程状态标签 mutation；provider 不得直接改标签。
 - 解析/锁定同 `(N, slug)` 的 `change/N-short-description` 与 `issue-N-short-description` worktree。
 - 持久化当前任务、轮数、失败根因和终态。

@@ -13,8 +13,9 @@
    codex/tools/aisoft-project-check.sh --repo <目标仓checkout> [--kind software|docs] [--remote]
    ```
 
-2. 逐条 `GAP:` 在**目标仓**建独立 Issue + 小 PR 修复（回补程序见 runbook §2；
-   不批量脚本改写多仓）。
+2. 逐条 `GAP:` 在**目标仓**建独立 Issue，由 AI 按合同影响和强制风险判级后用单一 PR
+   修复（回补程序见 runbook §2；不批量脚本改写多仓）。纯合同保持型局部回补可为 small，
+   CI、部署、权限、Agent/治理或共享核心变化仍强制 complex。
 3. 修复合并后复检，直到无 `GAP:`。全 PASS 即对齐完成。
 
 新仓库首次接入时，runbook §1/§1.1 的 governance manifest 与 project-agent gate 是
@@ -46,7 +47,7 @@
 
 ## 边界与工具分工
 
-- 检查器只读、确定性；缺口修复始终走目标仓 Issue/小 PR，停在人工合并——本入口
+- 检查器只读、确定性；缺口修复始终走目标仓 Issue/单一判级 PR，停在人工合并——本入口
   不授权合并、部署或批量改写。
 - 例外只有标签一项：第 4 行的缺失/漂移由 broker `gitea.labels.provision` 幂等对齐
   （runbook §5），因为它是把仓库收敛到已合并 manifest，不产生新合同。**修改 manifest

@@ -5,7 +5,7 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 
 # AISoft 自托管交付平台（v3.4）
 
-自托管的「Issue → AI 分析判级 → (small 直进 / complex 先 spec/plan) → 单 PR → 人合并 → 确定性部署」平台。核心原则：**Issue 定义工作，AI 把明确合同做到可审 PR，人决定是否合并；AI 可参与开发/测试环境首次部署并把流程固化为脚本，生产只运行已验证脚本且没有 AI。**
+自托管的「Issue → AI 分析判级 →（small 直进 / production complex 先 spec/plan / development complex 用 Issue 验收合同）→ 单 PR → 人合并 → 确定性部署」平台。核心原则：**Issue 定义工作，AI 把明确合同做到可审 PR，人决定是否合并；AI 可参与开发/测试环境首次部署并把流程固化为脚本，生产只运行已验证脚本且没有 AI。**
 
 **权威文档**：Mac 用 `~/MyDocs/AISoftPlatform/`；gitea-ci VM 用 `/mnt/mac/Users/benque/MyDocs/AISoftPlatform/`（**不是 `~/Documents/`**——macOS TCC 挡 /mnt/mac，2026-07-19 迁出）。README=总纲 · 03 流程 · 04 Matt 编排与 Loop · 06 运维踩坑与 broker · 08 双工具 · 12-Linux 内网交付 · architecture/ 与 docker-release/ 子合同。改配置前先读对应分册。
 
@@ -14,8 +14,8 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 - **可读命名元组**：新变更 = Issue `N` + 分支 `change/N-短描述` + 目录 `docs/changes/N-短描述/` + worktree `issue-N-短描述` + 唯一 PR（`Closes #N`）。编号仍是唯一主键；remote/history evidence 已存在的 `change/N`、`docs/changes/N/` 与 pre-#57 纯数字文档只作读取或维护兼容，新 writer、first push 和 first PR 不得创建。
 - **语义文档**：新文档名 `<role>-<短描述>-<YYMMDD>.md`，summary front matter 的 `documents` 字段映射 summary/spec/plan/verification 到真实文件名。解析用 `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli resolve-documents N --repo <checkout>`，不要 glob 猜。
 - **判级**：contract_effect 先行（restore/unchanged → small 候选；add/change → complex；unclear → 人工澄清）。功能新增/变更、schema/迁移、外部契约、安全、共享核心、跨模块、CI/制品/部署/回滚、Agent/治理一律强制 complex。small 还须范围局部、可简单 revert，并有可测验收标准。
-- **Matt 主路径**：每个 Issue 走 `$triage #N` → `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`（经 `$aisoft-matt-workflow` 适配；small 在 triage+summary+判级+`approved` 复核后可跳过 spec/plan）。`triage/ready-for-agent` ≠ `approved`。
-- **24 标签四维正交**：7 `type/*`（作者输入）+ 2 `complexity/*`（AI 输出）+ 8 生命周期（`completed` 与 `deployed` 互斥终态）+ 7 `triage/*`（Matt 编排）。
+- **Matt 主路径**：每个 Issue 走 `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`（经 `$aisoft-matt-workflow` 适配；small 与 development complex 在 triage+summary+判级+`approved` 复核后跳过 spec/plan，后者使用合成 `T01`）。`triage/ready-for-agent` ≠ `approved`。
+- **27 标签四维正交**：10 `type/*`（bugfix/feature/docs/test/refactor/maintenance/platform/security/reliability/data）+ 2 `complexity/*`（AI 输出）+ 8 生命周期（`completed` 与 `deployed` 互斥终态）+ 7 `triage/*`（Matt 编排）。
 - **单闸门**：人合并最终 PR 是唯一交付硬闸门；任何会话/agent 不合并、不直推受保护 `main`，也不得擅自部署（部署需独立授权）。
 - **一切 Gitea/Git/OrbStack 访问走 broker**：`/usr/local/libexec/aisoft/host-access-broker --project <manifest项目> --operation <typed操作>`（gitea.issue.create/read/update、gitea.pull.create、git.push.change --branch、host.access.audit…）。不拼 raw token、不传 URL/refspec/shell；Git push 只允许当前 checkout 同名 readable 分支。
 - **provider 默认关**：`IMPLEMENT_PROVIDER=none` 是默认；启用是每项目独立验收门。
@@ -27,7 +27,7 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 
 1. 需求/缺陷 → broker `gitea.issue.create`（正文写可测验收标准）。
 2. `python3 -m aisoft_loop.cli change-name N <slug>` 校验命名 → `git worktree add /private/tmp/issue-N-<slug> -b change/N-<slug> origin/main`（并行会话必须各自 worktree；commit 前 `git branch --show-current` 核对——踩坑 #15）。
-3. 按判级写映射文档（complex 补 spec/plan，模板在 `templates/docs/changes/_template/`），实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。summary 此时写**真实的**前置 `status`（通常 `approved`），`pr_url` 留空——PR 还不存在。
+3. 按判级与 `change_control` 写映射文档（production complex 补 spec/plan；development complex 从 Issue 读取验收标准并用合成 `T01`），实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。`verification` 由证据能否经 diff review + required CI 重放决定，不等同部署。summary 此时写**真实的**前置 `status`（通常 `approved`），`pr_url` 留空——PR 还不存在。
 4. 判级投影，**窗口在合并时关闭**：`codex/tools/apply-classification-labels.sh N` 先看计划，
    确认后 `--apply` 经 broker `gitea.issue.labels.classify` 把 summary 的 `change_type` 与
    `effective_complexity` 写成 Gitea 的 `type/*` 与 `complexity/*`（#160）；再用
@@ -57,14 +57,14 @@ description: AISoft 自托管交付平台（v3.4）的合同与操作入口。Us
 
 ## 工具分工（默认偏好，非硬规则）
 
-- **Claude Code（Mac 交互）**：开发与设计——需求澄清、spec/plan、实现、测试、重构。
-- **Codex**：维护与部署——VM headless 分析、运维排障、部署验收、平台治理演进。
-- 二者共用同一平台合同与 provider 中立机制（`ANALYSIS_PROVIDER`/`IMPLEMENT_PROVIDER` 按项目 profile 显式选择），随时可互换补位。
+- **Codex（默认主处理者）**：从 Issue 分析、合同、实现、测试、PR/CI 修复到待合并交接的完整路径。
+- **Claude Code（对等补位）**：复杂设计讨论、专项复核、既有 Claude 会话延续，或项目 profile 显式选择的 provider 工作。
+- 二者共用同一平台合同与 provider 中立机制（`ANALYSIS_PROVIDER`/`IMPLEMENT_PROVIDER` 按项目 profile 显式选择），随时可互换补位，但不各自发明流程。
 
 ## 接入新项目 / 项目对齐 / 私有访问
 
 - 新项目接入：先读 [references/onboarding-runbook.md](references/onboarding-runbook.md)——governance manifest + project-agent gate、host-role gate、architecture 声明、CI/部署与验收顺序都有既定约定，不得跳步。
-- 项目对齐（初始化=更新，幂等）：入口 [references/project-align.md](references/project-align.md)——checklist 盘点缺口、逐项走目标仓独立 Issue/小 PR；确定性核对用 `codex/tools/aisoft-project-check.sh --repo <checkout>`（PASS/GAP，只读）。
+- 项目对齐（初始化=更新，幂等）：入口 [references/project-align.md](references/project-align.md)——checklist 盘点缺口、逐项走目标仓独立 Issue/AI 判级的单一 PR；确定性核对用 `codex/tools/aisoft-project-check.sh --repo <checkout>`（PASS/GAP，只读）。
 - 私有 Gitea 检查：先读 [references/private-gitea-access.md](references/private-gitea-access.md)；**匿名 404 不构成不存在证据**（private-repository `404` 歧义），按 authenticated ladder 走。
 
 ## Common Mistakes

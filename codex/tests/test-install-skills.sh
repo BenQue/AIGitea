@@ -13,7 +13,8 @@ for skill in \
   gitea-spec-plan \
   gitea-development-loop \
   gitea-implement-change \
-  gitea-platform-ops; do
+  gitea-platform-ops \
+  issue-session-flow; do
   test -f "$test_root/home/.agents/skills/$skill/SKILL.md"
 done
 

@@ -1,6 +1,6 @@
 # 03 · Issue / Spec / Plan 与单闸门开发流程
 
-> v3 当前文档契约（更新 2026-08-11）。Issue 是所有工作的主键；小变更允许从明确的 Issue 直接进入 Development Loop，复杂变更必须先完成 spec/plan。最终 PR 合并是唯一交付硬闸门。Issue #75 已把 readable branch/directory 合同合并进 protected `main`；既有固定数字路径只作证据驱动的 legacy 兼容。
+> v3 当前文档契约（更新 2026-08-26）。Issue 是所有工作的主键；小变更允许从明确的 Issue 直接进入 Development Loop，production complex 必须先完成 spec/plan，development complex 使用 Issue 正文中的验收合同。最终 PR 合并是唯一交付硬闸门。Issue #75 已把 readable branch/directory 合同合并进 protected `main`；既有固定数字路径只作证据驱动的 legacy 兼容。
 
 ## 1. 绑定模型
 
@@ -17,10 +17,11 @@ Issue #N
 - **交付阶段（Issue #134）**：manifest 的 `change_control` 为 `development` 的项目，其
   强制 complex 变更同样不写 spec/plan，acceptance criteria 改由 Issue 正文提供——门槛
   不变，只是来源从 spec 换成 Issue。未声明该字段的仓库一律按 `production` 处理，行为不变。
-  `verification` 的取舍两个阶段完全相同（由 analyzer 决定），因为它同时承载着
-  「该变更要部署，终态是 `deployed` 而非 `completed`」这一语义。
-- 复杂变更必须有映射的 `spec` 和 `plan` 文档。
-- 部署、迁移和高风险运维变更必须有映射的 `verification` 文档。
+  `verification` 的取舍两个阶段完全相同（由 analyzer 决定）；它只表示本次变更欠一份
+  无法由 diff review 与 required CI 重放的验证记录，不表示部署或终态。
+- `change_control=production` 的复杂变更必须有映射的 `spec` 和 `plan` 文档；development
+  complex 不生成仪式性 spec/plan，由 Controller 使用合成 `T01`。
+- 部署、迁移以及任何依赖真实环境或一次性观测的变更必须有映射的 `verification` 文档。
 - 新 Issue 从分析开始使用单一 `change/N-short-description` 分支；已有 `change/N` 与更早的 `spec/N` 只按历史证据兼容，不作为新 writer 的可选格式。
 - 文档与代码进入同一个最终 PR，不再强制独立 docs-only spec PR。
 

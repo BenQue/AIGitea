@@ -1,17 +1,17 @@
 ---
 name: gitea-spec-plan
-description: Turn a complex analyzed Gitea Issue into its mapped testable spec and ordered plan documents on the shared readable change branch. Use when complexity is complex or material decisions remain; keep the run document-only and do not create a separate spec PR or implement code.
+description: Turn a production-phase complex analyzed Gitea Issue into its mapped testable spec and ordered plan documents on the shared readable change branch. Use when the deterministic route requires spec and plan; keep the run document-only and do not create a separate spec PR or implement code.
 ---
 
 # Draft the spec and plan
 
 1. Read `AGENTS.md`, the Issue and valid comments, then resolve the one evidence-backed `docs/changes/<N>-<short-description>/` and its `documents` mapping. Stop on legacy/readable or multi-slug conflict. Only use a numeric directory and the four fixed legacy basenames when repository/remote history proves a legacy contract.
-2. Require the analyzed metadata to contain `effective_complexity: complex`. Reject validated `effective_complexity: small` work instead of generating ceremonial spec/plan documents; improve its Issue acceptance criteria through the owning workflow if needed.
+2. Require the analyzed metadata to contain `effective_complexity: complex` and the repository route to require `spec` plus `plan`. Reject validated `small` and development-phase complex work instead of generating ceremonial documents; development takes measurable acceptance criteria from the Issue and uses synthetic `T01`.
 3. Ask one decision-focused question at a time when a material choice remains.
 4. Keep the run document-only. Do not change product code, schema, workflows, deployment scripts, labels, or PR state.
 5. Write the mapped `spec-<short-slug>-<YYMMDD>.md` with goal, rationale, measurable acceptance criteria, interface/data/migration/compatibility effects, risks, and explicit non-goals.
 6. Write the mapped `plan-<short-slug>-<YYMMDD>.md` with ordered tasks, exact likely files, migration steps, test changes, verification commands, and rollback work when applicable.
 7. Preserve the shared classification metadata in front matter: `change_type`, `requested_complexity`, `assessed_complexity`, `effective_complexity: complex`, `contract_effect`, `confidence`, and `risk_flags`. Also use Issue `N`, the exact `branch: change/N-short-description`, matching directory/document slug, and an honest status. Do not add a legacy unnamespaced `complexity:` field.
 8. Map every acceptance criterion to at least one planned deterministic check or final human review item.
-9. For CI, deployment, migration, backup, health-check, or rollback changes, require a mapped `verification` document with two repeat deployments and one deliberate failure/rollback exercise.
+9. Require a mapped `verification` whenever acceptance evidence cannot be reproduced by diff review and required CI. Deployment and migration always qualify; only actual deployment/migration requires two repeat deployments and one deliberate failure/rollback exercise.
 10. Stop after the documents and list unresolved decisions. Do not open a docs-only PR; `approved` may be set only after the contract is complete.
