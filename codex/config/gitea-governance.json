@@ -79,6 +79,16 @@
       "status_check_contexts": [
         "CI / verify (pull_request)"
       ],
+      "required_context_migration": {
+        "repository": "admin/aisoft-platform",
+        "context": "CI / verify (pull_request)",
+        "pull_request": 209,
+        "head_sha": "de85f1d581a4bba524e057e087a95305ff510458",
+        "actions_run": 717,
+        "commit_status_id": 3,
+        "event": "pull_request",
+        "state": "success"
+      },
       "required_approvals": 0
     },
     {
