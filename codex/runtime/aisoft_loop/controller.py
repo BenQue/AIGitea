@@ -9,6 +9,8 @@ import re
 import subprocess
 from typing import Optional, Sequence
 
+from aisoft_gitea_governance.contract import load_contract as load_governance_contract
+
 from .contract import (
     DELIVERY_TERMINAL_LABELS,
     Contract,
@@ -17,12 +19,14 @@ from .contract import (
 )
 from .documents import backfill_pr_number
 from .provider import ProviderError, ProviderResult
+from .routine_merge import authorization_marker, evaluate_routine_eligibility
 from .state import (
     GlobalLock,
     LockUnavailable,
     LoopBudget,
     StateStore,
     TerminalState,
+    confirm_pr_submission,
 )
 from .verifier import VerificationReport, redact
 
@@ -32,6 +36,7 @@ class ControllerResult:
     terminal_state: TerminalState
     message: str
     pr_number: Optional[int] = None
+    merge_receipt: Optional[dict[str, object]] = None
 
 
 class Controller:
@@ -48,6 +53,10 @@ class Controller:
         max_rounds: int = 8,
         max_same_root: int = 3,
         change_control: str = "production",
+        routine_merger: object | None = None,
+        confirmation_required: bool = False,
+        governance_manifest: Path | str | None = None,
+        repository_name: str = "",
     ) -> None:
         self.repo = Path(repo).resolve()
         self.gitea = gitea
@@ -61,6 +70,21 @@ class Controller:
         # 交付阶段由调用方从 governance manifest 解析后传入；
         # 缺省 production，保证未接线的调用方仍走既有四份文档要求。
         self.change_control = change_control
+        self.routine_merger = routine_merger
+        self.confirmation_required = confirmation_required
+        self.governance_manifest = Path(governance_manifest).resolve() if governance_manifest else None
+        self.repository_name = repository_name
+
+    def confirm_pr(self, issue_number: int, branch: str, policy: str) -> ControllerResult:
+        """Confirm submission policy; final routine merge still requires broker SHA gates."""
+        with self.lock:
+            confirm_pr_submission(
+                self.state_store, issue_number, branch, policy,
+            )
+            return ControllerResult(
+                TerminalState.CONTINUE,
+                f"PR submission policy confirmed for #{issue_number} on {branch}",
+            )
 
     def run(self, issue_number: int) -> ControllerResult:
         try:
@@ -80,11 +104,18 @@ class Controller:
             TerminalState.NEEDS_HUMAN_DECISION.value,
             TerminalState.BLOCKED_EXTERNAL.value,
             TerminalState.FAILED_LIMIT.value,
+            TerminalState.AUTO_MERGED.value,
         }:
             return ControllerResult(
                 TerminalState(str(persisted_terminal)),
                 str(state.get("message") or "persisted terminal state"),
                 _optional_int(state.get("pr_number")),
+                state.get("merge_receipt") if isinstance(state.get("merge_receipt"), dict) else None,
+            )
+        if state.get("stage") == "awaiting_pr_confirmation":
+            return ControllerResult(
+                TerminalState.AWAITING_PR_CONFIRMATION,
+                str(state.get("message") or "explicit PR submission confirmation is required"),
             )
         budget = LoopBudget.from_dict(
             state.get("budget", {}) if isinstance(state.get("budget", {}), dict) else {}
@@ -100,6 +131,60 @@ class Controller:
             contract = self._revalidate(issue_number, pr_number)
         except ContractError as exc:
             return self._contract_failure(issue_number, state, exc)
+
+        if (
+            self.confirmation_required
+            and state.get("stage") == "pr_confirmed"
+            and pr_number is None
+        ):
+            policy = str(state.get("merge_policy") or "")
+            expected_marker = authorization_marker(issue_number, contract.branch, policy)
+            if state.get("submit_policy_confirmation") != expected_marker:
+                return self._finish(
+                    issue_number, state, TerminalState.NEEDS_HUMAN_DECISION,
+                    "PR confirmation binding drifted", None, comment=True,
+                )
+            candidate_sha = str(state.get("candidate_head_sha") or "")
+            if not re.fullmatch(r"[0-9a-f]{40}", candidate_sha) or self.git.head_sha() != candidate_sha:
+                return self._finish(
+                    issue_number, state, TerminalState.NEEDS_HUMAN_DECISION,
+                    "candidate branch changed after PR confirmation", None, comment=True,
+                )
+            if policy == "routine-auto" and not self._routine_eligibility(contract).eligible:
+                return self._finish(
+                    issue_number, state, TerminalState.NEEDS_HUMAN_DECISION,
+                    "routine eligibility drifted before PR submission", None, comment=True,
+                )
+            head_sha = self.git.push()
+            pr = self.gitea.create_pr(
+                issue_number,
+                f"fix: #{issue_number} {contract.title}",
+                contract.branch,
+                "main",
+                _pr_body(contract, policy),
+            )
+            pr_number = int(pr["number"])
+            self._set_lifecycle(contract, "pr-open")
+            try:
+                summary_path, backfilled = backfill_pr_number(
+                    self.repo, issue_number, pr_number
+                )
+                if backfilled:
+                    relative = summary_path.relative_to(self.repo).as_posix()
+                    self.git.commit_paths(
+                        (relative,),
+                        f"docs(change-{issue_number}): 回填 pr_url {pr_number} (#{issue_number})",
+                    )
+                    head_sha = self.git.push()
+            except (ContractError, ProviderError) as exc:
+                self._set_lifecycle(contract, "awaiting-triage")
+                return self._finish(
+                    issue_number, state, TerminalState.NEEDS_HUMAN_DECISION,
+                    redact(str(exc)), pr_number, head_sha=head_sha, comment=True,
+                )
+            self._save_progress(
+                issue_number, state, budget, pr_number, head_sha, "", "", "awaiting_ci"
+            )
 
         if pr_number and state.get("stage") in {"awaiting_ci", "awaiting_dependencies"}:
             ci = self.gitea.get_commit_status(head_sha)
@@ -122,13 +207,9 @@ class Controller:
                         + ", ".join(f"#{number}" for number in waiting),
                         pr_number,
                     )
-                return self._finish(
-                    issue_number,
-                    state,
-                    TerminalState.READY_FOR_REVIEW,
-                    "PR CI passed; final human review is required",
-                    pr_number,
-                    comment=True,
+                return self._complete_pr(
+                    issue_number, state, contract, budget, pr_number, head_sha,
+                    "PR CI passed",
                 )
             if ci == "pending":
                 return ControllerResult(
@@ -300,7 +381,7 @@ class Controller:
                 budget.clear_failure()
             failure_evidence = ""
             failure_kind = ""
-            if actual_files:
+            if actual_files and (not self.confirmation_required or pr_number is not None):
                 head_sha = self.git.push()
             else:
                 head_sha = self.git.head_sha()
@@ -354,13 +435,40 @@ class Controller:
                     )
                     continue
 
+            if (
+                self.confirmation_required
+                and pr_number is None
+                and state.get("stage") != "pr_confirmed"
+            ):
+                eligibility = self._routine_eligibility(contract)
+                state.update({
+                    "issue": issue_number,
+                    "branch": contract.branch,
+                    "terminal": TerminalState.AWAITING_PR_CONFIRMATION.value,
+                    "stage": "awaiting_pr_confirmation",
+                    "candidate_head_sha": self.git.head_sha(),
+                    "routine_eligible": eligibility.eligible,
+                    "routine_ineligible_reasons": list(eligibility.reasons),
+                    "message": (
+                        "confirm submission of the unique final PR with policy manual"
+                        + (" or routine-auto" if eligibility.eligible else "")
+                    ),
+                    "budget": budget.to_dict(),
+                    "pr_number": None,
+                })
+                self.state_store.save(issue_number, state)
+                return ControllerResult(
+                    TerminalState.AWAITING_PR_CONFIRMATION,
+                    str(state["message"]),
+                )
+
             if pr_number is None:
                 pr = self.gitea.create_pr(
                     issue_number,
                     f"fix: #{issue_number} {contract.title}",
                     contract.branch,
                     "main",
-                    _pr_body(contract),
+                    _pr_body(contract, str(state.get("merge_policy") or "manual")),
                 )
                 pr_number = int(pr["number"])
                 self._set_lifecycle(contract, "pr-open")
@@ -422,15 +530,9 @@ class Controller:
                         + ", ".join(f"#{number}" for number in waiting),
                         pr_number,
                     )
-                return self._finish(
-                    issue_number,
-                    state,
-                    TerminalState.READY_FOR_REVIEW,
-                    "local verification and PR CI passed; final human review is required",
-                    pr_number,
-                    budget=budget,
-                    head_sha=head_sha,
-                    comment=True,
+                return self._complete_pr(
+                    issue_number, state, contract, budget, pr_number, head_sha,
+                    "local verification and PR CI passed",
                 )
             if ci == "pending":
                 self._save_progress(
@@ -536,6 +638,98 @@ class Controller:
         labels = {f"type/{contract.change_type}", f"complexity/{contract.effective_complexity}", lifecycle}
         self.gitea.set_labels(contract.issue_number, labels)
 
+    def _routine_eligibility(self, contract: Contract):
+        if self.governance_manifest is None or not self.repository_name:
+            return evaluate_routine_eligibility(
+                issue_number=contract.issue_number,
+                effective_complexity=contract.effective_complexity,
+                contract_effect=contract.contract_effect,
+                local_scope=False,
+                reversible=False,
+                risk_flags=contract.risk_flags,
+                major=True,
+                phase_or_milestone_completion=False,
+                repository_classification="",
+                repository_opt_in=False,
+                required_contexts=(),
+            )
+        governance = load_governance_contract(self.governance_manifest)
+        repository = governance.repository(self.repository_name)
+        local_scope, reversible = self.git.routine_scope()
+        risks = frozenset(contract.risk_flags)
+        return evaluate_routine_eligibility(
+            issue_number=contract.issue_number,
+            effective_complexity=contract.effective_complexity,
+            contract_effect=contract.contract_effect,
+            local_scope=local_scope,
+            reversible=reversible,
+            risk_flags=risks,
+            major="major" in risks,
+            phase_or_milestone_completion=bool(
+                risks & {"phase-completion", "milestone-completion"}
+            ),
+            repository_classification=repository.classification,
+            repository_opt_in=repository.routine_auto_merge_enabled,
+            required_contexts=repository.status_check_contexts,
+        )
+
+    def _complete_pr(
+        self,
+        issue_number: int,
+        state: dict[str, object],
+        contract: Contract,
+        budget: LoopBudget,
+        pr_number: int,
+        head_sha: str,
+        prefix: str,
+    ) -> ControllerResult:
+        policy = str(state.get("merge_policy") or "manual")
+        if policy != "routine-auto":
+            return self._finish(
+                issue_number, state, TerminalState.READY_FOR_REVIEW,
+                prefix + "; final human review is required", pr_number,
+                budget=budget, head_sha=head_sha, comment=True,
+            )
+        eligibility = self._routine_eligibility(contract)
+        if not eligibility.eligible:
+            return self._finish(
+                issue_number, state, TerminalState.NEEDS_HUMAN_DECISION,
+                "routine eligibility failed: " + ",".join(eligibility.reasons),
+                pr_number, budget=budget, head_sha=head_sha, comment=True,
+            )
+        if self.routine_merger is None:
+            return self._finish(
+                issue_number, state, TerminalState.BLOCKED_EXTERNAL,
+                "routine merge broker is unavailable; no fallback was attempted",
+                pr_number, budget=budget, head_sha=head_sha, comment=True,
+            )
+        try:
+            receipt = self.routine_merger.merge(pr_number, head_sha)
+        except Exception as exc:  # broker repeats live contract and exact-SHA gates
+            return self._finish(
+                issue_number, state, TerminalState.BLOCKED_EXTERNAL,
+                "routine merge hard gate failed: " + redact(str(exc)), pr_number,
+                budget=budget, head_sha=head_sha, comment=True,
+            )
+        if (
+            not isinstance(receipt, dict)
+            or receipt.get("operation") != "gitea.pull.merge.routine"
+            or receipt.get("pull_request") != pr_number
+            or receipt.get("head_sha") != head_sha
+            or receipt.get("status") != "AUTO_MERGED"
+        ):
+            return self._finish(
+                issue_number, state, TerminalState.BLOCKED_EXTERNAL,
+                "routine merge receipt is invalid", pr_number,
+                budget=budget, head_sha=head_sha, comment=True,
+            )
+        state["merge_receipt"] = receipt
+        return self._finish(
+            issue_number, state, TerminalState.AUTO_MERGED,
+            prefix + "; merge receipt recorded; deployment was not invoked",
+            pr_number, budget=budget, head_sha=head_sha, comment=True,
+        )
+
     def _unsatisfied_dependencies(self, contract: Contract) -> tuple[int, ...]:
         waiting: list[int] = []
         for dependency in contract.dependencies:
@@ -625,7 +819,13 @@ class Controller:
                 issue_number,
                 f"🤖 Development Loop: **{terminal.value}**\n\n{safe_message}",
             )
-        return ControllerResult(terminal, safe_message, pr_number)
+        receipt = state.get("merge_receipt")
+        return ControllerResult(
+            terminal,
+            safe_message,
+            pr_number,
+            receipt if isinstance(receipt, dict) else None,
+        )
 
 
 class LocalGit:
@@ -726,6 +926,19 @@ class LocalGit:
 
     def head_sha(self) -> str:
         return self._run(("git", "rev-parse", "HEAD")).stdout.strip()
+
+    def routine_scope(self) -> tuple[bool, bool]:
+        """Recompute local/reversible from the final diff, never provider state."""
+        output = self._run(
+            ("git", "diff", "--name-status", "origin/main...HEAD", "--")
+        ).stdout
+        entries: list[tuple[str, str]] = []
+        for line in output.splitlines():
+            parts = line.split("\t")
+            if len(parts) < 2:
+                raise ProviderError("final diff name-status is invalid")
+            entries.append((parts[0], parts[-1]))
+        return assess_routine_scope(entries)
 
     def _run(self, argv: tuple[str, ...]) -> subprocess.CompletedProcess[str]:
         completed = subprocess.run(
@@ -877,6 +1090,31 @@ def _paths_allowed(contract: Contract, paths: tuple[str, ...]) -> bool:
     return True
 
 
+def assess_routine_scope(entries: Sequence[tuple[str, str]]) -> tuple[bool, bool]:
+    """Conservative final-diff proof for the local and simple-revert gate."""
+    if not entries:
+        return False, False
+    forbidden_prefixes = (
+        ".gitea/", "codex/", "deploy/", "deployment/", "infra/",
+        "migrations/", "schema/", "scripts/deploy", "scripts/promote",
+    )
+    top_levels: set[str] = set()
+    reversible = True
+    for status, path in entries:
+        if (
+            not path
+            or path.startswith(forbidden_prefixes)
+            or Path(path).name == "AGENTS.md"
+        ):
+            return False, False
+        top_levels.add(path.split("/", 1)[0])
+        if status.startswith(("R", "C", "U")) or status == "D":
+            reversible = False
+        if Path(path).suffix.lower() in {".sql", ".db", ".sqlite", ".bin", ".tar", ".zip"}:
+            reversible = False
+    return len(top_levels) == 1, reversible
+
+
 def _verification_evidence(report: VerificationReport) -> str:
     sections: list[str] = []
     for result in report.failed_required:
@@ -885,7 +1123,7 @@ def _verification_evidence(report: VerificationReport) -> str:
     return redact("\n".join(sections))[-12000:]
 
 
-def _pr_body(contract: Contract) -> str:
+def _pr_body(contract: Contract, policy: str = "manual") -> str:
     document_root = contract.document_directory.parts[-3:]
     document_prefix = "/".join(document_root)
     documents = "\n".join(
@@ -898,11 +1136,17 @@ def _pr_body(contract: Contract) -> str:
     )
     return (
         f"Closes #{contract.issue_number}\n\n"
+        f"{authorization_marker(contract.issue_number, contract.branch, policy)}\n\n"
         "Dependencies:\n"
         f"{dependencies}\n\n"
         "Change documents:\n"
         f"{documents}\n\n"
-        "Local deterministic verification passed. Final merge requires a human."
+        "Local deterministic verification passed. "
+        + (
+            "Final-head required CI and every broker hard gate must pass before routine merge."
+            if policy == "routine-auto"
+            else "Final merge requires a human."
+        )
     )
 
 

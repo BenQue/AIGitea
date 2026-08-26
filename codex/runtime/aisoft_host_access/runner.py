@@ -149,3 +149,63 @@ class GovernedHostRunner:
         if not isinstance(value, dict):
             raise BrokerError("RESPONSE_SCHEMA_INVALID", "fixed host broker returned invalid JSON")
         return value
+
+
+class RoutineMergeRunner:
+    """Minimal no-fallback adapter for the routine merger's sole operation.
+
+    This object never receives or resolves the merger credential.  The fixed
+    broker selects the manifest-bound identity and repeats every live gate.
+    Keeping this surface separate from ``GovernedHostRunner`` makes ordinary
+    project Git and arbitrary Gitea requests unrepresentable to this caller.
+    """
+
+    def __init__(
+        self,
+        contract: AccessContract,
+        project_id: str,
+        *,
+        command_runner: CommandRunner = _default_runner,
+    ) -> None:
+        contract.project(project_id)
+        operation = contract.operation("gitea.pull.merge.routine")
+        if operation.identity_route != "routine-merge-agent":
+            raise BrokerError("CONTRACT_INVALID", "routine merge identity route is invalid")
+        self._project_id = project_id
+        self._command_runner = command_runner
+        self._cwd = os.path.realpath(os.getcwd())
+
+    def merge(self, number: int, sha: str) -> Mapping[str, object]:
+        pull_number = _positive_number(number, "pull request")
+        if not isinstance(sha, str) or not sha:
+            raise BrokerError("ARGUMENT_INVALID", "head SHA is required")
+        argv = [
+            BROKER_EXECUTABLE,
+            "--project", self._project_id,
+            "--operation", "gitea.pull.merge.routine",
+            "--number", str(pull_number),
+            "--sha", sha,
+        ]
+        try:
+            completed = self._command_runner(argv, cwd=self._cwd)
+        except Exception as exc:
+            raise BrokerError(
+                "HOST_BROKER_UNAVAILABLE", "fixed routine merge broker invocation failed"
+            ) from exc
+        if completed.returncode != 0:
+            raise BrokerError("HOST_BROKER_FAILED", "fixed routine merge broker operation failed")
+        try:
+            value = json.loads(completed.stdout)
+        except (TypeError, UnicodeError, json.JSONDecodeError) as exc:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID", "fixed routine merge broker returned invalid JSON"
+            ) from exc
+        if (
+            not isinstance(value, dict)
+            or value.get("operation") != "gitea.pull.merge.routine"
+            or value.get("pull_request") != pull_number
+            or value.get("head_sha") != sha
+            or value.get("status") != "AUTO_MERGED"
+        ):
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "fixed routine merge receipt is invalid")
+        return value

@@ -11,6 +11,7 @@ from aisoft_loop.state import (
     StateError,
     StateStore,
     TerminalState,
+    confirm_pr_submission,
 )
 
 
@@ -77,6 +78,43 @@ class StateStoreTests(unittest.TestCase):
             self.store.save(8, {"issue": 8, "round": round_number})
             raw = (self.root / "state" / "issues" / "8.json").read_text()
             self.assertEqual(json.loads(raw)["round"], round_number)
+
+    def test_pr_confirmation_binds_exact_issue_branch_and_policy(self) -> None:
+        self.store.save(8, {
+            "issue": 8,
+            "branch": "change/8-fix-parser-bug",
+            "stage": "awaiting_pr_confirmation",
+            "terminal": TerminalState.AWAITING_PR_CONFIRMATION.value,
+            "routine_eligible": True,
+        })
+        state = confirm_pr_submission(
+            self.store, 8, "change/8-fix-parser-bug", "routine-auto"
+        )
+        self.assertEqual(state["stage"], "pr_confirmed")
+        self.assertEqual(
+            state["submit_policy_confirmation"],
+            "AISoft-Submit-Authorization: issue=8; "
+            "branch=change/8-fix-parser-bug; policy=routine-auto",
+        )
+        self.assertNotIn("sha", state["submit_policy_confirmation"])
+
+    def test_pr_confirmation_refuses_binding_or_eligibility_drift(self) -> None:
+        baseline = {
+            "issue": 8,
+            "branch": "change/8-fix-parser-bug",
+            "stage": "awaiting_pr_confirmation",
+            "terminal": TerminalState.AWAITING_PR_CONFIRMATION.value,
+            "routine_eligible": False,
+        }
+        for issue, branch, policy in (
+            (9, "change/8-fix-parser-bug", "manual"),
+            (8, "change/8-other-slug", "manual"),
+            (8, "change/8-fix-parser-bug", "routine-auto"),
+        ):
+            with self.subTest(issue=issue, branch=branch, policy=policy):
+                self.store.save(8, baseline)
+                with self.assertRaises(StateError):
+                    confirm_pr_submission(self.store, issue, branch, policy)
 
 
 class LoopBudgetTests(unittest.TestCase):

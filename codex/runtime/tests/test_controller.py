@@ -130,7 +130,10 @@ class FakeGit:
         return self.head_sha()
 
     def head_sha(self) -> str:
-        return f"abc{self.sha_counter}"
+        return f"{self.sha_counter:040x}"
+
+    def routine_scope(self) -> tuple[bool, bool]:
+        return True, True
 
 
 class FakeGitea:
@@ -176,6 +179,24 @@ class FakeGitea:
     def set_labels(self, issue_number: int, labels: set[str]) -> None:
         self.label_updates.append(set(labels))
         self.issue["labels"] = sorted(labels)
+
+
+class FakeRoutineMerger:
+    def __init__(self, *, valid: bool = True) -> None:
+        self.valid = valid
+        self.calls: list[tuple[int, str]] = []
+
+    def merge(self, pr_number: int, head_sha: str) -> dict[str, object]:
+        self.calls.append((pr_number, head_sha))
+        if not self.valid:
+            return {"status": "AUTO_MERGED"}
+        return {
+            "operation": "gitea.pull.merge.routine",
+            "pull_request": pr_number,
+            "head_sha": head_sha,
+            "status": "AUTO_MERGED",
+            "merge_commit_sha": "f" * 40,
+        }
 
 
 class ProviderResultTests(unittest.TestCase):
@@ -417,6 +438,10 @@ class ControllerTests(unittest.TestCase):
         gitea: FakeGitea,
         max_rounds: int = 8,
         max_same_root: int = 3,
+        confirmation_required: bool = False,
+        routine_merger: object | None = None,
+        governance_manifest: Path | None = None,
+        repository_name: str = "",
     ) -> Controller:
         state_root = self.root / "state"
         return Controller(
@@ -429,7 +454,20 @@ class ControllerTests(unittest.TestCase):
             lock=GlobalLock(state_root / "loop.lock"),
             max_rounds=max_rounds,
             max_same_root=max_same_root,
+            confirmation_required=confirmation_required,
+            routine_merger=routine_merger,
+            governance_manifest=governance_manifest,
+            repository_name=repository_name,
         )
+
+    def routine_governance(self) -> Path:
+        source = Path(__file__).resolve().parents[2] / "config/gitea-governance.json"
+        value = json.loads(source.read_text(encoding="utf-8"))
+        repository = next(item for item in value["repositories"] if item["name"] == "HSDB")
+        repository["routine_auto_merge_enabled"] = True
+        path = self.root / "routine-governance.json"
+        path.write_text(json.dumps(value), encoding="utf-8")
+        return path
 
     def make_complex_contract(self, gitea: FakeGitea) -> None:
         directory = self.repo / "docs" / "changes" / "8"
@@ -514,6 +552,108 @@ branch: change/8
         self.assertEqual(provider.requests[0]["ticket_id"], "T01")
         self.assertNotIn("commit", provider.requests[0]["forbidden_actions"])
         self.assertIn("push", provider.requests[0]["forbidden_actions"])
+
+    def test_confirmation_is_persistent_and_repeated_poll_has_no_side_effect(self) -> None:
+        gitea = FakeGitea(["success"])
+        provider = FakeProvider([provider_result()])
+        git = FakeGit([("src/change.txt",)])
+        controller = self.controller(
+            provider=provider,
+            verifier=FakeVerifier([verification(True)]),
+            git=git,
+            gitea=gitea,
+            confirmation_required=True,
+        )
+        first = controller.run(8)
+        self.assertEqual(first.terminal_state, TerminalState.AWAITING_PR_CONFIRMATION)
+        self.assertEqual(git.pushes, 0)
+        self.assertEqual(gitea.created_prs, [])
+        second = controller.run(8)
+        self.assertEqual(second.terminal_state, TerminalState.AWAITING_PR_CONFIRMATION)
+        self.assertEqual(len(provider.requests), 1)
+        controller.confirm_pr(8, "change/8", "manual")
+        third = controller.run(8)
+        self.assertEqual(third.terminal_state, TerminalState.READY_FOR_REVIEW)
+        self.assertEqual(git.pushes, 2)
+        self.assertEqual(len(gitea.created_prs), 1)
+        self.assertIn("policy=manual", gitea.created_prs[0]["body"])
+
+    def test_routine_confirmation_reaches_auto_merged_with_exact_receipt(self) -> None:
+        gitea = FakeGitea(["success"])
+        provider = FakeProvider([provider_result()])
+        git = FakeGit([("src/change.txt",)])
+        merger = FakeRoutineMerger()
+        controller = self.controller(
+            provider=provider,
+            verifier=FakeVerifier([verification(True)]),
+            git=git,
+            gitea=gitea,
+            confirmation_required=True,
+            routine_merger=merger,
+            governance_manifest=self.routine_governance(),
+            repository_name="HSDB",
+        )
+        self.assertEqual(
+            controller.run(8).terminal_state,
+            TerminalState.AWAITING_PR_CONFIRMATION,
+        )
+        controller.confirm_pr(8, "change/8", "routine-auto")
+        result = controller.run(8)
+        self.assertEqual(result.terminal_state, TerminalState.AUTO_MERGED)
+        self.assertEqual(result.merge_receipt["status"], "AUTO_MERGED")
+        self.assertEqual(merger.calls, [(3, git.head_sha())])
+        self.assertIn("policy=routine-auto", gitea.created_prs[0]["body"])
+        self.assertEqual(len(provider.requests), 1)
+
+    def test_routine_ci_repair_needs_no_third_confirmation(self) -> None:
+        gitea = FakeGitea(["failure", "success"])
+        provider = FakeProvider([
+            provider_result(),
+            provider_result(changed_files=("src/fix.txt",)),
+        ])
+        git = FakeGit([("src/change.txt",), ("src/fix.txt",)])
+        merger = FakeRoutineMerger()
+        controller = self.controller(
+            provider=provider,
+            verifier=FakeVerifier([verification(True), verification(True)]),
+            git=git,
+            gitea=gitea,
+            confirmation_required=True,
+            routine_merger=merger,
+            governance_manifest=self.routine_governance(),
+            repository_name="HSDB",
+        )
+        self.assertEqual(
+            controller.run(8).terminal_state,
+            TerminalState.AWAITING_PR_CONFIRMATION,
+        )
+        controller.confirm_pr(8, "change/8", "routine-auto")
+        result = controller.run(8)
+        self.assertEqual(result.terminal_state, TerminalState.AUTO_MERGED)
+        self.assertEqual(len(gitea.created_prs), 1)
+        self.assertEqual(len(provider.requests), 2)
+        self.assertEqual(len(merger.calls), 1)
+
+    def test_invalid_routine_receipt_fails_closed(self) -> None:
+        gitea = FakeGitea(["success"])
+        controller = self.controller(
+            provider=FakeProvider([provider_result()]),
+            verifier=FakeVerifier([verification(True)]),
+            git=FakeGit([("src/change.txt",)]),
+            gitea=gitea,
+            confirmation_required=True,
+            routine_merger=FakeRoutineMerger(valid=False),
+            governance_manifest=self.routine_governance(),
+            repository_name="HSDB",
+        )
+        self.assertEqual(
+            controller.run(8).terminal_state,
+            TerminalState.AWAITING_PR_CONFIRMATION,
+        )
+        controller.confirm_pr(8, "change/8", "routine-auto")
+        result = controller.run(8)
+        self.assertEqual(result.terminal_state, TerminalState.BLOCKED_EXTERNAL)
+        self.assertIn("receipt", result.message)
 
     def test_complex_loop_implements_each_frontier_ticket_before_pr(self) -> None:
         gitea = FakeGitea(["success"])

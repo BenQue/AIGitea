@@ -11,6 +11,8 @@ import sys
 from typing import Mapping
 
 from aisoft_change_name import ChangeName, ChangeNameError
+from aisoft_host_access.contract import AccessContractError, load_access_contract
+from aisoft_host_access.runner import RoutineMergeRunner
 
 from .analysis import (
     AnalysisError,
@@ -28,7 +30,10 @@ from .documents import backfill_pr_url, publish_plan, publish_spec
 from .gitea import GiteaClient, GiteaError
 from .output import OutputError, extract_last_json_object
 from .provider import CommandProvider, ProviderError, ProviderResult
-from .state import GlobalLock, StateStore, TerminalState, default_state_root
+from .state import (
+    GlobalLock, StateError, StateStore, TerminalState,
+    confirm_pr_submission, default_state_root,
+)
 from .verifier import VerificationConfigError, Verifier
 
 
@@ -59,6 +64,13 @@ def main(argv: list[str] | None = None) -> int:
         default=Path(".gitea/loop-verification.json"),
         type=Path,
     )
+
+    confirm = subparsers.add_parser(
+        "confirm-pr", help="persist exact Issue/branch PR submission policy"
+    )
+    confirm.add_argument("issue", type=int)
+    confirm.add_argument("--branch", required=True)
+    confirm.add_argument("--policy", required=True, choices=("manual", "routine-auto"))
 
     validate_parser = subparsers.add_parser(
         "validate-provider", help="validate and normalize provider result JSON"
@@ -149,6 +161,8 @@ def main(argv: list[str] | None = None) -> int:
         publish.add_argument("--repo", required=True, type=Path)
 
     args = parser.parse_args(argv)
+    if args.command == "confirm-pr":
+        return _confirm_pr(args.issue, args.branch, args.policy)
     if args.command == "validate-provider":
         return _validate_provider(args.input, args.output)
     if args.command == "validate-analysis":
@@ -235,6 +249,16 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
             os.environ["GITEA_REPO"],
             os.environ["GITEA_TOKEN"],
         )
+        config_root = Path(__file__).parents[2] / "config"
+        governance_manifest = Path(
+            os.environ.get("AISOFT_GOVERNANCE_MANIFEST")
+            or config_root / "gitea-governance.json"
+        )
+        access_manifest = Path(
+            os.environ.get("AISOFT_ACCESS_MANIFEST")
+            or config_root / "host-access-broker.json"
+        )
+        access_contract = load_access_contract(access_manifest, governance_manifest)
         controller = Controller(
             repo=repo,
             gitea=gitea,
@@ -249,9 +273,22 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
             max_rounds=int(os.environ.get("LOOP_MAX_ROUNDS", "8")),
             max_same_root=int(os.environ.get("LOOP_MAX_SAME_ROOT", "3")),
             change_control=resolve_change_control(_required_env("GITEA_REPO")),
+            routine_merger=RoutineMergeRunner(
+                access_contract, _required_env("AISOFT_PROJECT_ID")
+            ),
+            confirmation_required=True,
+            governance_manifest=governance_manifest,
+            repository_name=os.environ["GITEA_REPO"],
         )
         result = controller.run(issue)
-    except (GiteaError, ProviderError, VerificationConfigError, ValueError) as exc:
+    except (
+        AccessContractError,
+        GiteaError,
+        ProviderError,
+        RuntimeError,
+        VerificationConfigError,
+        ValueError,
+    ) as exc:
         print(json.dumps({"terminal_state": "BLOCKED_EXTERNAL", "message": str(exc)}))
         return 2
     print(
@@ -264,7 +301,27 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
             ensure_ascii=False,
         )
     )
-    return 0 if result.terminal_state in {TerminalState.CONTINUE, TerminalState.READY_FOR_REVIEW} else 2
+    return 0 if result.terminal_state in {
+        TerminalState.CONTINUE,
+        TerminalState.AWAITING_PR_CONFIRMATION,
+        TerminalState.READY_FOR_REVIEW,
+        TerminalState.AUTO_MERGED,
+    } else 2
+
+
+def _confirm_pr(issue: int, branch: str, policy: str) -> int:
+    state_root = Path(os.environ.get("AISOFT_LOOP_STATE_DIR") or default_state_root())
+    try:
+        confirm_pr_submission(
+            StateStore(state_root), issue, branch, policy,
+        )
+    except StateError as exc:
+        print(json.dumps({"status": "REFUSED", "message": str(exc)}, ensure_ascii=False))
+        return 2
+    print(json.dumps({
+        "status": "CONFIRMED", "issue": issue, "branch": branch, "policy": policy,
+    }, ensure_ascii=False))
+    return 0
 
 
 def _validate_provider(input_path: Path, output_path: Path) -> int:

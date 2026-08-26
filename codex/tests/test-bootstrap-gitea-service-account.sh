@@ -32,14 +32,26 @@ cat >"$TMP/bin/gitea" <<'MOCK'
 set -euo pipefail
 printf '%s\n' "$*" >>"$MOCK_ROOT/gitea-argv.log"
 case "$*" in
+  *"admin user create"*"--username hsdb-routine-merger"*)
+    touch "$MOCK_ROOT/routine-account-present"
+    touch "$MOCK_ROOT/routine-must-change-password-present"
+    printf 'generated password: do-not-log-this-password\n'
+    ;;
   *"admin user create"*)
     touch "$MOCK_ROOT/account-present"
     touch "$MOCK_ROOT/must-change-password-present"
     printf 'generated password: do-not-log-this-password\n'
     ;;
+  *"admin user must-change-password --unset hsdb-routine-merger"*)
+    rm -f "$MOCK_ROOT/routine-must-change-password-present"
+    printf 'updated one user\n'
+    ;;
   *"admin user must-change-password --unset hsdb-agent"*)
     rm -f "$MOCK_ROOT/must-change-password-present"
     printf 'updated one user\n'
+    ;;
+  *"admin user generate-access-token"*"issue-208-routine-merge-agent"*)
+    printf 'sentinel-routine-token\n'
     ;;
   *"admin user generate-access-token"*)
     printf 'sentinel-generated-token\n'
@@ -53,14 +65,22 @@ cat >"$TMP/bin/curl" <<'MOCK'
 set -euo pipefail
 printf '%s\n' "$*" >>"$MOCK_ROOT/curl-argv.log"
 case "$*" in
+  *"/api/v1/users/hsdb-routine-merger"*)
+    if [[ -f "$MOCK_ROOT/routine-account-present" ]]; then printf 200; else printf 404; fi
+    ;;
   *"/api/v1/users/hsdb-agent"*)
     if [[ -f "$MOCK_ROOT/account-present" ]]; then printf 200; else printf 404; fi
     ;;
   *"/api/v1/user"*)
     read -r auth
-    [[ "$auth" == *sentinel-generated-token* ]]
-    [[ ! -e "$MOCK_ROOT/must-change-password-present" ]]
-    printf '{"login":"hsdb-agent","is_admin":false}\n'
+    if [[ "$auth" == *sentinel-routine-token* ]]; then
+      [[ ! -e "$MOCK_ROOT/routine-must-change-password-present" ]]
+      printf '{"login":"hsdb-routine-merger","is_admin":false}\n'
+    else
+      [[ "$auth" == *sentinel-generated-token* ]]
+      [[ ! -e "$MOCK_ROOT/must-change-password-present" ]]
+      printf '{"login":"hsdb-agent","is_admin":false}\n'
+    fi
     ;;
   *) exit 2 ;;
 esac
@@ -153,5 +173,41 @@ if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   exit 1
 fi
 grep -Fq 'not declared' "$TMP/negative.err"
+
+export AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-208
+routine_output="$TMP/credentials/projects/hsdb/routine-merge-agent.token"
+routine_result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  --manifest "$ROOT/codex/config/gitea-governance.json" \
+  --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+  --project-id hsdb \
+  --username hsdb-routine-merger \
+  --token-kind routine-merge-agent \
+  --credential-output "$routine_output")"
+[[ "$(jq -r '.result' <<<"$routine_result")" == created ]]
+[[ "$(cat "$routine_output")" == sentinel-routine-token ]]
+[[ "$(stat -c '%a' "$routine_output" 2>/dev/null || stat -f '%Lp' "$routine_output")" == 600 ]]
+[[ -f "$TMP/credentials/projects/hsdb/hsdb-routine-merger.account-created-by-issue-208" ]]
+[[ -f "$routine_output-created-by-issue-208" ]]
+grep -Fq 'issue-208-routine-merge-agent' "$TMP/gitea-argv.log"
+
+if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  --manifest "$ROOT/codex/config/gitea-governance.json" \
+  --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+  --project-id localwms \
+  --username hsdb-routine-merger \
+  --token-kind routine-merge-agent \
+  --credential-output "$TMP/credentials/projects/localwms/routine-merge-agent.token" \
+  >"$TMP/routine-binding-negative.out" 2>"$TMP/routine-binding-negative.err"; then
+  printf '%s\n' 'cross-project routine merger binding unexpectedly succeeded' >&2
+  exit 1
+fi
+grep -Fq 'identity does not match project binding' "$TMP/routine-binding-negative.err"
+
+if grep -Fq sentinel-routine-token "$TMP/gitea-argv.log" ||
+   grep -Fq sentinel-routine-token "$TMP/curl-argv.log" ||
+   grep -Fq sentinel-routine-token <<<"$routine_result"; then
+  printf '%s\n' 'routine merger secret leaked through argv or stdout' >&2
+  exit 1
+fi
 
 printf '%s\n' 'bootstrap Gitea service account tests passed'

@@ -23,7 +23,7 @@ from aisoft_host_access.broker import (
 from aisoft_host_access.cli import main as host_access_cli_main
 from aisoft_host_access.contract import AccessContractError, load_access_contract
 from aisoft_host_access.profiles import ProfileMigrator
-from aisoft_host_access.runner import GovernedHostRunner
+from aisoft_host_access.runner import GovernedHostRunner, RoutineMergeRunner
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -64,8 +64,11 @@ class HostAccessContractTests(unittest.TestCase):
             "SFMDigitalBoard": "sfm",
         })
         names = {item.name for item in self.contract.operations}
-        self.assertFalse(any("merge" in value or "shell" in value or "url" in value
-                             for value in names))
+        self.assertEqual(
+            {value for value in names if "merge" in value},
+            {"gitea.pull.merge.routine"},
+        )
+        self.assertFalse(any("shell" in value or "url" in value for value in names))
         with self.assertRaises(AccessContractError):
             self.contract.operation("git.push.main")
 
@@ -128,7 +131,8 @@ class HostAccessContractTests(unittest.TestCase):
                 self.assertEqual(operation.arguments, arguments)
         forbidden_words = ("merge", "url", "owner", "repository", "method", "path", "json")
         for operation in self.contract.operations:
-            self.assertFalse(any(word in operation.name for word in forbidden_words))
+            if operation.name != "gitea.pull.merge.routine":
+                self.assertFalse(any(word in operation.name for word in forbidden_words))
             self.assertTrue(set(operation.arguments).isdisjoint(forbidden_words))
         audit = self.contract.operation("host.access.audit")
         self.assertEqual(audit.identity_route, "manager-audit")
@@ -3015,6 +3019,45 @@ class GovernedHostRunnerTests(unittest.TestCase):
         self.assertFalse(hasattr(runner, "merge"))
         self.assertFalse(hasattr(runner, "execute"))
         self.assertFalse(hasattr(runner, "request"))
+
+    def test_routine_runner_exposes_only_fixed_typed_merge(self) -> None:
+        calls = []
+
+        def command_runner(argv, **kwargs):
+            calls.append((list(argv), kwargs))
+            payload = {
+                "operation": "gitea.pull.merge.routine",
+                "status": "AUTO_MERGED",
+                "pull_request": 208,
+                "head_sha": "a" * 40,
+            }
+            return subprocess.CompletedProcess(argv, 0, json.dumps(payload) + "\n", "")
+
+        runner = RoutineMergeRunner(
+            self.contract, "hsdb", command_runner=command_runner,
+        )
+        receipt = runner.merge(208, "a" * 40)
+        self.assertEqual(receipt["status"], "AUTO_MERGED")
+        self.assertEqual(calls[0][0], [
+            "/usr/local/libexec/aisoft/host-access-broker",
+            "--project", "hsdb",
+            "--operation", "gitea.pull.merge.routine",
+            "--number", "208",
+            "--sha", "a" * 40,
+        ])
+        for forbidden in ("execute", "request", "push_change", "issue_read"):
+            self.assertFalse(hasattr(runner, forbidden))
+
+    def test_routine_runner_refuses_non_receipt_and_has_no_fallback(self) -> None:
+        runner = RoutineMergeRunner(
+            self.contract,
+            "hsdb",
+            command_runner=lambda argv, **kwargs: subprocess.CompletedProcess(
+                argv, 0, '{"status":"PASS"}\n', ""
+            ),
+        )
+        with self.assertRaises(BrokerError):
+            runner.merge(208, "a" * 40)
 
 
 class ProfileMigrationTests(unittest.TestCase):

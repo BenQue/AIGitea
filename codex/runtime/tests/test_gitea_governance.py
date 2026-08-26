@@ -48,6 +48,11 @@ class FakeClient:
                 "login": repository.project_agent,
                 "is_admin": False,
             }
+            if repository.routine_merge_agent is not None:
+                self.users[repository.routine_merge_agent] = {
+                    "login": repository.routine_merge_agent,
+                    "is_admin": False,
+                }
             self.repos[full_name] = {
                 "full_name": full_name,
                 "private": repository.private,
@@ -248,6 +253,28 @@ class ContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "must not be a site admin"):
             load_contract(path)
 
+    def test_routine_merger_trust_model_is_explicit_and_strict(self):
+        policy = self.contract.raw["routine_merge_agent_policy"]
+        self.assertFalse(policy["native_merge_only_acl"])
+        self.assertEqual(policy["credential_custody"], "broker-exclusive")
+        self.assertEqual(
+            policy["ordinary_git_control"],
+            "credential-custody-typed-operation-manifest-final-head-zero-fallback",
+        )
+        for key, unsafe in (
+            ("native_merge_only_acl", True),
+            ("credential_custody", "caller-readable"),
+            ("ordinary_git_control", "native-acl"),
+        ):
+            with self.subTest(key=key):
+                path = self._write_mutation(
+                    lambda raw, key=key, unsafe=unsafe: raw[
+                        "routine_merge_agent_policy"
+                    ].update({key: unsafe})
+                )
+                with self.assertRaises(ContractError):
+                    load_contract(path)
+
     def test_token_file_requires_narrow_mode_and_raw_value(self):
         with tempfile.TemporaryDirectory() as directory:
             token_path = Path(directory) / "token"
@@ -265,6 +292,16 @@ class ReconciliationTests(unittest.TestCase):
         self.repository = self.contract.repository("rsdesign-new")
         self.client = FakeClient(self.contract)
 
+    def enabled_routine_contract(self):
+        raw = copy.deepcopy(self.contract.raw)
+        repository = next(item for item in raw["repositories"] if item["name"] == "HSDB")
+        repository["routine_auto_merge_enabled"] = True
+        handle = tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False)
+        json.dump(raw, handle)
+        handle.close()
+        self.addCleanup(lambda: Path(handle.name).unlink(missing_ok=True))
+        return load_contract(handle.name)
+
     def test_desired_protection_preserves_reviews_and_blocks_merge_bypass(self):
         current = desired_protection(self.contract, self.repository, None)
         current.update({
@@ -281,6 +318,47 @@ class ReconciliationTests(unittest.TestCase):
         self.assertTrue(desired["enable_merge_whitelist"])
         self.assertEqual(desired["merge_whitelist_usernames"], ["admin"])
         self.assertTrue(desired["block_admin_merge_override"])
+
+    def test_enabled_routine_merger_converges_exact_write_and_allowlist(self):
+        contract = self.enabled_routine_contract()
+        repository = contract.repository("HSDB")
+        client = FakeClient(contract)
+        full_name = contract.full_name(repository)
+        self.assertNotIn(repository.routine_merge_agent, client.collaborators[full_name])
+        snapshot = capture_snapshot(client, contract, repository)
+        plan = planned_actions(contract, repository, snapshot)
+        self.assertEqual(plan["planned_actions"], ["set-routine-merger-write"])
+        with tempfile.TemporaryDirectory() as directory:
+            result = apply_repository(client, contract, repository, Path(directory))
+        self.assertEqual(result["result"], "applied")
+        self.assertEqual(
+            client.collaborators[full_name][repository.routine_merge_agent], "write"
+        )
+        protection = client.protections[full_name]
+        self.assertFalse(protection["enable_push"])
+        self.assertFalse(protection["enable_force_push"])
+        self.assertEqual(
+            protection["merge_whitelist_usernames"],
+            [contract.human_merge_identity, repository.routine_merge_agent],
+        )
+
+    def test_enabled_routine_merger_identity_and_cross_project_drift_fail_closed(self):
+        contract = self.enabled_routine_contract()
+        repository = contract.repository("HSDB")
+        client = FakeClient(contract)
+        merger = repository.routine_merge_agent
+        assert merger is not None
+        client.users[merger]["is_admin"] = True
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ContractError, "site-admin"):
+                apply_repository(client, contract, repository, Path(directory))
+
+        client = FakeClient(contract)
+        other = contract.repository("LocalWMS")
+        client.collaborators[contract.full_name(other)][merger] = "write"
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ContractError, "cross-project"):
+                apply_repository(client, contract, repository, Path(directory))
 
     def test_plan_detects_visibility_agent_and_protection_drift(self):
         full_name = self.contract.full_name(self.repository)
