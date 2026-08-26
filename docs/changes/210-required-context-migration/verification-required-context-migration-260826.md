@@ -46,11 +46,12 @@ updated: 2026-08-26
 | `shellcheck codex/tools/gitea-governance.sh codex/tests/smoke.sh` | PASS | ShellCheck 可用；exit 0 |
 | `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo .` | PASS | change-documents 与 change-pr-url 均 PASS；gap=0 |
 | `bash codex/tests/smoke.sh` | PASS | 561 tests；exit 0；Codex platform static smoke checks passed |
+| PR #211 backfill head CI | PASS | head `cc62be5ee1e7848d3c1dbafb4d8edf5aed8a18d5`；唯一 context=`CI / verify (pull_request)`、state=success；Actions run #730 event=pull_request、42s、conclusion=success |
 | 最终 live protection read-back | GAP（预期，且证明未 mutation） | `main` direct/force push disabled、merge allowlist=`[admin]`、status check=false、contexts=[] |
 | live branch protection apply | NOT RUN | 本 Issue 明确禁止 |
 | runtime/skills 安装 | NOT RUN | 本 Issue 无安装范围 |
 | 部署 | NOT RUN | 本 Issue 无部署范围 |
-| final PR create/update | NOT RUN | 等待用户确认 |
+| final PR create/update | PASS | 唯一 PR #211 已创建；summary 已回填 URL/status 并以独立 commit push |
 | merge | NOT RUN | 永远由用户人工执行 |
 
 ## Acceptance criteria 结果
@@ -65,10 +66,10 @@ updated: 2026-08-26
 | AC-6 | PASS | PATCH、GET/read-back 失败测试；direct push 与 merge allowlist corruption 均被完整 read-back 捕获 |
 | AC-7 | PASS | exact snapshot rollback 正例；extra key、wrong repo/main branch、missing protection field 在 mutation 前拒绝 |
 | AC-8 | PASS | 28 定向、135 governance+host、561 smoke、compileall、bash -n 与 ShellCheck 均通过 |
-| AC-9 | PASS | 当前停在唯一 final PR 创建前；live apply、安装、部署与 merge 全部保持 NOT RUN |
+| AC-9 | PASS | 唯一 final PR #211 已创建并通过 backfill head CI；live apply、安装、部署与 merge 全部保持 NOT RUN |
 
 ## 遗留风险与未完成项
 
-- live apply、runtime/skills 安装、部署、final PR 与 merge 均未执行；live protection 最终只读值仍为 GAP。
+- live apply、runtime/skills 安装、部署与 merge 均未执行；live protection 最终只读值仍为 GAP。
 - 本地测试只能证明确定性约束；未来 live migration 仍需独立授权、真实 snapshot、apply 后完整
   read-back 与 rollback 演练证据，不能从本 Change 的 source tests 推定 live 已收敛。
