@@ -764,6 +764,8 @@ def select_frontier_ticket(
         for name in contract.required_docs
         if name == "02-plan.md" or name.startswith("plan-")
     ]
+    if not plan_names and contract.change_control == "development":
+        return "T01"
     if len(plan_names) != 1:
         raise ProviderError("complex contract must resolve exactly one plan document")
     plan_name = plan_names[0]
