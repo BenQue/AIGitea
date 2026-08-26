@@ -26,7 +26,7 @@ updated: 2026-08-26
 |---|---|---|---|
 | T01 | development complex 的 Controller 可执行路径与 production 对照测试 | - | completed |
 | T02 | 双工具合同统一、Codex 会话入口与三层只读 readiness 检查 | T01 | completed |
-| T03 | 唯一 PR、真实 CI context 读回与 evidence-gated manifest 更新 | T02 | in-progress |
+| T03 | 唯一 PR、真实 CI context 读回与 evidence-gated manifest 更新 | T02 | completed |
 
 ## Expected touch points
 
