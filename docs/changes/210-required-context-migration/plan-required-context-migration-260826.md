@@ -26,9 +26,9 @@ updated: 2026-08-26
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | strict manifest evidence schema 与普通 drift 负向合同测试 | - | pending |
-| T02 | migration plan/apply 的 snapshot-first、完整 read-back 与失败关闭 | T01 | pending |
-| T03 | exact snapshot rollback、CLI 边界、运维说明与全量验证 | T02 | pending |
+| T01 | strict manifest evidence schema 与普通 drift 负向合同测试 | - | completed |
+| T02 | migration plan/apply 的 snapshot-first、完整 read-back 与失败关闭 | T01 | completed |
+| T03 | exact snapshot rollback、CLI 边界、运维说明与全量验证 | T02 | completed |
 
 ## Expected touch points
 
