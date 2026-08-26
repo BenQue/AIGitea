@@ -26,9 +26,9 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: approved
+status: pr-open
 branch: change/210-required-context-migration
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/211
 created: 2026-08-26
 updated: 2026-08-26
 ---
