@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import copy
 import json
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -230,15 +232,43 @@ def capture_snapshot(
     }
 
 
-def _protection_blockers(
+def _required_context_migration_ready(
+    contract: GovernanceContract,
     repository: RepositoryContract,
     protection: dict[str, Any] | None,
+) -> bool:
+    if repository.required_context_migration is None or protection is None:
+        return False
+    if protection["enable_status_check"] is not False or protection["status_check_contexts"] != []:
+        return False
+    expected_start = desired_protection(contract, repository, protection)
+    expected_start["enable_status_check"] = False
+    expected_start["status_check_contexts"] = []
+    return protection == expected_start
+
+
+def _protection_blockers(
+    contract: GovernanceContract,
+    repository: RepositoryContract,
+    protection: dict[str, Any] | None,
+    required_context_migration: bool,
 ) -> list[str]:
     if protection is None:
         return []
     blockers: list[str] = []
-    if sorted(protection["status_check_contexts"]) != sorted(repository.status_check_contexts):
-        blockers.append("status-check-context-drift")
+    status_drift = (
+        protection["enable_status_check"] != bool(repository.status_check_contexts)
+        or sorted(protection["status_check_contexts"]) != sorted(repository.status_check_contexts)
+    )
+    if status_drift:
+        if required_context_migration and _required_context_migration_ready(
+            contract, repository, protection
+        ):
+            pass
+        elif required_context_migration:
+            blockers.append("required-context-migration-unsafe-start")
+        else:
+            blockers.append("status-check-context-drift")
     if protection["required_approvals"] != repository.required_approvals:
         blockers.append("required-approvals-drift")
     return blockers
@@ -248,9 +278,12 @@ def planned_actions(
     contract: GovernanceContract,
     repository: RepositoryContract,
     snapshot: dict[str, Any],
+    required_context_migration: bool = False,
 ) -> dict[str, Any]:
     actions: list[str] = []
-    blockers = _protection_blockers(repository, snapshot["protection"])
+    blockers = _protection_blockers(
+        contract, repository, snapshot["protection"], required_context_migration
+    )
     permissions = snapshot["collaborators"]
     if permissions[contract.platform_manager] != "admin":
         actions.append("set-platform-manager-admin")
@@ -261,10 +294,20 @@ def planned_actions(
     if not snapshot["repo"]["default_delete_branch_after_merge"]:
         actions.append("enable-delete-branch-after-merge")
     expected_protection = desired_protection(contract, repository, snapshot["protection"])
+    migration_ready = required_context_migration and _required_context_migration_ready(
+        contract, repository, snapshot["protection"]
+    )
+    if required_context_migration and repository.required_context_migration is None:
+        blockers.append("required-context-migration-not-declared")
+    if migration_ready and actions:
+        blockers.append("required-context-migration-repository-drift")
     if snapshot["protection"] is None:
         actions.append("create-main-protection")
     elif snapshot["protection"] != expected_protection:
-        actions.append("update-main-protection")
+        actions.append(
+            "migrate-required-status-context" if migration_ready
+            else "update-main-protection"
+        )
     return {
         "repository": contract.full_name(repository),
         "expected": {
@@ -319,11 +362,34 @@ def write_snapshot(path: Path, snapshot: dict[str, Any]) -> None:
             path.parent.mkdir(mode=0o700)
         except OSError as exc:
             raise ContractError(f"cannot create evidence directory: {exc}") from exc
-    if path.exists():
-        raise ContractError(f"refusing to overwrite evidence snapshot: {path}")
-    path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-                    encoding="utf-8")
-    path.chmod(0o600)
+    rendered = json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    temporary: Path | None = None
+    try:
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{path.name}.", dir=path.parent
+        )
+        temporary = Path(temporary_name)
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(rendered)
+            handle.flush()
+            os.fsync(handle.fileno())
+        # Atomic same-filesystem publication; link refuses to overwrite.
+        os.link(temporary, path)
+        temporary.unlink()
+        temporary = None
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    except FileExistsError as exc:
+        raise ContractError(f"refusing to overwrite evidence snapshot: {path}") from exc
+    except OSError as exc:
+        raise ContractError(f"cannot persist evidence snapshot: {exc}") from exc
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def bootstrap_repository_manager(
@@ -365,13 +431,17 @@ def apply_repository(
     contract: GovernanceContract,
     repository: RepositoryContract,
     evidence_dir: Path,
+    required_context_migration: bool = False,
 ) -> dict[str, Any]:
     verify_token_identity(client, contract.platform_manager, require_site_admin=False)
     verify_account(client, repository.project_agent, must_be_site_admin=False)
     if audit_cross_project_writes(client, contract):
         raise ContractError("cross-project project-agent write permission must be removed before apply")
     before = capture_snapshot(client, contract, repository)
-    plan = planned_actions(contract, repository, before)
+    plan = planned_actions(
+        contract, repository, before,
+        required_context_migration=required_context_migration,
+    )
     if before["collaborators"][contract.platform_manager] != "admin":
         raise ContractError("platform manager is not Admin on the exact target repository")
     if plan["blockers"]:
@@ -407,9 +477,20 @@ def apply_repository(
                 f"update main protection for {contract.full_name(repository)}",
             )
     after = capture_snapshot(client, contract, repository)
-    post_plan = planned_actions(contract, repository, after)
+    post_plan = planned_actions(
+        contract, repository, after,
+        required_context_migration=required_context_migration,
+    )
     if post_plan["blockers"] or post_plan["planned_actions"]:
         raise ContractError("repository policy read-back mismatch")
+    if "migrate-required-status-context" in plan["planned_actions"]:
+        expected_protection = desired_protection(contract, repository, before["protection"])
+        if (
+            after["repo"] != before["repo"]
+            or after["collaborators"] != before["collaborators"]
+            or after["protection"] != expected_protection
+        ):
+            raise ContractError("required context migration full read-back mismatch")
     write_snapshot(post_path, after)
     return {
         "repository": contract.full_name(repository),
@@ -485,6 +566,11 @@ def rollback_repository(
     snapshot: dict[str, Any],
 ) -> dict[str, Any]:
     verify_token_identity(client, contract.platform_manager, require_site_admin=False)
+    expected_top = {
+        "snapshot_version", "captured_at", "repository", "repo", "collaborators", "protection"
+    }
+    if not isinstance(snapshot, dict) or set(snapshot) != expected_top:
+        raise ContractError("rollback snapshot keys mismatch")
     if snapshot.get("snapshot_version") != "gitea-governance-snapshot/v1":
         raise ContractError("unsupported snapshot version")
     if snapshot.get("repository") != contract.full_name(repository):
@@ -492,10 +578,33 @@ def rollback_repository(
     path = _repo_path(contract, repository)
     repo = snapshot.get("repo")
     collaborators = snapshot.get("collaborators")
-    if not isinstance(repo, dict) or not isinstance(collaborators, dict):
+    if (
+        not isinstance(snapshot.get("captured_at"), str)
+        or not snapshot["captured_at"]
+        or not isinstance(repo, dict)
+        or set(repo) != {"private", "default_branch", "default_delete_branch_after_merge"}
+        or not isinstance(repo.get("private"), bool)
+        or repo.get("default_branch") != contract.default_branch
+        or not isinstance(repo.get("default_delete_branch_after_merge"), bool)
+        or not isinstance(collaborators, dict)
+        or set(collaborators) != {
+            contract.platform_manager, repository.project_agent, contract.shared_bot
+        }
+    ):
         raise ContractError("snapshot is incomplete")
     if collaborators.get(contract.platform_manager) != "admin":
         raise ContractError("rollback snapshot must retain platform manager Admin permission")
+    if any(value not in {"missing", "read", "write", "admin"}
+           for value in collaborators.values()):
+        raise ContractError("snapshot contains unsupported collaborator permission")
+    previous_protection = snapshot.get("protection")
+    if previous_protection is not None:
+        if not isinstance(previous_protection, dict) or set(previous_protection) != set(PROTECTION_FIELDS):
+            raise ContractError("snapshot protection keys mismatch")
+        if previous_protection != normalize_protection(previous_protection):
+            raise ContractError("snapshot protection is not normalized")
+        if previous_protection["rule_name"] != contract.default_branch:
+            raise ContractError("snapshot protection branch does not match exact target")
     client.patch(
         path,
         {
@@ -507,7 +616,6 @@ def rollback_repository(
         f"restore repository settings for {contract.full_name(repository)}",
     )
     current = capture_snapshot(client, contract, repository)
-    previous_protection = snapshot.get("protection")
     protection_path = f"{path}/branch_protections/{quote(contract.default_branch, safe='')}"
     if previous_protection is None and current["protection"] is not None:
         client.delete(protection_path,

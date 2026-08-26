@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from aisoft_gitea_governance.client import ApiError
-from aisoft_gitea_governance.cli import _read_token
+from aisoft_gitea_governance.cli import _parser, _read_token
 from aisoft_gitea_governance.contract import ContractError, load_contract
 from aisoft_gitea_governance.reconcile import (
     apply_repository,
@@ -38,6 +38,10 @@ class FakeClient:
         self.repos: dict[str, dict[str, Any]] = {}
         self.collaborators: dict[str, dict[str, str]] = {}
         self.protections: dict[str, dict[str, Any] | None] = {}
+        self.patch_hook = None
+        self.patch_error = False
+        self.protection_corruption = None
+        self.fail_protection_read = False
         for repository in contract.repositories:
             full_name = contract.full_name(repository)
             self.users[repository.project_agent] = {
@@ -79,6 +83,8 @@ class FakeClient:
                 raise ApiError(operation, 404)
             return {"permission": self.collaborators[full_name][username]}
         if "/branch_protections/" in path:
+            if self.fail_protection_read:
+                raise ApiError(operation, 503)
             value = self.protections[full_name]
             if value is None:
                 raise ApiError(operation, 404)
@@ -92,10 +98,16 @@ class FakeClient:
         self.collaborators[full_name][username] = payload["permission"]
 
     def patch(self, path: str, payload: dict[str, Any], operation: str):
+        if self.patch_hook:
+            self.patch_hook(path, payload)
+        if self.patch_error:
+            raise ApiError(operation, 500)
         self.calls.append(("PATCH", path, copy.deepcopy(payload)))
         full_name = self._full_name(path)
         if "/branch_protections/" in path:
             self.protections[full_name] = copy.deepcopy(payload)
+            if self.protection_corruption:
+                self.protections[full_name].update(self.protection_corruption)
         else:
             self.repos[full_name].update(payload)
 
@@ -151,6 +163,64 @@ class ContractTests(unittest.TestCase):
             repository.status_check_contexts,
             ("CI / verify (pull_request)",),
         )
+        evidence = repository.required_context_migration
+        self.assertIsNotNone(evidence)
+        self.assertEqual(evidence.repository, "admin/aisoft-platform")
+        self.assertEqual(evidence.context, "CI / verify (pull_request)")
+        self.assertEqual(evidence.pull_request, 209)
+        self.assertEqual(evidence.head_sha, "de85f1d581a4bba524e057e087a95305ff510458")
+        self.assertEqual(evidence.actions_run, 717)
+        self.assertEqual(evidence.commit_status_id, 3)
+        self.assertEqual(evidence.event, "pull_request")
+        self.assertEqual(evidence.state, "success")
+
+    def test_required_context_migration_evidence_is_strict(self):
+        mutations = {
+            "extra key": lambda value: value.update({"bypass": True}),
+            "wrong repository": lambda value: value.update({"repository": "admin/other"}),
+            "wrong context": lambda value: value.update({"context": "CI / attacker"}),
+            "non PR event": lambda value: value.update({"event": "push"}),
+            "non success": lambda value: value.update({"state": "pending"}),
+            "short SHA": lambda value: value.update({"head_sha": "de85f1d"}),
+            "invalid PR": lambda value: value.update({"pull_request": 0}),
+            "invalid Actions run": lambda value: value.update({"actions_run": 0}),
+            "invalid status id": lambda value: value.update({"commit_status_id": False}),
+        }
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                path = self._write_mutation(
+                    lambda raw, mutate=mutate: mutate(
+                        raw["repositories"][0]["required_context_migration"]
+                    )
+                )
+                with self.assertRaises(ContractError):
+                    load_contract(path)
+
+    def test_required_context_migration_rejects_multiple_target_contexts(self):
+        path = self._write_mutation(
+            lambda raw: raw["repositories"][0]["status_check_contexts"].append("CI / other")
+        )
+        with self.assertRaisesRegex(ContractError, "exactly one"):
+            load_contract(path)
+
+    def test_required_context_migration_is_optional_for_other_repositories(self):
+        self.assertIsNone(self.contract.repository("HSDB").required_context_migration)
+
+    def test_cli_exposes_boolean_migration_selector_only_on_check_and_apply(self):
+        parser = _parser()
+        checked = parser.parse_args([
+            "--manifest", str(MANIFEST), "check", "--token-file", "token",
+            "--repository", "aisoft-platform", "--required-context-migration",
+        ])
+        applied = parser.parse_args([
+            "--manifest", str(MANIFEST), "apply", "--token-file", "token",
+            "--repository", "aisoft-platform", "--issue", "35", "--merged-sha",
+            "a" * 40, "--platform-root", ".", "--evidence-dir", "evidence",
+            "--required-context-migration",
+        ])
+        self.assertTrue(checked.required_context_migration)
+        self.assertTrue(applied.required_context_migration)
+        self.assertFalse(hasattr(applied, "context"))
 
     def test_rejects_implicit_public_repository(self):
         path = self._write_mutation(
@@ -234,6 +304,156 @@ class ReconciliationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ContractError, "protection drift"):
                 apply_repository(self.client, self.contract, self.repository, Path(directory))
+
+    def _migration_start(self):
+        repository = self.contract.repository("aisoft-platform")
+        full_name = self.contract.full_name(repository)
+        self.client.protections[full_name]["enable_status_check"] = False
+        self.client.protections[full_name]["status_check_contexts"] = []
+        return repository, full_name
+
+    def test_required_context_migration_is_explicit_and_default_apply_still_blocks(self):
+        repository, _ = self._migration_start()
+        snapshot = capture_snapshot(self.client, self.contract, repository)
+        default = planned_actions(self.contract, repository, snapshot)
+        migrated = planned_actions(
+            self.contract, repository, snapshot, required_context_migration=True
+        )
+        self.assertEqual(default["blockers"], ["status-check-context-drift"])
+        self.assertIn("update-main-protection", default["planned_actions"])
+        self.assertEqual(migrated["blockers"], [])
+        self.assertIn("migrate-required-status-context", migrated["planned_actions"])
+        self.assertNotIn("update-main-protection", migrated["planned_actions"])
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ContractError, "protection drift"):
+                apply_repository(self.client, self.contract, repository, Path(directory))
+
+    def test_required_context_migration_writes_snapshot_before_patch_and_reads_back(self):
+        repository, _ = self._migration_start()
+        with tempfile.TemporaryDirectory() as directory:
+            evidence = Path(directory)
+            self.client.patch_hook = lambda path, payload: self.assertTrue(
+                (evidence / "aisoft-platform-pre.json").is_file()
+            ) if "/branch_protections/" in path else None
+            result = apply_repository(
+                self.client, self.contract, repository, evidence,
+                required_context_migration=True,
+            )
+            self.assertEqual(result["result"], "applied")
+            self.assertTrue((evidence / "aisoft-platform-post.json").is_file())
+
+    def test_required_context_migration_rejects_wrong_context_and_other_drift(self):
+        repository, full_name = self._migration_start()
+        for field, value in (
+            ("status_check_contexts", ["CI / wrong"]),
+            ("enable_merge_whitelist", False),
+        ):
+            with self.subTest(field=field):
+                self._migration_start()
+                self.client.protections[full_name][field] = value
+                snapshot = capture_snapshot(self.client, self.contract, repository)
+                plan = planned_actions(
+                    self.contract, repository, snapshot, required_context_migration=True
+                )
+                self.assertTrue(plan["blockers"])
+
+    def test_required_context_migration_snapshot_failure_prevents_patch(self):
+        repository, _ = self._migration_start()
+        with tempfile.TemporaryDirectory() as directory:
+            evidence = Path(directory)
+            evidence.chmod(0o755)
+            with self.assertRaisesRegex(ContractError, "evidence directory mode"):
+                apply_repository(
+                    self.client, self.contract, repository, evidence,
+                    required_context_migration=True,
+                )
+        self.assertFalse(any(method == "PATCH" for method, _, _ in self.client.calls))
+
+    def test_required_context_migration_patch_failure_keeps_pre_snapshot(self):
+        repository, _ = self._migration_start()
+        self.client.patch_error = True
+        with tempfile.TemporaryDirectory() as directory:
+            evidence = Path(directory)
+            with self.assertRaises(ApiError):
+                apply_repository(
+                    self.client, self.contract, repository, evidence,
+                    required_context_migration=True,
+                )
+            self.assertTrue((evidence / "aisoft-platform-pre.json").is_file())
+            self.assertFalse((evidence / "aisoft-platform-post.json").exists())
+
+    def test_required_context_migration_detects_full_readback_drift(self):
+        corruptions = (
+            {"enable_push": True},
+            {"merge_whitelist_usernames": ["admin", "aisoft-platform-agent"]},
+        )
+        for corruption in corruptions:
+            with self.subTest(corruption=corruption):
+                self.client = FakeClient(self.contract)
+                repository, _ = self._migration_start()
+                self.client.protection_corruption = corruption
+                with tempfile.TemporaryDirectory() as directory:
+                    with self.assertRaisesRegex(ContractError, "read-back mismatch"):
+                        apply_repository(
+                            self.client, self.contract, repository, Path(directory),
+                            required_context_migration=True,
+                        )
+
+    def test_required_context_migration_readback_failure_keeps_pre_snapshot(self):
+        repository, _ = self._migration_start()
+        self.client.patch_hook = lambda path, payload: setattr(
+            self.client, "fail_protection_read", True
+        ) if "/branch_protections/" in path else None
+        with tempfile.TemporaryDirectory() as directory:
+            evidence = Path(directory)
+            with self.assertRaises(ApiError):
+                apply_repository(
+                    self.client, self.contract, repository, evidence,
+                    required_context_migration=True,
+                )
+            self.assertTrue((evidence / "aisoft-platform-pre.json").is_file())
+            self.assertFalse((evidence / "aisoft-platform-post.json").exists())
+
+    def test_required_context_migration_is_not_available_to_undeclared_repository(self):
+        repository = self.contract.repository("HSDB")
+        snapshot = capture_snapshot(self.client, self.contract, repository)
+        plan = planned_actions(
+            self.contract, repository, snapshot, required_context_migration=True
+        )
+        self.assertEqual(plan["blockers"], ["required-context-migration-not-declared"])
+
+    def test_required_context_migration_rollback_restores_exact_snapshot(self):
+        repository, _ = self._migration_start()
+        before = capture_snapshot(self.client, self.contract, repository)
+        with tempfile.TemporaryDirectory() as directory:
+            apply_repository(
+                self.client, self.contract, repository, Path(directory),
+                required_context_migration=True,
+            )
+        result = rollback_repository(self.client, self.contract, repository, before)
+        self.assertEqual(result["result"], "rollback-applied")
+        self.assertEqual(
+            capture_snapshot(self.client, self.contract, repository)["protection"],
+            before["protection"],
+        )
+
+    def test_rollback_rejects_snapshot_shape_and_branch_before_mutation(self):
+        repository, _ = self._migration_start()
+        baseline = capture_snapshot(self.client, self.contract, repository)
+        mutations = (
+            lambda value: value.update({"unexpected": True}),
+            lambda value: value.update({"repository": "admin/other"}),
+            lambda value: value["repo"].update({"default_branch": "develop"}),
+            lambda value: value["protection"].pop("enable_push"),
+        )
+        for mutate in mutations:
+            with self.subTest(mutate=mutate):
+                snapshot = copy.deepcopy(baseline)
+                mutate(snapshot)
+                call_count = len(self.client.calls)
+                with self.assertRaises(ContractError):
+                    rollback_repository(self.client, self.contract, repository, snapshot)
+                self.assertEqual(len(self.client.calls), call_count + 1)  # identity read only
 
     def test_apply_converges_and_second_run_is_noop(self):
         full_name = self.contract.full_name(self.repository)

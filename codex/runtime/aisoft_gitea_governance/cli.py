@@ -49,6 +49,7 @@ def _parser() -> argparse.ArgumentParser:
     check = subparsers.add_parser("check")
     check.add_argument("--token-file", required=True)
     check.add_argument("--repository")
+    check.add_argument("--required-context-migration", action="store_true")
 
     for command in ("bootstrap-manager", "apply", "rollback", "retire-shared-bot"):
         subparser = subparsers.add_parser(command)
@@ -59,6 +60,8 @@ def _parser() -> argparse.ArgumentParser:
         subparser.add_argument("--platform-root", required=True)
         if command in {"bootstrap-manager", "apply"}:
             subparser.add_argument("--evidence-dir", required=True)
+        if command == "apply":
+            subparser.add_argument("--required-context-migration", action="store_true")
         if command == "rollback":
             subparser.add_argument("--snapshot", required=True)
         if command == "retire-shared-bot":
@@ -134,6 +137,7 @@ def _check(
     client: GiteaClient,
     contract: GovernanceContract,
     repository_name: str | None,
+    required_context_migration: bool = False,
 ) -> int:
     verify_token_identity(client, contract.platform_manager, require_site_admin=False)
     repositories = (
@@ -145,7 +149,10 @@ def _check(
     drift = False
     for repository in repositories:
         snapshot = capture_snapshot(client, contract, repository)
-        plan = planned_actions(contract, repository, snapshot)
+        plan = planned_actions(
+            contract, repository, snapshot,
+            required_context_migration=required_context_migration,
+        )
         results.append(plan)
         drift = drift or bool(plan["planned_actions"] or plan["blockers"])
     # Once accounts exist, they must never be site administrators. A missing
@@ -223,7 +230,10 @@ def main(argv: list[str] | None = None) -> int:
 
         client = _client(contract, arguments.token_file)
         if arguments.command == "check":
-            return _check(client, contract, arguments.repository)
+            return _check(
+                client, contract, arguments.repository,
+                required_context_migration=arguments.required_context_migration,
+            )
 
         _verify_merged_contract(
             contract,
@@ -241,7 +251,10 @@ def main(argv: list[str] | None = None) -> int:
             ))
             return 0
         if arguments.command == "apply":
-            _json(apply_repository(client, contract, repository, Path(arguments.evidence_dir)))
+            _json(apply_repository(
+                client, contract, repository, Path(arguments.evidence_dir),
+                required_context_migration=arguments.required_context_migration,
+            ))
             return 0
         if arguments.command == "rollback":
             snapshot_path = Path(arguments.snapshot)

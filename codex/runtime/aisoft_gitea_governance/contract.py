@@ -78,6 +78,18 @@ def _exact_string_list(value: Any, expected: list[str], context: str) -> None:
 
 
 @dataclass(frozen=True)
+class RequiredContextMigration:
+    repository: str
+    context: str
+    pull_request: int
+    head_sha: str
+    actions_run: int
+    commit_status_id: int
+    event: str
+    state: str
+
+
+@dataclass(frozen=True)
 class RepositoryContract:
     name: str
     classification: str
@@ -93,6 +105,7 @@ class RepositoryContract:
     deployment_lifecycle: str = DEFAULT_DEPLOYMENT_LIFECYCLE
     # 是否持有 change 文档模板的 vendored 副本，见 DEFAULT_VENDORS_CHANGE_TEMPLATES。
     vendors_change_templates: bool = DEFAULT_VENDORS_CHANGE_TEMPLATES
+    required_context_migration: RequiredContextMigration | None = None
 
     @property
     def private(self) -> bool:
@@ -305,7 +318,7 @@ def load_contract(path: str | Path) -> GovernanceContract:
                            "status_check_contexts", "required_approvals"},
                     f"repositories[{index}]",
                     optional={"change_control", "deployment_lifecycle",
-                              "vendors_change_templates"})
+                              "vendors_change_templates", "required_context_migration"})
         name = _identifier(item["name"], f"repositories[{index}].name")
         _require(name not in names, f"duplicate repository name: {name}")
         names.add(name)
@@ -328,6 +341,51 @@ def load_contract(path: str | Path) -> GovernanceContract:
         _require(isinstance(contexts, list) and all(isinstance(value, str) and value for value in contexts),
                  f"status_check_contexts must be non-empty strings for {name}")
         _require(len(contexts) == len(set(contexts)), f"duplicate status context for {name}")
+        migration_value = item.get("required_context_migration")
+        migration = None
+        if migration_value is not None:
+            _require(isinstance(migration_value, dict),
+                     f"required_context_migration must be an object for {name}")
+            _exact_keys(
+                migration_value,
+                {
+                    "repository", "context", "pull_request", "head_sha",
+                    "actions_run", "commit_status_id", "event", "state",
+                },
+                f"repositories[{index}].required_context_migration",
+            )
+            _require(len(contexts) == 1,
+                     f"required context migration requires exactly one target context for {name}")
+            full_name = f"{owner}/{name}"
+            _require(migration_value["repository"] == full_name,
+                     f"required context migration repository must equal {full_name}")
+            _require(migration_value["context"] == contexts[0],
+                     f"required context migration context must equal the canonical context for {name}")
+            pull_request = migration_value["pull_request"]
+            _require(isinstance(pull_request, int) and not isinstance(pull_request, bool)
+                     and pull_request > 0,
+                     f"required context migration pull_request must be positive for {name}")
+            head_sha = migration_value["head_sha"]
+            _require(isinstance(head_sha, str) and bool(SHA_RE.fullmatch(head_sha)),
+                     f"required context migration head_sha must be a full lowercase SHA for {name}")
+            for evidence_number in ("actions_run", "commit_status_id"):
+                value = migration_value[evidence_number]
+                _require(isinstance(value, int) and not isinstance(value, bool) and value > 0,
+                         f"required context migration {evidence_number} must be positive for {name}")
+            _require(migration_value["event"] == "pull_request",
+                     f"required context migration event must be pull_request for {name}")
+            _require(migration_value["state"] == "success",
+                     f"required context migration state must be success for {name}")
+            migration = RequiredContextMigration(
+                repository=full_name,
+                context=contexts[0],
+                pull_request=pull_request,
+                head_sha=head_sha,
+                actions_run=migration_value["actions_run"],
+                commit_status_id=migration_value["commit_status_id"],
+                event="pull_request",
+                state="success",
+            )
         approvals = item["required_approvals"]
         _require(isinstance(approvals, int) and not isinstance(approvals, bool) and approvals >= 0,
                  f"required_approvals must be a non-negative integer for {name}")
@@ -353,6 +411,7 @@ def load_contract(path: str | Path) -> GovernanceContract:
             change_control=change_control,
             deployment_lifecycle=deployment_lifecycle,
             vendors_change_templates=vendors_templates,
+            required_context_migration=migration,
         ))
 
     _require(repository_policy["public_allowlist"] == public_full_names,
