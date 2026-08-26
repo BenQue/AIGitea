@@ -145,6 +145,13 @@ class ContractTests(unittest.TestCase):
             "SFMDigitalBoard", "WMPDA",
         })
 
+    def test_platform_repository_requires_its_observed_pr_context(self):
+        repository = self.contract.repository("aisoft-platform")
+        self.assertEqual(
+            repository.status_check_contexts,
+            ("CI / verify (pull_request)",),
+        )
+
     def test_rejects_implicit_public_repository(self):
         path = self._write_mutation(
             lambda raw: raw["repositories"][1].update({

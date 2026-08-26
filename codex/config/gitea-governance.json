@@ -76,7 +76,9 @@
       "vendors_change_templates": false,
       "visibility": "public",
       "project_agent": "aisoft-platform-agent",
-      "status_check_contexts": [],
+      "status_check_contexts": [
+        "CI / verify (pull_request)"
+      ],
       "required_approvals": 0
     },
     {

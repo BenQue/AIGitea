@@ -1828,8 +1828,8 @@ class HostAccessBrokerTests(unittest.TestCase):
             "enable_force_push": False,
             "enable_merge_whitelist": True,
             "merge_whitelist_usernames": ["admin"],
-            "enable_status_check": False,
-            "status_check_contexts": [],
+            "enable_status_check": True,
+            "status_check_contexts": ["CI / verify (pull_request)"],
             "required_approvals": 0,
             "block_admin_merge_override": True,
         }
@@ -2206,8 +2206,8 @@ class HostAccessBrokerTests(unittest.TestCase):
                 "enable_force_push": False,
                 "enable_merge_whitelist": True,
                 "merge_whitelist_usernames": ["admin"],
-                "enable_status_check": False,
-                "status_check_contexts": [],
+                "enable_status_check": True,
+                "status_check_contexts": ["CI / verify (pull_request)"],
                 "required_approvals": 0,
                 "block_admin_merge_override": True,
             }

@@ -38,8 +38,13 @@ updated: 2026-08-26
 | `bash codex/tests/test-codex-drift.sh` | PASS | Codex source/installed byte drift 正反例通过 |
 | `bash codex/tests/test-platform-readiness.sh` | PASS | source/installed/live 三层 PASS/GAP/BLOCKED 投影通过 |
 | `shellcheck`（本次新增/修改 shell） | PASS | exit 0 |
-| `bash codex/tests/smoke.sh` | PASS | 546 tests；exit 0 |
+| `bash codex/tests/smoke.sh`（T01/T02） | PASS | 546 tests；exit 0 |
 | 真实 `aisoft-platform-readiness.sh` | GAP（预期） | source PASS；installed Codex/Claude DRIFT；live repo PASS；live protection GAP |
+| PR #209 初始 head `ab3fccd` Actions | PASS | run #715，event=pull_request，job=verify，41s，conclusion=success |
+| PR #209 初始 commit status | PASS | 唯一 context `CI / verify (pull_request)`，state=success |
+| `python3 -m unittest codex.runtime.tests.test_gitea_governance` | PASS | 14 tests；真实 context 已钉入 manifest 回归 |
+| manifest 更新后的首次 `bash codex/tests/smoke.sh` | FAIL | 547 tests 中 2 项 host-access protection 夹具仍声明空 context；未削弱校验 |
+| 修复夹具后 `bash codex/tests/smoke.sh` | PASS | 547 tests；exit 0 |
 | skills/runtime 安装 | NOT RUN | 本 Issue 禁止自动安装 |
 | live branch protection apply | NOT RUN | 需要合并后独立授权 |
 | 部署 | NOT RUN | 本 Issue 无部署 |
@@ -49,12 +54,12 @@ updated: 2026-08-26
 | AC | 结论 | 证据 |
 |---|---|---|
 | AC-1 | PASS | development 无 plan 返回 `T01`；production 对照拒绝 |
-| AC-2 | PASS | 63 项 contract/controller 定向测试及 546 项全量测试 |
+| AC-2 | PASS | 63 项 contract/controller 定向测试及最终 547 项全量测试 |
 | AC-3 | PASS | 双工具入口、03/04/08 与 analyzer/spec/loop adapter 已统一；全量 smoke 通过 |
 | AC-4 | PASS | 新增 Codex 原生 `issue-session-flow`，列出默认自动推进区间与硬升级条件 |
 | AC-5 | PASS | 两个新 shell test 通过；真实检查如实投影 DRIFT/GAP，未执行 mutation |
-| AC-6 | 待填写 | 待填写 |
-| AC-7 | PASS | 546 项 smoke tests 与 ShellCheck 均通过 |
+| AC-6 | 进行中 | 初始 PR head 已真实读回成功 context；manifest 已 evidence-gated 更新，等待最终 head CI |
+| AC-7 | PASS | 最终 547 项 smoke tests 与 ShellCheck 均通过 |
 | AC-8 | 待填写 | PR diff/唯一性尚待 T03；安装、live apply、部署保持 NOT RUN |
 
 ## 遗留风险与未完成项

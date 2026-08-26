@@ -80,6 +80,8 @@ live 三层状态可以只读辨认。
 - `codex/tests/test-platform-readiness.sh`（新增）
 - `codex/tests/smoke.sh`
 - `codex/config/gitea-governance.json`（仅 AC-6 证据成立后）
+- `codex/runtime/tests/test_gitea_governance.py`（钉住 AC-6 的真实 context）
+- `codex/runtime/tests/test_host_access.py`（同步跨层 protection 夹具）
 - 本 Issue 映射的 summary/spec/plan/verification。
 
 ## 风险与回滚约束
