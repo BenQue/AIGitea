@@ -26,9 +26,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 207
-status: approved
+status: pr-open
 branch: change/208-routine-pr-auto-merge
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/212
 created: 2026-08-26
 updated: 2026-08-26
 ---
