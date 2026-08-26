@@ -97,5 +97,8 @@ Pipe the JSON to a narrow `jq` projection. Do not print environment files, crede
 
 `gitea-readonly.sh` only performs GET. Issue/comment/label/branch/PR 使用 exact project agent；跨项目
 settings/permissions/protection mutation 只能由已合并 Issue #35 的 purpose-built governance 命令一次
-处理一个 manifest repository。merge 永远保留给人工身份。Never broaden a bot's ACL merely to make
-inspection convenient.
+处理一个 manifest repository。manual merge 保留给 human identity；routine merge 只允许 broker 的
+`gitea.pull.merge.routine` typed operation，调用方只传 PR number 与 exact 40-character lowercase head SHA。
+owner/repo/base/identity/method/delete-branch/force/schedule/deploy policy 全由 strict manifest 派生；普通
+project API、Git credential、manager PAT 或 admin fallback 都不得代替 routine merger。Never broaden a
+bot's ACL merely to make inspection convenient.

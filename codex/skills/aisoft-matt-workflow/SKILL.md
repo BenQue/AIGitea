@@ -32,8 +32,11 @@ This skill adapts the complete vendored Matt skills to AISoftPlatform. It does n
    the mapped `plan` file. Development complex uses synthetic `T01`. Default mode stays inside the parent Issue.
 5. After contract validation sets `approved`, the Controller dispatches `$implement #N Txx` for one frontier ticket.
    The Agent owns tests, review and one or more atomic local commits; the Controller owns remote mutation.
-6. Controller verification, fast-forward push, one final PR with exact readable head, mapped summary and one `Closes #N` line, then required CI follow. Stop at the human merge
-   gate. Deployment is independent.
+6. Controller verification first produces the policy-specific final-PR candidate handoff and enters
+   `AWAITING_PR_CONFIRMATION`. Only after explicit confirmation may it fast-forward push and create the one final PR
+   with exact readable head, mapped summary and one `Closes #N` line, then follow required CI. Manual work ends at
+   `READY_FOR_REVIEW`; eligible routine-small work may reach `AUTO_MERGED` only through the independent merger and
+   final-head hard gates. Deployment is independent.
 
 ## Stable adapter interfaces
 
@@ -45,4 +48,5 @@ This skill adapts the complete vendored Matt skills to AISoftPlatform. It does n
 - Ticket execution: include the exact Issue and ticket in the explicit `$implement` prompt; include spec/plan paths
   only when the route requires them.
 
-Never merge, deploy, rewrite history, force-push, or silently switch to a different tracker or repository.
+The Matt skill, provider and project agent never merge or receive the routine merger credential. Never deploy,
+rewrite history, force-push, or silently switch to a different tracker or repository.

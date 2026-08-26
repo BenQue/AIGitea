@@ -33,8 +33,11 @@ Issue #35 发布后，按顺序执行：
    PR、main push denied、main merge denied。只有 exact JSON evidence 全 PASS 后才允许
    `retire-shared-bot`。
 
-所有 `main` 均禁止 direct/force push；merge allowlist 只能是人工 `admin`。platform manager、
-project agent 与 legacy `ci-bot` 不得进入 push/force-push/merge allowlist。任一 credential、API、
+所有 `main` 均禁止 direct/force push。未启用 routine auto 的 repository merge allowlist 只能是人工
+`admin`；只有 `classification=internal-application`、canonical `status_check_contexts` 非空且 manifest
+显式 opt-in 的 repository 才能增加该仓独立 routine merger。`aisoft-platform`、public-platform 与
+contexts 为空的仓库固定 disabled。platform manager、project agent/provider 与 legacy `ci-bot` 不得进入
+routine merge 路径。任一 credential、API、
 permission、visibility、protection、cross-project 或 read-back 失败均终止为 `BLOCKED_EXTERNAL`。
 
 Issue #61/#70 发布后，已在 host-access manifest 中的项目从 fixed broker 访问 host；Mac checkout 只用
@@ -276,6 +279,10 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 - 先通过 §1.1 manifest/project-agent gate；platform manager 为 exact-repo Admin，项目 agent 为
   exact-repo Write，二者均不给 merge。§1.2 `ci-bot` 只服务尚未迁移的已有 profile。
 - 保护 `main`，禁止直接 push，要求准确的 `CI / test (pull_request)` context。
+- routine merger 必须是独立 non-site-admin、非 human/manager/project-agent/shared-bot 的 per-project
+  identity；只对 exact repository 有最小 Write/merge 能力，禁止 ordinary Git 与 cross-project write。
+  bootstrap、credential provision、protection allowlist apply 与 read-back 只能在 source 合并并取得独立
+  live 授权后逐仓执行；Issue #208 自身不执行这些步骤。
 - 标签由平台 provision，不手工创建（§1.1 步骤 5，与 `host.access.audit` / `mac.git.bind` /
   `host.onboarding.check` 同级）：
 
@@ -318,8 +325,10 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 - 第一阶段只运行一个 active Issue。
 - 外层 verifier 独立运行项目命令，不信任模型自述。
 - 同一根因三次失败、合同冲突、范围扩张或高风险决策时升级给人。
-- 最终状态只允许 `READY_FOR_REVIEW`、`NEEDS_HUMAN_DECISION`、`BLOCKED_EXTERNAL`、`FAILED_LIMIT`。
-- 只有人可以合并最终 PR。
+- 状态包含提交前 `AWAITING_PR_CONFIRMATION`、manual `READY_FOR_REVIEW`、routine receipt
+  `AUTO_MERGED`，以及 `NEEDS_HUMAN_DECISION`、`BLOCKED_EXTERNAL`、`FAILED_LIMIT`。
+- manual PR 只有人可以合并；eligible routine-small 只有在第一确认点明确授权并通过 final-head 全硬门
+  后，才由独立 routine merger 合并。provider/project agent 不持有 merger credential。
 - 使用 `aisoft-agent@<profile>.service/.timer` 作为项目级 systemd 实例；安装模板不等于启用。必须显式执行 `systemctl --user enable --now aisoft-agent@<profile>.timer`，且只有该项目验收通过后才允许这样做。
 
 ## 8. 接入验收
@@ -343,6 +352,9 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
 10. CI failure feedback 能进入下一轮。
 11. 非生产首次部署执行两次并完成故意失败回滚。
 12. 生产负向测试证明 provider 无生产部署权限。
+13. routine positive canary 证明 exact final SHA、non-empty required contexts、reviews、dependencies、
+    final diff 与 protection read-back 全部成立时只有一次 fixed merge POST；negative matrix 证明 #208、
+    complex/major/phase/security/data/shared-core/CI/artifact/deploy/rollback/governance 和任一 live GAP 零 POST。
 
 中央 Codex runtime/adapter 先通过共享 synthetic 与至少一个明确标注的 pilot；每个新项目仍需完成与自身技术栈、CI 和部署范围对应的验收。随后 Claude adapter 复用同一 profile、controller、verifier 和状态合同，不复制项目专用状态机。
 

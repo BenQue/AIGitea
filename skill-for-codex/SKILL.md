@@ -32,8 +32,14 @@ report-only; never infer visibility, ownership, or permissions from discovery.
 Every mutation requires the exact repository, Issue #35, a byte-identical merged platform SHA, the manager
 mutation credential, and a new evidence directory. The tool must read back private/public visibility,
 manager=Admin, project-agent=Write, no cross-project Write/Admin, merge-after-branch cleanup, and protected
-`main`. Direct/force push is disabled and the merge allowlist contains only the human identity. Manager,
-project agent, and shared bot never merge.
+`main`. Direct/force push is disabled. Repositories without routine opt-in keep a human-only merge allowlist;
+an enabled repository may add only its independent exact-repository routine merger. Manager, project agent,
+provider, shared bot and site admin never act as that merger.
+
+Routine opt-in is fail-closed: only `classification=internal-application` with non-empty canonical required status
+contexts may declare `routine_auto_merge_enabled=true`. `aisoft-platform`, every public-platform repository, and
+every context-empty repository stay disabled. Source declarations, installed bytes, credential provision, protection
+apply and live read-back are separate evidence; this contract never infers one from another.
 
 The following fixed `ci-bot` gate is migration compatibility only for profiles that already use it. Do not use
 it to onboard a new project:
@@ -89,7 +95,8 @@ Treat every new request, defect, or platform change as a Gitea Issue `N` bound t
 - Require mapped `spec` plus `plan` documents for production-phase effective complexity `complex`; development-phase complex takes measurable acceptance criteria from the Issue and uses synthetic `T01`. Do not create ceremonial spec/plan for validated `small` or development-phase complex work.
 - Require a mapped `verification` document whenever acceptance evidence cannot be reproduced by diff review and required CI. Deployment and migration always qualify, but `verification` does not imply deployment.
 - Treat `approved` as permission to start the Development Loop, not permission to merge or deploy.
-- Keep final PR merge as the only delivery gate.
+- Keep final PR merge as the only delivery gate. Manual PRs are human-merged; only an explicitly confirmed eligible
+  routine-small PR may use the independent broker merger after every final-head hard gate passes.
 
 The primary per-Issue development path is the complete Matt workflow behind the platform adapter: initialize with `$aisoft-matt-workflow` (which chains `$setup-matt-pocock-skills` with the `templates/docs/agents/` tracker/triage/domain files), then run `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`. Platform-validated `small` and development-phase complex work skip spec/plan only after triage, mapped summary, classification, measurable Issue acceptance criteria, and `approved` revalidation.
 
@@ -104,9 +111,15 @@ The `gitea-*` skills are compatibility adapters, not a second development method
 
 Let the Loop handle ordinary compile, lint, type, test, build, browser, and CI failures. Escalate contract conflicts, scope expansion, destructive migrations, new security/permission/architecture decisions, missing external dependencies, unreliable verification, three same-root-cause attempts, or configured limits.
 
-After the user approves an Issue contract or an explicit implementation plan, continue through in-scope implementation, tests, repair, push and PR preparation without asking for intermediate confirmations. The current delivery boundary still stops at the final PR for human merge; `issue-session-flow` owns that task-level handoff and post-merge cleanup.
+After the user approves an Issue contract or an explicit implementation plan, continue through in-scope
+implementation, tests and repair without intermediate confirmations. Then enter `AWAITING_PR_CONFIRMATION` and ask
+once to submit the unique final PR, binding exact Issue/branch and `manual|routine-auto` policy. Manual work ends at
+`READY_FOR_REVIEW`; eligible routine-small work may reach `AUTO_MERGED` only through the independent broker merger.
+After merge, automatically complete terminal reconciliation, document checks and cleanup, then ask once to archive.
+`issue-session-flow` owns both confirmation formats.
 
-Accept only `READY_FOR_REVIEW`, `NEEDS_HUMAN_DECISION`, `BLOCKED_EXTERNAL`, or `FAILED_LIMIT` as final states. Never describe unrun checks as passed.
+Accept `AWAITING_PR_CONFIRMATION`, `READY_FOR_REVIEW`, `AUTO_MERGED`, `NEEDS_HUMAN_DECISION`,
+`BLOCKED_EXTERNAL`, or `FAILED_LIMIT` as governed states. Never describe unrun checks as passed.
 
 After it opens the pull request, the Controller writes that PR's URL into the change summary's `pr_url` front
 matter field and advances the summary's `status` to `pr-open`, commits exactly that one document, and pushes it
@@ -125,7 +138,8 @@ In production, run only pre-validated artifacts and scripts. For failures, stop/
 
 ## Protect the platform
 
-- Never push directly to protected `main` or merge a PR.
+- Never let a provider, project agent, manager or shared bot merge a PR. Never invoke routine merge without explicit
+  policy confirmation, a final exact head pin and every broker hard gate. Never push directly to protected `main`.
 - Preserve `CI / test (pull_request)`, immutable artifacts, environment separation, real health checks, and rollback.
 - Never print tokens, passwords, `.env`, auth files, or Git credentials.
 - Never add a project profile or collaborator permission merely to make read-only inspection convenient;

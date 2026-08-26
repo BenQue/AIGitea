@@ -1,6 +1,6 @@
 # 04 · Matt skills 与 Development Loop 编排
 
-> v3.4 source baseline（更新 2026-08-11）。Issue #57/#60 已把完整 Matt Pocock skills 与根级路由合并为开发编排层；Issue #75 已统一 readable Change 名称。共享 controller 继续承担平台治理、确定性验证和远端 mutation；每项目启用、CI 和部署仍分别验收。
+> v3.6 source contract（更新 2026-08-26）。共享 controller 在 PR 提交确认前进入持久 `AWAITING_PR_CONFIRMATION`；manual 路径保持人工合并，repository opt-in 的 routine small 可经独立 merger 与 broker hard gate 合并。每项目安装、credential、live protection、CI 和部署仍分别验收。
 
 ## 1. 设计原则
 
@@ -10,7 +10,7 @@
 - Issue、summary 与路由要求的 spec/plan 是不可由 Loop 擅自改写的执行合同。
 - Agent 可以按 frontier `Txx` 在 exact `change/N-short-description` 创建本地原子 commit；外层 controller 管状态、锁、commit 后置校验、push、PR、CI、验证和终态。
 - Codex 与 Claude Code 只作为 provider adapter，共用同一 controller 和 verifier。
-- 只有人可以合并最终 PR。
+- manual 最终 PR 只有人可以合并；routine small 仅在提交确认、repository opt-in 与最终 hard gate 全部成立时由独立 per-project routine merger 合并。
 - 生产部署不由 analyzer、Loop 或 provider 执行。
 
 ## 2. 当前运行基线
@@ -38,6 +38,9 @@ aisoft-agent@<profile>.timer / controlled trigger
       ├── Claude adapter（Codex 验证后）
       ├── deterministic verifier
       ├── Gitea Issue/PR/CI adapter
+      ├── AWAITING_PR_CONFIRMATION state
+      ├── routine-small eligibility
+      ├── project-scoped broker merger
       └── local state store
 ```
 
@@ -101,7 +104,10 @@ Wrapper 必须按强制风险规则和显式标签优先级复核结果，再执
   → provider 显式调用 $implement，在隔离 worktree 实现并本地提交
   → controller 校验 branch、ancestry、commit subject、改动范围与 clean tree
   → verifier 独立运行要求的命令
-  → 通过：controller push，记录进度并进入下一项
+  → 未完成 frontier：记录进度并进入下一项
+  → 全部本地完成：生成 policy-specific PR candidate，持久化 AWAITING_PR_CONFIRMATION
+  → 明确确认后：controller push/create unique final PR，继续 CI repair
+  → manual: READY_FOR_REVIEW；routine-auto: broker final-head hard gates → AUTO_MERGED
   → 失败：归因并把真实输出反馈给下一轮
   → 判断完成、继续或升级
 ```
@@ -125,13 +131,18 @@ Verifier 必须由外层脚本独立运行，不信任模型自述。每条 acce
 
 | 终态 | 条件 |
 |---|---|
-| `READY_FOR_REVIEW` | 合同满足，本地 verifier 和 PR CI 通过，最终 PR 等待人合并 |
+| `AWAITING_PR_CONFIRMATION` | 本地 verifier 通过，PR candidate handoff 已固定，等待人确认提交 unique final PR 与 `manual|routine-auto` policy；重复 poll 不调用 provider 或创建 PR |
+| `READY_FOR_REVIEW` | manual 合同满足，本地 verifier 和 PR CI 通过，最终 PR 等待人合并 |
+| `AUTO_MERGED` | routine-auto 的最终 head 通过 broker 全部硬门并返回 merge receipt；不表示部署或 `deployed` |
 | `awaiting_dependencies` | PR CI 已通过，但一个或多个 `depends_on` Issue 尚未同时 closed 且标记 `completed` 或 `deployed` |
 | `NEEDS_HUMAN_DECISION` | 需要需求、架构、安全、范围或破坏性操作决定 |
 | `BLOCKED_EXTERNAL` | 缺凭据、服务、网络或外部协调 |
 | `FAILED_LIMIT` | 达到重试、时间、token 或总轮数限制 |
 
-只有 `READY_FOR_REVIEW` 可以通知人进行最终 review；任何终态都不授权自动合并。
+`READY_FOR_REVIEW` 只通知人 review/merge。`AUTO_MERGED` 只允许来自唯一
+`gitea.pull.merge.routine(number, sha)` operation；它不得调用 deploy 或写 `deployed`。会话随后自动运行
+确定性终态 plan/apply、change document check 与 worktree/local branch cleanup，完成后才请求第二个
+“归档”确认。routine 任一 hard gate 失败不得自动转成更宽权限的 merge 路径。
 
 ## 10. Codex-first 验证顺序
 
@@ -147,7 +158,7 @@ Verifier 必须由外层脚本独立运行，不信任模型自述。每条 acce
 ## 11. 安全与回滚
 
 - controller 使用专用 `coder` 用户和最小权限 ci-bot。
-- Agent 不持有 push、PR、merge 或 deploy 权限；commit subject 必须包含 `#N` 与当前 `Txx`，修复使用追加 commit。
+- Agent/provider 不持有 push、PR、merge 或 deploy credential；独立 routine merger 只接受 broker 派生的 exact repository/PR/head，不能 ordinary Git 或 cross-project write。commit subject 必须包含 `#N` 与当前 `Txx`，修复使用追加 commit。
 - 不打印 `.agent.env`、auth、Git credentials 或应用环境变量。
 - 新 profile 默认 `IMPLEMENT_PROVIDER=none`；复制模板、安装 unit 或文档更新都不启用 Loop。
 - Loop 试点失败时停止 controller，保留 analyzer，开发回到 Mac 人机交互，不影响 CI 和生产部署。

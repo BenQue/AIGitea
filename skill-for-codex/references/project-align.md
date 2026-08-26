@@ -33,6 +33,7 @@
 | 6 | `.aisoft/architecture.json` 声明 + lock 有效 | runbook §9（Architecture declaration onboarding）；`architecture/bin/aisoft-architecture` | `architecture-lock` |
 | 7 | 交付形态（delivery profile）已显式声明 | runbook §4；目标仓 AGENTS.md 项目事实 | `delivery-profile` |
 | 8 | host access / onboarding 聚合核对 | runbook §1.1；broker `host.onboarding.check` | 既有工具，非本检查器 |
+| 9 | routine auto-merge eligibility、opt-in、独立 merger 与 protection read-back | governance manifest；runbook §1.1/§5 | runtime checker/read-back；source contract 只人工核对 |
 
 ## 模板同步（第 2 行专属）
 
@@ -47,8 +48,9 @@
 
 ## 边界与工具分工
 
-- 检查器只读、确定性；缺口修复始终走目标仓 Issue/单一判级 PR，停在人工合并——本入口
-  不授权合并、部署或批量改写。
+- 检查器只读、确定性；缺口修复始终走目标仓 Issue/单一判级 PR。project-align 不自行启用 routine
+  merge；发现 eligibility、credential 或 protection GAP 必须走目标仓或平台治理 Issue。source
+  candidate、installed bytes 与 live protection 分开记录。本入口不授权合并、部署或批量改写。
 - 例外只有标签一项：第 4 行的缺失/漂移由 broker `gitea.labels.provision` 幂等对齐
   （runbook §5），因为它是把仓库收敛到已合并 manifest，不产生新合同。**修改 manifest
   本身**——canonical 取值、`project_extensions.allowed_prefixes`、`retired`——仍须走

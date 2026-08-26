@@ -1,13 +1,13 @@
 ---
 name: issue-session-flow
-description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆成多个 Issue、一次新生成了多个 Issue、要同时处理多个已有 Issue、PR 已开等人合并、人说「合并了」之后要收尾、或要清理并归档一个已完成的会话。触发词：开 issue、新会话、调度会话、派单、并行、顺序、依赖、待合并、合并了、收尾、清理 worktree、归档会话、衍生 issue。
+description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆成多个 Issue、一次新生成了多个 Issue、要同时处理多个已有 Issue、准备提交最终 PR、manual PR 等人合并、routine-auto 继续硬门、merge 后收尾、或要清理并归档一个已完成的会话。触发词：开 issue、新会话、调度会话、派单、并行、顺序、依赖、准备 PR、待合并、合并了、收尾、清理 worktree、归档会话、衍生 issue。
 ---
 
 # Issue 会话编排
 
-一个 Issue 一个会话；会话开在该 Issue 的**目标项目**里；PR 开完停在人的合并闸门；人合并后收尾并归档。
+一个 Issue 一个会话；会话开在该 Issue 的**目标项目**里。默认人工确认只有两处：提交唯一最终 PR；merge 后终态、文档和本地清理完成，再确认归档。manual PR 等人合并；eligible routine-auto 在提交确认后继续 CI 与最终硬门，不增加第三次确认。
 
-**核心事实**：没有任何自动组件处在能观察到「PR 被合并」的位置上。合并之后的一切——终态标签、文档自查、worktree 清理、衍生 Issue、会话归档——只有会话主动做才会发生。忘了就是永远不做。
+**核心事实**：manual 路径由会话在人确认 merge 后主动收尾；routine-auto 成功后同一会话立即收尾。两条路径都必须完成终态标签、文档自查、worktree/本地分支清理，最后才请求归档确认。
 
 ## 何时开调度会话
 
@@ -43,21 +43,23 @@ description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆
 用 `set_session_title` 让状态在会话列表里一眼可见：
 
 ```
-#N slug · 进行中   →   #N slug · 待合并   →   （收尾）   →   归档
+#N slug · 进行中 → #N slug · 待提交PR → manual: 待合并 / routine: 硬门 → 收尾 → 待归档 → 归档
 ```
 
-## 待合并：固定格式，会话停在这里
+## 确认点 1：准备提交最终 PR
 
-PR 开完立刻输出下面这个块，然后**停止**——不要接着做别的，更不要自己合并：
+本地验证完成后进入 `AWAITING_PR_CONFIRMATION`；重复 poll 不调用 provider、不 push、不建 PR。
+manual 与 routine-auto 都必须输出 branch、policy、真实验证、判级和未执行项。manual 明确“CI 修复后停在
+`READY_FOR_REVIEW` 等人合并”，且不得包含自动合并 marker。routine-auto 必须逐字包含：
 
+```text
+当前合同内 CI 修复可继续，最终 head 的 required CI 全绿且全部硬门通过后，允许受控自动合并。
 ```
-🔵 需要你合并 —— #N <标题>
-PR:   <url>
-变更: <一句话>
-CI:   <读回的真实状态，不是推测>
-判级: <apply-classification-labels.sh --verify N 的真实读回>
-合并后回来说「合并了」，我做收尾并归档本会话。
-```
+
+routine 授权绑定 exact Issue、branch 与 policy，不绑定确认时 SHA；实际 merge 必须钉住最终 40 位
+lowercase SHA。部署不在本次授权内。routine hard gate 失败零 merge POST、零权限降级、零 fallback。
+manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；routine `AUTO_MERGED` receipt
+直接进入收尾，不再询问第三次。
 
 `判级` 一行是**合并前的最后一道自查**，必须填 `codex/tools/apply-classification-labels.sh --verify N`
 的真实读回，不是印象。**不是 `projected` 就不要进入待合并**——合并把 Issue 转成 closed，
@@ -65,16 +67,17 @@ CI:   <读回的真实状态，不是推测>
 读到 `projection-missing` 就回去跑 `--apply`；读到 `broker-operation-missing` 就是本机 broker
 操作表陈旧，两台重装后重跑，不要往权限方向查。未接入平台的项目跳过这一行。
 
-## 收尾（人确认已合并后，7 步）
+## 收尾（manual 确认已合并，或 routine receipt 后自动执行）
 
 1. 取回主干，确认 merge commit **真实存在**。人说「合并了」不是证据，`git log` 才是。
-2. 终态标签先 **dry-run**：接入平台的项目跑 `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>`，把逐 Issue 判定计划念给人。未接入的项目：确认 `Closes #N` 已把 Issue 关掉。同时对本 Issue 跑一次 `codex/tools/apply-classification-labels.sh --verify N`（**用编号，不用 `--range`**）：报 `projection-window-closed` 说明合并前那一步漏了，如实报给人并按 `03` §11 记录，**不补写、不加 override**。
+2. 终态标签先 **dry-run**：接入平台的项目跑 `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>`，验证逐 Issue 判定计划。未接入的项目确认 `Closes #N` 已把 Issue 关掉。同时对本 Issue 跑一次 `codex/tools/apply-classification-labels.sh --verify N`（**用编号，不用 `--range`**）：报 `projection-window-closed` 说明合并前那一步漏了，如实记录并按 `03` §11 处置，**不补写、不加 override**。
 
    念计划前先读第一行 `{"selector":"range",…}`：`commits` 是这个 range 实际覆盖的 merge，
    逐 Issue 行的 `commit` 是产出它的那条。**核对它就是第 1 步认定的那个 merge**；
    不是就说明范围瞄错了，重跑之前不要往下走。`origin/main~N` 在工具启动那一刻求值，
    不是在你 fetch 那一刻——`#167` 收尾时它就静默指向了别人刚合并的 Issue（#175）。
-3. 人点头后才加 `--apply`，**并且用计划回给的 `pinned` 编号，不再传 `--range`**：
+3. merge receipt 已提供终态 mutation 权限；验证计划瞄准第 1 步的 exact merge 后直接加 `--apply`，
+   **并且用计划回给的 `pinned` 编号，不再传 `--range`**：
    `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --apply <pinned>`。
    人点头与你敲 `--apply` 之间 `origin/main` 还会移动，同一个 `--range` 第二次解析可以
    落到另一个 Issue 上；Issue 编号不会移动。**终态判定取自文档与 manifest**：summary 的
@@ -86,7 +89,9 @@ CI:   <读回的真实状态，不是推测>
 4. 文档自查：接入平台的项目跑 `check-change-documents --repo <checkout>`。
 5. 清理：**先离开 worktree**，再 `git worktree remove <path>` 与 `git branch -d change/N-slug`。站在 worktree 里删自己脚下的目录会失败。
 6. 盘点衍生 Issue：有调度会话就 `send_message` 回报，没有就自己开 Issue 并派卡片。
-7. `archive_session("self")` 归档本会话。
+7. 输出确认点 2：报告 exact merge/receipt、终态、文档检查、worktree/本地分支清理与未执行项，询问
+   “本 Issue 的 merge、终态核对、文档检查与本地清理已完成。是否确认归档本会话？”只有用户明确
+   确认后才执行 `archive_session("self")`。
 
 `archive_session` 清理的是 CCD 自己管的 `.claude/worktrees/`，**不是**你手建的 change worktree。第 5 步不能省。
 
