@@ -49,7 +49,7 @@ updated: 2026-08-26
 | skills/runtime 安装 | NOT RUN | 本 Issue 禁止安装或更新 live bytes |
 | credential provision / live governance apply | NOT RUN | 本 Issue 不创建 merger credential、不修改 live protection |
 | deployment | NOT RUN | merge authorization 不传递部署授权；本 Issue 无部署 |
-| 最终 PR / PR CI | NOT RUN | 按合同停在创建唯一最终 PR 前；未 push，因此 CI 不能写成 PASS |
+| 最终 PR / PR CI | IN PROGRESS | 唯一 PR #212 已创建；Controller 回填 head `e1da9a4` 的 run #749 在 583 Python tests 全部 OK 后因 smoke 仍断言旧 human-only merge / deployment-authorization literals 而失败；本次 T04 CI repair 将 gate 对齐为 manual-only + #208 manual + deployment authorization non-transfer，修复后本地 smoke 583 tests 及 static gates 已 exit 0，最终 head CI 以 live readback 为准 |
 
 ## Acceptance criteria 结果
 
@@ -74,4 +74,4 @@ updated: 2026-08-26
 - readiness 无法确认 live repository/protection；任何 routine merge 必须 fail closed，不能从 source PASS 推定 live PASS。
 - installed skills/runtime、routine merger credential/account/collaborator、live allowlist/protection 与部署全部保持
   DRIFT、BLOCKED 或 `NOT RUN`，必须由合并后的 source 与独立授权分别处理。
-- 最终 PR 尚未创建；本任务必须停在提交 PR 前的人工作业闸门。
+- 唯一最终 PR #212 已经用 manual authorization marker 创建；本任务必须在最终 head 的 required CI 真实终态读回后，停在用户人工合并前。
