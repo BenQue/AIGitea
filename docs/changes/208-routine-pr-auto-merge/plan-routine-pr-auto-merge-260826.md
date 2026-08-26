@@ -27,9 +27,9 @@ updated: 2026-08-26
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | mapped summary/spec/plan/verification 与完整授权边界 | - | completed |
-| T02 | governance-only 两确认点、manual exclusions 与独立 merger 合同；完成即停止 | T01 | pending |
-| T03 | fresh-run governance manifest、broker hard gate、Controller 分流与全套回归 | T02 | pending |
-| T04 | 全量验证、真实 source/installed/live 分层记录、PR-ready 人工闸门材料 | T03 | pending |
+| T02 | governance-only 两确认点、manual exclusions 与独立 merger 合同；完成即停止 | T01 | completed |
+| T03 | fresh-run governance manifest、broker hard gate、Controller 分流与全套回归 | T02 | completed |
+| T04 | 全量验证、真实 source/installed/live 分层记录、PR-ready 人工闸门材料 | T03 | completed |
 
 ## Expected touch points
 
@@ -63,7 +63,7 @@ updated: 2026-08-26
 2. 独立 governance execution 只实现 T02，运行文档/skill drift 检查并 commit，然后停止。
 3. fresh runtime execution 从 T02 head 重读 `AGENTS.md` 和本 spec/plan，完成 T03；普通测试/CI
    失败在合同内自主修复，hard-gate/权限/范围冲突立即升级。
-4. T04 跑定向与全量测试，填写 verification 与最终 diff/rollback/NOT RUN 事实，提交并推 branch。
+4. T04 跑定向与全量测试，填写 verification 与最终 diff/rollback/NOT RUN 事实，提交本地原子 commit，停在 `AWAITING_PR_CONFIRMATION`；本次不 push、不创建 PR。
 5. 输出拟议 PR title/body 与 branch/head/commits/tests/diff/rollback；停止在“提交最终 PR”确认点。
 
 ## 部署与回滚

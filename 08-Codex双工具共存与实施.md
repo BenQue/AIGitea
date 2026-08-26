@@ -1,6 +1,6 @@
 # 08 · Matt 编排、Development Loop 与双工具共存
 
-> 版本：v3.6 source contract ｜ 更新：2026-08-26 ｜ 状态：Issue #208 将交互会话默认确认收敛为“提交最终 PR”和“归档”，并定义 routine small 的独立 merger/hard gate；#208 自身及所有 manual 集合仍由人合并。source 合并不等于 installed/live 启用或部署。
+> 版本：v3.6 source contract ｜ 更新：2026-08-26 ｜ 状态：Issue #208 将交互会话默认确认收敛为“合同/启动确认”和“提交最终 PR 前确认”，并定义 routine small 的独立 merger/hard gate；#208 自身及所有 manual 集合仍由人合并。source 合并不等于 installed/live 启用或部署。
 
 ## 1. 结论
 
@@ -8,6 +8,7 @@
 
 ```text
 Issue / docs contract
+  → 人工确认合同并启动 Development Loop
   → Matt triage / to-spec / to-tickets / implement
   → provider-neutral Loop controller
       ├── Codex adapter（先实现和验证）
@@ -16,8 +17,7 @@ Issue / docs contract
   → 人工确认提交唯一最终 PR（manual 或 routine-auto）
   → Gitea PR / CI
   → manual 人工合并；或 routine-auto 最终 head 全硬门后受控合并
-  → 终态/文档/cleanup
-  → 人工确认归档会话
+  → 终态/文档/cleanup/归档（确定性，不再确认）
   → artifact / deploy / health / rollback
 ```
 

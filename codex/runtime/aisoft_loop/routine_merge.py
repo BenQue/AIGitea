@@ -27,6 +27,7 @@ class RoutineEligibility:
 def evaluate_routine_eligibility(
     *,
     issue_number: int,
+    change_type: str,
     effective_complexity: str,
     contract_effect: str,
     local_scope: bool,
@@ -44,6 +45,8 @@ def evaluate_routine_eligibility(
     reasons: list[str] = []
     if issue_number == 208:
         reasons.append("ISSUE_208_MANUAL_ONLY")
+    if change_type in {"feature", "security", "data", "platform"}:
+        reasons.append("CHANGE_TYPE_MANUAL_ONLY")
     if effective_complexity != "small":
         reasons.append("COMPLEXITY_NOT_SMALL")
     if contract_effect not in {"restore", "unchanged"}:

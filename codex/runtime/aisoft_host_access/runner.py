@@ -7,7 +7,7 @@ import os
 import subprocess
 from typing import Callable, Mapping, Sequence
 
-from .broker import BrokerError, _positive_number
+from .broker import BrokerError, COMMIT_SHA_RE, _positive_number
 from .contract import AccessContract
 
 
@@ -177,8 +177,8 @@ class RoutineMergeRunner:
 
     def merge(self, number: int, sha: str) -> Mapping[str, object]:
         pull_number = _positive_number(number, "pull request")
-        if not isinstance(sha, str) or not sha:
-            raise BrokerError("ARGUMENT_INVALID", "head SHA is required")
+        if not isinstance(sha, str) or COMMIT_SHA_RE.fullmatch(sha) is None:
+            raise BrokerError("ARGUMENT_INVALID", "exact lowercase head SHA is required")
         argv = [
             BROKER_EXECUTABLE,
             "--project", self._project_id,

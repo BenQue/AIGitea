@@ -336,7 +336,15 @@ class ReconciliationTests(unittest.TestCase):
         )
         protection = client.protections[full_name]
         self.assertFalse(protection["enable_push"])
+        self.assertFalse(protection["enable_push_whitelist"])
+        self.assertEqual(protection["push_whitelist_usernames"], [])
         self.assertFalse(protection["enable_force_push"])
+        self.assertFalse(protection["enable_force_push_allowlist"])
+        self.assertEqual(protection["force_push_allowlist_usernames"], [])
+        self.assertNotIn(
+            repository.routine_merge_agent,
+            protection["push_whitelist_usernames"],
+        )
         self.assertEqual(
             protection["merge_whitelist_usernames"],
             [contract.human_merge_identity, repository.routine_merge_agent],

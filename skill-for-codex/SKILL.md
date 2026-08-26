@@ -115,8 +115,8 @@ After the user approves an Issue contract or an explicit implementation plan, co
 implementation, tests and repair without intermediate confirmations. Then enter `AWAITING_PR_CONFIRMATION` and ask
 once to submit the unique final PR, binding exact Issue/branch and `manual|routine-auto` policy. Manual work ends at
 `READY_FOR_REVIEW`; eligible routine-small work may reach `AUTO_MERGED` only through the independent broker merger.
-After merge, automatically complete terminal reconciliation, document checks and cleanup, then ask once to archive.
-`issue-session-flow` owns both confirmation formats.
+After merge, automatically complete terminal reconciliation, document checks, cleanup and archival without another
+confirmation. `issue-session-flow` owns the contract/start and final-PR confirmation formats.
 
 Accept `AWAITING_PR_CONFIRMATION`, `READY_FOR_REVIEW`, `AUTO_MERGED`, `NEEDS_HUMAN_DECISION`,
 `BLOCKED_EXTERNAL`, or `FAILED_LIMIT` as governed states. Never describe unrun checks as passed.

@@ -536,6 +536,12 @@ class HostAccessBroker:
             raise BrokerError("ROUTINE_AUTHORIZATION_INVALID", "routine submit authorization is invalid")
         issue_number = int(markers[0][0])
         branch = markers[0][1]
+        closes = re.findall(r"(?mi)^Closes #([1-9][0-9]*)$", pull["body"])
+        if closes != [str(issue_number)]:
+            raise BrokerError(
+                "ROUTINE_AUTHORIZATION_INVALID",
+                "routine pull request must close exactly its authorized Issue",
+            )
         if issue_number == 208:
             raise BrokerError("ROUTINE_ISSUE_MANUAL_ONLY", "Issue #208 is manual-only")
         try:
@@ -570,6 +576,7 @@ class HostAccessBroker:
         if (
             front.get("issue") != issue_number
             or front.get("branch") != branch
+            or front.get("change_type") in {"feature", "security", "data", "platform"}
             or front.get("effective_complexity") != "small"
             or front.get("contract_effect") not in {"restore", "unchanged"}
             or set(risk_flags) & {
@@ -586,11 +593,17 @@ class HostAccessBroker:
             item.get("name") for item in issue.get("labels", [])
             if isinstance(item, dict) and isinstance(item.get("name"), str)
         } if isinstance(issue, dict) else set()
+        type_labels = {name for name in labels if isinstance(name, str) and name.startswith("type/")}
+        complexity_labels = {
+            name for name in labels
+            if isinstance(name, str) and name.startswith("complexity/")
+        }
         if (
             not isinstance(issue, dict)
             or issue.get("number") != issue_number
             or issue.get("state") != "open"
-            or "complexity/small" not in labels
+            or complexity_labels != {"complexity/small"}
+            or len(type_labels) != 1
             or labels & {
             "type/feature", "type/security", "type/data", "type/platform"
             }
@@ -605,7 +618,23 @@ class HostAccessBroker:
             and isinstance(item.get("head"), dict)
             and item["head"].get("ref") == branch
         ]
-        if len(matches) != 1 or matches[0].get("number") != number:
+        same_issue = []
+        for item in open_pulls:
+            body = item.get("body") if isinstance(item, dict) else None
+            if not isinstance(body, str):
+                raise BrokerError("ROUTINE_PR_NOT_UNIQUE", "open pull inventory is invalid")
+            item_markers = re.findall(
+                r"(?m)^AISoft-Submit-Authorization: issue=([1-9][0-9]*); ", body
+            )
+            item_closes = re.findall(r"(?mi)^Closes #([1-9][0-9]*)$", body)
+            if str(issue_number) in item_markers or str(issue_number) in item_closes:
+                same_issue.append(item)
+        if (
+            len(matches) != 1
+            or matches[0].get("number") != number
+            or len(same_issue) != 1
+            or same_issue[0].get("number") != number
+        ):
             raise BrokerError("ROUTINE_PR_NOT_UNIQUE", "exact change must have one open pull request")
 
         # 4. Open, unmerged, main base.
@@ -642,8 +671,14 @@ class HostAccessBroker:
             or permission.get("permission") != "write"
             or protection.get("enable_push") is not False
             or protection.get("enable_push_whitelist") is not False
+            or protection.get("push_whitelist_usernames") != []
+            or protection.get("push_whitelist_teams") != []
+            or protection.get("push_whitelist_deploy_keys") is not False
             or protection.get("enable_force_push") is not False
             or protection.get("enable_force_push_allowlist") is not False
+            or protection.get("force_push_allowlist_usernames") != []
+            or protection.get("force_push_allowlist_teams") != []
+            or protection.get("force_push_allowlist_deploy_keys") is not False
             or protection.get("enable_merge_whitelist") is not True
             or sorted(protection.get("merge_whitelist_usernames") or []) != expected_mergers
             or protection.get("enable_status_check") is not True
@@ -669,10 +704,15 @@ class HostAccessBroker:
 
         # 8. Any valid rejection blocks merge.
         reviews = self._bounded_list(f"{repo_api}/pulls/{number}/reviews", credential.token)
+        for item in reviews:
+            if not isinstance(item, dict):
+                raise BrokerError("ROUTINE_REVIEW_INVALID", "pull review response is invalid")
         if any(
             str(item.get("state") or item.get("status") or "").upper()
             in {"REQUEST_CHANGES", "REJECTED", "REQUESTED_CHANGES"}
-            for item in reviews if isinstance(item, dict)
+            and item.get("dismissed") is not True
+            and item.get("stale") is not True
+            for item in reviews
         ):
             raise BrokerError("ROUTINE_REVIEW_REJECTED", "pull request has a rejecting review")
 

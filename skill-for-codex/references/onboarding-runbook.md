@@ -280,7 +280,8 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
   exact-repo Write，二者均不给 merge。§1.2 `ci-bot` 只服务尚未迁移的已有 profile。
 - 保护 `main`，禁止直接 push，要求准确的 `CI / test (pull_request)` context。
 - routine merger 必须是独立 non-site-admin、非 human/manager/project-agent/shared-bot 的 per-project
-  identity；只对 exact repository 有最小 Write/merge 能力，禁止 ordinary Git 与 cross-project write。
+  exact-repo Write identity。Gitea 1.26.4 没有 merge-only ACL；credential 由 broker 独占，main push/force
+  allowlist 为空，ordinary Git 与 cross-project write 由 typed operation、manifest/final-head gates 和 zero fallback 禁止。
   bootstrap、credential provision、protection allowlist apply 与 read-back 只能在 source 合并并取得独立
   live 授权后逐仓执行；Issue #208 自身不执行这些步骤。
 - 标签由平台 provision，不手工创建（§1.1 步骤 5，与 `host.access.audit` / `mac.git.bind` /

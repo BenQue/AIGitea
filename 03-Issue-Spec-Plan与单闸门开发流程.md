@@ -248,7 +248,9 @@ manual PR 只由人合并；routine-auto 只能由独立 exact-repository merger
 manual 确认允许合同内 CI 修复，required CI 全绿后停在 `READY_FOR_REVIEW`；不得出现自动合并 marker。
 routine 确认必须明确“当前合同内 CI 修复可继续，最终 head 的 required CI 全绿且全部硬门通过后，
 允许受控自动合并”。两者都不授权部署。确认绑定 Issue/branch/policy，不绑定当时 SHA；最终 merge
-仍必须 pin exact SHA。分类标签不新增 merge-policy 维度。
+仍必须 pin exact SHA。分类标签不新增 merge-policy 维度。Gitea 1.26.4 没有 merge-only ACL；routine
+merger 是 exact-repo Write identity，但 credential 由 broker 独占，且该 identity 不在 main push/force
+allowlist。普通 Git 禁令由 typed operation、manifest/final-head gates 与 zero fallback 共同保证。
 
 ## 8. 升级给人的条件
 
@@ -296,7 +298,7 @@ codex/tools/mark-completed-issues.sh --repo ~/Projects/LocalWMS --range '...'
 
 默认只输出逐 Issue 的判定计划、不做任何写入；确定性验证计划瞄准 exact merge 后加 `--apply` 才经
 broker `gitea.issue.labels.set` 写入。已经是 `deployed` 的 Issue 不会被降级为
-`completed`。终态、文档与 cleanup 完成后才进入第二个人工确认点：归档会话。
+`completed`。终态、文档、cleanup 与会话归档在 merge 后按确定性流程完成，不再增加人工确认点。
 
 ### 范围锚不能是会移动的 ref（#175）
 

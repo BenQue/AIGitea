@@ -5,9 +5,9 @@ description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆
 
 # Issue 会话编排
 
-一个 Issue 一个会话；会话开在该 Issue 的**目标项目**里。默认人工确认只有两处：提交唯一最终 PR；merge 后终态、文档和本地清理完成，再确认归档。manual PR 等人合并；eligible routine-auto 在提交确认后继续 CI 与最终硬门，不增加第三次确认。
+一个 Issue 一个会话；会话开在该 Issue 的**目标项目**里。默认人工确认只有两处：确认合同并启动 Development Loop；提交唯一最终 PR 前确认。manual PR 等人合并；eligible routine-auto 在提交确认后继续 CI 与最终硬门。merge 后终态、文档、本地清理与归档按确定性流程完成，不再询问。
 
-**核心事实**：manual 路径由会话在人确认 merge 后主动收尾；routine-auto 成功后同一会话立即收尾。两条路径都必须完成终态标签、文档自查、worktree/本地分支清理，最后才请求归档确认。
+**核心事实**：manual 路径由会话在人确认 merge 后主动收尾；routine-auto 成功后同一会话立即收尾。两条路径都必须完成终态标签、文档自查、worktree/本地分支清理并归档，但不为这些确定性动作增加确认点。
 
 ## 何时开调度会话
 
@@ -43,10 +43,15 @@ description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆
 用 `set_session_title` 让状态在会话列表里一眼可见：
 
 ```
-#N slug · 进行中 → #N slug · 待提交PR → manual: 待合并 / routine: 硬门 → 收尾 → 待归档 → 归档
+#N slug · 待启动 → 进行中 → 待提交PR → manual: 待合并 / routine: 硬门 → 收尾 → 归档
 ```
 
-## 确认点 1：准备提交最终 PR
+## 确认点 1：合同/启动
+
+triage、判级与路由要求的 semantic docs 完整后，输出 exact Issue 合同并询问是否启动 Development
+Loop。确认后持久化 `approved`；它只授权合同内实现、测试和修复，不授权提交 PR、merge 或 deploy。
+
+## 确认点 2：准备提交最终 PR
 
 本地验证完成后进入 `AWAITING_PR_CONFIRMATION`；重复 poll 不调用 provider、不 push、不建 PR。
 manual 与 routine-auto 都必须输出 branch、policy、真实验证、判级和未执行项。manual 明确“CI 修复后停在
@@ -89,9 +94,8 @@ manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；rout
 4. 文档自查：接入平台的项目跑 `check-change-documents --repo <checkout>`。
 5. 清理：**先离开 worktree**，再 `git worktree remove <path>` 与 `git branch -d change/N-slug`。站在 worktree 里删自己脚下的目录会失败。
 6. 盘点衍生 Issue：有调度会话就 `send_message` 回报，没有就自己开 Issue 并派卡片。
-7. 输出确认点 2：报告 exact merge/receipt、终态、文档检查、worktree/本地分支清理与未执行项，询问
-   “本 Issue 的 merge、终态核对、文档检查与本地清理已完成。是否确认归档本会话？”只有用户明确
-   确认后才执行 `archive_session("self")`。
+7. 报告 exact merge/receipt、终态、文档检查、worktree/本地分支清理与未执行项，然后直接执行
+   `archive_session("self")`。任何确定性收尾失败都必须保留会话并报告真实 blocker，不得伪报已归档。
 
 `archive_session` 清理的是 CCD 自己管的 `.claude/worktrees/`，**不是**你手建的 change worktree。第 5 步不能省。
 

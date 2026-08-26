@@ -642,6 +642,7 @@ class Controller:
         if self.governance_manifest is None or not self.repository_name:
             return evaluate_routine_eligibility(
                 issue_number=contract.issue_number,
+                change_type=contract.change_type,
                 effective_complexity=contract.effective_complexity,
                 contract_effect=contract.contract_effect,
                 local_scope=False,
@@ -659,6 +660,7 @@ class Controller:
         risks = frozenset(contract.risk_flags)
         return evaluate_routine_eligibility(
             issue_number=contract.issue_number,
+            change_type=contract.change_type,
             effective_complexity=contract.effective_complexity,
             contract_effect=contract.contract_effect,
             local_scope=local_scope,

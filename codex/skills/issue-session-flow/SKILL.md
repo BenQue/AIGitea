@@ -1,6 +1,6 @@
 ---
 name: issue-session-flow
-description: Coordinate one AISoftPlatform Issue per Codex task through final-PR confirmation, manual or eligible routine merge, deterministic post-merge cleanup, and archival confirmation. Use when creating or resuming an Issue task, coordinating dependent Issues, preparing the final PR, waiting for human merge, following routine hard gates, or closing an already merged task.
+description: Coordinate one AISoftPlatform Issue per Codex task through contract/start confirmation, final-PR confirmation, manual or eligible routine merge, and deterministic post-merge cleanup. Use when creating or resuming an Issue task, coordinating dependent Issues, preparing the final PR, waiting for human merge, following routine hard gates, or closing an already merged task.
 ---
 
 # Coordinate an AISoftPlatform Issue task
@@ -26,7 +26,12 @@ a new product decision.
 
 ## Two default confirmation points
 
-After local verification, the Controller persists `AWAITING_PR_CONFIRMATION`. Repeated polls in that state must not
+The first point is contract/start confirmation. After triage, classification, and every required semantic document
+are complete, present the exact Issue contract and ask once to start the Development Loop. Persist that decision as
+the validated `approved` state. It authorizes in-scope implementation and repair, not PR submission, merge, or deploy.
+
+The second point is final-PR submission confirmation. After local verification, the Controller persists
+`AWAITING_PR_CONFIRMATION`. Repeated polls in that state must not
 call a provider, push, or create a PR. Return exactly one policy-specific candidate handoff.
 
 For `manual`:
@@ -79,20 +84,9 @@ After the user confirms merge:
 4. Run `check-change-documents` against the merged checkout.
 5. Leave and remove the Issue worktree, then delete the merged local change branch.
 6. Record any genuinely separate acceptance criterion as a new Issue instead of extending the closed one.
-7. After merge, terminal reconciliation, document checks and cleanup all complete, return the second confirmation:
-
-```text
-🟢 #N 已完成
-Merge: <manual|routine-auto> · <merge receipt / exact merge SHA>
-终态: <completed|deployed|真实阻塞状态>
-文档: <check-change-documents 真实结果>
-清理: <worktree 与本地 change branch 真实结果>
-未执行: <deploy、live apply 等>
-
-本 Issue 的 merge、终态核对、文档检查与本地清理已完成。是否确认归档本会话？
-```
-
-Archive the Codex task only after that explicit archival confirmation.
+7. Report exact merge/receipt, terminal state, document check, cleanup, and every unrun action, then archive the
+   completed task without another confirmation. If any deterministic completion step fails, report the stable blocker
+   and keep the task available; do not claim archival or completion.
 
 ## Multi-Issue coordination
 

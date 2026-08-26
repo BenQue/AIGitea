@@ -7,7 +7,7 @@
 
 ## 0. 实施状态
 
-- [x] Issue #208 governance contract：日常会话默认仅在提交唯一最终 PR 与完成后归档两处确认；
+- [x] Issue #208 governance contract：日常会话默认仅在合同/启动与提交唯一最终 PR 前两处确认；
   routine small 允许在 repository opt-in、独立 merger、non-empty required contexts 与 final-head 全硬门后
   受控合并。complex/major/阶段完结和全部 forced-risk 路径仍 manual；部署授权保持独立。
 
@@ -665,17 +665,22 @@ Catalog 更新继续使用本文件定义的复杂 Issue/spec/plan/final PR/CI/h
 
 交互式 Issue 会话默认确认点固定为：
 
-1. 本地实现与验证完成后确认提交唯一最终 PR；routine 候选在此选择并授权
+1. triage、判级与所需 semantic docs 完整后，确认当前 Issue 合同并启动 Development Loop；
+   `approved` 是该确认的持久控制信号，但不授权 merge 或 deploy。
+2. 本地实现与验证完成后确认提交唯一最终 PR；routine 候选在此选择并授权
    `manual|routine-auto` policy，授权绑定 Issue/branch/policy，不绑定当时 SHA。
-2. merge 后会话自动完成终态计划/应用、文档检查和 worktree/local branch cleanup，再确认归档。
+
+merge 后会话自动完成终态计划/应用、文档检查、worktree/local branch cleanup 与归档，不再询问。
 
 routine-auto 不改变分类标签，只是 `small` 候选的附加执行资格：必须 restore/unchanged、局部可逆、
 无 forced risk、非 major/阶段完结，且 repository source manifest 明确 opt-in、required contexts 非空。
 complex、major、阶段/里程碑完结、安全、数据、共享核心、跨模块/服务、CI/制品/部署/回滚、Agent/
 平台治理全部 manual；#208 本身同样 manual。
 
-权限由独立 non-site-admin、exact-repo routine merger 承担；human admin、platform manager、project agent、
-provider 与 shared bot 均不复用。broker 只暴露 `gitea.pull.merge.routine(number, sha)`，以 final exact
+权限由独立 non-site-admin、exact-repo Write routine merger 承担；Gitea 1.26.4 没有 merge-only ACL，
+ordinary Git 禁令由 broker-exclusive credential custody、typed operation、manifest/final-head gates、空的
+main push/force allowlist 与 zero fallback 构成。human admin、platform manager、project agent、provider 与
+shared bot 均不复用。broker 只暴露 `gitea.pull.merge.routine(number, sha)`，以 final exact
 head 依序复核 submit authorization、分类与 tuple、唯一 PR、base/head、live protection、required CI、
 reviews、dependencies 和完整 diff，再发送 fixed `do=merge` payload。任何 GAP 只 fail closed，不能
 force、schedule、降级或 fallback。merge receipt 不调用部署、不写 `deployed`，也不传递部署授权。

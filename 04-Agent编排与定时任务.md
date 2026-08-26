@@ -141,8 +141,8 @@ Verifier 必须由外层脚本独立运行，不信任模型自述。每条 acce
 
 `READY_FOR_REVIEW` 只通知人 review/merge。`AUTO_MERGED` 只允许来自唯一
 `gitea.pull.merge.routine(number, sha)` operation；它不得调用 deploy 或写 `deployed`。会话随后自动运行
-确定性终态 plan/apply、change document check 与 worktree/local branch cleanup，完成后才请求第二个
-“归档”确认。routine 任一 hard gate 失败不得自动转成更宽权限的 merge 路径。
+确定性终态 plan/apply、change document check、worktree/local branch cleanup 与归档，不再增加确认点。
+routine 任一 hard gate 失败不得自动转成更宽权限的 merge 路径。
 
 ## 10. Codex-first 验证顺序
 
@@ -158,7 +158,7 @@ Verifier 必须由外层脚本独立运行，不信任模型自述。每条 acce
 ## 11. 安全与回滚
 
 - controller 使用专用 `coder` 用户和最小权限 ci-bot。
-- Agent/provider 不持有 push、PR、merge 或 deploy credential；独立 routine merger 只接受 broker 派生的 exact repository/PR/head，不能 ordinary Git 或 cross-project write。commit subject 必须包含 `#N` 与当前 `Txx`，修复使用追加 commit。
+- Agent/provider 不持有 push、PR、merge 或 deploy credential；独立 routine merger 是 Gitea 1.26.4 的 exact-repo Write identity，服务端没有 merge-only ACL。其 credential 由 broker 独占，唯一 typed merge operation 派生 exact repository/PR/head，main push/force allowlist 均为空；ordinary Git 与 cross-project write 依靠 custody、manifest/final-head gates 和 zero fallback 禁止。commit subject 必须包含 `#N` 与当前 `Txx`，修复使用追加 commit。
 - 不打印 `.agent.env`、auth、Git credentials 或应用环境变量。
 - 新 profile 默认 `IMPLEMENT_PROVIDER=none`；复制模板、安装 unit 或文档更新都不启用 Loop。
 - Loop 试点失败时停止 controller，保留 analyzer，开发回到 Mac 人机交互，不影响 CI 和生产部署。

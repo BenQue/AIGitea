@@ -15,10 +15,32 @@ from aisoft_loop.routine_merge import evaluate_routine_eligibility
 ROOT = Path(__file__).parents[2]
 
 
+class SessionContractTests(unittest.TestCase):
+    def test_codex_and_claude_keep_only_contract_start_and_pr_confirmations(self):
+        codex = (ROOT / "skills/issue-session-flow/SKILL.md").read_text(encoding="utf-8")
+        claude = (ROOT.parent / "skill-for-claude/issue-session-flow/SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("contract/start confirmation", codex)
+        self.assertIn("final-PR submission confirmation", codex)
+        self.assertIn("## 确认点 1：合同/启动", claude)
+        self.assertIn("## 确认点 2：准备提交最终 PR", claude)
+        marker = (
+            "当前合同内 CI 修复可继续，最终 head 的 required CI 全绿且全部硬门通过后，"
+            "允许受控自动合并。"
+        )
+        self.assertIn(marker, codex)
+        self.assertIn(marker, claude)
+        for content in (codex, claude):
+            self.assertNotIn("是否确认归档", content)
+            self.assertNotIn("confirm archival", content)
+
+
 class EligibilityTests(unittest.TestCase):
     def eligible(self, **overrides):
         values = {
             "issue_number": 44,
+            "change_type": "bugfix",
             "effective_complexity": "small",
             "contract_effect": "restore",
             "local_scope": True,
@@ -37,6 +59,10 @@ class EligibilityTests(unittest.TestCase):
         self.assertTrue(self.eligible().eligible)
         failures = (
             {"issue_number": 208},
+            {"change_type": "feature"},
+            {"change_type": "security"},
+            {"change_type": "data"},
+            {"change_type": "platform"},
             {"effective_complexity": "complex"},
             {"contract_effect": "change"},
             {"local_scope": False},
@@ -138,8 +164,14 @@ branch: {self.branch}
             return self.response({
                 "enable_push": False,
                 "enable_push_whitelist": False,
+                "push_whitelist_usernames": [],
+                "push_whitelist_teams": [],
+                "push_whitelist_deploy_keys": False,
                 "enable_force_push": False,
                 "enable_force_push_allowlist": False,
+                "force_push_allowlist_usernames": [],
+                "force_push_allowlist_teams": [],
+                "force_push_allowlist_deploy_keys": False,
                 "enable_merge_whitelist": True,
                 "merge_whitelist_usernames": ["admin", "hsdb-routine-merger"],
                 "enable_status_check": True,
@@ -210,6 +242,46 @@ branch: {self.branch}
         self.assertEqual(caught.exception.code, "ROUTINE_HEAD_DRIFT")
         self.assertEqual(self.posts, [])
 
+    def test_final_head_reread_closes_toctou_and_zero_post(self):
+        pull_reads = 0
+
+        def drift_on_final_read(method, url, headers, body):
+            nonlocal pull_reads
+            path = urlparse(url).path
+            if path.endswith("/pulls/7"):
+                pull_reads += 1
+                if pull_reads == 2:
+                    return self.response(self.pull(sha="c" * 40))
+            return self.transport(method, url, headers, body)
+
+        with self.assertRaises(BrokerError) as caught:
+            self.broker(drift_on_final_read).execute(
+                "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha
+            )
+        self.assertEqual(caught.exception.code, "ROUTINE_HEAD_DRIFT")
+        self.assertEqual(self.posts, [])
+
+    def test_authorization_requires_one_marker_and_one_exact_closes_line(self):
+        bodies = (
+            self.body.replace("AISoft-Submit-Authorization:", "AISoft-Authorization:"),
+            self.body + "\nCloses #45\n",
+            self.body.replace("policy=routine-auto", "policy=manual"),
+        )
+        for value in bodies:
+            with self.subTest(body=value):
+                self.posts.clear()
+                original = self.body
+                self.body = value
+                try:
+                    with self.assertRaises(BrokerError) as caught:
+                        self.broker().execute(
+                            "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha
+                        )
+                finally:
+                    self.body = original
+                self.assertEqual(caught.exception.code, "ROUTINE_AUTHORIZATION_INVALID")
+                self.assertEqual(self.posts, [])
+
     def test_extra_arguments_are_rejected_before_credentials(self):
         with self.assertRaises(BrokerError) as caught:
             self.broker().execute(
@@ -223,6 +295,10 @@ branch: {self.branch}
             ("push enabled", "ROUTINE_PROTECTION_DRIFT",
                 "/branch_protections/main",
                 {"enable_push": True},
+            ),
+            ("merger appears in push allowlist", "ROUTINE_PROTECTION_DRIFT",
+                "/branch_protections/main",
+                {"push_whitelist_usernames": ["hsdb-routine-merger"]},
             ),
             ("merger has Admin", "ROUTINE_PROTECTION_DRIFT",
                 "/collaborators/hsdb-routine-merger/permission",
@@ -258,6 +334,42 @@ branch: {self.branch}
                     )
                 self.assertEqual(caught.exception.code, expected)
                 self.assertEqual(self.posts, [])
+
+    def test_duplicate_issue_pull_is_rejected_with_zero_post(self):
+        duplicate = self.pull()
+        duplicate["number"] = 8
+        duplicate["head"] = {"ref": "change/44-other-fix", "sha": "d" * 40}
+
+        def duplicated(method, url, headers, body):
+            if urlparse(url).path.endswith("/pulls"):
+                return self.response([self.pull(), duplicate])
+            return self.transport(method, url, headers, body)
+
+        with self.assertRaises(BrokerError) as caught:
+            self.broker(duplicated).execute(
+                "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha
+            )
+        self.assertEqual(caught.exception.code, "ROUTINE_PR_NOT_UNIQUE")
+        self.assertEqual(self.posts, [])
+
+    def test_dismissed_or_stale_rejection_is_not_an_effective_rejection(self):
+        for review in (
+            {"state": "REQUEST_CHANGES", "dismissed": True, "stale": False},
+            {"state": "REQUEST_CHANGES", "dismissed": False, "stale": True},
+        ):
+            with self.subTest(review=review):
+                self.posts.clear()
+
+                def inactive(method, url, headers, body, *, review=review):
+                    if urlparse(url).path.endswith("/pulls/7/reviews"):
+                        return self.response([review])
+                    return self.transport(method, url, headers, body)
+
+                result = self.broker(inactive).execute(
+                    "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha
+                )
+                self.assertEqual(result["status"], "AUTO_MERGED")
+                self.assertEqual(len(self.posts), 1)
 
     def test_dependency_block_is_stable_and_zero_post(self):
         self.summary = self.summary.replace("depends_on: []", "depends_on:\n  - 43")

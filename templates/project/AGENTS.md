@@ -27,10 +27,14 @@
 普通编译/测试/CI 失败自主修复；合同冲突、范围扩张、破坏性迁移、安全决策、三次同因失败
 必须停下升级给人。
 
-日常会话默认只有两个确认点：本地实现与验证完成后确认提交唯一最终 PR，并固定 exact
-Issue/branch 与 `manual|routine-auto` policy；merge 后完成终态核对、文档检查和 worktree/本地分支
-清理，再确认归档。routine 授权允许当前合同内 CI 修复继续，但实际 merge 必须钉住最终 exact SHA。
+日常会话默认只有两个确认点：确认 Issue 合同并启动 Development Loop；本地实现与验证完成后确认
+提交唯一最终 PR，并固定 exact Issue/branch 与 `manual|routine-auto` policy。merge 后的终态核对、文档检查、
+worktree/本地分支清理与归档按确定性流程完成，不再询问。routine 授权允许当前合同内 CI 修复继续，
+但实际 merge 必须钉住最终 exact SHA。
 PR merge 不传递任何部署授权。
+Gitea 1.26.4 没有 merge-only ACL；routine merger 是 exact-repo Write identity，但 credential 由 broker
+独占，且不在 main push/force allowlist。ordinary Git 禁令由 typed operation、manifest/final-head gates
+与 zero fallback 保证。
 
 ## 工具分工（默认偏好，非硬规则）
 
