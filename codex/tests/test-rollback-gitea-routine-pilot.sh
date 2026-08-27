@@ -95,8 +95,18 @@ elif [[ "$url" == */api/v1/users/newemaint-routine-merger ]]; then
     printf 404
   else
     [[ -n "$output" ]]
+    account_read_count=0
+    if [[ -f "$MOCK_ROOT/account-read-count" ]]; then
+      account_read_count="$(cat "$MOCK_ROOT/account-read-count")"
+    fi
+    account_read_count=$((account_read_count + 1))
+    printf '%s\n' "$account_read_count" >"$MOCK_ROOT/account-read-count"
     identity="${MOCK_ACCOUNT_IDENTITY:-}"
     [[ -n "$identity" ]] || identity='{"login":"newemaint-routine-merger","is_admin":false}'
+    if [[ "$account_read_count" == 3 &&
+          -n "${MOCK_ACCOUNT_IDENTITY_IMMEDIATE:-}" ]]; then
+      identity="$MOCK_ACCOUNT_IDENTITY_IMMEDIATE"
+    fi
     printf '%s\n' "$identity" >"$output"
     printf 200
   fi
@@ -237,6 +247,62 @@ for policy in retain delete; do
     '{"login":"admin","is_admin":false}'
   assert_account_identity_rejected "$policy" root-list '[]'
 done
+
+token_revoke_call_count() {
+  grep -c '/api/v1/token' "$TMP/curl.log" 2>/dev/null || true
+}
+
+assert_immediate_pre_delete_identity_rejected() {
+  local variant="$1"
+  local payload="$2"
+  local gitea_before
+  local rollback_before
+  local revoke_before
+  local root="$TMP/credentials/projects/newemaint"
+  prepare_managed_files
+  rm -f "$TMP/account-deleted" "$TMP/account-read-count"
+  gitea_before="$(line_count "$TMP/gitea.log")"
+  rollback_before="$(rollback_call_count)"
+  revoke_before="$(token_revoke_call_count)"
+  if MOCK_ACCOUNT_IDENTITY_IMMEDIATE="$payload" \
+     bash "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
+      --manifest "$TMP/disabled.json" \
+      --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+      --platform-root "$ROOT" \
+      --merged-sha bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb \
+      --rollout-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+      --snapshot "$TMP/snapshot.json" --account-policy delete \
+      >"$TMP/immediate-delete-$variant.out" \
+      2>"$TMP/immediate-delete-$variant.err"; then
+    printf 'unsafe immediate pre-delete identity unexpectedly deleted account: %s\n' \
+      "$variant" >&2
+    exit 1
+  fi
+  grep -Fq 'immediate pre-delete account read-back must be the exact non-admin service identity' \
+    "$TMP/immediate-delete-$variant.err"
+  [[ "$(line_count "$TMP/gitea.log")" == "$gitea_before" ]]
+  [[ "$(rollback_call_count)" == "$((rollback_before + 1))" ]]
+  [[ "$(token_revoke_call_count)" == "$((revoke_before + 1))" ]]
+  [[ ! -e "$TMP/account-deleted" ]]
+  [[ ! -e "$root/routine-merge-agent.token" ]]
+  [[ ! -e "$root/routine-merge-agent.token-created-by-issue-213" ]]
+  [[ -e "$root/newemaint-routine-merger.account-created-by-issue-213" ]]
+  [[ -e "$root/newemaint-routine-merger.must-change-password-unset-by-issue-213" ]]
+}
+
+assert_immediate_pre_delete_identity_rejected missing \
+  '{"login":"newemaint-routine-merger"}'
+assert_immediate_pre_delete_identity_rejected string-false \
+  '{"login":"newemaint-routine-merger","is_admin":"false"}'
+assert_immediate_pre_delete_identity_rejected number \
+  '{"login":"newemaint-routine-merger","is_admin":0}'
+assert_immediate_pre_delete_identity_rejected list \
+  '{"login":"newemaint-routine-merger","is_admin":[]}'
+assert_immediate_pre_delete_identity_rejected site-admin \
+  '{"login":"newemaint-routine-merger","is_admin":true}'
+assert_immediate_pre_delete_identity_rejected wrong-login \
+  '{"login":"admin","is_admin":false}'
+assert_immediate_pre_delete_identity_rejected root-list '[]'
 
 assert_password_marker_delete_rejected() {
   local variant="$1"

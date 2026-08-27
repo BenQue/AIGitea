@@ -50,7 +50,12 @@ collaborator/protection，不得执行 routine merge POST、部署或 merge。so
   GAP，不能被同一分支自动修正。project account 的既有输出保持兼容。
 - [ ] **AC-4 bootstrap 边界**：routine bootstrap 只接受 exact project/username/credential binding 和 #213
   live mode，创建或复用 ownership markers，输出 account/PAT mutation count 与完整非敏感 readback；
-  幂等重跑不得生成第二枚 PAT。其他仓库不因 NewEMaint pilot 获得 live bootstrap 授权。
+  幂等重跑不得生成第二枚 PAT。对既有 account 的 unsafe identity readback 必须保持所有 Gitea/credential
+  mutation=0；对本次从 404 创建的新 account，strict readback 不安全时无法预先做到零 Gitea mutation，必须在
+  PAT/credential/marker mutation 前执行 exact username 补偿删除并 fresh 确认 404，明确记录
+  create=1/delete=1 与 compensated net-state unchanged。补偿删除或 404 确认失败时停为
+  `BLOCKED_EXTERNAL` 并给出 exact account 人工恢复指引，不继续任何 mutation。其他仓库不因 NewEMaint pilot
+  获得 live bootstrap 授权。
 - [ ] **AC-5 PAT exact scope**：bootstrap readback 与 `gitea.pull.merge.routine` 每次唯一 merge POST 前都
   fresh 验证 PAT scopes 恰为 `write:repository`；缺失、多余、`all`、admin scope 或无法解析均返回稳定
   failure，merge POST=0、fallback=0。
@@ -71,7 +76,10 @@ collaborator/protection，不得执行 routine merge POST、部署或 merge。so
 - [ ] **AC-10 account retain/delete**：rollback 顺序固定为 disable source opt-in 的已合并回滚版本 →
   repository rollback/human-only allowlist readback → routine collaborator missing → PAT revoke → 显式
   `account-policy=retain|delete`。`retain` 是默认合同且读回 non-admin account present；`delete` 只允许 #213
-  ownership marker 创建的 exact account，执行 `gitea admin user delete --username` 后读回 404 并删除 markers。
+  ownership marker 创建的 exact account；在 delete 前必须 fresh GET 到新的临时文件并 strict 验证 root object、
+  exact login 与 boolean false，随后立即执行 `gitea admin user delete --username`，再读回 404 并删除 markers。
+  Gitea API 没有 conditional account delete，因此 fresh GET 到 delete 之间仍存在不可消除的残余竞态；实现必须
+  将窗口压缩为紧邻的 validator + fixed delete argv，禁止缓存 readback 代替 fresh GET。
 - [ ] **AC-11 full readback**：live acceptance receipt 分别记录 source/installed Mac/installed VM/live account/
   credential/repository/protection/canary/rollback 层，包含 bootstrap/apply/canary/revoke/account-delete mutation
   counts；任一未执行项为 `NOT RUN`，任一失败零 fallback。
@@ -110,7 +118,9 @@ project id、routine username、canary Issue、required context 和 mutation max
 
 bootstrap 与 rollback shell 不在 argv/stdout 暴露 token。PAT revoke 固定 self-delete endpoint；account deletion
 使用官方 `gitea admin user delete --username`，只有显式 `delete` 且 ownership/readback 条件全满足才执行。
-没有 purge/通配符/任意账号参数。
+没有 purge/通配符/任意账号参数。bootstrap 新建账户 unsafe readback 的补偿删除也只使用已由 manifest/account
+spec 绑定且刚由本次调用创建的 exact username；成功补偿是 create=1/delete=1 的净状态收敛，不得表述为
+zero mutation。
 
 ## 风险与回滚约束
 

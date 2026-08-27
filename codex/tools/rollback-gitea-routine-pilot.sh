@@ -308,9 +308,20 @@ else
   }
   validate_non_admin_identity "$account_file" newemaint-routine-merger \
     'delete account read-back'
+  immediate_delete_file="$tmp_dir/account-immediate-pre-delete.json"
+  immediate_delete_status="$(curl --silent --show-error \
+    --output "$immediate_delete_file" --write-out '%{http_code}' \
+    "$GITEA_LOCAL_URL/api/v1/users/newemaint-routine-merger")" || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: immediate pre-delete account read-back failed' >&2
+    exit 2
+  }
+  [[ "$immediate_delete_status" == 200 ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: exact account is missing at immediate pre-delete read-back' >&2
+    exit 2
+  }
   # The mode 700 caller-owned temp directory intentionally receives stdout;
   # sudo is only for the Gitea database operation, not the redirection.
-  validate_non_admin_identity "$account_file" newemaint-routine-merger \
+  validate_non_admin_identity "$immediate_delete_file" newemaint-routine-merger \
     'immediate pre-delete account read-back'
   # shellcheck disable=SC2024
   sudo -n -u git "$GITEA_BIN" --config "$GITEA_CONFIG" admin user delete \

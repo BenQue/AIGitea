@@ -59,10 +59,9 @@ validate_owned_marker() {
   fi
 }
 
-validate_non_admin_identity() {
+identity_is_exact_non_admin() {
   local identity_path="$1"
   local expected_login="$2"
-  local identity_label="$3"
 
   jq -e --arg login "$expected_login" '
     type == "object"
@@ -70,11 +69,50 @@ validate_non_admin_identity() {
     and .login == $login
     and (.is_admin | type) == "boolean"
     and .is_admin == false
-  ' "$identity_path" >/dev/null || {
+  ' "$identity_path" >/dev/null
+}
+
+validate_non_admin_identity() {
+  local identity_path="$1"
+  local expected_login="$2"
+  local identity_label="$3"
+
+  identity_is_exact_non_admin "$identity_path" "$expected_login" || {
     printf 'BLOCKED_EXTERNAL: %s must be the exact non-admin service identity\n' \
       "$identity_label" >&2
     exit 2
   }
+}
+
+compensate_unsafe_created_account() {
+  local readback_reason="$1"
+  local compensation_status
+
+  printf 'BLOCKED_EXTERNAL: newly created account read-back is unsafe: %s\n' \
+    "$readback_reason" >&2
+  # The exact username was already bound to the manifest/account spec before
+  # creation. Compensation has no generic username or purge surface.
+  # shellcheck disable=SC2024
+  if ! sudo -n -u git "$GITEA_BIN" --config "$GITEA_CONFIG" admin user delete \
+    --username "$username" >"$tmp_dir/account-create-compensation-delete.log"; then
+    printf 'BLOCKED_EXTERNAL: compensation delete failed; manually verify and delete exact account %s before retry; no PAT, credential, token marker, or ownership marker was created\n' \
+      "$username" >&2
+    exit 2
+  fi
+  compensation_status="$(curl --silent --show-error --output \
+    "$tmp_dir/account-create-compensation-readback.json" --write-out '%{http_code}' \
+    "$GITEA_LOCAL_URL/api/v1/users/$username")" || {
+    printf 'BLOCKED_EXTERNAL: compensation delete was issued but fresh 404 confirmation failed; manually verify exact account %s before retry; no PAT, credential, token marker, or ownership marker was created\n' \
+      "$username" >&2
+    exit 2
+  }
+  [[ "$compensation_status" == 404 ]] || {
+    printf 'BLOCKED_EXTERNAL: compensation delete was issued but account read-back was not 404; manually verify exact account %s before retry; no PAT, credential, token marker, or ownership marker was created\n' \
+      "$username" >&2
+    exit 2
+  }
+  printf '%s\n' 'BLOCKED_EXTERNAL: unsafe newly created account was compensated (create=1, delete=1, final account absent); no PAT, credential, token marker, or ownership marker was created' >&2
+  exit 2
 }
 
 while (($#)); do
@@ -283,13 +321,11 @@ if [[ "$account_status" == 404 ]]; then
     --user-type bot >"$tmp_dir/account-create.log"
   account_mutation_count=1
   account_status="$(curl --silent --show-error --output "$identity_file" --write-out '%{http_code}' \
-    "$GITEA_LOCAL_URL/api/v1/users/$username")"
-  [[ "$account_status" == 200 ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: created account read-back failed' >&2
-    exit 2
-  }
-  validate_non_admin_identity "$identity_file" "$username" \
-    'created account read-back'
+    "$GITEA_LOCAL_URL/api/v1/users/$username")" || account_status=transport-error
+  [[ "$account_status" == 200 ]] || \
+    compensate_unsafe_created_account "HTTP $account_status"
+  identity_is_exact_non_admin "$identity_file" "$username" || \
+    compensate_unsafe_created_account 'identity schema/login/non-admin mismatch'
   install -m 600 /dev/null "$account_marker"
   printf 'issue=%s\nusername=%s\n' "$approval_issue" "$username" >"$account_marker"
 fi

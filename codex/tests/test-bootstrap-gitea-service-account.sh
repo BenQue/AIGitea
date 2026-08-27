@@ -32,6 +32,21 @@ cat >"$TMP/bin/gitea" <<'MOCK'
 set -euo pipefail
 printf '%s\n' "$*" >>"$MOCK_ROOT/gitea-argv.log"
 case "$*" in
+  *"admin user delete --username newemaint-routine-merger"*)
+    if [[ "${MOCK_COMPENSATION_DELETE_FAIL:-0}" == 1 ]]; then exit 3; fi
+    if [[ "${MOCK_COMPENSATION_DELETE_LEAVES_ACCOUNT:-0}" != 1 ]]; then
+      rm -f "$MOCK_ROOT/routine-account-present" \
+        "$MOCK_ROOT/routine-must-change-password-present"
+    fi
+    printf 'deleted one user\n'
+    ;;
+  *"admin user delete --username hsdb-agent"*)
+    if [[ "${MOCK_COMPENSATION_DELETE_FAIL:-0}" == 1 ]]; then exit 3; fi
+    if [[ "${MOCK_COMPENSATION_DELETE_LEAVES_ACCOUNT:-0}" != 1 ]]; then
+      rm -f "$MOCK_ROOT/account-present" "$MOCK_ROOT/must-change-password-present"
+    fi
+    printf 'deleted one user\n'
+    ;;
   *"admin user create"*"--username newemaint-routine-merger"*)
     touch "$MOCK_ROOT/routine-account-present"
     touch "$MOCK_ROOT/routine-must-change-password-present"
@@ -306,6 +321,126 @@ managed_routine_state() {
     shasum -a 256 "$managed_path"
   done
 }
+
+gitea_command_count() {
+  local pattern="$1"
+  grep -c -- "$pattern" "$TMP/gitea-argv.log" 2>/dev/null || true
+}
+
+new_account_root="$TMP/new-account-credentials"
+mkdir -p "$new_account_root/projects/newemaint"
+chmod 700 "$new_account_root" "$new_account_root/projects" \
+  "$new_account_root/projects/newemaint"
+
+new_account_tree_state() {
+  local path
+  while IFS= read -r path; do
+    printf '%s %s ' "${path#"$new_account_root"}" \
+      "$(stat -c '%a' "$path" 2>/dev/null || stat -f '%Lp' "$path")"
+    if [[ -f "$path" ]]; then shasum -a 256 "$path"; else printf '\n'; fi
+  done < <(find "$new_account_root" -mindepth 1 -print | LC_ALL=C sort)
+}
+
+assert_new_account_identity_compensated() {
+  local variant="$1"
+  local payload="$2"
+  local state_before
+  local create_before
+  local delete_before
+  local pat_before
+  rm -f "$TMP/routine-account-present" \
+    "$TMP/routine-must-change-password-present"
+  state_before="$(new_account_tree_state)"
+  create_before="$(gitea_command_count 'admin user create')"
+  delete_before="$(gitea_command_count 'admin user delete')"
+  pat_before="$(gitea_command_count 'generate-access-token')"
+  if MOCK_ACCOUNT_IDENTITY="$payload" \
+     AISOFT_CREDENTIAL_ROOT="$new_account_root" \
+     bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+      --manifest "$ROOT/codex/config/gitea-governance.json" \
+      --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+      --project-id newemaint \
+      --username newemaint-routine-merger \
+      --token-kind routine-merge-agent \
+      --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+      --platform-root "$ROOT" \
+      --credential-output "$new_account_root/projects/newemaint/routine-merge-agent.token" \
+      >"$TMP/new-account-$variant.out" \
+      2>"$TMP/new-account-$variant.err"; then
+    printf 'unsafe newly created identity unexpectedly succeeded: %s\n' \
+      "$variant" >&2
+    exit 1
+  fi
+  grep -Fq 'compensated (create=1, delete=1, final account absent)' \
+    "$TMP/new-account-$variant.err"
+  [[ "$(gitea_command_count 'admin user create')" == "$((create_before + 1))" ]]
+  [[ "$(gitea_command_count 'admin user delete')" == "$((delete_before + 1))" ]]
+  [[ "$(gitea_command_count 'generate-access-token')" == "$pat_before" ]]
+  [[ "$(new_account_tree_state)" == "$state_before" ]]
+  [[ ! -e "$TMP/routine-account-present" ]]
+}
+
+assert_new_account_identity_compensated missing \
+  '{"login":"newemaint-routine-merger"}'
+assert_new_account_identity_compensated string-false \
+  '{"login":"newemaint-routine-merger","is_admin":"false"}'
+assert_new_account_identity_compensated number \
+  '{"login":"newemaint-routine-merger","is_admin":0}'
+assert_new_account_identity_compensated list \
+  '{"login":"newemaint-routine-merger","is_admin":[]}'
+assert_new_account_identity_compensated site-admin \
+  '{"login":"newemaint-routine-merger","is_admin":true}'
+assert_new_account_identity_compensated wrong-login \
+  '{"login":"admin","is_admin":false}'
+assert_new_account_identity_compensated root-list '[]'
+
+assert_compensation_failure_blocks() {
+  local variant="$1"
+  local failure_variable="$2"
+  local state_before
+  local create_before
+  local delete_before
+  local pat_before
+  rm -f "$TMP/routine-account-present" \
+    "$TMP/routine-must-change-password-present"
+  state_before="$(new_account_tree_state)"
+  create_before="$(gitea_command_count 'admin user create')"
+  delete_before="$(gitea_command_count 'admin user delete')"
+  pat_before="$(gitea_command_count 'generate-access-token')"
+  if env MOCK_ACCOUNT_IDENTITY='{"login":"newemaint-routine-merger","is_admin":true}' \
+     "$failure_variable=1" AISOFT_CREDENTIAL_ROOT="$new_account_root" \
+     bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+      --manifest "$ROOT/codex/config/gitea-governance.json" \
+      --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+      --project-id newemaint \
+      --username newemaint-routine-merger \
+      --token-kind routine-merge-agent \
+      --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+      --platform-root "$ROOT" \
+      --credential-output "$new_account_root/projects/newemaint/routine-merge-agent.token" \
+      >"$TMP/new-account-$variant.out" \
+      2>"$TMP/new-account-$variant.err"; then
+    printf 'failed account compensation unexpectedly succeeded: %s\n' \
+      "$variant" >&2
+    exit 1
+  fi
+  grep -Fq 'manually verify' "$TMP/new-account-$variant.err"
+  [[ "$(gitea_command_count 'admin user create')" == "$((create_before + 1))" ]]
+  [[ "$(gitea_command_count 'admin user delete')" == "$((delete_before + 1))" ]]
+  [[ "$(gitea_command_count 'generate-access-token')" == "$pat_before" ]]
+  [[ "$(new_account_tree_state)" == "$state_before" ]]
+  [[ -e "$TMP/routine-account-present" ]]
+}
+
+assert_compensation_failure_blocks delete-failed \
+  MOCK_COMPENSATION_DELETE_FAIL
+rm -f "$TMP/routine-account-present" "$TMP/routine-must-change-password-present"
+assert_compensation_failure_blocks confirm-not-404 \
+  MOCK_COMPENSATION_DELETE_LEAVES_ACCOUNT
+rm -f "$TMP/routine-account-present" "$TMP/routine-must-change-password-present"
+
+# Restore the existing-account fixture for the zero-mutation identity matrix.
+touch "$TMP/routine-account-present"
 
 identity_gate_root="$TMP/identity-gate-credentials"
 mkdir -p "$identity_gate_root/projects/newemaint"
