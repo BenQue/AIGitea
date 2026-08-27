@@ -31,7 +31,7 @@ updated: 2026-08-27
 | T04 | #213 audit replay、security/full smoke、semantic/Controller preflight、verification 与 PR candidate | T03 | completed |
 | T05 | 独立复审 P1：repository/ACL/malformed/unknown 404 与 inventory schema/contradiction failing tests | T04 | completed |
 | T06 | account-missing exact collaborator inventory evidence 与 generic 404 fail-closed implementation | T05 | completed |
-| T07 | semantic contract 修订、全量回归、verification 与第二轮独立复审 candidate | T06 | pending |
+| T07 | semantic contract 修订、全量回归、verification 与第二轮独立复审 candidate | T06 | completed |
 
 ## Expected touch points
 
