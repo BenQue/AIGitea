@@ -67,6 +67,10 @@ install_versioned "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
   "$LIBEXEC_ROOT/git-credential-aisoft-host" 0755
 install_versioned "$ROOT/codex/tools/project-profile-migration.sh" \
   "$LIBEXEC_ROOT/project-profile-migration" 0755
+install_versioned "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  "$LIBEXEC_ROOT/bootstrap-gitea-service-account" 0755
+install_versioned "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
+  "$LIBEXEC_ROOT/rollback-gitea-routine-pilot" 0755
 remove_legacy_keychain_helper
 
 if [[ "$CHANGED" == 1 ]]; then

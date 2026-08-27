@@ -32,7 +32,7 @@ cat >"$TMP/bin/gitea" <<'MOCK'
 set -euo pipefail
 printf '%s\n' "$*" >>"$MOCK_ROOT/gitea-argv.log"
 case "$*" in
-  *"admin user create"*"--username hsdb-routine-merger"*)
+  *"admin user create"*"--username newemaint-routine-merger"*)
     touch "$MOCK_ROOT/routine-account-present"
     touch "$MOCK_ROOT/routine-must-change-password-present"
     printf 'generated password: do-not-log-this-password\n'
@@ -42,7 +42,7 @@ case "$*" in
     touch "$MOCK_ROOT/must-change-password-present"
     printf 'generated password: do-not-log-this-password\n'
     ;;
-  *"admin user must-change-password --unset hsdb-routine-merger"*)
+  *"admin user must-change-password --unset newemaint-routine-merger"*)
     rm -f "$MOCK_ROOT/routine-must-change-password-present"
     printf 'updated one user\n'
     ;;
@@ -50,7 +50,7 @@ case "$*" in
     rm -f "$MOCK_ROOT/must-change-password-present"
     printf 'updated one user\n'
     ;;
-  *"admin user generate-access-token"*"issue-208-routine-merge-agent"*)
+  *"admin user generate-access-token"*"issue-213-routine-merge-agent"*)
     printf 'sentinel-routine-token\n'
     ;;
   *"admin user generate-access-token"*)
@@ -65,7 +65,7 @@ cat >"$TMP/bin/curl" <<'MOCK'
 set -euo pipefail
 printf '%s\n' "$*" >>"$MOCK_ROOT/curl-argv.log"
 case "$*" in
-  *"/api/v1/users/hsdb-routine-merger"*)
+  *"/api/v1/users/newemaint-routine-merger"*)
     if [[ -f "$MOCK_ROOT/routine-account-present" ]]; then printf 200; else printf 404; fi
     ;;
   *"/api/v1/users/hsdb-agent"*)
@@ -75,20 +75,45 @@ case "$*" in
     read -r auth
     if [[ "$auth" == *sentinel-routine-token* ]]; then
       [[ ! -e "$MOCK_ROOT/routine-must-change-password-present" ]]
-      printf '{"login":"hsdb-routine-merger","is_admin":false}\n'
+      printf '{"login":"newemaint-routine-merger","is_admin":false}\n'
     else
       [[ "$auth" == *sentinel-generated-token* ]]
       [[ ! -e "$MOCK_ROOT/must-change-password-present" ]]
       printf '{"login":"hsdb-agent","is_admin":false}\n'
     fi
     ;;
+  *"/api/v1/notifications"*)
+    read -r auth
+    [[ "$auth" == *sentinel-routine-token* ]]
+    output=''
+    while (($#)); do
+      if [[ "$1" == --output ]]; then output="$2"; shift 2; else shift; fi
+    done
+    [[ -n "$output" ]]
+    printf '{"message":"token does not have required scope, token scope=%s"}\n' \
+      "${MOCK_ROUTINE_SCOPE:-write:repository}" >"$output"
+    printf 403
+    ;;
   *) exit 2 ;;
 esac
 MOCK
 
 chmod +x "$TMP/bin/sudo" "$TMP/bin/gitea" "$TMP/bin/curl"
+
+cat >"$TMP/bin/git" <<'MOCK'
+#!/usr/bin/env bash
+set -euo pipefail
+case "$*" in
+  *"merge-base --is-ancestor"*) exit 0 ;;
+  *"show "*) cat "$MOCK_GOVERNANCE_MANIFEST" ;;
+  *) exec /usr/bin/git "$@" ;;
+esac
+MOCK
+chmod +x "$TMP/bin/git"
 export MOCK_ROOT="$TMP"
 export MOCK_GITEA_CONFIG="$TMP/protected-config/gitea.ini"
+export MOCK_GOVERNANCE_MANIFEST="$ROOT/codex/config/gitea-governance.json"
+export MOCK_ROUTINE_SCOPE=write:repository
 export PATH="$TMP/bin:$PATH"
 export AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-35
 export AISOFT_CREDENTIAL_ROOT="$TMP/credentials"
@@ -174,28 +199,67 @@ if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
 fi
 grep -Fq 'not declared' "$TMP/negative.err"
 
-export AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-208
-routine_output="$TMP/credentials/projects/hsdb/routine-merge-agent.token"
+export AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-213
+routine_output="$TMP/credentials/projects/newemaint/routine-merge-agent.token"
 routine_result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
   --access-manifest "$ROOT/codex/config/host-access-broker.json" \
-  --project-id hsdb \
-  --username hsdb-routine-merger \
+  --project-id newemaint \
+  --username newemaint-routine-merger \
   --token-kind routine-merge-agent \
+  --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  --platform-root "$ROOT" \
   --credential-output "$routine_output")"
 [[ "$(jq -r '.result' <<<"$routine_result")" == created ]]
+[[ "$(jq -r '.approval_issue' <<<"$routine_result")" == 213 ]]
+[[ "$(jq -r '.observed_scopes' <<<"$routine_result")" == write:repository ]]
+[[ "$(jq -r '.account_mutation_count' <<<"$routine_result")" == 1 ]]
+[[ "$(jq -r '.pat_mutation_count' <<<"$routine_result")" == 1 ]]
 [[ "$(cat "$routine_output")" == sentinel-routine-token ]]
 [[ "$(stat -c '%a' "$routine_output" 2>/dev/null || stat -f '%Lp' "$routine_output")" == 600 ]]
-[[ -f "$TMP/credentials/projects/hsdb/hsdb-routine-merger.account-created-by-issue-208" ]]
-[[ -f "$routine_output-created-by-issue-208" ]]
-grep -Fq 'issue-208-routine-merge-agent' "$TMP/gitea-argv.log"
+[[ -f "$TMP/credentials/projects/newemaint/newemaint-routine-merger.account-created-by-issue-213" ]]
+[[ -f "$routine_output-created-by-issue-213" ]]
+grep -Fq 'issue-213-routine-merge-agent' "$TMP/gitea-argv.log"
+
+routine_result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  --manifest "$ROOT/codex/config/gitea-governance.json" \
+  --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+  --project-id newemaint \
+  --username newemaint-routine-merger \
+  --token-kind routine-merge-agent \
+  --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  --platform-root "$ROOT" \
+  --credential-output "$routine_output")"
+[[ "$(jq -r '.result' <<<"$routine_result")" == no-op ]]
+[[ "$(jq -r '.account_mutation_count' <<<"$routine_result")" == 0 ]]
+[[ "$(jq -r '.pat_mutation_count' <<<"$routine_result")" == 0 ]]
+[[ "$(grep -c 'issue-213-routine-merge-agent' "$TMP/gitea-argv.log")" == 1 ]]
+
+export MOCK_ROUTINE_SCOPE=read:repository
+if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  --manifest "$ROOT/codex/config/gitea-governance.json" \
+  --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+  --project-id newemaint \
+  --username newemaint-routine-merger \
+  --token-kind routine-merge-agent \
+  --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  --platform-root "$ROOT" \
+  --credential-output "$routine_output" \
+  >"$TMP/routine-scope-negative.out" 2>"$TMP/routine-scope-negative.err"; then
+  printf '%s\n' 'unsafe routine scope unexpectedly succeeded' >&2
+  exit 1
+fi
+grep -Fq 'routine PAT scope must equal write:repository' "$TMP/routine-scope-negative.err"
+export MOCK_ROUTINE_SCOPE=write:repository
 
 if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
   --access-manifest "$ROOT/codex/config/host-access-broker.json" \
   --project-id localwms \
-  --username hsdb-routine-merger \
+  --username newemaint-routine-merger \
   --token-kind routine-merge-agent \
+  --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  --platform-root "$ROOT" \
   --credential-output "$TMP/credentials/projects/localwms/routine-merge-agent.token" \
   >"$TMP/routine-binding-negative.out" 2>"$TMP/routine-binding-negative.err"; then
   printf '%s\n' 'cross-project routine merger binding unexpectedly succeeded' >&2

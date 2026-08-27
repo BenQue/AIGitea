@@ -9,10 +9,12 @@ project_id=''
 username=''
 token_kind=''
 credential_output=''
+merged_sha=''
+platform_root=''
 
 usage() {
   printf '%s\n' \
-    "usage: $0 --manifest FILE [--access-manifest FILE --project-id ID] --username NAME --token-kind manager-audit|manager-mutation|project-agent|routine-merge-agent --credential-output FILE" >&2
+    "usage: $0 --manifest FILE [--access-manifest FILE --project-id ID --merged-sha SHA --platform-root DIR] --username NAME --token-kind manager-audit|manager-mutation|project-agent|routine-merge-agent --credential-output FILE" >&2
   exit 2
 }
 
@@ -24,6 +26,8 @@ while (($#)); do
     --username) username="${2:-}"; shift 2 ;;
     --token-kind) token_kind="${2:-}"; shift 2 ;;
     --credential-output) credential_output="${2:-}"; shift 2 ;;
+    --merged-sha) merged_sha="${2:-}"; shift 2 ;;
+    --platform-root) platform_root="${2:-}"; shift 2 ;;
     *) usage ;;
   esac
 done
@@ -31,14 +35,6 @@ done
 [[ -n "$manifest" && -n "$username" && -n "$token_kind" && -n "$credential_output" ]] || usage
 approval_issue=35
 required_mode=approved-issue-35
-if [[ "$token_kind" == routine-merge-agent ]]; then
-  approval_issue=208
-  required_mode=approved-issue-208
-fi
-[[ "${AISOFT_ACCOUNT_BOOTSTRAP_MODE:-}" == "$required_mode" ]] || {
-  printf 'BLOCKED_EXTERNAL: AISOFT_ACCOUNT_BOOTSTRAP_MODE=%s is required\n' "$required_mode" >&2
-  exit 2
-}
 
 for command in python3 jq curl sudo install mktemp; do
   command -v "$command" >/dev/null || {
@@ -51,7 +47,11 @@ GITEA_BIN="${GITEA_BIN:-/usr/local/bin/gitea}"
 GITEA_CONFIG="${GITEA_CONFIG:-/etc/gitea/app.ini}"
 GITEA_LOCAL_URL="${GITEA_LOCAL_URL:-http://127.0.0.1:3000}"
 credential_root="${AISOFT_CREDENTIAL_ROOT:-/home/benque/.config/aisoft/credentials}"
-export PYTHONPATH="$ROOT/codex/runtime${PYTHONPATH:+:$PYTHONPATH}"
+if [[ -d "$ROOT/codex/runtime" ]]; then
+  export PYTHONPATH="$ROOT/codex/runtime${PYTHONPATH:+:$PYTHONPATH}"
+else
+  export PYTHONPATH="/usr/local/lib/aisoft-host-access${PYTHONPATH:+:$PYTHONPATH}"
+fi
 
 [[ -x "$GITEA_BIN" ]] || {
   printf '%s\n' 'BLOCKED_EXTERNAL: Gitea binary is unavailable to the caller' >&2
@@ -76,9 +76,11 @@ chmod 700 "$credential_root"
 credential_root="$(cd -- "$credential_root" && pwd -P)"
 expected_basename="$username-$token_kind.token"
 marker_root="$credential_root"
+bound_repository=''
 if [[ "$token_kind" == routine-merge-agent ]]; then
-  [[ -n "$access_manifest" && -n "$project_id" ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: routine merger requires --access-manifest and --project-id' >&2
+  [[ -n "$access_manifest" && -n "$project_id" && -n "$merged_sha" &&
+     -n "$platform_root" ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: routine merger requires access/project/merged-source binding' >&2
     exit 2
   }
   [[ "$project_id" =~ ^[A-Za-z0-9._-]+$ ]] || {
@@ -88,22 +90,48 @@ if [[ "$token_kind" == routine-merge-agent ]]; then
   python3 -m aisoft_host_access.cli \
     --access-manifest "$access_manifest" \
     --governance-manifest "$manifest" validate >/dev/null || exit 2
-  bound_identity="$(jq -er --arg project_id "$project_id" '
-    [.projects[] | select(.project_id == $project_id) | .routine_merge_agent]
-    | if length == 1 and .[0] != null then .[0] else error("missing binding") end
+  binding="$(jq -cer --arg project_id "$project_id" '
+    [.projects[] | select(.project_id == $project_id)]
+    | if length == 1 and .[0].routine_merge_agent != null
+      then {identity:.[0].routine_merge_agent,repository:.[0].repository}
+      else error("missing binding") end
   ' "$access_manifest")" || {
     printf '%s\n' 'BLOCKED_EXTERNAL: project has no exact routine merger binding' >&2
     exit 2
   }
+  bound_identity="$(jq -r '.identity' <<<"$binding")"
+  bound_repository="$(jq -r '.repository' <<<"$binding")"
   [[ "$bound_identity" == "$username" ]] || {
     printf '%s\n' 'BLOCKED_EXTERNAL: routine merger identity does not match project binding' >&2
     exit 2
   }
+  pilot="$(jq -cer --arg repository "$bound_repository" --arg project_id "$project_id" \
+    --arg username "$username" '
+    [.repositories[] | select(.name == $repository)]
+    | if length == 1
+         and .[0].routine_auto_merge_enabled == true
+         and .[0].routine_merge_agent == $username
+         and .[0].routine_live_pilot.project_id == $project_id
+      then .[0].routine_live_pilot
+      else error("not the enabled routine live pilot") end
+  ' "$manifest")" || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: project is not the exact enabled routine live pilot' >&2
+    exit 2
+  }
+  approval_issue="$(jq -r '.rollout_issue' <<<"$pilot")"
+  required_mode="approved-issue-$approval_issue"
+  python3 -m aisoft_gitea_governance.cli --manifest "$manifest" verify-merged \
+    --repository "$bound_repository" --issue "$approval_issue" \
+    --merged-sha "$merged_sha" --platform-root "$platform_root" >/dev/null || exit 2
   mkdir -p "$credential_root/projects/$project_id"
   chmod 700 "$credential_root/projects" "$credential_root/projects/$project_id"
   marker_root="$(cd -- "$credential_root/projects/$project_id" && pwd -P)"
   expected_basename=routine-merge-agent.token
 fi
+[[ "${AISOFT_ACCOUNT_BOOTSTRAP_MODE:-}" == "$required_mode" ]] || {
+  printf 'BLOCKED_EXTERNAL: AISOFT_ACCOUNT_BOOTSTRAP_MODE=%s is required\n' "$required_mode" >&2
+  exit 2
+}
 output_parent="$(cd -- "$(dirname -- "$credential_output")" && pwd -P)"
 [[ "$output_parent" == "$credential_root" && "$(basename -- "$credential_output")" == "$expected_basename" ]] || {
   if [[ "$token_kind" == routine-merge-agent && "$output_parent" == "$marker_root" &&
@@ -142,6 +170,8 @@ tmp_dir="$(mktemp -d)"
 chmod 700 "$tmp_dir"
 trap 'rm -rf -- "$tmp_dir"' EXIT
 umask 077
+account_mutation_count=0
+pat_mutation_count=0
 
 case "$account_status" in
   200)
@@ -165,6 +195,7 @@ case "$account_status" in
       --user-type bot >"$tmp_dir/account-create.log"
     install -m 600 /dev/null "$account_marker"
     printf 'issue=%s\nusername=%s\n' "$approval_issue" "$username" >"$account_marker"
+    account_mutation_count=1
     account_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
       "$GITEA_LOCAL_URL/api/v1/users/$username")"
     [[ "$account_status" == 200 ]] || {
@@ -242,6 +273,7 @@ else
   install -m 600 /dev/null "$token_marker"
   printf 'issue=%s\nusername=%s\ntoken_kind=%s\n' "$approval_issue" "$username" "$token_kind" >"$token_marker"
   result=created
+  pat_mutation_count=1
 fi
 
 identity_file="$tmp_dir/identity.json"
@@ -257,5 +289,41 @@ unset token
   exit 2
 }
 
+observed_scopes='not-probed'
+if [[ "$token_kind" == routine-merge-agent ]]; then
+  scope_file="$tmp_dir/scope.json"
+  token="$(tr -d '\r\n' <"$credential_output")"
+  scope_status="$(printf 'header = "Authorization: token %s"\n' "$token" |
+    curl --config - --silent --show-error --output "$scope_file" \
+      --write-out '%{http_code}' "$GITEA_LOCAL_URL/api/v1/notifications")" || {
+    unset token
+    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope read-back failed' >&2
+    exit 2
+  }
+  unset token
+  [[ "$scope_status" == 403 ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope probe did not fail closed' >&2
+    exit 2
+  }
+  scope_message="$(jq -er '.message' "$scope_file")" || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope evidence is unavailable' >&2
+    exit 2
+  }
+  observed_scopes="$(sed -nE 's/.*token scope=([A-Za-z0-9:,_-]+).*/\1/p' <<<"$scope_message")"
+  [[ "$scopes" == write:repository && "$observed_scopes" == "$scopes" ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope must equal write:repository' >&2
+    exit 2
+  }
+fi
+
 jq -cn --arg username "$username" --arg token_kind "$token_kind" --arg result "$result" \
-  '{username:$username,token_kind:$token_kind,result:$result,site_admin:false,credential_mode:"600"}'
+  --arg project_id "$project_id" --arg repository "$bound_repository" \
+  --arg scopes "$observed_scopes" --argjson issue "$approval_issue" \
+  --argjson account_mutations "$account_mutation_count" \
+  --argjson pat_mutations "$pat_mutation_count" \
+  '{username:$username,token_kind:$token_kind,result:$result,site_admin:false,
+    credential_mode:"600",approval_issue:$issue,
+    project_id:($project_id | if length>0 then . else null end),
+    repository:($repository | if length>0 then . else null end),observed_scopes:$scopes,
+    bootstrap_operation_count:1,account_mutation_count:$account_mutations,
+    pat_mutation_count:$pat_mutations}'

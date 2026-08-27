@@ -65,6 +65,7 @@ for script in \
   "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tools/gitea-governance.sh" \
   "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
   "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
   "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
   "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
@@ -85,6 +86,7 @@ for script in \
   "$ROOT/codex/tests/test-apply-classification-labels.sh" \
   "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
+  "$ROOT/codex/tests/test-rollback-gitea-routine-pilot.sh" \
   "$ROOT/codex/tests/test-sync-gitea-service-policy.sh" \
   "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
   "$ROOT/codex/tests/test-cleanup-merged.sh" \
@@ -116,6 +118,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tools/gitea-governance.sh" \
     "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+    "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
     "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
     "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
     "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
@@ -137,6 +140,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-change-merge-range.sh" \
     "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
+    "$ROOT/codex/tests/test-rollback-gitea-routine-pilot.sh" \
     "$ROOT/codex/tests/test-sync-gitea-service-policy.sh" \
     "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
     "$ROOT/codex/tests/test-cleanup-merged.sh" \
@@ -182,6 +186,7 @@ bash "$ROOT/codex/tests/test-mark-completed-issues.sh"
 bash "$ROOT/codex/tests/test-apply-classification-labels.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh"
 bash "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh"
+bash "$ROOT/codex/tests/test-rollback-gitea-routine-pilot.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-service-policy.sh"
 bash "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh"
 bash "$ROOT/codex/tests/test-cleanup-merged.sh"
