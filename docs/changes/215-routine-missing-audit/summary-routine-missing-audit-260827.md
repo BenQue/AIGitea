@@ -50,14 +50,15 @@ exact GET 同样返回 404/no-collaborator，却被送入只接受 200 permissio
 
 ## 初步方案与建议
 
-先读取并固定 routine account state。只有 account 明确为 `missing`，且某个 exact cross-project
-collaborator permission GET 返回 404 时，才把该 repository 投影为结构化 `state: absent` evidence，
-并保持整个 routine audit 为 `GAP`。所有 200 response 继续经过 exact schema/permission parser；
-account present 时的 404、401/403/5xx、transport 和 malformed 继续 fail closed。
+先读取并固定 routine account state。account 明确为 `missing` 时，不再把 permission endpoint 的 generic
+404 当成 no-collaborator；改用 exact repository collaborator inventory 的严格 200/paginated response，
+只有 exact routine login 缺席时才投影结构化 `state: absent` evidence，并保持整个 routine audit 为
+`GAP`。repository/ACL-masked/malformed/unknown 404 全部 fail closed。account present 时仍使用 exact
+permission schema；cross-project 404、401/403/5xx、transport 和 malformed 继续 fail closed。
 
 ## 风险
 
-- 把任意 404 都解释为 absent 会掩盖 account present 时的权限读回异常。
+- 把任意 404 都解释为 absent 会掩盖 repository missing、ACL masking 或异常错误响应。
 - 放宽 200 permission schema 会吞掉 Gitea schema drift 或异常权限值。
 - 改变 target repository Write、routine identity/scope、merge allowlist 或 push/force 门会削弱 #213。
 - 把 account missing 状态写成 `PASS` 会错误放行后续 live apply。

@@ -29,24 +29,26 @@ updated: 2026-08-27
 
 ## Acceptance criteria
 
-- [ ] **AC-1 missing + exact 404**：routine account read 明确得到 404/missing 后，cross-project exact
-  collaborator permission GET 的 404/no-collaborator 投影为结构化
+- [ ] **AC-1 missing + exact absent inventory**：routine account read 明确得到 404/missing 后，对 target 与
+  cross-project repository 读取 exact `GET .../collaborators?limit=50&page=N`。只有 strict 200 array 的全部
+  entry 均含 non-empty string `login`、bounded pagination 完成且 exact routine login 缺席时，才投影结构化
   `{repository, state: absent, permission: null}` evidence；top-level 与 routine status 保持 `GAP`，mutation=0。
 - [ ] **AC-2 精确 ordering**：account state 必须先于 cross-project missing 判定建立；只有
   `account_state=missing` 能使用 AC-1。account present 时 cross-project 404 继续 `RESPONSE_SCHEMA_INVALID`。
 - [ ] **AC-3 strict 200 schema**：无论 account missing 或 present，HTTP 200 只能接受 exact
   `{permission: string}`，且 permission 只允许 `read|write|admin|owner`。malformed root、missing/extra field、
   non-string、unknown value 继续 `RESPONSE_SCHEMA_INVALID`。
-- [ ] **AC-4 auth/transport fail closed**：401、403、5xx 与 transport failure 不得降级为 missing，继续返回
+- [ ] **AC-4 ambiguous 404/auth/transport fail closed**：repository-missing、ACL-masked、malformed/unknown
+  body 的 inventory 404 均为 `HTTP_404`，不得降级为 absent；401、403、5xx 与 transport failure 继续返回
   原有稳定 `HTTP_401`、`HTTP_403`、`HTTP_ERROR`、`TRANSPORT_ERROR`。
 - [ ] **AC-5 present account permission contract**：account present 时 cross-project exact `read` 是安全 evidence；
   `write|admin|owner` 继续写入 `cross_project_write_violations` 并使 audit 为 `GAP`。
 - [ ] **AC-6 target repository 门不回归**：target repository permission 仍必须 exact `write` 才能收敛；missing
   为 `GAP`，malformed 为 `RESPONSE_SCHEMA_INVALID`。routine identity 必须 exact non-admin，PAT scope exact，
   protection 必须 human+routine merge allowlist、required context exact、push/force denied。
-- [ ] **AC-7 readable evidence**：routine section 新增完整 `cross_project_permissions`，逐个 manifest repository
-  返回 `present/read|write|admin|owner` 或 AC-1 的 `absent/null`；该 inventory 与 violation list 一致，不泄露
-  token/path。
+- [ ] **AC-7 readable evidence**：routine section 新增完整 `cross_project_permissions`。account present 时逐个
+  repository 返回 strict permission `present/read|write|admin|owner`；account missing 时只接受 AC-1 的 exact
+  collaborator inventory absence 并返回 `absent/null`。该 inventory 与 violation list 一致，不泄露 token/path。
 - [ ] **AC-8 regression**：补正向、负向、ordering tests，重放 #213 host audit、routine merge、governance、
   bootstrap/rollback/installer 与 full smoke/security tests；所有未运行项照实记录。
 - [ ] **AC-9 mutation boundary**：本 Change 全程 live mutation=0；不创建或修改 account、PAT、credential、
@@ -58,8 +60,10 @@ updated: 2026-08-27
 `cross_project_write_violations` 保留，不改名、不删除。disabled repository 返回空 inventory；enabled
 repository 为每个其他 canonical repository 返回一项，顺序与 governance manifest 一致。
 
-兼容分流只由两项 evidence 合取：routine account 的先行 exact 404/missing，以及当前 cross-project exact
-permission GET 的 404。任何一项不成立都不进入 absent 路径。
+兼容分流只由两项 evidence 合取：routine account 的先行 exact 404/missing，以及 target/cross-project exact
+collaborator inventory 的 strict 200 bounded list 中 exact login 缺席。permission endpoint 的 generic 404 body
+不能区分 no-collaborator、repository missing 或 ACL masking，不再作为 absent evidence。任何 inventory 404、
+malformed entry、超出 bounded pagination 或与 missing account 矛盾的 exact login 均 fail closed。
 
 ## 风险与回滚约束
 

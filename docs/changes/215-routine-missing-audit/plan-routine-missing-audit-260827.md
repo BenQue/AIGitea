@@ -29,6 +29,9 @@ updated: 2026-08-27
 | T02 | missing+404、strict schema/auth/transport、present-account 与 ordering failing tests | T01 | completed |
 | T03 | 最小 host-access audit compatibility implementation 与 targeted regression | T02 | completed |
 | T04 | #213 audit replay、security/full smoke、semantic/Controller preflight、verification 与 PR candidate | T03 | completed |
+| T05 | 独立复审 P1：repository/ACL/malformed/unknown 404 与 inventory schema/contradiction failing tests | T04 | completed |
+| T06 | account-missing exact collaborator inventory evidence 与 generic 404 fail-closed implementation | T05 | completed |
+| T07 | semantic contract 修订、全量回归、verification 与第二轮独立复审 candidate | T06 | pending |
 
 ## Expected touch points
 
@@ -36,6 +39,9 @@ updated: 2026-08-27
 - T02：`codex/runtime/tests/test_host_access.py`。
 - T03：`codex/runtime/aisoft_host_access/broker.py`。
 - T04：本 Issue verification/plan/summary status；除必要 source/test/docs 外不扩范围。
+- T05：`codex/runtime/tests/test_host_access.py` review negatives 与 ordering/call inventory。
+- T06：`codex/runtime/aisoft_host_access/broker.py` bounded collaborator inventory helper/branch。
+- T07：本 Issue summary/spec/plan/verification 与全量本地闸门；不触达 live/network。
 
 ## 数据库迁移
 
@@ -45,8 +51,8 @@ updated: 2026-08-27
 
 | Acceptance criterion | Verification command or review |
 |---|---|
-| AC-1、AC-2、AC-7 | `test_host_access.py` missing-account 404 + ordering + inventory assertions；canonical read-only audit replay |
-| AC-3、AC-4 | 200 malformed/extra/non-string/unknown 与 401/403/5xx/transport parameterized negatives |
+| AC-1、AC-2、AC-7 | `test_host_access.py` missing-account exact 200 collaborator inventory + ordering/call assertions；generic 404 zero-absent negatives |
+| AC-3、AC-4 | 200 permission schema、inventory schema、repository/ACL/malformed/unknown 404 与 401/403/5xx/transport parameterized negatives |
 | AC-5、AC-6 | present read/write/admin/owner；target Write/missing/schema；identity/scope/protection existing suites |
 | AC-8 | targeted Python、routine/governance security suites、shell broker/bootstrap/rollback/install suites、full smoke |
 | AC-9 | transport method/call inventory、live audit read-only receipt、diff review、Controller manual preflight |
@@ -58,6 +64,7 @@ updated: 2026-08-27
 3. T03 只在 account 明确 missing + exact 404 分支投影 absent evidence；保持 200 strict parser 与全部 hard gates。
 4. T04 运行 targeted/security/shell/full smoke、semantic audit 与 Controller preflight；如实更新 verification。
 5. 停在 `AWAITING_PR_CONFIRMATION`，输出唯一 manual PR title/body；未经确认不 push/create PR。
+6. 独立复审 P1 后，在同一 branch 增加 T05/T06；T07 重跑完整闸门并停在第二轮独立复审，不恢复 PR 提交请求。
 
 ## 部署与回滚
 
