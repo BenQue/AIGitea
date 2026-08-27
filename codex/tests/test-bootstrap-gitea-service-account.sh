@@ -175,6 +175,7 @@ unauthorized_mode_before="$(stat -c '%a' "$unauthorized_root" 2>/dev/null || sta
 unauthorized_state_before="$(shasum -a 256 "$unauthorized_root/state")"
 gitea_count_before="$(line_count "$TMP/gitea-argv.log")"
 curl_count_before="$(line_count "$TMP/curl-argv.log")"
+sudo_config_count_before="$(line_count "$TMP/sudo-config-check.log")"
 if AISOFT_ACCOUNT_BOOTSTRAP_MODE=not-authorized \
    AISOFT_CREDENTIAL_ROOT="$unauthorized_root" \
    bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
@@ -192,6 +193,7 @@ grep -Fq 'AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-35 is required' "$TMP/una
 [[ "$(find "$unauthorized_root" -mindepth 1 -maxdepth 1 -print | wc -l | tr -d ' ')" == 1 ]]
 [[ "$(line_count "$TMP/gitea-argv.log")" == "$gitea_count_before" ]]
 [[ "$(line_count "$TMP/curl-argv.log")" == "$curl_count_before" ]]
+[[ "$(line_count "$TMP/sudo-config-check.log")" == "$sudo_config_count_before" ]]
 
 output="$TMP/credentials/hsdb-agent-project-agent.token"
 result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
