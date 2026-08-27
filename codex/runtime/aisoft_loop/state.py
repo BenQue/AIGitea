@@ -23,6 +23,8 @@ class LockUnavailable(RuntimeError):
 
 class TerminalState(str, Enum):
     CONTINUE = "CONTINUE"
+    AWAITING_PR_CONFIRMATION = "AWAITING_PR_CONFIRMATION"
+    AUTO_MERGED = "AUTO_MERGED"
     READY_FOR_REVIEW = "READY_FOR_REVIEW"
     NEEDS_HUMAN_DECISION = "NEEDS_HUMAN_DECISION"
     BLOCKED_EXTERNAL = "BLOCKED_EXTERNAL"
@@ -208,6 +210,36 @@ def default_state_root() -> Path:
     if xdg_state:
         return Path(xdg_state) / "aisoft-loop"
     return Path.home() / ".local" / "state" / "aisoft-loop"
+
+
+def confirm_pr_submission(
+    store: StateStore,
+    issue_number: int,
+    branch: str,
+    policy: str,
+) -> dict[str, object]:
+    from .routine_merge import authorization_marker
+
+    state = store.load(issue_number)
+    if state.get("stage") != "awaiting_pr_confirmation":
+        raise StateError("Issue is not awaiting PR confirmation")
+    if state.get("issue") != issue_number or state.get("branch") != branch:
+        raise StateError("confirmation must bind the exact Issue and branch")
+    if policy not in {"manual", "routine-auto"}:
+        raise StateError("merge policy must be manual or routine-auto")
+    if policy == "routine-auto" and state.get("routine_eligible") is not True:
+        raise StateError("routine-auto policy is not eligible for this candidate")
+    state.update({
+        "terminal": TerminalState.CONTINUE.value,
+        "stage": "pr_confirmed",
+        "merge_policy": policy,
+        "submit_policy_confirmation": authorization_marker(
+            issue_number, branch, policy
+        ),
+    })
+    state.pop("message", None)
+    store.save(issue_number, state)
+    return state
 
 
 def _reject_sensitive(value: object, path: str = "state") -> None:

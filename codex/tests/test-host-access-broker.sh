@@ -13,14 +13,14 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 10 and
-  .operation_count == 30 and
-  .merge_operation_count == 0
+  .operation_count == 31 and
+  .merge_operation_count == 1
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 30) and
+  ([.operations[].name] | length == 31) and
   all(.operations[];
-    (.name | contains("merge") | not) and
+    ((.name | contains("merge") | not) or .name == "gitea.pull.merge.routine") and
     (.name | contains("shell") | not) and
     (.name | contains("url") | not)) and
   .human_merge_identity == "admin" and
@@ -30,10 +30,16 @@ jq -e '
   .identity_bindings.manager_mutation.credential_kind == "protected-file" and
   .identity_bindings.project_agent.account_source == "manifest-project-agent" and
   .identity_bindings.project_agent.credential_kind == "protected-file" and
+  .identity_bindings.routine_merge_agent.account_source == "manifest-routine-merge-agent" and
+  .identity_bindings.routine_merge_agent.relative_path_template ==
+    "projects/{project_id}/routine-merge-agent.token" and
   .mac_host.credential_directory_mode == "700" and
   .mac_host.credential_file_mode == "600" and
   ([.operations[] | select(.name == "gitea.issue.create")][0].arguments == ["title", "body"]) and
   ([.operations[] | select(.name == "gitea.pull.create")][0].arguments == ["issue", "title", "body"]) and
+  ([.operations[] | select(.name == "gitea.pull.merge.routine")][0]
+    == {"name":"gitea.pull.merge.routine","identity_route":"routine-merge-agent",
+        "mutating":true,"arguments":["number","sha"]}) and
   ([.operations[] | select(.name == "gitea.commit.status.read")][0].arguments == ["sha"]) and
   ([.operations[] | select(.name == "git.push.change")][0].arguments == ["branch"]) and
   ([.operations[] | select(.name == "host.access.audit")][0].arguments == []) and

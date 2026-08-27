@@ -1,6 +1,6 @@
 ---
 name: gitea-development-loop
-description: Drive a contract-ready Gitea Issue through a bounded implement-verify-repair loop until it is ready for final human review or must escalate. Use after approved for small Issues, production complex Issues with complete spec/plan, or development complex Issues with measurable Issue acceptance criteria; handle ordinary test and CI failures autonomously, but never change the contract, merge, or deploy.
+description: Drive a contract-ready Gitea Issue through a bounded implement-verify-repair loop until its final-PR candidate is ready or it must escalate. Use after approved for small Issues, production complex Issues with complete spec/plan, or development complex Issues with measurable Issue acceptance criteria; handle ordinary test and CI failures autonomously, but never change the contract, choose merge policy, merge, or deploy.
 ---
 
 # Run a Gitea development loop
@@ -35,7 +35,12 @@ NEXT: reclassify as complex and create spec/plan
 11. Stop and return `NEEDS_HUMAN_DECISION` for contract conflicts, scope expansion, destructive migration, new security/permission/architecture decisions, or direct production changes.
 12. Return `BLOCKED_EXTERNAL` for missing credentials, unavailable required services, network barriers, or external-team dependencies.
 13. Return `FAILED_LIMIT` when the controller reports the retry, time, token, or iteration limit reached. Treat three consecutive attempts with the same root cause as an escalation.
-14. Return `READY_FOR_REVIEW` only when every acceptance criterion is accounted for and all assigned local plus PR CI checks pass.
+14. Provider completion only means a PR candidate is locally ready. The Controller selects `manual|routine-auto`,
+    generates the policy-specific confirmation handoff and enters `AWAITING_PR_CONFIRMATION`; the provider neither
+    chooses policy nor receives merge credentials.
+15. Return `READY_FOR_REVIEW` only for the manual path after every acceptance criterion is accounted for and all
+    assigned local plus PR CI checks pass. Routine success is the Controller's `AUTO_MERGED` receipt after the final
+    head hard gates; it is never a provider return value.
 
 End every iteration with this structure:
 
@@ -51,4 +56,4 @@ NEXT:
 HUMAN_DECISION:
 ```
 
-Never rewrite the accepted contract, hide failures, push, merge a PR, or deploy.
+Never rewrite the accepted contract, hide failures, push, merge a PR, receive the routine merger credential, or deploy.

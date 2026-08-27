@@ -18,6 +18,11 @@
       "credential_kind": "protected-file",
       "relative_path_template": "projects/{project_id}/project-agent.token",
       "account_source": "manifest-project-agent"
+    },
+    "routine_merge_agent": {
+      "credential_kind": "protected-file",
+      "relative_path_template": "projects/{project_id}/routine-merge-agent.token",
+      "account_source": "manifest-routine-merge-agent"
     }
   },
   "mac_host": {
@@ -130,6 +135,15 @@
         "issue",
         "title",
         "body"
+      ]
+    },
+    {
+      "name": "gitea.pull.merge.routine",
+      "identity_route": "routine-merge-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "sha"
       ]
     },
     {
@@ -277,6 +291,7 @@
       "project_id": "aisoft-platform",
       "repository": "aisoft-platform",
       "project_agent": "aisoft-platform-agent",
+      "routine_merge_agent": null,
       "mac_checkout": "/Users/benque/MyDocs/AISoftPlatform",
       "vm_profile": {
         "name": "aisoft-platform",
@@ -290,6 +305,7 @@
       "project_id": "hsdb",
       "repository": "HSDB",
       "project_agent": "hsdb-agent",
+      "routine_merge_agent": "hsdb-routine-merger",
       "mac_checkout": "/Users/benque/Projects/HSDB",
       "vm_profile": {
         "name": "hsdb",
@@ -303,6 +319,7 @@
       "project_id": "localwms",
       "repository": "LocalWMS",
       "project_agent": "localwms-agent",
+      "routine_merge_agent": "localwms-routine-merger",
       "mac_checkout": "/Users/benque/Projects/LocalWMS",
       "vm_profile": {
         "name": "localwms",
@@ -316,6 +333,7 @@
       "project_id": "myapp",
       "repository": "myapp",
       "project_agent": "myapp-agent",
+      "routine_merge_agent": null,
       "mac_checkout": null,
       "vm_profile": null
     },
@@ -323,6 +341,7 @@
       "project_id": "newemaint",
       "repository": "NewEMaint",
       "project_agent": "newemaint-agent",
+      "routine_merge_agent": "newemaint-routine-merger",
       "git_remote_name": "gitea",
       "mac_checkout": "/Users/benque/Projects/NewEmaint",
       "vm_profile": {
@@ -337,6 +356,7 @@
       "project_id": "rsdesign-new",
       "repository": "rsdesign-new",
       "project_agent": "rsdesign-agent",
+      "routine_merge_agent": "rsdesign-routine-merger",
       "mac_checkout": "/Users/benque/Projects/rsdesign-new",
       "vm_profile": {
         "name": "rsdesign",
@@ -350,6 +370,7 @@
       "project_id": "sap-table-migrate",
       "repository": "SapTableMigrate",
       "project_agent": "sap-table-migrate-agent",
+      "routine_merge_agent": null,
       "mac_checkout": null,
       "vm_profile": null
     },
@@ -357,6 +378,7 @@
       "project_id": "sfm-digital-board",
       "repository": "SFMDigitalBoard",
       "project_agent": "sfm-board-agent",
+      "routine_merge_agent": "sfm-board-routine-merger",
       "git_remote_name": "gitea",
       "mac_checkout": "/Users/benque/Projects/SFMDigitalBoard",
       "vm_profile": {
@@ -372,6 +394,7 @@
       "project_id": "smoke-test",
       "repository": "smoke-test",
       "project_agent": "smoke-test-agent",
+      "routine_merge_agent": null,
       "mac_checkout": null,
       "vm_profile": null
     },
@@ -379,6 +402,7 @@
       "project_id": "wmpda",
       "repository": "WMPDA",
       "project_agent": "wmpda-agent",
+      "routine_merge_agent": null,
       "mac_checkout": null,
       "vm_profile": null
     }

@@ -40,6 +40,21 @@
       "read:user"
     ]
   },
+  "routine_merge_agent_policy": {
+    "site_admin": false,
+    "repository_permission": "write",
+    "ordinary_git_allowed": false,
+    "native_merge_only_acl": false,
+    "credential_custody": "broker-exclusive",
+    "ordinary_git_control": "credential-custody-typed-operation-manifest-final-head-zero-fallback",
+    "merge_allowed": true,
+    "cross_project_write_allowed": false,
+    "allowed_operation": "gitea.pull.merge.routine",
+    "credential_relative_path_template": "projects/{project_id}/routine-merge-agent.token",
+    "token_scopes": [
+      "write:repository"
+    ]
+  },
   "shared_bot_migration": {
     "username": "ci-bot",
     "default_action": "keep",
@@ -76,6 +91,8 @@
       "vendors_change_templates": false,
       "visibility": "public",
       "project_agent": "aisoft-platform-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": null,
       "status_check_contexts": [
         "CI / verify (pull_request)"
       ],
@@ -96,6 +113,8 @@
       "classification": "internal-application",
       "visibility": "private",
       "project_agent": "hsdb-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": "hsdb-routine-merger",
       "status_check_contexts": [
         "CI / test (pull_request)"
       ],
@@ -107,6 +126,8 @@
       "change_control": "development",
       "visibility": "private",
       "project_agent": "localwms-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": "localwms-routine-merger",
       "status_check_contexts": [
         "CI / test (pull_request)"
       ],
@@ -117,6 +138,8 @@
       "classification": "public-test",
       "visibility": "public",
       "project_agent": "myapp-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": null,
       "status_check_contexts": [],
       "required_approvals": 0
     },
@@ -125,6 +148,8 @@
       "classification": "internal-application",
       "visibility": "private",
       "project_agent": "newemaint-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": "newemaint-routine-merger",
       "status_check_contexts": [
         "CI / verify (pull_request)"
       ],
@@ -135,6 +160,8 @@
       "classification": "internal-application",
       "visibility": "private",
       "project_agent": "rsdesign-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": "rsdesign-routine-merger",
       "status_check_contexts": [
         "CI / test (pull_request)"
       ],
@@ -145,6 +172,8 @@
       "classification": "internal-application",
       "visibility": "private",
       "project_agent": "sap-table-migrate-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": null,
       "status_check_contexts": [],
       "required_approvals": 0
     },
@@ -153,6 +182,8 @@
       "classification": "internal-application",
       "visibility": "private",
       "project_agent": "sfm-board-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": "sfm-board-routine-merger",
       "status_check_contexts": [
         "CI / verify (pull_request)"
       ],
@@ -163,6 +194,8 @@
       "classification": "public-test",
       "visibility": "public",
       "project_agent": "smoke-test-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": null,
       "status_check_contexts": [],
       "required_approvals": 0
     },
@@ -171,6 +204,8 @@
       "classification": "internal-application",
       "visibility": "private",
       "project_agent": "wmpda-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": null,
       "status_check_contexts": [],
       "required_approvals": 0
     }

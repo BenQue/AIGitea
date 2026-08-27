@@ -7,6 +7,10 @@
 
 ## 0. 实施状态
 
+- [x] Issue #208 governance contract：日常会话默认仅在合同/启动与提交唯一最终 PR 前两处确认；
+  routine small 允许在 repository opt-in、独立 merger、non-empty required contexts 与 final-head 全硬门后
+  受控合并。complex/major/阶段完结和全部 forced-risk 路径仍 manual；部署授权保持独立。
+
 - [x] Phase D1：`AGENTS.md` 与 `README.md` 权威契约。
 - [x] Phase D2：Issue/spec/plan 与 Development Loop 分册。
 - [x] Phase D3：部署、运维、通知和内网边界已统一为首次非生产部署可由 AI 协作、生产 script-only、Loop 终态和单 PR 合并闸门。
@@ -424,7 +428,9 @@ type/platform + complexity/complex + completed
 
 | 状态 | 含义 |
 |---|---|
+| `AWAITING_PR_CONFIRMATION` | 本地合同与 verifier 完成，等待确认提交唯一最终 PR 与 `manual|routine-auto` policy |
 | `READY_FOR_REVIEW` | 合同满足，本地验证和 PR CI 通过，等待人审核合并 |
+| `AUTO_MERGED` | eligible routine small 的 final head 通过独立 broker merger 全硬门并返回 receipt；不表示部署 |
 | `NEEDS_HUMAN_DECISION` | 需要需求、架构、安全或范围决策 |
 | `BLOCKED_EXTERNAL` | 缺少凭据、服务、网络或外部协调 |
 | `FAILED_LIMIT` | 达到循环次数、时间或成本上限 |
@@ -654,3 +660,31 @@ Loop/CI 只能验证 pinned `profile_id`、`catalog_revision` 和 lock checksum�
 Catalog 更新继续使用本文件定义的复杂 Issue/spec/plan/final PR/CI/human merge 流程。Security
 更新可加速但不绕过 Issue 和人工合并；major 永远是独立 Change。Candidate/reference dry-run、
 项目 migration、测试部署与 production 状态必须分开记录，未运行保持 `NOT RUN`。
+
+## 16. Issue #208 · 两确认点与 routine small merge
+
+交互式 Issue 会话默认确认点固定为：
+
+1. triage、判级与所需 semantic docs 完整后，确认当前 Issue 合同并启动 Development Loop；
+   `approved` 是该确认的持久控制信号，但不授权 merge 或 deploy。
+2. 本地实现与验证完成后确认提交唯一最终 PR；routine 候选在此选择并授权
+   `manual|routine-auto` policy，授权绑定 Issue/branch/policy，不绑定当时 SHA。
+
+merge 后会话自动完成终态计划/应用、文档检查、worktree/local branch cleanup 与归档，不再询问。
+
+routine-auto 不改变分类标签，只是 `small` 候选的附加执行资格：必须 restore/unchanged、局部可逆、
+无 forced risk、非 major/阶段完结，且 repository source manifest 明确 opt-in、required contexts 非空。
+complex、major、阶段/里程碑完结、安全、数据、共享核心、跨模块/服务、CI/制品/部署/回滚、Agent/
+平台治理全部 manual；#208 本身同样 manual。
+
+权限由独立 non-site-admin、exact-repo Write routine merger 承担；Gitea 1.26.4 没有 merge-only ACL，
+ordinary Git 禁令由 broker-exclusive credential custody、typed operation、manifest/final-head gates、空的
+main push/force allowlist 与 zero fallback 构成。human admin、platform manager、project agent、provider 与
+shared bot 均不复用。broker 只暴露 `gitea.pull.merge.routine(number, sha)`，以 final exact
+head 依序复核 submit authorization、分类与 tuple、唯一 PR、base/head、live protection、required CI、
+reviews、dependencies 和完整 diff，再发送 fixed `do=merge` payload。任何 GAP 只 fail closed，不能
+force、schedule、降级或 fallback。merge receipt 不调用部署、不写 `deployed`，也不传递部署授权。
+
+本节只定义 source contract。account/bootstrap、credential provision、installed bytes、repository
+protection/allowlist apply 与每项目 live opt-in 必须在 source 合并后另行授权、逐项目 read-back；未执行
+时保持 `NOT RUN`/GAP。

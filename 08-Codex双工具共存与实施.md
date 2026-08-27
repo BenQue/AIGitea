@@ -1,6 +1,6 @@
 # 08 · Matt 编排、Development Loop 与双工具共存
 
-> 版本：v3.4 source baseline ｜ 更新：2026-08-11 ｜ 状态：Issue #57/#60 已把完整 Matt Pocock skills 与根级路由合并为开发编排层，Issue #75 已统一 readable Change 名称；provider-neutral runtime、项目 profile、确定性 verifier 与人工合并门仍由平台控制。source 合并不等于任一项目已启用或部署。
+> 版本：v3.6 source contract ｜ 更新：2026-08-26 ｜ 状态：Issue #208 将交互会话默认确认收敛为“合同/启动确认”和“提交最终 PR 前确认”，并定义 routine small 的独立 merger/hard gate；#208 自身及所有 manual 集合仍由人合并。source 合并不等于 installed/live 启用或部署。
 
 ## 1. 结论
 
@@ -8,13 +8,16 @@
 
 ```text
 Issue / docs contract
+  → 人工确认合同并启动 Development Loop
   → Matt triage / to-spec / to-tickets / implement
   → provider-neutral Loop controller
       ├── Codex adapter（先实现和验证）
       └── Claude adapter（后接入）
   → deterministic verifier
+  → 人工确认提交唯一最终 PR（manual 或 routine-auto）
   → Gitea PR / CI
-  → 人工合并
+  → manual 人工合并；或 routine-auto 最终 head 全硬门后受控合并
+  → 终态/文档/cleanup/归档（确定性，不再确认）
   → artifact / deploy / health / rollback
 ```
 
@@ -28,8 +31,8 @@ Matt skills 提供完整开发编排语义，Codex 和 Claude Code 只替换模�
 - `approved` 启动 Loop，不授权合并或部署。
 - 单一 `change/N-short-description` 分支承载同 `(N, slug)` 的文档、代码、测试和最终 PR；legacy `change/N` 仅在已有证据下维护。
 - Loop 只能在合同范围内实现、自测、自修复和处理 CI feedback。
-- Agent 可按 `Txx` 本地 commit；Controller 验证后才 push 和创建最终 PR。
-- `READY_FOR_REVIEW` 只是通知人 review；最终 PR 合并是唯一交付硬闸门。
+- Agent 可按 `Txx` 本地 commit；Controller 验证后进入 `AWAITING_PR_CONFIRMATION`，人确认 exact Issue/branch/policy 后才 push 和创建最终 PR。
+- `READY_FOR_REVIEW` 是 manual 路径的人审终态；`AUTO_MERGED` 只来自 opt-in routine small 的独立 broker merge receipt。最终 PR merge 仍是唯一交付硬闸门，部署另需授权。
 - AI 可以参与非生产首次部署；生产只运行已验证脚本。
 
 ## 3. 配置与认证
@@ -106,11 +109,12 @@ Claude adapter 已完成（Issue #1）：
 - 持久化当前任务、轮数、失败根因和终态。
 - 调用 Codex 或 Claude adapter。
 - 独立运行 verifier，不信任模型自述。
-- 校验 Agent commit 的 branch、ancestry、subject、scope、clean tree 与测试后，push feature branch、创建最终 PR并读取 CI 状态。
+- 校验 Agent commit 的 branch、ancestry、subject、scope、clean tree 与测试后，先持久化 PR candidate；确认后 push feature branch、创建最终 PR并读取 CI 状态。
+- 对 routine-auto，确认绑定 Issue/branch/policy，CI 修复可继续；merge 时 broker 以 final exact SHA fresh 重跑全部 hard gate。manual 与任何 hard-gate failure 均不使用 routine merger。
 - 把 CI 失败和范围内 review feedback 反馈给下一轮。
 - 三次同根因失败、合同冲突或预算耗尽时升级给人。
 
-Provider adapter 只负责：读取 controller 给出的合同和失败证据，显式调用 `$implement #N Txx`，在 worktree 内完成范围内修改、测试和本地 commit，并返回结构化结果。它不 push、不管理标签/PR、合并、部署、凭据或生产状态。
+Provider adapter 只负责：读取 controller 给出的合同和失败证据，显式调用 `$implement #N Txx`，在 worktree 内完成范围内修改、测试和本地 commit，并返回结构化结果。它不 push、不管理标签/PR、合并、部署、凭据或生产状态；routine merger credential 不进入 provider 环境。
 
 ## 7. Codex 验证矩阵
 

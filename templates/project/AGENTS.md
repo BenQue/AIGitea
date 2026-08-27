@@ -13,8 +13,9 @@
   文档 `<role>-<短描述>-<YYMMDD>.md`（summary front matter `documents` 映射）、唯一 PR
   `Closes #N`。纯数字名称只有在 Controller 从 manifest-fixed remote 或 Git history 读回
   evidence 后才能读取或维护兼容；新 writer、first push 和 first PR 不得创建。
-- 只有人能合并受保护 `main`——最终 PR 合并是唯一交付硬闸门；会话/agent 不合并、不直推、
-  不擅自部署。
+- 最终 PR merge 仍是唯一交付硬闸门。manual 由人合并；只有平台判定 eligible、仓库显式启用、
+  提交确认明确授权且最终 head hard gates 全过的 routine small，才允许独立 per-project merger 合并。
+  会话/provider/project agent 自身不 merge、不直推、不擅自部署。
 - Gitea/Git 写操作走 host-access broker 的 typed 操作，不拼 raw token、不绕过治理通道。
 
 ## 每 Issue 开发路径
@@ -25,6 +26,15 @@
 `$implement #N Txx`。
 普通编译/测试/CI 失败自主修复；合同冲突、范围扩张、破坏性迁移、安全决策、三次同因失败
 必须停下升级给人。
+
+日常会话默认只有两个确认点：确认 Issue 合同并启动 Development Loop；本地实现与验证完成后确认
+提交唯一最终 PR，并固定 exact Issue/branch 与 `manual|routine-auto` policy。merge 后的终态核对、文档检查、
+worktree/本地分支清理与归档按确定性流程完成，不再询问。routine 授权允许当前合同内 CI 修复继续，
+但实际 merge 必须钉住最终 exact SHA。
+PR merge 不传递任何部署授权。
+Gitea 1.26.4 没有 merge-only ACL；routine merger 是 exact-repo Write identity，但 credential 由 broker
+独占，且不在 main push/force allowlist。ordinary Git 禁令由 typed operation、manifest/final-head gates
+与 zero fallback 保证。
 
 ## 工具分工（默认偏好，非硬规则）
 

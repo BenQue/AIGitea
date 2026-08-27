@@ -1,14 +1,14 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.5（company delivery pilot source）｜ 更新：2026-08-17 ｜ 状态：**protected `main` 已包含 Issue #75 的 `change/N-short-description` 合同并保留证据驱动的 legacy 兼容；任何新 Change 仍须经唯一 PR 与人工合并，company/live 状态必须单独验收**
+> 版本：v3.6（routine PR source contract）｜ 更新：2026-08-26 ｜ 状态：**Issue #208 定义“合同/启动确认 + 提交最终 PR 前确认”两个默认人工点和 routine small 受控自动合并 source 合同；#208、全部 complex/major/阶段完结与强制风险变更仍须人工合并，installed/live 启用仍须单独验收**
 >
-> 一句话：**Issue 定义工作，AI Loop 把明确合同做到可审 PR，人决定是否合并；AI 可参与首次非生产部署，生产只运行确定性脚本。**
+> 一句话：**Issue 定义工作，AI Loop 把明确合同做到最终 PR；人确认提交，manual 变更由人合并，显式 opt-in 的 routine small 只有在最终 head 全硬门通过后才可由独立 merger 合并；部署始终独立授权。**
 
 本文件是全貌与导航；细节在各主题分册。原始设计文档在 [archive/](archive/)，仅作历史参考。v3 的迁移决策与未实施边界见 [09](09-v3平台简化与Loop-Engineering文档改造规划.md)。
 
 ---
 
-## 1. 当前状态（2026-08-11）
+## 1. 当前状态（2026-08-26）
 
 - ✅ 基础设施核心：`gitea-ci` 上的 Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
 - ✅ 主机职责隔离：Issue #21 已人工合并并以 `completed` 关闭；versioned host profile、capability catalog 和 fail-closed guard 已实现，`gitea-ci` 历史业务 runtime/DB/代理已逐项迁移或清理并完成 live post-check
@@ -18,9 +18,9 @@
 - ✅ v2 试点证据：issue #4 已走通三闸门闭环，证明 Issue/文档/PR/部署关联可行
 - ✅ 邮件通知：Gitea → Mailpit（演示层），issue/PR 事件自动发信
 - ✅ Codex 基础：CLI、认证、skills、AGENTS、sandbox、provider router 已通过 VM 基础验收
-- 🟡 Matt 开发编排层：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在当前 exact change branch 本地提交，Controller 才能 push/建 PR/读取 CI，合并仍只由人操作
-- ✅ Gitea 身份与可见性：Issue #35 已在本机 OrbStack 标记 `deployed`；1 个非 site-admin manager、9 个单项目 agent 与 11 个最小 scope PAT 已完成幂等验证，public 精确为 `aisoft-platform`/`myapp`/`smoke-test`，其余 6 个 private，9 个 `main` 只允许人工 `admin` 合并；真实 Issue/label/Git/PR 正反向验证 9/9 `PASS`，共享 `ci-bot` 已从全部 manifest 仓库移除 collaborator 权限但账号保留
-- ✅ Host access broker source：Issue #61/#67/#70/#73/#75 均已进入 protected `main`，提供 strict typed Issue/PR mutation、manifest-fixed remote、readable exact change-ref push、repo-external project-scoped credential boundary、同 Issue 唯一性与逐项目 fail-closed onboarding readback；Mac runtime 不访问 Keychain，merge surface 仍为 0，最终 merge 只由人工 `admin` 执行。已安装 bytes 和每个下游项目 adoption 仍须独立读回，不能由 source 合并推定
+- 🟡 Matt 开发编排层：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在当前 exact change branch 本地提交，Controller 在提交确认后才能 push/建 PR/读取 CI；manual 路径仍只由人合并
+- ✅ Gitea 身份与可见性历史基线：Issue #35 已在本机 OrbStack 标记 `deployed`；1 个非 site-admin manager、9 个单项目 agent 与 11 个最小 scope PAT 已完成幂等验证，原 live `main` merge allowlist 只含人工 `admin`。Issue #208 只增加独立 per-project routine merger 的 source 合同；未获独立 live apply 授权前，现有 allowlist、credential 与 installed bytes 均不改变
+- 🟡 Host access broker：既有 strict typed Issue/PR/Git surface 保持；Issue #208 只允许新增 `gitea.pull.merge.routine(number, sha)`，并要求 broker 在唯一 merge POST 前 fresh 重跑合同、唯一 PR、head、protection、required CI、reviews、dependencies 与 final diff 硬门。Gitea 1.26.4 无 merge-only ACL，ordinary Git 隔离依赖 broker-exclusive credential custody 与 zero fallback；routine identity 不进入 main push/force allowlist。source 合并不等于安装、provision 或 live 启用
 - ✅ Claude adapter（Issue #1）：与 Codex 共用 controller/verifier/状态/终态，17 项 parity 测试通过；默认仍 `IMPLEMENT_PROVIDER=none`，真实 VM pilot 未做
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
 - 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为 real complex pilot。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
@@ -45,7 +45,7 @@ manifest 的 offline bundle 传到隔离的 test/prod trust role；`gitea-ci` �
 flowchart TB
     subgraph MAC["💻 开发机 Mac(交互层——有人)"]
         DEV["Claude Code / Codex<br/>Issue 澄清·spec/plan·交互开发"]
-        BROWSER["浏览器<br/>确认合同·合并最终 PR"]
+        BROWSER["浏览器<br/>合同/启动确认·提交 PR 确认·manual 合并"]
     end
 
     subgraph VM1["🖥️ gitea-ci · role=scm-ci"]
@@ -67,7 +67,7 @@ flowchart TB
     end
 
     DEV -->|"git push 分支 / 开 PR"| GITEA
-    BROWSER -->|"确认合同 / 合并 PR"| GITEA
+    BROWSER -->|"提交确认 / manual merge"| GITEA
     AGENT -->|"分析 Issue·迭代分支·准备 PR"| GITEA
     GITEA -->|"PR/Push 事件"| RUNNER
     RUNNER --> GUARD
@@ -98,9 +98,9 @@ NewEmaint pilot 的物理部署固定为**两台公司 Linux VM + 本地 OrbStac
 | 4 | **生产部署 script-only** | AI 可参与首次非生产部署；生产只执行已验证脚本和制品 |
 | 5 | **任何变更可逆** | 迁移前备份、releases 多版本保留、健康检查失败可回滚 |
 | 6 | **判级、合同与执行分离** | AI 判定有效复杂度；controller 独立校验合同；Loop 不得自行改验收标准或扩大范围 |
-| 7 | **只有一个交付闸门** | 最终 PR 合并是唯一交付硬闸门；PR CI 必须绿且只有人能合并 `main` |
+| 7 | **只有一个交付闸门** | 最终 PR merge 仍是唯一交付硬闸门；manual 集合只由人合并，只有提交时明确授权且 repository opt-in 的 routine small 才能在最终 head required CI 与全部硬门通过后受控合并 |
 | 8 | **主机职责 fail closed** | root-owned profile 同时绑定 hostname 与 machine-id；未知 capability、身份漂移或宽松权限都必须在 mutation 前失败 |
-| 9 | **平台审计与项目写入分离** | 平台 manager 只在显式受管仓库 Admin；每项目 agent 只对自己的仓库 Write；`main` merge allowlist 只含人工身份 |
+| 9 | **平台审计、项目写入与 routine merger 分离** | manager、project agent、provider、shared bot 都不 merge；启用仓库只额外允许一个独立 non-admin、exact-repo routine merger，未启用仓库仍为 human-only |
 | 10 | **仓库 private 默认、public 显式例外** | 当前只允许 `aisoft-platform`、`myapp`、`smoke-test` public；内部应用 private；公司内网重建执行同一分类策略 |
 
 ## 4. 端到端流程（双路径、单合并闸门）
@@ -131,7 +131,12 @@ sequenceDiagram
     A->>A: $implement frontier Txx → 本地原子 commit → verifier
     A->>G: Controller 校验后推 change/N-short-description → 最终 PR(Closes #N) → pr-open
     R->>G: PR CI 必须绿；失败反馈给 Loop
-    Note over U,G: 【唯一交付闸门】人审核并合并最终 PR
+    Note over U,G: 【提交确认】绑定 Issue/branch/manual 或 routine-auto policy
+    alt manual 或任一强制风险
+        U->>G: 人审核并合并最终 PR
+    else repository opt-in 的 routine small
+        A->>G: 最终 head 全硬门通过后由独立 merger 合并
+    end
     G->>U: 📬 邮件通知(Mailpit);issue 被 Closes 自动关闭
     alt 变更需要部署
         R->>R: 构建→制品→测试部署→健康检查；生产仅运行已验收脚本
@@ -141,7 +146,7 @@ sequenceDiagram
     end
 ```
 
-**实施状态**：AI 自动分析仍可用；共享 Codex Development Loop source 已完成 synthetic、临时 HOME、VM 禁用式安装和 rsdesign-new real complex pilot，PR #9 已由人合并，合并后两个测试入口在当次验收中健康。该 pilot 只证明通用 controller 能在一个应用工作，不把平台绑定到该仓库。每个目标项目由独立 profile 指定 Gitea 坐标、clone、provider、state 和 worktrees，默认 `IMPLEMENT_PROVIDER=none`。AISoftPlatform 是文档、模板、skills 与 runtime source 仓库，本身不需要应用部署流水线。Claude Code real Issue pilot 和生产相关自动操作仍未启用。
+**实施状态**：Issue #208 的 source 合同不代表 routine merger 已安装、credential 已 provision、protection 已 apply 或任一 repository 已 live opt-in。现有 shared Loop pilot 与 `IMPLEMENT_PROVIDER=none` 边界不变；AISoftPlatform 本身属于 platform governance，#208 及其后续平台变更始终走 manual。PR merge 不能推导测试/生产部署授权或 `deployed` 终态。
 
 平台标签采用三个正交维度：十个 `type/*`、两个 `complexity/*` 和八个 lifecycle，共 20 个；Matt 另加两个 `triage/*` category 与五个 `triage/*` state。source manifest 共 provision 27 个标签（Issue #108 把 `type/*` 扩为 10 个并声明 `area/`、`priority/` 两个项目扩展前缀），但 `triage/ready-for-agent` 不替代平台 `approved`。`completed` 与 `deployed` 互斥，任何接入仓库都必须独立同步并读回，不能把其它仓库状态当作平台全局状态。
 

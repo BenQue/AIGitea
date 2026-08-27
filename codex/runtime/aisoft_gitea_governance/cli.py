@@ -38,7 +38,7 @@ def _parser() -> argparse.ArgumentParser:
     account_spec.add_argument(
         "--token-kind",
         required=True,
-        choices=("manager-audit", "manager-mutation", "project-agent"),
+        choices=("manager-audit", "manager-mutation", "project-agent", "routine-merge-agent"),
     )
 
     verify_merged = subparsers.add_parser("verify-merged")
@@ -207,9 +207,23 @@ def main(argv: list[str] | None = None) -> int:
                 else:
                     raise ContractError("platform manager requires a manager token kind")
             else:
-                if arguments.token_kind != "project-agent":
-                    raise ContractError("project account requires project-agent token kind")
-                scopes = contract.raw["project_agent_policy"]["token_scopes"]
+                project_agents = {item.project_agent for item in contract.repositories}
+                routine_mergers = {
+                    item.routine_merge_agent for item in contract.repositories
+                    if item.routine_merge_agent is not None
+                }
+                if arguments.username in project_agents:
+                    if arguments.token_kind != "project-agent":
+                        raise ContractError("project account requires project-agent token kind")
+                    scopes = contract.raw["project_agent_policy"]["token_scopes"]
+                elif arguments.username in routine_mergers:
+                    if arguments.token_kind != "routine-merge-agent":
+                        raise ContractError(
+                            "routine merger requires routine-merge-agent token kind"
+                        )
+                    scopes = contract.raw["routine_merge_agent_policy"]["token_scopes"]
+                else:  # declared_service_accounts() and sets above must agree
+                    raise ContractError("service account role is ambiguous")
             _json({
                 "username": arguments.username,
                 "token_kind": arguments.token_kind,

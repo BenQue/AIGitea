@@ -1,6 +1,6 @@
 # 03 · Issue / Spec / Plan 与单闸门开发流程
 
-> v3 当前文档契约（更新 2026-08-26）。Issue 是所有工作的主键；小变更允许从明确的 Issue 直接进入 Development Loop，production complex 必须先完成 spec/plan，development complex 使用 Issue 正文中的验收合同。最终 PR 合并是唯一交付硬闸门。Issue #75 已把 readable branch/directory 合同合并进 protected `main`；既有固定数字路径只作证据驱动的 legacy 兼容。
+> v3 当前文档契约（更新 2026-08-26）。Issue 是所有工作的主键；小变更允许从明确的 Issue 直接进入 Development Loop，production complex 必须先完成 spec/plan，development complex 使用 Issue 正文中的验收合同。最终 PR merge 是唯一交付硬闸门；manual 集合人工合并，只有显式 opt-in 的 routine small 可在提交确认与最终硬门后受控合并。既有固定数字路径只作证据驱动的 legacy 兼容。
 
 ## 1. 绑定模型
 
@@ -54,6 +54,25 @@ small 候选包括恢复既有明确行为的 Bug 修复、纯文档修正、只
 - 失败后不能简单 revert，或数据/运行风险较高。
 
 Issue 作者可以显式选择复杂度，但 `complexity/small` 不能绕过强制复杂规则，`complexity/complex` 不能由 AI 自动降级。标签与实际内容冲突时，AI 依据仓库证据更正并留下理由。信息不足、内容冲突或风险边界无法确定时，Issue 保持 `awaiting-triage` 且不添加 complexity 标签。
+
+### 2.1 Routine small merge policy
+
+分类与 merge policy 是两个步骤，不新增 label。只有同时满足以下条件才是 `routine-auto` 候选：
+
+- 最终 fresh 重算仍为 `effective_complexity=small`、`contract_effect=restore|unchanged`；
+- 范围局部、可简单 revert、无任何 forced-complex risk，且不是 major、阶段或里程碑完结；
+- repository manifest 显式 `routine_auto_merge_enabled=true`，声明独立 routine merger，required contexts 非空；
+- 提交 PR 前的人工确认绑定 exact Issue、`change/N-short-description` 与 `routine-auto` policy，并明确允许当前合同内 CI 修复后在最终 head required CI 全绿时受控合并。
+
+功能新增/变化、major、阶段/里程碑完结、安全、数据、共享核心、跨模块/服务、CI、制品、部署、
+健康检查、备份、回滚、Agent 与平台治理一律 `manual`。Issue #208 自身为 complex/platform，必须人工
+合并。routine hard gate 失败只返回稳定原因并停机，不自动切换到 admin、manager、project agent 或
+其他更宽权限路径。
+
+人工确认不绑定当时 SHA，避免范围内 CI repair 形成第三个确认点；merge operation 必须绑定最终 40 位
+lowercase head SHA，并在 POST 前按固定顺序 fresh 复核 authorization、summary/Gitea 分类、exact tuple、
+唯一开放 PR、open/unmerged、base=`main`、head、live protection/manifest、逐 context CI、reviews、
+dependencies 与完整 final diff。任何缺失、漂移或未知 schema 都 fail closed，零 merge POST。
 
 ## 3. 文档合同
 
@@ -176,9 +195,12 @@ Issue + needs-analysis
   → forced-risk and explicit-label checks
   → complexity/small + approved（合同完整）
   → Development Loop
-  → final PR + CI
-  → 人工合并
-  → 确定性部署
+  → AWAITING_PR_CONFIRMATION
+  → 人确认提交唯一最终 PR（manual 或 eligible routine-auto）
+  → final PR + CI repair
+  → manual: READY_FOR_REVIEW → 人工合并
+  → routine-auto: final-head hard gates → AUTO_MERGED
+  → 部署另行授权
 ```
 
 ## 6. 复杂变更路径
@@ -192,9 +214,11 @@ Issue + needs-analysis
   → spec-review（可选，不是硬闸门）
   → approved（合同完整）
   → Development Loop
-  → final PR + CI
+  → AWAITING_PR_CONFIRMATION（Policy: manual）
+  → 人确认提交唯一最终 PR
+  → final PR + CI → READY_FOR_REVIEW
   → 人工合并
-  → 确定性部署
+  → 部署另行授权
 ```
 
 统一路由合同：
@@ -207,7 +231,7 @@ Issue + needs-analysis
   → unresolved input: awaiting-triage with no complexity label
 ```
 
-## 7. 最终 PR
+## 7. 最终 PR、提交确认与 merge policy
 
 PR 必须：
 
@@ -218,6 +242,15 @@ PR 必须：
 - 通过受保护 `main` 要求的 `CI / test (pull_request)`。
 
 PR 合并是唯一交付硬闸门。Analyzer、Loop、provider wrapper 和 CI 都不得合并 PR。
+manual PR 只由人合并；routine-auto 只能由独立 exact-repository merger 经 broker operation 合并。
+
+提交前 handoff 固定包含 Issue、branch、`manual|routine-auto`、真实验证、判级读回和未执行项。
+manual 确认允许合同内 CI 修复，required CI 全绿后停在 `READY_FOR_REVIEW`；不得出现自动合并 marker。
+routine 确认必须明确“当前合同内 CI 修复可继续，最终 head 的 required CI 全绿且全部硬门通过后，
+允许受控自动合并”。两者都不授权部署。确认绑定 Issue/branch/policy，不绑定当时 SHA；最终 merge
+仍必须 pin exact SHA。分类标签不新增 merge-policy 维度。Gitea 1.26.4 没有 merge-only ACL；routine
+merger 是 exact-repo Write identity，但 credential 由 broker 独占，且该 identity 不在 main push/force
+allowlist。普通 Git 禁令由 typed operation、manifest/final-head gates 与 zero fallback 共同保证。
 
 ## 8. 升级给人的条件
 
@@ -229,13 +262,15 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
 - platform canonical taxonomy 为 20 个（Issue #108 把 `type/*` 扩为 10 个），Matt 另加 7 个 namespaced `triage/*`，source manifest 共 27 个；准确集合以 `codex/config/gitea-labels.json` 的 `canonical` 为准。外部状态可能漂移，部署到每个仓库前必须用 broker `gitea.labels.provision` 同步并读回。
 - 旧 Issue 与历史文档不重命名；新 writer 只产生语义 basename，并从 Issue #75 起要求目录、branch、worktree 与同一 slug 一致。
 - Provider 默认仍为 `IMPLEMENT_PROVIDER=none`；每个项目必须在独立 profile 完成真实验收后才能启用。
-- `READY_FOR_REVIEW` 仍停止在人工 merge gate；本次治理变更不部署。
+- Issue #208 governance source 定义 `AWAITING_PR_CONFIRMATION`、manual `READY_FOR_REVIEW` 和 routine
+  `AUTO_MERGED` 合同；runtime/config/credential/protection/live apply 尚未由本步骤执行。#208 自身固定
+  manual，本次治理变更不部署。
 ## 10. 依赖 Issue
 
 映射的 summary 可用可选字段 `depends_on` 声明 Issue 编号列表；缺省或 `[]`
-表示没有依赖。依赖只影响 PR 就绪门，不改变分支、CI 或人工合并规则：
+表示没有依赖。依赖同时是 routine hard gate 与 manual PR 就绪门，不改变分支或 CI：
 当前 PR 的 CI 通过后，全部依赖 Issue 必须同时为 closed 且带有 `completed` 或
-`deployed` 生命周期终态，Loop 才能进入 `READY_FOR_REVIEW`。否则保存
+`deployed` 生命周期终态，manual 才能进入 `READY_FOR_REVIEW`，routine 才能 merge。否则保存
 `awaiting_dependencies`，后续轮询只重查 CI 与依赖，不再次调用 provider、
 不创建第二个 PR，也不自动合并。
 
@@ -250,10 +285,9 @@ type、complexity 和非生命周期标签。最终 PR 已合并、且没有一�
 
 ### 谁推进 `completed`
 
-`deployed` 由应用部署链路在健康检查成功后回写（02 §9）。`completed` 没有对应的
-自动触发点：controller 的 lifecycle 写入全在 Development Loop 内，而 Loop 在创建
-最终 PR 时就结束了，没有任何组件处在能观察到「合并」的位置上。因此 `completed`
-由人在合并后显式运行 `codex/tools/mark-completed-issues.sh` 推进（#115）：
+`deployed` 由应用部署链路在健康检查成功后回写（02 §9）。manual 路径由会话在人确认 merge 后
+执行终态 plan/apply；routine-auto 成功后由同一 issue session 立即执行确定性 plan/apply。两条路径
+都必须验证 exact merge，再用 pinned Issue 编号调用 `codex/tools/mark-completed-issues.sh`（#115）：
 
 ```bash
 codex/tools/mark-completed-issues.sh --range 'origin/main~5..origin/main'   # 读计划
@@ -262,9 +296,9 @@ codex/tools/mark-completed-issues.sh --apply 167 168                        # �
 codex/tools/mark-completed-issues.sh --repo ~/Projects/LocalWMS --range '...'  
 ```
 
-默认只输出逐 Issue 的判定计划、不做任何写入；确认计划无误后加 `--apply` 才经
+默认只输出逐 Issue 的判定计划、不做任何写入；确定性验证计划瞄准 exact merge 后加 `--apply` 才经
 broker `gitea.issue.labels.set` 写入。已经是 `deployed` 的 Issue 不会被降级为
-`completed`：那是对「它到底发生了什么」的判断，必须由人显式做。
+`completed`。终态、文档、cleanup 与会话归档在 merge 后按确定性流程完成，不再增加人工确认点。
 
 ### 范围锚不能是会移动的 ref（#175）
 

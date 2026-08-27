@@ -95,6 +95,8 @@ class RepositoryContract:
     classification: str
     visibility: str
     project_agent: str
+    routine_auto_merge_enabled: bool
+    routine_merge_agent: str | None
     status_check_contexts: tuple[str, ...]
     required_approvals: int
     # 交付阶段。未在 manifest 声明时默认 "production"——缺省取更严的一档，
@@ -123,6 +125,13 @@ class RepositoryContract:
         声明的更强事实，终态判定要的正是后者（#192）。
         """
         return self.deployment_lifecycle != "none"
+
+    @property
+    def merge_allowlist(self) -> tuple[str, ...]:
+        if self.routine_auto_merge_enabled:
+            assert self.routine_merge_agent is not None
+            return (self.routine_merge_agent,)
+        return ()
 
 
 @dataclass(frozen=True)
@@ -161,6 +170,10 @@ class GovernanceContract:
             accounts[repository.project_agent] = tuple(
                 self.raw["project_agent_policy"]["token_scopes"]
             )
+            if repository.routine_merge_agent is not None:
+                accounts[repository.routine_merge_agent] = tuple(
+                    self.raw["routine_merge_agent_policy"]["token_scopes"]
+                )
         return accounts
 
 
@@ -177,6 +190,7 @@ def load_contract(path: str | Path) -> GovernanceContract:
             "contract_version", "environment", "gitea_version", "base_url", "owner",
             "default_branch", "unknown_repository_action", "human_merge_identity",
             "site_admin", "platform_manager", "project_agent_policy",
+            "routine_merge_agent_policy",
             "shared_bot_migration", "server_policy", "repository_policy",
             "repositories", "vm_identity_policy", "intranet_migration_policy",
         },
@@ -255,6 +269,50 @@ def load_contract(path: str | Path) -> GovernanceContract:
                        ["write:issue", "write:repository", "read:user"],
                        "project_agent_policy.token_scopes")
 
+    merger_policy = raw["routine_merge_agent_policy"]
+    _require(isinstance(merger_policy, dict),
+             "routine_merge_agent_policy must be an object")
+    _exact_keys(
+        merger_policy,
+        {
+            "site_admin", "repository_permission", "ordinary_git_allowed",
+            "native_merge_only_acl", "credential_custody", "ordinary_git_control",
+            "merge_allowed", "cross_project_write_allowed", "allowed_operation",
+            "credential_relative_path_template", "token_scopes",
+        },
+        "routine_merge_agent_policy",
+    )
+    _require(merger_policy["site_admin"] is False,
+             "routine merger must not be a site admin")
+    _require(merger_policy["repository_permission"] == "write",
+             "routine merger must have exact repository Write permission")
+    _require(merger_policy["ordinary_git_allowed"] is False,
+             "routine merger must not be used for ordinary Git")
+    _require(merger_policy["native_merge_only_acl"] is False,
+             "Gitea 1.26.4 does not provide a native merge-only ACL")
+    _require(merger_policy["credential_custody"] == "broker-exclusive",
+             "routine merger credential custody must be broker-exclusive")
+    _require(
+        merger_policy["ordinary_git_control"]
+        == "credential-custody-typed-operation-manifest-final-head-zero-fallback",
+        "ordinary Git isolation must use the approved custody and hard-gate model",
+    )
+    _require(merger_policy["merge_allowed"] is True,
+             "routine merger policy must allow only the broker merge operation")
+    _require(merger_policy["cross_project_write_allowed"] is False,
+             "routine merger cross-project write must be disabled")
+    _require(merger_policy["allowed_operation"] == "gitea.pull.merge.routine",
+             "routine merger must be bound to the fixed typed operation")
+    _require(
+        merger_policy["credential_relative_path_template"]
+        == "projects/{project_id}/routine-merge-agent.token",
+        "routine merger credential binding must use the fixed per-project path",
+    )
+    _exact_string_list(
+        merger_policy["token_scopes"], ["write:repository"],
+        "routine_merge_agent_policy.token_scopes",
+    )
+
     shared = raw["shared_bot_migration"]
     _require(isinstance(shared, dict), "shared_bot_migration must be an object")
     _exact_keys(shared, {"username", "default_action", "retirement_requires_project_validation"},
@@ -311,10 +369,12 @@ def load_contract(path: str | Path) -> GovernanceContract:
     repositories: list[RepositoryContract] = []
     names: set[str] = set()
     agents: set[str] = set()
+    mergers: set[str] = set()
     public_full_names: list[str] = []
     for index, item in enumerate(repositories_value):
         _require(isinstance(item, dict), f"repositories[{index}] must be an object")
         _exact_keys(item, {"name", "classification", "visibility", "project_agent",
+                           "routine_auto_merge_enabled", "routine_merge_agent",
                            "status_check_contexts", "required_approvals"},
                     f"repositories[{index}]",
                     optional={"change_control", "deployment_lifecycle",
@@ -386,6 +446,29 @@ def load_contract(path: str | Path) -> GovernanceContract:
                 event="pull_request",
                 state="success",
             )
+        routine_enabled = item["routine_auto_merge_enabled"]
+        _require(isinstance(routine_enabled, bool),
+                 f"routine_auto_merge_enabled must be a boolean for {name}")
+        merger_value = item["routine_merge_agent"]
+        merger: str | None
+        if merger_value is None:
+            merger = None
+        else:
+            merger = _identifier(merger_value, f"repositories[{index}].routine_merge_agent")
+            _require(merger not in {human, manager_name, shared_bot, agent},
+                     f"routine merger overlaps a protected identity: {merger}")
+            _require(merger not in agents and merger not in mergers,
+                     f"routine merger identity is reused: {merger}")
+            mergers.add(merger)
+        if routine_enabled:
+            _require(classification == "internal-application",
+                     f"routine auto merge requires internal-application: {name}")
+            _require(bool(contexts),
+                     f"routine auto merge requires canonical status contexts: {name}")
+            _require(merger is not None,
+                     f"routine auto merge requires a distinct merger identity: {name}")
+        _require(name != "aisoft-platform" or not routine_enabled,
+                 "aisoft-platform routine auto merge is permanently disabled")
         approvals = item["required_approvals"]
         _require(isinstance(approvals, int) and not isinstance(approvals, bool) and approvals >= 0,
                  f"required_approvals must be a non-negative integer for {name}")
@@ -406,6 +489,8 @@ def load_contract(path: str | Path) -> GovernanceContract:
             classification=classification,
             visibility=visibility,
             project_agent=agent,
+            routine_auto_merge_enabled=routine_enabled,
+            routine_merge_agent=merger,
             status_check_contexts=tuple(contexts),
             required_approvals=approvals,
             change_control=change_control,

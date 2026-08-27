@@ -111,6 +111,7 @@ class ProjectContract:
     project_id: str
     repository: str
     project_agent: str
+    routine_merge_agent: str | None
     git_remote_name: str
     mac_checkout: str | None
     vm_profile: VMProfileContract | None
@@ -145,6 +146,10 @@ class AccessContract:
     def identity_for(self, project: ProjectContract, operation: OperationContract) -> str:
         if operation.identity_route == "project-agent":
             return project.project_agent
+        if operation.identity_route == "routine-merge-agent":
+            if project.routine_merge_agent is None:
+                raise AccessContractError("project has no declared routine merger")
+            return project.routine_merge_agent
         if operation.identity_route in {"manager-audit", "manager-mutation"}:
             return self.governance.platform_manager
         if operation.identity_route == "host-operator":
@@ -177,6 +182,7 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "gitea.pull.create": ("project-agent", True, ("issue", "title", "body")),
     "gitea.pull.read": ("project-agent", False, ("number",)),
     "gitea.pull.update": ("project-agent", True, ("number", "issue", "title", "body")),
+    "gitea.pull.merge.routine": ("routine-merge-agent", True, ("number", "sha")),
     "gitea.commit.status.read": ("project-agent", False, ("sha",)),
     # Actions evidence (#143). commit.status.read stops at a context, a status
     # and a target_url that is a Web UI path nothing here can follow, so a green
@@ -270,7 +276,8 @@ def load_access_contract(
 
     bindings = raw["identity_bindings"]
     _require(isinstance(bindings, dict), "identity_bindings must be an object")
-    _exact_keys(bindings, {"manager_audit", "manager_mutation", "project_agent"},
+    _exact_keys(bindings, {"manager_audit", "manager_mutation", "project_agent",
+                           "routine_merge_agent"},
                 "identity_bindings")
     for key, relative_path in (
         ("manager_audit", "manager/audit.token"),
@@ -295,6 +302,19 @@ def load_access_contract(
         "relative_path_template": "projects/{project_id}/project-agent.token",
         "account_source": "manifest-project-agent",
     }, "project agents must use the fixed protected-file binding")
+    merger_binding = bindings["routine_merge_agent"]
+    _require(isinstance(merger_binding, dict),
+             "routine_merge_agent binding must be an object")
+    _exact_keys(
+        merger_binding,
+        {"credential_kind", "relative_path_template", "account_source"},
+        "routine_merge_agent binding",
+    )
+    _require(merger_binding == {
+        "credential_kind": "protected-file",
+        "relative_path_template": "projects/{project_id}/routine-merge-agent.token",
+        "account_source": "manifest-routine-merge-agent",
+    }, "routine merger must use the fixed per-project protected-file binding")
 
     mac = raw["mac_host"]
     _require(isinstance(mac, dict), "mac_host must be an object")
@@ -356,8 +376,9 @@ def load_access_contract(
         _require(isinstance(name, str) and name in EXPECTED_OPERATIONS,
                  "operation is not in the fixed v1 allowlist")
         _require(name not in names, f"duplicate operation: {name}")
-        _require(not any(word in name for word in ("merge", "shell", "command", "url")),
-                 "unsafe operation surface")
+        if name != "gitea.pull.merge.routine":
+            _require(not any(word in name for word in ("merge", "shell", "command", "url")),
+                     "unsafe operation surface")
         names.add(name)
         expected_route, expected_mutating, expected_args = EXPECTED_OPERATIONS[name]
         _require(item["identity_route"] == expected_route,
@@ -383,7 +404,8 @@ def load_access_contract(
     for index, item in enumerate(projects_raw):
         _require(isinstance(item, dict), f"projects[{index}] must be an object")
         required_project_keys = {
-            "project_id", "repository", "project_agent", "mac_checkout", "vm_profile",
+            "project_id", "repository", "project_agent", "routine_merge_agent",
+            "mac_checkout", "vm_profile",
         }
         project_keys = set(item)
         _require(
@@ -394,6 +416,11 @@ def load_access_contract(
         project_id = _identifier(item["project_id"], f"projects[{index}].project_id")
         repository = _identifier(item["repository"], f"projects[{index}].repository")
         project_agent = _identifier(item["project_agent"], f"projects[{index}].project_agent")
+        routine_merge_raw = item["routine_merge_agent"]
+        routine_merge_agent = (
+            None if routine_merge_raw is None else
+            _identifier(routine_merge_raw, f"projects[{index}].routine_merge_agent")
+        )
         git_remote_name = _git_remote_name(
             item.get("git_remote_name", "origin"),
             f"projects[{index}].git_remote_name",
@@ -405,6 +432,10 @@ def load_access_contract(
         _require(repository in governance_by_name, f"repository is absent from governance: {repository}")
         _require(project_agent == governance_by_name[repository].project_agent,
                  f"project-agent mismatch for {repository}")
+        _require(
+            routine_merge_agent == governance_by_name[repository].routine_merge_agent,
+            f"routine-merger mismatch for {repository}",
+        )
         mac_checkout = item["mac_checkout"]
         if mac_checkout is not None:
             mac_checkout = _absolute_path(mac_checkout, f"projects[{index}].mac_checkout")
@@ -441,7 +472,8 @@ def load_access_contract(
             vm_profile = VMProfileContract(profile_name, repo_dir, analysis, implementation,
                                            timer, path_prepend)
         projects.append(ProjectContract(project_id, repository, project_agent,
-                                        git_remote_name, mac_checkout, vm_profile))
+                                        routine_merge_agent, git_remote_name,
+                                        mac_checkout, vm_profile))
 
     _require(repositories == set(governance_by_name),
              "host access projects must exactly cover governance repositories")

@@ -78,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
                 "contract_version": contract.raw["contract_version"],
                 "project_count": len(contract.projects),
                 "operation_count": len(contract.operations),
-                "merge_operation_count": 0,
+                "merge_operation_count": 1,
             })
             return 0
         if args.command == "broker":

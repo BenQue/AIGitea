@@ -1,6 +1,6 @@
 ---
 name: issue-session-flow
-description: Coordinate one AISoftPlatform Issue per Codex task from approved contract through PR/CI handoff, then complete post-merge cleanup and archive. Use when creating or resuming an Issue task, coordinating several dependent Issues, preparing the final PR, waiting for human merge, or closing an already merged task.
+description: Coordinate one AISoftPlatform Issue per Codex task through contract/start confirmation, final-PR confirmation, manual or eligible routine merge, and deterministic post-merge cleanup. Use when creating or resuming an Issue task, coordinating dependent Issues, preparing the final PR, waiting for human merge, following routine hard gates, or closing an already merged task.
 ---
 
 # Coordinate an AISoftPlatform Issue task
@@ -24,22 +24,52 @@ decision, a direct production action, a missing external dependency, unreliable 
 attempts with the same root cause. A sandbox/network approval required by the host is an execution permission, not
 a new product decision.
 
-## Current delivery gate
+## Two default confirmation points
 
-Issue #208 owns any future routine auto-merge policy. Until that contract is merged and applied, stop after the
-unique final PR has passed all available checks and classification read-back is `projected`. Never merge the PR.
+The first point is contract/start confirmation. After triage, classification, and every required semantic document
+are complete, present the exact Issue contract and ask once to start the Development Loop. Persist that decision as
+the validated `approved` state. It authorizes in-scope implementation and repair, not PR submission, merge, or deploy.
 
-Return one compact handoff:
+The second point is final-PR submission confirmation. After local verification, the Controller persists
+`AWAITING_PR_CONFIRMATION`. Repeated polls in that state must not
+call a provider, push, or create a PR. Return exactly one policy-specific candidate handoff.
+
+For `manual`:
 
 ```text
-需要你合并 — #N <标题>
-PR: <url>
+🟠 准备提交最终 PR —— #N <标题>
+Branch: change/N-<slug>
+Policy: manual
 变更: <一句话>
-CI: <真实读回状态；未运行就写 NOT RUN>
-判级: <apply-classification-labels.sh --verify N 的真实读回>
-未执行: <安装、部署、live apply 等>
-合并后请确认，我再做终态核对、清理和归档。
+验证: <真实结果；未运行写 NOT RUN>
+判级: <classification read-back>
+未执行: <install、credential、protection apply、deploy 等>
+
+请确认提交唯一最终 PR。确认后可继续当前合同内的 PR CI 修复；required CI 全绿后停在
+READY_FOR_REVIEW，等待你人工审核并合并。部署不在本次授权内。
 ```
+
+For an eligible `routine-auto` candidate:
+
+```text
+🟠 准备提交最终 PR —— #N <标题>
+Branch: change/N-<slug>
+Policy: routine-auto
+变更: <一句话>
+验证: <真实结果；未运行写 NOT RUN>
+判级: <classification read-back>
+未执行: <install、credential、protection apply、deploy 等>
+
+请确认提交唯一最终 PR。你的确认明确包含：
+“当前合同内 CI 修复可继续，最终 head 的 required CI 全绿且全部硬门通过后，允许受控自动合并。”
+
+该授权绑定 exact Issue #N、change/N-<slug> 与 routine-auto policy，不绑定当前 SHA；实际合并必须钉住
+最终 40 位 lowercase head SHA。部署不在本次授权内。
+```
+
+The manual text must not contain the controlled-auto-merge marker. A routine hard-gate failure returns one stable
+reason with zero merge POST and no silent fallback. Manual work stops at `READY_FOR_REVIEW`. A routine
+`AUTO_MERGED` receipt immediately enters deterministic post-merge completion without a third confirmation.
 
 Do not ask again about choices already fixed in the approved contract. Do not turn every ticket, test command,
 commit or CI retry into a confirmation point.
@@ -54,7 +84,9 @@ After the user confirms merge:
 4. Run `check-change-documents` against the merged checkout.
 5. Leave and remove the Issue worktree, then delete the merged local change branch.
 6. Record any genuinely separate acceptance criterion as a new Issue instead of extending the closed one.
-7. Report the cleanup result and archive the Codex task when the user confirms final archival.
+7. Report exact merge/receipt, terminal state, document check, cleanup, and every unrun action, then archive the
+   completed task without another confirmation. If any deterministic completion step fails, report the stable blocker
+   and keep the task available; do not claim archival or completion.
 
 ## Multi-Issue coordination
 
