@@ -34,7 +34,7 @@ updated: 2026-08-27
 | T07 | semantic contract 修订、全量回归、verification 与第二轮独立复审 candidate | T06 | completed |
 | T08 | 第三轮复审：exact-200、username/duplicate/case-fold、pagination/oversize failing tests | T07 | completed |
 | T09 | 专用 strict inventory request/parser 与 bounded pagination implementation | T08 | completed |
-| T10 | semantic/verification 同步、全量本地闸门与第三轮独立复审 candidate | T09 | pending |
+| T10 | semantic/verification 同步、全量本地闸门与第三轮独立复审 candidate | T09 | completed |
 
 ## Expected touch points
 
@@ -61,13 +61,13 @@ updated: 2026-08-27
 | AC-3、AC-4 | 200 permission schema、inventory schema、non-200 success、repository/ACL/malformed/unknown 404 与 401/403/5xx/transport negatives |
 | AC-5、AC-6 | present read/write/admin/owner；target Write/missing/schema；identity/scope/protection existing suites |
 | AC-8 | targeted Python、routine/governance security suites、shell broker/bootstrap/rollback/install suites、full smoke |
-| AC-9 | transport method/call inventory、live audit read-only receipt、diff review、Controller manual preflight |
+| AC-9 | local/mock transport method/call inventory、diff review、Controller manual preflight；live audit 按约束 NOT RUN |
 
 ## 实施顺序
 
 1. T01 完成 semantic mapping/check 并原子 commit。
 2. T02 先增加能稳定复现 `RESPONSE_SCHEMA_INVALID` 的 missing+404 failing test，再补全部负向与 ordering matrix。
-3. T03 只在 account 明确 missing + exact 404 分支投影 absent evidence；保持 200 strict parser 与全部 hard gates。
+3. T03/T06/T09 将 absent evidence 收紧为 account missing + exact HTTP 200 bounded collaborator inventory；保持 present permission strict parser 与全部 hard gates。
 4. T04 运行 targeted/security/shell/full smoke、semantic audit 与 Controller preflight；如实更新 verification。
 5. 停在 `AWAITING_PR_CONFIRMATION`，输出唯一 manual PR title/body；未经确认不 push/create PR。
 6. 独立复审 P1 后，在同一 branch 增加 T05/T06；T07 重跑完整闸门并停在第二轮独立复审，不恢复 PR 提交请求。
