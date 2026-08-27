@@ -43,10 +43,10 @@ updated: 2026-08-27
 | protected main baseline | PASS | direct push=false、force push=false、required context exact、merge allowlist=`[admin]` |
 | Issue #213 creation/classification | PASS | broker 创建；最终 readback labels=`type/platform + complexity/complex + approved`；branch=`change/213-routine-live-pilot` |
 | targeted Python tests | PASS | governance/host-access/routine/controller + canonical-digest compatibility suites：229 tests PASS；新增 reconcile account `is_admin` exact-bool 与 cross-project permission exact-schema 变体均在任何 apply mutation 前 fail closed，API mutation count=0 |
-| bootstrap/rollback/installer shell tests | PASS | bootstrap、rollback、host-access installer、5 installers × 3 source states 均 PASS；bootstrap marker 使用含尾换行的 byte-exact `cmp`，额外换行、NUL、prefix/suffix 均 mutation count=0；rollback delete 的 unsafe password-policy marker 使 account delete/rollback call=0 |
+| bootstrap/rollback/installer shell tests | PASS | bootstrap、rollback、host-access installer、5 installers × 3 source states 均 PASS；marker byte/mode 矩阵保持通过；bootstrap identity missing/string/number/list/true/wrong-login/root-list 全部 PAT generation=0 且 credential tree byte/mode-identical；rollback retain/delete 同矩阵在 Python rollback、PAT revoke、account delete 前 fail closed |
 | modified shell `bash -n` + ShellCheck | PASS | bootstrap、rollback、installer、对应 tests 与 `codex/tests/smoke.sh` 均无语法或 ShellCheck finding |
-| `bash codex/tests/smoke.sh` | PASS | 第二轮修复提交后从头重跑 595 tests PASS；`Codex platform static smoke checks passed.` |
-| local atomic commits | PASS | T01=`00f94c8`；T02-T03=`324a053`；T04=`db3ecc3`；T05 docs=`cfbb52d`；live authorization repair=`5484856`；repair verification=`46cd080`；review gates=`551dfce`；canonical fixture=`363bb7f`；first-review evidence=`5728dd0`；second-review variants=`f095032` |
+| `bash codex/tests/smoke.sh` | PASS | 第三轮 P1 修复提交 `86d029a` 后从头重跑 595 tests PASS；`Codex platform static smoke checks passed.` |
+| local atomic commits | PASS | T01=`00f94c8`；T02-T03=`324a053`；T04=`db3ecc3`；T05 docs=`cfbb52d`；live authorization repair=`5484856`；repair verification=`46cd080`；review gates=`551dfce`；canonical fixture=`363bb7f`；first-review evidence=`5728dd0`；second-review variants=`f095032`；second-review evidence=`f07e250`；third-review identity gates=`86d029a` |
 | Controller contract preflight | PASS | fresh installed broker Issue/PR readback + local Controller resolver：Issue=213 open、labels exact、branch exact、complex、frontier=T05、policy=manual、routine ineligible、唯一 Closes/authorization marker；open matching PR=0；未写 state、未 push/create PR |
 | Mac/VM install | NOT RUN | source 未合并；本任务禁止安装 live bytes |
 | account/PAT bootstrap | NOT RUN | 本任务禁止 live credential/account mutation |
@@ -54,7 +54,7 @@ updated: 2026-08-27
 | NewEMaint Issue #74 canary | NOT RUN | 仅能在 merged source + 独立 live 授权后执行一次 |
 | PAT revoke/account retain-delete rollback | PASS (source) / NOT RUN (live) | deterministic source + fake Gitea/curl/sudo tests PASS；live rollback 未授权 |
 | deployment | NOT RUN | pilot 与 routine merge 均不传递部署授权 |
-| push/create PR/merge | NOT RUN | 停在独立复审闸门；本轮不请求最终 PR 确认 |
+| push/create PR/merge | NOT RUN | 停在第四轮独立复审闸门；本轮不请求最终 PR 确认 |
 
 ## Acceptance criteria 结果
 
@@ -64,12 +64,12 @@ updated: 2026-08-27
 | AC-2 | PASS (source) | #35/#208 ancestor calls、#213 exact Issue 与 current manifest-byte gate tests |
 | AC-3 | PASS (source) | governance `routine_accounts` 三态 tests |
 | AC-4 | PASS (source) / NOT RUN (live) | exact #213 binding、mutation counts、idempotent second run；所有 ownership marker 在 adopt/no-op 或 mutation 前验证 regular/non-symlink、mode 400/600、含尾换行的 exact Issue/username/token-kind bytes；额外换行、NUL、prefix/suffix 全部 fail closed 且 mutation=0 |
-| AC-5 | PASS (source) | bootstrap 与每次 routine merge 前 exact `write:repository`；reconcile/account audit 的 routine identity `is_admin` 必须 `type(...) is bool` 且 exact false，missing/true/0/string/list 全部拒绝且 merge/apply mutation=0 |
+| AC-5 | PASS (source) | bootstrap 在任何 PAT/credential/marker mutation 前用 `jq -e` 要求 identity root object、exact login、`is_admin` boolean 且 false；missing/string/number/list/true/wrong-login/root-list 全部 PAT generation=0、credential tree byte-identical；routine merge/reconcile 仍保持 exact false 与零 POST/apply mutation |
 | AC-6 | PASS (source) / GAP (live baseline) | enabled audit 完整 PASS/GAP fixtures；cross-project permission 使用共享 strict parser，响应只能是 exact `{permission: string}` schema；explicit read 安全，write/admin/owner 阻塞，missing/unknown/non-string/extra fields fail closed，apply mutation=0 |
 | AC-7 | PASS (source) / NOT RUN (live) | pre/post snapshot、post-plan empty、operation/API mutation counts；apply 在读取 mutation credential 前要求 exact action-specific live mode |
 | AC-8 | PASS (source) / NOT RUN (canary) | only Issue #74 fixture；其它 Issue stable refusal、merge POST=0 |
 | AC-9 | PASS (source) / NOT RUN (live) | fixed `/api/v1/token` 204、自撤销后 401、revoke count=1 |
-| AC-10 | PASS (source) / NOT RUN (live) | 底层 rollback CLI 在 credential read/client/rollback call 前要求 source disabled；delete policy 还要求 password-policy marker regular/non-symlink、mode 400/600、byte-exact；unsafe mode/content 时 account delete/rollback call=0；retain/delete fake paths完整读回 |
+| AC-10 | PASS (source) / NOT RUN (live) | rollback 在 repository rollback/PAT revoke/credential removal 前预读并严格验证 exact login + boolean false；retain readback 重验；delete readback 后并紧邻 delete 前再次验证；site-admin/unknown schema/wrong login 均 Python rollback/account delete/API mutation log 不变；password-policy marker 安全矩阵保持通过 |
 | AC-11 | PASS (source receipt) / NOT RUN (live layers) | source/fake mutation counts 完整；所有未授权 live layers 明确 NOT RUN |
 | AC-12 | PASS (installer contract) / NOT RUN (final Mac/VM) | temp install root 两次安装、bootstrap/revoke/runtime/config source-byte cmp；最终 merged SHA 安装待后续 |
 | AC-13 | PASS | complex/manual、protected main、exact context、zero deploy/zero fallback assertions |
@@ -80,4 +80,4 @@ updated: 2026-08-27
 - 当前 live routine account/PAT/collaborator/protection/canary 未创建或未执行，不能从 source tests 推定 live PASS。
 - 本 branch 的 source 已补齐 routine audit metadata；installed broker 仍是合并前字节，只有 #213 合并并按独立授权安装后才能重新验收。
 - 本任务只把 deterministic path 写入 source；所有 live mutation 必须等待 source merged 后的独立授权。
-- 第一轮 2×P1/3×P2 已关闭；第二轮发现的 2×P1/2×P2 变体已在 `f095032` 修复并通过本地门禁。当前停在第三轮独立复审闸门，未经复审结论不进入用户最终 PR 确认。
+- 第一轮 2×P1/3×P2 与第二轮 2×P1/2×P2 已关闭；第三轮新增的 2×P1 identity-gate finding 已在 `86d029a` 修复并通过本地门禁。当前停在第四轮独立复审闸门，未经复审结论不进入用户最终 PR 确认。
