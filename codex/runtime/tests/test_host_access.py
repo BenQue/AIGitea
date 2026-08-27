@@ -12,6 +12,7 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
+import aisoft_host_access.broker as broker_module
 from aisoft_host_access.broker import (
     BrokerError,
     CredentialResolver,
@@ -2380,6 +2381,235 @@ class HostAccessBrokerTests(unittest.TestCase):
                     broker.execute("newemaint", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
         self.assertEqual(oversized_calls, [1])
+
+    def test_missing_account_inventory_strictly_validates_all_link_values(self) -> None:
+        endpoint = (
+            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
+            "aisoft-platform/collaborators"
+        )
+        invalid_links = (
+            [
+                ("Link", f'<{endpoint}?limit=50&page=2>; rel="next"'),
+                ("Link", f'<{endpoint}?page=2&limit=50>; rel="NEXT"'),
+            ],
+            {"Link": f'<{endpoint}?limit=50&page=2>; rel="NEXT"'},
+            {"Link": '<http://attacker.invalid/api/v1/repos/admin/aisoft-platform/collaborators?limit=50&page=2>; rel="next"'},
+            {"Link": '<https://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/collaborators?limit=50&page=2>; rel="next"'},
+            {"Link": '<http://gitea-ci.orb.local:3000/api/v1/repos/admin/HSDB/collaborators?limit=50&page=2>; rel="next"'},
+            {"Link": f'<{endpoint}?limit=49&page=2>; rel="next"'},
+            {"Link": f'<{endpoint}?limit=50&page=3>; rel="next"'},
+            {"Link": f'<{endpoint}?limit=50&page=2&cursor=x>; rel="next"'},
+            {"Link": f'<{endpoint}?limit=50&limit=50&page=2>; rel="next"'},
+            {"Link": f'<{endpoint}?limit=50&page=2>; rel="last"'},
+            {
+                "Link": (
+                    f'<{endpoint}?limit=50&page=2>; rel="next", '
+                    f'<{endpoint}?page=2&limit=50>; rel="NEXT"'
+                ),
+            },
+            {"Link": f'<{endpoint}?limit=50&page=2>; rel="unknown"'},
+        )
+        for link_headers in invalid_links:
+            with self.subTest(link_headers=link_headers):
+                broker = self._missing_routine_audit_broker(
+                    cross_project_inventory=(
+                        200,
+                        link_headers,
+                        [{"login": "alpha"}],
+                    ),
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_inventory_accepts_canonical_encoded_pagination(self) -> None:
+        endpoint = (
+            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
+            "aisoft-platform/collaborators"
+        )
+        first_page = [{"login": f"user-{index:03d}"} for index in range(50)]
+        calls: list[int] = []
+
+        def inventory(url):
+            page = int(url.rsplit("page=", 1)[1])
+            calls.append(page)
+            if page == 1:
+                return (
+                    200,
+                    [
+                        ("Link", f'<{endpoint}?%70age=%32&%6cimit=%35%30>; rel="NEXT"'),
+                        ("Link", f'<{endpoint}?limit=50&page=2>; rel="last"'),
+                    ],
+                    first_page,
+                )
+            return (
+                200,
+                [("Link", (
+                    f'<{endpoint}?page=1&limit=50>; rel="first", '
+                    f'<{endpoint}?limit=50&page=1>; rel="prev", '
+                    f'<{endpoint}?limit=50&page=2>; rel="last"'
+                ))],
+                [],
+            )
+
+        broker = self._missing_routine_audit_broker(
+            cross_project_inventory=inventory,
+        )
+
+        value = broker.execute("newemaint", "host.access.audit")
+
+        self.assertEqual(value["status"], "GAP")
+        self.assertEqual(calls, [1, 2])
+
+    def test_missing_account_inventory_rejects_response_size_and_length_drift(self) -> None:
+        two_megabyte_extra = [{"login": "alpha", "extra": "x" * (2 * 1024 * 1024)}]
+        scenarios = (
+            (200, {}, two_megabyte_extra),
+            (200, {"Content-Length": "-1"}, []),
+            (200, {"Content-Length": "not-a-number"}, []),
+            (200, [("Content-Length", "2"), ("Content-Length", "3")], []),
+            (200, {"Content-Length": "3"}, []),
+            (200, {"Content-Length": str(2 * 1024 * 1024)}, []),
+        )
+        for inventory in scenarios:
+            with self.subTest(headers=inventory[1]):
+                broker = self._missing_routine_audit_broker(
+                    cross_project_inventory=inventory,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_inventory_enforces_audit_wide_response_budgets(self) -> None:
+        limits = (
+            ("COLLABORATOR_AUDIT_MAX_BYTES", 10),
+            ("COLLABORATOR_AUDIT_MAX_PAGES", 1),
+        )
+        for constant, value in limits:
+            with self.subTest(constant=constant):
+                broker = self._missing_routine_audit_broker()
+                with patch(f"aisoft_host_access.broker.{constant}", value):
+                    with self.assertRaises(BrokerError) as caught:
+                        broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(
+                    caught.exception.code, "RESPONSE_SCHEMA_INVALID"
+                )
+
+    def test_default_transport_preserves_duplicate_headers_and_bounds_read(self) -> None:
+        class Headers:
+            @staticmethod
+            def raw_items():
+                return iter((
+                    ("Link", "<http://example.invalid/one>; rel=next"),
+                    ("Link", "<http://example.invalid/two>; rel=last"),
+                    ("Content-Length", "2"),
+                ))
+
+        class Response:
+            status = 200
+            headers = Headers()
+
+            def __init__(self):
+                self.read_sizes: list[int | None] = []
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self, size=None):
+                self.read_sizes.append(size)
+                return b"[]"
+
+        response = Response()
+        with patch("aisoft_host_access.broker.urlopen", return_value=response):
+            status, headers, body = broker_module._default_transport(
+                "GET",
+                "http://example.invalid/api",
+                {"Accept": "application/json"},
+                None,
+                response_limit=128,
+            )
+
+        self.assertEqual(status, 200)
+        self.assertEqual(
+            [value for key, value in headers if key.casefold() == "link"],
+            [
+                "<http://example.invalid/one>; rel=next",
+                "<http://example.invalid/two>; rel=last",
+            ],
+        )
+        self.assertEqual(body, b"[]")
+        self.assertEqual(response.read_sizes, [129])
+
+    def test_default_transport_rejects_declared_oversize_before_read(self) -> None:
+        class Headers:
+            @staticmethod
+            def raw_items():
+                return iter((("Content-Length", "129"),))
+
+        class Response:
+            status = 200
+            headers = Headers()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self, size=None):
+                raise AssertionError("oversized declared response must not be read")
+
+        with patch("aisoft_host_access.broker.urlopen", return_value=Response()):
+            with self.assertRaises(BrokerError) as caught:
+                broker_module._default_transport(
+                    "GET",
+                    "http://example.invalid/api",
+                    {"Accept": "application/json"},
+                    None,
+                    response_limit=128,
+                )
+
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_default_transport_rejects_chunked_actual_oversize(self) -> None:
+        class Headers:
+            @staticmethod
+            def raw_items():
+                return iter((("Transfer-Encoding", "chunked"),))
+
+        class Response:
+            status = 200
+            headers = Headers()
+
+            def __init__(self):
+                self.read_sizes: list[int | None] = []
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self, size=None):
+                self.read_sizes.append(size)
+                return b"x" * size
+
+        response = Response()
+        with patch("aisoft_host_access.broker.urlopen", return_value=response):
+            with self.assertRaises(BrokerError) as caught:
+                broker_module._default_transport(
+                    "GET",
+                    "http://example.invalid/api",
+                    {"Accept": "application/json"},
+                    None,
+                    response_limit=128,
+                )
+
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+        self.assertEqual(response.read_sizes, [129])
 
     def test_missing_account_inventory_reads_the_terminal_page_after_a_full_page(self) -> None:
         calls: list[int] = []
