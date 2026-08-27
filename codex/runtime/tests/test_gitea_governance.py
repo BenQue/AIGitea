@@ -205,7 +205,7 @@ class ContractTests(unittest.TestCase):
                 "non_target_repositories_sha256": "0" * 64,
             })
         )
-        with self.assertRaisesRegex(ContractError, "pinned baseline"):
+        with self.assertRaisesRegex(ContractError, "non-target repository"):
             load_contract(path)
 
     def test_pilot_provenance_requires_issue_213_and_both_ancestor_gates(self):

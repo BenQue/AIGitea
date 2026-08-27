@@ -14,12 +14,23 @@ from aisoft_gitea_governance.contract import (
     DEPLOYMENT_LIFECYCLES,
     ContractError,
     load_contract,
+    repository_declarations_sha256,
 )
 
 MANIFEST = Path(__file__).resolve().parents[3] / "codex/config/gitea-governance.json"
 
 
 class DeploymentLifecycleContractTests(unittest.TestCase):
+    @staticmethod
+    def _refresh_non_target_digest(raw: dict) -> None:
+        next(
+            item for item in raw["repositories"] if item["name"] == "NewEMaint"
+        )["routine_live_pilot"]["non_target_repositories_sha256"] = (
+            repository_declarations_sha256(
+                raw["repositories"], exclude_name="NewEMaint"
+            )
+        )
+
     def test_three_declarable_lifecycles(self) -> None:
         """三档必须同时存在。少了 selective 这一档，「有链路但只部署一部分 merge」的
         仓库就只能在「假装没有链路」和「等一个不会到来的部署」之间二选一（#192）。"""
@@ -81,6 +92,7 @@ class DeploymentLifecycleContractTests(unittest.TestCase):
     def test_declaring_one_repository_does_not_touch_the_others(self) -> None:
         raw = json.loads(MANIFEST.read_text())
         raw["repositories"][1]["deployment_lifecycle"] = "none"
+        self._refresh_non_target_digest(raw)
         expected = {
             entry["name"]: entry.get(
                 "deployment_lifecycle", DEFAULT_DEPLOYMENT_LIFECYCLE
@@ -109,6 +121,7 @@ class DeploymentLifecycleContractTests(unittest.TestCase):
             with self.subTest(value=value):
                 raw = json.loads(MANIFEST.read_text())
                 raw["repositories"][1]["deployment_lifecycle"] = value
+                self._refresh_non_target_digest(raw)
                 with tempfile.TemporaryDirectory() as tmp:
                     path = Path(tmp) / "manifest.json"
                     path.write_text(json.dumps(raw))

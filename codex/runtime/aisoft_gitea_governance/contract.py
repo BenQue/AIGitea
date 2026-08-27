@@ -68,6 +68,20 @@ def _exact_keys(
         raise ContractError(f"{context} keys mismatch: missing={missing} extra={extra}")
 
 
+def repository_declarations_sha256(
+    repositories: list[dict[str, object]],
+    *,
+    exclude_name: str,
+) -> str:
+    canonical = json.dumps(
+        [item for item in repositories if item.get("name") != exclude_name],
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def _identifier(value: Any, context: str) -> str:
     _require(isinstance(value, str) and bool(IDENTIFIER_RE.fullmatch(value)),
              f"{context} must be a safe identifier")
@@ -653,22 +667,10 @@ def load_contract(path: str | Path) -> GovernanceContract:
     _require(intranet["requires_target_inventory_and_mapping_approval"] is True,
              "intranet migration must require separate approval")
 
-    expected_non_target_digest = (
-        "5629608e7f658aa55b0affd8e41f7b96dcfe6f2277fa5004b3e5d2c4614f0369"
-    )
     _require(
-        newemaint_pilot.non_target_repositories_sha256
-        == expected_non_target_digest,
-        "NewEMaint pilot non-target digest must equal the pinned baseline",
-    )
-    non_target_bytes = json.dumps(
-        [item for item in repositories_value if item["name"] != "NewEMaint"],
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    _require(
-        hashlib.sha256(non_target_bytes).hexdigest()
+        repository_declarations_sha256(
+            repositories_value, exclude_name="NewEMaint"
+        )
         == newemaint_pilot.non_target_repositories_sha256,
         "non-target repository declarations changed during the NewEMaint pilot",
     )

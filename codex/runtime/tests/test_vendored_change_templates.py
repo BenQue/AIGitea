@@ -12,6 +12,7 @@ from aisoft_gitea_governance.contract import (
     DEFAULT_VENDORS_CHANGE_TEMPLATES,
     ContractError,
     load_contract,
+    repository_declarations_sha256,
 )
 
 MANIFEST = Path(__file__).resolve().parents[3] / "codex/config/gitea-governance.json"
@@ -61,6 +62,13 @@ class VendoredChangeTemplatesContractTests(unittest.TestCase):
     def test_declaring_one_repository_does_not_touch_the_others(self) -> None:
         raw = json.loads(MANIFEST.read_text())
         raw["repositories"][1]["vendors_change_templates"] = False
+        next(
+            item for item in raw["repositories"] if item["name"] == "NewEMaint"
+        )["routine_live_pilot"]["non_target_repositories_sha256"] = (
+            repository_declarations_sha256(
+                raw["repositories"], exclude_name="NewEMaint"
+            )
+        )
         expected = {
             entry["name"]: entry.get(
                 "vendors_change_templates", DEFAULT_VENDORS_CHANGE_TEMPLATES
