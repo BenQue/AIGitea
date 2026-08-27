@@ -34,8 +34,11 @@ updated: 2026-08-27
   长度不超过 50；默认 transport 必须保留全部重复 `Link` field-values，按 relation token 大小写不敏感语义
   strict parse，`next|prev|first|last` 各自唯一并对应当前 canonical Gitea 的 exact repository collaborators
   endpoint。query 解码后只能且必须是唯一 `limit=50` 与 `page`；`next=当前页+1`、`prev=当前页-1`、
-  `first=1`，有 next 时 `last>=next`，无 next 时 `last=当前页`。满页必须读取下一页；短页只有在不存在
-  valid next 且其他关系不证明后续页时终止，最多每 repository 100 页、整个 audit 1000 页。每个 entry 的
+  `first=1`。Link field-value parser 必须识别 quoted-string/quoted-pair，不能把合法 `title="next,page;..."`
+  内的逗号、分号或转义引号当分隔符；control/obs-fold、unbalanced quote、duplicate parameter 与 literal/empty
+  fragment 均 fail closed。每个 repository 保存逐页关系状态：相邻 `next↔prev` 必须互证，所有声明的
+  `last` 必须固定，当前页与 next 均不得超过 last。满页必须读取下一页；短页只有在不存在 valid next 且
+  terminal page 与已声明 last exact 相等时终止，最多每 repository 100 页、整个 audit 1000 页。每个 entry 的
   `login` 必须是 non-empty、trimmed string，并通过 canonical Gitea identifier contract；同页/跨页 exact
   duplicate、case-fold collision、routine login 的大小写变体均 fail closed。只有完整 bounded inventory 中
   routine login（含 case-fold）缺席时，才投影 `{repository, state: absent, permission: null}` evidence；
@@ -51,7 +54,11 @@ updated: 2026-08-27
   `HTTP_401`、`HTTP_403`、`HTTP_ERROR`、`TRANSPORT_ERROR`。inventory 每页在读取/JSON parse 前固定
   `128 KiB` 上限：先验证所有 `Content-Length`（只接受 non-negative decimal 且重复值必须一致），声明超限
   在 read 前拒绝；随后 bounded read `limit+1`，实际超限或声明/实际不一致均 fail closed。整个 audit 的
-  inventory response 累计上限为 `4 MiB`，不得形成 absent evidence。
+  inventory response 累计上限为 `4 MiB`。page/byte budget 必须在 transport 前预留，transport read cap 为
+  `min(128 KiB, audit remaining bytes)`；无 page/byte budget 时不得发请求。inventory 只接受无
+  `Content-Encoding` 或 single `identity`；`Transfer-Encoding` 只接受无值或 single `chunked`，且与
+  `Content-Length` 互斥。JSON 使用递归 duplicate-key rejection，重复 `login` 或任何 nested duplicate key
+  不得被 last-wins；上述任何 drift 均不得形成 absent evidence。
 - [ ] **AC-5 present account permission contract**：account present 时 cross-project exact `read` 是安全 evidence；
   `write|admin|owner` 继续写入 `cross_project_write_violations` 并使 audit 为 `GAP`。
 - [ ] **AC-6 target repository 门不回归**：target repository permission 仍必须 exact `write` 才能收敛；missing
@@ -74,10 +81,11 @@ repository 为每个其他 canonical repository 返回一项，顺序与 governa
 兼容分流只由两项 evidence 合取：routine account 的先行 exact 404/missing，以及 target/cross-project exact
 collaborator inventory 的 strict 200 bounded list 中 exact login 缺席。permission endpoint 的 generic 404 body
 不能区分 no-collaborator、repository missing 或 ACL masking，不再作为 absent evidence。任何 inventory 404、
-非 200 success、malformed/oversized page、异常/重复/冲突 `Link` 或 pagination、duplicate/case-fold collision、
-非法 login、Content-Length drift、单页/全 audit 字节预算或页数预算超限、与 missing account 矛盾的 login 均
-fail closed。`128 KiB/page` 以 `50 × 约 2.5 KiB/identity + JSON overhead` 为依据；`4 MiB/audit` 在覆盖
-canonical repository 的常规 inventory 同时，为异常多页/多 repository 响应提供确定性总上限。
+非 200 success、malformed/oversized page、异常/重复/冲突或跨页漂移的 `Link`/pagination、JSON duplicate
+key、duplicate/case-fold identity collision、非法 login、Content/Transfer-Encoding drift、Content-Length
+drift、单页/全 audit 字节预算或页数预算超限、与 missing account 矛盾的 login 均 fail closed。
+`128 KiB/page` 以 `50 × 约 2.5 KiB/identity + JSON overhead` 为依据；`4 MiB/audit` 在覆盖 canonical
+repository 的常规 inventory 同时，为异常多页/多 repository 响应提供确定性总上限。
 
 ## 风险与回滚约束
 
