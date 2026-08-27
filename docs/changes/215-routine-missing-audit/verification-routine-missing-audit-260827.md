@@ -40,14 +40,15 @@ updated: 2026-08-27
 | third review P1 reproduction | FAIL before fix / PASS after fix | `_request_json` 接受 201/202/204/206；set 静默去重 exact/case-fold/cross-page identity；whitespace/非法/超长 login、51-item page、short-page + next/malformed Link 均未在形成 absence 前拒绝。新增矩阵先稳定 14 个 failure，修复后全部 fail closed |
 | fourth review P1/P2 reproduction | FAIL before fix / PASS after fix | 旧实现对 `headers.items()`/dict 折叠重复 Link、忽略 `rel=NEXT`、不验证 next canonical URL/query/关系唯一性，并在 JSON parse 前无 body bound。第四轮 7 组 focused tests 在旧 head 稳定出现 7 failures + 4 errors；修复后覆盖 duplicate field-values、case relation、wrong scheme/host/repo/limit/page/extra/duplicate query、multiple next、prev/first/last、2 MiB extra field、Content-Length drift、chunked actual oversize 与 audit 累积预算，全部在 absent 前 fail closed |
 | fifth review P1/P2 reproduction | FAIL before fix / PASS after fix | 旧实现不保存跨页 Link 状态、`json.loads` 对 duplicate key last-wins、忽略 Content/Transfer-Encoding、预算在 response 后才 charge，且用 comma/semicolon split 误拒合法 quoted title。第五轮 8 组 focused tests 在旧 head 稳定出现 17 failures + 1 error；修复后覆盖 last=999→2 drift、next↔prev reciprocity、terminal/last、empty `#`、recursive duplicate key、identity/chunked framing、TE+CL、remaining cap pre-reserve、quoted comma/semicolon/escape 与 malformed/control/obs-fold/duplicate params，全部在 transport/parse/absent 前 fail closed |
+| sixth review P1/P2 reproduction | FAIL before fix / PASS after fix | 旧实现接受 `NaN|±Infinity` 与 non-finite/超长 float，4301/5000-digit integer、Content-Length、page 泄漏 `ValueError`，deep JSON 泄漏 `RecursionError`，空 `;` path parameter 被接受，异常 header mapping 泄漏原异常。第六轮 5 组 focused tests 在旧 head 稳定出现 6 failures + 7 errors；修复后 `parse_constant`、signed-64 integer/finite float bound、bounded ASCII decimal、`urlsplit` exact raw path 与 header adapter 统一在 absent 前稳定返回 `RESPONSE_SCHEMA_INVALID` |
 | missing-account local/mock replay | PASS | account exact 404 建立 `account_state=missing` 后，target + 9 cross-project 均读取 strict 200 collaborator inventory；exact login 缺席才依 manifest 顺序投影 `{repository,state: absent,permission: null}`；routine/top-level 均为 `GAP`，所有 transport methods 为 GET |
-| focused compatibility tests | PASS | 第五轮新增 8 tests PASS；先前三轮/第四轮矩阵由完整 host/security suites 一并重放 |
-| complete host-access tests | PASS | `codex.runtime.tests.test_host_access`：136 tests PASS |
-| security Python suites | PASS | host-access + routine-merge + Gitea governance：189 tests PASS |
+| focused compatibility tests | PASS | 第六轮新增 5 tests PASS；前五轮矩阵由完整 host/security suites 一并重放 |
+| complete host-access tests | PASS | `codex.runtime.tests.test_host_access`：141 tests PASS |
+| security Python suites | PASS | host-access + routine-merge + Gitea governance：194 tests PASS |
 | broker/bootstrap/rollback/installer shell suites | PASS | `test-host-access-broker.sh`、`test-bootstrap-gitea-service-account.sh`、`test-rollback-gitea-routine-pilot.sh`、`test-install-host-access-broker.sh` 全部 PASS |
-| `bash codex/tests/smoke.sh` | PASS | 621 tests PASS；末行 `Codex platform static smoke checks passed.` |
+| `bash codex/tests/smoke.sh` | PASS | 626 tests PASS；末行 `Codex platform static smoke checks passed.` |
 | semantic document audit | PASS | `resolve-documents 215` 返回 exact summary/spec/plan/verification mapping；`check-change-documents` 为 `changes=97 pass=2 gap=0` |
-| Controller preflight | PASS | 第一轮 installed broker readback确认 Issue open/exact labels 且 `--verify 215=projected`；第二/三/四/五轮按 no-network 约束仅用固定 Issue evidence + 本地 `load_contract` 重算 forced complex/restore、branch、AC-1..AC-9 与四份 required docs；branch exact、`origin/main` 为 HEAD 祖先、final worktree clean |
+| Controller preflight | PASS | 第一轮 installed broker readback确认 Issue open/exact labels 且 `--verify 215=projected`；第二至第六轮按 no-network 约束仅用固定 Issue evidence + 本地 `load_contract` 重算 forced complex/restore、branch、AC-1..AC-9 与四份 required docs；branch exact、`origin/main` 为 HEAD 祖先、final worktree clean |
 | live account/PAT/collaborator/protection mutation | NOT RUN | 本任务禁止；NewEMaint live rollout mutation=0 |
 | install/routine merge/deploy | NOT RUN | 本任务禁止 |
 | push/create PR | NOT RUN | 等待最终 PR 提交确认 |
@@ -56,14 +57,14 @@ updated: 2026-08-27
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | PASS (source/mock) / GAP (installed/live readiness) | account missing + target/9 cross-project exact HTTP 200 inventories 完成 strict username/duplicate/case-fold、lossless RFC Link、canonical URL-query、跨页 next/prev/last/terminal state 与 bounded pagination 验证后，routine login 缺席才生成 structured absent evidence；Mac installed broker 尚未含该 source contract |
+| AC-1 | PASS (source/mock) / GAP (installed/live readiness) | account missing + target/9 cross-project exact HTTP 200 inventories 完成 strict username/duplicate/case-fold、lossless RFC Link、exact raw path、bounded ASCII page/limit、canonical URL-query、跨页 next/prev/last/terminal state 与 bounded pagination 验证后，routine login 缺席才生成 structured absent evidence；Mac installed broker 尚未含该 source contract |
 | AC-2 | PASS | ordering 断言 account GET 在第一条 inventory GET 前；account present 继续使用 permission endpoint，cross-project 404 保持 schema invalid |
-| AC-3 | PASS | present account permission schema 不变；missing inventory 要求 exact HTTP 200/list、canonical identifier、trim、unique exact/case-fold identity、每页 ≤50、bounded terminal pagination |
-| AC-4 | PASS | 201/202/204/206 均 `RESPONSE_SCHEMA_INVALID`；repository/ACL/malformed/unknown 404 为 `HTTP_404`；401/403、5xx、transport 保持稳定错误；recursive duplicate-key、Content/Transfer-Encoding、TE+CL、128 KiB/page、4 MiB/audit、1000 pages/audit 与 remaining-cap bounded read 均在 request/parse/absent 前 fail closed |
+| AC-3 | PASS | present account permission schema 不变；missing inventory 要求 exact HTTP 200/list、canonical identifier、trim、unique exact/case-fold identity、strict duplicate/nonstandard/unbounded/deep JSON、每页 ≤50、bounded terminal pagination |
+| AC-4 | PASS | 201/202/204/206 均 `RESPONSE_SCHEMA_INVALID`；repository/ACL/malformed/unknown 404 为 `HTTP_404`；401/403、5xx、transport 保持稳定错误；recursive duplicate-key、NaN/±Infinity、signed-64 integer/finite float、deep nesting、bounded Content-Length/page/limit、abnormal mapping、Content/Transfer-Encoding、TE+CL、128 KiB/page、4 MiB/audit、1000 pages/audit 与 remaining-cap bounded read 均在 request/parse/absent 前 fail closed |
 | AC-5 | PASS | exact read 写入 present/read inventory 且不产生 violation；write/admin/owner 既有测试继续形成 GAP/blocked |
 | AC-6 | PASS | 完整 host-access/security/smoke 回归覆盖 target exact write/missing/schema、non-admin identity、scope、required context、human+routine allowlist、push/force denial |
 | AC-7 | PASS | missing account absent 只来自 exact-200、无 duplicate/case ambiguity、bounded pagination 完整 inventory；present account 仍来自 strict permission evidence；ordered output 与 disabled empty list 不变 |
-| AC-8 | PASS | 第五轮 focused 8、host-access 136、security 189、四个 shell suites、full smoke 621、semantic audit 全部通过 |
+| AC-8 | PASS | 第六轮 focused 5、host-access 141、security 194、四个 shell suites、full smoke 626、semantic audit 全部通过 |
 | AC-9 | PASS (boundary) / NOT RUN (live layers) | audit/source tests mutation=0；无 live account/PAT/collaborator/protection/install/routine merge/deploy；push/create PR 等确认 |
 
 ## 遗留风险与未完成项
@@ -76,3 +77,4 @@ updated: 2026-08-27
 - 第三轮复审同样未调用 installed/source broker 或 network/live；所有 HTTP status、Link、pagination、identity collision evidence 均为 local mock，sandbox 未执行的 live/remote 层继续 NOT RUN。
 - 第四轮复审同样未调用 installed/source broker 或 network/live；lossless headers、pagination URL/query 与 response budget evidence 全部来自 local mock/transport tests，live/remote 层继续 NOT RUN。
 - 第五轮复审同样未调用 installed/source broker 或 network/live；pagination state、JSON/framing、remaining budget 与 RFC Link evidence 全部来自 local mock/default-transport tests，live/remote 层继续 NOT RUN。
+- 第六轮复审同样未调用 installed/source broker 或 network/live；strict JSON numeric/depth、bounded decimal、exact raw path 与 abnormal mapping evidence 全部来自 local mock/default-transport tests，live/remote 层继续 NOT RUN。
