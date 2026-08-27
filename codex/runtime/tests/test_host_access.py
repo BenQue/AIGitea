@@ -2003,6 +2003,15 @@ class HostAccessBrokerTests(unittest.TestCase):
             "expected_token_scopes": ["write:repository"],
             "actual_token_scopes": ["write:repository"],
             "repository_permission": "write",
+            "cross_project_permissions": [
+                {
+                    "repository": self.contract.governance.full_name(repository),
+                    "state": "present",
+                    "permission": "read",
+                }
+                for repository in self.contract.governance.repositories
+                if repository.name != "NewEMaint"
+            ],
             "cross_project_write_violations": [],
             "merge_allowlist_state": "converged",
         })
@@ -2080,6 +2089,178 @@ class HostAccessBrokerTests(unittest.TestCase):
                         "permission": unsafe_permission,
                     }],
                 )
+
+    def _missing_routine_audit_broker(self, *, cross_project=None, calls=None):
+        class MissingRoutineCredentials(StaticCredentials):
+            def resolve(self, project, operation):
+                if operation.identity_route == "routine-merge-agent":
+                    raise BrokerError(
+                        "CREDENTIAL_UNAVAILABLE",
+                        "approved credential binding is unavailable",
+                    )
+                return super().resolve(project, operation)
+
+        protection = {
+            "enable_push": False,
+            "enable_force_push": False,
+            "enable_merge_whitelist": True,
+            "merge_whitelist_usernames": ["admin"],
+            "enable_status_check": True,
+            "status_check_contexts": ["CI / verify (pull_request)"],
+            "required_approvals": 0,
+            "block_admin_merge_override": True,
+        }
+        recorded = calls if calls is not None else []
+
+        def transport(method, url, headers, body):
+            recorded.append((method, url))
+            self.assertEqual(method, "GET")
+            self.assertIsNone(body)
+            token = headers["Authorization"].removeprefix("token ")
+            if url.endswith("/api/v1/user"):
+                identities = {
+                    "token-manager": "aisoft-platform-manager",
+                    "token-manager-mutation": "aisoft-platform-manager",
+                    "token-agent": "newemaint-agent",
+                }
+                return 200, {}, json.dumps({
+                    "login": identities[token], "is_admin": False,
+                }).encode()
+            if url.endswith("/api/v1/notifications"):
+                scopes = {
+                    "token-manager": "read:issue,read:repository,read:user",
+                    "token-manager-mutation": "write:issue,write:repository,read:user",
+                    "token-agent": "write:issue,write:repository,read:user",
+                }
+                return 403, {}, json.dumps({
+                    "message": "token scope=" + scopes[token],
+                }).encode()
+            if url.endswith("/api/v1/users/newemaint-routine-merger"):
+                return 404, {}, b'{"message":"user does not exist"}'
+            if "/repos/admin/NewEMaint/" in url:
+                if url.endswith("/collaborators/aisoft-platform-manager/permission"):
+                    return 200, {}, b'{"permission":"admin"}'
+                if url.endswith("/collaborators/newemaint-agent/permission"):
+                    return 200, {}, b'{"permission":"write"}'
+                if url.endswith("/collaborators/newemaint-routine-merger/permission"):
+                    return 404, {}, b'{"message":"not a collaborator"}'
+                if url.endswith("/branch_protections/main"):
+                    return 200, {}, json.dumps(protection).encode()
+            if url.endswith(
+                "/collaborators/newemaint-routine-merger/permission"
+            ):
+                if (
+                    cross_project is not None
+                    and "/repos/admin/aisoft-platform/" in url
+                ):
+                    if isinstance(cross_project, Exception):
+                        raise cross_project
+                    status, payload = cross_project
+                    raw = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
+                    return status, {}, raw
+                return 404, {}, b'{"message":"not a collaborator"}'
+            raise AssertionError(f"unexpected URL: {url}")
+
+        return HostAccessBroker(
+            self.contract,
+            credentials=MissingRoutineCredentials(),
+            transport=transport,
+        )
+
+    def test_missing_routine_account_projects_cross_project_404_as_absent_gap(self) -> None:
+        calls: list[tuple[str, str]] = []
+        broker = self._missing_routine_audit_broker(calls=calls)
+
+        value = broker.execute("newemaint", "host.access.audit")
+
+        self.assertEqual(value["status"], "GAP")
+        routine = value["routine_merge"]
+        self.assertEqual(routine["account_state"], "missing")
+        self.assertEqual(routine["credential"]["state"], "missing")
+        self.assertEqual(routine["repository_permission"], "missing")
+        self.assertEqual(routine["cross_project_write_violations"], [])
+        self.assertEqual(len(routine["cross_project_permissions"]), 9)
+        self.assertTrue(all(
+            item["state"] == "absent" and item["permission"] is None
+            for item in routine["cross_project_permissions"]
+        ))
+        self.assertEqual(
+            [item["repository"] for item in routine["cross_project_permissions"]],
+            [
+                self.contract.governance.full_name(repository)
+                for repository in self.contract.governance.repositories
+                if repository.name != "NewEMaint"
+            ],
+        )
+        account_index = next(
+            index for index, (_method, url) in enumerate(calls)
+            if url.endswith("/api/v1/users/newemaint-routine-merger")
+        )
+        first_cross_project_index = next(
+            index for index, (_method, url) in enumerate(calls)
+            if "/repos/admin/aisoft-platform/" in url
+            and url.endswith(
+                "/collaborators/newemaint-routine-merger/permission"
+            )
+        )
+        self.assertLess(account_index, first_cross_project_index)
+        self.assertEqual({method for method, _url in calls}, {"GET"})
+
+    def test_missing_account_keeps_cross_project_200_schema_strict(self) -> None:
+        malformed = (
+            [],
+            {},
+            {"permission": "read", "unexpected": True},
+            {"permission": None},
+            {"permission": True},
+            {"permission": 0},
+            {"permission": "unknown"},
+        )
+        for payload in malformed:
+            with self.subTest(payload=payload):
+                broker = self._missing_routine_audit_broker(
+                    cross_project=(200, payload)
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_does_not_downgrade_auth_server_or_transport_failures(self) -> None:
+        scenarios = (
+            ((401, {"message": "unauthorized"}), "HTTP_401"),
+            ((403, {"message": "forbidden"}), "HTTP_403"),
+            ((500, {"message": "server error"}), "HTTP_ERROR"),
+            (BrokerError("TRANSPORT_ERROR", "host transport failed"), "TRANSPORT_ERROR"),
+        )
+        for cross_project, expected in scenarios:
+            with self.subTest(expected=expected):
+                broker = self._missing_routine_audit_broker(
+                    cross_project=cross_project
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, expected)
+
+    def test_missing_account_still_accepts_exact_cross_project_read_evidence(self) -> None:
+        broker = self._missing_routine_audit_broker(
+            cross_project=(200, {"permission": "read"})
+        )
+
+        value = broker.execute("newemaint", "host.access.audit")
+
+        self.assertEqual(value["status"], "GAP")
+        first_repository = next(
+            item for item in value["routine_merge"]["cross_project_permissions"]
+            if item["repository"] == "admin/aisoft-platform"
+        )
+        self.assertEqual(first_repository, {
+            "repository": "admin/aisoft-platform",
+            "state": "present",
+            "permission": "read",
+        })
+        self.assertEqual(
+            value["routine_merge"]["cross_project_write_violations"], []
+        )
 
     def _credential_contract(self, root: Path):
         raw = json.loads(json.dumps(self.contract.raw))
