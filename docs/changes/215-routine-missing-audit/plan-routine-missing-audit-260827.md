@@ -26,9 +26,9 @@ updated: 2026-08-27
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | #215 mapped summary/spec/plan/verification、fresh #213 baseline 与 manual/read-only 边界 | - | completed |
-| T02 | missing+404、strict schema/auth/transport、present-account 与 ordering failing tests | T01 | pending |
-| T03 | 最小 host-access audit compatibility implementation 与 targeted regression | T02 | pending |
-| T04 | #213 audit replay、security/full smoke、semantic/Controller preflight、verification 与 PR candidate | T03 | pending |
+| T02 | missing+404、strict schema/auth/transport、present-account 与 ordering failing tests | T01 | completed |
+| T03 | 最小 host-access audit compatibility implementation 与 targeted regression | T02 | completed |
+| T04 | #213 audit replay、security/full smoke、semantic/Controller preflight、verification 与 PR candidate | T03 | completed |
 
 ## Expected touch points
 
