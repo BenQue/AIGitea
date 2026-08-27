@@ -41,6 +41,8 @@ updated: 2026-08-27
 | T14 | spec/verification 同步、全量本地闸门与第五轮独立复审 candidate | T13 | completed |
 | T15 | 第六轮复审：strict JSON constants/numbers/depth、bounded decimal、exact raw path 与异常 mapping failing tests/implementation | T14 | completed |
 | T16 | spec/verification 同步、全量本地闸门与第六轮独立复审 candidate | T15 | completed |
+| T17 | 第七轮复审：deterministic JSON depth pre-scan 与 malformed Link authority failing tests/implementation | T16 | completed |
+| T18 | spec/verification 同步、全量本地闸门与第七轮独立复审 candidate | T17 | completed |
 
 ## Expected touch points
 
@@ -60,6 +62,8 @@ updated: 2026-08-27
 - T14：本 Issue spec/plan/verification 与全量本地闸门；不触达 live/network。
 - T15：`broker.py` strict JSON numeric decoder/bounded decimal/exact raw path/header mapping 与对应 tests。
 - T16：本 Issue spec/plan/verification 与全量本地闸门；不触达 live/network。
+- T17：`broker.py` raw JSON depth scanner/Link authority exception boundary 与对应 tests。
+- T18：本 Issue spec/plan/verification 与全量本地闸门；不触达 live/network。
 
 ## 数据库迁移
 
@@ -69,8 +73,8 @@ updated: 2026-08-27
 
 | Acceptance criterion | Verification command or review |
 |---|---|
-| AC-1、AC-2、AC-7 | `test_host_access.py` exact HTTP 200、identifier/duplicate/case-fold、50-item page/100-page bound、lossless/RFC Link、exact raw path、bounded page/limit decimal、跨页 last/next-prev/terminal state、ordering/call assertions |
-| AC-3、AC-4 | 200 permission schema、recursive duplicate-key、nonstandard/unbounded/overflow numeric 与 deep JSON、Content/Transfer-Encoding、bounded Content-Length、abnormal header mapping、non-200 success、repository/ACL/malformed/unknown 404、401/403/5xx/transport、remaining-cap bounded-read/audit-budget negatives |
+| AC-1、AC-2、AC-7 | `test_host_access.py` exact HTTP 200、identifier/duplicate/case-fold、50-item page/100-page bound、lossless/RFC Link、exact raw path、malformed authority mapping、bounded page/limit decimal、跨页 last/next-prev/terminal state、ordering/call assertions |
+| AC-3、AC-4 | 200 permission schema、recursive duplicate-key、nonstandard/unbounded/overflow numeric、raw JSON max-depth/unbalanced/control pre-scan、Content/Transfer-Encoding、bounded Content-Length、abnormal header mapping、non-200 success、repository/ACL/malformed/unknown 404、401/403/5xx/transport、remaining-cap bounded-read/audit-budget negatives |
 | AC-5、AC-6 | present read/write/admin/owner；target Write/missing/schema；identity/scope/protection existing suites |
 | AC-8 | targeted Python、routine/governance security suites、shell broker/bootstrap/rollback/install suites、full smoke |
 | AC-9 | local/mock transport method/call inventory、diff review、Controller manual preflight；live audit 按约束 NOT RUN |
@@ -87,6 +91,7 @@ updated: 2026-08-27
 8. 第三轮复审 P1/P2 后增加 T11；T12 重跑全部本地闸门并停在第四轮独立复审，不恢复 PR 提交请求。
 9. 第四轮复审 P1/P2 后增加 T13；T14 重跑全部本地闸门并停在第五轮独立复审，不恢复 PR 提交请求。
 10. 第五轮复审 P1/P2 后增加 T15；T16 重跑全部本地闸门并停在第六轮独立复审，不恢复 PR 提交请求。
+11. 第六轮复审 P1/P2 后增加 T17；T18 重跑全部本地闸门并停在第七轮独立复审，不恢复 PR 提交请求。
 
 ## 部署与回滚
 

@@ -34,7 +34,9 @@ updated: 2026-08-27
   长度不超过 50；默认 transport 必须保留全部重复 `Link` field-values，按 relation token 大小写不敏感语义
   strict parse，`next|prev|first|last` 各自唯一并对应当前 canonical Gitea 的 exact repository collaborators
   endpoint；raw path 必须逐字节等于 canonical path，空或非空 `;` path parameter、percent-encoded path
-  alias 均拒绝。query 解码后只能且必须是唯一 `limit=50` 与 `page`，两者只接受 bounded canonical ASCII
+  alias 均拒绝；`urlsplit`、hostname/userinfo/port 解析的 `ValueError|UnicodeError` 必须稳定映射为
+  `RESPONSE_SCHEMA_INVALID`，malformed IPv6、NFKC-unsafe netloc、非法或越界 port 不得泄漏原生异常。
+  query 解码后只能且必须是唯一 `limit=50` 与 `page`，两者只接受 bounded canonical ASCII
   decimal：`limit` 两位且 exact 50，`page` 最多三位且范围 1..100；`next=当前页+1`、`prev=当前页-1`、
   `first=1`。Link field-value parser 必须识别 quoted-string/quoted-pair，不能把合法 `title="next,page;..."`
   内的逗号、分号或转义引号当分隔符；control/obs-fold、unbalanced quote、duplicate parameter 与 literal/empty
@@ -63,8 +65,11 @@ updated: 2026-08-27
   `Content-Length` 互斥。JSON 使用递归 duplicate-key rejection，重复 `login` 或任何 nested duplicate key
   不得被 last-wins；`NaN|Infinity|-Infinity` 一律拒绝，integer 仅接受最多 19 位且位于 signed 64-bit
   范围，float token 最多 64 字符且转换结果必须 finite。decimal 转换前先检查 ASCII digits/长度/范围，
-  malformed、超长、overflow 或 deep nesting 的 `ValueError|OverflowError|RecursionError` 均稳定映射为
-  `RESPONSE_SCHEMA_INVALID`，不得泄漏或变成 `TRANSPORT_ERROR`；上述任何 drift 均不得形成 absent evidence。
+  malformed、超长或 overflow 均稳定映射为 `RESPONSE_SCHEMA_INVALID`。正式 decoder 前必须对 raw JSON
+  bytes 单遍预扫描结构：正确跳过 string、escape、Unicode 内容，只计匹配的 `[]|{}`，最大总深度固定
+  64；第 65 层、60,000 层 bounded payload、未平衡 delimiter/string 与非法 control byte 必须在调用
+  `json.loads` 前拒绝。正式 decoder 仍负责其余 JSON grammar；不得依赖 runtime `RecursionError`，不得把
+  schema 错误泄漏或包装为 `TRANSPORT_ERROR`；上述任何 drift 均不得形成 absent evidence。
 - [ ] **AC-5 present account permission contract**：account present 时 cross-project exact `read` 是安全 evidence；
   `write|admin|owner` 继续写入 `cross_project_write_violations` 并使 audit 为 `GAP`。
 - [ ] **AC-6 target repository 门不回归**：target repository permission 仍必须 exact `write` 才能收敛；missing
@@ -88,7 +93,8 @@ repository 为每个其他 canonical repository 返回一项，顺序与 governa
 collaborator inventory 的 strict 200 bounded list 中 exact login 缺席。permission endpoint 的 generic 404 body
 不能区分 no-collaborator、repository missing 或 ACL masking，不再作为 absent evidence。任何 inventory 404、
 非 200 success、malformed/oversized page、异常/重复/冲突或跨页漂移的 `Link`/pagination、JSON duplicate
-key/nonstandard 或 unbounded number/deep nesting、duplicate/case-fold identity collision、非法 login、
+key/nonstandard 或 unbounded number、depth>64/unbalanced/control JSON、malformed Link authority、
+duplicate/case-fold identity collision、非法 login、
 Content/Transfer-Encoding drift、Content-Length
 drift、单页/全 audit 字节预算或页数预算超限、与 missing account 矛盾的 login 均 fail closed。
 `128 KiB/page` 以 `50 × 约 2.5 KiB/identity + JSON overhead` 为依据；`4 MiB/audit` 在覆盖 canonical
