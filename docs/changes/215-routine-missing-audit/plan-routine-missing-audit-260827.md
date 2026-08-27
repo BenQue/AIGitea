@@ -32,6 +32,9 @@ updated: 2026-08-27
 | T05 | 独立复审 P1：repository/ACL/malformed/unknown 404 与 inventory schema/contradiction failing tests | T04 | completed |
 | T06 | account-missing exact collaborator inventory evidence 与 generic 404 fail-closed implementation | T05 | completed |
 | T07 | semantic contract 修订、全量回归、verification 与第二轮独立复审 candidate | T06 | completed |
+| T08 | 第三轮复审：exact-200、username/duplicate/case-fold、pagination/oversize failing tests | T07 | completed |
+| T09 | 专用 strict inventory request/parser 与 bounded pagination implementation | T08 | completed |
+| T10 | semantic/verification 同步、全量本地闸门与第三轮独立复审 candidate | T09 | pending |
 
 ## Expected touch points
 
@@ -42,6 +45,9 @@ updated: 2026-08-27
 - T05：`codex/runtime/tests/test_host_access.py` review negatives 与 ordering/call inventory。
 - T06：`codex/runtime/aisoft_host_access/broker.py` bounded collaborator inventory helper/branch。
 - T07：本 Issue summary/spec/plan/verification 与全量本地闸门；不触达 live/network。
+- T08：`codex/runtime/tests/test_host_access.py` exact status/identity/pagination review matrix。
+- T09：`codex/runtime/aisoft_host_access/broker.py` strict inventory transport/parser。
+- T10：本 Issue summary/spec/plan/verification 与全量本地闸门；不触达 live/network。
 
 ## 数据库迁移
 
@@ -51,8 +57,8 @@ updated: 2026-08-27
 
 | Acceptance criterion | Verification command or review |
 |---|---|
-| AC-1、AC-2、AC-7 | `test_host_access.py` missing-account exact 200 collaborator inventory + ordering/call assertions；generic 404 zero-absent negatives |
-| AC-3、AC-4 | 200 permission schema、inventory schema、repository/ACL/malformed/unknown 404 与 401/403/5xx/transport parameterized negatives |
+| AC-1、AC-2、AC-7 | `test_host_access.py` exact HTTP 200、identifier/duplicate/case-fold、50-item page/100-page bound、Link termination、ordering/call assertions |
+| AC-3、AC-4 | 200 permission schema、inventory schema、non-200 success、repository/ACL/malformed/unknown 404 与 401/403/5xx/transport negatives |
 | AC-5、AC-6 | present read/write/admin/owner；target Write/missing/schema；identity/scope/protection existing suites |
 | AC-8 | targeted Python、routine/governance security suites、shell broker/bootstrap/rollback/install suites、full smoke |
 | AC-9 | transport method/call inventory、live audit read-only receipt、diff review、Controller manual preflight |
@@ -65,6 +71,7 @@ updated: 2026-08-27
 4. T04 运行 targeted/security/shell/full smoke、semantic audit 与 Controller preflight；如实更新 verification。
 5. 停在 `AWAITING_PR_CONFIRMATION`，输出唯一 manual PR title/body；未经确认不 push/create PR。
 6. 独立复审 P1 后，在同一 branch 增加 T05/T06；T07 重跑完整闸门并停在第二轮独立复审，不恢复 PR 提交请求。
+7. 第二轮复审 P1 后增加 T08/T09；T10 重跑全部本地闸门并停在第三轮独立复审，不恢复 PR 提交请求。
 
 ## 部署与回滚
 

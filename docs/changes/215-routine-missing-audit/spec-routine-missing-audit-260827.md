@@ -30,17 +30,21 @@ updated: 2026-08-27
 ## Acceptance criteria
 
 - [ ] **AC-1 missing + exact absent inventory**：routine account read 明确得到 404/missing 后，对 target 与
-  cross-project repository 读取 exact `GET .../collaborators?limit=50&page=N`。只有 strict 200 array 的全部
-  entry 均含 non-empty string `login`、bounded pagination 完成且 exact routine login 缺席时，才投影结构化
-  `{repository, state: absent, permission: null}` evidence；top-level 与 routine status 保持 `GAP`，mutation=0。
+  cross-project repository 读取 exact `GET .../collaborators?limit=50&page=N`。每页必须 exact HTTP 200 array、
+  长度不超过 50；满页必须读取下一页，短页只有在无 `Link rel=next` 时终止，最多读取 100 页。每个 entry
+  的 `login` 必须是 non-empty、trimmed string，并通过 canonical Gitea identifier contract；同页/跨页 exact
+  duplicate、case-fold collision、routine login 的大小写变体均 fail closed。只有完整 bounded inventory 中
+  routine login（含 case-fold）缺席时，才投影 `{repository, state: absent, permission: null}` evidence；
+  top-level 与 routine status 保持 `GAP`，mutation=0。
 - [ ] **AC-2 精确 ordering**：account state 必须先于 cross-project missing 判定建立；只有
   `account_state=missing` 能使用 AC-1。account present 时 cross-project 404 继续 `RESPONSE_SCHEMA_INVALID`。
 - [ ] **AC-3 strict 200 schema**：无论 account missing 或 present，HTTP 200 只能接受 exact
   `{permission: string}`，且 permission 只允许 `read|write|admin|owner`。malformed root、missing/extra field、
   non-string、unknown value 继续 `RESPONSE_SCHEMA_INVALID`。
 - [ ] **AC-4 ambiguous 404/auth/transport fail closed**：repository-missing、ACL-masked、malformed/unknown
-  body 的 inventory 404 均为 `HTTP_404`，不得降级为 absent；401、403、5xx 与 transport failure 继续返回
-  原有稳定 `HTTP_401`、`HTTP_403`、`HTTP_ERROR`、`TRANSPORT_ERROR`。
+  body 的 inventory 404 均为 `HTTP_404`，201/202/204/206 等非 200 success 均为
+  `RESPONSE_SCHEMA_INVALID`，不得降级为 absent；401、403、5xx 与 transport failure 继续返回原有稳定
+  `HTTP_401`、`HTTP_403`、`HTTP_ERROR`、`TRANSPORT_ERROR`。
 - [ ] **AC-5 present account permission contract**：account present 时 cross-project exact `read` 是安全 evidence；
   `write|admin|owner` 继续写入 `cross_project_write_violations` 并使 audit 为 `GAP`。
 - [ ] **AC-6 target repository 门不回归**：target repository permission 仍必须 exact `write` 才能收敛；missing
@@ -63,7 +67,8 @@ repository 为每个其他 canonical repository 返回一项，顺序与 governa
 兼容分流只由两项 evidence 合取：routine account 的先行 exact 404/missing，以及 target/cross-project exact
 collaborator inventory 的 strict 200 bounded list 中 exact login 缺席。permission endpoint 的 generic 404 body
 不能区分 no-collaborator、repository missing 或 ACL masking，不再作为 absent evidence。任何 inventory 404、
-malformed entry、超出 bounded pagination 或与 missing account 矛盾的 exact login 均 fail closed。
+非 200 success、malformed/oversized page、异常 `Link`/pagination、duplicate/case-fold collision、非法 login、
+超出 bounded pagination 或与 missing account 矛盾的 login 均 fail closed。
 
 ## 风险与回滚约束
 

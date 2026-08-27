@@ -51,10 +51,13 @@ exact GET 同样返回 404/no-collaborator，却被送入只接受 200 permissio
 ## 初步方案与建议
 
 先读取并固定 routine account state。account 明确为 `missing` 时，不再把 permission endpoint 的 generic
-404 当成 no-collaborator；改用 exact repository collaborator inventory 的严格 200/paginated response，
-只有 exact routine login 缺席时才投影结构化 `state: absent` evidence，并保持整个 routine audit 为
-`GAP`。repository/ACL-masked/malformed/unknown 404 全部 fail closed。account present 时仍使用 exact
-permission schema；cross-project 404、401/403/5xx、transport 和 malformed 继续 fail closed。
+404 当成 no-collaborator；改用 exact repository collaborator inventory 的 exact HTTP 200/paginated
+response。每页最多 50 项，满页继续、短页只在无 `Link rel=next` 时终止、最多 100 页；login 复用 canonical
+Gitea identifier contract，并拒绝 whitespace、exact duplicate、case-fold collision 与跨页重复。只有完整
+bounded inventory 中 routine login（含 case-fold）缺席时才投影结构化 `state: absent` evidence，并保持整个
+routine audit 为 `GAP`。其它 2xx、repository/ACL-masked/malformed/unknown 404 与异常 pagination 全部 fail
+closed。account present 时仍使用 exact permission schema；cross-project 404、401/403/5xx、transport 和
+malformed 继续 fail closed。
 
 ## 风险
 
