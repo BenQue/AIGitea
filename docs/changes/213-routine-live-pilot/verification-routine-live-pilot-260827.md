@@ -42,12 +42,12 @@ updated: 2026-08-27
 | 改动前 `host.access.audit` | GAP | protected main/required CI/manager/project-agent PASS，但 routine metadata 整段缺失；已确认是 #208 source gap，不是 installed drift |
 | protected main baseline | PASS | direct push=false、force push=false、required context exact、merge allowlist=`[admin]` |
 | Issue #213 creation/classification | PASS | broker 创建；最终 readback labels=`type/platform + complexity/complex + approved`；branch=`change/213-routine-live-pilot` |
-| targeted Python tests | PASS | governance/host-access/routine/controller + canonical-digest compatibility suites：227 tests PASS；其中直接 rollback CLI、identity/schema drift、wrong digest 全部负测通过 |
-| bootstrap/rollback/installer shell tests | PASS | bootstrap、rollback、host-access installer、5 installers × 3 source states 均 PASS；未授权 bootstrap filesystem/state 不变且 mutation count=0，corrupt ownership marker fail closed |
+| targeted Python tests | PASS | governance/host-access/routine/controller + canonical-digest compatibility suites：229 tests PASS；新增 reconcile account `is_admin` exact-bool 与 cross-project permission exact-schema 变体均在任何 apply mutation 前 fail closed，API mutation count=0 |
+| bootstrap/rollback/installer shell tests | PASS | bootstrap、rollback、host-access installer、5 installers × 3 source states 均 PASS；bootstrap marker 使用含尾换行的 byte-exact `cmp`，额外换行、NUL、prefix/suffix 均 mutation count=0；rollback delete 的 unsafe password-policy marker 使 account delete/rollback call=0 |
 | modified shell `bash -n` + ShellCheck | PASS | bootstrap、rollback、installer、对应 tests 与 `codex/tests/smoke.sh` 均无语法或 ShellCheck finding |
-| `bash codex/tests/smoke.sh` | PASS | 首轮发现 6 个 stale canonical-digest fixture errors 并修复；从头重跑 593 tests PASS；`Codex platform static smoke checks passed.` |
-| local atomic commits | PASS | T01=`00f94c8`；T02-T03=`324a053`；T04=`db3ecc3`；T05 docs=`cfbb52d`；live authorization repair=`5484856`；repair verification=`46cd080`；review gates=`551dfce`；canonical fixture=`363bb7f` |
-| Controller contract preflight | PASS | installed broker fresh Issue readback + local Controller resolver：Issue=213 open、labels exact、branch exact、complex、frontier=T05、policy=manual、routine ineligible、唯一 Closes/authorization marker；open PR=0；未写 state、未 push/create PR |
+| `bash codex/tests/smoke.sh` | PASS | 第二轮修复提交后从头重跑 595 tests PASS；`Codex platform static smoke checks passed.` |
+| local atomic commits | PASS | T01=`00f94c8`；T02-T03=`324a053`；T04=`db3ecc3`；T05 docs=`cfbb52d`；live authorization repair=`5484856`；repair verification=`46cd080`；review gates=`551dfce`；canonical fixture=`363bb7f`；first-review evidence=`5728dd0`；second-review variants=`f095032` |
+| Controller contract preflight | PASS | fresh installed broker Issue/PR readback + local Controller resolver：Issue=213 open、labels exact、branch exact、complex、frontier=T05、policy=manual、routine ineligible、唯一 Closes/authorization marker；open matching PR=0；未写 state、未 push/create PR |
 | Mac/VM install | NOT RUN | source 未合并；本任务禁止安装 live bytes |
 | account/PAT bootstrap | NOT RUN | 本任务禁止 live credential/account mutation |
 | collaborator/protection apply | NOT RUN | 本任务禁止 live governance mutation |
@@ -63,21 +63,21 @@ updated: 2026-08-27
 | AC-1 | PASS (source) | exact only-NewEMaint enabled list；loader 按 canonical serialization 实时重算 non-target declarations SHA-256 并 exact compare，wrong-but-well-formed digest 被拒绝 |
 | AC-2 | PASS (source) | #35/#208 ancestor calls、#213 exact Issue 与 current manifest-byte gate tests |
 | AC-3 | PASS (source) | governance `routine_accounts` 三态 tests |
-| AC-4 | PASS (source) / NOT RUN (live) | exact #213 binding、mutation counts、idempotent second run；所有 ownership marker 在 adopt/no-op 或 mutation 前验证 regular/non-symlink、mode 400/600、exact Issue/username/token kind |
-| AC-5 | PASS (source) | bootstrap 与每次 routine merge 前 exact `write:repository`；routine identity `is_admin` 必须 exact false；negative matrix POST=0 |
-| AC-6 | PASS (source) / GAP (live baseline) | enabled audit 完整 PASS/GAP fixtures；cross-project permission exact schema，read 明确证明无 Write/Admin，write/admin/owner 形成 GAP；schema drift fail closed |
+| AC-4 | PASS (source) / NOT RUN (live) | exact #213 binding、mutation counts、idempotent second run；所有 ownership marker 在 adopt/no-op 或 mutation 前验证 regular/non-symlink、mode 400/600、含尾换行的 exact Issue/username/token-kind bytes；额外换行、NUL、prefix/suffix 全部 fail closed 且 mutation=0 |
+| AC-5 | PASS (source) | bootstrap 与每次 routine merge 前 exact `write:repository`；reconcile/account audit 的 routine identity `is_admin` 必须 `type(...) is bool` 且 exact false，missing/true/0/string/list 全部拒绝且 merge/apply mutation=0 |
+| AC-6 | PASS (source) / GAP (live baseline) | enabled audit 完整 PASS/GAP fixtures；cross-project permission 使用共享 strict parser，响应只能是 exact `{permission: string}` schema；explicit read 安全，write/admin/owner 阻塞，missing/unknown/non-string/extra fields fail closed，apply mutation=0 |
 | AC-7 | PASS (source) / NOT RUN (live) | pre/post snapshot、post-plan empty、operation/API mutation counts；apply 在读取 mutation credential 前要求 exact action-specific live mode |
 | AC-8 | PASS (source) / NOT RUN (canary) | only Issue #74 fixture；其它 Issue stable refusal、merge POST=0 |
 | AC-9 | PASS (source) / NOT RUN (live) | fixed `/api/v1/token` 204、自撤销后 401、revoke count=1 |
-| AC-10 | PASS (source) / NOT RUN (live) | 底层 rollback CLI 在 credential read/client/rollback call 前要求 source disabled；直接负测证明 client/rollback call=0；human-only/missing collaborator、retain/delete fake paths 完整读回 |
+| AC-10 | PASS (source) / NOT RUN (live) | 底层 rollback CLI 在 credential read/client/rollback call 前要求 source disabled；delete policy 还要求 password-policy marker regular/non-symlink、mode 400/600、byte-exact；unsafe mode/content 时 account delete/rollback call=0；retain/delete fake paths完整读回 |
 | AC-11 | PASS (source receipt) / NOT RUN (live layers) | source/fake mutation counts 完整；所有未授权 live layers 明确 NOT RUN |
 | AC-12 | PASS (installer contract) / NOT RUN (final Mac/VM) | temp install root 两次安装、bootstrap/revoke/runtime/config source-byte cmp；最终 merged SHA 安装待后续 |
 | AC-13 | PASS | complex/manual、protected main、exact context、zero deploy/zero fallback assertions |
-| AC-14 | PASS | bash -n、ShellCheck、227 targeted、593 smoke、semantic audit `changes=96 pass=2 gap=0`、diff-check、Controller fresh preflight |
+| AC-14 | PASS | bash -n、ShellCheck、229 targeted、595 smoke、semantic audit `changes=96 pass=2 gap=0`、diff-check、Controller fresh preflight |
 
 ## 遗留风险与未完成项
 
 - 当前 live routine account/PAT/collaborator/protection/canary 未创建或未执行，不能从 source tests 推定 live PASS。
 - 本 branch 的 source 已补齐 routine audit metadata；installed broker 仍是合并前字节，只有 #213 合并并按独立授权安装后才能重新验收。
 - 本任务只把 deterministic path 写入 source；所有 live mutation 必须等待 source merged 后的独立授权。
-- 最终 source candidate 仍需独立复审确认 2×P1/3×P2 finding 已关闭；复审通过后才进入用户最终 PR 确认闸门。
+- 第一轮 2×P1/3×P2 已关闭；第二轮发现的 2×P1/2×P2 变体已在 `f095032` 修复并通过本地门禁。当前停在第三轮独立复审闸门，未经复审结论不进入用户最终 PR 确认。
