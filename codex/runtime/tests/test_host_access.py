@@ -2115,13 +2115,19 @@ class HostAccessBrokerTests(unittest.TestCase):
         }
         recorded = calls if calls is not None else []
 
-        def response(scenario, default):
+        def response(scenario, default, url):
             selected = default if scenario is None else scenario
+            if callable(selected):
+                selected = selected(url)
             if isinstance(selected, Exception):
                 raise selected
-            status, payload = selected
+            if len(selected) == 2:
+                status, payload = selected
+                response_headers = {}
+            else:
+                status, response_headers, payload = selected
             raw = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
-            return status, {}, raw
+            return status, response_headers, raw
 
         def transport(method, url, headers, body):
             recorded.append((method, url))
@@ -2148,15 +2154,15 @@ class HostAccessBrokerTests(unittest.TestCase):
                 }).encode()
             if url.endswith("/api/v1/users/newemaint-routine-merger"):
                 return 404, {}, b'{"message":"user does not exist"}'
-            if url.endswith(
-                "/repos/admin/NewEMaint/collaborators?limit=50&page=1"
+            if (
+                "/repos/admin/NewEMaint/collaborators?limit=50&page=" in url
             ):
-                return response(target_inventory, (200, []))
-            if url.endswith(
-                "/repos/admin/aisoft-platform/collaborators?limit=50&page=1"
+                return response(target_inventory, (200, []), url)
+            if (
+                "/repos/admin/aisoft-platform/collaborators?limit=50&page=" in url
             ):
-                return response(cross_project_inventory, (200, []))
-            if "/collaborators?limit=50&page=1" in url:
+                return response(cross_project_inventory, (200, []), url)
+            if "/collaborators?limit=50&page=" in url:
                 return 200, {}, b'[]'
             if "/repos/admin/NewEMaint/" in url:
                 if url.endswith("/collaborators/aisoft-platform-manager/permission"):
@@ -2176,7 +2182,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 ):
                     return response(cross_project, (404, {
                         "message": "not a collaborator",
-                    }))
+                    }), url)
                 return 404, {}, b'{"message":"not a collaborator"}'
             raise AssertionError(f"unexpected URL: {url}")
 
@@ -2302,6 +2308,91 @@ class HostAccessBrokerTests(unittest.TestCase):
             broker.execute("newemaint", "host.access.audit")
 
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_inventory_requires_exact_http_200(self) -> None:
+        for status in (201, 202, 204, 206):
+            with self.subTest(status=status):
+                broker = self._missing_routine_audit_broker(
+                    cross_project_inventory=(status, []),
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_inventory_rejects_duplicate_case_and_username_drift(self) -> None:
+        malformed = (
+            [{"login": "alpha"}, {"login": "alpha"}],
+            [{"login": "alpha"}, {"login": "Alpha"}],
+            [{"login": "NewEMaint-Routine-Merger"}],
+            [{"login": " alpha"}],
+            [{"login": "alpha "}],
+            [{"login": "bad/login"}],
+            [{"login": "a" * 65}],
+        )
+        for payload in malformed:
+            with self.subTest(payload=payload):
+                broker = self._missing_routine_audit_broker(
+                    cross_project_inventory=(200, payload),
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_inventory_rejects_cross_page_duplicate_and_case_collision(self) -> None:
+        first_page = [{"login": f"user-{index:03d}"} for index in range(50)]
+        for repeated in ("user-000", "User-000"):
+            with self.subTest(repeated=repeated):
+                def inventory(url, repeated=repeated):
+                    page = int(url.rsplit("page=", 1)[1])
+                    return (200, first_page if page == 1 else [{"login": repeated}])
+
+                broker = self._missing_routine_audit_broker(
+                    cross_project_inventory=inventory,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_inventory_rejects_oversize_and_abnormal_pagination(self) -> None:
+        oversized = [{"login": f"user-{index:03d}"} for index in range(51)]
+        oversized_calls: list[int] = []
+
+        def oversized_inventory(url):
+            oversized_calls.append(int(url.rsplit("page=", 1)[1]))
+            return 200, oversized
+
+        short_with_next = (
+            200,
+            {"Link": '<http://mock.invalid?page=2>; rel="next"'},
+            [{"login": "alpha"}],
+        )
+        for inventory in (oversized_inventory, short_with_next):
+            with self.subTest(inventory=inventory):
+                broker = self._missing_routine_audit_broker(
+                    cross_project_inventory=inventory,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+        self.assertEqual(oversized_calls, [1])
+
+    def test_missing_account_inventory_reads_the_terminal_page_after_a_full_page(self) -> None:
+        calls: list[int] = []
+        first_page = [{"login": f"user-{index:03d}"} for index in range(50)]
+
+        def inventory(url):
+            page = int(url.rsplit("page=", 1)[1])
+            calls.append(page)
+            return 200, first_page if page == 1 else []
+
+        broker = self._missing_routine_audit_broker(
+            cross_project_inventory=inventory,
+        )
+
+        value = broker.execute("newemaint", "host.access.audit")
+
+        self.assertEqual(value["status"], "GAP")
+        self.assertEqual(calls, [1, 2])
 
     def _credential_contract(self, root: Path):
         raw = json.loads(json.dumps(self.contract.raw))
