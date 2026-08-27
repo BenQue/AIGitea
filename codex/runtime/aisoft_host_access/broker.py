@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import base64
+import math
 import os
 import pwd
 import re
@@ -12,7 +13,7 @@ from datetime import datetime
 from pathlib import PurePosixPath
 from typing import Callable, Mapping, Protocol, Sequence
 from urllib.error import HTTPError, URLError
-from urllib.parse import parse_qsl, quote, urlparse
+from urllib.parse import parse_qsl, quote, urlparse, urlsplit
 from urllib.request import Request, urlopen
 
 from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
@@ -72,6 +73,13 @@ COLLABORATOR_MAX_PAGES = 100
 COLLABORATOR_PAGE_MAX_BYTES = 128 * 1024
 COLLABORATOR_AUDIT_MAX_BYTES = 4 * 1024 * 1024
 COLLABORATOR_AUDIT_MAX_PAGES = 1000
+# Inventory JSON is identity metadata, not an arbitrary numeric data channel.
+# These bounds keep conversion deterministic before Python's process-wide
+# integer digit guard or IEEE-754 overflow can become observable behavior.
+COLLABORATOR_JSON_INTEGER_MAX_DIGITS = 19
+COLLABORATOR_JSON_INTEGER_MIN = -(2**63)
+COLLABORATOR_JSON_INTEGER_MAX = 2**63 - 1
+COLLABORATOR_JSON_FLOAT_MAX_CHARS = 64
 
 
 class BrokerError(RuntimeError):
@@ -227,19 +235,21 @@ CommandRunner = Callable[..., subprocess.CompletedProcess[str]]
 
 
 def _header_items(headers: object) -> tuple[tuple[str, str], ...]:
-    if isinstance(headers, Mapping):
-        raw_items: object = headers.items()
-    elif isinstance(headers, Sequence) and not isinstance(
-        headers, (str, bytes, bytearray)
-    ):
-        raw_items = headers
-    else:
-        raise BrokerError(
-            "RESPONSE_SCHEMA_INVALID", "host response headers are invalid"
-        )
     try:
+        if isinstance(headers, Mapping):
+            raw_items: object = headers.items()
+        elif isinstance(headers, Sequence) and not isinstance(
+            headers, (str, bytes, bytearray)
+        ):
+            raw_items = headers
+        else:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID", "host response headers are invalid"
+            )
         items = tuple(raw_items)  # type: ignore[arg-type]
-    except (TypeError, ValueError) as exc:
+    except BrokerError:
+        raise
+    except Exception as exc:
         raise BrokerError(
             "RESPONSE_SCHEMA_INVALID", "host response headers are invalid"
         ) from exc
@@ -266,15 +276,41 @@ def _header_items(headers: object) -> tuple[tuple[str, str], ...]:
 
 
 def _response_header_items(headers: object) -> tuple[tuple[str, str], ...]:
-    raw_items = getattr(headers, "raw_items", None)
-    if callable(raw_items):
-        try:
+    try:
+        raw_items = getattr(headers, "raw_items", None)
+        if callable(raw_items):
             return _header_items(tuple(raw_items()))
-        except (TypeError, ValueError) as exc:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID", "host response headers are invalid"
-            ) from exc
-    return _header_items(headers)
+        return _header_items(headers)
+    except BrokerError:
+        raise
+    except Exception as exc:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID", "host response headers are invalid"
+        ) from exc
+
+
+def _bounded_ascii_decimal(
+    value: object,
+    label: str,
+    *,
+    max_digits: int,
+    max_value: int,
+    allow_zero: bool,
+) -> int:
+    if (
+        not isinstance(value, str)
+        or len(value) == 0
+        or len(value) > max_digits
+        or re.fullmatch(r"(?:0|[1-9][0-9]*)", value) is None
+    ):
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", f"{label} is invalid")
+    try:
+        number = int(value)
+    except (ValueError, OverflowError) as exc:
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", f"{label} is invalid") from exc
+    if number > max_value or (number == 0 and not allow_zero):
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", f"{label} is invalid")
+    return number
 
 
 def _declared_content_length(headers: object) -> int | None:
@@ -284,12 +320,13 @@ def _declared_content_length(headers: object) -> int | None:
             continue
         for token in raw_value.split(","):
             value = token.strip()
-            if re.fullmatch(r"(?:0|[1-9][0-9]*)", value) is None:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory Content-Length is invalid",
-                )
-            values.append(int(value))
+            values.append(_bounded_ascii_decimal(
+                value,
+                "collaborator inventory Content-Length",
+                max_digits=len(str(COLLABORATOR_PAGE_MAX_BYTES)),
+                max_value=COLLABORATOR_PAGE_MAX_BYTES,
+                allow_zero=True,
+            ))
     if not values:
         return None
     if len(set(values)) != 1:
@@ -351,14 +388,56 @@ def _strict_collaborator_json(body: bytes) -> object:
             result[key] = value
         return result
 
+    def bounded_integer(value: str) -> int:
+        digits = value[1:] if value.startswith("-") else value
+        if (
+            len(digits) == 0
+            or len(digits) > COLLABORATOR_JSON_INTEGER_MAX_DIGITS
+            or re.fullmatch(r"(?:0|[1-9][0-9]*)", digits) is None
+        ):
+            raise ValueError("collaborator inventory JSON integer is invalid")
+        number = int(value)
+        if not (
+            COLLABORATOR_JSON_INTEGER_MIN
+            <= number
+            <= COLLABORATOR_JSON_INTEGER_MAX
+        ):
+            raise ValueError("collaborator inventory JSON integer is out of range")
+        return number
+
+    def bounded_float(value: str) -> float:
+        if (
+            len(value) == 0
+            or len(value) > COLLABORATOR_JSON_FLOAT_MAX_CHARS
+            or value.isascii() is False
+        ):
+            raise ValueError("collaborator inventory JSON float is invalid")
+        number = float(value)
+        if not math.isfinite(number):
+            raise ValueError("collaborator inventory JSON float is not finite")
+        return number
+
+    def reject_constant(_value: str) -> object:
+        raise ValueError("collaborator inventory JSON constant is invalid")
+
     try:
         return json.loads(
             body.decode("utf-8"),
             object_pairs_hook=object_from_pairs,
+            parse_constant=reject_constant,
+            parse_int=bounded_integer,
+            parse_float=bounded_float,
         )
     except BrokerError:
         raise
-    except (UnicodeError, json.JSONDecodeError) as exc:
+    except (
+        UnicodeError,
+        json.JSONDecodeError,
+        TypeError,
+        ValueError,
+        OverflowError,
+        RecursionError,
+    ) as exc:
         raise BrokerError(
             "RESPONSE_SCHEMA_INVALID",
             "collaborator inventory response is invalid",
@@ -2238,8 +2317,8 @@ class HostAccessBroker:
 
     @staticmethod
     def _collaborator_link_page(target: str, repo_api: str) -> int:
-        canonical = urlparse(f"{repo_api}/collaborators")
-        candidate = urlparse(target)
+        canonical = urlsplit(f"{repo_api}/collaborators")
+        candidate = urlsplit(target)
         try:
             canonical_port = canonical.port
             candidate_port = candidate.port
@@ -2257,7 +2336,6 @@ class HostAccessBroker:
             or candidate.hostname.casefold() != canonical.hostname.casefold()
             or candidate_port != canonical_port
             or candidate.path != canonical.path
-            or candidate.params
             or "#" in target
             or candidate.fragment
         ):
@@ -2287,15 +2365,26 @@ class HostAccessBroker:
                 "collaborator inventory pagination query is invalid",
             )
         values = dict(query)
-        if (
-            values["limit"] != str(COLLABORATOR_PAGE_LIMIT)
-            or re.fullmatch(r"[1-9][0-9]*", values["page"]) is None
-        ):
+        limit = _bounded_ascii_decimal(
+            values["limit"],
+            "collaborator inventory pagination query",
+            max_digits=len(str(COLLABORATOR_PAGE_LIMIT)),
+            max_value=COLLABORATOR_PAGE_LIMIT,
+            allow_zero=False,
+        )
+        page = _bounded_ascii_decimal(
+            values["page"],
+            "collaborator inventory pagination query",
+            max_digits=len(str(COLLABORATOR_MAX_PAGES)),
+            max_value=COLLABORATOR_MAX_PAGES,
+            allow_zero=False,
+        )
+        if limit != COLLABORATOR_PAGE_LIMIT:
             raise BrokerError(
                 "RESPONSE_SCHEMA_INVALID",
                 "collaborator inventory pagination query is invalid",
             )
-        return int(values["page"])
+        return page
 
     def _collaborator_names(
         self,

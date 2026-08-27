@@ -2631,6 +2631,34 @@ class HostAccessBrokerTests(unittest.TestCase):
                     broker.execute("newemaint", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
+    def test_collaborator_json_rejects_nonstandard_and_unbounded_numbers(self) -> None:
+        payloads = (
+            b"NaN",
+            b"Infinity",
+            b"-Infinity",
+            b"9" * 4301,
+            b"9" * 5000,
+            b"9" * 4301 + b".0",
+            b"9" * 5000 + b".0",
+            b"1e5000",
+        )
+        for payload in payloads:
+            with self.subTest(size=len(payload), prefix=payload[:16]):
+                with self.assertRaises(BrokerError) as caught:
+                    broker_module._strict_collaborator_json(payload)
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_inventory_maps_deep_json_to_stable_schema_error(self) -> None:
+        payload = b"[" * 1500 + b'{"login":"alpha"}' + b"]" * 1500
+        broker = self._missing_routine_audit_broker(
+            cross_project_inventory=(200, payload),
+        )
+
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute("newemaint", "host.access.audit")
+
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
     def test_missing_account_inventory_enforces_content_and_transfer_encoding(self) -> None:
         invalid_headers = (
             {"Content-Encoding": "gzip"},
@@ -2745,6 +2773,55 @@ class HostAccessBrokerTests(unittest.TestCase):
                 with self.assertRaises(BrokerError) as caught:
                     broker.execute("newemaint", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_inventory_bounds_content_length_decimal(self) -> None:
+        for digits in (4301, 5000):
+            with self.subTest(digits=digits):
+                broker = self._missing_routine_audit_broker(
+                    cross_project_inventory=(
+                        200,
+                        {"Content-Length": "9" * digits},
+                        [],
+                    ),
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_collaborator_link_rejects_path_params_and_unbounded_decimals(self) -> None:
+        endpoint = (
+            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
+            "aisoft-platform/collaborators"
+        )
+        invalid = (
+            f"{endpoint};?limit=50&page=2",
+            f"{endpoint};v=1?limit=50&page=2",
+            f"{endpoint}?limit=50&page={'9' * 4301}",
+            f"{endpoint}?limit=50&page={'9' * 5000}",
+            f"{endpoint}?limit={'9' * 5000}&page=2",
+        )
+        for target in invalid:
+            with self.subTest(length=len(target), marker=target[len(endpoint):len(endpoint) + 12]):
+                with self.assertRaises(BrokerError) as caught:
+                    HostAccessBroker._collaborator_link_page(
+                        target,
+                        "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform",
+                    )
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_inventory_maps_abnormal_header_mapping_to_schema_error(self) -> None:
+        class AbnormalHeaders(dict):
+            def items(self):
+                raise ValueError("untrusted mapping failed")
+
+        broker = self._missing_routine_audit_broker(
+            cross_project_inventory=(200, AbnormalHeaders(), []),
+        )
+
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute("newemaint", "host.access.audit")
+
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
     def test_missing_account_inventory_enforces_audit_wide_response_budgets(self) -> None:
         limits = (
