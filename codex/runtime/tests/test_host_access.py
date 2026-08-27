@@ -2093,7 +2093,7 @@ class HostAccessBrokerTests(unittest.TestCase):
 
     def _missing_routine_audit_broker(
         self, *, cross_project=None, cross_project_inventory=None,
-        target_inventory=None, calls=None,
+        target_inventory=None, calls=None, response_limits=None,
     ):
         class MissingRoutineCredentials(StaticCredentials):
             def resolve(self, project, operation):
@@ -2115,6 +2115,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             "block_admin_merge_override": True,
         }
         recorded = calls if calls is not None else []
+        recorded_limits = response_limits if response_limits is not None else []
 
         def response(scenario, default, url):
             selected = default if scenario is None else scenario
@@ -2130,7 +2131,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             raw = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
             return status, response_headers, raw
 
-        def transport(method, url, headers, body):
+        def transport(method, url, headers, body, *, response_limit=None):
             recorded.append((method, url))
             self.assertEqual(method, "GET")
             self.assertIsNone(body)
@@ -2158,12 +2159,15 @@ class HostAccessBrokerTests(unittest.TestCase):
             if (
                 "/repos/admin/NewEMaint/collaborators?limit=50&page=" in url
             ):
+                recorded_limits.append(response_limit)
                 return response(target_inventory, (200, []), url)
             if (
                 "/repos/admin/aisoft-platform/collaborators?limit=50&page=" in url
             ):
+                recorded_limits.append(response_limit)
                 return response(cross_project_inventory, (200, []), url)
             if "/collaborators?limit=50&page=" in url:
+                recorded_limits.append(response_limit)
                 return 200, {}, b'[]'
             if "/repos/admin/NewEMaint/" in url:
                 if url.endswith("/collaborators/aisoft-platform-manager/permission"):
@@ -2461,6 +2465,268 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertEqual(value["status"], "GAP")
         self.assertEqual(calls, [1, 2])
 
+    def test_missing_account_inventory_accepts_quoted_link_parameters(self) -> None:
+        endpoint = (
+            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
+            "aisoft-platform/collaborators"
+        )
+        first_page = [{"login": f"user-{index:03d}"} for index in range(50)]
+
+        def inventory(url):
+            page = int(url.rsplit("page=", 1)[1])
+            if page == 1:
+                return (
+                    200,
+                    {"Link": (
+                        f'<{endpoint}?limit=50&page=2>; '
+                        'title="next,page;still\\\"quoted"; rel="NEXT", '
+                        f'<{endpoint}?limit=50&page=2>; '
+                        'rel="last"; title="last;page"'
+                    )},
+                    first_page,
+                )
+            return (
+                200,
+                {"Link": (
+                    f'<{endpoint}?limit=50&page=1>; rel="first", '
+                    f'<{endpoint}?limit=50&page=1>; rel="prev", '
+                    f'<{endpoint}?limit=50&page=2>; rel="last"; '
+                    'title="terminal,page"'
+                )},
+                [],
+            )
+
+        broker = self._missing_routine_audit_broker(
+            cross_project_inventory=inventory,
+        )
+
+        value = broker.execute("newemaint", "host.access.audit")
+
+        self.assertEqual(value["status"], "GAP")
+
+    def test_missing_account_inventory_rejects_cross_page_link_state_drift(self) -> None:
+        endpoint = (
+            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
+            "aisoft-platform/collaborators"
+        )
+        first_page = [{"login": f"user-{index:03d}"} for index in range(50)]
+
+        def last_drift(url):
+            page = int(url.rsplit("page=", 1)[1])
+            if page == 1:
+                return (
+                    200,
+                    {"Link": (
+                        f'<{endpoint}?limit=50&page=2>; rel="next", '
+                        f'<{endpoint}?limit=50&page=999>; rel="last"'
+                    )},
+                    first_page,
+                )
+            return (
+                200,
+                {"Link": (
+                    f'<{endpoint}?limit=50&page=1>; rel="first", '
+                    f'<{endpoint}?limit=50&page=1>; rel="prev", '
+                    f'<{endpoint}?limit=50&page=2>; rel="last"'
+                )},
+                [],
+            )
+
+        def terminal_before_last(url):
+            page = int(url.rsplit("page=", 1)[1])
+            if page == 1:
+                return (
+                    200,
+                    {"Link": (
+                        f'<{endpoint}?limit=50&page=2>; rel="next", '
+                        f'<{endpoint}?limit=50&page=3>; rel="last"'
+                    )},
+                    first_page,
+                )
+            return 200, {}, []
+
+        def missing_reciprocal_prev(url):
+            page = int(url.rsplit("page=", 1)[1])
+            if page == 1:
+                return (
+                    200,
+                    {"Link": (
+                        f'<{endpoint}?limit=50&page=2>; rel="next", '
+                        f'<{endpoint}?limit=50&page=2>; rel="last"'
+                    )},
+                    first_page,
+                )
+            return 200, {"Link": f'<{endpoint}?limit=50&page=2>; rel="last"'}, []
+
+        def orphan_prev(url):
+            page = int(url.rsplit("page=", 1)[1])
+            if page == 1:
+                return (
+                    200,
+                    {"Link": f'<{endpoint}?limit=50&page=2>; rel="last"'},
+                    first_page,
+                )
+            return (
+                200,
+                {"Link": (
+                    f'<{endpoint}?limit=50&page=1>; rel="prev", '
+                    f'<{endpoint}?limit=50&page=2>; rel="last"'
+                )},
+                [],
+            )
+
+        for inventory in (
+            last_drift,
+            terminal_before_last,
+            missing_reciprocal_prev,
+            orphan_prev,
+        ):
+            with self.subTest(inventory=inventory):
+                broker = self._missing_routine_audit_broker(
+                    cross_project_inventory=inventory,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_inventory_rejects_empty_fragment_link(self) -> None:
+        endpoint = (
+            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
+            "aisoft-platform/collaborators"
+        )
+        first_page = [{"login": f"user-{index:03d}"} for index in range(50)]
+
+        def inventory(url):
+            page = int(url.rsplit("page=", 1)[1])
+            if page == 1:
+                return (
+                    200,
+                    {"Link": (
+                        f'<{endpoint}?limit=50&page=2#>; rel="next", '
+                        f'<{endpoint}?limit=50&page=2>; rel="last"'
+                    )},
+                    first_page,
+                )
+            return 200, {"Link": f'<{endpoint}?limit=50&page=2>; rel="last"'}, []
+
+        broker = self._missing_routine_audit_broker(
+            cross_project_inventory=inventory,
+        )
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute("newemaint", "host.access.audit")
+
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_inventory_rejects_duplicate_json_keys_recursively(self) -> None:
+        payloads = (
+            b'[{"login":"alpha","login":"beta"}]',
+            b'[{"login":"alpha","extra":{"state":1,"state":2}}]',
+        )
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                broker = self._missing_routine_audit_broker(
+                    cross_project_inventory=(200, payload),
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_account_inventory_enforces_content_and_transfer_encoding(self) -> None:
+        invalid_headers = (
+            {"Content-Encoding": "gzip"},
+            {"Content-Encoding": "br"},
+            {"Content-Encoding": "deflate"},
+            [("Content-Encoding", "identity"), ("Content-Encoding", "identity")],
+            {"Content-Encoding": "identity, gzip"},
+            {"Transfer-Encoding": "gzip"},
+            [("Transfer-Encoding", "chunked"), ("Transfer-Encoding", "chunked")],
+            {"Transfer-Encoding": "chunked", "Content-Length": "2"},
+        )
+        for headers in invalid_headers:
+            with self.subTest(headers=headers):
+                broker = self._missing_routine_audit_broker(
+                    cross_project_inventory=(200, headers, []),
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+        for headers in (
+            {"Content-Encoding": "identity"},
+            {"Transfer-Encoding": "chunked"},
+        ):
+            with self.subTest(accepted_headers=headers):
+                broker = self._missing_routine_audit_broker(
+                    cross_project_inventory=(200, headers, []),
+                )
+                self.assertEqual(
+                    broker.execute("newemaint", "host.access.audit")["status"],
+                    "GAP",
+                )
+
+    def test_missing_account_inventory_reserves_budget_before_transport(self) -> None:
+        calls: list[tuple[str, str]] = []
+        limits: list[int | None] = []
+        broker = self._missing_routine_audit_broker(
+            calls=calls,
+            response_limits=limits,
+        )
+
+        with patch("aisoft_host_access.broker.COLLABORATOR_AUDIT_MAX_BYTES", 10):
+            with self.assertRaises(BrokerError) as caught:
+                broker.execute("newemaint", "host.access.audit")
+
+        inventory_calls = [
+            url for _method, url in calls
+            if "/collaborators?limit=50&page=" in url
+        ]
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+        self.assertEqual(len(inventory_calls), 5)
+        self.assertEqual(limits, [10, 8, 6, 4, 2])
+
+        calls = []
+        limits = []
+        broker = self._missing_routine_audit_broker(
+            calls=calls,
+            response_limits=limits,
+        )
+        with patch("aisoft_host_access.broker.COLLABORATOR_AUDIT_MAX_PAGES", 1):
+            with self.assertRaises(BrokerError) as caught:
+                broker.execute("newemaint", "host.access.audit")
+        inventory_calls = [
+            url for _method, url in calls
+            if "/collaborators?limit=50&page=" in url
+        ]
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+        self.assertEqual(len(inventory_calls), 1)
+        self.assertEqual(limits, [broker_module.COLLABORATOR_PAGE_MAX_BYTES])
+
+    def test_missing_account_inventory_rejects_malformed_quoted_link_parameters(self) -> None:
+        endpoint = (
+            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
+            "aisoft-platform/collaborators"
+        )
+        malformed = (
+            f'<{endpoint}?limit=50&page=2>; rel="next"; title="unterminated',
+            f'<{endpoint}?limit=50&page=2>; rel="next"; title="dangling\\',
+            f'<{endpoint}?limit=50&page=2>; rel="next"; title="bad\x01value"',
+            f'<{endpoint}?limit=50&page=2>; rel="next"; title="fold\r\n value"',
+            f'<{endpoint}?limit=50&page=2>; rel="next"; title="one"; title="two"',
+            f'<{endpoint}?limit=50&page=2>; rel="next"; rel="last"',
+        )
+        for link in malformed:
+            with self.subTest(link=repr(link)):
+                broker = self._missing_routine_audit_broker(
+                    cross_project_inventory=(
+                        200,
+                        {"Link": link},
+                        [{"login": "alpha"}],
+                    ),
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
     def test_missing_account_inventory_rejects_response_size_and_length_drift(self) -> None:
         two_megabyte_extra = [{"login": "alpha", "extra": "x" * (2 * 1024 * 1024)}]
         scenarios = (
@@ -2610,6 +2876,52 @@ class HostAccessBrokerTests(unittest.TestCase):
 
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
         self.assertEqual(response.read_sizes, [129])
+
+    def test_default_transport_rejects_inventory_framing_before_read(self) -> None:
+        class Headers:
+            values: tuple[tuple[str, str], ...] = ()
+
+            def raw_items(self):
+                return iter(self.values)
+
+        class Response:
+            status = 200
+
+            def __init__(self, values):
+                self.headers = Headers()
+                self.headers.values = values
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self, size=None):
+                raise AssertionError("invalid framing must fail before read")
+
+        scenarios = (
+            (("Content-Encoding", "gzip"),),
+            (("Transfer-Encoding", "chunked"), ("Content-Length", "2")),
+            (("Transfer-Encoding", "chunked"), ("Transfer-Encoding", "chunked")),
+        )
+        for headers in scenarios:
+            with self.subTest(headers=headers):
+                with patch(
+                    "aisoft_host_access.broker.urlopen",
+                    return_value=Response(headers),
+                ):
+                    with self.assertRaises(BrokerError) as caught:
+                        broker_module._default_transport(
+                            "GET",
+                            "http://example.invalid/api",
+                            {"Accept": "application/json"},
+                            None,
+                            response_limit=128,
+                        )
+                self.assertEqual(
+                    caught.exception.code, "RESPONSE_SCHEMA_INVALID"
+                )
 
     def test_missing_account_inventory_reads_the_terminal_page_after_a_full_page(self) -> None:
         calls: list[int] = []
