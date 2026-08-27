@@ -518,7 +518,7 @@ class HostAccessBroker:
         ):
             raise BrokerError("ROUTINE_REPOSITORY_DISABLED", "repository routine merge is disabled")
         credential = self.credentials.resolve(project, operation)
-        self._verify_identity(credential)
+        self._verify_identity(credential, require_non_admin_exact=True)
         try:
             actual_scopes = self._probe_token_scopes(credential)
         except BrokerError as exc:
@@ -1641,11 +1641,21 @@ class HostAccessBroker:
                 return pulls
         raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea pull list exceeds the bounded scan")
 
-    def _verify_identity(self, credential: ResolvedCredential) -> None:
+    def _verify_identity(
+        self,
+        credential: ResolvedCredential,
+        *,
+        require_non_admin_exact: bool = False,
+    ) -> None:
         url = f"{self.contract.governance.base_url}/api/v1/user"
         value = self._request_json(url, credential.token)
         if not isinstance(value, dict) or value.get("login") != credential.identity:
             raise BrokerError("IDENTITY_MISMATCH", "credential identity does not match the route")
+        if require_non_admin_exact and value.get("is_admin") is not False:
+            raise BrokerError(
+                "IDENTITY_MISMATCH",
+                "routine credential identity must explicitly be non-site-admin",
+            )
         if credential.identity != self.contract.governance.human_merge_identity and value.get("is_admin") is True:
             raise BrokerError("IDENTITY_MISMATCH", "automation identity unexpectedly has site-admin permission")
 
@@ -2156,7 +2166,7 @@ class HostAccessBroker:
                 raise BrokerError(
                     "RESPONSE_SCHEMA_INVALID", "routine account response is invalid"
                 )
-            elif account.get("is_admin") is True:
+            elif account.get("is_admin") is not False:
                 routine["account_state"] = "present-site-admin"
                 routine_gap = True
             else:
@@ -2179,7 +2189,9 @@ class HostAccessBroker:
                 }
                 routine_gap = True
             else:
-                self._verify_identity(routine_credential)
+                self._verify_identity(
+                    routine_credential, require_non_admin_exact=True
+                )
                 actual_routine_scopes = self._probe_token_scopes(routine_credential)
                 expected_routine_scopes = set(
                     self.contract.governance.raw[
@@ -2205,9 +2217,13 @@ class HostAccessBroker:
             if target_permission is None:
                 routine["repository_permission"] = "missing"
                 routine_gap = True
-            elif not isinstance(target_permission, dict) or target_permission.get(
-                "permission"
-            ) not in {"read", "write", "admin", "owner"}:
+            elif (
+                not isinstance(target_permission, dict)
+                or set(target_permission) != {"permission"}
+                or not isinstance(target_permission.get("permission"), str)
+                or target_permission["permission"]
+                not in {"read", "write", "admin", "owner"}
+            ):
                 raise BrokerError(
                     "RESPONSE_SCHEMA_INVALID", "routine permission response is invalid"
                 )
@@ -2228,9 +2244,18 @@ class HostAccessBroker:
                     f"{other_api}/collaborators/{quote(merger, safe='')}/permission",
                     manager_token,
                 )
-                if isinstance(other_permission, dict) and other_permission.get(
-                    "permission"
-                ) in {"write", "admin", "owner"}:
+                if (
+                    not isinstance(other_permission, dict)
+                    or set(other_permission) != {"permission"}
+                    or not isinstance(other_permission.get("permission"), str)
+                    or other_permission["permission"]
+                    not in {"read", "write", "admin", "owner"}
+                ):
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "cross-project routine permission response is invalid",
+                    )
+                if other_permission["permission"] in {"write", "admin", "owner"}:
                     violations.append({
                         "repository": self.contract.governance.full_name(other),
                         "permission": str(other_permission["permission"]),

@@ -463,8 +463,6 @@ class ControllerTests(unittest.TestCase):
     def routine_governance(self) -> Path:
         source = Path(__file__).resolve().parents[2] / "config/gitea-governance.json"
         value = json.loads(source.read_text(encoding="utf-8"))
-        repository = next(item for item in value["repositories"] if item["name"] == "HSDB")
-        repository["routine_auto_merge_enabled"] = True
         path = self.root / "routine-governance.json"
         path.write_text(json.dumps(value), encoding="utf-8")
         return path
@@ -591,7 +589,7 @@ branch: change/8
             confirmation_required=True,
             routine_merger=merger,
             governance_manifest=self.routine_governance(),
-            repository_name="HSDB",
+            repository_name="NewEMaint",
         )
         self.assertEqual(
             controller.run(8).terminal_state,
@@ -621,7 +619,7 @@ branch: change/8
             confirmation_required=True,
             routine_merger=merger,
             governance_manifest=self.routine_governance(),
-            repository_name="HSDB",
+            repository_name="NewEMaint",
         )
         self.assertEqual(
             controller.run(8).terminal_state,
@@ -644,7 +642,7 @@ branch: change/8
             confirmation_required=True,
             routine_merger=FakeRoutineMerger(valid=False),
             governance_manifest=self.routine_governance(),
-            repository_name="HSDB",
+            repository_name="NewEMaint",
         )
         self.assertEqual(
             controller.run(8).terminal_state,

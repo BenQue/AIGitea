@@ -1981,7 +1981,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 if url.endswith("/branch_protections/main"):
                     return 200, {}, json.dumps(protection).encode()
             if url.endswith("/collaborators/newemaint-routine-merger/permission"):
-                return 404, {}, b''
+                return 200, {}, b'{"permission":"read"}'
             raise AssertionError(f"unexpected URL: {url}")
 
         broker = HostAccessBroker(
@@ -2010,6 +2010,76 @@ class HostAccessBrokerTests(unittest.TestCase):
         value = broker.execute("newemaint", "host.access.audit")
         self.assertEqual(value["status"], "GAP")
         self.assertEqual(value["routine_merge"]["merge_allowlist_state"], "pre-apply")
+        protection["merge_whitelist_usernames"] = [
+            "admin", "newemaint-routine-merger",
+        ]
+
+        schema_drifts = (
+            (404, None),
+            (200, []),
+            (200, {}),
+            (200, {"permission": "read", "unexpected": True}),
+            (200, {"permission": None}),
+            (200, {"permission": True}),
+            (200, {"permission": 0}),
+            (200, {"permission": "unknown"}),
+        )
+        for status, payload in schema_drifts:
+            with self.subTest(cross_project_schema=(status, payload)):
+                def schema_drift(method, url, headers, body, *, status=status,
+                                 payload=payload):
+                    if (
+                        "/repos/admin/HSDB/" in url
+                        and url.endswith(
+                            "/collaborators/newemaint-routine-merger/permission"
+                        )
+                    ):
+                        raw = b'' if payload is None else json.dumps(payload).encode()
+                        return status, {}, raw
+                    return transport(method, url, headers, body)
+
+                drift_broker = HostAccessBroker(
+                    self.contract,
+                    credentials=PilotCredentials(),
+                    transport=schema_drift,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    drift_broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+        for unsafe_permission in ("write", "admin", "owner"):
+            with self.subTest(cross_project_permission=unsafe_permission):
+                def unsafe_cross_project(method, url, headers, body, *,
+                                         permission=unsafe_permission):
+                    if (
+                        "/repos/admin/HSDB/" in url
+                        and url.endswith(
+                            "/collaborators/newemaint-routine-merger/permission"
+                        )
+                    ):
+                        return 200, {}, json.dumps({
+                            "permission": permission,
+                        }).encode()
+                    return transport(method, url, headers, body)
+
+                unsafe_broker = HostAccessBroker(
+                    self.contract,
+                    credentials=PilotCredentials(),
+                    transport=unsafe_cross_project,
+                )
+                unsafe_value = unsafe_broker.execute(
+                    "newemaint", "host.access.audit"
+                )
+                self.assertEqual(unsafe_value["status"], "GAP")
+                self.assertEqual(
+                    unsafe_value["routine_merge"][
+                        "cross_project_write_violations"
+                    ],
+                    [{
+                        "repository": "admin/HSDB",
+                        "permission": unsafe_permission,
+                    }],
+                )
 
     def _credential_contract(self, root: Path):
         raw = json.loads(json.dumps(self.contract.raw))

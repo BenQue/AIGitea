@@ -121,6 +121,41 @@ export GITEA_BIN="$TMP/bin/gitea"
 export GITEA_CONFIG="$MOCK_GITEA_CONFIG"
 export GITEA_LOCAL_URL=http://127.0.0.1:3000
 
+line_count() {
+  local path="$1"
+  if [[ -f "$path" ]]; then
+    wc -l <"$path" | tr -d ' '
+  else
+    printf '0\n'
+  fi
+}
+
+unauthorized_root="$TMP/unauthorized-credentials"
+mkdir -p "$unauthorized_root"
+chmod 755 "$unauthorized_root"
+printf '%s\n' sentinel >"$unauthorized_root/state"
+unauthorized_mode_before="$(stat -c '%a' "$unauthorized_root" 2>/dev/null || stat -f '%Lp' "$unauthorized_root")"
+unauthorized_state_before="$(shasum -a 256 "$unauthorized_root/state")"
+gitea_count_before="$(line_count "$TMP/gitea-argv.log")"
+curl_count_before="$(line_count "$TMP/curl-argv.log")"
+if AISOFT_ACCOUNT_BOOTSTRAP_MODE=not-authorized \
+   AISOFT_CREDENTIAL_ROOT="$unauthorized_root" \
+   bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+    --manifest "$ROOT/codex/config/gitea-governance.json" \
+    --username hsdb-agent \
+    --token-kind project-agent \
+    --credential-output "$unauthorized_root/hsdb-agent-project-agent.token" \
+    >"$TMP/unauthorized.out" 2>"$TMP/unauthorized.err"; then
+  printf '%s\n' 'unauthorized bootstrap unexpectedly succeeded' >&2
+  exit 1
+fi
+grep -Fq 'AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-35 is required' "$TMP/unauthorized.err"
+[[ "$(stat -c '%a' "$unauthorized_root" 2>/dev/null || stat -f '%Lp' "$unauthorized_root")" == "$unauthorized_mode_before" ]]
+[[ "$(shasum -a 256 "$unauthorized_root/state")" == "$unauthorized_state_before" ]]
+[[ "$(find "$unauthorized_root" -mindepth 1 -maxdepth 1 -print | wc -l | tr -d ' ')" == 1 ]]
+[[ "$(line_count "$TMP/gitea-argv.log")" == "$gitea_count_before" ]]
+[[ "$(line_count "$TMP/curl-argv.log")" == "$curl_count_before" ]]
+
 output="$TMP/credentials/hsdb-agent-project-agent.token"
 result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
@@ -178,7 +213,7 @@ if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   printf '%s\n' 'unsafe password policy marker mode unexpectedly succeeded' >&2
   exit 1
 fi
-grep -Fq 'password policy marker mode must be 400 or 600' "$TMP/policy-marker-negative.err"
+grep -Fq 'password policy ownership marker mode must be 400 or 600' "$TMP/policy-marker-negative.err"
 chmod 600 "$policy_marker"
 
 if grep -Fq sentinel-generated-token "$TMP/gitea-argv.log" ||
@@ -234,6 +269,46 @@ routine_result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
 [[ "$(jq -r '.account_mutation_count' <<<"$routine_result")" == 0 ]]
 [[ "$(jq -r '.pat_mutation_count' <<<"$routine_result")" == 0 ]]
 [[ "$(grep -c 'issue-213-routine-merge-agent' "$TMP/gitea-argv.log")" == 1 ]]
+
+routine_account_marker="$TMP/credentials/projects/newemaint/newemaint-routine-merger.account-created-by-issue-213"
+printf 'issue=213\nusername=wrong-owner\n' >"$routine_account_marker"
+gitea_count_before="$(line_count "$TMP/gitea-argv.log")"
+if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  --manifest "$ROOT/codex/config/gitea-governance.json" \
+  --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+  --project-id newemaint \
+  --username newemaint-routine-merger \
+  --token-kind routine-merge-agent \
+  --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  --platform-root "$ROOT" \
+  --credential-output "$routine_output" \
+  >"$TMP/routine-account-marker-negative.out" 2>"$TMP/routine-account-marker-negative.err"; then
+  printf '%s\n' 'corrupt routine account ownership marker unexpectedly succeeded' >&2
+  exit 1
+fi
+grep -Fq 'account ownership marker content mismatch' "$TMP/routine-account-marker-negative.err"
+[[ "$(line_count "$TMP/gitea-argv.log")" == "$gitea_count_before" ]]
+printf 'issue=213\nusername=newemaint-routine-merger\n' >"$routine_account_marker"
+
+routine_token_marker="$routine_output-created-by-issue-213"
+chmod 644 "$routine_token_marker"
+gitea_count_before="$(line_count "$TMP/gitea-argv.log")"
+if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  --manifest "$ROOT/codex/config/gitea-governance.json" \
+  --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+  --project-id newemaint \
+  --username newemaint-routine-merger \
+  --token-kind routine-merge-agent \
+  --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  --platform-root "$ROOT" \
+  --credential-output "$routine_output" \
+  >"$TMP/routine-token-marker-negative.out" 2>"$TMP/routine-token-marker-negative.err"; then
+  printf '%s\n' 'unsafe routine token ownership marker mode unexpectedly succeeded' >&2
+  exit 1
+fi
+grep -Fq 'token ownership marker mode must be 400 or 600' "$TMP/routine-token-marker-negative.err"
+[[ "$(line_count "$TMP/gitea-argv.log")" == "$gitea_count_before" ]]
+chmod 600 "$routine_token_marker"
 
 export MOCK_ROUTINE_SCOPE=read:repository
 if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \

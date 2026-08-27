@@ -272,6 +272,27 @@ branch: {self.branch}
                 self.assertEqual(caught.exception.code, "ROUTINE_TOKEN_SCOPE_MISMATCH")
                 self.assertEqual(self.posts, [])
 
+    def test_routine_identity_requires_is_admin_exact_false_before_post(self):
+        for unsafe in (None, True, 0, "false", []):
+            with self.subTest(is_admin=unsafe):
+                self.posts.clear()
+
+                def identity_drift(method, url, headers, body, *, unsafe=unsafe):
+                    if urlparse(url).path == "/api/v1/user":
+                        value = {"login": "newemaint-routine-merger"}
+                        if unsafe is not None:
+                            value["is_admin"] = unsafe
+                        return self.response(value)
+                    return self.transport(method, url, headers, body)
+
+                with self.assertRaises(BrokerError) as caught:
+                    self.broker(identity_drift).execute(
+                        "newemaint", "gitea.pull.merge.routine",
+                        number=7, sha=self.sha,
+                    )
+                self.assertEqual(caught.exception.code, "IDENTITY_MISMATCH")
+                self.assertEqual(self.posts, [])
+
     def test_pilot_rejects_every_non_canary_issue_with_zero_post(self):
         original_body = self.body
         self.body = self.body.replace("#74", "#75").replace("issue=74", "issue=75")

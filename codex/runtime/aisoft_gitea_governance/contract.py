@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -651,6 +652,26 @@ def load_contract(path: str | Path) -> GovernanceContract:
         _require(intranet[key] is False, f"intranet_migration_policy.{key} must be false")
     _require(intranet["requires_target_inventory_and_mapping_approval"] is True,
              "intranet migration must require separate approval")
+
+    expected_non_target_digest = (
+        "5629608e7f658aa55b0affd8e41f7b96dcfe6f2277fa5004b3e5d2c4614f0369"
+    )
+    _require(
+        newemaint_pilot.non_target_repositories_sha256
+        == expected_non_target_digest,
+        "NewEMaint pilot non-target digest must equal the pinned baseline",
+    )
+    non_target_bytes = json.dumps(
+        [item for item in repositories_value if item["name"] != "NewEMaint"],
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    _require(
+        hashlib.sha256(non_target_bytes).hexdigest()
+        == newemaint_pilot.non_target_repositories_sha256,
+        "non-target repository declarations changed during the NewEMaint pilot",
+    )
 
     return GovernanceContract(
         raw=raw,

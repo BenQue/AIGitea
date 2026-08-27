@@ -158,6 +158,10 @@ def _require_pilot_live_authorization(
     pilot = repository.routine_live_pilot
     if pilot is None or command not in {"apply", "rollback"}:
         return
+    if command == "rollback" and repository.routine_auto_merge_enabled:
+        raise ContractError(
+            "routine live pilot source must be disabled before rollback"
+        )
     expected = f"approved-issue-{pilot.rollout_issue}-{command}"
     if os.environ.get("AISOFT_ROUTINE_LIVE_MODE") != expected:
         raise ContractError(

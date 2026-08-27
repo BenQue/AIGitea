@@ -7,7 +7,7 @@ import json
 import os
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -15,7 +15,7 @@ from unittest.mock import patch
 from aisoft_gitea_governance.client import ApiError
 from aisoft_gitea_governance.cli import (
     _check, _parser, _read_token, _require_pilot_live_authorization,
-    _verify_merged_contract,
+    _verify_merged_contract, main as governance_cli_main,
 )
 from aisoft_gitea_governance.contract import ContractError, load_contract
 from aisoft_gitea_governance.reconcile import (
@@ -197,6 +197,17 @@ class ContractTests(unittest.TestCase):
             pilot.non_target_repositories_sha256,
         )
 
+    def test_well_formed_but_wrong_non_target_digest_is_rejected(self):
+        path = self._write_mutation(
+            lambda raw: next(
+                item for item in raw["repositories"] if item["name"] == "NewEMaint"
+            )["routine_live_pilot"].update({
+                "non_target_repositories_sha256": "0" * 64,
+            })
+        )
+        with self.assertRaisesRegex(ContractError, "pinned baseline"):
+            load_contract(path)
+
     def test_pilot_provenance_requires_issue_213_and_both_ancestor_gates(self):
         calls = []
 
@@ -225,7 +236,7 @@ class ContractTests(unittest.TestCase):
             )
 
     def test_pilot_apply_and_rollback_require_action_specific_live_authorization(self):
-        for command in ("apply", "rollback"):
+        for command in ("apply",):
             expected = f"approved-issue-213-{command}"
             with self.subTest(command=command, mode="missing"):
                 with patch.dict(os.environ, {}, clear=True):
@@ -240,10 +251,53 @@ class ContractTests(unittest.TestCase):
                     _require_pilot_live_authorization(
                         self.contract, command, "NewEMaint"
                     )
+        disabled_path = self._write_mutation(
+            lambda raw: next(
+                item for item in raw["repositories"] if item["name"] == "NewEMaint"
+            ).update({"routine_auto_merge_enabled": False})
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(ContractError, "approved-issue-213-rollback"):
+                _require_pilot_live_authorization(
+                    load_contract(disabled_path), "rollback", "NewEMaint"
+                )
+        with patch.dict(
+            os.environ,
+            {"AISOFT_ROUTINE_LIVE_MODE": "approved-issue-213-rollback"},
+            clear=True,
+        ):
+            _require_pilot_live_authorization(
+                load_contract(disabled_path), "rollback", "NewEMaint"
+            )
         with patch.dict(os.environ, {}, clear=True):
             _require_pilot_live_authorization(
                 self.contract, "apply", "HSDB"
             )
+
+    def test_direct_cli_rollback_rejects_enabled_source_before_credential_read(self):
+        stderr = io.StringIO()
+        with patch.dict(
+            os.environ,
+            {"AISOFT_ROUTINE_LIVE_MODE": "approved-issue-213-rollback"},
+            clear=True,
+        ), patch(
+            "aisoft_gitea_governance.cli._client"
+        ) as client, patch(
+            "aisoft_gitea_governance.cli.rollback_repository"
+        ) as rollback:
+            with redirect_stderr(stderr):
+                status = governance_cli_main([
+                    "--manifest", str(MANIFEST), "rollback",
+                    "--token-file", "/must-not-be-read",
+                    "--repository", "NewEMaint", "--issue", "213",
+                    "--merged-sha", "c" * 40,
+                    "--platform-root", str(ROOT),
+                    "--snapshot", "/must-not-be-read",
+                ])
+        self.assertEqual(status, 2)
+        self.assertIn("source must be disabled", stderr.getvalue())
+        client.assert_not_called()
+        rollback.assert_not_called()
 
     def test_platform_repository_requires_its_observed_pr_context(self):
         repository = self.contract.repository("aisoft-platform")
@@ -375,16 +429,6 @@ class ReconciliationTests(unittest.TestCase):
         self.repository = self.contract.repository("rsdesign-new")
         self.client = FakeClient(self.contract)
 
-    def enabled_routine_contract(self):
-        raw = copy.deepcopy(self.contract.raw)
-        repository = next(item for item in raw["repositories"] if item["name"] == "HSDB")
-        repository["routine_auto_merge_enabled"] = True
-        handle = tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False)
-        json.dump(raw, handle)
-        handle.close()
-        self.addCleanup(lambda: Path(handle.name).unlink(missing_ok=True))
-        return load_contract(handle.name)
-
     def test_desired_protection_preserves_reviews_and_blocks_merge_bypass(self):
         current = desired_protection(self.contract, self.repository, None)
         current.update({
@@ -403,8 +447,8 @@ class ReconciliationTests(unittest.TestCase):
         self.assertTrue(desired["block_admin_merge_override"])
 
     def test_enabled_routine_merger_converges_exact_write_and_allowlist(self):
-        contract = self.enabled_routine_contract()
-        repository = contract.repository("HSDB")
+        contract = self.contract
+        repository = contract.repository("NewEMaint")
         client = FakeClient(contract)
         full_name = contract.full_name(repository)
         self.assertNotIn(repository.routine_merge_agent, client.collaborators[full_name])
@@ -471,8 +515,8 @@ class ReconciliationTests(unittest.TestCase):
                 )
 
     def test_enabled_routine_merger_identity_and_cross_project_drift_fail_closed(self):
-        contract = self.enabled_routine_contract()
-        repository = contract.repository("HSDB")
+        contract = self.contract
+        repository = contract.repository("NewEMaint")
         client = FakeClient(contract)
         merger = repository.routine_merge_agent
         assert merger is not None
