@@ -163,6 +163,56 @@ if grep -Fq -- '--purge' "$TMP/gitea.log" ||
   exit 1
 fi
 
+line_count() {
+  local path="$1"
+  if [[ -f "$path" ]]; then
+    wc -l <"$path" | tr -d ' '
+  else
+    printf '0\n'
+  fi
+}
+
+rollback_call_count() {
+  awk '/ rollback / {count += 1} END {print count + 0}' "$TMP/python.log"
+}
+
+assert_password_marker_delete_rejected() {
+  local variant="$1"
+  local gitea_before
+  local rollback_before
+  gitea_before="$(line_count "$TMP/gitea.log")"
+  rollback_before="$(rollback_call_count)"
+  if bash "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
+    --manifest "$TMP/disabled.json" \
+    --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+    --platform-root "$ROOT" \
+    --merged-sha bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb \
+    --rollout-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+    --snapshot "$TMP/snapshot.json" --account-policy delete \
+    >"$TMP/password-marker-$variant.out" \
+    2>"$TMP/password-marker-$variant.err"; then
+    printf 'unsafe password-policy marker unexpectedly allowed delete: %s\n' \
+      "$variant" >&2
+    exit 1
+  fi
+  grep -Fq 'password-policy ownership marker' \
+    "$TMP/password-marker-$variant.err"
+  [[ "$(line_count "$TMP/gitea.log")" == "$gitea_before" ]]
+  [[ "$(rollback_call_count)" == "$rollback_before" ]]
+  [[ ! -e "$TMP/account-deleted" ]]
+}
+
+password_marker="$TMP/credentials/projects/newemaint/newemaint-routine-merger.must-change-password-unset-by-issue-213"
+prepare_managed_files
+rm -f "$TMP/account-deleted"
+chmod 644 "$password_marker"
+assert_password_marker_delete_rejected unsafe-mode
+
+prepare_managed_files
+rm -f "$TMP/account-deleted"
+printf '\n' >>"$password_marker"
+assert_password_marker_delete_rejected unsafe-content
+
 if bash "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
   --access-manifest "$ROOT/codex/config/host-access-broker.json" \

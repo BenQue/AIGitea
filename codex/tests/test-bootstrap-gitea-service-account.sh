@@ -271,26 +271,57 @@ routine_result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
 [[ "$(grep -c 'issue-213-routine-merge-agent' "$TMP/gitea-argv.log")" == 1 ]]
 
 routine_account_marker="$TMP/credentials/projects/newemaint/newemaint-routine-merger.account-created-by-issue-213"
-printf 'issue=213\nusername=wrong-owner\n' >"$routine_account_marker"
-gitea_count_before="$(line_count "$TMP/gitea-argv.log")"
-if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
-  --manifest "$ROOT/codex/config/gitea-governance.json" \
-  --access-manifest "$ROOT/codex/config/host-access-broker.json" \
-  --project-id newemaint \
-  --username newemaint-routine-merger \
-  --token-kind routine-merge-agent \
-  --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-  --platform-root "$ROOT" \
-  --credential-output "$routine_output" \
-  >"$TMP/routine-account-marker-negative.out" 2>"$TMP/routine-account-marker-negative.err"; then
-  printf '%s\n' 'corrupt routine account ownership marker unexpectedly succeeded' >&2
-  exit 1
-fi
-grep -Fq 'account ownership marker content mismatch' "$TMP/routine-account-marker-negative.err"
-[[ "$(line_count "$TMP/gitea-argv.log")" == "$gitea_count_before" ]]
+routine_token_marker="$routine_output-created-by-issue-213"
+routine_policy_marker="$TMP/credentials/projects/newemaint/newemaint-routine-merger.must-change-password-unset-by-issue-213"
+
+managed_routine_state() {
+  local managed_path
+  for managed_path in \
+    "$routine_output" "$routine_token_marker" \
+    "$routine_account_marker" "$routine_policy_marker"; do
+    printf '%s %s ' "$managed_path" \
+      "$(stat -c '%a' "$managed_path" 2>/dev/null || stat -f '%Lp' "$managed_path")"
+    shasum -a 256 "$managed_path"
+  done
+}
+
+assert_corrupt_account_marker_rejected() {
+  local variant="$1"
+  local state_before
+  local gitea_before
+  state_before="$(managed_routine_state)"
+  gitea_before="$(line_count "$TMP/gitea-argv.log")"
+  if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+    --manifest "$ROOT/codex/config/gitea-governance.json" \
+    --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+    --project-id newemaint \
+    --username newemaint-routine-merger \
+    --token-kind routine-merge-agent \
+    --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+    --platform-root "$ROOT" \
+    --credential-output "$routine_output" \
+    >"$TMP/routine-account-marker-$variant.out" \
+    2>"$TMP/routine-account-marker-$variant.err"; then
+    printf 'corrupt routine account marker unexpectedly succeeded: %s\n' "$variant" >&2
+    exit 1
+  fi
+  grep -Fq 'account ownership marker content mismatch' \
+    "$TMP/routine-account-marker-$variant.err"
+  [[ "$(line_count "$TMP/gitea-argv.log")" == "$gitea_before" ]]
+  [[ "$(managed_routine_state)" == "$state_before" ]]
+}
+
+printf 'issue=213\nusername=newemaint-routine-merger\n\n' >"$routine_account_marker"
+assert_corrupt_account_marker_rejected extra-newline
+printf 'issue=213\nusername=newemaint-routine-merger\n' >"$routine_account_marker"
+printf '\0' >>"$routine_account_marker"
+assert_corrupt_account_marker_rejected nul-suffix
+printf 'prefix\nissue=213\nusername=newemaint-routine-merger\n' >"$routine_account_marker"
+assert_corrupt_account_marker_rejected prefix
+printf 'issue=213\nusername=newemaint-routine-merger\nsuffix\n' >"$routine_account_marker"
+assert_corrupt_account_marker_rejected suffix
 printf 'issue=213\nusername=newemaint-routine-merger\n' >"$routine_account_marker"
 
-routine_token_marker="$routine_output-created-by-issue-213"
 chmod 644 "$routine_token_marker"
 gitea_count_before="$(line_count "$TMP/gitea-argv.log")"
 if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \

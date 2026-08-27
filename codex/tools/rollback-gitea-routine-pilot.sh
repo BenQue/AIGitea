@@ -19,6 +19,47 @@ usage() {
   exit 2
 }
 
+render_rollback_marker() {
+  case "$1" in
+    account)
+      printf 'issue=213\nusername=newemaint-routine-merger\n'
+      ;;
+    password-policy)
+      printf 'issue=213\nusername=newemaint-routine-merger\npolicy=must-change-password-unset\n'
+      ;;
+    token)
+      printf 'issue=213\nusername=newemaint-routine-merger\ntoken_kind=routine-merge-agent\n'
+      ;;
+    *)
+      printf '%s\n' 'BLOCKED_EXTERNAL: unknown rollback marker kind' >&2
+      return 2
+      ;;
+  esac
+}
+
+validate_rollback_marker() {
+  local marker_path="$1"
+  local marker_label="$2"
+  local marker_kind="$3"
+  local marker_mode
+
+  [[ -f "$marker_path" && ! -L "$marker_path" ]] || {
+    printf 'BLOCKED_EXTERNAL: %s marker must be a non-symlink regular file\n' \
+      "$marker_label" >&2
+    exit 2
+  }
+  marker_mode="$(stat -c '%a' "$marker_path" 2>/dev/null || stat -f '%Lp' "$marker_path")"
+  [[ "$marker_mode" == 600 || "$marker_mode" == 400 ]] || {
+    printf 'BLOCKED_EXTERNAL: %s marker mode must be 400 or 600\n' \
+      "$marker_label" >&2
+    exit 2
+  }
+  if ! render_rollback_marker "$marker_kind" | cmp -s "$marker_path" -; then
+    printf 'BLOCKED_EXTERNAL: %s marker content mismatch\n' "$marker_label" >&2
+    exit 2
+  fi
+}
+
 while (($#)); do
   case "$1" in
     --manifest) manifest="${2:-}"; shift 2 ;;
@@ -40,7 +81,7 @@ done
   exit 2
 }
 
-for command in python3 jq curl sudo git install mktemp; do
+for command in python3 jq curl sudo git install mktemp cmp; do
   command -v "$command" >/dev/null || {
     printf 'BLOCKED_EXTERNAL: required command is missing: %s\n' "$command" >&2
     exit 2
@@ -138,33 +179,16 @@ token_marker="$credential_file-created-by-issue-213"
 marker_root="$credential_root/projects/newemaint"
 account_marker="$marker_root/newemaint-routine-merger.account-created-by-issue-213"
 password_marker="$marker_root/newemaint-routine-merger.must-change-password-unset-by-issue-213"
-for path in "$manager_token" "$credential_file" "$token_marker" "$account_marker"; do
+for path in "$manager_token" "$credential_file"; do
   [[ -f "$path" && ! -L "$path" ]] || {
     printf '%s\n' 'BLOCKED_EXTERNAL: exact managed rollback file is missing or unsafe' >&2
     exit 2
   }
 done
-for marker in "$token_marker" "$account_marker"; do
-  marker_mode="$(stat -c '%a' "$marker" 2>/dev/null || stat -f '%Lp' "$marker")"
-  [[ "$marker_mode" == 600 || "$marker_mode" == 400 ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: managed rollback marker mode must be 400 or 600' >&2
-    exit 2
-  }
-done
-expected_token_marker="$(printf 'issue=213\nusername=newemaint-routine-merger\ntoken_kind=routine-merge-agent')"
-expected_account_marker="$(printf 'issue=213\nusername=newemaint-routine-merger')"
-[[ "$(cat "$token_marker")" == "$expected_token_marker" &&
-   "$(cat "$account_marker")" == "$expected_account_marker" ]] || {
-  printf '%s\n' 'BLOCKED_EXTERNAL: Issue #213 ownership marker content mismatch' >&2
-  exit 2
-}
+validate_rollback_marker "$token_marker" 'token ownership' token
+validate_rollback_marker "$account_marker" 'account ownership' account
 if [[ "$account_policy" == delete ]]; then
-  expected_password_marker="$(printf 'issue=213\nusername=newemaint-routine-merger\npolicy=must-change-password-unset')"
-  [[ -f "$password_marker" && ! -L "$password_marker" &&
-     "$(cat "$password_marker")" == "$expected_password_marker" ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: account delete requires the exact password-policy marker' >&2
-    exit 2
-  }
+  validate_rollback_marker "$password_marker" 'password-policy ownership' password-policy
 fi
 
 rollback_receipt="$(AISOFT_ROUTINE_LIVE_MODE=approved-issue-213-rollback \

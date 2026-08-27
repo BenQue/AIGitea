@@ -18,10 +18,30 @@ usage() {
   exit 2
 }
 
+render_owned_marker() {
+  case "$1" in
+    account)
+      printf 'issue=%s\nusername=%s\n' "$approval_issue" "$username"
+      ;;
+    password-policy)
+      printf 'issue=%s\nusername=%s\npolicy=must-change-password-unset\n' \
+        "$approval_issue" "$username"
+      ;;
+    token)
+      printf 'issue=%s\nusername=%s\ntoken_kind=%s\n' \
+        "$approval_issue" "$username" "$token_kind"
+      ;;
+    *)
+      printf '%s\n' 'BLOCKED_EXTERNAL: unknown ownership marker kind' >&2
+      return 2
+      ;;
+  esac
+}
+
 validate_owned_marker() {
   local marker_path="$1"
-  local expected_content="$2"
-  local marker_label="$3"
+  local marker_label="$2"
+  local marker_kind="$3"
   local marker_mode
 
   [[ -f "$marker_path" && ! -L "$marker_path" ]] || {
@@ -33,10 +53,10 @@ validate_owned_marker() {
     printf 'BLOCKED_EXTERNAL: %s ownership marker mode must be 400 or 600\n' "$marker_label" >&2
     exit 2
   }
-  [[ "$(cat "$marker_path")" == "$expected_content" ]] || {
+  if ! render_owned_marker "$marker_kind" | cmp -s "$marker_path" -; then
     printf 'BLOCKED_EXTERNAL: %s ownership marker content mismatch\n' "$marker_label" >&2
     exit 2
-  }
+  fi
 }
 
 while (($#)); do
@@ -57,7 +77,7 @@ done
 approval_issue=35
 required_mode=approved-issue-35
 
-for command in python3 jq curl sudo install mktemp; do
+for command in python3 jq curl sudo install mktemp cmp; do
   command -v "$command" >/dev/null || {
     printf 'BLOCKED_EXTERNAL: required command is missing: %s\n' "$command" >&2
     exit 2
@@ -183,11 +203,6 @@ scopes="$(jq -r '.scopes | join(",")' <<<"$spec")"
 account_marker="$marker_root/$username.account-created-by-issue-$approval_issue"
 password_policy_marker="$marker_root/$username.must-change-password-unset-by-issue-$approval_issue"
 token_marker="$credential_output-created-by-issue-$approval_issue"
-expected_account_marker="$(printf 'issue=%s\nusername=%s' "$approval_issue" "$username")"
-expected_policy_marker="$(printf 'issue=%s\nusername=%s\npolicy=must-change-password-unset' \
-  "$approval_issue" "$username")"
-expected_token_marker="$(printf 'issue=%s\nusername=%s\ntoken_kind=%s' \
-  "$approval_issue" "$username" "$token_kind")"
 
 account_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
   "$GITEA_LOCAL_URL/api/v1/users/$username")" || {
@@ -197,7 +212,7 @@ account_status="$(curl --silent --show-error --output /dev/null --write-out '%{h
 
 case "$account_status" in
   200)
-    validate_owned_marker "$account_marker" "$expected_account_marker" account
+    validate_owned_marker "$account_marker" account account
     ;;
   404)
     [[ ! -e "$account_marker" && ! -e "$password_policy_marker" &&
@@ -213,7 +228,7 @@ case "$account_status" in
 esac
 
 if [[ -e "$password_policy_marker" || -L "$password_policy_marker" ]]; then
-  validate_owned_marker "$password_policy_marker" "$expected_policy_marker" 'password policy'
+  validate_owned_marker "$password_policy_marker" 'password policy' password-policy
 fi
 if [[ -e "$credential_output" ]]; then
   [[ -f "$credential_output" && ! -L "$credential_output" ]] || {
@@ -225,7 +240,7 @@ if [[ -e "$credential_output" ]]; then
     printf '%s\n' 'BLOCKED_EXTERNAL: existing credential mode must be 400 or 600' >&2
     exit 2
   }
-  validate_owned_marker "$token_marker" "$expected_token_marker" token
+  validate_owned_marker "$token_marker" token token
 elif [[ -e "$token_marker" || -L "$token_marker" ]]; then
   printf '%s\n' 'BLOCKED_EXTERNAL: token marker exists but credential is missing; rotate explicitly' >&2
   exit 2

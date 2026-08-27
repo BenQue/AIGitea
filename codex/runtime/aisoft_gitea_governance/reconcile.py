@@ -142,6 +142,17 @@ def _get_optional(client: GiteaClient, path: str, operation: str) -> Any | None:
         raise
 
 
+def _strict_collaborator_permission(value: Any, context: str) -> str:
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"permission"}
+        or type(value.get("permission")) is not str
+        or value["permission"] not in {"read", "write", "admin", "owner"}
+    ):
+        raise ContractError(f"{context} response is invalid")
+    return value["permission"]
+
+
 def _explicit_permissions(
     client: GiteaClient,
     contract: GovernanceContract,
@@ -161,11 +172,9 @@ def _explicit_permissions(
             f"{path}/collaborators/{quote(username, safe='')}/permission",
             f"read collaborator permission for {username}",
         )
-        if not isinstance(permission, dict) or permission.get("permission") not in {
-            "read", "write", "admin", "owner"
-        }:
-            raise ContractError("collaborator permission response is invalid")
-        result[username] = permission["permission"]
+        result[username] = _strict_collaborator_permission(
+            permission, "collaborator permission"
+        )
     return result
 
 
@@ -209,7 +218,9 @@ def audit_cross_project_writes(
                 f"{path}/collaborators/{quote(agent, safe='')}/permission",
                 f"read cross-project permission for {agent}",
             )
-            value = permission.get("permission") if isinstance(permission, dict) else None
+            value = _strict_collaborator_permission(
+                permission, "cross-project collaborator permission"
+            )
             if value in {"write", "admin", "owner"}:
                 violations.append({
                     "repository": contract.full_name(repository),
@@ -361,7 +372,9 @@ def verify_token_identity(
     user = client.get("/user", "read authenticated Gitea identity")
     if not isinstance(user, dict) or user.get("login") != expected_username:
         raise ContractError("credential identity does not match the required role")
-    if bool(user.get("is_admin", False)) != require_site_admin:
+    if type(user.get("is_admin")) is not bool:
+        raise ContractError("credential identity is_admin must be boolean")
+    if user["is_admin"] is not require_site_admin:
         expected = "site admin" if require_site_admin else "non-site-admin"
         raise ContractError(f"credential identity is not the required {expected} role")
 
@@ -374,7 +387,9 @@ def verify_account(
     user = client.get(f"/users/{quote(username, safe='')}", f"read account {username}")
     if not isinstance(user, dict) or user.get("login") != username:
         raise ContractError(f"account does not match expected identity: {username}")
-    if bool(user.get("is_admin", False)) != must_be_site_admin:
+    if type(user.get("is_admin")) is not bool:
+        raise ContractError(f"account is_admin must be boolean: {username}")
+    if user["is_admin"] is not must_be_site_admin:
         raise ContractError(f"account site-admin state is unsafe: {username}")
 
 
@@ -387,7 +402,9 @@ def account_state(client: GiteaClient, username: str) -> str:
         raise
     if not isinstance(user, dict) or user.get("login") != username:
         raise ContractError(f"account does not match expected identity: {username}")
-    return "present-site-admin" if bool(user.get("is_admin", False)) \
+    if type(user.get("is_admin")) is not bool:
+        raise ContractError(f"account is_admin must be boolean: {username}")
+    return "present-site-admin" if user["is_admin"] is True \
         else "present-non-admin"
 
 

@@ -514,7 +514,7 @@ class ReconciliationTests(unittest.TestCase):
                     status, 0 if expected == "present-non-admin" else 1
                 )
 
-    def test_enabled_routine_merger_identity_and_cross_project_drift_fail_closed(self):
+    def test_enabled_routine_merger_admin_identity_fails_closed(self):
         contract = self.contract
         repository = contract.repository("NewEMaint")
         client = FakeClient(contract)
@@ -525,12 +525,104 @@ class ReconciliationTests(unittest.TestCase):
             with self.assertRaisesRegex(ContractError, "site-admin"):
                 apply_repository(client, contract, repository, Path(directory))
 
-        client = FakeClient(contract)
-        other = contract.repository("LocalWMS")
-        client.collaborators[contract.full_name(other)][merger] = "write"
-        with tempfile.TemporaryDirectory() as directory:
-            with self.assertRaisesRegex(ContractError, "cross-project"):
-                apply_repository(client, contract, repository, Path(directory))
+    def test_apply_rejects_routine_account_admin_schema_before_any_mutation(self):
+        contract = self.contract
+        repository = contract.repository("NewEMaint")
+        merger = repository.routine_merge_agent
+        assert merger is not None
+        unsafe_values = ("missing", True, 0, "false", [])
+        for unsafe in unsafe_values:
+            with self.subTest(routine_is_admin=unsafe):
+                client = FakeClient(contract)
+                if unsafe == "missing":
+                    client.users[merger].pop("is_admin")
+                else:
+                    client.users[merger]["is_admin"] = unsafe
+                with tempfile.TemporaryDirectory() as directory:
+                    evidence = Path(directory)
+                    with self.assertRaises(ContractError):
+                        apply_repository(
+                            client, contract, repository, evidence
+                        )
+                    self.assertEqual(list(evidence.iterdir()), [])
+                self.assertEqual(
+                    [call for call in client.calls if call[0] in {
+                        "PUT", "PATCH", "POST", "DELETE",
+                    }],
+                    [],
+                )
+
+    def test_cross_project_permission_schema_fails_before_any_apply_mutation(self):
+        contract = self.contract
+        repository = contract.repository("NewEMaint")
+        other = contract.repository("HSDB")
+        merger = repository.routine_merge_agent
+        assert merger is not None
+        other_full_name = contract.full_name(other)
+        endpoint = (
+            f"/repos/{contract.owner}/{other.name}/collaborators/"
+            f"{merger}/permission"
+        )
+        schema_drifts = (
+            None,
+            {},
+            {"permission": "unknown"},
+            {"permission": None},
+            {"permission": True},
+            {"permission": 0},
+            {"permission": []},
+            {"permission": "read", "extra": True},
+        )
+        for response in schema_drifts:
+            with self.subTest(cross_project_response=response):
+                client = FakeClient(contract)
+                client.collaborators[other_full_name][merger] = "read"
+                original_get = client.get
+
+                def drift_get(path, operation, *, response=response):
+                    if path == endpoint:
+                        client.calls.append(("GET", path, None))
+                        return copy.deepcopy(response)
+                    return original_get(path, operation)
+
+                client.get = drift_get
+                with tempfile.TemporaryDirectory() as directory:
+                    evidence = Path(directory)
+                    with self.assertRaisesRegex(
+                        ContractError, "cross-project collaborator permission"
+                    ):
+                        apply_repository(
+                            client, contract, repository, evidence
+                        )
+                    self.assertEqual(list(evidence.iterdir()), [])
+                self.assertEqual(
+                    [call for call in client.calls if call[0] in {
+                        "PUT", "PATCH", "POST", "DELETE",
+                    }],
+                    [],
+                )
+
+        safe_client = FakeClient(contract)
+        safe_client.collaborators[other_full_name][merger] = "read"
+        self.assertEqual(audit_cross_project_writes(safe_client, contract), [])
+
+        for unsafe_permission in ("write", "admin", "owner"):
+            with self.subTest(cross_project_permission=unsafe_permission):
+                client = FakeClient(contract)
+                client.collaborators[other_full_name][merger] = unsafe_permission
+                with tempfile.TemporaryDirectory() as directory:
+                    evidence = Path(directory)
+                    with self.assertRaisesRegex(ContractError, "cross-project"):
+                        apply_repository(
+                            client, contract, repository, evidence
+                        )
+                    self.assertEqual(list(evidence.iterdir()), [])
+                self.assertEqual(
+                    [call for call in client.calls if call[0] in {
+                        "PUT", "PATCH", "POST", "DELETE",
+                    }],
+                    [],
+                )
 
     def test_plan_detects_visibility_agent_and_protection_drift(self):
         full_name = self.contract.full_name(self.repository)
