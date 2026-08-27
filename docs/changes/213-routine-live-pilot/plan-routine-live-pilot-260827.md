@@ -29,11 +29,11 @@ updated: 2026-08-27
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | #213 mapped summary/spec/plan/verification、fresh source/installed/live baseline 与授权边界 | - | in-progress |
-| T02 | NewEMaint-only manifest/provenance/account-state/apply contract 与回归 | T01 | pending |
-| T03 | broker PAT exact scope、routine host audit、Issue #74 canary gate 与回归 | T02 | pending |
-| T04 | deterministic bootstrap/revoke/retain-delete rollback、installer byte parity 与 shell 回归 | T03 | pending |
-| T05 | full verification、controller preflight、原子 commits 与最终 PR candidate | T04 | pending |
+| T01 | #213 mapped summary/spec/plan/verification、fresh source/installed/live baseline 与授权边界 | - | completed |
+| T02 | NewEMaint-only manifest/provenance/account-state/apply contract 与回归 | T01 | completed |
+| T03 | broker PAT exact scope、routine host audit、Issue #74 canary gate 与回归 | T02 | completed |
+| T04 | deterministic bootstrap/revoke/retain-delete rollback、installer byte parity 与 shell 回归 | T03 | completed |
+| T05 | full verification、controller preflight、原子 commits 与最终 PR candidate | T04 | completed |
 
 ## Expected touch points
 
