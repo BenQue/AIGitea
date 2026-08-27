@@ -38,14 +38,15 @@ updated: 2026-08-27
 | pre-change `host.access.audit` defect replay | PASS (defect reproduced) | 协调约束补充到达前，current-source read-only audit 返回 `RESPONSE_SCHEMA_INVALID: cross-project routine permission response is invalid`；调用仅 GET、target live mutation=0。约束到达后未再用 source runtime 读取 credential 或发 live request |
 | independent review P1 reproduction | FAIL before fix / PASS after fix | 旧实现把 `404 {"message":"repository not found"}` 无条件折叠为 absent；新增 repository-missing、ACL-masked、malformed/unknown 404 negatives 均先稳定红灯，修复后全部以 `HTTP_404` fail closed |
 | third review P1 reproduction | FAIL before fix / PASS after fix | `_request_json` 接受 201/202/204/206；set 静默去重 exact/case-fold/cross-page identity；whitespace/非法/超长 login、51-item page、short-page + next/malformed Link 均未在形成 absence 前拒绝。新增矩阵先稳定 14 个 failure，修复后全部 fail closed |
+| fourth review P1/P2 reproduction | FAIL before fix / PASS after fix | 旧实现对 `headers.items()`/dict 折叠重复 Link、忽略 `rel=NEXT`、不验证 next canonical URL/query/关系唯一性，并在 JSON parse 前无 body bound。第四轮 7 组 focused tests 在旧 head 稳定出现 7 failures + 4 errors；修复后覆盖 duplicate field-values、case relation、wrong scheme/host/repo/limit/page/extra/duplicate query、multiple next、prev/first/last、2 MiB extra field、Content-Length drift、chunked actual oversize 与 audit 累积预算，全部在 absent 前 fail closed |
 | missing-account local/mock replay | PASS | account exact 404 建立 `account_state=missing` 后，target + 9 cross-project 均读取 strict 200 collaborator inventory；exact login 缺席才依 manifest 顺序投影 `{repository,state: absent,permission: null}`；routine/top-level 均为 `GAP`，所有 transport methods 为 GET |
-| focused compatibility tests | PASS | 9 tests PASS；覆盖 exact HTTP 200、identifier/trim、exact/case-fold/cross-page duplicate、routine login case variant、51-item page、full-page terminal read、short-page next/malformed Link、100-page bound、generic 404 与 present baseline |
-| complete host-access tests | PASS | `codex.runtime.tests.test_host_access`：121 tests PASS |
-| security Python suites | PASS | host-access + routine-merge + Gitea governance：174 tests PASS |
+| focused compatibility tests | PASS | 第三轮 9 tests 保留；第四轮新增 7 tests PASS，覆盖 lossless Link/canonical pagination 与单页/全 audit resource bounds |
+| complete host-access tests | PASS | `codex.runtime.tests.test_host_access`：128 tests PASS |
+| security Python suites | PASS | host-access + routine-merge + Gitea governance：181 tests PASS |
 | broker/bootstrap/rollback/installer shell suites | PASS | `test-host-access-broker.sh`、`test-bootstrap-gitea-service-account.sh`、`test-rollback-gitea-routine-pilot.sh`、`test-install-host-access-broker.sh` 全部 PASS |
-| `bash codex/tests/smoke.sh` | PASS | 606 tests PASS；末行 `Codex platform static smoke checks passed.` |
+| `bash codex/tests/smoke.sh` | PASS | 613 tests PASS；末行 `Codex platform static smoke checks passed.` |
 | semantic document audit | PASS | `resolve-documents 215` 返回 exact summary/spec/plan/verification mapping；`check-change-documents` 为 `changes=97 pass=2 gap=0` |
-| Controller preflight | PASS | 第一轮 installed broker readback确认 Issue open/exact labels 且 `--verify 215=projected`；第二/三轮按 no-network 约束仅用固定 Issue evidence + 本地 `load_contract` 重算 forced complex/restore、branch、AC-1..AC-9 与四份 required docs；branch exact、`origin/main` 为 HEAD 祖先、final worktree clean |
+| Controller preflight | PASS | 第一轮 installed broker readback确认 Issue open/exact labels 且 `--verify 215=projected`；第二/三/四轮按 no-network 约束仅用固定 Issue evidence + 本地 `load_contract` 重算 forced complex/restore、branch、AC-1..AC-9 与四份 required docs；branch exact、`origin/main` 为 HEAD 祖先、final worktree clean |
 | live account/PAT/collaborator/protection mutation | NOT RUN | 本任务禁止；NewEMaint live rollout mutation=0 |
 | install/routine merge/deploy | NOT RUN | 本任务禁止 |
 | push/create PR | NOT RUN | 等待最终 PR 提交确认 |
@@ -54,14 +55,14 @@ updated: 2026-08-27
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | PASS (source/mock) / GAP (installed/live readiness) | account missing + target/9 cross-project exact HTTP 200 inventories 完成 strict username/duplicate/case-fold/bounded pagination 验证后，routine login 缺席才生成 structured absent evidence；Mac installed broker 尚未含该 source contract |
+| AC-1 | PASS (source/mock) / GAP (installed/live readiness) | account missing + target/9 cross-project exact HTTP 200 inventories 完成 strict username/duplicate/case-fold、lossless Link、canonical URL-query/relation 与 bounded pagination 验证后，routine login 缺席才生成 structured absent evidence；Mac installed broker 尚未含该 source contract |
 | AC-2 | PASS | ordering 断言 account GET 在第一条 inventory GET 前；account present 继续使用 permission endpoint，cross-project 404 保持 schema invalid |
 | AC-3 | PASS | present account permission schema 不变；missing inventory 要求 exact HTTP 200/list、canonical identifier、trim、unique exact/case-fold identity、每页 ≤50、bounded terminal pagination |
-| AC-4 | PASS | 201/202/204/206 均 `RESPONSE_SCHEMA_INVALID`；repository/ACL/malformed/unknown 404 为 `HTTP_404`；401/403、5xx、transport 分别保持 `HTTP_401/403`、`HTTP_ERROR`、`TRANSPORT_ERROR` |
+| AC-4 | PASS | 201/202/204/206 均 `RESPONSE_SCHEMA_INVALID`；repository/ACL/malformed/unknown 404 为 `HTTP_404`；401/403、5xx、transport 分别保持 `HTTP_401/403`、`HTTP_ERROR`、`TRANSPORT_ERROR`；128 KiB/page、4 MiB/audit、1000 pages/audit 与 Content-Length/bounded read 均在 parse/absent 前 fail closed |
 | AC-5 | PASS | exact read 写入 present/read inventory 且不产生 violation；write/admin/owner 既有测试继续形成 GAP/blocked |
 | AC-6 | PASS | 完整 host-access/security/smoke 回归覆盖 target exact write/missing/schema、non-admin identity、scope、required context、human+routine allowlist、push/force denial |
 | AC-7 | PASS | missing account absent 只来自 exact-200、无 duplicate/case ambiguity、bounded pagination 完整 inventory；present account 仍来自 strict permission evidence；ordered output 与 disabled empty list 不变 |
-| AC-8 | PASS | focused 9、host-access 121、security 174、四个 shell suites、full smoke 606、semantic audit 全部通过 |
+| AC-8 | PASS | 第四轮 focused 7、host-access 128、security 181、四个 shell suites、full smoke 613、semantic audit 全部通过 |
 | AC-9 | PASS (boundary) / NOT RUN (live layers) | audit/source tests mutation=0；无 live account/PAT/collaborator/protection/install/routine merge/deploy；push/create PR 等确认 |
 
 ## 遗留风险与未完成项
@@ -72,3 +73,4 @@ updated: 2026-08-27
 - remote PR CI 尚不存在；本记录只证明本地闸门，不能把未来 required CI 写成通过。
 - 第二轮复审没有调用 installed/source broker、未发 network/live 请求；repository/ACL/malformed/unknown 404 全部只在 local mock transport 重放。
 - 第三轮复审同样未调用 installed/source broker 或 network/live；所有 HTTP status、Link、pagination、identity collision evidence 均为 local mock，sandbox 未执行的 live/remote 层继续 NOT RUN。
+- 第四轮复审同样未调用 installed/source broker 或 network/live；lossless headers、pagination URL/query 与 response budget evidence 全部来自 local mock/transport tests，live/remote 层继续 NOT RUN。
