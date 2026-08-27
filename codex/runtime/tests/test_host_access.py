@@ -2659,6 +2659,62 @@ class HostAccessBrokerTests(unittest.TestCase):
 
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
+    def test_collaborator_json_rejects_extreme_depth_before_decoder(self) -> None:
+        payload = (
+            b'[{"login":"alpha","extra":'
+            + b"[" * 60_000
+            + b"0"
+            + b"]" * 60_000
+            + b"}]"
+        )
+        self.assertLess(len(payload), broker_module.COLLABORATOR_PAGE_MAX_BYTES)
+
+        with patch.object(
+            broker_module.json, "loads", wraps=json.loads
+        ) as decoder:
+            with self.assertRaises(BrokerError) as caught:
+                broker_module._strict_collaborator_json(payload)
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+        decoder.assert_not_called()
+
+        calls: list[tuple[str, str]] = []
+        broker = self._missing_routine_audit_broker(
+            cross_project_inventory=(200, payload),
+            calls=calls,
+        )
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute("newemaint", "host.access.audit")
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+        self.assertTrue(calls)
+        self.assertTrue(all(method == "GET" for method, _url in calls))
+
+    def test_collaborator_json_structure_scan_handles_strings_and_boundaries(self) -> None:
+        string_payload = br'[{"login":"alpha","extra":"[{}] \"quoted\" \\ \u005b"}]'
+        value = broker_module._strict_collaborator_json(string_payload)
+        self.assertEqual(value[0]["login"], "alpha")
+        self.assertEqual(value[0]["extra"], '[{}] "quoted" \\ [')
+
+        allowed = b"[" * 64 + b"0" + b"]" * 64
+        self.assertIsInstance(
+            broker_module._strict_collaborator_json(allowed), list
+        )
+
+        invalid = (
+            b"[" * 65 + b"0" + b"]" * 65,
+            b'[{"login":"alpha"}',
+            b"[}",
+            b'["control\x01value"]',
+        )
+        for payload in invalid:
+            with self.subTest(size=len(payload), suffix=payload[-12:]):
+                with patch.object(
+                    broker_module.json, "loads", wraps=json.loads
+                ) as decoder:
+                    with self.assertRaises(BrokerError) as caught:
+                        broker_module._strict_collaborator_json(payload)
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+                decoder.assert_not_called()
+
     def test_missing_account_inventory_enforces_content_and_transfer_encoding(self) -> None:
         invalid_headers = (
             {"Content-Encoding": "gzip"},
@@ -2802,6 +2858,23 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
         for target in invalid:
             with self.subTest(length=len(target), marker=target[len(endpoint):len(endpoint) + 12]):
+                with self.assertRaises(BrokerError) as caught:
+                    HostAccessBroker._collaborator_link_page(
+                        target,
+                        "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform",
+                    )
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_collaborator_link_maps_malformed_authority_to_schema_error(self) -> None:
+        path = "/api/v1/repos/admin/aisoft-platform/collaborators"
+        invalid = (
+            f"http://[::1{path}?limit=50&page=2",
+            f"http://gitea-ci.orb.local\uff1a3000{path}?limit=50&page=2",
+            f"http://gitea-ci.orb.local:not-a-port{path}?limit=50&page=2",
+            f"http://gitea-ci.orb.local:99999{path}?limit=50&page=2",
+        )
+        for target in invalid:
+            with self.subTest(target=target[:80]):
                 with self.assertRaises(BrokerError) as caught:
                     HostAccessBroker._collaborator_link_page(
                         target,

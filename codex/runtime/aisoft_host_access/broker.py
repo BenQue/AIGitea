@@ -80,6 +80,7 @@ COLLABORATOR_JSON_INTEGER_MAX_DIGITS = 19
 COLLABORATOR_JSON_INTEGER_MIN = -(2**63)
 COLLABORATOR_JSON_INTEGER_MAX = 2**63 - 1
 COLLABORATOR_JSON_FLOAT_MAX_CHARS = 64
+COLLABORATOR_JSON_MAX_DEPTH = 64
 
 
 class BrokerError(RuntimeError):
@@ -376,6 +377,63 @@ def _validate_inventory_framing(headers: object) -> int | None:
     return declared
 
 
+def _validate_collaborator_json_structure(body: bytes) -> None:
+    if not isinstance(body, bytes):
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory response is invalid",
+        )
+    closing_stack: list[int] = []
+    in_string = False
+    escaped = False
+    for value in body:
+        if in_string:
+            if escaped:
+                if value < 0x20:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory response is invalid",
+                    )
+                escaped = False
+            elif value == 0x5C:  # backslash
+                escaped = True
+            elif value == 0x22:  # quote
+                in_string = False
+            elif value < 0x20:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory response is invalid",
+                )
+            continue
+        if value == 0x22:  # quote
+            in_string = True
+        elif value == 0x5B:  # [
+            closing_stack.append(0x5D)
+        elif value == 0x7B:  # {
+            closing_stack.append(0x7D)
+        elif value in {0x5D, 0x7D}:  # ] or }
+            if not closing_stack or closing_stack.pop() != value:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory response is invalid",
+                )
+        elif value < 0x20 and value not in {0x09, 0x0A, 0x0D}:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory response is invalid",
+            )
+        if len(closing_stack) > COLLABORATOR_JSON_MAX_DEPTH:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory response exceeds its JSON depth limit",
+            )
+    if in_string or escaped or closing_stack:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory response is invalid",
+        )
+
+
 def _strict_collaborator_json(body: bytes) -> object:
     def object_from_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
         result: dict[str, object] = {}
@@ -421,6 +479,7 @@ def _strict_collaborator_json(body: bytes) -> object:
         raise ValueError("collaborator inventory JSON constant is invalid")
 
     try:
+        _validate_collaborator_json_structure(body)
         return json.loads(
             body.decode("utf-8"),
             object_pairs_hook=object_from_pairs,
@@ -2317,23 +2376,28 @@ class HostAccessBroker:
 
     @staticmethod
     def _collaborator_link_page(target: str, repo_api: str) -> int:
-        canonical = urlsplit(f"{repo_api}/collaborators")
-        candidate = urlsplit(target)
         try:
+            canonical = urlsplit(f"{repo_api}/collaborators")
+            candidate = urlsplit(target)
             canonical_port = canonical.port
             candidate_port = candidate.port
-        except ValueError as exc:
+            canonical_hostname = canonical.hostname
+            candidate_hostname = candidate.hostname
+            candidate_username = candidate.username
+            candidate_password = candidate.password
+        except (UnicodeError, ValueError) as exc:
             raise BrokerError(
                 "RESPONSE_SCHEMA_INVALID",
                 "collaborator inventory pagination URL is invalid",
             ) from exc
         if (
             not candidate.scheme
-            or not candidate.hostname
-            or candidate.username is not None
-            or candidate.password is not None
+            or not canonical_hostname
+            or not candidate_hostname
+            or candidate_username is not None
+            or candidate_password is not None
             or candidate.scheme.casefold() != canonical.scheme.casefold()
-            or candidate.hostname.casefold() != canonical.hostname.casefold()
+            or candidate_hostname.casefold() != canonical_hostname.casefold()
             or candidate_port != canonical_port
             or candidate.path != canonical.path
             or "#" in target
