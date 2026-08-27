@@ -1716,6 +1716,35 @@ class HostAccessBroker:
                 "RESPONSE_SCHEMA_INVALID", "Gitea returned invalid JSON"
             ) from exc
 
+    def _collaborator_names(self, repo_api: str, token: str) -> set[str]:
+        names: set[str] = set()
+        for page in range(1, 101):
+            value = self._request_json(
+                f"{repo_api}/collaborators?limit=50&page={page}", token
+            )
+            if not isinstance(value, list):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory response is invalid",
+                )
+            for entry in value:
+                if (
+                    not isinstance(entry, dict)
+                    or not isinstance(entry.get("login"), str)
+                    or not entry["login"]
+                ):
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory response is invalid",
+                    )
+                names.add(entry["login"])
+            if len(value) < 50:
+                return names
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory exceeds the bounded scan",
+        )
+
     def _git(
         self,
         project: ProjectContract,
@@ -2211,27 +2240,41 @@ class HostAccessBroker:
                 }
                 routine["actual_token_scopes"] = sorted(actual_routine_scopes)
 
-            target_permission = self._optional_json(
-                f"{repo_api}/collaborators/{quote(merger, safe='')}/permission",
-                manager_token,
-            )
-            if target_permission is None:
+            account_missing = routine["account_state"] == "missing"
+            if account_missing:
+                target_collaborators = self._collaborator_names(
+                    repo_api, manager_token
+                )
+                if merger in target_collaborators:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "routine collaborator inventory contradicts missing account",
+                    )
                 routine["repository_permission"] = "missing"
                 routine_gap = True
-            elif (
-                not isinstance(target_permission, dict)
-                or set(target_permission) != {"permission"}
-                or not isinstance(target_permission.get("permission"), str)
-                or target_permission["permission"]
-                not in {"read", "write", "admin", "owner"}
-            ):
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID", "routine permission response is invalid"
-                )
             else:
-                routine["repository_permission"] = target_permission["permission"]
-                if target_permission["permission"] != "write":
+                target_permission = self._optional_json(
+                    f"{repo_api}/collaborators/{quote(merger, safe='')}/permission",
+                    manager_token,
+                )
+                if target_permission is None:
+                    routine["repository_permission"] = "missing"
                     routine_gap = True
+                elif (
+                    not isinstance(target_permission, dict)
+                    or set(target_permission) != {"permission"}
+                    or not isinstance(target_permission.get("permission"), str)
+                    or target_permission["permission"]
+                    not in {"read", "write", "admin", "owner"}
+                ):
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "routine permission response is invalid",
+                    )
+                else:
+                    routine["repository_permission"] = target_permission["permission"]
+                    if target_permission["permission"] != "write":
+                        routine_gap = True
 
             cross_project_permissions: list[dict[str, object]] = []
             violations: list[dict[str, str]] = []
@@ -2243,15 +2286,14 @@ class HostAccessBroker:
                     f"{self.contract.governance.base_url}/api/v1/repos/{owner}/"
                     f"{quote(other.name, safe='')}"
                 )
-                other_permission = self._optional_json(
-                    f"{other_api}/collaborators/{quote(merger, safe='')}/permission",
-                    manager_token,
-                )
-                if other_permission is None:
-                    if routine["account_state"] != "missing":
+                if account_missing:
+                    collaborators = self._collaborator_names(
+                        other_api, manager_token
+                    )
+                    if merger in collaborators:
                         raise BrokerError(
                             "RESPONSE_SCHEMA_INVALID",
-                            "cross-project routine permission response is invalid",
+                            "routine collaborator inventory contradicts missing account",
                         )
                     cross_project_permissions.append({
                         "repository": full_name,
@@ -2260,6 +2302,15 @@ class HostAccessBroker:
                     })
                     routine_gap = True
                     continue
+                other_permission = self._optional_json(
+                    f"{other_api}/collaborators/{quote(merger, safe='')}/permission",
+                    manager_token,
+                )
+                if other_permission is None:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "cross-project routine permission response is invalid",
+                    )
                 if (
                     not isinstance(other_permission, dict)
                     or set(other_permission) != {"permission"}
