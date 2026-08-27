@@ -2146,6 +2146,7 @@ class HostAccessBroker:
             ),
             "actual_token_scopes": None,
             "repository_permission": "not-enabled",
+            "cross_project_permissions": [],
             "cross_project_write_violations": [],
             "merge_allowlist_state": (
                 "converged" if actual_merge == expected_merge else "pre-apply"
@@ -2232,10 +2233,12 @@ class HostAccessBroker:
                 if target_permission["permission"] != "write":
                     routine_gap = True
 
+            cross_project_permissions: list[dict[str, object]] = []
             violations: list[dict[str, str]] = []
             for other in self.contract.governance.repositories:
                 if other.name == repository_contract.name:
                     continue
+                full_name = self.contract.governance.full_name(other)
                 other_api = (
                     f"{self.contract.governance.base_url}/api/v1/repos/{owner}/"
                     f"{quote(other.name, safe='')}"
@@ -2244,6 +2247,19 @@ class HostAccessBroker:
                     f"{other_api}/collaborators/{quote(merger, safe='')}/permission",
                     manager_token,
                 )
+                if other_permission is None:
+                    if routine["account_state"] != "missing":
+                        raise BrokerError(
+                            "RESPONSE_SCHEMA_INVALID",
+                            "cross-project routine permission response is invalid",
+                        )
+                    cross_project_permissions.append({
+                        "repository": full_name,
+                        "state": "absent",
+                        "permission": None,
+                    })
+                    routine_gap = True
+                    continue
                 if (
                     not isinstance(other_permission, dict)
                     or set(other_permission) != {"permission"}
@@ -2255,11 +2271,18 @@ class HostAccessBroker:
                         "RESPONSE_SCHEMA_INVALID",
                         "cross-project routine permission response is invalid",
                     )
-                if other_permission["permission"] in {"write", "admin", "owner"}:
+                permission = other_permission["permission"]
+                cross_project_permissions.append({
+                    "repository": full_name,
+                    "state": "present",
+                    "permission": permission,
+                })
+                if permission in {"write", "admin", "owner"}:
                     violations.append({
-                        "repository": self.contract.governance.full_name(other),
-                        "permission": str(other_permission["permission"]),
+                        "repository": full_name,
+                        "permission": permission,
                     })
+            routine["cross_project_permissions"] = cross_project_permissions
             routine["cross_project_write_violations"] = violations
             routine_gap = routine_gap or bool(violations)
             if actual_merge != expected_merge:
