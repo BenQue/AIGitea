@@ -1898,6 +1898,12 @@ class HostAccessBrokerTests(unittest.TestCase):
                 "kind": "protected-file",
                 "scope": "project:aisoft-platform",
             },
+            "routine_merge_agent": {
+                "enabled": False,
+                "identity": None,
+                "kind": "protected-file",
+                "scope": "project:aisoft-platform:routine-merge",
+            },
             "directory_mode": "700",
             "file_mode": "600",
             "path_disclosure": "DENIED",
@@ -1918,6 +1924,162 @@ class HostAccessBrokerTests(unittest.TestCase):
         flattened = "\n".join(" ".join(argv) for argv in seen_commands)
         self.assertNotIn("ci-bot", flattened)
         self.assertNotIn("security", flattened)
+
+    def test_newemaint_routine_audit_covers_account_scope_write_cross_project_and_allowlist(self) -> None:
+        class PilotCredentials(StaticCredentials):
+            def resolve(self, project, operation):
+                if operation.identity_route == "routine-merge-agent":
+                    return ResolvedCredential(
+                        "newemaint-routine-merger", "token-routine"
+                    )
+                return super().resolve(project, operation)
+
+        protection = {
+            "enable_push": False,
+            "enable_force_push": False,
+            "enable_merge_whitelist": True,
+            "merge_whitelist_usernames": ["admin", "newemaint-routine-merger"],
+            "enable_status_check": True,
+            "status_check_contexts": ["CI / verify (pull_request)"],
+            "required_approvals": 0,
+            "block_admin_merge_override": True,
+        }
+
+        def transport(method, url, headers, body):
+            self.assertEqual(method, "GET")
+            self.assertIsNone(body)
+            token = headers["Authorization"].removeprefix("token ")
+            if url.endswith("/api/v1/user"):
+                identities = {
+                    "token-manager": "aisoft-platform-manager",
+                    "token-manager-mutation": "aisoft-platform-manager",
+                    "token-agent": "newemaint-agent",
+                    "token-routine": "newemaint-routine-merger",
+                }
+                return 200, {}, json.dumps({
+                    "login": identities[token], "is_admin": False,
+                }).encode()
+            if url.endswith("/api/v1/notifications"):
+                scopes = {
+                    "token-manager": "read:issue,read:repository,read:user",
+                    "token-manager-mutation": "write:issue,write:repository,read:user",
+                    "token-agent": "write:issue,write:repository,read:user",
+                    "token-routine": "write:repository",
+                }
+                return 403, {}, json.dumps({
+                    "message": "token scope=" + scopes[token],
+                }).encode()
+            if url.endswith("/api/v1/users/newemaint-routine-merger"):
+                return 200, {}, b'{"login":"newemaint-routine-merger","is_admin":false}'
+            if "/repos/admin/NewEMaint/" in url:
+                if url.endswith("/collaborators/aisoft-platform-manager/permission"):
+                    return 200, {}, b'{"permission":"admin"}'
+                if url.endswith("/collaborators/newemaint-agent/permission"):
+                    return 200, {}, b'{"permission":"write"}'
+                if url.endswith("/collaborators/newemaint-routine-merger/permission"):
+                    return 200, {}, b'{"permission":"write"}'
+                if url.endswith("/branch_protections/main"):
+                    return 200, {}, json.dumps(protection).encode()
+            if url.endswith("/collaborators/newemaint-routine-merger/permission"):
+                return 200, {}, b'{"permission":"read"}'
+            raise AssertionError(f"unexpected URL: {url}")
+
+        broker = HostAccessBroker(
+            self.contract,
+            credentials=PilotCredentials(),
+            transport=transport,
+        )
+        value = broker.execute("newemaint", "host.access.audit")
+        self.assertEqual(value["status"], "PASS")
+        self.assertEqual(value["routine_merge"], {
+            "enabled": True,
+            "identity": "newemaint-routine-merger",
+            "credential": {
+                "kind": "protected-file",
+                "state": "present",
+                "path_disclosure": "DENIED",
+            },
+            "account_state": "present-non-admin",
+            "expected_token_scopes": ["write:repository"],
+            "actual_token_scopes": ["write:repository"],
+            "repository_permission": "write",
+            "cross_project_write_violations": [],
+            "merge_allowlist_state": "converged",
+        })
+        protection["merge_whitelist_usernames"] = ["admin"]
+        value = broker.execute("newemaint", "host.access.audit")
+        self.assertEqual(value["status"], "GAP")
+        self.assertEqual(value["routine_merge"]["merge_allowlist_state"], "pre-apply")
+        protection["merge_whitelist_usernames"] = [
+            "admin", "newemaint-routine-merger",
+        ]
+
+        schema_drifts = (
+            (404, None),
+            (200, []),
+            (200, {}),
+            (200, {"permission": "read", "unexpected": True}),
+            (200, {"permission": None}),
+            (200, {"permission": True}),
+            (200, {"permission": 0}),
+            (200, {"permission": "unknown"}),
+        )
+        for status, payload in schema_drifts:
+            with self.subTest(cross_project_schema=(status, payload)):
+                def schema_drift(method, url, headers, body, *, status=status,
+                                 payload=payload):
+                    if (
+                        "/repos/admin/HSDB/" in url
+                        and url.endswith(
+                            "/collaborators/newemaint-routine-merger/permission"
+                        )
+                    ):
+                        raw = b'' if payload is None else json.dumps(payload).encode()
+                        return status, {}, raw
+                    return transport(method, url, headers, body)
+
+                drift_broker = HostAccessBroker(
+                    self.contract,
+                    credentials=PilotCredentials(),
+                    transport=schema_drift,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    drift_broker.execute("newemaint", "host.access.audit")
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+        for unsafe_permission in ("write", "admin", "owner"):
+            with self.subTest(cross_project_permission=unsafe_permission):
+                def unsafe_cross_project(method, url, headers, body, *,
+                                         permission=unsafe_permission):
+                    if (
+                        "/repos/admin/HSDB/" in url
+                        and url.endswith(
+                            "/collaborators/newemaint-routine-merger/permission"
+                        )
+                    ):
+                        return 200, {}, json.dumps({
+                            "permission": permission,
+                        }).encode()
+                    return transport(method, url, headers, body)
+
+                unsafe_broker = HostAccessBroker(
+                    self.contract,
+                    credentials=PilotCredentials(),
+                    transport=unsafe_cross_project,
+                )
+                unsafe_value = unsafe_broker.execute(
+                    "newemaint", "host.access.audit"
+                )
+                self.assertEqual(unsafe_value["status"], "GAP")
+                self.assertEqual(
+                    unsafe_value["routine_merge"][
+                        "cross_project_write_violations"
+                    ],
+                    [{
+                        "repository": "admin/HSDB",
+                        "permission": unsafe_permission,
+                    }],
+                )
 
     def _credential_contract(self, root: Path):
         raw = json.loads(json.dumps(self.contract.raw))

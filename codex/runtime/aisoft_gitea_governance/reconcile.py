@@ -142,6 +142,17 @@ def _get_optional(client: GiteaClient, path: str, operation: str) -> Any | None:
         raise
 
 
+def _strict_collaborator_permission(value: Any, context: str) -> str:
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"permission"}
+        or type(value.get("permission")) is not str
+        or value["permission"] not in {"read", "write", "admin", "owner"}
+    ):
+        raise ContractError(f"{context} response is invalid")
+    return value["permission"]
+
+
 def _explicit_permissions(
     client: GiteaClient,
     contract: GovernanceContract,
@@ -161,11 +172,9 @@ def _explicit_permissions(
             f"{path}/collaborators/{quote(username, safe='')}/permission",
             f"read collaborator permission for {username}",
         )
-        if not isinstance(permission, dict) or permission.get("permission") not in {
-            "read", "write", "admin", "owner"
-        }:
-            raise ContractError("collaborator permission response is invalid")
-        result[username] = permission["permission"]
+        result[username] = _strict_collaborator_permission(
+            permission, "collaborator permission"
+        )
     return result
 
 
@@ -209,7 +218,9 @@ def audit_cross_project_writes(
                 f"{path}/collaborators/{quote(agent, safe='')}/permission",
                 f"read cross-project permission for {agent}",
             )
-            value = permission.get("permission") if isinstance(permission, dict) else None
+            value = _strict_collaborator_permission(
+                permission, "cross-project collaborator permission"
+            )
             if value in {"write", "admin", "owner"}:
                 violations.append({
                     "repository": contract.full_name(repository),
@@ -361,7 +372,9 @@ def verify_token_identity(
     user = client.get("/user", "read authenticated Gitea identity")
     if not isinstance(user, dict) or user.get("login") != expected_username:
         raise ContractError("credential identity does not match the required role")
-    if bool(user.get("is_admin", False)) != require_site_admin:
+    if type(user.get("is_admin")) is not bool:
+        raise ContractError("credential identity is_admin must be boolean")
+    if user["is_admin"] is not require_site_admin:
         expected = "site admin" if require_site_admin else "non-site-admin"
         raise ContractError(f"credential identity is not the required {expected} role")
 
@@ -374,8 +387,25 @@ def verify_account(
     user = client.get(f"/users/{quote(username, safe='')}", f"read account {username}")
     if not isinstance(user, dict) or user.get("login") != username:
         raise ContractError(f"account does not match expected identity: {username}")
-    if bool(user.get("is_admin", False)) != must_be_site_admin:
+    if type(user.get("is_admin")) is not bool:
+        raise ContractError(f"account is_admin must be boolean: {username}")
+    if user["is_admin"] is not must_be_site_admin:
         raise ContractError(f"account site-admin state is unsafe: {username}")
+
+
+def account_state(client: GiteaClient, username: str) -> str:
+    try:
+        user = client.get(f"/users/{quote(username, safe='')}", f"read account {username}")
+    except ApiError as exc:
+        if exc.status == 404:
+            return "missing"
+        raise
+    if not isinstance(user, dict) or user.get("login") != username:
+        raise ContractError(f"account does not match expected identity: {username}")
+    if type(user.get("is_admin")) is not bool:
+        raise ContractError(f"account is_admin must be boolean: {username}")
+    return "present-site-admin" if user["is_admin"] is True \
+        else "present-non-admin"
 
 
 def write_snapshot(path: Path, snapshot: dict[str, Any]) -> None:
@@ -481,6 +511,7 @@ def apply_repository(
     if pre_path.exists() or post_path.exists():
         raise ContractError("refusing to reuse repository evidence paths")
     write_snapshot(pre_path, before)
+    api_mutation_count = 0
     if plan["planned_actions"]:
         path = _repo_path(contract, repository)
         if before["collaborators"][repository.project_agent] != "write":
@@ -489,6 +520,7 @@ def apply_repository(
                 {"permission": "write"},
                 f"set project agent Write on {contract.full_name(repository)}",
             )
+            api_mutation_count += 1
         if repository.routine_merge_agent is not None:
             merger_permission = before["collaborators"][repository.routine_merge_agent]
             merger_path = (
@@ -501,11 +533,13 @@ def apply_repository(
                     {"permission": "write"},
                     f"set routine merger Write on {contract.full_name(repository)}",
                 )
+                api_mutation_count += 1
             elif not repository.routine_auto_merge_enabled and merger_permission != "missing":
                 client.delete(
                     merger_path,
                     f"remove disabled routine merger from {contract.full_name(repository)}",
                 )
+                api_mutation_count += 1
         repo_patch: dict[str, Any] = {}
         if before["repo"]["private"] != repository.private:
             repo_patch["private"] = repository.private
@@ -513,16 +547,19 @@ def apply_repository(
             repo_patch["default_delete_branch_after_merge"] = True
         if repo_patch:
             client.patch(path, repo_patch, f"update repository policy for {contract.full_name(repository)}")
+            api_mutation_count += 1
         desired = desired_protection(contract, repository, before["protection"])
         if before["protection"] is None:
             client.post(f"{path}/branch_protections", protection_payload(desired, create=True),
                         f"create main protection for {contract.full_name(repository)}")
+            api_mutation_count += 1
         elif before["protection"] != desired:
             client.patch(
                 f"{path}/branch_protections/{quote(contract.default_branch, safe='')}",
                 protection_payload(desired, create=False),
                 f"update main protection for {contract.full_name(repository)}",
             )
+            api_mutation_count += 1
     after = capture_snapshot(client, contract, repository)
     post_plan = planned_actions(
         contract, repository, after,
@@ -542,6 +579,8 @@ def apply_repository(
     return {
         "repository": contract.full_name(repository),
         "result": "applied" if plan["planned_actions"] else "no-op",
+        "apply_operation_count": 1 if plan["planned_actions"] else 0,
+        "api_mutation_count": api_mutation_count,
         "pre_snapshot": str(pre_path),
         "post_snapshot": str(post_path),
     }

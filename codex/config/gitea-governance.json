@@ -148,8 +148,22 @@
       "classification": "internal-application",
       "visibility": "private",
       "project_agent": "newemaint-agent",
-      "routine_auto_merge_enabled": false,
+      "routine_auto_merge_enabled": true,
       "routine_merge_agent": "newemaint-routine-merger",
+      "routine_live_pilot": {
+        "project_id": "newemaint",
+        "rollout_issue": 213,
+        "routine_source_issue": 208,
+        "routine_source_merged_sha": "8d109b14b6e0936be30f6f287ff6050e48632e0b",
+        "governance_baseline_issue": 35,
+        "governance_baseline_merged_sha": "69251fd4d07665385eb6d9142038848c2b9392d7",
+        "non_target_repositories_sha256": "5629608e7f658aa55b0affd8e41f7b96dcfe6f2277fa5004b3e5d2c4614f0369",
+        "canary_issue": 74,
+        "required_context": "CI / verify (pull_request)",
+        "bootstrap_max": 1,
+        "apply_max": 1,
+        "canary_merge_post_max": 1
+      },
       "status_check_contexts": [
         "CI / verify (pull_request)"
       ],

@@ -9,10 +9,109 @@ project_id=''
 username=''
 token_kind=''
 credential_output=''
+merged_sha=''
+platform_root=''
 
 usage() {
   printf '%s\n' \
-    "usage: $0 --manifest FILE [--access-manifest FILE --project-id ID] --username NAME --token-kind manager-audit|manager-mutation|project-agent|routine-merge-agent --credential-output FILE" >&2
+    "usage: $0 --manifest FILE [--access-manifest FILE --project-id ID --merged-sha SHA --platform-root DIR] --username NAME --token-kind manager-audit|manager-mutation|project-agent|routine-merge-agent --credential-output FILE" >&2
+  exit 2
+}
+
+render_owned_marker() {
+  case "$1" in
+    account)
+      printf 'issue=%s\nusername=%s\n' "$approval_issue" "$username"
+      ;;
+    password-policy)
+      printf 'issue=%s\nusername=%s\npolicy=must-change-password-unset\n' \
+        "$approval_issue" "$username"
+      ;;
+    token)
+      printf 'issue=%s\nusername=%s\ntoken_kind=%s\n' \
+        "$approval_issue" "$username" "$token_kind"
+      ;;
+    *)
+      printf '%s\n' 'BLOCKED_EXTERNAL: unknown ownership marker kind' >&2
+      return 2
+      ;;
+  esac
+}
+
+validate_owned_marker() {
+  local marker_path="$1"
+  local marker_label="$2"
+  local marker_kind="$3"
+  local marker_mode
+
+  [[ -f "$marker_path" && ! -L "$marker_path" ]] || {
+    printf 'BLOCKED_EXTERNAL: %s ownership marker must be a non-symlink regular file\n' "$marker_label" >&2
+    exit 2
+  }
+  marker_mode="$(stat -c '%a' "$marker_path" 2>/dev/null || stat -f '%Lp' "$marker_path")"
+  [[ "$marker_mode" == 600 || "$marker_mode" == 400 ]] || {
+    printf 'BLOCKED_EXTERNAL: %s ownership marker mode must be 400 or 600\n' "$marker_label" >&2
+    exit 2
+  }
+  if ! render_owned_marker "$marker_kind" | cmp -s "$marker_path" -; then
+    printf 'BLOCKED_EXTERNAL: %s ownership marker content mismatch\n' "$marker_label" >&2
+    exit 2
+  fi
+}
+
+identity_is_exact_non_admin() {
+  local identity_path="$1"
+  local expected_login="$2"
+
+  jq -e --arg login "$expected_login" '
+    type == "object"
+    and (.login | type) == "string"
+    and .login == $login
+    and (.is_admin | type) == "boolean"
+    and .is_admin == false
+  ' "$identity_path" >/dev/null
+}
+
+validate_non_admin_identity() {
+  local identity_path="$1"
+  local expected_login="$2"
+  local identity_label="$3"
+
+  identity_is_exact_non_admin "$identity_path" "$expected_login" || {
+    printf 'BLOCKED_EXTERNAL: %s must be the exact non-admin service identity\n' \
+      "$identity_label" >&2
+    exit 2
+  }
+}
+
+compensate_unsafe_created_account() {
+  local readback_reason="$1"
+  local compensation_status
+
+  printf 'BLOCKED_EXTERNAL: newly created account read-back is unsafe: %s\n' \
+    "$readback_reason" >&2
+  # The exact username was already bound to the manifest/account spec before
+  # creation. Compensation has no generic username or purge surface.
+  # shellcheck disable=SC2024
+  if ! sudo -n -u git "$GITEA_BIN" --config "$GITEA_CONFIG" admin user delete \
+    --username "$username" >"$tmp_dir/account-create-compensation-delete.log"; then
+    printf 'BLOCKED_EXTERNAL: compensation delete failed; manually verify and delete exact account %s before retry; no PAT, credential, token marker, or ownership marker was created\n' \
+      "$username" >&2
+    exit 2
+  fi
+  compensation_status="$(curl --silent --show-error --output \
+    "$tmp_dir/account-create-compensation-readback.json" --write-out '%{http_code}' \
+    "$GITEA_LOCAL_URL/api/v1/users/$username")" || {
+    printf 'BLOCKED_EXTERNAL: compensation delete was issued but fresh 404 confirmation failed; manually verify exact account %s before retry; no PAT, credential, token marker, or ownership marker was created\n' \
+      "$username" >&2
+    exit 2
+  }
+  [[ "$compensation_status" == 404 ]] || {
+    printf 'BLOCKED_EXTERNAL: compensation delete was issued but account read-back was not 404; manually verify exact account %s before retry; no PAT, credential, token marker, or ownership marker was created\n' \
+      "$username" >&2
+    exit 2
+  }
+  printf '%s\n' 'BLOCKED_EXTERNAL: unsafe newly created account was compensated (create=1, delete=1, final account absent); no PAT, credential, token marker, or ownership marker was created' >&2
   exit 2
 }
 
@@ -24,6 +123,8 @@ while (($#)); do
     --username) username="${2:-}"; shift 2 ;;
     --token-kind) token_kind="${2:-}"; shift 2 ;;
     --credential-output) credential_output="${2:-}"; shift 2 ;;
+    --merged-sha) merged_sha="${2:-}"; shift 2 ;;
+    --platform-root) platform_root="${2:-}"; shift 2 ;;
     *) usage ;;
   esac
 done
@@ -31,16 +132,8 @@ done
 [[ -n "$manifest" && -n "$username" && -n "$token_kind" && -n "$credential_output" ]] || usage
 approval_issue=35
 required_mode=approved-issue-35
-if [[ "$token_kind" == routine-merge-agent ]]; then
-  approval_issue=208
-  required_mode=approved-issue-208
-fi
-[[ "${AISOFT_ACCOUNT_BOOTSTRAP_MODE:-}" == "$required_mode" ]] || {
-  printf 'BLOCKED_EXTERNAL: AISOFT_ACCOUNT_BOOTSTRAP_MODE=%s is required\n' "$required_mode" >&2
-  exit 2
-}
 
-for command in python3 jq curl sudo install mktemp; do
+for command in python3 jq curl sudo install mktemp cmp; do
   command -v "$command" >/dev/null || {
     printf 'BLOCKED_EXTERNAL: required command is missing: %s\n' "$command" >&2
     exit 2
@@ -51,17 +144,12 @@ GITEA_BIN="${GITEA_BIN:-/usr/local/bin/gitea}"
 GITEA_CONFIG="${GITEA_CONFIG:-/etc/gitea/app.ini}"
 GITEA_LOCAL_URL="${GITEA_LOCAL_URL:-http://127.0.0.1:3000}"
 credential_root="${AISOFT_CREDENTIAL_ROOT:-/home/benque/.config/aisoft/credentials}"
-export PYTHONPATH="$ROOT/codex/runtime${PYTHONPATH:+:$PYTHONPATH}"
-
-[[ -x "$GITEA_BIN" ]] || {
-  printf '%s\n' 'BLOCKED_EXTERNAL: Gitea binary is unavailable to the caller' >&2
-  exit 2
-}
-if ! sudo -n -u git test -f "$GITEA_CONFIG" ||
-   ! sudo -n -u git test -r "$GITEA_CONFIG"; then
-  printf '%s\n' 'BLOCKED_EXTERNAL: Gitea config is unavailable to the service user' >&2
-  exit 2
+if [[ -d "$ROOT/codex/runtime" ]]; then
+  export PYTHONPATH="$ROOT/codex/runtime${PYTHONPATH:+:$PYTHONPATH}"
+else
+  export PYTHONPATH="/usr/local/lib/aisoft-host-access${PYTHONPATH:+:$PYTHONPATH}"
 fi
+
 [[ "$GITEA_LOCAL_URL" == http://127.0.0.1:* || "$GITEA_LOCAL_URL" == https://127.0.0.1:* ]] || {
   printf '%s\n' 'BLOCKED_EXTERNAL: GITEA_LOCAL_URL must use loopback' >&2
   exit 2
@@ -71,14 +159,13 @@ fi
   exit 2
 }
 
-mkdir -p "$credential_root"
-chmod 700 "$credential_root"
-credential_root="$(cd -- "$credential_root" && pwd -P)"
 expected_basename="$username-$token_kind.token"
 marker_root="$credential_root"
+bound_repository=''
 if [[ "$token_kind" == routine-merge-agent ]]; then
-  [[ -n "$access_manifest" && -n "$project_id" ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: routine merger requires --access-manifest and --project-id' >&2
+  [[ -n "$access_manifest" && -n "$project_id" && -n "$merged_sha" &&
+     -n "$platform_root" ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: routine merger requires access/project/merged-source binding' >&2
     exit 2
   }
   [[ "$project_id" =~ ^[A-Za-z0-9._-]+$ ]] || {
@@ -88,21 +175,62 @@ if [[ "$token_kind" == routine-merge-agent ]]; then
   python3 -m aisoft_host_access.cli \
     --access-manifest "$access_manifest" \
     --governance-manifest "$manifest" validate >/dev/null || exit 2
-  bound_identity="$(jq -er --arg project_id "$project_id" '
-    [.projects[] | select(.project_id == $project_id) | .routine_merge_agent]
-    | if length == 1 and .[0] != null then .[0] else error("missing binding") end
+  binding="$(jq -cer --arg project_id "$project_id" '
+    [.projects[] | select(.project_id == $project_id)]
+    | if length == 1 and .[0].routine_merge_agent != null
+      then {identity:.[0].routine_merge_agent,repository:.[0].repository}
+      else error("missing binding") end
   ' "$access_manifest")" || {
     printf '%s\n' 'BLOCKED_EXTERNAL: project has no exact routine merger binding' >&2
     exit 2
   }
+  bound_identity="$(jq -r '.identity' <<<"$binding")"
+  bound_repository="$(jq -r '.repository' <<<"$binding")"
   [[ "$bound_identity" == "$username" ]] || {
     printf '%s\n' 'BLOCKED_EXTERNAL: routine merger identity does not match project binding' >&2
     exit 2
   }
+  pilot="$(jq -cer --arg repository "$bound_repository" --arg project_id "$project_id" \
+    --arg username "$username" '
+    [.repositories[] | select(.name == $repository)]
+    | if length == 1
+         and .[0].routine_auto_merge_enabled == true
+         and .[0].routine_merge_agent == $username
+         and .[0].routine_live_pilot.project_id == $project_id
+      then .[0].routine_live_pilot
+      else error("not the enabled routine live pilot") end
+  ' "$manifest")" || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: project is not the exact enabled routine live pilot' >&2
+    exit 2
+  }
+  approval_issue="$(jq -r '.rollout_issue' <<<"$pilot")"
+  required_mode="approved-issue-$approval_issue"
+  python3 -m aisoft_gitea_governance.cli --manifest "$manifest" verify-merged \
+    --repository "$bound_repository" --issue "$approval_issue" \
+    --merged-sha "$merged_sha" --platform-root "$platform_root" >/dev/null || exit 2
+  expected_basename=routine-merge-agent.token
+fi
+[[ "${AISOFT_ACCOUNT_BOOTSTRAP_MODE:-}" == "$required_mode" ]] || {
+  printf 'BLOCKED_EXTERNAL: AISOFT_ACCOUNT_BOOTSTRAP_MODE=%s is required\n' "$required_mode" >&2
+  exit 2
+}
+[[ -x "$GITEA_BIN" ]] || {
+  printf '%s\n' 'BLOCKED_EXTERNAL: Gitea binary is unavailable to the caller' >&2
+  exit 2
+}
+if ! sudo -n -u git test -f "$GITEA_CONFIG" ||
+   ! sudo -n -u git test -r "$GITEA_CONFIG"; then
+  printf '%s\n' 'BLOCKED_EXTERNAL: Gitea config is unavailable to the service user' >&2
+  exit 2
+fi
+mkdir -p "$credential_root"
+chmod 700 "$credential_root"
+credential_root="$(cd -- "$credential_root" && pwd -P)"
+marker_root="$credential_root"
+if [[ "$token_kind" == routine-merge-agent ]]; then
   mkdir -p "$credential_root/projects/$project_id"
   chmod 700 "$credential_root/projects" "$credential_root/projects/$project_id"
   marker_root="$(cd -- "$credential_root/projects/$project_id" && pwd -P)"
-  expected_basename=routine-merge-agent.token
 fi
 output_parent="$(cd -- "$(dirname -- "$credential_output")" && pwd -P)"
 [[ "$output_parent" == "$credential_root" && "$(basename -- "$credential_output")" == "$expected_basename" ]] || {
@@ -132,43 +260,27 @@ account_marker="$marker_root/$username.account-created-by-issue-$approval_issue"
 password_policy_marker="$marker_root/$username.must-change-password-unset-by-issue-$approval_issue"
 token_marker="$credential_output-created-by-issue-$approval_issue"
 
-account_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+tmp_dir="$(mktemp -d)"
+chmod 700 "$tmp_dir"
+trap 'rm -rf -- "$tmp_dir"' EXIT
+umask 077
+identity_file="$tmp_dir/identity.json"
+account_status="$(curl --silent --show-error --output "$identity_file" --write-out '%{http_code}' \
   "$GITEA_LOCAL_URL/api/v1/users/$username")" || {
   printf '%s\n' 'BLOCKED_EXTERNAL: account existence check failed' >&2
   exit 2
 }
 
-tmp_dir="$(mktemp -d)"
-chmod 700 "$tmp_dir"
-trap 'rm -rf -- "$tmp_dir"' EXIT
-umask 077
-
 case "$account_status" in
   200)
-    [[ -f "$account_marker" ]] || {
-      printf 'BLOCKED_EXTERNAL: account exists without an Issue #%s ownership marker\n' "$approval_issue" >&2
-      exit 2
-    }
+    validate_owned_marker "$account_marker" account account
+    validate_non_admin_identity "$identity_file" "$username" \
+      'existing account read-back'
     ;;
   404)
     [[ ! -e "$account_marker" && ! -e "$password_policy_marker" &&
        ! -e "$credential_output" && ! -e "$token_marker" ]] || {
       printf '%s\n' 'BLOCKED_EXTERNAL: account state conflicts with existing managed files' >&2
-      exit 2
-    }
-    # The caller-owned mode 700 temp directory intentionally receives stdout;
-    # sudo is only for the Gitea database operation, not the redirection.
-    # shellcheck disable=SC2024
-    sudo -n -u git "$GITEA_BIN" --config "$GITEA_CONFIG" admin user create \
-      --username "$username" \
-      --email "$username@aisoft.local" \
-      --user-type bot >"$tmp_dir/account-create.log"
-    install -m 600 /dev/null "$account_marker"
-    printf 'issue=%s\nusername=%s\n' "$approval_issue" "$username" >"$account_marker"
-    account_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
-      "$GITEA_LOCAL_URL/api/v1/users/$username")"
-    [[ "$account_status" == 200 ]] || {
-      printf '%s\n' 'BLOCKED_EXTERNAL: created account read-back failed' >&2
       exit 2
     }
     ;;
@@ -179,21 +291,46 @@ case "$account_status" in
 esac
 
 if [[ -e "$password_policy_marker" || -L "$password_policy_marker" ]]; then
-  [[ -f "$password_policy_marker" && ! -L "$password_policy_marker" ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: password policy marker is not a regular file' >&2
+  validate_owned_marker "$password_policy_marker" 'password policy' password-policy
+fi
+if [[ -e "$credential_output" ]]; then
+  [[ -f "$credential_output" && ! -L "$credential_output" ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: existing credential is not a regular file' >&2
     exit 2
   }
-  mode="$(stat -c '%a' "$password_policy_marker" 2>/dev/null || stat -f '%Lp' "$password_policy_marker")"
+  mode="$(stat -c '%a' "$credential_output" 2>/dev/null || stat -f '%Lp' "$credential_output")"
   [[ "$mode" == 600 || "$mode" == 400 ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: password policy marker mode must be 400 or 600' >&2
+    printf '%s\n' 'BLOCKED_EXTERNAL: existing credential mode must be 400 or 600' >&2
     exit 2
   }
-  expected_policy_marker="$(printf 'issue=%s\nusername=%s\npolicy=must-change-password-unset' "$approval_issue" "$username")"
-  [[ "$(cat "$password_policy_marker")" == "$expected_policy_marker" ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: password policy marker content mismatch' >&2
-    exit 2
-  }
-else
+  validate_owned_marker "$token_marker" token token
+elif [[ -e "$token_marker" || -L "$token_marker" ]]; then
+  printf '%s\n' 'BLOCKED_EXTERNAL: token marker exists but credential is missing; rotate explicitly' >&2
+  exit 2
+fi
+account_mutation_count=0
+pat_mutation_count=0
+
+if [[ "$account_status" == 404 ]]; then
+  # The caller-owned mode 700 temp directory intentionally receives stdout;
+  # sudo is only for the Gitea database operation, not the redirection.
+  # shellcheck disable=SC2024
+  sudo -n -u git "$GITEA_BIN" --config "$GITEA_CONFIG" admin user create \
+    --username "$username" \
+    --email "$username@aisoft.local" \
+    --user-type bot >"$tmp_dir/account-create.log"
+  account_mutation_count=1
+  account_status="$(curl --silent --show-error --output "$identity_file" --write-out '%{http_code}' \
+    "$GITEA_LOCAL_URL/api/v1/users/$username")" || account_status=transport-error
+  [[ "$account_status" == 200 ]] || \
+    compensate_unsafe_created_account "HTTP $account_status"
+  identity_is_exact_non_admin "$identity_file" "$username" || \
+    compensate_unsafe_created_account 'identity schema/login/non-admin mismatch'
+  install -m 600 /dev/null "$account_marker"
+  printf 'issue=%s\nusername=%s\n' "$approval_issue" "$username" >"$account_marker"
+fi
+
+if [[ ! -e "$password_policy_marker" && ! -L "$password_policy_marker" ]]; then
   # Gitea 1.26.4 can create bot users with MustChangePassword=true even though
   # password flags are rejected for bots. Use the dedicated policy command;
   # this does not set a password and is recorded before any PAT is generated.
@@ -205,26 +342,9 @@ else
 fi
 
 if [[ -e "$credential_output" ]]; then
-  [[ -f "$credential_output" && ! -L "$credential_output" ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: existing credential is not a regular file' >&2
-    exit 2
-  }
-  mode="$(stat -c '%a' "$credential_output" 2>/dev/null || stat -f '%Lp' "$credential_output")"
-  [[ "$mode" == 600 || "$mode" == 400 ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: existing credential mode must be 400 or 600' >&2
-    exit 2
-  }
-  [[ -f "$token_marker" ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: credential exists without a token ownership marker' >&2
-    exit 2
-  }
   token="$(tr -d '\r\n' <"$credential_output")"
   result=no-op
 else
-  [[ ! -e "$token_marker" ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: token marker exists but credential is missing; rotate explicitly' >&2
-    exit 2
-  }
   # Capture the raw token in the caller-owned mode 700 temp directory without
   # placing it in argv or stdout. The redirect intentionally is not sudo-owned.
   # shellcheck disable=SC2024
@@ -242,20 +362,50 @@ else
   install -m 600 /dev/null "$token_marker"
   printf 'issue=%s\nusername=%s\ntoken_kind=%s\n' "$approval_issue" "$username" "$token_kind" >"$token_marker"
   result=created
+  pat_mutation_count=1
 fi
 
-identity_file="$tmp_dir/identity.json"
 printf 'header = "Authorization: token %s"\n' "$token" |
   curl --config - --fail --silent --show-error "$GITEA_LOCAL_URL/api/v1/user" >"$identity_file"
 unset token
-[[ "$(jq -r '.login' "$identity_file")" == "$username" ]] || {
-  printf '%s\n' 'BLOCKED_EXTERNAL: token identity read-back mismatch' >&2
-  exit 2
-}
-[[ "$(jq -r '.is_admin' "$identity_file")" == false ]] || {
-  printf '%s\n' 'BLOCKED_EXTERNAL: service account unexpectedly has site-admin permission' >&2
-  exit 2
-}
+validate_non_admin_identity "$identity_file" "$username" \
+  'token identity read-back'
+
+observed_scopes='not-probed'
+if [[ "$token_kind" == routine-merge-agent ]]; then
+  scope_file="$tmp_dir/scope.json"
+  token="$(tr -d '\r\n' <"$credential_output")"
+  scope_status="$(printf 'header = "Authorization: token %s"\n' "$token" |
+    curl --config - --silent --show-error --output "$scope_file" \
+      --write-out '%{http_code}' "$GITEA_LOCAL_URL/api/v1/notifications")" || {
+    unset token
+    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope read-back failed' >&2
+    exit 2
+  }
+  unset token
+  [[ "$scope_status" == 403 ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope probe did not fail closed' >&2
+    exit 2
+  }
+  scope_message="$(jq -er '.message' "$scope_file")" || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope evidence is unavailable' >&2
+    exit 2
+  }
+  observed_scopes="$(sed -nE 's/.*token scope=([A-Za-z0-9:,_-]+).*/\1/p' <<<"$scope_message")"
+  [[ "$scopes" == write:repository && "$observed_scopes" == "$scopes" ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope must equal write:repository' >&2
+    exit 2
+  }
+fi
 
 jq -cn --arg username "$username" --arg token_kind "$token_kind" --arg result "$result" \
-  '{username:$username,token_kind:$token_kind,result:$result,site_admin:false,credential_mode:"600"}'
+  --arg project_id "$project_id" --arg repository "$bound_repository" \
+  --arg scopes "$observed_scopes" --argjson issue "$approval_issue" \
+  --argjson account_mutations "$account_mutation_count" \
+  --argjson pat_mutations "$pat_mutation_count" \
+  '{username:$username,token_kind:$token_kind,result:$result,site_admin:false,
+    credential_mode:"600",approval_issue:$issue,
+    project_id:($project_id | if length>0 then . else null end),
+    repository:($repository | if length>0 then . else null end),observed_scopes:$scopes,
+    bootstrap_operation_count:1,account_mutation_count:$account_mutations,
+    pat_mutation_count:$pat_mutations}'

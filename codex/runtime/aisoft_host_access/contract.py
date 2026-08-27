@@ -436,6 +436,12 @@ def load_access_contract(
             routine_merge_agent == governance_by_name[repository].routine_merge_agent,
             f"routine-merger mismatch for {repository}",
         )
+        pilot = governance_by_name[repository].routine_live_pilot
+        if pilot is not None:
+            _require(
+                project_id == pilot.project_id,
+                f"routine live pilot project id mismatch for {repository}",
+            )
         mac_checkout = item["mac_checkout"]
         if mac_checkout is not None:
             mac_checkout = _absolute_path(mac_checkout, f"projects[{index}].mac_checkout")

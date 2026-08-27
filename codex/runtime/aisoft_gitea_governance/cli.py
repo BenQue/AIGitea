@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import stat
 import subprocess
@@ -12,6 +13,7 @@ from .client import ApiError, GiteaClient
 from .contract import ContractError, GovernanceContract, load_contract, validate_full_sha
 from .reconcile import (
     apply_repository,
+    account_state,
     audit_cross_project_writes,
     bootstrap_repository_manager,
     capture_snapshot,
@@ -45,6 +47,7 @@ def _parser() -> argparse.ArgumentParser:
     verify_merged.add_argument("--issue", required=True, type=int)
     verify_merged.add_argument("--merged-sha", required=True)
     verify_merged.add_argument("--platform-root", required=True)
+    verify_merged.add_argument("--repository")
 
     check = subparsers.add_parser("check")
     check.add_argument("--token-file", required=True)
@@ -108,13 +111,30 @@ def _verify_merged_contract(
     issue: int,
     sha_value: str,
     root_value: str,
+    repository_name: str | None = None,
 ) -> str:
-    if issue != 35:
-        raise ContractError("live mutation requires exact approved Issue #35")
     sha = validate_full_sha(sha_value)
     root = Path(root_value).resolve()
     if not root.is_dir():
         raise ContractError("platform root does not exist")
+    repository = contract.repository(repository_name) if repository_name else None
+    pilot = repository.routine_live_pilot if repository is not None else None
+    if pilot is None:
+        if issue != 35:
+            raise ContractError("live mutation requires exact approved Issue #35")
+    else:
+        if issue != pilot.rollout_issue:
+            raise ContractError("routine live pilot requires its exact rollout Issue")
+        for provenance_sha, label in (
+            (pilot.governance_baseline_merged_sha, "governance baseline"),
+            (pilot.routine_source_merged_sha, "routine source"),
+        ):
+            try:
+                _git_output(root, "merge-base", "--is-ancestor", provenance_sha, sha)
+            except ContractError:
+                raise ContractError(
+                    f"routine live pilot {label} is not an ancestor of the rollout SHA"
+                ) from None
     _git_output(root, "merge-base", "--is-ancestor", sha, "origin/main")
     relative_manifest = contract.path.resolve().relative_to(root).as_posix()
     merged_bytes = _git_output(root, "show", f"{sha}:{relative_manifest}").encode("utf-8")
@@ -127,6 +147,26 @@ def _verify_merged_contract(
 def _client(contract: GovernanceContract, token_file: str) -> GiteaClient:
     token = _read_token(token_file)
     return GiteaClient(contract.base_url, token)
+
+
+def _require_pilot_live_authorization(
+    contract: GovernanceContract,
+    command: str,
+    repository_name: str,
+) -> None:
+    repository = contract.repository(repository_name)
+    pilot = repository.routine_live_pilot
+    if pilot is None or command not in {"apply", "rollback"}:
+        return
+    if command == "rollback" and repository.routine_auto_merge_enabled:
+        raise ContractError(
+            "routine live pilot source must be disabled before rollback"
+        )
+    expected = f"approved-issue-{pilot.rollout_issue}-{command}"
+    if os.environ.get("AISOFT_ROUTINE_LIVE_MODE") != expected:
+        raise ContractError(
+            f"routine live pilot requires AISOFT_ROUTINE_LIVE_MODE={expected}"
+        )
 
 
 def _json(value: object) -> None:
@@ -158,15 +198,22 @@ def _check(
     # Once accounts exist, they must never be site administrators. A missing
     # account is represented as planned provisioning rather than an exception.
     account_status = []
+    routine_account_status = []
     for repository in repositories:
-        try:
-            verify_account(client, repository.project_agent, must_be_site_admin=False)
-            account_status.append({"username": repository.project_agent, "state": "present-non-admin"})
-        except ApiError as exc:
-            if exc.status != 404:
-                raise
-            account_status.append({"username": repository.project_agent, "state": "missing"})
+        state = account_state(client, repository.project_agent)
+        account_status.append({"username": repository.project_agent, "state": state})
+        if state != "present-non-admin":
             drift = True
+        if repository.routine_merge_agent is not None:
+            routine_state = account_state(client, repository.routine_merge_agent)
+            routine_account_status.append({
+                "repository": contract.full_name(repository),
+                "enabled": repository.routine_auto_merge_enabled,
+                "username": repository.routine_merge_agent,
+                "state": routine_state,
+            })
+            if repository.routine_auto_merge_enabled and routine_state != "present-non-admin":
+                drift = True
     cross_project_violations = audit_cross_project_writes(client, contract)
     drift = drift or bool(cross_project_violations)
     _json({
@@ -174,6 +221,7 @@ def _check(
         "mode": "read-only",
         "repositories": results,
         "project_accounts": account_status,
+        "routine_accounts": routine_account_status,
         "cross_project_write_violations": cross_project_violations,
         "result": "DRIFT" if drift else "PASS",
     })
@@ -238,10 +286,29 @@ def main(argv: list[str] | None = None) -> int:
                 arguments.issue,
                 arguments.merged_sha,
                 arguments.platform_root,
+                arguments.repository,
             )
-            _json({"issue": arguments.issue, "merged_sha": sha, "result": "PASS"})
+            receipt = {"issue": arguments.issue, "merged_sha": sha, "result": "PASS"}
+            if arguments.repository:
+                repository = contract.repository(arguments.repository)
+                pilot = repository.routine_live_pilot
+                if pilot is not None:
+                    receipt.update({
+                        "repository": contract.full_name(repository),
+                        "routine_source_issue": pilot.routine_source_issue,
+                        "routine_source_merged_sha": pilot.routine_source_merged_sha,
+                        "governance_baseline_issue": pilot.governance_baseline_issue,
+                        "governance_baseline_merged_sha": (
+                            pilot.governance_baseline_merged_sha
+                        ),
+                    })
+            _json(receipt)
             return 0
 
+        if arguments.command in {"apply", "rollback"}:
+            _require_pilot_live_authorization(
+                contract, arguments.command, arguments.repository
+            )
         client = _client(contract, arguments.token_file)
         if arguments.command == "check":
             return _check(
@@ -254,6 +321,7 @@ def main(argv: list[str] | None = None) -> int:
             arguments.issue,
             arguments.merged_sha,
             arguments.platform_root,
+            arguments.repository,
         )
         repository = contract.repository(arguments.repository)
         if arguments.command == "bootstrap-manager":
