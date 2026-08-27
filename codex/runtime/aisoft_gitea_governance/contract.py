@@ -90,6 +90,22 @@ class RequiredContextMigration:
 
 
 @dataclass(frozen=True)
+class RoutineLivePilot:
+    project_id: str
+    rollout_issue: int
+    routine_source_issue: int
+    routine_source_merged_sha: str
+    governance_baseline_issue: int
+    governance_baseline_merged_sha: str
+    non_target_repositories_sha256: str
+    canary_issue: int
+    required_context: str
+    bootstrap_max: int
+    apply_max: int
+    canary_merge_post_max: int
+
+
+@dataclass(frozen=True)
 class RepositoryContract:
     name: str
     classification: str
@@ -108,6 +124,7 @@ class RepositoryContract:
     # 是否持有 change 文档模板的 vendored 副本，见 DEFAULT_VENDORS_CHANGE_TEMPLATES。
     vendors_change_templates: bool = DEFAULT_VENDORS_CHANGE_TEMPLATES
     required_context_migration: RequiredContextMigration | None = None
+    routine_live_pilot: RoutineLivePilot | None = None
 
     @property
     def private(self) -> bool:
@@ -378,7 +395,8 @@ def load_contract(path: str | Path) -> GovernanceContract:
                            "status_check_contexts", "required_approvals"},
                     f"repositories[{index}]",
                     optional={"change_control", "deployment_lifecycle",
-                              "vendors_change_templates", "required_context_migration"})
+                              "vendors_change_templates", "required_context_migration",
+                              "routine_live_pilot"})
         name = _identifier(item["name"], f"repositories[{index}].name")
         _require(name not in names, f"duplicate repository name: {name}")
         names.add(name)
@@ -467,6 +485,77 @@ def load_contract(path: str | Path) -> GovernanceContract:
                      f"routine auto merge requires canonical status contexts: {name}")
             _require(merger is not None,
                      f"routine auto merge requires a distinct merger identity: {name}")
+        pilot_value = item.get("routine_live_pilot")
+        pilot = None
+        if pilot_value is not None:
+            _require(isinstance(pilot_value, dict),
+                     f"routine_live_pilot must be an object for {name}")
+            _exact_keys(
+                pilot_value,
+                {
+                    "project_id", "rollout_issue", "routine_source_issue",
+                    "routine_source_merged_sha", "governance_baseline_issue",
+                    "governance_baseline_merged_sha", "canary_issue",
+                    "non_target_repositories_sha256", "required_context",
+                    "bootstrap_max", "apply_max",
+                    "canary_merge_post_max",
+                },
+                f"repositories[{index}].routine_live_pilot",
+            )
+            project_id = _identifier(
+                pilot_value["project_id"],
+                f"repositories[{index}].routine_live_pilot.project_id",
+            )
+            number_fields = (
+                "rollout_issue", "routine_source_issue",
+                "governance_baseline_issue", "canary_issue",
+            )
+            for field in number_fields:
+                value = pilot_value[field]
+                _require(
+                    isinstance(value, int) and not isinstance(value, bool) and value > 0,
+                    f"routine_live_pilot {field} must be positive for {name}",
+                )
+            for field in ("routine_source_merged_sha", "governance_baseline_merged_sha"):
+                value = pilot_value[field]
+                _require(
+                    isinstance(value, str) and bool(SHA_RE.fullmatch(value)),
+                    f"routine_live_pilot {field} must be a full lowercase SHA for {name}",
+                )
+            non_target_digest = pilot_value["non_target_repositories_sha256"]
+            _require(
+                isinstance(non_target_digest, str)
+                and bool(re.fullmatch(r"[0-9a-f]{64}", non_target_digest)),
+                f"routine_live_pilot non-target digest must be lowercase SHA-256 for {name}",
+            )
+            for field in ("bootstrap_max", "apply_max", "canary_merge_post_max"):
+                _require(
+                    pilot_value[field] == 1,
+                    f"routine_live_pilot {field} must equal 1 for {name}",
+                )
+            _require(len(contexts) == 1,
+                     f"routine_live_pilot requires one exact status context: {name}")
+            _require(pilot_value["required_context"] == contexts[0],
+                     f"routine_live_pilot required context mismatch for {name}")
+            _require(pilot_value["rollout_issue"] not in {
+                pilot_value["routine_source_issue"],
+                pilot_value["governance_baseline_issue"],
+                pilot_value["canary_issue"],
+            }, f"routine_live_pilot rollout Issue must be distinct for {name}")
+            pilot = RoutineLivePilot(
+                project_id=project_id,
+                rollout_issue=pilot_value["rollout_issue"],
+                routine_source_issue=pilot_value["routine_source_issue"],
+                routine_source_merged_sha=pilot_value["routine_source_merged_sha"],
+                governance_baseline_issue=pilot_value["governance_baseline_issue"],
+                governance_baseline_merged_sha=pilot_value["governance_baseline_merged_sha"],
+                non_target_repositories_sha256=non_target_digest,
+                canary_issue=pilot_value["canary_issue"],
+                required_context=pilot_value["required_context"],
+                bootstrap_max=1,
+                apply_max=1,
+                canary_merge_post_max=1,
+            )
         _require(name != "aisoft-platform" or not routine_enabled,
                  "aisoft-platform routine auto merge is permanently disabled")
         approvals = item["required_approvals"]
@@ -497,8 +586,35 @@ def load_contract(path: str | Path) -> GovernanceContract:
             deployment_lifecycle=deployment_lifecycle,
             vendors_change_templates=vendors_templates,
             required_context_migration=migration,
+            routine_live_pilot=pilot,
         ))
 
+    live_pilots = [repository for repository in repositories
+                   if repository.routine_live_pilot is not None]
+    _require(len(live_pilots) == 1 and live_pilots[0].name == "NewEMaint",
+             "the only routine live pilot must be NewEMaint")
+    newemaint_pilot = live_pilots[0].routine_live_pilot
+    assert newemaint_pilot is not None
+    _require(newemaint_pilot.project_id == "newemaint",
+             "NewEMaint routine live pilot project id must be newemaint")
+    _require(newemaint_pilot.rollout_issue == 213,
+             "NewEMaint routine live pilot rollout Issue must be 213")
+    _require(newemaint_pilot.routine_source_issue == 208,
+             "NewEMaint routine source Issue must be 208")
+    _require(
+        newemaint_pilot.routine_source_merged_sha
+        == "8d109b14b6e0936be30f6f287ff6050e48632e0b",
+        "NewEMaint routine source SHA must be the merged Issue #208 SHA",
+    )
+    _require(newemaint_pilot.governance_baseline_issue == 35,
+             "NewEMaint governance baseline Issue must be 35")
+    _require(
+        newemaint_pilot.governance_baseline_merged_sha
+        == "69251fd4d07665385eb6d9142038848c2b9392d7",
+        "NewEMaint governance baseline SHA must be the merged Issue #35 SHA",
+    )
+    _require(newemaint_pilot.canary_issue == 74,
+             "NewEMaint routine canary Issue must be 74")
     _require(repository_policy["public_allowlist"] == public_full_names,
              "public_allowlist must exactly match public repositories in manifest order")
     _require(set(repository_policy["public_allowlist"]) == {

@@ -519,6 +519,21 @@ class HostAccessBroker:
             raise BrokerError("ROUTINE_REPOSITORY_DISABLED", "repository routine merge is disabled")
         credential = self.credentials.resolve(project, operation)
         self._verify_identity(credential)
+        try:
+            actual_scopes = self._probe_token_scopes(credential)
+        except BrokerError as exc:
+            raise BrokerError(
+                "ROUTINE_TOKEN_SCOPE_MISMATCH",
+                "routine credential exact scope is unavailable or unsafe",
+            ) from exc
+        expected_scopes = set(
+            self.contract.governance.raw["routine_merge_agent_policy"]["token_scopes"]
+        )
+        if actual_scopes != expected_scopes:
+            raise BrokerError(
+                "ROUTINE_TOKEN_SCOPE_MISMATCH",
+                "routine credential scopes do not exactly match the manifest",
+            )
         owner = quote(self.contract.governance.owner, safe="")
         repository = quote(project.repository, safe="")
         repo_api = f"{self.contract.governance.base_url}/api/v1/repos/{owner}/{repository}"
@@ -544,6 +559,12 @@ class HostAccessBroker:
             )
         if issue_number == 208:
             raise BrokerError("ROUTINE_ISSUE_MANUAL_ONLY", "Issue #208 is manual-only")
+        pilot = repository_contract.routine_live_pilot
+        if pilot is not None and issue_number != pilot.canary_issue:
+            raise BrokerError(
+                "ROUTINE_CANARY_ONLY",
+                "routine live pilot is restricted to its exact canary Issue",
+            )
         try:
             change = ChangeName.parse_branch(branch, allow_legacy=False)
         except ChangeNameError as exc:
@@ -1660,6 +1681,31 @@ class HostAccessBroker:
         except (UnicodeError, json.JSONDecodeError) as exc:
             raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea returned invalid JSON") from exc
 
+    def _optional_json(self, url: str, token: str) -> object | None:
+        try:
+            status, _headers, body = self.transport(
+                "GET",
+                url,
+                {"Accept": "application/json", "Authorization": f"token {token}"},
+                None,
+            )
+        except BrokerError:
+            raise
+        except Exception as exc:
+            raise BrokerError("TRANSPORT_ERROR", "host transport failed") from exc
+        if status == 404:
+            return None
+        if status in {401, 403}:
+            raise BrokerError(f"HTTP_{status}", f"Gitea returned HTTP {status}")
+        if status < 200 or status >= 300:
+            raise BrokerError("HTTP_ERROR", f"Gitea returned HTTP {status}")
+        try:
+            return json.loads(body.decode("utf-8"))
+        except (UnicodeError, json.JSONDecodeError) as exc:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID", "Gitea returned invalid JSON"
+            ) from exc
+
     def _git(
         self,
         project: ProjectContract,
@@ -1928,6 +1974,11 @@ class HostAccessBroker:
             raise BrokerError("TARGET_UNAVAILABLE", "project has no approved Mac checkout")
         access_operation = self.contract.operation("host.access.audit")
         access = self._access_audit(project, access_operation)
+        if not isinstance(access, dict) or access.get("status") != "PASS":
+            raise BrokerError(
+                "ONBOARDING_MISMATCH",
+                "host access audit has unresolved routine pilot gaps",
+            )
         checkout = os.path.realpath(project.mac_checkout)
         try:
             root = os.path.realpath(
@@ -2006,6 +2057,7 @@ class HostAccessBroker:
         for credential in credentials.values():
             self._verify_identity(credential)
         credential_store = self._credential_store_contract(project)
+        repository_contract = self.contract.governance.repository(project.repository)
 
         expected_scopes = {
             "manager_audit": set(
@@ -2047,14 +2099,22 @@ class HostAccessBroker:
             f"{repo_api}/branch_protections/{default_branch}", manager_token
         )
         expected_merge = [self.contract.governance.human_merge_identity]
-        repository_contract = self.contract.governance.repository(project.repository)
+        if (repository_contract.routine_auto_merge_enabled
+                and repository_contract.routine_merge_agent is not None):
+            expected_merge.append(repository_contract.routine_merge_agent)
         expected_contexts = sorted(repository_contract.status_check_contexts)
+        actual_merge = protection.get("merge_whitelist_usernames") \
+            if isinstance(protection, dict) else None
+        actual_merge_tuple = tuple(actual_merge) if isinstance(actual_merge, list) else None
+        allowed_preapply_merge = [self.contract.governance.human_merge_identity]
         if (
             not isinstance(protection, dict)
             or protection.get("enable_push") is not False
             or protection.get("enable_force_push") is not False
             or protection.get("enable_merge_whitelist") is not True
-            or protection.get("merge_whitelist_usernames") != expected_merge
+            or actual_merge_tuple not in {
+                tuple(expected_merge), tuple(allowed_preapply_merge)
+            }
             or protection.get("enable_status_check") is not bool(expected_contexts)
             or sorted(protection.get("status_check_contexts", [])) != expected_contexts
             or protection.get("required_approvals") != repository_contract.required_approvals
@@ -2062,8 +2122,126 @@ class HostAccessBroker:
         ):
             raise BrokerError("PROTECTION_MISMATCH", "protected main does not match the governance boundary")
 
+        routine: dict[str, object] = {
+            "enabled": repository_contract.routine_auto_merge_enabled,
+            "identity": repository_contract.routine_merge_agent,
+            "credential": {
+                "kind": "protected-file",
+                "state": "not-enabled",
+                "path_disclosure": "DENIED",
+            },
+            "account_state": "not-enabled",
+            "expected_token_scopes": list(
+                self.contract.governance.raw["routine_merge_agent_policy"]["token_scopes"]
+            ),
+            "actual_token_scopes": None,
+            "repository_permission": "not-enabled",
+            "cross_project_write_violations": [],
+            "merge_allowlist_state": (
+                "converged" if actual_merge == expected_merge else "pre-apply"
+            ),
+        }
+        routine_gap = False
+        if repository_contract.routine_auto_merge_enabled:
+            merger = repository_contract.routine_merge_agent
+            assert merger is not None
+            account = self._optional_json(
+                f"{self.contract.governance.base_url}/api/v1/users/"
+                f"{quote(merger, safe='')}", manager_token,
+            )
+            if account is None:
+                routine["account_state"] = "missing"
+                routine_gap = True
+            elif not isinstance(account, dict) or account.get("login") != merger:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "routine account response is invalid"
+                )
+            elif account.get("is_admin") is True:
+                routine["account_state"] = "present-site-admin"
+                routine_gap = True
+            else:
+                routine["account_state"] = "present-non-admin"
+
+            try:
+                routine_credential = self.credentials.resolve(
+                    project,
+                    OperationContract(
+                        "host.access.audit", "routine-merge-agent", False, ()
+                    ),
+                )
+            except BrokerError as exc:
+                if exc.code != "CREDENTIAL_UNAVAILABLE":
+                    raise
+                routine["credential"] = {
+                    "kind": "protected-file",
+                    "state": "missing",
+                    "path_disclosure": "DENIED",
+                }
+                routine_gap = True
+            else:
+                self._verify_identity(routine_credential)
+                actual_routine_scopes = self._probe_token_scopes(routine_credential)
+                expected_routine_scopes = set(
+                    self.contract.governance.raw[
+                        "routine_merge_agent_policy"
+                    ]["token_scopes"]
+                )
+                if actual_routine_scopes != expected_routine_scopes:
+                    raise BrokerError(
+                        "TOKEN_SCOPE_MISMATCH",
+                        "routine credential token scopes do not match the manifest",
+                    )
+                routine["credential"] = {
+                    "kind": "protected-file",
+                    "state": "present",
+                    "path_disclosure": "DENIED",
+                }
+                routine["actual_token_scopes"] = sorted(actual_routine_scopes)
+
+            target_permission = self._optional_json(
+                f"{repo_api}/collaborators/{quote(merger, safe='')}/permission",
+                manager_token,
+            )
+            if target_permission is None:
+                routine["repository_permission"] = "missing"
+                routine_gap = True
+            elif not isinstance(target_permission, dict) or target_permission.get(
+                "permission"
+            ) not in {"read", "write", "admin", "owner"}:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "routine permission response is invalid"
+                )
+            else:
+                routine["repository_permission"] = target_permission["permission"]
+                if target_permission["permission"] != "write":
+                    routine_gap = True
+
+            violations: list[dict[str, str]] = []
+            for other in self.contract.governance.repositories:
+                if other.name == repository_contract.name:
+                    continue
+                other_api = (
+                    f"{self.contract.governance.base_url}/api/v1/repos/{owner}/"
+                    f"{quote(other.name, safe='')}"
+                )
+                other_permission = self._optional_json(
+                    f"{other_api}/collaborators/{quote(merger, safe='')}/permission",
+                    manager_token,
+                )
+                if isinstance(other_permission, dict) and other_permission.get(
+                    "permission"
+                ) in {"write", "admin", "owner"}:
+                    violations.append({
+                        "repository": self.contract.governance.full_name(other),
+                        "permission": str(other_permission["permission"]),
+                    })
+            routine["cross_project_write_violations"] = violations
+            routine_gap = routine_gap or bool(violations)
+            if actual_merge != expected_merge:
+                routine_gap = True
+
         return {
-            "status": "PASS",
+            "status": "GAP" if routine_gap else "PASS",
             "project": project.project_id,
             "operation": operation.name,
             "identities": {
@@ -2072,6 +2250,7 @@ class HostAccessBroker:
             "token_scopes": token_scopes,
             "repository_permission": permissions,
             "credential_store": credential_store,
+            "routine_merge": routine,
             "protection": {
                 "branch": self.contract.governance.default_branch,
                 "can_push": False,
@@ -2132,6 +2311,14 @@ class HostAccessBroker:
                 "identity": project.project_agent,
                 "kind": "protected-file",
                 "scope": f"project:{project.project_id}",
+            },
+            "routine_merge_agent": {
+                "identity": project.routine_merge_agent,
+                "kind": "protected-file",
+                "scope": f"project:{project.project_id}:routine-merge",
+                "enabled": self.contract.governance.repository(
+                    project.repository
+                ).routine_auto_merge_enabled,
             },
             "directory_mode": self.contract.raw["mac_host"]["credential_directory_mode"],
             "file_mode": self.contract.raw["mac_host"]["credential_file_mode"],

@@ -96,22 +96,21 @@ class RoutineBrokerTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         root = Path(self.temporary.name)
-        governance = json.loads((ROOT / "config/gitea-governance.json").read_text())
-        hsdb = next(item for item in governance["repositories"] if item["name"] == "HSDB")
-        hsdb["routine_auto_merge_enabled"] = True
         self.governance = root / "governance.json"
-        self.governance.write_text(json.dumps(governance))
+        self.governance.write_bytes(
+            (ROOT / "config/gitea-governance.json").read_bytes()
+        )
         self.access = root / "access.json"
         self.access.write_bytes((ROOT / "config/host-access-broker.json").read_bytes())
         self.contract = load_access_contract(self.access, self.governance)
         self.sha = "a" * 40
-        self.issue = 44
-        self.branch = "change/44-fix-parser-bug"
+        self.issue = 74
+        self.branch = "change/74-fix-parser-bug"
         self.summary_path = (
-            "docs/changes/44-fix-parser-bug/summary-fix-parser-bug-260826.md"
+            "docs/changes/74-fix-parser-bug/summary-fix-parser-bug-260826.md"
         )
         self.summary = f"""---
-issue: 44
+issue: 74
 change_type: bugfix
 requested_complexity: auto
 assessed_complexity: small
@@ -123,8 +122,8 @@ branch: {self.branch}
 ---
 """
         self.body = (
-            f"Closes #44\n\n"
-            f"AISoft-Submit-Authorization: issue=44; branch={self.branch}; policy=routine-auto\n\n"
+            f"Closes #74\n\n"
+            f"AISoft-Submit-Authorization: issue=74; branch={self.branch}; policy=routine-auto\n\n"
             f"Change documents:\n- {self.summary_path}\n"
         )
         self.posts = []
@@ -136,7 +135,14 @@ branch: {self.branch}
         path = urlparse(url).path
         query = urlparse(url).query
         if path == "/api/v1/user":
-            return self.response({"login": "hsdb-routine-merger", "is_admin": False})
+            return self.response({"login": "newemaint-routine-merger", "is_admin": False})
+        if path == "/api/v1/notifications":
+            return self.response({
+                "message": (
+                    "token does not have required scope, "
+                    "token scope=write:repository"
+                ),
+            }, status=403)
         if path.endswith("/pulls/7/merge"):
             self.posts.append((method, json.loads(body)))
             return self.response({"sha": "b" * 40})
@@ -148,9 +154,9 @@ branch: {self.branch}
                 "encoding": "base64",
                 "content": base64.b64encode(self.summary.encode()).decode(),
             })
-        if path.endswith("/issues/44"):
+        if path.endswith("/issues/74"):
             return self.response({
-                "number": 44,
+                "number": 74,
                 "state": "open",
                 "labels": [
                     {"name": "type/bugfix"},
@@ -173,17 +179,17 @@ branch: {self.branch}
                 "force_push_allowlist_teams": [],
                 "force_push_allowlist_deploy_keys": False,
                 "enable_merge_whitelist": True,
-                "merge_whitelist_usernames": ["admin", "hsdb-routine-merger"],
+                "merge_whitelist_usernames": ["admin", "newemaint-routine-merger"],
                 "enable_status_check": True,
-                "status_check_contexts": ["CI / test (pull_request)"],
+                "status_check_contexts": ["CI / verify (pull_request)"],
                 "required_approvals": 0,
                 "block_admin_merge_override": True,
             })
-        if path.endswith("/collaborators/hsdb-routine-merger/permission"):
+        if path.endswith("/collaborators/newemaint-routine-merger/permission"):
             return self.response({"permission": "write"})
         if path.endswith("/commits/" + self.sha + "/status"):
             return self.response({"statuses": [{
-                "context": "CI / test (pull_request)", "status": "success",
+                "context": "CI / verify (pull_request)", "status": "success",
             }]})
         if path.endswith("/pulls/7/reviews"):
             return self.response([])
@@ -214,7 +220,7 @@ branch: {self.branch}
 
     def test_exact_payload_one_post_and_receipt(self):
         result = self.broker().execute(
-            "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha
+            "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
         )
         self.assertEqual(result["status"], "AUTO_MERGED")
         self.assertEqual(len(self.posts), 1)
@@ -237,9 +243,47 @@ branch: {self.branch}
 
         with self.assertRaises(BrokerError) as caught:
             self.broker(drift).execute(
-                "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha
+                "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
             )
         self.assertEqual(caught.exception.code, "ROUTINE_HEAD_DRIFT")
+        self.assertEqual(self.posts, [])
+
+    def test_exact_scope_is_required_before_any_merge_post(self):
+        scenarios = (
+            (200, {"ok": True}),
+            (403, {"message": "token scope=read:repository"}),
+            (403, {"message": "token scope=write:repository,read:user"}),
+            (403, {"message": "scope evidence missing"}),
+        )
+        for status, value in scenarios:
+            with self.subTest(status=status, value=value):
+                self.posts.clear()
+
+                def unsafe_scope(method, url, headers, body, *, status=status, value=value):
+                    if urlparse(url).path == "/api/v1/notifications":
+                        return self.response(value, status=status)
+                    return self.transport(method, url, headers, body)
+
+                with self.assertRaises(BrokerError) as caught:
+                    self.broker(unsafe_scope).execute(
+                        "newemaint", "gitea.pull.merge.routine",
+                        number=7, sha=self.sha,
+                    )
+                self.assertEqual(caught.exception.code, "ROUTINE_TOKEN_SCOPE_MISMATCH")
+                self.assertEqual(self.posts, [])
+
+    def test_pilot_rejects_every_non_canary_issue_with_zero_post(self):
+        original_body = self.body
+        self.body = self.body.replace("#74", "#75").replace("issue=74", "issue=75")
+        try:
+            with self.assertRaises(BrokerError) as caught:
+                self.broker().execute(
+                    "newemaint", "gitea.pull.merge.routine",
+                    number=7, sha=self.sha,
+                )
+        finally:
+            self.body = original_body
+        self.assertEqual(caught.exception.code, "ROUTINE_CANARY_ONLY")
         self.assertEqual(self.posts, [])
 
     def test_final_head_reread_closes_toctou_and_zero_post(self):
@@ -256,7 +300,7 @@ branch: {self.branch}
 
         with self.assertRaises(BrokerError) as caught:
             self.broker(drift_on_final_read).execute(
-                "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha
+                "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
             )
         self.assertEqual(caught.exception.code, "ROUTINE_HEAD_DRIFT")
         self.assertEqual(self.posts, [])
@@ -275,7 +319,7 @@ branch: {self.branch}
                 try:
                     with self.assertRaises(BrokerError) as caught:
                         self.broker().execute(
-                            "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha
+                            "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
                         )
                 finally:
                     self.body = original
@@ -285,7 +329,7 @@ branch: {self.branch}
     def test_extra_arguments_are_rejected_before_credentials(self):
         with self.assertRaises(BrokerError) as caught:
             self.broker().execute(
-                "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha,
+                "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha,
                 branch=self.branch,
             )
         self.assertEqual(caught.exception.code, "ARGUMENT_MISMATCH")
@@ -298,16 +342,16 @@ branch: {self.branch}
             ),
             ("merger appears in push allowlist", "ROUTINE_PROTECTION_DRIFT",
                 "/branch_protections/main",
-                {"push_whitelist_usernames": ["hsdb-routine-merger"]},
+                {"push_whitelist_usernames": ["newemaint-routine-merger"]},
             ),
             ("merger has Admin", "ROUTINE_PROTECTION_DRIFT",
-                "/collaborators/hsdb-routine-merger/permission",
+                "/collaborators/newemaint-routine-merger/permission",
                 {"permission": "admin"},
             ),
             ("CI failed", "ROUTINE_CI_NOT_GREEN",
                 "/commits/" + self.sha + "/status",
                 {"statuses": [{
-                    "context": "CI / test (pull_request)", "status": "failure",
+                    "context": "CI / verify (pull_request)", "status": "failure",
                 }]},
             ),
             ("review rejected", "ROUTINE_REVIEW_REJECTED",
@@ -330,7 +374,7 @@ branch: {self.branch}
 
                 with self.assertRaises(BrokerError) as caught:
                     self.broker(failing).execute(
-                        "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha
+                        "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
                     )
                 self.assertEqual(caught.exception.code, expected)
                 self.assertEqual(self.posts, [])
@@ -338,7 +382,7 @@ branch: {self.branch}
     def test_duplicate_issue_pull_is_rejected_with_zero_post(self):
         duplicate = self.pull()
         duplicate["number"] = 8
-        duplicate["head"] = {"ref": "change/44-other-fix", "sha": "d" * 40}
+        duplicate["head"] = {"ref": "change/74-other-fix", "sha": "d" * 40}
 
         def duplicated(method, url, headers, body):
             if urlparse(url).path.endswith("/pulls"):
@@ -347,7 +391,7 @@ branch: {self.branch}
 
         with self.assertRaises(BrokerError) as caught:
             self.broker(duplicated).execute(
-                "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha
+                "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
             )
         self.assertEqual(caught.exception.code, "ROUTINE_PR_NOT_UNIQUE")
         self.assertEqual(self.posts, [])
@@ -366,7 +410,7 @@ branch: {self.branch}
                     return self.transport(method, url, headers, body)
 
                 result = self.broker(inactive).execute(
-                    "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha
+                    "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
                 )
                 self.assertEqual(result["status"], "AUTO_MERGED")
                 self.assertEqual(len(self.posts), 1)
@@ -381,7 +425,7 @@ branch: {self.branch}
 
         with self.assertRaises(BrokerError) as caught:
             self.broker(dependency).execute(
-                "hsdb", "gitea.pull.merge.routine", number=7, sha=self.sha
+                "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
             )
         self.assertEqual(caught.exception.code, "ROUTINE_DEPENDENCY_BLOCKED")
         self.assertEqual(self.posts, [])

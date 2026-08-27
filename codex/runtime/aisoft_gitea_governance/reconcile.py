@@ -378,6 +378,19 @@ def verify_account(
         raise ContractError(f"account site-admin state is unsafe: {username}")
 
 
+def account_state(client: GiteaClient, username: str) -> str:
+    try:
+        user = client.get(f"/users/{quote(username, safe='')}", f"read account {username}")
+    except ApiError as exc:
+        if exc.status == 404:
+            return "missing"
+        raise
+    if not isinstance(user, dict) or user.get("login") != username:
+        raise ContractError(f"account does not match expected identity: {username}")
+    return "present-site-admin" if bool(user.get("is_admin", False)) \
+        else "present-non-admin"
+
+
 def write_snapshot(path: Path, snapshot: dict[str, Any]) -> None:
     if path.parent.exists():
         if path.parent.is_symlink() or not path.parent.is_dir():
@@ -481,6 +494,7 @@ def apply_repository(
     if pre_path.exists() or post_path.exists():
         raise ContractError("refusing to reuse repository evidence paths")
     write_snapshot(pre_path, before)
+    api_mutation_count = 0
     if plan["planned_actions"]:
         path = _repo_path(contract, repository)
         if before["collaborators"][repository.project_agent] != "write":
@@ -489,6 +503,7 @@ def apply_repository(
                 {"permission": "write"},
                 f"set project agent Write on {contract.full_name(repository)}",
             )
+            api_mutation_count += 1
         if repository.routine_merge_agent is not None:
             merger_permission = before["collaborators"][repository.routine_merge_agent]
             merger_path = (
@@ -501,11 +516,13 @@ def apply_repository(
                     {"permission": "write"},
                     f"set routine merger Write on {contract.full_name(repository)}",
                 )
+                api_mutation_count += 1
             elif not repository.routine_auto_merge_enabled and merger_permission != "missing":
                 client.delete(
                     merger_path,
                     f"remove disabled routine merger from {contract.full_name(repository)}",
                 )
+                api_mutation_count += 1
         repo_patch: dict[str, Any] = {}
         if before["repo"]["private"] != repository.private:
             repo_patch["private"] = repository.private
@@ -513,16 +530,19 @@ def apply_repository(
             repo_patch["default_delete_branch_after_merge"] = True
         if repo_patch:
             client.patch(path, repo_patch, f"update repository policy for {contract.full_name(repository)}")
+            api_mutation_count += 1
         desired = desired_protection(contract, repository, before["protection"])
         if before["protection"] is None:
             client.post(f"{path}/branch_protections", protection_payload(desired, create=True),
                         f"create main protection for {contract.full_name(repository)}")
+            api_mutation_count += 1
         elif before["protection"] != desired:
             client.patch(
                 f"{path}/branch_protections/{quote(contract.default_branch, safe='')}",
                 protection_payload(desired, create=False),
                 f"update main protection for {contract.full_name(repository)}",
             )
+            api_mutation_count += 1
     after = capture_snapshot(client, contract, repository)
     post_plan = planned_actions(
         contract, repository, after,
@@ -542,6 +562,8 @@ def apply_repository(
     return {
         "repository": contract.full_name(repository),
         "result": "applied" if plan["planned_actions"] else "no-op",
+        "apply_operation_count": 1 if plan["planned_actions"] else 0,
+        "api_mutation_count": api_mutation_count,
         "pre_snapshot": str(pre_path),
         "post_snapshot": str(post_path),
     }
