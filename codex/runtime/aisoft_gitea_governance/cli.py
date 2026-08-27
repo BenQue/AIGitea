@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import stat
 import subprocess
@@ -148,6 +149,22 @@ def _client(contract: GovernanceContract, token_file: str) -> GiteaClient:
     return GiteaClient(contract.base_url, token)
 
 
+def _require_pilot_live_authorization(
+    contract: GovernanceContract,
+    command: str,
+    repository_name: str,
+) -> None:
+    repository = contract.repository(repository_name)
+    pilot = repository.routine_live_pilot
+    if pilot is None or command not in {"apply", "rollback"}:
+        return
+    expected = f"approved-issue-{pilot.rollout_issue}-{command}"
+    if os.environ.get("AISOFT_ROUTINE_LIVE_MODE") != expected:
+        raise ContractError(
+            f"routine live pilot requires AISOFT_ROUTINE_LIVE_MODE={expected}"
+        )
+
+
 def _json(value: object) -> None:
     print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
 
@@ -284,6 +301,10 @@ def main(argv: list[str] | None = None) -> int:
             _json(receipt)
             return 0
 
+        if arguments.command in {"apply", "rollback"}:
+            _require_pilot_live_authorization(
+                contract, arguments.command, arguments.repository
+            )
         client = _client(contract, arguments.token_file)
         if arguments.command == "check":
             return _check(

@@ -167,7 +167,8 @@ if [[ "$account_policy" == delete ]]; then
   }
 fi
 
-rollback_receipt="$(python3 -m aisoft_gitea_governance.cli --manifest "$manifest" rollback \
+rollback_receipt="$(AISOFT_ROUTINE_LIVE_MODE=approved-issue-213-rollback \
+  python3 -m aisoft_gitea_governance.cli --manifest "$manifest" rollback \
   --token-file "$manager_token" --repository NewEMaint --issue 213 \
   --merged-sha "$merged_sha" --platform-root "$platform_root" \
   --snapshot "$snapshot")" || exit 2

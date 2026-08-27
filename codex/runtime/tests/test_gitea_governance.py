@@ -14,7 +14,8 @@ from unittest.mock import patch
 
 from aisoft_gitea_governance.client import ApiError
 from aisoft_gitea_governance.cli import (
-    _check, _parser, _read_token, _verify_merged_contract,
+    _check, _parser, _read_token, _require_pilot_live_authorization,
+    _verify_merged_contract,
 )
 from aisoft_gitea_governance.contract import ContractError, load_contract
 from aisoft_gitea_governance.reconcile import (
@@ -221,6 +222,27 @@ class ContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "exact rollout Issue"):
             _verify_merged_contract(
                 self.contract, 208, "c" * 40, str(ROOT), "NewEMaint"
+            )
+
+    def test_pilot_apply_and_rollback_require_action_specific_live_authorization(self):
+        for command in ("apply", "rollback"):
+            expected = f"approved-issue-213-{command}"
+            with self.subTest(command=command, mode="missing"):
+                with patch.dict(os.environ, {}, clear=True):
+                    with self.assertRaisesRegex(ContractError, expected):
+                        _require_pilot_live_authorization(
+                            self.contract, command, "NewEMaint"
+                        )
+            with self.subTest(command=command, mode="exact"):
+                with patch.dict(
+                    os.environ, {"AISOFT_ROUTINE_LIVE_MODE": expected}, clear=True
+                ):
+                    _require_pilot_live_authorization(
+                        self.contract, command, "NewEMaint"
+                    )
+        with patch.dict(os.environ, {}, clear=True):
+            _require_pilot_live_authorization(
+                self.contract, "apply", "HSDB"
             )
 
     def test_platform_repository_requires_its_observed_pr_context(self):
