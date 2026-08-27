@@ -95,7 +95,9 @@ elif [[ "$url" == */api/v1/users/newemaint-routine-merger ]]; then
     printf 404
   else
     [[ -n "$output" ]]
-    printf '%s\n' '{"login":"newemaint-routine-merger","is_admin":false}' >"$output"
+    identity="${MOCK_ACCOUNT_IDENTITY:-}"
+    [[ -n "$identity" ]] || identity='{"login":"newemaint-routine-merger","is_admin":false}'
+    printf '%s\n' "$identity" >"$output"
     printf 200
   fi
 else
@@ -175,6 +177,66 @@ line_count() {
 rollback_call_count() {
   awk '/ rollback / {count += 1} END {print count + 0}' "$TMP/python.log"
 }
+
+managed_rollback_state() {
+  local root="$TMP/credentials/projects/newemaint"
+  local path
+  while IFS= read -r path; do
+    printf '%s %s ' "${path#"$root"}" \
+      "$(stat -c '%a' "$path" 2>/dev/null || stat -f '%Lp' "$path")"
+    if [[ -f "$path" ]]; then shasum -a 256 "$path"; else printf '\n'; fi
+  done < <(find "$root" -mindepth 1 -print | LC_ALL=C sort)
+}
+
+assert_account_identity_rejected() {
+  local policy="$1"
+  local variant="$2"
+  local payload="$3"
+  local state_before
+  local gitea_before
+  local rollback_before
+  prepare_managed_files
+  rm -f "$TMP/account-deleted"
+  state_before="$(managed_rollback_state)"
+  gitea_before="$(line_count "$TMP/gitea.log")"
+  rollback_before="$(rollback_call_count)"
+  if MOCK_ACCOUNT_IDENTITY="$payload" \
+     bash "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
+      --manifest "$TMP/disabled.json" \
+      --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+      --platform-root "$ROOT" \
+      --merged-sha bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb \
+      --rollout-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+      --snapshot "$TMP/snapshot.json" --account-policy "$policy" \
+      >"$TMP/account-identity-$policy-$variant.out" \
+      2>"$TMP/account-identity-$policy-$variant.err"; then
+    printf 'unsafe routine identity unexpectedly allowed %s rollback: %s\n' \
+      "$policy" "$variant" >&2
+    exit 1
+  fi
+  grep -Fq 'routine account preflight read-back must be the exact non-admin service identity' \
+    "$TMP/account-identity-$policy-$variant.err"
+  [[ "$(line_count "$TMP/gitea.log")" == "$gitea_before" ]]
+  [[ "$(rollback_call_count)" == "$rollback_before" ]]
+  [[ "$(managed_rollback_state)" == "$state_before" ]]
+  [[ ! -e "$TMP/account-deleted" ]]
+}
+
+for policy in retain delete; do
+  assert_account_identity_rejected "$policy" missing \
+    '{"login":"newemaint-routine-merger"}'
+  assert_account_identity_rejected "$policy" string-false \
+    '{"login":"newemaint-routine-merger","is_admin":"false"}'
+  assert_account_identity_rejected "$policy" number \
+    '{"login":"newemaint-routine-merger","is_admin":0}'
+  assert_account_identity_rejected "$policy" list \
+    '{"login":"newemaint-routine-merger","is_admin":[]}'
+  assert_account_identity_rejected "$policy" site-admin \
+    '{"login":"newemaint-routine-merger","is_admin":true}'
+  assert_account_identity_rejected "$policy" wrong-login \
+    '{"login":"admin","is_admin":false}'
+  assert_account_identity_rejected "$policy" root-list '[]'
+done
 
 assert_password_marker_delete_rejected() {
   local variant="$1"

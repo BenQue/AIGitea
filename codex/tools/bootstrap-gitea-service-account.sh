@@ -59,6 +59,24 @@ validate_owned_marker() {
   fi
 }
 
+validate_non_admin_identity() {
+  local identity_path="$1"
+  local expected_login="$2"
+  local identity_label="$3"
+
+  jq -e --arg login "$expected_login" '
+    type == "object"
+    and (.login | type) == "string"
+    and .login == $login
+    and (.is_admin | type) == "boolean"
+    and .is_admin == false
+  ' "$identity_path" >/dev/null || {
+    printf 'BLOCKED_EXTERNAL: %s must be the exact non-admin service identity\n' \
+      "$identity_label" >&2
+    exit 2
+  }
+}
+
 while (($#)); do
   case "$1" in
     --manifest) manifest="${2:-}"; shift 2 ;;
@@ -204,7 +222,12 @@ account_marker="$marker_root/$username.account-created-by-issue-$approval_issue"
 password_policy_marker="$marker_root/$username.must-change-password-unset-by-issue-$approval_issue"
 token_marker="$credential_output-created-by-issue-$approval_issue"
 
-account_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+tmp_dir="$(mktemp -d)"
+chmod 700 "$tmp_dir"
+trap 'rm -rf -- "$tmp_dir"' EXIT
+umask 077
+identity_file="$tmp_dir/identity.json"
+account_status="$(curl --silent --show-error --output "$identity_file" --write-out '%{http_code}' \
   "$GITEA_LOCAL_URL/api/v1/users/$username")" || {
   printf '%s\n' 'BLOCKED_EXTERNAL: account existence check failed' >&2
   exit 2
@@ -213,6 +236,8 @@ account_status="$(curl --silent --show-error --output /dev/null --write-out '%{h
 case "$account_status" in
   200)
     validate_owned_marker "$account_marker" account account
+    validate_non_admin_identity "$identity_file" "$username" \
+      'existing account read-back'
     ;;
   404)
     [[ ! -e "$account_marker" && ! -e "$password_policy_marker" &&
@@ -245,11 +270,6 @@ elif [[ -e "$token_marker" || -L "$token_marker" ]]; then
   printf '%s\n' 'BLOCKED_EXTERNAL: token marker exists but credential is missing; rotate explicitly' >&2
   exit 2
 fi
-
-tmp_dir="$(mktemp -d)"
-chmod 700 "$tmp_dir"
-trap 'rm -rf -- "$tmp_dir"' EXIT
-umask 077
 account_mutation_count=0
 pat_mutation_count=0
 
@@ -261,15 +281,17 @@ if [[ "$account_status" == 404 ]]; then
     --username "$username" \
     --email "$username@aisoft.local" \
     --user-type bot >"$tmp_dir/account-create.log"
-  install -m 600 /dev/null "$account_marker"
-  printf 'issue=%s\nusername=%s\n' "$approval_issue" "$username" >"$account_marker"
   account_mutation_count=1
-  account_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+  account_status="$(curl --silent --show-error --output "$identity_file" --write-out '%{http_code}' \
     "$GITEA_LOCAL_URL/api/v1/users/$username")"
   [[ "$account_status" == 200 ]] || {
     printf '%s\n' 'BLOCKED_EXTERNAL: created account read-back failed' >&2
     exit 2
   }
+  validate_non_admin_identity "$identity_file" "$username" \
+    'created account read-back'
+  install -m 600 /dev/null "$account_marker"
+  printf 'issue=%s\nusername=%s\n' "$approval_issue" "$username" >"$account_marker"
 fi
 
 if [[ ! -e "$password_policy_marker" && ! -L "$password_policy_marker" ]]; then
@@ -307,18 +329,11 @@ else
   pat_mutation_count=1
 fi
 
-identity_file="$tmp_dir/identity.json"
 printf 'header = "Authorization: token %s"\n' "$token" |
   curl --config - --fail --silent --show-error "$GITEA_LOCAL_URL/api/v1/user" >"$identity_file"
 unset token
-[[ "$(jq -r '.login' "$identity_file")" == "$username" ]] || {
-  printf '%s\n' 'BLOCKED_EXTERNAL: token identity read-back mismatch' >&2
-  exit 2
-}
-[[ "$(jq -r '.is_admin' "$identity_file")" == false ]] || {
-  printf '%s\n' 'BLOCKED_EXTERNAL: service account unexpectedly has site-admin permission' >&2
-  exit 2
-}
+validate_non_admin_identity "$identity_file" "$username" \
+  'token identity read-back'
 
 observed_scopes='not-probed'
 if [[ "$token_kind" == routine-merge-agent ]]; then

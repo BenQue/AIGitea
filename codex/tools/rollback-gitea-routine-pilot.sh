@@ -60,6 +60,24 @@ validate_rollback_marker() {
   fi
 }
 
+validate_non_admin_identity() {
+  local identity_path="$1"
+  local expected_login="$2"
+  local identity_label="$3"
+
+  jq -e --arg login "$expected_login" '
+    type == "object"
+    and (.login | type) == "string"
+    and .login == $login
+    and (.is_admin | type) == "boolean"
+    and .is_admin == false
+  ' "$identity_path" >/dev/null || {
+    printf 'BLOCKED_EXTERNAL: %s must be the exact non-admin service identity\n' \
+      "$identity_label" >&2
+    exit 2
+  }
+}
+
 while (($#)); do
   case "$1" in
     --manifest) manifest="${2:-}"; shift 2 ;;
@@ -191,6 +209,21 @@ if [[ "$account_policy" == delete ]]; then
   validate_rollback_marker "$password_marker" 'password-policy ownership' password-policy
 fi
 
+# Identity is a pre-mutation hard gate: unsafe account data must stop before
+# repository rollback, PAT revoke, credential removal, or account deletion.
+account_file="$tmp_dir/account.json"
+account_status="$(curl --silent --show-error --output "$account_file" \
+  --write-out '%{http_code}' "$GITEA_LOCAL_URL/api/v1/users/newemaint-routine-merger")" || {
+  printf '%s\n' 'BLOCKED_EXTERNAL: routine account preflight read-back failed' >&2
+  exit 2
+}
+[[ "$account_status" == 200 ]] || {
+  printf '%s\n' 'BLOCKED_EXTERNAL: exact managed routine account is missing' >&2
+  exit 2
+}
+validate_non_admin_identity "$account_file" newemaint-routine-merger \
+  'routine account preflight read-back'
+
 rollback_receipt="$(AISOFT_ROUTINE_LIVE_MODE=approved-issue-213-rollback \
   python3 -m aisoft_gitea_governance.cli --manifest "$manifest" rollback \
   --token-file "$manager_token" --repository NewEMaint --issue 213 \
@@ -254,7 +287,6 @@ unset token
 }
 rm -f -- "$credential_file" "$token_marker"
 
-account_file="$tmp_dir/account.json"
 account_status="$(curl --silent --show-error --output "$account_file" \
   --write-out '%{http_code}' "$GITEA_LOCAL_URL/api/v1/users/newemaint-routine-merger")" || {
   printf '%s\n' 'BLOCKED_EXTERNAL: routine account read-back failed' >&2
@@ -262,20 +294,24 @@ account_status="$(curl --silent --show-error --output "$account_file" \
 }
 account_delete_mutation_count=0
 if [[ "$account_policy" == retain ]]; then
-  [[ "$account_status" == 200 &&
-     "$(jq -r '.login' "$account_file")" == newemaint-routine-merger &&
-     "$(jq -r '.is_admin' "$account_file")" == false ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: retained account is missing or site-admin' >&2
+  [[ "$account_status" == 200 ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: retained account is missing' >&2
     exit 2
   }
+  validate_non_admin_identity "$account_file" newemaint-routine-merger \
+    'retained account read-back'
   account_state=present-non-admin
 else
   [[ "$account_status" == 200 ]] || {
     printf '%s\n' 'BLOCKED_EXTERNAL: exact managed account is missing before delete' >&2
     exit 2
   }
+  validate_non_admin_identity "$account_file" newemaint-routine-merger \
+    'delete account read-back'
   # The mode 700 caller-owned temp directory intentionally receives stdout;
   # sudo is only for the Gitea database operation, not the redirection.
+  validate_non_admin_identity "$account_file" newemaint-routine-merger \
+    'immediate pre-delete account read-back'
   # shellcheck disable=SC2024
   sudo -n -u git "$GITEA_BIN" --config "$GITEA_CONFIG" admin user delete \
     --username newemaint-routine-merger >"$tmp_dir/account-delete.log"

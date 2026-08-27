@@ -64,12 +64,34 @@ cat >"$TMP/bin/curl" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >>"$MOCK_ROOT/curl-argv.log"
+output=''
+for ((index=1; index<=$#; index++)); do
+  if [[ "${!index}" == --output ]]; then
+    next=$((index + 1)); output="${!next}"
+  fi
+done
 case "$*" in
   *"/api/v1/users/newemaint-routine-merger"*)
-    if [[ -f "$MOCK_ROOT/routine-account-present" ]]; then printf 200; else printf 404; fi
+    if [[ -f "$MOCK_ROOT/routine-account-present" ]]; then
+      [[ -n "$output" ]]
+      identity="${MOCK_ACCOUNT_IDENTITY:-}"
+      [[ -n "$identity" ]] || identity='{"login":"newemaint-routine-merger","is_admin":false}'
+      printf '%s\n' "$identity" >"$output"
+      printf 200
+    else
+      printf 404
+    fi
     ;;
   *"/api/v1/users/hsdb-agent"*)
-    if [[ -f "$MOCK_ROOT/account-present" ]]; then printf 200; else printf 404; fi
+    if [[ -f "$MOCK_ROOT/account-present" ]]; then
+      [[ -n "$output" ]]
+      identity="${MOCK_ACCOUNT_IDENTITY:-}"
+      [[ -n "$identity" ]] || identity='{"login":"hsdb-agent","is_admin":false}'
+      printf '%s\n' "$identity" >"$output"
+      printf 200
+    else
+      printf 404
+    fi
     ;;
   *"/api/v1/user"*)
     read -r auth
@@ -284,6 +306,70 @@ managed_routine_state() {
     shasum -a 256 "$managed_path"
   done
 }
+
+identity_gate_root="$TMP/identity-gate-credentials"
+mkdir -p "$identity_gate_root/projects/newemaint"
+chmod 700 "$identity_gate_root" "$identity_gate_root/projects" \
+  "$identity_gate_root/projects/newemaint"
+identity_gate_marker="$identity_gate_root/projects/newemaint/newemaint-routine-merger.account-created-by-issue-213"
+printf 'issue=213\nusername=newemaint-routine-merger\n' >"$identity_gate_marker"
+chmod 600 "$identity_gate_marker"
+
+identity_gate_state() {
+  local path
+  while IFS= read -r path; do
+    printf '%s %s ' "${path#"$identity_gate_root"}" \
+      "$(stat -c '%a' "$path" 2>/dev/null || stat -f '%Lp' "$path")"
+    if [[ -f "$path" ]]; then shasum -a 256 "$path"; else printf '\n'; fi
+  done < <(find "$identity_gate_root" -mindepth 1 -print | LC_ALL=C sort)
+}
+
+assert_identity_gate_rejected() {
+  local variant="$1"
+  local payload="$2"
+  local state_before
+  local gitea_before
+  local pat_before
+  state_before="$(identity_gate_state)"
+  gitea_before="$(line_count "$TMP/gitea-argv.log")"
+  pat_before="$(grep -c 'generate-access-token' "$TMP/gitea-argv.log" || true)"
+  if MOCK_ACCOUNT_IDENTITY="$payload" \
+     AISOFT_CREDENTIAL_ROOT="$identity_gate_root" \
+     bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+      --manifest "$ROOT/codex/config/gitea-governance.json" \
+      --access-manifest "$ROOT/codex/config/host-access-broker.json" \
+      --project-id newemaint \
+      --username newemaint-routine-merger \
+      --token-kind routine-merge-agent \
+      --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+      --platform-root "$ROOT" \
+      --credential-output "$identity_gate_root/projects/newemaint/routine-merge-agent.token" \
+      >"$TMP/identity-gate-$variant.out" \
+      2>"$TMP/identity-gate-$variant.err"; then
+    printf 'unsafe account identity unexpectedly generated a PAT: %s\n' \
+      "$variant" >&2
+    exit 1
+  fi
+  grep -Fq 'existing account read-back must be the exact non-admin service identity' \
+    "$TMP/identity-gate-$variant.err"
+  [[ "$(grep -c 'generate-access-token' "$TMP/gitea-argv.log" || true)" == "$pat_before" ]]
+  [[ "$(line_count "$TMP/gitea-argv.log")" == "$gitea_before" ]]
+  [[ "$(identity_gate_state)" == "$state_before" ]]
+}
+
+assert_identity_gate_rejected missing \
+  '{"login":"newemaint-routine-merger"}'
+assert_identity_gate_rejected string-false \
+  '{"login":"newemaint-routine-merger","is_admin":"false"}'
+assert_identity_gate_rejected number \
+  '{"login":"newemaint-routine-merger","is_admin":0}'
+assert_identity_gate_rejected list \
+  '{"login":"newemaint-routine-merger","is_admin":[]}'
+assert_identity_gate_rejected site-admin \
+  '{"login":"newemaint-routine-merger","is_admin":true}'
+assert_identity_gate_rejected wrong-login \
+  '{"login":"admin","is_admin":false}'
+assert_identity_gate_rejected root-list '[]'
 
 assert_corrupt_account_marker_rejected() {
   local variant="$1"
