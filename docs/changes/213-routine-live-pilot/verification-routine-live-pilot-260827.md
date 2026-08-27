@@ -42,11 +42,11 @@ updated: 2026-08-27
 | 改动前 `host.access.audit` | GAP | protected main/required CI/manager/project-agent PASS，但 routine metadata 整段缺失；已确认是 #208 source gap，不是 installed drift |
 | protected main baseline | PASS | direct push=false、force push=false、required context exact、merge allowlist=`[admin]` |
 | Issue #213 creation/classification | PASS | broker 创建；最终 readback labels=`type/platform + complexity/complex + approved`；branch=`change/213-routine-live-pilot` |
-| targeted Python tests | PASS | `PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_gitea_governance codex.runtime.tests.test_host_access codex.runtime.tests.test_routine_merge`：157 tests PASS |
+| targeted Python tests | PASS | `PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_gitea_governance codex.runtime.tests.test_host_access codex.runtime.tests.test_routine_merge`：158 tests PASS |
 | bootstrap/rollback/installer shell tests | PASS | 三个定向脚本分别 PASS；fake transports 证明 no-op bootstrap、scope drift refusal、204→401 PAT self-revoke、retain/delete 与 installed tool byte parity |
 | modified shell `bash -n` + ShellCheck | PASS | bootstrap、rollback、installer、对应 tests 与 `codex/tests/smoke.sh` 均无语法或 ShellCheck finding |
-| `bash codex/tests/smoke.sh` | PASS | 589 tests PASS；`Codex platform static smoke checks passed.` |
-| local atomic commits | PASS | T01=`00f94c8`；T02-T03=`324a053`；T04=`db3ecc3` |
+| `bash codex/tests/smoke.sh` | PASS | 590 tests PASS；`Codex platform static smoke checks passed.` |
+| local atomic commits | PASS | T01=`00f94c8`；T02-T03=`324a053`；T04=`db3ecc3`；T05 docs=`cfbb52d`；live authorization repair=`5484856` |
 | Controller contract preflight | PASS | broker fresh Issue readback + local Controller resolver：Issue=213、branch exact、complex、frontier=T05、policy=manual、唯一 Closes/authorization marker；未写 state、未 push/create PR |
 | Mac/VM install | NOT RUN | source 未合并；本任务禁止安装 live bytes |
 | account/PAT bootstrap | NOT RUN | 本任务禁止 live credential/account mutation |
@@ -66,14 +66,14 @@ updated: 2026-08-27
 | AC-4 | PASS (source) / NOT RUN (live) | exact #213 binding、mutation counts、idempotent second run tests |
 | AC-5 | PASS (source) | bootstrap 与每次 routine merge 前 exact `write:repository`；negative matrix POST=0 |
 | AC-6 | PASS (source) / GAP (live baseline) | enabled audit 完整 PASS/GAP fixtures；installed baseline 尚无 routine metadata |
-| AC-7 | PASS (source) / NOT RUN (live) | pre/post snapshot、post-plan empty、operation/API mutation counts tests |
+| AC-7 | PASS (source) / NOT RUN (live) | pre/post snapshot、post-plan empty、operation/API mutation counts；apply 在读取 mutation credential 前要求 exact action-specific live mode |
 | AC-8 | PASS (source) / NOT RUN (canary) | only Issue #74 fixture；其它 Issue stable refusal、merge POST=0 |
 | AC-9 | PASS (source) / NOT RUN (live) | fixed `/api/v1/token` 204、自撤销后 401、revoke count=1 |
-| AC-10 | PASS (source) / NOT RUN (live) | disabled-source first、human-only/missing collaborator readback、retain/delete fake paths |
+| AC-10 | PASS (source) / NOT RUN (live) | disabled-source first、human-only/missing collaborator readback、retain/delete fake paths；rollback 要求独立 exact live mode |
 | AC-11 | PASS (source receipt) / NOT RUN (live layers) | source/fake mutation counts 完整；所有未授权 live layers 明确 NOT RUN |
 | AC-12 | PASS (installer contract) / NOT RUN (final Mac/VM) | temp install root 两次安装、bootstrap/revoke/runtime/config source-byte cmp；最终 merged SHA 安装待后续 |
 | AC-13 | PASS | complex/manual、protected main、exact context、zero deploy/zero fallback assertions |
-| AC-14 | PASS | bash -n、ShellCheck、157 targeted、589 smoke、semantic checks、Controller contract preflight |
+| AC-14 | PASS | bash -n、ShellCheck、158 targeted、590 smoke、semantic checks、Controller contract preflight |
 
 ## 遗留风险与未完成项
 
