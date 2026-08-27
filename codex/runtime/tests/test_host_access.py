@@ -2366,7 +2366,12 @@ class HostAccessBrokerTests(unittest.TestCase):
             {"Link": '<http://mock.invalid?page=2>; rel="next"'},
             [{"login": "alpha"}],
         )
-        for inventory in (oversized_inventory, short_with_next):
+        malformed_link = (
+            200,
+            {"Link": "not-a-link"},
+            [{"login": "alpha"}],
+        )
+        for inventory in (oversized_inventory, short_with_next, malformed_link):
             with self.subTest(inventory=inventory):
                 broker = self._missing_routine_audit_broker(
                     cross_project_inventory=inventory,
@@ -2393,6 +2398,27 @@ class HostAccessBrokerTests(unittest.TestCase):
 
         self.assertEqual(value["status"], "GAP")
         self.assertEqual(calls, [1, 2])
+
+    def test_missing_account_inventory_stops_at_the_page_bound(self) -> None:
+        calls: list[int] = []
+
+        def inventory(url):
+            page = int(url.rsplit("page=", 1)[1])
+            calls.append(page)
+            return 200, [
+                {"login": f"page-{page:03d}-user-{index:03d}"}
+                for index in range(50)
+            ]
+
+        broker = self._missing_routine_audit_broker(
+            cross_project_inventory=inventory,
+        )
+
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute("newemaint", "host.access.audit")
+
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+        self.assertEqual(calls, list(range(1, 101)))
 
     def _credential_contract(self, root: Path):
         raw = json.loads(json.dumps(self.contract.raw))
