@@ -49,14 +49,14 @@ updated: 2026-08-27
 | `bash codex/tests/smoke.sh` | PASS | CI repair 提交 `9964165` 后从头重跑 595 tests PASS；`Codex platform static smoke checks passed.` |
 | local atomic commits | PASS | T01=`00f94c8`；T02-T03=`324a053`；T04=`db3ecc3`；T05 docs=`cfbb52d`；live authorization repair=`5484856`；repair verification=`46cd080`；review gates=`551dfce`；canonical fixture=`363bb7f`；first-review evidence=`5728dd0`；second-review variants=`f095032`；second-review evidence=`f07e250`；third-review identity gates=`86d029a`；third-review evidence=`c7d30d5`；fourth-review compensation/TOCTOU=`c0558f0`；PR lifecycle/URL backfill=`e37d941`；CI authorization-order repair=`9964165` |
 | Controller contract/readback | PASS | fresh broker readback：Issue #213 open、labels exact `pr-open + complexity/complex + type/platform`；PR #214 唯一、open/unmerged、head branch/base/manual markers exact；summary `status=pr-open` 且 `pr_url` 指向 PR #214；routine ineligible，merge POST=0 |
-| PR CI evidence | FAIL / repair pending review | run #758/job #758 在 head `cb9141e...` 的 `Platform smoke suite` 于 repository-settings PASS 后、bootstrap PASS 前退出 1；Linux trace 定位旧 authorization ordering 触发 config-preflight count 漂移。summary 回填 head `e37d941...` 的 run #759/job #759 在下载 `actions/checkout@v4` 时 `EOF`，两步均 cancelled，属于外部 runner/network failure。修复 head `9964165...` 尚未 push，等待独立增量复审 |
+| PR CI evidence | FAIL / bounded external retry | run #758/job #758 在 head `cb9141e...` 的 `Platform smoke suite` 于 repository-settings PASS 后、bootstrap PASS 前退出 1；Linux trace 定位旧 authorization ordering 触发 config-preflight count 漂移。修复 range `e37d941..5618d852` 已通过独立增量复审（P0/P1/P2=0）并 push；其 run #760/job #760 与此前 summary-only run #759 同样在下载 `actions/checkout@v4` 时返回 `EOF`，checkout/smoke 均未执行。installed broker 没有 Actions rerun mutation，本 verification-only evidence commit 作为一次有内容的受控有限重试；若同因再次发生则停止为外部 runner 阻塞 |
 | Mac/VM install | NOT RUN | source 未合并；本任务禁止安装 live bytes |
 | account/PAT bootstrap | NOT RUN | 本任务禁止 live credential/account mutation |
 | collaborator/protection apply | NOT RUN | 本任务禁止 live governance mutation |
 | NewEMaint Issue #74 canary | NOT RUN | 仅能在 merged source + 独立 live 授权后执行一次 |
 | PAT revoke/account retain-delete rollback | PASS (source) / NOT RUN (live) | deterministic source + fake Gitea/curl/sudo tests PASS；live rollback 未授权 |
 | deployment | NOT RUN | pilot 与 routine merge 均不传递部署授权 |
-| push/create PR/merge | PASS / PASS / NOT RUN | 唯一 PR #214 已创建；初始 branch push=1、Controller summary 回填 push=1，未创建第二 PR；CI repair head 尚未 push；complex/manual merge POST=0 |
+| push/create PR/merge | PASS / PASS / NOT RUN | 唯一 PR #214 已创建；初始 branch、Controller summary 回填、独立复审通过的 repair range 均只经 broker fast-forward 更新同一 PR；PR create/update payload 未重复，未创建第二 PR；本 verification-only commit 用于一次 checkout EOF 有限重试；complex/manual merge POST=0 |
 
 ## Acceptance criteria 结果
 
@@ -82,4 +82,4 @@ updated: 2026-08-27
 - 当前 live routine account/PAT/collaborator/protection/canary 未创建或未执行，不能从 source tests 推定 live PASS。
 - 本 branch 的 source 已补齐 routine audit metadata；installed broker 仍是合并前字节，只有 #213 合并并按独立授权安装后才能重新验收。
 - 本任务只把 deterministic path 写入 source；所有 live mutation 必须等待 source merged 后的独立授权。
-- 前四轮 findings 已关闭。PR CI 暴露的 authorization ordering 回归已在 `9964165` 最小修复并通过 macOS/Linux 本地门禁；该修复改变安全检查顺序（把 Gitea config preflight 恢复到 exact mode gate 之后），因此按合同停在独立增量复审，未经结论不 push repair head。
+- 前四轮 findings 已关闭。PR CI 暴露的 authorization ordering 回归已在 `9964165` 最小修复并通过 macOS/Linux 本地门禁；独立增量复审对 exact range `e37d941..5618d852` 结论 PASS（P0/P1/P2=0），repair head 已 push。required CI 当前被连续两次 `actions/checkout@v4` clone EOF 阻塞，均未进入 smoke；本记录只允许再触发一次有内容的 verification-only retry，重复同因即报告外部 runner 阻塞。
