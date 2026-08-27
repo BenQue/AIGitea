@@ -29,9 +29,9 @@ override_reason: ''
 depends_on:
   - 35
   - 208
-status: approved
+status: pr-open
 branch: change/213-routine-live-pilot
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/214
 created: 2026-08-27
 updated: 2026-08-27
 ---
