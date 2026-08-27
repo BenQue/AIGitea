@@ -17,7 +17,13 @@ from urllib.request import Request, urlopen
 
 from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
 
-from .contract import AccessContract, AccessContractError, OperationContract, ProjectContract
+from .contract import (
+    IDENTIFIER_RE,
+    AccessContract,
+    AccessContractError,
+    OperationContract,
+    ProjectContract,
+)
 
 
 TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -57,6 +63,8 @@ REDACTION_PATTERNS: tuple[re.Pattern[str], ...] = (
 REDACTED = "[redacted]"
 LEASE_REJECTION_MARKERS = ("stale info", "non-fast-forward", "fetch first")
 MAX_CREDENTIAL_BYTES = 4096
+COLLABORATOR_PAGE_LIMIT = 50
+COLLABORATOR_MAX_PAGES = 100
 
 
 class BrokerError(RuntimeError):
@@ -1716,30 +1724,151 @@ class HostAccessBroker:
                 "RESPONSE_SCHEMA_INVALID", "Gitea returned invalid JSON"
             ) from exc
 
+    def _collaborator_page(
+        self, repo_api: str, token: str, page: int
+    ) -> tuple[object, bool]:
+        url = (
+            f"{repo_api}/collaborators?limit={COLLABORATOR_PAGE_LIMIT}"
+            f"&page={page}"
+        )
+        try:
+            status, headers, body = self.transport(
+                "GET",
+                url,
+                {"Accept": "application/json", "Authorization": f"token {token}"},
+                None,
+            )
+        except BrokerError:
+            raise
+        except Exception as exc:
+            raise BrokerError("TRANSPORT_ERROR", "host transport failed") from exc
+        if not isinstance(status, int) or isinstance(status, bool):
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory HTTP status is invalid",
+            )
+        if status != 200:
+            if status in {401, 403, 404}:
+                raise BrokerError(f"HTTP_{status}", f"Gitea returned HTTP {status}")
+            if 200 <= status < 300:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory requires HTTP 200",
+                )
+            raise BrokerError("HTTP_ERROR", f"Gitea returned HTTP {status}")
+        try:
+            value = json.loads(body.decode("utf-8"))
+        except (UnicodeError, json.JSONDecodeError) as exc:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory response is invalid",
+            ) from exc
+        return value, self._has_next_link(headers)
+
+    @staticmethod
+    def _has_next_link(headers: object) -> bool:
+        try:
+            items = list(headers.items())  # type: ignore[union-attr]
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory headers are invalid",
+            ) from exc
+        link_values = [
+            value for key, value in items
+            if isinstance(key, str) and key.casefold() == "link"
+        ]
+        if not link_values:
+            return False
+        if len(link_values) != 1 or not isinstance(link_values[0], str):
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory pagination header is invalid",
+            )
+        segments = link_values[0].split(",")
+        if not segments or any(not segment.strip() for segment in segments):
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory pagination header is invalid",
+            )
+        has_next = False
+        for segment in segments:
+            parts = [part.strip() for part in segment.split(";")]
+            if not re.fullmatch(r"<[^<>\s]+>", parts[0]):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory pagination header is invalid",
+                )
+            seen_parameters: set[str] = set()
+            for parameter in parts[1:]:
+                match = re.fullmatch(
+                    r"([A-Za-z0-9_-]+)=(\"[^\"]*\"|[^;,\s]+)", parameter
+                )
+                if match is None:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory pagination header is invalid",
+                    )
+                key = match.group(1).casefold()
+                if key in seen_parameters:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory pagination header is invalid",
+                    )
+                seen_parameters.add(key)
+                if key == "rel":
+                    raw_relation = match.group(2)
+                    relation = (
+                        raw_relation[1:-1]
+                        if raw_relation.startswith('"')
+                        else raw_relation
+                    )
+                    if "next" in relation.split():
+                        has_next = True
+        return has_next
+
     def _collaborator_names(self, repo_api: str, token: str) -> set[str]:
         names: set[str] = set()
-        for page in range(1, 101):
-            value = self._request_json(
-                f"{repo_api}/collaborators?limit=50&page={page}", token
-            )
+        folded_names: set[str] = set()
+        for page in range(1, COLLABORATOR_MAX_PAGES + 1):
+            value, has_next = self._collaborator_page(repo_api, token, page)
             if not isinstance(value, list):
                 raise BrokerError(
                     "RESPONSE_SCHEMA_INVALID",
                     "collaborator inventory response is invalid",
                 )
+            if len(value) > COLLABORATOR_PAGE_LIMIT:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory page exceeds its requested limit",
+                )
             for entry in value:
+                login = entry.get("login") if isinstance(entry, dict) else None
                 if (
                     not isinstance(entry, dict)
-                    or not isinstance(entry.get("login"), str)
-                    or not entry["login"]
+                    or not isinstance(login, str)
+                    or login != login.strip()
+                    or IDENTIFIER_RE.fullmatch(login) is None
                 ):
                     raise BrokerError(
                         "RESPONSE_SCHEMA_INVALID",
                         "collaborator inventory response is invalid",
                     )
-                names.add(entry["login"])
-            if len(value) < 50:
-                return names
+                folded = login.casefold()
+                if login in names or folded in folded_names:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory contains duplicate identity",
+                    )
+                names.add(login)
+                folded_names.add(folded)
+            if len(value) < COLLABORATOR_PAGE_LIMIT:
+                if has_next:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory pagination is contradictory",
+                    )
+                return folded_names
         raise BrokerError(
             "RESPONSE_SCHEMA_INVALID",
             "collaborator inventory exceeds the bounded scan",
@@ -2245,7 +2374,7 @@ class HostAccessBroker:
                 target_collaborators = self._collaborator_names(
                     repo_api, manager_token
                 )
-                if merger in target_collaborators:
+                if merger.casefold() in target_collaborators:
                     raise BrokerError(
                         "RESPONSE_SCHEMA_INVALID",
                         "routine collaborator inventory contradicts missing account",
@@ -2290,7 +2419,7 @@ class HostAccessBroker:
                     collaborators = self._collaborator_names(
                         other_api, manager_token
                     )
-                    if merger in collaborators:
+                    if merger.casefold() in collaborators:
                         raise BrokerError(
                             "RESPONSE_SCHEMA_INVALID",
                             "routine collaborator inventory contradicts missing account",
