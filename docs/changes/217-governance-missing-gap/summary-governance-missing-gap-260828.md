@@ -54,10 +54,10 @@ collaborator permission GET 返回 404/no-collaborator 的状态下失败，不�
 
 ## 初步方案与建议
 
-`check` 先以 exact account endpoint 固定 project/routine account 三态，再把明确 `missing` identity 集合作为
-只读 evidence 传入 snapshot 与 cross-project audit。只有该集合中的 exact identity 对应 permission GET
-返回 HTTP 404 时才投影 `missing`；200 仍进入 exact `{permission: string}` parser，account present 的 404
-与所有 401/403/5xx/transport 继续 fail closed。
+`check` 先以 exact account endpoint 固定 project/routine account 三态，再仅把每个 repository 明确
+`missing` 的 configured `routine_merge_agent` 作为该 target snapshot 的只读 evidence。只有该 exact routine
+identity 对应 target permission GET 返回 HTTP 404 时才投影 `missing`；project agent、shared/unknown identity、
+cross-project 同名 identity 与 account present 的 404，以及所有 401/403/5xx/transport 均继续 fail closed。
 
 `apply_repository` 不传 missing evidence，并继续先验证 enabled routine account 为 exact non-admin；其
 pre-snapshot-before-write、blockers、target Write、protection readback 与 mutation ordering 不变。
@@ -65,7 +65,8 @@ pre-snapshot-before-write、blockers、target Write、protection readback 与 mu
 ## 风险
 
 - 若把任意 collaborator 404 当 missing，会掩盖 repository/ACL/identity drift。
-- 若在 account read 之前形成 missing，会重现 #215 修复前的非证据化兼容。
+- 若把 project/shared/unknown 或 cross-project identity 纳入 evidence，会掩盖 ACL/identity drift。
+- 若在 account read 之前形成 routine missing，会重现 #215 修复前的非证据化兼容。
 - 若复用兼容分支到 apply，会让 live mutation 在 account 尚未安全 provision 时继续。
 - 若放宽 200 permission schema，会吞掉额外字段、未知权限或类型漂移。
 

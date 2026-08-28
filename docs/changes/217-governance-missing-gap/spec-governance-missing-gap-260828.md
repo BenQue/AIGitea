@@ -30,8 +30,9 @@ transport blocker。该计划用于确认后续仍需 bootstrap 与 exact apply�
 
 ## Acceptance criteria
 
-- [x] **AC-1 evidence-derived missing**：`check` 必须先读取并固定 project/routine account state；只有 exact
-  `account_state=missing` identity 对应的 exact collaborator permission HTTP 404 才投影为 `missing`。
+- [x] **AC-1 evidence-derived missing**：`check` 必须先读取并固定 project/routine account state；只有当前
+  repository configured `routine_merge_agent` 的 exact `account_state=missing` 对应 target collaborator
+  permission HTTP 404 才投影为 `missing`。
   输出仍为 `result=DRIFT`，且 NewEMaint planned actions 精确包含缺失 routine collaborator 所需动作。
 - [x] **AC-2 account 三态与 ordering**：project/routine accounts 保持 `present-non-admin`、`missing`、
   `present-site-admin` 三态；account GET 必须早于第一个可被兼容的 permission GET。present-non-admin 或
@@ -40,7 +41,8 @@ transport blocker。该计划用于确认后续仍需 bootstrap 与 exact apply�
   `read|write|admin|owner`；malformed root、missing/extra field、non-string、unknown value 均
   `RESPONSE_SCHEMA_INVALID`/`ContractError`，不得因 account missing 而降级。
 - [x] **AC-4 auth/server/transport fail closed**：401、403、5xx 与 transport failure 保持原稳定错误；
-  非 exact permission endpoint、未建立 account missing evidence、shared/unknown identity 的 404 均不兼容。
+  project agent、shared/unknown identity、cross-project 同名 routine identity、非 exact permission endpoint及
+  未建立 configured routine missing evidence 的 404 均不兼容。
 - [x] **AC-5 planned governance 不回归**：target desired permission 仍为 exact `write`；manager=`admin`、
   project agent=`write`、routine account non-admin gate、human+routine merge allowlist、required context、
   direct/force push denial保持；cross-project `write|admin|owner` 继续 blocker，`read` 继续安全。
@@ -56,13 +58,13 @@ transport blocker。该计划用于确认后续仍需 bootstrap 与 exact apply�
 
 ## 接口、数据与兼容性影响
 
-CLI 输出 schema 与 canonical manifests 均不变化。实现只在内部 read-only call graph 中增加
-`known_missing_accounts` evidence：由同一次 `_check` 的 exact account read 派生，不能由 CLI caller、env、
-manifest 或 snapshot 文件注入。
+CLI 输出 schema 与 canonical manifests 均不变化。实现只在内部 read-only call graph 中增加 target-scoped
+`missing_routine_merge_agent` evidence：由同一次 `_check` 的 exact configured routine account read 派生，
+不能由 CLI caller、env、manifest 或 snapshot 文件注入，且不传入 cross-project audit。
 
-HTTP 404 兼容只适用于 exact collaborator permission GET 和已证明 missing 的同一 exact identity。HTTP 200
-仍由现有 strict parser 判定；`ApiError` 的其它 status 不转换。`capture_snapshot` 与
-`audit_cross_project_writes` 默认参数保持 fail-closed，使 mutation caller 不会自动进入兼容路径。
+HTTP 404 兼容只适用于 target exact collaborator permission GET 和已证明 missing 的 configured routine
+identity。HTTP 200 仍由现有 strict parser 判定；`ApiError` 的其它 status 不转换。`capture_snapshot` 默认
+参数与 `audit_cross_project_writes` 保持 fail-closed，使 mutation/cross-project caller 不会进入兼容路径。
 
 ## 风险与回滚约束
 
