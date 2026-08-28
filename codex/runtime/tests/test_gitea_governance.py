@@ -514,6 +514,294 @@ class ReconciliationTests(unittest.TestCase):
                     status, 0 if expected == "present-non-admin" else 1
                 )
 
+    def test_check_maps_exact_missing_account_permission_404_to_planned_action(self):
+        repository = self.contract.repository("NewEMaint")
+        merger = repository.routine_merge_agent
+        assert merger is not None
+        full_name = self.contract.full_name(repository)
+        endpoint = (
+            f"/repos/{self.contract.owner}/{repository.name}/collaborators/"
+            f"{merger}/permission"
+        )
+        client = FakeClient(self.contract)
+        client.users.pop(merger)
+        # Model a stale/tombstoned collaborator inventory: the identity is
+        # listed, while the exact permission endpoint proves no collaborator.
+        client.collaborators[full_name][merger] = "write"
+        original_get = client.get
+
+        def missing_permission(path, operation):
+            if path == endpoint:
+                client.calls.append(("GET", path, None))
+                raise ApiError(operation, 404)
+            return original_get(path, operation)
+
+        client.get = missing_permission
+        output = io.StringIO()
+        with redirect_stdout(output):
+            status = _check(client, self.contract, "NewEMaint")
+        receipt = json.loads(output.getvalue())
+
+        self.assertEqual(status, 1)
+        self.assertEqual(receipt["result"], "DRIFT")
+        self.assertEqual(receipt["routine_accounts"][0]["state"], "missing")
+        self.assertEqual(
+            receipt["repositories"][0]["current"]["collaborators"][merger],
+            "missing",
+        )
+        self.assertEqual(
+            receipt["repositories"][0]["planned_actions"],
+            ["set-routine-merger-write"],
+        )
+        self.assertEqual(receipt["cross_project_write_violations"], [])
+        account_read = next(
+            index for index, call in enumerate(client.calls)
+            if call[1] == f"/users/{merger}"
+        )
+        permission_read = next(
+            index for index, call in enumerate(client.calls)
+            if call[1] == endpoint
+        )
+        self.assertLess(account_read, permission_read)
+        self.assertTrue(all(call[0] == "GET" for call in client.calls))
+
+    def test_check_project_agent_missing_permission_404_fails_closed(self):
+        repository = self.contract.repository("NewEMaint")
+        agent = repository.project_agent
+        full_name = self.contract.full_name(repository)
+        endpoint = (
+            f"/repos/{self.contract.owner}/{repository.name}/collaborators/"
+            f"{agent}/permission"
+        )
+        client = FakeClient(self.contract)
+        client.users.pop(agent)
+        client.collaborators[full_name][agent] = "write"
+        original_get = client.get
+
+        def missing_permission(path, operation):
+            if path == endpoint:
+                client.calls.append(("GET", path, None))
+                raise ApiError(operation, 404)
+            return original_get(path, operation)
+
+        client.get = missing_permission
+        with self.assertRaises(ApiError) as raised:
+            _check(client, self.contract, "NewEMaint")
+        self.assertEqual(raised.exception.status, 404)
+        account_read = next(
+            index for index, call in enumerate(client.calls)
+            if call[1] == f"/users/{agent}"
+        )
+        permission_read = next(
+            index for index, call in enumerate(client.calls)
+            if call[1] == endpoint
+        )
+        self.assertLess(account_read, permission_read)
+        self.assertTrue(all(call[0] == "GET" for call in client.calls))
+
+    def test_check_shared_identity_permission_404_fails_closed(self):
+        repository = self.contract.repository("NewEMaint")
+        merger = repository.routine_merge_agent
+        assert merger is not None
+        full_name = self.contract.full_name(repository)
+        endpoint = (
+            f"/repos/{self.contract.owner}/{repository.name}/collaborators/"
+            f"{self.contract.shared_bot}/permission"
+        )
+        client = FakeClient(self.contract)
+        client.users.pop(merger)
+        original_get = client.get
+
+        def missing_permission(path, operation):
+            if path == endpoint:
+                client.calls.append(("GET", path, None))
+                raise ApiError(operation, 404)
+            return original_get(path, operation)
+
+        client.get = missing_permission
+        with self.assertRaises(ApiError) as raised:
+            _check(client, self.contract, "NewEMaint")
+        self.assertEqual(raised.exception.status, 404)
+        self.assertTrue(all(call[0] == "GET" for call in client.calls))
+
+    def test_snapshot_unknown_missing_identity_cannot_authorize_routine_404(self):
+        repository = self.contract.repository("NewEMaint")
+        merger = repository.routine_merge_agent
+        assert merger is not None
+        full_name = self.contract.full_name(repository)
+        endpoint = (
+            f"/repos/{self.contract.owner}/{repository.name}/collaborators/"
+            f"{merger}/permission"
+        )
+        client = FakeClient(self.contract)
+        client.collaborators[full_name][merger] = "write"
+        original_get = client.get
+
+        def missing_permission(path, operation):
+            if path == endpoint:
+                client.calls.append(("GET", path, None))
+                raise ApiError(operation, 404)
+            return original_get(path, operation)
+
+        client.get = missing_permission
+        with self.assertRaises(ApiError) as raised:
+            capture_snapshot(
+                client,
+                self.contract,
+                repository,
+                missing_routine_merge_agent="unknown-account",
+            )
+        self.assertEqual(raised.exception.status, 404)
+        self.assertTrue(all(call[0] == "GET" for call in client.calls))
+
+    def test_check_cross_project_same_routine_permission_404_fails_closed(self):
+        repository = self.contract.repository("NewEMaint")
+        other = self.contract.repository("HSDB")
+        merger = repository.routine_merge_agent
+        assert merger is not None
+        other_full_name = self.contract.full_name(other)
+        endpoint = (
+            f"/repos/{self.contract.owner}/{other.name}/collaborators/"
+            f"{merger}/permission"
+        )
+        client = FakeClient(self.contract)
+        client.users.pop(merger)
+        client.collaborators[other_full_name][merger] = "read"
+        original_get = client.get
+
+        def missing_permission(path, operation):
+            if path == endpoint:
+                client.calls.append(("GET", path, None))
+                raise ApiError(operation, 404)
+            return original_get(path, operation)
+
+        client.get = missing_permission
+        with self.assertRaises(ApiError) as raised:
+            _check(client, self.contract, "NewEMaint")
+        self.assertEqual(raised.exception.status, 404)
+        account_read = next(
+            index for index, call in enumerate(client.calls)
+            if call[1] == f"/users/{merger}"
+        )
+        cross_project_read = next(
+            index for index, call in enumerate(client.calls)
+            if call[1] == endpoint
+        )
+        self.assertLess(account_read, cross_project_read)
+        self.assertTrue(all(call[0] == "GET" for call in client.calls))
+
+    def test_check_missing_account_keeps_permission_200_schema_strict(self):
+        repository = self.contract.repository("NewEMaint")
+        merger = repository.routine_merge_agent
+        assert merger is not None
+        full_name = self.contract.full_name(repository)
+        endpoint = (
+            f"/repos/{self.contract.owner}/{repository.name}/collaborators/"
+            f"{merger}/permission"
+        )
+        schema_drifts = (
+            None,
+            {},
+            {"permission": "unknown"},
+            {"permission": None},
+            {"permission": True},
+            {"permission": 0},
+            {"permission": []},
+            {"permission": "read", "extra": True},
+        )
+        for response in schema_drifts:
+            with self.subTest(permission_response=response):
+                client = FakeClient(self.contract)
+                client.users.pop(merger)
+                client.collaborators[full_name][merger] = "write"
+                original_get = client.get
+
+                def malformed_permission(path, operation, *, response=response):
+                    if path == endpoint:
+                        client.calls.append(("GET", path, None))
+                        return copy.deepcopy(response)
+                    return original_get(path, operation)
+
+                client.get = malformed_permission
+                with self.assertRaisesRegex(
+                    ContractError, "collaborator permission response is invalid"
+                ):
+                    _check(client, self.contract, "NewEMaint")
+                self.assertTrue(all(call[0] == "GET" for call in client.calls))
+
+    def test_check_permission_failures_other_than_evidenced_404_fail_closed(self):
+        repository = self.contract.repository("NewEMaint")
+        merger = repository.routine_merge_agent
+        assert merger is not None
+        full_name = self.contract.full_name(repository)
+        endpoint = (
+            f"/repos/{self.contract.owner}/{repository.name}/collaborators/"
+            f"{merger}/permission"
+        )
+        cases = (
+            ("missing", 401),
+            ("missing", 403),
+            ("missing", 500),
+            ("missing", 0),
+            ("present-non-admin", 404),
+            ("present-site-admin", 404),
+        )
+        for state, status in cases:
+            with self.subTest(account_state=state, status=status):
+                client = FakeClient(self.contract)
+                client.collaborators[full_name][merger] = "write"
+                if state == "missing":
+                    client.users.pop(merger)
+                elif state == "present-site-admin":
+                    client.users[merger]["is_admin"] = True
+                original_get = client.get
+
+                def failed_permission(path, operation, *, status=status):
+                    if path == endpoint:
+                        client.calls.append(("GET", path, None))
+                        raise ApiError(operation, status)
+                    return original_get(path, operation)
+
+                client.get = failed_permission
+                with self.assertRaises(ApiError) as raised:
+                    _check(client, self.contract, "NewEMaint")
+                self.assertEqual(raised.exception.status, status)
+                self.assertTrue(all(call[0] == "GET" for call in client.calls))
+
+    def test_apply_does_not_accept_missing_account_permission_evidence(self):
+        contract = self.contract
+        repository = contract.repository("NewEMaint")
+        merger = repository.routine_merge_agent
+        assert merger is not None
+        full_name = contract.full_name(repository)
+        endpoint = (
+            f"/repos/{contract.owner}/{repository.name}/collaborators/"
+            f"{merger}/permission"
+        )
+        client = FakeClient(contract)
+        client.collaborators[full_name][merger] = "write"
+        original_get = client.get
+
+        def missing_permission(path, operation):
+            if path == endpoint:
+                client.calls.append(("GET", path, None))
+                raise ApiError(operation, 404)
+            return original_get(path, operation)
+
+        client.get = missing_permission
+        with tempfile.TemporaryDirectory() as directory:
+            evidence = Path(directory)
+            with self.assertRaises(ApiError) as raised:
+                apply_repository(client, contract, repository, evidence)
+            self.assertEqual(raised.exception.status, 404)
+            self.assertEqual(list(evidence.iterdir()), [])
+        self.assertEqual(
+            [call for call in client.calls if call[0] in {
+                "PUT", "PATCH", "POST", "DELETE",
+            }],
+            [],
+        )
+
     def test_enabled_routine_merger_admin_identity_fails_closed(self):
         contract = self.contract
         repository = contract.repository("NewEMaint")

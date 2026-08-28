@@ -185,20 +185,14 @@ def _check(
         if repository_name
         else contract.repositories
     )
-    results = []
     drift = False
-    for repository in repositories:
-        snapshot = capture_snapshot(client, contract, repository)
-        plan = planned_actions(
-            contract, repository, snapshot,
-            required_context_migration=required_context_migration,
-        )
-        results.append(plan)
-        drift = drift or bool(plan["planned_actions"] or plan["blockers"])
     # Once accounts exist, they must never be site administrators. A missing
     # account is represented as planned provisioning rather than an exception.
+    # Establish this exact evidence before the configured routine merger's
+    # permission read may safely interpret an exact 404 as absent.
     account_status = []
     routine_account_status = []
+    missing_routine_merge_agents: dict[str, str] = {}
     for repository in repositories:
         state = account_state(client, repository.project_agent)
         account_status.append({"username": repository.project_agent, "state": state})
@@ -206,6 +200,10 @@ def _check(
             drift = True
         if repository.routine_merge_agent is not None:
             routine_state = account_state(client, repository.routine_merge_agent)
+            if routine_state == "missing":
+                missing_routine_merge_agents[repository.name] = (
+                    repository.routine_merge_agent
+                )
             routine_account_status.append({
                 "repository": contract.full_name(repository),
                 "enabled": repository.routine_auto_merge_enabled,
@@ -214,6 +212,22 @@ def _check(
             })
             if repository.routine_auto_merge_enabled and routine_state != "present-non-admin":
                 drift = True
+    results = []
+    for repository in repositories:
+        snapshot = capture_snapshot(
+            client,
+            contract,
+            repository,
+            missing_routine_merge_agent=missing_routine_merge_agents.get(
+                repository.name
+            ),
+        )
+        plan = planned_actions(
+            contract, repository, snapshot,
+            required_context_migration=required_context_migration,
+        )
+        results.append(plan)
+        drift = drift or bool(plan["planned_actions"] or plan["blockers"])
     cross_project_violations = audit_cross_project_writes(client, contract)
     drift = drift or bool(cross_project_violations)
     _json({

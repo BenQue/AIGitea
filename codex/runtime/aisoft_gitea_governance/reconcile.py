@@ -153,10 +153,33 @@ def _strict_collaborator_permission(value: Any, context: str) -> str:
     return value["permission"]
 
 
+def _read_collaborator_permission(
+    client: GiteaClient,
+    path: str,
+    username: str,
+    operation: str,
+    context: str,
+    *,
+    allow_missing: bool = False,
+) -> str:
+    try:
+        permission = client.get(
+            f"{path}/collaborators/{quote(username, safe='')}/permission",
+            operation,
+        )
+    except ApiError as exc:
+        if exc.status == 404 and allow_missing:
+            return "missing"
+        raise
+    return _strict_collaborator_permission(permission, context)
+
+
 def _explicit_permissions(
     client: GiteaClient,
     contract: GovernanceContract,
     repository: RepositoryContract,
+    *,
+    missing_routine_merge_agent: str | None = None,
 ) -> dict[str, str]:
     path = _repo_path(contract, repository)
     names = _collaborator_names(client, path, contract.full_name(repository))
@@ -168,12 +191,16 @@ def _explicit_permissions(
         if username not in names:
             result[username] = "missing"
             continue
-        permission = client.get(
-            f"{path}/collaborators/{quote(username, safe='')}/permission",
+        result[username] = _read_collaborator_permission(
+            client,
+            path,
+            username,
             f"read collaborator permission for {username}",
-        )
-        result[username] = _strict_collaborator_permission(
-            permission, "collaborator permission"
+            "collaborator permission",
+            allow_missing=(
+                username == repository.routine_merge_agent
+                and missing_routine_merge_agent == repository.routine_merge_agent
+            ),
         )
     return result
 
@@ -214,12 +241,12 @@ def audit_cross_project_writes(
         if repository.routine_auto_merge_enabled and repository.routine_merge_agent:
             allowed.add(repository.routine_merge_agent)
         for agent in sorted((agents & explicit) - allowed):
-            permission = client.get(
-                f"{path}/collaborators/{quote(agent, safe='')}/permission",
+            value = _read_collaborator_permission(
+                client,
+                path,
+                agent,
                 f"read cross-project permission for {agent}",
-            )
-            value = _strict_collaborator_permission(
-                permission, "cross-project collaborator permission"
+                "cross-project collaborator permission",
             )
             if value in {"write", "admin", "owner"}:
                 violations.append({
@@ -234,6 +261,8 @@ def capture_snapshot(
     client: GiteaClient,
     contract: GovernanceContract,
     repository: RepositoryContract,
+    *,
+    missing_routine_merge_agent: str | None = None,
 ) -> dict[str, Any]:
     path = _repo_path(contract, repository)
     repo = client.get(path, f"read repository {contract.full_name(repository)}")
@@ -257,7 +286,12 @@ def capture_snapshot(
                 repo.get("default_delete_branch_after_merge", False)
             ),
         },
-        "collaborators": _explicit_permissions(client, contract, repository),
+        "collaborators": _explicit_permissions(
+            client,
+            contract,
+            repository,
+            missing_routine_merge_agent=missing_routine_merge_agent,
+        ),
         "protection": normalize_protection(protection),
     }
 
