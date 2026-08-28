@@ -30,27 +30,27 @@ transport blocker。该计划用于确认后续仍需 bootstrap 与 exact apply�
 
 ## Acceptance criteria
 
-- [ ] **AC-1 evidence-derived missing**：`check` 必须先读取并固定 project/routine account state；只有 exact
+- [x] **AC-1 evidence-derived missing**：`check` 必须先读取并固定 project/routine account state；只有 exact
   `account_state=missing` identity 对应的 exact collaborator permission HTTP 404 才投影为 `missing`。
   输出仍为 `result=DRIFT`，且 NewEMaint planned actions 精确包含缺失 routine collaborator 所需动作。
-- [ ] **AC-2 account 三态与 ordering**：project/routine accounts 保持 `present-non-admin`、`missing`、
+- [x] **AC-2 account 三态与 ordering**：project/routine accounts 保持 `present-non-admin`、`missing`、
   `present-site-admin` 三态；account GET 必须早于第一个可被兼容的 permission GET。present-non-admin 或
   present-site-admin 的 permission 404 继续 fail closed，不得形成 planned action。
-- [ ] **AC-3 strict permission schema**：HTTP 200 仍只能接受 exact `{permission: string}`，值仅为
+- [x] **AC-3 strict permission schema**：HTTP 200 仍只能接受 exact `{permission: string}`，值仅为
   `read|write|admin|owner`；malformed root、missing/extra field、non-string、unknown value 均
   `RESPONSE_SCHEMA_INVALID`/`ContractError`，不得因 account missing 而降级。
-- [ ] **AC-4 auth/server/transport fail closed**：401、403、5xx 与 transport failure 保持原稳定错误；
+- [x] **AC-4 auth/server/transport fail closed**：401、403、5xx 与 transport failure 保持原稳定错误；
   非 exact permission endpoint、未建立 account missing evidence、shared/unknown identity 的 404 均不兼容。
-- [ ] **AC-5 planned governance 不回归**：target desired permission 仍为 exact `write`；manager=`admin`、
+- [x] **AC-5 planned governance 不回归**：target desired permission 仍为 exact `write`；manager=`admin`、
   project agent=`write`、routine account non-admin gate、human+routine merge allowlist、required context、
   direct/force push denial保持；cross-project `write|admin|owner` 继续 blocker，`read` 继续安全。
-- [ ] **AC-6 check/apply mutation boundary**：`check` 只允许 GET，API mutation=0。`apply_repository` 不接收
+- [x] **AC-6 check/apply mutation boundary**：`check` 只允许 GET，API mutation=0。`apply_repository` 不接收
   account-missing 兼容 evidence；enabled routine account 必须先通过 exact non-admin verify，cross-project
   audit/plan blockers 全绿，fresh pre-snapshot 必须先于第一个 write，exact #213 live mode gate不变。
-- [ ] **AC-7 接口兼容**：保持现有 JSON keys `repositories`、`project_accounts`、`routine_accounts`、
+- [x] **AC-7 接口兼容**：保持现有 JSON keys `repositories`、`project_accounts`、`routine_accounts`、
   `cross_project_write_violations` 与 planned action names；不复制 #215 credential/inventory 接口，不新增
   broker operation、caller target、credential path 或 manifest 字段。
-- [ ] **AC-8 regression 与边界**：增加正向、负向、ordering 与 mutation-call tests；重放 governance、
+- [x] **AC-8 regression 与边界**：增加正向、负向、ordering 与 mutation-call tests；重放 governance、
   host-access、routine-merge security suites，bootstrap/rollback/installer shell suites、full smoke、semantic
   audit 与 Controller preflight。全任务不执行 install/live account/PAT/collaborator/protection/#74/merge/deploy。
 

@@ -26,10 +26,10 @@ updated: 2026-08-28
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | #217 mapped summary/spec/plan/verification、fresh #215 baseline、改前复现与 manual/live-mutation=0 边界 | - | completed |
-| T02 | exact account-missing + collaborator 404 正向、present/schema/auth/ordering/apply 负向测试 | T01 | pending |
-| T03 | governance check 最小 evidence-derived missing 实现与 targeted regression | T02 | pending |
-| T04 | governance/security/host-access/full smoke、semantic/Controller preflight、verification 与独立自检 | T03 | pending |
-| T05 | local atomic commits、canonical manual PR payload 与最终 PR 前 handoff | T04 | pending |
+| T02 | exact account-missing + collaborator 404 正向、present/schema/auth/ordering/apply 负向测试 | T01 | completed |
+| T03 | governance check 最小 evidence-derived missing 实现与 targeted regression | T02 | completed |
+| T04 | governance/security/host-access/full smoke、semantic/Controller preflight、verification 与独立自检 | T03 | completed |
+| T05 | local atomic commits、canonical manual PR payload 与最终 PR 前 handoff | T04 | completed |
 
 ## Expected touch points
 
