@@ -565,6 +565,46 @@ class ReconciliationTests(unittest.TestCase):
         self.assertLess(account_read, permission_read)
         self.assertTrue(all(call[0] == "GET" for call in client.calls))
 
+    def test_check_maps_missing_account_cross_project_permission_404_to_absent(self):
+        repository = self.contract.repository("NewEMaint")
+        other = self.contract.repository("HSDB")
+        merger = repository.routine_merge_agent
+        assert merger is not None
+        other_full_name = self.contract.full_name(other)
+        endpoint = (
+            f"/repos/{self.contract.owner}/{other.name}/collaborators/"
+            f"{merger}/permission"
+        )
+        client = FakeClient(self.contract)
+        client.users.pop(merger)
+        client.collaborators[other_full_name][merger] = "read"
+        original_get = client.get
+
+        def missing_permission(path, operation):
+            if path == endpoint:
+                client.calls.append(("GET", path, None))
+                raise ApiError(operation, 404)
+            return original_get(path, operation)
+
+        client.get = missing_permission
+        output = io.StringIO()
+        with redirect_stdout(output):
+            status = _check(client, self.contract, "NewEMaint")
+        receipt = json.loads(output.getvalue())
+
+        self.assertEqual(status, 1)
+        self.assertEqual(receipt["cross_project_write_violations"], [])
+        account_read = next(
+            index for index, call in enumerate(client.calls)
+            if call[1] == f"/users/{merger}"
+        )
+        cross_project_read = next(
+            index for index, call in enumerate(client.calls)
+            if call[1] == endpoint
+        )
+        self.assertLess(account_read, cross_project_read)
+        self.assertTrue(all(call[0] == "GET" for call in client.calls))
+
     def test_check_missing_account_keeps_permission_200_schema_strict(self):
         repository = self.contract.repository("NewEMaint")
         merger = repository.routine_merge_agent
