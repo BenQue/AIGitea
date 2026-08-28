@@ -159,7 +159,8 @@ def _read_collaborator_permission(
     username: str,
     operation: str,
     context: str,
-    known_missing_accounts: frozenset[str],
+    *,
+    allow_missing: bool = False,
 ) -> str:
     try:
         permission = client.get(
@@ -167,7 +168,7 @@ def _read_collaborator_permission(
             operation,
         )
     except ApiError as exc:
-        if exc.status == 404 and username in known_missing_accounts:
+        if exc.status == 404 and allow_missing:
             return "missing"
         raise
     return _strict_collaborator_permission(permission, context)
@@ -178,7 +179,7 @@ def _explicit_permissions(
     contract: GovernanceContract,
     repository: RepositoryContract,
     *,
-    known_missing_accounts: frozenset[str] = frozenset(),
+    missing_routine_merge_agent: str | None = None,
 ) -> dict[str, str]:
     path = _repo_path(contract, repository)
     names = _collaborator_names(client, path, contract.full_name(repository))
@@ -196,7 +197,10 @@ def _explicit_permissions(
             username,
             f"read collaborator permission for {username}",
             "collaborator permission",
-            known_missing_accounts,
+            allow_missing=(
+                username == repository.routine_merge_agent
+                and missing_routine_merge_agent == repository.routine_merge_agent
+            ),
         )
     return result
 
@@ -222,8 +226,6 @@ def _collaborator_names(client: GiteaClient, path: str, full_name: str) -> set[s
 def audit_cross_project_writes(
     client: GiteaClient,
     contract: GovernanceContract,
-    *,
-    known_missing_accounts: frozenset[str] = frozenset(),
 ) -> list[dict[str, str]]:
     agents = {repository.project_agent for repository in contract.repositories}
     agents.update(
@@ -245,7 +247,6 @@ def audit_cross_project_writes(
                 agent,
                 f"read cross-project permission for {agent}",
                 "cross-project collaborator permission",
-                known_missing_accounts,
             )
             if value in {"write", "admin", "owner"}:
                 violations.append({
@@ -261,7 +262,7 @@ def capture_snapshot(
     contract: GovernanceContract,
     repository: RepositoryContract,
     *,
-    known_missing_accounts: frozenset[str] = frozenset(),
+    missing_routine_merge_agent: str | None = None,
 ) -> dict[str, Any]:
     path = _repo_path(contract, repository)
     repo = client.get(path, f"read repository {contract.full_name(repository)}")
@@ -289,7 +290,7 @@ def capture_snapshot(
             client,
             contract,
             repository,
-            known_missing_accounts=known_missing_accounts,
+            missing_routine_merge_agent=missing_routine_merge_agent,
         ),
         "protection": normalize_protection(protection),
     }

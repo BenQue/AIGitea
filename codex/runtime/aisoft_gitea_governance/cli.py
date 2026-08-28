@@ -188,22 +188,22 @@ def _check(
     drift = False
     # Once accounts exist, they must never be site administrators. A missing
     # account is represented as planned provisioning rather than an exception.
-    # Establish this exact evidence before any permission read that may safely
-    # interpret an exact 404 as an absent collaborator.
+    # Establish this exact evidence before the configured routine merger's
+    # permission read may safely interpret an exact 404 as absent.
     account_status = []
     routine_account_status = []
-    known_missing_accounts: set[str] = set()
+    missing_routine_merge_agents: dict[str, str] = {}
     for repository in repositories:
         state = account_state(client, repository.project_agent)
         account_status.append({"username": repository.project_agent, "state": state})
-        if state == "missing":
-            known_missing_accounts.add(repository.project_agent)
         if state != "present-non-admin":
             drift = True
         if repository.routine_merge_agent is not None:
             routine_state = account_state(client, repository.routine_merge_agent)
             if routine_state == "missing":
-                known_missing_accounts.add(repository.routine_merge_agent)
+                missing_routine_merge_agents[repository.name] = (
+                    repository.routine_merge_agent
+                )
             routine_account_status.append({
                 "repository": contract.full_name(repository),
                 "enabled": repository.routine_auto_merge_enabled,
@@ -212,14 +212,15 @@ def _check(
             })
             if repository.routine_auto_merge_enabled and routine_state != "present-non-admin":
                 drift = True
-    missing_evidence = frozenset(known_missing_accounts)
     results = []
     for repository in repositories:
         snapshot = capture_snapshot(
             client,
             contract,
             repository,
-            known_missing_accounts=missing_evidence,
+            missing_routine_merge_agent=missing_routine_merge_agents.get(
+                repository.name
+            ),
         )
         plan = planned_actions(
             contract, repository, snapshot,
@@ -227,11 +228,7 @@ def _check(
         )
         results.append(plan)
         drift = drift or bool(plan["planned_actions"] or plan["blockers"])
-    cross_project_violations = audit_cross_project_writes(
-        client,
-        contract,
-        known_missing_accounts=missing_evidence,
-    )
+    cross_project_violations = audit_cross_project_writes(client, contract)
     drift = drift or bool(cross_project_violations)
     _json({
         "contract_version": "gitea-governance/v1",
