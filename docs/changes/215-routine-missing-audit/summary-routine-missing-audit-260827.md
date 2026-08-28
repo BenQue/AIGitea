@@ -25,9 +25,9 @@ confidence: high
 override_reason: security 与 host-access 平台治理风险使既有行为恢复仍强制 complex
 depends_on:
   - 213
-status: approved
+status: pr-open
 branch: change/215-routine-missing-audit
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/216
 created: 2026-08-27
 updated: 2026-08-27
 ---
