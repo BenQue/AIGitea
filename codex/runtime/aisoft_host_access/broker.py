@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import base64
+import math
 import os
 import pwd
 import re
@@ -10,14 +11,20 @@ import subprocess
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import PurePosixPath
-from typing import Callable, Mapping, Sequence
+from typing import Callable, Mapping, Protocol, Sequence
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qsl, quote, urlparse, urlsplit
 from urllib.request import Request, urlopen
 
 from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
 
-from .contract import AccessContract, AccessContractError, OperationContract, ProjectContract
+from .contract import (
+    IDENTIFIER_RE,
+    AccessContract,
+    AccessContractError,
+    OperationContract,
+    ProjectContract,
+)
 
 
 TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -57,6 +64,23 @@ REDACTION_PATTERNS: tuple[re.Pattern[str], ...] = (
 REDACTED = "[redacted]"
 LEASE_REJECTION_MARKERS = ("stale info", "non-fast-forward", "fetch first")
 MAX_CREDENTIAL_BYTES = 4096
+COLLABORATOR_PAGE_LIMIT = 50
+COLLABORATOR_MAX_PAGES = 100
+# A page contains at most 50 collaborator objects. 128 KiB allows roughly
+# 2.5 KiB per entry (well above the fields this audit consumes) while rejecting
+# response amplification before JSON parsing. The audit-wide bound covers all
+# canonical repositories in one host.access.audit invocation.
+COLLABORATOR_PAGE_MAX_BYTES = 128 * 1024
+COLLABORATOR_AUDIT_MAX_BYTES = 4 * 1024 * 1024
+COLLABORATOR_AUDIT_MAX_PAGES = 1000
+# Inventory JSON is identity metadata, not an arbitrary numeric data channel.
+# These bounds keep conversion deterministic before Python's process-wide
+# integer digit guard or IEEE-754 overflow can become observable behavior.
+COLLABORATOR_JSON_INTEGER_MAX_DIGITS = 19
+COLLABORATOR_JSON_INTEGER_MIN = -(2**63)
+COLLABORATOR_JSON_INTEGER_MAX = 2**63 - 1
+COLLABORATOR_JSON_FLOAT_MAX_CHARS = 64
+COLLABORATOR_JSON_MAX_DEPTH = 64
 
 
 class BrokerError(RuntimeError):
@@ -196,11 +220,338 @@ def _redact_secrets(text: str, token: str) -> tuple[str, int]:
     return text, redactions
 
 
-Transport = Callable[
-    [str, str, Mapping[str, str], bytes | None],
-    tuple[int, Mapping[str, str], bytes],
-]
+class Transport(Protocol):
+    def __call__(
+        self,
+        method: str,
+        url: str,
+        headers: Mapping[str, str],
+        body: bytes | None,
+        *,
+        response_limit: int | None = None,
+    ) -> tuple[int, object, bytes]: ...
+
+
 CommandRunner = Callable[..., subprocess.CompletedProcess[str]]
+
+
+def _header_items(headers: object) -> tuple[tuple[str, str], ...]:
+    try:
+        if isinstance(headers, Mapping):
+            raw_items: object = headers.items()
+        elif isinstance(headers, Sequence) and not isinstance(
+            headers, (str, bytes, bytearray)
+        ):
+            raw_items = headers
+        else:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID", "host response headers are invalid"
+            )
+        items = tuple(raw_items)  # type: ignore[arg-type]
+    except BrokerError:
+        raise
+    except Exception as exc:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID", "host response headers are invalid"
+        ) from exc
+    normalized: list[tuple[str, str]] = []
+    for item in items:
+        if (
+            not isinstance(item, (tuple, list))
+            or len(item) != 2
+            or not isinstance(item[0], str)
+            or not isinstance(item[1], str)
+            or re.fullmatch(
+                r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", item[0]
+            ) is None
+            or any(
+                ord(character) < 32 or ord(character) == 127
+                for character in item[1]
+            )
+        ):
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID", "host response headers are invalid"
+            )
+        normalized.append((item[0], item[1]))
+    return tuple(normalized)
+
+
+def _response_header_items(headers: object) -> tuple[tuple[str, str], ...]:
+    try:
+        raw_items = getattr(headers, "raw_items", None)
+        if callable(raw_items):
+            return _header_items(tuple(raw_items()))
+        return _header_items(headers)
+    except BrokerError:
+        raise
+    except Exception as exc:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID", "host response headers are invalid"
+        ) from exc
+
+
+def _bounded_ascii_decimal(
+    value: object,
+    label: str,
+    *,
+    max_digits: int,
+    max_value: int,
+    allow_zero: bool,
+) -> int:
+    if (
+        not isinstance(value, str)
+        or len(value) == 0
+        or len(value) > max_digits
+        or re.fullmatch(r"(?:0|[1-9][0-9]*)", value) is None
+    ):
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", f"{label} is invalid")
+    try:
+        number = int(value)
+    except (ValueError, OverflowError) as exc:
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", f"{label} is invalid") from exc
+    if number > max_value or (number == 0 and not allow_zero):
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", f"{label} is invalid")
+    return number
+
+
+def _declared_content_length(headers: object) -> int | None:
+    values: list[int] = []
+    for key, raw_value in _header_items(headers):
+        if key.casefold() != "content-length":
+            continue
+        for token in raw_value.split(","):
+            value = token.strip()
+            values.append(_bounded_ascii_decimal(
+                value,
+                "collaborator inventory Content-Length",
+                max_digits=len(str(COLLABORATOR_PAGE_MAX_BYTES)),
+                max_value=COLLABORATOR_PAGE_MAX_BYTES,
+                allow_zero=True,
+            ))
+    if not values:
+        return None
+    if len(set(values)) != 1:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory Content-Length is conflicting",
+        )
+    return values[0]
+
+
+def _header_codings(headers: object, name: str) -> tuple[str, ...]:
+    values: list[str] = []
+    for key, raw_value in _header_items(headers):
+        if key.casefold() != name:
+            continue
+        for raw_token in raw_value.split(","):
+            token = raw_token.strip()
+            if re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", token) is None:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory response encoding is invalid",
+                )
+            values.append(token.casefold())
+    return tuple(values)
+
+
+def _validate_inventory_framing(headers: object) -> int | None:
+    header_items = _header_items(headers)
+    content_encoding = _header_codings(header_items, "content-encoding")
+    transfer_encoding = _header_codings(header_items, "transfer-encoding")
+    declared = _declared_content_length(header_items)
+    if content_encoding not in {(), ("identity",)}:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory Content-Encoding is unsupported",
+        )
+    if transfer_encoding not in {(), ("chunked",)}:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory Transfer-Encoding is unsupported",
+        )
+    if transfer_encoding and declared is not None:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory framing is conflicting",
+        )
+    return declared
+
+
+def _validate_collaborator_json_structure(body: bytes) -> None:
+    if not isinstance(body, bytes):
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory response is invalid",
+        )
+    closing_stack: list[int] = []
+    in_string = False
+    escaped = False
+    for value in body:
+        if in_string:
+            if escaped:
+                if value < 0x20:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory response is invalid",
+                    )
+                escaped = False
+            elif value == 0x5C:  # backslash
+                escaped = True
+            elif value == 0x22:  # quote
+                in_string = False
+            elif value < 0x20:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory response is invalid",
+                )
+            continue
+        if value == 0x22:  # quote
+            in_string = True
+        elif value == 0x5B:  # [
+            closing_stack.append(0x5D)
+        elif value == 0x7B:  # {
+            closing_stack.append(0x7D)
+        elif value in {0x5D, 0x7D}:  # ] or }
+            if not closing_stack or closing_stack.pop() != value:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory response is invalid",
+                )
+        elif value < 0x20 and value not in {0x09, 0x0A, 0x0D}:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory response is invalid",
+            )
+        if len(closing_stack) > COLLABORATOR_JSON_MAX_DEPTH:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory response exceeds its JSON depth limit",
+            )
+    if in_string or escaped or closing_stack:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory response is invalid",
+        )
+
+
+def _strict_collaborator_json(body: bytes) -> object:
+    def object_from_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory JSON contains duplicate keys",
+                )
+            result[key] = value
+        return result
+
+    def bounded_integer(value: str) -> int:
+        digits = value[1:] if value.startswith("-") else value
+        if (
+            len(digits) == 0
+            or len(digits) > COLLABORATOR_JSON_INTEGER_MAX_DIGITS
+            or re.fullmatch(r"(?:0|[1-9][0-9]*)", digits) is None
+        ):
+            raise ValueError("collaborator inventory JSON integer is invalid")
+        number = int(value)
+        if not (
+            COLLABORATOR_JSON_INTEGER_MIN
+            <= number
+            <= COLLABORATOR_JSON_INTEGER_MAX
+        ):
+            raise ValueError("collaborator inventory JSON integer is out of range")
+        return number
+
+    def bounded_float(value: str) -> float:
+        if (
+            len(value) == 0
+            or len(value) > COLLABORATOR_JSON_FLOAT_MAX_CHARS
+            or value.isascii() is False
+        ):
+            raise ValueError("collaborator inventory JSON float is invalid")
+        number = float(value)
+        if not math.isfinite(number):
+            raise ValueError("collaborator inventory JSON float is not finite")
+        return number
+
+    def reject_constant(_value: str) -> object:
+        raise ValueError("collaborator inventory JSON constant is invalid")
+
+    try:
+        _validate_collaborator_json_structure(body)
+        return json.loads(
+            body.decode("utf-8"),
+            object_pairs_hook=object_from_pairs,
+            parse_constant=reject_constant,
+            parse_int=bounded_integer,
+            parse_float=bounded_float,
+        )
+    except BrokerError:
+        raise
+    except (
+        UnicodeError,
+        json.JSONDecodeError,
+        TypeError,
+        ValueError,
+        OverflowError,
+        RecursionError,
+    ) as exc:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory response is invalid",
+        ) from exc
+
+
+def _validate_bounded_response(
+    headers: object, body: object, response_limit: int
+) -> tuple[tuple[str, str], ...]:
+    header_items = _header_items(headers)
+    declared = _validate_inventory_framing(header_items)
+    if not isinstance(body, bytes):
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID", "collaborator inventory body is invalid"
+        )
+    if declared is not None and declared > response_limit:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID", "collaborator inventory response is too large"
+        )
+    if len(body) > response_limit:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID", "collaborator inventory response is too large"
+        )
+    if declared is not None and declared != len(body):
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory Content-Length does not match the body",
+        )
+    return header_items
+
+
+def _read_transport_response(
+    response: object, response_limit: int | None
+) -> tuple[int, tuple[tuple[str, str], ...], bytes]:
+    status = getattr(response, "status", None)
+    header_items = _response_header_items(getattr(response, "headers", None))
+    if response_limit is None:
+        body = response.read()  # type: ignore[attr-defined]
+        return status, header_items, body
+    if (
+        not isinstance(response_limit, int)
+        or isinstance(response_limit, bool)
+        or response_limit <= 0
+    ):
+        raise BrokerError(
+            "ARGUMENT_INVALID", "response limit must be a positive integer"
+        )
+    declared = _validate_inventory_framing(header_items)
+    if declared is not None and declared > response_limit:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID", "collaborator inventory response is too large"
+        )
+    body = response.read(response_limit + 1)  # type: ignore[attr-defined]
+    _validate_bounded_response(header_items, body, response_limit)
+    return status, header_items, body
 
 
 def _default_transport(
@@ -208,15 +559,162 @@ def _default_transport(
     url: str,
     headers: Mapping[str, str],
     body: bytes | None,
-) -> tuple[int, Mapping[str, str], bytes]:
+    *,
+    response_limit: int | None = None,
+) -> tuple[int, tuple[tuple[str, str], ...], bytes]:
     request = Request(url, method=method, headers=dict(headers), data=body)
     try:
         with urlopen(request, timeout=30) as response:
-            return response.status, dict(response.headers.items()), response.read()
+            return _read_transport_response(response, response_limit)
     except HTTPError as exc:
-        return exc.code, dict(exc.headers.items()), exc.read()
+        status, response_headers, response_body = _read_transport_response(
+            exc, response_limit
+        )
+        return exc.code if status is None else status, response_headers, response_body
     except (URLError, TimeoutError, OSError) as exc:
         raise BrokerError("TRANSPORT_ERROR", "host transport failed") from exc
+
+
+@dataclass
+class _CollaboratorInventoryBudget:
+    pages: int = 0
+    response_bytes: int = 0
+
+    def reserve(self) -> int:
+        if self.pages >= COLLABORATOR_AUDIT_MAX_PAGES:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory exceeds the audit response budget",
+            )
+        remaining_bytes = COLLABORATOR_AUDIT_MAX_BYTES - self.response_bytes
+        if remaining_bytes <= 0:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory exceeds the audit response budget",
+            )
+        self.pages += 1
+        return min(COLLABORATOR_PAGE_MAX_BYTES, remaining_bytes)
+
+    def commit(self, response_bytes: int) -> None:
+        next_bytes = self.response_bytes + response_bytes
+        if next_bytes > COLLABORATOR_AUDIT_MAX_BYTES:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory exceeds the audit response budget",
+            )
+        self.response_bytes = next_bytes
+
+
+@dataclass(frozen=True)
+class _CollaboratorPageLinks:
+    present: bool
+    relations: Mapping[str, int]
+
+    @property
+    def has_next(self) -> bool:
+        return "next" in self.relations
+
+
+def _split_link_field_value(value: str, delimiter: str) -> tuple[str, ...]:
+    parts: list[str] = []
+    current: list[str] = []
+    in_angle = False
+    in_quote = False
+    escaped = False
+    for character in value:
+        if escaped:
+            current.append(character)
+            escaped = False
+            continue
+        if in_quote:
+            current.append(character)
+            if character == "\\":
+                escaped = True
+            elif character == '"':
+                in_quote = False
+            continue
+        if character == '"':
+            in_quote = True
+            current.append(character)
+            continue
+        if character == "<":
+            if in_angle:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory pagination header is invalid",
+                )
+            in_angle = True
+            current.append(character)
+            continue
+        if character == ">":
+            if not in_angle:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory pagination header is invalid",
+                )
+            in_angle = False
+            current.append(character)
+            continue
+        if character == delimiter and not in_angle:
+            part = "".join(current).strip()
+            if not part:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory pagination header is invalid",
+                )
+            parts.append(part)
+            current = []
+            continue
+        current.append(character)
+    if escaped or in_quote or in_angle:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory pagination header is invalid",
+        )
+    part = "".join(current).strip()
+    if not part:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory pagination header is invalid",
+        )
+    parts.append(part)
+    return tuple(parts)
+
+
+def _link_parameter_value(raw_value: str) -> str:
+    if not raw_value.startswith('"'):
+        if re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", raw_value) is None:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory pagination parameter is invalid",
+            )
+        return raw_value
+    if len(raw_value) < 2 or not raw_value.endswith('"'):
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory pagination parameter is invalid",
+        )
+    result: list[str] = []
+    escaped = False
+    for character in raw_value[1:-1]:
+        if escaped:
+            result.append(character)
+            escaped = False
+        elif character == "\\":
+            escaped = True
+        elif character == '"':
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory pagination parameter is invalid",
+            )
+        else:
+            result.append(character)
+    if escaped:
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory pagination parameter is invalid",
+        )
+    return "".join(result)
 
 
 def _default_runner(
@@ -1716,6 +2214,343 @@ class HostAccessBroker:
                 "RESPONSE_SCHEMA_INVALID", "Gitea returned invalid JSON"
             ) from exc
 
+    def _collaborator_page(
+        self,
+        repo_api: str,
+        token: str,
+        page: int,
+        budget: _CollaboratorInventoryBudget,
+    ) -> tuple[object, _CollaboratorPageLinks]:
+        url = (
+            f"{repo_api}/collaborators?limit={COLLABORATOR_PAGE_LIMIT}"
+            f"&page={page}"
+        )
+        response_limit = budget.reserve()
+        try:
+            status, headers, body = self.transport(
+                "GET",
+                url,
+                {
+                    "Accept": "application/json",
+                    "Authorization": f"token {token}",
+                },
+                None,
+                response_limit=response_limit,
+            )
+        except BrokerError:
+            raise
+        except Exception as exc:
+            raise BrokerError("TRANSPORT_ERROR", "host transport failed") from exc
+        header_items = _validate_bounded_response(
+            headers, body, response_limit
+        )
+        budget.commit(len(body))
+        if not isinstance(status, int) or isinstance(status, bool):
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory HTTP status is invalid",
+            )
+        if status != 200:
+            if status in {401, 403, 404}:
+                raise BrokerError(f"HTTP_{status}", f"Gitea returned HTTP {status}")
+            if 200 <= status < 300:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory requires HTTP 200",
+                )
+            raise BrokerError("HTTP_ERROR", f"Gitea returned HTTP {status}")
+        value = _strict_collaborator_json(body)
+        return value, self._collaborator_links(header_items, repo_api, page)
+
+    @staticmethod
+    def _collaborator_links(
+        headers: object, repo_api: str, page: int
+    ) -> _CollaboratorPageLinks:
+        items = _header_items(headers)
+        link_values = [
+            value for key, value in items
+            if key.casefold() == "link"
+        ]
+        if not link_values:
+            return _CollaboratorPageLinks(False, {})
+        relations: dict[str, int] = {}
+        for link_value in link_values:
+            segments = _split_link_field_value(link_value, ",")
+            for segment in segments:
+                parts = _split_link_field_value(segment, ";")
+                target_match = re.fullmatch(r"<([^<>\s]+)>", parts[0])
+                if target_match is None or len(parts) < 2:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory pagination header is invalid",
+                    )
+                seen_parameters: set[str] = set()
+                relation_tokens: tuple[str, ...] | None = None
+                for parameter in parts[1:]:
+                    if "=" not in parameter:
+                        raise BrokerError(
+                            "RESPONSE_SCHEMA_INVALID",
+                            "collaborator inventory pagination header is invalid",
+                        )
+                    raw_key, raw_value = parameter.split("=", 1)
+                    key = raw_key.strip().casefold()
+                    raw_value = raw_value.strip()
+                    if (
+                        re.fullmatch(
+                            r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", key
+                        ) is None
+                        or key in seen_parameters
+                        or key not in {"rel", "title"}
+                    ):
+                        raise BrokerError(
+                            "RESPONSE_SCHEMA_INVALID",
+                            "collaborator inventory pagination header is invalid",
+                        )
+                    seen_parameters.add(key)
+                    parameter_value = _link_parameter_value(raw_value)
+                    if key == "title":
+                        continue
+                    relation = parameter_value
+                    if re.fullmatch(
+                        r"[A-Za-z][A-Za-z0-9._-]*"
+                        r"(?: [A-Za-z][A-Za-z0-9._-]*)*",
+                        relation,
+                    ) is None:
+                        raise BrokerError(
+                            "RESPONSE_SCHEMA_INVALID",
+                            "collaborator inventory pagination header is invalid",
+                        )
+                    relation_tokens = tuple(
+                        token.casefold() for token in relation.split(" ")
+                    )
+                    if len(set(relation_tokens)) != len(relation_tokens):
+                        raise BrokerError(
+                            "RESPONSE_SCHEMA_INVALID",
+                            "collaborator inventory pagination header is invalid",
+                        )
+                if relation_tokens is None:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory pagination header is invalid",
+                    )
+                target_page = HostAccessBroker._collaborator_link_page(
+                    target_match.group(1), repo_api
+                )
+                for relation in relation_tokens:
+                    if relation not in {"first", "prev", "next", "last"}:
+                        raise BrokerError(
+                            "RESPONSE_SCHEMA_INVALID",
+                            "collaborator inventory pagination relation is invalid",
+                        )
+                    if relation in relations:
+                        raise BrokerError(
+                            "RESPONSE_SCHEMA_INVALID",
+                            "collaborator inventory pagination relation is duplicated",
+                        )
+                    relations[relation] = target_page
+        if relations.get("first", 1) != 1:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory first-page link is invalid",
+            )
+        if "prev" in relations and (
+            page <= 1 or relations["prev"] != page - 1
+        ):
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory previous-page link is invalid",
+            )
+        if "next" in relations and relations["next"] != page + 1:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory next-page link is invalid",
+            )
+        if "last" in relations:
+            minimum_last = page + 1 if "next" in relations else page
+            if relations["last"] < minimum_last:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory last-page link is invalid",
+                )
+        return _CollaboratorPageLinks(True, relations)
+
+    @staticmethod
+    def _collaborator_link_page(target: str, repo_api: str) -> int:
+        try:
+            canonical = urlsplit(f"{repo_api}/collaborators")
+            candidate = urlsplit(target)
+            canonical_port = canonical.port
+            candidate_port = candidate.port
+            canonical_hostname = canonical.hostname
+            candidate_hostname = candidate.hostname
+            candidate_username = candidate.username
+            candidate_password = candidate.password
+        except (UnicodeError, ValueError) as exc:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory pagination URL is invalid",
+            ) from exc
+        if (
+            not candidate.scheme
+            or not canonical_hostname
+            or not candidate_hostname
+            or candidate_username is not None
+            or candidate_password is not None
+            or candidate.scheme.casefold() != canonical.scheme.casefold()
+            or candidate_hostname.casefold() != canonical_hostname.casefold()
+            or candidate_port != canonical_port
+            or candidate.path != canonical.path
+            or "#" in target
+            or candidate.fragment
+        ):
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory pagination URL is outside the canonical endpoint",
+            )
+        try:
+            query = parse_qsl(
+                candidate.query,
+                keep_blank_values=True,
+                strict_parsing=True,
+                separator="&",
+            )
+        except (UnicodeError, ValueError) as exc:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory pagination query is invalid",
+            ) from exc
+        if (
+            len(query) != 2
+            or {key for key, _value in query} != {"limit", "page"}
+            or len({key for key, _value in query}) != len(query)
+        ):
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory pagination query is invalid",
+            )
+        values = dict(query)
+        limit = _bounded_ascii_decimal(
+            values["limit"],
+            "collaborator inventory pagination query",
+            max_digits=len(str(COLLABORATOR_PAGE_LIMIT)),
+            max_value=COLLABORATOR_PAGE_LIMIT,
+            allow_zero=False,
+        )
+        page = _bounded_ascii_decimal(
+            values["page"],
+            "collaborator inventory pagination query",
+            max_digits=len(str(COLLABORATOR_MAX_PAGES)),
+            max_value=COLLABORATOR_MAX_PAGES,
+            allow_zero=False,
+        )
+        if limit != COLLABORATOR_PAGE_LIMIT:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID",
+                "collaborator inventory pagination query is invalid",
+            )
+        return page
+
+    def _collaborator_names(
+        self,
+        repo_api: str,
+        token: str,
+        budget: _CollaboratorInventoryBudget,
+    ) -> set[str]:
+        names: set[str] = set()
+        folded_names: set[str] = set()
+        saw_links = False
+        last_page: int | None = None
+        declared_pages: list[_CollaboratorPageLinks] = []
+        for page in range(1, COLLABORATOR_MAX_PAGES + 1):
+            if last_page is not None and page > last_page:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory pagination exceeds its declared last page",
+                )
+            value, links = self._collaborator_page(
+                repo_api, token, page, budget
+            )
+            if declared_pages:
+                previous_links = declared_pages[-1]
+                previous_declares_next = previous_links.has_next
+                current_declares_prev = "prev" in links.relations
+                if previous_declares_next != current_declares_prev:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory adjacent page links are inconsistent",
+                    )
+            declared_pages.append(links)
+            saw_links = saw_links or links.present
+            declared_last = links.relations.get("last")
+            if declared_last is not None:
+                if last_page is None:
+                    last_page = declared_last
+                elif declared_last != last_page:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory last-page link drifted",
+                    )
+            if last_page is not None:
+                if page > last_page or (
+                    links.has_next
+                    and links.relations["next"] > last_page
+                ):
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory pagination order is invalid",
+                    )
+            if not isinstance(value, list):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory response is invalid",
+                )
+            if len(value) > COLLABORATOR_PAGE_LIMIT:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory page exceeds its requested limit",
+                )
+            for entry in value:
+                login = entry.get("login") if isinstance(entry, dict) else None
+                if (
+                    not isinstance(entry, dict)
+                    or not isinstance(login, str)
+                    or login != login.strip()
+                    or IDENTIFIER_RE.fullmatch(login) is None
+                ):
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory response is invalid",
+                    )
+                folded = login.casefold()
+                if login in names or folded in folded_names:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory contains duplicate identity",
+                    )
+                names.add(login)
+                folded_names.add(folded)
+            if len(value) < COLLABORATOR_PAGE_LIMIT:
+                if links.has_next:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory pagination is contradictory",
+                    )
+                if saw_links and last_page != page:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "collaborator inventory terminal page is not the declared last page",
+                    )
+                return folded_names
+            if last_page is not None and page >= last_page:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID",
+                    "collaborator inventory full page contradicts its terminal metadata",
+                )
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID",
+            "collaborator inventory exceeds the bounded scan",
+        )
+
     def _git(
         self,
         project: ProjectContract,
@@ -2146,6 +2981,7 @@ class HostAccessBroker:
             ),
             "actual_token_scopes": None,
             "repository_permission": "not-enabled",
+            "cross_project_permissions": [],
             "cross_project_write_violations": [],
             "merge_allowlist_state": (
                 "converged" if actual_merge == expected_merge else "pre-apply"
@@ -2210,40 +3046,78 @@ class HostAccessBroker:
                 }
                 routine["actual_token_scopes"] = sorted(actual_routine_scopes)
 
-            target_permission = self._optional_json(
-                f"{repo_api}/collaborators/{quote(merger, safe='')}/permission",
-                manager_token,
-            )
-            if target_permission is None:
+            account_missing = routine["account_state"] == "missing"
+            if account_missing:
+                inventory_budget = _CollaboratorInventoryBudget()
+                target_collaborators = self._collaborator_names(
+                    repo_api, manager_token, inventory_budget
+                )
+                if merger.casefold() in target_collaborators:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "routine collaborator inventory contradicts missing account",
+                    )
                 routine["repository_permission"] = "missing"
                 routine_gap = True
-            elif (
-                not isinstance(target_permission, dict)
-                or set(target_permission) != {"permission"}
-                or not isinstance(target_permission.get("permission"), str)
-                or target_permission["permission"]
-                not in {"read", "write", "admin", "owner"}
-            ):
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID", "routine permission response is invalid"
-                )
             else:
-                routine["repository_permission"] = target_permission["permission"]
-                if target_permission["permission"] != "write":
+                target_permission = self._optional_json(
+                    f"{repo_api}/collaborators/{quote(merger, safe='')}/permission",
+                    manager_token,
+                )
+                if target_permission is None:
+                    routine["repository_permission"] = "missing"
                     routine_gap = True
+                elif (
+                    not isinstance(target_permission, dict)
+                    or set(target_permission) != {"permission"}
+                    or not isinstance(target_permission.get("permission"), str)
+                    or target_permission["permission"]
+                    not in {"read", "write", "admin", "owner"}
+                ):
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "routine permission response is invalid",
+                    )
+                else:
+                    routine["repository_permission"] = target_permission["permission"]
+                    if target_permission["permission"] != "write":
+                        routine_gap = True
 
+            cross_project_permissions: list[dict[str, object]] = []
             violations: list[dict[str, str]] = []
             for other in self.contract.governance.repositories:
                 if other.name == repository_contract.name:
                     continue
+                full_name = self.contract.governance.full_name(other)
                 other_api = (
                     f"{self.contract.governance.base_url}/api/v1/repos/{owner}/"
                     f"{quote(other.name, safe='')}"
                 )
+                if account_missing:
+                    collaborators = self._collaborator_names(
+                        other_api, manager_token, inventory_budget
+                    )
+                    if merger.casefold() in collaborators:
+                        raise BrokerError(
+                            "RESPONSE_SCHEMA_INVALID",
+                            "routine collaborator inventory contradicts missing account",
+                        )
+                    cross_project_permissions.append({
+                        "repository": full_name,
+                        "state": "absent",
+                        "permission": None,
+                    })
+                    routine_gap = True
+                    continue
                 other_permission = self._optional_json(
                     f"{other_api}/collaborators/{quote(merger, safe='')}/permission",
                     manager_token,
                 )
+                if other_permission is None:
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID",
+                        "cross-project routine permission response is invalid",
+                    )
                 if (
                     not isinstance(other_permission, dict)
                     or set(other_permission) != {"permission"}
@@ -2255,11 +3129,18 @@ class HostAccessBroker:
                         "RESPONSE_SCHEMA_INVALID",
                         "cross-project routine permission response is invalid",
                     )
-                if other_permission["permission"] in {"write", "admin", "owner"}:
+                permission = other_permission["permission"]
+                cross_project_permissions.append({
+                    "repository": full_name,
+                    "state": "present",
+                    "permission": permission,
+                })
+                if permission in {"write", "admin", "owner"}:
                     violations.append({
-                        "repository": self.contract.governance.full_name(other),
-                        "permission": str(other_permission["permission"]),
+                        "repository": full_name,
+                        "permission": permission,
                     })
+            routine["cross_project_permissions"] = cross_project_permissions
             routine["cross_project_write_violations"] = violations
             routine_gap = routine_gap or bool(violations)
             if actual_merge != expected_merge:
