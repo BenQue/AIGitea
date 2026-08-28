@@ -15,6 +15,18 @@ from aisoft_loop.routine_merge import evaluate_routine_eligibility
 ROOT = Path(__file__).parents[2]
 
 
+def extended_permission(identity: str, permission: str) -> dict[str, object]:
+    return {
+        "permission": permission,
+        "role_name": permission,
+        "user": {
+            "login": identity,
+            "username": identity,
+            "is_admin": False,
+        },
+    }
+
+
 class SessionContractTests(unittest.TestCase):
     def test_codex_and_claude_keep_only_contract_start_and_pr_confirmations(self):
         codex = (ROOT / "skills/issue-session-flow/SKILL.md").read_text(encoding="utf-8")
@@ -186,7 +198,9 @@ branch: {self.branch}
                 "block_admin_merge_override": True,
             })
         if path.endswith("/collaborators/newemaint-routine-merger/permission"):
-            return self.response({"permission": "write"})
+            return self.response(extended_permission(
+                "newemaint-routine-merger", "write"
+            ))
         if path.endswith("/commits/" + self.sha + "/status"):
             return self.response({"statuses": [{
                 "context": "CI / verify (pull_request)", "status": "success",
@@ -233,6 +247,29 @@ branch: {self.branch}
             "merge_when_checks_succeed": False,
             "delete_branch_after_merge": True,
         })
+
+    def test_extended_permission_user_schema_fails_closed_before_merge_post(self):
+        def invalid_transport(method, url, headers, body):
+            path = urlparse(url).path
+            if path.endswith(
+                "/collaborators/newemaint-routine-merger/permission"
+            ):
+                payload = extended_permission(
+                    "newemaint-routine-merger", "write"
+                )
+                payload["user"] = {**payload["user"], "unknown": True}
+                return self.response(payload)
+            return self.transport(method, url, headers, body)
+
+        with self.assertRaises(BrokerError) as caught:
+            self.broker(transport=invalid_transport).execute(
+                "newemaint",
+                "gitea.pull.merge.routine",
+                number=7,
+                sha=self.sha,
+            )
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+        self.assertEqual(self.posts, [])
 
     def test_head_drift_is_first_stable_failure_and_zero_post(self):
         def drift(method, url, headers, body):

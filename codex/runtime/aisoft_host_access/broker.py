@@ -81,6 +81,27 @@ COLLABORATOR_JSON_INTEGER_MIN = -(2**63)
 COLLABORATOR_JSON_INTEGER_MAX = 2**63 - 1
 COLLABORATOR_JSON_FLOAT_MAX_CHARS = 64
 COLLABORATOR_JSON_MAX_DEPTH = 64
+COLLABORATOR_PERMISSIONS = frozenset({"read", "write", "admin", "owner"})
+COLLABORATOR_USER_STRING_FIELDS = frozenset({
+    "login", "username", "login_name", "full_name", "email", "avatar_url",
+    "html_url", "language", "last_login", "created", "location", "website",
+    "description", "visibility",
+})
+COLLABORATOR_USER_INTEGER_FIELDS = frozenset({
+    "id", "source_id", "followers_count", "following_count",
+    "starred_repos_count",
+})
+COLLABORATOR_USER_BOOLEAN_FIELDS = frozenset({
+    "is_admin", "restricted", "active", "prohibit_login",
+})
+COLLABORATOR_USER_FIELDS = (
+    COLLABORATOR_USER_STRING_FIELDS
+    | COLLABORATOR_USER_INTEGER_FIELDS
+    | COLLABORATOR_USER_BOOLEAN_FIELDS
+)
+COLLABORATOR_USER_REQUIRED_FIELDS = frozenset({
+    "login", "username", "is_admin",
+})
 
 
 class BrokerError(RuntimeError):
@@ -89,6 +110,64 @@ class BrokerError(RuntimeError):
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
         self.code = code
+
+
+def _strict_collaborator_permission(
+    value: object,
+    requested_identity: str,
+    detail: str,
+) -> str:
+    def invalid() -> BrokerError:
+        return BrokerError("RESPONSE_SCHEMA_INVALID", detail)
+
+    if not isinstance(value, dict):
+        raise invalid()
+    keys = set(value)
+    if keys not in (
+        {"permission"},
+        {"permission", "role_name", "user"},
+    ):
+        raise invalid()
+    permission = value.get("permission")
+    if type(permission) is not str or permission not in COLLABORATOR_PERMISSIONS:
+        raise invalid()
+    if keys == {"permission"}:
+        return permission
+
+    role_name = value.get("role_name")
+    user = value.get("user")
+    if (
+        type(role_name) is not str
+        or role_name not in COLLABORATOR_PERMISSIONS
+        or role_name != permission
+        or not isinstance(user, dict)
+        or not COLLABORATOR_USER_REQUIRED_FIELDS <= set(user)
+        or not set(user) <= COLLABORATOR_USER_FIELDS
+    ):
+        raise invalid()
+    if any(
+        type(user[field]) is not str
+        for field in set(user) & COLLABORATOR_USER_STRING_FIELDS
+    ):
+        raise invalid()
+    if any(
+        type(user[field]) is not int
+        for field in set(user) & COLLABORATOR_USER_INTEGER_FIELDS
+    ):
+        raise invalid()
+    if any(
+        type(user[field]) is not bool
+        for field in set(user) & COLLABORATOR_USER_BOOLEAN_FIELDS
+    ):
+        raise invalid()
+    if (
+        user["login"] != requested_identity
+        or user["username"] != requested_identity
+        or user["login"] != user["username"]
+        or user["is_admin"] is not False
+    ):
+        raise invalid()
+    return permission
 
 
 def _positive_number(value: int | None, label: str) -> int:
@@ -1179,6 +1258,11 @@ class HostAccessBroker:
             f"{repo_api}/collaborators/{quote(credential.identity, safe='')}/permission",
             credential.token,
         )
+        permission_value = _strict_collaborator_permission(
+            permission,
+            credential.identity,
+            "routine permission response is invalid",
+        )
         contexts = list(repository_contract.status_check_contexts)
         expected_mergers = sorted([
             self.contract.governance.human_merge_identity,
@@ -1186,8 +1270,7 @@ class HostAccessBroker:
         ])
         if (
             not isinstance(protection, dict)
-            or not isinstance(permission, dict)
-            or permission.get("permission") != "write"
+            or permission_value != "write"
             or protection.get("enable_push") is not False
             or protection.get("enable_push_whitelist") is not False
             or protection.get("push_whitelist_usernames") != []
@@ -2935,7 +3018,12 @@ class HostAccessBroker:
                 f"{repo_api}/collaborators/{quote(identity, safe='')}/permission",
                 manager_token,
             )
-            if not isinstance(value, dict) or value.get("permission") != expected:
+            actual = _strict_collaborator_permission(
+                value,
+                identity,
+                "repository permission response is invalid",
+            )
+            if actual != expected:
                 raise BrokerError("PERMISSION_MISMATCH", "repository permission does not match the manifest")
             permissions[key] = expected
 
@@ -3067,20 +3155,14 @@ class HostAccessBroker:
                 if target_permission is None:
                     routine["repository_permission"] = "missing"
                     routine_gap = True
-                elif (
-                    not isinstance(target_permission, dict)
-                    or set(target_permission) != {"permission"}
-                    or not isinstance(target_permission.get("permission"), str)
-                    or target_permission["permission"]
-                    not in {"read", "write", "admin", "owner"}
-                ):
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
+                else:
+                    permission = _strict_collaborator_permission(
+                        target_permission,
+                        merger,
                         "routine permission response is invalid",
                     )
-                else:
-                    routine["repository_permission"] = target_permission["permission"]
-                    if target_permission["permission"] != "write":
+                    routine["repository_permission"] = permission
+                    if permission != "write":
                         routine_gap = True
 
             cross_project_permissions: list[dict[str, object]] = []
@@ -3118,18 +3200,11 @@ class HostAccessBroker:
                         "RESPONSE_SCHEMA_INVALID",
                         "cross-project routine permission response is invalid",
                     )
-                if (
-                    not isinstance(other_permission, dict)
-                    or set(other_permission) != {"permission"}
-                    or not isinstance(other_permission.get("permission"), str)
-                    or other_permission["permission"]
-                    not in {"read", "write", "admin", "owner"}
-                ):
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "cross-project routine permission response is invalid",
-                    )
-                permission = other_permission["permission"]
+                permission = _strict_collaborator_permission(
+                    other_permission,
+                    merger,
+                    "cross-project routine permission response is invalid",
+                )
                 cross_project_permissions.append({
                     "repository": full_name,
                     "state": "present",

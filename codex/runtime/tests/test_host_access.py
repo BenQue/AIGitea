@@ -33,6 +33,38 @@ GOVERNANCE = ROOT / "codex/config/gitea-governance.json"
 LABELS = ROOT / "codex/config/gitea-labels.json"
 
 
+def extended_permission(identity: str, permission: str) -> dict[str, object]:
+    return {
+        "permission": permission,
+        "role_name": permission,
+        "user": {
+            "id": 219,
+            "login": identity,
+            "login_name": identity,
+            "source_id": 0,
+            "full_name": "Sanitized Collaborator",
+            "email": "",
+            "avatar_url": "https://example.invalid/avatar.png",
+            "html_url": "https://example.invalid/user",
+            "language": "en-US",
+            "is_admin": False,
+            "last_login": "2026-08-28T00:00:00Z",
+            "created": "2026-08-01T00:00:00Z",
+            "restricted": False,
+            "active": True,
+            "prohibit_login": False,
+            "location": "",
+            "website": "",
+            "description": "",
+            "visibility": "limited",
+            "followers_count": 0,
+            "following_count": 0,
+            "starred_repos_count": 0,
+            "username": identity,
+        },
+    }
+
+
 class StaticCredentials:
     def __init__(self, *, mismatch: bool = False) -> None:
         self.mismatch = mismatch
@@ -1883,6 +1915,101 @@ class HostAccessBrokerTests(unittest.TestCase):
             "manager_mutation": ["read:user", "write:issue", "write:repository"],
             "project_agent": ["read:user", "write:issue", "write:repository"],
         })
+        for suffix, identity, permission in (
+            (
+                "/collaborators/aisoft-platform-manager/permission",
+                "aisoft-platform-manager",
+                "admin",
+            ),
+            (
+                "/collaborators/aisoft-platform-agent/permission",
+                "aisoft-platform-agent",
+                "write",
+            ),
+        ):
+            valid = extended_permission(identity, permission)
+            invalid_responses = {
+                "non-object-root": None,
+                "empty-root": {},
+                "legacy-extra": {"permission": permission, "extra": True},
+                "extended-missing-role": {
+                    key: value for key, value in valid.items()
+                    if key != "role_name"
+                },
+                "extended-extra-root": {**valid, "extra": True},
+                "unknown-permission": {**valid, "permission": "unknown"},
+                "permission-not-string": {**valid, "permission": True},
+                "unknown-role": {**valid, "role_name": "unknown"},
+                "role-conflict": {
+                    **valid,
+                    "role_name": "read" if permission != "read" else "write",
+                },
+                "user-not-object": {**valid, "user": []},
+                "unknown-user-field": {
+                    **valid,
+                    "user": {**valid["user"], "unknown": True},
+                },
+                "missing-username": {
+                    **valid,
+                    "user": {
+                        key: value for key, value in valid["user"].items()
+                        if key != "username"
+                    },
+                },
+                "wrong-login": {
+                    **valid,
+                    "user": {**valid["user"], "login": "another-identity"},
+                },
+                "case-only-username": {
+                    **valid,
+                    "user": {**valid["user"], "username": identity.upper()},
+                },
+                "site-admin": {
+                    **valid,
+                    "user": {**valid["user"], "is_admin": True},
+                },
+                "string-false-admin": {
+                    **valid,
+                    "user": {**valid["user"], "is_admin": "false"},
+                },
+                "boolean-integer-metadata": {
+                    **valid,
+                    "user": {**valid["user"], "id": False},
+                },
+                "string-metadata-drift": {
+                    **valid,
+                    "user": {**valid["user"], "visibility": False},
+                },
+            }
+            for case, invalid in invalid_responses.items():
+                with self.subTest(permission_schema=suffix, case=case):
+
+                    def invalid_transport(
+                        method,
+                        url,
+                        headers,
+                        body,
+                        *,
+                        suffix=suffix,
+                        invalid=invalid,
+                    ):
+                        if url.endswith(suffix):
+                            return 200, {}, json.dumps(invalid).encode()
+                        return transport(method, url, headers, body)
+
+                    drift_broker = HostAccessBroker(
+                        self.contract,
+                        credentials=StaticCredentials(),
+                        transport=invalid_transport,
+                        runner=runner,
+                    )
+                    with self.assertRaises(BrokerError) as caught:
+                        drift_broker.execute(
+                            "aisoft-platform", "host.access.audit"
+                        )
+                    self.assertEqual(
+                        caught.exception.code, "RESPONSE_SCHEMA_INVALID"
+                    )
         self.assertEqual(value["credential_store"], {
             "manager_audit": {
                 "identity": "aisoft-platform-manager",
@@ -1974,15 +2101,23 @@ class HostAccessBrokerTests(unittest.TestCase):
                 return 200, {}, b'{"login":"newemaint-routine-merger","is_admin":false}'
             if "/repos/admin/NewEMaint/" in url:
                 if url.endswith("/collaborators/aisoft-platform-manager/permission"):
-                    return 200, {}, b'{"permission":"admin"}'
+                    return 200, {}, json.dumps(extended_permission(
+                        "aisoft-platform-manager", "admin"
+                    )).encode()
                 if url.endswith("/collaborators/newemaint-agent/permission"):
-                    return 200, {}, b'{"permission":"write"}'
+                    return 200, {}, json.dumps(extended_permission(
+                        "newemaint-agent", "write"
+                    )).encode()
                 if url.endswith("/collaborators/newemaint-routine-merger/permission"):
-                    return 200, {}, b'{"permission":"write"}'
+                    return 200, {}, json.dumps(extended_permission(
+                        "newemaint-routine-merger", "write"
+                    )).encode()
                 if url.endswith("/branch_protections/main"):
                     return 200, {}, json.dumps(protection).encode()
             if url.endswith("/collaborators/newemaint-routine-merger/permission"):
-                return 200, {}, b'{"permission":"read"}'
+                return 200, {}, json.dumps(extended_permission(
+                    "newemaint-routine-merger", "read"
+                )).encode()
             raise AssertionError(f"unexpected URL: {url}")
 
         broker = HostAccessBroker(
