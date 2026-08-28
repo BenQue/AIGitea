@@ -33,6 +33,38 @@ ROOT = Path(__file__).resolve().parents[3]
 MANIFEST = ROOT / "codex/config/gitea-governance.json"
 
 
+def extended_permission(identity: str, permission: str) -> dict[str, Any]:
+    return {
+        "permission": permission,
+        "role_name": permission,
+        "user": {
+            "id": 219,
+            "login": identity,
+            "login_name": identity,
+            "source_id": 0,
+            "full_name": "Sanitized Collaborator",
+            "email": "",
+            "avatar_url": "https://example.invalid/avatar.png",
+            "html_url": "https://example.invalid/user",
+            "language": "en-US",
+            "is_admin": False,
+            "last_login": "2026-08-28T00:00:00Z",
+            "created": "2026-08-01T00:00:00Z",
+            "restricted": False,
+            "active": True,
+            "prohibit_login": False,
+            "location": "",
+            "website": "",
+            "description": "",
+            "visibility": "limited",
+            "followers_count": 0,
+            "following_count": 0,
+            "starred_repos_count": 0,
+            "username": identity,
+        },
+    }
+
+
 class FakeClient:
     def __init__(self, contract):
         self.contract = contract
@@ -513,6 +545,110 @@ class ReconciliationTests(unittest.TestCase):
                 self.assertEqual(
                     status, 0 if expected == "present-non-admin" else 1
                 )
+
+    def test_check_accepts_exact_gitea_1264_extended_permission_variant(self):
+        repository = self.contract.repository("NewEMaint")
+        merger = repository.routine_merge_agent
+        assert merger is not None
+        target = self.contract.full_name(repository)
+        other = self.contract.repository("HSDB")
+        other_name = self.contract.full_name(other)
+        client = FakeClient(self.contract)
+        client.collaborators[target][merger] = "write"
+        client.collaborators[other_name][merger] = "read"
+        original_get = client.get
+
+        def extended_get(path, operation):
+            value = original_get(path, operation)
+            if "/collaborators/" in path and path.endswith("/permission"):
+                identity = path.split("/collaborators/", 1)[1].rsplit(
+                    "/permission", 1
+                )[0]
+                return extended_permission(identity, value["permission"])
+            return value
+
+        client.get = extended_get
+        output = io.StringIO()
+        with redirect_stdout(output):
+            status = _check(client, self.contract, "NewEMaint")
+        receipt = json.loads(output.getvalue())
+
+        self.assertEqual(status, 0)
+        self.assertEqual(receipt["result"], "PASS")
+        self.assertEqual(receipt["cross_project_write_violations"], [])
+        self.assertTrue(all(call[0] == "GET" for call in client.calls))
+
+    def test_extended_permission_schema_and_identity_fail_closed(self):
+        repository = self.contract.repository("NewEMaint")
+        identity = self.contract.platform_manager
+        endpoint = (
+            f"/repos/{self.contract.owner}/{repository.name}/collaborators/"
+            f"{identity}/permission"
+        )
+        valid = extended_permission(identity, "admin")
+        invalid_responses = {
+            "missing-role": {
+                key: value for key, value in valid.items()
+                if key != "role_name"
+            },
+            "extra-root": {**valid, "extra": True},
+            "unknown-permission": {**valid, "permission": "unknown"},
+            "unknown-role": {**valid, "role_name": "unknown"},
+            "role-conflict": {**valid, "role_name": "write"},
+            "user-not-object": {**valid, "user": []},
+            "unknown-user-field": {
+                **valid,
+                "user": {**valid["user"], "extra": True},
+            },
+            "missing-username": {
+                **valid,
+                "user": {
+                    key: value for key, value in valid["user"].items()
+                    if key != "username"
+                },
+            },
+            "wrong-login": {
+                **valid,
+                "user": {**valid["user"], "login": "another-identity"},
+            },
+            "case-only-username": {
+                **valid,
+                "user": {**valid["user"], "username": identity.upper()},
+            },
+            "site-admin": {
+                **valid,
+                "user": {**valid["user"], "is_admin": True},
+            },
+            "string-false-admin": {
+                **valid,
+                "user": {**valid["user"], "is_admin": "false"},
+            },
+            "boolean-integer-metadata": {
+                **valid,
+                "user": {**valid["user"], "id": False},
+            },
+            "string-metadata-drift": {
+                **valid,
+                "user": {**valid["user"], "visibility": False},
+            },
+        }
+        for case, response in invalid_responses.items():
+            with self.subTest(case=case):
+                client = FakeClient(self.contract)
+                original_get = client.get
+
+                def invalid_get(path, operation, *, response=response):
+                    if path == endpoint:
+                        client.calls.append(("GET", path, None))
+                        return copy.deepcopy(response)
+                    return original_get(path, operation)
+
+                client.get = invalid_get
+                with self.assertRaisesRegex(
+                    ContractError, "collaborator permission response is invalid"
+                ):
+                    capture_snapshot(client, self.contract, repository)
+                self.assertTrue(all(call[0] == "GET" for call in client.calls))
 
     def test_check_maps_exact_missing_account_permission_404_to_planned_action(self):
         repository = self.contract.repository("NewEMaint")

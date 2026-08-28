@@ -63,6 +63,26 @@ BOOL_FIELDS = {
     "ignore_stale_approvals", "block_admin_merge_override", "require_signed_commits",
 }
 
+COLLABORATOR_PERMISSIONS = {"read", "write", "admin", "owner"}
+COLLABORATOR_USER_STRING_FIELDS = {
+    "login", "username", "login_name", "full_name", "email", "avatar_url",
+    "html_url", "language", "last_login", "created", "location", "website",
+    "description", "visibility",
+}
+COLLABORATOR_USER_INTEGER_FIELDS = {
+    "id", "source_id", "followers_count", "following_count",
+    "starred_repos_count",
+}
+COLLABORATOR_USER_BOOLEAN_FIELDS = {
+    "is_admin", "restricted", "active", "prohibit_login",
+}
+COLLABORATOR_USER_FIELDS = (
+    COLLABORATOR_USER_STRING_FIELDS
+    | COLLABORATOR_USER_INTEGER_FIELDS
+    | COLLABORATOR_USER_BOOLEAN_FIELDS
+)
+COLLABORATOR_USER_REQUIRED_FIELDS = {"login", "username", "is_admin"}
+
 
 def _repo_path(contract: GovernanceContract, repository: RepositoryContract) -> str:
     return f"/repos/{quote(contract.owner, safe='')}/{quote(repository.name, safe='')}"
@@ -142,15 +162,60 @@ def _get_optional(client: GiteaClient, path: str, operation: str) -> Any | None:
         raise
 
 
-def _strict_collaborator_permission(value: Any, context: str) -> str:
-    if (
-        not isinstance(value, dict)
-        or set(value) != {"permission"}
-        or type(value.get("permission")) is not str
-        or value["permission"] not in {"read", "write", "admin", "owner"}
+def _strict_collaborator_permission(
+    value: Any,
+    context: str,
+    requested_identity: str,
+) -> str:
+    invalid = ContractError(f"{context} response is invalid")
+    if not isinstance(value, dict):
+        raise invalid
+    keys = set(value)
+    if keys not in (
+        {"permission"},
+        {"permission", "role_name", "user"},
     ):
-        raise ContractError(f"{context} response is invalid")
-    return value["permission"]
+        raise invalid
+    permission = value.get("permission")
+    if type(permission) is not str or permission not in COLLABORATOR_PERMISSIONS:
+        raise invalid
+    if keys == {"permission"}:
+        return permission
+
+    role_name = value.get("role_name")
+    user = value.get("user")
+    if (
+        type(role_name) is not str
+        or role_name not in COLLABORATOR_PERMISSIONS
+        or role_name != permission
+        or not isinstance(user, dict)
+        or not COLLABORATOR_USER_REQUIRED_FIELDS <= set(user)
+        or not set(user) <= COLLABORATOR_USER_FIELDS
+    ):
+        raise invalid
+    if any(
+        type(user[field]) is not str
+        for field in set(user) & COLLABORATOR_USER_STRING_FIELDS
+    ):
+        raise invalid
+    if any(
+        type(user[field]) is not int
+        for field in set(user) & COLLABORATOR_USER_INTEGER_FIELDS
+    ):
+        raise invalid
+    if any(
+        type(user[field]) is not bool
+        for field in set(user) & COLLABORATOR_USER_BOOLEAN_FIELDS
+    ):
+        raise invalid
+    if (
+        user["login"] != requested_identity
+        or user["username"] != requested_identity
+        or user["login"] != user["username"]
+        or user["is_admin"] is not False
+    ):
+        raise invalid
+    return permission
 
 
 def _read_collaborator_permission(
@@ -171,7 +236,7 @@ def _read_collaborator_permission(
         if exc.status == 404 and allow_missing:
             return "missing"
         raise
-    return _strict_collaborator_permission(permission, context)
+    return _strict_collaborator_permission(permission, context, username)
 
 
 def _explicit_permissions(
