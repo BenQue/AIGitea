@@ -25,9 +25,9 @@ confidence: high
 override_reason: security 与 shared governance/host-access runtime 风险使既有行为恢复仍强制 complex
 depends_on:
   - 217
-status: approved
+status: pr-open
 branch: change/219-permission-payload-compat
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/220
 created: 2026-08-28
 updated: 2026-08-28
 ---
