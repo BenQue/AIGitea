@@ -26,11 +26,11 @@ updated: 2026-08-28
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | #219 Issue、fresh `9f4595c6...` baseline、完整合同读取、official/live schema evidence、四份 semantic docs、semantic validation 与 docs commit | - | completed |
-| T02 | legacy/actual-extended 正向与 root/role/user/identity/security 负向 failing tests，覆盖 governance 与 host-access permission surfaces | T01 | pending |
-| T03 | 两个固定 variant 的最小 bounded validator implementation；调用方显式传 manifest-derived requested identity | T02 | pending |
-| T04 | #217 exact 404、account/project/shared/unknown/cross-project isolation、check GET-only 与 apply zero-mutation/ordering regression | T03 | pending |
-| T05 | governance/host-access/routine security、shell/full smoke、semantic/Controller preflight、verification 与原子 commits | T04 | pending |
-| T06 | 停在 `AWAITING_PR_CONFIRMATION`，形成唯一 manual PR candidate；后续 install/live 另开授权 | T05 | pending |
+| T02 | legacy/actual-extended 正向与 root/role/user/identity/security 负向 failing tests，覆盖 governance 与 host-access permission surfaces | T01 | completed |
+| T03 | 两个固定 variant 的最小 bounded validator implementation；调用方显式传 manifest-derived requested identity | T02 | completed |
+| T04 | #217 exact 404、account/project/shared/unknown/cross-project isolation、check GET-only 与 apply zero-mutation/ordering regression | T03 | completed |
+| T05 | governance/host-access/routine security、shell/full smoke、semantic/Controller preflight、verification 与原子 commits | T04 | completed |
+| T06 | 停在 `AWAITING_PR_CONFIRMATION`，形成唯一 manual PR candidate；后续 install/live 另开授权 | T05 | completed |
 
 ## Expected touch points
 

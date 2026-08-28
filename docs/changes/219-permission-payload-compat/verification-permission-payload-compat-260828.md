@@ -13,7 +13,7 @@ risk_flags:
   - platform-governance
 depends_on:
   - 217
-status: pending
+status: verified
 branch: change/219-permission-payload-compat
 created: 2026-08-28
 updated: 2026-08-28
@@ -25,8 +25,8 @@ updated: 2026-08-28
 
 - Baseline SHA: `9f4595c6d997032e1b36cef47999a820fd2c9a46`（fresh main exact；#217/PR #218 merge 后基线）
 - 当前 branch: `change/219-permission-payload-compat`
-- 环境: macOS Codex managed worktree；installed/source byte readback；canonical broker 与 installed governance
-  read-only GET；官方 Gitea v1.26.4 source；本阶段只写 docs
+- 环境: macOS Codex managed worktree；source/runtime mock tests；T01 installed/source byte baseline；canonical broker
+  read-only Issue/main readback；官方 Gitea v1.26.4 source；无 post-change install/live readback
 - 本记录负责证明的 acceptance criteria: AC-1 至 AC-9
 - Merge policy: manual
 
@@ -36,36 +36,44 @@ updated: 2026-08-28
 |---|---|---|
 | 完整合同读取 | PASS | `aisoft-platform`、`issue-session-flow`、`context7-mcp`、private-access、AGENTS/README/03/04/06/08/09、#213/#215/#217 四份 docs、相关 governance/host-access runtime/tests 已读 |
 | fresh baseline | PASS | worktree 初始 detached HEAD exact `9f4595c6d997032e1b36cef47999a820fd2c9a46`，clean；未用旧 #217 branch 代替 main |
-| source/installed bytes | PASS | `aisoft_gitea_governance/reconcile.py` 与 installed runtime `cmp=0`；canonical 与 installed `gitea-governance.json` `cmp=0` |
+| source/installed bytes | PASS (baseline) / NOT RUN (post-change installed) | T01 前 `aisoft_gitea_governance/reconcile.py` 与 installed runtime、canonical 与 installed manifest 均 `cmp=0`；本实现只修改 source，未 install，未把 source PASS 推定为 installed PASS |
 | canonical `host.access.audit` | GAP (expected) | sandbox transport 受限后在同一 typed operation 的 host context 重试；account/credential/target permission missing，9 个 cross-project absent/null，protection 保持 push/force denied、required context exact；read-only，mutation=0 |
 | installed governance `check --repository NewEMaint` | PASS (defect reproduced) | rc=2；`BLOCKED_EXTERNAL: collaborator permission response is invalid`；只执行 GET，无 planned actions/readiness结论 |
 | sanitized live permission schema | PASS (observed) | root fields exact `permission:str + role_name:str + user:object`；sample repo permission/role 均为 `admin` 且相等；nested `login`/`username` exact 匹配 requested identity并彼此相等；`is_admin` type=boolean、value=false；只保留字段名/类型/匹配布尔，无 token/credential/个人值 |
 | official Gitea v1.26.4 source | PASS | `RepoCollaboratorPermission` exact 三字段；`ToUserAndPermission` 同时以 `accessMode.ToString()` 填 permission/role_name；`User` schema 与 live known fields/types一致并增加 `username` compatibility field |
-| current parser review | PASS (cause identified) | governance `_strict_collaborator_permission` 要求 root key set exact `{"permission"}`；#217 tests 把 extra field 固定为 invalid；host-access routine/cross-project surface也存在同形 exact-one-key parser，future account-present 会受影响 |
+| pre-fix parser review | PASS (cause identified) | governance parser要求 root exact `{"permission"}`；host-access routine/cross-project要求同形 exact-one-key，manager/project只看 `.get("permission")` 而可忽略任意 extra；两种行为均不满足有界 extended 合同 |
 | Issue #219 create | PASS | canonical broker 创建 exact title；number=219；无 runtime、push、PR、install、live apply、merge 或 deploy mutation |
+| lifecycle readback | PASS | 用户确认合同后 canonical broker 精确推进并读回 `approved + type/platform + complexity/complex`；fresh resume 再次读回无漂移 |
+| governance TDD | FAIL before fix / PASS after fix | actual extended fixture在旧 parser稳定报 `collaborator permission response is invalid`；最小实现后 focused 2/2 与 governance full 49 tests PASS；完整 malformed/root/role/user/type/identity/site-admin矩阵 fail closed |
+| host-access TDD | FAIL before fix / PASS after fix | retained 3 个公共 seam tests在旧实现产生 3 failures + 1 error；共享 bounded validator 后 manager/project/routine/cross-project 与 routine merge zero-POST focused 4/4 PASS |
+| security Python suites | PASS | governance + host-access + routine-merge 共 208 tests PASS；legacy 与 actual extended variants、#217/#215 404/inventory、auth/server/transport、GET-only、apply/merge zero-mutation/zero-POST ordering均覆盖 |
+| broker/bootstrap/rollback/installer shell suites | PASS | `test-host-access-broker.sh`、`test-bootstrap-gitea-service-account.sh`、`test-rollback-gitea-routine-pilot.sh`、`test-install-host-access-broker.sh` 全部 PASS |
+| shell syntax/static | PASS | 上述四个相关 shell tests 的 `bash -n` 与 ShellCheck 均 rc=0、无诊断；source shell 未修改 |
+| `bash codex/tests/smoke.sh` | PASS | 640 tests PASS；末行 `Codex platform static smoke checks passed.`；installer/idempotence名称均为临时 mock fixtures，不是 installed/live rollout |
 | semantic mapping/check | PASS | `resolve-documents 219` 返回 exact summary/spec/plan/verification mapping；`check-change-documents` 为 `changes=99 pass=2 gap=0`；`git diff --check` PASS |
-| T01 docs commit | PASS (prepared) | 本四文件集是唯一 T01 docs commit；exact commit SHA 在会话 handoff 中读回，提交不包含 runtime/tests |
-| runtime/tests implementation | NOT RUN | 必须等待用户明确合同/启动确认 |
-| install/live check/apply/#74/merge/deploy | NOT RUN | 本 Issue 当前阶段禁止 |
+| Controller preflight | PASS | canonical readback确认 Issue open/exact labels；classification `--verify 219` 返回 `projected`；本地 `load_contract` 重算 platform/complex/restore、security/shared-core/platform-governance、branch、depends_on #217 与四份 required docs；canonical manual title/body成功渲染；`origin/main` 为 HEAD 祖先 |
+| local atomic commits | PASS | T01 docs=`e64961bd37e80807659f06a692e794fed36e87ce`；approval=`1c78ed3`；governance TDD=`40a6ee2`；host-access TDD=`ea2a283`；最终 verification 另作 docs-only commit |
+| push/create PR/remote CI | NOT RUN | 等待最终 PR 提交确认；未创建 remote branch、PR 或 CI run |
+| install/live check/apply/#74/merge/deploy | NOT RUN | 本 Issue 明确禁止；post-change installed bytes 与 live routine state 未验证 |
 
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | CONTRACT READY / implementation NOT RUN | legacy 与 extended 两个 exact root variant 已固定；未知 top-level fail closed |
-| AC-2 | CONTRACT READY / implementation NOT RUN | permission/role exact string allowlist 与 equality 已固定 |
-| AC-3 | CONTRACT READY / implementation NOT RUN | Gitea 1.26.4 known nested allowlist、required subset与逐字段类型已固定 |
-| AC-4 | CONTRACT READY / implementation NOT RUN | login/username/requested identity exact binding与 is_admin exact false 已固定 |
-| AC-5 | CONTRACT READY / implementation NOT RUN | governance/host-access 全 permission surfaces 与 manifest-derived caller identity 已纳入 |
-| AC-6 | CONTRACT READY / implementation NOT RUN | #217 target missing 404 唯一兼容路径及其它错误隔离已固定 |
-| AC-7 | CONTRACT READY / implementation NOT RUN | check/audit GET-only、apply/account/PAT/scope/protection/order门禁不放宽 |
-| AC-8 | CONTRACT READY / implementation NOT RUN | actual+legacy正向与完整 malformed/security/ordering matrix 已定义 |
-| AC-9 | CONTRACT READY / implementation NOT RUN | source/installed/live/CI/install/apply/merge/deploy 分层与 manual policy 已定义 |
+| AC-1 | PASS (source/local) | 两个 exact root variants均接受；legacy extra、extended missing/extra与未知 top-level全部稳定 schema error |
+| AC-2 | PASS (source/local) | permission/role只接受 exact string allowlist且必须相等；unknown/type/conflict矩阵 fail closed |
+| AC-3 | PASS (source/local) | actual full-known-metadata fixture通过；required subset、known field allowlist及 string/integer(non-bool)/boolean exact types逐项验证 |
+| AC-4 | PASS (source/local) | manifest-derived requested identity exact绑定 login/username；case-only/另一个 identity/conflict 与 is_admin true/string false均拒绝 |
+| AC-5 | PASS (source/local) | governance target/cross-project与 host-access manager/project/routine/cross-project、routine merge hard gate统一执行等价合同；输出仍只持久化 permission |
+| AC-6 | PASS | #217 configured routine account-missing target 404继续是唯一 governance compatibility；project/shared/unknown/cross-project/present/admin/auth/server/transport隔离与 #215 inventory路径全套回归通过 |
+| AC-7 | PASS | check/audit call inventory仍为GET；schema/security失败在 evidence/PUT/PATCH/POST/DELETE 前停止；apply account/PAT/scope/non-admin/protection/order与 routine zero-POST门未放宽 |
+| AC-8 | PASS | legacy、actual extended完整 metadata正向 fixtures与 malformed/root/role/user/metadata/identity/security负例覆盖；governance 49、security 208、full smoke 640全部通过 |
+| AC-9 | PASS (source/local) / NOT RUN (remote/installed/live) | shell、syntax/static、full smoke、semantic/Controller preflight PASS；policy manual；push/PR/CI/install/live/apply/merge/deploy均未运行 |
 
 ## 遗留风险与未完成项
 
-- 当前 installed governance 仍是 blocker；本阶段只完成合同，不能把 docs 或 live schema观察写成 runtime 修复。
-- `host.access.audit` 当前可读是因为 routine account missing 走 #215 inventory；account present 后同形 extended payload
-  仍需 T02-T04 覆盖，不能从当前 GAP 推定未来 PASS。
-- remote PR/required CI、runtime tests、install 与 live readback均未运行；用户确认合同前不得开始。
-- live rollout 即使未来 parser 可读，仍应输出 account/PAT/apply 未完成的可信 GAP/planned actions，不得自动 apply。
+- installed governance 仍是 T01 观察到的 blocker；source 修复未 push、合并或安装，不能从本地 PASS 推定
+  post-change installed/live PASS。
+- remote PR/required CI尚不存在；本记录只证明 source/local gates，不能把未来 CI 写成通过。
+- install、live check/apply、#74、merge 与 deploy均未运行；未来 rollout 必须钉住 exact merged SHA 并另行授权。
+- 安装后真实 check 的目标仍是输出可信 `GAP/DRIFT/planned actions`，不是自动 apply 或 readiness PASS。
