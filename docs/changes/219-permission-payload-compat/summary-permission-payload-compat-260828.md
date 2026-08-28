@@ -25,7 +25,7 @@ confidence: high
 override_reason: security 与 shared governance/host-access runtime 风险使既有行为恢复仍强制 complex
 depends_on:
   - 217
-status: spec-drafting
+status: approved
 branch: change/219-permission-payload-compat
 pr_url:
 created: 2026-08-28

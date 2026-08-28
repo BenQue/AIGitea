@@ -13,7 +13,7 @@ risk_flags:
   - platform-governance
 depends_on:
   - 217
-status: spec-drafting
+status: approved
 branch: change/219-permission-payload-compat
 created: 2026-08-28
 updated: 2026-08-28
