@@ -153,10 +153,32 @@ def _strict_collaborator_permission(value: Any, context: str) -> str:
     return value["permission"]
 
 
+def _read_collaborator_permission(
+    client: GiteaClient,
+    path: str,
+    username: str,
+    operation: str,
+    context: str,
+    known_missing_accounts: frozenset[str],
+) -> str:
+    try:
+        permission = client.get(
+            f"{path}/collaborators/{quote(username, safe='')}/permission",
+            operation,
+        )
+    except ApiError as exc:
+        if exc.status == 404 and username in known_missing_accounts:
+            return "missing"
+        raise
+    return _strict_collaborator_permission(permission, context)
+
+
 def _explicit_permissions(
     client: GiteaClient,
     contract: GovernanceContract,
     repository: RepositoryContract,
+    *,
+    known_missing_accounts: frozenset[str] = frozenset(),
 ) -> dict[str, str]:
     path = _repo_path(contract, repository)
     names = _collaborator_names(client, path, contract.full_name(repository))
@@ -168,12 +190,13 @@ def _explicit_permissions(
         if username not in names:
             result[username] = "missing"
             continue
-        permission = client.get(
-            f"{path}/collaborators/{quote(username, safe='')}/permission",
+        result[username] = _read_collaborator_permission(
+            client,
+            path,
+            username,
             f"read collaborator permission for {username}",
-        )
-        result[username] = _strict_collaborator_permission(
-            permission, "collaborator permission"
+            "collaborator permission",
+            known_missing_accounts,
         )
     return result
 
@@ -199,6 +222,8 @@ def _collaborator_names(client: GiteaClient, path: str, full_name: str) -> set[s
 def audit_cross_project_writes(
     client: GiteaClient,
     contract: GovernanceContract,
+    *,
+    known_missing_accounts: frozenset[str] = frozenset(),
 ) -> list[dict[str, str]]:
     agents = {repository.project_agent for repository in contract.repositories}
     agents.update(
@@ -214,12 +239,13 @@ def audit_cross_project_writes(
         if repository.routine_auto_merge_enabled and repository.routine_merge_agent:
             allowed.add(repository.routine_merge_agent)
         for agent in sorted((agents & explicit) - allowed):
-            permission = client.get(
-                f"{path}/collaborators/{quote(agent, safe='')}/permission",
+            value = _read_collaborator_permission(
+                client,
+                path,
+                agent,
                 f"read cross-project permission for {agent}",
-            )
-            value = _strict_collaborator_permission(
-                permission, "cross-project collaborator permission"
+                "cross-project collaborator permission",
+                known_missing_accounts,
             )
             if value in {"write", "admin", "owner"}:
                 violations.append({
@@ -234,6 +260,8 @@ def capture_snapshot(
     client: GiteaClient,
     contract: GovernanceContract,
     repository: RepositoryContract,
+    *,
+    known_missing_accounts: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     path = _repo_path(contract, repository)
     repo = client.get(path, f"read repository {contract.full_name(repository)}")
@@ -257,7 +285,12 @@ def capture_snapshot(
                 repo.get("default_delete_branch_after_merge", False)
             ),
         },
-        "collaborators": _explicit_permissions(client, contract, repository),
+        "collaborators": _explicit_permissions(
+            client,
+            contract,
+            repository,
+            known_missing_accounts=known_missing_accounts,
+        ),
         "protection": normalize_protection(protection),
     }
 
