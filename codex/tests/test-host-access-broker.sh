@@ -13,12 +13,12 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 10 and
-  .operation_count == 31 and
+  .operation_count == 33 and
   .merge_operation_count == 1
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 31) and
+  ([.operations[].name] | length == 33) and
   all(.operations[];
     ((.name | contains("merge") | not) or .name == "gitea.pull.merge.routine") and
     (.name | contains("shell") | not) and
@@ -46,6 +46,9 @@ jq -e '
   ([.operations[] | select(.name == "host.onboarding.check")][0].arguments == []) and
   ([.operations[] | select(.name == "gitea.labels.read")][0].arguments == []) and
   ([.operations[] | select(.name == "gitea.labels.provision")][0].arguments == []) and
+  ([.operations[] | select(.name == "gitea.labels.extension.define")][0]
+    == {"name":"gitea.labels.extension.define","identity_route":"project-agent",
+        "mutating":true,"arguments":["label","color","description"]}) and
   ([.operations[] | select(.name == "gitea.issue.comments.read")][0].arguments == ["number"]) and
   ([.operations[] | select(.name == "gitea.issue.comments.read")][0].mutating == false) and
   ([.operations[] | select(.name == "gitea.actions.run.read")][0].arguments == ["sha"]) and
@@ -56,6 +59,9 @@ jq -e '
   ([.operations[] | select(.name == "gitea.issue.labels.set")][0].arguments
     == ["number", "lifecycle"]) and
   ([.operations[] | select(.name == "gitea.issue.labels.set")][0].mutating == true) and
+  ([.operations[] | select(.name == "gitea.issue.labels.extension.set")][0]
+    == {"name":"gitea.issue.labels.extension.set","identity_route":"project-agent",
+        "mutating":true,"arguments":["number","label"]}) and
   ([.operations[] | select(.name == "gitea.issue.labels.classify")][0].arguments
     == ["number", "change_type", "complexity"]) and
   ([.operations[] | select(.name == "gitea.issue.labels.classify")][0].mutating == true) and
@@ -90,14 +96,50 @@ grep -Fq 'REQUEST_DENIED' <<<"$denied_output"
 # Label deletion is unreachable by construction (#108 AC-7): the provisioning
 # operations exist, the delete counterpart is not allowlisted, and asking for it
 # is denied rather than silently ignored.
-set +e
-labels_delete_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-  --project hsdb --operation gitea.labels.delete 2>&1)"
-labels_delete_status=$?
-set -e
-test "$labels_delete_status" = 20
-grep -Fq 'BLOCKED_EXTERNAL' <<<"$labels_delete_output"
-grep -Fq 'REQUEST_DENIED' <<<"$labels_delete_output"
+for labels_delete_operation in \
+  gitea.labels.delete \
+  gitea.labels.extension.delete \
+  gitea.issue.labels.extension.delete; do
+  set +e
+  labels_delete_output="$("$ROOT/codex/tools/host-access-broker.sh" \
+    --project hsdb --operation "$labels_delete_operation" 2>&1)"
+  labels_delete_status=$?
+  set -e
+  test "$labels_delete_status" = 20
+  grep -Fq 'BLOCKED_EXTERNAL' <<<"$labels_delete_output"
+  grep -Fq 'REQUEST_DENIED' <<<"$labels_delete_output"
+done
+
+# Both project-extension writes expose exact typed argument tuples. Missing or
+# extra fields are rejected before credentials, and an undeclared prefix is
+# rejected from the installed label manifest before any HTTP request.
+for extension_mismatch in \
+  "--operation gitea.labels.extension.define --label area/api --color aabbcc" \
+  "--operation gitea.labels.extension.define --label area/api --color aabbcc --description api --number 1" \
+  "--operation gitea.issue.labels.extension.set --number 1" \
+  "--operation gitea.issue.labels.extension.set --number 1 --label area/api --color aabbcc"; do
+  set +e
+  # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
+  extension_mismatch_output="$("$ROOT/codex/tools/host-access-broker.sh" \
+    --project hsdb $extension_mismatch 2>&1)"
+  extension_mismatch_status=$?
+  set -e
+  test "$extension_mismatch_status" = 20
+  grep -Fq 'ARGUMENT_MISMATCH' <<<"$extension_mismatch_output"
+done
+
+for invalid_extension_request in \
+  "--operation gitea.labels.extension.define --label team/x --color aabbcc --description invalid" \
+  "--operation gitea.issue.labels.extension.set --number 1 --label team/x"; do
+  set +e
+  # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
+  invalid_extension_output="$("$ROOT/codex/tools/host-access-broker.sh" \
+    --project hsdb $invalid_extension_request 2>&1)"
+  invalid_extension_status=$?
+  set -e
+  test "$invalid_extension_status" = 20
+  grep -Fq 'REQUEST_DENIED' <<<"$invalid_extension_output"
+done
 
 # gitea.issue.labels.set only accepts the lifecycle states the installed label
 # manifest declares (#115 AC-1). An out-of-range value is refused before any

@@ -33,6 +33,9 @@ CREDENTIAL_REQUIRED_FIELDS = frozenset({"protocol", "host", "path"})
 CREDENTIAL_PROTOCOL_MAX_LINE_BYTES = 65535
 TITLE_MAX_BYTES = 255
 BODY_MAX_BYTES = 65536
+LABEL_NAME_MAX_BYTES = 255
+LABEL_DESCRIPTION_MAX_BYTES = 255
+LABEL_MANAGED_PREFIXES = ("type/", "complexity/", "triage/")
 COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 # Same ceiling verifier.py already uses for captured command output (#143): one
 # number for "how much text may enter an agent's context", not two.
@@ -1015,6 +1018,9 @@ class HostAccessBroker:
         lifecycle: str | None = None,
         change_type: str | None = None,
         complexity: str | None = None,
+        label: str | None = None,
+        color: str | None = None,
+        description: str | None = None,
     ) -> object:
         try:
             project = self.contract.project(project_id)
@@ -1034,6 +1040,9 @@ class HostAccessBroker:
             "lifecycle": lifecycle,
             "change_type": change_type,
             "complexity": complexity,
+            "label": label,
+            "color": color,
+            "description": description,
         }
         supplied = {
             key for key, value in arguments.items()
@@ -1061,6 +1070,9 @@ class HostAccessBroker:
                     lifecycle=lifecycle,
                     change_type=change_type,
                     complexity=complexity,
+                    label=label,
+                    color=color,
+                    description=description,
                 )
             if operation_name.startswith("git.") or operation_name == "mac.git.bind":
                 return self._git(project, operation, branch=branch)
@@ -1458,10 +1470,15 @@ class HostAccessBroker:
         lifecycle: str | None,
         change_type: str | None,
         complexity: str | None,
+        label: str | None,
+        color: str | None,
+        description: str | None,
     ) -> object:
         method = "GET"
         payload: object | None = None
         pull_change: ChangeName | None = None
+        extension_definition: dict[str, str] | None = None
+        extension_prefix: str | None = None
         if operation.name == "gitea.issue.create":
             method = "POST"
             payload = {
@@ -1511,6 +1528,10 @@ class HostAccessBroker:
                 )
         elif operation.name == "gitea.actions.job.logs.read":
             _positive_number(job, "Actions job")
+        elif operation.name == "gitea.labels.extension.define":
+            _prefix, extension_definition = self._extension_label_definition(
+                label, color, description
+            )
         elif operation.name == "gitea.issue.comments.read":
             _positive_number(number, "Issue")
         elif operation.name == "gitea.issue.labels.read":
@@ -1527,6 +1548,11 @@ class HostAccessBroker:
                     "ARGUMENT_MISMATCH",
                     "lifecycle must be one of the delivery states the label manifest declares",
                 )
+        elif operation.name == "gitea.issue.labels.extension.set":
+            _positive_number(number, "Issue")
+            # One matched prefix is one independent single-value dimension.
+            # This happens before credential resolution or any HTTP request.
+            extension_prefix = self._extension_label_prefix(label)
         elif operation.name == "gitea.issue.labels.classify":
             _positive_number(number, "Issue")
             # Bare front matter values in, namespaced label names out: the
@@ -1557,6 +1583,11 @@ class HostAccessBroker:
             return self._labels(repo_api, credential.token)
         if operation.name == "gitea.labels.provision":
             return self._provision_labels(repo_api, credential.token)
+        if operation.name == "gitea.labels.extension.define":
+            assert extension_definition is not None
+            return self._define_extension_label(
+                repo_api, credential.token, extension_definition
+            )
         if operation.name == "gitea.actions.run.read":
             assert sha is not None
             return self._actions_runs(repo_api, credential.token, sha)
@@ -1573,6 +1604,11 @@ class HostAccessBroker:
             assert number is not None and lifecycle is not None
             return self._set_issue_lifecycle(
                 repo_api, credential.token, number, lifecycle
+            )
+        if operation.name == "gitea.issue.labels.extension.set":
+            assert number is not None and label is not None and extension_prefix is not None
+            return self._set_issue_extension_label(
+                repo_api, credential.token, number, label, extension_prefix
             )
         if operation.name == "gitea.issue.labels.classify":
             assert number is not None
@@ -1728,6 +1764,42 @@ class HostAccessBroker:
             "updated": updated,
             "unchanged": unchanged,
             "retired_present": retired_present,
+            "status": "PASS",
+        }
+
+    def _define_extension_label(
+        self,
+        repo_api: str,
+        token: str,
+        definition: Mapping[str, str],
+    ) -> dict[str, object]:
+        """Create one project-owned extension label, adopting existing metadata.
+
+        Unlike canonical provisioning, this operation has no platform metadata
+        source to converge onto. An existing label is therefore preserved byte
+        for byte as Gitea returned it and is never PATCHed.
+        """
+        remote = {item["name"]: item for item in self._labels(repo_api, token)}
+        name = definition["name"]
+        current = remote.get(name)
+        if current is not None:
+            metadata = {
+                "name": current["name"],
+                "color": current["color"],
+                "description": current["description"],
+            }
+            result = "existing-preserved"
+        else:
+            self._request_json(
+                f"{repo_api}/labels", token, method="POST", payload=dict(definition)
+            )
+            metadata = dict(definition)
+            result = "created"
+        return {
+            "operation": "gitea.labels.extension.define",
+            "label": name,
+            "result": result,
+            "metadata": metadata,
             "status": "PASS",
         }
 
@@ -2083,6 +2155,24 @@ class HostAccessBroker:
             targets=(f"type/{change_type}", f"complexity/{complexity}"),
         )
 
+    def _set_issue_extension_label(
+        self,
+        repo_api: str,
+        token: str,
+        number: int,
+        label: str,
+        matched_prefix: str,
+    ) -> dict[str, object]:
+        """Replace exactly one project-extension prefix with one label value."""
+        return self._replace_issue_label_dimensions(
+            repo_api,
+            token,
+            number,
+            in_dimension=lambda name: name.startswith(matched_prefix),
+            targets=(label,),
+            definition_operation="gitea.labels.extension.define",
+        )
+
     def _replace_issue_label_dimensions(
         self,
         repo_api: str,
@@ -2092,12 +2182,13 @@ class HostAccessBroker:
         in_dimension: Callable[[str], bool],
         targets: tuple[str, ...],
         guard: Callable[[set[str]], None] | None = None,
+        definition_operation: str = "gitea.labels.provision",
     ) -> dict[str, object]:
         """Replace whole label dimensions on one Issue, leaving every other label.
 
         Attaching is not defining: when a target label has no definition in the
-        repository this fails closed and names gitea.labels.provision (#108)
-        instead of creating it, so the two operation surfaces stay separate.
+        repository this fails closed and names the matching typed definition
+        operation instead of creating it, so the two surfaces stay separate.
         """
         defined = {item["name"]: item for item in self._labels(repo_api, token)}
         target_ids: dict[str, int] = {}
@@ -2107,7 +2198,7 @@ class HostAccessBroker:
                 raise BrokerError(
                     "TARGET_MISMATCH",
                     f"the {name} label is not defined in this repository; "
-                    "define it with gitea.labels.provision before attaching it",
+                    f"define it with {definition_operation} before attaching it",
                 )
             target_id = target.get("id")
             if not isinstance(target_id, int) or isinstance(target_id, bool):
@@ -2164,7 +2255,63 @@ class HostAccessBroker:
             "status": "PASS",
         }
 
-    def _label_manifest(self) -> dict[str, list[dict[str, str]]]:
+    def _extension_label_prefix(self, label: str | None) -> str:
+        """Return the one declared project-extension dimension for ``label``.
+
+        Concrete values stay caller-owned and never enter the platform
+        manifest. The installed manifest only grants namespaces, and a value is
+        writable when it belongs to exactly one such namespace. Canonical and
+        retired values remain owned by their existing typed operations.
+        """
+        name = _typed_text("label", label, LABEL_NAME_MAX_BYTES)
+        manifest = self._label_manifest()
+        canonical = {entry["name"] for entry in manifest["canonical"]}
+        retired = {entry["name"] for entry in manifest["retired"]}
+        if name in canonical or name in retired:
+            raise BrokerError(
+                "REQUEST_DENIED",
+                "label is canonical or retired and cannot use the project-extension writer",
+            )
+
+        prefixes = [
+            entry["prefix"]
+            for entry in manifest["project_extensions"]["allowed_prefixes"]
+            if name.startswith(entry["prefix"])
+        ]
+        if len(prefixes) != 1:
+            raise BrokerError(
+                "REQUEST_DENIED",
+                "label must match exactly one declared project-extension prefix",
+            )
+        prefix = prefixes[0]
+        if name == prefix:
+            raise BrokerError(
+                "REQUEST_DENIED", "project-extension label suffix must not be empty"
+            )
+        return prefix
+
+    def _extension_label_definition(
+        self,
+        label: str | None,
+        color: str | None,
+        description: str | None,
+    ) -> tuple[str, dict[str, str]]:
+        """Validate one create-only extension label request without mutating."""
+        prefix = self._extension_label_prefix(label)
+        name = _typed_text("label", label, LABEL_NAME_MAX_BYTES)
+        checked_color = _typed_text("label color", color, 6)
+        if re.fullmatch(r"[0-9a-fA-F]{6}", checked_color) is None:
+            raise BrokerError("ARGUMENT_INVALID", "label color must be exactly 6 hex digits")
+        checked_description = _typed_text(
+            "label description", description, LABEL_DESCRIPTION_MAX_BYTES
+        )
+        return prefix, {
+            "name": name,
+            "color": checked_color,
+            "description": checked_description,
+        }
+
+    def _label_manifest(self) -> dict[str, object]:
         path = self.label_manifest_path
         if not path:
             raise BrokerError(
@@ -2180,8 +2327,19 @@ class HostAccessBroker:
                 "REQUEST_DENIED", "label manifest must be a schema_version 2 object"
             )
         canonical = raw.get("canonical")
+        project_extensions = raw.get("project_extensions")
         retired = raw.get("retired")
-        if not isinstance(canonical, list) or not canonical or not isinstance(retired, list):
+        allowed_prefixes = (
+            project_extensions.get("allowed_prefixes")
+            if isinstance(project_extensions, dict)
+            else None
+        )
+        if (
+            not isinstance(canonical, list)
+            or not canonical
+            or not isinstance(allowed_prefixes, list)
+            or not isinstance(retired, list)
+        ):
             raise BrokerError("REQUEST_DENIED", "label manifest structure is invalid")
         for entry in canonical:
             if (
@@ -2197,6 +2355,26 @@ class HostAccessBroker:
         for entry in retired:
             if not isinstance(entry, dict) or not isinstance(entry.get("name"), str):
                 raise BrokerError("REQUEST_DENIED", "retired label entry is invalid")
+        for entry in allowed_prefixes:
+            if (
+                not isinstance(entry, dict)
+                or not isinstance(entry.get("prefix"), str)
+                or not entry["prefix"].endswith("/")
+            ):
+                raise BrokerError("REQUEST_DENIED", "extension prefix entry is invalid")
+        prefix_values = [entry["prefix"] for entry in allowed_prefixes]
+        for index, prefix in enumerate(prefix_values):
+            for other in prefix_values[index + 1:]:
+                if prefix.startswith(other) or other.startswith(prefix):
+                    raise BrokerError(
+                        "REQUEST_DENIED", "project-extension prefixes overlap"
+                    )
+            for managed in LABEL_MANAGED_PREFIXES:
+                if prefix.startswith(managed) or managed.startswith(prefix):
+                    raise BrokerError(
+                        "REQUEST_DENIED",
+                        "project-extension prefix overlaps a managed namespace",
+                    )
         return {
             "canonical": [
                 {
@@ -2206,6 +2384,11 @@ class HostAccessBroker:
                 }
                 for entry in canonical
             ],
+            "project_extensions": {
+                "allowed_prefixes": [
+                    {"prefix": entry["prefix"]} for entry in allowed_prefixes
+                ]
+            },
             "retired": [{"name": entry["name"]} for entry in retired],
         }
 

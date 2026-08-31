@@ -64,6 +64,18 @@ class GovernedHostRunner:
     def labels_provision(self) -> Mapping[str, object]:
         return self._call("gitea.labels.provision")
 
+    def labels_extension_define(
+        self, label: str, color: str, description: str
+    ) -> Mapping[str, object]:
+        # Values pass through as typed scalars. The installed broker owns prefix,
+        # color and text validation; duplicating those rules here would drift.
+        return self._call(
+            "gitea.labels.extension.define",
+            "--label", label,
+            "--color", color,
+            "--description", description,
+        )
+
     def issue_labels_read(self, number: int) -> Mapping[str, object]:
         return self._call(
             "gitea.issue.labels.read",
@@ -78,6 +90,17 @@ class GovernedHostRunner:
             "gitea.issue.labels.set",
             "--number", str(_positive_number(number, "Issue")),
             "--lifecycle", lifecycle,
+        )
+
+    def issue_labels_extension_set(
+        self, number: int, label: str
+    ) -> Mapping[str, object]:
+        # The broker derives the one owned dimension from its installed prefix
+        # manifest. This fixed method cannot pass a prefix or label set.
+        return self._call(
+            "gitea.issue.labels.extension.set",
+            "--number", str(_positive_number(number, "Issue")),
+            "--label", label,
         )
 
     def issue_labels_classify(

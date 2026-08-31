@@ -183,6 +183,16 @@
       "arguments": []
     },
     {
+      "name": "gitea.labels.extension.define",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "label",
+        "color",
+        "description"
+      ]
+    },
+    {
       "name": "gitea.issue.labels.read",
       "identity_route": "project-agent",
       "mutating": false,
@@ -197,6 +207,15 @@
       "arguments": [
         "number",
         "lifecycle"
+      ]
+    },
+    {
+      "name": "gitea.issue.labels.extension.set",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "label"
       ]
     },
     {

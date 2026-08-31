@@ -620,6 +620,88 @@ class HostAccessBrokerTests(unittest.TestCase):
             "DELETE", {method for method, _url, _payload in calls}
         )
 
+    def test_extension_label_define_creates_once_and_preserves_existing_metadata(self) -> None:
+        remote: list[dict[str, object]] = []
+        calls: list[tuple] = []
+        broker = self._label_broker(remote, calls)
+
+        created = broker.execute(
+            "aisoft-platform", "gitea.labels.extension.define",
+            label="area/api", color="b60205", description="Project API area",
+        )
+        self.assertEqual(created["result"], "created")
+        self.assertEqual(
+            created["metadata"],
+            {"name": "area/api", "color": "b60205",
+             "description": "Project API area"},
+        )
+        self.assertEqual(
+            [(url, payload) for method, url, payload in calls if method == "POST"],
+            [("http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/labels",
+              {"name": "area/api", "color": "b60205",
+               "description": "Project API area"})],
+        )
+        self.assertEqual([method for method, _url, _payload in calls if method == "PATCH"], [])
+
+        # NewEMaint-shaped fossil: caller-supplied metadata is deliberately
+        # different. Define adopts the existing value and must preserve both
+        # strings exactly, including the leading #, case and whitespace.
+        remote[0]["color"] = "#AaBbCc"
+        remote[0]["description"] = "  pre-platform fossil metadata  "
+        calls.clear()
+        existing = broker.execute(
+            "aisoft-platform", "gitea.labels.extension.define",
+            label="area/api", color="ffffff", description="must not replace fossil",
+        )
+        self.assertEqual(existing["result"], "existing-preserved")
+        self.assertEqual(
+            existing["metadata"],
+            {"name": "area/api", "color": "#AaBbCc",
+             "description": "  pre-platform fossil metadata  "},
+        )
+        self.assertEqual({method for method, _url, _payload in calls}, {"GET"})
+        self.assertEqual(remote[0]["color"], "#AaBbCc")
+        self.assertEqual(remote[0]["description"], "  pre-platform fossil metadata  ")
+
+    def test_extension_label_define_arguments_are_exact_and_fail_before_mutation(self) -> None:
+        calls: list[tuple] = []
+        broker = self._label_broker([], calls)
+        operation = self.contract.operation("gitea.labels.extension.define")
+        self.assertEqual(operation.identity_route, "project-agent")
+        self.assertTrue(operation.mutating)
+        self.assertEqual(operation.arguments, ("label", "color", "description"))
+
+        for kwargs in (
+            {"label": "priority/high", "color": "b60205"},
+            {"label": "priority/high", "description": "missing color"},
+            {"color": "b60205", "description": "missing label"},
+            {"label": "priority/high", "color": "b60205",
+             "description": "extra", "number": 229},
+        ):
+            with self.subTest(kwargs=sorted(kwargs)), self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.labels.extension.define", **kwargs
+                )
+            self.assertEqual(caught.exception.code, "ARGUMENT_MISMATCH")
+
+        for rejected in (
+            "team/x", "type/feature", "complexity/small",
+            "triage/ready-for-agent", "completed", "complexity/standard", "priority/",
+        ):
+            with self.subTest(label=rejected), self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.labels.extension.define",
+                    label=rejected, color="b60205", description="rejected",
+                )
+            self.assertEqual(caught.exception.code, "REQUEST_DENIED")
+        with self.assertRaises(BrokerError) as invalid_color:
+            broker.execute(
+                "aisoft-platform", "gitea.labels.extension.define",
+                label="priority/high", color="nothex", description="rejected",
+            )
+        self.assertEqual(invalid_color.exception.code, "ARGUMENT_INVALID")
+        self.assertEqual(calls, [])
+
     def test_label_read_paginates_and_validates_entries(self) -> None:
         remote = [
             {"id": i, "name": f"label-{i}", "color": "aabbcc", "description": "d"}
@@ -659,6 +741,64 @@ class HostAccessBrokerTests(unittest.TestCase):
         with self.assertRaises(BrokerError) as caught:
             unconfigured.execute("aisoft-platform", "gitea.labels.provision")
         self.assertEqual(caught.exception.code, "REQUEST_DENIED")
+
+    def test_extension_label_validation_is_prefix_scoped_and_fail_closed(self) -> None:
+        calls: list[tuple] = []
+        broker = self._label_broker([], calls)
+
+        self.assertEqual(broker._extension_label_prefix("area/api"), "area/")
+        self.assertEqual(broker._extension_label_prefix("priority/high"), "priority/")
+        prefix, payload = broker._extension_label_definition(
+            "priority/high", "A1b2C3", "Project-owned priority"
+        )
+        self.assertEqual(prefix, "priority/")
+        self.assertEqual(
+            payload,
+            {
+                "name": "priority/high",
+                "color": "A1b2C3",
+                "description": "Project-owned priority",
+            },
+        )
+
+        for rejected in (
+            "team/x",
+            "type/feature",
+            "complexity/small",
+            "triage/ready-for-agent",
+            "completed",
+            "complexity/standard",
+            "priority/",
+        ):
+            with self.subTest(rejected=rejected), self.assertRaises(BrokerError) as caught:
+                broker._extension_label_prefix(rejected)
+            self.assertEqual(caught.exception.code, "REQUEST_DENIED")
+
+        for invalid_color in ("xyzxyz", "abc", "#aabbcc", "aabbcg"):
+            with self.subTest(color=invalid_color), self.assertRaises(BrokerError) as caught:
+                broker._extension_label_definition(
+                    "priority/high", invalid_color, "Project-owned priority"
+                )
+            self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+        self.assertEqual(calls, [])
+
+    def test_extension_label_validation_rejects_ambiguous_prefix_manifest(self) -> None:
+        raw = json.loads(LABELS.read_text())
+        raw["project_extensions"]["allowed_prefixes"].append(
+            {"prefix": "area/api/", "description": "ambiguous nested dimension"}
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            manifest = Path(temporary) / "labels.json"
+            manifest.write_text(json.dumps(raw))
+            calls: list[tuple] = []
+            broker = self._label_broker([], calls)
+            broker.label_manifest_path = str(manifest)
+
+            with self.assertRaises(BrokerError) as caught:
+                broker._extension_label_prefix("area/api/backend")
+            self.assertEqual(caught.exception.code, "REQUEST_DENIED")
+            self.assertIn("overlap", str(caught.exception))
+            self.assertEqual(calls, [])
 
     def _issue_comment_broker(self, comments: list[dict[str, object]], calls: list[tuple]):
         """Broker wired to an in-memory comment collection with real paging."""
@@ -1168,6 +1308,170 @@ class HostAccessBrokerTests(unittest.TestCase):
                 json.loads(LABELS.read_text())["canonical"], start=1
             )
         ]
+
+    def test_issue_extension_label_set_preserves_every_other_dimension(self) -> None:
+        operation = self.contract.operation("gitea.issue.labels.extension.set")
+        self.assertEqual(operation.identity_route, "project-agent")
+        self.assertTrue(operation.mutating)
+        self.assertEqual(operation.arguments, ("number", "label"))
+
+        repository = self._provisioned_labels()
+        repository.extend([
+            {"id": 900, "name": "area/old", "color": "cccccc", "description": "old"},
+            {"id": 901, "name": "area/new", "color": "dddddd", "description": "new"},
+            {"id": 902, "name": "priority/high", "color": "eeeeee",
+             "description": "priority"},
+        ])
+        by_name = {str(item["name"]): item for item in repository}
+        attached = [
+            by_name["type/platform"],
+            by_name["complexity/complex"],
+            by_name["pr-open"],
+            by_name["triage/ready-for-agent"],
+            by_name["area/old"],
+            by_name["priority/high"],
+        ]
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, attached, calls)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.extension.set",
+            number=229, label="area/new",
+        )
+
+        self.assertEqual(value["result"], "updated")
+        self.assertEqual(set(value["before"]) - set(value["after"]), {"area/old"})
+        self.assertEqual(set(value["after"]) - set(value["before"]), {"area/new"})
+        self.assertEqual(
+            sorted(str(item["name"]) for item in attached),
+            ["area/new", "complexity/complex", "pr-open", "priority/high",
+             "triage/ready-for-agent", "type/platform"],
+        )
+        self.assertEqual(len([method for method, _url, _payload in calls if method == "PUT"]), 1)
+
+    def test_issue_extension_label_set_converges_duplicate_values_with_one_put(self) -> None:
+        repository = self._provisioned_labels()
+        repository.extend([
+            {"id": 900, "name": "area/old", "color": "cccccc", "description": "old"},
+            {"id": 901, "name": "area/new", "color": "dddddd", "description": "new"},
+            {"id": 902, "name": "priority/high", "color": "eeeeee",
+             "description": "priority"},
+        ])
+        by_name = {str(item["name"]): item for item in repository}
+        attached = [by_name["area/old"], by_name["area/new"], by_name["priority/high"]]
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, attached, calls)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.extension.set",
+            number=229, label="area/new",
+        )
+
+        self.assertEqual(value["result"], "updated")
+        self.assertEqual(
+            sorted(str(item["name"]) for item in attached),
+            ["area/new", "priority/high"],
+        )
+        puts = [payload for method, _url, payload in calls if method == "PUT"]
+        self.assertEqual(len(puts), 1)
+        self.assertEqual(puts[0]["labels"].count(901), 1)
+
+    def test_issue_extension_label_set_is_noop_when_dimension_is_exact(self) -> None:
+        repository = self._provisioned_labels()
+        repository.extend([
+            {"id": 901, "name": "area/new", "color": "dddddd", "description": "new"},
+            {"id": 902, "name": "priority/high", "color": "eeeeee",
+             "description": "priority"},
+        ])
+        by_name = {str(item["name"]): item for item in repository}
+        attached = [by_name["area/new"], by_name["priority/high"]]
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, attached, calls)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.extension.set",
+            number=229, label="area/new",
+        )
+
+        self.assertEqual(value["result"], "no-op")
+        self.assertEqual(value["before"], value["after"])
+        self.assertEqual([method for method, _url, _payload in calls if method == "PUT"], [])
+
+    def test_issue_extension_label_set_requires_typed_definition(self) -> None:
+        repository = self._provisioned_labels()
+        repository.append(
+            {"id": 900, "name": "area/old", "color": "cccccc", "description": "old"}
+        )
+        attached = [repository[-1]]
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, attached, calls)
+
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute(
+                "aisoft-platform", "gitea.issue.labels.extension.set",
+                number=229, label="area/new",
+            )
+        self.assertEqual(caught.exception.code, "TARGET_MISMATCH")
+        self.assertIn("gitea.labels.extension.define", str(caught.exception))
+        self.assertNotIn("gitea.labels.provision", str(caught.exception))
+        self.assertEqual([method for method, _url, _payload in calls if method == "PUT"], [])
+        self.assertEqual([str(item["name"]) for item in attached], ["area/old"])
+
+    def test_external_extension_fossil_is_adopted_then_attached(self) -> None:
+        repository = self._provisioned_labels()
+        fossil = {
+            "id": 900,
+            "name": "area/api",
+            "color": "#AaBbCc",
+            "description": "  NewEMaint API fossil metadata  ",
+        }
+        # This definition predates the broker: define may adopt it, but must
+        # never take ownership of or normalize its project-owned metadata.
+        repository.append(fossil)
+        by_name = {str(item["name"]): item for item in repository}
+        attached = [
+            by_name["type/platform"],
+            by_name["complexity/complex"],
+            by_name["pr-open"],
+            by_name["triage/ready-for-agent"],
+        ]
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, attached, calls)
+
+        defined = broker.execute(
+            "aisoft-platform", "gitea.labels.extension.define",
+            label="area/api", color="ffffff", description="replacement metadata",
+        )
+
+        self.assertEqual(defined["result"], "existing-preserved")
+        self.assertEqual(
+            defined["metadata"],
+            {"name": "area/api", "color": "#AaBbCc",
+             "description": "  NewEMaint API fossil metadata  "},
+        )
+        self.assertEqual({method for method, _url, _payload in calls}, {"GET"})
+        self.assertEqual(fossil["color"], "#AaBbCc")
+        self.assertEqual(fossil["description"], "  NewEMaint API fossil metadata  ")
+
+        calls.clear()
+        attached_value = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.extension.set",
+            number=229, label="area/api",
+        )
+
+        self.assertEqual(attached_value["result"], "updated")
+        self.assertEqual(
+            sorted(str(item["name"]) for item in attached),
+            ["area/api", "complexity/complex", "pr-open",
+             "triage/ready-for-agent", "type/platform"],
+        )
+        self.assertEqual(
+            len([method for method, _url, _payload in calls if method == "PUT"]), 1
+        )
+        self.assertNotIn("POST", {method for method, _url, _payload in calls})
+        self.assertNotIn("PATCH", {method for method, _url, _payload in calls})
+        self.assertEqual(fossil["color"], "#AaBbCc")
+        self.assertEqual(fossil["description"], "  NewEMaint API fossil metadata  ")
 
     def test_issue_label_read_is_number_bound(self) -> None:
         repository = self._provisioned_labels()
@@ -4242,6 +4546,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             number=None, state=None, branch=None, issue=70,
             title="fix(host-access): governed writes", body=body, comment=None, sha=None,
             job=None, lifecycle=None, change_type=None, complexity=None,
+            label=None, color=None, description=None,
         )
         self.assertEqual(json.loads(stdout.getvalue()), {"number": 71})
 
@@ -4266,6 +4571,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             number=115, state=None, branch=None, issue=None,
             title=None, body=None, comment=None, sha=None, job=None, lifecycle="completed",
             change_type=None, complexity=None,
+            label=None, color=None, description=None,
         )
 
         # --change-type / --complexity are typed fields on the same terms
@@ -4289,7 +4595,57 @@ class HostAccessBrokerTests(unittest.TestCase):
             number=160, state=None, branch=None, issue=None,
             title=None, body=None, comment=None, sha=None, job=None, lifecycle=None,
             change_type="platform", complexity="complex",
+            label=None, color=None, description=None,
         )
+
+        define_argv = [
+            "--access-manifest", str(ACCESS),
+            "--governance-manifest", str(GOVERNANCE),
+            "broker", "--project", "aisoft-platform",
+            "--operation", "gitea.labels.extension.define",
+            "--label", "priority/high", "--color", "b60205",
+            "--description", "Project priority",
+        ]
+        stdout = io.StringIO()
+        with (
+            patch.object(
+                HostAccessBroker, "execute", return_value={"result": "created"}
+            ) as execute,
+            redirect_stdout(stdout),
+        ):
+            self.assertEqual(host_access_cli_main(define_argv), 0)
+        execute.assert_called_once_with(
+            "aisoft-platform", "gitea.labels.extension.define",
+            number=None, state=None, branch=None, issue=None,
+            title=None, body=None, comment=None, sha=None, job=None, lifecycle=None,
+            change_type=None, complexity=None,
+            label="priority/high", color="b60205", description="Project priority",
+        )
+        self.assertEqual(json.loads(stdout.getvalue()), {"result": "created"})
+
+        extension_set_argv = [
+            "--access-manifest", str(ACCESS),
+            "--governance-manifest", str(GOVERNANCE),
+            "broker", "--project", "aisoft-platform",
+            "--operation", "gitea.issue.labels.extension.set",
+            "--number", "229", "--label", "area/api",
+        ]
+        stdout = io.StringIO()
+        with (
+            patch.object(
+                HostAccessBroker, "execute", return_value={"result": "updated"}
+            ) as execute,
+            redirect_stdout(stdout),
+        ):
+            self.assertEqual(host_access_cli_main(extension_set_argv), 0)
+        execute.assert_called_once_with(
+            "aisoft-platform", "gitea.issue.labels.extension.set",
+            number=229, state=None, branch=None, issue=None,
+            title=None, body=None, comment=None, sha=None, job=None, lifecycle=None,
+            change_type=None, complexity=None,
+            label="area/api", color=None, description=None,
+        )
+        self.assertEqual(json.loads(stdout.getvalue()), {"result": "updated"})
 
         for forbidden in (
             "--url", "--owner", "--repository", "--method", "--raw-body",
@@ -4345,6 +4701,60 @@ class GovernedHostRunnerTests(unittest.TestCase):
             ),
         )
         self.assertFalse(hasattr(runner, "merge"))
+        self.assertFalse(hasattr(runner, "execute"))
+        self.assertFalse(hasattr(runner, "request"))
+
+    def test_runner_extension_define_uses_only_fixed_typed_arguments(self) -> None:
+        calls = []
+
+        def command_runner(argv, **kwargs):
+            calls.append((list(argv), kwargs))
+            return subprocess.CompletedProcess(
+                argv, 0, '{"result":"created","status":"PASS"}\n', ""
+            )
+
+        runner = GovernedHostRunner(
+            self.contract, "aisoft-platform", command_runner=command_runner,
+        )
+        self.assertEqual(
+            runner.labels_extension_define(
+                "priority/high", "b60205", "Project priority"
+            )["result"],
+            "created",
+        )
+        self.assertEqual(calls[0][0], [
+            "/usr/local/libexec/aisoft/host-access-broker",
+            "--project", "aisoft-platform",
+            "--operation", "gitea.labels.extension.define",
+            "--label", "priority/high",
+            "--color", "b60205",
+            "--description", "Project priority",
+        ])
+        self.assertFalse(hasattr(runner, "execute"))
+        self.assertFalse(hasattr(runner, "request"))
+
+    def test_runner_extension_set_uses_only_fixed_single_label_arguments(self) -> None:
+        calls = []
+
+        def command_runner(argv, **kwargs):
+            calls.append((list(argv), kwargs))
+            return subprocess.CompletedProcess(
+                argv, 0, '{"result":"updated","status":"PASS"}\n', ""
+            )
+
+        runner = GovernedHostRunner(
+            self.contract, "aisoft-platform", command_runner=command_runner,
+        )
+        self.assertEqual(
+            runner.issue_labels_extension_set(229, "area/api")["result"], "updated"
+        )
+        self.assertEqual(calls[0][0], [
+            "/usr/local/libexec/aisoft/host-access-broker",
+            "--project", "aisoft-platform",
+            "--operation", "gitea.issue.labels.extension.set",
+            "--number", "229",
+            "--label", "area/api",
+        ])
         self.assertFalse(hasattr(runner, "execute"))
         self.assertFalse(hasattr(runner, "request"))
 
