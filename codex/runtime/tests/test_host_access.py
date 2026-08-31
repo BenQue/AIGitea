@@ -1417,6 +1417,62 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertEqual([method for method, _url, _payload in calls if method == "PUT"], [])
         self.assertEqual([str(item["name"]) for item in attached], ["area/old"])
 
+    def test_external_extension_fossil_is_adopted_then_attached(self) -> None:
+        repository = self._provisioned_labels()
+        fossil = {
+            "id": 900,
+            "name": "area/api",
+            "color": "#AaBbCc",
+            "description": "  NewEMaint API fossil metadata  ",
+        }
+        # This definition predates the broker: define may adopt it, but must
+        # never take ownership of or normalize its project-owned metadata.
+        repository.append(fossil)
+        by_name = {str(item["name"]): item for item in repository}
+        attached = [
+            by_name["type/platform"],
+            by_name["complexity/complex"],
+            by_name["pr-open"],
+            by_name["triage/ready-for-agent"],
+        ]
+        calls: list[tuple] = []
+        broker = self._issue_label_broker(repository, attached, calls)
+
+        defined = broker.execute(
+            "aisoft-platform", "gitea.labels.extension.define",
+            label="area/api", color="ffffff", description="replacement metadata",
+        )
+
+        self.assertEqual(defined["result"], "existing-preserved")
+        self.assertEqual(
+            defined["metadata"],
+            {"name": "area/api", "color": "#AaBbCc",
+             "description": "  NewEMaint API fossil metadata  "},
+        )
+        self.assertEqual({method for method, _url, _payload in calls}, {"GET"})
+        self.assertEqual(fossil["color"], "#AaBbCc")
+        self.assertEqual(fossil["description"], "  NewEMaint API fossil metadata  ")
+
+        calls.clear()
+        attached_value = broker.execute(
+            "aisoft-platform", "gitea.issue.labels.extension.set",
+            number=229, label="area/api",
+        )
+
+        self.assertEqual(attached_value["result"], "updated")
+        self.assertEqual(
+            sorted(str(item["name"]) for item in attached),
+            ["area/api", "complexity/complex", "pr-open",
+             "triage/ready-for-agent", "type/platform"],
+        )
+        self.assertEqual(
+            len([method for method, _url, _payload in calls if method == "PUT"]), 1
+        )
+        self.assertNotIn("POST", {method for method, _url, _payload in calls})
+        self.assertNotIn("PATCH", {method for method, _url, _payload in calls})
+        self.assertEqual(fossil["color"], "#AaBbCc")
+        self.assertEqual(fossil["description"], "  NewEMaint API fossil metadata  ")
+
     def test_issue_label_read_is_number_bound(self) -> None:
         repository = self._provisioned_labels()
         attached = [item for item in repository if item["name"] == "pr-open"]
