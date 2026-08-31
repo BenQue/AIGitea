@@ -23,9 +23,9 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: approved
+status: pr-open
 branch: change/229-project-label-write-path
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/230
 created: 2026-08-31
 updated: 2026-08-31
 ---
