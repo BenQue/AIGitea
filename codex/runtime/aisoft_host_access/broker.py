@@ -1478,6 +1478,7 @@ class HostAccessBroker:
         payload: object | None = None
         pull_change: ChangeName | None = None
         extension_definition: dict[str, str] | None = None
+        extension_prefix: str | None = None
         if operation.name == "gitea.issue.create":
             method = "POST"
             payload = {
@@ -1547,6 +1548,11 @@ class HostAccessBroker:
                     "ARGUMENT_MISMATCH",
                     "lifecycle must be one of the delivery states the label manifest declares",
                 )
+        elif operation.name == "gitea.issue.labels.extension.set":
+            _positive_number(number, "Issue")
+            # One matched prefix is one independent single-value dimension.
+            # This happens before credential resolution or any HTTP request.
+            extension_prefix = self._extension_label_prefix(label)
         elif operation.name == "gitea.issue.labels.classify":
             _positive_number(number, "Issue")
             # Bare front matter values in, namespaced label names out: the
@@ -1598,6 +1604,11 @@ class HostAccessBroker:
             assert number is not None and lifecycle is not None
             return self._set_issue_lifecycle(
                 repo_api, credential.token, number, lifecycle
+            )
+        if operation.name == "gitea.issue.labels.extension.set":
+            assert number is not None and label is not None and extension_prefix is not None
+            return self._set_issue_extension_label(
+                repo_api, credential.token, number, label, extension_prefix
             )
         if operation.name == "gitea.issue.labels.classify":
             assert number is not None
@@ -2144,6 +2155,24 @@ class HostAccessBroker:
             targets=(f"type/{change_type}", f"complexity/{complexity}"),
         )
 
+    def _set_issue_extension_label(
+        self,
+        repo_api: str,
+        token: str,
+        number: int,
+        label: str,
+        matched_prefix: str,
+    ) -> dict[str, object]:
+        """Replace exactly one project-extension prefix with one label value."""
+        return self._replace_issue_label_dimensions(
+            repo_api,
+            token,
+            number,
+            in_dimension=lambda name: name.startswith(matched_prefix),
+            targets=(label,),
+            definition_operation="gitea.labels.extension.define",
+        )
+
     def _replace_issue_label_dimensions(
         self,
         repo_api: str,
@@ -2153,12 +2182,13 @@ class HostAccessBroker:
         in_dimension: Callable[[str], bool],
         targets: tuple[str, ...],
         guard: Callable[[set[str]], None] | None = None,
+        definition_operation: str = "gitea.labels.provision",
     ) -> dict[str, object]:
         """Replace whole label dimensions on one Issue, leaving every other label.
 
         Attaching is not defining: when a target label has no definition in the
-        repository this fails closed and names gitea.labels.provision (#108)
-        instead of creating it, so the two operation surfaces stay separate.
+        repository this fails closed and names the matching typed definition
+        operation instead of creating it, so the two surfaces stay separate.
         """
         defined = {item["name"]: item for item in self._labels(repo_api, token)}
         target_ids: dict[str, int] = {}
@@ -2168,7 +2198,7 @@ class HostAccessBroker:
                 raise BrokerError(
                     "TARGET_MISMATCH",
                     f"the {name} label is not defined in this repository; "
-                    "define it with gitea.labels.provision before attaching it",
+                    f"define it with {definition_operation} before attaching it",
                 )
             target_id = target.get("id")
             if not isinstance(target_id, int) or isinstance(target_id, bool):

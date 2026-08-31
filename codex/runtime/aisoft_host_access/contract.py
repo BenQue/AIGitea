@@ -230,6 +230,9 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     # makes projecting half of one unrepresentable.
     "gitea.issue.labels.read": ("project-agent", False, ("number",)),
     "gitea.issue.labels.set": ("project-agent", True, ("number", "lifecycle")),
+    "gitea.issue.labels.extension.set": (
+        "project-agent", True, ("number", "label"),
+    ),
     "gitea.issue.labels.classify": (
         "project-agent", True, ("number", "change_type", "complexity"),
     ),

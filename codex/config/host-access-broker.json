@@ -210,6 +210,15 @@
       ]
     },
     {
+      "name": "gitea.issue.labels.extension.set",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "label"
+      ]
+    },
+    {
       "name": "gitea.issue.labels.classify",
       "identity_route": "project-agent",
       "mutating": true,

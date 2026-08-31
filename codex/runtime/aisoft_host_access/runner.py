@@ -92,6 +92,17 @@ class GovernedHostRunner:
             "--lifecycle", lifecycle,
         )
 
+    def issue_labels_extension_set(
+        self, number: int, label: str
+    ) -> Mapping[str, object]:
+        # The broker derives the one owned dimension from its installed prefix
+        # manifest. This fixed method cannot pass a prefix or label set.
+        return self._call(
+            "gitea.issue.labels.extension.set",
+            "--number", str(_positive_number(number, "Issue")),
+            "--label", label,
+        )
+
     def issue_labels_classify(
         self, number: int, change_type: str, complexity: str
     ) -> Mapping[str, object]:
