@@ -136,6 +136,31 @@ aisoft_label_manifest_validate() {
     return 3
   fi
 
+  # Each extension prefix is one independent, single-value dimension. Equal or
+  # nested prefixes would make one label belong to more than one dimension, so
+  # reject the manifest before any consumer can produce an ambiguous answer.
+  problem="$(
+    jq -r '
+      .project_extensions.allowed_prefixes | map(.prefix) as $prefixes
+      | [
+          range(0; $prefixes | length) as $left_index
+          | range($left_index + 1; $prefixes | length) as $right_index
+          | $prefixes[$left_index] as $left
+          | $prefixes[$right_index] as $right
+          | select(
+              ($left == $right)
+              or ($left | startswith($right))
+              or ($right | startswith($left))
+            )
+          | "allowed prefixes \($left) and \($right) overlap"
+        ] | first // empty
+    ' "$manifest" 2>/dev/null
+  )"
+  if [[ -n "$problem" ]]; then
+    aisoft_label_manifest_invalid "$problem"
+    return 3
+  fi
+
   # A declared extension prefix must not reopen a managed namespace. Checked in
   # shell rather than jq so the managed list stays a single source of truth.
   local prefix managed

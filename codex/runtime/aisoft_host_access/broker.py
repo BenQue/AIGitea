@@ -33,6 +33,9 @@ CREDENTIAL_REQUIRED_FIELDS = frozenset({"protocol", "host", "path"})
 CREDENTIAL_PROTOCOL_MAX_LINE_BYTES = 65535
 TITLE_MAX_BYTES = 255
 BODY_MAX_BYTES = 65536
+LABEL_NAME_MAX_BYTES = 255
+LABEL_DESCRIPTION_MAX_BYTES = 255
+LABEL_MANAGED_PREFIXES = ("type/", "complexity/", "triage/")
 COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 # Same ceiling verifier.py already uses for captured command output (#143): one
 # number for "how much text may enter an agent's context", not two.
@@ -2164,7 +2167,63 @@ class HostAccessBroker:
             "status": "PASS",
         }
 
-    def _label_manifest(self) -> dict[str, list[dict[str, str]]]:
+    def _extension_label_prefix(self, label: str | None) -> str:
+        """Return the one declared project-extension dimension for ``label``.
+
+        Concrete values stay caller-owned and never enter the platform
+        manifest. The installed manifest only grants namespaces, and a value is
+        writable when it belongs to exactly one such namespace. Canonical and
+        retired values remain owned by their existing typed operations.
+        """
+        name = _typed_text("label", label, LABEL_NAME_MAX_BYTES)
+        manifest = self._label_manifest()
+        canonical = {entry["name"] for entry in manifest["canonical"]}
+        retired = {entry["name"] for entry in manifest["retired"]}
+        if name in canonical or name in retired:
+            raise BrokerError(
+                "REQUEST_DENIED",
+                "label is canonical or retired and cannot use the project-extension writer",
+            )
+
+        prefixes = [
+            entry["prefix"]
+            for entry in manifest["project_extensions"]["allowed_prefixes"]
+            if name.startswith(entry["prefix"])
+        ]
+        if len(prefixes) != 1:
+            raise BrokerError(
+                "REQUEST_DENIED",
+                "label must match exactly one declared project-extension prefix",
+            )
+        prefix = prefixes[0]
+        if name == prefix:
+            raise BrokerError(
+                "REQUEST_DENIED", "project-extension label suffix must not be empty"
+            )
+        return prefix
+
+    def _extension_label_definition(
+        self,
+        label: str | None,
+        color: str | None,
+        description: str | None,
+    ) -> tuple[str, dict[str, str]]:
+        """Validate one create-only extension label request without mutating."""
+        prefix = self._extension_label_prefix(label)
+        name = _typed_text("label", label, LABEL_NAME_MAX_BYTES)
+        checked_color = _typed_text("label color", color, 6)
+        if re.fullmatch(r"[0-9a-fA-F]{6}", checked_color) is None:
+            raise BrokerError("ARGUMENT_INVALID", "label color must be exactly 6 hex digits")
+        checked_description = _typed_text(
+            "label description", description, LABEL_DESCRIPTION_MAX_BYTES
+        )
+        return prefix, {
+            "name": name,
+            "color": checked_color,
+            "description": checked_description,
+        }
+
+    def _label_manifest(self) -> dict[str, object]:
         path = self.label_manifest_path
         if not path:
             raise BrokerError(
@@ -2180,8 +2239,19 @@ class HostAccessBroker:
                 "REQUEST_DENIED", "label manifest must be a schema_version 2 object"
             )
         canonical = raw.get("canonical")
+        project_extensions = raw.get("project_extensions")
         retired = raw.get("retired")
-        if not isinstance(canonical, list) or not canonical or not isinstance(retired, list):
+        allowed_prefixes = (
+            project_extensions.get("allowed_prefixes")
+            if isinstance(project_extensions, dict)
+            else None
+        )
+        if (
+            not isinstance(canonical, list)
+            or not canonical
+            or not isinstance(allowed_prefixes, list)
+            or not isinstance(retired, list)
+        ):
             raise BrokerError("REQUEST_DENIED", "label manifest structure is invalid")
         for entry in canonical:
             if (
@@ -2197,6 +2267,26 @@ class HostAccessBroker:
         for entry in retired:
             if not isinstance(entry, dict) or not isinstance(entry.get("name"), str):
                 raise BrokerError("REQUEST_DENIED", "retired label entry is invalid")
+        for entry in allowed_prefixes:
+            if (
+                not isinstance(entry, dict)
+                or not isinstance(entry.get("prefix"), str)
+                or not entry["prefix"].endswith("/")
+            ):
+                raise BrokerError("REQUEST_DENIED", "extension prefix entry is invalid")
+        prefix_values = [entry["prefix"] for entry in allowed_prefixes]
+        for index, prefix in enumerate(prefix_values):
+            for other in prefix_values[index + 1:]:
+                if prefix.startswith(other) or other.startswith(prefix):
+                    raise BrokerError(
+                        "REQUEST_DENIED", "project-extension prefixes overlap"
+                    )
+            for managed in LABEL_MANAGED_PREFIXES:
+                if prefix.startswith(managed) or managed.startswith(prefix):
+                    raise BrokerError(
+                        "REQUEST_DENIED",
+                        "project-extension prefix overlaps a managed namespace",
+                    )
         return {
             "canonical": [
                 {
@@ -2206,6 +2296,11 @@ class HostAccessBroker:
                 }
                 for entry in canonical
             ],
+            "project_extensions": {
+                "allowed_prefixes": [
+                    {"prefix": entry["prefix"]} for entry in allowed_prefixes
+                ]
+            },
             "retired": [{"name": entry["name"]} for entry in retired],
         }
 

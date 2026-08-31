@@ -660,6 +660,64 @@ class HostAccessBrokerTests(unittest.TestCase):
             unconfigured.execute("aisoft-platform", "gitea.labels.provision")
         self.assertEqual(caught.exception.code, "REQUEST_DENIED")
 
+    def test_extension_label_validation_is_prefix_scoped_and_fail_closed(self) -> None:
+        calls: list[tuple] = []
+        broker = self._label_broker([], calls)
+
+        self.assertEqual(broker._extension_label_prefix("area/api"), "area/")
+        self.assertEqual(broker._extension_label_prefix("priority/high"), "priority/")
+        prefix, payload = broker._extension_label_definition(
+            "priority/high", "A1b2C3", "Project-owned priority"
+        )
+        self.assertEqual(prefix, "priority/")
+        self.assertEqual(
+            payload,
+            {
+                "name": "priority/high",
+                "color": "A1b2C3",
+                "description": "Project-owned priority",
+            },
+        )
+
+        for rejected in (
+            "team/x",
+            "type/feature",
+            "complexity/small",
+            "triage/ready-for-agent",
+            "completed",
+            "complexity/standard",
+            "priority/",
+        ):
+            with self.subTest(rejected=rejected), self.assertRaises(BrokerError) as caught:
+                broker._extension_label_prefix(rejected)
+            self.assertEqual(caught.exception.code, "REQUEST_DENIED")
+
+        for invalid_color in ("xyzxyz", "abc", "#aabbcc", "aabbcg"):
+            with self.subTest(color=invalid_color), self.assertRaises(BrokerError) as caught:
+                broker._extension_label_definition(
+                    "priority/high", invalid_color, "Project-owned priority"
+                )
+            self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+        self.assertEqual(calls, [])
+
+    def test_extension_label_validation_rejects_ambiguous_prefix_manifest(self) -> None:
+        raw = json.loads(LABELS.read_text())
+        raw["project_extensions"]["allowed_prefixes"].append(
+            {"prefix": "area/api/", "description": "ambiguous nested dimension"}
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            manifest = Path(temporary) / "labels.json"
+            manifest.write_text(json.dumps(raw))
+            calls: list[tuple] = []
+            broker = self._label_broker([], calls)
+            broker.label_manifest_path = str(manifest)
+
+            with self.assertRaises(BrokerError) as caught:
+                broker._extension_label_prefix("area/api/backend")
+            self.assertEqual(caught.exception.code, "REQUEST_DENIED")
+            self.assertIn("overlap", str(caught.exception))
+            self.assertEqual(calls, [])
+
     def _issue_comment_broker(self, comments: list[dict[str, object]], calls: list[tuple]):
         """Broker wired to an in-memory comment collection with real paging."""
 

@@ -111,6 +111,13 @@ expect_invalid 'prefix equals managed namespace' \
 expect_invalid 'prefix inside managed namespace' \
   '.project_extensions.allowed_prefixes += [{"prefix":"type/sub/","description":"x"}]'
 
+# Extension prefixes are independent dimensions. Equal or nested declarations
+# would make one label match multiple dimensions and must fail closed.
+expect_invalid 'duplicate extension prefix' \
+  '.project_extensions.allowed_prefixes += [{"prefix":"area/","description":"x"}]'
+expect_invalid 'nested extension prefix' \
+  '.project_extensions.allowed_prefixes += [{"prefix":"area/api/","description":"x"}]'
+
 # The third direction — a declared prefix that would swallow a managed namespace
 # — is unreachable with today's single-segment managed prefixes, because the
 # only string ending in "/" that prefixes "type/" is "type/" itself. Cover the
