@@ -64,6 +64,18 @@ class GovernedHostRunner:
     def labels_provision(self) -> Mapping[str, object]:
         return self._call("gitea.labels.provision")
 
+    def labels_extension_define(
+        self, label: str, color: str, description: str
+    ) -> Mapping[str, object]:
+        # Values pass through as typed scalars. The installed broker owns prefix,
+        # color and text validation; duplicating those rules here would drift.
+        return self._call(
+            "gitea.labels.extension.define",
+            "--label", label,
+            "--color", color,
+            "--description", description,
+        )
+
     def issue_labels_read(self, number: int) -> Mapping[str, object]:
         return self._call(
             "gitea.issue.labels.read",

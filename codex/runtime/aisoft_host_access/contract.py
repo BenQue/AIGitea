@@ -204,6 +204,9 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     # silently automatable.
     "gitea.labels.read": ("project-agent", False, ()),
     "gitea.labels.provision": ("project-agent", True, ()),
+    "gitea.labels.extension.define": (
+        "project-agent", True, ("label", "color", "description"),
+    ),
     # Per-Issue label attachment (#115), the other half of the pair above. The
     # naming rule from #108 holds: an operation with an issue. segment attaches,
     # one without defines. One operation per label dimension, never one that

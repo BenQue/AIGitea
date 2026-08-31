@@ -47,6 +47,11 @@ def build_parser() -> argparse.ArgumentParser:
     # and the broker is what namespaces them.
     broker.add_argument("--change-type")
     broker.add_argument("--complexity")
+    # Project-owned label values stay out of every platform manifest. The broker
+    # validates these typed scalars against the installed allowed-prefix set.
+    broker.add_argument("--label")
+    broker.add_argument("--color")
+    broker.add_argument("--description")
 
     profile = commands.add_parser("profile")
     profile.add_argument("--project", required=True)
@@ -99,6 +104,9 @@ def main(argv: list[str] | None = None) -> int:
                 lifecycle=args.lifecycle,
                 change_type=args.change_type,
                 complexity=args.complexity,
+                label=args.label,
+                color=args.color,
+                description=args.description,
             )
             _json(value)
             return 0

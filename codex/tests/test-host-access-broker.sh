@@ -13,12 +13,12 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 10 and
-  .operation_count == 31 and
+  .operation_count == 32 and
   .merge_operation_count == 1
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 31) and
+  ([.operations[].name] | length == 32) and
   all(.operations[];
     ((.name | contains("merge") | not) or .name == "gitea.pull.merge.routine") and
     (.name | contains("shell") | not) and
@@ -46,6 +46,9 @@ jq -e '
   ([.operations[] | select(.name == "host.onboarding.check")][0].arguments == []) and
   ([.operations[] | select(.name == "gitea.labels.read")][0].arguments == []) and
   ([.operations[] | select(.name == "gitea.labels.provision")][0].arguments == []) and
+  ([.operations[] | select(.name == "gitea.labels.extension.define")][0]
+    == {"name":"gitea.labels.extension.define","identity_route":"project-agent",
+        "mutating":true,"arguments":["label","color","description"]}) and
   ([.operations[] | select(.name == "gitea.issue.comments.read")][0].arguments == ["number"]) and
   ([.operations[] | select(.name == "gitea.issue.comments.read")][0].mutating == false) and
   ([.operations[] | select(.name == "gitea.actions.run.read")][0].arguments == ["sha"]) and

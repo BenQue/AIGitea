@@ -1018,6 +1018,9 @@ class HostAccessBroker:
         lifecycle: str | None = None,
         change_type: str | None = None,
         complexity: str | None = None,
+        label: str | None = None,
+        color: str | None = None,
+        description: str | None = None,
     ) -> object:
         try:
             project = self.contract.project(project_id)
@@ -1037,6 +1040,9 @@ class HostAccessBroker:
             "lifecycle": lifecycle,
             "change_type": change_type,
             "complexity": complexity,
+            "label": label,
+            "color": color,
+            "description": description,
         }
         supplied = {
             key for key, value in arguments.items()
@@ -1064,6 +1070,9 @@ class HostAccessBroker:
                     lifecycle=lifecycle,
                     change_type=change_type,
                     complexity=complexity,
+                    label=label,
+                    color=color,
+                    description=description,
                 )
             if operation_name.startswith("git.") or operation_name == "mac.git.bind":
                 return self._git(project, operation, branch=branch)
@@ -1461,10 +1470,14 @@ class HostAccessBroker:
         lifecycle: str | None,
         change_type: str | None,
         complexity: str | None,
+        label: str | None,
+        color: str | None,
+        description: str | None,
     ) -> object:
         method = "GET"
         payload: object | None = None
         pull_change: ChangeName | None = None
+        extension_definition: dict[str, str] | None = None
         if operation.name == "gitea.issue.create":
             method = "POST"
             payload = {
@@ -1514,6 +1527,10 @@ class HostAccessBroker:
                 )
         elif operation.name == "gitea.actions.job.logs.read":
             _positive_number(job, "Actions job")
+        elif operation.name == "gitea.labels.extension.define":
+            _prefix, extension_definition = self._extension_label_definition(
+                label, color, description
+            )
         elif operation.name == "gitea.issue.comments.read":
             _positive_number(number, "Issue")
         elif operation.name == "gitea.issue.labels.read":
@@ -1560,6 +1577,11 @@ class HostAccessBroker:
             return self._labels(repo_api, credential.token)
         if operation.name == "gitea.labels.provision":
             return self._provision_labels(repo_api, credential.token)
+        if operation.name == "gitea.labels.extension.define":
+            assert extension_definition is not None
+            return self._define_extension_label(
+                repo_api, credential.token, extension_definition
+            )
         if operation.name == "gitea.actions.run.read":
             assert sha is not None
             return self._actions_runs(repo_api, credential.token, sha)
@@ -1731,6 +1753,42 @@ class HostAccessBroker:
             "updated": updated,
             "unchanged": unchanged,
             "retired_present": retired_present,
+            "status": "PASS",
+        }
+
+    def _define_extension_label(
+        self,
+        repo_api: str,
+        token: str,
+        definition: Mapping[str, str],
+    ) -> dict[str, object]:
+        """Create one project-owned extension label, adopting existing metadata.
+
+        Unlike canonical provisioning, this operation has no platform metadata
+        source to converge onto. An existing label is therefore preserved byte
+        for byte as Gitea returned it and is never PATCHed.
+        """
+        remote = {item["name"]: item for item in self._labels(repo_api, token)}
+        name = definition["name"]
+        current = remote.get(name)
+        if current is not None:
+            metadata = {
+                "name": current["name"],
+                "color": current["color"],
+                "description": current["description"],
+            }
+            result = "existing-preserved"
+        else:
+            self._request_json(
+                f"{repo_api}/labels", token, method="POST", payload=dict(definition)
+            )
+            metadata = dict(definition)
+            result = "created"
+        return {
+            "operation": "gitea.labels.extension.define",
+            "label": name,
+            "result": result,
+            "metadata": metadata,
             "status": "PASS",
         }
 

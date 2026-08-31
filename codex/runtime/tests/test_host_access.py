@@ -620,6 +620,88 @@ class HostAccessBrokerTests(unittest.TestCase):
             "DELETE", {method for method, _url, _payload in calls}
         )
 
+    def test_extension_label_define_creates_once_and_preserves_existing_metadata(self) -> None:
+        remote: list[dict[str, object]] = []
+        calls: list[tuple] = []
+        broker = self._label_broker(remote, calls)
+
+        created = broker.execute(
+            "aisoft-platform", "gitea.labels.extension.define",
+            label="area/api", color="b60205", description="Project API area",
+        )
+        self.assertEqual(created["result"], "created")
+        self.assertEqual(
+            created["metadata"],
+            {"name": "area/api", "color": "b60205",
+             "description": "Project API area"},
+        )
+        self.assertEqual(
+            [(url, payload) for method, url, payload in calls if method == "POST"],
+            [("http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/labels",
+              {"name": "area/api", "color": "b60205",
+               "description": "Project API area"})],
+        )
+        self.assertEqual([method for method, _url, _payload in calls if method == "PATCH"], [])
+
+        # NewEMaint-shaped fossil: caller-supplied metadata is deliberately
+        # different. Define adopts the existing value and must preserve both
+        # strings exactly, including the leading #, case and whitespace.
+        remote[0]["color"] = "#AaBbCc"
+        remote[0]["description"] = "  pre-platform fossil metadata  "
+        calls.clear()
+        existing = broker.execute(
+            "aisoft-platform", "gitea.labels.extension.define",
+            label="area/api", color="ffffff", description="must not replace fossil",
+        )
+        self.assertEqual(existing["result"], "existing-preserved")
+        self.assertEqual(
+            existing["metadata"],
+            {"name": "area/api", "color": "#AaBbCc",
+             "description": "  pre-platform fossil metadata  "},
+        )
+        self.assertEqual({method for method, _url, _payload in calls}, {"GET"})
+        self.assertEqual(remote[0]["color"], "#AaBbCc")
+        self.assertEqual(remote[0]["description"], "  pre-platform fossil metadata  ")
+
+    def test_extension_label_define_arguments_are_exact_and_fail_before_mutation(self) -> None:
+        calls: list[tuple] = []
+        broker = self._label_broker([], calls)
+        operation = self.contract.operation("gitea.labels.extension.define")
+        self.assertEqual(operation.identity_route, "project-agent")
+        self.assertTrue(operation.mutating)
+        self.assertEqual(operation.arguments, ("label", "color", "description"))
+
+        for kwargs in (
+            {"label": "priority/high", "color": "b60205"},
+            {"label": "priority/high", "description": "missing color"},
+            {"color": "b60205", "description": "missing label"},
+            {"label": "priority/high", "color": "b60205",
+             "description": "extra", "number": 229},
+        ):
+            with self.subTest(kwargs=sorted(kwargs)), self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.labels.extension.define", **kwargs
+                )
+            self.assertEqual(caught.exception.code, "ARGUMENT_MISMATCH")
+
+        for rejected in (
+            "team/x", "type/feature", "complexity/small",
+            "triage/ready-for-agent", "completed", "complexity/standard", "priority/",
+        ):
+            with self.subTest(label=rejected), self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.labels.extension.define",
+                    label=rejected, color="b60205", description="rejected",
+                )
+            self.assertEqual(caught.exception.code, "REQUEST_DENIED")
+        with self.assertRaises(BrokerError) as invalid_color:
+            broker.execute(
+                "aisoft-platform", "gitea.labels.extension.define",
+                label="priority/high", color="nothex", description="rejected",
+            )
+        self.assertEqual(invalid_color.exception.code, "ARGUMENT_INVALID")
+        self.assertEqual(calls, [])
+
     def test_label_read_paginates_and_validates_entries(self) -> None:
         remote = [
             {"id": i, "name": f"label-{i}", "color": "aabbcc", "description": "d"}
@@ -4300,6 +4382,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             number=None, state=None, branch=None, issue=70,
             title="fix(host-access): governed writes", body=body, comment=None, sha=None,
             job=None, lifecycle=None, change_type=None, complexity=None,
+            label=None, color=None, description=None,
         )
         self.assertEqual(json.loads(stdout.getvalue()), {"number": 71})
 
@@ -4324,6 +4407,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             number=115, state=None, branch=None, issue=None,
             title=None, body=None, comment=None, sha=None, job=None, lifecycle="completed",
             change_type=None, complexity=None,
+            label=None, color=None, description=None,
         )
 
         # --change-type / --complexity are typed fields on the same terms
@@ -4347,7 +4431,33 @@ class HostAccessBrokerTests(unittest.TestCase):
             number=160, state=None, branch=None, issue=None,
             title=None, body=None, comment=None, sha=None, job=None, lifecycle=None,
             change_type="platform", complexity="complex",
+            label=None, color=None, description=None,
         )
+
+        define_argv = [
+            "--access-manifest", str(ACCESS),
+            "--governance-manifest", str(GOVERNANCE),
+            "broker", "--project", "aisoft-platform",
+            "--operation", "gitea.labels.extension.define",
+            "--label", "priority/high", "--color", "b60205",
+            "--description", "Project priority",
+        ]
+        stdout = io.StringIO()
+        with (
+            patch.object(
+                HostAccessBroker, "execute", return_value={"result": "created"}
+            ) as execute,
+            redirect_stdout(stdout),
+        ):
+            self.assertEqual(host_access_cli_main(define_argv), 0)
+        execute.assert_called_once_with(
+            "aisoft-platform", "gitea.labels.extension.define",
+            number=None, state=None, branch=None, issue=None,
+            title=None, body=None, comment=None, sha=None, job=None, lifecycle=None,
+            change_type=None, complexity=None,
+            label="priority/high", color="b60205", description="Project priority",
+        )
+        self.assertEqual(json.loads(stdout.getvalue()), {"result": "created"})
 
         for forbidden in (
             "--url", "--owner", "--repository", "--method", "--raw-body",
@@ -4403,6 +4513,35 @@ class GovernedHostRunnerTests(unittest.TestCase):
             ),
         )
         self.assertFalse(hasattr(runner, "merge"))
+        self.assertFalse(hasattr(runner, "execute"))
+        self.assertFalse(hasattr(runner, "request"))
+
+    def test_runner_extension_define_uses_only_fixed_typed_arguments(self) -> None:
+        calls = []
+
+        def command_runner(argv, **kwargs):
+            calls.append((list(argv), kwargs))
+            return subprocess.CompletedProcess(
+                argv, 0, '{"result":"created","status":"PASS"}\n', ""
+            )
+
+        runner = GovernedHostRunner(
+            self.contract, "aisoft-platform", command_runner=command_runner,
+        )
+        self.assertEqual(
+            runner.labels_extension_define(
+                "priority/high", "b60205", "Project priority"
+            )["result"],
+            "created",
+        )
+        self.assertEqual(calls[0][0], [
+            "/usr/local/libexec/aisoft/host-access-broker",
+            "--project", "aisoft-platform",
+            "--operation", "gitea.labels.extension.define",
+            "--label", "priority/high",
+            "--color", "b60205",
+            "--description", "Project priority",
+        ])
         self.assertFalse(hasattr(runner, "execute"))
         self.assertFalse(hasattr(runner, "request"))
 
