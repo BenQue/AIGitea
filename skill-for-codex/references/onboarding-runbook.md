@@ -42,8 +42,8 @@ permission、visibility、protection、cross-project 或 read-back 失败均终�
 
 Issue #61/#70 发布后，已在 host-access manifest 中的项目从 fixed broker 访问 host；Mac checkout 只用
 repo-local protected-file helper，VM profile 只用 `GITEA_IDENTITY` + fixed mode 600 token file。Issue #73
-candidate 允许项目在 manifest 中声明 strict `git_remote_name`；未声明兼容 `origin`，NewEmaint 固定
-`gitea`。调用方不能传 remote name/URL/owner/repository/refspec，broker 也不创建或改写 remote。
+candidate 允许项目在 manifest 中声明 strict `git_remote_name`；未声明兼容 `origin`，已声明的项目
+按各自 manifest 的取值（例如 `gitea`）。调用方不能传 remote name/URL/owner/repository/refspec，broker 也不创建或改写 remote。
 新项目仍必须先通过独立 AISoftPlatform Issue/PR 同时更新 governance 与 host-access manifests，再执行
 本节的账号/权限流程。
 `orbstack-access-diagnostics` 不得作为接入前置，只在 broker failure 且真实状态仍矛盾时 emergency 使用。
@@ -64,7 +64,7 @@ candidate 允许项目在 manifest 中声明 strict `git_remote_name`；未声�
 6. 最后运行本项目 fresh-session typed Issue/change/PR/required-CI canary。一个项目的 PASS 不授权另一个
    项目；每个项目使用独立 adoption Issue 与 evidence。
 
-平台 #73 PR 人工合并前不得创建 NewEmaint adoption Issue；合并后才单独完成 NewEmaint binding/live
+平台 manifest PR 人工合并前不得创建该项目的 adoption Issue；合并后才逐项目单独完成 binding/live
 canary。其它项目不得批量启用。
 
 标准入口（只替换尖括号；token file 只写路径，不打印内容）：
@@ -182,97 +182,75 @@ writable。
 
 ## 4. CI 与部署
 
-新 Linux 软件仓库默认消费平台
-[`docker-release/v2`](../../docker-release/README.md)，而不是复制 `rsdesign-new` 的 PM2
-脚本。接入顺序：
+平台只给**环境级指导性意见**：对下面三类环境各给出原则与验收不变量，不给出真正的部署步骤
+与全部细节。具体部署方案、脚本、参数与差异一律在各项目仓实现——即使环境相同，不同项目也
+会有细微差异。CI 侧不变：`scm-ci` 只完成 checkout/build/test/package/publish，任何 workflow 或
+wrapper 在 mutation 前都要通过 §3 的 host-role guard，application/database mutation 只发生在
+AppServer role。
 
-1. 项目独立 Issue/spec/plan/PR 实现 Dockerfile、Compose、migration service、业务 health、
-   Gitea Registry publish 和 offline bundle；平台 candidate 不能替代应用验收。
-2. 从 `docker-release/templates/target-profile.example.json` 生成 test/prod target profile，
-   按环境填写 hostname、`appserver-test`/`appserver-prod` role、transport、路径、Compose
-   project 和 #23 architecture identity，设为 mode `0400/0600`。模板和仓库都不填 Secret。
-3. Secret 只在目标机受保护 env file；release manifest、architecture lock、Compose、state、
-   argv、日志和 verification 不保存 Secret 值。
-4. Builder 生成以完整 Gitea merge SHA 为 ID 的 `release.json`、digest-pinned images、Compose/
-   architecture checksums、producer-normalized Compose model 和 offline inventory。V2 对每个 service 同时记录 Registry digest
-   `reference`、content `image_id`、deterministic `transport_reference`/`runtime_reference`；后两者
-   必须等于 `aisoft.local/<lower-owner>/<lower-repo>/<service>:<full-sha>`。Builder 先按 digest
-   inspect，再 tag、重复 inspect exact ID/`linux/amd64`，最后按 tag save。目标 AppServer 不
-   build/install/git pull/访问公网。
-5. 先运行 artifact-only `verify-artifact`，再用逐 action root-owned grant 分别执行 read-only
-   `verify-target`、`stage`、`migrate`、`activate`、`status` 和 `rollback`。Stage 不读取 database
-   Secret、不运行 migration/up；migrate 不 stage/up；activate 不 stage/migrate。故意覆盖 bundle
-   tamper、host-role mismatch、missing receipt、migration failure 和 health failure rollback；再由
-   独立生产 Gate 提升同一 identity。Legacy `deploy` 只为既有 v1 调用方保留。
+### 4.1 Linux 原生
 
-NewEmaint 的示例 profile 仅说明平台字段，不授权修改 NewEmaint 仓库、创建真实 Secret、执行
-migration 或部署。其首个消费实现仍须在 NewEmaint 自己的 exact
-`change/N-short-description`、映射的 `docs/changes/N-short-description/` 语义文档和唯一最终 PR
-中完成。
+宿主直接承载运行时（例如 systemd 直管的服务进程），不经容器，也不经进程管理器中间层。原则：
 
-Offline consumer 只接受 `docker-release-offline-bundle/v2` +
-`docker-release-offline-inventory/v2`，在 load 前验证 archive/inventory/Compose/architecture
-checksums、tar member 与逐 service tag allowlist；load 后按 runtime tag 验证 exact image ID 与
-`linux/amd64`，不依赖 `RepoDigests`。既有 legacy manifest 只保留 Registry digest path；legacy
-offline bundle 必须从受控 producer 重新发布，禁止手改 archive/inventory 冒充 V2。
+- 制品按 release 版本落盘，`current` 由符号链接切换；回滚即切回上一 release 并重启服务，必须
+  实测。
+- 服务单元、drop-in 与环境文件模板进版本库；Secret 只存在于目标机受保护的环境文件
+  （`0400/0600`），单元文件、argv、日志和 verification 不保存 Secret 值。
+- 重启策略、健康探测与失败判定明确写出，不得用自动重启掩盖启动失败或连接池打满。
+- 选择这一形态的项目由自己的 complex Change 记录裁定理由，并在 architecture 声明中如实选取
+  对应 profile 与 `delivery_contract`（§9）。
 
-接入 Docker target 前还要读取平台 versioned image-store matrix。Runtime 只接受由同 fixture
-真实 E2E 支持的唯一 row；Engine 29 不能自动等同 containerd，必须用 `DriverStatus` marker
-只读检测。Issue #27 已在两个独立 disposable Engine 29 containerd daemon 上完成 Registry 与
-offline transport、Compose runtime/identity/health 和 exact cleanup E2E，containerd row 由已提交的
-`issue-27-containerd-a75181cd7209` evidence 固定为 `supported`。Classic 没有同等级真实证据，继续
-`rejected`；不得把 fake tests、源码结论或应用 synthetic verifier 写成 classic 环境 PASS。
-Compose 5.1.4 同样需要同等级 disposable Engine 29/containerd consumer E2E 与 committed evidence；
-在此之前不得扩展 supported matrix。
+### 4.2 Linux 容器化
 
-已有 PM2 应用在独立迁移验收前继续作为 legacy adapter。维护这些应用时保留：
+以 OCI 镜像加容器编排承载运行时。原则：
 
-- 构建产物完整性检查。
-- 不可变制品和环境配置分离。
-- 数据备份和向后兼容迁移。
-- SQLite 的停应用后迁移。
-- PM2 delete+start 与 online 断言。
-- HTTP health check 和失败回滚。
-- `scm-ci` 只构建/测试/发布制品，AppServer 才执行 application/database mutation。
-- `/opt/artifacts` retention 先验证项目 allowlist、完整 SHA/checksum、引用、数量和期限，只
-  输出 dry-run/audit ledger；删除另行授权。
+- 受控 builder 一次构建；测试与生产只消费同一组 digest 固定的镜像与同一份编排定义，目标机
+  不 build、不 install、不 git pull、不访问公网。
+- 镜像、编排定义与 architecture identity 一起进入以完整 merge SHA 为 ID 的不可变 release 标识；
+  镜像仓库或离线包只是传输方式，不改变 identity。
+- migration 与应用启动分离：migration 前完成可验证备份；migration 不启动应用，启动不做
+  migration。
+- 运行时（Engine、编排工具、镜像存储）版本只接受项目自己用真实 E2E 证明过的组合，不得凭
+  源码结论或 fake PASS 扩展。
+- 平台 `docker-release/` 目录是一份可选用的参考实现与合同，不是项目的部署步骤事实源；项目
+  采用与否、如何裁剪，在项目仓声明与实现。
 
-### 4.1 systemd 原生交付（`systemd-native/v1`）
+### 4.3 Windows
 
-不使用容器承载运行时、也不经 PM2 中间层的 Linux Node 服务声明
-`architecture/profiles/linux-node-systemd-postgres-v1.json` 与 `delivery_contract`
-`systemd-native/v1`（ADR-0005）。它是默认 `docker-release/v2` 的显式偏离，必须由应用仓
-自己的 complex Change 记录裁定理由，不能由项目侧临时选取。
+Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 
-与 `docker-release/v2` 共用的验收步骤：
+- 单一制品（ZIP 等）带校验和与 manifest，按 release 版本落盘，`current` 由 junction 切换；回滚
+  即切回上一 release，必须实测。
+- 上传与执行入口固定（例如 OpenSSH 加固定 PowerShell 入口）；部署脚本幂等、结构化日志、
+  Secret 脱敏；外部配置、Secret、身份和地址只在目标机表达。
+- 允许短暂计划停机时也必须先备份、后切换，健康检查通过才算完成。
+- 平台 `12-Windows`、`14`、`15` 分册是设计与验收参考，不是部署步骤事实源；步骤与细节由项目仓
+  实现。
 
-- 不可变、带版本、可回滚的制品；`scm-ci` 只构建/测试/发布，AppServer 才执行 application/
-  database mutation。
-- Secret 只存在于目标机受保护 env file；lock、单元文件、argv、日志和 verification 不保存
-  Secret 值。
-- migration 前完成可验证备份，向后兼容迁移，HTTP health check 与失败回滚。
-- 开发/测试环境首次部署由 AI 参与并固化为脚本：连续执行两次幂等，另做一次故意失败回滚，
-  真实结果写进映射的 `verification` 文档；生产只跑已验收脚本。
+### 4.4 对所有环境一致的流程不变量
 
-不适用的步骤（不得用 fake PASS 顶替）：
+- 不可变制品：一次构建、带版本、带完整 merge SHA 与校验和。
+- 测试与生产同字节晋级：生产消费的必须是测试环境验收过的同一制品，不重新构建。
+- 部署前备份：数据库或数据目录先有可验证备份，migration 向后兼容。
+- 健康检查含精确 release SHA：健康端点返回内容能证明正在运行的是哪一个 release。
+- 可回滚：回滚路径是版本化脚本的一部分，并已实测。
+- 生产 script-only：生产只运行已验证、版本化、可回滚的确定性脚本，不安装或调用 AI，不执行
+  临时命令。
+- AI 只参与非生产首次部署并固化为脚本：开发/测试环境的首次部署由 AI 参与，把所有成功手工
+  步骤固化为脚本，连续运行两次幂等，另做一次故意失败验证回滚，真实结果写入关联 Issue 映射的
+  `verification` 文档；平台 local fake PASS、安装候选或 PR CI 不能写成真实 AppServer/production
+  deployed。
+- 职责隔离：`scm-ci` 只构建/测试/发布制品，application/database mutation 只在 AppServer
+  role（§3）。
 
-- digest-pinned OCI base image 与 `oci.*` component：本 profile 没有 OCI slot。
-- Gitea Registry publish、`docker-release-offline-bundle/v2` 与
-  `docker-release-offline-inventory/v2`、Compose model/checksum、image-store matrix
-  （Engine 29/containerd）与 `aisoft-docker-release` 的 stage/activate 阶段。
-- Docker target profile 的 `architecture_project_id` 绑定。release manifest 运行时要求
-  lock 的 `delivery_contract` 是 docker-release 取值，systemd-native lock 进不了该路径，
-  这是合同边界而非缺陷。
+### 4.5 项目仓必须自行声明与实现交付方案
 
-改为要求：
-
-- 单元文件与 drop-in 进版本库；`EnvironmentFile` 模式 `0400/0600`；`ExecStart` 指向声明的
-  Node major。
-- 制品目录按 release 版本落盘，current 由符号链接切换；回滚即切回上一 release 并
-  `systemctl` 重启，必须实测。
-- 重启策略、健康探测与失败判定明确写出，且不得用 restart 掩盖启动失败或连接池打满。
-
-AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固化为脚本，连续运行两次，并故意制造一次失败验证回滚。把真实结果写入关联 Issue 映射的 `verification` 文档。生产只执行验收后的脚本。平台 local fake PASS、安装候选或 PR CI 不能写成真实 AppServer/production deployed。
+- 声明：项目 `AGENTS.md`「项目事实」写明交付形态（Linux 容器化 / Linux 原生 / Windows / 其它）
+  与部署方案位置；`.aisoft/architecture.json` 的 `delivery_contract` 如实选取（§9）。
+- 实现：部署脚本、参数、环境差异与验收记录都在项目仓自己的 `docs/` 或脚本目录，走项目自己
+  的 Issue/spec/plan/PR；平台 candidate、参考实现或分册都不能替代项目自己的验收。
+- 已有的 legacy 交付方式在项目完成独立迁移验收前继续作为该项目自己的 adapter 维护，仍受本节
+  不变量约束。
 
 ## 5. Gitea 治理
 
@@ -403,14 +381,15 @@ AI 可以参与开发/测试环境首次部署。把所有成功手工步骤固�
    `supported`/`sunset` transition；禁止目录名推测、Secret、`latest`、semver range、
    mutable-only OCI 和 `prohibited`/EOL component。profile 必须匹配仓库的真实运行形态：
    `linux-node-postgres-v1` 用于容器化 Prisma/Next 栈，`linux-node-systemd-postgres-v1`
-   用于 systemd 直管、无容器、无前端框架且查询层不限定 Prisma 的 Node 服务（见 §4.1），
+   用于 systemd 直管、无容器、无前端框架且查询层不限定 Prisma 的 Node 服务（§4 Linux 原生），
    `small-embedded-sqlite-v1` 用于单实例本地 SQLite，`windows-dotnet-postgres-v1` 用于
    Windows/IIS。`required_components` 没有「本项目不适用」的逃生口：没有任何 profile 能
    如实描述该仓库时，正确处置是在平台仓开 Issue 新增 profile，而不是虚报 component 或
    套用最接近的 profile。
 3. `delivery_contract` 必须属于所选 profile 的 `delivery_contracts`，并且如实描述交付形态：
    `docker-release/v1` 容器、`pm2-legacy` 既有 PM2、`systemd-native/v1` systemd 原生、
-   `windows-iis/v1`、`embedded-sqlite/v1`。这些取值互相排斥，不得为了让校验通过而挑一个近似值。
+   `windows-iis/v1`、`embedded-sqlite/v1`。这些取值互相排斥，不得为了让校验通过而挑一个近似值；
+   取值只声明交付形态类别，对应的部署方案由项目仓按 §4.5 自行实现。
 4. 用 `aisoft-architecture lock` 生成并提交 `architecture.lock.json`，连续两次输出必须
    byte-identical；随后用 `validate --lock` 检查 drift。
 5. 每个 transition 必须引用应用仓中真实可读的绝对 HTTPS migration Issue，并有唯一匹配的

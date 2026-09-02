@@ -37,10 +37,14 @@
 - `01`–`07`：现有平台 as-built 文档（03 流程、04 Matt 编排与 Loop、06 运维踩坑、07 内网平移）。
 - `08-Codex双工具共存与实施.md`：Codex 方案、实施步骤与验收状态。
 - `09-v3平台简化与Loop-Engineering文档改造规划.md`：v3 决策、文档迁移、Loop 与部署边界。
-- `12-Linux-GitHub-Gitea-双服务器自动部署方案.md`：Linux 内网三角色交付合同（文件名保留早期「双服务器」提案以维持链接）。
-- `12-Windows平台自动部署方案.md`、`13-项目结果迁移与内网切换实施手册.md`、`14-Windows部署与迁移验收清单.md`、`15-VMware-Fusion-Windows-ARM原型实施手册.md`：Windows 与内网迁移线（尚未实施）。
-- `architecture/`：技术架构 catalog/profiles/schemas/lock 的唯一平台事实源与 CLI。
-- `docker-release/`：Docker-first 发布合同（release manifest、transport、capability gate、CLI）。
+- 交付形态参考（按项目选用，非部署步骤事实源；环境级原则见 `skill-for-codex/references/onboarding-runbook.md` §4，步骤与细节在项目仓）：
+  - `12-Linux-GitHub-Gitea-双服务器自动部署方案.md`：Linux 容器化——GitHub 入站与三角色职责分离的参考合同（文件名保留早期「双服务器」提案以维持链接）。参考、非部署步骤事实源。
+  - `docker-release/`：Linux 容器化——Docker-first 发布合同（release manifest、transport、capability gate、CLI）的参考实现。参考、非部署步骤事实源。
+  - `12-Windows平台自动部署方案.md`：Windows——IIS/.NET/PostgreSQL 交付链设计（尚未实施）。参考、非部署步骤事实源。
+  - `13-项目结果迁移与内网切换实施手册.md`：全环境（内网迁移线）——结果基线迁移与内网切换手册（尚未实施）。参考、非部署步骤事实源。
+  - `14-Windows部署与迁移验收清单.md`：Windows——部署与迁移验收证据模板（全部 NOT RUN）。参考、非部署步骤事实源。
+  - `15-VMware-Fusion-Windows-ARM原型实施手册.md`：Windows（Mac 本地原型）——部署脚本快速调试层。参考、非部署步骤事实源。
+  - `architecture/`：全环境——技术架构 catalog/profiles/schemas/lock 的平台事实源与 CLI；交付形态取值由项目如实选取，部署方案在项目仓。参考、非部署步骤事实源。
 - `sync/`：GitHub 入站同步的 scm-ci 侧脚本与 systemd 单元。
 - `codex/skills/`：可部署到 `$HOME/.agents/skills/` 的 Codex 原生 skills 源（含 `aisoft-matt-workflow`）。
 - `codex/vendor/mattpocock/`：固定版本的 Matt Pocock skills 上游快照与 manifest。

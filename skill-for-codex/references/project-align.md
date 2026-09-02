@@ -30,8 +30,8 @@
 | 3 | Matt 编排三件套已初始化 | `templates/docs/agents/`；runbook §2 | 人工核对 |
 | 4 | canonical 标签读回一致；受管命名空间无冲突取值、无仍在用的 retired 取值；其余标签须落在 manifest 声明的扩展前缀内 | `codex/config/gitea-labels.json`（`schema_version: 2`）；runbook §5 | `labels-readback`（`--remote`） |
 | 5 | required CI context 与治理清单一致 | `codex/config/gitea-governance.json`；runbook §5/§8 | `ci-context`（`--remote`） |
-| 6 | `.aisoft/architecture.json` 声明 + lock 有效 | runbook §9（Architecture declaration onboarding）；`architecture/bin/aisoft-architecture` | `architecture-lock` |
-| 7 | 交付形态（delivery profile）已显式声明 | runbook §4；目标仓 AGENTS.md 项目事实 | `delivery-profile` |
+| 6 | `.aisoft/architecture.json` 声明 + lock 有效 | runbook §9（Architecture declaration onboarding，含 `delivery_contract` 如实选取）；`architecture/bin/aisoft-architecture` | `architecture-lock` |
+| 7 | 交付形态（delivery profile）已显式声明，部署方案位置指向项目自己的 docs/脚本目录 | runbook §4（环境级原则，非部署步骤）；目标仓 AGENTS.md 项目事实与项目自己的部署文档 | `delivery-profile` |
 | 8 | host access / onboarding 聚合核对 | runbook §1.1；broker `host.onboarding.check` | 既有工具，非本检查器 |
 | 9 | routine auto-merge eligibility、opt-in、独立 merger 与 protection read-back | governance manifest；runbook §1.1/§5 | runtime checker/read-back；source contract 只人工核对 |
 
