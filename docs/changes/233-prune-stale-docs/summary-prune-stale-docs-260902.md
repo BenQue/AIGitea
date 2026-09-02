@@ -25,9 +25,9 @@ override_reason: ''
 depends_on:
   - 231
   - 232
-status: approved
+status: pr-open
 branch: change/233-prune-stale-docs
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/236
 created: 2026-09-02
 updated: 2026-09-03
 ---
