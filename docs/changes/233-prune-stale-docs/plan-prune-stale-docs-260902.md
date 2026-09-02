@@ -25,11 +25,11 @@ updated: 2026-09-03
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | provider 等价与 Codex-first（spec A 组）：`08` 改名并同步 README/`09`/`archive/11` 链接；`08` §1/§4/§7/§8/§10 改写（§4 历史条目暂存到 T03 的 archive 文件）；`04` §3/§10 | - | pending |
-| T02 | 退役身份与已兑现条件句（spec B 组）：`skill-for-codex/SKILL.md`、`onboarding-runbook.md`、`private-gitea-access.md`、`gitea-platform-ops/SKILL.md`、`04` §11、`06` 四处；删除 `smoke.sh:465–466` 陈旧断言（B-14） | - | pending |
-| T03 | 状态历史与判定（spec C/D/F 组）：新建 `archive/平台状态历史-20260902.md` 并收录 README §1 与 `08` §4 迁出条目；README header/§1 改写与 §5 导航行（A-13）；`archive/README.md` 索引；`09` header 与 §0.2 落地对照；02/12–15 定位尾句 | T01 | pending |
-| T04 | 根 `AGENTS.md` 目录段（spec E 组，独立、只含 `AGENTS.md` 的原子 commit） | - | pending |
-| T05 | `smoke.sh` references 项目名守卫（G-01）+ 反向证明；验证与记录：AC-2 grep、链接脚本、smoke、project-check、test-install-claude-skills、两侧 check-drift、非目标 diff；填 verification | T01, T02, T03, T04 | pending |
+| T01 | provider 等价与 Codex-first（spec A 组）：`08` 改名并同步 README/`09`/`archive/11` 链接；`08` §1/§4/§7/§8/§10 改写（§4 历史条目暂存到 T03 的 archive 文件）；`04` §3/§10 | - | done |
+| T02 | 退役身份与已兑现条件句（spec B 组）：`skill-for-codex/SKILL.md`、`onboarding-runbook.md`、`private-gitea-access.md`、`gitea-platform-ops/SKILL.md`、`04` §11、`06` 四处；删除 `smoke.sh:465–466` 陈旧断言（B-14） | - | done |
+| T03 | 状态历史与判定（spec C/D/F 组）：新建 `archive/平台状态历史-20260902.md` 并收录 README §1 与 `08` §4 迁出条目；README header/§1 改写与 §5 导航行（A-13）；`archive/README.md` 索引；`09` header 与 §0.2 落地对照；02/12–15 定位尾句 | T01 | done |
+| T04 | 根 `AGENTS.md` 目录段（spec E 组，独立、只含 `AGENTS.md` 的原子 commit） | - | done |
+| T05 | `smoke.sh` references 项目名守卫（G-01）+ 反向证明；验证与记录：AC-2 grep、链接脚本、smoke、project-check、test-install-claude-skills、两侧 check-drift、非目标 diff；填 verification | T01, T02, T03, T04 | done |
 
 Ticket ID 固定为 `Txx`；依赖只引用本表中的 ID。T01、T02、T04 互不依赖、各自保持仓库全绿
 （T02 内含删除 `smoke.sh:465–466`，否则删除退役 gate 块后 smoke 会红）。T03 依赖 T01 只因 archive
