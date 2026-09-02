@@ -35,7 +35,7 @@
 ## 目录
 
 - `01`–`07`：现有平台 as-built 文档（03 流程、04 Matt 编排与 Loop、06 运维踩坑、07 内网平移）。
-- `08-Codex双工具共存与实施.md`：Codex 方案、实施步骤与验收状态。
+- `08-双工具共存与实施.md`：Claude Code 与 Codex 共存的共享契约、provider 验证矩阵与部署边界。
 - `09-v3平台简化与Loop-Engineering文档改造规划.md`：v3 决策、文档迁移、Loop 与部署边界。
 - 交付形态参考（按项目选用，非部署步骤事实源；环境级原则见 `skill-for-codex/references/onboarding-runbook.md` §4，步骤与细节在项目仓）：
   - `12-Linux-GitHub-Gitea-双服务器自动部署方案.md`：Linux 容器化——GitHub 入站与三角色职责分离的参考合同（文件名保留早期「双服务器」提案以维持链接）。参考、非部署步骤事实源。
@@ -54,7 +54,7 @@
 - `codex/install-vm.sh`、`codex/install-skills.sh`、`codex/install-host-role.sh`、`codex/install-host-access-broker.sh`：安装 runtime/skills/guard/broker，不复制凭据。
 - `skill-for-codex/`：复合 `aisoft-platform` skill（Codex 版）与 onboarding/private-access references。
 - `templates/docs/changes/_template/`：v3 summary/spec/plan/verification 模板；`templates/docs/agents/`：Matt tracker/triage/domain 配置模板；`templates/agent/`、`templates/hosts/`、`templates/loop/`：profile 与 verifier 示例。
-- `archive/`：历史实施记录与旧方案（含 10/11），只读参考，不作当前配置来源。
+- `archive/`：历史实施记录、旧方案（含 10/11）与平台状态历史，只读参考，不作当前配置来源。
 
 ## Git
 
