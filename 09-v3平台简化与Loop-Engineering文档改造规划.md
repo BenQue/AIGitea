@@ -507,7 +507,7 @@ AI 可以与人一起在开发/测试环境：
 | `05-通知与多人协作.md` | 通知从三闸门就绪转向 analysis 完成、Loop 升级、PR ready、CI/部署失败和回滚结果 | Gitea mailer、Mailpit/SMTP、多用户协作 |
 | `06-运维手册与踩坑集.md` | 增加 AI 排障入口、标准故障证据包、生产故障修复路径 | 现有真实命令、14 条踩坑、凭据位置、部署排障树 |
 | `07-内网与生产平移路线.md` | 移除生产服务器 AI 依赖；办公客户端负责 AI；更新 prod-sim 验收优先级 | 三层拓扑、离线生产、制品传输、备份与回滚 |
-| `08-Codex双工具共存与实施.md` | 从“一次性 provider 调用”升级为 provider-neutral Loop；Mac 交互与 VM headless 分工重新定义 | Claude/Codex 配置独立、共享 AGENTS、sandbox 和最小权限 |
+| `08-双工具共存与实施.md` | 从“一次性 provider 调用”升级为 provider-neutral Loop；Mac 交互与 VM headless 分工重新定义 | Claude/Codex 配置独立、共享 AGENTS、sandbox 和最小权限 |
 | `skill-for-codex/SKILL.md` | 更新总流程、标签语义、small/complex 路由、Loop 和部署边界 | 平台诊断入口、关键事实、凭据保护 |
 | `skill-for-codex/references/onboarding-runbook.md` | 新项目接入改为双路径、Loop 验收、首次部署 AI 协作与生产 script-only | 参数化接入、端口、CI、环境、分支保护 |
 | `codex/global-AGENTS.md` | 更新唯一闸门、Loop 终态和部署生命周期规则 | VM 全局路径、凭据禁令、生产安全边界 |

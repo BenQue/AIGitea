@@ -34,8 +34,8 @@ aisoft-agent@<profile>.timer / controlled trigger
       ├── contract loader
       ├── Matt tracker / workflow adapters
       ├── worktree + issue lock
-      ├── Codex adapter（先验证）
-      ├── Claude adapter（Codex 验证后）
+      ├── Codex adapter
+      ├── Claude adapter
       ├── deterministic verifier
       ├── Gitea Issue/PR/CI adapter
       ├── AWAITING_PR_CONFIRMATION state
@@ -43,6 +43,8 @@ aisoft-agent@<profile>.timer / controlled trigger
       ├── project-scoped broker merger
       └── local state store
 ```
+
+两个 adapter 等价、可互换，由 `IMPLEMENT_PROVIDER` 显式选择。
 
 第一版在每个项目 profile 内只允许一个 active Issue，使用该 profile 的独立 state、lock 和 worktree。多个 profile 默认都不启用；若后续并行启用，必须另做 VM 容量和 provider 并发验收。不得为项目、Claude 或 Codex 各复制一套状态机。
 
@@ -144,7 +146,7 @@ Verifier 必须由外层脚本独立运行，不信任模型自述。每条 acce
 确定性终态 plan/apply、change document check、worktree/local branch cleanup 与归档，不再增加确认点。
 routine 任一 hard gate 失败不得自动转成更宽权限的 merge 路径。
 
-## 10. Codex-first 验证顺序
+## 10. Provider 验证矩阵
 
 1. 静态验证 skills、metadata、sandbox 和禁止参数。
 2. 合成 Issue 验证合同读取与终态。
@@ -153,7 +155,7 @@ routine 任一 hard gate 失败不得自动转成更宽权限的 merge 路径。
 5. 验证 CI failure feedback。
 6. 验证升级条件和三次同因失败。
 7. 只有需要部署的应用 profile 才在开发/测试环境验证首次部署和回滚；AISoftPlatform 等文档/source 仓库不适用。
-8. 共享 Codex runtime 与 profile 隔离验证通过后接 Claude adapter，并用同一通用矩阵做 parity；项目级 enablement 仍是独立门禁。
+8. 两个 provider 用同一通用矩阵做 parity 验证；项目级 enablement 仍是独立门禁。
 
 ## 11. 安全与回滚
 
