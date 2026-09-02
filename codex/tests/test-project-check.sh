@@ -51,7 +51,7 @@ make_aligned_repo() {
       print "# AGENTS.md · TestProject"
       next
     }
-    /^  <docker-release\/v2/ {
+    /^  <Linux 容器化/ {
       print "  docker-release/v2;"
       next
     }
