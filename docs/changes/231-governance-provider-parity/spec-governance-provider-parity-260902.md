@@ -12,7 +12,7 @@ risk_flags:
   - platform-governance
   - shared-core
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/231-governance-provider-parity
 created: 2026-09-02
 updated: 2026-09-02
@@ -116,10 +116,5 @@ updated: 2026-09-02
 
 ## 未决问题
 
-- **AC-5「对平台仓自身仍 PASS」的解读**：基线 `origin/main` 上
-  `aisoft-project-check.sh --repo <平台仓> --kind docs` 已是 `pass=2 gap=2 skip=4`，两项 GAP
-  （`pointer-sections`、`change-templates`）源于平台仓根 `AGENTS.md` 不含常驻指针两节、`CLAUDE.md`
-  带 `## Agent skills`、change 模板放在 `templates/docs/changes/_template/` 而非 `docs/changes/_template/`。
-  这是平台仓作为模板源的结构性事实，修它超出本 Issue 范围（要改根 `AGENTS.md`）。本 spec 采用的
-  解读写在 AC-5：平台仓结果与基线一致，新模板的 `pointer-sections` PASS 由测试 fixture 证明。
-  该解读在确认点 1 提请人认可；认可后清空本条。
+无。AC-5「对平台仓自身仍 PASS」的解读（平台仓结果与基线一致、新模板的 `pointer-sections` PASS 由
+`test-project-check.sh` 对齐 fixture 证明）已于 2026-09-02 确认点 1 由人认可，并写入 AC-5 正文。

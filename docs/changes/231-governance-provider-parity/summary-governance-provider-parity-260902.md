@@ -24,7 +24,7 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/231-governance-provider-parity
 pr_url:
 created: 2026-09-02

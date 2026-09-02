@@ -12,7 +12,7 @@ risk_flags:
   - platform-governance
   - shared-core
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/231-governance-provider-parity
 created: 2026-09-02
 updated: 2026-09-02
