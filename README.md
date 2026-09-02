@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.6（routine PR source contract）｜ 更新：2026-08-26 ｜ 状态：**Issue #208 定义“合同/启动确认 + 提交最终 PR 前确认”两个默认人工点和 routine small 受控自动合并 source 合同；#208、全部 complex/major/阶段完结与强制风险变更仍须人工合并，installed/live 启用仍须单独验收**
+> 版本：v3.6（routine PR source contract）｜ 更新：2026-09-03 ｜ 状态：**Issue #208 定义“合同/启动确认 + 提交最终 PR 前确认”两个默认人工点和 routine small 受控自动合并 source 合同；#208、全部 complex/major/阶段完结与强制风险变更仍须人工合并，installed/live 启用仍须单独验收**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到最终 PR；人确认提交，manual 变更由人合并，显式 opt-in 的 routine small 只有在最终 head 全硬门通过后才可由独立 merger 合并；部署始终独立授权。**
 
@@ -8,31 +8,21 @@
 
 ---
 
-## 1. 当前状态（2026-08-26）
+## 1. 当前状态（2026-09-03）
 
 - ✅ 基础设施核心：`gitea-ci` 上的 Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
-- ✅ 主机职责隔离：Issue #21 已人工合并并以 `completed` 关闭；versioned host profile、capability catalog 和 fail-closed guard 已实现，`gitea-ci` 历史业务 runtime/DB/代理已逐项迁移或清理并完成 live post-check
-- 🟡 流水线：PR CI、构建和不可变制品链已验证；历史“合并 main 后在 `gitea-ci` 启动测试应用”仅作 as-built 证据，新接入必须使用独立 `appserver-test` trust role；NewEmaint pilot 的该 role 位于本地 OrbStack DockerLab，不新增第三台公司 VM
-- ✅ Legacy 制品收口：`gitea-ci:/opt/artifacts` 只保留 AppServer current 对应的 `rsdesign-new-3323ab...tar.gz`；9 个可由 Gitea commits 重建且无引用的旧版本已按精确路径删除，Gitea repositories 与 AppServer 未修改
-- ✅ `prod-sim`：Issue #21 两轮 name+ID/依赖/唯一数据/可重建检查与所有者 disposition 完成后，仅以 `orb delete --force prod-sim` 精确退役；`gitea-ci` 与 AppServer paired health 保持通过
-- ✅ v2 试点证据：issue #4 已走通三闸门闭环，证明 Issue/文档/PR/部署关联可行
+- 🟡 流水线：PR CI、构建和不可变制品链已验证；历史“合并 main 后在 `gitea-ci` 启动测试应用”仅作 as-built 证据，新接入必须使用独立 `appserver-test` trust role
 - ✅ 邮件通知：Gitea → Mailpit（演示层），issue/PR 事件自动发信
-- ✅ Codex 基础：CLI、认证、skills、AGENTS、sandbox、provider router 已通过 VM 基础验收
+- ✅ provider adapters：Codex 与 Claude adapter 共用 controller/verifier/状态/终态，等价、可互换；默认 `IMPLEMENT_PROVIDER=none`，启用是每项目独立验收；真实 VM pilot 未做
 - 🟡 Matt 开发编排层：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在当前 exact change branch 本地提交，Controller 在提交确认后才能 push/建 PR/读取 CI；manual 路径仍只由人合并
-- ✅ Gitea 身份与可见性历史基线：Issue #35 已在本机 OrbStack 标记 `deployed`；1 个非 site-admin manager、9 个单项目 agent 与 11 个最小 scope PAT 已完成幂等验证，原 live `main` merge allowlist 只含人工 `admin`。Issue #208 只增加独立 per-project routine merger 的 source 合同；未获独立 live apply 授权前，现有 allowlist、credential 与 installed bytes 均不改变
-- 🟡 Host access broker：既有 strict typed Issue/PR/Git surface 保持；Issue #208 只允许新增 `gitea.pull.merge.routine(number, sha)`，并要求 broker 在唯一 merge POST 前 fresh 重跑合同、唯一 PR、head、protection、required CI、reviews、dependencies 与 final diff 硬门。Gitea 1.26.4 无 merge-only ACL，ordinary Git 隔离依赖 broker-exclusive credential custody 与 zero fallback；routine identity 不进入 main push/force allowlist。source 合并不等于安装、provision 或 live 启用
-- ✅ Claude adapter（Issue #1）：与 Codex 共用 controller/verifier/状态/终态，17 项 parity 测试通过；默认仍 `IMPLEMENT_PROVIDER=none`，真实 VM pilot 未做
+- 🟡 Host access broker：既有 strict typed Issue/PR/Git surface 保持；Issue #208 只允许新增 `gitea.pull.merge.routine(number, sha)`，并要求 broker 在唯一 merge POST 前 fresh 重跑合同、唯一 PR、head、protection、required CI、reviews、dependencies 与 final diff 硬门。Gitea 1.26.4 无 merge-only ACL，ordinary Git 隔离依赖 broker-exclusive credential custody 与 zero fallback；routine identity 不进入 main push/force allowlist。source 合并不等于安装、provision 或 live 启用；未获独立 live apply 授权前，现有 merge allowlist、credential 与 installed bytes 均不改变
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
 - 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为 real complex pilot。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
-- ✅ Windows 目标设计：IIS + ASP.NET Core + React `wwwroot` 单制品、PostgreSQL、测试 OpenSSH、生产 SMB + Kerberos WinRM + JEA 的合同已确认
-- ✅ 内网协作目标设计：本地 Gitea 长期作为开发权威，私有 GitHub 作为搬运中继，公司 Gitea 作为部署权威；不迁移本地 Issue/PR，公司侧不运行 AI
-- ✅ Windows 快速原型设计：Apple Silicon Mac 使用 VMware Fusion + Windows 11 ARM 调试架构无关部署脚本；不替代 Server 2022 x64 和公司 AD 验收
 - 🟡 Linux Docker release source（Issue #22 已合并）：提供 strict manifest/profile、Registry/offline transports、host-role preflight 和 deterministic deploy/status/rollback；合同已进入 source，但具体业务 Registry/AppServer 与 production promotion 仍未验收
-- ✅ Docker offline V2 source/evidence（Issue #27 已合并）：四类 image identity、release-scoped tag、strict V2 inventory/archive、Engine/Compose/image-store capability gate 与 fake tests 已完成；两个独立 disposable Engine 29 containerd daemon 的 Registry push/pull、save/load、offline pull rejection、Compose `--pull never --no-build`、identity/health 和 exact cleanup E2E 已 `PASS`，containerd row 为 `supported`；classic 没有同等级真实证据，继续 `rejected`。该证据不是 NewEmaint、AppServer 或 production 部署
-- ✅ Docker release 分阶段职责与Compose 5.1.4 evidence（Issue #58/#65）：artifact-only verification、read-only target readiness、独立 stage/migrate/activate、state v2 receipt 与 fixed action gate已由两个task-owned disposable Engine 29.7.1/containerd daemon、Compose 5.1.4及disposable PostgreSQL migration真实验证；matrix仅支持exact Engine `[29.7.1,29.7.2)`/Compose `[5.1.4,5.1.5)` row。v1 legacy CLI保持兼容；本状态不表示已部署到NewEmaint、AppServer或production
 - 🟡 NewEmaint 公司交付 pilot（Issue #120）：提供 versioned/checksum-pinned operator bundle、两台公司 Linux VM 的脱敏 inventory、Stage 00–110 人工 runbook 与 strict evidence；真实 release handoff、公司 Gitea/Runner/Registry、backup/restore、AppServer 和 production 全部保持 `NOT RUN`
 - 🟡 Gitea 隔离安装 source（Issue #126/#128/#130）：operator `1.2.0` 使用 inventory v3、transition v2 与 `greenfield-isolated-install`，只验证 `scm-ci` 独立 `aisoft-gitea` candidate；不探测、不绑定 legacy health。`legacy migration/phase-out`、切流和退役必须另建 Change。1.2.0 公司 Stage 00–50 与安装全部保持 `NOT RUN`；旧 evidence 不可投影为新 PASS
 - ⏸️ 待办：Windows Server 2022 x64 原型、内网 Runner/依赖缓存、迁移演练、生产 JEA 彩排与 [14](14-Windows部署与迁移验收清单.md) 全量验收
+- 📜 已完成条目的历史记录（v2 试点、`prod-sim` 退役、legacy 制品收口、#21/#35 基线、Windows/内网目标设计、Docker release evidence、adapter 试点）：[archive/平台状态历史-20260902.md](archive/平台状态历史-20260902.md)
 
 ## 2. 目标职责架构
 

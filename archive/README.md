@@ -14,6 +14,7 @@
 | [软件开发与自动化部署运维平台-方案设计](软件开发与自动化部署运维平台-方案设计.md) | 最初平台方案 | 后续 as-built 与 v3 分册替代 |
 | [Spec 驱动工作流与绑定方案](Spec驱动工作流与Spec-Plan-Issue绑定方案.md) | 独立 spec PR 与早期三闸门模型 | small/complex 双路径和单一最终 PR 闸门替代 |
 | [阶段 0–2.6 起步清单](阶段0-起步清单-OrbStack-Gitea-actrunner.md) | 早期 POC 建设步骤 | 当前编号分册与 Change evidence 替代 |
+| [平台状态历史（截至 2026-09-02）](平台状态历史-20260902.md) | README §1 与 08 §4 中已完成的状态条目：v2 试点 #4、`prod-sim` 退役、legacy 制品收口、#21/#35 基线、Windows/内网目标设计、Docker release evidence、Codex/Claude adapter 试点 | 活文档只描述当前合同；已兑现的历史条目由 Issue #233 迁出 |
 
 ## 使用规则
 

@@ -1,6 +1,6 @@
 # 15 · VMware Fusion + Windows 11 ARM 快速原型实施手册
 
-> 定位（#232，2026-09-02）：本册是交付形态参考（按项目选用），适用环境：Windows（Mac 本地原型）。它不是任何项目部署步骤的事实源；平台只给环境级原则（`skill-for-codex/references/onboarding-runbook.md` §4），具体步骤、脚本、参数与环境差异由项目仓自行声明与实现。正文原样保留，去留由后续「过时文档清理」Issue 处置。
+> 定位（#232，2026-09-02）：本册是交付形态参考（按项目选用），适用环境：Windows（Mac 本地原型）。它不是任何项目部署步骤的事实源；平台只给环境级原则（`skill-for-codex/references/onboarding-runbook.md` §4），具体步骤、脚本、参数与环境差异由项目仓自行声明与实现。#233 判定：正文保留为参考记录；正文中「默认」「新 Linux 默认」等措辞不构成平台合同，交付形态由项目声明。
 
 > 状态：Mac 主机预检已完成；VMware Fusion、Windows 11 ARM 和来宾机环境均 `NOT RUN`。本文只建设部署脚本快速调试层，不替代 Windows Server 2022 x64 或公司 AD 环境验收。
 
