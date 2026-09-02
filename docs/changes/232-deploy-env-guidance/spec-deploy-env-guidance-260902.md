@@ -12,7 +12,7 @@ risk_flags:
   - platform-governance
 depends_on:
   - 231
-status: contract-drafting
+status: approved
 branch: change/232-deploy-env-guidance
 created: 2026-09-02
 updated: 2026-09-02
@@ -59,7 +59,8 @@ Issue #232 正文的 6 条验收标准与 4 条范围逐条落成可观察结果
 - [ ] **AC-2 runbook 全文去项目名**：`grep -c -iE 'NewEMaint|rsdesign' onboarding-runbook.md` 从
   `main` 的 6 降到 1，仅剩第 3 行「rsdesign-new 只是历史试点证据」说明；§1.1 两处 NewEmaint 措辞改为
   项目中立表述（strict `git_remote_name` 示例不点名项目；adoption 顺序写「项目 adoption Issue」），
-  合同语义不变。项目名不再作为默认值、目录、端口或部署合同出现。
+  合同语义不变。项目名不再作为默认值、目录、端口或部署合同出现。§1.1 两处不在「范围」点名章节内
+  但落在本条全文标准内，「只改措辞、不改合同语义」的解读已于 2026-09-02 确认点 1 由人认可。
 - [ ] **AC-3 导航归类**：根 `AGENTS.md` 目录段与 README §5 各有一个独立的「交付形态参考（按项目
   选用，非部署步骤事实源）」小节，收纳 `12-Linux…`、`12-Windows…`、`13`、`14`、`15`、`docker-release/`、
   `architecture/` 七项；每行注明适用环境（Linux 容器化 / Linux 原生 / Windows / 全环境）与「参考、非
@@ -120,5 +121,5 @@ Issue #232 正文的 6 条验收标准与 4 条范围逐条落成可观察结果
 
 ## 未决问题
 
-- AC-2 触及 §1.1 两处 NewEmaint 措辞（不在「范围」点名章节内，但落在 AC-2 全文标准内）：采用
-  「只改措辞、不改合同语义」解读，待确认点 1 由人认可后写入 AC-2 正文并清空本条。
+无。AC-2 触及 §1.1 两处项目名措辞的解读，以及根 `AGENTS.md` 目录段作为独立原子 commit（T03）
+的处置，已于 2026-09-02 确认点 1 由人认可，并分别写入 AC-2 正文与「接口、数据与兼容性影响」。

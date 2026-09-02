@@ -12,7 +12,7 @@ risk_flags:
   - platform-governance
 depends_on:
   - 231
-status: contract-drafting
+status: approved
 branch: change/232-deploy-env-guidance
 created: 2026-09-02
 updated: 2026-09-02

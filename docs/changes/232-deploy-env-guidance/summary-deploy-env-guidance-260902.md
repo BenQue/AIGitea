@@ -24,7 +24,7 @@ confidence: high
 override_reason: ''
 depends_on:
   - 231
-status: analyzed
+status: approved
 branch: change/232-deploy-env-guidance
 pr_url:
 created: 2026-09-02
