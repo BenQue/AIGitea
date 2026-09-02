@@ -16,12 +16,12 @@ Use:
 - `03` for Issue, complexity, documents, labels, and the final PR gate.
 - `04` for analyzer, Development Loop, verifier, terminal states, and provider adapters.
 - `02` and `06` for deployments and incidents.
-- `08` for Codex-first validation and later Claude parity.
+- `08` for provider coexistence and parity validation.
 - `09` for migration scope and unimplemented boundaries.
 
 ## Apply the v3 workflow
 
-Select the target project explicitly before any Gitea or Git mutation. A project profile binds one profile name to `GITEA_URL`, `GITEA_OWNER`, `GITEA_REPO`, `AGENT_REPO_DIR`, provider selection, and a namespaced state/worktree root. Never infer the target repository from rsDesign or another example, and never reuse one project's state directory for another project.
+Select the target project explicitly before any Gitea or Git mutation. A project profile binds one profile name to `GITEA_URL`, `GITEA_OWNER`, `GITEA_REPO`, `AGENT_REPO_DIR`, provider selection, and a namespaced state/worktree root. Never infer the target repository from another project or example, and never reuse one project's state directory for another project.
 
 After AISoftPlatform Issue #35 is merged and its live rollout is explicitly authorized, every local Gitea
 software repository must first exist in the strict `codex/config/gitea-governance.json` manifest. Validate the
@@ -100,7 +100,7 @@ Treat every new request, defect, or platform change as a Gitea Issue `N` bound t
 
 The primary per-Issue development path is the complete Matt workflow behind the platform adapter: initialize with `$aisoft-matt-workflow` (which chains `$setup-matt-pocock-skills` with the `templates/docs/agents/` tracker/triage/domain files), then run `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`. Platform-validated `small` and development-phase complex work skip spec/plan only after triage, mapped summary, classification, measurable Issue acceptance criteria, and `approved` revalidation.
 
-Codex is the default primary handler from Issue analysis through implementation, tests, PR/CI repair and the ready-to-merge handoff. Claude Code remains an equal provider for complex design discussion, focused review, existing Claude sessions, or a project profile that selects it. Both use this one contract; neither defines a separate classification, document, or delivery workflow.
+Claude Code and Codex share this one platform contract as equal, interchangeable providers with no primary or secondary role; the two models complement each other toward the same goal, and neither invents its own classification, document, or delivery workflow. Automation providers are still selected explicitly by the project profile's `ANALYSIS_PROVIDER`/`IMPLEMENT_PROVIDER` (default `none`).
 
 The `gitea-*` skills are compatibility adapters, not a second development method:
 
@@ -147,7 +147,7 @@ In production, run only pre-validated artifacts and scripts. For failures, stop/
 - Keep Gitea manager/project PATs, OrbStack host control, VM operator accounts, and per-project deploy identities
   separate. A Gitea credential never authorizes SSH, sudo, VM lifecycle, database, or production access.
 - Keep Claude and Codex configuration independent while sharing the outer controller and verifier contract.
-- Do not describe the v3 Loop as deployed until the Codex validation matrix in `08` passes.
+- Do not describe the v3 Loop as deployed for any provider until that provider's validation matrix in `08` passes.
 
 For a new project, read [references/onboarding-runbook.md](references/onboarding-runbook.md) before changing infrastructure.
 
