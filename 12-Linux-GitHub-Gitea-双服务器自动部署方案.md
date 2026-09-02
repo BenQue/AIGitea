@@ -1,5 +1,7 @@
 # 12 · Linux / GitHub → Gitea / 三角色职责分离自动部署方案
 
+> 定位（#232，2026-09-02）：本册是交付形态参考（按项目选用），适用环境：Linux 容器化。它不是任何项目部署步骤的事实源；平台只给环境级原则（`skill-for-codex/references/onboarding-runbook.md` §4），具体步骤、脚本、参数与环境差异由项目仓自行声明与实现。正文原样保留，去留由后续「过时文档清理」Issue 处置。
+
 > 目标方案（更新 2026-08-16）｜状态：**Docker-first source 与 disposable Engine 29.7.1/containerd/Compose 5.1.4 lifecycle evidence 已进入 protected `main`；NewEmaint 两台公司 VM operator contract 不代表业务 Registry、offline delivery、AppServer 或 production 已实施/验收**
 > 新 Linux 默认：OCI digest + Docker Compose；PM2 仅为已有应用的 legacy adapter
 > 网络约束：POC 开发机不能访问公司内网；安装 Gitea 的 `scm-ci` 服务器可以通过 HTTPS 访问 GitHub。
