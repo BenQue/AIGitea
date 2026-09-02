@@ -24,10 +24,10 @@ updated: 2026-09-02
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 共享 references：runbook §4 重写为三类环境原则 + 流程不变量 + 项目自行声明与实现（§4.1 并入）；§9 去「见 §4.1」；§1.1 两处项目名改为中立措辞；`project-align.md` checklist 第 6/7 行事实源措辞 | - | pending |
-| T02 | 导航、定位与模板：README §5 新增「交付形态参考」小节并把七项移入；`02`、`12-Linux…`、`12-Windows…`、`13`、`14`、`15` 各加顶部定位 blockquote；`templates/project/AGENTS.md`「项目事实」加「部署方案位置」指针 | - | pending |
-| T03 | 根 `AGENTS.md` 目录段：新增「交付形态参考」子列表并把七项移入（独立、只含 `AGENTS.md` 的原子 commit） | - | pending |
-| T04 | 验证与记录：Issue 正文 grep、`smoke.sh`、`test-project-check.sh`、`test-install-claude-skills.sh`、两侧 `check-drift.sh`、平台仓 `aisoft-project-check.sh --kind docs`、`docker-release/` diff 为空；填 verification | T01, T02, T03 | pending |
+| T01 | 共享 references：runbook §4 重写为三类环境原则 + 流程不变量 + 项目自行声明与实现（§4.1 并入）；§9 去「见 §4.1」；§1.1 两处项目名改为中立措辞；`project-align.md` checklist 第 6/7 行事实源措辞 | - | done |
+| T02 | 导航、定位与模板：README §5 新增「交付形态参考」小节并把七项移入；`02`、`12-Linux…`、`12-Windows…`、`13`、`14`、`15` 各加顶部定位 blockquote；`templates/project/AGENTS.md`「项目事实」加「部署方案位置」指针 | - | done |
+| T03 | 根 `AGENTS.md` 目录段：新增「交付形态参考」子列表并把七项移入（独立、只含 `AGENTS.md` 的原子 commit） | - | done |
+| T04 | 验证与记录：Issue 正文 grep、`smoke.sh`、`test-project-check.sh`、`test-install-claude-skills.sh`、两侧 `check-drift.sh`、平台仓 `aisoft-project-check.sh --kind docs`、`docker-release/` diff 为空；填 verification | T01, T02, T03 | done |
 
 Ticket ID 固定为 `Txx`；依赖只引用本表中的 ID。T01–T03 互不依赖、各自保持仓库全绿，可由
 `$implement #232 Txx` 独立执行与验证；T03 单独成 commit 是根 `AGENTS.md` 治理文件规则的要求，不是
