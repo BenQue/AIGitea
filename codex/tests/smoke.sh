@@ -466,6 +466,37 @@ grep -Fq 'AISOFT_ONBOARDING_MODE=software-repository' \
   "$ROOT/skill-for-codex/SKILL.md"
 grep -Fq '/mnt/mac/Users/benque/MyDocs/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
 
+# #231: platform governance stays project-neutral, delivery-neutral and
+# provider-equal. The governance set is the seven files that are installed as
+# Agent behaviour or copied into every downstream project; project names and
+# delivery implementations belong to each project's own profile and AGENTS.md.
+governance_set=(
+  "$ROOT/skill-for-claude/aisoft-platform/SKILL.md"
+  "$ROOT/skill-for-claude/issue-session-flow/SKILL.md"
+  "$ROOT/skill-for-codex/SKILL.md"
+  "$ROOT/codex/skills/aisoft-matt-workflow/SKILL.md"
+  "$ROOT/codex/skills/issue-session-flow/SKILL.md"
+  "$ROOT/codex/global-AGENTS.md"
+  "$ROOT/templates/project/AGENTS.md"
+)
+if rg -ni 'NewEMaint|SFMDigitalBoard|HSDB|WMPDA|SapTable|rsdesign|myapp|smoke-test|LocalWMS' \
+  "${governance_set[@]}"; then
+  echo '平台治理文件不得出现具体项目名（#231 AC-1）' >&2
+  exit 1
+fi
+if rg -ni 'docker-release|PM2|Compose|systemd-native|IIS' "${governance_set[@]}"; then
+  echo '平台治理文件不得出现交付形态实现名（#231 AC-2）' >&2
+  exit 1
+fi
+# Live documents only: archive/, docs/changes/ and codex/vendor/ are history or
+# upstream snapshots, and this file carries the pattern itself.
+if rg -n '默认主处理者|primary handler|维护与部署|开发与设计|Codex 为主|对等补位' \
+  --glob '!archive/**' --glob '!docs/changes/**' --glob '!codex/vendor/**' \
+  --glob '!codex/tests/smoke.sh' "$ROOT"; then
+  echo '活文档不得把 Claude Code 与 Codex 分主辅（#231 AC-3）' >&2
+  exit 1
+fi
+
 if [[ -f "$ROOT/codex/agent/provider-poll.sh" ]]; then
   grep -Fq "ANALYSIS_PROVIDER=\"\${ANALYSIS_PROVIDER:-none}\"" "$ROOT/codex/agent/provider-poll.sh"
   grep -Fq "IMPLEMENT_PROVIDER=\"\${IMPLEMENT_PROVIDER:-none}\"" "$ROOT/codex/agent/provider-poll.sh"
