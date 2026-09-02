@@ -24,9 +24,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 231
-status: approved
+status: pr-open
 branch: change/232-deploy-env-guidance
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/235
 created: 2026-09-02
 updated: 2026-09-02
 ---
