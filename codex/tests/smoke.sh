@@ -462,8 +462,6 @@ grep -Fq 'BLOCKED_EXTERNAL' \
   "$ROOT/codex/tools/ensure-gitea-collaborator.sh"
 grep -Fq 'BLOCKED_EXTERNAL' \
   "$ROOT/codex/tools/bootstrap-gitea-service-account.sh"
-grep -Fq 'AISOFT_ONBOARDING_MODE=software-repository' \
-  "$ROOT/skill-for-codex/SKILL.md"
 grep -Fq '/mnt/mac/Users/benque/MyDocs/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
 
 # #231: platform governance stays project-neutral, delivery-neutral and

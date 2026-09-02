@@ -7,7 +7,7 @@ Use this procedure before inspecting a private repository, Issue, PR, Actions ru
 1. After Issue #61 is released, select the exact project and an allowlisted operation through
    `/usr/local/libexec/aisoft/host-access-broker`; target and identity come from the strict manifests.
 2. Broker Git operations resolve the remote name only from the project manifest. Missing
-   `git_remote_name` means `origin`; a declared value such as NewEmaint's `gitea` is fixed and cannot be supplied by
+   `git_remote_name` means `origin`; a declared value such as `gitea` is fixed and cannot be supplied by
    the caller.
 3. Match `GITEA_URL`, `GITEA_OWNER`, and `GITEA_REPO` to the requested repository before using credentials.
 4. Never source the generic `~/.agent.env` when an exact project profile is available. Never infer the repository from a pilot or example.

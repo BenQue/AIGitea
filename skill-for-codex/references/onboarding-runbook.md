@@ -1,6 +1,6 @@
 # 新项目接入 AISoft 平台 · v3 Runbook
 
-> 本 runbook 面向任意 Gitea 项目。rsdesign-new 只是历史试点证据，不是默认仓库、目录、端口或部署合同。按顺序完成，每步验收后再继续；目标项目未通过自己的验收前保持 implementation disabled。
+> 本 runbook 面向任意 Gitea 项目。历史试点不是默认仓库、目录、端口或部署合同。按顺序完成，每步验收后再继续；目标项目未通过自己的验收前保持 implementation disabled。
 
 初始化新项目与更新已接入项目是同一「对齐到平台当前合同」的幂等操作：操作入口见
 [project-align.md](project-align.md)，确定性核对用 `codex/tools/aisoft-project-check.sh`。
@@ -16,7 +16,7 @@ contexts 纳入 `codex/config/gitea-governance.json` 并经平台 PR 人工合�
 
 ### 1.1 Mandatory governance manifest 与 project-agent gate
 
-Issue #35 发布后，按顺序执行：
+按顺序执行（治理合同来自 Issue #35，已 live）：
 
 1. `gitea-governance.sh --manifest ... validate` 验证 strict contract；public 必须在 exact allowlist，
    其它仓库默认 private。
@@ -40,9 +40,9 @@ contexts 为空的仓库固定 disabled。platform manager、project agent/provi
 routine merge 路径。任一 credential、API、
 permission、visibility、protection、cross-project 或 read-back 失败均终止为 `BLOCKED_EXTERNAL`。
 
-Issue #61/#70 发布后，已在 host-access manifest 中的项目从 fixed broker 访问 host；Mac checkout 只用
-repo-local protected-file helper，VM profile 只用 `GITEA_IDENTITY` + fixed mode 600 token file。Issue #73
-candidate 允许项目在 manifest 中声明 strict `git_remote_name`；未声明兼容 `origin`，已声明的项目
+已在 host-access manifest 中的项目从 fixed broker 访问 host（#61/#70）；Mac checkout 只用
+repo-local protected-file helper，VM profile 只用 `GITEA_IDENTITY` + fixed mode 600 token file。manifest
+允许项目声明 strict `git_remote_name`（#73）；未声明兼容 `origin`，已声明的项目
 按各自 manifest 的取值（例如 `gitea`）。调用方不能传 remote name/URL/owner/repository/refspec，broker 也不创建或改写 remote。
 新项目仍必须先通过独立 AISoftPlatform Issue/PR 同时更新 governance 与 host-access manifests，再执行
 本节的账号/权限流程。
@@ -94,36 +94,10 @@ MANIFEST="$PLATFORM_ROOT/codex/config/gitea-governance.json"
 `bootstrap-manager` 使用人工 site-admin credential，但除此以外参数与 apply 相同；它只给一个
 exact repository 添加 manager Admin 并写 pre/post snapshot，不修改 visibility、agent 或 protection。
 
-### 1.2 Legacy `ci-bot` collaborator gate（迁移期）
+### 1.2 共享 `ci-bot` gate（已退役）
 
-Issue #35 live reconciliation 前，已有 profile 可以继续运行下列 fixed gate 保持服务；不得用它接入
-新项目：
-
-```bash
-AISOFT_ONBOARDING_MODE=software-repository \
-GITEA_URL=<exact-gitea-url> \
-GITEA_OWNER=<exact-owner> \
-GITEA_REPO=<exact-repo> \
-GITEA_EXPECT_URL=<exact-gitea-url> \
-GITEA_EXPECT_OWNER=<exact-owner> \
-GITEA_EXPECT_REPO=<exact-repo> \
-GITEA_ADMIN_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
-GITEA_BOT_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
-/mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/ensure-gitea-collaborator.sh
-```
-
-先以 `coder` 身份从 mode 600 project profile 只读解析非 secret 的 URL/owner/repo，再在能读取 VM-local 管理员与 `ci-bot` credential file 的 `benque` operator context 运行上述 gate。不得输出 profile/token，也不得把 token 复制到 Mac 或命令参数。若 VM 尚未安装候选工具，只能在关联平台 PR 已合并后使用 AISoftPlatform 权威 source；不得把未合并 candidate 复制到全局稳定目录。工具合同：
-
-- collaborator 固定为统一的 `ci-bot`，permission 固定为精确 `write`；没有任意用户或 `admin` 参数。
-- 当前为 `write` 时不 PUT；缺失或 `read` 时单次 PUT，随后分别以管理身份和 `ci-bot` 身份回读 `write`。
-- 管理身份在写前/写后回读 `main` branch protection；禁止 direct/force push，`ci-bot` 不得进入 push、force-push 或 merge allowlist，原有 status-check/approval/merge 字段必须保持不变。Gitea 1.26.4 的 branch-protection GET 对普通 `write` collaborator 返回 `403`，不得为让 bot 调用该管理端点而升级其权限。
-- `ci-bot` 还必须以自身 token GET 目标 private repository，作为真实访问证据。
-- 任一 credential、API、permission、branch protection 或 bot-access 验证失败，终止全部后续接入并报告 `BLOCKED_EXTERNAL`。
-- token 只能来自 mode 400/600 profile/credential file，经 curl stdin config 使用，不能出现在 argv、日志、输出、Git config 或仓库内容中。
-
-已有仓库的回补先使用同一工具的 `--check`。只从明确 AISoftPlatform project profiles/接入记录
-生成 `repository/current_permission/main_protection/planned_action` 清单并等待人工确认；不得枚举
-全部 Gitea 仓库后批量授权。新 project agent 验收前保留 `ci-bot`，验收后逐仓库退出。
+共享 `ci-bot` 已退出全部 manifest 仓库的 collaborator；`ensure-gitea-collaborator.sh` 只保留为历史兼容与回归测试
+对象，不得用于接入、回补或作为 broker fallback。历史对象与迁移证据见 `06` §「旧 `ci-bot` gate（已退役）」。
 
 ## 2. 共享项目契约
 
@@ -255,7 +229,7 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 ## 5. Gitea 治理
 
 - 先通过 §1.1 manifest/project-agent gate；platform manager 为 exact-repo Admin，项目 agent 为
-  exact-repo Write，二者均不给 merge。§1.2 `ci-bot` 只服务尚未迁移的已有 profile。
+  exact-repo Write，二者均不给 merge。
 - 保护 `main`，禁止直接 push，要求准确的 `CI / test (pull_request)` context。
 - routine merger 必须是独立 non-site-admin、非 human/manager/project-agent/shared-bot 的 per-project
   exact-repo Write identity。Gitea 1.26.4 没有 merge-only ACL；credential 由 broker 独占，main push/force

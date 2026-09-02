@@ -159,7 +159,7 @@ routine 任一 hard gate 失败不得自动转成更宽权限的 merge 路径。
 
 ## 11. 安全与回滚
 
-- controller 使用专用 `coder` 用户和最小权限 ci-bot。
+- controller 使用专用 `coder` 用户；Gitea 身份是 manifest-declared project agent，经 broker typed 操作使用最小权限。
 - Agent/provider 不持有 push、PR、merge 或 deploy credential；独立 routine merger 是 Gitea 1.26.4 的 exact-repo Write identity，服务端没有 merge-only ACL。其 credential 由 broker 独占，唯一 typed merge operation 派生 exact repository/PR/head，main push/force allowlist 均为空；ordinary Git 与 cross-project write 依靠 custody、manifest/final-head gates 和 zero fallback 禁止。commit subject 必须包含 `#N` 与当前 `Txx`，修复使用追加 commit。
 - 不打印 `.agent.env`、auth、Git credentials 或应用环境变量。
 - 新 profile 默认 `IMPLEMENT_PROVIDER=none`；复制模板、安装 unit 或文档更新都不启用 Loop。
