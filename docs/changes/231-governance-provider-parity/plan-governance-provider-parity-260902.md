@@ -24,11 +24,11 @@ updated: 2026-09-02
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 下游模板瘦身：`templates/project/AGENTS.md` 常驻指针两节去平台内部实现、「工具分工」换等价句、「交付形态」占位符改环境类别；`test-project-check.sh` fixture 匹配新占位符并全绿 | - | pending |
-| T02 | Claude 侧 `aisoft-platform` 技能：description 去项目名/去 docker-release、部署边界只留流程不变量、工具分工换等价句、会话标准动作 4–7 步各压一行指向 `06`、Common Mistakes 去项目名、新增「approved 之后默认自主推进 / 只在这些情况暂停」 | - | pending |
-| T03 | Claude 侧 `issue-session-flow` 技能：新增「approved 之后默认自主推进 / 只在这些情况暂停」两段，与 Codex 侧语义一致、不逐字复制 | - | pending |
-| T04 | Codex 侧四份文件：`skill-for-codex/SKILL.md` 去 rsDesign / 去 Codex-first / 主处理者换等价句；`codex/global-AGENTS.md` 去 rsDesign、provider 规则换等价句；`codex/skills/aisoft-matt-workflow`、`codex/skills/issue-session-flow` 审计（当前三条 grep 均为空，预期无改动或仅措辞对齐） | - | pending |
-| T05 | 静态守卫与验证：`smoke.sh` 新增 AC-1/AC-2 范围 grep 与 AC-3 活文档 grep 三条守卫；跑 `smoke.sh`、`test-project-check.sh`、`test-install-claude-skills.sh`、两侧 `check-drift.sh`、平台仓 `aisoft-project-check.sh --kind docs`；填 verification | T01, T02, T03, T04 | pending |
+| T01 | 下游模板瘦身：`templates/project/AGENTS.md` 常驻指针两节去平台内部实现、「工具分工」换等价句、「交付形态」占位符改环境类别；`test-project-check.sh` fixture 匹配新占位符并全绿 | - | done |
+| T02 | Claude 侧 `aisoft-platform` 技能：description 去项目名/去 docker-release、部署边界只留流程不变量、工具分工换等价句、会话标准动作 4–7 步各压一行指向 `06`、Common Mistakes 去项目名、新增「approved 之后默认自主推进 / 只在这些情况暂停」 | - | done |
+| T03 | Claude 侧 `issue-session-flow` 技能：新增「approved 之后默认自主推进 / 只在这些情况暂停」两段，与 Codex 侧语义一致、不逐字复制 | - | done |
+| T04 | Codex 侧四份文件：`skill-for-codex/SKILL.md` 去 rsDesign / 去 Codex-first / 主处理者换等价句；`codex/global-AGENTS.md` 去 rsDesign、provider 规则换等价句；`codex/skills/aisoft-matt-workflow`、`codex/skills/issue-session-flow` 审计（当前三条 grep 均为空，预期无改动或仅措辞对齐） | - | done |
+| T05 | 静态守卫与验证：`smoke.sh` 新增 AC-1/AC-2 范围 grep 与 AC-3 活文档 grep 三条守卫；跑 `smoke.sh`、`test-project-check.sh`、`test-install-claude-skills.sh`、两侧 `check-drift.sh`、平台仓 `aisoft-project-check.sh --kind docs`；填 verification | T01, T02, T03, T04 | done |
 
 Ticket ID 固定为 `Txx`；依赖只引用本表中的 ID。T01–T04 互不依赖、各自保持仓库全绿，可由
 `$implement #231 Txx` 独立执行与验证；T05 是把 AC 的 grep 固化为守卫并出具证据，必须等四份文本
