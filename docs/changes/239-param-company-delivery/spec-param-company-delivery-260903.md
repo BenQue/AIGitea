@@ -80,8 +80,9 @@ updated: 2026-09-03
   bundle 测试 archive 名以 `aisoft-company-delivery-1.3.0-` 开头；legacy 1.2.0 handoff fixture（无 `sync_timer_unit`）
   经 `load_handoff` 可读但 `verify_gitea_transition` 以 `CHECKSUM_MISMATCH`（operator 不匹配）拒绝；仓库内不新增任何
   1.2.0 handoff 补写。
-- [ ] **AC-4 测试与守卫**（Issue 第 4 条）：`bash codex/tests/smoke.sh` rc=0；`grep -ci newemaint
-  codex/runtime/tests/test_company_delivery.py` = 0；`grep -ci newemaint company-delivery/templates/compatibility-matrix.example.json`
+- [ ] **AC-4 测试与守卫**（Issue 第 4 条）：`bash codex/tests/smoke.sh` rc=0；`grep -n -i newemaint
+  codex/runtime/tests/test_company_delivery.py` 只剩 #237 的否定断言 `assertNotIn("NewEmaint 公司交付 runbook", …)`（fixture、
+  正向断言与方法名均为 0）；`grep -ci newemaint company-delivery/templates/compatibility-matrix.example.json`
   = 0；`bash -n` + `shellcheck -S warning` 对 `smoke.sh` 与 integration 脚本通过；`test-company-delivery-real-release-harness.sh`
   PASS；integration `--execute` 记 NOT RUN。
 - [ ] **AC-5 与 NewEmaint #75 衔接**（Issue 第 5 条）：verification 写明平台侧读取路径——builder 由调用方传入项目仓

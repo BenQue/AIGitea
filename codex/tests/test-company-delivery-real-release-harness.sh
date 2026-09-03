@@ -38,6 +38,10 @@ grep -Fq 'docker_calls") == 0' "$harness" ||
   fail 'harness must assert zero Docker calls'
 grep -Fq 'target_facts") == "NOT_READ"' "$harness" ||
   fail 'harness must assert target facts are not read'
+# The guard intentionally matches literal shell source (#239).
+# shellcheck disable=SC2016
+grep -Fq -- '--compatibility-matrix "$compatibility_matrix"' "$harness" ||
+  fail 'harness must pass the caller-supplied compatibility matrix to every build'
 grep -Fq 'input_fingerprint_before' "$harness" ||
   fail 'harness must fingerprint the exact input before both builds'
 grep -Fq 'input_fingerprint_after' "$harness" ||
