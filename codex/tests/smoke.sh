@@ -465,25 +465,33 @@ grep -Fq 'BLOCKED_EXTERNAL' \
 grep -Fq '/mnt/mac/Users/benque/MyDocs/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
 
 # #231: platform governance stays project-neutral, delivery-neutral and
-# provider-equal. The governance set is the seven files that are installed as
-# Agent behaviour or copied into every downstream project; project names and
+# provider-equal. The governance set is every file that is installed as Agent
+# behaviour or copied into every downstream project; project names and
 # delivery implementations belong to each project's own profile and AGENTS.md.
+# #241 widened the two named codex/skills entries to every
+# codex/skills/*/SKILL.md (codex/vendor/ is an upstream snapshot and stays out)
+# and aligned the delivery pattern with the Issue #241 AC-1 grep.
 governance_set=(
   "$ROOT/skill-for-claude/aisoft-platform/SKILL.md"
   "$ROOT/skill-for-claude/issue-session-flow/SKILL.md"
   "$ROOT/skill-for-codex/SKILL.md"
-  "$ROOT/codex/skills/aisoft-matt-workflow/SKILL.md"
-  "$ROOT/codex/skills/issue-session-flow/SKILL.md"
+  "$ROOT"/codex/skills/*/SKILL.md
   "$ROOT/codex/global-AGENTS.md"
   "$ROOT/templates/project/AGENTS.md"
 )
+# An unexpanded glob or a renamed file would make rg exit 2, which `if rg`
+# reads as "no match"; assert every member exists so the guard fails closed.
+for governance_file in "${governance_set[@]}"; do
+  [[ -f "$governance_file" ]]
+done
 if rg -ni 'NewEMaint|SFMDigitalBoard|HSDB|WMPDA|SapTable|rsdesign|myapp|smoke-test|LocalWMS' \
   "${governance_set[@]}"; then
   echo '平台治理文件不得出现具体项目名（#231 AC-1）' >&2
   exit 1
 fi
-if rg -ni 'docker-release|PM2|Compose|systemd-native|IIS' "${governance_set[@]}"; then
-  echo '平台治理文件不得出现交付形态实现名（#231 AC-2）' >&2
+if rg -ni 'docker-release|PM2|Compose|systemd-native|IIS|sqlite3 .backup|release symlink' \
+  "${governance_set[@]}"; then
+  echo '平台治理文件不得出现交付形态实现名（#231 AC-2，#241 扩展）' >&2
   exit 1
 fi
 # Shared references are installed into every developer's skills directory
