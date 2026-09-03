@@ -1,4 +1,4 @@
-# NewEmaint 公司两 VM 确定性交付 operator runbook
+# 公司两 VM 确定性交付 operator runbook
 
 > 状态：仓库交付物，未在公司执行。本 runbook 不证明公司安装、备份、恢复、CI 或生产部署成功。
 
@@ -10,11 +10,11 @@ evidence，不能投影为 `1.2.0` Stage 00/10 `PASS`；要进入本册 Stage 10
 ## 1. 不变量与人工闸门
 
 本流程只有两台公司 Linux VM：`gitea-ci`（role=`scm-ci`）和 `appserver`
-（role=`appserver-prod`）。非生产 role=`appserver-test` 继续由本地 OrbStack NewEmaint DockerLab
+（role=`appserver-prod`）。非生产 role=`appserver-test` 继续由本地 OrbStack DockerLab
 承担，不新增第三台公司 VM。
 
 任何时刻只有一个 stage 处于已批准且可执行状态。人必须先在公司批准系统中记录以下不可变 tuple，才可在
-指定 host 上手工启动该阶段：Issue/Change `#120`、stage、operator version、full source Git SHA、full
+指定 host 上手工启动该阶段：本次交付的 Issue/Change 编号、stage、operator version、full source Git SHA、full
 release SHA（不适用时为 null）、scope、role、批准引用、批准时间和失效时间。批准不得使用 wildcard，
 不得自动继承到下一 stage，也不得授权任意 shell、任意 host 或任意 target。
 
@@ -31,8 +31,8 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
    `pending` 必须分开；未运行不得写入 `changed`，local/fake 不能投影为 company/live。
 5. company Gitea 是公司部署权威；私有 GitHub 只运输 source provenance 或 approved bundle。公司重新创建
    PR、运行 CI/verification 并由人合并；不得继承 GitHub 或本地 PR 的审批结论。
-6. `scm-ci` 只能做 SCM/CI/Registry/cache、artifact-only verification 和受控编排，不得运行 NewEmaint
-   runtime 或业务 DB。`appserver-prod` 只承载 NewEmaint/PostgreSQL/Nginx/fixed target，不得安装 Gitea、
+6. `scm-ci` 只能做 SCM/CI/Registry/cache、artifact-only verification 和受控编排，不得运行应用
+   runtime 或业务 DB。`appserver-prod` 只承载应用/PostgreSQL/Nginx/fixed target，不得安装 Gitea、
    通用 Runner、源码 builder 或 AI。
 7. exact `docker-release/v2` bytes 是信任根；不同 bytes 不得继承本地测试结论。公司要求内网重建且无隔离
    测试环境时固定 `BLOCKED`。
@@ -213,10 +213,10 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 
 | 字段 | 合同 |
 |---|---|
-| 前置输入 | Stage 80 PASS、Stage 40 backup/restore PASS、exact bundle 已离线搬运、root-owned protected target profile、fixed target ID `newemaint-prod` 与完整 action grant review。 |
+| 前置输入 | Stage 80 PASS、Stage 40 backup/restore PASS、exact bundle 已离线搬运、root-owned protected target profile、fixed target ID `<fixed-target-id>`（由项目 target profile 声明）与完整 action grant review。 |
 | 人工批准记录 | 未来独立只读批准，只绑定 action=`verify-target`、target ID、profile checksum 和 full release SHA；不授权 stage/migrate/activate/rollback。 |
 | 执行位置 / role | 仅 `appserver/appserver-prod`；普通 Runner 不接触此 host。 |
-| 允许动作 | 经人工批准后调用 `aisoft-docker-release-gate verify-target newemaint-prod <full-sha>`；gate 从 root-owned grant 解析固定 profile/audit path，调用方不能传 shell、Docker argv 或任意路径。 |
+| 允许动作 | 经人工批准后调用 `aisoft-docker-release-gate verify-target <fixed-target-id> <full-sha>`；gate 从 root-owned grant 解析固定 profile/audit path，调用方不能传 shell、Docker argv 或任意路径。 |
 | 预期输出 | hostname/role、Engine/Compose、`linux/amd64`、containerd store、disk、profile/architecture/Compose compatibility 的 sanitized readiness receipt；无 container/DB mutation。 |
 | PASS | fixed target、role、profile、release、compatibility、backup identity 全部匹配，read-only readiness 通过。 |
 | FAIL | 已运行只读 gate，得到明确 incompatibility 或 target mismatch。 |
@@ -231,7 +231,7 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 | 前置输入 | Stage 90 PASS、company PR 已由人合并且 exact merge SHA 等于 release identity、maintenance window、previous release、migration plan、health gate、application rollback 与独立 DB restore decision 已批准。 |
 | 人工批准记录 | 未来 production mutation；一次批准只允许一个 `<action>`，不得批准 wildcard 或整个序列。每个 `stage`、`migrate`、`activate`、`status`、`rollback` 之间都要停下审核再申请。 |
 | 执行位置 / role | 仅 `appserver/appserver-prod`，通过 root-owned fixed action gate；`scm-ci` 只编排批准，不执行 target 命令。 |
-| 允许动作 | 固定调用形态为 `aisoft-docker-release-gate <action> newemaint-prod <full-sha>`；`<action>` 只可取批准记录中的一个固定值。不得使用 generic deploy shell、任意 profile、Compose override、SSH command 或数据库命令。 |
+| 允许动作 | 固定调用形态为 `aisoft-docker-release-gate <action> <fixed-target-id> <full-sha>`；`<action>` 只可取批准记录中的一个固定值。不得使用 generic deploy shell、任意 profile、Compose override、SSH command 或数据库命令。 |
 | 预期输出 | 每个 action 独立的 started/completed audit、staging/migration/activation/health/status receipt、current/previous full SHA 与 exact image identity。 |
 | PASS | 当前 action 的固定输入、pre/post state 与 health 全部满足；同 SHA 重复 action 只按既有 contract no-op，之后停止等待下一批准。 |
 | FAIL | 已执行当前 action，但 migration、activation、identity、health 或 rollback 失败；立即停止，不自动继续下一 action。 |
@@ -256,10 +256,11 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 
 ## 2. 当前状态与强制 NOT RUN
 
-Issue #120 建立了本 runbook；Issue #124 另行批准以 repo-external exact NewEmaint release 运行本地只读
-deterministic handoff regression。该 pre-Stage 00 local exact-release regression 已 PASS，但不生成 Stage
-evidence，也不是公司侧 handoff、安装或部署；正式搬运包仍须在 #124 人工合并后从 protected `main` exact
-SHA 重新生成。公司 Stage 00–110：`NOT RUN`。
+历史证据：Issue #120 建立了本 runbook；Issue #124 另行批准以 repo-external exact pilot release 运行本地只读
+deterministic handoff regression（pilot 叙事见 `archive/company-delivery-pilot-历史-20260903.md`）。该 pre-Stage 00
+local exact-release regression 已 PASS，但不生成 Stage evidence，也不是公司侧 handoff、安装或部署；正式搬运包
+仍须从 protected `main` exact SHA 重新生成。采用本 runbook 的项目，其公司 Stage 00–110 进度由项目仓记录；
+本仓库对任何项目均为 `NOT RUN`。
 
 以下事项不得因 source commit、merged PR、local tests 或 future company PR/CI 而写成 PASS：两台 VM
 inventory、Gitea install/upgrade、backup/isolated restore、GitHub inbound、company bootstrap、Runner、

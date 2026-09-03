@@ -69,7 +69,7 @@ updated: 2026-09-03
 | D-18 | `templates/evidence.blocked.example.json` | 0 | 通用 | 不改 |
 | D-19 | `templates/evidence.not-run.example.json` | 0 | 通用 | 不改 |
 
-合计 19 个文件，基线计数 23（与 Issue 正文一致）。改写后预期计数：Markdown 0；JSON 8（D-04 1、D-06 3、
+合计 19 个文件，基线计数 23（与 Issue 正文一致）。改写后预期计数：Markdown 0；JSON 9（D-04 1、D-06 3、
 D-07 2、D-08 2、D-13 1）——全部是 runtime 绑定标识符或其 `$comment` 标注，不再作为默认值、主机名、路径
 或阶段清单出现在通用 Markdown 中。
 
@@ -97,7 +97,7 @@ D-07 2、D-08 2、D-13 1）——全部是 runtime 绑定标识符或其 `$comme
   bullets（`docker-release` contract 要点）diff 为空；`grep -c '平台不设默认' 07-*.md` = 1。
 - [ ] **AC-2 判定表覆盖与去项目名**：判定表 D-01～D-19 覆盖 `find company-delivery -type f` 的全部 19 个文件
   （verification 逐行记录处置结果）；`grep -rci NewEmaint company-delivery/` 对 `README.md`、`runbook.md` 为 0，
-  全目录合计 = 8 且只落在 D-04/D-06/D-07/D-08/D-13（runtime 绑定标识符及其 `$comment` 标注）；
+  全目录合计 = 9 且只落在 D-04/D-06/D-07/D-08/D-13（runtime 绑定标识符及其 `$comment` 标注）；
   `grep -rn -i 'newemaint' company-delivery/schema/` 每处命中所在文件顶层含 `$comment` 且其文本含「历史证据」。
 - [ ] **AC-3 专属内容归属**：承接 Issue 已在 NewEmaint 仓创建（编号写进 verification 与
   `archive/company-delivery-pilot-历史-20260903.md`），正文列出承接的内容清单（D-04 matrix、D-05 pilot 事实、

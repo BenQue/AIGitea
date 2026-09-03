@@ -1,17 +1,18 @@
 # Company delivery operator bundle
 
-本目录是 Issue #120/#126/#128/#130 的 versioned、checksum-pinned、纯人工 operator workflow。当前 operator
-`1.2.0` 准备 NewEmaint 从本地
-OrbStack DockerLab 验证过的 exact `docker-release/v2` bytes 搬运到公司两台 Linux VM；它不是安装记录、
-部署记录或公司环境验收结果。
+本目录是公司两台 Linux VM 离线 handoff 的 versioned、checksum-pinned、纯人工 operator workflow **参考实现**
+（交付形态由项目自行声明与选用，环境级原则见 `skill-for-codex/references/onboarding-runbook.md` §4）。当前
+operator `1.2.0` 把本地 OrbStack DockerLab 验证过的 exact `docker-release/v2` bytes 搬运到公司两台 Linux VM；
+它不是安装记录、部署记录或任何项目的公司环境验收结果。建立本目录的 pilot（Issue #120/#126/#128/#130）
+历史见 [`archive/company-delivery-pilot-历史-20260903.md`](../archive/company-delivery-pilot-历史-20260903.md)。
 
 ## 固定拓扑
 
 | 位置 | role | 职责 | 禁止 |
 |---|---|---|---|
-| 公司 VM `gitea-ci` | `scm-ci` | Gitea、GitHub 入站、PR/CI、Runner、Registry/cache、artifact-only verification、受控编排 | NewEmaint runtime、业务 DB、production Secret |
-| 本地 OrbStack NewEmaint DockerLab | `appserver-test` | exact release 的非生产 deploy/migration/health/rollback | 作为公司 live evidence |
-| 公司 VM `appserver` | `appserver-prod` | NewEmaint runtime、PostgreSQL、Nginx、fixed production target | Gitea、通用 Runner、源码 build、任意 shell 发布 |
+| 公司 VM `gitea-ci` | `scm-ci` | Gitea、GitHub 入站、PR/CI、Runner、Registry/cache、artifact-only verification、受控编排 | 应用 runtime、业务 DB、production Secret |
+| 本地 OrbStack DockerLab | `appserver-test` | exact release 的非生产 deploy/migration/health/rollback | 作为公司 live evidence |
+| 公司 VM `appserver` | `appserver-prod` | 应用 runtime、PostgreSQL、Nginx、fixed production target | Gitea、通用 Runner、源码 build、任意 shell 发布 |
 
 公司侧只有两台 VM；`appserver-test` 是保留的 trust role，但位于本地，不要求第三台公司 VM。
 
@@ -22,7 +23,9 @@ OrbStack DockerLab 验证过的 exact `docker-release/v2` bytes 搬运到公司�
 - `schema/`：strict inventory v1/v2/v3、Gitea transition v1/v2、handoff/evidence v1 JSON schema；v1/v2
   inventory 与 transition v1 只用于历史 evidence 兼容读取。
 - `templates/`：结构示例；所有 `example` 文件都不是 live evidence。
-- `compatibility/newemaint-company-pilot-v1.json`：两 VM 拓扑、版本候选和 fail-closed policy。
+- `compatibility/<pilot>-company-pilot-v1.json`：pilot 项目的两 VM 拓扑、版本候选和 fail-closed policy matrix。
+  它是项目数据，归属项目仓（承接 Issue 见 archive）；平台保留副本只因 builder `1.2.0`（`bundle.py`
+  `COMPATIBILITY_PATH`）绑定该路径，属历史证据，不是新项目的默认拓扑。
 - 构建后的 `handoff-manifest.json`、`SHA256SUMS`、`.tar.gz.sha256`：full Git SHA 与 exact release bytes 的
   可携带身份。
 
@@ -62,14 +65,14 @@ Secret 放入 argv：
 company-delivery/bin/aisoft-company-delivery build-bundle \
   --repository-root /approved/aisoft-platform \
   --source-sha <40-char-source-sha> \
-  --release-root /approved/newemaint/releases \
+  --release-root /approved/<project>/releases \
   --release-id <40-char-release-sha> \
   --output-directory /approved/empty-mode-0700-output \
   --created-at <YYYY-MM-DDTHH:MM:SSZ> \
   --source-transport approved-bundle
 ```
 
-同一组输入重复构建必须得到 byte-identical archive checksum。真实 NewEmaint bytes 缺失时保持
+同一组输入重复构建必须得到 byte-identical archive checksum。真实 release bytes 缺失时保持
 `NOT RUN`；不得用 repository fixture 或 local fake bundle 作为公司 handoff。
 
 `created-at` 只控制确定性 archive 的时间字段，不是安全校验时钟。每次 build 与 verify 都按运行时 UTC
@@ -90,6 +93,7 @@ handoff、逐文件摘要、完整 `SHA256SUMS`、compatibility identity 和 rel
 `BLOCKED` 或 `NOT RUN`；必须分别记录 `observed`、`changed`、`verified`、`pending`。不得提交或传输
 Secret、原始日志、主机名/IP、用户名、配置内容、认证 header 或 credential path。
 
-完整操作合同见 [`runbook.md`](runbook.md)。#124 已对 repo-external exact NewEmaint release 运行本地只读
-deterministic handoff regression；这不是公司侧 handoff 或部署。公司 VM、公司 Gitea/Runner/Registry、
-backup/restore、NewEmaint target 和 production 均为 `NOT RUN`。
+完整操作合同见 [`runbook.md`](runbook.md)。历史证据：#124 曾对 repo-external exact pilot release 运行本地只读
+deterministic handoff regression（见 archive）；这不是公司侧 handoff 或部署。各项目的公司 VM、公司
+Gitea/Runner/Registry、backup/restore、fixed target 和 production 进度由项目仓记录；本仓库对任何项目均不构成
+公司侧 `PASS`。

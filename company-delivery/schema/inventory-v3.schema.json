@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://aisoft.example/contracts/company-delivery/inventory-v3.schema.json",
+  "$comment": "历史证据：enum 中的 aisoft-inbound-sync@newemaint.timer 是建立本合同的 pilot（Issue #120–#130，见 archive/company-delivery-pilot-历史-20260903.md）绑定的 sync timer unit 名，由 codex/runtime/aisoft_company_delivery 的 contract.py/collector.py 同名绑定；不是新项目默认值，随 runtime 参数化处置。",
   "title": "AISoft company delivery greenfield inventory V3",
   "type": "object",
   "additionalProperties": false,

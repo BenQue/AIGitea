@@ -2928,7 +2928,7 @@ class CompanyDeliveryRunbookTests(unittest.TestCase):
             "公司要求内网重建且无隔离测试环境",
             "不同 bytes 不得继承本地测试结论",
             "sync/inbound-sync.sh reconcile <allowlisted-profile>",
-            "aisoft-docker-release-gate <action> newemaint-prod <full-sha>",
+            "aisoft-docker-release-gate <action> <fixed-target-id> <full-sha>",
             "sync timer、Actions auto deploy 与 production gate 均为 `disabled/inactive`",
             "普通 Runner 无 production SSH、sudo、业务 DB 或任意 shell 权限",
             "公司侧 Stage 10–110：`NOT RUN`",
