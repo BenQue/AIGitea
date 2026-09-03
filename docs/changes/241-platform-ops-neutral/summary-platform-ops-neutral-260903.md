@@ -24,9 +24,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 231
-status: approved
+status: pr-open
 branch: change/241-platform-ops-neutral
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/242
 created: 2026-09-03
 updated: 2026-09-03
 ---
