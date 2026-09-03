@@ -24,9 +24,9 @@ updated: 2026-09-03
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 目标技能改写：`codex/skills/gitea-platform-ops/SKILL.md` description 与第 1、2、11、14、18 项按 spec 对照表改写；其余项逐字不变；两条 Issue grep 对技能集合为空 | - | pending |
-| T02 | 守卫扩展：`codex/tests/smoke.sh` `governance_set` 改为 `codex/skills/*/SKILL.md` glob + `[[ -f ]]` 存在断言，交付形态 pattern 追加两项；`bash codex/tests/smoke.sh` rc=0；反向注入 rc=1 后恢复 | T01 | pending |
-| T03 | 验证记录：填 verification（基线观测、AC-1～AC-4 命令与输出、反向证明、`check-drift` DRIFT、重装 NOT RUN） | T01, T02 | pending |
+| T01 | 目标技能改写：`codex/skills/gitea-platform-ops/SKILL.md` description 与第 1、2、11、14、18 项按 spec 对照表改写；其余项逐字不变；两条 Issue grep 对技能集合为空 | - | done |
+| T02 | 守卫扩展：`codex/tests/smoke.sh` `governance_set` 改为 `codex/skills/*/SKILL.md` glob + `[[ -f ]]` 存在断言，交付形态 pattern 追加两项；`bash codex/tests/smoke.sh` rc=0；反向注入 rc=1 后恢复 | T01 | done |
+| T03 | 验证记录：填 verification（基线观测、AC-1～AC-4 命令与输出、反向证明、`check-drift` DRIFT、重装 NOT RUN） | T01, T02 | done |
 
 Ticket ID 固定为 `Txx`；依赖只引用本表中的 ID。T02 依赖 T01：守卫扩展后目标技能若未改写，smoke
 会对半成品报红。T03 依赖两者定稿后运行。选 vertical slice：纯文本治理收敛，没有需要跨批次保持
