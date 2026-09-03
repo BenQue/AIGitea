@@ -13,7 +13,7 @@ risk_flags:
   - ci-change
 depends_on:
   - 237
-status: pending
+status: verified
 branch: change/239-param-company-delivery
 created: 2026-09-03
 updated: 2026-09-03
