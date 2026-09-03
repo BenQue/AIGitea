@@ -462,8 +462,6 @@ grep -Fq 'BLOCKED_EXTERNAL' \
   "$ROOT/codex/tools/ensure-gitea-collaborator.sh"
 grep -Fq 'BLOCKED_EXTERNAL' \
   "$ROOT/codex/tools/bootstrap-gitea-service-account.sh"
-grep -Fq 'AISOFT_ONBOARDING_MODE=software-repository' \
-  "$ROOT/skill-for-codex/SKILL.md"
 grep -Fq '/mnt/mac/Users/benque/MyDocs/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
 
 # #231: platform governance stays project-neutral, delivery-neutral and
@@ -486,6 +484,16 @@ if rg -ni 'NewEMaint|SFMDigitalBoard|HSDB|WMPDA|SapTable|rsdesign|myapp|smoke-te
 fi
 if rg -ni 'docker-release|PM2|Compose|systemd-native|IIS' "${governance_set[@]}"; then
   echo '平台治理文件不得出现交付形态实现名（#231 AC-2）' >&2
+  exit 1
+fi
+# Shared references are installed into every developer's skills directory
+# (#233 G-01), so the project-name guard covers them too. Delivery
+# implementation names stay allowed there: runbook §4/§9 must list the
+# architecture delivery_contract values.
+references_set=("$ROOT"/skill-for-codex/references/*.md)
+if rg -ni 'NewEMaint|SFMDigitalBoard|HSDB|WMPDA|SapTable|rsdesign|myapp|smoke-test|LocalWMS' \
+  "${references_set[@]}"; then
+  echo '共享 references 不得出现具体项目名（#233 G-01）' >&2
   exit 1
 fi
 # Live documents only: archive/, docs/changes/ and codex/vendor/ are history or

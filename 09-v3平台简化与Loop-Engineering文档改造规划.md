@@ -4,6 +4,7 @@
 > 日期：2026-07-16
 > 适用范围：AISoftPlatform 平台文档、平台 skills 与 agent 编排说明
 > 当前约束：本文件保留规划与决策演进，不是 live 状态表。source 能力、一次性 HOME smoke 或历史 pilot 均不能写成某项目已启用、已部署或 production 已验收；当前入口见 README、03/04/06/08。
+> 落地对照：2026-09-03，见 §0.2。
 
 ## 0. 实施状态
 
@@ -45,6 +46,23 @@
 本增补不回写原规划阶段的历史非目标。`§2` 中“本轮不修改脚本/不建设 prod-sim”描述的是
 2026-07-14 文档 Phase D；Issue #21 的 approved spec/plan 只在其精确范围内授权新的候选实现，
 不授权自动合并、生产部署或除 `prod-sim` 外的 destructive action。
+
+### 0.2 落地对照（2026-09-03）
+
+本文件是规划与决策演进记录；下表说明各节现在落在哪里、哪些仍未实施（Issue #233）。
+
+| 本文节 | 落地位置 / 状态 |
+|---|---|
+| §4 两类变更路径、§4.3 AI 判级 | `03`；`codex/runtime/aisoft_loop/classification.py` 与 `codex/runtime/tests/test_classification.py` |
+| §5 Issue、分支与文档合同 | `03`；§5.3 的 `00-summary.md` 命名已被 #57/#75 readable tuple（`<role>-<short-description>-<YYMMDD>.md`）取代，旧名只作读取兼容 |
+| §6 标签模型 | `codex/config/gitea-labels.json` canonical manifest（27 标签）；`03` 标签语义 |
+| §7 Development Loop 合同 | `04`；`codex/runtime/aisoft_loop/`。§7.6 可选 review agent **未实施**（§13.2） |
+| §8 部署生命周期中的 AI 边界 | `skill-for-codex/references/onboarding-runbook.md` §4；`02` §7 |
+| §9–§11 文档影响矩阵、实施顺序、验收标准 | Phase D1–D5 已完成（§0）；§11「所有 Issue 都有 `00-summary.md`」一条已被 readable 命名取代 |
+| §12 迁移与回滚原则 | §12.2 运行迁移已完成（§0 runtime source 与 VM 安装）；§12.3 回滚原则现行（`08` §9） |
+| §13 实施参数 | §13.1 七项已定；§13.2 两项**仍开放** |
+| §15 Architecture catalog | `architecture/` 已实施（Issue #23） |
+| §16 Issue #208 | source 合同已合并；routine merger 的 live apply、credential provision 与每项目 opt-in **未执行**（README §1） |
 
 ## 1. 规划目标
 
@@ -507,7 +525,7 @@ AI 可以与人一起在开发/测试环境：
 | `05-通知与多人协作.md` | 通知从三闸门就绪转向 analysis 完成、Loop 升级、PR ready、CI/部署失败和回滚结果 | Gitea mailer、Mailpit/SMTP、多用户协作 |
 | `06-运维手册与踩坑集.md` | 增加 AI 排障入口、标准故障证据包、生产故障修复路径 | 现有真实命令、14 条踩坑、凭据位置、部署排障树 |
 | `07-内网与生产平移路线.md` | 移除生产服务器 AI 依赖；办公客户端负责 AI；更新 prod-sim 验收优先级 | 三层拓扑、离线生产、制品传输、备份与回滚 |
-| `08-Codex双工具共存与实施.md` | 从“一次性 provider 调用”升级为 provider-neutral Loop；Mac 交互与 VM headless 分工重新定义 | Claude/Codex 配置独立、共享 AGENTS、sandbox 和最小权限 |
+| `08-双工具共存与实施.md` | 从“一次性 provider 调用”升级为 provider-neutral Loop；Mac 交互与 VM headless 分工重新定义 | Claude/Codex 配置独立、共享 AGENTS、sandbox 和最小权限 |
 | `skill-for-codex/SKILL.md` | 更新总流程、标签语义、small/complex 路由、Loop 和部署边界 | 平台诊断入口、关键事实、凭据保护 |
 | `skill-for-codex/references/onboarding-runbook.md` | 新项目接入改为双路径、Loop 验收、首次部署 AI 协作与生产 script-only | 参数化接入、端口、CI、环境、分支保护 |
 | `codex/global-AGENTS.md` | 更新唯一闸门、Loop 终态和部署生命周期规则 | VM 全局路径、凭据禁令、生产安全边界 |

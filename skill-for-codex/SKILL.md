@@ -23,8 +23,8 @@ Use:
 
 Select the target project explicitly before any Gitea or Git mutation. A project profile binds one profile name to `GITEA_URL`, `GITEA_OWNER`, `GITEA_REPO`, `AGENT_REPO_DIR`, provider selection, and a namespaced state/worktree root. Never infer the target repository from another project or example, and never reuse one project's state directory for another project.
 
-After AISoftPlatform Issue #35 is merged and its live rollout is explicitly authorized, every local Gitea
-software repository must first exist in the strict `codex/config/gitea-governance.json` manifest. Validate the
+Every local Gitea software repository must first exist in the strict `codex/config/gitea-governance.json`
+manifest (the Issue #35 governance contract is live). Validate the
 manifest, bootstrap the non-site-admin platform manager for one exact repository, run read-only governance
 `check`, then apply one exact repository with the manifest-declared project agent. Unknown repositories are
 report-only; never infer visibility, ownership, or permissions from discovery.
@@ -41,33 +41,12 @@ contexts may declare `routine_auto_merge_enabled=true`. `aisoft-platform`, every
 every context-empty repository stay disabled. Source declarations, installed bytes, credential provision, protection
 apply and live read-back are separate evidence; this contract never infers one from another.
 
-The following fixed `ci-bot` gate is migration compatibility only for profiles that already use it. Do not use
-it to onboard a new project:
+The shared `ci-bot` collaborator gate is retired: `ensure-gitea-collaborator.sh` remains only as historical
+compatibility and regression-test evidence and must never onboard, repair, or serve as a broker fallback for any
+project; see `06` §「旧 `ci-bot` gate（已退役）」.
 
-```text
-AISOFT_ONBOARDING_MODE=software-repository \
-GITEA_URL=<exact-url> \
-GITEA_OWNER=<exact-owner> \
-GITEA_REPO=<exact-repo> \
-GITEA_EXPECT_URL=<exact-url> \
-GITEA_EXPECT_OWNER=<exact-owner> \
-GITEA_EXPECT_REPO=<exact-repo> \
-GITEA_ADMIN_CREDENTIAL_FILE=<vm-local-credential-file> \
-GITEA_BOT_CREDENTIAL_FILE=<vm-local-credential-file> \
-/mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/ensure-gitea-collaborator.sh
-```
-
-The legacy gate is fixed to the platform-managed `ci-bot` identity and exact `write` permission. It must read
-back the API permission, verify real `ci-bot` repository access, and prove the existing `main` branch protection
-is unchanged and still excludes `ci-bot` from push, force-push, and merge allowlists. It never grants `admin`
-or enables merge. On any failure, stop the migration flow and report `BLOCKED_EXTERNAL`.
-
-Resolve these non-secret coordinates from the exact project profile first, then run the gate in the VM operator context that can read the existing administrator and `ci-bot` credential file. Do not copy either token into the project profile, Mac, command arguments, or output.
-
-Do not use either mutation path as an inspection shortcut. Prefer the exact project profile; for cross-project
-settings/protection use the manager audit PAT and `gitea-governance.sh check`. Retire `ci-bot` only after the
-new project agent has exact PASS evidence for private read, Issue/comment/label, feature push, PR, main push
-denial, and main merge denial.
+Do not use the mutation path as an inspection shortcut. Prefer the exact project profile; for cross-project
+settings/protection use the manager audit PAT and `gitea-governance.sh check`.
 
 ## Access private Gitea deterministically
 
@@ -76,8 +55,7 @@ Before inspecting a private repository, Issue, PR, Actions run, branch protectio
 - Resolve and verify the exact Gitea remote or project profile first.
 - Do not start with an anonymous API request. A private-repository `404` or Git `Repository not found` is inconclusive.
 - Prefer the exact project profile and minimum-privilege identity. For Git refs, reuse the configured Git credential helper.
-- After Issue #35 live rollout, use the independent platform-manager audit PAT for cross-project read-only
-  settings/protection inventory; do not substitute the mutation PAT or ordinary Git.
+- Use the independent platform-manager audit PAT for cross-project read-only settings/protection inventory; do not substitute the mutation PAT or ordinary Git.
 - If no profile/manager exists or ACL blocks the exact target, use the VM-local administrator credential only
   for an authorized, sanitized, read-only helper call. Do not copy credentials to the Mac or broaden bot access.
 - Use an existing authenticated browser session as a read-only fallback when the helper is unavailable or UI evidence is required.

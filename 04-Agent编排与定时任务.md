@@ -34,8 +34,8 @@ aisoft-agent@<profile>.timer / controlled trigger
       ├── contract loader
       ├── Matt tracker / workflow adapters
       ├── worktree + issue lock
-      ├── Codex adapter（先验证）
-      ├── Claude adapter（Codex 验证后）
+      ├── Codex adapter
+      ├── Claude adapter
       ├── deterministic verifier
       ├── Gitea Issue/PR/CI adapter
       ├── AWAITING_PR_CONFIRMATION state
@@ -43,6 +43,8 @@ aisoft-agent@<profile>.timer / controlled trigger
       ├── project-scoped broker merger
       └── local state store
 ```
+
+两个 adapter 等价、可互换，由 `IMPLEMENT_PROVIDER` 显式选择。
 
 第一版在每个项目 profile 内只允许一个 active Issue，使用该 profile 的独立 state、lock 和 worktree。多个 profile 默认都不启用；若后续并行启用，必须另做 VM 容量和 provider 并发验收。不得为项目、Claude 或 Codex 各复制一套状态机。
 
@@ -144,7 +146,7 @@ Verifier 必须由外层脚本独立运行，不信任模型自述。每条 acce
 确定性终态 plan/apply、change document check、worktree/local branch cleanup 与归档，不再增加确认点。
 routine 任一 hard gate 失败不得自动转成更宽权限的 merge 路径。
 
-## 10. Codex-first 验证顺序
+## 10. Provider 验证矩阵
 
 1. 静态验证 skills、metadata、sandbox 和禁止参数。
 2. 合成 Issue 验证合同读取与终态。
@@ -153,11 +155,11 @@ routine 任一 hard gate 失败不得自动转成更宽权限的 merge 路径。
 5. 验证 CI failure feedback。
 6. 验证升级条件和三次同因失败。
 7. 只有需要部署的应用 profile 才在开发/测试环境验证首次部署和回滚；AISoftPlatform 等文档/source 仓库不适用。
-8. 共享 Codex runtime 与 profile 隔离验证通过后接 Claude adapter，并用同一通用矩阵做 parity；项目级 enablement 仍是独立门禁。
+8. 两个 provider 用同一通用矩阵做 parity 验证；项目级 enablement 仍是独立门禁。
 
 ## 11. 安全与回滚
 
-- controller 使用专用 `coder` 用户和最小权限 ci-bot。
+- controller 使用专用 `coder` 用户；Gitea 身份是 manifest-declared project agent，经 broker typed 操作使用最小权限。
 - Agent/provider 不持有 push、PR、merge 或 deploy credential；独立 routine merger 是 Gitea 1.26.4 的 exact-repo Write identity，服务端没有 merge-only ACL。其 credential 由 broker 独占，唯一 typed merge operation 派生 exact repository/PR/head，main push/force allowlist 均为空；ordinary Git 与 cross-project write 依靠 custody、manifest/final-head gates 和 zero fallback 禁止。commit subject 必须包含 `#N` 与当前 `Txx`，修复使用追加 commit。
 - 不打印 `.agent.env`、auth、Git credentials 或应用环境变量。
 - 新 profile 默认 `IMPLEMENT_PROVIDER=none`；复制模板、安装 unit 或文档更新都不启用 Loop。
