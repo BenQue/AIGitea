@@ -24,9 +24,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 233
-status: approved
+status: pr-open
 branch: change/237-deproject-company-delivery
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/238
 created: 2026-09-03
 updated: 2026-09-03
 ---
