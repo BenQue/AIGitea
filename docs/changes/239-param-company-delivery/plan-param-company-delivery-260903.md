@@ -29,7 +29,7 @@ updated: 2026-09-03
 | T02 | compatibility matrix 参数化：`bundle.py` R-08、`cli.py` R-09、`VERSION` R-10、handoff/compatibility schema R-12/R-13、templates R-14～R-16、R-04/R-08/R-09 测试与「runtime 包零项目名」断言、版本断言 `1.3.0`；单测全绿 | T01 | done |
 | T03 | 文档与脚本合同：README/runbook R-17、integration 脚本 R-18（`--compatibility-matrix` 参数 + `1.3.0` 身份钉）、harness 守卫；`bash codex/tests/smoke.sh` 全绿；integration `--execute` 记 NOT RUN | T02 | done |
 | T04 | verification 定稿（AC-1/3/4/5/6 + AC-2 中间状态）；`check-change-documents` PASS；判级投影 `apply-classification-labels.sh 239` → `--apply` → `--verify 239` = `projected` | T03 | done |
-| T05 | **软依赖 NewEmaint #75 closed**（broker `gitea.issue.read --project newemaint --number 75` 读回 `state: closed`）：`git rm company-delivery/compatibility/newemaint-company-pilot-v1.json`；`smoke.sh` 守卫扩展到整个 `company-delivery/` + 反向证明；verification AC-2 回填；smoke 全绿 | T04 + #75 | blocked（#75 open） |
+| T05 | **软依赖 NewEmaint #75 closed**（broker `gitea.issue.read --project newemaint --number 75` 读回 `state: closed`）：`git rm company-delivery/compatibility/newemaint-company-pilot-v1.json`；`smoke.sh` 守卫扩展到整个 `company-delivery/` + 反向证明；verification AC-2 回填；smoke 全绿 | T04 + #75 | done |
 
 Ticket ID 固定为 `Txx`；依赖只引用本表中的 ID。每个 ticket 都应可由 `$implement #N Txx` 独立执行和验证。
 T01→T02→T03→T04 串行（每张 ticket 单独 commit）。**T05 之前停下报告调度会话**（`local_18321282-0f38-48ea-8e6c-ae3d257efe1b`）：

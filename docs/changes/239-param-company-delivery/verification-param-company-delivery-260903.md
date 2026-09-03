@@ -23,7 +23,7 @@ updated: 2026-09-03
 
 ## 基线与范围
 
-- Commit SHA: T00 `c52fa3c`（合同）、T01 `aa07099`、T02 `c6b330a`、T03 `97cc741`；本记录随 T04 提交，SHA 见 PR
+- Commit SHA: T00 `c52fa3c`（合同）、T01 `aa07099`、T02 `c6b330a`、T03 `97cc741`、T04 `dfb072d`；T05 与本记录定稿同一 commit，SHA 见 PR
 - 基线：`origin/main` = `2482584`（Merge PR #238，#237 deproject-company-delivery）
 - 环境: Mac 本机 checkout（`/Users/benque/MyDocs/AISoftPlatform`，worktree
   `/private/tmp/issue-239-param-company-delivery`）
@@ -64,6 +64,14 @@ updated: 2026-09-03
 | `git diff --stat origin/main...HEAD -- docker-release/ architecture/ codex/config codex/tools AGENTS.md skill-for-codex skill-for-claude codex/skills codex/runtime/aisoft_loop codex/runtime/aisoft_release` | 空 | 非目标路径零 diff |
 | `git diff --stat origin/main...HEAD` | 23 files（T03 时） | 全部为平台仓路径：runtime 4、tests 1、`company-delivery/` 13（含 2 个新文件）、integration/harness 2、docs/changes 3 |
 | broker `gitea.issue.read --project newemaint --number 75`（T04 定稿前再次读回） | `state: open`，`closed_at: null`，`updated_at: 2026-09-03T09:36:39+08:00` | T05 前置未满足，停在 T05 前报告调度会话 |
+| broker `gitea.issue.read --project newemaint --number 75`（T05 放行后本会话再次读回） | `state: closed`，`closed_at: 2026-09-03T15:55:48+08:00`，labels `completed`/`complexity/small`/`type/docs` | 调度会话独立核实：NewEmaint merge `f687f279eb989b84ea1ad6ba78833c46385823df` 在 `gitea/main`（PR admin/NewEMaint #76，head `e7300c2`，required CI success） |
+| `git rm company-delivery/compatibility/newemaint-company-pilot-v1.json`；`find company-delivery -type f \| wc -l` | 目录 `compatibility/` 消失；20 个文件（基线 19 − 1 + 新增 2） | 平台仓不再保存任何项目的 matrix |
+| `grep -rci NewEmaint company-delivery/ \| grep -v ':0$'`（T05 后） | 空，rc=1（基线合计 23 → #237 后 9 → 本 Issue 0） | Issue 验收第 2 条 |
+| `smoke.sh` 守卫块：`rg -ni <#231 pattern> "$ROOT/company-delivery"`，退出信息「company-delivery 不得出现具体项目名（#239 AC-2）」；`bash -n` + `shellcheck codex/tests/smoke.sh` | 通过 | 守卫从 README/runbook 两文件扩展到整个目录 |
+| 守卫反向证明：`cp -R company-delivery <tmp>/`，向副本 `templates/compatibility-matrix.example.json` 追加 `参照 NewEMaint 的旧 profile。`，`ROOT=<tmp>` 单独执行守卫块 | 报红，rc=1 | 打印 `…/company-delivery/templates/compatibility-matrix.example.json:26:参照 NewEMaint 的旧 profile。` + `company-delivery 不得出现具体项目名（#239 AC-2）` |
+| 同一守卫块对真实 worktree 执行（`ROOT=$PWD`） | `guard did not fire`，rc=0 | 真实树全目录计数 0 |
+| `PYTHONPATH=codex/runtime python3 -m unittest tests.test_company_delivery`（T05 后） | 85 tests OK | 模板/runbook 测试已改读 `templates/compatibility-matrix.example.json`，删副本不影响 |
+| `bash codex/tests/smoke.sh`（T05 全部改动，change worktree） | PASS，rc=0 | `Ran 660 tests in 40.228s … OK` + `Codex platform static smoke checks passed.` |
 | `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo <worktree>` | `pass=2 gap=0` | `PASS: change-documents`、`PASS: change-pr-url` |
 | `codex/tools/apply-classification-labels.sh 239` → `--apply` → `--verify 239` | `projected` | plan `applied:false`；apply `result:updated`；verify `result:projected`，`type/platform` + `complexity/complex` |
 
@@ -82,32 +90,35 @@ pilot matrix 归属项目仓（NewEmaint #75 承接）后，平台侧在三个�
 3. **Stage 20（cross-host review）**：`verify-gitea-transition` 读回 handoff 声明的 `sync_timer_unit` 并与 scm-ci
    inventory 记录的唯一 timer 实例交叉校验，不一致即 `INVALID_CONTRACT`。
 
-项目仓侧只需在其 matrix 顶层增加 `sync_timer_unit`（NewEmaint #75 的归属副本当前没有该字段，由项目仓自行补写；
-平台 `templates/compatibility-matrix.example.json` 与 `schema/compatibility-v1.schema.json` 给出结构）。
+项目仓侧的归属副本：`admin/NewEMaint` `ops/aisoft/company-delivery/compatibility/newemaint-company-pilot-v1.json`（#75 落地，
+顶层已含 `sync_timer_unit: "aisoft-inbound-sync@newemaint.timer"`，其余与平台 #237 原件逐字节相同，`matrix_revision`
+`2026.08.4`，`gitea/main` 实测 SHA-256 `3279c65e9ec4eda5521b487cc26cdcb24d0856e59f951e82e119ec506c0b8f0a`，用本分支
+`schema/compatibility-v1.schema.json` 校验 PASS——以上由 #75 会话与调度会话核实）。构建时调用方即传
+`--compatibility-matrix <NewEMaint checkout>/ops/aisoft/company-delivery/compatibility/newemaint-company-pilot-v1.json`；
+平台 `templates/compatibility-matrix.example.json` 与 `schema/compatibility-v1.schema.json` 只给结构。
 
 ## 与 NewEmaint #75 的衔接（T05 前置）
 
 - 会话开始（基线）：`state: open`。
-- T04 定稿前再次读回（2026-09-03）：`state: open`。T05（删除平台副本 + 守卫扩展）只在读回 `closed` 后执行；本记录定稿时未执行。
+- T04 定稿前再次读回（2026-09-03）：`state: open`，停在 T05 前报告调度会话。
+- 调度会话放行后本会话再次读回：`state: closed`（`closed_at` 2026-09-03T15:55:48+08:00）；随后执行 T05。
 
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |
 |---|---|---|
 | AC-1 runtime 参数化 | PASS | runtime 6 文件项目名 0；`COMPATIBILITY_PATH` 不存在；R-03～R-09 正反向用例 9 条随 85 tests OK |
-| AC-2 副本删除与守卫扩展 | **T05 待执行**（当前 PARTIAL） | 除副本本身外 `company-delivery/` 计数 0；副本仍在，守卫仍只读 README/runbook；软依赖 NewEmaint #75 |
+| AC-2 副本删除与守卫扩展 | PASS | 副本已删（`test -e` 失败）；全目录计数 0；守卫覆盖整个 `company-delivery/`，反向证明报红/真实树静默；前置 NewEmaint #75 `closed` 已读回 |
 | AC-3 VERSION 与 legacy | PASS | `VERSION` = `OPERATOR_VERSION` = `1.3.0`；archive 名前缀 `aisoft-company-delivery-1.3.0-`；legacy 1.2.0 handoff 可读（`test_handoff_sync_timer_unit_is_required_from_operator_1_3`）且 transition 拒绝旧 operator（既有 `test_transition_verifier_rejects_handoff_source_version_and_package_drift` 1.0.1 用例）；仓库内无 1.2.0 handoff 补写 |
-| AC-4 测试与守卫 | PASS | smoke 660 tests OK rc=0；测试模块只剩 #237 否定断言；template matrix 0；`bash -n`/shellcheck 通过；harness PASS；integration `--execute` NOT RUN |
+| AC-4 测试与守卫 | PASS | smoke 660 tests OK rc=0（T03、T05 各一次）；测试模块只剩 #237 否定断言；template matrix 0；`bash -n`/shellcheck 通过；harness PASS；integration `--execute` NOT RUN |
 | AC-5 与 #75 衔接 | PASS | 上节三点读取路径 + #75 state 读回 |
 | AC-6 非目标守卫 | PASS | 非目标路径 diff 为空；全部改动为平台仓路径 |
 
 ## 遗留风险与未完成项
 
-- **T05 未执行**：`company-delivery/compatibility/newemaint-company-pilot-v1.json` 仍在平台仓（计数 1），`smoke.sh`
-  项目名守卫仍只覆盖 README/runbook。前置：NewEmaint #75 读回 `closed`。停在 T05 前向调度会话报告。
 - integration `test-company-delivery-real-release.sh --execute`：NOT RUN（无 exact release bytes；脚本本身钉住 #124
   历史分支 `change/124-secret-scan-false-positive`，只能作历史回归骨架）。
-- 项目仓 matrix 需补 `sync_timer_unit` 字段后才能被 1.3.0 builder 接受；属 NewEmaint 仓自身的后续工作，本 Issue 不改该仓。
+- 项目仓归属 matrix 已含 `sync_timer_unit`（#75），本 Issue 未在本机对该文件运行 `build-bundle`（无 exact release bytes），只经 #75 会话按 schema 校验。
 - 根文档 `README.md:23`、`13:60` 的「operator 1.2.0」为状态句/参考记录，spec 非目标，未改。
 
 合格标准：每条 acceptance criterion 都有一条真实执行过的命令或一次真实观测支撑；

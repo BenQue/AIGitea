@@ -497,17 +497,12 @@ if rg -ni 'NewEMaint|SFMDigitalBoard|HSDB|WMPDA|SapTable|rsdesign|myapp|smoke-te
   exit 1
 fi
 # company-delivery/ is a de-projected operator reference implementation
-# (#237): its README and runbook ship inside every operator bundle and must not
-# name a project. JSON identifiers bound by the runtime (compatibility path,
-# sync timer unit name) stay out of this guard until the runtime is
-# parameterised.
-company_delivery_docs=(
-  "$ROOT/company-delivery/README.md"
-  "$ROOT/company-delivery/runbook.md"
-)
+# (#237) and ships inside every operator bundle. Since #239 the runtime binds
+# no project identifier (the compatibility matrix and the sync timer unit are
+# caller/handoff-declared), so the whole directory must stay project-neutral.
 if rg -ni 'NewEMaint|SFMDigitalBoard|HSDB|WMPDA|SapTable|rsdesign|myapp|smoke-test|LocalWMS' \
-  "${company_delivery_docs[@]}"; then
-  echo 'company-delivery 文档不得出现具体项目名（#237 AC-4）' >&2
+  "$ROOT/company-delivery"; then
+  echo 'company-delivery 不得出现具体项目名（#239 AC-2）' >&2
   exit 1
 fi
 # Live documents only: archive/, docs/changes/ and codex/vendor/ are history or
