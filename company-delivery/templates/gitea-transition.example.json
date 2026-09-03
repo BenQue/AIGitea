@@ -1,6 +1,6 @@
 {
   "contract_version": "company-delivery-gitea-transition/v2",
-  "operator_version": "1.2.0",
+  "operator_version": "1.3.0",
   "recorded_at": "2026-08-17T08:00:00Z",
   "source_git_sha": "0000000000000000000000000000000000000000",
   "handoff_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",

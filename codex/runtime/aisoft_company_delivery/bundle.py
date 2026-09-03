@@ -23,6 +23,7 @@ from .contract import (
     GIT_SHA,
     HANDOFF_VERSION,
     CompanyDeliveryError,
+    load_compatibility_matrix,
     load_handoff,
     sha256_file,
 )
@@ -30,7 +31,11 @@ from .secret_scan import mask_source_placeholders, scan_bundle_payloads
 
 
 SOURCE_REPOSITORY = "admin/aisoft-platform"
-COMPATIBILITY_PATH = "operator/compatibility/newemaint-company-pilot-v1.json"
+# The compatibility matrix is project data: the caller passes the project
+# repository's file and the builder carries it under this bundle directory
+# with the caller's basename. No project path is bound by the runtime.
+COMPATIBILITY_DIRECTORY = "operator/compatibility"
+COMPATIBILITY_FILE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}\.json$")
 SOURCE_TRANSPORTS = {"approved-bundle", "allowlisted-github-ref"}
 
 SOURCE_MAPPINGS = (
@@ -59,10 +64,12 @@ def build_bundle(
     output_directory: Path | str,
     created_at: str,
     source_transport: str,
+    compatibility_matrix: Path | str,
 ) -> dict[str, object]:
     repository = Path(repository_root)
     release_parent = Path(release_root)
     output = Path(output_directory)
+    matrix_source = Path(compatibility_matrix)
     if GIT_SHA.fullmatch(source_sha) is None:
         raise CompanyDeliveryError("INVALID_ARGUMENT", "source SHA must be a lowercase 40-character Git SHA")
     if GIT_SHA.fullmatch(release_id) is None:
@@ -70,9 +77,15 @@ def build_bundle(
     if source_transport not in SOURCE_TRANSPORTS:
         raise CompanyDeliveryError("INVALID_ARGUMENT", "source transport is outside the allowlist")
     timestamp = _parse_timestamp(created_at)
+    sync_timer_unit = _validated_compatibility_matrix(matrix_source)
     _validate_repository(repository, source_sha)
     _validate_output_directory(output)
     tracked = _mapped_tracked_files(repository)
+    matrix_destination = Path(COMPATIBILITY_DIRECTORY) / matrix_source.name
+    if any(destination == matrix_destination for _source, destination in tracked):
+        raise CompanyDeliveryError(
+            "SOURCE_INVALID", "compatibility matrix collides with a tracked operator file"
+        )
     release_files = _verified_release(release_parent, release_id, _utc_today())
     archive_graph = _verified_archive_graph(release_files)
     version = _operator_version(repository / "company-delivery/VERSION")
@@ -88,6 +101,7 @@ def build_bundle(
     try:
         bundle_root.mkdir(mode=0o700)
         _copy_tracked(bundle_root, tracked)
+        _copy_regular(matrix_source, bundle_root / matrix_destination)
         release_destination = bundle_root / "release" / release_id
         _mkdirs(release_destination)
         for source in sorted(release_files.directory.iterdir(), key=lambda item: item.name):
@@ -101,7 +115,7 @@ def build_bundle(
         payloads = _payload_inventory(bundle_root)
         manifest_relative = f"release/{release_id}/release.json"
         manifest_digest = sha256_file(bundle_root / manifest_relative)
-        compatibility_digest = sha256_file(bundle_root / COMPATIBILITY_PATH)
+        compatibility_digest = sha256_file(bundle_root / matrix_destination)
         manifest: dict[str, object] = {
             "contract_version": HANDOFF_VERSION,
             "operator_version": version,
@@ -120,9 +134,10 @@ def build_bundle(
                 "transport": "offline-bundle",
             },
             "compatibility": {
-                "matrix_path": COMPATIBILITY_PATH,
+                "matrix_path": matrix_destination.as_posix(),
                 "matrix_sha256": compatibility_digest,
                 "required_roles": ["scm-ci", "appserver-prod"],
+                "sync_timer_unit": sync_timer_unit,
             },
             "payloads": payloads,
         }
@@ -205,6 +220,16 @@ def _verified_archive_graph(files) -> VerifiedArchiveGraph:
         raise CompanyDeliveryError(
             "ARTIFACT_INVALID", "docker-release/v2 artifact graph verification failed"
         ) from exc
+
+
+def _validated_compatibility_matrix(path: Path) -> str:
+    """Admit the caller's matrix file and return the sync timer unit it declares."""
+    if not path.is_absolute():
+        raise CompanyDeliveryError("UNSAFE_PATH", "compatibility matrix path must be absolute")
+    if COMPATIBILITY_FILE_NAME.fullmatch(path.name) is None:
+        raise CompanyDeliveryError("UNSAFE_PATH", "compatibility matrix file name is outside the allowlist")
+    matrix = load_compatibility_matrix(path)
+    return str(matrix["sync_timer_unit"])
 
 
 def _validate_repository(repository: Path, expected_sha: str) -> None:

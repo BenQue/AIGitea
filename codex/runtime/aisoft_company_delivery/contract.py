@@ -23,7 +23,7 @@ HANDOFF_VERSION = "company-delivery-handoff/v1"
 EVIDENCE_VERSION = "company-delivery-evidence/v1"
 RELEASE_VERSION = "docker-release/v2"
 COMPATIBILITY_VERSION = "company-delivery-compatibility/v1"
-OPERATOR_VERSION = "1.2.0"
+OPERATOR_VERSION = "1.3.0"
 # Handoff manifests built by this operator version or later must declare the
 # sync timer unit; older manifests stay readable as archived evidence only.
 SYNC_TIMER_DECLARATION_VERSION = (1, 3, 0)

@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://aisoft.example/contracts/company-delivery/handoff-v1.schema.json",
   "title": "AISoft company delivery handoff V1",
+  "$comment": "compatibility.sync_timer_unit 自 operator 1.3.0 起由 builder 从调用方传入的 compatibility matrix 写入并为必填（runtime load_handoff 按 operator_version 判定）；更早的 handoff 只作历史 evidence 读取，可缺省该字段，故本 schema 的 required 不含它。",
   "type": "object",
   "additionalProperties": false,
   "required": ["contract_version", "operator_version", "created_at", "source", "release", "compatibility", "payloads"],
@@ -39,7 +40,8 @@
       "properties": {
         "matrix_path": {"type": "string"},
         "matrix_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "required_roles": {"const": ["scm-ci", "appserver-prod"]}
+        "required_roles": {"const": ["scm-ci", "appserver-prod"]},
+        "sync_timer_unit": {"type": "string", "pattern": "^aisoft-inbound-sync@[A-Za-z0-9][A-Za-z0-9._-]{0,63}\\.timer$"}
       }
     },
     "payloads": {

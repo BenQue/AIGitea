@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aisoft.example/contracts/company-delivery/compatibility-v1.schema.json",
+  "title": "AISoft company delivery compatibility matrix V1",
+  "$comment": "matrix 归属采用两 VM 离线 handoff 路径的项目仓，构建时由 build-bundle --compatibility-matrix 传入。runtime 只绑定 contract_version 与 sync_timer_unit；其余键（拓扑、版本窗口、stage 进度、policy）是项目数据，平台不解释也不校验。",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "contract_version",
+    "sync_timer_unit"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "company-delivery-compatibility/v1"
+    },
+    "sync_timer_unit": {
+      "type": "string",
+      "pattern": "^aisoft-inbound-sync@[A-Za-z0-9][A-Za-z0-9._-]{0,63}\\.timer$"
+    }
+  }
+}
