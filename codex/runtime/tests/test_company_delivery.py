@@ -2975,7 +2975,10 @@ class CompanyDeliveryTopologyDocsTests(unittest.TestCase):
     def read(self, name: str) -> str:
         return (self.repository_root / name).read_text(encoding="utf-8")
 
-    def test_authoritative_docs_link_two_vm_newemaint_override(self) -> None:
+    def test_authoritative_docs_link_two_vm_reference_runbook(self) -> None:
+        # #237: the two-VM path is a de-projected reference implementation.
+        # Authoritative docs must link the runbook and describe the topology
+        # without naming a pilot project or pinning its stage progress.
         names = (
             "README.md",
             "07-内网与生产平移路线.md",
@@ -2986,12 +2989,12 @@ class CompanyDeliveryTopologyDocsTests(unittest.TestCase):
             with self.subTest(name=name):
                 text = self.read(name)
                 self.assertIn("company-delivery/runbook.md", text)
-                self.assertIn("NewEmaint", text)
                 self.assertIn("两台公司", text)
                 self.assertIn("本地 OrbStack", text)
-                self.assertIn("greenfield-isolated-install", text)
-                self.assertIn("legacy migration/phase-out", text)
-                self.assertIn("Stage 00–50", text)
+                self.assertIn("exact `docker-release/v2` bytes", text)
+        for name in ("README.md", "07-内网与生产平移路线.md"):
+            with self.subTest(name=name):
+                self.assertNotIn("NewEmaint 公司交付 runbook", self.read(name))
 
     def test_newemaint_never_reuses_company_rebuild_as_local_evidence(self) -> None:
         for name in (

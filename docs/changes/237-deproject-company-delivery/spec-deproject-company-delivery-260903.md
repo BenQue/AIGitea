@@ -106,8 +106,12 @@ D-07 2、D-08 2、D-13 1）——全部是 runtime 绑定标识符或其 `$comme
 - [ ] **AC-4 测试与守卫**：`smoke.sh` 新增独立守卫块，对 `company-delivery/README.md` 与 `runbook.md` 执行
   #231 AC-1 项目名 pattern（`rg -ni 'NewEMaint|SFMDigitalBoard|HSDB|WMPDA|SapTable|rsdesign|myapp|smoke-test|LocalWMS'`），
   命中即退出；反向证明：向副本追加 `参照 NewEMaint` 后单独执行守卫块报红并退出 1，真实树静默；
-  `test_company_delivery.py:2926` 钉住短语改为 `aisoft-docker-release-gate <action> <fixed-target-id> <full-sha>`，
-  其余断言不变；`test-company-delivery-real-release-harness.sh` 与 integration 测试 diff 为空；
+  `test_company_delivery.py:2926` 钉住短语改为 `aisoft-docker-release-gate <action> <fixed-target-id> <full-sha>`；
+  同文件 `CompanyDeliveryTopologyDocsTests.test_authoritative_docs_link_two_vm_newemaint_override`（T05 实施时
+  发现：它要求 README 与 07 含 `NewEmaint`、`Stage 00–50`、`legacy migration/phase-out`，即钉住本 Issue 要迁出的
+  pilot 事实）改为项目中立断言 `test_authoritative_docs_link_two_vm_reference_runbook`（四份文档仍须链接 runbook、
+  含「两台公司」「本地 OrbStack」「exact `docker-release/v2` bytes」，README/07 不得再出现「NewEmaint 公司交付
+  runbook」）；其余断言不变；`test-company-delivery-real-release-harness.sh` 与 integration 测试 diff 为空；
   `bash codex/tests/smoke.sh` 全绿（含 651 unittest）；integration `--execute` 记 NOT RUN；
   `git diff --stat origin/main...HEAD -- codex/runtime/aisoft_company_delivery` 为空。
 - [ ] **AC-5 引用一致**：`README.md`、`07`、`12`、`13` 中 `company-delivery/` 的每个链接目标存在（脚本逐链接
@@ -125,8 +129,9 @@ D-07 2、D-08 2、D-13 1）——全部是 runtime 绑定标识符或其 `$comme
   从 protected `main` exact SHA 重新生成并重新批准，不存在需要兼容的已发布 bundle。
 - **runtime**：`codex/runtime/aisoft_company_delivery/` 零 diff。`COMPATIBILITY_PATH` 与 timer unit 名继续指向
   现有文件与字符串；D-04/D-06～D-08/D-13 因此保留。
-- **runtime tests**：只改 `test_company_delivery.py:2926` 一条钉住文档短语的字面量；结构断言、schema 分支断言、
-  模板可解析断言不变。
+- **runtime tests**：只改 `test_company_delivery.py` 中两处钉住文档内容的断言（`:2926` 一条字面量；
+  `CompanyDeliveryTopologyDocsTests` 一个方法改为项目中立，T05 发现并按 Issue 验收第 4 条「测试按判定结果同步调整」
+  处置）；结构断言、schema 分支断言、模板可解析断言不变。
 - **smoke.sh**：新增守卫只读 `company-delivery/README.md` 与 `runbook.md`；既有 JSON/Secret 扫描、harness 调用与
   #231/#233 守卫不变。`$comment` 键不触发 Secret 扫描 pattern（不含 `token|secret|password` 等赋值形态）。
 - **下游 NewEmaint 仓**：只新开 Issue；不改任何文件、不部署。

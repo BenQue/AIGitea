@@ -496,6 +496,20 @@ if rg -ni 'NewEMaint|SFMDigitalBoard|HSDB|WMPDA|SapTable|rsdesign|myapp|smoke-te
   echo '共享 references 不得出现具体项目名（#233 G-01）' >&2
   exit 1
 fi
+# company-delivery/ is a de-projected operator reference implementation
+# (#237): its README and runbook ship inside every operator bundle and must not
+# name a project. JSON identifiers bound by the runtime (compatibility path,
+# sync timer unit name) stay out of this guard until the runtime is
+# parameterised.
+company_delivery_docs=(
+  "$ROOT/company-delivery/README.md"
+  "$ROOT/company-delivery/runbook.md"
+)
+if rg -ni 'NewEMaint|SFMDigitalBoard|HSDB|WMPDA|SapTable|rsdesign|myapp|smoke-test|LocalWMS' \
+  "${company_delivery_docs[@]}"; then
+  echo 'company-delivery 文档不得出现具体项目名（#237 AC-4）' >&2
+  exit 1
+fi
 # Live documents only: archive/, docs/changes/ and codex/vendor/ are history or
 # upstream snapshots, and this file carries the pattern itself.
 if rg -n '默认主处理者|primary handler|维护与部署|开发与设计|Codex 为主|对等补位' \
