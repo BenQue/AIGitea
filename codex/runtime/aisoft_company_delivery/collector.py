@@ -24,8 +24,10 @@ from .contract import (
     ROLES,
     SCM_AUTOMATION,
     SENSITIVE_KEYS,
+    SYNC_TIMER_UNIT,
     CompanyDeliveryError,
     contains_sensitive_text,
+    load_handoff,
     load_inventory,
 )
 
@@ -88,6 +90,7 @@ def collect_inventory(
     output: Path | str,
     *,
     mode: str | None = None,
+    sync_timer_unit: str | None = None,
     runner: Runner | None = None,
     read_text: Reader | None = None,
     now: Clock | None = None,
@@ -100,10 +103,17 @@ def collect_inventory(
     if role == "scm-ci":
         if mode not in {"preflight", "post-install"}:
             raise CompanyDeliveryError("INVALID_ARGUMENT", "scm-ci inventory requires a fixed collection mode")
-    elif mode is not None:
+        if not isinstance(sync_timer_unit, str) or SYNC_TIMER_UNIT.fullmatch(sync_timer_unit) is None:
+            raise CompanyDeliveryError(
+                "INVALID_ARGUMENT", "scm-ci inventory requires a declared sync timer unit"
+            )
+        unit_names: tuple[str, ...] = tuple(sorted((*ROLE_UNIT_NAMES[role], sync_timer_unit)))
+    elif mode is not None or sync_timer_unit is not None:
         raise CompanyDeliveryError(
             "INVALID_ARGUMENT", "appserver inventory does not accept SCM-only options"
         )
+    else:
+        unit_names = ROLE_UNIT_NAMES[role]
     output_path = Path(output)
     _require_new_protected_output(output_path)
     invoke = runner or _run
@@ -178,7 +188,7 @@ def collect_inventory(
                 tools.append({"name": name, "status": "PASS", "version": version, "reason": None})
 
     units: list[dict[str, str]] = []
-    for unit in ROLE_UNIT_NAMES[role]:
+    for unit in unit_names:
         enabled, active = _unit_pair(invoke, unit)
         units.append({"name": unit, "enabled": enabled, "active": active})
         if "unknown" in {enabled, active}:
@@ -206,9 +216,10 @@ def collect_inventory(
             elif tool["status"] == "PASS" and unit_absent:
                 pending.append("TOOL_UNIT_STATE_CONFLICT_" + name.upper().replace("-", "_"))
 
-        assert mode is not None
+        assert mode is not None and sync_timer_unit is not None
         scm, scm_pending = _collect_scm_inventory(
             mode=mode,
+            sync_timer_unit=sync_timer_unit,
             runner=invoke,
             candidate_http_get=candidate_http_get or _candidate_http_get,
             port_probe=port_probe or _port_state,
@@ -247,9 +258,29 @@ def collect_inventory(
     return load_inventory(output_path)
 
 
+def sync_timer_unit_from_handoff(manifest_path: Path | str) -> str:
+    """Resolve the sync timer unit from a verified handoff manifest.
+
+    The manifest must sit at its fixed bundle path so every payload the
+    operator carries is re-verified before any unit name is trusted.
+    """
+    path = Path(manifest_path)
+    if not path.is_absolute():
+        raise CompanyDeliveryError("UNSAFE_PATH", "handoff manifest path must be absolute")
+    handoff = load_handoff(path, bundle_root=path.parent)
+    compatibility = handoff.get("compatibility")
+    unit = compatibility.get("sync_timer_unit") if isinstance(compatibility, dict) else None
+    if not isinstance(unit, str):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "handoff manifest does not declare a sync timer unit"
+        )
+    return unit
+
+
 def _collect_scm_inventory(
     *,
     mode: str,
+    sync_timer_unit: str,
     runner: Runner,
     candidate_http_get: CandidateHttpGetter,
     port_probe: PortProbe,
@@ -347,7 +378,7 @@ def _collect_scm_inventory(
                     health.update({"status": "healthy", "version": version, "reason": None})
 
     generic_by_name = {item["name"]: item for item in generic_units}
-    timer = generic_by_name["aisoft-inbound-sync@newemaint.timer"]
+    timer = generic_by_name[sync_timer_unit]
     automation = dict(SCM_AUTOMATION)
     if (timer["enabled"], timer["active"]) not in {
         ("disabled", "inactive"),

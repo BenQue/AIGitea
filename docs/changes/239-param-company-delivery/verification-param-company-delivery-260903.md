@@ -33,7 +33,14 @@ updated: 2026-09-03
 
 | Command / check | Result | Evidence |
 |---|---|---|
-| 待执行 | NOT RUN | T01 填写 |
+| broker `gitea.issue.read --project newemaint --number 75`（会话开始，2026-09-03） | `state: open`，`closed_at: null` | 「承接平台 company-delivery pilot 归属…（平台 #237）」；删除副本软依赖未满足 → plan T05 |
+| `grep -rci newemaint codex/runtime/aisoft_company_delivery/` | 4 处 | `bundle.py` 1（`:33` `COMPATIBILITY_PATH`）、`contract.py` 2（`:49`、`:357`）、`collector.py` 1（`:350`）；`__init__.py`/`cli.py`/`secret_scan.py` 0 |
+| `grep -rci NewEmaint company-delivery/ \| grep -v ':0$'` | 合计 9 | `compatibility/newemaint-company-pilot-v1.json` 1、`schema/inventory-v1` 3、`inventory-v2` 2、`inventory-v3` 2、`templates/handoff-manifest.example.json` 1（与 Issue 正文一致） |
+| `grep -ci newemaint codex/runtime/tests/test_company_delivery.py` | 13 | fixture timer 名 ×9、pilot matrix 路径 ×3、方法名 ×1 |
+| `cat company-delivery/VERSION`；`find company-delivery -type f \| wc -l` | `1.2.0`；19 | 与 #237 判定表一致 |
+| `bash codex/tests/integration/test-company-delivery-real-release.sh`（默认调用） | NOT RUN | `NOT RUN: Issue #124 exact real-release regression requires explicit --execute.` |
+| `bash codex/tests/smoke.sh`（pristine `origin/main` = `2482584` detached worktree） | PASS，rc=0 | `Ran 651 tests in 38.099s … OK` + `Codex platform static smoke checks passed.` |
+| `PYTHONPATH=codex/runtime python3 -m unittest tests.test_company_delivery`（改动前） | 76 tests OK | #237 verification 同值 |
 
 ## 执行结果
 
