@@ -15,6 +15,7 @@
 | [Spec 驱动工作流与绑定方案](Spec驱动工作流与Spec-Plan-Issue绑定方案.md) | 独立 spec PR 与早期三闸门模型 | small/complex 双路径和单一最终 PR 闸门替代 |
 | [阶段 0–2.6 起步清单](阶段0-起步清单-OrbStack-Gitea-actrunner.md) | 早期 POC 建设步骤 | 当前编号分册与 Change evidence 替代 |
 | [平台状态历史（截至 2026-09-02）](平台状态历史-20260902.md) | README §1 与 08 §4 中已完成的状态条目：v2 试点 #4、`prod-sim` 退役、legacy 制品收口、#21/#35 基线、Windows/内网目标设计、Docker release evidence、Codex/Claude adapter 试点 | 活文档只描述当前合同；已兑现的历史条目由 Issue #233 迁出 |
+| [company-delivery pilot 历史（截至 2026-09-03）](company-delivery-pilot-历史-20260903.md) | NewEmaint 公司两 VM 交付 pilot 的物理放置、`newemaint-prod` target、operator 1.0.1→1.2.0 演进（#120/#124/#126/#128/#130）与 Stage 进度快照；从 README、07 与 `company-delivery/` 文档迁出的 pilot 叙事 | 平台只保留去项目名的 operator 参考实现（原路径不变）；pilot 归属由 NewEmaint 仓承接 Issue 接管（Issue #237） |
 
 ## 使用规则
 

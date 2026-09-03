@@ -19,7 +19,7 @@
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
 - 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为 real complex pilot。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
 - 🟡 Linux Docker release source（Issue #22 已合并）：提供 strict manifest/profile、Registry/offline transports、host-role preflight 和 deterministic deploy/status/rollback；合同已进入 source，但具体业务 Registry/AppServer 与 production promotion 仍未验收
-- 🟡 NewEmaint 公司交付 pilot（Issue #120）：提供 versioned/checksum-pinned operator bundle、两台公司 Linux VM 的脱敏 inventory、Stage 00–110 人工 runbook 与 strict evidence；真实 release handoff、公司 Gitea/Runner/Registry、backup/restore、AppServer 和 production 全部保持 `NOT RUN`
+- 🟡 公司两 VM 离线交付 operator 参考实现（`company-delivery/`，Issue #120–#130）：versioned/checksum-pinned operator bundle、两台公司 Linux VM 的脱敏 inventory、Stage 00–110 人工 runbook 与 strict evidence 已进入 source；真实 handoff 与公司侧各阶段由采用该路径的项目仓记录，本仓库对任何项目均为 `NOT RUN`
 - 🟡 Gitea 隔离安装 source（Issue #126/#128/#130）：operator `1.2.0` 使用 inventory v3、transition v2 与 `greenfield-isolated-install`，只验证 `scm-ci` 独立 `aisoft-gitea` candidate；不探测、不绑定 legacy health。`legacy migration/phase-out`、切流和退役必须另建 Change。1.2.0 公司 Stage 00–50 与安装全部保持 `NOT RUN`；旧 evidence 不可投影为新 PASS
 - ⏸️ 待办：Windows Server 2022 x64 原型、内网 Runner/依赖缓存、迁移演练、生产 JEA 彩排与 [14](14-Windows部署与迁移验收清单.md) 全量验收
 - 📜 已完成条目的历史记录（v2 试点、`prod-sim` 退役、legacy 制品收口、#21/#35 基线、Windows/内网目标设计、Docker release evidence、adapter 试点）：[archive/平台状态历史-20260902.md](archive/平台状态历史-20260902.md)
@@ -71,12 +71,13 @@ flowchart TB
 `03-verification.md` 分别记录 `gitea-ci` 历史 runtime、AppServer 迁移、数据清理和
 `prod-sim` 退役的最终 `PASS` 证据；后续环境健康仍须重新只读核对。
 
-NewEmaint pilot 的物理部署固定为**两台公司 Linux VM + 本地 OrbStack DockerLab**：公司
+采用**两台公司 Linux VM + 本地 OrbStack DockerLab** 路径的项目：公司
 `gitea-ci/scm-ci` 承担 Gitea、入站、Runner、Registry/cache、artifact-only verification 与受控编排；
 本地 DockerLab 承担 `appserver-test`；公司 `appserver/appserver-prod` 承担 runtime、PostgreSQL、Nginx
 与 fixed target。公司只消费本地已验证的 exact `docker-release/v2` bytes；公司要求内网重建但没有
-隔离测试环境时固定 `BLOCKED`。执行合同见
-[`company-delivery/runbook.md`](company-delivery/runbook.md)，本仓库或 PR 状态不代表公司已执行。
+隔离测试环境时固定 `BLOCKED`。通用执行合同见
+[`company-delivery/runbook.md`](company-delivery/runbook.md)（参考实现，交付形态由项目声明）；本仓库或 PR
+状态不代表任何项目的公司侧已执行，pilot 历史见 [archive](archive/company-delivery-pilot-历史-20260903.md)。
 
 ## 3. 核心设计原则（不可妥协项）
 
@@ -155,7 +156,7 @@ sequenceDiagram
 | [09-v3 文档改造规划](09-v3平台简化与Loop-Engineering文档改造规划.md) | v3 决策、影响矩阵、迁移顺序、回滚边界 | 审核或实施 v3 |
 | [10-AI Issue 判级与标签计划（历史）](archive/10-AI-Issue判级与标签实施计划.md) | 2026-07 初始判级、标签和 wrapper 实施记录 | 仅作历史追溯 |
 | [11-Codex Loop runtime 计划（历史）](archive/11-Codex-Loop运行时实施计划.md) | provider-neutral runtime 首轮实施记录 | 仅作历史追溯 |
-| [NewEmaint 公司交付 runbook](company-delivery/runbook.md) | 两 VM inventory、exact handoff、Gitea/backup/restore/SCM/fixed-target Stage 00–110 | 逐阶段人工执行与审计 |
+| [公司两 VM 离线交付 operator runbook（参考实现）](company-delivery/runbook.md) | 两 VM inventory、exact handoff、Gitea/backup/restore/SCM/fixed-target Stage 00–110；交付形态由项目声明 | 逐阶段人工执行与审计 |
 | [历史资料索引](archive/README.md) | 已被当前合同替代的方案、实施计划与 v2 一页 PDF | 追溯历史，不作为当前操作入口 |
 
 ### 交付形态参考（按项目选用，非部署步骤事实源）
@@ -180,7 +181,7 @@ Windows 各一段原则 + 全平台一致的流程不变量）。下列材料是
 | 入口 | 地址 |
 |------|------|
 | Gitea | http://gitea-ci.orb.local:3000；`admin/rsdesign-new` 仅为现有 as-built/pilot 示例，实际目标由项目 profile 指定 |
-| 测试环境应用 | 由目标项目的 `appserver-test` profile 指定；NewEmaint pilot 固定为本地 OrbStack DockerLab，历史 `gitea-ci:8091` 已在 Issue #21 收口，不得作为当前入口 |
+| 测试环境应用 | 由目标项目的 `appserver-test` profile 指定；历史 `gitea-ci:8091` 已在 Issue #21 收口，不得作为当前入口 |
 | Mailpit 收件箱 | http://gitea-ci.orb.local:8025 |
 | Verdaccio | http://gitea-ci.orb.local:4873 |
 | 凭据边界 | manager audit/mutation 与每项目 agent 使用 repo-external 独立 mode 600 protected credential；历史 admin/`ci-bot` 文件不是正常入口，凭据不得进入仓库、argv 或日志 |
