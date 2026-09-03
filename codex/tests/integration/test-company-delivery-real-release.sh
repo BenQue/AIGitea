@@ -81,12 +81,15 @@ if [[ "$mode" == "--not-run" ]]; then
   exit 0
 fi
 [[ "$mode" == "--execute" ]] ||
-  fail 'usage: test-company-delivery-real-release.sh [--not-run|--execute --repository-root ABS --release-root ABS --release-id FULL_SHA]'
+  fail 'usage: test-company-delivery-real-release.sh [--not-run|--execute --repository-root ABS --release-root ABS --release-id FULL_SHA --compatibility-matrix ABS]'
 shift
 
 repository_root=""
 release_root=""
 release_id=""
+# #239: the compatibility matrix is project data supplied by the caller; the
+# builder no longer binds a repository path for it.
+compatibility_matrix=""
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
     --repository-root)
@@ -104,18 +107,26 @@ while [[ "$#" -gt 0 ]]; do
       release_id="$2"
       shift 2
       ;;
+    --compatibility-matrix)
+      [[ "$#" -ge 2 ]] || fail 'missing compatibility matrix'
+      compatibility_matrix="$2"
+      shift 2
+      ;;
     *) fail 'unexpected execute argument' ;;
   esac
 done
 
-[[ "$repository_root" == /* && "$release_root" == /* ]] ||
-  fail 'repository and release roots must be absolute'
+[[ "$repository_root" == /* && "$release_root" == /* &&
+  "$compatibility_matrix" == /* ]] ||
+  fail 'repository root, release root and compatibility matrix must be absolute'
 [[ "$release_id" == "$expected_release_id" ]] ||
   fail 'release ID does not match the approved exact release'
 [[ -d "$repository_root" && ! -L "$repository_root" ]] ||
   fail 'repository root must be a non-symlink directory'
 [[ -d "$release_root" && ! -L "$release_root" ]] ||
   fail 'release root must be a non-symlink directory'
+[[ -f "$compatibility_matrix" && ! -L "$compatibility_matrix" ]] ||
+  fail 'compatibility matrix must be a regular non-symlink file'
 
 repository_root="$(cd -P -- "$repository_root" && pwd -P)"
 release_root="$(cd -P -- "$release_root" && pwd -P)"
@@ -183,7 +194,8 @@ build_one="$(
     --release-id "$release_id" \
     --output-directory "$output_one" \
     --created-at "$created_at" \
-    --source-transport approved-bundle
+    --source-transport approved-bundle \
+    --compatibility-matrix "$compatibility_matrix"
 )" || fail 'first deterministic bundle build failed'
 build_two="$(
   "$company_delivery" build-bundle \
@@ -193,7 +205,8 @@ build_two="$(
     --release-id "$release_id" \
     --output-directory "$output_two" \
     --created-at "$created_at" \
-    --source-transport approved-bundle
+    --source-transport approved-bundle \
+    --compatibility-matrix "$compatibility_matrix"
 )" || fail 'second deterministic bundle build failed'
 
 checksum_one="$(json_field archive_sha256 <<<"$build_one")" ||
@@ -207,7 +220,7 @@ bundle_two="$(json_field bundle_name <<<"$build_two")" ||
 [[ "$checksum_one" =~ ^[0-9a-f]{64}$ && "$checksum_one" == "$checksum_two" ]] ||
   fail 'deterministic archive checksums differ'
 [[ "$bundle_one" == "$bundle_two" &&
-  "$bundle_one" =~ ^aisoft-company-delivery-1\.1\.1-[0-9a-f]{40}$ ]] ||
+  "$bundle_one" =~ ^aisoft-company-delivery-1\.3\.0-[0-9a-f]{40}$ ]] ||
   fail 'bundle identities are inconsistent'
 
 verify_one="$(

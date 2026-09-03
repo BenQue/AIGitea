@@ -7,6 +7,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import stat
 import subprocess
@@ -32,7 +33,9 @@ from aisoft_company_delivery.contract import (
     TRANSITION_VERSION,
     CompanyDeliveryError,
     contains_sensitive_text,
+    inventory_sync_timer_unit,
     legacy_baseline_sha256,
+    load_compatibility_matrix,
     load_evidence,
     load_gitea_transition,
     load_handoff,
@@ -40,7 +43,7 @@ from aisoft_company_delivery.contract import (
     verify_gitea_transition,
     verify_legacy_health,
 )
-from aisoft_company_delivery.collector import collect_inventory
+from aisoft_company_delivery.collector import collect_inventory, sync_timer_unit_from_handoff
 from aisoft_company_delivery.bundle import build_bundle, verify_bundle
 from tests.release_test_support import (
     SHA_A,
@@ -54,6 +57,10 @@ from tests.release_test_support import (
 
 SHA = "1" * 40
 DIGEST = "2" * 64
+# Project-neutral sync timer instance: the unit name is declared by the
+# compatibility matrix / handoff manifest, never by the runtime.
+TIMER = "aisoft-inbound-sync@example.timer"
+MATRIX_PATH = "operator/compatibility/compatibility-matrix.example.json"
 
 
 class CompanyDeliveryContractTests(unittest.TestCase):
@@ -113,7 +120,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
                 }
                 for name in (
                     "act_runner.service",
-                    "aisoft-inbound-sync@newemaint.timer",
+                    TIMER,
                     "docker.service",
                     "gitea.service",
                 )
@@ -222,7 +229,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
     def inventory_v3(self) -> dict[str, object]:
         value = self.inventory_v2()
         value["contract_version"] = INVENTORY_V3_VERSION
-        value["collector_version"] = "1.2.0"
+        value["collector_version"] = "1.3.0"
         value["scm"]["probe_profile"] = "greenfield-isolated-install-v1"
         value["scm"].pop("legacy")
         value["scm"]["candidate"]["health"] = {
@@ -265,7 +272,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
     def transition(self, *, decision: str = "greenfield-isolated-install") -> dict[str, object]:
         return {
             "contract_version": TRANSITION_VERSION,
-            "operator_version": "1.2.0",
+            "operator_version": "1.3.0",
             "recorded_at": "2026-08-17T08:00:00Z",
             "source_git_sha": SHA,
             "handoff_manifest_sha256": "3" * 64,
@@ -421,9 +428,10 @@ class CompanyDeliveryContractTests(unittest.TestCase):
                 "transport": "offline-bundle",
             },
             "compatibility": {
-                "matrix_path": "operator/compatibility/newemaint-company-pilot-v1.json",
+                "matrix_path": MATRIX_PATH,
                 "matrix_sha256": DIGEST,
                 "required_roles": ["scm-ci", "appserver-prod"],
+                "sync_timer_unit": TIMER,
             },
             "payloads": [
                 {
@@ -440,13 +448,13 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         prefix: str,
         *,
         source_sha: str = SHA,
-        operator_version: str = "1.2.0",
+        operator_version: str = "1.3.0",
     ) -> Path:
         bundle = self.root / f"{prefix}-bundle"
         bundle.mkdir(mode=0o700)
         payload_values = {
             "operator/VERSION": (operator_version + "\n").encode("ascii"),
-            "operator/compatibility/newemaint-company-pilot-v1.json": b"{}\n",
+            MATRIX_PATH: b"{}\n",
             "release/release.json": b"{}\n",
         }
         payloads: list[dict[str, object]] = []
@@ -474,9 +482,7 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         handoff["release"]["manifest_sha256"] = sha256(
             bundle / "release/release.json"
         )
-        handoff["compatibility"]["matrix_sha256"] = sha256(
-            bundle / "operator/compatibility/newemaint-company-pilot-v1.json"
-        )
+        handoff["compatibility"]["matrix_sha256"] = sha256(bundle / MATRIX_PATH)
         handoff["payloads"] = payloads
         manifest = bundle / "handoff-manifest.json"
         manifest.write_text(json.dumps(handoff, sort_keys=True), encoding="utf-8")
@@ -530,10 +536,8 @@ class CompanyDeliveryContractTests(unittest.TestCase):
             delivery / "templates/gitea-transition.example.json",
             require_protected=False,
         )
-        compatibility = json.loads(
-            (delivery / "compatibility/newemaint-company-pilot-v1.json").read_text(
-                encoding="utf-8"
-            )
+        compatibility = load_compatibility_matrix(
+            delivery / "templates/compatibility-matrix.example.json"
         )
         self.assertEqual(inventory["outcome"], "NOT RUN")
         self.assertEqual(inventory["contract_version"], INVENTORY_V3_VERSION)
@@ -541,44 +545,22 @@ class CompanyDeliveryContractTests(unittest.TestCase):
         self.assertEqual(transition["outcome"], "BLOCKED")
         self.assertEqual(handoff["release"]["platform"], "linux/amd64")
         self.assertEqual(compatibility["topology"]["company_vm_count"], 2)
-        self.assertEqual(compatibility["matrix_revision"], "2026.08.4")
-        greenfield = compatibility["greenfield_gitea"]
-        self.assertEqual(greenfield["inventory_contract"], INVENTORY_V3_VERSION)
-        self.assertEqual(greenfield["transition_contract"], TRANSITION_VERSION)
+        self.assertEqual(compatibility["sync_timer_unit"], TIMER)
+        self.assertEqual(handoff["compatibility"]["sync_timer_unit"], TIMER)
         self.assertEqual(
-            greenfield["stage20_bindings"],
-            [
-                "operator-1.2.0-handoff-manifest-sha256",
-                "operator-source-git-sha",
-                "postgresql-os-package-set-manifest-sha256",
-                "scm-ci-inventory-v3-sha256",
-                "appserver-prod-inventory-v3-sha256",
-                "public-name-sha256",
-            ],
+            handoff["compatibility"]["matrix_path"],
+            "operator/compatibility/compatibility-matrix.example.json",
         )
-        self.assertEqual(greenfield["target"], FIXED_GITEA_TARGET)
-        self.assertEqual(greenfield["initial_automation"], SCM_AUTOMATION)
-        self.assertEqual(greenfield["stage_map"]["30"], "NOT RUN")
-        self.assertEqual(greenfield["stage_map"]["40"], "NOT RUN")
-        self.assertEqual(greenfield["stage_map"]["50"], "NOT RUN")
-        self.assertEqual(
-            set(greenfield["legacy_mutation_denylist"]),
-            {
-                "container",
-                "image",
-                "volume",
-                "network",
-                "database",
-                "configuration",
-                "port",
-                "repository",
-                "service-lifecycle",
-            },
-        )
+        self.assertEqual(handoff["operator_version"], contract_module.OPERATOR_VERSION)
+        self.assertEqual(transition["operator_version"], contract_module.OPERATOR_VERSION)
         self.assertEqual(
             compatibility["policy"]["intranet_rebuild_without_isolated_test"],
             "BLOCKED",
         )
+        # #239: the template matrix is project-neutral structure, not pilot data.
+        rendered = json.dumps(compatibility, ensure_ascii=False).lower()
+        self.assertIn("example", rendered)
+        self.assertNotIn("stage_map", compatibility)
         schemas = {
             path.name: json.loads(path.read_text(encoding="utf-8"))
             for path in (delivery / "schema").glob("*.schema.json")
@@ -599,6 +581,181 @@ class CompanyDeliveryContractTests(unittest.TestCase):
             schemas["gitea-transition-v2.schema.json"]["properties"]["contract_version"]["const"],
             TRANSITION_VERSION,
         )
+        self.assertEqual(
+            schemas["compatibility-v1.schema.json"]["properties"]["contract_version"]["const"],
+            contract_module.COMPATIBILITY_VERSION,
+        )
+        self.assertEqual(
+            schemas["handoff-v1.schema.json"]["properties"]["compatibility"]["properties"][
+                "sync_timer_unit"
+            ]["pattern"],
+            contract_module.SYNC_TIMER_UNIT.pattern,
+        )
+        for name in ("inventory-v1", "inventory-v2", "inventory-v3"):
+            unit_name = schemas[f"{name}.schema.json"]["$defs"]["unit"]["properties"]["name"]
+            with self.subTest(schema=name):
+                self.assertEqual(
+                    unit_name["anyOf"][1]["pattern"], contract_module.SYNC_TIMER_UNIT.pattern
+                )
+                self.assertEqual(
+                    unit_name["anyOf"][0]["enum"],
+                    sorted(contract_module.UNIT_NAMES),
+                )
+
+    def test_inventory_accepts_any_sync_timer_instance_exactly_once(self) -> None:
+        # #239: the inventory contract binds the timer by pattern, not by a
+        # project-specific constant; scm-ci must record exactly one instance.
+        for version_builder in (self.inventory, self.inventory_v3):
+            renamed = version_builder()
+            for unit in renamed["units"]:
+                if unit["name"].endswith(".timer"):
+                    unit["name"] = "aisoft-inbound-sync@another.project_1.timer"
+            loaded = load_inventory(self.write_json(f"renamed-{version_builder.__name__}.json", renamed))
+            self.assertEqual(
+                inventory_sync_timer_unit(loaded), "aisoft-inbound-sync@another.project_1.timer"
+            )
+        self.assertIsNone(inventory_sync_timer_unit(self.appserver_inventory_v3()))
+
+        variants: list[tuple[str, dict[str, object]]] = []
+        missing = self.inventory()
+        missing["units"] = [unit for unit in missing["units"] if not unit["name"].endswith(".timer")]
+        variants.append(("missing-timer", missing))
+        doubled = self.inventory()
+        doubled["units"].append(
+            {"name": "aisoft-inbound-sync@second.timer", "enabled": "disabled", "active": "inactive"}
+        )
+        variants.append(("two-timers", doubled))
+        for bad_name in ("aisoft-inbound-sync@.timer", "aisoft-inbound-sync@x.service", "other@x.timer"):
+            malformed = self.inventory()
+            for unit in malformed["units"]:
+                if unit["name"].endswith(".timer"):
+                    unit["name"] = bad_name
+            variants.append((f"malformed-{bad_name}", malformed))
+        appserver = self.appserver_inventory_v3()
+        appserver["units"].append({"name": TIMER, "enabled": "disabled", "active": "inactive"})
+        variants.append(("appserver-with-timer", appserver))
+        armed = self.inventory()
+        for unit in armed["units"]:
+            if unit["name"].endswith(".timer"):
+                unit.update({"enabled": "enabled", "active": "active"})
+        variants.append(("armed-timer-pass", armed))
+        for name, value in variants:
+            with self.subTest(name=name), self.assertRaises(CompanyDeliveryError) as rejected:
+                load_inventory(self.write_json(f"timer-{name}.json", value))
+            self.assertEqual(rejected.exception.code, "INVALID_CONTRACT")
+
+    def test_handoff_sync_timer_unit_is_required_from_operator_1_3(self) -> None:
+        # #239: operator >= 1.3.0 handoffs declare the sync timer unit; older
+        # handoffs stay readable as archived evidence without it.
+        legacy = self.handoff()
+        legacy["operator_version"] = "1.2.0"
+        legacy["compatibility"].pop("sync_timer_unit")
+        loaded = load_handoff(
+            self.write_json("legacy-handoff.json", legacy), bundle_root=None, verify_payloads=False
+        )
+        self.assertNotIn("sync_timer_unit", loaded["compatibility"])
+
+        for version in ("1.3.0", "1.4.2", "2.0.0"):
+            current = self.handoff()
+            current["operator_version"] = version
+            current["compatibility"].pop("sync_timer_unit")
+            with self.subTest(version=version), self.assertRaises(CompanyDeliveryError) as rejected:
+                load_handoff(
+                    self.write_json(f"undeclared-{version}.json", current),
+                    bundle_root=None,
+                    verify_payloads=False,
+                )
+            self.assertEqual(rejected.exception.code, "INVALID_CONTRACT")
+
+        declared = self.handoff()
+        declared["operator_version"] = "1.3.0"
+        loaded = load_handoff(
+            self.write_json("declared-handoff.json", declared), bundle_root=None, verify_payloads=False
+        )
+        self.assertEqual(loaded["compatibility"]["sync_timer_unit"], TIMER)
+        malformed = self.handoff()
+        malformed["compatibility"]["sync_timer_unit"] = "aisoft-inbound-sync@.timer"
+        with self.assertRaises(CompanyDeliveryError):
+            load_handoff(
+                self.write_json("malformed-timer-handoff.json", malformed),
+                bundle_root=None,
+                verify_payloads=False,
+            )
+
+    def test_compatibility_matrix_binds_only_contract_version_and_timer(self) -> None:
+        matrix = {
+            "contract_version": "company-delivery-compatibility/v1",
+            "sync_timer_unit": TIMER,
+            "topology": {"company_vm_count": 2},
+            "anything_else": ["project data the runtime ignores"],
+        }
+        loaded = load_compatibility_matrix(self.write_json("matrix.json", matrix, mode=0o644))
+        self.assertEqual(loaded["sync_timer_unit"], TIMER)
+        variants = {
+            "wrong-contract": {**matrix, "contract_version": "company-delivery-compatibility/v2"},
+            "missing-timer": {key: value for key, value in matrix.items() if key != "sync_timer_unit"},
+            "malformed-timer": {**matrix, "sync_timer_unit": "aisoft-inbound-sync@x.service"},
+            "sensitive": {**matrix, "token": "never-print-this-value"},
+        }
+        for name, value in variants.items():
+            with self.subTest(name=name), self.assertRaises(CompanyDeliveryError):
+                load_compatibility_matrix(self.write_json(f"matrix-{name}.json", value, mode=0o644))
+        with self.assertRaises(CompanyDeliveryError):
+            load_compatibility_matrix(self.write_json("array.json", [matrix], mode=0o644))
+
+    def test_transition_verifier_cross_checks_sync_timer_with_handoff(self) -> None:
+        transition_path, scm_path, appserver_path, handoff_path, package_path = (
+            self.bound_transition_files(prefix="timer-ok")
+        )
+        self.assertEqual(
+            verify_gitea_transition(
+                transition_path, scm_path, appserver_path, handoff_path, package_path
+            )["outcome"],
+            "PASS",
+        )
+        # Same handoff, but the scm-ci host recorded a different timer instance.
+        scm_value = self.inventory_v3()
+        for unit in scm_value["units"]:
+            if unit["name"].endswith(".timer"):
+                unit["name"] = "aisoft-inbound-sync@other.timer"
+        drifted_scm = self.write_json("timer-drift-scm.json", scm_value)
+        transition = json.loads(transition_path.read_text(encoding="utf-8"))
+        transition["inventories"]["scm_ci_sha256"] = sha256(drifted_scm)
+        drifted_transition = self.write_json("timer-drift-transition.json", transition)
+        with self.assertRaises(CompanyDeliveryError) as rejected:
+            verify_gitea_transition(
+                drifted_transition, drifted_scm, appserver_path, handoff_path, package_path
+            )
+        self.assertEqual(rejected.exception.code, "INVALID_CONTRACT")
+        self.assertIn("sync timer", rejected.exception.safe_message)
+        self.assertNotIn("other", rejected.exception.safe_message)
+
+    def test_sync_timer_unit_resolves_only_from_a_verified_handoff(self) -> None:
+        manifest = self.write_handoff_bundle("resolve", operator_version="1.3.0")
+        self.assertEqual(sync_timer_unit_from_handoff(manifest), TIMER)
+        with self.assertRaises(CompanyDeliveryError) as relative:
+            sync_timer_unit_from_handoff(Path("relative/handoff-manifest.json"))
+        self.assertEqual(relative.exception.code, "UNSAFE_PATH")
+        legacy = self.write_handoff_bundle("resolve-legacy", operator_version="1.2.0")
+        stripped = json.loads(legacy.read_text(encoding="utf-8"))
+        stripped["compatibility"].pop("sync_timer_unit")
+        legacy.write_text(json.dumps(stripped, sort_keys=True), encoding="utf-8")
+        checksums = legacy.parent / "SHA256SUMS"
+        lines = [
+            line
+            for line in checksums.read_text(encoding="ascii").splitlines()
+            if not line.endswith("  handoff-manifest.json")
+        ]
+        lines.append(f"{sha256(legacy)}  handoff-manifest.json")
+        checksums.write_text("".join(f"{line}\n" for line in sorted(lines)), encoding="ascii")
+        with self.assertRaises(CompanyDeliveryError) as undeclared:
+            sync_timer_unit_from_handoff(legacy)
+        self.assertEqual(undeclared.exception.code, "INVALID_CONTRACT")
+        tampered = self.write_handoff_bundle("resolve-tampered", operator_version="1.3.0")
+        (tampered.parent / "operator/VERSION").write_text("9.9.9\n", encoding="ascii")
+        with self.assertRaises(CompanyDeliveryError) as mismatch:
+            sync_timer_unit_from_handoff(tampered)
+        self.assertEqual(mismatch.exception.code, "CHECKSUM_MISMATCH")
 
     def test_inventory_v2_models_scm_greenfield_facts_without_raw_values(self) -> None:
         value = load_inventory(self.write_json("inventory-v2.json", self.inventory_v2()))
@@ -1262,9 +1419,8 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         ):
             self.responses[("systemctl", "is-enabled", unit)] = (4, "", "")
             self.responses[("systemctl", "is-active", unit)] = (4, "", "")
-        timer = "aisoft-inbound-sync@newemaint.timer"
-        self.responses[("systemctl", "is-enabled", timer)] = (1, "disabled\n", "")
-        self.responses[("systemctl", "is-active", timer)] = (3, "inactive\n", "")
+        self.responses[("systemctl", "is-enabled", TIMER)] = (1, "disabled\n", "")
+        self.responses[("systemctl", "is-active", TIMER)] = (3, "inactive\n", "")
         self.port_calls: list[int] = []
         self.candidate_http_calls = 0
         # The real company scm-ci already has an unrelated application on 3000.
@@ -1316,6 +1472,7 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
             "scm-ci",
             output,
             mode=mode,
+            sync_timer_unit=TIMER,
             runner=runner or self.runner,
             read_text=self.read_text,
             now=lambda: "2026-08-17T08:00:00Z",
@@ -1375,7 +1532,7 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
             [item for item in parsed["units"] if item["name"].endswith(".timer")],
             [
                 {
-                    "name": "aisoft-inbound-sync@newemaint.timer",
+                    "name": TIMER,
                     "enabled": "disabled",
                     "active": "inactive",
                 }
@@ -1469,7 +1626,7 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         for unit in (
             "act_runner.service",
             "gitea.service",
-            "aisoft-inbound-sync@newemaint.timer",
+            TIMER,
             "aisoft-gitea.service",
         ):
             self.responses[("systemctl", "is-enabled", unit)] = (4, "not-found\n", "")
@@ -1487,9 +1644,9 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
         self.assertEqual(tools["gitea"]["status"], "ABSENT")
         units = {item["name"]: item for item in value["units"]}
         self.assertEqual(
-            units["aisoft-inbound-sync@newemaint.timer"],
+            units[TIMER],
             {
-                "name": "aisoft-inbound-sync@newemaint.timer",
+                "name": TIMER,
                 "enabled": "not-found",
                 "active": "not-found",
             },
@@ -1619,6 +1776,50 @@ class CompanyDeliveryCollectorTests(unittest.TestCase):
                 runner=self.runner,
                 read_text=self.read_text,
             )
+        with self.assertRaises(CompanyDeliveryError) as timer_rejected:
+            collect_inventory(
+                "appserver-prod",
+                self.root / "appserver-with-timer.json",
+                sync_timer_unit=TIMER,
+                runner=self.runner,
+                read_text=self.read_text,
+            )
+        self.assertEqual(timer_rejected.exception.code, "INVALID_ARGUMENT")
+
+    def test_scm_inventory_records_the_declared_sync_timer_instance(self) -> None:
+        # #239: the timer instance is project data. Any allowlisted instance
+        # name is collected verbatim; a missing or malformed name never falls
+        # back to a runtime default.
+        other = "aisoft-inbound-sync@other-project.timer"
+        self.responses[("systemctl", "is-enabled", other)] = (1, "disabled\n", "")
+        self.responses[("systemctl", "is-active", other)] = (3, "inactive\n", "")
+        value = collect_inventory(
+            "scm-ci",
+            self.root / "other-timer.json",
+            mode="preflight",
+            sync_timer_unit=other,
+            runner=self.runner,
+            read_text=self.read_text,
+            now=lambda: "2026-08-17T08:00:00Z",
+            candidate_http_get=self.candidate_http_get,
+            port_probe=self.port_probe,
+            resource_probe=self.resource_probe,
+        )
+        self.assertEqual(value["outcome"], "PASS")
+        timers = [item["name"] for item in value["units"] if item["name"].endswith(".timer")]
+        self.assertEqual(timers, [other])
+        self.assertNotIn(("systemctl", "is-enabled", TIMER), self.calls)
+        for name in (None, "", "aisoft-inbound-sync@.timer", "docker.service", "../x.timer"):
+            with self.subTest(name=name), self.assertRaises(CompanyDeliveryError) as rejected:
+                collect_inventory(
+                    "scm-ci",
+                    self.root / f"bad-timer-{abs(hash(name))}.json",
+                    mode="preflight",
+                    sync_timer_unit=name,
+                    runner=self.runner,
+                    read_text=self.read_text,
+                )
+            self.assertEqual(rejected.exception.code, "INVALID_ARGUMENT")
 
     def test_tool_present_with_missing_unit_is_blocked_before_write(self) -> None:
         self.responses[("gitea", "--version")] = (
@@ -1713,16 +1914,39 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
         fixture = self.root / "release-fixture"
         create_release(fixture)
         self.release_root = fixture / "releases"
+        # #239: the compatibility matrix is caller-supplied project data that
+        # lives outside the platform repository.
+        self.matrix = self.write_matrix("compatibility-matrix.example.json")
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
+
+    def write_matrix(
+        self,
+        name: str,
+        *,
+        sync_timer_unit: str | None = TIMER,
+        contract_version: str = "company-delivery-compatibility/v1",
+        mode: int = 0o644,
+    ) -> Path:
+        value: dict[str, object] = {
+            "contract_version": contract_version,
+            "matrix_revision": "test",
+            "topology": {"company_vm_count": 2},
+        }
+        if sync_timer_unit is not None:
+            value["sync_timer_unit"] = sync_timer_unit
+        path = self.root / name
+        path.write_text(json.dumps(value, sort_keys=True) + "\n", encoding="utf-8")
+        path.chmod(mode)
+        return path
 
     def output_dir(self, name: str) -> Path:
         path = self.root / name
         path.mkdir(mode=0o700)
         return path
 
-    def build(self, output: Path) -> dict[str, object]:
+    def build(self, output: Path, *, compatibility_matrix: Path | None = None) -> dict[str, object]:
         return build_bundle(
             repository_root=self.source,
             source_sha=self.source_sha,
@@ -1731,6 +1955,7 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
             output_directory=output,
             created_at="2026-08-16T08:00:00Z",
             source_transport="approved-bundle",
+            compatibility_matrix=compatibility_matrix or self.matrix,
         )
 
     def test_repeat_build_is_byte_identical_and_self_verifying(self) -> None:
@@ -1776,10 +2001,196 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
             Path(built["bundle_root"]) / "handoff-manifest.json",
             bundle_root=Path(built["bundle_root"]),
         )
-        self.assertEqual(manifest["operator_version"], "1.2.0")
-        self.assertTrue(str(built["archive_name"]).startswith("aisoft-company-delivery-1.2.0-"))
+        self.assertEqual(manifest["operator_version"], "1.3.0")
+        self.assertEqual(
+            (self.repository_root / "company-delivery/VERSION").read_text(encoding="ascii").strip(),
+            "1.3.0",
+        )
+        self.assertEqual(contract_module.OPERATOR_VERSION, "1.3.0")
+        self.assertTrue(str(built["archive_name"]).startswith("aisoft-company-delivery-1.3.0-"))
         self.assertEqual(manifest["contract_version"], HANDOFF_VERSION)
         self.assertEqual(HANDOFF_VERSION, "company-delivery-handoff/v1")
+        self.assertEqual(manifest["compatibility"]["sync_timer_unit"], TIMER)
+
+    def test_builder_carries_the_callers_matrix_and_binds_no_project_path(self) -> None:
+        # #239: the matrix path and the timer unit are declared by the
+        # caller's matrix; the runtime holds no project-specific constant.
+        self.assertFalse(hasattr(bundle_module, "COMPATIBILITY_PATH"))
+        package = self.repository_root / "codex/runtime/aisoft_company_delivery"
+        for source in sorted(package.glob("*.py")):
+            with self.subTest(module=source.name):
+                text = source.read_text(encoding="utf-8")
+                self.assertIsNone(re.search(r"aisoft-inbound-sync@[A-Za-z0-9]", text))
+                self.assertNotIn("operator/compatibility/", text.replace(
+                    'COMPATIBILITY_DIRECTORY = "operator/compatibility"', ""
+                ))
+        self.assertFalse(any(name.endswith(".timer") for names in contract_module.ROLE_UNIT_NAMES.values() for name in names))
+
+        other = self.write_matrix(
+            "project-matrix.json", sync_timer_unit="aisoft-inbound-sync@other-project.timer"
+        )
+        built = self.build(self.output_dir("out-other-matrix"), compatibility_matrix=other)
+        bundle = Path(built["bundle_root"])
+        carried = bundle / "operator/compatibility/project-matrix.json"
+        self.assertEqual(carried.read_bytes(), other.read_bytes())
+        self.assertEqual(stat.S_IMODE(carried.stat().st_mode), 0o644)
+        manifest = load_handoff(bundle / "handoff-manifest.json", bundle_root=bundle)
+        self.assertEqual(
+            manifest["compatibility"],
+            {
+                "matrix_path": "operator/compatibility/project-matrix.json",
+                "matrix_sha256": sha256(other),
+                "required_roles": ["scm-ci", "appserver-prod"],
+                "sync_timer_unit": "aisoft-inbound-sync@other-project.timer",
+            },
+        )
+        self.assertIn(
+            "operator/compatibility/project-matrix.json",
+            [item["path"] for item in manifest["payloads"]],
+        )
+        self.assertTrue(verify_bundle(bundle / "handoff-manifest.json", bundle)["ok"])
+        # Same inputs, same matrix bytes: still byte-identical.
+        again = self.build(self.output_dir("out-other-matrix-again"), compatibility_matrix=other)
+        self.assertEqual(again["archive_sha256"], built["archive_sha256"])
+        # Different matrix bytes change the handoff identity.
+        self.assertNotEqual(
+            self.build(self.output_dir("out-default-matrix"))["archive_sha256"],
+            built["archive_sha256"],
+        )
+
+    def test_builder_rejects_unusable_matrix_before_output(self) -> None:
+        rejected: dict[str, tuple[Path, str]] = {
+            "relative": (Path("relative/matrix.json"), "UNSAFE_PATH"),
+            "missing": (self.root / "missing.json", "UNSAFE_PATH"),
+            "not-json-name": (self.write_matrix("matrix.txt"), "UNSAFE_PATH"),
+            "unsafe-name": (self.write_matrix(".hidden.json"), "UNSAFE_PATH"),
+            "wrong-contract": (
+                self.write_matrix("wrong.json", contract_version="company-delivery-compatibility/v2"),
+                "INVALID_CONTRACT",
+            ),
+            "missing-timer": (self.write_matrix("untimed.json", sync_timer_unit=None), "INVALID_CONTRACT"),
+            "malformed-timer": (
+                self.write_matrix("malformed.json", sync_timer_unit="aisoft-inbound-sync@.timer"),
+                "INVALID_CONTRACT",
+            ),
+            "unsafe-mode": (self.write_matrix("wide.json", mode=0o666), "UNSAFE_MODE"),
+        }
+        link = self.root / "linked.json"
+        link.symlink_to(self.matrix.name)
+        rejected["symlink"] = (link, "UNSAFE_PATH")
+        for name, (matrix, code) in rejected.items():
+            output = self.output_dir(f"out-matrix-{name}")
+            with self.subTest(name=name), self.assertRaises(CompanyDeliveryError) as caught:
+                self.build(output, compatibility_matrix=matrix)
+            self.assertEqual(caught.exception.code, code)
+            self.assertEqual(list(output.iterdir()), [])
+
+        # A matrix whose basename collides with a tracked operator file is refused.
+        tracked = self.source / "company-delivery/compatibility/collide.json"
+        tracked.parent.mkdir(parents=True, exist_ok=True)
+        tracked.write_text(json.dumps({"contract_version": "x"}) + "\n", encoding="utf-8")
+        subprocess.run(["git", "add", "."], cwd=self.source, check=True)
+        subprocess.run(
+            ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "collide"],
+            cwd=self.source,
+            check=True,
+        )
+        self.source_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=self.source, text=True
+        ).strip()
+        colliding = self.write_matrix("collide.json")
+        output = self.output_dir("out-matrix-collide")
+        with self.assertRaises(CompanyDeliveryError) as caught:
+            self.build(output, compatibility_matrix=colliding)
+        self.assertEqual(caught.exception.code, "SOURCE_INVALID")
+        self.assertEqual(list(output.iterdir()), [])
+
+    def test_cli_requires_matrix_for_build_and_handoff_for_scm_collection(self) -> None:
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            build_parser().parse_args(
+                [
+                    "build-bundle",
+                    "--repository-root", str(self.source),
+                    "--source-sha", self.source_sha,
+                    "--release-root", str(self.release_root),
+                    "--release-id", SHA_A,
+                    "--output-directory", str(self.root / "cli-out"),
+                    "--created-at", "2026-08-16T08:00:00Z",
+                    "--source-transport", "approved-bundle",
+                ]
+            )
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            result = main(
+                [
+                    "build-bundle",
+                    "--repository-root", str(self.source),
+                    "--source-sha", self.source_sha,
+                    "--release-root", str(self.release_root),
+                    "--release-id", SHA_A,
+                    "--output-directory", str(self.output_dir("cli-out")),
+                    "--created-at", "2026-08-16T08:00:00Z",
+                    "--source-transport", "approved-bundle",
+                    "--compatibility-matrix", str(self.matrix),
+                ]
+            )
+        self.assertEqual(result, 0)
+        rendered = json.loads(stdout.getvalue())
+        self.assertTrue(rendered["ok"])
+        self.assertTrue(str(rendered["bundle_name"]).startswith("aisoft-company-delivery-1.3.0-"))
+        manifest = self.root / "cli-out" / str(rendered["bundle_name"]) / "handoff-manifest.json"
+
+        captured: dict[str, object] = {}
+
+        def fake_collect(role, output, *, mode=None, sync_timer_unit=None):
+            captured.update({"role": role, "mode": mode, "sync_timer_unit": sync_timer_unit})
+            return {"contract_version": INVENTORY_V3_VERSION}
+
+        with mock.patch("aisoft_company_delivery.cli.collect_inventory", fake_collect):
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    main(
+                        [
+                            "collect-inventory",
+                            "--role", "scm-ci",
+                            "--mode", "preflight",
+                            "--output", str(self.root / "cli-scm.json"),
+                            "--handoff-manifest", str(manifest),
+                        ]
+                    ),
+                    0,
+                )
+        self.assertEqual(captured, {"role": "scm-ci", "mode": "preflight", "sync_timer_unit": TIMER})
+
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            self.assertEqual(
+                main(
+                    [
+                        "collect-inventory",
+                        "--role", "appserver-prod",
+                        "--output", str(self.root / "cli-appserver.json"),
+                        "--handoff-manifest", str(manifest),
+                    ]
+                ),
+                2,
+            )
+        self.assertEqual(json.loads(stderr.getvalue())["error_code"], "INVALID_ARGUMENT")
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            self.assertEqual(
+                main(
+                    [
+                        "collect-inventory",
+                        "--role", "scm-ci",
+                        "--mode", "preflight",
+                        "--output", str(self.root / "cli-scm-undeclared.json"),
+                    ]
+                ),
+                2,
+            )
+        self.assertEqual(json.loads(stderr.getvalue())["error_code"], "INVALID_ARGUMENT")
+        self.assertFalse((self.root / "cli-scm-undeclared.json").exists())
 
     def test_payload_tamper_and_unsafe_mode_fail_closed(self) -> None:
         built = self.build(self.output_dir("out-tamper"))
@@ -1817,6 +2228,7 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
                 output_directory=self.output_dir("out-short"),
                 created_at="2026-08-16T08:00:00Z",
                 source_transport="approved-bundle",
+                compatibility_matrix=self.matrix,
             )
         (self.source / "dirty.txt").write_text("dirty\n", encoding="utf-8")
         with self.assertRaises(CompanyDeliveryError):
@@ -1831,6 +2243,7 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
                 output_directory=self.output_dir("out-release"),
                 created_at="2026-08-16T08:00:00Z",
                 source_transport="approved-bundle",
+                compatibility_matrix=self.matrix,
             )
 
     def test_sensitive_release_metadata_is_rejected_without_echo(self) -> None:
@@ -2115,12 +2528,14 @@ class CompanyDeliveryBundleTests(unittest.TestCase):
                         output_directory=self.output_dir(f"out-{name}"),
                         created_at="2026-08-16T08:00:00Z",
                         source_transport="approved-bundle",
+                        compatibility_matrix=self.matrix,
                     )
                 self.assertEqual(caught.exception.code, "ARTIFACT_INVALID")
 
 
 class CompanyDeliveryArchiveScannerTests(unittest.TestCase):
     setUp = CompanyDeliveryBundleTests.setUp
+    write_matrix = CompanyDeliveryBundleTests.write_matrix
     tearDown = CompanyDeliveryBundleTests.tearDown
     output_dir = CompanyDeliveryBundleTests.output_dir
 
@@ -2944,9 +3359,8 @@ class CompanyDeliveryRunbookTests(unittest.TestCase):
         for phrase in required:
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, runbook)
-        matrix = json.loads(
-            (self.repository_root / "company-delivery/compatibility/newemaint-company-pilot-v1.json")
-            .read_text(encoding="utf-8")
+        matrix = load_compatibility_matrix(
+            self.repository_root / "company-delivery/templates/compatibility-matrix.example.json"
         )
         self.assertEqual(matrix["topology"]["company_vm_count"], 2)
         self.assertEqual(matrix["policy"]["different_release_bytes"], "BLOCKED")
@@ -2996,7 +3410,7 @@ class CompanyDeliveryTopologyDocsTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertNotIn("NewEmaint 公司交付 runbook", self.read(name))
 
-    def test_newemaint_never_reuses_company_rebuild_as_local_evidence(self) -> None:
+    def test_docs_never_reuse_company_rebuild_as_local_evidence(self) -> None:
         for name in (
             "07-内网与生产平移路线.md",
             "12-Linux-GitHub-Gitea-双服务器自动部署方案.md",

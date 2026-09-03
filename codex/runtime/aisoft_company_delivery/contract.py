@@ -22,7 +22,11 @@ TRANSITION_VERSION = "company-delivery-gitea-transition/v2"
 HANDOFF_VERSION = "company-delivery-handoff/v1"
 EVIDENCE_VERSION = "company-delivery-evidence/v1"
 RELEASE_VERSION = "docker-release/v2"
-OPERATOR_VERSION = "1.2.0"
+COMPATIBILITY_VERSION = "company-delivery-compatibility/v1"
+OPERATOR_VERSION = "1.3.0"
+# Handoff manifests built by this operator version or later must declare the
+# sync timer unit; older manifests stay readable as archived evidence only.
+SYNC_TIMER_DECLARATION_VERSION = (1, 3, 0)
 
 GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -31,6 +35,9 @@ SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
 SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 SAFE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$")
+# systemd instance of sync/systemd/aisoft-inbound-sync@.timer; the instance
+# name is project data declared by the compatibility matrix, never a constant.
+SYNC_TIMER_UNIT = re.compile(r"^aisoft-inbound-sync@[A-Za-z0-9][A-Za-z0-9._-]{0,63}\.timer$")
 FACT_CODE = re.compile(r"^[A-Z][A-Z0-9_]{2,63}$")
 PACKAGE_MANIFEST_LINE = re.compile(
     r"^([0-9a-f]{64})  ([A-Za-z0-9][A-Za-z0-9._+~:@%/-]{0,511})$"
@@ -43,10 +50,11 @@ ROLE_TOOL_NAMES = {
     "scm-ci": ("act-runner", "docker-compose", "docker-engine", "git", "gitea", "python"),
     "appserver-prod": ("docker-compose", "docker-engine", "nginx", "postgresql-client", "python"),
 }
+# Fixed units only. scm-ci additionally records exactly one sync timer unit
+# whose instance name comes from the handoff manifest (SYNC_TIMER_UNIT).
 ROLE_UNIT_NAMES = {
     "scm-ci": (
         "act_runner.service",
-        "aisoft-inbound-sync@newemaint.timer",
         "docker.service",
         "gitea.service",
     ),
@@ -295,7 +303,9 @@ def _load_inventory_v1(value: dict[str, object]) -> dict[str, object]:
         label = f"inventory.units[{index}]"
         unit = _mapping(item, label)
         _exact_keys(unit, {"name", "enabled", "active"}, label)
-        name = _enum(unit, "name", UNIT_NAMES, label)
+        name = _string(unit, "name", label)
+        if name not in UNIT_NAMES and SYNC_TIMER_UNIT.fullmatch(name) is None:
+            raise CompanyDeliveryError("INVALID_CONTRACT", f"{label}.name is outside the allowlist")
         if name in seen_units:
             raise CompanyDeliveryError("INVALID_CONTRACT", "inventory contains a duplicate unit")
         seen_units.add(name)
@@ -311,13 +321,19 @@ def _load_inventory_v1(value: dict[str, object]) -> dict[str, object]:
         raise CompanyDeliveryError("INVALID_CONTRACT", "inventory pending codes must be unique")
     expected_tools = set(ROLE_TOOL_NAMES[role])
     expected_units = set(ROLE_UNIT_NAMES[role])
+    timer_units = sorted(name for name in seen_units if SYNC_TIMER_UNIT.fullmatch(name) is not None)
+    expected_timer_count = 1 if role == "scm-ci" else 0
     if outcome == "NOT RUN":
         if tools or units or not pending:
             raise CompanyDeliveryError(
                 "INVALID_CONTRACT", "NOT RUN inventory cannot claim tool or unit observations"
             )
         return value
-    if seen_tools != expected_tools or seen_units != expected_units:
+    if (
+        seen_tools != expected_tools
+        or seen_units - set(timer_units) != expected_units
+        or len(timer_units) != expected_timer_count
+    ):
         raise CompanyDeliveryError(
             "INVALID_CONTRACT", "inventory must contain every role-specific tool and unit exactly once"
         )
@@ -353,9 +369,10 @@ def _load_inventory_v1(value: dict[str, object]) -> dict[str, object]:
                 "gitea": "gitea.service",
             }.items()
         )
-        timer_safe = unit_states.get(
-            "aisoft-inbound-sync@newemaint.timer", ("disabled", "inactive")
-        ) in {("disabled", "inactive"), ("not-found", "not-found")}
+        timer_safe = all(
+            unit_states[name] in {("disabled", "inactive"), ("not-found", "not-found")}
+            for name in timer_units
+        )
         if (
             pending
             or not complete_host
@@ -368,6 +385,44 @@ def _load_inventory_v1(value: dict[str, object]) -> dict[str, object]:
                 "INVALID_CONTRACT", "PASS inventory requires complete passing facts and no pending codes"
             )
     return value
+
+
+def inventory_sync_timer_unit(inventory: Mapping[str, object]) -> str | None:
+    """Return the single sync timer unit a loaded inventory records, if any."""
+    units = inventory.get("units")
+    if not isinstance(units, list):
+        return None
+    names = [
+        str(item["name"])
+        for item in units
+        if isinstance(item, Mapping)
+        and isinstance(item.get("name"), str)
+        and SYNC_TIMER_UNIT.fullmatch(str(item["name"])) is not None
+    ]
+    if len(names) != 1:
+        return None
+    return names[0]
+
+
+def load_compatibility_matrix(
+    path: Path | str, *, require_protected: bool = False
+) -> dict[str, object]:
+    """Read the project-owned compatibility matrix.
+
+    The runtime only binds two fields: the contract version and the sync timer
+    unit. Everything else in the matrix is project data the platform does not
+    interpret.
+    """
+    value = _load_object(path, "compatibility matrix", require_protected=require_protected)
+    _reject_sensitive(value)
+    _const(value, "contract_version", COMPATIBILITY_VERSION, "compatibility matrix")
+    _matching(value, "sync_timer_unit", SYNC_TIMER_UNIT, "compatibility matrix")
+    return value
+
+
+def _semver_tuple(value: str) -> tuple[int, int, int]:
+    major, minor, patch = value.split(".")
+    return int(major), int(minor), int(patch)
 
 
 def _load_inventory_v2(value: dict[str, object]) -> dict[str, object]:
@@ -1113,6 +1168,15 @@ def verify_gitea_transition(
         raise CompanyDeliveryError(
             "INVALID_CONTRACT", "transition requires a passing appserver-prod inventory v3"
         )
+    declared_timer = _object(handoff, "compatibility", "handoff manifest").get("sync_timer_unit")
+    if not isinstance(declared_timer, str):
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "transition requires a handoff that declares the sync timer unit"
+        )
+    if inventory_sync_timer_unit(scm_inventory) != declared_timer:
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "transition sync timer unit does not match the verified handoff"
+        )
     return {
         "contract_version": TRANSITION_VERSION,
         "decision": transition["decision"],
@@ -1377,7 +1441,18 @@ def load_handoff(
     _const(release, "transport", "offline-bundle", "handoff.release")
 
     compatibility = _object(value, "compatibility", "handoff manifest")
-    _exact_keys(compatibility, {"matrix_path", "matrix_sha256", "required_roles"}, "handoff.compatibility")
+    legacy_operator = (
+        _semver_tuple(str(value["operator_version"])) < SYNC_TIMER_DECLARATION_VERSION
+    )
+    if "sync_timer_unit" not in compatibility and not legacy_operator:
+        raise CompanyDeliveryError(
+            "INVALID_CONTRACT", "handoff manifest must declare the sync timer unit"
+        )
+    compatibility_keys = {"matrix_path", "matrix_sha256", "required_roles"}
+    if "sync_timer_unit" in compatibility:
+        compatibility_keys.add("sync_timer_unit")
+        _matching(compatibility, "sync_timer_unit", SYNC_TIMER_UNIT, "handoff.compatibility")
+    _exact_keys(compatibility, compatibility_keys, "handoff.compatibility")
     _relative_path(_string(compatibility, "matrix_path", "handoff.compatibility"))
     _matching(compatibility, "matrix_sha256", SHA256, "handoff.compatibility")
     roles = _array(compatibility, "required_roles", "handoff.compatibility")

@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 
 from .bundle import build_bundle, verify_bundle
-from .collector import collect_inventory
+from .collector import collect_inventory, sync_timer_unit_from_handoff
 from .contract import (
     CompanyDeliveryError,
     load_evidence,
@@ -47,6 +47,9 @@ def build_parser() -> argparse.ArgumentParser:
     collect.add_argument("--role", required=True, choices=("scm-ci", "appserver-prod"))
     collect.add_argument("--output", required=True, type=Path)
     collect.add_argument("--mode", choices=("preflight", "post-install"))
+    # scm-ci only: the sync timer unit is read from the verified handoff
+    # manifest, never typed by hand and never defaulted by the runtime.
+    collect.add_argument("--handoff-manifest", type=Path)
 
     bundle = subparsers.add_parser("build-bundle")
     bundle.add_argument("--repository-root", required=True, type=Path)
@@ -60,6 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         choices=("approved-bundle", "allowlisted-github-ref"),
     )
+    bundle.add_argument("--compatibility-matrix", required=True, type=Path)
     return parser
 
 
@@ -75,12 +79,21 @@ def main(argv: list[str] | None = None) -> int:
                 output_directory=args.output_directory,
                 created_at=args.created_at,
                 source_transport=args.source_transport,
+                compatibility_matrix=args.compatibility_matrix,
             )
         elif args.command == "collect-inventory":
+            sync_timer_unit = None
+            if args.handoff_manifest is not None:
+                if args.role != "scm-ci":
+                    raise CompanyDeliveryError(
+                        "INVALID_ARGUMENT", "appserver inventory does not accept SCM-only options"
+                    )
+                sync_timer_unit = sync_timer_unit_from_handoff(args.handoff_manifest)
             value = collect_inventory(
                 args.role,
                 args.output,
                 mode=args.mode,
+                sync_timer_unit=sync_timer_unit,
             )
         elif args.command == "verify-inventory":
             value = load_inventory(args.input)

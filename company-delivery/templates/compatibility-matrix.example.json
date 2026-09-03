@@ -1,0 +1,25 @@
+{
+  "contract_version": "company-delivery-compatibility/v1",
+  "matrix_revision": "example",
+  "sync_timer_unit": "aisoft-inbound-sync@example.timer",
+  "$comment": "结构示例，不是 live evidence。真实 matrix 归属项目仓并由项目更新；runtime 只读取 contract_version 与 sync_timer_unit，其余键为项目数据。",
+  "topology": {
+    "company_vm_count": 2,
+    "company_roles": [
+      "scm-ci",
+      "appserver-prod"
+    ],
+    "nonproduction_role": "appserver-test",
+    "nonproduction_location": "local-orbstack-dockerlab"
+  },
+  "release": {
+    "contract_version": "docker-release/v2",
+    "platform": "linux/amd64"
+  },
+  "policy": {
+    "different_release_bytes": "BLOCKED",
+    "intranet_rebuild_without_isolated_test": "BLOCKED",
+    "unknown_architecture_or_image_store": "BLOCKED",
+    "sync_timer_during_initial_acceptance": "disabled-inactive"
+  }
+}

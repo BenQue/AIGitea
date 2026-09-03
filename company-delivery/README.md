@@ -2,7 +2,7 @@
 
 本目录是公司两台 Linux VM 离线 handoff 的 versioned、checksum-pinned、纯人工 operator workflow **参考实现**
 （交付形态由项目自行声明与选用，环境级原则见 `skill-for-codex/references/onboarding-runbook.md` §4）。当前
-operator `1.2.0` 把本地 OrbStack DockerLab 验证过的 exact `docker-release/v2` bytes 搬运到公司两台 Linux VM；
+operator `1.3.0` 把本地 OrbStack DockerLab 验证过的 exact `docker-release/v2` bytes 搬运到公司两台 Linux VM；
 它不是安装记录、部署记录或任何项目的公司环境验收结果。建立本目录的 pilot（Issue #120/#126/#128/#130）
 历史见 [`archive/company-delivery-pilot-历史-20260903.md`](../archive/company-delivery-pilot-历史-20260903.md)。
 
@@ -20,12 +20,15 @@ operator `1.2.0` 把本地 OrbStack DockerLab 验证过的 exact `docker-release
 
 - [`runbook.md`](runbook.md)：Stage 00–110，每阶段可单独批准、停止和回滚。
 - `bin/aisoft-company-delivery`：固定参数的 inventory、contract verification 与 bundle build CLI。
-- `schema/`：strict inventory v1/v2/v3、Gitea transition v1/v2、handoff/evidence v1 JSON schema；v1/v2
-  inventory 与 transition v1 只用于历史 evidence 兼容读取。
+- `schema/`：strict inventory v1/v2/v3、Gitea transition v1/v2、handoff/evidence/compatibility v1 JSON schema；
+  v1/v2 inventory 与 transition v1 只用于历史 evidence 兼容读取。
 - `templates/`：结构示例；所有 `example` 文件都不是 live evidence。
-- `compatibility/<pilot>-company-pilot-v1.json`：pilot 项目的两 VM 拓扑、版本候选和 fail-closed policy matrix。
-  它是项目数据，归属项目仓（承接 Issue 见 archive）；平台保留副本只因 builder `1.2.0`（`bundle.py`
-  `COMPATIBILITY_PATH`）绑定该路径，属历史证据，不是新项目的默认拓扑。
+- compatibility matrix（`company-delivery-compatibility/v1`）：采用本路径的项目在**项目仓**保存并更新的两 VM
+  拓扑、版本候选、stage 进度与 fail-closed policy。平台不保存任何项目的 matrix；构建时由
+  `build-bundle --compatibility-matrix <项目仓文件绝对路径>` 传入，builder 只读取 `contract_version` 与
+  `sync_timer_unit`（`scm-ci` 上 GitHub 入站同步 timer 的 systemd 实例名，形如 `aisoft-inbound-sync@<instance>.timer`），
+  把文件原字节复制到 bundle `operator/compatibility/<basename>` 并写入 handoff manifest 的 `compatibility` 段。
+  结构示例见 `templates/compatibility-matrix.example.json`；schema 见 `schema/compatibility-v1.schema.json`。
 - 构建后的 `handoff-manifest.json`、`SHA256SUMS`、`.tar.gz.sha256`：full Git SHA 与 exact release bytes 的
   可携带身份。
 
@@ -42,7 +45,7 @@ upstream provenance（SHA-256
 
 Stage 10 使用 inventory v3，只验证 candidate 固定端口、路径、unit、tools 与 automation；collector 不接收
 legacy port、不运行 legacy Docker/HTTP probe，也不输出 legacy presence、health、version 或 baseline。Stage 20
-使用 transition v2，绑定两份 inventory、已验证的 operator 1.2.0 handoff/source SHA 与 PostgreSQL OS
+使用 transition v2，绑定两份 inventory、已验证的 operator 1.3.0 handoff/source SHA、其声明的 sync timer unit 与 PostgreSQL OS
 package-set SHA-256 manifest；greenfield 路径的 Stage 30/40 必须保持 `NOT RUN`，Stage 50 仅以前后 candidate
 identity/health 作为 prerequisite。legacy Docker container、image、volume、network、database、configuration、
 port、repository 和 service lifecycle 均禁止修改，且 legacy observation 固定为 `NOT RUN`。SSH、Runner、timer、
@@ -50,16 +53,18 @@ Actions auto deploy、production gate、DNS/TLS、reverse proxy 与 repository i
 `NOT RUN`。
 
 新实例未来只承载新仓库；legacy migration/phase-out、traffic cutover 与旧实例退役必须另建 Change。本仓库
-不会把旧 operator 的公司 evidence 投影到新合同。`1.0.1`、`1.1.0`、`1.1.1` Stage 00 与既有
-Stage 10 inventory 仅是历史 evidence，不能作为 `1.2.0` Stage 00/10 `PASS`；`appserver-prod` 仍保持
+不会把旧 operator 的公司 evidence 投影到新合同。`1.0.1`、`1.1.0`、`1.1.1`、`1.2.0` Stage 00 与既有
+Stage 10 inventory 仅是历史 evidence，不能作为 `1.3.0` Stage 00/10 `PASS`（`1.2.0` handoff 不含
+`compatibility.sync_timer_unit`，只作历史读取，不原地补写）；`appserver-prod` 仍保持
 `NOT RUN`，直到获得独立人工批准。
 
 ## 构建边界
 
 builder 只接受 absolute clean repository root、与 `HEAD` 相同的完整 40 位 source SHA、已通过
 artifact-only verification 的 `docker-release/v2` release root、空的 mode `0700` 输出目录、显式 UTC
-timestamp 和 allowlisted source transport。示意命令中的占位符必须由人工从已批准记录逐字替换；不得把
-Secret 放入 argv：
+timestamp、allowlisted source transport，以及项目仓 compatibility matrix 的绝对路径（regular 非 symlink
+`.json`，mode 0600/0644/0755；basename 不得与 operator 已跟踪文件重名）。示意命令中的占位符必须由人工从
+已批准记录逐字替换；不得把 Secret 放入 argv：
 
 ```bash
 company-delivery/bin/aisoft-company-delivery build-bundle \
@@ -69,10 +74,11 @@ company-delivery/bin/aisoft-company-delivery build-bundle \
   --release-id <40-char-release-sha> \
   --output-directory /approved/empty-mode-0700-output \
   --created-at <YYYY-MM-DDTHH:MM:SSZ> \
-  --source-transport approved-bundle
+  --source-transport approved-bundle \
+  --compatibility-matrix /approved/<project>/compatibility-matrix.json
 ```
 
-同一组输入重复构建必须得到 byte-identical archive checksum。真实 release bytes 缺失时保持
+同一组输入（含同一 matrix 字节）重复构建必须得到 byte-identical archive checksum。真实 release bytes 缺失时保持
 `NOT RUN`；不得用 repository fixture 或 local fake bundle 作为公司 handoff。
 
 `created-at` 只控制确定性 archive 的时间字段，不是安全校验时钟。每次 build 与 verify 都按运行时 UTC

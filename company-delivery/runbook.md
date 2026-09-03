@@ -2,10 +2,12 @@
 
 > 状态：仓库交付物，未在公司执行。本 runbook 不证明公司安装、备份、恢复、CI 或生产部署成功。
 
-本册随 operator `1.2.0` 修订 `company-delivery-inventory/v3` 与
-`company-delivery-gitea-transition/v2`。旧 `1.0.1`/`1.1.0`/`1.1.1` Stage 00 与既有 Stage 10 只保留为历史
-evidence，不能投影为 `1.2.0` Stage 00/10 `PASS`；要进入本册 Stage 10，必须用同一 exact source
-重新生成、校验并批准 `1.2.0` handoff。`appserver-prod` Stage 10 保持 `NOT RUN`，直到获得独立人工批准。
+本册随 operator `1.3.0` 生效：`company-delivery-inventory/v3` 与 `company-delivery-gitea-transition/v2`
+合同不变；compatibility matrix 与 `scm-ci` sync timer unit 名改由项目数据声明——matrix 由项目仓保存并在
+Stage 00 前由 `build-bundle --compatibility-matrix` 传入，handoff manifest 的 `compatibility.sync_timer_unit`
+是 Stage 10/20 唯一的 timer 名来源。旧 `1.0.1`/`1.1.0`/`1.1.1`/`1.2.0` Stage 00 与既有 Stage 10 只保留为历史
+evidence，不能投影为 `1.3.0` Stage 00/10 `PASS`；要进入本册 Stage 10，必须用同一 exact source
+重新生成、校验并批准 `1.3.0` handoff。`appserver-prod` Stage 10 保持 `NOT RUN`，直到获得独立人工批准。
 
 ## 1. 不变量与人工闸门
 
@@ -86,10 +88,10 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 
 | 字段 | 合同 |
 |---|---|
-| 前置输入 | 同一 exact source 的 operator `1.2.0` Stage 00 PASS、两份彼此独立的批准记录、目标 role，以及预先创建的 mode `0700` evidence directory。旧 1.0.1/1.1.0/1.1.1 Stage 00 或既有 Stage 10 evidence 不满足该前置。 |
+| 前置输入 | 同一 exact source 的 operator `1.3.0` Stage 00 PASS、两份彼此独立的批准记录、目标 role，以及预先创建的 mode `0700` evidence directory。旧 1.0.1/1.1.0/1.1.1/1.2.0 Stage 00 或既有 Stage 10 evidence 不满足该前置。 |
 | 人工批准记录 | 分别批准 `gitea-ci/scm-ci` 和 `appserver/appserver-prod` 的 collector；不批准 package install、network discovery、config read、service change 或 restart。 |
 | 执行位置 / role | 在两台公司 VM 上由人分别运行；collector 的 `--role` 必须与批准记录一致。 |
-| 允许动作 | `operator/bin/aisoft-company-delivery collect-inventory --role scm-ci --mode preflight --output <new-json>`，或在 AppServer 运行 `operator/bin/aisoft-company-delivery collect-inventory --role appserver-prod --output <new-json>`。`scm-ci` 只增加候选 `127.0.0.1:8888`/`127.0.0.1:55432`、固定 path 与新 unit 状态 probe；禁止 legacy port 参数、`docker ps/inspect`、legacy HTTP/API、env/config/log/raw output。 |
+| 允许动作 | `operator/bin/aisoft-company-delivery collect-inventory --role scm-ci --mode preflight --output <new-json> --handoff-manifest <bundle>/handoff-manifest.json`（sync timer unit 名只从 Stage 00 已验证的 handoff 读取，collector 会重新校验整个 bundle；不手工输入 unit 名），或在 AppServer 运行 `operator/bin/aisoft-company-delivery collect-inventory --role appserver-prod --output <new-json>`（不接受 `--handoff-manifest`）。`scm-ci` 只增加候选 `127.0.0.1:8888`/`127.0.0.1:55432`、固定 path 与新 unit 状态 probe；禁止 legacy port 参数、`docker ps/inspect`、legacy HTTP/API、env/config/log/raw output。 |
 | 预期输出 | 两个 mode `0600` strict inventory v3 JSON；`scm-ci` mode=`preflight` 且 candidate health=`NOT RUN`，`appserver-prod` mode/scm=`null`。SCM 对象只有 `probe_profile`、`candidate` 与 `automation`；不包含任何 legacy 字段。 |
 | PASS | 两个 role 均通过 `verify-inventory`；候选 `127.0.0.1:8888`/`127.0.0.1:55432` 均 free、固定 resources absent/expected-empty；`aisoft-gitea.service` 必须为 `not-found/not-found`，PostgreSQL 候选 unit 只允许 `not-found/not-found` 或已安装但安全停用的 `disabled/inactive`；自动化入口均为 disabled/NOT RUN。任一 unknown、collision、ambiguous 或 raw/sensitive output 都不能 PASS。legacy 状态不参与结论。 |
 | FAIL | 已运行固定 probe 且明确得到不兼容版本、错误 architecture 或角色冲突；不保存 raw stdout/stderr。 |
@@ -101,11 +103,11 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 
 | 字段 | 合同 |
 |---|---|
-| 前置输入 | 两份 mode `0600` Stage 10 inventory v3 PASS 及其 SHA-256；`scm-ci` 为 preflight，`appserver-prod` mode/scm 为 null；已验证的 operator 1.2.0 `handoff-manifest.json`、完整 PostgreSQL OS package-set SHA-256 manifest、public-name fingerprint、固定 target tuple 与 reviewer decision ID 已准备。package manifest 必须是非空、ASCII、按 artifact path 排序且路径唯一的清单，每行精确为 `<64-lowercase-hex><two-spaces><safe-relative-artifact-path>`。 |
+| 前置输入 | 两份 mode `0600` Stage 10 inventory v3 PASS 及其 SHA-256；`scm-ci` 为 preflight，`appserver-prod` mode/scm 为 null；已验证的 operator 1.3.0 `handoff-manifest.json`（含 `compatibility.sync_timer_unit`）、完整 PostgreSQL OS package-set SHA-256 manifest、public-name fingerprint、固定 target tuple 与 reviewer decision ID 已准备。package manifest 必须是非空、ASCII、按 artifact path 排序且路径唯一的清单，每行精确为 `<64-lowercase-hex><two-spaces><safe-relative-artifact-path>`。 |
 | 人工批准记录 | 只批准一个 decision enum：`greenfield-isolated-install` 或 `BLOCKED`；本阶段不授权安装、停止服务、写数据、备份、恢复、迁移或 legacy observation。 |
 | 执行位置 / role | company cross-host review；技术事实来自 `gitea-ci/scm-ci`，AppServer 只确认无 Gitea/Runner 角色漂移。 |
 | 允许动作 | 复制 transition example 到新的 mode `0600` receipt，填入批准事实后运行 `operator/bin/aisoft-company-delivery verify-gitea-transition --input <transition-json> --scm-inventory <scm-json> --appserver-inventory <appserver-json> --handoff-manifest <bundle>/handoff-manifest.json --postgresql-package-manifest <package-set-sha256-manifest>`；不得执行安装/升级命令。 |
-| 预期输出 | 一个 strict transition v2 receipt：checksum 绑定并实际读回 operator 1.2.0 handoff/source SHA、PostgreSQL OS package-set manifest、two inventories、public-name fingerprint、固定 target、automation、candidate isolation、精确 stage map 与 reviewer decision；不含 legacy 字段，CLI 仅回显 sanitized decision/outcome。 |
+| 预期输出 | 一个 strict transition v2 receipt：checksum 绑定并实际读回 operator 1.3.0 handoff/source SHA、handoff 声明的 sync timer unit（必须与 `scm-ci` inventory 记录的 timer 实例一致）、PostgreSQL OS package-set manifest、two inventories、public-name fingerprint、固定 target、automation、candidate isolation、精确 stage map 与 reviewer decision；不含 legacy 字段，CLI 仅回显 sanitized decision/outcome。 |
 | PASS | `greenfield-isolated-install` 只允许 Stage 00/10/20 PASS 且 Stage 30/40/50 为 `NOT RUN`，Stage 50 prerequisite=`candidate-post-install-health`。validator PASS 仍不是安装批准。controlled upgrade 不属于本合同，必须另建 Change。 |
 | FAIL | 已知事实证明两条路径都与容量、兼容性或隔离要求冲突。 |
 | BLOCKED / 停止点 | 任一 candidate port/path/unit/identity、package provenance、checksum binding 或 rollback namespace 不明确；禁止用 side-by-side 绕过 candidate 冲突，也禁止读取 legacy 来替代 candidate 证明。 |
@@ -156,7 +158,7 @@ release SHA（不适用时为 null）、scope、role、批准引用、批准时�
 | 前置输入 | 已验证的 Stage 20 transition v2（00/10/20 PASS，30/40/50 `NOT RUN`）、preflight candidate inventory v3、固定 target、exact bytes/checksums、maintenance window 与仅新 namespace 的回退步骤。 |
 | 人工批准记录 | 未来独立 live mutation，只批准选定路径和 exact version/checksum；不授权 DNS/TLS 切换、repo import、timer、Actions auto deploy 或 production gate。 |
 | 执行位置 / role | 仅 `gitea-ci/scm-ci`；`appserver-prod` 不执行 Gitea 变更。 |
-| 允许动作 | 只按批准 tuple 建立 `aisoft-gitea` user/group、新 `aisoft-gitea.service`、`postgresql@18-aisoft-gitea.service`、固定 paths 与 loopback ports；校验 Gitea 1.26.4 和 PostgreSQL 18.4 provenance 后运行新实例最小本机 health/version/storage readback，再用 `collect-inventory --role scm-ci --mode post-install --output <post-json>` 验证 candidate。不得运行 legacy Docker/HTTP probe、修改 legacy resources 或在同一次批准中改变路径。 |
+| 允许动作 | 只按批准 tuple 建立 `aisoft-gitea` user/group、新 `aisoft-gitea.service`、`postgresql@18-aisoft-gitea.service`、固定 paths 与 loopback ports；校验 Gitea 1.26.4 和 PostgreSQL 18.4 provenance 后运行新实例最小本机 health/version/storage readback，再用 `collect-inventory --role scm-ci --mode post-install --output <post-json> --handoff-manifest <bundle>/handoff-manifest.json` 验证 candidate。不得运行 legacy Docker/HTTP probe、修改 legacy resources 或在同一次批准中改变路径。 |
 | 预期输出 | exact installed version/checksum、chosen path、new namespace health/data/service receipt及 post-install inventory v3。SSH、Runner、sync timer、Actions auto deploy、production gate 均 disabled/inactive，DNS/TLS、reverse proxy、repository import 与 legacy observation 仍 `NOT RUN`。 |
 | PASS | 新实例固定 identity/health 与 candidate post-install inventory v3 均 PASS，Stage 30/40 仍 `NOT RUN`；不能暗示 traffic cutover、repository migration 或 legacy health。 |
 | FAIL | install/upgrade 已执行但 health、登录、对象 identity 或 service state 不符。 |

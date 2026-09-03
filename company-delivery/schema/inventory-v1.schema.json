@@ -1,7 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://aisoft.example/contracts/company-delivery/inventory-v1.schema.json",
-  "$comment": "历史证据：enum 中的 aisoft-inbound-sync@newemaint.timer 是建立本合同的 pilot（Issue #120–#130，见 archive/company-delivery-pilot-历史-20260903.md）绑定的 sync timer unit 名，由 codex/runtime/aisoft_company_delivery 的 contract.py/collector.py 同名绑定；不是新项目默认值，随 runtime 参数化处置。",
   "title": "AISoft company delivery sanitized inventory V1",
   "type": "object",
   "additionalProperties": false,
@@ -117,7 +116,7 @@
             "maxItems": 4,
             "allOf": [
               {"contains": {"properties": {"name": {"const": "act_runner.service"}}, "required": ["name"]}},
-              {"contains": {"allOf": [{"properties": {"name": {"const": "aisoft-inbound-sync@newemaint.timer"}}, "required": ["name"]}, {"oneOf": [{"properties": {"enabled": {"const": "disabled"}, "active": {"const": "inactive"}}, "required": ["enabled", "active"]}, {"properties": {"enabled": {"const": "not-found"}, "active": {"const": "not-found"}}, "required": ["enabled", "active"]}]}]}},
+              {"contains": {"allOf": [{"properties": {"name": {"type": "string", "pattern": "^aisoft-inbound-sync@[A-Za-z0-9][A-Za-z0-9._-]{0,63}\\.timer$"}}, "required": ["name"]}, {"oneOf": [{"properties": {"enabled": {"const": "disabled"}, "active": {"const": "inactive"}}, "required": ["enabled", "active"]}, {"properties": {"enabled": {"const": "not-found"}, "active": {"const": "not-found"}}, "required": ["enabled", "active"]}]}]}},
               {"contains": {"properties": {"name": {"const": "docker.service"}}, "required": ["name"]}},
               {"contains": {"properties": {"name": {"const": "gitea.service"}}, "required": ["name"]}}
             ]
@@ -201,7 +200,7 @@
       "additionalProperties": false,
       "required": ["name", "enabled", "active"],
       "properties": {
-        "name": {"enum": ["act_runner.service", "aisoft-inbound-sync@newemaint.timer", "docker.service", "gitea.service", "nginx.service", "postgresql.service"]},
+        "name": {"anyOf": [{"enum": ["act_runner.service", "docker.service", "gitea.service", "nginx.service", "postgresql.service"]}, {"type": "string", "pattern": "^aisoft-inbound-sync@[A-Za-z0-9][A-Za-z0-9._-]{0,63}\\.timer$"}]},
         "enabled": {"enum": ["enabled", "disabled", "masked", "static", "indirect", "not-found", "unknown"]},
         "active": {"enum": ["active", "inactive", "failed", "activating", "deactivating", "maintenance", "not-found", "unknown"]}
       }
