@@ -25,9 +25,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 237
-status: approved
+status: pr-open
 branch: change/239-param-company-delivery
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/240
 created: 2026-09-03
 updated: 2026-09-03
 ---
