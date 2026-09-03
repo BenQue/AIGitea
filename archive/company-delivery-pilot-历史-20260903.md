@@ -12,7 +12,7 @@
 > aisoft_company_delivery/bundle.py` `COMPATIBILITY_PATH`）与 `aisoft-inbound-sync@newemaint.timer` unit 名
 > 仍由 runtime 绑定；删除副本与参数化由后续平台 Issue 处置。
 >
-> pilot 当前归属：NewEmaint 仓（`admin/NewEMaint`）承接 Issue **NEWEMAINT_ISSUE_PLACEHOLDER**。
+> pilot 当前归属：NewEmaint 仓（`admin/NewEMaint`）承接 Issue **[#75](http://gitea-ci.orb.local:3000/admin/NewEMaint/issues/75)**。
 
 ## 1. pilot 身份与 operator 演进（快照）
 
