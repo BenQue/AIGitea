@@ -206,4 +206,5 @@ host-operator 路由，同样不进。这是**核对后确认无需改动**，�
   第 3 条尤其值得注意：它发生在踩坑 22 点名的那一类断言里，而且就在同一个文件。
 - broker 的 `gitea.actions.run.read` 对没有 `completed_at` 的 run（cancelled / running）
   把 `duration_seconds` 算成了一个 unix epoch（实测 `admin/LocalWMS` run 1016 返回
-  `1788522654`）。这是本次取证顺带发现的独立缺陷，**不在本 Issue 范围内**，另立 Issue。
+  `1788522654`、run 1007 返回 `1788503541`）。这是本次取证顺带发现的独立缺陷，
+  **不在本 Issue 范围内**；已并入 **#225**（broker actions 证据面）的验收标准，不另开 Issue。
