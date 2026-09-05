@@ -13,6 +13,11 @@
 # 只做这一半是不够的：这次预览是在本次运行那一刻算的，而合并发生在之后。
 # 中间别人合并进 base 之后没有任何东西让它重跑。另一半是分支保护的
 # block_on_outdated_branch，由平台侧在 Gitea 界面打开，不在本文件内。
+#
+# 第二个结构性盲区（AISoft 平台 Issue #201）：npm ci 命中 runner 的 _cacache 时
+# 根本不发起网络请求，所以 registry 死掉之后，只用既有依赖的 PR 仍然 20 秒全绿。
+# 2026-08 那次 Verdaccio 停机因此静默潜伏约 28 小时，只在某个 PR 恰好引入新包时才炸。
+# registry-preflight.sh 每次都真的取一次包，把那个藏身处拆掉。
 
 name: CI
 
@@ -25,6 +30,11 @@ on:
 
 permissions:
   contents: read
+
+# registry 是 CI 的硬依赖，显式写在这里而不是散在各步骤里。
+# 换成本平台实际的 registry 地址；不要改成 registry.npmjs.org。
+env:
+  NPM_CONFIG_REGISTRY: http://gitea-ci.orb.local:4873/
 
 jobs:
   # job key 是必需检查 context 的一部分，改名前先回读分支保护。
@@ -56,7 +66,25 @@ jobs:
           set -o pipefail
           bash scripts/ci/merge-preview.sh 2>&1 | tee "$RUNNER_TEMP/merge-preview.log"
 
+      # registry 存活断言。必须排在**任何依赖安装之前**，也留在这个 job 内。
+      #
+      # 不加 `if`：正因为它在每一次运行上都跑，registry 死掉的那一刻就有运行会红，
+      # 而不必等某个 PR 恰好引入缓存外的新包。这一步本身只有几百毫秒。
+      #
+      # 不要给这一步加 continue-on-error，也不要在它失败后把 registry 改成
+      # registry.npmjs.org 继续跑：那会同时抹掉离线安装能力和这条故障的可见性。
+      # 应用仓**不得**为了让 CI 变绿而绕过 NPM_CONFIG_REGISTRY，见平台文档 01 §5。
+      #
+      # 失败时日志里有固定标记 AISOFT_REGISTRY_PREFLIGHT_FAIL 与 stage=<阶段>，
+      # 按标记检索即可；stage=connect 表示那个端口上没有进程在监听，
+      # 这一类**不要**往 uplink 或网络策略方向排查。
+      - name: Registry preflight
+        env:
+          NPM_CONFIG_REGISTRY: ${{ env.NPM_CONFIG_REGISTRY }}
+        run: bash scripts/ci/registry-preflight.sh
+
       # 从这里往下换成本项目自己的构建、闸门与测试步骤。全部留在同一个 job 内。
+      # 依赖安装排在 registry 存活断言之后。
       - name: Project checks
         run: echo '换成本项目自己的测试命令'
 

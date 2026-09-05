@@ -124,6 +124,23 @@ fetch-timeout=120000
 - 用 `gitea-ci.orb.local` 而非 `localhost`：**Mac 和 VM 内共用同一份配置**。内网平移时只改这一行。
 - Prisma 引擎二进制另有下载渠道，CI 里已设 `PRISMA_ENGINES_MIRROR=https://registry.npmmirror.com/-/binary/prisma`。
 
+### Verdaccio 是 CI 的硬依赖（Issue #201）
+
+`4873` 一停，**所有需要下载缓存外新包的 CI 都会以 `ECONNREFUSED` 失败**。2026-08-24 起它停过
+约 28 小时，期间没有任何既有闸门报警。
+
+- 🚫 **应用仓不得改自己的 `ci.yml` 去绕过 `NPM_CONFIG_REGISTRY`。** 把 registry 指向
+  `registry.npmjs.org` 确实能让那条 PR 变绿，但它同时抹掉两样东西：离线安装能力，以及这条故障的
+  可见性。要绕过必须先有独立 Issue 和明确授权，不能作为「让 CI 过」的临时手段。
+- ✅ 每个装 npm 依赖的项目在**依赖安装之前**跑一次 registry 存活断言，参考实现
+  `templates/project/ci/registry-preflight.sh`；它做的是真实取包（packument 加 tarball），
+  不读 npm 缓存也不问 pm2。采纳情况由 `aisoft-project-check.sh` 的 `ci-registry-preflight` 回读。
+- 🕳️ **暖缓存会把这个故障藏起来**：`npm ci` 命中 runner 的 `/opt/act-runner/.npm/_cacache` 时
+  根本不发起网络请求，所以只用既有依赖的 PR 在故障期间照样 20 秒全绿。**不要拿「别的 PR 是绿的」
+  当 registry 健康的证据。**
+- 🕳️ **`pm2 list` 会说谎**：进程已死时它仍可能显示 `online`。判活三件套见
+  [06 踩坑 23](06-运维手册与踩坑集.md#2-踩坑集-编号即正文引用号)。
+
 ## 6. Mailpit（邮件捕获，演示层）
 
 - 二进制 `/usr/local/bin/mailpit`（v1.30.4），systemd 托管（User=nobody）：SMTP `0.0.0.0:1025`，UI `0.0.0.0:8025`。

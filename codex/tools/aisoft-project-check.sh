@@ -439,6 +439,184 @@ MERGE_PREVIEW_PY
 
 check_ci_merge_preview
 
+# #201: npm ci 命中 runner 缓存时根本不发起网络请求，所以 registry 停掉之后，
+# 只用既有依赖的 PR 仍然全绿——2026-08 那次 Verdaccio 停机因此静默潜伏约 28 小时。
+# 本检查只读地判断：装依赖之前有没有一条真的会去 registry 取一次东西的断言。
+# 判的是机制不是拼写：任何在装依赖之前、带 AISOFT_REGISTRY_PREFLIGHT 标记、
+# 且真的发起 HTTP 请求的步骤都算数。只回显标记而不请求的桩不算。
+check_ci_registry_preflight() {
+  local verdict detail
+  local output="$tmp_dir/registry-preflight-verdict"
+  if ! python3 - "$repo" >"$output" 2>"$tmp_dir/registry-preflight.err" <<'REGISTRY_PREFLIGHT_PY'
+import pathlib
+import re
+import sys
+
+repo = pathlib.Path(sys.argv[1])
+
+# 判定集合只含真的装 npm 依赖的 workflow；不装依赖的仓库与本故障无关。
+INSTALL = re.compile(
+    r"\b(?:npm\s+(?:ci|install|i)\b|pnpm\s+(?:install|i)\b|yarn\s+install\b)"
+)
+CONTINUE_ON_ERROR = re.compile(
+    r"continue-on-error\s*:\s*(?:true|True|yes|'true'|\"true\")"
+)
+SCRIPT_PATH = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_./-]*\.(?:sh|bash|mjs|cjs|js|py)\b")
+MARKER = "AISOFT_REGISTRY_PREFLIGHT"
+# 真的发起一次请求。只 echo 标记的桩不算断言，正如只写 MERGE_PREVIEW 而不做
+# 三方合并的步骤不算合并预览。
+REAL_FETCH = re.compile(r"\b(?:curl|wget)\b")
+MAX_SCRIPT_BYTES = 512 * 1024
+
+
+def strip_noise(text):
+    kept = [line for line in text.splitlines() if not line.lstrip().startswith("#")]
+    return "\n".join(kept).replace("\\\n", " ")
+
+
+def indent_of(line):
+    return len(line) - len(line.lstrip(" "))
+
+
+def significant(text):
+    return [
+        line for line in text.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+
+
+def workflow_files():
+    for relative in (".gitea/workflows", ".github/workflows"):
+        directory = repo / relative
+        if not directory.is_dir():
+            continue
+        files = sorted(
+            path for path in directory.iterdir()
+            if path.is_file() and path.suffix in (".yml", ".yaml")
+        )
+        if files:
+            return relative, files
+    return None, []
+
+
+def steps(lines):
+    collected = []
+    for index, line in enumerate(lines):
+        if not re.match(r"^\s*steps\s*:\s*$", line):
+            continue
+        base = indent_of(line)
+        body = []
+        for following in lines[index + 1:]:
+            if indent_of(following) <= base:
+                break
+            body.append(following)
+        item_indents = [
+            indent_of(item) for item in body if re.match(r"^\s*-\s", item)
+        ]
+        if not item_indents:
+            continue
+        item_indent = min(item_indents)
+        current = None
+        for item in body:
+            if re.match(r"^\s*-\s", item) and indent_of(item) == item_indent:
+                if current is not None:
+                    collected.append("\n".join(current))
+                current = [item]
+            elif current is not None:
+                current.append(item)
+        if current is not None:
+            collected.append("\n".join(current))
+    return collected
+
+
+def step_blob(step):
+    parts = [strip_noise(step)]
+    for candidate in SCRIPT_PATH.findall(step):
+        relative = candidate.lstrip("./")
+        if ".." in pathlib.PurePosixPath(relative).parts:
+            continue
+        target = repo / relative
+        if not target.is_file():
+            continue
+        try:
+            if target.stat().st_size > MAX_SCRIPT_BYTES:
+                continue
+            parts.append(strip_noise(
+                target.read_text(encoding="utf-8", errors="replace")
+            ))
+        except OSError:
+            continue
+    return "\n".join(parts)
+
+
+def analyse(step_list):
+    """回答两件事：这个 workflow 装不装依赖，以及每次安装前面有没有断言。
+
+    先认断言再认安装，两者在同一次遍历里的顺序不能反过来：断言脚本自己的
+    失败提示里会出现 npm ci 这类字样（那正是它要解释的东西），当成一次
+    依赖安装就会把出厂参考自己判成 GAP。
+    """
+    guarded = False
+    has_install = False
+    protected = True
+    for step in step_list:
+        blob = step_blob(step)
+        if MARKER in blob and REAL_FETCH.search(blob):
+            # 可以静默失败的断言不是闸门，但它同样不是一次依赖安装。
+            if not CONTINUE_ON_ERROR.search(step):
+                guarded = True
+            continue
+        if INSTALL.search(blob):
+            has_install = True
+            if not guarded:
+                protected = False
+    return has_install, protected
+
+
+def main():
+    relative, files = workflow_files()
+    if relative is None:
+        print("SKIP\t仓库没有 .gitea/workflows 或 .github/workflows")
+        return
+    judged = []
+    failing = []
+    for path in files:
+        lines = significant(path.read_text(encoding="utf-8", errors="replace"))
+        has_install, protected = analyse(steps(lines))
+        if not has_install:
+            continue
+        judged.append(path.name)
+        if not protected:
+            failing.append(f"{relative}/{path.name}")
+    if not judged:
+        print("SKIP\t没有安装 npm 依赖的 workflow")
+    elif failing:
+        print(
+            "GAP\t" + ", ".join(failing)
+            + " 在装依赖之前没有 registry 存活断言；registry 停掉时暖缓存会让 CI 继续变绿，"
+            + "参考 templates/project/ci/registry-preflight.sh"
+        )
+    else:
+        print("PASS\t")
+
+
+main()
+REGISTRY_PREFLIGHT_PY
+  then
+    gap ci-registry-preflight 'registry 存活断言判定未能运行'
+    return
+  fi
+  IFS=$'\t' read -r verdict detail <"$output"
+  case "$verdict" in
+    PASS) pass ci-registry-preflight ;;
+    SKIP) skip ci-registry-preflight "${detail:-未给出原因}" ;;
+    GAP) gap ci-registry-preflight "${detail:-未给出细节}" ;;
+    *) gap ci-registry-preflight 'registry 存活断言判定输出无法解析' ;;
+  esac
+}
+
+check_ci_registry_preflight
+
 remote_ready=false
 remote_reason=''
 if [[ "$remote" == true ]]; then
