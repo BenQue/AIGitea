@@ -130,16 +130,14 @@ override_reason: ''
 
 ## 遗留项（不在本 PR 内，交回人裁决）
 
-1. **`skill-for-claude/issue-session-flow/SKILL.md:46-47` 的过渡说明该收掉了。**
-   它写着「`gitea.issue.list` 落地前（#222），用逐号 `gitea.issue.read` 从已知最大编号
-   向下读……#222 合并后换成一次列表读取」，把本 Issue 的合并指定为自己的失效条件。
-   本 PR **未改**：它是 Agent 行为文件，`AGENTS.md` 要求由映射的 spec 明确授权才能修改，
-   本次 spec 未授权。两行文字的改动，可并入本 PR（需扩 spec）或作为下一件事处理。
-2. **`GovernedHostRunner` 有两个方法调不动。** `labels_read()` 与 `issue_labels_read()`
+> 原第 1 条（两份 `issue-session-flow` skill 的过渡说明）已在确认点 2 经人授权并入本 PR，
+> 见 spec 的「治理文件授权」与 AC-9。
+
+1. **`GovernedHostRunner` 有两个方法调不动。** `labels_read()` 与 `issue_labels_read()`
    对应的 broker 操作返回 JSON 数组，而 `runner.py` 的 `_call` 尾部要求返回值是 dict，
    否则抛 `RESPONSE_SCHEMA_INVALID`。这两个方法今天没有调用方，所以一直没暴露。
    本次新增的 `gitea.issue.list` 正是因为知道这条约束才返回对象而不是裸数组。
    **未在本 PR 内修**：改 `_call` 的返回契约会影响全部十几个 runner 方法，
    超出本 Issue 范围。按你「本轮不新开 Issue」的要求，只在此记录并回报。
-3. **测试产物 Issue #260** 停在 closed 状态，标题 `test(#222): gitea.issue.state.set
+2. **测试产物 Issue #260** 停在 closed 状态，标题 `test(#222): gitea.issue.state.set
    验收用一次性 Issue`，正文写明是验收产物。不需要任何人处理。

@@ -99,9 +99,11 @@ memory. Dispatch only unblocked Issues and keep their branches, worktrees and PR
 The coordination task's second duty. Sweep the open Issues every time the task wakes up, and again after a batch of
 Issues has been dispatched. A sweep judges and dispatches; it never implements an Issue.
 
-Enumeration: until the list operation lands (#222), read Issues one number at a time with `gitea.issue.read`,
-walking down from the highest known number. This is a stated interim method so the sweep can run before the list
-operation exists; replace it with one list read once #222 merges.
+Enumeration: one `gitea.issue.list --state open` (#222). It pages through the whole tracker, excludes pull
+requests and carries no bodies, giving `number`, `title`, `state` and `labels` per Issue -- enough to compare
+titles for duplicates; read one Issue's text by number with `gitea.issue.read`. A `REQUEST_DENIED` means this
+machine's broker operation table is stale: reinstall on both hosts and retry, do not chase it as a permission
+problem.
 
 Entry label: a new Issue carries its entry label from the same write that creates it, `needs-analysis` or
 `triage/needs-triage`. An older Issue may carry no label at all; backfill it with

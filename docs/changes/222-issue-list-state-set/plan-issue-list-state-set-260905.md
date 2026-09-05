@@ -30,6 +30,7 @@ updated: 2026-09-05
 | T02 | `gitea.issue.state.set`：合同、manifest、dispatch、写路径与幂等、runner 方法、测试 | - | pending |
 | T03 | 文档：`06` §1.0 精确集合语义与两条命令，踩坑表新增一行 | T01, T02 | pending |
 | T04 | 候选 manifest 实机验收与 verification 文档 | T01, T02, T03 | pending |
+| T05 | 两份 issue-session-flow skill 的清扫枚举改用 gitea.issue.list | T01 | pending |
 
 T01 与 T02 各自触碰同样的六个同步点，串行执行以免两次改同一处计数互相覆盖。
 
@@ -73,6 +74,7 @@ T01 与 T02 各自触碰同样的六个同步点，串行执行以免两次改�
 | AC-5 | `test_host_access.py` 混入 `pull_request` 非空条目，断言 `issues` 不含它且 `pull_requests_excluded` 计数正确 |
 | AC-6 | `bash codex/tests/smoke.sh` |
 | AC-7 | diff review：`06` §1.0 与踩坑表第 26 行 |
+| AC-9 | diff review 两份 SKILL.md；`bash codex/tests/smoke.sh` 的 governance-set 与清扫段守卫 |
 | AC-8 | `PYTHONPATH=codex/runtime python3 -m aisoft_host_access.cli --access-manifest codex/config/host-access-broker.json --governance-manifest codex/config/gitea-governance.json broker --project aisoft-platform --operation gitea.issue.list --state open`，输出抄进 verification |
 
 ## 未执行项（人工交接）

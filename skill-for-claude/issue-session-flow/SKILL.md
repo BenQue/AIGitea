@@ -43,8 +43,10 @@ description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆
 调度会话的第二项职责。每次被唤醒时，以及一批 Issue 派单完成之后，清扫一次开放 Issue。
 清扫只做判定与派单，不实现任何 Issue。
 
-**枚举**：`gitea.issue.list` 落地前（#222），用逐号 `gitea.issue.read` 从已知最大编号向下读。
-这是临时手段，写在这里是为了让清扫在列表操作到位之前也跑得起来；#222 合并后换成一次列表读取。
+**枚举**：一次 `gitea.issue.list --state open`（#222）。它分页取全、排除 pull request、
+不带正文，每条给 `number`/`title`/`state`/`labels`，够直接做查重比对；正文按号用
+`gitea.issue.read` 取。读到 `REQUEST_DENIED` 是本机 broker 操作表陈旧，两台重装后重跑，
+不要往权限方向查。
 
 **入口标签**：新建的 Issue 由 `gitea.issue.create` 在创建的同一次写入里带上入口标签，取值是
 `needs-analysis` 或 `triage/needs-triage`。更早立的 Issue 可能一个标签都没有；清扫遇到时用

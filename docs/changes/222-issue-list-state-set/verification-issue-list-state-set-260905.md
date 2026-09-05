@@ -48,6 +48,7 @@ PYTHONPATH=codex/runtime python3 -m aisoft_host_access.cli \
 | AC-6 操作数 34 到 36，smoke 全绿 | PASS | `validate` 读回 `operation_count: 36`；`bash codex/tests/smoke.sh` → `Ran 692 tests ... OK` + `Codex platform static smoke checks passed.` |
 | AC-7 文档写明精确集合语义 | PASS | `06` §1.0 末段与踩坑表第 26 行；实测例子取自本文件的多传测试 |
 | AC-8 候选 manifest 免重装验收 | PASS | 本文件所有实机行 |
+| AC-9 两份 issue-session-flow skill 改用列表枚举 | PASS | 见下方「治理文件同批改」 |
 
 ## 合同读回
 
@@ -178,11 +179,30 @@ token_scopes.project_agent: ["read:user", "write:issue", "write:repository"]
   重装应在本 PR 合并且主 checkout `git merge --ff-only origin/main` 之后进行，
   否则 installer 会忠实地装旧 manifest 并报成功（踩坑 20 的 #162 变体）。
   重装后自检：`python3 -c 'import json;print(len(json.load(open("/usr/local/share/aisoft/host-access-broker.json"))["operations"]))'` 应读出 `36`。
-- **调度会话改用列表枚举**：`skill-for-claude/issue-session-flow/SKILL.md:46` 写的是
-  「`gitea.issue.list` 落地前（#222），用逐号 `gitea.issue.read` 从已知最大编号向下读……
-  #222 合并后换成一次列表读取」。这两行在**本仓**，不是外部文件。本 PR **未改**：
-  它是 Agent 行为文件，`AGENTS.md` 要求由映射的 spec 明确授权才能修改，而本次 spec
-  没有授权它。作为遗留项交回，见 summary。
+- **两份 skill 的重装**：`bash skill-for-claude/install.sh` 与 `bash codex/install-skills.sh`
+  同样需要在合并且主 checkout ff 之后执行，**NOT RUN**。未重装前调度会话读到的仍是
+  旧的逐号枚举说明。
+
+## 治理文件同批改（AC-9）
+
+`skill-for-claude/issue-session-flow/SKILL.md:46` 与
+`codex/skills/issue-session-flow/SKILL.md:102` 原先写的是一条自带失效条件的过渡说明
+（「`gitea.issue.list` 落地前（#222）……#222 合并后换成一次列表读取」）。两份同批改成
+一次 `gitea.issue.list --state open`，并补上「读到 `REQUEST_DENIED` 是操作表陈旧、
+不是权限问题」的指引。spec 的「治理文件授权」一节显式授权了这两个文件，
+授权不外溢到 `AGENTS.md`、controller、CI 与部署脚本。
+
+**守卫反向证明**：`smoke.sh:777` 用 `grep -Fq '## 开放 Issue 清扫'` 钉住清扫段。
+先确认它真的在管这份文件——把标题改成 `## 开放 Issue 清理`（**删掉钉住的子串**，
+而不是在后面加字符：`grep -Fq` 是子串匹配，加 `X` 仍然匹配、不会变红），
+`bash codex/tests/smoke.sh` 退 1；改回后退 0。
+
+改后完整 `bash codex/tests/smoke.sh` → `Ran 692 tests in 37.045s / OK` +
+`Codex platform static smoke checks passed.`
+
+**安装期影响**：两份 skill 是安装源，`skill-for-claude/install.sh` 与
+`codex/install-skills.sh` 装的是它们的逐字节副本。本次改动在两台重装之前不会影响
+任何正在运行的会话——这与 broker 操作表同一个道理，一并列入下方交接项。
 
 ## 部署验收
 

@@ -51,6 +51,9 @@ updated: 2026-09-05
       `bash codex/tests/smoke.sh` 全绿。
 - [ ] **AC-7**：`06` 写明 typed `arguments` 是精确集合——少传与多传同样报
       `ARGUMENT_MISMATCH`——并给出实测例子；踩坑表新增对应一行。
+- [ ] **AC-9**：两份 `issue-session-flow` skill（`skill-for-claude/` 中文与
+      `codex/skills/` 英文）的开放 Issue 清扫改用一次 `gitea.issue.list --state open`，
+      不再写逐号 `gitea.issue.read` 的过渡手段。两份必须同批改，provider 保持等价。
 - [ ] **AC-8**：不重装也能验收：用候选 manifest 直接调
       `python3 -m aisoft_host_access.cli ... broker --operation gitea.issue.list --state open`
       取到真实结果。两台重装为人工交接项，在 verification 中显式标注未执行。
@@ -150,3 +153,17 @@ id、color、url 与仓库路径，逐字透传会让一个受治理的只读面
 - 不新增 broker 写入日志或审计流水账——那是独立议题，不在本 Issue 范围内。
 - 不给已有操作增删参数（`arguments` 是精确集合，加参数是破坏性变更，#243 已踩过）。
 - 不改 `AGENTS.md`、controller、CI 或部署脚本。
+
+## 治理文件授权（AGENTS.md 要求的明确授权）
+
+本 spec **明确授权**修改这两个 Agent 行为文件，且仅限这两个文件的枚举段落：
+
+- `skill-for-claude/issue-session-flow/SKILL.md`
+- `codex/skills/issue-session-flow/SKILL.md`
+
+理由：这两处写的是一条**自带失效条件**的过渡说明——原文就写着「`gitea.issue.list`
+落地前（#222）……#222 合并后换成一次列表读取」。本 Issue 的合并正是它指定的触发条件，
+收掉它不是新的 Agent 行为决策，而是执行它自己已经写好的那一步。同批改两份是因为
+provider 等价是平台合同，只改一侧会让 Claude 与 Codex 的清扫方法分叉。
+
+授权不外溢：`AGENTS.md`、controller、CI 与部署脚本本次一律不动。
