@@ -13,12 +13,12 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 5 and
-  .operation_count == 34 and
+  .operation_count == 36 and
   .merge_operation_count == 1
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 34) and
+  ([.operations[].name] | length == 36) and
   all(.operations[];
     ((.name | contains("merge") | not) or .name == "gitea.pull.merge.routine") and
     (.name | contains("shell") | not) and
@@ -52,6 +52,14 @@ jq -e '
         "mutating":true,"arguments":["label","color","description"]}) and
   ([.operations[] | select(.name == "gitea.issue.comments.read")][0].arguments == ["number"]) and
   ([.operations[] | select(.name == "gitea.issue.comments.read")][0].mutating == false) and
+  ([.operations[] | select(.name == "gitea.issue.list")][0]
+    == {"name":"gitea.issue.list","identity_route":"project-agent",
+        "mutating":false,"arguments":["state"]}) and
+  ([.operations[] | select(.name == "gitea.issue.state.set")][0]
+    == {"name":"gitea.issue.state.set","identity_route":"project-agent",
+        "mutating":true,"arguments":["number","state"]}) and
+  ([.operations[] | select(.name == "gitea.issue.update")][0].arguments
+    == ["number", "title", "body"]) and
   ([.operations[] | select(.name == "gitea.actions.run.read")][0].arguments == ["sha"]) and
   ([.operations[] | select(.name == "gitea.actions.job.logs.read")][0].arguments == ["job"]) and
   (all(.operations[] | select(.name | startswith("gitea.actions.")); .mutating == false)) and

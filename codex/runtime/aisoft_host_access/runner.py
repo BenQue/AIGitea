@@ -57,6 +57,18 @@ class GovernedHostRunner:
             "--title", title, "--body", body,
         )
 
+    def issue_list(self, state: str) -> Mapping[str, object]:
+        # state passes through unvalidated on purpose, the same rule lifecycle
+        # follows: the broker owns the accepted set, and a second copy here would
+        # drift the first time one side changes (#222).
+        return self._call("gitea.issue.list", "--state", state)
+
+    def issue_state_set(self, number: int, state: str) -> Mapping[str, object]:
+        return self._call(
+            "gitea.issue.state.set", "--number", str(_positive_number(number, "Issue")),
+            "--state", state,
+        )
+
     def issue_comment(self, number: int, comment: str) -> Mapping[str, object]:
         return self._call(
             "gitea.issue.comment", "--number", str(_positive_number(number, "Issue")),

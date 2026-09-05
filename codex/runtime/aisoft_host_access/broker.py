@@ -1563,6 +1563,27 @@ class HostAccessBroker:
             method = "POST"
             _positive_number(number, "Issue")
             payload = {"body": _typed_text("Issue comment", comment, BODY_MAX_BYTES)}
+        elif operation.name == "gitea.issue.state.set":
+            # No method or payload set here: unlike the other writes, this one is
+            # served by a helper that reads the current state first and decides
+            # whether a PATCH is needed at all.
+            _positive_number(number, "Issue")
+            # open and closed only. --state carries three values because
+            # gitea.pulls.read needs "all" to mean "either", but "all" is not a
+            # state one Issue can be in, and sending it upstream would either be
+            # ignored or set something nobody asked for. Refused here, before a
+            # credential is resolved and before any request is made, for the same
+            # reason the SHA checks are: a rejected value must never be
+            # confusable with a permission problem.
+            if state not in {"open", "closed"}:
+                raise BrokerError(
+                    "ARGUMENT_INVALID", "Issue state must be open or closed"
+                )
+        elif operation.name == "gitea.issue.list":
+            if state not in {"open", "closed", "all"}:
+                raise BrokerError(
+                    "ARGUMENT_INVALID", "Issue list state must be open, closed, or all"
+                )
         elif operation.name == "gitea.pull.create":
             _positive_number(issue, "Issue")
             method = "POST"
@@ -1664,6 +1685,12 @@ class HostAccessBroker:
         if operation.name == "gitea.issue.comments.read":
             assert number is not None
             return self._issue_comments(repo_api, credential.token, number)
+        if operation.name == "gitea.issue.list":
+            assert state is not None
+            return self._issue_list(repo_api, credential.token, state)
+        if operation.name == "gitea.issue.state.set":
+            assert number is not None and state is not None
+            return self._set_issue_state(repo_api, credential.token, number, state)
         if operation.name == "gitea.issue.labels.read":
             assert number is not None
             return self._issue_labels(repo_api, credential.token, number)
@@ -2210,6 +2237,129 @@ class HostAccessBroker:
         raise BrokerError(
             "RESPONSE_SCHEMA_INVALID", "Gitea Issue comment list exceeds the bounded scan"
         )
+
+    def _issue_projection(self, item: object) -> dict[str, object]:
+        """One Issue reduced to the fields the delivery contract actually reads.
+
+        Projected rather than passed through for the reason _issue_comments is:
+        a raw Gitea Issue embeds a full user object, a repository object, assets,
+        assignees and a milestone, so returning it verbatim would make a governed
+        read change shape whenever Gitea's response does.
+
+        body is deliberately absent. This surface answers "which Issues exist and
+        what are they called" — duplicate checking and enumeration — and the text
+        of one Issue is what gitea.issue.read is for. Carrying bodies would also
+        multiply a single listing of this repository's Issues by orders of
+        magnitude for a caller that is only comparing titles.
+
+        labels collapse to their names for the same reason: the label objects
+        carry ids, colours and repository URLs, and every consumer of this
+        projection reads the four label dimensions by name.
+        """
+        if (
+            not isinstance(item, dict)
+            or not isinstance(item.get("number"), int)
+            or isinstance(item.get("number"), bool)
+            or not isinstance(item.get("title"), str)
+            or item.get("state") not in {"open", "closed"}
+            or not isinstance(item.get("created_at"), str)
+            or not isinstance(item.get("updated_at"), str)
+            or not isinstance(item.get("labels"), list)
+        ):
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea Issue entry is invalid")
+        labels: list[str] = []
+        for label in item["labels"]:
+            if not isinstance(label, dict) or not isinstance(label.get("name"), str):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Gitea Issue label entry is invalid"
+                )
+            labels.append(label["name"])
+        return {
+            "number": item["number"],
+            "title": item["title"],
+            "state": item["state"],
+            "labels": labels,
+            "created_at": item["created_at"],
+            "updated_at": item["updated_at"],
+        }
+
+    def _issue_list(self, repo_api: str, token: str, state: str) -> dict[str, object]:
+        """Enumerate this repository's Issues, bounded, paged and without pulls.
+
+        Returns an object rather than a bare array on purpose. GovernedHostRunner
+        accepts only a JSON object back from the fixed broker, so a bare array
+        would make a runner method for this operation impossible to call. The
+        object also gives the excluded-pull count somewhere to live.
+
+        Gitea's /issues endpoint returns pull requests alongside Issues unless
+        told otherwise, so type=issues filters them server side and the
+        pull_request field filters them again here. The second pass is not
+        redundant: it is what turns "the server-side filter stopped working" from
+        a wrong answer that looks right into a number the caller can read. A pull
+        request has no representation in this projection, and silently dropping
+        one would leave the caller unable to tell an empty repository from a
+        filter that failed.
+
+        Paged like _issue_comments rather than reading page one: an Issue tracker
+        has no upper bound, and a silent first-page-only read would make "no such
+        Issue exists" the answer to every duplicate check past the fiftieth.
+        """
+        issues: list[dict[str, object]] = []
+        excluded = 0
+        for page in range(1, 101):
+            value = self._request_json(
+                f"{repo_api}/issues?state={state}&type=issues&limit=50&page={page}",
+                token,
+            )
+            if not isinstance(value, list):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Gitea Issue list is invalid"
+                )
+            for item in value:
+                if isinstance(item, dict) and item.get("pull_request") is not None:
+                    excluded += 1
+                    continue
+                issues.append(self._issue_projection(item))
+            if len(value) < 50:
+                return {
+                    "state": state,
+                    "count": len(issues),
+                    "pull_requests_excluded": excluded,
+                    "issues": issues,
+                }
+        raise BrokerError(
+            "RESPONSE_SCHEMA_INVALID", "Gitea Issue list exceeds the bounded scan"
+        )
+
+    def _set_issue_state(
+        self, repo_api: str, token: str, number: int, state: str
+    ) -> dict[str, object]:
+        """Open or close one Issue, reporting whether it actually moved.
+
+        The current state is read first so that asking for the state an Issue is
+        already in performs no write at all. A retry after a transport error is
+        therefore free of a second mutation, and `changed` tells the caller which
+        of the two happened instead of leaving it to infer from timestamps.
+
+        No guard on which Issues may be closed or reopened. The two motivating
+        cases are closing a duplicate and reopening one that was closed by
+        mistake (#222), and every guard that could be written here — an open pull
+        request, an already merged change — refuses exactly one of them. What the
+        surface does keep is its narrowness: it takes a number and a state, and
+        it cannot touch a title, a body, a label or a merge.
+        """
+        url = f"{repo_api}/issues/{number}"
+        current = self._issue_projection(self._request_json(url, token))
+        if current["state"] == state:
+            return {**current, "changed": False}
+        updated = self._issue_projection(
+            self._request_json(url, token, method="PATCH", payload={"state": state})
+        )
+        if updated["state"] != state:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID", "Gitea did not apply the requested Issue state"
+            )
+        return {**updated, "changed": True}
 
     def _issue_labels(
         self, repo_api: str, token: str, number: int
