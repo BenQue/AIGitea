@@ -19,7 +19,7 @@
 | 3000 | Gitea 1.26.4 / `gitea.service` | KEEP：SCM |
 | 4873 | Verdaccio / `pm2-benque.service` | KEEP：批准的 CI cache |
 | 1025 / 8025 | Mailpit SMTP / Web UI | KEEP：批准的通知辅助服务 |
-| 5432(loopback) | PostgreSQL 保留 `gitea`、`hsdb_ci`；遗留 `app_test` 已备份、恢复验证并删除 | KEEP 仅限批准的 SCM/CI 数据；新业务 DB 拒绝 |
+| 5432(loopback) | PostgreSQL 保留 `gitea`、`hsdb_ci`；遗留 `app_test` 已备份、恢复验证并删除 | KEEP 仅限批准的 SCM/CI 数据；新业务 DB 拒绝。`hsdb_ci` 自 #252 起随 HSDB 退出平台治理而成为孤儿库，**本次不删**，重新接入或清理前须单独立案 |
 | 3100 / 8091 | 旧 `rsdesign-new` runtime/vhost 已删除，应用转至 AppServer | ABSENT；不得恢复为 `scm-ci` 业务入口 |
 | 3212 | 孤儿 smoke 进程与 15 个临时 DB 已精确清理，应用 cleanup 修复已合并/部署 | ABSENT；job 必须在成功、失败和取消路径清理 |
 | 8090 | MyApp runtime/vhost/DB 已备份、恢复验证并精确清理 | ABSENT；不得恢复历史演示部署 |
@@ -64,6 +64,7 @@ workflow、数据和引用。
 - 单二进制 `/usr/local/bin/gitea`（1.26.4），systemd 托管，数据 `/var/lib/gitea`，DB 用本机 PostgreSQL（`gitea` 库）。
 - Actions 默认启用（1.21+）。
 - 仓库 `admin/rsdesign-new`：Issue #35 live reconciliation 后为 private；默认分支 `main`；**分支保护**：
+  （该仓库自 #252 起已退出平台治理。以下是保留至今的 as-built 分支保护事实，退出**不改动**它，也不删除仓库；重新接入按 onboarding runbook 走。）
   - 禁止直接 push（对所有人生效，含 admin——一切走 PR）
   - 必须状态检查通过：context = `CI / test (pull_request)`
 - 当前 canonical manifest 共定义 27 个规范标签：平台三维 20 个（十个 `type/*`、两个
