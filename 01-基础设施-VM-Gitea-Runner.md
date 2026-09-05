@@ -110,6 +110,63 @@ FROM = "RSDesign Gitea" <gitea@rsdesign.local>
 - host executor 的成功、失败和取消路径都必须断言无残留业务 PID、监听端口、临时 DB 或
   deleted cwd；历史 `sfm-board:3212` 已清理，其 Change 只作为此门禁的回归证据。
 
+### 4.1 per-job 超时与并发（as-built 与建议取值，#228）
+
+**as-built（2026-09-05 实测）**：`/opt/act-runner/config.yaml` **不存在**，
+`act_runner.service` 的 `ExecStart` 也没有 `-c`，所以 act_runner v1.0.7 全程走内置默认值：
+
+| 项 | 当前生效值 | 来源 |
+|---|---|---|
+| `runner.timeout`（per-job 超时） | `3h` | 内置默认，无配置文件 |
+| `runner.capacity`（并发） | `1` | 内置默认 |
+| `runner.shutdown_timeout` | `0s` | 内置默认 |
+
+`runner.timeout` 因此**不是「设得过大」，而是从未配置过**。在实例级 runner ＋ `capacity: 1`
+的当前形态下，任何一个仓库的任何一个 job 都能独占唯一执行位最多 3 小时；2026-08-29 事故
+实测停摆约 5 小时（`admin/aisoft-platform` task 821 在 FIFO `open()` 上阻塞 4h19m）。
+
+**三仓 CI 实测量级**（`gitea.actions.run.read`，2026-09-05，只统计 `success` run）：
+
+| 仓库 | 样本 | 最短 | 中位 | p90 | 最长 |
+|---|---|---|---|---|---|
+| `admin/aisoft-platform` | 17 | 49s | 55s | — | 57s |
+| `admin/LocalWMS` | 26 | 61s | 66s | 127s | 345s |
+| `admin/NewEMaint` | 22 | 236s | 259s | 269s | 296s |
+
+**建议取值 `runner.timeout: 20m`**：全平台最长合法 run 是 345s，20 分钟是它的 3.5 倍、
+NewEMaint p90 的 4.5 倍，冷缓存或弱网构建仍有余量；同时把一次停滞的代价从实测的 4h19m
+截到 20 分钟，远小于「人会注意到」的 5 小时尺度。`capacity` 保持 `1`，`shutdown_timeout`
+保持 `0s`。
+
+**应用方式（人工，尚未执行）**：act_runner 只在 `-c` 或 `CONFIG_FILE` 指定时才读配置文件，
+放一个 `config.yaml` 在工作目录里不会被自动加载。
+
+```bash
+# 1) 先确认 runner 空闲——重启会杀掉正在跑的 job
+host-access-broker --project aisoft-platform --operation orbstack.runner.status
+# 期望 execution.child_count == 0
+
+# 2) 写配置（gitea-runner 属主，仅 runner 段）
+sudo -u gitea-runner tee /opt/act-runner/config.yaml >/dev/null <<'YAML'
+runner:
+  capacity: 1
+  timeout: 20m
+YAML
+
+# 3) 给 ExecStart 加 -c，然后重载并重启
+sudo systemctl edit --full act_runner   # ExecStart=/usr/local/bin/act_runner daemon -c /opt/act-runner/config.yaml
+sudo systemctl daemon-reload && sudo systemctl restart act_runner
+
+# 4) 回读
+sudo systemctl show act_runner -p ExecStart | grep -o ' -c [^ ]*'
+```
+
+**Gitea 侧的第二道超时**：`/etc/gitea/app.ini` 的 `[actions]` 只有 `ENABLED = true`，
+没有 `[cron.cleanup_actions]` 段，因此 Gitea 1.26.4 的清理 cron 走它自己的内置默认
+（调度周期与 `ZOMBIE_TASK_TIMEOUT`/`ENDLESS_TASK_TIMEOUT`）。**这些默认值本次未在本机回读**，
+只确认了「没有显式配置」。runner 侧超时生效后，是否再显式钉住 Gitea 侧这一组值，
+留给独立评估——它决定的是「runner 侧超时失效时还有没有第二道网」。
+
 ## 5. Verdaccio（弱网救星）
 
 - 全局安装，PM2 托管（benque 用户），监听 `0.0.0.0:4873`，上游 `https://registry.npmmirror.com/`。
