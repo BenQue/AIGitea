@@ -204,6 +204,23 @@ token_scopes.project_agent: ["read:user", "write:issue", "write:repository"]
 `codex/install-skills.sh` 装的是它们的逐字节副本。本次改动在两台重装之前不会影响
 任何正在运行的会话——这与 broker 操作表同一个道理，一并列入下方交接项。
 
+## PR 与 required CI
+
+PR #261 <http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/261>，`Closes #222`，
+base `main`，head `change/222-issue-list-state-set`。
+
+| head SHA | run | 结论 | 读法 |
+|---|---|---|---|
+| `db5487636857c793d12c54f34f63bd06414f3853` | 1078 / job `verify` | `completed success` | `gitea.actions.run.read --sha <40hex>` |
+
+`gitea.commit.status.read` 对同一 SHA 读回 `state: success`，唯一 context
+`CI / verify (pull_request)` 为 `success`；`gitea.pull.read --number 261` 读回
+`mergeable: true`、`merged: false`。
+
+**这张表本身有递归**：写下它的这次提交会改变 head，因此它记录的是**上一个** head 的
+运行结论，而不是最终 head 的。最终 head 的 CI 由本次回填之后的那一次运行给出，
+合并前以 PR 页面上最后一次 `CI / verify` 为准。#228 收尾时踩过同一件事，写法沿用它。
+
 ## 部署验收
 
 不适用：本次变更不涉及部署或迁移。
