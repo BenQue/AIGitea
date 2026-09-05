@@ -138,3 +138,16 @@ run 1016 / 1007 的 sha 分别是 `cae03012013d5e8572fcf664302cb86c646df3a4` 与
   是否撤掉是 LocalWMS 自己的决定，不在本次范围。
 - 头尾配比 1:3（头段占窗口四分之一）是按当前 CI 日志形态裁的。若将来出现头段超过 16 KiB 的工作流，
   调整点是单一常数 `LOG_HEAD_DIVISOR`，不需要改结构。
+
+### 衍生发现（未立案，按本轮要求只记录并回报）
+
+**`gitea.commit.status.read` 是原样透传，没有做投影。** 取证时顺带读到：它把上游整个信封
+原封不动返回，其中 `repository` 是一个 **62 个键**的对象，`repository.owner` 带着
+`login: "admin"`、`email: "admin@gitea-ci.local"`、`id: 1`。
+
+这与 `_actions_runs` 的 docstring 明写要防的是同一件事——「一个受治理的读接口不应该在
+Gitea 改形状时跟着改形状，也没有理由携带身份」。`gitea.actions.run.read` 在 #143 做了投影，
+`gitea.commit.status.read` 没有，实现上是 `_request_json` 的直接返回值。
+
+同形态的还有 `gitea.pulls.read` 等几个走同一分支的只读操作，值得一并盘一次。不在 #225 范围内，
+本次不改也不立案。
