@@ -11,7 +11,7 @@ risk_flags:
   - ci-change
   - platform-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/182-docker-release-source-guard
 created: 2026-09-05
 updated: 2026-09-05

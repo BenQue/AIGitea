@@ -11,7 +11,7 @@ risk_flags:
   - ci-change
   - platform-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/182-docker-release-source-guard
 created: 2026-09-05
 updated: 2026-09-05
@@ -23,9 +23,9 @@ updated: 2026-09-05
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | Issue 65 闸门收窄到发布语义面：豁免清单 + 过滤函数，两处断言共用 | - | pending |
-| T02 | `docker-release/install.sh` 接入共用 source guard，并恢复 `INSTALLERS` 覆盖 | T01 | pending |
-| T03 | `06` 踩坑 20 从「暂无闸门」改为已覆盖 | T02 | pending |
+| T01 | Issue 65 闸门收窄到发布语义面：豁免清单 + 过滤函数，两处断言共用 | - | done |
+| T02 | `docker-release/install.sh` 接入共用 source guard，并恢复 `INSTALLERS` 覆盖 | T01 | done |
+| T03 | `06` 踩坑 20 从「暂无闸门」改为已覆盖 | T02 | done |
 
 T01 必须先落地：闸门不收窄时 T02 会让 `smoke.sh` 变红，两者合成一个 ticket 就无法单独
 revert 治理判据。T01 单独落地时 `smoke.sh` 应保持绿（豁免清单当时还没有被任何 diff 命中），
