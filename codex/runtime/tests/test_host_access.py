@@ -82,7 +82,7 @@ class HostAccessContractTests(unittest.TestCase):
         self.contract = load_access_contract(ACCESS, GOVERNANCE)
 
     def test_exact_projects_profiles_and_no_merge_surface(self) -> None:
-        self.assertEqual(len(self.contract.projects), 10)
+        self.assertEqual(len(self.contract.projects), 5)
         profiles = {
             item.repository: item.vm_profile.name
             for item in self.contract.projects
@@ -90,11 +90,8 @@ class HostAccessContractTests(unittest.TestCase):
         }
         self.assertEqual(profiles, {
             "aisoft-platform": "aisoft-platform",
-            "HSDB": "hsdb",
             "LocalWMS": "localwms",
             "NewEMaint": "emaintenance",
-            "rsdesign-new": "rsdesign",
-            "SFMDigitalBoard": "sfm",
         })
         names = {item.name for item in self.contract.operations}
         self.assertEqual(
@@ -106,7 +103,7 @@ class HostAccessContractTests(unittest.TestCase):
             self.contract.operation("git.push.main")
 
     def test_manifest_fixed_remote_defaults_and_rejects_unsafe_names(self) -> None:
-        gitea_remote_projects = {"newemaint", "sfm-digital-board"}
+        gitea_remote_projects = {"newemaint"}
         remotes = {project.project_id: project.git_remote_name
                    for project in self.contract.projects}
         for project_id in gitea_remote_projects:
@@ -237,7 +234,7 @@ class HostAccessContractTests(unittest.TestCase):
             with self.assertRaises(AccessContractError):
                 load_access_contract(path, GOVERNANCE)
             raw.pop("unexpected")
-            raw["projects"][0]["project_agent"] = "hsdb-agent"
+            raw["projects"][0]["project_agent"] = "localwms-agent"
             path.write_text(json.dumps(raw))
             with self.assertRaises(AccessContractError):
                 load_access_contract(path, GOVERNANCE)
@@ -269,25 +266,37 @@ class HostAccessContractTests(unittest.TestCase):
         with self.assertRaisesRegex(BrokerError, "explicitly managed"):
             broker.execute("unknown", "gitea.repo.read")
         with self.assertRaisesRegex(BrokerError, "allowlisted"):
-            broker.execute("hsdb", "shell.run")
+            broker.execute("localwms", "shell.run")
         with self.assertRaisesRegex(BrokerError, "arguments"):
-            broker.execute("hsdb", "gitea.repo.read", state="all")
+            broker.execute("localwms", "gitea.repo.read", state="all")
 
 
 class VmProfilePathPrependContractTests(unittest.TestCase):
+    # 自 #252 五个项目退出后，生产 manifest 里没有任何项目再声明 path_prepend
+    # （唯一声明它的是已退出的 sfm-digital-board）。path_prepend 仍是 broker 的
+    # 合同面，所以这些用例改由合成夹具驱动：把声明注入 localwms 的副本，再断言
+    # 解析结果。生产 manifest 一侧保留一条「谁都没声明」的断言，防止悄悄回流。
+    FIXTURE_PROJECT = "localwms"
+    FIXTURE_PROFILE = "localwms"
+    FIXTURE_PATH_PREPEND = ["/opt/node22/bin", "/home/coder/.local/bin"]
+
     def setUp(self) -> None:
         self.contract = load_access_contract(ACCESS, GOVERNANCE)
 
-    def test_declared_and_undeclared_projects_parse_exactly(self) -> None:
-        sfm = self.contract.project("sfm-digital-board")
-        assert sfm.vm_profile is not None
-        self.assertEqual(sfm.vm_profile.path_prepend,
-                         ("/opt/node22/bin", "/home/coder/.local/bin"))
-        for project_id in ("newemaint", "hsdb", "rsdesign-new", "localwms"):
-            with self.subTest(project_id=project_id):
-                project = self.contract.project(project_id)
-                assert project.vm_profile is not None
-                self.assertEqual(project.vm_profile.path_prepend, ())
+    def _raw_with_vm_profile_key(self, key: str, value: object) -> dict:
+        raw = json.loads(ACCESS.read_text())
+        project = next(item for item in raw["projects"]
+                       if item["project_id"] == self.FIXTURE_PROJECT)
+        assert project["vm_profile"] is not None
+        project["vm_profile"][key] = value
+        return raw
+
+    def _manifest(self, directory: str, raw: dict) -> Path:
+        path = Path(directory) / "access.json"
+        path.write_text(json.dumps(raw))
+        return path
+
+    def test_production_manifest_declares_path_prepend_nowhere(self) -> None:
         raw = json.loads(ACCESS.read_text())
         declared = {
             project["project_id"]: project["vm_profile"].get("path_prepend")
@@ -295,12 +304,30 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
         }
         self.assertEqual(declared, {
             "aisoft-platform": None,
-            "sfm-digital-board": ["/opt/node22/bin", "/home/coder/.local/bin"],
-            "newemaint": None,
-            "hsdb": None,
-            "rsdesign-new": None,
             "localwms": None,
+            "newemaint": None,
         })
+        for project_id in declared:
+            with self.subTest(project_id=project_id):
+                project = self.contract.project(project_id)
+                assert project.vm_profile is not None
+                self.assertEqual(project.vm_profile.path_prepend, ())
+
+    def test_declared_and_undeclared_projects_parse_exactly(self) -> None:
+        raw = self._raw_with_vm_profile_key("path_prepend", self.FIXTURE_PATH_PREPEND)
+        with tempfile.TemporaryDirectory() as temporary:
+            contract = load_access_contract(
+                self._manifest(temporary, raw), GOVERNANCE
+            )
+        declared = contract.project(self.FIXTURE_PROJECT)
+        assert declared.vm_profile is not None
+        self.assertEqual(declared.vm_profile.path_prepend,
+                         tuple(self.FIXTURE_PATH_PREPEND))
+        for project_id in ("aisoft-platform", "newemaint"):
+            with self.subTest(project_id=project_id):
+                project = contract.project(project_id)
+                assert project.vm_profile is not None
+                self.assertEqual(project.vm_profile.path_prepend, ())
 
     def test_invalid_path_prepend_declarations_fail_closed(self) -> None:
         invalid_values = (
@@ -321,35 +348,22 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
             ["/opt/node22/bin", "/opt/node22/bin"],
         )
         with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "access.json"
             for invalid in invalid_values:
                 with self.subTest(invalid=invalid):
-                    raw = json.loads(ACCESS.read_text())
-                    sfm = next(project for project in raw["projects"]
-                               if project["project_id"] == "sfm-digital-board")
-                    sfm["vm_profile"]["path_prepend"] = invalid
-                    path.write_text(json.dumps(raw))
+                    raw = self._raw_with_vm_profile_key("path_prepend", invalid)
                     with self.assertRaises(AccessContractError):
-                        load_access_contract(path, GOVERNANCE)
+                        load_access_contract(
+                            self._manifest(temporary, raw), GOVERNANCE
+                        )
 
     def test_unknown_vm_profile_key_still_fails_closed(self) -> None:
+        raw = self._raw_with_vm_profile_key("path_append", ["/opt/node22/bin"])
         with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "access.json"
-            raw = json.loads(ACCESS.read_text())
-            sfm = next(project for project in raw["projects"]
-                       if project["project_id"] == "sfm-digital-board")
-            sfm["vm_profile"]["path_append"] = ["/opt/node22/bin"]
-            path.write_text(json.dumps(raw))
             with self.assertRaises(AccessContractError):
-                load_access_contract(path, GOVERNANCE)
+                load_access_contract(self._manifest(temporary, raw), GOVERNANCE)
 
     def test_profile_spec_projects_path_prepend(self) -> None:
-        expectations = {
-            "aisoft-platform": [],
-            "sfm": ["/opt/node22/bin", "/home/coder/.local/bin"],
-            "emaintenance": [],
-        }
-        for profile_name, expected in expectations.items():
+        for profile_name in ("aisoft-platform", "localwms", "emaintenance"):
             with self.subTest(profile_name=profile_name):
                 buffer = io.StringIO()
                 with redirect_stdout(buffer):
@@ -359,8 +373,21 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
                         "profile-spec", "--profile-name", profile_name,
                     ])
                 self.assertEqual(code, 0)
-                payload = json.loads(buffer.getvalue())
-                self.assertEqual(payload["path_prepend"], expected)
+                self.assertEqual(json.loads(buffer.getvalue())["path_prepend"], [])
+
+        raw = self._raw_with_vm_profile_key("path_prepend", self.FIXTURE_PATH_PREPEND)
+        with tempfile.TemporaryDirectory() as temporary:
+            manifest = self._manifest(temporary, raw)
+            buffer = io.StringIO()
+            with redirect_stdout(buffer):
+                code = host_access_cli_main([
+                    "--access-manifest", str(manifest),
+                    "--governance-manifest", str(GOVERNANCE),
+                    "profile-spec", "--profile-name", self.FIXTURE_PROFILE,
+                ])
+            self.assertEqual(code, 0)
+            self.assertEqual(json.loads(buffer.getvalue())["path_prepend"],
+                             self.FIXTURE_PATH_PREPEND)
 
     def test_aisoft_platform_profile_is_analyzer_only(self) -> None:
         project = self.contract.project("aisoft-platform")
@@ -476,11 +503,11 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertIsNone(body)
         token = headers["Authorization"].removeprefix("token ")
         if url.endswith("/api/v1/user"):
-            login = "aisoft-platform-manager" if token == "token-manager" else "hsdb-agent"
+            login = "aisoft-platform-manager" if token == "token-manager" else "localwms-agent"
             return 200, {}, json.dumps({"login": login, "is_admin": False}).encode()
         if url.endswith("/branch_protections/main"):
             return 200, {}, b'{"branch_name":"main"}'
-        return 200, {}, b'{"name":"HSDB"}'
+        return 200, {}, b'{"name":"LocalWMS"}'
 
     def test_project_and_manager_read_routes(self) -> None:
         broker = HostAccessBroker(
@@ -488,9 +515,9 @@ class HostAccessBrokerTests(unittest.TestCase):
             credentials=StaticCredentials(),
             transport=self.transport,
         )
-        self.assertEqual(broker.execute("hsdb", "gitea.repo.read")["name"], "HSDB")
+        self.assertEqual(broker.execute("localwms", "gitea.repo.read")["name"], "LocalWMS")
         self.assertEqual(
-            broker.execute("hsdb", "gitea.protection.read")["branch_name"], "main"
+            broker.execute("localwms", "gitea.protection.read")["branch_name"], "main"
         )
 
     def test_commit_status_read_is_exact_sha_bound(self) -> None:
@@ -2589,7 +2616,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 def schema_drift(method, url, headers, body, *, status=status,
                                  payload=payload):
                     if (
-                        "/repos/admin/HSDB/" in url
+                        "/repos/admin/LocalWMS/" in url
                         and url.endswith(
                             "/collaborators/newemaint-routine-merger/permission"
                         )
@@ -2612,7 +2639,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 def unsafe_cross_project(method, url, headers, body, *,
                                          permission=unsafe_permission):
                     if (
-                        "/repos/admin/HSDB/" in url
+                        "/repos/admin/LocalWMS/" in url
                         and url.endswith(
                             "/collaborators/newemaint-routine-merger/permission"
                         )
@@ -2636,7 +2663,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                         "cross_project_write_violations"
                     ],
                     [{
-                        "repository": "admin/HSDB",
+                        "repository": "admin/LocalWMS",
                         "permission": unsafe_permission,
                     }],
                 )
@@ -2759,7 +2786,8 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertEqual(routine["credential"]["state"], "missing")
         self.assertEqual(routine["repository_permission"], "missing")
         self.assertEqual(routine["cross_project_write_violations"], [])
-        self.assertEqual(len(routine["cross_project_permissions"]), 9)
+        non_target = len(self.contract.governance.repositories) - 1
+        self.assertEqual(len(routine["cross_project_permissions"]), non_target)
         self.assertTrue(all(
             item["state"] == "absent" and item["permission"] is None
             for item in routine["cross_project_permissions"]
@@ -2788,7 +2816,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 url for _method, url in calls
                 if url.endswith("/collaborators?limit=50&page=1")
             ]),
-            10,
+            len(self.contract.governance.repositories),
         )
         self.assertFalse(any(
             "/repos/admin/aisoft-platform/" in url
@@ -2949,7 +2977,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             {"Link": f'<{endpoint}?limit=50&page=2>; rel="NEXT"'},
             {"Link": '<http://attacker.invalid/api/v1/repos/admin/aisoft-platform/collaborators?limit=50&page=2>; rel="next"'},
             {"Link": '<https://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/collaborators?limit=50&page=2>; rel="next"'},
-            {"Link": '<http://gitea-ci.orb.local:3000/api/v1/repos/admin/HSDB/collaborators?limit=50&page=2>; rel="next"'},
+            {"Link": '<http://gitea-ci.orb.local:3000/api/v1/repos/admin/LocalWMS/collaborators?limit=50&page=2>; rel="next"'},
             {"Link": f'<{endpoint}?limit=49&page=2>; rel="next"'},
             {"Link": f'<{endpoint}?limit=50&page=3>; rel="next"'},
             {"Link": f'<{endpoint}?limit=50&page=2&cursor=x>; rel="next"'},
@@ -3306,7 +3334,11 @@ class HostAccessBrokerTests(unittest.TestCase):
             response_limits=limits,
         )
 
-        with patch("aisoft_host_access.broker.COLLABORATOR_AUDIT_MAX_BYTES", 10):
+        # 每个非目标仓库消耗 2 字节预算。预算取「刚好扫不完」的值，使最后一个
+        # 仓库落在预算之外——这样断言的是预算耗尽本身，而不是某个写死的仓库数。
+        # #252 之前这里硬编码 10（对应九个非目标仓库），退出五个项目后失效。
+        budget = 2 * ((len(self.contract.governance.repositories) - 1) - 1)
+        with patch("aisoft_host_access.broker.COLLABORATOR_AUDIT_MAX_BYTES", budget):
             with self.assertRaises(BrokerError) as caught:
                 broker.execute("newemaint", "host.access.audit")
 
@@ -3315,8 +3347,8 @@ class HostAccessBrokerTests(unittest.TestCase):
             if "/collaborators?limit=50&page=" in url
         ]
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-        self.assertEqual(len(inventory_calls), 5)
-        self.assertEqual(limits, [10, 8, 6, 4, 2])
+        self.assertEqual(len(inventory_calls), budget // 2)
+        self.assertEqual(limits, list(range(budget, 0, -2)))
 
         calls = []
         limits = []
@@ -3448,7 +3480,8 @@ class HostAccessBrokerTests(unittest.TestCase):
 
     def test_missing_account_inventory_enforces_audit_wide_response_budgets(self) -> None:
         limits = (
-            ("COLLABORATOR_AUDIT_MAX_BYTES", 10),
+            ("COLLABORATOR_AUDIT_MAX_BYTES",
+             2 * ((len(self.contract.governance.repositories) - 1) - 1)),
             ("COLLABORATOR_AUDIT_MAX_PAGES", 1),
         )
         for constant, value in limits:
@@ -3750,7 +3783,7 @@ class HostAccessBrokerTests(unittest.TestCase):
 
         def transport(method, url, headers, body):
             calls.append(url)
-            return 200, {}, b'{"login":"hsdb-agent","is_admin":false}'
+            return 200, {}, b'{"login":"localwms-agent","is_admin":false}'
 
         broker = HostAccessBroker(
             self.contract,
@@ -3758,7 +3791,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             transport=transport,
         )
         with self.assertRaisesRegex(BrokerError, "identity"):
-            broker.execute("hsdb", "gitea.repo.read")
+            broker.execute("localwms", "gitea.repo.read")
         self.assertEqual(len(calls), 1)
 
     def test_http_401_403_404_are_nonzero_sanitized_failures(self) -> None:
@@ -3771,7 +3804,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     nonlocal calls
                     calls += 1
                     if calls == 1:
-                        return 200, {}, b'{"login":"hsdb-agent","is_admin":false}'
+                        return 200, {}, b'{"login":"localwms-agent","is_admin":false}'
                     return status, {}, secret.encode()
 
                 broker = HostAccessBroker(
@@ -3780,7 +3813,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     transport=transport,
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("hsdb", "gitea.repo.read")
+                    broker.execute("localwms", "gitea.repo.read")
                 self.assertEqual(caught.exception.code, f"HTTP_{status}")
                 self.assertNotIn(secret, str(caught.exception))
                 self.assertNotIn("token-agent", str(caught.exception))
@@ -4480,18 +4513,18 @@ class HostAccessBrokerTests(unittest.TestCase):
             credential_from_protocol(
                 self.contract,
                 "get",
-                "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/HSDB.git\nusername=newemaint-agent\n\n",
+                "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/LocalWMS.git\nusername=newemaint-agent\n\n",
                 resolver=resolver,
                 identity_verifier=lambda credential: None,
             )
         output = credential_from_protocol(
             self.contract,
             "get",
-            "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/HSDB.git\nusername=hsdb-agent\n\n",
+            "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/LocalWMS.git\nusername=localwms-agent\n\n",
             resolver=resolver,
             identity_verifier=lambda credential: None,
         )
-        self.assertEqual(output, "username=hsdb-agent\npassword=token-agent\n")
+        self.assertEqual(output, "username=localwms-agent\npassword=token-agent\n")
 
     def test_credential_protocol_accepts_current_git_multivalue_shape(self) -> None:
         protocol_input = (
@@ -4530,8 +4563,8 @@ class HostAccessBrokerTests(unittest.TestCase):
             "future-capability[]=second\n"
             "protocol=http\n"
             "host=gitea-ci.orb.local:3000\n"
-            "path=admin/HSDB.git\n"
-            "username=hsdb-agent\n\n"
+            "path=admin/LocalWMS.git\n"
+            "username=localwms-agent\n\n"
         )
         request = _parse_credential_protocol(protocol_input)
         self.assertEqual(
@@ -4545,24 +4578,24 @@ class HostAccessBrokerTests(unittest.TestCase):
             resolver=StaticCredentials(),
             identity_verifier=lambda credential: None,
         )
-        self.assertEqual(output, "username=hsdb-agent\npassword=token-agent\n")
+        self.assertEqual(output, "username=localwms-agent\npassword=token-agent\n")
 
     def test_unknown_duplicate_and_malformed_scalar_fields_fail_closed(self) -> None:
         valid = (
             "protocol=http\n"
             "host=gitea-ci.orb.local:3000\n"
-            "path=admin/HSDB.git\n"
-            "username=hsdb-agent\n"
+            "path=admin/LocalWMS.git\n"
+            "username=localwms-agent\n"
         )
         cases = {
             "unknown scalar": valid + "authtype=basic\n",
             "duplicate protocol": "protocol=https\n" + valid,
             "duplicate host": valid + "host=gitea-ci.orb.local:3000\n",
-            "duplicate path": valid + "path=admin/HSDB.git\n",
-            "duplicate username": valid + "username=hsdb-agent\n",
+            "duplicate path": valid + "path=admin/LocalWMS.git\n",
+            "duplicate username": valid + "username=localwms-agent\n",
             "missing protocol": valid.removeprefix("protocol=http\n"),
             "missing host": valid.replace("host=gitea-ci.orb.local:3000\n", ""),
-            "missing path": valid.replace("path=admin/HSDB.git\n", ""),
+            "missing path": valid.replace("path=admin/LocalWMS.git\n", ""),
             "empty key": valid + "=value\n",
             "empty multivalue key": valid + "[]=value\n",
             "missing equals": valid + "malformed\n",
@@ -4582,10 +4615,10 @@ class HostAccessBrokerTests(unittest.TestCase):
                 raise AssertionError("credential resolution must not run")
 
         cases = (
-            "protocol=https\nhost=gitea-ci.orb.local:3000\npath=admin/HSDB.git\n",
-            "protocol=http\nhost=attacker.invalid\npath=admin/HSDB.git\n",
+            "protocol=https\nhost=gitea-ci.orb.local:3000\npath=admin/LocalWMS.git\n",
+            "protocol=http\nhost=attacker.invalid\npath=admin/LocalWMS.git\n",
             "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/unknown.git\n",
-            "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/HSDB.git\nusername=newemaint-agent\n",
+            "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/LocalWMS.git\nusername=newemaint-agent\n",
         )
         for protocol_input in cases:
             with self.subTest(protocol_input=protocol_input), self.assertRaises(BrokerError):
@@ -4883,13 +4916,13 @@ class GovernedHostRunnerTests(unittest.TestCase):
             return subprocess.CompletedProcess(argv, 0, json.dumps(payload) + "\n", "")
 
         runner = RoutineMergeRunner(
-            self.contract, "hsdb", command_runner=command_runner,
+            self.contract, "localwms", command_runner=command_runner,
         )
         receipt = runner.merge(208, "a" * 40)
         self.assertEqual(receipt["status"], "AUTO_MERGED")
         self.assertEqual(calls[0][0], [
             "/usr/local/libexec/aisoft/host-access-broker",
-            "--project", "hsdb",
+            "--project", "localwms",
             "--operation", "gitea.pull.merge.routine",
             "--number", "208",
             "--sha", "a" * 40,
@@ -4900,7 +4933,7 @@ class GovernedHostRunnerTests(unittest.TestCase):
     def test_routine_runner_refuses_non_receipt_and_has_no_fallback(self) -> None:
         runner = RoutineMergeRunner(
             self.contract,
-            "hsdb",
+            "localwms",
             command_runner=lambda argv, **kwargs: subprocess.CompletedProcess(
                 argv, 0, '{"status":"PASS"}\n', ""
             ),
@@ -4982,29 +5015,52 @@ class ProfileMigrationTests(unittest.TestCase):
         self.assertEqual(self.profile.read_bytes(), expected)
 
     def test_declared_path_prepend_is_generated_and_drift_fails_read_back(self) -> None:
-        source = self.source / "sfm-board-agent-project-agent.token"
-        source.write_text("sfm-project-token\n")
+        # #252 退出五个项目后，生产 manifest 里没有项目再声明 path_prepend
+        # （原来只有 sfm-digital-board 声明）。migrator 生成 PATH 行与 read-back
+        # 检测漂移仍是合同面，这里用注入了 path_prepend 的 localwms 副本驱动。
+        raw = json.loads(ACCESS.read_text())
+        declared = next(item for item in raw["projects"]
+                        if item["project_id"] == "localwms")
+        declared["vm_profile"]["path_prepend"] = [
+            "/opt/node22/bin", "/home/coder/.local/bin",
+        ]
+        manifest = self.root / "access-with-path-prepend.json"
+        manifest.write_text(json.dumps(raw))
+        contract = load_access_contract(manifest, GOVERNANCE)
+
+        source = self.source / "localwms-agent-project-agent.token"
+        source.write_text("localwms-project-token\n")
         source.chmod(0o600)
-        migrator = self.migrator(identity="sfm-board-agent")
-        self.assertEqual(migrator.apply("sfm-digital-board")["result"], "applied")
-        profile = self.home / ".config/aisoft/projects/sfm.env"
+        migrator = ProfileMigrator(
+            contract,
+            home=self.home,
+            source_credential_root=self.source,
+            target_uid=os.getuid(),
+            target_gid=os.getgid(),
+            source_uid=os.getuid(),
+            identity_reader=lambda token: "localwms-agent",
+            replace=os.replace,
+        )
+
+        self.assertEqual(migrator.apply("localwms")["result"], "applied")
+        profile = self.home / ".config/aisoft/projects/localwms.env"
         content = profile.read_text()
         path_line = "PATH=/opt/node22/bin:/home/coder/.local/bin:$PATH"
         self.assertTrue(content.endswith(f"IMPLEMENT_PROVIDER=none\n{path_line}\n"))
         self.assertEqual(content.count("\nPATH="), 1)
-        self.assertEqual(migrator.read_back("sfm-digital-board")["result"], "read-back")
-        self.assertEqual(migrator.consume_check("sfm-digital-board")["result"],
+        self.assertEqual(migrator.read_back("localwms")["result"], "read-back")
+        self.assertEqual(migrator.consume_check("localwms")["result"],
                          "consumer-ready")
-        self.assertEqual(migrator.apply("sfm-digital-board")["result"], "no-op")
+        self.assertEqual(migrator.apply("localwms")["result"], "no-op")
 
         profile.write_text(content.replace(path_line, "PATH=/usr/bin:$PATH"))
         with self.assertRaises(BrokerError) as caught:
-            migrator.read_back("sfm-digital-board")
+            migrator.read_back("localwms")
         self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
 
         profile.write_text(content.replace(f"{path_line}\n", ""))
         with self.assertRaises(BrokerError) as caught:
-            migrator.read_back("sfm-digital-board")
+            migrator.read_back("localwms")
         self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
 
     def test_undeclared_project_with_injected_path_line_fails_read_back(self) -> None:
@@ -5018,7 +5074,7 @@ class ProfileMigrationTests(unittest.TestCase):
     def test_identity_mismatch_fails_before_target_mutation(self) -> None:
         before = (self.profile.read_bytes(), self.token.read_bytes())
         with self.assertRaises(BrokerError) as caught:
-            self.migrator(identity="hsdb-agent").apply("newemaint")
+            self.migrator(identity="localwms-agent").apply("newemaint")
         self.assertEqual(caught.exception.code, "IDENTITY_MISMATCH")
         self.assertEqual((self.profile.read_bytes(), self.token.read_bytes()), before)
 
@@ -5080,14 +5136,14 @@ class ProfileMigrationTests(unittest.TestCase):
         self.assertEqual((self.profile.read_bytes(), self.token.read_bytes()), before)
 
     def test_cross_project_source_credential_is_never_selected(self) -> None:
-        wrong = self.source / "hsdb-agent-project-agent.token"
-        wrong.write_text("hsdb-secret\n")
+        wrong = self.source / "localwms-agent-project-agent.token"
+        wrong.write_text("localwms-secret\n")
         wrong.chmod(0o600)
         self.source_token.unlink()
         with self.assertRaises(BrokerError) as caught:
             self.migrator().apply("newemaint")
         self.assertEqual(caught.exception.code, "CREDENTIAL_UNAVAILABLE")
-        self.assertNotIn("hsdb-secret", str(caught.exception))
+        self.assertNotIn("localwms-secret", str(caught.exception))
 
 
 class VmProfilePreflightTests(unittest.TestCase):
@@ -5205,7 +5261,7 @@ class VmProfilePreflightTests(unittest.TestCase):
 
     def test_present_vm_tool_target_mismatch_is_unchanged(self) -> None:
         runner, _ = self._recording_runner(
-            probe_rc=0, stdout=json.dumps({"project": "hsdb"})
+            probe_rc=0, stdout=json.dumps({"project": "localwms"})
         )
         with self.assertRaises(BrokerError) as caught:
             self._broker(runner).execute("newemaint", "vm.profile.read-back")
