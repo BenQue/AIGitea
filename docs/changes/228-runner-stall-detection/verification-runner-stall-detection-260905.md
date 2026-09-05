@@ -23,9 +23,10 @@ updated: 2026-09-05
 
 ## 基线与范围
 
-- Commit SHA: `d93b9914fc65af97ffee56cdb0ef3a4690daf67b`（实现与文档全部就位的 commit；其后只有纯证据回填 commit）
-- **回填与 CI 的递归**：每一条「回填 CI 证据」的 commit 自己也会触发一次 run，所以本文永远记不下最后那一条。本文记到 run 1063 为止；再往后只有本次措辞订正一条，其结论以 PR 页面为准。
-- 基线：`origin/main` = `bc57edf`（PR 253 / 257 / 255 / 258 陆续合并，本分支共 rebase 三次；每次 rebase 后都重跑 smoke）
+- Commit SHA: 实现与文档全部就位的那一条在每次 rebase 后都换 SHA，因此以 PR 259 的当前 head 为准；
+  下表逐行记录取证时的 exact SHA。
+- **回填与 CI 的递归**：每一条「回填 CI 证据」的 commit 自己也会触发一次 run，所以本文永远记不下最后那一条。本文记到 run 1064 为止；再往后是并行合并触发的 rebase 与其证据回填，其结论以 PR 页面为准。
+- 基线：`origin/main` = `9a6a9fc`（PR 253 / 257 / 255 / 258 / 256 陆续合并，本分支共 rebase 四次；每次 rebase 后都重跑 smoke，最后一次 `Ran 682 tests / OK / SMOKE7_EXIT=0`）
 - 环境：Mac 本机 checkout ＋ gitea-ci OrbStack VM（只读）
 - 本记录负责证明的 acceptance criteria: AC-1 ~ AC-8
 
@@ -194,8 +195,15 @@ host-operator 路由，同样不进。这是**核对后确认无需改动**，�
   都编号为 **23**——正是踩坑 22 描述的形态。PR 257 先合并占住 23，本分支 rebase 时 git 如实
   报了 `CONFLICT (content)`，本次把自己的一条改成 **24**。`01` 两侧改的是不同小节
   （本次 §4.1、#201 §5），自动合并无冲突。
-  值得记下的是：这一次冲突**被检测到了**，因为两侧行文不同；踩坑 22 那次没有被检测到，
-  是因为两侧文本恰好相同。可检测与否取决于文本是否巧合相同，不取决于语义是否冲突。
+- **同一形态在本次开发期间共发生三次**，全部来自并行会话推进同一个手工维护的编号或常数：
+  1. `06` 踩坑编号：本次与 #201 都取 23。PR 257 先合并，本次改 24。
+  2. `06` 踩坑编号：再次与 #252 都取 24。PR 256 先合并，本次改 **25**（当前值）。
+  3. `codex/tests/test-host-access-broker.sh` 的相邻常数：#252 把 `project_count` 10 改 5，
+     本次把 `operation_count` 33 改 34，两行紧挨着。解决为同时保留两侧（5 与 34），
+     与 manifest 实测值一致（`projects 5 / operations 34`）。
+  三次都被 git 报成 `CONFLICT (content)`，因为两侧文本不同。**踩坑 22 那次没有被报，
+  是因为两侧文本恰好相同**——可检测与否取决于文本是否巧合相同，不取决于语义是否冲突。
+  第 3 条尤其值得注意：它发生在踩坑 22 点名的那一类断言里，而且就在同一个文件。
 - broker 的 `gitea.actions.run.read` 对没有 `completed_at` 的 run（cancelled / running）
   把 `duration_seconds` 算成了一个 unix epoch（实测 `admin/LocalWMS` run 1016 返回
   `1788522654`）。这是本次取证顺带发现的独立缺陷，**不在本 Issue 范围内**，另立 Issue。
