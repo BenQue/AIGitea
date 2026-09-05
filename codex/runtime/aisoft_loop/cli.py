@@ -401,7 +401,14 @@ def _extract_json(input_path: Path, output_path: Path) -> int:
 
 def _get_issue(issue_number: int, output_path: Path) -> int:
     try:
-        issue = _gitea_from_env().get_issue(issue_number)
+        gitea = _gitea_from_env()
+        issue = gitea.get_issue(issue_number)
+        # #180: the raw Issue object's `comments` is only a count. The analyzer
+        # reads this file as its whole view of the Issue, so the thread rides
+        # along under its own key; the count stays untouched for consumers
+        # that already read it. Same read-only project-agent token, one more
+        # GET per 50 comments — no new credential path and no write.
+        issue["issue_comments"] = gitea.list_issue_comments(issue_number)
         output_path.write_text(
             json.dumps(issue, ensure_ascii=False, sort_keys=True) + "\n",
             encoding="utf-8",
@@ -431,6 +438,14 @@ def _render_analysis(issue_path: Path, result_path: Path, output_directory: Path
         issue = json.loads(issue_path.read_text(encoding="utf-8"))
         if not isinstance(issue, dict):
             raise AnalysisError("Issue JSON must be an object")
+        # #180: the same file was just fed to the analyzer. A payload without
+        # the thread means the analyzer judged blind, so fail closed here
+        # instead of publishing a summary built on an incomplete Issue.
+        if not isinstance(issue.get("issue_comments"), list):
+            raise AnalysisError(
+                "Issue JSON must carry the issue_comments list; "
+                "regenerate it with `aisoft_loop.cli get-issue` (#180)"
+            )
         result = AnalysisResult.from_json(result_path.read_text(encoding="utf-8"))
         route = analyze_route(
             issue,
