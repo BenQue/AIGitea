@@ -11,6 +11,18 @@ compatibility_dir="$runtime_root/compatibility"
 example_dir="$install_root/etc/aisoft-docker-release/examples/docker-release-v1"
 bin_dir="$install_root/usr/local/bin"
 
+# Source provenance and staleness gate (#162, #171, #182). Must stay before the
+# first filesystem write below; `install -d` counts as a write.
+# shellcheck disable=SC1091
+source "$repo_root/codex/lib/install-source-guard.sh"
+
+aisoft_install_source_guard docker-release/install "$repo_root" \
+  'matrix revision' "$(
+    aisoft_install_source_json_value \
+      "$source_root/compatibility/image-stores-v1.json" matrix_revision
+  )" \
+  schemas "$(aisoft_install_source_file_count "$source_root"/schema/*.json)"
+
 install -d -m 0755 \
   "$runtime_dir" "$schema_dir" "$compatibility_dir" "$example_dir" "$bin_dir"
 for source in "$repo_root"/codex/runtime/aisoft_release/*.py; do
