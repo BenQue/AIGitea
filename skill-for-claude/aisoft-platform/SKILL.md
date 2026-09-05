@@ -33,7 +33,7 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 
 > **会话本身的编排**（一 Issue 一会话、合同/启动确认、提交 PR 确认、manual/routine 分流、merge 后确定性收尾与归档）见 `issue-session-flow` skill；本段只覆盖单个会话内部到 PR candidate 为止的动作。
 
-1. 需求/缺陷 → broker `gitea.issue.create`（正文写可测验收标准）。
+1. 需求/缺陷 → broker `gitea.issue.create`，必须带 `--entry-label`（`needs-analysis`，或 triage 入口 `triage/needs-triage`）；正文写可测验收标准，衍生 Issue 另写来源会话、目标项目与已知依赖（`03` §1）。
 2. `python3 -m aisoft_loop.cli change-name N <slug>` 校验命名 → `git worktree add /private/tmp/issue-N-<slug> -b change/N-<slug> origin/main`（并行会话必须各自 worktree；commit 前 `git branch --show-current` 核对——`06` 踩坑 15）。
 3. 按判级与 `change_control` 写映射文档（production complex 补 spec/plan；development complex 从 Issue 读取验收标准并用合成 `T01`），实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。`verification` 由证据能否经 diff review + required CI 重放决定，不等同部署。summary 此时写**真实的**前置 `status`（通常 `approved`），`pr_url` 留空——PR 还不存在。
 4. 判级投影：`codex/tools/apply-classification-labels.sh N` 看计划 → `--apply` → `--verify N` 读回两个维度都 `projected` 才算完成；窗口在合并时关闭，closed Issue 永不补写。读到 `broker-operation-missing` 见 `06` 踩坑 20，结论与 Gitea 事实不符见踩坑 21。
