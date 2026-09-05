@@ -168,6 +168,21 @@ class AccessContract:
 EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "gitea.repo.read": ("project-agent", False, ()),
     "gitea.issue.read": ("project-agent", False, ("number",)),
+    # Enumerating open Issues (#222). Without it a dispatching session could only
+    # read by number, so it could not check for a duplicate before opening one —
+    # LocalWMS produced two duplicate pairs in a single afternoon that way, each
+    # from a session doing exactly the right thing with the surface it had.
+    #
+    # Named .list rather than the plural .read that gitea.pulls.read uses: the
+    # Issue that asked for it and the dispatching-session skill that consumes it
+    # both spell it this way, and a rename would silently break the skill's
+    # instruction. The split is deliberate, not an oversight.
+    #
+    # Deliberately no label, author, milestone or keyword filter: every extra
+    # argument is another way to ask a question the caller could answer locally
+    # from one bounded list, and the exact-set argument gate means each one would
+    # also have to be supplied on every call.
+    "gitea.issue.list": ("project-agent", False, ("state",)),
     # entry_label is required, not defaulted (#243). The broker argument gate is
     # exact set equality, so this contract has no optional-argument form at all;
     # more to the point, an Issue that reaches the tracker without naming its
@@ -176,6 +191,17 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     # resolved, and the call site says which entrance the Issue took.
     "gitea.issue.create": ("project-agent", True, ("title", "body", "entry_label")),
     "gitea.issue.update": ("project-agent", True, ("number", "title", "body")),
+    # The open/closed half of the Issue surface (#222), deliberately separate from
+    # gitea.issue.update rather than a fourth field on it: update rewrites the
+    # text a human wrote, this one moves the Issue through the flow, and folding
+    # them together would make every title fix carry the power to close.
+    #
+    # Its absence was not merely inconvenient. apply-classification-labels.sh
+    # refuses to project a classification onto a closed Issue (#167), so one
+    # mistaken close left an implementation session with no way to reach the
+    # ready-to-merge state, and no typed way back. Reopening is as much the point
+    # as closing.
+    "gitea.issue.state.set": ("project-agent", True, ("number", "state")),
     "gitea.issue.comment": ("project-agent", True, ("number", "comment")),
     # The read half of the comment surface (#138). Singular comment posts one;
     # plural comments.read reads the collection — the same number/plural split

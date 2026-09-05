@@ -147,6 +147,8 @@ class HostAccessContractTests(unittest.TestCase):
             "gitea.issue.update": ("number", "title", "body"),
             "gitea.issue.comment": ("number", "comment"),
             "gitea.issue.comments.read": ("number",),
+            "gitea.issue.list": ("state",),
+            "gitea.issue.state.set": ("number", "state"),
             "gitea.pull.create": ("issue", "title", "body"),
             "gitea.pull.read": ("number",),
             "gitea.pull.update": ("number", "issue", "title", "body"),
@@ -954,6 +956,279 @@ class HostAccessBrokerTests(unittest.TestCase):
             "gitea.issue.comment.delete",
             "gitea.issue.comments.delete",
         ):
+            self.assertNotIn(absent, names)
+
+    # --- Issue enumeration and open/closed state (#222) ----------------------
+
+    @staticmethod
+    def _gitea_issue(
+        number: int, *, state: str = "open", pull: bool = False
+    ) -> dict[str, object]:
+        """An Issue shaped like Gitea's, noise included.
+
+        The noise is the point, exactly as it is for _gitea_comment: a raw Issue
+        carries a user object, a repository object, assignees, assets and a
+        milestone, and the projection must drop all of it so a governed read does
+        not change shape when Gitea's response does. body is in here for the same
+        reason and must not come back out.
+        """
+        return {
+            "number": number,
+            "title": f"issue {number}",
+            "state": state,
+            "body": "a body with\nnewlines and a backslash \\ in it",
+            "created_at": "2026-08-29T11:38:05+08:00",
+            "updated_at": "2026-09-05T16:57:29+08:00",
+            "closed_at": None,
+            "labels": [
+                {
+                    "id": 24,
+                    "name": "needs-analysis",
+                    "color": "fbca04",
+                    "description": "waiting for analysis",
+                    "url": "http://gitea-ci.orb.local:3000/api/v1/repos/x/labels/24",
+                }
+            ],
+            "assets": [],
+            "assignees": None,
+            "milestone": None,
+            "pull_request": {"merged": False} if pull else None,
+            "repository": {"id": 5, "name": "aisoft-platform", "owner": "admin"},
+            "user": {"login": "aisoft-platform-agent", "id": 4, "is_admin": False},
+        }
+
+    def _issue_list_broker(self, issues: list[dict[str, object]], calls: list[tuple]):
+        """Broker wired to an in-memory Issue collection with real paging."""
+
+        def transport(method, url, headers, body):
+            if url.endswith("/api/v1/user"):
+                return 200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+            payload = json.loads(body) if body else None
+            calls.append((method, url, payload))
+            if method == "GET" and "/issues?" in url:
+                page = int(url.rsplit("page=", 1)[1])
+                start = (page - 1) * 50
+                return 200, {}, json.dumps(issues[start:start + 50]).encode()
+            raise AssertionError(f"unexpected {method} {url}")
+
+        return HostAccessBroker(
+            self.contract, credentials=StaticCredentials(), transport=transport
+        )
+
+    def test_issue_list_projects_and_excludes_pull_requests(self) -> None:
+        calls: list[tuple] = []
+        broker = self._issue_list_broker(
+            [self._gitea_issue(222), self._gitea_issue(259, pull=True)], calls
+        )
+
+        value = broker.execute("aisoft-platform", "gitea.issue.list", state="open")
+
+        self.assertEqual(
+            value,
+            {
+                "state": "open",
+                "count": 1,
+                "pull_requests_excluded": 1,
+                "issues": [{
+                    "number": 222,
+                    "title": "issue 222",
+                    "state": "open",
+                    "labels": ["needs-analysis"],
+                    "created_at": "2026-08-29T11:38:05+08:00",
+                    "updated_at": "2026-09-05T16:57:29+08:00",
+                }],
+            },
+        )
+        # The excluded pull request is counted, not silently dropped: a caller
+        # that sees issues=[] and pull_requests_excluded=0 knows the repository
+        # is empty, while one that sees a non-zero count knows the server-side
+        # type=issues filter did not do the job.
+        self.assertEqual(
+            [url for method, url, _ in calls if method == "GET"],
+            ["http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform"
+             "/issues?state=open&type=issues&limit=50&page=1"],
+        )
+        # A read must not mutate: no request leaves the GET verb.
+        self.assertEqual({method for method, _, _ in calls}, {"GET"})
+
+    def test_issue_list_omits_the_body(self) -> None:
+        """body is what makes an enumeration cost orders of magnitude more."""
+        broker = self._issue_list_broker([self._gitea_issue(222)], [])
+
+        value = broker.execute("aisoft-platform", "gitea.issue.list", state="all")
+
+        self.assertNotIn("body", value["issues"][0])
+
+    def test_issue_list_pages_past_the_first_fifty(self) -> None:
+        """A first-page-only read answers every duplicate check with "no"."""
+        calls: list[tuple] = []
+        broker = self._issue_list_broker(
+            [self._gitea_issue(number) for number in range(1, 138)], calls
+        )
+
+        value = broker.execute("aisoft-platform", "gitea.issue.list", state="all")
+
+        self.assertEqual(value["count"], 137)
+        self.assertEqual(
+            [item["number"] for item in value["issues"]], list(range(1, 138))
+        )
+        self.assertEqual(
+            [url.rsplit("page=", 1)[1] for method, url, _ in calls if method == "GET"],
+            ["1", "2", "3"],
+        )
+
+    def test_issue_list_rejects_a_malformed_entry(self) -> None:
+        broken = self._gitea_issue(222)
+        del broken["title"]
+        broker = self._issue_list_broker([broken], [])
+
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute("aisoft-platform", "gitea.issue.list", state="open")
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_issue_list_takes_only_a_state(self) -> None:
+        calls: list[tuple] = []
+        broker = self._issue_list_broker([self._gitea_issue(222)], calls)
+
+        with self.assertRaises(BrokerError) as missing:
+            broker.execute("aisoft-platform", "gitea.issue.list")
+        self.assertEqual(missing.exception.code, "ARGUMENT_MISMATCH")
+
+        # arguments is an exact set, not a minimum: supplying one the operation
+        # does not declare fails the same way omitting one does (#222).
+        with self.assertRaises(BrokerError) as extra:
+            broker.execute(
+                "aisoft-platform", "gitea.issue.list", state="open", number=222
+            )
+        self.assertEqual(extra.exception.code, "ARGUMENT_MISMATCH")
+
+        with self.assertRaises(BrokerError) as invalid:
+            broker.execute("aisoft-platform", "gitea.issue.list", state="merged")
+        self.assertEqual(invalid.exception.code, "ARGUMENT_INVALID")
+
+        # Nothing above reached the network.
+        self.assertEqual(calls, [])
+
+    def _issue_state_broker(self, issue: dict[str, object], calls: list[tuple]):
+        """Broker wired to one in-memory Issue that a PATCH really moves."""
+        current = dict(issue)
+
+        def transport(method, url, headers, body):
+            if url.endswith("/api/v1/user"):
+                return 200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+            payload = json.loads(body) if body else None
+            calls.append((method, url, payload))
+            if method == "PATCH":
+                current["state"] = payload["state"]
+            return 200, {}, json.dumps(current).encode()
+
+        return HostAccessBroker(
+            self.contract, credentials=StaticCredentials(), transport=transport
+        )
+
+    def test_issue_state_set_closes_and_reports_the_change(self) -> None:
+        calls: list[tuple] = []
+        broker = self._issue_state_broker(self._gitea_issue(260), calls)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.issue.state.set", number=260, state="closed"
+        )
+
+        self.assertEqual(value["state"], "closed")
+        self.assertTrue(value["changed"])
+        self.assertEqual(value["number"], 260)
+        self.assertNotIn("body", value)
+        url = ("http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform"
+               "/issues/260")
+        self.assertEqual(calls, [("GET", url, None), ("PATCH", url, {"state": "closed"})])
+
+    def test_issue_state_set_reopens_a_closed_issue(self) -> None:
+        """Reopening is as much the point as closing.
+
+        apply-classification-labels.sh refuses to project onto a closed Issue
+        (#167), so one mistaken close used to leave an implementation session
+        with no typed way back.
+        """
+        calls: list[tuple] = []
+        broker = self._issue_state_broker(
+            self._gitea_issue(188, state="closed"), calls
+        )
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.issue.state.set", number=188, state="open"
+        )
+
+        self.assertEqual(value["state"], "open")
+        self.assertTrue(value["changed"])
+        self.assertEqual([method for method, _, _ in calls], ["GET", "PATCH"])
+
+    def test_issue_state_set_writes_nothing_when_already_in_that_state(self) -> None:
+        """A retry after a transport error must not become a second mutation."""
+        calls: list[tuple] = []
+        broker = self._issue_state_broker(
+            self._gitea_issue(260, state="closed"), calls
+        )
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.issue.state.set", number=260, state="closed"
+        )
+
+        self.assertEqual(value["state"], "closed")
+        self.assertFalse(value["changed"])
+        self.assertEqual([method for method, _, _ in calls], ["GET"])
+
+    def test_issue_state_set_takes_only_a_number_and_an_open_or_closed_state(self) -> None:
+        calls: list[tuple] = []
+        broker = self._issue_state_broker(self._gitea_issue(260), calls)
+
+        # all exists on --state because gitea.pulls.read needs it. It is not a
+        # state one Issue can be in, and it is refused before any request.
+        with self.assertRaises(BrokerError) as invalid:
+            broker.execute(
+                "aisoft-platform", "gitea.issue.state.set", number=260, state="all"
+            )
+        self.assertEqual(invalid.exception.code, "ARGUMENT_INVALID")
+
+        with self.assertRaises(BrokerError) as missing:
+            broker.execute("aisoft-platform", "gitea.issue.state.set", number=260)
+        self.assertEqual(missing.exception.code, "ARGUMENT_MISMATCH")
+
+        with self.assertRaises(BrokerError) as extra:
+            broker.execute(
+                "aisoft-platform", "gitea.issue.state.set",
+                number=260, state="closed", title="renamed",
+            )
+        self.assertEqual(extra.exception.code, "ARGUMENT_MISMATCH")
+
+        for rejected in (0, -1):
+            with self.subTest(number=rejected), self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.issue.state.set",
+                    number=rejected, state="closed",
+                )
+            self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+
+        # Nothing above reached the network.
+        self.assertEqual(calls, [])
+
+    def test_issue_state_is_a_separate_operation_from_update(self) -> None:
+        """Fixing a title must not carry the power to close.
+
+        gitea.issue.update keeps its exact three arguments, so the two writes
+        cannot be performed by one call and cannot be confused for each other.
+        """
+        update = self.contract.operation("gitea.issue.update")
+        self.assertEqual(update.arguments, ("number", "title", "body"))
+        state_set = self.contract.operation("gitea.issue.state.set")
+        self.assertEqual(state_set.arguments, ("number", "state"))
+        self.assertTrue(state_set.mutating)
+        self.assertEqual(state_set.identity_route, "project-agent")
+
+        names = {operation.name for operation in self.contract.operations}
+        self.assertIn("gitea.issue.list", names)
+        # Deleting an Issue is not the same act as closing one, and no typed
+        # operation makes it automatable.
+        for absent in ("gitea.issue.delete", "gitea.issues.delete"):
             self.assertNotIn(absent, names)
 
     # --- Actions run and job log reads (#143) --------------------------------
