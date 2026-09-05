@@ -60,9 +60,35 @@ LABEL_MANAGED_PREFIXES = ("type/", "complexity/", "triage/")
 # undeclared name fails closed.
 ENTRY_LABELS = ("needs-analysis", "triage/needs-triage")
 COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+# Anything at or before the epoch is Gitea's unset time, not a fact (#225).
+# Compared as an instant rather than matched as a string, because the same zero
+# reaches us rendered in whatever offset the server runs in.
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 # Same ceiling verifier.py already uses for captured command output (#143): one
 # number for "how much text may enter an agent's context", not two.
 LOG_MAX_BYTES = 65536
+# How the window splits when a log overflows it: the head takes a quarter, the
+# tail the rest (#225). Written as a divisor rather than two byte counts so the
+# invariant "head + tail is one window" is arithmetic, not a pair of numbers
+# somebody has to remember to change together.
+#
+# Lopsided on purpose, because the two ends answer different questions at
+# different lengths. The tail answers "why did it fail" — a stack trace or a
+# test summary of unpredictable size — and it is the only part the tail-only
+# rule kept, so shrinking it hard would trade a new failure for the old one.
+# The head answers "what did it run against" — runner banner, checkout SHA, the
+# start of dependency install — which the early steps print in a few KiB. A
+# quarter is generous for that and buys back the whole class of evidence #225
+# was opened for: before this, every step near the front of a long job was
+# structurally unreadable.
+LOG_HEAD_DIVISOR = 4
+# The line standing in for what fell out of the middle. It reports both ends'
+# real sizes, not just the omitted count: "how much of each end am I looking
+# at" is the question a reader has next, and answering it needs no second call.
+LOG_ELISION = (
+    "\n[truncated: {omitted} bytes omitted between the leading {head} bytes"
+    " and the trailing {tail} bytes]\n"
+)
 # Second-layer log redaction (#143 spec §5.2). Gitea masks its own registered
 # Actions secrets; these cover the credential a workflow got from somewhere
 # else, which is the shape an accidental leak actually takes.
@@ -276,6 +302,47 @@ def _optional_text(value: object) -> str | None:
     return value if isinstance(value, str) and value else None
 
 
+def _parse_timestamp(value: str) -> datetime | None:
+    """One Gitea timestamp as a comparable instant, or None if it will not parse.
+
+    A naive string is read as UTC so every parsed value is aware and any two of
+    them can be compared. Gitea always sends an offset; the fallback exists so
+    an unexpected shape becomes an unusable value rather than a TypeError raised
+    halfway through a governed read.
+    """
+    try:
+        moment = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    return moment
+
+
+def _actions_timestamp(value: object) -> str | None:
+    """A real Actions timestamp, or None when it is the zero clock in disguise.
+
+    Gitea renders an unset time as its zero value in the server's offset, so a
+    run cancelled while still queued arrives with
+    started_at == "1970-01-01T08:00:00+08:00" — a well-formed timestamp that is
+    not a claim about 1970. Passing it through is what made #225's
+    duration_seconds come back as 1788522654: the subtraction was correct, one
+    of its operands was not a time.
+
+    Filtered here, at the projection of the field itself, rather than only
+    inside _duration_seconds. Nulling the derived number while still reporting
+    the epoch as started_at would move the false value rather than remove it —
+    any reader can subtract two timestamps and arrive at the same absurdity.
+    """
+    text = _optional_text(value)
+    if text is None:
+        return None
+    moment = _parse_timestamp(text)
+    if moment is None or moment <= _EPOCH:
+        return None
+    return text
+
+
 def _duration_seconds(started: object, completed: object) -> int | None:
     """Seconds between two Gitea timestamps, or None when either is unusable.
 
@@ -283,17 +350,68 @@ def _duration_seconds(started: object, completed: object) -> int | None:
     measurable time are different facts, and "0s" for the first one would
     reproduce exactly the kind of number #143 was opened because nobody could
     check.
+
+    Unusable now includes the zero clock (#225). A still-running job already
+    reached None before that, but only by accident: its zero completed_at falls
+    before its real started_at and trips the ordering guard below. A job
+    cancelled before it started has the zero value on the other end, where
+    nothing caught it.
     """
-    if not isinstance(started, str) or not isinstance(completed, str):
+    start_text = _actions_timestamp(started)
+    end_text = _actions_timestamp(completed)
+    if start_text is None or end_text is None:
         return None
-    try:
-        start = datetime.fromisoformat(started)
-        end = datetime.fromisoformat(completed)
-    except ValueError:
-        return None
-    if end < start:
+    start = _parse_timestamp(start_text)
+    end = _parse_timestamp(end_text)
+    if start is None or end is None or end < start:
         return None
     return int((end - start).total_seconds())
+
+
+def _elide_log_middle(raw: bytes) -> str:
+    """Keep both ends of an over-long log and say what fell out of the middle.
+
+    Tail-only was the rule until #225, and it was right about one thing: a
+    failing step prints its error last. What it missed is that a step near the
+    front of a long job then has no readable output at all — and the steps near
+    the front are the ones that say which tree was checked out and what the
+    environment was. LocalWMS run 835 lost exactly that: the checkout SHA sat
+    inside 119843 discarded leading bytes, so the run could be shown to have
+    passed that step without anyone being able to say what it passed it on.
+
+    The marker is sized before the two windows, using the whole log's length in
+    place of every number it carries. That keeps the reservation an upper bound
+    rather than a guess: the omitted count and either end are all smaller than
+    the log, so a marker rendered from the larger number can only come out
+    longer than the real one. Hence the total stays inside LOG_MAX_BYTES,
+    instead of overshooting it by however long the marker turned out to be —
+    which is what the old code did, returning 65577 bytes for a 65536 window.
+    """
+    reserve = len(
+        LOG_ELISION.format(
+            omitted=len(raw), head=len(raw), tail=len(raw)
+        ).encode("utf-8")
+    )
+    budget = LOG_MAX_BYTES - reserve
+    head_budget = budget // LOG_HEAD_DIVISOR
+    tail_budget = budget - head_budget
+    # The two windows cannot overlap: this is only reached when the log is
+    # longer than LOG_MAX_BYTES, and budget is smaller than that by the
+    # reservation. So the omitted count below is always positive, and no line
+    # is ever reported twice.
+    head = raw[:head_budget].decode("utf-8", "ignore")
+    tail = raw[-tail_budget:].decode("utf-8", "ignore")
+    # Measured after decoding, not from the budgets: a cut through a multi-byte
+    # character drops it, so the budget is a ceiling on each end rather than its
+    # size. The omitted count has to be the arithmetic complement of what is
+    # actually returned, or it stops being checkable against original_bytes.
+    head_bytes = len(head.encode("utf-8"))
+    tail_bytes = len(tail.encode("utf-8"))
+    return head + LOG_ELISION.format(
+        omitted=len(raw) - head_bytes - tail_bytes,
+        head=head_bytes,
+        tail=tail_bytes,
+    ) + tail
 
 
 def _systemd_token(value: object) -> str | None:
@@ -2028,8 +2146,8 @@ class HostAccessBroker:
                     else None,
                     "status": _optional_text(item.get("status")),
                     "conclusion": _optional_text(item.get("conclusion")),
-                    "started_at": _optional_text(item.get("started_at")),
-                    "completed_at": _optional_text(item.get("completed_at")),
+                    "started_at": _actions_timestamp(item.get("started_at")),
+                    "completed_at": _actions_timestamp(item.get("completed_at")),
                     "duration_seconds": _duration_seconds(
                         item.get("started_at"), item.get("completed_at")
                     ),
@@ -2074,8 +2192,8 @@ class HostAccessBroker:
                         "name": _optional_text(step.get("name")),
                         "status": _optional_text(step.get("status")),
                         "conclusion": _optional_text(step.get("conclusion")),
-                        "started_at": _optional_text(step.get("started_at")),
-                        "completed_at": _optional_text(step.get("completed_at")),
+                        "started_at": _actions_timestamp(step.get("started_at")),
+                        "completed_at": _actions_timestamp(step.get("completed_at")),
                         "duration_seconds": _duration_seconds(
                             step.get("started_at"), step.get("completed_at")
                         ),
@@ -2087,8 +2205,8 @@ class HostAccessBroker:
                     "name": _optional_text(item.get("name")),
                     "status": _optional_text(item.get("status")),
                     "conclusion": _optional_text(item.get("conclusion")),
-                    "started_at": _optional_text(item.get("started_at")),
-                    "completed_at": _optional_text(item.get("completed_at")),
+                    "started_at": _actions_timestamp(item.get("started_at")),
+                    "completed_at": _actions_timestamp(item.get("completed_at")),
                     "duration_seconds": _duration_seconds(
                         item.get("started_at"), item.get("completed_at")
                     ),
@@ -2154,17 +2272,12 @@ class HostAccessBroker:
         """
         text = self._request_text(f"{repo_api}/actions/jobs/{job}/logs", token)
         text, redactions = _redact_secrets(text, token)
-        original_bytes = len(text.encode("utf-8"))
+        raw = text.encode("utf-8")
+        original_bytes = len(raw)
         body = text
         truncated = original_bytes > LOG_MAX_BYTES
         if truncated:
-            # Tail, not head: a failing step prints its error last, so keeping
-            # the beginning would reliably discard the part worth reading.
-            body = text.encode("utf-8")[-LOG_MAX_BYTES:].decode("utf-8", "ignore")
-            body = (
-                f"[truncated: {original_bytes - len(body.encode('utf-8'))}"
-                " leading bytes omitted]\n" + body
-            )
+            body = _elide_log_middle(raw)
         return {
             "job": job,
             "truncated": truncated,
