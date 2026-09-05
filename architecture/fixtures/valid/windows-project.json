@@ -4,7 +4,7 @@
   "project_id": "fixture-windows",
   "profile_id": "windows-dotnet-postgres-v1",
   "profile_version": "1.0.0",
-  "catalog_revision": "2026.08.3",
+  "catalog_revision": "2026.09.0",
   "delivery_contract": "windows-iis/v1",
   "components": [
     {"component_id": "os.windows-server.2025", "version": "2025-build-26100"},

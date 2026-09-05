@@ -3,15 +3,17 @@
   "schema_version": "1.0",
   "project_id": "fixture-linux-systemd",
   "profile_id": "linux-node-systemd-postgres-v1",
-  "profile_version": "1.0.0",
-  "catalog_revision": "2026.08.3",
+  "profile_version": "1.1.0",
+  "catalog_revision": "2026.09.0",
   "delivery_contract": "systemd-native/v1",
   "components": [
     {"component_id": "os.ubuntu.24-04-4", "version": "24.04.4"},
     {"component_id": "runtime.node.24", "version": "24.18.0"},
     {"component_id": "package.npm.11", "version": "11.19.0"},
     {"component_id": "database.postgresql.18", "version": "18.4"},
-    {"component_id": "toolchain.typescript.6", "version": "6.0.2"}
+    {"component_id": "toolchain.typescript.6", "version": "6.0.2"},
+    {"component_id": "framework.fastify.5", "version": "5.12.3"},
+    {"component_id": "orm.kysely.0-29", "version": "0.29.5"}
   ],
   "exceptions": []
 }

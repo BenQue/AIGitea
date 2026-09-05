@@ -18,7 +18,7 @@ class ArchitectureCliTests(unittest.TestCase):
             "--profiles-dir", str(ARCH / "profiles"),
             "--schema-dir", str(ARCH / "schemas"),
             "--project", str(project),
-            "--today", "2026-08-06",
+            "--today", "2026-09-05",
         ]
 
     def run_cli(self, args: list[str]) -> subprocess.CompletedProcess[str]:

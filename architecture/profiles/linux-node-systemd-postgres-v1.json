@@ -2,21 +2,23 @@
   "$schema": "../schemas/profile-v1.schema.json",
   "schema_version": "1.0",
   "profile_id": "linux-node-systemd-postgres-v1",
-  "version": "1.0.0",
-  "catalog_revision": "2026.08.3",
+  "version": "1.1.0",
+  "catalog_revision": "2026.09.0",
   "status": "active",
-  "description": "Ubuntu LTS, Node LTS and PostgreSQL baseline for a systemd-managed service without a container runtime, process manager or frontend framework slot.",
+  "description": "Ubuntu LTS, Node LTS, Fastify, Kysely and PostgreSQL baseline for a systemd-managed service without a container runtime, process manager or frontend framework slot.",
   "required_components": [
     {"component_id": "os.ubuntu.24-04-4", "allowed_states": ["preferred"]},
     {"component_id": "runtime.node.24", "allowed_states": ["preferred"], "transitions": [{"component_id": "runtime.node.22", "allowed_states": ["sunset"]}]},
     {"component_id": "package.npm.11", "allowed_states": ["preferred"], "transitions": [{"component_id": "package.npm.10", "allowed_states": ["sunset"]}]},
     {"component_id": "database.postgresql.18", "allowed_states": ["preferred"], "transitions": [{"component_id": "database.postgresql.16", "allowed_states": ["supported"]}]},
-    {"component_id": "toolchain.typescript.6", "allowed_states": ["preferred"], "transitions": [{"component_id": "toolchain.typescript.5", "allowed_states": ["sunset"]}]}
+    {"component_id": "toolchain.typescript.6", "allowed_states": ["preferred"], "transitions": [{"component_id": "toolchain.typescript.5", "allowed_states": ["sunset"]}]},
+    {"component_id": "framework.fastify.5", "allowed_states": ["preferred"]},
+    {"component_id": "orm.kysely.0-29", "allowed_states": ["preferred"]}
   ],
   "compatibility_rules": [
     "Node must be an upstream LTS version and is executed directly by a systemd unit; no container runtime and no process manager layer sits between systemd and the application process.",
     "TypeScript build output must run on the declared Node major without a separate runtime image; this profile has no OCI slot and therefore no digest-pinned base image obligation.",
-    "This profile declares no ORM, framework, frontend, proxy or container slot; a project may additionally declare such catalog components, and any query builder or ORM that is not a catalog component stays pinned in the application repository lock file.",
+    "This profile declares a framework slot and a query-builder slot alongside the runtime; it declares no frontend, proxy or container slot. A project may additionally declare other catalog components, and any framework or query builder that is not a catalog component stays pinned in the application repository lock file.",
     "A transition selects exactly one component per slot, requires an absolute HTTPS migration Issue plus one matching unexpired exception, and never permits a prohibited component.",
     "PostgreSQL major adoption requires a separate backup, restore and rollback-capable project Change."
   ],

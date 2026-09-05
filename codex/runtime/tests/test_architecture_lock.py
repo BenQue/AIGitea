@@ -12,7 +12,7 @@ from aisoft_architecture.lockfile import build_lock, validate_lock
 
 ROOT = Path(__file__).resolve().parents[3]
 ARCH = ROOT / "architecture"
-TODAY = date(2026, 8, 6)
+TODAY = date(2026, 9, 5)
 
 
 class ArchitectureLockTests(unittest.TestCase):
