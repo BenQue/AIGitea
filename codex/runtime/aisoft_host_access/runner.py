@@ -40,8 +40,13 @@ class GovernedHostRunner:
         self._command_runner = command_runner
         self._cwd = os.path.realpath(os.getcwd())
 
-    def issue_create(self, title: str, body: str) -> Mapping[str, object]:
-        return self._call("gitea.issue.create", "--title", title, "--body", body)
+    def issue_create(
+        self, title: str, body: str, entry_label: str
+    ) -> Mapping[str, object]:
+        return self._call(
+            "gitea.issue.create", "--title", title, "--body", body,
+            "--entry-label", entry_label,
+        )
 
     def issue_read(self, number: int) -> Mapping[str, object]:
         return self._call("gitea.issue.read", "--number", str(_positive_number(number, "Issue")))

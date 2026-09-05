@@ -168,7 +168,13 @@ class AccessContract:
 EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "gitea.repo.read": ("project-agent", False, ()),
     "gitea.issue.read": ("project-agent", False, ("number",)),
-    "gitea.issue.create": ("project-agent", True, ("title", "body")),
+    # entry_label is required, not defaulted (#243). The broker argument gate is
+    # exact set equality, so this contract has no optional-argument form at all;
+    # more to the point, an Issue that reaches the tracker without naming its
+    # flow entrance is exactly the inbox this operation created. Required means a
+    # caller that forgets fails with ARGUMENT_MISMATCH before a credential is
+    # resolved, and the call site says which entrance the Issue took.
+    "gitea.issue.create": ("project-agent", True, ("title", "body", "entry_label")),
     "gitea.issue.update": ("project-agent", True, ("number", "title", "body")),
     "gitea.issue.comment": ("project-agent", True, ("number", "comment")),
     # The read half of the comment surface (#138). Singular comment posts one;

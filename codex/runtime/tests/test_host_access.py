@@ -145,7 +145,7 @@ class HostAccessContractTests(unittest.TestCase):
 
     def test_governed_issue_and_pull_operations_have_exact_typed_fields(self) -> None:
         expected = {
-            "gitea.issue.create": ("title", "body"),
+            "gitea.issue.create": ("title", "body", "entry_label"),
             "gitea.issue.read": ("number",),
             "gitea.issue.update": ("number", "title", "body"),
             "gitea.issue.comment": ("number", "comment"),
@@ -1896,6 +1896,11 @@ class HostAccessBrokerTests(unittest.TestCase):
                     "is_admin": False,
                 }).encode()
             calls.append((method, url, json.loads(body) if body else None))
+            if "/labels?" in url:
+                return 200, {}, json.dumps([
+                    {"name": "needs-analysis", "id": 11, "color": "fbca04",
+                     "description": "entry"},
+                ]).encode()
             number = 70 if url.endswith("/issues") else 70
             return 200, {}, json.dumps({"number": number, "state": "open"}).encode()
 
@@ -1903,12 +1908,14 @@ class HostAccessBrokerTests(unittest.TestCase):
             self.contract,
             credentials=StaticCredentials(),
             transport=transport,
+            label_manifest_path=str(LABELS),
         )
         created = broker.execute(
             "aisoft-platform",
             "gitea.issue.create",
             title="governed canary",
             body="Issue body without raw HTTP fields",
+            entry_label="needs-analysis",
         )
         updated = broker.execute(
             "aisoft-platform",
@@ -1928,11 +1935,24 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertEqual(updated["number"], 70)
         self.assertEqual(comment["number"], 70)
         self.assertEqual(read_back["number"], 70)
+        # The entry label is resolved to an id and rides in the creating POST
+        # itself (#243): one mutating request, no window in which the Issue
+        # exists without its flow entrance.
         self.assertEqual(calls, [
+            (
+                "GET",
+                "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform"
+                "/labels?limit=50&page=1",
+                None,
+            ),
             (
                 "POST",
                 "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/issues",
-                {"title": "governed canary", "body": "Issue body without raw HTTP fields"},
+                {
+                    "title": "governed canary",
+                    "body": "Issue body without raw HTTP fields",
+                    "labels": [11],
+                },
             ),
             (
                 "PATCH",
@@ -1957,6 +1977,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 raise AssertionError("credential resolution must not run")
 
         broker = HostAccessBroker(self.contract, credentials=FailIfResolved())
+        broker.label_manifest_path = str(LABELS)
         invalid = (
             {"title": "", "body": "valid"},
             {"title": "bad\rtitle", "body": "valid"},
@@ -1966,8 +1987,98 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
         for fields in invalid:
             with self.subTest(fields=fields), self.assertRaises(BrokerError) as caught:
-                broker.execute("aisoft-platform", "gitea.issue.create", **fields)
+                broker.execute(
+                    "aisoft-platform", "gitea.issue.create",
+                    entry_label="needs-analysis", **fields,
+                )
             self.assertEqual(caught.exception.code, "ARGUMENT_INVALID")
+
+    def test_issue_create_requires_a_declared_flow_entrance(self) -> None:
+        """#243: an Issue cannot reach the tracker without naming its entrance."""
+
+        class FailIfResolved:
+            def resolve(self, project, operation):
+                raise AssertionError("credential resolution must not run")
+
+        broker = HostAccessBroker(
+            self.contract,
+            credentials=FailIfResolved(),
+            label_manifest_path=str(LABELS),
+        )
+        # Omitted entirely: the exact-set argument gate rejects it before the
+        # operation is even dispatched, so the failure can never be mistaken for
+        # a permission problem.
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute(
+                "aisoft-platform", "gitea.issue.create",
+                title="no entrance", body="valid",
+            )
+        self.assertEqual(caught.exception.code, "ARGUMENT_MISMATCH")
+
+        # A real label that is not one of the two entrances 03 defines.
+        for outside in ("approved", "completed", "type/platform", "triage/wontfix"):
+            with self.subTest(outside=outside), self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.issue.create",
+                    title="wrong entrance", body="valid", entry_label=outside,
+                )
+            self.assertEqual(caught.exception.code, "ARGUMENT_MISMATCH")
+
+    def test_issue_create_rejects_an_entrance_the_installed_manifest_dropped(self) -> None:
+        """#243: manifest membership is checked on top of the entrance set."""
+
+        class FailIfResolved:
+            def resolve(self, project, operation):
+                raise AssertionError("credential resolution must not run")
+
+        manifest = json.loads(LABELS.read_text(encoding="utf-8"))
+        manifest["canonical"] = [
+            entry for entry in manifest["canonical"]
+            if entry["name"] != "needs-analysis"
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "labels.json"
+            path.write_text(json.dumps(manifest), encoding="utf-8")
+            broker = HostAccessBroker(
+                self.contract,
+                credentials=FailIfResolved(),
+                label_manifest_path=str(path),
+            )
+            with self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "gitea.issue.create",
+                    title="retired entrance", body="valid",
+                    entry_label="needs-analysis",
+                )
+        self.assertEqual(caught.exception.code, "ARGUMENT_MISMATCH")
+
+    def test_issue_create_fails_closed_when_the_entrance_is_not_defined(self) -> None:
+        """#243: attaching is not defining -- name the definition operation."""
+        calls = []
+
+        def transport(method, url, headers, body):
+            if url.endswith("/api/v1/user"):
+                return 200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
+            calls.append((method, url))
+            if "/labels?" in url:
+                return 200, {}, b'[]'
+            raise AssertionError("no Issue may be created without its entrance")
+
+        broker = HostAccessBroker(
+            self.contract,
+            credentials=StaticCredentials(),
+            transport=transport,
+            label_manifest_path=str(LABELS),
+        )
+        with self.assertRaises(BrokerError) as caught:
+            broker.execute(
+                "aisoft-platform", "gitea.issue.create",
+                title="undefined entrance", body="valid",
+                entry_label="triage/needs-triage",
+            )
+        self.assertEqual(caught.exception.code, "TARGET_MISMATCH")
+        self.assertIn("gitea.labels.provision", str(caught.exception))
+        self.assertNotIn("POST", [method for method, _ in calls])
 
     def test_pull_create_update_and_read_are_deduplicated_and_issue_bound(self) -> None:
         calls = []
@@ -4545,7 +4656,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             "aisoft-platform", "gitea.pull.create",
             number=None, state=None, branch=None, issue=70,
             title="fix(host-access): governed writes", body=body, comment=None, sha=None,
-            job=None, lifecycle=None, change_type=None, complexity=None,
+            job=None, entry_label=None, lifecycle=None, change_type=None, complexity=None,
             label=None, color=None, description=None,
         )
         self.assertEqual(json.loads(stdout.getvalue()), {"number": 71})
@@ -4569,7 +4680,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         execute.assert_called_once_with(
             "aisoft-platform", "gitea.issue.labels.set",
             number=115, state=None, branch=None, issue=None,
-            title=None, body=None, comment=None, sha=None, job=None, lifecycle="completed",
+            title=None, body=None, comment=None, sha=None, job=None, entry_label=None, lifecycle="completed",
             change_type=None, complexity=None,
             label=None, color=None, description=None,
         )
@@ -4593,7 +4704,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         execute.assert_called_once_with(
             "aisoft-platform", "gitea.issue.labels.classify",
             number=160, state=None, branch=None, issue=None,
-            title=None, body=None, comment=None, sha=None, job=None, lifecycle=None,
+            title=None, body=None, comment=None, sha=None, job=None, entry_label=None, lifecycle=None,
             change_type="platform", complexity="complex",
             label=None, color=None, description=None,
         )
@@ -4617,7 +4728,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         execute.assert_called_once_with(
             "aisoft-platform", "gitea.labels.extension.define",
             number=None, state=None, branch=None, issue=None,
-            title=None, body=None, comment=None, sha=None, job=None, lifecycle=None,
+            title=None, body=None, comment=None, sha=None, job=None, entry_label=None, lifecycle=None,
             change_type=None, complexity=None,
             label="priority/high", color="b60205", description="Project priority",
         )
@@ -4641,7 +4752,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         execute.assert_called_once_with(
             "aisoft-platform", "gitea.issue.labels.extension.set",
             number=229, state=None, branch=None, issue=None,
-            title=None, body=None, comment=None, sha=None, job=None, lifecycle=None,
+            title=None, body=None, comment=None, sha=None, job=None, entry_label=None, lifecycle=None,
             change_type=None, complexity=None,
             label="area/api", color=None, description=None,
         )

@@ -764,6 +764,22 @@ grep -Fq 'complexity/complex' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.
 grep -Fq 'requested_complexity' "$ROOT/04-Agent编排与定时任务.md"
 grep -Fq '功能性更改' "$ROOT/AGENTS.md"
 
+# #243: 立案即落在流程入口，开放 Issue 有确定性的清扫节奏。清扫节写在两份
+# issue-session-flow 里（Codex 侧英文、Claude 侧中文），衍生 Issue 的正文要求与默认认领方
+# 写在 03 与 tracker 里。tracker 与 templates/ 下的副本由上面的 cmp 逐字节钉住，所以这里
+# 只钉活文档那一份。需裁决汇总的固定抬头两份都钉，格式漂了就在这里变红。
+grep -Fq '## 开放 Issue 清扫' "$ROOT/skill-for-claude/issue-session-flow/SKILL.md"
+grep -Fq '## Open-Issue sweep' "$ROOT/codex/skills/issue-session-flow/SKILL.md"
+for sweep_skill in \
+  "$ROOT/skill-for-claude/issue-session-flow/SKILL.md" \
+  "$ROOT/codex/skills/issue-session-flow/SKILL.md"; do
+  grep -Fq '需裁决（n 条）' "$sweep_skill"
+  grep -Fq 'gitea.issue.labels.set --number N --lifecycle needs-analysis' "$sweep_skill"
+done
+grep -Fq '### 衍生 Issue 的正文与认领' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
+grep -Fq '## Derived Issues' "$ROOT/docs/agents/issue-tracker.md"
+grep -Fq -- '--entry-label' "$ROOT/skill-for-claude/aisoft-platform/SKILL.md"
+
 if rg -n 'complexity_recommendation|最终 `complexity` 由人|人确认 Issue 验收标准与 complexity=small' \
   "$ROOT/AGENTS.md" "$ROOT/README.md" \
   "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md" \

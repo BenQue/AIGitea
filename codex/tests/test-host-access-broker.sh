@@ -35,7 +35,8 @@ jq -e '
     "projects/{project_id}/routine-merge-agent.token" and
   .mac_host.credential_directory_mode == "700" and
   .mac_host.credential_file_mode == "600" and
-  ([.operations[] | select(.name == "gitea.issue.create")][0].arguments == ["title", "body"]) and
+  ([.operations[] | select(.name == "gitea.issue.create")][0].arguments
+    == ["title", "body", "entry_label"]) and
   ([.operations[] | select(.name == "gitea.pull.create")][0].arguments == ["issue", "title", "body"]) and
   ([.operations[] | select(.name == "gitea.pull.merge.routine")][0]
     == {"name":"gitea.pull.merge.routine","identity_route":"routine-merge-agent",

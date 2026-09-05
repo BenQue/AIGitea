@@ -39,6 +39,20 @@ PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli publish-plan N /tmp/plan-dra
 
 New documents use `<role>-<short-description>-<YYMMDD>.md` and the same slug as branch/directory/worktree; numeric names are an evidence-derived legacy fallback. A legacy/readable pair or multiple slugs for one Issue is `CHANGE_NAME_CONFLICT`.
 
+## Derived Issues
+
+A problem found mid-task becomes a new Issue instead of extra scope in the current one. The authoring session must
+write four things into the Issue body: the originating Issue and session, the target project repository, at least one
+testable acceptance criterion, and every known blocking Issue number (write `none` when there is none). Dependencies
+belong in the body -- session context is compacted, an Issue is not.
+
+`gitea.issue.create` writes the flow entry label in the same call that creates the Issue: `needs-analysis`, or
+`triage/needs-triage` when the session asks for the triage entrance. A new Issue therefore starts at the flow
+entrance rather than in an inbox nobody reads.
+
+The default claimant of a derived Issue is the coordination session, which judges and dispatches it during the
+open-Issue sweep. With no coordination session, the authoring session opens the Issue and dispatches it itself.
+
 ## Final PR candidate confirmation
 
 Before push/create PR, persist a confirmation bound to the exact Issue, readable branch and `manual|routine-auto`

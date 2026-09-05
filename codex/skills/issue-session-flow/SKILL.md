@@ -94,6 +94,32 @@ Create a coordination task only for a phase that must split, a batch of newly cr
 Issues with dependencies. Persist every dependency in the Issue body and summary `depends_on`; do not rely on task
 memory. Dispatch only unblocked Issues and keep their branches, worktrees and PRs separate.
 
+## Open-Issue sweep
+
+The coordination task's second duty. Sweep the open Issues every time the task wakes up, and again after a batch of
+Issues has been dispatched. A sweep judges and dispatches; it never implements an Issue.
+
+Enumeration: until the list operation lands (#222), read Issues one number at a time with `gitea.issue.read`,
+walking down from the highest known number. This is a stated interim method so the sweep can run before the list
+operation exists; replace it with one list read once #222 merges.
+
+Entry label: a new Issue carries its entry label from the same write that creates it, `needs-analysis` or
+`triage/needs-triage`. An older Issue may carry no label at all; backfill it with
+`gitea.issue.labels.set --number N --lifecycle needs-analysis`.
+
+Report one row per open Issue in a fixed six-column table: number, title, owning repository, duplicate-of,
+judgement, next step. The judgement is exactly one of `dispatch`, `duplicate`, `blocked by #M`, or `needs a human
+decision`. "Leave it for now" is not a judgement -- it is the action that let the open Issues pile up.
+
+Summarise every `needs a human decision` row in fixed three-part lines:
+
+```text
+需裁决（n 条）
+- #N <one-line question> —— 选项 A：<consequence> / 选项 B：<consequence>；不裁决的后果：<one line>
+```
+
+Do not pick a default on the user's behalf, and do not dispatch an Issue that is waiting on one.
+
 ## Invariants
 
 - All Gitea and remote Git access uses the project-scoped host-access broker.

@@ -36,6 +36,16 @@ BODY_MAX_BYTES = 65536
 LABEL_NAME_MAX_BYTES = 255
 LABEL_DESCRIPTION_MAX_BYTES = 255
 LABEL_MANAGED_PREFIXES = ("type/", "complexity/", "triage/")
+# The two flow entrances an Issue may be created at (#243). Written out rather
+# than derived from the label manifest, unlike _lifecycle_labels() and
+# _namespaced_labels(): those two project a whole label *dimension*, and copying
+# a dimension into code is what drifts. This is not a dimension — it is the pair
+# of entrances 03 defines, one per dimension: needs-analysis starts the analyzer,
+# triage/needs-triage starts Matt triage. A third entrance is a governance
+# decision in 03, not a label somebody added to the manifest. Membership in the
+# installed manifest is still required on top of this set, so a retired or
+# undeclared name fails closed.
+ENTRY_LABELS = ("needs-analysis", "triage/needs-triage")
 COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 # Same ceiling verifier.py already uses for captured command output (#143): one
 # number for "how much text may enter an agent's context", not two.
@@ -1015,6 +1025,7 @@ class HostAccessBroker:
         comment: str | None = None,
         sha: str | None = None,
         job: int | None = None,
+        entry_label: str | None = None,
         lifecycle: str | None = None,
         change_type: str | None = None,
         complexity: str | None = None,
@@ -1037,6 +1048,7 @@ class HostAccessBroker:
             "comment": comment,
             "sha": sha,
             "job": job,
+            "entry_label": entry_label,
             "lifecycle": lifecycle,
             "change_type": change_type,
             "complexity": complexity,
@@ -1067,6 +1079,7 @@ class HostAccessBroker:
                     comment=comment,
                     sha=sha,
                     job=job,
+                    entry_label=entry_label,
                     lifecycle=lifecycle,
                     change_type=change_type,
                     complexity=complexity,
@@ -1467,6 +1480,7 @@ class HostAccessBroker:
         comment: str | None,
         sha: str | None,
         job: int | None,
+        entry_label: str | None,
         lifecycle: str | None,
         change_type: str | None,
         complexity: str | None,
@@ -1481,6 +1495,10 @@ class HostAccessBroker:
         extension_prefix: str | None = None
         if operation.name == "gitea.issue.create":
             method = "POST"
+            # Validated here, before credential resolution and before any request:
+            # a wrong entrance costs nothing, and the failure cannot be confused
+            # with a permission problem.
+            self._entry_label(entry_label)
             payload = {
                 "title": _typed_text("Issue title", title, TITLE_MAX_BYTES),
                 "body": _typed_text("Issue body", body, BODY_MAX_BYTES),
@@ -1619,6 +1637,17 @@ class HostAccessBroker:
         if operation.name == "gitea.repo.read":
             url = repo_api
         elif operation.name == "gitea.issue.create":
+            assert entry_label is not None
+            # The label rides in the creating POST rather than a follow-up PUT, so
+            # there is no moment at which the Issue exists without its entrance and
+            # no half-created Issue to clean up when the second call fails.
+            create_payload = payload if isinstance(payload, dict) else {}
+            payload = {
+                **create_payload,
+                "labels": [
+                    self._entry_label_id(repo_api, credential.token, entry_label)
+                ],
+            }
             url = f"{repo_api}/issues"
         elif operation.name == "gitea.issue.read":
             _positive_number(number, "Issue")
@@ -1802,6 +1831,52 @@ class HostAccessBroker:
             "metadata": metadata,
             "status": "PASS",
         }
+
+    def _entry_label(self, entry_label: str | None) -> str:
+        """Return the validated flow entrance for a new Issue.
+
+        Two checks, both local: the value must be one of the entrances 03
+        defines, and it must still be declared by the installed label manifest.
+        The second is what makes a retired name fail here rather than at attach
+        time, and neither costs a credential or a request.
+        """
+        if entry_label not in ENTRY_LABELS:
+            raise BrokerError(
+                "ARGUMENT_MISMATCH",
+                "entry label must be one of the flow entrances a new Issue may start at",
+            )
+        if entry_label not in self._canonical_labels():
+            raise BrokerError(
+                "ARGUMENT_MISMATCH",
+                "entry label is not declared by the installed label manifest",
+            )
+        return entry_label
+
+    def _entry_label_id(self, repo_api: str, token: str, entry_label: str) -> int:
+        """Resolve the entry label's id in this repository, or fail closed.
+
+        Attaching is not defining, the same rule
+        _replace_issue_label_dimensions applies: an undefined entrance names the
+        typed definition operation instead of quietly creating the label.
+        """
+        for item in self._labels(repo_api, token):
+            if item["name"] != entry_label:
+                continue
+            label_id = item.get("id")
+            if not isinstance(label_id, int) or isinstance(label_id, bool):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "Gitea label is missing a usable id"
+                )
+            return label_id
+        raise BrokerError(
+            "TARGET_MISMATCH",
+            f"the {entry_label} label is not defined in this repository; "
+            "define it with gitea.labels.provision before creating an Issue with it",
+        )
+
+    def _canonical_labels(self) -> set[str]:
+        """Every canonical name the installed label manifest declares."""
+        return {entry["name"] for entry in self._label_manifest()["canonical"]}
 
     def _lifecycle_labels(self) -> set[str]:
         """The delivery lifecycle dimension, derived from the installed manifest.
