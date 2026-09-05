@@ -28,6 +28,7 @@ INSTALLERS=(
   install-skills
   architecture/install
   docker-release/install
+  sync/install
 )
 
 # Expected identity quantities, recomputed here through jq/find rather than the
@@ -42,6 +43,15 @@ expected_matrix_revision="$(
 )"
 expected_schemas="$(
   find "$ROOT/docker-release/schema" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' '
+)"
+expected_sync_units="$(
+  find "$ROOT/sync/systemd" -maxdepth 1 -type f | wc -l | tr -d ' '
+)"
+# The payload scripts are every top-level sync/*.sh except the installer itself,
+# which is a different statement of the set than the two paths install.sh names.
+expected_sync_scripts="$(
+  find "$ROOT/sync" -maxdepth 1 -type f -name '*.sh' ! -name 'install.sh' |
+    wc -l | tr -d ' '
 )"
 expected_runtime_modules="$(
   find \
@@ -60,12 +70,12 @@ expected_matt_version="$(
 )"
 [[ -n "$expected_matt_version" ]] || fail 'could not read matt_version from install-skills.sh'
 
-# The union of what the six installers read. Copying whole top-level directories
+# The union of what the seven installers read. Copying whole top-level directories
 # is coarser than a per-file list, but the union is these directories anyway.
 make_source_tree() {
   local dest="$1" directory
   mkdir -p "$dest"
-  for directory in codex architecture docker-release templates skill-for-codex; do
+  for directory in codex architecture docker-release templates skill-for-codex sync; do
     cp -R "$ROOT/$directory" "$dest/"
   done
 }
@@ -101,6 +111,9 @@ run_installer() {
       AISOFT_DOCKER_RELEASE_INSTALL_ROOT="$root" \
         bash "$checkout/docker-release/install.sh" 2>&1
       ;;
+    sync/install)
+      AISOFT_SYNC_INSTALL_ROOT="$root" bash "$checkout/sync/install.sh" 2>&1
+      ;;
     *) fail "unknown installer: $name" ;;
   esac
 }
@@ -114,6 +127,7 @@ installed_marker() {
     install-skills) printf '.agents/skills/aisoft-platform/SKILL.md' ;;
     architecture/install) printf 'bin/aisoft-architecture' ;;
     docker-release/install) printf 'usr/local/bin/aisoft-docker-release' ;;
+    sync/install) printf 'opt/aisoft-sync/inbound-sync.sh' ;;
     *) fail "unknown installer: $1" ;;
   esac
 }
@@ -153,6 +167,10 @@ assert_provenance() {
     docker-release/install)
       assert_source_line "$output" 'matrix revision' "$expected_matrix_revision" "$who"
       assert_source_line "$output" schemas "$expected_schemas" "$who"
+      ;;
+    sync/install)
+      assert_source_line "$output" units "$expected_sync_units" "$who"
+      assert_source_line "$output" 'runtime scripts' "$expected_sync_scripts" "$who"
       ;;
   esac
 }
