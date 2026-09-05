@@ -56,9 +56,12 @@ React 与 Prisma，扩充它要改 validator 这一共享核心，超出本次�
 - [ ] AC-3 `architecture/profiles/linux-node-systemd-postgres-v1.json` 版本升到 1.1.0，
       `required_components` 增加这两个 slot，并改写声明本 profile 没有 ORM/framework slot
       的那条 `compatibility_rules`。
-- [ ] AC-4 既有三个 profile 的 `required_components` 一个组件都不增删，
-      `architecture/fixtures/` 下既有 fixture 的组件集合、profile 归属与预期结论全部不变；
-      只有 catalog revision 这一机械字段随之更新。
+- [ ] AC-4 既有三个 profile 的 `required_components` 一个组件都不增删；
+      `architecture/fixtures/` 下除 `linux-systemd-project.json` 外，每个既有 fixture 的
+      组件集合、profile 归属与预期结论全部不变，唯一 diff 是 `catalog_revision` 一行。
+      `linux-systemd-project.json` 是被改 profile 自己的 fixture，必须跟随它升到
+      `profile_version` 1.1.0 并补上两个新组件，否则会报 `PROFILE_COMPONENT_MISSING`；
+      这是 profile 升版的机械后果，不是新增范围。
 - [ ] AC-5 三份 `architecture/reference/` lock 由 CLI 重新生成，重复生成 byte-identical。
 - [ ] AC-6 用 LocalWMS 形状的候选声明跑通一次 `aisoft-architecture validate`，输出
       `"valid":true`、profile `linux-node-systemd-postgres-v1`、catalog revision `2026.09.0`，
