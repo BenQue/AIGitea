@@ -2,9 +2,9 @@
   "$schema": "./schemas/catalog-v1.schema.json",
   "schema_version": "1.0",
   "catalog_id": "aisoft-enterprise-architecture",
-  "revision": "2026.08.3",
-  "published_at": "2026-08-06",
-  "review_by": "2026-11-06",
+  "revision": "2026.09.0",
+  "published_at": "2026-09-05",
+  "review_by": "2026-12-05",
   "update_policy": {
     "security": {"cadence": "on upstream advisory", "gate": "Issue, focused CI, rollback evidence, human merge", "route": "expedited Change; never direct production mutation"},
     "patch": {"cadence": "monthly review", "gate": "compatibility tests, lock regeneration, human merge", "route": "catalog Change or project Change as ownership requires"},
@@ -144,6 +144,19 @@
       "provenance": {"source_url": "https://github.com/prisma/prisma/releases/tag/5.22.0", "retrieved_at": "2026-08-02", "review_by": "2026-11-02", "evidence": "Official final v5 release evidence; Prisma provides no fixed v5 EOL table, so dates are AISoftPlatform exception deadlines, not an upstream support promise.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
       "compatibility": ["Existing prisma-client-js declarations differ materially from Prisma 7 generation and adapter contracts.", "No project may infer support beyond the catalog exception deadline."],
       "remediation": "Create a Prisma-only migration Change and expire any temporary exception no later than 2027-02-02."
+    },
+    {
+      "id": "orm.kysely.0-29",
+      "category": "orm",
+      "name": "Kysely",
+      "version": "0.29.5",
+      "state": "preferred",
+      "pin": {"strategy": "exact-version", "value": "0.29.5"},
+      "platforms": {"operating_systems": ["any"], "architectures": ["amd64", "arm64"]},
+      "lifecycle": {"status": "active", "released_at": "2026-08-10", "support_end": null, "eol": null, "migrate_by": null},
+      "provenance": {"source_url": "https://github.com/kysely-org/kysely/releases/tag/v0.29.5", "retrieved_at": "2026-09-05", "review_by": "2026-12-05", "evidence": "The official release tag and npm Registry metadata identify exact 0.29.5 as the stable latest release, published 2026-08-10, declaring engines node >=22.0.0. Kysely is pre-1.0 and upstream publishes no support-window or EOL table, so the null lifecycle dates mean unknown rather than indefinite support.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
+      "compatibility": ["Kysely 0.29.5 declares engines node >=22.0.0; the preferred Node 24.18.0 satisfies it.", "A pre-1.0 minor release may carry breaking type or query changes, so a project upgrade requires its own typecheck and database integration tests."],
+      "remediation": "Pin the exact version in the application lock file and re-run typecheck plus database integration tests before adopting a new minor."
     },
     {
       "id": "database.postgresql.18",
@@ -333,6 +346,19 @@
       "provenance": {"source_url": "https://nextjs.org/support-policy", "retrieved_at": "2026-08-04", "review_by": "2026-11-04", "evidence": "Vercel's official support policy marks 14.x unsupported; the dates reflect the published two-year major-version support window. Registry metadata verifies exact package 14.2.33 and its Node >=18.17 and React ^18.2 peer constraints, but exact availability does not make an unsupported line adoptable.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
       "compatibility": ["NewEmaint remote main resolves Next.js 14.2.33 and React 18.3.1, but Next.js 14 is outside upstream support.", "This entry is evidence-only and cannot be placed in a profile transition allowlist or a current architecture lock."],
       "remediation": "Create and complete an application-owned Next.js migration to a supported major before producing a current release lock."
+    },
+    {
+      "id": "framework.fastify.5",
+      "category": "framework",
+      "name": "Fastify",
+      "version": "5.12.3",
+      "state": "preferred",
+      "pin": {"strategy": "exact-version", "value": "5.12.3"},
+      "platforms": {"operating_systems": ["any"], "architectures": ["amd64", "arm64"]},
+      "lifecycle": {"status": "active", "released_at": "2026-09-04", "support_end": null, "eol": null, "migrate_by": null},
+      "provenance": {"source_url": "https://registry.npmjs.org/fastify/5.12.3", "retrieved_at": "2026-09-05", "review_by": "2026-12-05", "evidence": "Official npm Registry metadata identifies exact 5.12.3 as the stable latest release, published 2026-09-04. The official Fastify Long Term Support schedule records the 5.x line as released 2024-09-17 with an End of LTS date still published as TBD, and grants every major at least six months of support from its release plus six more months of security updates after the next major ships; upstream therefore publishes no fixed end date for this line.", "mirror_required": true, "checksum_required": true, "sbom_required": true, "digest_required": false},
+      "compatibility": ["Fastify 5.12.3 publishes no npm engines constraint; the official LTS schedule names Node 20 and 22 in the 5.0.0 row and commits each major to the Node LTS lines supported during its own LTS period, so a Node 24 pairing still requires the application's own test suite.", "The official End of LTS date for Fastify 4 is 2025-06-30, so no Fastify 4 transition is catalogued and a 4-to-5 migration stays an independent application Change."],
+      "remediation": "Track upstream security releases monthly and perform a Fastify major migration in its own application Change."
     },
     {
       "id": "frontend.react.19",
