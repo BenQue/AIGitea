@@ -282,6 +282,12 @@
       "arguments": []
     },
     {
+      "name": "orbstack.runner.status",
+      "identity_route": "host-operator",
+      "mutating": false,
+      "arguments": []
+    },
+    {
       "name": "vm.profile.plan",
       "identity_route": "host-operator",
       "mutating": false,

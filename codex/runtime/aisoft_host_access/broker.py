@@ -9,7 +9,7 @@ import re
 import stat
 import subprocess
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import PurePosixPath
 from typing import Callable, Mapping, Protocol, Sequence
 from urllib.error import HTTPError, URLError
@@ -28,6 +28,19 @@ from .contract import (
 
 
 TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+ACT_RUNNER_UNIT = "act_runner.service"
+# How many journal entries are scanned for the most recent task claim (#228).
+# act_runner emits exactly three lines per claimed task and nothing while a job
+# runs, so a bounded tail reaches many claims back without an unbounded read.
+ACT_RUNNER_JOURNAL_LINES = 200
+# "task <id> repo is <owner>/<name> <url> <url>" is the only line act_runner
+# prints that names what it picked up. Matched with a fixed shape rather than a
+# loose split so an unexpected message can never become a repository name.
+ACT_RUNNER_CLAIM_RE = re.compile(
+    r"task (?P<id>[1-9][0-9]{0,17}) repo is "
+    r"(?P<repository>[A-Za-z0-9._-]{1,64}/[A-Za-z0-9._-]{1,100})(?:\s|\"|$)"
+)
+SYSTEMD_TOKEN_RE = re.compile(r"^[a-z-]{1,32}$")
 CREDENTIAL_SCALAR_FIELDS = frozenset({"protocol", "host", "path", "username"})
 CREDENTIAL_REQUIRED_FIELDS = frozenset({"protocol", "host", "path"})
 CREDENTIAL_PROTOCOL_MAX_LINE_BYTES = 65535
@@ -281,6 +294,40 @@ def _duration_seconds(started: object, completed: object) -> int | None:
     if end < start:
         return None
     return int((end - start).total_seconds())
+
+
+def _systemd_token(value: object) -> str | None:
+    """Accept a systemd state word verbatim, or nothing at all."""
+    if isinstance(value, str) and SYSTEMD_TOKEN_RE.fullmatch(value):
+        return value
+    return None
+
+
+def _journal_epoch_seconds(value: object) -> int | None:
+    """Whole seconds from journald's microsecond realtime stamp."""
+    if isinstance(value, str) and value.isdigit():
+        return int(value) // 1_000_000
+    return None
+
+
+def _epoch_iso(seconds: int) -> str:
+    return datetime.fromtimestamp(seconds, tz=timezone.utc).isoformat().replace(
+        "+00:00", "Z"
+    )
+
+
+def _act_runner_claim(message: object) -> tuple[int, str] | None:
+    """Parse the task id and repository out of an act_runner claim line.
+
+    Returns only these two parsed values; the message itself is never
+    propagated, so no log text can leave the VM through this operation.
+    """
+    if not isinstance(message, str):
+        return None
+    match = ACT_RUNNER_CLAIM_RE.search(message)
+    if match is None:
+        return None
+    return int(match.group("id")), match.group("repository")
 
 
 def _redact_secrets(text: str, token: str) -> tuple[str, int]:
@@ -1095,6 +1142,8 @@ class HostAccessBroker:
                 return self._onboarding_check(project, operation)
             if operation_name == "orbstack.vm.status":
                 return self._orbstack_status(project, operation)
+            if operation_name == "orbstack.runner.status":
+                return self._orbstack_runner_status(project, operation)
             if operation_name.startswith("vm.profile."):
                 return self._vm_profile(project, operation)
         except AccessContractError as exc:
@@ -3579,6 +3628,144 @@ class HostAccessBroker:
             "project": project.project_id,
             "operation": operation.name,
             "machine": mac["orbstack_machine"],
+        }
+
+    def _orbstack_runner_status(
+        self,
+        project: ProjectContract,
+        operation: OperationContract,
+    ) -> object:
+        """Read-only act_runner evidence, enough to tell "busy" from "stuck".
+
+        #228: every signal the platform already had — systemctl is-active, the
+        Gitea run state, commit status, orbstack.vm.status — reads identically
+        on a runner that is working and on one whose claimed job has deadlocked,
+        so a five-hour stall was read as a busy queue and never escalated.
+
+        The discriminating fact is not on the Gitea side at all. This runner is
+        registered ubuntu-latest:host, so a job runs as a *direct child* of the
+        daemon: zero children is idle no matter what Gitea still displays, and
+        the oldest child's elapsed time is what separates a normal run from a
+        stuck one when compared against that repository's measured CI duration.
+
+        The log timestamp is deliberately secondary. act_runner prints exactly
+        three lines when it claims a task and nothing while the job runs or when
+        it finishes, so "silent since the claim" is equally true of an idle
+        runner, a healthy one and a deadlocked one. A rule built on log age
+        alone reproduces the #228 misjudgement with a new tool.
+
+        No log text crosses the boundary: only the parsed task id, repository
+        and timestamps are returned, and the raw journal stays on the VM.
+        """
+        mac = self.contract.raw["mac_host"]
+        prefix = (
+            mac["orbstack_binary"], "-m", mac["orbstack_machine"],
+            "-u", mac["orbstack_user"],
+        )
+        service = self._systemd_unit_state(prefix)
+        # Read the VM's own clock rather than this host's: log age is only
+        # meaningful against the clock that stamped the log.
+        observed_at = self._vm_epoch_seconds(prefix)
+        last_log, last_task = self._act_runner_journal(prefix, observed_at)
+        execution = self._act_runner_children(prefix, service["main_pid"])
+        return {
+            "status": "PASS",
+            "project": project.project_id,
+            "operation": operation.name,
+            "machine": mac["orbstack_machine"],
+            "unit": ACT_RUNNER_UNIT,
+            "observed_at": observed_at,
+            "service": service,
+            "last_log": last_log,
+            "last_task": last_task,
+            "execution": execution,
+        }
+
+    def _systemd_unit_state(self, prefix: Sequence[str]) -> dict[str, object]:
+        result = self._run([
+            *prefix, "/usr/bin/systemctl", "show", ACT_RUNNER_UNIT,
+            "--property=ActiveState", "--property=SubState",
+            "--property=ExecMainPID",
+        ])
+        fields: dict[str, str] = {}
+        for line in result.stdout.splitlines():
+            key, separator, value = line.partition("=")
+            if separator:
+                fields[key] = value
+        active_state = _systemd_token(fields.get("ActiveState"))
+        sub_state = _systemd_token(fields.get("SubState"))
+        if active_state is None or sub_state is None:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID", "systemd unit state is unreadable"
+            )
+        raw_pid = fields.get("ExecMainPID", "")
+        # The pid becomes an argument to ps below, so it is accepted only as a
+        # bare positive decimal. 0 is systemd's "no main process" and stays None.
+        main_pid = int(raw_pid) if raw_pid.isdigit() and raw_pid != "0" else None
+        return {
+            "active_state": active_state,
+            "sub_state": sub_state,
+            "main_pid": main_pid,
+        }
+
+    def _vm_epoch_seconds(self, prefix: Sequence[str]) -> int:
+        result = self._run([*prefix, "/bin/date", "+%s"])
+        stamp = result.stdout.strip()
+        if not stamp.isdigit():
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "VM clock is unreadable")
+        return int(stamp)
+
+    def _act_runner_journal(
+        self, prefix: Sequence[str], observed_at: int,
+    ) -> tuple[dict[str, object] | None, dict[str, object] | None]:
+        result = self._run([
+            *prefix, "/usr/bin/journalctl", "-u", ACT_RUNNER_UNIT,
+            "-n", str(ACT_RUNNER_JOURNAL_LINES), "--output=json", "--no-pager",
+        ])
+        last_log: dict[str, object] | None = None
+        last_task: dict[str, object] | None = None
+        for line in result.stdout.splitlines():
+            entry = _decode_json(line)
+            if not isinstance(entry, dict):
+                continue
+            stamp = _journal_epoch_seconds(entry.get("__REALTIME_TIMESTAMP"))
+            if stamp is None:
+                continue
+            # Entries arrive oldest first, so plain assignment leaves the newest.
+            last_log = {
+                "timestamp": _epoch_iso(stamp),
+                "age_seconds": max(observed_at - stamp, 0),
+            }
+            claim = _act_runner_claim(entry.get("MESSAGE"))
+            if claim is not None:
+                last_task = {
+                    "id": claim[0],
+                    "repository": claim[1],
+                    "claimed_at": _epoch_iso(stamp),
+                    "age_seconds": max(observed_at - stamp, 0),
+                }
+        return last_log, last_task
+
+    def _act_runner_children(
+        self, prefix: Sequence[str], main_pid: object,
+    ) -> dict[str, object]:
+        if not isinstance(main_pid, int):
+            return {"child_count": None, "oldest_child_elapsed_seconds": None}
+        result = self._run([
+            *prefix, "/usr/bin/ps", "-o", "pid=,etimes=", "--ppid", str(main_pid),
+        ], allow_failure=True)
+        # ps exits 1 with no output when nothing matches; that is the idle
+        # answer, not a failure. Anything else is a real host failure.
+        if result.returncode not in (0, 1):
+            raise BrokerError("HOST_COMMAND_FAILED", "structured host operation failed")
+        elapsed: list[int] = []
+        for line in result.stdout.split("\n"):
+            parts = line.split()
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                elapsed.append(int(parts[1]))
+        return {
+            "child_count": len(elapsed),
+            "oldest_child_elapsed_seconds": max(elapsed) if elapsed else None,
         }
 
     def _vm_profile(

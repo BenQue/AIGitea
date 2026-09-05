@@ -13,12 +13,12 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 5 and
-  .operation_count == 33 and
+  .operation_count == 34 and
   .merge_operation_count == 1
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 33) and
+  ([.operations[].name] | length == 34) and
   all(.operations[];
     ((.name | contains("merge") | not) or .name == "gitea.pull.merge.routine") and
     (.name | contains("shell") | not) and
