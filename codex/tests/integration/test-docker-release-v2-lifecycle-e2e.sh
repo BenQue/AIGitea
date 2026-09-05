@@ -447,13 +447,47 @@ if [[ -e "$final_evidence_path" || -L "$final_evidence_path" ]]; then
   [[ "$(git -C "$root" rev-parse "$delivery_base_sha^{commit}")" == "$delivery_base_sha" ]] ||
     fail 'Issue #65 post-evidence delivery base is unavailable'
 fi
+# The pin below is name-only and deliberately syntactic: 'my change is harmless'
+# is not an argument it accepts, which is the whole reason it can be trusted.
+# That property survives only if the set it compares is itself stated
+# syntactically, so the paths Issue #65's real-release evidence never attested
+# are enumerated here rather than decided by a predicate at read time (#182).
+#
+# docker-release/install.sh copies the delivered tree onto a target host. It
+# enters no release manifest, is read by no transport and by no capability gate,
+# and the Issue #65 lifecycle never executes it -- so no revision of it can
+# invalidate that evidence. Every other path under docker-release/ stays pinned.
+#
+# Adding an entry here is a governance decision, not a convenience: it must name
+# why the path carries no release semantics, and it must be reviewable as such.
+docker_release_evidence_exempt=(
+  docker-release/install.sh
+)
+
+# The evidence-gated surface of docker-release/: its tracked diff against the
+# delivery base, minus the exempt paths above.
+docker_release_gated_diff() {
+  local line exempt exempted
+  git -C "$root" diff --name-only "$delivery_base_sha" -- docker-release |
+    while IFS= read -r line; do
+      exempted=0
+      for exempt in "${docker_release_evidence_exempt[@]}"; do
+        if [[ "$line" == "$exempt" ]]; then
+          exempted=1
+        fi
+      done
+      if [[ "$exempted" == "0" ]]; then
+        printf '%s\n' "$line"
+      fi
+    done
+}
+
 if [[ "$post_evidence" == "1" ]]; then
   expected_docker_release_diff=$'docker-release/README.md\ndocker-release/compatibility/image-stores-v1.json'
 else
   expected_docker_release_diff='docker-release/README.md'
 fi
-[[ "$(git -C "$root" diff --name-only "$delivery_base_sha" -- docker-release)" == \
-  "$expected_docker_release_diff" ]] ||
+[[ "$(docker_release_gated_diff)" == "$expected_docker_release_diff" ]] ||
   fail 'docker-release differs outside the Issue #65 evidence-gated scope'
 [[ -z "$(git -C "$root" ls-files --others --exclude-standard -- docker-release)" ]] ||
   fail 'docker-release contains an untracked file'
@@ -1573,8 +1607,7 @@ fi
 resources_created=0
 [[ "$cleanup_verified" == "1" ]] || fail 'Issue #65 cleanup was not independently verified'
 
-[[ "$(git -C "$root" diff --name-only "$delivery_base_sha" -- docker-release)" == \
-  "$expected_docker_release_diff" ]] ||
+[[ "$(docker_release_gated_diff)" == "$expected_docker_release_diff" ]] ||
   fail 'docker-release drifted outside the Issue #65 evidence-gated scope'
 [[ -z "$(git -C "$root" ls-files --others --exclude-standard -- docker-release)" ]] ||
   fail 'docker-release gained an untracked file during the real lifecycle run'
