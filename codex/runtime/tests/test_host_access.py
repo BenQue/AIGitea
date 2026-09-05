@@ -5286,5 +5286,172 @@ class VmProfilePreflightTests(unittest.TestCase):
         self.assertEqual(calls, [])
 
 
+class ActRunnerStatusTests(unittest.TestCase):
+    """#228: the one read that separates an idle runner from a stuck one.
+
+    Every pre-existing signal reads the same in both states, so these tests pin
+    the two facts that do not: how many direct children the daemon has, and how
+    long the oldest one has been running.  They also pin the boundary — no
+    journal text may leave the VM through this operation.
+    """
+
+    CLAIM_EPOCH = 1788578740
+    NOW_EPOCH = 1788593104
+    CLAIM_MESSAGE = (
+        'time="2026-09-05T11:25:40+08:00" level=info '
+        'msg="task 1010 repo is admin/aisoft-platform '
+        'https://github.com http://localhost:3000"'
+    )
+    QUIET_MESSAGE = (
+        'time="2026-09-05T11:25:40+08:00" level=info '
+        'msg="NewParallelExecutor: Creating 1 workers for 1 executors"'
+    )
+
+    def setUp(self) -> None:
+        self.contract = load_access_contract(ACCESS, GOVERNANCE)
+
+    @staticmethod
+    def _completed(argv, returncode, stdout="", stderr=""):
+        return subprocess.CompletedProcess(list(argv), returncode, stdout, stderr)
+
+    def _journal(self) -> str:
+        entries = [
+            (self.CLAIM_EPOCH, self.CLAIM_MESSAGE),
+            (self.CLAIM_EPOCH, self.QUIET_MESSAGE),
+        ]
+        return "\n".join(
+            json.dumps(
+                {
+                    "__REALTIME_TIMESTAMP": str(stamp * 1_000_000),
+                    "MESSAGE": message,
+                }
+            )
+            for stamp, message in entries
+        )
+
+    def _runner(
+        self,
+        *,
+        show="ActiveState=active\nSubState=running\nExecMainPID=533\n",
+        clock=None,
+        journal=None,
+        ps_rc=1,
+        ps_out="",
+    ):
+        calls: list[list[str]] = []
+
+        def runner(argv, *, cwd=None, env=None):
+            calls.append(list(argv))
+            if "/usr/bin/systemctl" in argv:
+                return self._completed(argv, 0, show)
+            if "/bin/date" in argv:
+                text = f"{self.NOW_EPOCH}\n" if clock is None else clock
+                return self._completed(argv, 0, text)
+            if "/usr/bin/journalctl" in argv:
+                return self._completed(
+                    argv, 0, self._journal() if journal is None else journal
+                )
+            if "/usr/bin/ps" in argv:
+                return self._completed(argv, ps_rc, ps_out)
+            return self._completed(argv, 0)
+
+        return runner, calls
+
+    def _execute(self, runner):
+        broker = HostAccessBroker(
+            self.contract, credentials=StaticCredentials(), runner=runner
+        )
+        return broker.execute("aisoft-platform", "orbstack.runner.status")
+
+    def test_operation_is_read_only_host_operator_and_argument_free(self) -> None:
+        operation = self.contract.operation("orbstack.runner.status")
+        self.assertEqual(operation.identity_route, "host-operator")
+        self.assertFalse(operation.mutating)
+        self.assertEqual(tuple(operation.arguments), ())
+
+    def test_idle_runner_reports_zero_children(self) -> None:
+        runner, calls = self._runner(ps_rc=1, ps_out="")
+        result = self._execute(runner)
+        self.assertEqual(result["execution"], {
+            "child_count": 0, "oldest_child_elapsed_seconds": None,
+        })
+        self.assertEqual(result["unit"], "act_runner.service")
+        self.assertEqual(result["service"], {
+            "active_state": "active", "sub_state": "running", "main_pid": 533,
+        })
+        # The claim is four hours old and the runner is still idle: log silence
+        # alone would have called this a stall, which is the #228 misjudgement.
+        self.assertEqual(result["last_log"]["age_seconds"], 14364)
+        self.assertEqual(result["last_task"], {
+            "id": 1010,
+            "repository": "admin/aisoft-platform",
+            "claimed_at": "2026-09-05T03:25:40Z",
+            "age_seconds": 14364,
+        })
+        self.assertIn(["/usr/bin/ps"], [[a for a in c if a == "/usr/bin/ps"] for c in calls])
+
+    def test_executing_runner_reports_oldest_child_elapsed(self) -> None:
+        runner, _ = self._runner(ps_rc=0, ps_out="  9001    41\n  9002  15540\n")
+        result = self._execute(runner)
+        self.assertEqual(result["execution"], {
+            "child_count": 2, "oldest_child_elapsed_seconds": 15540,
+        })
+
+    def test_no_journal_text_crosses_the_boundary(self) -> None:
+        runner, _ = self._runner()
+        serialised = json.dumps(self._execute(runner))
+        for fragment in ("NewParallelExecutor", "level=info", "msg=", "localhost:3000"):
+            self.assertNotIn(fragment, serialised)
+
+    def test_message_cannot_smuggle_a_repository_name(self) -> None:
+        hostile = json.dumps({
+            "__REALTIME_TIMESTAMP": str(self.CLAIM_EPOCH * 1_000_000),
+            "MESSAGE": 'msg="task 0 repo is ../../etc/passwd rest"',
+        })
+        runner, _ = self._runner(journal=hostile)
+        result = self._execute(runner)
+        self.assertIsNone(result["last_task"])
+        self.assertIsNotNone(result["last_log"])
+
+    def test_stopped_unit_never_probes_processes(self) -> None:
+        runner, calls = self._runner(
+            show="ActiveState=failed\nSubState=failed\nExecMainPID=0\n"
+        )
+        result = self._execute(runner)
+        self.assertEqual(result["service"]["main_pid"], None)
+        self.assertEqual(result["execution"], {
+            "child_count": None, "oldest_child_elapsed_seconds": None,
+        })
+        self.assertNotIn("/usr/bin/ps", [argument for call in calls for argument in call])
+
+    def test_unreadable_systemd_state_fails_closed(self) -> None:
+        for show in ("", "ActiveState=\n", "ActiveState=Active\nSubState=running\n"):
+            with self.subTest(show=show):
+                runner, _ = self._runner(show=show)
+                with self.assertRaises(BrokerError) as caught:
+                    self._execute(runner)
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_unreadable_vm_clock_fails_closed(self) -> None:
+        runner, _ = self._runner(clock="not-a-clock\n")
+        with self.assertRaises(BrokerError) as caught:
+            self._execute(runner)
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_process_probe_failure_is_not_read_as_idle(self) -> None:
+        # ps exits 1 when nothing matches, which is the idle answer. Any other
+        # non-zero code is a real failure and must not become "child_count 0".
+        runner, _ = self._runner(ps_rc=2)
+        with self.assertRaises(BrokerError) as caught:
+            self._execute(runner)
+        self.assertEqual(caught.exception.code, "HOST_COMMAND_FAILED")
+
+    def test_empty_journal_leaves_both_readings_absent(self) -> None:
+        runner, _ = self._runner(journal="-- No entries --\n")
+        result = self._execute(runner)
+        self.assertIsNone(result["last_log"])
+        self.assertIsNone(result["last_task"])
+
+
 if __name__ == "__main__":
     unittest.main()

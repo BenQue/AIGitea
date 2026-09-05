@@ -250,6 +250,15 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "git.push.change": ("project-agent", True, ("branch",)),
     "mac.git.bind": ("project-agent", True, ()),
     "orbstack.vm.status": ("host-operator", False, ()),
+    # act_runner liveness (#228). Separate from vm.status because they answer
+    # different questions: vm.status says the VM is reachable, this says whether
+    # the one execution slot is idle, working or stuck. Named orbstack. rather
+    # than the gitea. the Issue suggested — dispatch routes by prefix, and a
+    # gitea. name would send a systemd/journal read down the Gitea HTTP path.
+    # Read-only and argument-free on purpose: cancelling a run or killing a
+    # stuck process stays a human decision, and a typed operation would make it
+    # a supported automation, exactly as the actions.* pair already refuses.
+    "orbstack.runner.status": ("host-operator", False, ()),
     "vm.profile.plan": ("host-operator", False, ()),
     "vm.profile.apply": ("host-operator", True, ()),
     "vm.profile.read-back": ("host-operator", False, ()),
