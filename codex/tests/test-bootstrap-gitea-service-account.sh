@@ -3,11 +3,72 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP="$(mktemp -d)"
+
+# Issue #227: this script is part of the required check `CI / verify`, and
+# gitea-ci runs one instance-level runner with maxParallel=1. Any unbounded wait
+# here stalls CI for every repository, so the script must always fail in bounded
+# time with a searchable marker rather than hang. The watchdog is a backstop;
+# the real fixes are the bounded, fail-closed mocks below.
+AISOFT_TEST_DEADLINE_SECONDS="${AISOFT_TEST_DEADLINE_SECONDS:-600}"
+watchdog_pid=''
+
+kill_descendants() {
+  local parent="$1"
+  local child
+  for child in $(ps -Ao pid=,ppid= 2>/dev/null | awk -v p="$parent" '$2 == p {print $1}'); do
+    kill_descendants "$child"
+    kill -KILL "$child" 2>/dev/null || true
+  done
+}
+
 cleanup() {
+  if [[ -n "$watchdog_pid" ]]; then
+    kill_descendants "$watchdog_pid"
+    kill -KILL "$watchdog_pid" 2>/dev/null || true
+    watchdog_pid=''
+  fi
   chmod 700 "$TMP/protected-config" 2>/dev/null || true
   rm -rf -- "$TMP"
 }
 trap cleanup EXIT
+# Turn a delivered TERM into an ordinary exit so the EXIT trap still cleans up.
+trap 'exit 143' TERM
+
+start_deadline_watchdog() {
+  local deadline="$1"
+  local target=$$
+  local step=5
+  [[ "$deadline" -gt 0 ]] || return 0
+  (
+    waited=0
+    while ((waited < deadline)); do
+      sleep "$step"
+      kill -0 "$target" 2>/dev/null || exit 0
+      waited=$((waited + step))
+    done
+    printf 'AISOFT_TEST_DEADLINE_EXCEEDED: %s exceeded %ss; killing pid %s and its descendants\n' \
+      "${BASH_SOURCE[0]}" "$deadline" "$target" >&2
+    kill_descendants "$target"
+    kill -TERM "$target" 2>/dev/null || true
+    sleep 2
+    kill -KILL "$target" 2>/dev/null || true
+  ) &
+  watchdog_pid=$!
+  # Detach it so reaping the watchdog never prints a job notice into CI logs.
+  disown "$watchdog_pid" 2>/dev/null || true
+}
+start_deadline_watchdog "$AISOFT_TEST_DEADLINE_SECONDS"
+
+if [[ -n "${AISOFT_TEST_SELFTEST_HANG:-}" ]]; then
+  # Fault injection for the deadline self-check at the end of this file. It
+  # blocks in open() on a FIFO with no partner, which is the exact syscall the
+  # 2026-08-29 outage was stuck in (wait_for_partner -> fifo_open).
+  mkfifo "$TMP/selftest-hang.fifo"
+  exec 9<"$TMP/selftest-hang.fifo"
+  printf '%s\n' 'AISOFT_TEST_SELFTEST_HANG failed to block' >&2
+  exit 1
+fi
+
 mkdir -p "$TMP/bin" "$TMP/credentials" "$TMP/protected-config"
 chmod 700 "$TMP/credentials"
 touch "$TMP/protected-config/gitea.ini"
@@ -79,14 +140,42 @@ cat >"$TMP/bin/curl" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >>"$MOCK_ROOT/curl-argv.log"
+
+# Issue #227: dispatch on the exact API endpoint, never on a glob over the whole
+# argv. The old `*"/api/v1/user"*` arm also swallowed /api/v1/users/<any third
+# username> and then blocked forever in `read` on inherited stdin, which is an
+# unbounded wait inside a required-CI script. Unknown URLs now fail closed
+# before any stdin read, and the reads that remain are bounded.
 output=''
-for ((index=1; index<=$#; index++)); do
-  if [[ "${!index}" == --output ]]; then
-    next=$((index + 1)); output="${!next}"
-  fi
+url=''
+argv=("$@")
+index=0
+while ((index < ${#argv[@]})); do
+  case "${argv[index]}" in
+    --output) output="${argv[index + 1]:-}"; index=$((index + 2)) ;;
+    http://*|https://*) url="${argv[index]}"; index=$((index + 1)) ;;
+    *) index=$((index + 1)) ;;
+  esac
 done
-case "$*" in
-  *"/api/v1/users/newemaint-routine-merger"*)
+
+endpoint="${url#*/api/v1}"
+if [[ -z "$url" || "$endpoint" == "$url" ]]; then
+  printf 'MOCK_CURL_UNEXPECTED_URL: %s\n' "${url:-<none>}" >&2
+  exit 2
+fi
+
+auth=''
+require_config_header() {
+  # The tool always pipes `--config -` payloads in. If a caller ever forgets,
+  # fail in bounded time with a searchable marker instead of hanging forever.
+  if ! IFS= read -r -t "${MOCK_CURL_STDIN_TIMEOUT:-10}" auth; then
+    printf 'MOCK_CURL_MISSING_CONFIG_STDIN: %s\n' "$endpoint" >&2
+    exit 3
+  fi
+}
+
+case "$endpoint" in
+  /users/newemaint-routine-merger)
     if [[ -f "$MOCK_ROOT/routine-account-present" ]]; then
       [[ -n "$output" ]]
       identity="${MOCK_ACCOUNT_IDENTITY:-}"
@@ -97,7 +186,7 @@ case "$*" in
       printf 404
     fi
     ;;
-  *"/api/v1/users/hsdb-agent"*)
+  /users/hsdb-agent)
     if [[ -f "$MOCK_ROOT/account-present" ]]; then
       [[ -n "$output" ]]
       identity="${MOCK_ACCOUNT_IDENTITY:-}"
@@ -108,8 +197,8 @@ case "$*" in
       printf 404
     fi
     ;;
-  *"/api/v1/user"*)
-    read -r auth
+  /user)
+    require_config_header
     if [[ "$auth" == *sentinel-routine-token* ]]; then
       [[ ! -e "$MOCK_ROOT/routine-must-change-password-present" ]]
       printf '{"login":"newemaint-routine-merger","is_admin":false}\n'
@@ -119,19 +208,18 @@ case "$*" in
       printf '{"login":"hsdb-agent","is_admin":false}\n'
     fi
     ;;
-  *"/api/v1/notifications"*)
-    read -r auth
+  /notifications)
+    require_config_header
     [[ "$auth" == *sentinel-routine-token* ]]
-    output=''
-    while (($#)); do
-      if [[ "$1" == --output ]]; then output="$2"; shift 2; else shift; fi
-    done
     [[ -n "$output" ]]
     printf '{"message":"token does not have required scope, token scope=%s"}\n' \
       "${MOCK_ROUTINE_SCOPE:-write:repository}" >"$output"
     printf 403
     ;;
-  *) exit 2 ;;
+  *)
+    printf 'MOCK_CURL_UNEXPECTED_URL: %s\n' "$url" >&2
+    exit 2
+    ;;
 esac
 MOCK
 
@@ -602,5 +690,23 @@ if grep -Fq sentinel-routine-token "$TMP/gitea-argv.log" ||
   printf '%s\n' 'routine merger secret leaked through argv or stdout' >&2
   exit 1
 fi
+
+# Issue #227 AC-4: the deadline watchdog must actually bound an injected hang.
+# The child blocks in open() on a partnerless FIFO, the same syscall the outage
+# was stuck in, and must die with a searchable marker well inside the deadline.
+guard_log="$TMP/deadline-guard.log"
+guard_started="$(date +%s)"
+if AISOFT_TEST_SELFTEST_HANG=1 AISOFT_TEST_DEADLINE_SECONDS=5 \
+   bash "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
+   >"$guard_log" 2>&1; then
+  printf '%s\n' 'deadline watchdog did not fail an injected hang' >&2
+  exit 1
+fi
+guard_elapsed=$(( $(date +%s) - guard_started ))
+if ((guard_elapsed > 60)); then
+  printf 'deadline watchdog took %ss, which is not a bounded failure\n' "$guard_elapsed" >&2
+  exit 1
+fi
+grep -Fq 'AISOFT_TEST_DEADLINE_EXCEEDED' "$guard_log"
 
 printf '%s\n' 'bootstrap Gitea service account tests passed'
