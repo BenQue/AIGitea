@@ -39,6 +39,7 @@ fi
   printf '%s\n' \
     "Use \$gitea-analyze-change to analyze this Issue in read-only mode." \
     'Read AGENTS.md, relevant code, tests, and the Issue JSON below.' \
+    'The Issue JSON carries the complete comment thread in issue_comments, in chronological order; the comments field is only a count. A later comment that revises, narrows, or overturns the scope stated in the body takes precedence over the body for classification, and evidence must cite the comment it relies on.' \
     'Do not edit files or mutate Git/Gitea state.' \
     'Return only one JSON object with exactly these fields:' \
     '{"classification":"the canonical classification YAML string","document_slug":"two-to-four-short-words","problem_summary":"...","impact":"...","approach":"...","risks":["..."],"evidence":["repo evidence"],"missing_acceptance_criteria":[]}' \

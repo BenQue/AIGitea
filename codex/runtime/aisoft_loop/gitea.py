@@ -66,6 +66,48 @@ class GiteaClient:
     def get_issue(self, issue_number: int) -> dict[str, object]:
         return self._object("GET", f"/issues/{_number(issue_number)}")
 
+    def list_issue_comments(self, issue_number: int) -> list[dict[str, object]]:
+        """Read one Issue's whole comment thread as a bounded, projected list.
+
+        The raw Issue object only carries a `comments` count, so an analyzer
+        fed that object alone judged Issues whose scope had been revised in
+        comments without knowing it was blind (#180). The projection keeps the
+        same four fields the broker's gitea.issue.comments.read returns — who
+        said what, when, and where to look it up — so both read surfaces stay
+        one shape and a raw Gitea comment (user object, reactions, assets)
+        never leaks into the analyzer prompt.
+
+        Paged and bounded like the broker: a silent first-page-only read would
+        make a partial discussion look complete, which is the very blind spot
+        this method exists to close.
+        """
+        number = _number(issue_number)
+        comments: list[dict[str, object]] = []
+        for page in range(1, 101):
+            values = self._array("GET", f"/issues/{number}/comments?limit=50&page={page}")
+            for item in values:
+                if (
+                    not isinstance(item, dict)
+                    or not isinstance(item.get("id"), int)
+                    or isinstance(item.get("id"), bool)
+                    or not isinstance(item.get("body"), str)
+                    or not isinstance(item.get("created_at"), str)
+                    or not isinstance(item.get("user"), dict)
+                    or not isinstance(item["user"].get("login"), str)
+                ):
+                    raise GiteaError("Gitea Issue comment entry is invalid")
+                comments.append(
+                    {
+                        "id": item["id"],
+                        "author": item["user"]["login"],
+                        "created_at": item["created_at"],
+                        "body": item["body"],
+                    }
+                )
+            if len(values) < 50:
+                return comments
+        raise GiteaError("Gitea Issue comment list exceeds the bounded scan")
+
     def list_issues(self, label: str) -> list[dict[str, object]]:
         if not label or any(character in label for character in "\r\n"):
             raise GiteaError("Issue label filter must not be empty")

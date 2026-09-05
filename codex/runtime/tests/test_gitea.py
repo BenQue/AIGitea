@@ -34,6 +34,20 @@ def issue_payload(labels: list[tuple[int, str]] | None = None) -> dict:
     }
 
 
+def comment_payload(index: int) -> dict:
+    """One raw Gitea comment as the API returns it: the projection under test
+    must drop the embedded user object, reactions and assets (#180)."""
+    return {
+        "id": index,
+        "body": f"comment {index}",
+        "created_at": f"2026-09-05T10:00:{index % 60:02d}+08:00",
+        "updated_at": "2026-09-05T10:00:59+08:00",
+        "user": {"id": 4, "login": "reviewer", "email": "reviewer@example.invalid"},
+        "reactions": [],
+        "assets": [],
+    }
+
+
 class GiteaClientTests(unittest.TestCase):
     def client(self, transport: FakeTransport, *, sleeps: list[float] | None = None) -> GiteaClient:
         recorded = sleeps if sleeps is not None else []
@@ -311,6 +325,63 @@ class GiteaClientTests(unittest.TestCase):
         client.get_pr(3)
         self.assertTrue(transport.calls[0][1].endswith("/issues/8/comments"))
         self.assertTrue(transport.calls[1][1].endswith("/pulls/3"))
+
+    # #180: the analyzer pipeline only ever saw the `comments` count. The client
+    # now reads the whole thread, projected to the same four fields the broker's
+    # gitea.issue.comments.read returns, paged and bounded exactly like it.
+    def test_list_issue_comments_pages_projects_and_keeps_token_in_header(self) -> None:
+        transport = FakeTransport(
+            [
+                (200, {}, [comment_payload(index) for index in range(1, 51)]),
+                (200, {}, [comment_payload(51)]),
+            ]
+        )
+        comments = self.client(transport).list_issue_comments(8)
+        self.assertEqual([entry["id"] for entry in comments], list(range(1, 52)))
+        self.assertEqual(
+            comments[0],
+            {
+                "id": 1,
+                "author": "reviewer",
+                "created_at": "2026-09-05T10:00:01+08:00",
+                "body": "comment 1",
+            },
+        )
+        self.assertTrue(transport.calls[0][1].endswith("/issues/8/comments?limit=50&page=1"))
+        self.assertTrue(transport.calls[1][1].endswith("/issues/8/comments?limit=50&page=2"))
+        for method, url, headers, body in transport.calls:
+            self.assertEqual(method, "GET")
+            self.assertIsNone(body)
+            self.assertEqual(headers["Authorization"], "token sentinel-token")
+            self.assertNotIn("sentinel-token", url)
+
+    def test_list_issue_comments_of_a_silent_issue_is_one_empty_page(self) -> None:
+        transport = FakeTransport([(200, {}, [])])
+        self.assertEqual(self.client(transport).list_issue_comments(8), [])
+        self.assertEqual(len(transport.calls), 1)
+
+    def test_list_issue_comments_rejects_invalid_entries_and_shapes(self) -> None:
+        broken_entries = (
+            {"id": 1, "body": "no user", "created_at": "2026-09-05T10:00:00+08:00"},
+            {**comment_payload(1), "body": None},
+            {**comment_payload(1), "id": True},
+            {**comment_payload(1), "user": {"id": 4}},
+            "not an object",
+        )
+        for broken in broken_entries:
+            transport = FakeTransport([(200, {}, [broken])])
+            with self.subTest(broken=broken), self.assertRaises(GiteaError):
+                self.client(transport).list_issue_comments(8)
+        transport = FakeTransport([(200, {}, {"message": "not a list"})])
+        with self.assertRaises(GiteaError):
+            self.client(transport).list_issue_comments(8)
+
+    def test_list_issue_comments_scan_is_bounded(self) -> None:
+        full_page = [comment_payload(index) for index in range(1, 51)]
+        transport = FakeTransport([(200, {}, full_page)] * 101)
+        with self.assertRaisesRegex(GiteaError, "bounded"):
+            self.client(transport).list_issue_comments(8)
+        self.assertEqual(len(transport.calls), 100)
 
 
 if __name__ == "__main__":

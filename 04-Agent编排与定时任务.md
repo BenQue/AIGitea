@@ -52,7 +52,7 @@ aisoft-agent@<profile>.timer / controlled trigger
 
 Analyzer：
 
-1. 读取 Issue、`AGENTS.md`、仓库和相关测试。
+1. 读取 Issue、`AGENTS.md`、仓库和相关测试。自动化运行时 `aisoft_loop.cli get-issue` 写出的 Issue JSON 在原始 `comments` 计数之外带上完整评论线程 `issue_comments`（按时间顺序，投影为 `id/author/created_at/body`，与 broker `gitea.issue.comments.read` 同形），走同一条只读 project-agent token 路径；后出现的修订/收窄/推翻正文范围的评论对判级优先于正文，`render-analysis` 对缺少 `issue_comments` 的 payload fail-closed（#180）。
 2. 只读分析产品代码，识别主要 type、产品合同影响、风险和有效复杂度，输出固定结构；模型不得直接修改 Issue 标签。
 3. 外层 wrapper 先校验 analyzer 输出的 slug，再创建 `change/N-short-description`、`issue-N-short-description` worktree 与同名文档目录，写 summary、提交、推送和评论；legacy Issue 仅从已有远端/历史证据解析。
 4. 不实现代码、不创建最终 PR、不启动部署。
