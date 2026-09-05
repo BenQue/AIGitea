@@ -124,8 +124,8 @@ JSON
 # governance manifest is keyed by repository name; the tool derives one from the
 # other. Two of the three mappings deliberately have a repository name that is
 # NOT the project id, so every assertion below travels the derivation. The third
-# keeps the coinciding shape that hid the bug for as long as it did — four of the
-# ten real projects still have it, and they must keep working.
+# keeps the coinciding shape that hid the bug for as long as it did — three of
+# the five real projects still have it, and they must keep working.
 ACCESS_MANIFEST="$TMP/host-access-broker.json"
 cat >"$ACCESS_MANIFEST" <<'JSON'
 {
