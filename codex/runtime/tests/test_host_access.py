@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import re
 import stat
 import subprocess
 import tempfile
@@ -1371,6 +1372,84 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
         self.assertEqual({method for method, _, _ in calls}, {"GET"})
 
+    def test_actions_run_read_reports_no_duration_for_a_run_that_never_started(
+        self,
+    ) -> None:
+        """#225: a run cancelled while queued carries the zero clock, not a time.
+
+        Gitea renders an unset time in the server's offset, so started_at
+        arrives as "1970-01-01T08:00:00+08:00" — well-formed, and not a claim
+        about 1970. Subtracting it from a real completed_at is what returned
+        1788522654 for admin/LocalWMS run 1016: the unix epoch of the end,
+        dressed as a duration.
+
+        The timestamp itself must go to None as well. Nulling only the derived
+        number leaves the epoch reported as started_at, where any reader can
+        subtract it again and arrive at the same absurdity.
+        """
+        never_started = self._gitea_run()
+        never_started["status"] = "completed"
+        never_started["conclusion"] = "cancelled"
+        never_started["started_at"] = "1970-01-01T08:00:00+08:00"
+        never_started["completed_at"] = "2026-09-04T19:50:54+08:00"
+        broker = self._actions_broker([never_started], {493: []}, [])
+
+        run = broker.execute(
+            "aisoft-platform", "gitea.actions.run.read", sha=self.ACTIONS_SHA
+        )["runs"][0]
+
+        self.assertIsNone(run["started_at"])
+        self.assertIsNone(run["duration_seconds"])
+        # The end of the run is a real observation and must survive: "cancelled
+        # at 19:50, never started" is the answer; dropping both ends would
+        # replace one unusable value with no value at all.
+        self.assertEqual(run["completed_at"], "2026-09-04T19:50:54+08:00")
+        self.assertEqual(run["conclusion"], "cancelled")
+
+    def test_actions_run_read_reports_no_duration_for_a_running_run(self) -> None:
+        """The still-running case, pinned rather than left to luck.
+
+        This one already returned None before #225, but only because the zero
+        completed_at sorts before a real started_at and trips the ordering
+        guard. That is an accident of which end the zero landed on, and an
+        accident is not a contract.
+        """
+        running = self._gitea_run()
+        running["status"] = "in_progress"
+        running["conclusion"] = None
+        running["started_at"] = "2026-09-04T19:50:54+08:00"
+        running["completed_at"] = "1970-01-01T08:00:00+08:00"
+        job = self._gitea_job()
+        job["status"] = "in_progress"
+        job["conclusion"] = None
+        job["completed_at"] = "1970-01-01T08:00:00+08:00"
+        broker = self._actions_broker([running], {493: [job]}, [])
+
+        run = broker.execute(
+            "aisoft-platform", "gitea.actions.run.read", sha=self.ACTIONS_SHA
+        )["runs"][0]
+
+        self.assertIsNone(run["completed_at"])
+        self.assertIsNone(run["duration_seconds"])
+        self.assertEqual(run["started_at"], "2026-09-04T19:50:54+08:00")
+        # Jobs and steps are projected through the same filter, so an unfinished
+        # job cannot report a duration its run does not.
+        self.assertIsNone(run["jobs"][0]["completed_at"])
+        self.assertIsNone(run["jobs"][0]["duration_seconds"])
+
+    def test_actions_run_read_rejects_the_other_zero_clock_gitea_emits(self) -> None:
+        """Year one is the same non-fact as 1970, and reaches us the same way."""
+        never_started = self._gitea_run()
+        never_started["started_at"] = "0001-01-01T00:00:00Z"
+        broker = self._actions_broker([never_started], {493: []}, [])
+
+        run = broker.execute(
+            "aisoft-platform", "gitea.actions.run.read", sha=self.ACTIONS_SHA
+        )["runs"][0]
+
+        self.assertIsNone(run["started_at"])
+        self.assertIsNone(run["duration_seconds"])
+
     def test_actions_run_read_is_project_scoped_and_sha_keyed(self) -> None:
         calls: list[tuple] = []
         broker = self._actions_broker([self._gitea_run()], {493: []}, calls)
@@ -1493,10 +1572,82 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertTrue(value["truncated"])
         self.assertEqual(value["original_bytes"], len(log))
         self.assertLessEqual(value["returned_bytes"], len(log))
-        self.assertIn("truncated", value["log"].splitlines()[0])
+        self.assertIn("truncated", value["log"])
         # Tail-biased: a failing step prints its error last, so a head-biased
         # cut would reliably discard the only part worth reading.
         self.assertIn(tail.strip(), value["log"])
+
+    def test_actions_job_logs_read_keeps_both_ends_of_a_long_log(self) -> None:
+        """#225: the head is evidence too, and it used to be unreachable.
+
+        The first step of a long job says which tree was checked out. Under the
+        tail-only rule that line was discarded with no way to ask for it, which
+        is how LocalWMS run 835 could be shown to have passed its checkout step
+        without anyone being able to say what it checked out.
+        """
+        head = "checked out 0123456789abcdef0123456789abcdef01234567\n"
+        tail = "the failing assertion is printed last\n"
+        log = (head + ("x" * 79 + "\n") * 4000 + tail).encode()
+        broker = self._actions_broker([], {}, [], log=log)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.actions.job.logs.read", job=493
+        )
+
+        self.assertTrue(value["truncated"])
+        self.assertIn(head.strip(), value["log"])
+        self.assertIn(tail.strip(), value["log"])
+        # The elision reports both ends, and its counts add back up to the
+        # original — an omitted count that cannot be checked against
+        # original_bytes is not evidence of anything.
+        marker = next(
+            line for line in value["log"].splitlines() if line.startswith("[truncated:")
+        )
+        omitted, kept_head, kept_tail = (
+            int(number) for number in re.findall(r"\d+", marker)
+        )
+        self.assertEqual(omitted + kept_head + kept_tail, value["original_bytes"])
+        self.assertGreater(omitted, 0)
+
+    def test_actions_job_logs_read_stays_inside_the_window_it_declares(self) -> None:
+        """The marker counts against the window rather than riding on top of it.
+
+        The old rule cut 65536 bytes and then prefixed a marker, so a truncated
+        read returned 65577 — over the one ceiling #143 set for how much text
+        may enter an agent's context.
+        """
+        log = ("y" * 79 + "\n").encode() * 6000
+        broker = self._actions_broker([], {}, [], log=log)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.actions.job.logs.read", job=493
+        )
+
+        self.assertLessEqual(value["returned_bytes"], 65536)
+        self.assertEqual(value["returned_bytes"], len(value["log"].encode("utf-8")))
+
+    def test_actions_job_logs_read_never_repeats_a_line_across_the_elision(self) -> None:
+        """A log barely over the window must not have its two ends overlap.
+
+        The narrowest case there is: one byte past the ceiling. If the head and
+        tail budgets could sum past the log, the middle would be reported twice
+        and the omitted count would go negative.
+        """
+        line = "z" * 63 + "\n"
+        log = (line * 1024 + "tail-marker\n").encode()
+        self.assertGreater(len(log), 65536)
+        broker = self._actions_broker([], {}, [], log=log)
+
+        value = broker.execute(
+            "aisoft-platform", "gitea.actions.job.logs.read", job=493
+        )
+
+        marker = next(
+            line for line in value["log"].splitlines() if line.startswith("[truncated:")
+        )
+        omitted = int(re.findall(r"\d+", marker)[0])
+        self.assertGreater(omitted, 0)
+        self.assertLess(value["returned_bytes"], value["original_bytes"])
 
     def test_actions_job_logs_read_leaves_a_short_log_untouched(self) -> None:
         broker = self._actions_broker([], {}, [], log=b"all good\n")
