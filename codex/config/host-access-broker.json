@@ -70,7 +70,8 @@
       "mutating": true,
       "arguments": [
         "title",
-        "body"
+        "body",
+        "entry_label"
       ]
     },
     {

@@ -36,6 +36,11 @@ def build_parser() -> argparse.ArgumentParser:
     # Actions job id (#143). Sourced from gitea.actions.run.read output, never
     # scraped out of a commit status target_url.
     broker.add_argument("--job", type=int)
+    # The flow entrance a new Issue starts at (#243). Deliberately no choices=
+    # and no default: the accepted pair is checked inside the broker against
+    # both the entrance set and the installed label manifest, and a default here
+    # would put the entrance back out of sight at the call site.
+    broker.add_argument("--entry-label")
     # Deliberately no choices=: the accepted lifecycle states are derived from
     # the installed label manifest inside the broker (#115). Listing them here
     # would be another copy of the eight names and would drift from the manifest
@@ -101,6 +106,7 @@ def main(argv: list[str] | None = None) -> int:
                 comment=args.comment,
                 sha=args.sha,
                 job=args.job,
+                entry_label=args.entry_label,
                 lifecycle=args.lifecycle,
                 change_type=args.change_type,
                 complexity=args.complexity,
