@@ -12,7 +12,7 @@ from aisoft_architecture.validator import validate_catalog, validate_profile
 
 ROOT = Path(__file__).resolve().parents[3]
 ARCH = ROOT / "architecture"
-TODAY = date(2026, 8, 6)
+TODAY = date(2026, 9, 5)
 
 
 class ArchitectureSchemaTests(unittest.TestCase):
@@ -38,7 +38,7 @@ class ArchitectureSchemaTests(unittest.TestCase):
 
     def test_catalog_and_all_profiles_validate(self) -> None:
         components = validate_catalog(self.catalog, self.catalog_schema, TODAY)
-        self.assertEqual(len(components), 29)
+        self.assertEqual(len(components), 31)
         profile_ids = []
         for path in sorted((ARCH / "profiles").glob("*.json")):
             profile = load_json(path)
@@ -61,12 +61,17 @@ class ArchitectureSchemaTests(unittest.TestCase):
                 "package.npm.11",
                 "database.postgresql.18",
                 "toolchain.typescript.6",
+                "framework.fastify.5",
+                "orm.kysely.0-29",
             ],
         )
-        # The whole point of this profile is the slots it does not force. A
-        # future edit that adds a container, OCI, proxy, ORM or frontend slot
-        # would silently re-break the systemd-native consumer this profile was
-        # created for, so the excluded categories are pinned here.
+        # The point of this profile is still the slots it does not force. #154
+        # deliberately added the framework and ORM slots so that Fastify and
+        # Kysely majors show up as drift in a project lock; without a slot the
+        # catalog entry is unreachable from the declaration side. A container,
+        # OCI, proxy or frontend slot would still silently re-break the
+        # systemd-native consumer this profile was created for, so those
+        # categories stay pinned as excluded here.
         categories = {components[slot]["category"] for slot in slots}
         self.assertTrue(
             categories.isdisjoint(
@@ -75,8 +80,6 @@ class ArchitectureSchemaTests(unittest.TestCase):
                     "container-compose",
                     "oci-image",
                     "proxy",
-                    "orm",
-                    "framework",
                     "frontend",
                 }
             )
@@ -255,7 +258,7 @@ class ArchitectureSchemaTests(unittest.TestCase):
         ] = "https://registry.npmjs.org/next/latest"
 
         future = deepcopy(self.catalog)
-        future["components"][next_index]["package_release"]["retrieved_at"] = "2026-08-07"
+        future["components"][next_index]["package_release"]["retrieved_at"] = "2026-09-06"
 
         cases = [
             (missing_metadata, "NEXT_RELEASE_METADATA_REQUIRED"),
@@ -318,7 +321,7 @@ class ArchitectureSchemaTests(unittest.TestCase):
         future = deepcopy(self.catalog)
         future["components"][prisma_index]["package_release"]["packages"][0][
             "released_at"
-        ] = "2026-08-07"
+        ] = "2026-09-06"
 
         cases = [
             (old_version, "PRISMA_PACKAGE_VERSION_MISMATCH"),

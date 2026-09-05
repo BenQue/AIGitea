@@ -192,11 +192,11 @@ remote_check() {
     MOCK_PROTECTION_STATUS="${MOCK_PROTECTION_STATUS:-200}" \
     MOCK_TRANSPORT_FAIL="${MOCK_TRANSPORT_FAIL:-0}" \
     MOCK_ISSUES_FAIL="${MOCK_ISSUES_FAIL:-0}" \
-    bash "$CHECKER" --today 2026-08-12 "$@"
+    bash "$CHECKER" --today 2026-09-12 "$@"
 }
 
 local_check() {
-  bash "$CHECKER" --today 2026-08-12 "$@"
+  bash "$CHECKER" --today 2026-09-12 "$@"
 }
 
 make_aligned_repo "$TMP/aligned"

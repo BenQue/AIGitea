@@ -2,10 +2,26 @@
 
 Catalog evidence retrieved: 2026-08-02 · Server-inventory supplement retrieved: 2026-08-03 ·
 Issue #26 transition supplement retrieved: 2026-08-04 · Issue #33 security supplement retrieved:
-2026-08-06 · Next review: 2026-11-02 for original catalog entries, 2026-11-03 for server inventory,
-2026-11-04 for transition evidence and 2026-11-06 for security evidence · Method: one
+2026-08-06 · Issue #154 Fastify and Kysely supplement retrieved: 2026-09-05 · Next review:
+2026-11-02 for original catalog entries, 2026-11-03 for server inventory, 2026-11-04 for
+transition evidence, 2026-11-06 for security evidence and 2026-12-05 for the Fastify and
+Kysely entries · Method: one
 Context7 query per concept, with official/upstream readback where lifecycle or exact release metadata
 was required.
+
+## Issue #154 Fastify and Kysely supplement
+
+| Package | Official/upstream readback | Exact conclusion and support window |
+|---|---|---|
+| Fastify | npm Registry [fastify@5.12.3](https://registry.npmjs.org/fastify/5.12.3) and the official LTS schedule <https://fastify.dev/docs/latest/Reference/LTS/> | `dist-tags.latest` resolves to exact `5.12.3`, published 2026-09-04. The LTS schedule lists 5.0.0 as released 2024-09-17 with End of LTS **TBD**, and 4.0.0 as released 2022-06-08 with End of LTS **2025-06-30**. Every major gets at least six months of support from release plus six months of security updates after the next major ships. The package declares no `engines` field; the schedule's 5.0.0 row names Node 20 and 22, and the policy commits each major to the Node LTS lines supported inside its own LTS period. |
+| Kysely | GitHub release <https://github.com/kysely-org/kysely/releases/tag/v0.29.5> plus npm Registry metadata | `dist-tags.latest` resolves to exact `0.29.5`, published 2026-08-10, declaring `engines.node` `>=22.0.0`. The only other dist-tag is the pre-release `next` at `0.30.0-beta.1`. Kysely is pre-1.0 and publishes no support-window or EOL table. |
+
+Both entries are catalogued as `preferred` only. Fastify 4 is not catalogued as a transition
+because its official End of LTS date 2025-06-30 has already passed, and a `sunset` entry needs a
+`migrate_by` plus an `eol` that has not passed. Kysely gets no transition because upstream
+publishes no support window at all, so any catalogued deadline would be a platform invention
+presented as an upstream fact. Neither package joins the governed npm stable-release snapshot
+set, which still covers only Next.js, React and Prisma.
 
 ## Issue #33 Next.js and Prisma security supplement
 

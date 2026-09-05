@@ -3,7 +3,7 @@
   "schema_version": "1.0",
   "profile_id": "small-embedded-sqlite-v1",
   "version": "1.0.0",
-  "catalog_revision": "2026.08.3",
+  "catalog_revision": "2026.09.0",
   "status": "active",
   "description": "Single-instance, local-disk, bounded-concurrency embedded SQLite baseline.",
   "required_components": [
