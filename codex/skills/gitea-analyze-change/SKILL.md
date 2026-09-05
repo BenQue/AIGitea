@@ -5,7 +5,7 @@ description: Analyze a Gitea Issue against the current repository and produce an
 
 # Analyze a Gitea change
 
-1. Read `AGENTS.md`, the Issue title/body/comments, current `type/*` and complexity labels, repository structure, relevant code, and existing tests.
+1. Read `AGENTS.md`, the Issue title/body/comments, current `type/*` and complexity labels, repository structure, relevant code, and existing tests. In automated runs the Issue JSON carries the complete comment thread as the `issue_comments` list in chronological order, while `comments` is only a count; a later comment that revises, narrows, or overturns the scope stated in the body takes precedence over the body for classification, and the evidence must cite the comment it relies on.
 2. Stay read-only. Do not edit product code, workflows, deployment scripts, Git state, labels, comments, branches, or databases.
 3. Ground impact claims in inspected files. Separate confirmed facts, assumptions, and unresolved questions.
 4. Produce exactly these five level-two Markdown sections, in this order, with no additional `##` section:
