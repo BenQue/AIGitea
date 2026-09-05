@@ -1,3 +1,7 @@
+# 受保护 main 的必需检查是精确字符串 `CI / verify (pull_request)`，由 workflow 名（CI）
+# + job key（verify）+ 事件三者构成——改任何一个，或把某个步骤拆成新的 job，
+# 都会让必需检查失配，此后所有 PR 永久 pending。见平台文档 02 §2。
+# Issue #223 只在这个 job 里多加了两步，三者一个都没动。
 name: CI
 
 on:
@@ -8,8 +12,34 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
+      # 三方合并要找 base 与 head 的共同祖先，浅克隆找不到。
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      # Issue #223：本仓自己也暴露在这个盲区里——smoke 里有 operation_count 这类
+      # 手工维护的常数，两个并行 PR 各加一条 typed 操作、各把 N 改成 N+1，
+      # 就会各自绿、合并后主干红。这一步把工作区推进到「head 与 main 当前尖端的
+      # 合并结果」，拿不到就明确失败，绝不回退到 head。
+      #
+      # 跑的是 templates/project/ci/ 里那份参考实现本身，不另存一份副本：
+      # 本仓的每一次 PR 都在验证发给各项目的那个文件。
+      # 不要给这一步加 continue-on-error：一个可以静默失败的预览不是闸门。
+      - name: Check out merge preview
+        if: github.event_name == 'pull_request'
+        env:
+          MERGE_PREVIEW_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          MERGE_PREVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -o pipefail
+          bash templates/project/ci/merge-preview.sh 2>&1 \
+            | tee "$RUNNER_TEMP/merge-preview.log"
+
       - name: Platform smoke suite
         run: bash codex/tests/smoke.sh
+
+      # 把合并预览的输出重印在 job 末尾：日志读取可能截头不截尾，而「这次跑的
+      # 到底是哪棵树」正是本 job 最该留下的证据。always() 让失败原因也留得下来。
+      - name: Merge preview evidence
+        if: always() && github.event_name == 'pull_request'
+        run: cat "$RUNNER_TEMP/merge-preview.log" || echo '[ci] 没有合并预览日志'

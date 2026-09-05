@@ -53,6 +53,10 @@ bash -n "$ROOT/codex/tools/aisoft-project-check.sh"
 bash -n "$ROOT/codex/tests/test-project-check.sh"
 bash -n "$ROOT/codex/tools/change-template-sync.sh"
 bash -n "$ROOT/codex/tests/test-change-template-sync.sh"
+# #223: the merge-preview reference is vendored into every project's CI and is
+# executed by this repository's own pull_request workflow, so it gets the same
+# static gates as any shipped script.
+bash -n "$ROOT/templates/project/ci/merge-preview.sh"
 for script in \
   "$ROOT/codex/install-host-role.sh" \
   "$ROOT/codex/install-host-access-broker.sh" \
@@ -130,6 +134,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
     "$ROOT/codex/tools/aisoft-project-check.sh" \
     "$ROOT/codex/tools/change-template-sync.sh" \
+    "$ROOT/templates/project/ci/merge-preview.sh" \
     "$ROOT/codex/tests/test-change-template-sync.sh" \
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-gitea-label-manifest.sh" \
@@ -478,6 +483,8 @@ governance_set=(
   "$ROOT"/codex/skills/*/SKILL.md
   "$ROOT/codex/global-AGENTS.md"
   "$ROOT/templates/project/AGENTS.md"
+  "$ROOT/templates/project/ci/ci.yml"
+  "$ROOT/templates/project/ci/merge-preview.sh"
 )
 # An unexpanded glob or a renamed file would make rg exit 2, which `if rg`
 # reads as "no match"; assert every member exists so the guard fails closed.

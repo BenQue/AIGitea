@@ -1,0 +1,68 @@
+# CI workflow 参考（AISoft 平台 Issue #223）。逐项目复制到 .gitea/workflows/ci.yml 后按需裁剪；
+# 这不是一份逐字节 vendored 的合同副本，各项目的构建与测试步骤本来就不同。
+#
+# ⚠️ 必需检查的 context 是一个精确字符串，由 workflow 名 + job key + 事件三者构成
+# （例如 `CI / verify (pull_request)`，见平台文档 02 §2）。改这三者中任何一个，
+# 或者把某个步骤拆成新的 job，都会让受保护 main 的必需检查失配，此后所有 PR 永久 pending。
+# 本参考里所有闸门都留在同一个 job 内，就是这个原因。
+#
+# 本参考解决的是「pull_request 跑的是 PR head 而非合并结果」这个结构性盲区：
+# 两个并行 PR 各自诚实地绿、合并后主干红。合并预览由 merge-preview.sh 在运行时现场做，
+# 拿不到就明确失败，绝不静默回退到 head——一个跑在 head 上的绿正是事故里那个假绿。
+#
+# 只做这一半是不够的：这次预览是在本次运行那一刻算的，而合并发生在之后。
+# 中间别人合并进 base 之后没有任何东西让它重跑。另一半是分支保护的
+# block_on_outdated_branch，由平台侧在 Gitea 界面打开，不在本文件内。
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  # push 那一路可选。它本来就跑在真实的目标分支上，不需要合并预览。
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # job key 是必需检查 context 的一部分，改名前先回读分支保护。
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      # 三方合并要找 base 与 head 的共同祖先，浅克隆找不到，所以 pull_request 那一路
+      # 取全历史；push 那一路保持默认的 depth 1。
+      #
+      # 条件写成 `== 'push'` 而不是 `== 'pull_request'` 是刻意的：表达式里
+      # `A && 0 || 1` 永远得 1——`0` 本身是 falsy，`&&` 交出 `0` 之后 `||` 又把它丢掉。
+      # 把 truthy 的那个值放在 `&&` 右边就绕开了这个陷阱。
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ github.event_name == 'push' && 1 || 0 }}
+
+      # 本参考的本体。必须留在这个 job 内——它只是 job 里多出来的一步，
+      # workflow 名、job key、事件三者一个都没动，分支保护不需要任何改动。
+      #
+      # `if` 守卫就是「push 那一路行为未变」的机制本身：push 事件根本不进这一步。
+      # 脚本失败即整个 job 红，不回退到 head。
+      # 不要给这一步加 continue-on-error：一个可以静默失败的预览不是闸门。
+      - name: Check out merge preview
+        if: github.event_name == 'pull_request'
+        env:
+          MERGE_PREVIEW_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          MERGE_PREVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -o pipefail
+          bash scripts/ci/merge-preview.sh 2>&1 | tee "$RUNNER_TEMP/merge-preview.log"
+
+      # 从这里往下换成本项目自己的构建、闸门与测试步骤。全部留在同一个 job 内。
+      - name: Project checks
+        run: echo '换成本项目自己的测试命令'
+
+      # 把合并预览的输出原样重印在 job 末尾。这不是冗余：日志读取可能截头不截尾，
+      # 而「这次跑的到底是哪棵树」正是本 job 最该留下的证据。
+      # always() 让合并预览失败时那条失败原因也留得下来。
+      - name: Merge preview evidence
+        if: always() && github.event_name == 'pull_request'
+        run: cat "$RUNNER_TEMP/merge-preview.log" || echo '[ci] 没有合并预览日志'
