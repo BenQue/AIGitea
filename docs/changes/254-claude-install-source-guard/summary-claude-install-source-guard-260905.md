@@ -23,9 +23,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 250
-status: approved
+status: pr-open
 branch: change/254-claude-install-source-guard
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/258
 created: 2026-09-05
 updated: 2026-09-05
 ---
