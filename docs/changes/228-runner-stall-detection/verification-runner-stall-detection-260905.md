@@ -23,8 +23,8 @@ updated: 2026-09-05
 
 ## 基线与范围
 
-- Commit SHA: 见本目录 summary 的 `pr_url` 对应分支
-- 基线：`origin/main` = `071b6b086811833587905f47fc62a62d0359ef67`
+- Commit SHA: `d1ae0cc61c6f5cc09b10d408e9ec23fcabb073b1`（PR 259 head）
+- 基线：`origin/main` = `00f7d539...`（PR 253 / #250 合并后重新 rebase；rebase 后 smoke 重跑仍 exit 0）
 - 环境：Mac 本机 checkout ＋ gitea-ci OrbStack VM（只读）
 - 本记录负责证明的 acceptance criteria: AC-1 ~ AC-8
 
@@ -71,6 +71,8 @@ updated: 2026-09-05
 | `bash codex/tests/smoke.sh`（全部改动就位后，最终一次） | PASS | `Ran 681 tests in 35.912s` / `OK` / `Codex platform static smoke checks passed.` / `SMOKE3_EXIT=0` |
 | `apply-classification-labels.sh --verify 228` | PASS | `"project":"aisoft-platform","repository":"aisoft-platform","result":"projected","change_type":"platform","complexity":"complex"` |
 | `aisoft-loop check-change-documents` | PASS | `PASS: change-documents` / `PASS: change-pr-url` / `changes=112 pass=2 gap=0` |
+| PR 259 上的 required CI | PASS | run 1056（`pull_request`），head `d1ae0cc61c6f5cc09b10d408e9ec23fcabb073b1`，`completed / success / 55s` |
+| 安装的 broker 调用新操作 | 预期失败（已复现） | `{"code": "REQUEST_DENIED", "message": "requested operation is not allowlisted", "status": "BLOCKED_EXTERNAL"}`——这正是 `06` 踩坑 20 的形态，证明交接项 1 尚未执行 |
 | 候选 manifest 直接调用（空闲态） | PASS | 见下方读数 A |
 | 候选 manifest 直接调用（执行中） | PASS | 见下方读数 B |
 | VM 上应用 `runner.timeout: 20m` 并重启 | **NOT RUN** | 人工交接项，见下方交接清单 |
@@ -184,6 +186,10 @@ host-operator 路由，同样不进。这是**核对后确认无需改动**，�
   是既有事实。缩短取值不必然改变这一点；上面交接清单第 3 项就是为验证它而列的。
   在它被验证之前，`orbstack.runner.status` 的停滞判定是本平台唯一可依赖的检测手段。
 - Gitea 侧 `[cron.cleanup_actions]` 的内置默认值本次**未在本机回读**，只确认了「无显式配置」。
+- **与 PR 257（#201）在 `06` 上有已知冲突**：两条变更都往踩坑表尾部加了一行、都编号为
+  **23**。这正是踩坑 22 描述的形态（两侧各自把同一个常数往前推一格）。先合并的那条占住 23，
+  后合并的必须 rebase 并改成 24，**不能只看「干净合并」就放行**。`01` 两侧改的是不同小节
+  （本次 §4.1、#201 §5），预期可自动合并。
 - broker 的 `gitea.actions.run.read` 对没有 `completed_at` 的 run（cancelled / running）
   把 `duration_seconds` 算成了一个 unix epoch（实测 `admin/LocalWMS` run 1016 返回
   `1788522654`）。这是本次取证顺带发现的独立缺陷，**不在本 Issue 范围内**，另立 Issue。
