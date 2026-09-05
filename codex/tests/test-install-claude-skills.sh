@@ -204,6 +204,11 @@ grep -Fqx 'keep' "$tmp_home/symlink-destination/sentinel" ||
 undeclared_root="$(mktemp -d)"
 cp -R "$root/skill-for-claude" "$undeclared_root/skill-for-claude"
 cp -R "$root/skill-for-codex" "$undeclared_root/skill-for-codex"
+# install.sh sources the shared source guard out of its own checkout (#254), so
+# a partial copy needs codex/lib as well or this case fails on the missing
+# source line rather than on the undeclared skill it is about.
+mkdir -p "$undeclared_root/codex"
+cp -R "$root/codex/lib" "$undeclared_root/codex/lib"
 mkdir -p "$undeclared_root/skill-for-claude/ghost-skill"
 printf '%s\n' 'ghost' >"$undeclared_root/skill-for-claude/ghost-skill/SKILL.md"
 set +e

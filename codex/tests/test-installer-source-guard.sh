@@ -29,6 +29,7 @@ INSTALLERS=(
   architecture/install
   docker-release/install
   sync/install
+  skill-for-claude/install
 )
 
 # Expected identity quantities, recomputed here through jq/find rather than the
@@ -65,6 +66,15 @@ expected_skills="$(
   find "$ROOT/codex/skills" -maxdepth 2 -type f -name SKILL.md | wc -l | tr -d ' '
 )"
 expected_skills=$((expected_skills + 1)) # skill-for-codex, installed as aisoft-platform
+# The Claude-side installer declares its own skill set and copies the shared
+# reference files into every skill declared `shared`; those two counts are the
+# whole managed tree it writes.
+expected_claude_skills="$(
+  find "$ROOT/skill-for-claude" -maxdepth 2 -type f -name SKILL.md | wc -l | tr -d ' '
+)"
+expected_claude_references="$(
+  find "$ROOT/skill-for-codex/references" -maxdepth 1 -type f -name '*.md' | wc -l | tr -d ' '
+)"
 expected_matt_version="$(
   awk -F'"' '/^matt_version=/ { print $2 }' "$ROOT/codex/install-skills.sh"
 )"
@@ -75,7 +85,8 @@ expected_matt_version="$(
 make_source_tree() {
   local dest="$1" directory
   mkdir -p "$dest"
-  for directory in codex architecture docker-release templates skill-for-codex sync; do
+  for directory in \
+    codex architecture docker-release templates skill-for-codex sync skill-for-claude; do
     cp -R "$ROOT/$directory" "$dest/"
   done
 }
@@ -114,6 +125,9 @@ run_installer() {
     sync/install)
       AISOFT_SYNC_INSTALL_ROOT="$root" bash "$checkout/sync/install.sh" 2>&1
       ;;
+    skill-for-claude/install)
+      bash "$checkout/skill-for-claude/install.sh" "$root" 2>&1
+      ;;
     *) fail "unknown installer: $name" ;;
   esac
 }
@@ -128,6 +142,7 @@ installed_marker() {
     architecture/install) printf 'bin/aisoft-architecture' ;;
     docker-release/install) printf 'usr/local/bin/aisoft-docker-release' ;;
     sync/install) printf 'opt/aisoft-sync/inbound-sync.sh' ;;
+    skill-for-claude/install) printf '.claude/skills/aisoft-platform/SKILL.md' ;;
     *) fail "unknown installer: $1" ;;
   esac
 }
@@ -171,6 +186,10 @@ assert_provenance() {
     sync/install)
       assert_source_line "$output" units "$expected_sync_units" "$who"
       assert_source_line "$output" 'runtime scripts' "$expected_sync_scripts" "$who"
+      ;;
+    skill-for-claude/install)
+      assert_source_line "$output" skills "$expected_claude_skills" "$who"
+      assert_source_line "$output" references "$expected_claude_references" "$who"
       ;;
   esac
 }

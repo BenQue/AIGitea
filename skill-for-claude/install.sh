@@ -23,6 +23,33 @@ fail() {
 [[ -f "$manifest" ]] || fail "missing skill manifest: $manifest"
 [[ -d "$refs_source" ]] || fail "missing shared references: $refs_source"
 
+# Source provenance and staleness gate (#162, #171, #254). Must stay before the
+# first filesystem write below; both the prune loop and the `install -d` that
+# precedes it count as writes. This installer is the one where a stale source
+# does more than install an older file: each declared skill tree is exact, so
+# the prune deletes the entries only the newer contract has, and the success
+# lines below still print. check-drift.sh compares the same stale checkout
+# afterwards, so nothing else in the repository can catch it.
+#
+# It also runs before the manifest is parsed. A stale checkout can carry an
+# older manifest, and a format complaint about that manifest would send the
+# operator after the wrong defect; the gate answers first.
+#
+# skill-for-claude/ ships no version-bearing JSON, so there is no revision
+# scalar to print and the readable quantities are file counts, with the commit
+# line the guard always prints carrying which version this is. They are the two
+# halves of the managed tree: the declared skills, and the shared reference set
+# copied into every skill declared `shared`. A SKILL.md count would add nothing
+# -- the two manifest checks below make it equal to the skill count in both
+# directions -- so the second quantity is the reference set instead, which is
+# also what an operator compares against <skill>/references in the target home.
+# shellcheck disable=SC1091
+source "$root/codex/lib/install-source-guard.sh"
+
+aisoft_install_source_guard skill-for-claude/install "$root" \
+  skills "$(aisoft_install_source_file_count "$source_root"/*/SKILL.md)" \
+  references "$(aisoft_install_source_file_count "$refs_source"/*.md)"
+
 # The manifest is the only place the skill set is written down; both this
 # installer and check-drift.sh read it rather than carrying their own copy.
 names=()
