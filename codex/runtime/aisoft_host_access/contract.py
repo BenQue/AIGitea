@@ -482,7 +482,7 @@ def load_access_contract(
             _require(implementation == "none", "implementation must remain disabled during migration")
             timer = vm_raw["timer_unit"]
             _require(timer is None or timer in {
-                "aisoft-agent@emaintenance.timer", "aisoft-agent@sfm.timer"
+                "aisoft-agent@emaintenance.timer"
             }, "timer_unit is not allowlisted")
             path_prepend = _path_prepend(
                 vm_raw.get("path_prepend"), f"projects[{index}].vm_profile.path_prepend"
@@ -497,9 +497,8 @@ def load_access_contract(
              "host access projects must exactly cover governance repositories")
     _require(
         profile_repositories
-        == {"aisoft-platform", "NewEMaint", "HSDB", "rsdesign-new", "SFMDigitalBoard",
-            "LocalWMS"},
-        "VM profile migration set must contain exactly the six approved repositories",
+        == {"aisoft-platform", "NewEMaint", "LocalWMS"},
+        "VM profile migration set must contain exactly the three approved repositories",
     )
     _require(governance.human_merge_identity not in {
         project.project_agent for project in projects
