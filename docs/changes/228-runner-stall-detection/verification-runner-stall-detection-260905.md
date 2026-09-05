@@ -23,7 +23,8 @@ updated: 2026-09-05
 
 ## 基线与范围
 
-- Commit SHA: `d93b9914fc65af97ffee56cdb0ef3a4690daf67b`（PR 259 最终 head）
+- Commit SHA: `d93b9914fc65af97ffee56cdb0ef3a4690daf67b`（实现与文档全部就位的 commit；其后只有纯证据回填 commit）
+- **回填与 CI 的递归**：每一条「回填 CI 证据」的 commit 自己也会触发一次 run，所以本文永远记不下最后那一条。本文记到 run 1063 为止；再往后只有本次措辞订正一条，其结论以 PR 页面为准。
 - 基线：`origin/main` = `bc57edf`（PR 253 / 257 / 255 / 258 陆续合并，本分支共 rebase 三次；每次 rebase 后都重跑 smoke）
 - 环境：Mac 本机 checkout ＋ gitea-ci OrbStack VM（只读）
 - 本记录负责证明的 acceptance criteria: AC-1 ~ AC-8
@@ -72,7 +73,8 @@ updated: 2026-09-05
 | `apply-classification-labels.sh --verify 228` | PASS | `"project":"aisoft-platform","repository":"aisoft-platform","result":"projected","change_type":"platform","complexity":"complex"` |
 | `aisoft-loop check-change-documents` | PASS | `PASS: change-documents` / `PASS: change-pr-url` / `changes=112 pass=2 gap=0` |
 | PR 259 上的 required CI | PASS | run 1056（`pull_request`），head `d1ae0cc61c6f5cc09b10d408e9ec23fcabb073b1`，`completed / success / 55s` |
-| PR 259 最终 head 的 required CI | PASS | run 1060（`pull_request`），head `d93b9914fc65af97ffee56cdb0ef3a4690daf67b`，`completed / success / 62s`；`gitea.pull.read` 读回 `mergeable: True` |
+| PR 259 rebase 后 head 的 required CI | PASS | run 1060（`pull_request`），head `d93b9914fc65af97ffee56cdb0ef3a4690daf67b`，`completed / success / 62s`；`gitea.pull.read` 读回 `mergeable: True` |
+| PR 259 上的后续证据回填 commit | PASS | run 1063，head `2664e4d2939f6d59236672af34cedae73e4efcb1`，`completed / success / 61s` |
 | 冲突解决后重跑 smoke | PASS | `Ran 681 tests in 48.580s` / `OK` / `Codex platform static smoke checks passed.` / `SMOKE6_EXIT=0` |
 | 安装的 broker 调用新操作 | 预期失败（已复现） | `{"code": "REQUEST_DENIED", "message": "requested operation is not allowlisted", "status": "BLOCKED_EXTERNAL"}`——这正是 `06` 踩坑 20 的形态，证明交接项 1 尚未执行 |
 | 候选 manifest 直接调用（空闲态） | PASS | 见下方读数 A |
