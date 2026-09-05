@@ -22,8 +22,8 @@ updated: 2026-09-05
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | `sync/install.sh` 接入 guard，测试数组加入 `sync/install`，三态全绿 | - | pending |
-| T02 | 踩坑 20 逐 installer 清单补 `sync/install` 并更新覆盖范围表述 | T01 | pending |
+| T01 | `sync/install.sh` 接入 guard，测试数组加入 `sync/install`，三态全绿 | - | done |
+| T02 | 踩坑 20 逐 installer 清单补 `sync/install` 并更新覆盖范围表述 | T01 | done |
 
 T01 是完整的垂直切片：脚本改动与覆盖它的测试同批交付，任一单独提交都不可验证。
 T02 只改文档，依赖 T01 定下的实际标签名。
