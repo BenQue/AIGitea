@@ -27,13 +27,7 @@ INSTALLERS=(
   install-vm
   install-skills
   architecture/install
-  # docker-release/install is absent on purpose, not by oversight. docker-release/
-  # is pinned to the Issue #65 real-release evidence tree by
-  # codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh, which allows
-  # exactly two changed files there. Wiring the gate into docker-release/install.sh
-  # makes it a third one and turns smoke red. Extending that allowlist is Issue
-  # #65's authorization to give, not #171's, so the change was carved out to #182
-  # -- which restores this entry -- rather than forced through here.
+  docker-release/install
 )
 
 # Expected identity quantities, recomputed here through jq/find rather than the
