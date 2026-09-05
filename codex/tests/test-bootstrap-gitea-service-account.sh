@@ -14,9 +14,16 @@ watchdog_pid=''
 
 kill_descendants() {
   local parent="$1"
+  # The watchdog is itself a child of the script it guards, so it must be able
+  # to exclude its own pid. Without this it kills itself before it ever signals
+  # the target, and the hang it was meant to bound survives forever.
+  local exclude="${2:-}"
   local child
   for child in $(ps -Ao pid=,ppid= 2>/dev/null | awk -v p="$parent" '$2 == p {print $1}'); do
-    kill_descendants "$child"
+    if [[ -n "$exclude" && "$child" == "$exclude" ]]; then
+      continue
+    fi
+    kill_descendants "$child" "$exclude"
     kill -KILL "$child" 2>/dev/null || true
   done
 }
@@ -38,6 +45,7 @@ start_deadline_watchdog() {
   local deadline="$1"
   local target=$$
   local step=5
+  local pid_file="$TMP/.deadline-watchdog.pid"
   [[ "$deadline" -gt 0 ]] || return 0
   (
     waited=0
@@ -48,12 +56,17 @@ start_deadline_watchdog() {
     done
     printf 'AISOFT_TEST_DEADLINE_EXCEEDED: %s exceeded %ss; killing pid %s and its descendants\n' \
       "${BASH_SOURCE[0]}" "$deadline" "$target" >&2
-    kill_descendants "$target"
+    # bash 3.2 has no BASHPID, so the parent hands the watchdog its own pid
+    # through a file it writes right after backgrounding this subshell.
+    self_pid=''
+    [[ ! -f "$pid_file" ]] || self_pid="$(cat "$pid_file")"
+    kill_descendants "$target" "$self_pid"
     kill -TERM "$target" 2>/dev/null || true
     sleep 2
     kill -KILL "$target" 2>/dev/null || true
   ) &
   watchdog_pid=$!
+  printf '%s\n' "$watchdog_pid" >"$pid_file"
   # Detach it so reaping the watchdog never prints a job notice into CI logs.
   disown "$watchdog_pid" 2>/dev/null || true
 }
