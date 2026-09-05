@@ -218,6 +218,227 @@ else
   fi
 fi
 
+# #223: a pull_request workflow that checks out the PR head runs a tree nobody
+# will ever merge. Two parallel PRs that touch the same hand-maintained constant
+# then go green independently and turn main red once both land — git sees the
+# same text on both sides, calls it "both made the same change", and merges
+# cleanly. This check is read-only and judges the mechanism, not one spelling of
+# it: an in-run three-way merge and refs/pull/N/merge both satisfy it, because
+# the merge ref is refreshed by a Gitea background task whose freshness this run
+# does not control, and the project that fixed this first deliberately avoided
+# it for exactly that reason.
+check_ci_merge_preview() {
+  local verdict detail
+  local output="$tmp_dir/merge-preview-verdict"
+  if ! python3 - "$repo" >"$output" 2>"$tmp_dir/merge-preview.err" <<'MERGE_PREVIEW_PY'
+import pathlib
+import re
+import sys
+
+repo = pathlib.Path(sys.argv[1])
+
+CHECKOUT = re.compile(r"uses\s*:\s*\S*actions/checkout(?:@|\s|$)")
+REF = re.compile(r"^\s*ref\s*:\s*(.+?)\s*$", re.MULTILINE)
+MERGE_REF = re.compile(r"refs/pull/.*/merge")
+CONTINUE_ON_ERROR = re.compile(r"continue-on-error\s*:\s*(?:true|True|yes|'true'|\"true\")")
+SCRIPT_PATH = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_./-]*\.(?:sh|bash|mjs|cjs|js|py)\b")
+# A real merge invocation: `git`, then only global flags, then `merge` as the
+# subcommand. A loose pattern is worse than no check — the first draft matched
+# the file names `git-credential-...sh` and `change-merge-range.sh` sitting in a
+# ShellCheck list and reported a repository that runs the PR head as protected.
+# `git merge-base` only asks for the common ancestor and must not read as a
+# merge either.
+GIT_COMMAND = (
+    r"\bgit(?:\s+(?:-c\s+\S*?=(?:'[^']*'|\"[^\"]*\"|\S*)"
+    r"|-C\s+\S+|--no-pager|--git-dir=\S+|--work-tree=\S+))*\s+"
+)
+REAL_MERGE = re.compile(GIT_COMMAND + r"merge(?![-\w])")
+# Not every repository uses actions/checkout: some hand-roll the checkout with
+# git init plus a shallow fetch of the event ref. Those run the PR head just the
+# same, so the judged set must include them rather than silently skipping the
+# repositories that are most exposed.
+HAND_ROLLED_CHECKOUT = re.compile(GIT_COMMAND + r"(?:checkout|clone|fetch)(?![-\w])")
+# The mechanism cannot be proven statically, so the platform requires the
+# merge-preview step or the script it invokes to name itself. The reference
+# implementation carries the token in its environment variables and in its
+# failure codes, so a faithful adaptation satisfies this for free.
+MERGE_PREVIEW_MARKER = "MERGE_PREVIEW"
+MAX_SCRIPT_BYTES = 512 * 1024
+
+
+def strip_noise(text):
+    kept = []
+    for line in text.splitlines():
+        if line.lstrip().startswith("#"):
+            continue
+        kept.append(line)
+    return "\n".join(kept).replace("\\\n", " ")
+
+
+def indent_of(line):
+    return len(line) - len(line.lstrip(" "))
+
+
+def workflow_files():
+    for relative in (".gitea/workflows", ".github/workflows"):
+        directory = repo / relative
+        if not directory.is_dir():
+            continue
+        files = sorted(
+            path for path in directory.iterdir()
+            if path.is_file() and path.suffix in (".yml", ".yaml")
+        )
+        if files:
+            return relative, files
+    return None, []
+
+
+def significant(text):
+    return [
+        line for line in text.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+
+
+def triggers_pull_request(lines):
+    for index, line in enumerate(lines):
+        if indent_of(line) != 0:
+            continue
+        match = re.match(r"""(?:on|"on"|'on')\s*:\s*(.*)$""", line)
+        if not match:
+            continue
+        inline = match.group(1).strip()
+        if inline:
+            return bool(re.search(r"\bpull_request\b", inline))
+        body = []
+        for following in lines[index + 1:]:
+            if indent_of(following) == 0:
+                break
+            body.append(following)
+        return bool(re.search(r"\bpull_request\b", "\n".join(body)))
+    return False
+
+
+def steps(lines):
+    collected = []
+    for index, line in enumerate(lines):
+        if not re.match(r"^\s*steps\s*:\s*$", line):
+            continue
+        base = indent_of(line)
+        body = []
+        for following in lines[index + 1:]:
+            if indent_of(following) <= base:
+                break
+            body.append(following)
+        item_indents = [
+            indent_of(item) for item in body if re.match(r"^\s*-\s", item)
+        ]
+        if not item_indents:
+            continue
+        item_indent = min(item_indents)
+        current = None
+        for item in body:
+            if re.match(r"^\s*-\s", item) and indent_of(item) == item_indent:
+                if current is not None:
+                    collected.append("\n".join(current))
+                current = [item]
+            elif current is not None:
+                current.append(item)
+        if current is not None:
+            collected.append("\n".join(current))
+    return collected
+
+
+def step_blob(step):
+    parts = [strip_noise(step)]
+    for candidate in SCRIPT_PATH.findall(step):
+        relative = candidate.lstrip("./")
+        if ".." in pathlib.PurePosixPath(relative).parts:
+            continue
+        target = repo / relative
+        if not target.is_file():
+            continue
+        try:
+            if target.stat().st_size > MAX_SCRIPT_BYTES:
+                continue
+            parts.append(strip_noise(
+                target.read_text(encoding="utf-8", errors="replace")
+            ))
+        except OSError:
+            continue
+    return "\n".join(parts)
+
+
+def checks_out(step_list):
+    for step in step_list:
+        if CHECKOUT.search(step):
+            return True
+        if HAND_ROLLED_CHECKOUT.search(strip_noise(step)):
+            return True
+    return False
+
+
+def satisfied(step_list):
+    for step in step_list:
+        # A preview that may fail silently is not a gate.
+        if CONTINUE_ON_ERROR.search(step):
+            continue
+        if CHECKOUT.search(step):
+            for value in REF.findall(step):
+                if MERGE_REF.search(value):
+                    return True
+        blob = step_blob(step)
+        if MERGE_PREVIEW_MARKER in blob and REAL_MERGE.search(blob):
+            return True
+    return False
+
+
+def main():
+    relative, files = workflow_files()
+    if relative is None:
+        print("SKIP\t仓库没有 .gitea/workflows 或 .github/workflows")
+        return
+    judged = []
+    failing = []
+    for path in files:
+        lines = significant(path.read_text(encoding="utf-8", errors="replace"))
+        if not triggers_pull_request(lines):
+            continue
+        step_list = steps(lines)
+        if not checks_out(step_list):
+            continue
+        judged.append(path.name)
+        if not satisfied(step_list):
+            failing.append(f"{relative}/{path.name}")
+    if not judged:
+        print("SKIP\t没有既由 pull_request 触发又检出仓库的 workflow")
+    elif failing:
+        print(
+            "GAP\t" + ", ".join(failing)
+            + " 在 pull_request 上跑的是 PR head，不是与 base 的合并结果；"
+            + "参考 templates/project/ci/"
+        )
+    else:
+        print("PASS\t")
+
+
+main()
+MERGE_PREVIEW_PY
+  then
+    gap ci-merge-preview '合并预览判定未能运行'
+    return
+  fi
+  IFS=$'\t' read -r verdict detail <"$output"
+  case "$verdict" in
+    PASS) pass ci-merge-preview ;;
+    SKIP) skip ci-merge-preview "${detail:-未给出原因}" ;;
+    GAP) gap ci-merge-preview "${detail:-未给出细节}" ;;
+    *) gap ci-merge-preview '合并预览判定输出无法解析' ;;
+  esac
+}
+
+check_ci_merge_preview
+
 remote_ready=false
 remote_reason=''
 if [[ "$remote" == true ]]; then

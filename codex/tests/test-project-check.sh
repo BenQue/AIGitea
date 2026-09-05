@@ -205,7 +205,7 @@ run_case 0 remote_check --repo "$TMP/aligned" --remote
 for check_id in pointer-sections change-templates architecture-lock labels-readback ci-context delivery-profile change-documents change-pr-url; do
   expect_line "PASS: $check_id"
 done
-expect_line 'result: pass=8 gap=0 skip=0'
+expect_line 'result: pass=8 gap=0 skip=1'
 expect_contains 'DEPRECATED: inline GITEA_TOKEN is deprecated'
 
 # Token-file profile (#111): the remote checks must run when the env file only
@@ -223,7 +223,7 @@ MOCK_ENV_FILE="$TMP/agent-file.env" \
   run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'PASS: labels-readback'
 expect_line 'PASS: ci-context'
-expect_line 'result: pass=8 gap=0 skip=0'
+expect_line 'result: pass=8 gap=0 skip=1'
 if grep -Fq 'DEPRECATED' <<<"$last_output"; then
   fail 'token-file profile must not print the deprecation notice'
 fi
@@ -449,12 +449,12 @@ expect_line 'SKIP: change-pr-url — 仓库尚无 docs/changes'
 run_case 0 remote_check --repo "$TMP/aligned" --kind docs --remote
 expect_line 'SKIP: architecture-lock — docs 仓库不要求 architecture lock'
 expect_line 'SKIP: delivery-profile — docs 仓库不声明交付形态'
-expect_line 'result: pass=6 gap=0 skip=2'
+expect_line 'result: pass=6 gap=0 skip=3'
 
 run_case 0 local_check --repo "$TMP/aligned"
 expect_line 'SKIP: labels-readback — 未启用 --remote'
 expect_line 'SKIP: ci-context — 未启用 --remote'
-expect_line 'result: pass=6 gap=0 skip=2'
+expect_line 'result: pass=6 gap=0 skip=3'
 
 run_case 64 bash "$CHECKER"
 expect_contains 'usage:'
@@ -470,7 +470,7 @@ expect_contains 'GAP: architecture-lock —'
 
 MOCK_PROTECTION_STATUS=403 run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'SKIP: ci-context — 需要 manager/audit 权限'
-expect_line 'result: pass=7 gap=0 skip=1'
+expect_line 'result: pass=7 gap=0 skip=2'
 
 # AC-4: a value under a declared extension prefix is legitimate — the platform
 # owns the dimension, the project owns the values.
@@ -481,7 +481,7 @@ canonical_labels '
 run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'INFO: labels-readback — 声明扩展标签 area/web'
 expect_line 'INFO: labels-readback — 声明扩展标签 priority/p1'
-expect_line 'result: pass=8 gap=0 skip=0'
+expect_line 'result: pass=8 gap=0 skip=1'
 
 # AC-4: a near-miss of a declared prefix is undeclared, not a project dimension.
 # This is the case a prefix-only allow list would wave through.
@@ -496,6 +496,168 @@ canonical_labels '. + [{name:"area/",color:"ffffff",description:"bare prefix"}]'
   >"$TMP/labels.json"
 run_case 1 remote_check --repo "$TMP/aligned" --remote
 expect_contains 'GAP: labels-readback — 未声明标签: area/(无 Issue 引用)'
+
+# #223 ci-merge-preview. The check judges the mechanism, not one spelling of it,
+# and it must never report a repository that runs the PR head as protected — a
+# false PASS here tells a project it is covered when the next pair of parallel
+# PRs will still turn main red.
+
+write_workflow() {
+  local repo="$1" name="$2"
+  mkdir -p "$repo/.gitea/workflows"
+  cat >"$repo/.gitea/workflows/$name"
+}
+
+# The shipped reference must satisfy the shipped checker (AC-2, AC-7).
+reference_repo="$(copy_fixture merge-preview-reference)"
+mkdir -p "$reference_repo/.gitea/workflows" "$reference_repo/scripts/ci"
+cp "$ROOT/templates/project/ci/ci.yml" "$reference_repo/.gitea/workflows/ci.yml"
+cp "$ROOT/templates/project/ci/merge-preview.sh" "$reference_repo/scripts/ci/merge-preview.sh"
+run_case 0 local_check --repo "$reference_repo"
+expect_line 'PASS: ci-merge-preview'
+
+# refs/pull/N/merge is the other accepted shape.
+merge_ref_repo="$(copy_fixture merge-preview-ref)"
+write_workflow "$merge_ref_repo" ci.yml <<'WORKFLOW'
+name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          fetch-depth: 0
+      - run: echo project checks
+WORKFLOW
+run_case 0 local_check --repo "$merge_ref_repo"
+expect_line 'PASS: ci-merge-preview'
+
+# The pre-#223 shape every project independently reproduced.
+head_repo="$(copy_fixture merge-preview-head)"
+write_workflow "$head_repo" ci.yml <<'WORKFLOW'
+name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: echo project checks
+WORKFLOW
+run_case 1 local_check --repo "$head_repo"
+expect_contains 'GAP: ci-merge-preview — .gitea/workflows/ci.yml'
+
+# A hand-rolled checkout runs the PR head just the same. Skipping it would let
+# the repositories that never adopted actions/checkout look clean.
+hand_rolled_repo="$(copy_fixture merge-preview-hand-rolled)"
+write_workflow "$hand_rolled_repo" ci.yml <<'WORKFLOW'
+name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout from local Gitea
+        run: |
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch --no-tags --depth=1 origin "$GITHUB_REF"
+          git checkout --detach FETCH_HEAD
+      - run: echo project checks
+WORKFLOW
+run_case 1 local_check --repo "$hand_rolled_repo"
+expect_contains 'GAP: ci-merge-preview — .gitea/workflows/ci.yml'
+
+# A preview that may fail silently is not a gate.
+tolerant_repo="$(copy_fixture merge-preview-tolerant)"
+mkdir -p "$tolerant_repo/scripts/ci"
+cp "$ROOT/templates/project/ci/merge-preview.sh" "$tolerant_repo/scripts/ci/merge-preview.sh"
+write_workflow "$tolerant_repo" ci.yml <<'WORKFLOW'
+name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check out merge preview
+        continue-on-error: true
+        run: bash scripts/ci/merge-preview.sh
+      - run: echo project checks
+WORKFLOW
+run_case 1 local_check --repo "$tolerant_repo"
+expect_contains 'GAP: ci-merge-preview — .gitea/workflows/ci.yml'
+
+# git merge-base only asks for the common ancestor; it is not a merge.
+ancestor_repo="$(copy_fixture merge-preview-ancestor)"
+write_workflow "$ancestor_repo" ci.yml <<'WORKFLOW'
+name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: MERGE_PREVIEW look-alike
+        run: git merge-base origin/main HEAD
+      - run: echo project checks
+WORKFLOW
+run_case 1 local_check --repo "$ancestor_repo"
+expect_contains 'GAP: ci-merge-preview — .gitea/workflows/ci.yml'
+
+# Not judged: no workflow directory, push-only, and pull_request without a
+# checkout. None of those runs a tree that could be wrong about the merge.
+push_repo="$(copy_fixture merge-preview-push-only)"
+write_workflow "$push_repo" ci.yml <<'WORKFLOW'
+name: CI
+on:
+  push:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo project checks
+WORKFLOW
+run_case 0 local_check --repo "$push_repo"
+expect_line 'SKIP: ci-merge-preview — 没有既由 pull_request 触发又检出仓库的 workflow'
+
+no_checkout_repo="$(copy_fixture merge-preview-no-checkout)"
+write_workflow "$no_checkout_repo" ci.yml <<'WORKFLOW'
+name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo no tree is checked out here
+WORKFLOW
+run_case 0 local_check --repo "$no_checkout_repo"
+expect_line 'SKIP: ci-merge-preview — 没有既由 pull_request 触发又检出仓库的 workflow'
+
+run_case 0 local_check --repo "$TMP/aligned"
+expect_line 'SKIP: ci-merge-preview — 仓库没有 .gitea/workflows 或 .github/workflows'
 
 canonical_labels >"$TMP/labels.json"
 MOCK_TRANSPORT_FAIL=1 run_case 1 remote_check --repo "$TMP/aligned" --remote

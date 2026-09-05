@@ -69,14 +69,23 @@ GAP——这是裁定接受的代价（「能真正收口，代价是给既有�
 不改任何项目仓文件，GAP 不阻塞任何既有流程。
 
 **`ci-merge-preview` 的判据（本次新增的平台合同）**。仅判定「触发器含 `pull_request`
-且存在 `actions/checkout` 步骤」的 workflow；其余 workflow 不判。满足下列任一形态即 PASS：
+且确实检出了仓库」的 workflow；其余 workflow 不判。「检出了仓库」包含 `actions/checkout`
+与手写 checkout 两种——有仓库用 `git init` 加一次浅 fetch 自己检出，它们跑的同样是 PR head，
+放过它们等于放过暴露得最彻底的那几个。满足下列任一形态即 PASS：
 
 - 形态 A：`actions/checkout` 步骤声明 `ref:`，取值匹配 `refs/pull/.../merge`。
-- 形态 B：该 workflow 中存在一个步骤，其 `run:` 内联执行了真实的 `git merge`，
-  或调用了仓库内一个确实存在、且内容中含真实 `git merge` 的脚本。
+- 形态 B：该 workflow 中存在一个步骤，它自身或它调用的仓库内脚本同时含有
+  真实的 `git merge` 命令与字面标记 `MERGE_PREVIEW`。
 
 两种形态下，承载合并预览的步骤都不得带 `continue-on-error: true`——一个可以静默失败的
 预览不是闸门。
+
+形态 B 为什么要一个字面标记：机制无法被静态证明，而**假 PASS 是这条检查最坏的结果**——
+它会告诉一个仍然跑 head 的仓库「你被保护了」。实现过程中第一版判据只找「某处有
+`git` 也有 `merge`」，结果被 ShellCheck 清单里的两个文件名
+（`git-credential-…​.sh` 与 `change-merge-range.sh`）凑成一次匹配，把本仓自己判成了 PASS。
+标记把「意图」变成可判定的：参考实现的环境变量与失败码本来就带这个前缀，
+照着改的项目不需要额外做任何事。
 
 形态 B 是本平台已验证可行的那一种：LocalWMS Issue #193 的实现刻意避开 `refs/pull/N/merge`，
 理由是该 ref 由 Gitea 后台在计算可合并性时刷新，新鲜度不由本次 CI 运行决定，
