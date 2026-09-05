@@ -25,9 +25,9 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: approved
+status: pr-open
 branch: change/252-offboard-five-projects
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/256
 created: 2026-09-05
 updated: 2026-09-05
 ---
