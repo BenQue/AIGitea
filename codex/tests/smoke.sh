@@ -57,6 +57,9 @@ bash -n "$ROOT/codex/tests/test-change-template-sync.sh"
 # executed by this repository's own pull_request workflow, so it gets the same
 # static gates as any shipped script.
 bash -n "$ROOT/templates/project/ci/merge-preview.sh"
+# #201: the registry preflight reference ships to projects the same way.
+bash -n "$ROOT/templates/project/ci/registry-preflight.sh"
+bash -n "$ROOT/codex/tests/test-registry-preflight.sh"
 for script in \
   "$ROOT/codex/install-host-role.sh" \
   "$ROOT/codex/install-host-access-broker.sh" \
@@ -135,6 +138,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/aisoft-project-check.sh" \
     "$ROOT/codex/tools/change-template-sync.sh" \
     "$ROOT/templates/project/ci/merge-preview.sh" \
+    "$ROOT/templates/project/ci/registry-preflight.sh" \
+    "$ROOT/codex/tests/test-registry-preflight.sh" \
     "$ROOT/codex/tests/test-change-template-sync.sh" \
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-gitea-label-manifest.sh" \
@@ -223,6 +228,7 @@ company_delivery_real_output="$(
 )"
 grep -Fq 'NOT RUN: Issue #124 exact real-release regression requires explicit --execute.' \
   <<<"$company_delivery_real_output"
+bash "$ROOT/codex/tests/test-registry-preflight.sh"
 bash "$ROOT/sync/tests/test-inbound-sync.sh"
 bash "$ROOT/sync/tests/test-install.sh"
 # -t 把 top_level_dir 钉在 codex/runtime，测试模块因此被载为 tests.test_xxx，
