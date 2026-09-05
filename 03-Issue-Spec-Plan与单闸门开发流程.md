@@ -417,8 +417,8 @@ Issue 停在原地等 `deployed`，所以真正要成立的是「会有一次部
 按缺省处理。
 
 `--project` 收的是 `codex/config/host-access-broker.json` 里的 **project id**（`localwms`），
-不是仓库名。governance manifest 按**仓库名**（`LocalWMS`）索引，两者只在 10 个项目里的 4 个上
-同名，所以仓库名由 project id 反查得到、不由调用方提供（#172）——host-access manifest 已经
+不是仓库名。governance manifest 按**仓库名**（`LocalWMS`）索引，两者只在五个项目里的三个上
+同名（#252 退出五个项目前是十个里的四个），所以仓库名由 project id 反查得到、不由调用方提供（#172）——host-access manifest 已经
 声明了这个双射，`aisoft_host_access.contract` 也已经强制它的值都存在于 governance manifest。
 两侧任一查不到都报错退出，消息各自指名是哪一份 manifest 少了哪个键。
 
@@ -489,7 +489,7 @@ checkout，Issue 状态与标签却取自平台仓的同号 Issue。产出的不
 
 现在目标项目**由 checkout 判定**：从 `--repo` 的 Git remote URL 反查 host access manifest 的
 `projects[]`，得到 `project_id` 与 `repository`（构造方式与 broker 的 `_expected_git_url` 一致，
-所有 remote 的 fetch 与 push URL 都参与匹配——`newemaint`、`sfm-digital-board` 的 Gitea remote
+所有 remote 的 fetch 与 push URL 都参与匹配——`newemaint` 的 Gitea remote
 名为 `gitea` 而非 `origin`）。四种结局：
 
 | checkout 能否判定 | 是否传 `--project` | 结果 |

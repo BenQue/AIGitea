@@ -150,7 +150,7 @@ routine 任一 hard gate 失败不得自动转成更宽权限的 merge 路径。
 
 1. 静态验证 skills、metadata、sandbox 和禁止参数。
 2. 合成 Issue 验证合同读取与终态。
-3. 至少一个明确标注的真实 pilot 验证 Git/Gitea/PR/CI 集成；当前 evidence 是 rsdesign-new complex Issue #8。
+3. 至少一个明确标注的真实 pilot 验证 Git/Gitea/PR/CI 集成；历史 evidence 是 rsdesign-new complex Issue #8，该项目自 #252 起已退出平台治理，其证据只作追溯。
 4. small/complex 路由、缺合同、自修复和失败反馈由共享 synthetic 覆盖；每个新 profile 再运行与本项目相符的 real small/complex acceptance。
 5. 验证 CI failure feedback。
 6. 验证升级条件和三次同因失败。

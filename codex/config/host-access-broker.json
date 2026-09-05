@@ -322,20 +322,6 @@
       }
     },
     {
-      "project_id": "hsdb",
-      "repository": "HSDB",
-      "project_agent": "hsdb-agent",
-      "routine_merge_agent": "hsdb-routine-merger",
-      "mac_checkout": "/Users/benque/Projects/HSDB",
-      "vm_profile": {
-        "name": "hsdb",
-        "repo_dir": "work/HSDB",
-        "analysis_provider": "none",
-        "implement_provider": "none",
-        "timer_unit": null
-      }
-    },
-    {
       "project_id": "localwms",
       "repository": "LocalWMS",
       "project_agent": "localwms-agent",
@@ -373,55 +359,9 @@
       }
     },
     {
-      "project_id": "rsdesign-new",
-      "repository": "rsdesign-new",
-      "project_agent": "rsdesign-agent",
-      "routine_merge_agent": "rsdesign-routine-merger",
-      "mac_checkout": "/Users/benque/Projects/rsdesign-new",
-      "vm_profile": {
-        "name": "rsdesign",
-        "repo_dir": "work/rsdesign-new",
-        "analysis_provider": "claude",
-        "implement_provider": "none",
-        "timer_unit": null
-      }
-    },
-    {
-      "project_id": "sap-table-migrate",
-      "repository": "SapTableMigrate",
-      "project_agent": "sap-table-migrate-agent",
-      "routine_merge_agent": null,
-      "mac_checkout": null,
-      "vm_profile": null
-    },
-    {
-      "project_id": "sfm-digital-board",
-      "repository": "SFMDigitalBoard",
-      "project_agent": "sfm-board-agent",
-      "routine_merge_agent": "sfm-board-routine-merger",
-      "git_remote_name": "gitea",
-      "mac_checkout": "/Users/benque/Projects/SFMDigitalBoard",
-      "vm_profile": {
-        "name": "sfm",
-        "repo_dir": "work/SFMDigitalBoard",
-        "analysis_provider": "claude",
-        "implement_provider": "none",
-        "timer_unit": "aisoft-agent@sfm.timer",
-        "path_prepend": ["/opt/node22/bin", "/home/coder/.local/bin"]
-      }
-    },
-    {
       "project_id": "smoke-test",
       "repository": "smoke-test",
       "project_agent": "smoke-test-agent",
-      "routine_merge_agent": null,
-      "mac_checkout": null,
-      "vm_profile": null
-    },
-    {
-      "project_id": "wmpda",
-      "repository": "WMPDA",
-      "project_agent": "wmpda-agent",
       "routine_merge_agent": null,
       "mac_checkout": null,
       "vm_profile": null

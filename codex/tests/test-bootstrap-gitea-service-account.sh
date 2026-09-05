@@ -114,7 +114,7 @@ case "$*" in
     fi
     printf 'deleted one user\n'
     ;;
-  *"admin user delete --username hsdb-agent"*)
+  *"admin user delete --username localwms-agent"*)
     if [[ "${MOCK_COMPENSATION_DELETE_FAIL:-0}" == 1 ]]; then exit 3; fi
     if [[ "${MOCK_COMPENSATION_DELETE_LEAVES_ACCOUNT:-0}" != 1 ]]; then
       rm -f "$MOCK_ROOT/account-present" "$MOCK_ROOT/must-change-password-present"
@@ -135,7 +135,7 @@ case "$*" in
     rm -f "$MOCK_ROOT/routine-must-change-password-present"
     printf 'updated one user\n'
     ;;
-  *"admin user must-change-password --unset hsdb-agent"*)
+  *"admin user must-change-password --unset localwms-agent"*)
     rm -f "$MOCK_ROOT/must-change-password-present"
     printf 'updated one user\n'
     ;;
@@ -199,11 +199,11 @@ case "$endpoint" in
       printf 404
     fi
     ;;
-  /users/hsdb-agent)
+  /users/localwms-agent)
     if [[ -f "$MOCK_ROOT/account-present" ]]; then
       [[ -n "$output" ]]
       identity="${MOCK_ACCOUNT_IDENTITY:-}"
-      [[ -n "$identity" ]] || identity='{"login":"hsdb-agent","is_admin":false}'
+      [[ -n "$identity" ]] || identity='{"login":"localwms-agent","is_admin":false}'
       printf '%s\n' "$identity" >"$output"
       printf 200
     else
@@ -218,7 +218,7 @@ case "$endpoint" in
     else
       [[ "$auth" == *sentinel-generated-token* ]]
       [[ ! -e "$MOCK_ROOT/must-change-password-present" ]]
-      printf '{"login":"hsdb-agent","is_admin":false}\n'
+      printf '{"login":"localwms-agent","is_admin":false}\n'
     fi
     ;;
   /notifications)
@@ -281,9 +281,9 @@ if AISOFT_ACCOUNT_BOOTSTRAP_MODE=not-authorized \
    AISOFT_CREDENTIAL_ROOT="$unauthorized_root" \
    bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
     --manifest "$ROOT/codex/config/gitea-governance.json" \
-    --username hsdb-agent \
+    --username localwms-agent \
     --token-kind project-agent \
-    --credential-output "$unauthorized_root/hsdb-agent-project-agent.token" \
+    --credential-output "$unauthorized_root/localwms-agent-project-agent.token" \
     >"$TMP/unauthorized.out" 2>"$TMP/unauthorized.err"; then
   printf '%s\n' 'unauthorized bootstrap unexpectedly succeeded' >&2
   exit 1
@@ -296,21 +296,21 @@ grep -Fq 'AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-35 is required' "$TMP/una
 [[ "$(line_count "$TMP/curl-argv.log")" == "$curl_count_before" ]]
 [[ "$(line_count "$TMP/sudo-config-check.log")" == "$sudo_config_count_before" ]]
 
-output="$TMP/credentials/hsdb-agent-project-agent.token"
+output="$TMP/credentials/localwms-agent-project-agent.token"
 result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
-  --username hsdb-agent \
+  --username localwms-agent \
   --token-kind project-agent \
   --credential-output "$output")"
 [[ "$(jq -r '.result' <<<"$result")" == created ]]
 [[ "$(cat "$output")" == sentinel-generated-token ]]
 mode="$(stat -c '%a' "$output" 2>/dev/null || stat -f '%Lp' "$output")"
 [[ "$mode" == 600 ]]
-[[ -f "$TMP/credentials/hsdb-agent.account-created-by-issue-35" ]]
-policy_marker="$TMP/credentials/hsdb-agent.must-change-password-unset-by-issue-35"
+[[ -f "$TMP/credentials/localwms-agent.account-created-by-issue-35" ]]
+policy_marker="$TMP/credentials/localwms-agent.must-change-password-unset-by-issue-35"
 [[ -f "$policy_marker" ]]
 [[ "$(stat -c '%a' "$policy_marker" 2>/dev/null || stat -f '%Lp' "$policy_marker")" == 600 ]]
-[[ -f "$TMP/credentials/hsdb-agent-project-agent.token-created-by-issue-35" ]]
+[[ -f "$TMP/credentials/localwms-agent-project-agent.token-created-by-issue-35" ]]
 [[ "$(grep -c '^test -f ' "$TMP/sudo-config-check.log")" == 1 ]]
 [[ "$(grep -c '^test -r ' "$TMP/sudo-config-check.log")" == 1 ]]
 create_argv="$(grep 'admin user create' "$TMP/gitea-argv.log")"
@@ -320,12 +320,12 @@ if [[ "$create_argv" == *"password"* ]]; then
   exit 1
 fi
 policy_argv="$(grep 'admin user must-change-password' "$TMP/gitea-argv.log")"
-[[ "$policy_argv" == *"admin user must-change-password --unset hsdb-agent"* ]]
+[[ "$policy_argv" == *"admin user must-change-password --unset localwms-agent"* ]]
 [[ "$(grep -c 'admin user must-change-password' "$TMP/gitea-argv.log")" == 1 ]]
 
 result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
-  --username hsdb-agent \
+  --username localwms-agent \
   --token-kind project-agent \
   --credential-output "$output")"
 [[ "$(jq -r '.result' <<<"$result")" == no-op ]]
@@ -336,7 +336,7 @@ rm "$policy_marker"
 touch "$TMP/must-change-password-present"
 result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
-  --username hsdb-agent \
+  --username localwms-agent \
   --token-kind project-agent \
   --credential-output "$output")"
 [[ "$(jq -r '.result' <<<"$result")" == no-op ]]
@@ -346,7 +346,7 @@ result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
 chmod 644 "$policy_marker"
 if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \
-  --username hsdb-agent \
+  --username localwms-agent \
   --token-kind project-agent \
   --credential-output "$output" \
   >"$TMP/policy-marker-negative.out" 2>"$TMP/policy-marker-negative.err"; then

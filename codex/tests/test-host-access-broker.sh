@@ -12,7 +12,7 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_host_access.cli \
 jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
-  .project_count == 10 and
+  .project_count == 5 and
   .operation_count == 33 and
   .merge_operation_count == 1
 ' "$TMP/validate.json" >/dev/null
@@ -70,13 +70,11 @@ jq -e '
   ([.operations[].name] | any(test("^gitea\\.labels\\.")) ) and
   ([.operations[].name] | any(contains("delete")) | not) and
   ([.projects[] | select(.project_id == "newemaint")][0].git_remote_name == "gitea") and
-  ([.projects[] | select(.project_id == "sfm-digital-board")][0].git_remote_name == "gitea") and
   ([.projects[]
-    | select(.project_id != "newemaint" and .project_id != "sfm-digital-board")
+    | select(.project_id != "newemaint")
     | has("git_remote_name")] | all(. == false)) and
   ([.projects[] | select(.vm_profile != null) | .repository] | sort) ==
-    ["HSDB", "LocalWMS", "NewEMaint", "SFMDigitalBoard", "aisoft-platform",
-     "rsdesign-new"]
+    ["LocalWMS", "NewEMaint", "aisoft-platform"]
 ' "$ROOT/codex/config/host-access-broker.json" >/dev/null
 
 if rg -ni 'keychain|/usr/bin/security|find-generic-password|dump-keychain|security -A' \
@@ -87,7 +85,7 @@ fi
 
 set +e
 denied_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-  --project hsdb --operation shell.run 2>&1)"
+  --project localwms --operation shell.run 2>&1)"
 denied_status=$?
 set -e
 test "$denied_status" = 20
@@ -103,7 +101,7 @@ for labels_delete_operation in \
   gitea.issue.labels.extension.delete; do
   set +e
   labels_delete_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project hsdb --operation "$labels_delete_operation" 2>&1)"
+    --project localwms --operation "$labels_delete_operation" 2>&1)"
   labels_delete_status=$?
   set -e
   test "$labels_delete_status" = 20
@@ -122,7 +120,7 @@ for extension_mismatch in \
   set +e
   # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
   extension_mismatch_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project hsdb $extension_mismatch 2>&1)"
+    --project localwms $extension_mismatch 2>&1)"
   extension_mismatch_status=$?
   set -e
   test "$extension_mismatch_status" = 20
@@ -135,7 +133,7 @@ for invalid_extension_request in \
   set +e
   # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
   invalid_extension_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project hsdb $invalid_extension_request 2>&1)"
+    --project localwms $invalid_extension_request 2>&1)"
   invalid_extension_status=$?
   set -e
   test "$invalid_extension_status" = 20
@@ -150,7 +148,7 @@ done
 for invalid_lifecycle in bogus type/feature triage/ready-for-agent; do
   set +e
   lifecycle_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project hsdb --operation gitea.issue.labels.set \
+    --project localwms --operation gitea.issue.labels.set \
     --number 1 --lifecycle "$invalid_lifecycle" 2>&1)"
   lifecycle_status=$?
   set -e
@@ -170,7 +168,7 @@ for invalid_classification in \
   set +e
   # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
   classify_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project hsdb --operation gitea.issue.labels.classify \
+    --project localwms --operation gitea.issue.labels.classify \
     --number 1 $invalid_classification 2>&1)"
   classify_status=$?
   set -e
@@ -191,7 +189,7 @@ for mismatched in \
   set +e
   # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
   mismatch_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project hsdb $mismatched 2>&1)"
+    --project localwms $mismatched 2>&1)"
   mismatch_status=$?
   set -e
   test "$mismatch_status" = 20
@@ -200,7 +198,7 @@ done
 
 set +e
 url_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-  --project hsdb --operation gitea.repo.read \
+  --project localwms --operation gitea.repo.read \
   --url http://attacker.invalid 2>&1)"
 url_status=$?
 set -e

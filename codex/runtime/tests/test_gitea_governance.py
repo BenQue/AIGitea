@@ -186,7 +186,7 @@ class ContractTests(unittest.TestCase):
         return Path(handle.name)
 
     def test_manifest_is_exact_and_private_by_default(self):
-        self.assertEqual(len(self.contract.repositories), 10)
+        self.assertEqual(len(self.contract.repositories), 5)
         self.assertEqual(
             self.contract.raw["repository_policy"]["public_allowlist"],
             ["admin/aisoft-platform", "admin/myapp", "admin/smoke-test"],
@@ -197,8 +197,7 @@ class ContractTests(unittest.TestCase):
             if repository.private
         }
         self.assertEqual(private, {
-            "HSDB", "LocalWMS", "NewEMaint", "rsdesign-new", "SapTableMigrate",
-            "SFMDigitalBoard", "WMPDA",
+            "LocalWMS", "NewEMaint",
         })
 
     def test_newemaint_is_the_only_pilot_and_other_repositories_match_pinned_bytes(self):
@@ -303,7 +302,7 @@ class ContractTests(unittest.TestCase):
             )
         with patch.dict(os.environ, {}, clear=True):
             _require_pilot_live_authorization(
-                self.contract, "apply", "HSDB"
+                self.contract, "apply", "LocalWMS"
             )
 
     def test_direct_cli_rollback_rejects_enabled_source_before_credential_read(self):
@@ -378,7 +377,7 @@ class ContractTests(unittest.TestCase):
             load_contract(path)
 
     def test_required_context_migration_is_optional_for_other_repositories(self):
-        self.assertIsNone(self.contract.repository("HSDB").required_context_migration)
+        self.assertIsNone(self.contract.repository("LocalWMS").required_context_migration)
 
     def test_cli_exposes_boolean_migration_selector_only_on_check_and_apply(self):
         parser = _parser()
@@ -458,7 +457,7 @@ class ContractTests(unittest.TestCase):
 class ReconciliationTests(unittest.TestCase):
     def setUp(self):
         self.contract = load_contract(MANIFEST)
-        self.repository = self.contract.repository("rsdesign-new")
+        self.repository = self.contract.repository("LocalWMS")
         self.client = FakeClient(self.contract)
 
     def test_desired_protection_preserves_reviews_and_blocks_merge_bypass(self):
@@ -551,7 +550,7 @@ class ReconciliationTests(unittest.TestCase):
         merger = repository.routine_merge_agent
         assert merger is not None
         target = self.contract.full_name(repository)
-        other = self.contract.repository("HSDB")
+        other = self.contract.repository("LocalWMS")
         other_name = self.contract.full_name(other)
         client = FakeClient(self.contract)
         client.collaborators[target][merger] = "write"
@@ -792,7 +791,7 @@ class ReconciliationTests(unittest.TestCase):
 
     def test_check_cross_project_same_routine_permission_404_fails_closed(self):
         repository = self.contract.repository("NewEMaint")
-        other = self.contract.repository("HSDB")
+        other = self.contract.repository("LocalWMS")
         merger = repository.routine_merge_agent
         assert merger is not None
         other_full_name = self.contract.full_name(other)
@@ -979,7 +978,7 @@ class ReconciliationTests(unittest.TestCase):
     def test_cross_project_permission_schema_fails_before_any_apply_mutation(self):
         contract = self.contract
         repository = contract.repository("NewEMaint")
-        other = contract.repository("HSDB")
+        other = contract.repository("LocalWMS")
         merger = repository.routine_merge_agent
         assert merger is not None
         other_full_name = contract.full_name(other)
@@ -1181,7 +1180,7 @@ class ReconciliationTests(unittest.TestCase):
             self.assertFalse((evidence / "aisoft-platform-post.json").exists())
 
     def test_required_context_migration_is_not_available_to_undeclared_repository(self):
-        repository = self.contract.repository("HSDB")
+        repository = self.contract.repository("LocalWMS")
         snapshot = capture_snapshot(self.client, self.contract, repository)
         plan = planned_actions(
             self.contract, repository, snapshot, required_context_migration=True
@@ -1239,17 +1238,17 @@ class ReconciliationTests(unittest.TestCase):
             self.assertNotIn("rule_name", protection_patches[-1])
             result = apply_repository(self.client, self.contract, self.repository, Path(second))
             self.assertEqual(result["result"], "no-op")
-            self.assertEqual(oct((Path(first) / "rsdesign-new-pre.json").stat().st_mode & 0o777),
+            self.assertEqual(oct((Path(first) / "LocalWMS-pre.json").stat().st_mode & 0o777),
                              "0o600")
 
     def test_cross_project_write_is_reported_and_blocks_apply(self):
-        other = self.contract.repository("HSDB")
+        other = self.contract.repository("myapp")
         self.client.collaborators[self.contract.full_name(other)][
             self.repository.project_agent
         ] = "write"
         violations = audit_cross_project_writes(self.client, self.contract)
         self.assertEqual(violations, [{
-            "repository": "admin/HSDB",
+            "repository": "admin/myapp",
             "project_agent": self.repository.project_agent,
             "permission": "write",
         }])

@@ -17,7 +17,7 @@
 - 🟡 Matt 开发编排层：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在当前 exact change branch 本地提交，Controller 在提交确认后才能 push/建 PR/读取 CI；manual 路径仍只由人合并
 - 🟡 Host access broker：既有 strict typed Issue/PR/Git surface 保持；Issue #208 只允许新增 `gitea.pull.merge.routine(number, sha)`，并要求 broker 在唯一 merge POST 前 fresh 重跑合同、唯一 PR、head、protection、required CI、reviews、dependencies 与 final diff 硬门。Gitea 1.26.4 无 merge-only ACL，ordinary Git 隔离依赖 broker-exclusive credential custody 与 zero fallback；routine identity 不进入 main push/force allowlist。source 合并不等于安装、provision 或 live 启用；未获独立 live apply 授权前，现有 merge allowlist、credential 与 installed bytes 均不改变
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
-- 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为 real complex pilot。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
+- 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为历史 real complex pilot 证据，该项目自 #252 起已退出平台治理。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
 - 🟡 Linux Docker release source（Issue #22 已合并）：提供 strict manifest/profile、Registry/offline transports、host-role preflight 和 deterministic deploy/status/rollback；合同已进入 source，但具体业务 Registry/AppServer 与 production promotion 仍未验收
 - 🟡 公司两 VM 离线交付 operator 参考实现（`company-delivery/`，Issue #120–#130）：versioned/checksum-pinned operator bundle、两台公司 Linux VM 的脱敏 inventory、Stage 00–110 人工 runbook 与 strict evidence 已进入 source；真实 handoff 与公司侧各阶段由采用该路径的项目仓记录，本仓库对任何项目均为 `NOT RUN`
 - 🟡 Gitea 隔离安装 source（Issue #126/#128/#130）：operator `1.2.0` 使用 inventory v3、transition v2 与 `greenfield-isolated-install`，只验证 `scm-ci` 独立 `aisoft-gitea` candidate；不探测、不绑定 legacy health。`legacy migration/phase-out`、切流和退役必须另建 Change。1.2.0 公司 Stage 00–50 与安装全部保持 `NOT RUN`；旧 evidence 不可投影为新 PASS
@@ -180,12 +180,12 @@ Windows 各一段原则 + 全平台一致的流程不变量）。下列材料是
 
 | 入口 | 地址 |
 |------|------|
-| Gitea | http://gitea-ci.orb.local:3000；`admin/rsdesign-new` 仅为现有 as-built/pilot 示例，实际目标由项目 profile 指定 |
+| Gitea | http://gitea-ci.orb.local:3000；`admin/rsdesign-new` 是历史 as-built/pilot 示例，自 #252 起已退出平台治理（仓库保留），实际目标由项目 profile 指定 |
 | 测试环境应用 | 由目标项目的 `appserver-test` profile 指定；历史 `gitea-ci:8091` 已在 Issue #21 收口，不得作为当前入口 |
 | Mailpit 收件箱 | http://gitea-ci.orb.local:8025 |
 | Verdaccio | http://gitea-ci.orb.local:4873 |
 | 凭据边界 | manager audit/mutation 与每项目 agent 使用 repo-external 独立 mode 600 protected credential；历史 admin/`ci-bot` 文件不是正常入口，凭据不得进入仓库、argv 或日志 |
-| Mac 工作克隆 | `~/Projects/rsdesign-new`（与 RSDesignTool monorepo 完全独立） |
+| Mac 工作克隆 | 由目标项目的 manifest `mac_checkout` 指定；历史 `~/Projects/rsdesign-new` 随 #252 退出治理，不再是平台入口 |
 
 私有仓库检查不得从匿名 API 开始。先解析目标 project profile/remote，再按 [06 §1.1](06-运维手册与踩坑集.md#11-私有-gitea-的只读检查) 使用最小权限 profile、既有 Git credential、VM-local 管理员只读 helper 或已登录浏览器；`404`/`Repository not found` 在认证与 ACL 未核对前不构成“不存在”证据。
 
