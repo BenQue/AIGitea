@@ -206,7 +206,7 @@ run_case 0 remote_check --repo "$TMP/aligned" --remote
 for check_id in pointer-sections change-templates architecture-lock labels-readback ci-context ci-outdated-branch delivery-profile change-documents change-pr-url; do
   expect_line "PASS: $check_id"
 done
-expect_line 'result: pass=9 gap=0 skip=1'
+expect_line 'result: pass=9 gap=0 skip=2'
 expect_contains 'DEPRECATED: inline GITEA_TOKEN is deprecated'
 
 # Token-file profile (#111): the remote checks must run when the env file only
@@ -224,7 +224,7 @@ MOCK_ENV_FILE="$TMP/agent-file.env" \
   run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'PASS: labels-readback'
 expect_line 'PASS: ci-context'
-expect_line 'result: pass=9 gap=0 skip=1'
+expect_line 'result: pass=9 gap=0 skip=2'
 if grep -Fq 'DEPRECATED' <<<"$last_output"; then
   fail 'token-file profile must not print the deprecation notice'
 fi
@@ -450,13 +450,13 @@ expect_line 'SKIP: change-pr-url — 仓库尚无 docs/changes'
 run_case 0 remote_check --repo "$TMP/aligned" --kind docs --remote
 expect_line 'SKIP: architecture-lock — docs 仓库不要求 architecture lock'
 expect_line 'SKIP: delivery-profile — docs 仓库不声明交付形态'
-expect_line 'result: pass=7 gap=0 skip=3'
+expect_line 'result: pass=7 gap=0 skip=4'
 
 run_case 0 local_check --repo "$TMP/aligned"
 expect_line 'SKIP: labels-readback — 未启用 --remote'
 expect_line 'SKIP: ci-context — 未启用 --remote'
 expect_line 'SKIP: ci-outdated-branch — 未启用 --remote'
-expect_line 'result: pass=6 gap=0 skip=4'
+expect_line 'result: pass=6 gap=0 skip=5'
 
 run_case 64 bash "$CHECKER"
 expect_contains 'usage:'
@@ -473,7 +473,7 @@ expect_contains 'GAP: architecture-lock —'
 MOCK_PROTECTION_STATUS=403 run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'SKIP: ci-context — 需要 manager/audit 权限'
 expect_line 'SKIP: ci-outdated-branch — 需要 manager/audit 权限'
-expect_line 'result: pass=7 gap=0 skip=3'
+expect_line 'result: pass=7 gap=0 skip=4'
 
 # AC-4: a value under a declared extension prefix is legitimate — the platform
 # owns the dimension, the project owns the values.
@@ -484,7 +484,7 @@ canonical_labels '
 run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'INFO: labels-readback — 声明扩展标签 area/web'
 expect_line 'INFO: labels-readback — 声明扩展标签 priority/p1'
-expect_line 'result: pass=9 gap=0 skip=1'
+expect_line 'result: pass=9 gap=0 skip=2'
 
 # AC-4: a near-miss of a declared prefix is undeclared, not a project dimension.
 # This is the case a prefix-only allow list would wave through.
@@ -661,6 +661,172 @@ expect_line 'SKIP: ci-merge-preview — 没有既由 pull_request 触发又检�
 
 run_case 0 local_check --repo "$TMP/aligned"
 expect_line 'SKIP: ci-merge-preview — 仓库没有 .gitea/workflows 或 .github/workflows'
+
+# #201 ci-registry-preflight. 暖缓存让 registry 停机在 CI 上完全不可见：
+# 只用既有依赖的 PR 照样全绿。本检查判的是「装依赖之前有没有一条真的会去
+# registry 取东西的断言」，顺序和「真的发请求」两条缺一不可——一个排在
+# npm ci 之后、或者只回显标记的步骤，护不住那次安装。
+
+write_npm_workflow() {
+  local repo="$1"
+  mkdir -p "$repo/.gitea/workflows" "$repo/scripts/ci"
+  cp "$ROOT/templates/project/ci/registry-preflight.sh" \
+    "$repo/scripts/ci/registry-preflight.sh"
+  write_workflow "$repo" ci.yml
+}
+
+# 出厂的 ci.yml 必须满足出厂的检查器。模板里的占位步骤换成一次真实的
+# npm ci——项目采纳模板后就是这个形状——之后那一步 Registry preflight
+# 必须被认出来。这条用例是模板与检查器之间唯一的连接点：少了它，
+# 两边可以各自「正确」而合起来判错。
+shipped_repo="$(copy_fixture registry-preflight-shipped)"
+mkdir -p "$shipped_repo/.gitea/workflows" "$shipped_repo/scripts/ci"
+cp "$ROOT/templates/project/ci/registry-preflight.sh" \
+  "$shipped_repo/scripts/ci/registry-preflight.sh"
+cp "$ROOT/templates/project/ci/merge-preview.sh" \
+  "$shipped_repo/scripts/ci/merge-preview.sh"
+sed "s|run: echo '换成本项目自己的测试命令'|run: npm ci|" \
+  "$ROOT/templates/project/ci/ci.yml" >"$shipped_repo/.gitea/workflows/ci.yml"
+grep -Fq 'npm ci' "$shipped_repo/.gitea/workflows/ci.yml" \
+  || fail '出厂 ci.yml 的占位步骤没被替换成依赖安装，本用例会退化成 SKIP'
+run_case 0 local_check --repo "$shipped_repo"
+expect_line 'PASS: ci-registry-preflight'
+expect_line 'PASS: ci-merge-preview'
+
+# 出厂参考加上一次真实的依赖安装：项目采纳模板后就是这个形状。
+preflight_ok_repo="$(copy_fixture registry-preflight-ok)"
+write_npm_workflow "$preflight_ok_repo" <<'WORKFLOW'
+name: CI
+on:
+  pull_request:
+    branches: [main]
+env:
+  NPM_CONFIG_REGISTRY: http://gitea-ci.orb.local:4873/
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+      - name: Registry preflight
+        run: bash scripts/ci/registry-preflight.sh
+      - name: Install dependencies
+        run: npm ci
+WORKFLOW
+run_case 0 local_check --repo "$preflight_ok_repo"
+expect_line 'PASS: ci-registry-preflight'
+
+# 没有断言：这正是 2026-08 那次故障里每一个仓库的形状。
+preflight_missing_repo="$(copy_fixture registry-preflight-missing)"
+write_npm_workflow "$preflight_missing_repo" <<'WORKFLOW'
+name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+      - name: Install dependencies
+        run: npm ci
+WORKFLOW
+run_case 1 local_check --repo "$preflight_missing_repo"
+expect_contains 'GAP: ci-registry-preflight — .gitea/workflows/ci.yml'
+expect_contains '暖缓存'
+
+# 排在安装之后等于没有：npm ci 已经先失败了 70 秒。
+preflight_late_repo="$(copy_fixture registry-preflight-late)"
+write_npm_workflow "$preflight_late_repo" <<'WORKFLOW'
+name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+      - name: Install dependencies
+        run: npm ci
+      - name: Registry preflight
+        run: bash scripts/ci/registry-preflight.sh
+WORKFLOW
+run_case 1 local_check --repo "$preflight_late_repo"
+expect_contains 'GAP: ci-registry-preflight — .gitea/workflows/ci.yml'
+
+# 可以静默失败的断言不是闸门，与 #223 对合并预览的判法一致。
+preflight_soft_repo="$(copy_fixture registry-preflight-soft)"
+write_npm_workflow "$preflight_soft_repo" <<'WORKFLOW'
+name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+      - name: Registry preflight
+        continue-on-error: true
+        run: bash scripts/ci/registry-preflight.sh
+      - name: Install dependencies
+        run: npm ci
+WORKFLOW
+run_case 1 local_check --repo "$preflight_soft_repo"
+expect_contains 'GAP: ci-registry-preflight — .gitea/workflows/ci.yml'
+
+# 只回显标记而不发请求的桩：标记好抄，断言不好抄。
+preflight_stub_repo="$(copy_fixture registry-preflight-stub)"
+mkdir -p "$preflight_stub_repo/.gitea/workflows"
+write_workflow "$preflight_stub_repo" ci.yml <<'WORKFLOW'
+name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+      - name: Registry preflight
+        run: echo AISOFT_REGISTRY_PREFLIGHT_OK
+      - name: Install dependencies
+        run: npm ci
+WORKFLOW
+run_case 1 local_check --repo "$preflight_stub_repo"
+expect_contains 'GAP: ci-registry-preflight — .gitea/workflows/ci.yml'
+
+# 不装 npm 依赖的仓库与本故障无关，跳过而不是报干净。
+preflight_no_npm_repo="$(copy_fixture registry-preflight-no-npm)"
+write_workflow "$preflight_no_npm_repo" ci.yml <<'WORKFLOW'
+name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+      - run: bash codex/tests/smoke.sh
+WORKFLOW
+run_case 0 local_check --repo "$preflight_no_npm_repo"
+expect_line 'SKIP: ci-registry-preflight — 没有安装 npm 依赖的 workflow'
+
+run_case 0 local_check --repo "$TMP/aligned"
+expect_line 'SKIP: ci-registry-preflight — 仓库没有 .gitea/workflows 或 .github/workflows'
 
 # #223 ci-outdated-branch. An expired green is still a valid green until this
 # flag is on: base moves, nothing reruns the workflow, and the merge lands on a
