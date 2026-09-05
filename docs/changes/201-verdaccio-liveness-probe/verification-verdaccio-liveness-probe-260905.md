@@ -53,6 +53,19 @@ updated: 2026-09-05
 | `bash codex/tests/smoke.sh` | PASS，exit 0 | `Ran 671 tests ... OK` / `Codex platform static smoke checks passed.` |
 | `aisoft-project-check.sh --repo <本 worktree>`（本次版本） | `result: pass=4 gap=3 skip=4` | 相对基线只多一行 `SKIP: ci-registry-preflight — 没有安装 npm 依赖的 workflow`；三个 GAP 与基线逐字相同 |
 
+### PR 上的 CI 实测（PR 257）
+
+| 项 | 读回 |
+|---|---|
+| PR | 257，`state: open`，`draft: false`，`mergeable: true` |
+| head SHA | `1bfcd543ef0402fd6f704ef3a2465724b8d30277` |
+| base SHA | `00f7d53481d5723fa63759a14d959ffbfb18bca2` |
+| 必需检查 | `CI / verify (pull_request)` = `success`，run 1052 |
+| 合并后的 `state` | `success`（`total_count: 1`） |
+
+context 字符串与改动前逐字相同，证实 AC-4 在真实的分支保护上也成立：新增的步骤没有
+让必需检查失配。
+
 ### 反向证明（证明这些断言不是空转）
 
 每一条都先把被测对象改坏、确认变红，再恢复并确认复绿。
