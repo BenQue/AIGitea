@@ -177,7 +177,8 @@ canonical_labels >"$TMP/labels.json"
 jq -n '{
   enable_push: false,
   enable_status_check: true,
-  status_check_contexts: ["CI / verify (pull_request)"]
+  status_check_contexts: ["CI / verify (pull_request)"],
+  block_on_outdated_branch: true
 }' >"$TMP/protection.json"
 
 remote_check() {
@@ -187,7 +188,7 @@ remote_check() {
     MOCK_ARGV_LOG="$TMP/curl.argv" \
     MOCK_LABELS="$TMP/labels.json" \
     MOCK_ISSUES_DIR="$TMP/issues" \
-    MOCK_PROTECTION="$TMP/protection.json" \
+    MOCK_PROTECTION="${MOCK_PROTECTION:-$TMP/protection.json}" \
     MOCK_SENTINEL="$SENTINEL" \
     MOCK_PROTECTION_STATUS="${MOCK_PROTECTION_STATUS:-200}" \
     MOCK_TRANSPORT_FAIL="${MOCK_TRANSPORT_FAIL:-0}" \
@@ -202,10 +203,10 @@ local_check() {
 make_aligned_repo "$TMP/aligned"
 
 run_case 0 remote_check --repo "$TMP/aligned" --remote
-for check_id in pointer-sections change-templates architecture-lock labels-readback ci-context delivery-profile change-documents change-pr-url; do
+for check_id in pointer-sections change-templates architecture-lock labels-readback ci-context ci-outdated-branch delivery-profile change-documents change-pr-url; do
   expect_line "PASS: $check_id"
 done
-expect_line 'result: pass=8 gap=0 skip=1'
+expect_line 'result: pass=9 gap=0 skip=1'
 expect_contains 'DEPRECATED: inline GITEA_TOKEN is deprecated'
 
 # Token-file profile (#111): the remote checks must run when the env file only
@@ -223,7 +224,7 @@ MOCK_ENV_FILE="$TMP/agent-file.env" \
   run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'PASS: labels-readback'
 expect_line 'PASS: ci-context'
-expect_line 'result: pass=8 gap=0 skip=1'
+expect_line 'result: pass=9 gap=0 skip=1'
 if grep -Fq 'DEPRECATED' <<<"$last_output"; then
   fail 'token-file profile must not print the deprecation notice'
 fi
@@ -330,12 +331,12 @@ mv "$TMP/protection.next" "$TMP/protection.json"
 run_case 1 remote_check --repo "$labels_repo" --remote
 expect_contains 'GAP: ci-context —'
 
-jq -n '{enable_push:true,enable_status_check:true,status_check_contexts:["CI / verify (pull_request)"]}' \
+jq -n '{enable_push:true,enable_status_check:true,status_check_contexts:["CI / verify (pull_request)"],block_on_outdated_branch:true}' \
   >"$TMP/protection.json"
 run_case 1 remote_check --repo "$labels_repo" --remote
 expect_contains 'GAP: ci-context —'
 
-jq -n '{enable_push:false,enable_status_check:true,status_check_contexts:["CI / verify (pull_request)"]}' \
+jq -n '{enable_push:false,enable_status_check:true,status_check_contexts:["CI / verify (pull_request)"],block_on_outdated_branch:true}' \
   >"$TMP/protection.json"
 delivery_repo="$(copy_fixture delivery-gap)"
 sed 's|  docker-release/v2;|  <delivery-profile>;|' "$delivery_repo/AGENTS.md" \
@@ -449,12 +450,13 @@ expect_line 'SKIP: change-pr-url — 仓库尚无 docs/changes'
 run_case 0 remote_check --repo "$TMP/aligned" --kind docs --remote
 expect_line 'SKIP: architecture-lock — docs 仓库不要求 architecture lock'
 expect_line 'SKIP: delivery-profile — docs 仓库不声明交付形态'
-expect_line 'result: pass=6 gap=0 skip=3'
+expect_line 'result: pass=7 gap=0 skip=3'
 
 run_case 0 local_check --repo "$TMP/aligned"
 expect_line 'SKIP: labels-readback — 未启用 --remote'
 expect_line 'SKIP: ci-context — 未启用 --remote'
-expect_line 'result: pass=6 gap=0 skip=3'
+expect_line 'SKIP: ci-outdated-branch — 未启用 --remote'
+expect_line 'result: pass=6 gap=0 skip=4'
 
 run_case 64 bash "$CHECKER"
 expect_contains 'usage:'
@@ -470,7 +472,8 @@ expect_contains 'GAP: architecture-lock —'
 
 MOCK_PROTECTION_STATUS=403 run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'SKIP: ci-context — 需要 manager/audit 权限'
-expect_line 'result: pass=7 gap=0 skip=2'
+expect_line 'SKIP: ci-outdated-branch — 需要 manager/audit 权限'
+expect_line 'result: pass=7 gap=0 skip=3'
 
 # AC-4: a value under a declared extension prefix is legitimate — the platform
 # owns the dimension, the project owns the values.
@@ -481,7 +484,7 @@ canonical_labels '
 run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'INFO: labels-readback — 声明扩展标签 area/web'
 expect_line 'INFO: labels-readback — 声明扩展标签 priority/p1'
-expect_line 'result: pass=8 gap=0 skip=1'
+expect_line 'result: pass=9 gap=0 skip=1'
 
 # AC-4: a near-miss of a declared prefix is undeclared, not a project dimension.
 # This is the case a prefix-only allow list would wave through.
@@ -658,6 +661,56 @@ expect_line 'SKIP: ci-merge-preview — 没有既由 pull_request 触发又检�
 
 run_case 0 local_check --repo "$TMP/aligned"
 expect_line 'SKIP: ci-merge-preview — 仓库没有 .gitea/workflows 或 .github/workflows'
+
+# #223 ci-outdated-branch. An expired green is still a valid green until this
+# flag is on: base moves, nothing reruns the workflow, and the merge lands on a
+# tree no run ever saw.
+jq -n '{
+  enable_push: false,
+  enable_status_check: true,
+  status_check_contexts: ["CI / verify (pull_request)"],
+  block_on_outdated_branch: false
+}' >"$TMP/protection-open.json"
+MOCK_PROTECTION="$TMP/protection-open.json" \
+  run_case 1 remote_check --repo "$TMP/aligned" --remote
+expect_line 'PASS: ci-context'
+expect_line 'GAP: ci-outdated-branch — block_on_outdated_branch 未打开，base 前进后过期的绿仍可合并'
+
+# A missing key is not an implicit true.
+jq -n '{
+  enable_push: false,
+  enable_status_check: true,
+  status_check_contexts: ["CI / verify (pull_request)"]
+}' >"$TMP/protection-silent.json"
+MOCK_PROTECTION="$TMP/protection-silent.json" \
+  run_case 1 remote_check --repo "$TMP/aligned" --remote
+expect_line 'GAP: ci-outdated-branch — block_on_outdated_branch 未打开，base 前进后过期的绿仍可合并'
+
+# The 2026-09-05 ruling covers the platform repository and internal
+# applications; a public test repository is outside it and must not read as a
+# finding.
+cat >"$TMP/agent-public-test.env" <<EOF
+GITEA_URL=http://mock.gitea.invalid
+GITEA_OWNER=admin
+GITEA_REPO=myapp
+GITEA_TOKEN=$SENTINEL
+EOF
+chmod 600 "$TMP/agent-public-test.env"
+MOCK_ENV_FILE="$TMP/agent-public-test.env" \
+  run_case 1 remote_check --repo "$TMP/aligned" --remote
+expect_line 'SKIP: ci-outdated-branch — classification=public-test 不在裁定范围内'
+
+# A repository outside the manifest is a GAP, not a silent pass.
+cat >"$TMP/agent-unknown.env" <<EOF
+GITEA_URL=http://mock.gitea.invalid
+GITEA_OWNER=admin
+GITEA_REPO=not-in-manifest
+GITEA_TOKEN=$SENTINEL
+EOF
+chmod 600 "$TMP/agent-unknown.env"
+MOCK_ENV_FILE="$TMP/agent-unknown.env" \
+  run_case 1 remote_check --repo "$TMP/aligned" --remote
+expect_line 'GAP: ci-outdated-branch — 仓库不在 governance manifest 或坐标不匹配'
 
 canonical_labels >"$TMP/labels.json"
 MOCK_TRANSPORT_FAIL=1 run_case 1 remote_check --repo "$TMP/aligned" --remote

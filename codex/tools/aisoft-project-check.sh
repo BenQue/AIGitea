@@ -736,15 +736,67 @@ check_ci_context() {
   fi
 }
 
+# #223 gap 2: running the merge preview is only half of it. That preview is
+# computed when the workflow runs, and the merge happens later; nothing reruns
+# it when someone else's PR advances base in between. block_on_outdated_branch
+# is what closes that window, and the platform ruled on 2026-09-05 that it is on
+# for the platform repository and every internal application. broker has no
+# protection.set, so a human flips it in the Gitea UI — this check only reads it
+# back, which is exactly why it belongs here rather than in a mutation path.
+check_outdated_branch() {
+  local classification http_status
+  local protection="$tmp_dir/protection-outdated.json"
+  if ! classification="$(
+    jq -re --arg owner "$GITEA_OWNER" --arg repo "$GITEA_REPO" '
+      if .owner != $owner then error("owner mismatch")
+      else [.repositories[] | select(.name == $repo)] |
+        if length == 1 then .[0].classification
+        else error("repository missing or duplicated") end
+      end
+    ' "$GOVERNANCE_MANIFEST" 2>/dev/null
+  )"; then
+    gap ci-outdated-branch '仓库不在 governance manifest 或坐标不匹配'
+    return
+  fi
+  case "$classification" in
+    public-platform | internal-application) ;;
+    *)
+      skip ci-outdated-branch "classification=$classification 不在裁定范围内"
+      return
+      ;;
+  esac
+  if ! http_status="$(api_get "$API/branch_protections/main" "$protection")"; then
+    gap ci-outdated-branch 'main protection 读取失败'
+    return
+  fi
+  if [[ "$http_status" == 403 ]]; then
+    skip ci-outdated-branch '需要 manager/audit 权限'
+    return
+  fi
+  if [[ "$http_status" != 200 ]]; then
+    gap ci-outdated-branch "main protection 读取返回 HTTP $http_status"
+    return
+  fi
+  if jq -e 'type == "object" and (.block_on_outdated_branch == true)' \
+    "$protection" >/dev/null 2>&1; then
+    pass ci-outdated-branch
+  else
+    gap ci-outdated-branch 'block_on_outdated_branch 未打开，base 前进后过期的绿仍可合并'
+  fi
+}
+
 if [[ "$remote" != true ]]; then
   skip labels-readback '未启用 --remote'
   skip ci-context '未启用 --remote'
+  skip ci-outdated-branch '未启用 --remote'
 elif [[ "$remote_ready" != true ]]; then
   gap labels-readback "$remote_reason"
   gap ci-context "$remote_reason"
+  gap ci-outdated-branch "$remote_reason"
 else
   check_remote_labels
   check_ci_context
+  check_outdated_branch
 fi
 
 if [[ "$kind" == docs ]]; then
