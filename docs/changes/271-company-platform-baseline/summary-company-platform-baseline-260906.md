@@ -93,4 +93,4 @@ override_reason: ''
 
 ## 当前交接状态
 
-`AWAITING_PR_CONFIRMATION`（interactive local candidate），policy=manual。实现与本地验证见映射 verification；公司 current=BLOCKED_EXTERNAL/NOT RUN。最终 PR 尚未提交，不 push/merge/deploy。Triage live projector 的 GAP 独立保留。
+用户于 2026-09-06 确认提交本 Issue 唯一最终 PR，绑定 #271 / `change/271-company-platform-baseline` / manual，并允许合同内 CI 修复。提交确认已持久化；required CI 通过后停在 `READY_FOR_REVIEW` 等待人工合并。公司 current=BLOCKED_EXTERNAL/NOT RUN，现场 mutation 与部署未授权。Triage live projector 的 GAP 独立保留。

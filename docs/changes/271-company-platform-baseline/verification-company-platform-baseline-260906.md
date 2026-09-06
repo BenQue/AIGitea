@@ -18,7 +18,9 @@ created: 2026-09-06
 updated: 2026-09-06
 ---
 
-# 只读接管基线验证与最终 PR 候选
+# 只读接管基线本地验收记录
+
+本记录的测试与未执行项固定于提交 PR 前的本地验收阶段。用户随后于 2026-09-06 明确确认 manual 最终 PR 与合同内 CI 修复；PR/CI 最新状态以 summary 和 Gitea 当前读回为准。原采集包绑定候选 `8ec57de23fcfe45461a803a8a4fdf42f4d1cd1bd`，不自动改写为后续提交版本。
 
 ## 基线与范围
 
@@ -81,7 +83,7 @@ B2/B3 需要真实 current envelope、操作员审核事实及其 digest、批�
 后续 mutation 还依赖 #270 已合并 exact platform pin 与新的环境/版本/脚本/范围授权。
 source merge 不代表公司安装或接管完成。
 
-## 持久化交接状态
+## 提交确认前的持久化交接状态（历史）
 
 - 交互式本地候选：`AWAITING_PR_CONFIRMATION`；policy=`manual`；本 Issue 一个最终 PR。
 - 本地提交之后等待用户按 exact #271/branch/manual 确认提交。确认后才可受控 push/建 PR，并继续当前合同内 CI 修复；required CI 通过停在 `READY_FOR_REVIEW`，由人审核合并。
