@@ -40,20 +40,23 @@
 - 交付形态参考（按项目选用，非部署步骤事实源；环境级原则见 `skill-for-codex/references/onboarding-runbook.md` §4，步骤与细节在项目仓）：
   - `12-Linux-GitHub-Gitea-双服务器自动部署方案.md`：Linux 容器化——GitHub 入站与三角色职责分离的参考合同（文件名保留早期「双服务器」提案以维持链接）。参考、非部署步骤事实源。
   - `docker-release/`：Linux 容器化——Docker-first 发布合同（release manifest、transport、capability gate、CLI）的参考实现。参考、非部署步骤事实源。
+  - `company-delivery/`：Linux 容器化（两台公司 VM 离线交付）——operator bundle、脱敏 inventory、Stage 00–110 人工 runbook 与 evidence 的参考实现。参考、非部署步骤事实源。
   - `12-Windows平台自动部署方案.md`：Windows——IIS/.NET/PostgreSQL 交付链设计（尚未实施）。参考、非部署步骤事实源。
   - `13-项目结果迁移与内网切换实施手册.md`：全环境（内网迁移线）——结果基线迁移与内网切换手册（尚未实施）。参考、非部署步骤事实源。
   - `14-Windows部署与迁移验收清单.md`：Windows——部署与迁移验收证据模板（全部 NOT RUN）。参考、非部署步骤事实源。
   - `15-VMware-Fusion-Windows-ARM原型实施手册.md`：Windows（Mac 本地原型）——部署脚本快速调试层。参考、非部署步骤事实源。
   - `architecture/`：全环境——技术架构 catalog/profiles/schemas/lock 的平台事实源与 CLI；交付形态取值由项目如实选取，部署方案在项目仓。参考、非部署步骤事实源。
 - `sync/`：GitHub 入站同步的 scm-ci 侧脚本与 systemd 单元。
-- `codex/skills/`：可部署到 `$HOME/.agents/skills/` 的 Codex 原生 skills 源（含 `aisoft-matt-workflow`）。
+- `codex/skills/`：可部署到 `$HOME/.agents/skills/` 的 Codex 原生 skills 源（含 `aisoft-matt-workflow` 与 `issue-session-flow`）。
 - `codex/vendor/mattpocock/`：固定版本的 Matt Pocock skills 上游快照与 manifest。
 - `codex/runtime/`：`aisoft_loop`、`aisoft_release`、`aisoft_architecture`、`aisoft_host_access`、`aisoft_gitea_governance` Python 运行时与测试。
 - `codex/agent/`：VM 上与 Claude 脚本并存的 Codex agent 与 provider router。
 - `codex/tools/`、`codex/config/`：治理/运维工具与 canonical manifests（labels、gitea-governance、host-access-broker、host-role）。
-- `codex/install-vm.sh`、`codex/install-skills.sh`、`codex/install-host-role.sh`、`codex/install-host-access-broker.sh`：安装 runtime/skills/guard/broker，不复制凭据。
+- `codex/install-vm.sh`、`codex/install-skills.sh`、`codex/install-host-role.sh`、`codex/install-host-access-broker.sh`、`architecture/install.sh`、`sync/install.sh`、`docker-release/install.sh`、`skill-for-claude/install.sh`：8 个 installer，分别安装 runtime/skills/guard/broker/architecture CLI/sync/release CLI/Claude skills，全部经 `codex/lib/install-source-guard.sh` 做 source provenance 与 staleness 闸门，不复制凭据。
 - `skill-for-codex/`：复合 `aisoft-platform` skill（Codex 版）与 onboarding/private-access references。
-- `templates/docs/changes/_template/`：v3 summary/spec/plan/verification 模板；`templates/docs/agents/`：Matt tracker/triage/domain 配置模板；`templates/agent/`、`templates/hosts/`、`templates/loop/`：profile 与 verifier 示例。
+- `skill-for-claude/`：Claude 侧 skills 源（`aisoft-platform`、`issue-session-flow`）与 `skills.manifest`/`install.sh`/`check-drift.sh`；references 与 Codex 侧共用 `skill-for-codex/references/`。
+- `templates/docs/changes/_template/`：v3 summary/spec/plan/verification 模板；`templates/docs/agents/`：Matt tracker/triage/domain 配置模板；`templates/agent/`、`templates/hosts/`、`templates/loop/`：profile 与 verifier 示例；`templates/project/`：项目 `AGENTS.md`/`CLAUDE.md` 指针模板与 `ci/`（CI workflow、merge-preview、registry-preflight 参考，#223）。
+- `docs/changes/`：每个 Issue 的语义文档目录（summary/spec/plan/verification）；`docs/agents/`：本仓库的 Matt tracker/triage/domain 配置（由 `templates/docs/agents/` 安装）。
 - `archive/`：历史实施记录、旧方案（含 10/11）与平台状态历史，只读参考，不作当前配置来源。
 
 ## Git
