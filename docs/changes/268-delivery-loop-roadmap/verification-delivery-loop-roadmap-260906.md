@@ -10,7 +10,7 @@ confidence: high
 risk_flags:
   - platform-governance
 depends_on: []
-status: pending
+status: handoff-pending
 branch: change/268-delivery-loop-roadmap
 created: 2026-09-06
 updated: 2026-09-06
@@ -38,7 +38,9 @@ updated: 2026-09-06
 | `git worktree add -b change/268-delivery-loop-roadmap /private/tmp/issue-268-delivery-loop-roadmap main` | PASS | 从固定基线创建；未改 main |
 | 文档语义与判级验证 | PASS | 123 个 change；change-documents / change-pr-url 均 PASS；Classification 与 summary 判级一致，四角色 resolver 通过 |
 | `git diff --cached --check` | PASS | 四份新增文件的 staged diff 无空白错误 |
-| Codex 调度任务创建和状态读回 | NOT RUN | 待执行 |
+| Codex 调度任务创建 | PASS | create_thread 已受理；clientThreadId=`client-new-thread:c0a4fe7d-14ff-44d1-a733-07fd99a19202`；host=`local`；指定 Sol/high 和项目 worktree |
+| 调度工作区创建 | PASS | `git worktree list --porcelain` 已见 `/Users/benque/.codex/worktrees/d9bc/AISoftPlatform`，基线为 `3fb6b605a59ce492ef4fb6ddcd3ebf64ca7f223a` |
+| 调度运行状态读回 | BLOCKED | list_threads 尚未返回新任务的正式 threadId；未向 wait_threads 传递 clientThreadId；实际开始执行未确认 |
 | broker 判级与生命周期投影 | PASS | #268 读回 `type/platform`、`complexity/complex`、`approved`；只覆盖路线图和调度启动 |
 | 当前 Change 远端 push / PR / CI / merge | NOT RUN | 最终 PR 需要 exact Issue/branch/manual 确认 |
 
@@ -55,17 +57,20 @@ plan §1 的 699 项 tests、122 个 change 文档检查、skills drift、worktr
 | AC-1 | PASS | plan §1–4 覆盖基线、F1–F10、阶段及依赖，改名延期 |
 | AC-2 | PASS | plan Gate B/C、工作包与决策表；公司平台先行，复用三项已有 Issue |
 | AC-3 | PASS | spec 多 Issue/模型合同、plan §6；本 Issue 完成不等于路线图完成 |
-| AC-4 | NOT RUN | 待新调度任务创建/读回 |
+| AC-4 | GAP | 创建请求与工作区建立已确认；新任务运行回执待客户端完成，不能写成已运行 |
 | AC-5 | PASS | 文档门禁与判级/resolver 通过；最终 staged diff 检查见执行记录 |
 
 ## 调度交接
 
 - 模型：`gpt-5.6-sol`；reasoning effort：`high`。
-- Task ID：待创建。
+- 创建请求 ID：`client-new-thread:c0a4fe7d-14ff-44d1-a733-07fd99a19202`；正式 threadId 待客户端提供。
+- 指定标题：公司平台部署与 NewEMaint 路线图调度。
+- 任务工作区：`/Users/benque/.codex/worktrees/d9bc/AISoftPlatform`，只作调度。
+- 文档交接已完成：本地 #268 分支保留完整合同；发起任务结束后不再实施或共写。新调度任务启动后可以将本条作为发起任务的交接完成记录，核对当前分支 HEAD 后接手协调。
 - 路线图事实源：本目录映射 plan。
 - 接手后首先 sweep、核对当前状态，准备 A1 合同与 A3 只读诊断，可将 A2 现象复现分给 Terra high。实际实施须遵循各 Issue 合同与闸门。
 - 本路线图最终 PR 尚未获提交确认；调度任务接手该候选的协调，不能自行把它当成已合并合同。它可以开展已授权的证据收集和合同草拟。
 
 ## 遗留风险与未完成项
 
-阶段 A/B/C/D 尚未开始实际实施。本次用户确认路线图和调度启动，不等于所有后续决策或现场操作获批。远端 PR、required CI 与人工合并状态单列；公司 Gitea/平台现场交付由平台部署 Change 证明，应用交付由 NewEMaint 独立 Change 证明。
+调度任务创建已受理但启动回执未确认，勿重复创建。新任务启动后自行读回并记录正式 task ID，再推进首轮调度。阶段 A/B/C/D 尚未开始实际实施。本次用户确认路线图和调度启动，不等于所有后续决策或现场操作获批。远端 PR、required CI 与人工合并状态单列；公司 Gitea/平台现场交付由平台部署 Change 证明，应用交付由 NewEMaint 独立 Change 证明。
