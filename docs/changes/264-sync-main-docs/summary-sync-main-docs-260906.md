@@ -23,7 +23,7 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/264-sync-main-docs
 pr_url:
 created: 2026-09-06

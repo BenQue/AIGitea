@@ -11,7 +11,7 @@ risk_flags:
   - agent-governance
   - platform-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/264-sync-main-docs
 created: 2026-09-06
 updated: 2026-09-06
