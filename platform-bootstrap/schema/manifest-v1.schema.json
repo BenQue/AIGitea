@@ -87,7 +87,7 @@
         "properties": {
           "path": {
             "type": "string",
-            "pattern": "^[a-zA-Z0-9_./-]{1,180}$"
+            "pattern": "^(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*$"
           },
           "sha256": {
             "type": "string",

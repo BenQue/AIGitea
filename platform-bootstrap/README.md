@@ -22,6 +22,8 @@ Gitea 数据库、application artifact、服务 unit 或自动安装器。运行
 
 批准记录绑定 source SHA、组件、scm-ci 与 rollback identity。builder 要求 clean repository 的 HEAD 完全相同，
 只读取固定 allowlist 的 Git 跟踪文件；拒绝 symlink/hardlink、模式漂移和未知包文件。
+payload 和 mode 直接来自批准 SHA 的不可变 Git blob/tree，发布前再次检查 HEAD/clean；Git fsmonitor/hook、
+外部 Git 配置与 replace object 均禁用，避免读取时并发工作树变化或隐藏命令影响产物。
 输出 `platform-bootstrap.tar.gz`、`handoff.json`、`handoff.sha256`。同一批准记录原字节和 source 输入得到相同输出。
 
 外部批准的 handoff SHA-256 → handoff 的 archive/manifest SHA-256 → bundle manifest 的逐文件/payload 索引摘要。
@@ -43,3 +45,9 @@ identity 必须从已批准的 canonical 资产记录计算 SHA-256；不要直�
 `verify-inventory` 仅校验传入文档；`readback` 仅校验申报的 observation 与请求身份/验收检查关系，
 输出明确为 `declared-observation-only`，不会主动检测主机或声称已执行现场动作。
 完整采用分流、命令、动作协议和恢复边界见 [runbook](runbook.md) 与 [actions](actions.json)。
+
+target 的 `action_inputs` 使用每动作闭合 schema：package-set/candidate namespace、source refs/transport/staging、
+main protection allowlists/human identity、required contexts、Runner binary/config/registration approval、
+one-shot timer-disabled、canary approval/local change 均是结构化 exact 输入。staging 必须绑定本次完整 source SHA，
+所有动作输入进入 plan digest，当前动作输入也进入 request digest；不是仅靠自然语言描述补参数。
+`site_executor.status=unbound` 与 `predecessor_actions` 明确保留 B1/B2 的独立绑定和真实前驱证据责任。

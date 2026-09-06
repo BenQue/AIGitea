@@ -3,13 +3,15 @@ from __future__ import annotations
 
 import gzip
 import io
+import os
 from pathlib import Path
 import re
+import stat
 import subprocess
 import tarfile
 
-from .contract import (BootstrapError, COMPONENTS, SCHEMAS, VERSION, canonical, digest,
-                       document, load, parse, read_regular, require, safe_path, write_new)
+from .contract import (BootstrapError, SCHEMAS, VERSION, canonical, digest,
+                       document, parse, read_regular, require, safe_path, write_new)
 
 
 ARCHIVE = "platform-bootstrap.tar.gz"
@@ -26,8 +28,17 @@ DESTINATIONS = set(MAPPINGS.values())
 
 
 def git(repository: Path, *args: str) -> bytes:
-    result = subprocess.run(["git", "-C", str(repository), *args], capture_output=True,
-                            check=False, timeout=30)
+    environment = {"PATH": os.environ.get("PATH", os.defpath), "LC_ALL": "C",
+                   "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_SYSTEM": os.devnull,
+                   "GIT_CONFIG_NOSYSTEM": "1", "GIT_NO_REPLACE_OBJECTS": "1",
+                   "GIT_OPTIONAL_LOCKS": "0", "GIT_LITERAL_PATHSPECS": "1"}
+    try:
+        result = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull,
+                                "-c", "status.submoduleSummary=false", "-c", "submodule.recurse=false",
+                                "-C", str(repository), *args], capture_output=True,
+                                check=False, timeout=30, env=environment)
+    except subprocess.TimeoutExpired as exc:
+        raise BootstrapError("SOURCE_TIMEOUT") from exc
     require(result.returncode == 0, "SOURCE_INVALID")
     return result.stdout
 
@@ -70,18 +81,25 @@ def build(repository: Path, approval_path: Path, output: Path) -> dict:
     require(output.is_dir() and not list(output.iterdir()) and
             output.stat().st_mode & 0o777 == 0o700 and repository not in output.parents,
             "OUTPUT_INVALID")
-    tracked = set(git(repository, "ls-files", "-z", "--", "platform-bootstrap",
-                      "codex/runtime/aisoft_platform_bootstrap").decode().strip("\0").split("\0"))
+    source_sha = approval["source_sha"]
+    tracked = set(git(repository, "ls-tree", "-r", "--name-only", "-z", source_sha, "--",
+                      "platform-bootstrap", "codex/runtime/aisoft_platform_bootstrap")
+                  .decode().strip("\0").split("\0"))
     require(tracked == set(MAPPINGS), "COMPONENT_ALLOWLIST_MISMATCH")
     files, modes, entries = {}, {}, []
     for source, target in sorted(MAPPINGS.items(), key=lambda pair: pair[1]):
-        content = read_regular(repository / source)
-        scan(content)
-        require(content, "SOURCE_INVALID")
+        metadata = safe_path(repository / source).lstat()
+        require(stat.S_ISREG(metadata.st_mode) and metadata.st_nlink == 1, "UNSAFE_PATH")
         mode = 0o755 if target.startswith("bin/") else 0o644
-        tree_entry = git(repository, "ls-tree", "HEAD", "--", source).decode().split()
+        tree_entry = git(repository, "ls-tree", source_sha, "--", source).decode().split()
         require(tree_entry and tree_entry[0] == ("100755" if mode == 0o755 else "100644"),
                 "SOURCE_MODE_INVALID")
+        require(int(git(repository, "cat-file", "-s", tree_entry[2])) <= 4 * 1024 * 1024,
+                "RESOURCE_LIMIT")
+        # The pinned immutable blob is authoritative, never a moving HEAD or working file.
+        content = git(repository, "cat-file", "blob", tree_entry[2])
+        require(content and len(content) <= 4 * 1024 * 1024, "SOURCE_INVALID")
+        scan(content)
         files[target], modes[target] = content, mode
         entries.append({"path": target, "sha256": digest(content), "size": len(content), "mode": mode})
     require(files["VERSION"] == (VERSION + "\n").encode(), "VERSION_MISMATCH")
@@ -100,6 +118,8 @@ def build(repository: Path, approval_path: Path, output: Path) -> dict:
         "archive_name": ARCHIVE, "archive_sha256": digest(archive)}, "handoff")
     # Validate complete bytes before any output is published.
     _verify_archive(archive, handoff)
+    require(git(repository, "rev-parse", "HEAD").decode().strip() == source_sha and
+            not git(repository, "status", "--porcelain", "--untracked-files=all"), "SOURCE_DIRTY")
     created = []
     try:
         for name, data in [(ARCHIVE, archive), ("handoff.json", canonical(handoff))]:

@@ -65,6 +65,25 @@ ROLLBACK = obj(kind=enum("uninstalled", "snapshot"), identity_sha256=SHA256,
 PROTECTION = obj(direct_push_denied=BOOL, force_push_denied=BOOL,
                  human_merge_only=BOOL, required_ci=array({"type": "string",
                  "pattern": "^[A-Za-z0-9][A-Za-z0-9 /_().-]{0,127}$"}, 0, 20))
+CONTEXTS = array({"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9 /_().-]{0,127}$"}, 1, 20)
+STAGING = {"type": "string", "pattern": "^refs/heads/sync/platform-[0-9a-f]{40}$"}
+PARAMETERS = {
+    "gitea-adoption": obj(package_set_sha256=SHA256, candidate_namespace_sha256=SHA256,
+                           gitea_version=enum("1.26.4")),
+    "repo-bootstrap": obj(source_refs_sha256=SHA256, transport=enum("approved-git-bundle",
+        "allowlisted-github-ref"), transport_identity_sha256=SHA256, staging_ref=STAGING),
+    "protected-main": obj(branch=enum("main"), direct_push_allowlist=enum([]),
+        force_push_allowlist=enum([]), human_merge_identity_sha256=SHA256, policy_sha256=SHA256),
+    "required-ci": obj(contexts=CONTEXTS, branch=enum("main")),
+    "runner": obj(binary_sha256=SHA256, configuration_sha256=SHA256,
+        registration_approval_reference=REFERENCE, scope=enum("platform-only"), auto_enable=enum(False)),
+    "one-shot-inbound": obj(source_refs_sha256=SHA256, transport_identity_sha256=SHA256,
+        staging_ref=STAGING, timer_enabled=enum(False)),
+    "canary": obj(local_change_sha256=SHA256, company_approval_sha256=SHA256,
+        required_contexts=CONTEXTS, merge_policy=enum("manual")),
+}
+BINDINGS = obj(**PARAMETERS)
+EXECUTOR = obj(status=enum("unbound"), binding_requirement=enum("independent-B1-B2-contract"))
 SCHEMAS = {
     "actions": obj(contract_version=enum("platform-bootstrap-actions/v1"),
         script_version=enum(VERSION), host_role=enum("scm-ci"), site_executor=enum("BOUND_BY_B1_B2"),
@@ -80,7 +99,7 @@ SCHEMAS = {
         source_sha=SHA1, host_role=enum("scm-ci"), components=enum(COMPONENTS),
         approval_reference=REFERENCE, approval_sha256=SHA256, rollback=ROLLBACK,
         payload_sha256=SHA256, payloads=array(obj(path={"type": "string",
-            "pattern": "^[a-zA-Z0-9_./-]{1,180}$"}, sha256=SHA256,
+            "pattern": "^(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*$"}, sha256=SHA256,
             size={"type": "integer", "minimum": 1, "maximum": MAX_BYTES},
             mode=enum(0o644, 0o755)), 1, 100)),
     "handoff": obj(contract_version=enum("platform-bootstrap-handoff/v1"),
@@ -101,25 +120,31 @@ SCHEMAS = {
         target_identity_sha256=SHA256, gitea_identity_sha256=SHA256,
         repository_identity_sha256=SHA256,
         approval_reference=REFERENCE, gitea_version=enum("1.26.4"),
-        required_ci=array({"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9 /_().-]{0,127}$"}, 1, 20)),
+        required_ci=CONTEXTS, action_inputs=BINDINGS, site_executor=EXECUTOR),
     "plan": obj(contract_version=enum("platform-bootstrap-plan/v1"),
         source_sha=SHA1, handoff_sha256=SHA256, inventory_sha256=SHA256,
         target_sha256=SHA256, target_identity_sha256=SHA256,
+        gitea_identity_sha256=SHA256,
         repository_identity_sha256=SHA256, approval_reference=REFERENCE,
         decision=enum("first-install", "adopt", "adopt-with-remediation",
                       "controlled-upgrade", "BLOCKED"),
         status=enum("PLANNED", "BLOCKED"), reason=enum("READY", "UNKNOWN_STATE", "UNSAFE_HOST",
             "IDENTITY_MISMATCH", "RECOVERY_MISSING", "VERSION_CHANGE", "INCONSISTENT_INVENTORY"),
         rollback=ROLLBACK,
+        action_inputs=BINDINGS, site_executor=EXECUTOR,
         actions=array(obj(action=enum(*ACTIONS), mode=enum("change", "no-op")), 0, len(ACTIONS))),
     "request": obj(contract_version=enum("platform-bootstrap-request/v1"),
         plan_sha256=SHA256, source_sha=SHA1, target_identity_sha256=SHA256,
+        gitea_identity_sha256=SHA256,
         repository_identity_sha256=SHA256, approval_reference=REFERENCE,
         action=enum(*ACTIONS), direction=enum("apply", "rollback"),
         mode=enum("change", "no-op"), rollback=ROLLBACK,
+        exact_inputs={"anyOf": list(PARAMETERS.values())},
+        predecessor_actions=array(enum(*ACTIONS), 0, len(ACTIONS)), site_executor=EXECUTOR,
         status=enum("DRY_RUN"), execution=enum("NOT RUN")),
     "observation": obj(contract_version=enum("platform-bootstrap-observation/v1"),
         request_sha256=SHA256, target_identity_sha256=SHA256,
+        gitea_identity_sha256=SHA256,
         repository_identity_sha256=SHA256, source_sha=nullable(SHA1),
         company_merge_sha=nullable(SHA1), evidence_layer=enum("local", "company-live"),
         result=enum("PASS", "FAIL", "BLOCKED", "NOT RUN"),
@@ -165,6 +190,18 @@ def document(value: object, kind: str) -> dict:
     validate(value, SCHEMAS[kind])
     if kind == "actions":
         require([entry["action"] for entry in value["actions"]] == ACTIONS, "ACTION_INVALID")
+    if kind == "request":
+        validate(value["exact_inputs"], PARAMETERS[value["action"]])
+        require(value["predecessor_actions"] == ACTIONS[:ACTIONS.index(value["action"])], "ACTION_INVALID")
+    if kind == "target":
+        inputs = value["action_inputs"]
+        require(inputs["gitea-adoption"]["gitea_version"] == value["gitea_version"] and
+                inputs["required-ci"]["contexts"] == inputs["canary"]["required_contexts"] == value["required_ci"],
+                "IDENTITY_MISMATCH")
+        require(inputs["repo-bootstrap"]["staging_ref"] == inputs["one-shot-inbound"]["staging_ref"] and
+                inputs["repo-bootstrap"]["source_refs_sha256"] == inputs["one-shot-inbound"]["source_refs_sha256"] and
+                inputs["repo-bootstrap"]["transport_identity_sha256"] == inputs["one-shot-inbound"]["transport_identity_sha256"],
+                "IDENTITY_MISMATCH")
     if "rollback" in value:
         rollback = value["rollback"]
         require(rollback["kind"] != "uninstalled" or rollback["source_sha"] is None,

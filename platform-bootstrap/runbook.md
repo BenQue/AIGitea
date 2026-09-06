@@ -51,6 +51,10 @@ identity 即使 archive 自洽也必须被外部 pin 拒绝。所有错误只输
 
 由 B1 只读盘点采集并脱敏，填写 inventory；工具只验证声明，不自动连接服务器。target 记录确切资产和仓库
 identity、独立现场审批引用、允许的 Gitea 版本与非空 required CI。未知字段/身份、不完整数据须退回盘点。
+本版兼容候选固定为仓库既有 `1.26.4`；目标改变须新合同。target 必须填写全部 `action_inputs`：
+具体字段见 target schema/模板；不要用 URL、用户名、credential 或任意 shell 代替 digest/批准引用。
+repo-bootstrap 与 one-shot-inbound 的 refs/transport 摘要和 staging 必须相同，staging 格式是
+`refs/heads/sync/platform-<本次40位source SHA>`；required-ci/canary 与 target 的 contexts 必须完全一致。
 
 | 条件 | 决策 | 后续 |
 |---|---|---|

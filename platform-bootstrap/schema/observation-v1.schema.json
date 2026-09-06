@@ -16,6 +16,10 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
+    "gitea_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "repository_identity_sha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
@@ -83,6 +87,7 @@
     "contract_version",
     "request_sha256",
     "target_identity_sha256",
+    "gitea_identity_sha256",
     "repository_identity_sha256",
     "source_sha",
     "company_merge_sha",

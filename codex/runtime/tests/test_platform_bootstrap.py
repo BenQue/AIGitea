@@ -13,7 +13,9 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
+from aisoft_platform_bootstrap import bundle as bundle_module
 from aisoft_platform_bootstrap.bundle import ARCHIVE, MAPPINGS, build, verify
 from aisoft_platform_bootstrap.contract import (ACTIONS, BootstrapError, SCHEMAS, canonical,
     digest, document, load, parse)
@@ -46,6 +48,8 @@ class PlatformBootstrapTests(unittest.TestCase):
         self.approval_path.write_bytes(canonical(self.approval))
         self.inventory = load(self.repo / "platform-bootstrap/templates/inventory.example.json", "inventory")
         self.target = load(self.repo / "platform-bootstrap/templates/target.example.json", "target")
+        for action in ("repo-bootstrap", "one-shot-inbound"):
+            self.target["action_inputs"][action]["staging_ref"] = "refs/heads/sync/platform-" + self.sha
         self.output = self.root / "output"
         self.output.mkdir(mode=0o700)
 
@@ -87,6 +91,7 @@ class PlatformBootstrapTests(unittest.TestCase):
     def observation(self, request):
         return dict(contract_version="platform-bootstrap-observation/v1",
             request_sha256=digest(canonical(request)), target_identity_sha256=request["target_identity_sha256"],
+            gitea_identity_sha256=request["gitea_identity_sha256"],
             repository_identity_sha256=request["repository_identity_sha256"],
             source_sha=request["source_sha"] if request["direction"] == "apply" else request["rollback"]["source_sha"],
             company_merge_sha="e" * 40, evidence_layer="local", result="PASS", checks=["identity", "no-op",
@@ -190,6 +195,86 @@ class PlatformBootstrapTests(unittest.TestCase):
         self.assertEqual("first-install", plan["decision"])
         self.assertEqual(ACTIONS, [entry["action"] for entry in plan["actions"]])
 
+    def test_absent_repository_cannot_skip_protection_or_ci(self):
+        receipt, manifest = self.bundle()
+        for protection in [dict(direct_push_denied=True, force_push_denied=True,
+            human_merge_only=True, required_ci=[]), dict(direct_push_denied=False,
+            force_push_denied=False, human_merge_only=False, required_ci=self.target["required_ci"])]:
+            with self.subTest(protection=protection):
+                self.inventory["protection"] = protection
+                plan = adoption_plan(manifest, receipt["handoff_sha256"], self.inventory, self.target)
+                self.assertEqual("INCONSISTENT_INVENTORY", plan["reason"])
+
+    def test_every_action_requires_negative_permission_evidence(self):
+        plan = self.plan()
+        for action in ACTIONS:
+            with self.subTest(action=action):
+                request = operation_request(plan, action, "apply", dry_run=True)
+                observation = self.observation(request)
+                observation["checks"].remove("negative-permission")
+                self.error("EVIDENCE_INCOMPLETE", readback, request, observation)
+
+    def test_exact_action_parameters_are_hashed_and_closed(self):
+        plan = self.plan()
+        first = operation_request(plan, "runner", "apply", dry_run=True)
+        plan["action_inputs"]["runner"]["binary_sha256"] = "0" * 64
+        second = operation_request(plan, "runner", "apply", dry_run=True)
+        self.assertNotEqual(first["plan_sha256"], second["plan_sha256"])
+        self.assertNotEqual(digest(canonical(first)), digest(canonical(second)))
+        self.assertEqual("0" * 64, second["exact_inputs"]["binary_sha256"])
+        self.assertEqual(ACTIONS[:4], first["predecessor_actions"])
+        second["exact_inputs"]["shell"] = "forbidden"
+        self.error("SCHEMA_INVALID", document, second, "request")
+
+    def test_wrong_staging_ref_and_contexts_rejected(self):
+        receipt, manifest = self.bundle()
+        self.target["action_inputs"]["repo-bootstrap"]["staging_ref"] = "refs/heads/main"
+        self.error("SCHEMA_INVALID", document, self.target, "target")
+        for action in ("repo-bootstrap", "one-shot-inbound"):
+            self.target["action_inputs"][action]["staging_ref"] = "refs/heads/sync/platform-" + "0" * 40
+        plan = adoption_plan(manifest, receipt["handoff_sha256"], self.inventory, self.target)
+        self.assertEqual("IDENTITY_MISMATCH", plan["reason"])
+        self.target["action_inputs"]["required-ci"]["contexts"] = ["other-context"]
+        self.error("IDENTITY_MISMATCH", document, self.target, "target")
+
+    def test_payload_schema_refuses_absolute_and_dot_paths(self):
+        _, manifest = self.bundle()
+        for path in ("/absolute", "../escape", "runtime/../escape", "./file", "a//file"):
+            with self.subTest(path=path):
+                value = copy.deepcopy(manifest)
+                value["payloads"][0]["path"] = path
+                self.error("SCHEMA_INVALID", document, value, "manifest")
+
+    def test_git_fsmonitor_cannot_execute_during_build(self):
+        probe = self.root / "fsmonitor"
+        marker = self.root / "executed"
+        probe.write_text(f'#!/bin/sh\ntouch "{marker}"\n')
+        probe.chmod(0o755)
+        self.git("config", "core.fsmonitor", str(probe))
+        self.bundle()
+        self.assertFalse(marker.exists())
+
+    def test_concurrent_worktree_edit_never_changes_pinned_payload(self):
+        original_git = bundle_module.git
+        source = self.repo / "platform-bootstrap/README.md"
+        original = source.read_bytes()
+        changed = False
+
+        def racing_git(repository, *args):
+            nonlocal changed
+            if args[:2] == ("cat-file", "blob") and not changed:
+                changed = True
+                source.write_bytes(original + b"\nconcurrent-unapproved-change\n")
+            elif args[0] == "status" and changed:
+                source.write_bytes(original)
+            return original_git(repository, *args)
+
+        with patch.object(bundle_module, "git", racing_git):
+            self.bundle()
+        self.assertTrue(changed)
+        with tarfile.open(self.output / ARCHIVE) as tar:
+            self.assertEqual(original, tar.extractfile("README.md").read())
+
     def test_adopt_is_noop_except_new_canary(self):
         receipt, manifest = self.bundle()
         self.present(manifest)
@@ -259,6 +344,7 @@ class PlatformBootstrapTests(unittest.TestCase):
     def test_readback_wrong_identity_and_missing_checks_refused(self):
         request = operation_request(self.plan(), "canary", "apply", dry_run=True)
         for field, value, code in [("source_sha", "0" * 40, "IDENTITY_MISMATCH"),
+            ("gitea_identity_sha256", "0" * 64, "IDENTITY_MISMATCH"),
             ("request_sha256", "0" * 64, "IDENTITY_MISMATCH"), ("checks", [], "EVIDENCE_INCOMPLETE"),
             ("company_merge_sha", None, "EVIDENCE_INCOMPLETE")]:
             with self.subTest(field=field):

@@ -13,15 +13,20 @@ def adoption_plan(manifest: dict, handoff_sha256: str, inventory: dict, target: 
         "handoff_sha256": handoff_sha256, "inventory_sha256": digest(canonical(inventory)),
         "target_sha256": digest(canonical(target)),
         "target_identity_sha256": target["target_identity_sha256"],
+        "gitea_identity_sha256": target["gitea_identity_sha256"],
         "repository_identity_sha256": target["repository_identity_sha256"],
         "approval_reference": target["approval_reference"], "decision": "BLOCKED",
         "status": "BLOCKED", "reason": "UNKNOWN_STATE", "rollback": manifest["rollback"],
+        "action_inputs": target["action_inputs"], "site_executor": target["site_executor"],
         "actions": [],
     }
 
     def blocked(reason: str, decision: str = "BLOCKED") -> dict:
         plan.update(reason=reason, decision=decision)
         return document(plan, "plan")
+
+    if target["action_inputs"]["repo-bootstrap"]["staging_ref"] != "refs/heads/sync/platform-" + manifest["source_sha"]:
+        return blocked("IDENTITY_MISMATCH")
 
     if inventory["target_identity_sha256"] != target["target_identity_sha256"] or (
         inventory["repository_identity_sha256"] is not None and
@@ -36,6 +41,12 @@ def adoption_plan(manifest: dict, handoff_sha256: str, inventory: dict, target: 
     ):
         return blocked("UNSAFE_HOST")
     absent = inventory["gitea_state"] == "absent"
+    protection = inventory["protection"]
+    if inventory["repository_identity_sha256"] is None and (
+        any(protection[key] for key in ("direct_push_denied", "force_push_denied", "human_merge_only"))
+        or protection["required_ci"]
+    ):
+        return blocked("INCONSISTENT_INVENTORY")
     if absent and (inventory["gitea_version"] is not None or inventory["gitea_identity_sha256"] is not None
                    or inventory["gitea_healthy"] or inventory["repository_identity_sha256"] is not None
                    or inventory["source_sha"] is not None or inventory["runner_state"] == "enabled"
@@ -62,7 +73,6 @@ def adoption_plan(manifest: dict, handoff_sha256: str, inventory: dict, target: 
         inventory["backup_verified"] and inventory["restore_verified"]
     ) or inventory["rollback"]["source_sha"] != inventory["source_sha"]:
         return blocked("RECOVERY_MISSING")
-    protection = inventory["protection"]
     done = {
         "gitea-adoption": not absent,
         "repo-bootstrap": inventory["repository_identity_sha256"] == target["repository_identity_sha256"]
@@ -95,9 +105,12 @@ def operation_request(plan: dict, action: str, direction: str, *, dry_run: bool)
     return document({"contract_version": "platform-bootstrap-request/v1",
         "plan_sha256": digest(canonical(plan)), "source_sha": plan["source_sha"],
         "target_identity_sha256": plan["target_identity_sha256"],
+        "gitea_identity_sha256": plan["gitea_identity_sha256"],
         "repository_identity_sha256": plan["repository_identity_sha256"],
         "approval_reference": plan["approval_reference"], "action": action,
         "direction": direction, "mode": mode, "rollback": plan["rollback"],
+        "exact_inputs": plan["action_inputs"][action], "site_executor": plan["site_executor"],
+        "predecessor_actions": ACTIONS[:ACTIONS.index(action)],
         "status": "DRY_RUN", "execution": "NOT RUN"}, "request")
 
 
@@ -105,13 +118,12 @@ def readback(request: dict, observation: dict) -> dict:
     document(request, "request")
     document(observation, "observation")
     require(observation["request_sha256"] == digest(canonical(request)), "IDENTITY_MISMATCH")
-    for field in ("target_identity_sha256", "repository_identity_sha256"):
+    for field in ("target_identity_sha256", "gitea_identity_sha256", "repository_identity_sha256"):
         require(observation[field] == request[field], "IDENTITY_MISMATCH")
     expected_source = request["source_sha"] if request["direction"] == "apply" else request["rollback"]["source_sha"]
     require(observation["source_sha"] == expected_source, "IDENTITY_MISMATCH")
     checks = {"identity", "no-op", "deliberate-failure", "recovery"}
-    if request["action"] in ("repo-bootstrap", "protected-main", "runner", "one-shot-inbound", "canary"):
-        checks.add("negative-permission")
+    checks.add("negative-permission")
     if request["action"] in ("required-ci", "canary"):
         checks.add("required-ci")
     if request["action"] == "canary" and request["direction"] == "apply":

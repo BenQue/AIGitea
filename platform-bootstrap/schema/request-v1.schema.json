@@ -20,6 +20,10 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
+    "gitea_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "repository_identity_sha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
@@ -83,6 +87,261 @@
       ],
       "additionalProperties": false
     },
+    "exact_inputs": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "package_set_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "candidate_namespace_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "gitea_version": {
+              "enum": [
+                "1.26.4"
+              ]
+            }
+          },
+          "required": [
+            "package_set_sha256",
+            "candidate_namespace_sha256",
+            "gitea_version"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "source_refs_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "transport": {
+              "enum": [
+                "approved-git-bundle",
+                "allowlisted-github-ref"
+              ]
+            },
+            "transport_identity_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "staging_ref": {
+              "type": "string",
+              "pattern": "^refs/heads/sync/platform-[0-9a-f]{40}$"
+            }
+          },
+          "required": [
+            "source_refs_sha256",
+            "transport",
+            "transport_identity_sha256",
+            "staging_ref"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "branch": {
+              "enum": [
+                "main"
+              ]
+            },
+            "direct_push_allowlist": {
+              "enum": [
+                []
+              ]
+            },
+            "force_push_allowlist": {
+              "enum": [
+                []
+              ]
+            },
+            "human_merge_identity_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "policy_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "branch",
+            "direct_push_allowlist",
+            "force_push_allowlist",
+            "human_merge_identity_sha256",
+            "policy_sha256"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "contexts": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9 /_().-]{0,127}$"
+              },
+              "minItems": 1,
+              "maxItems": 20,
+              "uniqueItems": true
+            },
+            "branch": {
+              "enum": [
+                "main"
+              ]
+            }
+          },
+          "required": [
+            "contexts",
+            "branch"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "binary_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "configuration_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "registration_approval_reference": {
+              "type": "string",
+              "pattern": "^approval/[a-z0-9][a-z0-9-]{1,63}$"
+            },
+            "scope": {
+              "enum": [
+                "platform-only"
+              ]
+            },
+            "auto_enable": {
+              "enum": [
+                false
+              ]
+            }
+          },
+          "required": [
+            "binary_sha256",
+            "configuration_sha256",
+            "registration_approval_reference",
+            "scope",
+            "auto_enable"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "source_refs_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "transport_identity_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "staging_ref": {
+              "type": "string",
+              "pattern": "^refs/heads/sync/platform-[0-9a-f]{40}$"
+            },
+            "timer_enabled": {
+              "enum": [
+                false
+              ]
+            }
+          },
+          "required": [
+            "source_refs_sha256",
+            "transport_identity_sha256",
+            "staging_ref",
+            "timer_enabled"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "local_change_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "company_approval_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "required_contexts": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9 /_().-]{0,127}$"
+              },
+              "minItems": 1,
+              "maxItems": 20,
+              "uniqueItems": true
+            },
+            "merge_policy": {
+              "enum": [
+                "manual"
+              ]
+            }
+          },
+          "required": [
+            "local_change_sha256",
+            "company_approval_sha256",
+            "required_contexts",
+            "merge_policy"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "predecessor_actions": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "gitea-adoption",
+          "repo-bootstrap",
+          "protected-main",
+          "required-ci",
+          "runner",
+          "one-shot-inbound",
+          "canary"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 7,
+      "uniqueItems": true
+    },
+    "site_executor": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "unbound"
+          ]
+        },
+        "binding_requirement": {
+          "enum": [
+            "independent-B1-B2-contract"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "binding_requirement"
+      ],
+      "additionalProperties": false
+    },
     "status": {
       "enum": [
         "DRY_RUN"
@@ -99,12 +358,16 @@
     "plan_sha256",
     "source_sha",
     "target_identity_sha256",
+    "gitea_identity_sha256",
     "repository_identity_sha256",
     "approval_reference",
     "action",
     "direction",
     "mode",
     "rollback",
+    "exact_inputs",
+    "predecessor_actions",
+    "site_executor",
     "status",
     "execution"
   ],
