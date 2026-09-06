@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "platform-bootstrap request v1",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "platform-bootstrap-request/v1"
+      ]
+    },
+    "plan_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "target_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repository_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "approval_reference": {
+      "type": "string",
+      "pattern": "^approval/[a-z0-9][a-z0-9-]{1,63}$"
+    },
+    "action": {
+      "enum": [
+        "gitea-adoption",
+        "repo-bootstrap",
+        "protected-main",
+        "required-ci",
+        "runner",
+        "one-shot-inbound",
+        "canary"
+      ]
+    },
+    "direction": {
+      "enum": [
+        "apply",
+        "rollback"
+      ]
+    },
+    "mode": {
+      "enum": [
+        "change",
+        "no-op"
+      ]
+    },
+    "rollback": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "uninstalled",
+            "snapshot"
+          ]
+        },
+        "identity_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_sha": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "identity_sha256",
+        "source_sha"
+      ],
+      "additionalProperties": false
+    },
+    "status": {
+      "enum": [
+        "DRY_RUN"
+      ]
+    },
+    "execution": {
+      "enum": [
+        "NOT RUN"
+      ]
+    }
+  },
+  "required": [
+    "contract_version",
+    "plan_sha256",
+    "source_sha",
+    "target_identity_sha256",
+    "repository_identity_sha256",
+    "approval_reference",
+    "action",
+    "direction",
+    "mode",
+    "rollback",
+    "status",
+    "execution"
+  ],
+  "additionalProperties": false
+}

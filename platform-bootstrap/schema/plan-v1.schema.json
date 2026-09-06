@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "platform-bootstrap plan v1",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "platform-bootstrap-plan/v1"
+      ]
+    },
+    "source_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "handoff_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "inventory_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "target_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "target_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repository_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "approval_reference": {
+      "type": "string",
+      "pattern": "^approval/[a-z0-9][a-z0-9-]{1,63}$"
+    },
+    "decision": {
+      "enum": [
+        "first-install",
+        "adopt",
+        "adopt-with-remediation",
+        "controlled-upgrade",
+        "BLOCKED"
+      ]
+    },
+    "status": {
+      "enum": [
+        "PLANNED",
+        "BLOCKED"
+      ]
+    },
+    "reason": {
+      "enum": [
+        "READY",
+        "UNKNOWN_STATE",
+        "UNSAFE_HOST",
+        "IDENTITY_MISMATCH",
+        "RECOVERY_MISSING",
+        "VERSION_CHANGE",
+        "INCONSISTENT_INVENTORY"
+      ]
+    },
+    "rollback": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "uninstalled",
+            "snapshot"
+          ]
+        },
+        "identity_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_sha": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "identity_sha256",
+        "source_sha"
+      ],
+      "additionalProperties": false
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "enum": [
+              "gitea-adoption",
+              "repo-bootstrap",
+              "protected-main",
+              "required-ci",
+              "runner",
+              "one-shot-inbound",
+              "canary"
+            ]
+          },
+          "mode": {
+            "enum": [
+              "change",
+              "no-op"
+            ]
+          }
+        },
+        "required": [
+          "action",
+          "mode"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0,
+      "maxItems": 7,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "contract_version",
+    "source_sha",
+    "handoff_sha256",
+    "inventory_sha256",
+    "target_sha256",
+    "target_identity_sha256",
+    "repository_identity_sha256",
+    "approval_reference",
+    "decision",
+    "status",
+    "reason",
+    "rollback",
+    "actions"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,29 @@
+{
+  "ai_present": false,
+  "backup_verified": false,
+  "contract_version": "platform-bootstrap-inventory/v1",
+  "evidence_layer": "local",
+  "gitea_healthy": false,
+  "gitea_identity_sha256": null,
+  "gitea_state": "absent",
+  "gitea_version": null,
+  "host_role": "scm-ci",
+  "inbound_state": "disabled",
+  "protection": {
+    "direct_push_denied": false,
+    "force_push_denied": false,
+    "human_merge_only": false,
+    "required_ci": []
+  },
+  "repository_identity_sha256": null,
+  "restore_verified": false,
+  "rollback": {
+    "identity_sha256": "b185c3563654bfa47948f59b3d4270e72217a09c3bbfef408785ed35ce037633",
+    "kind": "uninstalled",
+    "source_sha": null
+  },
+  "runner_scope": "unknown",
+  "runner_state": "absent",
+  "source_sha": null,
+  "target_identity_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

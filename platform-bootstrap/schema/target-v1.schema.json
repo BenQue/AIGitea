@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "platform-bootstrap target v1",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "platform-bootstrap-target/v1"
+      ]
+    },
+    "target_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "gitea_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repository_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "approval_reference": {
+      "type": "string",
+      "pattern": "^approval/[a-z0-9][a-z0-9-]{1,63}$"
+    },
+    "gitea_version": {
+      "enum": [
+        "1.26.4"
+      ]
+    },
+    "required_ci": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9 /_().-]{0,127}$"
+      },
+      "minItems": 1,
+      "maxItems": 20,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "contract_version",
+    "target_identity_sha256",
+    "gitea_identity_sha256",
+    "repository_identity_sha256",
+    "approval_reference",
+    "gitea_version",
+    "required_ci"
+  ],
+  "additionalProperties": false
+}

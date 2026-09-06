@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "platform-bootstrap actions v1",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "platform-bootstrap-actions/v1"
+      ]
+    },
+    "script_version": {
+      "enum": [
+        "1.0.0"
+      ]
+    },
+    "host_role": {
+      "enum": [
+        "scm-ci"
+      ]
+    },
+    "site_executor": {
+      "enum": [
+        "BOUND_BY_B1_B2"
+      ]
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "enum": [
+              "gitea-adoption",
+              "repo-bootstrap",
+              "protected-main",
+              "required-ci",
+              "runner",
+              "one-shot-inbound",
+              "canary"
+            ]
+          },
+          "operation": {
+            "type": "string",
+            "pattern": "^[a-z][a-z-]{1,63}$"
+          },
+          "exact_inputs": {
+            "type": "string",
+            "pattern": "^[^\\r\\n]{1,1500}$"
+          },
+          "no_op": {
+            "type": "string",
+            "pattern": "^[^\\r\\n]{1,1500}$"
+          },
+          "negative_permission": {
+            "type": "string",
+            "pattern": "^[^\\r\\n]{1,1500}$"
+          },
+          "failure_and_readback": {
+            "type": "string",
+            "pattern": "^[^\\r\\n]{1,1500}$"
+          },
+          "rollback": {
+            "type": "string",
+            "pattern": "^[^\\r\\n]{1,1500}$"
+          }
+        },
+        "required": [
+          "action",
+          "operation",
+          "exact_inputs",
+          "no_op",
+          "negative_permission",
+          "failure_and_readback",
+          "rollback"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 7,
+      "maxItems": 7,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "contract_version",
+    "script_version",
+    "host_role",
+    "site_executor",
+    "actions"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,71 @@
+{
+  "actions": [
+    {
+      "action": "gitea-adoption",
+      "exact_inputs": "target identity; exact version; adoption decision; approved package-set digest; snapshot digest",
+      "failure_and_readback": "read health and exact identity; intentional candidate checksum failure; prove original instance unchanged",
+      "negative_permission": "candidate namespace conflict or unknown instance stops before mutation",
+      "no_op": "same healthy identity/version; adopt never runs an empty-host installer",
+      "operation": "gitea-install-or-adopt",
+      "rollback": "first-install restore uninstalled candidate only; adopt retain existing instance and restore verified snapshot only under separate restore approval"
+    },
+    {
+      "action": "repo-bootstrap",
+      "exact_inputs": "target repository identity; full source SHA; independently approved refs/bundle digest; trust approval",
+      "failure_and_readback": "import exact refs to staging; read full source SHA; fail wrong source and leave main unchanged",
+      "negative_permission": "project writer cannot create cross-project objects or push/force main",
+      "no_op": "matching repository/source is read only; foreign repository is BLOCKED",
+      "operation": "repository-import-or-adopt",
+      "rollback": "never delete an adopted repository; preserve imported refs/evidence; new candidate deletion requires separate destructive approval"
+    },
+    {
+      "action": "protected-main",
+      "exact_inputs": "exact repository; protected main; empty direct/force allowlists; company human merge identity reference",
+      "failure_and_readback": "negative push/force/merge probes on isolated disposable repo; readback protection after deliberate denied request",
+      "negative_permission": "project agent, manager, provider, shared bot cannot merge or direct/force push main",
+      "no_op": "canonical protection readback equal; no rewrite",
+      "operation": "protection-reconcile",
+      "rollback": "restore only pinned protection snapshot without broadening access; if prior state unsafe stop for human review"
+    },
+    {
+      "action": "required-ci",
+      "exact_inputs": "exact repository; nonempty canonical contexts; same expected source head",
+      "failure_and_readback": "deliberate failed check blocks PR; repair via normal PR; bind successful contexts to exact final head",
+      "negative_permission": "missing or failed context cannot authorize merge",
+      "no_op": "exact sorted context set equal",
+      "operation": "required-contexts-reconcile",
+      "rollback": "retain protection; previous contexts only after readback proves no weaker gate"
+    },
+    {
+      "action": "runner",
+      "exact_inputs": "exact scm-ci identity; runner binary/config digest; platform-only scope; independent registration authorization",
+      "failure_and_readback": "job fails intentionally then successful isolated verification; read scope and digest; no timer enabled",
+      "negative_permission": "no production credentials, no appserver runtime, no cross-project privilege",
+      "no_op": "same scoped runner/binary/config; no restart",
+      "operation": "runner-scope-bind",
+      "rollback": "disable only newly authorized runner activation; preserve registration evidence; secrets managed separately"
+    },
+    {
+      "action": "one-shot-inbound",
+      "exact_inputs": "exact source SHA/ref digest; allowlisted source transport; exact destination staging ref; independent site approval",
+      "failure_and_readback": "bad input SHA fails before fetch/import; verify staging/source equality; manual approval PR and required CI remain separate",
+      "negative_permission": "inbound cannot force/direct push main or merge; no copied Issues/accounts/PATs",
+      "no_op": "same staging SHA no-op; protected main never changes",
+      "operation": "source-inbound-once",
+      "rollback": "retain inbound ref audit; halt further one-shot attempts; never reset main or enable timer"
+    },
+    {
+      "action": "canary",
+      "exact_inputs": "approved local platform change; original source SHA; company approval PR and human merge SHA; required contexts",
+      "failure_and_readback": "one failed CI and recovery; human merge; preserve source and company merge SHA mapping plus artifact digest",
+      "negative_permission": "prove direct/force push and unauthorized merge denied",
+      "no_op": "replay identical evidence is validation only; every new canary needs fresh evidence",
+      "operation": "platform-canary-verify",
+      "rollback": "revert via protected human PR; preserve provenance and original immutable bytes; no automated merge/reset"
+    }
+  ],
+  "contract_version": "platform-bootstrap-actions/v1",
+  "host_role": "scm-ci",
+  "script_version": "1.0.0",
+  "site_executor": "BOUND_BY_B1_B2"
+}

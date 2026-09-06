@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+"""Same entrypoint in the source checkout and in the verified offline bundle."""
+from pathlib import Path
+import sys
+
+sys.dont_write_bytecode = True
+root = Path(__file__).resolve().parents[1]
+runtime = root / "runtime"
+if not runtime.is_dir():
+    runtime = root.parent / "codex/runtime"
+sys.path.insert(0, str(runtime))
+from aisoft_platform_bootstrap.cli import main
+
+raise SystemExit(main())

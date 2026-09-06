@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "platform-bootstrap manifest v1",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "platform-bootstrap/v1"
+      ]
+    },
+    "bundle_version": {
+      "enum": [
+        "1.0.0"
+      ]
+    },
+    "source_repository": {
+      "enum": [
+        "admin/aisoft-platform"
+      ]
+    },
+    "source_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "host_role": {
+      "enum": [
+        "scm-ci"
+      ]
+    },
+    "components": {
+      "enum": [
+        [
+          "handoff-verifier",
+          "adoption-planner",
+          "action-contracts"
+        ]
+      ]
+    },
+    "approval_reference": {
+      "type": "string",
+      "pattern": "^approval/[a-z0-9][a-z0-9-]{1,63}$"
+    },
+    "approval_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "rollback": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "uninstalled",
+            "snapshot"
+          ]
+        },
+        "identity_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_sha": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "identity_sha256",
+        "source_sha"
+      ],
+      "additionalProperties": false
+    },
+    "payload_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "payloads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_./-]{1,180}$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4194304
+          },
+          "mode": {
+            "enum": [
+              420,
+              493
+            ]
+          }
+        },
+        "required": [
+          "path",
+          "sha256",
+          "size",
+          "mode"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "maxItems": 100,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "contract_version",
+    "bundle_version",
+    "source_repository",
+    "source_sha",
+    "host_role",
+    "components",
+    "approval_reference",
+    "approval_sha256",
+    "rollback",
+    "payload_sha256",
+    "payloads"
+  ],
+  "additionalProperties": false
+}

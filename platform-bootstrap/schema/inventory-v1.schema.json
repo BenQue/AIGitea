@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "platform-bootstrap inventory v1",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "platform-bootstrap-inventory/v1"
+      ]
+    },
+    "target_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "host_role": {
+      "enum": [
+        "scm-ci"
+      ]
+    },
+    "evidence_layer": {
+      "enum": [
+        "local",
+        "company-live"
+      ]
+    },
+    "gitea_state": {
+      "enum": [
+        "absent",
+        "present",
+        "unknown"
+      ]
+    },
+    "gitea_version": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "gitea_identity_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "gitea_healthy": {
+      "type": "boolean"
+    },
+    "repository_identity_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_sha": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "protection": {
+      "type": "object",
+      "properties": {
+        "direct_push_denied": {
+          "type": "boolean"
+        },
+        "force_push_denied": {
+          "type": "boolean"
+        },
+        "human_merge_only": {
+          "type": "boolean"
+        },
+        "required_ci": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9 /_().-]{0,127}$"
+          },
+          "minItems": 0,
+          "maxItems": 20,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "direct_push_denied",
+        "force_push_denied",
+        "human_merge_only",
+        "required_ci"
+      ],
+      "additionalProperties": false
+    },
+    "runner_state": {
+      "enum": [
+        "absent",
+        "disabled",
+        "enabled",
+        "unknown"
+      ]
+    },
+    "runner_scope": {
+      "enum": [
+        "platform-only",
+        "unknown"
+      ]
+    },
+    "inbound_state": {
+      "enum": [
+        "disabled",
+        "one-shot",
+        "timer",
+        "unknown"
+      ]
+    },
+    "ai_present": {
+      "type": "boolean"
+    },
+    "rollback": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "uninstalled",
+            "snapshot"
+          ]
+        },
+        "identity_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_sha": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "identity_sha256",
+        "source_sha"
+      ],
+      "additionalProperties": false
+    },
+    "backup_verified": {
+      "type": "boolean"
+    },
+    "restore_verified": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_version",
+    "target_identity_sha256",
+    "host_role",
+    "evidence_layer",
+    "gitea_state",
+    "gitea_version",
+    "gitea_identity_sha256",
+    "gitea_healthy",
+    "repository_identity_sha256",
+    "source_sha",
+    "protection",
+    "runner_state",
+    "runner_scope",
+    "inbound_state",
+    "ai_present",
+    "rollback",
+    "backup_verified",
+    "restore_verified"
+  ],
+  "additionalProperties": false
+}

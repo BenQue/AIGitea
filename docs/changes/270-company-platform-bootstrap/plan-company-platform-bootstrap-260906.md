@@ -22,9 +22,9 @@ updated: 2026-09-06
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 独立严格 bundle、verify-handoff、schema/模板与可重复/负向测试 | - | in-progress |
-| T02 | 脱敏 inventory、采用分流、apply/readback/rollback 和六类动作合同/测试 | T01 | pending |
-| T03 | runbook、兼容回归、双轴审查、真实证据与最终 PR 卡 | T02 | pending |
+| T01 | 独立严格 bundle、verify-handoff、schema/模板与可重复/负向测试 | - | complete |
+| T02 | 脱敏 inventory、采用分流、apply/readback/rollback 和六类动作合同/测试 | T01 | complete |
+| T03 | runbook、兼容回归、双轴审查、真实证据与最终 PR 卡 | T02 | in-progress |
 
 ## Expected touch points
 
