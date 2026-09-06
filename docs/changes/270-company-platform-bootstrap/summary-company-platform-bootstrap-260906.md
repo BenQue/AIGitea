@@ -88,4 +88,12 @@ Policy 为 manual。公司现场、credential、安装/服务/仓库/权限变�
 
 ## 状态
 
-Development Loop：T01。最终 PR 提交确认尚未取得。
+Development Loop：`AWAITING_PR_CONFIRMATION`。T01/T02/T03 的 source/local 工作完成，最终 PR 提交确认尚未取得。
+
+35 项 targeted、85 项 application 兼容回归、clean implementation pin 的双次 bundle/负向/rollback dry-run PASS；host `LC_ALL=C` 完整 smoke 含 734 个 Python tests PASS。host 默认 `LC_ALL=C.UTF-8` 的 #268 F8 registry 失败为 `GAP / external to #270`，归 A2；C locale 不替代默认 locale。
+
+实现 pin：`4caf73f9c140a01ba7afd425c9e1fd949a1a63a0`；archive SHA-256：`5aa2036b3a332f2dd0107c1c1e3e0baabc36073e2d3ecb83ae3961e0196e9b5e`。
+详见 [verification](verification-company-platform-bootstrap-260906.md)。installed/company live/remote PR/CI/merge 全部 NOT RUN。
+
+调度任务已明确：A1 的 apply/rollback 是完整 source 动作协议，不要求现场 executor；没有独立 B1/B2 绑定时 fail closed。该边界不是 A1 实现缺口。
+本地 triage 结论与 live 三维分类分开：type/complexity/approved 已投影；live triage/needs-triage 尚未改变，broker 无对应 typed writer，未旁路调用 API。

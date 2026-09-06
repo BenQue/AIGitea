@@ -63,3 +63,9 @@ updated: 2026-09-06
 ## Out of Scope
 
 company live apply、controlled upgrade 执行、Gitea 数据/账号/PAT/Secret 迁移、环境探测、部署、应用 release、provider、routine merge、全局 skills 安装；#268 A2 等其他 Issue 的修复。
+
+## 执行边界读回（T03）
+
+调度任务根据已批准 A1 合同明确裁定：本 Issue 交付 source 协议、严格 exact request 与 dry-run/no-op/负向/恢复验证，
+不实现或绑定可连接公司现场的 executor；`SITE_EXECUTOR_NOT_BOUND` 为正确的安全负向。B1/B2 独立绑定现场身份、
+组件与版本化执行器并另行验收。该裁定解释既定边界，不新增现场权限或扩大本 Issue 范围。

@@ -24,7 +24,7 @@ updated: 2026-09-06
 |---|---|---|---|
 | T01 | 独立严格 bundle、verify-handoff、schema/模板与可重复/负向测试 | - | complete |
 | T02 | 脱敏 inventory、采用分流、apply/readback/rollback 和六类动作合同/测试 | T01 | complete |
-| T03 | runbook、兼容回归、双轴审查、真实证据与最终 PR 卡 | T02 | in-progress |
+| T03 | runbook、兼容回归、双轴审查、真实证据与最终 PR 卡 | T02 | complete |
 
 ## Expected touch points
 
@@ -44,3 +44,9 @@ updated: 2026-09-06
 ## 数据库迁移与部署
 
 无。新工具 source 可普通 revert。现场 rollback 只提供版本化合同/dry-run，不触碰 Gitea DB、配置或已存在仓库；first-install 回退恢复 uninstalled 状态，adopt 使用核验过的 snapshot identity。合并不包含现场执行授权。
+
+## T03 完成回执
+
+双轴审查代码 finding 全部关闭，35 targeted 与完整 C-locale smoke（734 Python tests）PASS；默认 locale F8 外部 GAP 单列。
+实际 clean implementation pin、archive/handoff 摘要、两次构建、checksum/identity 拒绝、rollback dry-run/unbound executor 负向及未执行层次见 verification。
+当前状态 `AWAITING_PR_CONFIRMATION`，唯一最终 PR 尚待用户确认；本轮不 push/PR/merge/deploy。
