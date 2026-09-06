@@ -132,7 +132,7 @@ sequenceDiagram
     else repository opt-in 的 routine small
         A->>G: 最终 head 全硬门通过后由独立 merger 合并
     end
-    G->>U: 📬 邮件通知(Mailpit);issue 被 Closes 自动关闭
+    G->>U: 📬 邮件通知(Mailpit)；issue 被 Closes 自动关闭
     alt 变更需要部署
         R->>R: 构建→制品→测试部署→健康检查；生产仅运行已验收脚本
         R->>G: 生命周期改为 deployed
