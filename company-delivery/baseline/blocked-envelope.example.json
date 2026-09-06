@@ -1,0 +1,225 @@
+{
+  "inventory": {
+    "contract_version": "company-platform-baseline/v1",
+    "collector_version": "1.0.0",
+    "environment": "company-scm-ci",
+    "host_role": "scm-ci",
+    "host_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "source_sha": "0000000000000000000000000000000000000000",
+    "collector_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "evidence_id": "12345678-1234-4567-8123-123456789012",
+    "collected_at": "2026-09-06T14:00:00Z",
+    "current": {
+      "gitea_service": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "postgresql_service": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "runner_service": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "gitea_binary": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "postgresql_binary": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "gitea_listener": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "postgresql_listener": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "gitea_health": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "gitea_api_version": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "gitea_storage": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "postgresql_storage": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "ufw": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "network": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "authentication": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "acl": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "repository": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "protection": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "runner_registration": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "sync": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "backup": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "isolated_restore": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "postgresql_server_version": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "ufw_review": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "storage_ownership": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      },
+      "service_binding": {
+        "status": "NOT RUN",
+        "basis": "none",
+        "reason": "not-collected",
+        "value": null,
+        "evidence_sha256": null
+      }
+    },
+    "historical": {}
+  },
+  "inventory_sha256": "5d7370c2951874b59db1b9cae95fc507337bfee33fc0abb37aef9774768d83a8",
+  "receipt": {
+    "validation": "PASS",
+    "decision": "BLOCKED",
+    "status": "BLOCKED_EXTERNAL",
+    "mutation_authorized": false,
+    "differences": [
+      "acl",
+      "authentication",
+      "backup",
+      "gitea_api_version",
+      "gitea_binary",
+      "gitea_health",
+      "gitea_listener",
+      "gitea_service",
+      "gitea_storage",
+      "isolated_restore",
+      "network",
+      "postgresql_binary",
+      "postgresql_listener",
+      "postgresql_server_version",
+      "postgresql_service",
+      "postgresql_storage",
+      "protection",
+      "repository",
+      "runner_registration",
+      "runner_service",
+      "service_binding",
+      "storage_ownership",
+      "sync",
+      "ufw",
+      "ufw_review"
+    ]
+  }
+}

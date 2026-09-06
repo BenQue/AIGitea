@@ -64,11 +64,12 @@ VALUES = {
     "network": enum("reachable", "unreachable"),
     "authentication": enum("available", "unavailable"),
     "acl": enum("read-allowed", "denied"),
-    "repository": obj({"exists": YESNO, "identity_sha256": HASH, "head_sha": SHA}),
+    "repository": obj({"exists": YESNO, "identity_sha256": HASH, "head_sha": {"anyOf": [SHA, enum(None)]}}),
     "protection": obj({"direct_push_denied": YESNO, "force_push_denied": YESNO,
                        "human_only_merge": YESNO, "required_ci_count": number(1000)}),
     "runner_registration": enum("registered", "absent", "unknown"),
-    "sync": obj({"timer": SERVICE, "source_sha": SHA, "destination_sha": SHA}),
+    "sync": obj({"timer": SERVICE, "source_sha": {"anyOf": [SHA, enum(None)]},
+                 "destination_sha": {"anyOf": [SHA, enum(None)]}}),
     "backup": obj({"available": YESNO, "off_host": YESNO, "set_sha256": HASH}),
     "isolated_restore": obj({"verified": YESNO, "isolated": YESNO, "set_sha256": HASH}),
     "postgresql_server_version": VER,
@@ -196,7 +197,8 @@ def good(key, value):
     if key == "protection":
         return all(value[k] == "yes" for k in ("direct_push_denied", "force_push_denied", "human_only_merge")) and value["required_ci_count"] > 0
     if key == "sync":
-        return good("runner_service", value["timer"]) and value["source_sha"] == value["destination_sha"]
+        return (good("runner_service", value["timer"]) and value["source_sha"] is not None
+                and value["source_sha"] == value["destination_sha"])
     if key == "backup":
         return value["available"] == "yes" and value["off_host"] == "yes"
     if key == "isolated_restore":
@@ -213,6 +215,8 @@ def observation(key, value=None, *, basis="host-probe", evidence=None, blocked=F
                 "reason": "probe-unavailable" if blocked else "not-collected",
                 "value": None, "evidence_sha256": None}
     check(value, VALUES[key])
+    if key == "repository" and (value["exists"] == "yes") != (value["head_sha"] is not None):
+        raise Invalid("EVIDENCE_INVALID")
     return {"status": "PASS" if good(key, value) else "GAP", "basis": basis,
             "reason": "observed", "value": value, "evidence_sha256": evidence}
 
@@ -395,7 +399,7 @@ def collect(binding, *, invoke=run, http=get, storage=metadata, now=None):
             return value["version"]
         # Gitea also serves this before install; an empty checks map is not ready.
         checks = value.get("checks")
-        if value.get("status") != "pass" or type(checks) is not dict or not checks:
+        if value.get("status") != "pass" or type(checks) is not dict or set(checks) != {"database:ping", "cache:ping"}:
             return "fail"
         if not all(type(entries) is list and entries and all(type(e) is dict and e.get("status") == "pass" for e in entries) for entries in checks.values()):
             return "fail"
@@ -445,6 +449,15 @@ class Parser(argparse.ArgumentParser):
         raise Invalid("ARGUMENT_INVALID")
 
 
+def emit(value, *, pretty=False):
+    try:
+        print(json.dumps(value, sort_keys=True, ensure_ascii=True, indent=2 if pretty else None), flush=True)
+    except OSError:
+        # A closed output channel cannot receive a receipt. Avoid shutdown flush
+        # diagnostics and do not open a fallback file, device or log.
+        os._exit(20)
+
+
 def main(argv=None):
     try:
         parser = Parser(description=__doc__, allow_abbrev=False)
@@ -453,6 +466,8 @@ def main(argv=None):
             parser.add_argument("--" + name)
         args = vars(parser.parse_args(argv))
         command = args.pop("command")
+        if command in {"identity", "collect"} and not (sys.flags.isolated and sys.flags.no_site and sys.dont_write_bytecode):
+            raise Invalid("UNSAFE_INTERPRETER")
         if command in {"schema", "identity"}:
             if any(v is not None for v in args.values()):
                 raise Invalid("ARGUMENT_INVALID")
@@ -469,12 +484,12 @@ def main(argv=None):
                     if type(raw) is not dict or set(raw) != {"envelope", "record"}:
                         raise Invalid("SCHEMA_INVALID")
                     result = supplement(raw["envelope"], raw["record"], args)
-        print(json.dumps(result, sort_keys=True, ensure_ascii=True))
+        emit(result, pretty=command == "schema")
         receipt = result.get("receipt", result)
         return 20 if receipt.get("decision") == "BLOCKED" else 0
     except (Invalid, OSError, UnicodeError, RecursionError) as exc:
         code = str(exc) if isinstance(exc, Invalid) else "INPUT_UNAVAILABLE"
-        print(json.dumps({"status": "BLOCKED_EXTERNAL", "code": code}))
+        emit({"status": "BLOCKED_EXTERNAL", "code": code})
         return 20
 
 

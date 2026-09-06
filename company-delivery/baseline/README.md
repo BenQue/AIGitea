@@ -4,6 +4,8 @@
 它不安装组件、不创建 evidence 目录、不启动服务、不生成现场写入授权。
 原 `aisoft-company-delivery inventory` 面向 greenfield，不能代替这个入口。
 
+`blocked-envelope.example.json` 是全部 NOT RUN 的格式示例（全零 pins、固定示例日期），不可作为现场证据或更新日期复用。
+
 本次开发侧交付状态：公司 `BLOCKED_EXTERNAL`，现场检查全部 `NOT RUN`。
 没有现场连接或已批准主机指纹时，到此停止；下列检查包供已授权操作员在批准的目标执行。
 不得为执行它安装 Python、提权或复制凭据。脚本必须已位于可读取的版本化 checkout 或只读介质；
@@ -19,19 +21,19 @@ collector 源文件为 `codex/runtime/aisoft_company_baseline.py`，只使用 Py
 
 `evidence_id` 是用户已有审核材料目录的逻辑 UUID，输出不包含目录路径。
 公司侧只显示 stdout，由用户将脱敏 JSON 带回开发侧现有 evidence 目录；公司侧不使用重定向或 tee。
-`python3 -B` 禁止 bytecode 写入。退出码 20 表示 BLOCKED（可能仍有完整有效 inventory），并非需要提权重试。
+`-I -S` 禁止 PYTHON* 注入和 site/sitecustomize 加载，`-B` 禁止 bytecode 写入。退出码 20 表示 BLOCKED（可能仍有完整有效 inventory），并非需要提权重试。
 
 第一段：在已确认的公司主机读取两个指纹（2 行）。路径请替换成已有只读介质或 checkout 中的 exact 文件。
 
 ```bash
-python3 -B /APPROVED-READONLY-SOURCE/codex/runtime/aisoft_company_baseline.py identity
+python3 -I -S -B /APPROVED-READONLY-SOURCE/codex/runtime/aisoft_company_baseline.py identity
 ```
 
 第二段：将交接卡的固定值代入，运行一次采集（8 行）。`HOST_PIN` 等大写文本是必须替换的占位符，
 原样运行会 fail closed；不要用环境变量、hostname 命令或上一段结果自动填充已批准值。
 
 ```bash
-python3 -B /APPROVED-READONLY-SOURCE/codex/runtime/aisoft_company_baseline.py collect \
+python3 -I -S -B /APPROVED-READONLY-SOURCE/codex/runtime/aisoft_company_baseline.py collect \
   --environment company-scm-ci \
   --host-role scm-ci \
   --host-sha256 HOST_PIN_64_HEX \
@@ -53,7 +55,7 @@ collector 仅运行两个 fixed service 的 enabled/active、Runner unit、固�
 不要从不可信 envelope 自动读取期望值。校验通过只表示结构、checksum、绑定与判定一致。
 
 ```bash
-python3 -B codex/runtime/aisoft_company_baseline.py verify \
+python3 -I -S -B codex/runtime/aisoft_company_baseline.py verify \
   --environment company-scm-ci \
   --host-role scm-ci \
   --host-sha256 HOST_PIN_64_HEX \
@@ -76,10 +78,10 @@ operator-reviewed 或 none。历史放在 `historical` 对象中，必须带历�
 |---|---|
 | network | reachable/unreachable：批准内网入口本轮是否可达，独立于认证 |
 | authentication / acl | available/unavailable、read-allowed/denied；不回流账号或 cookie，匿名 404 不证明对象不存在 |
-| repository | 已确认 identity 的 SHA-256、公司 head SHA 与 exists；目标不存在但缺可信 refs 时保持 NOT RUN，不填虚构 SHA |
+| repository | 已确认 identity 的 SHA-256、公司 head SHA 与 exists；已确认不存在时 head_sha=null，不填虚构 SHA；无法确认存在性时保持 NOT RUN |
 | protection | direct/force push 禁止、仅人工 merge、required CI 数量；CI 成功不等于 protection 已配置 |
 | runner_registration | registered/absent/unknown；与 unit enabled/active 分开，不读取注册文件 |
-| sync | 固定 timer 已审核 enabled/active 与 source/destination SHA；不读取环境或 timer 内容、不启用 timer |
+| sync | 固定 timer 已审核 enabled/active 与 source/destination SHA（已确认 refs 不存在用 null）；不读取环境或 timer 内容、不启用 timer |
 | backup / isolated_restore | available/off_host、verified/isolated、相同备份集 digest；备份存在不能证明恢复成功，本轮不做备份或恢复 |
 | postgresql_server_version | 审核记录中的实际 server 版本；本地二进制 --version 不能代替运行版本 |
 | ufw_review | approved-networks-only/remediation-required；规则数量不能证明放行范围正确 |

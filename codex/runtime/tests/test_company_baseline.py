@@ -106,6 +106,17 @@ class BaselineTests(unittest.TestCase):
         value["current"]["runner_registration"] = b.observation("runner_registration", "absent", basis="operator-reviewed", evidence="a"*64)
         self.assertEqual(b.assess(value, NOW)["decision"], "adopt-with-remediation")
 
+    def test_confirmed_absent_repo_and_sync_allow_remediation_without_fake_sha(self):
+        value = inventory()
+        value["current"]["repository"] = b.observation("repository", {
+            "exists": "no", "identity_sha256": "a"*64, "head_sha": None}, basis="operator-reviewed", evidence="a"*64)
+        value["current"]["sync"] = b.observation("sync", {
+            "timer": {"enabled": "not-found", "active": "not-found"}, "source_sha": None,
+            "destination_sha": None}, basis="operator-reviewed", evidence="a"*64)
+        self.assertEqual(b.assess(value, NOW)["decision"], "adopt-with-remediation")
+        with self.assertRaises(b.Invalid):
+            b.observation("repository", {"exists": "yes", "identity_sha256": "a"*64, "head_sha": None})
+
     def test_unsafe_postgres_listener_blocks(self):
         value = inventory()
         value["current"]["postgresql_listener"] = b.observation("postgresql_listener", "exposed")
@@ -221,6 +232,12 @@ class BaselineTests(unittest.TestCase):
         result = fake.collect()
         self.assertEqual(result["inventory"]["current"]["gitea_health"]["status"], "GAP")
 
+    def test_health_missing_database_or_cache_is_not_pass(self):
+        for checks in ({"fake": [{"status": "pass"}]}, {"cache:ping": [{"status": "pass"}]}):
+            fake = FakeHost()
+            fake.http = lambda path: (200, json.dumps({"status": "pass", "checks": checks}).encode())
+            self.assertEqual(fake.collect()["inventory"]["current"]["gitea_health"]["status"], "GAP")
+
     def test_redirects_oversized_or_invalid_http_never_pass(self):
         for response in ((302, b"redirect"), (200, b"a"*(b.LIMIT+1)), (200, b'{"version":"token sentinel"}')):
             fake = FakeHost()
@@ -268,7 +285,7 @@ class BaselineTests(unittest.TestCase):
             b.run([sys.executable, "-c", "print('x'*70000)"])
 
     def test_cli_rejection_never_echoes_arguments_or_input(self):
-        result = subprocess.run([sys.executable, "-B", str(SCRIPT), "collect", "--password", "sensitive-sentinel"], capture_output=True)
+        result = subprocess.run([sys.executable, "-I", "-S", "-B", str(SCRIPT), "collect", "--password", "sensitive-sentinel"], capture_output=True)
         self.assertEqual(result.returncode, 20)
         self.assertNotIn(b"sentinel", result.stdout+result.stderr)
         self.assertEqual(json.loads(result.stdout)["code"], "ARGUMENT_INVALID")
@@ -277,7 +294,7 @@ class BaselineTests(unittest.TestCase):
         value = inventory()
         value["collected_at"] = b.timestamp(b.utcnow())
         envelope = b.seal(value)
-        args = [sys.executable, "-B", str(SCRIPT), "verify"]
+        args = [sys.executable, "-I", "-S", "-B", str(SCRIPT), "verify"]
         for k, v in binding().items():
             args += ["--"+k.replace("_", "-"), v]
         result = subprocess.run(args, input=b.canonical(envelope), capture_output=True)
@@ -285,8 +302,30 @@ class BaselineTests(unittest.TestCase):
         self.assertEqual(json.loads(result.stdout)["decision"], "adopt")
 
     def test_published_schema_matches_program(self):
-        expected = json.loads((ROOT/"company-delivery/baseline/inventory-v1.schema.json").read_text())
-        self.assertEqual(expected, b.schema())
+        expected = (ROOT/"company-delivery/baseline/inventory-v1.schema.json").read_bytes()
+        actual = subprocess.run([sys.executable, "-I", "-S", "-B", str(SCRIPT), "schema"], capture_output=True, check=True)
+        self.assertEqual(expected, actual.stdout)
+        self.assertEqual(json.loads(actual.stdout), b.schema())
+
+    def test_closed_stdout_has_no_traceback(self):
+        process = subprocess.Popen([sys.executable, "-I", "-S", "-B", str(SCRIPT), "schema"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process.stdout.close()
+        self.assertEqual(process.wait(timeout=5), 20)
+        self.assertEqual(process.stderr.read(), b"")
+        process.stderr.close()
+
+    def test_collection_cli_requires_isolated_no_site_no_bytecode(self):
+        result = subprocess.run([sys.executable, "-B", str(SCRIPT), "identity"], capture_output=True)
+        self.assertEqual(result.returncode, 20)
+        self.assertEqual(json.loads(result.stdout)["code"], "UNSAFE_INTERPRETER")
+
+    def test_interpreter_ignores_injected_pythonpath(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, "sitecustomize.py").write_text("raise Exception('sensitive-sentinel')")
+            result = subprocess.run([sys.executable, "-I", "-S", "-B", str(SCRIPT), "identity"],
+                                    env={"PYTHONPATH": tmp, "PYTHONINSPECT": "1"}, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertNotIn(b"sentinel", result.stdout+result.stderr)
 
     def test_runbook_command_blocks_at_most_fifty_lines(self):
         text = (ROOT/"company-delivery/baseline/README.md").read_text()

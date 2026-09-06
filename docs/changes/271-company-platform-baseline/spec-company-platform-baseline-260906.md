@@ -35,7 +35,7 @@ updated: 2026-09-06
 
 ## 接口、数据与兼容性影响
 
-仅新增独立的 `company-platform-baseline/v1`，不复用 greenfield inventory 版本、不改变其校验或 operator VERSION。只读脚本为单文件 Python 标准库，用户以 `python3 -B` 运行。schema 与程序的 schema 输出逐字节一致；程序执行严格结构校验和状态语义校验。
+仅新增独立的 `company-platform-baseline/v1`，不复用 greenfield inventory 版本、不改变其校验或 operator VERSION。只读脚本为单文件 Python 标准库，用户以 `python3 -I -S -B` 运行。schema 与程序的 schema 输出逐字节一致；程序执行严格结构校验和状态语义校验。
 
 固定命令执行无需 shell；环境固定且不读取或继承环境变量。HTTP 仅 loopback:8888 的两个固定 GET，无认证、代理或 redirect；ss 仅两个批准端口，无 process 信息。数据目录只 stat 元数据，不枚举或读取内容；不读取 app.ini、credential path、环境、原始日志或 legacy 8080。PostgreSQL 仅服务/二进制/监听，不发 SQL、pg_dump、恢复或登录。
 
