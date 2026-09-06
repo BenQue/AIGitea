@@ -472,6 +472,65 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
             "token_file": "/home/coder/.config/aisoft/credentials/localwms.token",
         })
 
+    def test_emaintenance_profile_names_no_analysis_provider(self) -> None:
+        # analysis_provider is none since #178. #152 picked claude for all four
+        # internal-application profiles by analogy, not from evidence that the
+        # chain could run; on gitea-ci the claude CLI is off coder's PATH and
+        # unauthenticated, so claude-analyzer.sh:13 (command -v claude || exit 2)
+        # fails on its first line. This profile is the one where that dead
+        # declaration was also load-bearing: aisoft-agent@emaintenance.timer is
+        # active, so every 15 minutes provider-poll.sh:33 walked the whole
+        # needs-analysis queue into a hard failure.
+        #
+        # It is deliberately none rather than codex, which is what #164 gave
+        # localwms. Naming a working provider asserts a runnable chain, and
+        # enabling one is a per-project acceptance gate: localwms earned codex
+        # with its own read-only canary (LocalWMS #66) before #164 changed the
+        # value. NewEMaint has no such artifact yet, and the assertion would
+        # outlive today's timer state, so a future re-enable would run a chain
+        # nobody ever validated. none makes provider-poll.sh:32 skip the whole
+        # analysis branch, which ends the fail-closed churn without asserting
+        # anything unproven.
+        #
+        # timer_unit stays as it is on purpose. It is a record, not a switch:
+        # profiles.py:289 never writes it into the profile and nothing in this
+        # repository calls systemctl on aisoft-agent@*.timer, so setting it to
+        # null would not stop the timer, it would only make the manifest state
+        # something untrue. Stopping it is a sudo action on the host.
+        project = self.contract.project("newemaint")
+        self.assertIsNotNone(project.vm_profile)
+        assert project.vm_profile is not None
+        self.assertEqual(project.vm_profile.name, "emaintenance")
+        self.assertEqual(project.vm_profile.repo_dir, "work/NewEMaint")
+        self.assertEqual(project.vm_profile.analysis_provider, "none")
+        self.assertEqual(project.vm_profile.implement_provider, "none")
+        self.assertEqual(project.vm_profile.timer_unit,
+                         "aisoft-agent@emaintenance.timer")
+        self.assertEqual(project.vm_profile.path_prepend, ())
+
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            code = host_access_cli_main([
+                "--access-manifest", str(ACCESS),
+                "--governance-manifest", str(GOVERNANCE),
+                "profile-spec", "--profile-name", "emaintenance",
+            ])
+        self.assertEqual(code, 0)
+        payload = json.loads(buffer.getvalue())
+        self.assertEqual(payload, {
+            "analysis_provider": "none",
+            "gitea_url": "http://gitea-ci.orb.local:3000",
+            "identity": "newemaint-agent",
+            "implement_provider": "none",
+            "owner": "admin",
+            "path_prepend": [],
+            "profile_name": "emaintenance",
+            "project_id": "newemaint",
+            "repo_dir": "/home/coder/work/NewEMaint",
+            "repository": "NewEMaint",
+            "token_file": "/home/coder/.config/aisoft/credentials/emaintenance.token",
+        })
+
 
 class MattRepositoryAdapterTests(unittest.TestCase):
     def test_agent_configuration_matches_canonical_templates(self) -> None:
@@ -5426,6 +5485,11 @@ class ProfileMigrationTests(unittest.TestCase):
         self.assertEqual(stat.S_IMODE(self.profile.stat().st_mode), 0o400)
 
     def test_undeclared_profile_bytes_are_byte_identical_to_pre_112_shape(self) -> None:
+        # The subject here is the byte shape: nine lines, no PATH tail. It drives
+        # that shape off the production newemaint entry, so the ANALYSIS_PROVIDER
+        # literal tracks whatever that profile declares — none since #178, claude
+        # before it. A diff on this line means the manifest moved, not that the
+        # pre-#112 shape regressed; check the line count and ordering instead.
         self.migrator().apply("newemaint")
         expected = (
             "AISOFT_PROJECT_ID=newemaint\n"
@@ -5435,7 +5499,7 @@ class ProfileMigrationTests(unittest.TestCase):
             "GITEA_IDENTITY=newemaint-agent\n"
             f"GITEA_TOKEN_FILE={self.home}/.config/aisoft/credentials/emaintenance.token\n"
             f"AGENT_REPO_DIR={self.home}/work/NewEMaint\n"
-            "ANALYSIS_PROVIDER=claude\n"
+            "ANALYSIS_PROVIDER=none\n"
             "IMPLEMENT_PROVIDER=none\n"
         ).encode("utf-8")
         self.assertEqual(self.profile.read_bytes(), expected)

@@ -376,7 +376,7 @@
       "vm_profile": {
         "name": "emaintenance",
         "repo_dir": "work/NewEMaint",
-        "analysis_provider": "claude",
+        "analysis_provider": "none",
         "implement_provider": "none",
         "timer_unit": "aisoft-agent@emaintenance.timer"
       }
