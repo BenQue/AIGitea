@@ -177,7 +177,7 @@ F7 的“已采纳 pin 下有效”立即用于人工判读，避免误改制品
 |---|---|---|---|
 | T01 | 固定用户方向、基线与范围，完成映射合同及路线图 | - | complete |
 | T02 | 文档语义/判级/diff 验证，准备本地可审阅提交 | T01 | complete |
-| T03 | 创建 Sol high 调度任务，记录交接回执与最终 PR 待确认状态 | T02 | queued：创建受理，启动回执待客户端 |
+| T03 | 创建 Sol high 调度任务，记录交接回执与最终 PR 待确认状态 | T02 | complete：正式任务已启动并接手，详见 verification |
 
 ## Expected touch points
 

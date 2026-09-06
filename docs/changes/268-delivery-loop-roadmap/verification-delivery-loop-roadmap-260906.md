@@ -10,7 +10,7 @@ confidence: high
 risk_flags:
   - platform-governance
 depends_on: []
-status: handoff-pending
+status: verified
 branch: change/268-delivery-loop-roadmap
 created: 2026-09-06
 updated: 2026-09-06
@@ -40,7 +40,8 @@ updated: 2026-09-06
 | `git diff --cached --check` | PASS | 四份新增文件的 staged diff 无空白错误 |
 | Codex 调度任务创建 | PASS | create_thread 已受理；clientThreadId=`client-new-thread:c0a4fe7d-14ff-44d1-a733-07fd99a19202`；host=`local`；指定 Sol/high 和项目 worktree |
 | 调度工作区创建 | PASS | `git worktree list --porcelain` 已见 `/Users/benque/.codex/worktrees/d9bc/AISoftPlatform`，基线为 `3fb6b605a59ce492ef4fb6ddcd3ebf64ca7f223a` |
-| 调度运行状态读回 | BLOCKED | list_threads 尚未返回新任务的正式 threadId；未向 wait_threads 传递 clientThreadId；实际开始执行未确认 |
+| 调度初始状态查询 | GAP（已消除） | 创建后 list_threads 暂未返回正式 threadId；未把 clientThreadId 传给 wait_threads，也未提前宣称已运行 |
+| 调度正式运行状态读回 | PASS | 正式任务 `01a0762f-10f7-7543-8936-d90ec3907706` 回报已接手；`wait_threads(timeoutMs=0)` 读回 active / inProgress，cursor=`aff7fc77-07c8-4c68-98ae-aa2fc5e8e122:1`；最新进展为 A2 只读调查结果 |
 | broker 判级与生命周期投影 | PASS | #268 读回 `type/platform`、`complexity/complex`、`approved`；只覆盖路线图和调度启动 |
 | 当前 Change 远端 push / PR / CI / merge | NOT RUN | 最终 PR 需要 exact Issue/branch/manual 确认 |
 
@@ -57,20 +58,22 @@ plan §1 的 699 项 tests、122 个 change 文档检查、skills drift、worktr
 | AC-1 | PASS | plan §1–4 覆盖基线、F1–F10、阶段及依赖，改名延期 |
 | AC-2 | PASS | plan Gate B/C、工作包与决策表；公司平台先行，复用三项已有 Issue |
 | AC-3 | PASS | spec 多 Issue/模型合同、plan §6；本 Issue 完成不等于路线图完成 |
-| AC-4 | GAP | 创建请求与工作区建立已确认；新任务运行回执待客户端完成，不能写成已运行 |
+| AC-4 | PASS | 正式 task ID、工作区与接手消息齐全；wait_threads 证实调度正在运行，启动缺口已消除 |
 | AC-5 | PASS | 文档门禁与判级/resolver 通过；最终 staged diff 检查见执行记录 |
 
 ## 调度交接
 
 - 模型：`gpt-5.6-sol`；reasoning effort：`high`。
-- 创建请求 ID：`client-new-thread:c0a4fe7d-14ff-44d1-a733-07fd99a19202`；正式 threadId 待客户端提供。
+- 创建请求 ID：`client-new-thread:c0a4fe7d-14ff-44d1-a733-07fd99a19202`。
+- 正式 task/thread ID：`01a0762f-10f7-7543-8936-d90ec3907706`；host：`local`。
 - 指定标题：公司平台部署与 NewEMaint 路线图调度。
 - 任务工作区：`/Users/benque/.codex/worktrees/d9bc/AISoftPlatform`，只作调度。
 - 文档交接已完成：本地 #268 分支保留完整合同；发起任务结束后不再实施或共写。新调度任务启动后可以将本条作为发起任务的交接完成记录，核对当前分支 HEAD 后接手协调。
 - 路线图事实源：本目录映射 plan。
+- 接手回执：调度任务已只读核对初次交接 HEAD `735b3bac9cadcd9f6d3128b75ffc64d93eac5ecf`、完成两仓开放 Issue sweep，并启动 A1/B1 与 A2 只读调查。本次仅补齐交接元数据，最终 HEAD 随提交回报调度任务，不改阶段合同。
 - 接手后首先 sweep、核对当前状态，准备 A1 合同与 A3 只读诊断，可将 A2 现象复现分给 Terra high。实际实施须遵循各 Issue 合同与闸门。
 - 本路线图最终 PR 尚未获提交确认；调度任务接手该候选的协调，不能自行把它当成已合并合同。它可以开展已授权的证据收集和合同草拟。
 
 ## 遗留风险与未完成项
 
-调度任务创建已受理但启动回执未确认，勿重复创建。新任务启动后自行读回并记录正式 task ID，再推进首轮调度。阶段 A/B/C/D 尚未开始实际实施。本次用户确认路线图和调度启动，不等于所有后续决策或现场操作获批。远端 PR、required CI 与人工合并状态单列；公司 Gitea/平台现场交付由平台部署 Change 证明，应用交付由 NewEMaint 独立 Change 证明。
+调度任务已启动并开始只读调查，勿重复创建。阶段 A/B/C/D 尚未开始运行时或现场实施。本次用户确认路线图和调度启动，不等于所有后续决策或现场操作获批。远端 PR、required CI 与人工合并状态单列；公司 Gitea/平台现场交付由平台部署 Change 证明，应用交付由 NewEMaint 独立 Change 证明。
