@@ -48,7 +48,7 @@ collector 仅运行两个 fixed service 的 enabled/active、Runner unit、固�
 两个 fixed port 的 `ss -ltn`、UFW 摘要和两个数据目录 stat/statvfs。UFW 无读取权限则 BLOCKED，禁止 sudo 重试。
 不读取 unit 文件/ExecStart、app.ini、环境变量、credential path、数据内容或日志；不查询 PostgreSQL 数据库。
 两个 GET 仅为 `127.0.0.1:8888/api/healthz` 和 `/api/v1/version`，不跟随 redirect、不使用认证或代理；
-`/api/healthz` 的 checks 必须非空且全部 pass，避免把未完成安装页的空 checks 判为健康。
+`/api/healthz` 的 checks 必须恰好含 `database:ping` 与 `cache:ping`，各条目必须全部 pass，避免把未完成安装页的空 checks 判为健康。
 端点语义参考 [Gitea 官方 health handler](https://github.com/go-gitea/gitea/blob/v1.26.4/routers/web/healthcheck/check.go)。
 
 第三段：仅在开发侧，对带回的脱敏 JSON 做离线验证（8 行）。重新使用同一交接卡的 pins；
@@ -78,11 +78,11 @@ operator-reviewed 或 none。历史放在 `historical` 对象中，必须带历�
 |---|---|
 | network | reachable/unreachable：批准内网入口本轮是否可达，独立于认证 |
 | authentication / acl | available/unavailable、read-allowed/denied；不回流账号或 cookie，匿名 404 不证明对象不存在 |
-| repository | 已确认 identity 的 SHA-256、公司 head SHA 与 exists；已确认不存在时 head_sha=null，不填虚构 SHA；无法确认存在性时保持 NOT RUN |
+| repository | 已确认 identity 的 SHA-256、公司 head SHA 与 exists；已确认不存在或已有仓库为空时 head_sha=null，不填虚构 SHA；无法确认存在性时保持 NOT RUN |
 | protection | direct/force push 禁止、仅人工 merge、required CI 数量；CI 成功不等于 protection 已配置 |
 | runner_registration | registered/absent/unknown；与 unit enabled/active 分开，不读取注册文件 |
 | sync | 固定 timer 已审核 enabled/active 与 source/destination SHA（已确认 refs 不存在用 null）；不读取环境或 timer 内容、不启用 timer |
-| backup / isolated_restore | available/off_host、verified/isolated、相同备份集 digest；备份存在不能证明恢复成功，本轮不做备份或恢复 |
+| backup / isolated_restore | available/off_host、verified/isolated、相同备份集 digest（确认不存在时用 null，不能凭空填 SHA）；备份存在不能证明恢复成功，本轮不做备份或恢复 |
 | postgresql_server_version | 审核记录中的实际 server 版本；本地二进制 --version 不能代替运行版本 |
 | ufw_review | approved-networks-only/remediation-required；规则数量不能证明放行范围正确 |
 | storage_ownership / service_binding | expected-service-owners/mismatch、fixed-binaries-and-data/mismatch：人工核对批准的 uid/gid、服务与固定二进制/数据关联；不在本 Issue 读取完整 unit 或配置 |

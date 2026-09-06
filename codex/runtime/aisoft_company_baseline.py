@@ -70,8 +70,8 @@ VALUES = {
     "runner_registration": enum("registered", "absent", "unknown"),
     "sync": obj({"timer": SERVICE, "source_sha": {"anyOf": [SHA, enum(None)]},
                  "destination_sha": {"anyOf": [SHA, enum(None)]}}),
-    "backup": obj({"available": YESNO, "off_host": YESNO, "set_sha256": HASH}),
-    "isolated_restore": obj({"verified": YESNO, "isolated": YESNO, "set_sha256": HASH}),
+    "backup": obj({"available": YESNO, "off_host": YESNO, "set_sha256": {"anyOf": [HASH, enum(None)]}}),
+    "isolated_restore": obj({"verified": YESNO, "isolated": YESNO, "set_sha256": {"anyOf": [HASH, enum(None)]}}),
     "postgresql_server_version": VER,
     "ufw_review": enum("approved-networks-only", "remediation-required"),
     "storage_ownership": enum("expected-service-owners", "mismatch"),
@@ -193,7 +193,7 @@ def good(key, value):
     if key == "ufw":
         return value["active"] == "yes" and value["default_deny_incoming"] == "yes"
     if key == "repository":
-        return value["exists"] == "yes"
+        return value["exists"] == "yes" and value["head_sha"] is not None
     if key == "protection":
         return all(value[k] == "yes" for k in ("direct_push_denied", "force_push_denied", "human_only_merge")) and value["required_ci_count"] > 0
     if key == "sync":
@@ -215,7 +215,11 @@ def observation(key, value=None, *, basis="host-probe", evidence=None, blocked=F
                 "reason": "probe-unavailable" if blocked else "not-collected",
                 "value": None, "evidence_sha256": None}
     check(value, VALUES[key])
-    if key == "repository" and (value["exists"] == "yes") != (value["head_sha"] is not None):
+    if key == "repository" and value["exists"] == "no" and value["head_sha"] is not None:
+        raise Invalid("EVIDENCE_INVALID")
+    if key == "backup" and (value["available"] == "yes") != (value["set_sha256"] is not None):
+        raise Invalid("EVIDENCE_INVALID")
+    if key == "isolated_restore" and value["verified"] == "yes" and value["set_sha256"] is None:
         raise Invalid("EVIDENCE_INVALID")
     return {"status": "PASS" if good(key, value) else "GAP", "basis": basis,
             "reason": "observed", "value": value, "evidence_sha256": evidence}

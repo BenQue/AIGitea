@@ -211,8 +211,17 @@
                           ]
                         },
                         "set_sha256": {
-                          "pattern": "^[0-9a-f]{64}$",
-                          "type": "string"
+                          "anyOf": [
+                            {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                null
+                              ]
+                            }
+                          ]
                         }
                       },
                       "required": [
@@ -727,8 +736,17 @@
                           ]
                         },
                         "set_sha256": {
-                          "pattern": "^[0-9a-f]{64}$",
-                          "type": "string"
+                          "anyOf": [
+                            {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                null
+                              ]
+                            }
+                          ]
                         },
                         "verified": {
                           "enum": [
@@ -2160,8 +2178,17 @@
                           ]
                         },
                         "set_sha256": {
-                          "pattern": "^[0-9a-f]{64}$",
-                          "type": "string"
+                          "anyOf": [
+                            {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                null
+                              ]
+                            }
+                          ]
                         }
                       },
                       "required": [
@@ -2676,8 +2703,17 @@
                           ]
                         },
                         "set_sha256": {
-                          "pattern": "^[0-9a-f]{64}$",
-                          "type": "string"
+                          "anyOf": [
+                            {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                null
+                              ]
+                            }
+                          ]
                         },
                         "verified": {
                           "enum": [

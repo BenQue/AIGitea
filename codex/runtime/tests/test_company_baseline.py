@@ -115,7 +115,25 @@ class BaselineTests(unittest.TestCase):
             "destination_sha": None}, basis="operator-reviewed", evidence="a"*64)
         self.assertEqual(b.assess(value, NOW)["decision"], "adopt-with-remediation")
         with self.assertRaises(b.Invalid):
-            b.observation("repository", {"exists": "yes", "identity_sha256": "a"*64, "head_sha": None})
+            b.observation("repository", {"exists": "no", "identity_sha256": "a"*64, "head_sha": "a"*40})
+
+    def test_existing_empty_repo_is_a_known_gap(self):
+        value = inventory()
+        value["current"]["repository"] = b.observation("repository", {
+            "exists": "yes", "identity_sha256": "a"*64, "head_sha": None}, basis="operator-reviewed", evidence="a"*64)
+        self.assertEqual(b.assess(value, NOW)["decision"], "adopt-with-remediation")
+
+    def test_known_missing_backup_or_restore_needs_no_fake_digest(self):
+        value = inventory()
+        value["current"]["backup"] = b.observation("backup", {
+            "available": "no", "off_host": "no", "set_sha256": None}, basis="operator-reviewed", evidence="a"*64)
+        value["current"]["isolated_restore"] = b.observation("isolated_restore", {
+            "verified": "no", "isolated": "no", "set_sha256": None}, basis="operator-reviewed", evidence="a"*64)
+        self.assertEqual(b.assess(value, NOW)["decision"], "BLOCKED")
+        for key, fact in (("backup", {"available": "yes", "off_host": "yes", "set_sha256": None}),
+                          ("isolated_restore", {"verified": "yes", "isolated": "yes", "set_sha256": None})):
+            with self.assertRaises(b.Invalid):
+                b.observation(key, fact)
 
     def test_unsafe_postgres_listener_blocks(self):
         value = inventory()
