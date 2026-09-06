@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.6（routine PR source contract）｜ 更新：2026-09-03 ｜ 状态：**Issue #208 定义“合同/启动确认 + 提交最终 PR 前确认”两个默认人工点和 routine small 受控自动合并 source 合同；#208、全部 complex/major/阶段完结与强制风险变更仍须人工合并，installed/live 启用仍须单独验收**
+> 版本：v3.6（routine PR source contract）｜ 更新：2026-09-06 ｜ 状态：**#252 后治理集合只保留 LocalWMS 与 NewEMaint；09-05 合并批次（#222/#223/#225/#228/#243/#250/#254）扩展 broker typed 操作、CI 停滞判定、项目 CI 参考模板、Issue 入口标签与 8 个 installer 共用 source guard；#208 routine small 受控合并 source 合同不变，#208、全部 complex/major/阶段完结与强制风险变更仍须人工合并，installed/live 启用仍须单独验收**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到最终 PR；人确认提交，manual 变更由人合并，显式 opt-in 的 routine small 只有在最终 head 全硬门通过后才可由独立 merger 合并；部署始终独立授权。**
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 1. 当前状态（2026-09-03）
+## 1. 当前状态（2026-09-06）
 
 - ✅ 基础设施核心：`gitea-ci` 上的 Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
 - 🟡 流水线：PR CI、构建和不可变制品链已验证；历史“合并 main 后在 `gitea-ci` 启动测试应用”仅作 as-built 证据，新接入必须使用独立 `appserver-test` trust role
@@ -16,6 +16,10 @@
 - ✅ provider adapters：Codex 与 Claude adapter 共用 controller/verifier/状态/终态，等价、可互换；默认 `IMPLEMENT_PROVIDER=none`，启用是每项目独立验收；真实 VM pilot 未做
 - 🟡 Matt 开发编排层：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在当前 exact change branch 本地提交，Controller 在提交确认后才能 push/建 PR/读取 CI；manual 路径仍只由人合并
 - 🟡 Host access broker：既有 strict typed Issue/PR/Git surface 保持；Issue #208 只允许新增 `gitea.pull.merge.routine(number, sha)`，并要求 broker 在唯一 merge POST 前 fresh 重跑合同、唯一 PR、head、protection、required CI、reviews、dependencies 与 final diff 硬门。Gitea 1.26.4 无 merge-only ACL，ordinary Git 隔离依赖 broker-exclusive credential custody 与 zero fallback；routine identity 不进入 main push/force allowlist。source 合并不等于安装、provision 或 live 启用；未获独立 live apply 授权前，现有 merge allowlist、credential 与 installed bytes 均不改变
+- 🟡 Host access broker 扩面（09-05 批次）：#222 新增 `gitea.issue.list`（分页取全、排除 PR、不带正文）与 `gitea.issue.state.set`；#225 actions 日志读投影保留头尾两端、零值时间戳（unix epoch 与 `0001-01-01`）投影为 `null`；#228 新增 `orbstack.runner.status` 只读停滞探针与 per-job 超时取值，判定与处置顺序见 [06](06-运维手册与踩坑集.md) §1.0.1/§1.0.2。typed 操作进入 source 不等于生效，仍需两台重装
+- ✅ 平台治理集合：#252 起五个项目统一退出，`gitea-governance.json`/`host-access-broker.json` 只保留 LocalWMS 与 NewEMaint（仓库、历史、Issue、PR 与分支保护全程不动，退出不是删除）；#243 起 `gitea.issue.create` 立案即带入口标签（`needs-analysis` 或 `triage/needs-triage`），调度会话按 `issue-session-flow` 清扫开放 Issue
+- ✅ 安装面：#162/#171 把 installer 的 source provenance 与 staleness 闸门抽成 `codex/lib/install-source-guard.sh`，#182/#250/#254 补齐 `docker-release/`、`sync/`、`skill-for-claude/` 后 8 个 installer 全部经该闸门；Claude 侧 skills 由 `skill-for-claude/install.sh` 安装、`skill-for-claude/check-drift.sh` 核对（见 §5「技能安装与漂移核对」）
+- 🟡 项目 CI 参考：#223 提供 `templates/project/ci/`（CI workflow、merge-preview 合并预览、registry-preflight 真实取包断言）与 `aisoft-project-check.sh` 的 `ci-merge-preview`/`ci-outdated-branch`/`ci-registry-preflight` 只读回读；采纳由各项目仓自行接入并验收，本仓库不代表任何项目已采纳
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
 - 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为历史 real complex pilot 证据，该项目自 #252 起已退出平台治理。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
 - 🟡 Linux Docker release source（Issue #22 已合并）：提供 strict manifest/profile、Registry/offline transports、host-role preflight 和 deterministic deploy/status/rollback；合同已进入 source，但具体业务 Registry/AppServer 与 production promotion 仍未验收
@@ -150,7 +154,7 @@ sequenceDiagram
 | [03-Issue/Spec/Plan 与单闸门流程](03-Issue-Spec-Plan与单闸门开发流程.md) | small/complex 双路径、文档绑定、标签语义、最终 PR | 日常使用平台 |
 | [04-Matt 编排与 Development Loop](04-Agent编排与定时任务.md) | Matt skills、analyzer、Loop、verifier、终态、provider adapter | 调整 agent 行为 |
 | [05-通知与多人协作](05-通知与多人协作.md) | Gitea mailer、Mailpit、事件覆盖、切真实 SMTP | 配通知、加协作者 |
-| [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、私有 Gitea 访问、17 条实证踩坑、AI 故障包、凭据位置 | 排障必读 |
+| [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、私有 Gitea 访问、27 条实证踩坑、CI 停滞判定手册（§1.0.1/§1.0.2）、AI 故障包、凭据位置 | 排障必读 |
 | [07-内网与生产平移路线](07-内网与生产平移路线.md) | 原型孵化、持续权威分工、备选下线切换和 Linux/Windows 双目标 | 规划内网平移 |
 | [08-双工具共存与实施](08-双工具共存与实施.md) | 共享契约、controller/adapter、provider 验证矩阵、部署边界与回滚 | 接入或切换 provider |
 | [09-v3 文档改造规划](09-v3平台简化与Loop-Engineering文档改造规划.md) | v3 决策、影响矩阵、迁移顺序、回滚边界 | 审核或实施 v3 |
@@ -158,6 +162,17 @@ sequenceDiagram
 | [11-Codex Loop runtime 计划（历史）](archive/11-Codex-Loop运行时实施计划.md) | provider-neutral runtime 首轮实施记录 | 仅作历史追溯 |
 | [公司两 VM 离线交付 operator runbook（参考实现）](company-delivery/runbook.md) | 两 VM inventory、exact handoff、Gitea/backup/restore/SCM/fixed-target Stage 00–110；交付形态由项目声明 | 逐阶段人工执行与审计 |
 | [历史资料索引](archive/README.md) | 已被当前合同替代的方案、实施计划与 v2 一页 PDF | 追溯历史，不作为当前操作入口 |
+
+### 技能安装与漂移核对
+
+两侧技能等价、各自安装、共用同一份 `skill-for-codex/references/`；改动 SKILL.md 或 references 后，装到本机的副本立即漂移，
+需重装并核对回 `CLEAN`。8 个 installer（含下面两个）全部经 `codex/lib/install-source-guard.sh` 做 source provenance 与 staleness 闸门，
+陈旧 checkout 或非 manifest-fixed remote 一律 fail closed。
+
+| 侧 | 安装 | 漂移核对 | 安装目标 |
+|------|------|----------|----------|
+| Codex | `bash codex/install-skills.sh <target-home>` | `bash codex/check-drift.sh` | `~/.agents/skills/`（含 `codex/skills/` 与 vendored Matt 快照） |
+| Claude Code | `bash skill-for-claude/install.sh <target-home>` | `bash skill-for-claude/check-drift.sh`（`CLEAN` / `DRIFT` / `NOT_INSTALLED`） | `~/.claude/skills/`（`skills.manifest` 声明的 `aisoft-platform`、`issue-session-flow`） |
 
 ### 交付形态参考（按项目选用，非部署步骤事实源）
 
