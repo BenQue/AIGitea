@@ -22,9 +22,9 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: approved
+status: pr-open
 branch: change/268-delivery-loop-roadmap
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/269
 created: 2026-09-06
 updated: 2026-09-06
 ---
