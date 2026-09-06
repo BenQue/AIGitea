@@ -126,18 +126,51 @@ updated: 2026-09-06
 1. **AC-3 / AC-4 未执行**，见上方交接项。重装前 VM 侧仍是旧声明——这是预期，
    不是回归。
 2. **「NewEMaint 是否启用自动判级」仍是开放决策，本变更明确把它留空。**
-   要启用需要三件事同时成立：该仓库自己的只读 canary 产出物（参照 LocalWMS
-   #66 / #164 的做法，必须在 VM 上以 `coder` 身份执行——本机 codex-cli
-   0.147.0 跑不了 codex-analyzer，broker 的 36 个 typed 操作里也没有任意 VM
-   shell）；把取值改为 `codex`；以及有人明确认账「下一条 `needs-analysis`
-   Issue 会被真的判级、写标签、写 summary 并推 change 分支」。
+   要启用至少需要四件事同时成立：解决下面第 3 条的 PATH 问题；该仓库自己的
+   只读 canary 产出物（且必须在**服务实际运行的那一层**取得，见第 3 条）；
+   把取值改为 `codex`；以及有人明确认账「下一条 `needs-analysis` Issue 会被
+   真的判级、写标签、写 summary 并推 change 分支」。
    已按用户本轮要求作为遗留项记录并回报，不自行立案。
-3. **`analyze-*.sh` 的写路径不经 broker。** `analyze-codex.sh:38` 与
+
+3. **换 provider 名字可能并不足以让链路跑通——`codex` 在 systemd 那一层
+   大概率与 `claude` 同病。** 这条来自 LocalWMS #79 实现会话 2026-09-06 的
+   主机侧实测，本会话**没有独立复核**（复核需要 `orb` + VM `sudo`，绕开
+   broker，不在本会话权限内）。原始读数由该会话记录在
+   `docs/changes/79-analyzer-steady-state/verification-analyzer-steady-state-260905.md`：
+   `codex` 在 `/home/coder/.local/bin/codex`，而 systemd user manager 交给
+   服务的 PATH 不含 `~/.local/bin`，transient unit 内 `command -v codex` 返回
+   `NOT_FOUND`。
+
+   **本会话独立核实的是仓库侧机制链，四条全部成立**，它们使上述读数完全可解释：
+
+   | 仓库侧事实 | 位置 |
+   |---|---|
+   | 两个 analyzer 的硬闸门完全同形 | `claude-analyzer.sh:12` 与 `codex-analyzer.sh:12` 都是 `command -v <bin> \|\| exit 2` |
+   | 服务不经登录 shell，也不自带 PATH | `aisoft-agent@.service` 的 `ExecStart=/usr/bin/env %h/agent/project-poll.sh %i`，无 `Environment=PATH`、无 EnvironmentFile |
+   | profile 里的 `PATH=` 行会生效 | `common.sh:41` 的 `set -a; source "$env_file"` |
+   | 为此设计的机制存在，但零项目使用 | `contract.py` 允许可选键 `path_prepend`，`profiles.py` 据它渲染 `PATH=` 行；`grep -c path_prepend codex/config/host-access-broker.json` 为 `0` |
+
+   **陷阱**：`bash -lc` 是登录 shell，会 source profile 把 `~/.local/bin` 加回来，
+   于是同一条 `command -v codex` 在手工登录 shell 下答「找得到」、在 systemd 下答
+   「找不到」。LocalWMS #66 那次 canary 是人在登录 shell 里手跑的，
+   **它证明的是「人能跑通」，不是「服务能跑通」**——canary 的执行层与被验证的
+   执行层不是同一层。任何后续 canary 必须在服务实际运行的那一层取证。
+
+   **对本变更的影响：没有，而且强化了它的结论。** 本变更把取值设为 `none`，
+   不断言任何链路可用，所以不受这条影响；反过来，方向 A 与 B 都会把取值设成
+   `codex`，那在 systemd 层仍然是一条假声明——只是失败信息从
+   `claude CLI is not installed` 变成 `codex CLI is not installed`。
+   真正的修法可能是给该 profile 声明 `path_prepend`，而不是换 provider 名字。
+
+   **同一问题对 `localwms` 同样成立**：它自 #164 起声明 `codex` 且未声明
+   `path_prepend`，今天靠 `timer_unit: null` 没有暴露，一旦启用 timer 就会撞上。
+   不在本变更范围，一并回报。
+4. **`analyze-*.sh` 的写路径不经 broker。** `analyze-codex.sh:38` 与
    `analyze-claude.sh:38` 都直接 `git push -u origin "$BRANCH"`，
    `apply-analysis` 也自行写标签与评论。也就是说 provider 一旦启用，该仓上就
    存在一个绕开 broker typed 操作的自动 writer。本变更让这条路径在 NewEMaint
    上保持关闭，但没有改变这个结构事实，它对 `localwms`（已声明 `codex`）同样
    成立。作为衍生发现记录并回报，未立案。
-4. **`contract.py:520` 的 timer 白名单只剩一个条目。** 本变更有意不动它——
+5. **`contract.py:520` 的 timer 白名单只剩一个条目。** 本变更有意不动它——
    条目对应一个真实存在且正在运行的 unit，收紧它需要先真的停用 timer，
    顺序见踩坑 24。将来若按方向 A 或 B 处置，再一并处理。

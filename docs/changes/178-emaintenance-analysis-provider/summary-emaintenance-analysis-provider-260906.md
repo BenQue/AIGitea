@@ -144,6 +144,16 @@ timer 当前确实是 active，`timer_unit` 如实记录了这件事，改它就
   空转。这是预期，不是回归。见 verification 的交接项。
 - **重装漏一台**：踩坑 20 的原样重演。判别方法是重装后 `vm.profile.plan`
   应当**不再返回 `no-op`**；仍是 `no-op` 说明漏装，不是「没有变化」。
+- **换 provider 名字可能并不足以让链路跑通。** LocalWMS #79 会话 2026-09-06
+  在 VM 上实测：`codex` 在 `/home/coder/.local/bin`，而 systemd user manager
+  交给服务的 PATH 不含 `~/.local/bin`（本会话未独立复核，复核需 `orb` + VM
+  `sudo`，绕开 broker）。本会话核实的仓库侧机制链支持这个读数：两个 analyzer
+  的硬闸门同形（`claude-analyzer.sh:12` / `codex-analyzer.sh:12`），
+  `aisoft-agent@.service` 的 `ExecStart=/usr/bin/env …` 不经登录 shell 也不自带
+  PATH，而为此设计的可选键 `path_prepend` 当前零项目声明。**这不影响本变更**
+  （`none` 不断言任何链路可用），但它意味着方向 A 与 B 都会留下一条在 systemd
+  层依然为假的声明。注意 `bash -lc` 会 source profile 把 `~/.local/bin` 加回来，
+  所以登录 shell 下的 canary 证明不了服务能跑通。详见 verification 遗留项 3。
 - **本变更不解决「NewEMaint 要不要自动判级」**，它把这个决定明确留空。
   在有人做出该决定之前，NewEMaint 的 Issue 判级由人或由 Issue 会话完成，
   与今天的实际状态一致（今天那条链从未成功产出过一次）。
