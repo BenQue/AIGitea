@@ -24,9 +24,9 @@ documents:
   verification: verification-company-platform-bootstrap-260906.md
 depends_on:
   - 268
-status: approved
+status: pr-open
 branch: change/270-company-platform-bootstrap
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/273
 created: 2026-09-06
 updated: 2026-09-06
 ---
