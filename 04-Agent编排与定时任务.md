@@ -83,6 +83,20 @@ Wrapper 必须按强制风险规则和显式标签优先级复核结果，再执
 - `assessed_complexity: needs-human-decision`、`contract_effect: unclear`、低置信度冲突或风险边界不明：移除两个 complexity 标签，保持 `awaiting-triage`。
 - Issue 显式要求 `complexity/complex` 时不得降级；显式 `complexity/small` 触发强制复杂规则时必须覆盖为 complex，并在 summary 和 Issue 评论记录 `override_reason`。
 
+每项目的 analyzer 运行时由 `codex/config/host-access-broker.json` 中 `projects[].vm_profile.analysis_provider` 声明
+（#164/#178），安装时渲染为该 VM profile 的 `ANALYSIS_PROVIDER`；`aisoft_host_access/contract.py` 只接受三个取值，
+其它值在 manifest 加载时 fail closed：
+
+| 取值 | 含义 |
+|---|---|
+| `codex` | 该 VM 用 Codex CLI 经 `codex/agent/analyze-codex.sh` 跑 analyzer |
+| `claude` | 该 VM 用 Claude Code CLI 经 `codex/agent/analyze-claude.sh` 跑 analyzer |
+| `none` | 该项目不跑自动 analyzer；判级由 Mac 上的交互式会话（Claude Code 或 Codex）按本节合同完成 |
+
+取值必须是该 VM **服务层**真实可执行的运行时——登录 shell 里能跑不算证据（#164 把 localwms 改为 `codex`、#178 把
+emaintenance 改为 `none`，都是因为 systemd 层的 `claude` 不可达）。同一 profile 的 `implement_provider` 迁移期固定 `none`，
+启用是每项目独立验收门。
+
 ## 5. Loop 启动条件
 
 每次收到启动信号时，controller 都必须从 Issue、有效评论、summary 和当前路由所需文档重新计算合同有效性，不能把现有 `approved` 当作充分证据。启动前必须满足：
