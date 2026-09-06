@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "platform-bootstrap observation v1",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "platform-bootstrap-observation/v1"
+      ]
+    },
+    "request_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "target_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "gitea_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repository_identity_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_sha": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "company_merge_sha": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_layer": {
+      "enum": [
+        "local",
+        "company-live"
+      ]
+    },
+    "result": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED",
+        "NOT RUN"
+      ]
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "identity",
+          "no-op",
+          "negative-permission",
+          "deliberate-failure",
+          "recovery",
+          "required-ci",
+          "human-merge",
+          "provenance"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 8,
+      "uniqueItems": true
+    },
+    "evidence_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "required": [
+    "contract_version",
+    "request_sha256",
+    "target_identity_sha256",
+    "gitea_identity_sha256",
+    "repository_identity_sha256",
+    "source_sha",
+    "company_merge_sha",
+    "evidence_layer",
+    "result",
+    "checks",
+    "evidence_sha256"
+  ],
+  "additionalProperties": false
+}

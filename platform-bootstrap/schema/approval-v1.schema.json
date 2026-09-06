@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "platform-bootstrap approval v1",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "platform-bootstrap-approval/v1"
+      ]
+    },
+    "reference": {
+      "type": "string",
+      "pattern": "^approval/[a-z0-9][a-z0-9-]{1,63}$"
+    },
+    "source_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "host_role": {
+      "enum": [
+        "scm-ci"
+      ]
+    },
+    "components": {
+      "enum": [
+        [
+          "handoff-verifier",
+          "adoption-planner",
+          "action-contracts"
+        ]
+      ]
+    },
+    "rollback": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "uninstalled",
+            "snapshot"
+          ]
+        },
+        "identity_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_sha": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "identity_sha256",
+        "source_sha"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "contract_version",
+    "reference",
+    "source_sha",
+    "host_role",
+    "components",
+    "rollback"
+  ],
+  "additionalProperties": false
+}

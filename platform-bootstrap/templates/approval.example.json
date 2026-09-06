@@ -1,0 +1,16 @@
+{
+  "components": [
+    "handoff-verifier",
+    "adoption-planner",
+    "action-contracts"
+  ],
+  "contract_version": "platform-bootstrap-approval/v1",
+  "host_role": "scm-ci",
+  "reference": "approval/example-source",
+  "rollback": {
+    "identity_sha256": "b185c3563654bfa47948f59b3d4270e72217a09c3bbfef408785ed35ce037633",
+    "kind": "uninstalled",
+    "source_sha": null
+  },
+  "source_sha": "1111111111111111111111111111111111111111"
+}

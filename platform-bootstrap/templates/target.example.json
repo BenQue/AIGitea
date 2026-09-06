@@ -1,0 +1,62 @@
+{
+  "approval_reference": "approval/example-site",
+  "contract_version": "platform-bootstrap-target/v1",
+  "gitea_identity_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "gitea_version": "1.26.4",
+  "repository_identity_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "required_ci": [
+    "CI / test (pull_request)"
+  ],
+  "target_identity_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "site_executor": {
+    "status": "unbound",
+    "binding_requirement": "independent-B1-B2-contract"
+  },
+  "action_inputs": {
+    "gitea-adoption": {
+      "package_set_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "candidate_namespace_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "gitea_version": "1.26.4"
+    },
+    "repo-bootstrap": {
+      "source_refs_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "transport": "approved-git-bundle",
+      "transport_identity_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "staging_ref": "refs/heads/sync/platform-1111111111111111111111111111111111111111"
+    },
+    "protected-main": {
+      "branch": "main",
+      "direct_push_allowlist": [],
+      "force_push_allowlist": [],
+      "human_merge_identity_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "policy_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+    },
+    "required-ci": {
+      "contexts": [
+        "CI / test (pull_request)"
+      ],
+      "branch": "main"
+    },
+    "runner": {
+      "binary_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "configuration_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "registration_approval_reference": "approval/example-registration",
+      "scope": "platform-only",
+      "auto_enable": false
+    },
+    "one-shot-inbound": {
+      "source_refs_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "transport_identity_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "staging_ref": "refs/heads/sync/platform-1111111111111111111111111111111111111111",
+      "timer_enabled": false
+    },
+    "canary": {
+      "local_change_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "company_approval_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "required_contexts": [
+        "CI / test (pull_request)"
+      ],
+      "merge_policy": "manual"
+    }
+  }
+}
