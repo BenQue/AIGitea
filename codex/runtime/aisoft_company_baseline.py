@@ -67,7 +67,7 @@ VALUES = {
     "repository": obj({"exists": YESNO, "identity_sha256": HASH, "head_sha": {"anyOf": [SHA, enum(None)]}}),
     "protection": obj({"direct_push_denied": YESNO, "force_push_denied": YESNO,
                        "human_only_merge": YESNO, "required_ci_count": number(1000)}),
-    "runner_registration": enum("registered", "absent", "unknown"),
+    "runner_registration": enum("registered", "absent"),
     "sync": obj({"timer": SERVICE, "source_sha": {"anyOf": [SHA, enum(None)]},
                  "destination_sha": {"anyOf": [SHA, enum(None)]}}),
     "backup": obj({"available": YESNO, "off_host": YESNO, "set_sha256": {"anyOf": [HASH, enum(None)]}}),

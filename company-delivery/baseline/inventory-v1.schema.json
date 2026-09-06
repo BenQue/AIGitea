@@ -1445,8 +1445,7 @@
                     {
                       "enum": [
                         "registered",
-                        "absent",
-                        "unknown"
+                        "absent"
                       ]
                     },
                     {
@@ -3412,8 +3411,7 @@
                     {
                       "enum": [
                         "registered",
-                        "absent",
-                        "unknown"
+                        "absent"
                       ]
                     },
                     {

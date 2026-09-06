@@ -90,3 +90,7 @@ override_reason: ''
 - 分类投影：`apply-classification-labels.sh --apply 271` 后 `--verify 271` 读回 `projected`，type/platform + complexity/complex；lifecycle=approved。
 - Triage 标签投影 GAP：现有 broker typed operations 只提供 lifecycle/classification/项目扩展标签写入，不提供 triage 维度 projector。当前 live 保留 triage/needs-triage。未使用 direct API、project credential 或 extension operation 绕过；本 Issue 不修改 broker/治理合同。
 - 接管缺口：批准 host pin、公司 current inventory、人工审核记录未取得；B2/B3 不可进入现场 mutation。
+
+## 当前交接状态
+
+`AWAITING_PR_CONFIRMATION`（interactive local candidate），policy=manual。实现与本地验证见映射 verification；公司 current=BLOCKED_EXTERNAL/NOT RUN。最终 PR 尚未提交，不 push/merge/deploy。Triage live projector 的 GAP 独立保留。

@@ -106,6 +106,10 @@ class BaselineTests(unittest.TestCase):
         value["current"]["runner_registration"] = b.observation("runner_registration", "absent", basis="operator-reviewed", evidence="a"*64)
         self.assertEqual(b.assess(value, NOW)["decision"], "adopt-with-remediation")
 
+    def test_unknown_runner_registration_cannot_become_known_gap(self):
+        with self.assertRaises(b.Invalid):
+            b.observation("runner_registration", "unknown", basis="operator-reviewed", evidence="a"*64)
+
     def test_confirmed_absent_repo_and_sync_allow_remediation_without_fake_sha(self):
         value = inventory()
         value["current"]["repository"] = b.observation("repository", {

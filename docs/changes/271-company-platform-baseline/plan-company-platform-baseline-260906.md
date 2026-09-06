@@ -24,9 +24,9 @@ updated: 2026-09-06
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 完整严格 inventory、状态与采用决定闭环，含 fixture/拒绝测试 | - | pending |
-| T02 | 零写入固定探针、stdout envelope/checksum/离线验证及脱敏人工输入 | T01 | pending |
-| T03 | 用户采集包、B2/B3 卡、验证与本地提交、最终 PR 待确认 | T02 | pending |
+| T01 | 完整严格 inventory、状态与采用决定闭环，含 fixture/拒绝测试 | - | complete |
+| T02 | 零写入固定探针、stdout envelope/checksum/离线验证及脱敏人工输入 | T01 | complete |
+| T03 | 用户采集包、B2/B3 卡、验证与本地提交、最终 PR 待确认 | T02 | complete |
 
 `blocked_by` 按表中 Blocked by 执行；所有工作属于 #271，一个最终 PR。已批准合同覆盖本拆分，不再重复启动确认。
 
