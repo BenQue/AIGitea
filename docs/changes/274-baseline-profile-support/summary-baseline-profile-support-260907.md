@@ -24,9 +24,9 @@ documents:
   plan: plan-baseline-profile-support-260907.md
   verification: verification-baseline-profile-support-260907.md
 depends_on: []
-status: approved
+status: pr-open
 branch: change/274-baseline-profile-support
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/277
 created: 2026-09-07
 updated: 2026-09-07
 ---
