@@ -1,5 +1,11 @@
 # 公司平台只读接管基线
 
+## 现场探针兼容与独立诊断（Issue #278）
+
+v2 新 collector 为 `2.0.1`；离线 verifier 同时接受 `2.0.0` 与 `2.0.1`，旧回执须继续使用其原始 source/collector/profile pins。binary probe 接受严格的 `Gitea version` 或 `gitea version` 前缀；`enabled-runtime` 可以记录，但不是持久 enabled，状态保持 GAP。未知状态、异常返回码与畸形版本继续 BLOCKED。v1 collector/schema 字节不变。
+
+独立 `company-platform-baseline-diagnostics/v1` 的 source、closed schema、exact-commit review bundle 和另行授权后的操作接口见 [DIAGNOSTICS.md](DIAGNOSTICS.md)。它只输出 selected systemd 元数据、server binding 布尔比较与 UFW 归一化摘要，不合并回 baseline，不授权现场整改。开发侧 bundle PASS 与公司 installed/live NOT RUN 分开记录。
+
 ## Profile-bound v2（Issue #274）
 
 `company-platform-baseline/v2` 为项目仓提供通用、只读、digest-bound profile 能力；平台仓不保存任何项目的

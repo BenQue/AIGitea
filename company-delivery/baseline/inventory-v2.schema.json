@@ -15,7 +15,8 @@
         },
         "collector_version": {
           "enum": [
-            "2.0.0"
+            "2.0.0",
+            "2.0.1"
           ]
         },
         "contract_version": {
@@ -557,6 +558,7 @@
                         "enabled": {
                           "enum": [
                             "enabled",
+                            "enabled-runtime",
                             "disabled",
                             "static",
                             "masked",
@@ -1089,6 +1091,7 @@
                         "enabled": {
                           "enum": [
                             "enabled",
+                            "enabled-runtime",
                             "disabled",
                             "static",
                             "masked",
@@ -1522,6 +1525,7 @@
                         "enabled": {
                           "enum": [
                             "enabled",
+                            "enabled-runtime",
                             "disabled",
                             "static",
                             "masked",
@@ -1764,6 +1768,7 @@
                             "enabled": {
                               "enum": [
                                 "enabled",
+                                "enabled-runtime",
                                 "disabled",
                                 "static",
                                 "masked",
@@ -2525,6 +2530,7 @@
                         "enabled": {
                           "enum": [
                             "enabled",
+                            "enabled-runtime",
                             "disabled",
                             "static",
                             "masked",
@@ -3057,6 +3063,7 @@
                         "enabled": {
                           "enum": [
                             "enabled",
+                            "enabled-runtime",
                             "disabled",
                             "static",
                             "masked",
@@ -3490,6 +3497,7 @@
                         "enabled": {
                           "enum": [
                             "enabled",
+                            "enabled-runtime",
                             "disabled",
                             "static",
                             "masked",
@@ -3732,6 +3740,7 @@
                             "enabled": {
                               "enum": [
                                 "enabled",
+                                "enabled-runtime",
                                 "disabled",
                                 "static",
                                 "masked",
