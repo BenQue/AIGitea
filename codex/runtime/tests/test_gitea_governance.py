@@ -186,7 +186,7 @@ class ContractTests(unittest.TestCase):
         return Path(handle.name)
 
     def test_manifest_is_exact_and_private_by_default(self):
-        self.assertEqual(len(self.contract.repositories), 5)
+        self.assertEqual(len(self.contract.repositories), 6)
         self.assertEqual(
             self.contract.raw["repository_policy"]["public_allowlist"],
             ["admin/aisoft-platform", "admin/myapp", "admin/smoke-test"],
@@ -197,7 +197,7 @@ class ContractTests(unittest.TestCase):
             if repository.private
         }
         self.assertEqual(private, {
-            "LocalWMS", "NewEMaint",
+            "LocalWMS", "NewEMaint", "SFMDigitalBoard",
         })
 
     def test_newemaint_is_the_only_pilot_and_other_repositories_match_pinned_bytes(self):

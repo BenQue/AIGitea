@@ -145,13 +145,26 @@
         "routine_source_merged_sha": "8d109b14b6e0936be30f6f287ff6050e48632e0b",
         "governance_baseline_issue": 35,
         "governance_baseline_merged_sha": "69251fd4d07665385eb6d9142038848c2b9392d7",
-        "non_target_repositories_sha256": "d64ccb588cecb6219b7d1b8c43caa13857ce4aaee42063045c53e052c69426c2",
+        "non_target_repositories_sha256": "4969422f72782de90155881cc4a92720dfd1ee5f468e940bd30ac7a666b0df85",
         "canary_issue": 74,
         "required_context": "CI / verify (pull_request)",
         "bootstrap_max": 1,
         "apply_max": 1,
         "canary_merge_post_max": 1
       },
+      "status_check_contexts": [
+        "CI / verify (pull_request)"
+      ],
+      "required_approvals": 0
+    },
+    {
+      "name": "SFMDigitalBoard",
+      "classification": "internal-application",
+      "change_control": "development",
+      "visibility": "private",
+      "project_agent": "sfm-board-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": null,
       "status_check_contexts": [
         "CI / verify (pull_request)"
       ],

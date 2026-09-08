@@ -12,7 +12,7 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_host_access.cli \
 jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
-  .project_count == 5 and
+  .project_count == 6 and
   .operation_count == 36 and
   .merge_operation_count == 1
 ' "$TMP/validate.json" >/dev/null
@@ -77,10 +77,10 @@ jq -e '
   ([.operations[] | select(.name == "gitea.issue.labels.read")][0].mutating == false) and
   ([.operations[].name] | any(test("^gitea\\.labels\\.")) ) and
   ([.operations[].name] | any(contains("delete")) | not) and
-  ([.projects[] | select(.project_id == "newemaint")][0].git_remote_name == "gitea") and
-  ([.projects[]
-    | select(.project_id != "newemaint")
-    | has("git_remote_name")] | all(. == false)) and
+  (([.projects[] | select(has("git_remote_name")) | .project_id] | sort) ==
+    ["newemaint", "sfm-digital-board"]) and
+  ([.projects[] | select(has("git_remote_name")) | .git_remote_name]
+    | all(. == "gitea")) and
   ([.projects[] | select(.vm_profile != null) | .repository] | sort) ==
     ["LocalWMS", "NewEMaint", "aisoft-platform"]
 ' "$ROOT/codex/config/host-access-broker.json" >/dev/null

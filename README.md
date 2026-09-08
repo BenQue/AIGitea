@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.6（routine PR source contract）｜ 更新：2026-09-06 ｜ 状态：**#252 后治理集合只保留 LocalWMS 与 NewEMaint；09-05 合并批次（#222/#223/#225/#228/#243/#250/#254）扩展 broker typed 操作、CI 停滞判定、项目 CI 参考模板、Issue 入口标签与 8 个 installer 共用 source guard；#208 routine small 受控合并 source 合同不变，#208、全部 complex/major/阶段完结与强制风险变更仍须人工合并，installed/live 启用仍须单独验收**
+> 版本：v3.6（routine PR source contract）｜ 更新：2026-09-07 ｜ 状态：**#252 后治理集合保留 LocalWMS 与 NewEMaint，#275 起 SFMDigitalBoard 重新接入（A- 轻接入，`vm_profile: null`）；09-05 合并批次（#222/#223/#225/#228/#243/#250/#254）扩展 broker typed 操作、CI 停滞判定、项目 CI 参考模板、Issue 入口标签与 8 个 installer 共用 source guard；#208 routine small 受控合并 source 合同不变，#208、全部 complex/major/阶段完结与强制风险变更仍须人工合并，installed/live 启用仍须单独验收**
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到最终 PR；人确认提交，manual 变更由人合并，显式 opt-in 的 routine small 只有在最终 head 全硬门通过后才可由独立 merger 合并；部署始终独立授权。**
 
@@ -17,7 +17,7 @@
 - 🟡 Matt 开发编排层：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在当前 exact change branch 本地提交，Controller 在提交确认后才能 push/建 PR/读取 CI；manual 路径仍只由人合并
 - 🟡 Host access broker：既有 strict typed Issue/PR/Git surface 保持；Issue #208 只允许新增 `gitea.pull.merge.routine(number, sha)`，并要求 broker 在唯一 merge POST 前 fresh 重跑合同、唯一 PR、head、protection、required CI、reviews、dependencies 与 final diff 硬门。Gitea 1.26.4 无 merge-only ACL，ordinary Git 隔离依赖 broker-exclusive credential custody 与 zero fallback；routine identity 不进入 main push/force allowlist。source 合并不等于安装、provision 或 live 启用；未获独立 live apply 授权前，现有 merge allowlist、credential 与 installed bytes 均不改变
 - 🟡 Host access broker 扩面（09-05 批次）：#222 新增 `gitea.issue.list`（分页取全、排除 PR、不带正文）与 `gitea.issue.state.set`；#225 actions 日志读投影保留头尾两端、零值时间戳（unix epoch 与 `0001-01-01`）投影为 `null`；#228 新增 `orbstack.runner.status` 只读停滞探针与 per-job 超时取值，判定与处置顺序见 [06](06-运维手册与踩坑集.md) §1.0.1/§1.0.2。typed 操作进入 source 不等于生效，仍需两台重装
-- ✅ 平台治理集合：#252 起五个项目统一退出，`gitea-governance.json`/`host-access-broker.json` 只保留 LocalWMS 与 NewEMaint（仓库、历史、Issue、PR 与分支保护全程不动，退出不是删除）；#243 起 `gitea.issue.create` 立案即带入口标签（`needs-analysis` 或 `triage/needs-triage`），调度会话按 `issue-session-flow` 清扫开放 Issue
+- ✅ 平台治理集合：#252 起五个项目统一退出，`gitea-governance.json`/`host-access-broker.json` 保留 LocalWMS 与 NewEMaint（仓库、历史、Issue、PR 与分支保护全程不动，退出不是删除）；**#275 起 SFMDigitalBoard 单独重新接入**（`vm_profile: null` 的 A- 轻接入，不放宽 `contract.py` 被 #252 收紧的 VM profile 集合与 timer 白名单；其余四个保持退出）；#243 起 `gitea.issue.create` 立案即带入口标签（`needs-analysis` 或 `triage/needs-triage`），调度会话按 `issue-session-flow` 清扫开放 Issue
 - ✅ 安装面：#162/#171 把 installer 的 source provenance 与 staleness 闸门抽成 `codex/lib/install-source-guard.sh`，#182/#250/#254 补齐 `docker-release/`、`sync/`、`skill-for-claude/` 后 8 个 installer 全部经该闸门；Claude 侧 skills 由 `skill-for-claude/install.sh` 安装、`skill-for-claude/check-drift.sh` 核对（见 §5「技能安装与漂移核对」）
 - 🟡 项目 CI 参考：#223 提供 `templates/project/ci/`（CI workflow、merge-preview 合并预览、registry-preflight 真实取包断言）与 `aisoft-project-check.sh` 的 `ci-merge-preview`/`ci-outdated-branch`/`ci-registry-preflight` 只读回读；采纳由各项目仓自行接入并验收，本仓库不代表任何项目已采纳
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿

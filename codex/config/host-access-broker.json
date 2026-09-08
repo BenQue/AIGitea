@@ -382,6 +382,15 @@
       }
     },
     {
+      "project_id": "sfm-digital-board",
+      "repository": "SFMDigitalBoard",
+      "project_agent": "sfm-board-agent",
+      "routine_merge_agent": null,
+      "git_remote_name": "gitea",
+      "mac_checkout": "/Users/benque/Projects/SFMDigitalBoard",
+      "vm_profile": null
+    },
+    {
       "project_id": "smoke-test",
       "repository": "smoke-test",
       "project_agent": "smoke-test-agent",

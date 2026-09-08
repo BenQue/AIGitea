@@ -83,7 +83,7 @@ class HostAccessContractTests(unittest.TestCase):
         self.contract = load_access_contract(ACCESS, GOVERNANCE)
 
     def test_exact_projects_profiles_and_no_merge_surface(self) -> None:
-        self.assertEqual(len(self.contract.projects), 5)
+        self.assertEqual(len(self.contract.projects), 6)
         profiles = {
             item.repository: item.vm_profile.name
             for item in self.contract.projects
@@ -104,7 +104,7 @@ class HostAccessContractTests(unittest.TestCase):
             self.contract.operation("git.push.main")
 
     def test_manifest_fixed_remote_defaults_and_rejects_unsafe_names(self) -> None:
-        gitea_remote_projects = {"newemaint"}
+        gitea_remote_projects = {"newemaint", "sfm-digital-board"}
         remotes = {project.project_id: project.git_remote_name
                    for project in self.contract.projects}
         for project_id in gitea_remote_projects:
