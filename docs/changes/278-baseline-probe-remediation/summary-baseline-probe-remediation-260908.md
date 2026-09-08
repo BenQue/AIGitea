@@ -25,9 +25,9 @@ documents:
   plan: plan-baseline-probe-remediation-260908.md
   verification: verification-baseline-probe-remediation-260908.md
 depends_on: []
-status: approved
+status: pr-open
 branch: change/278-baseline-probe-remediation
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/279
 created: 2026-09-08
 updated: 2026-09-08
 ---
