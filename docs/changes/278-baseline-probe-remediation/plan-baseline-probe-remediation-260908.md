@@ -28,7 +28,7 @@ updated: 2026-09-08
 | T01 | v2 2.0.1 兼容层：小写 Gitea version、`enabled-runtime` GAP、2.0.0 verifier compatibility 与 published schema | - | completed |
 | T02 | diagnostics/v1 collector、closed schema 与安全负向测试 | T01 | completed |
 | T03 | exact-commit review bundle builder、操作说明、manifest/digest/profile drift tests | T02 | completed |
-| T04 | targeted/full regression、NewEMaint profile 的本地 review bundle、verification 与最终 source candidate | T03 | pending |
+| T04 | targeted/full regression、NewEMaint profile 的本地 review bundle、verification 与最终 source candidate | T03 | completed |
 
 所有 ticket 属于 #278，不创建子 Issue。每个 ticket 的中间提交必须保持 v1 exact bytes 与已完成的 earlier tests 绿色。
 
