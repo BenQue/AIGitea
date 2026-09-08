@@ -1,4 +1,72 @@
-# 公司平台只读接管基线（Issue #271）
+# 公司平台只读接管基线
+
+## Profile-bound v2（Issue #274）
+
+`company-platform-baseline/v2` 为项目仓提供通用、只读、digest-bound profile 能力；平台仓不保存任何项目的
+IP、仓库、数据库实例或部署参数。具体项目在自己的 Issue/spec/plan/PR 中创建 profile、固定 source provenance
+并记录 installed/live evidence。v2 不修改或升级下方 Issue #271 的 v1 回执。
+
+v2 交付文件：
+
+- `codex/runtime/aisoft_company_baseline_v2.py`：单文件 Python 3.10+ collector/verifier；
+- `company-delivery/baseline/profile-v1.schema.json`：项目 profile closed schema；
+- `company-delivery/baseline/inventory-v2.schema.json`：stdout envelope schema。
+
+项目交付包必须把 collector 与项目生成的 canonical `baseline-profile.json` 放在同一 mode `0700` 目录；profile
+本身建议 mode `0600`，不得为 symlink 或 group/other writable。profile 只包含非 Secret 的固定 unit、binary、版本、
+私网/loopback IPv4、端口与 storage identity；不接受 URL、hostname、public/link-local/multicast/wildcard 地址、任意命令、
+任意路径、未知字段或 PostgreSQL cluster/unit/storage 关系漂移。profile 文件必须等于 canonical JSON 加一个 LF，
+否则 `identity` 在任何探针前 fail closed。
+
+第一段只输出 host、collector、profile 三个 SHA-256：
+
+```bash
+python3 -I -S -B /APPROVED-BUNDLE/aisoft_company_baseline_v2.py identity
+```
+
+交接者从审阅过的同一 exact source 独立固定三个摘要、source commit 与新 evidence UUID 后，操作员运行：
+
+```bash
+python3 -I -S -B /APPROVED-BUNDLE/aisoft_company_baseline_v2.py collect \
+  --environment company-scm-ci \
+  --host-role scm-ci \
+  --host-sha256 HOST_PIN_64_HEX \
+  --source-sha SOURCE_COMMIT_40_HEX \
+  --collector-sha256 COLLECTOR_DIGEST_64_HEX \
+  --profile-sha256 PROFILE_DIGEST_64_HEX \
+  --evidence-id APPROVED_V4_UUID
+```
+
+v2 只执行 profile 经严格校验后推导出的三个 systemd unit 状态、两个固定 binary `--version`、两个 exact port
+的 `ss -ltn`、两个固定 Gitea path GET、两个 metadata-only storage probe 与 UFW summary。Gitea listener 必须恰好
+绑定 profile IP，wildcard 或额外地址为 mismatch；PostgreSQL 必须只绑定 profile 的 loopback IP。外部 Gitea listener
+能否采用仍由项目的 operator-reviewed UFW evidence 独立裁决。collector 不读取 profile 以外的配置、environment、
+journal、credential、目录内容或 SQL，不使用 shell/sudo，不写现场文件，也不授予 mutation。
+
+开发侧使用交接卡中的预期 pin 离线验证，不从 envelope 自动提取期望值：
+
+```bash
+python3 -I -S -B codex/runtime/aisoft_company_baseline_v2.py verify \
+  --environment company-scm-ci \
+  --host-role scm-ci \
+  --host-sha256 HOST_PIN_64_HEX \
+  --source-sha SOURCE_COMMIT_40_HEX \
+  --collector-sha256 COLLECTOR_DIGEST_64_HEX \
+  --profile-sha256 PROFILE_DIGEST_64_HEX \
+  --evidence-id APPROVED_V4_UUID < /LOCAL-EVIDENCE/envelope.json
+```
+
+`supplement` 的 current/historical、24 小时 freshness、人工 facts、backup/restore set 与决定语义沿用 v1；record
+必须增加相同 `profile_sha256`，且不能覆写 host probe。v2 inventory 嵌入 profile 对象，离线 verifier 会重算其
+canonical digest。profile 合法、回执结构有效或 source tests 通过，都不等于该项目 installed/live 已验收。
+
+本地回归：
+
+```bash
+PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_company_baseline codex.runtime.tests.test_company_baseline_v2
+```
+
+## 固定 v1（Issue #271，历史兼容）
 
 这是独立的 `company-platform-baseline/v1` 采集与审核入口，collector 版本 `1.0.0`。
 它不安装组件、不创建 evidence 目录、不启动服务、不生成现场写入授权。
