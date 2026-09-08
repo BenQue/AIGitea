@@ -160,6 +160,41 @@ class FakeHost:
 
 
 class BaselineV2Tests(unittest.TestCase):
+    def test_both_collector_versions_verify_with_original_pins(self):
+        for version in ("2.0.0", "2.0.1"):
+            value = inventory()
+            value["collector_version"] = version
+            value["collector_sha256"] = "a" * 64
+            pins = binding()
+            pins["collector_sha256"] = "a" * 64
+            self.assertEqual(b.verify(b.seal(value, NOW), pins, NOW)["validation"], "PASS")
+        self.assertEqual(FakeHost().collect()["inventory"]["collector_version"], "2.0.1")
+
+    def test_strict_gitea_prefix_and_version(self):
+        for output, status in (("gitea version 1.26.4 built with go1.26", "PASS"),
+                               ("Gitea version 1.26.4", "PASS"),
+                               ("GITEA version 1.26.4", "BLOCKED"),
+                               ("gitea version 1.26.4\nSECRET_SENTINEL", "BLOCKED"),
+                               ("gitea version 1.26.4.1", "BLOCKED"),
+                               ("gitea version 1000.26.4", "BLOCKED"),
+                               ("gitea version x.26.4", "BLOCKED")):
+            fake = FakeHost()
+            original = fake.invoke
+            fake.invoke = lambda argv: (0, output) if argv[0].endswith("/gitea") else original(argv)
+            with self.subTest(output=output):
+                self.assertEqual(fake.collect()["inventory"]["current"]["gitea_binary"]["status"], status)
+
+    def test_runtime_enablement_is_gap_and_bad_status_blocks(self):
+        for rc, value, status in ((0, "enabled-runtime", "GAP"), (0, "unknown", "BLOCKED"),
+                                  (3, "enabled-runtime", "BLOCKED"), (9, "enabled", "BLOCKED")):
+            fake = FakeHost()
+            original = fake.invoke
+            fake.invoke = lambda argv: (rc, value) if argv[1] == "is-enabled" else original(argv)
+            current = fake.collect()["inventory"]["current"]["postgresql_service"]
+            self.assertEqual(current["status"], status)
+            if status == "GAP":
+                self.assertEqual(current["value"]["enabled"], "enabled-runtime")
+
     def test_v1_collector_is_byte_compatible(self):
         self.assertEqual(hashlib.sha256(V1_SCRIPT.read_bytes()).hexdigest(),
                          "3561d2f1fc607cdee1ba4688489645db1b2142cf57cc4d99433c35b1f33a7a88")

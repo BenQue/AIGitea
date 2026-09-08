@@ -20,7 +20,7 @@ import sys
 import time
 
 
-VERSION = "2.0.0"
+VERSION = "2.0.1"
 CONTRACT = "company-platform-baseline/v2"
 PROFILE_CONTRACT = "company-platform-baseline-profile/v1"
 PROFILE_FILENAME = "baseline-profile.json"
@@ -51,7 +51,7 @@ def number(maximum=2**63 - 1, minimum=0):
     return {"type": "integer", "minimum": minimum, "maximum": maximum}
 
 
-SERVICE = obj({"enabled": enum("enabled", "disabled", "static", "masked", "not-found"),
+SERVICE = obj({"enabled": enum("enabled", "enabled-runtime", "disabled", "static", "masked", "not-found"),
                "active": enum("active", "inactive", "failed", "not-found")})
 STORAGE = obj({"kind": enum("directory", "other", "symlink", "absent"),
                "uid": number(2**32 - 1), "gid": number(2**32 - 1),
@@ -131,7 +131,7 @@ def binding_schema():
 
 
 def schema():
-    inventory = obj({"contract_version": enum(CONTRACT), "collector_version": enum(VERSION),
+    inventory = obj({"contract_version": enum(CONTRACT), "collector_version": enum("2.0.0", VERSION),
                      **binding_schema(), "profile": profile_schema(), "collected_at": TIME,
                      "current": obj({key: observation_schema(key) for key in VALUES}),
                      "historical": obj({key: observation_schema(key) for key in VALUES}, optional=VALUES)})
@@ -474,8 +474,14 @@ def collect(binding, *, profile=None, invoke=run, http=get, storage=metadata, no
             inventory["current"][key] = observation(key, profile, blocked=True)
 
     def service(unit):
-        return {"enabled": invoke(["/usr/bin/systemctl", "is-enabled", unit])[1],
-                "active": invoke(["/usr/bin/systemctl", "is-active", unit])[1]}
+        result = {}
+        for key, command, success in (("enabled", "is-enabled", {"enabled", "enabled-runtime", "static"}),
+                                      ("active", "is-active", {"active"})):
+            rc, text = invoke(["/usr/bin/systemctl", command, unit])
+            if rc not in {0, 1, 3, 4} or (text in success) != (rc == 0):
+                raise Invalid("PROBE_UNAVAILABLE")
+            result[key] = text
+        return result
 
     def binary(command, pattern):
         rc, text = invoke([command, "--version"])
@@ -534,7 +540,7 @@ def collect(binding, *, profile=None, invoke=run, http=get, storage=metadata, no
                       ("runner_service", "act_runner.service")):
         probe(key, lambda unit=unit: service(unit))
     for key, command, pattern in (
-            ("gitea_binary", gitea["binary"], r"Gitea version ([0-9.]+)(?: built with [^\r\n]+)?"),
+            ("gitea_binary", gitea["binary"], r"[Gg]itea version ([0-9.]+)(?: built with [^\r\n]+)?"),
             ("postgresql_binary", postgresql["binary"], r"postgres \(PostgreSQL\) ([0-9.]+)(?: \([^\r\n]+\))?")):
         probe(key, lambda command=command, pattern=pattern: binary(command, pattern))
     for key, component in (("gitea_listener", gitea), ("postgresql_listener", postgresql)):
