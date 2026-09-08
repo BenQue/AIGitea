@@ -239,6 +239,160 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertEqual(verified.stderr, b"")
         self.assertFalse(json.loads(verified.stdout)["mutation_authorized"])
 
+    def test_subprocess_timeout_kills_child_and_drops_stderr(self):
+        from unittest.mock import MagicMock
+        process = MagicMock()
+        process.poll.return_value = None
+        process.stdout.fileno.return_value = 17
+        popen = MagicMock()
+        popen.__enter__.return_value = process
+        selector = MagicMock()
+        selector.__enter__.return_value = selector
+        selector.select.return_value = []
+        with patch.object(d.subprocess, "Popen", return_value=popen) as factory, \
+                patch.object(d.selectors, "DefaultSelector", return_value=selector), \
+                patch.object(d.time, "monotonic", return_value=100):
+            with self.assertRaisesRegex(d.Invalid, "PROBE_UNAVAILABLE"):
+                d.run(d.UFW_COMMAND)
+        selector.select.assert_called_once_with(4)
+        process.kill.assert_called_once()
+        process.wait.assert_called_once()
+        self.assertEqual(factory.call_args.kwargs["stderr"], subprocess.DEVNULL)
+
+
+class BundleTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.repo = self.root / "platform"
+        self.repo.mkdir()
+        self.builder_path = ROOT / "company-delivery/baseline/prepare-diagnostics-bundle.py"
+        spec = importlib.util.spec_from_file_location("bundle278", self.builder_path)
+        self.b = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.b)
+        for path in (*self.b.SOURCE_FILES.values(), self.b.BUILDER):
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / path, target)
+        self.git("init", "-q")
+        self.git("config", "user.name", "Fixture")
+        self.git("config", "user.email", "fixture@example.invalid")
+        self.git("remote", "add", "origin", self.b.EXPECTED_REMOTE)
+        self.commit()
+        self.selected = self.root / "baseline-profile.json"
+        self.selected.write_bytes(d.profile_bytes(profile()))
+        self.selected.chmod(0o600)
+        self.pin = d.profile_digest(profile())
+        self.output = self.root / "bundle"
+
+    def git(self, *args):
+        return subprocess.run(["git", "-C", str(self.repo), *args], check=True, capture_output=True).stdout.decode().strip()
+
+    def commit(self):
+        self.git("add", ".")
+        self.git("commit", "-qm", "fixture")
+        self.source = self.git("rev-parse", "HEAD")
+
+    def files(self):
+        return self.b.materialize(self.repo, self.source, self.selected, self.pin)
+
+    def test_exact_commit_not_dirty_files_and_modes_hash_readback(self):
+        files = self.files()
+        (self.repo / self.b.COLLECTOR).write_text(SENTINEL)
+        (self.repo / "company-delivery/baseline/DIAGNOSTICS.md").write_text(SENTINEL)
+        self.assertEqual(files, self.files())
+        self.assertEqual(self.b.build(self.output, files)["status"], "PASS")
+        manifest = json.loads((self.output / "manifest.json").read_bytes())
+        self.assertEqual(manifest["source_sha"], self.source)
+        self.assertEqual(manifest["profile_sha256"], self.pin)
+        self.assertEqual(self.output.stat().st_mode & 0o777, 0o700)
+        for name, entry in manifest["files"].items():
+            self.assertEqual((self.output / name).stat().st_mode & 0o777, 0o600)
+            self.assertEqual(entry["sha256"], self.b.sha256((self.output / name).read_bytes()))
+        self.assertNotIn(SENTINEL, json.dumps(manifest))
+        self.assertEqual(self.b.verify_bundle(self.output, files)["files"], 6)
+        with self.assertRaises(FileExistsError):
+            self.b.build(self.output, files)
+
+    def test_source_commit_repository_object_and_schema_drift(self):
+        for source in ("HEAD", "a" * 40):
+            with self.assertRaises(self.b.Invalid):
+                self.b.materialize(self.repo, source, self.selected, self.pin)
+        self.git("remote", "set-url", "origin", "https://example.invalid/wrong.git")
+        with self.assertRaisesRegex(self.b.Invalid, "REPOSITORY_MISMATCH"):
+            self.files()
+        self.git("remote", "set-url", "origin", self.b.EXPECTED_REMOTE)
+        original = self.b.git
+        def corrupt(repo, *args):
+            return b"tamper" if args[0] == "cat-file" else original(repo, *args)
+        with patch.object(self.b, "git", side_effect=corrupt), self.assertRaisesRegex(self.b.Invalid, "OBJECT_HASH_MISMATCH"):
+            self.files()
+        schema = self.repo / "company-delivery/baseline/diagnostics-v1.schema.json"
+        schema.write_text("{}")
+        self.commit()
+        with self.assertRaisesRegex(self.b.Invalid, "SCHEMA_SOURCE_DRIFT"):
+            self.files()
+        (self.repo / self.b.COLLECTOR).write_text(SENTINEL)
+        self.commit()
+        with self.assertRaisesRegex(self.b.Invalid, "COLLECTOR_SOURCE_DRIFT"):
+            self.files()
+
+    def test_profile_noncanonical_unsafe_and_digest_drift(self):
+        with self.assertRaisesRegex(self.b.Invalid, "PROFILE_DIGEST_MISMATCH"):
+            self.b.materialize(self.repo, self.source, self.selected, "0" * 64)
+        self.selected.write_text(json.dumps(profile(), indent=2))
+        with self.assertRaises(ValueError):
+            self.files()
+        self.selected.write_bytes(d.profile_bytes(profile()))
+        self.selected.chmod(0o666)
+        with self.assertRaises(ValueError):
+            self.files()
+
+    def test_verify_rejects_file_set_content_manifest_modes_and_symlinks(self):
+        files = self.files()
+        self.b.build(self.output, files)
+        for name in files:
+            target = self.output / name
+            target.write_bytes(b"tampered")
+            with self.assertRaises(self.b.Invalid):
+                self.b.verify_bundle(self.output, files)
+            target.write_bytes(files[name])
+        target = self.output / "manifest.json"
+        target.chmod(0o644)
+        with self.assertRaises(self.b.Invalid):
+            self.b.verify_bundle(self.output, files)
+        target.chmod(0o600)
+        extra = self.output / "extra"
+        extra.touch()
+        with self.assertRaises(self.b.Invalid):
+            self.b.verify_bundle(self.output, files)
+        extra.unlink()
+        target.unlink()
+        target.symlink_to(self.selected)
+        with self.assertRaises(OSError):
+            self.b.verify_bundle(self.output, files)
+        alias = self.root / "alias"
+        alias.symlink_to(self.output)
+        with self.assertRaises(self.b.Invalid):
+            self.b.verify_bundle(alias, files)
+
+    def test_builder_cli_rejects_without_echoing_input(self):
+        common = ["--repo", str(self.repo), "--source-sha", self.source, "--profile", str(self.selected),
+                  "--profile-sha256", self.pin, "--output", str(self.output)]
+        def cli(command, args):
+            return subprocess.run([sys.executable, "-I", "-S", "-B", str(self.builder_path), command, *args], capture_output=True)
+        result = cli("build", common)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        result = cli("verify", common)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        result = cli("build", common)
+        self.assertEqual(json.loads(result.stdout)["code"], "OUTPUT_EXISTS")
+        result = cli("build", ["--secret", SENTINEL])
+        self.assertEqual(result.returncode, 20)
+        self.assertEqual(result.stderr, b"")
+        self.assertNotIn(SENTINEL.encode(), result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
