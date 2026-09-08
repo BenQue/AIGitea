@@ -26,7 +26,7 @@ updated: 2026-09-08
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | v2 2.0.1 兼容层：小写 Gitea version、`enabled-runtime` GAP、2.0.0 verifier compatibility 与 published schema | - | completed |
-| T02 | diagnostics/v1 collector、closed schema 与安全负向测试 | T01 | pending |
+| T02 | diagnostics/v1 collector、closed schema 与安全负向测试 | T01 | completed |
 | T03 | exact-commit review bundle builder、操作说明、manifest/digest/profile drift tests | T02 | pending |
 | T04 | targeted/full regression、NewEMaint profile 的本地 review bundle、verification 与最终 source candidate | T03 | pending |
 
