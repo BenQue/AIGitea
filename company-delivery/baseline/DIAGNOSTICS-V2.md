@@ -6,8 +6,18 @@
 ## 版本与失败原因
 
 入口为 aisoft_company_baseline_diagnostics_v2.py，contract 为
-company-platform-baseline-diagnostics/v2，collector 2.0.0。v1 入口、schema、builder 和 guide
+company-platform-baseline-diagnostics/v2，collector 2.0.1。v1 入口、schema、builder 和 guide
 保持原字节；按交接卡显式选择版本，不转换旧 envelope，不改写旧 checksum。
+
+2.0.1 支持 UFW 的 New profiles 四种明确枚举 skip/allow/deny/reject，以及上游
+%-26s 定宽目标列达到26字符后的单空格分隔格式；其它未知行仍 parse-failed。
+依据：[UFW 0.36.2 源码](https://sources.debian.org/src/ufw/0.36.2-9/src/backend_iptables.py/)。
+此兼容修复不证明某份现场失败必由上述格式触发。
+
+v2 schema/verifier 接受 2.0.0 和 2.0.1，继续逐项校验调用方批准的原始 pins、checksum、
+freshness 与 receipt。旧 BLOCKED 不重新解释成 PASS；过期证据也不会被放行。
+历史2.0.0包和固定source保持不变，可用原包校验历史证据；新包须用新目录及新交接卡，
+禁止覆盖旧包或拿新 collector hash 替换旧 evidence pin。新采集只输出2.0.1。
 
 协议只比较固定配置文件中的显式字段：protocol_state 为 missing/http/other。
 注释或缺失为 missing；其它显式值为 other；仅 http 字面值为 http。missing/other 是 GAP，

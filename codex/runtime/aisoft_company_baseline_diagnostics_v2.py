@@ -16,7 +16,7 @@ import subprocess
 import sys
 import time
 
-VERSION = "2.0.0"
+VERSION = "2.0.1"
 CONTRACT = "company-platform-baseline-diagnostics/v2"
 PROFILE_CONTRACT = "company-platform-baseline-profile/v1"
 PROFILE_FILENAME = "baseline-profile.json"
@@ -306,7 +306,7 @@ def check_binding(binding):
 
 
 def schema():
-    diagnostic = obj({"contract_version": enum(CONTRACT), "collector_version": enum(VERSION),
+    diagnostic = obj({"contract_version": enum(CONTRACT), "collector_version": enum("2.0.0", VERSION),
                       **binding_schema(), "collected_at": TIME,
                       "observations": obj({key: obj({
                           "status": enum("PASS", "GAP", "BLOCKED"),
@@ -453,13 +453,15 @@ def ufw(text):
             if not match:
                 raise Invalid("PROBE_UNAVAILABLE")
             default = match[1]
-        elif line == "New profiles: skip" and not profiles and not header:
+        elif re.fullmatch(r"New profiles: (?:skip|allow|deny|reject)", line) and not profiles and not header:
             profiles = True
         elif re.fullmatch(r"To\s+Action\s+From", line) and not header:
             header = True
         elif header and not separator and re.fullmatch(r"-+\s+-+\s+-+", line):
             separator = True
-        elif separator and re.fullmatch(r"[^\r\n]+?\s{2,}(?:ALLOW|DENY|REJECT|LIMIT)(?: IN| OUT| FWD)?\s{2,}[^\r\n]+", line):
+        # UFW's %-26s target formatter leaves just one space for long targets.
+        # Keep the existing grammar; add only that width-bounded alternative.
+        elif separator and re.fullmatch(r"(?:\S[^\r\n]*?\s{2,}|\S[^\r\n]{24,}\S )(?:ALLOW|DENY|REJECT|LIMIT)(?: IN| OUT| FWD)?\s{2,}\S[^\r\n]*", line):
             count += 1
         else:
             raise Invalid("PROBE_UNAVAILABLE")

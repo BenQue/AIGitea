@@ -180,6 +180,50 @@ class DiagnosticsTests(unittest.TestCase):
                 d.ufw(raw)
         self.assertEqual(d.ufw(UFW.replace("deny (incoming)", "allow (incoming)"))["default_deny_incoming"], "no")
 
+    def test_ufw_upstream_policy_and_width_formats(self):
+        # Synthetic UFW 0.36.2 backend_iptables.py formatter, not host output.
+        prefix = UFW.split("To ", 1)[0]
+        table = "%-26s %-12s%s\n" % ("To", "Action", "From")
+        table += "%-26s %-12s%s\n" % ("--", "------", "----")
+        for policy in ("skip", "allow", "deny", "reject"):
+            for width in (25, 26, 27):
+                target = "2001:db8:1234:5678::1 " + "1" * (width - 22)
+                self.assertEqual(len(target), width)
+                for action in ("ALLOW IN", "DENY OUT", "REJECT FWD", "LIMIT IN"):
+                    raw = prefix.replace("profiles: skip", "profiles: " + policy) + table
+                    raw += "%-26s %-12s%-26s%s%s\n" % (target, action, "192.0.2.0/24", "", "")
+                    with self.subTest(policy=policy, width=width, action=action):
+                        self.assertEqual(d.ufw(raw), {"active": "yes", "default_deny_incoming": "yes", "rule_count": 1})
+                        result = collect(invoke=lambda argv: (0, SYSTEMD if argv == d.SYSTEMD_COMMAND else raw))
+                        self.assertEqual(result["receipt"]["status"], "PASS")
+                        self.assertNotIn("2001:db8", json.dumps(result))
+                        self.assertNotIn("192.0.2", json.dumps(result))
+        for policy in ("unknown", "ALLOW", "allow extra", "", "skip\nNew profiles: allow"):
+            with self.assertRaises(d.Invalid):
+                d.ufw(UFW.replace("profiles: skip", "profiles: " + policy))
+        for row in ("8888/tcp ALLOW IN    Anywhere", "x" * 26 + " UNKNOWN    Anywhere",
+                    "x" * 26 + " ALLOW IN Anywhere", "x" * 26 + "ALLOW IN    Anywhere",
+                    "x" * 26 + " ALLOW IN    ", SENTINEL):
+            with self.subTest(row=row), self.assertRaises(d.Invalid):
+                d.ufw(prefix + table + row)
+
+    def test_patch_version_compatibility_keeps_historical_blocked(self):
+        result = collect(invoke=lambda argv: (0, SYSTEMD if argv == d.SYSTEMD_COMMAND else SENTINEL))
+        self.assertEqual(result["diagnostic"]["collector_version"], "2.0.1")
+        old = copy.deepcopy(result["diagnostic"])
+        old["collector_version"] = "2.0.0"
+        old["collector_sha256"] = "a3e7487e017479d4438e720b517cf369661ae3591336fa39ff55c4d53f66714c"
+        pins = binding()
+        pins["collector_sha256"] = old["collector_sha256"]
+        sealed = d.seal(old, NOW)
+        self.assertEqual(d.verify(sealed, pins, NOW)["status"], "BLOCKED_EXTERNAL")
+        with self.assertRaises(d.Invalid):
+            d.verify(sealed, binding(), NOW)
+        for version in ("1.0.0", "2.0.2", "3.0.0"):
+            old["collector_version"] = version
+            with self.assertRaises(d.Invalid):
+                d.seal(old, NOW)
+
     def test_no_host_mutation_or_http_or_environment_access_in_ast(self):
         tree = ast.parse(SCRIPT.read_text())
         imports = {node.names[0].name for node in ast.walk(tree) if isinstance(node, ast.Import)}
