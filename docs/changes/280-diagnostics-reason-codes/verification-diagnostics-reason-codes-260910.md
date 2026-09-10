@@ -69,4 +69,19 @@ nonzero/empty/unknown line/missing profiles/timeout/missing executable 全部同
 
 ## 遗留风险与未完成项
 
+### Exact local commit 候选包
+
+实现提交 cac60745c1060151ff4fec4854f23a36787e5ba4 已完成。以该 exact commit、测试合成 profile
+（SHA-256 231c0ac11c02b46b7a481421a3a058b5008610dc91dbddf63f0537f39dda9e49）分别运行新 builder build：
+/private/tmp/diagnostics-280-local-review-a 与 /private/tmp/diagnostics-280-local-review-b，均 PASS/6 files。
+再对 a 运行 verify 亦 PASS；两个 manifest SHA-256 均为
+a609f3b176f5179aac695281d431d5f163d6ca9b26c916ad8f777a4fa5363a86。
+
+- collector SHA-256：a3e7487e017479d4438e720b517cf369661ae3591336fa39ff55c4d53f66714c。
+- schema SHA-256：56f24777e08e6e15afd5ea2738ead4851553f44f147a5cc1c186575fb5cd7241。
+- builder SHA-256：d86d18010cb9dcf18d75028f4e05a9bb29bd44c8d0eba87b967897ba65b1c807。
+
+这是未合并 source/local candidate，不是公司 handoff；不包含公司 profile，不授权拷贝或运行。
+本节为该实现提交之后的文档回填，不改变 candidate 所固定的 source SHA。
+
 T01–T03 本地实现与测试已完成；没有 push/PR、merge、安装或现场调用。下一闸门为最终 PR 提交确认；人工 merge 和下游公司复采独立。现场 UFW 根因仍未知，不能由本地测试推断。
