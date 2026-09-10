@@ -11,7 +11,7 @@ risk_flags:
   - external-contract
   - security
 depends_on: []
-status: approved
+status: pr-open
 branch: change/282-ufw-format-compat
 created: 2026-09-10
 updated: 2026-09-10
@@ -27,7 +27,7 @@ documents:
   plan: plan-ufw-format-compat-260910.md
   verification: verification-ufw-format-compat-260910.md
 override_reason: ''
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/283
 ---
 
 ## 问题与授权
