@@ -12,7 +12,7 @@ risk_flags:
   - security
   - deployment
 depends_on: []
-status: approved
+status: pr-open
 branch: change/280-diagnostics-reason-codes
 created: 2026-09-10
 updated: 2026-09-10
@@ -28,7 +28,7 @@ documents:
   plan: plan-diagnostics-reason-codes-260910.md
   verification: verification-diagnostics-reason-codes-260910.md
 override_reason: ''
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/281
 ---
 
 ## 问题/需求总结
