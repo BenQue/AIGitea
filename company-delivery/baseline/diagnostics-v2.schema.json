@@ -1,0 +1,390 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "diagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline_evidence_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "collected_at": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "type": "string"
+        },
+        "collector_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "collector_version": {
+          "enum": [
+            "2.0.0"
+          ]
+        },
+        "contract_version": {
+          "enum": [
+            "company-platform-baseline-diagnostics/v2"
+          ]
+        },
+        "environment": {
+          "enum": [
+            "company-scm-ci"
+          ]
+        },
+        "evidence_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "host_role": {
+          "enum": [
+            "scm-ci"
+          ]
+        },
+        "host_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "observations": {
+          "additionalProperties": false,
+          "properties": {
+            "server_binding": {
+              "additionalProperties": false,
+              "properties": {
+                "reason": {
+                  "enum": [
+                    "observed",
+                    "command-unavailable",
+                    "command-failed",
+                    "timeout",
+                    "output-limit",
+                    "decode-failed",
+                    "parse-failed",
+                    "config-unavailable"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "PASS",
+                    "GAP",
+                    "BLOCKED"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "http_addr_matches_profile": {
+                          "enum": [
+                            "yes",
+                            "no"
+                          ]
+                        },
+                        "http_port_matches_profile": {
+                          "enum": [
+                            "yes",
+                            "no"
+                          ]
+                        },
+                        "protocol_state": {
+                          "enum": [
+                            "missing",
+                            "http",
+                            "other"
+                          ]
+                        },
+                        "section_present": {
+                          "enum": [
+                            "yes",
+                            "no"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "section_present",
+                        "protocol_state",
+                        "http_addr_matches_profile",
+                        "http_port_matches_profile"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "enum": [
+                        null
+                      ]
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "status",
+                "reason",
+                "value"
+              ],
+              "type": "object"
+            },
+            "systemd": {
+              "additionalProperties": false,
+              "properties": {
+                "reason": {
+                  "enum": [
+                    "observed",
+                    "command-unavailable",
+                    "command-failed",
+                    "timeout",
+                    "output-limit",
+                    "decode-failed",
+                    "parse-failed",
+                    "config-unavailable"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "PASS",
+                    "GAP",
+                    "BLOCKED"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "active_state": {
+                          "enum": [
+                            "active",
+                            "inactive",
+                            "failed",
+                            "activating",
+                            "deactivating",
+                            "reloading",
+                            "maintenance",
+                            "refreshing"
+                          ]
+                        },
+                        "exec_main_status": {
+                          "maximum": 255,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "load_state": {
+                          "enum": [
+                            "loaded",
+                            "not-found",
+                            "error",
+                            "bad-setting",
+                            "masked",
+                            "stub",
+                            "merged"
+                          ]
+                        },
+                        "main_pid_present": {
+                          "enum": [
+                            "yes",
+                            "no"
+                          ]
+                        },
+                        "result": {
+                          "enum": [
+                            "success",
+                            "resources",
+                            "protocol",
+                            "timeout",
+                            "exit-code",
+                            "signal",
+                            "core-dump",
+                            "watchdog",
+                            "start-limit-hit",
+                            "oom-kill",
+                            "exec-condition",
+                            "skip-condition"
+                          ]
+                        },
+                        "sub_state": {
+                          "enum": [
+                            "running",
+                            "dead",
+                            "failed",
+                            "exited",
+                            "start-pre",
+                            "start",
+                            "start-post",
+                            "auto-restart",
+                            "stop",
+                            "stop-sigterm",
+                            "stop-sigkill",
+                            "stop-post",
+                            "final-sigterm",
+                            "final-sigkill",
+                            "reload",
+                            "condition",
+                            "cleaning"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "load_state",
+                        "active_state",
+                        "sub_state",
+                        "result",
+                        "main_pid_present",
+                        "exec_main_status"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "enum": [
+                        null
+                      ]
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "status",
+                "reason",
+                "value"
+              ],
+              "type": "object"
+            },
+            "ufw": {
+              "additionalProperties": false,
+              "properties": {
+                "reason": {
+                  "enum": [
+                    "observed",
+                    "command-unavailable",
+                    "command-failed",
+                    "timeout",
+                    "output-limit",
+                    "decode-failed",
+                    "parse-failed",
+                    "config-unavailable"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "PASS",
+                    "GAP",
+                    "BLOCKED"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "active": {
+                          "enum": [
+                            "yes",
+                            "no"
+                          ]
+                        },
+                        "default_deny_incoming": {
+                          "enum": [
+                            "yes",
+                            "no"
+                          ]
+                        },
+                        "rule_count": {
+                          "maximum": 10000,
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "active",
+                        "default_deny_incoming",
+                        "rule_count"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "enum": [
+                        null
+                      ]
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "status",
+                "reason",
+                "value"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "systemd",
+            "server_binding",
+            "ufw"
+          ],
+          "type": "object"
+        },
+        "profile_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "source_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "collector_version",
+        "environment",
+        "host_role",
+        "host_sha256",
+        "source_sha",
+        "collector_sha256",
+        "profile_sha256",
+        "evidence_id",
+        "baseline_evidence_id",
+        "collected_at",
+        "observations"
+      ],
+      "type": "object"
+    },
+    "diagnostic_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "receipt": {
+      "additionalProperties": false,
+      "properties": {
+        "mutation_authorized": {
+          "enum": [
+            false
+          ]
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "GAP",
+            "BLOCKED_EXTERNAL"
+          ]
+        },
+        "validation": {
+          "enum": [
+            "PASS"
+          ]
+        }
+      },
+      "required": [
+        "validation",
+        "status",
+        "mutation_authorized"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "diagnostic",
+    "diagnostic_sha256",
+    "receipt"
+  ],
+  "type": "object"
+}

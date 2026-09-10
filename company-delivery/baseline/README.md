@@ -1,5 +1,13 @@
 # 公司平台只读接管基线
 
+## 原因分类诊断 v2（Issue #280）
+
+独立 [DIAGNOSTICS-V2.md](DIAGNOSTICS-V2.md) 说明 diagnostics v2：协议字段区分
+`missing/http/other`，固定原因码区分执行、超时、输出限制、解码、解析和配置读取失败。
+它不采用缺失默认值，不放宽 UFW 解析，不修改 diagnostics v1 或 baseline 回执。
+新包通过 `prepare-diagnostics-v2-bundle.py` 从 exact commit 生成；source/local 验证
+不授权公司现场执行。旧版继续使用原入口及其固定 pins。
+
 ## 现场探针兼容与独立诊断（Issue #278）
 
 v2 新 collector 为 `2.0.1`；离线 verifier 同时接受 `2.0.0` 与 `2.0.1`，旧回执须继续使用其原始 source/collector/profile pins。binary probe 接受严格的 `Gitea version` 或 `gitea version` 前缀；`enabled-runtime` 可以记录，但不是持久 enabled，状态保持 GAP。未知状态、异常返回码与畸形版本继续 BLOCKED。v1 collector/schema 字节不变。
