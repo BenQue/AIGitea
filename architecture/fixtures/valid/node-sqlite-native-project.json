@@ -1,0 +1,146 @@
+{
+  "$schema": "../../schemas/project-architecture-v1.schema.json",
+  "schema_version": "1.0",
+  "project_id": "fixture-node-sqlite-native",
+  "profile_id": "linux-node-sqlite-v1",
+  "profile_version": "1.0.0",
+  "catalog_revision": "2026.09.0",
+  "delivery_contract": "pm2-legacy",
+  "components": [
+    {
+      "component_id": "database.sqlite.3",
+      "version": "3.53.1",
+      "as_built": true
+    },
+    {
+      "component_id": "framework.next.16",
+      "version": "16.2.6",
+      "as_built": true
+    },
+    {
+      "component_id": "frontend.react.19",
+      "version": "19.2.4",
+      "as_built": true
+    },
+    {
+      "component_id": "orm.prisma.7",
+      "version": "7.8.0",
+      "as_built": true
+    },
+    {
+      "component_id": "os.ubuntu.24-04-4",
+      "version": "24.04.4"
+    },
+    {
+      "component_id": "package.npm.10",
+      "version": "10.9.4",
+      "as_built": true,
+      "migration_issue": "http://gitea.example:3000/fixtures/app/issues/284"
+    },
+    {
+      "component_id": "runtime.node.22",
+      "version": "22.22.0",
+      "as_built": true,
+      "migration_issue": "http://gitea.example:3000/fixtures/app/issues/284"
+    },
+    {
+      "component_id": "toolchain.typescript.5",
+      "version": "5.9.3",
+      "as_built": true,
+      "migration_issue": "http://gitea.example:3000/fixtures/app/issues/284"
+    }
+  ],
+  "exceptions": [
+    {
+      "id": "ARCH-EX-2026-001",
+      "component_id": "runtime.node.22",
+      "owner": "fixture-owner",
+      "reason": "Runtime major and build both trail the catalog pin.",
+      "risk": "The application asserts this runtime major in three places and cannot move alone.",
+      "controls": [
+        "One bounded exception covers the transition and the as-built build."
+      ],
+      "created_at": "2026-08-04",
+      "expires_at": "2026-12-01",
+      "migration_issue": "http://gitea.example:3000/fixtures/app/issues/284"
+    },
+    {
+      "id": "ARCH-EX-2026-002",
+      "component_id": "package.npm.10",
+      "owner": "fixture-owner",
+      "reason": "The package manager ships with the runtime major.",
+      "risk": "The build is ahead of the catalog pin inside the same major.",
+      "controls": [
+        "The package manager follows the runtime transition and expires with it."
+      ],
+      "created_at": "2026-08-04",
+      "expires_at": "2026-12-01",
+      "migration_issue": "http://gitea.example:3000/fixtures/app/issues/284"
+    },
+    {
+      "id": "ARCH-EX-2026-003",
+      "component_id": "database.sqlite.3",
+      "owner": "fixture-owner",
+      "reason": "The engine is embedded in a pinned native dependency.",
+      "risk": "A patch older than the catalog pin is linked into the application.",
+      "controls": [
+        "The native dependency is pinned by lock file and upgraded with it."
+      ],
+      "created_at": "2026-08-04",
+      "expires_at": "2026-12-01",
+      "migration_issue": "http://gitea.example:3000/fixtures/app/issues/284"
+    },
+    {
+      "id": "ARCH-EX-2026-004",
+      "component_id": "framework.next.16",
+      "owner": "fixture-owner",
+      "reason": "The application runs an earlier minor of the framework.",
+      "risk": "Fixes released after the declared build are absent.",
+      "controls": [
+        "The framework upgrade is tracked by the migration Issue and expires with the exception."
+      ],
+      "created_at": "2026-08-04",
+      "expires_at": "2026-12-01",
+      "migration_issue": "http://gitea.example:3000/fixtures/app/issues/284"
+    },
+    {
+      "id": "ARCH-EX-2026-005",
+      "component_id": "frontend.react.19",
+      "owner": "fixture-owner",
+      "reason": "The frontend build trails the catalog pin.",
+      "risk": "Fixes released after the declared build are absent.",
+      "controls": [
+        "The frontend upgrade follows the framework upgrade."
+      ],
+      "created_at": "2026-08-04",
+      "expires_at": "2026-12-01",
+      "migration_issue": "http://gitea.example:3000/fixtures/app/issues/284"
+    },
+    {
+      "id": "ARCH-EX-2026-006",
+      "component_id": "orm.prisma.7",
+      "owner": "fixture-owner",
+      "reason": "The ORM build trails the catalog pin.",
+      "risk": "Fixes released after the declared build are absent.",
+      "controls": [
+        "The ORM upgrade requires a schema regression run and is tracked separately."
+      ],
+      "created_at": "2026-08-04",
+      "expires_at": "2026-12-01",
+      "migration_issue": "http://gitea.example:3000/fixtures/app/issues/284"
+    },
+    {
+      "id": "ARCH-EX-2026-007",
+      "component_id": "toolchain.typescript.5",
+      "owner": "fixture-owner",
+      "reason": "The toolchain major trails the preferred major.",
+      "risk": "The next toolchain major is a separate compatibility Change.",
+      "controls": [
+        "One bounded exception covers the transition and the as-built build."
+      ],
+      "created_at": "2026-08-04",
+      "expires_at": "2026-12-01",
+      "migration_issue": "http://gitea.example:3000/fixtures/app/issues/284"
+    }
+  ]
+}
