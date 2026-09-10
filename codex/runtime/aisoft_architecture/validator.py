@@ -13,7 +13,7 @@ from .schema import validate_schema
 REVISION_RE = re.compile(r"^\d{4}\.\d{2}\.\d+$")
 EXACT_VERSION_RE = re.compile(r"^[0-9][0-9A-Za-z._+-]*(?:@[0-9A-Za-z._+-]+)?$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-ISSUE_RE = re.compile(r"^(?:https://[^\s]+/issues/[1-9][0-9]*|#[1-9][0-9]*)$")
+ISSUE_RE = re.compile(r"^(?:https?://[^\s]+/issues/[1-9][0-9]*|#[1-9][0-9]*)$")
 ABSOLUTE_ISSUE_PATH_RE = re.compile(r"^/.+/issues/[1-9][0-9]*$")
 ALLOWED_STATES = {"preferred", "supported", "sunset", "prohibited"}
 MAX_EXCEPTION_DAYS = 180
@@ -47,7 +47,7 @@ def _is_absolute_issue_url(value: str) -> bool:
     except ValueError:
         return False
     return bool(
-        parsed.scheme == "https"
+        parsed.scheme in {"http", "https"}
         and parsed.hostname
         and parsed.username is None
         and parsed.password is None
@@ -389,7 +389,7 @@ def validate_project(
         if not _is_absolute_issue_url(migration_issue):
             fail(
                 "TRANSITION_MIGRATION_ISSUE_INVALID",
-                "Transition migration Issue 必须是绝对 HTTPS Issue URL。",
+                "Transition migration Issue 必须是绝对 http 或 https Issue URL。",
                 "$.components",
             )
         exception = exceptions_by_component.get(selected_id)
