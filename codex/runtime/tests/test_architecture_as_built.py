@@ -92,7 +92,11 @@ class AsBuiltVersionTests(unittest.TestCase):
             if item["component_id"] == "database.sqlite.3"
         )
         self.assertEqual(component["version"], "3.53.1")
-        self.assertTrue(component["as_built"])
+        # Issue #65 freezes the release runtime, and it rejects any lock key it
+        # does not already know. So the deviation is carried by the recorded
+        # build plus its exception, not by a new lock field, and every
+        # as-built project stays releasable.
+        self.assertNotIn("as_built", component)
         self.assertEqual(component["exception_id"], "ARCH-EX-2026-001")
         self.assertEqual(component["exception_expires_at"], "2026-12-01")
         self.assertEqual(lock["exception_ids"], ["ARCH-EX-2026-001"])
@@ -214,7 +218,7 @@ class AsBuiltVersionTests(unittest.TestCase):
         )
         self.assertEqual(component["version"], "22.22.0")
         self.assertEqual(component["state"], "sunset")
-        self.assertTrue(component["as_built"])
+        self.assertEqual(component["exception_id"], "ARCH-EX-2026-001")
         self.assertEqual(lock["exception_ids"], ["ARCH-EX-2026-001"])
 
 

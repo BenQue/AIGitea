@@ -422,7 +422,6 @@ def _validate_architecture_lock(
             raw_component,
             {"component_id", "version", "state", "source_url"},
             {
-                "as_built",
                 "digest",
                 "migration_issue",
                 "exception_id",

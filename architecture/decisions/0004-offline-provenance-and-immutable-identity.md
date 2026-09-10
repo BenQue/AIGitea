@@ -2,6 +2,8 @@
 
 - 状态：Accepted
 - 日期：2026-08-02
+- 补充：ADR-0006 的 as-built 版本例外明确不适用于按 digest 固定的 component；
+  不可变身份与 provenance 要求不变。
 
 生产依赖必须先在联网 staging 从官方 source 取得 versioned artifact、checksum/signature、SBOM
 和 provenance，再导入批准的内网 mirror。OS 使用 release/build/checksum，packages 使用 exact

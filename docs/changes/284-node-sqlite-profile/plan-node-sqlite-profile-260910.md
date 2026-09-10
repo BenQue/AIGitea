@@ -38,11 +38,11 @@ T01 先行是因为 T03 的 profile 要用 transition 表达 Node 22，而 trans
 - T01：`codex/runtime/aisoft_architecture/validator.py`（`ISSUE_RE`、`_is_absolute_issue_url`）、
   `codex/runtime/tests/test_architecture_transitions.py`。
 - T02：`architecture/schemas/project-architecture-v1.schema.json`、
-  `architecture/schemas/architecture-lock-v1.schema.json`、
   `codex/runtime/aisoft_architecture/validator.py`、
   `codex/runtime/aisoft_architecture/lockfile.py`、
-  `codex/runtime/aisoft_release/contract.py`、
-  `architecture/fixtures/invalid/`、`codex/runtime/tests/test_architecture_lock.py`。
+  `codex/runtime/tests/test_architecture_as_built.py`。
+  `codex/runtime/aisoft_release/` 与 lock schema 明确不在触点内：Issue #65 的证据闸门冻结
+  release runtime，扩大豁免清单属于该 Issue 的授权边界。
 - T03：`architecture/profiles/linux-node-sqlite-v1.json`、`architecture/fixtures/valid/`、
   `codex/runtime/tests/test_architecture_schema.py`。
 - T04：`architecture/decisions/0006-*.md`、`architecture/README.md`、
@@ -62,7 +62,7 @@ T01 先行是因为 T03 的 profile 要用 transition 表达 Node 22，而 trans
 | AC-1 | `aisoft-architecture validate` 对每个 fixture 跑一遍，profile 全量加载通过 |
 | AC-2 | 两份分环境 fixture 各跑一次 `validate`，断言 `valid: true` |
 | AC-3 | 新增 invalid fixture 与单测，逐条断言 5 个新诊断码 |
-| AC-4 | 单测断言 lock `resolved_components` 记录声明版本与 `as_built: true` |
+| AC-4 | 单测断言 lock `resolved_components` 记录声明版本、exception id 与到期日，且不新增 key |
 | AC-5 | 既有 `semver-range.json` 等 invalid fixture 仍返回 `PROJECT_VERSION_DRIFT` |
 | AC-6 | 单测覆盖 http 接受与相对路径、简写、带凭据、带 query 的拒绝 |
 | AC-7 | 人工复核 ADR、README 与 runbook §9 的措辞 |

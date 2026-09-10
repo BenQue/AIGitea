@@ -36,8 +36,6 @@ def build_lock(
             "state": component["state"],
             "source_url": component["provenance"]["source_url"],
         }
-        if as_built:
-            item["as_built"] = True
         if "digest" in declared:
             item["digest"] = declared["digest"]
         if "migration_issue" in declared:

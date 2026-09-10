@@ -56,8 +56,10 @@ catalog `2026.09.0` 的 4 个 profile 无一能如实描述「SQLite 加 Next/Re
 - [ ] AC-3：project declaration 的 component 支持可选 `as_built: true`。为 true 时必须有唯一
       有效 exception，声明版本必须与 catalog pin 同 major 且不相等；major 为 `0` 时次版本号也
       必须相等；`oci-digest` component 一律拒绝 as-built。
-- [ ] AC-4：as-built 声明生成的 lock 在 `resolved_components` 中记录**声明的真实版本**与
-      `as_built: true`，而不是 catalog pin；`exception_id` 与 `exception_expires_at` 同时记录。
+- [ ] AC-4：as-built 声明生成的 lock 在 `resolved_components` 中记录**声明的真实版本**而不是
+      catalog pin，并同时记录 `exception_id` 与 `exception_expires_at`；lock 不新增字段，
+      因为 release 运行时按精确 key 集合校验 resolved component，且该运行时处于 Issue #65
+      的证据闸门冻结中。
 - [ ] AC-5：未声明 `as_built` 的既有 declaration 行为完全不变，仍在版本不等时报
       `PROJECT_VERSION_DRIFT`。
 - [ ] AC-6：`http://` 的绝对 Issue URL 在 component `migration_issue` 与 transition 校验中都被
@@ -70,10 +72,11 @@ catalog `2026.09.0` 的 4 个 profile 无一能如实描述「SQLite 加 Next/Re
 
 ## 接口、数据与兼容性影响
 
-- **新增（向后兼容）**：`project-architecture-v1.schema.json` 的 component item 增加可选
-  `as_built`；`architecture-lock-v1.schema.json` 的 resolved component 增加可选 `as_built`；
-  `aisoft_release/contract.py` 的 lock resolved component optional key 集合同步增加 `as_built`，
-  否则带 as-built 的 lock 进不了 release 路径。
+- **新增（向后兼容）**：只有 `project-architecture-v1.schema.json` 的 component item 增加可选
+  `as_built`。lock schema 与 `aisoft_release` 均不改动：release 运行时按精确 key 集合校验
+  resolved component，而它处于 Issue #65 的证据闸门冻结中，扩大该闸门的豁免清单属于 #65 的
+  授权边界。因此偏差由 lock 中记录的真实构建加同条目的 `exception_id`/`exception_expires_at`
+  承载，带 as-built 偏差的项目仍可进入 release 路径。
 - **放宽**：`ISSUE_RE` 与 `_is_absolute_issue_url` 接受 http scheme。这是唯一一处放宽，
   对既有声明不产生失效。
 - **不变**：catalog 的 component 集合与 revision；`delivery_contract` 单值与 lock 中该字段的
