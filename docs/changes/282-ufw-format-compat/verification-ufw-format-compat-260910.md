@@ -27,6 +27,8 @@ updated: 2026-09-10
 
 PASS：plan 中联合 unittest 命令实际运行 106 tests，OK（7.139s）。覆盖 v1/v2 diagnostics、v1/v2 baseline，包含 builder 两次相同字节构建、漂移/权限/symlink 拒绝、v1 hash guard。
 
+PASS：再次单独执行 v2 unittest，27 tests，OK（3.548s）。暂存检查发现 spec EOF 多余空行，已移除并重新检查。
+
 AC-1/2：新增四种策略 × 三种列宽 × 四种动作共48个正例；未知策略、重复策略、短列单空格、未知动作、无分隔符、空来源字段等负例。首轮27 tests曾因空来源仍被旧宽松匹配接受而失败；修复为目标/来源必须含非空白字符，联合回归通过。
 
 AC-3：新采集2.0.1，合成历史2.0.0 BLOCKED按原hash校验保持BLOCKED；错hash及未知版本拒绝，原v1文件hash guard通过。此处为合成历史兼容测试，非重新认定公司旧证据当前有效。
