@@ -22,7 +22,7 @@
     "A transition selects exactly one component per slot, requires an absolute http or https migration Issue plus one matching unexpired exception, and never permits a prohibited component.",
     "A component whose deployed build differs from the catalog pin may declare as_built inside the same major, backed by one bounded exception. as_built never crosses a major, never applies to a digest-pinned image, and never suspends prohibited, EOL, expiry or checksum enforcement.",
     "This profile allows more than one delivery contract because one repository may serve environments that differ in delivery ownership. A declaration still names exactly one contract; an application whose environments differ writes one declaration and one lock per environment rather than merging them.",
-    "A declaration that names the container delivery contract must additionally declare the catalog OCI base image component for the runtime major it ships, pinned by the catalog digest; this profile has no OCI slot because the native delivery contracts have no base image."
+    "A declaration that names the container delivery contract must additionally declare the catalog OCI base image component for the runtime major it ships, pinned by the catalog digest. This profile has no OCI slot because the native delivery contracts have no base image, so the requirement is enforced by the platform rule keyed on the delivery contract (DELIVERY_BASE_IMAGE_REQUIRED) rather than by a slot."
   ],
   "delivery_contracts": ["embedded-sqlite/v1", "pm2-legacy", "docker-release/v1"],
   "constraints": {

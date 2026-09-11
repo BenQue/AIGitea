@@ -15,6 +15,9 @@
 - 一个 profile 的 `delivery_contracts` 可以列出多个取值，但一份 declaration 只取其中一个。
   同一个仓库的多个环境如果交付归属不同，各写一份 declaration 与一份 lock，不合并成一份；
   取值之间的互斥性因此保持不变（ADR-0006）。
+- 声明容器交付取值的 declaration 必须同时声明一个按 digest 固定的 `oci-image` component，
+  否则 `DELIVERY_BASE_IMAGE_REQUIRED` fail closed。这条按 delivery contract 触发，
+  不是 profile slot——`required_components` 无条件，加 slot 会逼原生交付声明不存在的镜像。
 - 项目人工维护 `.aisoft/architecture.json`，提交生成的 `architecture.lock.json`。
 - lock 不含生成时间或主机信息；相同输入会生成 byte-identical canonical JSON。
 - Project 每个 slot 只能选择 preferred 或一个 allowlisted `supported`/`sunset` transition；
@@ -53,6 +56,11 @@ architecture/bin/aisoft-architecture explain \
 
 `--today YYYY-MM-DD` 只用于可复现的 lifecycle/边界测试。生产 CI 不应覆盖当天 UTC date。
 CLI diagnostics 只返回 code、path、remediation，不回显输入值。
+
+CLI 与 `codex/tools/aisoft-project-check.sh` 都从**脚本所在平台 checkout 的工作树**解析
+`catalog.json` 与 `profiles/`。本地 `main` 没有 fast-forward 到最新时，新增的 profile
+解析不到，表现为 `PROFILE_UNKNOWN` 或 slot 对不上——那是 checkout 陈旧，不是声明写错。
+先 `git fetch` 并 ff 本地 `main`，再重跑。
 
 ## 更新与例外
 

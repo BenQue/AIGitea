@@ -34,9 +34,18 @@ CPU 架构与基镜像也不同，单个 `components` 数组本来就装不下�
 lock 同时宣称两种按 ADR-0005 互斥的交付归属，却仍然只能记录一套 component。
 
 下游边界不变：release 运行时仍要求 lock 的 `delivery_contract` 精确等于容器交付取值，
-因此只有对应环境的那一份 lock 能进入 release 路径。带容器交付取值的 declaration 必须
-额外声明 catalog 中按 digest 固定的基镜像 component；本 profile 没有 OCI slot，
-是因为原生交付的两个取值没有基镜像。
+因此只有对应环境的那一份 lock 能进入 release 路径。
+
+带容器交付取值的 declaration 必须额外声明 catalog 中按 digest 固定的基镜像 component。
+本 profile 没有 OCI slot，是因为原生交付的两个取值没有基镜像，而 `required_components`
+是无条件列表——加 slot 会连带逼原生环境声明一个它根本没有的镜像。因此这条要求由
+**按 delivery contract 触发的平台规则**执行，诊断码 `DELIVERY_BASE_IMAGE_REQUIRED`，
+而不是由 profile slot 执行。
+
+这一条最初只写在 `compatibility_rules` 的散文里，实测会 fail open：把 OCI component
+整条删掉，声明照样 `valid: true`。合并前补上执行路径，因为读起来强制、实际可静默绕过的
+治理规则比没有这条规则更糟。仓内既有的全部容器交付声明本就已声明基镜像，
+因此该规则对它们是 no-op。
 
 ## 三、as-built 版本例外
 
@@ -87,3 +96,7 @@ Issue 提出补两个 `os` 取值，评估后都不加：
   任何声明它的项目都会在 `COMPONENT_EOL` 上 fail closed，加它不产生任何可用路径。
   正确处置是把该主机迁到受支持的 LTS，而不是给已 EOL 的 OS 开一条通道；
   as-built 例外也不适用，跨 major 被明确拒绝。
+  注意当前 catalog **没有**收录该取值，因此项目实际撞到的诊断码不是 `COMPONENT_EOL`：
+  如实在 `os` slot 上写该版本并加 `as_built` 会得到 `AS_BUILT_MAJOR_MISMATCH`，
+  直接写未收录的 component id 会得到 `PROJECT_COMPONENT_UNKNOWN`。`COMPONENT_EOL`
+  描述的是「假如 catalog 收了它」的情形。三条路径结论一致：迁到受支持的 LTS。

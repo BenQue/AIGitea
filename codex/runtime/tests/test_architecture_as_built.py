@@ -222,5 +222,102 @@ class AsBuiltVersionTests(unittest.TestCase):
         self.assertEqual(lock["exception_ids"], ["ARCH-EX-2026-001"])
 
 
+class ContainerDeliveryBaseImageTests(unittest.TestCase):
+    """A container delivery contract must name a digest-pinned base image.
+
+    The profile cannot express this: `required_components` is unconditional, so
+    a slot would also force the native delivery contracts to declare an image
+    they do not have. Stating it only in `compatibility_rules` left it fail
+    open -- deleting the component validated clean. It is therefore a platform
+    rule keyed on the delivery contract, not a profile slot.
+    """
+
+    def setUp(self) -> None:
+        self.catalog = load_json(ARCH / "catalog.json")
+        self.catalog_schema = load_json(ARCH / "schemas/catalog-v1.schema.json")
+        self.profile_schema = load_json(ARCH / "schemas/profile-v1.schema.json")
+        self.project_schema = load_json(
+            ARCH / "schemas/project-architecture-v1.schema.json"
+        )
+
+    def build(self, project: dict) -> dict:
+        profile = load_json(ARCH / f"profiles/{project['profile_id']}.json")
+        return build_lock(
+            self.catalog,
+            self.catalog_schema,
+            profile,
+            self.profile_schema,
+            project,
+            self.project_schema,
+            TODAY,
+        )
+
+    def _categories(self) -> dict:
+        return {item["id"]: item["category"] for item in self.catalog["components"]}
+
+    def test_container_declaration_without_a_base_image_fails_closed(self) -> None:
+        project = load_json(
+            ARCH / "fixtures/valid/node-sqlite-container-project.json"
+        )
+        categories = self._categories()
+        project["components"] = [
+            item
+            for item in project["components"]
+            if categories.get(item["component_id"]) != "oci-image"
+        ]
+        project["exceptions"] = [
+            item
+            for item in project["exceptions"]
+            if categories.get(item["component_id"]) != "oci-image"
+        ]
+        with self.assertRaises(ArchitectureError) as caught:
+            self.build(project)
+        self.assertEqual(
+            caught.exception.diagnostic.code, "DELIVERY_BASE_IMAGE_REQUIRED"
+        )
+
+    def test_native_delivery_contracts_are_untouched(self) -> None:
+        for name in ("node-sqlite-native-project", "sqlite-project",
+                     "linux-systemd-project", "windows-project"):
+            with self.subTest(fixture=name):
+                project = load_json(ARCH / f"fixtures/valid/{name}.json")
+                self.assertNotEqual(project["delivery_contract"], "docker-release/v1")
+                self.build(project)
+
+    def test_every_existing_container_declaration_already_complies(self) -> None:
+        categories = self._categories()
+        checked = 0
+        for path in sorted(ARCH.rglob("*.json")):
+            if "lock" in path.name or path.parent.name == "schemas":
+                continue
+            try:
+                project = load_json(path)
+            except Exception:  # pragma: no cover - non-declaration inputs
+                continue
+            if not isinstance(project, dict):
+                continue
+            if project.get("delivery_contract") != "docker-release/v1":
+                continue
+            images = [
+                item["component_id"]
+                for item in project.get("components", [])
+                if categories.get(item["component_id"]) == "oci-image"
+            ]
+            with self.subTest(path=path.name):
+                self.assertTrue(images, f"{path} declares no base image")
+            checked += 1
+        self.assertGreaterEqual(checked, 4)
+
+    def test_the_keyed_contract_set_tracks_the_schema_enum(self) -> None:
+        """A later docker-release major must not silently skip the rule."""
+        from aisoft_architecture.validator import CONTAINER_DELIVERY_CONTRACTS
+
+        enum = set(self.project_schema["properties"]["delivery_contract"]["enum"])
+        self.assertEqual(
+            CONTAINER_DELIVERY_CONTRACTS,
+            {value for value in enum if value.startswith("docker-release/")},
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

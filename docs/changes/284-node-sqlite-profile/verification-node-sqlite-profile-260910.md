@@ -86,11 +86,23 @@ transport.py revision`。原因是本变更起初改了 `codex/runtime/aisoft_re
 ## 遗留风险与未完成项
 
 - **下游项目的 OS slot 未解除阻塞。** 按裁决 D 不新增 `os` 取值。运行在已 EOL 的 interim
-  Ubuntu 上的主机无法产出有效声明：`as_built` 明确拒绝跨 major，`COMPONENT_EOL` 也没有
-  例外通道。正确处置是把该主机迁到受支持的 LTS，属于应用仓自己的 Change。
-- **容器交付声明的基镜像必须按 digest 固定。** profile 没有 OCI slot，因此这条由
-  `compatibility_rules` 的文字约束加 ADR-0004 既有的 `OCI_DIGEST_REQUIRED` 保证，
-  validator 不做条件 slot 判断。使用可变 tag 的项目仍会 fail closed。
+  Ubuntu 上的主机无法产出有效声明，实测诊断码如下表。正确处置是把该主机迁到受支持的
+  LTS，属于应用仓自己的 Change。
+
+  | 写法 | 诊断码 |
+  |---|---|
+  | `os` slot 上如实写 `25.10` 并加 `as_built` | `AS_BUILT_MAJOR_MISMATCH` |
+  | 直接写未收录的 `os.ubuntu.25-10` | `PROJECT_COMPONENT_UNKNOWN` |
+  | 假如 catalog 收录了该取值 | `COMPONENT_EOL`（本变更未收录，故不会实际触发） |
+
+- **容器交付基镜像规则已补上执行路径。** 该规则最初只写在 `compatibility_rules` 散文里，
+  下游会话实测 fail open：删掉 OCI component 后声明仍 `valid: true`。合并前补为按
+  delivery contract 触发的平台规则 `DELIVERY_BASE_IMAGE_REQUIRED`，同一份探针复跑得
+  `valid: false`。仓内既有全部容器交付声明本就已声明基镜像，对它们是 no-op；
+  digest 本身仍由既有 `OCI_DIGEST_REQUIRED` 校验，可变 tag 照旧 fail closed。
+- **工具链从本地 checkout 工作树解析 `architecture/`。** 本变更合并后，本地 `main` 未
+  fast-forward 的机器解析不到新 profile，表现像声明写错。已在 `architecture/README.md`
+  的 CLI 一节写明先 ff 再重跑。
 - **本记录不包含任何部署。** `deployment_lifecycle` 为 `none`，本变更只改平台仓的
   schema、validator、profile 与文档，不部署、不生成任何真实项目的 current lock。
 - **fixture 使用的版本组合取自一个真实仓库的运行形态**，但 `project_id` 与 migration Issue

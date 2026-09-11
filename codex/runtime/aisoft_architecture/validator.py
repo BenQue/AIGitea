@@ -16,6 +16,13 @@ DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 ISSUE_RE = re.compile(r"^(?:https?://[^\s]+/issues/[1-9][0-9]*|#[1-9][0-9]*)$")
 ABSOLUTE_ISSUE_PATH_RE = re.compile(r"^/.+/issues/[1-9][0-9]*$")
 MAJOR_RE = re.compile(r"^([0-9]+)")
+# Delivery contracts that ship the application inside a container image. These
+# are the only ones that imply a base image, so the requirement is keyed on the
+# contract rather than expressed as a profile slot: `required_components` is
+# unconditional, and a slot would force the native contracts to declare an
+# image they do not have. Must stay in step with the `delivery_contract` enum
+# in project-architecture-v1.schema.json; a test pins that.
+CONTAINER_DELIVERY_CONTRACTS = {"docker-release/v1"}
 ALLOWED_STATES = {"preferred", "supported", "sunset", "prohibited"}
 MAX_EXCEPTION_DAYS = 180
 PACKAGE_RELEASE_CONTRACTS = {
@@ -392,6 +399,16 @@ def validate_project(
         if item.get("migration_issue") and not ISSUE_RE.fullmatch(item["migration_issue"]):
             fail("MIGRATION_ISSUE_INVALID", "migration_issue 格式无效。", f"{path}.migration_issue")
         declared[component_id] = item
+    if project["delivery_contract"] in CONTAINER_DELIVERY_CONTRACTS and not any(
+        components[component_id]["category"] == "oci-image"
+        for component_id in declared
+    ):
+        fail(
+            "DELIVERY_BASE_IMAGE_REQUIRED",
+            "容器交付的 Project 必须声明 Catalog 中按 digest 固定的基镜像 component。",
+            "$.components",
+            "声明该 runtime major 对应的 oci-image component，并填入 Catalog digest。",
+        )
     exception_ids: set[str] = set()
     exception_components: set[str] = set()
     exceptions_by_component: dict[str, dict[str, Any]] = {}
