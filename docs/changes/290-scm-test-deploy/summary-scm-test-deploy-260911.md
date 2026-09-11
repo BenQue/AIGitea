@@ -32,25 +32,19 @@ depends_on: []
 
 # SCM 测试部署
 
-用户已批准部署工具把测试系统部署在scm-ci上。来源NewEMaint #79后续部署需求，目标平台仓，无未完成依赖。当前基点64f1cda（执行时exact Git commit为事实源）。不新建role，不改scm-ci服务器身份。
+来源为 NewEMaint #79 后续部署需求。仅当受保护 profile 同时声明 `host_role=scm-ci` 与
+`environment=test` 时允许既有六个部署动作；生产仍拒绝，不新增角色或绕过其它保护。
+权限与部署规则改变，判级为 platform/complex。
 
-## AI 判级
+用户已批准合同、推送和唯一 manual PR #291，并明确“同意方案 B”。T01 独立合同提交
+`7590643`、T04 独立增补提交 `aba17f7` 后均已停止；后续 fresh run 已重读合同实施。
+远程 Git/Gitea 通过 typed broker；不重复请求已经给出的 push/PR 授权。
 
-权限与部署规则改变，change/platform/complex；已有environment=test|production可表达边界，无须新增schema字段。
+方案 B 已实现：固定历史基线的临时本地 clone 运行原 fake harness；当前 checkout 独立验证
+runner 精确六行修订、其它受控文件原字节、文件集合/模式及 index/磁盘一致性。运行前后检测
+漂移，任何子检查失败都使整体失败；保留全部其它 smoke 硬门和 full Python suite。
+旧 #65 evidence、real/fake harness、fixtures 和 compatibility matrix 均未改动。
 
-T01 独立治理合同步骤已提交为 `75906433a77edbac6f6db603b5760a6a117100a8` 并停止。
-后续独立任务已重新读取 AGENTS、技能、live Issue 与已批准语义文档，沿用原实现授权完成
-T02 runtime 与测试。T03 本地 release 回归 107 项通过，语义文档检查与 diff 检查通过。
-
-用户已确认推送并明确要求创建最终 PR；唯一 PR #291 已创建，policy 为 `manual`。
-当前阶段为 PR CI 验证；required CI 通过后进入 `READY_FOR_REVIEW`，由人合并。
-T02 runtime 与测试已本地原子提交为 `b2cc0a3`，T03 文档与验证单独本地提交。
-适用 AGENTS.md 第 29 行允许 exact change 分支内按 plan frontier 本地 commit；
-已纠正先前将交接概括误读为禁止本地 commit 的说明。远程 Git/Gitea 操作仍走 typed broker。
-分支已通过 typed broker 推送。映射的 verification 记录本地收尾时的验收快照；
-当前 PR/CI 以 #291 的 exact head 与 Gitea 回读为准，installed、company live 仍为 NOT RUN。
-
-2026-09-11：用户明确“同意方案 B”。新增 AC-6/AC-7 已写入 spec：保留历史 #65 evidence 与真实
-harness，固定历史 fake 回归和当前 exact runner/source/行为校验分开执行；不新增真实 Docker 授权。
-T04 为独立治理合同提交并停止，fresh run 继续 T05/T06。当前 CI FAIL 不改写成 PASS；本次批准
-解除合同增补的决策等待，后续实现/测试/同一 PR 修复无需重问推送和建 PR。
+本地 release suite 124 项通过，包含 offline-bundle 部署、幂等与失败回滚及 16 项检查器正反例。
+完整 smoke 结果与 CI head 见映射的 verification；PR #291 为唯一交付入口，required CI 通过
+后才进入 READY_FOR_REVIEW，由人合并。当前 real Docker、installed、company live 均 NOT RUN。

@@ -168,9 +168,12 @@ schema、image 或 database migration，也不能绕过 `prohibited`/EOL/digest/
 此规则不替代profile保护、制品/兼容性、阶段grant与现场授权；数据库迁移恢复授权仍独立。
 `verify-artifact` 不读取 target profile 或 host facts，不授权或执行 #21 的 live cleanup。
 
-实施状态：#290 已在 T01 独立合同调整并停止后，由新任务重读合同完成 runtime 与本地 fake-adapter
-验证（107 项 release tests 通过）。当前等待唯一 manual PR 提交确认，installed/company live 均
-为 NOT RUN，不得据 source/local 结果假定现场已放行。详细证据见
+实施状态：#290 经独立合同步骤与 fresh run 完成 runtime、方案 B 检查器和本地 fake-adapter
+验证：124 项 release tests、包含 890 项 Python 测试的完整 smoke 通过。唯一 manual PR #291
+已开放，最终 CI 以其 exact head 回读为准。方案 B 在固定历史本地快照运行原 fake harness，
+并在当前 checkout 校验精确源码范围与行为；旧 #65 evidence、真实 harness 和 matrix 原字节
+保持。current real Docker、installed/company live 均为 NOT RUN，不能据 source/local 结果
+假定现场已放行。详细证据见
 [`#290 verification`](../docs/changes/290-scm-test-deploy/verification-scm-test-deploy-260911.md)。
 
 ## Stable CLI

@@ -18,92 +18,99 @@ updated: 2026-09-11
 
 # 分阶段验证
 
-## 基线与授权读回
+## 当前结论
 
-- 工作树：`/private/tmp/issue-290-scm-test-deploy`，branch `change/290-scm-test-deploy`。
-- T01：`75906433a77edbac6f6db603b5760a6a117100a8`，仅 6 个合同文档，原任务已停止。
-- 实现时本地 `origin/main` 基线：`64f1cda0de9735f8782e64a5b07af2ce8460e4c3`。
-  后续 typed broker 推送已 fresh-fetch 并通过 ancestry gate；CI 的 merge preview 也记录同一 base。
-- 2026-09-11 新任务完整读取适用 AGENTS、aisoft-platform 技能与映射的 4 份语义文档。
-- broker `gitea.issue.read --number 290` 现场读回 open，标签为 approved、type/platform、
-  complexity/complex，正文 AC-1–5 与本地已批准 spec 一致，无评论。
-  sandbox 路径最初 TRANSPORT_ERROR，同一只读操作在获准宿主路径成功；不是公司主机访问。
-- 创建前 broker `gitea.pulls.read --state open` 返回 `[]`。用户确认后已创建唯一 manual PR #291；
-  当前 head 为 `27fa30d55e35ae2f56072cddef7d9f37d55046d1`，不是仍等待 PR 创建确认。
+T05/T06 的本地 source 验收通过。唯一 manual PR #291 保持开放；以下本地结果不能替代最终
+head 的 required CI，也不代表真实 Docker、安装或公司现场已验证。远端结果随推送后回读。
 
-## 实现与 AC 证据
+## 基线、授权与提交
 
-runtime 仅修改 `runner._host_role_preflight`：已识别 action 且 protected profile 为
-`host_role=scm-ci`、`environment=test` 时加入允许集合。hostname 仍先验证；未知 role/environment
-仍由既有严格 profile parser 拒绝；未知 action 不进入例外。未改变 schema、stage grant、
-Docker adapter、artifact/architecture/capability 校验或部署状态机。
+- 工作树 `/private/tmp/issue-290-scm-test-deploy`，分支 `change/290-scm-test-deploy`。
+- 固定 #290 前基线：`64f1cda0de9735f8782e64a5b07af2ce8460e4c3`。
+- T01 独立治理合同 `75906433a77edbac6f6db603b5760a6a117100a8`；T02 runtime/tests
+  `b2cc0a3f7c0aa3487e2de9db58335a43736b9373`；T03 文档 `ba01de9`；PR 回填 `27fa30d`。
+- 用户已确认推送和提交唯一 manual PR，并明确“同意方案 B”。T04 独立合同增补
+  `aba17f75665479c4219da8e9a1aa4c03f513d2c2` 提交后停止；2026-09-11 fresh run 重读
+  AGENTS、spec/plan 后实施 T05/T06，沿用既有授权。
+- T05 实现提交 `f13402e`，仅新增检查器/测试、补 offline 回归及 smoke 接入四文件。
+- Agent 按适用 AGENTS 在 exact 分支本地原子提交；远程 Git/Gitea 使用 typed broker。
+  历史上将交接概括误读为禁止本地 commit 的判断已纠正，不再作为阻塞。
 
-| AC | 本地验证 | 结果 |
+## 验收覆盖
+
+runtime 仅在 `_host_role_preflight` 的已识别 action、`scm-ci`、`test` 三个条件同时满足时
+加入允许集合，共六行。hostname 先验证；未知 role/environment 由严格 profile parser 拒绝；
+未修改 schema、grant、Docker adapter、artifact/architecture/capability gate 或部署状态机。
+
+| AC | 当前本地证据 | 结果 |
 |---|---|---|
-| AC-1、AC-3 | 3 roles × 2 environments × 8 actions = 48 格表驱动预检；两种 scm-ci 环境的 verify/verify-target 无 mutation、无状态创建 | PASS |
-| AC-2 | 六个 production 动作逐一走公开入口，零 Docker events，未创建 state root；已有 state 的拒绝路径保持原字节 | PASS |
-| AC-2 | 未知 role/environment、hostname 漂移覆盖 8 个公开入口；未知 action 覆盖两条内部验证链路，全部在 Docker/状态前拒绝 | PASS |
-| AC-3、AC-4 | scm-ci/test 复用既有部署顺序、重复 healthy-noop、迁移只跑一次、迁移失败禁止自动重试、健康失败与 identity 漂移回滚、显式 rollback、status 测试 | PASS |
-| AC-3、AC-4 | scm-ci/test 独立 stage/migrate/activate 流程，缺 staging/migration receipt 仍拒绝；migrate 只迁移、activate 只启动 | PASS |
-| AC-4 | 全部 release tests，包括既有 profile/artifact/compatibility/action gate 回归 | PASS，107 tests |
-| AC-5 | README 与 docker-release README 区分 source/local、installed/live，保留独立 Compose project、目录、数据库、端口要求 | PASS（文档） |
+| AC-1、AC-3 | 3 roles × 2 environments × 8 actions 的 48 格矩阵；scm-ci 两种环境的 verify/verify-target 无 mutation/状态创建 | PASS |
+| AC-2 | 六个 production 动作公开入口均零 Docker events，无新 state，已有 state 原字节不变；未知 role/environment/action 与 hostname 漂移拒绝 | PASS |
+| AC-3、AC-4 | Registry 部署顺序、幂等、迁移仅一次、迁移失败不重试、健康/identity 失败回滚、显式 rollback、status；独立 stage/migrate/activate receipt 拒绝路径 | PASS |
+| AC-3、AC-4 | scm-ci/test offline-bundle 使用 load 而无 pull；重复部署 healthy-noop；新 release 健康失败恢复旧 release 与 state | PASS |
+| AC-5 | README 区分 source/local 与 installed/live，保留独立 Compose project、数据库、目录和端口 | PASS（文档） |
+| AC-6 | 固定 baseline、runner 六行与 hash、其它受控文件/index/磁盘原字节与模式；历史 fake 回归独立临时 clone；旧 evidence 原字节 | PASS |
+| AC-6、AC-7 | 16 项检查器正反例覆盖字节/生产/未知动作扩权、未知/ignored/pyc/删除/改名/执行位/symlink、index 漂移、缺 baseline、错误 hash、子回归失败与执行中漂移 | PASS |
+| AC-7 | 124 项 release tests、完整 smoke 中 890 项 Python tests 与其余平台硬门 | PASS |
 
-命令在上述工作树执行：
+检查器拒绝 caller override，不 fetch、不访问远端、不复制当前 runtime 到历史树；临时 clone
+只运行原 fake harness，结束自动删除。当前范围在每个子回归前后绑定身份；任一部分失败则
+整体退出非零，无 fallback。smoke 禁止写 bytecode；额外缓存文件仍拒绝，不作豁免或自动清理。
+
+## 执行记录
+
+在上述工作树执行：
 
 ```text
 PYTHONPATH=codex/runtime:. python3 -B -m unittest discover -s codex/runtime/tests -p 'test_release*.py'
-Ran 107 tests in 0.881s
+124 tests，OK
+
+python3 -B codex/tests/check-release-evidence-boundary.py
+current_source_conformance: PASS
+current_release_regression: PASS
+historical_evidence_binding: PASS
+historical_harness_fake_regression: PASS
+两条子回归命令 exit_code=0
+
+LC_ALL=C bash codex/tests/smoke.sh
+Ran 890 tests in 97.834s
 OK
+Codex platform static smoke checks passed.
+exit 0
 
 PYTHONPATH=codex/runtime python3 -B -m aisoft_loop.cli check-change-documents --repo /private/tmp/issue-290-scm-test-deploy
-PASS: change-documents
-PASS: change-pr-url
-result: changes=132 pass=2 gap=0
+PASS: change-documents; PASS: change-pr-url; changes=132 pass=2 gap=0
 
-bash codex/tools/apply-classification-labels.sh --verify 290 --repo /private/tmp/issue-290-scm-test-deploy
-result=projected; change_type=platform; complexity=complex; applied=false
-
+bash -n codex/tests/smoke.sh
+shellcheck codex/tests/smoke.sh
 git diff --check
-exit 0，无输出
+均 exit 0
 ```
 
-## 交付边界与恢复
+完整 smoke 首次在 sandbox 的既有 fake registry 绑定回环端口时遇到 EPERM；宿主重跑随后
+定位到 macOS Bash 在 UTF-8 locale 下把变量后中文标点误解析为变量名。该既有测试未修改，
+同一测试在 `LC_ALL=C` 下通过，再用该 locale 重跑未删减完整 smoke 得到上述 PASS。
+不以之前失败为 PASS，也没有绕过测试。
 
-- source/local：PASS；测试使用 task-local fixtures 和 FakeDocker，未调用真实 Docker。
-- T02 runtime 与测试提交为 `b2cc0a3`；T03 文档为 `ba01de9`；PR 回填为 `27fa30d`，均已 push。
-  适用 AGENTS.md 第 29 行明确允许 Agent 在 exact change 分支按 plan frontier 本地原子 commit。
-  原交接中“Git/Gitea 写操作必须走 typed broker”是概括，创建者已澄清并非用户额外禁止本地 commit；
-  已修正由此产生的阻塞判断。远程 Git/Gitea 仍使用 typed broker，最终 PR 确认未被替代。
-  本次收尾仅改文档并提交此前已验证的代码，未无理由重跑 107 项 release tests。
-- 唯一 manual PR：#291 已开放且未合并。required CI：FAIL；用户已批准方案 B 的合同增补，
-  当前 T04 治理合同阶段，fresh run 待实施 T05/T06，不重复请求 push/创建 PR。
-- installed/runtime byte parity：NOT RUN；company live / NewEMaint 测试部署：NOT RUN。
-- 未访问公司主机、安装部署、重启服务、修改 UFW、读取秘密、迁移或恢复实际数据库。
-  现场必须由用户手工拷贝离线文件并按项目独立授权执行；应用隔离资源不得覆盖 Gitea。
-- 本地未修改 shell，bash -n/ShellCheck 未额外运行。远端 full smoke 已运行并失败，见下节。
-- source 恢复可撤销本 Issue 的 runtime commit `b2cc0a3`，恢复原 scm-ci 部署拒绝规则；
-  不自动停用现有容器或恢复数据库，现场回滚属于项目独立授权范围。
+## 历史证据与远端 CI
 
-## PR / CI 真实状态及后续本地分析
+- 旧 head `27fa30d55e35ae2f56072cddef7d9f37d55046d1` 的 required context
+  `CI / verify (pull_request)` 曾 FAIL（run/job #1271）：历史 #65 harness 的 runtime gate
+  仅接受 transport.py 变更，而 #290 新增 runner.py 修订。该旧结果保留，不代表新 head。
+- 用户批准方案 B 后，当前 smoke 以固定历史 fake 回归加当前严格范围/行为验收取代原直接调用。
+  原真实 harness 前后 source/authorization 检查完全不变；它在当前 runtime 上仍拒绝执行。
+- 旧 #65 immutable evidence SHA-256：
+  `b58bb7b57d53a104f922e66c7dc1342bc1b5b133038f60fa8f2ace8d8dbdeb89`，本轮复核一致。
+- 当前 runner SHA-256：
+  `95092fbd6deab1a536d53371444c9b9c708b538cff3bc1ac4ebbd7dae3bff195`，其余 release runtime
+  与固定 baseline 一致。旧 evidence、real/fake harness、fixtures、matrix 均未改动。
+- 新 head 推送后的 required CI 尚待回读，不能提前写 READY_FOR_REVIEW。
 
-- PR #291，policy manual；exact head `27fa30d55e35ae2f56072cddef7d9f37d55046d1`。
-- Required context `CI / verify (pull_request)`：FAIL；run/job #1271，Platform smoke suite 失败。
-- CI merge preview 确认 base `64f1cda0de9735f8782e64a5b07af2ce8460e4c3` 是 head 祖先。
-- 原因：历史 #65 harness 要求相对其 delivery base 的 runtime 变更文件仅为 transport.py；
-  当前另有 #290 已批准的 runner.py，故拒绝。执行前、执行后均有检查，不能只修改一处。
-- 本地 107 release tests PASS 与远端 full smoke FAIL 分开记录，未声称 READY_FOR_REVIEW。
-- 后续受托本地分析逐文件核对 runtime 的 12 个文件：相对 #290 前基线只有 runner.py 差异，
-  当前 runner 精确为原文件加六行测试例外，无额外字节或路径。该只读对比不是已实现的新闸门。
-- #65 immutable evidence 与基线字节相同，SHA-256 为
-  `b58bb7b57d53a104f922e66c7dc1342bc1b5b133038f60fa8f2ace8d8dbdeb89`。
-- 已准备本地待审批方案：固定历史 fake/static regression 与当前精确源码/行为验证分开。
-  尚未修改原 #65 gate、smoke 调用、旧 evidence 或 compatibility matrix，未运行真实 Docker。
-- 前述分析阶段的状态修正仅留本地；用户随后明确“同意方案 B”。T04 将 spec/plan/summary 与
-  本 verification 纳入独立治理提交；公开 PR 保持精简摘要，T05/T06 fresh run 再实施已批准范围。
+## 交付边界与回退
 
-## T04 方案 B 授权与治理步骤
-
-- 授权来源：用户在本任务直接回复“同意方案 B”，范围按此前完整提案及 spec AC-6/AC-7 固定。
-- 当前只修改 4 份本 Change 语义文档，不修改 checker、runtime、smoke、旧 #65 evidence 或 matrix。
-- 不新增 disposable E2E 要求；current real/installed/company-live 均保持 NOT RUN。
-- T04 提交后停止；后续 fresh run 重读合同执行 T05/T06。本轮不无理由重跑既有 107 项测试。
+- source/local：PASS；FakeDocker/临时 fixtures 测试，不调用真实 Docker。
+- current real E2E、installed/runtime byte parity、company live/NewEMaint 测试部署：NOT RUN。
+- 未访问公司主机、安装部署、重启服务、修改 UFW、读取 Secret、迁移或恢复实际数据库。
+- 唯一 PR #291，policy manual；最终 required CI 通过后由人合并，合并不传递部署授权。
+- 撤销 T05 可恢复原 smoke gate 对当前 runner 的拒绝；撤销 runtime commit `b2cc0a3` 可恢复
+  原 scm-ci 部署拒绝规则。旧 evidence 不变，源码回退不操作容器、服务或数据库。
