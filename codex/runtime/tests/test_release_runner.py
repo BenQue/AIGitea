@@ -212,6 +212,34 @@ class ScmCiReleaseRunnerTests(ReleaseRunnerTests):
         self.assertTrue(self.runtime.status(self.profile, SHA_A)["ok"])
 
 
+class ScmCiOfflineRunnerTests(unittest.TestCase):
+    def test_offline_deploy_noop_and_health_failure_rollback(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            docker = FakeDocker()
+            for sha in (SHA_A, SHA_B):
+                profile, model, manifest = create_release(
+                    root, sha, transport="offline-bundle", role="scm-ci"
+                )
+                docker.register(sha, model, manifest)
+            runtime = ReleaseRuntime(docker, hostname="test-host")
+            self.assertEqual(runtime.deploy(profile, SHA_A)["action"], "deployed")
+            self.assertTrue(any(event[0] == "load" for event in docker.events))
+            self.assertFalse(any(event[0] == "pull" for event in docker.events))
+            mutations = list(docker.mutations)
+            self.assertEqual(runtime.deploy(profile, SHA_A)["action"], "healthy-noop")
+            self.assertEqual(docker.mutations, mutations)
+            docker.unhealthy_for.add(SHA_B)
+            with self.assertRaisesRegex(DeploymentError, "previous container release"):
+                runtime.deploy(profile, SHA_B)
+            self.assertEqual(docker.current_release, SHA_A)
+            state = json.loads((root / "state/state.json").read_text())
+            self.assertEqual(state["current_release"], SHA_A)
+            self.assertEqual([event[1] for event in docker.events if event[0] == "up"][-2:],
+                             [SHA_B, SHA_A])
+            self.assertEqual(len([event for event in docker.events if event[0] == "migration"]), 2)
+
+
 class HostRoleMatrixTests(unittest.TestCase):
     ACTIONS = (
         "verify", "verify-target", "stage", "migrate", "activate", "deploy", "status", "rollback"

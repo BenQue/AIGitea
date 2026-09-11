@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export PYTHONDONTWRITEBYTECODE=1
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 
@@ -218,7 +219,7 @@ bash "$ROOT/codex/tests/test-docker-release-install.sh"
 bash "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
 harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh")"
 grep -Fq 'NOT RUN: Docker image-store E2E' <<<"$harness_output"
-bash "$ROOT/codex/tests/test-docker-release-v2-lifecycle-e2e-harness.sh"
+python3 -B "$ROOT/codex/tests/check-release-evidence-boundary.py"
 lifecycle_harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh")"
 grep -Fq 'NOT RUN: Docker release v2 lifecycle E2E requires separate Issue #65 authorization.' \
   <<<"$lifecycle_harness_output"
