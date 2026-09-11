@@ -10,7 +10,7 @@ confidence: high
 risk_flags:
   - security
   - deployment
-status: approved
+status: pr-open
 branch: change/290-scm-test-deploy
 created: 2026-09-11
 updated: 2026-09-11
@@ -26,7 +26,7 @@ documents:
   plan: plan-scm-test-deploy-260911.md
   verification: verification-scm-test-deploy-260911.md
 override_reason: ''
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/291
 depends_on: []
 ---
 
@@ -42,8 +42,10 @@ T01 独立治理合同步骤已提交为 `75906433a77edbac6f6db603b5760a6a117100
 后续独立任务已重新读取 AGENTS、技能、live Issue 与已批准语义文档，沿用原实现授权完成
 T02 runtime 与测试。T03 本地 release 回归 107 项通过，语义文档检查与 diff 检查通过。
 
-当前交接状态：`AWAITING_PR_CONFIRMATION`，最终唯一 PR 的 policy 为 `manual`。
+用户已确认推送并明确要求创建最终 PR；唯一 PR #291 已创建，policy 为 `manual`。
+当前阶段为 PR CI 验证；required CI 通过后进入 `READY_FOR_REVIEW`，由人合并。
 T02 runtime 与测试已本地原子提交为 `b2cc0a3`，T03 文档与验证单独本地提交。
 适用 AGENTS.md 第 29 行允许 exact change 分支内按 plan frontier 本地 commit；
 已纠正先前将交接概括误读为禁止本地 commit 的说明。远程 Git/Gitea 操作仍走 typed broker。
-PR、CI、installed、company live 均未执行，详情见映射的 verification。
+分支已通过 typed broker 推送。映射的 verification 记录本地收尾时的验收快照；
+当前 PR/CI 以 #291 的 exact head 与 Gitea 回读为准，installed、company live 仍为 NOT RUN。
