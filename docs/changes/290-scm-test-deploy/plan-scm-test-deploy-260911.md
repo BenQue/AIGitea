@@ -28,3 +28,10 @@ T01不实施runtime；T02无需重复询问本次已明确的行为选择。不�
 
 预期验证：PYTHONPATH=codex/runtime:. python3 -B -m unittest discover -s codex/runtime/tests -p 'test_release*.py'；矩阵须有production零副作用反例。semantic docs check、git diff --check。无shell修改则不增加shell专项。
 source可Git revert；部署/数据库回滚不由该source变更执行。现场始终NOT RUN直到独立回执。
+
+## 执行读回（2026-09-11）
+
+- T01：PASS，独立合同提交 `7590643`，原任务已停止。
+- T02：PASS，新任务重读后完成，本地 commit `b2cc0a3`；生产仍拒绝，测试例外与失败路径已本地验证。
+- T03：本地回归、文档检查、diff 审查 PASS；`AWAITING_PR_CONFIRMATION`。
+  已按 AGENTS.md 第 29 行完成本地原子提交，唯一 manual PR 和 required CI 尚未执行。

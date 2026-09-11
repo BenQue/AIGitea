@@ -168,8 +168,10 @@ schema、image 或 database migration，也不能绕过 `prohibited`/EOL/digest/
 此规则不替代profile保护、制品/兼容性、阶段grant与现场授权；数据库迁移恢复授权仍独立。
 `verify-artifact` 不读取 target profile 或 host facts，不授权或执行 #21 的 live cleanup。
 
-实施状态：#290 T01仅完成独立合同调整，runtime支持待T02验证；当前installed/live仍不得
-据本文假定已放行。下一轮重新读取合同后实施runtime，不通过改profile角色绕过现有拒绝。
+实施状态：#290 已在 T01 独立合同调整并停止后，由新任务重读合同完成 runtime 与本地 fake-adapter
+验证（107 项 release tests 通过）。当前等待唯一 manual PR 提交确认，installed/company live 均
+为 NOT RUN，不得据 source/local 结果假定现场已放行。详细证据见
+[`#290 verification`](../docs/changes/290-scm-test-deploy/verification-scm-test-deploy-260911.md)。
 
 ## Stable CLI
 
