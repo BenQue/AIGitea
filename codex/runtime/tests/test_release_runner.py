@@ -5,8 +5,9 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from aisoft_release.errors import DeploymentError, HostRoleError
-from aisoft_release.runner import ReleaseRuntime
+from aisoft_release.contract import load_target_profile
+from aisoft_release.errors import ContractError, DeploymentError, HostRoleError
+from aisoft_release.runner import ReleaseRuntime, _host_role_preflight
 
 from tests.release_test_support import (
     FakeDocker,
@@ -91,6 +92,13 @@ class ReleaseRunnerTests(unittest.TestCase):
                 root = Path(directory)
                 profile, model_a, manifest_a = create_release(root, SHA_A)
                 _, model_b, manifest_b = create_release(root, SHA_B)
+                current_profile = json.loads(self.profile.read_text())
+                data = json.loads(profile.read_text())
+                data.update(
+                    host_role=current_profile["host_role"],
+                    environment=current_profile["environment"],
+                )
+                write_json(profile, data, mode=0o600)
                 docker = FakeDocker()
                 docker.register(SHA_A, model_a, manifest_a)
                 docker.register(SHA_B, model_b, manifest_b)
@@ -148,9 +156,10 @@ class ReleaseRunnerTests(unittest.TestCase):
         )
         self.assertEqual(result["database_restore"], "NOT_RUN_MANUAL_ONLY")
 
-    def test_scm_ci_role_can_verify_but_cannot_deploy_before_docker_call(self) -> None:
+    def test_scm_ci_production_can_verify_but_cannot_deploy_before_docker_call(self) -> None:
         profile = json.loads(self.profile.read_text())
         profile["host_role"] = "scm-ci"
+        profile["environment"] = "production"
         write_json(self.profile, profile, mode=0o600)
         self.assertTrue(self.runtime.verify(self.profile, SHA_A)["ok"])
         self.docker.events.clear()
@@ -173,6 +182,121 @@ class ReleaseRunnerTests(unittest.TestCase):
         self.assertNotIn("fixture-value", json.dumps(self.docker.events))
         self.docker.unhealthy_for.add(SHA_A)
         self.assertFalse(self.runtime.status(self.profile, SHA_A)["ok"])
+
+
+class ScmCiReleaseRunnerTests(ReleaseRunnerTests):
+    """Run the existing lifecycle and failure regressions on the co-located role."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        profile = json.loads(self.profile.read_text())
+        profile.update(host_role="scm-ci", environment="test")
+        write_json(self.profile, profile, mode=0o600)
+
+    def test_explicit_phases_preserve_receipts_and_mutation_boundaries(self) -> None:
+        with self.assertRaisesRegex(DeploymentError, "staging receipt"):
+            self.runtime.migrate(self.profile, SHA_A)
+        self.assertEqual(self.docker.mutations, [])
+        self.assertEqual(self.runtime.stage(self.profile, SHA_A)["action"], "staged")
+        self.docker.events.clear()
+        with self.assertRaisesRegex(DeploymentError, "migration receipt"):
+            self.runtime.activate(self.profile, SHA_A)
+        self.assertEqual(self.docker.mutations, [])
+        self.assertEqual(
+            self.runtime.migrate(self.profile, SHA_A)["action"], "migration-completed"
+        )
+        self.assertEqual([event[0] for event in self.docker.mutations], ["migration"])
+        self.docker.events.clear()
+        self.assertEqual(self.runtime.activate(self.profile, SHA_A)["action"], "activated")
+        self.assertEqual([event[0] for event in self.docker.mutations], ["up"])
+        self.assertTrue(self.runtime.status(self.profile, SHA_A)["ok"])
+
+
+class HostRoleMatrixTests(unittest.TestCase):
+    ACTIONS = (
+        "verify", "verify-target", "stage", "migrate", "activate", "deploy", "status", "rollback"
+    )
+    DEPLOYMENT_ACTIONS = ("stage", "migrate", "activate", "deploy", "status", "rollback")
+
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        self.root = Path(self.tempdir.name)
+        self.profile, model, manifest = create_release(self.root, SHA_A)
+        self.profile_data = json.loads(self.profile.read_text())
+        self.docker = FakeDocker()
+        self.docker.register(SHA_A, model, manifest)
+        self.runtime = ReleaseRuntime(self.docker, hostname="test-host")
+
+    def test_role_environment_action_matrix(self) -> None:
+        for role in ("scm-ci", "appserver-test", "appserver-prod"):
+            for environment in ("test", "production"):
+                data = dict(self.profile_data, host_role=role, environment=environment)
+                write_json(self.profile, data, mode=0o600)
+                profile = load_target_profile(self.profile)
+                for action in self.ACTIONS:
+                    with self.subTest(role=role, environment=environment, action=action):
+                        denied = (
+                            role == "scm-ci" and environment == "production"
+                            and action in self.DEPLOYMENT_ACTIONS
+                        )
+                        if denied:
+                            with self.assertRaises(HostRoleError):
+                                _host_role_preflight(profile, action, "test-host")
+                        else:
+                            _host_role_preflight(profile, action, "test-host")
+
+    def test_public_entrypoints_reject_before_docker_or_state_creation(self) -> None:
+        cases = (
+            ({"host_role": "scm-ci", "environment": "production"},
+             self.DEPLOYMENT_ACTIONS, HostRoleError),
+            ({"host_role": "unknown"}, self.ACTIONS, ContractError),
+            ({"host_role": "scm-ci", "environment": "unknown"}, self.ACTIONS, ContractError),
+            ({"host_role": "scm-ci", "environment": "test", "expected_hostname": "wrong-host"},
+             self.ACTIONS, HostRoleError),
+        )
+        for overrides, actions, error in cases:
+            write_json(self.profile, dict(self.profile_data, **overrides), mode=0o600)
+            for action in actions:
+                with self.subTest(overrides=overrides, action=action):
+                    with self.assertRaises(error):
+                        getattr(self.runtime, action.replace("-", "_"))(self.profile, SHA_A)
+                    self.assertEqual(self.docker.events, [])
+                    self.assertFalse((self.root / "state").exists())
+
+    def test_unknown_action_cannot_use_test_exception(self) -> None:
+        data = dict(self.profile_data, host_role="scm-ci", environment="test")
+        write_json(self.profile, data, mode=0o600)
+        for verify in (self.runtime._verify_context, self.runtime._verify_target_context):
+            with self.subTest(entrypoint=verify.__name__):
+                with self.assertRaises(HostRoleError):
+                    verify(self.profile, SHA_A, "unknown", require_env=False)
+                self.assertEqual(self.docker.events, [])
+                self.assertFalse((self.root / "state").exists())
+
+    def test_production_rejection_preserves_existing_state(self) -> None:
+        self.runtime.deploy(self.profile, SHA_A)
+        state_path = self.root / "state" / "state.json"
+        before = state_path.read_bytes()
+        data = dict(self.profile_data, host_role="scm-ci", environment="production")
+        write_json(self.profile, data, mode=0o600)
+        self.docker.events.clear()
+        for action in self.DEPLOYMENT_ACTIONS:
+            with self.subTest(action=action):
+                with self.assertRaises(HostRoleError):
+                    getattr(self.runtime, action)(self.profile, SHA_A)
+                self.assertEqual(self.docker.events, [])
+                self.assertEqual(state_path.read_bytes(), before)
+
+    def test_scm_verification_is_read_only_in_both_environments(self) -> None:
+        for environment in ("test", "production"):
+            data = dict(self.profile_data, host_role="scm-ci", environment=environment)
+            write_json(self.profile, data, mode=0o600)
+            for verify in (self.runtime.verify, self.runtime.verify_target):
+                with self.subTest(environment=environment, entrypoint=verify.__name__):
+                    self.assertTrue(verify(self.profile, SHA_A)["ok"])
+                    self.assertEqual(self.docker.mutations, [])
+                    self.assertFalse((self.root / "state").exists())
 
 
 if __name__ == "__main__":
