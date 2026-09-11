@@ -12,7 +12,7 @@ risk_flags:
   - platform-governance
   - shared-core
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/292-github-main-relay
 created: 2026-09-11
 updated: 2026-09-11
@@ -79,4 +79,4 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-行为范围无未决设计；实际项目GitHub专用凭据由用户本地受控配置，缺失时停在credential provisioning，不读取或提升现有宽身份。最终PR仍保留人工提交/合并流程；安装只允许merged exact-source版本，调度启用与实际同步沿用该项目的明确授权。
+行为范围无未决设计；实际项目GitHub专用凭据由用户本地受控配置，缺失时停在credential provisioning，不读取或提升现有宽身份。最终PR仍保留人工提交/合并流程；安装只允许merged exact-source版本。本轮最新批准仅覆盖实现、本地测试与PR材料，明确不允许实际同步、凭据配置、安装或启用调度、公司及旧服务操作。

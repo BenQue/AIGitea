@@ -12,7 +12,7 @@ risk_flags:
   - platform-governance
   - shared-core
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/292-github-main-relay
 created: 2026-09-11
 updated: 2026-09-11
@@ -36,6 +36,27 @@ updated: 2026-09-11
 - [ ] AC-8：提供版本化项目专用macOS调度入口，默认10分钟周期，只调用同一typed reconcile，锁防重叠。install候选不创建/复制凭据、不启用任务。实际安装必须通过现有source provenance guard，配置/启用只针对获批项目，disable停止后续运行且不回退/删除任何GitHub ref。不改现有入站timer及其它项目任务。
 - [ ] AC-9：确定性测试覆盖成功FF、两次执行update→no-op、分叉、missing ref、源码倒退、目标在plan后推进/删除、凭据/身份/绑定拒绝、并发、receipt失败与脱敏，并断言其它branch/tag完全不变。测试使用临时repo/fakes，禁止触碰真实网络/凭据。
 - [ ] AC-10：最终源码PR人工合并后，验证installed字节，再由用户完成必要专用认证。实际pilot执行一次FF、一次no-op，远端独立读回一致，并证明至少一次调度触发执行；真实数据的故意失败不得改远端，可使用本地受控故障路径。未发生则对应项NOT RUN。
+
+## 本轮批准范围与受保护文件授权
+
+用户已明确批准实现#292、完成本地测试和PR材料；本轮禁止实际推送GitHub、配置或provision凭据、安装或启用定时任务、触碰公司服务器及旧服务。此前对未来自动同步目标的批准，不替代本轮明确禁止项。T02/T03可实施代码并在临时目录验证；T04仅本地回归和PR材料，实际提交/合并另守原有人工门；T05为后续NOT RUN阶段。
+
+本complex spec将plan既定touchpoints收敛为以下exact文件允许清单。允许为AC-1–AC-9修改或新增以下文件；只按需要触及，不要求全部修改，不授权同目录其它文件：
+
+| Ticket | Exact files | 授权与验证 |
+|---|---|---|
+| T02 | `codex/runtime/aisoft_host_access/broker.py`、`codex/runtime/aisoft_host_access/contract.py`、`codex/runtime/aisoft_host_access/cli.py`、`codex/config/host-access-broker.json` | 新typed relay路由与封闭绑定；broker/contract回归，原操作语义与权限不变 |
+| T02 | `codex/runtime/aisoft_host_access/github_relay.py`、`codex/config/github-relay-binding.schema.json`、`codex/tools/github-relay-pre-push.sh`、`codex/tools/github-relay-credential.sh` | 专用relay、binding schema和固定进程入口；临时真实Git/协商OID/凭据脱敏/严格参数测试 |
+| T02 | `codex/runtime/tests/test_host_access.py`、`codex/runtime/tests/test_github_relay.py`、`codex/tests/test-host-access-broker.sh` | 复用真实现有测试路径，覆盖AC-1–AC-7/AC-9；不得删除或放宽既有安全断言 |
+| T03 | `codex/install-host-access-broker.sh`、`codex/install-github-main-relay.sh`、`codex/runtime/aisoft_host_access/github_relay_scheduler.py`、`codex/templates/launchd/com.aisoft.github-main-relay.plist` | 版本化安装/默认disabled调度；只在临时安装根与fake scheduler验证，无真实安装/launchctl enable |
+| T03 | `codex/tests/test-install-host-access-broker.sh`、`codex/tests/test-install-github-main-relay.sh`、`codex/runtime/tests/test_github_relay_scheduler.py`、`codex/tests/smoke.sh` | installer/scheduler幂等与disabled默认、source provenance及全套回归 |
+| T03 | `codex/lib/install-source-guard.sh` | 仅既定必要source-guard inventory/新installer登记；不得改变provenance/staleness拒绝规则，完整source-guard回归 |
+| T03/T04 | `README.md`、`06-运维手册与踩坑集.md` | 仅新增relay操作与边界说明，不扩展凭据/部署授权；文档与链接检查 |
+| T01–T04 | `docs/changes/292-github-main-relay/summary-github-main-relay-260911.md`、`docs/changes/292-github-main-relay/spec-github-main-relay-260911.md`、`docs/changes/292-github-main-relay/plan-github-main-relay-260911.md`、`docs/changes/292-github-main-relay/verification-github-main-relay-260911.md` | 映射合同和真实证据更新；check-change-documents与diff检查 |
+
+禁止修改AGENTS.md、现有workflow/CI context、controller实现、Gitea治理权限manifest、其它项目配置、入站sync实现与历史证据。需要清单外受保护文件时先向Controller报告具体必要差异，不推导为同目录授权。新入口文件basename在本次收敛时固定，以免worker猜测范围；不新增功能。
+
+回滚授权限于开发分支上的本票代码回退，以及测试临时安装根的隔离恢复；不回退GitHub refs、不卸载/替换已安装工具、不更改真实调度。后续已合并工具的安装与停用计划仍按AC-8/10单独验收。本轮本地验证必须覆盖non-main refs不变、失败拒绝、两次临时FF/no-op、竞态、secret不泄漏与source-guard完整性。
 
 ## 接口、数据与兼容性影响
 

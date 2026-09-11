@@ -12,7 +12,7 @@ risk_flags:
   - platform-governance
   - shared-core
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/292-github-main-relay
 created: 2026-09-11
 updated: 2026-09-11
@@ -27,14 +27,18 @@ updated: 2026-09-11
 | T01 | 独立合同步骤：本票四份映射文档与范围对齐，无runtime修改 | - | completed |
 | T02 | typed main relay plan/reconcile/status、绑定与协商OID门、确定性测试 | T01 | pending |
 | T03 | 版本化安装与项目调度、脱敏receipt及失败关闭回归 | T02 | pending |
-| T04 | 完整回归、一次最终PR与人工合并 | T03 | pending |
+| T04 | 完整回归与最终PR材料；提交/合并等待独立人工门 | T03 | pending |
 | T05 | exact merged install、必要用户认证、两次live执行及调度验收 | T04 | pending |
+
+## 本轮执行批准
+
+用户已批准T02/T03实现、本地测试和T04 PR材料；禁止真实GitHub推送、配置凭据、实际安装/启用调度、公司服务器和旧服务操作。T05不在本轮授权内。exact文件清单、验证及回滚授权已纳入mapped spec的“本轮批准范围与受保护文件授权”，以下touchpoints只作任务说明，以该清单为界。
 
 ## Expected touch points
 
 T01：docs/changes/292-github-main-relay/{summary,spec,plan,verification}-github-main-relay-260911.md。
 
-T02：codex/runtime/aisoft_host_access/{broker,contract,cli}.py，新增github_relay.py及固定pre-push验证入口，codex/config/host-access-broker.json，必要严格relay binding schema，codex/runtime/tests/test_host_access_broker.py及新增test_github_relay.py。先核实际测试文件路径，不因提示路径不同另建重复测试体系。Gitea访问复用现有broker；GitHub的独立adapter只可从typed路由进入。
+T02：codex/runtime/aisoft_host_access/{broker,contract,cli}.py，新增github_relay.py及固定pre-push验证入口，codex/config/host-access-broker.json，必要严格relay binding schema，codex/runtime/tests/test_host_access.py及新增test_github_relay.py。先核实际测试文件路径，不因提示路径不同另建重复测试体系。Gitea访问复用现有broker；GitHub的独立adapter只可从typed路由进入。
 
 T03：codex/install-host-access-broker.sh及其测试、versioned macOS launchd模板/installer与tests、必要source-guard inventory、README与06相关小节。template内容不能使用任意shell/script参数，默认不启用。允许新增专用安装入口，但必须受相同provenance guard、无凭据副作用；不得新增第二套通用权限broker。
 
@@ -60,4 +64,4 @@ T05：仅merged exact source实际安装与绑定/项目调度，凭据由人本
 
 ## 部署与回滚
 
-此为开发侧版本化工具/调度安装，不是公司应用部署。两次live reconcile及一次本地拒绝故障证明对应AC-9/10。需要人工合并后才能安装；自动同步操作范围已获批，不重复启动确认。仅缺失认证输入或明确范围扩张时请求一次具体动作。停用scheduler后读取disabled且无新执行，保持所有远端refs。
+此为开发侧版本化工具/调度安装，不是公司应用部署。两次live reconcile及一次本地拒绝故障证明对应AC-9/10。需要人工合并后才能安装；本轮只批准实现、本地验证和PR材料，不执行实际同步、认证配置或安装/启用。仅缺失认证输入或明确范围扩张时请求一次具体动作。停用scheduler后读取disabled且无新执行，保持所有远端refs。
