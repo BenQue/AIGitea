@@ -33,7 +33,9 @@
 下图保留 PM2/SQLite **as-built legacy 试点**的交付关系，不是新 Linux 项目的默认目标。新项目
 使用受控 builder 一次构建 `linux/amd64` OCI images，由 Gitea Container Registry 或同一
 manifest 的 offline bundle 传到隔离的 test/prod trust role；`gitea-ci` 只承担 SCM 与明确
-批准的 CI/CD 能力，不运行业务容器。
+批准的 CI/CD 能力。#290 增加仅测试的共置合同：受保护部署profile显式声明
+`host_role=scm-ci` 且 `environment=test` 时可承载隔离测试应用，生产仍须分离。
+详见 docker-release/README.md；当前T01仅合同，runtime/installed/live放行尚未完成。
 
 ```mermaid
 flowchart TB

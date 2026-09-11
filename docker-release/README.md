@@ -160,9 +160,16 @@ self-hash 或 exception expiry 任一不匹配，都会在 Docker config/pull/lo
 Current lock 表达实际 release bytes；target candidate 只表达期望架构。Transition 不授权依赖、
 schema、image 或 database migration，也不能绕过 `prohibited`/EOL/digest/expiry/checksum。
 
-`scm-ci` 只允许 `verify`/`verify-target`；`stage`、`migrate`、`activate`、`deploy`、`status` 和
-`rollback` 只允许 `appserver-test`/`appserver-prod`。`verify-artifact` 不读取 target profile 或
-host facts。这一 preflight 只消费 #21 的 host-role 语义，不授权或执行 #21 的 live cleanup。
+目标合同（#290）：`scm-ci` 的受保护 target profile 明确为 `environment=test` 时，允许
+`stage`、`migrate`、`activate`、`deploy`、`status` 和 `rollback`；`environment=production`
+仍拒绝这些动作。普通 verify/verify-target 和 appserver-test/appserver-prod 既有行为不变。
+不新增角色、不伪造主机身份；未知环境/动作不得进入测试例外。
+测试应用采用独立 Compose project、数据库、目录与端口，不能覆盖现有SCM资源。
+此规则不替代profile保护、制品/兼容性、阶段grant与现场授权；数据库迁移恢复授权仍独立。
+`verify-artifact` 不读取 target profile 或 host facts，不授权或执行 #21 的 live cleanup。
+
+实施状态：#290 T01仅完成独立合同调整，runtime支持待T02验证；当前installed/live仍不得
+据本文假定已放行。下一轮重新读取合同后实施runtime，不通过改profile角色绕过现有拒绝。
 
 ## Stable CLI
 
