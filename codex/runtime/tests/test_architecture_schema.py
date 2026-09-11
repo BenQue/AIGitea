@@ -44,7 +44,7 @@ class ArchitectureSchemaTests(unittest.TestCase):
             profile = load_json(path)
             validate_profile(profile, self.profile_schema, self.catalog, components)
             profile_ids.append(profile["profile_id"])
-        self.assertEqual(len(profile_ids), 4)
+        self.assertEqual(len(profile_ids), 5)
         self.assertEqual(len(profile_ids), len(set(profile_ids)))
 
     def test_systemd_native_profile_has_no_container_or_frontend_slot(self) -> None:
@@ -87,6 +87,52 @@ class ArchitectureSchemaTests(unittest.TestCase):
         fixture = load_json(ARCH / "fixtures/valid/linux-systemd-project.json")
         self.assertEqual(fixture["profile_id"], profile["profile_id"])
         self.assertEqual(fixture["delivery_contract"], "systemd-native/v1")
+
+    def test_node_sqlite_profile_slots_and_multi_environment_contracts(self) -> None:
+        components = validate_catalog(self.catalog, self.catalog_schema, TODAY)
+        profile = load_json(ARCH / "profiles/linux-node-sqlite-v1.json")
+        validate_profile(profile, self.profile_schema, self.catalog, components)
+        slots = [item["component_id"] for item in profile["required_components"]]
+        self.assertEqual(
+            slots,
+            [
+                "os.ubuntu.24-04-4",
+                "runtime.node.24",
+                "package.npm.11",
+                "database.sqlite.3",
+                "framework.next.16",
+                "frontend.react.19",
+                "orm.prisma.7",
+                "toolchain.typescript.6",
+            ],
+        )
+        # The profile exists because no other one pairs an embedded database
+        # with a frontend framework. Forcing a client-server database, a proxy
+        # or a container runtime would re-break exactly the shape it was
+        # created for, so those categories stay excluded.
+        categories = {components[slot]["category"] for slot in slots}
+        self.assertTrue(
+            categories.isdisjoint(
+                {"container-engine", "container-compose", "oci-image", "proxy"}
+            )
+        )
+        self.assertNotIn("database.postgresql.18", slots)
+
+        # 裁决 A: one repository whose environments differ in delivery
+        # ownership writes one declaration per environment, each naming a
+        # single contract, rather than one declaration naming several.
+        self.assertEqual(
+            profile["delivery_contracts"],
+            ["embedded-sqlite/v1", "pm2-legacy", "docker-release/v1"],
+        )
+        contracts = set()
+        for name in ("node-sqlite-native-project", "node-sqlite-container-project"):
+            fixture = load_json(ARCH / f"fixtures/valid/{name}.json")
+            self.assertEqual(fixture["profile_id"], profile["profile_id"])
+            self.assertIsInstance(fixture["delivery_contract"], str)
+            self.assertIn(fixture["delivery_contract"], profile["delivery_contracts"])
+            contracts.add(fixture["delivery_contract"])
+        self.assertEqual(contracts, {"pm2-legacy", "docker-release/v1"})
 
     def test_valid_fixtures_pass_schema_and_runtime(self) -> None:
         for path in sorted((ARCH / "fixtures/valid").glob("*.json")):

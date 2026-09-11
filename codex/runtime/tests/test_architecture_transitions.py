@@ -349,6 +349,53 @@ class ArchitectureTransitionTests(unittest.TestCase):
         )
         self._assert_error("TRANSITION_EXCEPTION_MIGRATION_MISMATCH")
 
+    def test_migration_issue_accepts_absolute_http_and_still_rejects_the_rest(
+        self,
+    ) -> None:
+        """The internal tracker is reachable over http only, so an absolute http
+        Issue URL must be accepted. Every other rejection stays in place: the
+        field is an audit reference, not a free-form string."""
+        self._declare_transition(
+            "database.postgresql.18",
+            "database.postgresql.16",
+            migration_issue="http://gitea.example:3000/projects/app/issues/101",
+        )
+        lock = self._build()
+        component = next(
+            item
+            for item in lock["resolved_components"]
+            if item["component_id"] == "database.postgresql.16"
+        )
+        self.assertEqual(
+            component["migration_issue"],
+            "http://gitea.example:3000/projects/app/issues/101",
+        )
+
+        for invalid in (
+            "#51",
+            "/projects/app/issues/101",
+            "ftp://gitea.example/projects/app/issues/101",
+            "http://user:password@gitea.example/app/issues/101",
+            "http://gitea.example/app/issues/101?tab=comments",
+            "http://gitea.example/app/issues/101#note",
+        ):
+            with self.subTest(migration_issue=invalid):
+                self.setUp()
+                self._declare_transition(
+                    "database.postgresql.18",
+                    "database.postgresql.16",
+                    migration_issue=invalid,
+                )
+                with self.assertRaises(ArchitectureError) as caught:
+                    self._build()
+                self.assertIn(
+                    caught.exception.diagnostic.code,
+                    {
+                        "MIGRATION_ISSUE_INVALID",
+                        "TRANSITION_MIGRATION_ISSUE_INVALID",
+                    },
+                )
+
     def test_exception_time_bounds_fail_closed(self) -> None:
         self._declare_transition(
             "database.postgresql.18",

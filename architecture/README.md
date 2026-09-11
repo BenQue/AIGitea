@@ -12,11 +12,22 @@
   `latest`、范围、package 集合漂移和同组件 package 版本不一致，且不会在 lock 生成时访问网络。
 - `profiles/*.json` 的每个 slot 保留唯一 `preferred` component，并可由 profile owner 维护同
   category 的 closed `transitions` allowlist；delivery 能力仍由 #22/应用 Change 提供。
+- 一个 profile 的 `delivery_contracts` 可以列出多个取值，但一份 declaration 只取其中一个。
+  同一个仓库的多个环境如果交付归属不同，各写一份 declaration 与一份 lock，不合并成一份；
+  取值之间的互斥性因此保持不变（ADR-0006）。
+- 声明容器交付取值的 declaration 必须同时声明一个按 digest 固定的 `oci-image` component，
+  否则 `DELIVERY_BASE_IMAGE_REQUIRED` fail closed。这条按 delivery contract 触发，
+  不是 profile slot——`required_components` 无条件，加 slot 会逼原生交付声明不存在的镜像。
 - 项目人工维护 `.aisoft/architecture.json`，提交生成的 `architecture.lock.json`。
 - lock 不含生成时间或主机信息；相同输入会生成 byte-identical canonical JSON。
 - Project 每个 slot 只能选择 preferred 或一个 allowlisted `supported`/`sunset` transition；
   transition 不是第四种永久 profile，也不表示 major migration 已完成。
-- Transition 必须引用绝对 HTTPS migration Issue，并与唯一、未过期 exception 一一绑定；
+- Component 版本默认与 catalog pin 精确相等。项目实际运行的构建不同时，可以显式声明
+  `as_built: true` 如实记录，条件是有且只有一个有效 exception、与 pin 同 major 且不相等；
+  `0.x` major 下 minor 也必须相等，按 digest 固定的 component 一律拒绝 as-built。
+  lock 记录声明的真实构建而不回显 catalog pin，偏差由同一条目的 `exception_id` 与
+  `exception_expires_at` 承载，lock 不新增标记字段（ADR-0006）。
+- Transition 必须引用绝对 http 或 https migration Issue，并与唯一、未过期 exception 一一绑定；
   多个 component 可共享一个逐项列明范围的 umbrella Issue，但每个 component 仍保留自己的
   exception。lock 固化 Issue、exception ID/expiry 与 catalog/profile/declaration checksums。
 - `prohibited`、EOL、过期/超过 180 天或晚于 `migrate_by` 的 exception、mutable-only OCI 和
@@ -46,6 +57,11 @@ architecture/bin/aisoft-architecture explain \
 `--today YYYY-MM-DD` 只用于可复现的 lifecycle/边界测试。生产 CI 不应覆盖当天 UTC date。
 CLI diagnostics 只返回 code、path、remediation，不回显输入值。
 
+CLI 与 `codex/tools/aisoft-project-check.sh` 都从**脚本所在平台 checkout 的工作树**解析
+`catalog.json` 与 `profiles/`。本地 `main` 没有 fast-forward 到最新时，新增的 profile
+解析不到，表现为 `PROFILE_UNKNOWN` 或 slot 对不上——那是 checkout 陈旧，不是声明写错。
+先 `git fetch` 并 ff 本地 `main`，再重跑。
+
 ## 更新与例外
 
 Catalog 更新必须建立 Issue、complex spec/plan、兼容证据、PR/CI 和人工合并。Security 更新可走
@@ -53,8 +69,9 @@ Catalog 更新必须建立 Issue、complex spec/plan、兼容证据、PR/CI 和�
 Change。多个相互依赖 major 可以由一个 umbrella Change 统一治理，但必须逐 component 记录
 compatibility、test、exception/expiry 与 rollback，不能把“部分完成”报告成整套迁移完成。
 例外必须有 owner、reason、risk、controls、创建/到期日和 migration Issue；transition Issue
-必须是应用仓中真实可读的绝对 HTTPS URL，expiry 不得超过创建日起 180 天或 component
-`migrate_by`，且到期当日即无效。Preferred 路径不需要例外，也没有 `--ignore-all`。
+必须是应用仓中真实可读的绝对 http 或 https URL，不得带凭据、query 或 fragment，expiry 不得
+超过创建日起 180 天或 component `migrate_by`，且到期当日即无效。as-built 版本例外使用同一套
+字段与同一组上限。Preferred 路径不需要例外，也没有 `--ignore-all`。
 
 离线导入顺序：从官方 source 获取 versioned artifact 和 metadata，校验签名/checksum，获取
 SBOM/provenance/OCI attestations，导入批准 mirror，再由人工 PR 更新 catalog/lock。任何 timer 或

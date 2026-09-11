@@ -359,18 +359,28 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
    mutable-only OCI 和 `prohibited`/EOL component。profile 必须匹配仓库的真实运行形态：
    `linux-node-postgres-v1` 用于容器化 Prisma/Next 栈，`linux-node-systemd-postgres-v1`
    用于 systemd 直管、无容器、无前端框架且查询层不限定 Prisma 的 Node 服务（§4 Linux 原生），
-   `small-embedded-sqlite-v1` 用于单实例本地 SQLite，`windows-dotnet-postgres-v1` 用于
+   `small-embedded-sqlite-v1` 用于单实例本地 SQLite，`linux-node-sqlite-v1` 用于单实例本地
+   SQLite 且带前端框架、Prisma 与 TypeScript slot 的应用，`windows-dotnet-postgres-v1` 用于
    Windows/IIS。`required_components` 没有「本项目不适用」的逃生口：没有任何 profile 能
    如实描述该仓库时，正确处置是在平台仓开 Issue 新增 profile，而不是虚报 component 或
    套用最接近的 profile。
+   项目实际运行的构建与 catalog pin 不同时，component 可以声明 `as_built: true` 如实记录，
+   必须配唯一有效 exception、与 pin 同 major 且不相等；`0.x` major 下 minor 也必须相等，
+   按 digest 固定的 component 一律拒绝 as-built。默认仍是精确相等，as_built 不是免检通道。
 3. `delivery_contract` 必须属于所选 profile 的 `delivery_contracts`，并且如实描述交付形态：
    `docker-release/v1` 容器、`pm2-legacy` 既有 PM2、`systemd-native/v1` systemd 原生、
    `windows-iis/v1`、`embedded-sqlite/v1`。这些取值互相排斥，不得为了让校验通过而挑一个近似值；
    取值只声明交付形态类别，对应的部署方案由项目仓按 §4.5 自行实现。
+   一个 profile 可以允许多个取值，但一份 declaration 只取一个。同一个仓库的多个环境如果交付
+   归属不同，就各写一份 declaration 与一份 lock（例如 `.aisoft/architecture.<env>.json` 与
+   `architecture.<env>.lock.json`），不要合并成一份——交付归属不同的环境通常 OS、架构与基镜像
+   也不同，一份 declaration 本来就装不下两者。声明容器取值的那一份必须额外声明 catalog 中按
+   digest 固定的基镜像 component。
 4. 用 `aisoft-architecture lock` 生成并提交 `architecture.lock.json`，连续两次输出必须
    byte-identical；随后用 `validate --lock` 检查 drift。
-5. 每个 transition 必须引用应用仓中真实可读的绝对 HTTPS migration Issue，并有唯一匹配的
-   owner/reason/risk/controls exception；多个 component 可以引用一个逐项列明范围的 umbrella
+5. 每个 transition 必须引用应用仓中真实可读的绝对 http 或 https migration Issue（不得带凭据、
+   query 或 fragment，相对路径与 `#N` 简写不接受），并有唯一匹配的
+   owner/reason/risk/controls exception；as-built 版本例外使用同一套字段与同一组上限；多个 component 可以引用一个逐项列明范围的 umbrella
    Issue，但不能共享 exception。expiry 不得超过创建日起 180 天或 component `migrate_by`，
    到期当日 fail closed。Preferred 不需要 exception；`prohibited`/EOL 不可绕过。
 6. Docker target profile 可声明 `architecture_project_id`；一旦声明，release lock project、

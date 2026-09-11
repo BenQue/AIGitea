@@ -13,8 +13,16 @@ from .schema import validate_schema
 REVISION_RE = re.compile(r"^\d{4}\.\d{2}\.\d+$")
 EXACT_VERSION_RE = re.compile(r"^[0-9][0-9A-Za-z._+-]*(?:@[0-9A-Za-z._+-]+)?$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-ISSUE_RE = re.compile(r"^(?:https://[^\s]+/issues/[1-9][0-9]*|#[1-9][0-9]*)$")
+ISSUE_RE = re.compile(r"^(?:https?://[^\s]+/issues/[1-9][0-9]*|#[1-9][0-9]*)$")
 ABSOLUTE_ISSUE_PATH_RE = re.compile(r"^/.+/issues/[1-9][0-9]*$")
+MAJOR_RE = re.compile(r"^([0-9]+)")
+# Delivery contracts that ship the application inside a container image. These
+# are the only ones that imply a base image, so the requirement is keyed on the
+# contract rather than expressed as a profile slot: `required_components` is
+# unconditional, and a slot would force the native contracts to declare an
+# image they do not have. Must stay in step with the `delivery_contract` enum
+# in project-architecture-v1.schema.json; a test pins that.
+CONTAINER_DELIVERY_CONTRACTS = {"docker-release/v1"}
 ALLOWED_STATES = {"preferred", "supported", "sunset", "prohibited"}
 MAX_EXCEPTION_DAYS = 180
 PACKAGE_RELEASE_CONTRACTS = {
@@ -47,7 +55,7 @@ def _is_absolute_issue_url(value: str) -> bool:
     except ValueError:
         return False
     return bool(
-        parsed.scheme == "https"
+        parsed.scheme in {"http", "https"}
         and parsed.hostname
         and parsed.username is None
         and parsed.password is None
@@ -263,6 +271,48 @@ def validate_profile(
                 )
 
 
+def _validate_as_built_version(declared: str, pinned: str, path: str) -> None:
+    """An as-built declaration states the build a project genuinely runs.
+
+    It may differ from the catalog pin, but only inside the same major, so a
+    bounded exception never becomes a route to a different generation of a
+    component. `0.x` majors follow semver: the minor carries the breaking
+    change there, so it is pinned too.
+    """
+    if declared == pinned:
+        fail(
+            "AS_BUILT_NOT_REQUIRED",
+            "as_built 声明的版本与 Catalog pin 相同，应移除该例外。",
+            path,
+            "删除 as_built 与对应 exception，或声明真实的不同版本。",
+        )
+    declared_major = MAJOR_RE.match(declared)
+    pinned_major = MAJOR_RE.match(pinned)
+    if declared_major is None or pinned_major is None:
+        fail(
+            "AS_BUILT_VERSION_UNPARSED",
+            "as_built 版本必须以数字主版本号开头。",
+            path,
+        )
+    if declared_major.group(1) != pinned_major.group(1):
+        fail(
+            "AS_BUILT_MAJOR_MISMATCH",
+            "as_built 版本必须与 Catalog pin 同 major。",
+            path,
+        )
+    if declared_major.group(1) == "0" and _minor(declared) != _minor(pinned):
+        fail(
+            "AS_BUILT_MAJOR_MISMATCH",
+            "0.x major 下 as_built 版本的 minor 必须与 Catalog pin 相同。",
+            path,
+        )
+
+
+def _minor(version: str) -> str:
+    parts = version.split(".")
+    return parts[1] if len(parts) > 1 else ""
+
+
 def _validate_exception(
     exception: dict[str, Any],
     component: dict[str, Any],
@@ -312,6 +362,7 @@ def validate_project(
     if project["delivery_contract"] not in profile["delivery_contracts"]:
         fail("DELIVERY_CONTRACT_INCOMPATIBLE", "Delivery contract 不被 Profile 允许。", "$.delivery_contract")
     declared: dict[str, dict[str, Any]] = {}
+    as_built_ids: set[str] = set()
     for index, item in enumerate(project["components"]):
         component_id = item["component_id"]
         path = f"$.components[{index}]"
@@ -320,7 +371,17 @@ def validate_project(
         if component_id not in components:
             fail("PROJECT_COMPONENT_UNKNOWN", "Project 声明了未知 component。", f"{path}.component_id")
         component = components[component_id]
-        if item["version"] != component["version"]:
+        if item.get("as_built"):
+            if component["pin"]["strategy"] == "oci-digest":
+                fail(
+                    "AS_BUILT_DIGEST_FORBIDDEN",
+                    "digest pin 的 component 不允许 as_built 偏差。",
+                    f"{path}.as_built",
+                    "按 Catalog digest 声明不可变镜像，或在应用仓升级该镜像。",
+                )
+            _validate_as_built_version(item["version"], component["version"], f"{path}.version")
+            as_built_ids.add(component_id)
+        elif item["version"] != component["version"]:
             fail("PROJECT_VERSION_DRIFT", "Project version 与 pinned Catalog 不一致。", f"{path}.version")
         if component["pin"]["strategy"] == "oci-digest":
             if item.get("digest") != component["pin"]["value"] or not DIGEST_RE.fullmatch(item.get("digest", "")):
@@ -338,6 +399,16 @@ def validate_project(
         if item.get("migration_issue") and not ISSUE_RE.fullmatch(item["migration_issue"]):
             fail("MIGRATION_ISSUE_INVALID", "migration_issue 格式无效。", f"{path}.migration_issue")
         declared[component_id] = item
+    if project["delivery_contract"] in CONTAINER_DELIVERY_CONTRACTS and not any(
+        components[component_id]["category"] == "oci-image"
+        for component_id in declared
+    ):
+        fail(
+            "DELIVERY_BASE_IMAGE_REQUIRED",
+            "容器交付的 Project 必须声明 Catalog 中按 digest 固定的基镜像 component。",
+            "$.components",
+            "声明该 runtime major 对应的 oci-image component，并填入 Catalog digest。",
+        )
     exception_ids: set[str] = set()
     exception_components: set[str] = set()
     exceptions_by_component: dict[str, dict[str, Any]] = {}
@@ -354,6 +425,15 @@ def validate_project(
         exception_components.add(component_id)
         _validate_exception(exception, components[component_id], today, path)
         exceptions_by_component[component_id] = exception
+
+    for component_id in sorted(as_built_ids):
+        if component_id not in exceptions_by_component:
+            fail(
+                "AS_BUILT_EXCEPTION_REQUIRED",
+                "as_built component 必须有且只有一个有效 exception。",
+                "$.exceptions",
+                "为该 component 增加 owner/reason/risk/controls/expiry 与 migration Issue 的 exception。",
+            )
 
     selected_transitions: set[str] = set()
     for requirement in profile["required_components"]:
@@ -389,7 +469,7 @@ def validate_project(
         if not _is_absolute_issue_url(migration_issue):
             fail(
                 "TRANSITION_MIGRATION_ISSUE_INVALID",
-                "Transition migration Issue 必须是绝对 HTTPS Issue URL。",
+                "Transition migration Issue 必须是绝对 http 或 https Issue URL。",
                 "$.components",
             )
         exception = exceptions_by_component.get(selected_id)
@@ -416,6 +496,8 @@ def validate_project(
                     "Sunset component 与 exception 必须引用同一 migration Issue。",
                     "$.exceptions",
                 )
+            continue
+        if component_id in as_built_ids:
             continue
         fail(
             "EXCEPTION_NOT_REQUIRED",

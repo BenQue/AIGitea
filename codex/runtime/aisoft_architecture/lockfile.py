@@ -29,9 +29,10 @@ def build_lock(
     resolved = []
     for declared in sorted(project["components"], key=lambda item: item["component_id"]):
         component = components[declared["component_id"]]
+        as_built = bool(declared.get("as_built"))
         item: dict[str, Any] = {
             "component_id": component["id"],
-            "version": component["version"],
+            "version": declared["version"] if as_built else component["version"],
             "state": component["state"],
             "source_url": component["provenance"]["source_url"],
         }
