@@ -49,3 +49,8 @@ T02 runtime 与测试已本地原子提交为 `b2cc0a3`，T03 文档与验证单
 已纠正先前将交接概括误读为禁止本地 commit 的说明。远程 Git/Gitea 操作仍走 typed broker。
 分支已通过 typed broker 推送。映射的 verification 记录本地收尾时的验收快照；
 当前 PR/CI 以 #291 的 exact head 与 Gitea 回读为准，installed、company live 仍为 NOT RUN。
+
+2026-09-11：用户明确“同意方案 B”。新增 AC-6/AC-7 已写入 spec：保留历史 #65 evidence 与真实
+harness，固定历史 fake 回归和当前 exact runner/source/行为校验分开执行；不新增真实 Docker 授权。
+T04 为独立治理合同提交并停止，fresh run 继续 T05/T06。当前 CI FAIL 不改写成 PASS；本次批准
+解除合同增补的决策等待，后续实现/测试/同一 PR 修复无需重问推送和建 PR。
