@@ -521,6 +521,12 @@ def _host_role_preflight(profile: TargetProfile, action: str, hostname: str) -> 
         "rollback": {"appserver-test", "appserver-prod"},
     }
     roles = allowed.get(action)
+    if (
+        roles is not None
+        and profile.host_role == "scm-ci"
+        and profile.environment == "test"
+    ):
+        roles = roles | {"scm-ci"}
     if roles is None or profile.host_role not in roles:
         raise HostRoleError(
             f"host role {profile.host_role} is not allowed to perform {action}"

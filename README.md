@@ -11,7 +11,7 @@
 ## 1. 当前状态（2026-09-06）
 
 - ✅ 基础设施核心：`gitea-ci` 上的 Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
-- 🟡 流水线：PR CI、构建和不可变制品链已验证；历史“合并 main 后在 `gitea-ci` 启动测试应用”仅作 as-built 证据，新接入必须使用独立 `appserver-test` trust role
+- 🟡 流水线：PR CI、构建和不可变制品链已验证；历史“合并 main 后在 `gitea-ci` 启动测试应用”仅作 as-built 证据，新接入使用独立 `appserver-test` trust role，或按 #290 的 `scm-ci/test` 合同承载隔离测试应用；#290 当前仅 source/local 验证，installed/live 尚未验收
 - ✅ 邮件通知：Gitea → Mailpit（演示层），issue/PR 事件自动发信
 - ✅ provider adapters：Codex 与 Claude adapter 共用 controller/verifier/状态/终态，等价、可互换；默认 `IMPLEMENT_PROVIDER=none`，启用是每项目独立验收；真实 VM pilot 未做
 - 🟡 Matt 开发编排层：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在当前 exact change branch 本地提交，Controller 在提交确认后才能 push/建 PR/读取 CI；manual 路径仍只由人合并
@@ -33,7 +33,9 @@
 下图保留 PM2/SQLite **as-built legacy 试点**的交付关系，不是新 Linux 项目的默认目标。新项目
 使用受控 builder 一次构建 `linux/amd64` OCI images，由 Gitea Container Registry 或同一
 manifest 的 offline bundle 传到隔离的 test/prod trust role；`gitea-ci` 只承担 SCM 与明确
-批准的 CI/CD 能力，不运行业务容器。
+批准的 CI/CD 能力。#290 增加仅测试的共置合同：受保护部署profile显式声明
+`host_role=scm-ci` 且 `environment=test` 时可承载隔离测试应用，生产仍须分离。
+详见 docker-release/README.md；#290 runtime 已完成 source/local 验证，installed/live 尚未验收。
 
 ```mermaid
 flowchart TB

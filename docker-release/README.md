@@ -160,9 +160,21 @@ self-hash 或 exception expiry 任一不匹配，都会在 Docker config/pull/lo
 Current lock 表达实际 release bytes；target candidate 只表达期望架构。Transition 不授权依赖、
 schema、image 或 database migration，也不能绕过 `prohibited`/EOL/digest/expiry/checksum。
 
-`scm-ci` 只允许 `verify`/`verify-target`；`stage`、`migrate`、`activate`、`deploy`、`status` 和
-`rollback` 只允许 `appserver-test`/`appserver-prod`。`verify-artifact` 不读取 target profile 或
-host facts。这一 preflight 只消费 #21 的 host-role 语义，不授权或执行 #21 的 live cleanup。
+目标合同（#290）：`scm-ci` 的受保护 target profile 明确为 `environment=test` 时，允许
+`stage`、`migrate`、`activate`、`deploy`、`status` 和 `rollback`；`environment=production`
+仍拒绝这些动作。普通 verify/verify-target 和 appserver-test/appserver-prod 既有行为不变。
+不新增角色、不伪造主机身份；未知环境/动作不得进入测试例外。
+测试应用采用独立 Compose project、数据库、目录与端口，不能覆盖现有SCM资源。
+此规则不替代profile保护、制品/兼容性、阶段grant与现场授权；数据库迁移恢复授权仍独立。
+`verify-artifact` 不读取 target profile 或 host facts，不授权或执行 #21 的 live cleanup。
+
+实施状态：#290 经独立合同步骤与 fresh run 完成 runtime、方案 B 检查器和本地 fake-adapter
+验证：124 项 release tests、包含 890 项 Python 测试的完整 smoke 通过。唯一 manual PR #291
+已开放，最终 CI 以其 exact head 回读为准。方案 B 在固定历史本地快照运行原 fake harness，
+并在当前 checkout 校验精确源码范围与行为；旧 #65 evidence、真实 harness 和 matrix 原字节
+保持。current real Docker、installed/company live 均为 NOT RUN，不能据 source/local 结果
+假定现场已放行。详细证据见
+[`#290 verification`](../docs/changes/290-scm-test-deploy/verification-scm-test-deploy-260911.md)。
 
 ## Stable CLI
 
