@@ -15,7 +15,7 @@ depends_on: []
 status: approved
 branch: change/292-github-main-relay
 created: 2026-09-11
-updated: 2026-09-11
+updated: 2026-09-12
 ---
 
 # GitHub main relay 合同
@@ -30,12 +30,20 @@ updated: 2026-09-11
 - [ ] AC-2：plan只读网络，不写远端/凭据/工作区；输出source SHA、destination SHA、祖先关系、plan动作和缺口的脱敏字段。源码为空、目标main缺失、非共同历史、目标不为源祖先、源历史相对上次成功倒退均拒绝。相同SHA是no-op。
 - [ ] AC-3：reconcile先获取项目独占锁，在隔离bare工作区fetch精确main所需对象，读回当前源与目标，固定本轮source/target OID；只发送单一sourceSHA:refs/heads/main更新。不使用force、force-with-lease、mirror、prune、delete、tags、all，也不修改目标其它refs或本机源refs。
 - [ ] AC-4：必须校验Git push实际协商的目标旧OID。使用版本化且调用方不可替换的pre-push gate或等效原子机制，仅允许一个main更新，广告旧OID必须非零并与本轮校验值一致，local OID必须等于本轮pin。预检查后远端推进/删除/换历史应拒绝；hook后再推进由Git receive-pack旧OID匹配拒绝。不得声称普通merge-base预检查单独消除竞态，不得用任何force选项实现CAS。
-- [ ] AC-5：源端复用既有Gitea项目最小身份；GitHub采用独立、仅目标仓库的认证绑定。元数据/身份/scope不足或凭据缺失必须单独BLOCKED，不自动provision、不fallback到shared bot、管理员或全局gh/Git凭据。禁止credential/token值进入argv、URL、日志、Git配置、receipt、Git objects或公共合同。
+- [ ] AC-5：源端复用既有Gitea项目最小身份；GitHub采用独立、仅目标仓库的fine-grained PAT认证绑定；其单仓库范围、权限和有效期由人核验，以绑定token指纹的受保护非Secret审核回执作为scope信任来源，工具另外在线核验身份和目标仓库。回执缺失、无效、过期、指纹或项目/目标绑定不匹配，以及元数据/身份/scope不足或凭据缺失必须单独BLOCKED，不自动provision、不fallback到shared bot、管理员或全局gh/Git凭据。禁止credential/token值进入argv、URL、日志、Git配置、receipt、Git objects或公共合同。
 - [ ] AC-6：Git子进程隔离全局Git config、继承hook/credential/helper、redirect、transport和代理注入；具体allowlist与既有broker兼容，目标URL校验先于凭据调用。固定protocol与项目路径，阻止symlink、任意command/helper、未验证hook替换。失败只返回类别/rc等脱敏信息，不回显原始远端错误。
 - [ ] AC-7：成功后独立读取GitHub main等于本轮源pin，原子保存source/destination/prev OID、时间、结果、工具版本和绑定摘要receipt；失败不写成功。相同SHA重跑无远端mutation。status只返回脱敏最近receipt和调度状态，历史PASS不能代替新鲜plan。
 - [ ] AC-8：提供版本化项目专用macOS调度入口，默认10分钟周期，只调用同一typed reconcile，锁防重叠。install候选不创建/复制凭据、不启用任务。实际安装必须通过现有source provenance guard，配置/启用只针对获批项目，disable停止后续运行且不回退/删除任何GitHub ref。不改现有入站timer及其它项目任务。
 - [ ] AC-9：确定性测试覆盖成功FF、两次执行update→no-op、分叉、missing ref、源码倒退、目标在plan后推进/删除、凭据/身份/绑定拒绝、并发、receipt失败与脱敏，并断言其它branch/tag完全不变。测试使用临时repo/fakes，禁止触碰真实网络/凭据。
 - [ ] AC-10：最终源码PR人工合并后，验证installed字节，再由用户完成必要专用认证。实际pilot执行一次FF、一次no-op，远端独立读回一致，并证明至少一次调度触发执行；真实数据的故意失败不得改远端，可使用本地受控故障路径。未发生则对应项NOT RUN。
+
+## AC-5 已批准的权限证明方式
+
+2026-09-12，用户在既有实施任务明确同意：人工核验fine-grained PAT仅选择目标仓库、所授权限和有效期，形成绑定该token指纹的受保护非Secret审核回执。该回执是人工审核证据；工具在线核验身份与目标仓库，不将目标仓库GET成功或push成功解释为token仅限单仓库的在线证明，也不引入额外GitHub App或管理员审计权限。
+
+审核回执必须与项目、目标仓库、已核验权限、有效期和token指纹对应，且不能由typed调用方任意提供或替换。缺失、无效、过期或绑定不一致时fail closed；更换token后旧回执不得继续生效。回执不含token原文，指纹与审核细节只留在受保护本地绑定中，不进入公共合同或普通状态/日志输出。实现使用临时假凭据和fake在线响应验证上述接受/拒绝路径，不读取真实token。
+
+本次决定只解除AC-5实现设计待决，不代表人工审核已经发生或真实凭据已就绪；不授权创建、读取或配置真实token，不授权安装、启用或实际同步。受保护文件允许清单及其它AC保持原范围。
 
 ## 本轮批准范围与受保护文件授权
 

@@ -15,7 +15,7 @@ depends_on: []
 status: approved
 branch: change/292-github-main-relay
 created: 2026-09-11
-updated: 2026-09-11
+updated: 2026-09-12
 required_docs:
   - summary
   - spec
@@ -46,6 +46,12 @@ host-access typed操作与专用relay模块、严格项目绑定、隔离认证�
 ## 初步方案与建议
 
 提供plan/reconcile/status三个typed操作；调用方只选现有project，不提供URL/refspec/credential path。与平台既有Git访问合同同样fail closed。通过版本化pre-push校验验证Git实际协商的旧OID，防止预检查后远端推进或删除竞态；正常push不携带force/mirror/delete/tag参数。
+
+## AC-5 安全决定（2026-09-12）
+
+用户已在既有实施任务同意：由人核验单仓库fine-grained PAT的权限及有效期，并形成绑定token指纹的受保护非Secret审核回执；工具另外在线核验身份和目标仓库。人工审核是scope信任来源，不把仓库访问或推送成功当作在线单仓库权限证明，不增加GitHub App或管理员权限。回执缺失、无效、过期或绑定不符时拒绝；细则见映射spec。该决定解除实现设计待决，实际审核及凭据就绪仍未验收。
+
+本轮只收敛spec/summary；实现仍由原任务承担，继续仅做代码、本地fake/临时仓库测试及PR材料，不创建、读取或配置真实token，不安装启用，不实际同步。
 
 ## 风险
 
