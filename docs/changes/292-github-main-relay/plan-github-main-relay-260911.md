@@ -12,56 +12,74 @@ risk_flags:
   - platform-governance
   - shared-core
 depends_on: []
-status: approved
+status: spec-drafting
 branch: change/292-github-main-relay
 created: 2026-09-11
-updated: 2026-09-11
+updated: 2026-09-15
 ---
 
-# 实施计划
+# 实施计划（已被原生 Push Mirror 取代）
 
 ## Ticket graph
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 独立合同步骤：本票四份映射文档与范围对齐，无runtime修改 | - | completed |
-| T02 | typed main relay plan/reconcile/status、绑定与协商OID门、确定性测试 | T01 | pending |
-| T03 | 版本化安装与项目调度、脱敏receipt及失败关闭回归 | T02 | pending |
-| T04 | 完整回归与最终PR材料；提交/合并等待独立人工门 | T03 | pending |
-| T05 | exact merged install、必要用户认证、两次live执行及调度验收 | T04 | pending |
+| T02 | typed main relay plan/reconcile/status、绑定与协商OID门、确定性测试 | T01 | stopped |
+| T03 | 版本化安装与项目调度、脱敏receipt及失败关闭回归 | T02 | stopped |
+| T04 | 完整回归与最终PR材料；提交/合并等待独立人工门 | T03 | stopped |
+| T05 | exact merged install、必要用户认证、两次live执行及调度验收 | T04 | stopped |
+| T06 | 收口：四份映射文档改写为原生 Push Mirror 路线，唯一最终 PR 人工合并后关闭 #292 | T01 | in-progress |
 
-## 本轮执行批准
+`stopped` 表示该 ticket 因 2026-09-12 用户裁决被取代，不再执行、不再作为任何后续工作的前置；
+它不是 `completed`，其交付物不存在。
 
-用户已批准T02/T03实现、本地测试和T04 PR材料；禁止真实GitHub推送、配置凭据、实际安装/启用调度、公司服务器和旧服务操作。T05不在本轮授权内。exact文件清单、验证及回滚授权已纳入mapped spec的“本轮批准范围与受保护文件授权”，以下touchpoints只作任务说明，以该清单为界。
+## 现行执行路径（T06）
 
-## Expected touch points
+1. 修订 summary/spec/plan/verification 四份文档：写明取代关系、现行 M-1 至 M-6 边界、旧 T02–T05 停止、
+   镜像启用/同步与公司导入全部 NOT RUN。
+2. 本地验证：`bash codex/tests/smoke.sh`、`check-change-documents`、`git diff --check`。
+3. 判级投影读回：`codex/tools/apply-classification-labels.sh --verify 292`；已 projected 则不动。
+4. 人确认后 broker `git.push.change` 与 `gitea.pull.create --issue 292`（policy manual，正文 `Closes #292`），
+   `backfill-pr-url` 回填 summary。
+5. 人合并后按收尾流程执行终态标签、文档自查、worktree 与本地分支清理。
 
-T01：docs/changes/292-github-main-relay/{summary,spec,plan,verification}-github-main-relay-260911.md。
+## Expected touch points（现行）
 
-T02：codex/runtime/aisoft_host_access/{broker,contract,cli}.py，新增github_relay.py及固定pre-push验证入口，codex/config/host-access-broker.json，必要严格relay binding schema，codex/runtime/tests/test_host_access.py及新增test_github_relay.py。先核实际测试文件路径，不因提示路径不同另建重复测试体系。Gitea访问复用现有broker；GitHub的独立adapter只可从typed路由进入。
+T06 只触及 `docs/changes/292-github-main-relay/{summary,spec,plan,verification}-github-main-relay-260911.md`。
+不修改 `sync/`、`codex/runtime/`、`codex/config/`、`codex/tools/`、installer、`AGENTS.md`、`README.md` 或 07。
 
-T03：codex/install-host-access-broker.sh及其测试、versioned macOS launchd模板/installer与tests、必要source-guard inventory、README与06相关小节。template内容不能使用任意shell/script参数，默认不启用。允许新增专用安装入口，但必须受相同provenance guard、无凭据副作用；不得新增第二套通用权限broker。
-
-T04：仅范围内smoke/回归与文档验证修复，不修改AGENTS.md、既有workflow、CI context、其它项目配置、inbound runtime或其它历史证据。PR manual最终门不可由本票授权代替。
-
-T05：仅merged exact source实际安装与绑定/项目调度，凭据由人本地输入；私有现场回执留项目私有总控，平台仅汇总非敏感结果。若需新权限超出目标仓库Contents写入须停止，而不是扩大token。
+镜像本身的配置（M-2）、首次同步读回（M-3）与后续自动同步（M-4）由用户在 Gitea 界面手工完成，
+证据记录在 NewEMaint #80，不在本仓库任何文件中。
 
 ## 数据库迁移
 
 无。
 
-## 测试与验收映射
+## 测试与验收映射（现行）
 
-| Acceptance criterion | Verification command or review |
+| 验收项 | Verification command or review |
 |---|---|
-| AC-1/2/5/6 | 新relay unittest与broker strict-contract/credential regression |
-| AC-3/4/9 | 临时真实bare repos与阻塞/竞态fixture，验证push协商OID gate、无非main变化 |
-| AC-7 | 原子receipt、readback失败、脱敏测试 |
-| AC-8 | installer source provenance及调度disabled默认/stop幂等测试 |
-| AC-10 | merged工具hash→现场FF→no-op→调度触发元数据与独立GitHub读回 |
-
-改shell必须bash -n与ShellCheck（如可用）；执行bash codex/tests/smoke.sh。按仓库现有方式运行Python全部相关单元测试及check-change-documents、git diff --check。测试命令在实施确认工具入口后写入verification，不宣称未跑PASS。
+| 四份文档如实反映取代关系 | PR diff review |
+| 文档合同可解析、pr_url 规则满足 | `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo <checkout>` |
+| 仓库其它部分无变化 | `git diff --stat origin/main...HEAD` 只列四份文档；`bash codex/tests/smoke.sh` |
+| M-2 至 M-5 | 不由本票验证；NOT RUN，归 NewEMaint #80 |
 
 ## 部署与回滚
 
-此为开发侧版本化工具/调度安装，不是公司应用部署。两次live reconcile及一次本地拒绝故障证明对应AC-9/10。需要人工合并后才能安装；本轮只批准实现、本地验证和PR材料，不执行实际同步、认证配置或安装/启用。仅缺失认证输入或明确范围扩张时请求一次具体动作。停用scheduler后读取disabled且无新执行，保持所有远端refs。
+本票不部署任何东西。回滚方式是 revert 本次文档 commit；镜像的停用（M-6）由用户在 Gitea 界面操作，
+只停止未来同步，不回退任何 GitHub ref。
+
+---
+
+## 历史 touch points（T02–T05，已停止）
+
+T02：codex/runtime/aisoft_host_access/{broker,contract,cli}.py，新增github_relay.py及固定pre-push验证入口，codex/config/host-access-broker.json，relay binding schema，codex/runtime/tests/test_host_access.py及新增test_github_relay.py。
+
+T03：codex/install-host-access-broker.sh及其测试、versioned macOS launchd模板/installer与tests、source-guard inventory、README与06相关小节。
+
+T04：范围内smoke/回归与文档验证修复。
+
+T05：merged exact source实际安装与绑定/项目调度，凭据由人本地输入。
+
+以上均未开始，分支上没有对应文件改动。

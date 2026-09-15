@@ -12,29 +12,52 @@ risk_flags:
   - platform-governance
   - shared-core
 depends_on: []
-status: approved
+status: spec-drafting
 branch: change/292-github-main-relay
 created: 2026-09-11
-updated: 2026-09-11
+updated: 2026-09-15
 ---
 
-# 验证记录
+# 验证记录（收口：被原生 Push Mirror 取代）
 
-- Source baseline：a2f8854b69a3b6badeb11fee6fd95a3500083379。
-- PASS：私有项目双端main已fresh读回，当前可fast-forward；具体SHA和mirror缺失证据留在私有项目#80。
-- PASS：现有平台仅有入站sync，broker操作表无GitHub出站操作；#292为唯一新承接，未重开已完成项目票。
-- NOT RUN：T02/T03实现、单元/集成回归、CI、最终PR、installed/live及scheduler验收。
-- 本合同步骤无runtime/manifest/live配置/凭据/远端refs变更。
+## 基线与范围
 
-## 授权来源
+- Commit SHA：本次收口提交在分支 `change/292-github-main-relay` 上，父提交 f1f3d79（T01 最后一个合同 commit）。
+- 基线：`origin/main` = a2f8854b69a3b6badeb11fee6fd95a3500083379（分支已位于其上，无需 rebase）。
+- 环境：Mac 开发机本地 worktree `/private/tmp/issue-292-github-main-relay`。
+- 本记录负责证明：四份映射文档如实反映取代关系；仓库其它部分无变化；镜像与公司侧各项如实记为 NOT RUN。
 
-用户在既有项目任务明确批准单向main自动同步、fast-forward-only、no-force/no-delete；总控收到该任务转交后按原范围建立本票。转交任务id和详细端点只保留私有项目记录。该行为授权不扩大为凭据provision、权限扩展、PR合并或公司部署。
+## 执行结果
 
-## Controller 批准与路由收敛
+| Command / check | Result | Evidence |
+|---|---|---|
+| `command -v rg` | PASS | `/opt/homebrew/bin/rg`（真实 rg，无需 shim） |
+| `bash codex/tests/smoke.sh` | PASS | 2026-09-15 本地执行：`Ran 890 tests in 65.394s` / `OK` / `Codex platform static smoke checks passed.` |
+| `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo /private/tmp/issue-292-github-main-relay` | PASS | `PASS: change-documents` / `PASS: change-pr-url` / `result: changes=133 pass=2 gap=0` |
+| `git diff --check` | PASS | rc=0，无空白问题 |
+| `git diff --stat origin/main...HEAD` 只含四份映射文档 | PASS | 暂存区 4 files changed，均在 `docs/changes/292-github-main-relay/` |
+| `codex/tools/apply-classification-labels.sh --verify 292` | PASS | `result: projected`，`change_type: platform`，`complexity: complex`，未执行 `--apply` |
 
-用户已在原任务明确批准实现#292、本地测试和PR材料，且明确排除实际GitHub推送、凭据配置、安装/启用调度、公司与旧服务操作。Controller本轮只收敛既有合同状态、把plan既定受保护touchpoints明确写入spec并完成路由验证；不实施runtime、不派新任务。文件清单将已有test路径纠正为test_host_access.py，固定计划内新入口文件名，不扩功能。
+## 现行路线各项状态
 
-T01合同步骤完成，T02为下一frontier；所有实现测试/CI/installed/live在有新证据前仍NOT RUN。
+| 项 | 结论 | 证据 |
+|---|---|---|
+| M-1 唯一源与目标核对 | 已确认 | 用户 2026-09-12 裁决，见 #292 正文与 NewEMaint #80 顶部「当前路线」 |
+| M-2 手工配置原生 Push Mirror | NOT RUN | 由用户在 Gitea 界面完成，本票不执行 |
+| M-3 首次同步与两端 main SHA 读回 | NOT RUN | 无读回证据 |
+| M-4 后续自动同步读回 | NOT RUN | 无读回证据 |
+| M-5 公司入站/PR/CI/部署 | NOT RUN | 归公司流程与 NewEMaint #80 |
+| M-6 停用镜像边界 | 边界声明 | 未发生停用 |
 
-- PASS：check-change-documents（changes=133/pass=2/gap=0）、git diff --check。
-- PASS：原Controller load_contract以实时type/platform、complexity/complex和当前needs-analysis进行批准前合同校验；production complex路由成立，select_frontier_ticket=T02，四份映射正确。
+## 历史路线（已停止）
+
+- T01 三个合同 commit（6bf75cf、a18294a、f1f3d79）保留在分支历史。
+- T02–T05：自研 relay 代码、测试、installer、scheduler 均未在本分支落盘；2026-09-12 记录的「保留未提交代码」
+  所在原 worktree 目录已于 2026-09-15 前丢失，未提交的修订随之不可恢复，本次文档按 #292 与 #80 正文重写。
+- 2026-09-11 观测「本机源比 GitHub 领先 237 提交、镜像未配置」是历史观测，不是本轮读回。
+
+## 遗留风险与未完成项
+
+- 镜像启用、同步读回与公司导入全部 NOT RUN；本票关闭不代表任何同步已发生。
+- 若将来需要 fast-forward-only 出站语义，另开 Issue；本票分支合并后删除，不复用。
+- 本仓库没有任何文件记录镜像凭据或私有端点。
