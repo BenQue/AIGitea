@@ -50,4 +50,8 @@ Claude Code 与 Codex 共用同一平台合同，能力等价、可互换、不�
   可回滚、生产 script-only。
 - 部署方案位置：<项目内 docs/ 或脚本目录路径>（部署步骤、脚本、参数与环境差异都在此声明与实现；
   平台只给环境级原则，不是部署步骤事实源）
+- 发布 producer：`release_producer: <local 或 github>`（一个项目只能一种；local = 本机以钉版本 SDK 容器
+  构建并本地测试，github = GitHub Actions 构建候选，适用条件见 onboarding-runbook §4.5）
+- 发布传输：`transport: <github-release 或 offline-bundle 或 其它>`（已测试发布包进入公司的介质；
+  公司侧只核验校验和与 release SHA 并独立授权部署，GitHub 不进入公司信任链）
 - 禁改边界：<受保护路径/数据/配置，如 migrations 历史、.env、生产脚本>
