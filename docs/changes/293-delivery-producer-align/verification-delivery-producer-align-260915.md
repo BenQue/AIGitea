@@ -22,7 +22,7 @@ updated: 2026-09-15
 
 ## 基线与范围
 
-- Commit SHA: `57bea38`（T04 之后的实现 head；本文档随后一个 commit 提交）
+- Commit SHA: 首次 PR head `4dacf21`（基于 a2f8854）；rebase 到 `f0e3296` 后由后续 commit 形成最终 head，以 PR #294 页面为准
 - 基线：`origin/main` = `a2f8854`（PR #291 merge）
 - 环境: Mac 本机 change worktree `/private/tmp/issue-293-delivery-producer-align`，真实 `/opt/homebrew/bin/rg`
 - 本记录负责证明的 acceptance criteria: AC-1 至 AC-5；AC-6 由人合并 manual PR 时完成，不部署
@@ -44,6 +44,9 @@ updated: 2026-09-15
 | `bash skill-for-claude/check-drift.sh`（改后、重装前） | 观测 | `DRIFT: aisoft-platform/references/onboarding-runbook.md` |
 | `bash skill-for-claude/install.sh` | PASS | 从本 worktree 安装 aisoft-platform 与 issue-session-flow，Pruned 0，无凭据 |
 | `bash skill-for-claude/check-drift.sh`（重装后） | PASS | `CLEAN`；`diff -q` 源 runbook 与已安装副本一致 |
+| PR #294 首次 head `4dacf21` 的 `CI / verify (pull_request)` | PASS | success，1m27s；随后 `origin/main` 被 #295（#292）推进到 `f0e3296`，分支保护要求 head 基于最新 main |
+| `git rebase origin/main`（f0e3296，#292 只新增自身 change 文档，零重叠） | PASS | 8 个 commit 干净重放，`0 8`（不落后，领先 8） |
+| rebase 后 `bash codex/tests/smoke.sh` 与 `check-change-documents` | PASS | smoke exit 0，`Codex platform static smoke checks passed.`；`result: changes=134 pass=2 gap=0` |
 | `codex/tools/apply-classification-labels.sh 293` → `--apply` → `--verify 293` | PASS | plan `applied:false`；apply `result:updated`；verify `result:projected`，`change_type:platform`、`complexity:complex` |
 
 命令与输出照实抄。改动前观测：AC-1 三句在 `origin/main` 的 12-Windows §2 表 L25–L27 各命中一次；
