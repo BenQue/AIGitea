@@ -24,7 +24,7 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/293-delivery-producer-align
 pr_url:
 created: 2026-09-15
@@ -139,6 +139,6 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- 无缺失的验收标准。两项解读待确认点 1 认可：（a）`change_type` 取 `platform`（Issue 允许 docs 或
-  platform）；（b）07 §2 拓扑图公司侧「Windows x64 Runner · React + .NET 构建」节点是否允许在本 PR 内
-  最小改写为「公司 scm-ci 核验 Release 资产」——不改则与改后的 §1 直接矛盾，建议纳入。
+- 无缺失的验收标准。两项解读已在确认点 1（2026-09-15）由用户认可：（a）`change_type` 取 `platform`；
+  （b）07 §2 拓扑图公司侧「Windows x64 Runner · React + .NET 构建」节点在本 PR 内最小改写为「公司
+  scm-ci 核验 Release 资产」，纳入范围。

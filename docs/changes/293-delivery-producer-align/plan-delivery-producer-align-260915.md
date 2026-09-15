@@ -12,7 +12,7 @@ risk_flags:
   - agent-governance
   - external-contract
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/293-delivery-producer-align
 created: 2026-09-15
 updated: 2026-09-15
@@ -25,7 +25,7 @@ updated: 2026-09-15
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 12-Windows §2/§3/§5/§8/§13 改写（spec A-01–A-11） | - | pending |
-| T02 | 07 §1 改写（spec B-01–B-03）与确认点 1 认可后的 §2 图（B-04） | - | pending |
+| T02 | 07 §1 改写（spec B-01–B-03）与 §2 拓扑图改写（B-04） | - | pending |
 | T03 | onboarding-runbook §4.2/§4.4/§4.5 增补（spec C-01–C-04） | - | pending |
 | T04 | templates/project/AGENTS.md 项目事实新增两字段（spec D-01–D-02） | - | pending |
 | T05 | 全量回归、skill 重装回 CLEAN、verification 填写、AC-1 rg 自证 | T01, T02, T03, T04 | pending |

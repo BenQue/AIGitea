@@ -12,7 +12,7 @@ risk_flags:
   - agent-governance
   - external-contract
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/293-delivery-producer-align
 created: 2026-09-15
 updated: 2026-09-15
@@ -85,7 +85,7 @@ spec 把 Issue 正文的范围落成逐条可核清单。行号以 `origin/main`
 | B-01 | §1 第 2 条末句（L12） | GitHub 是本地镜像与向公司内网的搬运中继 | GitHub 私有仓是本机 Gitea 的原生 Push Mirror（源码同步，NewEMaint #80 路线）与向公司内网的搬运中继；已测试发布包另以 GitHub Release 资产中转 |
 | B-02 | §1 第 4 条之后新增一条 | 无 | 构建位置固定在开发侧：`release_producer: local` 时由本机以钉版本 SDK 容器构建并在本地 OrbStack 测试；公司内网不联网构建，公司 Gitea 只核验校验和与 release SHA 并独立授权部署；GitHub Actions 构建只作候选，一个项目只能一种 producer（runbook §4.5）。后续条目顺延编号 |
 | B-03 | §1「结果」段（L31） | 「原型制品、Secret、Runner 注册和环境配置不作为结果迁移」 | 「结果」另含已测试的 versioned release bundle（完整 merge SHA 命名 + SHA256SUMS + release.json/manifest）；校验和与 release SHA 经 handoff 证据带出、公司侧对照后才可消费；GitHub Release 资产与 checksum-pinned offline bundle 都是允许的传输介质，介质不改变 release identity，GitHub 不进入公司信任链。未测试的原型制品、Secret、Runner 注册和环境配置仍不作为结果迁移 |
-| B-04 | §2 mermaid `WR` 节点（L59、L65）**待确认点 1 认可** | `WR["Windows x64 Runner<br/>React + .NET 构建"]`，`CG --> WR --> PKG` | `CV["公司 scm-ci<br/>核验 Release 资产 SHA256/manifest"]`，`CG --> CV --> PKG`；LAB 子图 `MAC` 增加「本机 producer 构建」并新增 `MAC -->|"GitHub Release 资产"| CV` 边 |
+| B-04 | §2 mermaid `WR` 节点（L59、L65），确认点 1 已认可 | `WR["Windows x64 Runner<br/>React + .NET 构建"]`，`CG --> WR --> PKG` | `CV["公司 scm-ci<br/>核验 Release 资产 SHA256/manifest"]`，`CG --> CV --> PKG`；LAB 子图 `MAC` 增加「本机 producer 构建」并新增 `MAC -->|"GitHub Release 资产"| CV` 边 |
 
 不改 §1 第 9 条与 §5.1、§7、§8、§10、「GitHub 入站同步候选」段；`codex/runtime/tests` 与 `smoke.sh`
 钉住的 07 短语全部保留。
@@ -142,8 +142,4 @@ spec 把 Issue 正文的范围落成逐条可核清单。行号以 `origin/main`
 
 ## 未决问题
 
-进入 `approved` 前须由确认点 1 定下：
-
-1. `change_type` 取 `platform`（本 spec 采用）还是 `docs`——两者路由结论一致（complex、manual）。
-2. B-04：07 §2 拓扑图公司侧 Windows Runner 构建节点是否允许在本 PR 内最小改写——建议纳入，否则该图
-   与改后 §1 直接矛盾；不纳入则记入 verification 并另开衍生 Issue。
+无。确认点 1（2026-09-15）用户已定：`change_type` 取 `platform`；B-04 的 07 §2 拓扑图改写纳入本 PR。
