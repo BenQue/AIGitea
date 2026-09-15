@@ -12,7 +12,7 @@ risk_flags:
   - platform-governance
   - shared-core
 depends_on: []
-status: spec-drafting
+status: pr-open
 branch: change/292-github-main-relay
 created: 2026-09-11
 updated: 2026-09-15
@@ -28,7 +28,7 @@ documents:
   verification: verification-github-main-relay-260911.md
 reason: 新增受治理的跨托管平台写入、认证隔离与自动同步能力
 override_reason: ''
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/295
 ---
 
 # 单向 main 出站同步（已被原生 Push Mirror 路线取代）
