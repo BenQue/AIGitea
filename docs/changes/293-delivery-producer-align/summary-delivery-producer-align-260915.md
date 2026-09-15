@@ -24,9 +24,9 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: approved
+status: pr-open
 branch: change/293-delivery-producer-align
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/294
 created: 2026-09-15
 updated: 2026-09-15
 ---
