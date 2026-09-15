@@ -191,6 +191,10 @@ AppServer role。
   源码结论或 fake PASS 扩展。
 - 平台 `docker-release/` 目录是一份可选用的参考实现与合同，不是项目的部署步骤事实源；项目
   采用与否、如何裁剪，在项目仓声明与实现。
+- producer 宿主为 arm64 Mac 而目标为 `linux/amd64` 时，用 `docker buildx build --platform linux/amd64`
+  （或 OrbStack Rosetta）交叉构建；在本地 DockerLab 以模拟 amd64 运行时得到的测试证据必须标注
+  `emulated`，不得写成原生 amd64 证据。native 模块在模拟下失败是选择 GitHub Actions 候选 producer 的
+  适用条件之一（§4.5）。
 
 ### 4.3 Windows
 
@@ -207,6 +211,9 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 ### 4.4 对所有环境一致的流程不变量
 
 - 不可变制品：一次构建、带版本、带完整 merge SHA 与校验和。
+- producer 工具链钉版本：制品由固定版本的 SDK 容器（镜像 digest）构建，依赖 lock 文件进仓库，restore
+  使用 locked-mode（`npm ci`、`dotnet restore --locked-mode` 等），不接受浮动版本；构建位置在开发侧
+  （项目声明的 `release_producer`），公司内网不联网构建，公司侧只核验校验和与 release SHA。
 - 测试与生产同字节晋级：生产消费的必须是测试环境验收过的同一制品，不重新构建。
 - 部署前备份：数据库或数据目录先有可验证备份，migration 向后兼容。
 - 健康检查含精确 release SHA：健康端点返回内容能证明正在运行的是哪一个 release。
@@ -224,6 +231,13 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 
 - 声明：项目 `AGENTS.md`「项目事实」写明交付形态（Linux 容器化 / Linux 原生 / Windows / 其它）
   与部署方案位置；`.aisoft/architecture.json` 的 `delivery_contract` 如实选取（§9）。
+- 声明 producer 与传输：`release_producer` 取 `local`（本机以钉版本 SDK 容器构建并在本地测试）或
+  `github`（GitHub Actions 构建），一个项目只能一种，不得混用；`transport` 写明已测试发布包进入公司的
+  介质（`github-release` 资产、`offline-bundle` checksum-pinned 离线包或其它）。介质不改变 release
+  identity；源码同步（本机 Gitea 唯一源，GitHub 私有仓为原生 Push Mirror）与制品传输是两条独立通道。
+- GitHub Actions 构建只是候选 producer，适用条件：需要原生 amd64/Windows runner、发布频繁、native 模块在
+  模拟下失败。选它不改变公司侧只核验校验和与 release SHA 并独立授权部署、GitHub 不进入公司信任链的
+  边界；公司内网不联网构建在两种 producer 下都成立。
 - 实现：部署脚本、参数、环境差异与验收记录都在项目仓自己的 `docs/` 或脚本目录，走项目自己
   的 Issue/spec/plan/PR；平台 candidate、参考实现或分册都不能替代项目自己的验收。
 - 已有的 legacy 交付方式在项目完成独立迁移验收前继续作为该项目自己的 adapter 维护，仍受本节

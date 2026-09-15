@@ -22,9 +22,10 @@
 | 主题 | 决策 |
 |---|---|
 | 本地开发 | Mac 继续作为开发电脑，本地 Gitea 承载原型阶段 |
-| 正式代码源 | 迁移后公司内网 Gitea 是唯一正式权威源 |
-| GitHub | 只镜像本地 Gitea，与公司 Gitea 无关系 |
-| 构建 | 正式制品由公司 Windows x64 Runner 构建 |
+| 源码源 | 本机 Gitea 是唯一源码源（开发权威）；公司内网 Gitea 是部署权威，只核验与独立授权部署（[07 §1](07-内网与生产平移路线.md)，2026-08-11 定案） |
+| GitHub | 私有仓是本机 Gitea 的原生 Push Mirror（源码同步，NewEMaint #80 路线）；已测试发布包以 GitHub Release 资产中转到公司；GitHub 不进入公司信任链 |
+| 构建 | `release_producer: local`：正式 `win-x64` 制品在开发侧本机以钉版本 SDK 容器构建并本地测试；公司内网不联网构建。GitHub Actions windows runner 只作候选（runbook §4.5 适用条件），一个项目只能一种 producer |
+| 传输 | GitHub Release 资产（ZIP + SHA256 + manifest）→ 公司侧下载并对照 handoff 证据核验 → 公司 Gitea Generic Package / 部署控制端；介质不改变 release identity |
 | 测试部署 | OpenSSH：SCP/SFTP 传输 + SSH 执行固定 PowerShell |
 | 生产部署 | SMB 传输 + Kerberos WinRM + JEA 限权执行 |
 | Web/DB | 生产分机；小型非生产环境可同机 |
@@ -32,13 +33,16 @@
 | AI | 只参与开发/测试设计与排障；生产 script-only |
 | 快速原型 | Fusion + Windows 11 ARM 只验证架构无关脚本；正式 x64/AD Gate 不变 |
 
+> 历史注记（2026-09-15，#293）：本表「源码源」「GitHub」「构建」三行原先写公司侧 Runner 构建、公司 Gitea 为唯一权威、GitHub 与公司侧无关；已按 07 §1 的 2026-08-11 双权威定案与 2026-09-15「本机构建、本地测试、GitHub Release 中转、公司只核验与独立授权部署」决定改写，旧表述不再作为决策。
+
 ## 3. 目标拓扑与信任边界
 
 ```mermaid
 flowchart LR
-    MAC["Mac 开发机"] -->|"VPN / Git"| G["内网 Gitea"]
-    G --> WR["Windows x64 Runner"]
-    WR --> PKG["Gitea Generic Package Registry"]
+    MAC["Mac 开发机<br/>本机 producer：钉版本 SDK 容器构建 + 本地测试"] -->|"Push Mirror（源码）"| GH["GitHub 私有仓"]
+    MAC -->|"上传已测试 ZIP + SHA256 + manifest"| GHR["GitHub Release 资产（中转）"]
+    GHR -->|"下载 + SHA256/manifest 对照 handoff 证据"| CV["公司 scm-ci 核验"]
+    CV --> PKG["公司 Gitea Generic Package Registry"]
     PKG --> T["测试 IIS<br/>OpenSSH"]
     T -->|"测试通过 + 人工批准"| DC["部署控制端"]
     DC -->|"SMB 到本地 incoming"| P["生产 IIS"]
@@ -50,9 +54,11 @@ flowchart LR
 
 | 角色 | 允许 | 禁止 |
 |---|---|---|
-| Mac | 开发、测试、push、PR、非生产排障 | 保存生产 Secret、生成最终生产制品 |
-| Gitea | 代码、PR、workflow、制品、审计 | 运行生产应用 |
-| Windows Runner | 编译、测试、打包、上传制品 | 成为生产管理员 |
+| Mac | 开发、测试、push、PR、非生产排障 | 保存生产 Secret、直连公司环境 |
+| 本机 Gitea | 代码、Issue、PR、workflow、审计（唯一源码源） | 运行生产应用 |
+| 本机 producer（Mac 钉版本 SDK 容器） | 编译、测试、打包、发布 Release 资产 | 持有生产 Secret、成为生产管理员 |
+| GitHub Release | 中转已测试制品 | 进入公司信任链、触发公司部署 |
+| 公司 Gitea / scm-ci | 核验校验和与 release SHA、制品库、部署审计 | 联网构建、成为正式制品 producer |
 | 测试 IIS | 验证真实部署脚本 | 作为正式构建机 |
 | 部署控制端 | 下载批准制品、SMB 传输、调用 JEA | 任意修改应用代码 |
 | 生产 IIS | 运行已验证制品 | Git pull、安装 SDK/Node/AI、现场编译 |
@@ -100,13 +106,13 @@ deploy/
 └── build-deploy-test.yml
 ```
 
-构建顺序：
+构建顺序（在本机 producer 的钉版本 SDK 容器内执行；选 GitHub Actions 候选时同一顺序在 windows runner 执行）：
 
 ```text
-npm ci
+npm ci（package-lock.json 进仓库）
 → React test/build
 → 将静态文件写入 ASP.NET Core wwwroot
-→ dotnet restore（使用 lock file）
+→ dotnet restore --locked-mode（packages.lock.json 进仓库）
 → dotnet test
 → 空 PostgreSQL 验证 migration
 → dotnet publish -r win-x64
@@ -114,7 +120,7 @@ npm ci
 → manifest + ZIP + SHA256
 ```
 
-实际项目必须锁定 .NET、Node、npm、PostgreSQL 客户端和 Gitea Runner 版本。版本升级与应用发布分开实施。
+实际项目必须锁定 .NET、Node、npm、PostgreSQL 客户端与 producer 容器镜像 digest（选 GitHub Actions 候选时锁定 runner 镜像）版本。版本升级与应用发布分开实施。
 
 ## 6. 不可变制品合同
 
@@ -183,10 +189,10 @@ C:\Apps\MyApp\
 
 ## 8. 测试环境：OpenSSH
 
-测试部署身份使用独立 key，不使用个人管理员账号。防火墙只允许 Runner 或指定部署机访问 OpenSSH。
+测试部署身份使用独立 key，不使用个人管理员账号。防火墙只允许指定部署执行端访问 OpenSSH。
 
 ```text
-Runner
+部署执行端（本地测试为本机，公司测试为部署控制端）
 → 下载/读取本次制品
 → SCP ZIP、SHA256 到 C:\Apps\MyApp\incoming
 → SSH 调用固定入口 Install-AISoftRelease.ps1
@@ -290,6 +296,7 @@ JEA transcript、Windows Event Log、IIS 日志、应用结构化日志和 Gitea
 - 自动合并 PR 或自动晋级生产。
 - 在未验证备份时执行破坏性 PostgreSQL migration。
 - 把 Windows 目标描述为已经建成。
+- 在公司内网联网构建，或让公司 Gitea/Runner 成为正式制品 producer。
 
 具体迁移步骤见 [13](13-项目结果迁移与内网切换实施手册.md)，验证证据见 [14](14-Windows部署与迁移验收清单.md)，Mac 快速原型步骤见 [15](15-VMware-Fusion-Windows-ARM原型实施手册.md)。
 
