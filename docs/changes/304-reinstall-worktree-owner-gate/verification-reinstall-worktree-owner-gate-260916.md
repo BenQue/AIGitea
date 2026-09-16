@@ -89,35 +89,43 @@ change 的真实推送 fast-forward 覆盖，无数据损失。教训已固化�
 
 | Command / check | Result | Evidence |
 |---|---|---|
-| Mac `sudo bash codex/install-host-access-broker.sh` | NOT RUN | 待填写（含 `source commit` / `source operations` 两行） |
-| VM `orb -m gitea-ci sudo bash /mnt/mac/.../codex/install-host-access-broker.sh` | NOT RUN | 待填写（含 `source commit` / `source operations` 两行） |
+| Mac `sudo bash codex/install-host-access-broker.sh` | PASS | `source checkout: /Users/benque/MyDocs/AISoftPlatform` / `source commit: e5ed35e (level with origin/main)` / `source operations: 36` / `installed host-access-broker/v1 candidate` / `no credential, Git config, project profile, token, service, timer, VM, merge, or deployment mutation was performed` |
+| VM `orb -m gitea-ci sudo bash /mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/install-host-access-broker.sh` | PASS | `source checkout: /mnt/mac/Users/benque/MyDocs/AISoftPlatform` / `source commit: e5ed35e (level with origin/main)` / `source operations: 36` / `installed host-access-broker/v1 candidate` |
+| VM 同一条命令**第二次**执行（幂等证明）| PASS | `host-access-broker/v1 candidate already current (no-op)`；两次都打印 `no credential, Git config, project profile, token, service, timer, VM, merge, or deployment mutation was performed` |
 
 ### G. 重装之后的读回
 
 | Command / check | Result | Evidence |
 |---|---|---|
-| Mac `grep -c pushed_head` 已安装 `broker.py` | NOT RUN | 待填写 |
-| Mac `ls` 已安装 lib 目录含 `aisoft_worktree_owner.py` | NOT RUN | 待填写 |
-| 已安装 runtime，错误 `AISOFT_SESSION_ID` | NOT RUN | 待填写 |
-| 已安装 runtime，未 claim 的 worktree | NOT RUN | 待填写 |
-| 已安装 runtime，正确 session 推送本分支 | NOT RUN | 待填写 |
-| Mac `host.access.audit` | NOT RUN | 待填写 |
-| VM `host.access.audit` | NOT RUN | 待填写 |
+| Mac `grep -c pushed_head /usr/local/lib/aisoft-host-access/aisoft_host_access/broker.py` | PASS | `1`（重装前为 `0`）|
+| Mac `ls /usr/local/lib/aisoft-host-access/` | PASS | `aisoft_change_name.py  aisoft_gitea_governance  aisoft_host_access  aisoft_worktree_owner.py`；`-rw-r--r-- root wheel 12614 Sep 16 21:50 aisoft_worktree_owner.py`。`diff -q` 对源码：`broker.py` 与 `aisoft_worktree_owner.py` 均**完全一致**。已安装 manifest `operations` 计数 `36`，与仓库一致 |
+| 已安装 runtime（wrapper），`AISOFT_SESSION_ID=not-the-owner-0000` | PASS（正确拒绝） | `{"code": "WORKTREE_OWNER_MISMATCH", "message": "worktree is owned by session ca740375-6b30-4296-8250-3370ceb61f01, not not-the-owner-0000; the owning session pushes its own branch, another session notifies or hands back", "status": "BLOCKED_EXTERNAL"}` |
+| 已安装 runtime（wrapper），marker 暂时移走后以正确 session 调用 | PASS（正确拒绝） | `{"code": "WORKTREE_UNCLAIMED", "message": "change worktree has no ownership marker at .../worktrees/issue-304-reinstall-worktree-owner-gate/aisoft-owner.json; claim it with: ... claim-worktree --branch <change/N-slug> --session <session id>", "status": "BLOCKED_EXTERNAL"}`。marker 随即复原，内容不变 |
+| 已安装 runtime，正确 session 推送本分支（AC-2）| NOT RUN | 留到确认点 2 的真实推送一并取得；两条反向证明期间本地 `HEAD` = `d4e2811`，远端 ref 仍为 `e5ed35e`，证明两次拒绝都没有发生网络写 |
+| Mac `host.access.audit` | PASS | `"status": "PASS"`；protection `main` / `["CI / verify (pull_request)"]` 不变 |
+| Mac 既有 typed 操作回归抽样 | PASS | `host.onboarding.check` / `orbstack.vm.status` / `orbstack.runner.status` / `vm.profile.read-back` 均 `"status": "PASS"`；`gitea.repo.read` / `gitea.protection.read` / `gitea.labels.read` 均返回完整载荷、exit `0`（这三个返回裸载荷而非 status 信封，`gitea.labels.read` 是裸数组）；`gitea.issue.read --number 304` 读回 `open` + `['complexity/small', 'needs-analysis', 'type/maintenance']` |
+| VM `grep -c pushed_head /usr/local/lib/aisoft-host-access/aisoft_host_access/broker.py` | PASS | `1` |
+| VM `ls /usr/local/lib/aisoft-host-access/` | PASS | `__pycache__  aisoft_change_name.py  aisoft_gitea_governance  aisoft_host_access  aisoft_worktree_owner.py` |
+| VM `host.access.audit` | PASS | `"status": "PASS"`；载荷与 Mac 一致（同样的 identities / token_scopes / protection / `routine_merge.enabled: false`）|
+| VM 侧 typed 信号（由 Mac broker 在 VM 内执行，重装后复核）| PASS | `vm.profile.read-back` = `read-back` / `orbstack.vm.status` / `orbstack.runner.status` 均 `PASS` |
 
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 两台已安装 `broker.py` 含 `pushed_head` 且 lib 目录含 `aisoft_worktree_owner.py` | NOT RUN | 待 F/G |
-| AC-2 正常路径返回 `pushed_head` 且等于 `git rev-parse HEAD` | NOT RUN | 待 G |
-| AC-3 反向证明：`WORKTREE_OWNER_MISMATCH` 与 `WORKTREE_UNCLAIMED` | 源码 runtime 已证（B，仅 MISMATCH 两型）；**已安装 runtime NOT RUN** | 待 G |
-| AC-4 两台 `host.access.audit` 均 `PASS`，既有 typed 操作无回归 | Mac 重装前基线 PASS（D）；**重装后两台 NOT RUN** | 待 G |
+| AC-1 两台已安装 `broker.py` 含 `pushed_head` 且 lib 目录含 `aisoft_worktree_owner.py` | **PASS** | Mac：`grep -c` `0` → `1`，`aisoft_worktree_owner.py` 存在且与源码 `diff -q` 一致，manifest `operations` = 36。VM：`grep -c` = `1`，`ls` 含 `aisoft_worktree_owner.py`，installer 打印 `source commit: e5ed35e (level with origin/main)` / `source operations: 36` |
+| AC-2 正常路径返回 `pushed_head` 且等于 `git rev-parse HEAD` | NOT RUN | 需要一次真实推送，留到确认点 2 |
+| AC-3 反向证明：`WORKTREE_OWNER_MISMATCH` 与 `WORKTREE_UNCLAIMED` | **PASS** | 重装后在 **Mac 已安装 runtime**（wrapper）上取得两条 exact 异常码，见 G。两次拒绝期间本地 `HEAD` = `d4e2811` 而远端 ref 仍为 `e5ed35e`，证明拒绝发生在凭据解析之前、未产生网络写。**只在 Mac 上验**：change worktree 只存在于 Mac，VM 不承载 change worktree，该闸门在 VM 上没有可触发的输入 |
+| AC-4 两台 `host.access.audit` 均 `PASS`，既有 typed 操作无回归 | **PASS** | Mac 与 VM 重装后 `host.access.audit` 均 `"status": "PASS"`，两边载荷一致且与 Mac 重装前基线（D 段）逐字段相同。Mac 另抽样 7 个既有 typed 操作全部正常 |
 
 ## 遗留风险与未完成项
 
-- **VM 侧已安装 `broker.py` 的版本无法从 Mac 读取**：没有任何 typed 操作能读 VM 上的文件内容。
-  该台 AC-1 的证据只能取自 installer 自己打印的 `source commit` / `source operations` 两行，
-  以及重装后 VM 侧 `host.access.audit` 的 `PASS`。这是能力边界，不是本次遗漏。
+- **VM 侧的读回由人代跑**：没有任何 typed 操作能读 VM 上的文件内容，`orb` 裸 shell 在 broker 契约
+  之外，所以 VM 的 `grep` / `ls` / `host.access.audit` 三条由人在 VM 内执行、输出原样抄录在 G 段。
+  这是能力边界，不是本次遗漏。
+- **VM 侧 `host.access.audit` 没有重装前基线**：本会话在重装之前只跑了 Mac 侧 audit。VM 那条
+  重装后为 `PASS` 且与 Mac 载荷一致，可以证明「重装后正常」，但严格说不能证明「重装没有改变它」。
+  下次同型运维应在重装前先取两台基线。
 - **没有任何机制会主动报告「已合并但未安装」**：本 Issue 的整个存在就是人事后发现的。
   drift 检测需要独立验收标准，按 `issue-session-flow` 的判据属于新 Issue，收尾时开。
 - 回滚方式：installer 为每个被覆盖文件留 `.previous` 备份；回滚是复原 `.previous`，
