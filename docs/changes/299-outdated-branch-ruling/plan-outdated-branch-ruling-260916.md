@@ -27,15 +27,16 @@ updated: 2026-09-16
 | T01 | 取证 + 四文档合同草案 + 确认点 1 裁决（A 的分仓变体），summary 进入 `approved` | - | done |
 | T02 | `06` 踩坑 29：裁决、理由、否定裁决、残余风险，回指踩坑 22 | T01 | pending |
 | T03 | `check_outdated_branch` 按 classification 分仓裁定；`test-project-check.sh` 用例同步 | T01 | pending |
-| T04 | 负责人界面切换三个 internal-application 后读回 `gitea.protection.read`，写 verification 并评论 Issue | T03 | pending |
+| T04 | 负责人界面切换 NewEMaint 与 LocalWMS 后读回四仓 `gitea.protection.read`（SFM 保持 true），写 verification 并评论 Issue | T03 | pending |
 | T05 | smoke、`check-change-documents`、判级投影 `--verify` 读回 `projected`、本地原子 commit、确认点 2、唯一 manual PR | T02, T03, T04 | pending |
 
 ## Expected touch points
 
 - T02：`06-运维手册与踩坑集.md` §2 踩坑表新增第 29 行（28 由 #298 占用），踩坑 22 对策列加指针。
-- T03：`codex/tools/aisoft-project-check.sh` `check_outdated_branch` 尾部判定与注释；
-  `codex/tests/test-project-check.sh` 第 831–853 行两条 GAP 用例改为 SKIP 且期望 exit 0，
-  新增平台仓 GAP/PASS 两例；aligned fixture 的 `result:` 计数行不变（fixture 仍是 `true`）。
+- T03：`codex/tools/aisoft-project-check.sh` `check_ci_merge_preview` 记下 verdict，
+  `check_outdated_branch` 尾部按 classification 与该 verdict 判定；`codex/tests/test-project-check.sh`
+  新增「有合并预览的 internal-application」fixture 两例（false/缺键 → SKIP、exit 0）、
+  无合并预览仍 GAP 一例、平台仓 GAP/PASS 两例；aligned fixture 的 `result:` 计数行不变。
 - T04：`docs/changes/299-outdated-branch-ruling/verification-*.md`；Issue #299 评论。
 - 所有 ticket：`docs/changes/299-outdated-branch-ruling/`。
 

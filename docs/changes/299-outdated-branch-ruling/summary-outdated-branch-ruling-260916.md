@@ -124,8 +124,13 @@ override_reason: ''
 
 ## 裁决（确认点 1，2026-09-16）
 
-负责人选定 **A 的分仓变体**：`internal-application`（NewEMaint、LocalWMS、SFMDigitalBoard）关闭
-`block_on_outdated_branch`，`ci-outdated-branch` 对 internal-application 读到 `false` 改报带裁决说明的
-SKIP；`aisoft-platform` 保留 `true`、检查器仍要求 `true`（平台仓 ci.yml 只有 `pull_request` 触发，
+负责人选定 **A 的分仓变体**：`internal-application` 关闭 `block_on_outdated_branch`，
+`aisoft-platform` 保留 `true`、检查器仍要求 `true`（平台仓 ci.yml 只有 `pull_request` 触发，
 没有 push-main CI 兜底，且并行度低）。B、C 作为否定裁决与残余风险一并写进 `06` 踩坑 29。
-Gitea 界面开关由负责人人工切换，会话只读回。已启动 Development Loop（manual PR）。
+
+关闭的**前提**由检查器强制：`ci-outdated-branch` 只在同一次运行的 `ci-merge-preview` 为 PASS 时才把
+internal-application 的 `false` 报为带裁决说明的 SKIP；没有合并预览就是缺口①②同时打开（踩坑 22 事故
+本身），仍报 GAP。2026-09-16 读回：NewEMaint 与 LocalWMS `ci-merge-preview` PASS 且有 push-main CI，
+可以关闭；**SFMDigitalBoard `ci-merge-preview` GAP**（ci.yml 只检出 `$GITHUB_REF` head），开关保留
+`true`，待其自己的 Issue 采纳合并预览后再关。Gitea 界面开关由负责人人工切换，会话只读回。
+已启动 Development Loop（manual PR）。

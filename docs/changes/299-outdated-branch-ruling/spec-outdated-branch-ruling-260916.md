@@ -59,18 +59,22 @@ updated: 2026-09-16
 ## 裁决（确认点 1，2026-09-16）
 
 **A 的分仓变体**：`internal-application` 关闭 `block_on_outdated_branch`；`aisoft-platform` 保留 `true`。
-B 与 C 为否定裁决，理由与残余风险记入 `06` 踩坑 29。
+B 与 C 为否定裁决，理由与残余风险记入 `06` 踩坑 29。关闭的前提是该仓 `ci-merge-preview` PASS，
+由检查器在同一次运行里强制；2026-09-16 读回 NewEMaint、LocalWMS 满足，SFMDigitalBoard 不满足
+（ci.yml 只检出 `$GITHUB_REF` head），其开关保留 `true` 直到采纳合并预览。
 
 ## Acceptance criteria
 
 - [ ] AC-1：裁决、理由、否定裁决（B/C）与残余风险写进 `06-运维手册与踩坑集.md` 新条目（踩坑 29，
   回指踩坑 22；踩坑 22 的对策列加一句收窄指针）。
 - [ ] AC-2：`aisoft-project-check.sh --remote` 对 `internal-application` 的 `block_on_outdated_branch=false`
-  与键缺失不再报 `ci-outdated-branch` GAP，改为带 #299 说明的 SKIP；对 `public-platform` 仍报 GAP；
-  `true` 一律 PASS；`public-test`、不在 manifest、403、未 `--remote` 四条分支行为不变。
-  `codex/tests/test-project-check.sh` 对应用例更新并全部通过；`bash codex/tests/smoke.sh` 通过。
-- [ ] AC-3：负责人在 Gitea 界面切换三个 `internal-application` 后，会话用 `gitea.protection.read`
-  读回四仓的 `block_on_outdated_branch`，结果写进 verification 并评论到本 Issue。切换前后各读一次。
+  与键缺失，在同一次运行 `ci-merge-preview` 为 PASS 时改报带 #299 说明的 SKIP，否则仍报 GAP
+  （措辞指明两道保证同时缺失）；对 `public-platform` 仍报 GAP；`true` 一律 PASS；`public-test`、
+  不在 manifest、403、未 `--remote` 四条分支行为不变。`codex/tests/test-project-check.sh` 对应用例
+  更新并全部通过；`bash codex/tests/smoke.sh` 通过。
+- [ ] AC-3：负责人在 Gitea 界面切换 NewEMaint 与 LocalWMS 后，会话用 `gitea.protection.read`
+  读回四仓的 `block_on_outdated_branch`，结果写进 verification 并评论到本 Issue。切换前后各读一次；
+  SFMDigitalBoard 读回应仍为 `true`。
 - [ ] AC-4：平台 required CI 全绿；不改任何项目仓的 `.gitea/workflows/*`；不改平台仓 ci.yml。
 
 ## 接口、数据与兼容性影响
