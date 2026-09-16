@@ -21,10 +21,12 @@ updated: 2026-09-16
 
 ## 基线与范围
 
-- Commit SHA: `50ba9de4dab7422e6c005e30e69a8a96c4d6286b`（T02），
-  其前序为 `a17d3aa8a9ebbc6d3c96cbc48618f3a7a7642755`（T01）与
-  `6a57b3a7e56c86ac6dbdde6dd350f11b63caaffe`（合同文档）。
-- 基线：`origin/main` = `f6e2e50a57dec93ccec1e7ea58bf760c2309286f`
+- Commit SHA: `dfbf098`（T02），其前序为 `5ac76ef`（T01）与 `e44ca19`（合同文档）。
+  下表所有证据是在 rebase **之前**的等价提交 `50ba9de` / `a17d3aa` / `6a57b3a` 上取得的，
+  树内容逐字节相同；rebase 后另跑了一次完整 smoke 复核（见「rebase 后复核」）。
+- 基线：`origin/main` = `2667c3f93ebbc52ef30447722c8e3f6451b4eab8`
+  （建 PR 时为 `f6e2e50`，随后 PR #302 合并了 #299，平台仓的
+  `block_on_outdated_branch` 按该裁决保留，因此必须 rebase 到最新 `main` 才能合并）
 - 环境：macOS Darwin 27.0.0 (arm64)，CPython 3.14
   （`/opt/homebrew/opt/python@3.14/bin/python3.14`），worktree
   `/private/tmp/issue-301-pycache-boundary-exemption`
@@ -62,6 +64,18 @@ updated: 2026-09-16
 | `return False`（豁免失效） | `FAILED (errors=1)` |
 | `command_env()` 去掉 `PYTHONPYCACHEPREFIX`（隔离失效） | `FAILED (failures=1, errors=1)` |
 | 全部还原 | `Ran 20 tests`, `OK` |
+
+### rebase 后复核
+
+`main` 在 PR #303 开出后前进了 11 个提交（PR #302 / Issue #299）。两侧改动文件零重叠
+（#299 动 `06`、`aisoft-project-check.sh`、`test-project-check.sh` 与 `docs/changes/299-*`），
+`git rebase origin/main` 五个提交全部干净重放，无冲突。
+
+| Command / check | Result | Evidence |
+|---|---|---|
+| `git diff --name-only` 双侧比对 | 无重叠 | `comm -12` 输出为空 |
+| `git rebase origin/main` | 干净 | `Successfully rebased and updated refs/heads/change/301-pycache-boundary-exemption`，`git status --porcelain` 为空 |
+| `bash codex/tests/smoke.sh`（rebase 后，head `ddf9cc1` 之前的 `c1bbf3a` 树） | PASS | `Ran 962 tests in 92.513s`, `OK`, `Codex platform static smoke checks passed.`, exit 0 |
 
 ## Acceptance criteria 结果
 
