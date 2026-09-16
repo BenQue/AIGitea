@@ -24,6 +24,37 @@ decision, a direct production action, a missing external dependency, unreliable 
 attempts with the same root cause. A sandbox/network approval required by the host is an execution permission, not
 a new product decision.
 
+## Single-writer ownership of a change worktree
+
+**A change worktree has exactly one writer: the session that owns its Issue.** Another session
+that notices it needs a rebase, a conflict resolution or a re-run may **notify** that session or
+**hand it back** — never do it for them, even when the change itself is right. `git rebase`,
+`git commit` and `git checkout` never reach the broker, so work done on someone else's behalf
+leaves no trace on the platform at all.
+
+Claim the worktree right after `git worktree add`, and carry the same session id on every broker
+push:
+
+```bash
+AISOFT_SESSION_ID=<this session id> PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli \
+  claim-worktree --branch change/N-short-description --worktree /private/tmp/issue-N-short-description
+```
+
+**After a push, check the returned `pushed_head` against the sha verified at confirmation point 2.**
+That is a step, not a suggestion. The gate stops another session from pushing your branch as itself;
+it cannot stop *you* from pushing a HEAD somebody else rewrote, because the identity it sees is
+still yours. A mismatch means the branch was rewritten — stop and find out by whom before going on
+to the PR.
+
+When cross-session interference is suspected, scan read-only (it writes nothing):
+
+```bash
+PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli scan-worktrees --repo <checkout>
+```
+
+`rewritten`, `unclaimed` and `claim-invalid` count as GAP; `ahead` and `unpushed` are the normal
+state during implementation and are listed without counting.
+
 ## Two default confirmation points
 
 The first point is contract/start confirmation. After triage, classification, and every required semantic document
@@ -126,6 +157,8 @@ Do not pick a default on the user's behalf, and do not dispatch an Issue that is
 
 - All Gitea and remote Git access uses the project-scoped host-access broker.
 - A task never implements another Issue opportunistically.
+- A session never writes in a change worktree it does not own; it notifies or hands back (#298).
+- A push is not done until `pushed_head` has been compared with the verified sha.
 - `approved` starts development; it does not authorize merge or deployment.
 - An open PR is not delivery, a green workflow is not deployment, and an unrun check is never PASS.
 - Never print credentials or copy Claude/Codex authentication between providers.

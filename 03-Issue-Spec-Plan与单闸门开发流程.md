@@ -25,6 +25,60 @@ Issue #N
 - 新 Issue 从分析开始使用单一 `change/N-short-description` 分支；已有 `change/N` 与更早的 `spec/N` 只按历史证据兼容，不作为新 writer 的可选格式。
 - 文档与代码进入同一个最终 PR，不再强制独立 docs-only spec PR。
 
+### change worktree 的单写者归属（#298）
+
+**一个 change worktree 的写者是且只是该 Issue 的会话。** 别的会话发现它需要变基、需要修
+冲突、需要重跑验收时，只能**通知**那个会话或**交回**给它，不得代劳——哪怕改动本身是对的。
+
+> 🚩 **Red Flag**：「我顺手把别人那个 worktree 变基一下，反正 main 已经前进了」——停。
+> 你正在改写一条**不属于你**的证据链：冲突怎么解的没有归属，验收在谁的环境里跑的读者分不
+> 出，而错误会跟着对方的 PR 直达 merge 这道唯一交付闸门。**通知，或者交回。**
+
+平台此前只约束了「建」没有约束「进」：`git rebase` / `git commit` / `git checkout` 都是纯
+本地操作，根本不经过 broker，因此任何会话都能进入任意 change worktree 改写 HEAD，平台侧零
+感知。2026-09-16 NewEMaint #96 实际中招——它核验的是 `327fc06`，push 后从 `gitea.pull.read`
+读回的 head 却是 `b576525`，多出 61 行它没读过的内容。
+
+现在有三样东西支撑这条归属：
+
+| 机制 | 命令 / 位置 | 它能回答什么 |
+|---|---|---|
+| 归属标记 | `$(git rev-parse --git-dir)/aisoft-owner.json` | 这个 worktree 属于哪个 Issue 的哪个会话 |
+| 推送闸门 | broker `git.push.change` | **谁**可以推这条分支 |
+| 只读扫描 | `aisoft-loop scan-worktrees --repo <checkout>` | 本机哪些 change worktree 的 HEAD 已经离开了它最近一次 push |
+
+建完 worktree 立刻 claim，并在此后每次调 broker 推送时带上同一个会话 id：
+
+```bash
+AISOFT_SESSION_ID=<本会话 id> PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli \
+  claim-worktree --branch change/N-short-description --worktree /private/tmp/issue-N-short-description
+```
+
+会话 id 走环境变量而不是 broker 参数：broker 的 `arguments` 是精确集合，给既有操作加参数
+会让全部既有调用方当场 `ARGUMENT_MISMATCH`（`06` 踩坑 26）。没有标记、标记不合法、标记指向
+别的分支、`AISOFT_SESSION_ID` 缺失或与标记不符，`git.push.change` 一律 fail closed，四个
+错误码分别是 `WORKTREE_UNCLAIMED`、`WORKTREE_CLAIM_INVALID` 与两种
+`WORKTREE_OWNER_MISMATCH`，拒绝发生在解析凭据之前，不产生任何网络写。
+
+#### 闸门拦不到什么，以及因此必须做的一步
+
+闸门回答的是「**谁**可以推」，不是「推的**是什么**」。第三方在你的 worktree 里 rebase 之后，
+你自己再推，闸门会放行——因为它看到的身份仍然是你，而别人的改写与你自己的 rebase 在 HEAD
+上留下的形状完全相同（HEAD 不再是上次 push 的后代）。要在推送时分开这两者，就得索要一个
+「我本人打算改写」的信号，那会让每次正常 rebase 都多一步。
+
+所以检出放在另外两处，而且**只在有人真的去看的时候才成立**：
+
+- **推送之后**：`git.push.change` 的返回体带 `pushed_head`（本次推上去的 40 位 SHA）与
+  `previous_head`（该分支上一次 push 的 SHA）。**核对 `pushed_head` 是否等于你在
+  `AWAITING_PR_CONFIRMATION` 时核验过的那个 SHA，是一个步骤，不是一句建议。** 不等即被改写。
+- **推送之前**：`scan-worktrees` 把同一状态报成 `rewritten`（HEAD 不是最近一次 push 的后代）。
+  `unclaimed` 与 `claim-invalid` 同样计入 GAP；`ahead`（有未推送的本地 commit）与 `unpushed`
+  照列但不计——否则这条命令在整个实现期都是红的，读者会被训练成忽略它。
+
+单会话自己的 `BASE_BRANCH_STALE` 处置不受影响：`git.fetch.main` → 本地 `git rebase
+origin/main` → broker 重推照旧走得通，**不需要**在 rebase 之后重新 claim。
+
 ### 衍生 Issue 的正文与认领
 
 会话中途发现的新问题一律开新 Issue，不扩本次范围。作者会话必须在**正文**写清四件事：

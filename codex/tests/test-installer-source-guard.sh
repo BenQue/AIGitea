@@ -61,7 +61,7 @@ expected_runtime_modules="$(
     "$ROOT/codex/runtime/aisoft_gitea_governance" \
     -maxdepth 1 -type f -name '*.py' | wc -l | tr -d ' '
 )"
-expected_runtime_modules=$((expected_runtime_modules + 1)) # aisoft_change_name.py
+expected_runtime_modules=$((expected_runtime_modules + 2)) # aisoft_change_name.py, aisoft_worktree_owner.py
 expected_skills="$(
   find "$ROOT/codex/skills" -maxdepth 2 -type f -name SKILL.md | wc -l | tr -d ' '
 )"

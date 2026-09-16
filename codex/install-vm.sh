@@ -19,7 +19,8 @@ aisoft_install_source_guard install-vm "$ROOT" \
       "$ROOT"/codex/runtime/aisoft_loop/*.py \
       "$ROOT"/codex/runtime/aisoft_host_access/*.py \
       "$ROOT"/codex/runtime/aisoft_gitea_governance/*.py \
-      "$ROOT/codex/runtime/aisoft_change_name.py"
+      "$ROOT/codex/runtime/aisoft_change_name.py" \
+      "$ROOT/codex/runtime/aisoft_worktree_owner.py"
   )" \
   operations "$(
     aisoft_install_source_json_count "$ROOT/codex/config/host-access-broker.json" operations
@@ -56,6 +57,8 @@ for source_file in "$ROOT"/codex/runtime/aisoft_gitea_governance/*.py; do
 done
 install -m 644 "$ROOT/codex/runtime/aisoft_change_name.py" \
   "$RUNTIME_DIR/aisoft_change_name.py"
+install -m 644 "$ROOT/codex/runtime/aisoft_worktree_owner.py" \
+  "$RUNTIME_DIR/aisoft_worktree_owner.py"
 install -m 644 "$ROOT/codex/config/host-access-broker.json" \
   "$SHARE_DIR/host-access-broker.json"
 install -m 644 "$ROOT/codex/config/gitea-governance.json" \
