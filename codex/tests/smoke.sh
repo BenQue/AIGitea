@@ -37,6 +37,7 @@ optional_runtime_sources=(
   "$ROOT/codex/tests/integration/test-docker28-classic-e2e.sh"
   "$ROOT/codex/tests/integration/provision-docker28-classic-lab.sh"
   "$ROOT/codex/tests/fixtures/docker28-classic/install-daemon.sh"
+  "$ROOT/codex/tests/fixtures/docker28-classic/migrate.sh"
   "$ROOT/codex/tests/test-docker28-classic-e2e-harness.sh"
 )
 runtime_source_count=0
@@ -119,6 +120,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/integration/test-docker28-classic-e2e.sh" \
     "$ROOT/codex/tests/integration/provision-docker28-classic-lab.sh" \
     "$ROOT/codex/tests/fixtures/docker28-classic/install-daemon.sh" \
+    "$ROOT/codex/tests/fixtures/docker28-classic/migrate.sh" \
     "$ROOT/codex/tests/test-docker28-classic-e2e-harness.sh"
   shellcheck \
     "$ROOT"/codex/agent/*.sh \

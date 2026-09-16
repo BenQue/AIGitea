@@ -43,7 +43,10 @@ TRANSPORT = "codex/runtime/aisoft_release/transport.py"
 MATRIX = "docker-release/compatibility/image-stores-v1.json"
 # Exact reviewed current bytes; never a path/content exemption. These pins are
 # advanced only with the corresponding behavior tests and real-E2E evidence.
-CURRENT_SOURCE_PINS: dict[str, str] = {}
+CURRENT_SOURCE_PINS: dict[str, str] = {
+    'codex/runtime/aisoft_release/runner.py': '0f71e8a9e663d51bb72956d7dfd4b46e633b63027b9f0fedf96ea399f24ff7d4',
+    'codex/runtime/aisoft_release/transport.py': '66929752efe7515fff425c95083c6593f7eabf6b3105daf2019169d1c6c0bf95',
+}
 CONTENT_EXEMPT = {"docker-release/README.md", "docker-release/install.sh"}
 
 
