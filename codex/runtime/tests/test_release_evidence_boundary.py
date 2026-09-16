@@ -43,6 +43,7 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
         self.baseline = self.git("rev-parse", "HEAD").decode().strip()
         for name, value in {
             "BASELINE": self.baseline,
+            "CURRENT_SOURCE_PINS": {},
             "SCOPES": ("codex/runtime/aisoft_release", "docker-release", boundary.EVIDENCE,
                        boundary.HISTORICAL_TEST, "codex/tests/fixtures/docker-release-v2-lifecycle"),
             "RUNNER_BEFORE": boundary.digest(old_runner),
@@ -84,6 +85,34 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
                 self.write(name, before + b" ")
                 self.rejected()
                 self.write(name, before)
+
+    def test_current_amendment_pins_require_exact_disk_and_index_bytes(self) -> None:
+        changed = {boundary.RUNNER: self.expected_runner + b"# reviewed identity fix\n",
+                   boundary.TRANSPORT: b"# reviewed graph verification\n",
+                   boundary.MATRIX: b'{"revision":"reviewed"}\n'}
+        with patch.object(boundary, "CURRENT_SOURCE_PINS", {
+            name: boundary.digest(value) for name, value in changed.items()
+        }):
+            for name, value in changed.items():
+                self.write(name, value)
+                self.git("add", "--", name)
+            boundary.validate(self.root)
+            for name, value in changed.items():
+                with self.subTest(path=name):
+                    self.write(name, value + b"# drift")
+                    self.rejected()
+                    self.git("add", "--", name)
+                    self.write(name, value)
+                    self.rejected()
+                    self.git("add", "--", name)
+            self.write(boundary.EVIDENCE, b"replacement history")
+            self.rejected()
+
+    def test_current_pins_cannot_exempt_other_paths_or_use_invalid_hashes(self) -> None:
+        for pins in ({boundary.EVIDENCE: boundary.digest(self.files[boundary.EVIDENCE])},
+                     {boundary.TRANSPORT: ""}, {boundary.TRANSPORT: "g" * 64}):
+            with self.subTest(pins=pins), patch.object(boundary, "CURRENT_SOURCE_PINS", pins):
+                self.rejected()
 
     def test_production_and_unknown_action_widening_are_rejected(self) -> None:
         for before, after in ((b'== "test"', b'== "production"'),

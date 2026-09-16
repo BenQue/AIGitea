@@ -1,6 +1,6 @@
 {
   "contract_version": "docker-image-store-compatibility/v1",
-  "matrix_revision": "2026.08.3",
+  "matrix_revision": "2026.09.1",
   "rows": [
     {
       "row_id": "engine-29-containerd-linux-amd64",
@@ -50,6 +50,28 @@
         "source": "docs/changes/65/verification-compose-514-lifecycle-260808.md"
       },
       "remediation": "Expand only after the same task-owned disposable real lifecycle E2E passes and its immutable evidence is committed."
+    },
+    {
+      "row_id": "engine-28.1.1-compose-2.35.1-classic-linux-amd64",
+      "engine": {
+        "minimum": "28.1.1",
+        "maximum_exclusive": "28.1.2"
+      },
+      "compose": {
+        "minimum": "2.35.1",
+        "maximum_exclusive": "2.35.2"
+      },
+      "os": "linux",
+      "architecture": "amd64",
+      "image_store": "classic",
+      "status": "supported",
+      "evidence": {
+        "kind": "real-e2e",
+        "evidence_id": "issue-296-docker28-classic-843672a6a6a4",
+        "date": "2026-09-16",
+        "source": "docs/changes/296-docker28-classic/verification-docker28-classic-260916.md"
+      },
+      "remediation": "Only this exact target tuple passed the disposable cross-store Registry/offline lifecycle; other versions/stores remain unsupported until independently verified."
     }
   ]
 }

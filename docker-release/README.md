@@ -16,7 +16,7 @@
 ├── compose.model.json          # v2 producer-normalized Compose contract
 ├── architecture.lock.json
 ├── images.inventory.json
-└── images.tar                 # 仅 offline-bundle 目标需要传输
+└── images.tar                 # v2 两种 transport 都用于严格内容图校验
 ```
 
 `release.json` 固定 source repository、merge SHA、`linux/amd64`、Compose checksum、#23
@@ -45,7 +45,7 @@ V2 image entry 明确区分四类 identity：
 ```
 
 - `reference`/`digest` 是 Registry source identity；Registry path 必须验证 `RepoDigests`。
-- `image_id` 是 Registry/offline 共同的 local content identity。
+- `image_id` 固定 producer 的原生 inspect identity；跨存储消费仍绑定这份源记录。
 - `transport_reference` 是 producer 创建并按其执行 `docker image save` 的 release-scoped tag。
 - `runtime_reference` 是 Compose `image:`；V2 首版要求与 transport tag byte-identical。
 
@@ -57,6 +57,14 @@ Direct OCI manifest 也允许 daemon 返回其 content-verified Config digest。
 `index/manifest descriptor -> runnable manifest -> config/layers` graph，并要求 Docker
 `manifest.json` 的 Config/layers 与 OCI graph byte-exact 对应；只有该 graph 已验证的 top-level
 descriptor digest 或 Config digest能作为 direct manifest `image_id`，任意其它 digest仍 fail closed。
+
+Issue #296 对 v2 增加跨 store 身份校验：两种 transport 均先验证完整 archive、inventory、
+checksum 与唯一 runnable `linux/amd64` OCI graph；从该图得出已经验证的 descriptor/config
+身份集合，目标 image inspect 的 `Id` 必须命中这个集合。Registry 的 exact `RepoDigests`、
+本地 runtime tag、OS/architecture 校验保持。启动后的 `container.Image` 必须等于重新校验
+得到的目标本地 image `Id`，release/service labels 与 health 同时满足；仅 tag 或 RootFS 相同
+不构成身份证明。Stage receipt 仍记录原 manifest 的 `image_id`，每次消费继续校验本地内容。
+Legacy v1 保持原来的严格 ID 比较；发布过的 release/镜像/校验和不改写。
 
 Tag 由 lower-case source owner/repository、service 和完整 release SHA 确定，只是搬运和本地
 解析别名，不是信任根。Producer 必须先按 digest pull/inspect，再创建 tag、重复 inspect exact
@@ -127,7 +135,7 @@ Runtime 只接受唯一匹配且 `status=supported`、带 `kind=real-e2e` eviden
 Registry push/pull、tag/save/load、offline pull rejection、Compose `--pull never --no-build`、
 identity/health 与 exact cleanup；因此 containerd row 由 evidence
 `issue-27-containerd-a75181cd7209`（2026-08-04，来源
-`docs/changes/27/03-verification.md`）固定为 `supported`。Classic 没有同等级真实证据，继续
+`docs/changes/27/03-verification.md`）固定为 `supported`。该 Engine29/Compose2.x classic 组合继续
 `rejected + evidence:null`；不能依据 fake adapter、源码阅读或偶然 `RepoDigests` 标记 PASS。
 Issue #65 又在两个task-owned disposable Engine `29.7.1`、Compose `5.1.4`、containerd `2.2.6`
 daemon 上完成public `docker-release/v2` lifecycle、Registry/offline transport、disposable PostgreSQL
@@ -136,6 +144,16 @@ migration、negative boundaries与exact cleanup；因此只增加Engine `>=29.7.
 `issue-65-compose-5.1.4-97445947fff7`（2026-08-09，来源
 `docs/changes/65/verification-compose-514-lifecycle-260808.md`）。这不表示Compose其它5.x、classic、
 其它Engine/OS/architecture或业务部署受支持。
+
+Issue #296 已在两个独立任务 VM 上完成 Docker29.7.1/Compose5.1.4/containerd →
+Docker28.1.1/Compose2.35.1/classic 的完整真实 Registry/offline 生命周期、重复执行、
+synthetic PostgreSQL 迁移计数、A→B→A 回滚、故意健康失败恢复及精确清理。
+因此 matrix `2026.09.1` 仅新增 Engine `>=28.1.1,<28.1.2`、Compose `>=2.35.1,<2.35.2`、
+linux/amd64/classic 的 supported 行，evidence 为 `issue-296-docker28-classic-843672a6a6a4`。
+旧三行保持，Engine29 classic 仍拒绝；这不是公司现场部署证明。真实执行源码843672a，
+64阶段回执与独立清理证明见 `docs/changes/296-docker28-classic/evidence/amendment/`。
+新入口 `codex/tests/integration/test-docker28-classic-e2e.sh` 默认 NOT RUN；它要求两个
+由本任务 provision 入口创建并验证所有权的专属 VM，不能用于公司主机或共享 Docker。
 
 Disposable harness 位于
 [`codex/tests/integration/test-docker-image-store-e2e.sh`](../codex/tests/integration/test-docker-image-store-e2e.sh)。

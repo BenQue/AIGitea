@@ -1,0 +1,22 @@
+{
+  "initial_head": "cb3df34f7a63f98c4b02ecd2ad513fa5f0ef9452",
+  "fix_head": "f65a7a2c2dbe0386e2ac3f200fc3abe0ef60dda3",
+  "scope": "T02 partial: provisioning and cross-store identity prerequisite",
+  "standards": {
+    "initial_findings": 2,
+    "fixed": 2,
+    "remaining": 0,
+    "verification": "read-only source review"
+  },
+  "spec": {
+    "initial_findings": 2,
+    "fixed": 2,
+    "remaining": 0,
+    "verification": "read-only source review"
+  },
+  "findings": [
+    "creation interrupted before durable ownership record",
+    "partial cleanup could not resume after first VM deletion"
+  ],
+  "result": "PASS for authorized provision; not lifecycle or compatibility acceptance"
+}

@@ -440,6 +440,11 @@ class ReleaseRuntime:
 
     def _assert_exact_healthy(self, context: VerifiedRelease) -> None:
         manifest = context.files.manifest
+        local_ids = (
+            context.transport.assert_local_images()
+            if manifest.contract_version == RELEASE_VERSION_V2
+            else {image.service: image.image_id for image in manifest.images}
+        )
         for service in manifest.runtime_services:
             identifiers = self.docker.container_ids(
                 context.files.compose_path,
@@ -464,7 +469,10 @@ class ReleaseRuntime:
             if labels.get(SERVICE_LABEL) != service:
                 raise DeploymentError(f"runtime service {service} service label is stale")
             image = manifest.image_for(service)
-            if config.get("Image") != image.runtime_reference or value.get("Image") != image.image_id:
+            if (
+                config.get("Image") != image.runtime_reference
+                or value.get("Image") != local_ids[service]
+            ):
                 raise DeploymentError(f"runtime service {service} image identity is stale")
             health = state.get("Health")
             if state.get("Running") is not True or not isinstance(health, Mapping):

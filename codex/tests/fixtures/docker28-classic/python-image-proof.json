@@ -1,0 +1,50 @@
+{
+  "image": "docker.io/library/python@sha256:46ee549c88617e9bc8acb843a326f1a5c0fa5608d7f9703509efe6d53b55f318",
+  "tag_source": "3.13-alpine",
+  "index_digest": "sha256:7415fbc3c9e4979cc717d92377ab2bc7b2b4a2af1ac03cc52b5f3f88efedaf3a",
+  "manifest": {
+    "schemaVersion": 2,
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "config": {
+      "mediaType": "application/vnd.oci.image.config.v1+json",
+      "digest": "sha256:fcb753fcfaff996c017312d4db8963910277948b5ec88dbcceb17e2fc347160d",
+      "size": 5281
+    },
+    "layers": [
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:55afa1ecc21d2bb5e5045f32dafee56272ffd89860bac26f6c32123439af26a4",
+        "size": 3846391
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:a8754e842af47bb367714de3fec4bbc455aa684e0aacc1aa7e7364fbcd4416c1",
+        "size": 408093
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:1246c75eb338cb1302c85931f1c4b19360ecc0295730d8e6c143feefc6d875d3",
+        "size": 15209995
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:b04626f2ffdb09c6430b484993db7c8cbecc0f67a3fce6265bb08fda7bffef2a",
+        "size": 247
+      }
+    ],
+    "annotations": {
+      "com.docker.official-images.bashbrew.arch": "amd64",
+      "org.opencontainers.image.base.digest": "sha256:79ff19e9084a00eece421b2523fb93e22d730e2c0e525905de047e848e56d95f",
+      "org.opencontainers.image.base.name": "alpine:3.24",
+      "org.opencontainers.image.created": "2026-09-01T00:02:08Z",
+      "org.opencontainers.image.revision": "688a0b86bb44289df16a363e9f41d90514c1a5f9",
+      "org.opencontainers.image.source": "https://github.com/docker-library/python.git#688a0b86bb44289df16a363e9f41d90514c1a5f9:3.13/alpine3.24",
+      "org.opencontainers.image.url": "https://hub.docker.com/_/python",
+      "org.opencontainers.image.version": "3.13.15-alpine3.24"
+    }
+  },
+  "config_platform": {
+    "os": "linux",
+    "architecture": "amd64"
+  }
+}

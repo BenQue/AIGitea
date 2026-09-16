@@ -1,0 +1,356 @@
+{
+  "cleanup": "NOT RUN",
+  "consumer_offline": {
+    "Architecture": "amd64",
+    "Descriptor": null,
+    "Id": "sha256:f2778dda1d3b52a5e47f467983b943f5ea60a9d532a1a4e58f0107dee8bbe5b8",
+    "Os": "linux",
+    "RepoDigests": [],
+    "RepoTags": [
+      "aisoft.local/issue296/identity:fixture"
+    ],
+    "RootFS": {
+      "Layers": [
+        "sha256:80252c9145f56bf2914df63672367683a85d6753bb680008d6a1f7a96a5c7d8d"
+      ],
+      "Type": "layers"
+    }
+  },
+  "consumer_registry": {
+    "Architecture": "amd64",
+    "Descriptor": null,
+    "Id": "sha256:f2778dda1d3b52a5e47f467983b943f5ea60a9d532a1a4e58f0107dee8bbe5b8",
+    "Os": "linux",
+    "RepoDigests": [
+      "192.168.139.216:5296/issue296/identity@sha256:e3a3867cedf0659bc2ed8b4634bc76cdf45f6b698dfaf13d5314b456fb3fdf04"
+    ],
+    "RepoTags": [],
+    "RootFS": {
+      "Layers": [
+        "sha256:80252c9145f56bf2914df63672367683a85d6753bb680008d6a1f7a96a5c7d8d"
+      ],
+      "Type": "layers"
+    }
+  },
+  "issue": 296,
+  "kind": "real-cross-store-identity-prerequisite",
+  "lifecycle": "NOT RUN",
+  "manifest": {
+    "config": {
+      "digest": "sha256:f2778dda1d3b52a5e47f467983b943f5ea60a9d532a1a4e58f0107dee8bbe5b8",
+      "mediaType": "application/vnd.oci.image.config.v1+json",
+      "size": 336
+    },
+    "layers": [
+      {
+        "digest": "sha256:f54f190e5348c5d7e1f2fe0d23fef8c743a5e9a983098a83c49ecf7d073ba53e",
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "size": 233
+      }
+    ],
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "schemaVersion": 2
+  },
+  "manifest_bytes_sha256": "e3a3867cedf0659bc2ed8b4634bc76cdf45f6b698dfaf13d5314b456fb3fdf04",
+  "next_gate": "Runtime identity contract change requires a separately approved spec amendment",
+  "offline_archive_sha256": "7d8b5c623069e59b46103b8fb99d1ba2f0435fb60a51109442319ad847ef2586",
+  "offline_identity": {
+    "code": "INVALID_CONTRACT",
+    "consumer_image_id": "sha256:f2778dda1d3b52a5e47f467983b943f5ea60a9d532a1a4e58f0107dee8bbe5b8",
+    "message": "image ID does not match manifest for service identity",
+    "producer_image_id": "sha256:e3a3867cedf0659bc2ed8b4634bc76cdf45f6b698dfaf13d5314b456fb3fdf04",
+    "result": "BLOCKED"
+  },
+  "plan": {
+    "capabilities": {
+      "consumer": {
+        "compose": "2.35.1",
+        "info": {
+          "DockerRootDir": "/var/lib/aisoft-296-consumer",
+          "Driver": "overlay2",
+          "DriverStatus": [
+            [
+              "Backing Filesystem",
+              "btrfs"
+            ],
+            [
+              "Supports d_type",
+              "true"
+            ],
+            [
+              "Using metacopy",
+              "false"
+            ],
+            [
+              "Native Overlay Diff",
+              "false"
+            ],
+            [
+              "userxattr",
+              "false"
+            ]
+          ],
+          "ID": "de4d224d-c1b8-4c51-b0e5-197744c2c4e4"
+        },
+        "installed_binary_checksums": [
+          "a1e26e03d5c80c72092ad1a68e39177319e1b6e4a296910b2b550cb3906b90aa  /usr/local/bin/docker",
+          "896187aff45cd2efec1fd807ecda6ccdf20678f70f6a61d4b291cef852fa78ed  /usr/local/bin/dockerd",
+          "1ca8ce258953a507d9d7a22c2c3c72be48386205a27a5199663a78997f23eb16  /usr/local/bin/containerd",
+          "7bdb2ce2916e5dd0354e5d129892bf96fdcdb1a9ab8eed69b9173e131db4c230  /usr/local/lib/docker/cli-plugins/docker-compose"
+        ],
+        "server": {
+          "ApiVersion": "1.49",
+          "Arch": "amd64",
+          "BuildTime": "2025-04-18T09:52:21.000000000+00:00",
+          "Components": [
+            {
+              "Details": {
+                "ApiVersion": "1.49",
+                "Arch": "amd64",
+                "BuildTime": "Fri Apr 18 09:52:21 2025",
+                "Experimental": "false",
+                "GitCommit": "01f442b",
+                "GoVersion": "go1.23.8",
+                "KernelVersion": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+                "MinAPIVersion": "1.24",
+                "Os": "linux"
+              },
+              "Name": "Engine",
+              "Version": "28.1.1"
+            },
+            {
+              "Details": {
+                "GitCommit": "05044ec0a9a75232cad458027ca83437aae3f4da"
+              },
+              "Name": "containerd",
+              "Version": "v1.7.27"
+            },
+            {
+              "Details": {
+                "GitCommit": "v1.2.2-0-g7cb3632-dirty"
+              },
+              "Name": "runc",
+              "Version": "1.2.2"
+            },
+            {
+              "Details": {
+                "GitCommit": "de40ad0"
+              },
+              "Name": "docker-init",
+              "Version": "0.19.0"
+            }
+          ],
+          "GitCommit": "01f442b",
+          "GoVersion": "go1.23.8",
+          "KernelVersion": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+          "MinAPIVersion": "1.24",
+          "Os": "linux",
+          "Platform": {
+            "Name": "Docker Engine - Community"
+          },
+          "Version": "28.1.1"
+        }
+      },
+      "producer": {
+        "compose": "5.1.4",
+        "info": {
+          "DockerRootDir": "/var/lib/aisoft-296-producer",
+          "Driver": "overlayfs",
+          "DriverStatus": [
+            [
+              "driver-type",
+              "io.containerd.snapshotter.v1"
+            ]
+          ],
+          "ID": "42ac0245-4f9e-42ca-a8e1-18c4513c0304"
+        },
+        "installed_binary_checksums": [
+          "44acb10a9e5d6ded0dd819d793867f4fd8d7020bf7d64f8956766973cc06ca30  /usr/local/bin/docker",
+          "3b88548988714953ad870cf1e7d8e3414b8c0651a7ae7a64b45ab0044961f1c4  /usr/local/bin/dockerd",
+          "7d5802be8afa78e2439387bbee254b8447e49b6d08ceb4586e7a905a0eb91b64  /usr/local/bin/containerd",
+          "33b208d7e76639db742fae84b966cc01dacae58ca3fc4dabbc907045aefdf0c4  /usr/local/lib/docker/cli-plugins/docker-compose"
+        ],
+        "server": {
+          "ApiVersion": "1.55",
+          "Arch": "amd64",
+          "BuildTime": "2026-07-31T17:07:42.000000000+00:00",
+          "Components": [
+            {
+              "Details": {
+                "ApiVersion": "1.55",
+                "Arch": "amd64",
+                "BuildTime": "Fri Jul 31 17:07:42 2026",
+                "Experimental": "false",
+                "GitCommit": "c5b8ce9",
+                "GoVersion": "go1.26.5",
+                "KernelVersion": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+                "MinAPIVersion": "1.40",
+                "Module": "github.com/moby/moby/v2",
+                "ModuleVersion": "v2.0.0+unknown",
+                "Os": "linux"
+              },
+              "Name": "Engine",
+              "Version": "29.7.1"
+            },
+            {
+              "Details": {
+                "GitCommit": "aad11006b869517fcd3009450b6f82da282e1a9b"
+              },
+              "Name": "containerd",
+              "Version": "v2.3.3"
+            },
+            {
+              "Details": {
+                "GitCommit": "v1.2.2-0-g7cb3632-dirty"
+              },
+              "Name": "runc",
+              "Version": "1.2.2"
+            },
+            {
+              "Details": {
+                "GitCommit": "de40ad0"
+              },
+              "Name": "docker-init",
+              "Version": "0.19.0"
+            }
+          ],
+          "GitCommit": "c5b8ce9",
+          "GoVersion": "go1.26.5",
+          "KernelVersion": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+          "MinAPIVersion": "1.40",
+          "Os": "linux",
+          "Platform": {
+            "Name": "Docker Engine - Community"
+          },
+          "Version": "29.7.1"
+        }
+      }
+    },
+    "resources": {
+      "containers": [
+        "aisoft-296-registry"
+      ],
+      "images": [
+        "docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278",
+        "192.168.139.216:5296/issue296/identity:fixture",
+        "aisoft.local/issue296/identity:fixture"
+      ],
+      "networks": [],
+      "registry_address": "192.168.139.216:5296",
+      "vms": {
+        "consumer": "aisoft-296-consumer",
+        "producer": "aisoft-296-producer"
+      },
+      "volumes": []
+    },
+    "software": {
+      "artifacts": [
+        {
+          "filename": "docker-29.7.1.tgz",
+          "id": "engine-producer",
+          "sha256": "0fcea2a8b4d1b54ccc9010e3451b78504a369d414f37eb3bb79300e1b5c22ce6",
+          "url": "https://download.docker.com/linux/static/stable/x86_64/docker-29.7.1.tgz"
+        },
+        {
+          "filename": "docker-28.1.1.tgz",
+          "id": "engine-consumer",
+          "sha256": "ff34bd799b5e4c3738a3b1a383cf4067c672add48c7203fcd003fcb0aacebc94",
+          "url": "https://download.docker.com/linux/static/stable/x86_64/docker-28.1.1.tgz"
+        },
+        {
+          "filename": "docker-compose-5.1.4",
+          "id": "compose-producer",
+          "sha256": "33b208d7e76639db742fae84b966cc01dacae58ca3fc4dabbc907045aefdf0c4",
+          "url": "https://github.com/docker/compose/releases/download/v5.1.4/docker-compose-linux-x86_64"
+        },
+        {
+          "filename": "docker-compose-2.35.1",
+          "id": "compose-consumer",
+          "sha256": "7bdb2ce2916e5dd0354e5d129892bf96fdcdb1a9ab8eed69b9173e131db4c230",
+          "url": "https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-x86_64"
+        }
+      ],
+      "registry_image": "docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278",
+      "schema": "aisoft-296-software-lock/v1"
+    },
+    "source": {
+      "files_sha256": {
+        "codex/runtime/aisoft_release/__init__.py": "f6179ea8c638ac0a1cac51689d19049cca7edf8ebf79214e6cb1ce5b0266962e",
+        "codex/runtime/aisoft_release/cli.py": "9e94648cbbaad7314502401ad566a0267999381559970507c29b35054dbc1aa2",
+        "codex/runtime/aisoft_release/compatibility.py": "36e82ecef0a8071b5b5ebe7f0fb851626295e20305c34278b4f40ec8e86a2079",
+        "codex/runtime/aisoft_release/compose.py": "8aaff5820228d5b4c3bb2fd79e70359b971c5b0f74757bae8fd70ef900cbfa87",
+        "codex/runtime/aisoft_release/contract.py": "aeeb3152443cce026cb1deb478d56fe520dd21006ce511a1253c7152ddf77b77",
+        "codex/runtime/aisoft_release/docker.py": "3ac0e2677ad82621f2bdcd48d98ea78c2d762a8d305973c82a9983b07455bdd9",
+        "codex/runtime/aisoft_release/errors.py": "482325befeef7c5832499c3c52ca71bc24e10b5059ab9c1b693b6576f7531d2b",
+        "codex/runtime/aisoft_release/gate.py": "f1acc757719beafaed82c75b27cd9952d837cb7d2c4d6f8c82c4c36b29aa3aca",
+        "codex/runtime/aisoft_release/runner.py": "95092fbd6deab1a536d53371444c9b9c708b538cff3bc1ac4ebbd7dae3bff195",
+        "codex/runtime/aisoft_release/security.py": "0a347f56eb2339dc264815b0d238fb8431555e53e0bd791a183deba1730747a2",
+        "codex/runtime/aisoft_release/state.py": "0b10ba6a77d122892b4dfd5252276a7c3b9c9cefa453ec756b44c5c5ccb53a87",
+        "codex/runtime/aisoft_release/transport.py": "26be1c6efa2d05628a613b7134899196e5004e5126e0a5b592f4966857158f21",
+        "codex/tests/fixtures/docker28-classic/identity.txt": "a1ecec3f03b45de83a3952761894f49d1f870252c6f600b15cd97cb823ece75b",
+        "codex/tests/fixtures/docker28-classic/install-daemon.sh": "c1e75abfacb220b9c80ec25e8e151ad07d34895bf2b93b02581575083494e348",
+        "codex/tests/fixtures/docker28-classic/software-lock.json": "f5229a9bebe31ba8f4684b0e30271ee4e6fa4b4f3454c4a32334a048d832e86a",
+        "codex/tests/integration/docker28-classic-driver.py": "d150bcb9ffca237cdcc02b23fad4cdaddde8e73a5f8fdaa0a177b5bf36c73fea"
+      },
+      "source_sha": "90b8150f29c5eb7c7bf512881e363476796b1235"
+    }
+  },
+  "producer": {
+    "Architecture": "amd64",
+    "Descriptor": {
+      "digest": "sha256:e3a3867cedf0659bc2ed8b4634bc76cdf45f6b698dfaf13d5314b456fb3fdf04",
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "size": 401
+    },
+    "Id": "sha256:e3a3867cedf0659bc2ed8b4634bc76cdf45f6b698dfaf13d5314b456fb3fdf04",
+    "Os": "linux",
+    "RepoDigests": [
+      "192.168.139.216:5296/issue296/identity@sha256:e3a3867cedf0659bc2ed8b4634bc76cdf45f6b698dfaf13d5314b456fb3fdf04"
+    ],
+    "RepoTags": [
+      "192.168.139.216:5296/issue296/identity:fixture",
+      "192.168.139.216:5296/issue296/identity@sha256:e3a3867cedf0659bc2ed8b4634bc76cdf45f6b698dfaf13d5314b456fb3fdf04"
+    ],
+    "RootFS": {
+      "Layers": [
+        "sha256:80252c9145f56bf2914df63672367683a85d6753bb680008d6a1f7a96a5c7d8d"
+      ],
+      "Type": "layers"
+    }
+  },
+  "reference": "192.168.139.216:5296/issue296/identity@sha256:e3a3867cedf0659bc2ed8b4634bc76cdf45f6b698dfaf13d5314b456fb3fdf04",
+  "registry_identity": {
+    "code": "INVALID_CONTRACT",
+    "consumer_image_id": "sha256:f2778dda1d3b52a5e47f467983b943f5ea60a9d532a1a4e58f0107dee8bbe5b8",
+    "message": "image ID does not match manifest for service identity",
+    "producer_image_id": "sha256:e3a3867cedf0659bc2ed8b4634bc76cdf45f6b698dfaf13d5314b456fb3fdf04",
+    "result": "BLOCKED"
+  },
+  "registry_image": {
+    "Architecture": "amd64",
+    "Descriptor": {
+      "digest": "sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278",
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "size": 1915
+    },
+    "Id": "sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278",
+    "Os": "linux",
+    "RepoDigests": [
+      "registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278"
+    ],
+    "RepoTags": [
+      "registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278"
+    ],
+    "RootFS": {
+      "Layers": [
+        "sha256:f44f286046d9443b2aeb895c0e1f4e688698247427bca4d15112c8e3432a803e",
+        "sha256:f646c8e10325628ebf7e4e4e29504f6507573a4d08b6ec91d8ff0fd92b8e1a71",
+        "sha256:811f3777554af05e129c61a8a5560c14039294055eaed4fb3b5d71537a22d694",
+        "sha256:858f5c95b990e95d446a3688ef63d976fc9eb2fbc2061f4bfb14ae307df8b92f",
+        "sha256:53c600587fd6fd570e1729c8b5b15df1352aef33a97ff2def12351d53754b3ea"
+      ],
+      "Type": "layers"
+    }
+  },
+  "result": "BLOCKED"
+}

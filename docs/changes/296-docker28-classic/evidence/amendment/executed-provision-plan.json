@@ -1,0 +1,115 @@
+{
+  "issue": 296,
+  "lifecycle": "NOT RUN: explicit lifecycle action produces real public phase receipts",
+  "resources": {
+    "build_cache": "exclusive disposable producer VM",
+    "consumer_containers": [],
+    "consumer_digest_plan": "created after producer push and before consumer mutation",
+    "fixture_content_sha256": "a1ecec3f03b45de83a3952761894f49d1f870252c6f600b15cd97cb823ece75b",
+    "images": [
+      "aisoft.local/issue296/identity:fixture",
+      "docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278"
+    ],
+    "networks": [],
+    "producer_containers": [
+      "aisoft-296-registry"
+    ],
+    "registry_port": 5296,
+    "volumes": []
+  },
+  "scope": "local-disposable-only",
+  "software": {
+    "artifacts": [
+      {
+        "filename": "docker-29.7.1.tgz",
+        "id": "engine-producer",
+        "sha256": "0fcea2a8b4d1b54ccc9010e3451b78504a369d414f37eb3bb79300e1b5c22ce6",
+        "url": "https://download.docker.com/linux/static/stable/x86_64/docker-29.7.1.tgz"
+      },
+      {
+        "filename": "docker-28.1.1.tgz",
+        "id": "engine-consumer",
+        "sha256": "ff34bd799b5e4c3738a3b1a383cf4067c672add48c7203fcd003fcb0aacebc94",
+        "url": "https://download.docker.com/linux/static/stable/x86_64/docker-28.1.1.tgz"
+      },
+      {
+        "filename": "docker-compose-5.1.4",
+        "id": "compose-producer",
+        "sha256": "33b208d7e76639db742fae84b966cc01dacae58ca3fc4dabbc907045aefdf0c4",
+        "url": "https://github.com/docker/compose/releases/download/v5.1.4/docker-compose-linux-x86_64"
+      },
+      {
+        "filename": "docker-compose-2.35.1",
+        "id": "compose-consumer",
+        "sha256": "7bdb2ce2916e5dd0354e5d129892bf96fdcdb1a9ab8eed69b9173e131db4c230",
+        "url": "https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-x86_64"
+      }
+    ],
+    "fixture_images": {
+      "postgres": "docker.io/library/postgres@sha256:075f7ba66bc9b3ce7d6b8b635208ff61cd7cf1a67d71ec530eec5d7ae0cbe571",
+      "python": "docker.io/library/python@sha256:46ee549c88617e9bc8acb843a326f1a5c0fa5608d7f9703509efe6d53b55f318"
+    },
+    "fixture_sources": {
+      "postgres": "https://hub.docker.com/_/postgres",
+      "python": "https://hub.docker.com/_/python"
+    },
+    "registry_image": "docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278",
+    "schema": "aisoft-296-software-lock/v1"
+  },
+  "source": {
+    "files_sha256": {
+      "codex/runtime/aisoft_release/__init__.py": "f6179ea8c638ac0a1cac51689d19049cca7edf8ebf79214e6cb1ce5b0266962e",
+      "codex/runtime/aisoft_release/cli.py": "9e94648cbbaad7314502401ad566a0267999381559970507c29b35054dbc1aa2",
+      "codex/runtime/aisoft_release/compatibility.py": "36e82ecef0a8071b5b5ebe7f0fb851626295e20305c34278b4f40ec8e86a2079",
+      "codex/runtime/aisoft_release/compose.py": "8aaff5820228d5b4c3bb2fd79e70359b971c5b0f74757bae8fd70ef900cbfa87",
+      "codex/runtime/aisoft_release/contract.py": "aeeb3152443cce026cb1deb478d56fe520dd21006ce511a1253c7152ddf77b77",
+      "codex/runtime/aisoft_release/docker.py": "3ac0e2677ad82621f2bdcd48d98ea78c2d762a8d305973c82a9983b07455bdd9",
+      "codex/runtime/aisoft_release/errors.py": "482325befeef7c5832499c3c52ca71bc24e10b5059ab9c1b693b6576f7531d2b",
+      "codex/runtime/aisoft_release/gate.py": "f1acc757719beafaed82c75b27cd9952d837cb7d2c4d6f8c82c4c36b29aa3aca",
+      "codex/runtime/aisoft_release/runner.py": "0f71e8a9e663d51bb72956d7dfd4b46e633b63027b9f0fedf96ea399f24ff7d4",
+      "codex/runtime/aisoft_release/security.py": "0a347f56eb2339dc264815b0d238fb8431555e53e0bd791a183deba1730747a2",
+      "codex/runtime/aisoft_release/state.py": "0b10ba6a77d122892b4dfd5252276a7c3b9c9cefa453ec756b44c5c5ccb53a87",
+      "codex/runtime/aisoft_release/transport.py": "66929752efe7515fff425c95083c6593f7eabf6b3105daf2019169d1c6c0bf95",
+      "codex/tests/fixtures/docker28-classic/docker-wrapper.py": "1c0c29cd06ceb7e2230d6ffbdc9b6eee762708de371689d39987c5b49b50a9c9",
+      "codex/tests/fixtures/docker28-classic/identity.txt": "a1ecec3f03b45de83a3952761894f49d1f870252c6f600b15cd97cb823ece75b",
+      "codex/tests/fixtures/docker28-classic/install-daemon.sh": "c1e75abfacb220b9c80ec25e8e151ad07d34895bf2b93b02581575083494e348",
+      "codex/tests/fixtures/docker28-classic/lifecycle-operation.py": "10dac6fa77c2185d703e93c9aafdc5662b5eb94007411bb3e8eedce8b2e961e5",
+      "codex/tests/fixtures/docker28-classic/lifecycle.py": "fe80cf7cc130a85b6a3d527985c5eabd77a64a15319fe73acf50fabf5a8bb11f",
+      "codex/tests/fixtures/docker28-classic/migrate.sh": "a380c808535c8e3ae75857f962c3b6e820348b7b672b92131308894522a2a9d5",
+      "codex/tests/fixtures/docker28-classic/postgres-image-proof.json": "e23973e0273c3d39b1694e6838c18385123616fdfa1a28bf4462a4c5d13c94e7",
+      "codex/tests/fixtures/docker28-classic/python-image-proof.json": "0cea5830497f4f2f7e53aa574a299a2d254c0ad0930de91c178f77b61de02c1d",
+      "codex/tests/fixtures/docker28-classic/software-lock.json": "a694a5b8820326175150de343b65085e7db836430f5752a3815031d823b36150",
+      "codex/tests/fixtures/docker28-classic/web.py": "3975ff6f2def9b65c4b8df72a419088c905b22cd72bd48e91b6a23577c586e06",
+      "codex/tests/integration/docker28-classic-driver.py": "7bec3fa737c87275580b2d7bb6bfa58f749f66dd46dec6022285f6053fd5957b",
+      "docker-release/compatibility/image-stores-v1.json": "319d0c9d496a1eaf24e8037bdbaf1ff89455bbb80008f816b8c00f30d626bcbb"
+    },
+    "source_sha": "843672a6a6a40fe453da94cffbd483e8d8e7d4d4"
+  },
+  "status": "NOT RUN",
+  "vms": [
+    {
+      "arch": "amd64",
+      "compose": "5.1.4",
+      "cpus": 2,
+      "data_root": "/var/lib/aisoft-296-producer",
+      "disk": "20G",
+      "engine": "29.7.1",
+      "isolated": true,
+      "memory": "4G",
+      "mount": "/private/tmp/aisoft-296-lab:/mnt/aisoft296",
+      "name": "aisoft-296-producer"
+    },
+    {
+      "arch": "amd64",
+      "compose": "2.35.1",
+      "cpus": 2,
+      "data_root": "/var/lib/aisoft-296-consumer",
+      "disk": "20G",
+      "engine": "28.1.1",
+      "isolated": true,
+      "memory": "4G",
+      "mount": "/private/tmp/aisoft-296-lab:/mnt/aisoft296",
+      "name": "aisoft-296-consumer"
+    }
+  ]
+}

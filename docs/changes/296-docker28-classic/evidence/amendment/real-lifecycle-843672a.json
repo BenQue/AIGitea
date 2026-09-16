@@ -1,0 +1,5722 @@
+{
+  "base_image_inspects": {
+    "postgres": {
+      "Architecture": "amd64",
+      "Descriptor": {
+        "digest": "sha256:075f7ba66bc9b3ce7d6b8b635208ff61cd7cf1a67d71ec530eec5d7ae0cbe571",
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "size": 3054
+      },
+      "Id": "sha256:075f7ba66bc9b3ce7d6b8b635208ff61cd7cf1a67d71ec530eec5d7ae0cbe571",
+      "Os": "linux",
+      "RepoDigests": [
+        "postgres@sha256:075f7ba66bc9b3ce7d6b8b635208ff61cd7cf1a67d71ec530eec5d7ae0cbe571"
+      ],
+      "RepoTags": [
+        "postgres@sha256:075f7ba66bc9b3ce7d6b8b635208ff61cd7cf1a67d71ec530eec5d7ae0cbe571"
+      ],
+      "RootFS": {
+        "Layers": [
+          "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+          "sha256:e5e448e5ad445a46af63fef09fb6ed3a99165ad6fc85946546e24ca0e6b8a5a4",
+          "sha256:e64ed932fbeb1283dc125f8083317ffc4dfd0f65493b937e54a8e7f7ee0ed31e",
+          "sha256:bbb3a19e120c236b81d19b367730201efd613240b2d998b315ce681b599afebe",
+          "sha256:1e74e3081df40556dc6a8ae195ebda8365b97b9974e6d1bb8deb302048fe93ea",
+          "sha256:7d7ad4753cf935190966b60894b4c1083d98b177f1730a0f5cdc491c2eca61e5",
+          "sha256:77d620d0c07cbfd3db733544add57587916e1e7dd3946ecdc4129ba7eccdd404",
+          "sha256:4f7a295ea45a171c932bf6347ffb0be1d0c6e744713751c9fd4aaaccc26c361b",
+          "sha256:e48b2bdc78e71baf8ad50548ad745be7512e77340c8056118449f0a83bbda601",
+          "sha256:aa28d005217b3acc29759a94f0e031a5b4cd8bb198d27b535850ca0b49e01f7e",
+          "sha256:6d437def03148555cd80549696fafe17a0f458d8971e5dcef73c683b08f8a76e"
+        ],
+        "Type": "layers"
+      }
+    },
+    "python": {
+      "Architecture": "amd64",
+      "Descriptor": {
+        "digest": "sha256:46ee549c88617e9bc8acb843a326f1a5c0fa5608d7f9703509efe6d53b55f318",
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "size": 1735
+      },
+      "Id": "sha256:46ee549c88617e9bc8acb843a326f1a5c0fa5608d7f9703509efe6d53b55f318",
+      "Os": "linux",
+      "RepoDigests": [
+        "python@sha256:46ee549c88617e9bc8acb843a326f1a5c0fa5608d7f9703509efe6d53b55f318"
+      ],
+      "RepoTags": [
+        "python@sha256:46ee549c88617e9bc8acb843a326f1a5c0fa5608d7f9703509efe6d53b55f318"
+      ],
+      "RootFS": {
+        "Layers": [
+          "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+          "sha256:362771c038195c54f35d78eba40a29daaf29ac4d8d878218a8462145c4b27d30",
+          "sha256:48fefbe60b9e9a3cb9b686aa3336ddd971ff4b4e5c3a30d5ac47539c04090a1c",
+          "sha256:8e9ff8da1d6b4032a8bf7e7ee70179094ca495ce933fc692a825b4fdd30a2a1f"
+        ],
+        "Type": "layers"
+      }
+    }
+  },
+  "capabilities": {
+    "consumer": {
+      "compose": "2.35.1",
+      "info": {
+        "DockerRootDir": "/var/lib/aisoft-296-consumer",
+        "Driver": "overlay2",
+        "DriverStatus": [
+          [
+            "Backing Filesystem",
+            "btrfs"
+          ],
+          [
+            "Supports d_type",
+            "true"
+          ],
+          [
+            "Using metacopy",
+            "false"
+          ],
+          [
+            "Native Overlay Diff",
+            "false"
+          ],
+          [
+            "userxattr",
+            "false"
+          ]
+        ],
+        "ID": "6ca7d1a6-e144-401f-9f2a-f6082af9d54a"
+      },
+      "installed_binary_checksums": [
+        "a1e26e03d5c80c72092ad1a68e39177319e1b6e4a296910b2b550cb3906b90aa  /usr/local/bin/docker",
+        "896187aff45cd2efec1fd807ecda6ccdf20678f70f6a61d4b291cef852fa78ed  /usr/local/bin/dockerd",
+        "1ca8ce258953a507d9d7a22c2c3c72be48386205a27a5199663a78997f23eb16  /usr/local/bin/containerd",
+        "7bdb2ce2916e5dd0354e5d129892bf96fdcdb1a9ab8eed69b9173e131db4c230  /usr/local/lib/docker/cli-plugins/docker-compose"
+      ],
+      "server": {
+        "ApiVersion": "1.49",
+        "Arch": "amd64",
+        "BuildTime": "2025-04-18T09:52:21.000000000+00:00",
+        "Components": [
+          {
+            "Details": {
+              "ApiVersion": "1.49",
+              "Arch": "amd64",
+              "BuildTime": "Fri Apr 18 09:52:21 2025",
+              "Experimental": "false",
+              "GitCommit": "01f442b",
+              "GoVersion": "go1.23.8",
+              "KernelVersion": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+              "MinAPIVersion": "1.24",
+              "Os": "linux"
+            },
+            "Name": "Engine",
+            "Version": "28.1.1"
+          },
+          {
+            "Details": {
+              "GitCommit": "05044ec0a9a75232cad458027ca83437aae3f4da"
+            },
+            "Name": "containerd",
+            "Version": "v1.7.27"
+          },
+          {
+            "Details": {
+              "GitCommit": "v1.2.2-0-g7cb3632-dirty"
+            },
+            "Name": "runc",
+            "Version": "1.2.2"
+          },
+          {
+            "Details": {
+              "GitCommit": "de40ad0"
+            },
+            "Name": "docker-init",
+            "Version": "0.19.0"
+          }
+        ],
+        "GitCommit": "01f442b",
+        "GoVersion": "go1.23.8",
+        "KernelVersion": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+        "MinAPIVersion": "1.24",
+        "Os": "linux",
+        "Platform": {
+          "Name": "Docker Engine - Community"
+        },
+        "Version": "28.1.1"
+      }
+    },
+    "producer": {
+      "compose": "5.1.4",
+      "info": {
+        "DockerRootDir": "/var/lib/aisoft-296-producer",
+        "Driver": "overlayfs",
+        "DriverStatus": [
+          [
+            "driver-type",
+            "io.containerd.snapshotter.v1"
+          ]
+        ],
+        "ID": "505ee3a6-cd82-4223-acae-53f87cad607c"
+      },
+      "installed_binary_checksums": [
+        "44acb10a9e5d6ded0dd819d793867f4fd8d7020bf7d64f8956766973cc06ca30  /usr/local/bin/docker",
+        "3b88548988714953ad870cf1e7d8e3414b8c0651a7ae7a64b45ab0044961f1c4  /usr/local/bin/dockerd",
+        "7d5802be8afa78e2439387bbee254b8447e49b6d08ceb4586e7a905a0eb91b64  /usr/local/bin/containerd",
+        "33b208d7e76639db742fae84b966cc01dacae58ca3fc4dabbc907045aefdf0c4  /usr/local/lib/docker/cli-plugins/docker-compose"
+      ],
+      "server": {
+        "ApiVersion": "1.55",
+        "Arch": "amd64",
+        "BuildTime": "2026-07-31T17:07:42.000000000+00:00",
+        "Components": [
+          {
+            "Details": {
+              "ApiVersion": "1.55",
+              "Arch": "amd64",
+              "BuildTime": "Fri Jul 31 17:07:42 2026",
+              "Experimental": "false",
+              "GitCommit": "c5b8ce9",
+              "GoVersion": "go1.26.5",
+              "KernelVersion": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+              "MinAPIVersion": "1.40",
+              "Module": "github.com/moby/moby/v2",
+              "ModuleVersion": "v2.0.0+unknown",
+              "Os": "linux"
+            },
+            "Name": "Engine",
+            "Version": "29.7.1"
+          },
+          {
+            "Details": {
+              "GitCommit": "aad11006b869517fcd3009450b6f82da282e1a9b"
+            },
+            "Name": "containerd",
+            "Version": "v2.3.3"
+          },
+          {
+            "Details": {
+              "GitCommit": "v1.2.2-0-g7cb3632-dirty"
+            },
+            "Name": "runc",
+            "Version": "1.2.2"
+          },
+          {
+            "Details": {
+              "GitCommit": "de40ad0"
+            },
+            "Name": "docker-init",
+            "Version": "0.19.0"
+          }
+        ],
+        "GitCommit": "c5b8ce9",
+        "GoVersion": "go1.26.5",
+        "KernelVersion": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+        "MinAPIVersion": "1.40",
+        "Os": "linux",
+        "Platform": {
+          "Name": "Docker Engine - Community"
+        },
+        "Version": "29.7.1"
+      }
+    }
+  },
+  "cleanup": "NOT RUN",
+  "issue": 296,
+  "kind": "real-public-lifecycle",
+  "phases": [
+    {
+      "action": "verify-artifact",
+      "case": "",
+      "docker_calls": [],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-artifact",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "contract_version": "docker-release/v2",
+        "docker_calls": 0,
+        "ok": true,
+        "platform": "linux/amd64",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "source_repository": "admin/aisoft-platform",
+        "target_facts": "NOT_READ"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "verify-target",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-target",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "compatibility_matrix_revision": "2026.08.3",
+        "compatibility_row": "issue-296-candidate-engine-28.1.1-compose-2.35.1-classic",
+        "image_store": "classic",
+        "ok": true,
+        "platform": "linux/amd64",
+        "profile_id": "issue296-registry",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "source_repository": "admin/aisoft-platform",
+        "transport": "registry"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "verify-target",
+      "case": "wrong-engine",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "error_code": "DEPLOYMENT_FAILED",
+        "message": "Docker runtime capability is not covered by exactly one compatibility row",
+        "ok": false
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "verify-target",
+      "case": "wrong-compose",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "error_code": "DEPLOYMENT_FAILED",
+        "message": "Docker runtime capability is not covered by exactly one compatibility row",
+        "ok": false
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "verify-target",
+      "case": "wrong-store",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "error_code": "DEPLOYMENT_FAILED",
+        "message": "Docker runtime capability is not covered by exactly one compatibility row",
+        "ok": false
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "verify-artifact",
+      "case": "",
+      "docker_calls": [],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-artifact",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "contract_version": "docker-release/v2",
+        "docker_calls": 0,
+        "ok": true,
+        "platform": "linux/amd64",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "source_repository": "admin/aisoft-platform",
+        "target_facts": "NOT_READ"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "verify-target",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-target",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "compatibility_matrix_revision": "2026.08.3",
+        "compatibility_row": "issue-296-candidate-engine-28.1.1-compose-2.35.1-classic",
+        "image_store": "classic",
+        "ok": true,
+        "platform": "linux/amd64",
+        "profile_id": "issue296-registry",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "source_repository": "admin/aisoft-platform",
+        "transport": "registry"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "stage",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "pull",
+          "192.168.139.96:5296/admin/aisoft-platform/web@sha256:5076865939b16c521130d189e7a68a82c3395d376236bb77d49c138a0bfb9acc"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "192.168.139.96:5296/admin/aisoft-platform/web@sha256:5076865939b16c521130d189e7a68a82c3395d376236bb77d49c138a0bfb9acc"
+        ],
+        [
+          "image",
+          "tag",
+          "192.168.139.96:5296/admin/aisoft-platform/web@sha256:5076865939b16c521130d189e7a68a82c3395d376236bb77d49c138a0bfb9acc",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "pull",
+          "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3c9b554830f0d8a1f155b445df00eb67e3dea061e7c0f9a44bbba9927c99f441"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3c9b554830f0d8a1f155b445df00eb67e3dea061e7c0f9a44bbba9927c99f441"
+        ],
+        [
+          "image",
+          "tag",
+          "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3c9b554830f0d8a1f155b445df00eb67e3dea061e7c0f9a44bbba9927c99f441",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ]
+      ],
+      "mutations": 4,
+      "receipt": {
+        "action": "staged",
+        "current_release": null,
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-registry",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "migrate",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "run",
+          "--rm",
+          "--no-deps",
+          "--pull",
+          "never",
+          "migrate"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "migration-completed",
+        "current_release": null,
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-registry",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "activate",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "up",
+          "--detach",
+          "--wait",
+          "--wait-timeout",
+          "45",
+          "--pull",
+          "never",
+          "--no-build",
+          "--remove-orphans"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "a16b44cc489a6b8ed9ad8c5a3874a84dc29edea4eede8ec69c9896e7f51981fe"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "activated",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-registry",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "status",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "a16b44cc489a6b8ed9ad8c5a3874a84dc29edea4eede8ec69c9896e7f51981fe"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "healthy",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-registry",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "stage",
+      "case": "same-sha-repeat",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "staged-noop",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-registry",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "migrate",
+      "case": "same-sha-repeat",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "migration-noop",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-registry",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "activate",
+      "case": "same-sha-repeat",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "a16b44cc489a6b8ed9ad8c5a3874a84dc29edea4eede8ec69c9896e7f51981fe"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "healthy-noop",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-registry",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "verify-artifact",
+      "case": "",
+      "docker_calls": [],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-artifact",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "contract_version": "docker-release/v2",
+        "docker_calls": 0,
+        "ok": true,
+        "platform": "linux/amd64",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "source_repository": "admin/aisoft-platform",
+        "target_facts": "NOT_READ"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "registry"
+    },
+    {
+      "action": "verify-target",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-target",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "compatibility_matrix_revision": "2026.08.3",
+        "compatibility_row": "issue-296-candidate-engine-28.1.1-compose-2.35.1-classic",
+        "image_store": "classic",
+        "ok": true,
+        "platform": "linux/amd64",
+        "profile_id": "issue296-registry",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "source_repository": "admin/aisoft-platform",
+        "transport": "registry"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "registry"
+    },
+    {
+      "action": "stage",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "pull",
+          "192.168.139.96:5296/admin/aisoft-platform/web@sha256:f5513bc3ee2083a85a0da2a3691834dc2aeea6a1c46b0d09a0e3d0301ce8f690"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "192.168.139.96:5296/admin/aisoft-platform/web@sha256:f5513bc3ee2083a85a0da2a3691834dc2aeea6a1c46b0d09a0e3d0301ce8f690"
+        ],
+        [
+          "image",
+          "tag",
+          "192.168.139.96:5296/admin/aisoft-platform/web@sha256:f5513bc3ee2083a85a0da2a3691834dc2aeea6a1c46b0d09a0e3d0301ce8f690",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "pull",
+          "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3a335620cb8646d0197556be6f308f12035aa0b0215b663d5a42bd1a5e18f864"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3a335620cb8646d0197556be6f308f12035aa0b0215b663d5a42bd1a5e18f864"
+        ],
+        [
+          "image",
+          "tag",
+          "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3a335620cb8646d0197556be6f308f12035aa0b0215b663d5a42bd1a5e18f864",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ]
+      ],
+      "mutations": 4,
+      "receipt": {
+        "action": "staged",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-registry",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "registry"
+    },
+    {
+      "action": "migrate",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "run",
+          "--rm",
+          "--no-deps",
+          "--pull",
+          "never",
+          "migrate"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "migration-completed",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-registry",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "registry"
+    },
+    {
+      "action": "activate",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "up",
+          "--detach",
+          "--wait",
+          "--wait-timeout",
+          "45",
+          "--pull",
+          "never",
+          "--no-build",
+          "--remove-orphans"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "4e57cb953d0302b70e6560c04ba8dc05766ad121758a068bbe7784eceee68290"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "activated",
+        "current_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "profile_id": "issue296-registry",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "registry"
+    },
+    {
+      "action": "status",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "4e57cb953d0302b70e6560c04ba8dc05766ad121758a068bbe7784eceee68290"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "healthy",
+        "current_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "profile_id": "issue296-registry",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "registry"
+    },
+    {
+      "action": "stage",
+      "case": "same-sha-repeat",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "staged-noop",
+        "current_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "profile_id": "issue296-registry",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "registry"
+    },
+    {
+      "action": "migrate",
+      "case": "same-sha-repeat",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "migration-noop",
+        "current_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "profile_id": "issue296-registry",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "registry"
+    },
+    {
+      "action": "activate",
+      "case": "same-sha-repeat",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "4e57cb953d0302b70e6560c04ba8dc05766ad121758a068bbe7784eceee68290"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "healthy-noop",
+        "current_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "profile_id": "issue296-registry",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "registry"
+    },
+    {
+      "action": "rollback",
+      "case": "A-B-A",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "up",
+          "--detach",
+          "--wait",
+          "--wait-timeout",
+          "45",
+          "--pull",
+          "never",
+          "--no-build",
+          "--remove-orphans"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "8a87310d087bbb08e2bae64f2b91ddaba4b8d792631e0a4140ab500b1ed4e9d7"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "rolled-back",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "profile_id": "issue296-registry",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "status",
+      "case": "after-rollback",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "8a87310d087bbb08e2bae64f2b91ddaba4b8d792631e0a4140ab500b1ed4e9d7"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "healthy",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "profile_id": "issue296-registry",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "verify-artifact",
+      "case": "",
+      "docker_calls": [],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-artifact",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "contract_version": "docker-release/v2",
+        "docker_calls": 0,
+        "ok": true,
+        "platform": "linux/amd64",
+        "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+        "source_repository": "admin/aisoft-platform",
+        "target_facts": "NOT_READ"
+      },
+      "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "transport": "registry"
+    },
+    {
+      "action": "verify-target",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-target",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "compatibility_matrix_revision": "2026.08.3",
+        "compatibility_row": "issue-296-candidate-engine-28.1.1-compose-2.35.1-classic",
+        "image_store": "classic",
+        "ok": true,
+        "platform": "linux/amd64",
+        "profile_id": "issue296-registry",
+        "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+        "source_repository": "admin/aisoft-platform",
+        "transport": "registry"
+      },
+      "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "transport": "registry"
+    },
+    {
+      "action": "stage",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "pull",
+          "192.168.139.96:5296/admin/aisoft-platform/web@sha256:a54a96265e2618a980e136b21de87a095b198ff19503a8ee591dd46c367d61e6"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "192.168.139.96:5296/admin/aisoft-platform/web@sha256:a54a96265e2618a980e136b21de87a095b198ff19503a8ee591dd46c367d61e6"
+        ],
+        [
+          "image",
+          "tag",
+          "192.168.139.96:5296/admin/aisoft-platform/web@sha256:a54a96265e2618a980e136b21de87a095b198ff19503a8ee591dd46c367d61e6",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "pull",
+          "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3e65f391dbf8620fe8f25eb60dcf1069efbc137c240d4a6768590f8ce8dec35e"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3e65f391dbf8620fe8f25eb60dcf1069efbc137c240d4a6768590f8ce8dec35e"
+        ],
+        [
+          "image",
+          "tag",
+          "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3e65f391dbf8620fe8f25eb60dcf1069efbc137c240d4a6768590f8ce8dec35e",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ]
+      ],
+      "mutations": 4,
+      "receipt": {
+        "action": "staged",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "profile_id": "issue296-registry",
+        "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8"
+      },
+      "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "transport": "registry"
+    },
+    {
+      "action": "migrate",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "run",
+          "--rm",
+          "--no-deps",
+          "--pull",
+          "never",
+          "migrate"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "migration-completed",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "profile_id": "issue296-registry",
+        "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8"
+      },
+      "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "transport": "registry"
+    },
+    {
+      "action": "activate",
+      "case": "deliberate-unhealthy",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "up",
+          "--detach",
+          "--wait",
+          "--wait-timeout",
+          "45",
+          "--pull",
+          "never",
+          "--no-build",
+          "--remove-orphans"
+        ],
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "up",
+          "--detach",
+          "--wait",
+          "--wait-timeout",
+          "45",
+          "--pull",
+          "never",
+          "--no-build",
+          "--remove-orphans"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "183ea1678b6f30116a03b6897b6052d36551e10edfc39bb7c2b5558a478a7ada"
+        ]
+      ],
+      "mutations": 2,
+      "receipt": {
+        "cause": {
+          "error_code": "DEPLOYMENT_FAILED",
+          "message": "compose up wait failed with exit code 1"
+        },
+        "error_code": "DEPLOYMENT_FAILED",
+        "message": "activation failed; previous container release was preserved or restored",
+        "ok": false
+      },
+      "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "transport": "registry"
+    },
+    {
+      "action": "status",
+      "case": "after-failed-activation",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "183ea1678b6f30116a03b6897b6052d36551e10edfc39bb7c2b5558a478a7ada"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "healthy",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "profile_id": "issue296-registry",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "registry"
+    },
+    {
+      "action": "verify-artifact",
+      "case": "",
+      "docker_calls": [],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-artifact",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "contract_version": "docker-release/v2",
+        "docker_calls": 0,
+        "ok": true,
+        "platform": "linux/amd64",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "source_repository": "admin/aisoft-platform",
+        "target_facts": "NOT_READ"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "verify-target",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-target",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "compatibility_matrix_revision": "2026.08.3",
+        "compatibility_row": "issue-296-candidate-engine-28.1.1-compose-2.35.1-classic",
+        "image_store": "classic",
+        "ok": true,
+        "platform": "linux/amd64",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "source_repository": "admin/aisoft-platform",
+        "transport": "offline-bundle"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "verify-target",
+      "case": "wrong-engine",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "error_code": "DEPLOYMENT_FAILED",
+        "message": "Docker runtime capability is not covered by exactly one compatibility row",
+        "ok": false
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "verify-target",
+      "case": "wrong-compose",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "error_code": "DEPLOYMENT_FAILED",
+        "message": "Docker runtime capability is not covered by exactly one compatibility row",
+        "ok": false
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "verify-target",
+      "case": "wrong-store",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "error_code": "DEPLOYMENT_FAILED",
+        "message": "Docker runtime capability is not covered by exactly one compatibility row",
+        "ok": false
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "verify-artifact",
+      "case": "",
+      "docker_calls": [],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-artifact",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "contract_version": "docker-release/v2",
+        "docker_calls": 0,
+        "ok": true,
+        "platform": "linux/amd64",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "source_repository": "admin/aisoft-platform",
+        "target_facts": "NOT_READ"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "verify-target",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-target",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "compatibility_matrix_revision": "2026.08.3",
+        "compatibility_row": "issue-296-candidate-engine-28.1.1-compose-2.35.1-classic",
+        "image_store": "classic",
+        "ok": true,
+        "platform": "linux/amd64",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "source_repository": "admin/aisoft-platform",
+        "transport": "offline-bundle"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "stage",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "load",
+          "--input",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/images.tar"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "staged",
+        "current_release": null,
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "migrate",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "run",
+          "--rm",
+          "--no-deps",
+          "--pull",
+          "never",
+          "migrate"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "migration-completed",
+        "current_release": null,
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "activate",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "up",
+          "--detach",
+          "--wait",
+          "--wait-timeout",
+          "45",
+          "--pull",
+          "never",
+          "--no-build",
+          "--remove-orphans"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "1b8ac2043e0ae1d1a09c4fa10b62eec854ba23cb722e3076b8ae52d73604b080"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "activated",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "status",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "1b8ac2043e0ae1d1a09c4fa10b62eec854ba23cb722e3076b8ae52d73604b080"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "healthy",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "stage",
+      "case": "same-sha-repeat",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "staged-noop",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "migrate",
+      "case": "same-sha-repeat",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "migration-noop",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "activate",
+      "case": "same-sha-repeat",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "1b8ac2043e0ae1d1a09c4fa10b62eec854ba23cb722e3076b8ae52d73604b080"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "healthy-noop",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "verify-artifact",
+      "case": "",
+      "docker_calls": [],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-artifact",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "contract_version": "docker-release/v2",
+        "docker_calls": 0,
+        "ok": true,
+        "platform": "linux/amd64",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "source_repository": "admin/aisoft-platform",
+        "target_facts": "NOT_READ"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "verify-target",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-target",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "compatibility_matrix_revision": "2026.08.3",
+        "compatibility_row": "issue-296-candidate-engine-28.1.1-compose-2.35.1-classic",
+        "image_store": "classic",
+        "ok": true,
+        "platform": "linux/amd64",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "source_repository": "admin/aisoft-platform",
+        "transport": "offline-bundle"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "stage",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "load",
+          "--input",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/images.tar"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "staged",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "migrate",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "run",
+          "--rm",
+          "--no-deps",
+          "--pull",
+          "never",
+          "migrate"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "migration-completed",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": null,
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "activate",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "up",
+          "--detach",
+          "--wait",
+          "--wait-timeout",
+          "45",
+          "--pull",
+          "never",
+          "--no-build",
+          "--remove-orphans"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "fa3d378e125507d95aa65e34144b1764032960d5474178673100ee2dbfcd1b08"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "activated",
+        "current_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "status",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "fa3d378e125507d95aa65e34144b1764032960d5474178673100ee2dbfcd1b08"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "healthy",
+        "current_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "stage",
+      "case": "same-sha-repeat",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "staged-noop",
+        "current_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "migrate",
+      "case": "same-sha-repeat",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "migration-noop",
+        "current_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "activate",
+      "case": "same-sha-repeat",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/5773d5ad3097977bb3016ca1bea2a3d497a3da15/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "fa3d378e125507d95aa65e34144b1764032960d5474178673100ee2dbfcd1b08"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "healthy-noop",
+        "current_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+      },
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "rollback",
+      "case": "A-B-A",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "up",
+          "--detach",
+          "--wait",
+          "--wait-timeout",
+          "45",
+          "--pull",
+          "never",
+          "--no-build",
+          "--remove-orphans"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "58148d10e1bf5f2d9e22261b592d3832c8a39cc4a17f0ddd044618ba4b89c8ff"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "rolled-back",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "status",
+      "case": "after-rollback",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "58148d10e1bf5f2d9e22261b592d3832c8a39cc4a17f0ddd044618ba4b89c8ff"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "healthy",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "verify-artifact",
+      "case": "",
+      "docker_calls": [],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-artifact",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "contract_version": "docker-release/v2",
+        "docker_calls": 0,
+        "ok": true,
+        "platform": "linux/amd64",
+        "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+        "source_repository": "admin/aisoft-platform",
+        "target_facts": "NOT_READ"
+      },
+      "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "verify-target",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "verify-target",
+        "architecture_profile_id": "linux-python-postgres-fixture-v1",
+        "architecture_project_id": "aisoft-296-fixture",
+        "catalog_revision": "2026.09.296",
+        "compatibility_matrix_revision": "2026.08.3",
+        "compatibility_row": "issue-296-candidate-engine-28.1.1-compose-2.35.1-classic",
+        "image_store": "classic",
+        "ok": true,
+        "platform": "linux/amd64",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+        "source_repository": "admin/aisoft-platform",
+        "transport": "offline-bundle"
+      },
+      "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "stage",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "load",
+          "--input",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/images.tar"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "staged",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8"
+      },
+      "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "migrate",
+      "case": "",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "run",
+          "--rm",
+          "--no-deps",
+          "--pull",
+          "never",
+          "migrate"
+        ]
+      ],
+      "mutations": 1,
+      "receipt": {
+        "action": "migration-completed",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8"
+      },
+      "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "activate",
+      "case": "deliberate-unhealthy",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/169b784ca2a443459555bd50c8e755b0efc6e4b8/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "up",
+          "--detach",
+          "--wait",
+          "--wait-timeout",
+          "45",
+          "--pull",
+          "never",
+          "--no-build",
+          "--remove-orphans"
+        ],
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "up",
+          "--detach",
+          "--wait",
+          "--wait-timeout",
+          "45",
+          "--pull",
+          "never",
+          "--no-build",
+          "--remove-orphans"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "ff64f1fc9e6214930e743fe1e73e59a56e29556a1a3cad4d7f1d09be84d60e98"
+        ]
+      ],
+      "mutations": 2,
+      "receipt": {
+        "cause": {
+          "error_code": "DEPLOYMENT_FAILED",
+          "message": "compose up wait failed with exit code 1"
+        },
+        "error_code": "DEPLOYMENT_FAILED",
+        "message": "activation failed; previous container release was preserved or restored",
+        "ok": false
+      },
+      "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "status",
+      "case": "after-failed-activation",
+      "docker_calls": [
+        [
+          "version",
+          "--format",
+          "{{json .Server}}"
+        ],
+        [
+          "compose",
+          "version",
+          "--short"
+        ],
+        [
+          "info",
+          "--format",
+          "{{.Driver}}"
+        ],
+        [
+          "info",
+          "--format",
+          "{{json .DriverStatus}}"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "config",
+          "--format",
+          "json",
+          "--no-interpolate",
+          "--no-env-resolution"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "image",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        ],
+        [
+          "compose",
+          "--project-name",
+          "aisoft-296-fixture",
+          "--file",
+          "/opt/aisoft-296/fixture/releases/dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41/compose.json",
+          "--env-file",
+          "/opt/aisoft-296/fixture/fixture.env",
+          "ps",
+          "--quiet",
+          "web"
+        ],
+        [
+          "container",
+          "inspect",
+          "--format",
+          "{{json .}}",
+          "ff64f1fc9e6214930e743fe1e73e59a56e29556a1a3cad4d7f1d09be84d60e98"
+        ]
+      ],
+      "mutations": 0,
+      "receipt": {
+        "action": "healthy",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "database_restore": "NOT_RUN_MANUAL_ONLY",
+        "ok": true,
+        "previous_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "profile_id": "issue296-offline-bundle",
+        "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "verify-artifact",
+      "case": "artifact-tamper",
+      "docker_calls": [],
+      "mutations": 0,
+      "receipt": {
+        "error_code": "INVALID_CONTRACT",
+        "message": "normalized Compose model checksum does not match release manifest",
+        "ok": false
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    },
+    {
+      "action": "verify-artifact",
+      "case": "identity-tamper",
+      "docker_calls": [],
+      "mutations": 0,
+      "receipt": {
+        "cause": {
+          "error_code": "INVALID_CONTRACT",
+          "message": "offline inventory images do not exactly match release manifest"
+        },
+        "error_code": "TRANSPORT_FAILED",
+        "message": "offline bundle preflight failed before image load",
+        "ok": false
+      },
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "transport": "offline-bundle"
+    }
+  ],
+  "producer_artifact_verification": {
+    "a": {
+      "action": "verify-artifact",
+      "architecture_profile_id": "linux-python-postgres-fixture-v1",
+      "architecture_project_id": "aisoft-296-fixture",
+      "catalog_revision": "2026.09.296",
+      "contract_version": "docker-release/v2",
+      "docker_calls": 0,
+      "ok": true,
+      "platform": "linux/amd64",
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "source_repository": "admin/aisoft-platform",
+      "target_facts": "NOT_READ"
+    },
+    "b": {
+      "action": "verify-artifact",
+      "architecture_profile_id": "linux-python-postgres-fixture-v1",
+      "architecture_project_id": "aisoft-296-fixture",
+      "catalog_revision": "2026.09.296",
+      "contract_version": "docker-release/v2",
+      "docker_calls": 0,
+      "ok": true,
+      "platform": "linux/amd64",
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "source_repository": "admin/aisoft-platform",
+      "target_facts": "NOT_READ"
+    },
+    "fail": {
+      "action": "verify-artifact",
+      "architecture_profile_id": "linux-python-postgres-fixture-v1",
+      "architecture_project_id": "aisoft-296-fixture",
+      "catalog_revision": "2026.09.296",
+      "contract_version": "docker-release/v2",
+      "docker_calls": 0,
+      "ok": true,
+      "platform": "linux/amd64",
+      "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "source_repository": "admin/aisoft-platform",
+      "target_facts": "NOT_READ"
+    }
+  },
+  "profiles": {
+    "offline-bundle": {
+      "architecture_profile_id": "linux-python-postgres-fixture-v1",
+      "architecture_project_id": "aisoft-296-fixture",
+      "catalog_revision": "2026.09.296",
+      "compose_project": "aisoft-296-fixture",
+      "contract_version": "docker-release-target/v1",
+      "env_file": "/opt/aisoft-296/fixture/fixture.env",
+      "environment": "test",
+      "expected_hostname": "aisoft-296-consumer",
+      "host_role": "scm-ci",
+      "profile_id": "issue296-offline-bundle",
+      "release_root": "/opt/aisoft-296/fixture/releases",
+      "source_repository": "admin/aisoft-platform",
+      "state_root": "/opt/aisoft-296/fixture/state-offline-bundle",
+      "transport": "offline-bundle",
+      "wait_timeout_seconds": 45
+    },
+    "registry": {
+      "architecture_profile_id": "linux-python-postgres-fixture-v1",
+      "architecture_project_id": "aisoft-296-fixture",
+      "catalog_revision": "2026.09.296",
+      "compose_project": "aisoft-296-fixture",
+      "contract_version": "docker-release-target/v1",
+      "env_file": "/opt/aisoft-296/fixture/fixture.env",
+      "environment": "test",
+      "expected_hostname": "aisoft-296-consumer",
+      "host_role": "scm-ci",
+      "profile_id": "issue296-registry",
+      "release_root": "/opt/aisoft-296/fixture/releases",
+      "source_repository": "admin/aisoft-platform",
+      "state_root": "/opt/aisoft-296/fixture/state-registry",
+      "transport": "registry",
+      "wait_timeout_seconds": 45
+    }
+  },
+  "releases": {
+    "a": {
+      "architecture": {
+        "catalog_revision": "2026.09.296",
+        "path": "architecture.lock.json",
+        "profile_id": "linux-python-postgres-fixture-v1",
+        "project_id": "aisoft-296-fixture",
+        "sha256": "8e6db7b67c57cd12667b9d5a5aa5ff7a6493f5fd84f3316b90560d178b28a9fd"
+      },
+      "compose": {
+        "model_path": "compose.model.json",
+        "model_sha256": "dd04f13f65b45d38f1210add9e2c6e87881d7d89e74ec5c242480fddd6907b3e",
+        "path": "compose.json",
+        "sha256": "7ed77c80c5e9201416b1eeba197c16aec2c7064d76bb55731c54b0309544c01b"
+      },
+      "contract_version": "docker-release/v2",
+      "images": [
+        {
+          "digest": "sha256:5076865939b16c521130d189e7a68a82c3395d376236bb77d49c138a0bfb9acc",
+          "image_id": "sha256:5076865939b16c521130d189e7a68a82c3395d376236bb77d49c138a0bfb9acc",
+          "reference": "192.168.139.96:5296/admin/aisoft-platform/web@sha256:5076865939b16c521130d189e7a68a82c3395d376236bb77d49c138a0bfb9acc",
+          "runtime_reference": "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+          "service": "web",
+          "transport_reference": "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        },
+        {
+          "digest": "sha256:3c9b554830f0d8a1f155b445df00eb67e3dea061e7c0f9a44bbba9927c99f441",
+          "image_id": "sha256:3c9b554830f0d8a1f155b445df00eb67e3dea061e7c0f9a44bbba9927c99f441",
+          "reference": "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3c9b554830f0d8a1f155b445df00eb67e3dea061e7c0f9a44bbba9927c99f441",
+          "runtime_reference": "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+          "service": "migrate",
+          "transport_reference": "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+        }
+      ],
+      "merge_sha": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "migration": {
+        "database_restore": "manual-only",
+        "destructive": false,
+        "identity": "sha256:1f435add2d7427f17cd5b7caacce5d8eb4b70fd85201b85c21551775958f2128",
+        "service": "migrate"
+      },
+      "offline_bundle": {
+        "archive_path": "images.tar",
+        "archive_sha256": "a410afd510245bdbbf5f55c7094719a62a4595143754ad611f607c47063a689d",
+        "contract_version": "docker-release-offline-bundle/v2",
+        "inventory_path": "images.inventory.json",
+        "inventory_sha256": "83213dac90aaa17225f392a35e7e60a84ea8d99304d443a2c3e05fc27f3f6ae5"
+      },
+      "platform": "linux/amd64",
+      "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "runtime_services": [
+        "web"
+      ],
+      "source_repository": "admin/aisoft-platform"
+    },
+    "b": {
+      "architecture": {
+        "catalog_revision": "2026.09.296",
+        "path": "architecture.lock.json",
+        "profile_id": "linux-python-postgres-fixture-v1",
+        "project_id": "aisoft-296-fixture",
+        "sha256": "8e6db7b67c57cd12667b9d5a5aa5ff7a6493f5fd84f3316b90560d178b28a9fd"
+      },
+      "compose": {
+        "model_path": "compose.model.json",
+        "model_sha256": "7cba4ea58d8cb9cd4fedafbb4b3c00e7a435615b422a04c965d3f32837ef1e74",
+        "path": "compose.json",
+        "sha256": "9a2ccbc325b03c3a9ce851be5b9a991a8e3d4fd86661d633a0cff1cb24f468c2"
+      },
+      "contract_version": "docker-release/v2",
+      "images": [
+        {
+          "digest": "sha256:f5513bc3ee2083a85a0da2a3691834dc2aeea6a1c46b0d09a0e3d0301ce8f690",
+          "image_id": "sha256:f5513bc3ee2083a85a0da2a3691834dc2aeea6a1c46b0d09a0e3d0301ce8f690",
+          "reference": "192.168.139.96:5296/admin/aisoft-platform/web@sha256:f5513bc3ee2083a85a0da2a3691834dc2aeea6a1c46b0d09a0e3d0301ce8f690",
+          "runtime_reference": "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+          "service": "web",
+          "transport_reference": "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        },
+        {
+          "digest": "sha256:3a335620cb8646d0197556be6f308f12035aa0b0215b663d5a42bd1a5e18f864",
+          "image_id": "sha256:3a335620cb8646d0197556be6f308f12035aa0b0215b663d5a42bd1a5e18f864",
+          "reference": "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3a335620cb8646d0197556be6f308f12035aa0b0215b663d5a42bd1a5e18f864",
+          "runtime_reference": "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+          "service": "migrate",
+          "transport_reference": "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+        }
+      ],
+      "merge_sha": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "migration": {
+        "database_restore": "manual-only",
+        "destructive": false,
+        "identity": "sha256:c8dca954cd8d041f03591aebca7f086e205194444bdc76b4c03431a696775ac3",
+        "service": "migrate"
+      },
+      "offline_bundle": {
+        "archive_path": "images.tar",
+        "archive_sha256": "bbb33d6ac2e7222c04daab40f50f9ea9d115d5d3bdd54852fb421e05eb7a09aa",
+        "contract_version": "docker-release-offline-bundle/v2",
+        "inventory_path": "images.inventory.json",
+        "inventory_sha256": "bba5b7d56b9005996ecca2805674467450ecd43917f7a89b20f1fd18c170c8a5"
+      },
+      "platform": "linux/amd64",
+      "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "runtime_services": [
+        "web"
+      ],
+      "source_repository": "admin/aisoft-platform"
+    },
+    "fail": {
+      "architecture": {
+        "catalog_revision": "2026.09.296",
+        "path": "architecture.lock.json",
+        "profile_id": "linux-python-postgres-fixture-v1",
+        "project_id": "aisoft-296-fixture",
+        "sha256": "8e6db7b67c57cd12667b9d5a5aa5ff7a6493f5fd84f3316b90560d178b28a9fd"
+      },
+      "compose": {
+        "model_path": "compose.model.json",
+        "model_sha256": "0f83b2a1b48e965e3d4b5b9664b9233851ffc1cb501eb37dbbe56fe8f4829fa1",
+        "path": "compose.json",
+        "sha256": "dee3fe1850057e75a35aa465f973598086c5f5c00db48dda27378a747d5d44db"
+      },
+      "contract_version": "docker-release/v2",
+      "images": [
+        {
+          "digest": "sha256:a54a96265e2618a980e136b21de87a095b198ff19503a8ee591dd46c367d61e6",
+          "image_id": "sha256:a54a96265e2618a980e136b21de87a095b198ff19503a8ee591dd46c367d61e6",
+          "reference": "192.168.139.96:5296/admin/aisoft-platform/web@sha256:a54a96265e2618a980e136b21de87a095b198ff19503a8ee591dd46c367d61e6",
+          "runtime_reference": "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8",
+          "service": "web",
+          "transport_reference": "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        },
+        {
+          "digest": "sha256:3e65f391dbf8620fe8f25eb60dcf1069efbc137c240d4a6768590f8ce8dec35e",
+          "image_id": "sha256:3e65f391dbf8620fe8f25eb60dcf1069efbc137c240d4a6768590f8ce8dec35e",
+          "reference": "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3e65f391dbf8620fe8f25eb60dcf1069efbc137c240d4a6768590f8ce8dec35e",
+          "runtime_reference": "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8",
+          "service": "migrate",
+          "transport_reference": "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+        }
+      ],
+      "merge_sha": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "migration": {
+        "database_restore": "manual-only",
+        "destructive": false,
+        "identity": "sha256:7e976338beccb744ddb4a5f61804a28a914e8435d9c81dce21dc0fdb8eab60ed",
+        "service": "migrate"
+      },
+      "offline_bundle": {
+        "archive_path": "images.tar",
+        "archive_sha256": "c7dcc431285c9f22364e87786803b9aa2ca69f65b93627a04ecd72dbd5673986",
+        "contract_version": "docker-release-offline-bundle/v2",
+        "inventory_path": "images.inventory.json",
+        "inventory_sha256": "c9ad998c2e3f08f06119fcc89c8f6c46401282e0bc609472fb987d0da019d294"
+      },
+      "platform": "linux/amd64",
+      "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "runtime_services": [
+        "web"
+      ],
+      "source_repository": "admin/aisoft-platform"
+    }
+  },
+  "resources": {
+    "compose_project": "aisoft-296-fixture",
+    "consumer_containers": [
+      "aisoft-296-postgres",
+      "aisoft-296-fixture-web-1",
+      "aisoft-296-fixture-migrate-run-*"
+    ],
+    "consumer_root": "/opt/aisoft-296/fixture",
+    "images": {
+      "postgres": "docker.io/library/postgres@sha256:075f7ba66bc9b3ce7d6b8b635208ff61cd7cf1a67d71ec530eec5d7ae0cbe571",
+      "python": "docker.io/library/python@sha256:46ee549c88617e9bc8acb843a326f1a5c0fa5608d7f9703509efe6d53b55f318"
+    },
+    "networks": [
+      "aisoft-296-database",
+      "aisoft-296-fixture-backend"
+    ],
+    "producer_containers": [
+      "aisoft-296-registry",
+      "aisoft-296-seed-web",
+      "aisoft-296-seed-migrate"
+    ],
+    "registry_address": "192.168.139.96:5296",
+    "registry_image": "docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278",
+    "release_identity_kind": "synthetic-sha-shaped-fixture",
+    "release_ids": {
+      "a": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "b": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "fail": "169b784ca2a443459555bd50c8e755b0efc6e4b8"
+    },
+    "runtime_tags": [
+      "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+    ],
+    "vms": {
+      "consumer": "aisoft-296-consumer",
+      "producer": "aisoft-296-producer"
+    },
+    "volumes": [
+      "aisoft-296-pgdata"
+    ]
+  },
+  "result": "PASS",
+  "source": {
+    "files_sha256": {
+      "codex/runtime/aisoft_release/__init__.py": "f6179ea8c638ac0a1cac51689d19049cca7edf8ebf79214e6cb1ce5b0266962e",
+      "codex/runtime/aisoft_release/cli.py": "9e94648cbbaad7314502401ad566a0267999381559970507c29b35054dbc1aa2",
+      "codex/runtime/aisoft_release/compatibility.py": "36e82ecef0a8071b5b5ebe7f0fb851626295e20305c34278b4f40ec8e86a2079",
+      "codex/runtime/aisoft_release/compose.py": "8aaff5820228d5b4c3bb2fd79e70359b971c5b0f74757bae8fd70ef900cbfa87",
+      "codex/runtime/aisoft_release/contract.py": "aeeb3152443cce026cb1deb478d56fe520dd21006ce511a1253c7152ddf77b77",
+      "codex/runtime/aisoft_release/docker.py": "3ac0e2677ad82621f2bdcd48d98ea78c2d762a8d305973c82a9983b07455bdd9",
+      "codex/runtime/aisoft_release/errors.py": "482325befeef7c5832499c3c52ca71bc24e10b5059ab9c1b693b6576f7531d2b",
+      "codex/runtime/aisoft_release/gate.py": "f1acc757719beafaed82c75b27cd9952d837cb7d2c4d6f8c82c4c36b29aa3aca",
+      "codex/runtime/aisoft_release/runner.py": "0f71e8a9e663d51bb72956d7dfd4b46e633b63027b9f0fedf96ea399f24ff7d4",
+      "codex/runtime/aisoft_release/security.py": "0a347f56eb2339dc264815b0d238fb8431555e53e0bd791a183deba1730747a2",
+      "codex/runtime/aisoft_release/state.py": "0b10ba6a77d122892b4dfd5252276a7c3b9c9cefa453ec756b44c5c5ccb53a87",
+      "codex/runtime/aisoft_release/transport.py": "66929752efe7515fff425c95083c6593f7eabf6b3105daf2019169d1c6c0bf95",
+      "codex/tests/fixtures/docker28-classic/docker-wrapper.py": "1c0c29cd06ceb7e2230d6ffbdc9b6eee762708de371689d39987c5b49b50a9c9",
+      "codex/tests/fixtures/docker28-classic/identity.txt": "a1ecec3f03b45de83a3952761894f49d1f870252c6f600b15cd97cb823ece75b",
+      "codex/tests/fixtures/docker28-classic/install-daemon.sh": "c1e75abfacb220b9c80ec25e8e151ad07d34895bf2b93b02581575083494e348",
+      "codex/tests/fixtures/docker28-classic/lifecycle-operation.py": "10dac6fa77c2185d703e93c9aafdc5662b5eb94007411bb3e8eedce8b2e961e5",
+      "codex/tests/fixtures/docker28-classic/lifecycle.py": "fe80cf7cc130a85b6a3d527985c5eabd77a64a15319fe73acf50fabf5a8bb11f",
+      "codex/tests/fixtures/docker28-classic/migrate.sh": "a380c808535c8e3ae75857f962c3b6e820348b7b672b92131308894522a2a9d5",
+      "codex/tests/fixtures/docker28-classic/postgres-image-proof.json": "e23973e0273c3d39b1694e6838c18385123616fdfa1a28bf4462a4c5d13c94e7",
+      "codex/tests/fixtures/docker28-classic/python-image-proof.json": "0cea5830497f4f2f7e53aa574a299a2d254c0ad0930de91c178f77b61de02c1d",
+      "codex/tests/fixtures/docker28-classic/software-lock.json": "a694a5b8820326175150de343b65085e7db836430f5752a3815031d823b36150",
+      "codex/tests/fixtures/docker28-classic/web.py": "3975ff6f2def9b65c4b8df72a419088c905b22cd72bd48e91b6a23577c586e06",
+      "codex/tests/integration/docker28-classic-driver.py": "7bec3fa737c87275580b2d7bb6bfa58f749f66dd46dec6022285f6053fd5957b",
+      "docker-release/compatibility/image-stores-v1.json": "319d0c9d496a1eaf24e8037bdbaf1ff89455bbb80008f816b8c00f30d626bcbb"
+    },
+    "source_sha": "843672a6a6a40fe453da94cffbd483e8d8e7d4d4"
+  },
+  "transports": {
+    "offline-bundle": {
+      "local_images": {
+        "a": [
+          {
+            "Architecture": "amd64",
+            "Descriptor": null,
+            "Id": "sha256:ce2990bb4856ab327732813521eed5681f9e15a0739e84f50b498ec0f9608515",
+            "Os": "linux",
+            "RepoDigests": [],
+            "RepoTags": [
+              "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+            ],
+            "RootFS": {
+              "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:362771c038195c54f35d78eba40a29daaf29ac4d8d878218a8462145c4b27d30",
+                "sha256:48fefbe60b9e9a3cb9b686aa3336ddd971ff4b4e5c3a30d5ac47539c04090a1c",
+                "sha256:8e9ff8da1d6b4032a8bf7e7ee70179094ca495ce933fc692a825b4fdd30a2a1f",
+                "sha256:7c7fbc3af8dac4d18df03180c3ea94c9f9e316f94bd304f28d7578f88892014c"
+              ],
+              "Type": "layers"
+            }
+          },
+          {
+            "Architecture": "amd64",
+            "Descriptor": null,
+            "Id": "sha256:739906f019ce9bd8d04aa80289c3df3b5504f4faf5517415b55664487a7cb469",
+            "Os": "linux",
+            "RepoDigests": [],
+            "RepoTags": [
+              "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+            ],
+            "RootFS": {
+              "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:e5e448e5ad445a46af63fef09fb6ed3a99165ad6fc85946546e24ca0e6b8a5a4",
+                "sha256:e64ed932fbeb1283dc125f8083317ffc4dfd0f65493b937e54a8e7f7ee0ed31e",
+                "sha256:bbb3a19e120c236b81d19b367730201efd613240b2d998b315ce681b599afebe",
+                "sha256:1e74e3081df40556dc6a8ae195ebda8365b97b9974e6d1bb8deb302048fe93ea",
+                "sha256:7d7ad4753cf935190966b60894b4c1083d98b177f1730a0f5cdc491c2eca61e5",
+                "sha256:77d620d0c07cbfd3db733544add57587916e1e7dd3946ecdc4129ba7eccdd404",
+                "sha256:4f7a295ea45a171c932bf6347ffb0be1d0c6e744713751c9fd4aaaccc26c361b",
+                "sha256:e48b2bdc78e71baf8ad50548ad745be7512e77340c8056118449f0a83bbda601",
+                "sha256:aa28d005217b3acc29759a94f0e031a5b4cd8bb198d27b535850ca0b49e01f7e",
+                "sha256:6d437def03148555cd80549696fafe17a0f458d8971e5dcef73c683b08f8a76e",
+                "sha256:de6240547298c1411d644de8bf2dc568b4a8706c20e5f54e3100fa7845d0b95e"
+              ],
+              "Type": "layers"
+            }
+          }
+        ],
+        "b": [
+          {
+            "Architecture": "amd64",
+            "Descriptor": null,
+            "Id": "sha256:5d940a1271886721313c023a39ccf55c90a1605e614e825591ef2434a9d8b3e2",
+            "Os": "linux",
+            "RepoDigests": [],
+            "RepoTags": [
+              "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+            ],
+            "RootFS": {
+              "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:362771c038195c54f35d78eba40a29daaf29ac4d8d878218a8462145c4b27d30",
+                "sha256:48fefbe60b9e9a3cb9b686aa3336ddd971ff4b4e5c3a30d5ac47539c04090a1c",
+                "sha256:8e9ff8da1d6b4032a8bf7e7ee70179094ca495ce933fc692a825b4fdd30a2a1f",
+                "sha256:a6fca26939e753d585abbf826cce39463e97c68eb3ec28c4d0715244ddc856ea"
+              ],
+              "Type": "layers"
+            }
+          },
+          {
+            "Architecture": "amd64",
+            "Descriptor": null,
+            "Id": "sha256:ce5ca508813174aea222f57297c0c787c2a35eecf7cda7f848a11a9ec171fb2f",
+            "Os": "linux",
+            "RepoDigests": [],
+            "RepoTags": [
+              "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+            ],
+            "RootFS": {
+              "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:e5e448e5ad445a46af63fef09fb6ed3a99165ad6fc85946546e24ca0e6b8a5a4",
+                "sha256:e64ed932fbeb1283dc125f8083317ffc4dfd0f65493b937e54a8e7f7ee0ed31e",
+                "sha256:bbb3a19e120c236b81d19b367730201efd613240b2d998b315ce681b599afebe",
+                "sha256:1e74e3081df40556dc6a8ae195ebda8365b97b9974e6d1bb8deb302048fe93ea",
+                "sha256:7d7ad4753cf935190966b60894b4c1083d98b177f1730a0f5cdc491c2eca61e5",
+                "sha256:77d620d0c07cbfd3db733544add57587916e1e7dd3946ecdc4129ba7eccdd404",
+                "sha256:4f7a295ea45a171c932bf6347ffb0be1d0c6e744713751c9fd4aaaccc26c361b",
+                "sha256:e48b2bdc78e71baf8ad50548ad745be7512e77340c8056118449f0a83bbda601",
+                "sha256:aa28d005217b3acc29759a94f0e031a5b4cd8bb198d27b535850ca0b49e01f7e",
+                "sha256:6d437def03148555cd80549696fafe17a0f458d8971e5dcef73c683b08f8a76e",
+                "sha256:2893962ce9ac2bbf88be717515b1cefa23c3a08ab35a43371bb9810e4870566a"
+              ],
+              "Type": "layers"
+            }
+          }
+        ],
+        "fail": [
+          {
+            "Architecture": "amd64",
+            "Descriptor": null,
+            "Id": "sha256:351dc65d65ee3b21081040ffee4b45bfebc8eaf2786097de9dbf02ecc1f9577c",
+            "Os": "linux",
+            "RepoDigests": [],
+            "RepoTags": [
+              "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+            ],
+            "RootFS": {
+              "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:362771c038195c54f35d78eba40a29daaf29ac4d8d878218a8462145c4b27d30",
+                "sha256:48fefbe60b9e9a3cb9b686aa3336ddd971ff4b4e5c3a30d5ac47539c04090a1c",
+                "sha256:8e9ff8da1d6b4032a8bf7e7ee70179094ca495ce933fc692a825b4fdd30a2a1f",
+                "sha256:e4498c9aa8f232d40c562986bcf4e245bc341c72c3f2090030cbbdeda01fa2bb"
+              ],
+              "Type": "layers"
+            }
+          },
+          {
+            "Architecture": "amd64",
+            "Descriptor": null,
+            "Id": "sha256:cf29d689151c3b0b06742118b975ddbddf5624160303cee307f6f65b5a393c1f",
+            "Os": "linux",
+            "RepoDigests": [],
+            "RepoTags": [
+              "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+            ],
+            "RootFS": {
+              "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:e5e448e5ad445a46af63fef09fb6ed3a99165ad6fc85946546e24ca0e6b8a5a4",
+                "sha256:e64ed932fbeb1283dc125f8083317ffc4dfd0f65493b937e54a8e7f7ee0ed31e",
+                "sha256:bbb3a19e120c236b81d19b367730201efd613240b2d998b315ce681b599afebe",
+                "sha256:1e74e3081df40556dc6a8ae195ebda8365b97b9974e6d1bb8deb302048fe93ea",
+                "sha256:7d7ad4753cf935190966b60894b4c1083d98b177f1730a0f5cdc491c2eca61e5",
+                "sha256:77d620d0c07cbfd3db733544add57587916e1e7dd3946ecdc4129ba7eccdd404",
+                "sha256:4f7a295ea45a171c932bf6347ffb0be1d0c6e744713751c9fd4aaaccc26c361b",
+                "sha256:e48b2bdc78e71baf8ad50548ad745be7512e77340c8056118449f0a83bbda601",
+                "sha256:aa28d005217b3acc29759a94f0e031a5b4cd8bb198d27b535850ca0b49e01f7e",
+                "sha256:6d437def03148555cd80549696fafe17a0f458d8971e5dcef73c683b08f8a76e",
+                "sha256:90a34d2282f2af940a84f0027338c7fdd4349a1082575e76f40fe2a9b0f7dcaf"
+              ],
+              "Type": "layers"
+            }
+          }
+        ]
+      },
+      "migration_receipts": {
+        "169b784ca2a443459555bd50c8e755b0efc6e4b8": "1",
+        "5773d5ad3097977bb3016ca1bea2a3d497a3da15": "1",
+        "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41": "1"
+      },
+      "result": "PASS",
+      "state": {
+        "contract_version": "docker-release-state/v2",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "last_result": "migration-completed",
+        "migrations": {
+          "sha256:1f435add2d7427f17cd5b7caacce5d8eb4b70fd85201b85c21551775958f2128": {
+            "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+            "status": "completed"
+          },
+          "sha256:7e976338beccb744ddb4a5f61804a28a914e8435d9c81dce21dc0fdb8eab60ed": {
+            "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+            "status": "completed"
+          },
+          "sha256:c8dca954cd8d041f03591aebca7f086e205194444bdc76b4c03431a696775ac3": {
+            "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+            "status": "completed"
+          }
+        },
+        "previous_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "profile_id": "issue296-offline-bundle",
+        "staged_releases": {
+          "169b784ca2a443459555bd50c8e755b0efc6e4b8": {
+            "image_ids": {
+              "migrate": "sha256:3e65f391dbf8620fe8f25eb60dcf1069efbc137c240d4a6768590f8ce8dec35e",
+              "web": "sha256:a54a96265e2618a980e136b21de87a095b198ff19503a8ee591dd46c367d61e6"
+            },
+            "status": "completed",
+            "transport": "offline-bundle"
+          },
+          "5773d5ad3097977bb3016ca1bea2a3d497a3da15": {
+            "image_ids": {
+              "migrate": "sha256:3a335620cb8646d0197556be6f308f12035aa0b0215b663d5a42bd1a5e18f864",
+              "web": "sha256:f5513bc3ee2083a85a0da2a3691834dc2aeea6a1c46b0d09a0e3d0301ce8f690"
+            },
+            "status": "completed",
+            "transport": "offline-bundle"
+          },
+          "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41": {
+            "image_ids": {
+              "migrate": "sha256:3c9b554830f0d8a1f155b445df00eb67e3dea061e7c0f9a44bbba9927c99f441",
+              "web": "sha256:5076865939b16c521130d189e7a68a82c3395d376236bb77d49c138a0bfb9acc"
+            },
+            "status": "completed",
+            "transport": "offline-bundle"
+          }
+        }
+      }
+    },
+    "registry": {
+      "local_images": {
+        "a": [
+          {
+            "Architecture": "amd64",
+            "Descriptor": null,
+            "Id": "sha256:ce2990bb4856ab327732813521eed5681f9e15a0739e84f50b498ec0f9608515",
+            "Os": "linux",
+            "RepoDigests": [
+              "192.168.139.96:5296/admin/aisoft-platform/web@sha256:5076865939b16c521130d189e7a68a82c3395d376236bb77d49c138a0bfb9acc"
+            ],
+            "RepoTags": [
+              "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+            ],
+            "RootFS": {
+              "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:362771c038195c54f35d78eba40a29daaf29ac4d8d878218a8462145c4b27d30",
+                "sha256:48fefbe60b9e9a3cb9b686aa3336ddd971ff4b4e5c3a30d5ac47539c04090a1c",
+                "sha256:8e9ff8da1d6b4032a8bf7e7ee70179094ca495ce933fc692a825b4fdd30a2a1f",
+                "sha256:7c7fbc3af8dac4d18df03180c3ea94c9f9e316f94bd304f28d7578f88892014c"
+              ],
+              "Type": "layers"
+            }
+          },
+          {
+            "Architecture": "amd64",
+            "Descriptor": null,
+            "Id": "sha256:739906f019ce9bd8d04aa80289c3df3b5504f4faf5517415b55664487a7cb469",
+            "Os": "linux",
+            "RepoDigests": [
+              "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3c9b554830f0d8a1f155b445df00eb67e3dea061e7c0f9a44bbba9927c99f441"
+            ],
+            "RepoTags": [
+              "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41"
+            ],
+            "RootFS": {
+              "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:e5e448e5ad445a46af63fef09fb6ed3a99165ad6fc85946546e24ca0e6b8a5a4",
+                "sha256:e64ed932fbeb1283dc125f8083317ffc4dfd0f65493b937e54a8e7f7ee0ed31e",
+                "sha256:bbb3a19e120c236b81d19b367730201efd613240b2d998b315ce681b599afebe",
+                "sha256:1e74e3081df40556dc6a8ae195ebda8365b97b9974e6d1bb8deb302048fe93ea",
+                "sha256:7d7ad4753cf935190966b60894b4c1083d98b177f1730a0f5cdc491c2eca61e5",
+                "sha256:77d620d0c07cbfd3db733544add57587916e1e7dd3946ecdc4129ba7eccdd404",
+                "sha256:4f7a295ea45a171c932bf6347ffb0be1d0c6e744713751c9fd4aaaccc26c361b",
+                "sha256:e48b2bdc78e71baf8ad50548ad745be7512e77340c8056118449f0a83bbda601",
+                "sha256:aa28d005217b3acc29759a94f0e031a5b4cd8bb198d27b535850ca0b49e01f7e",
+                "sha256:6d437def03148555cd80549696fafe17a0f458d8971e5dcef73c683b08f8a76e",
+                "sha256:de6240547298c1411d644de8bf2dc568b4a8706c20e5f54e3100fa7845d0b95e"
+              ],
+              "Type": "layers"
+            }
+          }
+        ],
+        "b": [
+          {
+            "Architecture": "amd64",
+            "Descriptor": null,
+            "Id": "sha256:5d940a1271886721313c023a39ccf55c90a1605e614e825591ef2434a9d8b3e2",
+            "Os": "linux",
+            "RepoDigests": [
+              "192.168.139.96:5296/admin/aisoft-platform/web@sha256:f5513bc3ee2083a85a0da2a3691834dc2aeea6a1c46b0d09a0e3d0301ce8f690"
+            ],
+            "RepoTags": [
+              "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+            ],
+            "RootFS": {
+              "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:362771c038195c54f35d78eba40a29daaf29ac4d8d878218a8462145c4b27d30",
+                "sha256:48fefbe60b9e9a3cb9b686aa3336ddd971ff4b4e5c3a30d5ac47539c04090a1c",
+                "sha256:8e9ff8da1d6b4032a8bf7e7ee70179094ca495ce933fc692a825b4fdd30a2a1f",
+                "sha256:a6fca26939e753d585abbf826cce39463e97c68eb3ec28c4d0715244ddc856ea"
+              ],
+              "Type": "layers"
+            }
+          },
+          {
+            "Architecture": "amd64",
+            "Descriptor": null,
+            "Id": "sha256:ce5ca508813174aea222f57297c0c787c2a35eecf7cda7f848a11a9ec171fb2f",
+            "Os": "linux",
+            "RepoDigests": [
+              "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3a335620cb8646d0197556be6f308f12035aa0b0215b663d5a42bd1a5e18f864"
+            ],
+            "RepoTags": [
+              "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15"
+            ],
+            "RootFS": {
+              "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:e5e448e5ad445a46af63fef09fb6ed3a99165ad6fc85946546e24ca0e6b8a5a4",
+                "sha256:e64ed932fbeb1283dc125f8083317ffc4dfd0f65493b937e54a8e7f7ee0ed31e",
+                "sha256:bbb3a19e120c236b81d19b367730201efd613240b2d998b315ce681b599afebe",
+                "sha256:1e74e3081df40556dc6a8ae195ebda8365b97b9974e6d1bb8deb302048fe93ea",
+                "sha256:7d7ad4753cf935190966b60894b4c1083d98b177f1730a0f5cdc491c2eca61e5",
+                "sha256:77d620d0c07cbfd3db733544add57587916e1e7dd3946ecdc4129ba7eccdd404",
+                "sha256:4f7a295ea45a171c932bf6347ffb0be1d0c6e744713751c9fd4aaaccc26c361b",
+                "sha256:e48b2bdc78e71baf8ad50548ad745be7512e77340c8056118449f0a83bbda601",
+                "sha256:aa28d005217b3acc29759a94f0e031a5b4cd8bb198d27b535850ca0b49e01f7e",
+                "sha256:6d437def03148555cd80549696fafe17a0f458d8971e5dcef73c683b08f8a76e",
+                "sha256:2893962ce9ac2bbf88be717515b1cefa23c3a08ab35a43371bb9810e4870566a"
+              ],
+              "Type": "layers"
+            }
+          }
+        ],
+        "fail": [
+          {
+            "Architecture": "amd64",
+            "Descriptor": null,
+            "Id": "sha256:351dc65d65ee3b21081040ffee4b45bfebc8eaf2786097de9dbf02ecc1f9577c",
+            "Os": "linux",
+            "RepoDigests": [
+              "192.168.139.96:5296/admin/aisoft-platform/web@sha256:a54a96265e2618a980e136b21de87a095b198ff19503a8ee591dd46c367d61e6"
+            ],
+            "RepoTags": [
+              "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+            ],
+            "RootFS": {
+              "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:362771c038195c54f35d78eba40a29daaf29ac4d8d878218a8462145c4b27d30",
+                "sha256:48fefbe60b9e9a3cb9b686aa3336ddd971ff4b4e5c3a30d5ac47539c04090a1c",
+                "sha256:8e9ff8da1d6b4032a8bf7e7ee70179094ca495ce933fc692a825b4fdd30a2a1f",
+                "sha256:e4498c9aa8f232d40c562986bcf4e245bc341c72c3f2090030cbbdeda01fa2bb"
+              ],
+              "Type": "layers"
+            }
+          },
+          {
+            "Architecture": "amd64",
+            "Descriptor": null,
+            "Id": "sha256:cf29d689151c3b0b06742118b975ddbddf5624160303cee307f6f65b5a393c1f",
+            "Os": "linux",
+            "RepoDigests": [
+              "192.168.139.96:5296/admin/aisoft-platform/migrate@sha256:3e65f391dbf8620fe8f25eb60dcf1069efbc137c240d4a6768590f8ce8dec35e"
+            ],
+            "RepoTags": [
+              "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+            ],
+            "RootFS": {
+              "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:e5e448e5ad445a46af63fef09fb6ed3a99165ad6fc85946546e24ca0e6b8a5a4",
+                "sha256:e64ed932fbeb1283dc125f8083317ffc4dfd0f65493b937e54a8e7f7ee0ed31e",
+                "sha256:bbb3a19e120c236b81d19b367730201efd613240b2d998b315ce681b599afebe",
+                "sha256:1e74e3081df40556dc6a8ae195ebda8365b97b9974e6d1bb8deb302048fe93ea",
+                "sha256:7d7ad4753cf935190966b60894b4c1083d98b177f1730a0f5cdc491c2eca61e5",
+                "sha256:77d620d0c07cbfd3db733544add57587916e1e7dd3946ecdc4129ba7eccdd404",
+                "sha256:4f7a295ea45a171c932bf6347ffb0be1d0c6e744713751c9fd4aaaccc26c361b",
+                "sha256:e48b2bdc78e71baf8ad50548ad745be7512e77340c8056118449f0a83bbda601",
+                "sha256:aa28d005217b3acc29759a94f0e031a5b4cd8bb198d27b535850ca0b49e01f7e",
+                "sha256:6d437def03148555cd80549696fafe17a0f458d8971e5dcef73c683b08f8a76e",
+                "sha256:90a34d2282f2af940a84f0027338c7fdd4349a1082575e76f40fe2a9b0f7dcaf"
+              ],
+              "Type": "layers"
+            }
+          }
+        ]
+      },
+      "migration_receipts": {
+        "169b784ca2a443459555bd50c8e755b0efc6e4b8": "1",
+        "5773d5ad3097977bb3016ca1bea2a3d497a3da15": "1",
+        "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41": "1"
+      },
+      "result": "PASS",
+      "state": {
+        "contract_version": "docker-release-state/v2",
+        "current_release": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+        "last_result": "migration-completed",
+        "migrations": {
+          "sha256:1f435add2d7427f17cd5b7caacce5d8eb4b70fd85201b85c21551775958f2128": {
+            "release_id": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+            "status": "completed"
+          },
+          "sha256:7e976338beccb744ddb4a5f61804a28a914e8435d9c81dce21dc0fdb8eab60ed": {
+            "release_id": "169b784ca2a443459555bd50c8e755b0efc6e4b8",
+            "status": "completed"
+          },
+          "sha256:c8dca954cd8d041f03591aebca7f086e205194444bdc76b4c03431a696775ac3": {
+            "release_id": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+            "status": "completed"
+          }
+        },
+        "previous_release": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+        "profile_id": "issue296-registry",
+        "staged_releases": {
+          "169b784ca2a443459555bd50c8e755b0efc6e4b8": {
+            "image_ids": {
+              "migrate": "sha256:3e65f391dbf8620fe8f25eb60dcf1069efbc137c240d4a6768590f8ce8dec35e",
+              "web": "sha256:a54a96265e2618a980e136b21de87a095b198ff19503a8ee591dd46c367d61e6"
+            },
+            "status": "completed",
+            "transport": "registry"
+          },
+          "5773d5ad3097977bb3016ca1bea2a3d497a3da15": {
+            "image_ids": {
+              "migrate": "sha256:3a335620cb8646d0197556be6f308f12035aa0b0215b663d5a42bd1a5e18f864",
+              "web": "sha256:f5513bc3ee2083a85a0da2a3691834dc2aeea6a1c46b0d09a0e3d0301ce8f690"
+            },
+            "status": "completed",
+            "transport": "registry"
+          },
+          "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41": {
+            "image_ids": {
+              "migrate": "sha256:3c9b554830f0d8a1f155b445df00eb67e3dea061e7c0f9a44bbba9927c99f441",
+              "web": "sha256:5076865939b16c521130d189e7a68a82c3395d376236bb77d49c138a0bfb9acc"
+            },
+            "status": "completed",
+            "transport": "registry"
+          }
+        }
+      }
+    }
+  }
+}
