@@ -18,6 +18,8 @@ from tests.release_test_support import (
     write_json,
 )
 
+from tests.test_release_transport import CrossStoreDocker, replace_with_oci_archive
+
 
 class ReleaseRunnerTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -35,6 +37,49 @@ class ReleaseRunnerTests(unittest.TestCase):
 
     def state(self) -> dict[str, object]:
         return json.loads((self.root / "state" / "state.json").read_text())
+
+    def test_cross_store_status_revalidates_image_and_exact_container_identity(self):
+        for drift in ("local-id", "local-digest", "local-tag", "container-id", "container-reference", "release-label", "service-label"):
+            with self.subTest(drift=drift), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                profile, model, manifest = create_release(root)
+                release_dir = root / "releases" / SHA_A
+                manifest = replace_with_oci_archive(release_dir, manifest, image_store="containerd")
+                docker = CrossStoreDocker()
+                docker.register_cross_store(SHA_A, model, manifest, release_dir)
+                runtime = ReleaseRuntime(docker, hostname="test-host")
+                runtime.stage(profile, SHA_A)
+                runtime.migrate(profile, SHA_A)
+                runtime.activate(profile, SHA_A)
+                self.assertTrue(runtime.status(profile, SHA_A)["ok"])
+                image = manifest["images"][0]
+                local = docker.images[image["runtime_reference"]]
+                if drift == "local-id":
+                    local["Id"] = "sha256:" + "f" * 64
+                elif drift == "local-digest":
+                    local["RepoDigests"] = []
+                elif drift == "local-tag":
+                    local["RepoTags"] = []
+                elif drift == "container-id":
+                    original = docker.inspect_container
+                    def stale(container_id):
+                        # Source/native ID is graph-valid but differs from local config ID.
+                        return {**original(container_id), "Image": image["image_id"]}
+                    docker.inspect_container = stale
+                elif drift == "container-reference":
+                    docker.tamper_container_reference_for.add(SHA_A)
+                elif drift == "release-label":
+                    docker.tamper_container_release_label_for.add(SHA_A)
+                else:
+                    original = docker.inspect_container
+                    def wrong_service(container_id):
+                        value = original(container_id)
+                        value["Config"]["Labels"]["com.aisoft.release.service"] = "other"
+                        return value
+                    docker.inspect_container = wrong_service
+                mutations = len(docker.mutations)
+                self.assertFalse(runtime.status(profile, SHA_A)["ok"])
+                self.assertEqual(len(docker.mutations), mutations)
 
     def test_deploy_orders_transport_migration_up_and_persists_atomic_state(self) -> None:
         result = self.runtime.deploy(self.profile, SHA_A)

@@ -11,6 +11,7 @@ from typing import Mapping
 
 from .contract import (
     OFFLINE_BUNDLE_V2,
+    RELEASE_VERSION_V2,
     ImageSpec,
     ReleaseFiles,
     ReleaseManifest,
@@ -43,9 +44,10 @@ class VerifiedArchiveMember:
 
 @dataclass(frozen=True)
 class VerifiedArchiveGraph:
-    """Read-only member inventory produced by the canonical graph validator."""
+    """Content-verified members and service-native identities of one archive."""
 
     members: tuple[VerifiedArchiveMember, ...]
+    image_identities: tuple[tuple[str, frozenset[str]], ...] = ()
 
 
 class ReleaseTransport:
@@ -59,30 +61,60 @@ class ReleaseTransport:
     def prepare(self) -> None:
         raise NotImplementedError
 
-    def assert_local_images(self) -> None:
+    def _verified_identities(self) -> dict[str, frozenset[str]]:
+        if self.files.manifest.contract_version != RELEASE_VERSION_V2:
+            return {
+                image.service: frozenset({image.image_id})
+                for image in self.files.manifest.images
+            }
+        # Never cache proof across actions: archive bytes and graph must still match.
+        return dict(inspect_offline_artifact(self.files).image_identities)
+
+    def _verify_staged_image(
+        self, value: Mapping[str, object], image: ImageSpec, ids: frozenset[str]
+    ) -> None:
+        _verify_local_image(value, image, ids)
+
+    def assert_local_images(self) -> dict[str, str]:
         try:
+            identities = self._verified_identities()
+            local_ids: dict[str, str] = {}
             for image in self.files.manifest.images:
-                _verify_local_image(
-                    self.docker.inspect_image(image.runtime_reference), image
-                )
+                value = self.docker.inspect_image(image.runtime_reference)
+                self._verify_staged_image(value, image, identities[image.service])
+                local_ids[image.service] = value["Id"]
+            return local_ids
         except (ContractError, DeploymentError, KeyError) as exc:
             raise TransportError("local runtime image identity verification failed") from exc
 
 
 class RegistryTransport(ReleaseTransport):
+    def _verify_staged_image(
+        self, value: Mapping[str, object], image: ImageSpec, ids: frozenset[str]
+    ) -> None:
+        if self.files.manifest.contract_version == RELEASE_VERSION_V2:
+            _verify_registry_image(value, image, ids)
+        _verify_local_image(value, image, ids)
+
     def preflight(self) -> None:
-        # Manifest parsing already proves every reference is digest-pinned.
-        return
+        self._verified_identities()
 
     def prepare(self) -> None:
         try:
+            identities = self._verified_identities()
             for image in self.files.manifest.images:
                 self.docker.pull_image(image.reference)
-                _verify_registry_image(self.docker.inspect_image(image.reference), image)
+                _verify_registry_image(
+                    self.docker.inspect_image(image.reference),
+                    image,
+                    identities[image.service]
+                )
                 if image.is_v2:
                     self.docker.tag_image(image.reference, image.runtime_reference)
-                    _verify_local_image(
-                        self.docker.inspect_image(image.runtime_reference), image
+                    self._verify_staged_image(
+                        self.docker.inspect_image(image.runtime_reference),
+                        image,
+                        identities[image.service],
                     )
         except (ContractError, DeploymentError, KeyError) as exc:
             raise TransportError("registry transport could not verify immutable images") from exc
@@ -105,10 +137,13 @@ class OfflineBundleTransport(ReleaseTransport):
         # Repeat the complete preflight immediately before the only mutation.
         self.preflight()
         try:
+            identities = self._verified_identities()
             self.docker.load_archive(self.files.archive_path)
             for image in self.files.manifest.images:
                 _verify_local_image(
-                    self.docker.inspect_image(image.runtime_reference), image
+                    self.docker.inspect_image(image.runtime_reference),
+                    image,
+                    identities[image.service],
                 )
         except (ContractError, DeploymentError, KeyError) as exc:
             raise TransportError("offline bundle load or image inspection failed") from exc
@@ -163,15 +198,24 @@ def produce_offline_archive(
         ) from exc
 
 
-def _verify_content(value: Mapping[str, object], image: ImageSpec) -> None:
-    if value.get("Id") != image.image_id:
+def _verify_content(
+    value: Mapping[str, object],
+    image: ImageSpec,
+    verified_ids: frozenset[str] | None = None,
+) -> None:
+    allowed = verified_ids if verified_ids is not None else frozenset({image.image_id})
+    if not isinstance(value.get("Id"), str) or value["Id"] not in allowed:
         raise ContractError(f"image ID does not match manifest for service {image.service}")
     if value.get("Os") != "linux" or value.get("Architecture") != "amd64":
         raise ContractError(f"image platform does not match linux/amd64 for {image.service}")
 
 
-def _verify_registry_image(value: Mapping[str, object], image: ImageSpec) -> None:
-    _verify_content(value, image)
+def _verify_registry_image(
+    value: Mapping[str, object],
+    image: ImageSpec,
+    verified_ids: frozenset[str] | None = None,
+) -> None:
+    _verify_content(value, image, verified_ids)
     repo_digests = value.get("RepoDigests")
     if not isinstance(repo_digests, list) or image.reference not in repo_digests:
         raise ContractError(
@@ -179,8 +223,12 @@ def _verify_registry_image(value: Mapping[str, object], image: ImageSpec) -> Non
         )
 
 
-def _verify_local_image(value: Mapping[str, object], image: ImageSpec) -> None:
-    _verify_content(value, image)
+def _verify_local_image(
+    value: Mapping[str, object],
+    image: ImageSpec,
+    verified_ids: frozenset[str] | None = None,
+) -> None:
+    _verify_content(value, image, verified_ids)
     if not image.is_v2:
         repo_digests = value.get("RepoDigests")
         if not isinstance(repo_digests, list) or image.reference not in repo_digests:
@@ -228,6 +276,7 @@ def _validate_archive_structure(
                 raise ContractError("offline image archive is missing manifest.json")
             manifest = _read_archive_json(archive, manifest_member, "manifest.json")
             allowed_members = {"manifest.json"}
+            identities = {image.service: frozenset({image.image_id}) for image in images}
             docker_members, docker_images = _validate_docker_manifest(
                 manifest, images, archive, members
             )
@@ -250,7 +299,7 @@ def _validate_archive_structure(
                 allowed_members.add("index.json")
                 allowed_members.update(
                     _validate_oci_index_references(
-                        index, docker_images, archive, members
+                        index, docker_images, archive, members, identities
                     )
                 )
             else:
@@ -298,6 +347,7 @@ def _validate_archive_structure(
                 layer for entry in docker_images.values() for layer in entry.layers
             }
             return VerifiedArchiveGraph(
+                image_identities=tuple(sorted(identities.items())),
                 members=tuple(
                     VerifiedArchiveMember(
                         name=name,
@@ -597,6 +647,7 @@ def _validate_oci_index_references(
     images: Mapping[str, _DockerArchiveImage],
     archive: tarfile.TarFile,
     members: Mapping[str, tarfile.TarInfo],
+    identities: dict[str, frozenset[str]],
 ) -> set[str]:
     if not isinstance(value, Mapping) or value.get("schemaVersion") != 2:
         raise ContractError("OCI archive index.json must be an object")
@@ -616,6 +667,9 @@ def _validate_oci_index_references(
             raise ContractError("OCI archive index.json contains duplicate transport tags")
         seen.add(reference)
         entry = images[reference]
+        platform = item.get("platform")
+        if platform is not None and platform != {"architecture": "amd64", "os": "linux"}:
+            raise ContractError("OCI archive top-level descriptor platform is invalid")
         digest, descriptor_member = _validated_descriptor_member(
             archive, members, item, "OCI archive index.json manifest"
         )
@@ -648,13 +702,15 @@ def _validate_oci_index_references(
                     "OCI image index digest does not match the declared image ID "
                     f"for {entry.image.service}"
                 )
-            referenced_members.update(
-                _validate_nested_oci_index(
-                    descriptor, entry, archive, members
-                )
+            nested_members, config_digest = _validate_nested_oci_index(
+                descriptor, entry, archive, members
             )
+            referenced_members.update(nested_members)
         else:
             raise ContractError("OCI archive index.json media type is unsupported")
+        # Only the source-bound descriptor and unique runnable config are native IDs.
+        # Attestation configs and child manifests never enter this allowlist.
+        identities[entry.image.service] = frozenset({digest, config_digest})
     if seen != set(images):
         raise ContractError("OCI archive index.json is missing transport tags")
     return referenced_members
@@ -682,7 +738,7 @@ def _validate_nested_oci_index(
     expected: _DockerArchiveImage,
     archive: tarfile.TarFile,
     members: Mapping[str, tarfile.TarInfo],
-) -> set[str]:
+) -> tuple[set[str], str]:
     if value.get("schemaVersion") != 2 or value.get("mediaType") != OCI_INDEX_MEDIA_TYPE:
         raise ContractError("OCI image index is invalid")
     descriptors = value.get("manifests")
@@ -747,7 +803,7 @@ def _validate_nested_oci_index(
                 context=f"OCI attestation manifest for {expected.image.service}",
             )
         )
-    return referenced
+    return referenced, _oci_config_digest(runnable_manifest)
 
 
 def _validate_oci_manifest_graph(
@@ -767,6 +823,14 @@ def _validate_oci_manifest_graph(
     _config_digest, config_member = _validated_descriptor_member(
         archive, members, config, f"{context} config"
     )
+    if expected is not None:
+        config_value = _read_archive_json(archive, members[config_member], config_member)
+        if (
+            not isinstance(config_value, Mapping)
+            or config_value.get("os") != "linux"
+            or config_value.get("architecture") != "amd64"
+        ):
+            raise ContractError(f"{context} config platform does not match linux/amd64")
     layer_members: list[str] = []
     for layer in layers:
         if not isinstance(layer, Mapping):

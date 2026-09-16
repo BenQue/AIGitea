@@ -2,15 +2,18 @@ from __future__ import annotations
 
 from copy import deepcopy
 import io
+import hashlib
 import json
 import os
 from pathlib import Path
 import tempfile
 import tarfile
 import unittest
+from unittest.mock import patch
 
 from aisoft_release import transport as transport_module
 from aisoft_release.contract import (
+    ImageSpec,
     load_release_artifact,
     load_release_files,
     load_target_profile,
@@ -71,7 +74,181 @@ def replace_with_oci_archive(
     )
 
 
+def archive_config_ids(release_dir: Path) -> dict[str, str]:
+    with tarfile.open(release_dir / "images.tar") as archive:
+        entries = json.load(archive.extractfile("manifest.json"))
+    manifest = json.loads((release_dir / "release.json").read_text())
+    by_tag = {entry["RepoTags"][0]: "sha256:" + Path(entry["Config"]).name for entry in entries}
+    return {image["service"]: by_tag[image["runtime_reference"]] for image in manifest["images"]}
+
+
+class CrossStoreDocker(FakeDocker):
+    """Model the measured classic daemon config ID, not producer native ID."""
+
+    def register_cross_store(self, release_id, model, manifest, release_dir):
+        self.register(release_id, model, manifest)
+        ids = archive_config_ids(release_dir)
+        for image in manifest["images"]:
+            self.images[image["reference"]]["Id"] = ids[image["service"]]
+
+    def load_archive(self, archive_path):
+        super().load_archive(archive_path)
+        ids = archive_config_ids(archive_path.parent)
+        for image in self.manifests[archive_path.parent.name]["images"]:
+            self.images[image["runtime_reference"]]["Id"] = ids[image["service"]]
+
+
 class ReleaseTransportTests(unittest.TestCase):
+    def test_measured_docker28_identity_uses_unchanged_real_archive(self):
+        evidence = Path(__file__).resolve().parents[3] / "docs/changes/296-docker28-classic/evidence"
+        receipt = json.loads((evidence / "real-identity.json").read_text())
+        archive = evidence / "identity-archive.tar"
+        self.assertEqual(sha256(archive), receipt["offline_archive_sha256"])
+        image = ImageSpec(
+            service="identity", reference=receipt["reference"],
+            digest=receipt["producer"]["Id"], image_id=receipt["producer"]["Id"],
+            transport_reference=receipt["consumer_offline"]["RepoTags"][0],
+            runtime_reference=receipt["consumer_offline"]["RepoTags"][0],
+        )
+        graph = transport_module._validate_archive_structure(archive, (image,))
+        identities = dict(graph.image_identities)["identity"]
+        self.assertEqual(identities, {receipt["producer"]["Id"], receipt["consumer_offline"]["Id"]})
+        transport_module._verify_registry_image(receipt["producer"], image, identities)
+        transport_module._verify_registry_image(receipt["consumer_registry"], image, identities)
+        transport_module._verify_local_image(receipt["consumer_offline"], image, identities)
+        # Unproven RootFS equality alone never authorizes another native ID.
+        forged = {**receipt["consumer_offline"], "Id": "sha256:" + "f" * 64}
+        with self.assertRaises(ReleaseError):
+            transport_module._verify_local_image(forged, image, identities)
+
+    def test_legacy_v1_never_projects_config_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile, model, manifest = create_release(root, contract_version="docker-release/v1")
+            release_dir = root / "releases" / SHA_A
+            manifest = replace_with_oci_archive(release_dir, manifest, image_store="containerd-direct")
+            docker = CrossStoreDocker()
+            docker.register_cross_store(SHA_A, model, manifest, release_dir)
+            with self.assertRaises(TransportError):
+                ReleaseRuntime(docker, hostname="test-host").deploy(profile, SHA_A)
+            self.assertFalse(any(event[0] in {"tag", "migration", "up"} for event in docker.mutations))
+
+    def test_cross_store_native_and_config_ids_accept_same_oci_artifact(self):
+        for store in ("containerd-direct", "containerd", "classic"):
+            for transport in ("registry", "offline-bundle"):
+                for cross_store in (False, True):
+                    with self.subTest(store=store, transport=transport, cross_store=cross_store), tempfile.TemporaryDirectory() as directory:
+                        root = Path(directory)
+                        profile, model, manifest = create_release(root, transport=transport)
+                        release_dir = root / "releases" / SHA_A
+                        manifest = replace_with_oci_archive(release_dir, manifest, image_store=store)
+                        docker = CrossStoreDocker() if cross_store else FakeDocker()
+                        if cross_store:
+                            docker.register_cross_store(SHA_A, model, manifest, release_dir)
+                        else:
+                            docker.register(SHA_A, model, manifest)
+                        runtime = ReleaseRuntime(docker, hostname="test-host")
+                        runtime.stage(profile, SHA_A)
+                        state = json.loads((root / "state" / "state.json").read_text())
+                        self.assertEqual(state["staged_releases"][SHA_A]["image_ids"], {i["service"]: i["image_id"] for i in manifest["images"]})
+                        runtime.migrate(profile, SHA_A)
+                        runtime.activate(profile, SHA_A)
+                        self.assertTrue(runtime.status(profile, SHA_A)["ok"])
+
+    def test_cross_store_rejects_wrong_local_content_platform_or_registry_digest(self):
+        for field, replacement in (("Id", "sha256:" + "f" * 64), ("Architecture", "arm64"), ("Os", "windows"), ("RepoDigests", [])):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                profile, model, manifest = create_release(root, migration=False)
+                release_dir = root / "releases" / SHA_A
+                manifest = replace_with_oci_archive(release_dir, manifest, image_store="containerd")
+                docker = CrossStoreDocker()
+                docker.register_cross_store(SHA_A, model, manifest, release_dir)
+                docker.images[manifest["images"][0]["reference"]][field] = replacement
+                with self.assertRaises(TransportError):
+                    ReleaseRuntime(docker, hostname="test-host").stage(profile, SHA_A)
+                self.assertFalse(any(event[0] == "tag" for event in docker.mutations))
+
+    def test_verified_oci_config_must_itself_be_linux_amd64(self):
+        from tests.release_test_support import canonical_bytes
+        for store in ("containerd-direct", "containerd"):
+            with self.subTest(store=store), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                profile, model, manifest = create_release(root, migration=False)
+                def wrong_platform(value):
+                    if isinstance(value, dict) and "fixture_service" in value:
+                        value = {**value, "architecture": "arm64"}
+                    return canonical_bytes(value)
+                with patch("tests.release_test_support.canonical_bytes", side_effect=wrong_platform):
+                    manifest = replace_with_oci_archive(root / "releases" / SHA_A, manifest, image_store=store)
+                docker = FakeDocker()
+                docker.register(SHA_A, model, manifest)
+                with self.assertRaises(ReleaseError):
+                    ReleaseRuntime(docker, hostname="test-host").stage(profile, SHA_A)
+                self.assertEqual(docker.mutations, [])
+
+    def test_cross_store_rejects_attestation_config_even_if_content_verified(self):
+        from tests.release_test_support import canonical_bytes
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile, model, manifest = create_release(root)
+            release_dir = root / "releases" / SHA_A
+            manifest = replace_with_oci_archive(release_dir, manifest, image_store="containerd")
+            docker = CrossStoreDocker()
+            docker.register_cross_store(SHA_A, model, manifest, release_dir)
+            attestation_id = "sha256:" + hashlib.sha256(canonical_bytes({})).hexdigest()
+            docker.images[manifest["images"][0]["reference"]]["Id"] = attestation_id
+            with self.assertRaises(TransportError):
+                ReleaseRuntime(docker, hostname="test-host").stage(profile, SHA_A)
+            self.assertFalse(any(event[0] == "tag" for event in docker.mutations))
+
+    def test_cross_store_rejects_ambiguous_or_wrong_platform_index_before_pull(self):
+        from tests.release_test_support import canonical_bytes
+        for corruption in ("duplicate-runnable", "wrong-platform", "top-platform"):
+            with self.subTest(corruption=corruption), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                profile, model, manifest = create_release(root)
+                def wrong_index(value):
+                    if (
+                        corruption == "top-platform"
+                        and isinstance(value, dict)
+                        and "manifests" in value
+                        and "annotations" in value["manifests"][0]
+                    ):
+                        value = deepcopy(value)
+                        value["manifests"][0]["platform"] = {"architecture": "arm64", "os": "linux"}
+                    elif isinstance(value, dict) and value.get("mediaType") == transport_module.OCI_INDEX_MEDIA_TYPE:
+                        value = deepcopy(value)
+                        if corruption == "duplicate-runnable":
+                            value["manifests"].append(deepcopy(value["manifests"][0]))
+                        elif corruption == "wrong-platform":
+                            value["manifests"][0]["platform"]["architecture"] = "arm64"
+                    return canonical_bytes(value)
+                with patch("tests.release_test_support.canonical_bytes", side_effect=wrong_index):
+                    manifest = replace_with_oci_archive(root / "releases" / SHA_A, manifest, image_store="containerd")
+                docker = FakeDocker()
+                docker.register(SHA_A, model, manifest)
+                with self.assertRaises(ReleaseError):
+                    ReleaseRuntime(docker, hostname="test-host").stage(profile, SHA_A)
+                self.assertEqual(docker.mutations, [])
+
+    def test_cross_store_receipt_cannot_hide_changed_archive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile, model, manifest = create_release(root)
+            release_dir = root / "releases" / SHA_A
+            manifest = replace_with_oci_archive(release_dir, manifest, image_store="containerd-direct")
+            docker = CrossStoreDocker()
+            docker.register_cross_store(SHA_A, model, manifest, release_dir)
+            runtime = ReleaseRuntime(docker, hostname="test-host")
+            runtime.stage(profile, SHA_A)
+            mutation_count = len(docker.mutations)
+            with (release_dir / "images.tar").open("ab") as stream:
+                stream.write(b"tampered")
+            with self.assertRaises(ReleaseError):
+                runtime.migrate(profile, SHA_A)
+            self.assertEqual(len(docker.mutations), mutation_count)
+
     def test_verified_archive_graph_matches_preflight_members(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
