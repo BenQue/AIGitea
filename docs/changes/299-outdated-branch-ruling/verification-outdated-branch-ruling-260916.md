@@ -22,8 +22,8 @@ updated: 2026-09-16
 
 ## 基线与范围
 
-- Commit SHA: 7c7a80e（本记录提交前的最后一个实现 commit）
-- 基线：`origin/main` = 9a2fa11
+- Commit SHA: a4083f5（rebase 到 f6e2e50 之后的最终实现 commit；本记录之前的全部 commit）
+- 基线：`origin/main` = f6e2e50（#300 合并后；起手基线 9a2fa11，rebase 时 06 踩坑表冲突从 main 重建，只补回踩坑 22 指针与踩坑 29 两行）
 - 环境: Mac 交互会话；Gitea 1.26.4（`gitea-ci.orb.local:3000`）；broker 只读操作；
   bash 3.2 本机 + 平台 required CI（`CI / verify (pull_request)`）
 - 本记录负责证明的 acceptance criteria: AC-1、AC-2、AC-3（切换前读回；切换后读回待负责人操作）、AC-4
@@ -34,11 +34,11 @@ updated: 2026-09-16
 |---|---|---|
 | `gitea.protection.read`（切换前，2026-09-16） | PASS | aisoft-platform / localwms / newemaint：`block_on_outdated_branch: true`，`updated_at 2026-09-05T23:07:43+08:00`；sfm-digital-board：`true`，`updated_at 2026-08-08T18:03:01+08:00` |
 | `bash codex/tests/test-project-check.sh`（改动前基线） | PASS | `project check tests passed (58 cases)` |
-| `bash codex/tests/test-project-check.sh`（改动后） | PASS | `project check tests passed (61 cases)`：新增有合并预览 fixture 的 `false`/缺键 → SKIP 两例、无预览仍 GAP 一例、平台仓 GAP/PASS 两例；aligned fixture 的 `result:` 计数行不变 |
+| `bash codex/tests/test-project-check.sh`（改动后，rebase 后复跑） | PASS | `project check tests passed (61 cases)`：新增有合并预览 fixture 的 `false`/缺键 → SKIP 两例、无预览仍 GAP 一例、平台仓 GAP/PASS 两例；aligned fixture 的 `result:` 计数行不变 |
 | `shellcheck -S warning` 两个脚本 + `bash -n` | PASS | 无输出 |
-| `bash codex/tests/smoke.sh`（gating 前的 e4b3743 之前树，1e2db91+c1214f7） | PASS | `Codex platform static smoke checks passed.` exit=0 |
-| `bash codex/tests/smoke.sh`（最终树 7c7a80e） | PASS | `Codex platform static smoke checks passed.` exit=0 |
-| `check-change-documents --repo .` | PASS | `PASS: change-documents` / `PASS: change-pr-url`，`result: changes=136 pass=2 gap=0` |
+| `bash codex/tests/smoke.sh`（rebase 前树） | PASS | 第一次 exit=0；第二次在 origin/main 前进到 f6e2e50 后被 staleness 闸门拒绝（exit=1，「rebase onto the upstream」），不是本分支 diff 的问题 |
+| `bash codex/tests/smoke.sh`（rebase 后最终树 a4083f5） | PASS | `Codex platform static smoke checks passed.` exit=0 |
+| `check-change-documents --repo .` | PASS | `PASS: change-documents` / `PASS: change-pr-url`，`result: changes=137 pass=2 gap=0`（rebase 后） |
 | `git diff --check origin/main..HEAD` | PASS | 无输出 |
 | `apply-classification-labels.sh --verify 299` | PASS | `result: projected`，`type/platform` + `complexity/complex` |
 | `curl /api/v1/version` | PASS | `{"version":"1.26.4"}` |
@@ -62,4 +62,4 @@ updated: 2026-09-16
 - 切换后读回与 Issue 评论待负责人在 Gitea 界面操作 NewEMaint、LocalWMS 后补做；SFMDigitalBoard
   保留 `true`，直到其自己的 Issue 采纳合并预览（`ci-merge-preview` PASS）。
 - 平台仓 ci.yml 没有 push-main 触发，平台仓因此保留开关；若将来要一并关闭，先另立 Issue 加 push 触发。
-- 踩坑 29 的编号假定 #298 先合并占用 28；顺序反了由合并者改号。
+- 踩坑 28 已由 #298（PR #300，f6e2e50）占用，本条固定为 29。
