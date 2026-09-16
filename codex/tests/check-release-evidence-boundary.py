@@ -59,6 +59,28 @@ def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+# One bytecode cache root per process, outside the work tree. Kept alive here so
+# its finalizer removes it at interpreter exit (#301).
+_CACHE_DIR = None
+
+
+def cache_prefix() -> str:
+    """Where subprocesses may look for and write bytecode: never the work tree.
+
+    PYTHONDONTWRITEBYTECODE and -B stop a subprocess from *writing* .pyc files;
+    neither stops it from *reading* one. A __pycache__ entry whose header mtime
+    and size match the source is executed in place of that source, so a stray
+    or tampered .pyc inside SCOPES would otherwise decide what
+    current_regression actually runs. PYTHONPYCACHEPREFIX moves the whole cache
+    lookup out of the tree, which is what makes exempting those files from
+    disk_files safe (#301).
+    """
+    global _CACHE_DIR
+    if _CACHE_DIR is None:
+        _CACHE_DIR = tempfile.TemporaryDirectory(prefix="aisoft-301-pycache-")
+    return _CACHE_DIR.name
+
+
 def command_env() -> dict[str, str]:
     env = {
         key: value for key, value in os.environ.items()
@@ -67,7 +89,7 @@ def command_env() -> dict[str, str]:
     env.update(
         GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
         GIT_ALLOW_PROTOCOL="file", GIT_TERMINAL_PROMPT="0",
-        PYTHONDONTWRITEBYTECODE="1",
+        PYTHONDONTWRITEBYTECODE="1", PYTHONPYCACHEPREFIX=cache_prefix(),
     )
     return env
 
@@ -98,12 +120,28 @@ def baseline_files(root: Path) -> dict[str, tuple[str, bytes]]:
     return files
 
 
+def is_bytecode_artifact(path: Path) -> bool:
+    """A compiled-bytecode product, and nothing else.
+
+    Both halves are load-bearing. Requiring the __pycache__ parent keeps a .pyc
+    dropped straight into a scope visible; requiring the .pyc suffix keeps
+    anything else placed inside a __pycache__ directory visible. So this stays a
+    product exemption and never becomes a path or content exemption (#301).
+    """
+    return path.suffix == ".pyc" and path.parent.name == "__pycache__"
+
+
 def disk_files(root: Path) -> set[str]:
     files: set[str] = set()
 
     def walk(path: Path) -> None:
         mode = path.lstat().st_mode
         if stat.S_ISREG(mode):
+            # Untracked bytecode left behind by a local `python3 -m unittest`
+            # run is not evidence about the frozen scope, and cache_prefix()
+            # already keeps this process from executing it (#301).
+            if is_bytecode_artifact(path):
+                return
             files.add(path.relative_to(root).as_posix())
         elif stat.S_ISDIR(mode):
             for child in path.iterdir():

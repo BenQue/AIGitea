@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import py_compile
+import struct
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -121,14 +125,25 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
                 self.write(boundary.RUNNER, self.expected_runner.replace(before, after))
                 self.rejected()
 
-    def test_ignored_and_untracked_files_including_bytecode_are_rejected(self) -> None:
+    def test_untracked_files_are_rejected_except_python_bytecode_products(self) -> None:
+        """#301：唯一的豁免是编译字节码产物，判据不是 git 是否忽略这个文件。
+
+        `hidden.py` 与 `runner.pyc` 都被 `.gitignore` 覆盖，却仍然必须让闸门变红：
+        闸门问的是「冻结范围里出现了未跟踪文件」，不是「git 看不看得见它」。
+        `__pycache__/notes.md` 证明这不是把整个目录跳过的路径豁免，
+        `runner.pyc` 证明这不是只看后缀的豁免——两个条件缺一都会让用例变红。
+        """
         self.write(".gitignore", b"*.pyc\nhidden.py\n")
-        for name in ("extra.py", "hidden.py", "__pycache__/runner.cpython-313.pyc"):
-            with self.subTest(name=name):
+        for name in ("extra.py", "hidden.py", "__pycache__/notes.md", "runner.pyc"):
+            with self.subTest(rejected=name):
                 path = "codex/runtime/aisoft_release/" + name
                 self.write(path, b"unexpected")
                 self.rejected()
                 (self.root / path).unlink()
+        exempt = "codex/runtime/aisoft_release/__pycache__/runner.cpython-313.pyc"
+        self.write(exempt, b"local bytecode")
+        boundary.validate(self.root)
+        (self.root / exempt).unlink()
 
     def test_missing_renamed_and_symlink_paths_are_rejected(self) -> None:
         path = self.root / boundary.RUNNER
@@ -226,3 +241,71 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
                 patch.object(boundary, "check") as check:
             self.assertEqual(boundary.main(), 1)
         check.assert_not_called()
+
+
+class BytecodeCacheIsolationTests(unittest.TestCase):
+    """#301：豁免之所以安全，是因为回归子进程根本读不到工作树里的字节码。
+
+    `PYTHONDONTWRITEBYTECODE` 与 `-B` 只阻止子进程**写** `.pyc`，不阻止它**读**：
+    一个 header 的 mtime/size 与源文件对齐的 `__pycache__` 条目会被直接执行，
+    源文件连编译都不会发生。没有这层隔离，`current_release_regression: PASS`
+    就可能是一份对「与 pin 不同的字节码」成立的证据。
+    """
+
+    TAMPERED = "TAMPERED"
+    SOURCE = "SOURCE"
+
+    def plant_tampered_bytecode(self, root: Path) -> None:
+        """造一个 `.py` 与其 in-tree `.pyc` 字节码不一致的包。
+
+        先把篡改后的源码编译进 `__pycache__`，再还原源码，最后把 pyc header 的
+        mtime/size 改写成与还原后的源文件一致，使解释器认为缓存是新鲜的。
+        header 布局为 magic(4) flags(4) mtime(4) size(4)，`TIMESTAMP` 模式下
+        flags 为 0，因此 mtime 与 size 就是全部校验依据。
+        """
+        package = root / "pkg"
+        package.mkdir()
+        (package / "__init__.py").write_bytes(b"")
+        source = package / "m.py"
+        source.write_text(f'VALUE = "{self.TAMPERED}"\n', encoding="utf-8")
+        # 手算树内缓存路径，不用 importlib.util.cache_from_source：那个函数会跟随
+        # 当前进程的 sys.pycache_prefix。本模块正是由 current_regression 在已经
+        # 设了 PYTHONPYCACHEPREFIX 的子进程里执行的，跟随它会把「树内篡改字节码」
+        # 写到树外镜像目录，于是整个用例悄悄地什么都不证明。
+        cache = package / "__pycache__" / f"m.{sys.implementation.cache_tag}.pyc"
+        cache.parent.mkdir()
+        py_compile.compile(str(source), cfile=str(cache), doraise=True,
+                           invalidation_mode=py_compile.PycInvalidationMode.TIMESTAMP)
+        source.write_text(f'VALUE = "{self.SOURCE}"\n', encoding="utf-8")
+        header = bytearray(cache.read_bytes())
+        stat_result = source.stat()
+        struct.pack_into("<II", header, 8, int(stat_result.st_mtime) & 0xFFFFFFFF,
+                         stat_result.st_size & 0xFFFFFFFF)
+        cache.write_bytes(bytes(header))
+
+    def imported_value(self, cwd: Path, env: dict[str, str]) -> str:
+        result = subprocess.run(
+            [sys.executable, "-B", "-c", "import pkg.m; print(pkg.m.VALUE)"],
+            cwd=cwd, env=env, capture_output=True, text=True, check=True, timeout=60,
+        )
+        return result.stdout.strip()
+
+    def test_command_env_moves_the_bytecode_cache_out_of_the_work_tree(self) -> None:
+        env = boundary.command_env()
+        prefix = env.get("PYTHONPYCACHEPREFIX")
+        self.assertIsNotNone(prefix)
+        self.assertTrue(Path(prefix).is_absolute())
+        self.assertNotIn(ROOT, Path(prefix).parents)
+        self.assertEqual(env.get("PYTHONDONTWRITEBYTECODE"), "1")
+        self.assertEqual(boundary.command_env().get("PYTHONPYCACHEPREFIX"), prefix)
+
+    def test_tampered_in_tree_bytecode_is_not_executed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.plant_tampered_bytecode(root)
+            control = dict(boundary.command_env())
+            control.pop("PYTHONPYCACHEPREFIX")
+            # 反向证明：不重定向缓存时，篡改过的字节码确实顶替了源码。
+            self.assertEqual(self.imported_value(root, control), self.TAMPERED)
+            self.assertEqual(
+                self.imported_value(root, boundary.command_env()), self.SOURCE)
