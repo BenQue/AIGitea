@@ -68,3 +68,15 @@ check-change-documents；git diff --check。
 |---|---|---|
 | T07 | [T03] | 已批准增补的独立合同提交，不修改runtime |
 | T08 | [T07] | fresh context实现追加范围的身份兼容与正反例；完成后恢复T02/T04/T05/T06 |
+
+## 增补执行结果
+
+- T07 PASS：806ecc6独立固化增补批准。
+- T08 PASS：b34e299身份修复，63ea74f固定source pins，双轴review与156 release回归通过。
+- T02 PASS：843672a完整真实harness、20专项与默认NOT RUN。
+- T03/T04 PASS：实际64阶段两transport、幂等、迁移计数、回退及故障恢复；清理PASS。
+- T05 PASS：仅在真实PASS后增加matrix2026.09.1精确行；旧三行不变。
+- T06进行中：正式matrix后的最终smoke、文档、hash与diff，随后唯一manual PR确认。
+
+必要测试维护：test_release_capability.py中两处硬编码matrix_revision从2026.08.3同步为2026.09.1；
+保留既有能力/拒绝断言。这是已批准矩阵版本更新的机械测试适配，不改变任何运行时或权限合同。

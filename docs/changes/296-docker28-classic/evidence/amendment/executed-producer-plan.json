@@ -1,0 +1,241 @@
+{
+  "candidate_matrix_sha256": "04ca37f1d8a6cd8b830b89dce97a2cfffadae2d743eb178ba62683c90a406ccb",
+  "capabilities": {
+    "consumer": {
+      "compose": "2.35.1",
+      "info": {
+        "DockerRootDir": "/var/lib/aisoft-296-consumer",
+        "Driver": "overlay2",
+        "DriverStatus": [
+          [
+            "Backing Filesystem",
+            "btrfs"
+          ],
+          [
+            "Supports d_type",
+            "true"
+          ],
+          [
+            "Using metacopy",
+            "false"
+          ],
+          [
+            "Native Overlay Diff",
+            "false"
+          ],
+          [
+            "userxattr",
+            "false"
+          ]
+        ],
+        "ID": "6ca7d1a6-e144-401f-9f2a-f6082af9d54a"
+      },
+      "installed_binary_checksums": [
+        "a1e26e03d5c80c72092ad1a68e39177319e1b6e4a296910b2b550cb3906b90aa  /usr/local/bin/docker",
+        "896187aff45cd2efec1fd807ecda6ccdf20678f70f6a61d4b291cef852fa78ed  /usr/local/bin/dockerd",
+        "1ca8ce258953a507d9d7a22c2c3c72be48386205a27a5199663a78997f23eb16  /usr/local/bin/containerd",
+        "7bdb2ce2916e5dd0354e5d129892bf96fdcdb1a9ab8eed69b9173e131db4c230  /usr/local/lib/docker/cli-plugins/docker-compose"
+      ],
+      "server": {
+        "ApiVersion": "1.49",
+        "Arch": "amd64",
+        "BuildTime": "2025-04-18T09:52:21.000000000+00:00",
+        "Components": [
+          {
+            "Details": {
+              "ApiVersion": "1.49",
+              "Arch": "amd64",
+              "BuildTime": "Fri Apr 18 09:52:21 2025",
+              "Experimental": "false",
+              "GitCommit": "01f442b",
+              "GoVersion": "go1.23.8",
+              "KernelVersion": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+              "MinAPIVersion": "1.24",
+              "Os": "linux"
+            },
+            "Name": "Engine",
+            "Version": "28.1.1"
+          },
+          {
+            "Details": {
+              "GitCommit": "05044ec0a9a75232cad458027ca83437aae3f4da"
+            },
+            "Name": "containerd",
+            "Version": "v1.7.27"
+          },
+          {
+            "Details": {
+              "GitCommit": "v1.2.2-0-g7cb3632-dirty"
+            },
+            "Name": "runc",
+            "Version": "1.2.2"
+          },
+          {
+            "Details": {
+              "GitCommit": "de40ad0"
+            },
+            "Name": "docker-init",
+            "Version": "0.19.0"
+          }
+        ],
+        "GitCommit": "01f442b",
+        "GoVersion": "go1.23.8",
+        "KernelVersion": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+        "MinAPIVersion": "1.24",
+        "Os": "linux",
+        "Platform": {
+          "Name": "Docker Engine - Community"
+        },
+        "Version": "28.1.1"
+      }
+    },
+    "producer": {
+      "compose": "5.1.4",
+      "info": {
+        "DockerRootDir": "/var/lib/aisoft-296-producer",
+        "Driver": "overlayfs",
+        "DriverStatus": [
+          [
+            "driver-type",
+            "io.containerd.snapshotter.v1"
+          ]
+        ],
+        "ID": "505ee3a6-cd82-4223-acae-53f87cad607c"
+      },
+      "installed_binary_checksums": [
+        "44acb10a9e5d6ded0dd819d793867f4fd8d7020bf7d64f8956766973cc06ca30  /usr/local/bin/docker",
+        "3b88548988714953ad870cf1e7d8e3414b8c0651a7ae7a64b45ab0044961f1c4  /usr/local/bin/dockerd",
+        "7d5802be8afa78e2439387bbee254b8447e49b6d08ceb4586e7a905a0eb91b64  /usr/local/bin/containerd",
+        "33b208d7e76639db742fae84b966cc01dacae58ca3fc4dabbc907045aefdf0c4  /usr/local/lib/docker/cli-plugins/docker-compose"
+      ],
+      "server": {
+        "ApiVersion": "1.55",
+        "Arch": "amd64",
+        "BuildTime": "2026-07-31T17:07:42.000000000+00:00",
+        "Components": [
+          {
+            "Details": {
+              "ApiVersion": "1.55",
+              "Arch": "amd64",
+              "BuildTime": "Fri Jul 31 17:07:42 2026",
+              "Experimental": "false",
+              "GitCommit": "c5b8ce9",
+              "GoVersion": "go1.26.5",
+              "KernelVersion": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+              "MinAPIVersion": "1.40",
+              "Module": "github.com/moby/moby/v2",
+              "ModuleVersion": "v2.0.0+unknown",
+              "Os": "linux"
+            },
+            "Name": "Engine",
+            "Version": "29.7.1"
+          },
+          {
+            "Details": {
+              "GitCommit": "aad11006b869517fcd3009450b6f82da282e1a9b"
+            },
+            "Name": "containerd",
+            "Version": "v2.3.3"
+          },
+          {
+            "Details": {
+              "GitCommit": "v1.2.2-0-g7cb3632-dirty"
+            },
+            "Name": "runc",
+            "Version": "1.2.2"
+          },
+          {
+            "Details": {
+              "GitCommit": "de40ad0"
+            },
+            "Name": "docker-init",
+            "Version": "0.19.0"
+          }
+        ],
+        "GitCommit": "c5b8ce9",
+        "GoVersion": "go1.26.5",
+        "KernelVersion": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+        "MinAPIVersion": "1.40",
+        "Os": "linux",
+        "Platform": {
+          "Name": "Docker Engine - Community"
+        },
+        "Version": "29.7.1"
+      }
+    }
+  },
+  "resources": {
+    "compose_project": "aisoft-296-fixture",
+    "consumer_containers": [
+      "aisoft-296-postgres",
+      "aisoft-296-fixture-web-1",
+      "aisoft-296-fixture-migrate-run-*"
+    ],
+    "consumer_root": "/opt/aisoft-296/fixture",
+    "images": {
+      "postgres": "docker.io/library/postgres@sha256:075f7ba66bc9b3ce7d6b8b635208ff61cd7cf1a67d71ec530eec5d7ae0cbe571",
+      "python": "docker.io/library/python@sha256:46ee549c88617e9bc8acb843a326f1a5c0fa5608d7f9703509efe6d53b55f318"
+    },
+    "networks": [
+      "aisoft-296-database",
+      "aisoft-296-fixture-backend"
+    ],
+    "producer_containers": [
+      "aisoft-296-registry",
+      "aisoft-296-seed-web",
+      "aisoft-296-seed-migrate"
+    ],
+    "registry_address": "192.168.139.96:5296",
+    "registry_image": "docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278",
+    "release_identity_kind": "synthetic-sha-shaped-fixture",
+    "release_ids": {
+      "a": "dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "b": "5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "fail": "169b784ca2a443459555bd50c8e755b0efc6e4b8"
+    },
+    "runtime_tags": [
+      "aisoft.local/admin/aisoft-platform/web:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "aisoft.local/admin/aisoft-platform/migrate:dad6a8529cfd803bd30b8c0bdbbc6c38933c2e41",
+      "aisoft.local/admin/aisoft-platform/web:5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "aisoft.local/admin/aisoft-platform/migrate:5773d5ad3097977bb3016ca1bea2a3d497a3da15",
+      "aisoft.local/admin/aisoft-platform/web:169b784ca2a443459555bd50c8e755b0efc6e4b8",
+      "aisoft.local/admin/aisoft-platform/migrate:169b784ca2a443459555bd50c8e755b0efc6e4b8"
+    ],
+    "vms": {
+      "consumer": "aisoft-296-consumer",
+      "producer": "aisoft-296-producer"
+    },
+    "volumes": [
+      "aisoft-296-pgdata"
+    ]
+  },
+  "source": {
+    "files_sha256": {
+      "codex/runtime/aisoft_release/__init__.py": "f6179ea8c638ac0a1cac51689d19049cca7edf8ebf79214e6cb1ce5b0266962e",
+      "codex/runtime/aisoft_release/cli.py": "9e94648cbbaad7314502401ad566a0267999381559970507c29b35054dbc1aa2",
+      "codex/runtime/aisoft_release/compatibility.py": "36e82ecef0a8071b5b5ebe7f0fb851626295e20305c34278b4f40ec8e86a2079",
+      "codex/runtime/aisoft_release/compose.py": "8aaff5820228d5b4c3bb2fd79e70359b971c5b0f74757bae8fd70ef900cbfa87",
+      "codex/runtime/aisoft_release/contract.py": "aeeb3152443cce026cb1deb478d56fe520dd21006ce511a1253c7152ddf77b77",
+      "codex/runtime/aisoft_release/docker.py": "3ac0e2677ad82621f2bdcd48d98ea78c2d762a8d305973c82a9983b07455bdd9",
+      "codex/runtime/aisoft_release/errors.py": "482325befeef7c5832499c3c52ca71bc24e10b5059ab9c1b693b6576f7531d2b",
+      "codex/runtime/aisoft_release/gate.py": "f1acc757719beafaed82c75b27cd9952d837cb7d2c4d6f8c82c4c36b29aa3aca",
+      "codex/runtime/aisoft_release/runner.py": "0f71e8a9e663d51bb72956d7dfd4b46e633b63027b9f0fedf96ea399f24ff7d4",
+      "codex/runtime/aisoft_release/security.py": "0a347f56eb2339dc264815b0d238fb8431555e53e0bd791a183deba1730747a2",
+      "codex/runtime/aisoft_release/state.py": "0b10ba6a77d122892b4dfd5252276a7c3b9c9cefa453ec756b44c5c5ccb53a87",
+      "codex/runtime/aisoft_release/transport.py": "66929752efe7515fff425c95083c6593f7eabf6b3105daf2019169d1c6c0bf95",
+      "codex/tests/fixtures/docker28-classic/docker-wrapper.py": "1c0c29cd06ceb7e2230d6ffbdc9b6eee762708de371689d39987c5b49b50a9c9",
+      "codex/tests/fixtures/docker28-classic/identity.txt": "a1ecec3f03b45de83a3952761894f49d1f870252c6f600b15cd97cb823ece75b",
+      "codex/tests/fixtures/docker28-classic/install-daemon.sh": "c1e75abfacb220b9c80ec25e8e151ad07d34895bf2b93b02581575083494e348",
+      "codex/tests/fixtures/docker28-classic/lifecycle-operation.py": "10dac6fa77c2185d703e93c9aafdc5662b5eb94007411bb3e8eedce8b2e961e5",
+      "codex/tests/fixtures/docker28-classic/lifecycle.py": "fe80cf7cc130a85b6a3d527985c5eabd77a64a15319fe73acf50fabf5a8bb11f",
+      "codex/tests/fixtures/docker28-classic/migrate.sh": "a380c808535c8e3ae75857f962c3b6e820348b7b672b92131308894522a2a9d5",
+      "codex/tests/fixtures/docker28-classic/postgres-image-proof.json": "e23973e0273c3d39b1694e6838c18385123616fdfa1a28bf4462a4c5d13c94e7",
+      "codex/tests/fixtures/docker28-classic/python-image-proof.json": "0cea5830497f4f2f7e53aa574a299a2d254c0ad0930de91c178f77b61de02c1d",
+      "codex/tests/fixtures/docker28-classic/software-lock.json": "a694a5b8820326175150de343b65085e7db836430f5752a3815031d823b36150",
+      "codex/tests/fixtures/docker28-classic/web.py": "3975ff6f2def9b65c4b8df72a419088c905b22cd72bd48e91b6a23577c586e06",
+      "codex/tests/integration/docker28-classic-driver.py": "7bec3fa737c87275580b2d7bb6bfa58f749f66dd46dec6022285f6053fd5957b",
+      "docker-release/compatibility/image-stores-v1.json": "319d0c9d496a1eaf24e8037bdbaf1ff89455bbb80008f816b8c00f30d626bcbb"
+    },
+    "source_sha": "843672a6a6a40fe453da94cffbd483e8d8e7d4d4"
+  }
+}

@@ -17,7 +17,7 @@ updated: 2026-09-16
 
 # 验证证据
 
-## 本轮已核实
+## 首次实验准备期记录
 
 - PASS：2026-09-16 broker平台open Issue列表为286/287/288/289，无同范围开放票；新建#296。
 - PASS：broker git.fetch.main，origin/main=2b5ac9364795f9e9f2f3722017a47122e7672a79。
@@ -29,7 +29,7 @@ updated: 2026-09-16
 - 历史现场版本：Engine28.1.1/Compose2.35.1/classic。本轮未重新访问公司daemon；
   公司安装前须由版本化只读预检重新确认，漂移则拒绝。
 
-## 状态
+## 首次实验准备期状态（历史）
 
 | 项目 | 结果 |
 |---|---|
@@ -86,3 +86,17 @@ executed-original-plan.json、executed-resume-plan.json、executed-identity-plan
 - 原registry-preflight负例在清洁进程环境下完整PASS；旧FAIL记录保留，尚未据此宣称完整smoke通过。
 - 新完整lifecycle harness仍在实施；矩阵支持与公司现场NOT RUN。
 - 新证据保存在evidence/amendment/，不覆盖前次实验原始回执。
+
+## 本轮完整真实验收（当前结论）
+
+- 实际源码843672a6a6a40fe453da94cffbd483e8d8e7d4d4；source/file hashes、两端实际capabilities、固定fixtures与执行计划均已保存。
+- 两个独立amd64任务VM预检PASS：producer29.7.1/5.1.4/containerd；consumer28.1.1/2.35.1/classic。
+- 64阶段PASS：Registry与offline的verify-artifact/verify-target/stage/migrate/activate/status，A/B重复部署零mutation，A→B→A、故意unhealthy激活后恢复A。
+- 每transport独立synthetic PostgreSQL三个迁移marker的计数均为1；没有重复迁移。所有应用镜像source native ID与consumer config ID不同而严格验证通过。
+- capability故障注入与artifact/identity篡改按预期拒绝；artifact负例零Docker调用。
+- cleanup PASS：只删除aisoft-296-producer/consumer；回读保留AppServer/DockerLab/gitea-ci。
+- matrix2026.09.1只增加精确28.1.1/2.35.1/linux-amd64/classic行；旧三行保持，29classic继续拒绝。
+- runtime和harness的Standards/Spec双轴审阅均PASS。正式矩阵前完整smoke 922 tests/OK；正式矩阵后的46项能力/边界专项PASS。
+- 测试环境修正：清洁PATH保留Python3.14；保留原HOME/USER和系统原TMPDIR，避免macOS /private/tmp的组继承与权限fixture预期不一致。旧registry-preflight完整负例在该环境PASS，未修改旧脚本/断言。
+- 原失败与旧实验证据不覆盖；本轮证据独立存放evidence/amendment/。
+- 实际NewEMaint应用、公司现场、PR/required CI/人工合并均NOT RUN。

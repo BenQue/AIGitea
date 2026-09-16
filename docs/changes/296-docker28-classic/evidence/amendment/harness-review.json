@@ -1,0 +1,15 @@
+{
+  "baseline": "73339f6",
+  "head": "843672a6a6a40fe453da94cffbd483e8d8e7d4d4",
+  "standards": {
+    "result": "PASS",
+    "findings": 0
+  },
+  "spec": {
+    "result": "PASS",
+    "findings": 0
+  },
+  "review_kind": "source review before real execution",
+  "real_lifecycle_receipt": "real-lifecycle-843672a.json",
+  "cleanup_receipt": "cleanup-843672a.json"
+}

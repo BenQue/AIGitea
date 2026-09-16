@@ -31,25 +31,29 @@ depends_on: []
 
 # Docker 28 classic 目标兼容
 
-来源：NewEMaint #80，应用 #84/PR85 的 GitHub 发布和公司镜像清单访问已通过。
-公司历史目标为 Engine28.1.1 / Compose2.35.1 / linux-amd64 / classic，平台矩阵没有覆盖。
-平台 #290 的 scm-ci/test 角色变更已经合并，不能替代 Docker capability 证据。
+已完成用户批准的身份兼容修复与本地真实验收。公司已发布的 NewEMaint 镜像不重建；
+后续继续 GitHub 构建/GHCR → 公司 Runner 拉取 → 外部4000隔离测试实例的既定路线。
 
-固定基线：2b5ac9364795f9e9f2f3722017a47122e7672a79（本轮 broker fetch origin/main）。
-用户已于2026-09-16明确“批准实施”，覆盖本合同、两个本地专属VM、隔离fixture迁移/回滚和精确清理。已完成两个VM的实际预检和身份前置测试，随后精确清理。
+## 当前交付
 
-建议以两个全新的任务专属本地 Linux amd64 VM 验证跨 store 交付：
-producer29.7.1/5.1.4/containerd → consumer28.1.1/2.35.1/classic。
-只增加有证据的精确 consumer 支持，不扩大到所有 Docker28/classic。
+- 平台基线：2b5ac9364795f9e9f2f3722017a47122e7672a79；唯一分支 change/296-docker28-classic。
+- 原合同提交de26edc；用户增补批准固化于806ecc6；身份修复b34e299。
+- 真实执行源码843672a6a6a40fe453da94cffbd483e8d8e7d4d4：两个独立任务VM的64阶段PASS。
+- producer29.7.1/5.1.4/containerd → consumer28.1.1/2.35.1/classic，linux/amd64。
+- Registry/offline完整public lifecycle、重复部署、数据库迁移计数、A→B→A和故障恢复均PASS。
+- 两个任务VM精确清理PASS，保留AppServer、DockerLab、gitea-ci；旧实验文件原字节归档保留。
+- matrix2026.09.1仅追加精确consumer支持行，旧三行与历史evidence保持。
+- runtime与harness双轴审阅PASS；当前全量smoke在正式matrix更新前922 tests PASS，更新后仍需最终回归。
 
-当前：T02身份前置实现与T03真实预检PASS；Registry/offline实际传输成功，但旧runtime身份合同拒绝；完整lifecycle BLOCKED；PR/installed/company-live NOT RUN。
-本次批准已记录，不重复请求同范围实施和本地实验授权。
-部署执行器与外部4000入口的安装包由 NewEMaint 后续阶段承接，不与平台兼容混为一次现场操作。
+## 边界
 
-## 实施检查点：APPROVED
+公司执行器/profile/grants/端口4000安装包由NewEMaint后续阶段承接。公司installed/live、
+公司实际镜像层拉取、迁移与业务验收仍NOT RUN；公司旧emaintenance/gitea未操作。
+最终manual PR、required CI与人工合并尚未执行。
 
-两个任务VM已真实运行并清理PASS。相同manifest、相同RootFS，经Registry和offline的consumer.Id均为config digest，而producer.Id为manifest digest。
-原runtime transport._verify_content严格相等比较两次均INVALID_CONTRACT；runner健康检查也绑定该原生ID。
-这是首次真实复现，不能仅添加matrix行。当前runtime/matrix未改。
-按已批准spec的“未知runtime语义变更先增补合同”条款，spec末尾的增补已于2026-09-16获用户批准。
-本次批准范围内的测试和清理已经执行；不重复请求该范围授权。本轮继续已批准的新runtime身份投影语义及完整本地验证。
+## 证据
+
+首次身份差异与原runtime拒绝保存在evidence/原文件；本轮成功证据独立位于
+evidence/amendment/，其中real-lifecycle-843672a.json记录64阶段，cleanup-843672a.json记录精确清理。
+
+本轮全部实现及本地测试已获用户批准；不重复请求同范围授权。

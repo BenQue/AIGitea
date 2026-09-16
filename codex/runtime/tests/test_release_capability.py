@@ -126,7 +126,7 @@ class DockerCapabilityTests(unittest.TestCase):
             path,
         )
         self.assertEqual(decision.row_id, "engine-29-containerd-linux-amd64")
-        self.assertEqual(decision.matrix_revision, "2026.08.3")
+        self.assertEqual(decision.matrix_revision, "2026.09.1")
         with self.assertRaisesRegex(DeploymentError, "is rejected"):
             require_supported(
                 DockerCapability("29.0.1", "2.40.3", "linux", "amd64", "classic"),
@@ -148,7 +148,7 @@ class DockerCapabilityTests(unittest.TestCase):
             decision.row_id,
             "engine-29.7.1-compose-5.1.4-containerd-linux-amd64",
         )
-        self.assertEqual(decision.matrix_revision, "2026.08.3")
+        self.assertEqual(decision.matrix_revision, "2026.09.1")
 
     def test_committed_compose_514_row_rejects_neighboring_bounds_and_classic(self) -> None:
         path = (

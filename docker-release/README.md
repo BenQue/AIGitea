@@ -135,7 +135,7 @@ Runtime 只接受唯一匹配且 `status=supported`、带 `kind=real-e2e` eviden
 Registry push/pull、tag/save/load、offline pull rejection、Compose `--pull never --no-build`、
 identity/health 与 exact cleanup；因此 containerd row 由 evidence
 `issue-27-containerd-a75181cd7209`（2026-08-04，来源
-`docs/changes/27/03-verification.md`）固定为 `supported`。Classic 没有同等级真实证据，继续
+`docs/changes/27/03-verification.md`）固定为 `supported`。该 Engine29/Compose2.x classic 组合继续
 `rejected + evidence:null`；不能依据 fake adapter、源码阅读或偶然 `RepoDigests` 标记 PASS。
 Issue #65 又在两个task-owned disposable Engine `29.7.1`、Compose `5.1.4`、containerd `2.2.6`
 daemon 上完成public `docker-release/v2` lifecycle、Registry/offline transport、disposable PostgreSQL
@@ -144,6 +144,16 @@ migration、negative boundaries与exact cleanup；因此只增加Engine `>=29.7.
 `issue-65-compose-5.1.4-97445947fff7`（2026-08-09，来源
 `docs/changes/65/verification-compose-514-lifecycle-260808.md`）。这不表示Compose其它5.x、classic、
 其它Engine/OS/architecture或业务部署受支持。
+
+Issue #296 已在两个独立任务 VM 上完成 Docker29.7.1/Compose5.1.4/containerd →
+Docker28.1.1/Compose2.35.1/classic 的完整真实 Registry/offline 生命周期、重复执行、
+synthetic PostgreSQL 迁移计数、A→B→A 回滚、故意健康失败恢复及精确清理。
+因此 matrix `2026.09.1` 仅新增 Engine `>=28.1.1,<28.1.2`、Compose `>=2.35.1,<2.35.2`、
+linux/amd64/classic 的 supported 行，evidence 为 `issue-296-docker28-classic-843672a6a6a4`。
+旧三行保持，Engine29 classic 仍拒绝；这不是公司现场部署证明。真实执行源码843672a，
+64阶段回执与独立清理证明见 `docs/changes/296-docker28-classic/evidence/amendment/`。
+新入口 `codex/tests/integration/test-docker28-classic-e2e.sh` 默认 NOT RUN；它要求两个
+由本任务 provision 入口创建并验证所有权的专属 VM，不能用于公司主机或共享 Docker。
 
 Disposable harness 位于
 [`codex/tests/integration/test-docker-image-store-e2e.sh`](../codex/tests/integration/test-docker-image-store-e2e.sh)。
