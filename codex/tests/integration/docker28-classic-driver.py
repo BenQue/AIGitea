@@ -142,6 +142,40 @@ def approval_plan():
             'lifecycle': 'NOT RUN: gated by unchanged runtime cross-store identity'}
 
 
+def journal(ownership):
+    """Atomically record each ownership transition before the next mutation."""
+    temporary = LAB / ('.ownership-' + uuid.uuid4().hex + '.json')
+    with temporary.open('x') as stream:
+        json.dump(ownership, stream, sort_keys=True)
+        stream.flush()
+        os.fsync(stream.fileno())
+    temporary.chmod(0o600)
+    os.replace(temporary, LAB / 'ownership.json')
+
+
+def create_vm(side, ownership):
+    ownership['creation_intent'] = side
+    ownership['creation_steps'][side] = 'create-pending'
+    journal(ownership)
+    try:
+        run(['orb', 'create', '--isolated', '--mount', str(LAB) + ':' + MOUNT,
+             '--memory', '4G', '--cpus', '2', '--disk', '20G', '-a', 'amd64', 'ubuntu:24.04', NAMES[side]], timeout=300)
+        ownership['created'].append(side)
+        ownership['creation_steps'][side] = 'created-unverified'
+        journal(ownership)
+        ownership['machine_ids'][side] = vm(side, 'cat', '/etc/machine-id')
+        ownership['creation_steps'][side] = 'machine-id-read'
+        journal(ownership)
+        vm(side, 'sh', '-c', 'umask 077; cat > /etc/aisoft-296-owner', stdin=f"issue296:{ownership['nonce']}:{side}\n")
+        verify_owner(side, ownership)
+        ownership['creation_steps'][side] = 'marker-verified'
+        ownership['creation_intent'] = None
+        journal(ownership)
+    except (Blocked, OSError, subprocess.TimeoutExpired) as exc:
+        raise Blocked(f"creation interrupted for exact VM {NAMES[side]}; inspect {LAB}/ownership.json and orb list --quiet; "
+                      "unverified VM must not be adopted or deleted automatically: " + str(exc)) from exc
+
+
 def provision(downloads):
     require_approval()
     pins = software()
@@ -157,24 +191,19 @@ def provision(downloads):
     shutil.copyfile(FIXTURES / 'install-daemon.sh', LAB / 'install-daemon.sh')
     shutil.copyfile(FIXTURES / 'software-lock.json', LAB / 'software-lock.json')
     write_json(LAB / 'approval-plan.json', approval_plan())
-    ownership = {'names': NAMES, 'nonce': uuid.uuid4().hex, 'machine_ids': {}, 'created': [], 'baseline_vm_names': baseline}
-    # Mutable journal is exclusively created here; failure keeps it for exact recovery.
-    ownership_path = LAB / 'ownership.json'
-    with ownership_path.open('x') as stream:
-        json.dump(ownership, stream)
+    ownership = {'names': NAMES, 'nonce': uuid.uuid4().hex, 'machine_ids': {}, 'created': [],
+                 'baseline_vm_names': baseline, 'creation_intent': None, 'creation_steps': {},
+                 'deleted': [], 'deletion_intent': None}
+    journal(ownership)
     for side in SIDES:
-        run(['orb', 'create', '--isolated', '--mount', str(LAB) + ':' + MOUNT,
-             '--memory', '4G', '--cpus', '2', '--disk', '20G', '-a', 'amd64', 'ubuntu:24.04', NAMES[side]], timeout=300)
-        ownership['created'].append(side)
-        ownership['machine_ids'][side] = vm(side, 'cat', '/etc/machine-id')
-        ownership_path.write_text(json.dumps(ownership))
-        vm(side, 'sh', '-c', 'umask 077; cat > /etc/aisoft-296-owner', stdin=f"issue296:{ownership['nonce']}:{side}\n")
+        create_vm(side, ownership)
     address = producer_address()
     ownership['registry_address'] = address + ':5296'
-    ownership_path.write_text(json.dumps(ownership))
-    ownership_path.chmod(0o444)
+    journal(ownership)
     for side in SIDES:
         vm(side, 'bash', MOUNT + '/install-daemon.sh', side, address + ':5296', timeout=300)
+        ownership['creation_steps'][side] = 'installed'
+        journal(ownership)
     return preflight()
 
 
@@ -335,18 +364,32 @@ def cleanup(evidence):
     require(not evidence.exists() and evidence.parent.is_dir(), 'immutable cleanup evidence path unavailable')
     created = ownership['created']
     require(bool(created) and len(set(created)) == len(created) and set(created).issubset(SIDES), 'invalid created VM allowlist')
-    for side in created:
-        verify_owner(side, ownership)
+    require(ownership.get('creation_intent') is None,
+            'creation identity unresolved; inspect exact VM ' + NAMES.get(ownership.get('creation_intent'), 'unknown') +
+            ' and ownership.json; no automatic adoption/deletion')
+    deleted = ownership.get('deleted', [])
+    require(len(set(deleted)) == len(deleted) and set(deleted).issubset(created), 'invalid deletion journal')
     before = set(run(['orb', 'list', '--quiet']).splitlines())
-    owned_names = {NAMES[side] for side in created}
-    require(owned_names.issubset(before), 'owned VM inventory incomplete')
+    require(not ({NAMES[s] for s in deleted} & before), 'a deleted VM name reappeared; refuse cleanup')
+    remaining = [side for side in created if side not in deleted]
+    require({NAMES[s] for s in remaining}.issubset(before),
+            'VM absent without a completed deletion record; inspect deletion_intent and exact VM inventory; no automatic adoption')
+    owned_names = {NAMES[side] for side in remaining}
     require(set(ownership['baseline_vm_names']).issubset(before - owned_names), 'pre-existing VM inventory drift')
-    # Whole exact disposable VM removal also removes daemon-private build cache.
-    for side in created:
+    for side in remaining:
+        verify_owner(side, ownership)
+    # Delete only verified owned VMs. Persist each completed removal before the next.
+    for side in remaining:
+        ownership['deletion_intent'] = side
+        journal(ownership)
         run(['orb', 'delete', '--force', NAMES[side]], timeout=120)
+        ownership.setdefault('deleted', []).append(side)
+        ownership['deletion_intent'] = None
+        journal(ownership)
     after = set(run(['orb', 'list', '--quiet']).splitlines())
     require(after == before - owned_names, 'VM inventory changed outside exact allowlist')
-    result = {'result': 'PASS', 'removed': sorted(owned_names), 'baseline_vm_names': ownership['baseline_vm_names'],
+    result = {'result': 'PASS', 'removed': sorted(NAMES[s] for s in ownership['deleted']),
+              'baseline_vm_names': ownership['baseline_vm_names'],
               'before_vm_names': sorted(before), 'preserved_vm_names': sorted(after), 'source': source_evidence()}
     write_json(evidence, result)
     return result

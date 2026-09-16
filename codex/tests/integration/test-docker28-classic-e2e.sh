@@ -8,4 +8,4 @@ case "${1:---not-run}" in
   *) printf '%s\n' 'BLOCKED: valid modes: --not-run --preflight --identity-precheck' >&2; exit 2 ;;
 esac
 if (($#)); then shift; fi
-exec python3 "$root/codex/tests/integration/docker28-classic-driver.py" "$action" "$@"
+exec python3 -B "$root/codex/tests/integration/docker28-classic-driver.py" "$action" "$@"

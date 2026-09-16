@@ -1,5 +1,6 @@
 """Issue #296 disposable preflight safety tests, never a real acceptance claim."""
 import importlib.util
+import copy
 import json
 from pathlib import Path
 import tempfile
@@ -85,6 +86,7 @@ class Docker28PreflightTests(unittest.TestCase):
                 patch.object(self.module, 'state', return_value=ownership), \
                 patch.object(self.module, 'verify_owner') as verify, \
                 patch.object(self.module, 'source_evidence', return_value={}), \
+                patch.object(self.module, 'journal'), \
                 patch.object(self.module, 'run', side_effect=[before, '', 'AppServer\nDockerLab']) as run:
             result = self.module.cleanup(Path(tmp) / 'cleanup.json')
             self.assertEqual(result['result'], 'PASS')
@@ -94,12 +96,53 @@ class Docker28PreflightTests(unittest.TestCase):
 
     def test_cleanup_marker_mismatch_prevents_any_deletion(self):
         with tempfile.TemporaryDirectory() as tmp, patch.object(self.module, 'require_approval'), \
-                patch.object(self.module, 'state', return_value={'created': ['producer']}), \
+                patch.object(self.module, 'state', return_value={'created': ['producer'], 'baseline_vm_names': []}), \
                 patch.object(self.module, 'verify_owner', side_effect=self.module.Blocked('marker mismatch')), \
-                patch.object(self.module, 'run') as run:
+                patch.object(self.module, 'run', return_value='aisoft-296-producer') as run:
             with self.assertRaises(self.module.Blocked):
                 self.module.cleanup(Path(tmp) / 'cleanup.json')
-            run.assert_not_called()
+            self.assertEqual(run.call_args_list[0].args[0], ['orb', 'list', '--quiet'])
+            self.assertEqual(run.call_count, 1)
+
+    def test_create_failure_preserves_intent_before_machine_id(self):
+        ownership = {'created': [], 'creation_steps': {}, 'machine_ids': {}, 'nonce': 'a' * 32}
+        history = []
+        with patch.object(self.module, 'journal', side_effect=lambda x: history.append(copy.deepcopy(x))), \
+                patch.object(self.module, 'run', return_value=''), \
+                patch.object(self.module, 'vm', side_effect=self.module.Blocked('injected machine-id failure')):
+            with self.assertRaisesRegex(self.module.Blocked, 'must not be adopted or deleted'):
+                self.module.create_vm('producer', ownership)
+        self.assertEqual(history[0]['creation_steps']['producer'], 'create-pending')
+        self.assertEqual(history[1]['created'], ['producer'])
+        self.assertEqual(history[1]['creation_steps']['producer'], 'created-unverified')
+        self.assertEqual(ownership['creation_intent'], 'producer')
+
+    def test_cleanup_second_vm_failure_preserves_first_completion_and_can_resume(self):
+        ownership = {'created': ['producer', 'consumer'], 'baseline_vm_names': ['AppServer'], 'deleted': []}
+        history = []
+        with tempfile.TemporaryDirectory() as tmp, patch.object(self.module, 'require_approval'), \
+                patch.object(self.module, 'state', return_value=ownership), \
+                patch.object(self.module, 'verify_owner'), \
+                patch.object(self.module, 'source_evidence', return_value={}), \
+                patch.object(self.module, 'journal', side_effect=lambda x: history.append(copy.deepcopy(x))):
+            evidence = Path(tmp) / 'cleanup.json'
+            with patch.object(self.module, 'run', side_effect=['AppServer\naisoft-296-producer\naisoft-296-consumer', '', self.module.Blocked('second deletion failed')]):
+                with self.assertRaises(self.module.Blocked):
+                    self.module.cleanup(evidence)
+            self.assertEqual(history[-1]['deleted'], ['producer'])
+            self.assertEqual(history[-1]['deletion_intent'], 'consumer')
+            with patch.object(self.module, 'run', side_effect=['AppServer\naisoft-296-consumer', '', 'AppServer']) as run:
+                self.assertEqual(self.module.cleanup(evidence)['result'], 'PASS')
+            self.assertEqual(run.call_args_list[1].args[0], ['orb', 'delete', '--force', 'aisoft-296-consumer'])
+
+    def test_missing_vm_without_completion_record_never_deleted(self):
+        ownership = {'created': ['producer'], 'baseline_vm_names': [], 'deletion_intent': 'producer'}
+        with tempfile.TemporaryDirectory() as tmp, patch.object(self.module, 'require_approval'), \
+                patch.object(self.module, 'state', return_value=ownership), \
+                patch.object(self.module, 'run', return_value='') as run:
+            with self.assertRaisesRegex(self.module.Blocked, 'without a completed deletion record'):
+                self.module.cleanup(Path(tmp) / 'cleanup.json')
+            self.assertEqual(run.call_count, 1)
 
 
 if __name__ == '__main__':

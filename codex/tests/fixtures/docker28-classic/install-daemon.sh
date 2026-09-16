@@ -10,7 +10,7 @@ case "$side" in
 esac
 [[ "$(cat /etc/aisoft-296-owner)" =~ ^issue296:[a-f0-9]{32}:$side$ ]] || exit 3
 [[ ! -e /usr/local/bin/dockerd && ! -e /etc/docker/daemon.json ]] || exit 4
-python3 - "$side" <<'PY'
+python3 -B - "$side" <<'PY'
 import hashlib,json,pathlib,sys,tarfile
 side=sys.argv[1]
 root=pathlib.Path('/mnt/aisoft296')
