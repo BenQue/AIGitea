@@ -1,0 +1,2 @@
+AISoftPlatform Issue 296 synthetic cross-store immutable image identity fixture.
+This image is intentionally never executed; no credentials or application data.

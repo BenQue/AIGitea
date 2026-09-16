@@ -1,0 +1,30 @@
+{
+  "schema": "aisoft-296-software-lock/v1",
+  "artifacts": [
+    {
+      "id": "engine-producer",
+      "filename": "docker-29.7.1.tgz",
+      "url": "https://download.docker.com/linux/static/stable/x86_64/docker-29.7.1.tgz",
+      "sha256": "0fcea2a8b4d1b54ccc9010e3451b78504a369d414f37eb3bb79300e1b5c22ce6"
+    },
+    {
+      "id": "engine-consumer",
+      "filename": "docker-28.1.1.tgz",
+      "url": "https://download.docker.com/linux/static/stable/x86_64/docker-28.1.1.tgz",
+      "sha256": "ff34bd799b5e4c3738a3b1a383cf4067c672add48c7203fcd003fcb0aacebc94"
+    },
+    {
+      "id": "compose-producer",
+      "filename": "docker-compose-5.1.4",
+      "url": "https://github.com/docker/compose/releases/download/v5.1.4/docker-compose-linux-x86_64",
+      "sha256": "33b208d7e76639db742fae84b966cc01dacae58ca3fc4dabbc907045aefdf0c4"
+    },
+    {
+      "id": "compose-consumer",
+      "filename": "docker-compose-2.35.1",
+      "url": "https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-x86_64",
+      "sha256": "7bdb2ce2916e5dd0354e5d129892bf96fdcdb1a9ab8eed69b9173e131db4c230"
+    }
+  ],
+  "registry_image": "docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278"
+}
