@@ -77,3 +77,12 @@ executed-original-plan.json、executed-resume-plan.json、executed-identity-plan
 ## 增补批准
 
 2026-09-16用户明确“了解了，我已经批准。请继续”。已授权spec追加的transport/runner身份兼容、精确边界与回归，以及继续此前批准的两个本地专属VM测试。公司现场仍NOT RUN。
+
+## T08 身份增补实现
+
+- 批准合同提交806ecc6；runtime提交b34e299；精确源码pin完成于63ea74f。
+- Standards/Spec双轴审阅PASS；b34e299尚未填写的pin在63ea74f补齐，未将后续结果倒算到旧提交。
+- 152项release测试PASS；历史fake harness与当前source boundary PASS。
+- 原registry-preflight负例在清洁进程环境下完整PASS；旧FAIL记录保留，尚未据此宣称完整smoke通过。
+- 新完整lifecycle harness仍在实施；矩阵支持与公司现场NOT RUN。
+- 新证据保存在evidence/amendment/，不覆盖前次实验原始回执。
