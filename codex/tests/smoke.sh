@@ -34,6 +34,10 @@ optional_runtime_sources=(
   "$ROOT/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh"
   "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/docker-wrapper.sh"
   "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/migrate.sh"
+  "$ROOT/codex/tests/integration/test-docker28-classic-e2e.sh"
+  "$ROOT/codex/tests/integration/provision-docker28-classic-lab.sh"
+  "$ROOT/codex/tests/fixtures/docker28-classic/install-daemon.sh"
+  "$ROOT/codex/tests/test-docker28-classic-e2e-harness.sh"
 )
 runtime_source_count=0
 for script in "${optional_runtime_sources[@]}"; do
@@ -111,6 +115,11 @@ for script in \
   bash -n "$script"
 done
 if command -v shellcheck >/dev/null; then
+  shellcheck \
+    "$ROOT/codex/tests/integration/test-docker28-classic-e2e.sh" \
+    "$ROOT/codex/tests/integration/provision-docker28-classic-lab.sh" \
+    "$ROOT/codex/tests/fixtures/docker28-classic/install-daemon.sh" \
+    "$ROOT/codex/tests/test-docker28-classic-e2e-harness.sh"
   shellcheck \
     "$ROOT"/codex/agent/*.sh \
     "$ROOT/codex/install-vm.sh" \
@@ -219,6 +228,7 @@ bash "$ROOT/codex/tests/test-docker-release-install.sh"
 bash "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
 harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh")"
 grep -Fq 'NOT RUN: Docker image-store E2E' <<<"$harness_output"
+bash "$ROOT/codex/tests/test-docker28-classic-e2e-harness.sh"
 python3 -B "$ROOT/codex/tests/check-release-evidence-boundary.py"
 lifecycle_harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh")"
 grep -Fq 'NOT RUN: Docker release v2 lifecycle E2E requires separate Issue #65 authorization.' \

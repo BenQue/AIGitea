@@ -16,7 +16,7 @@
 ├── compose.model.json          # v2 producer-normalized Compose contract
 ├── architecture.lock.json
 ├── images.inventory.json
-└── images.tar                 # 仅 offline-bundle 目标需要传输
+└── images.tar                 # v2 两种 transport 都用于严格内容图校验
 ```
 
 `release.json` 固定 source repository、merge SHA、`linux/amd64`、Compose checksum、#23
@@ -45,7 +45,7 @@ V2 image entry 明确区分四类 identity：
 ```
 
 - `reference`/`digest` 是 Registry source identity；Registry path 必须验证 `RepoDigests`。
-- `image_id` 是 Registry/offline 共同的 local content identity。
+- `image_id` 固定 producer 的原生 inspect identity；跨存储消费仍绑定这份源记录。
 - `transport_reference` 是 producer 创建并按其执行 `docker image save` 的 release-scoped tag。
 - `runtime_reference` 是 Compose `image:`；V2 首版要求与 transport tag byte-identical。
 
@@ -57,6 +57,14 @@ Direct OCI manifest 也允许 daemon 返回其 content-verified Config digest。
 `index/manifest descriptor -> runnable manifest -> config/layers` graph，并要求 Docker
 `manifest.json` 的 Config/layers 与 OCI graph byte-exact 对应；只有该 graph 已验证的 top-level
 descriptor digest 或 Config digest能作为 direct manifest `image_id`，任意其它 digest仍 fail closed。
+
+Issue #296 对 v2 增加跨 store 身份校验：两种 transport 均先验证完整 archive、inventory、
+checksum 与唯一 runnable `linux/amd64` OCI graph；从该图得出已经验证的 descriptor/config
+身份集合，目标 image inspect 的 `Id` 必须命中这个集合。Registry 的 exact `RepoDigests`、
+本地 runtime tag、OS/architecture 校验保持。启动后的 `container.Image` 必须等于重新校验
+得到的目标本地 image `Id`，release/service labels 与 health 同时满足；仅 tag 或 RootFS 相同
+不构成身份证明。Stage receipt 仍记录原 manifest 的 `image_id`，每次消费继续校验本地内容。
+Legacy v1 保持原来的严格 ID 比较；发布过的 release/镜像/校验和不改写。
 
 Tag 由 lower-case source owner/repository、service 和完整 release SHA 确定，只是搬运和本地
 解析别名，不是信任根。Producer 必须先按 digest pull/inspect，再创建 tag、重复 inspect exact

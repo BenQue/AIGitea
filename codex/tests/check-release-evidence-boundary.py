@@ -1,4 +1,4 @@
-"""Issue #290: keep historical evidence separate from current source acceptance."""
+"""Issues #290/#296: pin historical evidence and independently test current source."""
 
 from __future__ import annotations
 
@@ -39,6 +39,11 @@ SCOPES = (
     "architecture/reference/newemaint/target-candidate/architecture.lock.json",
     EVIDENCE,
 )
+TRANSPORT = "codex/runtime/aisoft_release/transport.py"
+MATRIX = "docker-release/compatibility/image-stores-v1.json"
+# Exact reviewed current bytes; never a path/content exemption. These pins are
+# advanced only with the corresponding behavior tests and real-E2E evidence.
+CURRENT_SOURCE_PINS: dict[str, str] = {}
 CONTENT_EXEMPT = {"docker-release/README.md", "docker-release/install.sh"}
 
 
@@ -137,6 +142,11 @@ def validate(root: Path) -> dict[str, str]:
     if set(index) != set(files) or disk_files(root) != set(files):
         raise BoundaryError("current file set differs from the fixed baseline")
 
+    if not set(CURRENT_SOURCE_PINS).issubset({RUNNER, TRANSPORT, MATRIX}):
+        raise BoundaryError("current amendment exceeds its exact file scope")
+    if any(len(value) != 64 or any(c not in "0123456789abcdef" for c in value)
+           for value in CURRENT_SOURCE_PINS.values()):
+        raise BoundaryError("current source pin is not a SHA256")
     actual = []
     for name, (mode, expected) in sorted(files.items()):
         path = root / name
@@ -145,7 +155,9 @@ def validate(root: Path) -> dict[str, str]:
             raise BoundaryError(f"file mode drift: {name}")
         content = path.read_bytes()
         if name not in CONTENT_EXEMPT:
-            if content != expected or git(root, "cat-file", "blob", index[name][1]) != expected:
+            expected_hash = CURRENT_SOURCE_PINS.get(name, digest(expected))
+            if (digest(content) != expected_hash or
+                    digest(git(root, "cat-file", "blob", index[name][1])) != expected_hash):
                 raise BoundaryError(f"unapproved source bytes: {name}")
         actual.append([name, mode, digest(content)])
     return {
@@ -153,7 +165,8 @@ def validate(root: Path) -> dict[str, str]:
         "head_sha": git(root, "rev-parse", "HEAD").decode().strip(),
         "head_tree": git(root, "rev-parse", "HEAD^{tree}").decode().strip(),
         "current_source_sha256": digest(json.dumps(actual, separators=(",", ":")).encode()),
-        "runner_sha256": RUNNER_AFTER,
+        "runner_sha256": CURRENT_SOURCE_PINS.get(RUNNER, RUNNER_AFTER),
+        "historical_role_amendment_sha256": RUNNER_AFTER,
         "historical_evidence_sha256": EVIDENCE_SHA256,
     }
 
