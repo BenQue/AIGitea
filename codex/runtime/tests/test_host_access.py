@@ -5128,6 +5128,48 @@ class HostAccessBrokerTests(unittest.TestCase):
             )
             os.environ[SESSION_ENV] = self.OWNER_SESSION
 
+    def test_a_rewrite_by_someone_else_is_detectable_in_the_push_return(self) -> None:
+        """AC-5, second half. The owner's push is *not* refused here and cannot
+        be: a foreign rebase and the owner's own rebase leave HEAD in exactly
+        the same shape, and the gate only knows identity — which is the owner in
+        both. So detection lives in the return body instead, and this test pins
+        that it is deterministic rather than incidental (spec 合同修订 260916).
+        """
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            broker = self._remote_backed_broker(
+                canonical, linked, self._remote_backed_runner(remote, [])
+            )
+            verified = broker.execute(
+                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+            )["pushed_head"]
+
+            # Somebody else rebases inside this worktree. No broker call at all,
+            # so the platform sees nothing happen.
+            self._advance_remote_main(remote, canonical, "someone-elses-merge")
+            self._git(
+                ["fetch", "-q", str(remote), "refs/heads/main:refs/remotes/origin/main"],
+                cwd=canonical,
+            )
+            self._git(["rebase", "-q", "refs/remotes/origin/main"], cwd=linked)
+
+            landed = broker.execute(
+                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+            )
+
+            self.assertNotEqual(
+                landed["pushed_head"], verified,
+                "this is the NewEMaint #96 shape: what landed is not what was verified",
+            )
+            self.assertEqual(
+                landed["previous_head"], verified,
+                "previous_head is the sha the caller last put there, so the pair "
+                "identifies the rewrite without another round trip",
+            )
+            self.assertEqual(
+                self._remote_sha(remote, self.LEASE_BRANCH), landed["pushed_head"]
+            )
+
     def test_the_owner_still_rebases_and_repushes_without_reclaiming(self) -> None:
         """AC-6: the BASE_BRANCH_STALE path is the owner's own, and ownership
         must not add a step to it."""

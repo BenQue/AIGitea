@@ -807,6 +807,25 @@ for sweep_skill in \
   grep -Fq 'gitea.issue.labels.set --number N --lifecycle needs-analysis' "$sweep_skill"
 done
 grep -Fq '### 衍生 Issue 的正文与认领' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
+
+# #298: change worktree 的单写者归属。三样东西必须同时在场，少一样这条合同就退回成一句
+# 无法执行的建议：归属规则本身、那条 Red Flag，以及「push 之后核对 pushed_head」这一步——
+# 闸门拦不住「别人改写了 HEAD 而你自己去推」，返回体是那个事件唯一确定性可检出的地方。
+grep -Fq '### change worktree 的单写者归属（#298）' \
+  "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
+grep -Fq 'aisoft-owner.json' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
+for ownership_skill in \
+  "$ROOT/skill-for-claude/issue-session-flow/SKILL.md" \
+  "$ROOT/codex/skills/issue-session-flow/SKILL.md"; do
+  grep -Fq 'claim-worktree' "$ownership_skill"
+  grep -Fq 'pushed_head' "$ownership_skill"
+  grep -Fq 'scan-worktrees' "$ownership_skill"
+done
+grep -Fq '## change worktree 的单写者归属' \
+  "$ROOT/skill-for-claude/issue-session-flow/SKILL.md"
+grep -Fq '## Single-writer ownership of a change worktree' \
+  "$ROOT/codex/skills/issue-session-flow/SKILL.md"
+grep -Fq 'WORKTREE_OWNER_MISMATCH' "$ROOT/06-运维手册与踩坑集.md"
 grep -Fq '## Derived Issues' "$ROOT/docs/agents/issue-tracker.md"
 grep -Fq -- '--entry-label' "$ROOT/skill-for-claude/aisoft-platform/SKILL.md"
 

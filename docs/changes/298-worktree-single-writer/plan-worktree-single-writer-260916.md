@@ -76,7 +76,7 @@ T04 不依赖任何代码 ticket，可与 T01–T03 并行推进；T05 是收口
 | AC-2 闸门四个 code | `python3 -m unittest codex.runtime.tests.test_host_access`：四个情形各一条断言 code |
 | AC-3 只读扫描命令 | 新增单测断言 PASS/GAP 与 reason 分类；`verification` 记录本机真实一次只读执行 |
 | AC-4 返回体两个 SHA | broker 单测断言成功返回含 40 位 lowercase `pushed_head` 与 `previous_head`（首推为 `null`） |
-| AC-5 跨会话改写 fail closed | broker 端到端测试：A claim、B 改写 HEAD、A push 断言 `WORKTREE_OWNER_MISMATCH` 稳定；B 以自身身份在 A 的 worktree push 同样断言 fail closed |
+| AC-5 跨会话改写（2026-09-16 修订） | broker 端到端测试：B 以自身身份在 A 的 worktree push 断言 `WORKTREE_OWNER_MISMATCH` 且远端未动；B 改写后 A 推送断言返回体里 `pushed_head` 与 `previous_head` 使改写确定性可检出 |
 | AC-6 不阻断自身 rebase-重推 | 扩展既有 `test_push_survives_main_advancing_and_a_rebase`：claim 之后走 fetch → rebase → 重推全绿，且不要求重新 claim |
 | 回归 | `bash codex/tests/smoke.sh` 全量绿 |
 

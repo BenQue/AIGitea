@@ -96,9 +96,11 @@ AISOFT_SESSION_ID=<本会话 id> /usr/local/libexec/aisoft/host-access-broker \
       （本次推送的 40 位 lowercase SHA）与 `previous_head`（该分支上一次 push 的 SHA；
       远端此前不存在该分支时为 `null`），使调用方能在推送后确定性地与自己核验过的 SHA 比对。
       既有返回字段一个不删、一个不改名。
-- [ ] **AC-5 smoke 覆盖跨会话改写**：构造「A 的 worktree 被 B 改写 HEAD 之后 A 尝试 push」
-      的用例，断言 fail closed 且 code 稳定；并构造「B 站在 A 的 worktree 里以 B 的身份
-      push」的用例，断言同样 fail closed。
+- [ ] **AC-5 smoke 覆盖跨会话改写**（2026-09-16 修订，见下节）：构造「B 站在 A 的
+      worktree 里以自己的身份 push」的用例，断言 fail closed 且 code 稳定
+      （`WORKTREE_OWNER_MISMATCH`）、远端仍是 A 推上去的那个 SHA；并构造「B 改写 HEAD
+      之后 A 推送」的用例，断言推送发生，且返回体使改写**确定性可检出**
+      （`pushed_head` 不等于 A 核验过的 SHA，`previous_head` 等于 A 上一次推送的 SHA）。
 - [ ] **AC-6 不阻断单会话自身的 rebase-重推**：`BASE_BRANCH_STALE` 的既定处置
       （`git.fetch.main` → 本地 `git rebase origin/main` → broker 重推）在归属机制下仍然走得通，
       由一条端到端测试断言，且该路径不要求会话在 rebase 之后重新 claim。
@@ -119,6 +121,35 @@ AISOFT_SESSION_ID=<本会话 id> /usr/local/libexec/aisoft/host-access-broker \
 `ahead` 与 `unpushed` 仍然列出（Issue 要求的列表口径是「HEAD 与最近一次 push 的 SHA 不一致」），
 但不改变整体判定。理由：实现期间有未推送的本地 commit 是常态，若它一律报 GAP，这条命令在整个
 实现期都是红的，读者会被训练成忽略它——那恰好毁掉它要提供的那一个信号。
+
+## 合同修订：AC-5 前半与 AC-6 互斥（2026-09-16）
+
+实现 T02 时发现，AC-5 原文的前半「A 的 worktree 被 B 改写 HEAD 之后 A 尝试 push 要
+fail closed」与 AC-6「不要求会话在 rebase 之后重新 claim」**不能同时成立**。
+
+实测证据（T02 完成后对真实 Git 与真实 broker 代码路径跑的一次探针）：
+
+```text
+A's push SUCCEEDED
+  A verified      : 51c8bc374c465a757ad7c389781380ae2b409b55
+  actually pushed : dcb645c1afde5ea2b4a0b8e27c2bb19382a38ea7
+  previous_head   : 51c8bc374c465a757ad7c389781380ae2b409b55
+```
+
+根因：B 的改写与 A 自己的 rebase 在 HEAD 上留下的形状完全相同——HEAD 不再是
+`last_push_head` 的后代——而闸门只看身份，两种情况下身份都是 A。要在推送时分开它们，
+必须索要一个「A 本人打算改写」的信号，而 AC-6 恰好禁止索要那个信号。
+
+处置（项目负责人 2026-09-16 裁决，选项 A）：**闸门只回答「谁能写」，改写的检出交给
+返回体与扫描命令**。两条检出路径都已经实现并测过：推送后 `pushed_head` 与调用方核验过的
+SHA 不符即是改写；推送前 `scan-worktrees` 把同一状态报成 `rewritten`。
+
+被否决的两个选项与否决理由：在 `git.fetch.main` 上记「改写意图」再于推送时校验，会让一个
+只读操作开始写本地状态，并对「不经 broker fetch 直接 rebase」产生误拒；一律要求非后代
+HEAD 重新 claim 则直接违反 AC-6 字面。
+
+代价必须写进合同文档：**检出只在有人真的去看的时候才成立**。因此 `03` 与
+`issue-session-flow` 必须把「push 之后核对 `pushed_head`」写成一个步骤，而不是一句建议。
 
 ## 接口、数据与兼容性影响
 

@@ -19,6 +19,31 @@ description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆
 
 调度会话开在**这批 Issue 的相关项目**里，只协调不实现：不建 change worktree、不写实现代码、不碰任何 Issue 的分支。
 
+## change worktree 的单写者归属
+
+**一个 change worktree 的写者是且只是该 Issue 的会话。** 别的会话发现它需要变基、需要修冲突、
+需要重跑验收时，只能**通知**那个会话或**交回**给它，不得代劳——哪怕改动本身是对的。`git rebase`
+/ `git commit` / `git checkout` 都不经过 broker，代劳的那一笔在平台侧零感知、零记录。
+
+建完 worktree 立刻 claim，此后每次调 broker 推送都带同一个会话 id：
+
+```bash
+AISOFT_SESSION_ID=<本会话 id> PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli \
+  claim-worktree --branch change/N-short-description --worktree /private/tmp/issue-N-short-description
+```
+
+**push 之后核对返回体的 `pushed_head`** 是否等于你在确认点 2 核验过的那个 SHA——这是一个步骤，
+不是一句建议。闸门只拦得住「别人以自己的身份推你的分支」；「别人改写了 HEAD 而你自己去推」它
+放行，因为身份仍然是你。不等即被改写，停下来查清楚再决定，不要继续往 PR 走。
+
+怀疑本机有人串台时，只读扫描一次（不写任何东西）：
+
+```bash
+PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli scan-worktrees --repo <checkout>
+```
+
+`rewritten`、`unclaimed`、`claim-invalid` 计入 GAP；`ahead` 与 `unpushed` 是实现期常态，照列不计。
+
 ## 两种会话
 
 |  | 调度会话 | Issue 会话 |
@@ -165,6 +190,8 @@ manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；rout
 - 「判级投影回头再补」→ 窗口在合并时关闭，没有回头
 - 「计划里那个编号不是我的 Issue，大概是范围多带了一个」→ 是范围瞄错了，不是多带
 - 「worktree 先留着，说不定还用得上」
+- 「我顺手把别人那个 worktree 变基一下，反正 main 已经前进了」→ 那是别人的证据链，通知或交回
+- 「推完了，PR 建出来就行」→ 先核对返回体的 `pushed_head` 是不是你核验过的那个 SHA
 - 「这个小改动不值得开 Issue」→ 它需要验收标准吗？
 - 「会话先留着，回头一起归档」
 
@@ -178,6 +205,8 @@ manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；rout
 | 跳过第 1 步直接 `--apply` | 未合并的 Issue 被写成终态 |
 | `--apply` 仍然传 `--range` | 人点头之后 `origin/main` 又前进一次，写到别人刚合并的 Issue 上——而 `completed` 恰恰常常正是它该有的标签，所以不报错也看不出来（#175） |
 | 不清理 worktree | 残留累积——本机曾同时残留三个已合并 change 的 worktree |
+| 进别人的 change worktree 代劳变基或修冲突 | 冲突解决无归属，验收证据来源不可分辨，错误跟着对方的 PR 直达唯一交付闸门（#298） |
+| 推送后不核对 `pushed_head` | 跳过了中途改写唯一确定性可检出的时刻，PR 带着没读过的内容进入 review |
 | 只在上下文里记依赖 | 会话一压缩，顺序关系就丢了 |
 | 靠印象填 `cwd` | 会话开在错误目录，或开在根本不存在的路径上 |
 
