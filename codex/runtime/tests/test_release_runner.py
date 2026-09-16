@@ -257,6 +257,131 @@ class ScmCiReleaseRunnerTests(ReleaseRunnerTests):
         self.assertTrue(self.runtime.status(self.profile, SHA_A)["ok"])
 
 
+class SharedMigrationIdentityTests(unittest.TestCase):
+    """#305: the receipt answers "has this migration set run on this database".
+
+    A release that ships no new migration declares the identity an earlier
+    release already applied. Before this Issue, `migrate` and `activate` both
+    compared the receipt's `release_id` to the current manifest and refused, so
+    no such release could ever reach an already-deployed target -- which is most
+    releases of a live project. The receipt's `release_id` is audit only: it
+    records which release actually ran the migration.
+    """
+
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        self.root = Path(self.tempdir.name)
+        self.profile, model_a, manifest_a = create_release(self.root, SHA_A)
+        _, model_b, manifest_b = create_release(
+            self.root, SHA_B, shares_migration_with=SHA_A
+        )
+        self.identity = migration_identity(SHA_A)
+        self.assertEqual(manifest_a["migration"]["identity"], self.identity)
+        self.assertEqual(manifest_b["migration"]["identity"], self.identity)
+        self.assertNotEqual(manifest_a["release_id"], manifest_b["release_id"])
+        self.docker = FakeDocker()
+        self.docker.register(SHA_A, model_a, manifest_a)
+        self.docker.register(SHA_B, model_b, manifest_b)
+        self.runtime = ReleaseRuntime(self.docker, hostname="test-host")
+
+    def state(self) -> dict[str, object]:
+        return json.loads((self.root / "state" / "state.json").read_text())
+
+    def receipt(self) -> object:
+        return self.state()["migrations"].get(self.identity)
+
+    def migration_runs(self) -> list[object]:
+        return [event for event in self.docker.events if event[0] == "migration"]
+
+    def deploy_first_release(self) -> None:
+        self.assertEqual(self.runtime.stage(self.profile, SHA_A)["action"], "staged")
+        self.assertEqual(
+            self.runtime.migrate(self.profile, SHA_A)["action"], "migration-completed"
+        )
+        self.assertEqual(self.runtime.activate(self.profile, SHA_A)["action"], "activated")
+        self.assertEqual(self.receipt(), {"status": "completed", "release_id": SHA_A})
+
+    def interrupt_first_migration(self) -> None:
+        """Leave the receipt `started`: the process died inside the container run."""
+
+        self.assertEqual(self.runtime.stage(self.profile, SHA_A)["action"], "staged")
+        original = self.docker.run_migration
+
+        def crash(*args: object, **kwargs: object) -> None:
+            raise RuntimeError("interrupted before the migration reported an outcome")
+
+        self.docker.run_migration = crash
+        try:
+            with self.assertRaises(RuntimeError):
+                self.runtime.migrate(self.profile, SHA_A)
+        finally:
+            self.docker.run_migration = original
+        self.assertEqual(self.receipt(), {"status": "started", "release_id": SHA_A})
+
+    def fail_first_migration(self) -> None:
+        self.assertEqual(self.runtime.stage(self.profile, SHA_A)["action"], "staged")
+        self.docker.fail_migration_for.add(SHA_A)
+        try:
+            with self.assertRaisesRegex(DeploymentError, "migration failed"):
+                self.runtime.migrate(self.profile, SHA_A)
+        finally:
+            self.docker.fail_migration_for.discard(SHA_A)
+        self.assertEqual(self.receipt(), {"status": "failed", "release_id": SHA_A})
+
+    def test_completed_receipt_makes_a_same_migration_release_a_noop(self) -> None:
+        self.deploy_first_release()
+        self.assertEqual(self.runtime.stage(self.profile, SHA_B)["action"], "staged")
+        self.docker.events.clear()
+        self.assertEqual(
+            self.runtime.migrate(self.profile, SHA_B)["action"], "migration-noop"
+        )
+        # No migration container, no database write, and no state rewrite: the
+        # receipt keeps naming the release that actually applied the migration.
+        self.assertEqual(self.migration_runs(), [])
+        self.assertEqual(self.docker.mutations, [])
+        self.assertEqual(self.receipt(), {"status": "completed", "release_id": SHA_A})
+        self.assertEqual(self.runtime.activate(self.profile, SHA_B)["action"], "activated")
+        self.assertEqual([event[0] for event in self.docker.mutations], ["up"])
+        self.assertEqual(self.receipt(), {"status": "completed", "release_id": SHA_A})
+        state = self.state()
+        self.assertEqual(state["current_release"], SHA_B)
+        self.assertEqual(state["previous_release"], SHA_A)
+        self.assertTrue(self.runtime.status(self.profile, SHA_B)["ok"])
+
+    def test_uncertain_or_failed_receipt_still_refuses_a_same_migration_release(self) -> None:
+        for status, arrange in (
+            ("started", self.interrupt_first_migration),
+            ("failed", self.fail_first_migration),
+        ):
+            with self.subTest(status=status):
+                self.setUp()
+                arrange()
+                self.assertEqual(self.runtime.stage(self.profile, SHA_B)["action"], "staged")
+                self.docker.events.clear()
+                with self.assertRaisesRegex(DeploymentError, "uncertain or failed"):
+                    self.runtime.migrate(self.profile, SHA_B)
+                with self.assertRaisesRegex(DeploymentError, "completed exact migration receipt"):
+                    self.runtime.activate(self.profile, SHA_B)
+                self.assertEqual(self.migration_runs(), [])
+                self.assertEqual(self.docker.mutations, [])
+                self.assertEqual(self.receipt(), {"status": status, "release_id": SHA_A})
+
+    def test_missing_receipt_still_refuses_activation_and_runs_the_migration(self) -> None:
+        self.assertEqual(self.runtime.stage(self.profile, SHA_B)["action"], "staged")
+        self.assertIsNone(self.receipt())
+        self.docker.events.clear()
+        with self.assertRaisesRegex(DeploymentError, "completed exact migration receipt"):
+            self.runtime.activate(self.profile, SHA_B)
+        self.assertEqual(self.docker.mutations, [])
+        self.assertEqual(
+            self.runtime.migrate(self.profile, SHA_B)["action"], "migration-completed"
+        )
+        self.assertEqual([event[0] for event in self.docker.mutations], ["migration"])
+        self.assertEqual(self.receipt(), {"status": "completed", "release_id": SHA_B})
+        self.assertEqual(self.runtime.activate(self.profile, SHA_B)["action"], "activated")
+
+
 class ScmCiOfflineRunnerTests(unittest.TestCase):
     def test_offline_deploy_noop_and_health_failure_rollback(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

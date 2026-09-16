@@ -93,6 +93,15 @@ def image_specs(
 
 
 def migration_identity(release_id: str) -> str:
+    """The migration identity a release declares when it ships its own migrations.
+
+    Deriving it from the release id is what made every "second release" case in
+    test_release_runner.py also a *different* migration set, which is why the
+    same-identity path was never executed (#305). Releases that ship no new
+    migration reuse an earlier release's identity: build those with
+    create_release(..., shares_migration_with=<earlier release id>).
+    """
+
     character = "5" if release_id == SHA_A else "6"
     return "sha256:" + character * 64
 
@@ -435,7 +444,14 @@ def create_release(
     migration: bool = True,
     identity_version: str = "v2",
     contract_version: str | None = None,
+    shares_migration_with: str | None = None,
 ) -> tuple[Path, dict[str, object], dict[str, object]]:
+    """Build one release artifact under `root`.
+
+    `shares_migration_with` declares the migration identity of another release
+    instead of this one's: the real-world release that changed application code
+    but left packages/database/prisma/migrations/** untouched (#305).
+    """
     release_root = root / "releases"
     release_dir = release_root / release_id
     release_dir.mkdir(parents=True, mode=0o755)
@@ -514,7 +530,7 @@ def create_release(
         "migration": (
             {
                 "service": "migrate",
-                "identity": migration_identity(release_id),
+                "identity": migration_identity(shares_migration_with or release_id),
                 "destructive": False,
                 "database_restore": "manual-only",
             }

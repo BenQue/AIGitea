@@ -230,7 +230,17 @@ v2；因为 v1 没有 staging evidence，不能伪造 receipt，必须重新执�
 当前 release 已精确 healthy
 时，同 SHA deploy 是 no-op。Migration service 名称来自已验证 manifest/Compose，identity 在
 运行前写入 `started`，成功后写入 `completed`；`failed` 或中断后的不确定 migration 不会自动
-重跑。`compose up --wait` 或 exact-release health 失败时回切旧容器，但不会执行 PostgreSQL
+重跑。
+
+Migration receipt 的键是 **migration identity**，它唯一表达的事实是「这套 migration 已在
+这个数据库上跑完」，与哪个 release 带来它无关。因此 `migrate` 在 identity 命中且
+`completed` 时一律返回 `migration-noop`，`activate` 也只要求该 identity 有一条 `completed`
+receipt：一个不带新 migration 的 release，identity 与上一个 release 相同，必须能在已部署
+过其它 release 的 target 上通过这两个阶段。receipt 里的 `release_id` **只作审计**，记录实际
+执行这套 migration 的那个 release，不参与任何判据；`migration-noop` 不改写 state，所以它
+始终指向真正执行过的那次。把 `release_id` 当门会让已上线项目的绝大多数发布无法部署
+（Issue #305）。放宽只限 `completed` 这一支：`started`、`failed` 与 receipt 缺失的语义
+不变。`compose up --wait` 或 exact-release health 失败时回切旧容器，但不会执行 PostgreSQL
 restore。显式 rollback 同样不运行 migration；数据库恢复始终需要独立人工审批。
 
 ## Fixed action permission gate

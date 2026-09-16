@@ -360,6 +360,16 @@ class ReleaseRuntime:
     def _require_migration_completed(
         self, context: VerifiedRelease, state: Mapping[str, object]
     ) -> None:
+        """Assert this migration set has completed on this database.
+
+        The receipt is keyed by migration identity, so a `completed` record
+        under that key already answers the only question activation asks. It is
+        not evidence about which release brought the migration, and requiring
+        the receipt's `release_id` to equal the current one made every release
+        that ships no new migration unactivatable on an already-deployed
+        target -- most releases of a live project (#305).
+        """
+
         migration = context.files.manifest.migration
         if migration is None:
             return
@@ -369,8 +379,6 @@ class ReleaseRuntime:
             raise DeploymentError(
                 "activation requires a completed exact migration receipt"
             )
-        if record.get("release_id") != context.files.manifest.release_id:
-            raise DeploymentError("activation migration receipt release identity is stale")
 
     def _run_migration(
         self,
@@ -385,9 +393,11 @@ class ReleaseRuntime:
         if not isinstance(migrations, dict):
             raise DeploymentError("deployment migration state is invalid")
         record = migrations.get(migration.identity)
+        # Identity is the whole judgement: this migration set has run on this
+        # database, whichever release brought it. The record's `release_id`
+        # stays as written, naming the release that actually ran it, and a noop
+        # rewrites no state (#305).
         if isinstance(record, Mapping) and record.get("status") == "completed":
-            if record.get("release_id") != context.files.manifest.release_id:
-                raise DeploymentError("migration receipt release identity is stale")
             return "migration-noop"
         migrations[migration.identity] = {
             "status": "started",
