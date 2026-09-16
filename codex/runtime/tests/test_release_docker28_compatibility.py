@@ -1,6 +1,8 @@
 """Issue #296 disposable preflight safety tests, never a real acceptance claim."""
 import importlib.util
 import copy
+import hashlib
+import tarfile
 import json
 from pathlib import Path
 import tempfile
@@ -148,6 +150,55 @@ class Docker28PreflightTests(unittest.TestCase):
         with patch.object(self.module, 'run', return_value='machine-id') as run:
             self.assertEqual(self.module.vm('producer', 'cat', '/etc/machine-id'), 'machine-id')
             self.assertEqual(run.call_args.args[0], ['orb', 'run', '-m', 'aisoft-296-producer', '-u', 'root', 'cat', '/etc/machine-id'])
+
+    def test_resume_requires_exact_successful_creation_and_isolation(self):
+        ownership = {'created': ['producer'], 'creation_intent': 'producer',
+                     'creation_steps': {'producer': 'created-unverified'}, 'baseline_vm_names': []}
+        orb_id, machine_id = 'A' * 26, 'b' * 32
+        current = {'id': orb_id, 'name': 'aisoft-296-producer',
+                   'image': {'arch': 'amd64', 'distro': 'ubuntu', 'version': 'noble'},
+                   'config': {'isolated': True, 'forward_ssh_agent': False, 'memory_limit_mib': 4096,
+                              'cpu_limit': 2, 'disk_limit_bytes': 20 * 1024**3,
+                              'mounts': [{'source': str(self.module.LAB), 'destination': self.module.MOUNT}]}}
+        self.module.validate_resume(ownership, orb_id, machine_id, [current])
+        for mutate in ('pending', 'wrong-id', 'shared', 'baseline'):
+            owner, vm = copy.deepcopy(ownership), copy.deepcopy(current)
+            if mutate == 'pending':
+                owner['creation_steps']['producer'] = 'create-pending'
+            elif mutate == 'wrong-id':
+                vm['id'] = 'C' * 26
+            elif mutate == 'shared':
+                vm['config']['forward_ssh_agent'] = True
+            else:
+                owner['baseline_vm_names'] = ['aisoft-296-producer']
+            with self.assertRaises(self.module.Blocked):
+                self.module.validate_resume(owner, orb_id, machine_id, [vm])
+
+    def test_installer_validates_real_tar_root_and_rejects_unsafe_members(self):
+        script = self.module.FIXTURES.joinpath('install-daemon.sh').read_text()
+        program = script.split("<<'PY'\n", 1)[1].split('\nPY', 1)[0]
+        for case in ('valid-root', 'traversal', 'symlink'):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                archive = root / 'engine.tgz'
+                with tarfile.open(archive, 'w:gz') as output:
+                    entry = tarfile.TarInfo('docker')
+                    entry.type = tarfile.DIRTYPE
+                    output.addfile(entry)
+                    if case != 'valid-root':
+                        entry = tarfile.TarInfo('docker/../escape' if case == 'traversal' else 'docker/link')
+                        if case == 'symlink':
+                            entry.type, entry.linkname = tarfile.SYMTYPE, '/etc/passwd'
+                        output.addfile(entry)
+                root.joinpath('software-lock.json').write_text(json.dumps({'artifacts': [{
+                    'id': 'engine-producer', 'filename': 'engine.tgz',
+                    'sha256': hashlib.sha256(archive.read_bytes()).hexdigest()}]}))
+                with patch('sys.argv', ['validate', 'producer']), patch('pathlib.Path', return_value=root):
+                    if case == 'valid-root':
+                        exec(compile(program, 'install-daemon-archive-validation', 'exec'), {})
+                    else:
+                        with self.assertRaises(AssertionError):
+                            exec(compile(program, 'install-daemon-archive-validation', 'exec'), {})
 
 
 if __name__ == '__main__':

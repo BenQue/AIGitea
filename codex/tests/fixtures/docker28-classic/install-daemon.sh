@@ -21,7 +21,7 @@ for item in json.loads((root/'software-lock.json').read_text())['artifacts']:
         if item['id'].startswith('engine-'):
             with tarfile.open(path) as archive:
                 for member in archive.getmembers():
-                    assert member.name.startswith('docker/') and '..' not in pathlib.PurePosixPath(member.name).parts
+                    assert (member.name == 'docker' and member.isdir()) or (member.name.startswith('docker/') and '..' not in pathlib.PurePosixPath(member.name).parts)
                     assert member.isfile() or member.isdir()
 PY
 apt-get update -qq

@@ -207,6 +207,71 @@ def provision(downloads):
     return preflight()
 
 
+def validate_resume(ownership, orb_id, machine_id, inventory):
+    require(ownership['created'] == ['producer'] and ownership.get('creation_intent') == 'producer' and
+            ownership.get('creation_steps') == {'producer': 'created-unverified'},
+            'resume only accepts a journaled successful producer create, never create-pending')
+    require(re.fullmatch('[A-Z0-9]{26}', orb_id or '') is not None and
+            re.fullmatch('[0-9a-f]{32}', machine_id or '') is not None, 'exact independently verified IDs required')
+    require(not set(ownership['baseline_vm_names']).intersection(NAMES.values()), 'created VM overlaps baseline')
+    require({v['name'] for v in inventory} == set(ownership['baseline_vm_names']) | {NAMES['producer']}, 'VM inventory changed')
+    matches = [v for v in inventory if v['name'] == NAMES['producer']]
+    require(len(matches) == 1 and matches[0]['id'] == orb_id, 'OrbStack VM ID does not match independent evidence')
+    current = matches[0]
+    config = current['config']
+    require(current['image']['arch'] == 'amd64' and current['image']['distro'] == 'ubuntu' and
+            current['image']['version'] == 'noble', 'unexpected resumed VM image')
+    require(config.get('isolated') is True and config.get('forward_ssh_agent') is False and
+            config.get('memory_limit_mib') == 4096 and config.get('cpu_limit') == 2 and
+            config.get('disk_limit_bytes') == 20 * 1024**3 and
+            config.get('mounts') == [{'source': str(LAB), 'destination': MOUNT}], 'VM isolation/resources changed')
+
+
+def resume_provision(orb_id, machine_id, reviewed_install_sha256):
+    require_approval()
+    ownership = state()
+    original = json.loads((LAB / 'approval-plan.json').read_text())
+    pins = software()
+    require(digest(FIXTURES / 'software-lock.json') == original['source']['files_sha256'][str((FIXTURES / 'software-lock.json').relative_to(ROOT))], 'original software lock changed')
+    require(digest(LAB / 'software-lock.json') == digest(FIXTURES / 'software-lock.json'), 'copied software lock changed')
+    require(re.fullmatch('[0-9a-f]{64}', reviewed_install_sha256 or '') is not None and
+            digest(FIXTURES / 'install-daemon.sh') == reviewed_install_sha256, 'reviewed installer hash missing or mismatched')
+    require(digest(LAB / 'install-daemon.sh') == original['source']['files_sha256'][str((FIXTURES / 'install-daemon.sh').relative_to(ROOT))], 'original installer copy changed')
+    for item in pins['artifacts']:
+        require(digest(LAB / item['filename']) == item['sha256'], 'original downloaded artifact changed')
+    inventory = json.loads(run(['orb', 'list', '--format', 'json']))
+    validate_resume(ownership, orb_id, machine_id, inventory)
+    require(vm('producer', 'cat', '/etc/machine-id') == machine_id, 'machine-id does not match independent evidence')
+    marker = vm('producer', 'sh', '-c', 'if [ -e /etc/aisoft-296-owner ]; then cat /etc/aisoft-296-owner; fi')
+    expected = f"issue296:{ownership['nonce']}:producer"
+    require(marker in ('', expected), 'existing owner marker conflicts')
+    # Preserve the first plan, link a separately reviewable correction before mutation.
+    write_json(LAB / 'resume-source-plan.json', {
+        'original_plan_sha256': digest(LAB / 'approval-plan.json'), 'source': source_evidence(),
+        'orb_id': orb_id, 'machine_id': machine_id,
+        'reviewed_install_sha256': reviewed_install_sha256,
+        'correction': 'OrbStack run argv and official Docker archive root directory validation'})
+    ownership['machine_ids']['producer'] = machine_id
+    ownership['orb_ids'] = {'producer': orb_id}
+    journal(ownership)
+    if not marker:
+        vm('producer', 'sh', '-c', 'umask 077; cat > /etc/aisoft-296-owner', stdin=expected + '\n')
+    verify_owner('producer', ownership)
+    ownership['creation_steps']['producer'] = 'marker-verified'
+    ownership['creation_intent'] = None
+    journal(ownership)
+    shutil.copyfile(FIXTURES / 'install-daemon.sh', LAB / 'install-daemon.sh')
+    create_vm('consumer', ownership)
+    address = producer_address()
+    ownership['registry_address'] = address + ':5296'
+    journal(ownership)
+    for side in SIDES:
+        vm(side, 'bash', MOUNT + '/install-daemon.sh', side, address + ':5296', timeout=300)
+        ownership['creation_steps'][side] = 'installed'
+        journal(ownership)
+    return preflight()
+
+
 def validate_capability(side, value):
     server, info = value['server'], value['info']
     require((server.get('Version'), value['compose'].removeprefix('v')) == VERSIONS[side], 'wrong exact Engine/Compose version')
@@ -230,6 +295,11 @@ def preflight():
     require_approval()
     ownership = state()
     approved_source = json.loads((LAB / 'approval-plan.json').read_text())['source']
+    resumed = LAB / 'resume-source-plan.json'
+    if resumed.exists():
+        correction = json.loads(resumed.read_text())
+        require(correction['original_plan_sha256'] == digest(LAB / 'approval-plan.json'), 'original plan changed after resume')
+        approved_source = correction['source']
     require(approved_source['files_sha256'] == source_evidence()['files_sha256'], 'approved source bytes changed')
     require(digest(LAB / 'software-lock.json') == digest(FIXTURES / 'software-lock.json'), 'software pin changed')
     values = {}
@@ -397,9 +467,12 @@ def cleanup(evidence):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=('not-run', 'plan', 'provision', 'preflight', 'identity', 'cleanup'), nargs='?', default='not-run')
+    parser.add_argument('action', choices=('not-run', 'plan', 'provision', 'resume-provision', 'preflight', 'identity', 'cleanup'), nargs='?', default='not-run')
     parser.add_argument('--downloads', type=Path)
     parser.add_argument('--evidence', type=Path)
+    parser.add_argument('--orb-id')
+    parser.add_argument('--machine-id')
+    parser.add_argument('--reviewed-install-sha256')
     args = parser.parse_args()
     try:
         if args.action == 'not-run':
@@ -409,6 +482,8 @@ def main():
         elif args.action == 'provision':
             require(args.downloads is not None and args.downloads.is_absolute(), 'absolute --downloads required')
             result = provision(args.downloads)
+        elif args.action == 'resume-provision':
+            result = resume_provision(args.orb_id, args.machine_id, args.reviewed_install_sha256)
         elif args.action == 'preflight':
             result = preflight()
         else:
