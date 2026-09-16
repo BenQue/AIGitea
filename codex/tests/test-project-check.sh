@@ -830,27 +830,65 @@ expect_line 'SKIP: ci-registry-preflight — 仓库没有 .gitea/workflows 或 .
 
 # #223 ci-outdated-branch. An expired green is still a valid green until this
 # flag is on: base moves, nothing reruns the workflow, and the merge lands on a
-# tree no run ever saw.
+# tree no run ever saw. #299 narrowed the ruling: an internal application
+# (the aligned fixture is NewEMaint) may leave the flag off once its
+# pull_request workflow checks out the merge preview, and the checker then
+# reports the value as SKIP naming the ruling — not GAP, and not a silent PASS
+# that would hide the value from a later main-red reconstruction.
+# The label mock is shared mutable state; earlier cases leave an undeclared
+# label behind, and these cases assert the whole run's exit status.
+canonical_labels >"$TMP/labels.json"
 jq -n '{
   enable_push: false,
   enable_status_check: true,
   status_check_contexts: ["CI / verify (pull_request)"],
   block_on_outdated_branch: false
 }' >"$TMP/protection-open.json"
+preview_open_repo="$(copy_fixture outdated-with-preview)"
+mkdir -p "$preview_open_repo/.gitea/workflows" "$preview_open_repo/scripts/ci"
+cp "$ROOT/templates/project/ci/ci.yml" "$preview_open_repo/.gitea/workflows/ci.yml"
+cp "$ROOT/templates/project/ci/merge-preview.sh" "$preview_open_repo/scripts/ci/merge-preview.sh"
 MOCK_PROTECTION="$TMP/protection-open.json" \
-  run_case 1 remote_check --repo "$TMP/aligned" --remote
+  run_case 0 remote_check --repo "$preview_open_repo" --remote
+expect_line 'PASS: ci-merge-preview'
 expect_line 'PASS: ci-context'
-expect_line 'GAP: ci-outdated-branch — block_on_outdated_branch 未打开，base 前进后过期的绿仍可合并'
+expect_line 'SKIP: ci-outdated-branch — block_on_outdated_branch 未打开；#299 裁决已有合并预览的 internal-application 不再要求，残余风险见 06 踩坑集 #299 条目'
 
-# A missing key is not an implicit true.
+# A missing key is not an implicit true; it reads the same as false.
 jq -n '{
   enable_push: false,
   enable_status_check: true,
   status_check_contexts: ["CI / verify (pull_request)"]
 }' >"$TMP/protection-silent.json"
 MOCK_PROTECTION="$TMP/protection-silent.json" \
+  run_case 0 remote_check --repo "$preview_open_repo" --remote
+expect_line 'SKIP: ci-outdated-branch — block_on_outdated_branch 未打开；#299 裁决已有合并预览的 internal-application 不再要求，残余风险见 06 踩坑集 #299 条目'
+
+# Without the merge preview both #223 gaps are open at once — the incident
+# itself — so an internal application still reads GAP (the aligned fixture has
+# no workflow, so ci-merge-preview is SKIP there, which is not PASS).
+MOCK_PROTECTION="$TMP/protection-open.json" \
   run_case 1 remote_check --repo "$TMP/aligned" --remote
+expect_line 'SKIP: ci-merge-preview — 仓库没有 .gitea/workflows 或 .github/workflows'
+expect_line 'GAP: ci-outdated-branch — block_on_outdated_branch 未打开且 pull_request 未检出合并预览，两道保证同时缺失；#299 只允许 ci-merge-preview PASS 的 internal-application 关闭'
+expect_line 'result: pass=8 gap=1 skip=2'
+
+# The platform repository stays under the #223 requirement: its own CI only
+# runs on pull_request, so an expired green would land on main unobserved.
+cat >"$TMP/agent-platform.env" <<EOF
+GITEA_URL=http://mock.gitea.invalid
+GITEA_OWNER=admin
+GITEA_REPO=aisoft-platform
+GITEA_TOKEN=$SENTINEL
+EOF
+chmod 600 "$TMP/agent-platform.env"
+MOCK_ENV_FILE="$TMP/agent-platform.env" MOCK_PROTECTION="$TMP/protection-open.json" \
+  run_case 1 remote_check --repo "$TMP/aligned" --remote
+expect_line 'PASS: ci-context'
 expect_line 'GAP: ci-outdated-branch — block_on_outdated_branch 未打开，base 前进后过期的绿仍可合并'
+MOCK_ENV_FILE="$TMP/agent-platform.env" \
+  run_case 0 remote_check --repo "$TMP/aligned" --remote
+expect_line 'PASS: ci-outdated-branch'
 
 # The 2026-09-05 ruling covers the platform repository and internal
 # applications; a public test repository is outside it and must not read as a

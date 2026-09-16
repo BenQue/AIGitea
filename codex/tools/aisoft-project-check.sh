@@ -109,6 +109,10 @@ skip() {
   skip_count=$((skip_count + 1))
 }
 
+# ci-merge-preview's verdict, kept for ci-outdated-branch (#299): an internal
+# application may only leave block_on_outdated_branch off when this is PASS.
+merge_preview_verdict=''
+
 extract_pointer_sections() {
   awk '
     $0 == "## 平台声明（常驻指针）" {
@@ -429,6 +433,7 @@ MERGE_PREVIEW_PY
     return
   fi
   IFS=$'\t' read -r verdict detail <"$output"
+  merge_preview_verdict="$verdict"
   case "$verdict" in
     PASS) pass ci-merge-preview ;;
     SKIP) skip ci-merge-preview "${detail:-未给出原因}" ;;
@@ -921,6 +926,18 @@ check_ci_context() {
 # for the platform repository and every internal application. broker has no
 # protection.set, so a human flips it in the Gitea UI — this check only reads it
 # back, which is exactly why it belongs here rather than in a mutation path.
+#
+# #299 (2026-09-16) narrowed that ruling. With N open PRs the flag costs N-1 CI
+# rounds per merge on a capacity-1 runner, and the internal applications already
+# carry the merge preview plus a push-on-main CI run that catches the residual
+# case after the fact. So for internal-application the flag is no longer
+# required — provided ci-merge-preview passed in this same run. Without the
+# preview the two gaps are open at once, which is exactly the #223 incident, so
+# that still reads as GAP. A permitted false reads back as SKIP with the ruling
+# named, never as a silent PASS, because the value still matters when a
+# main-red incident is being reconstructed. The platform repository keeps the
+# requirement: its ci.yml only runs on pull_request, so nothing would catch an
+# expired green after merge.
 check_outdated_branch() {
   local classification http_status
   local protection="$tmp_dir/protection-outdated.json"
@@ -958,9 +975,20 @@ check_outdated_branch() {
   if jq -e 'type == "object" and (.block_on_outdated_branch == true)' \
     "$protection" >/dev/null 2>&1; then
     pass ci-outdated-branch
-  else
-    gap ci-outdated-branch 'block_on_outdated_branch 未打开，base 前进后过期的绿仍可合并'
+    return
   fi
+  case "$classification" in
+    internal-application)
+      if [[ "$merge_preview_verdict" == PASS ]]; then
+        skip ci-outdated-branch 'block_on_outdated_branch 未打开；#299 裁决已有合并预览的 internal-application 不再要求，残余风险见 06 踩坑集 #299 条目'
+      else
+        gap ci-outdated-branch 'block_on_outdated_branch 未打开且 pull_request 未检出合并预览，两道保证同时缺失；#299 只允许 ci-merge-preview PASS 的 internal-application 关闭'
+      fi
+      ;;
+    *)
+      gap ci-outdated-branch 'block_on_outdated_branch 未打开，base 前进后过期的绿仍可合并'
+      ;;
+  esac
 }
 
 if [[ "$remote" != true ]]; then
