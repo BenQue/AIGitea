@@ -9,7 +9,7 @@ contract_effect: add
 confidence: high
 risk_flags:
   - deployment
-status: spec-drafting
+status: approved
 branch: change/296-docker28-classic
 created: 2026-09-16
 updated: 2026-09-16
@@ -79,9 +79,9 @@ updated: 2026-09-16
 本地实验失败先收集脱敏证据，仅按allowlist清理自有资源，不自动重试不确定migration。
 源码可通过受治理revert恢复；公司未应用所以无公司现场回滚。
 
-## 待批准增补：以已验证内容图识别跨store的同一镜像
+## 已批准增补：以已验证内容图识别跨store的同一镜像
 
-本节为提案，尚未授权、未实施；上文“runtime保持”规则目前仍有效。来源为本次真实evidence/real-identity.json。
+用户于2026-09-16明确“了解了，我已经批准。请继续”，批准本节已说明的最小runtime兼容修复与验证。上文“runtime保持”仅对本节明确追加范围以外的文件及语义有效。来源为本次真实evidence/real-identity.json。
 
 ### 精确行为
 

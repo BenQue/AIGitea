@@ -9,7 +9,7 @@ contract_effect: add
 confidence: high
 risk_flags:
   - deployment
-status: spec-drafting
+status: approved
 branch: change/296-docker28-classic
 created: 2026-09-16
 updated: 2026-09-16
@@ -46,10 +46,10 @@ producer29.7.1/5.1.4/containerd → consumer28.1.1/2.35.1/classic。
 本次批准已记录，不重复请求同范围实施和本地实验授权。
 部署执行器与外部4000入口的安装包由 NewEMaint 后续阶段承接，不与平台兼容混为一次现场操作。
 
-## 实施检查点：NEEDS_HUMAN_DECISION
+## 实施检查点：APPROVED
 
 两个任务VM已真实运行并清理PASS。相同manifest、相同RootFS，经Registry和offline的consumer.Id均为config digest，而producer.Id为manifest digest。
 原runtime transport._verify_content严格相等比较两次均INVALID_CONTRACT；runner健康检查也绑定该原生ID。
 这是首次真实复现，不能仅添加matrix行。当前runtime/matrix未改。
-按已批准spec的“未知runtime语义变更先增补合同”条款，现提供下列spec末尾的未批准增补建议。
-本次批准范围内的测试和清理已经执行；不重复请求该范围授权。后续需要批准的是新runtime身份投影语义。
+按已批准spec的“未知runtime语义变更先增补合同”条款，spec末尾的增补已于2026-09-16获用户批准。
+本次批准范围内的测试和清理已经执行；不重复请求该范围授权。本轮继续已批准的新runtime身份投影语义及完整本地验证。

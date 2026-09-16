@@ -9,7 +9,7 @@ contract_effect: add
 confidence: high
 risk_flags:
   - deployment
-status: spec-drafting
+status: approved
 branch: change/296-docker28-classic
 created: 2026-09-16
 updated: 2026-09-16
@@ -73,3 +73,7 @@ updated: 2026-09-16
 证据文件：real-preflight.json、real-identity.json、registry-manifest.json、identity-archive.tar（8192bytes）、
 executed-original-plan.json、executed-resume-plan.json、executed-identity-plan.json、cleanup.json、code-review.json。
 所有软件/测试数据均为本任务fixture，未读取业务凭据、访问公司主机或改变既有应用。
+
+## 增补批准
+
+2026-09-16用户明确“了解了，我已经批准。请继续”。已授权spec追加的transport/runner身份兼容、精确边界与回归，以及继续此前批准的两个本地专属VM测试。公司现场仍NOT RUN。

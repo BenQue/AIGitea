@@ -9,7 +9,7 @@ contract_effect: add
 confidence: high
 risk_flags:
   - deployment
-status: spec-drafting
+status: approved
 branch: change/296-docker28-classic
 created: 2026-09-16
 updated: 2026-09-16
@@ -60,6 +60,11 @@ check-change-documents；git diff --check。
 - T05 NOT RUN：matrix原字节保持。
 - T06 PARTIAL：140项release测试及16项专项PASS；完整smoke在既有registry-preflight负例FAIL；PR未提交。
 
-待批准spec增补后新增T07独立增补合同并停止，T08 fresh run实现transport/runner最小身份投影及正反例，
+2026-09-16用户“了解了，我已经批准。请继续”：T07独立固化已批准增补合同后结束合同编辑步骤，T08由fresh implementation context实现transport/runner最小身份投影及正反例，
 然后恢复T02/T04/T05/T06。T04重新开始前，先将已清理实验的LAB目录按版本化入口归档，
 保留原approval/evidence；禁止覆盖历史测试结果或复用未清理VM。
+
+| 增补Ticket | blocked_by | 交付与完成条件 |
+|---|---|---|
+| T07 | [T03] | 已批准增补的独立合同提交，不修改runtime |
+| T08 | [T07] | fresh context实现追加范围的身份兼容与正反例；完成后恢复T02/T04/T05/T06 |
