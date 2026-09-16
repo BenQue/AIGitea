@@ -57,7 +57,7 @@ def run(argv, *, stdin=None, timeout=60):
 
 def vm(side, *args, stdin=None, timeout=60):
     require(side in SIDES, 'unknown VM side')
-    return run(['orb', 'run', '-m', NAMES[side], '-u', 'root', '--', *args], stdin=stdin, timeout=timeout)
+    return run(['orb', 'run', '-m', NAMES[side], '-u', 'root', *args], stdin=stdin, timeout=timeout)
 
 
 def docker(side, *args, timeout=120):

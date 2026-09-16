@@ -144,6 +144,11 @@ class Docker28PreflightTests(unittest.TestCase):
                 self.module.cleanup(Path(tmp) / 'cleanup.json')
             self.assertEqual(run.call_count, 1)
 
+    def test_orb_vm_argv_uses_supported_run_syntax(self):
+        with patch.object(self.module, 'run', return_value='machine-id') as run:
+            self.assertEqual(self.module.vm('producer', 'cat', '/etc/machine-id'), 'machine-id')
+            self.assertEqual(run.call_args.args[0], ['orb', 'run', '-m', 'aisoft-296-producer', '-u', 'root', 'cat', '/etc/machine-id'])
+
 
 if __name__ == '__main__':
     unittest.main()
