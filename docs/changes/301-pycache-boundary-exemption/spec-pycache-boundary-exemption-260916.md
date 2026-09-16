@@ -80,8 +80,9 @@ header 被改写成与当前源文件 mtime/size 一致的 `.pyc`，`python3 -B 
   它不在自己的 `SCOPES` 里，因此本变更不触碰 #65 的证据闸门授权边界。
 - 不修改 `docker-release/`、`codex/runtime/aisoft_release/`、`BASELINE`、
   `CURRENT_SOURCE_PINS`、`CONTENT_EXEMPT`、`SCOPES` 或任何 sha256 常量。
-- 不修改 `codex/tests/smoke.sh`：反向证明测试落在 `codex/runtime/tests/`，
-  由 smoke 已有的 `unittest discover` 自动发现。
+- 不修改 `codex/tests/smoke.sh`：反向证明测试落在既有的
+  `codex/runtime/tests/test_release_evidence_boundary.py`，由 smoke 已有的
+  `unittest discover` 与检查器自己的 `current_regression()` 两条路径执行。
 - 检查器的 JSON 输出键集合不变。
 - 对调用方唯一可见的行为变化：SCOPES 内出现 `__pycache__/*.pyc` 时由 FAIL 变为 PASS。
 

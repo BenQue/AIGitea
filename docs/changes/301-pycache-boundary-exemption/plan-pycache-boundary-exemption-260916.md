@@ -11,7 +11,7 @@ risk_flags:
   - ci-change
   - security
 depends_on: []
-status: contract-drafting
+status: verified
 branch: change/301-pycache-boundary-exemption
 created: 2026-09-16
 updated: 2026-09-16
@@ -23,9 +23,9 @@ updated: 2026-09-16
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 回归子进程不再加载工作树内字节码：`command_env()` 注入 `PYTHONPYCACHEPREFIX`，带篡改 `.pyc` 的反向测试 | - | pending |
-| T02 | `disk_files()` 只跳过 `__pycache__/*.pyc`，带两条反向证明测试 | T01 | pending |
-| T03 | 双状态全量 smoke 与 verification 记录 | T02 | pending |
+| T01 | 回归子进程不再加载工作树内字节码：`command_env()` 注入 `PYTHONPYCACHEPREFIX`，带篡改 `.pyc` 的反向测试 | - | done |
+| T02 | `disk_files()` 只跳过 `__pycache__/*.pyc`，带三条反向证明测试 | T01 | done |
+| T03 | 双状态全量 smoke 与 verification 记录 | T02 | done |
 
 **顺序不可颠倒**：T01 是 T02 的补偿措施。先落 T02 会让工作树短暂处于
 「豁免已生效、隔离尚未到位」的状态——那正是 spec 里论证的洞。先 T01 后 T02，
@@ -33,16 +33,20 @@ updated: 2026-09-16
 
 ## Expected touch points
 
-- T01：`codex/tests/check-release-evidence-boundary.py`（`command_env()`、`check()`）；
-  新增 `codex/runtime/tests/test_evidence_boundary_checker.py`。
-- T02：`codex/tests/check-release-evidence-boundary.py`（`disk_files()`）；
-  扩充 `codex/runtime/tests/test_evidence_boundary_checker.py`。
+- T01：`codex/tests/check-release-evidence-boundary.py`（`command_env()` 与新增
+  `cache_prefix()`）；`codex/runtime/tests/test_release_evidence_boundary.py`
+  新增 `BytecodeCacheIsolationTests`。
+- T02：`codex/tests/check-release-evidence-boundary.py`（`disk_files()` 与新增
+  `is_bytecode_artifact()`）；`codex/runtime/tests/test_release_evidence_boundary.py`
+  改写 `test_ignored_and_untracked_files_including_bytecode_are_rejected`。
 - T03：`docs/changes/301-pycache-boundary-exemption/verification-pycache-boundary-exemption-260916.md`。
 
-测试文件刻意**不**命名为 `test_release*.py`：检查器自己的 `current_regression()`
-用 `-p test_release*.py` 发现测试，同名会让闸门在自己的回归里再跑一遍这些
-会改写工作树的测试。文件名 `test_evidence_boundary_checker.py` 同时被 smoke 的
-`unittest discover`（默认 `test*.py`）发现，因此**无需修改 `smoke.sh`**。
+测试全部落在**既有的** `codex/runtime/tests/test_release_evidence_boundary.py`：
+检查器的行为合同本来就钉在那里——它原有一条用例把「包括字节码在内的未跟踪文件
+一律拒绝」写死，本次要改的正是它，另起一个模块只会让同一条合同有两份说法。
+该文件匹配 `test_release*.py`，因此既被 smoke 的 `unittest discover`（默认
+`test*.py`）执行，也被检查器自己的 `current_regression()` 执行；两条路径都不需要
+修改 `smoke.sh`。它的用例只在自己的临时 root 上操作，不改写真实工作树。
 
 ## 数据库迁移
 
