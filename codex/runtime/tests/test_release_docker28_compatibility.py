@@ -3,6 +3,8 @@ import importlib.util
 import copy
 import hashlib
 import tarfile
+import runpy
+import sys
 import json
 from pathlib import Path
 import tempfile
@@ -82,12 +84,13 @@ class Docker28PreflightTests(unittest.TestCase):
             self.module.validate_software({'artifacts': [], 'registry_image': 'registry:2'})
 
     def test_cleanup_partial_provision_preserves_existing_vms(self):
-        ownership = {'created': ['producer'], 'baseline_vm_names': ['AppServer', 'DockerLab']}
+        ownership = {'nonce': 'a' * 32, 'created': ['producer'], 'baseline_vm_names': ['AppServer', 'DockerLab']}
         before = 'AppServer\nDockerLab\naisoft-296-producer'
         with tempfile.TemporaryDirectory() as tmp, patch.object(self.module, 'require_approval'), \
                 patch.object(self.module, 'state', return_value=ownership), \
                 patch.object(self.module, 'verify_owner') as verify, \
                 patch.object(self.module, 'source_evidence', return_value={}), \
+                patch.object(self.module, 'digest', return_value='f' * 64), \
                 patch.object(self.module, 'journal'), \
                 patch.object(self.module, 'run', side_effect=[before, '', 'AppServer\nDockerLab']) as run:
             result = self.module.cleanup(Path(tmp) / 'cleanup.json')
@@ -120,12 +123,13 @@ class Docker28PreflightTests(unittest.TestCase):
         self.assertEqual(ownership['creation_intent'], 'producer')
 
     def test_cleanup_second_vm_failure_preserves_first_completion_and_can_resume(self):
-        ownership = {'created': ['producer', 'consumer'], 'baseline_vm_names': ['AppServer'], 'deleted': []}
+        ownership = {'nonce': 'a' * 32, 'created': ['producer', 'consumer'], 'baseline_vm_names': ['AppServer'], 'deleted': []}
         history = []
         with tempfile.TemporaryDirectory() as tmp, patch.object(self.module, 'require_approval'), \
                 patch.object(self.module, 'state', return_value=ownership), \
                 patch.object(self.module, 'verify_owner'), \
                 patch.object(self.module, 'source_evidence', return_value={}), \
+                patch.object(self.module, 'digest', return_value='f' * 64), \
                 patch.object(self.module, 'journal', side_effect=lambda x: history.append(copy.deepcopy(x))):
             evidence = Path(tmp) / 'cleanup.json'
             with patch.object(self.module, 'run', side_effect=['AppServer\naisoft-296-producer\naisoft-296-consumer', '', self.module.Blocked('second deletion failed')]):
@@ -199,6 +203,89 @@ class Docker28PreflightTests(unittest.TestCase):
                     else:
                         with self.assertRaises(AssertionError):
                             exec(compile(program, 'install-daemon-archive-validation', 'exec'), {})
+
+    def test_candidate_and_final_matrix_exact_bounds(self):
+        sys.path.insert(0, str(self.module.ROOT / 'codex/runtime'))
+        from aisoft_release.compatibility import DockerCapability, require_supported
+        from aisoft_release.errors import ReleaseError
+        functions = runpy.run_path(str(self.module.FIXTURES / 'lifecycle.py'))
+        original = json.loads((self.module.ROOT / 'docker-release/compatibility/image-stores-v1.json').read_text())
+        candidate = functions['candidate_matrix'](original, 'a' * 40)
+        self.assertEqual(candidate['rows'][:len(original['rows'])], original['rows'])
+        self.assertEqual(functions['candidate_matrix'](candidate, 'a' * 40), candidate)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'matrix.json'
+            for matrix in (candidate, original):
+                path.write_text(json.dumps(matrix))
+                exact = DockerCapability('28.1.1', '2.35.1', 'linux', 'amd64', 'classic')
+                is_supported = any(row['image_store'] == 'classic' and row['status'] == 'supported' and row['engine']['minimum'] == '28.1.1' for row in matrix['rows'])
+                if is_supported:
+                    require_supported(exact, path)
+                else:
+                    with self.assertRaises(ReleaseError):
+                        require_supported(exact, path)
+                for engine, compose, arch, store in (
+                    ('28.1.0', '2.35.1', 'amd64', 'classic'), ('28.1.2', '2.35.1', 'amd64', 'classic'),
+                    ('28.1.1', '2.35.0', 'amd64', 'classic'), ('28.1.1', '2.35.2', 'amd64', 'classic'),
+                    ('28.1.1', '2.35.1', 'amd64', 'containerd'), ('28.1.1', '2.35.1', 'arm64', 'classic'),
+                    ('29.7.1', '2.35.1', 'amd64', 'classic')):
+                    with self.subTest(engine=engine, compose=compose, arch=arch, store=store), self.assertRaises(ReleaseError):
+                        require_supported(DockerCapability(engine, compose, 'linux', arch, store), path)
+
+    def test_archive_requires_exact_journal_bound_cleanup_and_preserves_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lab = Path(tmp) / 'lab'
+            lab.mkdir()
+            nonce = 'a' * 32
+            ownership = {'names': self.module.NAMES, 'nonce': nonce, 'created': list(self.module.SIDES),
+                         'deleted': list(self.module.SIDES), 'creation_intent': None, 'deletion_intent': None,
+                         'baseline_vm_names': ['AppServer']}
+            (lab / 'ownership.json').write_text(json.dumps(ownership))
+            (lab / 'preserve.txt').write_text('immutable previous run')
+            receipt = Path(tmp) / 'cleanup.json'
+            receipt.write_text(json.dumps({'result': 'PASS', 'run_id': nonce,
+                'ownership_sha256': self.module.digest(lab / 'ownership.json'),
+                'removed': list(self.module.NAMES.values()), 'baseline_vm_names': ['AppServer'], 'preserved_vm_names': ['AppServer']}))
+            with patch.object(self.module, 'LAB', lab), patch.object(self.module, 'require_approval'), \
+                    patch.object(self.module, 'source_evidence', return_value={}):
+                with patch.object(self.module, 'run', return_value='AppServer\naisoft-296-consumer'):
+                    with self.assertRaises(self.module.Blocked):
+                        self.module.archive_cleaned_lab(receipt, nonce)
+                self.assertTrue((lab / 'preserve.txt').exists())
+                with patch.object(self.module, 'run', return_value='AppServer'):
+                    result = self.module.archive_cleaned_lab(receipt, nonce)
+                self.assertEqual(result['result'], 'PASS')
+                self.assertFalse(lab.exists())
+                self.assertEqual(Path(result['destination']).joinpath('preserve.txt').read_text(), 'immutable previous run')
+
+    def test_synthetic_architecture_and_compose_pass_real_contract_parsers(self):
+        sys.path.insert(0, str(self.module.ROOT / 'codex/runtime'))
+        from aisoft_release.contract import load_release_artifact
+        from aisoft_release.compose import validate_compose_model
+        from tests.release_test_support import create_release, SHA_A, update_manifest, write_json, sha256
+        functions = runpy.run_path(str(self.module.FIXTURES / 'lifecycle.py'))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _, _, manifest = create_release(root, SHA_A)
+            release_dir = root / 'releases' / SHA_A
+            arch = functions['architecture'](self.module.software())
+            write_json(release_dir / 'architecture.lock.json', arch)
+            def apply(value):
+                value['architecture'].update(profile_id=arch['profile_id'], project_id=arch['project_id'],
+                                             catalog_revision=arch['catalog_revision'], sha256=sha256(release_dir / 'architecture.lock.json'))
+            update_manifest(release_dir, apply)
+            files = load_release_artifact(root / 'releases', SHA_A)
+            images = {image.service: {'runtime_reference': image.runtime_reference} for image in files.manifest.images}
+            compose = functions['compose_source'](SHA_A, images)
+            validate_compose_model(compose, files.manifest)
+            self.assertEqual(compose['services']['migrate']['profiles'], ['migration'])
+            self.assertFalse(compose['services']['web'].get('ports'))
+
+    def test_lifecycle_mutation_counts_ignore_readonly_calls(self):
+        functions = runpy.run_path(str(self.module.FIXTURES / 'lifecycle.py'))
+        calls = [['image', 'inspect', 'ref'], ['compose', '--file', 'f', 'config'],
+                 ['image', 'pull', 'ref'], ['image', 'load', '-i', 'archive'], ['compose', '--file', 'f', 'run', 'migrate']]
+        self.assertEqual(functions['mutation_count'](calls), 3)
 
 
 if __name__ == '__main__':

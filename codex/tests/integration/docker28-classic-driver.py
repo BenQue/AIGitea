@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Issue #296 exact disposable lab and cross-store identity prerequisite.
 
-Default is NOT RUN. This gate never claims lifecycle support; lifecycle must be
-implemented and accepted separately after the unchanged identity contract passes.
+Default is NOT RUN. Source implementation never substitutes for real lifecycle
+receipts; matrix support and company deployment remain separately gated.
 """
 from __future__ import annotations
 
@@ -19,6 +19,8 @@ import time
 import tarfile
 import io
 import uuid
+import runpy
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES = ROOT / 'codex/tests/fixtures/docker28-classic'
@@ -96,6 +98,9 @@ def validate_software(value):
                 'unexpected software filename')
     require(re.fullmatch(r'(?:docker.io/library/)?registry@sha256:[0-9a-f]{64}', value.get('registry_image', '')) is not None,
             'Registry image must be official and digest-pinned')
+    for image in ('python', 'postgres'):
+        reference = value.get('fixture_images', {}).get(image, '')
+        require(re.fullmatch('docker.io/library/' + image + r'@sha256:[0-9a-f]{64}', reference) is not None, 'fixture image pin missing: ' + image)
     return value
 
 
@@ -122,8 +127,8 @@ def verify_owner(side, ownership):
 
 
 def source_evidence():
-    paths = [Path(__file__), FIXTURES / 'software-lock.json', FIXTURES / 'install-daemon.sh',
-             FIXTURES / 'identity.txt']
+    paths = [Path(__file__), ROOT / 'docker-release/compatibility/image-stores-v1.json']
+    paths += sorted(p for p in FIXTURES.iterdir() if p.is_file() and p.suffix in ('.json', '.py', '.sh', '.txt'))
     paths += sorted((ROOT / 'codex/runtime/aisoft_release').glob('*.py'))
     return {'source_sha': run(['git', '-C', ROOT, 'rev-parse', 'HEAD']),
             'files_sha256': {str(p.relative_to(ROOT)): digest(p) for p in paths}}
@@ -139,7 +144,7 @@ def approval_plan():
             'resources': {'producer_containers': [REGISTRY_NAME], 'consumer_containers': [],
                           'registry_port': 5296, 'images': [TRANSPORT_TAG, software()['registry_image']], 'fixture_content_sha256': digest(FIXTURES / 'identity.txt'), 'consumer_digest_plan': 'created after producer push and before consumer mutation',
                           'volumes': [], 'networks': [], 'build_cache': 'exclusive disposable producer VM'},
-            'lifecycle': 'NOT RUN: gated by unchanged runtime cross-store identity'}
+            'lifecycle': 'NOT RUN: explicit lifecycle action produces real public phase receipts'}
 
 
 def journal(ownership):
@@ -458,18 +463,62 @@ def cleanup(evidence):
         journal(ownership)
     after = set(run(['orb', 'list', '--quiet']).splitlines())
     require(after == before - owned_names, 'VM inventory changed outside exact allowlist')
-    result = {'result': 'PASS', 'removed': sorted(NAMES[s] for s in ownership['deleted']),
+    result = {'result': 'PASS', 'run_id': ownership['nonce'], 'ownership_sha256': digest(LAB / 'ownership.json'),
+              'removed': sorted(NAMES[s] for s in ownership['deleted']),
               'baseline_vm_names': ownership['baseline_vm_names'],
               'before_vm_names': sorted(before), 'preserved_vm_names': sorted(after), 'source': source_evidence()}
     write_json(evidence, result)
     return result
 
 
+def archive_cleaned_lab(cleanup_evidence, run_id):
+    require_approval()
+    ownership = state()
+    require(run_id == ownership['nonce'], 'archive run-id must equal exact ownership nonce')
+    require(set(ownership.get('created', [])) == set(SIDES) and
+            set(ownership.get('deleted', [])) == set(SIDES) and
+            ownership.get('creation_intent') is None and ownership.get('deletion_intent') is None,
+            'archive requires both exact VMs journaled as completely deleted')
+    require(cleanup_evidence.is_file() and not cleanup_evidence.is_symlink(), 'regular cleanup evidence required')
+    receipt = json.loads(cleanup_evidence.read_text())
+    require(receipt.get('result') == 'PASS' and set(receipt.get('removed', [])) == set(NAMES.values()) and
+            receipt.get('baseline_vm_names') == ownership['baseline_vm_names'], 'cleanup evidence does not match ownership')
+    if 'run_id' in receipt:
+        require(receipt['run_id'] == run_id and receipt.get('ownership_sha256') == digest(LAB / 'ownership.json'),
+                'cleanup evidence is not bound to this exact ownership journal')
+    else:
+        # Only the first immutable identity-only run predates journal-bound cleanup receipts.
+        require(run_id == 'c1beec844250427d89234bb3ca96a8a4' and
+                digest(cleanup_evidence) == '818353ad0cfe86c6733ec8ee91e8b171fa16213d4a32d40d9b9b8a9424353ef7',
+                'unbound historical cleanup receipt is not the fixed first-run evidence')
+    current = set(run(['orb', 'list', '--quiet']).splitlines())
+    require(not current.intersection(NAMES.values()) and
+            current == set(receipt.get('preserved_vm_names', [])), 'VM absence/preservation readback changed')
+    destination = LAB.with_name(LAB.name + '-' + run_id)
+    require(not destination.exists() and not destination.is_symlink(), 'immutable archive destination exists')
+    require(all(not p.is_symlink() for p in LAB.rglob('*')), 'lab contains symlinks; archive refuses ambiguous payload')
+    hashes = {str(p.relative_to(LAB)): digest(p) for p in sorted(LAB.rglob('*')) if p.is_file()}
+    record = {'result': 'PASS', 'run_id': run_id, 'destination': str(destination),
+              'cleanup_evidence_sha256': digest(cleanup_evidence), 'ownership_sha256': digest(LAB / 'ownership.json'),
+              'preserved_vm_names': sorted(current), 'archived_files_sha256': hashes, 'source': source_evidence()}
+    write_json(LAB / 'archive-readback.json', record)
+    os.rename(LAB, destination)
+    require(not LAB.exists() and destination.is_dir(), 'archive rename readback failed')
+    return record
+
+
+def lifecycle(evidence):
+    functions = runpy.run_path(str(FIXTURES / 'lifecycle.py'))
+    return functions['execute'](SimpleNamespace(**globals()), evidence)
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=('not-run', 'plan', 'provision', 'resume-provision', 'preflight', 'identity', 'cleanup'), nargs='?', default='not-run')
+    parser.add_argument('action', choices=('not-run', 'plan', 'provision', 'resume-provision', 'preflight', 'identity', 'lifecycle', 'cleanup', 'archive-cleaned-lab'), nargs='?', default='not-run')
     parser.add_argument('--downloads', type=Path)
     parser.add_argument('--evidence', type=Path)
+    parser.add_argument('--cleanup-evidence', type=Path)
+    parser.add_argument('--run-id')
     parser.add_argument('--orb-id')
     parser.add_argument('--machine-id')
     parser.add_argument('--reviewed-install-sha256')
@@ -482,13 +531,16 @@ def main():
         elif args.action == 'provision':
             require(args.downloads is not None and args.downloads.is_absolute(), 'absolute --downloads required')
             result = provision(args.downloads)
+        elif args.action == 'archive-cleaned-lab':
+            require(args.cleanup_evidence is not None and args.cleanup_evidence.is_absolute(), 'absolute --cleanup-evidence required')
+            result = archive_cleaned_lab(args.cleanup_evidence, args.run_id)
         elif args.action == 'resume-provision':
             result = resume_provision(args.orb_id, args.machine_id, args.reviewed_install_sha256)
         elif args.action == 'preflight':
             result = preflight()
         else:
             require(args.evidence is not None and args.evidence.is_absolute(), 'absolute --evidence required')
-            result = (identity if args.action == 'identity' else cleanup)(args.evidence)
+            result = {'identity': identity, 'lifecycle': lifecycle, 'cleanup': cleanup}[args.action](args.evidence)
         print(json.dumps(result, indent=2, sort_keys=True))
         return 2 if result.get('result') == 'BLOCKED' else 0
     except (Blocked, OSError, ValueError, subprocess.TimeoutExpired) as exc:
