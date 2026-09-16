@@ -921,6 +921,15 @@ check_ci_context() {
 # for the platform repository and every internal application. broker has no
 # protection.set, so a human flips it in the Gitea UI — this check only reads it
 # back, which is exactly why it belongs here rather than in a mutation path.
+#
+# #299 (2026-09-16) narrowed that ruling. With N open PRs the flag costs N-1 CI
+# rounds per merge on a capacity-1 runner, and the internal applications already
+# carry the merge preview plus a push-on-main CI run that catches the residual
+# case after the fact. So for internal-application the flag is no longer
+# required: false reads back as SKIP with the ruling named, never as a silent
+# PASS, because the value still matters when a main-red incident is being
+# reconstructed. The platform repository keeps the requirement: its ci.yml only
+# runs on pull_request, so nothing would catch an expired green after merge.
 check_outdated_branch() {
   local classification http_status
   local protection="$tmp_dir/protection-outdated.json"
@@ -958,9 +967,16 @@ check_outdated_branch() {
   if jq -e 'type == "object" and (.block_on_outdated_branch == true)' \
     "$protection" >/dev/null 2>&1; then
     pass ci-outdated-branch
-  else
-    gap ci-outdated-branch 'block_on_outdated_branch 未打开，base 前进后过期的绿仍可合并'
+    return
   fi
+  case "$classification" in
+    internal-application)
+      skip ci-outdated-branch 'block_on_outdated_branch 未打开；#299 裁决 internal-application 不再要求，残余风险见 06 踩坑集 #299 条目'
+      ;;
+    *)
+      gap ci-outdated-branch 'block_on_outdated_branch 未打开，base 前进后过期的绿仍可合并'
+      ;;
+  esac
 }
 
 if [[ "$remote" != true ]]; then

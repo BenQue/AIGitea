@@ -830,7 +830,13 @@ expect_line 'SKIP: ci-registry-preflight — 仓库没有 .gitea/workflows 或 .
 
 # #223 ci-outdated-branch. An expired green is still a valid green until this
 # flag is on: base moves, nothing reruns the workflow, and the merge lands on a
-# tree no run ever saw.
+# tree no run ever saw. #299 narrowed the ruling: an internal application
+# (the aligned fixture is NewEMaint) may leave the flag off, and the checker
+# then reports the value as SKIP naming the ruling — not GAP, and not a silent
+# PASS that would hide the value from a later main-red reconstruction.
+# The label mock is shared mutable state; earlier cases leave an undeclared
+# label behind, and these cases assert the whole run's exit status.
+canonical_labels >"$TMP/labels.json"
 jq -n '{
   enable_push: false,
   enable_status_check: true,
@@ -838,19 +844,37 @@ jq -n '{
   block_on_outdated_branch: false
 }' >"$TMP/protection-open.json"
 MOCK_PROTECTION="$TMP/protection-open.json" \
-  run_case 1 remote_check --repo "$TMP/aligned" --remote
+  run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'PASS: ci-context'
-expect_line 'GAP: ci-outdated-branch — block_on_outdated_branch 未打开，base 前进后过期的绿仍可合并'
+expect_line 'SKIP: ci-outdated-branch — block_on_outdated_branch 未打开；#299 裁决 internal-application 不再要求，残余风险见 06 踩坑集 #299 条目'
+expect_line 'result: pass=8 gap=0 skip=3'
 
-# A missing key is not an implicit true.
+# A missing key is not an implicit true; it reads the same as false.
 jq -n '{
   enable_push: false,
   enable_status_check: true,
   status_check_contexts: ["CI / verify (pull_request)"]
 }' >"$TMP/protection-silent.json"
 MOCK_PROTECTION="$TMP/protection-silent.json" \
+  run_case 0 remote_check --repo "$TMP/aligned" --remote
+expect_line 'SKIP: ci-outdated-branch — block_on_outdated_branch 未打开；#299 裁决 internal-application 不再要求，残余风险见 06 踩坑集 #299 条目'
+
+# The platform repository stays under the #223 requirement: its own CI only
+# runs on pull_request, so an expired green would land on main unobserved.
+cat >"$TMP/agent-platform.env" <<EOF
+GITEA_URL=http://mock.gitea.invalid
+GITEA_OWNER=admin
+GITEA_REPO=aisoft-platform
+GITEA_TOKEN=$SENTINEL
+EOF
+chmod 600 "$TMP/agent-platform.env"
+MOCK_ENV_FILE="$TMP/agent-platform.env" MOCK_PROTECTION="$TMP/protection-open.json" \
   run_case 1 remote_check --repo "$TMP/aligned" --remote
+expect_line 'PASS: ci-context'
 expect_line 'GAP: ci-outdated-branch — block_on_outdated_branch 未打开，base 前进后过期的绿仍可合并'
+MOCK_ENV_FILE="$TMP/agent-platform.env" \
+  run_case 0 remote_check --repo "$TMP/aligned" --remote
+expect_line 'PASS: ci-outdated-branch'
 
 # The 2026-09-05 ruling covers the platform repository and internal
 # applications; a public test repository is outside it and must not read as a
