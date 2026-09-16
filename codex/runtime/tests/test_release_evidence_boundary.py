@@ -125,14 +125,25 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
                 self.write(boundary.RUNNER, self.expected_runner.replace(before, after))
                 self.rejected()
 
-    def test_ignored_and_untracked_files_including_bytecode_are_rejected(self) -> None:
+    def test_untracked_files_are_rejected_except_python_bytecode_products(self) -> None:
+        """#301：唯一的豁免是编译字节码产物，判据不是 git 是否忽略这个文件。
+
+        `hidden.py` 与 `runner.pyc` 都被 `.gitignore` 覆盖，却仍然必须让闸门变红：
+        闸门问的是「冻结范围里出现了未跟踪文件」，不是「git 看不看得见它」。
+        `__pycache__/notes.md` 证明这不是把整个目录跳过的路径豁免，
+        `runner.pyc` 证明这不是只看后缀的豁免——两个条件缺一都会让用例变红。
+        """
         self.write(".gitignore", b"*.pyc\nhidden.py\n")
-        for name in ("extra.py", "hidden.py", "__pycache__/runner.cpython-313.pyc"):
-            with self.subTest(name=name):
+        for name in ("extra.py", "hidden.py", "__pycache__/notes.md", "runner.pyc"):
+            with self.subTest(rejected=name):
                 path = "codex/runtime/aisoft_release/" + name
                 self.write(path, b"unexpected")
                 self.rejected()
                 (self.root / path).unlink()
+        exempt = "codex/runtime/aisoft_release/__pycache__/runner.cpython-313.pyc"
+        self.write(exempt, b"local bytecode")
+        boundary.validate(self.root)
+        (self.root / exempt).unlink()
 
     def test_missing_renamed_and_symlink_paths_are_rejected(self) -> None:
         path = self.root / boundary.RUNNER

@@ -120,12 +120,28 @@ def baseline_files(root: Path) -> dict[str, tuple[str, bytes]]:
     return files
 
 
+def is_bytecode_artifact(path: Path) -> bool:
+    """A compiled-bytecode product, and nothing else.
+
+    Both halves are load-bearing. Requiring the __pycache__ parent keeps a .pyc
+    dropped straight into a scope visible; requiring the .pyc suffix keeps
+    anything else placed inside a __pycache__ directory visible. So this stays a
+    product exemption and never becomes a path or content exemption (#301).
+    """
+    return path.suffix == ".pyc" and path.parent.name == "__pycache__"
+
+
 def disk_files(root: Path) -> set[str]:
     files: set[str] = set()
 
     def walk(path: Path) -> None:
         mode = path.lstat().st_mode
         if stat.S_ISREG(mode):
+            # Untracked bytecode left behind by a local `python3 -m unittest`
+            # run is not evidence about the frozen scope, and cache_prefix()
+            # already keeps this process from executing it (#301).
+            if is_bytecode_artifact(path):
+                return
             files.add(path.relative_to(root).as_posix())
         elif stat.S_ISDIR(mode):
             for child in path.iterdir():
