@@ -10,7 +10,7 @@ confidence: high
 risk_flags:
   - host-runtime-install
 depends_on: []
-status: pending
+status: verified
 branch: change/304-reinstall-worktree-owner-gate
 created: 2026-09-16
 updated: 2026-09-16
@@ -101,7 +101,7 @@ change 的真实推送 fast-forward 覆盖，无数据损失。教训已固化�
 | Mac `ls /usr/local/lib/aisoft-host-access/` | PASS | `aisoft_change_name.py  aisoft_gitea_governance  aisoft_host_access  aisoft_worktree_owner.py`；`-rw-r--r-- root wheel 12614 Sep 16 21:50 aisoft_worktree_owner.py`。`diff -q` 对源码：`broker.py` 与 `aisoft_worktree_owner.py` 均**完全一致**。已安装 manifest `operations` 计数 `36`，与仓库一致 |
 | 已安装 runtime（wrapper），`AISOFT_SESSION_ID=not-the-owner-0000` | PASS（正确拒绝） | `{"code": "WORKTREE_OWNER_MISMATCH", "message": "worktree is owned by session ca740375-6b30-4296-8250-3370ceb61f01, not not-the-owner-0000; the owning session pushes its own branch, another session notifies or hands back", "status": "BLOCKED_EXTERNAL"}` |
 | 已安装 runtime（wrapper），marker 暂时移走后以正确 session 调用 | PASS（正确拒绝） | `{"code": "WORKTREE_UNCLAIMED", "message": "change worktree has no ownership marker at .../worktrees/issue-304-reinstall-worktree-owner-gate/aisoft-owner.json; claim it with: ... claim-worktree --branch <change/N-slug> --session <session id>", "status": "BLOCKED_EXTERNAL"}`。marker 随即复原，内容不变 |
-| 已安装 runtime，正确 session 推送本分支（AC-2）| NOT RUN | 留到确认点 2 的真实推送一并取得；两条反向证明期间本地 `HEAD` = `d4e2811`，远端 ref 仍为 `e5ed35e`，证明两次拒绝都没有发生网络写 |
+| 已安装 runtime，正确 session 推送本分支（AC-2）| PASS | `{"checkout": "/private/tmp/issue-304-reinstall-worktree-owner-gate", "identity": "aisoft-platform-agent", "operation": "git.push.change", "previous_head": "e5ed35e860f0ae080ce605b29dc4d698df9ada75", "pushed_head": "d75952cce257d986719b219f765ae23b4d0b8929", "session": "ca740375-6b30-4296-8250-3370ceb61f01", "status": "PASS"}`。推送前 `git rev-parse HEAD` = `d75952cce257d986719b219f765ae23b4d0b8929`，与 `pushed_head` 相同。marker 随即写入 `"last_push_head": "d75952cc..."` 与 `"last_push_at": "2026-09-16T22:43:29+08:00"`（重装之前同一字段在推送后仍是 `null`，见 C 段）|
 | Mac `host.access.audit` | PASS | `"status": "PASS"`；protection `main` / `["CI / verify (pull_request)"]` 不变 |
 | Mac 既有 typed 操作回归抽样 | PASS | `host.onboarding.check` / `orbstack.vm.status` / `orbstack.runner.status` / `vm.profile.read-back` 均 `"status": "PASS"`；`gitea.repo.read` / `gitea.protection.read` / `gitea.labels.read` 均返回完整载荷、exit `0`（这三个返回裸载荷而非 status 信封，`gitea.labels.read` 是裸数组）；`gitea.issue.read --number 304` 读回 `open` + `['complexity/small', 'needs-analysis', 'type/maintenance']` |
 | VM `grep -c pushed_head /usr/local/lib/aisoft-host-access/aisoft_host_access/broker.py` | PASS | `1` |
@@ -114,7 +114,7 @@ change 的真实推送 fast-forward 覆盖，无数据损失。教训已固化�
 | AC | 结论 | 证据 |
 |---|---|---|
 | AC-1 两台已安装 `broker.py` 含 `pushed_head` 且 lib 目录含 `aisoft_worktree_owner.py` | **PASS** | Mac：`grep -c` `0` → `1`，`aisoft_worktree_owner.py` 存在且与源码 `diff -q` 一致，manifest `operations` = 36。VM：`grep -c` = `1`，`ls` 含 `aisoft_worktree_owner.py`，installer 打印 `source commit: e5ed35e (level with origin/main)` / `source operations: 36` |
-| AC-2 正常路径返回 `pushed_head` 且等于 `git rev-parse HEAD` | NOT RUN | 需要一次真实推送，留到确认点 2 |
+| AC-2 正常路径返回 `pushed_head` 且等于 `git rev-parse HEAD` | **PASS** | `pushed_head` = `d75952cce257d986719b219f765ae23b4d0b8929` = 推送前的 `git rev-parse HEAD`；返回体同时带回 `session` 与 `previous_head`，marker 的 `last_push_head` 被真正写入 |
 | AC-3 反向证明：`WORKTREE_OWNER_MISMATCH` 与 `WORKTREE_UNCLAIMED` | **PASS** | 重装后在 **Mac 已安装 runtime**（wrapper）上取得两条 exact 异常码，见 G。两次拒绝期间本地 `HEAD` = `d4e2811` 而远端 ref 仍为 `e5ed35e`，证明拒绝发生在凭据解析之前、未产生网络写。**只在 Mac 上验**：change worktree 只存在于 Mac，VM 不承载 change worktree，该闸门在 VM 上没有可触发的输入 |
 | AC-4 两台 `host.access.audit` 均 `PASS`，既有 typed 操作无回归 | **PASS** | Mac 与 VM 重装后 `host.access.audit` 均 `"status": "PASS"`，两边载荷一致且与 Mac 重装前基线（D 段）逐字段相同。Mac 另抽样 7 个既有 typed 操作全部正常 |
 
