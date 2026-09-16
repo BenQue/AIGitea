@@ -37,7 +37,7 @@ updated: 2026-09-16
 | Command / check | Result | Evidence |
 |---|---|---|
 | `bash codex/tests/smoke.sh`（改动前基线） | **PASS** | `Ran 922 tests ... OK` / `Codex platform static smoke checks passed.` / `exit=0` |
-| `bash codex/tests/smoke.sh`（改动后） | SMOKE_FINAL | SMOKE_EVIDENCE |
+| `bash codex/tests/smoke.sh`（改动后） | **PASS** | `Ran 960 tests in 90.819s` / `OK` / `Codex platform static smoke checks passed.` / `SMOKE_EXIT=0` |
 | `python3 -m unittest discover -s codex/runtime/tests -t codex/runtime` | **PASS** | `Ran 960 tests in 90.650s` / `OK`（基线 922，本次新增 38） |
 | `python3 -m unittest tests.test_worktree_owner` | **PASS** | `Ran 32 tests` / `OK` |
 | `python3 -m unittest tests.test_host_access` | **PASS** | `Ran 192 tests` / `OK`（基线 186） |
@@ -51,6 +51,13 @@ updated: 2026-09-16
 | smoke 新守卫反向验证 | **PASS** | 把 `### change worktree 的单写者归属（#298）` 改成 `### change worktree 的归属` 后守卫块变红，复原后回绿 |
 | installer 计数守卫反向验证 | **PASS** | 把 `expected_runtime_modules + 2` 改回 `+ 1` 后 `test-installer-source-guard.sh` 报 `FAIL: level/install-vm: expected 'source runtime modules: 30'`，复原后回绿 |
 | 两台重装 | **NOT RUN** | 需要 sudo，不由本会话执行；见「遗留风险与未完成项」 |
+
+首次跑改动后 smoke 时红在 `release evidence boundary: current file set differs from the fixed
+baseline`。**这不是本次改动造成的**：`check-release-evidence-boundary.py` 的 `disk_files()`
+直接走文件系统、不读 `.gitignore`，把本会话手工跑 `python3 -m unittest`（未带 `-B`）留下的
+`codex/runtime/aisoft_release/__pycache__/*.pyc` 算进了「当前文件集」。定位方式是打印
+`disk_files(root) - set(baseline_files(root))`，结果 12 项全是 `.pyc`。删掉 `__pycache__`
+后该检查单独跑 PASS，完整 smoke `SMOKE_EXIT=0`。上表记的是清理之后那一次。
 
 本机真实扫描原文：
 
