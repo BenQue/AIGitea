@@ -24,12 +24,15 @@ from aisoft_worktree_owner import (
     write_marker,
 )
 from aisoft_loop.worktree import (
+    GAP_REASONS,
     WorktreeError,
     current_branch,
     head_sha,
     is_ancestor,
+    list_change_worktrees,
     require_branch,
     resolve_git_dir,
+    scan_change_worktrees,
 )
 
 BRANCH = "change/298-worktree-single-writer"
@@ -354,6 +357,140 @@ class LinkedWorktreeTests(unittest.TestCase):
     def test_git_failures_surface_as_worktree_errors(self) -> None:
         with self.assertRaises(WorktreeError):
             resolve_git_dir(Path(self.directory.name) / "not-a-repo")
+
+
+class ScanTests(unittest.TestCase):
+    """AC-3: a read-only sweep that says which change worktrees left their last
+    push, and which of those are worth stopping for."""
+
+    def _git(self, argv: list[str], cwd: Path) -> str:
+        return subprocess.run(
+            ["git", *argv], cwd=str(cwd), capture_output=True, text=True, check=True,
+            env={**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+                 "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"},
+        ).stdout.strip()
+
+    def _commit(self, worktree: Path, name: str) -> str:
+        (worktree / name).write_text(name, encoding="utf-8")
+        self._git(["add", "."], worktree)
+        self._git(["commit", "-qm", name], worktree)
+        return head_sha(worktree)
+
+    def _worktree(self, branch: str) -> Path:
+        path = self.root / f"issue-{branch.split('/')[1]}"
+        self._git(["worktree", "add", "-q", str(path), "-b", branch], self.canonical)
+        return path
+
+    def setUp(self) -> None:
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        self.canonical = self.root / "repo"
+        self.canonical.mkdir()
+        self._git(["init", "-q", "-b", "main"], self.canonical)
+        self._commit(self.canonical, "base")
+
+    def _scan(self) -> dict[str, str]:
+        return {
+            entry.branch: entry.reason for entry in scan_change_worktrees(self.canonical)
+        }
+
+    def test_only_change_branches_are_scanned(self) -> None:
+        self._git(["worktree", "add", "-q", str(self.root / "plain"), "-b", "feature/x"],
+                  self.canonical)
+        claimed = self._worktree("change/301-claimed-branch")
+        claim(resolve_git_dir(claimed), branch="change/301-claimed-branch",
+              session=OWNER, worktree=claimed)
+        listed = list_change_worktrees(self.canonical)
+        self.assertEqual([branch for _path, branch in listed], ["change/301-claimed-branch"])
+
+    def test_every_reason_is_reported_and_only_three_are_gaps(self) -> None:
+        clean = self._worktree("change/301-clean-branch")
+        claim(resolve_git_dir(clean), branch="change/301-clean-branch",
+              session=OWNER, worktree=clean)
+        record_push(resolve_git_dir(clean), head=head_sha(clean))
+
+        ahead = self._worktree("change/302-ahead-branch")
+        claim(resolve_git_dir(ahead), branch="change/302-ahead-branch",
+              session=OWNER, worktree=ahead)
+        record_push(resolve_git_dir(ahead), head=head_sha(ahead))
+        self._commit(ahead, "later")
+
+        rewritten = self._worktree("change/303-rewritten-branch")
+        claim(resolve_git_dir(rewritten), branch="change/303-rewritten-branch",
+              session=OWNER, worktree=rewritten)
+        landed = self._commit(rewritten, "landed")
+        record_push(resolve_git_dir(rewritten), head=landed)
+        # Somebody else rebased it: same content, a sha that no longer has the
+        # pushed commit in its history.
+        self._git(["commit", "-q", "--amend", "-m", "rewritten by somebody else"], rewritten)
+        self.assertFalse(is_ancestor(rewritten, landed, head_sha(rewritten)))
+
+        unpushed = self._worktree("change/304-unpushed-branch")
+        claim(resolve_git_dir(unpushed), branch="change/304-unpushed-branch",
+              session=OWNER, worktree=unpushed)
+
+        self._worktree("change/305-unclaimed-branch")
+
+        mismatched = self._worktree("change/306-mismatched-branch")
+        claim(resolve_git_dir(mismatched), branch="change/307-some-other-branch",
+              session=OWNER, worktree=mismatched)
+
+        self.assertEqual(self._scan(), {
+            "change/301-clean-branch": "clean",
+            "change/302-ahead-branch": "ahead",
+            "change/303-rewritten-branch": "rewritten",
+            "change/304-unpushed-branch": "unpushed",
+            "change/305-unclaimed-branch": "unclaimed",
+            "change/306-mismatched-branch": "claim-invalid",
+        })
+        self.assertEqual(GAP_REASONS, frozenset({"rewritten", "unclaimed", "claim-invalid"}))
+        gaps = {entry.branch for entry in scan_change_worktrees(self.canonical) if not entry.ok}
+        self.assertEqual(gaps, {
+            "change/303-rewritten-branch",
+            "change/305-unclaimed-branch",
+            "change/306-mismatched-branch",
+        })
+
+    def test_ahead_reports_how_far_and_stays_a_pass(self) -> None:
+        """Unpushed local commits are the normal state for most of a change's
+        life. If that were a GAP the command would be red throughout and nobody
+        would read it."""
+        ahead = self._worktree("change/302-ahead-branch")
+        claim(resolve_git_dir(ahead), branch="change/302-ahead-branch",
+              session=OWNER, worktree=ahead)
+        record_push(resolve_git_dir(ahead), head=head_sha(ahead))
+        self._commit(ahead, "one")
+        self._commit(ahead, "two")
+        entry = scan_change_worktrees(self.canonical)[0]
+        self.assertTrue(entry.ok)
+        self.assertIn("2 local commit", entry.detail)
+
+    def test_the_scan_writes_nothing(self) -> None:
+        claimed = self._worktree("change/301-clean-branch")
+        git_dir = resolve_git_dir(claimed)
+        claim(git_dir, branch="change/301-clean-branch", session=OWNER, worktree=claimed)
+        unclaimed = self._worktree("change/305-unclaimed-branch")
+        before_marker = marker_path(git_dir).read_text(encoding="utf-8")
+        before_status = self._git(["status", "--porcelain"], claimed)
+
+        scan_change_worktrees(self.canonical)
+
+        self.assertEqual(marker_path(git_dir).read_text(encoding="utf-8"), before_marker)
+        self.assertEqual(self._git(["status", "--porcelain"], claimed), before_status)
+        self.assertFalse(
+            marker_path(resolve_git_dir(unclaimed)).exists(),
+            "a scan must never repair the thing it is reporting on",
+        )
+
+    def test_a_removed_worktree_directory_is_reported_not_raised(self) -> None:
+        missing = self._worktree("change/308-missing-branch")
+        claim(resolve_git_dir(missing), branch="change/308-missing-branch",
+              session=OWNER, worktree=missing)
+        subprocess.run(["rm", "-rf", str(missing)], check=True)
+        entry = scan_change_worktrees(self.canonical)[0]
+        self.assertFalse(entry.ok)
+        self.assertEqual(entry.reason, "claim-invalid")
 
 
 if __name__ == "__main__":

@@ -38,7 +38,9 @@ from .state import (
     confirm_pr_submission, default_state_root,
 )
 from .verifier import VerificationConfigError, Verifier
-from .worktree import WorktreeError, require_branch, resolve_git_dir
+from .worktree import (
+    WorktreeError, require_branch, resolve_git_dir, scan_change_worktrees,
+)
 
 
 IMPLEMENTATION_PROVIDERS = ("codex", "claude")
@@ -176,6 +178,17 @@ def main(argv: list[str] | None = None) -> int:
         help="claim a worktree another session already owns; only after it handed it back",
     )
 
+    scan = subparsers.add_parser(
+        "scan-worktrees",
+        help="read-only: report every change worktree whose HEAD left its last push",
+    )
+    scan.add_argument("--repo", required=True, type=Path)
+    scan.add_argument(
+        "--porcelain",
+        action="store_true",
+        help="emit branch<TAB>status<TAB>reason<TAB>detail for tools instead of PASS/GAP lines",
+    )
+
     for command, help_text in (
         ("publish-spec", "publish to the Issue's mapped spec path"),
         ("publish-plan", "publish to the Issue's mapped plan path"),
@@ -214,6 +227,8 @@ def main(argv: list[str] | None = None) -> int:
         return _backfill_pr_url(args.repo, args.issue, args.pr_url)
     if args.command == "check-change-documents":
         return _check_change_documents(args.repo, args.porcelain)
+    if args.command == "scan-worktrees":
+        return _scan_worktrees(args.repo, args.porcelain)
     if args.command == "claim-worktree":
         return _claim_worktree(
             args.worktree, args.branch, args.session, args.takeover
@@ -268,6 +283,32 @@ def _claim_worktree(
         "worktree": marker.worktree,
     }, ensure_ascii=False, sort_keys=True))
     return 0
+
+
+def _scan_worktrees(repo: Path, porcelain: bool) -> int:
+    try:
+        entries = scan_change_worktrees(repo)
+    except (WorktreeError, OSError) as exc:
+        print(f"worktree scan failed: {exc}", file=sys.stderr)
+        return 2
+    for entry in entries:
+        status = "PASS" if entry.ok else "GAP"
+        if porcelain:
+            print(f"{entry.branch}\t{status}\t{entry.reason}\t{entry.detail}")
+        else:
+            print(
+                f"{status}: {entry.branch} [{entry.reason}] {entry.worktree}\n"
+                f"      head={entry.head or '-'} "
+                f"last_push={entry.last_push_head or '-'} "
+                f"session={entry.session or '-'}\n"
+                f"      {entry.detail}"
+            )
+    gaps = sum(1 for entry in entries if not entry.ok)
+    if not porcelain:
+        print(
+            f"result: worktrees={len(entries)} pass={len(entries) - gaps} gap={gaps}"
+        )
+    return 0 if gaps == 0 else 1
 
 
 def _check_change_documents(repo: Path, porcelain: bool) -> int:
