@@ -43,7 +43,7 @@ depends_on: []
 - Registry/offline完整public lifecycle、重复部署、数据库迁移计数、A→B→A和故障恢复均PASS。
 - 两个任务VM精确清理PASS，保留AppServer、DockerLab、gitea-ci；旧实验文件原字节归档保留。
 - matrix2026.09.1仅追加精确consumer支持行，旧三行与历史evidence保持。
-- runtime与harness双轴审阅PASS；当前全量smoke在正式matrix更新前922 tests PASS，更新后仍需最终回归。
+- runtime与harness双轴审阅PASS；正式matrix及其精确smoke断言更新后，完整smoke 922 tests PASS。
 
 ## 边界
 
@@ -57,3 +57,5 @@ depends_on: []
 evidence/amendment/，其中real-lifecycle-843672a.json记录64阶段，cleanup-843672a.json记录精确清理。
 
 本轮全部实现及本地测试已获用户批准；不重复请求同范围授权。
+
+当前：LOCAL_COMPLETE / AWAITING_PR_CONFIRMATION。已准备唯一人工合并PR候选，未推送、未创建PR。

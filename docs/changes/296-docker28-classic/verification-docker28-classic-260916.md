@@ -55,7 +55,7 @@ updated: 2026-09-16
 - Registry linux/amd64 manifest已从官方公开仓回读，digest固定；尚未拉取到测试daemon。
 - 源码风险：containerd与classic的inspect Id可能不同，而当前_ verify_content要求严格等于manifest.image_id。下一步先真实复现身份兼容门，不预先修改runtime或supported矩阵。
 
-## 实际验证结果（取代上文准备期NOT RUN状态）
+## 首次真实身份实验结果（历史）
 
 - 实现HEAD：90b8150f29c5eb7c7bf512881e363476796b1235。
 - 两方面代码审阅初次各2项恢复问题，f65a7a2修复后复核PASS；后续CLI参数和tar根目录修复单独提交并经故障回归。
@@ -100,3 +100,12 @@ executed-original-plan.json、executed-resume-plan.json、executed-identity-plan
 - 测试环境修正：清洁PATH保留Python3.14；保留原HOME/USER和系统原TMPDIR，避免macOS /private/tmp的组继承与权限fixture预期不一致。旧registry-preflight完整负例在该环境PASS，未修改旧脚本/断言。
 - 原失败与旧实验证据不覆盖；本轮证据独立存放evidence/amendment/。
 - 实际NewEMaint应用、公司现场、PR/required CI/人工合并均NOT RUN。
+
+## 最终本地检查
+
+- cd8ce8d上的完整smoke PASS：922 tests / OK，最终静态检查标记PASS。
+- 正式matrix的46项能力/边界专项PASS；156项release回归PASS。
+- 追加第四行后原smoke三行固定断言已同步为精确四行；旧三行断言保持，新增行宽版本反例拒绝。
+- 11份历史证据hash保持；本轮amendment/SHA256SUMS.json固定成功实验、计划、清理、审阅和验证记录。
+- 当前runtime/harness所有执行文件与843672a真实实验记录一致，仅matrix按已批准AC追加精确支持行。
+- 状态LOCAL_COMPLETE / AWAITING_PR_CONFIRMATION；未推送、未创建PR，公司installed/live仍NOT RUN。

@@ -1,0 +1,42 @@
+{
+  "issue": 296,
+  "tested_source_sha": "cd8ce8de5e126b11c613854404b8602de48ded48",
+  "real_execution_sha": "843672a6a6a40fe453da94cffbd483e8d8e7d4d4",
+  "full_smoke": {
+    "result": "PASS",
+    "runtime_tests": 922,
+    "log_sha256": "c4f1db52f2231e87bbaf213c3dd3797b3738c3c2c9f31243f1c8c0b5b6b3845f",
+    "environment": "original HOME/USER/TMPDIR; Python3.14; clean process environment"
+  },
+  "release_tests": {
+    "result": "PASS",
+    "tests": 156
+  },
+  "matrix_and_boundary_tests": {
+    "result": "PASS",
+    "tests": 46
+  },
+  "standards_review": "PASS",
+  "spec_review": "PASS",
+  "real_lifecycle": {
+    "result": "PASS",
+    "phase_receipts": 64,
+    "transports": [
+      "registry",
+      "offline-bundle"
+    ],
+    "expected_negative_receipts": 10,
+    "zero_mutation_repeats": 12
+  },
+  "exact_vm_cleanup": "PASS",
+  "historical_evidence_checksums": {
+    "result": "PASS",
+    "files": 11
+  },
+  "executed_runtime_and_harness_bytes_match_current": "PASS",
+  "old_three_matrix_rows_preserved": "PASS",
+  "pr": "NOT RUN",
+  "required_pr_ci": "NOT RUN",
+  "company_installed": "NOT RUN",
+  "company_live": "NOT RUN"
+}

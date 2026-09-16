@@ -1,0 +1,15 @@
+{
+  "reviewed_change": "843672a...d4bb9f1",
+  "standards": "PASS",
+  "spec": "PASS",
+  "findings": 0,
+  "followup_commit": "cd8ce8de5e126b11c613854404b8602de48ded48",
+  "followup_scope": "smoke exact fourth-row assertion; existing three row predicates retained",
+  "followup_checks": [
+    "bash -n PASS",
+    "ShellCheck PASS",
+    "exact matrix accepted PASS",
+    "widened version bound rejected PASS",
+    "full smoke 922 tests PASS"
+  ]
+}

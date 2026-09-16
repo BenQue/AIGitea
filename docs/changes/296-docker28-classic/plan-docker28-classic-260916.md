@@ -15,7 +15,7 @@ created: 2026-09-16
 updated: 2026-09-16
 ---
 
-# 执行计划草案
+# 执行计划
 
 | Ticket | blocked_by | 交付与完成条件 |
 |---|---|---|
@@ -76,7 +76,7 @@ check-change-documents；git diff --check。
 - T02 PASS：843672a完整真实harness、20专项与默认NOT RUN。
 - T03/T04 PASS：实际64阶段两transport、幂等、迁移计数、回退及故障恢复；清理PASS。
 - T05 PASS：仅在真实PASS后增加matrix2026.09.1精确行；旧三行不变。
-- T06进行中：正式matrix后的最终smoke、文档、hash与diff，随后唯一manual PR确认。
+- T06本地PASS：正式matrix后的完整smoke922 tests、文档、hash与diff均通过；停在唯一manual PR确认，PR CI/人工合并NOT RUN。
 
 必要测试维护：test_release_capability.py中两处硬编码matrix_revision从2026.08.3同步为2026.09.1；
 保留既有能力/拒绝断言。这是已批准矩阵版本更新的机械测试适配，不改变任何运行时或权限合同。
