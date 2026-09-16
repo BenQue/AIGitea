@@ -306,9 +306,10 @@ fi
 
 jq -e '
   .contract_version == "docker-image-store-compatibility/v1" and
-  .matrix_revision == "2026.08.3" and
-  (.rows | length == 3) and
+  .matrix_revision == "2026.09.1" and
+  (.rows | length == 4) and
   ([.rows[].row_id] | sort) == [
+    "engine-28.1.1-compose-2.35.1-classic-linux-amd64",
     "engine-29-classic-linux-amd64",
     "engine-29-containerd-linux-amd64",
     "engine-29.7.1-compose-5.1.4-containerd-linux-amd64"
@@ -332,7 +333,17 @@ jq -e '
     .status == "supported" and
     .evidence.kind == "real-e2e" and
     .evidence.evidence_id == "issue-65-compose-5.1.4-97445947fff7" and
-    .evidence.source == "docs/changes/65/verification-compose-514-lifecycle-260808.md")
+    .evidence.source == "docs/changes/65/verification-compose-514-lifecycle-260808.md") and
+  (.rows[] | select(.row_id == "engine-28.1.1-compose-2.35.1-classic-linux-amd64") |
+    .engine == {"minimum": "28.1.1", "maximum_exclusive": "28.1.2"} and
+    .compose == {"minimum": "2.35.1", "maximum_exclusive": "2.35.2"} and
+    .os == "linux" and
+    .architecture == "amd64" and
+    .image_store == "classic" and
+    .status == "supported" and
+    .evidence.kind == "real-e2e" and
+    .evidence.evidence_id == "issue-296-docker28-classic-843672a6a6a4" and
+    .evidence.source == "docs/changes/296-docker28-classic/verification-docker28-classic-260916.md")
 ' "$ROOT/docker-release/compatibility/image-stores-v1.json" >/dev/null
 
 if rg -n '(^|[[:space:]])(import yaml|from yaml)' \
