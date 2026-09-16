@@ -11,11 +11,11 @@ import sys
 from typing import Mapping, Optional
 
 from aisoft_change_name import ChangeName, ChangeNameError
+from aisoft_host_access.contract import AccessContractError, load_access_contract
+from aisoft_host_access.runner import RoutineMergeRunner
 from aisoft_worktree_owner import (
     SESSION_ENV, WorktreeOwnerError, caller_session, claim as claim_worktree,
 )
-from aisoft_host_access.contract import AccessContractError, load_access_contract
-from aisoft_host_access.runner import RoutineMergeRunner
 
 from .analysis import (
     AnalysisError,

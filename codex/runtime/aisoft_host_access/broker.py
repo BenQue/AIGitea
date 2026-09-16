@@ -3363,7 +3363,14 @@ class HostAccessBroker:
             try:
                 record_push(git_dir, head=head)
             except WorktreeOwnerError as exc:
-                raise BrokerError(exc.code, str(exc)) from exc
+                # The push already landed. Say so, or the reader will retry a
+                # push that does not need retrying and will not think to look
+                # at the marker, which is the thing that actually broke.
+                raise BrokerError(
+                    exc.code,
+                    f"push landed as {head} but the ownership marker could not be "
+                    f"updated: {exc}",
+                ) from exc
             result["session"] = owner.session
             result["pushed_head"] = head
             result["previous_head"] = previous_head
