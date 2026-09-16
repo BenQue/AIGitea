@@ -46,7 +46,7 @@ updated: 2026-09-16
 | `aisoft-project-check.sh --repo <checkout>`（本地段，三个 internal-application，workflow 已与远端 main 比对一致） | PASS | NewEMaint `PASS: ci-merge-preview`；LocalWMS `PASS: ci-merge-preview`；SFMDigitalBoard `GAP: ci-merge-preview — .gitea/workflows/ci.yml 在 pull_request 上跑的是 PR head` |
 | 三仓 `main` 的 ci.yml `on:` 触发 | PASS | NewEMaint、LocalWMS、SFMDigitalBoard 都有 `push: branches: [main]`；平台仓只有 `pull_request` |
 | `aisoft-project-check.sh --remote`（Mac 上对真实仓） | NOT RUN | Mac 没有 `AGENT_ENV_FILE`（凭据只在 VM/broker），remote 段固定 GAP「AGENT_ENV_FILE 缺失」；remote 段语义由 test-project-check.sh 的 mock 证明 |
-| `gitea.protection.read`（负责人切换后） | NOT RUN | 待负责人在 Gitea 界面关闭 NewEMaint 与 LocalWMS 后读回四仓，结果补写到本表并评论 Issue |
+| `gitea.protection.read`（确认点 2 负责人告知已切换后，两次读回，间隔 20 秒） | FAIL | 四仓仍 `block_on_outdated_branch: true`，`updated_at` 未变（三仓 2026-09-05T23:07:43+08:00，SFM 2026-08-08T18:03:01+08:00）：切换未落到 Gitea，需负责人重新在界面保存后再读回 |
 
 ## Acceptance criteria 结果
 
@@ -54,12 +54,12 @@ updated: 2026-09-16
 |---|---|---|
 | AC-1 | PASS | `06` 踩坑 29 新条目（裁决、否定裁决 B/C、残余风险、关闭前提、SFM 读回）；踩坑 22 对策列收窄指针；`grep -n "#299"` 命中两行 |
 | AC-2 | PASS | 上表 test-project-check 61 例与 smoke；`public-test`、不在 manifest、403、未 `--remote` 四条既有用例原样通过 |
-| AC-3 | PARTIAL | 切换前读回已记录；切换后读回 NOT RUN，等负责人操作 |
-| AC-4 | NOT RUN | PR 尚未创建；`git diff --stat origin/main..HEAD` 不含 `.gitea/workflows/` |
+| AC-3 | PARTIAL | 切换前读回已记录；负责人告知已切换后的读回仍为 `true`（见上表），切换未生效，待重新操作后补读 |
+| AC-4 | PENDING | PR #302 已创建，required CI 待读回；`git diff --stat origin/main..HEAD` 不含 `.gitea/workflows/` |
 
 ## 遗留风险与未完成项
 
-- 切换后读回与 Issue 评论待负责人在 Gitea 界面操作 NewEMaint、LocalWMS 后补做；SFMDigitalBoard
+- 切换后读回：2026-09-16 两次读回仍为 `true`，切换未生效；待负责人重新在界面保存 NewEMaint、LocalWMS 后补读并评论 Issue；SFMDigitalBoard
   保留 `true`，直到其自己的 Issue 采纳合并预览（`ci-merge-preview` PASS）。
 - 平台仓 ci.yml 没有 push-main 触发，平台仓因此保留开关；若将来要一并关闭，先另立 Issue 加 push 触发。
 - 踩坑 28 已由 #298（PR #300，f6e2e50）占用，本条固定为 29。
