@@ -12,7 +12,7 @@ risk_flags:
   - shared-core
   - ci-change
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/299-outdated-branch-ruling
 created: 2026-09-16
 updated: 2026-09-16
@@ -56,21 +56,22 @@ updated: 2026-09-16
   这是 broker/治理变更，超出本 Issue 的可测验收标准 3 所假设的「补一条自动化」；若选 C，本 Issue
   只记录裁决并另立 Issue 实施。
 
+## 裁决（确认点 1，2026-09-16）
+
+**A 的分仓变体**：`internal-application` 关闭 `block_on_outdated_branch`；`aisoft-platform` 保留 `true`。
+B 与 C 为否定裁决，理由与残余风险记入 `06` 踩坑 29。
+
 ## Acceptance criteria
 
-- [ ] AC-1（三选一共用）：裁决、理由与残余风险写进 `06-运维手册与踩坑集.md` 踩坑 22 后续条目
-  （新编号，正文回指 22）；选 B/C 时同样把「不关闭」作为否定裁决记录。
-- [ ] AC-2（选 A）：`aisoft-project-check.sh --remote` 对 `block_on_outdated_branch=false` 与键缺失
-  不再报 `ci-outdated-branch` GAP，改为 SKIP 并带 #299 说明；`true` 仍 PASS；`public-test`、
-  不在 manifest、403、未 `--remote` 四条分支行为不变。`codex/tests/test-project-check.sh` 对应用例
-  更新并全部通过；`bash codex/tests/smoke.sh` 通过。
-- [ ] AC-3（选 A）：负责人在 Gitea 界面切换后，会话用 `gitea.protection.read` 读回平台仓与全部
-  `internal-application` 的 `block_on_outdated_branch`，结果写进 verification 并评论到本 Issue。
-  切换前后各读一次，改动前的状态只有此时能观测到。
-- [ ] AC-4（选 B）：合并串行化规程写进 `03` 或 `06`，含按钮风格与会话侧后果；检查器与测试不变。
-- [ ] AC-5（选 C）：本 Issue 记录裁决与可行性证据；实施另立 Issue，其验收标准为 Issue #299 正文
-  第 3 条（在一个 internal-application 上实测一次）。
-- [ ] AC-6（共用）：平台 required CI 全绿；不改任何项目仓的 `.gitea/workflows/*`；不改平台仓 ci.yml。
+- [ ] AC-1：裁决、理由、否定裁决（B/C）与残余风险写进 `06-运维手册与踩坑集.md` 新条目（踩坑 29，
+  回指踩坑 22；踩坑 22 的对策列加一句收窄指针）。
+- [ ] AC-2：`aisoft-project-check.sh --remote` 对 `internal-application` 的 `block_on_outdated_branch=false`
+  与键缺失不再报 `ci-outdated-branch` GAP，改为带 #299 说明的 SKIP；对 `public-platform` 仍报 GAP；
+  `true` 一律 PASS；`public-test`、不在 manifest、403、未 `--remote` 四条分支行为不变。
+  `codex/tests/test-project-check.sh` 对应用例更新并全部通过；`bash codex/tests/smoke.sh` 通过。
+- [ ] AC-3：负责人在 Gitea 界面切换三个 `internal-application` 后，会话用 `gitea.protection.read`
+  读回四仓的 `block_on_outdated_branch`，结果写进 verification 并评论到本 Issue。切换前后各读一次。
+- [ ] AC-4：平台 required CI 全绿；不改任何项目仓的 `.gitea/workflows/*`；不改平台仓 ci.yml。
 
 ## 接口、数据与兼容性影响
 
@@ -92,4 +93,4 @@ updated: 2026-09-16
 
 ## 未决问题
 
-- A / B / C 三选一：由负责人在确认点 1 裁决。裁决前不进入 `approved`。
+- 无。三选一已于 2026-09-16 确认点 1 裁决。

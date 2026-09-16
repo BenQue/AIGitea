@@ -24,7 +24,7 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/299-outdated-branch-ruling
 pr_url:
 created: 2026-09-16
@@ -120,4 +120,12 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- A/B/C 三选一由负责人在确认点 1 裁决；裁决前 spec 的「未决问题」不清空，不进入 `approved`。
+- 无。A/B/C 已于 2026-09-16 确认点 1 裁决，见下。
+
+## 裁决（确认点 1，2026-09-16）
+
+负责人选定 **A 的分仓变体**：`internal-application`（NewEMaint、LocalWMS、SFMDigitalBoard）关闭
+`block_on_outdated_branch`，`ci-outdated-branch` 对 internal-application 读到 `false` 改报带裁决说明的
+SKIP；`aisoft-platform` 保留 `true`、检查器仍要求 `true`（平台仓 ci.yml 只有 `pull_request` 触发，
+没有 push-main CI 兜底，且并行度低）。B、C 作为否定裁决与残余风险一并写进 `06` 踩坑 29。
+Gitea 界面开关由负责人人工切换，会话只读回。已启动 Development Loop（manual PR）。
