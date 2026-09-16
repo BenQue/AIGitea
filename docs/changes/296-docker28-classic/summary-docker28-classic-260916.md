@@ -9,7 +9,7 @@ contract_effect: add
 confidence: high
 risk_flags:
   - deployment
-status: approved
+status: pr-open
 branch: change/296-docker28-classic
 created: 2026-09-16
 updated: 2026-09-16
@@ -25,7 +25,7 @@ documents:
   plan: plan-docker28-classic-260916.md
   verification: verification-docker28-classic-260916.md
 override_reason: ''
-pr_url: ''
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/297
 depends_on: []
 ---
 
@@ -49,7 +49,7 @@ depends_on: []
 
 公司执行器/profile/grants/端口4000安装包由NewEMaint后续阶段承接。公司installed/live、
 公司实际镜像层拉取、迁移与业务验收仍NOT RUN；公司旧emaintenance/gitea未操作。
-最终manual PR、required CI与人工合并尚未执行。
+最终manual PR #297已创建；required CI正在跟进，人工合并尚未执行。
 
 ## 证据
 
@@ -58,4 +58,4 @@ evidence/amendment/，其中real-lifecycle-843672a.json记录64阶段，cleanup-
 
 本轮全部实现及本地测试已获用户批准；不重复请求同范围授权。
 
-当前：LOCAL_COMPLETE / AWAITING_PR_CONFIRMATION。已准备唯一人工合并PR候选，未推送、未创建PR。
+当前：PR_OPEN / CI_PENDING。用户已明确批准提交；唯一人工合并PR为#297，分支已推送。
