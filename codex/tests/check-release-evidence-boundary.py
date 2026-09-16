@@ -45,7 +45,7 @@ MATRIX = "docker-release/compatibility/image-stores-v1.json"
 # advanced only with the corresponding behavior tests and real-E2E evidence.
 CURRENT_SOURCE_PINS: dict[str, str] = {
     MATRIX: '8fb9b50660159c16f3b7cbd5cf655fc1cef9d2885dd9db143054d420fcd11b8c',
-    'codex/runtime/aisoft_release/runner.py': '0f71e8a9e663d51bb72956d7dfd4b46e633b63027b9f0fedf96ea399f24ff7d4',
+    'codex/runtime/aisoft_release/runner.py': 'ec6e0a9e56d8139102fb2a94fc31374886cd97b38e9166fa4f9d411e710533d6',
     'codex/runtime/aisoft_release/transport.py': '66929752efe7515fff425c95083c6593f7eabf6b3105daf2019169d1c6c0bf95',
 }
 CONTENT_EXEMPT = {"docker-release/README.md", "docker-release/install.sh"}
