@@ -17,6 +17,9 @@ from urllib.parse import parse_qsl, quote, urlparse, urlsplit
 from urllib.request import Request, urlopen
 
 from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
+from aisoft_worktree_owner import (
+    WorktreeOwnerError, authorize_push, caller_session, record_push,
+)
 
 from .contract import (
     IDENTIFIER_RE,
@@ -3242,6 +3245,22 @@ class HostAccessBroker:
             ).stdout.strip()
             if head != branch_head:
                 raise BrokerError("TARGET_MISMATCH", "worktree HEAD does not match its exact branch")
+            # #298: a change worktree has exactly one writer. Everything above
+            # this line is satisfied by *any* session standing in *any* linked
+            # worktree of the same repository — `git rebase` / `git commit` /
+            # `git checkout` never reach the broker at all, so ownership is the
+            # only check that can tell "the owning session" from "whoever
+            # happened to cd in here". It runs before credentials resolve, so a
+            # refusal performs no network write.
+            git_dir = self._run(
+                ["git", "rev-parse", "--absolute-git-dir"], cwd=checkout
+            ).stdout.strip()
+            try:
+                owner = authorize_push(
+                    git_dir, branch=safe_branch, session=caller_session()
+                )
+            except WorktreeOwnerError as exc:
+                raise BrokerError(exc.code, str(exc)) from exc
 
         credential = self.credentials.resolve(project, operation)
         self._verify_identity(credential)
@@ -3316,6 +3335,10 @@ class HostAccessBroker:
             remote_sha = next(
                 (sha for name, sha in remote_heads if name.branch == safe_branch), ""
             )
+            # The lease is exactly "what this branch pointed at on the remote
+            # before this push", so it is also the previous push's sha. The
+            # caller gets it back to compare against what it verified (#298).
+            previous_head = remote_sha or None
             argv = [
                 "git", "push",
                 f"--force-with-lease=refs/heads/{safe_branch}:{remote_sha}",
@@ -3324,11 +3347,7 @@ class HostAccessBroker:
             ]
         else:
             raise BrokerError("OPERATION_UNIMPLEMENTED", "Git operation is not implemented")
-        if operation.name == "git.push.change":
-            self._push_leased(argv, checkout, env)
-        else:
-            self._run(argv, cwd=checkout, env=env)
-        return {
+        result: dict[str, object] = {
             "status": "PASS",
             "project": project.project_id,
             "operation": operation.name,
@@ -3336,6 +3355,21 @@ class HostAccessBroker:
             "checkout": checkout,
             "remote_name": remote_name,
         }
+        if operation.name == "git.push.change":
+            self._push_leased(argv, checkout, env)
+            # Only after the push actually landed. A sha recorded here reads
+            # back as "the remote has this", and writing one that never landed
+            # would make the ownership scan report a clean worktree that is not.
+            try:
+                record_push(git_dir, head=head)
+            except WorktreeOwnerError as exc:
+                raise BrokerError(exc.code, str(exc)) from exc
+            result["session"] = owner.session
+            result["pushed_head"] = head
+            result["previous_head"] = previous_head
+        else:
+            self._run(argv, cwd=checkout, env=env)
+        return result
 
     def _push_leased(
         self, argv: Sequence[str], checkout: str, env: Mapping[str, str]

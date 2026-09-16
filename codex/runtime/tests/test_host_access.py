@@ -26,6 +26,9 @@ from aisoft_host_access.cli import main as host_access_cli_main
 from aisoft_host_access.contract import AccessContractError, load_access_contract
 from aisoft_host_access.profiles import ProfileMigrator
 from aisoft_host_access.runner import GovernedHostRunner, RoutineMergeRunner
+from aisoft_worktree_owner import (
+    SESSION_ENV, claim as claim_worktree, read_marker,
+)
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -557,8 +560,36 @@ class MattRepositoryAdapterTests(unittest.TestCase):
 
 
 class HostAccessBrokerTests(unittest.TestCase):
+    # #298: every change worktree these tests build is claimed by this session,
+    # and the broker reads the caller's identity out of the environment. A test
+    # that wants to be somebody else overrides it for its own call.
+    OWNER_SESSION = "owner-session"
+
     def setUp(self) -> None:
         self.contract = load_access_contract(ACCESS, GOVERNANCE)
+        previous = os.environ.get(SESSION_ENV)
+        os.environ[SESSION_ENV] = self.OWNER_SESSION
+
+        def restore() -> None:
+            if previous is None:
+                os.environ.pop(SESSION_ENV, None)
+            else:
+                os.environ[SESSION_ENV] = previous
+
+        self.addCleanup(restore)
+
+    def _claim(
+        self, worktree, branch: str, session: str | None = None, takeover: bool = False
+    ) -> None:
+        """Claim a change worktree for its owning session, the way a real
+        session does right after `git worktree add`."""
+        claim_worktree(
+            self._git(["rev-parse", "--absolute-git-dir"], cwd=worktree),
+            branch=branch,
+            session=session or self.OWNER_SESSION,
+            worktree=worktree,
+            takeover=takeover,
+        )
 
     def transport(self, method, url, headers, body):
         self.assertEqual(method, "GET")
@@ -4338,6 +4369,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         (linked / "change.txt").write_text("change 70\n")
         self._git(["add", "change.txt"], cwd=linked)
         self._git(["commit", "-q", "-m", "change 70"], cwd=linked)
+        self._claim(linked, "change/70")
         return canonical, linked
 
     def test_repo_local_binding_is_idempotent_and_secret_free(self) -> None:
@@ -4671,6 +4703,10 @@ class HostAccessBrokerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             canonical, linked = self._linked_change_worktree(temporary)
             self._git(["branch", "-m", "change/70-readable-change-name"], cwd=linked)
+            # Renaming the branch invalidates the claim on purpose: the marker
+            # names the exact change branch, so a rename has to be re-claimed
+            # rather than silently inherited.
+            self._claim(linked, "change/70-readable-change-name", takeover=True)
             contract = self._temporary_checkout_contract(canonical)
 
             pushes: list[list[str]] = []
@@ -4805,6 +4841,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         (linked / "change.txt").write_text("change 70\n")
         self._git(["add", "change.txt"], cwd=linked)
         self._git(["commit", "-q", "-m", "change 70"], cwd=linked)
+        self._claim(linked, self.LEASE_BRANCH)
         return remote, canonical, linked
 
     def _remote_backed_runner(self, remote: Path, commands: list, after_ls_remote=None):
@@ -4940,6 +4977,193 @@ class HostAccessBrokerTests(unittest.TestCase):
                 [argv[2] for argv in races if argv[:2] == ["git", "push"]],
                 [f"--force-with-lease=refs/heads/{self.LEASE_BRANCH}:{leased}"],
                 "the refusal must come from the pre-move lease, not from luck",
+            )
+
+    # ---- #298 single-writer ownership -----------------------------------
+
+    def _owner_marker(self, linked):
+        return read_marker(self._git(["rev-parse", "--absolute-git-dir"], cwd=linked))
+
+    def test_push_returns_both_shas_and_records_the_landed_push(self) -> None:
+        """AC-4: the caller gets back what it just pushed and what the branch
+        pointed at before, so it can compare against the sha it verified."""
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            broker = self._remote_backed_broker(
+                canonical, linked, self._remote_backed_runner(remote, [])
+            )
+
+            first = broker.execute(
+                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+            )
+            first_head = self._git(["rev-parse", "HEAD"], cwd=linked)
+            self.assertEqual(first["pushed_head"], first_head)
+            self.assertRegex(first["pushed_head"], r"^[0-9a-f]{40}$")
+            self.assertIsNone(
+                first["previous_head"], "a branch the remote never had has no previous head"
+            )
+            self.assertEqual(first["session"], self.OWNER_SESSION)
+            self.assertEqual(self._owner_marker(linked).last_push_head, first_head)
+
+            (linked / "more.txt").write_text("more\n")
+            self._git(["add", "more.txt"], cwd=linked)
+            self._git(["commit", "-q", "-m", "more"], cwd=linked)
+            second = broker.execute(
+                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+            )
+            self.assertEqual(second["previous_head"], first_head)
+            self.assertEqual(
+                second["pushed_head"], self._git(["rev-parse", "HEAD"], cwd=linked)
+            )
+            self.assertEqual(
+                self._owner_marker(linked).last_push_head, second["pushed_head"]
+            )
+
+    def test_a_failed_push_is_never_recorded_as_landed(self) -> None:
+        """A sha in the ledger reads back as 'the remote has this'. Recording a
+        push that was refused would make the scan call a rewritten worktree clean."""
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+
+            def runner(argv, *, cwd=None, env=None):
+                argv = list(argv)
+                if argv[:2] == ["git", "push"]:
+                    return subprocess.CompletedProcess(argv, 1, "", "rejected")
+                if argv[:2] in (["git", "fetch"], ["git", "ls-remote"]):
+                    argv = [str(remote) if token == "origin" else token for token in argv]
+                return subprocess.run(
+                    argv, cwd=cwd, env=env, check=False, text=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                )
+
+            broker = self._remote_backed_broker(canonical, linked, runner)
+            with self.assertRaises(BrokerError):
+                broker.execute(
+                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                )
+            self.assertIsNone(self._owner_marker(linked).last_push_head)
+
+    def test_every_ownership_refusal_has_its_own_code_and_pushes_nothing(self) -> None:
+        """AC-2: four distinct refusals, none of them reusing WORKTREE_DIRTY,
+        and every one of them decided before a single byte goes to the remote."""
+        for label, prepare, expected in (
+            (
+                "unclaimed",
+                lambda linked, git_dir: (git_dir / "aisoft-owner.json").unlink(),
+                "WORKTREE_UNCLAIMED",
+            ),
+            (
+                "claim invalid",
+                lambda linked, git_dir: (git_dir / "aisoft-owner.json").write_text(
+                    "{}", encoding="utf-8"
+                ),
+                "WORKTREE_CLAIM_INVALID",
+            ),
+            (
+                "another session",
+                lambda linked, git_dir: os.environ.__setitem__(
+                    SESSION_ENV, "intruder-session"
+                ),
+                "WORKTREE_OWNER_MISMATCH",
+            ),
+            (
+                "no session id",
+                lambda linked, git_dir: os.environ.pop(SESSION_ENV, None),
+                "WORKTREE_OWNER_MISMATCH",
+            ),
+        ):
+            with self.subTest(label), tempfile.TemporaryDirectory() as temporary:
+                remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+                commands: list = []
+                broker = self._remote_backed_broker(
+                    canonical, linked, self._remote_backed_runner(remote, commands)
+                )
+                prepare(linked, Path(
+                    self._git(["rev-parse", "--absolute-git-dir"], cwd=linked)
+                ))
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute(
+                        "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                    )
+                self.assertEqual(caught.exception.code, expected)
+                self.assertNotEqual(caught.exception.code, "WORKTREE_DIRTY")
+                self.assertEqual(
+                    [argv for argv in commands if argv[:2] == ["git", "push"]],
+                    [],
+                    "an ownership refusal must happen before anything reaches the remote",
+                )
+                self.assertEqual(self._remote_sha(remote, self.LEASE_BRANCH), "")
+                os.environ[SESSION_ENV] = self.OWNER_SESSION
+
+    def test_a_second_session_cannot_push_from_the_worktree_it_wandered_into(self) -> None:
+        """AC-5: the NewEMaint #96 shape. B rebases inside A's worktree — none of
+        that reaches the broker — and then tries to push it as itself."""
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            commands: list = []
+            broker = self._remote_backed_broker(
+                canonical, linked, self._remote_backed_runner(remote, commands)
+            )
+            owner_head = broker.execute(
+                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+            )["pushed_head"]
+
+            # B walks in: a plain local rebase, invisible to the platform.
+            self._advance_remote_main(remote, canonical, "another-issue")
+            self._git(["fetch", "-q", str(remote), "refs/heads/main:refs/remotes/origin/main"], cwd=canonical)
+            self._git(["rebase", "-q", "refs/remotes/origin/main"], cwd=linked)
+            rewritten = self._git(["rev-parse", "HEAD"], cwd=linked)
+            self.assertNotEqual(rewritten, owner_head)
+
+            os.environ[SESSION_ENV] = "intruder-session"
+            with self.assertRaises(BrokerError) as caught:
+                broker.execute(
+                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                )
+            self.assertEqual(caught.exception.code, "WORKTREE_OWNER_MISMATCH")
+            self.assertEqual(
+                self._remote_sha(remote, self.LEASE_BRANCH),
+                owner_head,
+                "the remote must still hold exactly what the owner pushed",
+            )
+            os.environ[SESSION_ENV] = self.OWNER_SESSION
+
+    def test_the_owner_still_rebases_and_repushes_without_reclaiming(self) -> None:
+        """AC-6: the BASE_BRANCH_STALE path is the owner's own, and ownership
+        must not add a step to it."""
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            broker = self._remote_backed_broker(
+                canonical, linked, self._remote_backed_runner(remote, [])
+            )
+            first = broker.execute(
+                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+            )
+
+            self._advance_remote_main(remote, canonical, "someone-elses-merge")
+            with self.assertRaises(BrokerError) as stale:
+                broker.execute(
+                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                )
+            self.assertEqual(stale.exception.code, "BASE_BRANCH_STALE")
+
+            broker.execute("aisoft-platform", "git.fetch.main")
+            self._git(["rebase", "-q", "refs/remotes/origin/main"], cwd=linked)
+            rebased = broker.execute(
+                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+            )
+
+            self.assertEqual(rebased["status"], "PASS")
+            self.assertEqual(
+                rebased["previous_head"], first["pushed_head"],
+                "the rebase moved the branch, and the return body says where from",
+            )
+            self.assertEqual(
+                rebased["pushed_head"], self._git(["rev-parse", "HEAD"], cwd=linked)
+            )
+            self.assertEqual(
+                self._owner_marker(linked).session, self.OWNER_SESSION,
+                "no re-claim was needed and none happened",
             )
 
     def test_stale_base_branch_is_rejected_before_the_push_runs(self) -> None:
