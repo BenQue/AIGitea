@@ -26,7 +26,7 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/298-worktree-single-writer
 pr_url:
 created: 2026-09-16

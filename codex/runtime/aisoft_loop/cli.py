@@ -8,9 +8,12 @@ import json
 import os
 from pathlib import Path
 import sys
-from typing import Mapping
+from typing import Mapping, Optional
 
 from aisoft_change_name import ChangeName, ChangeNameError
+from aisoft_worktree_owner import (
+    SESSION_ENV, WorktreeOwnerError, caller_session, claim as claim_worktree,
+)
 from aisoft_host_access.contract import AccessContractError, load_access_contract
 from aisoft_host_access.runner import RoutineMergeRunner
 
@@ -35,6 +38,7 @@ from .state import (
     confirm_pr_submission, default_state_root,
 )
 from .verifier import VerificationConfigError, Verifier
+from .worktree import WorktreeError, require_branch, resolve_git_dir
 
 
 IMPLEMENTATION_PROVIDERS = ("codex", "claude")
@@ -151,6 +155,27 @@ def main(argv: list[str] | None = None) -> int:
         help="emit name<TAB>status<TAB>detail for tools instead of PASS/GAP lines",
     )
 
+    claim = subparsers.add_parser(
+        "claim-worktree",
+        help="bind one change worktree to the single session that may write it",
+    )
+    claim.add_argument("--branch", required=True)
+    claim.add_argument(
+        "--session",
+        help=f"owning session id; defaults to ${SESSION_ENV}",
+    )
+    claim.add_argument(
+        "--worktree",
+        type=Path,
+        default=Path.cwd(),
+        help="the change worktree to claim (default: the current directory)",
+    )
+    claim.add_argument(
+        "--takeover",
+        action="store_true",
+        help="claim a worktree another session already owns; only after it handed it back",
+    )
+
     for command, help_text in (
         ("publish-spec", "publish to the Issue's mapped spec path"),
         ("publish-plan", "publish to the Issue's mapped plan path"),
@@ -189,6 +214,10 @@ def main(argv: list[str] | None = None) -> int:
         return _backfill_pr_url(args.repo, args.issue, args.pr_url)
     if args.command == "check-change-documents":
         return _check_change_documents(args.repo, args.porcelain)
+    if args.command == "claim-worktree":
+        return _claim_worktree(
+            args.worktree, args.branch, args.session, args.takeover
+        )
     if args.command == "publish-spec":
         return _publish_document(args.repo, args.issue, args.body, "spec")
     if args.command == "publish-plan":
@@ -203,6 +232,41 @@ def _backfill_pr_url(repo: Path, issue: int, pr_url: str) -> int:
         print(f"pr_url backfill refused: {exc}", file=sys.stderr)
         return 2
     print(f"{'changed' if changed else 'unchanged'} {summary_path}")
+    return 0
+
+
+def _claim_worktree(
+    worktree: Path, branch: str, session: Optional[str], takeover: bool
+) -> int:
+    resolved_session = (session or caller_session()).strip()
+    if not resolved_session:
+        print(
+            f"claim refused: pass --session or set ${SESSION_ENV}",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        require_branch(worktree, branch)
+        git_dir = resolve_git_dir(worktree)
+        marker, result = claim_worktree(
+            git_dir,
+            branch=branch,
+            session=resolved_session,
+            worktree=worktree,
+            takeover=takeover,
+        )
+    except (WorktreeOwnerError, WorktreeError, OSError) as exc:
+        code = exc.code if isinstance(exc, WorktreeOwnerError) else "CLAIM_FAILED"
+        print(f"claim refused: {code}: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps({
+        "branch": marker.branch,
+        "issue": marker.issue,
+        "last_push_head": marker.last_push_head,
+        "result": result,
+        "session": marker.session,
+        "worktree": marker.worktree,
+    }, ensure_ascii=False, sort_keys=True))
     return 0
 
 
