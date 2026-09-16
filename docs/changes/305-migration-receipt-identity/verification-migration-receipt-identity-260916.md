@@ -45,7 +45,7 @@ updated: 2026-09-16
 | T02 后重跑改动前的复现脚本 | PASS | B `migrate` → `migration-noop`，B `activate` → `activated`；migration 容器事件仍只有 A 那一次；receipt 仍为 `{"release_id": SHA_A, "status": "completed"}` |
 | `python3 codex/tests/check-release-evidence-boundary.py`（推进 runner 哈希后） | PASS | `current_source_conformance: PASS`、`current_release_regression: PASS`、`historical_evidence_binding: PASS`、`historical_harness_fake_regression: PASS`；`runner_sha256: ec6e0a9e56d8139102fb2a94fc31374886cd97b38e9166fa4f9d411e710533d6` |
 | T03 后全量 `bash codex/tests/smoke.sh` | PASS | `Ran 965 tests ... OK` / `Codex platform static smoke checks passed.`；比基线多 3 条，正是新增的三个用例 |
-| 最终 head 全量 `bash codex/tests/smoke.sh`（`45b3156`） | PASS | `Ran 965 tests ... OK` / `Codex platform static smoke checks passed.` |
+| 最终 head 全量 `bash codex/tests/smoke.sh` | PASS | 见下方「最终 head 复核」：`43b89ef`、`45b3156` 与最终 head 上各跑一次，均 `Ran 965 tests ... OK` |
 
 改动前才观测得到的两条证据是本记录的核心：**复现脚本的 stale 报错**与
 **T01 之后 T02 之前的红**。修复合并后这两条都无法重放。
@@ -63,12 +63,15 @@ updated: 2026-09-16
 
 ## 最终 head 复核
 
-- 最终 head：`45b3156`（`docs(#305 T04): 验证记录，含改动前的复现与红`），即本文档
-  加入后的树。
-- 全量 `bash codex/tests/smoke.sh`：PASS，`Ran 965 tests ... OK` /
+- 最后一条改动源码的 commit 是 `be593cc`（T02）。其后每一条 commit 都只改
+  `docs/` 下的文字：`43b89ef` 改合同文档与踩坑集，之后的几条只改本文件。
+- 全量 `bash codex/tests/smoke.sh`：在 `43b89ef`、`45b3156` 与本分支最终 head 上
+  各跑一次，三次都 PASS，`Ran 965 tests ... OK` /
   `Codex platform static smoke checks passed.`
 - `aisoft-loop check-change-documents --repo .`：PASS，
   `changes=139 pass=2 gap=0`。
+- 此处不钉最终 head 的 40 位 SHA：补记这一行本身就会改变它。钉住的是
+  「最后一条源码 commit」与「每个 head 都跑过全量 smoke」这两条可复核的事实。
 
 ## 遗留风险与未完成项
 
