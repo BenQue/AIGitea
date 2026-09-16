@@ -1,0 +1,26 @@
+{
+  "head": "90b8150f29c5eb7c7bf512881e363476796b1235",
+  "release_unit_tests": {
+    "tests": 140,
+    "result": "PASS"
+  },
+  "focused_tests": {
+    "tests": 16,
+    "result": "PASS"
+  },
+  "shellcheck": "PASS",
+  "bash_syntax": "PASS",
+  "full_smoke": {
+    "result": "FAIL",
+    "step": "registry-preflight",
+    "message": "stopped registry expected exit 1 actual 0",
+    "existing_script_unchanged": true
+  },
+  "real_preflight": "PASS",
+  "registry_transfer": "PASS",
+  "offline_transfer": "PASS",
+  "original_runtime_identity": "BLOCKED",
+  "full_lifecycle": "NOT RUN",
+  "task_vm_cleanup": "PASS",
+  "company_live": "NOT RUN"
+}

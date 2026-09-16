@@ -1,0 +1,45 @@
+{
+  "baseline_vm_names": [
+    "AppServer",
+    "DockerLab",
+    "gitea-ci"
+  ],
+  "before_vm_names": [
+    "AppServer",
+    "DockerLab",
+    "aisoft-296-consumer",
+    "aisoft-296-producer",
+    "gitea-ci"
+  ],
+  "preserved_vm_names": [
+    "AppServer",
+    "DockerLab",
+    "gitea-ci"
+  ],
+  "removed": [
+    "aisoft-296-consumer",
+    "aisoft-296-producer"
+  ],
+  "result": "PASS",
+  "source": {
+    "files_sha256": {
+      "codex/runtime/aisoft_release/__init__.py": "f6179ea8c638ac0a1cac51689d19049cca7edf8ebf79214e6cb1ce5b0266962e",
+      "codex/runtime/aisoft_release/cli.py": "9e94648cbbaad7314502401ad566a0267999381559970507c29b35054dbc1aa2",
+      "codex/runtime/aisoft_release/compatibility.py": "36e82ecef0a8071b5b5ebe7f0fb851626295e20305c34278b4f40ec8e86a2079",
+      "codex/runtime/aisoft_release/compose.py": "8aaff5820228d5b4c3bb2fd79e70359b971c5b0f74757bae8fd70ef900cbfa87",
+      "codex/runtime/aisoft_release/contract.py": "aeeb3152443cce026cb1deb478d56fe520dd21006ce511a1253c7152ddf77b77",
+      "codex/runtime/aisoft_release/docker.py": "3ac0e2677ad82621f2bdcd48d98ea78c2d762a8d305973c82a9983b07455bdd9",
+      "codex/runtime/aisoft_release/errors.py": "482325befeef7c5832499c3c52ca71bc24e10b5059ab9c1b693b6576f7531d2b",
+      "codex/runtime/aisoft_release/gate.py": "f1acc757719beafaed82c75b27cd9952d837cb7d2c4d6f8c82c4c36b29aa3aca",
+      "codex/runtime/aisoft_release/runner.py": "95092fbd6deab1a536d53371444c9b9c708b538cff3bc1ac4ebbd7dae3bff195",
+      "codex/runtime/aisoft_release/security.py": "0a347f56eb2339dc264815b0d238fb8431555e53e0bd791a183deba1730747a2",
+      "codex/runtime/aisoft_release/state.py": "0b10ba6a77d122892b4dfd5252276a7c3b9c9cefa453ec756b44c5c5ccb53a87",
+      "codex/runtime/aisoft_release/transport.py": "26be1c6efa2d05628a613b7134899196e5004e5126e0a5b592f4966857158f21",
+      "codex/tests/fixtures/docker28-classic/identity.txt": "a1ecec3f03b45de83a3952761894f49d1f870252c6f600b15cd97cb823ece75b",
+      "codex/tests/fixtures/docker28-classic/install-daemon.sh": "c1e75abfacb220b9c80ec25e8e151ad07d34895bf2b93b02581575083494e348",
+      "codex/tests/fixtures/docker28-classic/software-lock.json": "f5229a9bebe31ba8f4684b0e30271ee4e6fa4b4f3454c4a32334a048d832e86a",
+      "codex/tests/integration/docker28-classic-driver.py": "d150bcb9ffca237cdcc02b23fad4cdaddde8e73a5f8fdaa0a177b5bf36c73fea"
+    },
+    "source_sha": "90b8150f29c5eb7c7bf512881e363476796b1235"
+  }
+}

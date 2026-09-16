@@ -1,0 +1,32 @@
+{
+  "source": "Official Docker HTTPS distribution and GitHub docker/compose release assets",
+  "compose_checksums_independently_matched": true,
+  "docker_sha256_kind": "SHA256 of exact official HTTPS bytes; pinned before installation",
+  "downloads": [
+    {
+      "name": "docker-29.7.1.tgz",
+      "url": "https://download.docker.com/linux/static/stable/x86_64/docker-29.7.1.tgz",
+      "sha256": "0fcea2a8b4d1b54ccc9010e3451b78504a369d414f37eb3bb79300e1b5c22ce6",
+      "size": 85698569
+    },
+    {
+      "name": "docker-28.1.1.tgz",
+      "url": "https://download.docker.com/linux/static/stable/x86_64/docker-28.1.1.tgz",
+      "sha256": "ff34bd799b5e4c3738a3b1a383cf4067c672add48c7203fcd003fcb0aacebc94",
+      "size": 78865677
+    },
+    {
+      "name": "docker-compose-5.1.4",
+      "url": "https://github.com/docker/compose/releases/download/v5.1.4/docker-compose-linux-x86_64",
+      "sha256": "33b208d7e76639db742fae84b966cc01dacae58ca3fc4dabbc907045aefdf0c4",
+      "size": 32884231
+    },
+    {
+      "name": "docker-compose-2.35.1",
+      "url": "https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-x86_64",
+      "sha256": "7bdb2ce2916e5dd0354e5d129892bf96fdcdb1a9ab8eed69b9173e131db4c230",
+      "size": 73699264
+    }
+  ],
+  "registry_linux_amd64": "docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278"
+}

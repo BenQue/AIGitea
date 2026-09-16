@@ -9,7 +9,7 @@ contract_effect: add
 confidence: high
 risk_flags:
   - deployment
-status: approved
+status: spec-drafting
 branch: change/296-docker28-classic
 created: 2026-09-16
 updated: 2026-09-16
@@ -79,3 +79,36 @@ updated: 2026-09-16
 本地实验失败先收集脱敏证据，仅按allowlist清理自有资源，不自动重试不确定migration。
 源码可通过受治理revert恢复；公司未应用所以无公司现场回滚。
 
+## 待批准增补：以已验证内容图识别跨store的同一镜像
+
+本节为提案，尚未授权、未实施；上文“runtime保持”规则目前仍有效。来源为本次真实evidence/real-identity.json。
+
+### 精确行为
+
+- 保留已发布release.json、registry digest、archive checksum和镜像原字节，不重写image_id来迁就目标机。
+- 对docker-release/v2，从已完成严格验证的OCI archive图推导该service唯一linux/amd64的config digest，以及该图已经证明的native descriptor identity。
+- Registry仍必须验证exact RepoDigests；offline仍验证整个archive图、checksum、runtime tag、OS/arch。只允许本图证明的等价身份，不接受任意ID或仅RootFS相同。
+- 目标的image inspect.Id必须命中该验证结果；激活后的container.Image必须等于重新校验过的目标本地image.Id，同时保留release/service labels、runtime tag与health校验。
+- stage receipt仍以原release SHA和原manifest.image_id绑定源制品；每次消费receipt继续严格assert_local_images。无需本次改state格式、旧receipt原字节或数据库。
+- legacy v1保持既有严格比较，不默默升级旧合同；index/provenance必须验证唯一可运行amd64图，不允许跨其它平台混配。
+- 完整真实Registry/offline public lifecycle、重复部署与失败回滚均通过后，才能按原批准范围增加精确matrix支持行。
+
+### 追加文件范围
+
+允许追加修改 codex/runtime/aisoft_release/transport.py 和 runner.py，以及
+codex/runtime/tests/test_release_transport.py、test_release_runner.py；
+既有check-release-evidence-boundary.py及test_release_evidence_boundary.py纳入精确本次差异和独立当前行为验证，
+保持历史基线与旧真实evidence不变；不能增加广泛豁免或删除检查。
+必要的README/本Issue四文档和T02新harness沿用已批准范围。state.py、contract.py、schema、权限gate、AGENTS及公司系统不在新增范围。
+如果实现发现还需变更这些文件或放宽其它语义，先报告，不静默扩展。
+
+### 追加验收
+
+1. 真实本次manifest/config分歧成为回归fixture；两个合法native ID路径均通过同一源制品证明。
+2. 非本图config、其它平台config、伪造descriptor、替换archive member、错误RepoDigests、stale container.Image以及标签漂移均拒绝。
+3. 原containerd和legacy路径回归不退化，原receipt绑定保留；容器最终ID校验必须基于验证后的本地内容而非只有tag。
+4. 在重新创建的两个已批准专属VM重复Registry/offline完整lifecycle，保留每阶段和精确清理证据；公司仍NOT RUN。
+5. 新源码与当前bytes边界受完整回归验证；当前无关registry-preflight smoke失败独立处理，不将失败改写为PASS。
+
+回滚：本增补源码可通过受治理revert恢复；没有改公司或业务数据。
+批准本增补后先做独立合同提交，再由fresh implementation context继续，不重复原VM/fixture测试授权。

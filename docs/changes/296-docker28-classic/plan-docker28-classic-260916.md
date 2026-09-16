@@ -9,7 +9,7 @@ contract_effect: add
 confidence: high
 risk_flags:
   - deployment
-status: approved
+status: spec-drafting
 branch: change/296-docker28-classic
 created: 2026-09-16
 updated: 2026-09-16
@@ -50,3 +50,16 @@ check-change-documents；git diff --check。
 ## 启动批准
 
 2026-09-16用户明确“批准实施”。T01本轮固化合同；T02由读取已提交合同的独立实现上下文继续。
+
+## 本轮执行结果
+
+- T01 PASS：de26edc合同提交。
+- T02 PARTIAL：cb3df34/f65a7a2/b73af5a/90b8150实现与修复最小身份门，完整public lifecycle未实施。
+- T03 PASS：两台amd64专属VM精确版本/store/独立daemon ID预检通过。
+- T04 BLOCKED：真实Registry pull与offline load完成，均被原_verify_content拒绝；完整lifecycle未执行。精确清理PASS。
+- T05 NOT RUN：matrix原字节保持。
+- T06 PARTIAL：140项release测试及16项专项PASS；完整smoke在既有registry-preflight负例FAIL；PR未提交。
+
+待批准spec增补后新增T07独立增补合同并停止，T08 fresh run实现transport/runner最小身份投影及正反例，
+然后恢复T02/T04/T05/T06。T04重新开始前，先将已清理实验的LAB目录按版本化入口归档，
+保留原approval/evidence；禁止覆盖历史测试结果或复用未清理VM。
