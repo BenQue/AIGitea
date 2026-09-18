@@ -88,6 +88,7 @@ for script in \
   "$ROOT/codex/tools/project-profile-migration.sh" \
   "$ROOT/codex/tools/aisoft-platform-readiness.sh" \
   "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
+  "$ROOT/codex/tools/install-runner-flutter.sh" \
   "$ROOT/codex/agent/gitea-token.sh" \
   "$ROOT/codex/agent/change-merge-range.sh" \
   "$ROOT/codex/agent/aisoft-project-target.sh" \
@@ -109,6 +110,7 @@ for script in \
   "$ROOT/codex/tests/test-host-access-broker.sh" \
   "$ROOT/codex/tests/test-install-host-access-broker.sh" \
   "$ROOT/codex/tests/test-installer-source-guard.sh" \
+  "$ROOT/codex/tests/test-install-runner-flutter.sh" \
   "$ROOT/codex/tests/test-codex-drift.sh" \
   "$ROOT/codex/tests/test-platform-readiness.sh" \
   "$ROOT"/sync/*.sh \
@@ -147,6 +149,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/project-profile-migration.sh" \
     "$ROOT/codex/tools/aisoft-platform-readiness.sh" \
     "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
+    "$ROOT/codex/tools/install-runner-flutter.sh" \
     "$ROOT/codex/tools/aisoft-project-check.sh" \
     "$ROOT/codex/tools/change-template-sync.sh" \
     "$ROOT/templates/project/ci/merge-preview.sh" \
@@ -172,6 +175,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-host-access-broker.sh" \
     "$ROOT/codex/tests/test-install-host-access-broker.sh" \
     "$ROOT/codex/tests/test-installer-source-guard.sh" \
+    "$ROOT/codex/tests/test-install-runner-flutter.sh" \
     "$ROOT/codex/tests/test-codex-drift.sh" \
     "$ROOT/codex/tests/test-platform-readiness.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh" \
@@ -226,6 +230,7 @@ bash "$ROOT/codex/tests/test-install-host-role.sh"
 bash "$ROOT/codex/tests/test-host-access-broker.sh"
 bash "$ROOT/codex/tests/test-install-host-access-broker.sh"
 bash "$ROOT/codex/tests/test-installer-source-guard.sh"
+bash "$ROOT/codex/tests/test-install-runner-flutter.sh"
 bash "$ROOT/codex/tests/test-docker-release-install.sh"
 bash "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
 harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh")"
