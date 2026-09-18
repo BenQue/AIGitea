@@ -23,12 +23,12 @@ updated: 2026-09-18
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 幂等安装脚本 `codex/tools/install-runner-flutter.sh`（含只读 `--check`）与其单元测试，登记进 smoke 静态闸门 | - | pending |
-| T02 | 在 gitea-ci 主机真实执行安装：`unzip` + `/opt/flutter/3.32.8` + 自举 + `precache`，取得 AC-1/AC-2/AC-6 与 `df` 证据 | T01 | pending |
-| T03 | 创建 `/opt/act-runner/.pub-cache`，以 `gitea-runner` 身份对 NewEMaint `apps/mobile` 干净 checkout 实测 `pub get` + `dart analyze` 耗时，另一份 checkout 复测 `pub get` 缓存命中（AC-3、AC-7） | T02 | pending |
-| T04 | `01-基础设施-VM-Gitea-Runner.md`：新增 Flutter 小节 + 三处 as-built 更正（`config.yaml`、`ExecStart -c`、`/opt/node24.18.0`）+ runner 作业环境小节（AC-4） | - | pending |
+| T01 | 幂等安装脚本 `codex/tools/install-runner-flutter.sh`（含只读 `--check` 与 `--repair`）与其单元测试，登记进 smoke 静态闸门 | - | done |
+| T02 | 在 gitea-ci 主机真实执行安装：`unzip` + `/opt/flutter/3.32.8` + 自举 + `precache`，取得 AC-1/AC-2/AC-6 与 `df` 证据 | T01 | done |
+| T03 | 创建 `/opt/act-runner/.pub-cache`，以 `gitea-runner` 身份对 NewEMaint `apps/mobile` 干净 checkout 实测 `pub get` + `dart analyze` 耗时，另一份 checkout 复测 `pub get` 缓存命中（AC-3、AC-7） | T02 | done |
+| T04 | `01-基础设施-VM-Gitea-Runner.md`：新增 Flutter 小节 + 三处 as-built 更正（`config.yaml`、`ExecStart -c`、`/opt/node24.18.0`）+ runner 作业环境小节（AC-4） | - | done |
 | T05 | **仅当闸门 3 获批**：`config.yaml` 新增 `runner.envs`，重启 act_runner，配置与 daemon 环境双读回（补回的 AC-8） | T02, T03 | not-planned（建议拒绝闸门 3） |
-| T06 | verification 文档定稿、`check-change-documents`、全量 smoke、判级投影 `--verify`（AC-5） | T02, T03, T04 | pending |
+| T06 | verification 文档定稿、`check-change-documents`、全量 smoke、判级投影 `--verify`（AC-5） | T02, T03, T04 | done |
 
 **主机写入的 ticket 与授权闸门逐条对应**（闸门表见 spec「风险与回滚约束」）：
 

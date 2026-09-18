@@ -18,9 +18,20 @@ mkdir -p "$SHIM"
 cat >"$SHIM/git" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
+# Mirrors git's dubious-ownership refusal: once the tree has been chowned away
+# from the caller, a read without a scoped safe.directory fails with 128.
+safe=""
+if [[ "${1:-}" == "-c" ]]; then
+  case "${2:-}" in safe.directory=*) safe="${2#safe.directory=}" ;; esac
+  shift 2
+fi
 if [[ "${1:-}" == "-C" ]]; then
   dir="$2"; shift 2
   [[ "${1:-}" == "rev-parse" ]] || exit 2
+  if [[ -f "$dir/.foreign-owner" && "$safe" != "$dir" ]]; then
+    printf 'fatal: detected dubious ownership in repository at %s\n' "$dir" >&2
+    exit 128
+  fi
   [[ -f "$dir/.revision" ]] || exit 1
   cat "$dir/.revision"
   exit 0
@@ -47,11 +58,18 @@ SH
 
 cat >"$SHIM/df" <<'SH'
 #!/usr/bin/env bash
+# Real df fails on a path that does not exist; the shim must too, or it hides
+# the case where the tool probes $INSTALL_ROOT before creating it.
+target="${!#}"
+if [[ ! -d "$target" ]]; then
+  printf 'df: %s: No such file or directory\n' "$target" >&2
+  exit 1
+fi
 if [[ "${1:-}" == "--output=pcent" ]]; then
   printf 'Use%%\n %s%%\n' "${FAKE_DISK_PERCENT:-22}"
   exit 0
 fi
-printf 'Filesystem Size Used Avail Use%% Mounted\nfake 253G 54G 199G %s%% /\n' "${FAKE_DISK_PERCENT:-22}"
+printf 'Filesystem Size Used Avail Use%% Mounted\nfake 253G 54G 199G %s%% %s\n' "${FAKE_DISK_PERCENT:-22}" "$target"
 SH
 
 cat >"$SHIM/sudo" <<'SH'
@@ -62,6 +80,10 @@ SH
 
 cat >"$SHIM/chown" <<'SH'
 #!/usr/bin/env bash
+# chown -R away from the caller is exactly what makes root's later git reads
+# "dubious", so the shim records it instead of being a plain no-op.
+target="${!#}"
+[[ -d "$target" ]] && touch "$target/.foreign-owner"
 exit 0
 SH
 
@@ -120,14 +142,19 @@ grep -Fq "flutter_revision=$REVISION" "$INSTALL_ROOT/3.32.8/.aisoft-runtime-sour
 grep -Fq 'runner_env=not injected' "$INSTALL_ROOT/3.32.8/.aisoft-runtime-source"
 [[ -d "$PUB_CACHE_DIR" ]]
 
-# 4. the second run is a no-op: no clone, and no mtime under the install root moves
+# 4. the second run is a no-op: no clone, no bootstrap, and no mtime moves
 before="$(find "$INSTALL_ROOT/3.32.8" -exec ls -ld {} + | sort)"
 second="$(run)"
 grep -Fq "already installed at $REVISION" <<<"$second"
 grep -Fq 'provenance marker unchanged' <<<"$second"
+grep -Fq 'skipping ownership, bootstrap and precache' <<<"$second"
+grep -Fq 'bootstrapping Dart SDK' <<<"$second" && exit 1
 grep -Fq 'cloning' <<<"$second" && exit 1
 after="$(find "$INSTALL_ROOT/3.32.8" -exec ls -ld {} + | sort)"
 [[ "$before" == "$after" ]]
+
+# 4b. --repair forces the bootstrap back on for the same already-installed tree
+grep -Fq 'bootstrapping Dart SDK' <<<"$(run --repair)"
 
 # 5. --check on an installed tree reports the match instead of planning work
 grep -Fq 'check: already installed and revision matches' <<<"$(run --check)"
@@ -149,5 +176,12 @@ grep -Fq 'disk usage 91% >= 80% threshold' "$TMP/out"
 rm -rf "$INSTALL_ROOT" "$PUB_CACHE_DIR"
 grep -Fq 'skipping pub cache' <<<"$(run --no-pub-cache)"
 [[ ! -e "$PUB_CACHE_DIR" ]]
+
+# 9. a fresh host has neither $INSTALL_ROOT nor its parent; the disk probe must
+#    walk up to an existing ancestor instead of failing the whole run
+rm -rf "$TMP/opt"
+fresh="$(run)"
+grep -Fq 'cloning' <<<"$fresh"
+grep -Fq "flutter_revision=$REVISION" "$INSTALL_ROOT/3.32.8/.aisoft-runtime-source"
 
 printf 'PASS: install-runner-flutter\n'

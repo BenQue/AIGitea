@@ -27,13 +27,17 @@ INSTALL_DIR="$INSTALL_ROOT/$FLUTTER_VERSION"
 MARKER="$INSTALL_DIR/.aisoft-runtime-source"
 CHECK_ONLY=0
 WANT_PUB_CACHE=1
+REPAIR=0
 
 usage() {
   cat <<USAGE
-usage: install-runner-flutter.sh [--check] [--no-pub-cache]
+usage: install-runner-flutter.sh [--check] [--no-pub-cache] [--repair]
 
   --check          read-only: report state and exit, write nothing
   --no-pub-cache   skip creating $PUB_CACHE_DIR (authorization gate 2 denied)
+  --repair         re-apply ownership, permissions and precache on an install
+                   that is already at the pinned revision (a plain re-run is a
+                   no-op and deliberately touches nothing)
 
 Environment overrides: FLUTTER_VERSION FLUTTER_REVISION FLUTTER_REPO
 RUNNER_USER INSTALL_ROOT PUB_CACHE_DIR DISK_FULL_PERCENT
@@ -44,6 +48,7 @@ while (($# > 0)); do
   case "$1" in
     --check) CHECK_ONLY=1 ;;
     --no-pub-cache) WANT_PUB_CACHE=0 ;;
+    --repair) REPAIR=1 ;;
     -h|--help) usage; exit 0 ;;
     *) printf 'unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
@@ -53,14 +58,39 @@ done
 say() { printf '[install-runner-flutter] %s\n' "$*"; }
 die() { printf '[install-runner-flutter] ERROR: %s\n' "$*" >&2; exit 1; }
 
+# The install tree is owned by the runner user while this script runs as root,
+# which trips git's dubious-ownership refusal (git >= 2.35; the host runs
+# 2.53.0). Scoping safe.directory to the one path being read keeps the exception
+# narrow and writes nothing into any global git config.
+git_at() {
+  local dir="$1"
+  shift
+  git -c safe.directory="$dir" -C "$dir" "$@"
+}
+
 installed_revision() {
   [[ -d "$INSTALL_DIR/.git" ]] || return 1
-  git -C "$INSTALL_DIR" rev-parse HEAD 2>/dev/null
+  git_at "$INSTALL_DIR" rev-parse HEAD 2>/dev/null
+}
+
+# On a fresh host $INSTALL_ROOT does not exist yet and `df` fails on a missing
+# path, so every disk read walks up to the nearest existing ancestor first.
+# Without this the disk gate's command substitution fails under `set -e` and the
+# script exits silently before doing anything (caught on the real host, not by
+# the unit test, which mocked df into always succeeding).
+disk_target() {
+  local probe="$INSTALL_ROOT"
+  while [[ ! -d "$probe" && "$probe" != "/" && "$probe" != "." ]]; do
+    probe="$(dirname "$probe")"
+  done
+  printf '%s' "$probe"
 }
 
 report_disk() {
-  say "df -h $INSTALL_ROOT:"
-  df -h "$INSTALL_ROOT" 2>/dev/null || df -h /
+  local target
+  target="$(disk_target)"
+  say "df -h $target:"
+  df -h "$target"
 }
 
 # --- state report -----------------------------------------------------------
@@ -87,7 +117,7 @@ fi
 id "$RUNNER_USER" >/dev/null 2>&1 || die "runner user $RUNNER_USER does not exist"
 
 # --- disk gate --------------------------------------------------------------
-use_percent="$(df --output=pcent "$INSTALL_ROOT" 2>/dev/null | tail -1 | tr -dc '0-9')"
+use_percent="$(df --output=pcent "$(disk_target)" | tail -1 | tr -dc '0-9')"
 if [[ -n "$use_percent" ]] && ((use_percent >= DISK_FULL_PERCENT)); then
   die "disk usage ${use_percent}% >= ${DISK_FULL_PERCENT}% threshold; refusing to install"
 fi
@@ -102,9 +132,11 @@ else
 fi
 
 # --- SDK --------------------------------------------------------------------
+fresh_install=0
 if [[ "$current" == "$FLUTTER_REVISION" ]]; then
   say "already installed at $FLUTTER_REVISION, skipping clone and bootstrap"
 else
+  fresh_install=1
   if [[ -n "$current" ]]; then
     die "$INSTALL_DIR holds revision $current, expected $FLUTTER_REVISION; remove it first"
   fi
@@ -122,7 +154,7 @@ else
   say "cloning $FLUTTER_REPO tag $FLUTTER_VERSION"
   git clone --depth 1 --branch "$FLUTTER_VERSION" "$FLUTTER_REPO" "$staging/flutter"
 
-  cloned="$(git -C "$staging/flutter" rev-parse HEAD)"
+  cloned="$(git_at "$staging/flutter" rev-parse HEAD)"
   if [[ "$cloned" != "$FLUTTER_REVISION" ]]; then
     die "revision mismatch: tag $FLUTTER_VERSION resolved to $cloned, expected $FLUTTER_REVISION"
   fi
@@ -138,12 +170,21 @@ fi
 # by the runner user rather than root. /opt/node22 on the same host is already
 # gitea-runner-owned; /opt/node24.18.0 is root-owned because Node ships a
 # complete tree and never writes into it.
-chown -R "$RUNNER_USER":"$RUNNER_USER" "$INSTALL_DIR"
-chmod -R a+rX "$INSTALL_DIR"
+# A plain re-run on an install that is already at the pinned revision must
+# touch nothing at all. Re-running the bootstrap would look harmless but
+# `flutter --version` rewrites stamp files under bin/cache, which moves mtimes
+# and breaks the "second run changes nothing" property. Use --repair to force
+# ownership, permissions and precache back into shape.
+if ((fresh_install)) || ((REPAIR)); then
+  chown -R "$RUNNER_USER":"$RUNNER_USER" "$INSTALL_DIR"
+  chmod -R a+rX "$INSTALL_DIR"
 
-say "bootstrapping Dart SDK as $RUNNER_USER (first run downloads ~187 MiB)"
-sudo -u "$RUNNER_USER" env HOME=/opt/act-runner "$INSTALL_DIR/bin/flutter" --version
-sudo -u "$RUNNER_USER" env HOME=/opt/act-runner "$INSTALL_DIR/bin/flutter" precache --linux
+  say "bootstrapping Dart SDK as $RUNNER_USER (first run downloads ~187 MiB)"
+  sudo -u "$RUNNER_USER" env HOME=/opt/act-runner "$INSTALL_DIR/bin/flutter" --version
+  sudo -u "$RUNNER_USER" env HOME=/opt/act-runner "$INSTALL_DIR/bin/flutter" precache --linux
+else
+  say "skipping ownership, bootstrap and precache (already installed; use --repair to force)"
+fi
 
 # --- pub cache --------------------------------------------------------------
 if ((WANT_PUB_CACHE)); then

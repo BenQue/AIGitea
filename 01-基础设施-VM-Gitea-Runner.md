@@ -226,7 +226,9 @@ rollback=rename-or-remove-/opt/node24.18.0; system-node-and-/opt/node22-unchange
 | 随附 Dart | 由 SDK 自举，版本随 Flutter 3.32.8 固定 |
 | 属主 / 权限 | `gitea-runner:gitea-runner`，`a+rX` |
 | 持久 pub 缓存 | `/opt/act-runner/.pub-cache`（`gitea-runner` 属主，与既有 `.npm` 同级） |
-| 安装脚本 | `codex/tools/install-runner-flutter.sh`（幂等，带只读 `--check`） |
+| 安装脚本 | `codex/tools/install-runner-flutter.sh`（幂等，带只读 `--check` 与 `--repair`） |
+| 实测占用 | SDK 1.1 GiB；pub 缓存 337 MiB（跑过一次 NewEMaint `apps/mobile` 后） |
+| 装于 | 2026-09-18（#309），安装后 `/opt` 使用率 23% |
 | marker | `/opt/flutter/3.32.8/.aisoft-runtime-source`，`contract=gitea-runner-flutter-runtime/v1` |
 
 **为什么是 clone 而不是解压官方归档**：主机是 aarch64（`uname -m` = `aarch64`，Ubuntu 26.04），
@@ -237,7 +239,11 @@ rollback=rename-or-remove-/opt/node24.18.0; system-node-and-/opt/node22-unchange
 clone 约 1 GiB 很可能撞满超时，并在此期间占死三仓共用的唯一执行位。
 
 **平台合同（消费方怎么用）**：平台只保证上面两个固定路径存在、对 `gitea-runner` 可读可执行。
-**runner 不注入 `PATH` 也不注入 `PUB_CACHE`**，消费方 workflow 自己声明：
+**runner 不注入 `PATH` 也不注入 `PUB_CACHE`**，消费方 workflow 自己声明。
+
+`PUB_CACHE` 要**显式写**，不要依赖默认值：Dart 的默认 pub cache 是 `$HOME/.pub-cache`，
+而 `act_runner.service` 当前把 `HOME` 设成 `/opt/act-runner`，两者恰好重合——但这是巧合，
+`HOME` 一变默认路径就漂走，显式声明才稳定。
 
 ```yaml
 jobs:
@@ -259,12 +265,22 @@ jobs:
 ```bash
 # 只读核对现状，什么都不写
 sudo bash codex/tools/install-runner-flutter.sh --check
-# 安装（幂等，重跑为 no-op，不重复 clone）
+# 安装（幂等：已装且 revision 一致时第二次执行零改动，不 clone、不自举）
 sudo bash codex/tools/install-runner-flutter.sh
+# 权限或 cache 被人改坏时，显式要求重做属主/权限/precache
+sudo bash codex/tools/install-runner-flutter.sh --repair
 # 以 runner 身份验证
-sudo -u gitea-runner /opt/flutter/3.32.8/bin/flutter --version
-sudo -u gitea-runner /opt/flutter/3.32.8/bin/dart --version
+sudo -u gitea-runner env HOME=/opt/act-runner /opt/flutter/3.32.8/bin/flutter --version
+sudo -u gitea-runner env HOME=/opt/act-runner /opt/flutter/3.32.8/bin/dart --version
 ```
+
+**为什么重跑不重做自举**：`flutter --version` 会改写 `bin/cache` 下的时间戳文件，所以「顺手再跑一次
+自举」看着无害，实际会让「第二次执行什么都不改」这条性质失效。脚本因此在 revision 一致时跳过
+属主、权限、自举与 precache 三步，需要重做时用 `--repair` 显式要求。
+
+**脚本以 root 运行，但安装树属主是 `gitea-runner`**（SDK 要写自己的 `bin/cache`）。这会触发
+git 的 dubious-ownership 拒绝（本机 git 2.53.0），所以脚本读 revision 时带
+`-c safe.directory=<该路径>`，作用域只限这一个目录，不写任何全局 git 配置。
 
 脚本在 clone 之后断言 `git rev-parse HEAD` 等于钉住的 revision，不等即失败退出；整个 clone 在
 staging 目录里完成，失败不会留下半装的树。安装前磁盘使用率达到或超过 80% 直接拒绝。
@@ -276,6 +292,13 @@ staging 目录里完成，失败不会留下半装的树。安装前磁盘使用
 
 **回滚**：`sudo rm -rf /opt/flutter/3.32.8`；pub 缓存 `sudo rm -rf /opt/act-runner/.pub-cache`。
 两者在 #309 之前都不存在，删除即回到安装前状态。`unzip` 保留。
+
+**持久缓存值多少**（2026-09-18 实测，NewEMaint `apps/mobile`，同一份干净 checkout）：
+
+| PUB_CACHE | `flutter pub get` 耗时 | 下载量 |
+|---|---|---|
+| 空的临时目录（冷） | 10s | 247 MiB |
+| `/opt/act-runner/.pub-cache`（热） | 2s | 0 |
 
 **已知限制**：pub.dev 是新的外部依赖，npm 侧 Verdaccio（§5）在 pub 侧没有等价物。
 pub.dev 不可达时 job 会红，持久 `PUB_CACHE` 只减少重复下载，不提供离线能力。
