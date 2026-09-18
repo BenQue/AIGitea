@@ -131,6 +131,9 @@ HEAD = `6bd2da3`，`chown` 给 `gitea-runner` 后以下列环境执行：
 | `apply-classification-labels.sh 309`（计划） | PASS | `applied:false`、`change_type:platform`、`complexity:complex` |
 | `apply-classification-labels.sh 309 --apply` | PASS | `applied:true`、`result:updated` |
 | `apply-classification-labels.sh --verify 309` | PASS | `result:projected`、`detail:Issue #309 carries the classification its merged summary declares` |
+| broker `git.push.change` | PASS | 第一次 `pushed_head=dfdd0873f8329a59b57995648afd9329a0f2a81a`（与确认点 2 核验的 SHA 一致，未被改写）；回填 PR URL 后第二次 `previous_head=dfdd0873…`、`pushed_head=484636eca5c9db61e4439e93e453841aa8a660f9` |
+| broker `gitea.pull.create --issue 309` | PASS | PR #310，`base=main`、`head=484636ec…`、`mergeable:true`、`draft:false`、8 files `+1190/-32` |
+| PR required CI | PASS | `CI / verify (pull_request)` = `success`，`Successful in 1m34s`；整体 `state: success` |
 
 ## Acceptance criteria 结果
 
