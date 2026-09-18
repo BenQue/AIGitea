@@ -26,8 +26,13 @@ updated: 2026-09-18
 一起写回 `01-基础设施-VM-Gitea-Runner.md`，消除文档与主机的漂移。
 
 范围 3 由调度会话在 2026-09-18 依本会话的只读核对扩为三处 as-built 更正（Issue 正文
-`updated_at: 2026-09-18T21:20:41+08:00` 已落定）：`config.yaml`、`ExecStart -c`、`/opt/node24.18.0`。
+`updated_at: 2026-09-18T21:20:41+08:00`）：`config.yaml`、`ExecStart -c`、`/opt/node24.18.0`。
 三处同属 `01` 文档与主机的漂移，只改文档不改主机，共用 AC-4 一条验收标准。
+
+范围 1 由调度会话在 2026-09-18 再次扩展（Issue 正文 `updated_at: 2026-09-18T21:24:23+08:00`）：
+追加持久 `PUB_CACHE` 与「把 `PATH`（含 `/opt/flutter/3.32.8/bin`）与 `PUB_CACHE` 写进 runner 环境」，
+AC-3 改为 `pub get` + `dart analyze` 两步计时且第二次 `pub get` 须为缓存命中。
+**这一条越出了 Issue 原授权闸门 1 的边界**，处置见「风险与回滚约束」的授权闸门表。
 
 原因（只读实测，2026-09-18）：
 
@@ -45,9 +50,12 @@ updated: 2026-09-18
       不改变 `/opt/flutter/3.32.8` 下任何文件的 mtime 集合、退出码为 0 并显式报告「已安装且 revision 一致」。
       两次执行的完整输出写入 verification。
 - [ ] **AC-3 真实 job 形态可跑通且远低于超时**：在 runner 主机上以 `gitea-runner` 身份，对 NewEMaint
-      `apps/mobile` 的一份干净 checkout 执行 `flutter pub get` 与 `dart analyze --format=machine .`，
-      两条命令都以非 SDK 错误结束（analyze 可以报项目自身的 lint/错误条目，但不得报 SDK 缺失、
-      权限拒绝或自举失败），各自耗时与合计耗时以实测秒数写入 verification，且合计远小于 `20m` job 超时。
+      `apps/mobile` 的一份干净 checkout，在持久 `PUB_CACHE` 生效的前提下依次执行
+      `flutter pub get` 与 `dart analyze --format=machine .`。两条命令都以非 SDK 错误结束
+      （analyze 可以报项目自身的 lint/错误条目，但不得报 SDK 缺失、权限拒绝或自举失败）；
+      各自耗时与合计耗时以实测秒数写入 verification，合计远小于 `20m` job 超时。
+      随后在**另一份**干净 checkout 上再跑一次 `flutter pub get`，耗时相对首次明显下降，
+      证明命中的是持久 `PUB_CACHE` 而不是该 checkout 自己的 `.dart_tool`。
 - [ ] **AC-4 文档与主机一致**：`01-基础设施-VM-Gitea-Runner.md` 新增「Flutter SDK（runner 预装）」
       小节，写明路径、版本、revision、安装与升级方式、验证命令；同一文档的 as-built 完成三处更正，
       每处都标注更正日期与依据：
@@ -65,6 +73,16 @@ updated: 2026-09-18
 - [ ] **AC-6 runner 身份可用且不重复自举**：`/opt/flutter/3.32.8` 对 `gitea-runner` 可读可执行，
       且以 `gitea-runner` 身份连续两次执行 `flutter --version` 时，第二次不再出现 Dart SDK 下载或
       自举输出——证明 `bin/cache` 的属主/权限不会迫使每个 job 重新自举。
+- [ ] **AC-7 持久 pub 缓存就位**：`/opt/act-runner/.pub-cache` 存在、属主 `gitea-runner`，
+      与既有 `/opt/act-runner/.npm` 同级同属主；AC-3 首次 `pub get` 之后该目录非空，
+      `du -sh` 实测大小写入 verification。
+- [ ] **AC-8 runner 环境读回**：`PUB_CACHE=/opt/act-runner/.pub-cache` 与含
+      `/opt/flutter/3.32.8/bin` 的 `PATH` 已写入 act_runner 的作业环境配置，并且**读得回来**：
+      配置文件读回一次，act_runner 重启后 daemon 进程环境（`/proc/<pid>/environ` 或
+      `systemctl show -p Environment`）读回一次，两次输出写入 verification。
+      **已知限制**：本条只证明配置与 daemon 侧生效，不证明 job step 内生效——后者需要一次真实
+      workflow run，而唯一的消费方 workflow 属于 NewEMaint #158，不在本 Issue 范围。
+      端到端证据落在 #158 的首次绿跑，本 Issue 在 verification 中显式写明这一未执行项。
 
 ## 接口、数据与兼容性影响
 
@@ -72,8 +90,19 @@ updated: 2026-09-18
   `.aisoft-runtime-source` provenance marker，字段沿用主机上既有的
   `/opt/node24.18.0/.aisoft-runtime-source`（`contract=gitea-runner-node-runtime/v1`），
   本次取 `contract=gitea-runner-flutter-runtime/v1`。
-- **不修改** act_runner 的 `PATH`、systemd unit、`config.yaml` 或注册标签。消费方 job 使用绝对路径
-  或自行把 `/opt/flutter/3.32.8/bin` 前置到 `PATH`；把它写进 runner 全局 `PATH` 属于另一次变更。
+- **修改 act_runner 的作业环境**（范围 1 追加项）：为全部 job 注入 `PUB_CACHE` 与含
+  `/opt/flutter/3.32.8/bin` 的 `PATH`。这是一条**影响三个仓库全部 job** 的共享环境变更，
+  且生效需要重启 act_runner。两条候选机制：
+
+  | 机制 | 落点 | 语义 | 代价 |
+  |---|---|---|---|
+  | A `runner.envs` | `/opt/act-runner/config.yaml` | act_runner 官方的「注入 job 环境」字段，v1.0.7 `generate-config` 明确写着 `Extra environment variables to run jobs` | 改的是本次同时在文档化 as-built 的那个文件；需重启 |
+  | B systemd drop-in | `/etc/systemd/system/act_runner.service.d/20-*.conf` | 改 daemon 自身环境，host 模式 job 是否完整继承需实测 | 需 `daemon-reload` + 重启；语义不如 A 明确 |
+
+  **spec 选 A**：它是 act_runner 为这件事提供的字段，语义不依赖「host 模式继承」这个未经本机
+  实测的假设。既有 `10-config.conf` drop-in 保持不动。
+- **不修改** act_runner 版本、`capacity`、`timeout`、`shutdown_timeout` 或注册标签。
+  `config.yaml` 只新增 `runner.envs` 两个键，既有两个键逐字节不动。
 - **既有 `/opt/node24.18.0` 不被本次改动**：它只是被补进文档的 as-built，本次不碰它的字节、
   属主或版本。它的 marker 格式同时是本次 Flutter marker 的样板。
 - **无 schema、无数据、无 API、无外部契约变化。**
@@ -81,20 +110,45 @@ updated: 2026-09-18
 
 ## 风险与回滚约束
 
-- 安装过程不经 act_runner、不重启 act_runner、不重启任何服务；开工前用
-  `orbstack.runner.status` 确认 `execution.child_count == 0`。
+### 授权闸门（本 spec 把 Issue 的 1 条拆成 3 条）
+
+Issue 正文的授权闸门表只有 1 条，写的是「安装软件包（`unzip`）与写入 `/opt/flutter/3.32.8`」。
+范围 1 的追加项越出了这条边界：它要写 `/opt/act-runner/` 下的新目录，还要改共享 CI 服务的
+配置并重启它。**不能把追加项算进原来那条授权**，因此拆成三条，逐条取得负责人授权：
+
+| # | 动作 | 影响面 | 回滚 | 默认 |
+|---|---|---|---|---|
+| 1 | `apt-get install -y unzip`；写入 `/opt/flutter/3.32.8` | 新增路径，无既有消费方 | `rm -rf /opt/flutter/3.32.8` | NOT RUN，需授权 |
+| 2 | 创建并预热 `/opt/act-runner/.pub-cache`（`gitea-runner` 属主） | 新增路径，无既有消费方 | `rm -rf /opt/act-runner/.pub-cache` | NOT RUN，需授权 |
+| 3 | 在 `/opt/act-runner/config.yaml` 新增 `runner.envs`，并**重启 act_runner** | **三个仓库的全部 CI job**；重启会杀掉在跑的 job | 删除新增的 `runner.envs` 段并再次重启 | NOT RUN，需授权 |
+
+第 3 条的影响面与前两条不是一个量级：前两条是新增无人消费的路径，装错了没人受影响；
+第 3 条改的是 `admin/aisoft-platform`、`admin/LocalWMS`、`admin/NewEMaint` 三个仓库
+每一个 job 的环境，而且必须重启唯一执行位才能生效。它单独授权。
+
+第 3 条执行前必须用 `orbstack.runner.status` 确认 `execution.child_count == 0`；
+非零就等，不抢。
+
+### 其它约束
+
+- 第 1、2 条的安装过程不经 act_runner、不重启任何服务。
 - clone 后必须断言 `git rev-parse HEAD` 等于钉住的 revision；不等即失败退出，不继续自举。
 - 磁盘闸门：安装前 `df` 使用率达到或超过 80% 即停止并报 BLOCKED（沿用 `12` 的磁盘告警阈值）。
-- 回滚：`sudo rm -rf /opt/flutter/3.32.8`。该目录本次之前不存在，删除即回到安装前状态。
-  `unzip` 是 APT 包，保留不构成风险，移除它不在本次回滚范围内。
-- 主机侧任何写入都由 Issue 正文的唯一授权闸门管辖；未获授权则全部保持 NOT RUN，只交付脚本与文档。
+- 回滚：见上表逐条。`/opt/flutter/3.32.8` 与 `/opt/act-runner/.pub-cache` 本次之前都不存在，
+  删除即回到安装前状态。`unzip` 是 APT 包，保留不构成风险，移除它不在本次回滚范围内。
+  `config.yaml` 的回滚是删除新增的 `runner.envs` 段——既有 `capacity`/`timeout` 两键
+  在正向与回滚两个方向都逐字节不动。
+- 未获授权的条目全部保持 NOT RUN，只交付脚本、runbook 与只读证据；
+  部分授权时按闸门编号逐条执行，未授权项在 verification 里显式写明。
 
 ## 非目标
 
 - NewEMaint 侧 workflow 改动（属于 NewEMaint #158）。
 - 公司侧 CI job image（NewEMaint 另有 Issue）。
 - act_runner 升级、`capacity`/`timeout` 调整、注册标签变更。
-- 把 `/opt/flutter/3.32.8/bin` 写进 act_runner 的全局 `PATH`。
+- pub 侧的离线镜像（npm 侧 Verdaccio 的 pub 等价物）。pub.dev 不可达时 job 仍会红，
+  这是已知限制，由 NewEMaint #158 在文档里记为已知限制。
+- 在真实 workflow run 中证明 job step 内环境生效（见 AC-8 已知限制）。
 - Android SDK、Gradle、Java 工具链——`flutter build apk` 不在本次验收范围，本次只保证
   `pub get` 与 `dart analyze` 这一档静态验证能力。
 - 对 `/opt/node24.18.0` 做任何主机侧改动。它在本次只补 as-built 记录（AC-4(c)），

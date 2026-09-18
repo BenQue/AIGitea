@@ -51,6 +51,9 @@ tag 后自举，而自举解压 `dartsdk-linux-arm64` 需要 `unzip`/`bsdtar`/`7
 - 新增 APT 包 `unzip`（Dart SDK 自举与 `pub` 解压所需）。
 - 新增 provenance marker `/opt/flutter/3.32.8/.aisoft-runtime-source`，格式沿用主机上既有的
   `/opt/node24.18.0/.aisoft-runtime-source`（`contract=gitea-runner-node-runtime/v1`）。
+- 新增持久 pub 缓存 `/opt/act-runner/.pub-cache`（`gitea-runner` 属主，与既有 `.npm` 同级）。
+- **修改共享 CI 服务配置**：`/opt/act-runner/config.yaml` 新增 `runner.envs`
+  （`PUB_CACHE` 与含 `/opt/flutter/3.32.8/bin` 的 `PATH`），需重启 act_runner 生效。
 
 **仓库侧**
 
@@ -58,7 +61,13 @@ tag 后自举，而自举解压 `dartsdk-linux-arm64` 需要 `unzip`/`bsdtar`/`7
 - `01-基础设施-VM-Gitea-Runner.md`：新增「Flutter SDK（runner 预装）」小节；三处 as-built 更正
   （`config.yaml`、`ExecStart -c`、`/opt/node24.18.0`）。
 
-**不触及**：act_runner 版本、`capacity`、`timeout`、Gitea 配置、任何项目仓 workflow、任何部署链路。
+**不触及**：act_runner 版本、`capacity`、`timeout`、systemd unit 与既有 `10-config.conf` drop-in、
+Gitea 配置、任何项目仓 workflow、任何部署链路。
+
+范围 1 于 2026-09-18T21:24:23+08:00 由调度会话追加持久 `PUB_CACHE` 与 runner 作业环境写入
+（来源：NewEMaint #158 回报 pub.dev 是新的外部依赖、pub 侧没有 Verdaccio 等价物）。
+该追加项越出了 Issue 原授权闸门 1 的边界，spec 因此把闸门拆成 3 条逐条授权；
+其中闸门 3（改 `config.yaml` 并重启 act_runner）影响三个仓库的全部 CI job，单独授权。
 
 ### `01` 文档 as-built 的三处漂移（本次只读实测，2026-09-18）
 
@@ -90,11 +99,14 @@ tag 后自举，而自举解压 `dartsdk-linux-arm64` 需要 `unzip`/`bsdtar`/`7
 
 | 风险 | 处置 |
 |---|---|
-| 安装期间占用 runner 执行位或干扰在跑的 job | 安装不经 act_runner、不重启任何服务；开工前用 `orbstack.runner.status` 确认空闲 |
+| 安装期间占用 runner 执行位或干扰在跑的 job | 闸门 1、2 不经 act_runner、不重启任何服务 |
+| 闸门 3 重启 act_runner 会杀掉在跑的 job，影响三个仓库 | 重启前 `orbstack.runner.status` 确认 `execution.child_count == 0`，非零就等；读回不符立刻回滚 |
+| `runner.envs` 的 `PATH` 覆盖掉 job 原有 `PATH` 导致既有 CI 变红 | `PATH` 值以 `/opt/flutter/3.32.8/bin` 前置、完整保留既有五段系统路径；回滚是删除 `runner.envs` 段 |
+| 只证明了配置与 daemon 侧生效，未证明 job step 内生效 | AC-8 显式记为已知限制，端到端证据落在 NewEMaint #158 首次绿跑 |
 | tag `3.32.8` 被上游移动，装进非预期 revision | clone 后断言 revision，等于才继续 |
 | `bin/cache` 权限不当导致每个 job 重新自举 | 验收项显式要求以 `gitea-runner` 身份跑通并观察无二次自举 |
 | 磁盘被 SDK + pub cache 撑满 | 安装前后 `df -h /opt` 入 verification，80% 阈值停机 |
-| 回滚 | `rm -rf /opt/flutter/3.32.8`（该目录本次之前不存在）；`unzip` 保留，移除它不属于本次回滚范围 |
+| 回滚 | `rm -rf /opt/flutter/3.32.8` 与 `rm -rf /opt/act-runner/.pub-cache`（两者本次之前都不存在）；`config.yaml` 删除新增的 `runner.envs` 段后重启；`unzip` 保留，移除它不属于本次回滚范围 |
 
 ## AI 判级
 
