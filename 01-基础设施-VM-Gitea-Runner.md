@@ -110,20 +110,47 @@ FROM = "RSDesign Gitea" <gitea@rsdesign.local>
 - host executor 的成功、失败和取消路径都必须断言无残留业务 PID、监听端口、临时 DB 或
   deleted cwd；历史 `sfm-board:3212` 已清理，其 Change 只作为此门禁的回归证据。
 
-### 4.1 per-job 超时与并发（as-built 与建议取值，#228）
+### 4.1 per-job 超时与并发（as-built，#228 建议已落地）
 
-**as-built（2026-09-05 实测）**：`/opt/act-runner/config.yaml` **不存在**，
-`act_runner.service` 的 `ExecStart` 也没有 `-c`，所以 act_runner v1.0.7 全程走内置默认值：
+> **更正（2026-09-18，#309）**：本节此前记的是 #228 建议**落地之前**的快照，写着
+> `config.yaml` 不存在、`runner.timeout` 走 `3h` 内置默认。本次只读实测发现配置已经写入并生效，
+> 下表与「应用方式」两段据此更正。依据是同日在 `gitea-ci` 上的
+> `stat`/`cat /opt/act-runner/config.yaml`、`systemctl cat act_runner` 与
+> `systemctl show act_runner -p ExecStart` 输出。
+
+**as-built（2026-09-18 实测）**：`/opt/act-runner/config.yaml` **存在**
+（`gitea-runner:gitea-runner 644`，创建于 `2026-09-05 22:46:24 +0800`），内容只有 `runner` 段的两个键；
+`act_runner.service` 通过 drop-in 加载它，服务自 `2026-09-15 20:38:48 CST` 起以该配置运行：
 
 | 项 | 当前生效值 | 来源 |
 |---|---|---|
-| `runner.timeout`（per-job 超时） | `3h` | 内置默认，无配置文件 |
-| `runner.capacity`（并发） | `1` | 内置默认 |
-| `runner.shutdown_timeout` | `0s` | 内置默认 |
+| `runner.timeout`（per-job 超时） | `20m` | `/opt/act-runner/config.yaml` |
+| `runner.capacity`（并发） | `1` | `/opt/act-runner/config.yaml` |
+| `runner.shutdown_timeout` | `0s` | 内置默认，配置文件未声明 |
 
-`runner.timeout` 因此**不是「设得过大」，而是从未配置过**。在实例级 runner ＋ `capacity: 1`
-的当前形态下，任何一个仓库的任何一个 job 都能独占唯一执行位最多 3 小时；2026-08-29 事故
-实测停摆约 5 小时（`admin/aisoft-platform` task 821 在 FIFO `open()` 上阻塞 4h19m）。
+```yaml
+# /opt/act-runner/config.yaml 全文
+runner:
+  capacity: 1
+  timeout: 20m
+```
+
+**`-c` 的实际应用方式是 drop-in，不是 `systemctl edit --full`**。下面这段是主机上的真实状态：
+
+```ini
+# /etc/systemd/system/act_runner.service.d/10-config.conf（2026-09-05 22:46 创建）
+[Service]
+ExecStart=
+ExecStart=/usr/local/bin/act_runner daemon -c /opt/act-runner/config.yaml
+```
+
+base unit 的 `ExecStart` 仍是不带 `-c` 的原样，drop-in 先清空再重设——这是 systemd 覆盖单值
+指令的标准写法，改回去只需删掉这个 drop-in 文件并 `daemon-reload`。
+
+**为什么是 `20m`**：全平台最长合法 run 是 345s，20 分钟是它的 3.5 倍、NewEMaint p90 的 4.5 倍，
+冷缓存或弱网构建仍有余量；同时把一次停滞的代价从 2026-08-29 实测的 4h19m 截到 20 分钟。
+实例级 runner ＋ `capacity: 1` 意味着任何一个仓库的任何一个 job 都独占唯一执行位，
+这也是**为什么工具链必须预装、不能在 job 内现装**（见 §4.3）。
 
 **三仓 CI 实测量级**（`gitea.actions.run.read`，2026-09-05，只统计 `success` run）：
 
@@ -133,39 +160,125 @@ FROM = "RSDesign Gitea" <gitea@rsdesign.local>
 | `admin/LocalWMS` | 26 | 61s | 66s | 127s | 345s |
 | `admin/NewEMaint` | 22 | 236s | 259s | 269s | 296s |
 
-**建议取值 `runner.timeout: 20m`**：全平台最长合法 run 是 345s，20 分钟是它的 3.5 倍、
-NewEMaint p90 的 4.5 倍，冷缓存或弱网构建仍有余量；同时把一次停滞的代价从实测的 4h19m
-截到 20 分钟，远小于「人会注意到」的 5 小时尺度。`capacity` 保持 `1`，`shutdown_timeout`
-保持 `0s`。
-
-**应用方式（人工，尚未执行）**：act_runner 只在 `-c` 或 `CONFIG_FILE` 指定时才读配置文件，
-放一个 `config.yaml` 在工作目录里不会被自动加载。
+**回读命令**：
 
 ```bash
-# 1) 先确认 runner 空闲——重启会杀掉正在跑的 job
+# 配置与生效值
+sudo cat /opt/act-runner/config.yaml
+systemctl show act_runner -p ExecStart | grep -o ' -c [^ ]*'
+# 改动前先确认 runner 空闲——重启会杀掉正在跑的 job
 host-access-broker --project aisoft-platform --operation orbstack.runner.status
 # 期望 execution.child_count == 0
-
-# 2) 写配置（gitea-runner 属主，仅 runner 段）
-sudo -u gitea-runner tee /opt/act-runner/config.yaml >/dev/null <<'YAML'
-runner:
-  capacity: 1
-  timeout: 20m
-YAML
-
-# 3) 给 ExecStart 加 -c，然后重载并重启
-sudo systemctl edit --full act_runner   # ExecStart=/usr/local/bin/act_runner daemon -c /opt/act-runner/config.yaml
-sudo systemctl daemon-reload && sudo systemctl restart act_runner
-
-# 4) 回读
-sudo systemctl show act_runner -p ExecStart | grep -o ' -c [^ ]*'
 ```
 
 **Gitea 侧的第二道超时**：`/etc/gitea/app.ini` 的 `[actions]` 只有 `ENABLED = true`，
 没有 `[cron.cleanup_actions]` 段，因此 Gitea 1.26.4 的清理 cron 走它自己的内置默认
 （调度周期与 `ZOMBIE_TASK_TIMEOUT`/`ENDLESS_TASK_TIMEOUT`）。**这些默认值本次未在本机回读**，
-只确认了「没有显式配置」。runner 侧超时生效后，是否再显式钉住 Gitea 侧这一组值，
+只确认了「没有显式配置」。runner 侧 `20m` 已经生效，是否再显式钉住 Gitea 侧这一组值，
 留给独立评估——它决定的是「runner 侧超时失效时还有没有第二道网」。
+
+### 4.2 预装工具链 as-built（`/opt`，2026-09-18 实测）
+
+runner 以 host 模式执行 job，工具链因此是**主机的持久状态**，不随 job 分发。
+每个由平台安装的工具链根目录下放一份 `.aisoft-runtime-source` provenance marker，
+记录 contract、版本、来源、校验值与回滚方式。
+
+> **更正（2026-09-18，#309）**：`/opt/node24.18.0` 自 2026-08-07 起就在主机上，本文档此前
+> 没有任何记载。这是与 §4.1 同类的 as-built 漂移——主机改了，文档没跟。依据是同日
+> `cat /opt/node24.18.0/.aisoft-runtime-source`、`stat` 与 `bin/node --version` 的输出。
+
+| 路径 | 内容 | 属主 | 大小 | 装于 | marker |
+|---|---|---|---|---|---|
+| `/opt/node24.18.0` | Node `24.18.0` + npm `11.19.0` | `root:root 755` | 213 MiB | `2026-08-07`（marker 自报，与目录 mtime `2026-08-07 22:36:37 +0800` 一致） | 有，`contract=gitea-runner-node-runtime/v1` |
+| `/opt/node22` | Node `22.22.0` + npm + pnpm | `gitea-runner:gitea-runner` | 约 115 MiB | `2026-07-14`（目录 mtime，无 marker） | 无，安装者与依据 `unknown` |
+| `/opt/flutter/3.32.8` | Flutter `3.32.8` + 自举的 Dart | `gitea-runner:gitea-runner` | 见 §4.3 | 见 §4.3 | 有，`contract=gitea-runner-flutter-runtime/v1` |
+
+`/opt/node24.18.0/.aisoft-runtime-source` 的字段形态（其余工具链沿用同一形态）：
+
+```ini
+contract=gitea-runner-node-runtime/v1
+installed_at=2026-08-07
+node_version=24.18.0
+node_source=https://nodejs.org/dist/v24.18.0/node-v24.18.0-linux-arm64.tar.xz
+node_sha256=58c9520501f6ae2b52d5b210444e24b9d0c029a58c5011b797bc1fe7105886f6
+npm_version=11.19.0
+npm_source=https://registry.npmjs.org/npm/-/npm-11.19.0.tgz
+npm_sha1=…
+npm_integrity=sha512-…
+rollback=rename-or-remove-/opt/node24.18.0; system-node-and-/opt/node22-unchanged
+```
+
+系统自带 `node` 是 `/usr/bin/node` v20.20.2，与上面三个都无关，也不被平台管理。
+`/opt/node22` 没有 marker，它的安装者与来源在本次核对中读不到，记为 `unknown`；
+补齐它需要另一次变更，不在 #309 范围。
+
+**runner 不注入工具链环境变量**。`act_runner.service` 的 `Environment=PATH=` 是系统五段默认值，
+`config.yaml` 没有 `runner.envs`。消费方 workflow 自己在 job 级 `env:` 里声明需要的变量并把
+工具链的 `bin` 前置到 `PATH`。这样每个仓库对自己依赖哪条工具链是显式的，平台侧也不必为了
+某一个仓库的需要去重启三仓共用的唯一执行位。
+
+### 4.3 Flutter SDK（runner 预装，#309）
+
+| 项 | 值 |
+|---|---|
+| 路径 | `/opt/flutter/3.32.8` |
+| 版本 / revision | `3.32.8` / `edada7c56edf4a183c1735310e123c7f923584f1` |
+| 随附 Dart | 由 SDK 自举，版本随 Flutter 3.32.8 固定 |
+| 属主 / 权限 | `gitea-runner:gitea-runner`，`a+rX` |
+| 持久 pub 缓存 | `/opt/act-runner/.pub-cache`（`gitea-runner` 属主，与既有 `.npm` 同级） |
+| 安装脚本 | `codex/tools/install-runner-flutter.sh`（幂等，带只读 `--check`） |
+| marker | `/opt/flutter/3.32.8/.aisoft-runtime-source`，`contract=gitea-runner-flutter-runtime/v1` |
+
+**为什么是 clone 而不是解压官方归档**：主机是 aarch64（`uname -m` = `aarch64`，Ubuntu 26.04），
+而 Flutter 官方 Linux 归档**只发 x64**。arm64 的唯一路径是 clone tag 后让 SDK 自举 Dart，
+自举要解压 `dartsdk-linux-arm64`，因此主机必须有 `unzip`（本次一并补装）。
+
+**为什么必须预装、不能在 job 内装**：§4.1 的 `capacity: 1` + `timeout: 20m` 意味着冷启动
+clone 约 1 GiB 很可能撞满超时，并在此期间占死三仓共用的唯一执行位。
+
+**平台合同（消费方怎么用）**：平台只保证上面两个固定路径存在、对 `gitea-runner` 可读可执行。
+**runner 不注入 `PATH` 也不注入 `PUB_CACHE`**，消费方 workflow 自己声明：
+
+```yaml
+jobs:
+  mobile-verify:
+    runs-on: ubuntu-latest
+    env:
+      PUB_CACHE: /opt/act-runner/.pub-cache
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          export PATH=/opt/flutter/3.32.8/bin:$PATH
+          flutter --version
+          flutter pub get
+          dart analyze --format=machine .
+```
+
+**安装与验证**：
+
+```bash
+# 只读核对现状，什么都不写
+sudo bash codex/tools/install-runner-flutter.sh --check
+# 安装（幂等，重跑为 no-op，不重复 clone）
+sudo bash codex/tools/install-runner-flutter.sh
+# 以 runner 身份验证
+sudo -u gitea-runner /opt/flutter/3.32.8/bin/flutter --version
+sudo -u gitea-runner /opt/flutter/3.32.8/bin/dart --version
+```
+
+脚本在 clone 之后断言 `git rev-parse HEAD` 等于钉住的 revision，不等即失败退出；整个 clone 在
+staging 目录里完成，失败不会留下半装的树。安装前磁盘使用率达到或超过 80% 直接拒绝。
+它全程不碰 act_runner：不改 `config.yaml`、不改 unit、不重启服务。
+
+**升级**：装一个新的并列目录（`/opt/flutter/<新版本>`），验证通过后再改消费方 workflow 的路径，
+最后删旧目录。不要原地 `git checkout` 升级——那会让 marker 与实际 revision 漂移，
+正是本节要避免的那类问题。
+
+**回滚**：`sudo rm -rf /opt/flutter/3.32.8`；pub 缓存 `sudo rm -rf /opt/act-runner/.pub-cache`。
+两者在 #309 之前都不存在，删除即回到安装前状态。`unzip` 保留。
+
+**已知限制**：pub.dev 是新的外部依赖，npm 侧 Verdaccio（§5）在 pub 侧没有等价物。
+pub.dev 不可达时 job 会红，持久 `PUB_CACHE` 只减少重复下载，不提供离线能力。
 
 ## 5. Verdaccio（弱网救星）
 

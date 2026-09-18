@@ -30,9 +30,11 @@ updated: 2026-09-18
 三处同属 `01` 文档与主机的漂移，只改文档不改主机，共用 AC-4 一条验收标准。
 
 范围 1 由调度会话在 2026-09-18 再次扩展（Issue 正文 `updated_at: 2026-09-18T21:24:23+08:00`）：
-追加持久 `PUB_CACHE` 与「把 `PATH`（含 `/opt/flutter/3.32.8/bin`）与 `PUB_CACHE` 写进 runner 环境」，
-AC-3 改为 `pub get` + `dart analyze` 两步计时且第二次 `pub get` 须为缓存命中。
-**这一条越出了 Issue 原授权闸门 1 的边界**，处置见「风险与回滚约束」的授权闸门表。
+追加持久 `PUB_CACHE`，并要求把 `PATH`（含 `/opt/flutter/3.32.8/bin`）与 `PUB_CACHE` 写进 runner 环境。
+**后半句越出了 Issue 原授权闸门 1 的边界**，因此本 spec 把它单独拆成闸门 3，并给出**建议拒绝**的
+理由与替代形状（见「风险与回滚约束」）：平台只提供两个固定路径并在 `01` 文档里声明为平台合同，
+由消费方 workflow 在 job 级 `env:` 自行声明。这样合同显式落在消费方，平台侧不碰三仓共用的 daemon，
+也不需要依赖「host 模式 job 完整继承 daemon 环境」这个未经本机实测的假设。
 
 原因（只读实测，2026-09-18）：
 
@@ -50,7 +52,7 @@ AC-3 改为 `pub get` + `dart analyze` 两步计时且第二次 `pub get` 须为
       不改变 `/opt/flutter/3.32.8` 下任何文件的 mtime 集合、退出码为 0 并显式报告「已安装且 revision 一致」。
       两次执行的完整输出写入 verification。
 - [ ] **AC-3 真实 job 形态可跑通且远低于超时**：在 runner 主机上以 `gitea-runner` 身份，对 NewEMaint
-      `apps/mobile` 的一份干净 checkout，在持久 `PUB_CACHE` 生效的前提下依次执行
+      `apps/mobile` 的一份干净 checkout，以显式 `PUB_CACHE=/opt/act-runner/.pub-cache` 前缀依次执行
       `flutter pub get` 与 `dart analyze --format=machine .`。两条命令都以非 SDK 错误结束
       （analyze 可以报项目自身的 lint/错误条目，但不得报 SDK 缺失、权限拒绝或自举失败）；
       各自耗时与合计耗时以实测秒数写入 verification，合计远小于 `20m` job 超时。
@@ -65,7 +67,12 @@ AC-3 改为 `pub get` + `dart analyze` 两步计时且第二次 `pub get` 须为
       - (c) 新增 `/opt/node24.18.0` 的 as-built 小节：路径、Node `24.18.0` 与 npm `11.19.0`、
         `.aisoft-runtime-source` marker 内容摘要（contract、来源 URL、校验值、回滚行）、
         安装者与时间（从 marker 与文件 mtime 读，读不到写 `unknown`）。
-      三处都只改文档、不改主机。
+      - (d) §4.1 补记 `-c` 的实际应用方式是 drop-in `/etc/systemd/system/act_runner.service.d/10-config.conf`
+        （2026-09-05 22:46 创建），不是文档里写的 `systemctl edit --full`。
+      (a)~(d) 都只改文档、不改主机。
+      新增的 Flutter 小节还必须写明**平台合同**：`/opt/flutter/3.32.8/bin` 与
+      `/opt/act-runner/.pub-cache` 是平台提供的两个固定路径，runner 不注入任何相关环境变量，
+      消费方 workflow 在 job 级 `env:` 自行声明 `PUB_CACHE` 并把 SDK 的 `bin` 前置到 `PATH`。
 - [ ] **AC-5 证据与闸门**：verification 记录安装前后 `df -h /opt`；
       `aisoft-loop check-change-documents --repo <checkout>` PASS；
       `bash codex/tests/smoke.sh` PASS；
@@ -76,13 +83,6 @@ AC-3 改为 `pub get` + `dart analyze` 两步计时且第二次 `pub get` 须为
 - [ ] **AC-7 持久 pub 缓存就位**：`/opt/act-runner/.pub-cache` 存在、属主 `gitea-runner`，
       与既有 `/opt/act-runner/.npm` 同级同属主；AC-3 首次 `pub get` 之后该目录非空，
       `du -sh` 实测大小写入 verification。
-- [ ] **AC-8 runner 环境读回**：`PUB_CACHE=/opt/act-runner/.pub-cache` 与含
-      `/opt/flutter/3.32.8/bin` 的 `PATH` 已写入 act_runner 的作业环境配置，并且**读得回来**：
-      配置文件读回一次，act_runner 重启后 daemon 进程环境（`/proc/<pid>/environ` 或
-      `systemctl show -p Environment`）读回一次，两次输出写入 verification。
-      **已知限制**：本条只证明配置与 daemon 侧生效，不证明 job step 内生效——后者需要一次真实
-      workflow run，而唯一的消费方 workflow 属于 NewEMaint #158，不在本 Issue 范围。
-      端到端证据落在 #158 的首次绿跑，本 Issue 在 verification 中显式写明这一未执行项。
 
 ## 接口、数据与兼容性影响
 
@@ -90,17 +90,22 @@ AC-3 改为 `pub get` + `dart analyze` 两步计时且第二次 `pub get` 须为
   `.aisoft-runtime-source` provenance marker，字段沿用主机上既有的
   `/opt/node24.18.0/.aisoft-runtime-source`（`contract=gitea-runner-node-runtime/v1`），
   本次取 `contract=gitea-runner-flutter-runtime/v1`。
-- **修改 act_runner 的作业环境**（范围 1 追加项）：为全部 job 注入 `PUB_CACHE` 与含
-  `/opt/flutter/3.32.8/bin` 的 `PATH`。这是一条**影响三个仓库全部 job** 的共享环境变更，
-  且生效需要重启 act_runner。两条候选机制：
+- **不修改 act_runner 的作业环境**（推荐形状）。平台只提供两个固定路径并在 `01` 文档里声明为
+  平台合同，消费方 workflow 在 job 级 `env:` 自行声明：
 
-  | 机制 | 落点 | 语义 | 代价 |
-  |---|---|---|---|
-  | A `runner.envs` | `/opt/act-runner/config.yaml` | act_runner 官方的「注入 job 环境」字段，v1.0.7 `generate-config` 明确写着 `Extra environment variables to run jobs` | 改的是本次同时在文档化 as-built 的那个文件；需重启 |
-  | B systemd drop-in | `/etc/systemd/system/act_runner.service.d/20-*.conf` | 改 daemon 自身环境，host 模式 job 是否完整继承需实测 | 需 `daemon-reload` + 重启；语义不如 A 明确 |
+  ```yaml
+  env:
+    PUB_CACHE: /opt/act-runner/.pub-cache
+  # step 内：export PATH=/opt/flutter/3.32.8/bin:$PATH
+  ```
 
-  **spec 选 A**：它是 act_runner 为这件事提供的字段，语义不依赖「host 模式继承」这个未经本机
-  实测的假设。既有 `10-config.conf` drop-in 保持不动。
+  这样做的三个理由：合同显式落在唯一消费方（NewEMaint #158 的 `mobile-verify`）而不是隐式的
+  daemon 环境；平台侧不碰三仓共用的 act_runner，也不需要重启唯一执行位；不依赖
+  「host 模式 job 完整继承 daemon 环境」这个未经本机实测的假设，因而没有验证缺口。
+- **如果负责人仍然授权闸门 3**，则改用 act_runner 的 `runner.envs`（`/opt/act-runner/config.yaml`），
+  而不是 systemd drop-in：v1.0.7 的 `generate-config` 把 `runner.envs` 明确定义为
+  `Extra environment variables to run jobs`，语义就是注入 job 环境；drop-in 改的是 daemon 自身环境，
+  是否传导到 job step 需要一次真实 workflow run 才能证实。此时补回 AC-8（见「授权闸门」表下方）。
 - **不修改** act_runner 版本、`capacity`、`timeout`、`shutdown_timeout` 或注册标签。
   `config.yaml` 只新增 `runner.envs` 两个键，既有两个键逐字节不动。
 - **既有 `/opt/node24.18.0` 不被本次改动**：它只是被补进文档的 as-built，本次不碰它的字节、
@@ -116,15 +121,24 @@ Issue 正文的授权闸门表只有 1 条，写的是「安装软件包（`unzi
 范围 1 的追加项越出了这条边界：它要写 `/opt/act-runner/` 下的新目录，还要改共享 CI 服务的
 配置并重启它。**不能把追加项算进原来那条授权**，因此拆成三条，逐条取得负责人授权：
 
-| # | 动作 | 影响面 | 回滚 | 默认 |
+| # | 动作 | 影响面 | 回滚 | 本 spec 的建议 |
 |---|---|---|---|---|
-| 1 | `apt-get install -y unzip`；写入 `/opt/flutter/3.32.8` | 新增路径，无既有消费方 | `rm -rf /opt/flutter/3.32.8` | NOT RUN，需授权 |
-| 2 | 创建并预热 `/opt/act-runner/.pub-cache`（`gitea-runner` 属主） | 新增路径，无既有消费方 | `rm -rf /opt/act-runner/.pub-cache` | NOT RUN，需授权 |
-| 3 | 在 `/opt/act-runner/config.yaml` 新增 `runner.envs`，并**重启 act_runner** | **三个仓库的全部 CI job**；重启会杀掉在跑的 job | 删除新增的 `runner.envs` 段并再次重启 | NOT RUN，需授权 |
+| 1 | `apt-get install -y unzip`；写入 `/opt/flutter/3.32.8` | 新增路径，无既有消费方 | `rm -rf /opt/flutter/3.32.8` | 建议批准 |
+| 2 | 创建并预热 `/opt/act-runner/.pub-cache`（`gitea-runner` 属主） | 新增路径，无既有消费方 | `rm -rf /opt/act-runner/.pub-cache` | 建议批准 |
+| 3 | 在 `/opt/act-runner/config.yaml` 新增 `runner.envs`，并**重启 act_runner** | **三个仓库的全部 CI job**；重启会杀掉在跑的 job | 删除新增的 `runner.envs` 段并再次重启 | **建议拒绝** |
 
-第 3 条的影响面与前两条不是一个量级：前两条是新增无人消费的路径，装错了没人受影响；
-第 3 条改的是 `admin/aisoft-platform`、`admin/LocalWMS`、`admin/NewEMaint` 三个仓库
-每一个 job 的环境，而且必须重启唯一执行位才能生效。它单独授权。
+三条默认都是 NOT RUN，逐条等负责人授权。
+
+**为什么建议拒绝闸门 3**：它的唯一收益是让 job 不必自己声明两个环境变量，代价却是改动三仓共用
+daemon 的行为并重启唯一执行位；而这两个变量的唯一消费方就是 NewEMaint #158 的 `mobile-verify`，
+在它自己的 workflow 里用 job 级 `env:` 声明一次即可。拒绝闸门 3 同时消掉了原 AC-8 的验证缺口——
+那条缺口的根源正是「平台侧改了环境，却只有消费方的一次真实 run 能证明它生效」。
+
+**若负责人仍要批准闸门 3**，补回这条验收标准：
+
+> **AC-8 runner 环境读回**：`PUB_CACHE` 与含 `/opt/flutter/3.32.8/bin` 的 `PATH` 写入
+> `runner.envs` 后，配置文件读回一次、重启后 daemon 进程环境读回一次，两次输出写入 verification。
+> 已知限制：只证明配置与 daemon 侧生效，job step 内是否生效需 #158 的首次真实 run。
 
 第 3 条执行前必须用 `orbstack.runner.status` 确认 `execution.child_count == 0`；
 非零就等，不抢。
@@ -148,7 +162,8 @@ Issue 正文的授权闸门表只有 1 条，写的是「安装软件包（`unzi
 - act_runner 升级、`capacity`/`timeout` 调整、注册标签变更。
 - pub 侧的离线镜像（npm 侧 Verdaccio 的 pub 等价物）。pub.dev 不可达时 job 仍会红，
   这是已知限制，由 NewEMaint #158 在文档里记为已知限制。
-- 在真实 workflow run 中证明 job step 内环境生效（见 AC-8 已知限制）。
+- 修改消费方 workflow 使其声明 `PUB_CACHE` 与 `PATH`——那是 NewEMaint #158 的工作，
+  本 Issue 只在 `01` 文档里把两个路径声明为平台合同。
 - Android SDK、Gradle、Java 工具链——`flutter build apk` 不在本次验收范围，本次只保证
   `pub get` 与 `dart analyze` 这一档静态验证能力。
 - 对 `/opt/node24.18.0` 做任何主机侧改动。它在本次只补 as-built 记录（AC-4(c)），

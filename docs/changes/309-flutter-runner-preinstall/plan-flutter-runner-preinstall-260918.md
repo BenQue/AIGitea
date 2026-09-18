@@ -27,8 +27,8 @@ updated: 2026-09-18
 | T02 | 在 gitea-ci 主机真实执行安装：`unzip` + `/opt/flutter/3.32.8` + 自举 + `precache`，取得 AC-1/AC-2/AC-6 与 `df` 证据 | T01 | pending |
 | T03 | 创建 `/opt/act-runner/.pub-cache`，以 `gitea-runner` 身份对 NewEMaint `apps/mobile` 干净 checkout 实测 `pub get` + `dart analyze` 耗时，另一份 checkout 复测 `pub get` 缓存命中（AC-3、AC-7） | T02 | pending |
 | T04 | `01-基础设施-VM-Gitea-Runner.md`：新增 Flutter 小节 + 三处 as-built 更正（`config.yaml`、`ExecStart -c`、`/opt/node24.18.0`）+ runner 作业环境小节（AC-4） | - | pending |
-| T05 | `config.yaml` 新增 `runner.envs`（`PUB_CACHE`、`PATH`），重启 act_runner，配置与 daemon 环境双读回（AC-8） | T02, T03 | pending |
-| T06 | verification 文档定稿、`check-change-documents`、全量 smoke、判级投影 `--verify`（AC-5） | T02, T03, T04, T05 | pending |
+| T05 | **仅当闸门 3 获批**：`config.yaml` 新增 `runner.envs`，重启 act_runner，配置与 daemon 环境双读回（补回的 AC-8） | T02, T03 | not-planned（建议拒绝闸门 3） |
+| T06 | verification 文档定稿、`check-change-documents`、全量 smoke、判级投影 `--verify`（AC-5） | T02, T03, T04 | pending |
 
 **主机写入的 ticket 与授权闸门逐条对应**（闸门表见 spec「风险与回滚约束」）：
 
@@ -36,7 +36,7 @@ updated: 2026-09-18
 |---|---|---|
 | T02 | 闸门 1 | NOT RUN；T03、T05 连带 NOT RUN；AC-1/AC-2/AC-3/AC-6/AC-7/AC-8 全部达不成 |
 | T03 | 闸门 2 | NOT RUN；AC-3、AC-7 达不成；AC-1/AC-2/AC-6 仍可达成 |
-| T05 | 闸门 3 | NOT RUN；AC-8 达不成；其余不受影响 |
+| T05 | 闸门 3 | 默认就不执行（spec 建议拒绝）；拒绝时无 AC 受影响，因为 AC-8 随闸门 3 一起不成立 |
 
 T01、T04、T06 不需要任何主机写入，三条闸门全不授权时它们仍然交付，T06 的 AC-5 相应记为部分 NOT RUN。
 闸门 3 是三条里唯一影响三个仓库既有 CI 的，可以单独拒绝而不影响闸门 1、2。
@@ -71,7 +71,7 @@ T04 的三处 as-built 更正全部基于已经取得的只读证据，因此**�
 | AC-5 | `df -h /opt`（安装前后各一次）；`PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo <checkout>`；`bash codex/tests/smoke.sh`；`codex/tools/apply-classification-labels.sh --verify 309` |
 | AC-6 | `sudo -u gitea-runner /opt/flutter/3.32.8/bin/flutter --version` 连跑两次，比对第二次输出无 Dart SDK 下载/自举行 |
 | AC-7 | `stat -c '%U:%G %a' /opt/act-runner/.pub-cache`；首次 `pub get` 后 `du -sh` |
-| AC-8 | `cat /opt/act-runner/config.yaml`（读回 `runner.envs`）；重启后 `sudo tr '\0' '\n' < /proc/$(systemctl show act_runner -p MainPID --value)/environ`，两处都要出现 `PUB_CACHE` 与含 `/opt/flutter/3.32.8/bin` 的 `PATH` |
+| AC-8（仅闸门 3 获批时存在） | `cat /opt/act-runner/config.yaml`（读回 `runner.envs`）；重启后 `sudo tr '\0' '\n' < /proc/$(systemctl show act_runner -p MainPID --value)/environ` |
 
 ## 部署与回滚
 
@@ -83,8 +83,8 @@ T04 的三处 as-built 更正全部基于已经取得的只读证据，因此**�
   不留下半装状态（失败后 `/opt/flutter/3.32.8` 不存在或被脚本清理干净），输出入 verification。
 - **回滚命令**：`sudo rm -rf /opt/flutter/3.32.8`。目录本次之前不存在，删除即回到安装前状态。
   `unzip` 保留，不在回滚范围。
-- **涉及一次服务重启**（T05 / 闸门 3）：`systemctl restart act_runner`。重启前用
-  `orbstack.runner.status` 确认 `execution.child_count == 0`，非零就等。
-  重启失败或读回不符时立刻回滚——删除新增的 `runner.envs` 段并再次重启，
-  回到 `capacity`/`timeout` 两键的原状态。
+- **推荐形状下不重启任何服务**：闸门 1、2 只新增路径，act_runner 全程不受影响。
+- **仅当闸门 3 获批**才涉及一次 `systemctl restart act_runner`：重启前用
+  `orbstack.runner.status` 确认 `execution.child_count == 0`，非零就等；读回不符立刻回滚——
+  删除新增的 `runner.envs` 段并再次重启，回到 `capacity`/`timeout` 两键的原状态。
 - **不涉及**：systemd unit 与既有 `10-config.conf` drop-in 的修改、act_runner 升级、生产主机。
