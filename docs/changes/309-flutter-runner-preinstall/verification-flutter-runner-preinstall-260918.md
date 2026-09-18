@@ -25,9 +25,11 @@ updated: 2026-09-18
 - 环境：Mac 交互会话 + OrbStack VM `gitea-ci`（`Ubuntu 26.04 LTS`，`aarch64`，内核
   `7.0.14-orbstack-00380-ga7e0a2dc9535`）
 - 本记录负责证明：AC-1 ~ AC-7
-- **主机写入状态**：授权闸门 1、2 截至本次记录**尚未获得负责人授权**，因此 T02、T03 为 NOT RUN，
-  AC-1、AC-2、AC-3、AC-6、AC-7 相应为 NOT RUN。闸门 3 由 spec 建议拒绝、默认不执行。
-  本记录中所有主机侧条目均为**只读观测**，未安装、未修改、未重启任何东西。
+- **授权记录（2026-09-18）**：负责人在本会话确认点 1 批准合同，并逐条授权
+  **闸门 1（装 `unzip` + 写 `/opt/flutter/3.32.8`）与闸门 2（建 `/opt/act-runner/.pub-cache`）**；
+  **闸门 3（改 `runner.envs` 并重启 act_runner）未授权，保持 NOT RUN**。
+  因此本次不修改 `/opt/act-runner/config.yaml`、不修改 systemd unit、不重启任何服务，
+  `PUB_CACHE` 与 `PATH` 由消费方 workflow 自行声明。
 
 ## 执行结果
 
