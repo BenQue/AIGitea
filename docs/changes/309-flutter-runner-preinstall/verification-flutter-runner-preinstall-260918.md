@@ -71,7 +71,7 @@ updated: 2026-09-18
 | `shellcheck codex/tools/install-runner-flutter.sh` | PASS | 无 finding |
 | `bash codex/tests/test-install-runner-flutter.sh` | PASS | `PASS: install-runner-flutter`（8 个用例：未知参数、`--check` 只读、首次安装、二次 no-op、已装态 `--check`、revision 不符 fail closed 且无残留、磁盘闸门、`--no-pub-cache`） |
 | `/bin/bash codex/tests/test-install-runner-flutter.sh`（bash 3.2） | PASS | `PASS: install-runner-flutter`，确认不依赖 bash 4+ 语法 |
-| `bash codex/tests/smoke.sh` | 见下 | 见「全量 smoke」 |
+| `bash codex/tests/smoke.sh` | PASS | `Ran 965 tests in 70.946s` / `OK` / `Codex platform static smoke checks passed.`；exit 0，总耗时 3:03。含新登记的 `test-install-runner-flutter.sh` |
 | `aisoft-loop check-change-documents --repo <checkout>` | PASS | `PASS: change-documents` / `PASS: change-pr-url` / `changes=141 pass=2 gap=0` |
 
 ## Acceptance criteria 结果
@@ -82,7 +82,7 @@ updated: 2026-09-18
 | AC-2 安装幂等 | **NOT RUN**（逻辑已单测覆盖） | 真实主机两次执行未做；`test-install-runner-flutter.sh` 用例 4 在 mock 环境证明第二次不 clone 且安装根下 mtime 集合不变 |
 | AC-3 job 形态实测耗时 | **NOT RUN** | 依赖 AC-1；`gitea-runner` 对 NewEMaint checkout 的读权限已确认 |
 | AC-4 文档与主机一致 | **PASS** | §4.1 重写（`config.yaml` 存在/20m、`ExecStart -c` 已生效、drop-in 而非 `edit --full`）、新增 §4.2 预装工具链 as-built（含 `/opt/node24.18.0`）、新增 §4.3 Flutter 合同；每处都标注了更正日期 2026-09-18 与依据命令 |
-| AC-5 证据与闸门 | **部分 PASS** | `df -h /opt` 安装前已记，安装后 NOT RUN；`check-change-documents` PASS；smoke 见下；判级 `--verify` 在提交 PR 前执行 |
+| AC-5 证据与闸门 | **部分 PASS** | `df -h /opt` 安装前已记，安装后 NOT RUN；`check-change-documents` PASS；`smoke.sh` PASS（965 tests，exit 0）；判级 `--verify` 在提交 PR 前执行 |
 | AC-6 runner 身份不重复自举 | **NOT RUN** | 依赖 AC-1 |
 | AC-7 持久 pub 缓存就位 | **NOT RUN** | 闸门 2 未授权；已确认该目录当前不存在 |
 
