@@ -55,18 +55,25 @@ tag 后自举，而自举解压 `dartsdk-linux-arm64` 需要 `unzip`/`bsdtar`/`7
 **仓库侧**
 
 - 新增幂等安装脚本与其单元测试，并登记进 `codex/tests/smoke.sh` 的静态闸门清单。
-- `01-基础设施-VM-Gitea-Runner.md`：新增「Flutter SDK（runner 预装）」小节；§4.1 as-built 更正。
+- `01-基础设施-VM-Gitea-Runner.md`：新增「Flutter SDK（runner 预装）」小节；三处 as-built 更正
+  （`config.yaml`、`ExecStart -c`、`/opt/node24.18.0`）。
 
 **不触及**：act_runner 版本、`capacity`、`timeout`、Gitea 配置、任何项目仓 workflow、任何部署链路。
 
-### §4.1 as-built 的两处漂移（本次只读实测，2026-09-18）
+### `01` 文档 as-built 的三处漂移（本次只读实测，2026-09-18）
 
 | 文档现写 | 实测 | 证据 |
 |---|---|---|
 | `/opt/act-runner/config.yaml` 不存在 | 存在，`gitea-runner:gitea-runner 644`，mtime `2026-09-05 22:46:24 +0800` | `stat` + `cat`：`runner.capacity: 1`、`runner.timeout: 20m` |
 | `ExecStart` 没有 `-c`，走 3h 内置默认 | `ExecStart` 已含 `-c /opt/act-runner/config.yaml`，服务自 `2026-09-15 20:38:48 CST` 起以该配置运行 | `systemctl show act_runner -p ExecStart` |
+| （文档无任何记载） | `/opt/node24.18.0` 已装 Node `24.18.0` + npm `11.19.0`，`root:root 755`，213 MiB，marker `installed_at=2026-08-07`，目录 mtime `2026-08-07 22:36:37 +0800` | `cat .aisoft-runtime-source`、`stat`、`bin/node --version`、`bin/npm --version` |
 
-即 #228 记为「应用方式（人工，尚未执行）」的那一段实际已经执行过，as-built 停在了执行之前的快照。
+前两处说明 #228 记为「应用方式（人工，尚未执行）」的那一段实际已经执行过，as-built 停在了执行之前的
+快照。第三处是另一种漂移：主机装了东西而文档里零记录——这正是本次 Flutter 安装必须同时落文档的理由。
+
+第三处由调度会话在 2026-09-18 并入本 Issue 范围 3 与 AC-4（Issue 正文
+`updated_at: 2026-09-18T21:20:41+08:00`），理由是它与前两处同属 `01` 文档 as-built 漂移、
+只改文档不改主机、不需要独立验收标准，且落在本 PR 已触碰的同一个文件。
 
 ## 初步方案与建议
 
@@ -127,4 +134,4 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- 无。Issue 正文已给出 AC-1～AC-5 与唯一授权闸门，spec 在此基础上补齐可观察表述与权限验收项。
+- 无。Issue 正文已给出 AC-1～AC-5 与唯一授权闸门，spec 在此基础上补齐可观察表述与权限验收项（AC-6）。

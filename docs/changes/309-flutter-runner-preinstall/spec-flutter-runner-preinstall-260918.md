@@ -25,6 +25,10 @@ updated: 2026-09-18
 可以直接使用而不必在 job 内准备 SDK；同时把这条主机侧合同和既有的 act-runner as-built
 一起写回 `01-基础设施-VM-Gitea-Runner.md`，消除文档与主机的漂移。
 
+范围 3 由调度会话在 2026-09-18 依本会话的只读核对扩为三处 as-built 更正（Issue 正文
+`updated_at: 2026-09-18T21:20:41+08:00` 已落定）：`config.yaml`、`ExecStart -c`、`/opt/node24.18.0`。
+三处同属 `01` 文档与主机的漂移，只改文档不改主机，共用 AC-4 一条验收标准。
+
 原因（只读实测，2026-09-18）：
 
 - runner 主机是 aarch64，Flutter 官方 Linux 归档只有 x64，arm64 只能 clone tag 后自举。
@@ -45,8 +49,15 @@ updated: 2026-09-18
       两条命令都以非 SDK 错误结束（analyze 可以报项目自身的 lint/错误条目，但不得报 SDK 缺失、
       权限拒绝或自举失败），各自耗时与合计耗时以实测秒数写入 verification，且合计远小于 `20m` job 超时。
 - [ ] **AC-4 文档与主机一致**：`01-基础设施-VM-Gitea-Runner.md` 新增「Flutter SDK（runner 预装）」
-      小节，写明路径、版本、revision、安装与升级方式、验证命令；§4.1 as-built 改为实测状态
-      （`config.yaml` 存在、`capacity 1`、`timeout 20m`、`ExecStart` 已含 `-c`），并标注更正日期与依据。
+      小节，写明路径、版本、revision、安装与升级方式、验证命令；同一文档的 as-built 完成三处更正，
+      每处都标注更正日期与依据：
+      - (a) §4.1 `/opt/act-runner/config.yaml` 存在，写明创建时间、`capacity 1`、`timeout 20m`；
+      - (b) §4.1「应用方式（人工，尚未执行）」改为已执行——`ExecStart` 已带
+        `-c /opt/act-runner/config.yaml`，服务自 `2026-09-15 20:38:48 CST` 起以该配置运行；
+      - (c) 新增 `/opt/node24.18.0` 的 as-built 小节：路径、Node `24.18.0` 与 npm `11.19.0`、
+        `.aisoft-runtime-source` marker 内容摘要（contract、来源 URL、校验值、回滚行）、
+        安装者与时间（从 marker 与文件 mtime 读，读不到写 `unknown`）。
+      三处都只改文档、不改主机。
 - [ ] **AC-5 证据与闸门**：verification 记录安装前后 `df -h /opt`；
       `aisoft-loop check-change-documents --repo <checkout>` PASS；
       `bash codex/tests/smoke.sh` PASS；
@@ -63,6 +74,8 @@ updated: 2026-09-18
   本次取 `contract=gitea-runner-flutter-runtime/v1`。
 - **不修改** act_runner 的 `PATH`、systemd unit、`config.yaml` 或注册标签。消费方 job 使用绝对路径
   或自行把 `/opt/flutter/3.32.8/bin` 前置到 `PATH`；把它写进 runner 全局 `PATH` 属于另一次变更。
+- **既有 `/opt/node24.18.0` 不被本次改动**：它只是被补进文档的 as-built，本次不碰它的字节、
+  属主或版本。它的 marker 格式同时是本次 Flutter marker 的样板。
 - **无 schema、无数据、无 API、无外部契约变化。**
 - **向后兼容**：本次之前 `/opt/flutter` 不存在，没有既有消费方，因此没有兼容窗口问题。
 
@@ -84,7 +97,8 @@ updated: 2026-09-18
 - 把 `/opt/flutter/3.32.8/bin` 写进 act_runner 的全局 `PATH`。
 - Android SDK、Gradle、Java 工具链——`flutter build apk` 不在本次验收范围，本次只保证
   `pub get` 与 `dart analyze` 这一档静态验证能力。
-- 补写 `/opt/node24.18.0` 的文档缺口（同类漂移，但属于另一条 Issue）。
+- 对 `/opt/node24.18.0` 做任何主机侧改动。它在本次只补 as-built 记录（AC-4(c)），
+  不升级、不移动、不改权限、不写进任何 `PATH`。
 
 ## 未决问题
 
