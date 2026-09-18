@@ -122,9 +122,11 @@ HEAD = `6bd2da3`，`chown` 给 `gitea-runner` 后以下列环境执行：
 |---|---|---|
 | `bash -n codex/tools/install-runner-flutter.sh` | PASS | 无输出 |
 | `shellcheck codex/tools/install-runner-flutter.sh` | PASS | 无 finding |
-| `bash codex/tests/test-install-runner-flutter.sh` | PASS | `PASS: install-runner-flutter`（8 个用例：未知参数、`--check` 只读、首次安装、二次 no-op、已装态 `--check`、revision 不符 fail closed 且无残留、磁盘闸门、`--no-pub-cache`） |
+| `bash codex/tests/test-install-runner-flutter.sh` | PASS | `PASS: install-runner-flutter`（10 个用例：未知参数、`--check` 只读、首次安装、二次 no-op（含不重跑自举）、`--repair` 强制自举、已装态 `--check`、revision 不符 fail closed 且无残留、磁盘闸门、`--no-pub-cache`、`INSTALL_ROOT` 父目录也不存在时的磁盘探测） |
 | `/bin/bash codex/tests/test-install-runner-flutter.sh`（bash 3.2） | PASS | `PASS: install-runner-flutter`，确认不依赖 bash 4+ 语法 |
-| `bash codex/tests/smoke.sh` | PASS | `Ran 965 tests in 70.946s` / `OK` / `Codex platform static smoke checks passed.`；exit 0，总耗时 3:03。含新登记的 `test-install-runner-flutter.sh` |
+| 缺陷 1 的反向证明 | PASS | 把磁盘探测改回 `df --output=pcent "$INSTALL_ROOT"`，测试 `exit=1`；恢复后 `exit=0` |
+| 缺陷 2 的反向证明 | PASS | 去掉 `-c safe.directory=`，测试 `exit=1`；恢复后 `exit=0` |
+| `bash codex/tests/smoke.sh` | PASS | 两次：修复前 `Ran 965 tests in 70.946s` / `OK`；两个缺陷修复后重跑 `Ran 965 tests in 87.319s` / `OK` / `Codex platform static smoke checks passed.`，均 exit 0。含新登记的 `test-install-runner-flutter.sh` |
 | `aisoft-loop check-change-documents --repo <checkout>` | PASS | `PASS: change-documents` / `PASS: change-pr-url` / `changes=141 pass=2 gap=0` |
 | `apply-classification-labels.sh 309`（计划） | PASS | `applied:false`、`change_type:platform`、`complexity:complex` |
 | `apply-classification-labels.sh 309 --apply` | PASS | `applied:true`、`result:updated` |
