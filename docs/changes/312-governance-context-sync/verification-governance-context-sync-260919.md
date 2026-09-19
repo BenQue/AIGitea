@@ -107,13 +107,14 @@ identity verify -> HTTP_403
 凭据是否可用与 required context 集合毫无关系。它先于 #312 就坏了，只是
 `PROTECTION_MISMATCH` 在更前面中止了整条检查链，把它挡住了。连续两次调用结果相同，不是抖动。
 
-这条按会话合同**只回报、不自立 Issue**，已回报调度会话。
+这条按会话合同只回报、不由本会话立案；调度会话已立为平台 **#313**
+（`security(newemaint): newemaint-routine-merger 凭据调 /api/v1/user 返回 403，routine 自动合并路径不可用`，入口标签 `needs-analysis`，阻塞于 #312 合并与两台重装）。
 
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | **部分达成** | 「`gitea.protection.read` 的 contexts 与 manifest 声明逐字相同」已达成：两者都是 `["CI / verify (pull_request)", "CI / mobile-verify (pull_request)"]`，且 audit 的分支保护比对实测通过（请求序列里 `branch_protections/main` 之后仍在继续）。「返回非 BLOCKED」**未达成**，被上面那条先于本 Issue 存在的 routine merger 凭据 403 挡住，不在本次范围内 |
+| AC-1 | **部分达成** | 「`gitea.protection.read` 的 contexts 与 manifest 声明逐字相同」已达成：两者都是 `["CI / verify (pull_request)", "CI / mobile-verify (pull_request)"]`，且 audit 的分支保护比对实测通过（请求序列里 `branch_protections/main` 之后仍在继续）。「返回非 BLOCKED」**未达成**，被上面那条先于本 Issue 存在的 routine merger 凭据 403 挡住，已立 #313，不在本次范围内 |
 | AC-2 | 达成 | `smoke.sh` exit 0，967 单测 OK，61 个 project-check case 通过；新增用例 `test_pilot_accepts_more_than_one_context_and_pins_every_one` 与 `test_pilot_rejects_contexts_that_disagree_with_the_repository`（8 个子用例）分别钉住多 context 与两处声明不一致拒绝加载 |
 | AC-3 | 达成 | `06-运维手册与踩坑集.md` §1.2 新增「增删 required status context 的顺序（顺序不能反，#312）」四步与反向后果；踩坑表新增第 32 条，写明 2026-09-19 本例、症状、根因与定案 |
 | AC-4 | 达成 | 上面的四项目 audit 表；`check-change-documents` PASS（`changes=142 pass=2 gap=0`）；`apply-classification-labels.sh --verify 312` 读回 `projected`，两个维度分别为 `type/platform` 与 `complexity/complex` |
@@ -133,6 +134,7 @@ identity verify -> HTTP_403
   已安装状态目前**完全未被触碰**，仍是合并前的旧合同，因此平台当下行为与会话开始时相同。
 - **幂等与回滚 NOT RUN**，同一原因。回滚路径：checkout 回到不含本 PR 的 `origin/main` 后重跑同一
   installer，预期 audit 回到 `PROTECTION_MISMATCH`。
-- **NewEMaint routine merger 凭据 403** 未修，见上节。它使 NewEMaint 的 routine 自动合并路径当前
-  不可用（`host.access.audit` 仍 BLOCKED）；manual PR 与 typed 写操作不受影响。只回报，未自立 Issue。
+- **NewEMaint routine merger 凭据 403** 未修，见上节，已立 **#313**。它使 NewEMaint 的 routine
+  自动合并路径当前不可用（`host.access.audit` 仍 BLOCKED）；manual PR 与 typed 写操作不受影响。
+  凭据签发是负责人动作，#313 阻塞于本 PR 合并与两台重装，不在本次范围内。
 - 06 踩坑编号 32 是跨 PR 共享的可变状态，并行会话可能同时取 32；撞号由合并者改。
