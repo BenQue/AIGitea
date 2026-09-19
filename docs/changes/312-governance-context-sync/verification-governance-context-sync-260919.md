@@ -22,7 +22,7 @@ updated: 2026-09-19
 
 ## 基线与范围
 
-- Commit SHA: `fe1b49a`（实现 commit；最终 head 以 PR 为准）
+- Commit SHA: `a19beddf501f37383979ae090d9b20aafe4c21b6`（PR 314 的 final head）
 - 基线：`origin/main` = `95c0f1912b4e224e6f1b37824312cdc2abb0574b`
 - 环境：Mac，change worktree `/private/tmp/issue-312-governance-context-sync`；
   Gitea `http://gitea-ci.orb.local:3000`
@@ -55,6 +55,10 @@ updated: 2026-09-19
 | `python3 -m unittest tests.test_routine_merge tests.test_host_access` | PASS | Ran 207 tests，OK |
 | `bash codex/tests/test-project-check.sh` | PASS | `project check tests passed (61 cases)` |
 | `bash codex/tests/smoke.sh` | PASS | exit 0；`Ran 967 tests … OK`；`Codex platform static smoke checks passed.` |
+| broker `git.push.change` | PASS | `pushed_head` = `8798bc3f74c9ac111128d5becc17b66040580af6`，与确认点 2 核验的 SHA 逐字相同；回填 `pr_url` 后第二次推送 `previous_head` = `8798bc3f…`、`pushed_head` = `a19beddf501f37383979ae090d9b20aafe4c21b6` |
+| broker `gitea.pull.create --issue 312` | PASS | PR 314，head `8798bc3f74c9`，`mergeable: true` |
+| PR final head 的 required CI | PASS | `gitea.commit.status.read --sha a19beddf501f37383979ae090d9b20aafe4c21b6`：combined `success`，唯一 context `CI / verify (pull_request)` 为 `success`（2026-09-19 16:31） |
+| `apply-classification-labels.sh --verify 312` | PASS | `{"result":"projected","change_type":"platform","complexity":"complex"}`，detail `Issue #312 carries the classification its merged summary declares` |
 | `aisoft-loop check-change-documents --repo .` | PASS | `PASS: change-documents` / `PASS: change-pr-url`；`changes=143 pass=2 gap=0` |
 | `host.access.audit --project newemaint`（候选合同） | BLOCKED，但**不再是 PROTECTION_MISMATCH** | `{"code": "HTTP_403", …}`；请求序列显示 `branch_protections/main` 返回 200 并通过比对，audit 继续推进到 routine merger 段 |
 | `host.access.audit`（候选合同，其余三仓） | PASS | `localwms`、`sfm-digital-board`、`aisoft-platform` 均正常返回完整 audit JSON |
@@ -110,7 +114,7 @@ identity verify -> HTTP_403
 | AC-1 | **部分达成** | 「`gitea.protection.read` 的 contexts 与 manifest 声明逐字相同」已达成：两者都是 `["CI / verify (pull_request)", "CI / mobile-verify (pull_request)"]`，且 audit 的分支保护比对实测通过（请求序列里 `branch_protections/main` 之后仍在继续）。「返回非 BLOCKED」**未达成**，被上面那条先于本 Issue 存在的 routine merger 凭据 403 挡住，不在本次范围内 |
 | AC-2 | 达成 | `smoke.sh` exit 0，967 单测 OK，61 个 project-check case 通过；新增用例 `test_pilot_accepts_more_than_one_context_and_pins_every_one` 与 `test_pilot_rejects_contexts_that_disagree_with_the_repository`（8 个子用例）分别钉住多 context 与两处声明不一致拒绝加载 |
 | AC-3 | 达成 | `06-运维手册与踩坑集.md` §1.2 新增「增删 required status context 的顺序（顺序不能反，#312）」四步与反向后果；踩坑表新增第 32 条，写明 2026-09-19 本例、症状、根因与定案 |
-| AC-4 | 达成 | 上面的四项目 audit 表；`check-change-documents` PASS；判级 `--verify` 读回见提交 PR 前的自查 |
+| AC-4 | 达成 | 上面的四项目 audit 表；`check-change-documents` PASS（`changes=142 pass=2 gap=0`）；`apply-classification-labels.sh --verify 312` 读回 `projected`，两个维度分别为 `type/platform` 与 `complexity/complex` |
 
 ## 遗留风险与未完成项
 
