@@ -24,7 +24,7 @@ updated: 2026-09-19
 
 ## 基线与范围
 
-- Commit SHA: 待填写
+- Commit SHA: `fdff484a38bde8b85ac79f0572a344672b763295`（PR 315 的 head）
 - 基线：`origin/main` = `3ff697202623651992526df025f016eaf101eaa1`
 - 环境：Mac 交互会话，已安装 broker source commit `3ff6972`，36 typed operations；
   Mac 与 gitea-ci 两台已由负责人在 `312` 合并后重装
@@ -97,6 +97,9 @@ token 后 AC-1 仍不通过，下一步是由负责人在 Gitea 管理界面核�
 | T03 bootstrap 闸门与 shell 测试 | PASS | `bash -n` OK；`bash codex/tests/test-bootstrap-gitea-service-account.sh` → `bootstrap Gitea service account tests passed` |
 | T04 `06` 条目与全量 smoke | 见下方 smoke 行 | 踩坑 33 与凭据清单新增 routine merger 行 |
 | T05 负责人重发 token 与两台重装后的只读复验 | NOT RUN | 依赖负责人动作，见「未完成项」 |
+| `git.push.change --branch change/313-newemaint-merger-credential` | PASS | 第一次 `pushed_head` 为 `1b49c4114ff96037558706ba1a8b2bcc44d9992b`、`previous_head` 为 `null`；回填后为 `fdff484a38bde8b85ac79f0572a344672b763295`。返回体带 `pushed_head` 即说明 #298 的单写者归属闸门已生效 |
+| `gitea.pull.create --issue 313` | PASS | PR `315`，`mergeable: true`，base `3ff697202623651992526df025f016eaf101eaa1`，head `fdff484a…`，`changed_files: 11` |
+| required CI（最终 head） | PASS | `gitea.commit.status.read --sha fdff484a…` → `state: success`；`CI / verify (pull_request)` success，run 1580 job 1639 |
 
 ### 反向证明（AC-4）
 
