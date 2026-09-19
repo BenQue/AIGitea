@@ -130,19 +130,29 @@ audit 的 routine 段包在 `if repository_contract.routine_auto_merge_enabled:`
 - 不新增 broker typed 操作（例如读任意用户账号状态）。
 - 不改 `AGENTS.md`、CI workflow 或部署脚本。
 
+## 与 Issue 验收标准的映射
+
+调度会话 2026-09-19 19:30 依本会话诊断改写了 Issue 标题与正文，加入「根因更正与裁决」一节，
+取方案 B 并声明原范围第 2 条「重新签发同一 token」作废。本 spec 的合同与该裁决逐条一致；
+本 spec 的 AC 是 Issue AC 的细分，映射如下：
+
+| Issue AC | 本 spec |
+|---|---|
+| AC-1 audit 返回非 BLOCKED | AC-1 |
+| AC-2 诊断入 verification 且不含 token 值；假 transport 先红后绿；三处 scope 钉子一致；smoke 全绿 | AC-2、AC-3、AC-5、AC-7 |
+| AC-3 `06` 新条目；`check-change-documents` PASS；判级读回 `projected` | AC-6、AC-7 |
+
+Issue 末尾「判级预期」那行写的 `contract_effect=unchanged` 早于裁决，本次按 `change` 判：
+routine merger 的 token scope 是安全边界合同，本变更改了它。判级维度本身仍是
+`type/security` 与 `complexity/complex`，与 Issue 预期一致。
+
 ## 未决问题
 
-1. **范围裁决（确认点 1，必须由人决定）**：Issue 正文的「范围」第 2 条把处置写成「重新签发
-   token」，取证已证明该处置无效。两个选项：
-   - **选项 A（按 Issue 原范围）**：本 PR 只交付诊断与 `06` 条目，AC-1 记为未达成并说明原因，
-     合同修复另立 Issue。后果是 NewEMaint routine 路径继续不可用，且要多一轮合并与重装。
-   - **选项 B（扩到修合同，本 spec 采用，建议）**：本 PR 一并修 scope 合同、三处钉子与测试
-     假 transport，负责人重发 token 后当场复验 AC-1。后果是本 PR 触碰 governance 文件，
-     需要本 spec 明确授权，这正是 `AGENTS.md` 对治理文件的要求。
+无。原先的范围裁决已由负责人在确认点 1 取方案 B，调度会话同步改写了 Issue 正文。
 
-   未裁决的后果：会话停在确认点 1，不动任何实现文件。
+`prohibit_login` 与 `restricted` 仍未读回（broker 没有读任意用户账号状态的 typed 操作，
+隔离复验被本机权限策略拒绝），按裁决如实记 `NOT RUN`：scope 缺失已足以解释 403，
+若重签 token 后仍 403，再核这两个字段。这不改变实现方向。
 
-2. **`prohibit_login` 与 `restricted` 的读回**：broker 没有读任意用户账号状态的 typed 操作，
-   本会话无法直接读回这两个字段。已知证据（`/api/v1/users/newemaint-routine-merger` 返回 200、
-   `is_admin` 为 false）不覆盖它们。scope 缺失已足以解释 403，但若负责人重发 token 后 AC-1
-   仍不通过，下一步就是在 Gitea 管理界面核对这两个字段。这不改变实现方向，不阻塞确认点 1。
+本会话实现过程中只读发现的「服务账号 PAT 没有被测试覆盖的显式轮换路径」已由调度会话立为
+**#316**，阻塞于本 Issue 合并与两台重装，不在本次范围内。

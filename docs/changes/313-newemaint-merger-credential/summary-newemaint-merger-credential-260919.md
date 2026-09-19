@@ -97,5 +97,9 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-Issue 的 AC-1 至 AC-3 可测且完整，但 Issue 的「范围」第 2 条把处置写成「重新签发 token」，
-与取证结论不符。需要人在确认点 1 裁决是否把范围扩到修合同（见 spec 的两个选项）。
+无。负责人在确认点 1 取方案 B（扩范围到修合同），调度会话随后改写了 Issue 标题与正文，
+加入「根因更正与裁决」一节并声明原范围第 2 条「重新签发同一 token」作废。Issue 的
+AC-1 至 AC-3 与本 change 的 AC 映射见 spec。
+
+`prohibit_login` 与 `restricted` 未读回，按裁决记 `NOT RUN`。实现期只读发现的「服务账号 PAT
+没有被测试覆盖的显式轮换路径」已立 **#316**，不在本次范围内。

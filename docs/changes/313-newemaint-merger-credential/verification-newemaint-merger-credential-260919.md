@@ -134,8 +134,10 @@ token 后 AC-1 仍不通过，下一步是由负责人在 Gitea 管理界面核�
    （需要 `AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-213`、`--merged-sha` 为 `213` 的 merge SHA、
    `--credential-output` 为 `projects/newemaint/routine-merge-agent.token`）。
    新 PAT 的 scope 由 manifest 派生，脚本会自己读回校验。
-   **本节由源码阅读得出，会话未执行也未验证这条轮换序列**；平台目前没有一条被测试覆盖的
-   routine PAT 轮换脚本，这是本次发现的衍生问题，已回报调度会话，未自立 Issue。
+   **本节由源码阅读得出，会话未执行也未验证这条轮换序列，记 `NOT RUN`。** 平台目前没有一条
+   被测试覆盖的 routine PAT 轮换路径；该衍生问题已由调度会话立为 **#316**（rotate 子命令 +
+   测试，首个真实对象即 `newemaint-routine-merger`，阻塞于本 Issue 合并与两台重装）。
+   本节保留为 #316 落地之前的应急 runbook。
 4. **只读复验**：`host-access-broker --project newemaint --operation host.access.audit`
    期望返回非 BLOCKED，且 `routine_merge.actual_token_scopes` 为 `["read:user", "write:repository"]`。
 
@@ -162,9 +164,10 @@ token 后 AC-1 仍不通过，下一步是由负责人在 Gitea 管理界面核�
 - 本次不启用 routine 自动合并、不改分支保护、不执行 merge、不部署。
 - **AC-1 未达成，且不可能在本会话内达成**：它需要人工合并、两台 `sudo` 重装与凭据重发，
   三件都是负责人动作。
-- **衍生问题（只回报，未自立 Issue）**：平台没有一条被测试覆盖的 routine PAT 轮换路径。
+- **衍生问题已立 #316**：平台没有一条被测试覆盖的 routine PAT 轮换路径。
   `bootstrap-gitea-service-account.sh` 只有创建路径，凭据已存在时返回 `no-op`，
   凭据缺失而 marker 还在时直接拒绝并要求「显式轮换」，而这个显式轮换没有对应工具。
+  #316 阻塞于本 Issue 合并与两台重装；在它落地之前用上面那条手工序列，且该序列 `NOT RUN`。
 - **取证受限**：会话尝试用源码 runtime 解析 routine 凭据做隔离复验，被本机权限策略以
   `Credential Exploration` 拒绝，未执行也未绕过；`prohibit_login` 与 `restricted` 两个字段
   因此没有读回，broker 也没有读任意用户账号状态的 typed 操作。
