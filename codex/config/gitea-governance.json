@@ -52,7 +52,8 @@
     "allowed_operation": "gitea.pull.merge.routine",
     "credential_relative_path_template": "projects/{project_id}/routine-merge-agent.token",
     "token_scopes": [
-      "write:repository"
+      "write:repository",
+      "read:user"
     ]
   },
   "shared_bot_migration": {

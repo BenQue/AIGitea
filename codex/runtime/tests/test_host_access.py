@@ -49,6 +49,21 @@ def manifest_contexts(repository: str) -> list[str]:
     entry = next(item for item in raw["repositories"] if item["name"] == repository)
     return list(entry["status_check_contexts"])
 
+
+def manifest_routine_scopes() -> list[str]:
+    """The routine merger PAT scopes this platform declares.
+
+    The broker verifies the routine identity against `/api/v1/user` before it
+    probes any scope, and Gitea gates that route behind the user scope
+    category. A fixture that serves 200 there regardless of scope therefore
+    approves a scope set the real server rejects, which is how a routine token
+    that could never pass its own identity gate stayed green here (#313).
+    """
+    raw = json.loads(
+        (ROOT / "codex/config/gitea-governance.json").read_text(encoding="utf-8")
+    )
+    return list(raw["routine_merge_agent_policy"]["token_scopes"])
+
 ACCESS = ROOT / "codex/config/host-access-broker.json"
 GOVERNANCE = ROOT / "codex/config/gitea-governance.json"
 LABELS = ROOT / "codex/config/gitea-labels.json"
@@ -3052,6 +3067,12 @@ class HostAccessBrokerTests(unittest.TestCase):
             self.assertEqual(method, "GET")
             self.assertIsNone(body)
             token = headers["Authorization"].removeprefix("token ")
+            scopes = {
+                "token-manager": "read:issue,read:repository,read:user",
+                "token-manager-mutation": "write:issue,write:repository,read:user",
+                "token-agent": "write:issue,write:repository,read:user",
+                "token-routine": ",".join(manifest_routine_scopes()),
+            }
             if url.endswith("/api/v1/user"):
                 identities = {
                     "token-manager": "aisoft-platform-manager",
@@ -3059,16 +3080,19 @@ class HostAccessBrokerTests(unittest.TestCase):
                     "token-agent": "newemaint-agent",
                     "token-routine": "newemaint-routine-merger",
                 }
+                granted = set(scopes[token].split(","))
+                if not granted & {"read:user", "write:user"}:
+                    # Gitea answers a missing scope category with 403 (#313).
+                    return 403, {}, json.dumps({
+                        "message": (
+                            "token does not have at least one of required "
+                            "scope(s), token scope=" + scopes[token]
+                        ),
+                    }).encode()
                 return 200, {}, json.dumps({
                     "login": identities[token], "is_admin": False,
                 }).encode()
             if url.endswith("/api/v1/notifications"):
-                scopes = {
-                    "token-manager": "read:issue,read:repository,read:user",
-                    "token-manager-mutation": "write:issue,write:repository,read:user",
-                    "token-agent": "write:issue,write:repository,read:user",
-                    "token-routine": "write:repository",
-                }
                 return 403, {}, json.dumps({
                     "message": "token scope=" + scopes[token],
                 }).encode()
@@ -3111,8 +3135,8 @@ class HostAccessBrokerTests(unittest.TestCase):
                 "path_disclosure": "DENIED",
             },
             "account_state": "present-non-admin",
-            "expected_token_scopes": ["write:repository"],
-            "actual_token_scopes": ["write:repository"],
+            "expected_token_scopes": manifest_routine_scopes(),
+            "actual_token_scopes": sorted(manifest_routine_scopes()),
             "repository_permission": "write",
             "cross_project_permissions": [
                 {

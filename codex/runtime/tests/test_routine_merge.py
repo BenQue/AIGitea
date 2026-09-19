@@ -32,6 +32,22 @@ def newemaint_required_contexts() -> list[str]:
     return list(entry["status_check_contexts"])
 
 
+def routine_token_scopes() -> list[str]:
+    """What this platform declares as the routine merger PAT scopes.
+
+    Gitea gates every `/api/v1/user` request behind the user scope category, and
+    the broker verifies the routine identity there before it probes scopes at
+    all. A fixture that hand-writes the scope string can therefore describe a
+    token that passes here and is rejected by the real server, which is exactly
+    how the manifest kept a scope set that could never pass its own identity
+    gate (#313). Reading the manifest keeps the contradiction visible.
+    """
+    raw = json.loads(
+        (ROOT / "config/gitea-governance.json").read_text(encoding="utf-8")
+    )
+    return list(raw["routine_merge_agent_policy"]["token_scopes"])
+
+
 
 def extended_permission(identity: str, permission: str) -> dict[str, object]:
     return {
@@ -164,13 +180,22 @@ branch: {self.branch}
     def transport(self, method, url, headers, body):
         path = urlparse(url).path
         query = urlparse(url).query
+        scopes = routine_token_scopes()
         if path == "/api/v1/user":
+            # Gitea answers a missing scope category with 403, not 401 (#313).
+            if "read:user" not in scopes and "write:user" not in scopes:
+                return self.response({
+                    "message": (
+                        "token does not have at least one of required scope(s), "
+                        "token scope=" + ",".join(scopes)
+                    ),
+                }, status=403)
             return self.response({"login": "newemaint-routine-merger", "is_admin": False})
         if path == "/api/v1/notifications":
             return self.response({
                 "message": (
                     "token does not have required scope, "
-                    "token scope=write:repository"
+                    "token scope=" + ",".join(scopes)
                 ),
             }, status=403)
         if path.endswith("/pulls/7/merge"):
@@ -308,7 +333,8 @@ branch: {self.branch}
         scenarios = (
             (200, {"ok": True}),
             (403, {"message": "token scope=read:repository"}),
-            (403, {"message": "token scope=write:repository,read:user"}),
+            (403, {"message": "token scope=write:repository"}),
+            (403, {"message": "token scope=write:repository,read:user,read:issue"}),
             (403, {"message": "scope evidence missing"}),
         )
         for status, value in scenarios:
