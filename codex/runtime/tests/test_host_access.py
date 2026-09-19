@@ -32,6 +32,23 @@ from aisoft_worktree_owner import (
 
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+def manifest_contexts(repository: str) -> list[str]:
+    """The required contexts this platform declares for one exact repository.
+
+    Fixtures that stand for a live branch protection have to agree with the
+    manifest, because that comparison is what the audit and the routine merge
+    gate perform. Copying the strings in by hand makes the fixture go stale the
+    moment a project gains a required context, and the red then lands here
+    rather than where the manifest changed (#312).
+    """
+    raw = json.loads(
+        (ROOT / "codex/config/gitea-governance.json").read_text(encoding="utf-8")
+    )
+    entry = next(item for item in raw["repositories"] if item["name"] == repository)
+    return list(entry["status_check_contexts"])
+
 ACCESS = ROOT / "codex/config/host-access-broker.json"
 GOVERNANCE = ROOT / "codex/config/gitea-governance.json"
 LABELS = ROOT / "codex/config/gitea-labels.json"
@@ -2824,7 +2841,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             "enable_merge_whitelist": True,
             "merge_whitelist_usernames": ["admin"],
             "enable_status_check": True,
-            "status_check_contexts": ["CI / verify (pull_request)"],
+            "status_check_contexts": manifest_contexts("aisoft-platform"),
             "required_approvals": 0,
             "block_admin_merge_override": True,
         }
@@ -3026,7 +3043,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             "enable_merge_whitelist": True,
             "merge_whitelist_usernames": ["admin", "newemaint-routine-merger"],
             "enable_status_check": True,
-            "status_check_contexts": ["CI / verify (pull_request)"],
+            "status_check_contexts": manifest_contexts("NewEMaint"),
             "required_approvals": 0,
             "block_admin_merge_override": True,
         }
@@ -3203,7 +3220,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             "enable_merge_whitelist": True,
             "merge_whitelist_usernames": ["admin"],
             "enable_status_check": True,
-            "status_check_contexts": ["CI / verify (pull_request)"],
+            "status_check_contexts": manifest_contexts("NewEMaint"),
             "required_approvals": 0,
             "block_admin_merge_override": True,
         }
@@ -4504,7 +4521,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 "enable_merge_whitelist": True,
                 "merge_whitelist_usernames": ["admin"],
                 "enable_status_check": True,
-                "status_check_contexts": ["CI / verify (pull_request)"],
+                "status_check_contexts": manifest_contexts("aisoft-platform"),
                 "required_approvals": 0,
                 "block_admin_merge_override": True,
             }

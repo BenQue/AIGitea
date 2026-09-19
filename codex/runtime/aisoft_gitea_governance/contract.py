@@ -114,7 +114,7 @@ class RoutineLivePilot:
     governance_baseline_merged_sha: str
     non_target_repositories_sha256: str
     canary_issue: int
-    required_context: str
+    required_contexts: tuple[str, ...]
     bootstrap_max: int
     apply_max: int
     canary_merge_post_max: int
@@ -511,7 +511,7 @@ def load_contract(path: str | Path) -> GovernanceContract:
                     "project_id", "rollout_issue", "routine_source_issue",
                     "routine_source_merged_sha", "governance_baseline_issue",
                     "governance_baseline_merged_sha", "canary_issue",
-                    "non_target_repositories_sha256", "required_context",
+                    "non_target_repositories_sha256", "required_contexts",
                     "bootstrap_max", "apply_max",
                     "canary_merge_post_max",
                 },
@@ -548,10 +548,20 @@ def load_contract(path: str | Path) -> GovernanceContract:
                     pilot_value[field] == 1,
                     f"routine_live_pilot {field} must equal 1 for {name}",
                 )
-            _require(len(contexts) == 1,
-                     f"routine_live_pilot requires one exact status context: {name}")
-            _require(pilot_value["required_context"] == contexts[0],
-                     f"routine_live_pilot required context mismatch for {name}")
+            # 双份记账，而不是冗余：pilot 独立重述这个仓的 required contexts，
+            # 合同拒绝加载任何两处不一致的 manifest。#213 最初把它钉成「恰好一条」，
+            # 因为当时每个仓只有一条 context；#312 发现那个上限把「给 pilot 仓增加
+            # 一条 required CI」变成了全平台 broker 停摆——合同加载失败，而合同加载
+            # 是每一次 broker 调用的前置。现在上限按条目数放开，逐项有序相等取代它：
+            # 加第三条 context 仍然必须同时改这里，不能悄悄溜进去。
+            pilot_contexts = pilot_value["required_contexts"]
+            _require(
+                isinstance(pilot_contexts, list)
+                and all(isinstance(value, str) and value for value in pilot_contexts),
+                f"routine_live_pilot required_contexts must be non-empty strings for {name}",
+            )
+            _require(list(pilot_contexts) == contexts,
+                     f"routine_live_pilot required contexts mismatch for {name}")
             _require(pilot_value["rollout_issue"] not in {
                 pilot_value["routine_source_issue"],
                 pilot_value["governance_baseline_issue"],
@@ -566,7 +576,7 @@ def load_contract(path: str | Path) -> GovernanceContract:
                 governance_baseline_merged_sha=pilot_value["governance_baseline_merged_sha"],
                 non_target_repositories_sha256=non_target_digest,
                 canary_issue=pilot_value["canary_issue"],
-                required_context=pilot_value["required_context"],
+                required_contexts=tuple(pilot_contexts),
                 bootstrap_max=1,
                 apply_max=1,
                 canary_merge_post_max=1,

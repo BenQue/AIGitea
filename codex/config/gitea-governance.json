@@ -147,13 +147,17 @@
         "governance_baseline_merged_sha": "69251fd4d07665385eb6d9142038848c2b9392d7",
         "non_target_repositories_sha256": "4969422f72782de90155881cc4a92720dfd1ee5f468e940bd30ac7a666b0df85",
         "canary_issue": 74,
-        "required_context": "CI / verify (pull_request)",
+        "required_contexts": [
+          "CI / verify (pull_request)",
+          "CI / mobile-verify (pull_request)"
+        ],
         "bootstrap_max": 1,
         "apply_max": 1,
         "canary_merge_post_max": 1
       },
       "status_check_contexts": [
-        "CI / verify (pull_request)"
+        "CI / verify (pull_request)",
+        "CI / mobile-verify (pull_request)"
       ],
       "required_approvals": 0
     },

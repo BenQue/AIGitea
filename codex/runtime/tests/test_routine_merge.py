@@ -15,6 +15,24 @@ from aisoft_loop.routine_merge import evaluate_routine_eligibility
 ROOT = Path(__file__).parents[2]
 
 
+def newemaint_required_contexts() -> list[str]:
+    """What this platform declares as NewEMaint's required contexts.
+
+    The merge gate compares the live protection against the manifest and then
+    demands every one of these contexts be successful at the exact head, so a
+    fixture that hand-copies the strings stops standing for the live protection
+    the moment a project gains a required context (#312).
+    """
+    raw = json.loads(
+        (ROOT / "config/gitea-governance.json").read_text(encoding="utf-8")
+    )
+    entry = next(
+        item for item in raw["repositories"] if item["name"] == "NewEMaint"
+    )
+    return list(entry["status_check_contexts"])
+
+
+
 def extended_permission(identity: str, permission: str) -> dict[str, object]:
     return {
         "permission": permission,
@@ -193,7 +211,7 @@ branch: {self.branch}
                 "enable_merge_whitelist": True,
                 "merge_whitelist_usernames": ["admin", "newemaint-routine-merger"],
                 "enable_status_check": True,
-                "status_check_contexts": ["CI / verify (pull_request)"],
+                "status_check_contexts": newemaint_required_contexts(),
                 "required_approvals": 0,
                 "block_admin_merge_override": True,
             })
@@ -202,9 +220,10 @@ branch: {self.branch}
                 "newemaint-routine-merger", "write"
             ))
         if path.endswith("/commits/" + self.sha + "/status"):
-            return self.response({"statuses": [{
-                "context": "CI / verify (pull_request)", "status": "success",
-            }]})
+            return self.response({"statuses": [
+                {"context": context, "status": "success"}
+                for context in newemaint_required_contexts()
+            ]})
         if path.endswith("/pulls/7/reviews"):
             return self.response([])
         if path.endswith("/pulls/7/files"):
@@ -406,10 +425,28 @@ branch: {self.branch}
                 "/collaborators/newemaint-routine-merger/permission",
                 {"permission": "admin"},
             ),
-            ("CI failed", "ROUTINE_CI_NOT_GREEN",
+            # Every required context has to be green, not just the first one:
+            # #312 added NewEMaint's mobile-verify, and a gate that stopped at
+            # one context would have let a red mobile build merge itself.
+            ("last required context failed", "ROUTINE_CI_NOT_GREEN",
+                "/commits/" + self.sha + "/status",
+                {"statuses": [
+                    {
+                        "context": context,
+                        "status": (
+                            "failure"
+                            if context == newemaint_required_contexts()[-1]
+                            else "success"
+                        ),
+                    }
+                    for context in newemaint_required_contexts()
+                ]},
+            ),
+            ("a required context is absent", "ROUTINE_CI_NOT_GREEN",
                 "/commits/" + self.sha + "/status",
                 {"statuses": [{
-                    "context": "CI / verify (pull_request)", "status": "failure",
+                    "context": newemaint_required_contexts()[0],
+                    "status": "success",
                 }]},
             ),
             ("review rejected", "ROUTINE_REVIEW_REJECTED",
