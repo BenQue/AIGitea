@@ -226,7 +226,7 @@ case "$endpoint" in
     [[ "$auth" == *sentinel-routine-token* ]]
     [[ -n "$output" ]]
     printf '{"message":"token does not have required scope, token scope=%s"}\n' \
-      "${MOCK_ROUTINE_SCOPE:-write:repository}" >"$output"
+      "${MOCK_ROUTINE_SCOPE:?routine scope mock must be set by the caller}" >"$output"
     printf 403
     ;;
   *)
@@ -251,7 +251,12 @@ chmod +x "$TMP/bin/git"
 export MOCK_ROOT="$TMP"
 export MOCK_GITEA_CONFIG="$TMP/protected-config/gitea.ini"
 export MOCK_GOVERNANCE_MANIFEST="$ROOT/codex/config/gitea-governance.json"
-export MOCK_ROUTINE_SCOPE=write:repository
+# The routine PAT mock stands for a token Gitea actually issued, so it has to
+# follow the manifest rather than a hand-written string: a scope set that
+# cannot pass the broker identity gate must go red here too (#313).
+MANIFEST_ROUTINE_SCOPES="$(jq -r '.routine_merge_agent_policy.token_scopes | join(",")' \
+  "$ROOT/codex/config/gitea-governance.json")"
+export MOCK_ROUTINE_SCOPE="$MANIFEST_ROUTINE_SCOPES"
 export PATH="$TMP/bin:$PATH"
 export AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-35
 export AISOFT_CREDENTIAL_ROOT="$TMP/credentials"
@@ -387,7 +392,7 @@ routine_result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --credential-output "$routine_output")"
 [[ "$(jq -r '.result' <<<"$routine_result")" == created ]]
 [[ "$(jq -r '.approval_issue' <<<"$routine_result")" == 213 ]]
-[[ "$(jq -r '.observed_scopes' <<<"$routine_result")" == write:repository ]]
+[[ "$(jq -r '.observed_scopes' <<<"$routine_result")" == "$MANIFEST_ROUTINE_SCOPES" ]]
 [[ "$(jq -r '.account_mutation_count' <<<"$routine_result")" == 1 ]]
 [[ "$(jq -r '.pat_mutation_count' <<<"$routine_result")" == 1 ]]
 [[ "$(cat "$routine_output")" == sentinel-routine-token ]]
@@ -679,8 +684,9 @@ if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   printf '%s\n' 'unsafe routine scope unexpectedly succeeded' >&2
   exit 1
 fi
-grep -Fq 'routine PAT scope must equal write:repository' "$TMP/routine-scope-negative.err"
-export MOCK_ROUTINE_SCOPE=write:repository
+grep -Fq 'routine PAT scope must equal the manifest set including read:user' \
+  "$TMP/routine-scope-negative.err"
+export MOCK_ROUTINE_SCOPE="$MANIFEST_ROUTINE_SCOPES"
 
 if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/config/gitea-governance.json" \

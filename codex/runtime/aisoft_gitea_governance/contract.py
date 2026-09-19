@@ -340,8 +340,15 @@ def load_contract(path: str | Path) -> GovernanceContract:
         == "projects/{project_id}/routine-merge-agent.token",
         "routine merger credential binding must use the fixed per-project path",
     )
+    # The broker verifies this identity against `/api/v1/user` before it probes
+    # any scope, and Gitea gates that route behind the user scope category. A
+    # merge-only scope set therefore cannot pass the broker's own identity gate,
+    # which is what left NewEMaint's routine path stuck on HTTP 403 (#313).
+    # `read:user` is read-only and grants no merge or write capability, so the
+    # #213 minimum-privilege intent holds: this is the smallest set the typed
+    # merge operation can actually run with.
     _exact_string_list(
-        merger_policy["token_scopes"], ["write:repository"],
+        merger_policy["token_scopes"], ["write:repository", "read:user"],
         "routine_merge_agent_policy.token_scopes",
     )
 

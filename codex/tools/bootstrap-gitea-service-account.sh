@@ -392,8 +392,16 @@ if [[ "$token_kind" == routine-merge-agent ]]; then
     exit 2
   }
   observed_scopes="$(sed -nE 's/.*token scope=([A-Za-z0-9:,_-]+).*/\1/p' <<<"$scope_message")"
-  [[ "$scopes" == write:repository && "$observed_scopes" == "$scopes" ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope must equal write:repository' >&2
+  # Gitea reports the granted scopes in its own order, so compare the sets, not
+  # the strings. read:user is named on its own because the broker verifies this
+  # identity against /api/v1/user before it probes any scope, and a merge-only
+  # PAT is rejected there with HTTP 403 (#313).
+  expected_scope_set="$(tr ',' '\n' <<<"$scopes" | LC_ALL=C sort | paste -sd, -)"
+  observed_scope_set="$(tr ',' '\n' <<<"$observed_scopes" | LC_ALL=C sort | paste -sd, -)"
+  [[ "$observed_scope_set" == "$expected_scope_set" &&
+     ",$observed_scope_set," == *,read:user,* &&
+     ",$observed_scope_set," == *,write:repository,* ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope must equal the manifest set including read:user' >&2
     exit 2
   }
 fi
