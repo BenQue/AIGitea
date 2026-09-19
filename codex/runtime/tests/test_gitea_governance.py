@@ -33,6 +33,17 @@ ROOT = Path(__file__).resolve().parents[3]
 MANIFEST = ROOT / "codex/config/gitea-governance.json"
 
 
+def raw_repository(raw: dict[str, Any]) -> dict[str, Any]:
+    """The NewEMaint entry of a mutable manifest copy (#312)."""
+    return next(
+        item for item in raw["repositories"] if item["name"] == "NewEMaint"
+    )
+
+
+def raw_pilot(raw: dict[str, Any]) -> dict[str, Any]:
+    return raw_repository(raw)["routine_live_pilot"]
+
+
 def extended_permission(identity: str, permission: str) -> dict[str, Any]:
     return {
         "permission": permission,
@@ -216,7 +227,11 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(pilot.routine_source_issue, 208)
         self.assertEqual(pilot.governance_baseline_issue, 35)
         self.assertEqual(pilot.canary_issue, 74)
-        self.assertEqual(pilot.required_context, "CI / verify (pull_request)")
+        self.assertEqual(pilot.required_contexts, (
+            "CI / verify (pull_request)",
+            "CI / mobile-verify (pull_request)",
+        ))
+        self.assertEqual(pilot.required_contexts, repository.status_check_contexts)
         non_target_bytes = json.dumps(
             [item for item in raw["repositories"] if item["name"] != "NewEMaint"],
             ensure_ascii=False,
@@ -227,6 +242,60 @@ class ContractTests(unittest.TestCase):
             hashlib.sha256(non_target_bytes).hexdigest(),
             pilot.non_target_repositories_sha256,
         )
+
+    def test_pilot_accepts_more_than_one_context_and_pins_every_one(self):
+        # #312: the pilot used to cap status_check_contexts at exactly one, so
+        # adding NewEMaint's second required context made the whole governance
+        # contract unloadable -- which fails every broker call for every
+        # project, not just the one whose protection moved.
+        contexts = [
+            "CI / verify (pull_request)",
+            "CI / mobile-verify (pull_request)",
+            "CI / third (pull_request)",
+        ]
+
+        def add_a_third_context(raw: dict[str, Any]) -> None:
+            raw_repository(raw)["status_check_contexts"] = list(contexts)
+            raw_pilot(raw)["required_contexts"] = list(contexts)
+
+        path = self._write_mutation(add_a_third_context)
+        pilot = load_contract(path).repository("NewEMaint").routine_live_pilot
+        assert pilot is not None
+        self.assertEqual(pilot.required_contexts, tuple(contexts))
+
+    def test_pilot_rejects_contexts_that_disagree_with_the_repository(self):
+        mutations = {
+            "pilot drops one": lambda raw: raw_pilot(raw).update({
+                "required_contexts": ["CI / verify (pull_request)"],
+            }),
+            "repository drops one": lambda raw: raw_repository(raw).update({
+                "status_check_contexts": ["CI / verify (pull_request)"],
+            }),
+            "different order": lambda raw: raw_pilot(raw).update({
+                "required_contexts": [
+                    "CI / mobile-verify (pull_request)",
+                    "CI / verify (pull_request)",
+                ],
+            }),
+            "extra context": lambda raw: raw_pilot(raw)["required_contexts"].append(
+                "CI / attacker (pull_request)"
+            ),
+            "empty list": lambda raw: raw_pilot(raw).update({"required_contexts": []}),
+            "not a list": lambda raw: raw_pilot(raw).update({
+                "required_contexts": "CI / verify (pull_request)",
+            }),
+            "empty string": lambda raw: raw_pilot(raw).update({
+                "required_contexts": ["CI / verify (pull_request)", ""],
+            }),
+            "legacy singular key": lambda raw: raw_pilot(raw).update({
+                "required_context": raw_pilot(raw).pop("required_contexts")[0],
+            }),
+        }
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                path = self._write_mutation(mutate)
+                with self.assertRaises(ContractError):
+                    load_contract(path)
 
     def test_well_formed_but_wrong_non_target_digest_is_rejected(self):
         path = self._write_mutation(

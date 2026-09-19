@@ -174,12 +174,30 @@ canonical_labels() {
   jq "${1:-.}" <<<"$(jq '.canonical' "$ROOT/codex/config/gitea-labels.json")"
 }
 canonical_labels >"$TMP/labels.json"
-jq -n '{
-  enable_push: false,
-  enable_status_check: true,
-  status_check_contexts: ["CI / verify (pull_request)"],
-  block_on_outdated_branch: true
-}' >"$TMP/protection.json"
+
+# check_ci_context compares the mocked live protection against THIS repository's
+# own governance manifest, so every fixture that expects PASS has to equal what
+# the manifest declares for that exact repository. A literal copy goes stale the
+# moment a project gains a required context, and the failure lands here rather
+# than where the manifest changed: #312 added NewEMaint's second context and
+# turned four unrelated cases red. Positive fixtures derive; negative ones keep
+# their literal wrong values, which is the whole point of them.
+manifest_contexts() {
+  jq -ce --arg repo "$1" \
+    '[.repositories[] | select(.name == $repo)] | .[0].status_check_contexts' \
+    "$ROOT/codex/config/gitea-governance.json"
+}
+
+protection_fixture() {
+  jq -n --argjson contexts "$(manifest_contexts "$1")" --argjson outdated "$2" '{
+    enable_push: false,
+    enable_status_check: ($contexts | length > 0),
+    status_check_contexts: $contexts,
+    block_on_outdated_branch: $outdated
+  }'
+}
+
+protection_fixture NewEMaint true >"$TMP/protection.json"
 
 remote_check() {
   env \
@@ -331,13 +349,12 @@ mv "$TMP/protection.next" "$TMP/protection.json"
 run_case 1 remote_check --repo "$labels_repo" --remote
 expect_contains 'GAP: ci-context —'
 
-jq -n '{enable_push:true,enable_status_check:true,status_check_contexts:["CI / verify (pull_request)"],block_on_outdated_branch:true}' \
-  >"$TMP/protection.json"
+protection_fixture NewEMaint true \
+  | jq '.enable_push = true' >"$TMP/protection.json"
 run_case 1 remote_check --repo "$labels_repo" --remote
 expect_contains 'GAP: ci-context —'
 
-jq -n '{enable_push:false,enable_status_check:true,status_check_contexts:["CI / verify (pull_request)"],block_on_outdated_branch:true}' \
-  >"$TMP/protection.json"
+protection_fixture NewEMaint true >"$TMP/protection.json"
 delivery_repo="$(copy_fixture delivery-gap)"
 sed 's|  docker-release/v2;|  <delivery-profile>;|' "$delivery_repo/AGENTS.md" \
   >"$delivery_repo/AGENTS.md.next"
@@ -838,12 +855,7 @@ expect_line 'SKIP: ci-registry-preflight — 仓库没有 .gitea/workflows 或 .
 # The label mock is shared mutable state; earlier cases leave an undeclared
 # label behind, and these cases assert the whole run's exit status.
 canonical_labels >"$TMP/labels.json"
-jq -n '{
-  enable_push: false,
-  enable_status_check: true,
-  status_check_contexts: ["CI / verify (pull_request)"],
-  block_on_outdated_branch: false
-}' >"$TMP/protection-open.json"
+protection_fixture NewEMaint false >"$TMP/protection-open.json"
 preview_open_repo="$(copy_fixture outdated-with-preview)"
 mkdir -p "$preview_open_repo/.gitea/workflows" "$preview_open_repo/scripts/ci"
 cp "$ROOT/templates/project/ci/ci.yml" "$preview_open_repo/.gitea/workflows/ci.yml"
@@ -855,11 +867,8 @@ expect_line 'PASS: ci-context'
 expect_line 'SKIP: ci-outdated-branch — block_on_outdated_branch 未打开；#299 裁决已有合并预览的 internal-application 不再要求，残余风险见 06 踩坑集 #299 条目'
 
 # A missing key is not an implicit true; it reads the same as false.
-jq -n '{
-  enable_push: false,
-  enable_status_check: true,
-  status_check_contexts: ["CI / verify (pull_request)"]
-}' >"$TMP/protection-silent.json"
+protection_fixture NewEMaint false \
+  | jq 'del(.block_on_outdated_branch)' >"$TMP/protection-silent.json"
 MOCK_PROTECTION="$TMP/protection-silent.json" \
   run_case 0 remote_check --repo "$preview_open_repo" --remote
 expect_line 'SKIP: ci-outdated-branch — block_on_outdated_branch 未打开；#299 裁决已有合并预览的 internal-application 不再要求，残余风险见 06 踩坑集 #299 条目'
@@ -882,11 +891,16 @@ GITEA_REPO=aisoft-platform
 GITEA_TOKEN=$SENTINEL
 EOF
 chmod 600 "$TMP/agent-platform.env"
-MOCK_ENV_FILE="$TMP/agent-platform.env" MOCK_PROTECTION="$TMP/protection-open.json" \
+# The platform repository declares its own contexts, which are not NewEMaint's
+# (#312); reusing NewEMaint's fixture here would read as a ci-context GAP and
+# hide what these two cases are actually about.
+protection_fixture aisoft-platform false >"$TMP/protection-platform-open.json"
+protection_fixture aisoft-platform true >"$TMP/protection-platform.json"
+MOCK_ENV_FILE="$TMP/agent-platform.env" MOCK_PROTECTION="$TMP/protection-platform-open.json" \
   run_case 1 remote_check --repo "$TMP/aligned" --remote
 expect_line 'PASS: ci-context'
 expect_line 'GAP: ci-outdated-branch — block_on_outdated_branch 未打开，base 前进后过期的绿仍可合并'
-MOCK_ENV_FILE="$TMP/agent-platform.env" \
+MOCK_ENV_FILE="$TMP/agent-platform.env" MOCK_PROTECTION="$TMP/protection-platform.json" \
   run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'PASS: ci-outdated-branch'
 
