@@ -22,7 +22,9 @@ updated: 2026-09-19
 
 ## 基线与范围
 
-- Commit SHA: `a19beddf501f37383979ae090d9b20aafe4c21b6`（PR 314 的 final head）
+- Commit SHA: `a19beddf501f37383979ae090d9b20aafe4c21b6`（本记录所引 CI 证据对应的 head）。
+  此后每一条只改本文件的证据 commit 都会让 PR head 再前进一次并触发自己那一轮 CI；
+  合并闸门读的是合并那一刻的最后一轮，PR 页面即事实源。
 - 基线：`origin/main` = `95c0f1912b4e224e6f1b37824312cdc2abb0574b`
 - 环境：Mac，change worktree `/private/tmp/issue-312-governance-context-sync`；
   Gitea `http://gitea-ci.orb.local:3000`
