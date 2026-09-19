@@ -26,7 +26,7 @@ confidence: high
 override_reason: ''
 depends_on:
   - 312
-status: analyzed
+status: approved
 branch: change/313-newemaint-merger-credential
 pr_url:
 created: 2026-09-19

@@ -26,11 +26,11 @@ updated: 2026-09-19
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 让缺陷在测试里可见：`test_host_access.py` 的假 transport 按 token 声明的 scope 决定 `/api/v1/user` 返回 200 还是 403，并记录当前合同下的红 | - | pending |
-| T02 | scope 合同与 governance runtime 校验同步补 `read:user`，T01 转绿 | T01 | pending |
-| T03 | `bootstrap-gitea-service-account.sh` 的 routine PAT 读回闸门与其 shell 测试同步到新集合 | T02 | pending |
-| T04 | `06-运维手册与踩坑集.md` 新增诊断条目；全量 smoke 与四套测试 | T03 | pending |
-| T05 | 负责人重发 token 与两台重装之后，只读复验 AC-1 并回填 verification | T04 | pending |
+| T01 | 让缺陷在测试里可见：`test_host_access.py` 的假 transport 按 token 声明的 scope 决定 `/api/v1/user` 返回 200 还是 403，并记录当前合同下的红 | - | done |
+| T02 | scope 合同与 governance runtime 校验同步补 `read:user`，T01 转绿 | T01 | done |
+| T03 | `bootstrap-gitea-service-account.sh` 的 routine PAT 读回闸门与其 shell 测试同步到新集合 | T02 | done |
+| T04 | `06-运维手册与踩坑集.md` 新增诊断条目；全量 smoke 与四套测试 | T03 | done |
+| T05 | 负责人重发 token 与两台重装之后，只读复验 AC-1 并回填 verification | T04 | blocked-on-operator |
 
 T05 依赖负责人动作，是本 Issue 的授权闸门；会话在该步只做只读读回。
 
