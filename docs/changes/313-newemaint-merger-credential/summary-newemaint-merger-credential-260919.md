@@ -26,9 +26,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 312
-status: approved
+status: pr-open
 branch: change/313-newemaint-merger-credential
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/315
 created: 2026-09-19
 updated: 2026-09-19
 ---
