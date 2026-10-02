@@ -235,7 +235,7 @@ proposed hash 精确一致，`git apply --reverse --check` PASS。
 BASELINE、RUNNER_BEFORE/AFTER、runtime/real-E2E pins 与 CONTENT_EXEMPT 未改。
 按已批准治理顺序，本步独立 commit 后停止，下一轮重读更新合同恢复 T03。
 
-## T03 fresh-main 最终本地验收（当前权威结果）
+## T03 第一轮 fresh-main 本地验收（main 14bfe6 的历史结果）
 
 实际已合并 PR #324 / #287，main `14bfe6edea6a78e994daac88b3615c009ae37fea`。
 本 owner 在自己的 worktree 整合 main，组合 runtime head
@@ -271,3 +271,32 @@ main 组合 receipt 是 merge 前的历史快照，里面的 full NOT_RUN 保持
 
 已批准 spec 的 AC 文本保持原样；这里记录执行结果。最终候选仍需单独 PR 提交确认，
 人工合并与部署未授权。回滚方式为人工 revert 唯一最终 PR 后运行相同回归；旧源码盲点会恢复。
+
+## T03 最新 main 65268ee 组合（当前权威状态）
+
+最终 main refresh 发现 #308 / PR #326 已合并。只由本 owner 整合自己的 worktree，
+新 head `aaa9e8dc2b6875c4658f7a9c8f59f7c91907a983`，main
+`65268ee5f1e622c486fd9e354dd35e20a2900f91`。无冲突；#308 的 44 个文件字节保持，
+共享 smoke 只多本 Issue 已批准的 repo-root 参数。两轴 scope 审查 PASS / 0。
+
+| 当前 check | Result | Evidence |
+|---|---|---|
+| 最新组合完整 smoke | FAIL | `LC_ALL=C bash codex/tests/smoke.sh`，host exit 1；23 installed-drift tests / 36.963s / 16 failures |
+| 新 source-only gate | PASS | 原 gate 如实报告 cached-main source GAP，定义完整性 PASS |
+| 八临时安装面 | PASS | installer expected bytes/links 全部 PASS；不足以抵消真实 source GAP |
+| #288 architecture/runtime bytes | UNCHANGED | 与 aa585dd 完全相同；14bfe6→65268ee 的 architecture/runtime 同样未改 |
+| 新组合完整 runtime | NOT RUN | smoke 在前置 fixture 失败后停止，不能沿用旧 head 的完整结果 |
+| 未批准单文件提案测试 | PASS | 临时副本原 23 tests / 44.930s；含显式 source-drift 仍 GAP 的反向检查 |
+| T06 提案双轴审查 | PASS / PASS | Spec findings 0；Standards hard 0 / possible duplicated-code smell 1（非阻塞） |
+| T06 实际应用 / 最终 PR / required CI / installed-live / deploy | NOT RUN | 尚未取得范围补充授权，不绕开硬门 |
+
+真实失败来自默认 fixture 直接使用 change checkout，而 installed 模式有意同时要求
+源码与 cached origin/main 一致；正常 PR 的源码变更令全局 result GAP，即使八个安装面都 PASS。
+不能改变真实 checker 的身份门、将其改成 source-only、修改真实 origin/main ref 或删测试。
+
+最小未批准 patch 只修改 `codex/tests/fixtures/installed-drift/test-installed-drift.py`：
+默认 fixture 检查临时复制当前源码建立的本地 Git baseline；显式 source-drift tests 不改变。
+它不把临时 baseline 伪装成实际 main/installed 证据。原源码文件仍保持 main bytes。
+patch、source before/proposed hash、两日志 SHA256 与未执行边界均在
+`evidence/installed-fixture-amendment-proposal.json`。proposal 为 PROPOSED_NOT_APPLIED，
+测试只针对临时副本；原 spec 尚未增加该文件权限。T03 pending / NEEDS_HUMAN_DECISION。

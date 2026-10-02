@@ -1,0 +1,69 @@
+{
+  "issue": 288,
+  "stage": "PROPOSED_NOT_APPLIED",
+  "ticket": "T06 proposed",
+  "current_head": "aaa9e8dc2b6875c4658f7a9c8f59f7c91907a983",
+  "main": "65268ee5f1e622c486fd9e354dd35e20a2900f91",
+  "paths": [
+    "codex/tests/fixtures/installed-drift/test-installed-drift.py"
+  ],
+  "patch_file": "evidence/installed-fixture-amendment.patch",
+  "patch_sha256": "af73fbd48c2459b0792cc88493e08af9d7c89ae74a17026b5845271fcadecf22",
+  "source_before_sha256": "fcda29eeaf0ebbb27ff53c855128309f0f8901d5d9c7bbbc55e934dd606dc984",
+  "proposed_source_sha256": "9dbdda887761260acb79044024b84fa2adb61607d450b66251677188e3e4fca3",
+  "change": "Only test fixture default source is an isolated local Git baseline; installer inputs remain current PR bytes; explicit source-drift cases and real checker behavior remain unchanged.",
+  "not_changed": [
+    "check-installed-drift.py",
+    "smoke.sh hard gates",
+    "installers",
+    "real origin/main",
+    "Gitea",
+    "historical evidence",
+    "other Issue documents"
+  ],
+  "original_regression": {
+    "result": "FAIL",
+    "count": 23,
+    "failures": 16,
+    "log": "/private/tmp/issue-288-contract-data/t03-main308-smoke-host.log"
+  },
+  "proposal_tests": {
+    "result": "PASS",
+    "argv": [
+      "python3",
+      "-B",
+      "/private/tmp/issue-288-contract-data/test-installed-drift-proposed.py",
+      "/private/tmp/issue-288-dockerfile-digest"
+    ],
+    "exit_code": 0,
+    "count": 23,
+    "seconds": 44.93,
+    "note": "Only temporary proposed file; actual fixture and real checker remain unchanged"
+  },
+  "logs": {
+    "t03-main308-smoke-host.log": {
+      "local_path": "/private/tmp/issue-288-contract-data/t03-main308-smoke-host.log",
+      "compressed_evidence": "evidence/t03-main308-smoke-host.log.gz",
+      "sha256": "8848ebca4e3cf3bbaf39adcdb4210b52c32ed39d2879b363dbe30289e8e2b963"
+    },
+    "t06-proposal-fixture-tests.log": {
+      "local_path": "/private/tmp/issue-288-contract-data/t06-proposal-fixture-tests.log",
+      "compressed_evidence": "evidence/t06-proposal-fixture-tests.log.gz",
+      "sha256": "2e177f3aa22ec32ba5d8819ca5a0479a98c746fca4df7858cba2ef77eac095ee"
+    }
+  },
+  "review": {
+    "spec": {
+      "result": "PASS",
+      "findings": 0
+    },
+    "standards": {
+      "result": "PASS",
+      "hard_violations": 0,
+      "possible_smells": 1,
+      "smell": "Duplicated Code in source-directory copy list; nonblocking"
+    }
+  },
+  "rollback": "If approved/applied, revert the isolated fixture-only commit and rerun original suite; real checker behavior is unchanged.",
+  "apply_check": "PASS"
+}

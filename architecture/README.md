@@ -66,7 +66,8 @@ CLI 与 `codex/tools/aisoft-project-check.sh` 都从**脚本所在平台 checkou
 
 > 实施边界：#288 的 T02 已实现以下离线源码核验与 `--repo-root` 参数。
 > architecture/CLI 与 release reader 集成回归已通过；固定 release evidence 的 exact pin
-> 已在 T05 受控同步。fresh-main 完整 runtime 与完整 smoke 本地回归均已通过；
+> 已在 T05 受控同步。完整 runtime 本地回归已通过；最新 main 新增的 installed-drift
+> fixture 使完整 smoke 受阻，待独立测试合同补充（详见 #288 verification）；
 > 最终 PR/required CI/安装与部署未执行。
 
 容器交付 declaration 在既有 `oci-image` component 之外，必须增加非空、去重的 `dockerfiles`

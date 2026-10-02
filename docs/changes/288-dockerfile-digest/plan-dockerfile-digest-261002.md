@@ -28,7 +28,7 @@ updated: 2026-10-02
 | T04 | 已批准补充的两处测试 root 与 synthetic 模板，独立治理 commit 后停止 | [T01] | done |
 | T02 | fresh run 后完整实现容器 FROM 文件核验，迁移 fixtures，所有 CLI 与库调用同一硬门 | [T04] | done |
 | T05 | 已批准 fixed evidence exact lock pin 与防篡改单测，独立治理 commit 后停止 | [T02] | done |
-| T03 | 项目 checker、lock/release 兼容与全套回归验收，完成唯一最终 PR 候选 | [T02, T05] | done |
+| T03 | 项目 checker、lock/release 兼容与全套回归验收，完成唯一最终 PR 候选 | [T02, T05] | pending |
 
 T01 为平台治理必须隔离的 contract-only 步骤，不伪装成 runtime 已交付。
 T02 为一个完整可观察垂直切片，覆盖声明输入、文件读取、FROM 核验、CLI、fixtures 与测试。
@@ -106,7 +106,7 @@ T05 只应用 checker 的 exact reference lock pin 与对应 disk/index 防篡�
 T03 后续 fresh run 才重跑完整 smoke/runtime 与 #287 main 组合。
 原合同/启动批准持续有效，不重复询问普通实现；最终唯一 PR 仍需单独提交确认。
 
-## T03 fresh-main 最终本地验收
+## T03 第一轮 fresh-main 本地验收（main 14bfe6 时的历史快照）
 
 #287 的唯一 PR #324 已真实合并，本 owner 将 main
 `14bfe6edea6a78e994daac88b3615c009ae37fea` 整合进本分支，组合 runtime head 为
@@ -116,4 +116,23 @@ reader 与 V1-only release reader；Dockerfile 文件硬门覆盖两种 lock 版
 完整 runtime 1008 tests PASS；同一 smoke 命令在 sandbox localhost socket 被拒后，
 走受控 host 执行路径完整 PASS。T04 两 shell 的 bash -n 与 ShellCheck PASS。
 当前批准合同读回 PASS，8 条 AC 已按 verification 的本地证据闭环；分类真实读回 projected。
-所有 ticket 完成本地交付，最终唯一 PR 仍停在 AWAITING_PR_CONFIRMATION；没有 push、PR、安装或部署。
+当时所有 ticket 完成本地验收，拟准备最终候选；尚未完成最后 main 刷新或持久化 PR 候选状态，
+没有 push、PR、安装或部署。
+
+## 最新 main 组合阻塞与未批准 T06 草案
+
+最终刷新 main 时，#308 的 PR #326 已合并为
+`65268ee5f1e622c486fd9e354dd35e20a2900f91`。本 owner 自行无冲突整合，HEAD
+`aaa9e8dc2b6875c4658f7a9c8f59f7c91907a983`；本 Issue runtime bytes 与前轮相同。
+新完整 smoke 真实 FAIL：installed-drift fixture 23 tests / 16 failures，原因默认 fixture
+使用实际 change checkout，与真实 cached main 的 managed source 必然不同；八个安装面均 PASS，
+不能将真实 source GAP 改为 PASS，也不能跳过新测试或改写实际 origin/main。
+
+T03 恢复 pending，当前为 NEEDS_HUMAN_DECISION；此前第一轮验收不作为当前提交依据。
+未批准补充仅涉及 `codex/tests/fixtures/installed-drift/test-installed-drift.py`：
+把 fixture 的默认源码基线隔离到临时复制的源码 + 本地 Git baseline，显式 source-drift
+cases 继续使用各自输入。完整 patch 与精确 SHA256 在
+`evidence/installed-fixture-amendment-proposal.json`；临时提案 23 tests PASS，不等于已应用。
+该路径超出原 spec 的实施范围，故本轮不改源码。若批准，先更新映射 spec/plan，
+按 T06 独立受控测试治理步骤应用并提交后停止，后续 fresh run 才重跑完整 smoke/runtime。
+本草案不修改已批准合同、不授权最终 PR、安装或部署，不重复请求原合同启动。
