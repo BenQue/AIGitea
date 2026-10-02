@@ -25,9 +25,9 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: approved
+status: pr-open
 branch: change/286-dependency-references
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/330
 created: 2026-10-02
 updated: 2026-10-03
 ---
@@ -50,7 +50,7 @@ updated: 2026-10-03
 G01（T01）已独立应用治理合同并停止；本 fresh run 已重读合同并完成 T02、T03 的 source
 实现与本地测试。原候选 T01/T02/T03 顺延为 T02/T03/T04，切片与顺序不变，无需重复启动确认。
 T04 已完成 #289 真实 merge 后的串行整合与组合验证：完整 smoke PASS，1042 runtime tests。
-准备提交唯一最终 PR，尚未取得最终提交确认。历史失败保留于 verification 与 evidence。
+用户已确认提交，唯一最终 PR #330 已创建。历史失败保留于 verification 与 evidence。
 
 ## 集成顺序（非产品依赖）
 
@@ -124,10 +124,12 @@ qualified dependency 扩展数据格式、broker 权限合同、Controller 与 r
 源代码与测试 tree digest、前后 SHA、完整压缩日志、分类与终态 dry-run 见
 [evidence/t04-post289-integration-receipt.json](evidence/t04-post289-integration-receipt.json)。
 
-T04 completed；会话进入 AWAITING_PR_CONFIRMATION。所有前置集成与本地硬门已通过，
-只等待绑定 #286/change/286-dependency-references/manual 的最终 PR 提交确认。
-未 push、建 PR、merge、安装、扩 ACL、部署、写 completed 或归档，last_push_head=null。
-确认后可提交唯一 PR 并继续合同内 CI 修复；required CI 全绿后停 READY_FOR_REVIEW，由人合并。
+T04 completed；用户直接回复“确认提交”，绑定 #286/change/286-dependency-references/manual。
+唯一最终 PR #330 已真实创建；首发 pushed_head 精确等于已确认候选
+5f5b5f101183f5cdb19c039ddc8bcd8cdfa2acdb，previous_head=null，owner/session 相同。
+当前 PR_OPEN/awaiting_ci，文档回填与收据按原确认继续 fast-forward 发布；每次逐字核对
+新鲜验证的 exact pushed_head。required CI 全绿后停 READY_FOR_REVIEW，由人合并。
+未 merge、安装、扩 ACL、部署、写 completed 或归档。
 
-先前“按你的建议继续”只覆盖提前本地 rebase，未代替最终 PR 确认。历史拒绝与失败收据
+先前“按你的建议继续”只覆盖提前本地 rebase；本次“确认提交”另行满足最终 PR 确认。历史拒绝与失败收据
 保留；#327 未新增为 hard 前置，未代改 broker 或其它 owner worktree。

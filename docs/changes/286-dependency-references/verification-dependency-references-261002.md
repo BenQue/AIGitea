@@ -314,3 +314,20 @@ AC-1–AC-7 当前 source/local 全部 PASS；AC-5 的 Mac/VM adapter 仍仅 fix
 [evidence/t04-post289-integration-receipt.json](evidence/t04-post289-integration-receipt.json)。
 后续只同步交付状态与本票 receipt，不改变经过验证的 executable/runtime/test tree。
 T04 completed；候选 AWAITING_PR_CONFIRMATION，不是 READY_FOR_REVIEW 或已完成合并。
+
+
+## 最终提交确认与唯一 PR 发布
+
+用户本 owner 聊天直接回复“确认提交”，授权 exact #286/change/286-dependency-references/manual，
+包含当前合同内 CI 修复与后续发布；人工 merge、安装/live/ACL/部署不在本次操作内。
+授权绑定与原候选 SHA 保存在 evidence/final-pr-submit-authorization.json。
+
+typed git.push.change 首发 PASS：pushed_head=5f5b5f101183f5cdb19c039ddc8bcd8cdfa2acdb，
+与最终候选逐字相同；previous_head=null，exact owner session 正确。提交前 fresh main
+仍是已验证 16beee09，干净 worktree；open PR 枚举没有 #286 重复对象。
+
+typed gitea.pull.create 返回唯一 PR #330：head_ref=change/286-dependency-references、
+base_ref=main、state=open、merged=false。body 含 manual 授权 marker 与唯一 Closes #286，
+官方 bounded backfill-pr-url 已把真实 PR URL 写回 summary。Issue lifecycle pr-open 投影已运行。
+PR/首发 readback 见 evidence/final-pr-publication.json；PR CI 需最终新 head 的真实状态读回。
+桌面 attach_artifact 对真实本地 Gitea http URL 返回不支持，PR 可通过真实 Markdown 链接访问。
