@@ -209,3 +209,28 @@ a2538e14a46d6568470271edb86d0ffac0c241ff221d133efdb01815ba86aa55。
 新增 pin 为当前 synthetic lock 文件 SHA256：
 b6d39e9126b61c804b8cb188a11a3b4e1bc375236a3ffadf93909f3d49e70076。
 当前 source guard 和原测试文件均未修改。批准后须独立治理应用并停止，fresh turn 才重跑 runtime。
+
+## T05 已确认的独立治理应用
+
+用户原文“确认”，仅绑定先前展示的完整两文件补充。授权见
+`evidence/boundary-amendment-authorization.json`，实际应用与验证见
+`evidence/boundary-amendment-application.json`；原 proposal 保留 PROPOSED_NOT_APPLIED
+作为批准前历史快照，不静默改写提案字节。原样 `git apply` 后源码 SHA256 与 proposal
+proposed hash 精确一致，`git apply --reverse --check` PASS。
+
+| T05 check | Result | Evidence |
+|---|---|---|
+| exact owner / branch / pre-apply clean tree | PASS | session 01a0fc7b-f327-7a93-a48c-a254937cb08d；change/288-dockerfile-digest |
+| approved patch/hash/两路径边界 | PASS | a2538e14a46d6568470271edb86d0ffac0c241ff221d133efdb01815ba86aa55 |
+| Python compile / reverse patch | PASS | 两源码 compile；反向检查无偏离 |
+| boundary unit suite（实际工作树） | PASS | 20 tests / 10.435s |
+| 真实 fixed source identity | PASS | 仅执行 validate(root)，disk/index/hash/file set/mode/historical identity 全部通过 |
+| 文档 resolver/checker、diff --check | PASS | 映射完整，change-documents / change-pr-url PASS |
+| 完整 boundary check()/release regression/smoke/runtime | NOT RUN | 遵循独立治理步骤停止，fresh run 才完整验收 |
+| #287 main 组合 / PR CI / installed / company-live / deploy | NOT RUN | 不从静态 source identity 推导这些证明 |
+
+本次没有修改 shell；原 T04 shell 静态检查和真实 smoke 记录保留。之前 smoke FAIL
+仍是历史真实结果，当前只证明已迁移 lock 可通过新 exact pin 的 source identity 检查，
+不能把完整 smoke 改成 PASS。新增 architecture pin 不接受路径豁免；历史 evidence、
+BASELINE、RUNNER_BEFORE/AFTER、runtime/real-E2E pins 与 CONTENT_EXEMPT 未改。
+按已批准治理顺序，本步独立 commit 后停止，下一轮重读更新合同恢复 T03。

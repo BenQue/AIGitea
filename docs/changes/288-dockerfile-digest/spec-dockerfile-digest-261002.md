@@ -167,3 +167,27 @@ architecture README 的 Dockerfile 约束，保留 AGENTS、skills、Controller�
 参考 [Dockerfile reference](https://docs.docker.com/reference/dockerfile/)、
 [Multi-stage builds](https://docs.docker.com/build/building/multi-stage/)。
 V1 对变量与 heredoc 的拒绝是本平台的保守子集决策，不是 Docker 不支持它们。
+
+## 已批准补充：固定 release evidence 的 architecture lock pin
+
+用户对已展示的两文件 diff 明确回复“确认”；授权 receipt 在
+`evidence/boundary-amendment-authorization.json`。批准 patch SHA256 为
+`a2538e14a46d6568470271edb86d0ffac0c241ff221d133efdb01815ba86aa55`，
+完整 diff 保存在 `evidence/boundary-amendment-proposal.json`；本补充不替换原合同。
+
+仅授权以下两文件的独立 T05 治理步骤：
+
+- `codex/tests/check-release-evidence-boundary.py`：为已批准迁移的唯一 synthetic
+  `architecture/reference/newemaint/target-candidate/architecture.lock.json` 增加 exact
+  SHA256 pin，并纳入该 checker 当前 pin 允许范围。保持 disk/index SHA256 双核验、
+  历史 baseline/evidence 与原有 runtime pins，不加入 CONTENT_EXEMPT，不接受宽松路径豁免。
+  明确该 architecture pin 仅绑定 synthetic declaration/lock 输入与静态 reader 回归，
+  不刷新历史 E2E、real E2E、installed 或 company-live 证据。
+- `codex/runtime/tests/test_release_evidence_boundary.py`：把该 lock 加入 synthetic fixture
+  与 current amendment 测试，继续逐一拒绝 disk/index 单字节篡改及历史 evidence 替换。
+
+T05 按完整批准 patch 原样应用，检查 hash、静态真实 source identity、防篡改单测与文档，
+独立本地 commit 后停止。下一轮 fresh run 重读本 spec/plan 后恢复 T03 的完整 runtime、
+smoke 与后续 fresh-main/lock/release 组合验收；本步不新增 runtime 功能或修改其它治理文件。
+最终 PR 提交仍未授权。回滚通过本治理 commit 的人工 revert 并重跑同一硬门，
+不得删除历史 evidence 或改成覆盖性豁免。

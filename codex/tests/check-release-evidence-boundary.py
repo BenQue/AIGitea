@@ -41,9 +41,13 @@ SCOPES = (
 )
 TRANSPORT = "codex/runtime/aisoft_release/transport.py"
 MATRIX = "docker-release/compatibility/image-stores-v1.json"
+ARCHITECTURE_LOCK = "architecture/reference/newemaint/target-candidate/architecture.lock.json"
 # Exact reviewed current bytes; never a path/content exemption. These pins are
-# advanced only with the corresponding behavior tests and real-E2E evidence.
+# Runtime pins advance with behavior tests and real-E2E evidence. The #288
+# architecture pin binds synthetic declaration/lock migration and static
+# reader regressions only; it does not refresh historical or real-E2E evidence.
 CURRENT_SOURCE_PINS: dict[str, str] = {
+    ARCHITECTURE_LOCK: "b6d39e9126b61c804b8cb188a11a3b4e1bc375236a3ffadf93909f3d49e70076",
     MATRIX: '8fb9b50660159c16f3b7cbd5cf655fc1cef9d2885dd9db143054d420fcd11b8c',
     'codex/runtime/aisoft_release/runner.py': 'ec6e0a9e56d8139102fb2a94fc31374886cd97b38e9166fa4f9d411e710533d6',
     'codex/runtime/aisoft_release/transport.py': '66929752efe7515fff425c95083c6593f7eabf6b3105daf2019169d1c6c0bf95',
@@ -184,7 +188,7 @@ def validate(root: Path) -> dict[str, str]:
     if set(index) != set(files) or disk_files(root) != set(files):
         raise BoundaryError("current file set differs from the fixed baseline")
 
-    if not set(CURRENT_SOURCE_PINS).issubset({RUNNER, TRANSPORT, MATRIX}):
+    if not set(CURRENT_SOURCE_PINS).issubset({RUNNER, TRANSPORT, MATRIX, ARCHITECTURE_LOCK}):
         raise BoundaryError("current amendment exceeds its exact file scope")
     if any(len(value) != 64 or any(c not in "0123456789abcdef" for c in value)
            for value in CURRENT_SOURCE_PINS.values()):

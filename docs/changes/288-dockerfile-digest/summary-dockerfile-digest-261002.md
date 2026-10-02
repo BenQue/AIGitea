@@ -89,7 +89,7 @@ override_reason: ''
 - Policy: manual；用户于 2026-10-02 明确回复“确认”，批准本映射 spec/plan 启动。PR 提交尚未授权。
 - 完整合同见 [spec](spec-dockerfile-digest-261002.md)，ticket graph 见 [plan](plan-dockerfile-digest-261002.md)，基线结果见 [verification](verification-dockerfile-digest-261002.md)。
 - Matt triage 已验证 bug，推荐 ready-for-agent；当前 broker 没有 triage 双维度 projector，live 投影为 GAP，不绕行直接 API，不在 #288 修改 broker。
-- T02 runtime 已实现并完成本地回归，T03 smoke 固定证据边界待处理；PR CI、installed/live/现场验收为 NOT RUN。无硬依赖；#287 仅关联与提交顺序协调。
+- T02 runtime 已实现并完成本地回归，T05 固定证据 pin 补充已批准应用，T03 smoke 待 fresh run；PR CI、installed/live/现场验收为 NOT RUN。无硬依赖；#287 仅关联与提交顺序协调。
 
 ## 启动授权与治理步骤
 
@@ -106,3 +106,11 @@ T02 已完成：容器所有声明文件的 FROM digest 双向检查，root/路�
 三 CLI 入口、库调用与现有 checker 共用硬门。非容器四合同 canonical bytes 与 baseline 完全一致。
 平台 smoke 真实 FAIL：release evidence checker 仍冻结旧 reference lock bytes。
 未修改该治理文件；T03/最终 PR 待补充授权与 #287 fresh main 组合验证。
+
+## T05 治理补充应用
+
+用户确认完整两文件补充，已冻结授权 receipt。checker 只新增当前 synthetic reference lock
+的 exact SHA256 pin；防篡改单测覆盖该 lock 的 disk/index 漂移。20 项 boundary tests 与
+真实静态 source identity PASS，historical evidence 与原 runtime pins 保持原 bytes。
+本步独立治理 commit 后停止，完整 smoke/runtime 与 #287 fresh-main 组合待下一轮；
+没有 push、PR、merge、install 或 deploy 授权。
