@@ -22,9 +22,9 @@ documents:
   plan: plan-registry-utf8-exit-261002.md
   verification: verification-registry-utf8-exit-261002.md
 depends_on: []
-status: approved
+status: pr-open
 branch: change/319-registry-utf8-exit
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/323
 created: 2026-10-02
 updated: 2026-10-02
 ---
