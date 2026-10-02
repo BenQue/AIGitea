@@ -18,7 +18,7 @@ depends_on: []
 branch: change/327-broker-ff-integration
 created: 2026-10-02
 updated: 2026-10-02
-status: approved
+status: contract-drafting
 ---
 
 # #327 实施计划与 fresh frontier
@@ -28,28 +28,30 @@ status: approved
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 独立只修改spec映射治理合同的受控本地步骤；验证范围、原子commit后停止 | - | completed |
-| T02 | fresh run重读后完成Controller限定整合、broker ordinaryFF/guard/独立验证与真实bare-remote回归，纳入安装/漂移映射 | T01 | pending |
+| T04 | 本份具体可信根合同确认后，独立只应用原14个映射治理文本+四角色，验证/本地commit后STOP；本次仅准备草案，尚未应用 | T01 | pending |
+| T02 | T04之后fresh重读，实施authority/受控执行证据、Controller限定整合、broker ordinaryFF/guard/独立验证与bare-remote回归；纳入安装/漂移 | T04 | pending |
 | T03 | 集成/全量/静态/文档验收、source与installed分层、人工firstPR/安装rollback卡，准备唯一manualPR候选 | T02 | pending |
 
-T01不是普通provider修改自身governing文件的许可：必须独立治理应用步骤只含合同映射文本，应用后立即停止。runtime不在同一次run实施；fresh run读取新合同与批准记录，frontier才变为T02。合同准备阶段没有执行 T01 或 commit；负责人随后直接确认，本次独立治理提交完成 T01。提交 SHA、精确父提交和 STOP 记录由 Git 及外部 T01 receipt 读回，避免在本提交中自引用 SHA。后续 frontier 为 T02，但本轮不得启动。
+T01 原治理已于 `061b0f3ec59869fe379d70b7d2f0455df4b8708a` 独立提交并停止。fresh T02 分析发现可信根缺口；没有 runtime/新接口变更。负责人“按建议继续”仅选择 A 路线的具体合同准备，不把本次四角色文档提交标成 T04 应用完成。
 
-合同已确认，但本轮只启动 T01；后续 fresh run 的 T02/T03 启动仍需重读合同、Issue/评论和 installed 能力，并先复核尚缺的 live approved/分类投影。不授权 push/PR；本地完整后进入AWAITING_PR_CONFIRMATION。人工UI发表B01与合并后安装I01是外部人工/受控验收阶段，不放进provider ticket graph假装可自动运行；这样不会等待尚未可安装的版本而无法准备源码PR。
+新增 T04 保留原 ticket ID/历史，置于 T02 之前。当前先审阅本份 spec/plan 和 exact SHA256；具体确认后才在独立治理 run 执行 T04，只改原14治理文件+四角色，应用/验证/local commit 后 STOP。后续 fresh run 重读，live 分类/approved 投影、installed/capability 和 grant 状态均真实核对，T02 才能实施其新 source 范围。任何 runtime/config/service 不得混入 T04。
 
+T02/T03 本地实施许可不授权 push/PR。人工 UI 发表 B01、合并后 I01 文件安装及 I02 authority 注册/启动验收均是 graph 外的独立受控阶段，不等待未合并代码先安装才能准备源码 PR。最终 PR 确认只问一次；其 protected 登记不作新的业务决定，CI repair 每次 exact H 重验而不逐 commit 问。
 ## Expected touch points
 
-exact清单只由spec两张映射表授权。T01仅治理表及四份本Issue语义文档；T02仅runtime表的实现/测试/受管映射；T03更新四份合同证据及脱敏执行卡。新文件新增模式限100644；固定运行hook若由runtime临时生成必须隔离保护、不得变为额外可配置入口。
+exact 清单由 spec 原治理/runtime 表与新可信根扩展表逐项定义。新增表当前是待具体确认提案，不能在本 run 使用。T01 已完成；T04仅原14治理表+四角色；T02仅获确认的 runtime/可信根表；T03只更新四份证据和外部脱敏 B01/I01/I02 卡。新文件新增模式限100644；固定运行hook若由runtime临时生成必须隔离保护、不得变为额外可配置入口。
 
 所有stage保持owner `01a0fcec-eb78-7790-a36a-daea917f43d2`；branch `change/327-broker-ff-integration`；worktree `/private/tmp/issue-327-broker-ff-integration`。commit包含 #327 与Txx；不接受他人代做整合/rebase。
 
 ## 数据库迁移
 
-无。owner/receipt字段如需追加，向后兼容原claim；缺少新的可信证据不能伪造R0/provenance，必须fail closed/adoption review。
+无数据库迁移。新 protected grant/record schema 是独立初始化的 `change-grant/v1` / `change-record/v1`；无自动旧状态升级。owner/progress 只作兼容审计/引用，不升级成批准记录；缺可信证据必须 fail closed/adoption review。状态丢失、旧 root 或异常 remote 不重置 R0。
 
 ## 测试与验收映射
 
 | AC | Ticket / 外部阶段 | Verification command or review |
 |---|---|---|
-| AC-1 | T01；T03 | `resolve-documents 327`、`check-change-documents`、判级只读plan/verify；T01 exactdiff+commit清单与STOP receipt；fresh-run重读hash |
+| AC-1 | T01/T04；T03 | `resolve-documents 327`、`check-change-documents`、判级只读plan/verify；T01 exactdiff+commit清单与STOP receipt；fresh-run重读hash |
 | AC-2 | T02 | `PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -p test_main_integration.py -v`；真实临时bare remote正向DAG/tree/ref证据 |
 | AC-3 | T02 | 同integration fixture：预读/传输公告两窗口注入race，包括R1祖先候选、首次ref存在抢占、删重建；拒绝前后ref/argv |
 | AC-4 | T02 | `PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -p test_host_access.py -v`；`test_controller.py`、`test_worktree_owner.py`定向；pre-mutation remote保持与provider gate |
@@ -57,10 +59,19 @@ exact清单只由spec两张映射表授权。T01仅治理表及四份本Issue语
 | AC-6 | T03准备/B01执行 | bundle/patch/tree/blob/mode card；本人UI发表；broker fetch H/main/PR/status/actions；导出H在隔离目录重跑本地门；唯一humanPR/merge读回 |
 | AC-7 | T03准备/I01执行 | 两机exact批准后，versioned installer、逐文件before/after owner/mode/hash、realFF/no-op/reject/rollback；全部前后ref与main保护读回 |
 | AC-8 | T03/B01/I01 | `gitea.protection.read`、manifest byte diff、单writer scan、同Issue唯一PR读回；原owner采用receipt或保持NOT RUN |
+| AC-9 | T04；T02/T03；I02 | 对 `test_change_evidence.py` / `test_verification_authority.py` / `test_verifier.py` / `test_state.py` / `test_contract.py` 分别执行 unittest discover；新文件存在后才运行；真实 peer、privilege/FS/exec/socket negative、grant/record/adoption/replay/restart/default-disabled + 两机 I02 受控实证 |
 
 每个定向unittest分别使用上行discover格式，只更换 -p 的exact文件名；新integration测试文件必须真实存在后才能执行。每次变动shell须运行对应 `bash -n`、可用ShellCheck及完整smoke。fixture只能本地临时remote；不创建live canary Issue/PR来伪装隔离测试。
 
 完整smoke按默认host locale实际执行。若#319尚未入main而registry UTF-8 fixture FAIL，保存原失败、不修别人的6处Bash；LC_ALL=C可作诊断单独标注，不能替代默认结果PASS。future fresh main若已有修复，不继承旧FAIL或PASS，重读实跑。
+
+## 可信根 source 分步验收
+
+T02 同一 ticket 内按以下依赖推进：strict schema/冻结政策与 scope → default-disabled fixed client/server/OS peer → protected operator grant 与受控 generation/非 root sandbox execution → per-commit/完整 delta 与限定 integration checkpoint → 独立 broker重算+protected PR授权+strict R ordinary FF → installer/drift/inert unit 和全量回归。任何阶段缺可信输入均 fail closed，不能先发布“暂用本地 PASS”的版本；不改既有 required gate 或让 fixture 开关进入 public runtime。
+
+必须区分 unit/mock、真实普通用户 Unix socket/bare remote、真实 root custody 与 installed/live。无权限环境的 root/另UID/服务测试真实 NOT RUN/GAP，不能 monkeypatch UID 后写 PASS。两机 I02 之前 source merge 不表示功能启用，不自动创建授权记录。
+
+I02 卡须完整列出实际 root runtime/interpreter/Git hash、registered existing UID/GID、隔离能力、socket/context/state/service 前态、grant/业务批准与 protected PR确认登记、停止/恢复对象、真实 FF/negative/restart/rollback 目标。source-only smoke 不代替这些项；不自动 provision credential/账户/SDK auth/profile/provider/timer。
 
 ## 风险与失败分支
 
@@ -77,4 +88,4 @@ B01先取得绑定#327/branch/manual的最终PR提交确认，使用spec人工UI
 
 I01只在源码merge且fresh stable pin后，分别取得Mac/gitea-ci exact安装批准。只改安装卡列出的受管byte/mode/owner；不继承#316授权、不启用profile/service/provider、不涉及credential或应用部署。完整旧态保全、两次执行/no-op、故意失败rollback与新行为realFF实证均必须完成。
 
-AC-7未闭合保持本Issue真实未完成与chat可用；见spec自动closed后的typedopen保留验收规则。AC全闭合后确定性terminal/document/cleanup/archive，无新增确认点。
+AC-7/AC-9 未闭合保持本 Issue 实际未完成与 chat 可用；见spec自动closed后的typedopen保留验收规则。AC全闭合后确定性terminal/document/cleanup/archive，无新增确认点。
