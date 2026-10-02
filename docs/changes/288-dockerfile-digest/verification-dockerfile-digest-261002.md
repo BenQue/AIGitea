@@ -357,7 +357,7 @@ branch、clean tree 和批准 source hashes。broker main fetch 为
 最终 PR 草稿只有一行 Closes #288。取得提交确认后才 push/建 PR；required CI 全绿后
 停在 READY_FOR_REVIEW 等人审核并合并。回滚方式保持人工 revert 唯一 PR 并运行同一回归。
 
-## 提交授权后的线性候选验证（当前权威结果）
+## 提交授权后的线性候选验证（当前 source/local 权威结果）
 
 用户“确认提交”已绑定 exact Issue/branch/manual，原候选
 `c6934f2d10aa68329c7e51f5a71482fea0123d76`。首次 broker push 被
@@ -376,3 +376,15 @@ branch、clean tree 和批准 source hashes。broker main fetch 为
 完整命令、原候选恢复 tag、tree SHA 和日志 hash 见
 `evidence/pr-linear-history-validation.json`；原全部 receipt 保留，不覆盖历史事实。
 本次后续提交只含 metadata/docs，技术文件与已验证 head 相同。
+
+## 唯一最终 PR 实际发表
+
+用户已确认提交，首次成功 broker push 为 `1215d1c2c86dbeb81288ebbcc1a35cc05ac79d20`，
+previous_head null，pushed_head 精确读回 PASS。唯一 PR #328 实际 open，base main
+`65268ee5f1e622c486fd9e354dd35e20a2900f91`，merged false；Issue 生命周期已投影 pr-open。
+summary 使用公共 backfill-pr-url writer 回填。仅新增文档/receipt 元数据，runtime/test
+技术字节保持 smoke 验证 head `69d5ad511dd9620f2f3865e6439773b2c1744d1f` 相同。
+后续 push 保留首次已发表 tip 为祖先，无 force/history rewrite。
+required CI 当前 PENDING，最终 acceptance 绑定回填后最新 PR head，再停 READY_FOR_REVIEW。
+Codex attach_artifact 已调用但不支持此 Gitea URL，原 PR URL 可正常使用。
+人工 merge/global installed/应用迁移/builder provenance/现场/deploy NOT RUN。

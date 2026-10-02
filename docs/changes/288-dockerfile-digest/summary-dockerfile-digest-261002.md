@@ -24,9 +24,9 @@ documents:
   plan: plan-dockerfile-digest-261002.md
   verification: verification-dockerfile-digest-261002.md
 depends_on: []
-status: approved
+status: pr-open
 branch: change/288-dockerfile-digest
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/328
 created: 2026-10-02
 updated: 2026-10-02
 ---
@@ -164,7 +164,7 @@ pinned main `65268ee5f1e622c486fd9e354dd35e20a2900f91`。
 本轮只证明 source/local；没有 push/PR/merge，required CI/global installed/应用迁移/
 builder provenance/现场/部署 NOT RUN。历史失败、提案和治理停止 receipt 均保留原样。
 
-## 当前状态：提交已批准，线性候选验证通过
+## 提交已批准、线性候选通过（首次发表前快照）
 
 用户明确回复“确认提交”，授权 exact #288 / change/288-dockerfile-digest / manual
 的唯一最终 PR 与合同内 CI 修复，绑定记录见 `evidence/pr-submission-authorization.json`。
@@ -175,3 +175,13 @@ builder provenance/现场/部署 NOT RUN。历史失败、提案和治理停止 
 本次只新增提交授权、线性验证证据及 PR 草稿格式修正；已测试技术字节保持相同。
 现继续首次成功 push/唯一 PR/required CI；全绿停 READY_FOR_REVIEW，人工合并。
 当前 PR/required CI、global installed、应用迁移、builder provenance、现场与部署 NOT RUN。
+
+## 当前状态：唯一 PR #328 已提交，required CI 待核对
+
+[PR #328](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/328) 为本 Issue 唯一最终 PR，
+Policy manual。首次成功发表 head `1215d1c2c86dbeb81288ebbcc1a35cc05ac79d20`，
+broker pushed_head 与本地候选相同；publication receipt 见 `evidence/pr-publication.json`。
+本次回填 summary 的 pr_url/status，并记录 PR 元数据；技术字节未改。后续普通 push
+保留已发表 tip 为祖先，最终 required context `CI / verify (pull_request)` 必须绑定最新 head。
+当前 PR open、未 merge；required CI PENDING，不沿用本地 PASS 代替 CI。
+全绿停 READY_FOR_REVIEW 等人审核合并；global installed/应用迁移/builder provenance/现场/deploy NOT RUN。
