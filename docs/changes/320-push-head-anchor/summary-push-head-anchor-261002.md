@@ -23,9 +23,9 @@ documents:
   plan: plan-push-head-anchor-261002.md
   verification: verification-push-head-anchor-261002.md
 depends_on: []
-status: approved
+status: pr-open
 branch: change/320-push-head-anchor
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/322
 created: 2026-10-02
 updated: 2026-10-02
 ---
