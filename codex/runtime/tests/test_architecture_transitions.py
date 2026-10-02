@@ -92,6 +92,7 @@ class ArchitectureTransitionTests(unittest.TestCase):
             self.project,
             self.project_schema,
             TODAY,
+            repo_root=ARCH,
         )
 
     def _assert_error(self, code: str) -> None:

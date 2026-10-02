@@ -89,7 +89,7 @@ override_reason: ''
 - Policy: manual；用户于 2026-10-02 明确回复“确认”，批准本映射 spec/plan 启动。PR 提交尚未授权。
 - 完整合同见 [spec](spec-dockerfile-digest-261002.md)，ticket graph 见 [plan](plan-dockerfile-digest-261002.md)，基线结果见 [verification](verification-dockerfile-digest-261002.md)。
 - Matt triage 已验证 bug，推荐 ready-for-agent；当前 broker 没有 triage 双维度 projector，live 投影为 GAP，不绕行直接 API，不在 #288 修改 broker。
-- 全部 runtime、修复 CI、installed/live/现场验收为 NOT RUN。无硬依赖；#287 仅关联与提交顺序协调。
+- T02 runtime 已实现并完成本地回归，T03 smoke 固定证据边界待处理；PR CI、installed/live/现场验收为 NOT RUN。无硬依赖；#287 仅关联与提交顺序协调。
 
 ## 启动授权与治理步骤
 
@@ -99,3 +99,10 @@ T01 只应用 schema 与 README 合同；运行时文件核验仍为 NOT RUN。�
 ## 最小范围补充授权
 
 用户于 2026-10-02 再次回复“确认”，仅批准两处 shell 测试的显式 root 参数与 synthetic 模板迁移；receipt 与完整 patch 在 evidence。T04 独立应用后停止，原合同批准持续有效，runtime/最终 PR/安装部署仍未执行。
+
+## 当前实现进度
+
+T02 已完成：容器所有声明文件的 FROM digest 双向检查，root/路径/语法 fail closed，
+三 CLI 入口、库调用与现有 checker 共用硬门。非容器四合同 canonical bytes 与 baseline 完全一致。
+平台 smoke 真实 FAIL：release evidence checker 仍冻结旧 reference lock bytes。
+未修改该治理文件；T03/最终 PR 待补充授权与 #287 fresh main 组合验证。

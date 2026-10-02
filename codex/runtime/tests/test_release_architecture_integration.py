@@ -65,6 +65,7 @@ class ArchitectureReleaseIntegrationTests(unittest.TestCase):
             project,
             cls.project_schema,
             date(2026, 9, 5),
+            repo_root=cls.architecture_root,
             schema_version="1.0",
         )
 
@@ -94,6 +95,7 @@ class ArchitectureReleaseIntegrationTests(unittest.TestCase):
             self.project,
             self.project_schema,
             date(2026, 9, 5),
+            repo_root=self.architecture_root,
             schema_version="1.0",
         )
         reference = load_json(
@@ -119,6 +121,7 @@ class ArchitectureReleaseIntegrationTests(unittest.TestCase):
         generated = build_lock(
             self.catalog, self.catalog_schema, self.profile, self.profile_schema,
             self.project, self.project_schema, date(2026, 9, 5),
+            repo_root=self.architecture_root,
         )
         schema = load_json(self.architecture_root / "schemas/architecture-lock-v2.schema.json")
         validate_lock(generated, schema, generated)

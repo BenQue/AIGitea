@@ -26,7 +26,7 @@ updated: 2026-10-02
 |---|---|---|---|
 | T01 | 独立应用 Dockerfile 治理合同，提供可审阅的 schema/docs 输入面，commit 后停止 | [] | done |
 | T04 | 已批准补充的两处测试 root 与 synthetic 模板，独立治理 commit 后停止 | [T01] | done |
-| T02 | fresh run 后完整实现容器 FROM 文件核验，迁移 fixtures，所有 CLI 与库调用同一硬门 | [T04] | pending |
+| T02 | fresh run 后完整实现容器 FROM 文件核验，迁移 fixtures，所有 CLI 与库调用同一硬门 | [T04] | done |
 | T03 | 项目 checker、lock/release 兼容与全套回归验收，完成唯一最终 PR 候选 | [T02] | pending |
 
 T01 为平台治理必须隔离的 contract-only 步骤，不伪装成 runtime 已交付。
@@ -87,3 +87,10 @@ shell 仅允许 T04 明确批准的两个测试入口，各新增 root 参数；
 ## 已批准补充的治理停止点
 
 用户已确认 T04 补充 patch。T04 独立提交后停止，fresh turn 读取更新 spec/plan 后执行 T02；不再请求原合同启动确认。
+
+## T02 runtime 进度
+
+文件核验、三 CLI 入口、库 root 硬门、fixtures/reference lock 与 checker 探针已实现。
+T03 仍 pending：smoke 的 release evidence 固定源码边界拒绝已迁移的 reference lock，
+需具体合同补充后独立治理步骤；不修改历史 evidence 或绕过检查。#287 仍 open，
+最终候选前须由本 owner 自行整合真实合并后的 main 并复核 lock/release 组合。

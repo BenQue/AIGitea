@@ -64,9 +64,9 @@ CLI 与 `codex/tools/aisoft-project-check.sh` 都从**脚本所在平台 checkou
 
 ## Dockerfile 基镜像源码一致性合同（#288）
 
-> 实施边界：#288 的 T01 只应用 declaration schema 与本节治理合同；T02 的 runtime
-> 文件核验尚未实现。当前步骤的 JSON 校验通过不能证明 Dockerfile 一致，以下行为与新增
-> `--repo-root` 参数必须在 T02/T03 验收通过后才可作为执行能力使用。
+> 实施边界：#288 的 T02 已实现以下离线源码核验与 `--repo-root` 参数。
+> architecture/CLI 与 release reader 集成回归已通过；平台 smoke 的固定 release evidence
+> 源码 pin 尚需受控同步，最终 PR/required CI/安装与部署未执行。
 
 容器交付 declaration 在既有 `oci-image` component 之外，必须增加非空、去重的 `dockerfiles`
 数组，列出该构建使用的全部 Dockerfile。路径以应用仓库根为基准，使用相对 POSIX 形式，例如：

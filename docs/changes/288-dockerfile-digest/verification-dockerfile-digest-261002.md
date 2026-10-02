@@ -26,7 +26,7 @@ updated: 2026-10-02
 - 日期：2026-10-02（Asia/Shanghai）；校验探针使用 `--today 2026-10-02`。
 - Worktree：`/private/tmp/issue-288-dockerfile-digest`。
 - Owner session：`01a0fc7b-f327-7a93-a48c-a254937cb08d`，claim 返回 `created`。
-- 当前仅记录只读基线和合同准备，不宣称修复完成。
+- 基线与治理步骤为历史 receipt；当前 T02 已实现，T03 尚未完成。
 
 ## 执行结果
 
@@ -140,3 +140,32 @@ schema 探针有效集为单 `Dockerfile` 与多路径数组；无效集为：�
 完整本地日志位于 `/private/tmp/issue-288-contract-data/t04-smoke.log`，未把阶段性失败改成 PASS，
 未通过条件跳过、回退旧参数、修改 reader/root 合同或削弱测试修复。
 下一步 fresh turn 重读已更新合同，实施 T02/T03 后重新跑全部必要验证；既有合同启动授权持续有效。
+
+## T02 文件核验与 T03 初轮回归
+
+在 `02cecb762f13cedfcef6db50af4744534ee3f8bd` fresh turn 实施 runtime。
+新增回归先在旧 runtime 运行，四种原始假绿均实际 exit 0（测试预期 exit 2，因此 4 failures）。
+随后在共用 build_lock 接入文件核验，全部 catalog/profile/project 原有语义检查通过后才读文件。
+通过逐级 dir_fd + O_NOFOLLOW 检查实际文件；普通文件、UTF-8、1 MiB 上限、FIFO 非阻塞拒绝，
+并保留原始异常/文件内容脱敏。解析多阶段、内部 stage、scratch、续行、CRLF 与 escape header；
+不展开镜像变量，不加载 frontend、不联网、不执行 Dockerfile。
+
+| Check | Result | Receipt |
+|---|---|---|
+| 新回归 red（旧 runtime） | CONFIRMED | 四种假绿，1 test / 4 failures |
+| architecture suite（含实际 CLI/checker） | PASS | 最终本地日志 t02-architecture.log；详细数量见后续 receipt |
+| release architecture integration | PASS | 4 tests / 0.037s；reader/schema 未改 |
+| 完整 runtime 初轮 | PASS | 989 tests / 88.934s；后续 parser 边界补充需重跑 |
+| 四个非容器 lock bytes 对比 | PASS | evidence/noncontainer-byte-comparison.json；baseline 5c2cd726，SHA256 全部相同 |
+| 连续两次 lock、失败不 create/overwrite、旧正确 lock 无法掩盖源码漂移 | PASS | 新 CLI 子进程 tests；三入口检查同一 real temp repo |
+| 现有项目 checker source drift | PASS | 正确源码 PASS: architecture-lock；只修改 FROM 后 GAP；checker 未改且输入 bytes 不变 |
+| 平台 smoke | FAIL | t03-smoke.log；固定 evidence gate 报 unapproved source bytes: architecture/reference/newemaint/target-candidate/architecture.lock.json |
+| #287/main 组合验证 | NOT RUN | #287 仍 open；本次 fresh fetch origin/main 为原 baseline |
+| PR CI / installed / company live / deployment | NOT RUN | 无 PR、未安装部署 |
+
+smoke 已越过 T04 的 --repo-root 阶段失败；本次失败发生在
+`codex/tests/check-release-evidence-boundary.py`：该 checker 冻结旧 source bytes，
+CURRENT_SOURCE_PINS 仅准许 runner/transport/matrix；并同时核验 disk 与 index。
+不能恢复旧 declaration hash、把 lock 加 CONTENT_EXEMPT、跳过 checker 或替换历史 evidence。
+已批准 spec 排除额外 CI/治理脚本改动，故该具体补充仍须独立合同批准/治理步骤。
+T02 local source check 不构成真实构建、制品 provenance、安装或现场证明。
