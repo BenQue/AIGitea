@@ -1,0 +1,112 @@
+test_codex_and_claude_keep_only_contract_start_and_pr_confirmations (tests.test_routine_merge.SessionContractTests.test_codex_and_claude_keep_only_contract_start_and_pr_confirmations) ... ok
+test_source_skills_require_exact_classification_readback_before_pr (tests.test_routine_merge.SessionContractTests.test_source_skills_require_exact_classification_readback_before_pr) ... FAIL
+test_source_skills_pin_the_verified_merge_before_terminal_apply (tests.test_routine_merge.SessionContractTests.test_source_skills_pin_the_verified_merge_before_terminal_apply) ... FAIL
+test_codex_separates_controller_and_interactive_pr_backfill (tests.test_routine_merge.SessionContractTests.test_codex_separates_controller_and_interactive_pr_backfill) ... FAIL
+test_shared_onboarding_keeps_second_confirmation_and_manifest_lifecycle (tests.test_routine_merge.SessionContractTests.test_shared_onboarding_keeps_second_confirmation_and_manifest_lifecycle) ... FAIL
+test_shared_provider_document_requires_single_writer_claim_and_push_readback (tests.test_routine_merge.SessionContractTests.test_shared_provider_document_requires_single_writer_claim_and_push_readback) ... FAIL
+
+======================================================================
+FAIL: test_source_skills_require_exact_classification_readback_before_pr (tests.test_routine_merge.SessionContractTests.test_source_skills_require_exact_classification_readback_before_pr)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 231, in test_source_skills_require_exact_classification_readback_before_pr
+    self._assert_confirmation_permissions(codex)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 99, in _assert_confirmation_permissions
+    self._require(
+    ~~~~~~~~~~~~~^
+        autonomy,
+        ^^^^^^^^^
+    ...<2 lines>...
+        "Contract/start approval alone does not authorize push or PR creation.",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 95, in _require
+    self.assertIn(rule, normalized)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+AssertionError: 'After final-PR submission confirmation, continue through branch push, the one final PR and in-contract PR CI repair' not found in 'Once the user approves the Issue contract or an explicit implementation plan, continue without intermediate confirmation through: - evidence gathering and deterministic classification; - contract document completion; - in-scope implementation and local commits; - tests, ordinary repair and required wider gates; - classification projection, branch push, the one final PR and PR CI repair. Pause only for a contract conflict, scope expansion, destructive migration, a new security/permission/architecture decision, a direct production action, a missing external dependency, unreliable verification, or three consecutive attempts with the same root cause. A sandbox/network approval required by the host is an execution permission, not a new product decision.'
+
+======================================================================
+FAIL: test_source_skills_pin_the_verified_merge_before_terminal_apply (tests.test_routine_merge.SessionContractTests.test_source_skills_pin_the_verified_merge_before_terminal_apply)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 247, in test_source_skills_pin_the_verified_merge_before_terminal_apply
+    self._assert_terminal_apply(self._source("codex/skills/issue-session-flow/SKILL.md"))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 138, in _assert_terminal_apply
+    self._require(
+    ~~~~~~~~~~~~~^
+        completion,
+        ^^^^^^^^^^^
+    ...<8 lines>...
+        "Read an unfamiliar reason's detail rather than guessing a lifecycle label; never infer deployment.",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 95, in _require
+    self.assertIn(rule, normalized)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+AssertionError: 'Dry-run `codex/tools/mark-completed-issues.sh --repo <checkout> --range <range>`' not found in 'After the user confirms merge: 1. Fetch and prove that the exact merge commit is on `origin/main`. 2. Dry-run the terminal lifecycle tool and verify classification projection. 3. Apply a terminal label only with the authority required by the current platform contract; never infer deployment. 4. Run `check-change-documents` against the merged checkout. 5. Leave and remove the Issue worktree, then delete the merged local change branch. 6. Record any genuinely separate acceptance criterion as a new Issue instead of extending the closed one. 7. Report exact merge/receipt, terminal state, document check, cleanup, and every unrun action, then archive the completed task without another confirmation. If any deterministic completion step fails, report the stable blocker and keep the task available; do not claim archival or completion.'
+
+======================================================================
+FAIL: test_codex_separates_controller_and_interactive_pr_backfill (tests.test_routine_merge.SessionContractTests.test_codex_separates_controller_and_interactive_pr_backfill)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 262, in test_codex_separates_controller_and_interactive_pr_backfill
+    self._assert_backfill_paths(self._source("skill-for-codex/SKILL.md"))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 153, in _assert_backfill_paths
+    self.assertIn("In a Controller-managed run", development)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'In a Controller-managed run' not found in "\nLet the Loop handle ordinary compile, lint, type, test, build, browser, and CI failures. Escalate contract conflicts, scope expansion, destructive migrations, new security/permission/architecture decisions, missing external dependencies, unreliable verification, three same-root-cause attempts, or configured limits.\n\nAfter the user approves an Issue contract or an explicit implementation plan, continue through in-scope\nimplementation, tests and repair without intermediate confirmations. Then enter `AWAITING_PR_CONFIRMATION` and ask\nonce to submit the unique final PR, binding exact Issue/branch and `manual|routine-auto` policy. Manual work ends at\n`READY_FOR_REVIEW`; eligible routine-small work may reach `AUTO_MERGED` only through the independent broker merger.\nAfter merge, automatically complete terminal reconciliation, document checks, cleanup and archival without another\nconfirmation. `issue-session-flow` owns the contract/start and final-PR confirmation formats.\n\nAccept `AWAITING_PR_CONFIRMATION`, `READY_FOR_REVIEW`, `AUTO_MERGED`, `NEEDS_HUMAN_DECISION`,\n`BLOCKED_EXTERNAL`, or `FAILED_LIMIT` as governed states. Never describe unrun checks as passed.\n\nAfter it opens the pull request, the Controller writes that PR's URL into the change summary's `pr_url` front\nmatter field and advances the summary's `status` to `pr-open`, commits exactly that one document, and pushes it\n(#146). This is automatic — do not add a manual backfill step, and do not treat the extra commit as provider\nwork. `pr_url` lives in the summary only (#142); spec, plan and verification documents do not carry it. If the\nsummary does not declare `pr_url`, or already declares a different one, the Controller fails closed and returns\n`NEEDS_HUMAN_DECISION` rather than overwriting or skipping — a change has exactly one PR, so a second value\nmeans the premise broke. Verify any checkout with\n`PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo <checkout>`.\n"
+
+======================================================================
+FAIL: test_shared_onboarding_keeps_second_confirmation_and_manifest_lifecycle (tests.test_routine_merge.SessionContractTests.test_shared_onboarding_keeps_second_confirmation_and_manifest_lifecycle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 265, in test_shared_onboarding_keeps_second_confirmation_and_manifest_lifecycle
+    self._assert_shared_onboarding(self._source("skill-for-codex/references/onboarding-runbook.md"))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 180, in _assert_shared_onboarding
+    self._require(
+    ~~~~~~~~~~~~~^
+        development,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        "第一确认点仅批准合同/启动，不授权 push、PR、merge 或部署",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 95, in _require
+    self.assertIn(rule, normalized)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+AssertionError: '所选 provider 的 skills/adapter 验证完成后启用' not found in '只在平台 `08` 的 Codex skills 和 controller 验证完成后启用： - 使用 provider-neutral controller；不要为 Codex/Claude 复制两套 Loop。 - 每个 active Issue 使用隔离 worktree 和锁。 - 第一阶段只运行一个 active Issue。 - 外层 verifier 独立运行项目命令，不信任模型自述。 - 同一根因三次失败、合同冲突、范围扩张或高风险决策时升级给人。 - 状态包含提交前 `AWAITING_PR_CONFIRMATION`、manual `READY_FOR_REVIEW`、routine receipt `AUTO_MERGED`，以及 `NEEDS_HUMAN_DECISION`、`BLOCKED_EXTERNAL`、`FAILED_LIMIT`。 - manual PR 只有人可以合并；eligible routine-small 只有在第一确认点明确授权并通过 final-head 全硬门 后，才由独立 routine merger 合并。provider/project agent 不持有 merger credential。 - 使用 `aisoft-agent@<profile>.service/.timer` 作为项目级 systemd 实例；安装模板不等于启用。必须显式执行 `systemctl --user enable --now aisoft-agent@<profile>.timer`，且只有该项目验收通过后才允许这样做。'
+
+======================================================================
+FAIL: test_shared_provider_document_requires_single_writer_claim_and_push_readback (tests.test_routine_merge.SessionContractTests.test_shared_provider_document_requires_single_writer_claim_and_push_readback)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 268, in test_shared_provider_document_requires_single_writer_claim_and_push_readback
+    self._assert_single_writer_push_readback(self._source("08-双工具共存与实施.md"))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 209, in _assert_single_writer_push_readback
+    self._require(
+    ~~~~~~~~~~~~~^
+        configuration,
+        ^^^^^^^^^^^^^^
+    ...<6 lines>...
+        "`scan-worktrees --repo <checkout>` 只读盘点",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/private/tmp/issue-318-provider-skill-parity/codex/runtime/tests/test_routine_merge.py", line 95, in _require
+    self.assertIn(rule, normalized)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+AssertionError: '每个 change 使用自己的 `issue-N-short-description` 隔离 worktree' not found in '- 仓库根 `AGENTS.md` 是共享规范源；Claude 用 `CLAUDE.md` 导入，Codex 原生读取。 - `~/.claude/`、`~/.codex/` 和 `~/.agents/skills/` 独立保存，不复制 token。 - provider 使用专用 runtime 用户和 manifest-declared project agent，不拥有 `main` 合并权；共享 `ci-bot` 已退出 manifest 仓库 collaborator，不得恢复为普通身份。 - 两个 provider 不在同一 working tree 同时写；controller 为每个 Issue 分配隔离 worktree 和锁。 - **⚠️ 上一条同样适用于「同一工具的多个交互式会话」**——规则的判据是 **working tree**，不是 provider。VM 侧由 controller 自动分配 worktree 已覆盖；**交互式路径（人在 Mac 克隆上同时开多个 Claude / Codex 会话，一 issue 一会话）没有任何分配者，是当前唯一裸露面**。共享 checkout 的 **HEAD 是全局可变状态**：A 会话 `git checkout` 会把 B 会话的 HEAD 一起带走，B 随后的 commit 落到 A 的分支上（2026-07-19 SFMDigitalBoard 实证，症状见 06 🕳️ 15）。 **交互式路径纪律**：并行时非第一个会话必须自建 worktree（`git worktree add .claude/worktrees/<name> <branch>`，全程 `git -C <worktree>`）；任何 commit 前 `git branch --show-current` 必须等于目标分支。 - 生产机不安装或依赖 Claude/Codex 认证。 - 每项目 VM profile 的 `analysis_provider` 与 `implement_provider`（`codex/config/host-access-broker.json` `projects[].vm_profile`）取值 `codex`/`claude`/`none`，定义与含义见 [04 §4](04-Agent编排与定时任务.md#4-analyzer)；`implement_provider` 迁移期固定 `none`。'
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.004s
+
+FAILED (failures=5)
+{"baseline": "480d1d262c3e915f546049ede3f34ad7d3362f50", "overlay": "in-memory Git blobs only; governed files unchanged", "tests": 6, "failures": 5, "errors": 0, "expected": "5 failures / 6 tests / 0 errors", "result": "EXPECTED_FAIL", "log": "/private/tmp/aisoft-318-contract-baseline-red.log"}

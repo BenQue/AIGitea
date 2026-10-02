@@ -1,0 +1,10 @@
+{
+  "baseline": "480d1d262c3e915f546049ede3f34ad7d3362f50",
+  "overlay": "in-memory Git blobs only; governed files unchanged",
+  "tests": 6,
+  "failures": 5,
+  "errors": 0,
+  "expected": "5 failures / 6 tests / 0 errors",
+  "result": "EXPECTED_FAIL",
+  "log": "/private/tmp/aisoft-318-contract-baseline-red.log"
+}

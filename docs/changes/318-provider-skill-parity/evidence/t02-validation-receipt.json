@@ -1,0 +1,84 @@
+{
+  "issue": 318,
+  "ticket": "T02",
+  "worktree": "/private/tmp/issue-318-provider-skill-parity",
+  "branch": "change/318-provider-skill-parity",
+  "governance_commit": "dc77c93b3c92534b3f1e796dce896ea15fc43e56",
+  "source_file": "codex/runtime/tests/test_routine_merge.py",
+  "source_sha256": "03d071d89ddfacf885c57512d7980dc1cbe91913f4935ee501079a86fdf1084c",
+  "scope": "AST outside SessionContractTests identical to HEAD",
+  "contract_tests": 12,
+  "mutation_counts": {
+    "test_confirmation_contract_rejects_early_push_authorization": 3,
+    "test_classification_contract_rejects_unprojected_or_closed_writes": 4,
+    "test_terminal_contract_rejects_unproved_or_floating_merge": 6,
+    "test_backfill_contract_rejects_ambiguous_ownership": 5,
+    "test_shared_onboarding_contract_rejects_provider_or_lifecycle_shortcuts": 6,
+    "test_shared_provider_contract_rejects_unverified_push": 3
+  },
+  "mutation_total": 27,
+  "targeted": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest tests.test_parity tests.test_matt_snapshot tests.test_routine_merge.SessionContractTests -v",
+    "tests": 38,
+    "seconds": 5.09,
+    "exit_code": 0,
+    "result": "PASS",
+    "log": "/private/tmp/aisoft-318-targeted.log"
+  },
+  "full_smoke": {
+    "command": "LC_ALL=C bash codex/tests/smoke.sh",
+    "locale": "C",
+    "tests": 978,
+    "seconds": 86.601,
+    "exit_code": 0,
+    "result": "PASS",
+    "log": "/private/tmp/aisoft-318-smoke.log",
+    "includes": "shell/mock regression gates plus Python unittest and static smoke",
+    "unittest_runs": [
+      {
+        "tests": 20,
+        "seconds": 0.054
+      },
+      {
+        "tests": 161,
+        "seconds": 10.45
+      },
+      {
+        "tests": 978,
+        "seconds": 86.601
+      }
+    ]
+  },
+  "ownership_scan": {
+    "result": "PASS",
+    "worktrees": 1,
+    "pass": 1,
+    "gap": 0,
+    "session": "codex-318-provider-skill-parity-20261002",
+    "state": "unpushed"
+  },
+  "excluded": [
+    "real deployment",
+    "real registry",
+    "credentials",
+    "install",
+    "push",
+    "PR",
+    "merge"
+  ],
+  "known_independent_failure": {
+    "issue": 319,
+    "default_utf8_smoke": "previous FAIL preserved; not re-run or fixed in T02",
+    "current_full_smoke": "LC_ALL=C PASS only"
+  },
+  "commit": {
+    "sha": "b780eabb293fb000b36c0b7e01a74b44f3b2547d",
+    "subject": "test: enforce provider skill governance parity (#318 T02)",
+    "files": [
+      "codex/runtime/tests/test_routine_merge.py"
+    ],
+    "result": "LOCAL_COMMIT_ONLY",
+    "push": "NOT_RUN",
+    "pr": "NOT_RUN"
+  }
+}

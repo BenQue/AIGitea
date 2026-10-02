@@ -1,0 +1,1181 @@
+architecture installer idempotence: PASS
+gitea-label-manifest contract passed.
+sync-gitea-labels mock regression passed.
+project check tests passed (61 cases)
+PASS: change-template-sync (17 cases)
+Codex agent runtime mock regression passed.
+change-merge-range: OK
+mark-deployed tests passed
+mark-completed tests passed
+apply-classification tests passed
+DEPRECATED: inline GITEA_TOKEN is deprecated; migrate this profile to GITEA_IDENTITY + GITEA_TOKEN_FILE (#61, #111)
+DEPRECATED: inline GITEA_TOKEN is deprecated; migrate this profile to GITEA_IDENTITY + GITEA_TOKEN_FILE (#61, #111)
+repository settings tests passed
+bootstrap Gitea service account tests passed
+routine pilot rollback tests passed
+Gitea service policy tests passed
+ensure-gitea-collaborator tests passed
+To /var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/tmp.620ooWZGAU/remote.git
+ * [new branch]      main -> main
+cleanup tests passed
+artifact retention dry-run tests passed
+gitea-readonly tests passed
+gitea-token lib tests passed
+gitea token consumer drift check passed (38 scripts scanned)
+install-skills tests passed
+codex drift tests passed
+platform readiness tests passed
+claude skill install tests passed
+host-role guard tests passed
+host-role installer tests passed
+host access broker shell and installer tests passed
+host-access-broker installer tests passed
+installer source guard tests passed (8 installers x 3 source states)
+PASS: install-runner-flutter
+docker release install tests passed
+docker image-store E2E harness fake preflight tests passed
+....................
+----------------------------------------------------------------------
+Ran 20 tests in 0.054s
+
+OK
+PASS: Issue #296 static/fake safety gates; real acceptance NOT RUN
+docker release v2 lifecycle E2E harness fake preflight tests passed
+...............................................................FAIL: this fixed evidence check accepts no overrides
+..................................................................................................
+----------------------------------------------------------------------
+Ran 161 tests in 10.450s
+
+OK
+{"baseline": "64f1cda0de9735f8782e64a5b07af2ce8460e4c3", "commands": [{"argv": ["bash", "codex/tests/test-docker-release-v2-lifecycle-e2e-harness.sh"], "exit_code": 0}, {"argv": ["/opt/homebrew/opt/python@3.14/bin/python3.14", "-B", "-m", "unittest", "discover", "-s", "codex/runtime/tests", "-t", "codex/runtime", "-p", "test_release*.py"], "exit_code": 0}], "company_live": "NOT_RUN", "current_real_e2e": "NOT_RUN", "current_release_regression": "PASS", "current_source_conformance": "PASS", "current_source_sha256": "dc34582e927e547204414344f27bfec75ededae46b643d5de856ae1f468170f7", "head_sha": "dc77c93b3c92534b3f1e796dce896ea15fc43e56", "head_tree": "7154b3808663c861ef6fe5808bd867ecd8047b14", "historical_evidence_binding": "PASS", "historical_evidence_sha256": "b58bb7b57d53a104f922e66c7dc1342bc1b5b133038f60fa8f2ace8d8dbdeb89", "historical_harness_fake_regression": "PASS", "historical_role_amendment_sha256": "95092fbd6deab1a536d53371444c9b9c708b538cff3bc1ac4ebbd7dae3bff195", "installed": "NOT_RUN", "runner_sha256": "ec6e0a9e56d8139102fb2a94fc31374886cd97b38e9166fa4f9d411e710533d6"}
+PASS: Issue #124 real-release harness default/guard contract
+registry preflight tests passed
+To /var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/tmp.6tlO5BAAb3/github.git
+ * [new branch]      main -> main
+To /var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/tmp.6tlO5BAAb3/gitea.git
+ * [new branch]      main -> main
+To /var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/tmp.6tlO5BAAb3/github.git
+   811f54f..74079d8  main -> main
+Already on 'main'
+To /var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/tmp.6tlO5BAAb3/github.git
+   74079d8..ce7948e  main -> main
+To /var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/tmp.6tlO5BAAb3/github.git
+   ce7948e..3dbea65  main -> main
+Switched to a new branch 'rewritten'
+To /var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/tmp.6tlO5BAAb3/github.git
+ + 3dbea65...47e8e8f rewritten -> main (forced update)
+inbound sync tests passed
+inbound sync install tests passed
+test_document_slug_must_be_short_lowercase_kebab_case (tests.test_analysis.AnalysisResultTests.test_document_slug_must_be_short_lowercase_kebab_case) ... ok
+test_exact_json_schema_and_nonempty_evidence (tests.test_analysis.AnalysisResultTests.test_exact_json_schema_and_nonempty_evidence) ... ok
+test_explicit_issue_complex_cannot_be_downgraded (tests.test_analysis.AnalysisResultTests.test_explicit_issue_complex_cannot_be_downgraded) ... ok
+test_explicit_small_forced_complex_is_rendered_as_override (tests.test_analysis.AnalysisResultTests.test_explicit_small_forced_complex_is_rendered_as_override) ... ok
+test_small_complex_and_unclear_routes (tests.test_analysis.AnalysisResultTests.test_small_complex_and_unclear_routes) ... ok
+test_small_without_acceptance_stays_awaiting_triage (tests.test_analysis.AnalysisResultTests.test_small_without_acceptance_stays_awaiting_triage) ... ok
+test_summary_is_bound_to_issue_and_change_branch (tests.test_analysis.AnalysisResultTests.test_summary_is_bound_to_issue_and_change_branch) ... ok
+test_unclear_summary_omits_every_effective_key (tests.test_analysis.AnalysisResultTests.test_unclear_summary_omits_every_effective_key) ... ok
+test_as_built_cannot_cross_a_major_boundary (tests.test_architecture_as_built.AsBuiltVersionTests.test_as_built_cannot_cross_a_major_boundary) ... ok
+test_as_built_equal_to_the_pin_is_rejected_so_exceptions_do_not_rot (tests.test_architecture_as_built.AsBuiltVersionTests.test_as_built_equal_to_the_pin_is_rejected_so_exceptions_do_not_rot) ... ok
+test_as_built_false_is_not_an_accepted_form (tests.test_architecture_as_built.AsBuiltVersionTests.test_as_built_false_is_not_an_accepted_form) ... ok
+test_as_built_is_forbidden_on_a_digest_pinned_image (tests.test_architecture_as_built.AsBuiltVersionTests.test_as_built_is_forbidden_on_a_digest_pinned_image) ... ok
+test_as_built_lock_is_byte_identical_on_repeat (tests.test_architecture_as_built.AsBuiltVersionTests.test_as_built_lock_is_byte_identical_on_repeat) ... ok
+test_as_built_on_a_zero_major_also_pins_the_minor (tests.test_architecture_as_built.AsBuiltVersionTests.test_as_built_on_a_zero_major_also_pins_the_minor) ... ok
+test_as_built_records_the_declared_version_not_the_catalog_pin (tests.test_architecture_as_built.AsBuiltVersionTests.test_as_built_records_the_declared_version_not_the_catalog_pin) ... ok
+test_as_built_requires_a_parseable_leading_major (tests.test_architecture_as_built.AsBuiltVersionTests.test_as_built_requires_a_parseable_leading_major) ... ok
+test_as_built_still_obeys_exception_expiry_and_duration_bounds (tests.test_architecture_as_built.AsBuiltVersionTests.test_as_built_still_obeys_exception_expiry_and_duration_bounds) ... ok
+test_as_built_without_an_exception_fails_closed (tests.test_architecture_as_built.AsBuiltVersionTests.test_as_built_without_an_exception_fails_closed) ... ok
+test_one_exception_covers_a_transition_that_is_also_as_built (tests.test_architecture_as_built.AsBuiltVersionTests.test_one_exception_covers_a_transition_that_is_also_as_built) ... ok
+test_without_as_built_the_exact_pin_still_governs (tests.test_architecture_as_built.AsBuiltVersionTests.test_without_as_built_the_exact_pin_still_governs) ... ok
+test_container_declaration_without_a_base_image_fails_closed (tests.test_architecture_as_built.ContainerDeliveryBaseImageTests.test_container_declaration_without_a_base_image_fails_closed) ... ok
+test_every_existing_container_declaration_already_complies (tests.test_architecture_as_built.ContainerDeliveryBaseImageTests.test_every_existing_container_declaration_already_complies) ... ok
+test_native_delivery_contracts_are_untouched (tests.test_architecture_as_built.ContainerDeliveryBaseImageTests.test_native_delivery_contracts_are_untouched) ... ok
+test_the_keyed_contract_set_tracks_the_schema_enum (tests.test_architecture_as_built.ContainerDeliveryBaseImageTests.test_the_keyed_contract_set_tracks_the_schema_enum)
+A later docker-release major must not silently skip the rule. ... ok
+test_failure_diagnostic_does_not_echo_input_values (tests.test_architecture_cli.ArchitectureCliTests.test_failure_diagnostic_does_not_echo_input_values) ... ok
+test_lock_twice_is_byte_identical_and_validates (tests.test_architecture_cli.ArchitectureCliTests.test_lock_twice_is_byte_identical_and_validates) ... ok
+test_validate_and_explain_are_machine_readable (tests.test_architecture_cli.ArchitectureCliTests.test_validate_and_explain_are_machine_readable) ... ok
+test_governance_docs_keep_candidate_and_delivery_boundaries (tests.test_architecture_governance.ArchitectureGovernanceTests.test_governance_docs_keep_candidate_and_delivery_boundaries) ... ok
+test_inventory_is_deduplicated_complete_and_explicit_about_gaps (tests.test_architecture_governance.ArchitectureGovernanceTests.test_inventory_is_deduplicated_complete_and_explicit_about_gaps) ... ok
+test_newemaint_evidence_is_dry_run_only (tests.test_architecture_governance.ArchitectureGovernanceTests.test_newemaint_evidence_is_dry_run_only) ... ok
+test_canonical_output_is_sorted_and_byte_stable (tests.test_architecture_json.ArchitectureJsonTests.test_canonical_output_is_sorted_and_byte_stable) ... ok
+test_duplicate_keys_fail_closed (tests.test_architecture_json.ArchitectureJsonTests.test_duplicate_keys_fail_closed) ... ok
+test_non_finite_and_float_numbers_are_rejected (tests.test_architecture_json.ArchitectureJsonTests.test_non_finite_and_float_numbers_are_rejected) ... ok
+test_secret_markers_fail_without_echoing_values (tests.test_architecture_json.ArchitectureJsonTests.test_secret_markers_fail_without_echoing_values) ... ok
+test_yaml_path_is_rejected_without_reading (tests.test_architecture_json.ArchitectureJsonTests.test_yaml_path_is_rejected_without_reading) ... ok
+test_committed_reference_locks_cross_check (tests.test_architecture_lock.ArchitectureLockTests.test_committed_reference_locks_cross_check) ... ok
+test_eol_boundary_is_invalid_on_exact_utc_date (tests.test_architecture_lock.ArchitectureLockTests.test_eol_boundary_is_invalid_on_exact_utc_date) ... ok
+test_exception_expiry_boundary_is_invalid_on_exact_date (tests.test_architecture_lock.ArchitectureLockTests.test_exception_expiry_boundary_is_invalid_on_exact_date) ... ok
+test_incomplete_exception_fails_schema (tests.test_architecture_lock.ArchitectureLockTests.test_incomplete_exception_fails_schema) ... ok
+test_lock_checksum_and_drift_fail_closed (tests.test_architecture_lock.ArchitectureLockTests.test_lock_checksum_and_drift_fail_closed) ... ok
+test_old_next_and_prisma_project_versions_fail_closed (tests.test_architecture_lock.ArchitectureLockTests.test_old_next_and_prisma_project_versions_fail_closed) ... ok
+test_profile_catalog_and_delivery_mismatches_fail (tests.test_architecture_lock.ArchitectureLockTests.test_profile_catalog_and_delivery_mismatches_fail) ... ok
+test_prohibited_component_and_source_freshness_fail (tests.test_architecture_lock.ArchitectureLockTests.test_prohibited_component_and_source_freshness_fail) ... ok
+test_repeat_lock_is_byte_identical (tests.test_architecture_lock.ArchitectureLockTests.test_repeat_lock_is_byte_identical) ... ok
+test_runtime_has_no_network_dependency (tests.test_architecture_lock.ArchitectureLockTests.test_runtime_has_no_network_dependency) ... ok
+test_sunset_requires_migration_issue (tests.test_architecture_lock.ArchitectureLockTests.test_sunset_requires_migration_issue) ... ok
+test_catalog_and_all_profiles_validate (tests.test_architecture_schema.ArchitectureSchemaTests.test_catalog_and_all_profiles_validate) ... ok
+test_catalog_negative_contracts_fail_closed (tests.test_architecture_schema.ArchitectureSchemaTests.test_catalog_negative_contracts_fail_closed) ... ok
+test_invalid_fixtures_fail_runtime (tests.test_architecture_schema.ArchitectureSchemaTests.test_invalid_fixtures_fail_runtime) ... ok
+test_next_stable_release_contract_fails_closed (tests.test_architecture_schema.ArchitectureSchemaTests.test_next_stable_release_contract_fails_closed) ... ok
+test_node_sqlite_profile_slots_and_multi_environment_contracts (tests.test_architecture_schema.ArchitectureSchemaTests.test_node_sqlite_profile_slots_and_multi_environment_contracts) ... ok
+test_prisma_stable_release_contract_fails_closed (tests.test_architecture_schema.ArchitectureSchemaTests.test_prisma_stable_release_contract_fails_closed) ... ok
+test_react_stable_release_contract_fails_closed (tests.test_architecture_schema.ArchitectureSchemaTests.test_react_stable_release_contract_fails_closed) ... ok
+test_schema_and_runtime_agree_on_unknown_field (tests.test_architecture_schema.ArchitectureSchemaTests.test_schema_and_runtime_agree_on_unknown_field) ... ok
+test_systemd_native_profile_has_no_container_or_frontend_slot (tests.test_architecture_schema.ArchitectureSchemaTests.test_systemd_native_profile_has_no_container_or_frontend_slot) ... ok
+test_valid_fixtures_pass_schema_and_runtime (tests.test_architecture_schema.ArchitectureSchemaTests.test_valid_fixtures_pass_schema_and_runtime) ... ok
+test_exception_time_bounds_fail_closed (tests.test_architecture_transitions.ArchitectureTransitionTests.test_exception_time_bounds_fail_closed) ... ok
+test_migration_issue_accepts_absolute_http_and_still_rejects_the_rest (tests.test_architecture_transitions.ArchitectureTransitionTests.test_migration_issue_accepts_absolute_http_and_still_rejects_the_rest)
+The internal tracker is reachable over http only, so an absolute http ... ok
+test_multiple_transitions_may_share_one_umbrella_issue (tests.test_architecture_transitions.ArchitectureTransitionTests.test_multiple_transitions_may_share_one_umbrella_issue) ... ok
+test_preferred_path_remains_valid_without_exception (tests.test_architecture_transitions.ArchitectureTransitionTests.test_preferred_path_remains_valid_without_exception) ... ok
+test_profile_transition_contract_fails_closed (tests.test_architecture_transitions.ArchitectureTransitionTests.test_profile_transition_contract_fails_closed) ... ok
+test_project_cannot_declare_multiple_transitions_for_one_slot (tests.test_architecture_transitions.ArchitectureTransitionTests.test_project_cannot_declare_multiple_transitions_for_one_slot) ... ok
+test_project_cannot_declare_preferred_and_transition_for_one_slot (tests.test_architecture_transitions.ArchitectureTransitionTests.test_project_cannot_declare_preferred_and_transition_for_one_slot) ... ok
+test_supported_transition_binds_issue_exception_and_expiry_in_lock (tests.test_architecture_transitions.ArchitectureTransitionTests.test_supported_transition_binds_issue_exception_and_expiry_in_lock) ... ok
+test_transition_requires_absolute_issue_and_one_matching_exception (tests.test_architecture_transitions.ArchitectureTransitionTests.test_transition_requires_absolute_issue_and_one_matching_exception) ... ok
+test_a_checkout_without_changes_is_vacuously_clean (tests.test_change_audit.ChangeAuditTests.test_a_checkout_without_changes_is_vacuously_clean) ... ok
+test_a_pre_pr_status_is_not_asked_for_a_pr_url (tests.test_change_audit.ChangeAuditTests.test_a_pre_pr_status_is_not_asked_for_a_pr_url) ... ok
+test_a_resolvable_change_passes_both_checks (tests.test_change_audit.ChangeAuditTests.test_a_resolvable_change_passes_both_checks) ... ok
+test_an_unparseable_directory_name_is_a_finding_not_a_crash (tests.test_change_audit.ChangeAuditTests.test_an_unparseable_directory_name_is_a_finding_not_a_crash) ... ok
+test_missing_front_matter_names_the_change_and_the_file (tests.test_change_audit.ChangeAuditTests.test_missing_front_matter_names_the_change_and_the_file) ... ok
+test_one_broken_change_is_reported_once_not_under_both_checks (tests.test_change_audit.ChangeAuditTests.test_one_broken_change_is_reported_once_not_under_both_checks) ... ok
+test_pr_open_with_a_pr_url_passes (tests.test_change_audit.ChangeAuditTests.test_pr_open_with_a_pr_url_passes) ... ok
+test_pr_open_without_a_pr_url_is_reported (tests.test_change_audit.ChangeAuditTests.test_pr_open_without_a_pr_url_is_reported) ... ok
+test_the_template_directory_is_skipped (tests.test_change_audit.ChangeAuditTests.test_the_template_directory_is_skipped) ... ok
+test_declared_development_is_parsed (tests.test_change_control.ChangeControlContractTests.test_declared_development_is_parsed)
+本条要证的是「给一个仓声明 development 不会污染其它仓」。原来把「其它仓都是 ... ok
+test_invalid_change_control_is_rejected (tests.test_change_control.ChangeControlContractTests.test_invalid_change_control_is_rejected)
+AC1：非法取值必须 fail closed，不得静默回落。 ... ok
+test_localwms_is_declared_development (tests.test_change_control.ChangeControlContractTests.test_localwms_is_declared_development)
+Issue #148：机制自 #134 起就在，但十个仓库无一声明，收益一直是零。 ... ok
+test_undeclared_repositories_default_to_production (tests.test_change_control.ChangeControlContractTests.test_undeclared_repositories_default_to_production)
+原断言是「每个仓库都是 production」——那把「当时没有任何仓库声明过」这个事实 ... ok
+test_unknown_repository_key_is_still_rejected (tests.test_change_control.ChangeControlContractTests.test_unknown_repository_key_is_still_rejected)
+可选键的放行不得退化为「任意键都接受」。 ... ok
+test_falls_back_to_production (tests.test_change_control.ChangeControlResolverTests.test_falls_back_to_production) ... ok
+test_resolves_declared_phase (tests.test_change_control.ChangeControlResolverTests.test_resolves_declared_phase) ... ok
+test_default_is_production (tests.test_change_control.ChangeControlRouteTests.test_default_is_production) ... ok
+test_development_keeps_only_summary_and_verification (tests.test_change_control.ChangeControlRouteTests.test_development_keeps_only_summary_and_verification) ... ok
+test_phase_does_not_change_complexity_or_lifecycle (tests.test_change_control.ChangeControlRouteTests.test_phase_does_not_change_complexity_or_lifecycle)
+AC6 的一部分：放宽只影响文档份数，不得改变判级或生命周期。 ... ok
+test_production_keeps_four_documents (tests.test_change_control.ChangeControlRouteTests.test_production_keeps_four_documents) ... ok
+test_small_route_is_unaffected_by_phase (tests.test_change_control.ChangeControlRouteTests.test_small_route_is_unaffected_by_phase) ... ok
+test_unsupported_phase_fails_closed (tests.test_change_control.ChangeControlRouteTests.test_unsupported_phase_fails_closed) ... ok
+test_verification_stays_conditional_in_development (tests.test_change_control.ChangeControlRouteTests.test_verification_stays_conditional_in_development)
+required_docs 含 verification 说的是「这次变更欠一份验证记录」， ... ok
+test_directory_and_worktree_must_match_the_same_tuple (tests.test_change_name.ChangeNameTests.test_directory_and_worktree_must_match_the_same_tuple) ... ok
+test_internal_parser_preserves_legacy_read_compatibility (tests.test_change_name.ChangeNameTests.test_internal_parser_preserves_legacy_read_compatibility) ... ok
+test_readable_name_projects_one_canonical_tuple (tests.test_change_name.ChangeNameTests.test_readable_name_projects_one_canonical_tuple) ... ok
+test_same_issue_legacy_or_multiple_slugs_is_a_conflict (tests.test_change_name.ChangeNameTests.test_same_issue_legacy_or_multiple_slugs_is_a_conflict) ... ok
+test_slug_contract_is_fail_closed (tests.test_change_name.ChangeNameTests.test_slug_contract_is_fail_closed) ... ok
+test_canonical_fixtures_route (tests.test_classification.ClassificationTests.test_canonical_fixtures_route) ... ok
+test_contract_add_or_change_is_forced_complex (tests.test_classification.ClassificationTests.test_contract_add_or_change_is_forced_complex) ... ok
+test_explicit_complex_cannot_be_downgraded (tests.test_classification.ClassificationTests.test_explicit_complex_cannot_be_downgraded) ... ok
+test_explicit_small_cannot_bypass_forced_risk (tests.test_classification.ClassificationTests.test_explicit_small_cannot_bypass_forced_risk) ... ok
+test_feature_and_platform_are_forced_complex (tests.test_classification.ClassificationTests.test_feature_and_platform_are_forced_complex) ... ok
+test_illegal_enum_anchor_tag_and_nested_value_are_rejected (tests.test_classification.ClassificationTests.test_illegal_enum_anchor_tag_and_nested_value_are_rejected) ... ok
+test_reliability_routes_on_contract_effect (tests.test_classification.ClassificationTests.test_reliability_routes_on_contract_effect) ... ok
+test_required_docs_follow_effective_route (tests.test_classification.ClassificationTests.test_required_docs_follow_effective_route) ... ok
+test_safe_result_without_effective_complexity_is_rejected (tests.test_classification.ClassificationTests.test_safe_result_without_effective_complexity_is_rejected) ... ok
+test_security_and_data_are_forced_complex_without_risk_flags (tests.test_classification.ClassificationTests.test_security_and_data_are_forced_complex_without_risk_flags) ... ok
+test_unclear_omits_effective_complexity (tests.test_classification.ClassificationTests.test_unclear_omits_effective_complexity) ... ok
+test_unclear_with_effective_complexity_is_rejected (tests.test_classification.ClassificationTests.test_unclear_with_effective_complexity_is_rejected) ... ok
+test_unknown_duplicate_and_out_of_order_fields_are_rejected (tests.test_classification.ClassificationTests.test_unknown_duplicate_and_out_of_order_fields_are_rejected) ... ok
+test_all_current_pass_adopts_without_grant (tests.test_company_baseline.BaselineTests.test_all_current_pass_adopts_without_grant) ... ok
+test_ambiguous_listener_is_not_accepted (tests.test_company_baseline.BaselineTests.test_ambiguous_listener_is_not_accepted) ... ok
+test_binding_mismatch_all_dimensions (tests.test_company_baseline.BaselineTests.test_binding_mismatch_all_dimensions) ... ok
+test_boolean_cannot_replace_integer (tests.test_company_baseline.BaselineTests.test_boolean_cannot_replace_integer) ... ok
+test_checksum_and_receipt_tampering_rejected (tests.test_company_baseline.BaselineTests.test_checksum_and_receipt_tampering_rejected) ... ok
+test_child_output_is_bounded_and_stderr_discarded (tests.test_company_baseline.BaselineTests.test_child_output_is_bounded_and_stderr_discarded) ... ok
+test_cli_rejection_never_echoes_arguments_or_input (tests.test_company_baseline.BaselineTests.test_cli_rejection_never_echoes_arguments_or_input) ... ok
+test_cli_verify_end_to_end (tests.test_company_baseline.BaselineTests.test_cli_verify_end_to_end) ... ok
+test_closed_stdout_has_no_traceback (tests.test_company_baseline.BaselineTests.test_closed_stdout_has_no_traceback) ... ok
+test_collection_cli_requires_isolated_no_site_no_bytecode (tests.test_company_baseline.BaselineTests.test_collection_cli_requires_isolated_no_site_no_bytecode) ... ok
+test_collection_is_repeatable_and_does_not_write (tests.test_company_baseline.BaselineTests.test_collection_is_repeatable_and_does_not_write) ... ok
+test_confirmed_absent_repo_and_sync_allow_remediation_without_fake_sha (tests.test_company_baseline.BaselineTests.test_confirmed_absent_repo_and_sync_allow_remediation_without_fake_sha) ... ok
+test_different_backup_restore_sets_block (tests.test_company_baseline.BaselineTests.test_different_backup_restore_sets_block) ... ok
+test_duplicate_json_keys_nan_and_limit_rejected (tests.test_company_baseline.BaselineTests.test_duplicate_json_keys_nan_and_limit_rejected) ... ok
+test_each_missing_check_blocks_even_historical_pass (tests.test_company_baseline.BaselineTests.test_each_missing_check_blocks_even_historical_pass) ... ok
+test_exact_probe_allowlist (tests.test_company_baseline.BaselineTests.test_exact_probe_allowlist) ... ok
+test_existing_empty_repo_is_a_known_gap (tests.test_company_baseline.BaselineTests.test_existing_empty_repo_is_a_known_gap) ... ok
+test_forged_pass_and_historical_promotion_rejected (tests.test_company_baseline.BaselineTests.test_forged_pass_and_historical_promotion_rejected) ... ok
+test_health_missing_database_or_cache_is_not_pass (tests.test_company_baseline.BaselineTests.test_health_missing_database_or_cache_is_not_pass) ... ok
+test_install_page_empty_health_checks_fails (tests.test_company_baseline.BaselineTests.test_install_page_empty_health_checks_fails) ... ok
+test_interpreter_ignores_injected_pythonpath (tests.test_company_baseline.BaselineTests.test_interpreter_ignores_injected_pythonpath) ... ok
+test_known_missing_backup_or_restore_needs_no_fake_digest (tests.test_company_baseline.BaselineTests.test_known_missing_backup_or_restore_needs_no_fake_digest) ... ok
+test_known_noncritical_gap_needs_remediation (tests.test_company_baseline.BaselineTests.test_known_noncritical_gap_needs_remediation) ... ok
+test_missing_commands_and_permission_denied_are_sanitized (tests.test_company_baseline.BaselineTests.test_missing_commands_and_permission_denied_are_sanitized) ... ok
+test_operator_cannot_override_host_probe_or_use_old_record (tests.test_company_baseline.BaselineTests.test_operator_cannot_override_host_probe_or_use_old_record) ... ok
+test_operator_evidence_can_complete_readback (tests.test_company_baseline.BaselineTests.test_operator_evidence_can_complete_readback) ... ok
+test_published_schema_matches_program (tests.test_company_baseline.BaselineTests.test_published_schema_matches_program) ... ok
+test_redirects_oversized_or_invalid_http_never_pass (tests.test_company_baseline.BaselineTests.test_redirects_oversized_or_invalid_http_never_pass) ... ok
+test_runbook_command_blocks_at_most_fifty_lines (tests.test_company_baseline.BaselineTests.test_runbook_command_blocks_at_most_fifty_lines) ... ok
+test_stale_future_and_impossible_dates_rejected (tests.test_company_baseline.BaselineTests.test_stale_future_and_impossible_dates_rejected) ... ok
+test_storage_symlink_and_unsafe_modes_fail (tests.test_company_baseline.BaselineTests.test_storage_symlink_and_unsafe_modes_fail) ... ok
+test_unknown_fields_rejected_at_every_object_level (tests.test_company_baseline.BaselineTests.test_unknown_fields_rejected_at_every_object_level) ... ok
+test_unknown_runner_registration_cannot_become_known_gap (tests.test_company_baseline.BaselineTests.test_unknown_runner_registration_cannot_become_known_gap) ... ok
+test_unsafe_postgres_listener_blocks (tests.test_company_baseline.BaselineTests.test_unsafe_postgres_listener_blocks) ... ok
+test_wrong_host_or_collector_rejects_before_any_probe (tests.test_company_baseline.BaselineTests.test_wrong_host_or_collector_rejects_before_any_probe) ... ok
+test_builder_cli_rejects_without_echoing_input (tests.test_company_baseline_diagnostics_v1.BundleTests.test_builder_cli_rejects_without_echoing_input) ... ok
+test_exact_commit_not_dirty_files_and_modes_hash_readback (tests.test_company_baseline_diagnostics_v1.BundleTests.test_exact_commit_not_dirty_files_and_modes_hash_readback) ... ok
+test_profile_noncanonical_unsafe_and_digest_drift (tests.test_company_baseline_diagnostics_v1.BundleTests.test_profile_noncanonical_unsafe_and_digest_drift) ... ok
+test_source_commit_repository_object_and_schema_drift (tests.test_company_baseline_diagnostics_v1.BundleTests.test_source_commit_repository_object_and_schema_drift) ... ok
+test_verify_rejects_file_set_content_manifest_modes_and_symlinks (tests.test_company_baseline_diagnostics_v1.BundleTests.test_verify_rejects_file_set_content_manifest_modes_and_symlinks) ... ok
+test_binding_pins_fail_before_probe_and_verifier_checks_all (tests.test_company_baseline_diagnostics_v1.DiagnosticsTests.test_binding_pins_fail_before_probe_and_verifier_checks_all) ... ok
+test_cli_schema_identity_and_errors_do_not_leak (tests.test_company_baseline_diagnostics_v1.DiagnosticsTests.test_cli_schema_identity_and_errors_do_not_leak) ... ok
+test_config_only_boolean_comparisons_and_no_interpolation (tests.test_company_baseline_diagnostics_v1.DiagnosticsTests.test_config_only_boolean_comparisons_and_no_interpolation) ... ok
+test_config_unsafe_files_and_fixed_open_target (tests.test_company_baseline_diagnostics_v1.DiagnosticsTests.test_config_unsafe_files_and_fixed_open_target) ... ok
+test_missing_permissions_errors_and_oversize_do_not_fabricate_facts (tests.test_company_baseline_diagnostics_v1.DiagnosticsTests.test_missing_permissions_errors_and_oversize_do_not_fabricate_facts) ... ok
+test_no_host_mutation_or_http_or_environment_access_in_ast (tests.test_company_baseline_diagnostics_v1.DiagnosticsTests.test_no_host_mutation_or_http_or_environment_access_in_ast) ... ok
+test_receipt_checksum_status_and_freshness_fail_closed (tests.test_company_baseline_diagnostics_v1.DiagnosticsTests.test_receipt_checksum_status_and_freshness_fail_closed) ... ok
+test_subprocess_guardrails_real_pipes_fake_executable (tests.test_company_baseline_diagnostics_v1.DiagnosticsTests.test_subprocess_guardrails_real_pipes_fake_executable) ... ok
+test_subprocess_timeout_kills_child_and_drops_stderr (tests.test_company_baseline_diagnostics_v1.DiagnosticsTests.test_subprocess_timeout_kills_child_and_drops_stderr) ... ok
+test_success_is_independent_and_only_sanitized_metadata (tests.test_company_baseline_diagnostics_v1.DiagnosticsTests.test_success_is_independent_and_only_sanitized_metadata) ... ok
+test_systemd_exact_properties_enums_and_numbers (tests.test_company_baseline_diagnostics_v1.DiagnosticsTests.test_systemd_exact_properties_enums_and_numbers) ... ok
+test_ufw_closed_normalization (tests.test_company_baseline_diagnostics_v1.DiagnosticsTests.test_ufw_closed_normalization) ... ok
+test_builder_cli_rejects_without_echoing_input (tests.test_company_baseline_diagnostics_v2.BundleTests.test_builder_cli_rejects_without_echoing_input) ... ok
+test_builder_source_and_directory_mode_drift (tests.test_company_baseline_diagnostics_v2.BundleTests.test_builder_source_and_directory_mode_drift) ... ok
+test_exact_commit_not_dirty_files_and_modes_hash_readback (tests.test_company_baseline_diagnostics_v2.BundleTests.test_exact_commit_not_dirty_files_and_modes_hash_readback) ... ok
+test_profile_noncanonical_unsafe_and_digest_drift (tests.test_company_baseline_diagnostics_v2.BundleTests.test_profile_noncanonical_unsafe_and_digest_drift) ... ok
+test_source_commit_repository_object_and_schema_drift (tests.test_company_baseline_diagnostics_v2.BundleTests.test_source_commit_repository_object_and_schema_drift) ... ok
+test_verify_rejects_file_set_content_manifest_modes_and_symlinks (tests.test_company_baseline_diagnostics_v2.BundleTests.test_verify_rejects_file_set_content_manifest_modes_and_symlinks) ... ok
+test_binding_pins_fail_before_probe_and_verifier_checks_all (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_binding_pins_fail_before_probe_and_verifier_checks_all) ... ok
+test_cli_schema_identity_and_errors_do_not_leak (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_cli_schema_identity_and_errors_do_not_leak) ... ok
+test_config_only_boolean_comparisons_and_no_interpolation (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_config_only_boolean_comparisons_and_no_interpolation) ... ok
+test_config_unsafe_files_and_fixed_open_target (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_config_unsafe_files_and_fixed_open_target) ... ok
+test_missing_permissions_errors_and_oversize_do_not_fabricate_facts (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_missing_permissions_errors_and_oversize_do_not_fabricate_facts) ... ok
+test_no_host_mutation_or_http_or_environment_access_in_ast (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_no_host_mutation_or_http_or_environment_access_in_ast) ... ok
+test_patch_version_compatibility_keeps_historical_blocked (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_patch_version_compatibility_keeps_historical_blocked) ... ok
+test_receipt_checksum_status_and_freshness_fail_closed (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_receipt_checksum_status_and_freshness_fail_closed) ... ok
+test_subprocess_guardrails_real_pipes_fake_executable (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_subprocess_guardrails_real_pipes_fake_executable) ... ok
+test_subprocess_timeout_kills_child_and_drops_stderr (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_subprocess_timeout_kills_child_and_drops_stderr) ... ok
+test_success_is_independent_and_only_sanitized_metadata (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_success_is_independent_and_only_sanitized_metadata) ... ok
+test_systemd_exact_properties_enums_and_numbers (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_systemd_exact_properties_enums_and_numbers) ... ok
+test_ufw_closed_normalization (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_ufw_closed_normalization) ... ok
+test_ufw_upstream_policy_and_width_formats (tests.test_company_baseline_diagnostics_v2.DiagnosticsTests.test_ufw_upstream_policy_and_width_formats) ... ok
+test_command_reason_table_and_secret_redaction (tests.test_company_baseline_diagnostics_v2.ReasonTests.test_command_reason_table_and_secret_redaction) ... ok
+test_config_errors_classified_without_values (tests.test_company_baseline_diagnostics_v2.ReasonTests.test_config_errors_classified_without_values) ... ok
+test_duplicate_protocol_is_parse_failure (tests.test_company_baseline_diagnostics_v2.ReasonTests.test_duplicate_protocol_is_parse_failure) ... ok
+test_protocol_presence_table (tests.test_company_baseline_diagnostics_v2.ReasonTests.test_protocol_presence_table) ... ok
+test_reason_value_status_forgery_and_versions (tests.test_company_baseline_diagnostics_v2.ReasonTests.test_reason_value_status_forgery_and_versions) ... ok
+test_run_control_flow_with_mocked_io (tests.test_company_baseline_diagnostics_v2.ReasonTests.test_run_control_flow_with_mocked_io) ... ok
+test_v1_bytes_remain_exact (tests.test_company_baseline_diagnostics_v2.ReasonTests.test_v1_bytes_remain_exact) ... ok
+test_all_current_pass_adopts_without_mutation_grant (tests.test_company_baseline_v2.BaselineV2Tests.test_all_current_pass_adopts_without_mutation_grant) ... ok
+test_both_collector_versions_verify_with_original_pins (tests.test_company_baseline_v2.BaselineV2Tests.test_both_collector_versions_verify_with_original_pins) ... ok
+test_cli_rejection_never_echoes_arguments (tests.test_company_baseline_v2.BaselineV2Tests.test_cli_rejection_never_echoes_arguments) ... ok
+test_cli_verify_end_to_end (tests.test_company_baseline_v2.BaselineV2Tests.test_cli_verify_end_to_end) ... ok
+test_collect_requires_isolated_no_site_no_bytecode (tests.test_company_baseline_v2.BaselineV2Tests.test_collect_requires_isolated_no_site_no_bytecode) ... ok
+test_each_missing_current_fact_blocks_even_with_history (tests.test_company_baseline_v2.BaselineV2Tests.test_each_missing_current_fact_blocks_even_with_history) ... ok
+test_exact_probe_allowlist_is_profile_derived (tests.test_company_baseline_v2.BaselineV2Tests.test_exact_probe_allowlist_is_profile_derived) ... ok
+test_external_gitea_and_hyphen_free_cluster_fixture_passes (tests.test_company_baseline_v2.BaselineV2Tests.test_external_gitea_and_hyphen_free_cluster_fixture_passes) ... ok
+test_health_requires_exact_database_and_cache_checks (tests.test_company_baseline_v2.BaselineV2Tests.test_health_requires_exact_database_and_cache_checks) ... ok
+test_identity_reads_only_fixed_canonical_sibling_profile (tests.test_company_baseline_v2.BaselineV2Tests.test_identity_reads_only_fixed_canonical_sibling_profile) ... ok
+test_known_noncritical_gap_can_be_remediation (tests.test_company_baseline_v2.BaselineV2Tests.test_known_noncritical_gap_can_be_remediation) ... ok
+test_listener_requires_exact_address_without_wildcard (tests.test_company_baseline_v2.BaselineV2Tests.test_listener_requires_exact_address_without_wildcard) ... ok
+test_only_private_or_loopback_gitea_ipv4_is_allowed (tests.test_company_baseline_v2.BaselineV2Tests.test_only_private_or_loopback_gitea_ipv4_is_allowed) ... ok
+test_operator_cannot_override_host_probe_or_use_stale_record (tests.test_company_baseline_v2.BaselineV2Tests.test_operator_cannot_override_host_probe_or_use_stale_record) ... ok
+test_operator_evidence_completes_profile_bound_envelope (tests.test_company_baseline_v2.BaselineV2Tests.test_operator_evidence_completes_profile_bound_envelope) ... ok
+test_postgresql_identity_relations_are_strict (tests.test_company_baseline_v2.BaselineV2Tests.test_postgresql_identity_relations_are_strict) ... ok
+test_probe_failures_are_sanitized (tests.test_company_baseline_v2.BaselineV2Tests.test_probe_failures_are_sanitized) ... ok
+test_profile_is_canonical_closed_and_digest_bound (tests.test_company_baseline_v2.BaselineV2Tests.test_profile_is_canonical_closed_and_digest_bound) ... ok
+test_profile_tamper_or_digest_mismatch_is_rejected (tests.test_company_baseline_v2.BaselineV2Tests.test_profile_tamper_or_digest_mismatch_is_rejected) ... ok
+test_published_schemas_match_cli (tests.test_company_baseline_v2.BaselineV2Tests.test_published_schemas_match_cli) ... ok
+test_runtime_enablement_is_gap_and_bad_status_blocks (tests.test_company_baseline_v2.BaselineV2Tests.test_runtime_enablement_is_gap_and_bad_status_blocks) ... ok
+test_strict_gitea_prefix_and_version (tests.test_company_baseline_v2.BaselineV2Tests.test_strict_gitea_prefix_and_version) ... ok
+test_unknown_profile_fields_are_rejected (tests.test_company_baseline_v2.BaselineV2Tests.test_unknown_profile_fields_are_rejected) ... ok
+test_unsafe_profile_file_is_rejected (tests.test_company_baseline_v2.BaselineV2Tests.test_unsafe_profile_file_is_rejected) ... ok
+test_v1_collector_is_byte_compatible (tests.test_company_baseline_v2.BaselineV2Tests.test_v1_collector_is_byte_compatible) ... ok
+test_version_profile_controls_binary_api_and_server (tests.test_company_baseline_v2.BaselineV2Tests.test_version_profile_controls_binary_api_and_server) ... ok
+test_wrong_binding_rejects_before_host_probe (tests.test_company_baseline_v2.BaselineV2Tests.test_wrong_binding_rejects_before_host_probe) ... ok
+test_image_config_and_layer_secrets_are_rejected_without_echo (tests.test_company_delivery.CompanyDeliveryArchiveScannerTests.test_image_config_and_layer_secrets_are_rejected_without_echo) ... ok
+test_image_scan_resource_bounds_fail_closed (tests.test_company_delivery.CompanyDeliveryArchiveScannerTests.test_image_scan_resource_bounds_fail_closed) ... ok
+test_json_context_rejects_runtime_material_and_blocks_ambiguity (tests.test_company_delivery.CompanyDeliveryArchiveScannerTests.test_json_context_rejects_runtime_material_and_blocks_ambiguity) ... ok
+test_json_reason_remains_internal_to_manual_archive_scan (tests.test_company_delivery.CompanyDeliveryArchiveScannerTests.test_json_reason_remains_internal_to_manual_archive_scan) ... ok
+test_manual_archive_scan_is_fixed_no_echo_and_keeps_output_empty (tests.test_company_delivery.CompanyDeliveryArchiveScannerTests.test_manual_archive_scan_is_fixed_no_echo_and_keeps_output_empty) ... ok
+test_material_aware_byte_signatures_cross_chunk_without_echo (tests.test_company_delivery.CompanyDeliveryArchiveScannerTests.test_material_aware_byte_signatures_cross_chunk_without_echo) ... ok
+test_package_metadata_maps_are_source_but_runtime_and_material_block (tests.test_company_delivery.CompanyDeliveryArchiveScannerTests.test_package_metadata_maps_are_source_but_runtime_and_material_block) ... ok
+test_source_literal_secret_is_rejected_but_ambiguous_text_blocks (tests.test_company_delivery.CompanyDeliveryArchiveScannerTests.test_source_literal_secret_is_rejected_but_ambiguous_text_blocks) ... ok
+test_unsafe_duplicate_and_unsupported_layer_fail_closed (tests.test_company_delivery.CompanyDeliveryArchiveScannerTests.test_unsafe_duplicate_and_unsupported_layer_fail_closed) ... ok
+test_verified_graph_is_scanned_without_docker (tests.test_company_delivery.CompanyDeliveryArchiveScannerTests.test_verified_graph_is_scanned_without_docker) ... ok
+test_artifact_freshness_uses_runtime_utc_date_not_created_at (tests.test_company_delivery.CompanyDeliveryBundleTests.test_artifact_freshness_uses_runtime_utc_date_not_created_at) ... ok
+test_builder_carries_the_callers_matrix_and_binds_no_project_path (tests.test_company_delivery.CompanyDeliveryBundleTests.test_builder_carries_the_callers_matrix_and_binds_no_project_path) ... ok
+test_builder_rejects_unusable_matrix_before_output (tests.test_company_delivery.CompanyDeliveryBundleTests.test_builder_rejects_unusable_matrix_before_output) ... ok
+test_cli_requires_matrix_for_build_and_handoff_for_scm_collection (tests.test_company_delivery.CompanyDeliveryBundleTests.test_cli_requires_matrix_for_build_and_handoff_for_scm_collection) ... ok
+test_compose_default_and_command_substitution_fail_closed (tests.test_company_delivery.CompanyDeliveryBundleTests.test_compose_default_and_command_substitution_fail_closed) ... ok
+test_compose_external_reference_grammar (tests.test_company_delivery.CompanyDeliveryBundleTests.test_compose_external_reference_grammar) ... ok
+test_operator_version_and_handoff_contract_remain_compatible (tests.test_company_delivery.CompanyDeliveryBundleTests.test_operator_version_and_handoff_contract_remain_compatible) ... ok
+test_oversized_top_level_payload_fails_closed_without_echo (tests.test_company_delivery.CompanyDeliveryBundleTests.test_oversized_top_level_payload_fails_closed_without_echo) ... ok
+test_payload_tamper_and_unsafe_mode_fail_closed (tests.test_company_delivery.CompanyDeliveryBundleTests.test_payload_tamper_and_unsafe_mode_fail_closed) ... ok
+test_repeat_build_is_byte_identical_and_self_verifying (tests.test_company_delivery.CompanyDeliveryBundleTests.test_repeat_build_is_byte_identical_and_self_verifying) ... ok
+test_restrictive_umask_preserves_allowlisted_payload_modes (tests.test_company_delivery.CompanyDeliveryBundleTests.test_restrictive_umask_preserves_allowlisted_payload_modes) ... ok
+test_sensitive_operator_is_rejected_but_verified_image_is_opaque (tests.test_company_delivery.CompanyDeliveryBundleTests.test_sensitive_operator_is_rejected_but_verified_image_is_opaque) ... ok
+test_sensitive_release_metadata_is_rejected_without_echo (tests.test_company_delivery.CompanyDeliveryBundleTests.test_sensitive_release_metadata_is_rejected_without_echo) ... ok
+test_short_sha_dirty_source_and_wrong_release_fail_before_output (tests.test_company_delivery.CompanyDeliveryBundleTests.test_short_sha_dirty_source_and_wrong_release_fail_before_output) ... ok
+test_source_placeholder_mask_cannot_hide_literal_secret_values (tests.test_company_delivery.CompanyDeliveryBundleTests.test_source_placeholder_mask_cannot_hide_literal_secret_values) ... ok
+test_top_level_scan_distinguishes_material_from_incomplete_examples (tests.test_company_delivery.CompanyDeliveryBundleTests.test_top_level_scan_distinguishes_material_from_incomplete_examples) ... ok
+test_wrong_digest_merge_sha_and_architecture_are_blocked (tests.test_company_delivery.CompanyDeliveryBundleTests.test_wrong_digest_merge_sha_and_architecture_are_blocked) ... ok
+test_appserver_inventory_uses_only_prod_role_probes (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_appserver_inventory_uses_only_prod_role_probes) ... ok
+test_candidate_port_resource_and_service_collisions_block_preflight (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_candidate_port_resource_and_service_collisions_block_preflight) ... ok
+test_fixed_resource_probe_reports_state_without_names_or_contents (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_fixed_resource_probe_reports_state_without_names_or_contents) ... ok
+test_greenfield_inventory_never_probes_or_projects_legacy_gitea (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_greenfield_inventory_never_probes_or_projects_legacy_gitea) ... ok
+test_legacy_port_option_is_removed_and_mode_is_rejected_for_appserver (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_legacy_port_option_is_removed_and_mode_is_rejected_for_appserver) ... ok
+test_missing_required_tool_probe_is_not_projected_as_pass (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_missing_required_tool_probe_is_not_projected_as_pass) ... ok
+test_output_must_be_new_and_parent_mode_0700 (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_output_must_be_new_and_parent_mode_0700) ... ok
+test_post_install_candidate_health_is_fixed_bounded_and_no_echo (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_post_install_candidate_health_is_fixed_bounded_and_no_echo) ... ok
+test_post_install_mode_requires_only_fixed_candidate_state (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_post_install_mode_requires_only_fixed_candidate_state) ... ok
+test_scm_inventory_records_the_declared_sync_timer_instance (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_scm_inventory_records_the_declared_sync_timer_instance) ... ok
+test_scm_inventory_requires_typed_mode (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_scm_inventory_requires_typed_mode) ... ok
+test_scm_inventory_uses_only_fixed_read_only_probes (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_scm_inventory_uses_only_fixed_read_only_probes) ... ok
+test_sensitive_probe_output_is_blocked_without_echo (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_sensitive_probe_output_is_blocked_without_echo) ... ok
+test_tool_present_with_missing_unit_is_blocked_before_write (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_tool_present_with_missing_unit_is_blocked_before_write) ... ok
+test_ubuntu_missing_units_and_safe_postgresql_template_pass_preflight (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_ubuntu_missing_units_and_safe_postgresql_template_pass_preflight) ... ok
+test_unrelated_semver_in_tool_error_banner_is_not_accepted (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_unrelated_semver_in_tool_error_banner_is_not_accepted) ... ok
+test_unsafe_candidate_unit_pairs_remain_blocked (tests.test_company_delivery.CompanyDeliveryCollectorTests.test_unsafe_candidate_unit_pairs_remain_blocked) ... ok
+test_cli_failure_is_machine_readable_and_sanitized (tests.test_company_delivery.CompanyDeliveryContractTests.test_cli_failure_is_machine_readable_and_sanitized) ... ok
+test_compatibility_matrix_binds_only_contract_version_and_timer (tests.test_company_delivery.CompanyDeliveryContractTests.test_compatibility_matrix_binds_only_contract_version_and_timer) ... ok
+test_current_transition_rejects_controlled_upgrade_and_legacy_prerequisites (tests.test_company_delivery.CompanyDeliveryContractTests.test_current_transition_rejects_controlled_upgrade_and_legacy_prerequisites) ... ok
+test_evidence_outcome_sections_and_stage_scope_are_fail_closed (tests.test_company_delivery.CompanyDeliveryContractTests.test_evidence_outcome_sections_and_stage_scope_are_fail_closed) ... ok
+test_failed_evidence_can_preserve_pending_manual_actions (tests.test_company_delivery.CompanyDeliveryContractTests.test_failed_evidence_can_preserve_pending_manual_actions) ... ok
+test_handoff_sync_timer_unit_is_required_from_operator_1_3 (tests.test_company_delivery.CompanyDeliveryContractTests.test_handoff_sync_timer_unit_is_required_from_operator_1_3) ... ok
+test_inventory_accepts_any_sync_timer_instance_exactly_once (tests.test_company_delivery.CompanyDeliveryContractTests.test_inventory_accepts_any_sync_timer_instance_exactly_once) ... ok
+test_inventory_pass_cannot_hide_incomplete_or_blocked_facts (tests.test_company_delivery.CompanyDeliveryContractTests.test_inventory_pass_cannot_hide_incomplete_or_blocked_facts) ... ok
+test_inventory_schema_pass_branches_use_explicit_properties (tests.test_company_delivery.CompanyDeliveryContractTests.test_inventory_schema_pass_branches_use_explicit_properties) ... ok
+test_inventory_v2_models_scm_greenfield_facts_without_raw_values (tests.test_company_delivery.CompanyDeliveryContractTests.test_inventory_v2_models_scm_greenfield_facts_without_raw_values) ... ok
+test_inventory_v2_role_mode_and_scm_enums_are_strict (tests.test_company_delivery.CompanyDeliveryContractTests.test_inventory_v2_role_mode_and_scm_enums_are_strict) ... ok
+test_inventory_v3_has_no_legacy_projection_and_rejects_legacy_fields (tests.test_company_delivery.CompanyDeliveryContractTests.test_inventory_v3_has_no_legacy_projection_and_rejects_legacy_fields) ... ok
+test_legacy_health_verifier_accepts_only_greenfield_post_install_equality (tests.test_company_delivery.CompanyDeliveryContractTests.test_legacy_health_verifier_accepts_only_greenfield_post_install_equality) ... ok
+test_protected_checksum_rejects_oversize_before_hashing (tests.test_company_delivery.CompanyDeliveryContractTests.test_protected_checksum_rejects_oversize_before_hashing) ... ok
+test_protected_file_mode_and_symlink_are_fail_closed (tests.test_company_delivery.CompanyDeliveryContractTests.test_protected_file_mode_and_symlink_are_fail_closed) ... ok
+test_repository_templates_and_compatibility_are_parseable (tests.test_company_delivery.CompanyDeliveryContractTests.test_repository_templates_and_compatibility_are_parseable) ... ok
+test_sensitive_content_is_rejected_without_echo (tests.test_company_delivery.CompanyDeliveryContractTests.test_sensitive_content_is_rejected_without_echo) ... ok
+test_sync_timer_unit_resolves_only_from_a_verified_handoff (tests.test_company_delivery.CompanyDeliveryContractTests.test_sync_timer_unit_resolves_only_from_a_verified_handoff) ... ok
+test_transition_cli_rejects_sensitive_tamper_without_echo (tests.test_company_delivery.CompanyDeliveryContractTests.test_transition_cli_rejects_sensitive_tamper_without_echo) ... ok
+test_transition_contract_locks_greenfield_stage_map_and_target (tests.test_company_delivery.CompanyDeliveryContractTests.test_transition_contract_locks_greenfield_stage_map_and_target) ... ok
+test_transition_contract_requires_stage00_and_package_manifest_bindings (tests.test_company_delivery.CompanyDeliveryContractTests.test_transition_contract_requires_stage00_and_package_manifest_bindings) ... ok
+test_transition_verifier_binds_two_inventory_v3_files (tests.test_company_delivery.CompanyDeliveryContractTests.test_transition_verifier_binds_two_inventory_v3_files) ... ok
+test_transition_verifier_cli_surface_is_explicit (tests.test_company_delivery.CompanyDeliveryContractTests.test_transition_verifier_cli_surface_is_explicit) ... ok
+test_transition_verifier_cross_checks_sync_timer_with_handoff (tests.test_company_delivery.CompanyDeliveryContractTests.test_transition_verifier_cross_checks_sync_timer_with_handoff) ... ok
+test_transition_verifier_rejects_1_1_0_inventory_reuse (tests.test_company_delivery.CompanyDeliveryContractTests.test_transition_verifier_rejects_1_1_0_inventory_reuse) ... ok
+test_transition_verifier_rejects_checksum_role_mode_and_outcome_drift (tests.test_company_delivery.CompanyDeliveryContractTests.test_transition_verifier_rejects_checksum_role_mode_and_outcome_drift) ... ok
+test_transition_verifier_rejects_handoff_source_version_and_package_drift (tests.test_company_delivery.CompanyDeliveryContractTests.test_transition_verifier_rejects_handoff_source_version_and_package_drift) ... ok
+test_transition_verifier_rejects_invalid_package_manifest_content (tests.test_company_delivery.CompanyDeliveryContractTests.test_transition_verifier_rejects_invalid_package_manifest_content) ... ok
+test_unknown_fields_short_sha_and_unsafe_payload_paths_fail (tests.test_company_delivery.CompanyDeliveryContractTests.test_unknown_fields_short_sha_and_unsafe_payload_paths_fail) ... ok
+test_valid_contract_documents (tests.test_company_delivery.CompanyDeliveryContractTests.test_valid_contract_documents) ... ok
+test_each_fixed_diagnostic_line_has_no_dynamic_input (tests.test_company_delivery.CompanyDeliveryJsonDiagnosticTests.test_each_fixed_diagnostic_line_has_no_dynamic_input) ... ok
+test_each_fixed_reason_is_machine_classifiable_without_echo (tests.test_company_delivery.CompanyDeliveryJsonDiagnosticTests.test_each_fixed_reason_is_machine_classifiable_without_echo) ... ok
+test_each_source_role_diagnostic_line_is_fixed_no_echo (tests.test_company_delivery.CompanyDeliveryJsonDiagnosticTests.test_each_source_role_diagnostic_line_is_fixed_no_echo) ... ok
+test_each_source_role_is_fixed_and_machine_classifiable (tests.test_company_delivery.CompanyDeliveryJsonDiagnosticTests.test_each_source_role_is_fixed_and_machine_classifiable) ... ok
+test_unclassified_source_marker_collapses_to_other (tests.test_company_delivery.CompanyDeliveryJsonDiagnosticTests.test_unclassified_source_marker_collapses_to_other) ... ok
+test_all_outcome_templates_are_strict_and_non_live_examples (tests.test_company_delivery.CompanyDeliveryRunbookTests.test_all_outcome_templates_are_strict_and_non_live_examples) ... ok
+test_runbook_has_every_stage_and_required_stop_contract (tests.test_company_delivery.CompanyDeliveryRunbookTests.test_runbook_has_every_stage_and_required_stop_contract) ... ok
+test_runbook_pins_fail_closed_company_boundaries (tests.test_company_delivery.CompanyDeliveryRunbookTests.test_runbook_pins_fail_closed_company_boundaries) ... ok
+test_authoritative_docs_link_two_vm_reference_runbook (tests.test_company_delivery.CompanyDeliveryTopologyDocsTests.test_authoritative_docs_link_two_vm_reference_runbook) ... ok
+test_docs_never_reuse_company_rebuild_as_local_evidence (tests.test_company_delivery.CompanyDeliveryTopologyDocsTests.test_docs_never_reuse_company_rebuild_as_local_evidence) ... ok
+test_smoke_covers_company_delivery_shell_json_and_runtime (tests.test_company_delivery.CompanyDeliveryTopologyDocsTests.test_smoke_covers_company_delivery_shell_json_and_runtime) ... ok
+test_complete_complex_contract_is_accepted (tests.test_contract.ContractTests.test_complete_complex_contract_is_accepted) ... ok
+test_complex_contract_rejects_unresolved_questions (tests.test_contract.ContractTests.test_complex_contract_rejects_unresolved_questions) ... ok
+test_complex_contract_requires_spec_and_plan (tests.test_contract.ContractTests.test_complex_contract_requires_spec_and_plan) ... ok
+test_contract_defaults_to_production_change_control (tests.test_contract.ContractTests.test_contract_defaults_to_production_change_control) ... ok
+test_dependencies_are_parsed_and_ordered (tests.test_contract.ContractTests.test_dependencies_are_parsed_and_ordered) ... ok
+test_dependencies_reject_invalid_self_and_duplicates (tests.test_contract.ContractTests.test_dependencies_reject_invalid_self_and_duplicates) ... ok
+test_development_phase_complex_contract_needs_no_spec_or_plan (tests.test_contract.ContractTests.test_development_phase_complex_contract_needs_no_spec_or_plan)
+AC4：development 项目的强制 complex 不因缺 spec/plan 被拒。 ... ok
+test_development_phase_still_requires_measurable_acceptance (tests.test_contract.ContractTests.test_development_phase_still_requires_measurable_acceptance)
+没有 spec 时验收标准改由 Issue 正文提供，但门槛本身不放宽。 ... ok
+test_forced_complex_risk_cannot_run_as_small (tests.test_contract.ContractTests.test_forced_complex_risk_cannot_run_as_small) ... ok
+test_governing_agents_self_modification_is_rejected (tests.test_contract.ContractTests.test_governing_agents_self_modification_is_rejected) ... ok
+test_issue_must_be_open_and_approved (tests.test_contract.ContractTests.test_issue_must_be_open_and_approved) ... ok
+test_legacy_and_readable_directories_for_same_issue_are_a_conflict (tests.test_contract.ContractTests.test_legacy_and_readable_directories_for_same_issue_are_a_conflict) ... ok
+test_missing_repository_is_external_blocker (tests.test_contract.ContractTests.test_missing_repository_is_external_blocker) ... ok
+test_new_named_complex_contract_is_resolved_from_explicit_mapping (tests.test_contract.ContractTests.test_new_named_complex_contract_is_resolved_from_explicit_mapping) ... ok
+test_new_named_contract_rejects_ambiguous_summary (tests.test_contract.ContractTests.test_new_named_contract_rejects_ambiguous_summary) ... ok
+test_new_named_contract_rejects_slug_and_created_date_drift (tests.test_contract.ContractTests.test_new_named_contract_rejects_slug_and_created_date_drift) ... ok
+test_new_named_small_contract_is_resolved_from_explicit_mapping (tests.test_contract.ContractTests.test_new_named_small_contract_is_resolved_from_explicit_mapping) ... ok
+test_production_phase_still_rejects_missing_spec_and_plan (tests.test_contract.ContractTests.test_production_phase_still_rejects_missing_spec_and_plan)
+AC4 的对照：production 的行为完全不变，缺省亦然。 ... ok
+test_safe_governing_agents_prohibition_is_not_a_self_mod_request (tests.test_contract.ContractTests.test_safe_governing_agents_prohibition_is_not_a_self_mod_request) ... ok
+test_small_contract_is_accepted (tests.test_contract.ContractTests.test_small_contract_is_accepted) ... ok
+test_small_contract_requires_measurable_acceptance (tests.test_contract.ContractTests.test_small_contract_requires_measurable_acceptance) ... ok
+test_summary_issue_and_branch_must_match (tests.test_contract.ContractTests.test_summary_issue_and_branch_must_match) ... ok
+test_type_and_complexity_labels_are_mutually_consistent (tests.test_contract.ContractTests.test_type_and_complexity_labels_are_mutually_consistent) ... ok
+test_untracked_numeric_directory_is_not_legacy_evidence (tests.test_contract.ContractTests.test_untracked_numeric_directory_is_not_legacy_evidence) ... ok
+test_every_managed_dimension_matches_the_manifest (tests.test_contract.LabelTaxonomyParityTests.test_every_managed_dimension_matches_the_manifest) ... ok
+test_retired_values_are_not_accepted_by_the_runtime (tests.test_contract.LabelTaxonomyParityTests.test_retired_values_are_not_accepted_by_the_runtime) ... ok
+test_type_labels_match_the_manifest (tests.test_contract.LabelTaxonomyParityTests.test_type_labels_match_the_manifest) ... ok
+test_a_conflicting_pr_url_escalates_instead_of_being_overwritten (tests.test_controller.ControllerTests.test_a_conflicting_pr_url_escalates_instead_of_being_overwritten) ... ok
+test_a_refused_commit_escalates_rather_than_leaving_a_dirty_worktree (tests.test_controller.ControllerTests.test_a_refused_commit_escalates_rather_than_leaving_a_dirty_worktree) ... ok
+test_a_summary_without_the_pr_url_key_escalates (tests.test_controller.ControllerTests.test_a_summary_without_the_pr_url_key_escalates)
+fail-closed, not skipped: skipping would keep the silent gap. ... ok
+test_an_already_correct_summary_produces_no_commit_and_no_push (tests.test_controller.ControllerTests.test_an_already_correct_summary_produces_no_commit_and_no_push) ... ok
+test_changed_files_must_match_provider_declaration (tests.test_controller.ControllerTests.test_changed_files_must_match_provider_declaration) ... ok
+test_ci_failure_is_fed_back_without_creating_second_pr (tests.test_controller.ControllerTests.test_ci_failure_is_fed_back_without_creating_second_pr) ... ok
+test_ci_is_polled_against_the_head_the_backfill_produced (tests.test_controller.ControllerTests.test_ci_is_polled_against_the_head_the_backfill_produced)
+Until now the Loop declared CI success for a superseded commit. ... ok
+test_completed_dependency_is_ready_after_ci (tests.test_controller.ControllerTests.test_completed_dependency_is_ready_after_ci) ... ok
+test_complex_loop_implements_each_frontier_ticket_before_pr (tests.test_controller.ControllerTests.test_complex_loop_implements_each_frontier_ticket_before_pr) ... ok
+test_confirmation_is_persistent_and_repeated_poll_has_no_side_effect (tests.test_controller.ControllerTests.test_confirmation_is_persistent_and_repeated_poll_has_no_side_effect) ... ok
+test_controller_surface_has_no_merge_or_deploy_operation (tests.test_controller.ControllerTests.test_controller_surface_has_no_merge_or_deploy_operation) ... ok
+test_dependencies_wait_after_ci_without_second_provider_or_pr (tests.test_controller.ControllerTests.test_dependencies_wait_after_ci_without_second_provider_or_pr) ... ok
+test_dependency_must_be_closed_with_delivery_terminal (tests.test_controller.ControllerTests.test_dependency_must_be_closed_with_delivery_terminal) ... ok
+test_external_blocker_stops_without_verifier (tests.test_controller.ControllerTests.test_external_blocker_stops_without_verifier) ... ok
+test_happy_path_reaches_ready_for_review (tests.test_controller.ControllerTests.test_happy_path_reaches_ready_for_review) ... ok
+test_invalid_routine_receipt_fails_closed (tests.test_controller.ControllerTests.test_invalid_routine_receipt_fails_closed) ... ok
+test_pending_ci_persists_and_next_poll_can_finish (tests.test_controller.ControllerTests.test_pending_ci_persists_and_next_poll_can_finish) ... ok
+test_pr_body_renders_dependencies (tests.test_controller.ControllerTests.test_pr_body_renders_dependencies) ... ok
+test_pr_url_and_status_are_written_when_the_pr_is_created (tests.test_controller.ControllerTests.test_pr_url_and_status_are_written_when_the_pr_is_created)
+The defect #146 exists for: the Loop path never filled pr_url at all. ... ok
+test_round_limit_stops_after_configured_turns (tests.test_controller.ControllerTests.test_round_limit_stops_after_configured_turns) ... ok
+test_routine_ci_repair_needs_no_third_confirmation (tests.test_controller.ControllerTests.test_routine_ci_repair_needs_no_third_confirmation) ... ok
+test_routine_confirmation_reaches_auto_merged_with_exact_receipt (tests.test_controller.ControllerTests.test_routine_confirmation_reaches_auto_merged_with_exact_receipt) ... ok
+test_scope_expansion_stops_for_human (tests.test_controller.ControllerTests.test_scope_expansion_stops_for_human) ... ok
+test_the_backfill_commit_carries_only_the_summary (tests.test_controller.ControllerTests.test_the_backfill_commit_carries_only_the_summary) ... ok
+test_third_same_root_failure_reaches_failed_limit (tests.test_controller.ControllerTests.test_third_same_root_failure_reaches_failed_limit) ... ok
+test_verifier_failure_is_fed_to_next_provider_turn (tests.test_controller.ControllerTests.test_verifier_failure_is_fed_to_next_provider_turn) ... ok
+test_development_complex_without_plan_uses_synthetic_ticket (tests.test_controller.FrontierTicketTests.test_development_complex_without_plan_uses_synthetic_ticket) ... ok
+test_new_plan_without_usable_frontier_fails_closed (tests.test_controller.FrontierTicketTests.test_new_plan_without_usable_frontier_fails_closed) ... ok
+test_production_complex_without_plan_still_fails_closed (tests.test_controller.FrontierTicketTests.test_production_complex_without_plan_still_fails_closed) ... ok
+test_repair_round_reuses_last_completed_ticket (tests.test_controller.FrontierTicketTests.test_repair_round_reuses_last_completed_ticket) ... ok
+test_runtime_completion_advances_without_rewriting_plan (tests.test_controller.FrontierTicketTests.test_runtime_completion_advances_without_rewriting_plan) ... ok
+test_selects_first_unblocked_pending_ticket (tests.test_controller.FrontierTicketTests.test_selects_first_unblocked_pending_ticket) ... ok
+test_commit_paths_commits_exactly_what_it_declared (tests.test_controller.LocalGitTests.test_commit_paths_commits_exactly_what_it_declared) ... ok
+test_commit_paths_refuses_a_worktree_holding_anything_else (tests.test_controller.LocalGitTests.test_commit_paths_refuses_a_worktree_holding_anything_else)
+The Controller must not be able to sweep up work it did not declare. ... ok
+test_commit_paths_refuses_when_the_declared_path_did_not_change (tests.test_controller.LocalGitTests.test_commit_paths_refuses_when_the_declared_path_did_not_change) ... ok
+test_committed_secret_is_rejected_before_push (tests.test_controller.LocalGitTests.test_committed_secret_is_rejected_before_push) ... ok
+test_provider_commits_are_still_held_to_the_ticket_id_rule (tests.test_controller.LocalGitTests.test_provider_commits_are_still_held_to_the_ticket_id_rule)
+#146 grants the Controller a commit path; it relaxes nothing else. ... ok
+test_uncommitted_or_mislabeled_agent_work_is_rejected (tests.test_controller.LocalGitTests.test_uncommitted_or_mislabeled_agent_work_is_rejected) ... ok
+test_valid_agent_commit_is_accepted (tests.test_controller.LocalGitTests.test_valid_agent_commit_is_accepted) ... ok
+test_json_schema_is_exact (tests.test_controller.ProviderResultTests.test_json_schema_is_exact) ... ok
+test_declaring_one_repository_does_not_touch_the_others (tests.test_deployment_lifecycle.DeploymentLifecycleContractTests.test_declaring_one_repository_does_not_touch_the_others) ... ok
+test_default_is_the_self_healing_option (tests.test_deployment_lifecycle.DeploymentLifecycleContractTests.test_default_is_the_self_healing_option)
+缺省取可自愈的一档，不是最严的一档。 ... ok
+test_every_declared_lifecycle_round_trips (tests.test_deployment_lifecycle.DeploymentLifecycleContractTests.test_every_declared_lifecycle_round_trips)
+三档都要能被声明。缺了正向断言，一个只在 DEPLOYMENT_LIFECYCLES 里存在、 ... ok
+test_invalid_deployment_lifecycle_is_rejected (tests.test_deployment_lifecycle.DeploymentLifecycleContractTests.test_invalid_deployment_lifecycle_is_rejected)
+非法取值必须 fail closed。静默回落会让一个写错的声明读起来像生效了。 ... ok
+test_platform_repository_is_declared_none (tests.test_deployment_lifecycle.DeploymentLifecycleContractTests.test_platform_repository_is_declared_none)
+#163 的核心声明：平台仓库没有会回写 deployed 的应用部署链路。 ... ok
+test_three_declarable_lifecycles (tests.test_deployment_lifecycle.DeploymentLifecycleContractTests.test_three_declarable_lifecycles)
+三档必须同时存在。少了 selective 这一档，「有链路但只部署一部分 merge」的 ... ok
+test_undeclared_repositories_default_to_selective (tests.test_deployment_lifecycle.DeploymentLifecycleContractTests.test_undeclared_repositories_default_to_selective)
+只遍历未声明的仓库——照 #148 的教训，把「当时谁都没声明」钉成断言会在 ... ok
+test_a_nonpositive_number_is_refused (tests.test_documents.BackfillPrNumberTests.test_a_nonpositive_number_is_refused) ... ok
+test_a_second_pr_number_is_refused (tests.test_documents.BackfillPrNumberTests.test_a_second_pr_number_is_refused) ... ok
+test_derives_the_url_from_the_summary_gitea_url (tests.test_documents.BackfillPrNumberTests.test_derives_the_url_from_the_summary_gitea_url) ... ok
+test_is_idempotent_like_the_url_form (tests.test_documents.BackfillPrNumberTests.test_is_idempotent_like_the_url_form) ... ok
+test_a_different_pr_url_is_refused_without_writing (tests.test_documents.BackfillPrUrlTests.test_a_different_pr_url_is_refused_without_writing) ... ok
+test_a_quoted_conflicting_pr_url_is_still_refused (tests.test_documents.BackfillPrUrlTests.test_a_quoted_conflicting_pr_url_is_still_refused)
+Widening what counts as empty must not widen what counts as absent (#142). ... ok
+test_a_quoted_correct_pr_url_is_already_in_place (tests.test_documents.BackfillPrUrlTests.test_a_quoted_correct_pr_url_is_already_in_place)
+Idempotence follows the value, not its spelling: nothing is written. ... ok
+test_a_quoted_empty_pr_url_is_treated_as_empty (tests.test_documents.BackfillPrUrlTests.test_a_quoted_empty_pr_url_is_treated_as_empty)
+`pr_url: ''` is empty to every reader here, so it is empty to the writer. ... ok
+test_a_quoted_pr_bearing_status_is_already_in_place (tests.test_documents.BackfillPrUrlTests.test_a_quoted_pr_bearing_status_is_already_in_place)
+`status: 'pr-open'` is pr-open to every reader, so nothing is written. ... ok
+test_a_quoted_terminal_status_is_not_downgraded (tests.test_documents.BackfillPrUrlTests.test_a_quoted_terminal_status_is_not_downgraded)
+The mirror of the bare spelling: a terminal status survives (#189). ... ok
+test_a_summary_without_gitea_url_is_refused (tests.test_documents.BackfillPrUrlTests.test_a_summary_without_gitea_url_is_refused) ... ok
+test_a_summary_without_the_pr_url_key_is_refused (tests.test_documents.BackfillPrUrlTests.test_a_summary_without_the_pr_url_key_is_refused) ... ok
+test_a_terminal_status_is_not_downgraded (tests.test_documents.BackfillPrUrlTests.test_a_terminal_status_is_not_downgraded) ... ok
+test_a_url_from_another_repository_is_refused (tests.test_documents.BackfillPrUrlTests.test_a_url_from_another_repository_is_refused) ... ok
+test_a_url_that_is_not_a_pull_request_is_refused (tests.test_documents.BackfillPrUrlTests.test_a_url_that_is_not_a_pull_request_is_refused) ... ok
+test_repeating_the_backfill_produces_no_diff (tests.test_documents.BackfillPrUrlTests.test_repeating_the_backfill_produces_no_diff) ... ok
+test_writes_pr_url_and_advances_status_together (tests.test_documents.BackfillPrUrlTests.test_writes_pr_url_and_advances_status_together) ... ok
+test_publishes_to_mapped_spec_and_plan_only (tests.test_documents.DocumentPublisherTests.test_publishes_to_mapped_spec_and_plan_only) ... ok
+test_rejects_undeclared_duplicate_and_invalid_plan_graph (tests.test_documents.DocumentPublisherTests.test_rejects_undeclared_duplicate_and_invalid_plan_graph) ... ok
+test_rejects_wrong_issue_branch_and_front_matter (tests.test_documents.DocumentPublisherTests.test_rejects_wrong_issue_branch_and_front_matter) ... ok
+test_429_and_5xx_retry_with_bounded_backoff (tests.test_gitea.GiteaClientTests.test_429_and_5xx_retry_with_bounded_backoff) ... ok
+test_4xx_is_not_blindly_retried (tests.test_gitea.GiteaClientTests.test_4xx_is_not_blindly_retried) ... ok
+test_ci_status_mapping (tests.test_gitea.GiteaClientTests.test_ci_status_mapping) ... ok
+test_comment_and_get_pr_use_expected_endpoints (tests.test_gitea.GiteaClientTests.test_comment_and_get_pr_use_expected_endpoints) ... ok
+test_create_pr_requires_issue_closure_and_contract_link (tests.test_gitea.GiteaClientTests.test_create_pr_requires_issue_closure_and_contract_link) ... ok
+test_error_never_exposes_token_or_response_secret (tests.test_gitea.GiteaClientTests.test_error_never_exposes_token_or_response_secret) ... ok
+test_invalid_managed_label_combinations_are_rejected_before_http (tests.test_gitea.GiteaClientTests.test_invalid_managed_label_combinations_are_rejected_before_http) ... ok
+test_invalid_triage_projection_is_rejected_before_http (tests.test_gitea.GiteaClientTests.test_invalid_triage_projection_is_rejected_before_http) ... ok
+test_list_issue_comments_of_a_silent_issue_is_one_empty_page (tests.test_gitea.GiteaClientTests.test_list_issue_comments_of_a_silent_issue_is_one_empty_page) ... ok
+test_list_issue_comments_pages_projects_and_keeps_token_in_header (tests.test_gitea.GiteaClientTests.test_list_issue_comments_pages_projects_and_keeps_token_in_header) ... ok
+test_list_issue_comments_rejects_invalid_entries_and_shapes (tests.test_gitea.GiteaClientTests.test_list_issue_comments_rejects_invalid_entries_and_shapes) ... ok
+test_list_issue_comments_scan_is_bounded (tests.test_gitea.GiteaClientTests.test_list_issue_comments_scan_is_bounded) ... ok
+test_platform_projection_preserves_existing_triage_labels (tests.test_gitea.GiteaClientTests.test_platform_projection_preserves_existing_triage_labels) ... ok
+test_set_labels_accepts_completed_as_the_only_lifecycle (tests.test_gitea.GiteaClientTests.test_set_labels_accepts_completed_as_the_only_lifecycle) ... ok
+test_set_labels_preserves_unmanaged_and_enforces_three_dimensions (tests.test_gitea.GiteaClientTests.test_set_labels_preserves_unmanaged_and_enforces_three_dimensions) ... ok
+test_token_only_appears_in_authorization_header (tests.test_gitea.GiteaClientTests.test_token_only_appears_in_authorization_header) ... ok
+test_triage_projection_preserves_platform_and_unmanaged_labels (tests.test_gitea.GiteaClientTests.test_triage_projection_preserves_platform_and_unmanaged_labels) ... ok
+test_unclear_route_has_no_complexity_label (tests.test_gitea.GiteaClientTests.test_unclear_route_has_no_complexity_label) ... ok
+test_cli_exposes_boolean_migration_selector_only_on_check_and_apply (tests.test_gitea_governance.ContractTests.test_cli_exposes_boolean_migration_selector_only_on_check_and_apply) ... ok
+test_direct_cli_rollback_rejects_enabled_source_before_credential_read (tests.test_gitea_governance.ContractTests.test_direct_cli_rollback_rejects_enabled_source_before_credential_read) ... ok
+test_manifest_is_exact_and_private_by_default (tests.test_gitea_governance.ContractTests.test_manifest_is_exact_and_private_by_default) ... ok
+test_newemaint_is_the_only_pilot_and_other_repositories_match_pinned_bytes (tests.test_gitea_governance.ContractTests.test_newemaint_is_the_only_pilot_and_other_repositories_match_pinned_bytes) ... ok
+test_pilot_accepts_more_than_one_context_and_pins_every_one (tests.test_gitea_governance.ContractTests.test_pilot_accepts_more_than_one_context_and_pins_every_one) ... ok
+test_pilot_apply_and_rollback_require_action_specific_live_authorization (tests.test_gitea_governance.ContractTests.test_pilot_apply_and_rollback_require_action_specific_live_authorization) ... ok
+test_pilot_provenance_requires_issue_213_and_both_ancestor_gates (tests.test_gitea_governance.ContractTests.test_pilot_provenance_requires_issue_213_and_both_ancestor_gates) ... ok
+test_pilot_rejects_contexts_that_disagree_with_the_repository (tests.test_gitea_governance.ContractTests.test_pilot_rejects_contexts_that_disagree_with_the_repository) ... ok
+test_platform_repository_requires_its_observed_pr_context (tests.test_gitea_governance.ContractTests.test_platform_repository_requires_its_observed_pr_context) ... ok
+test_rejects_implicit_public_repository (tests.test_gitea_governance.ContractTests.test_rejects_implicit_public_repository) ... ok
+test_rejects_manager_site_admin (tests.test_gitea_governance.ContractTests.test_rejects_manager_site_admin) ... ok
+test_rejects_project_agent_reuse (tests.test_gitea_governance.ContractTests.test_rejects_project_agent_reuse) ... ok
+test_required_context_migration_evidence_is_strict (tests.test_gitea_governance.ContractTests.test_required_context_migration_evidence_is_strict) ... ok
+test_required_context_migration_is_optional_for_other_repositories (tests.test_gitea_governance.ContractTests.test_required_context_migration_is_optional_for_other_repositories) ... ok
+test_required_context_migration_rejects_multiple_target_contexts (tests.test_gitea_governance.ContractTests.test_required_context_migration_rejects_multiple_target_contexts) ... ok
+test_routine_merger_trust_model_is_explicit_and_strict (tests.test_gitea_governance.ContractTests.test_routine_merger_trust_model_is_explicit_and_strict) ... ok
+test_token_file_requires_narrow_mode_and_raw_value (tests.test_gitea_governance.ContractTests.test_token_file_requires_narrow_mode_and_raw_value) ... ok
+test_well_formed_but_wrong_non_target_digest_is_rejected (tests.test_gitea_governance.ContractTests.test_well_formed_but_wrong_non_target_digest_is_rejected) ... ok
+test_apply_converges_and_second_run_is_noop (tests.test_gitea_governance.ReconciliationTests.test_apply_converges_and_second_run_is_noop) ... ok
+test_apply_does_not_accept_missing_account_permission_evidence (tests.test_gitea_governance.ReconciliationTests.test_apply_does_not_accept_missing_account_permission_evidence) ... ok
+test_apply_rejects_routine_account_admin_schema_before_any_mutation (tests.test_gitea_governance.ReconciliationTests.test_apply_rejects_routine_account_admin_schema_before_any_mutation) ... ok
+test_check_accepts_exact_gitea_1264_extended_permission_variant (tests.test_gitea_governance.ReconciliationTests.test_check_accepts_exact_gitea_1264_extended_permission_variant) ... ok
+test_check_cross_project_same_routine_permission_404_fails_closed (tests.test_gitea_governance.ReconciliationTests.test_check_cross_project_same_routine_permission_404_fails_closed) ... ok
+test_check_maps_exact_missing_account_permission_404_to_planned_action (tests.test_gitea_governance.ReconciliationTests.test_check_maps_exact_missing_account_permission_404_to_planned_action) ... ok
+test_check_missing_account_keeps_permission_200_schema_strict (tests.test_gitea_governance.ReconciliationTests.test_check_missing_account_keeps_permission_200_schema_strict) ... ok
+test_check_permission_failures_other_than_evidenced_404_fail_closed (tests.test_gitea_governance.ReconciliationTests.test_check_permission_failures_other_than_evidenced_404_fail_closed) ... ok
+test_check_project_agent_missing_permission_404_fails_closed (tests.test_gitea_governance.ReconciliationTests.test_check_project_agent_missing_permission_404_fails_closed) ... ok
+test_check_shared_identity_permission_404_fails_closed (tests.test_gitea_governance.ReconciliationTests.test_check_shared_identity_permission_404_fails_closed) ... ok
+test_cross_project_permission_schema_fails_before_any_apply_mutation (tests.test_gitea_governance.ReconciliationTests.test_cross_project_permission_schema_fails_before_any_apply_mutation) ... ok
+test_cross_project_write_is_reported_and_blocks_apply (tests.test_gitea_governance.ReconciliationTests.test_cross_project_write_is_reported_and_blocks_apply) ... ok
+test_desired_protection_preserves_reviews_and_blocks_merge_bypass (tests.test_gitea_governance.ReconciliationTests.test_desired_protection_preserves_reviews_and_blocks_merge_bypass) ... ok
+test_enabled_routine_merger_admin_identity_fails_closed (tests.test_gitea_governance.ReconciliationTests.test_enabled_routine_merger_admin_identity_fails_closed) ... ok
+test_enabled_routine_merger_converges_exact_write_and_allowlist (tests.test_gitea_governance.ReconciliationTests.test_enabled_routine_merger_converges_exact_write_and_allowlist) ... ok
+test_extended_permission_schema_and_identity_fail_closed (tests.test_gitea_governance.ReconciliationTests.test_extended_permission_schema_and_identity_fail_closed) ... ok
+test_governance_check_reports_all_routine_account_states (tests.test_gitea_governance.ReconciliationTests.test_governance_check_reports_all_routine_account_states) ... ok
+test_plan_detects_visibility_agent_and_protection_drift (tests.test_gitea_governance.ReconciliationTests.test_plan_detects_visibility_agent_and_protection_drift) ... ok
+test_required_context_migration_detects_full_readback_drift (tests.test_gitea_governance.ReconciliationTests.test_required_context_migration_detects_full_readback_drift) ... ok
+test_required_context_migration_is_explicit_and_default_apply_still_blocks (tests.test_gitea_governance.ReconciliationTests.test_required_context_migration_is_explicit_and_default_apply_still_blocks) ... ok
+test_required_context_migration_is_not_available_to_undeclared_repository (tests.test_gitea_governance.ReconciliationTests.test_required_context_migration_is_not_available_to_undeclared_repository) ... ok
+test_required_context_migration_patch_failure_keeps_pre_snapshot (tests.test_gitea_governance.ReconciliationTests.test_required_context_migration_patch_failure_keeps_pre_snapshot) ... ok
+test_required_context_migration_readback_failure_keeps_pre_snapshot (tests.test_gitea_governance.ReconciliationTests.test_required_context_migration_readback_failure_keeps_pre_snapshot) ... ok
+test_required_context_migration_rejects_wrong_context_and_other_drift (tests.test_gitea_governance.ReconciliationTests.test_required_context_migration_rejects_wrong_context_and_other_drift) ... ok
+test_required_context_migration_rollback_restores_exact_snapshot (tests.test_gitea_governance.ReconciliationTests.test_required_context_migration_rollback_restores_exact_snapshot) ... ok
+test_required_context_migration_snapshot_failure_prevents_patch (tests.test_gitea_governance.ReconciliationTests.test_required_context_migration_snapshot_failure_prevents_patch) ... ok
+test_required_context_migration_writes_snapshot_before_patch_and_reads_back (tests.test_gitea_governance.ReconciliationTests.test_required_context_migration_writes_snapshot_before_patch_and_reads_back) ... ok
+test_rollback_rejects_snapshot_shape_and_branch_before_mutation (tests.test_gitea_governance.ReconciliationTests.test_rollback_rejects_snapshot_shape_and_branch_before_mutation) ... ok
+test_rollback_restores_private_collaborators_and_missing_protection (tests.test_gitea_governance.ReconciliationTests.test_rollback_restores_private_collaborators_and_missing_protection) ... ok
+test_snapshot_unknown_missing_identity_cannot_authorize_routine_404 (tests.test_gitea_governance.ReconciliationTests.test_snapshot_unknown_missing_identity_cannot_authorize_routine_404) ... ok
+test_status_context_drift_blocks_apply (tests.test_gitea_governance.ReconciliationTests.test_status_context_drift_blocks_apply) ... ok
+test_duplicate_target_key_is_rejected (tests.test_gitea_governance.ServicePolicyTests.test_duplicate_target_key_is_rejected) ... ok
+test_render_changes_only_target_policy_and_preserves_unrelated_values (tests.test_gitea_governance.ServicePolicyTests.test_render_changes_only_target_policy_and_preserves_unrelated_values) ... ok
+test_empty_journal_leaves_both_readings_absent (tests.test_host_access.ActRunnerStatusTests.test_empty_journal_leaves_both_readings_absent) ... ok
+test_executing_runner_reports_oldest_child_elapsed (tests.test_host_access.ActRunnerStatusTests.test_executing_runner_reports_oldest_child_elapsed) ... ok
+test_idle_runner_reports_zero_children (tests.test_host_access.ActRunnerStatusTests.test_idle_runner_reports_zero_children) ... ok
+test_message_cannot_smuggle_a_repository_name (tests.test_host_access.ActRunnerStatusTests.test_message_cannot_smuggle_a_repository_name) ... ok
+test_no_journal_text_crosses_the_boundary (tests.test_host_access.ActRunnerStatusTests.test_no_journal_text_crosses_the_boundary) ... ok
+test_operation_is_read_only_host_operator_and_argument_free (tests.test_host_access.ActRunnerStatusTests.test_operation_is_read_only_host_operator_and_argument_free) ... ok
+test_process_probe_failure_is_not_read_as_idle (tests.test_host_access.ActRunnerStatusTests.test_process_probe_failure_is_not_read_as_idle) ... ok
+test_stopped_unit_never_probes_processes (tests.test_host_access.ActRunnerStatusTests.test_stopped_unit_never_probes_processes) ... ok
+test_unreadable_systemd_state_fails_closed (tests.test_host_access.ActRunnerStatusTests.test_unreadable_systemd_state_fails_closed) ... ok
+test_unreadable_vm_clock_fails_closed (tests.test_host_access.ActRunnerStatusTests.test_unreadable_vm_clock_fails_closed) ... ok
+test_fresh_runner_instances_use_only_fixed_broker_and_typed_arguments (tests.test_host_access.GovernedHostRunnerTests.test_fresh_runner_instances_use_only_fixed_broker_and_typed_arguments) ... ok
+test_routine_runner_exposes_only_fixed_typed_merge (tests.test_host_access.GovernedHostRunnerTests.test_routine_runner_exposes_only_fixed_typed_merge) ... ok
+test_routine_runner_refuses_non_receipt_and_has_no_fallback (tests.test_host_access.GovernedHostRunnerTests.test_routine_runner_refuses_non_receipt_and_has_no_fallback) ... ok
+test_runner_extension_define_uses_only_fixed_typed_arguments (tests.test_host_access.GovernedHostRunnerTests.test_runner_extension_define_uses_only_fixed_typed_arguments) ... ok
+test_runner_extension_set_uses_only_fixed_single_label_arguments (tests.test_host_access.GovernedHostRunnerTests.test_runner_extension_set_uses_only_fixed_single_label_arguments) ... ok
+test_runner_has_no_merge_or_arbitrary_operation_surface (tests.test_host_access.GovernedHostRunnerTests.test_runner_has_no_merge_or_arbitrary_operation_surface) ... ok
+test_a_failed_push_is_never_recorded_as_landed (tests.test_host_access.HostAccessBrokerTests.test_a_failed_push_is_never_recorded_as_landed)
+A sha in the ledger reads back as 'the remote has this'. Recording a ... ok
+test_a_rewrite_by_someone_else_is_detectable_in_the_push_return (tests.test_host_access.HostAccessBrokerTests.test_a_rewrite_by_someone_else_is_detectable_in_the_push_return)
+AC-5, second half. The owner's push is *not* refused here and cannot ... ok
+test_a_second_session_cannot_push_from_the_worktree_it_wandered_into (tests.test_host_access.HostAccessBrokerTests.test_a_second_session_cannot_push_from_the_worktree_it_wandered_into)
+AC-5: the NewEMaint #96 shape. B rebases inside A's worktree — none of ... ok
+test_access_audit_validates_identities_scopes_permissions_protection_and_file_contract (tests.test_host_access.HostAccessBrokerTests.test_access_audit_validates_identities_scopes_permissions_protection_and_file_contract) ... ok
+test_actions_job_logs_read_keeps_both_ends_of_a_long_log (tests.test_host_access.HostAccessBrokerTests.test_actions_job_logs_read_keeps_both_ends_of_a_long_log)
+#225: the head is evidence too, and it used to be unreachable. ... ok
+test_actions_job_logs_read_leaves_a_short_log_untouched (tests.test_host_access.HostAccessBrokerTests.test_actions_job_logs_read_leaves_a_short_log_untouched) ... ok
+test_actions_job_logs_read_marks_truncation_instead_of_hiding_it (tests.test_host_access.HostAccessBrokerTests.test_actions_job_logs_read_marks_truncation_instead_of_hiding_it) ... ok
+test_actions_job_logs_read_never_repeats_a_line_across_the_elision (tests.test_host_access.HostAccessBrokerTests.test_actions_job_logs_read_never_repeats_a_line_across_the_elision)
+A log barely over the window must not have its two ends overlap. ... ok
+test_actions_job_logs_read_redacts_credentials (tests.test_host_access.HostAccessBrokerTests.test_actions_job_logs_read_redacts_credentials)
+The negative verification #143 requires: a planted credential is masked. ... ok
+test_actions_job_logs_read_stays_inside_the_window_it_declares (tests.test_host_access.HostAccessBrokerTests.test_actions_job_logs_read_stays_inside_the_window_it_declares)
+The marker counts against the window rather than riding on top of it. ... ok
+test_actions_job_logs_read_surfaces_an_unknown_job_as_a_failure (tests.test_host_access.HostAccessBrokerTests.test_actions_job_logs_read_surfaces_an_unknown_job_as_a_failure)
+A job id from another repository 404s against this project's URL. ... ok
+test_actions_job_logs_read_takes_only_a_positive_job (tests.test_host_access.HostAccessBrokerTests.test_actions_job_logs_read_takes_only_a_positive_job) ... ok
+test_actions_run_read_is_project_scoped_and_sha_keyed (tests.test_host_access.HostAccessBrokerTests.test_actions_run_read_is_project_scoped_and_sha_keyed) ... ok
+test_actions_run_read_pages_past_the_first_fifty (tests.test_host_access.HostAccessBrokerTests.test_actions_run_read_pages_past_the_first_fifty) ... ok
+test_actions_run_read_projects_step_level_conclusions (tests.test_host_access.HostAccessBrokerTests.test_actions_run_read_projects_step_level_conclusions)
+The question #143 exists for: which steps ran, and for how long. ... ok
+test_actions_run_read_rejects_a_malformed_entry (tests.test_host_access.HostAccessBrokerTests.test_actions_run_read_rejects_a_malformed_entry) ... ok
+test_actions_run_read_rejects_an_abbreviated_sha_before_any_request (tests.test_host_access.HostAccessBrokerTests.test_actions_run_read_rejects_an_abbreviated_sha_before_any_request)
+gitea.commit.status.read answers an abbreviated SHA with a fake success. ... ok
+test_actions_run_read_rejects_the_other_zero_clock_gitea_emits (tests.test_host_access.HostAccessBrokerTests.test_actions_run_read_rejects_the_other_zero_clock_gitea_emits)
+Year one is the same non-fact as 1970, and reaches us the same way. ... ok
+test_actions_run_read_reports_no_duration_for_a_run_that_never_started (tests.test_host_access.HostAccessBrokerTests.test_actions_run_read_reports_no_duration_for_a_run_that_never_started)
+#225: a run cancelled while queued carries the zero clock, not a time. ... ok
+test_actions_run_read_reports_no_duration_for_a_running_run (tests.test_host_access.HostAccessBrokerTests.test_actions_run_read_reports_no_duration_for_a_running_run)
+The still-running case, pinned rather than left to luck. ... ok
+test_actions_run_read_separates_no_runs_from_a_failed_read (tests.test_host_access.HostAccessBrokerTests.test_actions_run_read_separates_no_runs_from_a_failed_read)
+The reading trap #143 names, closed from both sides. ... ok
+test_actions_surface_has_no_typed_write (tests.test_host_access.HostAccessBrokerTests.test_actions_surface_has_no_typed_write)
+Triggering or re-running CI stays a human action. ... ok
+test_analyzer_dimension_write_is_one_typed_operation_per_dimension (tests.test_host_access.HostAccessBrokerTests.test_analyzer_dimension_write_is_one_typed_operation_per_dimension)
+#160: the surface stays dimension-shaped, never a label-set write. ... ok
+test_classification_arguments_require_both_dimensions (tests.test_host_access.HostAccessBrokerTests.test_classification_arguments_require_both_dimensions)
+#160 AC-3: half a classification is not expressible. ... ok
+test_cli_credential_helper_supports_current_shape_and_non_get_actions (tests.test_host_access.HostAccessBrokerTests.test_cli_credential_helper_supports_current_shape_and_non_get_actions) ... ok
+test_cli_exposes_only_typed_issue_and_pull_fields (tests.test_host_access.HostAccessBrokerTests.test_cli_exposes_only_typed_issue_and_pull_fields) ... usage: aisoft-host-access [-h] --access-manifest ACCESS_MANIFEST
+                          --governance-manifest GOVERNANCE_MANIFEST
+                          [--label-manifest LABEL_MANIFEST]
+                          {validate,broker,profile,profile-spec,profile-consume-check,credential-helper} ...
+aisoft-host-access: error: unrecognized arguments: --url attacker.invalid
+usage: aisoft-host-access [-h] --access-manifest ACCESS_MANIFEST
+                          --governance-manifest GOVERNANCE_MANIFEST
+                          [--label-manifest LABEL_MANIFEST]
+                          {validate,broker,profile,profile-spec,profile-consume-check,credential-helper} ...
+aisoft-host-access: error: unrecognized arguments: --owner attacker.invalid
+usage: aisoft-host-access [-h] --access-manifest ACCESS_MANIFEST
+                          --governance-manifest GOVERNANCE_MANIFEST
+                          [--label-manifest LABEL_MANIFEST]
+                          {validate,broker,profile,profile-spec,profile-consume-check,credential-helper} ...
+aisoft-host-access: error: unrecognized arguments: --repository attacker.invalid
+usage: aisoft-host-access [-h] --access-manifest ACCESS_MANIFEST
+                          --governance-manifest GOVERNANCE_MANIFEST
+                          [--label-manifest LABEL_MANIFEST]
+                          {validate,broker,profile,profile-spec,profile-consume-check,credential-helper} ...
+aisoft-host-access: error: unrecognized arguments: --method attacker.invalid
+usage: aisoft-host-access [-h] --access-manifest ACCESS_MANIFEST
+                          --governance-manifest GOVERNANCE_MANIFEST
+                          [--label-manifest LABEL_MANIFEST]
+                          {validate,broker,profile,profile-spec,profile-consume-check,credential-helper} ...
+aisoft-host-access: error: unrecognized arguments: --raw-body attacker.invalid
+usage: aisoft-host-access [-h] --access-manifest ACCESS_MANIFEST
+                          --governance-manifest GOVERNANCE_MANIFEST
+                          [--label-manifest LABEL_MANIFEST]
+                          {validate,broker,profile,profile-spec,profile-consume-check,credential-helper} ...
+aisoft-host-access: error: unrecognized arguments: --remote attacker.invalid
+usage: aisoft-host-access [-h] --access-manifest ACCESS_MANIFEST
+                          --governance-manifest GOVERNANCE_MANIFEST
+                          [--label-manifest LABEL_MANIFEST]
+                          {validate,broker,profile,profile-spec,profile-consume-check,credential-helper} ...
+aisoft-host-access: error: unrecognized arguments: --remote-name attacker.invalid
+usage: aisoft-host-access [-h] --access-manifest ACCESS_MANIFEST
+                          --governance-manifest GOVERNANCE_MANIFEST
+                          [--label-manifest LABEL_MANIFEST]
+                          {validate,broker,profile,profile-spec,profile-consume-check,credential-helper} ...
+aisoft-host-access: error: unrecognized arguments: --refspec attacker.invalid
+usage: aisoft-host-access [-h] --access-manifest ACCESS_MANIFEST
+                          --governance-manifest GOVERNANCE_MANIFEST
+                          [--label-manifest LABEL_MANIFEST]
+                          {validate,broker,profile,profile-spec,profile-consume-check,credential-helper} ...
+aisoft-host-access: error: unrecognized arguments: --command attacker.invalid
+ok
+test_collaborator_json_rejects_extreme_depth_before_decoder (tests.test_host_access.HostAccessBrokerTests.test_collaborator_json_rejects_extreme_depth_before_decoder) ... ok
+test_collaborator_json_rejects_nonstandard_and_unbounded_numbers (tests.test_host_access.HostAccessBrokerTests.test_collaborator_json_rejects_nonstandard_and_unbounded_numbers) ... ok
+test_collaborator_json_structure_scan_handles_strings_and_boundaries (tests.test_host_access.HostAccessBrokerTests.test_collaborator_json_structure_scan_handles_strings_and_boundaries) ... ok
+test_collaborator_link_maps_malformed_authority_to_schema_error (tests.test_host_access.HostAccessBrokerTests.test_collaborator_link_maps_malformed_authority_to_schema_error) ... ok
+test_collaborator_link_rejects_path_params_and_unbounded_decimals (tests.test_host_access.HostAccessBrokerTests.test_collaborator_link_rejects_path_params_and_unbounded_decimals) ... ok
+test_comment_surface_has_no_typed_update_or_delete (tests.test_host_access.HostAccessBrokerTests.test_comment_surface_has_no_typed_update_or_delete)
+Rewriting or erasing someone else's comment stays a human action. ... ok
+test_commit_status_read_is_exact_sha_bound (tests.test_host_access.HostAccessBrokerTests.test_commit_status_read_is_exact_sha_bound) ... ok
+test_credential_protocol_accepts_current_git_multivalue_shape (tests.test_host_access.HostAccessBrokerTests.test_credential_protocol_accepts_current_git_multivalue_shape) ... ok
+test_credential_protocol_denies_cross_project_and_wrong_identity (tests.test_host_access.HostAccessBrokerTests.test_credential_protocol_denies_cross_project_and_wrong_identity) ... ok
+test_credential_resolver_reads_only_fixed_protected_file (tests.test_host_access.HostAccessBrokerTests.test_credential_resolver_reads_only_fixed_protected_file) ... ok
+test_credential_resolver_rejects_file_and_directory_drift_without_secret_leak (tests.test_host_access.HostAccessBrokerTests.test_credential_resolver_rejects_file_and_directory_drift_without_secret_leak) ... ok
+test_default_transport_preserves_duplicate_headers_and_bounds_read (tests.test_host_access.HostAccessBrokerTests.test_default_transport_preserves_duplicate_headers_and_bounds_read) ... ok
+test_default_transport_rejects_chunked_actual_oversize (tests.test_host_access.HostAccessBrokerTests.test_default_transport_rejects_chunked_actual_oversize) ... ok
+test_default_transport_rejects_declared_oversize_before_read (tests.test_host_access.HostAccessBrokerTests.test_default_transport_rejects_declared_oversize_before_read) ... ok
+test_default_transport_rejects_inventory_framing_before_read (tests.test_host_access.HostAccessBrokerTests.test_default_transport_rejects_inventory_framing_before_read) ... ok
+test_every_ownership_refusal_has_its_own_code_and_pushes_nothing (tests.test_host_access.HostAccessBrokerTests.test_every_ownership_refusal_has_its_own_code_and_pushes_nothing)
+AC-2: four distinct refusals, none of them reusing WORKTREE_DIRTY, ... ok
+test_existing_legacy_pull_can_be_updated_from_read_back_evidence (tests.test_host_access.HostAccessBrokerTests.test_existing_legacy_pull_can_be_updated_from_read_back_evidence) ... ok
+test_extension_label_define_arguments_are_exact_and_fail_before_mutation (tests.test_host_access.HostAccessBrokerTests.test_extension_label_define_arguments_are_exact_and_fail_before_mutation) ... ok
+test_extension_label_define_creates_once_and_preserves_existing_metadata (tests.test_host_access.HostAccessBrokerTests.test_extension_label_define_creates_once_and_preserves_existing_metadata) ... ok
+test_extension_label_validation_is_prefix_scoped_and_fail_closed (tests.test_host_access.HostAccessBrokerTests.test_extension_label_validation_is_prefix_scoped_and_fail_closed) ... ok
+test_extension_label_validation_rejects_ambiguous_prefix_manifest (tests.test_host_access.HostAccessBrokerTests.test_extension_label_validation_rejects_ambiguous_prefix_manifest) ... ok
+test_external_extension_fossil_is_adopted_then_attached (tests.test_host_access.HostAccessBrokerTests.test_external_extension_fossil_is_adopted_then_attached) ... ok
+test_http_401_403_404_are_nonzero_sanitized_failures (tests.test_host_access.HostAccessBrokerTests.test_http_401_403_404_are_nonzero_sanitized_failures) ... ok
+test_identity_mismatch_fails_before_target_request (tests.test_host_access.HostAccessBrokerTests.test_identity_mismatch_fails_before_target_request) ... ok
+test_issue_comments_read_pages_past_the_first_fifty (tests.test_host_access.HostAccessBrokerTests.test_issue_comments_read_pages_past_the_first_fifty)
+A silent first-page-only read makes a partial discussion look whole. ... ok
+test_issue_comments_read_projects_and_is_number_bound (tests.test_host_access.HostAccessBrokerTests.test_issue_comments_read_projects_and_is_number_bound) ... ok
+test_issue_comments_read_rejects_a_malformed_entry (tests.test_host_access.HostAccessBrokerTests.test_issue_comments_read_rejects_a_malformed_entry) ... ok
+test_issue_comments_read_takes_only_a_positive_number (tests.test_host_access.HostAccessBrokerTests.test_issue_comments_read_takes_only_a_positive_number) ... ok
+test_issue_create_fails_closed_when_the_entrance_is_not_defined (tests.test_host_access.HostAccessBrokerTests.test_issue_create_fails_closed_when_the_entrance_is_not_defined)
+#243: attaching is not defining -- name the definition operation. ... ok
+test_issue_create_rejects_an_entrance_the_installed_manifest_dropped (tests.test_host_access.HostAccessBrokerTests.test_issue_create_rejects_an_entrance_the_installed_manifest_dropped)
+#243: manifest membership is checked on top of the entrance set. ... ok
+test_issue_create_requires_a_declared_flow_entrance (tests.test_host_access.HostAccessBrokerTests.test_issue_create_requires_a_declared_flow_entrance)
+#243: an Issue cannot reach the tracker without naming its entrance. ... ok
+test_issue_create_update_comment_and_read_use_fixed_typed_routes (tests.test_host_access.HostAccessBrokerTests.test_issue_create_update_comment_and_read_use_fixed_typed_routes) ... ok
+test_issue_extension_label_set_converges_duplicate_values_with_one_put (tests.test_host_access.HostAccessBrokerTests.test_issue_extension_label_set_converges_duplicate_values_with_one_put) ... ok
+test_issue_extension_label_set_is_noop_when_dimension_is_exact (tests.test_host_access.HostAccessBrokerTests.test_issue_extension_label_set_is_noop_when_dimension_is_exact) ... ok
+test_issue_extension_label_set_preserves_every_other_dimension (tests.test_host_access.HostAccessBrokerTests.test_issue_extension_label_set_preserves_every_other_dimension) ... ok
+test_issue_extension_label_set_requires_typed_definition (tests.test_host_access.HostAccessBrokerTests.test_issue_extension_label_set_requires_typed_definition) ... ok
+test_issue_label_classify_accepts_only_manifest_analyzer_values (tests.test_host_access.HostAccessBrokerTests.test_issue_label_classify_accepts_only_manifest_analyzer_values)
+#160 AC-2: both dimensions are checked against the installed manifest. ... ok
+test_issue_label_classify_fails_closed_when_the_label_is_not_provisioned (tests.test_host_access.HostAccessBrokerTests.test_issue_label_classify_fails_closed_when_the_label_is_not_provisioned)
+#160 AC-4: attaching is not defining, same rule as the lifecycle write. ... ok
+test_issue_label_classify_is_idempotent_and_converges_the_dimensions (tests.test_host_access.HostAccessBrokerTests.test_issue_label_classify_is_idempotent_and_converges_the_dimensions)
+#160 AC-5: no PUT when already right; one PUT when a value is stale. ... ok
+test_issue_label_classify_projects_both_analyzer_dimensions (tests.test_host_access.HostAccessBrokerTests.test_issue_label_classify_projects_both_analyzer_dimensions)
+#160 AC-1: the analyzer dimensions land, everything else survives. ... ok
+test_issue_label_read_is_number_bound (tests.test_host_access.HostAccessBrokerTests.test_issue_label_read_is_number_bound) ... ok
+test_issue_label_set_accepts_only_manifest_lifecycle_values (tests.test_host_access.HostAccessBrokerTests.test_issue_label_set_accepts_only_manifest_lifecycle_values)
+AC-1: the accepted values are derived from the installed manifest. ... ok
+test_issue_label_set_fails_closed_when_the_label_is_not_provisioned (tests.test_host_access.HostAccessBrokerTests.test_issue_label_set_fails_closed_when_the_label_is_not_provisioned)
+AC-3: attaching is not defining. ... ok
+test_issue_label_set_is_idempotent (tests.test_host_access.HostAccessBrokerTests.test_issue_label_set_is_idempotent)
+AC-5: already-there is a no-op with no PUT, and repeats are identical. ... ok
+test_issue_label_set_refuses_to_downgrade_deployed_to_completed (tests.test_host_access.HostAccessBrokerTests.test_issue_label_set_refuses_to_downgrade_deployed_to_completed)
+AC-4: deployed and completed are mutually exclusive, deployed is stronger. ... ok
+test_issue_label_set_replaces_only_the_lifecycle_dimension (tests.test_host_access.HostAccessBrokerTests.test_issue_label_set_replaces_only_the_lifecycle_dimension)
+AC-2: the other four label dimensions survive the write untouched. ... ok
+test_issue_list_omits_the_body (tests.test_host_access.HostAccessBrokerTests.test_issue_list_omits_the_body)
+body is what makes an enumeration cost orders of magnitude more. ... ok
+test_issue_list_pages_past_the_first_fifty (tests.test_host_access.HostAccessBrokerTests.test_issue_list_pages_past_the_first_fifty)
+A first-page-only read answers every duplicate check with "no". ... ok
+test_issue_list_projects_and_excludes_pull_requests (tests.test_host_access.HostAccessBrokerTests.test_issue_list_projects_and_excludes_pull_requests) ... ok
+test_issue_list_rejects_a_malformed_entry (tests.test_host_access.HostAccessBrokerTests.test_issue_list_rejects_a_malformed_entry) ... ok
+test_issue_list_takes_only_a_state (tests.test_host_access.HostAccessBrokerTests.test_issue_list_takes_only_a_state) ... ok
+test_issue_state_is_a_separate_operation_from_update (tests.test_host_access.HostAccessBrokerTests.test_issue_state_is_a_separate_operation_from_update)
+Fixing a title must not carry the power to close. ... ok
+test_issue_state_set_closes_and_reports_the_change (tests.test_host_access.HostAccessBrokerTests.test_issue_state_set_closes_and_reports_the_change) ... ok
+test_issue_state_set_reopens_a_closed_issue (tests.test_host_access.HostAccessBrokerTests.test_issue_state_set_reopens_a_closed_issue)
+Reopening is as much the point as closing. ... ok
+test_issue_state_set_takes_only_a_number_and_an_open_or_closed_state (tests.test_host_access.HostAccessBrokerTests.test_issue_state_set_takes_only_a_number_and_an_open_or_closed_state) ... ok
+test_issue_state_set_writes_nothing_when_already_in_that_state (tests.test_host_access.HostAccessBrokerTests.test_issue_state_set_writes_nothing_when_already_in_that_state)
+A retry after a transport error must not become a second mutation. ... ok
+test_issue_typed_fields_reject_unsafe_or_oversized_text_before_credentials (tests.test_host_access.HostAccessBrokerTests.test_issue_typed_fields_reject_unsafe_or_oversized_text_before_credentials) ... ok
+test_label_provision_is_idempotent_and_never_deletes (tests.test_host_access.HostAccessBrokerTests.test_label_provision_is_idempotent_and_never_deletes) ... ok
+test_label_read_paginates_and_validates_entries (tests.test_host_access.HostAccessBrokerTests.test_label_read_paginates_and_validates_entries) ... ok
+test_label_surface_has_no_delete_and_requires_a_configured_manifest (tests.test_host_access.HostAccessBrokerTests.test_label_surface_has_no_delete_and_requires_a_configured_manifest) ... ok
+test_lifecycle_argument_belongs_only_to_issue_label_set (tests.test_host_access.HostAccessBrokerTests.test_lifecycle_argument_belongs_only_to_issue_label_set) ... ok
+test_main_force_or_arbitrary_refspec_have_no_push_surface (tests.test_host_access.HostAccessBrokerTests.test_main_force_or_arbitrary_refspec_have_no_push_surface) ... ok
+test_merge_commit_is_rejected_before_the_push_runs (tests.test_host_access.HostAccessBrokerTests.test_merge_commit_is_rejected_before_the_push_runs) ... ok
+test_missing_account_does_not_downgrade_auth_server_or_transport_failures (tests.test_host_access.HostAccessBrokerTests.test_missing_account_does_not_downgrade_auth_server_or_transport_failures) ... ok
+test_missing_account_inventory_accepts_canonical_encoded_pagination (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_accepts_canonical_encoded_pagination) ... ok
+test_missing_account_inventory_accepts_quoted_link_parameters (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_accepts_quoted_link_parameters) ... ok
+test_missing_account_inventory_bounds_content_length_decimal (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_bounds_content_length_decimal) ... ok
+test_missing_account_inventory_enforces_audit_wide_response_budgets (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_enforces_audit_wide_response_budgets) ... ok
+test_missing_account_inventory_enforces_content_and_transfer_encoding (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_enforces_content_and_transfer_encoding) ... ok
+test_missing_account_inventory_maps_abnormal_header_mapping_to_schema_error (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_maps_abnormal_header_mapping_to_schema_error) ... ok
+test_missing_account_inventory_maps_deep_json_to_stable_schema_error (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_maps_deep_json_to_stable_schema_error) ... ok
+test_missing_account_inventory_reads_the_terminal_page_after_a_full_page (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_reads_the_terminal_page_after_a_full_page) ... ok
+test_missing_account_inventory_rejects_cross_page_duplicate_and_case_collision (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_rejects_cross_page_duplicate_and_case_collision) ... ok
+test_missing_account_inventory_rejects_cross_page_link_state_drift (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_rejects_cross_page_link_state_drift) ... ok
+test_missing_account_inventory_rejects_duplicate_case_and_username_drift (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_rejects_duplicate_case_and_username_drift) ... ok
+test_missing_account_inventory_rejects_duplicate_json_keys_recursively (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_rejects_duplicate_json_keys_recursively) ... ok
+test_missing_account_inventory_rejects_empty_fragment_link (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_rejects_empty_fragment_link) ... ok
+test_missing_account_inventory_rejects_malformed_quoted_link_parameters (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_rejects_malformed_quoted_link_parameters) ... ok
+test_missing_account_inventory_rejects_oversize_and_abnormal_pagination (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_rejects_oversize_and_abnormal_pagination) ... ok
+test_missing_account_inventory_rejects_response_size_and_length_drift (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_rejects_response_size_and_length_drift) ... ok
+test_missing_account_inventory_requires_exact_http_200 (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_requires_exact_http_200) ... ok
+test_missing_account_inventory_reserves_budget_before_transport (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_reserves_budget_before_transport) ... ok
+test_missing_account_inventory_stops_at_the_page_bound (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_stops_at_the_page_bound) ... ok
+test_missing_account_inventory_strictly_validates_all_link_values (tests.test_host_access.HostAccessBrokerTests.test_missing_account_inventory_strictly_validates_all_link_values) ... ok
+test_missing_account_rejects_ambiguous_cross_project_404 (tests.test_host_access.HostAccessBrokerTests.test_missing_account_rejects_ambiguous_cross_project_404) ... ok
+test_missing_account_rejects_contradictory_collaborator_inventory (tests.test_host_access.HostAccessBrokerTests.test_missing_account_rejects_contradictory_collaborator_inventory) ... ok
+test_missing_account_requires_strict_collaborator_inventory (tests.test_host_access.HostAccessBrokerTests.test_missing_account_requires_strict_collaborator_inventory) ... ok
+test_missing_routine_account_projects_cross_project_404_as_absent_gap (tests.test_host_access.HostAccessBrokerTests.test_missing_routine_account_projects_cross_project_404_as_absent_gap) ... ok
+test_newemaint_push_uses_manifest_gitea_remote (tests.test_host_access.HostAccessBrokerTests.test_newemaint_push_uses_manifest_gitea_remote) ... ok
+test_newemaint_routine_audit_covers_account_scope_write_cross_project_and_allowlist (tests.test_host_access.HostAccessBrokerTests.test_newemaint_routine_audit_covers_account_scope_write_cross_project_and_allowlist) ... ok
+test_newemaint_uses_gitea_remote_and_preserves_github_origin (tests.test_host_access.HostAccessBrokerTests.test_newemaint_uses_gitea_remote_and_preserves_github_origin) ... ok
+test_null_mac_checkout_is_decided_before_credentials (tests.test_host_access.HostAccessBrokerTests.test_null_mac_checkout_is_decided_before_credentials)
+The declared absence of a Mac path outranks any credential finding. ... ok
+test_null_mac_checkout_onboarding_check_is_target_unavailable (tests.test_host_access.HostAccessBrokerTests.test_null_mac_checkout_onboarding_check_is_target_unavailable)
+`mac_checkout: null` is a complete declaration, not onboarding drift. ... ok
+test_onboarding_check_combines_access_remote_and_repo_binding (tests.test_host_access.HostAccessBrokerTests.test_onboarding_check_combines_access_remote_and_repo_binding) ... ok
+test_project_and_manager_read_routes (tests.test_host_access.HostAccessBrokerTests.test_project_and_manager_read_routes) ... ok
+test_pull_body_contract_is_rejected_before_credentials (tests.test_host_access.HostAccessBrokerTests.test_pull_body_contract_is_rejected_before_credentials) ... ok
+test_pull_create_rejects_legacy_and_conflicting_open_name (tests.test_host_access.HostAccessBrokerTests.test_pull_create_rejects_legacy_and_conflicting_open_name) ... ok
+test_pull_create_returns_existing_unique_open_pr_without_posting (tests.test_host_access.HostAccessBrokerTests.test_pull_create_returns_existing_unique_open_pr_without_posting) ... ok
+test_pull_create_update_and_read_are_deduplicated_and_issue_bound (tests.test_host_access.HostAccessBrokerTests.test_pull_create_update_and_read_are_deduplicated_and_issue_bound) ... ok
+test_push_rejects_wrong_common_dir_detached_dirty_and_wrong_change (tests.test_host_access.HostAccessBrokerTests.test_push_rejects_wrong_common_dir_detached_dirty_and_wrong_change) ... ok
+test_push_returns_both_shas_and_records_the_landed_push (tests.test_host_access.HostAccessBrokerTests.test_push_returns_both_shas_and_records_the_landed_push)
+AC-4: the caller gets back what it just pushed and what the branch ... ok
+test_push_survives_main_advancing_and_a_rebase (tests.test_host_access.HostAccessBrokerTests.test_push_survives_main_advancing_and_a_rebase) ... ok
+test_push_uses_current_linked_worktree_and_exact_same_change_ref (tests.test_host_access.HostAccessBrokerTests.test_push_uses_current_linked_worktree_and_exact_same_change_ref) ... ok
+test_readable_first_push_is_allowed_but_conflicting_remote_name_is_rejected (tests.test_host_access.HostAccessBrokerTests.test_readable_first_push_is_allowed_but_conflicting_remote_name_is_rejected) ... ok
+test_remote_branch_moved_after_the_lease_was_read_is_refused (tests.test_host_access.HostAccessBrokerTests.test_remote_branch_moved_after_the_lease_was_read_is_refused) ... ok
+test_remote_fetch_or_push_url_drift_fails_before_credentials (tests.test_host_access.HostAccessBrokerTests.test_remote_fetch_or_push_url_drift_fails_before_credentials) ... ok
+test_repo_local_binding_is_idempotent_and_secret_free (tests.test_host_access.HostAccessBrokerTests.test_repo_local_binding_is_idempotent_and_secret_free) ... ok
+test_stale_base_branch_is_rejected_before_the_push_runs (tests.test_host_access.HostAccessBrokerTests.test_stale_base_branch_is_rejected_before_the_push_runs) ... ok
+test_target_and_identity_mismatch_fail_before_credential_resolution (tests.test_host_access.HostAccessBrokerTests.test_target_and_identity_mismatch_fail_before_credential_resolution) ... ok
+test_the_owner_still_rebases_and_repushes_without_reclaiming (tests.test_host_access.HostAccessBrokerTests.test_the_owner_still_rebases_and_repushes_without_reclaiming)
+AC-6: the BASE_BRANCH_STALE path is the owner's own, and ownership ... ok
+test_unknown_duplicate_and_malformed_scalar_fields_fail_closed (tests.test_host_access.HostAccessBrokerTests.test_unknown_duplicate_and_malformed_scalar_fields_fail_closed) ... ok
+test_unknown_multivalued_attributes_are_ordered_and_ignored (tests.test_host_access.HostAccessBrokerTests.test_unknown_multivalued_attributes_are_ordered_and_ignored) ... ok
+test_exact_projects_profiles_and_no_merge_surface (tests.test_host_access.HostAccessContractTests.test_exact_projects_profiles_and_no_merge_surface) ... ok
+test_extra_key_and_project_agent_mismatch_fail_closed (tests.test_host_access.HostAccessContractTests.test_extra_key_and_project_agent_mismatch_fail_closed) ... ok
+test_governed_issue_and_pull_operations_have_exact_typed_fields (tests.test_host_access.HostAccessContractTests.test_governed_issue_and_pull_operations_have_exact_typed_fields) ... ok
+test_identity_routes_are_least_privilege (tests.test_host_access.HostAccessContractTests.test_identity_routes_are_least_privilege) ... ok
+test_keychain_or_arbitrary_credential_file_contract_is_rejected (tests.test_host_access.HostAccessContractTests.test_keychain_or_arbitrary_credential_file_contract_is_rejected) ... ok
+test_mac_credentials_are_project_scoped_protected_files (tests.test_host_access.HostAccessContractTests.test_mac_credentials_are_project_scoped_protected_files) ... ok
+test_manifest_fixed_remote_defaults_and_rejects_unsafe_names (tests.test_host_access.HostAccessContractTests.test_manifest_fixed_remote_defaults_and_rejects_unsafe_names) ... ok
+test_unknown_project_operation_and_arbitrary_argument_are_denied (tests.test_host_access.HostAccessContractTests.test_unknown_project_operation_and_arbitrary_argument_are_denied) ... ok
+test_agent_configuration_matches_canonical_templates (tests.test_host_access.MattRepositoryAdapterTests.test_agent_configuration_matches_canonical_templates) ... ok
+test_claude_has_one_aisoft_agent_skills_block (tests.test_host_access.MattRepositoryAdapterTests.test_claude_has_one_aisoft_agent_skills_block) ... ok
+test_apply_readback_second_run_noop_and_rollback (tests.test_host_access.ProfileMigrationTests.test_apply_readback_second_run_noop_and_rollback) ... ok
+test_cross_project_source_credential_is_never_selected (tests.test_host_access.ProfileMigrationTests.test_cross_project_source_credential_is_never_selected) ... ok
+test_declared_path_prepend_is_generated_and_drift_fails_read_back (tests.test_host_access.ProfileMigrationTests.test_declared_path_prepend_is_generated_and_drift_fails_read_back) ... ok
+test_identity_mismatch_fails_before_target_mutation (tests.test_host_access.ProfileMigrationTests.test_identity_mismatch_fails_before_target_mutation) ... ok
+test_multiline_source_and_target_credentials_are_rejected (tests.test_host_access.ProfileMigrationTests.test_multiline_source_and_target_credentials_are_rejected) ... ok
+test_partial_replace_failure_restores_both_files (tests.test_host_access.ProfileMigrationTests.test_partial_replace_failure_restores_both_files) ... ok
+test_source_mode_and_symlink_are_rejected (tests.test_host_access.ProfileMigrationTests.test_source_mode_and_symlink_are_rejected) ... ok
+test_source_owner_mismatch_is_rejected (tests.test_host_access.ProfileMigrationTests.test_source_owner_mismatch_is_rejected) ... ok
+test_undeclared_profile_bytes_are_byte_identical_to_pre_112_shape (tests.test_host_access.ProfileMigrationTests.test_undeclared_profile_bytes_are_byte_identical_to_pre_112_shape) ... ok
+test_undeclared_project_with_injected_path_line_fails_read_back (tests.test_host_access.ProfileMigrationTests.test_undeclared_project_with_injected_path_line_fails_read_back) ... ok
+test_aisoft_platform_profile_is_analyzer_only (tests.test_host_access.VmProfilePathPrependContractTests.test_aisoft_platform_profile_is_analyzer_only) ... ok
+test_declared_and_undeclared_projects_parse_exactly (tests.test_host_access.VmProfilePathPrependContractTests.test_declared_and_undeclared_projects_parse_exactly) ... ok
+test_emaintenance_profile_names_no_analysis_provider (tests.test_host_access.VmProfilePathPrependContractTests.test_emaintenance_profile_names_no_analysis_provider) ... ok
+test_invalid_path_prepend_declarations_fail_closed (tests.test_host_access.VmProfilePathPrependContractTests.test_invalid_path_prepend_declarations_fail_closed) ... ok
+test_localwms_profile_is_analyzer_only_without_a_timer (tests.test_host_access.VmProfilePathPrependContractTests.test_localwms_profile_is_analyzer_only_without_a_timer) ... ok
+test_production_manifest_declares_path_prepend_nowhere (tests.test_host_access.VmProfilePathPrependContractTests.test_production_manifest_declares_path_prepend_nowhere) ... ok
+test_profile_spec_projects_path_prepend (tests.test_host_access.VmProfilePathPrependContractTests.test_profile_spec_projects_path_prepend) ... ok
+test_unknown_vm_profile_key_still_fails_closed (tests.test_host_access.VmProfilePathPrependContractTests.test_unknown_vm_profile_key_still_fails_closed) ... ok
+test_malformed_profile_tool_error_fails_closed (tests.test_host_access.VmProfilePreflightTests.test_malformed_profile_tool_error_fails_closed) ... ok
+test_missing_vm_tool_is_reported_as_itself (tests.test_host_access.VmProfilePreflightTests.test_missing_vm_tool_is_reported_as_itself) ... ok
+test_missing_vm_tool_message_leaks_no_command_output (tests.test_host_access.VmProfilePreflightTests.test_missing_vm_tool_message_leaks_no_command_output) ... ok
+test_non_json_stderr_on_failure_fails_closed (tests.test_host_access.VmProfilePreflightTests.test_non_json_stderr_on_failure_fails_closed) ... ok
+test_present_vm_tool_execution_failure_stays_host_command_failed (tests.test_host_access.VmProfilePreflightTests.test_present_vm_tool_execution_failure_stays_host_command_failed) ... ok
+test_present_vm_tool_invalid_json_is_unchanged (tests.test_host_access.VmProfilePreflightTests.test_present_vm_tool_invalid_json_is_unchanged) ... ok
+test_present_vm_tool_returns_payload (tests.test_host_access.VmProfilePreflightTests.test_present_vm_tool_returns_payload) ... ok
+test_present_vm_tool_target_mismatch_is_unchanged (tests.test_host_access.VmProfilePreflightTests.test_present_vm_tool_target_mismatch_is_unchanged) ... ok
+test_profile_tool_governed_error_is_surfaced (tests.test_host_access.VmProfilePreflightTests.test_profile_tool_governed_error_is_surfaced) ... ok
+test_project_without_vm_profile_never_probes (tests.test_host_access.VmProfilePreflightTests.test_project_without_vm_profile_never_probes) ... ok
+test_detector_actually_detects (tests.test_import_hygiene.BareSiblingImportTests.test_detector_actually_detects)
+闸门自身不能静默失效。兄弟集合算错、AST 分支写反，都会让上面那条断言 ... ok
+test_detector_does_not_flag_package_paths (tests.test_import_hygiene.BareSiblingImportTests.test_detector_does_not_flag_package_paths)
+包路径、相对导入和运行时模块都必须放行，否则闸门会把正确写法逼红。 ... ok
+test_no_test_module_imports_a_sibling_by_bare_name (tests.test_import_hygiene.BareSiblingImportTests.test_no_test_module_imports_a_sibling_by_bare_name)
+闸门本体：整个 tests 目录不得出现裸模块名互导。 ... ok
+test_sibling_set_is_not_empty (tests.test_import_hygiene.BareSiblingImportTests.test_sibling_set_is_not_empty)
+兄弟集合空掉，上面的闸门就退化成一条永远绿的断言。 ... ok
+test_tests_tree_is_flat (tests.test_import_hygiene.BareSiblingImportTests.test_tests_tree_is_flat)
+扫描只覆盖 tests/*.py。真出现子包时，裸名解析规则与这里的假设不再一致， ... ok
+test_get_issue_appends_the_thread_and_keeps_the_count (tests.test_issue_payload.GetIssuePayloadTests.test_get_issue_appends_the_thread_and_keeps_the_count) ... ok
+test_get_issue_fails_instead_of_writing_a_thread_less_payload (tests.test_issue_payload.GetIssuePayloadTests.test_get_issue_fails_instead_of_writing_a_thread_less_payload) ... ok
+test_empty_and_populated_threads_render_the_same_summary (tests.test_issue_payload.RenderAnalysisGuardTests.test_empty_and_populated_threads_render_the_same_summary) ... ok
+test_payload_without_the_thread_fails_closed (tests.test_issue_payload.RenderAnalysisGuardTests.test_payload_without_the_thread_fails_closed) ... ok
+test_a_malformed_quoted_skill_name_fails_closed (tests.test_matt_snapshot.MattSnapshotTests.test_a_malformed_quoted_skill_name_fails_closed) ... ok
+test_a_quoted_invocation_policy_is_accepted (tests.test_matt_snapshot.MattSnapshotTests.test_a_quoted_invocation_policy_is_accepted) ... ok
+test_a_quoted_skill_name_is_accepted (tests.test_matt_snapshot.MattSnapshotTests.test_a_quoted_skill_name_is_accepted) ... ok
+test_an_invalid_invocation_policy_still_fails_closed (tests.test_matt_snapshot.MattSnapshotTests.test_an_invalid_invocation_policy_still_fails_closed) ... ok
+test_noncritical_content_only_change_is_a_maintenance_candidate (tests.test_matt_snapshot.MattSnapshotTests.test_noncritical_content_only_change_is_a_maintenance_candidate) ... ok
+test_noncritical_workflow_or_git_side_effect_change_is_complex (tests.test_matt_snapshot.MattSnapshotTests.test_noncritical_workflow_or_git_side_effect_change_is_complex) ... ok
+test_skill_add_remove_or_critical_change_requires_complex_review (tests.test_matt_snapshot.MattSnapshotTests.test_skill_add_remove_or_critical_change_requires_complex_review) ... ok
+test_snapshot_with_undeclared_skill_fails_closed (tests.test_matt_snapshot.MattSnapshotTests.test_snapshot_with_undeclared_skill_fails_closed) ... ok
+test_vendored_release_is_complete_and_matches_manifest (tests.test_matt_snapshot.MattSnapshotTests.test_vendored_release_is_complete_and_matches_manifest) ... ok
+test_braces_in_prose_do_not_win_over_the_real_object (tests.test_output.ExtractLastJsonObjectTests.test_braces_in_prose_do_not_win_over_the_real_object) ... ok
+test_last_object_wins_when_several_are_present (tests.test_output.ExtractLastJsonObjectTests.test_last_object_wins_when_several_are_present) ... ok
+test_markdown_fenced_json_is_unwrapped (tests.test_output.ExtractLastJsonObjectTests.test_markdown_fenced_json_is_unwrapped) ... ok
+test_nested_objects_do_not_truncate_the_result (tests.test_output.ExtractLastJsonObjectTests.test_nested_objects_do_not_truncate_the_result) ... ok
+test_output_without_any_json_object_is_rejected (tests.test_output.ExtractLastJsonObjectTests.test_output_without_any_json_object_is_rejected) ... ok
+test_prose_preamble_before_json_is_dropped (tests.test_output.ExtractLastJsonObjectTests.test_prose_preamble_before_json_is_dropped) ... ok
+test_pure_json_is_returned_unchanged (tests.test_output.ExtractLastJsonObjectTests.test_pure_json_is_returned_unchanged) ... ok
+test_trailing_prose_after_json_is_dropped (tests.test_output.ExtractLastJsonObjectTests.test_trailing_prose_after_json_is_dropped) ... ok
+test_unterminated_object_is_rejected (tests.test_output.ExtractLastJsonObjectTests.test_unterminated_object_is_rejected) ... ok
+test_provider_failure_output_is_redacted (tests.test_parity.ProviderBoundaryTests.test_provider_failure_output_is_redacted) ... ok
+test_credentials_are_never_forwarded_to_a_provider (tests.test_parity.ProviderEnvironmentTests.test_credentials_are_never_forwarded_to_a_provider) ... ok
+test_each_provider_model_variable_is_forwarded (tests.test_parity.ProviderEnvironmentTests.test_each_provider_model_variable_is_forwarded) ... ok
+test_ci_feedback_recovers_on_both_providers (tests.test_parity.ProviderParityMatrixTests.test_ci_feedback_recovers_on_both_providers) ... ok
+test_external_blocker_stops_on_both_providers (tests.test_parity.ProviderParityMatrixTests.test_external_blocker_stops_on_both_providers) ... ok
+test_no_provider_can_merge_or_deploy (tests.test_parity.ProviderParityMatrixTests.test_no_provider_can_merge_or_deploy) ... ok
+test_repeated_root_cause_limit_stops_on_both_providers (tests.test_parity.ProviderParityMatrixTests.test_repeated_root_cause_limit_stops_on_both_providers) ... ok
+test_round_limit_stops_on_both_providers (tests.test_parity.ProviderParityMatrixTests.test_round_limit_stops_on_both_providers) ... ok
+test_scope_expansion_stops_on_both_providers (tests.test_parity.ProviderParityMatrixTests.test_scope_expansion_stops_on_both_providers) ... ok
+test_success_reaches_ready_for_review_on_both_providers (tests.test_parity.ProviderParityMatrixTests.test_success_reaches_ready_for_review_on_both_providers) ... ok
+test_verifier_feedback_recovers_on_both_providers (tests.test_parity.ProviderParityMatrixTests.test_verifier_feedback_recovers_on_both_providers) ... ok
+test_disabled_provider_never_silently_falls_back_to_codex (tests.test_parity.ProviderRoutingTests.test_disabled_provider_never_silently_falls_back_to_codex) ... ok
+test_unknown_provider_is_reported_not_defaulted (tests.test_parity.ProviderRoutingTests.test_unknown_provider_is_reported_not_defaulted) ... ok
+test_disabled_provider_is_rejected (tests.test_parity.ProviderSelectionTests.test_disabled_provider_is_rejected) ... ok
+test_each_provider_selects_its_own_adapter (tests.test_parity.ProviderSelectionTests.test_each_provider_selects_its_own_adapter) ... ok
+test_explicit_script_override_is_honoured_per_provider (tests.test_parity.ProviderSelectionTests.test_explicit_script_override_is_honoured_per_provider) ... ok
+test_unknown_provider_is_rejected (tests.test_parity.ProviderSelectionTests.test_unknown_provider_is_rejected) ... ok
+test_absent_instance_cannot_hide_existing_repository (tests.test_platform_bootstrap.PlatformBootstrapTests.test_absent_instance_cannot_hide_existing_repository) ... ok
+test_absent_repository_cannot_skip_protection_or_ci (tests.test_platform_bootstrap.PlatformBootstrapTests.test_absent_repository_cannot_skip_protection_or_ci) ... ok
+test_adopt_is_noop_except_new_canary (tests.test_platform_bootstrap.PlatformBootstrapTests.test_adopt_is_noop_except_new_canary) ... ok
+test_adopt_with_remediation_keeps_existing_gitea (tests.test_platform_bootstrap.PlatformBootstrapTests.test_adopt_with_remediation_keeps_existing_gitea) ... ok
+test_all_actions_apply_and_rollback_dryrun (tests.test_platform_bootstrap.PlatformBootstrapTests.test_all_actions_apply_and_rollback_dryrun) ... ok
+test_archive_corruption_is_rejected_without_extraction (tests.test_platform_bootstrap.PlatformBootstrapTests.test_archive_corruption_is_rejected_without_extraction) ... ok
+test_bundled_cli_runs_without_repo_runtime_or_network (tests.test_platform_bootstrap.PlatformBootstrapTests.test_bundled_cli_runs_without_repo_runtime_or_network) ... ok
+test_cli_recomputes_plan_and_refuses_stale_approval (tests.test_platform_bootstrap.PlatformBootstrapTests.test_cli_recomputes_plan_and_refuses_stale_approval) ... ok
+test_closed_source_component_allowlist (tests.test_platform_bootstrap.PlatformBootstrapTests.test_closed_source_component_allowlist) ... ok
+test_concurrent_worktree_edit_never_changes_pinned_payload (tests.test_platform_bootstrap.PlatformBootstrapTests.test_concurrent_worktree_edit_never_changes_pinned_payload) ... ok
+test_controlled_upgrade_always_blocked (tests.test_platform_bootstrap.PlatformBootstrapTests.test_controlled_upgrade_always_blocked) ... ok
+test_decompression_limit (tests.test_platform_bootstrap.PlatformBootstrapTests.test_decompression_limit) ... ok
+test_dirty_and_untracked_source_rejected (tests.test_platform_bootstrap.PlatformBootstrapTests.test_dirty_and_untracked_source_rejected) ... ok
+test_duplicate_json_keys_and_nonfinite_are_rejected (tests.test_platform_bootstrap.PlatformBootstrapTests.test_duplicate_json_keys_and_nonfinite_are_rejected) ... ok
+test_every_action_requires_negative_permission_evidence (tests.test_platform_bootstrap.PlatformBootstrapTests.test_every_action_requires_negative_permission_evidence) ... ok
+test_exact_action_parameters_are_hashed_and_closed (tests.test_platform_bootstrap.PlatformBootstrapTests.test_exact_action_parameters_are_hashed_and_closed) ... ok
+test_external_handoff_pin_required_even_for_self_consistent_bytes (tests.test_platform_bootstrap.PlatformBootstrapTests.test_external_handoff_pin_required_even_for_self_consistent_bytes) ... ok
+test_failed_readback_not_promoted_to_pass (tests.test_platform_bootstrap.PlatformBootstrapTests.test_failed_readback_not_promoted_to_pass) ... ok
+test_field_command_blocks_at_most_50_lines (tests.test_platform_bootstrap.PlatformBootstrapTests.test_field_command_blocks_at_most_50_lines) ... ok
+test_first_install_is_bound_to_uninstalled_identity (tests.test_platform_bootstrap.PlatformBootstrapTests.test_first_install_is_bound_to_uninstalled_identity) ... ok
+test_git_fsmonitor_cannot_execute_during_build (tests.test_platform_bootstrap.PlatformBootstrapTests.test_git_fsmonitor_cannot_execute_during_build) ... ok
+test_hostile_archive_members_rejected_even_with_recomputed_outer_hash (tests.test_platform_bootstrap.PlatformBootstrapTests.test_hostile_archive_members_rejected_even_with_recomputed_outer_hash) ... ok
+test_input_symlink_and_hardlink_refused (tests.test_platform_bootstrap.PlatformBootstrapTests.test_input_symlink_and_hardlink_refused) ... ok
+test_no_live_apply_or_arbitrary_executor_fallback (tests.test_platform_bootstrap.PlatformBootstrapTests.test_no_live_apply_or_arbitrary_executor_fallback) ... ok
+test_output_not_empty_or_in_source_refused (tests.test_platform_bootstrap.PlatformBootstrapTests.test_output_not_empty_or_in_source_refused) ... ok
+test_payload_schema_refuses_absolute_and_dot_paths (tests.test_platform_bootstrap.PlatformBootstrapTests.test_payload_schema_refuses_absolute_and_dot_paths) ... ok
+test_readback_wrong_identity_and_missing_checks_refused (tests.test_platform_bootstrap.PlatformBootstrapTests.test_readback_wrong_identity_and_missing_checks_refused) ... ok
+test_schema_files_match_runtime_contract (tests.test_platform_bootstrap.PlatformBootstrapTests.test_schema_files_match_runtime_contract) ... ok
+test_secret_like_input_rejected_no_echo (tests.test_platform_bootstrap.PlatformBootstrapTests.test_secret_like_input_rejected_no_echo) ... ok
+test_source_concrete_secret_literal_rejected (tests.test_platform_bootstrap.PlatformBootstrapTests.test_source_concrete_secret_literal_rejected) ... ok
+test_strict_types_unknown_fields_and_empty_ci (tests.test_platform_bootstrap.PlatformBootstrapTests.test_strict_types_unknown_fields_and_empty_ci) ... ok
+test_two_builds_byte_identical_without_application_inputs (tests.test_platform_bootstrap.PlatformBootstrapTests.test_two_builds_byte_identical_without_application_inputs) ... ok
+test_unknown_unsafe_identity_and_missing_recovery_fail_closed (tests.test_platform_bootstrap.PlatformBootstrapTests.test_unknown_unsafe_identity_and_missing_recovery_fail_closed) ... ok
+test_wrong_source_identity_leaves_empty_output (tests.test_platform_bootstrap.PlatformBootstrapTests.test_wrong_source_identity_leaves_empty_output) ... ok
+test_wrong_staging_ref_and_contexts_rejected (tests.test_platform_bootstrap.PlatformBootstrapTests.test_wrong_staging_ref_and_contexts_rejected) ... ok
+test_canonical_architecture_lock_round_trips_into_release (tests.test_release_architecture_integration.ArchitectureReleaseIntegrationTests.test_canonical_architecture_lock_round_trips_into_release) ... ok
+test_expired_or_substituted_transition_lock_has_zero_docker_calls (tests.test_release_architecture_integration.ArchitectureReleaseIntegrationTests.test_expired_or_substituted_transition_lock_has_zero_docker_calls) ... ok
+test_transition_lock_is_valid_before_docker_config (tests.test_release_architecture_integration.ArchitectureReleaseIntegrationTests.test_transition_lock_is_valid_before_docker_config) ... ok
+test_valid_self_hash_cannot_hide_unknown_lock_field (tests.test_release_architecture_integration.ArchitectureReleaseIntegrationTests.test_valid_self_hash_cannot_hide_unknown_lock_field) ... ok
+test_classic_requires_explicit_overlay2_and_no_snapshotter_marker (tests.test_release_capability.DockerCapabilityTests.test_classic_requires_explicit_overlay2_and_no_snapshotter_marker) ... ok
+test_committed_compose_514_evidence_row_is_supported (tests.test_release_capability.DockerCapabilityTests.test_committed_compose_514_evidence_row_is_supported) ... ok
+test_committed_compose_514_row_rejects_neighboring_bounds_and_classic (tests.test_release_capability.DockerCapabilityTests.test_committed_compose_514_row_rejects_neighboring_bounds_and_classic) ... ok
+test_committed_containerd_row_is_supported_and_classic_remains_rejected (tests.test_release_capability.DockerCapabilityTests.test_committed_containerd_row_is_supported_and_classic_remains_rejected) ... ok
+test_containerd_detection_uses_exact_driver_status_marker (tests.test_release_capability.DockerCapabilityTests.test_containerd_detection_uses_exact_driver_status_marker) ... ok
+test_duplicate_or_overlapping_matrix_rows_fail_closed (tests.test_release_capability.DockerCapabilityTests.test_duplicate_or_overlapping_matrix_rows_fail_closed) ... ok
+test_supported_matrix_row_requires_real_e2e_evidence (tests.test_release_capability.DockerCapabilityTests.test_supported_matrix_row_requires_real_e2e_evidence) ... ok
+test_unknown_conflicting_or_unbounded_metadata_fails_closed (tests.test_release_capability.DockerCapabilityTests.test_unknown_conflicting_or_unbounded_metadata_fails_closed) ... ok
+test_arbitrary_extra_command_is_rejected (tests.test_release_cli.ReleaseCliTests.test_arbitrary_extra_command_is_rejected) ... ok
+test_artifact_cli_allows_sensitive_external_references_without_target_reads (tests.test_release_cli.ReleaseCliTests.test_artifact_cli_allows_sensitive_external_references_without_target_reads) ... ok
+test_artifact_command_requires_release_root_not_profile (tests.test_release_cli.ReleaseCliTests.test_artifact_command_requires_release_root_not_profile) ... ok
+test_stable_commands_require_only_profile_and_release_id (tests.test_release_cli.ReleaseCliTests.test_stable_commands_require_only_profile_and_release_id) ... ok
+test_sensitive_environment_keys_with_strict_references_pass (tests.test_release_contract.ComposeSecurityTests.test_sensitive_environment_keys_with_strict_references_pass) ... ok
+test_unsafe_compose_variants_are_rejected (tests.test_release_contract.ComposeSecurityTests.test_unsafe_compose_variants_are_rejected) ... ok
+test_valid_compose_model_passes (tests.test_release_contract.ComposeSecurityTests.test_valid_compose_model_passes) ... ok
+test_architecture_lock_delivery_contract_is_cross_checked (tests.test_release_contract.ReleaseContractTests.test_architecture_lock_delivery_contract_is_cross_checked) ... ok
+test_architecture_lock_profile_and_catalog_are_cross_checked (tests.test_release_contract.ReleaseContractTests.test_architecture_lock_profile_and_catalog_are_cross_checked) ... ok
+test_architecture_lock_project_id_is_bound_by_target_profile (tests.test_release_contract.ReleaseContractTests.test_architecture_lock_project_id_is_bound_by_target_profile) ... ok
+test_architecture_lock_self_hash_is_verified (tests.test_release_contract.ReleaseContractTests.test_architecture_lock_self_hash_is_verified) ... ok
+test_architecture_lock_source_url_rejects_credentials (tests.test_release_contract.ReleaseContractTests.test_architecture_lock_source_url_rejects_credentials) ... ok
+test_duplicate_json_field_is_rejected (tests.test_release_contract.ReleaseContractTests.test_duplicate_json_field_is_rejected) ... ok
+test_invalid_manifest_variants_fail_closed (tests.test_release_contract.ReleaseContractTests.test_invalid_manifest_variants_fail_closed) ... ok
+test_legacy_profile_without_optional_architecture_project_id_loads (tests.test_release_contract.ReleaseContractTests.test_legacy_profile_without_optional_architecture_project_id_loads) ... ok
+test_legacy_registry_manifest_remains_strictly_readable (tests.test_release_contract.ReleaseContractTests.test_legacy_registry_manifest_remains_strictly_readable) ... ok
+test_missing_or_tampered_architecture_lock_fails (tests.test_release_contract.ReleaseContractTests.test_missing_or_tampered_architecture_lock_fails) ... ok
+test_non_compose_sensitive_field_boundaries_remain_forbidden (tests.test_release_contract.ReleaseContractTests.test_non_compose_sensitive_field_boundaries_remain_forbidden) ... ok
+test_profile_paths_must_be_absolute_separate_and_normalized (tests.test_release_contract.ReleaseContractTests.test_profile_paths_must_be_absolute_separate_and_normalized) ... ok
+test_profile_requires_private_mode_and_rejects_unknown_fields (tests.test_release_contract.ReleaseContractTests.test_profile_requires_private_mode_and_rejects_unknown_fields) ... ok
+test_release_directory_rejects_undeclared_dotenv_or_extra_files (tests.test_release_contract.ReleaseContractTests.test_release_directory_rejects_undeclared_dotenv_or_extra_files) ... ok
+test_runtime_tag_is_deterministic_and_rejects_unsafe_components (tests.test_release_contract.ReleaseContractTests.test_runtime_tag_is_deterministic_and_rejects_unsafe_components) ... ok
+test_sensitive_environment_key_exceptions_fail_closed (tests.test_release_contract.ReleaseContractTests.test_sensitive_environment_key_exceptions_fail_closed) ... ok
+test_sensitive_environment_keys_allow_strict_external_references (tests.test_release_contract.ReleaseContractTests.test_sensitive_environment_keys_allow_strict_external_references) ... ok
+test_sensitive_field_outside_environment_remains_forbidden (tests.test_release_contract.ReleaseContractTests.test_sensitive_field_outside_environment_remains_forbidden) ... ok
+test_valid_profile_manifest_and_architecture_lock_load (tests.test_release_contract.ReleaseContractTests.test_valid_profile_manifest_and_architecture_lock_load) ... ok
+test_schema_files_are_strict_json_schema_objects (tests.test_release_contract.ReleaseSchemaTests.test_schema_files_are_strict_json_schema_objects) ... ok
+test_archive_requires_exact_journal_bound_cleanup_and_preserves_bytes (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_archive_requires_exact_journal_bound_cleanup_and_preserves_bytes) ... ok
+test_candidate_and_final_matrix_exact_bounds (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_candidate_and_final_matrix_exact_bounds) ... ok
+test_cleanup_marker_mismatch_prevents_any_deletion (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_cleanup_marker_mismatch_prevents_any_deletion) ... ok
+test_cleanup_partial_provision_preserves_existing_vms (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_cleanup_partial_provision_preserves_existing_vms) ... ok
+test_cleanup_second_vm_failure_preserves_first_completion_and_can_resume (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_cleanup_second_vm_failure_preserves_first_completion_and_can_resume) ... ok
+test_create_failure_preserves_intent_before_machine_id (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_create_failure_preserves_intent_before_machine_id) ... ok
+test_duplicate_daemon_rejected (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_duplicate_daemon_rejected) ... ok
+test_exact_capabilities (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_exact_capabilities) ... ok
+test_existing_vm_rejected_before_mutation (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_existing_vm_rejected_before_mutation) ... ok
+test_immutable_evidence (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_immutable_evidence) ... ok
+test_installer_validates_real_tar_root_and_rejects_unsafe_members (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_installer_validates_real_tar_root_and_rejects_unsafe_members) ... ok
+test_lifecycle_mutation_counts_ignore_readonly_calls (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_lifecycle_mutation_counts_ignore_readonly_calls) ... ok
+test_missing_vm_without_completion_record_never_deleted (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_missing_vm_without_completion_record_never_deleted) ... ok
+test_orb_vm_argv_uses_supported_run_syntax (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_orb_vm_argv_uses_supported_run_syntax) ... ok
+test_pin_requires_official_urls_and_checksum (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_pin_requires_official_urls_and_checksum) ... ok
+test_real_runtime_identity_mismatch_is_not_normalized (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_real_runtime_identity_mismatch_is_not_normalized) ... ok
+test_resume_requires_exact_successful_creation_and_isolation (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_resume_requires_exact_successful_creation_and_isolation) ... ok
+test_synthetic_architecture_and_compose_pass_real_contract_parsers (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_synthetic_architecture_and_compose_pass_real_contract_parsers) ... ok
+test_unapproved_no_subprocess (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_unapproved_no_subprocess) ... ok
+test_wrong_version_store_arch_root_fail_closed (tests.test_release_docker28_compatibility.Docker28PreflightTests.test_wrong_version_store_arch_root_fail_closed) ... ok
+test_command_env_moves_the_bytecode_cache_out_of_the_work_tree (tests.test_release_evidence_boundary.BytecodeCacheIsolationTests.test_command_env_moves_the_bytecode_cache_out_of_the_work_tree) ... ok
+test_tampered_in_tree_bytecode_is_not_executed (tests.test_release_evidence_boundary.BytecodeCacheIsolationTests.test_tampered_in_tree_bytecode_is_not_executed) ... ok
+test_all_pinned_files_reject_a_single_extra_byte (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_all_pinned_files_reject_a_single_extra_byte) ... ok
+test_any_regression_failure_fails_the_combined_check (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_any_regression_failure_fails_the_combined_check) ... ok
+test_cli_accepts_no_override (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_cli_accepts_no_override) ... FAIL: this fixed evidence check accepts no overrides
+ok
+test_current_amendment_pins_require_exact_disk_and_index_bytes (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_current_amendment_pins_require_exact_disk_and_index_bytes) ... ok
+test_current_pins_cannot_exempt_other_paths_or_use_invalid_hashes (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_current_pins_cannot_exempt_other_paths_or_use_invalid_hashes) ... ok
+test_deleted_index_entry_is_rejected (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_deleted_index_entry_is_rejected) ... ok
+test_disk_and_index_modes_are_independently_checked (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_disk_and_index_modes_are_independently_checked) ... ok
+test_drift_during_either_regression_fails (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_drift_during_either_regression_fails) ... ok
+test_exact_revision_passes_and_document_exceptions_are_bounded (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_exact_revision_passes_and_document_exceptions_are_bounded) ... ok
+test_history_runs_only_fixed_local_snapshot_and_cleans_it (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_history_runs_only_fixed_local_snapshot_and_cleans_it) ... ok
+test_missing_baseline_or_wrong_pins_fail_closed (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_missing_baseline_or_wrong_pins_fail_closed) ... ok
+test_missing_renamed_and_symlink_paths_are_rejected (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_missing_renamed_and_symlink_paths_are_rejected) ... ok
+test_nonzero_command_is_not_reported_as_pass (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_nonzero_command_is_not_reported_as_pass) ... ok
+test_production_and_unknown_action_widening_are_rejected (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_production_and_unknown_action_widening_are_rejected) ... ok
+test_staged_tamper_is_rejected_even_if_disk_was_restored (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_staged_tamper_is_rejected_even_if_disk_was_restored) ... ok
+test_success_requires_history_and_current_regressions (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_success_requires_history_and_current_regressions) ... ok
+test_symlink_ancestor_is_rejected (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_symlink_ancestor_is_rejected) ... ok
+test_untracked_files_are_rejected_except_python_bytecode_products (tests.test_release_evidence_boundary.ReleaseEvidenceBoundaryTests.test_untracked_files_are_rejected_except_python_bytecode_products)
+#301：唯一的豁免是编译字节码产物，判据不是 git 是否忽略这个文件。 ... ok
+test_arbitrary_action_short_sha_and_grant_mismatch_are_rejected (tests.test_release_gate.ReleaseGateTests.test_arbitrary_action_short_sha_and_grant_mismatch_are_rejected) ... ok
+test_gate_executes_only_fixed_argv_and_audits_result (tests.test_release_gate.ReleaseGateTests.test_gate_executes_only_fixed_argv_and_audits_result) ... ok
+test_writable_or_symlink_grant_is_rejected_before_command (tests.test_release_gate.ReleaseGateTests.test_writable_or_symlink_grant_is_rejected_before_command) ... ok
+test_activate_requires_receipts_and_has_no_transport_or_migration_calls (tests.test_release_phases.ReleasePhaseTests.test_activate_requires_receipts_and_has_no_transport_or_migration_calls) ... ok
+test_artifact_sensitive_external_references_keep_zero_call_boundary (tests.test_release_phases.ReleasePhaseTests.test_artifact_sensitive_external_references_keep_zero_call_boundary) ... ok
+test_artifact_tamper_fails_with_zero_docker_calls (tests.test_release_phases.ReleasePhaseTests.test_artifact_tamper_fails_with_zero_docker_calls) ... ok
+test_artifact_verification_has_zero_docker_calls_or_target_inputs (tests.test_release_phases.ReleasePhaseTests.test_artifact_verification_has_zero_docker_calls_or_target_inputs) ... ok
+test_legacy_v1_remains_available_only_through_compatibility_commands (tests.test_release_phases.ReleasePhaseTests.test_legacy_v1_remains_available_only_through_compatibility_commands) ... ok
+test_legacy_v1_rollback_retains_transport_prepare_semantics (tests.test_release_phases.ReleasePhaseTests.test_legacy_v1_rollback_retains_transport_prepare_semantics) ... ok
+test_migrate_requires_staging_and_never_stages_or_activates (tests.test_release_phases.ReleasePhaseTests.test_migrate_requires_staging_and_never_stages_or_activates) ... ok
+test_phase_activation_failure_rolls_back_without_transport_or_migration (tests.test_release_phases.ReleasePhaseTests.test_phase_activation_failure_rolls_back_without_transport_or_migration) ... ok
+test_stage_needs_no_env_and_has_zero_database_or_activation_calls (tests.test_release_phases.ReleasePhaseTests.test_stage_needs_no_env_and_has_zero_database_or_activation_calls) ... ok
+test_stage_readiness_failure_has_zero_transport_or_later_mutations (tests.test_release_phases.ReleasePhaseTests.test_stage_readiness_failure_has_zero_transport_or_later_mutations) ... ok
+test_target_readiness_is_read_only_and_compares_producer_model (tests.test_release_phases.ReleasePhaseTests.test_target_readiness_is_read_only_and_compares_producer_model) ... ok
+test_target_sensitive_environment_model_equality_is_not_weakened (tests.test_release_phases.ReleasePhaseTests.test_target_sensitive_environment_model_equality_is_not_weakened) ... ok
+test_v2_rollback_uses_recorded_local_images_without_transport_or_migration (tests.test_release_phases.ReleasePhaseTests.test_v2_rollback_uses_recorded_local_images_without_transport_or_migration) ... ok
+test_malformed_staging_receipt_fails_closed (tests.test_release_phases.ReleaseStateMigrationTests.test_malformed_staging_receipt_fails_closed) ... ok
+test_sensitive_state_field_remains_forbidden (tests.test_release_phases.ReleaseStateMigrationTests.test_sensitive_state_field_remains_forbidden) ... ok
+test_v1_state_is_deterministically_loaded_as_v2 (tests.test_release_phases.ReleaseStateMigrationTests.test_v1_state_is_deterministically_loaded_as_v2) ... ok
+test_production_rejection_preserves_existing_state (tests.test_release_runner.HostRoleMatrixTests.test_production_rejection_preserves_existing_state) ... ok
+test_public_entrypoints_reject_before_docker_or_state_creation (tests.test_release_runner.HostRoleMatrixTests.test_public_entrypoints_reject_before_docker_or_state_creation) ... ok
+test_role_environment_action_matrix (tests.test_release_runner.HostRoleMatrixTests.test_role_environment_action_matrix) ... ok
+test_scm_verification_is_read_only_in_both_environments (tests.test_release_runner.HostRoleMatrixTests.test_scm_verification_is_read_only_in_both_environments) ... ok
+test_unknown_action_cannot_use_test_exception (tests.test_release_runner.HostRoleMatrixTests.test_unknown_action_cannot_use_test_exception) ... ok
+test_cross_store_status_revalidates_image_and_exact_container_identity (tests.test_release_runner.ReleaseRunnerTests.test_cross_store_status_revalidates_image_and_exact_container_identity) ... ok
+test_deploy_orders_transport_migration_up_and_persists_atomic_state (tests.test_release_runner.ReleaseRunnerTests.test_deploy_orders_transport_migration_up_and_persists_atomic_state) ... ok
+test_explicit_rollback_only_accepts_previous_and_does_not_run_migration (tests.test_release_runner.ReleaseRunnerTests.test_explicit_rollback_only_accepts_previous_and_does_not_run_migration) ... ok
+test_health_failure_restores_previous_release_without_database_restore (tests.test_release_runner.ReleaseRunnerTests.test_health_failure_restores_previous_release_without_database_restore) ... ok
+test_hostname_mismatch_fails_before_docker_call (tests.test_release_runner.ReleaseRunnerTests.test_hostname_mismatch_fails_before_docker_call) ... ok
+test_migration_failure_is_recorded_and_never_automatically_retried (tests.test_release_runner.ReleaseRunnerTests.test_migration_failure_is_recorded_and_never_automatically_retried) ... ok
+test_post_start_container_identity_toctou_mismatch_rolls_back (tests.test_release_runner.ReleaseRunnerTests.test_post_start_container_identity_toctou_mismatch_rolls_back) ... ok
+test_same_sha_healthy_deploy_is_noop_and_migration_runs_once (tests.test_release_runner.ReleaseRunnerTests.test_same_sha_healthy_deploy_is_noop_and_migration_runs_once) ... ok
+test_scm_ci_production_can_verify_but_cannot_deploy_before_docker_call (tests.test_release_runner.ReleaseRunnerTests.test_scm_ci_production_can_verify_but_cannot_deploy_before_docker_call) ... ok
+test_status_checks_exact_release_and_secret_marker_is_not_persisted (tests.test_release_runner.ReleaseRunnerTests.test_status_checks_exact_release_and_secret_marker_is_not_persisted) ... ok
+test_offline_deploy_noop_and_health_failure_rollback (tests.test_release_runner.ScmCiOfflineRunnerTests.test_offline_deploy_noop_and_health_failure_rollback) ... ok
+test_cross_store_status_revalidates_image_and_exact_container_identity (tests.test_release_runner.ScmCiReleaseRunnerTests.test_cross_store_status_revalidates_image_and_exact_container_identity) ... ok
+test_deploy_orders_transport_migration_up_and_persists_atomic_state (tests.test_release_runner.ScmCiReleaseRunnerTests.test_deploy_orders_transport_migration_up_and_persists_atomic_state) ... ok
+test_explicit_phases_preserve_receipts_and_mutation_boundaries (tests.test_release_runner.ScmCiReleaseRunnerTests.test_explicit_phases_preserve_receipts_and_mutation_boundaries) ... ok
+test_explicit_rollback_only_accepts_previous_and_does_not_run_migration (tests.test_release_runner.ScmCiReleaseRunnerTests.test_explicit_rollback_only_accepts_previous_and_does_not_run_migration) ... ok
+test_health_failure_restores_previous_release_without_database_restore (tests.test_release_runner.ScmCiReleaseRunnerTests.test_health_failure_restores_previous_release_without_database_restore) ... ok
+test_hostname_mismatch_fails_before_docker_call (tests.test_release_runner.ScmCiReleaseRunnerTests.test_hostname_mismatch_fails_before_docker_call) ... ok
+test_migration_failure_is_recorded_and_never_automatically_retried (tests.test_release_runner.ScmCiReleaseRunnerTests.test_migration_failure_is_recorded_and_never_automatically_retried) ... ok
+test_post_start_container_identity_toctou_mismatch_rolls_back (tests.test_release_runner.ScmCiReleaseRunnerTests.test_post_start_container_identity_toctou_mismatch_rolls_back) ... ok
+test_same_sha_healthy_deploy_is_noop_and_migration_runs_once (tests.test_release_runner.ScmCiReleaseRunnerTests.test_same_sha_healthy_deploy_is_noop_and_migration_runs_once) ... ok
+test_scm_ci_production_can_verify_but_cannot_deploy_before_docker_call (tests.test_release_runner.ScmCiReleaseRunnerTests.test_scm_ci_production_can_verify_but_cannot_deploy_before_docker_call) ... ok
+test_status_checks_exact_release_and_secret_marker_is_not_persisted (tests.test_release_runner.ScmCiReleaseRunnerTests.test_status_checks_exact_release_and_secret_marker_is_not_persisted) ... ok
+test_completed_receipt_makes_a_same_migration_release_a_noop (tests.test_release_runner.SharedMigrationIdentityTests.test_completed_receipt_makes_a_same_migration_release_a_noop) ... ok
+test_missing_receipt_still_refuses_activation_and_runs_the_migration (tests.test_release_runner.SharedMigrationIdentityTests.test_missing_receipt_still_refuses_activation_and_runs_the_migration) ... ok
+test_uncertain_or_failed_receipt_still_refuses_a_same_migration_release (tests.test_release_runner.SharedMigrationIdentityTests.test_uncertain_or_failed_receipt_still_refuses_a_same_migration_release) ... ok
+test_second_process_lock_holder_is_rejected (tests.test_release_safety.DeploymentLockTests.test_second_process_lock_holder_is_rejected) ... ok
+test_compose_config_uses_non_interpolating_json_validation_flags (tests.test_release_safety.DockerAdapterSafetyTests.test_compose_config_uses_non_interpolating_json_validation_flags) ... ok
+test_compose_up_forbids_pull_and_build (tests.test_release_safety.DockerAdapterSafetyTests.test_compose_up_forbids_pull_and_build) ... ok
+test_image_save_refuses_overwrite_and_uses_explicit_tags (tests.test_release_safety.DockerAdapterSafetyTests.test_image_save_refuses_overwrite_and_uses_explicit_tags) ... ok
+test_subprocess_failure_never_exposes_output_or_sensitive_environment (tests.test_release_safety.DockerAdapterSafetyTests.test_subprocess_failure_never_exposes_output_or_sensitive_environment) ... ok
+test_archive_reference_and_config_tamper_fail_before_load (tests.test_release_transport.ReleaseTransportTests.test_archive_reference_and_config_tamper_fail_before_load) ... ok
+test_cross_store_native_and_config_ids_accept_same_oci_artifact (tests.test_release_transport.ReleaseTransportTests.test_cross_store_native_and_config_ids_accept_same_oci_artifact) ... ok
+test_cross_store_receipt_cannot_hide_changed_archive (tests.test_release_transport.ReleaseTransportTests.test_cross_store_receipt_cannot_hide_changed_archive) ... ok
+test_cross_store_rejects_ambiguous_or_wrong_platform_index_before_pull (tests.test_release_transport.ReleaseTransportTests.test_cross_store_rejects_ambiguous_or_wrong_platform_index_before_pull) ... ok
+test_cross_store_rejects_attestation_config_even_if_content_verified (tests.test_release_transport.ReleaseTransportTests.test_cross_store_rejects_attestation_config_even_if_content_verified) ... ok
+test_cross_store_rejects_wrong_local_content_platform_or_registry_digest (tests.test_release_transport.ReleaseTransportTests.test_cross_store_rejects_wrong_local_content_platform_or_registry_digest) ... ok
+test_docker_29_containerd_direct_manifest_identity_passes_preflight (tests.test_release_transport.ReleaseTransportTests.test_docker_29_containerd_direct_manifest_identity_passes_preflight) ... ok
+test_docker_29_containerd_direct_manifest_rejects_unrelated_image_id (tests.test_release_transport.ReleaseTransportTests.test_docker_29_containerd_direct_manifest_rejects_unrelated_image_id) ... ok
+test_docker_29_oci_archive_shapes_pass_read_only_preflight (tests.test_release_transport.ReleaseTransportTests.test_docker_29_oci_archive_shapes_pass_read_only_preflight) ... ok
+test_docker_29_oci_archive_tamper_fails_before_load (tests.test_release_transport.ReleaseTransportTests.test_docker_29_oci_archive_tamper_fails_before_load) ... ok
+test_image_identity_mismatch_stops_before_compose_up (tests.test_release_transport.ReleaseTransportTests.test_image_identity_mismatch_stops_before_compose_up) ... ok
+test_legacy_offline_bundle_rejects_before_any_docker_call (tests.test_release_transport.ReleaseTransportTests.test_legacy_offline_bundle_rejects_before_any_docker_call) ... ok
+test_legacy_registry_deploy_remains_supported_without_retag (tests.test_release_transport.ReleaseTransportTests.test_legacy_registry_deploy_remains_supported_without_retag) ... ok
+test_legacy_v1_never_projects_config_identity (tests.test_release_transport.ReleaseTransportTests.test_legacy_v1_never_projects_config_identity) ... ok
+test_measured_docker28_identity_uses_unchanged_real_archive (tests.test_release_transport.ReleaseTransportTests.test_measured_docker28_identity_uses_unchanged_real_archive) ... ok
+test_non_allowlisted_archive_member_fails_before_load (tests.test_release_transport.ReleaseTransportTests.test_non_allowlisted_archive_member_fails_before_load) ... ok
+test_offline_archive_path_traversal_fails_before_any_docker_call (tests.test_release_transport.ReleaseTransportTests.test_offline_archive_path_traversal_fails_before_any_docker_call) ... ok
+test_offline_inventory_tamper_fails_before_any_docker_call (tests.test_release_transport.ReleaseTransportTests.test_offline_inventory_tamper_fails_before_any_docker_call) ... ok
+test_offline_tamper_fails_before_any_docker_call (tests.test_release_transport.ReleaseTransportTests.test_offline_tamper_fails_before_any_docker_call) ... ok
+test_post_load_identity_or_tag_failure_stops_before_migration_and_up (tests.test_release_transport.ReleaseTransportTests.test_post_load_identity_or_tag_failure_stops_before_migration_and_up) ... ok
+test_producer_never_saves_unverified_or_legacy_identity (tests.test_release_transport.ReleaseTransportTests.test_producer_never_saves_unverified_or_legacy_identity) ... ok
+test_producer_pulls_tags_verifies_and_saves_only_v2_tags (tests.test_release_transport.ReleaseTransportTests.test_producer_pulls_tags_verifies_and_saves_only_v2_tags) ... ok
+test_registry_requires_repo_digest_before_runtime_tag (tests.test_release_transport.ReleaseTransportTests.test_registry_requires_repo_digest_before_runtime_tag) ... ok
+test_registry_verify_is_read_only_and_deploy_pulls_by_digest (tests.test_release_transport.ReleaseTransportTests.test_registry_verify_is_read_only_and_deploy_pulls_by_digest) ... ok
+test_valid_offline_deploy_loads_once_and_never_pulls (tests.test_release_transport.ReleaseTransportTests.test_valid_offline_deploy_loads_once_and_never_pulls) ... ok
+test_verified_archive_graph_matches_preflight_members (tests.test_release_transport.ReleaseTransportTests.test_verified_archive_graph_matches_preflight_members) ... ok
+test_verified_oci_config_must_itself_be_linux_amd64 (tests.test_release_transport.ReleaseTransportTests.test_verified_oci_config_must_itself_be_linux_amd64) ... ok
+test_wrong_store_is_rejected_before_load_or_other_mutation (tests.test_release_transport.ReleaseTransportTests.test_wrong_store_is_rejected_before_load_or_other_mutation) ... ok
+test_positive_and_manual_failure_matrix (tests.test_routine_merge.EligibilityTests.test_positive_and_manual_failure_matrix) ... ok
+test_authorization_requires_one_marker_and_one_exact_closes_line (tests.test_routine_merge.RoutineBrokerTests.test_authorization_requires_one_marker_and_one_exact_closes_line) ... ok
+test_dependency_block_is_stable_and_zero_post (tests.test_routine_merge.RoutineBrokerTests.test_dependency_block_is_stable_and_zero_post) ... ok
+test_dismissed_or_stale_rejection_is_not_an_effective_rejection (tests.test_routine_merge.RoutineBrokerTests.test_dismissed_or_stale_rejection_is_not_an_effective_rejection) ... ok
+test_duplicate_issue_pull_is_rejected_with_zero_post (tests.test_routine_merge.RoutineBrokerTests.test_duplicate_issue_pull_is_rejected_with_zero_post) ... ok
+test_exact_payload_one_post_and_receipt (tests.test_routine_merge.RoutineBrokerTests.test_exact_payload_one_post_and_receipt) ... ok
+test_exact_scope_is_required_before_any_merge_post (tests.test_routine_merge.RoutineBrokerTests.test_exact_scope_is_required_before_any_merge_post) ... ok
+test_extended_permission_user_schema_fails_closed_before_merge_post (tests.test_routine_merge.RoutineBrokerTests.test_extended_permission_user_schema_fails_closed_before_merge_post) ... ok
+test_extra_arguments_are_rejected_before_credentials (tests.test_routine_merge.RoutineBrokerTests.test_extra_arguments_are_rejected_before_credentials) ... ok
+test_final_head_reread_closes_toctou_and_zero_post (tests.test_routine_merge.RoutineBrokerTests.test_final_head_reread_closes_toctou_and_zero_post) ... ok
+test_hard_gate_failure_matrix_never_posts_or_falls_back (tests.test_routine_merge.RoutineBrokerTests.test_hard_gate_failure_matrix_never_posts_or_falls_back) ... ok
+test_head_drift_is_first_stable_failure_and_zero_post (tests.test_routine_merge.RoutineBrokerTests.test_head_drift_is_first_stable_failure_and_zero_post) ... ok
+test_pilot_rejects_every_non_canary_issue_with_zero_post (tests.test_routine_merge.RoutineBrokerTests.test_pilot_rejects_every_non_canary_issue_with_zero_post) ... ok
+test_routine_identity_requires_is_admin_exact_false_before_post (tests.test_routine_merge.RoutineBrokerTests.test_routine_identity_requires_is_admin_exact_false_before_post) ... ok
+test_backfill_contract_rejects_ambiguous_ownership (tests.test_routine_merge.SessionContractTests.test_backfill_contract_rejects_ambiguous_ownership) ... ok
+test_classification_contract_rejects_unprojected_or_closed_writes (tests.test_routine_merge.SessionContractTests.test_classification_contract_rejects_unprojected_or_closed_writes) ... ok
+test_codex_and_claude_keep_only_contract_start_and_pr_confirmations (tests.test_routine_merge.SessionContractTests.test_codex_and_claude_keep_only_contract_start_and_pr_confirmations) ... ok
+test_codex_separates_controller_and_interactive_pr_backfill (tests.test_routine_merge.SessionContractTests.test_codex_separates_controller_and_interactive_pr_backfill) ... ok
+test_confirmation_contract_rejects_early_push_authorization (tests.test_routine_merge.SessionContractTests.test_confirmation_contract_rejects_early_push_authorization) ... ok
+test_shared_onboarding_contract_rejects_provider_or_lifecycle_shortcuts (tests.test_routine_merge.SessionContractTests.test_shared_onboarding_contract_rejects_provider_or_lifecycle_shortcuts) ... ok
+test_shared_onboarding_keeps_second_confirmation_and_manifest_lifecycle (tests.test_routine_merge.SessionContractTests.test_shared_onboarding_keeps_second_confirmation_and_manifest_lifecycle) ... ok
+test_shared_provider_contract_rejects_unverified_push (tests.test_routine_merge.SessionContractTests.test_shared_provider_contract_rejects_unverified_push) ... ok
+test_shared_provider_document_requires_single_writer_claim_and_push_readback (tests.test_routine_merge.SessionContractTests.test_shared_provider_document_requires_single_writer_claim_and_push_readback) ... ok
+test_source_skills_pin_the_verified_merge_before_terminal_apply (tests.test_routine_merge.SessionContractTests.test_source_skills_pin_the_verified_merge_before_terminal_apply) ... ok
+test_source_skills_require_exact_classification_readback_before_pr (tests.test_routine_merge.SessionContractTests.test_source_skills_require_exact_classification_readback_before_pr) ... ok
+test_terminal_contract_rejects_unproved_or_floating_merge (tests.test_routine_merge.SessionContractTests.test_terminal_contract_rejects_unproved_or_floating_merge) ... ok
+test_budget_serialization_round_trip (tests.test_state.LoopBudgetTests.test_budget_serialization_round_trip) ... ok
+test_changed_root_resets_consecutive_count (tests.test_state.LoopBudgetTests.test_changed_root_resets_consecutive_count) ... ok
+test_eight_round_limit_is_checked_before_ninth_round (tests.test_state.LoopBudgetTests.test_eight_round_limit_is_checked_before_ninth_round) ... ok
+test_empty_root_cause_is_rejected (tests.test_state.LoopBudgetTests.test_empty_root_cause_is_rejected) ... ok
+test_third_same_root_failure_reaches_limit (tests.test_state.LoopBudgetTests.test_third_same_root_failure_reaches_limit) ... ok
+test_corrupt_or_non_object_state_is_rejected (tests.test_state.StateStoreTests.test_corrupt_or_non_object_state_is_rejected) ... ok
+test_global_lock_rejects_second_holder (tests.test_state.StateStoreTests.test_global_lock_rejects_second_holder) ... ok
+test_issue_number_must_be_positive (tests.test_state.StateStoreTests.test_issue_number_must_be_positive) ... ok
+test_missing_state_returns_empty_object (tests.test_state.StateStoreTests.test_missing_state_returns_empty_object) ... ok
+test_pr_confirmation_binds_exact_issue_branch_and_policy (tests.test_state.StateStoreTests.test_pr_confirmation_binds_exact_issue_branch_and_policy) ... ok
+test_pr_confirmation_refuses_binding_or_eligibility_drift (tests.test_state.StateStoreTests.test_pr_confirmation_refuses_binding_or_eligibility_drift) ... ok
+test_save_is_atomic_private_and_round_trips (tests.test_state.StateStoreTests.test_save_is_atomic_private_and_round_trips) ... ok
+test_sensitive_keys_are_rejected_recursively (tests.test_state.StateStoreTests.test_sensitive_keys_are_rejected_recursively) ... ok
+test_state_file_is_valid_json_after_repeated_replacement (tests.test_state.StateStoreTests.test_state_file_is_valid_json_after_repeated_replacement) ... ok
+test_declaring_one_repository_does_not_touch_the_others (tests.test_vendored_change_templates.VendoredChangeTemplatesContractTests.test_declaring_one_repository_does_not_touch_the_others) ... ok
+test_default_over_reports_rather_than_missing_a_holder (tests.test_vendored_change_templates.VendoredChangeTemplatesContractTests.test_default_over_reports_rather_than_missing_a_holder)
+缺省必须是「持有副本」。反过来会让一个未声明的仓库从广播清单里消失， ... ok
+test_non_boolean_declaration_is_rejected (tests.test_vendored_change_templates.VendoredChangeTemplatesContractTests.test_non_boolean_declaration_is_rejected)
+非布尔取值必须 fail closed。"false" 是真值、0 是假值——静默强转会让一个 ... ok
+test_platform_repository_is_the_source_not_a_holder (tests.test_vendored_change_templates.VendoredChangeTemplatesContractTests.test_platform_repository_is_the_source_not_a_holder)
+平台仓库是合同源 templates/docs/changes/_template/ 本身，没有 ... ok
+test_undeclared_repositories_default_to_holding_a_copy (tests.test_vendored_change_templates.VendoredChangeTemplatesContractTests.test_undeclared_repositories_default_to_holding_a_copy)
+只遍历未声明的仓库——照 #148/#163 的写法，把「当时谁都没声明」钉成断言 ... ok
+test_commands_use_argv_without_shell_interpretation (tests.test_verifier.VerifierTests.test_commands_use_argv_without_shell_interpretation) ... ok
+test_config_path_must_stay_inside_repository (tests.test_verifier.VerifierTests.test_config_path_must_stay_inside_repository) ... ok
+test_credentials_and_dotenv_values_are_redacted (tests.test_verifier.VerifierTests.test_credentials_and_dotenv_values_are_redacted) ... ok
+test_empty_duplicate_or_string_commands_are_rejected (tests.test_verifier.VerifierTests.test_empty_duplicate_or_string_commands_are_rejected) ... ok
+test_optional_failure_does_not_fail_report (tests.test_verifier.VerifierTests.test_optional_failure_does_not_fail_report) ... ok
+test_output_is_truncated_to_64_kib (tests.test_verifier.VerifierTests.test_output_is_truncated_to_64_kib) ... ok
+test_required_failure_fails_report (tests.test_verifier.VerifierTests.test_required_failure_fails_report) ... ok
+test_timeout_is_reported_without_hanging (tests.test_verifier.VerifierTests.test_timeout_is_reported_without_hanging) ... ok
+test_unknown_config_fields_are_rejected (tests.test_verifier.VerifierTests.test_unknown_config_fields_are_rejected) ... ok
+test_every_refusal_has_its_own_code_and_none_is_worktree_dirty (tests.test_worktree_owner.AuthorizePushTests.test_every_refusal_has_its_own_code_and_none_is_worktree_dirty) ... ok
+test_messages_separate_a_forgotten_id_from_a_foreign_session (tests.test_worktree_owner.AuthorizePushTests.test_messages_separate_a_forgotten_id_from_a_foreign_session)
+Same code, different operator mistake — the message is what tells ... ok
+test_owner_is_authorized (tests.test_worktree_owner.AuthorizePushTests.test_owner_is_authorized) ... ok
+test_unclaimed_worktree_is_refused_before_anything_else (tests.test_worktree_owner.AuthorizePushTests.test_unclaimed_worktree_is_refused_before_anything_else) ... ok
+test_absent_or_blank_is_an_empty_string (tests.test_worktree_owner.CallerSessionTests.test_absent_or_blank_is_an_empty_string) ... ok
+test_defaults_to_the_process_environment (tests.test_worktree_owner.CallerSessionTests.test_defaults_to_the_process_environment) ... ok
+test_reads_and_trims_the_environment_variable (tests.test_worktree_owner.CallerSessionTests.test_reads_and_trims_the_environment_variable) ... ok
+test_another_session_is_refused_and_changes_nothing (tests.test_worktree_owner.ClaimTests.test_another_session_is_refused_and_changes_nothing) ... ok
+test_claim_rejects_a_non_change_branch_and_a_bad_session (tests.test_worktree_owner.ClaimTests.test_claim_rejects_a_non_change_branch_and_a_bad_session) ... ok
+test_first_claim_creates_and_repeat_is_a_no_op (tests.test_worktree_owner.ClaimTests.test_first_claim_creates_and_repeat_is_a_no_op) ... ok
+test_invalid_marker_needs_takeover_too (tests.test_worktree_owner.ClaimTests.test_invalid_marker_needs_takeover_too) ... ok
+test_takeover_is_explicit_and_carries_the_push_ledger (tests.test_worktree_owner.ClaimTests.test_takeover_is_explicit_and_carries_the_push_ledger) ... ok
+test_an_unknown_object_is_not_reported_as_an_ancestor (tests.test_worktree_owner.LinkedWorktreeTests.test_an_unknown_object_is_not_reported_as_an_ancestor) ... ok
+test_branch_head_and_ancestry_helpers_read_real_git (tests.test_worktree_owner.LinkedWorktreeTests.test_branch_head_and_ancestry_helpers_read_real_git) ... ok
+test_claiming_a_worktree_standing_on_another_branch_is_refused (tests.test_worktree_owner.LinkedWorktreeTests.test_claiming_a_worktree_standing_on_another_branch_is_refused) ... ok
+test_each_worktree_gets_its_own_marker_directory (tests.test_worktree_owner.LinkedWorktreeTests.test_each_worktree_gets_its_own_marker_directory) ... ok
+test_git_failures_surface_as_worktree_errors (tests.test_worktree_owner.LinkedWorktreeTests.test_git_failures_surface_as_worktree_errors) ... ok
+test_the_marker_never_shows_up_as_a_dirty_working_tree (tests.test_worktree_owner.LinkedWorktreeTests.test_the_marker_never_shows_up_as_a_dirty_working_tree)
+If it did, `git.push.change` would report WORKTREE_DIRTY and never ... ok
+test_each_field_rule_is_enforced (tests.test_worktree_owner.MarkerContractTests.test_each_field_rule_is_enforced) ... ok
+test_key_set_is_exact (tests.test_worktree_owner.MarkerContractTests.test_key_set_is_exact) ... ok
+test_malformed_json_is_claim_invalid (tests.test_worktree_owner.MarkerContractTests.test_malformed_json_is_claim_invalid) ... ok
+test_missing_marker_is_unclaimed_not_invalid (tests.test_worktree_owner.MarkerContractTests.test_missing_marker_is_unclaimed_not_invalid)
+The two must never collapse into one code: 'nobody claimed this' and ... ok
+test_round_trip_preserves_every_field (tests.test_worktree_owner.MarkerContractTests.test_round_trip_preserves_every_field) ... ok
+test_write_leaves_no_temporary_file_behind (tests.test_worktree_owner.MarkerContractTests.test_write_leaves_no_temporary_file_behind) ... ok
+test_keeps_the_owner_untouched (tests.test_worktree_owner.RecordPushTests.test_keeps_the_owner_untouched) ... ok
+test_records_head_and_time_together (tests.test_worktree_owner.RecordPushTests.test_records_head_and_time_together) ... ok
+test_rejects_anything_that_is_not_a_full_lowercase_sha (tests.test_worktree_owner.RecordPushTests.test_rejects_anything_that_is_not_a_full_lowercase_sha) ... ok
+test_a_removed_worktree_directory_is_reported_not_raised (tests.test_worktree_owner.ScanTests.test_a_removed_worktree_directory_is_reported_not_raised) ... ok
+test_ahead_reports_how_far_and_stays_a_pass (tests.test_worktree_owner.ScanTests.test_ahead_reports_how_far_and_stays_a_pass)
+Unpushed local commits are the normal state for most of a change's ... ok
+test_every_reason_is_reported_and_only_three_are_gaps (tests.test_worktree_owner.ScanTests.test_every_reason_is_reported_and_only_three_are_gaps) ... ok
+test_only_change_branches_are_scanned (tests.test_worktree_owner.ScanTests.test_only_change_branches_are_scanned) ... ok
+test_the_scan_writes_nothing (tests.test_worktree_owner.ScanTests.test_the_scan_writes_nothing) ... ok
+
+----------------------------------------------------------------------
+Ran 978 tests in 86.601s
+
+OK
+Codex platform static smoke checks passed.
