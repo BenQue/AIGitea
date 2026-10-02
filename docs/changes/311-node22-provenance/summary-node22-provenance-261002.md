@@ -36,7 +36,7 @@ updated: 2026-10-02
 #309 的历史主机实测发现 `/opt/node22` 为 Node 22.22.0，属主为 gitea-runner，缺少来源 marker。
 #311 要求完整盘点后，选择保留并补 unknown marker 或授权删除。Issue 正文写“三仓”但列了四仓；本变更按四仓执行，不漏 SFMDigitalBoard。
 
-本会话已 live 读回 #311：open，只有 needs-analysis，零评论，无历史合同批准。
+本会话初次 live 读回 #311：open，只有 needs-analysis，零评论，当时无历史合同批准。
 本地固定 Git 对象显示 SFMDigitalBoard 的 CI 明确依赖 `/opt/node22/bin`，因此当前不得选择删除。
 其它三仓已获本聊天用户只读确认并通过各自 manifest broker fresh-fetch；四个 fixed main SHA 均与初查一致。workflow 与 committed 非 Secret 实现配置未发现额外活动 node22 消费。初始真实主机确认 Node 22.22.0/npm 10.9.4/pnpm 10.28.0，当时无 marker；批准实施后已新增并验证。
 
@@ -97,4 +97,4 @@ override_reason: ''
 
 ## 本地验证状态
 
-两轴审查PASS（Standards/Spec各0），exact #311判级再次读回projected。完整smoke为FAIL：registry-preflight既有main负向断言回归；独立原始基线同三文件、同失败。等待#319真实合入后本owner更新基线重验；当前未请求最终PR提交确认，无push/PR/merge，不能称READY_FOR_REVIEW。详见 [verification](verification-node22-provenance-261002.md) 与 [local validation](local-validation-node22-provenance-261002.json)。
+原始smoke基线失败保留历史。#319已真实合入main；本owner无冲突rebase、两个commit range-diff相等，完整smoke在原UTF-8环境重跑PASS（1008 runtime tests/static checks）。exact #311判级再次projected；四仓fresh消费者复核不改变保留方案。原始Standards/Spec各0，当前新基线两轴复核中；最终PR提交仍未确认，无push/PR/merge。详见 [verification](verification-node22-provenance-261002.md) 与 [local validation](local-validation-node22-provenance-261002.json)。

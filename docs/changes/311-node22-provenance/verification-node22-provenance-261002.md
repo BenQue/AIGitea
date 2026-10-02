@@ -93,7 +93,7 @@ runner broker写前观测：active/running，PID533，child_count0。写后runne
 | lifecycle持久化 | PASS / approved | before needs-analysis；after approved/complexity/complex/type/maintenance |
 | check-change-documents | PASS | changes145/pass2/gap0；四角色映射正确，pr_url空、尚无PR |
 | Python AST与命令literal/payloadbytes一致性 | PASS | source/local静态检查；host命令已按同一payload实执行 |
-| full smoke | FAIL（既有基线回归） | sandbox 初次受 loopback 禁止阻塞；同完整命令受控 host 重跑 exit1，registry-preflight 停 registry 后预期1实际0；三个源文件与 fresh main 字节相同，独立 baseline 同失败，见 local-validation 回执 |
+| full smoke | PASS（#319真实合入后） | exact main70baa35、rebase后09ee937；原UTF-8环境、无LC_ALL覆盖；registry负向断言正常，1008 runtime tests及全部static checks PASS；原始FAIL与baseline复现留在local-validation历史字段 |
 | code-review | PASS（两轴均0） | Standards：0硬违例/0smell；Spec：0findings；fixed base/candidate 及独立审查记录见 review 附件 |
 | PR required CI | NOT RUN | 尚未获最终提交确认、未创建PR |
 | 应用部署/重启/删除目录/工具链升级 | NOT RUN | 不在本合同动作；没有静默实施 |
@@ -112,5 +112,9 @@ runner broker写前观测：active/running，PID533，child_count0。写后runne
 ## 未完成项与交付边界
 
 host marker验收已经完成，不等于应用部署或上游provenance可信。来源仍unknown。
-两轴review已经完成，Standards/Spec各0 findings。完整smoke已运行但FAIL，不能进入最终PR候选或READY_FOR_REVIEW。fresh origin/main仍5c2cd726c9aeaee9d17541d8feb049e33881bbac；同基线三文件的独立复现与候选同失败。该既有回归由#319处理，owner当前等待最终PR确认；本Issue不修改其脚本、不设置LC_ALL绕过。待真实合入main后，本owner更新自己的worktree并重跑完整smoke，再准备唯一manual PR确认。当前没有push/PR/merge/归档。
+原始基线full smoke FAIL与同三文件独立复现作为历史保留。#319的PR323已由人合并，merge SHA70baa3588c0504e5d81facd99c63b74741967967进入fresh main；本owner无冲突rebase，两个commit的range-diff均相等。原UTF-8环境完整smoke重跑PASS（1008 runtime tests及static checks），未覆盖LC_ALL、未改#319脚本。四仓再次fresh-fetch并扫描，活动node22消费者不变；NewEMaint main更新为c55b17bb7ad70c55225f247d1fdb7ee8d2db88e2，仍无node22消费。marker不重复创建或回滚，原live验收回执保留。新基线两轴复核完成后准备唯一manual PR确认；当前没有push/PR/merge/归档。
 总调度集成优先级10，不构造新产品依赖，depends_on仍[]。
+
+## #319 合入后重验
+
+见 [consumer revalidation](consumer-revalidation-after319-261002.json) 与 [local validation](local-validation-node22-provenance-261002.json)。只更新本人worktree与本票证据；主机、应用仓、Secret与其它会话worktree不变。

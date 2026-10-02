@@ -1,8 +1,8 @@
 {
   "issue": 311,
-  "tested_head": "b27c2e23fd288b1d19d74c3dd7f837bb4070090a",
-  "fresh_main_sha": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
-  "full_smoke": "FAIL",
+  "tested_head": "09ee9377cd821153aafcca806f7f68df649a921c",
+  "fresh_main_sha": "70baa3588c0504e5d81facd99c63b74741967967",
+  "full_smoke": "PASS",
   "full_smoke_command": "bash codex/tests/smoke.sh",
   "initial_sandbox": "loopback socket.bind PermissionError: Operation not permitted",
   "host_retry": "same full suite, controlled local execution, exit 1",
@@ -72,8 +72,8 @@
     "change_type": "maintenance",
     "complexity": "complex"
   },
-  "integration_blocker": "Existing main regression tracked by #319; its owner is AWAITING_PR_CONFIRMATION. Wait for real merge into main, then owner of #311 fresh-fetch/rebase/retest. This is test integration ordering, not a new product depends_on.",
-  "final_pr": "NOT RUN; local full-smoke gate has not passed; final-PR confirmation not requested yet",
+  "integration_blocker": null,
+  "final_pr": "NOT RUN; final submission confirmation remains after fresh two-axis recheck",
   "post_review_receipt_checks": {
     "check_change_documents": {
       "status": "PASS",
@@ -86,5 +86,40 @@
     "marker_payload_live_bytes": "PASS",
     "runtime_metadata_equal": "PASS",
     "local_doc_links": "PASS: 8 checked"
+  },
+  "original_full_smoke": "FAIL",
+  "original_tested_head": "b27c2e23fd288b1d19d74c3dd7f837bb4070090a",
+  "original_integration_blocker": "Existing main regression tracked by #319; its owner is AWAITING_PR_CONFIRMATION. Wait for real merge into main, then owner of #311 fresh-fetch/rebase/retest. This is test integration ordering, not a new product depends_on.",
+  "revalidation_after319": {
+    "dependency_PR": {
+      "number": 323,
+      "html_url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/323",
+      "state": "closed",
+      "merged": true,
+      "merged_at": "2026-10-02T23:51:01+08:00",
+      "merge_commit_sha": "70baa3588c0504e5d81facd99c63b74741967967"
+    },
+    "main_contains_exact_merge": "PASS via git merge-base --is-ancestor",
+    "rebase": "two local commits rebased without conflict; range-diff both equal",
+    "tested_head": "09ee9377cd821153aafcca806f7f68df649a921c",
+    "base_sha": "70baa3588c0504e5d81facd99c63b74741967967",
+    "command": "bash codex/tests/smoke.sh",
+    "exit_code": 0,
+    "execution": "controlled local execution, same UTF-8 environment; no LC_ALL override",
+    "log_path": "/private/tmp/issue-311-smoke-after319.log",
+    "log_sha256": "1bd08670741f14e0f8e99aa9033e70c07cbab92c8cc02a92a53ae6c34938d616",
+    "log_bytes": 184157,
+    "runtime_tests": 1008,
+    "registry_preflight": "PASS including stopped-registry negative assertion",
+    "static_checks": "PASS",
+    "fresh_consumer_revalidation": "consumer-revalidation-after319-261002.json",
+    "classification_readback": {
+      "issue": 311,
+      "result": "projected",
+      "change_type": "maintenance",
+      "complexity": "complex"
+    },
+    "ownership": "PASS: own session, exact branch, unpushed",
+    "review": "fresh two-axis recheck pending; original review unchanged by equal range-diff"
   }
 }
