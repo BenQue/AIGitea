@@ -151,7 +151,7 @@ T06 done，独立本地 commit 后停止；T03 pending，fresh run 重读新合�
 本轮 full smoke/runtime、PR/required CI、global installed、现场与部署均 NOT RUN；
 旧 smoke FAIL 和旧 head 的 1008 项结果保持各自原有边界。
 
-## 当前状态：T03 完成，最终 PR 待确认
+## T03 完成、最终 PR 待确认（提交授权前历史快照）
 
 T06 独立提交停止后，本 fresh run 重读批准合同，真实 owner/branch/clean tree/patch hashes
 与 main readback 通过。验证 source head `1507e358319ebfc2206fe0402ce1520f3392a246`，
@@ -163,3 +163,15 @@ pinned main `65268ee5f1e622c486fd9e354dd35e20a2900f91`。
 文件固定。PR 草稿为 `evidence/final-pr-body.md`，只有一行 Closes #288。
 本轮只证明 source/local；没有 push/PR/merge，required CI/global installed/应用迁移/
 builder provenance/现场/部署 NOT RUN。历史失败、提案和治理停止 receipt 均保留原样。
+
+## 当前状态：提交已批准，线性候选验证通过
+
+用户明确回复“确认提交”，授权 exact #288 / change/288-dockerfile-digest / manual
+的唯一最终 PR 与合同内 CI 修复，绑定记录见 `evidence/pr-submission-authorization.json`。
+首次 broker push 在发表前拒绝本地 merge commits；保留原候选本地 tag 后，将未发表
+历史线性整理。新 code head `69d5ad511dd9620f2f3865e6439773b2c1744d1f` 的完整 tree
+与批准候选相同，main 以上无 merge commit。完整 host smoke 重新 PASS，含 1008 tests
+/ 109.408s 与 fixture 23 tests / 47.297s，证据见 `evidence/pr-linear-history-validation.json`。
+本次只新增提交授权、线性验证证据及 PR 草稿格式修正；已测试技术字节保持相同。
+现继续首次成功 push/唯一 PR/required CI；全绿停 READY_FOR_REVIEW，人工合并。
+当前 PR/required CI、global installed、应用迁移、builder provenance、现场与部署 NOT RUN。

@@ -327,7 +327,7 @@ patch、source before/proposed hash、两日志 SHA256 与未执行边界均在
 T06 done，T03 pending；独立 commit 后按已批准治理顺序停止，后续 fresh run 继续。
 回滚为人工 revert 此治理 commit 并运行同一专项测试；不放宽真实 source 身份门。
 
-## T03 T06 后 fresh-run 完整本地验收（当前权威结果）
+## T03 T06 后 fresh-run 完整本地验收（原候选历史结果）
 
 本 fresh run 在 T06 独立提交并停止之后重读 AGENTS/批准 spec-plan，核验 exact owner、
 branch、clean tree 和批准 source hashes。broker main fetch 为
@@ -356,3 +356,23 @@ branch、clean tree 和批准 source hashes。broker main fetch 为
 最终候选 Policy manual，进入 AWAITING_PR_CONFIRMATION，exact candidate SHA 在本地状态中固定。
 最终 PR 草稿只有一行 Closes #288。取得提交确认后才 push/建 PR；required CI 全绿后
 停在 READY_FOR_REVIEW 等人审核并合并。回滚方式保持人工 revert 唯一 PR 并运行同一回归。
+
+## 提交授权后的线性候选验证（当前权威结果）
+
+用户“确认提交”已绑定 exact Issue/branch/manual，原候选
+`c6934f2d10aa68329c7e51f5a71482fea0123d76`。首次 broker push 被
+`MERGE_COMMIT_DENIED` 拒绝，尚未发表。保留原候选本地 tag，未发表历史线性 rebase
+并补回 merge-only 已审内容；无 force push、main push、broker 修改或重建 PR。
+
+| Check | Result | Evidence |
+|---|---|---|
+| tree 与原批准候选完全一致 | PASS | tested head 69d5ad511dd9620f2f3865e6439773b2c1744d1f；receipt 记录两 tree SHA |
+| pinned main / 无新增 merge commits | PASS | 65268ee5f1e622c486fd9e354dd35e20a2900f91；origin/main..HEAD merge 列表空 |
+| 完整 controlled-host smoke | PASS | exit 0，全部硬门；fixture 23 tests / 47.297s，runtime 1008 tests / 109.408s |
+| 已审 scope 与批准技术字节 | UNCHANGED | 原 Spec findings 0 / Standards hard 0，非阻塞复制代码建议 1 |
+| 首次成功 push / PR / required CI | NOT RUN | 当前正准备首次发表；提交授权持续有效 |
+| global installed / 应用迁移 / builder provenance / 现场 / deploy | NOT RUN | scratch fixtures 与 source-local 验证不证明真实系统 |
+
+完整命令、原候选恢复 tag、tree SHA 和日志 hash 见
+`evidence/pr-linear-history-validation.json`；原全部 receipt 保留，不覆盖历史事实。
+本次后续提交只含 metadata/docs，技术文件与已验证 head 相同。

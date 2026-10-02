@@ -4,9 +4,9 @@
   "policy": "manual",
   "title": "fix(architecture): enforce Dockerfile FROM digest contract (#288)",
   "body_file": "evidence/final-pr-body.md",
-  "stage": "REVIEWABLE_DRAFT_NOT_SUBMITTED",
+  "stage": "SUBMISSION_CONFIRMED_PENDING_PUBLICATION",
   "required_ci": "CI / verify (pull_request)",
-  "ci_repair": "Allowed only after separate final-PR submission confirmation, within the current contract",
+  "ci_repair": "Authorized within current contract after user confirmation; manual human merge only",
   "merge": "Human only",
   "deployment": "NOT_AUTHORIZED"
 }
