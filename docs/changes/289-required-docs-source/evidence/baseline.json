@@ -1,0 +1,27 @@
+{
+  "platform_base": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "sfm_history_sha": "516d24a9ca9638b4ac8fcba041296547c75a8198",
+  "summary_sha256": "bb03c58dda71fccd923af20b1a0c45675d7f49a57e01fc36320e643462d7e446",
+  "verification_absent_at_historical_commit": true,
+  "fixture": "/private/tmp/aisoft-289-evidence/sfm-142-missing",
+  "checks": {
+    "resolve": {
+      "returncode": 0,
+      "stdout": "{\"summary\": \"summary-architecture-lock-declaration-260910.md\", \"verification\": \"verification-architecture-lock-declaration-260910.md\"}\n",
+      "stderr": ""
+    },
+    "audit": {
+      "returncode": 0,
+      "stdout": "PASS: change-documents\nPASS: change-pr-url\nresult: changes=1 pass=2 gap=0\n",
+      "stderr": ""
+    },
+    "route_development_required_docs": [
+      "summary",
+      "verification"
+    ],
+    "load_contract": {
+      "rejected": true,
+      "error": "missing required contract documents: verification-architecture-lock-declaration-260910.md"
+    }
+  }
+}
