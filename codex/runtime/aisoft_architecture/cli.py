@@ -11,7 +11,8 @@ from typing import Any
 
 from .errors import ArchitectureError, Diagnostic
 from .jsonio import canonical_bytes, load_json, write_canonical
-from .lockfile import build_lock, validate_lock
+from .lockfile import build_lock, lock_schema_filename, validate_lock
+from .schema import validate_schema
 
 
 def _paths(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
@@ -38,16 +39,27 @@ def _today(value: str | None) -> date:
         raise ArchitectureError(Diagnostic("DATE_INVALID", "--today 必须为 YYYY-MM-DD。", "--today")) from None
 
 
-def _build(args: argparse.Namespace) -> dict[str, Any]:
+def _build(args: argparse.Namespace, *, schema_version: str = "2.0") -> dict[str, Any]:
     catalog, catalog_schema, profile, profile_schema, project, project_schema = _paths(args)
-    return build_lock(catalog, catalog_schema, profile, profile_schema, project, project_schema, _today(args.today))
+    return build_lock(
+        catalog, catalog_schema, profile, profile_schema, project, project_schema,
+        _today(args.today), schema_version=schema_version,
+    )
 
 
 def command_validate(args: argparse.Namespace) -> dict[str, Any]:
-    expected = _build(args)
     if args.lock:
         lock = load_json(args.lock)
-        validate_lock(lock, load_json(Path(args.schema_dir) / "architecture-lock-v1.schema.json"), expected)
+        if not isinstance(lock, dict):
+            raise ArchitectureError(Diagnostic("SCHEMA_TYPE", "lock 必须为 JSON object。", "$"))
+        schema_version = lock.get("schema_version")
+        lock_schema = load_json(Path(args.schema_dir) / lock_schema_filename(schema_version))
+        # Fail on a mixed/unknown marker before selecting or rebuilding inputs.
+        validate_schema(lock, lock_schema)
+        expected = _build(args, schema_version=schema_version)
+        validate_lock(lock, lock_schema, expected)
+    else:
+        expected = _build(args)
     return {
         "valid": True,
         "project_id": expected["project_id"],

@@ -1,0 +1,36 @@
+{
+  "issue": 287,
+  "head_under_test": "a8be0086e73b2e8dc73f569a783b253d79bfb2f0",
+  "later_changes": "documentation and evidence only",
+  "full_smoke_exit_code": 0,
+  "runtime_tests": 992,
+  "runtime_seconds": 87.172,
+  "attempts": [
+    {
+      "command": "bash codex/tests/smoke.sh",
+      "result": "SANDBOX_PATH_BLOCKED",
+      "log": "t03-smoke-sandbox-blocked.log",
+      "sha256": "f512e75e0ca9db6a2c4ccb1a7b31c9b96e79c5fd1b030e404bb2d32574d4e924"
+    },
+    {
+      "command": "bash codex/tests/smoke.sh",
+      "result": "FAIL: existing Bash 3.2 locale compatibility",
+      "log": "t03-smoke-host-default-locale.log",
+      "sha256": "0d5a5bc0a7442f8e842d5c8cca43b1310694fa816df70669c594eef026d580ab"
+    },
+    {
+      "command": "LC_ALL=C bash codex/tests/test-registry-preflight.sh",
+      "result": "PASS",
+      "log": "t03-registry-c-locale.log",
+      "sha256": "e9b8dd18a09c6f7d4c49b6e269ecef8b76383062b53f1f611015a157fa85ead6"
+    },
+    {
+      "command": "LC_ALL=C bash codex/tests/smoke.sh",
+      "result": "PASS",
+      "log": "t03-smoke-host-c-locale.log",
+      "sha256": "e92cd532848a250198442601689ae9cf86a36d79705e896089e1146fbefa9294"
+    }
+  ],
+  "installed_live_remote_ci": "NOT RUN",
+  "test_or_script_modification_between_smoke_attempts": false
+}

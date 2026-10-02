@@ -1,0 +1,15 @@
+{
+  "issue": 287,
+  "branch": "change/287-profile-semantic-lock",
+  "head": "c793118a81c0f6d20a1b52c3fbd0330c07e4e8a5",
+  "fresh_base": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "frontier": "T02",
+  "session": "01a0fc7c-027e-70a3-8871-beb484e4a8d8",
+  "fresh_read_sha256": {
+    "AGENTS.md": "7192cb1bcb5c4e0d87f24bbf1a1abac1ad72c08094e6a8e52f1b63217531514f",
+    "architecture/README.md": "4b520ef297182841ea3d3b9ce5b870c089991a3657c1725d3bcaa5d3ae4edd12",
+    "architecture/decisions/0007-profile-machine-checksum.md": "32f715000e4df7e08e5349d0b72c7fbb22dfbc55a609c2ffcb9abd71e6e24f81",
+    "docs/changes/287-profile-semantic-lock/spec-profile-semantic-lock-261002.md": "c1894121fd55345b066852ca361d1f68c91a78d40711e2c7b4a8ceaa93a4d9a6",
+    "docs/changes/287-profile-semantic-lock/plan-profile-semantic-lock-261002.md": "54125cdf17dd152588497933521f6bf7cadb96ea5d097cfad285e47b1fb5e640"
+  }
+}

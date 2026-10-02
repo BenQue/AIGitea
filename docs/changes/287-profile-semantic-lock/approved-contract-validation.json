@@ -1,0 +1,12 @@
+{
+  "validation": "actual-approved-contract",
+  "issue": 287,
+  "branch": "change/287-profile-semantic-lock",
+  "frontier": "T01",
+  "acceptance_criteria_count": 8,
+  "lifecycle": [
+    "approved",
+    "complexity/complex",
+    "type/platform"
+  ]
+}

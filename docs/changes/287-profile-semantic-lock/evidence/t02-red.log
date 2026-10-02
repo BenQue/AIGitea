@@ -1,0 +1,58 @@
+test_historical_prose_change_is_stable_for_existing_v2_lock (tests.test_architecture_profile_checksum.ProfileChecksumTests.test_historical_prose_change_is_stable_for_existing_v2_lock) ... FAIL
+test_invalid_machine_changes_fail_at_policy_boundary (tests.test_architecture_profile_checksum.ProfileChecksumTests.test_invalid_machine_changes_fail_at_policy_boundary) ... ok
+test_legacy_lock_retains_full_hash_and_prose_drift (tests.test_architecture_profile_checksum.ProfileChecksumTests.test_legacy_lock_retains_full_hash_and_prose_drift) ... ERROR
+test_new_writer_uses_explicit_v2_and_retains_source_hashes (tests.test_architecture_profile_checksum.ProfileChecksumTests.test_new_writer_uses_explicit_v2_and_retains_source_hashes) ... FAIL
+test_v2_checksum_tampering_and_marker_mixing_fail (tests.test_architecture_profile_checksum.ProfileChecksumTests.test_v2_checksum_tampering_and_marker_mixing_fail) ... ERROR
+test_v2_generation_is_offline_and_does_not_mutate_inputs (tests.test_architecture_profile_checksum.ProfileChecksumTests.test_v2_generation_is_offline_and_does_not_mutate_inputs) ... ok
+test_valid_machine_changes_drift_without_version_bump (tests.test_architecture_profile_checksum.ProfileChecksumTests.test_valid_machine_changes_drift_without_version_bump) ... ok
+
+======================================================================
+ERROR: test_legacy_lock_retains_full_hash_and_prose_drift (tests.test_architecture_profile_checksum.ProfileChecksumTests.test_legacy_lock_retains_full_hash_and_prose_drift)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/tmp/issue-287-profile-semantic-lock/codex/runtime/tests/test_architecture_profile_checksum.py", line 118, in test_legacy_lock_retains_full_hash_and_prose_drift
+    old = self.build(self.before, schema_version="1.0")
+  File "/private/tmp/issue-287-profile-semantic-lock/codex/runtime/tests/test_architecture_profile_checksum.py", line 28, in build
+    return build_lock(
+        self.catalog, self.catalog_schema,
+        self.after if profile is None else profile, self.profile_schema,
+        self.project, self.project_schema, TODAY, **kwargs,
+    )
+TypeError: build_lock() got an unexpected keyword argument 'schema_version'
+
+======================================================================
+ERROR: test_v2_checksum_tampering_and_marker_mixing_fail (tests.test_architecture_profile_checksum.ProfileChecksumTests.test_v2_checksum_tampering_and_marker_mixing_fail)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/tmp/issue-287-profile-semantic-lock/codex/runtime/tests/test_architecture_profile_checksum.py", line 136, in test_v2_checksum_tampering_and_marker_mixing_fail
+    p.pop("profile_checksum_contract")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'profile_checksum_contract'
+
+======================================================================
+FAIL: test_historical_prose_change_is_stable_for_existing_v2_lock (tests.test_architecture_profile_checksum.ProfileChecksumTests.test_historical_prose_change_is_stable_for_existing_v2_lock)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/tmp/issue-287-profile-semantic-lock/codex/runtime/tests/test_architecture_profile_checksum.py", line 55, in test_historical_prose_change_is_stable_for_existing_v2_lock
+    self.assertEqual(canonical_bytes(old), canonical_bytes(new))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'{"$[291 chars]56":"083d8824e3961b333a3e5c05c05b6b1a10a7374e9[2248 chars]}}\n' != b'{"$[291 chars]56":"7f6a331c5fe2b47f56d0a250425e1cd9f1f7280c0[2248 chars]}}\n'
+
+======================================================================
+FAIL: test_new_writer_uses_explicit_v2_and_retains_source_hashes (tests.test_architecture_profile_checksum.ProfileChecksumTests.test_new_writer_uses_explicit_v2_and_retains_source_hashes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/tmp/issue-287-profile-semantic-lock/codex/runtime/tests/test_architecture_profile_checksum.py", line 45, in test_new_writer_uses_explicit_v2_and_retains_source_hashes
+    self.assertEqual(lock["schema_version"], "2.0")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '1.0' != '2.0'
+- 1.0
+? ^
++ 2.0
+? ^
+
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.069s
+
+FAILED (failures=2, errors=2)

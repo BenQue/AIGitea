@@ -1,0 +1,31 @@
+{
+  "baseline": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "historical_profiles": {
+    "before": "6121838e05f1daefea5a8bb0679b4f906243432b",
+    "after": "97b09a7a7db4ce079cb6779ba47df4a1d6b55919"
+  },
+  "fixed_today": "2026-09-05",
+  "declaration": "node-sqlite-native-project.json (main fixture; not historical SFM declaration)",
+  "before_checksums": {
+    "catalog_sha256": "1a2b8cfdf0bd315e5fb1b7c0ff7856861e40ce35e905d3bdbe17902eb537f334",
+    "profile_sha256": "6eb2458f72b363308f619710b45e4420ce6d265d63223d5a97f9db29dae85a95",
+    "declaration_sha256": "1405b2acf3ef33a68b7e69a5d9c48c2c9621a5827c3c1aa8b0b50157b32f5790"
+  },
+  "after_checksums": {
+    "catalog_sha256": "1a2b8cfdf0bd315e5fb1b7c0ff7856861e40ce35e905d3bdbe17902eb537f334",
+    "profile_sha256": "7ed962a29060d62b57be5f983335136778b9ad2126fca93d0f84b975125a6418",
+    "declaration_sha256": "1405b2acf3ef33a68b7e69a5d9c48c2c9621a5827c3c1aa8b0b50157b32f5790"
+  },
+  "before_lock_sha256": "083d8824e3961b333a3e5c05c05b6b1a10a7374e915e306e8bc86e3403c5ecf4",
+  "after_lock_sha256": "7f6a331c5fe2b47f56d0a250425e1cd9f1f7280c0d780571d548dd325def4591",
+  "historical_prose_validate": "LOCK_DRIFT",
+  "machine_projection_equal": true,
+  "version_equal": true,
+  "constraints_retained": true,
+  "valid_machine_change_without_version_bump": {
+    "version_equal": true,
+    "validate": "LOCK_DRIFT",
+    "projection_changed": true
+  },
+  "note": "投影只为比较候选；未修改 runtime、profile 或旧 lock。"
+}
