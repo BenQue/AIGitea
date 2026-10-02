@@ -218,9 +218,21 @@ readiness → image staging receipt → migration receipt → activation/health 
 不读取 env file 且不运行 migration/up；`migrate` 不 stage/up；`activate` 不 stage/migrate。
 `deploy` 作为 backward-compatible orchestration 保留，内部沿用同一阶段原语。Wrong store、legacy
 offline 或 pre-load tamper 的 Docker mutation count 必须为 0；post-start identity mismatch 只做
-previous-container rollback，不自动恢复数据库。
+previous-container rollback，不自动恢复数据库。#317 已批准的目标合同要求回退前验证迁移兼容性；
+T01 当前只应用治理文档，runtime 实施与生效证据见下节，不能假定 guard 已运行。
 
 ## State and rollback
+
+Issue #317 已批准 [migration rollback compatibility v1](contracts/migration-rollback-v1.md)：
+所有自动/显式回退与失败后的原 current 恢复，启动旧镜像前必须证明数据库兼容性。
+目标增加 `docker-release-state/v3` 的数据库位置；未知兼容性、缺失/错误/过期依据均
+fail closed。同 identity 且可证明数据库仍在该位置可保持幂等路径；未知位置或不同
+migration identity 需 target operator 管理的 exact 兼容依据，数据库不自动 restore。
+
+**当前实施状态：T01 治理合同已独立应用；runtime/schema/test 尚未修改，功能验证、PR CI、
+installed/live 均 NOT RUN。** 下文 v2 是现有 as-built 状态，不能把已批准目标合同当作已生效。
+后续 fresh run 重读本合同后实施 T02/T03，并在同一最终 manual PR 交付。NewEMaint #229
+只能在人工合并后采用新的 exact merged SHA；本阶段不修改应用 pin。
 
 每个 target 使用单一进程锁和 mode `0600` 的原子 `docker-release-state/v2` JSON state。v2 记录
 每个 staged full SHA 的 transport、逐 service exact image ID、migration receipt、current/previous
@@ -240,8 +252,9 @@ receipt：一个不带新 migration 的 release，identity 与上一个 release 
 执行这套 migration 的那个 release，不参与任何判据；`migration-noop` 不改写 state，所以它
 始终指向真正执行过的那次。把 `release_id` 当门会让已上线项目的绝大多数发布无法部署
 （Issue #305）。放宽只限 `completed` 这一支：`started`、`failed` 与 receipt 缺失的语义
-不变。`compose up --wait` 或 exact-release health 失败时回切旧容器，但不会执行 PostgreSQL
-restore。显式 rollback 同样不运行 migration；数据库恢复始终需要独立人工审批。
+不变。现有基线在 `compose up --wait` 或 exact-release health 失败时回切旧容器，
+但尚未验证迁移后兼容性，这是 #317 已复现的缺陷；上述已批准目标合同禁止无依据回切。
+显式 rollback 同样须应用该兼容 gate，不运行 migration；数据库恢复始终需要独立人工审批。
 
 ## Fixed action permission gate
 

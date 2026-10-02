@@ -26,7 +26,7 @@ documents:
   spec: spec-migration-rollback-guard-261002.md
   plan: plan-migration-rollback-guard-261002.md
   verification: verification-migration-rollback-guard-261002.md
-status: spec-drafting
+status: approved
 branch: change/317-migration-rollback-guard
 pr_url:
 created: 2026-10-02
@@ -85,14 +85,14 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- 已批准方向保持；本次首次明确的可信依据、state v3 和治理先行步骤需绑定完整 spec/plan 的合同启动确认。
+- 无；2026-10-02 用户直接批准完整 spec/plan。
 
 ## 授权与会话
 
 - 本会话：`01a0fc7b-9d82-75e2-975f-d407cd23e34a`；worktree 已 claim。
 - Branch/worktree：`change/317-migration-rollback-guard` / `/private/tmp/issue-317-migration-rollback-guard`。
 - 既有授权：平台先补控制，人工合并后由 NewEMaint #229 更新 pin；不重复确认此方向。
-- 当前只准备可审阅合同与基线证据；尚未把方向批准扩大为新安全接口/state/governance 合同批准。
+- 2026-10-02 用户在本会话直接回复“批准”，当前完整 spec/plan 已获合同启动授权；receipt 见 evidence/contract-start-approval.json。
 - `depends_on: []`：#317 无前置；NewEMaint #229 依赖本票，应用层不在本分支修改。
 - Delivery policy：`manual`。合同启动确认不授权 push、PR、merge、安装、部署或 Secret。
 - 三阶段：合同审阅 → 独立治理合同步骤并停止 → fresh run 重新读取后实施 runtime → 最终 PR 提交确认。
@@ -100,4 +100,12 @@ override_reason: ''
 
 ## 当前投影边界
 
-判级计划为 bugfix/complex。自动审批拒绝 live classification --apply：当前只授权分析、证据与合同草案，未取得精确合同启动确认；无成功标签 mutation。启动确认后才能按 spec 的本票范围执行投影和独立 --verify。远端 needs-analysis 不等于本地分析未完成，更不等于 approved。
+判级为 bugfix/complex。首次自动审批在完整合同批准前拒绝 live classification --apply，未写入标签；2026-10-02 用户直接批准后允许按 spec 执行本票投影，并独立 --verify 读回。历史拒绝不再是当前缺授权 blocker；不存在的 triage typed surface 仍不绕过。
+
+
+## T01 进度
+
+2026-10-02 合同已获用户直接批准。Fresh base 不变；已独立应用 release 治理文档。
+classification --verify 两维真实 projected，远端 lifecycle=approved。
+完整合同 loader 读到10条 AC、frontier=T01。runtime/schema/test、PR CI、installed/live 均 NOT RUN。
+Matt triage typed 写缺口记录为 GAP，本票不改 broker 或通过其他身份绕过。

@@ -15,7 +15,7 @@ risk_flags:
   - security
   - platform-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/317-migration-rollback-guard
 created: 2026-10-02
 updated: 2026-10-02
@@ -53,6 +53,23 @@ updated: 2026-10-02
 | 最终候选 | classification --apply → 独立 --verify #317 两维 projected；local commit clean；唯一 Issue/branch/worktree/docs tuple |
 
 新增测试文件名是预计实施接口；批准前不存在，尚未运行上述修复验证。
+
+## 逐项 AC 验收索引
+
+本索引将已批准的分组验证展开为 Controller 可读的独立 AC 行；不改变验收范围。
+
+| Acceptance criterion | Verification command or review |
+|---|---|
+| AC-01 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_phases tests.test_release_rollback_compatibility` |
+| AC-02 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_runner tests.test_release_rollback_compatibility` |
+| AC-03 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_rollback_compatibility tests.test_release_contract tests.test_release_safety` |
+| AC-04 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_rollback_compatibility tests.test_release_runner` |
+| AC-05 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_phases tests.test_release_runner` |
+| AC-06 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_rollback_compatibility tests.test_release_phases` |
+| AC-07 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_contract tests.test_release_phases tests.test_release_rollback_compatibility` |
+| AC-08 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_gate tests.test_release_phases tests.test_release_runner`；完整 release suite / smoke |
+| AC-09 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_cli tests.test_release_safety tests.test_release_rollback_compatibility` |
+| AC-10 | consumer diff review、确认未更新应用 pin、最终人工 merged SHA 由消费会话采用 |
 
 ## 数据库迁移
 

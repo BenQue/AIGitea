@@ -56,6 +56,28 @@ AC-01–10 均 NOT RUN（指修复后的合同验收）；baseline reproducer �
 
 ## 授权、遗留风险与未完成项
 
-2026-09-21 平台先行方向保留；本票首次具体的 profile/evidence/state/security 合同待确认。
+2026-09-21 平台先行方向保留；本票首次具体的 profile/evidence/state/security 合同已获2026-10-02 用户直接批准；授权证据见 evidence/contract-start-approval.json。
 依赖：#317 depends_on=[]；NewEMaint #229 被本票阻塞。
-需要 runtime/schema/test 实施、consumer review、classification 读回、最终 PR 提交确认和人工 merge；不能提供新的 merged SHA 或宣称解除 #229 前置。
+需要 runtime/schema/test 实施、consumer review、最终 PR 提交确认和人工 merge；不能提供新的 merged SHA 或宣称解除 #229 前置。
+
+## T01 独立治理合同步骤（2026-10-02）
+
+- 用户本会话直接回复“批准”；绑定原 reviewed head `abc1adfffe6fcdc3b6053695050a5a83fd3e4830` 的 spec/plan 和 manual policy；无最终 PR、merge、install、deploy 权限。
+- Fresh authoritative main 仍为 `5c2cd726c9aeaee9d17541d8feb049e33881bbac`；工作区 ownership/clean 读回正确，未修改共享 main。
+- 已应用 Docker release README 与 versioned `docker-release/contracts/migration-rollback-v1.md`；README 明确当前 runtime 仍为基线，不虚报 guard 已生效。
+- spec AC 表转换为现有 loader 可读的 checklist、plan 逐项 AC 映射展开，内容和验收范围保持。
+- 本阶段只运行文档/纯合同检查；未启动 Controller，未实施 runtime/schema/test，也未运行 Docker/DB。
+
+| Check | Result | Evidence |
+|---|---|---|
+| 合同启动授权 | PASS | direct user “批准”；contract-start-approval.json |
+| 仅 #317 classification --apply | PASS | bugfix/complex updated |
+| 独立 classification --verify | PASS | 两维 result=projected |
+| approved lifecycle 投影 | PASS | before needs-analysis → after approved；保留 type/complexity |
+| pure load_contract + frontier | PASS | CONTRACT_VALID；criteria_count=10；frontier=T01 |
+| 文档与 pr_url 检查 | PASS | changes=145 pass=2 gap=0 |
+| Matt triage/category 状态投影 | GAP | 当前 broker 无 triage typed write；extension 明确禁止 managed prefix，未绕过 |
+| T01 Standards / Spec 独立 review | NOT RUN | 本地提交后执行并回填 |
+| runtime、release suite、smoke、CI、installed/live | NOT RUN | T01 文档步骤，本阶段不宣称功能通过 |
+
+T01 完成后停止。下一条 fresh run 重读当前 AGENTS/README、已批准 spec/plan、新治理合同和 claim，再沿用已有批准实施 T02/T03；不额外申请合同启动批准。

@@ -15,7 +15,7 @@ risk_flags:
   - security
   - platform-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/317-migration-rollback-guard
 created: 2026-10-02
 updated: 2026-10-02
@@ -84,7 +84,7 @@ known 位置时 observed database identity 必须相等；untracked 时 operator
 
 本 spec 获合同启动确认后，明确授权独立 T01 只修改 release 治理合同文档及本 Issue 语义文档，并停止。范围仅为 Docker release README、新的 versioned migration-rollback contract 说明；不修改本次遵循的 AGENTS.md、CLAUDE.md、provider/controller、CI、broker、installer 或 host permissions。
 
-后续 fresh run 必须重新读取本仓库 AGENTS/README、T01 发布合同、本 spec/plan 和 worktree claim 后才实施 T02/T03 runtime/schema/tests。合同启动确认同时授权仅对 #317 进行判级/lifecycle/triage 投影和发布合同 brief（均经 project-scoped broker 可用 typed surface）；不更改其它 Issue。自动审批当前拒绝 live classification 写入，确认前保持远端标签原样；不存在的 triage typed 操作报告 GAP，不绕过 broker。批准 T01 不提供 merge/安装/部署权限。所有来源最终进入本 Issue 唯一 manual PR。
+后续 fresh run 必须重新读取本仓库 AGENTS/README、T01 发布合同、本 spec/plan 和 worktree claim 后才实施 T02/T03 runtime/schema/tests。合同启动确认同时授权仅对 #317 进行判级/lifecycle/triage 投影和发布合同 brief（均经 project-scoped broker 可用 typed surface）；不更改其它 Issue。2026-10-02 用户直接回复“批准”后，首次拒绝的 live classification 写入可依精确授权重新执行；不存在的 triage typed 操作报告 GAP，不绕过 broker。批准 T01 不提供 merge/安装/部署权限。所有来源最终进入本 Issue 唯一 manual PR。
 
 ## Testing Decisions
 
@@ -92,18 +92,16 @@ known 位置时 observed database identity 必须相等；untracked 时 operator
 
 ## Acceptance criteria
 
-| AC | 可观察结果 |
-|---|---|
-| AC-01 | activate 的不同 identity、无依据健康失败旧 up=0，返回 ROLLBACK_BLOCKED，不虚报已恢复。 |
-| AC-02 | legacy deploy（v1/v2）与显式 rollback 同样 fail closed，恢复 current 的路径也执行同一检查。 |
-| AC-03 | 错目标、错任一 release/migration/checksum、过期/未来/重复/损坏/不安全权限/路径的依据均拒绝，旧 up=0。 |
-| AC-04 | 正确 exact operator 兼容依据可放行跨 identity，原 staging/local image/health 硬门保持；旧启动失败为 ROLLBACK_FAILED。 |
-| AC-05 | 已知同 identity、不同 release receipt 保持 migration-noop、正常 activation 和兼容回退；原 receipt.release_id 不改写。 |
-| AC-06 | migration uncertain/failed、候选迁移完成激活失败、C 已迁移但未激活、A/B同 identity但 DB 已到 C，以及无 migration 的 release，均按数据库真实位置判定；不能用候选身份掩盖 C。 |
-| AC-07 | v1/v2 state/profile/manifest 读兼容，缺位置为 untracked，不自动猜测；依赖 operator exact 依据的路径无永久提升。 |
-| AC-08 | 同 SHA健康 no-op、锁、原子 state、原 staging/image/Compose/host-role/security gates 保持，无绕过；所有路径零自动数据库恢复。 |
-| AC-09 | CLI 安全 code 区分候选失败、回退阻止、回退执行失败，非零出口和 state 状态可读回，fixture Secret 不出现在 stdout/stderr/evidence。 |
-| AC-10 | consumer 说明给出 optional profile/evidence/state 升级、失败处理和人工 merged SHA pin 规则；本票不改 NewEMaint pin。 |
+- [ ] AC-01：activate 的不同 identity、无依据健康失败旧 up=0，返回 ROLLBACK_BLOCKED，不虚报已恢复。
+- [ ] AC-02：legacy deploy（v1/v2）与显式 rollback 同样 fail closed，恢复 current 的路径也执行同一检查。
+- [ ] AC-03：错目标、错任一 release/migration/checksum、过期/未来/重复/损坏/不安全权限/路径的依据均拒绝，旧 up=0。
+- [ ] AC-04：正确 exact operator 兼容依据可放行跨 identity，原 staging/local image/health 硬门保持；旧启动失败为 ROLLBACK_FAILED。
+- [ ] AC-05：已知同 identity、不同 release receipt 保持 migration-noop、正常 activation 和兼容回退；原 receipt.release_id 不改写。
+- [ ] AC-06：migration uncertain/failed、候选迁移完成激活失败、C 已迁移但未激活、A/B同 identity但 DB 已到 C，以及无 migration 的 release，均按数据库真实位置判定；不能用候选身份掩盖 C。
+- [ ] AC-07：v1/v2 state/profile/manifest 读兼容，缺位置为 untracked，不自动猜测；依赖 operator exact 依据的路径无永久提升。
+- [ ] AC-08：同 SHA健康 no-op、锁、原子 state、原 staging/image/Compose/host-role/security gates 保持，无绕过；所有路径零自动数据库恢复。
+- [ ] AC-09：CLI 安全 code 区分候选失败、回退阻止、回退执行失败，非零出口和 state 状态可读回，fixture Secret 不出现在 stdout/stderr/evidence。
+- [ ] AC-10：consumer 说明给出 optional profile/evidence/state 升级、失败处理和人工 merged SHA pin 规则；本票不改 NewEMaint pin。
 
 ## Out of Scope
 
@@ -115,4 +113,4 @@ state v3 写入后旧 runtime 不识别，不能直接降级到不含安全 gate
 
 ## 未决问题
 
-实现方向已具体化；待用户绑定本合同确认启动。2026-09-21 的平台先行方向已接受，无需再次裁决；新增可信依据/位置/schema/T01步骤尚未批准。后续实现如需扩大允许文件或改变信任来源，停止升级，不自行改变本合同。
+无未决实现方向。2026-10-02 用户在本会话直接回复“批准”，绑定当前映射 spec/plan；包含新增可信依据/位置/schema 和 T01/fresh-run 步骤，保留2026-09-21 的平台先行决定。后续实现如需扩大允许文件或改变信任来源，停止升级，不自行改变本合同。

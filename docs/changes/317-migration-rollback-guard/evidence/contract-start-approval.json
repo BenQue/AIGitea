@@ -1,0 +1,21 @@
+{
+  "issue": 317,
+  "session": "01a0fc7b-9d82-75e2-975f-d407cd23e34a",
+  "branch": "change/317-migration-rollback-guard",
+  "policy": "manual",
+  "source": "direct-user-message",
+  "decision": "批准",
+  "recorded_at": "2026-10-02T20:31:16+08:00",
+  "reviewed_head": "abc1adfffe6fcdc3b6053695050a5a83fd3e4830",
+  "reviewed_spec_sha256": "b0a46d6a2652df2697d8e820b33bf8eefadb9fe85233e30fa72385ed1b831b10",
+  "authorization": "当前映射 spec/plan 的合同启动；#317 判级/lifecycle/brief；T01 独立治理文档步骤并停止；fresh run 后 runtime/schema/test。",
+  "excluded": [
+    "PR submission",
+    "push",
+    "merge",
+    "install",
+    "deploy",
+    "credentials",
+    "NewEMaint pin"
+  ]
+}
