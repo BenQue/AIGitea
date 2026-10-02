@@ -52,7 +52,7 @@ Cross-repository reads stay inside the broker's manager-audit read-only route. N
 project-agent or routine merger credential outside its repository, and never fall back to admin,
 mutation tokens, a direct GiteaClient or broader ACL. Validate repository identity/number and reject PRs;
 unverifiable or unauthorized reads never satisfy a dependency. Controller and routine merger must share
-this boundary. Source/local fixtures are verified; the complete smoke/integration gates remain pending.
+this boundary. Source/local fixtures are verified; the full smoke passes under LC_ALL=C; post-#289 integration remains pending.
 Installed bytes and live reads are NOT RUN. Do not issue an unsupported operation against the currently installed broker.
 
 The general inspection fallback ladder above does not apply to dependency gates. Installation,

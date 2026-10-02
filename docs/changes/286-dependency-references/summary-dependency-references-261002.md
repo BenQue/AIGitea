@@ -49,7 +49,7 @@ updated: 2026-10-02
 
 G01（T01）已独立应用治理合同并停止；本 fresh run 已重读合同并完成 T02、T03 的 source
 实现与本地测试。原候选 T01/T02/T03 顺延为 T02/T03/T04，切片与顺序不变，无需重复启动确认。
-T04 的完整 smoke 与 #289 后集成门仍未完成；没有最终 PR 提交确认。
+T04 的完整 smoke 已在 LC_ALL=C 下通过；#289 后集成门仍未完成，没有最终 PR 提交确认。
 
 ## 集成顺序（非产品依赖）
 
@@ -61,7 +61,8 @@ T04 的完整 smoke 与 #289 后集成门仍未完成；没有最终 PR 提交�
 
 - 源合同与 runtime 仅涉及 dependency schema/resolver、broker bounded read、
   Controller/routine 依赖闸门、展示与测试，详见映射 spec/plan。
-- 当前基线 5c2cd726c9aeaee9d17541d8feb049e33881bbac；隔离 worktree
+- 初始基线 5c2cd726c9aeaee9d17541d8feb049e33881bbac；当前整合基线
+  11c0410d3878d5449fa61796f174ba3d2dd5e59c（#320 已合并）；隔离 worktree
   /private/tmp/issue-286-dependency-references，本 session
   01a0fc7c-1670-75b2-a61b-f47e62fc856c 已 claim，last_push_head=null。
 - #289 负责 required_docs/documents 与终态数据源，本票不改该算法，不写其 worktree；
@@ -75,7 +76,8 @@ T04 的完整 smoke 与 #289 后集成门仍未完成；没有最终 PR 提交�
 完整 smoke FAIL（未修改的 registry-preflight 停服负向断言两次失败），独立全量 runtime 基线 978 tests PASS。
 本 fresh run 的 AC-1–AC-6 source/local fixture 已通过，最终全量 runtime 998 tests PASS。
 双轴审查发现的 3 项缺口已修复并复核；文档、digest、分类读回、broker shell 与 ShellCheck PASS。
-AC-7 仍 PARTIAL：完整 smoke 的既有 registry fixture FAIL；#289 后整合尚未完成。PR CI、installed/live 与部署 NOT RUN。
+本轮完整 smoke 在 LC_ALL=C 下 PASS，含 998 runtime tests；原 C.UTF-8/Bash 3.2 失败保留。
+AC-7 最终整合仍 PARTIAL：#289 后整合尚未完成。PR CI、installed/live 与部署 NOT RUN。
 
 ## AI 判级
 
@@ -112,8 +114,16 @@ qualified dependency 扩展数据格式、broker 权限合同、Controller 与 r
 
 ## 当前交接
 
-T02 commit fdb3082e8b1a680c967fc46655d0ab320faca034；T03 commit
-bb41ff26d36fb53ac84ee6fe6debf9ea3e77dfbd。T04 正在保留
-双轴审查修复与最终验证收据。当前不进入 AWAITING_PR_CONFIRMATION，完整 smoke FAIL（既有 registry 停服负向断言），
-#289 最新只读状态仍 open。待两项硬门满足后，再准备绑定 exact #286/branch/manual 的最终
-PR 确认。不 push、不建 PR、不合并、不安装、不扩 ACL、不部署；本 Issue 尚未解决，不归档。
+已无冲突整合 origin/main 的 #320；当前 base 为
+11c0410d3878d5449fa61796f174ba3d2dd5e59c，完整 smoke 测试 source head 为
+12dd967eb60253d7033c2c8ccb0c382b499bf1c6。本地 rebase 的前后 commit 映射与环境诊断收据
+见 evidence/t04-resume-receipt.json。未 push，last_push_head=null。
+
+完整 smoke PASS（LC_ALL=C，998 tests，97.111s）。原 registry 失败为 C.UTF-8 locale 下
+Bash 3.2 把变量后的中文标点误读为变量名；只设置单次测试命令的环境，未修改或绕过任何
+registry 断言，也未改用户全局 locale 或真实服务。前次失败保留，不改写历史收据。
+
+当前唯一前置是 #289：PR #325 最新 exact readback 为 open、merged=false，head
+15b963a4f4dab52e4a161de0d8bab29ebc7d53c5。T04 保持 pending；待真实 merge 后，本 owner
+fresh-fetch/rebase，再验证两依赖闸门及文档/终态。不进入 AWAITING_PR_CONFIRMATION，未取得
+最终 PR 提交确认；不 push、不建 PR、不合并、不安装、不扩 ACL、不部署、不归档。

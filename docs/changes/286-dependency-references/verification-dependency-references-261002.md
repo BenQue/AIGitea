@@ -107,7 +107,7 @@ AGENTS.md、其它 worktree、下游副本或 installed/live 改动。当前步�
 下一 fresh run 重读合同和平台规则后可继续已批准 T02–T04，无需再次批准 A。
 
 
-## T02–T04 fresh run 验证（当前结果）
+## T02–T04 前轮验证快照
 
 已按 AGENTS 重读 G01 后合同；未修改本次遵循的 AGENTS.md。所有执行在 exact
 /private/tmp/issue-286-dependency-references，未写其它 owner worktree。
@@ -182,3 +182,39 @@ exact branch、depends_on=[]，frontier=T04。分类独立读回 projected。T04
 当前稳定阻塞：完整 smoke 的既有 registry fixture FAIL；#289 仍 open，尚不能执行约定的
 merge 后 owner 整合。后续 fresh run 在已批准 A 范围内继续，不重复启动确认；最终 PR 前
 仍须 exact Issue/branch/manual 确认。PR CI、合并、installed/live、部署和归档均未运行。
+
+
+## 继续执行：#320 整合与 locale 控制后的完整 smoke
+
+本轮通过 broker git.fetch.main 读回 origin/main=11c0410d3878d5449fa61796f174ba3d2dd5e59c，
+#320 已真实合并。owner 在本票干净、未 push worktree 无冲突 rebase，保留 #320 的首次/后续
+push 各自 exact head 验证合同；未写共享 main 或其它 owner worktree。前后 4 个 commit 的
+完整映射保存在 evidence/t04-resume-receipt.json，旧提交仅作前轮历史证据。
+
+registry 诊断记录表明，原环境 LANG/LC_ALL/LC_CTYPE 均为 C.UTF-8；Bash 为 Mac 内置
+3.2.57。原脚本 connect failure 提示中的 $REGISTRY 后中文标点被误读进变量名，出现
+REGISTRY 的 unbound variable 错误，probe 实际退出 0。该诊断在隔离 fake registry 上执行，
+未读用户 curl/credential 配置；日志 /private/tmp/issue-286-registry-diagnostic.log。
+
+前序 #320 在同一初始基线的收据明确使用 LC_ALL=C PYTHONDONTWRITEBYTECODE=1。按同样的
+单次命令环境，原封不动的 registry fixture 全部 PASS，再运行完整 smoke：
+
+| Check | Result | Evidence |
+|---|---|---|
+| 原 registry fixture，LC_ALL=C | PASS | exit 0，绿—红—绿与其余负向断言全部保留；/private/tmp/issue-286-registry-c-locale.log |
+| #320 owner-local rebase | PASS | origin/main 11c0410d3878d5449fa61796f174ba3d2dd5e59c，测试 source head 12dd967eb60253d7033c2c8ccb0c382b499bf1c6 |
+| 完整 smoke，受控 host | PASS | LC_ALL=C PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh，exit 0；998 tests，97.111s，最后输出 Codex platform static smoke checks passed. |
+| 文档与模板 digest | PASS in full smoke | 最新 146 changes；模板 digest 未变，source 与 #320 合同均保留 |
+| registry source 未修改 | PASS | 对初始基线与当前 origin/main 的三文件 diff 均为空；checksum 见本轮 receipt |
+| #289 PR #325 live readback | BLOCKED_EXTERNAL | open，merged=false，head 15b963a4f4dab52e4a161de0d8bab29ebc7d53c5，merge_commit_sha=null |
+| #289 后 rebase/双闸门/文档终态验证 | NOT RUN | 合并尚未发生；不把当前 #320 基线的 PASS 写成此项通过 |
+| push/本票 PR/CI/installed/live/deploy/archive | NOT RUN | last_push_head=null，仍无最终 PR 提交确认 |
+
+完整 smoke 日志：/private/tmp/issue-286-resume-smoke-c-host.log；SHA-256 与 source commit
+完整绑定见 evidence/t04-resume-receipt.json。这里只设置一次测试进程的 LC_ALL=C，未改
+全局环境或 registry 脚本；没有降低/删除负向断言。原 locale 下的 FAIL 收据继续保留。
+
+当前唯一剩余阻塞为已批准 plan 的 #289 merge 后串行整合条件。AC-1–AC-6 当前 source/local
+已通过；AC-7 的本轮完整 gates 通过，但最终 #289 后集成未执行，因此整体仍 PARTIAL。
+T04 pending，本票未解决，不归档。后续 fresh run 无需再确认启动；最终 PR 前仍须 exact
+#286/change/286-dependency-references/manual 提交确认。

@@ -95,6 +95,9 @@ GOVERNANCE_CONTRACT_APPLIED_FRESH_RUN_REQUIRED；
 
 T02/T03 已 completed；T04 的双 provider/source 文档同步、双轴审查修复、998 runtime、
 broker shell、bash -n/ShellCheck、document/digest、classification readback 已通过。
-完整 smoke 仍因既有 registry 停服负向 fixture FAIL，#289 仍 open；T04 保持 pending。
-没有最终 PR 提交确认，不 push、不建 PR、不归档。后续由本 owner 继续剩余硬门，
-不把本地功能 fixture PASS 写成完整 smoke、CI 或 installed/live PASS。
+本轮已无冲突整合 #320 的 origin/main；LC_ALL=C 下完整 smoke PASS，包含 998 tests。
+原 C.UTF-8/Bash 3.2 registry fixture FAIL 保留；未改该断言或全局 locale。
+
+#289 的 PR #325 最新读回 open、merged=false；merge 后串行整合尚未执行，T04 保持 pending。
+完整执行收据见 evidence/t04-resume-receipt.json。没有最终 PR 提交确认，不 push、不建 PR、
+不归档。#289 真正合并后，由本 owner 继续 fresh-fetch/rebase 及剩余闸门，不重复启动确认。
