@@ -1,0 +1,92 @@
+{
+  "issue": 308,
+  "ticket": "T04",
+  "branch": "change/308-installed-drift-check",
+  "session": "01a0fc7b-d0b3-7802-af08-555307d048a6",
+  "tested_runtime_head": "48d410132dfa5f7332a0e37e96011535e71f170f",
+  "fresh_main_snapshot": "11c0410d3878d5449fa61796f174ba3d2dd5e59c",
+  "targeted": {
+    "result": "PASS",
+    "tests": 23,
+    "log": "t04-targeted-tests.log"
+  },
+  "full_smoke": {
+    "pre-rebase-default": {
+      "command": "bash codex/tests/smoke.sh",
+      "result": "FAIL",
+      "exit_code": 1,
+      "evidence": "t04-smoke-pre-rebase-default.log.gz",
+      "raw_sha256": "865f13e747cc0c21fb0db667b06e1848cab9d19d07cacb3039e8dddf44fca939",
+      "tests": [],
+      "note": "pre-rebase cached-main mismatch"
+    },
+    "rebased-default": {
+      "command": "bash codex/tests/smoke.sh",
+      "result": "FAIL",
+      "exit_code": 1,
+      "evidence": "t04-smoke-rebased-default.log.gz",
+      "raw_sha256": "0a9205517a827dad146a8951743e70b1f85a72a0b90198f87fe860d2d20248ba",
+      "tests": [
+        "22",
+        "20",
+        "161"
+      ],
+      "note": "registry-preflight stopped-registry fixture: expected 1, actual 0"
+    },
+    "final-C": {
+      "command": "LC_ALL=C bash codex/tests/smoke.sh",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence": "t04-smoke-final-C.log.gz",
+      "raw_sha256": "ddb1a98a214683577454671737bc29bc22fa40ddb5ff91ca15513edaf3765e9c",
+      "tests": [
+        "23",
+        "20",
+        "161",
+        "978"
+      ],
+      "note": "23 checker fixtures and 978 existing runtime tests; final static smoke success"
+    }
+  },
+  "static": {
+    "bash_n": "PASS",
+    "ShellCheck": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "semantic_documents": {
+    "resolver": "PASS: exact four role basenames",
+    "check_change_documents": "PASS",
+    "approved_contract": "PASS: 8 ACs; complex/manual"
+  },
+  "ownership": "PASS: marker session exact; no previous push",
+  "two_axis_review": {
+    "Standards_new": 0,
+    "Spec_new": 1,
+    "Spec_worst": "P1, source-only CI false failure",
+    "open": 0,
+    "evidence": "t04-two-axis-review.md"
+  },
+  "classification": {
+    "result": "projected",
+    "type": "platform",
+    "complexity": "complex",
+    "evidence": "t04-classification-readback.jsonl"
+  },
+  "installed_acceptance": {
+    "Mac": "GAP; 1/8 installer rows PASS",
+    "gitea-ci/coder": "GAP; 2/8 installer rows PASS",
+    "source_both": "PASS against broker fresh snapshot; checker freshness always externally qualified",
+    "receipt": "t04-real-readonly-receipt.json"
+  },
+  "AC2": "GAP retained; not completed/archived",
+  "unique_pr": "no existing #308 final PR",
+  "pr_candidate": "final-pr-candidate.md, draft only",
+  "CI": "NOT RUN",
+  "push": false,
+  "pr": null,
+  "merge": false,
+  "real_installation": false,
+  "credential_mutation": false,
+  "deployment": false,
+  "next_state": "AWAITING_PR_CONFIRMATION; final docs-only checkpoint to be recorded separately"
+}

@@ -1,0 +1,31 @@
+{
+  "issue": 308,
+  "ticket": "T01 final docs-only follow-up",
+  "branch": "change/308-installed-drift-check",
+  "session": "01a0fc7b-d0b3-7802-af08-555307d048a6",
+  "tested_runtime_head": "48d410132dfa5f7332a0e37e96011535e71f170f",
+  "T04_evidence_commit": "8f685785811ad68591ab526e619ce02daca80a84",
+  "purpose": "replace transitional awaiting implementation wording with verified local availability and preserved actual installed GAP; clarify approved source-only semantics",
+  "governance_files": [
+    "README.md",
+    "06-运维手册与踩坑集.md"
+  ],
+  "sha256": {
+    "README.md": "ad6c8889361c89eecf2c7af870ee2d97b7d042089047a429acbc210b56023a18",
+    "06-运维手册与踩坑集.md": "dd5540c55cdabc694bfe250f8f85dda265dfa93f64b0a6391e1fc6a333288df3"
+  },
+  "runtime_changed": false,
+  "existing_acceptance_changed": false,
+  "original_AC2": "GAP retained",
+  "static_diff_review": "only authorized installation-check paragraphs in README/06",
+  "state": "GOV_APPLIED_REQUIRES_FRESH_RUN / AWAITING_PR_CONFIRMATION",
+  "after_apply": "stop; no new runtime/testing or remote write in this run",
+  "next_authorization": "exact #308 / change/308-installed-drift-check / manual final PR submission; existing start approval insufficient",
+  "push": false,
+  "pr": null,
+  "CI": "NOT RUN",
+  "real_installation": false,
+  "credential_mutation": false,
+  "merge": false,
+  "deployment": false
+}

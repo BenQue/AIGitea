@@ -1,0 +1,17 @@
+{
+  "check": "contract-start-preflight",
+  "result": "PASS",
+  "issue": 308,
+  "branch": "change/308-installed-drift-check",
+  "complexity": "complex",
+  "required_docs": [
+    "summary-installed-drift-check-261002.md",
+    "spec-installed-drift-check-261002.md",
+    "plan-installed-drift-check-261002.md",
+    "verification-installed-drift-check-261002.md"
+  ],
+  "ac_count": 8,
+  "session": "01a0fc7b-d0b3-7802-af08-555307d048a6",
+  "issue_lifecycle": "spec-drafting",
+  "authorization_receipt": "contract-start-authorization.json"
+}

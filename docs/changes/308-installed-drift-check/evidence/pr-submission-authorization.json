@@ -1,0 +1,22 @@
+{
+  "issue": 308,
+  "branch": "change/308-installed-drift-check",
+  "policy": "manual",
+  "user_message": "确认提交",
+  "confirmed_candidate_head": "4e75538cdb4c9a97c240617544e248ed256d0622",
+  "session": "01a0fc7b-d0b3-7802-af08-555307d048a6",
+  "authorized": [
+    "non-force broker branch push",
+    "unique manual PR creation",
+    "mapped summary-only backfill",
+    "in-contract CI repair and subsequent verified pushes"
+  ],
+  "excluded": [
+    "merge",
+    "installation",
+    "credential mutation",
+    "deployment",
+    "AC2 waiver"
+  ],
+  "AC2": "GAP retained"
+}

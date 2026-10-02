@@ -1,0 +1,35 @@
+{
+  "number": 308,
+  "state": "open",
+  "title": "platform: 缺少「已合并但未安装」的只读漂移检查，#304 的根因无人报告",
+  "body": "## 背景\n\n#304 的根因不是代码写错，而是**没有任何机制会主动报告「已合并但未安装」**。\n#298 的 worktree 归属闸门在 `main` 里生效、在两台主机上不生效，期间每个 change\n会话都以为自己受保护，实际没有。这个状态是人事后偶然发现的。\n\n#162 起，8 个 installer 都会在安装前打印 `source commit` 与一个「装的是哪一版」的\n可读量（`operations`、`capabilities`、`catalog revision`…），落后 upstream 时 fail-closed。\n但那两行**只在有人主动跑 installer 的那一刻存在**。没人跑的时候，installed 与\nmerged 之间的漂移是完全静默的。\n\n## 问题\n\n缺一个**不需要跑 installer** 的只读检查，回答「这台主机上装的，是不是当前 `main`」。\n\n#304 的形态尤其难发现：新增**拒绝条件**（闸门、校验、归属检查）未安装时是 **fail open**\n静默放行，不像新增 typed 操作那样有 `REQUEST_DENIED` 信号（见 `06` 踩坑 20 与 30）。\n\n## 建议范围\n\n只读、可在两台各跑一次、把 8 个 installer 的安装面与当前 checkout 逐个比对并报\nPASS/GAP。不自动修复、不调 `sudo`、不写任何东西——发现漂移就报告，重装仍由人执行。\n\n可读量已经由 #171/#182/#250/#254 逐 installer 定义好（见 `06` 踩坑 20 的对照表），\n本 Issue 是把那张表变成一条可执行的检查，而不是重新发明它。\n\n## 可测验收标准\n\n- [ ] 存在一条只读命令，对本仓库 8 个 installer 的安装面逐个报 PASS/GAP，不写任何文件、\n      不调用 `sudo`、不需要凭据。\n- [ ] 在当前（#304 已重装、两台同步）状态下，Mac 上运行结果为全 PASS。\n- [ ] 反向证明：人为构造一个漂移（例如把已安装 lib 目录下某个模块改名或还原成旧版本），\n      该检查必须报 GAP 并指明是哪个 installer 的哪个可读量不符；恢复后重新报 PASS。\n- [ ] 检查能识别 #304 的形态——已安装 lib 目录**缺少某个源码里存在的模块文件**，\n      而不仅仅是比对版本号或计数。\n- [ ] 该检查纳入 `codex/tests/smoke.sh` 的静态部分（对源码自洽性做断言即可，\n      不要求 smoke 在 CI 里访问真实安装面）。\n\n## 依赖与来源\n\n- 阻塞于：无。\n- 来源：#304 会话（Claude Code），PR 306 / merge `803fd90`。#304 收尾时确认此项需要\n  独立验收标准，按 `issue-session-flow` 判据切出为新 Issue，未并入 #304。\n- 目标仓：`admin/aisoft-platform`。",
+  "labels": [
+    {
+      "color": "0e8a16",
+      "description": "Issue 合同完整，允许启动 Development Loop",
+      "exclusive": false,
+      "id": 28,
+      "is_archived": false,
+      "name": "approved",
+      "url": "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/labels/28"
+    },
+    {
+      "color": "b60205",
+      "description": "需要规格与计划或触发强制复杂风险规则的变更",
+      "exclusive": false,
+      "id": 39,
+      "is_archived": false,
+      "name": "complexity/complex",
+      "url": "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/labels/39"
+    },
+    {
+      "color": "7057ff",
+      "description": "平台、Agent、CI、部署或治理合同变更",
+      "exclusive": false,
+      "id": 37,
+      "is_archived": false,
+      "name": "type/platform",
+      "url": "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/labels/37"
+    }
+  ]
+}
