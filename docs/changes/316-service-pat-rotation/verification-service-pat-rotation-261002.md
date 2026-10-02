@@ -54,6 +54,23 @@ updated: 2026-10-02
 | source/helper 实现、先红后绿、Go/Python/bash/smoke、PR CI | NOT RUN | 目前只是合同准备，无新实现 |
 | #316 helper 安装 / operator grant / PAT 轮换 / audit / no-op 演练 | NOT RUN | 独立 live/Secret 授权尚不存在；scope 修复代码安装不证明真实 PAT 已改变 |
 
+## T02 本地实现与隔离验证（2026-10-02 fresh turn）
+
+已重新读取本票 AGENTS、README、03/06、批准的 spec/plan，再进入 T02。新增内容仅在 `codex/tools/gitea-pat-helper/`，没有执行安装或读取现场 config/DB/Secret。
+
+| Check | Result | Evidence |
+|---|---|---|
+| Go 1.26.3 官方工具链摘要 | PASS | 本票隔离临时目录；darwin-arm64 SHA-256=875cf54a15311eee2c99b9dd67c68c4a49351d489ab622bf2cfd28c8f2078d3c；最初下载得到重定向 HTML，摘要失败后未解包，跟随官方重定向重下载才通过；未全局安装 |
+| 固定 Gitea module/model | PASS | code.gitea.io/gitea v1.26.4；module sum=h1:VDA00oYg16VrQf3sES0NuS/oiDLAIVng/7jKHsBMP/w=；token model SHA-256=dcf0e3fd325fe98e91d8a2e216aedbaf08fed20625748bbbdf03f090fc1728cd；go.mod/go.sum 固定，build.py 核验无替换、model bytes 与 go mod verify |
+| helper 核心 suite 先红后绿 | PASS | 待实现桩时 TestExactRevokeAndFreshReadback（当时名为 CacheReadback）、Inspect、SecretErrors 三个测试 FAIL/NOT_IMPLEMENTED；实现后固定工具链 go test -mod=readonly -tags sqlite,sqlite_unlock_notify ./... PASS；临时 SQLite、上游 auth/user/db models，无现场 Secret |
+| 失败/隔离负向矩阵 | PASS | 错账号、未知 token、admin、org、inactive、版本、ID/UID/name/project/kind、歧义 salted hash 全部零删除；其它 PAT 与其它账号保留；真实 SQLite trigger 删除失败回滚、driver error 输出固定错误码，synthetic canary 不泄露 |
+| 请求与 manifest/build binding | PASS | 拒绝重复/未知字段、多文档、null、超长 stdin、任意 username/SQL；canonical 两份 manifest 四种身份可解析；未知 project/kind/无 routine binding 拒绝；module replacement/toolchain mismatch 拒绝 |
+| Go race suite | PASS | 固定工具链 go test -mod=readonly -race -tags sqlite,sqlite_unlock_notify ./...；无 race 报告；不代表现场并发交易已验收 |
+| Mac 本地固定 build + provenance | PASS（darwin/arm64） | build.py 重跑 suite 并构建，binary SHA-256=3e72dfe4bbae9f68134062a2840cbef442ee9640bc62af368eb112a5eb4d3708；临时目录保存 source hashes、dirty 状态、Go build info；非 Linux release/installed 证据 |
+| Mac binary 公开元数据与拒绝行为 | PASS | --version 返回 helper=1、model=1.26.4、toolchain=go1.26.3；普通运行先返回 HOST_UNSUPPORTED/exit 2，stderr 为空，未读取 config/DB/Secret |
+| T02 双轴代码审查 | PENDING | 本地 commit 后按 implement/code-review 技能审查 Standards 与本票 T02 spec；T03/T04 尚未实施不能作为本阶段缺失实现的完成证据 |
+| Linux binary/CI、typed grant/交易工具、安装/live | NOT RUN | 留在 T03/T04/T05，当前不声称整体 Issue 已完成 |
+
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |
@@ -61,7 +78,7 @@ updated: 2026-10-02
 | AC-1 | NOT RUN | 轮换工具与新测试未实施 |
 | AC-2 | NOT RUN | 未授权且未执行真实 Secret 操作 |
 | AC-3 | T01 文档部分完成，T04 最终复核待执行 | 03 已加入 scope 合同变化必须轮换、operator 权限和阶段边界；06 已加入轮换列、Secret/恢复合同；mapped documents/真实分类读回在 T01 复核，整体验收仍需 T04 |
-| AC-4 | NOT RUN | helper/临时 DB 集成尚未实施 |
+| AC-4 | 本地隔离 DB suite PASS；阶段审查待完成 | fixed v1.26.4 helper 使用真实 models 覆盖精确删除/拒绝/脱敏；Linux release 与现场安装不在该 PASS 范围 |
 | AC-5 | NOT RUN | transaction/failure/resume suite 尚未实施 |
 | AC-6 | NOT RUN | operator-only typed 新路径尚未实施 |
 | AC-7 | NOT RUN | 新 source/local/CI gates 均未执行 |
