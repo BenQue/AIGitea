@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import tarfile
 
 ROOT = Path(__file__).resolve().parent
 
@@ -14,13 +15,57 @@ def run(go, args, env):
     return subprocess.check_output([str(go), *args], cwd=ROOT, env=env)
 
 
+
+def verify_toolchain(go, archive, lock):
+    """Bind the actual GOROOT bytes to an official checksum-verified archive."""
+    pins = [item for item in lock['files'] if item['filename'] == archive.name]
+    if len(pins) != 1 or hashlib.sha256(archive.read_bytes()).hexdigest() != pins[0]['sha256']:
+        raise SystemExit('TOOLCHAIN_ARCHIVE_MISMATCH')
+    go = go.resolve(strict=True)
+    root = go.parent.parent
+    if go != root / 'bin' / 'go':
+        raise SystemExit('TOOLCHAIN_PATH_MISMATCH')
+    expected = set()
+    tree_hash = hashlib.sha256()
+    with tarfile.open(archive) as packed:
+        for member in packed:
+            relative = Path(member.name)
+            if not relative.parts or relative.parts[0] != 'go' or '..' in relative.parts:
+                raise SystemExit('TOOLCHAIN_ARCHIVE_UNSAFE')
+            if member.isdir():
+                continue
+            if not member.isfile():
+                raise SystemExit('TOOLCHAIN_ARCHIVE_UNSAFE')
+            relative = Path(*relative.parts[1:])
+            target = root / relative
+            if relative in expected or target.is_symlink() or not target.is_file():
+                raise SystemExit('TOOLCHAIN_BYTES_MISMATCH')
+            expected.add(relative)
+            expected_hash = hashlib.sha256(packed.extractfile(member).read()).digest()
+            if hashlib.sha256(target.read_bytes()).digest() != expected_hash:
+                raise SystemExit('TOOLCHAIN_BYTES_MISMATCH')
+            tree_hash.update(str(relative).encode() + b'\0' + expected_hash)
+    actual = set()
+    for target in root.rglob('*'):
+        if target.is_symlink():
+            raise SystemExit('TOOLCHAIN_BYTES_MISMATCH')
+        if target.is_file():
+            actual.add(target.relative_to(root))
+    if actual != expected:
+        raise SystemExit('TOOLCHAIN_BYTES_MISMATCH')
+    return root, {'filename': pins[0]['filename'], 'sha256': pins[0]['sha256'],
+                  'extracted_tree_sha256': tree_hash.hexdigest()}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--go', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--toolchain-archive', type=Path, required=True)
     args = parser.parse_args()
     lock = json.loads((ROOT / 'build-lock.json').read_text())
-    env = {**os.environ, 'GOTOOLCHAIN': 'local', 'GOENV': 'off', 'GOWORK': 'off',
+    tool_root, tool_evidence = verify_toolchain(args.go, args.toolchain_archive, lock)
+    env = {**os.environ, 'GOROOT': str(tool_root), 'GOTOOLCHAIN': 'local', 'GOENV': 'off', 'GOWORK': 'off',
            'GOFLAGS': '', 'CGO_ENABLED': '1'}
     version = run(args.go, ['version'], env).decode().split()
     if len(version) != 4 or version[2] != lock['version']:
@@ -40,7 +85,7 @@ def main():
     run(args.go, ['build', '-mod=readonly', '-trimpath', '-tags', 'sqlite,sqlite_unlock_notify',
                   '-ldflags=-buildid=', '-o', str(output), '.'], env)
     evidence = {'schema': 'aisoft-gitea-pat-helper-build/v1',
-                'toolchain': version[2], 'platform': version[3], 'gitea': pin,
+                'toolchain': version[2], 'toolchain_input': tool_evidence, 'platform': version[3], 'gitea': pin,
                 'sha256': hashlib.sha256(output.read_bytes()).hexdigest(),
                 'go_mod_sha256': hashlib.sha256((ROOT / 'go.mod').read_bytes()).hexdigest(),
                 'go_sum_sha256': hashlib.sha256((ROOT / 'go.sum').read_bytes()).hexdigest(),

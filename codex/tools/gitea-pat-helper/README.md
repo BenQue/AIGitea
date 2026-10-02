@@ -2,12 +2,12 @@
 
 本目录是已批准 T02 的源码与隔离验证。没有安装 helper、读取现场配置/数据库或执行真实 PAT 轮换。
 
-依赖固定 `code.gitea.io/gitea v1.26.4`、Go `1.26.3`；`build-lock.json` 保存官方工具链归档 SHA-256、module sum 与 token model 文件摘要。`go.mod/go.sum` 固定实际依赖图，上游 compatibility replacements 显式保留。构建工具核对 exact pin、module bytes 和 `go mod verify`，运行真实 SQLite model 测试后生成 binary SHA-256、source hashes 与 Go build info 回执。Mac 构建只证明该平台的源码/隔离 DB 行为；Linux 制品与 CI 在 T04 单独验证。
+依赖固定 `code.gitea.io/gitea v1.26.4`、Go `1.26.3`；`build-lock.json` 保存官方工具链归档 SHA-256、module sum 与 token model 文件摘要。`go.mod/go.sum` 固定实际依赖图，上游 compatibility replacements 显式保留。构建工具先核对官方归档摘要，再逐文件核对实际 GOROOT（拒绝额外文件与 symlink），将归档和 tree 摘要写入 provenance；随后核对 exact pin、module bytes 和 `go mod verify`，运行真实 SQLite model 测试后生成 binary SHA-256、source hashes 与 Go build info 回执。Mac 构建只证明该平台的源码/隔离 DB 行为；Linux 制品与 CI 在 T04 单独验证。
 
 本地构建使用负责人已有或独立临时目录中的官方摘要验证工具链；不安装全局 Go：
 
 ```text
-python3 build.py --go <固定 Go 1.26.3 的绝对路径> --output <本地制品路径>
+python3 build.py --go <固定 Go 1.26.3 的绝对路径> --toolchain-archive <同版本官方归档路径> --output <本地制品路径>
 ```
 
 运行入口仅接受有界 stdin JSON，包含 `action=inspect|revoke`、`project_id`、`token_kind`、PAT 与可选的 exact token ID/UID/name。PAT 不进入 argv；revoke 必须带三个 exact binding。未知、重复或多文档输入拒绝。账号由 root-owned canonical governance/access manifests 解析，不能传 username、URL、SQL 或配置路径。`--version` 只输出公开构建元数据。

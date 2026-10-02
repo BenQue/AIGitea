@@ -28,8 +28,8 @@ updated: 2026-10-02
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 只应用 03/06 的轮换、权限、恢复治理合同，形成可审核本地 commit，停止本 turn | - | done |
-| T02 | fresh turn：固定版本 helper 对 exact PAT/UID 安全撤销，隔离 DB 验证，不安装现场 | T01 | in-progress |
-| T03 | operator command 完整轮换/失败恢复/no-op，与 typed grant 路径接通，测试零授权零 mutation | T02 | pending |
+| T02 | fresh turn：固定版本 helper 对 exact PAT/UID 安全撤销，隔离 DB 验证，不安装现场 | T01 | done |
+| T03 | operator command 完整轮换/失败恢复/no-op，与 typed grant 路径接通，测试零授权零 mutation | T02 | awaiting-contract-decision |
 | T04 | shell/Python/Go 全量验证、文档/判级复核，准备唯一 manual PR 候选 | T03 | pending |
 | T05 | 人工合并后独立授权 helper 安装/operator grant/真实轮换和第二次 no-op，形成 AC-2 现场证据 | T04 | pending |
 
@@ -59,10 +59,15 @@ T01 与 T02 不得在同一 turn 实施。T05 不是已获批准的执行任务�
 | AC-6 | T03/T04 | 对应 test_host_access/test_credential_rotation 的 typed parameter/grant/identity 负向矩阵；broker shell operation count 与 CLI schema 验证 |
 | AC-7 | T04 | bash -n 修改的 shell；ShellCheck 若可用；bash codex/tests/smoke.sh；对应 Python suites；fixed helper build/check；唯一 PR 最终 head 的 required CI |
 
-命令中的新套件和 helper 目前均为计划，尚不存在/NOT RUN；runtime 阶段须落实这些文件再执行，不把表当执行回执。
+T02 helper 与临时 DB 测试已实现并运行，证据见 verification。T03 新 shell/Python 套件和 T04 CI 接入仍为计划/NOT RUN，须落实再执行，不把表当执行回执。
 
 ## 安装、现场与回滚
 
 现有 #313 两台 broker 重装已 PASS，不能复用为未来 #316 helper/operator transport installed PASS。#316 source 合并后如需现场安装，先独立明确安装和 live grant 授权，再验证全包 pinned 字节/权限/provenance。轮换使用同一请求验证两次，隔离失败/恢复在测试环境完成；实际 live 故意故障须另行授权，不擅自损坏 service PAT。
 
 源码 revert + 版本化 installer 的 previous 文件恢复只能撤销代码安装，不能恢复 PAT。撤旧前可恢复经证实仍有效且符合当前 policy 的原凭据；撤旧后仅用受保护候选恢复。无可恢复候选或授权/归属不确定时保持 canonical 隔离并升级负责人。
+
+
+## T03 Frontier 暂停原因
+
+T02 当前本地实现/测试/审查已完成。新源码读回发现 spec:57 的 no-Mac Secret 边界与现有 Mac-only credential resolver 消费路径冲突，无法直接保证 AC-2。用户正在选择 A（仅允许 fixed Mac canonical store）或 B（扩展 VM-only custody/代理执行）；不以建议选项或经过时间作为批准。原 spec 安全边界保持，T03 等待合同决策；安装、grant 与 live 不获预授权。

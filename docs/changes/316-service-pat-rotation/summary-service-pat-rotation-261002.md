@@ -27,7 +27,7 @@ documents:
   verification: verification-service-pat-rotation-261002.md
 depends_on:
   - 313
-status: approved
+status: awaiting-triage
 branch: change/316-service-pat-rotation
 pr_url:
 created: 2026-10-02
@@ -44,7 +44,7 @@ updated: 2026-10-02
 
 ## 初步方案与建议
 
-采用先隔离旧 canonical 凭据、生成并验证受保护候选、精确撤销旧 PAT、提交 provenance、最后原子发布新凭据的状态机。新 helper 使用固定 Gitea v1.26.4 上游 token model，拒绝任意 SQL 和任意账号；通过独立 operator grant 的 typed broker 路径执行。完整合同与 ticket graph 见映射 spec/plan。用户于 2026-10-02 明确确认这份 spec/plan 与新增本地撤销后台方案；本轮仅完成 T01 治理应用，后续 fresh turn 可继续 T02，PR/后续安装/live Secret 授权仍独立。
+采用先隔离旧 canonical 凭据、生成并验证受保护候选、精确撤销旧 PAT、提交 provenance、最后原子发布新凭据的状态机。新 helper 使用固定 Gitea v1.26.4 上游 token model，拒绝任意 SQL 和任意账号；通过独立 operator grant 的 typed broker 路径执行。完整合同与 ticket graph 见映射 spec/plan。用户于 2026-10-02 明确确认这份 spec/plan 与新增本地撤销后台方案；T01 治理应用已完成并停止，本轮 fresh turn 完成 T02 helper 本地实现与审查；新发现 no-Mac Secret 边界与现有 Mac credential resolver 路径冲突，T03 等待用户合同决策。PR/后续安装/live Secret 授权仍独立。
 
 ## 风险
 
@@ -87,4 +87,4 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- 无；如后续发现缺失则回到 awaiting-triage。
+- T03 凭据消费位置必须明确：A 仅允许受控更新 manifest 固定的 Mac canonical store；或 B 坚持 no-Mac Secret 并扩展 VM-only broker custody/代理执行。尚未批准任一调整；旧合同保持，等待用户决策。
