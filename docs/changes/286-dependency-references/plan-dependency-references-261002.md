@@ -26,7 +26,7 @@ updated: 2026-10-02
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | G01：只应用已批准治理合同，独立提交后停止 | - | completed |
-| T02 | 旧本仓兼容 + qualified parser + broker bounded read 的完整读取路径 | T01 | pending |
+| T02 | 旧本仓兼容 + qualified parser + broker bounded read 的完整读取路径 | T01 | completed |
 | T03 | Controller 与 routine 同规则依赖等待、终态解锁和展示 | T02 | pending |
 | T04 | 两 provider 示例、全部 gates 与唯一最终 PR 候选 | T03 | pending |
 
