@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-02",
+  "source_sha": "480d1d262c3e915f546049ede3f34ad7d3362f50",
+  "installed_checks": [
+    {
+      "command": "bash codex/check-drift.sh /Users/benque",
+      "exit_code": 0,
+      "result": "CLEAN"
+    },
+    {
+      "command": "bash skill-for-claude/check-drift.sh /Users/benque",
+      "exit_code": 0,
+      "result": "CLEAN"
+    }
+  ],
+  "matt": {
+    "tag": "v1.2.2",
+    "skill_count": 35,
+    "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302",
+    "result": "PASS"
+  },
+  "source_status": "LOCAL_APPLIED",
+  "proposal_files": 5,
+  "proposal_sha256": "cc12b6937c3905b8f9f97f42f4c4d54713ed799e527a0797b7f651c51523690d",
+  "proposal_contract_tests": {
+    "baseline": {
+      "tests": 6,
+      "expected_failures": 5,
+      "errors": 0
+    },
+    "overlay": {
+      "tests": 6,
+      "result": "PASS"
+    }
+  },
+  "full_smoke": {
+    "C_locale": {
+      "tests": 967,
+      "result": "PASS"
+    },
+    "UTF8_default": {
+      "result": "FAIL",
+      "issue": 319
+    }
+  },
+  "host_broker": {
+    "owner_gate_298": "CURRENT",
+    "context_sync_312": "CURRENT",
+    "merger_scope_313": "NOT_CURRENT",
+    "old_sha": "3ff6972",
+    "drift_files": [
+      "/usr/local/share/aisoft/gitea-governance.json",
+      "/usr/local/lib/aisoft-host-access/aisoft_gitea_governance/contract.py"
+    ]
+  },
+  "target_project_onboarding": "PASS under installed contract",
+  "real_provider_acceptance": "NOT_RUN",
+  "pr": "NOT_CREATED",
+  "policy": "manual",
+  "governance_commit": "dc77c93b3c92534b3f1e796dce896ea15fc43e56",
+  "test_commit": "b780eabb293fb000b36c0b7e01a74b44f3b2547d",
+  "candidate_targeted_tests": 38,
+  "candidate_full_smoke": {
+    "locale": "C",
+    "tests": 978,
+    "exit_code": 0,
+    "result": "PASS"
+  },
+  "session_contract_tests": 12,
+  "mutation_cases": 27,
+  "candidate_real_install": "NOT_RUN",
+  "state": "AWAITING_PR_CONFIRMATION",
+  "derived_issue_320": true
+}

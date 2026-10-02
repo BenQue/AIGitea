@@ -1,0 +1,56 @@
+{
+  "issue": 318,
+  "ticket": "T02",
+  "fresh_run": "t02_fresh_tests",
+  "session": "codex-318-provider-skill-parity-20261002",
+  "worktree": "/private/tmp/issue-318-provider-skill-parity",
+  "branch": "change/318-provider-skill-parity",
+  "governance_commit": "dc77c93b3c92534b3f1e796dce896ea15fc43e56",
+  "fresh_read_completed_at": "2026-10-02T10:57:11.064042+00:00",
+  "source_files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "7192cb1bcb5c4e0d87f24bbf1a1abac1ad72c08094e6a8e52f1b63217531514f"
+    },
+    {
+      "path": "README.md",
+      "sha256": "8c76cf171f37d66704f79afb6f0e305a2f4899b22757be67ff911a9a0b45a7f0"
+    },
+    {
+      "path": "08-双工具共存与实施.md",
+      "sha256": "c5fc38dabd8871ef9fc1be02968323556ffdb87eb6a68ef5b9ec747d0c659f70"
+    },
+    {
+      "path": "codex/skills/issue-session-flow/SKILL.md",
+      "sha256": "18b01320cd63b2eaf0c2e58508a3ce6c010899636dfddf4809265f8d8dd5cacd"
+    },
+    {
+      "path": "skill-for-codex/SKILL.md",
+      "sha256": "76ed72bb0e4a80cf4261e4e92d050859ac6c51a16a568093732cc1f98ce3b4b4"
+    },
+    {
+      "path": "skill-for-codex/references/onboarding-runbook.md",
+      "sha256": "05353ff947d4c6f76e70fa69100984f3dfa44e5ae23ca92ab0152c78986ef992"
+    },
+    {
+      "path": "docs/changes/318-provider-skill-parity/spec-provider-skill-parity-261002.md",
+      "sha256": "d0fba583ea0df3bc6a1c2560047a50eca52fcb130f63900e3c6503cfe96ee7a3"
+    },
+    {
+      "path": "docs/changes/318-provider-skill-parity/plan-provider-skill-parity-261002.md",
+      "sha256": "def0cf937cf58181a8c9370867bae9f5e105ff470d06534f09e3aeacf4fb5d32"
+    },
+    {
+      "path": "docs/changes/318-provider-skill-parity/verification-provider-skill-parity-261002.md",
+      "sha256": "cde519cfdd3d4b1fa5358805bb3f08a69b51b4dd6e5120b2628cf07c01a0c592"
+    }
+  ],
+  "permissions": {
+    "local_test_file_change": "APPROVED",
+    "local_atomic_commit": "APPROVED",
+    "push": "NOT_AUTHORIZED",
+    "pr": "NOT_AUTHORIZED",
+    "merge": "NOT_AUTHORIZED",
+    "deploy": "NOT_AUTHORIZED"
+  }
+}

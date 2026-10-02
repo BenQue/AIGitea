@@ -1,0 +1,8 @@
+{
+  "raw_sha256": "cc12b6937c3905b8f9f97f42f4c4d54713ed799e527a0797b7f651c51523690d",
+  "archive_sha256": "a30beb3722ce5bae2eb5eb353509d5cf5224f3a1d538d753fabc51b4bd2a4314",
+  "archive": "proposals/provider-skill-parity.patch.gz",
+  "raw_copy": "/Users/benque/.codex/visualizations/2026/10/02/01a0fc22-0f10-7283-975c-cf4059a7a5c0/aisoft-318-approved-proposal.patch",
+  "format": "gzip, deterministic mtime=0",
+  "note": "unified-diff blank context markers contain required structural spaces; archived byte-identically to avoid false whitespace errors in evidence file"
+}

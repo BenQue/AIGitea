@@ -1,0 +1,24 @@
+{
+  "stage_home": "/private/tmp/aisoft-318-skills-d608BQ",
+  "codex_drift": "CLEAN",
+  "claude_drift": "CLEAN",
+  "shared_references": [
+    {
+      "reference": "onboarding-runbook.md",
+      "byte_identical": true,
+      "sha256": "05353ff947d4c6f76e70fa69100984f3dfa44e5ae23ca92ab0152c78986ef992"
+    },
+    {
+      "reference": "project-align.md",
+      "byte_identical": true,
+      "sha256": "8959d13e6d4017e264524c9454dbf971a16edcd2b34511ad5ef857b37861f777"
+    },
+    {
+      "reference": "private-gitea-access.md",
+      "byte_identical": true,
+      "sha256": "aebee8e6adcbed71041eb07c9c1fbe43bd12d893876225a1389c5ae93ba3e54d"
+    }
+  ],
+  "real_install": "NOT_RUN",
+  "source_stage": "T01 dc77c93 governance skills; test-only changes do not affect installer payload"
+}

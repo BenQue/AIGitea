@@ -1,0 +1,14 @@
+{
+  "issue": 318,
+  "branch": "change/318-provider-skill-parity",
+  "policy": "manual",
+  "confirmation": "contract/start",
+  "user_message": "确认",
+  "client_date": "2026-10-02",
+  "confirmed_spec_sha256": "e336b06310a0341395e76a843353b6b420bac93257e888e1a4e35749579b7cd3",
+  "confirmed_plan_sha256": "3584ad2b4035f06614b8cd4545f3a698fba9f59c534c95944e32e8689f985713",
+  "source_proposal_sha256": "cc12b6937c3905b8f9f97f42f4c4d54713ed799e527a0797b7f651c51523690d",
+  "final_pr_submission": "NOT_AUTHORIZED",
+  "merge": "NOT_AUTHORIZED",
+  "deployment": "NOT_AUTHORIZED"
+}

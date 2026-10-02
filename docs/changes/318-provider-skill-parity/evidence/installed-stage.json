@@ -1,0 +1,35 @@
+{
+  "source_commit": "480d1d262c3e915f546049ede3f34ad7d3362f50",
+  "matt": {
+    "version": "v1.2.2",
+    "skill_count": 35,
+    "issues": []
+  },
+  "stage_target": "/private/tmp/aisoft-skill-stage-3kiwr84f",
+  "stage_checks": [
+    {
+      "script": "codex/install-skills.sh",
+      "exit_code": 0,
+      "stdout": "source checkout:   /Users/benque/MyDocs/AISoftPlatform\nsource commit:     480d1d2 (level with origin/main)\nsource skills:     8\nsource matt snapshot: v1.2.2\nAISoftPlatform skills installed in /private/tmp/aisoft-skill-stage-3kiwr84f/.agents/skills\nMatt Pocock skills v1.2.2 activated from the verified snapshot\nNo credentials, runtime, systemd unit, profile, provider, or timer was installed.\n",
+      "stderr": ""
+    },
+    {
+      "script": "skill-for-claude/install.sh",
+      "exit_code": 0,
+      "stdout": "source checkout:   /Users/benque/MyDocs/AISoftPlatform\nsource commit:     480d1d2 (level with origin/main)\nsource skills:     2\nsource references: 3\ninstalled skill aisoft-platform in /private/tmp/aisoft-skill-stage-3kiwr84f/.claude/skills/aisoft-platform\ninstalled skill issue-session-flow in /private/tmp/aisoft-skill-stage-3kiwr84f/.claude/skills/issue-session-flow\nClaude skills installed from /Users/benque/MyDocs/AISoftPlatform/skill-for-claude/skills.manifest: aisoft-platform issue-session-flow\nShared references copied from skill-for-codex/references (single source).\nPruned 0 stale entries; each declared skill tree is exact.\nUndeclared skills under .claude/skills were not read or modified.\nNo credentials, runtime, or provider state was installed.\n",
+      "stderr": ""
+    },
+    {
+      "script": "codex/check-drift.sh",
+      "exit_code": 0,
+      "stdout": "CLEAN\n",
+      "stderr": ""
+    },
+    {
+      "script": "skill-for-claude/check-drift.sh",
+      "exit_code": 0,
+      "stdout": "CLEAN\n",
+      "stderr": ""
+    }
+  ]
+}

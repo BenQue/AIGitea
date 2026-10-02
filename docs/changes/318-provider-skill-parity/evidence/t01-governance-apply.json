@@ -1,0 +1,16 @@
+{
+  "issue": 318,
+  "branch": "change/318-provider-skill-parity",
+  "commit": "dc77c93b3c92534b3f1e796dce896ea15fc43e56",
+  "files": [
+    "codex/skills/issue-session-flow/SKILL.md",
+    "skill-for-codex/SKILL.md",
+    "skill-for-codex/references/onboarding-runbook.md",
+    "08-双工具共存与实施.md"
+  ],
+  "diff_check": "PASS",
+  "runtime_changed": false,
+  "tests_changed": false,
+  "controlled_step": "STOPPED",
+  "next": "fresh T02"
+}

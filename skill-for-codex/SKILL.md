@@ -99,14 +99,21 @@ confirmation. `issue-session-flow` owns the contract/start and final-PR confirma
 Accept `AWAITING_PR_CONFIRMATION`, `READY_FOR_REVIEW`, `AUTO_MERGED`, `NEEDS_HUMAN_DECISION`,
 `BLOCKED_EXTERNAL`, or `FAILED_LIMIT` as governed states. Never describe unrun checks as passed.
 
-After it opens the pull request, the Controller writes that PR's URL into the change summary's `pr_url` front
-matter field and advances the summary's `status` to `pr-open`, commits exactly that one document, and pushes it
-(#146). This is automatic — do not add a manual backfill step, and do not treat the extra commit as provider
-work. `pr_url` lives in the summary only (#142); spec, plan and verification documents do not carry it. If the
+In a Controller-managed run, after it opens the pull request, the Controller writes that PR's URL into the change
+summary's `pr_url` front matter field and advances the summary's `status` to `pr-open`, commits exactly that one
+document, and pushes it (#146). This is automatic within that path — do not duplicate its backfill step or treat
+the extra commit as provider work. `pr_url` lives in the summary only (#142); spec, plan and verification documents do not carry it. If the
 summary does not declare `pr_url`, or already declares a different one, the Controller fails closed and returns
 `NEEDS_HUMAN_DECISION` rather than overwriting or skipping — a change has exactly one PR, so a second value
 means the premise broke. Verify any checkout with
 `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo <checkout>`.
+
+In a Mac interactive session that creates the PR with broker `gitea.pull.create` without invoking the Controller,
+the session must run
+`PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli backfill-pr-url N --repo <checkout> --pr-url <actual PR URL>`,
+commit exactly the mapped summary and push the same change branch through the broker. The standalone
+`gitea.pull.create` call does not run the Controller's automatic backfill. Before the PR exists, leave `pr_url`
+empty and keep the real pre-PR status; then run `check-change-documents` on the updated checkout.
 
 ## Preserve the deployment boundary
 
