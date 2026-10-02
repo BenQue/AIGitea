@@ -33,6 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
     broker.add_argument("--body")
     broker.add_argument("--comment")
     broker.add_argument("--sha")
+    broker.add_argument("--token-kind")
     # Actions job id (#143). Sourced from gitea.actions.run.read output, never
     # scraped out of a commit status target_url.
     broker.add_argument("--job", type=int)
@@ -113,6 +114,7 @@ def main(argv: list[str] | None = None) -> int:
                 label=args.label,
                 color=args.color,
                 description=args.description,
+                token_kind=args.token_kind,
             )
             _json(value)
             return 0

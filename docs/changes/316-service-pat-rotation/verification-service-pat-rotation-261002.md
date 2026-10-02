@@ -76,17 +76,17 @@ updated: 2026-10-02
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | NOT RUN | 轮换工具与新测试未实施 |
+| AC-1 | T03 隔离 shell PASS；T04 smoke 接入未完成 | 已覆盖 rotate/no-op、撤旧失败、scope 不等、写入失败与 Secret canary；真实外部系统不在 fixture PASS 范围 |
 | AC-2 | NOT RUN | 未授权且未执行真实 Secret 操作 |
 | AC-3 | T01 文档部分完成，T04 最终复核待执行 | 03 已加入 scope 合同变化必须轮换、operator 权限和阶段边界；06 已加入轮换列、Secret/恢复合同；mapped documents/真实分类读回在 T01 复核，整体验收仍需 T04 |
 | AC-4 | T02 本地隔离 DB suite 与阶段审查 PASS | fixed v1.26.4 helper 使用真实 models 覆盖精确删除/拒绝/脱敏；Linux release 与现场安装不在该 PASS 范围 |
-| AC-5 | NOT RUN | transaction/failure/resume suite 尚未实施 |
-| AC-6 | NOT RUN | operator-only typed 新路径尚未实施 |
-| AC-7 | T02 Go/helper build 局部 PASS，整体未完成 | T03/T04 Python/bash/smoke、Linux 制品与 required CI 仍 NOT RUN；Mac build 不证明 installed/live |
+| AC-5 | T03 本地隔离 PASS | 固定 store 交易、journal/锁/权限/owner、失败补偿和中断恢复；live NOT RUN |
+| AC-6 | T03 源码/本地负向 PASS | 普通 typed caller、VM 公开 tuple/hash、缺/错 grant/capability 均拒绝；installed/live NOT RUN |
+| AC-7 | T02/T03 本地局部 PASS，整体未完成 | Python/bash/ShellCheck 与本地回归见下节；T04 CI/Linux 制品/进程级验证未完成，Mac 证据不证明 installed/live |
 
 ## 遗留风险与未完成项
 
-两台 #313 installed 前置已解除，depends_on 仍保留 313，不能把批次集成排序写为产品依赖。新本地撤销 helper/operator 路线已获用户合同确认；现有 rollback 的假 self-revoke 不作真实证明。T01 已作治理 commit 并停止；本轮 fresh turn 重读后完成 T02，尚未实施 T03。PR 提交 manual、人合并、未来安装、grant provision、live PAT 轮换均有各自明确边界。只完成 source merge 而 AC-2 未验收时不声称 #316 已真正解决，不归档本聊天。
+两台 #313 installed 前置已解除，depends_on 仍保留 313，不能把批次集成排序写为产品依赖。新本地撤销 helper/operator 路线已获用户合同确认；现有 rollback 的假 self-revoke 不作真实证明。T01 已作治理 commit 并停止；T02 已完成；T03 fresh run 已完成源码、隔离测试与审查修复，证据见下节。PR 提交 manual、人合并、未来安装、grant provision、live PAT 轮换均有各自明确边界。只完成 source merge 而 AC-2 未验收时不声称 #316 已真正解决，不归档本聊天。
 
 
 ## T03 合同冲突历史（已由方案 A 解除）
@@ -109,3 +109,25 @@ updated: 2026-10-02
 | 分类 --verify 316 | PASS | action=verify、applied=false、result=projected、change_type=security、complexity=complex；仅标签与声明一致证据 |
 
 本阶段文档检查、分类投影、staged scope、本地 commit SHA 与 clean 读回在本票 Issue 回执记录，避免文档自引用 commit SHA。没有修改 runtime、shell、CI、AGENTS、CLAUDE 或安装文件。T03、Python/bash/smoke、Linux 制品、PR CI、安装、grant provision、live PAT 轮换/audit/no-op 仍为 NOT RUN。AC-3 的治理文档部分已随 A 同步，T04 最终复核仍待执行；Mac 验收不得扩大为全部 VM 消费端验收。
+
+## T03 fresh run：源码交易、typed grant 与隔离验证（2026-10-02）
+
+起始 head 为 a4eef2aa242aecd46eb0850e091b37bbe81efbfc，沿用方案 A 启动批准，重读六份合同后实施本 frontier。无源码/安装 fallback，无现场 grant/marker/PAT/config 读取；没有安装、provision、签发/撤销真实 PAT、push、PR 或 merge。T03 本地 commit 在会话回执记录，避免文档自引用。
+
+交易实现固定 Mac store 的 per-target lock、legacy ownership 等值、持久 journal、候选验证、exact helper 撤旧、401 证据、provenance 与最后原子发布；同请求经 active 身份/scope 复核后 no-op。撤旧结果不确定或候选丢失时保持隔离，不盲目重签。installer 只增加显式 Linux helper 制品 pin/readback，不生成 grant 或 capability。
+
+两轴初审发现两个 P1：VM git endpoint 无法证明 Mac root operator 来源；非 TTY 普通文件可接收 Secret。新增隔离负例先红（2 failures）后绿。修复采用 Mac root-only grant 的随机 256-bit capability、VM grant 仅存 SHA-256 digest，每次私有请求在任何 subprocess 前 constant-time 验证；OperatorGrant 将 Secret 与交易 binding 分离，不进入 journal/provenance/receipt/argv/env。匿名管道按平台验证（Linux exact proc pipe inode；Darwin FIFO/dev/link），拒绝具名/unlinked FIFO与普通文件，写 Secret 前复核。它是窗口内 bearer capability，真实生成/provision 仍为 T05 独立授权。
+
+| Check | Result | Evidence / boundary |
+|---|---|---|
+| T03 轮换 Python suite | PASS | 34 tests；transaction mutation counts、失败/恢复、no-op、锁/文件安全、grant strict schema、VM 缺/错/hash proof 零命令与匿名 pipe 负例；使用 synthetic PAT/capability |
+| T03 shell black-box | PASS | test-rotate-gitea-service-account.sh；真实 operator process/文件系统，外部 Gitea/transport 为隔离 fixture；rotate/no-op/revoke/scope/write、公开 Secret canary、journal/provenance 无 capability |
+| host-access Python 回归 | PASS | 192 tests，包路径 discover -t codex/runtime；临时 localhost 隔离测试 |
+| shell 语法与 ShellCheck | PASS | 五份修改 shell 的 bash -n 与可用 ShellCheck；无修改 bootstrap/rollback marker 协议 |
+| 完整 smoke | PASS（C locale，本地隔离） | LC_ALL=C bash codex/tests/smoke.sh；1012 tests OK，Codex platform static smoke checks passed，exit 0；新 shell suite 另跑 PASS，尚待 T04 接入 smoke |
+| 双轴审查 | PASS（修复闭环） | Spec 与 Standards 复审均无残留阻塞；Standards 独立运行 34 tests PASS；trusted_read/trusted_digest 去重为非阻塞建议，本票未扩大修改 |
+| Linux/CI/进程级 helper、installed/live | NOT RUN | T04/T05；Darwin 管道测试与模拟 Linux descriptor 规则不证明真实 VM transport PASS；新 shell suite 尚待 T04 接入 smoke |
+
+smoke 首次沙盒路径因 localhost bind PermissionError 未完成；获授权的同一隔离测试在本地重试。默认 UTF-8 的既有 registry-preflight 测试触发 macOS Bash 3.2 fullwidth punctuation 解析错误，LC_ALL=C 独立该 suite PASS，不修改其它 Issue 源码。随后全量 smoke 发现新 fixture 裸 sibling import，已改为 tests.test_credential_rotation 后重跑。失败尝试仍保留，不能计为 PASS。
+
+执行卡见 codex/tools/rotate-gitea-service-account.md；它说明后续 exact source/helper/grant/store/window/ownership 的 reviewable 边界，不授予安装或任何真实 Secret 操作。T04 frontier 尚待 CI/Linux/集成验证，AC-2 仍 NOT RUN，Issue 未完成。

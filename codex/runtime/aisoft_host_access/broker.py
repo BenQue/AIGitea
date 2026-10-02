@@ -1200,6 +1200,7 @@ class HostAccessBroker:
         label: str | None = None,
         color: str | None = None,
         description: str | None = None,
+        token_kind: str | None = None,
     ) -> object:
         try:
             project = self.contract.project(project_id)
@@ -1223,6 +1224,7 @@ class HostAccessBroker:
             "label": label,
             "color": color,
             "description": description,
+            "token_kind": token_kind,
         }
         supplied = {
             key for key, value in arguments.items()
@@ -1232,6 +1234,9 @@ class HostAccessBroker:
             raise BrokerError("ARGUMENT_MISMATCH", "operation arguments do not match the typed contract")
 
         try:
+            if operation_name == "gitea.credential.rotate":
+                from .credential_rotation import rotate
+                return rotate(self.contract, project_id, issue, sha, token_kind)
             if operation_name.startswith("gitea."):
                 if operation_name == "gitea.pull.merge.routine":
                     assert number is not None and sha is not None

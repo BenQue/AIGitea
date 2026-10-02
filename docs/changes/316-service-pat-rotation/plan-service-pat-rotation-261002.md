@@ -30,7 +30,7 @@ updated: 2026-10-02
 | T01 | 只应用 03/06 的轮换、权限、恢复治理合同，形成可审核本地 commit，停止本 turn | - | done |
 | T02 | fresh turn：固定版本 helper 对 exact PAT/UID 安全撤销，隔离 DB 验证，不安装现场 | T01 | done |
 | T02A | 仅应用方案 A 的 Mac canonical store/内部管道治理修订，文档检查与本地 commit 后停止 | T02 | done |
-| T03 | fresh run：operator command 完整轮换/失败恢复/no-op，与 typed grant 路径接通，测试零授权零 mutation | T02A | pending |
+| T03 | fresh run：operator command 完整轮换/失败恢复/no-op，与 typed grant 路径接通，测试零授权零 mutation | T02A | done |
 | T04 | shell/Python/Go 全量验证、文档/判级复核，准备唯一 manual PR 候选 | T03 | pending |
 | T05 | 人工合并后独立授权 helper 安装/operator grant/真实轮换和第二次 no-op，形成 AC-2 现场证据 | T04 | pending |
 
@@ -62,7 +62,7 @@ T01 与 T02、T02A 与 T03 均不得在同一 turn 实施。用户于 2026-10-02
 | AC-6 | T03/T04 | 对应 test_host_access/test_credential_rotation 的 typed parameter/grant/identity/store/helper 负向矩阵；env/path/URL override 拒绝；broker shell operation count 与 CLI schema 验证 |
 | AC-7 | T04 | bash -n 修改的 shell；ShellCheck 若可用；bash codex/tests/smoke.sh；对应 Python suites；fixed helper build/check；唯一 PR 最终 head 的 required CI |
 
-T02 helper 与临时 DB 测试已实现并运行，证据见 verification。T03 新 shell/Python 套件和 T04 CI 接入仍为计划/NOT RUN，须落实再执行，不把表当执行回执。
+T02 helper 与临时 DB 测试已实现并运行，证据见 verification。T03 新 shell/Python 套件已实施并本地运行，证据见 verification；T04 的新 shell smoke 接入、CI/Linux 制品及进程级验证仍为计划/NOT RUN，不把表当执行回执。
 
 ## 安装、现场与回滚
 

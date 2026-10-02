@@ -5482,7 +5482,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             number=None, state=None, branch=None, issue=70,
             title="fix(host-access): governed writes", body=body, comment=None, sha=None,
             job=None, entry_label=None, lifecycle=None, change_type=None, complexity=None,
-            label=None, color=None, description=None,
+            label=None, color=None, description=None, token_kind=None,
         )
         self.assertEqual(json.loads(stdout.getvalue()), {"number": 71})
 
@@ -5507,7 +5507,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             number=115, state=None, branch=None, issue=None,
             title=None, body=None, comment=None, sha=None, job=None, entry_label=None, lifecycle="completed",
             change_type=None, complexity=None,
-            label=None, color=None, description=None,
+            label=None, color=None, description=None, token_kind=None,
         )
 
         # --change-type / --complexity are typed fields on the same terms
@@ -5531,7 +5531,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             number=160, state=None, branch=None, issue=None,
             title=None, body=None, comment=None, sha=None, job=None, entry_label=None, lifecycle=None,
             change_type="platform", complexity="complex",
-            label=None, color=None, description=None,
+            label=None, color=None, description=None, token_kind=None,
         )
 
         define_argv = [
@@ -5555,7 +5555,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             number=None, state=None, branch=None, issue=None,
             title=None, body=None, comment=None, sha=None, job=None, entry_label=None, lifecycle=None,
             change_type=None, complexity=None,
-            label="priority/high", color="b60205", description="Project priority",
+            label="priority/high", color="b60205", description="Project priority", token_kind=None,
         )
         self.assertEqual(json.loads(stdout.getvalue()), {"result": "created"})
 
@@ -5579,7 +5579,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             number=229, state=None, branch=None, issue=None,
             title=None, body=None, comment=None, sha=None, job=None, entry_label=None, lifecycle=None,
             change_type=None, complexity=None,
-            label="area/api", color=None, description=None,
+            label="area/api", color=None, description=None, token_kind=None,
         )
         self.assertEqual(json.loads(stdout.getvalue()), {"result": "updated"})
 
