@@ -28,7 +28,7 @@ updated: 2026-10-03
 | T01 | G01：只应用已批准治理合同，独立提交后停止 | - | completed |
 | T02 | 旧本仓兼容 + qualified parser + broker bounded read 的完整读取路径 | T01 | completed |
 | T03 | Controller 与 routine 同规则依赖等待、终态解锁和展示 | T02 | completed |
-| T04 | 两 provider 示例、全部 gates 与唯一最终 PR 候选 | T03 | pending |
+| T04 | 两 provider 示例、全部 gates 与唯一最终 PR 候选 | T03 | completed |
 
 此表是已批准候选 G01→T01→T02→T03 的合法 Txx 编号映射；依次对应本表 T01→T02→T03→T04，
 切片边界没有改变。T01 必须是纯治理合同步骤；完成后 fresh run 重新读取合同再启动 T02。
@@ -114,3 +114,18 @@ broker shell、bash -n/ShellCheck、document/digest、classification readback �
 检查 PASS，但 source/main 差异使 aggregate exit 1，而正常 fixture 仍期待 0。
 完整 smoke FAIL，未改上游检查或绕过。PR325 仍未 merge；T04 pending。
 真实结果与直接授权见 evidence/t04-human-authorized-rebase-receipt.json。
+
+
+## #289 真 merge 后最终整合与候选
+
+PR325 merged=true，exact merge 16beee09aefe89b5bc80a31544c59d456190ea32 已经 fresh-fetch
+并证实位于 origin/main。本 owner 无冲突 rebase；7 个 patch 相同。主线已包含上游漂移
+fixture 的隔离 source baseline 修复，本票未改 checker 或删除断言。
+
+完整 smoke PASS（1042 tests / 104.165s）；双依赖+required_docs targeted 34 tests PASS；
+Standards/Spec 增量复核均 0 项；文档、模板 digest、真实 approved loader、分类与终态
+只读 dry-run 均通过。T04 completed，进入 AWAITING_PR_CONFIRMATION。
+本地日志与 SHA 绑定见 evidence/t04-post289-integration-receipt.json。
+
+唯一剩余确认点是 exact #286/change/286-dependency-references/manual 提交唯一最终 PR。
+未执行 push/PR/CI/manual merge/真实安装/live/部署/终态 apply/归档；不将候选等同 merge。

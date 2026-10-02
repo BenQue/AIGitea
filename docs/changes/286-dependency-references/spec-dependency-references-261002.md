@@ -16,7 +16,7 @@ depends_on: []
 status: approved
 branch: change/286-dependency-references
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # #286 · 仓库限定依赖合同
@@ -28,24 +28,24 @@ updated: 2026-10-02
 
 ## Acceptance criteria
 
-- [ ] AC-1（A1）：旧正整数、缺省、空列表的现有合同与测试不回退，旧数字明确只查本仓。
+- [x] AC-1（A1）：旧正整数、缺省、空列表的现有合同与测试不回退，旧数字明确只查本仓。
 
-- [ ] AC-2（A2）：本仓 #284 closed+completed、目标仓 #284 open 的 collision fixture 必须阻塞；
+- [x] AC-2（A2）：本仓 #284 closed+completed、目标仓 #284 open 的 collision fixture 必须阻塞；
   读取请求指向目标仓，不能以源仓同号代替。目标仓 closed+completed/deployed 后才满足。
 
-- [ ] AC-3（A3）：allowed source→target 成功；未知 target、未授权边、URL、host、路径、bool、
+- [x] AC-3（A3）：allowed source→target 成功；未知 target、未授权边、URL、host、路径、bool、
   零/负数、错误格式、自依赖与 canonical 重复 fail closed，越界 request 次数为零。
 
-- [ ] AC-4（A4）：外仓返回 PR、错误仓库/编号、404、403、transport/invalid JSON 等失败均阻塞，
+- [x] AC-4（A4）：外仓返回 PR、错误仓库/编号、404、403、transport/invalid JSON 等失败均阻塞，
   不出现 READY_FOR_REVIEW/AUTO_MERGED；routine merge POST 次数为零。
 
-- [ ] AC-5（A5）：Controller 与 routine broker 对同一组依赖 fixture 给出一致终态；拒绝 project-agent、
+- [x] AC-5（A5）：Controller 与 routine broker 对同一组依赖 fixture 给出一致终态；拒绝 project-agent、
   routine merger、admin/mutation credential 外仓 fallback。两个 host adapter 覆盖相同输入。
 
-- [ ] AC-6（A6）：跨仓阻塞及解锁过程中 provider/PR 各只创建一次；state、comment、PR body 显示正确
+- [x] AC-6（A6）：跨仓阻塞及解锁过程中 provider/PR 各只创建一次；state、comment、PR body 显示正确
   canonical reference，重启/轮询不丢依赖。
 
-- [ ] AC-7（A7）：03/04、模板、Codex/Claude skill 源与 relevant broker 合同示例一致；全量 runtime、
+- [x] AC-7（A7）：03/04、模板、Codex/Claude skill 源与 relevant broker 合同示例一致；全量 runtime、
   `bash codex/tests/smoke.sh` 通过。涉及 shell 时 bash -n 与可用 ShellCheck 通过。
 
 ## 接口、数据与兼容性影响

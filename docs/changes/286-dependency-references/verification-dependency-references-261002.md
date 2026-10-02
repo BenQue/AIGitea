@@ -13,7 +13,7 @@ risk_flags:
   - authorization
   - platform-governance
 depends_on: []
-status: pending
+status: approved
 branch: change/286-dependency-references
 created: 2026-10-02
 updated: 2026-10-03
@@ -274,3 +274,43 @@ cherry-pick、临时组合检出或修改 broker 绕过；HEAD 保持 2b132c7ea4
 [evidence/t04-human-authorized-rebase-receipt.json](evidence/t04-human-authorized-rebase-receipt.json)。
 T04 保持 pending：需 #308 fixture 对有效未合并分支的验收缺口被受控解决，并在 #289 真实
 merge 后由本 owner 最终整合/验证。当前不能进入最终 PR 确认或声明 AC-7 全部 PASS。
+
+
+## #289 合并后最终组合验收（2026-10-03）
+
+PR325 typed readback closed/merged=true，merge_commit_sha=16beee09aefe89b5bc80a31544c59d456190ea32。
+broker fresh-fetch 后 origin/main exact 同 SHA，ancestor proof PASS；owner 在本票未发布、
+干净分支无冲突 rebase，7 个本票 patch range-diff 全部 =，未写其他 worktree。
+
+| Check | Result | Evidence |
+|---|---|---|
+| #289 真 merge 后 owner 整合 | PASS | exact base 16beee09；tested source 36609fa975301518c4bc7daf564b1892b1ba5eb6 |
+| 完整 smoke | PASS | LC_ALL=C PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh，exit 0；1042 tests，104.165s；Codex platform static smoke checks passed. |
+| 原 #308 漂移 fixture 缺口 | RESOLVED upstream | 主线提供隔离 source baseline，本票完整 smoke 含原 23 fixtures 通过；未修改生产 provenance gate 或弱化断言 |
+| 依赖+文档义务 targeted | PASS | 34 tests / 2.860s；tests.test_dependencies、tests.test_dependency_integration、tests.test_required_documents |
+| 语义文档/模板/双 provider 同步 | PASS | 151 changes，gap=0；exact 4-role mapping；source-only 与 digest 包含在完整 smoke |
+| 真实 approved contract loader | PASS | 7 AC、4 role、depends_on=[]；canonical admin/aisoft-platform source |
+| live 分类独立读回 | PASS | --verify 286：projected，platform/complex |
+| 终态工具 dry-run | PASS, not applied | action=set-completed、applied=false、reason=no-deployment-chain；deployment_lifecycle=none，verification 义务不转成部署授权 |
+| owner / last_push | PASS | exact session/branch；last_push_head=null |
+| 本票 push/PR/CI/merge | NOT RUN | 进入 AWAITING_PR_CONFIRMATION，仍需绑定 exact Issue/branch/manual 的最终提交确认 |
+| 真实 installed/live GET/安装/ACL/部署/终态 apply/归档 | NOT RUN | 本票 source/local 交付边界保持 |
+
+### Standards — 最终组合增量复核
+
+0 documented violations；0 judgement smells。#289 严格 resolver 保留，本票在同一 loader
+独立解析依赖且不绕过 required_docs/文件存在性；canonical source、冻结依赖、audit 非管理员
+身份、无 redirect 与零 fallback 保留。完整 smoke 结果由主会话独立记录。
+
+### Spec — 最终组合增量复核
+
+0 项缺失/错误实现/额外范围。#289 文件义务校验与依赖 parser 正确组合；canonical source
+仍在 GET 前校验，每次 continuation 复核持久化依赖，前轮修复未回退。额外本地组合 fixture
+核对完整映射+qualified dependency 可加载，而缺 verification 明确拒绝，PASS。
+
+AC-1–AC-7 当前 source/local 全部 PASS；AC-5 的 Mac/VM adapter 仍仅 fixture 验证，真实 VM
+与 live 操作不被外推。完整 smoke 原文压缩保存为 evidence/post289-smoke-host.log.gz，
+原文/压缩 SHA-256、source/test tree digest、前后 commit 映射及最小 readback 保存在
+[evidence/t04-post289-integration-receipt.json](evidence/t04-post289-integration-receipt.json)。
+后续只同步交付状态与本票 receipt，不改变经过验证的 executable/runtime/test tree。
+T04 completed；候选 AWAITING_PR_CONFIRMATION，不是 READY_FOR_REVIEW 或已完成合并。
