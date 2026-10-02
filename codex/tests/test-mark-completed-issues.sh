@@ -685,6 +685,23 @@ jq -e '.action == "skip" and .applied == false' <<<"$extra_plan" >/dev/null
 [ ! -s "$TMP/broker.log" ]
 mv "$TMP/summary.saved" "$extra_summary"
 
+# Malformed documents cannot erase an earlier missing mapping via a list item.
+cp "$extra_summary" "$TMP/summary.saved"
+python3 - "$extra_summary" <<'PY'
+import sys
+from pathlib import Path
+p = Path(sys.argv[1])
+p.write_text(p.read_text().replace("documents:\n", "documents:\n  verification: verification-no-deploy-change-260815.md\n  - ignored\n"))
+PY
+for target_project in no-deploy-project selective-project explicit-deploy-project; do
+  : >"$TMP/broker.log"
+  malformed_plan="$(run --project "$target_project" --apply 501)"
+  jq -e '.action == "skip" and .applied == false and .reason == "documents-unresolved"' \
+    <<<"$malformed_plan" >/dev/null
+  [ ! -s "$TMP/broker.log" ]
+done
+mv "$TMP/summary.saved" "$extra_summary"
+
 # Legacy filenames normalize to roles; inferred optional files are not required.
 mkdir -p "$REPO/docs/changes/504"
 cat >"$REPO/docs/changes/504/00-summary.md" <<'EOF'

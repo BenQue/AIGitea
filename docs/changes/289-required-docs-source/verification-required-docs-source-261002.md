@@ -109,3 +109,11 @@ T01 完成本地 commit 后按治理规定停止；fresh run 重新读取更新�
 - platform audit exit=0；SFM 当前 audit exit=1；两者 stdout 与 T01 原始基线逐字相同。回填后当前 SFM #142 strict resolver exit=0。完整读回见 evidence/post-fix.json。
 
 实际改动包括 test-project-check.sh 的 synthetic summary 增加 required_docs 字段，使旧 project-check 测试 fixture 满足真实合同；未削弱任何断言、不修改项目/模板或 CI 硬门。CLI 回归位于 test_required_documents.py（仓库不存在 test_cli.py）。
+
+## T03 审查修复与全量验证
+
+Standards 双轴审查硬标准 0 项；重复解析是非阻断建议，保留现有结构。Spec 初审发现 P2：documents 的 mapping/list 类型切换可静默丢弃缺文件映射。已先补回归（修复前 14 项中 2 failures），再明确拒绝 documents 列表项和非空容器重置。修复后公共 resolver、required JSON、audit/CLI，以及 terminal 三档非法合同 --apply 零写入均 PASS。两位 reviewer 增量复核均 PASS，未解决发现 0。见 evidence/review.json。
+
+最终 runtime 全量 992 tests PASS（89.939s）；targeted 14 PASS；terminal mock PASS；三个受影响脚本 bash -n / ShellCheck PASS。classification --verify 289 实际读回 platform/complex、projected；fresh broker fetch 的 main 仍为 5c2cd726c9aeaee9d17541d8feb049e33881bbac；当前无 #289 active PR。收据见 evidence/local-validation.json。
+
+smoke 执行记录：第一次 ShellCheck probe 写法失败已修复；第二次运行期间 HEAD 被本地提交推进，source identity gate 拒绝，不能计 PASS；第三次固定 be9664e60617abb4139db5b5ff4b34ab4342082b，通过 source identity gate 后被 sandbox 的 localhost bind PermissionError 中断。下一次保持候选固定，以同一命令在受控 host 重跑；尚不计 smoke PASS。PR CI、installed/live、部署均 NOT RUN。

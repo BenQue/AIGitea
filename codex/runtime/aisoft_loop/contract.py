@@ -287,7 +287,11 @@ def parse_front_matter(text: str) -> dict[str, object]:
         if raw_line.startswith("  - "):
             if active is None:
                 raise ContractError(f"list item without field at front matter line {line_number}")
+            if active == "documents":
+                raise ContractError(f"documents must be a mapping at front matter line {line_number}")
             if not isinstance(values[active], list):
+                if values[active] != "":
+                    raise ContractError(f"invalid list field at front matter line {line_number}")
                 values[active] = []
             item = _safe_scalar(raw_line[4:].strip(), line_number)
             assert isinstance(values[active], list)
@@ -300,6 +304,8 @@ def parse_front_matter(text: str) -> dict[str, object]:
             if not re.fullmatch(r"[a-z_]+", name):
                 raise ContractError(f"invalid documents key at line {line_number}")
             if not isinstance(values[active], dict):
+                if values[active] != "":
+                    raise ContractError(f"documents must be a mapping at front matter line {line_number}")
                 values[active] = {}
             mapping = values[active]
             assert isinstance(mapping, dict)

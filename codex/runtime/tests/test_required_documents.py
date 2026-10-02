@@ -108,6 +108,17 @@ created: 2026-08-08
         with self.assertRaisesRegex(contract.ContractError, "missing required roles.*verification"):
             contract.resolve_documents(self.repo, 57)
 
+    def test_documents_cannot_discard_mappings_by_switching_container_types(self):
+        original = self.summary.read_text()
+        for prefix in ["  - ignored\n", "  verification: verification-docs-source-999999.md\n  - ignored\n"]:
+            with self.subTest(prefix=prefix):
+                self.summary.write_text(original.replace("documents:\n", "documents:\n" + prefix))
+                for reader in [contract.resolve_documents, contract.resolve_required_documents]:
+                    with self.assertRaisesRegex(contract.ContractError, "documents.*mapping"):
+                        reader(self.repo, 57)
+                self.assertFalse(audit_change_documents(self.repo).ok)
+                self.assertNotEqual(self.cli("resolve-required-documents", "57").returncode, 0)
+
     def test_invalid_required_declarations_fail_closed(self):
         for raw in ["[]", "verification", "\n  - summary\n  - unknown", "\n  - summary\n  - summary",
                     "\n  - summary\n  - 03-verification.md"]:
