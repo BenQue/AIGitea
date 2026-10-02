@@ -25,9 +25,9 @@ documents:
   plan: plan-profile-semantic-lock-261002.md
   verification: verification-profile-semantic-lock-261002.md
 depends_on: []
-status: approved
+status: pr-open
 branch: change/287-profile-semantic-lock
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/324
 created: 2026-10-02
 updated: 2026-10-02
 ---
@@ -86,7 +86,7 @@ override_reason: ''
 
 - 无；如后续发现缺失则回到 awaiting-triage。
 
-## 会话与合同状态
+## 会话与合同状态（提交前记录）
 
 - 唯一写者：`01a0fc7c-027e-70a3-8871-beb484e4a8d8`。
 - Worktree：`/private/tmp/issue-287-profile-semantic-lock`，已经 claim。
@@ -117,10 +117,20 @@ architecture README 与 ADR-0007 的受控文档步骤已应用。T02/T03 待 fr
 
 旧 V1 的说明漂移仍严格失败，采用 V2 需要应用自己的显式 Change。release reader 仍为 V1-only；自动跨仓广播 NOT IMPLEMENTED。安装、现场消费者、SFM、remote CI、push/PR、merge 与部署均未执行。
 
-## T03 本地验收与候选
+## T03 本地验收与候选（提交前记录）
 
 `LC_ALL=C bash codex/tests/smoke.sh` 在受控 host 上 exit 0：992 runtime tests / 87.172s / OK，static smoke checks passed。sandbox 临时端口绑定失败、host 默认 locale 的既有 registry 负向测试失败均保留；未改变 source/断言，不把 C locale PASS 写成默认 locale PASS。
 
 两轴只读 code review 未发现 runtime 问题；过时的“V2 未实现”文档 P2 已修复并复核关闭。最终 scope 保护 31 个文件字节不变。broker fresh origin/main 仍为 5c2cd726c9aeaee9d17541d8feb049e33881bbac；exact #287 classification verify 为 projected；semantic documents 与 git diff --check 通过。
 
 本地 T01/T02/T03 均完成，仅形成 manual 最终 PR 候选。等待绑定 #287 / change/287-profile-semantic-lock / manual 的唯一最终 PR 提交确认；未 push、未创建 PR。required CI、安装与现场消费者验收仍 NOT RUN，不能据此关闭 Issue、合并或部署。
+
+## 最终 PR 提交
+
+用户在本聊天回复“确认提交”，授权绑定 #287 / change/287-profile-semantic-lock / manual，允许提交唯一最终 PR 与合同内 CI 修复，不授权合并或部署。
+
+提交前 origin/main 因 #320 合并前进到 11c0410d3878d5449fa61796f174ba3d2dd5e59c。broker 首次因 BASE_BRANCH_STALE 拒绝且未写远端；本人 worktree 无冲突 rebase，重读新治理合同，70 architecture tests / 2.426s、5 release integration tests / 0.041s 与 semantic documents（146 changes、gap=0）重验通过。runtime/tests/scripts 等 10 个 tree/blob identity 未变，保留原完整 smoke 回执，本次没有重跑完整 smoke。
+
+更新候选验证证据后，首次成功 push 的 verified head 与 broker pushed_head 均为 dcb48da4eaa44f941609bc9902753211dad981fd。唯一最终 PR：[ #324 ](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/324)，open、未合并，manual。官方 backfill-pr-url 已回填本 summary 的 pr_url/status；本次后续 summary-only push 必须 fresh 核对本次 head，不能沿用首次 SHA。
+
+remote required CI 尚待读回；全绿后停 READY_FOR_REVIEW 等待人工审核合并。安装、live/SFM、release V2 与部署仍 NOT RUN。
