@@ -29,7 +29,9 @@ updated: 2026-10-02
 |---|---|---|---|
 | T01 | 发布并可读回独立 release 兼容治理合同，完成后停止等待 fresh run | - | completed |
 | T02 | public phased lifecycle 实现 v3 DB position 与 exact compatibility gate，从状态记录到 activate/rollback/错误输出可验收 | T01 + fresh run | completed |
-| T03 | legacy deploy 与所有恢复路径统一 gate，consumer 说明、边界回归与最终候选 | T02 | pending |
+| T03 | legacy deploy 与所有恢复路径统一 gate，consumer 说明、边界回归与最终候选 | T02, T05 | pending |
+| T04 | 应用已批准的精确 source-evidence 治理修订，记录授权并停止 | T02 | completed |
+| T05 | fresh run 实施 bounded checker/addition pins 与相应拒绝回归，完整验收及审查 | T04 + fresh run | pending |
 
 不新建子 Issue；所有 ticket 保持 #317。T01 合同批准前不应用。T01 完成后停止当前运行；后续 fresh run 沿用该批准，不增加第三个产品确认点。
 
@@ -38,7 +40,9 @@ updated: 2026-10-02
 - T01：`docker-release/README.md`、`docker-release/contracts/migration-rollback-v1.md`、本 Issue 映射文档。只应用治理合同，不触 runtime/schema/test。
 - T02：`codex/runtime/aisoft_release/runner.py`、`state.py`、`contract.py`、`errors.py`；同目录新增受限 compatibility 模块；`docker-release/schema/state-v3.schema.json`、target profile v1 schema 的 optional field、compatibility evidence v1 schema；release phase/state/CLI/safety tests 及现有 fixture support；`cli.py` 仅若安全结构化错误需要调整，既有 CLI 参数不扩展。
 - T03：同一 runner public deploy/restoration path；相应 runner/phases/contract/safety/CLI/evidence tests；consumer contract 说明、脱敏 example 与本 Issue verification。原 v1/v2 state schema 原字节保持。
-- 禁止 AGENTS.md、CLAUDE.md、controller/provider、broker、CI workflow、任何 installer、host permission/grant、应用仓文件改动。
+- T04：仅映射 spec/plan/summary/verification、versioned migration rollback contract 与本票 evidence。合同步骤完成后停止，不修改 checker/tests/runtime。
+- T05：新授权只包括 `codex/tests/check-release-evidence-boundary.py`、`codex/runtime/tests/test_release_evidence_boundary.py`；exact allowed/addition paths、固定 hash/mode、历史不变约束全部以 spec 修订节为准。
+- 禁止 AGENTS.md、CLAUDE.md、controller/provider、broker、CI workflow、smoke.sh、任何 installer、host permission/grant、应用仓文件改动。
 
 ## 测试与验收映射
 
@@ -50,6 +54,8 @@ updated: 2026-10-02
 | T03 / AC-02,04,06,08 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_runner tests.test_release_phases tests.test_release_rollback_compatibility` |
 | T03 / AC-01–09 | `PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -p 'test_release*.py'`；`bash codex/tests/smoke.sh` |
 | T03 / AC-10 | consumer 文档人工 diff review，说明仅使用最终人工 merged SHA，未提供不存在的 pin；scope diff 检查 |
+| T04 | semantic document loader/check、纯合同 scope/hash 检查、本地提交后停止 |
+| T05 / AC-11–13 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_evidence_boundary`；`python3 -B codex/tests/check-release-evidence-boundary.py`；完整 release suite / `bash codex/tests/smoke.sh`；两轴审查 |
 | 最终候选 | classification --apply → 独立 --verify #317 两维 projected；local commit clean；唯一 Issue/branch/worktree/docs tuple |
 
 新增测试文件已在 fresh run 实施并运行；具体完整验证及审查结果见映射 verification。
@@ -70,6 +76,9 @@ updated: 2026-10-02
 | AC-08 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_gate tests.test_release_phases tests.test_release_runner`；完整 release suite / smoke |
 | AC-09 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_cli tests.test_release_safety tests.test_release_rollback_compatibility` |
 | AC-10 | consumer diff review、确认未更新应用 pin、最终人工 merged SHA 由消费会话采用 |
+| AC-11 | fixed checker exact allowed paths/additions/pins diff review；targeted evidence-boundary regression |
+| AC-12 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_release_evidence_boundary` 新增对象正/负例 |
+| AC-13 | `python3 -B codex/tests/check-release-evidence-boundary.py`；完整 release suite；`bash codex/tests/smoke.sh`；source/evidence边界回读 |
 
 ## 数据库迁移
 
@@ -99,4 +108,16 @@ T03 本地实现已统一 legacy deploy 和显式回退失败恢复，但完整 
 health 与 CLI 既有闸门。只使用合成 fixture，无真实 Docker/数据库调用。完整验收与最终候选
 以 verification 的实际命令回执为准；最终 manual PR 提交确认仍未取得。
 
-完整 smoke 在 `codex/tests/check-release-evidence-boundary.py` 拒绝新增文件集合，结果 FAIL。本检查器不在批准的 runtime allowlist，且扩大固定 pin 集合属治理变更；须精确合同修订后再实施。T03 保持 pending，禁止绕过 hard gate 或提前请求最终 PR。
+首次完整 smoke 拒绝新增文件集合，结果 FAIL；当时 checker 不在批准 allowlist。
+用户第二次直接批准精确修订后，T04 已应用合同并停止；T05 尚未实施，T03 仍 pending，
+不能把范围获批等同 hard gate 已通过，也不能提前请求最终 PR。
+
+
+## T04 完成与停止交接
+
+第二次直接用户批准绑定 reviewed head `32b0ee524ef5ae46f986498f6c617e8e5ce8cadf` 与
+`evidence/governance-amendment-proposal.md` 的真实 SHA256；具体 receipt 为
+`evidence/governance-amendment-approval.json`。只应用治理合同/本票记录，source checker、tests、
+runtime/schema、历史 evidence 原 bytes 保持；验证回执与停止点见 verification。
+下一 fresh run 沿用该批准，先重新读共享 #320/main 合同和 owner claim，再从 T05 开始。
+T03 只有在 T05 完整 hard gates 实际通过后才能 completed；唯一最终 PR 仍需 exact manual确认。

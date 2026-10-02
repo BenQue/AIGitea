@@ -86,6 +86,45 @@ known 位置时 observed database identity 必须相等；untracked 时 operator
 
 后续 fresh run 必须重新读取本仓库 AGENTS/README、T01 发布合同、本 spec/plan 和 worktree claim 后才实施 T02/T03 runtime/schema/tests。合同启动确认同时授权仅对 #317 进行判级/lifecycle/triage 投影和发布合同 brief（均经 project-scoped broker 可用 typed surface）；不更改其它 Issue。2026-10-02 用户直接回复“批准”后，首次拒绝的 live classification 写入可依精确授权重新执行；不存在的 triage typed 操作报告 GAP，不绕过 broker。批准 T01 不提供 merge/安装/部署权限。所有来源最终进入本 Issue 唯一 manual PR。
 
+### 固定证据闸门修订（2026-10-02 第二次直接批准）
+
+用户在审阅 `evidence/governance-amendment-proposal.md` 后直接回复“批准”，绑定
+`#317` / `change/317-migration-rollback-guard` / `manual`。完整授权记录见
+`evidence/governance-amendment-approval.json`；原送审草案保留为历史证据，当前授权以本节为准。
+既有数据库兼容行为与 AC-01–10 不变；只补充当前 source 的精确证据闸门范围。
+
+明确将 `codex/tests/check-release-evidence-boundary.py` 和
+`codex/runtime/tests/test_release_evidence_boundary.py` 加入本票 allowlist。除此以外不增加治理
+实现文件；不改 smoke.sh、CI workflows、AGENTS/CLAUDE、Controller/provider/broker、installer、
+权限、现场配置或应用仓。本票仍只有一个最终 manual PR。
+
+- `BASELINE`、`SCOPES`、`CONTENT_EXEMPT`、`RUNNER_BEFORE`、`RUNNER_AFTER`、
+  `EVIDENCE_SHA256` 及原 historical regression snapshot 完全保持；历史 evidence bytes 不变。
+- Existing-source pin allowed set 只增加 `codex/runtime/aisoft_release/contract.py`、
+  `codex/runtime/aisoft_release/errors.py`、`codex/runtime/aisoft_release/state.py` 与
+  `docker-release/schema/target-profile-v1.schema.json`；runner hash 推进为实际当前 bytes，
+  transport/matrix 原有 hash 保持。新增 allowed paths 均使用上述完整 repository-relative path。
+- 独立固定 `CURRENT_ADDITIONS` 只允许5个新增对象：
+  `codex/runtime/aisoft_release/rollback_compatibility.py`、
+  `docker-release/schema/state-v3.schema.json`、
+  `docker-release/schema/rollback-compatibility-v1.schema.json`、
+  `docker-release/contracts/migration-rollback-v1.md`、
+  `docker-release/examples/rollback-compatibility-v1.example.json`。
+  每项固定 mode `100644` 和经过审查的真实 SHA256；expected file set 为历史集合与这5项之和。
+- Baseline 与新增对象都逐项验证 disk/index exact bytes 和 mode；未知、缺失、改名、symlink、
+  mode/hash drift、额外 byte 一律 fail closed。不能使用 glob/目录/content 豁免或 CLI override。
+  正常 checker run 不自动重算“被认可”的 hash。合同文档或 review 修复导致 bytes 变化时，
+  必须先记录、审查真实新 SHA256，再更新固定 pin。
+- Historical 与完整 current release regression 都须真实执行，前后再验 source identity；
+  保留树外 bytecode isolation，历史真实 evidence 不能成为当前 real-E2E PASS。
+  `current_real_e2e`、`installed`、`company_live` 继续 `NOT_RUN`；本票不运行真实 Docker/DB。
+
+T04 是独立、只修改治理合同与本票记录的步骤：应用本节及 plan/versioned contract 后本地
+提交并停止，检查器、tests、pins 和 runtime 在 T04 不改。后续 fresh run 重读 AGENTS/README、
+#320 最新共享合同、本 spec/plan/versioned contract 与单写者 claim，才实施 T05 的两个精确文件。
+T05 完成 targeted boundary regression、完整 checker/release suite/smoke 和两轴 review 后，
+T03 才能结项并请求唯一最终 PR 提交确认。本次修订批准不授权 push/PR/merge/安装/部署。
+
 ## Testing Decisions
 
 使用既有 public `ReleaseRuntime` + FakeDocker + 临时 state/profile/release fixture 的最高测试 seam，不模拟内部 gate 的成功返回。每个拒绝场景检查旧 SHA 的 up 数为零、零恢复、state 保留数据库位置与真实 last_result；每个允许场景同时检查 image/release/service/health 硬门。旧测试中默认不同 migration identity 的健康失败/回退成功用例不能继续作为“安全”正例，应补 exact compatibility fixture 或显式选择 shares_migration_with；保留不同 identity 的无依据负例。
@@ -102,6 +141,9 @@ known 位置时 observed database identity 必须相等；untracked 时 operator
 - [ ] AC-08：同 SHA健康 no-op、锁、原子 state、原 staging/image/Compose/host-role/security gates 保持，无绕过；所有路径零自动数据库恢复。
 - [ ] AC-09：CLI 安全 code 区分候选失败、回退阻止、回退执行失败，非零出口和 state 状态可读回，fixture Secret 不出现在 stdout/stderr/evidence。
 - [ ] AC-10：consumer 说明给出 optional profile/evidence/state 升级、失败处理和人工 merged SHA pin 规则；本票不改 NewEMaint pin。
+- [ ] AC-11：固定 source checker 只认可新增4个 existing-pin allowed paths 与5个 exact additions；historical baseline/scope/exemptions/evidence及transport/matrix原hash保持。
+- [ ] AC-12：新增对象的 exact disk/index bytes/mode 正例通过；extra byte、staged-only drift、删除/改名/symlink/mode、unknown addition/untracked extra、非法hash/mode或历史evidence加入pin均拒绝。
+- [ ] AC-13：historical/current regressions、前后source identity与bytecode isolation保持，完整 checker/release suite/smoke实际通过；current_real_e2e/installed/company_live仍NOT_RUN。
 
 ## Out of Scope
 
@@ -113,4 +155,6 @@ state v3 写入后旧 runtime 不识别，不能直接降级到不含安全 gate
 
 ## 未决问题
 
-无未决实现方向。2026-10-02 用户在本会话直接回复“批准”，绑定当前映射 spec/plan；包含新增可信依据/位置/schema 和 T01/fresh-run 步骤，保留2026-09-21 的平台先行决定。后续实现如需扩大允许文件或改变信任来源，停止升级，不自行改变本合同。
+无未决实现方向。第一次直接“批准”确认数据库位置/可信依据/schema与T01/fresh-run合同；
+第二次直接“批准”明确授权本节的两文件证据治理修订与T04停止/T05 fresh-run步骤。
+保留2026-09-21的平台先行决定。任何其它范围扩张或信任来源改变仍须停止升级。

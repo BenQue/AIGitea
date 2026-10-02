@@ -121,8 +121,8 @@ Matt triage typed 写缺口保持 GAP，本票允许范围不含broker修复；�
 完整 smoke 的固定检查器保留 #65/#290 历史 baseline，当前 source 仅允许 runner/transport/matrix
 三项 exact pin amendment。本票新增 module/schema/contract 和 state/parser/errors，因文件集合及
 固定 bytes 同时不匹配而被 fail closed。批准 allowlist 不含该检查器，故未修改，也未把它跳过。
-AGENTS 要求合同冲突/范围扩张升级给人。精确修订提案另存 `evidence/governance-amendment-proposal.md`；
-当前批准 spec 的 bytes 不改，不伪造修订批准。最终 PR 候选尚不满足完整 hard gate。
+AGENTS 要求合同冲突/范围扩张升级给人。当时的精确修订提案另存 `evidence/governance-amendment-proposal.md`；
+该阶段未改批准spec或伪造批准。随后用户批准的T04应用见下节。最终 PR 候选尚不满足完整 hard gate。
 
 ## Review 修复与 fresh remote 读回
 
@@ -140,4 +140,24 @@ rebase/重写本地审阅历史。合同修订获批后 fresh run 需重新读�
 做 final validation/PR candidate。本票此刻不是可提交 PR 的终态。
 `legacy-schema-preservation.json` 读回：历史 v1 schema 原本不存在，保持缺席；v2 原 bytes 不变。
 
-当前 local handoff 为 NEEDS_HUMAN_DECISION（非 Controller 投影），精确 blocker 与下一步见 `evidence/handoff-needs-human-decision.json`；最终 PR 提交确认尚未请求。
+批准前历史 local handoff 为 NEEDS_HUMAN_DECISION（非 Controller 投影），精确 blocker 与下一步见 `evidence/handoff-needs-human-decision.json`；最终 PR 提交确认尚未请求。
+
+## T04 独立治理合同应用（2026-10-02）
+
+本会话用户再次直接回复“批准”，绑定 reviewed head
+`32b0ee524ef5ae46f986498f6c617e8e5ce8cadf` 与送审proposal真实SHA256。授权仅为精确两文件
+scope修订、T04合同应用并停止、后续fresh-run T05；不授权push/PR/merge/安装/部署。
+Receipt为 `evidence/governance-amendment-approval.json`；原送审草案保持原bytes，作历史读回。
+
+只修改mapped spec/plan/summary/verification、versioned release contract及本票证据。
+治理checker、tests、runtime/schema与历史evidence在T04不改；scope/hash检查和文档验证结果
+记录在 `evidence/t04-governance-validation.json`。T04不会重跑runtime功能测试或smoke；
+190-test PASS是上轮 source回执，完整smoke仍保留原FAIL，T05 implementation/新增验收均NOT RUN。
+
+- AC-11：NOT RUN；T05 exact source/addition gate实现和targeted回归尚未执行。
+- AC-12：NOT RUN；T05 addition/tamper/permissions/index negative cases尚未执行。
+- AC-13：NOT RUN；T05 checker/full release/full smoke及两轴review尚未执行。
+- #317 live readback：open，labels exact `approved`、`type/bugfix`、`complexity/complex`。
+- T04当前动作：本地合同提交后STOPPED_AFTER_GOVERNANCE_APPLY；需下一fresh run重新读合同，
+  然后沿用本次批准实施T05。此停止是已批准步骤，并非再次请求同一范围批准。
+- PR、push、CI、installed/live、NewEMaint #229集成/pin：NOT RUN。

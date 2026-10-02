@@ -120,7 +120,16 @@ T01 治理合同应用及两轴文档 review 已完成；3项发现已修复复�
 用户后续“下一步，继续”构成 fresh run，已重读 AGENTS、README、批准的治理合同/spec/plan 和
 单写者 claim，在同一 worktree 实施。State v3 与数据库位置持久化、四类旧镜像启动/恢复路径
 的统一兼容 gate、strict operator evidence、schema、CLI 与 consumer 本地实现已完成。
-本地 release suite 190 tests PASS；完整 smoke FAIL：固定证据检查器需要批准范围外的 exact governance amendment。
+本地 release suite 190 tests PASS；首次完整 smoke FAIL，当时固定证据检查器的治理 amendment 尚未授权。
 两轴审查结果见 verification，T03 最终验收 pending；尚未请求最终 PR 提交确认。
 远端 classification --verify 实际读回 bugfix/complex projected；manual policy 固定。
 PR、PR CI、installed/live 均 NOT RUN，NewEMaint #229 pin 未改，本票尚未解除该消费前置。
+
+## T04 当前进度
+
+用户已批准精确两文件治理修订，receipt见 `evidence/governance-amendment-approval.json`。
+映射spec新增固定source evidence合同与AC-11–13，plan新增T04/T05并让T03结项依赖T05。
+T04只应用合同/记录并停止；checker/tests/pins尚未实施，原smoke FAIL未被改写为PASS。
+下一fresh run沿用此次批准从T05继续，不重复请求此范围批准；最终manual PR确认仍保留。
+原 `governance-amendment-proposal.md` 和 `handoff-needs-human-decision.json` 保留为批准前历史。
+本次current交接为 `evidence/handoff-t04-fresh-run.json`，不投影自动Controller状态。

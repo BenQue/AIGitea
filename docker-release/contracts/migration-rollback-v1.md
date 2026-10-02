@@ -114,3 +114,27 @@ Untracked 时 operator 观测是唯一外部可信事实，必须绑定 exact un
 T01 只修改本治理合同、Docker release README 与 #317 映射语义文档，验证范围后本地提交并停止。
 下一条 fresh run 必须重读 AGENTS/README、本合同、已批准 spec/plan 和单写者 claim，才能在
 同一 branch/worktree 实施 runtime/schema/test。最终 PR 提交仍需独立 exact manual 确认。
+
+## 固定 source evidence 修订（T04 已批准合同）
+
+2026-10-02 用户批准 #317 的精确 evidence-governance 修订，授权记录位于本票
+`evidence/governance-amendment-approval.json`。T04 仅应用本合同和映射 spec/plan/会话记录，
+本地提交并停止；下一 fresh run 重读后才实施 T05，checker/test 当前尚未修改。
+
+- 只新增授权 `codex/tests/check-release-evidence-boundary.py` 及
+  `codex/runtime/tests/test_release_evidence_boundary.py`；不修改其它治理实现文件或 smoke/CI。
+- 固定 historical baseline、scope、content exemptions、runner历史身份、evidence hash 与
+  snapshot 不变；transport/matrix 现有 source pin 不变。
+- Existing-source pin 只额外允许 contract.py、errors.py、state.py 和 target-profile-v1 schema，
+  runner 采用审查后的实际 hash。完整 path 列表以映射 spec 的固定 evidence 修订节为准。
+- 独立 CURRENT_ADDITIONS 只允许 rollback_compatibility.py、state-v3 schema、
+  rollback-compatibility-v1 schema、本 versioned contract、过期教学 example 五个 exact对象。
+  均固定100644及真实SHA256；disk/index bytes和mode同时验证，不以目录/glob/content作豁免。
+- 未知、缺失、改名、symlink、mode/hash漂移、额外byte、staged-only漂移、非法pin或新增历史
+  evidence豁免均 fail closed；不新增override，不在checker run自动重新认可当前hash。
+- 历史与current完整regression前后验证source identity并隔离树内bytecode；current_real_e2e、
+  installed、company_live保持NOT_RUN。历史真实evidence不能转换成当前现场PASS。
+- 审查修复或本次合同应用导致bytes改变，先记录和审查真实新hash，再由T05固定pin。
+  完整checker/release suite/smoke与两轴review通过后，才请求唯一manual最终PR提交确认。
+
+本次批准只修订合同/上述source检验范围，不授权push/PR/merge/安装/部署或NewEMaint pin修改。

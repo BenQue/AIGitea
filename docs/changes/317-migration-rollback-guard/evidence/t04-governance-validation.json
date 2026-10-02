@@ -1,0 +1,40 @@
+{
+  "issue": 317,
+  "reviewed_head": "32b0ee524ef5ae46f986498f6c617e8e5ce8cadf",
+  "result": "PASS",
+  "checks": {
+    "document_check": {
+      "exit_code": 0,
+      "output": "PASS: change-documents\nPASS: change-pr-url\nresult: changes=145 pass=2 gap=0"
+    },
+    "contract_loader": {
+      "result": "PASS",
+      "acceptance_criteria": 13,
+      "frontier": "T05",
+      "branch": "change/317-migration-rollback-guard"
+    },
+    "contract_only_scope": {
+      "result": "PASS",
+      "changed_files": [
+        "docker-release/contracts/migration-rollback-v1.md",
+        "docs/changes/317-migration-rollback-guard/evidence/governance-amendment-approval.json",
+        "docs/changes/317-migration-rollback-guard/evidence/handoff-t04-fresh-run.json",
+        "docs/changes/317-migration-rollback-guard/evidence/t04-current-source-snapshot.json",
+        "docs/changes/317-migration-rollback-guard/evidence/t04-issue-readback.json",
+        "docs/changes/317-migration-rollback-guard/plan-migration-rollback-guard-261002.md",
+        "docs/changes/317-migration-rollback-guard/spec-migration-rollback-guard-261002.md",
+        "docs/changes/317-migration-rollback-guard/summary-migration-rollback-guard-261002.md",
+        "docs/changes/317-migration-rollback-guard/verification-migration-rollback-guard-261002.md"
+      ]
+    },
+    "protected_source_unchanged": "PASS",
+    "original_reviewed_proposal_bytes_preserved": "PASS",
+    "prior_release_suite_source_hashes_unchanged": "PASS"
+  },
+  "runtime_tests_this_turn": "NOT RUN: contract-only T04",
+  "smoke_this_turn": "NOT RUN: T05 fresh run required",
+  "historical_smoke": "FAIL: unchanged historical receipt",
+  "checker_or_tests_modified": false,
+  "pr_ci_installed_live": "NOT RUN",
+  "stop": "STOPPED_AFTER_GOVERNANCE_APPLY"
+}
