@@ -14,6 +14,7 @@ from tests.release_test_support import (
     SHA_A,
     SHA_B,
     create_release,
+    install_rollback_evidence,
     migration_identity,
     write_json,
 )
@@ -119,6 +120,9 @@ class ReleaseRunnerTests(unittest.TestCase):
 
     def test_health_failure_restores_previous_release_without_database_restore(self) -> None:
         self.runtime.deploy(self.profile, SHA_A)
+        self.runtime.stage(self.profile, SHA_B)
+        self.runtime.migrate(self.profile, SHA_B)
+        install_rollback_evidence(self.root, SHA_B, SHA_A)
         self.docker.unhealthy_for.add(SHA_B)
         with self.assertRaisesRegex(DeploymentError, "previous container release"):
             self.runtime.deploy(self.profile, SHA_B)
@@ -149,6 +153,9 @@ class ReleaseRunnerTests(unittest.TestCase):
                 docker.register(SHA_B, model_b, manifest_b)
                 runtime = ReleaseRuntime(docker, hostname="test-host")
                 runtime.deploy(profile, SHA_A)
+                runtime.stage(profile, SHA_B)
+                runtime.migrate(profile, SHA_B)
+                install_rollback_evidence(root, SHA_B, SHA_A)
                 if mismatch == "image-id":
                     docker.tamper_container_image_for.add(SHA_B)
                 elif mismatch == "config-image":
@@ -187,6 +194,7 @@ class ReleaseRunnerTests(unittest.TestCase):
     def test_explicit_rollback_only_accepts_previous_and_does_not_run_migration(self) -> None:
         self.runtime.deploy(self.profile, SHA_A)
         self.runtime.deploy(self.profile, SHA_B)
+        install_rollback_evidence(self.root, SHA_B, SHA_A)
         migration_count = len(
             [event for event in self.docker.events if event[0] == "migration"]
         )
@@ -361,7 +369,7 @@ class SharedMigrationIdentityTests(unittest.TestCase):
                 self.docker.events.clear()
                 with self.assertRaisesRegex(DeploymentError, "uncertain or failed"):
                     self.runtime.migrate(self.profile, SHA_B)
-                with self.assertRaisesRegex(DeploymentError, "completed exact migration receipt"):
+                with self.assertRaisesRegex(DeploymentError, "automatic rerun"):
                     self.runtime.activate(self.profile, SHA_B)
                 self.assertEqual(self.migration_runs(), [])
                 self.assertEqual(self.docker.mutations, [])
@@ -399,6 +407,9 @@ class ScmCiOfflineRunnerTests(unittest.TestCase):
             mutations = list(docker.mutations)
             self.assertEqual(runtime.deploy(profile, SHA_A)["action"], "healthy-noop")
             self.assertEqual(docker.mutations, mutations)
+            runtime.stage(profile, SHA_B)
+            runtime.migrate(profile, SHA_B)
+            install_rollback_evidence(root, SHA_B, SHA_A)
             docker.unhealthy_for.add(SHA_B)
             with self.assertRaisesRegex(DeploymentError, "previous container release"):
                 runtime.deploy(profile, SHA_B)

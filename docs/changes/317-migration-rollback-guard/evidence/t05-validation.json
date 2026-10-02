@@ -1,0 +1,76 @@
+{
+  "issue": 317,
+  "ticket": "T05",
+  "recorded_at": "2026-10-02T14:29:22.241679+00:00",
+  "validated_source_head": "31e4f8592e178583c3b3be771e8d5c2f03173bd6",
+  "fresh_main": "65268ee5f1e622c486fd9e354dd35e20a2900f91",
+  "targeted_boundary": {
+    "command": "PYTHONPATH=codex/runtime PYTHONPYCACHEPREFIX=/private/tmp/issue-317-t05-targeted-final-cache PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest tests.test_release_evidence_boundary",
+    "tests": 26,
+    "exit_code": 0,
+    "result": "PASS"
+  },
+  "fixed_checker": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=/private/tmp/issue-317-t05-checker-final-cache python3 -B codex/tests/check-release-evidence-boundary.py",
+    "tests": 197,
+    "exit_code": 0,
+    "result": "PASS",
+    "receipt": "t05-checker-receipt.json"
+  },
+  "full_smoke": {
+    "command": "bash codex/tests/smoke.sh",
+    "exit_code": 1,
+    "result": "FAIL",
+    "failed_step": "bash codex/tests/test-installed-drift.sh",
+    "tests": 23,
+    "failures": 16,
+    "reason": "Real PR managed source differs from cached main. All eight temporary installed rows PASS, overall source GAP, while fixture expected exit 0.",
+    "sandbox_path_failure": false,
+    "later_smoke_steps": "NOT_RUN",
+    "log": "t05-smoke-failed.log.gz"
+  },
+  "historical_constants_unchanged": [
+    "BASELINE",
+    "SCOPES",
+    "CONTENT_EXEMPT",
+    "RUNNER_BEFORE",
+    "RUNNER_AFTER",
+    "EVIDENCE_SHA256"
+  ],
+  "source_hashes": {
+    "codex/tests/check-release-evidence-boundary.py": "9dc564b889976f7242d1f723eab8161d93d9af36eebda554004b4eb4804ed291",
+    "codex/runtime/tests/test_release_evidence_boundary.py": "191f483e65a8617eb819a186d7d7376f982277529164e804a20ce603d84ca3f4"
+  },
+  "standards_review": {
+    "result": "PASS",
+    "findings": 0
+  },
+  "spec_review": {
+    "result": "PASS",
+    "findings": 0
+  },
+  "proposal": {
+    "status": "UNAPPROVED_NOT_APPLIED",
+    "extra_file": "codex/tests/fixtures/installed-drift/test-installed-drift.py",
+    "original_sha256": "fcda29eeaf0ebbb27ff53c855128309f0f8901d5d9c7bbbc55e934dd606dc984",
+    "patch_sha256": "ed4c93e7d1efa047ee512ea261f91642ceb262eecea843175e38848ed8c36eda",
+    "draft_only_test": {
+      "command": "python3 -B /private/tmp/issue-317-installed-fixture-candidate.py /private/tmp/issue-317-migration-rollback-guard",
+      "tests": 24,
+      "exit_code": 0,
+      "result": "PASS",
+      "boundary": "draft script only; real repository fixture unchanged; no whole-smoke PASS"
+    }
+  },
+  "controller_state_projection": "NOT_WRITTEN",
+  "local_handoff": "BLOCKED_EXTERNAL",
+  "T05": "pending (AC-13 full smoke fails)",
+  "T03": "pending",
+  "current_real_e2e": "NOT_RUN",
+  "installed": "NOT_RUN",
+  "company_live": "NOT_RUN",
+  "PR_CI": "NOT_RUN",
+  "pr_submission_approved": false,
+  "blocker_resolution": "Preferred independently governed upstream #288 fixture fix; proposal retained as unapproved fallback, not an active repeated approval request.",
+  "upstream_reference": "t05-upstream-fixture-reference.json"
+}

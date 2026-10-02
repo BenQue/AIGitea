@@ -1,0 +1,57 @@
+{
+  "issue": 317,
+  "kind": "reviewable source snapshot after T04 contract apply; not executable checker approval cache",
+  "records": {
+    "codex/runtime/aisoft_release/contract.py": {
+      "mode": "100644",
+      "sha256": "d0ddd948dac6793334d8d93e5d382b7f49e20ad4857c9ddef4ed420f644c1baa",
+      "type": "existing-source-amendment"
+    },
+    "codex/runtime/aisoft_release/errors.py": {
+      "mode": "100644",
+      "sha256": "f76e0264c9480cc7a2ef70f20899d65e81bdf3ad994b9bd9b0015a36f32b28ac",
+      "type": "existing-source-amendment"
+    },
+    "codex/runtime/aisoft_release/runner.py": {
+      "mode": "100644",
+      "sha256": "a51abcaa2bcb9862b9a981df1d8c3efd2d32c70ae795b485678cac322f04eb4c",
+      "type": "existing-source-amendment"
+    },
+    "codex/runtime/aisoft_release/state.py": {
+      "mode": "100644",
+      "sha256": "1350ddab013eabb7f0286ba12a6835974e221775e3a25823f38cb332445c8e2a",
+      "type": "existing-source-amendment"
+    },
+    "codex/runtime/aisoft_release/rollback_compatibility.py": {
+      "mode": "100644",
+      "sha256": "5e17685e87d04e4ab71b69de038fe4bba7e624ee7ff3024c748f25e68d1a2974",
+      "type": "addition"
+    },
+    "docker-release/schema/target-profile-v1.schema.json": {
+      "mode": "100644",
+      "sha256": "d6174d0b78eecbba73962210720b70eea6f0558a6ed176b765e2bdb916c114e4",
+      "type": "existing-source-amendment"
+    },
+    "docker-release/schema/state-v3.schema.json": {
+      "mode": "100644",
+      "sha256": "3fce0413e7cdc19ab80ecae9bb1962dfab49a48d4ca9694dd2f3be41c2c0f326",
+      "type": "addition"
+    },
+    "docker-release/schema/rollback-compatibility-v1.schema.json": {
+      "mode": "100644",
+      "sha256": "94d2ea3f822b6fded55fc351546793d9334133b79baf439402f4e93c5c2ee9b2",
+      "type": "addition"
+    },
+    "docker-release/contracts/migration-rollback-v1.md": {
+      "mode": "100644",
+      "sha256": "276bd342ed4c094944f8517bde9eb89a604845ee276de32cb0d680d645374070",
+      "type": "addition"
+    },
+    "docker-release/examples/rollback-compatibility-v1.example.json": {
+      "mode": "100644",
+      "sha256": "3c01fa1196ae8ffe78b81afd2b0ef6b52c5ca7d6f043e18aed4e3b43ae10169d",
+      "type": "addition"
+    }
+  },
+  "note": "Versioned contract hash changed under approved T04; T05 fixes only reviewed exact hashes, never recomputes acceptance during normal checker runs."
+}

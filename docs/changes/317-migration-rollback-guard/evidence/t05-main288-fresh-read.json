@@ -1,0 +1,124 @@
+{
+  "issue": 317,
+  "ticket": "T05",
+  "recorded_at": "2026-10-02T15:48:05.909968+00:00",
+  "session": "01a0fc7b-9d82-75e2-975f-d407cd23e34a",
+  "branch": "change/317-migration-rollback-guard",
+  "owner_claim": {
+    "branch": "change/317-migration-rollback-guard",
+    "created": "2026-10-02T20:03:38+08:00",
+    "issue": 317,
+    "last_push_at": null,
+    "last_push_head": null,
+    "schema_version": 1,
+    "session": "01a0fc7b-9d82-75e2-975f-d407cd23e34a",
+    "worktree": "/private/tmp/issue-317-migration-rollback-guard"
+  },
+  "issue_readback": {
+    "number": 317,
+    "state": "open",
+    "updated_at": "2026-10-02T22:36:50+08:00",
+    "html_url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/317"
+  },
+  "labels": [
+    "approved",
+    "complexity/complex",
+    "type/bugfix"
+  ],
+  "upstream_288_pr_readback": {
+    "number": 328,
+    "state": "closed",
+    "merged": true,
+    "merged_at": "2026-10-02T23:30:40+08:00",
+    "merge_commit_sha": "bd1761d99a3eb97efc73ea4d6622613d32a1b5ba",
+    "html_url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/328"
+  },
+  "upstream_pr_head": "34c71768cbdd5bdb4bf29714328c2d8587c53b97",
+  "fresh_main": "bd1761d99a3eb97efc73ea4d6622613d32a1b5ba",
+  "integration": {
+    "method": "owner-only rebase of never-published branch",
+    "previous_local_head": "52f37b4dd20d3726f4d9f81cc5122f67112a9fc7",
+    "validated_combination_head": "f99acae0cbf17115f19496d6786ba05a4e3ded8f",
+    "conflict_files": [
+      "codex/tests/check-release-evidence-boundary.py",
+      "codex/runtime/tests/test_release_evidence_boundary.py"
+    ],
+    "resolution": "Preserve main #288 architecture lock pin/rejection fixture plus #317 exact rollback amendments. No main or unrelated file edits.",
+    "commit_mapping": [
+      {
+        "before": "3175ef490544e21e96aaf8951709e0430835c8f7",
+        "after": "8f8961752ed4ef66385553670784ebedcfca9974",
+        "subject": "docs: prepare migration rollback contract (#317 T01)"
+      },
+      {
+        "before": "062af75376ff4100a9ae4ae485dd3132400f18b3",
+        "after": "c32d87f32a4a9a905e46647f6215ef610ede0634",
+        "subject": "docs: apply migration rollback governance contract (#317 T01)"
+      },
+      {
+        "before": "a79bd6d12729f3b18bcdd2b0f156224a9437bb7b",
+        "after": "35b4b0db41fb019adc839c6d6bada5a9baa52078",
+        "subject": "docs: clarify rollback governance review findings (#317 T01)"
+      },
+      {
+        "before": "1141244a041f3d6b1c54e7bfb087351861880e06",
+        "after": "ffb337a1c2d941afc140ef77cc42ad53ef04092f",
+        "subject": "docs: record T01 governance validation and stop point (#317 T01)"
+      },
+      {
+        "before": "fb5f64a799a8b64c5888ac0a61847ddfd4553ade",
+        "after": "de6b81b2c70f2fd9415ff75cb9d16da979a37c0f",
+        "subject": "fix(release): gate rollback by database revision (#317 T02/T03)"
+      },
+      {
+        "before": "009caa799dd79aba942acec94d252c290e1012b4",
+        "after": "ea425229079b32fc19233959eb7e3a6df7e7b6b4",
+        "subject": "fix(release): bind evidence owner to protected profile inode (#317 T02)"
+      },
+      {
+        "before": "1640ab354be5aac82ace89b444aab9d8d78efd1d",
+        "after": "204bf45758b6a025962f63d3854e7c2dbc4b5579",
+        "subject": "docs: record reviewed local guard and governance blocker (#317 T03)"
+      },
+      {
+        "before": "9057dad4bab856996696ed22fda077512b4055d1",
+        "after": "7652ff85e2fca976c55d743eb81650fef7e9ee9d",
+        "subject": "docs(governance): apply exact evidence amendment and stop (#317 T04)"
+      },
+      {
+        "before": "6f894604d983a148f097ee0ca323462951689892",
+        "after": "cceb322a581b3985ac5cb476a56a33de9e56c42a",
+        "subject": "docs: record T04 review and fresh-run handoff (#317 T04)"
+      },
+      {
+        "before": "31e4f8592e178583c3b3be771e8d5c2f03173bd6",
+        "after": "c8ad0d6b349e5c155398e52edf52fbbca825e8cc",
+        "subject": "fix(evidence): bind exact migration rollback source additions (#317 T05)"
+      },
+      {
+        "before": "2f3da5d3b58c336dcb21d58bc06caf56ca089e30",
+        "after": "4c3fba57e9c699b0115b2e6a8812de25d90695cb",
+        "subject": "docs: record T05 validation and upstream fixture blocker (#317 T05)"
+      },
+      {
+        "before": "52f37b4dd20d3726f4d9f81cc5122f67112a9fc7",
+        "after": "f99acae0cbf17115f19496d6786ba05a4e3ded8f",
+        "subject": "docs: retain T05 issue progress receipt (#317 T05)"
+      }
+    ]
+  },
+  "same_as_fresh_main": [
+    "codex/tests/fixtures/installed-drift/test-installed-drift.py",
+    "codex/tests/smoke.sh",
+    "AGENTS.md",
+    "codex/runtime/aisoft_host_access/broker.py"
+  ],
+  "reviewed_t04_10_source_hashes_match": true,
+  "own_unapproved_fixture_patch_applied": false,
+  "upstream_CI_as_317_evidence": false,
+  "current_real_e2e": "NOT_RUN",
+  "installed": "NOT_RUN",
+  "company_live": "NOT_RUN",
+  "PR_CI": "NOT_RUN",
+  "pr_submission_approved": false
+}

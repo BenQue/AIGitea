@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aisoft.example/contracts/docker-release/rollback-compatibility-v1.schema.json",
+  "title": "Operator migration rollback compatibility v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "records"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "docker-migration-rollback-compatibility/v1"
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile_id",
+          "environment",
+          "expected_hostname",
+          "compose_project",
+          "source_repository",
+          "evidence_id",
+          "result",
+          "candidate_release",
+          "rollback_release",
+          "candidate_manifest_sha256",
+          "rollback_manifest_sha256",
+          "database_state_sha256",
+          "candidate_migration_identity",
+          "rollback_migration_identity",
+          "database_migration_identity",
+          "verified_at",
+          "expires_at"
+        ],
+        "properties": {
+          "profile_id": {
+            "$ref": "#/$defs/identifier"
+          },
+          "environment": {
+            "enum": [
+              "test",
+              "production"
+            ]
+          },
+          "expected_hostname": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9.-]{0,252}$"
+          },
+          "compose_project": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{0,62}$"
+          },
+          "source_repository": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"
+          },
+          "evidence_id": {
+            "$ref": "#/$defs/identifier"
+          },
+          "result": {
+            "const": "compatible"
+          },
+          "candidate_release": {
+            "$ref": "#/$defs/gitSha"
+          },
+          "rollback_release": {
+            "$ref": "#/$defs/gitSha"
+          },
+          "candidate_manifest_sha256": {
+            "$ref": "#/$defs/sha256Hex"
+          },
+          "rollback_manifest_sha256": {
+            "$ref": "#/$defs/sha256Hex"
+          },
+          "database_state_sha256": {
+            "$ref": "#/$defs/sha256Hex"
+          },
+          "candidate_migration_identity": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/$defs/digest"
+              }
+            ]
+          },
+          "rollback_migration_identity": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/$defs/digest"
+              }
+            ]
+          },
+          "database_migration_identity": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/$defs/digest"
+              }
+            ]
+          },
+          "verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,6})?(?:Z|\\+00:00)$"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,6})?(?:Z|\\+00:00)$"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "sha256Hex": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
