@@ -301,7 +301,7 @@ patch、source before/proposed hash、两日志 SHA256 与未执行边界均在
 `evidence/installed-fixture-amendment-proposal.json`。proposal 为 PROPOSED_NOT_APPLIED，
 测试只针对临时副本；原 spec 尚未增加该文件权限。T03 pending / NEEDS_HUMAN_DECISION。
 
-## T06 已确认的独立测试治理应用（当前权威状态）
+## T06 已确认的独立测试治理应用（独立步骤完成时的历史状态）
 
 用户本轮明确回复“确认”；授权见 `evidence/installed-fixture-amendment-authorization.json`，
 冻结批准 patch、proposal、应用前 spec/plan 与 source SHA256。映射 spec 已明确增加
@@ -326,3 +326,33 @@ patch、source before/proposed hash、两日志 SHA256 与未执行边界均在
 本步未改 shell，不额外套用 shell 改动后的 smoke 要求；两处 T04 shell 的历史检查保持原样。
 T06 done，T03 pending；独立 commit 后按已批准治理顺序停止，后续 fresh run 继续。
 回滚为人工 revert 此治理 commit 并运行同一专项测试；不放宽真实 source 身份门。
+
+## T03 T06 后 fresh-run 完整本地验收（当前权威结果）
+
+本 fresh run 在 T06 独立提交并停止之后重读 AGENTS/批准 spec-plan，核验 exact owner、
+branch、clean tree 和批准 source hashes。broker main fetch 为
+`65268ee5f1e622c486fd9e354dd35e20a2900f91`，本分支已包含，无新合并冲突。
+测试 code head `1507e358319ebfc2206fe0402ce1520f3392a246`；后续只保存文档/receipt/PR 草稿，
+不修改已验证的 runtime 或测试技术字节。旧 FAIL/NOT_RUN 保留各自历史范围。
+
+| Final local check | Result | Evidence |
+|---|---|---|
+| 完整 runtime | PASS | 1008 tests / 101.684s，exit 0 |
+| 完整 smoke | PASS | `LC_ALL=C bash codex/tests/smoke.sh`，controlled host exit 0，全部原有及 #308 硬门保留 |
+| smoke 内 installed-drift fixture | PASS | 实际工作树官方 wrapper 23 tests / 44.320s，真实 checker 未改 |
+| smoke 内完整 runtime | PASS | 1008 tests / 101.989s |
+| 四合同 × V1/V2 非容器 bytes | PASS | `evidence/t03-after-t06-noncontainer-bytes.json`，两个独立 Python 进程实际重算 pinned main/current 八组输出 |
+| T04 bash -n / ShellCheck、文档、diff --check | PASS | 当前两批准 shell 及 semantic docs |
+| T05/T06 exact 批准 source hashes | PASS | 两个 boundary 源码、synthetic V1 lock pin、fixture 源码 SHA256 全部与批准 receipt 相同 |
+| Standards / Spec | PASS / PASS | hard violations 0 / findings 0；Standards 1 个非阻塞复制代码建议，保留已批准 patch |
+| approved / onboarding / main protection / unique PR | PASS | `evidence/t03-after-t06-live-readback.json`，8 AC，main 无 push/force 权限，required CI `CI / verify (pull_request)`，routine disabled，#288 open PR 0 |
+| exact #288 分类读回 | PASS | `evidence/t03-after-t06-classification-readback.json`，bugfix / complex / projected |
+| PR/required CI / global installed / builder provenance / company-live / deployment | NOT RUN | 不从本地 smoke 的 scratch installer fixtures 推导真实系统验收 |
+
+完整命令、日志绝对路径、SHA256 和 gzip 副本见
+`evidence/t03-after-t06-local-validation.json`。全部 AC-1–8 的本地行为证明沿用上述
+完整 suite 内的三 CLI/路径/语法/版本/只读 checker 回归；AC-7 的最新 smoke 现已实际闭环，
+不会把批准前 fixture FAIL 或旧 head 的 PASS 替代本次结果。
+最终候选 Policy manual，进入 AWAITING_PR_CONFIRMATION，exact candidate SHA 在本地状态中固定。
+最终 PR 草稿只有一行 Closes #288。取得提交确认后才 push/建 PR；required CI 全绿后
+停在 READY_FOR_REVIEW 等人审核并合并。回滚方式保持人工 revert 唯一 PR 并运行同一回归。

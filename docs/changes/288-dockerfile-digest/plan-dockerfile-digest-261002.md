@@ -29,7 +29,7 @@ updated: 2026-10-02
 | T02 | fresh run 后完整实现容器 FROM 文件核验，迁移 fixtures，所有 CLI 与库调用同一硬门 | [T04] | done |
 | T05 | 已批准 fixed evidence exact lock pin 与防篡改单测，独立治理 commit 后停止 | [T02] | done |
 | T06 | 已批准 installed-drift fixture 本地源码基线，独立测试治理 commit 后停止 | [T02, T05] | done |
-| T03 | 项目 checker、lock/release 兼容与全套回归验收，完成唯一最终 PR 候选 | [T02, T05, T06] | pending |
+| T03 | 项目 checker、lock/release 兼容与全套回归验收，完成唯一最终 PR 候选 | [T02, T05, T06] | done |
 
 T01 为平台治理必须隔离的 contract-only 步骤，不伪装成 runtime 已交付。
 T02 为一个完整可观察垂直切片，覆盖声明输入、文件读取、FROM 核验、CLI、fixtures 与测试。
@@ -153,3 +153,17 @@ T06 实际工作树专项已完成：23 tests / 44.895s PASS；exact after hash�
 approved 合同读回与文档检查 PASS。application receipt 保留当前源码和日志 hash，
 proposal 的批准前状态保持原样。真实 checker/runtime/installer/smoke gates 未改。
 本轮完成后独立提交并停止，T03 后续 fresh run 继续，不再请求本补充或原启动确认。
+
+## T03 T06 后 fresh-run 最终本地验收
+
+T06 已在 `1507e358319ebfc2206fe0402ce1520f3392a246` 独立提交并停止；本 fresh run
+重新读取 AGENTS/已批准 spec-plan 与 T06，核验 owner/clean branch，并 broker fetch main。
+最新 main 为 `65268ee5f1e622c486fd9e354dd35e20a2900f91`，本分支已整合，未有新增冲突。
+该组合 head 完整 runtime 1008 tests / 101.684s PASS；完整 host smoke PASS，
+含 installed-drift fixture 23 tests / 44.320s 和 runtime 1008 tests / 101.989s。
+四个非容器合同 × 两种 lock 版本的八组输出 bytes 与 pinned main 实际重新计算后相同。
+批准 source hashes、shell 静态检查、文档、scope、onboarding/approved/唯一 PR 与分类读回 PASS。
+两轴 Spec findings 0；Standards hard 0 / nonblocking duplicated-code smell 1，保留 T06 原样 patch。
+当前所有 ticket 完成本地交付，进入 AWAITING_PR_CONFIRMATION；最终 candidate SHA
+绑定本地状态文件，policy manual。未 push/PR/merge，required CI、实际安装与部署 NOT RUN。
+确认提交后才由受控路径 push/创建唯一最终 PR，并继续范围内 CI 修复；人仍负责 manual merge。

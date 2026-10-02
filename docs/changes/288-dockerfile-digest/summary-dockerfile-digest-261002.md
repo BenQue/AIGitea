@@ -89,7 +89,7 @@ override_reason: ''
 - Policy: manual；用户于 2026-10-02 明确回复“确认”，批准本映射 spec/plan 启动。PR 提交尚未授权。
 - 完整合同见 [spec](spec-dockerfile-digest-261002.md)，ticket graph 见 [plan](plan-dockerfile-digest-261002.md)，基线结果见 [verification](verification-dockerfile-digest-261002.md)。
 - Matt triage 已验证 bug，推荐 ready-for-agent；当前 broker 没有 triage 双维度 projector，live 投影为 GAP，不绕行直接 API，不在 #288 修改 broker。
-- T01/T04/T02/T05/T06 完成本地交付；T03 在 main 14bfe6 完整 runtime/smoke PASS，main 65268ee 的 fixture 初轮失败已按确认应用 T06，专项 23 项 PASS；完整 smoke/runtime 待 fresh run。PR CI、installed/live/现场验收为 NOT RUN。无硬依赖。
+- T01/T04/T02/T05/T06/T03 完成本地交付；T06 后 fresh-run 完整 runtime/smoke 均 PASS，最终候选等待唯一 PR 提交确认（manual）。PR CI、installed/live/现场验收为 NOT RUN。无硬依赖。
 
 ## 启动授权与治理步骤
 
@@ -138,7 +138,7 @@ T03 pending，当前 NEEDS_HUMAN_DECISION。未批准 T06 草案仅修正单个 
 完整 patch/范围/回滚与证据见 `evidence/installed-fixture-amendment-proposal.json`。
 原 spec 保持批准范围；先取此精确补充确认，不能请求或提交最终 PR。
 
-## 当前状态：T06 已批准应用，治理步骤停止
+## T06 已批准应用与治理停止（本次 fresh run 前的历史快照）
 
 用户回复“确认”，批准 exact patch
 `af73fbd48c2459b0792cc88493e08af9d7c89ae74a17026b5845271fcadecf22`。
@@ -150,3 +150,16 @@ T06 done，独立本地 commit 后停止；T03 pending，fresh run 重读新合�
 不重复启动或 T06 补充确认。该停止不表示全部验收完成或最终 PR 提交已获准。
 本轮 full smoke/runtime、PR/required CI、global installed、现场与部署均 NOT RUN；
 旧 smoke FAIL 和旧 head 的 1008 项结果保持各自原有边界。
+
+## 当前状态：T03 完成，最终 PR 待确认
+
+T06 独立提交停止后，本 fresh run 重读批准合同，真实 owner/branch/clean tree/patch hashes
+与 main readback 通过。验证 source head `1507e358319ebfc2206fe0402ce1520f3392a246`，
+pinned main `65268ee5f1e622c486fd9e354dd35e20a2900f91`。
+完整 runtime 1008 tests / 101.684s PASS；完整 host smoke PASS，含新 fixture 23 tests / 44.320s
+与第二次 runtime 1008 tests / 101.989s。八组非容器 V1/V2 输出与 pinned main bytes 相同。
+真实分类读回 bugfix / complex / projected，Policy manual；approved/onboarding/protection/唯一 PR PASS。
+当前所有 ticket 完成本地验收，准备 AWAITING_PR_CONFIRMATION；最终候选 exact SHA 由本地状态
+文件固定。PR 草稿为 `evidence/final-pr-body.md`，只有一行 Closes #288。
+本轮只证明 source/local；没有 push/PR/merge，required CI/global installed/应用迁移/
+builder provenance/现场/部署 NOT RUN。历史失败、提案和治理停止 receipt 均保留原样。
