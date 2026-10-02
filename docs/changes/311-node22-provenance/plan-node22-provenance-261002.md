@@ -24,7 +24,7 @@ updated: 2026-10-02
 |---|---|---|---|
 | T01 | 四仓 fresh 依赖和普通主机盘点，锁定保留方案与可审阅合同 | - | completed |
 | T02 | root 限定补读、已批准的 marker 创建/读回/重复/回滚重建与 01 同步 | T01 | completed |
-| T03 | 所有启用 AC 验收、语义文档和判级读回，唯一 manual PR 候选 | T02 | in-progress（完整smoke已PASS；新基线两轴复核） |
+| T03 | 所有启用 AC 验收、语义文档和判级读回，唯一 manual PR 候选 | T02 | candidate-ready（AWAITING_PR_CONFIRMATION） |
 
 T01 四仓 fresh main 与 benque host probe 均已执行；权限 GAP 保留，处理方向已锁定 A。T02 是 root 补读及 marker 动作的授权 frontier。票据保持 #311 内，不新建子 Issue。
 T02 在一次具体完整合同/启动确认后执行；明确主机授权才可 mutation。
@@ -55,4 +55,4 @@ T03 的最终 PR 提交单独绑定 #311、change/311-node22-provenance、manual
 
 ## T03 原始阻塞与解除
 
-完整 smoke 受控本地运行 FAIL，registry-preflight 停服务负向断言返回0；fixed main同三文件独立复现同失败。详细命令、源文件哈希与日志摘要见 [local validation](local-validation-node22-provenance-261002.json)。#319的PR323已合并为70baa3588c0504e5d81facd99c63b74741967967。本owner无冲突rebase并在原UTF-8环境重跑完整smoke PASS（1008 runtime tests/static checks）。未扩张#311范围、未绕过失败、depends_on仍[]。新基线两轴复核后才请求最终PR确认。
+完整 smoke 受控本地运行 FAIL，registry-preflight 停服务负向断言返回0；fixed main同三文件独立复现同失败。详细命令、源文件哈希与日志摘要见 [local validation](local-validation-node22-provenance-261002.json)。#319的PR323已合并为70baa3588c0504e5d81facd99c63b74741967967。本owner无冲突rebase并在原UTF-8环境重跑完整smoke PASS（1008 runtime tests/static checks）。未扩张#311范围、未绕过失败、depends_on仍[]。#289 PR325随后合入main，新基线16beee09aefe89b5bc80a31544c59d456190ea32完整smoke重跑PASS（1022 runtime tests/static checks）、两轴0未解决finding、四角色resolver/doc check PASS。只准备唯一manual候选，最终PR提交仍等第二确认点；没有push/PR。

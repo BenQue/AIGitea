@@ -91,9 +91,9 @@ runner broker写前观测：active/running，PID533，child_count0。写后runne
 | approved后official projector --apply 311 | PASS | installed project=aisoft-platform broker result=updated |
 | official projector --verify 311 | PASS / projected | type/maintenance + complexity/complex真实readback |
 | lifecycle持久化 | PASS / approved | before needs-analysis；after approved/complexity/complex/type/maintenance |
-| check-change-documents | PASS | changes145/pass2/gap0；四角色映射正确，pr_url空、尚无PR |
+| check-change-documents | PASS | 新main下changes151/pass2/gap0；四角色required resolver映射正确，pr_url空、尚无PR |
 | Python AST与命令literal/payloadbytes一致性 | PASS | source/local静态检查；host命令已按同一payload实执行 |
-| full smoke | PASS（#319真实合入后） | exact main70baa35、rebase后09ee937；原UTF-8环境、无LC_ALL覆盖；registry负向断言正常，1008 runtime tests及全部static checks PASS；原始FAIL与baseline复现留在local-validation历史字段 |
+| full smoke | PASS（#319/#289实际集成） | exact main16beee0、测试head204b0e1；原UTF-8环境、无LC_ALL覆盖；registry负向断言正常，1022 runtime tests及全部static checks PASS；原始FAIL与#319基线1008项PASS均保留各自历史锚 |
 | code-review | PASS（两轴均0） | Standards：0硬违例/0smell；Spec：0findings；fixed base/candidate 及独立审查记录见 review 附件 |
 | PR required CI | NOT RUN | 尚未获最终提交确认、未创建PR |
 | 应用部署/重启/删除目录/工具链升级 | NOT RUN | 不在本合同动作；没有静默实施 |
@@ -112,7 +112,7 @@ runner broker写前观测：active/running，PID533，child_count0。写后runne
 ## 未完成项与交付边界
 
 host marker验收已经完成，不等于应用部署或上游provenance可信。来源仍unknown。
-原始基线full smoke FAIL与同三文件独立复现作为历史保留。#319的PR323已由人合并，merge SHA70baa3588c0504e5d81facd99c63b74741967967进入fresh main；本owner无冲突rebase，两个commit的range-diff均相等。原UTF-8环境完整smoke重跑PASS（1008 runtime tests及static checks），未覆盖LC_ALL、未改#319脚本。四仓再次fresh-fetch并扫描，活动node22消费者不变；NewEMaint main更新为c55b17bb7ad70c55225f247d1fdb7ee8d2db88e2，仍无node22消费。marker不重复创建或回滚，原live验收回执保留。新基线两轴复核完成后准备唯一manual PR确认；当前没有push/PR/merge/归档。
+原始基线full smoke FAIL与同三文件独立复现作为历史保留。#319的PR323已由人合并，merge SHA70baa3588c0504e5d81facd99c63b74741967967进入fresh main；本owner无冲突rebase，两个commit的range-diff均相等。原UTF-8环境完整smoke重跑PASS（1008 runtime tests及static checks），未覆盖LC_ALL、未改#319脚本。四仓再次fresh-fetch并扫描，活动node22消费者不变；NewEMaint main更新为c55b17bb7ad70c55225f247d1fdb7ee8d2db88e2，仍无node22消费。marker不重复创建或回滚，原live验收回执保留。#289的PR325随后实际合入main为16beee09aefe89b5bc80a31544c59d456190ea32；本owner再次无冲突rebase且原三个commit range-diff均相等。该基线完整smoke PASS（1022 runtime tests/static checks），四角色共享resolver兼容PASS。两轴最终复核均0未解决finding；历史字段P3已修复并留档。当前进入AWAITING_PR_CONFIRMATION；没有push/PR/merge/归档。
 总调度集成优先级10，不构造新产品依赖，depends_on仍[]。
 
 ## #319 合入后重验

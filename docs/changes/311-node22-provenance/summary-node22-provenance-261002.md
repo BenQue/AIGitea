@@ -97,4 +97,4 @@ override_reason: ''
 
 ## 本地验证状态
 
-原始smoke基线失败保留历史。#319已真实合入main；本owner无冲突rebase、两个commit range-diff相等，完整smoke在原UTF-8环境重跑PASS（1008 runtime tests/static checks）。exact #311判级再次projected；四仓fresh消费者复核不改变保留方案。原始Standards/Spec各0，当前新基线两轴复核中；最终PR提交仍未确认，无push/PR/merge。详见 [verification](verification-node22-provenance-261002.md) 与 [local validation](local-validation-node22-provenance-261002.json)。
+原始smoke基线失败保留历史。#319已真实合入main；本owner无冲突rebase、两个commit range-diff相等，完整smoke在原UTF-8环境重跑PASS（1008 runtime tests/static checks）。exact #311判级再次projected；四仓fresh消费者复核不改变保留方案。#289 PR325随后实际合入后再次无冲突整合，最终main16beee09aefe89b5bc80a31544c59d456190ea32完整smoke PASS（1022 runtime tests/static checks），四角色共享文档resolver兼容PASS。最终Standards/Spec均0未解决finding，旧历史字段P3已修复保留审计。当前AWAITING_PR_CONFIRMATION，最终PR提交仍未确认，无push/PR/merge。详见 [verification](verification-node22-provenance-261002.md) 与 [local validation](local-validation-node22-provenance-261002.json)。
