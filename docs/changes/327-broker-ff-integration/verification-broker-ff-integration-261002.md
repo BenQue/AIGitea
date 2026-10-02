@@ -51,7 +51,7 @@ status: pending
 | 四份新合同resolver/check | PASS | resolver精确返回四basename；check-change-documents：changes=148、pass=2、gap=0；draft-structure.json复核双份判级一致、8条AC、T01→T02→T03；这是文档结构检查，非Loop approved |
 | triage/分类live投影 | GAP | `apply-classification-labels.sh --verify 327` 返回projection-missing、applied=false；type/platform与complexity/complex均未投影；category建议enhancement、state ready-for-agent |
 | T01 映射治理应用与本地原子提交 | PASS（原 T01 commit 061b0f3ec59869fe379d70b7d2f0455df4b8708a） | 14 个映射治理文件 + 4 个语义文档；exact commit/parent/clean tree 与 STOP 见外部 T01 receipt，不在文件中自引用 SHA |
-| runtime T02/T03 | NOT RUN | T01 后已 fresh 只读重读；发现可信根缺口，无 runtime 实施；新具体合同确认/T04应用/STOP/fresh前置尚未闭合 |
+| runtime T02/T03 | NOT RUN | T01 后 fresh 只读发现缺口；新具体合同已直接确认，本次仅独立 T04 治理；后续 fresh T02 尚未运行 |
 | bare-remote FF/guard/race与完整smoke | NOT RUN | 没有实现，禁止用历史测试当新能力PASS |
 | 唯一PR发表、新headCI、manual merge | NOT RUN | 未最终PR批准，pr_url为空 |
 | 两机安装、realFF、rollback、原owner采用 | NOT RUN | source尚未实现/合并；需各exact安装批准；未宣称#289已解锁 |
@@ -60,7 +60,7 @@ status: pending
 
 | AC | 结论 | 当前证据 / 后续闭合方式 |
 |---|---|---|
-| AC-1 | PARTIAL | 原四角色/T01/STOP 与 fresh T02 read 可核；本次新四角色为补充草案，新增具体合同/T04 未批准或应用；live 投影 GAP |
+| AC-1 | PARTIAL | 四角色/T01/STOP、fresh T02 gap proof、具体补充批准与 T04 独立治理可核；后续 fresh T02 未执行，live 投影 GAP |
 | AC-2 | NOT RUN | spec已定义正向路径；新实现/bare remote证据未产生 |
 | AC-3 | NOT RUN | strictR竞态方案和fixture场景已写，不能以普通FF推导race通过 |
 | AC-4 | NOT RUN | 负向矩阵已写，未实现/执行 |
@@ -68,7 +68,7 @@ status: pending
 | AC-6 | PARTIAL | UI入口已观察；tree/mode/uniquePR/newCI/humanmerge未执行 |
 | AC-7 | NOT RUN | 两机exact批准/安装/真实FF/no-op/rollback均未执行 |
 | AC-8 | PARTIAL | fresh保护/身份边界已读；未来新实现保持及原owner采用待实证 |
-| AC-9 | NOT RUN | authority/default-disabled/strict schema/真实 peer/隔离/records/重算/I02 完整注册启停rollback均只是提案；不能把文档或 mock 当真实可信根 |
+| AC-9 | NOT RUN | authority/default-disabled/strict schema/真实 peer/隔离/records/重算/I02 已有批准 source 合同，但实现/真实注册启停rollback仍未执行；不能把文档或 mock 当真实可信根 |
 
 ## T01 批准与验证记录
 
@@ -78,7 +78,7 @@ status: pending
 - 无 shell/Python/runtime/installer/manifest 实现改动；bare-remote、unit tests、完整 smoke、远端写入与 installed 验收均 NOT RUN。
 - T01 本轮 STOP；当时计划后续 fresh run 从 T02 继续，并重读新治理、Issue/评论、spec/plan、批准和 installed 能力；该次原范围未新增合同确认点。后来 fresh T02 发现的具体可信根扩展另见下一节，不能继承此句批准。
 
-## T02 fresh 分析与 T04 补充准备（本次）
+## T02 fresh 分析与 T04 补充准备（此前草案 ac172e5）
 
 - fresh T02 的 T01 治理 14 hash、Issue/comments、main 与保护已核对。HEAD 为原 T01；main=`65268ee5f1e622c486fd9e354dd35e20a2900f91`。Mac source/installed broker 同 hash，仍旧 leased code；VM 完整 bytes 未执行。
 - 隔离 fixture 真实复核 current Controller：`#327 T02` subject + declared path 能通过现有 complex gate，虽文件不在 #327 exact scope；同一 object 可被不同 Issue ref 指向。这是**现有门的 GAP**，不证明真实外 Issue 创作或 live 攻击、不证明新门通过。见 `/private/tmp/aisoft-327-contract-evidence/t02-provenance-gap-proof.json`。
@@ -88,6 +88,15 @@ status: pending
 - 文档/范围门：PASS。实跑 resolver、semantic document check、四角色状态与双份判级、9 AC/graph/22项新增映射、exact 四文件 diff 和 `git diff --check`；其余 1198 个 tracked 文件 bytes/Git modes 保持，其中14个 governing 文件还逐项核对原 T01 receipt 的 SHA256。结果保存为外部 `t04-proposal-validation.json`；这不是 runtime 测试。
 - 具体确认须绑定本次提案 commit/spec+plan hash、#327 / branch / manual；确认之后才执行独立 T04 治理文本应用/local commit/STOP，再后续 fresh T02。不因路线选择跳过新增合同确认，也不新增 A/B 路线问题。
 
+## T04 具体确认与独立治理应用（本次）
+
+- 负责人在本聊天直接“确认”，批准前次审阅卡绑定的 #327 / exact branch / manual / draft commit `ac172e515a47357d24ff268473af6bbee5c13fe1` 与原 spec/plan SHA256；原批准 hash 保存在外部 `t04-application-approval.json`。记录时间只表示本地登记时间，不伪造消息 ID 或人类消息时间。
+- fresh canonical broker 只读：Issue open、正文与前次相同、comments=[]；live 仍只有 triage/needs-triage。未写 live 标签、评论或 approved，不把本地文档状态当投影/protected grant。
+- 本次只应用原14个 exact治理文本（含 AGENTS、双方源技能及共享 tracker）和四角色，落实 authority/protected grant/实际受控执行/非 root OS 隔离、两项受限接口、broker独立重算、default-disabled、I01/I02及STOP。source合同 approved，T01/T04 completed、T02/T03 pending；本提交不实现新 runtime/config/service 或创建 protected grant。
+- 提交前检查 PASS：resolver精确四basename；semantic document check（changes=148、pass=2、gap=0）；四角色/双份判级、9 AC、graph/22项source映射、批准技术条款保持、双方共享文本一致和 `git diff --check`。exact18文件为14治理+4角色，其余1184个tracked文件bytes/Git modes保持；无新增runtime/config/service文件。结果保存外部 `t04-application-validation.json`，来自本次实跑，不继承草案 PASS。
+- 本地原子commit后仅做 exact parent/paths/clean/owner/last_push/main 读回，保存外部 `t04-stop-receipt.json`，然后 STOP。治理不为运行时自授同轮权限；后续 fresh run 重新读取本提交治理、Issue/有效评论、spec/plan、批准、installed/capability/live gates 才评估 T02。
+- 新 unit/smoke/FF/OS权限/root custody/installed/I01/I02/remote写/唯一PR/merge/部署均 NOT RUN。本次无脚本变更，不把语法/完整smoke写为 PASS，不安装全局源技能；source/installed 差异单独保留。
+
 ## 前后证据与安装回滚模板
 
 每台主机独立记录：批准的人/消息/目标/版本source SHA；installed roots；文件before/after SHA256、mode、owner；缺失前态；source/installed比较；typedFF H/R0/R/M；remote写前后读回；requiredCI/main保护；no-op与失败rollback；完整旧态恢复读回。不记录token/path contents/auth headers。
@@ -96,4 +105,4 @@ status: pending
 
 ## 遗留风险与未完成项
 
-原 T01 已完成并停止；本次只是可信根补充草案准备，非 T04 应用、runtime 或 Issue 完成。等待本份新增具体合同确认；没有 runtime、push、PR、live 标签、install、credential、protection apply 或 deploy。AC-7/AC-9 在 source 合并后仍须真实闭合；自动closed不当completed。不用已知历史PASS消除当前GAP。
+原 T01 已完成并停止；本次具体补充已直接确认并独立应用 T04 治理，验证/local commit 后 STOP，非 runtime 或 Issue 完成；没有 runtime、push、PR、live 标签、install、credential、protection apply 或 deploy。AC-7/AC-9 在 source 合并后仍须真实闭合；自动closed不当completed。不用已知历史PASS消除当前GAP。

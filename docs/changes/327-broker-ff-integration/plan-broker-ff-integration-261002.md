@@ -18,7 +18,7 @@ depends_on: []
 branch: change/327-broker-ff-integration
 created: 2026-10-02
 updated: 2026-10-02
-status: contract-drafting
+status: approved
 ---
 
 # #327 实施计划与 fresh frontier
@@ -28,18 +28,18 @@ status: contract-drafting
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 独立只修改spec映射治理合同的受控本地步骤；验证范围、原子commit后停止 | - | completed |
-| T04 | 本份具体可信根合同确认后，独立只应用原14个映射治理文本+四角色，验证/本地commit后STOP；本次仅准备草案，尚未应用 | T01 | pending |
+| T04 | 具体补充合同经直接确认；本次独立应用原14治理文本+四角色、验证/本地commit后STOP；runtime未实施 | T01 | completed |
 | T02 | T04之后fresh重读，实施authority/受控执行证据、Controller限定整合、broker ordinaryFF/guard/独立验证与bare-remote回归；纳入安装/漂移 | T04 | pending |
 | T03 | 集成/全量/静态/文档验收、source与installed分层、人工firstPR/安装rollback卡，准备唯一manualPR候选 | T02 | pending |
 
-T01 原治理已于 `061b0f3ec59869fe379d70b7d2f0455df4b8708a` 独立提交并停止。fresh T02 分析发现可信根缺口；没有 runtime/新接口变更。负责人“按建议继续”仅选择 A 路线的具体合同准备，不把本次四角色文档提交标成 T04 应用完成。
+T01 原治理已于 `061b0f3ec59869fe379d70b7d2f0455df4b8708a` 独立提交并停止。fresh T02 分析发现可信根缺口；没有 runtime/新接口变更。负责人“按建议继续”仅选择 A 路线准备，四角色草案 ac172e515a47357d24ff268473af6bbee5c13fe1 不算 T04；随后本聊天直接“确认”本份具体合同，本次独立治理应用才是 T04。
 
-新增 T04 保留原 ticket ID/历史，置于 T02 之前。当前先审阅本份 spec/plan 和 exact SHA256；具体确认后才在独立治理 run 执行 T04，只改原14治理文件+四角色，应用/验证/local commit 后 STOP。后续 fresh run 重读，live 分类/approved 投影、installed/capability 和 grant 状态均真实核对，T02 才能实施其新 source 范围。任何 runtime/config/service 不得混入 T04。
+新增 T04 保留原 ticket ID/历史，置于 T02 之前。本次已获审阅卡 exact draft/spec/plan SHA256 的具体确认，在独立治理 run 执行 T04，只改原14治理文件+四角色，应用/验证/local commit 后 STOP。批准与提交后 SHA 分别保存在外部 receipt，避免本提交自引用。后续 fresh run 重读，live 分类/approved 投影、installed/capability 和 grant 状态均真实核对，T02 才能实施其新 source 范围。任何 runtime/config/service 不得混入 T04。
 
 T02/T03 本地实施许可不授权 push/PR。人工 UI 发表 B01、合并后 I01 文件安装及 I02 authority 注册/启动验收均是 graph 外的独立受控阶段，不等待未合并代码先安装才能准备源码 PR。最终 PR 确认只问一次；其 protected 登记不作新的业务决定，CI repair 每次 exact H 重验而不逐 commit 问。
 ## Expected touch points
 
-exact 清单由 spec 原治理/runtime 表与新可信根扩展表逐项定义。新增表当前是待具体确认提案，不能在本 run 使用。T01 已完成；T04仅原14治理表+四角色；T02仅获确认的 runtime/可信根表；T03只更新四份证据和外部脱敏 B01/I01/I02 卡。新文件新增模式限100644；固定运行hook若由runtime临时生成必须隔离保护、不得变为额外可配置入口。
+exact 清单由 spec 原治理/runtime 表与新可信根扩展表逐项定义。新增 source 表已具体确认，但不能在本 T04 run 使用。T01 已完成；T04仅原14治理表+四角色；T02仅获确认的 runtime/可信根表；T03只更新四份证据和外部脱敏 B01/I01/I02 卡。新文件新增模式限100644；固定运行hook若由runtime临时生成必须隔离保护、不得变为额外可配置入口。
 
 所有stage保持owner `01a0fcec-eb78-7790-a36a-daea917f43d2`；branch `change/327-broker-ff-integration`；worktree `/private/tmp/issue-327-broker-ff-integration`。commit包含 #327 与Txx；不接受他人代做整合/rebase。
 

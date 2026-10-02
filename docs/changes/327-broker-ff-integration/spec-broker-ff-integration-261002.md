@@ -18,14 +18,14 @@ depends_on: []
 branch: change/327-broker-ff-integration
 created: 2026-10-02
 updated: 2026-10-02
-status: contract-drafting
+status: approved
 ---
 
 # #327 最小治理与发布合同
 
 ## 目标与原因
 
-保持 original remote tip 为每次新 head 祖先，允许严格来源限定的 fresh manifest main 整合，并经 ordinary FF push 发布；禁止 force、lease-force、任意 merge 与更宽身份 fallback。原合同和独立 T01 已由本聊天确认并提交后 STOP。本轮只准备四角色可信根补充草案；具体新增合同尚待确认，不应用治理、runtime、发表 PR 或安装。
+保持 original remote tip 为每次新 head 祖先，允许严格来源限定的 fresh manifest main 整合，并经 ordinary FF push 发布；禁止 force、lease-force、任意 merge 与更宽身份 fallback。原合同和独立 T01 已由本聊天确认并提交后 STOP。补充草案 ac172e515a47357d24ff268473af6bbee5c13fe1 经本聊天直接确认；本轮只执行 T04 映射治理和四角色、验证/local commit 后 STOP，不实施 runtime、发表 PR 或安装。
 
 ## 状态、来源与信任边界
 
@@ -40,23 +40,23 @@ status: contract-drafting
 
 提交 message、author、同名 branch 和可编辑本地 receipt 都不足以证明来源。Controller 需记录每次 owner/issue/branch/base/commit/tree/scope 的验证证据；broker 独立读取 Git DAG、main 来源、批准合同与完整 delta，不把模型自述或 receipt 的 PASS 当授权。Git 对象本身没有所属分支字段，不能从 commit subject 推断 branch provenance。
 
-## 可信证据补充草案（待本份具体合同确认）
+## 可信证据补充合同（已具体确认；T04 治理应用，T02 待 fresh run）
 
-负责人直接“按建议继续”选择 A 路线，授权把可信根写成可审阅合同；不是下面新接口、特权运行、服务或 live 权限的预先批准。本节与新增文件映射当前均为草案。原 T01 commit `061b0f3ec59869fe379d70b7d2f0455df4b8708a` 及原 FF/竞态/人工自举方向保持；T02 因可信根缺口尚未实现。具体确认绑定 #327 / `change/327-broker-ff-integration` / manual / 本份 spec+plan SHA256，先独立 T04 治理应用并停止，再 fresh run。
+负责人先“按建议继续”准备 A 路线，在草案 ac172e515a47357d24ff268473af6bbee5c13fe1 和具体审阅卡形成后，本聊天直接“确认”。批准绑定 #327 / `change/327-broker-ff-integration` / manual / 该 draft commit 与原 spec+plan SHA256（外部 `t04-application-approval.json`）；本轮仅独立 T04 治理应用、验证/local commit 后 STOP，后续 fresh run 才 T02。原 T01 commit `061b0f3ec59869fe379d70b7d2f0455df4b8708a` 与原 FF/竞态/人工自举方向保持；新 runtime 尚未实现。具体 source 合同批准不表示 installed 权限/注册/启动已批准或执行。
 
 ### 信任角色与特权边界
 
 - 采用**本地 privilege-separated verification authority**，通过固定 Unix-domain socket 提供受限服务。authority 进程必须实际 EUID=0、使用已审计且固定的 installed runtime；root-owned Python 文件本身不证明调用进程可信。root/OS 管理员属于可信运维边界，root 已被攻陷不在本合同可保证范围。
 - provider、项目代码、项目测试、可编辑 worktree、local StateStore、owner marker、环境变量、commit author/message、模型输出和客户端 JSON 均不作可信根。provider 和任何项目 verifier 子进程均以登记的非 root UID/GID 运行；特权进程永不执行项目代码、repo hook、自由 shell 或可编辑验证配置。
 - 不新增 Gitea 身份/PAT、签名密钥、Keychain 访问或更宽 credential fallback。沿用 canonical broker 的 manifest-fixed project-agent 远端身份；OS root 不切换为 Gitea admin/manager/routine 身份，远端 ACL 与 credential binding 不变；可信性来自受保护的运行/登记过程与独立重算，不来自自称 PASS 或普通 hash-chain。
-- 不要求为草案创建新的 OS 账户。各主机未来 exact 绑定现有非 root `provider_uid/provider_gid`，实际数值由独立 operator 卡读回；缺可安全绑定的身份/执行隔离条件则 capability GAP，不改为 root 跑 provider。
+- 不授权为此合同创建新的 OS 账户。各主机未来 exact 绑定现有非 root `provider_uid/provider_gid`，实际数值由独立 operator 卡读回；缺可安全绑定的身份/执行隔离条件则 capability GAP，不改为 root 跑 provider。
 - peer UID/GID 从 OS 的连接凭据取得，不能由 request/ENV/session string 提供。Mac 采用 getpeereid，Linux 采用 SO_PEERCRED；客户端也须校验 server EUID=0。Unix socket 身份只证明 OS peer，不证明该 peer 是 Controller 程序或人；因此即使同 UID 的 provider 调用接口，也只能请求固定流程，不能登记批准、伪造验证结果或获得 merge 权。
 - 受控 Controller 的 trusted-critical 部分（冻结上下文、启动/观察限定 provider、限定 main 整合、固定验证和记录）放入 authority 已审计代码；普通客户端只编排请求。authority 自己观察被启动进程结束、复核候选与执行 verifier；不相信客户端传入 PID、退出码或 PASS。这是原本在同 UID 下运行的 Controller 的**source 运行隔离变更**，不是已有 installed 功能。
 - 固定 interpreter、Git、library、daemon/entrypoint 和批准 policy 的 owner/mode/hash 均是 capability gate；清除 PYTHONPATH/PYTHONHOME/sitecustomize、调用方 PATH、Git 环境覆盖和继承敏感 FD。缺可信工具链时 fail closed，不为满足验收自行安装或切换全局工具。
 
 ### 默认关闭与固定存储
 
-| 层 | 草案中的固定目标 | 权限 / 行为 |
+| 层 | 合同中的固定目标（未安装） | 权限 / 行为 |
 |---|---|---|
 | installed policy | `/usr/local/share/aisoft/change-verification.json` | root-owned 0644，strict schema；`enabled=false`，两主机 UID/GID 绑定为空，provider 默认 none；caller 无 policy/root/socket 参数 |
 | Mac protected state | `/private/var/db/aisoft-verification` | root-owned 0700；approvals、records、private object snapshot 位于其内；不经调用方路径解析 |
@@ -70,7 +70,7 @@ installer 只安装默认关闭的代码、配置及 inert service 描述，不�
 
 同 UID 的 provider 可能拥有该 UID 的普通文件权限，**仅 setuid/drop privileges 不足以隔离同 UID 的 credential/helper/环境**。能力闸门还必须在 OS 隔离边界内拒绝 provider/verifier 读取 canonical broker credential roots、root ledger、其他项目、宿主 helper 与控制端点；只允许登记 worktree、只读任务上下文、该 provider 自己经独立 onboarding 的必要资源和明确网络用途。不复制或读取 `.env`/auth/PAT 内容来创建隔离。各平台缺这个隔离实现时 capability GAP，不能声称降低 UID 已完成隔离，也不能用环境变量开关绕过。此能力需 AC-9 的真实尝试读写/exec/socket 负向验收，root 管理员本身不在不可信 provider 边界内。
 
-候选 source policy 的固定版本为 `change-verification/v1`；grant 为 `change-grant/v1`，record 为 `change-record/v1`。默认形状如下，仅是待确认 source 示例，**没有写入 installed config**：
+候选 source policy 的固定版本为 `change-verification/v1`；grant 为 `change-grant/v1`，record 为 `change-record/v1`。默认形状如下，仅是获确认的 source 形状（待 T02 实现），**没有写入 installed config**：
 
 ```json
 {"contract_version":"change-verification/v1","enabled":false,"host_bindings":{"mac":{"provider_uid":null,"provider_gid":null},"gitea-ci":{"provider_uid":null,"provider_gid":null}},"provider":"none"}
@@ -152,7 +152,7 @@ R0 一经 pin 就不改写。正常演进保持 R0→R→H 的祖先链。若远
 
 ## 治理映射与独立停止点
 
-T01 只在独立受控治理应用步骤，按已确认本 spec 精确修改以下文本，不混入 Python/runtime/install/CI 实现；commit 后立即停止。原合同准备阶段没有修改 AGENTS.md；T01 后经直接确认独立应用并已 STOP。新具体合同确认后的 T04 也只使用下表14项和四角色、应用后 STOP；本次草案准备不应用该表或混入 runtime。后续 fresh run 必须重新读取本 worktree 的治理、Issue、有效评论、spec/plan 和 installed 能力，不继承旧上下文替代读取。
+T01 只在独立受控治理应用步骤，按已确认本 spec 精确修改以下文本，不混入 Python/runtime/install/CI 实现；commit 后立即停止。原合同准备阶段没有修改 AGENTS.md；T01 后经直接确认独立应用并已 STOP。新具体合同确认后的 T04 也只使用下表14项和四角色、应用后 STOP；原草案准备没有应用该表；本次直接确认后的 T04 仅应用该表及四角色，不混入 runtime。后续 fresh run 必须重新读取本 worktree 的治理、Issue、有效评论、spec/plan 和 installed 能力，不继承旧上下文替代读取。
 
 | exact 文件 | 允许的最小治理变动 |
 |---|---|
@@ -194,9 +194,9 @@ T01 只在独立受控治理应用步骤，按已确认本 spec 精确修改以�
 
 原已批准范围不改 operation/参数。上述可信证据补充**提议**仅增加 begin/verify 及下表 exact source 文件；在本份具体合同确认前，不授权它们，也不修改任何 manifest/runtime。`git.push.change(branch)` 与 Gitea governance 身份/权限/main/context/routine 值仍不变；无 public merge/approve operation。
 
-## 可信证据 source 精确扩展提案（待确认，T02 才实施）
+## 可信证据 source 精确扩展（已确认，fresh T02 才实施）
 
-此表是原 runtime 映射的最小新增集合，不是目录级授权；以下文件本轮均不创建或修改。原表 installer 职责在本提案中增补为安装 authority/helper/default-disabled 配置与 inert service 描述的受管映射，仍不执行真实安装、provision 或 enable；不得改变八个 source provenance guard。
+此表是原 runtime 映射的最小新增集合，不是目录级授权；以下文件本轮均不创建或修改。原表 installer 职责在本合同中增补为安装 authority/helper/default-disabled 配置与 inert service 描述的受管映射，仍不执行真实安装、provision 或 enable；不得改变八个 source provenance guard。
 
 | exact 文件 | 提议的限定职责 |
 |---|---|
@@ -220,12 +220,12 @@ T01 只在独立受控治理应用步骤，按已确认本 spec 精确修改以�
 | `codex/runtime/tests/test_verification_authority.py`（可新增） | 真实 socket peer negative、default-disabled、process/drop/sandbox、root-only state 与启动恢复；模拟权限层不得报 real custody PASS |
 | `codex/runtime/tests/test_verifier.py` | frozen required verifier/UID/program与执行结果兼容门 |
 | `codex/runtime/tests/test_state.py` | 非权威 progress 与 trusted record 引用、旧 state 不获批准 |
-| `codex/runtime/tests/test_contract.py` | 扩展草案状态、exact mapping 与不可自动 approved 兼容，保留自修改治理保护 |
+| `codex/runtime/tests/test_contract.py` | 草案/批准状态、exact mapping 与不可自动 approved 兼容，保留自修改治理保护 |
 | `codex/tests/test-verification-authority.sh`（可新增） | 新脚本语法、inert service/default-disabled/schema与受管安装 fixture，不启动 live 服务 |
 
 上述可新增 shell 源与现有 source 文件保持普通 100644；installer 如需安装为 0755 必须映射为受管 mode 且 UI bootstrap 验 exact mode。不是给新 live 可执行入口赋权限。本表与原 runtime 表的 installer/drift/smoke/测试映射共同校验；不修改 `gitea-governance.json`、受保护 main、CI context 或 routine opt-in，不泛用其他 manifests。
 
-T04 独立治理应用（具体确认之后）仍仅原 14 个治理 exact 文件和四角色文档：在各自 #327 活段落同步 authority 的可信记录/独立重算、两项接口与仅 source 扩展、root critical 与非 root provider、default-disabled、I02 独立批准及不把 installed 缺口报 PASS；不改历史 docs 或上游 vendor，不写任何上表 runtime/config/service 文件。T04 应用验证+本地原子 commit 后停止，不能同 run 借新治理许可实施 T02。
+T04 独立治理应用（本次具体确认后）仍仅原 14 个治理 exact 文件和四角色文档：在各自 #327 活段落同步 authority 的可信记录/独立重算、两项接口与仅 source 扩展、root critical 与非 root provider、default-disabled、I02 独立批准及不把 installed 缺口报 PASS；不改历史 docs 或上游 vendor，不写任何上表 runtime/config/service 文件。T04 应用验证+本地原子 commit 后停止，不能同 run 借新治理许可实施 T02。
 
 ## 本 Issue first-PR 自举（负责人本人 UI）
 
@@ -268,8 +268,8 @@ AC实证全部满足后才terminal reconcile、文档check、精确cleanup/归�
 
 ## 非目标
 
-不在合同准备阶段修改治理，独立 T01 只按映射治理表应用；不恢复#319 remote、不更新#289 PR、不修其业务/UTF-8范围、不操作他人worktree。不开放任意 merge、冲突解决、force 或身份/PAT/保护/context/routine 变更、应用部署或 provider 启用。新 typed source 范围仅是待确认的两项；本轮不改 operation/config/service/runtime，也不应用当前 governing 文件。不批量重命名/删除历史Change或上游skills。
+合同准备不修改治理；独立 T01/T04 只按映射治理表应用并分别停止；不恢复#319 remote、不更新#289 PR、不修其业务/UTF-8范围、不操作他人worktree。不开放任意 merge、冲突解决、force 或身份/PAT/保护/context/routine 变更、应用部署或 provider 启用。新 typed source 范围仅为已确认的两项；本轮 T04 只应用映射 governing 文本，不改 operation/config/service/runtime。不批量重命名/删除历史Change或上游skills。
 
 ## 未决问题
 
-原 FF/人工自举方向已确认。负责人“按建议继续”仅选择准备 A 路线；新增 authority、两项接口、privilege/service/state、exact source 文件与 I02 当前待**本份具体合同确认**，不得自动标 approved。确认后独立 T04 治理应用并停止，后续 fresh run 再 T02。实际 UID/GID/工具链/安装 pin/grant/启动与 rollback 目标留在每台 I02 exact operator 卡，不为通过文档门虚构数值或启动。真实 UI/字节 mode/guard/authority 实证仍是待执行 AC。
+原 FF/人工自举方向与本份可信根 source 合同已直接确认；A 路线准备和具体确认是两次不同的授权。本次独立 T04 治理应用并停止，后续 fresh run 再 T02，不额外要求同一合同重复批准。local approved 不等于 live 投影或 protected grant；具体机器 I01/I02 权限动作仍须独立 exact 卡。实际 UID/GID/工具链/安装 pin/grant/启动与 rollback 目标留在每台 I02 exact operator 卡，不为通过文档门虚构数值或启动。真实 UI/字节 mode/guard/authority 实证仍是待执行 AC。
