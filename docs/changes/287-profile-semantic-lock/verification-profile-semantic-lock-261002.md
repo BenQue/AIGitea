@@ -97,3 +97,13 @@ verify 输出的既有 detail 含 “merged summary” 字样；本 summary 实�
 - Spec 独立只读审查：0 actionable findings；V1/V2/constraints/广播/release 边界均匹配已批准合同。T02/T03 未实现不算 T01 遗漏。
 - 提交后 exact #287 classification `--verify`：projected；semantic document check：changes=145 pass=2 gap=0；worktree 与共享 main 都 clean。
 - 本次文档步骤完成后停在 fresh run 边界；后续 T02/T03 已授权，无需重复确认启动。
+
+## T02 fresh run：V2 writer 与严格双 reader
+
+- 起点 `c793118a81c0f6d20a1b52c3fbd0330c07e4e8a5`；broker fresh main 仍 `5c2cd726c9aeaee9d17541d8feb049e33881bbac`；真实 approved contract frontier T02，owner 匹配。fresh read hashes 见 evidence/t02-fresh-read.json。
+- 先增加 highest seam 回归：7 tests 中 failures=2/errors=2，核心失败为历史 prose 输出不等和默认 writer 仍 1.0；保留 evidence/t02-red.log。不是把现有测试删掉制造红。
+- runtime 现在默认 V2，带 profile-machine-v1 domain/marker；V1 expected build 显式保持原算法，仅已知版本可解析，CLI 按 lock 自身版本校验。原 V1 schema/reference/profile/catalog 未改。
+- architecture targeted tests：70 tests / 2.392s / OK，见 evidence/t02-architecture-green.log；覆盖新 CLI 显式临时候选迁移、原 lock 无写入、未知版本/marker 混用/篡改、合法 slot移除/transition状态/constraints/delivery 漂移，version 不变仍红。
+- release integration：5 tests / 0.042s / OK。既有 V1 round-trip 仍精确匹配原 reference；新 V2 architecture 校验成功但旧 release reader 因新增 marker 严格拒绝。release runtime 未改，不宣称 release V2 可用。
+- 新增 release regression 首次运行出现测试插入位置导致 NameError；恢复原 catalog_revision 断言到原 V1 test 后修复，未删断言，5项完整通过。
+- T02 完成，T03 full smoke/审查/最终候选尚未执行；CI/安装/live/SFM均 NOT RUN。

@@ -26,7 +26,7 @@ updated: 2026-10-02
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 应用哈希覆盖、格式与迁移的 architecture 文档合同；独立提交并停止，等待 fresh run 重读 | - | completed |
-| T02 | V2 新生成与严格 V1/V2 校验闭环，说明稳定/机器漂移/显式迁移可在 CLI 验证 | T01 | pending |
+| T02 | V2 新生成与严格 V1/V2 校验闭环，说明稳定/机器漂移/显式迁移可在 CLI 验证 | T01 | completed |
 | T03 | 补足兼容/故意失败/全量回归与实际 receipts，形成唯一 manual PR 候选 | T02 | pending |
 
 本图在同一个 #287 下执行，不新建 child Issue；用户已在合同启动确认中认可粒度与依赖。

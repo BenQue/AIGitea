@@ -1,0 +1,36 @@
+{
+  "$schema": "../schemas/profile-v1.schema.json",
+  "schema_version": "1.0",
+  "profile_id": "linux-node-sqlite-v1",
+  "version": "1.0.0",
+  "catalog_revision": "2026.09.0",
+  "status": "active",
+  "description": "Ubuntu LTS, Node LTS, Next, React, Prisma and embedded SQLite baseline for a single-writer application delivered either as a native process or as a container image.",
+  "required_components": [
+    {"component_id": "os.ubuntu.24-04-4", "allowed_states": ["preferred"]},
+    {"component_id": "runtime.node.24", "allowed_states": ["preferred"], "transitions": [{"component_id": "runtime.node.22", "allowed_states": ["sunset"]}]},
+    {"component_id": "package.npm.11", "allowed_states": ["preferred"], "transitions": [{"component_id": "package.npm.10", "allowed_states": ["sunset"]}]},
+    {"component_id": "database.sqlite.3", "allowed_states": ["preferred"]},
+    {"component_id": "framework.next.16", "allowed_states": ["preferred"]},
+    {"component_id": "frontend.react.19", "allowed_states": ["preferred"], "transitions": [{"component_id": "frontend.react.18", "allowed_states": ["sunset"]}]},
+    {"component_id": "orm.prisma.7", "allowed_states": ["preferred"], "transitions": [{"component_id": "orm.prisma.5", "allowed_states": ["sunset"]}]},
+    {"component_id": "toolchain.typescript.6", "allowed_states": ["preferred"], "transitions": [{"component_id": "toolchain.typescript.5", "allowed_states": ["sunset"]}]}
+  ],
+  "compatibility_rules": [
+    "Exactly one application instance may write the database; this profile inherits every embedded SQLite constraint and adds a frontend framework slot on top of it.",
+    "This profile declares os, runtime, package-manager, database, framework, frontend, orm and toolchain slots. It declares no proxy, container-engine or container-compose slot, and no PostgreSQL slot; an application that needs a client-server database must move to the matching PostgreSQL profile.",
+    "A transition selects exactly one component per slot, requires an absolute http or https migration Issue plus one matching unexpired exception, and never permits a prohibited component.",
+    "A component whose deployed build differs from the catalog pin may declare as_built inside the same major, backed by one bounded exception. as_built never crosses a major, never applies to a digest-pinned image, and never suspends prohibited, EOL, expiry or checksum enforcement.",
+    "This profile allows more than one delivery contract because one repository may serve environments that differ in delivery ownership. A declaration still names exactly one contract; an application whose environments differ writes one declaration and one lock per environment rather than merging them.",
+    "A declaration that names the container delivery contract must additionally declare the catalog OCI base image component for the runtime major it ships, pinned by the catalog digest; this profile has no OCI slot because the native delivery contracts have no base image."
+  ],
+  "delivery_contracts": ["embedded-sqlite/v1", "pm2-legacy", "docker-release/v1"],
+  "constraints": {
+    "deployment": "Delivery contracts describe delivery ownership only and grant no deployment capability; each environment is deployed by the application repository under its own Change.",
+    "data_storage": "Database, WAL and shared-memory files must remain on a local filesystem on the same host; network filesystem, container ephemeral layer and multi-host access are prohibited.",
+    "concurrency": "One writer; sustained lock contention, background write fan-out or more than one application instance requires PostgreSQL reassessment.",
+    "availability": "No high-availability claim; host failure may require restore from backup, and a second instance is not an availability answer under this profile.",
+    "backup": "Scheduled online backup using the SQLite backup API or a documented equivalent consistent snapshot, plus a retained off-host checksum, is mandatory.",
+    "restore_drill": "Restore must be exercised at least semi-annually and before any schema or runtime major Change."
+  }
+}
