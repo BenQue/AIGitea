@@ -1,0 +1,11 @@
+{
+  "issue": 320,
+  "project": "aisoft-platform",
+  "repository": "aisoft-platform",
+  "action": "verify",
+  "applied": false,
+  "detail": "Issue #320 carries the classification its merged summary declares",
+  "result": "projected",
+  "change_type": "platform",
+  "complexity": "complex"
+}

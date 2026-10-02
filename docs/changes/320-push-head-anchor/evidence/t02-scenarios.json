@@ -1,0 +1,501 @@
+{
+  "scope": "治理文案条款审查 + 合成输入桌面推演；evaluate 是文案推演模型，不是 broker/runtime 代码",
+  "sha_symbols": {
+    "A": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "B": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "C": "cccccccccccccccccccccccccccccccccccccccc",
+    "X": "dddddddddddddddddddddddddddddddddddddddd"
+  },
+  "source_clause_audit": {
+    "03-Issue-Spec-Plan与单闸门开发流程.md": {
+      "result": "PASS",
+      "source_sha256": "4fbe770bded5f8bfcd7fabf76dbbf86b720d72fcc6d6196249af7ebaae2ea5fd",
+      "clause_evidence": {
+        "首次 push 核对": 73,
+        "每次后续 push": 75,
+        "fresh 本地验证": 75,
+        "不能沿用首次旧 SHA": 77,
+        "不新增每 commit 确认": 79,
+        "不匹配立即停止": 79
+      }
+    },
+    "08-双工具共存与实施.md": {
+      "result": "PASS",
+      "source_sha256": "dfa4345e47f3532307100fbe91612ee70c4287ec1b5c04cdc07bf6599df43a27",
+      "clause_evidence": {
+        "首次 push 后": 45,
+        "后续 push": 45,
+        "记录该次 exact head": 45,
+        "不能复用首次旧 SHA": 45,
+        "合法后续 commit 不重复确认": 45,
+        "他人改写立即停止": 45
+      }
+    },
+    "codex/skills/issue-session-flow/SKILL.md": {
+      "result": "PASS",
+      "source_sha256": "cd8bb4e5425657e4c9a5b62f6cb1b7c0b964ab41868e26489db8f03475e4d6ec",
+      "clause_evidence": {
+        "For the first push": 46,
+        "For each subsequent push": 47,
+        "freshly verified and recorded": 48,
+        "do not reuse": 49,
+        "do not require a new confirmation each": 53,
+        "Stop on scope expansion": 54
+      }
+    },
+    "skill-for-claude/issue-session-flow/SKILL.md": {
+      "result": "PASS",
+      "source_sha256": "0108f3dde9872d2256ac1151d077e01089044f80209052d622bb3292139058cc",
+      "clause_evidence": {
+        "首次 push 之后": 35,
+        "每次后续 push": 36,
+        "fresh 本地验证": 36,
+        "不能沿用首次旧 SHA": 37,
+        "commit 不重复确认": 40,
+        "不匹配立即停止": 41
+      }
+    },
+    "skill-for-codex/SKILL.md": {
+      "result": "PASS",
+      "source_sha256": "bf08aaf639d28cd57ec4d9a04d12bafe2f89270b19c130717675ee886340743c",
+      "clause_evidence": {
+        "The first push still compares": 121,
+        "subsequent push": 118,
+        "freshly verified exact head": 119,
+        "without a confirmation per legitimate commit": 122,
+        "stop on scope expansion": 122,
+        "mapped-summary-only diff": 118
+      }
+    },
+    "skill-for-claude/aisoft-platform/SKILL.md": {
+      "result": "PASS",
+      "source_sha256": "4d03a86f77cae83ef14449cf0b9c404e2954ad43c1fb789caeec264ef318f4e8",
+      "clause_evidence": {
+        "首次 push 比对": 40,
+        "后续 push 前": 40,
+        "本次 fresh 验证 head": 40,
+        "不沿用首次旧 SHA": 40,
+        "不新增每 commit 确认": 40,
+        "head 不匹配停止查明": 40
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "first-verified-candidate",
+      "expected": "CONTINUE",
+      "inputs": {
+        "phase": "first",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "local": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "pushed": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "CONTINUE",
+      "result": "PASS",
+      "legacy_anchor_observed": "CONTINUE"
+    },
+    {
+      "name": "summary-backfill-new-head",
+      "expected": "CONTINUE",
+      "inputs": {
+        "phase": "backfill",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "local": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "pushed": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "CONTINUE",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "in-contract-CI-new-head",
+      "expected": "CONTINUE",
+      "inputs": {
+        "phase": "ci",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "cccccccccccccccccccccccccccccccccccccccc",
+        "local": "cccccccccccccccccccccccccccccccccccccccc",
+        "pushed": "cccccccccccccccccccccccccccccccccccccccc",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "CONTINUE",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "other-session-rewrites-before-push",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "ci",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "cccccccccccccccccccccccccccccccccccccccc",
+        "local": "dddddddddddddddddddddddddddddddddddddddd",
+        "pushed": "dddddddddddddddddddddddddddddddddddddddd",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": true,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "backfill-reuses-old-anchor",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "backfill",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "local": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "pushed": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "CI-reuses-previous-anchor",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "ci",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "local": "cccccccccccccccccccccccccccccccccccccccc",
+        "pushed": "cccccccccccccccccccccccccccccccccccccccc",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "missing-push-readback",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "first",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "local": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "pushed": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": false
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "push-return-mismatch",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "ci",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "cccccccccccccccccccccccccccccccccccccccc",
+        "local": "cccccccccccccccccccccccccccccccccccccccc",
+        "pushed": "dddddddddddddddddddddddddddddddddddddddd",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "scope-expanded",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "ci",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "cccccccccccccccccccccccccccccccccccccccc",
+        "local": "cccccccccccccccccccccccccccccccccccccccc",
+        "pushed": "cccccccccccccccccccccccccccccccccccccccc",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": false,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "session-ownership-mismatch",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "first",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "local": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "pushed": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "authorized": true,
+        "owner": false,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "exact-branch-mismatch",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "first",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "local": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "pushed": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "authorized": true,
+        "owner": true,
+        "branch": false,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "first-candidate-changed-after-confirmation",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "first",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "local": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "pushed": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "backfill-mixed-files",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "backfill",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "local": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "pushed": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": false,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "backfill-wrong-PR-URL",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "backfill",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "local": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "pushed": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": false,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "CI-validation-failed",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "ci",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "cccccccccccccccccccccccccccccccccccccccc",
+        "local": "cccccccccccccccccccccccccccccccccccccccc",
+        "pushed": "cccccccccccccccccccccccccccccccccccccccc",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": false,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "dirty-tree",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "first",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "local": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "pushed": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "authorized": true,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": false,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    },
+    {
+      "name": "no-exact-tuple-submission-authorization",
+      "expected": "STOP",
+      "inputs": {
+        "phase": "first",
+        "candidate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "verified": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "local": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "pushed": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "authorized": false,
+        "owner": true,
+        "branch": true,
+        "in_scope": true,
+        "validation": true,
+        "clean": true,
+        "unexpected_rewrite": false,
+        "summary_only": true,
+        "actual_pr": true,
+        "readback": true
+      },
+      "observed": "STOP",
+      "result": "PASS",
+      "legacy_anchor_observed": "STOP"
+    }
+  ],
+  "case_count": 17,
+  "pass_count": 17,
+  "legacy_anchor_false_stops": [
+    "summary-backfill-new-head",
+    "in-contract-CI-new-head"
+  ],
+  "live_remote_events": "NOT RUN",
+  "real_model": "NOT RUN"
+}

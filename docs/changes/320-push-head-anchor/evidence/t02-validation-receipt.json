@@ -1,0 +1,36 @@
+{
+  "issue": 320,
+  "ticket": "T02",
+  "status": "AWAITING_PR_CONFIRMATION",
+  "policy": "manual",
+  "session": "01a0fc7b-c01c-71f2-954c-6a87dabb4a87",
+  "branch": "change/320-push-head-anchor",
+  "fresh_base": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "tested_source_head": "05e555d441dc8db871454f1e67ce197e1d071eea",
+  "unchanged_governance_source_sha256": {
+    "03-Issue-Spec-Plan与单闸门开发流程.md": "4fbe770bded5f8bfcd7fabf76dbbf86b720d72fcc6d6196249af7ebaae2ea5fd",
+    "08-双工具共存与实施.md": "dfa4345e47f3532307100fbe91612ee70c4287ec1b5c04cdc07bf6599df43a27",
+    "codex/skills/issue-session-flow/SKILL.md": "cd8bb4e5425657e4c9a5b62f6cb1b7c0b964ab41868e26489db8f03475e4d6ec",
+    "skill-for-claude/aisoft-platform/SKILL.md": "4d03a86f77cae83ef14449cf0b9c404e2954ad43c1fb789caeec264ef318f4e8",
+    "skill-for-claude/issue-session-flow/SKILL.md": "0108f3dde9872d2256ac1151d077e01089044f80209052d622bb3292139058cc",
+    "skill-for-codex/SKILL.md": "bf08aaf639d28cd57ec4d9a04d12bafe2f89270b19c130717675ee886340743c"
+  },
+  "source_guard": "PASS",
+  "runtime_AGENTS_CI_guard": "PASS",
+  "fresh_turn_read": "PASS",
+  "synthetic_cases": 17,
+  "synthetic_result": "PASS, not runtime/live execution",
+  "targeted_tests": 38,
+  "full_smoke": "PASS: 978 runtime tests + static checks, controlled host",
+  "sandbox_failure": "localhost fixture bind denied; original failure preserved",
+  "review": {
+    "Standards": 0,
+    "Spec": 0
+  },
+  "classification": "actual projected platform/complex",
+  "required_context": "CI / verify (pull_request)",
+  "remote_PR_CI": "NOT RUN",
+  "installed_real_model_live_merge_deploy": "NOT RUN",
+  "triage_projection": "GAP: canonical labels denied by extension writer; no bypass",
+  "metadata_commit_note": "本收据与最终文档仅改变本Issue metadata/evidence；提交后对final exact head做文档、范围、干净工作树与归属核对，不扩大或重复全量测试。"
+}

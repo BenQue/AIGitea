@@ -1,0 +1,23 @@
+{
+  "issue": 320,
+  "ticket": "T02",
+  "session": "01a0fc7b-c01c-71f2-954c-6a87dabb4a87",
+  "fresh_turn_trigger": "用户 下一步；T01 已在前一轮停止",
+  "head": "05e555d441dc8db871454f1e67ce197e1d071eea",
+  "time": "2026-10-02T20:24:07.458536+08:00",
+  "read_sha256": {
+    "03-Issue-Spec-Plan与单闸门开发流程.md": "4fbe770bded5f8bfcd7fabf76dbbf86b720d72fcc6d6196249af7ebaae2ea5fd",
+    "08-双工具共存与实施.md": "dfa4345e47f3532307100fbe91612ee70c4287ec1b5c04cdc07bf6599df43a27",
+    "codex/skills/issue-session-flow/SKILL.md": "cd8bb4e5425657e4c9a5b62f6cb1b7c0b964ab41868e26489db8f03475e4d6ec",
+    "skill-for-claude/aisoft-platform/SKILL.md": "4d03a86f77cae83ef14449cf0b9c404e2954ad43c1fb789caeec264ef318f4e8",
+    "skill-for-claude/issue-session-flow/SKILL.md": "0108f3dde9872d2256ac1151d077e01089044f80209052d622bb3292139058cc",
+    "skill-for-codex/SKILL.md": "bf08aaf639d28cd57ec4d9a04d12bafe2f89270b19c130717675ee886340743c",
+    "AGENTS.md": "7192cb1bcb5c4e0d87f24bbf1a1abac1ad72c08094e6a8e52f1b63217531514f",
+    "README.md": "8c76cf171f37d66704f79afb6f0e305a2f4899b22757be67ff911a9a0b45a7f0",
+    "04-Agent编排与定时任务.md": "fa29f9049a875951dae0596a2826e42a1829217df4fcb8d499f99aa1b4a625d2",
+    "docs/changes/320-push-head-anchor/spec-push-head-anchor-261002.md": "ff0b45d49125ef90b94f2e41a11e9433f9c9f8ed99fa8e1edcf54022ea5ea473",
+    "docs/changes/320-push-head-anchor/plan-push-head-anchor-261002.md": "b19902376a6bb3329d72dc853b8b63b0d7408ddd078ccc46fb543ac4971de679"
+  },
+  "T01_source_matches": true,
+  "runtime_change_authorized": false
+}

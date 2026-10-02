@@ -1,0 +1,6 @@
+{
+  "command": "LC_ALL=C PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh",
+  "exit_code": 1,
+  "elapsed_seconds": 114.8,
+  "result": "FAIL"
+}

@@ -1,0 +1,10 @@
+{
+  "command": "LC_ALL=C PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh",
+  "execution_context": "controlled host, same command as sandbox run",
+  "exit_code": 0,
+  "elapsed_seconds": 212.14,
+  "result": "PASS",
+  "runtime_tests": 978,
+  "runtime_seconds": 87.654,
+  "log_sha256": "03f2f398a7475cfe5db29850ede8f94fe701d924abeef5024862fab0d9760e2a"
+}

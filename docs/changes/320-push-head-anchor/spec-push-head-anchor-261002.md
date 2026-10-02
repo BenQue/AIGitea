@@ -25,11 +25,11 @@ updated: 2026-10-02
 
 ## Acceptance criteria
 
-- [ ] AC-1：首次 push 的 `pushed_head` 等于提交确认候选中已验证的 exact head；PR summary-only 回填与范围内 CI 修复的每次后续 push，等于该次 fresh 本地验证并记录的 exact head，不沿用首次旧 SHA，也不省略比较。
-- [ ] AC-2：授权仍绑定 exact Issue/branch/manual policy；不新增每 commit 确认。后续 push 前核对本会话归属、exact branch、新增 diff 的合同范围、必要验证与清洁工作树，记录 40 位 lowercase head。意外改写、scope 扩大或 `pushed_head` 不匹配立即停止，查明原因后才能继续；不得简单把未知 head 当作新锚。
-- [ ] AC-3：03、08、两侧 session skill 与两侧复合 skill 的 PR 路径等价；覆盖首次 push、summary-only 回填、in-contract CI 修复、他人改写四类场景，并验证复用旧 head、漏比对、越范围与身份异常的负向案例。
-- [ ] AC-4：source/local/CI/installed/real-model/live 分层报告；合成场景 PASS 不推定 remote push、真实模型、安装或部署成功。
-- [ ] AC-5：治理源仅由独立 T01 受控步骤应用并停止；fresh run 重新读取合同后才能执行 T02 验证/候选准备。当前 AGENTS.md、runtime 与其它 Issue 均不修改。
+- [x] AC-1：首次 push 的 `pushed_head` 等于提交确认候选中已验证的 exact head；PR summary-only 回填与范围内 CI 修复的每次后续 push，等于该次 fresh 本地验证并记录的 exact head，不沿用首次旧 SHA，也不省略比较。
+- [x] AC-2：授权仍绑定 exact Issue/branch/manual policy；不新增每 commit 确认。后续 push 前核对本会话归属、exact branch、新增 diff 的合同范围、必要验证与清洁工作树，记录 40 位 lowercase head。意外改写、scope 扩大或 `pushed_head` 不匹配立即停止，查明原因后才能继续；不得简单把未知 head 当作新锚。
+- [x] AC-3：03、08、两侧 session skill 与两侧复合 skill 的 PR 路径等价；覆盖首次 push、summary-only 回填、in-contract CI 修复、他人改写四类场景，并验证复用旧 head、漏比对、越范围与身份异常的负向案例。
+- [x] AC-4：source/local/CI/installed/real-model/live 分层报告；合成场景 PASS 不推定 remote push、真实模型、安装或部署成功。
+- [x] AC-5：治理源仅由独立 T01 受控步骤应用并停止；fresh run 重新读取合同后才能执行 T02 验证/候选准备。当前 AGENTS.md、runtime 与其它 Issue 均不修改。
 
 ## 精确授权目标（合同确认后生效）
 
@@ -73,3 +73,7 @@ updated: 2026-10-02
 ## 未决问题
 
 技术方案无未决；用户已确认本完整合同与 T01/T02 breakdown。最终 PR 提交另有绑定 #320/branch/manual 的确认点。
+
+## 当前验收层次
+
+AC-1至AC-5的治理 source/local 验证已完成，证据见 mapped verification；实际 remote push/PR/CI、真实模型、installed/live、人工合并、终态与归档仍 NOT RUN。本次勾选不表示真实远端事件或交付已完成。
