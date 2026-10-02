@@ -109,11 +109,14 @@ def _instructions(content: str, field: str) -> list[tuple[int, str, str]]:
     header = True
     directives = set()
     pending = ""
+    continuing = False
     start = 0
     result = []
     # split only physical LF: Unicode line separators must not invent FROM lines.
     for number, physical in enumerate(content.split("\n"), 1):
-        line = physical.removesuffix("\r").strip(" \t")
+        line = physical.removesuffix("\r").rstrip(" \t")
+        if not continuing:
+            line = line.lstrip()
         location = f"{field}:line[{number}]"
         directive = DIRECTIVE.fullmatch(line) if header else None
         if directive:
@@ -130,12 +133,15 @@ def _instructions(content: str, field: str) -> list[tuple[int, str, str]]:
                 fail("DOCKERFILE_SYNTAX_UNSUPPORTED", "仅支持标准稳定 Dockerfile frontend。", location)
             continue
         header = False  # a blank, ordinary comment or instruction ends directives
-        if not line or line.startswith("#"):
+        if not line.strip() or line.lstrip().startswith("#"):
             continue
-        if not pending:
+        if not continuing:
             start = number
-        continued = line.endswith(escape)
+        # Match BuildKit's continuation rule, including its deliberate treatment
+        # of triple escapes: a final escape preceded by an escape is literal.
+        continued = line.endswith(escape) and not line.endswith(escape * 2)
         pending += line[:-1] if continued else line
+        continuing = continued
         if continued:
             continue
         location = f"{field}:line[{start}]"
@@ -147,7 +153,7 @@ def _instructions(content: str, field: str) -> list[tuple[int, str, str]]:
             fail("DOCKERFILE_FROM_INVALID", "ONBUILD 不允许 FROM。", location)
         result.append((start, instruction, arguments))
         pending = ""
-    if pending:
+    if continuing:
         fail("DOCKERFILE_SYNTAX_UNSUPPORTED", "未完成的续行。", f"{field}:line[{start}]")
     return result
 

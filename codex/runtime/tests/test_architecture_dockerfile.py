@@ -150,6 +150,23 @@ class DockerfileInputTests(unittest.TestCase):
                 self.dockerfile.write_text(content)
                 self.error("DOCKERFILE_SYNTAX_UNSUPPORTED")
 
+    def test_escaped_escape_does_not_swallow_the_next_external_from(self) -> None:
+        for escape in ("\\", "`"):
+            for count in (2, 3, 4):
+                with self.subTest(escape=escape, count=count):
+                    self.dockerfile.write_text(
+                        f"# escape={escape}\nFROM {NODE22}\n"
+                        + "RUN echo done " + escape * count + f"\nFROM {NODE24}\n"
+                    )
+                    self.error("DOCKERFILE_DIGEST_MISMATCH")
+
+    def test_continuation_preserves_separator_whitespace(self) -> None:
+        for escape in ("\\", "`"):
+            self.dockerfile.write_text(f"# escape={escape}\nFROM {NODE22}{escape}\n AS builder\nFROM builder\n")
+            self.valid()
+            self.dockerfile.write_text(f"FROM {NODE22}\n\\\n")
+            self.error("DOCKERFILE_SYNTAX_UNSUPPORTED")
+
     def test_multistage_comments_continuations_platform_and_escape(self) -> None:
         for escape in ("\\", "`"):
             with self.subTest(escape=escape):

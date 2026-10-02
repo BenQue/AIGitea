@@ -169,3 +169,16 @@ CURRENT_SOURCE_PINS 仅准许 runner/transport/matrix；并同时核验 disk 与
 不能恢复旧 declaration hash、把 lock 加 CONTENT_EXEMPT、跳过 checker 或替换历史 evidence。
 已批准 spec 排除额外 CI/治理脚本改动，故该具体补充仍须独立合同批准/治理步骤。
 T02 local source check 不构成真实构建、制品 provenance、安装或现场证明。
+
+## T02 双轴审查与常规修复
+
+初次本地提交 e799acf30af99c1256e8c44b972071be3d2834da：Standards PASS / 0；
+Spec FAIL / P1 1：双尾 escape 会错误吞掉下一条真实 FROM。已核对官方 BuildKit
+parser setEscapeToken（149–159）与 trimContinuationCharacter（499–504），不扩张合同。
+修复为尾 escape 前一字符不是同 escape 才续行，并保留续行上的分隔空白。
+新增两种 escape、2/3/4 尾字符、空白与单独未完成续行回归；先 red 2 tests / 7 failures，
+修复后 architecture 71 tests PASS。来源：
+https://github.com/moby/buildkit/blob/master/frontend/dockerfile/parser/parser.go
+
+完整 runtime 第二轮（修复前 e799acf）990 tests / 86.754s PASS；
+上述常规修复后将再次执行完整 runtime，旧 PASS 不外推至新 head。
