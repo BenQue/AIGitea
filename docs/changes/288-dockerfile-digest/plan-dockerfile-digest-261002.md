@@ -25,7 +25,8 @@ updated: 2026-10-02
 | Ticket | Delivers | blocked_by | Status |
 |---|---|---|---|
 | T01 | 独立应用 Dockerfile 治理合同，提供可审阅的 schema/docs 输入面，commit 后停止 | [] | done |
-| T02 | fresh run 后完整实现容器 FROM 文件核验，迁移 fixtures，所有 CLI 与库调用同一硬门 | [T01] | pending |
+| T04 | 已批准补充的两处测试 root 与 synthetic 模板，独立治理 commit 后停止 | [T01] | done |
+| T02 | fresh run 后完整实现容器 FROM 文件核验，迁移 fixtures，所有 CLI 与库调用同一硬门 | [T04] | pending |
 | T03 | 项目 checker、lock/release 兼容与全套回归验收，完成唯一最终 PR 候选 | [T02] | pending |
 
 T01 为平台治理必须隔离的 contract-only 步骤，不伪装成 runtime 已交付。
@@ -36,6 +37,8 @@ T02 为一个完整可观察垂直切片，覆盖声明输入、文件读取、F
 
 - T01：`architecture/schemas/project-architecture-v1.schema.json`、`architecture/README.md`；
   本 Issue semantic docs 同步进度。只增加已批准的声明语法与约束，停止后交 fresh run。
+- T04：已批准补充的 `codex/tests/smoke.sh`、`codex/tests/test-architecture-install.sh`、
+  `architecture/templates/project-architecture.example.json` 与 `architecture/templates/Dockerfile.example`；仅迁移构建输入。
 - T02：`codex/runtime/aisoft_architecture/{cli,validator,lockfile}.py`，可新增局部 Dockerfile reader
   module；相关 `test_architecture_*.py`、新增 CLI/path/from 行为测试；
   `architecture/fixtures/` 与容器 reference 的 synthetic Dockerfile/对应 lock。
@@ -63,7 +66,7 @@ T01 已应用 schema/README，语法探针、architecture 57 tests、release int
 本受控步骤独立提交后停止；T02/T03 继续遵循本已批准合同。
 
 完整 runtime unittest 与平台 smoke 在最终候选前运行；新失败按真实原因修复，不能让合同后退。
-shell 无计划变动；若确需改 shell/CI，属于范围扩张，先提出合同调整，不顺手实施。
+shell 仅允许 T04 明确批准的两个测试入口，各新增 root 参数；运行 bash -n、ShellCheck（可用）与真实 smoke。其它 shell/CI 改动仍属范围扩张，必须先提出合同调整。
 治理 T01 检查 schema 与旧调用兼容，不以尚未实现的 AC 报 PASS。
 
 ## 依赖、整合和两个确认点
@@ -80,3 +83,7 @@ shell 无计划变动；若确需改 shell/CI，属于范围扩张，先提出�
 数据库迁移：无。安装与部署：无。容器 declaration/lock 的输入升级需要同步路径与 checksum，
 仅迁移本仓 fixtures/reference；真实应用在自己的 Change 内执行。
 回滚：人工 revert 本唯一 PR 的 source bytes，运行相同回归；说明旧 validator 漂移盲点重现。
+
+## 已批准补充的治理停止点
+
+用户已确认 T04 补充 patch。T04 独立提交后停止，fresh turn 读取更新 spec/plan 后执行 T02；不再请求原合同启动确认。

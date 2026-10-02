@@ -132,6 +132,21 @@ architecture README 的 Dockerfile 约束，保留 AGENTS、skills、Controller�
 该步骤与 runtime 独立 commit 后停止。后续 fresh run 重读 AGENTS 和本合同再实施 runtime。
 用户于 2026-10-02 明确回复“确认”，该启动授权已持久化到 evidence/contract-start-authorization.json。T01 仅应用上述治理合同，commit 后停止；不在当前步骤实施 runtime。
 
+## 已批准补充：构建输入测试入口迁移
+
+2026-10-02 用户对完整 `root-migration-proposal.patch` 明确回复“确认”；原合同继续有效。
+授权 receipt 与批准 patch 保存于 evidence。只补充以下四路径：
+
+- `codex/tests/smoke.sh`：既有 reference validate 命令加 `--repo-root "$ROOT/architecture"`。
+- `codex/tests/test-architecture-install.sh`：既有模板 validate 命令加安装 share root 参数。
+- `architecture/templates/project-architecture.example.json`：新增 `dockerfiles` 路径。
+- `architecture/templates/Dockerfile.example`：synthetic target Node 24 catalog digest 示例。
+
+不修改 installer、CI workflow/context、test selection、root 规则、catalog/profile 或 lock schema。
+本补充独立受控应用并提交后停止，fresh turn 再继续 runtime。shell 静态检查本步运行；
+修改 shell 后真实运行 smoke，旧 runtime 尚不支持 root 参数造成的阶段性失败如实记录，
+不增加临时绕过，最终 T02/T03 必须修复并重跑全部硬门。
+
 ## 风险、回滚与非目标
 
 已有容器消费方会 fail closed，应用迁移须各自 Issue/PR，不能代改 SFM/NewEmaint。

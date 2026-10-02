@@ -115,3 +115,28 @@ triage 双维度 projector，直接 Gitea API 不允许，本次不扩 broker �
 schema 探针有效集为单 `Dockerfile` 与多路径数组；无效集为：空数组、空字符串、absolute、
 前置/中间 `..`、前置/中间 `.`、重复 slash、trailing slash、backslash、newline、NUL、
 重复路径、非字符串项、非数组。探针使用现有合法 project fixture，只替换 `dockerfiles` 输入。
+
+
+## T04 已批准补充的独立治理应用
+
+用户于 2026-10-02 对完整最小补充方案明确回复“确认”。批准 patch 与 SHA256 记录于
+`evidence/root-migration-proposal.json`（JSON 编码保留原 patch 字节）、`evidence/scope-amendment-authorization.json`。
+只应用两个现有 shell 测试 validate 命令各一行 root 参数，以及安装用示例 declaration 的
+路径与 synthetic Node 24 Dockerfile；没有修改 installer、CI context、test selection 或 runtime。
+
+| Check | Result | Evidence |
+|---|---|---|
+| `git apply --reverse --check` approved patch | PASS | 四路径与批准 patch 一致，没有移除既有 flag/assertion |
+| `bash -n codex/tests/smoke.sh codex/tests/test-architecture-install.sh` | PASS | exit 0 |
+| `shellcheck codex/tests/smoke.sh codex/tests/test-architecture-install.sh` | PASS | 已安装，exit 0 |
+| template schema / Dockerfile / declaration / catalog digest | PASS | Node 24 digest 精确一致；synthetic 注释存在 |
+| semantic document checker | PASS | changes=145 pass=2 gap=0 |
+| `bash codex/tests/smoke.sh` | FAIL | exit 2；安装测试 CLI 拒绝尚未实现的 `--repo-root` |
+| T02/T03 runtime、最终 smoke | NOT RUN | 本步独立 commit 后停止，后续 fresh turn 实施 |
+| PR required CI / installed live / deploy | NOT RUN | 不在此步骤执行 |
+
+真实 smoke 错误：`aisoft-architecture: error: unrecognized arguments: --repo-root`。
+临时安装 prefix 路径仅为 scratch 测试环境；不构成系统 installed/live 验收。
+完整本地日志位于 `/private/tmp/issue-288-contract-data/t04-smoke.log`，未把阶段性失败改成 PASS，
+未通过条件跳过、回退旧参数、修改 reader/root 合同或削弱测试修复。
+下一步 fresh turn 重读已更新合同，实施 T02/T03 后重新跑全部必要验证；既有合同启动授权持续有效。

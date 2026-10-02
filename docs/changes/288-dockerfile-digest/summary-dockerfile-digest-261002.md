@@ -95,3 +95,7 @@ override_reason: ''
 
 授权记录见 [receipt](evidence/contract-start-authorization.json)，冻结批准时 spec/plan SHA256。
 T01 只应用 schema 与 README 合同；运行时文件核验仍为 NOT RUN。治理独立 commit 后停止，fresh run 重读本合同继续 T02/T03，无需重复启动确认。
+
+## 最小范围补充授权
+
+用户于 2026-10-02 再次回复“确认”，仅批准两处 shell 测试的显式 root 参数与 synthetic 模板迁移；receipt 与完整 patch 在 evidence。T04 独立应用后停止，原合同批准持续有效，runtime/最终 PR/安装部署仍未执行。
