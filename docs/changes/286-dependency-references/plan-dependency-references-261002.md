@@ -16,7 +16,7 @@ depends_on: []
 status: approved
 branch: change/286-dependency-references
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # #286 · 实施计划
@@ -101,3 +101,16 @@ broker shell、bash -n/ShellCheck、document/digest、classification readback �
 #289 的 PR #325 最新读回 open、merged=false；merge 后串行整合尚未执行，T04 保持 pending。
 完整执行收据见 evidence/t04-resume-receipt.json。没有最终 PR 提交确认，不 push、不建 PR、
 不归档。#289 真正合并后，由本 owner 继续 fresh-fetch/rebase 及剩余闸门，不重复启动确认。
+
+
+## 人类授权的提前准备例外与最新 T04 收据
+
+用户对“提前将未发布 change/286-dependency-references rebase 到 65268ee5，仅做独立验证，
+最终组合验收仍等 #289 合并”的 exact 请求回复“按你的建议继续”。仅覆盖提前本地整合的
+准备顺序；保留 #289 实际 merge 后最终组合验收、完整 smoke 硬门和最终 PR 人工确认。
+本轮无冲突 rebase、6 个 patch 不变；1012 runtime 与 20 依赖测试 PASS。
+
+65268ee5 基线新增的 #308 installed-drift fixture 在本票未合并分支失败：8 类安装字节
+检查 PASS，但 source/main 差异使 aggregate exit 1，而正常 fixture 仍期待 0。
+完整 smoke FAIL，未改上游检查或绕过。PR325 仍未 merge；T04 pending。
+真实结果与直接授权见 evidence/t04-human-authorized-rebase-receipt.json。

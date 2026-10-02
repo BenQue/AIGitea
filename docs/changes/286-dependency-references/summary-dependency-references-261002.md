@@ -29,7 +29,7 @@ status: approved
 branch: change/286-dependency-references
 pr_url:
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 ## 问题/需求总结
@@ -49,7 +49,8 @@ updated: 2026-10-02
 
 G01（T01）已独立应用治理合同并停止；本 fresh run 已重读合同并完成 T02、T03 的 source
 实现与本地测试。原候选 T01/T02/T03 顺延为 T02/T03/T04，切片与顺序不变，无需重复启动确认。
-T04 的完整 smoke 已在 LC_ALL=C 下通过；#289 后集成门仍未完成，没有最终 PR 提交确认。
+此前 #320 基线完整 smoke 在 LC_ALL=C 下通过。本轮经直接授权提前整合 65268ee5，
+1012 runtime tests PASS；新完整 smoke 止于 #308 漂移 fixture FAIL。#289 后最终集成仍未完成。
 
 ## 集成顺序（非产品依赖）
 
@@ -62,7 +63,7 @@ T04 的完整 smoke 已在 LC_ALL=C 下通过；#289 后集成门仍未完成，
 - 源合同与 runtime 仅涉及 dependency schema/resolver、broker bounded read、
   Controller/routine 依赖闸门、展示与测试，详见映射 spec/plan。
 - 初始基线 5c2cd726c9aeaee9d17541d8feb049e33881bbac；当前整合基线
-  11c0410d3878d5449fa61796f174ba3d2dd5e59c（#320 已合并）；隔离 worktree
+  65268ee5f1e622c486fd9e354dd35e20a2900f91（本轮提前整合）；隔离 worktree
   /private/tmp/issue-286-dependency-references，本 session
   01a0fc7c-1670-75b2-a61b-f47e62fc856c 已 claim，last_push_head=null。
 - #289 负责 required_docs/documents 与终态数据源，本票不改该算法，不写其 worktree；
@@ -74,9 +75,10 @@ T04 的完整 smoke 已在 LC_ALL=C 下通过；#289 后集成门仍未完成，
 改动前合成复现 PASS；contract/Controller 基线 67 tests PASS；初稿文档检查 145 changes、gap=0。
 完整命令与阶段结果在 verification。G01 的文档/真实 approved 合同 loader 与分类读回 PASS；
 完整 smoke FAIL（未修改的 registry-preflight 停服负向断言两次失败），独立全量 runtime 基线 978 tests PASS。
-本 fresh run 的 AC-1–AC-6 source/local fixture 已通过，最终全量 runtime 998 tests PASS。
+本 fresh run 的 AC-1–AC-6 source/local fixture 已通过；前轮 998 tests PASS，本轮 1012 tests PASS。
 双轴审查发现的 3 项缺口已修复并复核；文档、digest、分类读回、broker shell 与 ShellCheck PASS。
-本轮完整 smoke 在 LC_ALL=C 下 PASS，含 998 runtime tests；原 C.UTF-8/Bash 3.2 失败保留。
+前轮 #320 基线完整 smoke 在 LC_ALL=C 下 PASS；本轮 65268ee5 基线完整 smoke FAIL（#308 fixture）。
+原 C.UTF-8/Bash 3.2 失败保留；不得将历史 PASS 外推至当前组合。
 AC-7 最终整合仍 PARTIAL：#289 后整合尚未完成。PR CI、installed/live 与部署 NOT RUN。
 
 ## AI 判级
@@ -114,24 +116,21 @@ qualified dependency 扩展数据格式、broker 权限合同、Controller 与 r
 
 ## 当前交接
 
-已无冲突整合 origin/main 的 #320；当前 base 为
-11c0410d3878d5449fa61796f174ba3d2dd5e59c，完整 smoke 测试 source head 为
-12dd967eb60253d7033c2c8ccb0c382b499bf1c6。本地 rebase 的前后 commit 映射与环境诊断收据
-见 evidence/t04-resume-receipt.json。未 push，last_push_head=null。
+用户对提前本地 rebase 的 exact 请求直接回复“按你的建议继续”。本 owner 在未发布、干净
+分支无冲突 rebase 到 65268ee5f1e622c486fd9e354dd35e20a2900f91；6 个提交 range-diff
+全部保持相同 patch。测试 source head 为 6fae040e92e1c8e8c494cd4260965f3ef7c3bb05。
+此前自动审批拒绝只作历史收据；这次由新的人类直接授权改变准备顺序，未绕过拒绝。
+授权、前后 SHA、日志 digest 与结果见 evidence/t04-human-authorized-rebase-receipt.json。
 
-完整 smoke PASS（LC_ALL=C，998 tests，97.111s）。原 registry 失败为 C.UTF-8 locale 下
-Bash 3.2 把变量后的中文标点误读为变量名；只设置单次测试命令的环境，未修改或绕过任何
-registry 断言，也未改用户全局 locale 或真实服务。前次失败保留，不改写历史收据。
+本轮 1012 runtime tests PASS（95.253s）、20 依赖测试 PASS、source-only PASS、148 changes
+文档 gap=0、真实 approved loader 与 platform/complex 分类独立读回 PASS。完整 smoke FAIL：
+#308 installed-drift fixture 共 23 tests / 16 failures；8 类临时 installed 字节检查均 PASS，
+但 aggregate 因本票受管 source 与 cached origin/main 不同而 GAP/exit 1，fixture 仍期待 0。
+本票未修改这些上游文件、未弱化检查、未以 source-only 替代完整 smoke。
+此前 #320 基线的完整 smoke PASS 不外推到新基线；真实 installed/live 仍 NOT RUN。
 
-当前唯一前置是 #289：PR #325 最新 exact readback 为 open、merged=false，head
-15b963a4f4dab52e4a161de0d8bab29ebc7d53c5。T04 保持 pending；待真实 merge 后，本 owner
-fresh-fetch/rebase，再验证两依赖闸门及文档/终态。不进入 AWAITING_PR_CONFIRMATION，未取得
-最终 PR 提交确认；不 push、不建 PR、不合并、不安装、不扩 ACL、不部署、不归档。
-
-
-### 最新调度核对
-
-缓存 origin/main 已推进到 65268ee5f1e622c486fd9e354dd35e20a2900f91（#308/#287）；
-本票已验证基线仍为 11c0410，不混淆。PR325 未合并；提前 owner-local rebase 被自动审批
-按 #289 顺序前置拒绝，命令未执行，未采取绕过。只读对照未发现 Loop/host-access/manifest
-核心重叠；新 smoke 组合仍 NOT RUN。T04 pending；#327 未新增为 hard 依赖。
+PR #325 最新 exact readback 为 open、merged=false，head
+15b963a4f4dab52e4a161de0d8bab29ebc7d53c5。T04 pending，剩余 #308 隔离 fixture 兼容有效
+未合并分支的验收缺口，以及 #289 真正 merge 后的 owner 串行整合/全套 gates。
+#327 未新增为 hard 前置。未进入 AWAITING_PR_CONFIRMATION；未 push、建 PR、merge、安装、
+扩 ACL、部署或归档，last_push_head=null。用户本次授权不代替最终 PR 提交确认。

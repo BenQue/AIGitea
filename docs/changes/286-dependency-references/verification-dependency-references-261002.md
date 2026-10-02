@@ -16,7 +16,7 @@ depends_on: []
 status: pending
 branch: change/286-dependency-references
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # #286 · 验证记录
@@ -241,3 +241,36 @@ cherry-pick、临时组合检出或修改 broker 绕过；HEAD 保持 2b132c7ea4
 65268ee5 或 #289 merge 后组合验证。组合 rebase/full gates NOT RUN，T04 pending。
 按既定顺序，待 #289 真正合并后再由 owner 整合；提前改写本票本地历史需要直接的人类
 授权改变执行顺序，调度消息本身不替代该授权。无 force/lease、push、PR、安装、凭据或部署动作。
+
+
+## 新的人类授权：提前整合 65268ee5 的独立验证
+
+用户直接回复“按你的建议继续”，绑定此前提前 local rebase 的 exact 请求。授权仅使未发布
+本票可先整合指定主线作独立验证；#289 merge 后最终组合验收仍保留。新请求已获自动审批
+执行许可，无冲突完成 6 个提交 rebase，range-diff 全部 =；不是绕过前次拒绝。
+
+| Check | Result | Evidence |
+|---|---|---|
+| 本地 rebase 与 patch 完整性 | PASS | base 65268ee5f1e622c486fd9e354dd35e20a2900f91；tested source 6fae040e92e1c8e8c494cd4260965f3ef7c3bb05；6 个 patch 相同 |
+| 完整 smoke（LC_ALL=C） | FAIL | exit 1；止于 #308 test-installed-drift.sh，23 tests / 16 failures / 37.400s；尚未到 smoke runtime discover |
+| 8 类安装副本字节检查 | PASS, fixture only | 失败 report 中 8 类 installer 均 PASS；并非真实 host 安装验收 |
+| #308 fixture 根因 | GAP | installed mode 把 source 与 cached main 差异加入 aggregate；有效未合并分支返回 GAP/exit 1，而 test_all_eight_real_installer_fixtures_pass 与 check() 默认期待 exit 0 |
+| 独立全量 runtime | PASS | 1012 tests，95.253s，exit 0；不混作完整 smoke PASS |
+| 双依赖闸门针对性测试 | PASS | 20 tests，1.403s，exit 0 |
+| source-only | PASS | 8 类 SOURCE 定义通过，main provenance GAP 保留；不替代完整 smoke 或真实 installed 验收 |
+| 文档 gate | PASS | 148 changes，gap=0；check-change-documents/check-change-pr-url |
+| approved loader / 分类 readback | PASS | 7 AC、4 真实映射文档、depends_on=[]；projected platform/complex |
+| owner 与未发布状态 | PASS | exact session/branch；last_push_head=null，干净 rebase |
+| #289 PR325 | BLOCKED_EXTERNAL | open，merged=false，head 15b963a4f4dab52e4a161de0d8bab29ebc7d53c5；merge_commit_sha=null |
+| #289 后最终组合 | NOT RUN | 真实 merge 未发生 |
+| push/PR/CI/真实 installed/live/deployment | NOT RUN | 无对应操作或最终 PR 提交确认 |
+
+本票的 smoke.sh、check-installed-drift.sh/.py、test-installed-drift.sh 与其 fixture 相对
+65268ee5 均未修改；checksum 保存于 receipt。本轮未修改 #308 检查算法/fixture，未
+篡改 cached main、未绕过或删除断言。缓存 main 由其它会话推进至 #319 merge 70baa358，
+本票仍绑定获授权 exact base 65268ee5，不以缓存 ref 的推进宣称本票已整合 #319。
+
+所有命令、授权绑定、前后 commit 映射、日志 SHA-256、最小错误 report 投影与剩余门见
+[evidence/t04-human-authorized-rebase-receipt.json](evidence/t04-human-authorized-rebase-receipt.json)。
+T04 保持 pending：需 #308 fixture 对有效未合并分支的验收缺口被受控解决，并在 #289 真实
+merge 后由本 owner 最终整合/验证。当前不能进入最终 PR 确认或声明 AC-7 全部 PASS。
