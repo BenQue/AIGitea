@@ -21,7 +21,7 @@ updated: 2026-10-02
 
 ## 当前阶段
 
-基线阶段（2026-10-02）：triage 与完整合同草稿准备完成，当时尚未 approved、尚未实现。基线观察的 PASS 不表示修复后验收；最终修复后 AC-1～AC-7 的执行结果见下表与 T03 收口记录。T01/T02/T03 已完成，当前仅待最终 PR 提交确认，未 push/PR。
+基线阶段（2026-10-02）：triage 与完整合同草稿准备完成，当时尚未 approved、尚未实现。基线观察的 PASS 不表示修复后验收；最终修复后 AC-1～AC-7 的执行结果见下表与 T03 收口记录。T01/T02/T03 已完成，用户已确认最终 PR 提交；提交前 snapshot 尚未 push/PR。
 
 ## 可核对基线
 
@@ -60,10 +60,11 @@ fixture 的 git remote 只写本地 metadata 供项目绑定校验，没有访�
 | AC-1～AC-7 修复后 | PASS：见 T03 收口映射 |
 | targeted / 全量 runtime | PASS：14 / 992；完整 smoke 中另运行 992 项 |
 | bash -n / ShellCheck / smoke | PASS：受影响三脚本；完整 smoke 以 LC_ALL=C 在受控 host 执行 |
-| PR CI | NOT RUN |
+| PR CI | NOT RUN：本提交前 snapshot；创建 PR 后按最终 exact head 另行 broker 读回 |
 | installed / live runtime / deployment | NOT RUN；本次无授权 |
 | 用户合同启动确认 | PASS：本聊天明确回复“确认”；摘要记录见 evidence/contract-approval.json |
-| 最终 PR 提交确认 / 人工 merge | NOT RUN |
+| 最终 PR 提交确认 | PASS：用户“确认提交”，exact #289/branch/manual；evidence/pr-submission-confirmation.json |
+| 人工 merge | NOT RUN |
 
 ## 治理执行顺序
 
@@ -137,3 +138,11 @@ smoke 执行记录：第一次 ShellCheck probe 写法失败已修复；第二�
 最后提交仅更新本 Issue 的 summary/plan/verification 与证据，未修改已通过的 runtime、shell、fixture 或治理合同。最终 candidate SHA 与代码/测试相等性检查保存在本会话私有 `/private/tmp/aisoft-289-state/issues/289.json`；该文件是交互会话本地交接状态，不声称执行过 installed/VM Controller。最终文档与 diff 闸门在该提交后另行读回。
 
 最终 PR 提交仍待绑定 Issue #289、change/289-required-docs-source、manual 的用户确认。确认后才由 canonical broker push 并创建唯一 PR，required CI 对最终 head 执行；CI 全绿后停 READY_FOR_REVIEW 等待人工合并。无 merge、安装或部署授权。canonical triage 标签 GAP 保持独立治理范围，未扩 #289。
+
+## 最终提交授权与 owner rebase
+
+用户明确回复“确认提交”，授权绑定 Issue #289、change/289-required-docs-source、manual；允许合同内 PR CI 修复，未授权合并、安装或部署。持久化本会话 confirm-pr → CONFIRMED，证据见 evidence/pr-submission-confirmation.json。
+
+fresh canonical broker fetch 发现 main 已合入 #320，推进到 11c0410d3878d5449fa61796f174ba3d2dd5e59c。仅本 owner 对自己的 worktree rebase，无冲突，range-diff 六条 commit 全部相等；重新读取更新治理规则后，固定 9b89f0e617645fa6607b885b4ef9ecf88e1e81b3 完整 smoke → exit=0，992 tests PASS（98.165s），static checks PASS。onboarding PASS，main direct/force push 禁止，required context 精确为 CI / verify (pull_request)，classification projected。见 evidence/rebase-validation.json。
+
+本追加提交仅记录上述授权/验证并更新本 Issue 文档；首次 broker push 前 fresh 核对 owner、branch、clean tree、diff 与文档审计、已测试代码树相等，再登记本次 exact SHA 并比对 pushed_head。PR 创建后严格执行 summary-only pr_url/status backfill，再验证并使用其 fresh SHA 核对第二次 push；最终 required CI 绑定 PR 最终 head，绿后停 READY_FOR_REVIEW。
