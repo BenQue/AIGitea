@@ -15,11 +15,28 @@ risk_flags:
   - security
   - platform-governance
 depends_on: []
-status: pending
+status: verified
 branch: change/317-migration-rollback-guard
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 ---
+
+## 当前本地结项（2026-10-03）
+
+T01–T05 本地工作全部完成。最新组合 base `16beee09aefe89b5bc80a31544c59d456190ea32` / source `ed37445c9986fbff2aaac747ad41457da2a622ef`
+在默认 `C.UTF-8`、native Bash 3.2 下执行 `bash codex/tests/smoke.sh`，真实 exit=0：
+1057 runtime tests、197 release tests、23 installed-drift 临时 fixture，registry 步骤 PASS。
+26 boundary regression 已包含在最新全量 runtime 中；Standards 0硬违反/0 heuristic，Spec 0 findings。
+
+当前 AC-01–13 为 source/local PASS（AC-10 仅 consumer 文档）；验证回执
+`evidence/t05-final-validation.json`、完整日志和 `evidence/review-final-main289.md` 保留 exact SHA。
+上游 #288/#319/#289 已人工合并并整合，未应用本票的未批准 fixture 提案。旧 FAIL、
+sandbox 路径阻塞和 C-only PASS 记录保持原结论；下方旧阶段的 pending/阻塞均是当时历史状态。
+
+当前 local handoff 为 `AWAITING_PR_CONFIRMATION`，不是 Controller 状态投影。唯一 branch
+`change/317-migration-rollback-guard` 未 push/未创建 PR，manual 最终提交确认尚未取得。
+PR CI、真实 Docker/DB、installed/live 与 NewEMaint #229 消费验收仍 `NOT RUN`；#229 pin 未改。
+最终 PR 草稿与确认边界见 `evidence/final-pr-candidate.md`。
 
 # 当前验证与证据边界
 
@@ -61,9 +78,12 @@ updated: 2026-10-02
 | AC-05 | PASS | #305 同 identity completed no-op 和审计 receipt.release_id 保持 |
 | AC-06 | PASS | A/B 共用 A 而 C 已迁移时拒绝回退；noop 不伪造 DB cursor |
 | AC-07 | PASS | v1/v2 合法读升级 untracked、不写原 bytes；v3 非法 generation/identity/fields 拒绝；旧 schema 未改 |
-| AC-08 | GAP | 四类入口及固定release evidence gate PASS；完整smoke在新#308 fixture FAIL，需单测试文件范围修订 |
+| AC-08 | PASS | 四类入口、固定 evidence gate 与最新默认 UTF-8 完整 smoke 1057 tests；t05-final-validation.json |
 | AC-09 | PASS | CLI failed exit=2、稳定安全 code/message；没有 override/bypass 参数、无路径/fixture secret/Docker error 回显 |
 | AC-10 | PASS (local docs) | README、versioned contract、过期合成 example 和 merged-pin 边界；应用采用/现场验收 NOT RUN |
+| AC-11 | PASS | exact 8 existing pins / 5 additions；历史 baseline/constants/evidence 保持；最新 checker receipt |
+| AC-12 | PASS | 26 boundary tests；disk/index bytes/mode/unknown/missing/rename/symlink/staged-only 拒绝 |
+| AC-13 | PASS (source/local) | latest checker 197 release、完整 UTF-8 smoke、两轴0 findings；CI/real-E2E/installed/live NOT RUN |
 
 190-test为T02历史source/fixture验收；当前T05为197-test，完整smoke与未完成项以下方最新回执为准。
 
@@ -72,7 +92,7 @@ updated: 2026-10-02
 
 2026-09-21 平台先行方向保留；本票首次具体的 profile/evidence/state/security 合同已获2026-10-02 用户直接批准；授权证据见 evidence/contract-start-approval.json。
 依赖：#317 depends_on=[]；NewEMaint #229 被本票阻塞。
-runtime/schema/test 和本地 consumer 文档已实施。最终候选还须完整 smoke/审查读回、最终 PR 提交确认与人工 merge；不能提供新的 merged SHA 或宣称解除 #229 前置。
+runtime/schema/test 和本地 consumer 文档已实施。完整 smoke/审查已本地通过；最终候选仍须最终 PR 提交确认与人工 merge；不能提供新的 merged SHA 或宣称解除 #229 前置。
 
 ## T01 独立治理合同步骤（2026-10-02）
 
@@ -195,7 +215,7 @@ local NEEDS_HUMAN_DECISION，未写Controller状态，未请求最终manual PR�
 #327 broker已发布branch更新规则由独立owner治理；本票不改broker、不force、不发布branch。
 未来提交前必须重新核验fresh main、claim、合法publication路径与exact验证head。
 
-### 同根因上游去重与当前外部阻塞
+### 同根因上游去重与外部阻塞（历史）
 
 调度提供#288正在独立治理同一fixture根因；已只读核对其patch真实SHA及边界，见
 `evidence/t05-upstream-fixture-reference.json`。当前优先等待独立结果合并main，再由本票

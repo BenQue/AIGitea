@@ -18,8 +18,25 @@ depends_on: []
 status: approved
 branch: change/317-migration-rollback-guard
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 ---
+
+## 当前本地结项（2026-10-03）
+
+T01–T05 本地工作全部完成。最新组合 base `16beee09aefe89b5bc80a31544c59d456190ea32` / source `ed37445c9986fbff2aaac747ad41457da2a622ef`
+在默认 `C.UTF-8`、native Bash 3.2 下执行 `bash codex/tests/smoke.sh`，真实 exit=0：
+1057 runtime tests、197 release tests、23 installed-drift 临时 fixture，registry 步骤 PASS。
+26 boundary regression 已包含在最新全量 runtime 中；Standards 0硬违反/0 heuristic，Spec 0 findings。
+
+当前 AC-01–13 为 source/local PASS（AC-10 仅 consumer 文档）；验证回执
+`evidence/t05-final-validation.json`、完整日志和 `evidence/review-final-main289.md` 保留 exact SHA。
+上游 #288/#319/#289 已人工合并并整合，未应用本票的未批准 fixture 提案。旧 FAIL、
+sandbox 路径阻塞和 C-only PASS 记录保持原结论；下方旧阶段的 pending/阻塞均是当时历史状态。
+
+当前 local handoff 为 `AWAITING_PR_CONFIRMATION`，不是 Controller 状态投影。唯一 branch
+`change/317-migration-rollback-guard` 未 push/未创建 PR，manual 最终提交确认尚未取得。
+PR CI、真实 Docker/DB、installed/live 与 NewEMaint #229 消费验收仍 `NOT RUN`；#229 pin 未改。
+最终 PR 草稿与确认边界见 `evidence/final-pr-candidate.md`。
 
 # 实施 Ticket graph
 
@@ -29,9 +46,9 @@ updated: 2026-10-02
 |---|---|---|---|
 | T01 | 发布并可读回独立 release 兼容治理合同，完成后停止等待 fresh run | - | completed |
 | T02 | public phased lifecycle 实现 v3 DB position 与 exact compatibility gate，从状态记录到 activate/rollback/错误输出可验收 | T01 + fresh run | completed |
-| T03 | legacy deploy 与所有恢复路径统一 gate，consumer 说明、边界回归与最终候选 | T02, T05 | pending |
+| T03 | legacy deploy 与所有恢复路径统一 gate，consumer 说明、边界回归与最终候选 | T02, T05 | completed |
 | T04 | 应用已批准的精确 source-evidence 治理修订，记录授权并停止 | T02 | completed |
-| T05 | fresh run 实施 bounded checker/addition pins 与相应拒绝回归，完整验收及审查 | T04 + fresh run | pending |
+| T05 | fresh run 实施 bounded checker/addition pins 与相应拒绝回归，完整验收及审查 | T04 + fresh run | completed |
 
 不新建子 Issue；所有 ticket 保持 #317。T01 合同批准前不应用。T01 完成后停止当前运行；后续 fresh run 沿用该批准，不增加第三个产品确认点。
 
@@ -101,7 +118,7 @@ Standards 和 Spec 两轴发现3项文档表达问题，均修复后由原 revie
 纯合同和文档检查通过；type/complexity/lifecycle 实际读回正确。运行在这里停止，不实施 T02/T03。
 下一 fresh run 沿用当前完整批准，重读治理合同和 claim 后从 T02 开始；不得把本次批准作为最终PR提交或merge/deploy许可。
 
-## Fresh run 实施结果
+## Fresh run 实施结果（历史）
 
 T02 先通过 public ReleaseRuntime + FakeDocker 验证 v3 position/no-op、phased gate 与 strict evidence；
 T03 本地实现已统一 legacy deploy 和显式回退失败恢复，但完整 smoke 的固定 source 闸门阻塞最终验收；保留 #305、host/action、artifact/image、transport、
@@ -122,7 +139,7 @@ runtime/schema、历史 evidence 原 bytes 保持；验证回执与停止点见 
 下一 fresh run 沿用该批准，先重新读共享 #320/main 合同和 owner claim，再从 T05 开始。
 T03 只有在 T05 完整 hard gates 实际通过后才能 completed；唯一最终 PR 仍需 exact manual确认。
 
-## T05 当前实施与停止交接
+## T05 历史实施与停止交接
 
 已实施精确checker/test两文件并提交本地31e4f8592e178583c3b3be771e8d5c2f03173bd6；
 26 targeted tests、完整checker的197 release tests、historical regression与两轴review PASS。
@@ -130,7 +147,7 @@ T03 只有在 T05 完整 hard gates 实际通过后才能 completed；唯一最�
 T05/T03保持pending；单fixture文件提案未批准、未应用，草案24-test PASS仅为局部试验。
 下一步取决于精确范围修订或独立上游修复，不重复已有两文件启动批准、不提前请求最终PR。
 
-### 同根因上游去重与当前外部阻塞
+### 同根因上游去重与外部阻塞（历史）
 
 调度提供#288正在独立治理同一fixture根因；已只读核对其patch真实SHA及边界，见
 `evidence/t05-upstream-fixture-reference.json`。当前优先等待独立结果合并main，再由本票

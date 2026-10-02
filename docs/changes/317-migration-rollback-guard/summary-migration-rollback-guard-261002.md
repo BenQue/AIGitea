@@ -30,8 +30,25 @@ status: approved
 branch: change/317-migration-rollback-guard
 pr_url:
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 ---
+
+## 当前本地结项（2026-10-03）
+
+T01–T05 本地工作全部完成。最新组合 base `16beee09aefe89b5bc80a31544c59d456190ea32` / source `ed37445c9986fbff2aaac747ad41457da2a622ef`
+在默认 `C.UTF-8`、native Bash 3.2 下执行 `bash codex/tests/smoke.sh`，真实 exit=0：
+1057 runtime tests、197 release tests、23 installed-drift 临时 fixture，registry 步骤 PASS。
+26 boundary regression 已包含在最新全量 runtime 中；Standards 0硬违反/0 heuristic，Spec 0 findings。
+
+当前 AC-01–13 为 source/local PASS（AC-10 仅 consumer 文档）；验证回执
+`evidence/t05-final-validation.json`、完整日志和 `evidence/review-final-main289.md` 保留 exact SHA。
+上游 #288/#319/#289 已人工合并并整合，未应用本票的未批准 fixture 提案。旧 FAIL、
+sandbox 路径阻塞和 C-only PASS 记录保持原结论；下方旧阶段的 pending/阻塞均是当时历史状态。
+
+当前 local handoff 为 `AWAITING_PR_CONFIRMATION`，不是 Controller 状态投影。唯一 branch
+`change/317-migration-rollback-guard` 未 push/未创建 PR，manual 最终提交确认尚未取得。
+PR CI、真实 Docker/DB、installed/live 与 NewEMaint #229 消费验收仍 `NOT RUN`；#229 pin 未改。
+最终 PR 草稿与确认边界见 `evidence/final-pr-candidate.md`。
 
 ## 问题/需求总结
 
@@ -134,7 +151,7 @@ T04只应用合同/记录并停止；checker/tests/pins尚未实施，原smoke F
 原 `governance-amendment-proposal.md` 和 `handoff-needs-human-decision.json` 保留为批准前历史。
 本次current交接为 `evidence/handoff-t04-fresh-run.json`，不投影自动Controller状态。
 
-## T05 当前进度与新阻塞
+## T05 历史进度与新阻塞
 
 Fresh run整合main `65268ee5f1e622c486fd9e354dd35e20a2900f91`，本会话owner-only对未发布
 branch做无冲突本地rebase，旧approval/evidence原bytes保留，commit映射见t05-fresh-read.json。
@@ -148,7 +165,7 @@ T05精确checker/test实现head `31e4f8592e178583c3b3be771e8d5c2f03173bd6`；26 
 独立candidate局部24-test PASS不替代full smoke。本次local NEEDS_HUMAN_DECISION是交接记录，
 不是Controller状态投影。未push/PR/安装/部署，NewEMaint #229仍无可采用的新merged SHA。
 
-### 同根因上游去重与当前外部阻塞
+### 同根因上游去重与外部阻塞（历史）
 
 调度提供#288正在独立治理同一fixture根因；已只读核对其patch真实SHA及边界，见
 `evidence/t05-upstream-fixture-reference.json`。当前优先等待独立结果合并main，再由本票
