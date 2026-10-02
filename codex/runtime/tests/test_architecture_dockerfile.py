@@ -63,14 +63,54 @@ class DockerfileInputTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(json.loads(result.stdout)["valid"])
 
-    def library(self, *, root=None) -> dict:
+    def library(self, *, root=None, schema_version="2.0") -> dict:
         return build_lock(
             load_json(ARCH / "catalog.json"), load_json(ARCH / "schemas/catalog-v1.schema.json"),
             load_json(ARCH / f"profiles/{self.project['profile_id']}.json"),
             load_json(ARCH / "schemas/profile-v1.schema.json"), self.project,
             load_json(ARCH / "schemas/project-architecture-v1.schema.json"),
-            date(2026, 9, 5), repo_root=root,
+            date(2026, 9, 5), repo_root=root, schema_version=schema_version,
         )
+
+    def test_both_lock_versions_recheck_dockerfile_source(self) -> None:
+        for version in ("1.0", "2.0"):
+            with self.subTest(version=version):
+                self.dockerfile.write_text(f"FROM {NODE22}\n")
+                self.lock_path.write_bytes(canonical_bytes(self.library(root=self.repo, schema_version=version)))
+                result = self.cli("validate", "--lock", str(self.lock_path))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                baseline = self.lock_path.read_bytes()
+                for content, code in ((f"FROM {NODE24}\n", "DOCKERFILE_DIGEST_MISMATCH"),
+                                      ("FROM node:22\n", "DOCKERFILE_DIGEST_REQUIRED"),
+                                      (None, "DOCKERFILE_READ_FAILED")):
+                    if content is None:
+                        self.dockerfile.unlink()
+                    else:
+                        self.dockerfile.write_text(content)
+                    self.error(code, "validate", "--lock", str(self.lock_path))
+                    self.assertEqual(self.lock_path.read_bytes(), baseline)
+                with self.assertRaises(ArchitectureError) as caught:
+                    self.library(schema_version=version)
+                self.assertEqual(caught.exception.diagnostic.code, "DOCKERFILE_ROOT_REQUIRED")
+
+    def test_profile_prose_stability_cannot_hide_dockerfile_drift(self) -> None:
+        profile = load_json(ARCH / f"profiles/{self.project['profile_id']}.json")
+        profile["compatibility_rules"][0] += " Documentation wording only."
+        profile_dir = self.repo / "profiles"
+        profile_dir.mkdir()
+        (profile_dir / f"{self.project['profile_id']}.json").write_bytes(canonical_bytes(profile))
+        for version in ("1.0", "2.0"):
+            with self.subTest(version=version):
+                self.dockerfile.write_text(f"FROM {NODE22}\n")
+                self.lock_path.write_bytes(canonical_bytes(self.library(root=self.repo, schema_version=version)))
+                args = ("--lock", str(self.lock_path), "--profiles-dir", str(profile_dir))
+                if version == "2.0":
+                    result = self.cli("validate", *args)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                else:
+                    self.error("LOCK_DRIFT", "validate", *args)
+                self.dockerfile.write_text(f"FROM {NODE24}\n")
+                self.error("DOCKERFILE_DIGEST_MISMATCH", "validate", *args)
 
     def test_four_original_false_greens_at_all_three_cli_seams(self) -> None:
         self.valid()
