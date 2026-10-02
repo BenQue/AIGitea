@@ -10,7 +10,7 @@ confidence: high
 risk_flags:
   - ci-change
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/319-registry-utf8-exit
 created: 2026-10-02
 updated: 2026-10-02

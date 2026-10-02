@@ -34,7 +34,9 @@ updated: 2026-10-02
 | 三组 UTF-8：healthy 与停止后直接 probe（改前） | 健康 0；停止 0（错误） | [baseline-macos-utf8.json](evidence/baseline-macos-utf8.json)，stderr unbound variable |
 | Linux C.UTF-8 同 fixture（改前） | PASS | [baseline-linux-utf8.txt](evidence/baseline-linux-utf8.txt) |
 | main protection / Issue comments / open PR 只读 | PASS | main 禁 push/force，required CI 为 CI / verify (pull_request)，#319 open/无评论/无开放 PR |
-| 判级投影计划（无 --apply） | BLOCKED_APPROVAL_REVIEW | 自动审批认为可能写 live 标签；命令未执行，等待启动确认明确授权投影 |
+| 判级投影计划（无 --apply） | BLOCKED_APPROVAL_REVIEW | 历史记录：自动审批认为可能写 live 标签，原命令未执行；用户本 turn 明确确认后已解决 |
+| 用户合同批准、classification --apply 319 / --verify 319 | PASS | mapped summary 与 live labels 一致，result=projected，bugfix/complex |
+| broker approved 生命周期读回 | PASS | after=[approved,complexity/complex,type/bugfix] |
 | 改后 matrix / bash -n / ShellCheck / 完整 smoke | NOT RUN | 尚未批准实施 |
 | PR CI / installed / live / 下游 / 部署 / 人 merge | NOT RUN | fixture/source 不推断这些层次 |
 
@@ -53,4 +55,10 @@ Bash 3.2 最小 nounset 实验中，原 EXIT trap 与保存 $? 再 exit 的 trap
 
 ## 遗留风险与未完成项
 
-等待合同确认；批准合同步骤独立停止，fresh run 才实施。Matt live triage 投影 typed operation 缺口为 GAP，不扩大 #319 到 broker 治理或绕过访问合同。无阻塞 Issue 依赖。
+用户已确认合同及 broker 判级/流程投影；独立合同批准步骤本 turn 完成并停止，fresh run 才实施，无需重复启动确认。Matt live triage 投影 typed operation 缺口为 GAP，不扩大 #319 到 broker 治理或绕过访问合同。无阻塞 Issue 依赖。
+
+## 合同批准步骤证据
+
+本会话用户于 2026-10-02 回复“确认”，接受已展示的 exact #319 / change/319-registry-utf8-exit / manual 合同及 broker 判级/流程投影。本次只更新合同/批准证据，CI/runtime、AC、权限、安装、服务、remote branch 和 PR 未改变。
+
+判级工具及两个依赖以逐字节相同的临时扁平副本运行，既有 fallback 选择 /usr/local/libexec/aisoft/host-access-broker；未修改平台工具。真实投影与独立读回见 [contract-approval.json](evidence/contract-approval.json)。live Matt triage typed operation 缺口仍为 GAP。

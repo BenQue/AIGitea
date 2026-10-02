@@ -22,7 +22,7 @@ documents:
   plan: plan-registry-utf8-exit-261002.md
   verification: verification-registry-utf8-exit-261002.md
 depends_on: []
-status: spec-drafting
+status: approved
 branch: change/319-registry-utf8-exit
 pr_url:
 created: 2026-10-02
@@ -83,6 +83,10 @@ override_reason: ''
 
 - session: `01a0fc7b-adfe-72e3-ae7a-cf96038acc23`；worktree: `/private/tmp/issue-319-registry-utf8-exit`，已 claim。
 - Policy: `manual`；depends_on: []（#318 是发现来源，非阻塞依赖）。
-- `AWAITING_CONTRACT_CONFIRMATION`：未批准、未实施、未 push/PR/安装/部署。
+- 合同/启动已批准：本会话用户于 2026-10-02 回复“确认”，绑定 #319 / change/319-registry-utf8-exit / manual，并授权 broker 判级/流程投影；未实施、未 push/PR/安装/部署。
 - 本轮只准备合同/基线并停止；获人确认后只记录 approved 合同并停止；下一 fresh run 重读后实施。
 - Matt triage 建议 `bug / ready-for-agent`。现有 broker 表没有 triage 投影 typed operation；extension.set 仅允许 area/、priority/。live triage 标签为 GAP，仅评论记录建议，不绕过 broker。
+
+## 独立合同批准记录
+
+本 turn 只记录已批准的既有 spec/plan，并投影 type/complexity 与 approved 生命周期；不得修改 CI/runtime。完成后停止，下一 fresh turn 重新读取批准合同再执行 T01/T02，不重复请求启动批准。最终 PR 提交仍待单独确认。

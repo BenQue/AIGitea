@@ -10,7 +10,7 @@ confidence: high
 risk_flags:
   - ci-change
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/319-registry-utf8-exit
 created: 2026-10-02
 updated: 2026-10-02
@@ -65,4 +65,4 @@ CI 强制 complex/manual。局部原子修复 commit 的反向变更经独立 PR
 
 ## 未决问题
 
-实现方向无未决；等待合同/启动确认。live Matt triage 投影因缺少 typed operation 为 GAP，不夹带 broker 治理实现或直连 API。
+实现方向无未决；合同/启动已获本会话用户“确认”。live Matt triage 投影因缺少 typed operation 为 GAP，不夹带 broker 治理实现或直连 API。
