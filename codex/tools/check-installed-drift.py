@@ -7,6 +7,7 @@ green. Counts are diagnostic quantities, never a substitute for expected-file by
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 import fnmatch
 import hashlib
@@ -28,6 +29,14 @@ INSTALLER_PINS = {
     "sync/install.sh": "153f36ef3396a053a4e4cbb8d6022a9f163b75b6f4c25498ba27ae3217d30f10",
     "skill-for-claude/install.sh": "0c1a6692b983fada75a11de250a269f129371880cf41714611c1d59c1a541681",
 }
+# The versioned snapshot manifest is immutable. Validate content declarations
+# below as well; changing either contract requires explicit mapping maintenance.
+MATT_MANIFEST_PIN = "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da"
+CONTROL_LINE_RE = re.compile(
+    r"^(?:#{1,6}\s+|\d+[.)]\s+)"
+    r"|\b(?:commit|push|merge|rebase|reset|force-push|deploy|permission|"
+    r"network|curl|https?://|tool|script|shell|command|execute|tracker|"
+    r"issue|ticket|label)\b", re.I)
 
 
 class InspectionError(Exception):
@@ -36,10 +45,39 @@ class InspectionError(Exception):
         super().__init__(f"{reason}: {path}")
 
 
+@contextmanager
+def parent_descriptor(path: Path, boundary: Path):
+    """Anchor each parent lookup to a directory fd; never follow parent links."""
+    if not path.is_relative_to(boundary):
+        raise InspectionError("outside-declared-root", path)
+    fd = None
+    try:
+        flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+        fd = os.open(boundary, flags)
+        for part in path.relative_to(boundary).parts[:-1]:
+            next_fd = os.open(part, flags, dir_fd=fd)
+            os.close(fd)
+            fd = next_fd
+        yield fd
+    except FileNotFoundError:
+        raise InspectionError("missing", path) from None
+    except OSError:
+        raise InspectionError("unreadable-or-linked-parent", path) from None
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
 def checked_stat(path: Path, boundary: Path, *, link=False):
     """Do not follow undeclared parent links or read special files/Secret targets."""
     if not path.is_relative_to(boundary):
         raise InspectionError("outside-declared-root", path)
+    try:
+        root_stat = boundary.lstat()
+    except OSError:
+        raise InspectionError("unreadable", path) from None
+    if not stat.S_ISDIR(root_stat.st_mode):
+        raise InspectionError("symlink-root" if stat.S_ISLNK(root_stat.st_mode) else "not-directory-root", path)
     current = boundary
     for part in path.relative_to(boundary).parts[:-1]:
         current /= part
@@ -54,7 +92,8 @@ def checked_stat(path: Path, boundary: Path, *, link=False):
         if not stat.S_ISDIR(st.st_mode):
             raise InspectionError("not-directory-parent", path)
     try:
-        st = path.lstat()
+        with parent_descriptor(path, boundary) as fd:
+            st = os.stat(path.name, dir_fd=fd, follow_symlinks=False) if path != boundary else os.fstat(fd)
     except FileNotFoundError:
         raise InspectionError("missing", path) from None
     except OSError:
@@ -72,7 +111,8 @@ def read_bytes(path: Path, boundary: Path) -> bytes:
         raise InspectionError("unreadable", path)
     try:
         # O_NONBLOCK prevents a concurrent replacement by a FIFO from blocking.
-        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with parent_descriptor(path, boundary) as parent_fd:
+            fd = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent_fd)
         with os.fdopen(fd, "rb") as stream:
             if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
                 raise InspectionError("not-regular", path)
@@ -89,6 +129,11 @@ def read_json(path: Path, boundary: Path):
         raise InspectionError("invalid-json", path) from None
 
 
+def read_link(path: Path, boundary: Path):
+    with parent_descriptor(path, boundary) as fd:
+        return os.readlink(path.name, dir_fd=fd)
+
+
 def directory_entries(path: Path, boundary: Path):
     st = checked_stat(path, boundary)
     if not stat.S_ISDIR(st.st_mode):
@@ -96,7 +141,12 @@ def directory_entries(path: Path, boundary: Path):
     if not st.st_mode & 0o444 or not st.st_mode & 0o111:
         raise InspectionError("unreadable", path)
     try:
-        return sorted(path.iterdir())
+        with parent_descriptor(path, boundary) as parent_fd:
+            fd = os.open(path.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent_fd) if path != boundary else os.dup(parent_fd)
+            try:
+                return sorted(path / name for name in os.listdir(fd))
+            finally:
+                os.close(fd)
     except OSError:
         raise InspectionError("unreadable", path) from None
 
@@ -142,7 +192,7 @@ class Metric:
             st = checked_stat(self.targets[0], self.boundary, link=True)
             if not stat.S_ISLNK(st.st_mode):
                 raise InspectionError("not-symlink", self.targets[0])
-            return os.readlink(self.targets[0])
+            return read_link(self.targets[0], self.boundary)
         if self.kind == "files":
             count = 0
             for p in self.targets:
@@ -260,6 +310,10 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
     version = re.search(r'^matt_version="(v[0-9.]+)"$', text, re.M).group(1)
     snapshot = "codex/vendor/mattpocock/" + version
     manifest = read_json(repo / snapshot / "manifest.json", repo)
+    if hashlib.sha256(read_bytes(repo / snapshot / "manifest.json", repo)).hexdigest() != MATT_MANIFEST_PIN:
+        raise InspectionError("matt-manifest-contract-differ", repo / snapshot / "manifest.json")
+    if hashlib.sha256(read_bytes(repo / snapshot / "LICENSE", repo)).hexdigest() != manifest.get("license_sha256"):
+        raise InspectionError("matt-license-hash-differ", repo / snapshot / "LICENSE")
     metadata_sources.add(repo / snapshot / "manifest.json")
     entries = manifest.get("skills")
     if manifest.get("tag") != version or not isinstance(entries, list) or len(entries) != manifest.get("skill_count"):
@@ -276,7 +330,19 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
         seen.add(name)
         if not isinstance(path, str) or not path.startswith("skills/") or not path.endswith("/SKILL.md") or ".." in Path(path).parts:
             raise InspectionError("invalid-matt-manifest", repo / snapshot / "manifest.json")
-        read_bytes(repo / snapshot / path, repo)
+        skill_file = repo / snapshot / path
+        content = read_bytes(skill_file, repo).decode("utf-8")
+        controls = "\n".join(line.strip() for line in content.splitlines() if CONTROL_LINE_RE.search(line))
+        digest = hashlib.sha256()
+        for p in sorted(tree_files(skill_file.parent, repo)):
+            relative = p.relative_to(skill_file.parent).as_posix().encode("utf-8")
+            data = read_bytes(p, repo)
+            digest.update(len(relative).to_bytes(4, "big"))
+            digest.update(relative)
+            digest.update(len(data).to_bytes(8, "big"))
+            digest.update(data)
+        if digest.hexdigest() != item.get("sha256") or hashlib.sha256(controls.encode("utf-8")).hexdigest() != item.get("control_sha256"):
+            raise InspectionError("matt-skill-hash-differ", skill_file)
         surfaces["install-skills"].links.append((skills / name, "../vendor/mattpocock/current/" + str(Path(path).parent), home))
     if {p.parent.name for p in (repo / snapshot / "skills").glob("**/SKILL.md")} != seen:
         raise InspectionError("matt-skill-set-mismatch", repo / snapshot / "manifest.json")
@@ -360,10 +426,13 @@ def validate_source(repo: Path, surfaces: list[Surface]):
 
 def source_identity(repo: Path, sources: set[Path]):
     # Only local read operations. Disable optional locks, fsmonitor and diff helpers.
+    git_env = {key: value for key, value in os.environ.items()
+               if not key.startswith("GIT_")}
+    git_env.update(GIT_TERMINAL_PROMPT="0", GIT_NO_LAZY_FETCH="1")
     def git(*args):
         p = subprocess.run(["git", "--no-optional-locks", "-c", "core.fsmonitor=false", "-c", "credential.helper=",
                             "-C", str(repo), *args], capture_output=True, text=True,
-                           env={**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_NO_LAZY_FETCH": "1"})
+                           env=git_env)
         return p.returncode, p.stdout.strip()
     result = {"checkout": str(repo), "head": None, "cached_origin_main": None,
               "managed_source_matches_cached_main": False,
@@ -377,19 +446,34 @@ def source_identity(repo: Path, sources: set[Path]):
             result["cached_origin_main"] = cached
         if result["head"] and result["cached_origin_main"]:
             paths = sorted(str(p.relative_to(repo)) for p in sources)
-            rc, tracked = git("ls-files", "--", *paths)
-            tracked_set = set(tracked.splitlines())
-            # Untracked new modules must not disappear from a cached-main comparison.
-            all_tracked = rc == 0 and set(paths) == tracked_set
-            # Include enumerated source trees, so a tracked module removed from
-            # the working tree cannot disappear from the comparison's path set.
-            scopes = {str(p.parent.relative_to(repo)) for p in sources
-                      if str(p.relative_to(repo)).startswith(("codex/runtime/aisoft_", "codex/agent/",
-                          "codex/skills/", "skill-for-codex/", "codex/vendor/", "architecture/",
-                          "docker-release/schema/", "docker-release/compatibility/", "sync/systemd/"))}
-            rc, _ = git("diff", "--quiet", "--no-ext-diff", "--no-textconv", cached, "--", *sorted(set(paths) | scopes))
-            result["managed_source_matches_cached_main"] = all_tracked and rc == 0
-    except OSError:
+            # Fixed tree roots also cover a wholly removed package/skill; deriving
+            # roots from surviving files would silently omit that deletion.
+            scopes = {"codex/runtime/" + name for name in ("aisoft_loop", "aisoft_host_access",
+                      "aisoft_gitea_governance", "aisoft_architecture", "aisoft_release")}
+            scopes.update({"codex/agent", "codex/systemd", "codex/skills", "skill-for-codex",
+                           "codex/vendor/mattpocock", "docker-release/schema",
+                           "docker-release/compatibility", "sync/systemd"})
+            scopes.update("architecture/" + name for name in ("profiles", "schemas", "templates", "decisions"))
+            # Read raw tree metadata and hash worktree bytes ourselves. git diff
+            # can run configured clean filters even with --no-ext-diff/textconv.
+            rc, tree = git("ls-tree", "-r", "-z", cached, "--", *sorted(set(paths) | scopes))
+            blobs = {}
+            for entry in tree.split("\0"):
+                if not entry:
+                    continue
+                metadata, relative = entry.split("\t", 1)
+                mode, kind, oid = metadata.split()
+                if kind != "blob" or mode not in {"100644", "100755"}:
+                    raise ValueError("non-regular source in cached tree")
+                blobs[relative] = oid
+            matches = rc == 0 and bool(blobs) and set(paths) <= set(blobs)
+            for relative, oid in blobs.items():
+                data = read_bytes(repo / relative, repo)
+                digest = hashlib.sha256() if len(oid) == 64 else hashlib.sha1()
+                digest.update(b"blob " + str(len(data)).encode("ascii") + b"\0" + data)
+                matches = matches and digest.hexdigest() == oid
+            result["managed_source_matches_cached_main"] = matches
+    except (OSError, InspectionError, ValueError):
         pass
     result["result"] = "PASS" if result["managed_source_matches_cached_main"] else "GAP"
     return result
@@ -412,7 +496,7 @@ def inspect_surface(surface: Surface, repo: Path):
             st = checked_stat(target, boundary, link=True)
             if not stat.S_ISLNK(st.st_mode):
                 gap("not-symlink", target)
-            elif os.readlink(target) != expected:
+            elif read_link(target, boundary) != expected:
                 gap("link-target-differ", target, expected=expected)
         except (InspectionError, OSError) as exc:
             gap(exc.reason if isinstance(exc, InspectionError) else "unreadable", target)

@@ -273,6 +273,65 @@ class InstalledDriftTests(unittest.TestCase):
         self.assertTrue(all(r["scope"] == "SOURCE" for r in report["installers"]))
         self.assertNotIn("INSTALLED", json.dumps(report))
 
+    def test_default_agent_symlink_root_is_gap(self):
+        (self.home / "agent").symlink_to(self.agent, target_is_directory=True)
+        args = self.args()
+        offset = args.index("--agent-dir")
+        del args[offset:offset + 2]
+        p = run(args)
+        self.assertEqual(p.returncode, 1, p.stderr)
+        row = self.row(json.loads(p.stdout), "install-vm")
+        self.assertTrue(any(g["reason"] == "symlink-root" for g in row["gaps"]))
+
+    def test_parent_replacement_cannot_read_private_target(self):
+        # Deterministic replacement between the preliminary stat and open.
+        # The checker is loaded but main is not invoked; only the read seam runs.
+        script = REPO / "codex/tools/check-installed-drift.py"
+        harness = r'''
+import os, pathlib, runpy, sys
+namespace = runpy.run_path(sys.argv[1], run_name="test_seam")
+root = pathlib.Path(sys.argv[2])
+target = root / "managed/file"
+original = namespace["read_bytes"].__globals__["checked_stat"]
+def swap(path, boundary, **kwargs):
+    result = original(path, boundary, **kwargs)
+    (root / "managed").rename(root / "old")
+    (root / "managed").symlink_to(root / "private", target_is_directory=True)
+    return result
+namespace["read_bytes"].__globals__["checked_stat"] = swap
+try:
+    namespace["read_bytes"](target, root)
+except namespace["InspectionError"]:
+    raise SystemExit(0)
+raise SystemExit("unexpected read through replaced parent")
+'''
+        root = self.work / "race"
+        for name in ("managed", "private"):
+            (root / name).mkdir(parents=True)
+            (root / name / "file").write_text("PRIVATE_SENTINEL" if name == "private" else "public")
+        p = run([sys.executable, "-B", "-c", harness, str(script), str(root)])
+        self.assertEqual(p.returncode, 0, p.stderr + p.stdout)
+        self.assertNotIn("PRIVATE_SENTINEL", p.stdout + p.stderr)
+
+    def test_matt_source_content_and_manifest_integrity(self):
+        source = self.clone_source()
+        snapshot = source / "codex/vendor/mattpocock/v1.2.2"
+        manifest = snapshot / "manifest.json"
+        original = manifest.read_bytes()
+        for field in ("license_sha256", "sha256", "control_sha256"):
+            doc = json.loads(original)
+            (doc if field == "license_sha256" else doc["skills"][0])[field] = "0" * 64
+            manifest.write_text(json.dumps(doc))
+            self.assertIn("matt-manifest-contract-differ", json.dumps(self.check(2, repo=source)))
+        manifest.write_bytes(original)
+        license_file = snapshot / "LICENSE"
+        license_file.write_text("changed license")
+        self.assertIn("matt-license-hash-differ", json.dumps(self.check(2, repo=source)))
+        shutil.copyfile(REPO / "codex/vendor/mattpocock/v1.2.2/LICENSE", license_file)
+        skill = snapshot / json.loads(original)["skills"][0]["path"]
+        skill.write_text(skill.read_text() + "\nchanged source\n")
+        self.assertIn("matt-skill-hash-differ", json.dumps(self.check(2, repo=source)))
+
     def test_installer_changes_and_new_installer_fail_source_validation(self):
         source = self.clone_source()
         p = source / "codex/install-vm.sh"
@@ -307,6 +366,31 @@ class InstalledDriftTests(unittest.TestCase):
         (source / "codex/runtime/aisoft_loop/worktree.py").unlink()
         report = self.check(1, repo=source, extra=["--source-only"])
         self.assertFalse(report["source"]["managed_source_matches_cached_main"])
+        shutil.copyfile(REPO / "codex/runtime/aisoft_loop/worktree.py", source / "codex/runtime/aisoft_loop/worktree.py")
+        shutil.rmtree(source / "codex/skills/issue-session-flow")
+        report = self.check(1, repo=source, extra=["--source-only"])
+        self.assertFalse(report["source"]["managed_source_matches_cached_main"])
+
+    def test_git_clean_filter_and_environment_cannot_run_or_redirect(self):
+        source = self.clone_source()
+        commands = [["git", "init", "-q", str(source)], ["git", "-C", str(source), "add", "."],
+                    ["git", "-C", str(source), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                     "-c", "core.hooksPath=/dev/null", "commit", "-qm", "fixture"],
+                    ["git", "-C", str(source), "update-ref", "refs/remotes/origin/main", "HEAD"]]
+        for args in commands:
+            p = run(args)
+            self.assertEqual(p.returncode, 0, p.stderr)
+        marker = self.work / "FILTER_MUST_NOT_RUN"
+        filter_script = self.work / "filter.sh"
+        filter_script.write_text('touch "$1"\ncat\n')
+        p = run(["git", "-C", str(source), "config", "filter.sentinel.clean", f'bash "{filter_script}" "{marker}"'])
+        self.assertEqual(p.returncode, 0, p.stderr)
+        (source / ".gitattributes").write_text("*.py filter=sentinel\n")
+        env = dict(os.environ, GIT_DIR="/nonexistent-fixture-git", GIT_WORK_TREE="/nonexistent-fixture-tree")
+        p = run(self.args(source) + ["--source-only"], env=env)
+        self.assertEqual(p.returncode, 0, p.stderr + p.stdout)
+        self.assertTrue(json.loads(p.stdout)["source"]["managed_source_matches_cached_main"])
+        self.assertFalse(marker.exists(), "checker executed Git clean filter")
 
     def test_relative_options_are_rejected(self):
         p = run(["bash", str(CHECKER), "--repo", ".", "--json"])

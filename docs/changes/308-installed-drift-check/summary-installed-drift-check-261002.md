@@ -89,3 +89,9 @@ override_reason: ''
 2026-10-02 用户启动批准已持久化，真实 approved 合同与 initial frontier T01 已校验。T01 仅补充 README/06 的八安装面只读合同，不改变当前 AGENTS、skills、installer、checker 或 smoke。映射 plan 已将 T01 标记 completed；下一 frontier 是 T02，但本轮遵守治理应用后停止边界，不实现 runtime。
 
 后续 fresh run 重读 AGENTS/README/03/04/06 与本 Issue 合同，沿用既有启动授权执行 T02；不得重复请求启动确认。原 AC-2 仍为真实安装 GAP，PR 提交仍未授权。
+
+## T02 实现完成
+
+fresh run 已实现八面只读 checker。22 项针对性 fixture 全通过，bash -n/ShellCheck/diff-check 通过，source-only 八项 SOURCE PASS。code-review 两轴发现已修复并只读复审关闭。现有完整 smoke 默认 host 环境在 registry-preflight fixture FAIL，`LC_ALL=C` 重跑 PASS（978 runtime tests）；新 checker 尚未接入 smoke，阶段范围如实保留。
+
+下一 frontier T03 仅应用 smoke 静态/fixture hook，然后停止；T04 fresh run 才完成集成与两台真实安装回读。原 AC-2 GAP 保留，没有 push、PR、merge、真实安装、sudo 或部署。

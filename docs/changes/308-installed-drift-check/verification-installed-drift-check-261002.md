@@ -43,7 +43,11 @@ updated: 2026-10-02
 | #308 classification --apply / --verify | PASS | type/platform + complexity/complex，read-back projected；使用 byte-identical projector 临时副本，broker symlink exact installed 路径 |
 | lifecycle `spec-drafting` | PASS | 保留 classification；未写 approved |
 | triage brief 发布 | PASS | Issue comment 11977；合同草案尚未 push |
-| #308 新 checker、反向 fixture、smoke、CI | NOT RUN | 启动已批准；T01 仅治理，尚未实现 checker |
+| #308 新 checker、反向 fixture | PASS（T02 local） | 22 tests；八个真实 installer 的隔离副本；不证明真实 installed |
+| 完整 smoke，sandbox 默认环境 | BLOCKED_SANDBOX | loopback bind PermissionError；相同命令 host 重试 |
+| 完整 smoke，host 默认环境 | FAIL | registry-preflight 停 registry fixture 期望 1、实际 0；保留原失败 |
+| 完整 smoke，host `LC_ALL=C` | PASS（T03 接入前） | 978 runtime tests；全部既有 smoke 门通过 |
+| 新 checker 的 smoke 集成、CI | NOT RUN | T03 独立治理接入待执行；最终 T04 fresh run；没有 PR |
 
 ## Mac 初始文件 inventory（非最终完整 checker）
 
@@ -73,11 +77,12 @@ Mac install-vm 缺少 `.local/lib/aisoft-loop/aisoft_loop/worktree.py`；cli.py/
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | NOT RUN | 未实现 |
+| AC-1 | PASS（local fixture） | 八 installer 行、quantities、exact gaps、退出码；真实面结果待 T04 |
 | AC-2 | GAP | Mac 当前至少 install-vm/broker 实际漂移及三组件默认缺失；保留原全 PASS 要求 |
-| AC-3/4/5/6 | NOT RUN | fixture/静态接入尚未实现 |
+| AC-3/4/6 | PASS（local fixture） | 22 tests：缺失/同量旧字节/恢复、写入 audit/tree 指纹、Secret/链接边界 |
+| AC-5 | 部分 PASS，集成待 T03/T04 | source-only 八面通过，新增 installer/改 installer 拒绝；尚未接入 smoke |
 | AC-7 | 部分基线 GAP，最终 NOT RUN | 两台初始 read-only inventory；非新工具验收 |
-| AC-8 | NOT RUN | fresh main 基线已获取；checker identity 仍未实现 |
+| AC-8 | PASS（local），fresh remote 待 T04 | checkout/HEAD/cached main；untracked、已删受管源、Git filter/环境隔离 fixture；无 fetch |
 
 ## 遗留风险与未完成项
 
@@ -92,3 +97,13 @@ AC-2 要求与当前实际安装面冲突，但不能删除标准或制造 PASS�
 - README/06 合同说明已补齐；T01 尚不执行新 checker、fixture 或 smoke。未改 shell，因此本步骤 bash -n/ShellCheck/full smoke 均 NOT RUN，后续 T02-T04 执行。
 - 辅助校验脚本第一次误导入不存在的 aisoft_loop.matt，在 API 调用前失败；删除错误辅助 import 后 approved loader 校验 PASS。未修改仓库 runtime。
 - initial frontier T01，完成后 next frontier T02；本轮到治理应用后停止，不在同轮实施 runtime。
+
+## T02 实现与验证
+
+新增薄 shell 入口、标准库 standalone checker、fixture harness。覆盖八个 installer 的所有受管非秘密文件，按存在/类型/字节和声明链接核对；保留 user-owned 配置边界。源定义以 installer 指纹、Matt 固定版本 manifest 及内容声明 fail closed；Git 身份仅用本地 raw tree metadata 和 Python blob 哈希，禁用可执行 clean filter 路径。
+
+`evidence/t02-local-validation.json` 保存命令、日志指纹、源码指纹与阶段范围；`t02-targeted-tests.log` 为 22 项测试 PASS；`t02-source-only.json` 为八项 SOURCE PASS，执行时 HEAD 是初始 T02 候选、代码含后续未提交修订；source 候选的 managed bytes 与 cached main 等同，不证明 remote freshness。
+
+两轴 code-review 初审发现 Standards 1 项 P2、Spec 3 项（最严重 P1）；修复后分别复审均无未关闭发现，详见 `evidence/t02-two-axis-review.md`。禁止以 review 静态结论替代真实验收。
+
+完整 smoke 原环境阻断/失败与 `LC_ALL=C` 成功分别保留。此 smoke 尚不含新 checker 的 T03 hook，不能宣称集成门已验证。T02 完成后下一 frontier T03；T04 仍负责 fresh run 的全部门和两台真实只读证据。AC-2 GAP、CI/PR/安装/部署 NOT RUN。

@@ -25,7 +25,7 @@ updated: 2026-10-02
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 独立应用 README/06 的检查范围、可读量、零写入与真实验收治理说明；停止该步骤 | - | completed |
-| T02 | fresh run 重读后交付八面 CLI + fixture PASS/GAP/恢复与零写入验证 | T01 | pending |
+| T02 | fresh run 重读后交付八面 CLI + fixture PASS/GAP/恢复与零写入验证 | T01 | completed |
 | T03 | 独立仅修改 smoke 的静态/fixture 接入；保留全部既有门；停止该步骤 | T02 | pending |
 | T04 | fresh run 跑完整门与两台只读回读、更新验收缺口和唯一最终 PR 候选 | T03 | pending |
 
