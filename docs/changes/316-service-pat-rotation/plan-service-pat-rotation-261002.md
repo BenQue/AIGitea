@@ -31,7 +31,7 @@ updated: 2026-10-02
 | T02 | fresh turn：固定版本 helper 对 exact PAT/UID 安全撤销，隔离 DB 验证，不安装现场 | T01 | done |
 | T02A | 仅应用方案 A 的 Mac canonical store/内部管道治理修订，文档检查与本地 commit 后停止 | T02 | done |
 | T03 | fresh run：operator command 完整轮换/失败恢复/no-op，与 typed grant 路径接通，测试零授权零 mutation | T02A | done |
-| T04 | shell/Python/Go 全量验证、文档/判级复核，准备唯一 manual PR 候选 | T03 | in_progress（local 已验证，required CI/PR 待确认） |
+| T04 | shell/Python/Go 全量验证、文档/判级复核，准备唯一 manual PR 候选 | T03 | blocked（fresh-main drift mapping 范围补充待确认） |
 | T05 | 人工合并后独立授权 helper 安装/operator grant/真实轮换和第二次 no-op，形成 AC-2 现场证据 | T04 | pending |
 
 T01 与 T02、T02A 与 T03 均不得在同一 turn 实施。用户于 2026-10-02 以“按建议继续”批准方案 A；下一 fresh run 重读治理合同后，T03 可沿用这次批准继续，不重复询问启动确认。T05 不是已获批准的执行任务；缺 live/Secret 授权不能运行。PR 提交与 human merge 各遵守现有闸门，真实验收缺口不因 merge 自动消失。
@@ -62,7 +62,7 @@ T01 与 T02、T02A 与 T03 均不得在同一 turn 实施。用户于 2026-10-02
 | AC-6 | T03/T04 | 对应 test_host_access/test_credential_rotation 的 typed parameter/grant/identity/store/helper 负向矩阵；env/path/URL override 拒绝；broker shell operation count 与 CLI schema 验证 |
 | AC-7 | T04 | bash -n 修改的 shell；ShellCheck 若可用；bash codex/tests/smoke.sh；对应 Python suites；fixed helper build/check；唯一 PR 最终 head 的 required CI |
 
-T02 helper 与临时 DB 测试已实现并运行，证据见 verification。T03 新 shell/Python 套件已实施并本地运行，证据见 verification；T04 的新 shell smoke 接入、CI/Linux 制品及进程级验证仍为计划/NOT RUN，不把表当执行回执。
+T02 helper 与临时 DB 测试已实现并运行，证据见 verification。T03 新 shell/Python 套件已实施并本地运行，证据见 verification；T04 的 shell smoke 接入、local Linux/arm64 制品及进程级验证已执行；required CI 为 NOT RUN。fresh-main 默认 locale 组合 smoke 被 #308 drift mapping 硬门阻止，当前不能提交最终 PR。
 
 ## 安装、现场与回滚
 
@@ -74,3 +74,7 @@ T02 helper 与临时 DB 测试已实现并运行，证据见 verification。T03 
 ## 合同决策已解除与 fresh run 边界
 
 T02 本地实现/测试/审查已完成，exact head 为 0ffe6bda169d70bd89f48fa527635aa079a23bff。旧 no-Mac Secret 限制与现有 Mac credential resolver 的冲突已由用户明确批准方案 A 解除。T02A 独立治理步骤完成后停止，下一 fresh run 重读更新合同才实施 T03。仅固定 Mac canonical store 可接收候选；既有 VM 副本及其消费端仍需各自授权与证据。安装、grant 与 live 不获预授权。
+
+## T04 fresh-main 集成阻塞（2026-10-03）
+
+组合 smoke 在 installer-mapping-stale 退出 2；源自 #316 installer 新增目标与 #308 mapper 不自洽。最小范围补充见 [待确认提案](evidence/t04-installed-drift-extension-proposal.md)。当前批准范围保持，提案未生效；没有实施 mapper/fixture 改动、历史改写或远端 mutation。若确认，先 T04A 仅应用 mapped spec/plan 的精确授权并本地提交后停止；T04B fresh run 才修改两个明确文件并重跑组合验证。

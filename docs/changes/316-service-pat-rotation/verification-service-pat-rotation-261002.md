@@ -76,13 +76,13 @@ updated: 2026-10-02
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | T03 隔离 shell PASS；T04 smoke 接入未完成 | 已覆盖 rotate/no-op、撤旧失败、scope 不等、写入失败与 Secret canary；真实外部系统不在 fixture PASS 范围 |
+| AC-1 | 本地隔离 shell/smoke 接入 PASS；组合完整 smoke FAIL | 已覆盖 rotate/no-op、撤旧失败、scope 不等、写入失败与 Secret canary；真实外部系统不在 fixture PASS 范围 |
 | AC-2 | NOT RUN | 未授权且未执行真实 Secret 操作 |
-| AC-3 | T01 文档部分完成，T04 最终复核待执行 | 03 已加入 scope 合同变化必须轮换、operator 权限和阶段边界；06 已加入轮换列、Secret/恢复合同；mapped documents/真实分类读回在 T01 复核，整体验收仍需 T04 |
+| AC-3 | 文档与分类复核 PASS；范围补充待确认 | 03 已加入 scope 合同变化必须轮换、operator 权限和阶段边界；06 已加入轮换列、Secret/恢复合同；mapped documents/真实分类读回在 T01 复核，整体验收仍需 T04 |
 | AC-4 | T02 本地隔离 DB suite 与阶段审查 PASS | fixed v1.26.4 helper 使用真实 models 覆盖精确删除/拒绝/脱敏；Linux release 与现场安装不在该 PASS 范围 |
 | AC-5 | T03 本地隔离 PASS | 固定 store 交易、journal/锁/权限/owner、失败补偿和中断恢复；live NOT RUN |
 | AC-6 | T03 源码/本地负向 PASS | 普通 typed caller、VM 公开 tuple/hash、缺/错 grant/capability 均拒绝；installed/live NOT RUN |
-| AC-7 | T02/T03 本地局部 PASS，整体未完成 | Python/bash/ShellCheck 与本地回归见下节；T04 CI/Linux 制品/进程级验证未完成，Mac 证据不证明 installed/live |
+| AC-7 | local Linux/进程 PASS，组合 smoke FAIL，required CI NOT RUN | 已运行证据见 T04；新集成阻塞见下节，局部成功不证明整体验收/installed/live |
 
 ## 遗留风险与未完成项
 
@@ -153,3 +153,13 @@ smoke 首次沙盒路径因 localhost bind PermissionError 未完成；获授权
 临时测试镜像固定 python@sha256:e91fec3d1ac69f04e4eddcd29c327e630ce34658cf31075bfa7e8b0e052bafea，实际 Linux/arm64；测试容器 --rm，无现场卷。首轮 linked worktree metadata 缺只读 mount 导致 provenance 失败，已修正并重跑；首轮 DB fixture 的 PAT 长度/最小 schema 不完整，改为真实 upstream models 导出后 PASS，未放宽 helper。失败日志仍保留，不能计入 PASS。
 
 Fresh typed git.fetch.main 读回 origin/main=70baa3588c0504e5d81facd99c63b74741967967，包含 #319 与 #288；当前 exact Issue branch 与之分叉（T04 commit 前 42 ahead-main / 5 ahead-Issue）。open PR只读读回没有本票 branch；未 push、建 PR 或 force。下一步进行只读组合树/默认locale验证；本票当前 frontier不授权修改其它Issue文件、改写history或处理平台publisher规则。
+
+## T04 fresh-main 默认 locale 组合验证：FAIL / NEEDS_CONTRACT_EXTENSION
+
+实现 head 为 `4643c3826ca6bcede5a5e81930debfcd8df0c9c8`。fresh main `70baa3588c0504e5d81facd99c63b74741967967` 与本票产生无冲突组合 tree `675692cda5a6fb778a460d683d84f755b132dc49`；仅在独立 lab 使用该 tree，未改变实际 Issue HEAD/index/branch，未 rebase 或创建 merge commit。
+
+`LANG=LC_ALL=LC_CTYPE=C.UTF-8` 的 `bash codex/tests/smoke.sh` 退出 2，日志 `/private/tmp/issue-316-build/t04-fresh-main-default-smoke.log`：source `codex/install-host-access-broker.sh`、reason `installer-mapping-stale`、RESULT ERROR。这是有效源码集成失败，与旧基线 C locale PASS 分开；后续 suite 未执行，不能声称默认 locale 完整 smoke PASS。
+
+闸门来自 #308。mapper 未覆盖本票新增 rotate 脚本、生成 source metadata 和可选 helper；仅刷新摘要会掩盖遗漏。两轴只读复审确认当前 #316 spec 没有明确列入共享 checker，且需要定义生成 metadata/可选制品的比较政策。具体 exact 文件、CLI 输入、验证、回滚和治理/fresh-run 边界见 [待确认提案](evidence/t04-installed-drift-extension-proposal.md)。该提案未生效，当前未修改 mapper 或 fixture，T04 blocked。独立 `--source-only` 同样返回 ERROR/exit 2，确认是 source mapping 问题；脱敏 readback 与日志摘要见 [集成阻塞回执](evidence/t04-fresh-main-integration-block.json)。
+
+本票 branch 仍不是 fresh main 后代，`BASE_BRANCH_STALE` 仍是 Controller 发布前置条件；不能绕过它。required CI、PR 提交、helper/operator 安装、grant provision、live PAT 轮换及消费端副本处置仍 NOT RUN。PR 草稿当前为 BLOCKED_SOURCE_CANDIDATE，不能提交或当作 READY_FOR_REVIEW。

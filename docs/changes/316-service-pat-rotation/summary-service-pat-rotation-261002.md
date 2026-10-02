@@ -88,4 +88,4 @@ override_reason: ''
 
 ### 当前决策与未完成验收
 
-- 方案 A 已批准，T03 凭据消费位置冲突已解除，无新增产品依赖。T02A 与 T03 已分 turn；T03 fresh run 已实现交易、typed grant 与受控 transport，完成本地隔离验证和审查修复。T04 已接入 smoke/CI 并完成 local Linux/arm64 制品、model/race、实际 helper 进程级 synthetic DB/canary 与双轴验证；required CI 尚未运行，最终 PR 提交确认与 T05 独立现场授权/验收仍待，不能写成整票完成。
+- 方案 A 已批准，T03 凭据消费位置冲突已解除，无新增产品依赖。T02A 与 T03 已分 turn；T03 fresh run 已实现交易、typed grant 与受控 transport，完成本地隔离验证和审查修复。T04 已接入 smoke/CI 并完成 local Linux/arm64 制品、model/race、实际 helper 进程级 synthetic DB/canary 与双轴验证；fresh-main 默认 locale 组合 smoke 当前 FAIL（#308 installer-mapping-stale），共享 mapper/fixture 的精确范围补充见 [待确认提案](evidence/t04-installed-drift-extension-proposal.md)，不能只推进指纹。required CI 尚未运行，最终 PR 提交确认与 T05 独立现场授权/验收仍待，不能写成整票完成。
