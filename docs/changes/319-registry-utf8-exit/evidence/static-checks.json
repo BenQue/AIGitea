@@ -1,0 +1,21 @@
+{
+  "checks": [
+    {
+      "command": "/bin/bash -n templates/project/ci/registry-preflight.sh codex/tests/test-registry-preflight.sh",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "shellcheck templates/project/ci/registry-preflight.sh codex/tests/test-registry-preflight.sh",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "source_commit": "f4620b7b421c9b2d00a5d7f46ec0dbb5178185d1",
+  "source_sha256": {
+    "templates/project/ci/registry-preflight.sh": "bffe3d285d18c1803b7ac8e3bcfefb43cd9b61493e01b5b369a12fa229a6bef4",
+    "codex/tests/test-registry-preflight.sh": "aaecb06e600c5b095ba9d26e57e2c313a357d12c018195a23fb11170ac81db25"
+  }
+}

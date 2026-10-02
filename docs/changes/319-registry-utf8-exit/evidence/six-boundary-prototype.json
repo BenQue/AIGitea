@@ -1,0 +1,27 @@
+{
+  "scope": "仅临时副本验证提案，不代表已批准/应用到 Issue worktree",
+  "path": "/private/tmp/aisoft319-six-boundary-prototype",
+  "results": [
+    {
+      "locale": "C.UTF-8",
+      "prototype_only": true,
+      "exit_code": 0,
+      "stdout": "registry preflight tests passed\n",
+      "stderr": ""
+    },
+    {
+      "locale": "en_US.UTF-8",
+      "prototype_only": true,
+      "exit_code": 0,
+      "stdout": "registry preflight tests passed\n",
+      "stderr": ""
+    },
+    {
+      "locale": "zh_CN.UTF-8",
+      "prototype_only": true,
+      "exit_code": 0,
+      "stdout": "registry preflight tests passed\n",
+      "stderr": ""
+    }
+  ]
+}

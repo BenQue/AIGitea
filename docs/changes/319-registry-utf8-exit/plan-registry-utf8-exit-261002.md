@@ -23,14 +23,14 @@ updated: 2026-10-02
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T00 | 分析、UTF-8 改前证据和可审阅 complex 合同 | - | completed |
-| T01 | 修复 UTF-8 诊断边界，并用 HTTP fixture 证明成功/故障/恢复行为 | 合同批准与 fresh run 重读 | pending |
-| T02 | 完成跨 Bash/UTF-8、语法、ShellCheck、完整 smoke 与审查证据 | T01 | pending |
+| T01 | 修复 UTF-8 诊断边界，并用 HTTP fixture 证明成功/故障/恢复行为 | T00 | completed |
+| T02 | 完成跨 Bash/UTF-8、语法、ShellCheck、完整 smoke 与审查证据 | T01 | completed |
 
 T00 blocked_by: []。T01 blocked_by: [T00]。T02 blocked_by: [T01]。合同批准步骤只记录 approved 并停止，不和 runtime 实施放在一个 run。ticket 均在 #319，不建子 Issue。
 
 ## Expected touch points
 
-- T01：`templates/project/ci/registry-preflight.sh`（4 处变量边界）、`codex/tests/test-registry-preflight.sh`（诊断行为断言）。复用 fake-npm-registry.py，保持 fixture 接口。
+- T01：`templates/project/ci/registry-preflight.sh`（6 处变量边界）、`codex/tests/test-registry-preflight.sh`（诊断行为断言）。复用 fake-npm-registry.py，保持 fixture 接口。
 - T02：本目录 mapped summary/plan/verification 与脱敏 evidence；不得改已确认 AC。
 
 ## 数据库迁移
@@ -41,7 +41,7 @@ T00 blocked_by: []。T01 blocked_by: [T00]。T02 blocked_by: [T01]。合同批�
 
 | AC | Ticket | Verification |
 |---|---|---|
-| AC-1 | T01 | diff review 4 处边界、bash -n、ShellCheck |
+| AC-1 | T01 | diff review 6 处边界、bash -n、ShellCheck |
 | AC-2 | T01 | 同一 HTTP fixture 的 healthy/stop/recover/HTTP500/notpackument/tarball404/config，检查退出码、stage、标记、diagnostics |
 | AC-3 | T02 | macOS C.UTF-8/en_US.UTF-8/zh_CN.UTF-8 三组 `/bin/bash codex/tests/test-registry-preflight.sh`；Linux C.UTF-8 同命令 |
 | AC-4 | T02 | `/bin/bash -n templates/project/ci/registry-preflight.sh codex/tests/test-registry-preflight.sh`；`shellcheck` 同文件；默认 UTF-8 `bash codex/tests/smoke.sh`；required PR CI 独立读取 |

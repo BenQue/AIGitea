@@ -69,7 +69,7 @@ override_reason: ''
 
 ### 判级证据
 
-- fresh origin/main 5c2cd726c9aeaee9d17541d8feb049e33881bbac 仍含 4 处中文标点相邻变量引用。
+- fresh origin/main 5c2cd726c9aeaee9d17541d8feb049e33881bbac 仍含 6 处中文标点相邻变量引用。
 - macOS Bash 3.2.57 C.UTF-8/en_US.UTF-8/zh_CN.UTF-8：健康 0，停止 fixture 后错误退出 0，stderr unbound variable；完整 fixture 在停止处失败。
 - Linux Bash 5.3.9 C.UTF-8 改前 fixture PASS。
 - Issue open/needs-analysis，无评论与开放 PR；main 禁 direct/force push，required CI 为 CI / verify (pull_request)。
@@ -90,3 +90,11 @@ override_reason: ''
 ## 独立合同批准记录
 
 本 turn 只记录已批准的既有 spec/plan，并投影 type/complexity 与 approved 生命周期；不得修改 CI/runtime。完成后停止，下一 fresh turn 重新读取批准合同再执行 T01/T02，不重复请求启动批准。最终 PR 提交仍待单独确认。
+
+## 最终 PR 候选
+
+- 状态：`AWAITING_PR_CONFIRMATION`，policy=`manual`。
+- T01/T02 完成：6处边界及HTTP fixture诊断回归；macOS三组与Linux UTF-8、bash-n/ShellCheck、完整macOS UTF-8 smoke均PASS；Standards/Spec独立审查均0发现。
+- 已有启动批准及用户明确批准的4→6计数修正；后者只更正同类参考数量，不改变其他合同边界。
+- 精确候选head写入本会话的私有 `/private/tmp/aisoft-319-session-state/projects/aisoft-platform/`，避免在同一commit中自引用SHA。
+- 尚未push/建PR；PRCI、installed/live/下游/merge/deploy为NOT RUN。

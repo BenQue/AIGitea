@@ -34,7 +34,7 @@ updated: 2026-10-02
 
 ## Acceptance criteria
 
-- [ ] **AC-1** 中文标点前 `$REGISTRY`、`$HTTP_CODE` 使用明确花括号边界，同类字符串仅修本脚本当前 4 处，不做无关重构。
+- [ ] **AC-1** 中文标点前 `$REGISTRY`、`$CURL_STATUS`、`$HTTP_CODE` 使用明确花括号边界，同类字符串仅修本脚本当前 6 处，不做无关重构。
 - [ ] **AC-2** UTF-8 临时 HTTP fixture：健康 0/OK；停止后同地址退出 1/FAIL stage=connect，含正确地址及 curl 退出码，无 unbound variable/OK；恢复后 0/OK。HTTP 500、非 packument、tarball 404、config 的既有 stage/退出 1 保留，HTTP 诊断正确。
 - [ ] **AC-3** macOS /bin/bash 3.2.57 的默认 C.UTF-8、en_US.UTF-8、zh_CN.UTF-8 与可用 Linux Bash 5.3.9 C.UTF-8 改后验证；不可执行写 NOT RUN。LC_ALL=C 对照不能替代 UTF-8 通过证据。
 - [ ] **AC-4** bash -n、可用 ShellCheck、对应 fixture、完整 bash codex/tests/smoke.sh 通过；PR required CI 独立读回。全部 registry 请求仅指向测试临时 127.0.0.1 HTTP server。
@@ -65,4 +65,12 @@ CI 强制 complex/manual。局部原子修复 commit 的反向变更经独立 PR
 
 ## 未决问题
 
-实现方向无未决；合同/启动已获本会话用户“确认”。live Matt triage 投影因缺少 typed operation 为 GAP，不夹带 broker 治理实现或直连 API。
+无。
+
+## 流程能力说明
+
+合同/启动已获本会话用户“确认”。live Matt triage 投影因缺少 typed operation 为 GAP，不夹带 broker 治理实现或直连 API。该缺口不改变本修复实现合同。
+
+## 已批准计数修正
+
+用户于实施阶段明确回复“批准更正为 6 处并继续”。此前 4 处计数遗漏两处 CURL_STATUS 紧邻中文右括号；此修正只更正同类边界计数与变量清单，不改变文件、行为、测试、权限和其他边界。保留首次 4 处修复失败及临时副本论证证据，不把提案通过替代正式验收。
