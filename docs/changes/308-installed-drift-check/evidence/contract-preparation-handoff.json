@@ -1,0 +1,18 @@
+{
+  "issue": 308,
+  "state": "approved; T01 governance applied, stop for fresh run",
+  "branch": "change/308-installed-drift-check",
+  "worktree": "/private/tmp/issue-308-installed-drift-check",
+  "owner_session": "01a0fc7b-d0b3-7802-af08-555307d048a6",
+  "head_sha": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "pr_url": null,
+  "ci": "NOT RUN",
+  "depends_on": [],
+  "classification": "projected",
+  "blockers": [
+    "original AC-2 actual installation GAP retained",
+    "Matt triage canonical label projection typed operation unavailable"
+  ],
+  "next_step": "fresh run re-read and execute T02 using existing approval",
+  "required_user_action": "none for startup; eventual final PR confirmation and separate installed disposition pending"
+}
