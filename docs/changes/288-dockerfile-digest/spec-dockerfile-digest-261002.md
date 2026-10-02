@@ -191,3 +191,26 @@ T05 按完整批准 patch 原样应用，检查 hash、静态真实 source ident
 smoke 与后续 fresh-main/lock/release 组合验收；本步不新增 runtime 功能或修改其它治理文件。
 最终 PR 提交仍未授权。回滚通过本治理 commit 的人工 revert 并重跑同一硬门，
 不得删除历史 evidence 或改成覆盖性豁免。
+
+## 已批准补充：installed-drift fixture 本地源码基线（T06）
+
+用户对已展示的单文件完整 patch 明确回复“确认”。授权冻结于
+`evidence/installed-fixture-amendment-authorization.json`；完整 patch 为
+`evidence/installed-fixture-amendment.patch`，SHA256
+`af73fbd48c2459b0792cc88493e08af9d7c89ae74a17026b5845271fcadecf22`。
+原 proposal 保留 PROPOSED_NOT_APPLIED 的批准前快照；应用证据另存，不改写历史结果。
+
+仅补充授权 `codex/tests/fixtures/installed-drift/test-installed-drift.py`：
+默认 installer fixture 检查当前源码复制到临时目录后建立的本地 Git baseline，
+独立于真实 change branch 与 cached main 的有意差异。真实 installer 仍从当前 source
+建立临时安装面；显式 source-drift cases 仍使用各自传入的 repo 并保持 GAP 反向检查。
+临时 Git baseline 不复制真实 .git、不 fetch/push、不修改真实 origin/main，不作真实 main 证明。
+新增 Git 调用清除继承 GIT_*、禁用 system/global config、交互凭据与 commit hooks。
+
+不改真实 installed checker、source identity 判断、installer、smoke 硬门、required CI
+workflow/context、任何 runtime、历史 evidence 或其它 Issue 文档。T06 按批准 patch 原样应用，
+检查前后 hash、反向 patch、Python compile、实际工作树 23 项 fixture tests 与 semantic docs。
+本受控测试治理步骤独立 commit 后停止；fresh run 重读更新 spec/plan 后才执行完整
+smoke/runtime 与最终候选验收。临时 fixture PASS 不证明 installed/live、CI 或部署。
+回滚为人工 revert 此单独治理 commit 并运行相同专项测试，真实 checker 行为保持不变。
+原合同/启动批准持续有效，唯一最终 PR 提交仍未授权。

@@ -28,7 +28,8 @@ updated: 2026-10-02
 | T04 | 已批准补充的两处测试 root 与 synthetic 模板，独立治理 commit 后停止 | [T01] | done |
 | T02 | fresh run 后完整实现容器 FROM 文件核验，迁移 fixtures，所有 CLI 与库调用同一硬门 | [T04] | done |
 | T05 | 已批准 fixed evidence exact lock pin 与防篡改单测，独立治理 commit 后停止 | [T02] | done |
-| T03 | 项目 checker、lock/release 兼容与全套回归验收，完成唯一最终 PR 候选 | [T02, T05] | pending |
+| T06 | 已批准 installed-drift fixture 本地源码基线，独立测试治理 commit 后停止 | [T02, T05] | done |
+| T03 | 项目 checker、lock/release 兼容与全套回归验收，完成唯一最终 PR 候选 | [T02, T05, T06] | pending |
 
 T01 为平台治理必须隔离的 contract-only 步骤，不伪装成 runtime 已交付。
 T02 为一个完整可观察垂直切片，覆盖声明输入、文件读取、FROM 核验、CLI、fixtures 与测试。
@@ -45,6 +46,8 @@ T02 为一个完整可观察垂直切片，覆盖声明输入、文件读取、F
   `architecture/fixtures/` 与容器 reference 的 synthetic Dockerfile/对应 lock。
 - T03：相关 `test_release_architecture_integration.py`、项目 checker 回归测试、verification receipt。
   现有 checker 使用 `.aisoft` 路径推导 root；不改 shell/CI/Controller/provider/AGENTS。
+- T06：仅 `codex/tests/fixtures/installed-drift/test-installed-drift.py` 的已批准完整 patch；
+  本 Issue semantic docs 同步授权/结果，独立提交后停止。
 - 不改 catalog/profiles/checksum 规则（#287）、release schema/runtime、其它 Issue 文档。
 
 ## 测试与验收映射
@@ -119,7 +122,7 @@ reader 与 V1-only release reader；Dockerfile 文件硬门覆盖两种 lock 版
 当时所有 ticket 完成本地验收，拟准备最终候选；尚未完成最后 main 刷新或持久化 PR 候选状态，
 没有 push、PR、安装或部署。
 
-## 最新 main 组合阻塞与未批准 T06 草案
+## main 组合阻塞与 T06 草案（批准前历史快照）
 
 最终刷新 main 时，#308 的 PR #326 已合并为
 `65268ee5f1e622c486fd9e354dd35e20a2900f91`。本 owner 自行无冲突整合，HEAD
@@ -136,3 +139,17 @@ cases 继续使用各自输入。完整 patch 与精确 SHA256 在
 该路径超出原 spec 的实施范围，故本轮不改源码。若批准，先更新映射 spec/plan，
 按 T06 独立受控测试治理步骤应用并提交后停止，后续 fresh run 才重跑完整 smoke/runtime。
 本草案不修改已批准合同、不授权最终 PR、安装或部署，不重复请求原合同启动。
+
+## T06 已批准受控应用
+
+用户本轮回复“确认”，批准单文件 fixture 补充；映射 spec 已显式授权该路径和 exact patch。
+本步原样应用，验证源码前后 SHA256、反向 patch、Python compile，运行真实工作树
+`bash codex/tests/test-installed-drift.sh` 的 23 项专项回归并检查 semantic docs。
+独立 commit 后停止，T03 保持 pending；完整 smoke/runtime 留给 fresh run，
+不得用临时提案 23 项 PASS 或此前 head 的 1008 项结果覆盖新完整 gate。
+不新增 PR，原合同启动授权不重复询问；最终唯一 PR 仍单独确认，merge/install/deploy 未授权。
+
+T06 实际工作树专项已完成：23 tests / 44.895s PASS；exact after hash、反向 patch、compile、
+approved 合同读回与文档检查 PASS。application receipt 保留当前源码和日志 hash，
+proposal 的批准前状态保持原样。真实 checker/runtime/installer/smoke gates 未改。
+本轮完成后独立提交并停止，T03 后续 fresh run 继续，不再请求本补充或原启动确认。

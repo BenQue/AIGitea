@@ -89,7 +89,7 @@ override_reason: ''
 - Policy: manual；用户于 2026-10-02 明确回复“确认”，批准本映射 spec/plan 启动。PR 提交尚未授权。
 - 完整合同见 [spec](spec-dockerfile-digest-261002.md)，ticket graph 见 [plan](plan-dockerfile-digest-261002.md)，基线结果见 [verification](verification-dockerfile-digest-261002.md)。
 - Matt triage 已验证 bug，推荐 ready-for-agent；当前 broker 没有 triage 双维度 projector，live 投影为 GAP，不绕行直接 API，不在 #288 修改 broker。
-- T01/T04/T02/T05 完成本地交付；T03 在 main 14bfe6 完整 runtime/smoke PASS，最新 main 65268ee 新增 installed-drift fixture 后 smoke FAIL，待未批准 T06 最小补充。PR CI、installed/live/现场验收为 NOT RUN。无硬依赖。
+- T01/T04/T02/T05/T06 完成本地交付；T03 在 main 14bfe6 完整 runtime/smoke PASS，main 65268ee 的 fixture 初轮失败已按确认应用 T06，专项 23 项 PASS；完整 smoke/runtime 待 fresh run。PR CI、installed/live/现场验收为 NOT RUN。无硬依赖。
 
 ## 启动授权与治理步骤
 
@@ -126,7 +126,7 @@ T05 synthetic V1 lock exact pin 未漂移；原历史 evidence、release reader�
 当时拟准备 AWAITING_PR_CONFIRMATION 候选，尚未持久化该状态；后续最终 main 刷新发现新的阻塞。
 本轮只证明 source/local 验收；唯一 PR/required CI、全局安装、现场、制品构建与部署均 NOT RUN。
 
-## 当前状态：最新 main smoke 阻塞
+## main 65268ee smoke 阻塞（T06 批准前历史快照）
 
 已整合 #308 合并 main `65268ee5f1e622c486fd9e354dd35e20a2900f91`，组合 head
 `aaa9e8dc2b6875c4658f7a9c8f59f7c91907a983`。新 smoke 在 installed-drift fixture
@@ -137,3 +137,16 @@ T03 pending，当前 NEEDS_HUMAN_DECISION。未批准 T06 草案仅修正单个 
 源码基线，保留真实 checker fail closed，临时副本 23 tests PASS，未应用。
 完整 patch/范围/回滚与证据见 `evidence/installed-fixture-amendment-proposal.json`。
 原 spec 保持批准范围；先取此精确补充确认，不能请求或提交最终 PR。
+
+## 当前状态：T06 已批准应用，治理步骤停止
+
+用户回复“确认”，批准 exact patch
+`af73fbd48c2459b0792cc88493e08af9d7c89ae74a17026b5845271fcadecf22`。
+映射 spec/plan 已同步该唯一 fixture 路径的授权。实际工作树官方 wrapper 23 tests / 44.895s
+PASS，after hash/compile/reverse patch 与真实 approved 合同读回 PASS。
+真实 installed checker、runtime、installer、smoke 硬门、actual origin/main 与历史 evidence 未改。
+授权和应用 receipt 分别保留；原 proposal 仍是批准前快照，不将提案测试冒充实际应用验证。
+T06 done，独立本地 commit 后停止；T03 pending，fresh run 重读新合同后继续完整 smoke/runtime，
+不重复启动或 T06 补充确认。该停止不表示全部验收完成或最终 PR 提交已获准。
+本轮 full smoke/runtime、PR/required CI、global installed、现场与部署均 NOT RUN；
+旧 smoke FAIL 和旧 head 的 1008 项结果保持各自原有边界。

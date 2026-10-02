@@ -272,7 +272,7 @@ main 组合 receipt 是 merge 前的历史快照，里面的 full NOT_RUN 保持
 已批准 spec 的 AC 文本保持原样；这里记录执行结果。最终候选仍需单独 PR 提交确认，
 人工合并与部署未授权。回滚方式为人工 revert 唯一最终 PR 后运行相同回归；旧源码盲点会恢复。
 
-## T03 最新 main 65268ee 组合（当前权威状态）
+## T03 main 65268ee 初轮组合（T06 批准前的真实失败）
 
 最终 main refresh 发现 #308 / PR #326 已合并。只由本 owner 整合自己的 worktree，
 新 head `aaa9e8dc2b6875c4658f7a9c8f59f7c91907a983`，main
@@ -300,3 +300,29 @@ main 组合 receipt 是 merge 前的历史快照，里面的 full NOT_RUN 保持
 patch、source before/proposed hash、两日志 SHA256 与未执行边界均在
 `evidence/installed-fixture-amendment-proposal.json`。proposal 为 PROPOSED_NOT_APPLIED，
 测试只针对临时副本；原 spec 尚未增加该文件权限。T03 pending / NEEDS_HUMAN_DECISION。
+
+## T06 已确认的独立测试治理应用（当前权威状态）
+
+用户本轮明确回复“确认”；授权见 `evidence/installed-fixture-amendment-authorization.json`，
+冻结批准 patch、proposal、应用前 spec/plan 与 source SHA256。映射 spec 已明确增加
+单个 fixture 的权限，按同一 patch 原样应用，未改写提案的批准前 PROPOSED_NOT_APPLIED 状态。
+应用与日志 hash 见 `evidence/installed-fixture-amendment-application.json`。
+
+| T06 check | Result | Evidence |
+|---|---|---|
+| exact owner / branch / pre-apply clean tree | PASS | #288，session 01a0fc7b-f327-7a93-a48c-a254937cb08d，pre-head 263c851abe529d7289da82292e45f52eeac6a7d9 |
+| approved patch SHA256 / before-after source / reverse check | PASS | af73fbd48c2459b0792cc88493e08af9d7c89ae74a17026b5845271fcadecf22；after 与 proposal 精确一致 |
+| Python compile | PASS | 实际 fixture bytes compile，无运行时改动 |
+| 实际工作树官方 fixture wrapper | PASS | `LC_ALL=C bash codex/tests/test-installed-drift.sh`，23 tests / 44.895s，exit 0 |
+| approved 合同 live readback | PASS | `evidence/t06-approved-contract-readback.json`，complex / exact branch / 原 8 AC 保留 |
+| semantic docs / diff --check / scope | PASS | 映射完整；只有单个 fixture 技术改动和状态文档/receipt |
+| 应用双轴审查 | PASS / PASS | Spec 0；Standards hard 0 / possible duplicated-code smell 1（非阻塞，保持批准 patch） |
+| 本轮完整 smoke/runtime / required CI / installed-live / deploy | NOT RUN | 独立治理步骤提交后停止，fresh run 才跑完整 gate |
+
+真实工作树专项 tests 保留 source-only 允许合法 PR 差异但报告 main GAP、installed mode
+拒绝 source 漂移、未跟踪新模块、Git 环境/clean filter 与零写入审计的反向检查。
+临时 baseline 只用于 installer fixtures，不是 actual main、全局 installed 或现场证据。
+真实 checker、installer、smoke/context、architecture runtime 与 actual origin/main 保持原 bytes。
+本步未改 shell，不额外套用 shell 改动后的 smoke 要求；两处 T04 shell 的历史检查保持原样。
+T06 done，T03 pending；独立 commit 后按已批准治理顺序停止，后续 fresh run 继续。
+回滚为人工 revert 此治理 commit 并运行同一专项测试；不放宽真实 source 身份门。
