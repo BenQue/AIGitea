@@ -61,6 +61,25 @@ auto-merge marker. Routine text must state exactly that in-contract CI repair ma
 head's required CI and every hard gate pass, controlled auto-merge is authorized. The authorization does not bind the
 current SHA; the merge call must pin the final 40-character lowercase head SHA. Do not add a merge-policy label.
 
+## #327 Controller FF 整合与人工 first PR
+
+Agents/providers only append local linear commits for their Issue; they still must not create merge commits.
+Only the outer Controller, in the approved contract and owning worktree, may construct an exact two-parent
+`[verified Issue first-parent tip, fresh manifest main]` integration with a reproducible conflict-free tree.
+The broker independently verifies original/current remote-tip ancestry, provenance, the full DAG/tree/scope,
+fresh main and each exact head/transport remote tip, then uses ordinary FF publication. Published rebase/amend,
+force/lease-force, arbitrary/cross-Issue/octopus merges, automatic conflict resolution and identity fallback fail closed.
+Single-writer, per-push SHA readback, protected main, required CI and the one manual PR remain mandatory.
+
+Governance application is a separate text-only commit followed by STOP; a fresh run must reread before runtime.
+This contract is not evidence of source/runtime/installed support. Old installed leased pushes, including first
+publication, are not a compliant route. Issue #327 itself uses its mapped spec's human-operated Gitea UI card:
+one exact branch/manual PR, independently verified human head/tree/blob/mode and fresh CI. The Agent must not
+click submissions, use direct Git/raw API or install unmerged code. Both host installs need independent exact-version
+approval, byte/mode/owner, real FF and rollback evidence; prior #316 approval does not carry over. Pending installed
+AC keeps this Issue actually incomplete despite source merge/automatic close; do not prematurely clean up/archive.
+Other human PR update paths are separately evaluated and do not mechanically depend on #327.
+
 ## Pull requests as a triage surface
 
 PRs as a request surface: no. An explicitly named PR may still be inspected, but ordinary discovery only lists Issues.

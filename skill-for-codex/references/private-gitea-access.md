@@ -38,6 +38,19 @@ For project onboarding, keep access, Secret mutation, binding, and acceptance se
 identity/scope, permission, protection/required CI, canonical checkout, manifest remote fetch/push URL, or exact
 repo-local helper drift. It is read-only and does not provision credentials or alter remotes.
 
+## #327 FF 能力与人本人 UI 自举
+
+Agent/controller所有远端读写仍经canonicalproject-scopedbroker；本地provider无merge或凭据权限。
+受控Controller只在批准合同构造`[已核验Issue第一父链末端, fresh manifest main]`可复算无冲突整合，
+broker独立验证original/current tip祖先链、DAG/tree/scope与传输exacttip，只普通FF发表。
+禁止force/lease-force、任意merge、冲突自动解决和身份fallback；remote不明先取证，不能猜absence。
+
+新合同不证明旧installed已支持。旧leased首推亦不得执行；#327 first PR自举是负责人本人按映射spec
+使用Gitea New File/Upload File、newbranch与唯一manualPR的人工执行卡，Agent不代UI写入、不调用
+directGit/rawAPI、不安装unmergedbroker。human H必须独立核验tree/blob/mode、freshmain和exactheadCI，
+不能把local L测试当remote H通过。该人工路线不开放Agent权限，也不是其他人工PR更新的hard前置。
+source merge后两机安装各需exact批准与真实bytes/mode/owner、FF/no-op/rollback验收，#316旧授权不继承。
+
 ## Helper commands
 
 Preferred post-#61 host command:

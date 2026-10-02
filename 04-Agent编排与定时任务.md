@@ -130,6 +130,23 @@ emaintenance 改为 `none`，都是因为 systemd 层的 `claude` 不可达）�
 
 普通 lint、类型、测试、构建和范围内 review 失败不能立即转人工。禁止通过删除测试、弱化断言、隐藏错误或改验收标准制造假绿。
 
+### #327 Controller 专属的 main 整合与发布
+
+治理合同已明确；runtime、installed 和 live 能力仍需分别验收。provider 的本地 commit 检查继续
+拒绝 merge；整合只能由外层 Controller 在批准合同内、本人 worktree、验证后的第一父链上构造。
+两 parent 精确为 `[本 Issue 已核验末端, 本次 fresh manifest main]`，tree 必须可独立复算且无冲突。
+original/current remote tip 必须保留为候选祖先；未知来源、反序/octopus/foreign merge、tree额外内容、
+冲突、范围扩张或不支持的 Git 状态停止，不能 rebase/amend 已发表历史。
+
+broker 独立检查完整 DAG/tree/scope 与 exact head/remote tip；普通 FF 发表前还要拒绝传输竞态，
+包括并发 tip 恰好是候选祖先的情形。成功必须读回真实 remote head 并核对本次验证锚。
+main 在发表后前进则记录已落地 head 与新 main，停止 READY_FOR_REVIEW，重新整合/验证；
+网络或回执不明不得假称零写入。没有 force/lease-force、任意 hook 或身份 fallback。
+
+治理应用必须是只改批准合同映射文本的独立步骤，commit 后停止；fresh run 重读才进入 runtime
+frontier。旧 installed 缺能力时禁止沿用 leased publish；#327 本身使用负责人本人 UI 自举卡，
+Agent 不代提交。PR/两机安装仍各遵守具体确认与验收，source merge 不证明 installed 生效。
+
 ## 7. Verifier
 
 按项目和合同选择：format/lint/typecheck、目标单测、集成测试、迁移验证、完整测试、构建、浏览器/API acceptance、diff review 和 PR CI。

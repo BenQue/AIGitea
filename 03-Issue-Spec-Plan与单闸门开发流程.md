@@ -62,12 +62,13 @@ AISOFT_SESSION_ID=<本会话 id> PYTHONPATH=codex/runtime python3 -m aisoft_loop
 
 #### 闸门拦不到什么，以及因此必须做的一步
 
-闸门回答的是「**谁**可以推」，不是「推的**是什么**」。第三方在你的 worktree 里 rebase 之后，
-你自己再推，闸门会放行——因为它看到的身份仍然是你，而别人的改写与你自己的 rebase 在 HEAD
-上留下的形状完全相同（HEAD 不再是上次 push 的后代）。要在推送时分开这两者，就得索要一个
-「我本人打算改写」的信号，那会让每次正常 rebase 都多一步。
+#298 的归属闸门回答「谁可以推」，单独不能保证内容。历史实现允许 owner 推送被改写的 HEAD，
+再从回执检出；#327 覆盖该发布口径：已发表历史重写必须在远端写入前拒绝，不能靠事后回执追认。
+owner 标记与每次 SHA 核对仍为必要步骤；broker 还须独立复核 original/current remote tip 的祖先链、
+提交来源、完整 DAG/tree、合同范围和 fresh main。旧 installed 行为没有由文档更新自动改变，
+缺少新能力时停止，不能调用 leased rewrite。
 
-所以检出放在另外两处，而且**只在有人真的去看的时候才成立**：
+逐次检出仍保留两处：
 
 - **推送之后**：`git.push.change` 的返回体带 `pushed_head`（本次推上去的 40 位 SHA）与
   `previous_head`（该分支上一次 push 的 SHA）。**首次 push 核对 `pushed_head` 是否等于
@@ -82,8 +83,19 @@ AISOFT_SESSION_ID=<本会话 id> PYTHONPATH=codex/runtime python3 -m aisoft_loop
   `unclaimed` 与 `claim-invalid` 同样计入 GAP；`ahead`（有未推送的本地 commit）与 `unpushed`
   照列但不计——否则这条命令在整个实现期都是红的，读者会被训练成忽略它。
 
-单会话自己的 `BASE_BRANCH_STALE` 处置不受影响：`git.fetch.main` → 本地 `git rebase
-origin/main` → broker 重推照旧走得通，**不需要**在 rebase 之后重新 claim。
+`BASE_BRANCH_STALE` 按 #327 区分发表前后：未发表且尚未作为验证锚的本地历史，可由本 Issue
+owner 在自身 worktree 调整；已发表分支只能保留原 tip 的祖先关系、追加受控 main 整合。
+provider 仍不得创建 merge commit；外层 Controller 只有在批准合同内才可构造精确
+`[已核验 Issue 第一父链末端, fresh manifest main]`，只支持可复算的无冲突合并。
+broker 独立验证 original/current remote tip→候选、fresh main→候选、完整来源/tree/scope，
+并绑定传输时 exact remote tip，随后只普通 FF 发布；任意 merge、冲突解决、force/lease-force
+或 fallback 均拒绝。整合不改变 owner，不通过重新 claim 掩盖第三方改写。
+
+历史 #298 AC-6 的已发表 rebase-重推，以及 AC-5 的“owner 推送他人改写后才检出”，
+和 #136 的 lease 解法，均由上述 #327 治理合同覆盖。历史文档保留追踪；单 writer、错误码、
+逐次 `pushed_head` 核对不取消。#327 runtime/installed 未验收前不能把新合同当已可执行能力。
+其 first PR 按映射 spec 的负责人本人 UI 自举卡；只有一个 exact branch/manual PR，
+不安装 unmerged broker、不 direct Git/API、不代操作 #289/#319，也不阻塞合法人工更新。
 
 ### 衍生 Issue 的正文与认领
 

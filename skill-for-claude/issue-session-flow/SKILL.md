@@ -37,8 +37,8 @@ PR summary-only 回填与范围内 CI 修复的每次后续 push，则比对该�
 exact head。** 每次比较都是必做步骤，不能沿用首次旧 SHA，也不能省略读回校验。后续 push 前
 确认本会话归属、exact branch、新增 diff 在已批准合同内、必要验证通过与工作树清洁，再记录
 当前 40 位 lowercase head。`previous_head` 只作审计信息，不替代本次比较锚。
-授权仍绑定 exact Issue/branch/policy，合法回填与范围内 CI commit 不重复确认。闸门只核对
-「谁在推」，不保证「推的内容」；范围扩大、他人改写或 `pushed_head` 不匹配立即停止并查明，
+授权仍绑定 exact Issue/branch/policy，合法回填与范围内 CI commit 不重复确认。owner标记仅核对
+「谁在推」，不能替代broker的来源、祖先、完整内容与FF验证；范围扩大、他人改写或 `pushed_head` 不匹配立即停止并查明，
 不得把未知改写直接登记为新锚。首次候选在确认后改变时先停止并更新候选验证证据。
 
 怀疑本机有人串台时，只读扫描一次（不写任何东西）：
@@ -48,6 +48,22 @@ PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli scan-worktrees --repo <check
 ```
 
 `rewritten`、`unclaimed`、`claim-invalid` 计入 GAP；`ahead` 与 `unpushed` 是实现期常态，照列不计。
+
+## #327 保留历史的整合、FF 与生效边界
+
+provider只追加本Issue线性本地commit，不创建mergecommit。只有外层Controller在批准合同、
+本人worktree内可构造精确`[已核验Issue第一父链末端, fresh manifest main]`的可复算无冲突整合。
+original/current remote tip必须始终为候选祖先；broker独立核验来源、完整DAG/tree/scope、fresh main、
+本次exact head与传输remote tip，随后只普通FF发表。已发表rebase/amend、force/lease-force、
+任意/跨Issue/octopus merge、自动解冲突与身份fallback均拒绝；仍要逐push核对真实remote与本次SHA锚。
+
+#298 AC-5/AC-6与06/#136的历史重写口径由#327覆盖；历史文档保留，single-writer与回执义务保留。
+新治理不证明runtime/installed支持；旧installed leased push包括首推均不可沿用。治理应用独立commit
+后立即停止，fresh run重读后才可runtime。#327自身first PR只按其映射spec由负责人本人Gitea UI
+发表到exactbranch、保留唯一manualPR；Agent不代UI、不directGit/API、不安装unmerged代码。
+两机安装各需exact版本批准、完整前后bytes/mode/owner、realFF与rollback实证，#316授权不继承。
+installed AC未闭合不把source merge/自动closed当实际完成、不提前cleanup/归档；原owner的人工PR更新
+独立验收，不机械等待#327。
 
 ## 两种会话
 

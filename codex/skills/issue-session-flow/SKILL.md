@@ -51,7 +51,8 @@ session's ownership, the exact branch, the new diff against the approved contrac
 and a clean worktree, then record the current 40-character lowercase head SHA. `previous_head` is audit
 information, not the current comparison anchor. Submission authorization remains bound to exact
 Issue/branch/policy; legitimate backfill and in-contract CI commits do not require a new confirmation each.
-The gate checks who pushes, not what is pushed. Stop on scope expansion, another session's rewrite or any
+The ownership marker checks who pushes; it does not replace the broker's independent provenance,
+ancestry, full-content and FF validation. Stop on scope expansion, another session's rewrite or any
 `pushed_head` mismatch and investigate before proceeding; never adopt an unexplained head as a new anchor.
 If the first candidate changes after confirmation, stop and update candidate validation evidence first.
 
@@ -63,6 +64,22 @@ PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli scan-worktrees --repo <check
 
 `rewritten`, `unclaimed` and `claim-invalid` count as GAP; `ahead` and `unpushed` are the normal
 state during implementation and are listed without counting.
+
+## #327 保留历史的整合、FF 与生效边界
+
+provider只追加本Issue线性本地commit，不创建mergecommit。只有外层Controller在批准合同、
+本人worktree内可构造精确`[已核验Issue第一父链末端, fresh manifest main]`的可复算无冲突整合。
+original/current remote tip必须始终为候选祖先；broker独立核验来源、完整DAG/tree/scope、fresh main、
+本次exact head与传输remote tip，随后只普通FF发表。已发表rebase/amend、force/lease-force、
+任意/跨Issue/octopus merge、自动解冲突与身份fallback均拒绝；仍要逐push核对真实remote与本次SHA锚。
+
+#298 AC-5/AC-6与06/#136的历史重写口径由#327覆盖；历史文档保留，single-writer与回执义务保留。
+新治理不证明runtime/installed支持；旧installed leased push包括首推均不可沿用。治理应用独立commit
+后立即停止，fresh run重读后才可runtime。#327自身first PR只按其映射spec由负责人本人Gitea UI
+发表到exactbranch、保留唯一manualPR；Agent不代UI、不directGit/API、不安装unmerged代码。
+两机安装各需exact版本批准、完整前后bytes/mode/owner、realFF与rollback实证，#316授权不继承。
+installed AC未闭合不把source merge/自动closed当实际完成、不提前cleanup/归档；原owner的人工PR更新
+独立验收，不机械等待#327。
 
 ## Two default confirmation points
 
