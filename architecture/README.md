@@ -62,7 +62,146 @@ CLI 与 `codex/tools/aisoft-project-check.sh` 都从**脚本所在平台 checkou
 解析不到，表现为 `PROFILE_UNKNOWN` 或 slot 对不上——那是 checkout 陈旧，不是声明写错。
 先 `git fetch` 并 ff 本地 `main`，再重跑。
 
+## Dockerfile 基镜像源码一致性合同（#288）
+
+> 实施边界：#288 的 T02 已实现以下离线源码核验与 `--repo-root` 参数。
+> architecture/CLI 与 release reader 集成回归已通过；固定 release evidence 的 exact pin
+> 已在 T05 受控同步。T06 已受控应用 installed-drift fixture 基线隔离，专项测试通过；
+> fresh run 的完整 smoke/runtime 本地验收均通过（详见 #288 verification）；
+> 最终 PR/required CI/安装与部署未执行。
+
+容器交付 declaration 在既有 `oci-image` component 之外，必须增加非空、去重的 `dockerfiles`
+数组，列出该构建使用的全部 Dockerfile。路径以应用仓库根为基准，使用相对 POSIX 形式，例如：
+
+```json
+"dockerfiles": ["docs/deploy/Dockerfile", "worker/Dockerfile"]
+```
+
+这是 declaration 的字段示例，不是完整 JSON 文件。非容器交付（`pm2-legacy`、
+`embedded-sqlite/v1`、`systemd-native/v1`、`windows-iis/v1`）禁止该字段，也不读取 Dockerfile。
+该规则按 delivery contract 触发，不由 profile slot 决定。
+
+validate、lock 与 validate --lock 共用同一文件核验入口。CLI 未传 `--repo-root` 时，
+仅对 project 文件直接位于 `.aisoft/` 的布局，从其父目录确定仓库根；其它容器布局必须传
+显式 `--repo-root`。不从 cwd 猜测，也不 glob 搜索 Dockerfile。既有项目 checker 使用
+`.aisoft/architecture.json`，沿该入口检查。容器库调用方同样必须提供 `repo_root`，没有
+纯 JSON 跳过文件核验的通道。
+
+路径不得是 absolute、空项，不得含 `.`/`..` segment、反斜线、控制字符、空路径 segment；
+文件及目录链禁止 symlink。必须是根内可读普通 UTF-8 文件，最大 1 MiB。不运行 Docker、
+shell、Registry 查询或文件内容；诊断仅含稳定 code、声明字段/逻辑行位置和修复建议。
+
+### FROM 支持范围
+
+- 所有外部 `FROM` 必须保留字面量 `image:tag@sha256:<64 lowercase hex>`，digest 必须在
+  已通过 catalog 校验的声明 OCI 集合中。反向也要求每个声明 OCI digest 至少被引用一次。
+  允许多文件、多外部 stage 使用不同的已声明 digest，不只检查最后一个 stage。
+- 命名 stage 可以引用先前 stage；禁止重复、前向或自引用。`FROM scratch` 无外部镜像，
+  但不能以全部 scratch 绕过声明基镜像的实际引用要求。数字 FROM stage 引用不作为豁免。
+- 接受大小写不敏感指令、空白、整行注释、CRLF，以及默认反斜线或有效 `escape` directive
+  指定的反引号续行。directives 仅在 Docker 规定的文件头位置生效；重复/非法 escape 拒绝。
+- 镜像 token 中有 `$` 一律拒绝，即使全局 ARG 有默认值；build-time override 能改变默认值，
+  静态展开默认值不能作为证据。其它指令内普通 ARG/ENV 不受该规则限制。
+  `--platform=$BUILDPLATFORM` 等平台变量允许，但不新增 CPU/OS 与 child/index 兼容性证明。
+- 只接受一个可选 `--platform=...`、一个 image token、可选 `AS stage` 的 FROM 形式。
+  标准 `docker/dockerfile:1`/稳定 `1.x` frontend 可识别；custom frontend、labs、heredoc
+  与无法证明语义的结构 fail closed，不通过忽略行取得 PASS。
+
+### 稳定诊断与迁移
+
+| 诊断码 | 原因 |
+|---|---|
+| `DOCKERFILE_DECLARATION_REQUIRED` / `DOCKERFILE_DECLARATION_FORBIDDEN` | delivery contract 与路径声明不匹配 |
+| `DOCKERFILE_ROOT_REQUIRED` | 容器文件核验没有明确仓库根 |
+| `DOCKERFILE_PATH_INVALID` / `DOCKERFILE_READ_FAILED` | 路径不安全或文件无法安全读取 |
+| `DOCKERFILE_FROM_REQUIRED` / `DOCKERFILE_FROM_INVALID` | 缺少 FROM 或 FROM 语法无效 |
+| `DOCKERFILE_SYNTAX_UNSUPPORTED` / `DOCKERFILE_FROM_VARIABLE_UNSUPPORTED` | 无法静态证明支持的语法或镜像变量 |
+| `DOCKERFILE_DIGEST_REQUIRED` / `DOCKERFILE_DIGEST_MISMATCH` | 外部镜像缺有效 digest 或不在声明/catalog 集合 |
+| `DOCKERFILE_BASE_IMAGE_UNUSED` | 声明了没有实际 FROM 引用的 OCI digest |
+
+读取/核验失败返回 exit 2 与 `valid: false`，lock 不创建或覆盖输出。已有容器声明必须补充路径并
+重新生成 declaration checksum/lock，不保留 bypass；非容器声明及 lock 的 byte identity 保持不变。
+lock schema、release reader 的精确字段集合不变，不在 lock 中新增 Dockerfile evidence 字段。
+仓内容器 reference 使用 synthetic/target Dockerfile，不构成真实下游应用迁移证据。
+
+通过核验只证明**声明的源码输入**中全部外部 FROM 与声明/catalog 一致。应用 CI 必须把实际
+构建选用的 Dockerfile 与同一 declaration 绑定；其它 `-f`、stdin、生成文件、额外 build context
+与外部 `COPY --from`/RUN 下载不在本保证内。正式制品来源需 builder provenance/attestation，
+`valid: true` 不表示已经构建、pull、部署或现场验收。应用迁移走应用自己的 Issue/PR。
+
 ## 更新与例外
+
+### Profile checksum 与重 lock（#287 源码已实现，安装与消费者验收另行执行）
+
+本节与 [ADR-0007](decisions/0007-profile-machine-checksum.md) 定义已实现的哈希合同。当前源码
+CLI 默认生成 V2，并严格校验 V1/V2。源码本地验证不证明工具已安装或实际消费者已验收 V2。
+
+现有 V1 的 `source_checksums.profile_sha256` 对整个解析后的 profile canonical JSON
+求 SHA-256。空白与 object key 顺序本来就不会改变该值；字符串和数组内容变化会改变它。
+因此，仅润色 `compatibility_rules` 也会让 V1 lock 报 `LOCK_DRIFT`。
+
+新格式采用带域标识的 `profile-machine-v1`：从通过 strict schema 校验的 profile 顶层
+只排除 `description` 和 `compatibility_rules`，将其余完整对象放入固定 envelope：
+
+```json
+{"hash_contract":"profile-machine-v1","profile":{"...":"除两项说明字段外的完整 profile"}}
+```
+
+以上只是哈希输入形状说明，省略号不是可提交输入。envelope 使用既有 canonical JSON 规则
+求 SHA-256；object keys 排序，数组保持原序，不排序、去重或另作归一化。
+
+| Profile 字段 | V2 是否覆盖 | 影响 |
+|---|---|---|
+| `description`、`compatibility_rules` | 否 | 说明润色不使 V2 lock 漂移 |
+| `$schema`、`schema_version`、`profile_id`、`version`、`catalog_revision`、`status` | 是 | 身份、状态、版本与绑定变化仍检测 |
+| 完整 `required_components`，包括 `allowed_states` 和 `transitions` | 是 | slot、component 和允许状态变化仍检测 |
+| 完整 `delivery_contracts` | 是 | 交付取值与顺序变化仍检测 |
+| 完整 `constraints` | 是 | 部署、存储、并发、备份/恢复约束仍受保护 |
+| 未来获 strict schema 批准的其它机器字段 | 是 | 不会因旧字段 allowlist 遗漏 |
+
+`constraints` 虽然是自然语言字符串，却承载真实运维约束，因此其措辞变化仍保守触发漂移。
+本合同不承诺所有散文编辑都稳定。规范变化必须同步到对应机器字段或约束；不得只编辑
+被排除的说明字段来改变实际实施要求。未知字段仍由 schema 拒绝。
+
+V2 lock 使用独立 `architecture-lock-v2.schema.json`、`schema_version: 2.0` 和必填顶层
+`profile_checksum_contract: profile-machine-v1`。`source_checksums.profile_sha256` 采用
+上述投影哈希；catalog 和 declaration 仍使用原完整 canonical 哈希。`lock_sha256`
+覆盖完整 lock，包括格式与算法标识。profile 的既有 `version` 与 declaration 的匹配
+检查保留；版本相等不能忽略 hash，漏 bump 的合法机器变化仍须 `LOCK_DRIFT`。
+
+当前源码 CLI 的新 lock writer 默认生成 V2；`validate --lock` 按 lock 自身的已知版本选择
+schema/expected lock：V1 保持完整 profile 哈希，V2 使用明确投影。未知 version/marker、
+marker 混用/缺失、额外字段和 checksum 篡改均 fail closed；没有 ignore、自动降级、
+自动迁移或 CLI legacy writer 开关。输入非法时可先失败于 schema/semantic 诊断；
+合法机器输入发生变化时才精确断言 `LOCK_DRIFT`。
+
+V1 只有旧哈希，未保存机器投影或旧 profile 快照，无法证明新旧差异仅为说明。故新 reader
+不会重新解释或放宽旧 V1 lock：V1 的说明漂移仍失败。采用 V2 后，新格式的既有 lock
+才获得说明润色稳定性。旧工具，包括当前仅接受 V1 的 release reader，也会拒绝 V2；
+消费者必须先核对实际读取链是否支持新格式，不能把 architecture validate 通过当作
+release、安装或部署已兼容。
+
+#### 下游显式迁移与人工通知
+
+1. 平台变更维护者提供该 Change 的 Issue/PR、profile ID、旧/新 version 与 checksum
+   contract、机器/约束变化和受影响环境的证据。只列真实读回的消费者，未盘点写 `NOT RUN`；
+   不继承历史“只有一家”的 inventory 判断。
+2. 项目维护者在自己的 Issue/Change 中确认每个环境的 declaration/lock 路径，以及实际
+   CLI、schema 和 release reader 的版本兼容性。#287 不代为更新工具或写其它仓。
+3. 采用已合并且符合读取链要求的工具后，复核当前 catalog/profile/declaration/exception。
+   显式运行 lock，输出到临时候选路径；此动作仅生成候选，不证明当前合同已被应用接受。
+4. 审阅 candidate diff，运行 `validate --lock` 和该项目的 required CI，再提交环境对应的
+   lock。陈旧 V1 报 drift 时仍须审阅当前合同，不能用重生成消除真实机器变化。target lock
+   不得复制或重命名为 current。
+5. 消费者记录接受的格式、输入与校验结果，并按自己的 PR/部署边界完成后续流程。平台
+   reference locks 原样保留，不批量重写。
+
+V2 的纯说明编辑无需下游重 lock。机器/constraints/catalog/declaration 变化仍要求逐项目
+审阅并按上述步骤处理。自动消费者发现、跨仓开 Issue 和 `needs-relock` 投递均为
+**NOT IMPLEMENTED**；本合同没有跨仓写、live 配置、安装或部署授权。
+
+回滚时，若已有消费者接受 V2，应保留支持双格式的 reader，或在应用独立 Change 中审阅
+V1 兼容候选。旧 CLI 无法读 V2，不能只 revert 平台实现就宣称消费者已恢复。
 
 Catalog 更新必须建立 Issue、complex spec/plan、兼容证据、PR/CI 和人工合并。Security 更新可走
 快速通道但不能绕过这些门；patch 每月复审，minor 每季度复审，major 必须进入应用仓的 complex

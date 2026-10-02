@@ -1,0 +1,16 @@
+[
+  {
+    "command": "/bin/bash -n templates/project/ci/registry-preflight.sh codex/tests/test-registry-preflight.sh",
+    "prototype_only": true,
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": "shellcheck templates/project/ci/registry-preflight.sh codex/tests/test-registry-preflight.sh",
+    "prototype_only": true,
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]

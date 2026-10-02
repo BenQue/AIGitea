@@ -1,0 +1,27 @@
+{
+  "result": "PASS",
+  "issue": 288,
+  "branch": "change/288-dockerfile-digest",
+  "effective_complexity": "complex",
+  "change_type": "bugfix",
+  "contract_effect": "change",
+  "risk_flags": [
+    "shared-core",
+    "schema-change",
+    "platform-governance"
+  ],
+  "required_docs": [
+    "summary-dockerfile-digest-261002.md",
+    "spec-dockerfile-digest-261002.md",
+    "plan-dockerfile-digest-261002.md",
+    "verification-dockerfile-digest-261002.md"
+  ],
+  "acceptance_criteria_count": 8,
+  "dependencies": [],
+  "documents": {
+    "summary": "summary-dockerfile-digest-261002.md",
+    "spec": "spec-dockerfile-digest-261002.md",
+    "plan": "plan-dockerfile-digest-261002.md",
+    "verification": "verification-dockerfile-digest-261002.md"
+  }
+}

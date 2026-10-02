@@ -1,0 +1,19 @@
+{
+  "issue": 288,
+  "branch": "change/288-dockerfile-digest",
+  "policy": "manual",
+  "session": "01a0fc7b-f327-7a93-a48c-a254937cb08d",
+  "date": "2026-10-02",
+  "user_confirmation_text": "确认",
+  "proposal_sha256": "9df4397e2017ff70e32d1345433daa035bd263882924f48a94a10c6cdc405442",
+  "approved_paths": [
+    "codex/tests/smoke.sh",
+    "codex/tests/test-architecture-install.sh",
+    "architecture/templates/project-architecture.example.json",
+    "architecture/templates/Dockerfile.example"
+  ],
+  "scope": "两处现有 validate 测试入口传明确 root；模板增加 synthetic Dockerfile；独立治理步骤提交后停止，fresh turn继续runtime",
+  "pr_submission_authorized": false,
+  "merge_authorized": false,
+  "install_or_deploy_authorized": false
+}

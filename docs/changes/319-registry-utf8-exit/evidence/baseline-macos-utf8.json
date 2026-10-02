@@ -1,0 +1,99 @@
+{
+  "baseline_sha": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "bash": "GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)",
+  "cases": [
+    {
+      "locale": "C.UTF-8",
+      "fixture": "healthy",
+      "exit_code": 0,
+      "stdout": "AISOFT_REGISTRY_PREFLIGHT_OK registry=http://127.0.0.1:52710 package=fflate@0.8.3\n[registry-preflight] packument 与 tarball 均真实取到，未经 npm 缓存。\n",
+      "stderr": ""
+    },
+    {
+      "locale": "C.UTF-8",
+      "fixture": "stopped",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "/private/tmp/issue-319-registry-utf8-exit/templates/project/ci/registry-preflight.sh: line 81: REGISTRY�: unbound variable\n"
+    },
+    {
+      "locale": "C.UTF-8",
+      "fixture": "full-test",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "registry-preflight test: 健康 registry：缺少成功标记\ncodex/tests/test-registry-preflight.sh: line 13: 58392 Terminated: 15          python3 \"$FAKE\" \"$1\" \"$PORT\"\n",
+      "validity": "INVALID_HARNESS_ENV",
+      "detail": "第一次包装调用继承了前一条直接探测的 REGISTRY_PREFLIGHT_REGISTRY，覆盖了测试内部临时端口。此结果不可作为产品基线；下方 full-test-clean-env 是纠正后实际执行。"
+    },
+    {
+      "locale": "en_US.UTF-8",
+      "fixture": "healthy",
+      "exit_code": 0,
+      "stdout": "AISOFT_REGISTRY_PREFLIGHT_OK registry=http://127.0.0.1:52720 package=fflate@0.8.3\n[registry-preflight] packument 与 tarball 均真实取到，未经 npm 缓存。\n",
+      "stderr": ""
+    },
+    {
+      "locale": "en_US.UTF-8",
+      "fixture": "stopped",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "/private/tmp/issue-319-registry-utf8-exit/templates/project/ci/registry-preflight.sh: line 81: REGISTRY�: unbound variable\n"
+    },
+    {
+      "locale": "en_US.UTF-8",
+      "fixture": "full-test",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "registry-preflight test: 健康 registry：缺少成功标记\ncodex/tests/test-registry-preflight.sh: line 13: 58426 Terminated: 15          python3 \"$FAKE\" \"$1\" \"$PORT\"\n",
+      "validity": "INVALID_HARNESS_ENV",
+      "detail": "第一次包装调用继承了前一条直接探测的 REGISTRY_PREFLIGHT_REGISTRY，覆盖了测试内部临时端口。此结果不可作为产品基线；下方 full-test-clean-env 是纠正后实际执行。"
+    },
+    {
+      "locale": "zh_CN.UTF-8",
+      "fixture": "healthy",
+      "exit_code": 0,
+      "stdout": "AISOFT_REGISTRY_PREFLIGHT_OK registry=http://127.0.0.1:52734 package=fflate@0.8.3\n[registry-preflight] packument 与 tarball 均真实取到，未经 npm 缓存。\n",
+      "stderr": ""
+    },
+    {
+      "locale": "zh_CN.UTF-8",
+      "fixture": "stopped",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "/private/tmp/issue-319-registry-utf8-exit/templates/project/ci/registry-preflight.sh: line 81: REGISTRY�: unbound variable\n"
+    },
+    {
+      "locale": "zh_CN.UTF-8",
+      "fixture": "full-test",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "registry-preflight test: 健康 registry：缺少成功标记\ncodex/tests/test-registry-preflight.sh: line 13: 58460 Terminated: 15          python3 \"$FAKE\" \"$1\" \"$PORT\"\n",
+      "validity": "INVALID_HARNESS_ENV",
+      "detail": "第一次包装调用继承了前一条直接探测的 REGISTRY_PREFLIGHT_REGISTRY，覆盖了测试内部临时端口。此结果不可作为产品基线；下方 full-test-clean-env 是纠正后实际执行。"
+    },
+    {
+      "locale": "C.UTF-8",
+      "fixture": "full-test-clean-env",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "registry-preflight test: 停掉 registry 之后：期望退出 1，实际 0\n",
+      "validity": "VALID"
+    },
+    {
+      "locale": "en_US.UTF-8",
+      "fixture": "full-test-clean-env",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "registry-preflight test: 停掉 registry 之后：期望退出 1，实际 0\n",
+      "validity": "VALID"
+    },
+    {
+      "locale": "zh_CN.UTF-8",
+      "fixture": "full-test-clean-env",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "registry-preflight test: 停掉 registry 之后：期望退出 1，实际 0\n",
+      "validity": "VALID"
+    }
+  ]
+}

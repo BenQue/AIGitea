@@ -1,0 +1,17 @@
+{
+  "issue": 287,
+  "branch": "change/287-profile-semantic-lock",
+  "session": "01a0fc7c-027e-70a3-8871-beb484e4a8d8",
+  "decision": "contract/start confirmed",
+  "human_message": "确认",
+  "recorded_at": "2026-10-02T20:20:20.614384+08:00",
+  "policy": "manual",
+  "scope": "Approved spec and T01/T02/T03; T01 governance-only then stop; fresh run re-reads before runtime",
+  "pr_submission_authorized": false,
+  "merge_authorized": false,
+  "deployment_authorized": false,
+  "approved_documents_sha256": {
+    "spec-profile-semantic-lock-261002.md": "d187cfeaef700f26d164776e22a93dbb293aeadfa4f4df5e0c7d2714431fe248",
+    "plan-profile-semantic-lock-261002.md": "64a825655def544242643c703ba3603bb807b9059fc205cccc505bd9e90f443a"
+  }
+}

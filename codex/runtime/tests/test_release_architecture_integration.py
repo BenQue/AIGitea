@@ -65,6 +65,8 @@ class ArchitectureReleaseIntegrationTests(unittest.TestCase):
             project,
             cls.project_schema,
             date(2026, 9, 5),
+            repo_root=cls.architecture_root,
+            schema_version="1.0",
         )
 
     @staticmethod
@@ -93,6 +95,8 @@ class ArchitectureReleaseIntegrationTests(unittest.TestCase):
             self.project,
             self.project_schema,
             date(2026, 9, 5),
+            repo_root=self.architecture_root,
+            schema_version="1.0",
         )
         reference = load_json(
             self.architecture_root
@@ -112,6 +116,23 @@ class ArchitectureReleaseIntegrationTests(unittest.TestCase):
                 files.architecture_lock["catalog_revision"],
                 self.catalog["revision"],
             )
+
+    def test_architecture_v2_is_valid_but_existing_release_reader_rejects_it(self) -> None:
+        generated = build_lock(
+            self.catalog, self.catalog_schema, self.profile, self.profile_schema,
+            self.project, self.project_schema, date(2026, 9, 5),
+            repo_root=self.architecture_root,
+        )
+        schema = load_json(self.architecture_root / "schemas/architecture-lock-v2.schema.json")
+        validate_lock(generated, schema, generated)
+        self.assertEqual(generated["schema_version"], "2.0")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path, _, _ = create_release(root)
+            self._install_lock(root, generated)
+            with self.assertRaises(ContractError) as caught:
+                load_release_files(load_target_profile(profile_path), SHA_A)
+            self.assertIn("profile_checksum_contract", str(caught.exception))
 
     def test_valid_self_hash_cannot_hide_unknown_lock_field(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

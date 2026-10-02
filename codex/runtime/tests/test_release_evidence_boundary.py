@@ -30,6 +30,7 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
         )
         self.files = {
             boundary.RUNNER: old_runner,
+            boundary.ARCHITECTURE_LOCK: b'{"declaration":"baseline"}\n',
             "codex/runtime/aisoft_release/transport.py": b"# transport\n",
             "docker-release/README.md": b"docs\n",
             "docker-release/install.sh": b"installer\n",
@@ -49,7 +50,8 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
             "BASELINE": self.baseline,
             "CURRENT_SOURCE_PINS": {},
             "SCOPES": ("codex/runtime/aisoft_release", "docker-release", boundary.EVIDENCE,
-                       boundary.HISTORICAL_TEST, "codex/tests/fixtures/docker-release-v2-lifecycle"),
+                       boundary.HISTORICAL_TEST, "codex/tests/fixtures/docker-release-v2-lifecycle",
+                       boundary.ARCHITECTURE_LOCK),
             "RUNNER_BEFORE": boundary.digest(old_runner),
             "RUNNER_AFTER": boundary.digest(self.expected_runner),
             "EVIDENCE_SHA256": boundary.digest(self.files[boundary.EVIDENCE]),
@@ -93,7 +95,8 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
     def test_current_amendment_pins_require_exact_disk_and_index_bytes(self) -> None:
         changed = {boundary.RUNNER: self.expected_runner + b"# reviewed identity fix\n",
                    boundary.TRANSPORT: b"# reviewed graph verification\n",
-                   boundary.MATRIX: b'{"revision":"reviewed"}\n'}
+                   boundary.MATRIX: b'{"revision":"reviewed"}\n',
+                   boundary.ARCHITECTURE_LOCK: b'{"declaration":"dockerfiles"}\n'}
         with patch.object(boundary, "CURRENT_SOURCE_PINS", {
             name: boundary.digest(value) for name, value in changed.items()
         }):

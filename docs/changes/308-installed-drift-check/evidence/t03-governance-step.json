@@ -1,0 +1,35 @@
+{
+  "issue": 308,
+  "ticket": "T03",
+  "branch": "change/308-installed-drift-check",
+  "session": "01a0fc7b-d0b3-7802-af08-555307d048a6",
+  "runtime_base_head": "ee24eb11d3915f73f89944c54ced21d533e73122",
+  "state": "GOV_APPLIED_REQUIRES_FRESH_RUN",
+  "governance_files": [
+    "codex/tests/smoke.sh"
+  ],
+  "smoke_sha256": "2aa0a46297563ea3cea50ecb4687c5cc07d255b53fa4ee5d51496b0a9182cbd1",
+  "changes": [
+    "bash -n new wrappers",
+    "ShellCheck new wrappers",
+    "checker --source-only",
+    "isolated installer fixture tests"
+  ],
+  "existing_gates": "preserved",
+  "static": {
+    "bash_n_smoke": "PASS",
+    "shellcheck_smoke": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "integrated_smoke": "NOT RUN after T03; T04 fresh run required",
+  "installed_checks": "NOT RUN in this step",
+  "original_ac2": "GAP",
+  "next_ticket": "T04",
+  "next_run_authorized": true,
+  "final_pr_confirmation": "not yet requested; exact #308/branch/manual required",
+  "push": false,
+  "pr": null,
+  "ci": "NOT RUN",
+  "installation": false,
+  "deployment": false
+}

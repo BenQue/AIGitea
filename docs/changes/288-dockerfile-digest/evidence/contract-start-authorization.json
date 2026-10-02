@@ -1,0 +1,16 @@
+{
+  "issue": 288,
+  "branch": "change/288-dockerfile-digest",
+  "policy": "manual",
+  "session": "01a0fc7b-f327-7a93-a48c-a254937cb08d",
+  "date": "2026-10-02",
+  "user_confirmation_text": "确认",
+  "scope": "批准完整映射 spec/plan 启动；T01 独立治理步骤停止，fresh run 继续 T02/T03",
+  "approved_documents_sha256": {
+    "spec-dockerfile-digest-261002.md": "4afc26c6af42dea5f705b8f97f3165942780b829d22a8d1a81c616226570731d",
+    "plan-dockerfile-digest-261002.md": "7ecc35b2743add94f57b80270266e1e73660287a50247dbdfd1f4bc1b460a595"
+  },
+  "pr_submission_authorized": false,
+  "merge_authorized": false,
+  "install_or_deploy_authorized": false
+}

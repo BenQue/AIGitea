@@ -1,0 +1,192 @@
+{
+  "base": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "result": "PASS",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "base_sha256": "7192cb1bcb5c4e0d87f24bbf1a1abac1ad72c08094e6a8e52f1b63217531514f",
+      "current_sha256": "7192cb1bcb5c4e0d87f24bbf1a1abac1ad72c08094e6a8e52f1b63217531514f",
+      "equal": true
+    },
+    {
+      "path": "architecture/catalog.json",
+      "base_sha256": "0ae4e87456517c4b45145b1a4e78084be58299bc975a7ab737cc2cc4d1cb8afe",
+      "current_sha256": "0ae4e87456517c4b45145b1a4e78084be58299bc975a7ab737cc2cc4d1cb8afe",
+      "equal": true
+    },
+    {
+      "path": "architecture/profiles/linux-node-postgres-v1.json",
+      "base_sha256": "224e9318f8cc4e76475538c5cdab71f90fb25a5d322a60a0b099825867d5d132",
+      "current_sha256": "224e9318f8cc4e76475538c5cdab71f90fb25a5d322a60a0b099825867d5d132",
+      "equal": true
+    },
+    {
+      "path": "architecture/profiles/linux-node-sqlite-v1.json",
+      "base_sha256": "dd99570576d59aed62a96353ad1d3abf8c85f993c2e5405c980e0bba33b247ce",
+      "current_sha256": "dd99570576d59aed62a96353ad1d3abf8c85f993c2e5405c980e0bba33b247ce",
+      "equal": true
+    },
+    {
+      "path": "architecture/profiles/linux-node-systemd-postgres-v1.json",
+      "base_sha256": "4c714b7765f193b6e66961901cf82cec05b3a423966d8948566a66d7b15a3e2d",
+      "current_sha256": "4c714b7765f193b6e66961901cf82cec05b3a423966d8948566a66d7b15a3e2d",
+      "equal": true
+    },
+    {
+      "path": "architecture/profiles/small-embedded-sqlite-v1.json",
+      "base_sha256": "7d7f0497a21e1e0017325cfc510c4b1d71ff05d040bf97ad87ec3003d5131af4",
+      "current_sha256": "7d7f0497a21e1e0017325cfc510c4b1d71ff05d040bf97ad87ec3003d5131af4",
+      "equal": true
+    },
+    {
+      "path": "architecture/profiles/windows-dotnet-postgres-v1.json",
+      "base_sha256": "89cc7c8729e1fe9d8768a26a8483b6edd9c843784bbee28ef3c8ac4cf7b963cb",
+      "current_sha256": "89cc7c8729e1fe9d8768a26a8483b6edd9c843784bbee28ef3c8ac4cf7b963cb",
+      "equal": true
+    },
+    {
+      "path": "architecture/reference/newemaint/README.md",
+      "base_sha256": "fe1ca495fce98e2a4879969c62b9f0fe4ad623352ceecf609729f4dddcb6a196",
+      "current_sha256": "fe1ca495fce98e2a4879969c62b9f0fe4ad623352ceecf609729f4dddcb6a196",
+      "equal": true
+    },
+    {
+      "path": "architecture/reference/newemaint/gap-report.md",
+      "base_sha256": "b0ccd7dbf38e70e6260400426bb136e33eb949da9c98b902df7bbc4ec9e2ec42",
+      "current_sha256": "b0ccd7dbf38e70e6260400426bb136e33eb949da9c98b902df7bbc4ec9e2ec42",
+      "equal": true
+    },
+    {
+      "path": "architecture/reference/newemaint/inventory.json",
+      "base_sha256": "d45dda7fdedbeb555e5f6f5b78f01804c3e26a4444ac4c7ff39a86fbf57b5317",
+      "current_sha256": "d45dda7fdedbeb555e5f6f5b78f01804c3e26a4444ac4c7ff39a86fbf57b5317",
+      "equal": true
+    },
+    {
+      "path": "architecture/reference/newemaint/target-candidate/architecture.json",
+      "base_sha256": "6c3cabf4231e90a593b9a0b0aa5bacf48acb4e9632becf57ad7f570ab8d99a76",
+      "current_sha256": "6c3cabf4231e90a593b9a0b0aa5bacf48acb4e9632becf57ad7f570ab8d99a76",
+      "equal": true
+    },
+    {
+      "path": "architecture/reference/newemaint/target-candidate/architecture.lock.json",
+      "base_sha256": "4285cd01ad9359b6a374a971931910126f84a61aaf122b697c18a05d4eab8dcf",
+      "current_sha256": "4285cd01ad9359b6a374a971931910126f84a61aaf122b697c18a05d4eab8dcf",
+      "equal": true
+    },
+    {
+      "path": "architecture/reference/sqlite/architecture.json",
+      "base_sha256": "15c17e5efb6a8c0210d6a0f79cb132f26349d93e9c0033554fe8b539973cc4f5",
+      "current_sha256": "15c17e5efb6a8c0210d6a0f79cb132f26349d93e9c0033554fe8b539973cc4f5",
+      "equal": true
+    },
+    {
+      "path": "architecture/reference/sqlite/architecture.lock.json",
+      "base_sha256": "6d441c5743ce5921c7109466a27a07b8edb548288af844d329b2dcd6d091e31b",
+      "current_sha256": "6d441c5743ce5921c7109466a27a07b8edb548288af844d329b2dcd6d091e31b",
+      "equal": true
+    },
+    {
+      "path": "architecture/reference/sqlite/gap-report.md",
+      "base_sha256": "22fa6adb6ee72fd6a546b505fc4aeefb9e1e02904e6fe6bf724b3ff1cc35f444",
+      "current_sha256": "22fa6adb6ee72fd6a546b505fc4aeefb9e1e02904e6fe6bf724b3ff1cc35f444",
+      "equal": true
+    },
+    {
+      "path": "architecture/reference/windows/architecture.json",
+      "base_sha256": "cff303d366a3807134b69916460f1354d9dacb2e6b231769fecdf2ec9e2de1b1",
+      "current_sha256": "cff303d366a3807134b69916460f1354d9dacb2e6b231769fecdf2ec9e2de1b1",
+      "equal": true
+    },
+    {
+      "path": "architecture/reference/windows/architecture.lock.json",
+      "base_sha256": "230270dbc1bb4b1e46e4757cd65e5b367b7855693e7fc57ab36a5dc5b672a480",
+      "current_sha256": "230270dbc1bb4b1e46e4757cd65e5b367b7855693e7fc57ab36a5dc5b672a480",
+      "equal": true
+    },
+    {
+      "path": "architecture/reference/windows/gap-report.md",
+      "base_sha256": "1c4b5de4343336e2d4c551c862d1926f8dea171150e9a45182b521bd55da1f51",
+      "current_sha256": "1c4b5de4343336e2d4c551c862d1926f8dea171150e9a45182b521bd55da1f51",
+      "equal": true
+    },
+    {
+      "path": "architecture/schemas/architecture-lock-v1.schema.json",
+      "base_sha256": "bc09a45839e3a1d12827dd1997591b4495464bd218bdea327c76e49fda107e75",
+      "current_sha256": "bc09a45839e3a1d12827dd1997591b4495464bd218bdea327c76e49fda107e75",
+      "equal": true
+    },
+    {
+      "path": "codex/runtime/aisoft_release/__init__.py",
+      "base_sha256": "f6179ea8c638ac0a1cac51689d19049cca7edf8ebf79214e6cb1ce5b0266962e",
+      "current_sha256": "f6179ea8c638ac0a1cac51689d19049cca7edf8ebf79214e6cb1ce5b0266962e",
+      "equal": true
+    },
+    {
+      "path": "codex/runtime/aisoft_release/cli.py",
+      "base_sha256": "9e94648cbbaad7314502401ad566a0267999381559970507c29b35054dbc1aa2",
+      "current_sha256": "9e94648cbbaad7314502401ad566a0267999381559970507c29b35054dbc1aa2",
+      "equal": true
+    },
+    {
+      "path": "codex/runtime/aisoft_release/compatibility.py",
+      "base_sha256": "36e82ecef0a8071b5b5ebe7f0fb851626295e20305c34278b4f40ec8e86a2079",
+      "current_sha256": "36e82ecef0a8071b5b5ebe7f0fb851626295e20305c34278b4f40ec8e86a2079",
+      "equal": true
+    },
+    {
+      "path": "codex/runtime/aisoft_release/compose.py",
+      "base_sha256": "8aaff5820228d5b4c3bb2fd79e70359b971c5b0f74757bae8fd70ef900cbfa87",
+      "current_sha256": "8aaff5820228d5b4c3bb2fd79e70359b971c5b0f74757bae8fd70ef900cbfa87",
+      "equal": true
+    },
+    {
+      "path": "codex/runtime/aisoft_release/contract.py",
+      "base_sha256": "aeeb3152443cce026cb1deb478d56fe520dd21006ce511a1253c7152ddf77b77",
+      "current_sha256": "aeeb3152443cce026cb1deb478d56fe520dd21006ce511a1253c7152ddf77b77",
+      "equal": true
+    },
+    {
+      "path": "codex/runtime/aisoft_release/docker.py",
+      "base_sha256": "3ac0e2677ad82621f2bdcd48d98ea78c2d762a8d305973c82a9983b07455bdd9",
+      "current_sha256": "3ac0e2677ad82621f2bdcd48d98ea78c2d762a8d305973c82a9983b07455bdd9",
+      "equal": true
+    },
+    {
+      "path": "codex/runtime/aisoft_release/errors.py",
+      "base_sha256": "482325befeef7c5832499c3c52ca71bc24e10b5059ab9c1b693b6576f7531d2b",
+      "current_sha256": "482325befeef7c5832499c3c52ca71bc24e10b5059ab9c1b693b6576f7531d2b",
+      "equal": true
+    },
+    {
+      "path": "codex/runtime/aisoft_release/gate.py",
+      "base_sha256": "f1acc757719beafaed82c75b27cd9952d837cb7d2c4d6f8c82c4c36b29aa3aca",
+      "current_sha256": "f1acc757719beafaed82c75b27cd9952d837cb7d2c4d6f8c82c4c36b29aa3aca",
+      "equal": true
+    },
+    {
+      "path": "codex/runtime/aisoft_release/runner.py",
+      "base_sha256": "ec6e0a9e56d8139102fb2a94fc31374886cd97b38e9166fa4f9d411e710533d6",
+      "current_sha256": "ec6e0a9e56d8139102fb2a94fc31374886cd97b38e9166fa4f9d411e710533d6",
+      "equal": true
+    },
+    {
+      "path": "codex/runtime/aisoft_release/security.py",
+      "base_sha256": "0a347f56eb2339dc264815b0d238fb8431555e53e0bd791a183deba1730747a2",
+      "current_sha256": "0a347f56eb2339dc264815b0d238fb8431555e53e0bd791a183deba1730747a2",
+      "equal": true
+    },
+    {
+      "path": "codex/runtime/aisoft_release/state.py",
+      "base_sha256": "0b10ba6a77d122892b4dfd5252276a7c3b9c9cefa453ec756b44c5c5ccb53a87",
+      "current_sha256": "0b10ba6a77d122892b4dfd5252276a7c3b9c9cefa453ec756b44c5c5ccb53a87",
+      "equal": true
+    },
+    {
+      "path": "codex/runtime/aisoft_release/transport.py",
+      "base_sha256": "66929752efe7515fff425c95083c6593f7eabf6b3105daf2019169d1c6c0bf95",
+      "current_sha256": "66929752efe7515fff425c95083c6593f7eabf6b3105daf2019169d1c6c0bf95",
+      "equal": true
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "issue": 319,
+  "branch": "change/319-registry-utf8-exit",
+  "user_confirmation": "批准更正为 6 处并继续",
+  "original_count": 4,
+  "corrected_count": 6,
+  "additional_references": [
+    "CURL_STATUS before Chinese right parenthesis in packument connect diagnostic",
+    "CURL_STATUS before Chinese right parenthesis in tarball connect diagnostic"
+  ],
+  "other_contract_boundaries": "unchanged"
+}

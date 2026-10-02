@@ -3,12 +3,38 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from .errors import fail
+from .dockerfile import validate_dockerfiles
 from .jsonio import sha256_value
 from .schema import validate_schema
 from .validator import validate_catalog, validate_profile, validate_project
+
+
+LOCK_SCHEMA_FILENAMES = {
+    "1.0": "architecture-lock-v1.schema.json",
+    "2.0": "architecture-lock-v2.schema.json",
+}
+PROFILE_CHECKSUM_CONTRACT = "profile-machine-v1"
+
+
+def lock_schema_filename(schema_version: Any) -> str:
+    """Resolve only known formats; never use untrusted input as a path."""
+    if not isinstance(schema_version, str) or schema_version not in LOCK_SCHEMA_FILENAMES:
+        fail("LOCK_SCHEMA_VERSION_UNSUPPORTED", "不支持该 lock schema_version。", "$.schema_version")
+    return LOCK_SCHEMA_FILENAMES[schema_version]
+
+
+def _profile_checksum(profile: dict[str, Any], schema_version: str) -> str:
+    if schema_version == "1.0":
+        return sha256_value(profile)
+    machine_profile = {
+        key: value for key, value in profile.items()
+        if key not in {"description", "compatibility_rules"}
+    }
+    return sha256_value({"hash_contract": PROFILE_CHECKSUM_CONTRACT, "profile": machine_profile})
 
 
 def build_lock(
@@ -19,10 +45,16 @@ def build_lock(
     project: dict[str, Any],
     project_schema: dict[str, Any],
     today: date,
+    *,
+    schema_version: str = "2.0",
+    repo_root: Path | str | None = None,
 ) -> dict[str, Any]:
+    # V1 is retained for the strict legacy reader and compatibility tests only.
+    schema_filename = lock_schema_filename(schema_version)
     components = validate_catalog(catalog, catalog_schema, today)
     validate_profile(profile, profile_schema, catalog, components)
     validate_project(project, project_schema, profile, catalog, components, today)
+    validate_dockerfiles(project, components, repo_root)
     exceptions_by_component = {
         exception["component_id"]: exception for exception in project["exceptions"]
     }
@@ -46,8 +78,8 @@ def build_lock(
             item["exception_expires_at"] = exception["expires_at"]
         resolved.append(item)
     lock: dict[str, Any] = {
-        "$schema": "./architecture/schemas/architecture-lock-v1.schema.json",
-        "schema_version": "1.0",
+        "$schema": f"./architecture/schemas/{schema_filename}",
+        "schema_version": schema_version,
         "project_id": project["project_id"],
         "profile_id": profile["profile_id"],
         "profile_version": profile["version"],
@@ -57,10 +89,12 @@ def build_lock(
         "exception_ids": sorted(exception["id"] for exception in project["exceptions"]),
         "source_checksums": {
             "catalog_sha256": sha256_value(catalog),
-            "profile_sha256": sha256_value(profile),
+            "profile_sha256": _profile_checksum(profile, schema_version),
             "declaration_sha256": sha256_value(project),
         },
     }
+    if schema_version == "2.0":
+        lock["profile_checksum_contract"] = PROFILE_CHECKSUM_CONTRACT
     lock["lock_sha256"] = sha256_value(lock)
     return lock
 

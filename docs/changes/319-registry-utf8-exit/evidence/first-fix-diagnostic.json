@@ -1,0 +1,6 @@
+{
+  "command": "isolated stopped-fixture probe, C.UTF-8 /bin/bash templates/project/ci/registry-preflight.sh",
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "templates/project/ci/registry-preflight.sh: line 81: CURL_STATUS�: unbound variable\n"
+}

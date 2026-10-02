@@ -79,7 +79,7 @@ trap 'rm -f "$body"' EXIT
 http_get "$REGISTRY/$PACKAGE" "$body"
 if connect_failure "$CURL_STATUS"; then
   fail connect \
-    "连不上 $REGISTRY（curl 退出码 $CURL_STATUS）。" \
+    "连不上 ${REGISTRY}（curl 退出码 ${CURL_STATUS}）。" \
     '这是「那个端口上没有任何进程在监听」，不是「拉不到上游」。' \
     '不要往 uplink 配置、npmmirror 可达性或网络策略方向排查——' \
     'Verdaccio 活着但代理不到上游会是 404 或 5xx，不是连接被拒。' \
@@ -88,11 +88,11 @@ if connect_failure "$CURL_STATUS"; then
     '只看 pm2 的 online 会被假绿骗过，见平台文档 06 踩坑集。'
 fi
 if [ "$CURL_STATUS" -ne 0 ]; then
-  fail transport "curl 以退出码 $CURL_STATUS 失败，registry=$REGISTRY。"
+  fail transport "curl 以退出码 $CURL_STATUS 失败，registry=${REGISTRY}。"
 fi
 if [ "$HTTP_CODE" != "200" ]; then
   fail http \
-    "取 $REGISTRY/$PACKAGE 返回 HTTP $HTTP_CODE，期望 200。" \
+    "取 $REGISTRY/$PACKAGE 返回 HTTP ${HTTP_CODE}，期望 200。" \
     'registry 在监听但没有正常回答。这一类才该往 uplink、存储或包本身的方向查。'
 fi
 if ! grep -q '"dist-tags"' "$body" || ! grep -q '"versions"' "$body"; then
@@ -107,7 +107,7 @@ tarball="$REGISTRY/$PACKAGE/-/$PACKAGE-$VERSION.tgz"
 http_get "$tarball" /dev/null
 if connect_failure "$CURL_STATUS"; then
   fail connect \
-    "packument 取到了，但取 tarball 时连不上（curl 退出码 $CURL_STATUS）。" \
+    "packument 取到了，但取 tarball 时连不上（curl 退出码 ${CURL_STATUS}）。" \
     '两次请求之间 registry 掉了，或存在同端口的野生进程。'
 fi
 if [ "$CURL_STATUS" -ne 0 ]; then
@@ -115,7 +115,7 @@ if [ "$CURL_STATUS" -ne 0 ]; then
 fi
 if [ "$HTTP_CODE" != "200" ]; then
   fail tarball \
-    "取 $tarball 返回 HTTP $HTTP_CODE，期望 200。" \
+    "取 $tarball 返回 HTTP ${HTTP_CODE}，期望 200。" \
     'registry 能回答元数据但供不了包体；npm ci 会在这一步失败。' \
     "若该版本已不存在，用 REGISTRY_PREFLIGHT_PACKAGE 与 REGISTRY_PREFLIGHT_VERSION 换一个探测包。"
 fi

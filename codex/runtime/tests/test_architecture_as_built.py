@@ -44,6 +44,7 @@ class AsBuiltVersionTests(unittest.TestCase):
             self.project,
             self.project_schema,
             TODAY,
+            repo_root=ARCH,
         )
 
     def declare_as_built(
@@ -250,6 +251,7 @@ class ContainerDeliveryBaseImageTests(unittest.TestCase):
             project,
             self.project_schema,
             TODAY,
+            repo_root=ARCH,
         )
 
     def _categories(self) -> dict:

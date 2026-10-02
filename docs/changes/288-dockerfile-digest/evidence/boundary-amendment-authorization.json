@@ -1,0 +1,26 @@
+{
+  "issue": 288,
+  "branch": "change/288-dockerfile-digest",
+  "policy": "manual",
+  "user_response": "确认",
+  "decision": "APPROVED_GOVERNANCE_AMENDMENT_ONLY",
+  "recorded_at_utc": "2026-10-02T13:15:36.924270+00:00",
+  "basis_head": "6b06a70104ed524430b8b2767517e0fb204fe641",
+  "proposal_path": "evidence/boundary-amendment-proposal.json",
+  "approved_patch_sha256": "a2538e14a46d6568470271edb86d0ffac0c241ff221d133efdb01815ba86aa55",
+  "scope": [
+    "codex/tests/check-release-evidence-boundary.py",
+    "codex/runtime/tests/test_release_evidence_boundary.py"
+  ],
+  "spec_before_sha256": "9ef3d63232bb3ff258e312f6e9ae90b34cae685a7424855e5d3f3978a195a7da",
+  "plan_before_sha256": "572387cdc289fc2a8fdffde9eb975adf6dd1b18a2193783570b1f5f1e88fcc61",
+  "require_stop_after_local_governance_commit": true,
+  "does_not_authorize": [
+    "push",
+    "PR submission",
+    "merge",
+    "install",
+    "deployment",
+    "historical evidence replacement"
+  ]
+}

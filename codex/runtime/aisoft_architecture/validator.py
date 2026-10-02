@@ -354,6 +354,9 @@ def validate_project(
     components: dict[str, dict[str, Any]],
     today: date,
 ) -> None:
+    from .dockerfile import validate_paths
+
+    validate_paths(project)
     validate_schema(project, project_schema)
     if project["catalog_revision"] != catalog["revision"]:
         fail("PROJECT_CATALOG_MISMATCH", "Project catalog_revision 与 Catalog 不一致。", "$.catalog_revision")

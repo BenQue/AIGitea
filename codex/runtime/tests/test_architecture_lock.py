@@ -21,7 +21,8 @@ class ArchitectureLockTests(unittest.TestCase):
         self.catalog_schema = load_json(ARCH / "schemas/catalog-v1.schema.json")
         self.profile_schema = load_json(ARCH / "schemas/profile-v1.schema.json")
         self.project_schema = load_json(ARCH / "schemas/project-architecture-v1.schema.json")
-        self.lock_schema = load_json(ARCH / "schemas/architecture-lock-v1.schema.json")
+        self.lock_schema = load_json(ARCH / "schemas/architecture-lock-v2.schema.json")
+        self.legacy_lock_schema = load_json(ARCH / "schemas/architecture-lock-v1.schema.json")
         self.project = load_json(ARCH / "fixtures/valid/sqlite-project.json")
         self.profile = load_json(ARCH / "profiles/small-embedded-sqlite-v1.json")
 
@@ -34,6 +35,7 @@ class ArchitectureLockTests(unittest.TestCase):
             self.project,
             self.project_schema,
             today,
+            repo_root=ARCH,
         )
 
     def test_repeat_lock_is_byte_identical(self) -> None:
@@ -60,7 +62,7 @@ class ArchitectureLockTests(unittest.TestCase):
 
         fixture = load_json(ARCH / "fixtures/invalid/tampered-lock.json")
         with self.assertRaises(ArchitectureError) as caught:
-            validate_lock(fixture, self.lock_schema, expected)
+            validate_lock(fixture, self.legacy_lock_schema, expected)
         self.assertEqual(caught.exception.diagnostic.code, "LOCK_CHECKSUM_TAMPERED")
 
     def test_eol_boundary_is_invalid_on_exact_utc_date(self) -> None:
@@ -170,10 +172,12 @@ class ArchitectureLockTests(unittest.TestCase):
                     project,
                     self.project_schema,
                     TODAY,
+                    repo_root=ARCH,
+                    schema_version="1.0",
                 )
                 validate_lock(
                     load_json(ARCH / "reference" / reference / "architecture.lock.json"),
-                    self.lock_schema,
+                    self.legacy_lock_schema,
                     expected,
                 )
 

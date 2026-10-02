@@ -1,0 +1,48 @@
+--- a/codex/tests/fixtures/installed-drift/test-installed-drift.py
++++ b/codex/tests/fixtures/installed-drift/test-installed-drift.py
+@@ -42,6 +42,29 @@
+             raise AssertionError("public installed-drift CLI has not been implemented")
+         cls.temp = tempfile.TemporaryDirectory(prefix="aisoft-installed-drift-")
+         cls.base = Path(cls.temp.name).resolve() / "base"
++        # Installer fixtures use a local source baseline, independent of a pending
++        # PR's differences from the real cached main. Production identity gates
++        # remain unchanged; explicit source-drift cases below still fail closed.
++        cls.fixture_source = Path(cls.temp.name).resolve() / "source-baseline"
++        cls.fixture_source.mkdir()
++        for directory in ["codex", "architecture", "docker-release", "sync",
++                          "skill-for-codex", "skill-for-claude", "templates"]:
++            shutil.copytree(REPO / directory, cls.fixture_source / directory,
++                            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
++        git_env = {key: value for key, value in os.environ.items()
++                   if not key.startswith("GIT_")}
++        git_env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
++                       GIT_TERMINAL_PROMPT="0")
++        for args in [["git", "init", "-q", str(cls.fixture_source)],
++                     ["git", "-C", str(cls.fixture_source), "add", "."],
++                     ["git", "-C", str(cls.fixture_source), "-c", "user.name=Fixture",
++                      "-c", "user.email=fixture@example.invalid", "-c", "core.hooksPath=/dev/null",
++                      "commit", "-qm", "local fixture baseline"],
++                     ["git", "-C", str(cls.fixture_source), "update-ref",
++                      "refs/remotes/origin/main", "HEAD"]]:
++            p = run(args, env=git_env)
++            if p.returncode:
++                raise AssertionError(f"fixture source baseline failed: {args}: {p.stderr}")
+         home = cls.base / "home"
+         system = cls.base / "system"
+         agent = cls.base / "custom-agent"
+@@ -83,12 +106,13 @@
+     def tearDown(self):
+         shutil.rmtree(self.work)
+ 
+-    def args(self, repo=REPO):
++    def args(self, repo=None):
++        repo = self.fixture_source if repo is None else repo
+         return ["bash", str(CHECKER), "--repo", str(repo),
+                 "--target-home", str(self.home), "--install-root", str(self.system),
+                 "--agent-dir", str(self.agent), "--architecture-prefix", str(self.arch), "--json"]
+ 
+-    def check(self, code=0, extra=(), repo=REPO):
++    def check(self, code=0, extra=(), repo=None):
+         before = fingerprint(self.installed)
+         p = run(self.args(repo) + list(extra))
+         self.assertEqual(p.returncode, code, p.stderr + p.stdout)

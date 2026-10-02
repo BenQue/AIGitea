@@ -110,6 +110,8 @@ for script in \
   "$ROOT/codex/tests/test-host-access-broker.sh" \
   "$ROOT/codex/tests/test-install-host-access-broker.sh" \
   "$ROOT/codex/tests/test-installer-source-guard.sh" \
+  "$ROOT/codex/tools/check-installed-drift.sh" \
+  "$ROOT/codex/tests/test-installed-drift.sh" \
   "$ROOT/codex/tests/test-install-runner-flutter.sh" \
   "$ROOT/codex/tests/test-codex-drift.sh" \
   "$ROOT/codex/tests/test-platform-readiness.sh" \
@@ -175,6 +177,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-host-access-broker.sh" \
     "$ROOT/codex/tests/test-install-host-access-broker.sh" \
     "$ROOT/codex/tests/test-installer-source-guard.sh" \
+    "$ROOT/codex/tools/check-installed-drift.sh" \
+    "$ROOT/codex/tests/test-installed-drift.sh" \
     "$ROOT/codex/tests/test-install-runner-flutter.sh" \
     "$ROOT/codex/tests/test-codex-drift.sh" \
     "$ROOT/codex/tests/test-platform-readiness.sh" \
@@ -230,6 +234,10 @@ bash "$ROOT/codex/tests/test-install-host-role.sh"
 bash "$ROOT/codex/tests/test-host-access-broker.sh"
 bash "$ROOT/codex/tests/test-install-host-access-broker.sh"
 bash "$ROOT/codex/tests/test-installer-source-guard.sh"
+# #308: inspect source and isolated installer fixtures only; never the CI host's
+# real installation surface. Keep all existing static/runtime gates above/below.
+bash "$ROOT/codex/tools/check-installed-drift.sh" --source-only
+bash "$ROOT/codex/tests/test-installed-drift.sh"
 bash "$ROOT/codex/tests/test-install-runner-flutter.sh"
 bash "$ROOT/codex/tests/test-docker-release-install.sh"
 bash "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
@@ -363,6 +371,7 @@ for reference in newemaint/target-candidate windows sqlite; do
     --profiles-dir "$ROOT/architecture/profiles" \
     --schema-dir "$ROOT/architecture/schemas" \
     --project "$ROOT/architecture/reference/$reference/architecture.json" \
+    --repo-root "$ROOT/architecture" \
     --lock "$ROOT/architecture/reference/$reference/architecture.lock.json" \
     --today 2026-09-05 >/dev/null
 done
