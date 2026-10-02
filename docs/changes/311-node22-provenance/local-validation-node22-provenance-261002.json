@@ -1,0 +1,90 @@
+{
+  "issue": 311,
+  "tested_head": "b27c2e23fd288b1d19d74c3dd7f837bb4070090a",
+  "fresh_main_sha": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "full_smoke": "FAIL",
+  "full_smoke_command": "bash codex/tests/smoke.sh",
+  "initial_sandbox": "loopback socket.bind PermissionError: Operation not permitted",
+  "host_retry": "same full suite, controlled local execution, exit 1",
+  "failure": "registry-preflight test: 停掉 registry 之后：期望退出 1，实际 0",
+  "baseline_reproduction": {
+    "command": "bash codex/tests/test-registry-preflight.sh",
+    "workdir": "/private/tmp/issue-311-registry-baseline",
+    "base_sha": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+    "exit_code": 1,
+    "same_failure": true,
+    "files": [
+      {
+        "path": "codex/tests/test-registry-preflight.sh",
+        "baseline_sha256": "469a96475f96d975f2d77b137648308a8bb30d776e12333433f03eedba6ece5e",
+        "candidate_sha256": "469a96475f96d975f2d77b137648308a8bb30d776e12333433f03eedba6ece5e",
+        "identical": true
+      },
+      {
+        "path": "codex/tests/fake-npm-registry.py",
+        "baseline_sha256": "dc49c025a41f452661b73de3da6737f37066e3cb7d991935148e042114f11303",
+        "candidate_sha256": "dc49c025a41f452661b73de3da6737f37066e3cb7d991935148e042114f11303",
+        "identical": true
+      },
+      {
+        "path": "templates/project/ci/registry-preflight.sh",
+        "baseline_sha256": "076c968418a8fc5146c5a51f4dd9857d265d8ed5f9b2940db74964f11674a222",
+        "candidate_sha256": "076c968418a8fc5146c5a51f4dd9857d265d8ed5f9b2940db74964f11674a222",
+        "identical": true
+      }
+    ],
+    "environment_override": "none; no LC_ALL workaround"
+  },
+  "logs": [
+    {
+      "path": "/private/tmp/issue-311-smoke.log",
+      "status": "BLOCKED_SANDBOX",
+      "exit_code": 1,
+      "sha256": "5321298bf95450c012e178e071c6ac0238c4ea9ddeec13feeeb41be953d359fc",
+      "bytes": 3440
+    },
+    {
+      "path": "/private/tmp/issue-311-smoke-host.log",
+      "status": "FAIL_BASELINE",
+      "exit_code": 1,
+      "sha256": "49dc7fda8449cc28d06c21b51c537eda8d6233dadb5cf2132ce3c621e1c55bed",
+      "bytes": 3333
+    },
+    {
+      "path": "/private/tmp/issue-311-registry-baseline.log",
+      "status": "FAIL_BASELINE",
+      "exit_code": 1,
+      "sha256": "dabb0530ec2c1c2038a901517fb5f91f318956a0bfb8763c513965f469c65370",
+      "bytes": 76
+    }
+  ],
+  "scope": "No registry-preflight/test/runtime/CI source modified by #311. Full smoke stopped at this failure; subsequent smoke sections NOT RUN.",
+  "review": {
+    "fixed_base": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+    "candidate": "b27c2e23fd288b1d19d74c3dd7f837bb4070090a",
+    "standards_hard_findings": 0,
+    "standards_smell_findings": 0,
+    "spec_findings": 0
+  },
+  "classification_readback": {
+    "issue": 311,
+    "result": "projected",
+    "change_type": "maintenance",
+    "complexity": "complex"
+  },
+  "integration_blocker": "Existing main regression tracked by #319; its owner is AWAITING_PR_CONFIRMATION. Wait for real merge into main, then owner of #311 fresh-fetch/rebase/retest. This is test integration ordering, not a new product depends_on.",
+  "final_pr": "NOT RUN; local full-smoke gate has not passed; final-PR confirmation not requested yet",
+  "post_review_receipt_checks": {
+    "check_change_documents": {
+      "status": "PASS",
+      "exit_code": 0,
+      "summary": "PASS: change-documents\nPASS: change-pr-url\nresult: changes=145 pass=2 gap=0"
+    },
+    "resolve_documents": "PASS: summary/spec/plan/verification mapped",
+    "git_diff_check": "PASS",
+    "AST_and_fixed_source_hashes": "PASS",
+    "marker_payload_live_bytes": "PASS",
+    "runtime_metadata_equal": "PASS",
+    "local_doc_links": "PASS: 8 checked"
+  }
+}

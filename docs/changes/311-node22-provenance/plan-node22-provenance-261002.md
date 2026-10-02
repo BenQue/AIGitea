@@ -24,7 +24,7 @@ updated: 2026-10-02
 |---|---|---|---|
 | T01 | 四仓 fresh 依赖和普通主机盘点，锁定保留方案与可审阅合同 | - | completed |
 | T02 | root 限定补读、已批准的 marker 创建/读回/重复/回滚重建与 01 同步 | T01 | completed |
-| T03 | 所有启用 AC 验收、语义文档和判级读回，唯一 manual PR 候选 | T02 | pending |
+| T03 | 所有启用 AC 验收、语义文档和判级读回，唯一 manual PR 候选 | T02 | blocked（既有 main smoke 回归；两轴审查完成） |
 
 T01 四仓 fresh main 与 benque host probe 均已执行；权限 GAP 保留，处理方向已锁定 A。T02 是 root 补读及 marker 动作的授权 frontier。票据保持 #311 内，不新建子 Issue。
 T02 在一次具体完整合同/启动确认后执行；明确主机授权才可 mutation。
@@ -52,3 +52,7 @@ T03 的最终 PR 提交单独绑定 #311、change/311-node22-provenance、manual
 ## 部署与回滚
 
 没有应用部署；共享主机持久状态是独立授权面。A 回滚仅删除本次且 hash 一致的 marker，实际回滚后已重建并最终验证。没有主机 mutation 授权时固定 NOT RUN。
+
+## T03 当前阻塞
+
+完整 smoke 受控本地运行 FAIL，registry-preflight 停服务负向断言返回0；fixed main同三文件独立复现同失败。详细命令、源文件哈希与日志摘要见 [local validation](local-validation-node22-provenance-261002.json)。#319修复尚未合入main，等待其真实集成后由本owner更新并重验。不扩张#311范围、不绕过UTF-8失败、不新增产品depends_on。最终PR确认尚未请求。

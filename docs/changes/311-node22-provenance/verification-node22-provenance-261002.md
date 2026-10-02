@@ -93,8 +93,8 @@ runner broker写前观测：active/running，PID533，child_count0。写后runne
 | lifecycle持久化 | PASS / approved | before needs-analysis；after approved/complexity/complex/type/maintenance |
 | check-change-documents | PASS | changes145/pass2/gap0；四角色映射正确，pr_url空、尚无PR |
 | Python AST与命令literal/payloadbytes一致性 | PASS | source/local静态检查；host命令已按同一payload实执行 |
-| full smoke | NOT RUN | 下一步本地候选验证 |
-| code-review | NOT RUN | 下一步两轴审查 |
+| full smoke | FAIL（既有基线回归） | sandbox 初次受 loopback 禁止阻塞；同完整命令受控 host 重跑 exit1，registry-preflight 停 registry 后预期1实际0；三个源文件与 fresh main 字节相同，独立 baseline 同失败，见 local-validation 回执 |
+| code-review | PASS（两轴均0） | Standards：0硬违例/0smell；Spec：0findings；fixed base/candidate 及独立审查记录见 review 附件 |
 | PR required CI | NOT RUN | 尚未获最终提交确认、未创建PR |
 | 应用部署/重启/删除目录/工具链升级 | NOT RUN | 不在本合同动作；没有静默实施 |
 
@@ -112,5 +112,5 @@ runner broker写前观测：active/running，PID533，child_count0。写后runne
 ## 未完成项与交付边界
 
 host marker验收已经完成，不等于应用部署或上游provenance可信。来源仍unknown。
-本地smoke与两轴review待执行；唯一manual PR需final提交确认，用户人工合并后才可终态、精确清理与归档。
+两轴review已经完成，Standards/Spec各0 findings。完整smoke已运行但FAIL，不能进入最终PR候选或READY_FOR_REVIEW。fresh origin/main仍5c2cd726c9aeaee9d17541d8feb049e33881bbac；同基线三文件的独立复现与候选同失败。该既有回归由#319处理，owner当前等待最终PR确认；本Issue不修改其脚本、不设置LC_ALL绕过。待真实合入main后，本owner更新自己的worktree并重跑完整smoke，再准备唯一manual PR确认。当前没有push/PR/merge/归档。
 总调度集成优先级10，不构造新产品依赖，depends_on仍[]。

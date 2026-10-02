@@ -38,7 +38,7 @@ updated: 2026-10-02
 
 本会话已 live 读回 #311：open，只有 needs-analysis，零评论，无历史合同批准。
 本地固定 Git 对象显示 SFMDigitalBoard 的 CI 明确依赖 `/opt/node22/bin`，因此当前不得选择删除。
-其它三仓已获本聊天用户只读确认并通过各自 manifest broker fresh-fetch；四个 fixed main SHA 均与初查一致。workflow 与 committed 非 Secret 实现配置未发现额外活动 node22 消费。真实主机确认 Node 22.22.0/npm 10.9.4/pnpm 10.28.0，仍无 marker。
+其它三仓已获本聊天用户只读确认并通过各自 manifest broker fresh-fetch；四个 fixed main SHA 均与初查一致。workflow 与 committed 非 Secret 实现配置未发现额外活动 node22 消费。初始真实主机确认 Node 22.22.0/npm 10.9.4/pnpm 10.28.0，当时无 marker；批准实施后已新增并验证。
 
 ## 影响范围
 
@@ -94,3 +94,7 @@ override_reason: ''
 ## 已批准实施结果
 
 只新增 marker，SHA-256=bd3c6ccaf6929449631684667043dc614607170722d5fb658025b6d281d5db8c；Node binary hash、3783条非marker元数据和配置元数据前后一致。静态补读未发现更多已知消费者；动态profile执行/process Secret环境仍按合同排除。01 §4.2 已同步来源unknown但在用。全部live receipts见verification；应用部署与目录删除不适用，PR/CI未执行。
+
+## 本地验证状态
+
+两轴审查PASS（Standards/Spec各0），exact #311判级再次读回projected。完整smoke为FAIL：registry-preflight既有main负向断言回归；独立原始基线同三文件、同失败。等待#319真实合入后本owner更新基线重验；当前未请求最终PR提交确认，无push/PR/merge，不能称READY_FOR_REVIEW。详见 [verification](verification-node22-provenance-261002.md) 与 [local validation](local-validation-node22-provenance-261002.json)。

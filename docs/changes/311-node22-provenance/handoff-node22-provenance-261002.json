@@ -1,25 +1,30 @@
 {
   "Issue": 311,
-  "status": "IMPLEMENTING",
+  "status": "BLOCKED_VALIDATION",
   "branch": "change/311-node22-provenance",
   "worktree": "/private/tmp/issue-311-node22-provenance",
   "session": "01a0fc7c-2504-7261-8e84-95a3ebcb8a0f",
-  "local_changes": "approved host marker and in-scope docs/evidence; pending local commit/review",
+  "local_changes": "in-scope implementation and final verification/review/blocker receipts committed locally; no push",
   "PR_url": null,
   "CI": "NOT RUN",
   "depends_on": [],
   "classification": "maintenance/complex; live projected; lifecycle approved",
-  "blockers": [],
-  "next_step": "complete local smoke and two-axis review; prepare exact manual final PR candidate",
-  "user_action": "none during approved implementation; final PR submission confirmation remains",
+  "blockers": [
+    "main registry-preflight negative-test regression reproduced identically; #319 fix not merged"
+  ],
+  "next_step": "after actual #319 merge, owner fresh-fetch main, update own worktree and rerun full smoke; then prepare exact manual final PR confirmation",
+  "user_action": "no additional #311 implementation permission needed; final PR confirmation will follow passing local gate",
   "host_write_delete": "marker executed; delete excluded",
   "archived": false,
-  "stage": "T03_LOCAL_VERIFICATION_AND_REVIEW",
+  "stage": "T03_WAIT_MAIN_SMOKE_FIX",
   "integration_priority": 10,
-  "source_local": "contract docs + AST/payload PASS",
+  "source_local": "AST/payload/doc checks PASS; Standards/Spec 0 findings; full smoke FAIL baseline",
   "fresh_four_repositories": "PASS; active node22 consumer SFMDigitalBoard CI",
   "host_inventory": "PASS within approved static/nonSecret boundary",
   "host_marker": "PASS created/check/no-op/exact rollback/reapply/finalcheck; final marker exists",
   "source_base_sha": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
-  "current_candidate_head": "read git rev-parse HEAD; final receipt will pin the post-review commit"
+  "current_candidate_head": "read git rev-parse HEAD; final chat pins the local receipt commit",
+  "full_smoke": "FAIL_BASELINE",
+  "review": "PASS: Standards 0 / Spec 0",
+  "tested_candidate_head": "b27c2e23fd288b1d19d74c3dd7f837bb4070090a"
 }
