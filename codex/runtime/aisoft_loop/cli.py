@@ -12,7 +12,7 @@ from typing import Mapping, Optional
 
 from aisoft_change_name import ChangeName, ChangeNameError
 from aisoft_host_access.contract import AccessContractError, load_access_contract
-from aisoft_host_access.runner import RoutineMergeRunner
+from aisoft_host_access.runner import RoutineMergeRunner, DependencyReader
 from aisoft_worktree_owner import (
     SESSION_ENV, WorktreeOwnerError, caller_session, claim as claim_worktree,
 )
@@ -393,6 +393,9 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
             max_same_root=int(os.environ.get("LOOP_MAX_SAME_ROOT", "3")),
             change_control=resolve_change_control(_required_env("GITEA_REPO")),
             routine_merger=RoutineMergeRunner(
+                access_contract, _required_env("AISOFT_PROJECT_ID")
+            ),
+            dependency_reader=DependencyReader(
                 access_contract, _required_env("AISOFT_PROJECT_ID")
             ),
             confirmation_required=True,

@@ -51,6 +51,8 @@ class GiteaClient:
             raise GiteaError("Gitea owner, repo, and token are required")
         if max_attempts < 1 or max_attempts > 5:
             raise GiteaError("max_attempts must be between 1 and 5")
+        self.repository_identity = (owner, repo)
+        self.base_url = base_url.rstrip("/")
         self._token = token
         self._transport = transport or _default_transport
         self._sleep = sleep
