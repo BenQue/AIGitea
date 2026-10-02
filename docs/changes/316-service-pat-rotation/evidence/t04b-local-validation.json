@@ -71,7 +71,23 @@
     "required_ci": "NOT RUN",
     "base_branch_stale": true,
     "policy": "manual",
-    "push_pr_authorized": false
+    "push_pr_authorized": false,
+    "actual_branch_merge_preview": {
+      "head": "875fd3043c2e6959e1c509fe276a9e60870692cf",
+      "main": "16beee09aefe89b5bc80a31544c59d456190ea32",
+      "command": "git merge-tree --write-tree origin/main HEAD",
+      "exit_code": 1,
+      "result": "CONFLICT",
+      "conflicts": [
+        "codex/tests/fixtures/installed-drift/test-installed-drift.py",
+        "codex/tools/check-installed-drift.py"
+      ],
+      "conflict_type": "add/add",
+      "conflicted_tree": "d5e06e454f2629adfec14723e6cdcc3bc02eb483",
+      "tested": false,
+      "branch_index_worktree_unchanged": true,
+      "boundary": "The passing lab tree is not proof that the actual Issue branch is mergeable."
+    }
   },
   "installed": "NOT RUN",
   "live": "NOT RUN",

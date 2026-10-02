@@ -89,3 +89,5 @@ override_reason: ''
 ### 当前决策与未完成验收
 
 - 方案 A 已批准，T03 凭据消费位置冲突已解除，无新增产品依赖。T02A 与 T03 已分 turn；T03 fresh run 已实现交易、typed grant 与受控 transport，完成本地隔离验证和审查修复。T04 已接入 smoke/CI 并完成 local Linux/arm64 制品、model/race、实际 helper 进程级 synthetic DB/canary 与双轴验证；fresh-main 默认 locale 组合 smoke 的 #308 installer-mapping-stale 阻塞已在 T04B 修复，34 drift fixture、1056 runtime 与平台 static 检查 PASS；共享 mapper/fixture 的精确范围补充于 2026-10-03 获用户“确认继续”批准，见 [批准记录](evidence/t04-installed-drift-extension-proposal.md)。T04A 已独立应用治理并停止，T04B fresh run 已同步映射、generated metadata、独立 public provenance 与负向测试；仅 SOURCE/local 证据，分支受控整合仍待。required CI 尚未运行，最终 PR 提交确认与 T05 独立现场授权/验收仍待，不能写成整票完成。
+
+T04B source/local commit：875fd3043c2e6959e1c509fe276a9e60870692cf。提交后 actual branch merge-tree 确认两份新增源码 add/add 冲突，发布前置 BLOCKED；最小 source delta 与完整本地 PASS 证据已就绪，后续由 Controller 受控整合并核对最终 head。

@@ -195,3 +195,10 @@ T04A 已运行检查：check-change-documents PASS（changes=145、pass=2、gap=
 组合 tree=092572f0243f54058bddae0b2658e7fca57380e5，仅在独立 lab 把无冲突 pre-fix 组合 tree 与本票两个 source overrides 构建并测试。两份最终源码字节与 Issue staged source 一致；本次新文档是验证回执，代码没有在完整 smoke 后改变。脱敏结果/source hashes/log digest 见 [T04B receipt](evidence/t04b-local-validation.json)；基于 fresh main 的最小 delta 见 evidence/t04b-fresh-main-source-fix.patch.gz。
 
 当前 handoff：T04B_LOCAL_COMPLETE / CONTROLLER_BASE_INTEGRATION_REQUIRED。原 installer-mapping-stale 已解除，历史 FAIL 不删除；实际 Issue branch 仍不是 fresh main 后代，BASE_BRANCH_STALE 不能绕过。worker 未改写历史、创建 merge commit、push、PR、安装或操作真实 Secret；整合后的最终 head 尚须复核与唯一 manual PR 提交确认，required CI 必须在真实 PR 上运行。AC-2 仍 NOT RUN，整票未完成。
+
+
+### 实际分支提交后整合读回（2026-10-03）
+
+T04B source/local commit 为 875fd3043c2e6959e1c509fe276a9e60870692cf，工作树 clean。对固定 main=16beee09aefe89b5bc80a31544c59d456190ea32 执行 git merge-tree --write-tree origin/main HEAD，exit 1，确认两份新增源码存在 add/add 冲突：codex/tools/check-installed-drift.py、codex/tests/fixtures/installed-drift/test-installed-drift.py。生成的 d5e06e454f2629adfec14723e6cdcc3bc02eb483 含冲突，未测试、不能作 PASS；未改变 branch/index/worktree，没有创建 merge commit。
+
+原因是本票共同基线没有 #308 的两份文件，两侧各自新增。先前 PASS 的独立组合 lab tree 只证明所选 source bytes 可通过本地回归，不证明当前 branch 可直接合并。发布前置保持 BLOCKED（BASE_BRANCH_STALE + add/add）。Controller 应以固定 fresh main 为基线，保留 #308 内容、应用本票最小 source delta 与 mapped documents，按受控流程整合并重新核对 exact final head；worker 不自行 rebase、merge 或换分支。源码未在完整 smoke 后改变，本次仅补充证据，不重复执行源码 suite。required CI、最终 PR 提交确认、安装/grant/live 仍未完成。

@@ -86,3 +86,5 @@ T02 本地实现/测试/审查已完成，exact head 为 0ffe6bda169d70bd89f48fa
 ## T04B 完成与下一前置条件（2026-10-03）
 
 已批准两个 exact 源码文件的修复和局部测试/复审完成；fresh main 16beee09aefe89b5bc80a31544c59d456190ea32 的组合 candidate tree 092572f0243f54058bddae0b2658e7fca57380e5 默认 C.UTF-8 完整 smoke PASS。最小 fresh-main source delta、源哈希与结果见 evidence/t04b-local-validation.json。worker 未 rebase/merge/change branch；实际 branch 仍有 BASE_BRANCH_STALE。Controller 必须受控整合并核对 exact final candidate，取得绑定 #316/branch/manual 的唯一 PR 提交确认后才能 push/PR/required CI。安装/grant/live AC-2 保持 NOT RUN。
+
+实际分支提交后 merge-tree exit 1，两个 approved source 文件为 add/add 冲突；详见 verification 的“实际分支提交后整合读回”。Controller 必须完成受控基线整合；独立 lab 的 smoke PASS 不等于当前分支可合并。
