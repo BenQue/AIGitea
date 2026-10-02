@@ -218,3 +218,26 @@ REGISTRY 的 unbound variable 错误，probe 实际退出 0。该诊断在隔离
 已通过；AC-7 的本轮完整 gates 通过，但最终 #289 后集成未执行，因此整体仍 PARTIAL。
 T04 pending，本票未解决，不归档。后续 fresh run 无需再确认启动；最终 PR 前仍须 exact
 #286/change/286-dependency-references/manual 提交确认。
+
+
+## 调度更新后的只读核对与提前整合拒绝
+
+broker fresh-fetch 读回 origin/main=65268ee5f1e622c486fd9e354dd35e20a2900f91；
+#308 PR326 已真实合并，主线同时包含 #287 的 architecture profile checksum source。
+#289 PR325 仍 open、merged=false，head=15b963a4f4dab52e4a161de0d8bab29ebc7d53c5。
+#327 未被添加为本票 depends_on 或人工 PR 更新的 hard 前置；不代写 #289/#319/#327。
+
+最新主线对本票原已验证 base 11c0410 的差异未触及 aisoft_loop、aisoft_host_access、
+host-access-broker.json 或 AGENTS.md。#308 的新 smoke 仅增加 source-only 漂移映射与隔离
+fixture；只读查看其映射，aisoft_host_access/*.py 已覆盖 dependencies.py，无需为本票
+新增模块扩 installer/checker 映射。该结论只是 source 对照，不是最新主线组合测试 PASS。
+
+本 owner 请求 git rebase origin/main 时，自动审批拒绝，命令未执行。拒绝理由为本地
+history rewrite 且 approved plan 明确要求 #289 PR325 实际合并后整合。没有通过 merge、
+cherry-pick、临时组合检出或修改 broker 绕过；HEAD 保持 2b132c7ea40a0c89f103dd07a03b2d7e8a9d4b82，
+未发布，last_push_head=null。拒绝收据与只读影响核对见 evidence/t04-dispatch-readonly-receipt.json。
+
+此前完整 smoke PASS 仍只绑定 11c0410 base / 12dd967 tested source；不将其外推为
+65268ee5 或 #289 merge 后组合验证。组合 rebase/full gates NOT RUN，T04 pending。
+按既定顺序，待 #289 真正合并后再由 owner 整合；提前改写本票本地历史需要直接的人类
+授权改变执行顺序，调度消息本身不替代该授权。无 force/lease、push、PR、安装、凭据或部署动作。

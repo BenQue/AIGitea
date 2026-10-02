@@ -127,3 +127,11 @@ registry 断言，也未改用户全局 locale 或真实服务。前次失败保
 15b963a4f4dab52e4a161de0d8bab29ebc7d53c5。T04 保持 pending；待真实 merge 后，本 owner
 fresh-fetch/rebase，再验证两依赖闸门及文档/终态。不进入 AWAITING_PR_CONFIRMATION，未取得
 最终 PR 提交确认；不 push、不建 PR、不合并、不安装、不扩 ACL、不部署、不归档。
+
+
+### 最新调度核对
+
+缓存 origin/main 已推进到 65268ee5f1e622c486fd9e354dd35e20a2900f91（#308/#287）；
+本票已验证基线仍为 11c0410，不混淆。PR325 未合并；提前 owner-local rebase 被自动审批
+按 #289 顺序前置拒绝，命令未执行，未采取绕过。只读对照未发现 Loop/host-access/manifest
+核心重叠；新 smoke 组合仍 NOT RUN。T04 pending；#327 未新增为 hard 依赖。
