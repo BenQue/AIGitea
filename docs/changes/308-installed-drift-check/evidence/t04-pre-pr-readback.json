@@ -1,0 +1,32 @@
+{
+  "project": "aisoft-platform",
+  "issue": {
+    "number": 308,
+    "title": "platform: 缺少「已合并但未安装」的只读漂移检查，#304 的根因无人报告",
+    "state": "open",
+    "labels": [
+      "approved",
+      "complexity/complex",
+      "type/platform"
+    ]
+  },
+  "unique_pr_matches": [],
+  "protection": {
+    "branch_name": "main",
+    "enable_push": false,
+    "enable_force_push": false,
+    "enable_status_check": true,
+    "status_check_contexts": [
+      "CI / verify (pull_request)"
+    ],
+    "merge_whitelist_usernames": [
+      "admin"
+    ]
+  },
+  "classification_evidence": "t04-classification-readback.jsonl",
+  "classification_result": "projected",
+  "policy": "manual",
+  "routine_auto": "disabled",
+  "contract_loader": "PASS: 8 ACs; complex; mapped 4 documents",
+  "helper_note": "first summary-only helper print used wrong Contract attributes; load succeeded, corrected readback uses issue_number; no runtime change"
+}

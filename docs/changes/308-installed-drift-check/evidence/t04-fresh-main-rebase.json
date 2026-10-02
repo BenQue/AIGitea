@@ -1,0 +1,20 @@
+{
+  "broker_fetch": {
+    "checkout": "/private/tmp/issue-308-installed-drift-check",
+    "identity": "aisoft-platform-agent",
+    "operation": "git.fetch.main",
+    "project": "aisoft-platform",
+    "remote_name": "origin",
+    "status": "PASS"
+  },
+  "fetched_main_sha": "11c0410d3878d5449fa61796f174ba3d2dd5e59c",
+  "initial_change_head": "2752347f88535c939929b3c501477c697154844c",
+  "rebased_change_head": "bf0d76ce2f185e743a3576b7a368e56e1941b0d5",
+  "tested_runtime_head": "48d410132dfa5f7332a0e37e96011535e71f170f",
+  "local_ancestry_check": "PASS",
+  "fetch_receipt_mtime_utc": "2026-10-02T13:06:25.058709+00:00",
+  "reason_for_rebase": "fresh main includes #320; old managed skill bytes differed, so original source identity correctly reported GAP",
+  "rebase": "performed only by owner in clean #308 worktree; no conflict",
+  "original_t01_t03_receipts": "historical anchors kept, not rewritten",
+  "remote_freshness": "external broker snapshot only; checker does not fetch"
+}

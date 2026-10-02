@@ -47,7 +47,7 @@ updated: 2026-10-02
 | 完整 smoke，sandbox 默认环境 | BLOCKED_SANDBOX | loopback bind PermissionError；相同命令 host 重试 |
 | 完整 smoke，host 默认环境 | FAIL | registry-preflight 停 registry fixture 期望 1、实际 0；保留原失败 |
 | 完整 smoke，host `LC_ALL=C` | PASS（T03 接入前） | 978 runtime tests；全部既有 smoke 门通过 |
-| 新 checker 的 smoke 集成 | APPLIED，运行 NOT RUN | T03 独立治理仅应用 hook；完整集成 smoke 待 T04 fresh run |
+| 新 checker 的 smoke 集成 | PASS（T04 host `LC_ALL=C`） | 23 checker tests + 978 runtime tests；默认环境 registry fixture FAIL 单独保留 |
 | CI | NOT RUN | 没有 push 或 PR |
 
 ## Mac 初始文件 inventory（非最终完整 checker）
@@ -79,11 +79,11 @@ Mac install-vm 缺少 `.local/lib/aisoft-loop/aisoft_loop/worktree.py`；cli.py/
 | AC | 结论 | 证据 |
 |---|---|---|
 | AC-1 | PASS（local fixture） | 八 installer 行、quantities、exact gaps、退出码；真实面结果待 T04 |
-| AC-2 | GAP | Mac 当前至少 install-vm/broker 实际漂移及三组件默认缺失；保留原全 PASS 要求 |
-| AC-3/4/6 | PASS（local fixture） | 22 tests：缺失/同量旧字节/恢复、写入 audit/tree 指纹、Secret/链接边界 |
-| AC-5 | 部分 PASS，集成运行待 T04 | source-only 八面通过，新增 installer/改 installer 拒绝；T03 hook 已应用，尚未 fresh-run 执行 |
-| AC-7 | 部分基线 GAP，最终 NOT RUN | 两台初始 read-only inventory；非新工具验收 |
-| AC-8 | PASS（local），fresh remote 待 T04 | checkout/HEAD/cached main；untracked、已删受管源、Git filter/环境隔离 fixture；无 fetch |
+| AC-2 | GAP | Mac 仅 broker 一行 PASS，其余 7 行 GAP；保留原全 PASS 要求，未重装/豁免 |
+| AC-3/4/6 | PASS（local fixture） | 最终 23 tests：缺失/同量旧字节/恢复、写入 audit/tree 指纹、Secret/链接边界 |
+| AC-5 | PASS（source/fixture 集成） | 最终完整 `LC_ALL=C` smoke 通过；source-only 不探测 installed，合法待合并源变化不阻断 CI |
+| AC-7 | PASS（只读运行及如实留证），installed GAP | 两台新工具已跑，各自 source SHA/roots/退出 1 与完整 GAP 保存；未继承另一台结果 |
+| AC-8 | PASS（local+外部 main snapshot） | broker fresh main 11c0410；rebase 后两台 managed bytes 匹配；checker 无 fetch，freshness 限定保留 |
 
 ## 遗留风险与未完成项
 
@@ -116,3 +116,30 @@ T02 提交与验证完成后，独立仅为 `codex/tests/smoke.sh` 添加两个�
 本步骤不执行新集成 smoke 或 checker 的真实安装面；遵守 spec 的“治理说明和 smoke 接入分别为独立仅治理步骤，应用后停止，后续 fresh run 重读才继续 runtime/验证”。状态 `GOV_APPLIED_REQUIRES_FRESH_RUN`；下一 frontier T04，沿用现有启动授权。T04 应重读治理/合同、跑完整门、broker 只读获取 fresh main 外部证据，并分别在 Mac/gitea-ci 运行 checker。不能将 T02 旧 smoke 或初始 inventory 当作 T03 集成/T04 installed PASS。
 
 AC-2 原全 PASS 标准仍未满足。#316 的安装工作只由其 owner 处置，本会话不改其安装/凭据；后续仅只读回读变化。最终 PR 候选与分类硬门、exact branch/manual 提交确认均尚待；没有 push/PR/CI/merge/部署。
+
+## T04 fresh run 最终结果
+
+先重读 AGENTS/README/03/04/06、映射 spec/plan 与 T03 收据。broker fresh-fetch 后 main 已由 `5c2cd72` 前进到 `11c0410d3878d5449fa61796f174ba3d2dd5e59c`（#320）。旧候选 source identity 正确报 GAP；owner 等原环境 smoke 结束后，在 clean 独占 worktree 自主 rebase，无冲突，不改共享 main。旧收据 SHA 保留历史性质，新映射见 `evidence/t04-fresh-main-rebase.json`。
+
+T04 两轴增量审查新增 Spec P1：将原 source-only 与 cached main 相等性同时用作 CI 门会阻断合法受管源 PR。按既有 source-only 合同修复到 T02 原子 commit `48d410132dfa5f7332a0e37e96011535e71f170f`；source-only 仅验证定义自洽，source 身份 GAP 仍独立输出，installed 模式仍严格。新增合法 PR fixture；23 项专项测试 PASS，Spec 复审关闭，Standards 无新增发现。
+
+最终 `LC_ALL=C bash codex/tests/smoke.sh` 退出 0：新 checker 23 项 fixture 与现有 978 runtime tests 全通过、静态末行成功。rebase 前 source-main mismatch 和 rebase 后默认环境 registry-preflight 停 registry fixture（期望退出 1、实际 0）均退出 1，压缩原日志分别留证，不隐藏原失败，不修改其它 Issue。详见 `evidence/t04-local-validation.json`。
+
+| installer | Mac | gitea-ci/coder |
+|---|---|---|
+| install-vm | GAP，modules 31/29，operations 36/31，17 gaps | GAP，modules 31/29，operations 36/36，9 gaps |
+| install-skills | GAP，2 处旧字节，skills 8/8 | GAP，3 处旧字节，skills 8/8 |
+| install-host-role | GAP，1 处 `/etc` 父链接 | PASS，capabilities 20/20 |
+| install-host-access-broker | PASS，22 files，operations 36/36 | PASS，22 files，operations 36/36 |
+| architecture/install | GAP，默认 25 files 缺失 | GAP，默认 25 files 缺失 |
+| docker-release/install | GAP，默认 25 files 缺失 | GAP，默认 25 files 缺失 |
+| sync/install | GAP，默认 5 files 缺失 | GAP，默认 5 files 缺失 |
+| skill-for-claude/install | GAP，2 处旧字节，skills/references 等量 | GAP，5 处旧字节，skills/references 等量 |
+
+两台运行 source HEAD 都为上述最终 runtime commit，cached main 都为 broker snapshot 11c0410，managed bytes 比对 PASS；命令本身仍输出 EXTERNAL_EVIDENCE_REQUIRED。Mac roots `/Users/benque`、`/`、`/Users/benque/agent`、`/usr/local`；VM roots `/home/coder`、`/`、`/home/coder/agent`、`/usr/local`。完整 expected/installed、exact target 和命令/退出码见 `evidence/t04-real-readonly-receipt.json` 与两个原 JSON。
+
+Mac `/etc` 是系统父链接，依本合同的未声明链接拒绝规则报告 GAP；未读取其目标，没有静默加 OS alias 例外。broker 的同步由 #316 owner 独立处置，本会话仅证明现有字节 PASS。runtime 两台仍缺 `worktree.py` / `aisoft_worktree_owner.py`；#320 刚合并的 managed skills 文本尚未安装，source-only/安装行区别有效。其它真实 prefix 没有证据，不假设不存在的安装位置。
+
+正式 classification --verify 308 读回 platform/complex/projected；只用 byte-identical projector 临时副本绑定 installed broker，未 --apply。Issue open/approved，main push/force 禁止，required `CI / verify (pull_request)`，merge allowlist admin，无既有 #308 PR。文档 resolver/check、owner marker、语法/ShellCheck/diff-check 全通过。首次仅输出合同摘要的辅助脚本属性名错误已修正，load_contract 本身未失败，未改 runtime。
+
+T04 的验证/候选工作完成；原 AC-2 GAP 作为验收阻塞保留，Issue 未完成/归档。唯一 PR 草稿见 `evidence/final-pr-candidate.md`，提交尚待 exact #308/branch/manual 确认；没有 push/PR/CI/merge/安装/凭据/部署。README/06 的“待实现”阶段说明在最终独立 docs-only 治理步骤更新，之后停止运行。

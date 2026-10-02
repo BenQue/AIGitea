@@ -101,3 +101,13 @@ fresh run 已实现八面只读 checker。22 项针对性 fixture 全通过，ba
 smoke 已独立加入新 checker/test 的 bash -n、ShellCheck、source-only 与隔离 fixture hook；全部既有门保留。应用后的 smoke 自身语法、ShellCheck、diff-check PASS；集成执行仍 NOT RUN，留给 T04 fresh run。按已批准 spec 的治理停止规则，本轮到此停止，状态 `GOV_APPLIED_REQUIRES_FRESH_RUN`；沿用既有启动授权，不重复请求合同确认。
 
 剩余：T04 集成完整验证、两台真实只读 checker 证据、AC-2 安装缺口与最终 PR 候选。没有 PR/CI/安装/部署。Issue 不宣称 completed，不归档。
+
+## T04 验证/候选完成，等待唯一 PR 提交确认
+
+fresh main `11c0410d3878d5449fa61796f174ba3d2dd5e59c` 已通过 installed broker 获取；owner clean rebase 并重读新 #320 推送锚治理。T04 修复 source-only 对合法受管源码 PR 的错误阻断（新增 P1 审查已关闭），最终 runtime HEAD `48d410132dfa5f7332a0e37e96011535e71f170f`。
+
+23 项专项测试与最终集成 `LC_ALL=C` smoke（含 978 runtime tests）通过；默认 host registry-preflight fixture FAIL 与 rebase 前 source GAP 均留原日志。bash -n/ShellCheck/文档/归属检查通过。两轴均无未关闭发现，classification --verify 308 正式 projected：platform/complex，manual。
+
+Mac 与 gitea-ci 新工具真实运行均 source PASS、installed GAP；broker 两台 PASS，runtime 缺模块、skills 旧字节、三组件默认缺失以及 Mac `/etc` 父链接拒绝均如实报告。原 AC-2「Mac 全 PASS」仍 GAP，未改验收标准或真实安装面，不标 completed、不归档。
+
+唯一最终 PR 的 reviewable 草稿与验证/installed 收据在 `evidence/final-pr-candidate.md`、`t04-local-validation.json`、`t04-real-readonly-receipt.json`。状态 AWAITING_PR_CONFIRMATION；尚无 push/PR/CI/merge/安装/凭据/部署。提交确认仅绑定 exact #308 / change/308-installed-drift-check / manual，可继续范围内 CI 修复，人工 review/merge 与 AC-2 验收仍保持边界。
