@@ -27,7 +27,7 @@ documents:
   verification: verification-service-pat-rotation-261002.md
 depends_on:
   - 313
-status: awaiting-triage
+status: approved
 branch: change/316-service-pat-rotation
 pr_url:
 created: 2026-10-02
@@ -44,7 +44,7 @@ updated: 2026-10-02
 
 ## 初步方案与建议
 
-采用先隔离旧 canonical 凭据、生成并验证受保护候选、精确撤销旧 PAT、提交 provenance、最后原子发布新凭据的状态机。新 helper 使用固定 Gitea v1.26.4 上游 token model，拒绝任意 SQL 和任意账号；通过独立 operator grant 的 typed broker 路径执行。完整合同与 ticket graph 见映射 spec/plan。用户于 2026-10-02 明确确认这份 spec/plan 与新增本地撤销后台方案；T01 治理应用已完成并停止，本轮 fresh turn 完成 T02 helper 本地实现与审查；新发现 no-Mac Secret 边界与现有 Mac credential resolver 路径冲突，T03 等待用户合同决策。PR/后续安装/live Secret 授权仍独立。
+采用先隔离旧 canonical 凭据、生成并验证受保护候选、精确撤销旧 PAT、提交 provenance、最后原子发布新凭据的状态机。新 helper 使用固定 Gitea v1.26.4 上游 token model，拒绝任意 SQL 和任意账号；通过独立 operator grant 的 typed broker 路径执行。完整合同与 ticket graph 见映射 spec/plan。T01 治理应用与 T02 helper 本地实现/审查均已完成。用户于 2026-10-02 以“按建议继续”批准方案 A：仅允许更新 manifest 固定 Mac canonical store，VM CLI/helper 只通过内部受控管道传 Secret。T02A 只修订六份 Markdown、检查与本地提交后停止；下一 fresh run 重读合同即可沿用本次批准进入 T03，无需再次启动确认。PR/后续安装/grant/live Secret 授权仍独立。
 
 ## 风险
 
@@ -52,6 +52,7 @@ updated: 2026-10-02
 - Gitea v1.26.4 upstream 未声明 DELETE /api/v1/token，现有 rollback mock 不能证明真实支持。新增本地撤销 helper 的安全/制品决策已随本合同获用户确认；真实安装与 live 授权仍独立。
 - Go helper 必须固定上游版本、依赖与制品摘要并用隔离数据库验收；source/local/CI/installed/live 分开记录。
 - 轮换期间 canonical 凭据隔离，目标身份暂时不可用；仅对应精确目标，不能扩大为全平台停用。
+- 这是单 Mac store 发布；既有 VM 副本不自动同步/清理，旧 PAT 撤销后不能继续使用。消费这些副本的 runtime 须各自授权处理；Mac audit PASS 不能证明所有消费端通过。
 
 ## AI 判级
 
@@ -85,6 +86,6 @@ override_reason: ''
 - PR #315 exact merge 480d1d262c3e915f546049ede3f34ad7d3362f50 在 fresh origin/main 5c2cd726c9aeaee9d17541d8feb049e33881bbac。
 - 2026-10-02 两台重装后，22 个安装文件各自对 pinned source SHA 字节/权限/root 归属一致；两台 scope 集合均含 read:user 与 write:repository。
 
-### 缺失的 acceptance criteria 或决策
+### 当前决策与未完成验收
 
-- T03 凭据消费位置必须明确：A 仅允许受控更新 manifest 固定的 Mac canonical store；或 B 坚持 no-Mac Secret 并扩展 VM-only broker custody/代理执行。尚未批准任一调整；旧合同保持，等待用户决策。
+- 方案 A 已批准，T03 凭据消费位置冲突已解除，无新增产品依赖。T02A 与 T03 分 turn；T03/T04 源码验证及 T05 独立现场授权/验收仍待执行，不能写成已完成。

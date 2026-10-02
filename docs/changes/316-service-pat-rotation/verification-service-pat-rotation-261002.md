@@ -89,11 +89,23 @@ updated: 2026-10-02
 两台 #313 installed 前置已解除，depends_on 仍保留 313，不能把批次集成排序写为产品依赖。新本地撤销 helper/operator 路线已获用户合同确认；现有 rollback 的假 self-revoke 不作真实证明。T01 已作治理 commit 并停止；本轮 fresh turn 重读后完成 T02，尚未实施 T03。PR 提交 manual、人合并、未来安装、grant provision、live PAT 轮换均有各自明确边界。只完成 source merge 而 AC-2 未验收时不声称 #316 已真正解决，不归档本聊天。
 
 
-## T03 合同冲突与待决策（不改变已批准 Secret 边界）
+## T03 合同冲突历史（已由方案 A 解除）
 
 - 新只读源码证据：`CredentialResolver`（broker.py:1010–1013）固定从 `mac_host.credential_root` 读取 PAT；`resolve` 的 routine 路径与 `host.access.audit` 都使用该消费位置。canonical manifest 固定 Mac store 为 `/Users/benque/Library/Application Support/AISoftPlatform/credentials`，VM bootstrap 则写 `/home/benque/.config/aisoft/credentials`。没有读取任何现场 Secret、marker、config 或 credential 文件。
 - 已批准 spec:57 禁止 Secret 复制到 Mac，同时要求 transaction 文件在同一目标 store 文件系统。只轮换 VM 文件不能更新现有 Mac broker 消费的 PAT，故不能同时保证 AC-2。不能静默放宽 Secret 边界，或把 resolver 改成跨主机消费。
-- 已向用户提交两项具体提案：A 仅准许受控更新 manifest 固定 Mac canonical store，维持消费路径和同 store 交易；B 继续禁止 Secret 到 Mac，扩展为 VM-only broker custody/代理执行并重新规划全部受影响操作。提案尚未批准。
-- T02 源码提交 `6767fffca52490c8a43f517ab3e9d04018bb6d54`；本轮随后提交工具链绑定修复与状态/证据更新，exact SHA 在 Issue 回执记录。
-- 当前 handoff：T02_COMPLETE / NEEDS_HUMAN_DECISION；T03 挂起直到上述合同决策。PR、安装、grant provision、live 轮换仍未执行。新决定若修改治理合同，先独立应用并停止，再 fresh run 实施对应 runtime。
+- 当时向用户提交两项具体提案：A 仅准许受控更新 manifest 固定 Mac canonical store，维持消费路径和同 store 交易；B 继续禁止 Secret 到 Mac，扩展为 VM-only broker custody/代理执行并重新规划全部受影响操作。当时提案尚未批准；后续用户已明确批准 A，见下节。
+- T02 源码提交 `6767fffca52490c8a43f517ab3e9d04018bb6d54`；随后工具链绑定修复与状态/证据提交 `0ffe6bda169d70bd89f48fa527635aa079a23bff`。
+- 当时 handoff：T02_COMPLETE / NEEDS_HUMAN_DECISION；T03 挂起直到上述合同决策。PR、安装、grant provision、live 轮换均未执行。新决定若修改治理合同，先独立应用并停止，再 fresh run 实施对应 runtime。
 - typed issue.labels.set 已将本票从 approved 投影为 awaiting-triage，读回 after=[awaiting-triage,complexity/complex,type/security]；这是新合同冲突的等待状态，保留 T02 既有授权和已完成证据，不撤销或扩张 Secret 边界。
+
+## T02A 方案 A 批准与独立治理应用（2026-10-02）
+
+用户以“按建议继续”明确批准方案 A。仅固定 Mac canonical store 可接收轮换候选；同一 store/文件系统交易，固定 VM CLI/helper 内部受控管道，grant 绑定 store/helper，缺 ownership evidence 拒绝，既有 VM 副本不自动更新/清理。只修改 03/06 与四份 mapped Markdown；T02 helper 保持。当前 handoff 为 T02A_COMPLETE / T03_NEXT_FRESH_RUN；下一 fresh run 重读后可沿用本次启动批准实施 T03，无需再次询问启动确认。
+
+| Check | Result | Evidence |
+|---|---|---|
+| T02A check-change-documents + git diff --check | PASS | changes=145 pass=2 gap=0；无 whitespace error；六份 Markdown 的 diff 已复核 |
+| typed issue.labels.set 316 lifecycle=approved | PASS | before=[awaiting-triage,complexity/complex,type/security]；after=[approved,complexity/complex,type/security] |
+| 分类 --verify 316 | PASS | action=verify、applied=false、result=projected、change_type=security、complexity=complex；仅标签与声明一致证据 |
+
+本阶段文档检查、分类投影、staged scope、本地 commit SHA 与 clean 读回在本票 Issue 回执记录，避免文档自引用 commit SHA。没有修改 runtime、shell、CI、AGENTS、CLAUDE 或安装文件。T03、Python/bash/smoke、Linux 制品、PR CI、安装、grant provision、live PAT 轮换/audit/no-op 仍为 NOT RUN。AC-3 的治理文档部分已随 A 同步，T04 最终复核仍待执行；Mac 验收不得扩大为全部 VM 消费端验收。

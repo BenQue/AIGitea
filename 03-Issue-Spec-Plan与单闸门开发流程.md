@@ -326,13 +326,14 @@ Issue + needs-analysis
 **scope 合同变更 = 必须轮换受影响的 PAT。** 合并 scope 声明、重装代码和 Secret 轮换是三份不同证据；
 source/local/CI PASS 或 Issue closed/completed 不证明凭据已更新。先证明 exact scope 合同已合并，
 并逐台核对安装字节，再在独立 Secret 授权下轮换；真实 identity/scope/audit 读回与第二次 no-op
-是现场验收，未运行一律 `NOT RUN`。本节是 #316 的已批准治理合同，runtime/helper/typed 操作、
-后续安装与 live 演练尚未实施，不是现行可执行 runbook。
+是现场验收，未运行一律 `NOT RUN`。本节是 #316 的已批准治理合同；T02 helper 本地隔离验证已完成，
+交易/typed runtime、后续安装与 live 演练尚未实施，不是现行可执行 runbook。
 
 轮换只处理 canonical manifests 已管理的 non-site-admin 服务账号，保持账号、协作者、分支保护、
 routine opt-in 和其它项目身份不变。Agent 的 live 入口须经 operator-only typed broker operation
 `gitea.credential.rotate`：目标由 manifest 派生，授权 grant 独立于 project agent、manager PAT 与
-routine merger，绑定授权 Issue、已合并 source SHA、exact project/token kind 和有效期。缺授权、
+routine merger，绑定授权 Issue、已合并 source SHA、exact project/token kind、manifest 固定 Mac store、
+VM exact helper 和有效期。缺授权、
 身份/版本/marker/路径不符或未知 schema 时零 Secret mutation；不能用环境变量自行授予权限，
 不能 fallback 到 admin HTTP 凭据、通用 SQL、任意账号/路径/shell 或更宽身份。
 
@@ -340,6 +341,16 @@ routine merger，绑定授权 Issue、已合并 source SHA、exact project/token
 先校验 exact token 的 UID/账号，再精确撤销并读回不存在。不能沿用未经真实验证的 `/api/v1/token`
 self-revoke 假设；不得为轮换升级 server、创建密码或扩大 sudoers/provider 权限。helper 构建、
 隔离数据库测试和制品 provenance 必须版本化；其安装、operator grant provision 与 live 使用另行授权。
+
+用户已批准方案 A：仅允许 manifest 固定 Mac canonical store
+`/Users/benque/Library/Application Support/AISoftPlatform/credentials` 接收轮换候选。journal、旧凭据
+隔离区、候选和原子发布均在该 store 同一受保护文件系统；核对 manifest owner、0700 目录/0600 文件，
+拒绝 symlink/逃逸。Gitea CLI/helper 在固定 VM 以现有 git service user 执行，Secret 仅经内部受控
+stdin/pipe 传递，不进入 Agent/tool 返回、用户可见 stdout/stderr、argv、日志、审计或 VM 普通临时目录。
+caller 不得用 env/path/URL 选择 store/helper；ownership markers 缺失拒绝，不擅自补建。
+
+本次单-store 发布不自动更新或清理既有 VM credential 副本；撤销后旧副本不可继续使用，需要消费
+它们的 runtime 须各自明确授权处理。Mac typed audit PASS 不能代表全部消费端验收。
 
 事务顺序固定为：preflight/单目标锁 → 隔离旧 canonical 凭据 → 在受保护交易区生成并验证候选 →
 精确撤旧并证明拒绝 → 持久保存 provenance → 最后原子发布新 canonical 凭据 → 验证并清理。
@@ -350,9 +361,10 @@ canonical 隔离期间目标 broker 身份 fail closed，未完成不能报 rota
 [spec](docs/changes/316-service-pat-rotation/spec-service-pat-rotation-261002.md) 与
 [06 §4.1](06-运维手册与踩坑集.md#41-服务账号-pat-轮换合同316)。
 
-治理与 runtime 必须分阶段：本票 T01 只应用 03/06 治理合同和 mapped docs，作本地原子 commit 后
-停止本 turn；后续 fresh turn 重新读取批准的 spec、plan 与治理合同后，才可实施 helper、broker
-transport、installer、测试/CI。启动确认只授权合同内源码工作，不授予 PR 提交、merge、后续安装
+治理与 runtime 必须分阶段：本票 T01 与方案 A 的 T02A 各只应用 03/06 治理合同和 mapped docs，
+作本地原子 commit 后停止本 turn；T02A 后续 fresh run 重新读取批准的 spec、plan 与治理合同后，
+可沿用本次启动批准实施 T03 broker transport、installer、测试/CI，无需重复启动确认。
+启动确认只授权合同内源码工作，不授予 PR 提交、merge、后续安装
 或实际 Secret 操作权限。AC-2 未真实达成时不声称 #316 已真正解决，不进行完成归档。
 
 ## 7. 最终 PR、提交确认与 merge policy
