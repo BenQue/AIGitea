@@ -1,0 +1,34 @@
+{
+  "issue": 288,
+  "title": "architecture: 校验器看不见构建实际用的基镜像 digest，Dockerfile 与 catalog 不一致时 fail-open（SFM #145 核出）",
+  "branch": "change/288-dockerfile-digest",
+  "change_type": "bugfix",
+  "effective_complexity": "complex",
+  "contract_effect": "change",
+  "risk_flags": [
+    "shared-core",
+    "schema-change",
+    "platform-governance"
+  ],
+  "dependencies": [],
+  "acceptance_criteria_count": 8,
+  "documents": {
+    "summary": "summary-dockerfile-digest-261002.md",
+    "spec": "spec-dockerfile-digest-261002.md",
+    "plan": "plan-dockerfile-digest-261002.md",
+    "verification": "verification-dockerfile-digest-261002.md"
+  },
+  "approved_contract": "PASS",
+  "unique_open_pr_count": 0,
+  "onboarding": "PASS",
+  "protection": {
+    "branch": "main",
+    "can_push": false,
+    "can_force_push": false,
+    "required_ci": [
+      "CI / verify (pull_request)"
+    ],
+    "routine_enabled": false
+  },
+  "policy": "manual"
+}

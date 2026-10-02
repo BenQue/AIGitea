@@ -1,0 +1,77 @@
+{
+  "issue": 308,
+  "branch": "change/308-installed-drift-check",
+  "ticket": "T02",
+  "session": "01a0fc7b-d0b3-7802-af08-555307d048a6",
+  "date": "2026-10-02",
+  "targeted": {
+    "command": "bash codex/tests/test-installed-drift.sh",
+    "result": "PASS",
+    "tests": 22,
+    "log": "t02-targeted-tests.log"
+  },
+  "static": {
+    "bash_n": "PASS",
+    "shellcheck": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "source_only": {
+    "result": "PASS",
+    "rows": 8,
+    "evidence": "t02-source-only.json",
+    "remote_freshness": "EXTERNAL_EVIDENCE_REQUIRED"
+  },
+  "full_smoke_before_T03": {
+    "sandbox-default": {
+      "path": "/private/tmp/issue-308-smoke-default.log",
+      "sha256": "d0cc7b4aabdf545a8c7a1edd3359a08eb1d122c9b83a7d1479296b27eb3908c7",
+      "result": "BLOCKED_SANDBOX"
+    },
+    "host-default": {
+      "path": "/private/tmp/issue-308-smoke-host.log",
+      "sha256": "369d55220082a14e2561daf05d091000e21777ea09ee3746f84e9631a9307e1f",
+      "result": "FAIL"
+    },
+    "host-C": {
+      "path": "/private/tmp/issue-308-smoke-C.log",
+      "sha256": "0f6f5f2b14d3132e8e701d34bd564fc22a1f872d3068a1544c66e5958a1e6a41",
+      "result": "PASS"
+    }
+  },
+  "smoke_environment_findings": {
+    "sandbox": "loopback bind PermissionError",
+    "host_default": "registry-preflight stopped-registry fixture: expected exit 1, actual 0",
+    "host_C": "LC_ALL=C; 978 runtime tests; all existing smoke gates passed"
+  },
+  "review": {
+    "Standards": {
+      "initial_findings": 1,
+      "worst": "P2",
+      "open": 0
+    },
+    "Spec": {
+      "initial_findings": 3,
+      "worst": "P1",
+      "open": 0
+    },
+    "evidence": "t02-two-axis-review.md"
+  },
+  "code_sha256": {
+    "codex/tools/check-installed-drift.sh": "516a2fba9439ca3a101d9355cc69d1aa2dd81d3149f91fcba7ee9bf0737e89f9",
+    "codex/tools/check-installed-drift.py": "ae06874681e0a7b2d411c81c07f5a78a7b87f2f854610aec6aa2e5b6184e1fdc",
+    "codex/tests/test-installed-drift.sh": "578a49c0b2651fd7cd6a1f795a9a65969a165ca1ff41815182ccd5240bbb5f6b",
+    "codex/tests/fixtures/installed-drift/test-installed-drift.py": "43501f677cd8dd031dd3f8000da64032f5a27cb68d999da00ea05dd206db5ce1"
+  },
+  "installed_acceptance": "NOT RUN in T02; original AC-2 GAP retained",
+  "ci": "NOT RUN",
+  "remote_push": "NOT RUN",
+  "pr": null,
+  "next_ticket": "T03",
+  "excluded_actions": [
+    "real installation",
+    "sudo",
+    "credential mutation",
+    "merge",
+    "deployment"
+  ]
+}

@@ -62,6 +62,73 @@ CLI 与 `codex/tools/aisoft-project-check.sh` 都从**脚本所在平台 checkou
 解析不到，表现为 `PROFILE_UNKNOWN` 或 slot 对不上——那是 checkout 陈旧，不是声明写错。
 先 `git fetch` 并 ff 本地 `main`，再重跑。
 
+## Dockerfile 基镜像源码一致性合同（#288）
+
+> 实施边界：#288 的 T02 已实现以下离线源码核验与 `--repo-root` 参数。
+> architecture/CLI 与 release reader 集成回归已通过；固定 release evidence 的 exact pin
+> 已在 T05 受控同步。T06 已受控应用 installed-drift fixture 基线隔离，专项测试通过；
+> fresh run 的完整 smoke/runtime 本地验收均通过（详见 #288 verification）；
+> 最终 PR/required CI/安装与部署未执行。
+
+容器交付 declaration 在既有 `oci-image` component 之外，必须增加非空、去重的 `dockerfiles`
+数组，列出该构建使用的全部 Dockerfile。路径以应用仓库根为基准，使用相对 POSIX 形式，例如：
+
+```json
+"dockerfiles": ["docs/deploy/Dockerfile", "worker/Dockerfile"]
+```
+
+这是 declaration 的字段示例，不是完整 JSON 文件。非容器交付（`pm2-legacy`、
+`embedded-sqlite/v1`、`systemd-native/v1`、`windows-iis/v1`）禁止该字段，也不读取 Dockerfile。
+该规则按 delivery contract 触发，不由 profile slot 决定。
+
+validate、lock 与 validate --lock 共用同一文件核验入口。CLI 未传 `--repo-root` 时，
+仅对 project 文件直接位于 `.aisoft/` 的布局，从其父目录确定仓库根；其它容器布局必须传
+显式 `--repo-root`。不从 cwd 猜测，也不 glob 搜索 Dockerfile。既有项目 checker 使用
+`.aisoft/architecture.json`，沿该入口检查。容器库调用方同样必须提供 `repo_root`，没有
+纯 JSON 跳过文件核验的通道。
+
+路径不得是 absolute、空项，不得含 `.`/`..` segment、反斜线、控制字符、空路径 segment；
+文件及目录链禁止 symlink。必须是根内可读普通 UTF-8 文件，最大 1 MiB。不运行 Docker、
+shell、Registry 查询或文件内容；诊断仅含稳定 code、声明字段/逻辑行位置和修复建议。
+
+### FROM 支持范围
+
+- 所有外部 `FROM` 必须保留字面量 `image:tag@sha256:<64 lowercase hex>`，digest 必须在
+  已通过 catalog 校验的声明 OCI 集合中。反向也要求每个声明 OCI digest 至少被引用一次。
+  允许多文件、多外部 stage 使用不同的已声明 digest，不只检查最后一个 stage。
+- 命名 stage 可以引用先前 stage；禁止重复、前向或自引用。`FROM scratch` 无外部镜像，
+  但不能以全部 scratch 绕过声明基镜像的实际引用要求。数字 FROM stage 引用不作为豁免。
+- 接受大小写不敏感指令、空白、整行注释、CRLF，以及默认反斜线或有效 `escape` directive
+  指定的反引号续行。directives 仅在 Docker 规定的文件头位置生效；重复/非法 escape 拒绝。
+- 镜像 token 中有 `$` 一律拒绝，即使全局 ARG 有默认值；build-time override 能改变默认值，
+  静态展开默认值不能作为证据。其它指令内普通 ARG/ENV 不受该规则限制。
+  `--platform=$BUILDPLATFORM` 等平台变量允许，但不新增 CPU/OS 与 child/index 兼容性证明。
+- 只接受一个可选 `--platform=...`、一个 image token、可选 `AS stage` 的 FROM 形式。
+  标准 `docker/dockerfile:1`/稳定 `1.x` frontend 可识别；custom frontend、labs、heredoc
+  与无法证明语义的结构 fail closed，不通过忽略行取得 PASS。
+
+### 稳定诊断与迁移
+
+| 诊断码 | 原因 |
+|---|---|
+| `DOCKERFILE_DECLARATION_REQUIRED` / `DOCKERFILE_DECLARATION_FORBIDDEN` | delivery contract 与路径声明不匹配 |
+| `DOCKERFILE_ROOT_REQUIRED` | 容器文件核验没有明确仓库根 |
+| `DOCKERFILE_PATH_INVALID` / `DOCKERFILE_READ_FAILED` | 路径不安全或文件无法安全读取 |
+| `DOCKERFILE_FROM_REQUIRED` / `DOCKERFILE_FROM_INVALID` | 缺少 FROM 或 FROM 语法无效 |
+| `DOCKERFILE_SYNTAX_UNSUPPORTED` / `DOCKERFILE_FROM_VARIABLE_UNSUPPORTED` | 无法静态证明支持的语法或镜像变量 |
+| `DOCKERFILE_DIGEST_REQUIRED` / `DOCKERFILE_DIGEST_MISMATCH` | 外部镜像缺有效 digest 或不在声明/catalog 集合 |
+| `DOCKERFILE_BASE_IMAGE_UNUSED` | 声明了没有实际 FROM 引用的 OCI digest |
+
+读取/核验失败返回 exit 2 与 `valid: false`，lock 不创建或覆盖输出。已有容器声明必须补充路径并
+重新生成 declaration checksum/lock，不保留 bypass；非容器声明及 lock 的 byte identity 保持不变。
+lock schema、release reader 的精确字段集合不变，不在 lock 中新增 Dockerfile evidence 字段。
+仓内容器 reference 使用 synthetic/target Dockerfile，不构成真实下游应用迁移证据。
+
+通过核验只证明**声明的源码输入**中全部外部 FROM 与声明/catalog 一致。应用 CI 必须把实际
+构建选用的 Dockerfile 与同一 declaration 绑定；其它 `-f`、stdin、生成文件、额外 build context
+与外部 `COPY --from`/RUN 下载不在本保证内。正式制品来源需 builder provenance/attestation，
+`valid: true` 不表示已经构建、pull、部署或现场验收。应用迁移走应用自己的 Issue/PR。
+
 ## 更新与例外
 
 ### Profile checksum 与重 lock（#287 源码已实现，安装与消费者验收另行执行）

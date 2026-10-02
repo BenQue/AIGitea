@@ -1,0 +1,10 @@
+{
+  "baseline": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "result": "PASS",
+  "noncontainer_canonical_bytes_sha256": {
+    "embedded-sqlite/v1": "7f7fe2a148dcfa98ff38486cb581a62e7f80f6c094fae231829246ff2ecad8d3",
+    "pm2-legacy": "7f378ba36c08725273958c8fbd63aabf71237dd2d0f960deebe655c6dc4fa4bd",
+    "systemd-native/v1": "637f5417838ece1c3f971996a79223258d3becd963eaf9708015cdc78d9399c7",
+    "windows-iis/v1": "1f6f07a4834a274698102a5c45bcd0648cb1a33b160f0f1bb723b96d82199c0d"
+  }
+}

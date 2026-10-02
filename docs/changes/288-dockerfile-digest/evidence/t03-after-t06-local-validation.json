@@ -1,0 +1,107 @@
+{
+  "issue": 288,
+  "ticket": "T03",
+  "result": "PASS",
+  "checked_code_head": "1507e358319ebfc2206fe0402ce1520f3392a246",
+  "pinned_main": "65268ee5f1e622c486fd9e354dd35e20a2900f91",
+  "full_runtime": {
+    "argv": "PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests",
+    "result": "PASS",
+    "count": 1008,
+    "seconds": 101.684,
+    "exit_code": 0
+  },
+  "full_smoke": {
+    "argv": "LC_ALL=C bash codex/tests/smoke.sh",
+    "execution_path": "controlled host; same command as prior sandbox path, no test skips",
+    "result": "PASS",
+    "exit_code": 0,
+    "runtime_count": 1008,
+    "runtime_seconds": 101.989,
+    "installed_drift_fixture_count": 23,
+    "installed_drift_fixture_seconds": 44.32
+  },
+  "logs": {
+    "t03-after-t06-runtime.log": {
+      "local_path": "/private/tmp/issue-288-contract-data/t03-after-t06-runtime.log",
+      "evidence": "evidence/t03-after-t06-runtime.log.gz",
+      "sha256": "d54a44b1e1ff2de6740cec7b9b6767e160a693cb09f028ae3abacf1d08785eae"
+    },
+    "t03-after-t06-smoke-host.log": {
+      "local_path": "/private/tmp/issue-288-contract-data/t03-after-t06-smoke-host.log",
+      "evidence": "evidence/t03-after-t06-smoke-host.log.gz",
+      "sha256": "3f67c13d607f1c12e1abb3f76893d1aed8f2e4e7949fabb41972612c2ce90e79"
+    }
+  },
+  "static_checks": [
+    {
+      "argv": [
+        "bash",
+        "-n",
+        "codex/tests/smoke.sh",
+        "codex/tests/test-architecture-install.sh"
+      ],
+      "exit_code": 0,
+      "result": "PASS",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "shellcheck",
+        "codex/tests/smoke.sh",
+        "codex/tests/test-architecture-install.sh"
+      ],
+      "exit_code": 0,
+      "result": "PASS",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "result": "PASS",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-m",
+        "aisoft_loop.cli",
+        "check-change-documents",
+        "--repo",
+        "/private/tmp/issue-288-dockerfile-digest",
+        "--porcelain"
+      ],
+      "exit_code": 0,
+      "result": "PASS",
+      "stdout": "change-documents\tPASS\t\nchange-pr-url\tPASS"
+    }
+  ],
+  "approved_source_hashes": "PASS: T05 two sources/exact lock pin and T06 fixture match approved receipts",
+  "final_diff_scope": "PASS: only original spec plus T04/T05/T06 authorized technical paths and #288 documents",
+  "scope_review": {
+    "standards": {
+      "result": "PASS",
+      "hard_violations": 0,
+      "nonblocking_smells": 1
+    },
+    "spec": {
+      "result": "PASS",
+      "findings": 0
+    }
+  },
+  "not_run": [
+    "push",
+    "PR creation",
+    "required CI",
+    "real application migration",
+    "global installation",
+    "builder/provenance",
+    "company live",
+    "deployment"
+  ],
+  "note": "Final candidate metadata/docs are committed after this receipt; runtime and governed test source bytes are unchanged. Historic failed/NOT_RUN receipts remain intact."
+}

@@ -1,0 +1,8 @@
+{
+  "check": "approved-contract-readback",
+  "result": "PASS",
+  "issue": 308,
+  "branch": "change/308-installed-drift-check",
+  "ac_count": 8,
+  "lifecycle": "approved"
+}

@@ -1,0 +1,283 @@
+{
+  "issue": 308,
+  "tested_runtime_head": "48d410132dfa5f7332a0e37e96011535e71f170f",
+  "installed": {
+    "Mac": {
+      "command": "bash codex/tools/check-installed-drift.sh --json",
+      "exit_code": 1,
+      "report": "t04-mac-installed.json",
+      "sha256": "4734733b62b772fde0c77daf71fd525c35143694aeed9738ac99426b2fc99ee3",
+      "roots": {
+        "repo": "/private/tmp/issue-308-installed-drift-check",
+        "target_home": "/Users/benque",
+        "install_root": "/",
+        "agent_dir": "/Users/benque/agent",
+        "architecture_prefix": "/usr/local"
+      },
+      "source": {
+        "checkout": "/private/tmp/issue-308-installed-drift-check",
+        "head": "48d410132dfa5f7332a0e37e96011535e71f170f",
+        "cached_origin_main": "11c0410d3878d5449fa61796f174ba3d2dd5e59c",
+        "managed_source_matches_cached_main": true,
+        "remote_freshness": "EXTERNAL_EVIDENCE_REQUIRED",
+        "result": "PASS"
+      },
+      "installed_result": "GAP",
+      "rows": [
+        {
+          "installer": "install-vm",
+          "result": "GAP",
+          "expected_files": 51,
+          "quantities": {
+            "runtime modules": {
+              "expected": 31,
+              "installed": 29
+            },
+            "operations": {
+              "expected": 36,
+              "installed": 31
+            }
+          }
+        },
+        {
+          "installer": "install-skills",
+          "result": "GAP",
+          "expected_files": 123,
+          "quantities": {
+            "skills": {
+              "expected": 8,
+              "installed": 8
+            },
+            "matt snapshot": {
+              "expected": "releases/v1.2.2",
+              "installed": "releases/v1.2.2"
+            }
+          }
+        },
+        {
+          "installer": "install-host-role",
+          "result": "GAP",
+          "expected_files": 4,
+          "quantities": {
+            "capabilities": {
+              "expected": 20,
+              "installed": 20
+            }
+          }
+        },
+        {
+          "installer": "install-host-access-broker",
+          "result": "PASS",
+          "expected_files": 22,
+          "quantities": {
+            "operations": {
+              "expected": 36,
+              "installed": 36
+            }
+          }
+        },
+        {
+          "installer": "architecture/install",
+          "result": "GAP",
+          "expected_files": 25,
+          "quantities": {
+            "catalog revision": {
+              "expected": "2026.09.0",
+              "installed": null
+            },
+            "components": {
+              "expected": 31,
+              "installed": null
+            }
+          }
+        },
+        {
+          "installer": "docker-release/install",
+          "result": "GAP",
+          "expected_files": 25,
+          "quantities": {
+            "matrix revision": {
+              "expected": "2026.09.1",
+              "installed": null
+            },
+            "schemas": {
+              "expected": 8,
+              "installed": 0
+            }
+          }
+        },
+        {
+          "installer": "sync/install",
+          "result": "GAP",
+          "expected_files": 5,
+          "quantities": {
+            "units": {
+              "expected": 2,
+              "installed": null
+            },
+            "runtime scripts": {
+              "expected": 2,
+              "installed": 0
+            }
+          }
+        },
+        {
+          "installer": "skill-for-claude/install",
+          "result": "GAP",
+          "expected_files": 5,
+          "quantities": {
+            "references": {
+              "expected": 3,
+              "installed": 3
+            },
+            "skills": {
+              "expected": 2,
+              "installed": 2
+            }
+          }
+        }
+      ]
+    },
+    "gitea-ci/coder": {
+      "command": "orb -m gitea-ci -u coder bash /mnt/mac/private/tmp/issue-308-installed-drift-check/codex/tools/check-installed-drift.sh --repo /mnt/mac/private/tmp/issue-308-installed-drift-check --json",
+      "exit_code": 1,
+      "report": "t04-gitea-ci-installed.json",
+      "sha256": "fbe5fbe18a694006ccea04159b9b1ae47d4621544b0a26168316528326d991ea",
+      "roots": {
+        "repo": "/mnt/mac/private/tmp/issue-308-installed-drift-check",
+        "target_home": "/home/coder",
+        "install_root": "/",
+        "agent_dir": "/home/coder/agent",
+        "architecture_prefix": "/usr/local"
+      },
+      "source": {
+        "checkout": "/mnt/mac/private/tmp/issue-308-installed-drift-check",
+        "head": "48d410132dfa5f7332a0e37e96011535e71f170f",
+        "cached_origin_main": "11c0410d3878d5449fa61796f174ba3d2dd5e59c",
+        "managed_source_matches_cached_main": true,
+        "remote_freshness": "EXTERNAL_EVIDENCE_REQUIRED",
+        "result": "PASS"
+      },
+      "installed_result": "GAP",
+      "rows": [
+        {
+          "installer": "install-vm",
+          "result": "GAP",
+          "expected_files": 51,
+          "quantities": {
+            "runtime modules": {
+              "expected": 31,
+              "installed": 29
+            },
+            "operations": {
+              "expected": 36,
+              "installed": 36
+            }
+          }
+        },
+        {
+          "installer": "install-skills",
+          "result": "GAP",
+          "expected_files": 123,
+          "quantities": {
+            "skills": {
+              "expected": 8,
+              "installed": 8
+            },
+            "matt snapshot": {
+              "expected": "releases/v1.2.2",
+              "installed": "releases/v1.2.2"
+            }
+          }
+        },
+        {
+          "installer": "install-host-role",
+          "result": "PASS",
+          "expected_files": 4,
+          "quantities": {
+            "capabilities": {
+              "expected": 20,
+              "installed": 20
+            }
+          }
+        },
+        {
+          "installer": "install-host-access-broker",
+          "result": "PASS",
+          "expected_files": 22,
+          "quantities": {
+            "operations": {
+              "expected": 36,
+              "installed": 36
+            }
+          }
+        },
+        {
+          "installer": "architecture/install",
+          "result": "GAP",
+          "expected_files": 25,
+          "quantities": {
+            "catalog revision": {
+              "expected": "2026.09.0",
+              "installed": null
+            },
+            "components": {
+              "expected": 31,
+              "installed": null
+            }
+          }
+        },
+        {
+          "installer": "docker-release/install",
+          "result": "GAP",
+          "expected_files": 25,
+          "quantities": {
+            "matrix revision": {
+              "expected": "2026.09.1",
+              "installed": null
+            },
+            "schemas": {
+              "expected": 8,
+              "installed": 0
+            }
+          }
+        },
+        {
+          "installer": "sync/install",
+          "result": "GAP",
+          "expected_files": 5,
+          "quantities": {
+            "units": {
+              "expected": 2,
+              "installed": 0
+            },
+            "runtime scripts": {
+              "expected": 2,
+              "installed": 0
+            }
+          }
+        },
+        {
+          "installer": "skill-for-claude/install",
+          "result": "GAP",
+          "expected_files": 5,
+          "quantities": {
+            "references": {
+              "expected": 3,
+              "installed": 3
+            },
+            "skills": {
+              "expected": 2,
+              "installed": 2
+            }
+          }
+        }
+      ]
+    }
+  },
+  "original_AC2": "GAP retained; neither fixture nor component subset substitutes for Mac full PASS",
+  "broker_resynchronization_owner": "#316 session; comment 12030 reports external 22/22 on both hosts from 5c2cd726c9aeaee9d17541d8feb049e33881bbac; #308 independently read-checks both broker surfaces PASS against fresh main",
+  "mac_host_role_note": "/etc is a macOS parent symlink; strict approved undeclared-link rule reports GAP for /etc/aisoft/host-profile.example.json. No alias exception added, no fallback read",
+  "future_acceptance": "actual applicable prefixes/root-link contract or installation scope require explicit decision; this checker performs neither",
+  "no_real_mutation": true
+}

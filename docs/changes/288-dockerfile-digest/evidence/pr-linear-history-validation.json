@@ -1,0 +1,35 @@
+{
+  "issue": 288,
+  "branch": "change/288-dockerfile-digest",
+  "original_confirmed_candidate": "c6934f2d10aa68329c7e51f5a71482fea0123d76",
+  "preserved_local_tag": "codex/issue-288-pre-linearization-c6934f2",
+  "tested_linear_head": "69d5ad511dd9620f2f3865e6439773b2c1744d1f",
+  "pinned_main": "65268ee5f1e622c486fd9e354dd35e20a2900f91",
+  "original_tree": "5f5769dcc5977901590e63e907f54d0765c73b8e",
+  "linear_tree": "5f5769dcc5977901590e63e907f54d0765c73b8e",
+  "tree_equal": true,
+  "merge_commits_above_main": [],
+  "first_push_attempt": "REJECTED_BEFORE_PUBLICATION: MERGE_COMMIT_DENIED",
+  "publication_before_repair": "NOT RUN",
+  "repair": "Linear rebase of unpublished commits; no force push; restore merge-only reviewed content",
+  "full_smoke": {
+    "command": "LC_ALL=C bash codex/tests/smoke.sh",
+    "result": "PASS",
+    "exit_code": 0,
+    "runtime_tests": 1008,
+    "runtime_seconds": 109.408,
+    "fixture_tests": 23,
+    "fixture_seconds": 47.297,
+    "log_sha256": "a42e39615a0393f6114b9fcfaf5a94ed46c0455c373acb62ef86c2d07e5567ce",
+    "log": "evidence/pr-linear-smoke-host.log.gz"
+  },
+  "not_run": [
+    "PR creation",
+    "required CI",
+    "global installation",
+    "real application migration",
+    "builder provenance",
+    "company live",
+    "deployment"
+  ]
+}

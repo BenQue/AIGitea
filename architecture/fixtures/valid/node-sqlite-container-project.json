@@ -6,6 +6,7 @@
   "profile_version": "1.0.0",
   "catalog_revision": "2026.09.0",
   "delivery_contract": "docker-release/v1",
+  "dockerfiles": ["fixtures/valid/dockerfiles/node22.Dockerfile"],
   "components": [
     {
       "component_id": "database.sqlite.3",

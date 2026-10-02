@@ -1,0 +1,18 @@
+{
+  "result": "PASS",
+  "issue": 308,
+  "branch": "change/308-installed-drift-check",
+  "ac_count": 8,
+  "effective_complexity": "complex",
+  "required_docs": [
+    "summary-installed-drift-check-261002.md",
+    "spec-installed-drift-check-261002.md",
+    "plan-installed-drift-check-261002.md",
+    "verification-installed-drift-check-261002.md"
+  ],
+  "risk_flags": [
+    "platform-governance",
+    "cross-module",
+    "ci-change"
+  ]
+}

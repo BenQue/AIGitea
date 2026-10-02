@@ -1,0 +1,16 @@
+{
+  "issue": 308,
+  "step": "T01",
+  "result": "GOVERNANCE_APPLIED_REQUIRES_FRESH_RUN",
+  "governance_files": [
+    "README.md",
+    "06-运维手册与踩坑集.md"
+  ],
+  "next_ticket": "T02",
+  "runtime_implemented": false,
+  "smoke_modified": false,
+  "fresh_run_required": true,
+  "reconfirmation_required": false,
+  "ac_2": "GAP retained",
+  "plan_frontier": "T02"
+}

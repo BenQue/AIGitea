@@ -1,0 +1,12 @@
+{
+  "issue": 288,
+  "branch": "change/288-dockerfile-digest",
+  "policy": "manual",
+  "user_confirmation": "确认提交",
+  "confirmed_candidate_head": "c6934f2d10aa68329c7e51f5a71482fea0123d76",
+  "main": "65268ee5f1e622c486fd9e354dd35e20a2900f91",
+  "permitted": "Unique PR submission and in-contract CI repairs; stop READY_FOR_REVIEW for human merge",
+  "deployment": "NOT_AUTHORIZED",
+  "owner_session": "01a0fc7b-f327-7a93-a48c-a254937cb08d",
+  "confirmation_marker": "AISoft-Submit-Authorization: issue=288; branch=change/288-dockerfile-digest; policy=manual"
+}

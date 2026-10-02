@@ -1,0 +1,27 @@
+test_all_eight_real_installer_fixtures_pass (__main__.InstalledDriftTests.test_all_eight_real_installer_fixtures_pass) ... ok
+test_catalog_matrix_revisions_and_schema_count (__main__.InstalledDriftTests.test_catalog_matrix_revisions_and_schema_count) ... ok
+test_changed_quantities_and_invalid_json (__main__.InstalledDriftTests.test_changed_quantities_and_invalid_json) ... ok
+test_checker_audit_blocks_writes_and_non_readonly_subprocesses (__main__.InstalledDriftTests.test_checker_audit_blocks_writes_and_non_readonly_subprocesses) ... ok
+test_default_agent_symlink_root_is_gap (__main__.InstalledDriftTests.test_default_agent_symlink_root_is_gap) ... ok
+test_each_installer_reports_missing_target_and_restoration (__main__.InstalledDriftTests.test_each_installer_reports_missing_target_and_restoration) ... ok
+test_equal_operations_do_not_hide_old_bytes (__main__.InstalledDriftTests.test_equal_operations_do_not_hide_old_bytes) ... ok
+test_exact_tree_extra_and_non_managed_boundaries (__main__.InstalledDriftTests.test_exact_tree_extra_and_non_managed_boundaries) ... ok
+test_git_clean_filter_and_environment_cannot_run_or_redirect (__main__.InstalledDriftTests.test_git_clean_filter_and_environment_cannot_run_or_redirect) ... ok
+test_installer_changes_and_new_installer_fail_source_validation (__main__.InstalledDriftTests.test_installer_changes_and_new_installer_fail_source_validation) ... ok
+test_matt_current_and_skill_links_are_verified (__main__.InstalledDriftTests.test_matt_current_and_skill_links_are_verified) ... ok
+test_matt_source_content_and_manifest_integrity (__main__.InstalledDriftTests.test_matt_source_content_and_manifest_integrity) ... ok
+test_missing_all_components_is_gap_not_skip (__main__.InstalledDriftTests.test_missing_all_components_is_gap_not_skip) ... ok
+test_missing_new_module_equal_count_and_restore (__main__.InstalledDriftTests.test_missing_new_module_equal_count_and_restore) ... ok
+test_parent_replacement_cannot_read_private_target (__main__.InstalledDriftTests.test_parent_replacement_cannot_read_private_target) ... ok
+test_relative_options_are_rejected (__main__.InstalledDriftTests.test_relative_options_are_rejected) ... ok
+test_retired_broker_target_is_gap_without_reading (__main__.InstalledDriftTests.test_retired_broker_target_is_gap_without_reading) ... ok
+test_source_only_never_reads_target_home (__main__.InstalledDriftTests.test_source_only_never_reads_target_home) ... ok
+test_symlink_and_fifo_are_not_read (__main__.InstalledDriftTests.test_symlink_and_fifo_are_not_read) ... ok
+test_symlink_parent_is_gap_without_following (__main__.InstalledDriftTests.test_symlink_parent_is_gap_without_following) ... ok
+test_untracked_new_source_module_not_cached_main (__main__.InstalledDriftTests.test_untracked_new_source_module_not_cached_main) ... ok
+test_zero_permission_is_gap (__main__.InstalledDriftTests.test_zero_permission_is_gap) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 44.480s
+
+OK

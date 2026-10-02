@@ -1,0 +1,71 @@
+{
+  "issue": 288,
+  "ticket": "T06",
+  "result": "PASS",
+  "stage": "CONTROLLED_FIXTURE_GOVERNANCE_APPLIED",
+  "pre_apply_head": "263c851abe529d7289da82292e45f52eeac6a7d9",
+  "approved_patch_sha256": "af73fbd48c2459b0792cc88493e08af9d7c89ae74a17026b5845271fcadecf22",
+  "source_before_sha256": "fcda29eeaf0ebbb27ff53c855128309f0f8901d5d9c7bbbc55e934dd606dc984",
+  "actual_source_sha256": "9dbdda887761260acb79044024b84fa2adb61607d450b66251677188e3e4fca3",
+  "reverse_patch_check": "PASS",
+  "python_compile": "PASS",
+  "fixture_tests": {
+    "argv": "LC_ALL=C bash codex/tests/test-installed-drift.sh",
+    "result": "PASS",
+    "exit_code": 0,
+    "count": 23,
+    "seconds": 44.895,
+    "log_path": "/private/tmp/issue-288-contract-data/t06-applied-fixture-tests.log",
+    "evidence": "evidence/t06-applied-fixture-tests.log.gz",
+    "sha256": "3c6696eeff5bdeef30dc6151372ccd7bd9137a8930cc657a89a88e73f2e11dbe"
+  },
+  "scope": {
+    "result": "PASS",
+    "technical_paths": [
+      "codex/tests/fixtures/installed-drift/test-installed-drift.py"
+    ],
+    "documentation_sync": [
+      "#288 mapped semantic docs and receipts",
+      "architecture README implementation status only"
+    ],
+    "unchanged": [
+      "AGENTS.md",
+      "runtime",
+      "real checker",
+      "installers",
+      "smoke gates/context",
+      "actual origin/main",
+      "historical evidence",
+      "other Issue files"
+    ]
+  },
+  "reviews": {
+    "spec": {
+      "result": "PASS",
+      "findings": 0
+    },
+    "standards": {
+      "result": "PASS",
+      "hard_violations": 0,
+      "possible_smells": 1,
+      "note": "Nonblocking duplicated source-copy list; approved patch kept unchanged"
+    }
+  },
+  "full_smoke": "NOT_RUN",
+  "full_runtime": "NOT_RUN",
+  "required_ci": "NOT_RUN",
+  "global_installed": "NOT_RUN",
+  "company_live": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "pr_submission": "NOT_AUTHORIZED",
+  "next": "Independent local governance commit and stop; fresh run resumes T03 without another contract-start confirmation.",
+  "final_review_readback": "Both independent reviewers matched actual source/log SHA256 and decompressed gzip bytes; Spec 0, Standards hard 0 / nonblocking smell 1. Scope and NOT_RUN boundaries verified.",
+  "semantic_document_check": {
+    "result": "PASS",
+    "checks": [
+      "change-documents",
+      "change-pr-url",
+      "git diff --check"
+    ]
+  }
+}

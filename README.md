@@ -177,6 +177,21 @@ sequenceDiagram
 | Codex | `bash codex/install-skills.sh <target-home>` | `bash codex/check-drift.sh` | `~/.agents/skills/`（含 `codex/skills/` 与 vendored Matt 快照） |
 | Claude Code | `bash skill-for-claude/install.sh <target-home>` | `bash skill-for-claude/check-drift.sh`（`CLEAN` / `DRIFT` / `NOT_INSTALLED`） | `~/.claude/skills/`（`skills.manifest` 声明的 `aisoft-platform`、`issue-session-flow`） |
 
+Issue #308 的八安装面只读核对合同：`bash codex/tools/check-installed-drift.sh` 逐项报告
+`PASS/GAP`、source/installed 可读量与具体缺失或字节不符的目标；可读量沿用 [06 踩坑 20](06-运维手册与踩坑集.md)。
+计数或 revision 相等不能代替文件比对。检查不运行 installer、不读取凭据、不调用 sudo、不创建临时文件、
+cache 或报告，也不自动修复。`--source-only` 仅校验源码映射，不能证明 installed 同步；
+合法 PR 的受管源可不同于缓存 main，该来源 GAP 继续独立输出，不阻断源定义自洽门。
+
+在 Mac 和 gitea-ci 本机分别执行，输出各自的 source SHA、缓存 origin/main 与实际检查 roots；fresh main
+证据仍由受控 broker 在检查外取得，检查本身不 fetch。`--target-home`、`--install-root`、`--agent-dir`、
+`--architecture-prefix` 可指定真实已有安装位置，不能用未证实的 prefix 或缺失安装面制造 PASS。
+所有反向漂移测试只在隔离 fixture 构造，真实安装面只读。
+
+**checker 已实现并完成隔离 fixture 与 smoke 自洽验证。** 2026-10-02 两台真实只读回读仍有 GAP，
+原「Mac 全 PASS」验收标准保留；源码功能交付不代表组件已安装或 live 闸门已生效。
+缺口须独立处置并真实重跑，不能由本检查自动重装或改写为已完成。
+
 ### 交付形态参考（按项目选用，非部署步骤事实源）
 
 平台只给环境级原则（`skill-for-codex/references/onboarding-runbook.md` §4：Linux 原生 / Linux 容器化 /

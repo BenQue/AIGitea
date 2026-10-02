@@ -1,0 +1,25 @@
+{
+  "issue": 308,
+  "branch": "change/308-installed-drift-check",
+  "session": "01a0fc7b-d0b3-7802-af08-555307d048a6",
+  "authorization": "contract-start",
+  "user_message": "批准",
+  "scope": "previously presented #308 spec/plan; T01-T04 only",
+  "policy": "manual",
+  "confirmed_at": "2026-10-02T20:19:56.828433+08:00",
+  "approved_document_hashes": {
+    "spec-installed-drift-check-261002.md": "c601672d50255b2e234cc07a297a03948b0e23ecaaf3165dde67a1ceea847a84",
+    "verification-installed-drift-check-261002.md": "c76a2a1b1ec937b6ffb4a33021207e5fff538bf3b5e2cbe51d9f90914ee6c324",
+    "summary-installed-drift-check-261002.md": "26e8379f391907c81bb2ba26e514628acdff6cb700a656dfb6712c709ecb2270",
+    "plan-installed-drift-check-261002.md": "464e13db54523ca7e274d3e3a3cc0e81f5c2cacdb50c96c0c0d1e58d14c6fdf5"
+  },
+  "excluded": [
+    "PR submission",
+    "merge",
+    "install",
+    "sudo",
+    "deploy",
+    "credentials"
+  ],
+  "retained_gap": "original AC-2 Mac installed all PASS remains GAP"
+}

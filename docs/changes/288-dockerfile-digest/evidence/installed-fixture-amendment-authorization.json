@@ -1,0 +1,30 @@
+{
+  "issue": 288,
+  "branch": "change/288-dockerfile-digest",
+  "policy": "manual",
+  "ticket": "T06",
+  "user_confirmation": "确认",
+  "decision": "APPROVED_CONTROLLED_FIXTURE_AMENDMENT",
+  "scope": "Apply exactly the reviewed single-file patch, synchronize mapped spec/plan and evidence, run targeted validation, commit independently and stop; fresh run performs full regression.",
+  "patch_sha256": "af73fbd48c2459b0792cc88493e08af9d7c89ae74a17026b5845271fcadecf22",
+  "proposal_sha256": "33f8193cc07f0a5a869f8ee390aea6bf37a0ae38eb8ab27c0beae3f89194b251",
+  "source_before_sha256": "fcda29eeaf0ebbb27ff53c855128309f0f8901d5d9c7bbbc55e934dd606dc984",
+  "proposed_source_sha256": "9dbdda887761260acb79044024b84fa2adb61607d450b66251677188e3e4fca3",
+  "authorized_paths": [
+    "codex/tests/fixtures/installed-drift/test-installed-drift.py"
+  ],
+  "pre_apply_head": "263c851abe529d7289da82292e45f52eeac6a7d9",
+  "owner_session": "01a0fc7b-f327-7a93-a48c-a254937cb08d",
+  "approved_spec_before_sha256": "e2324fa78b3a95faaf9476d97419d7f709368cf373e1b52a7a9db87d8a19f66b",
+  "approved_plan_before_sha256": "75b9955d522ed3149a8aa2467692583ef5adddd4b707bfa0f7d0e662bae9e4a2",
+  "recorded_at_utc": "2026-10-02T14:04:40.827997+00:00",
+  "not_authorized": [
+    "push",
+    "PR creation",
+    "merge",
+    "global installation",
+    "deployment",
+    "real origin/main change",
+    "installed checker behavior change"
+  ]
+}
