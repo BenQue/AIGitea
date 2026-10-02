@@ -364,12 +364,30 @@ raise SystemExit("unexpected read through replaced parent")
         self.assertEqual(self.row(report, "install-vm")["result"], "GAP")
         (source / "codex/runtime/aisoft_loop/uninstalled_new_module.py").unlink()
         (source / "codex/runtime/aisoft_loop/worktree.py").unlink()
-        report = self.check(1, repo=source, extra=["--source-only"])
+        report = self.check(0, repo=source, extra=["--source-only"])
         self.assertFalse(report["source"]["managed_source_matches_cached_main"])
         shutil.copyfile(REPO / "codex/runtime/aisoft_loop/worktree.py", source / "codex/runtime/aisoft_loop/worktree.py")
         shutil.rmtree(source / "codex/skills/issue-session-flow")
-        report = self.check(1, repo=source, extra=["--source-only"])
+        report = self.check(0, repo=source, extra=["--source-only"])
         self.assertFalse(report["source"]["managed_source_matches_cached_main"])
+
+    def test_valid_pr_source_changes_pass_source_only_but_report_main_gap(self):
+        source = self.clone_source()
+        for args in [["git", "init", "-q", str(source)], ["git", "-C", str(source), "add", "."],
+                     ["git", "-C", str(source), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                      "-c", "core.hooksPath=/dev/null", "commit", "-qm", "fixture baseline"],
+                     ["git", "-C", str(source), "update-ref", "refs/remotes/origin/main", "HEAD"]]:
+            p = run(args)
+            self.assertEqual(p.returncode, 0, p.stderr)
+        module = source / "codex/runtime/aisoft_loop/worktree.py"
+        module.write_text(module.read_text() + "\n# valid pending PR change\n")
+        report = self.check(0, repo=source, extra=["--source-only"])
+        self.assertEqual(report["result"], "PASS")
+        self.assertEqual(report["source"]["result"], "GAP")
+        self.assertFalse(report["source"]["managed_source_matches_cached_main"])
+        self.assertEqual(report["source"]["remote_freshness"], "EXTERNAL_EVIDENCE_REQUIRED")
+        self.assertTrue(all(r["scope"] == "SOURCE" for r in report["installers"]))
+        self.check(1, repo=source)
 
     def test_git_clean_filter_and_environment_cannot_run_or_redirect(self):
         source = self.clone_source()

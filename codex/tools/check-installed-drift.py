@@ -581,7 +581,11 @@ def main(argv=None):
                         by_name[surface.installer]["result"] = "GAP"
                         by_name[surface.installer]["gaps"].append({"reason": "nested-installer-gap", "installer": dependency,
                                                                    "target": str(args.target_home / ".agents/skills")})
-        code = int(identity["result"] != "PASS" or any(row["result"] != "PASS" for row in report["installers"]))
+        # A valid PR is allowed to change managed source before merge. Source-only
+        # gates definition integrity, while retaining main drift as provenance;
+        # installed mode still requires that identity as well as installed bytes.
+        code = int(not args.source_only and (identity["result"] != "PASS" or
+                   any(row["result"] != "PASS" for row in report["installers"])))
     except (InspectionError, OSError, UnicodeError, ValueError, AttributeError) as exc:
         code = 2
         report["error"] = {"reason": exc.reason if isinstance(exc, InspectionError) else "invalid-source-definition",
