@@ -140,7 +140,7 @@ created: 2026-08-08
 
     def test_small_route_also_preserves_declared_verification(self):
         self.declare("verification")
-        text = self.summary.read_text().replace("platform", "bugfix").replace("complex", "small")
+        text = self.summary.read_text().replace("change_type: platform", "change_type: bugfix").replace(": complex", ": small")
         text = text.replace("risk_flags:\n  - shared-core", "risk_flags: []")
         self.summary.write_text(text)
         classification = contract._classification_from_front_matter(contract.parse_front_matter(text))

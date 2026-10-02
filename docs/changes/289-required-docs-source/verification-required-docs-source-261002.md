@@ -102,7 +102,7 @@ T01 完成本地 commit 后按治理规定停止；fresh run 重新读取更新�
 
 - TDD 基线：新增 12 项测试在旧实现上得到 16 个 subtest failures（包含真实历史 summary），修复后 targeted 转绿；另补 small verification 保留回归，共 13 项。
 - test_contract.py 27、test_documents.py 20、test_change_audit.py 9、test_change_control.py 14 均 PASS。
-- 首次全量 runtime 990 项 PASS（90.109s）；新增最后 1 项 small verification targeted PASS，最终全量由 T03 重跑。
+- 首次全量 runtime 990 项 PASS（90.109s）；新增最后 1 项 small verification 初跑因 fixture 字符串替换误改 requested_complexity key 而失败，已收窄到精确字段值替换；修复后的 targeted 与最终全量由 T03 记录。
 - mark-completed mock tests PASS：三档生命周期中缺文档 --apply 均 skip/applied=false/zero write；合法 legacy verification 正确归一；非法 JSON/空角色 receipt 零写入。
 - bash -n、ShellCheck 对三个受影响 shell 文件 PASS。首次 smoke 在 probe JSON 字面值写法触发 SC2089/SC2090 后退出，已按数组修复；重跑进行中，尚不宣称 smoke PASS。
 - 真实历史 fixture：resolve-documents exit=2；resolve-required-documents exit=2；audit exit=1；terminal dry-run skip/applied=false。诊断包含 change/role/basename。
