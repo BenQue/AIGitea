@@ -95,3 +95,9 @@ override_reason: ''
 fresh run 已实现八面只读 checker。22 项针对性 fixture 全通过，bash -n/ShellCheck/diff-check 通过，source-only 八项 SOURCE PASS。code-review 两轴发现已修复并只读复审关闭。现有完整 smoke 默认 host 环境在 registry-preflight fixture FAIL，`LC_ALL=C` 重跑 PASS（978 runtime tests）；新 checker 尚未接入 smoke，阶段范围如实保留。
 
 下一 frontier T03 仅应用 smoke 静态/fixture hook，然后停止；T04 fresh run 才完成集成与两台真实安装回读。原 AC-2 GAP 保留，没有 push、PR、merge、真实安装、sudo 或部署。
+
+## T03 治理接入完成，待 fresh run
+
+smoke 已独立加入新 checker/test 的 bash -n、ShellCheck、source-only 与隔离 fixture hook；全部既有门保留。应用后的 smoke 自身语法、ShellCheck、diff-check PASS；集成执行仍 NOT RUN，留给 T04 fresh run。按已批准 spec 的治理停止规则，本轮到此停止，状态 `GOV_APPLIED_REQUIRES_FRESH_RUN`；沿用既有启动授权，不重复请求合同确认。
+
+剩余：T04 集成完整验证、两台真实只读 checker 证据、AC-2 安装缺口与最终 PR 候选。没有 PR/CI/安装/部署。Issue 不宣称 completed，不归档。

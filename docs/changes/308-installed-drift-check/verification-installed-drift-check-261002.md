@@ -47,7 +47,8 @@ updated: 2026-10-02
 | 完整 smoke，sandbox 默认环境 | BLOCKED_SANDBOX | loopback bind PermissionError；相同命令 host 重试 |
 | 完整 smoke，host 默认环境 | FAIL | registry-preflight 停 registry fixture 期望 1、实际 0；保留原失败 |
 | 完整 smoke，host `LC_ALL=C` | PASS（T03 接入前） | 978 runtime tests；全部既有 smoke 门通过 |
-| 新 checker 的 smoke 集成、CI | NOT RUN | T03 独立治理接入待执行；最终 T04 fresh run；没有 PR |
+| 新 checker 的 smoke 集成 | APPLIED，运行 NOT RUN | T03 独立治理仅应用 hook；完整集成 smoke 待 T04 fresh run |
+| CI | NOT RUN | 没有 push 或 PR |
 
 ## Mac 初始文件 inventory（非最终完整 checker）
 
@@ -80,7 +81,7 @@ Mac install-vm 缺少 `.local/lib/aisoft-loop/aisoft_loop/worktree.py`；cli.py/
 | AC-1 | PASS（local fixture） | 八 installer 行、quantities、exact gaps、退出码；真实面结果待 T04 |
 | AC-2 | GAP | Mac 当前至少 install-vm/broker 实际漂移及三组件默认缺失；保留原全 PASS 要求 |
 | AC-3/4/6 | PASS（local fixture） | 22 tests：缺失/同量旧字节/恢复、写入 audit/tree 指纹、Secret/链接边界 |
-| AC-5 | 部分 PASS，集成待 T03/T04 | source-only 八面通过，新增 installer/改 installer 拒绝；尚未接入 smoke |
+| AC-5 | 部分 PASS，集成运行待 T04 | source-only 八面通过，新增 installer/改 installer 拒绝；T03 hook 已应用，尚未 fresh-run 执行 |
 | AC-7 | 部分基线 GAP，最终 NOT RUN | 两台初始 read-only inventory；非新工具验收 |
 | AC-8 | PASS（local），fresh remote 待 T04 | checkout/HEAD/cached main；untracked、已删受管源、Git filter/环境隔离 fixture；无 fetch |
 
@@ -107,3 +108,11 @@ AC-2 要求与当前实际安装面冲突，但不能删除标准或制造 PASS�
 两轴 code-review 初审发现 Standards 1 项 P2、Spec 3 项（最严重 P1）；修复后分别复审均无未关闭发现，详见 `evidence/t02-two-axis-review.md`。禁止以 review 静态结论替代真实验收。
 
 完整 smoke 原环境阻断/失败与 `LC_ALL=C` 成功分别保留。此 smoke 尚不含新 checker 的 T03 hook，不能宣称集成门已验证。T02 完成后下一 frontier T03；T04 仍负责 fresh run 的全部门和两台真实只读证据。AC-2 GAP、CI/PR/安装/部署 NOT RUN。
+
+## T03 独立治理应用与停止
+
+T02 提交与验证完成后，独立仅为 `codex/tests/smoke.sh` 添加两个新 shell 的 bash -n/ShellCheck 门、`--source-only` 调用与隔离 fixture 测试。没有删除或修改既有静态/runtime 门，没有修改 workflow、contexts、installer 或 runtime。T03 应用后的 smoke 自身 bash -n、ShellCheck 和 diff-check PASS。
+
+本步骤不执行新集成 smoke 或 checker 的真实安装面；遵守 spec 的“治理说明和 smoke 接入分别为独立仅治理步骤，应用后停止，后续 fresh run 重读才继续 runtime/验证”。状态 `GOV_APPLIED_REQUIRES_FRESH_RUN`；下一 frontier T04，沿用现有启动授权。T04 应重读治理/合同、跑完整门、broker 只读获取 fresh main 外部证据，并分别在 Mac/gitea-ci 运行 checker。不能将 T02 旧 smoke 或初始 inventory 当作 T03 集成/T04 installed PASS。
+
+AC-2 原全 PASS 标准仍未满足。#316 的安装工作只由其 owner 处置，本会话不改其安装/凭据；后续仅只读回读变化。最终 PR 候选与分类硬门、exact branch/manual 提交确认均尚待；没有 push/PR/CI/merge/部署。
