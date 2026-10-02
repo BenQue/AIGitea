@@ -182,3 +182,30 @@ https://github.com/moby/buildkit/blob/master/frontend/dockerfile/parser/parser.g
 
 完整 runtime 第二轮（修复前 e799acf）990 tests / 86.754s PASS；
 上述常规修复后将再次执行完整 runtime，旧 PASS 不外推至新 head。
+
+## T03 最新本地验收与范围阻塞
+
+验证 runtime head：2a5ccf9f208dd01dc8d96d8c0a06d1f8e0af3ed0。
+
+| Check | Result | Receipt |
+|---|---|---|
+| architecture suite | PASS | 71 tests / 7.630s，t02-architecture-final.log |
+| 完整 runtime suite（最终修复后） | PASS | 992 tests / 95.057s，t03-runtime-reviewed.log |
+| Standards / Spec 独立复审 | PASS / PASS | 0 / 0；原 Spec P1 核销，Standards 无 hard violation / smells |
+| release architecture integration | PASS | 4 tests / 0.036s；reader/schema 未变 |
+| schema/lock/release 原外部字段与非容器 bytes | PASS | 已迁移容器 declaration checksum，其它 lock 字段不变；四非容器 receipt 相同 |
+| 平台 smoke | FAIL | 仍为 exact reference lock 固定 source pin 阻塞，未重跑同根因失败 |
+| #287 fresh-main 组合 | NOT RUN | 最新 broker Issue read 仍 open，最终候选前必须自行整合真实合并后的 main |
+| 治理补充临时 proposal 单测 | PASS | 20 tests / 9.371s；仅临时副本，不等于已批准或已应用 |
+| PR/required CI/安装/现场/部署 | NOT RUN | 无 push/PR，未安装部署 |
+
+最小治理补充草案：evidence/boundary-amendment-proposal.json，PROPOSED_NOT_APPLIED。
+只触及 codex/tests/check-release-evidence-boundary.py 的 exact architecture lock pin 与
+codex/runtime/tests/test_release_evidence_boundary.py 的 disk/index 单字节篡改回归。
+提案补充 CURRENT_SOURCE_PINS 可接受的唯一 fixture path，仍做 disk 与 index SHA256 双核验，
+不加入 CONTENT_EXEMPT、不改变 historical baseline/evidence/runner 或 runtime/real-E2E pin。
+完整 diff 已保存可审阅文件，patch SHA256：
+a2538e14a46d6568470271edb86d0ffac0c241ff221d133efdb01815ba86aa55。
+新增 pin 为当前 synthetic lock 文件 SHA256：
+b6d39e9126b61c804b8cb188a11a3b4e1bc375236a3ffadf93909f3d49e70076。
+当前 source guard 和原测试文件均未修改。批准后须独立治理应用并停止，fresh turn 才重跑 runtime。
