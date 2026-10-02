@@ -92,7 +92,7 @@ override_reason: ''
 - Worktree：`/private/tmp/issue-287-profile-semantic-lock`，已经 claim。
 - Branch：`change/287-profile-semantic-lock`；已确认合同的本地工作，未 push、无 PR。
 - `depends_on: []`：#287 无硬依赖；#288 仅共享模块协调，#286/#289 的调度顺序不是代码依赖。
-- 用户已在本聊天回复“确认”，批准完整合同与 T01/T02/T03；本阶段仅执行 T01。
+- 用户已在本聊天回复“确认”，批准完整合同与 T01/T02/T03；T01 独立文档步骤完成后，fresh run 已实施 T02，T03 本地验收已完成。
 - 采用 A 后无需为纯散文广播；自动发现消费者、开票/投递 `needs-relock` 不在本次方案内。
 - Matt `triage/bug` 与 `triage/ready-for-agent` 是建议结果；现有 broker 未提供这两个维度的 typed projector，不能借 extension 或直接 API 写入。
 
@@ -107,6 +107,20 @@ override_reason: ''
 
 2026-10-02 用户回复“确认”。确认绑定 #287、当前 spec/plan 与 manual 流程；receipt 见 `contract-start-approval.json`。不包含 PR 提交、合并或部署授权。T01 应用 architecture 文档合同并停止，后续 fresh run 无需重问启动确认。
 
-## T01 完成状态
+## T01 完成状态（当时记录）
 
 architecture README 与 ADR-0007 的受控文档步骤已应用。T02/T03 待 fresh run，runtime/V2 功能尚未实现；Issue 不关闭、聊天不归档。新 run 延续已记录的启动批准，不再询问合同确认。
+
+## T02 源码结果
+
+默认 V2 writer 与严格 V1/V2 reader 已实现。历史说明编辑得到 byte-identical V2 lock；合法机器/constraints 变化仍报 LOCK_DRIFT。70 项 architecture tests 与 5 项 release integration tests 通过；原 V1 reference/schema、catalog、profiles 和 release runtime 字节保持。
+
+旧 V1 的说明漂移仍严格失败，采用 V2 需要应用自己的显式 Change。release reader 仍为 V1-only；自动跨仓广播 NOT IMPLEMENTED。安装、现场消费者、SFM、remote CI、push/PR、merge 与部署均未执行。
+
+## T03 本地验收与候选
+
+`LC_ALL=C bash codex/tests/smoke.sh` 在受控 host 上 exit 0：992 runtime tests / 87.172s / OK，static smoke checks passed。sandbox 临时端口绑定失败、host 默认 locale 的既有 registry 负向测试失败均保留；未改变 source/断言，不把 C locale PASS 写成默认 locale PASS。
+
+两轴只读 code review 未发现 runtime 问题；过时的“V2 未实现”文档 P2 已修复并复核关闭。最终 scope 保护 31 个文件字节不变。broker fresh origin/main 仍为 5c2cd726c9aeaee9d17541d8feb049e33881bbac；exact #287 classification verify 为 projected；semantic documents 与 git diff --check 通过。
+
+本地 T01/T02/T03 均完成，仅形成 manual 最终 PR 候选。等待绑定 #287 / change/287-profile-semantic-lock / manual 的唯一最终 PR 提交确认；未 push、未创建 PR。required CI、安装与现场消费者验收仍 NOT RUN，不能据此关闭 Issue、合并或部署。

@@ -64,10 +64,10 @@ CLI 与 `codex/tools/aisoft-project-check.sh` 都从**脚本所在平台 checkou
 
 ## 更新与例外
 
-### Profile checksum 与重 lock（#287 已批准合同，runtime 待 T02 实现）
+### Profile checksum 与重 lock（#287 源码已实现，安装与消费者验收另行执行）
 
-本节与 [ADR-0007](decisions/0007-profile-machine-checksum.md) 定义新格式目标。T01 只应用文档
-合同，当前 CLI 仍生成和校验 V1；不能把本节当成已安装或已运行的 V2 能力。
+本节与 [ADR-0007](decisions/0007-profile-machine-checksum.md) 定义已实现的哈希合同。当前源码
+CLI 默认生成 V2，并严格校验 V1/V2。源码本地验证不证明工具已安装或实际消费者已验收 V2。
 
 现有 V1 的 `source_checksums.profile_sha256` 对整个解析后的 profile canonical JSON
 求 SHA-256。空白与 object key 顺序本来就不会改变该值；字符串和数组内容变化会改变它。
@@ -102,7 +102,7 @@ V2 lock 使用独立 `architecture-lock-v2.schema.json`、`schema_version: 2.0` 
 覆盖完整 lock，包括格式与算法标识。profile 的既有 `version` 与 declaration 的匹配
 检查保留；版本相等不能忽略 hash，漏 bump 的合法机器变化仍须 `LOCK_DRIFT`。
 
-目标 CLI 的新 lock writer 默认生成 V2；`validate --lock` 按 lock 自身的已知版本选择
+当前源码 CLI 的新 lock writer 默认生成 V2；`validate --lock` 按 lock 自身的已知版本选择
 schema/expected lock：V1 保持完整 profile 哈希，V2 使用明确投影。未知 version/marker、
 marker 混用/缺失、额外字段和 checksum 篡改均 fail closed；没有 ignore、自动降级、
 自动迁移或 CLI legacy writer 开关。输入非法时可先失败于 schema/semantic 诊断；

@@ -1,0 +1,20 @@
+{
+  "validation": "actual-approved-contract",
+  "issue": 287,
+  "branch": "change/287-profile-semantic-lock",
+  "acceptance_criteria_count": 8,
+  "lifecycle": [
+    "approved",
+    "complexity/complex",
+    "type/platform"
+  ],
+  "selector_result": "Ticket graph has no pending ticket",
+  "completed_tickets": [
+    "T01",
+    "T02",
+    "T03"
+  ],
+  "owner_session_matches": true,
+  "dependencies": [],
+  "execution_mode": "interactive; no provider/controller run"
+}

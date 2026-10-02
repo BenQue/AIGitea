@@ -1,6 +1,6 @@
 # ADR-0007：profile 说明字段与机器合同 checksum 分离
 
-- 状态：Accepted（2026-10-02 用户确认合同；T01 文档步骤，V2 runtime 尚未实现）
+- 状态：Accepted（2026-10-02 用户确认合同；V2 runtime 源码已实现并本地验证，安装与实际消费者验收 NOT RUN）
 - 日期：2026-10-02
 - 关联：Issue [#287](http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/287)，补充 ADR-0001 与 ADR-0006
 
@@ -64,5 +64,6 @@ required action；消费者 inventory 未读回不得宣称完整。安装、rel
 所有 EOL、prohibited、digest、exception/expiry、provenance 与 checksum 硬门保持。
 
 #288 的 Dockerfile evidence 是独立机制，本 ADR 不实现它；未来获 schema 批准的机器字段
-默认入投影。本 T01 只应用文档合同并停止，fresh run 重读后实施 T02/T03。它不修改
-AGENTS、skills、controller、broker、CI、installer、profile/catalog 取值或 live 状态。
+默认入投影。T01 已独立应用文档合同并停止，后续 fresh run 重读后实施 T02/T03。当前源码
+具备默认 V2 writer 与严格双 reader；release reader 仍仅支持 V1。该实现不修改 AGENTS、
+skills、controller、broker、CI、installer、profile/catalog 取值或 live 状态。

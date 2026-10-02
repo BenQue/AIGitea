@@ -1,0 +1,46 @@
+{
+  "writer_before": {
+    "exit_code": 0,
+    "result": {
+      "lock_sha256": "b6e90e0efcc4b5b89f98dcfbe8950505c5f3e994f5f24b4c82254fa72e9deedd",
+      "written": "<temporary candidate>"
+    }
+  },
+  "validate_after_prose": {
+    "exit_code": 0,
+    "result": {
+      "catalog_revision": "2026.09.0",
+      "lock_sha256": "b6e90e0efcc4b5b89f98dcfbe8950505c5f3e994f5f24b4c82254fa72e9deedd",
+      "profile_id": "linux-node-sqlite-v1",
+      "project_id": "fixture-node-sqlite-native",
+      "valid": true
+    }
+  },
+  "writer_after": {
+    "exit_code": 0,
+    "result": {
+      "lock_sha256": "b6e90e0efcc4b5b89f98dcfbe8950505c5f3e994f5f24b4c82254fa72e9deedd",
+      "written": "<temporary candidate>"
+    }
+  },
+  "byte_identical_after_prose": true,
+  "validate_after_valid_delivery_change": {
+    "exit_code": 2,
+    "result": {
+      "diagnostics": [
+        {
+          "code": "LOCK_DRIFT",
+          "message": "architecture.lock.json 与当前输入不一致。",
+          "path": "$",
+          "remediation": "重新运行 lock 并提交 canonical 输出。"
+        }
+      ],
+      "valid": false
+    }
+  },
+  "original_lock_unchanged": true,
+  "lock_format": "2.0",
+  "profile_checksum_contract": "profile-machine-v1",
+  "profile_sha256": "892f08d16dfbc2cf59c8075a2b999f0aa252d319cb6ae79764239d3e684b85fa",
+  "lock_sha256": "b6e90e0efcc4b5b89f98dcfbe8950505c5f3e994f5f24b4c82254fa72e9deedd"
+}

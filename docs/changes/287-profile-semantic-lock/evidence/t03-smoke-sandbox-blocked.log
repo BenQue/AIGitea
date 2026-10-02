@@ -1,0 +1,56 @@
+architecture installer idempotence: PASS
+gitea-label-manifest contract passed.
+sync-gitea-labels mock regression passed.
+project check tests passed (61 cases)
+PASS: change-template-sync (17 cases)
+Codex agent runtime mock regression passed.
+change-merge-range: OK
+mark-deployed tests passed
+mark-completed tests passed
+apply-classification tests passed
+DEPRECATED: inline GITEA_TOKEN is deprecated; migrate this profile to GITEA_IDENTITY + GITEA_TOKEN_FILE (#61, #111)
+DEPRECATED: inline GITEA_TOKEN is deprecated; migrate this profile to GITEA_IDENTITY + GITEA_TOKEN_FILE (#61, #111)
+repository settings tests passed
+bootstrap Gitea service account tests passed
+routine pilot rollback tests passed
+Gitea service policy tests passed
+ensure-gitea-collaborator tests passed
+To /var/folders/yt/y1b2gtbs2vs3f3ljrh1z74w00000gn/T/tmp.GpneiONKtx/remote.git
+ * [new branch]      main -> main
+cleanup tests passed
+artifact retention dry-run tests passed
+gitea-readonly tests passed
+gitea-token lib tests passed
+gitea token consumer drift check passed (38 scripts scanned)
+install-skills tests passed
+codex drift tests passed
+platform readiness tests passed
+claude skill install tests passed
+host-role guard tests passed
+host-role installer tests passed
+host access broker shell and installer tests passed
+host-access-broker installer tests passed
+installer source guard tests passed (8 installers x 3 source states)
+PASS: install-runner-flutter
+docker release install tests passed
+docker image-store E2E harness fake preflight tests passed
+....................
+----------------------------------------------------------------------
+Ran 20 tests in 0.042s
+
+OK
+PASS: Issue #296 static/fake safety gates; real acceptance NOT RUN
+docker release v2 lifecycle E2E harness fake preflight tests passed
+................................................................FAIL: this fixed evidence check accepts no overrides
+..................................................................................................
+----------------------------------------------------------------------
+Ran 162 tests in 11.049s
+
+OK
+{"baseline": "64f1cda0de9735f8782e64a5b07af2ce8460e4c3", "commands": [{"argv": ["bash", "codex/tests/test-docker-release-v2-lifecycle-e2e-harness.sh"], "exit_code": 0}, {"argv": ["/opt/homebrew/opt/python@3.14/bin/python3.14", "-B", "-m", "unittest", "discover", "-s", "codex/runtime/tests", "-t", "codex/runtime", "-p", "test_release*.py"], "exit_code": 0}], "company_live": "NOT_RUN", "current_real_e2e": "NOT_RUN", "current_release_regression": "PASS", "current_source_conformance": "PASS", "current_source_sha256": "dc34582e927e547204414344f27bfec75ededae46b643d5de856ae1f468170f7", "head_sha": "a8be0086e73b2e8dc73f569a783b253d79bfb2f0", "head_tree": "9e35946b0491bbf1c3445f0177f15daacf87fb70", "historical_evidence_binding": "PASS", "historical_evidence_sha256": "b58bb7b57d53a104f922e66c7dc1342bc1b5b133038f60fa8f2ace8d8dbdeb89", "historical_harness_fake_regression": "PASS", "historical_role_amendment_sha256": "95092fbd6deab1a536d53371444c9b9c708b538cff3bc1ac4ebbd7dae3bff195", "installed": "NOT_RUN", "runner_sha256": "ec6e0a9e56d8139102fb2a94fc31374886cd97b38e9166fa4f9d411e710533d6"}
+PASS: Issue #124 real-release harness default/guard contract
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+    s.bind(("127.0.0.1", 0))
+    ~~~~~~^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 1] Operation not permitted
