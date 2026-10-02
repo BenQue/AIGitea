@@ -24,8 +24,8 @@ documents:
   plan: plan-installed-drift-check-261002.md
   verification: verification-installed-drift-check-261002.md
 override_reason: ''
-pr_url:
-status: approved
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/326
+status: pr-open
 branch: change/308-installed-drift-check
 created: 2026-10-02
 updated: 2026-10-02
