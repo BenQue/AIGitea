@@ -40,6 +40,24 @@ repo-local helper drift. It is read-only and does not provision credentials or a
 
 ## Helper commands
 
+### Approved #286 dependency contract — implementation pending
+
+`depends_on` integers mean Issues in the source repository only. The approved `owner/repo#N`
+extension must use a new typed dependency read with only a reference argument and a source project binding.
+Resolve the target through canonical `dependency_read_targets` before any GET; no caller-supplied URL,
+host, credential or arbitrary repository route. The only new cross-repository edge approved here is
+`sfm-digital-board → aisoft-platform`; all other projects default to local dependencies.
+
+Cross-repository reads stay inside the broker's manager-audit read-only route. Never use the source
+project-agent or routine merger credential outside its repository, and never fall back to admin,
+mutation tokens, a direct GiteaClient or broader ACL. Validate repository identity/number and reject PRs;
+unverifiable or unauthorized reads never satisfy a dependency. Controller and routine merger must share
+this boundary. This governance step changes documentation only: runtime, installed bytes and live reads
+are NOT RUN. Do not issue an unsupported operation against the currently installed broker.
+
+The general inspection fallback ladder above does not apply to dependency gates. Installation,
+credential provisioning and live apply require separate authorization and read-back.
+
 Preferred post-#61 host command:
 
 ```bash
