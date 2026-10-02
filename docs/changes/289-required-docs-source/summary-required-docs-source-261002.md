@@ -22,9 +22,9 @@ documents:
   spec: spec-required-docs-source-261002.md
   plan: plan-required-docs-source-261002.md
   verification: verification-required-docs-source-261002.md
-status: approved
+status: pr-open
 branch: change/289-required-docs-source
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/325
 created: 2026-10-02
 updated: 2026-10-02
 ---
