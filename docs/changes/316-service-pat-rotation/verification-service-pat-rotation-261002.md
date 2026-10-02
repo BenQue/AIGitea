@@ -18,7 +18,7 @@ depends_on:
 status: pending
 branch: change/316-service-pat-rotation
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # #316 证据记录
@@ -78,7 +78,7 @@ updated: 2026-10-02
 |---|---|---|
 | AC-1 | 本地隔离 shell/smoke 接入 PASS；组合完整 smoke FAIL | 已覆盖 rotate/no-op、撤旧失败、scope 不等、写入失败与 Secret canary；真实外部系统不在 fixture PASS 范围 |
 | AC-2 | NOT RUN | 未授权且未执行真实 Secret 操作 |
-| AC-3 | 文档与分类复核 PASS；范围补充待确认 | 03 已加入 scope 合同变化必须轮换、operator 权限和阶段边界；06 已加入轮换列、Secret/恢复合同；mapped documents/真实分类读回在 T01 复核，整体验收仍需 T04 |
+| AC-3 | 文档与分类复核 PASS；范围补充已批准 | 03 已加入 scope 合同变化必须轮换、operator 权限和阶段边界；06 已加入轮换列、Secret/恢复合同；mapped documents/真实分类读回在 T01 复核，整体验收仍需 T04 |
 | AC-4 | T02 本地隔离 DB suite 与阶段审查 PASS | fixed v1.26.4 helper 使用真实 models 覆盖精确删除/拒绝/脱敏；Linux release 与现场安装不在该 PASS 范围 |
 | AC-5 | T03 本地隔离 PASS | 固定 store 交易、journal/锁/权限/owner、失败补偿和中断恢复；live NOT RUN |
 | AC-6 | T03 源码/本地负向 PASS | 普通 typed caller、VM 公开 tuple/hash、缺/错 grant/capability 均拒绝；installed/live NOT RUN |
@@ -163,3 +163,13 @@ Fresh typed git.fetch.main 读回 origin/main=70baa3588c0504e5d81facd99c63b74741
 闸门来自 #308。mapper 未覆盖本票新增 rotate 脚本、生成 source metadata 和可选 helper；仅刷新摘要会掩盖遗漏。两轴只读复审确认当前 #316 spec 没有明确列入共享 checker，且需要定义生成 metadata/可选制品的比较政策。具体 exact 文件、CLI 输入、验证、回滚和治理/fresh-run 边界见 [待确认提案](evidence/t04-installed-drift-extension-proposal.md)。该提案未生效，当前未修改 mapper 或 fixture，T04 blocked。独立 `--source-only` 同样返回 ERROR/exit 2，确认是 source mapping 问题；脱敏 readback 与日志摘要见 [集成阻塞回执](evidence/t04-fresh-main-integration-block.json)。
 
 本票 branch 仍不是 fresh main 后代，`BASE_BRANCH_STALE` 仍是 Controller 发布前置条件；不能绕过它。required CI、PR 提交、helper/operator 安装、grant provision、live PAT 轮换及消费端副本处置仍 NOT RUN。PR 草稿当前为 BLOCKED_SOURCE_CANDIDATE，不能提交或当作 READY_FOR_REVIEW。
+
+## T04A 已批准范围补充与独立治理应用（2026-10-03）
+
+用户以“确认继续”批准具体补充提案。起点 head 为 `fdbc7e79a54a9c8584957a83427192d0d20a91fb`，branch `change/316-service-pat-rotation`；本步骤只应用本票 spec/plan/summary/verification、提案批准记录与脱敏批准回执。新授权为两个 exact 文件的 drift mapping/metadata/独立 provenance 与对应 fixtures；`--source-only` 不 stat/read/resolve 外部证据或目标；helper:null 不推断整体轮换不可用。批准回执见 [T04A](evidence/t04a-contract-extension-approval.json)。
+
+T04A 不改运行时或 checker/fixture，不进行历史改写、push、PR、label、安装、grant 或真实 PAT 操作。当前组合 smoke 仍 FAIL（未修复、未重跑）；required CI、installed、live 保持 NOT RUN。文档与 staged scope 检查及最终 clean/commit 读回作为本 turn 回执，避免本文件自引用自己的 commit SHA。
+
+当前 handoff：T04A_COMPLETE / T04B_NEXT_FRESH_RUN。下一 fresh run 重读已批准补充合同即可沿用本次确认实施 T04B，无需再次询问启动批准。T04A 必须本地提交后停止；T04B 不能在本 turn 进行。
+
+T04A 已运行检查：check-change-documents PASS（changes=145、pass=2、gap=0）；git diff --check PASS；本地文档链接与批准回执结构检查 PASS。仅文档变更未重跑源码 suite，未运行的 T04B/CI/installed/live 不计为 PASS。

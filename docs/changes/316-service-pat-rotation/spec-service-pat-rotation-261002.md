@@ -18,7 +18,7 @@ depends_on:
 status: approved
 branch: change/316-service-pat-rotation
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # 服务账号 PAT 显式轮换合同（已批准）
@@ -106,4 +106,40 @@ T01 已完成，后续 fresh turn 已完成 T02。用户本次批准方案 A，�
 
 ## 未决问题
 
-方案 A 已获用户批准，凭据消费位置冲突已解除。本轮 T02A 只应用治理合同并停止，下一 fresh run 才进入 T03 runtime。live 对象是否已手工轮换与 live operator grant 由现场授权阶段真实读回，当前不能推断；这些是未来现场闸门，不阻塞已批准源码实施。没有新产品依赖。
+方案 A 已获用户批准，凭据消费位置冲突已解除。T03 runtime 与 T04 局部验证已实施；本轮 T04A 仅应用下方精确补充治理合同并停止，下一 fresh run 才进入 T04B。live 对象是否已手工轮换与 live operator grant 由现场授权阶段真实读回，当前不能推断；这些是未来现场闸门，不阻塞已批准源码实施。没有新产品依赖。
+
+## T04A/T04B installed-drift 精确补充合同（2026-10-03，已批准）
+
+用户在本票聊天以“确认继续”批准 [补充提案](evidence/t04-installed-drift-extension-proposal.md)，绑定 Issue #316、branch `change/316-service-pat-rotation` 和 proposal 所记录的新增安装面。此确认授权 source 合同补充及后续范围内实现/测试；PR 提交、merge、安装、operator grant provision 与 live Secret 操作保持原独立边界。
+
+T04A 是独立、只修改治理合同的受控步骤：仅更新本票四份 mapped Markdown、该提案批准记录及本票脱敏证据，文档检查、本地原子 commit 后停止本 turn。当前运行不修改 mapper、fixture、runtime、shell、CI、AGENTS 或 CLAUDE。T04B 必须在下一 fresh run 重新读取本合同后执行，沿用本次批准，不重复启动确认。
+
+T04B 明确授权以下两个 exact 源码文件的变更、对应验证与回滚：
+
+- `codex/tools/check-installed-drift.py`：只维护 #316 broker 新安装目标的映射、generated metadata verifier、独立公开制品证据比较及可选 CLI 参数。
+- `codex/tests/fixtures/installed-drift/test-installed-drift.py`：仅对应同一 fixture_source 的 installer acceptance fixtures、负向恢复及零写入/零越界读取验证。
+
+本票 mapped documents/evidence 可同步记录真实结果。既有 smoke 已接入该 suite；不修改 installer、CI workflow、manifest、skills、Controller、其它 Issue 文档、sudoers 或真实安装面，不增加 skip/弱化硬门。回滚通过后续受控 PR revert 上述两个源码文件及对应本票文档；checker 零写入，不需要安装回滚。治理合同补充不取消此前组合 smoke FAIL，源码修复与重跑完成前不能写成 PASS。
+
+### 安装面与比较政策
+
+| 安装面 | 规则 |
+|---|---|
+| `/usr/local/libexec/aisoft/rotate-gitea-service-account` | 按对应 `.sh` 源码字节核对；缺失、旧字节、链接或异常类型报 GAP |
+| `/usr/local/share/aisoft/credential-rotation-source.json` | 独立标准库 verifier；严格 schema/重复键拒绝；固定四个 files 键从源码映射推导，不跟随 JSON 提供的路径；依据 checker 的本地源码及缓存 origin/main 核对声明源码 SHA、merged-main 状态、源码与安装文件摘要；缓存 ancestry 不证明远端 freshness；不执行 installer，不 import 轮换 runtime |
+| metadata 的 `helper: null` | 普通 broker 可以通过，明确 `LOCAL_HELPER_NOT_DECLARED`、`rotation=NOT_ASSESSED`；installer 未选择 helper 时可以保留旧 binary，该文件不得被报告为已验证 helper，checker 不读取其内容。Mac 本机可无 Linux helper 而使用 VM helper，不能据此判断整个轮换不可用 |
+| metadata 的非 null helper | 必须有独立非 Secret build provenance，严格绑定固定 Gitea 1.26.4/Go1.26.3、Linux 架构、clean source commit、Go 源码/go.mod/go.sum/build-lock 输入及 binary 摘要；只比较固定 libexec binary，不执行 `--version`；证据缺失或不等报 GAP，不能信 installed receipt 自报 hash 就报告制品有效 |
+
+授权新增可选 CLI 参数 `--pat-helper-provenance ABSOLUTE_PUBLIC_PROVENANCE`，仅接受明确指定的公开构建证据文件 `gitea-pat-helper.provenance.json`。不从 installed JSON/env 派生证据路径；参数的词法绝对路径在回执标明；source-only 不 stat、不 resolve 或解引用外部证据路径。这是 checker CLI/验收合同的新增，只用于只读比较，不授予安装或运行 helper。缺参数而已选择 helper 时返回 GAP；显式提供 helper 证据但安装 metadata 尚未选择 helper 也返回 GAP。仅输出校验结果与摘要，不输出 build_info/未知值，不跟随 provenance 的 Dir/路径。此比较仅证明与指定外部 build receipt 一致，不能证明签名可信 release；制品证据本身的签发/审批不由 drift checker证明。
+
+保留恰好八个 installer、退出码 0/1/2、source/installed 分层与原有 source identity 硬门。`--source-only` 只检查映射定义与仓库 SOURCE 输入，即使给出新参数也不 stat/read/resolve 外部制品证据，绝不 stat/read target metadata 或 helper；不能输出 installed/helper PASS。source identity 必须纳入新增生成/制品验证输入，避免遗漏 helper Go/mod/sum/lock/build 定义。
+
+### 验证与停止边界
+
+- 真实 installer 在同一独立 fixture_source baseline 安装，避免 generated source SHA 来自另一个 HEAD。
+- rotate 缺失/同长度旧字节；metadata 缺失/坏 JSON/重复键/额外字段/错 SHA/错固定键和摘要；helper 缺失/错摘要/错 provenance、model/toolchain/platform/dirty source；各项恢复后回到预期结果；provenance 路径本身及父目录的 symlink/FIFO/异常类型不得读取。
+- `helper:null` 加遗留 binary 必须真实反映未选择政策；metadata 自选 path/Secret 字段拒绝，输出无 synthetic canary。
+- metadata/helper symlink、FIFO、parent 替换均不读取 Secret。source-only 使用 read/stat spy 证明零 target 访问；installed 模式禁止 installer/helper/sudo/network/修复调用，文件树前后相等且无 temp/cache/pyc。
+- 映射和 acceptance fixtures 同步通过后才更新 installer 指纹；重跑 source-only、drift fixture、默认 locale fresh-main 组合完整 smoke 及双轴复审。
+- 不 rebase/merge/change branch。Controller 的 fresh-main 基线整合仍须走它的受控流程；本合同不授权绕过 `BASE_BRANCH_STALE`。required CI 在获得唯一 manual PR 提交确认后真实运行。
+- helper 安装、operator grant provision、PAT 轮换、消费端副本清理和 live AC-2 仍为 NOT RUN，不继承 #313/#308 的安装批准。

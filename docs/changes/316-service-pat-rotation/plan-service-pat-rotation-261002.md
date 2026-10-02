@@ -18,7 +18,7 @@ depends_on:
 status: approved
 branch: change/316-service-pat-rotation
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # #316 实施与验收计划（已批准）
@@ -31,7 +31,9 @@ updated: 2026-10-02
 | T02 | fresh turn：固定版本 helper 对 exact PAT/UID 安全撤销，隔离 DB 验证，不安装现场 | T01 | done |
 | T02A | 仅应用方案 A 的 Mac canonical store/内部管道治理修订，文档检查与本地 commit 后停止 | T02 | done |
 | T03 | fresh run：operator command 完整轮换/失败恢复/no-op，与 typed grant 路径接通，测试零授权零 mutation | T02A | done |
-| T04 | shell/Python/Go 全量验证、文档/判级复核，准备唯一 manual PR 候选 | T03 | blocked（fresh-main drift mapping 范围补充待确认） |
+| T04 | shell/Python/Go 全量验证、文档/判级复核，准备唯一 manual PR 候选 | T03 | in_progress（补充合同已批准；T04B fresh run 待实施） |
+| T04A | 仅应用 installed-drift 精确补充治理合同、文档检查、本地提交后停止 | T03 | done（治理应用；提交见本 turn 回执） |
+| T04B | fresh run：两个 exact 文件的映射/独立 provenance/隔离 fixture 修复，默认 locale 组合回归与复审 | T04A | pending |
 | T05 | 人工合并后独立授权 helper 安装/operator grant/真实轮换和第二次 no-op，形成 AC-2 现场证据 | T04 | pending |
 
 T01 与 T02、T02A 与 T03 均不得在同一 turn 实施。用户于 2026-10-02 以“按建议继续”批准方案 A；下一 fresh run 重读治理合同后，T03 可沿用这次批准继续，不重复询问启动确认。T05 不是已获批准的执行任务；缺 live/Secret 授权不能运行。PR 提交与 human merge 各遵守现有闸门，真实验收缺口不因 merge 自动消失。
@@ -44,6 +46,8 @@ T01 与 T02、T02A 与 T03 均不得在同一 turn 实施。用户于 2026-10-02
 - T03：新增 codex/tools/rotate-gitea-service-account.sh 与 codex/runtime/aisoft_host_access/credential_rotation.py；host-access broker contract.py/broker.py/runner.py/cli.py、codex/config/host-access-broker.json；codex/install-host-access-broker.sh；相应 operator grant/typed tests、shell black-box 套件。现有 bootstrap/rollback marker 协议保持。
 - T03 custody/transport：Mac operator 交易只写 manifest 固定 canonical store，同一文件系统 journal/旧凭据隔离/候选/原子发布；固定 VM 的 CLI/helper 以现有 git service user 经内部 stdin/pipe 传 Secret，禁止进入 Agent/tool 返回、日志或 VM 普通临时目录。不新增通用 VM 代理，不自动同步或清理既有 VM 副本；markers 缺失拒绝。
 - T04：codex/tests/smoke.sh、.gitea/workflows/ci.yml 的 fixed helper build/test；相关 Python suites 与四份映射文档。只加新路径必要验证，不削弱已有 contexts/硬门。
+- T04A：只修改本票四份 mapped Markdown、提案批准记录与本票脱敏 evidence；提交后停止。
+- T04B：只修改 codex/tools/check-installed-drift.py 与 codex/tests/fixtures/installed-drift/test-installed-drift.py 以及本票文档/证据；比较政策、负例和回滚按 spec 的已批准补充合同。
 - T05：仅确定性版本化工具、精确 operator grant/Secret store 与回执。具体授权必须绑定 exact 新源码/制品、目标、Mac canonical store、VM exact helper、操作和窗口；先验证 ownership evidence，缺失拒绝而不补建。本计划不预授权 VM 副本同步/清理或其它消费端恢复。
 
 ## 数据库迁移
@@ -77,4 +81,4 @@ T02 本地实现/测试/审查已完成，exact head 为 0ffe6bda169d70bd89f48fa
 
 ## T04 fresh-main 集成阻塞（2026-10-03）
 
-组合 smoke 在 installer-mapping-stale 退出 2；源自 #316 installer 新增目标与 #308 mapper 不自洽。最小范围补充见 [待确认提案](evidence/t04-installed-drift-extension-proposal.md)。当前批准范围保持，提案未生效；没有实施 mapper/fixture 改动、历史改写或远端 mutation。若确认，先 T04A 仅应用 mapped spec/plan 的精确授权并本地提交后停止；T04B fresh run 才修改两个明确文件并重跑组合验证。
+组合 smoke 在 installer-mapping-stale 退出 2；源自 #316 installer 新增目标与 #308 mapper 不自洽。最小范围补充见 [已批准提案](evidence/t04-installed-drift-extension-proposal.md)。用户于 2026-10-03 以“确认继续”批准；T04A 仅应用 mapped spec/plan 的精确授权并本地提交后停止。T04B 下一 fresh run 重读合同后实施两个明确文件并重跑组合验证，沿用本次批准，不重复启动确认。当前 mapper/fixture 未改，旧组合 FAIL 保留；没有历史改写或远端 mutation。
