@@ -288,7 +288,7 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 
 ## 7. Development Loop 接入
 
-只在平台 `08` 的 Codex skills 和 controller 验证完成后启用：
+只在平台 `08` 的共享 controller 与所选 provider 的 skills/adapter 验证完成后启用：
 
 - 使用 provider-neutral controller；不要为 Codex/Claude 复制两套 Loop。
 - 每个 active Issue 使用隔离 worktree 和锁。
@@ -297,8 +297,9 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 - 同一根因三次失败、合同冲突、范围扩张或高风险决策时升级给人。
 - 状态包含提交前 `AWAITING_PR_CONFIRMATION`、manual `READY_FOR_REVIEW`、routine receipt
   `AUTO_MERGED`，以及 `NEEDS_HUMAN_DECISION`、`BLOCKED_EXTERNAL`、`FAILED_LIMIT`。
-- manual PR 只有人可以合并；eligible routine-small 只有在第一确认点明确授权并通过 final-head 全硬门
-  后，才由独立 routine merger 合并。provider/project agent 不持有 merger credential。
+- manual PR 只有人可以合并；eligible routine-small 只有在第二确认点（最终 PR 提交确认）明确授权并通过 final-head 全硬门
+  后，才由独立 routine merger 合并。第一确认点仅批准合同/启动，不授权 push、PR、merge 或部署；
+  provider/project agent 不持有 merger credential。
 - 使用 `aisoft-agent@<profile>.service/.timer` 作为项目级 systemd 实例；安装模板不等于启用。必须显式执行 `systemctl --user enable --now aisoft-agent@<profile>.timer`，且只有该项目验收通过后才允许这样做。
 
 ## 8. 接入验收
@@ -326,16 +327,20 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
     final diff 与 protection read-back 全部成立时只有一次 fixed merge POST；negative matrix 证明 #208、
     complex/major/phase/security/data/shared-core/CI/artifact/deploy/rollback/governance 和任一 live GAP 零 POST。
 
-中央 Codex runtime/adapter 先通过共享 synthetic 与至少一个明确标注的 pilot；每个新项目仍需完成与自身技术栈、CI 和部署范围对应的验收。随后 Claude adapter 复用同一 profile、controller、verifier 和状态合同，不复制项目专用状态机。
+中央 provider-neutral runtime/controller 先通过共享 synthetic；每个所选 provider 的 adapter 独立完成至少一个明确标注的真实 pilot。每个新项目仍需完成与自身技术栈、CI 和部署范围对应的 provider 验收。Codex 与 Claude 复用同一 profile、controller、verifier 和状态合同，不复制项目专用状态机；一侧验收不替代另一侧。
 
 ### 合并后收尾
 
-1. 明确无需部署的变更在最终 PR 合并后，把唯一 lifecycle 更新为 `completed`；
-   需要部署的应用不得使用该标签。推进方式是显式运行
-   `codex/tools/mark-completed-issues.sh --range <合并区间>`（或直接给 Issue 号），
-   默认只打印判定计划，加 `--apply` 才经 broker `gitea.issue.labels.set` 写入。
-   是否该用 `completed` 取自该 Issue 映射 summary 的 `required_docs` 是否含
-   `verification`，不由人另行判断；已 `deployed` 的 Issue 不会被降级。
+1. 证明 exact merge commit 已在主干后，先运行
+   `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>`
+   读取判定计划。核对第一行 `commits` 与逐 Issue 的 `commit` 就是本次 exact merge；
+   然后用计划回给的 `pinned` Issue 编号运行
+   `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --apply <pinned>`，
+   不再传 `--range`，避免主干前进后误处理别的 Issue。终态判定由工具读取映射 summary
+   的 `required_docs` 与 manifest 的 `deployment_lifecycle`：只有前者含 `verification`
+   且后者为 `application-deploy` 才等待部署；`none` 与缺省
+   `application-deploy-selective` 到 `completed`。`verification` 不等于部署；
+   已 `deployed` 的 Issue 不会被降级。规则以 `03` §11 的合取表为准。
 2. 把 `codex/tools/mark-deployed-issues.sh` 复制或以固定版本纳入应用仓库，并只在
    应用健康检查成功后调用；工具会把包括 `completed` 在内的其它 lifecycle 替换为
    唯一 `deployed`。

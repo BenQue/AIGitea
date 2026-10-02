@@ -17,7 +17,10 @@ confirmation through:
 - contract document completion;
 - in-scope implementation and local commits;
 - tests, ordinary repair and required wider gates;
-- classification projection, branch push, the one final PR and PR CI repair.
+- classification projection.
+
+After final-PR submission confirmation, continue through branch push, the one final PR and in-contract PR CI
+repair without another confirmation. Contract/start approval alone does not authorize push or PR creation.
 
 Pause only for a contract conflict, scope expansion, destructive migration, a new security/permission/architecture
 decision, a direct production action, a missing external dependency, unreliable verification, or three consecutive
@@ -98,6 +101,13 @@ Policy: routine-auto
 最终 40 位 lowercase head SHA。部署不在本次授权内。
 ```
 
+The `判级:` line must come from a real read-back with
+`codex/tools/apply-classification-labels.sh --repo <checkout> --verify N`, using the exact Issue number, never
+`--range`. Enter the final-PR candidate state only when both classification dimensions read back as `projected`.
+For `projection-missing` or `projection-mismatch`, repair the in-contract projection and re-read it; report a
+`broker-operation-missing` or other unreadable result as a blocker. Merge permanently closes the projection
+window: `projection-window-closed` is evidence of an omission, never permission to backfill or override it.
+
 The manual text must not contain the controlled-auto-merge marker. A routine hard-gate failure returns one stable
 reason with zero merge POST and no silent fallback. Manual work stops at `READY_FOR_REVIEW`. A routine
 `AUTO_MERGED` receipt immediately enters deterministic post-merge completion without a third confirmation.
@@ -107,11 +117,19 @@ commit or CI retry into a confirmation point.
 
 ## Post-merge completion
 
-After the user confirms merge:
+After proving the manual merge or receiving a routine `AUTO_MERGED` receipt:
 
 1. Fetch and prove that the exact merge commit is on `origin/main`.
-2. Dry-run the terminal lifecycle tool and verify classification projection.
-3. Apply a terminal label only with the authority required by the current platform contract; never infer deployment.
+2. Dry-run `codex/tools/mark-completed-issues.sh --repo <checkout> --range <range>`. Check the first
+   `selector: range` row's `commits` and each Issue row's `commit` against the exact merge from step 1; a moving
+   `origin/main~N` range is not evidence by itself. Stop if the plan targets another merge. Run classification
+   read-back again with `codex/tools/apply-classification-labels.sh --repo <checkout> --verify N`, using the Issue
+   number. Report `projection-window-closed` truthfully; do not backfill closed Issues or add an override.
+3. The proved merge or routine receipt authorizes deterministic terminal reconciliation. Apply the checked plan
+   with `codex/tools/mark-completed-issues.sh --repo <checkout> --apply <pinned>`, using the plan's immutable Issue
+   numbers; never re-use `--range` for the apply. Let the tool decide from mapped summary `required_docs` and the
+   manifest's `deployment_lifecycle`. Read an unfamiliar reason's detail rather than guessing a lifecycle label;
+   never infer deployment.
 4. Run `check-change-documents` against the merged checkout.
 5. Leave and remove the Issue worktree, then delete the merged local change branch.
 6. Record any genuinely separate acceptance criterion as a new Issue instead of extending the closed one.
