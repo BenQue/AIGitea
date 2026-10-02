@@ -161,3 +161,7 @@ Receipt为 `evidence/governance-amendment-approval.json`；原送审草案保持
 - T04当前动作：本地合同提交后STOPPED_AFTER_GOVERNANCE_APPLY；需下一fresh run重新读合同，
   然后沿用本次批准实施T05。此停止是已批准步骤，并非再次请求同一范围批准。
 - PR、push、CI、installed/live、NewEMaint #229集成/pin：NOT RUN。
+
+T04合同应用commit：`c183a4d0acba74f14af8124661b252f43d1b33a1`。
+Standards/Spec原reviewer并行只读复核，均0项发现、PASS，详见 `evidence/review-t04.md`。
+Scope、proposal/prior-spec/source snapshot hashes实算保持；T04结束后停止，不实施T05。

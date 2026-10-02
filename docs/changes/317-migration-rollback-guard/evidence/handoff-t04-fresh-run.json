@@ -23,5 +23,8 @@
   "blocks": [
     "NewEMaint #229"
   ],
-  "next_action": "Continue T05 under existing approval after fresh reread; no repeat approval for this scope, final exact manual PR confirmation remains required."
+  "next_action": "Continue T05 under existing approval after fresh reread; no repeat approval for this scope, final exact manual PR confirmation remains required.",
+  "applied_governance_head": "c183a4d0acba74f14af8124661b252f43d1b33a1",
+  "t04_standards_review": "PASS: 0 findings",
+  "t04_spec_review": "PASS: 0 findings"
 }
