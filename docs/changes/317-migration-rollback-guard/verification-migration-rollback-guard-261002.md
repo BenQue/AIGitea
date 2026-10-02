@@ -113,7 +113,7 @@ Matt triage typed 写缺口保持 GAP，本票允许范围不含broker修复；�
 - `evidence/release-suite.json`：完整 release suite 190 tests PASS。
 - `evidence/platform-smoke.json`：FAIL，exit=1；`check-release-evidence-boundary.py` 报 current file set differs from the fixed baseline。不能写成 PASS。
 - classification --verify 已经 broker host 路径读回真实 projected（bugfix/complex）；初次 sandbox state-unreadable 是执行路径失败，未据此改判级或绕过 broker。
-- 两轴审查将固定 local source head 与 authoritative base，结果和修复回执另记。
+- 两轴审查及 P1 修复复核完成；详见 `evidence/review-t02-t03.md`，无未解决 source finding。
 - PR CI、installed/live Docker/DB、NewEMaint #229 消费验收、安装、部署：NOT RUN。
 
 ## 新发现的合同范围冲突
@@ -139,3 +139,5 @@ Standards 轴发现1项 P1：evidence reader 重新 stat profile pathname 取得
 rebase/重写本地审阅历史。合同修订获批后 fresh run 需重新读取 #320 合同并整合最新 main，再
 做 final validation/PR candidate。本票此刻不是可提交 PR 的终态。
 `legacy-schema-preservation.json` 读回：历史 v1 schema 原本不存在，保持缺席；v2 原 bytes 不变。
+
+当前 local handoff 为 NEEDS_HUMAN_DECISION（非 Controller 投影），精确 blocker 与下一步见 `evidence/handoff-needs-human-decision.json`；最终 PR 提交确认尚未请求。
