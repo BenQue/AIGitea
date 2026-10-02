@@ -121,3 +121,20 @@ health 与 CLI 既有闸门。只使用合成 fixture，无真实 Docker/数据�
 runtime/schema、历史 evidence 原 bytes 保持；验证回执与停止点见 verification。
 下一 fresh run 沿用该批准，先重新读共享 #320/main 合同和 owner claim，再从 T05 开始。
 T03 只有在 T05 完整 hard gates 实际通过后才能 completed；唯一最终 PR 仍需 exact manual确认。
+
+## T05 当前实施与停止交接
+
+已实施精确checker/test两文件并提交本地31e4f8592e178583c3b3be771e8d5c2f03173bd6；
+26 targeted tests、完整checker的197 release tests、historical regression与两轴review PASS。
+完整smoke在新#308 fixture失败（23 tests/16 failures），不在当前额外两文件allowlist内。
+T05/T03保持pending；单fixture文件提案未批准、未应用，草案24-test PASS仅为局部试验。
+下一步取决于精确范围修订或独立上游修复，不重复已有两文件启动批准、不提前请求最终PR。
+
+### 同根因上游去重与当前外部阻塞
+
+调度提供#288正在独立治理同一fixture根因；已只读核对其patch真实SHA及边界，见
+`evidence/t05-upstream-fixture-reference.json`。当前优先等待独立结果合并main，再由本票
+fresh读取/整合并重验实际bytes，暂不重复请求扩范围；上文NEEDS_HUMAN_DECISION是发现
+越界时的中间交接，目前local BLOCKED_EXTERNAL（不投影Controller）。
+本票单文件提案保持未批准/未应用，不能继承#288批准/测试，不能把未产生PR加入hard
+依赖。#317 depends_on=[]保持，T05/T03 pending、完整smoke FAIL、PR CI/installed/live NOT_RUN。

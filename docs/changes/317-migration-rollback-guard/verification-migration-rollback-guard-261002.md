@@ -61,11 +61,11 @@ updated: 2026-10-02
 | AC-05 | PASS | #305 同 identity completed no-op 和审计 receipt.release_id 保持 |
 | AC-06 | PASS | A/B 共用 A 而 C 已迁移时拒绝回退；noop 不伪造 DB cursor |
 | AC-07 | PASS | v1/v2 合法读升级 untracked、不写原 bytes；v3 非法 generation/identity/fields 拒绝；旧 schema 未改 |
-| AC-08 | GAP | 四类入口及旧闸门本地 regression PASS；完整 smoke FAIL，固定证据集合需合同修订 |
+| AC-08 | GAP | 四类入口及固定release evidence gate PASS；完整smoke在新#308 fixture FAIL，需单测试文件范围修订 |
 | AC-09 | PASS | CLI failed exit=2、稳定安全 code/message；没有 override/bypass 参数、无路径/fixture secret/Docker error 回显 |
 | AC-10 | PASS (local docs) | README、versioned contract、过期合成 example 和 merged-pin 边界；应用采用/现场验收 NOT RUN |
 
-190-test release suite 为当前本地 source/fixture 验收；完整 smoke 和审查状态以下方实际回执为准。
+190-test为T02历史source/fixture验收；当前T05为197-test，完整smoke与未完成项以下方最新回执为准。
 
 
 ## 授权、遗留风险与未完成项
@@ -165,3 +165,41 @@ Receipt为 `evidence/governance-amendment-approval.json`；原送审草案保持
 T04合同应用commit：`c183a4d0acba74f14af8124661b252f43d1b33a1`。
 Standards/Spec原reviewer并行只读复核，均0项发现、PASS，详见 `evidence/review-t04.md`。
 Scope、proposal/prior-spec/source snapshot hashes实算保持；T04结束后停止，不实施T05。
+
+## T05 fresh run 当前验证（2026-10-02）
+
+Owner/session/Issue open+approved/classification projected真实读回；整合最新main
+`65268ee5f1e622c486fd9e354dd35e20a2900f91`，仅在本人未发布branch做无冲突本地rebase。
+旧recorded commit IDs仍是历史事实，未重写approval/handoff原bytes；映射见t05-fresh-read.json。
+固定实现head `31e4f8592e178583c3b3be771e8d5c2f03173bd6`。新增当前回执t05-validation.json，
+不覆盖旧platform-smoke.json/release-suite.json。
+
+| Check / AC | Result | Evidence |
+|---|---|---|
+| AC-11 exact pins/constants/additions | PASS | fixed checker和两轴实算；historical constants/evidence/transport/matrix保持 |
+| AC-12 boundary rejection regression | PASS | 26 tests；t05-targeted.log.gz；每个addition disk/index bytes/mode及非法pin等拒绝 |
+| 完整checker + historical fake harness | PASS | t05-checker-receipt.json；历史绑定/source identity/cache；no override |
+| 完整current release suite | PASS | 197 tests；t05-checker.log.gz；public runtime/state/CLI安全回归 |
+| Standards / Spec source review | PASS | 0/0 findings；review-t05.md |
+| AC-13完整smoke | GAP / FAIL | t05-smoke-failed.log.gz；exit=1，#308 fixture 23 tests/16 failures |
+| 失败后续smoke步骤 | NOT RUN | fail-fast在test-installed-drift.sh，未跳过它继续宣称完整PASS |
+| 未应用fixture提案试验 | PASS (draft only) | 独立candidate24 tests；真实fixture无diff；installed-drift-draft-test.log.gz |
+| current real-E2E/installed/company_live/PR CI | NOT RUN | 没有现场/push/PR权限，不以临时fixture替代 |
+
+新失败根因不是sandbox限制：8个临时安装surface row全PASS，但public checker按合同将
+真实PR相对cachedmain的managed source差异报告source GAP/exit1；默认fixture正例仍要求0。
+该测试文件不在已批准allowlist，本票没有修改；仅保存单文件patch/未批准修订提案。
+AC-08完整smoke部分及AC-13仍未完成，T05/T03保持pending。按AGENTS范围扩张规则交接
+local NEEDS_HUMAN_DECISION，未写Controller状态，未请求最终manual PR提交确认。
+
+#327 broker已发布branch更新规则由独立owner治理；本票不改broker、不force、不发布branch。
+未来提交前必须重新核验fresh main、claim、合法publication路径与exact验证head。
+
+### 同根因上游去重与当前外部阻塞
+
+调度提供#288正在独立治理同一fixture根因；已只读核对其patch真实SHA及边界，见
+`evidence/t05-upstream-fixture-reference.json`。当前优先等待独立结果合并main，再由本票
+fresh读取/整合并重验实际bytes，暂不重复请求扩范围；上文NEEDS_HUMAN_DECISION是发现
+越界时的中间交接，目前local BLOCKED_EXTERNAL（不投影Controller）。
+本票单文件提案保持未批准/未应用，不能继承#288批准/测试，不能把未产生PR加入hard
+依赖。#317 depends_on=[]保持，T05/T03 pending、完整smoke FAIL、PR CI/installed/live NOT_RUN。

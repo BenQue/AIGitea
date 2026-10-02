@@ -115,7 +115,7 @@ T01 治理合同应用及两轴文档 review 已完成；3项发现已修复复�
 本运行按已批准合同停止。T02/T03必须由下一fresh run重读后实施，沿用当前批准，不追加合同确认。
 批准记录已发布至Issue评论12027；无remote branch/PR，尚无可供应用采用的新merged SHA。
 
-## T02/T03 当前进度
+## T02/T03 进度（历史）
 
 用户后续“下一步，继续”构成 fresh run，已重读 AGENTS、README、批准的治理合同/spec/plan 和
 单写者 claim，在同一 worktree 实施。State v3 与数据库位置持久化、四类旧镜像启动/恢复路径
@@ -125,7 +125,7 @@ T01 治理合同应用及两轴文档 review 已完成；3项发现已修复复�
 远端 classification --verify 实际读回 bugfix/complex projected；manual policy 固定。
 PR、PR CI、installed/live 均 NOT RUN，NewEMaint #229 pin 未改，本票尚未解除该消费前置。
 
-## T04 当前进度
+## T04 进度（历史停止点）
 
 用户已批准精确两文件治理修订，receipt见 `evidence/governance-amendment-approval.json`。
 映射spec新增固定source evidence合同与AC-11–13，plan新增T04/T05并让T03结项依赖T05。
@@ -133,3 +133,26 @@ T04只应用合同/记录并停止；checker/tests/pins尚未实施，原smoke F
 下一fresh run沿用此次批准从T05继续，不重复请求此范围批准；最终manual PR确认仍保留。
 原 `governance-amendment-proposal.md` 和 `handoff-needs-human-decision.json` 保留为批准前历史。
 本次current交接为 `evidence/handoff-t04-fresh-run.json`，不投影自动Controller状态。
+
+## T05 当前进度与新阻塞
+
+Fresh run整合main `65268ee5f1e622c486fd9e354dd35e20a2900f91`，本会话owner-only对未发布
+branch做无冲突本地rebase，旧approval/evidence原bytes保留，commit映射见t05-fresh-read.json。
+T05精确checker/test实现head `31e4f8592e178583c3b3be771e8d5c2f03173bd6`；26 boundary tests、
+完整checker的197 release tests与historical regression PASS，Standards/Spec 0/0 findings。
+完整smoke FAIL：新#308 fixture八个临时安装row虽全PASS，但使用真实pending PR源码作
+正例baseline，source GAP产生23 tests/16 failures。后续smoke步骤NOT_RUN。
+
+本票T05/T03仍pending，AC-13/GAP；原190-test与首轮smoke FAIL保留为历史，未改旧回执。
+新单test文件最小提案 `evidence/installed-drift-fixture-amendment-proposal.md` 未批准/未应用；
+独立candidate局部24-test PASS不替代full smoke。本次local NEEDS_HUMAN_DECISION是交接记录，
+不是Controller状态投影。未push/PR/安装/部署，NewEMaint #229仍无可采用的新merged SHA。
+
+### 同根因上游去重与当前外部阻塞
+
+调度提供#288正在独立治理同一fixture根因；已只读核对其patch真实SHA及边界，见
+`evidence/t05-upstream-fixture-reference.json`。当前优先等待独立结果合并main，再由本票
+fresh读取/整合并重验实际bytes，暂不重复请求扩范围；上文NEEDS_HUMAN_DECISION是发现
+越界时的中间交接，目前local BLOCKED_EXTERNAL（不投影Controller）。
+本票单文件提案保持未批准/未应用，不能继承#288批准/测试，不能把未产生PR加入hard
+依赖。#317 depends_on=[]保持，T05/T03 pending、完整smoke FAIL、PR CI/installed/live NOT_RUN。
