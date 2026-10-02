@@ -27,9 +27,9 @@ updated: 2026-10-02
 
 - authoritative origin/main：`5c2cd726c9aeaee9d17541d8feb049e33881bbac`；2026-10-02 经 project=aisoft-platform broker fetch。
 - Session：`01a0fc7b-9d82-75e2-975f-d407cd23e34a`；exact worktree `/private/tmp/issue-317-migration-rollback-guard` 已 claim。
-- 当前内容为合同草案及改动前证据；未批准/应用新的 release 治理合同，未实施 runtime。
+- 当前合同已批准，T01 治理文档已应用；runtime 尚未实施。下节保存批准前的历史观测，不代表当前授权或标签状态。
 
-## 执行结果
+## 批准前基线执行结果（历史）
 
 | Command / check | Result | Evidence |
 |---|---|---|

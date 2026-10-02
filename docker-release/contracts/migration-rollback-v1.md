@@ -78,7 +78,7 @@ Untracked 时 operator 观测是唯一外部可信事实，必须绑定 exact un
 
 拒绝：任一 target/release/migration/checksum/fingerprint 不匹配、未来 verified_at、已过期、
 非兼容 result、多条匹配记录、无效权限/路径或损坏 JSON。Invalid evidence 不可降级成
-“没有文件，继续 fallback”。拒绝原因稳定、脱敏，不回显依据内容、连接串或 Docker 输出。
+“没有文件，继续 fallback”。拒绝原因稳定、脱敏，不回显依据内容、路径、连接串或 Docker 输出。
 
 本机制不检测带外数据库操作。Operator 更换数据库、离线修改或 restore 后必须撤销旧依据
 并重新验证；不能通过恢复旧 deployment state 制造兼容事实。独立现场处置不在 #317 授权内。
@@ -91,6 +91,9 @@ Untracked 时 operator 观测是唯一外部可信事实，必须绑定 exact un
 | 兼容 gate 拒绝 | `ROLLBACK_BLOCKED`；旧 up=0；保留迁移后数据库位置 |
 | Gate 允许，旧容器启动或健康失败 | `ROLLBACK_FAILED`；不可宣称已 restored |
 | Gate 允许，旧容器已恢复健康 | 仍报告候选激活失败；不把本次发布标成功 |
+
+上表所有失败结果均以非零退出，并输出安全 code/message；旧容器恢复成功也不把候选发布
+失败改为零退出。不回显子进程 stdout/stderr 或上述敏感上下文。
 
 `last_result` 记录真实阶段结果。容器指针只在真实成功后更新；失败时保留的指针不是
 健康证明，status 仍需 exact release/image/service/health 读回。显式回退失败后若尝试恢复
