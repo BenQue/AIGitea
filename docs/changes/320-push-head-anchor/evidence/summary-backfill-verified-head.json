@@ -1,0 +1,13 @@
+{
+  "issue": 320,
+  "PR": 322,
+  "url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/322",
+  "head": "082684fc00ff7e27c96d8f6bdbecbf4bfc8e4e67",
+  "branch": "change/320-push-head-anchor",
+  "session": "01a0fc7b-c01c-71f2-954c-6a87dabb4a87",
+  "changed_files": [
+    "docs/changes/320-push-head-anchor/summary-push-head-anchor-261002.md"
+  ],
+  "checks": "PASS: exact single summary diff actual PR URL/status; documents; branch/owner; clean tree",
+  "push_anchor": "this fresh verified head, not first d5663f2"
+}

@@ -1,0 +1,7 @@
+{
+  "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest tests.test_routine_merge.SessionContractTests tests.test_parity tests.test_matt_snapshot -v",
+  "tests": 38,
+  "result": "PASS",
+  "elapsed_seconds": 4.275,
+  "log_sha256": "14e1147a1c7c0133ff081e5ce20d3d11bbe347059f94f3e3258d1556bbb5dbfa"
+}

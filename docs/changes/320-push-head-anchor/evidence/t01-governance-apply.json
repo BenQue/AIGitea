@@ -1,0 +1,64 @@
+{
+  "issue": 320,
+  "ticket": "T01",
+  "session": "01a0fc7b-c01c-71f2-954c-6a87dabb4a87",
+  "branch": "change/320-push-head-anchor",
+  "base_head": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "status": "GOVERNANCE_APPLIED_STOP_REQUIRED",
+  "time": "2026-10-02T20:20:18.312918+08:00",
+  "approved_proposal_sha256": "3e514dc0622981eee3e6961cdb60dc5f56287c9b59c4cbcdb331a94e526ca6e4",
+  "changed_governance_files": [
+    "03-Issue-Spec-Plan与单闸门开发流程.md",
+    "08-双工具共存与实施.md",
+    "codex/skills/issue-session-flow/SKILL.md",
+    "skill-for-claude/aisoft-platform/SKILL.md",
+    "skill-for-claude/issue-session-flow/SKILL.md",
+    "skill-for-codex/SKILL.md"
+  ],
+  "applied_source_sha256": {
+    "03-Issue-Spec-Plan与单闸门开发流程.md": "4fbe770bded5f8bfcd7fabf76dbbf86b720d72fcc6d6196249af7ebaae2ea5fd",
+    "08-双工具共存与实施.md": "dfa4345e47f3532307100fbe91612ee70c4287ec1b5c04cdc07bf6599df43a27",
+    "codex/skills/issue-session-flow/SKILL.md": "cd8bb4e5425657e4c9a5b62f6cb1b7c0b964ab41868e26489db8f03475e4d6ec",
+    "skill-for-claude/aisoft-platform/SKILL.md": "4d03a86f77cae83ef14449cf0b9c404e2954ad43c1fb789caeec264ef318f4e8",
+    "skill-for-claude/issue-session-flow/SKILL.md": "0108f3dde9872d2256ac1151d077e01089044f80209052d622bb3292139058cc",
+    "skill-for-codex/SKILL.md": "bf08aaf639d28cd57ec4d9a04d12bafe2f89270b19c130717675ee886340743c"
+  },
+  "checks": {
+    "exact_patch_reverse_check": {
+      "result": "PASS",
+      "exit_code": 0,
+      "output": "",
+      "note": "此前对原始 patch PASS；归档后解压字节 identical 并通过同一 reverse check"
+    },
+    "diff_check": {
+      "result": "PASS",
+      "exit_code": 0,
+      "output": ""
+    },
+    "forbidden_scope_unchanged": {
+      "result": "PASS",
+      "exit_code": 0,
+      "output": ""
+    },
+    "documents": {
+      "result": "PASS",
+      "exit_code": 0,
+      "output": "PASS: change-documents\nPASS: change-pr-url\nresult: changes=145 pass=2 gap=0\n"
+    }
+  },
+  "review": "diff precisely matches approved six-file proposal; no edits beyond mapped governance scope",
+  "scope_check_note": "initial name comparison failed on Git quoted Chinese paths; corrected to git diff --name-only -z, with no source change",
+  "T02": "NOT RUN; fresh run must reread changed guidance and contract before validation/candidate",
+  "targeted_tests": "NOT RUN (T02)",
+  "full_smoke": "NOT RUN (T02)",
+  "push_PR_CI_installed_live": "NOT RUN",
+  "local_commit_subject": "docs(governance): #320 T01 clarify per-push head anchors",
+  "proposal_archive": "proposals/push-head-anchor.patch.gz",
+  "archive_check": {
+    "reason": "原始 unified patch 的空白上下文行被 staged diff --check 作为新增文件尾空格报告；以 lossless gzip 存储，不修改六份源或批准 patch 的解压字节。",
+    "original_patch_sha256": "3e514dc0622981eee3e6961cdb60dc5f56287c9b59c4cbcdb331a94e526ca6e4",
+    "archive_sha256": "10125d8fe97456bbc1ae81b4431111bb76a96ebce607a7d40c97d830ea475130",
+    "decompressed_bytes_identical": true,
+    "archive": "proposals/push-head-anchor.patch.gz"
+  }
+}

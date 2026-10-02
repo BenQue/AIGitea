@@ -1,0 +1,13 @@
+{
+  "issue": 320,
+  "number": 322,
+  "html_url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/322",
+  "head_sha": "082684fc00ff7e27c96d8f6bdbecbf4bfc8e4e67",
+  "head_branch": "change/320-push-head-anchor",
+  "base_sha": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "base_branch": "main",
+  "mergeable": true,
+  "merged": false,
+  "state": "open",
+  "attachment": "GAP: Codex attach_artifact rejected the verified internal Gitea URL"
+}

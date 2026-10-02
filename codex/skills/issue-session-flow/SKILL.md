@@ -43,11 +43,17 @@ AISOFT_SESSION_ID=<this session id> PYTHONPATH=codex/runtime python3 -m aisoft_l
   claim-worktree --branch change/N-short-description --worktree /private/tmp/issue-N-short-description
 ```
 
-**After a push, check the returned `pushed_head` against the sha verified at confirmation point 2.**
-That is a step, not a suggestion. The gate stops another session from pushing your branch as itself;
-it cannot stop *you* from pushing a HEAD somebody else rewrote, because the identity it sees is
-still yours. A mismatch means the branch was rewritten — stop and find out by whom before going on
-to the PR.
+**For the first push, compare `pushed_head` with the exact head verified in the final-PR candidate at
+confirmation point 2. For each subsequent push after PR summary-only backfill or in-contract CI repair,
+compare it with the exact head freshly verified and recorded for that push.** Every comparison is mandatory;
+do not reuse the first candidate's old SHA or skip the read-back. Before each subsequent push, check this
+session's ownership, the exact branch, the new diff against the approved contract, required local validation
+and a clean worktree, then record the current 40-character lowercase head SHA. `previous_head` is audit
+information, not the current comparison anchor. Submission authorization remains bound to exact
+Issue/branch/policy; legitimate backfill and in-contract CI commits do not require a new confirmation each.
+The gate checks who pushes, not what is pushed. Stop on scope expansion, another session's rewrite or any
+`pushed_head` mismatch and investigate before proceeding; never adopt an unexplained head as a new anchor.
+If the first candidate changes after confirmation, stop and update candidate validation evidence first.
 
 When cross-session interference is suspected, scan read-only (it writes nothing):
 

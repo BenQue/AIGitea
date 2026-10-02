@@ -70,8 +70,14 @@ AISOFT_SESSION_ID=<本会话 id> PYTHONPATH=codex/runtime python3 -m aisoft_loop
 所以检出放在另外两处，而且**只在有人真的去看的时候才成立**：
 
 - **推送之后**：`git.push.change` 的返回体带 `pushed_head`（本次推上去的 40 位 SHA）与
-  `previous_head`（该分支上一次 push 的 SHA）。**核对 `pushed_head` 是否等于你在
-  `AWAITING_PR_CONFIRMATION` 时核验过的那个 SHA，是一个步骤，不是一句建议。** 不等即被改写。
+  `previous_head`（该分支上一次 push 的 SHA）。**首次 push 核对 `pushed_head` 是否等于
+  `AWAITING_PR_CONFIRMATION` 候选中已核验的 exact head；PR summary-only 回填与范围内 CI
+  修复的每次后续 push，则比对该次 fresh 本地验证并记录的 exact head。每次比较都是必做步骤。**
+  后续 push 前确认本会话归属、exact branch、新增 diff 在已批准合同内、必要验证通过与工作树清洁，
+  再记录当前 40 位 lowercase head；不能沿用首次旧 SHA，也不能省略读回校验。`previous_head`
+  仅作审计信息，不能替代本次验证锚。提交授权仍绑定 exact Issue/branch/policy，合法回填与范围内
+  CI 修复不新增每 commit 确认；范围扩大、他人改写或 `pushed_head` 不匹配立即停止并查明原因，
+  不得把未知改写直接登记为新的合法 head。首次候选在确认后变更时先停止并更新候选验证证据。
 - **推送之前**：`scan-worktrees` 把同一状态报成 `rewritten`（HEAD 不是最近一次 push 的后代）。
   `unclaimed` 与 `claim-invalid` 同样计入 GAP；`ahead`（有未推送的本地 commit）与 `unpushed`
   照列但不计——否则这条命令在整个实现期都是红的，读者会被训练成忽略它。
