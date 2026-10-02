@@ -85,4 +85,4 @@ override_reason: ''
 
 ### 当前交接
 
-用户已于本聊天确认合同/启动；批准范围与文档摘要见 evidence/contract-approval.json。T01 已完成治理说明与本地验证；T02/T03 未实现，下一 frontier=T02；未 push/PR。classification live 已 projected；lifecycle approved；live load_contract PASS。Matt canonical triage 标签的 typed writer 能力 GAP 已记录于 verification，由调度另行核对，不扩 #289。
+用户已于本聊天确认合同/启动；批准范围与文档摘要见 evidence/contract-approval.json。T01/T02/T03 已完成；targeted 14、全量 runtime 992、terminal mock、bash -n/ShellCheck、受控 host 完整 smoke 均 PASS。两轴审查无未解决发现。候选仅待唯一最终 PR 提交确认，policy=manual；未 push/PR；PR CI、installed/live/deployment NOT RUN。classification live 已 projected；lifecycle approved。Matt canonical triage 标签的 typed writer 能力 GAP 已记录于 verification，由调度另行核对，不扩 #289。

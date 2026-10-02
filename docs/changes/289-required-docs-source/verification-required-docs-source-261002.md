@@ -21,7 +21,7 @@ updated: 2026-10-02
 
 ## 当前阶段
 
-基线阶段（2026-10-02）：triage 与完整合同草稿准备完成，当时尚未 approved、尚未实现。以下 PASS 是基线观察与复现执行成功，不是修复后验收 PASS。spec AC-1～AC-7 的修复后验证全部 NOT RUN。
+基线阶段（2026-10-02）：triage 与完整合同草稿准备完成，当时尚未 approved、尚未实现。基线观察的 PASS 不表示修复后验收；最终修复后 AC-1～AC-7 的执行结果见下表与 T03 收口记录。T01/T02/T03 已完成，当前仅待最终 PR 提交确认，未 push/PR。
 
 ## 可核对基线
 
@@ -57,9 +57,9 @@ fixture 的 git remote 只写本地 metadata 供项目绑定校验，没有访�
 
 | 项目 | 状态 |
 |---|---|
-| AC-1～AC-7 修复后 | NOT RUN |
-| targeted / 全量 runtime | NOT RUN |
-| bash -n / ShellCheck / smoke | NOT RUN |
+| AC-1～AC-7 修复后 | PASS：见 T03 收口映射 |
+| targeted / 全量 runtime | PASS：14 / 992；完整 smoke 中另运行 992 项 |
+| bash -n / ShellCheck / smoke | PASS：受影响三脚本；完整 smoke 以 LC_ALL=C 在受控 host 执行 |
 | PR CI | NOT RUN |
 | installed / live runtime / deployment | NOT RUN；本次无授权 |
 | 用户合同启动确认 | PASS：本聊天明确回复“确认”；摘要记录见 evidence/contract-approval.json |
@@ -117,3 +117,23 @@ Standards 双轴审查硬标准 0 项；重复解析是非阻断建议，保留�
 最终 runtime 全量 992 tests PASS（89.939s）；targeted 14 PASS；terminal mock PASS；三个受影响脚本 bash -n / ShellCheck PASS。classification --verify 289 实际读回 platform/complex、projected；fresh broker fetch 的 main 仍为 5c2cd726c9aeaee9d17541d8feb049e33881bbac；当前无 #289 active PR。收据见 evidence/local-validation.json。
 
 smoke 执行记录：第一次 ShellCheck probe 写法失败已修复；第二次运行期间 HEAD 被本地提交推进，source identity gate 拒绝，不能计 PASS；第三次固定 be9664e60617abb4139db5b5ff4b34ab4342082b，通过 source identity gate 后被 sandbox 的 localhost bind PermissionError 中断。下一次保持候选固定，以同一命令在受控 host 重跑；尚不计 smoke PASS。PR CI、installed/live、部署均 NOT RUN。
+
+## T03 收口与最终候选
+
+固定代码提交 c4d1da1629ac518a594f8e1788e859c4ebcb50df，执行 `LC_ALL=C PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh` → exit=0，992 tests PASS（84.605s），Codex platform static smoke checks passed。完整机器收据、日志 hash、失败尝试与环境边界见 evidence/local-validation.json。
+
+前一次受控 host smoke 在未修改的 registry 测试失败。诊断仅在 /private/tmp 副本回显本地 fixture 输出：macOS Bash 3.2.57 在 C.UTF-8 下把 `$REGISTRY（` 的中文括号解析进变量名；registry-preflight.sh 与其测试逐字等同 main 基线。使用 C locale 后原健康→停服红→恢复绿及 5xx/非法元数据/缺包体/缺配置断言均通过，再执行完整 smoke 通过。未改 registry 脚本/测试、未弱化硬门、未操作真实 registry。此前失败均保留，不算 PASS。
+
+| AC | 最终真实结果 |
+|---|---|
+| AC-1 | PASS：原样历史 fixture 三 CLI 非零且诊断含 change/role/basename；缺 verification 的 load_contract 拒绝 |
+| AC-2 | PASS：额外 mapping/必需映射/文件缺失、非法声明、符号链接、documents 容器覆盖旁路均拒绝；production/development/small 声明保留 |
+| AC-3 | PASS：单一 required JSON；三档 invalid --apply mock 零 broker 写入；坏 JSON 无原文 fallback |
+| AC-4 | PASS：none/selective/every-merge 的合法 verification 行为保持；legacy normalize/optional 兼容 |
+| AC-5 | PASS：首次 spec 后 plan 正常；partial strict 红、complete 绿；保留既有 writer 硬门和无公共 skip |
+| AC-6 | PASS：最终解析器重跑 platform audit exit=0；SFM exit=1 的既有 GAP stdout 与基线逐字相同；原始 142 红、当前回填 142 绿 |
+| AC-7 | PASS：14 targeted、992 全量、terminal mock、三脚本 bash -n/ShellCheck、完整 smoke；README/03 合同审查 PASS |
+
+最后提交仅更新本 Issue 的 summary/plan/verification 与证据，未修改已通过的 runtime、shell、fixture 或治理合同。最终 candidate SHA 与代码/测试相等性检查保存在本会话私有 `/private/tmp/aisoft-289-state/issues/289.json`；该文件是交互会话本地交接状态，不声称执行过 installed/VM Controller。最终文档与 diff 闸门在该提交后另行读回。
+
+最终 PR 提交仍待绑定 Issue #289、change/289-required-docs-source、manual 的用户确认。确认后才由 canonical broker push 并创建唯一 PR，required CI 对最终 head 执行；CI 全绿后停 READY_FOR_REVIEW 等待人工合并。无 merge、安装或部署授权。canonical triage 标签 GAP 保持独立治理范围，未扩 #289。
