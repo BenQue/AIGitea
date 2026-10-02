@@ -1,0 +1,11 @@
+{
+  "checkout": "/private/tmp/issue-320-push-head-anchor",
+  "identity": "aisoft-platform-agent",
+  "operation": "git.push.change",
+  "previous_head": "d5663f2998ea18fc82d3e94a01c2cf44ebad75ea",
+  "project": "aisoft-platform",
+  "pushed_head": "082684fc00ff7e27c96d8f6bdbecbf4bfc8e4e67",
+  "remote_name": "origin",
+  "session": "01a0fc7b-c01c-71f2-954c-6a87dabb4a87",
+  "status": "PASS"
+}

@@ -86,6 +86,6 @@ override_reason: ''
 - 依赖：无；#318 已在 main，仅作事实基线，不代改其合同。
 - 本轮按已批准合同执行独立 T01，仅应用治理源并停止；T02 留待 fresh run。
 
-## 最终 PR 候选（等待提交确认）
+## 最终 PR 候选（提交前验证记录）
 
-状态 `AWAITING_PR_CONFIRMATION`；Policy manual；T01/T02 source/local验证完成。首次push仍以最终候选fresh验证exact head为锚；后续summary-only回填和范围内CI修复刷新该次验证head并读回。17合成场景、38定向、完整smoke 978 runtime tests PASS，双轴review各0发现；首次sandbox失败保留。Classification actual verify projected: platform/complex。PR与required CI NOT RUN，无安装/部署授权，canonical triage projection GAP保留。
+提交前状态 `AWAITING_PR_CONFIRMATION`；Policy manual；T01/T02 source/local验证完成。首次push仍以最终候选fresh验证exact head为锚；后续summary-only回填和范围内CI修复刷新该次验证head并读回。17合成场景、38定向、完整smoke 978 runtime tests PASS，双轴review各0发现；首次sandbox失败保留。Classification actual verify projected: platform/complex。用户现已确认提交，唯一PR #322已创建；真实首次/summary-only后续push的pushed_head均与各自验证锚相同。required CI正在运行，尚不写PASS；无安装/部署授权，canonical triage projection GAP保留。

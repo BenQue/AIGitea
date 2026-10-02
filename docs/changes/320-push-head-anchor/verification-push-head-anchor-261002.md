@@ -23,10 +23,10 @@ updated: 2026-10-02
 
 - source：fresh origin/main `5c2cd726c9aeaee9d17541d8feb049e33881bbac`；歧义四处 source 读取确认。
 - local：isolated tuple/claim 已完成；resolver/check-change-documents/apply-check/diff-check 与治理源未变检查 PASS；详见 evidence/contract-preparation.json。
-- CI：NOT RUN（尚未 push/PR）。
+- CI：PR #322 已触发；回填 head 082684fc… 的 run #1712 已进入 Platform smoke suite，当前 pending/in_progress；最终 head 仍须 fresh read-back，不提前写 PASS。
 - installed：NOT RUN（不在授权范围）。
 - real model：NOT RUN。
-- remote push/backfill/CI repair 事件：NOT RUN。
+- remote 首次 push 与 mapped summary-only 回填 push：真实执行，exact head 读回 PASS；真实 CI repair 事件仍 NOT RUN。
 - merge/deploy：NOT RUN。
 
 ## 四场景与负向矩阵（T02 已执行合成推演）
@@ -71,3 +71,15 @@ A/B/C/X 为桌面推演标识，实施验收需使用固定不同的 40 位 lowe
 | AC-5 | T01 已在前轮停止；T02 fresh-read收据；runtime/AGENTS scope guard | PASS |
 
 本地候选准备完成不代表交付。最终提交仍需 exact #320/change/320-push-head-anchor/manual 确认，之后才可 push/唯一 PR/required CI；达到 READY_FOR_REVIEW 后由人合并。canonical triage 投影 GAP 如实保留，不借本 Issue 修改 broker。
+
+## 已授权 PR 与真实两次 push 读回
+
+用户已确认 exact #320/change/320-push-head-anchor/manual 唯一最终 PR。CLI confirm-pr 已持久化，授权收据为 evidence/pr-submission-authorization.json；未传递人工合并/安装/部署授权。
+
+- 首次 push：候选 d5663f2998ea18fc82d3e94a01c2cf44ebad75ea；broker pushed_head 相同，previous_head=null。
+- 唯一 PR：#322，base main，head branch change/320-push-head-anchor；读回 open/unmerged/mergeable=true。应用附件工具拒绝内网 Gitea URL，保留 GAP，不替换成虚构 URL。
+- Summary-only 回填：只改 mapped summary 的真实 URL 与 status=pr-open；文档检查、branch/owner/diff/clean tree PASS 后，记录新 head 082684fc00ff7e27c96d8f6bdbecbf4bfc8e4e67。
+- 后续 push：pushed_head=082684fc00ff7e27c96d8f6bdbecbf4bfc8e4e67，与本次 fresh 验证 head 相同；previous_head=d5663f2998ea18fc82d3e94a01c2cf44ebad75ea。没有沿用首次旧锚，也没有重复提交确认。真实 read-back 收据保存在本 evidence 目录。
+- 上述记录证明真实首次/回填 push 两事件；不证明真实 CI repair、另一会话改写或模型/installed生效。CI、manual merge、terminal/cleanup 另按最终 exact head 的读回推进。
+
+本记录提交与后续 push 仅更新已授权 verification/summary/plan/spec 与本 Issue evidence；六治理源、runtime/tests/AGENTS保持批准字节，先验证本次metadata diff与文档/归属/清洁工作树，再记录新exact head并push/read-back。required CI只认最终head，不能沿用前一head的context。

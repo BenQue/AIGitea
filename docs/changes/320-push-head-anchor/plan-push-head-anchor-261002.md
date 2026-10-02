@@ -24,7 +24,7 @@ updated: 2026-10-02
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 独立受控步骤应用六份治理文案，记录 exact diff/head 与治理完成收据，然后停止该运行 | - | done |
-| T02 | fresh run 重读新指导与合同，完成四场景与负向验证、既有测试、审查与唯一最终 PR 候选 | T01 | done-awaiting-pr-confirmation |
+| T02 | fresh run 重读新指导与合同，完成四场景与负向验证、既有测试、审查与唯一最终 PR 候选 | T01 | done-pr-open |
 
 不创建子 Issue；一次合同确认同时确认此颗粒度与依赖。T01 结束后不得在同一运行直接接 T02；重新进入本会话的 fresh run 读取后继续。
 
@@ -60,3 +60,7 @@ updated: 2026-10-02
 ## T02 执行记录
 
 Fresh run 重读 PASS；17合成场景 PASS，恢复旧锚时合法回填/CI修复两例错误停止；38 targeted tests PASS；Standards/Spec 各0发现。完整 smoke 首次 sandbox localhost bind 被拒，受控 host 同命令 exit=0/978 runtime tests，static smoke PASS。runtime/tests/AGENTS字节保持基线，六治理源保持批准提案。候选文档提交后仅做 metadata/文档/范围和fresh head检查，测试结果绑定未变的治理源哈希；最后请求绑定 exact Issue/branch/manual 的唯一最终 PR 提交确认。
+
+## 唯一最终 PR 提交记录
+
+用户已确认 exact Issue/branch/manual；首次 push d5663f2 与候选一致，PR #322 创建；summary-only回填新head082684f的push与该次fresh锚一致。已触发required CI，等最终head读回；manual停READY_FOR_REVIEW由人合并。授权/两次push收据已记录，尚未merge/install/deploy。

@@ -76,4 +76,4 @@ updated: 2026-10-02
 
 ## 当前验收层次
 
-AC-1至AC-5的治理 source/local 验证已完成，证据见 mapped verification；实际 remote push/PR/CI、真实模型、installed/live、人工合并、终态与归档仍 NOT RUN。本次勾选不表示真实远端事件或交付已完成。
+AC-1至AC-5的治理 source/local 验证已完成，证据见 mapped verification；实际首次push/PR #322与summary-only回填push已执行并读回；最终head required CI pending，真实CI repair、真实模型、installed/live、人工合并、终态与归档仍 NOT RUN。本次勾选不表示真实远端事件或交付已完成。

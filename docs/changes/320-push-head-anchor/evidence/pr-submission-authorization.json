@@ -1,0 +1,9 @@
+{
+  "issue": 320,
+  "branch": "change/320-push-head-anchor",
+  "policy": "manual",
+  "human_message": "确认",
+  "candidate_head": "d5663f2998ea18fc82d3e94a01c2cf44ebad75ea",
+  "time": "2026-10-02T20:37:06.976376+08:00",
+  "authorization": "唯一最终 PR 与合同内 CI 修复；manual 人工合并；不授权 install/deploy/merge"
+}
