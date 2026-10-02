@@ -22,18 +22,18 @@ documents:
   plan: plan-provider-skill-parity-261002.md
   verification: verification-provider-skill-parity-261002.md
 override_reason: ''
-status: approved
+status: pr-open
 branch: change/318-provider-skill-parity
 created: 2026-10-02
 updated: 2026-10-02
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/321
 ---
 
 ## 问题/需求总结
 
 用户要求审查近期 Claude Code 调整对 Codex 的影响，并确保后续项目能通过相同 AISoftPlatform 合同开发与维护。远端与本地 main 均为 `480d1d262c3e915f546049ede3f34ad7d3362f50`。本机 Codex 原有两项漂移、Claude 一项漂移已通过稳定源安装修齐，两端 `CLEAN`；Codex Matt v1.2.2 的 35 个技能快照校验 PASS。
 
-用户已于 2026-10-02 明确回复“确认”，批准本 spec/plan 启动。T01 独立应用四份治理指导后停止（`dc77c93`）；T02 fresh run 读取更新规则，补强测试并验证（`b780eab`）。本地治理差异已修齐，当前准备唯一最终 PR candidate；尚未 push 或创建 PR。
+用户已于 2026-10-02 明确回复“确认”，批准本 spec/plan 启动。T01 独立应用四份治理指导后停止（`dc77c93`）；T02 fresh run 读取更新规则，补强测试并验证（`b780eab`）。本地治理差异已修齐；用户随后明确回复“提交”，批准 manual 唯一最终 PR。首次 push SHA 已核对一致，PR #321 已创建，正在回填与核验 required CI。
 
 ## 影响范围
 
@@ -75,7 +75,7 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-验收标准已完整；用户已经明确确认本 spec/plan 启动，授权收据为 evidence/contract-start-authorization.json。最终 PR 提交仍未获确认。
+验收标准已完整；用户已经明确确认本 spec/plan 启动，授权收据为 evidence/contract-start-authorization.json。最终 PR 提交已于 2026-10-02 获用户“提交”确认；PR #321 已创建，required CI 仍待读回。
 
 ## 本地结果与提交候选
 
@@ -83,6 +83,6 @@ override_reason: ''
 - source T02：`b780eabb293fb000b36c0b7e01a74b44f3b2547d`，仅 SessionContractTests，类外 AST unchanged。
 - source/local：修订、fresh read、targeted 38、C locale full smoke 978、静态/负向覆盖与 staged install 均 PASS。
 - 判级：#318 `type/platform + complexity/complex`，verify 读回 `projected`，当前 lifecycle approved。
-- Policy manual；最终 PR 提交尚未授权，进入 `AWAITING_PR_CONFIRMATION`。
+- Policy manual；用户已确认最终 PR 提交，唯一 PR #321 已创建，Issue lifecycle 将投影为 pr-open；required CI 全绿后进入 `READY_FOR_REVIEW` 等待人工合并。
 - installed：本机稳定 480d1d2 在前次同步后 CLEAN；本 Issue 候选尚未全局安装，合并后 exact main 才安装/fresh adoption。
-- remote PR/CI/merge、真实 provider matrix 与 deploy：NOT RUN。默认 UTF-8 fixture #319 FAIL 与既有 SHA 指导歧义 #320 独立记录。
+- remote PR：#321 已创建；required CI 待读回。merge、候选全局安装、真实 provider matrix 与 deploy：NOT RUN。默认 UTF-8 fixture #319 FAIL 与既有 SHA 指导歧义 #320 独立记录。
