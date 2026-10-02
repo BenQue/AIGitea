@@ -33,8 +33,8 @@ T01–T05 本地工作全部完成。最新组合 base `16beee09aefe89b5bc80a315
 上游 #288/#319/#289 已人工合并并整合，未应用本票的未批准 fixture 提案。旧 FAIL、
 sandbox 路径阻塞和 C-only PASS 记录保持原结论；下方旧阶段的 pending/阻塞均是当时历史状态。
 
-当前 local handoff 为 `AWAITING_PR_CONFIRMATION`，不是 Controller 状态投影。唯一 branch
-`change/317-migration-rollback-guard` 未 push/未创建 PR，manual 最终提交确认尚未取得。
+当前 local handoff 为 `PR_SUBMISSION_APPROVED`，不是 Controller 状态投影。唯一 branch
+`change/317-migration-rollback-guard` 尚未首次发布；2026-10-03 用户直接“确认提交”，已取得 manual 最终提交授权，receipt 为 `evidence/pr-submission-confirmation.json`。
 PR CI、真实 Docker/DB、installed/live 与 NewEMaint #229 消费验收仍 `NOT RUN`；#229 pin 未改。
 最终 PR 草稿与确认边界见 `evidence/final-pr-candidate.md`。
 

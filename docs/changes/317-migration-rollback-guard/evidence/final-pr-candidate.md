@@ -26,3 +26,9 @@ manifest project broker 发布本人 exact 分支、读回 pushed_head、创建�
 
 确认门来自仓库 AGENTS.md 的最终 PR 提交规则及 aisoft-matt-workflow §Per-Issue flow 6，
 不是重新请求已批准的产品合同/两文件范围。
+
+## 2026-10-03 最终提交确认
+
+用户在拥有本票的聊天直接回复“确认提交”，现已取得上文精确 Issue/branch/manual 的最终提交授权。
+真实 receipt：`pr-submission-confirmation.json`。上文候选与批准前状态保留为送审快照；
+后续只沿用此授权完成唯一 PR 与范围内 CI 修复，最终停 READY_FOR_REVIEW，由人合并。
