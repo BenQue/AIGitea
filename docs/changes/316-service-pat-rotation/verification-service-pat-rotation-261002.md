@@ -76,13 +76,13 @@ updated: 2026-10-03
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | 本地隔离 shell/smoke 接入 PASS；组合完整 smoke FAIL | 已覆盖 rotate/no-op、撤旧失败、scope 不等、写入失败与 Secret canary；真实外部系统不在 fixture PASS 范围 |
+| AC-1 | 本地隔离 shell/smoke 接入及 fresh-main 组合 smoke PASS | 已覆盖 rotate/no-op、撤旧失败、scope 不等、写入失败与 Secret canary；真实外部系统不在 fixture PASS 范围 |
 | AC-2 | NOT RUN | 未授权且未执行真实 Secret 操作 |
 | AC-3 | 文档与分类复核 PASS；范围补充已批准 | 03 已加入 scope 合同变化必须轮换、operator 权限和阶段边界；06 已加入轮换列、Secret/恢复合同；mapped documents/真实分类读回在 T01 复核，整体验收仍需 T04 |
 | AC-4 | T02 本地隔离 DB suite 与阶段审查 PASS | fixed v1.26.4 helper 使用真实 models 覆盖精确删除/拒绝/脱敏；Linux release 与现场安装不在该 PASS 范围 |
 | AC-5 | T03 本地隔离 PASS | 固定 store 交易、journal/锁/权限/owner、失败补偿和中断恢复；live NOT RUN |
 | AC-6 | T03 源码/本地负向 PASS | 普通 typed caller、VM 公开 tuple/hash、缺/错 grant/capability 均拒绝；installed/live NOT RUN |
-| AC-7 | local Linux/进程 PASS，组合 smoke FAIL，required CI NOT RUN | 已运行证据见 T04；新集成阻塞见下节，局部成功不证明整体验收/installed/live |
+| AC-7 | local Linux/进程与默认 locale 组合 smoke PASS，required CI NOT RUN | 已运行证据见 T04/T04B；CI、installed/live 保持独立未完成 |
 
 ## 遗留风险与未完成项
 
@@ -173,3 +173,25 @@ T04A 不改运行时或 checker/fixture，不进行历史改写、push、PR、la
 当前 handoff：T04A_COMPLETE / T04B_NEXT_FRESH_RUN。下一 fresh run 重读已批准补充合同即可沿用本次确认实施 T04B，无需再次询问启动批准。T04A 必须本地提交后停止；T04B 不能在本 turn 进行。
 
 T04A 已运行检查：check-change-documents PASS（changes=145、pass=2、gap=0）；git diff --check PASS；本地文档链接与批准回执结构检查 PASS。仅文档变更未重跑源码 suite，未运行的 T04B/CI/installed/live 不计为 PASS。
+
+## T04B fresh run：映射修复与默认 locale 组合回归 PASS（2026-10-03）
+
+本轮起点 82bab79546b298a0776dc666b4fcbb30442930d2；重读已批准 T04A 合同后，仅实施明确两份源码文件及本票文档/证据。fresh typed fetch main=16beee09aefe89b5bc80a31544c59d456190ea32（#289 合并已包含）；旧 Issue 基线未包含 #308 checker/fixture，因此仅这两份文件从该固定 main 导入并作本票 delta。其它 #308 文件和其它 Issue 文档未修改。
+
+新增 rotate 固定源码映射；generated metadata 独立校验严格 schema、固定四键、source 与源/安装摘要；helper 非 null 必须独立 public provenance 绑定 clean source/model/toolchain/Linux pin 和固定 binary 摘要。helper:null 只报告 LOCAL_HELPER_NOT_DECLARED / capability NOT_ASSESSED，不读取残留 binary，不推断 Mac 经 VM 的轮换能力。source-only 使用词法路径，不 stat/read/resolve target 或外部证据；public receipt 只输出声明路径与校验/摘要，不能证明签名可信 release、安装审批或 live 授权。
+
+两轴发现同一 P2：固定 helper SOURCE 输入原仅加入 identity，缺失时仍可能 SOURCE PASS。负例先红后绿，修复只补固定依赖 no-follow 读和 lock 定义硬门，保留合法 source PR 的 cached-main identity GAP 策略。完整 34 项 drift suite 验证新目标缺失/旧字节、坏 metadata/proof、重复键、source/model/toolchain/platform、输入缺失/链接/权限、parent replacement、helper-selected 零写入 audit、source-only 零 target/artifact 访问和恢复。
+
+| Check | Result | Evidence / boundary |
+|---|---|---|
+| 初始 TDD / 审查 P2 | PASS（先红后绿） | t04b-drift-red.log 的两项失败；t04b-source-input-red.log；修复后的 t04b-source-input-green.log 三项 PASS；原失败日志保留 |
+| SOURCE mapping CLI | PASS | 8 surfaces，exit 0；candidate source identity 为 GAP（与 cached main 不同），只证明定义有效，不是 INSTALLED PASS |
+| 默认 locale 完整组合 smoke | PASS | LANG/LC_ALL/LC_CTYPE=C.UTF-8；34 drift fixture、1056 runtime tests OK；Codex platform static smoke checks passed，exit 0；日志 t04b-fresh-main-default-smoke.log |
+| Python compile / whitespace / documents | PASS | 编译不写 pyc；git diff --check；mapped document check 另在本轮最终回执读回；未改 shell，完整 smoke 保留既有静态门 |
+| 两轴审查 | PASS（P2 已闭环） | Standards、Spec 各无剩余阻塞；见 evidence/t04b-two-axis-review.md |
+| 分类只读复核 / 唯一 PR | PASS | type/security、complexity/complex projected，applied=false；typed open PR 本票 branch 为 0；未改 labels/PR |
+| required CI / installed / live | NOT RUN | 无提交 PR 确认；未来 clean merged helper 构建/安装/grant/PAT 操作需各自前置；本地 comparison artifact 是明确 synthetic，不能作真实 helper release 证明 |
+
+组合 tree=092572f0243f54058bddae0b2658e7fca57380e5，仅在独立 lab 把无冲突 pre-fix 组合 tree 与本票两个 source overrides 构建并测试。两份最终源码字节与 Issue staged source 一致；本次新文档是验证回执，代码没有在完整 smoke 后改变。脱敏结果/source hashes/log digest 见 [T04B receipt](evidence/t04b-local-validation.json)；基于 fresh main 的最小 delta 见 evidence/t04b-fresh-main-source-fix.patch.gz。
+
+当前 handoff：T04B_LOCAL_COMPLETE / CONTROLLER_BASE_INTEGRATION_REQUIRED。原 installer-mapping-stale 已解除，历史 FAIL 不删除；实际 Issue branch 仍不是 fresh main 后代，BASE_BRANCH_STALE 不能绕过。worker 未改写历史、创建 merge commit、push、PR、安装或操作真实 Secret；整合后的最终 head 尚须复核与唯一 manual PR 提交确认，required CI 必须在真实 PR 上运行。AC-2 仍 NOT RUN，整票未完成。

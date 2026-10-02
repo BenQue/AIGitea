@@ -1,0 +1,80 @@
+{
+  "issue": 316,
+  "branch": "change/316-service-pat-rotation",
+  "start_head": "82bab79546b298a0776dc666b4fcbb30442930d2",
+  "fresh_main": "16beee09aefe89b5bc80a31544c59d456190ea32",
+  "pre_fix_combined_tree": "68be67c4d5b54c703ff16a639cb035ae4682b886",
+  "tested_candidate_tree": "092572f0243f54058bddae0b2658e7fca57380e5",
+  "construction": "separate local lab: pre-fix combined tree plus the two approved Issue316 source overrides; actual Issue branch history unchanged",
+  "source_sha256": {
+    "codex/tools/check-installed-drift.py": "faaf0618242c66819a362a9bf8221f05a896ec40680d4e3af6de9703edbbb284",
+    "codex/tests/fixtures/installed-drift/test-installed-drift.py": "959264b4f4f409bf4d12b5372f2328098258ff40857c0dfe522e7a166ad5db35"
+  },
+  "source_baseline": {
+    "source": "16beee09aefe89b5bc80a31544c59d456190ea32",
+    "files": {
+      "codex/tools/check-installed-drift.py": "3d626f82275b18da91e17810a33aa9afd6ac86d0336ff15ec13394b8a79cd03b",
+      "codex/tests/fixtures/installed-drift/test-installed-drift.py": "9dbdda887761260acb79044024b84fa2adb61607d450b66251677188e3e4fca3"
+    }
+  },
+  "source_fix_delta": {
+    "path": "t04b-fresh-main-source-fix.patch.gz",
+    "sha256": "8da90f61a6d2fdf56532843c313e1556d7b1ea39ae521802a9d064dc7633d1ee",
+    "uncompressed_sha256": "38ed4e979747d0fb6e130049010c4ade56eae3b6b4c78a2c10d6f6cdde6f4793",
+    "encoding": "gzip; preserves exact unified diff context without text whitespace false positives"
+  },
+  "checks": {
+    "fresh-main-default-smoke": {
+      "result": "PASS",
+      "exit_code": 0,
+      "locale": {
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "LC_CTYPE": "C.UTF-8"
+      },
+      "drift_fixture_tests": 34,
+      "runtime_tests": 1056,
+      "log": "/private/tmp/issue-316-build/t04b-fresh-main-default-smoke.log",
+      "log_sha256": "12e74cbdc6e7b1830f029de00f6d88f28e5efedb6e173c5685e1103fef9d078c"
+    },
+    "drift-source-only": {
+      "result": "PASS",
+      "exit_code": 0,
+      "surfaces": 8,
+      "source_identity": "GAP (combined candidate differs from cached main)",
+      "installed": "NOT ASSESSED"
+    },
+    "mapping-tdd": "2 initial red failures then green in complete fixture suite",
+    "source-input-review-p2": "red then 3 regression tests PASS; both axes closed",
+    "classification": {
+      "result": "projected",
+      "applied": false,
+      "change_type": "security",
+      "complexity": "complex"
+    },
+    "two-axis-review": {
+      "standards_remaining": 0,
+      "spec_remaining": 0
+    },
+    "python-compile": "PASS",
+    "check-change-documents": {
+      "result": "PASS",
+      "changes": 145,
+      "pass": 2,
+      "gap": 0
+    },
+    "whitespace": "PASS",
+    "document-links-and-receipt": "PASS"
+  },
+  "publication": {
+    "open_pr_for_exact_branch": 0,
+    "required_ci": "NOT RUN",
+    "base_branch_stale": true,
+    "policy": "manual",
+    "push_pr_authorized": false
+  },
+  "installed": "NOT RUN",
+  "live": "NOT RUN",
+  "installation_grant_pat_authorized": false,
+  "next_frontier": "Controller controlled fresh-main integration and validation before exact final PR submission confirmation"
+}
