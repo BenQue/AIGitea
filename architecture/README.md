@@ -64,6 +64,78 @@ CLI 与 `codex/tools/aisoft-project-check.sh` 都从**脚本所在平台 checkou
 
 ## 更新与例外
 
+### Profile checksum 与重 lock（#287 已批准合同，runtime 待 T02 实现）
+
+本节与 [ADR-0007](decisions/0007-profile-machine-checksum.md) 定义新格式目标。T01 只应用文档
+合同，当前 CLI 仍生成和校验 V1；不能把本节当成已安装或已运行的 V2 能力。
+
+现有 V1 的 `source_checksums.profile_sha256` 对整个解析后的 profile canonical JSON
+求 SHA-256。空白与 object key 顺序本来就不会改变该值；字符串和数组内容变化会改变它。
+因此，仅润色 `compatibility_rules` 也会让 V1 lock 报 `LOCK_DRIFT`。
+
+新格式采用带域标识的 `profile-machine-v1`：从通过 strict schema 校验的 profile 顶层
+只排除 `description` 和 `compatibility_rules`，将其余完整对象放入固定 envelope：
+
+```json
+{"hash_contract":"profile-machine-v1","profile":{"...":"除两项说明字段外的完整 profile"}}
+```
+
+以上只是哈希输入形状说明，省略号不是可提交输入。envelope 使用既有 canonical JSON 规则
+求 SHA-256；object keys 排序，数组保持原序，不排序、去重或另作归一化。
+
+| Profile 字段 | V2 是否覆盖 | 影响 |
+|---|---|---|
+| `description`、`compatibility_rules` | 否 | 说明润色不使 V2 lock 漂移 |
+| `$schema`、`schema_version`、`profile_id`、`version`、`catalog_revision`、`status` | 是 | 身份、状态、版本与绑定变化仍检测 |
+| 完整 `required_components`，包括 `allowed_states` 和 `transitions` | 是 | slot、component 和允许状态变化仍检测 |
+| 完整 `delivery_contracts` | 是 | 交付取值与顺序变化仍检测 |
+| 完整 `constraints` | 是 | 部署、存储、并发、备份/恢复约束仍受保护 |
+| 未来获 strict schema 批准的其它机器字段 | 是 | 不会因旧字段 allowlist 遗漏 |
+
+`constraints` 虽然是自然语言字符串，却承载真实运维约束，因此其措辞变化仍保守触发漂移。
+本合同不承诺所有散文编辑都稳定。规范变化必须同步到对应机器字段或约束；不得只编辑
+被排除的说明字段来改变实际实施要求。未知字段仍由 schema 拒绝。
+
+V2 lock 使用独立 `architecture-lock-v2.schema.json`、`schema_version: 2.0` 和必填顶层
+`profile_checksum_contract: profile-machine-v1`。`source_checksums.profile_sha256` 采用
+上述投影哈希；catalog 和 declaration 仍使用原完整 canonical 哈希。`lock_sha256`
+覆盖完整 lock，包括格式与算法标识。profile 的既有 `version` 与 declaration 的匹配
+检查保留；版本相等不能忽略 hash，漏 bump 的合法机器变化仍须 `LOCK_DRIFT`。
+
+目标 CLI 的新 lock writer 默认生成 V2；`validate --lock` 按 lock 自身的已知版本选择
+schema/expected lock：V1 保持完整 profile 哈希，V2 使用明确投影。未知 version/marker、
+marker 混用/缺失、额外字段和 checksum 篡改均 fail closed；没有 ignore、自动降级、
+自动迁移或 CLI legacy writer 开关。输入非法时可先失败于 schema/semantic 诊断；
+合法机器输入发生变化时才精确断言 `LOCK_DRIFT`。
+
+V1 只有旧哈希，未保存机器投影或旧 profile 快照，无法证明新旧差异仅为说明。故新 reader
+不会重新解释或放宽旧 V1 lock：V1 的说明漂移仍失败。采用 V2 后，新格式的既有 lock
+才获得说明润色稳定性。旧工具，包括当前仅接受 V1 的 release reader，也会拒绝 V2；
+消费者必须先核对实际读取链是否支持新格式，不能把 architecture validate 通过当作
+release、安装或部署已兼容。
+
+#### 下游显式迁移与人工通知
+
+1. 平台变更维护者提供该 Change 的 Issue/PR、profile ID、旧/新 version 与 checksum
+   contract、机器/约束变化和受影响环境的证据。只列真实读回的消费者，未盘点写 `NOT RUN`；
+   不继承历史“只有一家”的 inventory 判断。
+2. 项目维护者在自己的 Issue/Change 中确认每个环境的 declaration/lock 路径，以及实际
+   CLI、schema 和 release reader 的版本兼容性。#287 不代为更新工具或写其它仓。
+3. 采用已合并且符合读取链要求的工具后，复核当前 catalog/profile/declaration/exception。
+   显式运行 lock，输出到临时候选路径；此动作仅生成候选，不证明当前合同已被应用接受。
+4. 审阅 candidate diff，运行 `validate --lock` 和该项目的 required CI，再提交环境对应的
+   lock。陈旧 V1 报 drift 时仍须审阅当前合同，不能用重生成消除真实机器变化。target lock
+   不得复制或重命名为 current。
+5. 消费者记录接受的格式、输入与校验结果，并按自己的 PR/部署边界完成后续流程。平台
+   reference locks 原样保留，不批量重写。
+
+V2 的纯说明编辑无需下游重 lock。机器/constraints/catalog/declaration 变化仍要求逐项目
+审阅并按上述步骤处理。自动消费者发现、跨仓开 Issue 和 `needs-relock` 投递均为
+**NOT IMPLEMENTED**；本合同没有跨仓写、live 配置、安装或部署授权。
+
+回滚时，若已有消费者接受 V2，应保留支持双格式的 reader，或在应用独立 Change 中审阅
+V1 兼容候选。旧 CLI 无法读 V2，不能只 revert 平台实现就宣称消费者已恢复。
+
 Catalog 更新必须建立 Issue、complex spec/plan、兼容证据、PR/CI 和人工合并。Security 更新可走
 快速通道但不能绕过这些门；patch 每月复审，minor 每季度复审，major 必须进入应用仓的 complex
 Change。多个相互依赖 major 可以由一个 umbrella Change 统一治理，但必须逐 component 记录
