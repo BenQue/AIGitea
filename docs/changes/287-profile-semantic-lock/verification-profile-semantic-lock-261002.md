@@ -89,3 +89,11 @@ verify 输出的既有 detail 含 “merged summary” 字样；本 summary 实�
 - `aisoft_release.contract` 的 existing reader 以 strict keys、schema 与 schema_version 检查 V1；本轮只读，不修改或为 V2 授予 release 能力。
 - 本轮没有 shell/script/runtime/schema/profile/catalog/reference 改动。完整 smoke/CI/安装/release/SFM 现场 NOT RUN；本步骤的文档检查通过不能继承为 T02/T03 验收。
 - T01 完成后停止，fresh run 必须重读治理合同再实现 T02/T03，不新增启动确认。
+
+### T01 审查与提交 receipt
+
+- 初次 T01 原子提交：`4bbd840055f19c72f67d51bc4089e7db514bc13c`，9 个文件，仅 architecture 两份文档和本 Change 的 7 份合同/证据。
+- Standards 独立只读审查发现 1 项 P2：plan 缺明确 AC→Txx 分配（03 分册要求）。已补 Ticket 列，区分 T01 文档应用、T02 功能与 T03 全量/一致性复核，不改变 spec 范围或验收标准。
+- Spec 独立只读审查：0 actionable findings；V1/V2/constraints/广播/release 边界均匹配已批准合同。T02/T03 未实现不算 T01 遗漏。
+- 提交后 exact #287 classification `--verify`：projected；semantic document check：changes=145 pass=2 gap=0；worktree 与共享 main 都 clean。
+- 本次文档步骤完成后停在 fresh run 边界；后续 T02/T03 已授权，无需重复确认启动。

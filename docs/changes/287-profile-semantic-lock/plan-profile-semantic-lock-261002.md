@@ -44,16 +44,16 @@ updated: 2026-10-02
 
 ## 测试与验收映射
 
-| Acceptance criterion | Verification command or review |
-|---|---|
-| AC-1 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_architecture_lock tests.test_architecture_cli -v`：新增历史 V2 回归与 prose 探针 |
-| AC-2 | 同 targeted suites：逐字段合法 drift 与非法 schema/semantic 探针，漏 bump delivery 精确 LOCK_DRIFT |
-| AC-3 | 同 targeted suites：V1 reference、prose drift、篡改、版本/marker/额外字段拒绝 |
-| AC-4 | CLI 临时目录生成/validate 两次，核对原 V1 字节未变与同输出 identity |
-| AC-5 | `PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -t codex/runtime -p 'test_architecture*.py' -v` 与 release integration suite |
-| AC-6 | `bash codex/tests/smoke.sh`；若实际改 shell 则额外相应 bash -n 与 ShellCheck（可用），未改不伪造结果 |
-| AC-7 | README/ADR 与实现 diff review；`PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo .` |
-| AC-8 | `git diff --name-only origin/main`、`git status --short` 和保存的 broker/本地 receipt 核对；仅本 owner worktree |
+| Acceptance criterion | Ticket | Verification command or review |
+|---|---|---|
+| AC-1 | T02；T03 复核 | `PYTHONPATH=codex/runtime python3 -m unittest tests.test_architecture_lock tests.test_architecture_cli -v`：新增历史 V2 回归与 prose 探针 |
+| AC-2 | T02；T03 复核 | 同 targeted suites：逐字段合法 drift 与非法 schema/semantic 探针，漏 bump delivery 精确 LOCK_DRIFT |
+| AC-3 | T02；T03 复核 | 同 targeted suites：V1 reference、prose drift、篡改、版本/marker/额外字段拒绝 |
+| AC-4 | T02；T03 复核 | CLI 临时目录生成/validate 两次，核对原 V1 字节未变与同输出 identity |
+| AC-5 | T02 硬门；T03 全量复核 | `PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -t codex/runtime -p 'test_architecture*.py' -v` 与 release integration suite |
+| AC-6 | T03 | `bash codex/tests/smoke.sh`；若实际改 shell 则额外相应 bash -n 与 ShellCheck（可用），未改不伪造结果 |
+| AC-7 | T01 文档应用；T03 文档与实现一致性复核 | README/ADR 与实现 diff review；`PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo .` |
+| AC-8 | T01/T02/T03 各自范围复核 | `git diff --name-only origin/main`、`git status --short` 和保存的 broker/本地 receipt 核对；仅本 owner worktree |
 
 ## 依赖与并发
 
