@@ -28,7 +28,7 @@ updated: 2026-10-02
 | T04 | 已批准补充的两处测试 root 与 synthetic 模板，独立治理 commit 后停止 | [T01] | done |
 | T02 | fresh run 后完整实现容器 FROM 文件核验，迁移 fixtures，所有 CLI 与库调用同一硬门 | [T04] | done |
 | T05 | 已批准 fixed evidence exact lock pin 与防篡改单测，独立治理 commit 后停止 | [T02] | done |
-| T03 | 项目 checker、lock/release 兼容与全套回归验收，完成唯一最终 PR 候选 | [T02, T05] | pending |
+| T03 | 项目 checker、lock/release 兼容与全套回归验收，完成唯一最终 PR 候选 | [T02, T05] | done |
 
 T01 为平台治理必须隔离的 contract-only 步骤，不伪装成 runtime 已交付。
 T02 为一个完整可观察垂直切片，覆盖声明输入、文件读取、FROM 核验、CLI、fixtures 与测试。
@@ -89,7 +89,7 @@ shell 仅允许 T04 明确批准的两个测试入口，各新增 root 参数；
 
 用户已确认 T04 补充 patch。T04 独立提交后停止，fresh turn 读取更新 spec/plan 后执行 T02；不再请求原合同启动确认。
 
-## T02 runtime 进度
+## T02 runtime 进度（T05 完成时的历史快照）
 
 文件核验、三 CLI 入口、库 root 硬门、fixtures/reference lock 与 checker 探针已实现。
 T03 仍 pending：smoke 的 release evidence 固定源码边界拒绝已迁移的 reference lock，
@@ -105,3 +105,15 @@ T05 只应用 checker 的 exact reference lock pin 与对应 disk/index 防篡�
 检查批准 patch/hash、source identity 与 20 项边界单测，独立 commit 后停止；
 T03 后续 fresh run 才重跑完整 smoke/runtime 与 #287 main 组合。
 原合同/启动批准持续有效，不重复询问普通实现；最终唯一 PR 仍需单独提交确认。
+
+## T03 fresh-main 最终本地验收
+
+#287 的唯一 PR #324 已真实合并，本 owner 将 main
+`14bfe6edea6a78e994daac88b3615c009ae37fea` 整合进本分支，组合 runtime head 为
+`aa585dd5b5b7a27e8ed6cdbebb9f8746a7a27128`。保留默认 V2 writer、严格 V1/V2 architecture
+reader 与 V1-only release reader；Dockerfile 文件硬门覆盖两种 lock 版本。
+八组非容器 canonical bytes（四合同 × V1/V2）与该 fresh main 精确相同。
+完整 runtime 1008 tests PASS；同一 smoke 命令在 sandbox localhost socket 被拒后，
+走受控 host 执行路径完整 PASS。T04 两 shell 的 bash -n 与 ShellCheck PASS。
+当前批准合同读回 PASS，8 条 AC 已按 verification 的本地证据闭环；分类真实读回 projected。
+所有 ticket 完成本地交付，最终唯一 PR 仍停在 AWAITING_PR_CONFIRMATION；没有 push、PR、安装或部署。

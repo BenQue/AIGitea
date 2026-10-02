@@ -234,3 +234,40 @@ proposed hash 精确一致，`git apply --reverse --check` PASS。
 不能把完整 smoke 改成 PASS。新增 architecture pin 不接受路径豁免；历史 evidence、
 BASELINE、RUNNER_BEFORE/AFTER、runtime/real-E2E pins 与 CONTENT_EXEMPT 未改。
 按已批准治理顺序，本步独立 commit 后停止，下一轮重读更新合同恢复 T03。
+
+## T03 fresh-main 最终本地验收（当前权威结果）
+
+实际已合并 PR #324 / #287，main `14bfe6edea6a78e994daac88b3615c009ae37fea`。
+本 owner 在自己的 worktree 整合 main，组合 runtime head
+`aa585dd5b5b7a27e8ed6cdbebb9f8746a7a27128`。保留所有已批准治理步骤与历史失败记录；
+下面结果覆盖该组合源码，后续只修改状态文档/receipt，不把旧阶段 PASS 外推为 PR CI 或部署。
+
+| Check | Result | Evidence |
+|---|---|---|
+| 完整 runtime | PASS | 1008 tests / 100.273s，exit 0 |
+| 完整平台 smoke（受控 host） | PASS | `LC_ALL=C bash codex/tests/smoke.sh`，exit 0；含 runtime 1008 tests / 100.928s |
+| 同命令 sandbox smoke | BLOCKED | 临时 localhost socket bind PermissionError；执行路径限制，未跳过测试，host 原命令完整通过 |
+| Dockerfile 两版组合 suite | PASS | 16 tests / 7.443s；默认 V2/V1 文件硬门、旧 lock 和写入边界 |
+| release architecture integration | PASS | 5 tests / 0.044s；V1 reader 保持，V2 fail closed |
+| 四非容器合同 × V1/V2 bytes | PASS | `evidence/t03-fresh-main-noncontainer-bytes.json`，八组 SHA256 与 fresh main 相同 |
+| T04 shell bash -n / ShellCheck | PASS / PASS | 只检查已批准两测试入口；无 CI context 改动 |
+| 真实 approved 合同 | PASS | `evidence/t03-approved-contract-validation.json`，8 AC / exact branch / complex |
+| exact #288 判级投影读回 | PASS | `evidence/t03-classification-readback.json`，bugfix / complex / projected |
+| PR CI / global installed / builder provenance / company live / deploy | NOT RUN | 尚无 PR，无安装部署；scratch installer 测试不等于真实安装验收 |
+
+完整日志的文件路径、SHA256 和命令冻结于 `evidence/t03-local-validation.json`。
+main 组合 receipt 是 merge 前的历史快照，里面的 full NOT_RUN 保持原样；以上是后续真实结果。
+
+| AC | Result | 本地证据与边界 |
+|---|---|---|
+| AC-1 | PASS | Node 22 实际 catalog child digest fixture；真实三 CLI 子进程修改 digest/tag 后 exit 2 |
+| AC-2 | PASS | 多文件、多外部 stage、内部 stage 与 scratch tests；逐个文件/stage 与反向未使用声明检查 |
+| AC-3 | PASS | ARG 默认值也拒绝 image 变量；平台变量、畸形 FROM、heredoc、无 FROM、重复/前向 stage；escape 回归 |
+| AC-4 | PASS | root/cwd、路径、symlink、UTF-8/size/FIFO、缺文件与输出脱敏；缺 root 库调用 fail closed |
+| AC-5 | PASS | 非容器拒绝 dockerfiles、不读取文件；四合同 × 两版本 bytes 与 fresh main 一致 |
+| AC-6 | PASS | 两次输出相同、失败不创建/覆盖；旧正确 lock 不掩盖最新源漂移；默认 V2 / 显式 V1 / release V1-only 组合 |
+| AC-7 | PASS | README root/语法/迁移/证明边界；完整 runtime 与 smoke；T05 exact lock pin/static evidence gate 未削弱 |
+| AC-8 | PASS | 现有只读 `.aisoft` checker 在真实临时 checkout 捕获源码漂移；checker/required CI workflow/context 无变更 |
+
+已批准 spec 的 AC 文本保持原样；这里记录执行结果。最终候选仍需单独 PR 提交确认，
+人工合并与部署未授权。回滚方式为人工 revert 唯一最终 PR 后运行相同回归；旧源码盲点会恢复。

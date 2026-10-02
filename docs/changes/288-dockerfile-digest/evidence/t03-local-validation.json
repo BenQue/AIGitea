@@ -1,0 +1,114 @@
+{
+  "issue": 288,
+  "ticket": "T03",
+  "result": "PASS",
+  "runtime_head": "aa585dd5b5b7a27e8ed6cdbebb9f8746a7a27128",
+  "main": "14bfe6edea6a78e994daac88b3615c009ae37fea",
+  "full_runtime": {
+    "argv": "PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests",
+    "result": "PASS",
+    "exit_code": 0,
+    "count": 1008,
+    "seconds": 100.273
+  },
+  "smoke": {
+    "argv": "LC_ALL=C bash codex/tests/smoke.sh",
+    "host": {
+      "result": "PASS",
+      "exit_code": 0,
+      "runtime_count": 1008,
+      "runtime_seconds": 100.928
+    },
+    "sandbox": {
+      "result": "BLOCKED_EXECUTION_PATH",
+      "exit_code": 1,
+      "cause": "localhost temporary socket bind PermissionError [Errno 1] Operation not permitted"
+    }
+  },
+  "logs": {
+    "t03-fresh-main-runtime.log": {
+      "path": "/private/tmp/issue-288-contract-data/t03-fresh-main-runtime.log",
+      "sha256": "2ceb964962403f1dcbfbfb6bc279ec3af62e20f9058d0e6b0feebecc3db19ab3"
+    },
+    "t03-fresh-main-smoke-host.log": {
+      "path": "/private/tmp/issue-288-contract-data/t03-fresh-main-smoke-host.log",
+      "sha256": "de9d3a526e20ce295f8c60b41f48ac6fa61cc332f78e06aa6de088ddf5d24793"
+    },
+    "t03-fresh-main-smoke-sandbox.log": {
+      "path": "/private/tmp/issue-288-contract-data/t03-fresh-main-smoke-sandbox.log",
+      "sha256": "1b081bc82c9a9ddf987539de784cece1ebe4b86b065990752c8cc1a7f13ce736"
+    }
+  },
+  "static_checks": [
+    {
+      "argv": [
+        "bash",
+        "-n",
+        "codex/tests/smoke.sh",
+        "codex/tests/test-architecture-install.sh"
+      ],
+      "exit_code": 0,
+      "result": "PASS",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "shellcheck",
+        "codex/tests/smoke.sh",
+        "codex/tests/test-architecture-install.sh"
+      ],
+      "exit_code": 0,
+      "result": "PASS",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "result": "PASS",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-m",
+        "aisoft_loop.cli",
+        "check-change-documents",
+        "--repo",
+        "/private/tmp/issue-288-dockerfile-digest"
+      ],
+      "exit_code": 0,
+      "result": "PASS",
+      "stdout": "PASS: change-documents\nPASS: change-pr-url\nresult: changes=147 pass=2 gap=0"
+    }
+  ],
+  "source_scope": {
+    "result": "PASS",
+    "approved_shell_paths": [
+      "codex/tests/smoke.sh",
+      "codex/tests/test-architecture-install.sh"
+    ],
+    "unchanged": [
+      "AGENTS.md",
+      "required CI workflow/context",
+      "catalog/profiles",
+      "lock schemas",
+      "release runtime/readers",
+      "installers"
+    ],
+    "reference_lock_sha256": "b6d39e9126b61c804b8cb188a11a3b4e1bc375236a3ffadf93909f3d49e70076"
+  },
+  "not_run": [
+    "PR creation",
+    "required CI",
+    "global installation",
+    "real application migration",
+    "builder/provenance",
+    "company live",
+    "deployment"
+  ],
+  "note": "Final documentation-only commit is checked separately; tests cover the runtime head. Scratch installation inside smoke is local testing."
+}

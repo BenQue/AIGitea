@@ -89,7 +89,7 @@ override_reason: ''
 - Policy: manual；用户于 2026-10-02 明确回复“确认”，批准本映射 spec/plan 启动。PR 提交尚未授权。
 - 完整合同见 [spec](spec-dockerfile-digest-261002.md)，ticket graph 见 [plan](plan-dockerfile-digest-261002.md)，基线结果见 [verification](verification-dockerfile-digest-261002.md)。
 - Matt triage 已验证 bug，推荐 ready-for-agent；当前 broker 没有 triage 双维度 projector，live 投影为 GAP，不绕行直接 API，不在 #288 修改 broker。
-- T02 runtime 已实现并完成本地回归，T05 固定证据 pin 补充已批准应用，T03 smoke 待 fresh run；PR CI、installed/live/现场验收为 NOT RUN。无硬依赖；#287 仅关联与提交顺序协调。
+- T01/T04/T02/T05/T03 均已完成本地交付；fresh-main 完整 runtime 与 smoke PASS，最终唯一 PR 待提交确认。PR CI、installed/live/现场验收为 NOT RUN。无硬依赖；#287 仅关联与提交顺序协调。
 
 ## 启动授权与治理步骤
 
@@ -100,7 +100,7 @@ T01 只应用 schema 与 README 合同；运行时文件核验仍为 NOT RUN。�
 
 用户于 2026-10-02 再次回复“确认”，仅批准两处 shell 测试的显式 root 参数与 synthetic 模板迁移；receipt 与完整 patch 在 evidence。T04 独立应用后停止，原合同批准持续有效，runtime/最终 PR/安装部署仍未执行。
 
-## 当前实现进度
+## T02 初轮实现进度（历史快照）
 
 T02 已完成：容器所有声明文件的 FROM digest 双向检查，root/路径/语法 fail closed，
 三 CLI 入口、库调用与现有 checker 共用硬门。非容器四合同 canonical bytes 与 baseline 完全一致。
@@ -114,3 +114,14 @@ T02 已完成：容器所有声明文件的 FROM digest 双向检查，root/路�
 真实静态 source identity PASS，historical evidence 与原 runtime pins 保持原 bytes。
 本步独立治理 commit 后停止，完整 smoke/runtime 与 #287 fresh-main 组合待下一轮；
 没有 push、PR、merge、install 或 deploy 授权。
+
+## 当前最终候选进度
+
+已由本 owner 整合 #287 已合并的 main `14bfe6edea6a78e994daac88b3615c009ae37fea`，
+组合 runtime commit `aa585dd5b5b7a27e8ed6cdbebb9f8746a7a27128`。
+完整 runtime 1008 项 PASS；受控 host 完整 smoke PASS（含第二次 1008 项 runtime）；
+四种非容器合同在 V1/V2 的八组 canonical bytes 与 fresh main 相同。
+T05 synthetic V1 lock exact pin 未漂移；原历史 evidence、release reader、lock schema 未改。
+批准合同真实读回 PASS / 8 AC；分类为 bugfix / complex，两维度 projected，Policy manual。
+本地候选处于 AWAITING_PR_CONFIRMATION，提交 SHA 以最终候选状态文件为准。
+本轮只证明 source/local 验收；唯一 PR/required CI、全局安装、现场、制品构建与部署均 NOT RUN。
