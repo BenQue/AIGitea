@@ -24,8 +24,8 @@ updated: 2026-10-02
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 独立治理说明：冻结声明事实源/route 最低要求/部署边界；提交后停止，等待 fresh run 重读 | - | completed |
-| T02 | 缺失声明文件从 resolver/audit/Loop 到 terminal 全路径红；受限 publisher 仍可首次创建；含 targeted/mock 测试 | T01 | pending |
-| T03 | 历史 fixture/legacy/三档 lifecycle 和平台、SFM 当前对比；全量验证、审查、classification 读回及最终 PR 候选 | T02 | pending |
+| T02 | 缺失声明文件从 resolver/audit/Loop 到 terminal 全路径红；受限 publisher 仍可首次创建；含 targeted/mock 测试 | T01 | completed |
+| T03 | 历史 fixture/legacy/三档 lifecycle 和平台、SFM 当前对比；全量验证、审查、classification 读回及最终 PR 候选 | T02 | in-progress |
 
 T01 完成后以会话停顿落实 fresh run，runtime 在下一次续办中读取更新合同再动手。T02 是一个可单独复现的端到端切片，测试伴随实现；T03 收口验收，不建立第二 PR。父 Issue 内完成 Txx，不建子 Issue。
 

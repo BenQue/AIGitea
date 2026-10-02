@@ -200,8 +200,9 @@ class Classification:
                 if role_based
                 else ("00-summary.md", "01-spec.md", "02-plan.md")
             )
-        if self.required_docs[-1] in {"verification", "03-verification.md"}:
-            complex_docs += (self.required_docs[-1],)
+        verification = "verification" if role_based else "03-verification.md"
+        if verification in self.required_docs:
+            complex_docs += (verification,)
         if (
             self.assessed_complexity == "needs-human-decision"
             or self.contract_effect == "unclear"
@@ -247,7 +248,7 @@ class Classification:
             "small",
             "approved",
             "complexity/small",
-            unresolved_docs,
+            self.required_docs,
             self.override_reason,
         )
 

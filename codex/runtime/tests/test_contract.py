@@ -191,11 +191,12 @@ class ContractTests(unittest.TestCase):
         spec: bool = False,
         plan: bool = False,
         depends_on: str | None = None,
+        development: bool = False,
     ) -> Path:
         directory = self.repo / "docs" / "changes" / str(number)
         directory.mkdir(parents=True)
         required = ["  - 00-summary.md"]
-        if complexity == "complex":
+        if complexity == "complex" and not development:
             required.extend(("  - 01-spec.md", "  - 02-plan.md"))
         summary = SUMMARY.format(
                 number=number,
@@ -395,7 +396,7 @@ class ContractTests(unittest.TestCase):
 
     def test_development_phase_complex_contract_needs_no_spec_or_plan(self) -> None:
         """AC4：development 项目的强制 complex 不因缺 spec/plan 被拒。"""
-        self.write_contract(complexity="complex", change_type="feature", effect="add")
+        self.write_contract(complexity="complex", change_type="feature", effect="add", development=True)
         issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
         contract = load_contract(self.repo, issue, change_control="development")
         self.assertEqual(contract.effective_complexity, "complex")
@@ -404,7 +405,7 @@ class ContractTests(unittest.TestCase):
 
     def test_development_phase_still_requires_measurable_acceptance(self) -> None:
         """没有 spec 时验收标准改由 Issue 正文提供，但门槛本身不放宽。"""
-        self.write_contract(complexity="complex", change_type="feature", effect="add")
+        self.write_contract(complexity="complex", change_type="feature", effect="add", development=True)
         issue = self.issue(
             labels=["type/feature", "complexity/complex", "approved"],
             body="这个变更很重要，做完就知道了。",

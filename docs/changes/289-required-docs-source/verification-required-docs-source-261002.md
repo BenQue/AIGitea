@@ -93,3 +93,19 @@ T01 完成本地 commit 后按治理规定停止；fresh run 重新读取更新�
 ### T01 证据展示修复
 
 首次未暂存 git diff --check 通过，但它不覆盖未跟踪的基线证据；首次 cached 检查识别 platform/sfm TSV 空诊断列的末尾 TAB，提交仍执行，故补追加修复 commit。两份 .txt 展示副本仅去掉行尾空白，原始 stdout（包含尾 TAB）及 SHA256 原样保存到 evidence/audit-baselines.json；历史 summary 原样 hash 未改。scope 检查改为 git -c core.quotepath=false 读取，避免中文文件名转义造成假失败。修复后重新执行 staged diff --check 与文档检查，不修改验证判断或 runtime。
+
+## T02 fresh run 实现记录
+
+本轮重新读取 AGENTS.md、README、03、spec/plan，确认 exact owner；broker fresh git.fetch.main PASS，base 仍 5c2cd726c9aeaee9d17541d8feb049e33881bbac。#286 的 owner/session 已只读核对，未写入其它 worktree。集成优先级 4 不新增 depends_on。
+
+实现：严格公共 resolver 校验全部显式 mapping 文件与 required 声明；新增 resolve-required-documents 返回规范化角色；load_contract 使用声明结果并校验路由最低要求；development 验收来源保持 Issue；bounded publisher 首次写入内部声明 seam，不给 reader 旁路；terminal 移除 awk/find 原文重读，失败 skip 且 zero broker write。
+
+- TDD 基线：新增 12 项测试在旧实现上得到 16 个 subtest failures（包含真实历史 summary），修复后 targeted 转绿；另补 small verification 保留回归，共 13 项。
+- test_contract.py 27、test_documents.py 20、test_change_audit.py 9、test_change_control.py 14 均 PASS。
+- 首次全量 runtime 990 项 PASS（90.109s）；新增最后 1 项 small verification targeted PASS，最终全量由 T03 重跑。
+- mark-completed mock tests PASS：三档生命周期中缺文档 --apply 均 skip/applied=false/zero write；合法 legacy verification 正确归一；非法 JSON/空角色 receipt 零写入。
+- bash -n、ShellCheck 对三个受影响 shell 文件 PASS。首次 smoke 在 probe JSON 字面值写法触发 SC2089/SC2090 后退出，已按数组修复；重跑进行中，尚不宣称 smoke PASS。
+- 真实历史 fixture：resolve-documents exit=2；resolve-required-documents exit=2；audit exit=1；terminal dry-run skip/applied=false。诊断包含 change/role/basename。
+- platform audit exit=0；SFM 当前 audit exit=1；两者 stdout 与 T01 原始基线逐字相同。回填后当前 SFM #142 strict resolver exit=0。完整读回见 evidence/post-fix.json。
+
+实际改动包括 test-project-check.sh 的 synthetic summary 增加 required_docs 字段，使旧 project-check 测试 fixture 满足真实合同；未削弱任何断言、不修改项目/模板或 CI 硬门。CLI 回归位于 test_required_documents.py（仓库不存在 test_cli.py）。

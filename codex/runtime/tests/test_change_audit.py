@@ -12,6 +12,9 @@ from aisoft_loop.change_audit import (
 SUMMARY = """---
 issue: 57
 gitea_url: http://gitea.example.invalid/admin/demo/issues/57
+required_docs:
+  - summary
+  - spec
 documents:
   summary: summary-matt-flow-260808.md
   spec: spec-matt-flow-260808.md

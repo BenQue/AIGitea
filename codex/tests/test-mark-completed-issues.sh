@@ -41,6 +41,12 @@ export MOCK_ROOT="$TMP"
 REPO="$TMP/repo"
 summary() {
   local issue="$1" slug="$2" extra="$3"
+  local verification_mapping=""
+  local roles=(spec plan)
+  if [[ "$extra" == *verification* ]]; then
+    verification_mapping="  verification: verification-$slug-260815.md"
+    roles+=(verification)
+  fi
   mkdir -p "$REPO/docs/changes/$issue-$slug"
   cat >"$REPO/docs/changes/$issue-$slug/summary-$slug-260815.md" <<EOF
 ---
@@ -56,6 +62,7 @@ documents:
   summary: summary-$slug-260815.md
   spec: spec-$slug-260815.md
   plan: plan-$slug-260815.md
+$verification_mapping
 status: approved
 branch: change/$issue-$slug
 created: 2026-08-15
@@ -65,7 +72,7 @@ updated: 2026-08-15
 # $issue
 EOF
   local role
-  for role in spec plan; do
+  for role in "${roles[@]}"; do
     cat >"$REPO/docs/changes/$issue-$slug/$role-$slug-260815.md" <<EOF
 ---
 issue: $issue
@@ -646,6 +653,77 @@ for mode_args in "501" "--apply 501"; do
   [ -z "$undetermined" ]
   [ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
   grep -Fq -- '--project' "$TMP/mc-undetermined.err"
+done
+
+# #289: a declaration cannot become a terminal write when its file is missing.
+# Same fixture and broker, no live service. None/selective/every-merge all refuse
+# the invalid contract before their independent lifecycle decision.
+verification="$REPO/docs/changes/502-deployed-change/verification-deployed-change-260815.md"
+mv "$verification" "$TMP/verification.saved"
+for target_project in no-deploy-project selective-project explicit-deploy-project; do
+  : >"$TMP/broker.log"
+  missing_plan="$(run --project "$target_project" --apply 502)"
+  jq -e '.action == "skip" and .applied == false and .reason == "documents-unresolved"' \
+    <<<"$missing_plan" >/dev/null
+  grep -Fq 'verification-deployed-change-260815.md' <<<"$missing_plan"
+  [ ! -s "$TMP/broker.log" ]
+done
+mv "$TMP/verification.saved" "$verification"
+
+# A mapped extra file is an obligation even outside required_docs.
+extra_summary="$REPO/docs/changes/501-no-deploy-change/summary-no-deploy-change-260815.md"
+cp "$extra_summary" "$TMP/summary.saved"
+python3 - "$extra_summary" <<'PY'
+import sys
+from pathlib import Path
+p = Path(sys.argv[1])
+p.write_text(p.read_text().replace("status: approved", "  verification: verification-no-deploy-change-260815.md\nstatus: approved"))
+PY
+: >"$TMP/broker.log"
+extra_plan="$(run --project no-deploy-project --apply 501)"
+jq -e '.action == "skip" and .applied == false' <<<"$extra_plan" >/dev/null
+[ ! -s "$TMP/broker.log" ]
+mv "$TMP/summary.saved" "$extra_summary"
+
+# Legacy filenames normalize to roles; inferred optional files are not required.
+mkdir -p "$REPO/docs/changes/504"
+cat >"$REPO/docs/changes/504/00-summary.md" <<'EOF'
+---
+issue: 504
+required_docs:
+  - 00-summary.md
+  - 03-verification.md
+---
+EOF
+printf '%s\n' '---' 'issue: 504' '---' >"$REPO/docs/changes/504/03-verification.md"
+git -C "$REPO" add docs/changes/504
+git -C "$REPO" commit -qm 'test: #504 legacy evidence'
+legacy_plan="$(run --project explicit-deploy-project 504)"
+jq -e '.action == "skip" and .reason == "requires-deployment"' <<<"$legacy_plan" >/dev/null
+legacy_no_chain="$(run --project no-deploy-project 504)"
+jq -e '.action == "set-completed" and .reason == "no-deployment-chain"' <<<"$legacy_no_chain" >/dev/null
+
+# Corrupt resolver output must not fall back to parsing the original summary.
+mkdir -p "$TMP/json-probe"
+export AISOFT_289_REAL_PYTHON
+AISOFT_289_REAL_PYTHON="$(command -v python3)"
+cat >"$TMP/json-probe/python3" <<'MOCK'
+#!/usr/bin/env bash
+if [[ "$*" == *resolve-required-documents* ]]; then
+  printf '%s\n' "$AISOFT_289_RESOLVER_OUTPUT"
+else
+  exec "$AISOFT_289_REAL_PYTHON" "$@"
+fi
+MOCK
+chmod +x "$TMP/json-probe/python3"
+resolver_outputs=('not-json' '{"required_docs":[],"documents":{}}')
+for AISOFT_289_RESOLVER_OUTPUT in "${resolver_outputs[@]}"; do
+  export AISOFT_289_RESOLVER_OUTPUT
+  : >"$TMP/broker.log"
+  corrupt_plan="$(PATH="$TMP/json-probe:$PATH" run --project no-deploy-project --apply 501)"
+  jq -e '.action == "skip" and .applied == false and .reason == "documents-unresolved"' \
+    <<<"$corrupt_plan" >/dev/null
+  [ ! -s "$TMP/broker.log" ]
 done
 
 echo 'mark-completed tests passed'

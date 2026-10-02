@@ -28,7 +28,7 @@ from .analysis import (
 from .change_audit import audit_change_documents
 from .change_control import resolve_change_control
 from .controller import Controller, LocalGit
-from .contract import ContractError, resolve_change_name, resolve_documents
+from .contract import ContractError, resolve_change_name, resolve_documents, resolve_required_documents
 from .documents import backfill_pr_url, publish_plan, publish_spec
 from .gitea import GiteaClient, GiteaError
 from .output import OutputError, extract_last_json_object
@@ -139,6 +139,12 @@ def main(argv: list[str] | None = None) -> int:
     resolve_document_names.add_argument("issue", type=int)
     resolve_document_names.add_argument("--repo", required=True, type=Path)
 
+    required_document_names = subparsers.add_parser(
+        "resolve-required-documents", help="read validated required roles and mapped filenames"
+    )
+    required_document_names.add_argument("issue", type=int)
+    required_document_names.add_argument("--repo", required=True, type=Path)
+
     backfill = subparsers.add_parser(
         "backfill-pr-url", help="write one change's PR URL into its summary front matter"
     )
@@ -223,6 +229,14 @@ def main(argv: list[str] | None = None) -> int:
         return _apply_analysis(args.issue, args.result_json, args.summary_url)
     if args.command == "resolve-documents":
         return _resolve_documents(args.repo, args.issue)
+    if args.command == "resolve-required-documents":
+        try:
+            resolved = resolve_required_documents(args.repo, args.issue)
+        except (ContractError, ChangeNameError, OSError, UnicodeError) as exc:
+            print(f"required document resolution failed: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(resolved, ensure_ascii=False, sort_keys=True))
+        return 0
     if args.command == "backfill-pr-url":
         return _backfill_pr_url(args.repo, args.issue, args.pr_url)
     if args.command == "check-change-documents":

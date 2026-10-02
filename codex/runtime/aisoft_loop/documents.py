@@ -12,9 +12,11 @@ from typing import Mapping
 from .contract import (
     ContractError,
     PR_BEARING_STATUSES,
+    _document_declarations,
+    _required_document_names,
+    _required_roles,
     parse_front_matter,
     resolve_change_name,
-    resolve_documents,
     resolve_summary,
 )
 
@@ -211,7 +213,8 @@ def _publish(
     if current != branch:
         raise ContractError(f"current branch must be {branch}, got {current or 'detached'}")
 
-    documents = resolve_documents(repo_path, number)
+    _, _, summary, documents = _document_declarations(repo_path, number)
+    _required_document_names(_required_roles(summary.get("required_docs")), documents)
     name = documents.get(role)
     if not name:
         raise ContractError(f"documents mapping does not declare {role}")
