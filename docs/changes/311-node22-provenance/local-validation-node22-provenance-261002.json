@@ -11,7 +11,7 @@
     "complexity": "complex"
   },
   "integration_blocker": null,
-  "final_pr": "AWAITING_PR_CONFIRMATION: exact Issue311 / change/311-node22-provenance / manual; no push or PR created",
+  "final_pr": "PR329 open/unmerged; submission confirmed2026-10-03 exact Issue/branch/manual; publication-node22-provenance-261003.json records observed previous-head8bf004e CI PASS; containing receipt-only commit requires its own fresh CI",
   "original_full_smoke": "FAIL",
   "original_tested_head": "b27c2e23fd288b1d19d74c3dd7f837bb4070090a",
   "original_integration_blocker": "Existing main regression tracked by #319; its owner is AWAITING_PR_CONFIRMATION. Wait for real merge into main, then owner of #311 fresh-fetch/rebase/retest. This is test integration ordering, not a new product depends_on.",

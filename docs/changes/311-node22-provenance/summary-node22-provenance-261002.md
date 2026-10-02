@@ -28,7 +28,7 @@ status: pr-open
 branch: change/311-node22-provenance
 pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/329
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 ## 问题/需求总结
@@ -52,7 +52,7 @@ updated: 2026-10-02
 1. 四仓 fresh 核对已完成，普通 benque 主机探针已完成；保护配置及 effective PATH 字段由 [主机提案](host-action-proposal-node22-provenance-261002.md) 的 root 补读完成。
 2. 已锁定保留：SFMDigitalBoard fresh CI 有活动引用；marker 已知消费方和 unknown 字段具备精确候选。
 3. 来源无法证明时明确 `unknown`；目录 mtime 不冒充安装日期，本次盘点日期不冒充安装日期，当前二进制哈希不冒充上游包校验值。
-4. 本聊天用户“确认，继续”已批准完整合同与精确主机动作；marker 创建、幂等与回滚重建已执行通过。最终 PR 提交尚未批准。
+4. 本聊天用户“确认，继续”已批准完整合同与精确主机动作；marker 创建、幂等与回滚重建已执行通过。当时最终PR提交尚未批准；2026-10-03已另获绑定exact Issue/branch/manual的提交确认，见发布回执。
 
 ## 风险
 
@@ -84,7 +84,7 @@ override_reason: ''
 
 当前 AGENTS.md 与 classification.py 将共享核心、CI 和回滚强制按 complex；Issue 中的 small 只是候选预期。type 保持 maintenance，policy 固定 manual。该安全判级不取决于最终选择 A 或 B。
 
-### 合同与待确认权限
+### 合同与授权记录
 
 - 当前用户已确认各项目 fresh read 与 benque 探针；该只读范围已执行，证据附 fresh-consumer-inventory 与 host-inventory。
 - A 已锁定，B 按真实消费方证据排除。marker 内容、根权限补读、apply/check/rollback/reapply 命令见 host-action-proposal。
@@ -93,8 +93,12 @@ override_reason: ''
 
 ## 已批准实施结果
 
-只新增 marker，SHA-256=bd3c6ccaf6929449631684667043dc614607170722d5fb658025b6d281d5db8c；Node binary hash、3783条非marker元数据和配置元数据前后一致。静态补读未发现更多已知消费者；动态profile执行/process Secret环境仍按合同排除。01 §4.2 已同步来源unknown但在用。全部live receipts见verification；应用部署与目录删除不适用，PR/CI未执行。
+只新增 marker，SHA-256=bd3c6ccaf6929449631684667043dc614607170722d5fb658025b6d281d5db8c；Node binary hash、3783条非marker元数据和配置元数据前后一致。静态补读未发现更多已知消费者；动态profile执行/process Secret环境仍按合同排除。01 §4.2 已同步来源unknown但在用。全部live receipts见verification；应用部署与目录删除不适用。PR329与按head核对的CI证据见后续发布记录，历史候选阶段未执行PR/CI不作为当前状态。
 
 ## 本地验证状态
 
-原始smoke基线失败保留历史。#319已真实合入main；本owner无冲突rebase、两个commit range-diff相等，完整smoke在原UTF-8环境重跑PASS（1008 runtime tests/static checks）。exact #311判级再次projected；四仓fresh消费者复核不改变保留方案。#289 PR325随后实际合入后再次无冲突整合，最终main16beee09aefe89b5bc80a31544c59d456190ea32完整smoke PASS（1022 runtime tests/static checks），四角色共享文档resolver兼容PASS。最终Standards/Spec均0未解决finding，旧历史字段P3已修复保留审计。当前AWAITING_PR_CONFIRMATION，最终PR提交仍未确认，无push/PR/merge。详见 [verification](verification-node22-provenance-261002.md) 与 [local validation](local-validation-node22-provenance-261002.json)。
+原始smoke基线失败保留历史。#319已真实合入main；本owner无冲突rebase、两个commit range-diff相等，完整smoke在原UTF-8环境重跑PASS（1008 runtime tests/static checks）。exact #311判级再次projected；四仓fresh消费者复核不改变保留方案。#289 PR325随后实际合入后再次无冲突整合，最终main16beee09aefe89b5bc80a31544c59d456190ea32完整smoke PASS（1022 runtime tests/static checks），四角色共享文档resolver兼容PASS。最终Standards/Spec均0未解决finding，旧历史字段P3已修复保留审计。候选阶段AWAITING_PR_CONFIRMATION已结束：2026-10-03用户确认提交，唯一PR329已创建并回填pr_url，两次push各自核对fresh pushed_head。已观察8bf004e的required CI/run1740成功；publication回执按该head保存，本次后续receipt-only提交仍须单独核对新head CI。当前pr-open，manual人合并/部署均未执行。详见 [verification](verification-node22-provenance-261002.md) 与 [local validation](local-validation-node22-provenance-261002.json)。
+
+## 唯一最终PR
+
+用户已明确确认 #311 / change/311-node22-provenance / manual 提交，PR为[329](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/329)。[发布回执](publication-node22-provenance-261003.json)含已观察8bf004e的CI PASS；任何后续receipt-only push必须核对自己的新head，不沿用旧head的绿灯。required CI全绿后停READY_FOR_REVIEW，等待人工merge，未部署。
