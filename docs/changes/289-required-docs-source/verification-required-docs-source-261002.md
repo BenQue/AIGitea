@@ -89,3 +89,7 @@ Matt 类别/ready 标签未投影：尝试 gitea.issue.labels.extension.set 的 
 - 本步骤未修改 runtime、shell、AGENTS.md、manifest、template、CI 或其它 Issue 文件。因此 runtime tests / bash -n / ShellCheck / smoke 仍 NOT RUN，留 T02/T03 执行。
 
 T01 完成本地 commit 后按治理规定停止；fresh run 重新读取更新后的 AGENTS.md、README、03、spec/plan，再执行 T02。无需重复请求合同启动确认；唯一最终 PR 提交确认仍保留。
+
+### T01 证据展示修复
+
+首次未暂存 git diff --check 通过，但它不覆盖未跟踪的基线证据；首次 cached 检查识别 platform/sfm TSV 空诊断列的末尾 TAB，提交仍执行，故补追加修复 commit。两份 .txt 展示副本仅去掉行尾空白，原始 stdout（包含尾 TAB）及 SHA256 原样保存到 evidence/audit-baselines.json；历史 summary 原样 hash 未改。scope 检查改为 git -c core.quotepath=false 读取，避免中文文件名转义造成假失败。修复后重新执行 staged diff --check 与文档检查，不修改验证判断或 runtime。

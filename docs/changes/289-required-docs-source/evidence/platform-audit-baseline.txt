@@ -1,2 +1,2 @@
-change-documents	PASS	
-change-pr-url	PASS	
+change-documents	PASS
+change-pr-url	PASS
