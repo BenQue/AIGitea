@@ -32,9 +32,14 @@ AISOFT_SESSION_ID=<本会话 id> PYTHONPATH=codex/runtime python3 -m aisoft_loop
   claim-worktree --branch change/N-short-description --worktree /private/tmp/issue-N-short-description
 ```
 
-**push 之后核对返回体的 `pushed_head`** 是否等于你在确认点 2 核验过的那个 SHA——这是一个步骤，
-不是一句建议。闸门只拦得住「别人以自己的身份推你的分支」；「别人改写了 HEAD 而你自己去推」它
-放行，因为身份仍然是你。不等即被改写，停下来查清楚再决定，不要继续往 PR 走。
+**首次 push 之后核对返回体的 `pushed_head` 是否等于确认点 2 候选中已核验的 exact head；
+PR summary-only 回填与范围内 CI 修复的每次后续 push，则比对该次 fresh 本地验证并记录的
+exact head。** 每次比较都是必做步骤，不能沿用首次旧 SHA，也不能省略读回校验。后续 push 前
+确认本会话归属、exact branch、新增 diff 在已批准合同内、必要验证通过与工作树清洁，再记录
+当前 40 位 lowercase head。`previous_head` 只作审计信息，不替代本次比较锚。
+授权仍绑定 exact Issue/branch/policy，合法回填与范围内 CI commit 不重复确认。闸门只核对
+「谁在推」，不保证「推的内容」；范围扩大、他人改写或 `pushed_head` 不匹配立即停止并查明，
+不得把未知改写直接登记为新锚。首次候选在确认后改变时先停止并更新候选验证证据。
 
 怀疑本机有人串台时，只读扫描一次（不写任何东西）：
 

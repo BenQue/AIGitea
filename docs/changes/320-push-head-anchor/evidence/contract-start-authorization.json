@@ -1,0 +1,27 @@
+{
+  "issue": 320,
+  "session": "01a0fc7b-c01c-71f2-954c-6a87dabb4a87",
+  "branch": "change/320-push-head-anchor",
+  "policy": "manual",
+  "decision": "contract/start approved",
+  "human_message": "确认",
+  "time": "2026-10-02T20:18:36.368078+08:00",
+  "approved_document_sha256": {
+    "spec-push-head-anchor-261002.md": "af839b2ca040f8f84a414b0e1dc071eeb3b207bdc8f777c0c0a3a87945243498",
+    "plan-push-head-anchor-261002.md": "a0af370ac335de9ae6bd6c935f48e18ec3763ead2e98402e40f572bcdc47463a"
+  },
+  "approved_proposal_sha256": "3e514dc0622981eee3e6961cdb60dc5f56287c9b59c4cbcdb331a94e526ca6e4",
+  "authorizes": [
+    "T01 isolated governance apply and stop",
+    "T02 fresh run read, validation and candidate preparation"
+  ],
+  "does_not_authorize": [
+    "push",
+    "PR submission",
+    "merge",
+    "install",
+    "deploy",
+    "runtime/test changes",
+    "AGENTS.md changes"
+  ]
+}

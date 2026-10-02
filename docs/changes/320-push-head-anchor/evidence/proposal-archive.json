@@ -1,0 +1,7 @@
+{
+  "reason": "原始 unified patch 的空白上下文行被 staged diff --check 作为新增文件尾空格报告；以 lossless gzip 存储，不修改六份源或批准 patch 的解压字节。",
+  "original_patch_sha256": "3e514dc0622981eee3e6961cdb60dc5f56287c9b59c4cbcdb331a94e526ca6e4",
+  "archive_sha256": "10125d8fe97456bbc1ae81b4431111bb76a96ebce607a7d40c97d830ea475130",
+  "decompressed_bytes_identical": true,
+  "archive": "proposals/push-head-anchor.patch.gz"
+}

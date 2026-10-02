@@ -1,0 +1,41 @@
+{
+  "issue": 320,
+  "session": "01a0fc7b-c01c-71f2-954c-6a87dabb4a87",
+  "branch": "change/320-push-head-anchor",
+  "base_head": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "policy": "manual",
+  "status": "AWAITING_CONTRACT_CONFIRMATION",
+  "checks": {
+    "resolve": {
+      "exit_code": 0,
+      "result": "PASS",
+      "output": "{\"plan\": \"plan-push-head-anchor-261002.md\", \"spec\": \"spec-push-head-anchor-261002.md\", \"summary\": \"summary-push-head-anchor-261002.md\", \"verification\": \"verification-push-head-anchor-261002.md\"}\n"
+    },
+    "documents": {
+      "exit_code": 0,
+      "result": "PASS",
+      "output": "PASS: change-documents\nPASS: change-pr-url\nresult: changes=145 pass=2 gap=0\n"
+    },
+    "proposal_apply_check": {
+      "exit_code": 0,
+      "result": "PASS",
+      "output": ""
+    },
+    "diff_check": {
+      "exit_code": 0,
+      "result": "PASS",
+      "output": ""
+    },
+    "source_unchanged": {
+      "exit_code": 0,
+      "result": "PASS",
+      "output": ""
+    }
+  },
+  "classification": "projected: platform/complex",
+  "triage_projection": "GAP: canonical triage labels denied by extension writer; no bypass",
+  "governance_apply": "NOT RUN",
+  "remote_push_pr_ci": "NOT RUN",
+  "runtime_changes": "none",
+  "proposal_sha256": "3e514dc0622981eee3e6961cdb60dc5f56287c9b59c4cbcdb331a94e526ca6e4"
+}

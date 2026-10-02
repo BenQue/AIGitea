@@ -114,6 +114,13 @@ the session must run
 commit exactly the mapped summary and push the same change branch through the broker. The standalone
 `gitea.pull.create` call does not run the Controller's automatic backfill. Before the PR exists, leave `pr_url`
 empty and keep the real pre-PR status; then run `check-change-documents` on the updated checkout.
+For both Controller and Mac paths, PR summary-only backfill creates a legitimate new head. Before that
+subsequent push, review the mapped-summary-only diff with the actual PR URL/status, run the document check
+and verify ownership, exact branch and a clean worktree; record the freshly verified exact head and compare
+`pushed_head` with it. In-contract CI repair follows the same fresh-validation/read-back rule with its
+required tests. The first push still compares against the verified final-PR candidate. Authorization stays
+bound to exact Issue/branch/policy, without a confirmation per legitimate commit; stop on scope expansion,
+other-session rewriting or any mismatch. See `issue-session-flow` for the complete comparison contract.
 
 ## Preserve the deployment boundary
 
