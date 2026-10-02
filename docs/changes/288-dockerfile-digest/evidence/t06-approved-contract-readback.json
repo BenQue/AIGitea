@@ -1,0 +1,16 @@
+{
+  "result": "PASS",
+  "issue": 288,
+  "branch": "change/288-dockerfile-digest",
+  "effective_complexity": "complex",
+  "change_type": "bugfix",
+  "acceptance_criteria_count": 8,
+  "required_docs": [
+    "summary-dockerfile-digest-261002.md",
+    "spec-dockerfile-digest-261002.md",
+    "plan-dockerfile-digest-261002.md",
+    "verification-dockerfile-digest-261002.md"
+  ],
+  "supplement": "T06 explicit approved single fixture patch",
+  "spec_sha256": "0b8efb98585247ccee645dfeba7edcd7159f5fe144d38c8766d1eca5a4a50af1"
+}

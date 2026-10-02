@@ -371,6 +371,7 @@ for reference in newemaint/target-candidate windows sqlite; do
     --profiles-dir "$ROOT/architecture/profiles" \
     --schema-dir "$ROOT/architecture/schemas" \
     --project "$ROOT/architecture/reference/$reference/architecture.json" \
+    --repo-root "$ROOT/architecture" \
     --lock "$ROOT/architecture/reference/$reference/architecture.lock.json" \
     --today 2026-09-05 >/dev/null
 done

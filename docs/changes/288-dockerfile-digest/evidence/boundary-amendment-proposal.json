@@ -1,0 +1,33 @@
+{
+  "issue": 288,
+  "branch": "change/288-dockerfile-digest",
+  "policy": "manual",
+  "status": "PROPOSED_NOT_APPLIED",
+  "basis_head": "2a5ccf9f208dd01dc8d96d8c0a06d1f8e0af3ed0",
+  "scope": [
+    "codex/tests/check-release-evidence-boundary.py",
+    "codex/runtime/tests/test_release_evidence_boundary.py"
+  ],
+  "format": "unified-diff",
+  "patch": "--- a/codex/tests/check-release-evidence-boundary.py\n+++ b/codex/tests/check-release-evidence-boundary.py\n@@ -41,9 +41,13 @@\n )\n TRANSPORT = \"codex/runtime/aisoft_release/transport.py\"\n MATRIX = \"docker-release/compatibility/image-stores-v1.json\"\n+ARCHITECTURE_LOCK = \"architecture/reference/newemaint/target-candidate/architecture.lock.json\"\n # Exact reviewed current bytes; never a path/content exemption. These pins are\n-# advanced only with the corresponding behavior tests and real-E2E evidence.\n+# Runtime pins advance with behavior tests and real-E2E evidence. The #288\n+# architecture pin binds synthetic declaration/lock migration and static\n+# reader regressions only; it does not refresh historical or real-E2E evidence.\n CURRENT_SOURCE_PINS: dict[str, str] = {\n+    ARCHITECTURE_LOCK: \"b6d39e9126b61c804b8cb188a11a3b4e1bc375236a3ffadf93909f3d49e70076\",\n     MATRIX: '8fb9b50660159c16f3b7cbd5cf655fc1cef9d2885dd9db143054d420fcd11b8c',\n     'codex/runtime/aisoft_release/runner.py': 'ec6e0a9e56d8139102fb2a94fc31374886cd97b38e9166fa4f9d411e710533d6',\n     'codex/runtime/aisoft_release/transport.py': '66929752efe7515fff425c95083c6593f7eabf6b3105daf2019169d1c6c0bf95',\n@@ -184,7 +188,7 @@\n     if set(index) != set(files) or disk_files(root) != set(files):\n         raise BoundaryError(\"current file set differs from the fixed baseline\")\n \n-    if not set(CURRENT_SOURCE_PINS).issubset({RUNNER, TRANSPORT, MATRIX}):\n+    if not set(CURRENT_SOURCE_PINS).issubset({RUNNER, TRANSPORT, MATRIX, ARCHITECTURE_LOCK}):\n         raise BoundaryError(\"current amendment exceeds its exact file scope\")\n     if any(len(value) != 64 or any(c not in \"0123456789abcdef\" for c in value)\n            for value in CURRENT_SOURCE_PINS.values()):\n--- a/codex/runtime/tests/test_release_evidence_boundary.py\n+++ b/codex/runtime/tests/test_release_evidence_boundary.py\n@@ -30,6 +30,7 @@\n         )\n         self.files = {\n             boundary.RUNNER: old_runner,\n+            boundary.ARCHITECTURE_LOCK: b'{\"declaration\":\"baseline\"}\\n',\n             \"codex/runtime/aisoft_release/transport.py\": b\"# transport\\n\",\n             \"docker-release/README.md\": b\"docs\\n\",\n             \"docker-release/install.sh\": b\"installer\\n\",\n@@ -49,7 +50,8 @@\n             \"BASELINE\": self.baseline,\n             \"CURRENT_SOURCE_PINS\": {},\n             \"SCOPES\": (\"codex/runtime/aisoft_release\", \"docker-release\", boundary.EVIDENCE,\n-                       boundary.HISTORICAL_TEST, \"codex/tests/fixtures/docker-release-v2-lifecycle\"),\n+                       boundary.HISTORICAL_TEST, \"codex/tests/fixtures/docker-release-v2-lifecycle\",\n+                       boundary.ARCHITECTURE_LOCK),\n             \"RUNNER_BEFORE\": boundary.digest(old_runner),\n             \"RUNNER_AFTER\": boundary.digest(self.expected_runner),\n             \"EVIDENCE_SHA256\": boundary.digest(self.files[boundary.EVIDENCE]),\n@@ -93,7 +95,8 @@\n     def test_current_amendment_pins_require_exact_disk_and_index_bytes(self) -> None:\n         changed = {boundary.RUNNER: self.expected_runner + b\"# reviewed identity fix\\n\",\n                    boundary.TRANSPORT: b\"# reviewed graph verification\\n\",\n-                   boundary.MATRIX: b'{\"revision\":\"reviewed\"}\\n'}\n+                   boundary.MATRIX: b'{\"revision\":\"reviewed\"}\\n',\n+                   boundary.ARCHITECTURE_LOCK: b'{\"declaration\":\"dockerfiles\"}\\n'}\n         with patch.object(boundary, \"CURRENT_SOURCE_PINS\", {\n             name: boundary.digest(value) for name, value in changed.items()\n         }):\n",
+  "patch_sha256": "a2538e14a46d6568470271edb86d0ffac0c241ff221d133efdb01815ba86aa55",
+  "architecture_lock_file_sha256": "b6d39e9126b61c804b8cb188a11a3b4e1bc375236a3ffadf93909f3d49e70076",
+  "source_sha256": {
+    "codex/tests/check-release-evidence-boundary.py": {
+      "before": "9853983b11ce5b448f860640af305012758dfdad89afb1779055df57e1ba0da9",
+      "proposed": "a6ca16db89500a671636e1212a0e47af707524ec9a7eed4ba597923c82488329"
+    },
+    "codex/runtime/tests/test_release_evidence_boundary.py": {
+      "before": "96c28095fe59616a44bbf599915afd79497a35d48e6fe48de0de3ac875aea9e9",
+      "proposed": "f419d22f24aee0d7518154085cac49ca22632d8beddedcc7fc6f574eea4453be"
+    }
+  },
+  "real_e2e": "NOT_RUN",
+  "historical_evidence": "UNCHANGED",
+  "proposal_unit_tests": {
+    "result": "PASS",
+    "count": 20,
+    "elapsed_seconds": 9.371,
+    "environment": "isolated temporary proposed files; repository guard unchanged"
+  }
+}

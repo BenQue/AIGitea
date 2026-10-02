@@ -41,9 +41,14 @@ def _today(value: str | None) -> date:
 
 def _build(args: argparse.Namespace, *, schema_version: str = "2.0") -> dict[str, Any]:
     catalog, catalog_schema, profile, profile_schema, project, project_schema = _paths(args)
+    repo_root = args.repo_root
+    if repo_root is None:
+        project_path = Path(args.project).absolute()
+        if project_path.parent.name == ".aisoft":
+            repo_root = project_path.parent.parent
     return build_lock(
         catalog, catalog_schema, profile, profile_schema, project, project_schema,
-        _today(args.today), schema_version=schema_version,
+        _today(args.today), schema_version=schema_version, repo_root=repo_root,
     )
 
 
@@ -100,6 +105,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--profiles-dir", required=True)
     common.add_argument("--schema-dir", required=True)
     common.add_argument("--project", required=True)
+    common.add_argument("--repo-root")
     common.add_argument("--today")
     validate = subparsers.add_parser("validate", parents=[common])
     validate.add_argument("--lock")

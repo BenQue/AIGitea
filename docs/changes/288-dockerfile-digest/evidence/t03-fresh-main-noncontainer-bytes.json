@@ -1,0 +1,22 @@
+{
+  "baseline": "14bfe6edea6a78e994daac88b3615c009ae37fea",
+  "result": "PASS",
+  "noncontainer_V1_V2_canonical_bytes_sha256": {
+    "embedded-sqlite/v1": {
+      "1.0": "7f7fe2a148dcfa98ff38486cb581a62e7f80f6c094fae231829246ff2ecad8d3",
+      "2.0": "0107061ebd70ae2093d010321584cfe6ed106f5865c2fdf466981528a9ebf3e9"
+    },
+    "pm2-legacy": {
+      "1.0": "7f378ba36c08725273958c8fbd63aabf71237dd2d0f960deebe655c6dc4fa4bd",
+      "2.0": "b985a862c07dfec5f6ac5cd50711eaf3cb6610ff1bf258a8805085fb7bf9cdd8"
+    },
+    "systemd-native/v1": {
+      "1.0": "637f5417838ece1c3f971996a79223258d3becd963eaf9708015cdc78d9399c7",
+      "2.0": "947a6717215dd56c207f532d7f082fa569b0ffcb5d6407a8aca64449110f85c4"
+    },
+    "windows-iis/v1": {
+      "1.0": "1f6f07a4834a274698102a5c45bcd0648cb1a33b160f0f1bb723b96d82199c0d",
+      "2.0": "505f8cd106c9e272522fa43e28541209b374761e05f1c8adb44b889ddb31abef"
+    }
+  }
+}

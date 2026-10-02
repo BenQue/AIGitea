@@ -1,0 +1,26 @@
+{
+  "issue": 288,
+  "branch": "change/288-dockerfile-digest",
+  "policy": "manual",
+  "number": 328,
+  "url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/328",
+  "state": "open",
+  "merged": false,
+  "first_published_head": "1215d1c2c86dbeb81288ebbcc1a35cc05ac79d20",
+  "previous_remote_head": null,
+  "base_at_creation": "65268ee5f1e622c486fd9e354dd35e20a2900f91",
+  "base_ref": "main",
+  "pushed_head_readback": "PASS",
+  "publication": "First successful publication after unpublished linear repair; all later pushes retain this tip as ancestor",
+  "required_context": "CI / verify (pull_request)",
+  "required_ci": "PENDING",
+  "native_codex_attachment": "GAP: Gitea URL unsupported by attach_artifact",
+  "not_run": [
+    "human merge",
+    "global installation",
+    "real application migration",
+    "builder provenance",
+    "company live",
+    "deployment"
+  ]
+}

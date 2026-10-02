@@ -1,0 +1,28 @@
+{
+  "result": "PASS",
+  "source_tool": "codex/tools/apply-classification-labels.sh",
+  "source_tool_sha256": "1f2b0e7a843d86b4be1f07c9d8f6c9c5cbb51965702c7b313a8f88df48f19125",
+  "execution": "byte-identical supported flat layout copy; installed broker fallback",
+  "broker": "/usr/local/libexec/aisoft/host-access-broker",
+  "argv": [
+    "bash",
+    "/private/tmp/issue-288-contract-data/classification-flat/apply-classification-labels.sh",
+    "--repo",
+    "/private/tmp/issue-288-dockerfile-digest",
+    "--verify",
+    "288"
+  ],
+  "readback": [
+    {
+      "issue": 288,
+      "project": "aisoft-platform",
+      "repository": "aisoft-platform",
+      "action": "verify",
+      "applied": false,
+      "detail": "Issue #288 carries the classification its merged summary declares",
+      "result": "projected",
+      "change_type": "bugfix",
+      "complexity": "complex"
+    }
+  ]
+}
