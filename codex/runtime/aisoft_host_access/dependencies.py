@@ -85,7 +85,7 @@ def project_issue(value: object, expected: tuple[str, str, int]) -> dict[str, ob
         raise DependencyError("DEPENDENCY_RESPONSE_INVALID", "dependency response must be an Issue object")
     repo = value.get("repository")
     if (
-        value.get("number") != number or isinstance(value.get("number"), bool)
+        value.get("number") != number or type(value.get("number")) is not int
         or not isinstance(repo, Mapping) or repo.get("full_name") != f"{owner}/{repository}"
         or value.get("pull_request") is not None or value.get("state") not in ("open", "closed")
         or not isinstance(value.get("labels"), list)

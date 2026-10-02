@@ -362,12 +362,6 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
     try:
         provider_script = select_provider_script(os.environ, agent_dir)
         branch = resolve_change_name(repo, issue).branch
-        gitea = GiteaClient(
-            os.environ["GITEA_URL"],
-            os.environ["GITEA_OWNER"],
-            os.environ["GITEA_REPO"],
-            os.environ["GITEA_TOKEN"],
-        )
         config_root = Path(__file__).parents[2] / "config"
         governance_manifest = Path(
             os.environ.get("AISOFT_GOVERNANCE_MANIFEST")
@@ -378,6 +372,14 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
             or config_root / "host-access-broker.json"
         )
         access_contract = load_access_contract(access_manifest, governance_manifest)
+        source = access_contract.project(_required_env("AISOFT_PROJECT_ID"))
+        if (os.environ["GITEA_URL"].rstrip("/") != access_contract.governance.base_url
+                or os.environ["GITEA_OWNER"] != access_contract.governance.owner
+                or os.environ["GITEA_REPO"] != source.repository):
+            raise AccessContractError("Loop source binding differs from canonical manifest")
+        gitea = GiteaClient(access_contract.governance.base_url,
+                            access_contract.governance.owner, source.repository,
+                            os.environ["GITEA_TOKEN"])
         controller = Controller(
             repo=repo,
             gitea=gitea,

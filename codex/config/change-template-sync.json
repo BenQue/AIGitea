@@ -7,7 +7,7 @@
     "plan.md",
     "verification.md"
   ],
-  "template_digest": "sha256:2a668ff97054d0ac72b8b63d176460508d4f5e5cc3c00e5841f11b852a2b18c7",
+  "template_digest": "sha256:5077fbbed13edcf878a91f38917c14228fc95f2bf5b605da891b8093d3148430",
   "digest_updated": "2026-10-02",
   "downstream_required_check": "forbidden"
 }

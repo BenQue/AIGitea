@@ -133,12 +133,8 @@ class Controller:
 
         try:
             contract = self._revalidate(issue_number, pr_number)
-            references = list(contract.dependencies)
-            if (state.get("stage") == "awaiting_dependencies"
-                    and "dependency_references" in state
-                    and state["dependency_references"] != references):
-                raise ContractError("depends_on changed while dependencies were waiting")
-            state["dependency_references"] = references
+            state["dependency_references"] = list(contract.dependencies)
+            self.state_store.save(issue_number, state)
         except ContractError as exc:
             return self._contract_failure(issue_number, state, exc)
 
@@ -591,7 +587,15 @@ class Controller:
                 "implementing",
             )
 
+    def _dependency_source_bound(self) -> bool:
+        return self.dependency_reader is None or (
+            getattr(self.gitea, "repository_identity", None) == self.dependency_reader.source_identity
+            and getattr(self.gitea, "base_url", None) == self.dependency_reader.base_url
+        )
+
     def _revalidate(self, issue_number: int, pr_number: Optional[int]) -> Contract:
+        if not self._dependency_source_bound():
+            raise ContractError("dependency source binding differs from canonical manifest")
         issue = self.gitea.get_issue(issue_number)
         lifecycle = ("pr-open",) if pr_number is not None else ("approved",)
         contract = load_contract(
@@ -601,10 +605,10 @@ class Controller:
             change_control=self.change_control,
             repository_identity=getattr(self.gitea, "repository_identity", None),
         )
+        pinned = self.state_store.load(issue_number).get("dependency_references")
+        if pinned is not None and pinned != list(contract.dependencies):
+            raise ContractError("depends_on changed after the Loop started")
         if self.dependency_reader is not None:
-            if (getattr(self.gitea, "repository_identity", None) != self.dependency_reader.source_identity
-                    or getattr(self.gitea, "base_url", None) != self.dependency_reader.base_url):
-                raise ContractError("dependency source binding differs from canonical manifest")
             try:
                 self.dependency_reader.validate(contract.dependencies, issue_number)
                 for reference in contract.dependencies:
@@ -807,7 +811,7 @@ class Controller:
             str(error),
             _optional_int(state.get("pr_number")),
             budget=budget,
-            comment=True,
+            comment=self._dependency_source_bound(),
         )
 
     def _save_progress(

@@ -149,7 +149,7 @@ Create a coordination task only for a phase that must split, a batch of newly cr
 Issues with dependencies. Persist every dependency in the Issue body and summary `depends_on`; do not rely on task
 memory. Dispatch only unblocked Issues and keep their branches, worktrees and PRs separate.
 
-Dependency identity (#286 approved governance contract; runtime/installed/live pending): legacy numeric
+Dependency identity (#286 source/local fixtures verified; installed/live pending): legacy numeric
 `depends_on` entries refer only to the source repository. Cross-repository dependencies require exact
 `owner/repo#N`, never a bare foreign number. The new read must be manifest-bound before GET, with
 `dependency_read_targets` defaulting to local only and the sole new edge `sfm-digital-board → aisoft-platform`.

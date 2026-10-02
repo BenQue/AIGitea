@@ -89,3 +89,12 @@ GOVERNANCE_CONTRACT_APPLIED_FRESH_RUN_REQUIRED；
 下一 fresh run 可以自主 T02→T04。最终 PR 前停 AWAITING_PR_CONFIRMATION，再请求绑定
 #286/change/286-dependency-references/manual 的提交确认。required CI 通过后 READY_FOR_REVIEW，
 人合并；merge 后才做终态与清理归档。当前不得 push、创建 PR 或 archive 未解决的 Issue。
+
+
+## T04 当前收据
+
+T02/T03 已 completed；T04 的双 provider/source 文档同步、双轴审查修复、998 runtime、
+broker shell、bash -n/ShellCheck、document/digest、classification readback 已通过。
+完整 smoke 仍因既有 registry 停服负向 fixture FAIL，#289 仍 open；T04 保持 pending。
+没有最终 PR 提交确认，不 push、不建 PR、不归档。后续由本 owner 继续剩余硬门，
+不把本地功能 fixture PASS 写成完整 smoke、CI 或 installed/live PASS。

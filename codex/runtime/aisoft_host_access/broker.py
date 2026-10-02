@@ -14,7 +14,7 @@ from pathlib import PurePosixPath
 from typing import Callable, Mapping, Protocol, Sequence
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qsl, quote, urlparse, urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 
 from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
 from aisoft_worktree_owner import (
@@ -491,6 +491,7 @@ class Transport(Protocol):
         body: bytes | None,
         *,
         response_limit: int | None = None,
+        follow_redirects: bool = True,
     ) -> tuple[int, object, bytes]: ...
 
 
@@ -816,6 +817,12 @@ def _read_transport_response(
     return status, header_items, body
 
 
+class _NoDependencyRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # A Location header must never move an audit credential outside its host.
+        return None
+
+
 def _default_transport(
     method: str,
     url: str,
@@ -823,10 +830,12 @@ def _default_transport(
     body: bytes | None,
     *,
     response_limit: int | None = None,
+    follow_redirects: bool = True,
 ) -> tuple[int, tuple[tuple[str, str], ...], bytes]:
     request = Request(url, method=method, headers=dict(headers), data=body)
     try:
-        with urlopen(request, timeout=30) as response:
+        opener = urlopen if follow_redirects else build_opener(_NoDependencyRedirect()).open
+        with opener(request, timeout=30) as response:
             return _read_transport_response(response, response_limit)
     except HTTPError as exc:
         status, response_headers, response_body = _read_transport_response(
@@ -1292,11 +1301,12 @@ class HostAccessBroker:
             token = local_token
         else:
             credential = self.credentials.resolve(project, self.contract.operation("gitea.dependency.read"))
-            self._verify_identity(credential, response_limit=256 * 1024)
+            self._verify_identity(credential, require_non_admin_exact=True, response_limit=256 * 1024,
+                                  follow_redirects=False)
             token = credential.token
         owner = self.contract.governance.owner
         url = f"{self.contract.governance.base_url}/api/v1/repos/{owner}/{target.repository}/issues/{number}"
-        value = self._request_json(url, token, **({} if local_legacy else {"response_limit": 256 * 1024}))
+        value = self._request_json(url, token, **({} if local_legacy else {"response_limit": 256 * 1024, "follow_redirects": False}))
         if local_legacy:
             if not isinstance(value, dict) or value.get("pull_request") is not None:
                 raise BrokerError("DEPENDENCY_RESPONSE_INVALID", "local dependency is not an Issue")
@@ -2831,10 +2841,12 @@ class HostAccessBroker:
         *,
         require_non_admin_exact: bool = False,
         response_limit: int | None = None,
+        follow_redirects: bool = True,
     ) -> None:
         url = f"{self.contract.governance.base_url}/api/v1/user"
         value = self._request_json(url, credential.token,
-                                   **({} if response_limit is None else {"response_limit": response_limit}))
+                                   **({} if response_limit is None else {"response_limit": response_limit}),
+                                   **({} if follow_redirects else {"follow_redirects": False}))
         if not isinstance(value, dict) or value.get("login") != credential.identity:
             raise BrokerError("IDENTITY_MISMATCH", "credential identity does not match the route")
         if require_non_admin_exact and value.get("is_admin") is not False:
@@ -2853,6 +2865,7 @@ class HostAccessBroker:
         method: str = "GET",
         payload: object | None = None,
         response_limit: int | None = None,
+        follow_redirects: bool = True,
     ) -> object:
         body_data = None
         headers = {"Accept": "application/json", "Authorization": f"token {token}"}
@@ -2864,7 +2877,8 @@ class HostAccessBroker:
         try:
             status, _headers, body = self.transport(
                 method, url, headers, body_data,
-                **({} if response_limit is None else {"response_limit": response_limit})
+                **({} if response_limit is None else {"response_limit": response_limit}),
+                **({} if follow_redirects else {"follow_redirects": False})
             )
             if response_limit is not None:
                 _validate_bounded_response(_headers, body, response_limit)

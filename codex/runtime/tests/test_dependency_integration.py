@@ -4,7 +4,7 @@ import subprocess
 import unittest
 from dataclasses import replace
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from aisoft_host_access.broker import BrokerError, HostAccessBroker, ResolvedCredential
 from aisoft_host_access.contract import AccessContractError, load_access_contract
@@ -82,6 +82,49 @@ class DependencyIntegrationTests(unittest.TestCase):
         self.assertEqual(len(provider.requests), 1)
         self.assertEqual(len(gitea.created_prs), 1)
 
+    def test_dependency_erasure_while_ci_pending_requires_human(self):
+        from aisoft_loop.state import TerminalState
+        fixture, controller, provider, gitea, response, _ = self.controller_fixture(['admin/aisoft-platform#284'])
+        gitea.statuses = ['pending', 'success']
+        self.assertEqual(controller.run(8).terminal_state, TerminalState.CONTINUE)
+        self.assertEqual(controller.state_store.load(8)['stage'], 'awaiting_ci')
+        summary = fixture.repo / 'docs/changes/8/00-summary.md'
+        summary.write_text(summary.read_text().replace('depends_on:\n  - admin/aisoft-platform#284',
+                                                       'depends_on: []'))
+        self.assertEqual(controller.run(8).terminal_state, TerminalState.NEEDS_HUMAN_DECISION)
+        self.assertEqual(response['state'], 'open')
+        self.assertEqual(len(provider.requests), 1)
+        self.assertEqual(len(gitea.created_prs), 1)
+
+    def test_untrusted_source_cannot_read_or_comment_before_binding(self):
+        from aisoft_loop.state import TerminalState
+        for source in (('other', 'SFMDigitalBoard'), ('admin', 'LocalWMS')):
+            _, controller, provider, gitea, _, calls = self.controller_fixture(['admin/aisoft-platform#284'])
+            gitea.repository_identity = source
+            with self.subTest(source=source), patch.object(gitea, 'get_issue') as read:
+                self.assertEqual(controller.run(8).terminal_state, TerminalState.NEEDS_HUMAN_DECISION)
+                read.assert_not_called()
+                self.assertEqual(gitea.comments, [])
+                self.assertEqual(gitea.created_prs, [])
+                self.assertEqual(provider.requests, [])
+                self.assertEqual(calls, [])
+
+    def test_audit_identity_requires_explicit_non_admin_before_target_read(self):
+        for admin in (None, 'true', 1, [], {}):
+            requests = []
+
+            def transport(method, url, headers, body, *, response_limit=None, follow_redirects=True):
+                requests.append(url)
+                return 200, {}, json.dumps({'login': 'audit', 'is_admin': admin}).encode()
+
+            b = HostAccessBroker(access(), transport=transport)
+            with self.subTest(admin=admin), patch.object(b.credentials, 'resolve',
+                    return_value=ResolvedCredential('audit', 'fixture-audit')):
+                with self.assertRaises(BrokerError) as caught:
+                    b.execute('sfm-digital-board', 'gitea.dependency.read', reference='admin/aisoft-platform#284')
+                self.assertEqual(caught.exception.code, 'IDENTITY_MISMATCH')
+                self.assertEqual(requests, [access().governance.base_url + '/api/v1/user'])
+
     def test_denied_binding_and_canonical_alias_rejected_before_provider(self):
         from aisoft_loop.state import TerminalState
         for values in (['admin/LocalWMS#284'], [284, 'admin/SFMDigitalBoard#284'],
@@ -134,9 +177,10 @@ class DependencyIntegrationTests(unittest.TestCase):
         for failure in ('403', '404', 'transport', 'json', 'pr', 'identity', 'oversize', 'audit-admin'):
             requests = []
 
-            def transport(method, url, headers, body, *, response_limit=None):
+            def transport(method, url, headers, body, *, response_limit=None, follow_redirects=True):
                 requests.append((method, url, headers['Authorization'], response_limit))
                 self.assertIsNotNone(response_limit)
+                self.assertFalse(follow_redirects)
                 if url.endswith('/user'):
                     return 200, {}, json.dumps({'login': 'audit', 'is_admin': failure == 'audit-admin'}).encode()
                 if failure in ('403', '404'):
@@ -160,6 +204,29 @@ class DependencyIntegrationTests(unittest.TestCase):
                     b.execute('sfm-digital-board', 'gitea.dependency.read', reference='admin/aisoft-platform#284')
                 self.assertTrue(all(method == 'GET' and token == 'token fixture-audit'
                                     for method, _, token, _ in requests))
+
+    def test_dependency_transport_does_not_follow_location_headers(self):
+        from urllib.request import Request
+        from aisoft_host_access.broker import _default_transport, _NoDependencyRedirect
+        request = Request('http://manifest-fixed/api/v1/user')
+        self.assertIsNone(_NoDependencyRedirect().redirect_request(
+            request, None, 302, 'Found', {}, 'http://foreign-host/steal'))
+        response = MagicMock()
+        response.status = 302
+        response.headers.raw_items.return_value = [('Location', 'http://foreign-host/steal')]
+        response.read.return_value = b'{}'
+        response.__enter__.return_value = response
+        opener = MagicMock()
+        opener.open.return_value = response
+        with patch('aisoft_host_access.broker.build_opener', return_value=opener) as build, \
+                patch('aisoft_host_access.broker.urlopen') as fallback:
+            status, _, _ = _default_transport('GET', 'http://manifest-fixed/api/v1/user',
+                                               {'Authorization': 'token fixture-audit'}, None,
+                                               response_limit=256 * 1024, follow_redirects=False)
+            self.assertEqual(status, 302)
+            self.assertIsInstance(build.call_args.args[0], _NoDependencyRedirect)
+            fallback.assert_not_called()
+            self.assertEqual(opener.open.call_args.args[0].full_url, request.full_url)
 
     def test_access_manifest_edges_reject_unknown_duplicate_self_and_non_list(self):
         import tempfile
@@ -191,7 +258,7 @@ class DependencyIntegrationTests(unittest.TestCase):
             fixture = self.routine_fixture()
             requests = []
 
-            def transport(method, url, headers, body, *, response_limit=None):
+            def transport(method, url, headers, body, *, response_limit=None, follow_redirects=True):
                 if '/aisoft-platform/issues/284' in url:
                     requests.append((url, headers['Authorization']))
                     if failure in ('403', '404'):

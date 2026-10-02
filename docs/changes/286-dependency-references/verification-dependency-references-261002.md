@@ -41,7 +41,7 @@ broker project=aisoft-platform 实际读回 #286 open、needs-analysis，唯一�
 不推断 NewEMaint #80 实际部署成功。git.fetch.main PASS；初次 gitea.pulls.read(open)=[]。
 共享 main 干净，未切分支、rebase 或 commit；T01 不写任何 runtime、shell 或 executable manifest。
 
-## 执行结果
+## T01 执行结果
 
 | Command / check | Result | Evidence |
 |---|---|---|
@@ -60,7 +60,7 @@ broker project=aisoft-platform 实际读回 #286 open、needs-analysis，唯一�
 | 本票新增 runtime 修复验收 | NOT RUN | T02–T04 未开始；上述 978 tests 仅为原 runtime 基线 |
 | PR CI / installed/live / 部署 | NOT RUN | 本轮无该授权或对象 |
 
-## Acceptance criteria 结果
+## T01 Acceptance criteria 快照
 
 | AC | 结论 | 证据 |
 |---|---|---|
@@ -105,3 +105,80 @@ T01（G01）治理合同文档与 digest 校验已完成，frontier 将进入 T0
 仅提交本票八个治理源文件与四份语义文档；没有 runtime、shell、host-access schema、
 AGENTS.md、其它 worktree、下游副本或 installed/live 改动。当前步骤在该 commit 后停止，
 下一 fresh run 重读合同和平台规则后可继续已批准 T02–T04，无需再次批准 A。
+
+
+## T02–T04 fresh run 验证（当前结果）
+
+已按 AGENTS 重读 G01 后合同；未修改本次遵循的 AGENTS.md。所有执行在 exact
+/private/tmp/issue-286-dependency-references，未写其它 owner worktree。
+
+| Check | Result | Evidence |
+|---|---|---|
+| 首批 parser/broker TDD | PASS | 7 tests；RED 4 个未接线 errors，接线后全绿 |
+| 双闸门与重启 fixture | PASS | tests.test_dependencies 与 tests.test_dependency_integration 最终共 20 tests |
+| 首轮完整 runtime | PASS | 994 tests，86.415s，/private/tmp/issue-286-runtime-implementation.log |
+| 审查后完整 runtime | PASS | 998 tests，83.501s，/private/tmp/issue-286-runtime-final.log |
+| 双轴 code-review | PASS after repair | Standards 1 项、Spec 2 项，全部修复并独立复核，见下节 |
+| 文档 gate | PASS | 145 changes，gap=0；python -m aisoft_loop.cli check-change-documents |
+| 模板 digest | PASS | sha256:5077fbbed13edcf878a91f38917c14228fc95f2bf5b605da891b8093d3148430 |
+| live 分类独立读回 | PASS | --verify 286 result=projected，type=platform、complexity=complex；/private/tmp/issue-286-classification-final.jsonl |
+| broker shell + 临时 installer fixture | PASS | bash codex/tests/test-host-access-broker.sh；/private/tmp/issue-286-host-access-shell.log |
+| 修改 shell 的 bash -n / ShellCheck | PASS | codex/tests/test-host-access-broker.sh，无 shell runtime/installer 实际改动 |
+| 中间完整 smoke | FAIL, repaired in scope | 新增 typed read 后旧 smoke 精确计数仍 36；已改 37 并补 exact operation/唯一 edge/零权限拒绝断言，独立 PASS |
+| 最终完整 smoke | FAIL | exit 1；registry-preflight 停掉测试 registry 后期望 exit 1，实际 0；/private/tmp/issue-286-final-smoke-host.log |
+| #289 后整合 | BLOCKED_EXTERNAL | 受控 typed read 最新 #289=open/approved；未假设合并或擅自写它的 worktree |
+| PR CI / installed / live dependency GET / 部署 | NOT RUN | 未 push、未建 PR；真实安装、凭据、ACL、VM 服务及外仓读取不在本票授权内 |
+
+| AC | 结论 | 本地 source 证据 |
+|---|---|---|
+| AC-1 | PASS | 原 contract/Controller 与 routine tests 全量回归；缺省/空/整数/数字 scalar 保留本仓语义 |
+| AC-2 | PASS | Controller/routine 同 issue() fixture；本仓同号终态不满足外仓 open，目标 closed+completed 才通过 |
+| AC-3 | PASS | malformed/self/canonical alias/unknown target/unauthorized edge；拒绝前无越界 GET/凭据读取 |
+| AC-4 | PASS | PR/错仓错号/403/404/transport/JSON/oversize/redirect/错误 audit 权限类型失败关闭；routine merge POST=0 |
+| AC-5 | PASS, fixture only | shared dependencies helper；manager-audit 唯一路由；Mac/VM cwd 固定 argv adapter，无 direct fallback；没有真实 VM 运行验收 |
+| AC-6 | PASS | 等待→重复轮询→重启→解锁，provider/PR 均一次；state/comment/PRbody/receipt 保留 qualified reference；CI等待删依赖拒绝 |
+| AC-7 | PARTIAL | 文档/providers/templates 与 998 runtime PASS；完整 smoke FAIL，#289 后整合门尚未满足 |
+
+### Standards
+
+初审 1 项 P2：manager-audit 身份未明确要求 is_admin=False。已使用
+require_non_admin_exact=True，缺失/null/string/number/container 在目标 GET 前拒绝。
+复核 0 项未解决问题，无需要单独报告的 Fowler smell。复核者跑 4 项针对性测试 PASS。
+
+### Spec
+
+初审 2 项 P1：awaiting_ci 可以删除旧依赖；源仓 canonical binding 校验晚于 GET，失败仍会 comment。
+已在所有 continuation 核对持久化引用，首次 provider 前保存；源仓网络调用之前核 binding，
+失败不发 comment；CLI 核 manifest 后用 canonical URL/owner/repo 构造 client。
+独立复核 0 项未解决缺口，20 项依赖测试 PASS；无额外 scope creep。
+
+两轴固定点为已批准 spec 基线 5c2cd726c9aeaee9d17541d8feb049e33881bbac，
+初审 git diff <base>...HEAD（G01/T02/T03），增量复核 git diff HEAD（T04修复）。
+审查结论不代替完整 smoke、CI 或 installed/live。
+
+### 本轮边界与后续
+
+模板 holder 清单仍是 LocalWMS/NewEMaint/SFMDigitalBoard stale，myapp/smoke-test unverified；
+只刷新本票 source digest，未覆盖下游副本。source README/03/04/双 provider/private-access 与模板
+同步为 source/local 已验证、installed/live NOT RUN。未改变 #289 required_docs/documents 终态算法。
+
+T04 尚未 completed：完整 smoke 通过且 #289 实际 merge 后，本 owner 才能 fresh-fetch/rebase，
+重跑两闸门、文档与终态 gates。完整本地候选准备妥当后再取得 #286/change/286-dependency-references/manual
+的最终 PR 提交确认；当前不 push、建 PR、merge、安装或归档。
+
+
+### 最终阻塞读回
+
+完整 smoke 在本票 broker 精确计数修复后重新运行，重新到达与 G01 相同的 registry 停服
+负向 fixture FAIL。test-registry-preflight.sh、fake-npm-registry.py、templates/project/ci/registry-preflight.sh
+相对固定基线未修改；未绕过/弱化断言、未读用户 curl credential 配置、未停止真实 registry。
+该既有缺口不在 #286 依赖合同内，不能通过本票顺手修复或写 PASS。完整 smoke 的最终
+runtime discover 尚未到达；998 tests PASS 来自独立完整 discover，不混作 smoke PASS。
+
+broker 返回的真实 approved #286 payload 再 load_contract PASS：7 AC、4 份映射文档、
+exact branch、depends_on=[]，frontier=T04。分类独立读回 projected。T04 status 保持 pending，
+不是 AWAITING_PR_CONFIRMATION 或已解决。只提交本地修复及收据；last_push_head=null。
+
+当前稳定阻塞：完整 smoke 的既有 registry fixture FAIL；#289 仍 open，尚不能执行约定的
+merge 后 owner 整合。后续 fresh run 在已批准 A 范围内继续，不重复启动确认；最终 PR 前
+仍须 exact Issue/branch/manual 确认。PR CI、合并、installed/live、部署和归档均未运行。

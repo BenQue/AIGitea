@@ -357,7 +357,7 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
   manual，本次治理变更不部署。
 ## 10. 依赖 Issue
 
-当前 runtime 的 summary 可用可选字段 `depends_on` 声明**本仓** Issue 编号列表；缺省或 `[]`
+source runtime 的 summary 可用可选字段 `depends_on` 声明本仓 Issue 编号或下述仓库限定引用；缺省或 `[]`
 表示没有结构化依赖。裸数字没有外仓身份，不得把外仓编号填作本仓依赖，也不得从标题或正文猜仓库。
 依赖同时是 routine hard gate 与 manual PR 就绪门，不改变分支或 CI：
 当前 PR 的 CI 通过后，全部依赖 Issue 必须同时为 closed 且带有 `completed` 或
@@ -365,17 +365,17 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
 `awaiting_dependencies`，后续轮询只重查 CI 与依赖，不再次调用 provider、
 不创建第二个 PR，也不自动合并。
 
-### #286 已批准治理合同（runtime/installed/live 尚未实施）
+### #286 依赖合同（source/local 已验证，installed/live 尚未验收）
 
-本节是先应用的 source 合同，不是跨仓功能已生效的证明。后续 fresh run 按
-[映射 spec](docs/changes/286-dependency-references/spec-dependency-references-261002.md) 实施：
+本节的 source 实现已按 [映射 spec](docs/changes/286-dependency-references/spec-dependency-references-261002.md)
+完成本地双闸门 fixture 验证；不是 installed/live 跨仓功能已生效的证明：
 
 - 旧整数及已支持的数字 scalar 保持只表示本仓；新增严格 `owner/repo#N` scalar，
   仅支持同一 manifest-fixed Gitea host。URL、object、任意 host/owner/repo 与路径输入不支持。
 - 目标必须精确命中 canonical manifest 与 source 项目的 `dependency_read_targets`，
   缺省只允许本仓；唯一新增跨仓边为 `sfm-digital-board → aisoft-platform`。
   新 typed dependency read 只接受 reference，通过该映射后才构造 request；既有
-  `gitea.issue.read(number)` 不扩参数。当前 executable manifest 尚无此新字段。
+  `gitea.issue.read(number)` 不扩参数。source executable manifest 已声明此新字段；installed manifest 仍须独立验收。
 - 外仓 GET 在 broker 内使用 manager-audit 只读路由，project-agent/routine merger
   credential 不得用于外仓；无 admin、mutation-token 或 direct-client fallback，不扩 ACL。
 - canonical identity 为 repository identity 与 Issue number。本仓整数/限定形式重合须报重复，
@@ -386,8 +386,8 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
 - 依赖引用在 Issue 正文、summary、state 与 PR 展示中保留仓库身份；只在全部依赖真实终态时
   才通过既有就绪/merge 门。轮询不重新调用 provider、不创建第二个 PR。
 
-旧 runtime 面对 qualified 输入应拒绝，不能降成数字或删依赖求绿。治理步骤只写合同后停止；
-后续 fresh run 重读再实施 runtime，安装/凭据/ACL/live apply/部署始终独立授权。
+旧 installed runtime 面对 qualified 输入应拒绝，不能降成数字或删依赖求绿。G01 已独立应用
+治理合同并停止，fresh run 已完成 source 实现；安装/凭据/ACL/live apply/部署始终独立授权。
 
 ## 11. 合批关闭与交付终态
 

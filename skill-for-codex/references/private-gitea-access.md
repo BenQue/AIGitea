@@ -40,7 +40,7 @@ repo-local helper drift. It is read-only and does not provision credentials or a
 
 ## Helper commands
 
-### Approved #286 dependency contract — implementation pending
+### Approved #286 dependency contract — source/local verified
 
 `depends_on` integers mean Issues in the source repository only. The approved `owner/repo#N`
 extension must use a new typed dependency read with only a reference argument and a source project binding.
@@ -52,8 +52,8 @@ Cross-repository reads stay inside the broker's manager-audit read-only route. N
 project-agent or routine merger credential outside its repository, and never fall back to admin,
 mutation tokens, a direct GiteaClient or broader ACL. Validate repository identity/number and reject PRs;
 unverifiable or unauthorized reads never satisfy a dependency. Controller and routine merger must share
-this boundary. This governance step changes documentation only: runtime, installed bytes and live reads
-are NOT RUN. Do not issue an unsupported operation against the currently installed broker.
+this boundary. Source/local fixtures are verified; the complete smoke/integration gates remain pending.
+Installed bytes and live reads are NOT RUN. Do not issue an unsupported operation against the currently installed broker.
 
 The general inspection fallback ladder above does not apply to dependency gates. Installation,
 credential provisioning and live apply require separate authorization and read-back.

@@ -47,9 +47,9 @@ updated: 2026-10-02
 草案曾把逻辑源项目写作 sfmdigitalboard；已按当前 manifest 的 project_id 更正为
   sfm-digital-board，仓库与 source→target 权限边不变。B/C 未选定，不再是执行路径。Policy=manual；无 PR/push、merge、安装、凭据、ACL 或部署授权。
 
-当前只执行治理合同 G01；为符合平台 Ticket graph 的 Txx 语法，G01 记为 T01，原候选
-T01/T02/T03 分别顺延为 T02/T03/T04。切片范围与阻塞顺序不变。T01 只写文档并独立提交、停止，
-后续 fresh run 重读本合同和治理文档后直接进入 T02，无需重复合同确认。
+G01（T01）已独立应用治理合同并停止；本 fresh run 已重读合同并完成 T02、T03 的 source
+实现与本地测试。原候选 T01/T02/T03 顺延为 T02/T03/T04，切片与顺序不变，无需重复启动确认。
+T04 的完整 smoke 与 #289 后集成门仍未完成；没有最终 PR 提交确认。
 
 ## 集成顺序（非产品依赖）
 
@@ -59,7 +59,7 @@ T01/T02/T03 分别顺延为 T02/T03/T04。切片范围与阻塞顺序不变。T0
 
 ## 影响范围与边界
 
-- 源合同与未来 runtime 仅涉及 dependency schema/resolver、broker bounded read、
+- 源合同与 runtime 仅涉及 dependency schema/resolver、broker bounded read、
   Controller/routine 依赖闸门、展示与测试，详见映射 spec/plan。
 - 当前基线 5c2cd726c9aeaee9d17541d8feb049e33881bbac；隔离 worktree
   /private/tmp/issue-286-dependency-references，本 session
@@ -73,8 +73,9 @@ T01/T02/T03 分别顺延为 T02/T03/T04。切片范围与阻塞顺序不变。T0
 改动前合成复现 PASS；contract/Controller 基线 67 tests PASS；初稿文档检查 145 changes、gap=0。
 完整命令与阶段结果在 verification。G01 的文档/真实 approved 合同 loader 与分类读回 PASS；
 完整 smoke FAIL（未修改的 registry-preflight 停服负向断言两次失败），独立全量 runtime 基线 978 tests PASS。
-当前 runtime 尚未实施，AC-1–AC-6 修复验收、
-PR CI、installed/live 读取均 NOT RUN。文档/合同校验通过不能当成 runtime 修复完成。
+本 fresh run 的 AC-1–AC-6 source/local fixture 已通过，最终全量 runtime 998 tests PASS。
+双轴审查发现的 3 项缺口已修复并复核；文档、digest、分类读回、broker shell 与 ShellCheck PASS。
+AC-7 仍 PARTIAL：完整 smoke 的既有 registry fixture FAIL；#289 后整合尚未完成。PR CI、installed/live 与部署 NOT RUN。
 
 ## AI 判级
 
@@ -106,12 +107,13 @@ qualified dependency 扩展数据格式、broker 权限合同、Controller 与 r
 
 ### 缺失的 acceptance criteria 或决策
 
-无。用户已选推荐 A 并确认启动。后续仅剩确定性 G01→fresh-run 边界及未执行验收，
+无。用户已选推荐 A 并确认启动。G01→fresh-run 边界已满足，后续仅剩 T04 硬门与集成验收，
 不是再次需要选择 A/B 或批准合同。最终 PR 前须真实 classification --verify 与独立提交确认。
 
 ## 当前交接
 
-T01（G01）仅治理合同已应用，停止点：GOVERNANCE_CONTRACT_APPLIED_FRESH_RUN_REQUIRED。
-下一 fresh turn 重新读取本合同与平台文档，执行已批准 T02–T04，不重复启动确认。
-完整 smoke 现有 registry-preflight 负向 fixture 失败是保留的验证缺口，未豁免 PR 硬门。
-PR/CI/installed/live/new-runtime acceptance 均 NOT RUN；本 Issue 尚未解决，不归档。
+T02 commit fdb3082e8b1a680c967fc46655d0ab320faca034；T03 commit
+bb41ff26d36fb53ac84ee6fe6debf9ea3e77dfbd。T04 正在保留
+双轴审查修复与最终验证收据。当前不进入 AWAITING_PR_CONFIRMATION，完整 smoke FAIL（既有 registry 停服负向断言），
+#289 最新只读状态仍 open。待两项硬门满足后，再准备绑定 exact #286/branch/manual 的最终
+PR 确认。不 push、不建 PR、不合并、不安装、不扩 ACL、不部署；本 Issue 尚未解决，不归档。

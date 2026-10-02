@@ -53,7 +53,7 @@ class DependencyTests(unittest.TestCase):
         for label in ('completed','deployed'):
             self.assertTrue(is_terminal(project_issue(issue('closed',label),('admin','aisoft-platform',284))))
         self.assertFalse(is_terminal(issue('closed','approved')))
-        for changes in ({'number':True},{'number':285},{'repository':{}},
+        for changes in ({'number':True},{'number':284.0},{'number':285},{'repository':{}},
                         {'pull_request':{}},{'state':'unknown'},{'labels':[{}]}):
             with self.subTest(changes=changes),self.assertRaises(DependencyError):
                 project_issue({**issue(),**changes},('admin','aisoft-platform',284))

@@ -292,7 +292,7 @@ class DependencyReader:
         if (not isinstance(value, dict)
                 or set(value) != {"repository", "number", "reference", "state", "labels"}
                 or value.get("repository") != f"{owner}/{repo}"
-                or value.get("number") != number or isinstance(value.get("number"), bool)
+                or value.get("number") != number or type(value.get("number")) is not int
                 or value.get("reference") != canonical
                 or value.get("state") not in ("open", "closed")
                 or not isinstance(value.get("labels"), list)

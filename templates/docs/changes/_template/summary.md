@@ -32,8 +32,8 @@ value: small or complex. Do not leave an empty key or placeholder behind.
 ## 问题/需求总结
 
 <!-- #286 dependency contract: legacy depends_on numbers always mean this repository.
-The approved owner/repo#N extension is pending runtime/installed/live implementation.
-After support is verified, use only exact manifest-authorized references; the only new
+The source owner/repo#N extension has local fixture coverage; installed/live acceptance is separate.
+Use only exact manifest-authorized references after installed support is verified; the only new
 cross-repository edge is sfm-digital-board -> aisoft-platform. Never substitute a foreign
 bare number or clear a dependency to bypass a gate. Preserve the full reference in the
 Issue body while the installed runtime cannot express it. A template is not enablement. -->
