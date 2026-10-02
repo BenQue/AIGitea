@@ -38,6 +38,13 @@ jobs:
       - name: Platform smoke suite
         run: bash codex/tests/smoke.sh
 
+      # #316: remain in the existing required verify job. Fixed native toolchain,
+      # model/SQLite/race and actual binary canaries; no helper install or live PAT.
+      - name: Pinned Linux PAT helper verification
+        run: |
+          bash codex/tests/test-gitea-pat-helper-linux.sh \
+            --output "$RUNNER_TEMP/issue-316-helper/gitea-pat-helper"
+
       # 把合并预览的输出重印在 job 末尾：日志读取可能截头不截尾，而「这次跑的
       # 到底是哪棵树」正是本 job 最该留下的证据。always() 让失败原因也留得下来。
       - name: Merge preview evidence

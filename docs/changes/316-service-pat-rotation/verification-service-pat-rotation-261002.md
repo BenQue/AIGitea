@@ -131,3 +131,25 @@ updated: 2026-10-02
 smoke 首次沙盒路径因 localhost bind PermissionError 未完成；获授权的同一隔离测试在本地重试。默认 UTF-8 的既有 registry-preflight 测试触发 macOS Bash 3.2 fullwidth punctuation 解析错误，LC_ALL=C 独立该 suite PASS，不修改其它 Issue 源码。随后全量 smoke 发现新 fixture 裸 sibling import，已改为 tests.test_credential_rotation 后重跑。失败尝试仍保留，不能计为 PASS。
 
 执行卡见 codex/tools/rotate-gitea-service-account.md；它说明后续 exact source/helper/grant/store/window/ownership 的 reviewable 边界，不授予安装或任何真实 Secret 操作。T04 frontier 尚待 CI/Linux/集成验证，AC-2 仍 NOT RUN，Issue 未完成。
+
+## T04 source 与 PR 前隔离验证（2026-10-03，延续 2026-10-02 frontier）
+
+起点 69bb0e914f30253888737b32cc8602a58c36b127，fresh 重读批准合同后仅实施 T04。新增步骤保持原 CI / verify (pull_request) job/context，不能把候选 workflow 写成真实 CI PASS。smoke 现已执行 rotate shell black-box、工具链四项负例及优化模式下载硬门；固定 native Linux build 单独在同一 CI job 中运行，未安装全局 Go/helper、未读取现场 Gitea config/DB/PAT/grant。
+
+| Check | Result | Evidence / boundary |
+|---|---|---|
+| Issue 与分类只读读回 | PASS | #316 open，approved/complexity/complex/type/security；apply-classification --verify 316：projected，applied=false；无标签 mutation |
+| 最终 local smoke | PASS（旧基线 C locale） | t04-smoke-final.log：1012 tests OK，exit 0；包括新 rotate shell、4 toolchain tests、优化模式 black-box；默认 UTF-8 组合验证另列，不混同 |
+| bash -n / ShellCheck / Python compile | PASS | smoke.sh、两份 Linux helper shell、process Python；Go fixture经固定 gofmt |
+| 固定 native Linux build/model/race | PASS（linux/arm64） | 官方 Go1.26.3 arm64 archive SHA-256 9d89a3ea57d141c2b22d70083f2c8459ba3890f2d9e818e7e933b75614936565；actual GOROOT tree 摘要绑定；build.py 重跑 model suite，race PASS，test-only exporter使用真实 models 生成临时 schema |
+| 最终 Linux 候选制品 | PASS（测试候选，不能安装） | SHA-256 d63979d13012bea86b36dead301284e8928c45664c6a59346224b5f59c69f7a0；provenance source_commit=69bb0e914f30253888737b32cc8602a58c36b127，source_dirty=true；包含当前 staged Go source hashes，不是 merged-main clean release |
+| 实际 helper 进程完整 DB/canary | PASS（local disposable container） | 无网络、只读 source/binary/model fixture；Go upstream schema/hash；真实 git fixture UID 的 inspect、wrong binding 零删除、真实 SQLite trigger error 脱敏、exact revoke、其它 PAT 保留、unknown token 与 unsafe config path 拒绝；Gitea --version 为明确 stub，无真实 server/HTTP/PAT |
+| Linux rotation Python | PASS | 无网络容器的 34 tests；真实 Linux anonymous/named/unlinked FIFO descriptor 规则；补独立 fixture owner mock，不改生产身份闸门 |
+| optimize 硬门先红后绿 | PASS | wrong checksum/traversal 在 PYTHONOPTIMIZE=1 下解包前拒绝，无 tar/制品；process harness优化模式拒绝 TEST_OPTIMIZATION_UNSUPPORTED；下载校验显式if/raise，runner Python-I |
+| 双轴审查 | PASS（修复闭环） | Spec 无阻塞/scope creep；Standards P2 优化模式可跳 assert 已修复，复审无残留阻塞 |
+| required CI | NOT RUN | 尚无 PR 提交批准/PR；CI workflow 只跑 basic actual-process canary + Go DB model/race，full-container DB/driver-error process 是独立 local 证据 |
+| helper/operator installed、grant、live AC-2 | NOT RUN | 不继承 #313/#308 安装授权；测试容器内 fixture 用户/config/DB不是现场安装，未签发/撤销任何真实 PAT或清理任何消费端 |
+
+临时测试镜像固定 python@sha256:e91fec3d1ac69f04e4eddcd29c327e630ce34658cf31075bfa7e8b0e052bafea，实际 Linux/arm64；测试容器 --rm，无现场卷。首轮 linked worktree metadata 缺只读 mount 导致 provenance 失败，已修正并重跑；首轮 DB fixture 的 PAT 长度/最小 schema 不完整，改为真实 upstream models 导出后 PASS，未放宽 helper。失败日志仍保留，不能计入 PASS。
+
+Fresh typed git.fetch.main 读回 origin/main=70baa3588c0504e5d81facd99c63b74741967967，包含 #319 与 #288；当前 exact Issue branch 与之分叉（T04 commit 前 42 ahead-main / 5 ahead-Issue）。open PR只读读回没有本票 branch；未 push、建 PR 或 force。下一步进行只读组合树/默认locale验证；本票当前 frontier不授权修改其它Issue文件、改写history或处理平台publisher规则。

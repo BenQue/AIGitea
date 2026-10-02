@@ -88,4 +88,4 @@ override_reason: ''
 
 ### 当前决策与未完成验收
 
-- 方案 A 已批准，T03 凭据消费位置冲突已解除，无新增产品依赖。T02A 与 T03 已分 turn；T03 fresh run 已实现交易、typed grant 与受控 transport，完成本地隔离验证和审查修复。T04 的 smoke/CI 集成、Linux 制品/进程级验证与最终复核，T05 独立现场授权/验收仍待执行，不能写成整票完成。
+- 方案 A 已批准，T03 凭据消费位置冲突已解除，无新增产品依赖。T02A 与 T03 已分 turn；T03 fresh run 已实现交易、typed grant 与受控 transport，完成本地隔离验证和审查修复。T04 已接入 smoke/CI 并完成 local Linux/arm64 制品、model/race、实际 helper 进程级 synthetic DB/canary 与双轴验证；required CI 尚未运行，最终 PR 提交确认与 T05 独立现场授权/验收仍待，不能写成整票完成。

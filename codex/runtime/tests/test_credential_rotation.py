@@ -27,7 +27,8 @@ class RotationSurfaceTests(unittest.TestCase):
     def test_ordinary_caller_is_refused_before_secret_resolution(self):
         contract = load_access_contract(ROOT / 'codex/config/host-access-broker.json',
                                         ROOT / 'codex/config/gitea-governance.json')
-        with patch('os.geteuid', return_value=501):
+        with patch('os.geteuid', return_value=501), patch('pwd.getpwnam',
+                return_value=SimpleNamespace(pw_uid=501, pw_gid=20)):
             with self.assertRaises(BrokerError) as caught:
                 HostAccessBroker(contract).execute(
                     'newemaint', 'gitea.credential.rotate', issue=316,
@@ -40,7 +41,8 @@ class RotationSurfaceTests(unittest.TestCase):
         for values in ({'issue': 316, 'sha': SOURCE},
                        {'issue': 316, 'sha': SOURCE, 'token_kind': 'routine-merge-agent', 'body': 'override'},
                        {'number': 316, 'sha': SOURCE, 'token_kind': 'routine-merge-agent'}):
-            with patch('aisoft_host_access.credential_rotation.rotate') as mutation:
+            with patch('aisoft_host_access.credential_rotation.rotate') as mutation, \
+                 patch('pwd.getpwnam', return_value=SimpleNamespace(pw_uid=501, pw_gid=20)):
                 with self.assertRaises(BrokerError) as caught:
                     HostAccessBroker(contract).execute('newemaint', 'gitea.credential.rotate', **values)
                 self.assertEqual(caught.exception.code, 'ARGUMENT_MISMATCH')

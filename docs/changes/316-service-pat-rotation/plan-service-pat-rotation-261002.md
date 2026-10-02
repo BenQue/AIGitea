@@ -31,7 +31,7 @@ updated: 2026-10-02
 | T02 | fresh turn：固定版本 helper 对 exact PAT/UID 安全撤销，隔离 DB 验证，不安装现场 | T01 | done |
 | T02A | 仅应用方案 A 的 Mac canonical store/内部管道治理修订，文档检查与本地 commit 后停止 | T02 | done |
 | T03 | fresh run：operator command 完整轮换/失败恢复/no-op，与 typed grant 路径接通，测试零授权零 mutation | T02A | done |
-| T04 | shell/Python/Go 全量验证、文档/判级复核，准备唯一 manual PR 候选 | T03 | pending |
+| T04 | shell/Python/Go 全量验证、文档/判级复核，准备唯一 manual PR 候选 | T03 | in_progress（local 已验证，required CI/PR 待确认） |
 | T05 | 人工合并后独立授权 helper 安装/operator grant/真实轮换和第二次 no-op，形成 AC-2 现场证据 | T04 | pending |
 
 T01 与 T02、T02A 与 T03 均不得在同一 turn 实施。用户于 2026-10-02 以“按建议继续”批准方案 A；下一 fresh run 重读治理合同后，T03 可沿用这次批准继续，不重复询问启动确认。T05 不是已获批准的执行任务；缺 live/Secret 授权不能运行。PR 提交与 human merge 各遵守现有闸门，真实验收缺口不因 merge 自动消失。

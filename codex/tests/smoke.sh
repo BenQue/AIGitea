@@ -78,6 +78,7 @@ for script in \
   "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tools/gitea-governance.sh" \
   "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  "$ROOT/codex/tools/rotate-gitea-service-account.sh" \
   "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
   "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
   "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
@@ -100,6 +101,9 @@ for script in \
   "$ROOT/codex/tests/test-apply-classification-labels.sh" \
   "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
   "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
+  "$ROOT/codex/tests/test-rotate-gitea-service-account.sh" \
+  "$ROOT/codex/tests/test-gitea-pat-helper-linux.sh" \
+  "$ROOT/codex/tests/test-gitea-pat-helper-linux-gates.sh" \
   "$ROOT/codex/tests/test-rollback-gitea-routine-pilot.sh" \
   "$ROOT/codex/tests/test-sync-gitea-service-policy.sh" \
   "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
@@ -141,6 +145,7 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tools/gitea-governance.sh" \
     "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+    "$ROOT/codex/tools/rotate-gitea-service-account.sh" \
     "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
     "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
     "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
@@ -167,6 +172,9 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-change-merge-range.sh" \
     "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh" \
     "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" \
+    "$ROOT/codex/tests/test-rotate-gitea-service-account.sh" \
+    "$ROOT/codex/tests/test-gitea-pat-helper-linux.sh" \
+    "$ROOT/codex/tests/test-gitea-pat-helper-linux-gates.sh" \
     "$ROOT/codex/tests/test-rollback-gitea-routine-pilot.sh" \
     "$ROOT/codex/tests/test-sync-gitea-service-policy.sh" \
     "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
@@ -216,6 +224,10 @@ bash "$ROOT/codex/tests/test-mark-completed-issues.sh"
 bash "$ROOT/codex/tests/test-apply-classification-labels.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-repository-settings.sh"
 bash "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh"
+bash "$ROOT/codex/tests/test-rotate-gitea-service-account.sh"
+bash "$ROOT/codex/tests/test-gitea-pat-helper-linux-gates.sh"
+# The fixed archive/tree pin negatives do not download Go or touch live Gitea.
+python3 -m unittest discover -s "$ROOT/codex/tools/gitea-pat-helper" -p test_build.py
 bash "$ROOT/codex/tests/test-rollback-gitea-routine-pilot.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-service-policy.sh"
 bash "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh"
