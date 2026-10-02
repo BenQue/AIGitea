@@ -202,3 +202,21 @@ T04A 已运行检查：check-change-documents PASS（changes=145、pass=2、gap=
 T04B source/local commit 为 875fd3043c2e6959e1c509fe276a9e60870692cf，工作树 clean。对固定 main=16beee09aefe89b5bc80a31544c59d456190ea32 执行 git merge-tree --write-tree origin/main HEAD，exit 1，确认两份新增源码存在 add/add 冲突：codex/tools/check-installed-drift.py、codex/tests/fixtures/installed-drift/test-installed-drift.py。生成的 d5e06e454f2629adfec14723e6cdcc3bc02eb483 含冲突，未测试、不能作 PASS；未改变 branch/index/worktree，没有创建 merge commit。
 
 原因是本票共同基线没有 #308 的两份文件，两侧各自新增。先前 PASS 的独立组合 lab tree 只证明所选 source bytes 可通过本地回归，不证明当前 branch 可直接合并。发布前置保持 BLOCKED（BASE_BRANCH_STALE + add/add）。Controller 应以固定 fresh main 为基线，保留 #308 内容、应用本票最小 source delta 与 mapped documents，按受控流程整合并重新核对 exact final head；worker 不自行 rebase、merge 或换分支。源码未在完整 smoke 后改变，本次仅补充证据，不重复执行源码 suite。required CI、最终 PR 提交确认、安装/grant/live 仍未完成。
+
+
+## Controller 实际分支受控整合与回归 PASS（2026-10-03，最新状态）
+
+所属 session=01a0fc7c-3835-7322-874e-c910518c5746；用户“继续下一步”后进入 interactive Controller 整合阶段。旧未推送 head=077ed9adaccbbf7241ea45081dfe443ac90f5b0a 已保全到 /private/tmp/issue-316-build/t04-pre-integration-077ed9ad.bundle 并通过 bundle verify。按 03 的单会话 BASE_BRANCH_STALE 流程，fresh typed fetch main=d647963bcfd6508c8c07baea8d3ef0e4e6a0e35d，重放本票 10 commits；两个 add/add 只在验证 current main 两份字节等于已批准 baseline 后应用原 gzip 最小补丁，未引入其它 Issue 变更。提交映射、备份摘要、scope、owner 与保护读回见 [整合回执](evidence/t04-controller-integration-validation.json)。
+
+整合 source head=094c21fda5ff7625973181a2f2c512a1e1a25b83；实际 tree=ed0b32375b9ea0eb8688a1d45e4b84574f5ef25a。git merge-base --is-ancestor origin/main HEAD exit 0；merge-tree exit 0 且等于实际 tree；change range 无 merge commit。41 份本票文件与整合前字节一致，03/06/smoke 仅保留上游新增。checker/fixture 保持原已复审 hash，无新增源码行为，原双轴审查继续适用。旧冲突树与 FAIL 仅作为历史证据，不能投影为当前失败或 PASS。
+
+| Check | Result | Evidence / boundary |
+|---|---|---|
+| 实际分支完整 smoke | PASS | C.UTF-8；34 drift fixture、197 release、1091 runtime、static，exit 0；含 bash -n/可用 ShellCheck；[持久化日志](evidence/t04-controller-integrated-smoke.log.gz) |
+| SOURCE / mapping | PASS | 8 installers；未合并 source identity 独立 GAP，不是 installed PASS |
+| main freshness / scope / ownership | PASS | 完整 smoke 后第二次 typed fetch main 未变化；本会话 owner、唯一本票 worktree、精确 source scope、无 merge commit |
+| classification / protection / PR uniqueness | PASS | security/complex projected、applied=false；main 无 direct/force push、human-only merge、required context=CI / verify (pull_request)；本票 open PR=0 |
+| documents / whitespace | PASS | 152 changes、pass=2、gap=0；本轮仅新增验证证据/候选正文及本票 summary/plan/verification，没有在 smoke 后修改源码 |
+| required CI / installed / grant / live | NOT RUN | 等待 exact Issue/branch/manual PR 提交确认；human merge 与 T05 AC-2 现场授权独立 |
+
+当前状态 AWAITING_PR_CONFIRMATION；源码整合前置已解除。此 receipt-only 收口提交不改变被测源码，最终提交后的 exact head 在本地最终 PR handoff 读回；尚未 push、建 PR 或运行 required CI。

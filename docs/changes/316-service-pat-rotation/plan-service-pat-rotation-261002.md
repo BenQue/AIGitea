@@ -31,7 +31,7 @@ updated: 2026-10-03
 | T02 | fresh turn：固定版本 helper 对 exact PAT/UID 安全撤销，隔离 DB 验证，不安装现场 | T01 | done |
 | T02A | 仅应用方案 A 的 Mac canonical store/内部管道治理修订，文档检查与本地 commit 后停止 | T02 | done |
 | T03 | fresh run：operator command 完整轮换/失败恢复/no-op，与 typed grant 路径接通，测试零授权零 mutation | T02A | done |
-| T04 | shell/Python/Go 全量验证、文档/判级复核，准备唯一 manual PR 候选 | T03 | in_progress（T04B local 完成；Controller 整合及 required CI/PR 待执行） |
+| T04 | shell/Python/Go 全量验证、文档/判级复核，准备唯一 manual PR 候选 | T03 | in_progress（Controller local 整合已 PASS；AWAITING_PR_CONFIRMATION，required CI/PR 待执行） |
 | T04A | 仅应用 installed-drift 精确补充治理合同、文档检查、本地提交后停止 | T03 | done（治理应用；提交见本 turn 回执） |
 | T04B | fresh run：两个 exact 文件的映射/独立 provenance/隔离 fixture 修复，默认 locale 组合回归与复审 | T04A | done（local） |
 | T05 | 人工合并后独立授权 helper 安装/operator grant/真实轮换和第二次 no-op，形成 AC-2 现场证据 | T04 | pending |
@@ -88,3 +88,10 @@ T02 本地实现/测试/审查已完成，exact head 为 0ffe6bda169d70bd89f48fa
 已批准两个 exact 源码文件的修复和局部测试/复审完成；fresh main 16beee09aefe89b5bc80a31544c59d456190ea32 的组合 candidate tree 092572f0243f54058bddae0b2658e7fca57380e5 默认 C.UTF-8 完整 smoke PASS。最小 fresh-main source delta、源哈希与结果见 evidence/t04b-local-validation.json。worker 未 rebase/merge/change branch；实际 branch 仍有 BASE_BRANCH_STALE。Controller 必须受控整合并核对 exact final candidate，取得绑定 #316/branch/manual 的唯一 PR 提交确认后才能 push/PR/required CI。安装/grant/live AC-2 保持 NOT RUN。
 
 实际分支提交后 merge-tree exit 1，两个 approved source 文件为 add/add 冲突；详见 verification 的“实际分支提交后整合读回”。Controller 必须完成受控基线整合；独立 lab 的 smoke PASS 不等于当前分支可合并。
+
+
+## Controller 本地整合完成（2026-10-03，最新状态）
+
+在用户“继续下一步”后由本票所属会话进入 interactive Controller 阶段，保护旧未推送历史后变基到 main=d647963bcfd6508c8c07baea8d3ef0e4e6a0e35d，解决两个 add/add，解除历史 BASE_BRANCH_STALE。source head=094c21fda5ff7625973181a2f2c512a1e1a25b83 的实际分支完整 C.UTF-8 smoke PASS：34 drift、197 release、1091 runtime 及 static；source-only、classification、main protection、唯一 worktree/无 open PR、无 merge commit、文档检查均通过。历史 FAIL/冲突记录保留，不再是当前阻塞。
+
+下一前置为绑定 #316 / change/316-service-pat-rotation / manual 的唯一最终 PR 提交确认；确认后 typed broker push/唯一 PR/backfill/required CI 按平台流程继续，人工合并与 T05 独立现场授权仍需保留。禁止把本地 PASS 写成 PR CI、installed 或 live PASS。

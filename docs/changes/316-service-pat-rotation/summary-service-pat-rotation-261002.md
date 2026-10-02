@@ -88,6 +88,13 @@ override_reason: ''
 
 ### 当前决策与未完成验收
 
-- 方案 A 已批准，T03 凭据消费位置冲突已解除，无新增产品依赖。T02A 与 T03 已分 turn；T03 fresh run 已实现交易、typed grant 与受控 transport，完成本地隔离验证和审查修复。T04 已接入 smoke/CI 并完成 local Linux/arm64 制品、model/race、实际 helper 进程级 synthetic DB/canary 与双轴验证；fresh-main 默认 locale 组合 smoke 的 #308 installer-mapping-stale 阻塞已在 T04B 修复，34 drift fixture、1056 runtime 与平台 static 检查 PASS；共享 mapper/fixture 的精确范围补充于 2026-10-03 获用户“确认继续”批准，见 [批准记录](evidence/t04-installed-drift-extension-proposal.md)。T04A 已独立应用治理并停止，T04B fresh run 已同步映射、generated metadata、独立 public provenance 与负向测试；仅 SOURCE/local 证据，分支受控整合仍待。required CI 尚未运行，最终 PR 提交确认与 T05 独立现场授权/验收仍待，不能写成整票完成。
+- 方案 A 已批准，T03 凭据消费位置冲突已解除，无新增产品依赖。T02A 与 T03 已分 turn；T03 fresh run 已实现交易、typed grant 与受控 transport，完成本地隔离验证和审查修复。T04 已接入 smoke/CI 并完成 local Linux/arm64 制品、model/race、实际 helper 进程级 synthetic DB/canary 与双轴验证；fresh-main 默认 locale 组合 smoke 的 #308 installer-mapping-stale 阻塞已在 T04B 修复，34 drift fixture、1056 runtime 与平台 static 检查 PASS；共享 mapper/fixture 的精确范围补充于 2026-10-03 获用户“确认继续”批准，见 [批准记录](evidence/t04-installed-drift-extension-proposal.md)。T04A 已独立应用治理并停止，T04B fresh run 已同步映射、generated metadata、独立 public provenance 与负向测试；仅 SOURCE/local 证据；2026-10-03 本会话已完成受控整合，详见下方最新状态。required CI 尚未运行，最终 PR 提交确认与 T05 独立现场授权/验收仍待，不能写成整票完成。
 
-T04B source/local commit：875fd3043c2e6959e1c509fe276a9e60870692cf。提交后 actual branch merge-tree 确认两份新增源码 add/add 冲突，发布前置 BLOCKED；最小 source delta 与完整本地 PASS 证据已就绪，后续由 Controller 受控整合并核对最终 head。
+T04B source/local commit：875fd3043c2e6959e1c509fe276a9e60870692cf。当时 actual branch merge-tree 确认两份新增源码 add/add 冲突；该历史阻塞现已由下方 Controller 整合解除，旧提交保存在恢复 bundle 中。
+
+
+### 最新状态：等待唯一最终 PR 提交确认（2026-10-03）
+
+用户“继续下一步”后，本票所属会话按 03 的受控整合流程，将未推送历史保全到 Git bundle 并变基到 fresh main d647963bcfd6508c8c07baea8d3ef0e4e6a0e35d。两个 add/add 用经核对的 main 原文件加已批准最小 delta 解决；41 份本票文件字节不变，03/06/smoke 保留上游更新，没有改动其它 Issue。实际整合 source head=094c21fda5ff7625973181a2f2c512a1e1a25b83，main ancestry、无冲突 preview 与完整 C.UTF-8 smoke PASS（34 drift、197 release、1091 runtime、static）；详见 [整合回执](evidence/t04-controller-integration-validation.json)。
+
+当前 handoff 为 AWAITING_PR_CONFIRMATION，Issue #316 / branch change/316-service-pat-rotation / policy manual；[PR 正文候选](evidence/t04-final-pr-body.md) 只有一条 Closes #316。本轮用户继续仅授权受控本地整合，没有最终 PR 提交确认，未 push/创建 PR/改标签/安装/操作 grant 或 PAT。required CI、human merge 与 T05 AC-2 仍待，整票未完成。
