@@ -1,0 +1,23 @@
+{
+  "bash": "GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)",
+  "results": [
+    {
+      "command": "LC_ALL=C.UTF-8 /bin/bash codex/tests/test-registry-preflight.sh",
+      "exit_code": 0,
+      "stdout": "registry preflight tests passed\n",
+      "stderr": ""
+    },
+    {
+      "command": "LC_ALL=en_US.UTF-8 /bin/bash codex/tests/test-registry-preflight.sh",
+      "exit_code": 0,
+      "stdout": "registry preflight tests passed\n",
+      "stderr": ""
+    },
+    {
+      "command": "LC_ALL=zh_CN.UTF-8 /bin/bash codex/tests/test-registry-preflight.sh",
+      "exit_code": 0,
+      "stdout": "registry preflight tests passed\n",
+      "stderr": ""
+    }
+  ]
+}

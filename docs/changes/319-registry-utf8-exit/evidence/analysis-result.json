@@ -1,0 +1,20 @@
+{
+  "classification": "change_type: bugfix\nrequested_complexity: auto\nassessed_complexity: complex\neffective_complexity: complex\ncontract_effect: restore\nreason: 恢复 registry 故障时非零退出及正确诊断的既有合同；CI 变更触发强制 complex\nrisk_flags:\n  - ci-change\nrequired_docs:\n  - summary\n  - spec\n  - plan\n  - verification\nconfidence: high\noverride_reason: ''\n",
+  "document_slug": "registry-utf8-exit",
+  "problem_summary": "macOS Bash 3.2 UTF-8 下中文标点读入变量名，nounset 与 EXIT trap 使 registry 停止时误报退出 0。",
+  "impact": "仅 registry-preflight 参考脚本、对应 HTTP fixture 回归、本 Issue 合同及证据。",
+  "approach": "明确中文标点前的变量边界，复用 HTTP fixture，验证真实失败诊断、退出码和绿—红—绿。合同步骤独立停止，获批准后 fresh run 重读才能实施。",
+  "risks": [
+    "CI 变更强制 complex/manual。",
+    "LC_ALL=C 不得替代 UTF-8 验收；Bash 3.2 nounset trap 保存 $? 仍可能为 0。",
+    "macOS 验收不能由 Linux required CI 重放，需要 verification。"
+  ],
+  "evidence": [
+    "fresh origin/main 5c2cd726c9aeaee9d17541d8feb049e33881bbac 仍含 4 处中文标点相邻变量引用。",
+    "macOS Bash 3.2.57 C.UTF-8/en_US.UTF-8/zh_CN.UTF-8：健康 0，停止 fixture 后错误退出 0，stderr unbound variable；完整 fixture 在停止处失败。",
+    "Linux Bash 5.3.9 C.UTF-8 改前 fixture PASS。",
+    "Issue open/needs-analysis，无评论与开放 PR；main 禁 direct/force push，required CI 为 CI / verify (pull_request)。",
+    "已搜索现有脚本/测试/README/06/Git history，无已实施修复；无对应 CONTEXT.md、ADR 或 .out-of-scope 文件。"
+  ],
+  "missing_acceptance_criteria": []
+}

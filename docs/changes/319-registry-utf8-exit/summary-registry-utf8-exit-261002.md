@@ -1,0 +1,100 @@
+---
+issue: 319
+gitea_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/319
+change_type: bugfix
+requested_complexity: auto
+assessed_complexity: complex
+effective_complexity: complex
+contract_effect: restore
+reason: 恢复 registry 故障时非零退出及正确诊断的既有合同；CI 变更触发强制 complex
+risk_flags:
+  - ci-change
+required_docs:
+  - summary
+  - spec
+  - plan
+  - verification
+confidence: high
+override_reason: ''
+documents:
+  summary: summary-registry-utf8-exit-261002.md
+  spec: spec-registry-utf8-exit-261002.md
+  plan: plan-registry-utf8-exit-261002.md
+  verification: verification-registry-utf8-exit-261002.md
+depends_on: []
+status: pr-open
+branch: change/319-registry-utf8-exit
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/323
+created: 2026-10-02
+updated: 2026-10-02
+---
+
+## 问题/需求总结
+
+macOS Bash 3.2 UTF-8 下中文标点读入变量名，nounset 与 EXIT trap 使 registry 停止时误报退出 0。
+
+## 影响范围
+
+仅 registry-preflight 参考脚本、对应 HTTP fixture 回归、本 Issue 合同及证据。
+
+## 初步方案与建议
+
+明确中文标点前的变量边界，复用 HTTP fixture，验证真实失败诊断、退出码和绿—红—绿。合同步骤独立停止，获批准后 fresh run 重读才能实施。
+
+## 风险
+
+- CI 变更强制 complex/manual。
+- LC_ALL=C 不得替代 UTF-8 验收；Bash 3.2 nounset trap 保存 $? 仍可能为 0。
+- macOS 验收不能由 Linux required CI 重放，需要 verification。
+
+## AI 判级
+
+```yaml
+change_type: bugfix
+requested_complexity: auto
+assessed_complexity: complex
+effective_complexity: complex
+contract_effect: restore
+reason: 恢复 registry 故障时非零退出及正确诊断的既有合同；CI 变更触发强制 complex
+risk_flags:
+  - ci-change
+required_docs:
+  - summary
+  - spec
+  - plan
+  - verification
+confidence: high
+override_reason: ''
+```
+
+### 判级证据
+
+- fresh origin/main 5c2cd726c9aeaee9d17541d8feb049e33881bbac 仍含 6 处中文标点相邻变量引用。
+- macOS Bash 3.2.57 C.UTF-8/en_US.UTF-8/zh_CN.UTF-8：健康 0，停止 fixture 后错误退出 0，stderr unbound variable；完整 fixture 在停止处失败。
+- Linux Bash 5.3.9 C.UTF-8 改前 fixture PASS。
+- Issue open/needs-analysis，无评论与开放 PR；main 禁 direct/force push，required CI 为 CI / verify (pull_request)。
+- 已搜索现有脚本/测试/README/06/Git history，无已实施修复；无对应 CONTEXT.md、ADR 或 .out-of-scope 文件。
+
+### 缺失的 acceptance criteria 或决策
+
+- 无；如后续发现缺失则回到 awaiting-triage。
+
+## 会话、依赖与确认
+
+- session: `01a0fc7b-adfe-72e3-ae7a-cf96038acc23`；worktree: `/private/tmp/issue-319-registry-utf8-exit`，已 claim。
+- Policy: `manual`；depends_on: []（#318 是发现来源，非阻塞依赖）。
+- 合同/启动已批准：本会话用户于 2026-10-02 回复“确认”，绑定 #319 / change/319-registry-utf8-exit / manual，并授权 broker 判级/流程投影；未实施、未 push/PR/安装/部署。
+- 本轮只准备合同/基线并停止；获人确认后只记录 approved 合同并停止；下一 fresh run 重读后实施。
+- Matt triage 建议 `bug / ready-for-agent`。现有 broker 表没有 triage 投影 typed operation；extension.set 仅允许 area/、priority/。live triage 标签为 GAP，仅评论记录建议，不绕过 broker。
+
+## 独立合同批准记录
+
+本 turn 只记录已批准的既有 spec/plan，并投影 type/complexity 与 approved 生命周期；不得修改 CI/runtime。完成后停止，下一 fresh turn 重新读取批准合同再执行 T01/T02，不重复请求启动批准。最终 PR 提交仍待单独确认。
+
+## 最终 PR 候选
+
+- 状态：`AWAITING_PR_CONFIRMATION`，policy=`manual`。
+- T01/T02 完成：6处边界及HTTP fixture诊断回归；macOS三组与Linux UTF-8、bash-n/ShellCheck、完整macOS UTF-8 smoke均PASS；Standards/Spec独立审查均0发现。
+- 已有启动批准及用户明确批准的4→6计数修正；后者只更正同类参考数量，不改变其他合同边界。
+- 精确候选head写入本会话的私有 `/private/tmp/aisoft-319-session-state/projects/aisoft-platform/`，避免在同一commit中自引用SHA。
+- 尚未push/建PR；PRCI、installed/live/下游/merge/deploy为NOT RUN。

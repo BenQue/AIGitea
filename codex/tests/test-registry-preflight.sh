@@ -59,8 +59,9 @@ stop_registry() {
 run_probe() {
   # 回显合并后的输出，退出码写进 PROBE_STATUS。
   set +e
-  PROBE_OUTPUT="$(NPM_CONFIG_REGISTRY="$REGISTRY" REGISTRY_PREFLIGHT_TIMEOUT=5 \
-    bash "$SCRIPT" 2>&1)"
+  PROBE_OUTPUT="$(NPM_CONFIG_REGISTRY="$REGISTRY" REGISTRY_PREFLIGHT_REGISTRY="$REGISTRY" \
+    REGISTRY_PREFLIGHT_PACKAGE=fflate REGISTRY_PREFLIGHT_VERSION=0.8.3 \
+    REGISTRY_PREFLIGHT_TIMEOUT=5 "$BASH" "$SCRIPT" 2>&1)"
   PROBE_STATUS=$?
   set -e
   printf '%s' "$PROBE_OUTPUT"
@@ -83,6 +84,8 @@ expect_fail_stage() {
     || fail "$2：期望 stage=$1，实际输出为 $(head -1 "$TMP/out")"
   grep -Fq 'AISOFT_REGISTRY_PREFLIGHT_OK' "$TMP/out" \
     && fail "$2：失败路径不应打印成功标记"
+  grep -Fq 'unbound variable' "$TMP/out" \
+    && fail "$2：诊断不应触发 nounset"
   return 0
 }
 
@@ -94,6 +97,8 @@ expect_pass '健康 registry'
 #    这就是 2026-08 那次故障在断言层面的形状。
 stop_registry
 expect_fail_stage connect '停掉 registry 之后'
+grep -Fq "[registry-preflight] 连不上 ${REGISTRY}（curl 退出码 7）。" "$TMP/out" \
+  || fail '连接被拒时必须打印正确 registry 地址与 curl 退出码'
 grep -Fq '不要往 uplink 配置' "$TMP/out" \
   || fail '连接被拒的结论必须显式排除 uplink 方向'
 grep -Fq 'pm2' "$TMP/out" \
@@ -107,6 +112,8 @@ stop_registry
 # 4. registry 在监听但 packument 返回 5xx。
 start_registry http500
 expect_fail_stage http 'packument 返回 500'
+grep -Fq "[registry-preflight] 取 ${REGISTRY}/fflate 返回 HTTP 500，期望 200。" "$TMP/out" \
+  || fail 'packument HTTP 失败时必须打印正确地址与状态码'
 stop_registry
 
 # 5. HTTP 200 但响应体不是 packument。
@@ -117,12 +124,14 @@ stop_registry
 # 6. packument 正常但 tarball 取不到。npm ci 真正要的是包体。
 start_registry tarball404
 expect_fail_stage tarball 'tarball 返回 404'
+grep -Fq "[registry-preflight] 取 ${REGISTRY}/fflate/-/fflate-0.8.3.tgz 返回 HTTP 404，期望 200。" "$TMP/out" \
+  || fail 'tarball HTTP 失败时必须打印正确地址与状态码'
 stop_registry
 
 # 7. 没有 registry 配置时不猜、不回退到 npmjs。
 set +e
 unset_output="$(env -u NPM_CONFIG_REGISTRY -u REGISTRY_PREFLIGHT_REGISTRY \
-  bash "$SCRIPT" 2>&1)"
+  "$BASH" "$SCRIPT" 2>&1)"
 unset_status=$?
 set -e
 [ "$unset_status" -eq 1 ] || fail "未设置 registry：期望退出 1，实际 $unset_status"
