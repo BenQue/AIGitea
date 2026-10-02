@@ -146,7 +146,9 @@ def _read_evidence(profile: TargetProfile) -> object:
     """Traverse pinned directory descriptors; validate the opened inode before reading."""
     path = profile.rollback_compatibility_file
     assert path is not None
-    owner = profile.path.stat().st_uid
+    owner = profile.owner_uid
+    if owner is None:
+        raise ValueError
     directory_fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
     file_fd = None
     try:

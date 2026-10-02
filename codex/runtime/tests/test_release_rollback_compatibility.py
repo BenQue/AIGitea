@@ -434,11 +434,11 @@ class RollbackCompatibilityTests(unittest.TestCase):
     def test_evidence_from_other_owner_is_rejected_before_old_start(self) -> None:
         self.runtime.deploy(self.profile, SHA_A)
         self.runtime.deploy(self.profile, SHA_B)
-        install_rollback_evidence(self.root, SHA_B, SHA_A)
+        evidence_inode = install_rollback_evidence(self.root, SHA_B, SHA_A).stat().st_ino
         real_fstat = os.fstat
         def other_owner(fd: int) -> os.stat_result:
             info = real_fstat(fd)
-            if stat.S_ISREG(info.st_mode):
+            if stat.S_ISREG(info.st_mode) and info.st_ino == evidence_inode:
                 fields = list(info)
                 fields[4] = os.geteuid() + 10000
                 return os.stat_result(fields)
@@ -465,3 +465,59 @@ class RollbackCompatibilityTests(unittest.TestCase):
         self.assertEqual(self.docker.mutations, [])
         verified = ReleaseRuntime(self.docker, hostname="test-host", now=datetime(2026, 10, 2, tzinfo=timezone.utc))
         self.assertEqual(verified.rollback(self.profile, SHA_A)["action"], "rolled-back")
+
+    def test_replaced_profile_owner_cannot_reauthorize_other_operator_evidence(self) -> None:
+        self.runtime.deploy(self.profile, SHA_A)
+        self.runtime.deploy(self.profile, SHA_B)
+        evidence = install_rollback_evidence(self.root, SHA_B, SHA_A)
+        evidence_inode = evidence.stat().st_ino
+        parent_inode = evidence.parent.stat().st_ino
+        foreign_uid = os.geteuid() + 10000
+        original_stat, original_fstat = Path.stat, os.fstat
+        original_config = self.docker.compose_config
+        changed = []
+        def foreign(info: os.stat_result) -> os.stat_result:
+            fields = list(info)
+            fields[4] = foreign_uid
+            return os.stat_result(fields)
+        def profile_stat(path: Path, *args: object, **kwargs: object) -> os.stat_result:
+            info = original_stat(path, *args, **kwargs)
+            return foreign(info) if changed and path == self.profile else info
+        def evidence_fstat(fd: int) -> os.stat_result:
+            info = original_fstat(fd)
+            return foreign(info) if info.st_ino in {evidence_inode, parent_inode} else info
+        def config_then_replace(*args: object) -> object:
+            result = original_config(*args)
+            if args[0].parent.name == SHA_B:
+                content = self.profile.read_bytes()
+                self.profile.unlink()
+                self.profile.write_bytes(content)
+                self.profile.chmod(0o600)
+                changed.append(True)
+            return result
+        self.docker.events.clear()
+        # Model a pathname replacement owned by another OS principal without requiring chown/root.
+        with patch.object(self.docker, "compose_config", side_effect=config_then_replace), \
+             patch.object(Path, "stat", profile_stat), \
+             patch("aisoft_release.rollback_compatibility.os.fstat", side_effect=evidence_fstat):
+            with self.assertRaises(ReleaseError) as caught:
+                self.runtime.rollback(self.profile, SHA_A)
+        self.assertEqual(caught.exception.code, "ROLLBACK_BLOCKED")
+        self.assertEqual(self.docker.mutations, [])
+
+    def test_profile_replaced_between_protection_check_and_open_is_rechecked_on_fd(self) -> None:
+        content = self.profile.read_bytes()
+        original_open = os.open
+        replaced = []
+        def replace_then_open(path: object, *args: object, **kwargs: object) -> int:
+            if path == self.profile and not replaced:
+                self.profile.unlink()
+                self.profile.write_bytes(content)
+                self.profile.chmod(0o644)
+                replaced.append(True)
+            return original_open(path, *args, **kwargs)
+        with patch("aisoft_release.contract.os.open", side_effect=replace_then_open):
+            with self.assertRaises(ReleaseError) as caught:
+                self.runtime.verify_target(self.profile, SHA_A)
+        self.assertEqual(caught.exception.code, "INVALID_CONTRACT")
+        self.assertEqual(self.docker.events, [])

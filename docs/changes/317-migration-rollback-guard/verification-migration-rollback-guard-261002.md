@@ -25,7 +25,7 @@ updated: 2026-10-02
 
 ## 基线与范围
 
-- authoritative origin/main：`5c2cd726c9aeaee9d17541d8feb049e33881bbac`；2026-10-02 经 project=aisoft-platform broker fetch。
+- 本票起始 authoritative origin/main：`5c2cd726c9aeaee9d17541d8feb049e33881bbac`；2026-10-02 经 project=aisoft-platform broker fetch。
 - Session：`01a0fc7b-9d82-75e2-975f-d407cd23e34a`；exact worktree `/private/tmp/issue-317-migration-rollback-guard` 已 claim。
 - 当前合同已批准，T01 独立停止后 fresh run 已实施 T02/T03。下节保存批准前历史观测，不代表当前授权、实现或标签状态。
 
@@ -65,7 +65,7 @@ updated: 2026-10-02
 | AC-09 | PASS | CLI failed exit=2、稳定安全 code/message；没有 override/bypass 参数、无路径/fixture secret/Docker error 回显 |
 | AC-10 | PASS (local docs) | README、versioned contract、过期合成 example 和 merged-pin 边界；应用采用/现场验收 NOT RUN |
 
-188-test release suite 为当前本地 source/fixture 验收；完整 smoke 和审查状态以下方实际回执为准。
+190-test release suite 为当前本地 source/fixture 验收；完整 smoke 和审查状态以下方实际回执为准。
 
 
 ## 授权、遗留风险与未完成项
@@ -110,7 +110,7 @@ Matt triage typed 写缺口保持 GAP，本票允许范围不含broker修复；�
 - Evidence reader 固定 256 KiB/128 records，directory FD + O_NOFOLLOW/open/fstat 验证同一 inode；安全消息不拼接路径或 untrusted 内容。Operator immediate parent 必须非 group/world writable 且 owner 为 profile owner/root；root-owned sticky system-temp 仅作为祖先 traversal anchor，不能作为 operator parent。
 - 同 identity lane 使用 actual DB cursor + completed ledger，不以 receipt.release_id 作限制；显式 evidence fingerprint 不含 current/previous/last_result/env。
 - README 的教学 example 已过期且为合成 hash，未 provision live profile、依据或 grant。
-- `evidence/release-suite.json`：完整 release suite 188 tests PASS。
+- `evidence/release-suite.json`：完整 release suite 190 tests PASS。
 - `evidence/platform-smoke.json`：FAIL，exit=1；`check-release-evidence-boundary.py` 报 current file set differs from the fixed baseline。不能写成 PASS。
 - classification --verify 已经 broker host 路径读回真实 projected（bugfix/complex）；初次 sandbox state-unreadable 是执行路径失败，未据此改判级或绕过 broker。
 - 两轴审查将固定 local source head 与 authoritative base，结果和修复回执另记。
@@ -123,3 +123,19 @@ Matt triage typed 写缺口保持 GAP，本票允许范围不含broker修复；�
 固定 bytes 同时不匹配而被 fail closed。批准 allowlist 不含该检查器，故未修改，也未把它跳过。
 AGENTS 要求合同冲突/范围扩张升级给人。精确修订提案另存 `evidence/governance-amendment-proposal.md`；
 当前批准 spec 的 bytes 不改，不伪造修订批准。最终 PR 候选尚不满足完整 hard gate。
+
+## Review 修复与 fresh remote 读回
+
+Standards 轴发现1项 P1：evidence reader 重新 stat profile pathname 取得 owner，可能把验证后
+被替换 profile 的新 owner 作为可信 operator。替换回归在旧实现实际失败（无 ReleaseError），
+修复后通过：protected profile 使用同 FD open/fstat/限量读取，捕获 verified owner UID；
+后续 evidence 只使用此 UID，不能从 pathname 重选身份。另覆盖 protection check/open 间替换。
+190-test 全 release suite 用 worktree 外独立 bytecode cache 执行，PASS；source hashes 记录在回执。
+首轮完整 smoke 仍为 FAIL；review 修复后未重跑完整 smoke（NOT RUN），既知固定集合阻塞未解除。
+
+2026-10-02 再次 broker fetch：authoritative main 已前进到
+`11c0410d3878d5449fa61796f174ba3d2dd5e59c`（#320/#322 文档治理合并）；本票起始 base 仍为
+`5c2cd726c9aeaee9d17541d8feb049e33881bbac`。上游未改 release runtime/checker 或 AGENTS；未
+rebase/重写本地审阅历史。合同修订获批后 fresh run 需重新读取 #320 合同并整合最新 main，再
+做 final validation/PR candidate。本票此刻不是可提交 PR 的终态。
+`legacy-schema-preservation.json` 读回：历史 v1 schema 原本不存在，保持缺席；v2 原 bytes 不变。

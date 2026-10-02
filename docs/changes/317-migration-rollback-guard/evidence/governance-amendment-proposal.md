@@ -45,11 +45,11 @@ AGENTS.md 明确：“遇到合同冲突、范围扩张、破坏性迁移、安�
 
 | Path | 类别 | Mode | SHA256 |
 |---|---|---|---|
-| `codex/runtime/aisoft_release/contract.py` | 原有文件新 bytes | `100644` | `b79deccc5f94368c671f9f1b6d7af06c5312556e3f51096ad583fce21b215ef3` |
+| `codex/runtime/aisoft_release/contract.py` | 原有文件新 bytes | `100644` | `d0ddd948dac6793334d8d93e5d382b7f49e20ad4857c9ddef4ed420f644c1baa` |
 | `codex/runtime/aisoft_release/errors.py` | 原有文件新 bytes | `100644` | `f76e0264c9480cc7a2ef70f20899d65e81bdf3ad994b9bd9b0015a36f32b28ac` |
 | `codex/runtime/aisoft_release/runner.py` | 原有文件新 bytes | `100644` | `a51abcaa2bcb9862b9a981df1d8c3efd2d32c70ae795b485678cac322f04eb4c` |
 | `codex/runtime/aisoft_release/state.py` | 原有文件新 bytes | `100644` | `1350ddab013eabb7f0286ba12a6835974e221775e3a25823f38cb332445c8e2a` |
-| `codex/runtime/aisoft_release/rollback_compatibility.py` | 新增 | `100644` | `70767f26238d6fe1d083d7c0019910a207cda5ff2d27a5af2a4bd85b479a0de2` |
+| `codex/runtime/aisoft_release/rollback_compatibility.py` | 新增 | `100644` | `5e17685e87d04e4ab71b69de038fe4bba7e624ee7ff3024c748f25e68d1a2974` |
 | `docker-release/schema/target-profile-v1.schema.json` | 原有文件新 bytes | `100644` | `d6174d0b78eecbba73962210720b70eea6f0558a6ed176b765e2bdb916c114e4` |
 | `docker-release/schema/state-v3.schema.json` | 新增 | `100644` | `3fce0413e7cdc19ab80ecae9bb1962dfab49a48d4ca9694dd2f3be41c2c0f326` |
 | `docker-release/schema/rollback-compatibility-v1.schema.json` | 新增 | `100644` | `94d2ea3f822b6fded55fc351546793d9334133b79baf439402f4e93c5c2ee9b2` |
