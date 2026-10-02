@@ -1,0 +1,30 @@
+{
+  "issue": 289,
+  "branch": "change/289-required-docs-source",
+  "standards": {
+    "status": "PASS",
+    "hard_findings": 0,
+    "non_blocking": [
+      "strict context and resolver repeat document parsing; retained to avoid extra abstraction"
+    ]
+  },
+  "spec": {
+    "initial_findings": [
+      {
+        "priority": "P2",
+        "finding": "documents list/mapping container reset silently discarded declarations",
+        "status": "FIXED",
+        "regression_before": "14 tests, 2 failures",
+        "regression_after": "14 tests PASS; public readers/audit/CLI and three terminal lifecycle zero-write cases covered"
+      }
+    ],
+    "recheck": "PASS",
+    "unresolved_findings": 0
+  },
+  "incremental_standards_recheck": "PASS; hard findings 0",
+  "reviewers": [
+    "/root/review_standards_289",
+    "/root/review_spec_289"
+  ],
+  "live_install_deploy": "NOT RUN"
+}

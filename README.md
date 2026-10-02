@@ -147,6 +147,8 @@ sequenceDiagram
 
 平台标签采用三个正交维度：十个 `type/*`、两个 `complexity/*` 和八个 lifecycle，共 20 个；Matt 另加两个 `triage/*` category 与五个 `triage/*` state。source manifest 共 provision 27 个标签（Issue #108 把 `type/*` 扩为 10 个并声明 `area/`、`priority/` 两个项目扩展前缀），但 `triage/ready-for-agent` 不替代平台 `approved`。`completed` 与 `deployed` 互斥，任何接入仓库都必须独立同步并读回，不能把其它仓库状态当作平台全局状态。
 
+**文档声明一致性合同（#289）**：summary front matter 的 `required_docs` 是文档义务的声明事实源，`documents` 是角色到文件的路径事实源；`route.required_docs` 只约束阶段和复杂度的最低要求，不能抹掉已经声明的角色。严格 resolver、文档检查、Loop 和终态工具须共用校验后的角色与实际文件，缺文件时不能 PASS 或写 `completed`。`verification` 表示欠一份验证记录；部署终态另由仓库 `deployment_lifecycle` 决定，平台的 `none` 保持不变。详见 [03 §3](03-Issue-Spec-Plan与单闸门开发流程.md#3-文档合同) 与 [#289 spec](docs/changes/289-required-docs-source/spec-required-docs-source-261002.md)。本段是已确认的治理合同；T01 只应用文档，runtime 实现与验证待 T02/T03，installed/live 未验收。
+
 ## 5. 文档导航
 
 | 分册 | 内容 | 读者场景 |

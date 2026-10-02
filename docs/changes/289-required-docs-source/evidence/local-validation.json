@@ -1,0 +1,73 @@
+{
+  "issue": 289,
+  "runtime": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests",
+    "exit_code": 0,
+    "tests": 992,
+    "duration_seconds": 89.939,
+    "log": "/private/tmp/aisoft-289-evidence/runtime-reviewed.txt",
+    "sha256": "e18f723862fa9ae6695826a6d0a86b18f5c4254bdb47f9a76ce2b19410ee342d"
+  },
+  "targeted": {
+    "tests": 14,
+    "exit_code": 0
+  },
+  "terminal_mock": "PASS",
+  "bash_n": "PASS: three affected scripts",
+  "shellcheck": "PASS: three affected scripts",
+  "classification": {
+    "issue": 289,
+    "project": "aisoft-platform",
+    "repository": "aisoft-platform",
+    "action": "verify",
+    "applied": false,
+    "detail": "Issue #289 carries the classification its merged summary declares",
+    "result": "projected",
+    "change_type": "platform",
+    "complexity": "complex"
+  },
+  "main_sha": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "smoke": {
+    "status": "PASS",
+    "exit_code": 0,
+    "command": "LC_ALL=C PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh",
+    "tested_head": "c4d1da1629ac518a594f8e1788e859c4ebcb50df",
+    "tests": 992,
+    "duration_seconds": 84.605,
+    "static_checks": "PASS",
+    "log": "/private/tmp/aisoft-289-evidence/smoke-host-c.txt",
+    "log_sha256": "0042ab503e1f222663d4143be03ca778fd0e4951595dcfd9b9a163b132521202",
+    "environment": "macOS Bash 3.2.57; LC_ALL=C; all original gates retained"
+  },
+  "pr_ci": "NOT RUN",
+  "installed_live_deployment": "NOT RUN",
+  "failed_smoke_attempts": [
+    {
+      "log": "/private/tmp/aisoft-289-evidence/smoke.txt",
+      "reason": "ShellCheck SC2089/SC2090; fixture JSON array corrected"
+    },
+    {
+      "log": "/private/tmp/aisoft-289-evidence/smoke-final.txt",
+      "reason": "source identity drift while HEAD advanced; rejected; no gate change"
+    },
+    {
+      "log": "/private/tmp/aisoft-289-evidence/smoke-pinned.txt",
+      "reason": "sandbox localhost bind PermissionError; source identity PASS"
+    },
+    {
+      "log": "/private/tmp/aisoft-289-evidence/smoke-host.txt",
+      "reason": "Bash 3.2/C.UTF-8 interpreted Chinese parenthesis as part of variable; unchanged registry fixture failed"
+    },
+    {
+      "log": "/private/tmp/aisoft-289-evidence/registry-probe.txt",
+      "reason": "same registry fixture failure reproduced; LC_ALL=C original test PASS"
+    }
+  ],
+  "registry_compatibility": {
+    "source_and_test_unchanged_from_base": true,
+    "original_locale": "C.UTF-8",
+    "locale_rerun": "C",
+    "fixture_positive_negative_recovery": "PASS",
+    "source_patch": false
+  }
+}

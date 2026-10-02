@@ -172,6 +172,18 @@ docs/changes/N-short-description/
 
 映射的 spec 必须定义目标、可测验收标准、接口/数据/兼容影响和非目标。映射的 plan 必须把每条验收标准映射到 `Txx` 垂直切片、`blocked_by`、预期 touch points 和验证命令。Loop 不得自行修改已经确认的 acceptance criteria 或扩大范围。
 
+### 声明与实际文件共用一个校验结果（#289）
+
+本节是 #289 已确认的治理合同。T01 仅应用本文与 README 的合同说明后停止；fresh run 重读后才实施 runtime。下述严格行为与新增命令待 T02/T03 实现和验证，不能据此声称当前 source 或 installed/live 已具备这些闸门。
+
+- summary front matter 的 `required_docs` 是文档义务的唯一声明事实源，`documents` 是新格式角色到安全 basename 的唯一路径事实源。共用受限 Python 解析器，拒绝空、未知、重复或混合角色与 legacy 文件名的列表，首项必须为 summary。
+- `route.required_docs` 给出阶段与复杂度的最低合同要求；Loop 检查声明满足这些要求，不得用路由生成的列表替换声明或丢掉额外角色。development 不强制 spec/plan，production complex 仍必须有 spec/plan；任何路由都不能让已声明 verification 的文件义务消失。
+- 新格式 `documents` 的每个显式映射均须指向本 Issue 目录内可读取的普通文件，且通过既有角色、slug、日期、front matter 与路径边界校验；即使角色不在 required_docs 里也一样。缺文件或符号链接逃逸必须报错，诊断包含 Issue/change、role 与真实 basename。required_docs 的每一项必须有映射和实际文件。
+- 公共 `resolve-documents N --repo <checkout>` 成功时保留角色到 basename 的 JSON 形状，但必须拒绝不存在的显式映射。新增只读 `resolve-required-documents N --repo <checkout>` 返回 `required_docs`（规范化语义角色数组）和 `documents`（角色映射）。`check-change-documents`、Loop 与 `mark-completed-issues.sh` 共用同一解析和校验结果；终态工具不再用 awk 独立解析原文，resolver 或 JSON 失败不能回退为成功。
+- legacy 固定映射是历史推断；未声明的可选 spec/plan/verification 不要求生成。显式 required_docs 中的历史 basename 必须有实际文件，并规范化为相应语义角色（如 `03-verification.md` → `verification`）。缺 required_docs 报明确 GAP；不新增 legacy 开关，不批量重命名或改写历史文档。
+- 合同草稿首次写入使用受限 publisher：`publish-spec`/`publish-plan` 可在 open Issue 的 exact branch 上，通过内部声明解析首次创建自己映射的目标，继续执行路径、日期、front matter 与 Ticket graph 硬门。该准备入口不向 reader 暴露通用 skip-existence 参数；草稿尚未齐全时，严格 resolver、文档检查、Loop 与终态检查仍须拒绝交付。
+- `mark-completed-issues.sh` 的 dry-run 遇无效声明或缺文件时输出可搜索的 skip 原因和诊断，apply 对该 Issue 零 broker 写入。合法合同时，再按 §11 的独立 deployment_lifecycle 判终态。文件存在与可解析不证明 verification 内每项现场动作已执行。
+
 ### 何时声明 `verification`
 
 `required_docs` 含不含 `verification` 回答的是「这次变更**欠不欠一份验证记录**」，
@@ -414,6 +426,8 @@ PR #169 被合进 main，`origin/main~1` 于是等于 `770d527`。写错既不�
 姿态——那里没有人在读。该事实由 `codex/tests/test-mark-deployed-issues.sh` 钉住。
 
 判定是一个**合取**，两个条件都取自仓库证据，都不接受人工传入的终态判断（#163）：
+
+下表只适用于已经通过文档声明与实际文件校验的合同。#289 要求工具通过 §3 的共享 resolver 取得规范化 required_docs；缺失的 verification 不能作为“含 verification”的有效合同进入此表，不能改读原文或依据部署属性放行。该约束在 T01 仅完成治理说明，工具接入待 T02/T03 验证。
 
 | 该 Issue 映射 summary 的 `required_docs` 含 `verification` | 该项目的 `deployment_lifecycle` | 终态 |
 |---|---|---|

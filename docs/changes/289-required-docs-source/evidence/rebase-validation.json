@@ -1,0 +1,30 @@
+{
+  "issue": 289,
+  "branch": "change/289-required-docs-source",
+  "session_id": "01a0fc7b-dfb2-77b3-a089-2d0f73ac8554",
+  "original_candidate": "536db8af19947afa9d2523301121e31df9ec39c0",
+  "main_sha": "11c0410d3878d5449fa61796f174ba3d2dd5e59c",
+  "rebased_tested_head": "9b89f0e617645fa6607b885b4ef9ecf88e1e81b3",
+  "range_diff": "six commits all equal; no conflicts",
+  "fresh_governance_read": [
+    "AGENTS.md",
+    "README.md",
+    "03-Issue-Spec-Plan与单闸门开发流程.md",
+    "codex/skills/issue-session-flow/SKILL.md"
+  ],
+  "smoke": {
+    "command": "LC_ALL=C PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh",
+    "exit_code": 0,
+    "runtime_tests": 992,
+    "runtime_seconds": 98.165,
+    "static_checks": "PASS",
+    "log": "/private/tmp/aisoft-289-evidence/smoke-rebased.txt",
+    "log_sha256": "25eca327e8ecaf56848866d50e29958a241c550e1b9c2eed3765449bbb659225"
+  },
+  "onboarding": "PASS",
+  "required_contexts": [
+    "CI / verify (pull_request)"
+  ],
+  "classification": "platform/complex projected",
+  "pr_ci": "NOT RUN: before first push/PR creation"
+}

@@ -14,6 +14,10 @@ from aisoft_loop.documents import (
 
 SUMMARY = """---
 issue: 57
+required_docs:
+  - summary
+  - spec
+  - plan
 documents:
   summary: summary-matt-flow-260808.md
   spec: spec-matt-flow-260808.md
@@ -109,6 +113,8 @@ if __name__ == "__main__":
 BACKFILL_SUMMARY = """---
 issue: 57
 gitea_url: http://gitea.example.invalid/admin/demo/issues/57
+required_docs:
+  - summary
 documents:
   summary: summary-matt-flow-260808.md
 status: approved

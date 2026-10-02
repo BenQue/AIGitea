@@ -1,0 +1,13 @@
+{
+  "issue": 289,
+  "branch": "change/289-required-docs-source",
+  "policy": "manual",
+  "user_message": "确认提交",
+  "confirmed_candidate": "536db8af19947afa9d2523301121e31df9ec39c0",
+  "rebase_reason": "canonical main advanced by #320; owner-only rebase; range-diff all six commits equal",
+  "rebased_head": "9b89f0e617645fa6607b885b4ef9ecf88e1e81b3",
+  "main_sha": "11c0410d3878d5449fa61796f174ba3d2dd5e59c",
+  "confirmed_at": "2026-10-02T21:08:28.650805+08:00",
+  "session_id": "01a0fc7b-dfb2-77b3-a089-2d0f73ac8554",
+  "scope": "unique final PR submission plus in-contract CI repair; no merge/deployment"
+}
