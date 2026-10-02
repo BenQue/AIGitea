@@ -27,7 +27,7 @@ updated: 2026-10-02
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 发布并可读回独立 release 兼容治理合同，完成后停止等待 fresh run | - | pending |
+| T01 | 发布并可读回独立 release 兼容治理合同，完成后停止等待 fresh run | - | completed |
 | T02 | public phased lifecycle 实现 v3 DB position 与 exact compatibility gate，从状态记录到 activate/rollback/错误输出可验收 | T01 + fresh run | pending |
 | T03 | legacy deploy 与所有恢复路径统一 gate，consumer 说明、边界回归与最终候选 | T02 | pending |
 
@@ -84,3 +84,10 @@ updated: 2026-10-02
 ## 最终确认与交付
 
 只有本地 AC 验证、完整 smoke、diff review 和真实 classification --verify projected 后才请求 exact #317 / change/317-migration-rollback-guard / manual 的最终 PR 提交确认。随后 broker push、pushed_head 与候选 SHA 比对、唯一 Closes #317 PR、回填实际 pr_url、required CI。停 READY_FOR_REVIEW，由人合并。merge 后证明 exact SHA 在 origin/main、确定性终态检查/清理/归档；NewEMaint #229 在其会话继续更新 pin。
+
+## T01 完成与停止交接
+
+2026-10-02 独立治理合同已应用，本地源码 commit `7de1cc2516d38c2b86d667e31d92f5f4a60dfa7e`；文档 review 修复 commit `95ff8f30f679a1baf978774ed32b855ae4ebe70a`。
+Standards 和 Spec 两轴发现3项文档表达问题，均修复后由原 reviewer 只读复核通过，详见 `evidence/review-t01.md`。
+纯合同和文档检查通过；type/complexity/lifecycle 实际读回正确。运行在这里停止，不实施 T02/T03。
+下一 fresh run 沿用当前完整批准，重读治理合同和 claim 后从 T02 开始；不得把本次批准作为最终PR提交或merge/deploy许可。

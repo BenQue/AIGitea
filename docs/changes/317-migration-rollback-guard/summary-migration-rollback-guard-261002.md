@@ -109,3 +109,8 @@ override_reason: ''
 classification --verify 两维真实 projected，远端 lifecycle=approved。
 完整合同 loader 读到10条 AC、frontier=T01。runtime/schema/test、PR CI、installed/live 均 NOT RUN。
 Matt triage typed 写缺口记录为 GAP，本票不改 broker 或通过其他身份绕过。
+
+
+T01 治理合同应用及两轴文档 review 已完成；3项发现已修复复核，无未解决review finding。
+本运行按已批准合同停止。T02/T03必须由下一fresh run重读后实施，沿用当前批准，不追加合同确认。
+批准记录已发布至Issue评论12027；无remote branch/PR，尚无可供应用采用的新merged SHA。

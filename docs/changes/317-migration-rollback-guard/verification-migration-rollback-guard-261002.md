@@ -77,7 +77,14 @@ AC-01–10 均 NOT RUN（指修复后的合同验收）；baseline reproducer �
 | pure load_contract + frontier | PASS | CONTRACT_VALID；criteria_count=10；frontier=T01 |
 | 文档与 pr_url 检查 | PASS | changes=145 pass=2 gap=0 |
 | Matt triage/category 状态投影 | GAP | 当前 broker 无 triage typed write；extension 明确禁止 managed prefix，未绕过 |
-| T01 Standards / Spec 独立 review | NOT RUN | 本地提交后执行并回填 |
+| T01 Standards / Spec 独立 review | PASS | 两轴发现1+2项文档问题；95ff8f3修复，原reviewer复核均通过；evidence/review-t01.md |
 | runtime、release suite、smoke、CI、installed/live | NOT RUN | T01 文档步骤，本阶段不宣称功能通过 |
 
 T01 完成后停止。下一条 fresh run 重读当前 AGENTS/README、已批准 spec/plan、新治理合同和 claim，再沿用已有批准实施 T02/T03；不额外申请合同启动批准。
+
+### T01 完成证据
+
+`7de1cc2` 应用独立治理合同；`95ff8f3` 修复 review 表达缺口。原 Standards/Spec reviewer 复核均通过。
+当前 T01=completed，T02/T03=pending；本运行到此停止，未调用 runtime/Controller/Docker/DB。
+远端合同批准评论已由 broker 发布：`http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/317#issuecomment-12027`。
+Matt triage typed 写缺口保持 GAP，本票允许范围不含broker修复；核心contract loader不依赖该维度。
