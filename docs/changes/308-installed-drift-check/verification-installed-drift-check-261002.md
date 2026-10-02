@@ -143,3 +143,13 @@ Mac `/etc` 是系统父链接，依本合同的未声明链接拒绝规则报告
 正式 classification --verify 308 读回 platform/complex/projected；只用 byte-identical projector 临时副本绑定 installed broker，未 --apply。Issue open/approved，main push/force 禁止，required `CI / verify (pull_request)`，merge allowlist admin，无既有 #308 PR。文档 resolver/check、owner marker、语法/ShellCheck/diff-check 全通过。首次仅输出合同摘要的辅助脚本属性名错误已修正，load_contract 本身未失败，未改 runtime。
 
 T04 的验证/候选工作完成；原 AC-2 GAP 作为验收阻塞保留，Issue 未完成/归档。唯一 PR 草稿见 `evidence/final-pr-candidate.md`，提交尚待 exact #308/branch/manual 确认；没有 push/PR/CI/merge/安装/凭据/部署。README/06 的“待实现”阶段说明在最终独立 docs-only 治理步骤更新，之后停止运行。
+
+## 提交确认后的 fresh-main 复验
+
+用户于 2026-10-02 明确回复“确认提交”，授权 exact #308 / `change/308-installed-drift-check` / `manual` 的非 force broker push、唯一 PR、summary-only URL 回填与范围内 CI 修复。收据：`evidence/pr-submission-authorization.json`；不包含 merge、真实安装、凭据、部署或 AC-2 豁免。
+
+提交前 broker fresh main 前进至 `14bfe6edea6a78e994daac88b3615c009ae37fea`（#287）。本会话在 clean owner worktree 无冲突 rebase，复验源码 HEAD `d92407296779e64ae480813799cd7788f8104959`。完整 `LC_ALL=C bash codex/tests/smoke.sh` 退出 0，23 checker fixture、992 runtime tests 和全部静态门 PASS。旧 978 测试收据保留为历史，不能替代本次复验。
+
+两台新 checker 再次只读运行，source 与本次 cached main 的受管字节相等、freshness 仍要求外部证据；installed 均 GAP，broker 两台 PASS。#287 新增 architecture schema/decision 自动纳入受管映射，expected files 从 25 增至 27，默认目标依旧缺失。完整 JSON 与复验日志见 `evidence/pr-prepush-validation.json`、`pr-mac-installed.json`、`pr-gitea-ci-installed.json`、`pr-smoke-C.log.gz`。classification 仍 projected platform/complex/manual。
+
+T04 ticket 的局部验证/候选工作为 completed；AC-2「Mac 全 PASS」独立保持 GAP，Issue 尚未验收完成，不归档。当前准备提交唯一最终 PR，CI 尚待远端运行；本次证据更新仅修改 #308 语义文档和证据，不改变已测试的 runtime。

@@ -111,3 +111,13 @@ fresh main `11c0410d3878d5449fa61796f174ba3d2dd5e59c` 已通过 installed broker
 Mac 与 gitea-ci 新工具真实运行均 source PASS、installed GAP；broker 两台 PASS，runtime 缺模块、skills 旧字节、三组件默认缺失以及 Mac `/etc` 父链接拒绝均如实报告。原 AC-2「Mac 全 PASS」仍 GAP，未改验收标准或真实安装面，不标 completed、不归档。
 
 唯一最终 PR 的 reviewable 草稿与验证/installed 收据在 `evidence/final-pr-candidate.md`、`t04-local-validation.json`、`t04-real-readonly-receipt.json`。状态 AWAITING_PR_CONFIRMATION；尚无 push/PR/CI/merge/安装/凭据/部署。提交确认仅绑定 exact #308 / change/308-installed-drift-check / manual，可继续范围内 CI 修复，人工 review/merge 与 AC-2 验收仍保持边界。
+
+## 提交确认后的 fresh-main 复验
+
+用户于 2026-10-02 明确回复“确认提交”，授权 exact #308 / `change/308-installed-drift-check` / `manual` 的非 force broker push、唯一 PR、summary-only URL 回填与范围内 CI 修复。收据：`evidence/pr-submission-authorization.json`；不包含 merge、真实安装、凭据、部署或 AC-2 豁免。
+
+提交前 broker fresh main 前进至 `14bfe6edea6a78e994daac88b3615c009ae37fea`（#287）。本会话在 clean owner worktree 无冲突 rebase，复验源码 HEAD `d92407296779e64ae480813799cd7788f8104959`。完整 `LC_ALL=C bash codex/tests/smoke.sh` 退出 0，23 checker fixture、992 runtime tests 和全部静态门 PASS。旧 978 测试收据保留为历史，不能替代本次复验。
+
+两台新 checker 再次只读运行，source 与本次 cached main 的受管字节相等、freshness 仍要求外部证据；installed 均 GAP，broker 两台 PASS。#287 新增 architecture schema/decision 自动纳入受管映射，expected files 从 25 增至 27，默认目标依旧缺失。完整 JSON 与复验日志见 `evidence/pr-prepush-validation.json`、`pr-mac-installed.json`、`pr-gitea-ci-installed.json`、`pr-smoke-C.log.gz`。classification 仍 projected platform/complex/manual。
+
+T04 ticket 的局部验证/候选工作为 completed；AC-2「Mac 全 PASS」独立保持 GAP，Issue 尚未验收完成，不归档。当前准备提交唯一最终 PR，CI 尚待远端运行；本次证据更新仅修改 #308 语义文档和证据，不改变已测试的 runtime。

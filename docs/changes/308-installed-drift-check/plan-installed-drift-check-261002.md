@@ -27,7 +27,7 @@ updated: 2026-10-02
 | T01 | 独立应用 README/06 的检查范围、可读量、零写入与真实验收治理说明；停止该步骤 | - | completed |
 | T02 | fresh run 重读后交付八面 CLI + fixture PASS/GAP/恢复与零写入验证 | T01 | completed |
 | T03 | 独立仅修改 smoke 的静态/fixture 接入；保留全部既有门；停止该步骤 | T02 | completed |
-| T04 | fresh run 跑完整门与两台只读回读、更新验收缺口和唯一最终 PR 候选 | T03 | completed（验证/候选）；AC-2 GAP 保留 |
+| T04 | fresh run 跑完整门与两台只读回读、更新验收缺口和唯一最终 PR 候选 | T03 | completed |
 
 每个 ticket 只在 exact branch 本地原子提交，subject 含 #308/Txx。T01、T03 受控步骤应用后停止；后续 fresh run 重读 source/合同继续，无需重复用户启动确认。AC-2 缺口不由这些 ticket 重装解决；T04 必须保留阻塞，未满足合同不能报已完成或归档。
 
