@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 import socket
 from typing import Mapping
@@ -20,7 +20,11 @@ from .contract import (
     require_external_env_file,
 )
 from .docker import DockerAdapter
-from .errors import ContractError, DeploymentError, HostRoleError, ReleaseError
+from .errors import (
+    ActivationError, ContractError, DeploymentError, HostRoleError, ReleaseError,
+    RollbackBlocked, RollbackFailed,
+)
+from .rollback_compatibility import require_rollback_compatible
 from .state import DeploymentLock, StateStore
 from .transport import ReleaseTransport, select_transport, validate_offline_artifact
 
@@ -45,10 +49,12 @@ class ReleaseRuntime:
         *,
         hostname: str | None = None,
         today: date | None = None,
+        now: datetime | None = None,
     ) -> None:
         self.docker = docker or DockerAdapter()
         self.hostname = hostname or socket.gethostname()
         self.today = today
+        self.now = now
 
     def verify_artifact(
         self, release_root: Path | str, release_id: str
@@ -118,6 +124,7 @@ class ReleaseRuntime:
         with DeploymentLock(context.profile.state_root):
             state = store.load()
             self._require_staged(context, state)
+            self._ensure_migration_not_uncertain(context, state)
             self._require_migration_completed(context, state)
             current = state["current_release"]
             if current == release_id and self._is_exact_healthy(context):
@@ -127,20 +134,8 @@ class ReleaseRuntime:
             try:
                 self._start_and_assert(context)
             except ReleaseError as activation_error:
-                if isinstance(current, str):
-                    try:
-                        previous = self._verify_target_context(
-                            profile_path, current, "activate", require_env=True
-                        )
-                        self._require_staged(previous, state)
-                        self._start_and_assert(previous)
-                    except ReleaseError as rollback_error:
-                        raise DeploymentError(
-                            "activation failed and automatic container rollback failed"
-                        ) from rollback_error
-                raise DeploymentError(
-                    "activation failed; previous container release was preserved or restored"
-                ) from activation_error
+                self._automatic_rollback(context, current, state, store, profile_path,
+                                         phased=True, cause=activation_error)
             if current != release_id:
                 state["previous_release"] = current
                 state["current_release"] = release_id
@@ -175,19 +170,8 @@ class ReleaseRuntime:
             try:
                 self._start_and_assert(context)
             except ReleaseError as deploy_error:
-                if isinstance(current, str):
-                    try:
-                        previous = self._verify_context(
-                            profile_path, current, "deploy", require_env=True
-                        )
-                        self._start_and_assert(previous)
-                    except ReleaseError as rollback_error:
-                        raise DeploymentError(
-                            "deployment failed and automatic container rollback failed"
-                        ) from rollback_error
-                raise DeploymentError(
-                    "deployment failed; previous container release was preserved or restored"
-                ) from deploy_error
+                self._automatic_rollback(context, current, state, store, profile_path,
+                                         phased=False, cause=deploy_error)
             if current != release_id:
                 state["previous_release"] = current
                 state["current_release"] = release_id
@@ -216,23 +200,42 @@ class ReleaseRuntime:
                 raise DeploymentError("rollback requires a currently deployed release")
             if previous != release_id:
                 raise DeploymentError("rollback release_id must equal recorded previous_release")
-            if context.files.manifest.contract_version == RELEASE_VERSION_V2:
-                self._require_staged(context, state)
-            else:
-                context.transport.prepare()
             try:
+                current_context = self._verify_context(profile_path, current, "rollback", require_env=True)
+                self._require_rollback_compatible(current_context, context, state)
+            except ReleaseError as gate_error:
+                state["last_result"] = "rollback-blocked"
+                store.save(state)
+                raise RollbackBlocked("explicit rollback blocked") from gate_error
+            try:
+                if context.files.manifest.contract_version == RELEASE_VERSION_V2:
+                    self._require_staged(context, state)
+                else:
+                    context.transport.prepare()
                 self._start_and_assert(context)
             except ReleaseError as rollback_error:
                 try:
                     current_context = self._verify_context(
                         profile_path, current, "rollback", require_env=True
                     )
+                    self._require_rollback_compatible(context, current_context, state)
+                except ReleaseError as gate_error:
+                    state["last_result"] = "rollback-restore-blocked"
+                    store.save(state)
+                    raise RollbackBlocked("explicit rollback failed; current release restoration blocked") from gate_error
+                try:
+                    if current_context.files.manifest.contract_version == RELEASE_VERSION_V2:
+                        self._require_staged(current_context, state)
                     self._start_and_assert(current_context)
                 except ReleaseError as restore_error:
-                    raise DeploymentError(
+                    state["last_result"] = "rollback-restore-failed"
+                    store.save(state)
+                    raise RollbackFailed(
                         "explicit rollback failed and current release restoration failed"
                     ) from restore_error
-                raise DeploymentError(
+                state["last_result"] = "rollback-current-restored"
+                store.save(state)
+                raise RollbackFailed(
                     "explicit rollback failed; current release was restored"
                 ) from rollback_error
             state["current_release"] = release_id
@@ -240,6 +243,42 @@ class ReleaseRuntime:
             state["last_result"] = "rolled-back"
             store.save(state)
             return self._result(context, "rolled-back", state)
+
+    def _automatic_rollback(
+        self, candidate: VerifiedRelease, current: object, state: dict[str, object],
+        store: StateStore, profile_path: Path | str, *, phased: bool, cause: ReleaseError,
+    ) -> None:
+        phase = "activation" if phased else "deployment"
+        if not isinstance(current, str):
+            state["last_result"] = f"{phase}-failed"
+            store.save(state)
+            raise ActivationError(f"{phase} failed; no previous release is available") from cause
+        verify = self._verify_target_context if phased else self._verify_context
+        try:
+            previous = verify(profile_path, current, "activate" if phased else "deploy", require_env=True)
+            self._require_rollback_compatible(candidate, previous, state)
+        except ReleaseError as gate_error:
+            state["last_result"] = f"{phase}-rollback-blocked"
+            store.save(state)
+            raise RollbackBlocked(f"{phase} failed; automatic rollback blocked") from gate_error
+        try:
+            if previous.files.manifest.contract_version == RELEASE_VERSION_V2:
+                self._require_staged(previous, state)
+            self._start_and_assert(previous)
+        except ReleaseError as rollback_error:
+            state["last_result"] = f"{phase}-rollback-failed"
+            store.save(state)
+            raise RollbackFailed(f"{phase} failed and automatic container rollback failed") from rollback_error
+        state["last_result"] = f"{phase}-rollback-restored"
+        store.save(state)
+        raise ActivationError(f"{phase} failed; previous container release restored") from cause
+
+    def _require_rollback_compatible(
+        self, candidate: VerifiedRelease, rollback: VerifiedRelease, state: Mapping[str, object],
+    ) -> None:
+        if candidate.profile != rollback.profile:
+            raise RollbackBlocked("rollback target profile changed during operation")
+        require_rollback_compatible(candidate.profile, candidate.files, rollback.files, state, now=self.now)
 
     def _verify_artifact(
         self, release_root: Path | str, release_id: str
@@ -345,14 +384,12 @@ class ReleaseRuntime:
     def _ensure_migration_not_uncertain(
         self, context: VerifiedRelease, state: Mapping[str, object]
     ) -> None:
-        migration = context.files.manifest.migration
-        if migration is None:
-            return
         migrations = state.get("migrations")
         if not isinstance(migrations, Mapping):
             raise DeploymentError("deployment migration state is invalid")
-        record = migrations.get(migration.identity)
-        if isinstance(record, Mapping) and record.get("status") in {"started", "failed"}:
+        if state["database_revision"]["status"] == "uncertain" or any(
+            record.get("status") in {"started", "failed"} for record in migrations.values()
+        ):
             raise DeploymentError(
                 "migration outcome is uncertain or failed; automatic rerun is forbidden"
             )
@@ -403,6 +440,12 @@ class ReleaseRuntime:
             "status": "started",
             "release_id": context.files.manifest.release_id,
         }
+        revision = state["database_revision"]
+        state["database_revision"] = {
+            "status": "uncertain",
+            "migration_identity": migration.identity,
+            "generation": revision["generation"] + 1,
+        }
         state["last_result"] = "migration-started"
         store.save(state)
         try:
@@ -427,6 +470,7 @@ class ReleaseRuntime:
             "status": "completed",
             "release_id": context.files.manifest.release_id,
         }
+        state["database_revision"]["status"] = "known"
         state["last_result"] = "migration-completed"
         store.save(state)
         return "migration-completed"

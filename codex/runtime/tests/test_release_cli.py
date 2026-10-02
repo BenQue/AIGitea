@@ -6,13 +6,60 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from aisoft_release.cli import build_parser, main
+from aisoft_release.runner import ReleaseRuntime
 
-from tests.release_test_support import SHA_A, create_release, update_compose_model
+from tests.release_test_support import (
+    FakeDocker, SHA_A, SHA_B, create_release, install_rollback_evidence, update_compose_model,
+)
 
 
 class ReleaseCliTests(unittest.TestCase):
+    def test_activation_failure_cli_codes_are_nonzero_and_do_not_echo_paths_or_docker_errors(self) -> None:
+        for outcome, expected in (("no-previous", "ACTIVATION_FAILED"),
+                                  ("blocked", "ROLLBACK_BLOCKED"),
+                                  ("restored", "ACTIVATION_FAILED"),
+                                  ("restore-failed", "ROLLBACK_FAILED")):
+            with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                docker = FakeDocker()
+                for release in (SHA_A, SHA_B):
+                    profile, model, manifest = create_release(root, release)
+                    docker.register(release, model, manifest)
+                runtime = ReleaseRuntime(docker, hostname="test-host")
+                if outcome != "no-previous":
+                    runtime.deploy(profile, SHA_A)
+                runtime.stage(profile, SHA_B)
+                runtime.migrate(profile, SHA_B)
+                docker.unhealthy_for.add(SHA_B)
+                if outcome in {"restored", "restore-failed"}:
+                    install_rollback_evidence(root, SHA_B, SHA_A)
+                if outcome == "restore-failed":
+                    docker.fail_up_for.add(SHA_A)
+                stdout, stderr = io.StringIO(), io.StringIO()
+                # Mock only the Docker/hostname system boundaries; use the real CLI and runtime.
+                with patch("aisoft_release.runner.DockerAdapter", return_value=docker), \
+                     patch("aisoft_release.runner.socket.gethostname", return_value="test-host"), \
+                     contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    exit_code = main(["activate", "--profile", str(profile), "--release-id", SHA_B])
+                self.assertEqual(exit_code, 2)
+                self.assertEqual(stdout.getvalue(), "")
+                payload = json.loads(stderr.getvalue())
+                self.assertEqual(set(payload), {"ok", "error_code", "message"})
+                self.assertFalse(payload["ok"])
+                self.assertEqual(payload["error_code"], expected)
+                self.assertNotIn(str(root), stderr.getvalue())
+                self.assertNotIn("fake health", stderr.getvalue())
+                self.assertNotIn("fixture-value", stderr.getvalue())
+
+    def test_cli_has_no_rollback_evidence_or_boolean_bypass_override(self) -> None:
+        for option in ("--rollback-compatibility-file", "--force", "--allow-rollback"):
+            with self.subTest(option=option), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                build_parser().parse_args(["rollback", "--profile", "/tmp/profile.json",
+                                           "--release-id", SHA_A, option, "/tmp/attacker.json"])
+
     def test_stable_commands_require_only_profile_and_release_id(self) -> None:
         parser = build_parser()
         for command in (

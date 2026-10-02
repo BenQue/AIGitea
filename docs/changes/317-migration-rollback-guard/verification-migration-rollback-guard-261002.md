@@ -27,7 +27,7 @@ updated: 2026-10-02
 
 - authoritative origin/main：`5c2cd726c9aeaee9d17541d8feb049e33881bbac`；2026-10-02 经 project=aisoft-platform broker fetch。
 - Session：`01a0fc7b-9d82-75e2-975f-d407cd23e34a`；exact worktree `/private/tmp/issue-317-migration-rollback-guard` 已 claim。
-- 当前合同已批准，T01 治理文档已应用；runtime 尚未实施。下节保存批准前的历史观测，不代表当前授权或标签状态。
+- 当前合同已批准，T01 独立停止后 fresh run 已实施 T02/T03。下节保存批准前历史观测，不代表当前授权、实现或标签状态。
 
 ## 批准前基线执行结果（历史）
 
@@ -52,13 +52,27 @@ updated: 2026-10-02
 
 ## Acceptance criteria 结果
 
-AC-01–10 均 NOT RUN（指修复后的合同验收）；baseline reproducer 只证明缺陷存在。正式结果将由后续批准后的 fresh runtime run 回填。
+| AC | 当前结果 | 可复核证据 |
+|---|---|---|
+| AC-01 | PASS | phased activation 不同 migration 时 ROLLBACK_BLOCKED，旧 up=0，保留数据库位置 |
+| AC-02 | PASS | legacy v1/v2 deploy 失败均拒绝无依据自动回退 |
+| AC-03 | PASS | operator 文件 strict shape、双 manifest hash、target binding、UTC expiry、权限/路径、限量、open/fstat 与替换中读取测试 |
+| AC-04 | PASS | known same identity proof；不同/null/untracked 需 exact evidence；uncertain/started/failed 固定拒绝 |
+| AC-05 | PASS | #305 同 identity completed no-op 和审计 receipt.release_id 保持 |
+| AC-06 | PASS | A/B 共用 A 而 C 已迁移时拒绝回退；noop 不伪造 DB cursor |
+| AC-07 | PASS | v1/v2 合法读升级 untracked、不写原 bytes；v3 非法 generation/identity/fields 拒绝；旧 schema 未改 |
+| AC-08 | GAP | 四类入口及旧闸门本地 regression PASS；完整 smoke FAIL，固定证据集合需合同修订 |
+| AC-09 | PASS | CLI failed exit=2、稳定安全 code/message；没有 override/bypass 参数、无路径/fixture secret/Docker error 回显 |
+| AC-10 | PASS (local docs) | README、versioned contract、过期合成 example 和 merged-pin 边界；应用采用/现场验收 NOT RUN |
+
+188-test release suite 为当前本地 source/fixture 验收；完整 smoke 和审查状态以下方实际回执为准。
+
 
 ## 授权、遗留风险与未完成项
 
 2026-09-21 平台先行方向保留；本票首次具体的 profile/evidence/state/security 合同已获2026-10-02 用户直接批准；授权证据见 evidence/contract-start-approval.json。
 依赖：#317 depends_on=[]；NewEMaint #229 被本票阻塞。
-需要 runtime/schema/test 实施、consumer review、最终 PR 提交确认和人工 merge；不能提供新的 merged SHA 或宣称解除 #229 前置。
+runtime/schema/test 和本地 consumer 文档已实施。最终候选还须完整 smoke/审查读回、最终 PR 提交确认与人工 merge；不能提供新的 merged SHA 或宣称解除 #229 前置。
 
 ## T01 独立治理合同步骤（2026-10-02）
 
@@ -88,3 +102,24 @@ T01 完成后停止。下一条 fresh run 重读当前 AGENTS/README、已批准
 当前 T01=completed，T02/T03=pending；本运行到此停止，未调用 runtime/Controller/Docker/DB。
 远端合同批准评论已由 broker 发布：`http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/317#issuecomment-12027`。
 Matt triage typed 写缺口保持 GAP，本票允许范围不含broker修复；核心contract loader不依赖该维度。
+
+## T02/T03 fresh run（2026-10-02）
+
+- 用户继续指令沿用完整批准；fresh run 重读合同/单写者 claim 后实施，未改共享 main。
+- 先添加 public-interface 回归并观察失败：缺 database_revision；不同 migration 健康失败时返回旧代码并启动旧镜像；中断后其它 migration 可运行；legacy/恢复路径仍无 guard。分别实现后转绿。
+- Evidence reader 固定 256 KiB/128 records，directory FD + O_NOFOLLOW/open/fstat 验证同一 inode；安全消息不拼接路径或 untrusted 内容。Operator immediate parent 必须非 group/world writable 且 owner 为 profile owner/root；root-owned sticky system-temp 仅作为祖先 traversal anchor，不能作为 operator parent。
+- 同 identity lane 使用 actual DB cursor + completed ledger，不以 receipt.release_id 作限制；显式 evidence fingerprint 不含 current/previous/last_result/env。
+- README 的教学 example 已过期且为合成 hash，未 provision live profile、依据或 grant。
+- `evidence/release-suite.json`：完整 release suite 188 tests PASS。
+- `evidence/platform-smoke.json`：FAIL，exit=1；`check-release-evidence-boundary.py` 报 current file set differs from the fixed baseline。不能写成 PASS。
+- classification --verify 已经 broker host 路径读回真实 projected（bugfix/complex）；初次 sandbox state-unreadable 是执行路径失败，未据此改判级或绕过 broker。
+- 两轴审查将固定 local source head 与 authoritative base，结果和修复回执另记。
+- PR CI、installed/live Docker/DB、NewEMaint #229 消费验收、安装、部署：NOT RUN。
+
+## 新发现的合同范围冲突
+
+完整 smoke 的固定检查器保留 #65/#290 历史 baseline，当前 source 仅允许 runner/transport/matrix
+三项 exact pin amendment。本票新增 module/schema/contract 和 state/parser/errors，因文件集合及
+固定 bytes 同时不匹配而被 fail closed。批准 allowlist 不含该检查器，故未修改，也未把它跳过。
+AGENTS 要求合同冲突/范围扩张升级给人。精确修订提案另存 `evidence/governance-amendment-proposal.md`；
+当前批准 spec 的 bytes 不改，不伪造修订批准。最终 PR 候选尚不满足完整 hard gate。

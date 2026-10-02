@@ -133,6 +133,7 @@ class TargetProfile:
     architecture_project_id: str | None
     catalog_revision: str
     wait_timeout_seconds: int
+    rollback_compatibility_file: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -173,7 +174,7 @@ def load_target_profile(path: Path | str, *, require_protected: bool = True) -> 
             "catalog_revision",
             "wait_timeout_seconds",
         },
-        {"architecture_project_id"},
+        {"architecture_project_id", "rollback_compatibility_file"},
         "target profile",
     )
     contract_version = _string(value, "contract_version", "target profile")
@@ -198,6 +199,12 @@ def load_target_profile(path: Path | str, *, require_protected: bool = True) -> 
     _reject_path_overlap(release_root, state_root, "release_root", "state_root")
     if _is_within(env_file, release_root) or _is_within(env_file, state_root):
         raise ContractError("target profile env_file must be outside release and state roots")
+    rollback_compatibility_file = None
+    if "rollback_compatibility_file" in value:
+        rollback_compatibility_file = _absolute_path(value, "rollback_compatibility_file", "target profile")
+        for protected_path in (release_root, state_root, env_file):
+            if _is_within(rollback_compatibility_file, protected_path) or _is_within(protected_path, rollback_compatibility_file):
+                raise ContractError("rollback compatibility file must be outside release, state and environment paths")
     compose_project = _matching_string(
         value, "compose_project", COMPOSE_PROJECT, "target profile"
     )
@@ -240,6 +247,7 @@ def load_target_profile(path: Path | str, *, require_protected: bool = True) -> 
         architecture_project_id=architecture_project_id,
         catalog_revision=catalog_revision,
         wait_timeout_seconds=wait_timeout,
+        rollback_compatibility_file=rollback_compatibility_file,
     )
 
 

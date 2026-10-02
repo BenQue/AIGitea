@@ -1,0 +1,7 @@
+{
+  "command": "bash codex/tests/smoke.sh",
+  "exit_code": 1,
+  "result": "FAIL",
+  "elapsed_seconds": 102.311,
+  "boundary": "local static/fixture checks; installed/live/PR CI NOT RUN"
+}

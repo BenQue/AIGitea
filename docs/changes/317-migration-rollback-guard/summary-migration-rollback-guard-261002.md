@@ -76,7 +76,7 @@ confidence: high
 override_reason: ''
 ```
 
-### 判级证据
+### 批准前判级证据（历史）
 
 - authoritative origin/main=5c2cd726c9aeaee9d17541d8feb049e33881bbac；共享 main clean。
 - #317 正文记录 2026-09-21 批准1,2 的平台先行方向，评论线程为空，无已映射 spec/plan、branch/history/PR。
@@ -103,7 +103,7 @@ override_reason: ''
 判级为 bugfix/complex。首次自动审批在完整合同批准前拒绝 live classification --apply，未写入标签；2026-10-02 用户直接批准后允许按 spec 执行本票投影，并独立 --verify 读回。历史拒绝不再是当前缺授权 blocker；不存在的 triage typed surface 仍不绕过。
 
 
-## T01 进度
+## T01 进度（历史停止点）
 
 2026-10-02 合同已获用户直接批准。Fresh base 不变；已独立应用 release 治理文档。
 classification --verify 两维真实 projected，远端 lifecycle=approved。
@@ -114,3 +114,13 @@ Matt triage typed 写缺口记录为 GAP，本票不改 broker 或通过其他�
 T01 治理合同应用及两轴文档 review 已完成；3项发现已修复复核，无未解决review finding。
 本运行按已批准合同停止。T02/T03必须由下一fresh run重读后实施，沿用当前批准，不追加合同确认。
 批准记录已发布至Issue评论12027；无remote branch/PR，尚无可供应用采用的新merged SHA。
+
+## T02/T03 当前进度
+
+用户后续“下一步，继续”构成 fresh run，已重读 AGENTS、README、批准的治理合同/spec/plan 和
+单写者 claim，在同一 worktree 实施。State v3 与数据库位置持久化、四类旧镜像启动/恢复路径
+的统一兼容 gate、strict operator evidence、schema、CLI 与 consumer 本地实现已完成。
+本地 release suite 188 tests PASS；完整 smoke FAIL：固定证据检查器需要批准范围外的 exact governance amendment。
+两轴审查结果见 verification，T03 最终验收 pending；尚未请求最终 PR 提交确认。
+远端 classification --verify 实际读回 bugfix/complex projected；manual policy 固定。
+PR、PR CI、installed/live 均 NOT RUN，NewEMaint #229 pin 未改，本票尚未解除该消费前置。

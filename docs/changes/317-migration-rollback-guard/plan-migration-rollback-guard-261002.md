@@ -28,7 +28,7 @@ updated: 2026-10-02
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 发布并可读回独立 release 兼容治理合同，完成后停止等待 fresh run | - | completed |
-| T02 | public phased lifecycle 实现 v3 DB position 与 exact compatibility gate，从状态记录到 activate/rollback/错误输出可验收 | T01 + fresh run | pending |
+| T02 | public phased lifecycle 实现 v3 DB position 与 exact compatibility gate，从状态记录到 activate/rollback/错误输出可验收 | T01 + fresh run | completed |
 | T03 | legacy deploy 与所有恢复路径统一 gate，consumer 说明、边界回归与最终候选 | T02 | pending |
 
 不新建子 Issue；所有 ticket 保持 #317。T01 合同批准前不应用。T01 完成后停止当前运行；后续 fresh run 沿用该批准，不增加第三个产品确认点。
@@ -52,7 +52,7 @@ updated: 2026-10-02
 | T03 / AC-10 | consumer 文档人工 diff review，说明仅使用最终人工 merged SHA，未提供不存在的 pin；scope diff 检查 |
 | 最终候选 | classification --apply → 独立 --verify #317 两维 projected；local commit clean；唯一 Issue/branch/worktree/docs tuple |
 
-新增测试文件名是预计实施接口；批准前不存在，尚未运行上述修复验证。
+新增测试文件已在 fresh run 实施并运行；具体完整验证及审查结果见映射 verification。
 
 ## 逐项 AC 验收索引
 
@@ -91,3 +91,12 @@ updated: 2026-10-02
 Standards 和 Spec 两轴发现3项文档表达问题，均修复后由原 reviewer 只读复核通过，详见 `evidence/review-t01.md`。
 纯合同和文档检查通过；type/complexity/lifecycle 实际读回正确。运行在这里停止，不实施 T02/T03。
 下一 fresh run 沿用当前完整批准，重读治理合同和 claim 后从 T02 开始；不得把本次批准作为最终PR提交或merge/deploy许可。
+
+## Fresh run 实施结果
+
+T02 先通过 public ReleaseRuntime + FakeDocker 验证 v3 position/no-op、phased gate 与 strict evidence；
+T03 本地实现已统一 legacy deploy 和显式回退失败恢复，但完整 smoke 的固定 source 闸门阻塞最终验收；保留 #305、host/action、artifact/image、transport、
+health 与 CLI 既有闸门。只使用合成 fixture，无真实 Docker/数据库调用。完整验收与最终候选
+以 verification 的实际命令回执为准；最终 manual PR 提交确认仍未取得。
+
+完整 smoke 在 `codex/tests/check-release-evidence-boundary.py` 拒绝新增文件集合，结果 FAIL。本检查器不在批准的 runtime allowlist，且扩大固定 pin 集合属治理变更；须精确合同修订后再实施。T03 保持 pending，禁止绕过 hard gate 或提前请求最终 PR。

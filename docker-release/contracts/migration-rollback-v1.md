@@ -1,7 +1,7 @@
 # Docker migration rollback compatibility v1
 
-> Issue #317 · 2026-10-02 已批准治理合同。T01 只应用本文件及 README；runtime、schema、
-> 本地功能验收和 CI 尚未完成。后续 fresh run 重读本合同后才能实施 T02/T03。
+> Issue #317 · 2026-10-02 已批准治理合同。T01 独立应用并停止后，fresh run 已实施 T02/T03。
+> 具体本地验证与审查记录见本票 verification；PR CI、installed/live 仍分别记录。
 
 本合同约束数据库迁移后的**旧镜像启动**，包括 phased `activate` 的自动回退、legacy
 v1/v2 `deploy` 的自动回退、显式 `rollback`，以及显式回退失败后的原 current 恢复。

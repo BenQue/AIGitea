@@ -35,3 +35,15 @@ class StateError(ReleaseError):
 
 class DeploymentError(ReleaseError):
     code = "DEPLOYMENT_FAILED"
+
+
+class ActivationError(DeploymentError):
+    code = "ACTIVATION_FAILED"
+
+
+class RollbackBlocked(DeploymentError):
+    code = "ROLLBACK_BLOCKED"
+
+
+class RollbackFailed(DeploymentError):
+    code = "ROLLBACK_FAILED"
