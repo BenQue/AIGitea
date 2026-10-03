@@ -1,0 +1,18 @@
+{
+  "issue": 316,
+  "branch": "change/316-service-pat-rotation",
+  "policy": "manual",
+  "human_reply": "确认提交",
+  "date": "2026-10-03",
+  "session": "01a0fc7c-3835-7322-874e-c910518c5746",
+  "confirmed_candidate_head": "0d82570cdec4acf0ead11ff78d3a778d1ef5e4c0",
+  "authorization": [
+    "typed broker branch push",
+    "one final PR creation",
+    "mapped summary-only PR URL backfill",
+    "in-contract CI repair and readback"
+  ],
+  "manual_merge_authorized": false,
+  "install_grant_live_authorized": false,
+  "boundary": "Source unchanged after confirmation; this receipt-only commit requires fresh exact-head validation before first push."
+}

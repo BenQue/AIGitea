@@ -1,0 +1,72 @@
+{
+  "issue": 316,
+  "branch": "change/316-service-pat-rotation",
+  "pr": 332,
+  "policy": "manual",
+  "authorization": "pr-submission-confirmation.json; approved T02/T04 in-contract CI repair",
+  "failed_head": "5f3f424fd6c04bcbafb1954fa73e620bdcb417c2",
+  "failed_run": 1755,
+  "failed_job": 1955,
+  "failed_step": "Pinned Linux PAT helper verification",
+  "failure": "KeyError: Dir in selected go list module JSON",
+  "prior_fixture_repair_real_ci": "PASS: full Platform smoke suite including 1091 runtime tests",
+  "root_cause": "readonly go list validates the selected graph but does not materialize source into a cold module cache; exact pinned Go probe reproduced missing Dir",
+  "changed_source": [
+    "codex/tools/gitea-pat-helper/build.py",
+    "codex/tools/gitea-pat-helper/test_build.py"
+  ],
+  "repair": "verify selected graph, explicitly download exact pinned module@version, revalidate Path/Version/Sum/Error and absolute Dir, preserve go.mod/go.sum bytes, verify model SHA before existing mod/test/build gates",
+  "pins_ci_installer_permissions_changed": false,
+  "fixed_go_cold_cache_probe": {
+    "result": "PASS",
+    "go": "go1.26.3",
+    "toolchain_input": {
+      "filename": "go1.26.3.darwin-arm64.tar.gz",
+      "sha256": "875cf54a15311eee2c99b9dd67c68c4a49351d489ab622bf2cfd28c8f2078d3c",
+      "extracted_tree_sha256": "6776f11b2e37f970ea9999dab83eeb23047c9a6d2b12332ffac4cf7e685c3250"
+    },
+    "cold_before": "Dir absent in prior exact Go probe",
+    "model_sha256": "dcf0e3fd325fe98e91d8a2e216aedbaf08fed20625748bbbdf03f090fc1728cd",
+    "module_inputs_unchanged": {
+      "go.mod": "7984831e4bf49c9ea348478bce595d7248ae0dbe4b0f612bc05f996a157a7993",
+      "go.sum": "4a822071aeed743e463af7c70fdc5baad1b47f6e2a7296e8081f64696f3da05d"
+    },
+    "boundary": "real pinned Go and public cold module cache; model source pin only, not installed or native Linux build"
+  },
+  "unit_tests": {
+    "result": "PASS",
+    "count": 10,
+    "new_tests": 6,
+    "red": "new function absent before implementation; actual fixed-Go cold cache separately reproduced missing Dir",
+    "negative_cases": [
+      "graph Path/Version/Sum/Replace",
+      "download Path/Version/Sum/Error/missing or relative Dir",
+      "model byte hash",
+      "module inputs changed"
+    ]
+  },
+  "two_axis_review": {
+    "standards_findings": 0,
+    "spec_findings": 0,
+    "mode": "parallel read-only; no agent ran CI or mutated source"
+  },
+  "full_smoke": {
+    "result": "PASS",
+    "exit_code": 0,
+    "locale": "C.UTF-8",
+    "drift_tests": 34,
+    "release_tests": 197,
+    "runtime_tests": 1091,
+    "static": "PASS",
+    "log": "ci-cold-cache-repair-smoke.log.gz",
+    "sha256": "3ee814aba00cf378c8fccf6e6fd1d6b592c84fa2d7d0a0657f704b8e83b22c96",
+    "uncompressed_sha256": "60b4ab573c71fd023e810578f3cfdc9e502cdab1af97e59c29c2cb3178ea13d2"
+  },
+  "source_sha256": {
+    "codex/tools/gitea-pat-helper/build.py": "9023795ba51bc0ba02aaa41adf39b6768642e59d73e3728663aff879cba7079f",
+    "codex/tools/gitea-pat-helper/test_build.py": "562632acb3b556d94ac13d460cd842bed14931d0829b71d90973d03a68f5184d"
+  },
+  "real_ci_after_fix": "PENDING_NEW_HEAD",
+  "rollback": "revert this bounded build/test repair commit through the governed change path; no installed artifacts or live credentials changed",
+  "installed_grant_live": "NOT RUN"
+}

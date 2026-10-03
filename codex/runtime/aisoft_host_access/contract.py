@@ -17,6 +17,18 @@ IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 GIT_REMOTE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 PATH_PREPEND_ENTRY_RE = re.compile(r"^/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$")
 
+ROTATION_POLICY = {
+    "operator_uid": 0,
+    "grant_root": "/usr/local/etc/aisoft/credential-rotation-grants",
+    "source_receipt": "/usr/local/share/aisoft/credential-rotation-source.json",
+    "vm_helper": "/usr/local/libexec/aisoft/gitea-pat-helper",
+    "vm_operator": "/usr/local/libexec/aisoft/rotate-gitea-service-account",
+    "vm_service_user": "git",
+    "gitea_binary": "/usr/local/bin/gitea",
+    "gitea_config": "/etc/gitea/app.ini",
+    "gitea_version": "1.26.4",
+}
+
 
 class AccessContractError(ValueError):
     """Raised when host-access configuration is unsafe or ambiguous."""
@@ -115,6 +127,7 @@ class ProjectContract:
     git_remote_name: str
     mac_checkout: str | None
     vm_profile: VMProfileContract | None
+    dependency_read_targets: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -154,6 +167,8 @@ class AccessContract:
             return self.governance.platform_manager
         if operation.identity_route == "host-operator":
             return self.raw["mac_host"]["orbstack_user"]
+        if operation.identity_route == "credential-operator":
+            return "root"
         raise AccessContractError("operation has an unknown identity route")
 
     def change_branch(self, value: str) -> str:
@@ -166,7 +181,9 @@ class AccessContract:
 
 
 EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
+    "gitea.credential.rotate": ("credential-operator", True, ("issue", "sha", "token_kind")),
     "gitea.repo.read": ("project-agent", False, ()),
+    "gitea.dependency.read": ("manager-audit", False, ("reference",)),
     "gitea.issue.read": ("project-agent", False, ("number",)),
     # Enumerating open Issues (#222). Without it a dispatching session could only
     # read by number, so it could not check for a duplicate before opening one —
@@ -307,13 +324,15 @@ def load_access_contract(
         {
             "contract_version", "environment", "governance_contract_version",
             "human_merge_identity", "identity_bindings", "mac_host",
-            "vm_profile_policy", "operations", "projects",
+            "vm_profile_policy", "credential_rotation_policy", "operations", "projects",
         },
         "host access manifest",
     )
     _require(raw["contract_version"] == "host-access-broker/v1",
              "unsupported host access contract version")
     _require(raw["environment"] == "local-orbstack", "unexpected host environment")
+    _require(raw["credential_rotation_policy"] == ROTATION_POLICY,
+             "credential rotation must use the fixed operator custody/transport policy")
     _require(raw["governance_contract_version"] == "gitea-governance/v1",
              "unexpected governance contract reference")
 
@@ -456,8 +475,8 @@ def load_access_contract(
         }
         project_keys = set(item)
         _require(
-            project_keys in {frozenset(required_project_keys),
-                             frozenset(required_project_keys | {"git_remote_name"})},
+            required_project_keys <= project_keys
+            and project_keys <= required_project_keys | {"git_remote_name", "dependency_read_targets"},
             f"projects[{index}] keys mismatch",
         )
         project_id = _identifier(item["project_id"], f"projects[{index}].project_id")
@@ -524,10 +543,17 @@ def load_access_contract(
             ) if "path_prepend" in vm_raw else ()
             vm_profile = VMProfileContract(profile_name, repo_dir, analysis, implementation,
                                            timer, path_prepend)
+        targets_raw = item.get("dependency_read_targets", [])
+        _require(isinstance(targets_raw, list), "dependency_read_targets must be a list")
+        targets = tuple(_identifier(target, "dependency_read_targets") for target in targets_raw)
+        _require(len(set(targets)) == len(targets) and project_id not in targets,
+                 "dependency_read_targets must be unique external project ids")
         projects.append(ProjectContract(project_id, repository, project_agent,
                                         routine_merge_agent, git_remote_name,
-                                        mac_checkout, vm_profile))
+                                        mac_checkout, vm_profile, targets))
 
+    _require(all(set(p.dependency_read_targets) <= project_ids for p in projects),
+             "dependency_read_targets must name canonical projects")
     _require(repositories == set(governance_by_name),
              "host access projects must exactly cover governance repositories")
     _require(

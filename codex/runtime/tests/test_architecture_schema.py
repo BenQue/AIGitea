@@ -34,6 +34,7 @@ class ArchitectureSchemaTests(unittest.TestCase):
             project,
             self.project_schema,
             TODAY,
+            repo_root=ARCH,
         )
 
     def test_catalog_and_all_profiles_validate(self) -> None:

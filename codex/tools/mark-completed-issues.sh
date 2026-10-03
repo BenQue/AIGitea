@@ -238,47 +238,28 @@ for issue in "${issues[@]}"; do
   # commit, so there is no commit to name.
   issue_commit="$(aisoft_merge_range_commit_for "$issue" || true)"
 
-  documents=""
-  if ! documents="$(
-    python3 -m aisoft_loop.cli resolve-documents "$issue" --repo "$repo" 2>/dev/null
+  document_contract=""
+  if ! document_contract="$(
+    python3 -m aisoft_loop.cli resolve-required-documents "$issue" --repo "$repo" 2>&1
   )"; then
     emit "$issue" skip documents-unresolved \
-      "no mapped change documents for Issue #$issue under $repo" false ''
+      "invalid change documents for Issue #$issue under $repo: $document_contract" false ''
     continue
   fi
-  summary_name="$(jq -r '.summary // empty' <<<"$documents")"
-  if [ -z "$summary_name" ]; then
+  # #289: shared strict resolver validates the declaration and actual files.
+  # Read only its normalized JSON, never find/awk the summary a second time.
+  # A malformed receipt cannot become a terminal write or an empty requirement.
+  if ! required_docs="$(jq -er '
+    .required_docs as $roles | .documents as $mapping |
+    select(($roles | type) == "array" and ($roles | length) > 0
+      and $roles[0] == "summary" and ($mapping | type) == "object"
+      and ($roles | all(.[]; type == "string"))
+      and ($roles | unique | length) == ($roles | length)
+      and all($roles[]; ($mapping[.] | type) == "string")) |
+    $roles[]
+  ' <<<"$document_contract" 2>/dev/null)"; then
     emit "$issue" skip documents-unresolved \
-      "Issue #$issue has no mapped summary document" false ''
-    continue
-  fi
-  summary_path="$(
-    find "$repo/docs/changes" -maxdepth 2 -type f -name "$summary_name" -print -quit
-  )"
-  if [ -z "$summary_path" ]; then
-    emit "$issue" skip documents-unresolved \
-      "mapped summary $summary_name is missing from the checkout" false ''
-    continue
-  fi
-
-  # required_docs is the判定 source of record: it is the same field the triage
-  # contract already uses to say whether this change owes a verification
-  # document, so the terminal state follows the contract instead of a fresh
-  # human opinion about the change.
-  required_docs="$(
-    awk '
-      /^---[[:space:]]*$/ { fence++; next }
-      fence == 1 && /^required_docs:[[:space:]]*$/ { collecting = 1; next }
-      fence == 1 && collecting && /^[[:space:]]*-[[:space:]]/ {
-        sub(/^[[:space:]]*-[[:space:]]*/, ""); print; next
-      }
-      fence == 1 && collecting { collecting = 0 }
-      fence >= 2 { exit }
-    ' "$summary_path"
-  )"
-  if [ -z "$required_docs" ]; then
-    emit "$issue" skip required-docs-missing \
-      "summary $summary_name declares no required_docs" false ''
+      "shared resolver returned invalid required document JSON for Issue #$issue" false ''
     continue
   fi
   # Two questions, and before #163 this one condition was made to answer both.

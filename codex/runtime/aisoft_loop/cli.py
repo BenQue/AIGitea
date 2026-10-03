@@ -12,7 +12,7 @@ from typing import Mapping, Optional
 
 from aisoft_change_name import ChangeName, ChangeNameError
 from aisoft_host_access.contract import AccessContractError, load_access_contract
-from aisoft_host_access.runner import RoutineMergeRunner
+from aisoft_host_access.runner import RoutineMergeRunner, DependencyReader
 from aisoft_worktree_owner import (
     SESSION_ENV, WorktreeOwnerError, caller_session, claim as claim_worktree,
 )
@@ -28,7 +28,7 @@ from .analysis import (
 from .change_audit import audit_change_documents
 from .change_control import resolve_change_control
 from .controller import Controller, LocalGit
-from .contract import ContractError, resolve_change_name, resolve_documents
+from .contract import ContractError, resolve_change_name, resolve_documents, resolve_required_documents
 from .documents import backfill_pr_url, publish_plan, publish_spec
 from .gitea import GiteaClient, GiteaError
 from .output import OutputError, extract_last_json_object
@@ -139,6 +139,12 @@ def main(argv: list[str] | None = None) -> int:
     resolve_document_names.add_argument("issue", type=int)
     resolve_document_names.add_argument("--repo", required=True, type=Path)
 
+    required_document_names = subparsers.add_parser(
+        "resolve-required-documents", help="read validated required roles and mapped filenames"
+    )
+    required_document_names.add_argument("issue", type=int)
+    required_document_names.add_argument("--repo", required=True, type=Path)
+
     backfill = subparsers.add_parser(
         "backfill-pr-url", help="write one change's PR URL into its summary front matter"
     )
@@ -223,6 +229,14 @@ def main(argv: list[str] | None = None) -> int:
         return _apply_analysis(args.issue, args.result_json, args.summary_url)
     if args.command == "resolve-documents":
         return _resolve_documents(args.repo, args.issue)
+    if args.command == "resolve-required-documents":
+        try:
+            resolved = resolve_required_documents(args.repo, args.issue)
+        except (ContractError, ChangeNameError, OSError, UnicodeError) as exc:
+            print(f"required document resolution failed: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(resolved, ensure_ascii=False, sort_keys=True))
+        return 0
     if args.command == "backfill-pr-url":
         return _backfill_pr_url(args.repo, args.issue, args.pr_url)
     if args.command == "check-change-documents":
@@ -348,12 +362,6 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
     try:
         provider_script = select_provider_script(os.environ, agent_dir)
         branch = resolve_change_name(repo, issue).branch
-        gitea = GiteaClient(
-            os.environ["GITEA_URL"],
-            os.environ["GITEA_OWNER"],
-            os.environ["GITEA_REPO"],
-            os.environ["GITEA_TOKEN"],
-        )
         config_root = Path(__file__).parents[2] / "config"
         governance_manifest = Path(
             os.environ.get("AISOFT_GOVERNANCE_MANIFEST")
@@ -364,6 +372,14 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
             or config_root / "host-access-broker.json"
         )
         access_contract = load_access_contract(access_manifest, governance_manifest)
+        source = access_contract.project(_required_env("AISOFT_PROJECT_ID"))
+        if (os.environ["GITEA_URL"].rstrip("/") != access_contract.governance.base_url
+                or os.environ["GITEA_OWNER"] != access_contract.governance.owner
+                or os.environ["GITEA_REPO"] != source.repository):
+            raise AccessContractError("Loop source binding differs from canonical manifest")
+        gitea = GiteaClient(access_contract.governance.base_url,
+                            access_contract.governance.owner, source.repository,
+                            os.environ["GITEA_TOKEN"])
         controller = Controller(
             repo=repo,
             gitea=gitea,
@@ -379,6 +395,9 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
             max_same_root=int(os.environ.get("LOOP_MAX_SAME_ROOT", "3")),
             change_control=resolve_change_control(_required_env("GITEA_REPO")),
             routine_merger=RoutineMergeRunner(
+                access_contract, _required_env("AISOFT_PROJECT_ID")
+            ),
+            dependency_reader=DependencyReader(
                 access_contract, _required_env("AISOFT_PROJECT_ID")
             ),
             confirmation_required=True,

@@ -1,0 +1,21 @@
+{
+  "classification": "change_type: bugfix\nrequested_complexity: auto\nassessed_complexity: complex\neffective_complexity: complex\ncontract_effect: change\nreason: 在共享发布状态机加入迁移后旧镜像兼容控制及可信依据，涉及数据、外部合同与回滚强制风险。\nrisk_flags:\n  - data-migration\n  - external-contract\n  - shared-core\n  - rollback\n  - security\n  - platform-governance\nrequired_docs:\n  - summary\n  - spec\n  - plan\n  - verification\nconfidence: high\noverride_reason: ''\n",
+  "document_slug": "migration-rollback-guard",
+  "problem_summary": "activate、legacy deploy、显式 rollback 在数据库完成不同 migration identity 后仍可无兼容依据启动旧镜像，阻塞 NewEMaint #229。",
+  "impact": "只修改 AISoftPlatform release 合同及 runtime/test/schema；不修改 NewEMaint、应用 pin、现场配置或凭据。",
+  "approach": "统一所有旧镜像启动与恢复入口的 fail-closed gate，记录数据库迁移位置；只允许可证明相同位置或 exact、未过期且 operator 管理的兼容依据。",
+  "risks": [
+    "容器 current_release 不等于当前数据库位置；迁移成功而激活失败后两者会分离。",
+    "合法旧 state 不包含迁移顺序，读兼容不能变成安全事实默认值。",
+    "兼容依据自身是权限边界，必须与不可变制品及目标、数据库状态绑定；不得以 producer boolean 代替。"
+  ],
+  "evidence": [
+    "authoritative origin/main=5c2cd726c9aeaee9d17541d8feb049e33881bbac；共享 main clean。",
+    "#317 正文记录 2026-09-21 批准1,2 的平台先行方向，评论线程为空，无已映射 spec/plan、branch/history/PR。",
+    "FakeDocker public ReleaseRuntime seam 在 activate、legacy v1 deploy、explicit rollback 均复现：不同迁移已完成、兼容依据不存在、旧 SHA 启动 1 次。",
+    "host.onboarding.check=PASS；main 禁止 push/force，唯一 merge identity=admin，required CI=CI / verify (pull_request)，routine disabled。"
+  ],
+  "missing_acceptance_criteria": [
+    "已批准方向保持；本次首次明确的可信依据、state v3 和治理先行步骤需绑定完整 spec/plan 的合同启动确认。"
+  ]
+}

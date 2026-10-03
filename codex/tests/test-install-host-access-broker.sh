@@ -42,6 +42,7 @@ make_source_tree() {
   cp "$ROOT/codex/tools/project-profile-migration.sh" "$dest/codex/tools/"
   cp "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" "$dest/codex/tools/"
   cp "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" "$dest/codex/tools/"
+  cp "$ROOT/codex/tools/rotate-gitea-service-account.sh" "$dest/codex/tools/"
 }
 
 # Repository-local identity only: the host may have no global git user, and a

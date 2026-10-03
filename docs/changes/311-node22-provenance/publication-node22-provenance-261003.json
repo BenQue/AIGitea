@@ -1,0 +1,153 @@
+{
+  "issue": 311,
+  "session": "01a0fc7c-2504-7261-8e84-95a3ebcb8a0f",
+  "policy": "manual",
+  "submission_confirmation": {
+    "issue": 311,
+    "branch": "change/311-node22-provenance",
+    "policy": "manual",
+    "decision": "submit_unique_final_PR",
+    "user_message": "确认提交",
+    "client_date": "2026-10-03",
+    "session": "01a0fc7c-2504-7261-8e84-95a3ebcb8a0f",
+    "approved_candidate_head": "a2b60d9a176b1978e7ca091700203c7a2386d0e5",
+    "verified_base_sha": "16beee09aefe89b5bc80a31544c59d456190ea32",
+    "body_sha256": "7884b1beb1ad3e399070db18727167ea3e7aaec9f0109e94d63c2a40d7acd35e",
+    "authorization_scope": "first push, unique final PR, in-contract CI repair and legitimate summary backfill; no human merge or application deployment"
+  },
+  "unique_PR": {
+    "number": 329,
+    "url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/329",
+    "branch": "change/311-node22-provenance",
+    "base_sha": "16beee09aefe89b5bc80a31544c59d456190ea32",
+    "state": "open",
+    "merged": false,
+    "mergeable": true
+  },
+  "pushes": [
+    {
+      "checkout": "/private/tmp/issue-311-node22-provenance",
+      "identity": "aisoft-platform-agent",
+      "operation": "git.push.change",
+      "previous_head": null,
+      "project": "aisoft-platform",
+      "pushed_head": "a2b60d9a176b1978e7ca091700203c7a2386d0e5",
+      "remote_name": "origin",
+      "session": "01a0fc7c-2504-7261-8e84-95a3ebcb8a0f",
+      "status": "PASS"
+    },
+    {
+      "checkout": "/private/tmp/issue-311-node22-provenance",
+      "identity": "aisoft-platform-agent",
+      "operation": "git.push.change",
+      "previous_head": "a2b60d9a176b1978e7ca091700203c7a2386d0e5",
+      "project": "aisoft-platform",
+      "pushed_head": "8bf004e39c8c6ed1647972533affe65e46c850af",
+      "remote_name": "origin",
+      "session": "01a0fc7c-2504-7261-8e84-95a3ebcb8a0f",
+      "status": "PASS"
+    }
+  ],
+  "observed_CI_at_previous_head": {
+    "sha": "8bf004e39c8c6ed1647972533affe65e46c850af",
+    "state": "success",
+    "statuses": [
+      {
+        "context": "CI / verify (pull_request)",
+        "status": "success",
+        "target_url": "/admin/aisoft-platform/actions/runs/1740/jobs/1935",
+        "updated_at": "2026-10-03T00:30:08+08:00"
+      }
+    ],
+    "actions": {
+      "runs": [
+        {
+          "completed_at": "2026-10-03T00:30:08+08:00",
+          "conclusion": "success",
+          "display_title": "docs: bind unique PR329 to node22 summary (#311)",
+          "duration_seconds": 126,
+          "event": "pull_request",
+          "head_branch": null,
+          "head_sha": "8bf004e39c8c6ed1647972533affe65e46c850af",
+          "html_url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/actions/runs/1740",
+          "id": 1740,
+          "jobs": [
+            {
+              "completed_at": "2026-10-02T16:30:08Z",
+              "conclusion": "success",
+              "duration_seconds": 126,
+              "id": 1935,
+              "name": "verify",
+              "runner_name": "gitea-ci-runner",
+              "started_at": "2026-10-02T16:28:02Z",
+              "status": "completed",
+              "steps": [
+                {
+                  "completed_at": "2026-10-02T16:28:04Z",
+                  "conclusion": "success",
+                  "duration_seconds": 0,
+                  "name": "Run actions/checkout@v4",
+                  "number": 0,
+                  "started_at": "2026-10-02T16:28:04Z",
+                  "status": "completed"
+                },
+                {
+                  "completed_at": "2026-10-02T16:28:04Z",
+                  "conclusion": "success",
+                  "duration_seconds": 0,
+                  "name": "Check out merge preview",
+                  "number": 1,
+                  "started_at": "2026-10-02T16:28:04Z",
+                  "status": "completed"
+                },
+                {
+                  "completed_at": "2026-10-02T16:30:07Z",
+                  "conclusion": "success",
+                  "duration_seconds": 123,
+                  "name": "Platform smoke suite",
+                  "number": 2,
+                  "started_at": "2026-10-02T16:28:04Z",
+                  "status": "completed"
+                },
+                {
+                  "completed_at": "2026-10-02T16:30:07Z",
+                  "conclusion": "success",
+                  "duration_seconds": 0,
+                  "name": "Merge preview evidence",
+                  "number": 3,
+                  "started_at": "2026-10-02T16:30:07Z",
+                  "status": "completed"
+                }
+              ]
+            }
+          ],
+          "run_number": 266,
+          "started_at": "2026-10-03T00:28:02+08:00",
+          "status": "completed",
+          "workflow": "ci.yml@refs/pull/329/head"
+        }
+      ],
+      "sha": "8bf004e39c8c6ed1647972533affe65e46c850af",
+      "total_count": 1
+    }
+  },
+  "lifecycle_projection": {
+    "after": [
+      "complexity/complex",
+      "pr-open",
+      "type/maintenance"
+    ],
+    "before": [
+      "approved",
+      "complexity/complex",
+      "type/maintenance"
+    ],
+    "issue": 311,
+    "result": "updated",
+    "status": "PASS"
+  },
+  "classification": "maintenance/complex projected",
+  "snapshot_boundary": "This publication receipt binds previous pushed head8bf004e, not its own future containing commit. After receipt-only push, required CI must be reread for that new exact PR head. Live final-head state is in the Gitea PR and external issue-311-handoff.json; no self-referential CI PASS claim.",
+  "merge": "NOT RUN; manual human only",
+  "deploy": "NOT RUN; no application deployment authorized"
+}

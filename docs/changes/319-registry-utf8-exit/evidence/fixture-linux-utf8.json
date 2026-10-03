@@ -1,0 +1,17 @@
+{
+  "command": [
+    "orb",
+    "run",
+    "-m",
+    "gitea-ci",
+    "-u",
+    "coder",
+    "/bin/bash",
+    "-lc",
+    "cd /mnt/mac/private/tmp/issue-319-registry-utf8-exit && LC_ALL=C.UTF-8 /bin/bash codex/tests/test-registry-preflight.sh"
+  ],
+  "environment": "Linux gitea-ci /bin/bash 5.3.9 C.UTF-8",
+  "exit_code": 0,
+  "stdout": "registry preflight tests passed\n",
+  "stderr": ""
+}

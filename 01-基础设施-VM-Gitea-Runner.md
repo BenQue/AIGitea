@@ -190,7 +190,7 @@ runner 以 host 模式执行 job，工具链因此是**主机的持久状态**�
 | 路径 | 内容 | 属主 | 大小 | 装于 | marker |
 |---|---|---|---|---|---|
 | `/opt/node24.18.0` | Node `24.18.0` + npm `11.19.0` | `root:root 755` | 213 MiB | `2026-08-07`（marker 自报，与目录 mtime `2026-08-07 22:36:37 +0800` 一致） | 有，`contract=gitea-runner-node-runtime/v1` |
-| `/opt/node22` | Node `22.22.0` + npm + pnpm | `gitea-runner:gitea-runner` | 约 115 MiB | `2026-07-14`（目录 mtime，无 marker） | 无，安装者与依据 `unknown` |
+| `/opt/node22` | Node `22.22.0` + npm `10.9.4` + pnpm `10.28.0` | `gitea-runner:gitea-runner` | 约 115 MiB（#309 历史实测） | `unknown`（原目录 mtime 为 `2026-07-14`，不等于安装日期） | 有（#311，`2026-10-02`）；来源与安装者仍为 `unknown` |
 | `/opt/flutter/3.32.8` | Flutter `3.32.8` + 自举的 Dart | `gitea-runner:gitea-runner` | 见 §4.3 | 见 §4.3 | 有，`contract=gitea-runner-flutter-runtime/v1` |
 
 `/opt/node24.18.0/.aisoft-runtime-source` 的字段形态（其余工具链沿用同一形态）：
@@ -209,13 +209,23 @@ rollback=rename-or-remove-/opt/node24.18.0; system-node-and-/opt/node22-unchange
 ```
 
 系统自带 `node` 是 `/usr/bin/node` v20.20.2，与上面三个都无关，也不被平台管理。
-`/opt/node22` 没有 marker，它的安装者与来源在本次核对中读不到，记为 `unknown`；
-补齐它需要另一次变更，不在 #309 范围。
+`/opt/node22` 在 #309 时没有 marker；#311 于 `2026-10-02` 核对四仓当前 main 与 runner
+静态配置后保留目录并补齐 marker。已知活动消费方是 `admin/SFMDigitalBoard` 的
+`.gitea/workflows/ci.yml`（job PATH 前置 `/opt/node22/bin`），其平台测试也守卫该依赖；
+LocalWMS、NewEMaint 的当前 workflow 使用 node24，平台 workflow 无直接 node22 引用。
+marker 沿用 `contract=gitea-runner-node-runtime/v1` 与 key=value 形状，安装日期、安装者、
+上游来源与上游包校验字段均为 `unknown`；`recorded_at=2026-10-02` 仅表示本次记录日期，
+`observed_node_binary_sha256` 仅表示当前二进制 hash，不证明安装来源。
+动态 profile 执行及 process Secret 环境未纳入盘点，不能把已知消费方列表当成全主机无未知依赖的证明。
+真实创建、重复 no-op、精确 marker 回滚后重建均已验证；Node hash、非 marker 文件元数据与
+runner 配置元数据前后一致。回滚只删除本次且内容 hash 一致的 marker，保留工具链目录。
+逐仓 fixed SHA、静态读取边界与回执见
+[`#311 verification`](docs/changes/311-node22-provenance/verification-node22-provenance-261002.md)。
 
 **runner 不注入工具链环境变量**。`act_runner.service` 的 `Environment=PATH=` 是系统五段默认值，
 `config.yaml` 没有 `runner.envs`。消费方 workflow 自己在 job 级 `env:` 里声明需要的变量并把
 工具链的 `bin` 前置到 `PATH`。这样每个仓库对自己依赖哪条工具链是显式的，平台侧也不必为了
-某一个仓库的需要去重启三仓共用的唯一执行位。
+某一个仓库的需要去重启四仓共用的唯一执行位。
 
 ### 4.3 Flutter SDK（runner 预装，#309）
 

@@ -1,0 +1,6 @@
+{
+  "command": "LC_ALL=C.UTF-8 /bin/bash codex/tests/smoke.sh",
+  "exit_code": 0,
+  "elapsed_seconds": 227.95,
+  "log": "docs/changes/319-registry-utf8-exit/evidence/smoke-macos-utf8.log"
+}

@@ -1,0 +1,14 @@
+{
+  "issue": 288,
+  "branch": "change/288-dockerfile-digest",
+  "policy": "manual",
+  "title": "fix(architecture): enforce Dockerfile FROM digest contract (#288)",
+  "body_file": "evidence/final-pr-body.md",
+  "stage": "SUBMITTED_PR_OPEN_CI_PENDING",
+  "required_ci": "CI / verify (pull_request)",
+  "ci_repair": "Authorized within current contract after user confirmation; manual human merge only",
+  "merge": "Human only",
+  "deployment": "NOT_AUTHORIZED",
+  "pr_number": 328,
+  "pr_url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/328"
+}

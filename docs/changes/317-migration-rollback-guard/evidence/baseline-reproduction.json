@@ -1,0 +1,52 @@
+[
+  {
+    "action": "activate",
+    "compatibility_evidence": "ABSENT",
+    "conclusion": "BUG_CONFIRMED",
+    "database_restore_calls": 0,
+    "distinct_migrations_completed": 2,
+    "error": {
+      "code": "DEPLOYMENT_FAILED",
+      "message": "activation failed; previous container release was preserved or restored"
+    },
+    "old_release_start_count": 1,
+    "real_docker_calls": 0,
+    "up_releases": [
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ],
+    "version": "docker-release/v2"
+  },
+  {
+    "action": "deploy",
+    "compatibility_evidence": "ABSENT",
+    "conclusion": "BUG_CONFIRMED",
+    "database_restore_calls": 0,
+    "distinct_migrations_completed": 2,
+    "error": {
+      "code": "DEPLOYMENT_FAILED",
+      "message": "deployment failed; previous container release was preserved or restored"
+    },
+    "old_release_start_count": 1,
+    "real_docker_calls": 0,
+    "up_releases": [
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ],
+    "version": "docker-release/v1"
+  },
+  {
+    "action": "rollback",
+    "compatibility_evidence": "ABSENT",
+    "conclusion": "BUG_CONFIRMED",
+    "database_restore_calls": 0,
+    "distinct_migrations_completed": 2,
+    "error": null,
+    "old_release_start_count": 1,
+    "real_docker_calls": 0,
+    "up_releases": [
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ],
+    "version": "docker-release/v2"
+  }
+]

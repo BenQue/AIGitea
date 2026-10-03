@@ -1,0 +1,41 @@
+{
+  "baseline": "64f1cda0de9735f8782e64a5b07af2ce8460e4c3",
+  "commands": [
+    {
+      "argv": [
+        "bash",
+        "codex/tests/test-docker-release-v2-lifecycle-e2e-harness.sh"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "codex/runtime/tests",
+        "-t",
+        "codex/runtime",
+        "-p",
+        "test_release*.py"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "company_live": "NOT_RUN",
+  "current_real_e2e": "NOT_RUN",
+  "current_release_regression": "PASS",
+  "current_source_conformance": "PASS",
+  "current_source_sha256": "44460ac09797c960bb617a2ec91a864b770010f0be0b30f978fb7331a5f35444",
+  "head_sha": "ed37445c9986fbff2aaac747ad41457da2a622ef",
+  "head_tree": "bd28e5730b3f735d121a402a72f0a5db448d5925",
+  "historical_evidence_binding": "PASS",
+  "historical_evidence_sha256": "b58bb7b57d53a104f922e66c7dc1342bc1b5b133038f60fa8f2ace8d8dbdeb89",
+  "historical_harness_fake_regression": "PASS",
+  "historical_role_amendment_sha256": "95092fbd6deab1a536d53371444c9b9c708b538cff3bc1ac4ebbd7dae3bff195",
+  "installed": "NOT_RUN",
+  "runner_sha256": "a51abcaa2bcb9862b9a981df1d8c3efd2d32c70ae795b485678cac322f04eb4c"
+}

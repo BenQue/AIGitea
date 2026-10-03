@@ -30,10 +30,15 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
         )
         self.files = {
             boundary.RUNNER: old_runner,
+            boundary.ARCHITECTURE_LOCK: b'{"declaration":"baseline"}\n',
             "codex/runtime/aisoft_release/transport.py": b"# transport\n",
             "docker-release/README.md": b"docs\n",
             "docker-release/install.sh": b"installer\n",
             "docker-release/compatibility/image-stores-v1.json": b"{}\n",
+            "codex/runtime/aisoft_release/contract.py": b"# contract\n",
+            "codex/runtime/aisoft_release/errors.py": b"# errors\n",
+            "codex/runtime/aisoft_release/state.py": b"# state\n",
+            "docker-release/schema/target-profile-v1.schema.json": b"{}\n",
             boundary.EVIDENCE: b'{"result":"PASS"}\n',
             boundary.HISTORICAL_TEST: b"exit 0\n",
             "codex/tests/fixtures/docker-release-v2-lifecycle/migrate.sh": b"fixture\n",
@@ -45,11 +50,16 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
         self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
                  "commit", "-qm", "baseline")
         self.baseline = self.git("rev-parse", "HEAD").decode().strip()
+        self.additions = {name: f"reviewed addition: {name}\n".encode()
+                          for name in boundary.ADDITION_PATHS}
         for name, value in {
             "BASELINE": self.baseline,
             "CURRENT_SOURCE_PINS": {},
+            "CURRENT_ADDITIONS": {name: ("100644", boundary.digest(content))
+                                  for name, content in self.additions.items()},
             "SCOPES": ("codex/runtime/aisoft_release", "docker-release", boundary.EVIDENCE,
-                       boundary.HISTORICAL_TEST, "codex/tests/fixtures/docker-release-v2-lifecycle"),
+                       boundary.HISTORICAL_TEST, "codex/tests/fixtures/docker-release-v2-lifecycle",
+                       boundary.ARCHITECTURE_LOCK),
             "RUNNER_BEFORE": boundary.digest(old_runner),
             "RUNNER_AFTER": boundary.digest(self.expected_runner),
             "EVIDENCE_SHA256": boundary.digest(self.files[boundary.EVIDENCE]),
@@ -59,6 +69,9 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
             self.addCleanup(context.stop)
         self.write(boundary.RUNNER, self.expected_runner)
         self.git("add", "--", boundary.RUNNER)
+        for name, content in self.additions.items():
+            self.write(name, content)
+            self.git("add", "--", name)
 
     def git(self, *args: str) -> bytes:
         return boundary.git(self.root, *args)
@@ -83,7 +96,7 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
         self.rejected()
 
     def test_all_pinned_files_reject_a_single_extra_byte(self) -> None:
-        for name in set(self.files) - boundary.CONTENT_EXEMPT:
+        for name in (self.files.keys() | self.additions.keys()) - boundary.CONTENT_EXEMPT:
             with self.subTest(path=name):
                 before = (self.root / name).read_bytes()
                 self.write(name, before + b" ")
@@ -93,7 +106,12 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
     def test_current_amendment_pins_require_exact_disk_and_index_bytes(self) -> None:
         changed = {boundary.RUNNER: self.expected_runner + b"# reviewed identity fix\n",
                    boundary.TRANSPORT: b"# reviewed graph verification\n",
-                   boundary.MATRIX: b'{"revision":"reviewed"}\n'}
+                   boundary.MATRIX: b'{"revision":"reviewed"}\n',
+                   boundary.ARCHITECTURE_LOCK: b'{"declaration":"dockerfiles"}\n',
+                   "codex/runtime/aisoft_release/contract.py": b"# reviewed profile owner\n",
+                   "codex/runtime/aisoft_release/errors.py": b"# reviewed reason codes\n",
+                   "codex/runtime/aisoft_release/state.py": b"# reviewed v3 state\n",
+                   "docker-release/schema/target-profile-v1.schema.json": b'{"optional":true}\n'}
         with patch.object(boundary, "CURRENT_SOURCE_PINS", {
             name: boundary.digest(value) for name, value in changed.items()
         }):
@@ -114,9 +132,82 @@ class ReleaseEvidenceBoundaryTests(unittest.TestCase):
 
     def test_current_pins_cannot_exempt_other_paths_or_use_invalid_hashes(self) -> None:
         for pins in ({boundary.EVIDENCE: boundary.digest(self.files[boundary.EVIDENCE])},
-                     {boundary.TRANSPORT: ""}, {boundary.TRANSPORT: "g" * 64}):
+                     {boundary.TRANSPORT: ""}, {boundary.TRANSPORT: "g" * 64},
+                     {"docker-release/README.md": "a" * 64},
+                     {next(iter(self.additions)): "a" * 64}):
             with self.subTest(pins=pins), patch.object(boundary, "CURRENT_SOURCE_PINS", pins):
                 self.rejected()
+
+    def test_addition_pins_have_exact_scope_and_valid_mode_and_hash(self) -> None:
+        pins = dict(boundary.CURRENT_ADDITIONS)
+        name = sorted(pins)[0]
+        invalid = [
+            {},
+            {**pins, "docker-release/unknown.json": ("100644", "a" * 64)},
+            {**pins, boundary.EVIDENCE: ("100644", "a" * 64)},
+        ]
+        for entry in (("100755", "a" * 64), ("120000", "a" * 64),
+                      ("100644", ""), ("100644", "G" * 64),
+                      ("100644", None), ("100644", "a" * 64, "extra"), None):
+            invalid.append({**pins, name: entry})
+        for values in invalid:
+            with self.subTest(pins=values), patch.object(boundary, "CURRENT_ADDITIONS", values):
+                self.rejected()
+
+    def test_each_addition_requires_exact_index_bytes_and_entry(self) -> None:
+        for name, content in self.additions.items():
+            with self.subTest(path=name):
+                boundary.validate(self.root)
+                self.write(name, content + b"staged-only drift")
+                self.git("add", "--", name)
+                self.write(name, content)
+                self.rejected()
+                self.git("add", "--", name)
+                self.git("update-index", "--force-remove", "--", name)
+                self.rejected()
+                self.git("add", "--", name)
+                boundary.validate(self.root)
+
+    def test_each_addition_rejects_disk_and_index_mode_drift(self) -> None:
+        for name in self.additions:
+            with self.subTest(path=name):
+                path = self.root / name
+                path.chmod(0o755)
+                self.rejected()
+                path.chmod(0o644)
+                self.git("update-index", "--chmod=+x", "--", name)
+                self.rejected()
+                self.git("update-index", "--chmod=-x", "--", name)
+                boundary.validate(self.root)
+
+    def test_each_addition_rejects_missing_renamed_and_symlink_paths(self) -> None:
+        for name, content in self.additions.items():
+            with self.subTest(path=name):
+                path = self.root / name
+                path.unlink()
+                self.rejected()
+                self.write(name, content)
+                renamed = path.with_name(path.name + ".renamed")
+                path.rename(renamed)
+                self.rejected()
+                path.symlink_to(renamed)
+                self.rejected()
+                path.unlink()
+                renamed.rename(path)
+                boundary.validate(self.root)
+
+    def test_unknown_tracked_addition_is_rejected(self) -> None:
+        name = "docker-release/schema/unreviewed-v4.schema.json"
+        self.write(name, b"{}\n")
+        self.git("add", "--", name)
+        self.rejected()
+
+    def test_addition_symlink_ancestor_is_rejected(self) -> None:
+        directory = self.root / "docker-release/contracts"
+        moved = self.root / "moved-contracts"
+        directory.rename(moved)
+        directory.symlink_to(moved, target_is_directory=True)
+        self.rejected()
 
     def test_production_and_unknown_action_widening_are_rejected(self) -> None:
         for before, after in ((b'== "test"', b'== "production"'),

@@ -1,0 +1,12 @@
+{
+  "issue": 289,
+  "branch": "change/289-required-docs-source",
+  "policy": "manual",
+  "session": "01a0fc7b-dfb2-77b3-a089-2d0f73ac8554",
+  "recorded_at": "2026-10-02T20:18:26.188058+08:00",
+  "human_message": "确认",
+  "scope": "批准前一轮提供的 #289 spec/plan 并启动开发；不包含 PR 提交、合并、安装或部署",
+  "approved_spec_sha256": "db1cc9ec7e6a83e0129d784e76f663fa40c186070b88d4dc1f768aff05a29aa0",
+  "approved_plan_sha256": "dcd46d13fe00b777d4e2a833d25998369aa8883226e27fe559bd9a8cc48168ce",
+  "governance_step": "T01 仅 README/03 与本 Issue 文档；完成后停止；fresh run 重新读取再执行 T02/T03"
+}

@@ -1,0 +1,44 @@
+{
+  "issue": 288,
+  "ticket": "T05",
+  "result": "PASS",
+  "stage": "CONTROLLED_GOVERNANCE_APPLICATION",
+  "approved_patch_sha256": "a2538e14a46d6568470271edb86d0ffac0c241ff221d133efdb01815ba86aa55",
+  "reverse_patch_check": "PASS",
+  "exact_source_sha256": {
+    "codex/tests/check-release-evidence-boundary.py": "a6ca16db89500a671636e1212a0e47af707524ec9a7eed4ba597923c82488329",
+    "codex/runtime/tests/test_release_evidence_boundary.py": "f419d22f24aee0d7518154085cac49ca22632d8beddedcc7fc6f574eea4453be"
+  },
+  "syntax_compile": "PASS",
+  "boundary_tests": {
+    "command": "python3 -m unittest discover -s codex/runtime/tests -p 'test_release_evidence_boundary.py'",
+    "exit_code": 0,
+    "result": "PASS",
+    "test_count": 20,
+    "elapsed_seconds": 10.435
+  },
+  "source_identity": {
+    "result": "PASS",
+    "check": "validate(root) only; full check()/release regressions NOT RUN in governance step",
+    "identity": {
+      "baseline": "64f1cda0de9735f8782e64a5b07af2ce8460e4c3",
+      "head_sha": "6b06a70104ed524430b8b2767517e0fb204fe641",
+      "head_tree": "85d3120ba6ff2c0fac99f7ab13b74fd14176552f",
+      "current_source_sha256": "a97b5fcc6799f05164aaa8488624560763f6ead2bbbfc70b9de58ef3845d5c0c",
+      "runner_sha256": "ec6e0a9e56d8139102fb2a94fc31374886cd97b38e9166fa4f9d411e710533d6",
+      "historical_role_amendment_sha256": "95092fbd6deab1a536d53371444c9b9c708b538cff3bc1ac4ebbd7dae3bff195",
+      "historical_evidence_sha256": "b58bb7b57d53a104f922e66c7dc1342bc1b5b133038f60fa8f2ace8d8dbdeb89"
+    },
+    "architecture_lock_file_sha256": "b6d39e9126b61c804b8cb188a11a3b4e1bc375236a3ffadf93909f3d49e70076"
+  },
+  "schema_or_runtime_implementation_changed": false,
+  "historical_evidence_changed": false,
+  "full_boundary_check": "NOT_RUN",
+  "full_smoke_after_T05": "NOT_RUN",
+  "full_runtime_after_T05": "NOT_RUN",
+  "fresh_main_287_combination": "NOT_RUN",
+  "required_ci": "NOT_RUN",
+  "installed": "NOT_RUN",
+  "company_live": "NOT_RUN",
+  "deployment": "NOT_RUN"
+}

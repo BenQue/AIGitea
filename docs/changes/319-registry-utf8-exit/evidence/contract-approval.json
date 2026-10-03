@@ -1,0 +1,53 @@
+{
+  "issue": 319,
+  "session": "01a0fc7b-adfe-72e3-ae7a-cf96038acc23",
+  "user_confirmation": "确认",
+  "branch": "change/319-registry-utf8-exit",
+  "policy": "manual",
+  "approved_contract_base_commit": "58f8213c9f23e8a880ade38f56eab615b4a1e2da",
+  "scope": "合同/启动及 broker 判级/流程投影；本 turn 仅治理合同批准步骤；PR 提交/merge/deploy 未授权",
+  "classification_apply": {
+    "issue": 319,
+    "project": "aisoft-platform",
+    "repository": "aisoft-platform",
+    "action": "set-classification",
+    "applied": true,
+    "result": "updated",
+    "change_type": "bugfix",
+    "complexity": "complex"
+  },
+  "classification_verify": {
+    "issue": 319,
+    "project": "aisoft-platform",
+    "repository": "aisoft-platform",
+    "action": "verify",
+    "applied": false,
+    "result": "projected",
+    "change_type": "bugfix",
+    "complexity": "complex"
+  },
+  "lifecycle_receipt": {
+    "after": [
+      "approved",
+      "complexity/complex",
+      "type/bugfix"
+    ],
+    "before": [
+      "complexity/complex",
+      "needs-analysis",
+      "type/bugfix"
+    ],
+    "issue": 319,
+    "result": "updated",
+    "status": "PASS"
+  },
+  "prior_approval_review_rejection": "RESOLVED_BY_EXPLICIT_USER_CONFIRMATION",
+  "triage_typed_projection": "GAP",
+  "runtime_tests": "NOT RUN",
+  "broker": "/usr/local/libexec/aisoft/host-access-broker",
+  "tool_source_sha256": {
+    "apply-classification-labels.sh": "1f2b0e7a843d86b4be1f07c9d8f6c9c5cbb51965702c7b313a8f88df48f19125",
+    "aisoft-project-target.sh": "eb0121229e8ccacd520821b0e2efc8b0ca8b456ed8e70be454556a0b55c821f9",
+    "change-merge-range.sh": "5e933ed50bed4f09878ea5da902073d68dac6985416ab16a0d4a939792809518"
+  }
+}

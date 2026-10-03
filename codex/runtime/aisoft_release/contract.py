@@ -133,6 +133,8 @@ class TargetProfile:
     architecture_project_id: str | None
     catalog_revision: str
     wait_timeout_seconds: int
+    rollback_compatibility_file: Path | None = None
+    owner_uid: int | None = None
 
 
 @dataclass(frozen=True)
@@ -152,8 +154,10 @@ class ReleaseFiles:
 def load_target_profile(path: Path | str, *, require_protected: bool = True) -> TargetProfile:
     profile_path = Path(path)
     if require_protected:
-        _require_protected_file(profile_path, "target profile")
-    value = _load_json_object(profile_path, "target profile")
+        value, owner_uid = _load_protected_profile(profile_path)
+    else:
+        value = _load_json_object(profile_path, "target profile")
+        owner_uid = None
     _reject_sensitive_keys(value, "target profile")
     _expect_required_and_optional_keys(
         value,
@@ -173,7 +177,7 @@ def load_target_profile(path: Path | str, *, require_protected: bool = True) -> 
             "catalog_revision",
             "wait_timeout_seconds",
         },
-        {"architecture_project_id"},
+        {"architecture_project_id", "rollback_compatibility_file"},
         "target profile",
     )
     contract_version = _string(value, "contract_version", "target profile")
@@ -198,6 +202,12 @@ def load_target_profile(path: Path | str, *, require_protected: bool = True) -> 
     _reject_path_overlap(release_root, state_root, "release_root", "state_root")
     if _is_within(env_file, release_root) or _is_within(env_file, state_root):
         raise ContractError("target profile env_file must be outside release and state roots")
+    rollback_compatibility_file = None
+    if "rollback_compatibility_file" in value:
+        rollback_compatibility_file = _absolute_path(value, "rollback_compatibility_file", "target profile")
+        for protected_path in (release_root, state_root, env_file):
+            if _is_within(rollback_compatibility_file, protected_path) or _is_within(protected_path, rollback_compatibility_file):
+                raise ContractError("rollback compatibility file must be outside release, state and environment paths")
     compose_project = _matching_string(
         value, "compose_project", COMPOSE_PROJECT, "target profile"
     )
@@ -240,6 +250,8 @@ def load_target_profile(path: Path | str, *, require_protected: bool = True) -> 
         architecture_project_id=architecture_project_id,
         catalog_revision=catalog_revision,
         wait_timeout_seconds=wait_timeout,
+        rollback_compatibility_file=rollback_compatibility_file,
+        owner_uid=owner_uid,
     )
 
 
@@ -990,6 +1002,41 @@ def _require_unique_images(images: Sequence[ImageSpec], context: str) -> None:
         raise ContractError(f"{context} contains duplicate transport references")
     if len(set(runtime_references)) != len(runtime_references):
         raise ContractError(f"{context} contains duplicate runtime references")
+
+
+def _load_protected_profile(path: Path) -> tuple[Mapping[str, object], int]:
+    """Capture the operator UID from the same protected inode as the profile facts."""
+    _require_protected_file(path, "target profile")
+    descriptor = None
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode) or stat.S_IMODE(before.st_mode) not in {0o400, 0o600}:
+            raise ContractError("target profile must be a protected regular file")
+        if before.st_uid not in {0, os.geteuid()}:
+            raise ContractError("target profile owner must be root or the current caller")
+        if before.st_size > MAX_JSON_BYTES:
+            raise ContractError("target profile exceeds the maximum JSON size")
+        with os.fdopen(descriptor, "rb") as handle:
+            descriptor = None
+            raw = handle.read(MAX_JSON_BYTES + 1)
+            after = os.fstat(handle.fileno())
+        named = path.lstat()
+        if len(raw) > MAX_JSON_BYTES:
+            raise ContractError("target profile exceeds the maximum JSON size")
+        identity_before = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+        identity_after = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns)
+        if identity_before != identity_after or (named.st_dev, named.st_ino) != (before.st_dev, before.st_ino):
+            raise ContractError("target profile changed during protected reading")
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_object)
+        if not isinstance(value, Mapping):
+            raise ContractError("target profile root must be an object")
+        return value, before.st_uid
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ContractError("target profile is unreadable or corrupt") from exc
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
 
 
 def _load_json_object(path: Path, context: str) -> Mapping[str, object]:

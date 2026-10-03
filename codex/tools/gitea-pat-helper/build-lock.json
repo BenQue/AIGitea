@@ -1,0 +1,39 @@
+{
+  "version": "go1.26.3",
+  "files": [
+    {
+      "filename": "go1.26.3.darwin-arm64.tar.gz",
+      "os": "darwin",
+      "arch": "arm64",
+      "version": "go1.26.3",
+      "sha256": "875cf54a15311eee2c99b9dd67c68c4a49351d489ab622bf2cfd28c8f2078d3c",
+      "size": 64724939,
+      "kind": "archive"
+    },
+    {
+      "filename": "go1.26.3.linux-amd64.tar.gz",
+      "os": "linux",
+      "arch": "amd64",
+      "version": "go1.26.3",
+      "sha256": "2b2cfc7148493da5e73981bffbf3353af381d5f93e789c82c79aff64962eb556",
+      "size": 66862230,
+      "kind": "archive"
+    },
+    {
+      "filename": "go1.26.3.linux-arm64.tar.gz",
+      "os": "linux",
+      "arch": "arm64",
+      "version": "go1.26.3",
+      "sha256": "9d89a3ea57d141c2b22d70083f2c8459ba3890f2d9e818e7e933b75614936565",
+      "size": 63741242,
+      "kind": "archive"
+    }
+  ],
+  "gitea": {
+    "module": "code.gitea.io/gitea",
+    "version": "v1.26.4",
+    "module_sum": "h1:VDA00oYg16VrQf3sES0NuS/oiDLAIVng/7jKHsBMP/w=",
+    "model_path": "models/auth/access_token.go",
+    "model_sha256": "dcf0e3fd325fe98e91d8a2e216aedbaf08fed20625748bbbdf03f090fc1728cd"
+  }
+}

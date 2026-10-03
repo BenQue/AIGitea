@@ -1,0 +1,15 @@
+{
+  "base": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "records": {
+    "docker-release/schema/state-v1.schema.json": {
+      "result": "PASS",
+      "baseline": "absent",
+      "current": "absent",
+      "note": "No historical v1 schema exists; preserve absence, runtime v1 read compatibility tested separately."
+    },
+    "docker-release/schema/state-v2.schema.json": {
+      "result": "PASS",
+      "sha256": "1105af4b1cfcc5da5dc85048591b9e4cdebebf73abc644b4113566591207ea3f"
+    }
+  }
+}

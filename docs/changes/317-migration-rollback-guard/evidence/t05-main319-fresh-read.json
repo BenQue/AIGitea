@@ -1,0 +1,60 @@
+{
+  "issue": 317,
+  "ticket": "T05",
+  "recorded_at": "2026-10-03T00:01:38.014925+08:00",
+  "session": "01a0fc7b-9d82-75e2-975f-d407cd23e34a",
+  "branch": "change/317-migration-rollback-guard",
+  "claim_last_push_head": null,
+  "main": "70baa3588c0504e5d81facd99c63b74741967967",
+  "source_head": "6dc9ae8a75a59bdfa5b487632bd0e554bc16ab69",
+  "upstream_pr323": {
+    "number": 323,
+    "merged": true,
+    "merged_at": "2026-10-02T23:51:01+08:00",
+    "merge_commit_sha": "70baa3588c0504e5d81facd99c63b74741967967",
+    "html_url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/323"
+  },
+  "upstream_pr323_head": "997c12858406411d8ec315c11a1903c283e5b617",
+  "rebase": "owner-only never-published branch; no conflict",
+  "same_as_main": [
+    "codex/tests/fixtures/installed-drift/test-installed-drift.py",
+    "codex/tests/smoke.sh",
+    "templates/project/ci/registry-preflight.sh",
+    "codex/tests/test-registry-preflight.sh",
+    "AGENTS.md",
+    "codex/runtime/aisoft_host_access/broker.py"
+  ],
+  "own_source_hashes_unchanged_from_reviewed_f99acae": {
+    "codex/runtime/aisoft_release/contract.py": "d0ddd948dac6793334d8d93e5d382b7f49e20ad4857c9ddef4ed420f644c1baa",
+    "codex/runtime/aisoft_release/errors.py": "f76e0264c9480cc7a2ef70f20899d65e81bdf3ad994b9bd9b0015a36f32b28ac",
+    "codex/runtime/aisoft_release/rollback_compatibility.py": "5e17685e87d04e4ab71b69de038fe4bba7e624ee7ff3024c748f25e68d1a2974",
+    "codex/runtime/aisoft_release/runner.py": "a51abcaa2bcb9862b9a981df1d8c3efd2d32c70ae795b485678cac322f04eb4c",
+    "codex/runtime/aisoft_release/state.py": "1350ddab013eabb7f0286ba12a6835974e221775e3a25823f38cb332445c8e2a",
+    "codex/runtime/tests/release_test_support.py": "6541486a570830f96b6f52baac077f67268f8b85b665189cb56a5a70c7d677e4",
+    "codex/runtime/tests/test_release_cli.py": "fd28ed02554a7434094f10520b78fd19773aff6aa24208d3961822f4d86d5871",
+    "codex/runtime/tests/test_release_contract.py": "ccd59d788c81334698a05dfb4baa0addf88b60f66669a1bc9b53361f3d902790",
+    "codex/runtime/tests/test_release_evidence_boundary.py": "94a77c88f84f62d213a0c0a24b4016e2173d9cdc7cd4cb7fb380a3078eca1109",
+    "codex/runtime/tests/test_release_phases.py": "89a526dbffc685018f3cf8d680bc283b3dc3b246a69f2c102d93f9eecdc75ba1",
+    "codex/runtime/tests/test_release_rollback_compatibility.py": "271cce06a6b89916e5e4a0659601d00e2e8037637169aafee729443310d43eb9",
+    "codex/runtime/tests/test_release_runner.py": "16f7cb9c3c7c5814bdec0b98e000d5f835d0714c880827fc196fee6a54fe2ec9",
+    "codex/tests/check-release-evidence-boundary.py": "4cfded4bdc3f13df38bdaf9c28161b2498e15555991f34c1e0e14b6652e46d80",
+    "docker-release/README.md": "ae8a6003c72d3b31906d3ced057f8729df7cc064d20942eff24e9c8af82a13cd",
+    "docker-release/contracts/migration-rollback-v1.md": "276bd342ed4c094944f8517bde9eb89a604845ee276de32cb0d680d645374070",
+    "docker-release/examples/rollback-compatibility-v1.example.json": "3c01fa1196ae8ffe78b81afd2b0ef6b52c5ca7d6f043e18aed4e3b43ae10169d",
+    "docker-release/schema/rollback-compatibility-v1.schema.json": "94d2ea3f822b6fded55fc351546793d9334133b79baf439402f4e93c5c2ee9b2",
+    "docker-release/schema/state-v3.schema.json": "3fce0413e7cdc19ab80ecae9bb1962dfab49a48d4ca9694dd2f3be41c2c0f326",
+    "docker-release/schema/target-profile-v1.schema.json": "d6174d0b78eecbba73962210720b70eea6f0558a6ed176b765e2bdb916c114e4"
+  },
+  "old_main_UTF8_FAIL_preserved": "t05-main288-validation.json",
+  "old_main_C_smoke_PASS_is_not_new_UTF8_PASS": true,
+  "default_registry_fixture": {
+    "locale": "C.UTF-8",
+    "exit_code": 0,
+    "result": "PASS"
+  },
+  "full_default_smoke": "RUNNING; do not mark PASS until actual completion",
+  "PR_CI": "NOT_RUN",
+  "installed": "NOT_RUN",
+  "company_live": "NOT_RUN",
+  "pr_submission_approved": false
+}

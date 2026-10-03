@@ -1,0 +1,36 @@
+{
+  "issue": 316,
+  "branch": "change/316-service-pat-rotation",
+  "implementation_head": "4643c3826ca6bcede5a5e81930debfcd8df0c9c8",
+  "fresh_main": "70baa3588c0504e5d81facd99c63b74741967967",
+  "combined_tree": "675692cda5a6fb778a460d683d84f755b132dc49",
+  "actual_branch_history_changed": false,
+  "combined_default_smoke": {
+    "result": "FAIL",
+    "exit_code": 2,
+    "locale": "C.UTF-8",
+    "reason": "installer-mapping-stale",
+    "log": "/private/tmp/issue-316-build/t04-fresh-main-default-smoke.log",
+    "log_sha256": "85b7dad231a56354a632a57bbafd3feb16cd63992c456a5ca1c3680a96798de0"
+  },
+  "drift_source_only": {
+    "result": "ERROR",
+    "exit_code": 2,
+    "error": {
+      "reason": "installer-mapping-stale",
+      "source": "/private/tmp/issue-316-build/t04-combined-lab/codex/install-host-access-broker.sh"
+    },
+    "mode": "source-only"
+  },
+  "proposal": "t04-installed-drift-extension-proposal.md",
+  "proposal_approval": "NOT_GRANTED",
+  "review": {
+    "spec": "reviewable proposal; no material missing item",
+    "standards": "requires explicit checker CLI/acceptance contract extension; local helper null does not assess remote rotation"
+  },
+  "required_ci": "NOT RUN",
+  "installed": "NOT RUN",
+  "live": "NOT RUN",
+  "remote_mutation": false,
+  "current_next_step": "exact contract extension approval then docs-only controlled step and stop; runtime next fresh run"
+}

@@ -9,6 +9,7 @@ from typing import Callable, Mapping, Sequence
 
 from .broker import BrokerError, COMMIT_SHA_RE, _positive_number
 from .contract import AccessContract
+from .dependencies import Dependency, DependencyError, parse_dependencies, resolve_target, identity
 
 
 BROKER_EXECUTABLE = "/usr/local/libexec/aisoft/host-access-broker"
@@ -249,3 +250,84 @@ class RoutineMergeRunner:
         ):
             raise BrokerError("RESPONSE_SCHEMA_INVALID", "fixed routine merge receipt is invalid")
         return value
+
+
+def _dependency_runner(argv: Sequence[str], *, cwd: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(list(argv), cwd=cwd, check=False, text=True,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45)
+
+
+class DependencyReader:
+    """Manifest-bound, read-only dependency adapter; never falls back to HTTP."""
+
+    def __init__(self, contract: AccessContract, project_id: str, *,
+                 command_runner: CommandRunner = _dependency_runner) -> None:
+        self.contract = contract
+        self.project = contract.project(project_id)
+        self.source_identity = (contract.governance.owner, self.project.repository)
+        self.base_url = contract.governance.base_url
+        self._command_runner = command_runner
+        self._cwd = os.path.realpath(os.getcwd())
+
+    def validate(self, references: Sequence[Dependency], issue_number: int) -> None:
+        refs = parse_dependencies(list(references), issue_number, self.source_identity)
+        for reference in refs:
+            resolve_target(self.contract, self.project, reference)
+
+    def read(self, reference: str) -> Mapping[str, object]:
+        _, number, canonical = resolve_target(self.contract, self.project, reference)
+        argv = [BROKER_EXECUTABLE, "--project", self.project.project_id,
+                "--operation", "gitea.dependency.read", "--reference", canonical]
+        try:
+            completed = self._command_runner(argv, cwd=self._cwd)
+        except Exception as exc:
+            raise BrokerError("HOST_BROKER_UNAVAILABLE", "fixed dependency broker unavailable") from exc
+        if completed.returncode != 0:
+            raise BrokerError("HOST_BROKER_FAILED", "fixed dependency broker read failed")
+        try:
+            value = json.loads(completed.stdout)
+        except (TypeError, UnicodeError, json.JSONDecodeError) as exc:
+            raise BrokerError("DEPENDENCY_RESPONSE_INVALID", "dependency broker JSON is invalid") from exc
+        owner, repo, _ = identity(reference, self.source_identity)
+        if (not isinstance(value, dict)
+                or set(value) != {"repository", "number", "reference", "state", "labels"}
+                or value.get("repository") != f"{owner}/{repo}"
+                or value.get("number") != number or type(value.get("number")) is not int
+                or value.get("reference") != canonical
+                or value.get("state") not in ("open", "closed")
+                or not isinstance(value.get("labels"), list)
+                or any(not isinstance(label, str) or not label for label in value["labels"])):
+            raise BrokerError("DEPENDENCY_RESPONSE_INVALID", "dependency broker identity is invalid")
+        return value
+
+
+class CredentialRotationRunner:
+    """Independent operator surface; never attached to project/provider runners."""
+    def __init__(self, contract, project_id, *, command_runner=_default_runner):
+        contract.project(project_id)
+        operation = contract.operation('gitea.credential.rotate')
+        if operation.identity_route != 'credential-operator':
+            raise BrokerError('CONTRACT_INVALID', 'rotation operator route is invalid')
+        self.project_id = project_id
+        self.command_runner = command_runner
+
+    def rotate(self, issue, source_sha, token_kind):
+        issue = _positive_number(issue, 'authorization Issue')
+        if not isinstance(source_sha, str) or not COMMIT_SHA_RE.fullmatch(source_sha):
+            raise BrokerError('ARGUMENT_INVALID', 'exact merged source SHA required')
+        argv = [BROKER_EXECUTABLE, '--project', self.project_id, '--operation',
+                'gitea.credential.rotate', '--issue', str(issue), '--sha', source_sha,
+                '--token-kind', token_kind]
+        try:
+            value = self.command_runner(argv, cwd=os.path.realpath(os.getcwd()))
+            if value.returncode != 0:
+                raise ValueError()
+            receipt = json.loads(value.stdout)
+            if (not isinstance(receipt, dict) or receipt.get('operation') != 'gitea.credential.rotate'
+                    or receipt.get('project_id') != self.project_id or receipt.get('issue') != issue
+                    or receipt.get('source_sha') != source_sha or receipt.get('token_kind') != token_kind
+                    or receipt.get('status') != 'PASS' or receipt.get('result') not in ('rotated', 'no-op')):
+                raise ValueError()
+            return receipt
+        except Exception:
+            raise BrokerError('HOST_BROKER_FAILED', 'operator rotation receipt unavailable') from None

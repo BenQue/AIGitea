@@ -1,0 +1,5 @@
+Baseline: 5c2cd726c9aeaee9d17541d8feb049e33881bbac
+Linux gitea-ci /bin/bash 5.3.9 aarch64
+Command: orb run -m gitea-ci -u coder /bin/bash -lc 'cd /mnt/mac/private/tmp/issue-319-registry-utf8-exit && LC_ALL=C.UTF-8 /bin/bash codex/tests/test-registry-preflight.sh'
+Exit: 0
+Output: registry preflight tests passed

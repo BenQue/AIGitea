@@ -1,0 +1,34 @@
+{
+  "issue": 286,
+  "ticket": "T04",
+  "branch": "change/286-dependency-references",
+  "head_before_and_after_rejected_rebase": "2b132c7ea40a0c89f103dd07a03b2d7e8a9d4b82",
+  "validated_base": "11c0410d3878d5449fa61796f174ba3d2dd5e59c",
+  "latest_main": "65268ee5f1e622c486fd9e354dd35e20a2900f91",
+  "predecessor": {
+    "issue": 289,
+    "pull_request": 325,
+    "state": "open",
+    "merged": false,
+    "head_sha": "15b963a4f4dab52e4a161de0d8bab29ebc7d53c5"
+  },
+  "readonly_impact_review": {
+    "result": "PASS for scoped source comparison only",
+    "loop_host_access_manifest_AGENTS_changes": [],
+    "new_smoke_gates": "#308 source-only installed-drift mapping check and isolated fixtures",
+    "dependencies_module_mapping": "latest checker includes aisoft_host_access *.py for install-vm and install-host-access-broker",
+    "combined_rebase_regression": "NOT RUN",
+    "latest_main_installed_live": "NOT RUN"
+  },
+  "rebase_attempt": {
+    "command": "git rebase origin/main",
+    "result": "AUTO_REVIEW_REJECTED, command not executed",
+    "reason": "rewrites local history before the approved plan prerequisite #289 PR325 actual merge",
+    "workaround": "NONE; no merge, cherry-pick, alternate combined checkout or broker changes"
+  },
+  "order": "#289 actual merge required for final combined frontier; #327 not added as a hard prerequisite",
+  "push": "NOT RUN",
+  "pull_request_creation": "NOT RUN",
+  "routine_merge": "NOT RUN",
+  "installed_deploy": "NOT RUN"
+}

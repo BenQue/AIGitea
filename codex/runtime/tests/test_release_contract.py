@@ -41,6 +41,8 @@ class ReleaseSchemaTests(unittest.TestCase):
             "offline-inventory-v2.schema.json",
             "image-store-compatibility-v1.schema.json",
             "state-v2.schema.json",
+            "state-v3.schema.json",
+            "rollback-compatibility-v1.schema.json",
             "command-gate-v1.schema.json",
         )
         for name in names:

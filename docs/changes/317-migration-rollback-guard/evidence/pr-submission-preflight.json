@@ -1,0 +1,32 @@
+{
+  "issue": 317,
+  "recorded_at": "2026-10-03T00:29:47.308566+08:00",
+  "base_main": "16beee09aefe89b5bc80a31544c59d456190ea32",
+  "candidate_before_receipt": "12cfaff5ec3e8dc0e86163b3bd84675b356a0b9b",
+  "source_hashes_match": true,
+  "matching_PRs": [],
+  "issue_state": "open",
+  "labels": [
+    "approved",
+    "complexity/complex",
+    "type/bugfix"
+  ],
+  "onboarding": "PASS",
+  "protection": {
+    "block_admin_merge_override": true,
+    "branch": "main",
+    "can_force_push": false,
+    "can_push": false,
+    "enable_status_check": true,
+    "merge_whitelist_usernames": [
+      "admin"
+    ],
+    "required_approvals": 0,
+    "status_check_contexts": [
+      "CI / verify (pull_request)"
+    ]
+  },
+  "routine_enabled": false,
+  "installed_broker_first_publication": "typed git.push.change; new readable ref, no existing history rewrite; receipt must previous_head=null",
+  "last_push_head": null
+}

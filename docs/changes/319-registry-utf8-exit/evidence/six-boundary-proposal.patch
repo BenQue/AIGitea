@@ -1,0 +1,22 @@
+diff --git a/private/tmp/issue-319-registry-utf8-exit/templates/project/ci/registry-preflight.sh b/private/tmp/aisoft319-six-boundary-prototype/templates/project/ci/registry-preflight.sh
+index 0f909e5..ab7c925 100755
+--- a/private/tmp/issue-319-registry-utf8-exit/templates/project/ci/registry-preflight.sh
++++ b/private/tmp/aisoft319-six-boundary-prototype/templates/project/ci/registry-preflight.sh
+@@ -79,7 +79,7 @@ trap 'rm -f "$body"' EXIT
+ http_get "$REGISTRY/$PACKAGE" "$body"
+ if connect_failure "$CURL_STATUS"; then
+   fail connect \
+-    "连不上 ${REGISTRY}（curl 退出码 $CURL_STATUS）。" \
++    "连不上 ${REGISTRY}（curl 退出码 ${CURL_STATUS}）。" \
+     '这是「那个端口上没有任何进程在监听」，不是「拉不到上游」。' \
+     '不要往 uplink 配置、npmmirror 可达性或网络策略方向排查——' \
+     'Verdaccio 活着但代理不到上游会是 404 或 5xx，不是连接被拒。' \
+@@ -107,7 +107,7 @@ tarball="$REGISTRY/$PACKAGE/-/$PACKAGE-$VERSION.tgz"
+ http_get "$tarball" /dev/null
+ if connect_failure "$CURL_STATUS"; then
+   fail connect \
+-    "packument 取到了，但取 tarball 时连不上（curl 退出码 $CURL_STATUS）。" \
++    "packument 取到了，但取 tarball 时连不上（curl 退出码 ${CURL_STATUS}）。" \
+     '两次请求之间 registry 掉了，或存在同端口的野生进程。'
+ fi
+ if [ "$CURL_STATUS" -ne 0 ]; then

@@ -1,0 +1,39 @@
+{
+  "platform": {
+    "returncode": 0,
+    "stdout": "change-documents\tPASS\t\nchange-pr-url\tPASS\t\n",
+    "stderr": "",
+    "same_as_baseline": true
+  },
+  "sfm": {
+    "returncode": 1,
+    "stdout": "change-documents\tGAP\t0001-bu-board-display-fixes: 目录名不是合法的 change 名元组; 0003-appserver-pm2-deployment: 目录名不是合法的 change 名元组; 0005-headcount-daily-entry-rework: 目录名不是合法的 change 名元组; 0014-production-acceptance-fixes: 目录名不是合法的 change 名元组; 0016-appserver-date-storage-compat: 目录名不是合法的 change 名元组; 0018-entry-1400-lock-and-board-date-caliber: 目录名不是合法的 change 名元组; 0019-headcount-personnel-summary: 目录名不是合法的 change 名元组; 0026-quality-external-failure-detail: 目录名不是合法的 change 名元组; 0027-board-meeting-date-caliber: 目录名不是合法的 change 名元组; 0028-remove-plant-quality-screen: 目录名不是合法的 change 名元组; 0033-dead-code-and-doc-drift: 目录名不是合法的 change 名元组; 0035-eslint-flat-config-restore: 目录名不是合法的 change 名元组; 0036-e2e-port-and-db-isolation: 目录名不是合法的 change 名元组; 0037-deploy-label-writeback: 目录名不是合法的 change 名元组; 0049-board-quadrant-reason-only: 目录名不是合法的 change 名元组; 0050-top-concerns-entry: 目录名不是合法的 change 名元组; 0051-bu-top-concern-screens: 目录名不是合法的 change 名元组; 0052-summary-screen-rewrite: 目录名不是合法的 change 名元组; 0053-module-paged-entry: 目录名不是合法的 change 名元组; 0054-nodata-mark: 目录名不是合法的 change 名元组; 0055-same-day-lock-setting: 目录名不是合法的 change 名元组; 0059-quadrant-row-height: 目录名不是合法的 change 名元组; 0060-issuetype-chip-fallback: 目录名不是合法的 change 名元组; 0061-compact-dead-param: 目录名不是合法的 change 名元组; 0067-update0719-followups: 目录名不是合法的 change 名元组; 0075-remove-excel-import: 目录名不是合法的 change 名元组; 0077-walkthrough-display-fixes: 目录名不是合法的 change 名元组; 0079-of-rate-manual-entry: 目录名不是合法的 change 名元组; 0082-quality-issue-level: 目录名不是合法的 change 名元组; 0084-purge-resync-derived-cache: 目录名不是合法的 change 名元组; 0086-ci-smoke-cleanup: 目录名不是合法的 change 名元组; 101/01-spec.md: document must start with YAML front matter; 101/02-plan.md: document must start with YAML front matter; 102/01-spec.md: document must start with YAML front matter; 102/02-plan.md: document must start with YAML front matter; 102/03-verification.md: document must start with YAML front matter; 103/01-spec.md: document must start with YAML front matter; 103/02-plan.md: document must start with YAML front matter; 104/01-spec.md: document must start with YAML front matter; 104/02-plan.md: document must start with YAML front matter; 106/01-spec.md: document must start with YAML front matter; 106/02-plan.md: document must start with YAML front matter; 90/01-spec.md: document must start with YAML front matter; 90/02-plan.md: document must start with YAML front matter; 93/01-spec.md: document must start with YAML front matter; 94/01-spec.md: document must start with YAML front matter; 94/02-plan.md: document must start with YAML front matter; 97/01-spec.md: document must start with YAML front matter; 97/02-plan.md: document must start with YAML front matter; 98/01-spec.md: document must start with YAML front matter; 98/02-plan.md: document must start with YAML front matter; 99/01-spec.md: document must start with YAML front matter; 99/02-plan.md: document must start with YAML front matter\nchange-pr-url\tPASS\t\n",
+    "stderr": "",
+    "same_as_baseline": true
+  },
+  "historical-resolve-documents": {
+    "returncode": 2,
+    "stdout": "",
+    "stderr": "change 142-architecture-lock-declaration: missing required contract documents: documents.verification=verification-architecture-lock-declaration-260910.md\n"
+  },
+  "historical-resolve-required-documents": {
+    "returncode": 2,
+    "stdout": "",
+    "stderr": "required document resolution failed: change 142-architecture-lock-declaration: missing required contract documents: documents.verification=verification-architecture-lock-declaration-260910.md\n"
+  },
+  "historical-check-change-documents": {
+    "returncode": 1,
+    "stdout": "GAP: change-documents — 142-architecture-lock-declaration/resolve-documents 失败：change 142-architecture-lock-declaration: missing required contract documents: documents.verification=verification-architecture-lock-declaration-260910.md\nPASS: change-pr-url\nresult: changes=1 pass=1 gap=1\n",
+    "stderr": ""
+  },
+  "historical-terminal": {
+    "returncode": 0,
+    "stdout": "{\"issue\":142,\"project\":\"sfm-digital-board\",\"repository\":\"SFMDigitalBoard\",\"action\":\"skip\",\"applied\":false,\"reason\":\"documents-unresolved\",\"detail\":\"invalid change documents for Issue #142 under /private/tmp/aisoft-289-evidence/sfm-142-missing: required document resolution failed: change 142-architecture-lock-declaration: missing required contract documents: documents.verification=verification-architecture-lock-declaration-260910.md\"}\n",
+    "stderr": ""
+  },
+  "current-sfm-142": {
+    "returncode": 0,
+    "stdout": "{\"documents\": {\"summary\": \"summary-architecture-lock-declaration-260910.md\", \"verification\": \"verification-architecture-lock-declaration-260910.md\"}, \"required_docs\": [\"summary\", \"verification\"]}\n",
+    "stderr": ""
+  }
+}

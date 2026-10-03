@@ -1,0 +1,15 @@
+{
+  "baseline_adjacent_variables": [
+    "REGISTRY",
+    "CURL_STATUS",
+    "REGISTRY",
+    "HTTP_CODE",
+    "CURL_STATUS",
+    "HTTP_CODE"
+  ],
+  "current_adjacent_variables": [
+    "CURL_STATUS",
+    "CURL_STATUS"
+  ],
+  "prototype_adjacent_variables": []
+}

@@ -14,12 +14,14 @@ from pathlib import PurePosixPath
 from typing import Callable, Mapping, Protocol, Sequence
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qsl, quote, urlparse, urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 
 from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
 from aisoft_worktree_owner import (
     WorktreeOwnerError, authorize_push, caller_session, record_push,
 )
+
+from .dependencies import Dependency, DependencyError, parse_dependencies, resolve_target, project_issue, is_terminal
 
 from .contract import (
     IDENTIFIER_RE,
@@ -489,6 +491,7 @@ class Transport(Protocol):
         body: bytes | None,
         *,
         response_limit: int | None = None,
+        follow_redirects: bool = True,
     ) -> tuple[int, object, bytes]: ...
 
 
@@ -814,6 +817,12 @@ def _read_transport_response(
     return status, header_items, body
 
 
+class _NoDependencyRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # A Location header must never move an audit credential outside its host.
+        return None
+
+
 def _default_transport(
     method: str,
     url: str,
@@ -821,10 +830,12 @@ def _default_transport(
     body: bytes | None,
     *,
     response_limit: int | None = None,
+    follow_redirects: bool = True,
 ) -> tuple[int, tuple[tuple[str, str], ...], bytes]:
     request = Request(url, method=method, headers=dict(headers), data=body)
     try:
-        with urlopen(request, timeout=30) as response:
+        opener = urlopen if follow_redirects else build_opener(_NoDependencyRedirect()).open
+        with opener(request, timeout=30) as response:
             return _read_transport_response(response, response_limit)
     except HTTPError as exc:
         status, response_headers, response_body = _read_transport_response(
@@ -1185,6 +1196,7 @@ class HostAccessBroker:
         operation_name: str,
         *,
         number: int | None = None,
+        reference: str | None = None,
         state: str | None = None,
         branch: str | None = None,
         issue: int | None = None,
@@ -1200,6 +1212,7 @@ class HostAccessBroker:
         label: str | None = None,
         color: str | None = None,
         description: str | None = None,
+        token_kind: str | None = None,
     ) -> object:
         try:
             project = self.contract.project(project_id)
@@ -1208,6 +1221,7 @@ class HostAccessBroker:
             raise BrokerError("REQUEST_DENIED", str(exc)) from exc
         arguments = {
             "number": number,
+            "reference": reference,
             "state": state,
             "branch": branch,
             "issue": issue,
@@ -1223,6 +1237,7 @@ class HostAccessBroker:
             "label": label,
             "color": color,
             "description": description,
+            "token_kind": token_kind,
         }
         supplied = {
             key for key, value in arguments.items()
@@ -1232,6 +1247,14 @@ class HostAccessBroker:
             raise BrokerError("ARGUMENT_MISMATCH", "operation arguments do not match the typed contract")
 
         try:
+            if operation_name == "gitea.dependency.read":
+                assert reference is not None
+                if not isinstance(reference, str):
+                    raise DependencyError("DEPENDENCY_FORMAT_INVALID", "dependency reference must be a scalar")
+                return self._read_dependency(project, reference)
+            if operation_name == "gitea.credential.rotate":
+                from .credential_rotation import rotate
+                return rotate(self.contract, project_id, issue, sha, token_kind)
             if operation_name.startswith("gitea."):
                 if operation_name == "gitea.pull.merge.routine":
                     assert number is not None and sha is not None
@@ -1269,7 +1292,31 @@ class HostAccessBroker:
                 return self._vm_profile(project, operation)
         except AccessContractError as exc:
             raise BrokerError("REQUEST_DENIED", str(exc)) from exc
+        except DependencyError as exc:
+            raise BrokerError(exc.code, str(exc)) from exc
         raise BrokerError("OPERATION_UNIMPLEMENTED", "allowlisted operation has no executor")
+
+    def _read_dependency(
+        self, project: ProjectContract, reference: Dependency, *, local_token: str | None = None,
+    ) -> dict[str, object]:
+        # Resolve the complete allowlisted identity before touching any credential.
+        target, number, canonical = resolve_target(self.contract, project, reference)
+        local_legacy = isinstance(reference, int) and local_token is not None
+        if local_legacy:
+            token = local_token
+        else:
+            credential = self.credentials.resolve(project, self.contract.operation("gitea.dependency.read"))
+            self._verify_identity(credential, require_non_admin_exact=True, response_limit=256 * 1024,
+                                  follow_redirects=False)
+            token = credential.token
+        owner = self.contract.governance.owner
+        url = f"{self.contract.governance.base_url}/api/v1/repos/{owner}/{target.repository}/issues/{number}"
+        value = self._request_json(url, token, **({} if local_legacy else {"response_limit": 256 * 1024, "follow_redirects": False}))
+        if local_legacy:
+            if not isinstance(value, dict) or value.get("pull_request") is not None:
+                raise BrokerError("DEPENDENCY_RESPONSE_INVALID", "local dependency is not an Issue")
+            return value
+        return project_issue(value, (owner, target.repository, number))
 
     def _routine_merge(
         self,
@@ -1360,11 +1407,12 @@ class HostAccessBroker:
         if (
             not isinstance(risk_flags_raw, list)
             or any(not isinstance(item, str) or not item for item in risk_flags_raw)
-            or not isinstance(dependencies, list)
-            or any(not isinstance(item, int) or isinstance(item, bool) or item <= 0
-                   for item in dependencies)
         ):
             raise BrokerError("ROUTINE_CONTRACT_INVALID", "summary list fields are invalid")
+        dependencies = parse_dependencies(dependencies, issue_number,
+                                          (self.contract.governance.owner, project.repository))
+        for dependency in dependencies:
+            resolve_target(self.contract, project, dependency)
         risk_flags = tuple(risk_flags_raw)
         if (
             front.get("issue") != issue_number
@@ -1515,12 +1563,8 @@ class HostAccessBroker:
 
         # 9. Dependencies must be closed and completed/deployed.
         for dependency in dependencies:
-            dep = self._request_json(f"{repo_api}/issues/{dependency}", credential.token)
-            dep_labels = {
-                item.get("name") for item in dep.get("labels", [])
-                if isinstance(item, dict)
-            } if isinstance(dep, dict) else set()
-            if dep.get("state") != "closed" or not dep_labels & {"completed", "deployed"}:
+            dep = self._read_dependency(project, dependency, local_token=credential.token)
+            if not is_terminal(dep):
                 raise BrokerError("ROUTINE_DEPENDENCY_BLOCKED", "dependency is not terminal")
 
         # 10. Recompute conservative small scope from the complete final diff.
@@ -1560,6 +1604,7 @@ class HostAccessBroker:
             "pull_request": number,
             "head_sha": sha,
             "status": "AUTO_MERGED",
+            "dependencies": [resolve_target(self.contract, project, ref)[2] for ref in dependencies],
             "merge_commit_sha": (
                 response.get("sha") if isinstance(response, dict) else None
             ),
@@ -1588,7 +1633,7 @@ class HostAccessBroker:
             if line.startswith("  - ") and active in {"risk_flags", "depends_on"}:
                 values = result.setdefault(active, [])
                 assert isinstance(values, list)
-                raw = line[4:].strip()
+                raw = line[4:].strip().strip("\'\"")
                 values.append(int(raw) if active == "depends_on" and raw.isdigit() else raw)
                 continue
             if line and not line.startswith(" ") and ":" in line:
@@ -2800,9 +2845,13 @@ class HostAccessBroker:
         credential: ResolvedCredential,
         *,
         require_non_admin_exact: bool = False,
+        response_limit: int | None = None,
+        follow_redirects: bool = True,
     ) -> None:
         url = f"{self.contract.governance.base_url}/api/v1/user"
-        value = self._request_json(url, credential.token)
+        value = self._request_json(url, credential.token,
+                                   **({} if response_limit is None else {"response_limit": response_limit}),
+                                   **({} if follow_redirects else {"follow_redirects": False}))
         if not isinstance(value, dict) or value.get("login") != credential.identity:
             raise BrokerError("IDENTITY_MISMATCH", "credential identity does not match the route")
         if require_non_admin_exact and value.get("is_admin") is not False:
@@ -2820,6 +2869,8 @@ class HostAccessBroker:
         *,
         method: str = "GET",
         payload: object | None = None,
+        response_limit: int | None = None,
+        follow_redirects: bool = True,
     ) -> object:
         body_data = None
         headers = {"Accept": "application/json", "Authorization": f"token {token}"}
@@ -2830,8 +2881,12 @@ class HostAccessBroker:
             headers["Content-Type"] = "application/json"
         try:
             status, _headers, body = self.transport(
-                method, url, headers, body_data
+                method, url, headers, body_data,
+                **({} if response_limit is None else {"response_limit": response_limit}),
+                **({} if follow_redirects else {"follow_redirects": False})
             )
+            if response_limit is not None:
+                _validate_bounded_response(_headers, body, response_limit)
         except BrokerError:
             raise
         except Exception as exc:  # defensive adapter boundary

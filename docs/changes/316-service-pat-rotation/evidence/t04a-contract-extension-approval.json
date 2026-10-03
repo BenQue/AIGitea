@@ -1,0 +1,45 @@
+{
+  "issue": 316,
+  "branch": "change/316-service-pat-rotation",
+  "governance_start_head": "fdbc7e79a54a9c8584957a83427192d0d20a91fb",
+  "authorization": {
+    "source": "direct human message in this Issue chat",
+    "text": "确认继续",
+    "client_date": "2026-10-03",
+    "timezone": "Asia/Shanghai",
+    "proposal": "t04-installed-drift-extension-proposal.md",
+    "proposal_sha256_at_approval": "0789cad96d21d4901028ba4bebd99c67c288d47d610fe270b99c931663f47e33"
+  },
+  "scope": {
+    "T04A": "Issue316 mapped documents, proposal approval record and sanitized evidence only; commit then stop",
+    "T04B": "fresh run only: exact checker and installed-drift fixture source plus Issue316 docs/evidence",
+    "source_files": [
+      "codex/tools/check-installed-drift.py",
+      "codex/tests/fixtures/installed-drift/test-installed-drift.py"
+    ],
+    "cli": "--pat-helper-provenance ABSOLUTE_PUBLIC_PROVENANCE"
+  },
+  "boundaries": {
+    "runtime_modified_this_step": false,
+    "history_rewritten": false,
+    "push_pr_merge_labels": false,
+    "installation_grant_live_authorized": false,
+    "repeat_start_confirmation_required": false
+  },
+  "existing_combined_smoke": "FAIL - not repaired or rerun during governance step",
+  "required_ci": "NOT RUN",
+  "installed": "NOT RUN",
+  "live": "NOT RUN",
+  "next_frontier": "T04B_NEXT_FRESH_RUN",
+  "checks": {
+    "check-change-documents": {
+      "result": "PASS",
+      "changes": 145,
+      "pass": 2,
+      "gap": 0
+    },
+    "git-diff-check": "PASS",
+    "local-document-links-and-receipt": "PASS",
+    "runtime-suite": "NOT RUN - governance documents only"
+  }
+}

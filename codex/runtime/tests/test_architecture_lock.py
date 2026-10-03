@@ -35,6 +35,7 @@ class ArchitectureLockTests(unittest.TestCase):
             self.project,
             self.project_schema,
             today,
+            repo_root=ARCH,
         )
 
     def test_repeat_lock_is_byte_identical(self) -> None:
@@ -171,6 +172,7 @@ class ArchitectureLockTests(unittest.TestCase):
                     project,
                     self.project_schema,
                     TODAY,
+                    repo_root=ARCH,
                     schema_version="1.0",
                 )
                 validate_lock(

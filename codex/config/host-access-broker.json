@@ -51,10 +51,28 @@
   },
   "operations": [
     {
+      "name": "gitea.credential.rotate",
+      "identity_route": "credential-operator",
+      "mutating": true,
+      "arguments": [
+        "issue",
+        "sha",
+        "token_kind"
+      ]
+    },
+    {
       "name": "gitea.repo.read",
       "identity_route": "project-agent",
       "mutating": false,
       "arguments": []
+    },
+    {
+      "name": "gitea.dependency.read",
+      "identity_route": "manager-audit",
+      "mutating": false,
+      "arguments": [
+        "reference"
+      ]
     },
     {
       "name": "gitea.issue.read",
@@ -388,7 +406,10 @@
       "routine_merge_agent": null,
       "git_remote_name": "gitea",
       "mac_checkout": "/Users/benque/Projects/SFMDigitalBoard",
-      "vm_profile": null
+      "vm_profile": null,
+      "dependency_read_targets": [
+        "aisoft-platform"
+      ]
     },
     {
       "project_id": "smoke-test",
@@ -398,5 +419,16 @@
       "mac_checkout": null,
       "vm_profile": null
     }
-  ]
+  ],
+  "credential_rotation_policy": {
+    "operator_uid": 0,
+    "grant_root": "/usr/local/etc/aisoft/credential-rotation-grants",
+    "source_receipt": "/usr/local/share/aisoft/credential-rotation-source.json",
+    "vm_helper": "/usr/local/libexec/aisoft/gitea-pat-helper",
+    "vm_operator": "/usr/local/libexec/aisoft/rotate-gitea-service-account",
+    "vm_service_user": "git",
+    "gitea_binary": "/usr/local/bin/gitea",
+    "gitea_config": "/etc/gitea/app.ini",
+    "gitea_version": "1.26.4"
+  }
 }

@@ -42,6 +42,29 @@ class InstalledDriftTests(unittest.TestCase):
             raise AssertionError("public installed-drift CLI has not been implemented")
         cls.temp = tempfile.TemporaryDirectory(prefix="aisoft-installed-drift-")
         cls.base = Path(cls.temp.name).resolve() / "base"
+        # Installer fixtures use a local source baseline, independent of a pending
+        # PR's differences from the real cached main. Production identity gates
+        # remain unchanged; explicit source-drift cases below still fail closed.
+        cls.fixture_source = Path(cls.temp.name).resolve() / "source-baseline"
+        cls.fixture_source.mkdir()
+        for directory in ["codex", "architecture", "docker-release", "sync",
+                          "skill-for-codex", "skill-for-claude", "templates"]:
+            shutil.copytree(REPO / directory, cls.fixture_source / directory,
+                            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        git_env = {key: value for key, value in os.environ.items()
+                   if not key.startswith("GIT_")}
+        git_env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
+                       GIT_TERMINAL_PROMPT="0")
+        for args in [["git", "init", "-q", str(cls.fixture_source)],
+                     ["git", "-C", str(cls.fixture_source), "add", "."],
+                     ["git", "-C", str(cls.fixture_source), "-c", "user.name=Fixture",
+                      "-c", "user.email=fixture@example.invalid", "-c", "core.hooksPath=/dev/null",
+                      "commit", "-qm", "local fixture baseline"],
+                     ["git", "-C", str(cls.fixture_source), "update-ref",
+                      "refs/remotes/origin/main", "HEAD"]]:
+            p = run(args, env=git_env)
+            if p.returncode:
+                raise AssertionError(f"fixture source baseline failed: {args}: {p.stderr}")
         home = cls.base / "home"
         system = cls.base / "system"
         agent = cls.base / "custom-agent"
@@ -62,7 +85,7 @@ class InstalledDriftTests(unittest.TestCase):
             ["bash", "skill-for-claude/install.sh", str(home)],
         ]
         for args in commands:
-            p = run(args, cwd=REPO, env=env)
+            p = run(args, cwd=cls.fixture_source, env=env)
             if p.returncode:
                 raise AssertionError(f"fixture installer failed: {args}: {p.stderr}")
 
@@ -83,12 +106,13 @@ class InstalledDriftTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.work)
 
-    def args(self, repo=REPO):
+    def args(self, repo=None):
+        repo = self.fixture_source if repo is None else repo
         return ["bash", str(CHECKER), "--repo", str(repo),
                 "--target-home", str(self.home), "--install-root", str(self.system),
                 "--agent-dir", str(self.agent), "--architecture-prefix", str(self.arch), "--json"]
 
-    def check(self, code=0, extra=(), repo=REPO):
+    def check(self, code=0, extra=(), repo=None):
         before = fingerprint(self.installed)
         p = run(self.args(repo) + list(extra))
         self.assertEqual(p.returncode, code, p.stderr + p.stdout)
@@ -106,6 +130,250 @@ class InstalledDriftTests(unittest.TestCase):
             shutil.copytree(REPO / directory, source / directory,
                             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         return source
+
+    def rotation_record(self):
+        return self.system / "usr/local/share/aisoft/credential-rotation-source.json"
+
+    def select_synthetic_helper(self):
+        """Comparison fixture only: no executable Go/server or real credentials."""
+        binary = self.system / "usr/local/libexec/aisoft/gitea-pat-helper"
+        binary.write_bytes(b"SYNTHETIC_COMPARISON_ARTIFACT_NOT_A_REAL_HELPER")
+        binary.chmod(0o755)
+        helper = self.fixture_source / "codex/tools/gitea-pat-helper"
+        lock = json.loads((helper / "build-lock.json").read_text())
+        pin = next(item for item in lock["files"] if item["os"] == "linux" and item["arch"] == "arm64")
+        digest = hashlib.sha256(binary.read_bytes()).hexdigest()
+        head = run(["git", "-C", str(self.fixture_source), "rev-parse", "HEAD"]).stdout.strip()
+        evidence = {
+            "schema": "aisoft-gitea-pat-helper-build/v1", "toolchain": lock["version"],
+            "toolchain_input": {"filename": pin["filename"], "sha256": pin["sha256"],
+                                "extracted_tree_sha256": "9" * 64},
+            "platform": "linux/arm64", "gitea": lock["gitea"], "sha256": digest,
+            "go_mod_sha256": hashlib.sha256((helper / "go.mod").read_bytes()).hexdigest(),
+            "go_sum_sha256": hashlib.sha256((helper / "go.sum").read_bytes()).hexdigest(),
+            "build_info": "SYNTHETIC_BUILD_INFO_DO_NOT_PRINT", "source_commit": head,
+            "source_dirty": False,
+            "source_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in helper.glob("*.go")},
+        }
+        public = self.work / "public-build/gitea-pat-helper.provenance.json"
+        public.parent.mkdir()
+        public.write_text(json.dumps(evidence))
+        record = json.loads(self.rotation_record().read_text())
+        record["helper"] = {"sha256": digest, "platform": "linux/arm64", "model": "1.26.4", "toolchain": "go1.26.3"}
+        self.rotation_record().write_text(json.dumps(record))
+        return public, binary
+
+    def test_rotation_new_targets_missing_old_bytes_and_restore(self):
+        paths = [self.system / "usr/local/libexec/aisoft/rotate-gitea-service-account", self.rotation_record()]
+        for path in paths:
+            original = path.read_bytes()
+            path.unlink()
+            row = self.row(self.check(1), "install-host-access-broker")
+            self.assertTrue(any(g["reason"] == "missing" and g["target"] == str(path) for g in row["gaps"]))
+            path.write_bytes(original)
+            self.check()
+        path = paths[0]
+        original = path.read_bytes()
+        path.write_bytes(b"X" + original[1:])
+        row = self.row(self.check(1), "install-host-access-broker")
+        self.assertTrue(any(g["reason"] == "bytes-differ" and g["target"] == str(path) for g in row["gaps"]))
+        path.write_bytes(original)
+        self.check()
+
+    def test_rotation_null_is_local_not_remote_and_ignores_retained_binary(self):
+        binary = self.system / "usr/local/libexec/aisoft/gitea-pat-helper"
+        os.mkfifo(binary)
+        # FIFO must remain untouched: no retained-helper read or stat required.
+        p = run(self.args(), timeout=15)
+        self.assertEqual(p.returncode, 0, p.stderr + p.stdout)
+        rotation = self.row(json.loads(p.stdout), "install-host-access-broker")["rotation"]
+        self.assertEqual(rotation["local_helper"], "LOCAL_HELPER_NOT_DECLARED")
+        self.assertEqual(rotation["capability"], "NOT_ASSESSED")
+        self.assertNotIn("DISABLED", json.dumps(rotation))
+
+    def test_rotation_metadata_schema_binding_and_secret_redaction(self):
+        path = self.rotation_record()
+        original = path.read_bytes()
+        base = json.loads(original)
+        cases = [b"invalid SYNTHETIC_RECORD_SECRET_DO_NOT_PRINT",
+                 b'{"version":1,"version":1}',
+                 json.dumps({**base, "secret": "SYNTHETIC_RECORD_SECRET_DO_NOT_PRINT"}).encode(),
+                 json.dumps({**base, "source_sha": "0" * 40}).encode(),
+                 json.dumps({**base, "merged_main": False}).encode(),
+                 json.dumps({**base, "files": {"/private/secret": "0" * 64}}).encode(),
+                 json.dumps({**base, "files": {name: "0" * 64 for name in base["files"]}}).encode(),
+                 json.dumps({**base, "helper": {"path": "/private/secret"}}).encode(),
+                 json.dumps({**base, "version": True}).encode()]
+        for data in cases:
+            with self.subTest(case=hashlib.sha256(data).hexdigest()[:8]):
+                path.write_bytes(data)
+                row = self.row(self.check(1), "install-host-access-broker")
+                self.assertEqual(row["result"], "GAP")
+                self.assertNotIn("SYNTHETIC_RECORD_SECRET_DO_NOT_PRINT", json.dumps(row))
+                path.write_bytes(original)
+                self.check()
+
+    def test_rotation_helper_needs_independent_evidence_and_matches_it(self):
+        public, binary = self.select_synthetic_helper()
+        row = self.row(self.check(1), "install-host-access-broker")
+        self.assertTrue(any(g["reason"] == "helper-provenance-required" for g in row["gaps"]))
+        extra = ["--pat-helper-provenance", str(public)]
+        report = self.check(extra=extra)
+        row = self.row(report, "install-host-access-broker")
+        self.assertEqual(row["rotation"]["local_helper"], "MATCHES_DECLARED_BUILD")
+        self.assertEqual(row["rotation"]["capability"], "NOT_ASSESSED")
+        self.assertNotIn("SYNTHETIC_BUILD_INFO_DO_NOT_PRINT", json.dumps(report))
+        original = binary.read_bytes()
+        binary.write_bytes(b"X" + original[1:])
+        self.assertEqual(self.row(self.check(1, extra=extra), "install-host-access-broker")["result"], "GAP")
+        binary.unlink()
+        self.check(1, extra=extra)
+        binary.write_bytes(original)
+        binary.chmod(0o755)
+        self.check(extra=extra)
+
+    def test_rotation_external_evidence_schema_pins_and_source_rejection(self):
+        public, _binary = self.select_synthetic_helper()
+        extra = ["--pat-helper-provenance", str(public)]
+        original = public.read_bytes()
+        base = json.loads(original)
+        updates = [{"source_commit": "0" * 40}, {"source_dirty": True}, {"source_dirty": 0},
+                   {"platform": "darwin/arm64"}, {"toolchain": "go0.0.0"},
+                   {"source_sha256": {}}, {"go_mod_sha256": "0" * 64}, {"go_sum_sha256": "0" * 64},
+                   {"gitea": {}}, {"toolchain_input": {}}, {"sha256": "0" * 64},
+                   {"Dir": "/private/secret"}, {"schema": "unexpected"}]
+        for fields in updates:
+            with self.subTest(fields=sorted(fields)):
+                public.write_text(json.dumps({**base, **fields}))
+                self.check(1, extra=extra)
+                public.write_bytes(original)
+                self.check(extra=extra)
+        public.write_bytes(b'{"schema":"duplicate","schema":"duplicate"}')
+        self.check(1, extra=extra)
+        public.write_bytes(original)
+        self.check(extra=extra)
+
+    def test_rotation_explicit_helper_evidence_when_not_selected_is_gap_without_read(self):
+        public = self.work / "gitea-pat-helper.provenance.json"
+        os.mkfifo(public)
+        p = run(self.args() + ["--pat-helper-provenance", str(public)], timeout=15)
+        self.assertEqual(p.returncode, 1, p.stderr + p.stdout)
+        self.assertIn("helper-not-selected", p.stdout)
+
+    def test_rotation_new_files_links_fifo_and_permissions_fail_closed(self):
+        public, binary = self.select_synthetic_helper()
+        extra = ["--pat-helper-provenance", str(public)]
+        private = self.work / "private-sentinel"
+        private.write_text("NEW_FILE_SECRET_MUST_NOT_BE_READ")
+        for path in [self.rotation_record(), binary, public]:
+            original = path.read_bytes()
+            mode = path.stat().st_mode & 0o777
+            for kind in ["symlink", "fifo", "unreadable"]:
+                with self.subTest(path=path.name, kind=kind):
+                    path.unlink()
+                    if kind == "symlink":
+                        path.symlink_to(private)
+                    elif kind == "fifo":
+                        os.mkfifo(path)
+                    else:
+                        path.write_bytes(original)
+                        path.chmod(0)
+                    p = run(self.args() + extra, timeout=15)
+                    self.assertEqual(p.returncode, 1, p.stderr + p.stdout)
+                    self.assertNotIn("NEW_FILE_SECRET_MUST_NOT_BE_READ", p.stdout + p.stderr)
+                    path.unlink()
+                    path.write_bytes(original)
+                    path.chmod(mode)
+                    self.check(extra=extra)
+        directory = public.parent
+        moved = self.work / "moved-public"
+        directory.rename(moved)
+        directory.symlink_to(moved, target_is_directory=True)
+        self.check(1, extra=extra)
+
+    def test_rotation_source_only_zero_target_and_external_artifact_access(self):
+        public, _binary = self.select_synthetic_helper()
+        script = REPO / "codex/tools/check-installed-drift.py"
+        harness = r'''
+import os, pathlib, runpy, sys
+script, target, artifact = sys.argv[1:4]
+namespace = runpy.run_path(script, run_name="test_seam")
+blocked = [pathlib.Path(target), pathlib.Path(artifact)]
+def forbidden(value):
+    if isinstance(value, (str, bytes, os.PathLike)):
+        path = pathlib.Path(os.fsdecode(value))
+        if any(path == root or path.is_relative_to(root) for root in blocked):
+            raise RuntimeError("SOURCE_ONLY_TARGET_ACCESS")
+for name in ("open", "stat", "lstat", "readlink"):
+    original = getattr(os, name)
+    def guard(path, *args, _original=original, **kwargs):
+        forbidden(path)
+        return _original(path, *args, **kwargs)
+    setattr(os, name, guard)
+original_resolve = pathlib.Path.resolve
+def resolve(path, *args, **kwargs):
+    forbidden(path)
+    return original_resolve(path, *args, **kwargs)
+pathlib.Path.resolve = resolve
+raise SystemExit(namespace["main"](sys.argv[4:]))
+'''
+        p = run([sys.executable, "-B", "-c", harness, str(script), str(self.installed), str(public.parent)]
+                + self.args()[2:] + ["--source-only", "--pat-helper-provenance", str(public)], timeout=20)
+        self.assertEqual(p.returncode, 0, p.stderr + p.stdout)
+        report = json.loads(p.stdout)
+        self.assertTrue(all(row["scope"] == "SOURCE" for row in report["installers"]))
+        self.assertNotIn("MATCHES_DECLARED_BUILD", p.stdout)
+
+    def test_rotation_helper_inputs_participate_in_source_identity(self):
+        source = self.clone_source()
+        for args in [["git", "init", "-q", str(source)], ["git", "-C", str(source), "add", "."],
+                     ["git", "-C", str(source), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                      "-c", "core.hooksPath=/dev/null", "commit", "-qm", "fixture baseline"],
+                     ["git", "-C", str(source), "update-ref", "refs/remotes/origin/main", "HEAD"]]:
+            self.assertEqual(run(args).returncode, 0)
+        helper = source / "codex/tools/gitea-pat-helper"
+        for name in ["build.py", "build-lock.json", "go.mod", "go.sum", "helper.go"]:
+            path = helper / name
+            original = path.read_bytes()
+            path.write_bytes(original + b"\n")
+            report = self.check(extra=["--source-only"], repo=source)
+            self.assertFalse(report["source"]["managed_source_matches_cached_main"], name)
+            path.write_bytes(original)
+        added = helper / "untracked_fixture.go"
+        added.write_text("// fixture\n")
+        self.assertFalse(self.check(extra=["--source-only"], repo=source)["source"]["managed_source_matches_cached_main"])
+
+    def test_rotation_required_source_inputs_cannot_be_missing_or_linked(self):
+        source = self.clone_source()
+        helper = source / "codex/tools/gitea-pat-helper"
+        private = self.work / "private-source"
+        private.write_text("SOURCE_SECRET_MUST_NOT_BE_READ")
+        for name in ["build.py", "build-lock.json", "go.mod", "go.sum", "main.go", "helper.go"]:
+            path = helper / name
+            original = path.read_bytes()
+            for kind in ["missing", "symlink", "unreadable"]:
+                with self.subTest(name=name, kind=kind):
+                    path.unlink()
+                    if kind == "symlink":
+                        path.symlink_to(private)
+                    elif kind == "unreadable":
+                        path.write_bytes(original)
+                        path.chmod(0)
+                    p = run(self.args(source) + ["--source-only"])
+                    self.assertEqual(p.returncode, 2, p.stderr + p.stdout)
+                    self.assertNotIn("SOURCE_SECRET_MUST_NOT_BE_READ", p.stdout + p.stderr)
+                    if path.is_symlink() or path.exists():
+                        path.unlink()
+                    path.write_bytes(original)
+                    path.chmod(0o644)
+        lock = helper / "build-lock.json"
+        original = lock.read_bytes()
+        for content in ['invalid JSON', '{"version":"go1.26.3","version":"go1.26.3"}',
+                        json.dumps({**json.loads(original), "version": "go0.0.0"})]:
+            lock.write_text(content)
+            self.check(2, extra=["--source-only"], repo=source)
+        lock.write_bytes(original)
+        self.check(extra=["--source-only"], repo=source)
 
     def test_all_eight_real_installer_fixtures_pass(self):
         report = self.check()
@@ -438,12 +706,42 @@ sys.addaudithook(guard)
 sys.argv[0] = script
 runpy.run_path(script, run_name="__main__")
 '''
-        args = self.args()[2:]
+        public, _binary = self.select_synthetic_helper()
+        args = self.args()[2:] + ["--pat-helper-provenance", str(public)]
         # Remove wrapper path, preserve the public Python CLI's same options.
         before = fingerprint(self.installed)
         p = run([sys.executable, "-B", "-c", audit, str(script)] + args)
         self.assertEqual(p.returncode, 0, p.stderr + p.stdout)
         self.assertEqual(fingerprint(self.installed), before)
+
+    def test_rotation_parent_replacement_cannot_follow_private_metadata(self):
+        script = REPO / "codex/tools/check-installed-drift.py"
+        harness = r'''
+import pathlib, runpy, sys
+namespace = runpy.run_path(sys.argv[1], run_name="test_seam")
+root = pathlib.Path(sys.argv[2])
+target = root / "managed/credential-rotation-source.json"
+original = namespace["read_bytes"].__globals__["checked_stat"]
+def swap(path, boundary, **kwargs):
+    result = original(path, boundary, **kwargs)
+    (root / "managed").rename(root / "old")
+    (root / "managed").symlink_to(root / "private", target_is_directory=True)
+    return result
+namespace["read_bytes"].__globals__["checked_stat"] = swap
+try:
+    namespace["strict_document"](target, root)
+except namespace["InspectionError"]:
+    raise SystemExit(0)
+raise SystemExit("unexpected private metadata read")
+'''
+        root = self.work / "metadata-race"
+        for name in ("managed", "private"):
+            (root / name).mkdir(parents=True)
+            (root / name / "credential-rotation-source.json").write_text(
+                '{"secret":"RACE_PRIVATE_SENTINEL"}' if name == "private" else '{"version":1}')
+        p = run([sys.executable, "-B", "-c", harness, str(script), str(root)])
+        self.assertEqual(p.returncode, 0, p.stderr + p.stdout)
+        self.assertNotIn("RACE_PRIVATE_SENTINEL", p.stdout + p.stderr)
 
 
 if __name__ == "__main__":

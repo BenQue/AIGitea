@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from .errors import fail
+from .dockerfile import validate_dockerfiles
 from .jsonio import sha256_value
 from .schema import validate_schema
 from .validator import validate_catalog, validate_profile, validate_project
@@ -45,12 +47,14 @@ def build_lock(
     today: date,
     *,
     schema_version: str = "2.0",
+    repo_root: Path | str | None = None,
 ) -> dict[str, Any]:
     # V1 is retained for the strict legacy reader and compatibility tests only.
     schema_filename = lock_schema_filename(schema_version)
     components = validate_catalog(catalog, catalog_schema, today)
     validate_profile(profile, profile_schema, catalog, components)
     validate_project(project, project_schema, profile, catalog, components, today)
+    validate_dockerfiles(project, components, repo_root)
     exceptions_by_component = {
         exception["component_id"]: exception for exception in project["exceptions"]
     }

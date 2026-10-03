@@ -1,0 +1,18 @@
+{
+  "number": 317,
+  "title": "fix(release): 数据库迁移后容器回退须验证兼容性（NewEMaint #229 前置）",
+  "state": "open",
+  "labels": [
+    {
+      "name": "approved"
+    },
+    {
+      "name": "complexity/complex"
+    },
+    {
+      "name": "type/bugfix"
+    }
+  ],
+  "updated_at": "2026-10-02T21:27:17+08:00",
+  "html_url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/317"
+}

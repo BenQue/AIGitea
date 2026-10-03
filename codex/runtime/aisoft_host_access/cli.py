@@ -26,6 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
     broker.add_argument("--project", required=True)
     broker.add_argument("--operation", required=True)
     broker.add_argument("--number", type=int)
+    broker.add_argument("--reference")
     broker.add_argument("--state", choices=("open", "closed", "all"))
     broker.add_argument("--branch")
     broker.add_argument("--issue", type=int)
@@ -33,6 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     broker.add_argument("--body")
     broker.add_argument("--comment")
     broker.add_argument("--sha")
+    broker.add_argument("--token-kind")
     # Actions job id (#143). Sourced from gitea.actions.run.read output, never
     # scraped out of a commit status target_url.
     broker.add_argument("--job", type=int)
@@ -98,6 +100,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.project,
                 args.operation,
                 number=args.number,
+                **({"reference": args.reference} if args.reference is not None else {}),
                 state=args.state,
                 branch=args.branch,
                 issue=args.issue,
@@ -113,6 +116,7 @@ def main(argv: list[str] | None = None) -> int:
                 label=args.label,
                 color=args.color,
                 description=args.description,
+                token_kind=args.token_kind,
             )
             _json(value)
             return 0
@@ -166,7 +170,10 @@ def main(argv: list[str] | None = None) -> int:
     except (AccessContractError, BrokerError, OSError, ValueError) as exc:
         code = exc.code if isinstance(exc, BrokerError) else "CONTRACT_INVALID"
         print(json.dumps({
-            "status": "BLOCKED_EXTERNAL",
+            "status": "NEEDS_HUMAN_DECISION" if code in {
+                "DEPENDENCY_FORMAT_INVALID", "DEPENDENCY_SELF",
+                "DEPENDENCY_DUPLICATE", "DEPENDENCY_TARGET_DENIED",
+            } else "BLOCKED_EXTERNAL",
             "code": code,
             "message": str(exc),
         }, ensure_ascii=False, sort_keys=True), file=sys.stderr)

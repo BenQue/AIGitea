@@ -1,0 +1,70 @@
+--- a/codex/tests/fixtures/installed-drift/test-installed-drift.py
++++ b/codex/tests/fixtures/installed-drift/test-installed-drift.py
+@@ -41,6 +41,19 @@
+         if not CHECKER.is_file():
+             raise AssertionError("public installed-drift CLI has not been implemented")
+         cls.temp = tempfile.TemporaryDirectory(prefix="aisoft-installed-drift-")
++        cls.source = Path(cls.temp.name).resolve() / "fixture-source"
++        cls.copy_source(cls.source)
++        # This ref binds only copied fixture bytes; never change the real checkout's
++        # cached main or claim that PR source is already published/installed.
++        git_env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
++        git_env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)
++        for args in [["init", "-q"], ["add", "."],
++                     ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
++                      "-c", "core.hooksPath=/dev/null", "commit", "-qm", "isolated fixture bytes"],
++                     ["update-ref", "refs/remotes/origin/main", "HEAD"]]:
++            p = run(["git", "-C", str(cls.source), *args], env=git_env)
++            if p.returncode:
++                raise AssertionError(f"fixture source binding failed: {p.stderr}")
+         cls.base = Path(cls.temp.name).resolve() / "base"
+         home = cls.base / "home"
+         system = cls.base / "system"
+@@ -83,12 +96,13 @@
+     def tearDown(self):
+         shutil.rmtree(self.work)
+ 
+-    def args(self, repo=REPO):
++    def args(self, repo=None):
++        repo = self.source if repo is None else repo
+         return ["bash", str(CHECKER), "--repo", str(repo),
+                 "--target-home", str(self.home), "--install-root", str(self.system),
+                 "--agent-dir", str(self.agent), "--architecture-prefix", str(self.arch), "--json"]
+ 
+-    def check(self, code=0, extra=(), repo=REPO):
++    def check(self, code=0, extra=(), repo=None):
+         before = fingerprint(self.installed)
+         p = run(self.args(repo) + list(extra))
+         self.assertEqual(p.returncode, code, p.stderr + p.stdout)
+@@ -98,14 +112,29 @@
+     def row(self, report, name):
+         return next(row for row in report["installers"] if row["installer"] == name)
+ 
+-    def clone_source(self):
+-        source = self.work / "source"
++    @staticmethod
++    def copy_source(source):
+         source.mkdir()
+         # Only repository data; no Git metadata, user home, credentials or live files.
+         for directory in ["codex", "architecture", "docker-release", "sync", "skill-for-codex", "skill-for-claude", "templates"]:
+             shutil.copytree(REPO / directory, source / directory,
+                             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
++
++    def clone_source(self):
++        source = self.work / "source"
++        self.copy_source(source)
+         return source
++
++    def test_fixture_source_binding_is_isolated(self):
++        self.assertNotEqual(self.source, REPO)
++        self.assertTrue(self.source.is_relative_to(Path(self.temp.name).resolve()))
++        p = run(["git", "-C", str(self.source), "rev-parse", "HEAD", "refs/remotes/origin/main"])
++        self.assertEqual(p.returncode, 0, p.stderr)
++        heads = p.stdout.splitlines()
++        self.assertEqual(heads[0], heads[1])
++        report = self.check()
++        self.assertTrue(report["source"]["managed_source_matches_cached_main"])
++        self.assertEqual(report["source"]["remote_freshness"], "EXTERNAL_EVIDENCE_REQUIRED")
+ 
+     def test_all_eight_real_installer_fixtures_pass(self):
+         report = self.check()

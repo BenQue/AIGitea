@@ -10,6 +10,8 @@ from typing import Mapping, Optional
 
 from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
 
+from aisoft_host_access.dependencies import Dependency, DependencyError, parse_dependencies
+
 from .classification import CHANGE_TYPES, Classification, ClassificationError
 
 
@@ -92,7 +94,7 @@ class Contract:
     document_directory: Path
     required_docs: tuple[str, ...]
     acceptance_criteria: tuple[str, ...]
-    dependencies: tuple[int, ...]
+    dependencies: tuple[Dependency, ...]
     change_control: str = "production"
 
 
@@ -121,6 +123,13 @@ def resolve_summary(repo: Path | str, issue_number: int) -> tuple[Path, dict[str
     return summary_path, summary
 
 
+def resolve_required_documents(repo: Path | str, issue_number: int) -> dict[str, object]:
+    """Return the same validated declaration used by audit, Loop and terminal readers."""
+    _, _, summary, documents = _document_context(Path(repo).resolve(), issue_number)
+    return {"required_docs": list(_required_roles(summary.get("required_docs"))),
+            "documents": documents}
+
+
 def resolve_change_name(repo: Path | str, issue_number: int) -> ChangeName:
     """Resolve the one evidence-backed legacy or readable change tuple."""
     repo_path = Path(repo).resolve()
@@ -135,6 +144,7 @@ def load_contract(
     *,
     allowed_lifecycle: tuple[str, ...] = ("approved",),
     change_control: str = "production",
+    repository_identity: tuple[str, str] | None = None,
 ) -> Contract:
     repo_path = Path(repo).resolve()
     if not repo_path.is_dir():
@@ -172,7 +182,7 @@ def load_contract(
     except ChangeNameError as exc:
         raise ContractError(str(exc)) from exc
     summary_text = summary_path.read_text(encoding="utf-8")
-    dependencies = _dependencies(summary.get("depends_on", []), number)
+    dependencies = _dependencies(summary.get("depends_on", []), number, repository_identity)
     expected_branch = change_name.branch
     if _as_int(summary.get("issue")) != number:
         raise ContractError("summary issue does not match the Gitea Issue number")
@@ -203,18 +213,19 @@ def load_contract(
             lifecycle_label="spec-drafting" if route.effective_complexity == "complex" else "awaiting-triage",
         )
 
-    required_docs = _required_document_names(route.required_docs, documents)
-    missing_docs = [name for name in required_docs if not directory.joinpath(name).is_file()]
-    if missing_docs:
-        lifecycle = "spec-drafting" if route.effective_complexity == "complex" else "awaiting-triage"
+    declared_roles = _required_roles(summary.get("required_docs"))
+    minimum_roles = _required_roles(list(route.required_docs))
+    missing_roles = [role for role in minimum_roles if role not in declared_roles]
+    if missing_roles:
         raise ContractError(
-            "missing required contract documents: " + ", ".join(missing_docs),
-            lifecycle_label=lifecycle,
+            "summary required_docs omits route minimum roles: " + ", ".join(missing_roles),
+            lifecycle_label="spec-drafting" if route.effective_complexity == "complex" else "awaiting-triage",
         )
+    required_docs = _required_document_names(declared_roles, documents)
 
     body = str(issue.get("body") or "")
     _reject_governing_self_modification(body)
-    spec_required = bool({"spec", "01-spec.md"} & set(route.required_docs))
+    spec_required = change_control == "production" and route.effective_complexity == "complex"
     if route.effective_complexity == "small":
         criteria = _acceptance_criteria(body)
         if not criteria:
@@ -279,7 +290,11 @@ def parse_front_matter(text: str) -> dict[str, object]:
         if raw_line.startswith("  - "):
             if active is None:
                 raise ContractError(f"list item without field at front matter line {line_number}")
+            if active == "documents":
+                raise ContractError(f"documents must be a mapping at front matter line {line_number}")
             if not isinstance(values[active], list):
+                if values[active] != "":
+                    raise ContractError(f"invalid list field at front matter line {line_number}")
                 values[active] = []
             item = _safe_scalar(raw_line[4:].strip(), line_number)
             assert isinstance(values[active], list)
@@ -292,6 +307,8 @@ def parse_front_matter(text: str) -> dict[str, object]:
             if not re.fullmatch(r"[a-z_]+", name):
                 raise ContractError(f"invalid documents key at line {line_number}")
             if not isinstance(values[active], dict):
+                if values[active] != "":
+                    raise ContractError(f"documents must be a mapping at front matter line {line_number}")
                 values[active] = {}
             mapping = values[active]
             assert isinstance(mapping, dict)
@@ -338,15 +355,79 @@ def _find_summary(directory: Path) -> Path:
 def _document_context(
     repo: Path, issue_number: int
 ) -> tuple[Path, Path, dict[str, object], dict[str, str]]:
+    context = _document_declarations(repo, issue_number)
+    directory, summary_path, summary, documents = context
+    try:
+        required = _required_roles(summary.get("required_docs"))
+        _required_document_names(required, documents)
+        # All explicit mappings are obligations. Legacy optional mappings were
+        # inferred, so only their actually declared requirements are obligations.
+        roles = documents if summary_path.name != LEGACY_DOCUMENTS["summary"] else required
+        missing = [f"documents.{role}={documents[role]}" for role in roles
+                   if not (directory / documents[role]).is_file()]
+        # A dangling symlink is still a symlink, not an ordinary missing file.
+        for role in roles:
+            if (directory / documents[role]).is_symlink():
+                _read_document(directory, directory / documents[role], role)
+        if missing:
+            raise ContractError("missing required contract documents: " + ", ".join(missing))
+        for role in roles:
+            path = directory / documents[role]
+            text = _read_document(directory, path, role)
+            parse_front_matter(text)
+    except ContractError as exc:
+        raise ContractError(f"change {directory.name}: {exc}") from exc
+    return context
+
+
+def _document_declarations(
+    repo: Path, issue_number: int
+) -> tuple[Path, Path, dict[str, object], dict[str, str]]:
+    """Internal preparation seam for the bounded spec/plan publisher only.
+
+    Validate declarations, existing files and path safety, permitting absent
+    files so the writer can create its own mapped target. Public readers always
+    enter _document_context and enforce every file obligation.
+    """
     change_name, directory = _change_directory(repo, issue_number)
     summary_path = _find_summary(directory)
-    summary = parse_front_matter(summary_path.read_text(encoding="utf-8"))
+    summary = parse_front_matter(_read_document(directory, summary_path, "summary"))
     documents = _resolve_documents(directory, summary_path, summary, change_name)
     return directory, summary_path, summary, documents
 
 
+def _read_document(directory: Path, path: Path, role: str) -> str:
+    if path.is_symlink() or path.parent.resolve() != directory.resolve():
+        raise ContractError(f"documents.{role}={path.name}: change document paths must not be symlinks or escape their directory")
+    if not path.is_file():
+        raise ContractError(f"missing required contract documents: documents.{role}={path.name}")
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise ContractError(f"documents.{role}={path.name}: cannot read document ({exc})") from exc
+
+
+def _required_roles(raw: object) -> tuple[str, ...]:
+    """Normalize the restricted front matter list without re-parsing YAML."""
+    if not isinstance(raw, list) or not raw or not all(isinstance(item, str) for item in raw):
+        raise ContractError("summary required_docs must be a non-empty list")
+    if raw[0] not in {"summary", LEGACY_DOCUMENTS["summary"]}:
+        raise ContractError("required_docs must start with summary")
+    legacy_roles = {name: role for role, name in LEGACY_DOCUMENTS.items()}
+    allowed = set(DOCUMENT_ROLES) | set(legacy_roles)
+    if set(raw) - allowed:
+        raise ContractError("unsupported required_docs: " + ", ".join(sorted(set(raw) - allowed)))
+    if len(set(raw)) != len(raw):
+        raise ContractError("required_docs must not contain duplicates")
+    if any(item in DOCUMENT_ROLES for item in raw) and any(item in legacy_roles for item in raw):
+        raise ContractError("required_docs must not mix document roles and legacy filenames")
+    return tuple(legacy_roles.get(item, item) for item in raw)
+
+
 def _change_directory(repo: Path, issue_number: int) -> tuple[ChangeName, Path]:
     root = repo / "docs" / "changes"
+    if root.is_symlink() or root.parent.is_symlink():
+        raise ContractError("change document paths must not be symlinks")
     candidates: list[tuple[ChangeName, Path]] = []
     if root.is_dir():
         for path in root.iterdir():
@@ -377,6 +458,8 @@ def _change_directory(repo: Path, issue_number: int) -> tuple[ChangeName, Path]:
             )
     for name, path in candidates:
         if name == selected:
+            if path.is_symlink():
+                raise ContractError("change document paths must not be symlinks")
             return name, path
     raise AssertionError("selected change directory is unavailable")
 
@@ -427,10 +510,12 @@ def _resolve_documents(
         raise ContractError("new change documents are not declared: " + ", ".join(sorted(undeclared)))
     for role, name in documents.items():
         path = directory / name
+        if path.is_symlink():
+            raise ContractError(f"documents.{role}={name}: change document paths must not be symlinks")
         if not path.is_file():
             continue
         front_matter = summary if path == summary_path else parse_front_matter(
-            path.read_text(encoding="utf-8")
+            _read_document(directory, path, role)
         )
         created = front_matter.get("created")
         match = NEW_DOCUMENT_RE.fullmatch(name)
@@ -584,19 +669,10 @@ def _as_int(value: object) -> Optional[int]:
         return None
 
 
-def _dependencies(value: object, issue_number: int) -> tuple[int, ...]:
-    if value in ("", None):
-        return ()
-    if not isinstance(value, list):
-        raise ContractError("summary depends_on must be a list of positive Issue numbers")
-    dependencies: list[int] = []
-    for item in value:
-        dependency = _as_int(item)
-        if dependency is None or dependency <= 0:
-            raise ContractError("summary depends_on must contain only positive Issue numbers")
-        if dependency == issue_number:
-            raise ContractError("summary depends_on must not reference its own Issue")
-        if dependency in dependencies:
-            raise ContractError(f"summary depends_on contains duplicate Issue #{dependency}")
-        dependencies.append(dependency)
-    return tuple(dependencies)
+def _dependencies(
+    value: object, issue_number: int, source: tuple[str, str] | None = None,
+) -> tuple[Dependency, ...]:
+    try:
+        return parse_dependencies(value, issue_number, source)
+    except DependencyError as exc:
+        raise ContractError(f"summary {exc}") from exc

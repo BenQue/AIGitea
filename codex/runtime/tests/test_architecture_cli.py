@@ -19,6 +19,7 @@ class ArchitectureCliTests(unittest.TestCase):
             "--profiles-dir", str(ARCH / "profiles"),
             "--schema-dir", str(ARCH / "schemas"),
             "--project", str(project),
+            "--repo-root", str(ARCH),
             "--today", "2026-09-05",
         ]
 

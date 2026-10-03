@@ -1,0 +1,169 @@
+---
+issue: 288
+gitea_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/288
+change_type: bugfix
+requested_complexity: auto
+assessed_complexity: complex
+effective_complexity: complex
+contract_effect: change
+confidence: high
+risk_flags:
+  - shared-core
+  - schema-change
+  - platform-governance
+depends_on: []
+status: approved
+branch: change/288-dockerfile-digest
+created: 2026-10-02
+updated: 2026-10-02
+---
+
+# #288 实施计划
+
+## Ticket graph
+
+| Ticket | Delivers | blocked_by | Status |
+|---|---|---|---|
+| T01 | 独立应用 Dockerfile 治理合同，提供可审阅的 schema/docs 输入面，commit 后停止 | [] | done |
+| T04 | 已批准补充的两处测试 root 与 synthetic 模板，独立治理 commit 后停止 | [T01] | done |
+| T02 | fresh run 后完整实现容器 FROM 文件核验，迁移 fixtures，所有 CLI 与库调用同一硬门 | [T04] | done |
+| T05 | 已批准 fixed evidence exact lock pin 与防篡改单测，独立治理 commit 后停止 | [T02] | done |
+| T06 | 已批准 installed-drift fixture 本地源码基线，独立测试治理 commit 后停止 | [T02, T05] | done |
+| T03 | 项目 checker、lock/release 兼容与全套回归验收，完成唯一最终 PR 候选 | [T02, T05, T06] | done |
+
+T01 为平台治理必须隔离的 contract-only 步骤，不伪装成 runtime 已交付。
+T02 为一个完整可观察垂直切片，覆盖声明输入、文件读取、FROM 核验、CLI、fixtures 与测试。
+全部 ticket 在父 Issue，不新建 child Issue，不增加 PR。
+
+## Expected touch points
+
+- T01：`architecture/schemas/project-architecture-v1.schema.json`、`architecture/README.md`；
+  本 Issue semantic docs 同步进度。只增加已批准的声明语法与约束，停止后交 fresh run。
+- T04：已批准补充的 `codex/tests/smoke.sh`、`codex/tests/test-architecture-install.sh`、
+  `architecture/templates/project-architecture.example.json` 与 `architecture/templates/Dockerfile.example`；仅迁移构建输入。
+- T02：`codex/runtime/aisoft_architecture/{cli,validator,lockfile}.py`，可新增局部 Dockerfile reader
+  module；相关 `test_architecture_*.py`、新增 CLI/path/from 行为测试；
+  `architecture/fixtures/` 与容器 reference 的 synthetic Dockerfile/对应 lock。
+- T03：相关 `test_release_architecture_integration.py`、项目 checker 回归测试、verification receipt。
+  现有 checker 使用 `.aisoft` 路径推导 root；不改 shell/CI/Controller/provider/AGENTS。
+- T06：仅 `codex/tests/fixtures/installed-drift/test-installed-drift.py` 的已批准完整 patch；
+  本 Issue semantic docs 同步授权/结果，独立提交后停止。
+- 不改 catalog/profiles/checksum 规则（#287）、release schema/runtime、其它 Issue 文档。
+
+## 测试与验收映射
+
+| AC | Verification command or review |
+|---|---|
+| AC-1 | SFM digest 正确/失配/可变 tag subprocess CLI 三入口探针 |
+| AC-2 | 多文件、多外部 stage、内部 stage 与 scratch 外部行为 tests |
+| AC-3 | ARG 默认值/变量、平台参数、畸形语法与 heredoc 诊断 tests |
+| AC-4 | root/cwd、缺路径/文件、越界、symlink、encoding/size 与输出脱敏 tests |
+| AC-5 | 非容器基线 bytes 比较与不读取 Dockerfile 的反向探针 |
+| AC-6 | 两次 byte-identical lock、失败不覆盖、旧 lock 失配、lossless release-reader regression |
+| AC-7 | README review；`PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -p 'test_architecture_*.py'` |
+| AC-6 / AC-7 | `PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -p 'test_release_architecture_integration.py'` |
+| AC-7 / AC-8 | 临时应用 checkout `.aisoft` checker 集成探针；`bash codex/tests/smoke.sh` |
+| 文档/分类 | `resolve-documents 288`、`check-change-documents`、真实 exact #288 classification projection/read-back |
+
+用户于 2026-10-02 确认本计划启动；授权 receipt 保留批准前 spec/plan SHA256。
+T01 已应用 schema/README，语法探针、architecture 57 tests、release integration 4 tests 与文档检查通过。
+本受控步骤独立提交后停止；T02/T03 继续遵循本已批准合同。
+
+完整 runtime unittest 与平台 smoke 在最终候选前运行；新失败按真实原因修复，不能让合同后退。
+shell 仅允许 T04 明确批准的两个测试入口，各新增 root 参数；运行 bash -n、ShellCheck（可用）与真实 smoke。其它 shell/CI 改动仍属范围扩张，必须先提出合同调整。
+治理 T01 检查 schema 与旧调用兼容，不以尚未实现的 AC 报 PASS。
+
+## 依赖、整合和两个确认点
+
+`depends_on: []`，Issue body 声明无硬依赖。#287 为文件邻近关联，不创建虚假的阻塞边。
+2026-09-15 评论的延后顺序由 2026-10-02 本轮派单重新推进；若最终 owner/main 状态产生真实
+冲突，交由调度协调，双方仅改自己的 worktree。
+用户合同/启动确认之后可在范围内实现与修复；T01 后按治理要求停止，后续 fresh run 继续。
+最终候选完成测试及分类 projected 读回后，另取 exact #288、branch、manual 的 PR 提交确认。
+人工合并前停止 READY_FOR_REVIEW；任何批准均不授权 AI merge、直推 main、force 或部署。
+
+## 数据库迁移、部署与回滚
+
+数据库迁移：无。安装与部署：无。容器 declaration/lock 的输入升级需要同步路径与 checksum，
+仅迁移本仓 fixtures/reference；真实应用在自己的 Change 内执行。
+回滚：人工 revert 本唯一 PR 的 source bytes，运行相同回归；说明旧 validator 漂移盲点重现。
+
+## 已批准补充的治理停止点
+
+用户已确认 T04 补充 patch。T04 独立提交后停止，fresh turn 读取更新 spec/plan 后执行 T02；不再请求原合同启动确认。
+
+## T02 runtime 进度（T05 完成时的历史快照）
+
+文件核验、三 CLI 入口、库 root 硬门、fixtures/reference lock 与 checker 探针已实现。
+T03 仍 pending：smoke 的 release evidence 固定源码边界拒绝已迁移的 reference lock，
+T05 已按用户确认完成该 pin 的独立治理补充，静态 source identity 与单测通过；
+完整 smoke/runtime 待 fresh run。历史 evidence 未修改。#287 的最终整合状态待 fresh read，
+最终候选前须由本 owner 自行整合真实合并后的 main 并复核 lock/release 组合。
+
+## T05 已批准治理补充
+
+用户确认 `evidence/boundary-amendment-proposal.json` 中完整两文件 patch。
+T05 只应用 checker 的 exact reference lock pin 与对应 disk/index 防篡改单测，
+保持原 historical evidence 与 runtime/real-E2E pins；本 Issue semantic docs 同步授权与进度。
+检查批准 patch/hash、source identity 与 20 项边界单测，独立 commit 后停止；
+T03 后续 fresh run 才重跑完整 smoke/runtime 与 #287 main 组合。
+原合同/启动批准持续有效，不重复询问普通实现；最终唯一 PR 仍需单独提交确认。
+
+## T03 第一轮 fresh-main 本地验收（main 14bfe6 时的历史快照）
+
+#287 的唯一 PR #324 已真实合并，本 owner 将 main
+`14bfe6edea6a78e994daac88b3615c009ae37fea` 整合进本分支，组合 runtime head 为
+`aa585dd5b5b7a27e8ed6cdbebb9f8746a7a27128`。保留默认 V2 writer、严格 V1/V2 architecture
+reader 与 V1-only release reader；Dockerfile 文件硬门覆盖两种 lock 版本。
+八组非容器 canonical bytes（四合同 × V1/V2）与该 fresh main 精确相同。
+完整 runtime 1008 tests PASS；同一 smoke 命令在 sandbox localhost socket 被拒后，
+走受控 host 执行路径完整 PASS。T04 两 shell 的 bash -n 与 ShellCheck PASS。
+当前批准合同读回 PASS，8 条 AC 已按 verification 的本地证据闭环；分类真实读回 projected。
+当时所有 ticket 完成本地验收，拟准备最终候选；尚未完成最后 main 刷新或持久化 PR 候选状态，
+没有 push、PR、安装或部署。
+
+## main 组合阻塞与 T06 草案（批准前历史快照）
+
+最终刷新 main 时，#308 的 PR #326 已合并为
+`65268ee5f1e622c486fd9e354dd35e20a2900f91`。本 owner 自行无冲突整合，HEAD
+`aaa9e8dc2b6875c4658f7a9c8f59f7c91907a983`；本 Issue runtime bytes 与前轮相同。
+新完整 smoke 真实 FAIL：installed-drift fixture 23 tests / 16 failures，原因默认 fixture
+使用实际 change checkout，与真实 cached main 的 managed source 必然不同；八个安装面均 PASS，
+不能将真实 source GAP 改为 PASS，也不能跳过新测试或改写实际 origin/main。
+
+T03 恢复 pending，当前为 NEEDS_HUMAN_DECISION；此前第一轮验收不作为当前提交依据。
+未批准补充仅涉及 `codex/tests/fixtures/installed-drift/test-installed-drift.py`：
+把 fixture 的默认源码基线隔离到临时复制的源码 + 本地 Git baseline，显式 source-drift
+cases 继续使用各自输入。完整 patch 与精确 SHA256 在
+`evidence/installed-fixture-amendment-proposal.json`；临时提案 23 tests PASS，不等于已应用。
+该路径超出原 spec 的实施范围，故本轮不改源码。若批准，先更新映射 spec/plan，
+按 T06 独立受控测试治理步骤应用并提交后停止，后续 fresh run 才重跑完整 smoke/runtime。
+本草案不修改已批准合同、不授权最终 PR、安装或部署，不重复请求原合同启动。
+
+## T06 已批准受控应用
+
+用户本轮回复“确认”，批准单文件 fixture 补充；映射 spec 已显式授权该路径和 exact patch。
+本步原样应用，验证源码前后 SHA256、反向 patch、Python compile，运行真实工作树
+`bash codex/tests/test-installed-drift.sh` 的 23 项专项回归并检查 semantic docs。
+独立 commit 后停止，T03 保持 pending；完整 smoke/runtime 留给 fresh run，
+不得用临时提案 23 项 PASS 或此前 head 的 1008 项结果覆盖新完整 gate。
+不新增 PR，原合同启动授权不重复询问；最终唯一 PR 仍单独确认，merge/install/deploy 未授权。
+
+T06 实际工作树专项已完成：23 tests / 44.895s PASS；exact after hash、反向 patch、compile、
+approved 合同读回与文档检查 PASS。application receipt 保留当前源码和日志 hash，
+proposal 的批准前状态保持原样。真实 checker/runtime/installer/smoke gates 未改。
+本轮完成后独立提交并停止，T03 后续 fresh run 继续，不再请求本补充或原启动确认。
+
+## T03 T06 后 fresh-run 最终本地验收
+
+T06 已在 `1507e358319ebfc2206fe0402ce1520f3392a246` 独立提交并停止；本 fresh run
+重新读取 AGENTS/已批准 spec-plan 与 T06，核验 owner/clean branch，并 broker fetch main。
+最新 main 为 `65268ee5f1e622c486fd9e354dd35e20a2900f91`，本分支已整合，未有新增冲突。
+该组合 head 完整 runtime 1008 tests / 101.684s PASS；完整 host smoke PASS，
+含 installed-drift fixture 23 tests / 44.320s 和 runtime 1008 tests / 101.989s。
+四个非容器合同 × 两种 lock 版本的八组输出 bytes 与 pinned main 实际重新计算后相同。
+批准 source hashes、shell 静态检查、文档、scope、onboarding/approved/唯一 PR 与分类读回 PASS。
+两轴 Spec findings 0；Standards hard 0 / nonblocking duplicated-code smell 1，保留 T06 原样 patch。
+当前所有 ticket 完成本地交付，进入 AWAITING_PR_CONFIRMATION；最终 candidate SHA
+绑定本地状态文件，policy manual。未 push/PR/merge，required CI、实际安装与部署 NOT RUN。
+确认提交后才由受控路径 push/创建唯一最终 PR，并继续范围内 CI 修复；人仍负责 manual merge。

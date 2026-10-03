@@ -7,6 +7,14 @@ INSTALL_ROOT="${AISOFT_HOST_ACCESS_INSTALL_ROOT:-/}"
 LIB_ROOT="$INSTALL_ROOT/usr/local/lib/aisoft-host-access"
 LIBEXEC_ROOT="$INSTALL_ROOT/usr/local/libexec/aisoft"
 SHARE_ROOT="$INSTALL_ROOT/usr/local/share/aisoft"
+PAT_HELPER_ARTIFACT=''
+if [[ $# -gt 0 ]]; then
+  [[ $# == 2 && "$1" == --pat-helper-artifact ]] || {
+    printf '%s\n' 'BLOCKED_EXTERNAL: only --pat-helper-artifact <pinned Linux binary> is accepted' >&2
+    exit 2
+  }
+  PAT_HELPER_ARTIFACT="$2"
+fi
 
 # Source provenance and staleness gate (#162), shared with every other
 # installer since #171. The rationale lives with the implementation.
@@ -17,6 +25,19 @@ aisoft_install_source_guard install-host-access-broker "$ROOT" \
   operations "$(
     aisoft_install_source_json_count "$ROOT/codex/config/host-access-broker.json" operations
   )"
+
+# Validate optional Linux artifact before any install mutation. Omitted artifact
+# leaves rotation fail-closed; ordinary broker installation still works.
+ROTATION_METADATA="$(PYTHONPATH="$ROOT/codex/runtime" python3 - "$ROOT" "$PAT_HELPER_ARTIFACT" <<'PY'
+import json, sys
+from aisoft_host_access.credential_rotation import installation_metadata
+try:
+    print(json.dumps(installation_metadata(sys.argv[1], sys.argv[2] or None), sort_keys=True))
+except Exception:
+    print('BLOCKED_EXTERNAL: pinned PAT helper artifact validation failed', file=sys.stderr)
+    sys.exit(2)
+PY
+)" || exit 2
 
 install -d -m 0755 "$LIB_ROOT/aisoft_host_access" "$LIB_ROOT/aisoft_gitea_governance" \
   "$LIBEXEC_ROOT" "$SHARE_ROOT"
@@ -73,6 +94,15 @@ install_versioned "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   "$LIBEXEC_ROOT/bootstrap-gitea-service-account" 0755
 install_versioned "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
   "$LIBEXEC_ROOT/rollback-gitea-routine-pilot" 0755
+install_versioned "$ROOT/codex/tools/rotate-gitea-service-account.sh" \
+  "$LIBEXEC_ROOT/rotate-gitea-service-account" 0755
+if [[ -n "$PAT_HELPER_ARTIFACT" ]]; then
+  install_versioned "$PAT_HELPER_ARTIFACT" "$LIBEXEC_ROOT/gitea-pat-helper" 0755
+fi
+METADATA_FILE="$(mktemp "$SHARE_ROOT/.rotation-source.XXXXXX")"
+trap 'rm -f -- "$METADATA_FILE"' EXIT
+printf '%s\n' "$ROTATION_METADATA" >"$METADATA_FILE"
+install_versioned "$METADATA_FILE" "$SHARE_ROOT/credential-rotation-source.json" 0644
 remove_legacy_keychain_helper
 
 if [[ "$CHANGED" == 1 ]]; then
