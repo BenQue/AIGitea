@@ -31,7 +31,7 @@ updated: 2026-10-03
 | T02 | fresh turn：固定版本 helper 对 exact PAT/UID 安全撤销，隔离 DB 验证，不安装现场 | T01 | done |
 | T02A | 仅应用方案 A 的 Mac canonical store/内部管道治理修订，文档检查与本地 commit 后停止 | T02 | done |
 | T03 | fresh run：operator command 完整轮换/失败恢复/no-op，与 typed grant 路径接通，测试零授权零 mutation | T02A | done |
-| T04 | shell/Python/Go 全量验证、文档/判级复核，准备唯一 manual PR 候选 | T03 | in_progress（Controller local 整合已 PASS；AWAITING_PR_CONFIRMATION，required CI/PR 待执行） |
+| T04 | shell/Python/Go 全量验证、文档/判级复核，准备唯一 manual PR 候选 | T03 | in_progress（local 整合 PASS；PR #332 open，required CI 待最终 head 通过） |
 | T04A | 仅应用 installed-drift 精确补充治理合同、文档检查、本地提交后停止 | T03 | done（治理应用；提交见本 turn 回执） |
 | T04B | fresh run：两个 exact 文件的映射/独立 provenance/隔离 fixture 修复，默认 locale 组合回归与复审 | T04A | done（local） |
 | T05 | 人工合并后独立授权 helper 安装/operator grant/真实轮换和第二次 no-op，形成 AC-2 现场证据 | T04 | pending |
@@ -95,3 +95,6 @@ T02 本地实现/测试/审查已完成，exact head 为 0ffe6bda169d70bd89f48fa
 在用户“继续下一步”后由本票所属会话进入 interactive Controller 阶段，保护旧未推送历史后变基到 main=d647963bcfd6508c8c07baea8d3ef0e4e6a0e35d，解决两个 add/add，解除历史 BASE_BRANCH_STALE。source head=094c21fda5ff7625973181a2f2c512a1e1a25b83 的实际分支完整 C.UTF-8 smoke PASS：34 drift、197 release、1091 runtime 及 static；source-only、classification、main protection、唯一 worktree/无 open PR、无 merge commit、文档检查均通过。历史 FAIL/冲突记录保留，不再是当前阻塞。
 
 下一前置为绑定 #316 / change/316-service-pat-rotation / manual 的唯一最终 PR 提交确认；确认后 typed broker push/唯一 PR/backfill/required CI 按平台流程继续，人工合并与 T05 独立现场授权仍需保留。禁止把本地 PASS 写成 PR CI、installed 或 live PASS。
+
+
+2026-10-03 用户“确认提交”已解除 exact #316/branch/manual 最终 PR 提交前置。唯一 PR #332 与 summary-only backfill 已完成并逐次读回 pushed_head；后续范围内 CI 修复沿用该授权。required CI 当前 pending，T04 仍进行中；T05 未授权/NOT RUN，仍由人合并。

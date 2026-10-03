@@ -9,3 +9,7 @@
 Closes #316
 
 Final merge requires a human.
+
+Summary: docs/changes/316-service-pat-rotation/summary-service-pat-rotation-261002.md
+
+AISoft-Submit-Authorization: issue=316; branch=change/316-service-pat-rotation; policy=manual

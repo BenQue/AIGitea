@@ -93,8 +93,13 @@ override_reason: ''
 T04B source/local commit：875fd3043c2e6959e1c509fe276a9e60870692cf。当时 actual branch merge-tree 确认两份新增源码 add/add 冲突；该历史阻塞现已由下方 Controller 整合解除，旧提交保存在恢复 bundle 中。
 
 
-### 最新状态：等待唯一最终 PR 提交确认（2026-10-03）
+### PR 前受控整合候选（2026-10-03，已获提交确认）
 
 用户“继续下一步”后，本票所属会话按 03 的受控整合流程，将未推送历史保全到 Git bundle 并变基到 fresh main d647963bcfd6508c8c07baea8d3ef0e4e6a0e35d。两个 add/add 用经核对的 main 原文件加已批准最小 delta 解决；41 份本票文件字节不变，03/06/smoke 保留上游更新，没有改动其它 Issue。实际整合 source head=094c21fda5ff7625973181a2f2c512a1e1a25b83，main ancestry、无冲突 preview 与完整 C.UTF-8 smoke PASS（34 drift、197 release、1091 runtime、static）；详见 [整合回执](evidence/t04-controller-integration-validation.json)。
 
-当前 handoff 为 AWAITING_PR_CONFIRMATION，Issue #316 / branch change/316-service-pat-rotation / policy manual；[PR 正文候选](evidence/t04-final-pr-body.md) 只有一条 Closes #316。本轮用户继续仅授权受控本地整合，没有最终 PR 提交确认，未 push/创建 PR/改标签/安装/操作 grant 或 PAT。required CI、human merge 与 T05 AC-2 仍待，整票未完成。
+当时 handoff 为 AWAITING_PR_CONFIRMATION，Issue #316 / branch change/316-service-pat-rotation / policy manual；[PR 正文候选](evidence/t04-final-pr-body.md) 只有一条 Closes #316。本轮用户继续仅授权受控本地整合，没有最终 PR 提交确认，未 push/创建 PR/改标签/安装/操作 grant 或 PAT。required CI、human merge 与 T05 AC-2 仍待，整票未完成。
+
+
+### 最新状态：唯一 PR #332 已创建，等待 required CI
+
+用户于 2026-10-03 以“确认提交”批准 Issue #316 / change/316-service-pat-rotation / manual。首次推送 4658baa168838027559284bf211422e7fe5bcd21 与核验候选一致，唯一 [PR #332](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/332) 创建后 summary-only 回填提交 b6a01697024c729f7c47fcc4525fcd14dc3c083d 已推送并核对 pushed_head/PR head；[发布回执](evidence/pr-publication-receipt.json) 保存两次 exact 推送。源码未变化；required CI 当前 pending，不能写成 PASS。PR open/未合并；人工合并、安装/grant/live AC-2 保持独立。

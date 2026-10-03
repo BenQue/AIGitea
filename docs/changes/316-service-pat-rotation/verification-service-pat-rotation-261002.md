@@ -220,3 +220,10 @@ T04B source/local commit 为 875fd3043c2e6959e1c509fe276a9e60870692cf，工作�
 | required CI / installed / grant / live | NOT RUN | 等待 exact Issue/branch/manual PR 提交确认；human merge 与 T05 AC-2 现场授权独立 |
 
 当前状态 AWAITING_PR_CONFIRMATION；源码整合前置已解除。此 receipt-only 收口提交不改变被测源码，最终提交后的 exact head 在本地最终 PR handoff 读回；尚未 push、建 PR 或运行 required CI。
+
+
+## 唯一 manual PR 发布读回（2026-10-03）
+
+用户“确认提交”已绑定 #316、change/316-service-pat-rotation、manual；批准回执见 evidence/pr-submission-confirmation.json。首次 push expected/pushed_head=4658baa168838027559284bf211422e7fe5bcd21（previous_head=null），创建唯一 PR #332，head 同值。summary-only backfill commit expected/pushed_head/PR head=b6a01697024c729f7c47fcc4525fcd14dc3c083d，previous_head=4658baa168838027559284bf211422e7fe5bcd21；source bytes 未变化，documents PASS（152/2/0），worktree clean。PR readback 为 open、merged=false、mergeable=true、base=d647963bcfd6508c8c07baea8d3ef0e4e6a0e35d。
+
+发布时 exact backfill head 的 required status=pending、statuses=null、total_count=0、Actions runs=0；尚不能计为 CI PASS。后续仅本票发布文档收口提交及范围内 CI 修复沿用本次授权，每次 push 必须核对 fresh exact head，再读取该 final SHA 的 required context。最终 CI 回执在本地 handoff 单独保存，不能从旧 head 或 local smoke 推导新 head CI。人工合并、安装、operator grant、真实 PAT/live AC-2 均未执行。应用 attach_artifact 已尝试，但内网 Gitea URL 返回 unsupported，链接本身可用。
