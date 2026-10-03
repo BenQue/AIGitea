@@ -113,3 +113,8 @@ PR #332 的 head=68ce7df318fe11918274a40d088224edf0071081 / run1752 / job1951 �
 ### CI 固定 model 冷缓存修复（2026-10-03，最新本地结果）
 
 head=5f3f424fd6c04bcbafb1954fa73e620bdcb417c2 的真实 run1755/job1955 已通过完整平台 smoke，随后固定 Linux helper 构建因 go list JSON 缺 Dir 失败。固定 Go1.26.3 的真实冷缓存 probe 复现；仅修改已授权 build.py/test_build.py，在 readonly graph pin 复核后显式下载 exact module@version，再验证 module/model 摘要与输入字节不变。10 项 unit、完整 smoke（34 drift、197 release、1091 runtime、static）和双轴 0 finding PASS，见 [冷缓存修复回执](evidence/ci-cold-cache-repair-validation.json)。版本、hash、go.mod/go.sum、CI/installer/权限未变；同一个 PR #332 的新 head required CI 尚待运行，人工合并和安装/grant/live AC-2 保持独立。
+
+
+### CI 私有只读缓存清理修复（2026-10-03，最新本地结果）
+
+head=8cb6b03904e50a81a06454a0ac4efd37a80a2835 的 run1757/job1958 已通过完整 smoke 和实际 Linux/arm64 helper build/model/race/进程入口 canary，但最终 EXIT rm 不能删除只读 Go module cache，整体仍 FAIL；DB fixture 明确 NOT RUN。仅修已批准测试 shell 的私有 mktemp 清理：恢复本私有树 owner-write、保留原失败退出码；外部 GOPATH/GOCACHE 不清理。两个真实 trap 回归先红后绿，Mac/Linux非root12 unit、bash-n/ShellCheck、完整 smoke（34/197/1091/static）与双轴0finding PASS，见 [清理修复回执](evidence/ci-private-cache-repair-validation.json)。版本/pin/安装/live硬门未变；同一PR新head CI仍待真实运行。

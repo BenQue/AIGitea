@@ -1,6 +1,8 @@
 """Toolchain verification tests use synthetic archives, never execute their Go."""
 import hashlib
 import io
+import os
+import subprocess
 from pathlib import Path
 import tarfile
 import tempfile
@@ -11,6 +13,50 @@ import json
 import build
 
 from build import verify_toolchain
+
+
+class NativeHelperCleanupTests(unittest.TestCase):
+    def check_cleanup(self, primary_exit):
+        # Execute the actual shell setup/EXIT trap without downloading a toolchain.
+        script = Path(__file__).resolve().parents[2] / 'tests/test-gitea-pat-helper-linux.sh'
+        prefix, separator, _ = script.read_text().partition('case "$(uname -m)" in')
+        self.assertTrue(separator, 'native test setup seam missing')
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            tools = root / 'bin'
+            tools.mkdir()
+            uname = tools / 'uname'
+            uname.write_text('#!/bin/sh\nprintf "%s\\n" Linux\n')
+            uname.chmod(0o755)
+            external = root / 'external-cache'
+            external.mkdir()
+            sentinel = external / 'keep'
+            sentinel.write_bytes(b'external caller cache')
+            sentinel.chmod(0o444)
+            receipt = root / 'private-path'
+            runner = root / 'runner.sh'
+            runner.write_text(prefix + '''
+mkdir -p "$TMP/gopath/pkg/mod/example@v1"
+printf '%s' synthetic > "$TMP/gopath/pkg/mod/example@v1/model.go"
+chmod 0444 "$TMP/gopath/pkg/mod/example@v1/model.go"
+chmod 0555 "$TMP/gopath/pkg/mod/example@v1"
+printf '%s' "$TMP" > "$CLEANUP_RECEIPT"
+exit ''' + str(primary_exit) + '\n')
+            env = {**os.environ, 'PATH': str(tools) + os.pathsep + os.environ['PATH'],
+                   'TMPDIR': str(root), 'GOPATH': str(external),
+                   'CLEANUP_RECEIPT': str(receipt)}
+            result = subprocess.run(['bash', str(runner), '--output', str(root / 'artifact')],
+                                    env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, primary_exit, result.stderr)
+            self.assertFalse(Path(receipt.read_text()).exists(), 'private cache leaked')
+            self.assertEqual(sentinel.read_bytes(), b'external caller cache')
+            self.assertEqual(sentinel.stat().st_mode & 0o777, 0o444)
+
+    def test_readonly_module_cleanup_preserves_success_and_external_cache(self):
+        self.check_cleanup(0)
+
+    def test_readonly_module_cleanup_preserves_primary_failure(self):
+        self.check_cleanup(37)
 
 
 class PinnedModelSourceTests(unittest.TestCase):

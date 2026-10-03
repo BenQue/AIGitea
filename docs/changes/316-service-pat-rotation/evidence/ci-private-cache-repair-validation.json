@@ -1,0 +1,83 @@
+{
+  "issue": 316,
+  "branch": "change/316-service-pat-rotation",
+  "pr": 332,
+  "policy": "manual",
+  "authorization": "pr-submission-confirmation.json; T04 approved CI test shell repair",
+  "failed_head": "8cb6b03904e50a81a06454a0ac4efd37a80a2835",
+  "failed_run": 1757,
+  "failed_job": 1958,
+  "ci_result": "FAIL: helper step EXIT cleanup after substantive checks passed",
+  "typed_log_boundary": {
+    "original_bytes": 2331623,
+    "returned_bytes": 65532,
+    "truncated": true
+  },
+  "browser_step_evidence": {
+    "source": "expanded failed step UI; first 500 rows include all substantive checks before cleanup errors",
+    "native_build": {
+      "result": "PASS",
+      "platform": "linux/arm64",
+      "sha256": "d95470e0f1d849f31b64a131f8db2fad0ec731a0eafaaecc9417e22013c711a4"
+    },
+    "race": "PASS: ok aisoft.local/gitea-pat-helper 3.520s",
+    "fixture_export_test": "PASS: ok aisoft.local/gitea-pat-helper 0.050s",
+    "process": "PASS: actual Linux helper version/entrypoint Secret canary; DB fixture NOT RUN",
+    "success_before_trap": "PASS: pinned native Linux helper build/model/race/process checks (no installation/live)"
+  },
+  "root_cause": "Go module directories are read-only; non-root EXIT rm cannot remove them, makes successful CI fail and can replace an earlier failure exit code",
+  "changed_source": [
+    "codex/tests/test-gitea-pat-helper-linux.sh",
+    "codex/tools/gitea-pat-helper/test_build.py"
+  ],
+  "repair": "make only the mktemp-owned tree owner-writable for deletion; retain primary failure code; cleanup failure after success remains FAIL",
+  "caller_gopath_gocache": "not touched by cleanup",
+  "regression": {
+    "result": "PASS",
+    "mac_unit_tests": 12,
+    "linux_uid65534_unit_tests": 12,
+    "new_cleanup_tests": 2,
+    "red": "both success=0 and original failure=37 were replaced by rm failure before fix",
+    "green": "actual shell setup/EXIT trap restores exit0/37, removes private readonly tree, preserves external GOPATH sentinel bytes and 0444",
+    "linux_boundary": "network none; read-only source; disposable python:3.12-bookworm; no installation"
+  },
+  "bash_n": "PASS",
+  "shellcheck": "PASS",
+  "two_axis_review": {
+    "standards_findings": 0,
+    "spec_findings": 0
+  },
+  "log_digests": {
+    "ci-private-cache-unit-red.log.gz": {
+      "sha256": "140aaf1c5ad2dad06d3d43c0f1b893786b1b6de61ac7f9469a782a7d746808da",
+      "uncompressed_sha256": "f04e6a09410495bf79192c0930a0319b1605b88b50bedb2d5b797697e48a7bf0"
+    },
+    "ci-private-cache-unit-green.log.gz": {
+      "sha256": "a89a29e0aaaf53efcfb4378dda8fad575a04071d7b2cea62c7582928eb094327",
+      "uncompressed_sha256": "fc0219d2c0e2eea9da4a0f9ddfea3cfc51e9e8d43a7c01f32da1874d14b57eaa"
+    },
+    "ci-private-cache-linux-unit-green.log.gz": {
+      "sha256": "0a97d9d544c89254f3abe30bf223ae4b75d59b90b1443904fe35af67c3156140",
+      "uncompressed_sha256": "c80c0137da397d5400425be8ec43e7e74f425ee793fb4592653faa447252b3a5"
+    }
+  },
+  "source_sha256": {
+    "codex/tests/test-gitea-pat-helper-linux.sh": "50a0caccc6e474893552090a46b60c5c7ae444b9370b6e5296389573e736a1e2",
+    "codex/tools/gitea-pat-helper/test_build.py": "7ec00bed8e2eff63a162e5a8ad5eb68107835ea9a4c4c14483c81e1160482e9d"
+  },
+  "full_smoke": {
+    "result": "PASS",
+    "exit_code": 0,
+    "locale": "C.UTF-8",
+    "drift_tests": 34,
+    "release_tests": 197,
+    "runtime_tests": 1091,
+    "static": "PASS",
+    "log": "ci-private-cache-repair-smoke.log.gz",
+    "sha256": "eaae42d453767d72d73f5fd97545331c126103e172e193a2e652171c1427529c",
+    "uncompressed_sha256": "c7b371e13baeda6691de2c225a575a595e555bccba790833ada19665aeb83b2a"
+  },
+  "real_ci_after_fix": "PENDING_NEW_HEAD",
+  "installed_grant_live": "NOT RUN",
+  "rollback": "revert this bounded test-shell repair via governed change; no installed artifacts or live credentials changed"
+}

@@ -7,7 +7,16 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUTPUT="$2"
 HELPER="$ROOT/codex/tools/gitea-pat-helper"
 TMP="$(mktemp -d)"
-trap 'rm -rf -- "$TMP"' EXIT
+cleanup() {
+  local result=$?
+  trap - EXIT
+  # Go module directories are read-only. Touch only this mktemp-owned tree,
+  # never a caller-supplied GOPATH/GOCACHE, and preserve an earlier failure.
+  chmod -R u+w "$TMP" || { if (( result == 0 )); then result=1; fi; }
+  rm -rf -- "$TMP" || { if (( result == 0 )); then result=1; fi; }
+  exit "$result"
+}
+trap cleanup EXIT
 case "$(uname -m)" in
   x86_64) ARCH=amd64 ;;
   aarch64|arm64) ARCH=arm64 ;;

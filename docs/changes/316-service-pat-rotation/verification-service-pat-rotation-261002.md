@@ -245,3 +245,12 @@ T04B source/local commit 为 875fd3043c2e6959e1c509fe276a9e60870692cf，工作�
 修复限于已授权 build.py/test_build.py：先拒绝 graph pin mismatch/Replace，再 go mod download exact module@version；拒绝 Error、下载 pin mismatch、缺失/相对 Dir、输入字节变化或 model hash mismatch；原 toolchain/mod verify/readonly test/build/provenance 门保留。未改 pin、CI、installer、生产权限或 Go module inputs。新增 6 项 unit（合计10项）先红后绿，覆盖冷/暖 cache 与负向拒绝；真实固定 Go 冷缓存 model PASS，go.mod/go.sum byte SHA 未变。此 probe 只证明 model source 解析，不能代替 native Linux helper build/model/race CI。
 
 完整 C.UTF-8 smoke exit0：34 drift、197 release、1091 runtime 与 static PASS。双轴只读复审 0 finding；源码在完整 smoke 后未变。失败详情、source/log digest、probe 和回滚边界见 [回执](evidence/ci-cold-cache-repair-validation.json)，[复审](evidence/ci-cold-cache-two-axis-review.md)，[日志](evidence/ci-cold-cache-repair-smoke.log.gz)。这是已批准唯一 manual PR 的范围内 CI 修复，沿用提交授权；新 head required CI 须独立读回。安装/grant/live AC-2 NOT RUN；旧失败保留。
+
+
+## PR CI 私有只读 Go cache 清理修复（2026-10-03）
+
+固定 head=8cb6b03904e50a81a06454a0ac4efd37a80a2835 / run1757 / job1958 的 smoke PASS；helper 内部 native Linux/arm64 build PASS（binarySHA=d95470e0f1d849f31b64a131f8db2fad0ec731a0eafaaecc9417e22013c711a4），model/race/export-test 与实际 version/entrypoint Secret canary PASS。进程 DB fixture 明确 NOT RUN；不得从 canary 或 export-test 推导真实进程 DB 验收。原 job log 2,331,623 bytes，经 typed broker 截断为65,532 bytes，尾部大量 rm Permission denied 掩盖前面的 substantive PASS；只读浏览器展开失败 step 的前500行取回构建和 canary 结果，没有更改服务器、凭据或日志。
+
+原因是 Go module cache 只读目录在非root退出时不能由裸 rm 删除；trap 的失败也会掩盖原37退出码。先新增两个真实 shell setup/EXIT trap 回归，实际复现0/37均被替换为1，再仅修改 test-gitea-pat-helper-linux.sh 的 cleanup：只 chmod/rm本次mktemp私有树，保留原非零code；清理自身失败且原成功仍FAIL。调用者外部 GOPATH/GOCACHE、toolchain/module pins、build/model/race/process/权限和安装行为未改变。
+
+Mac及无网络、只读源码的 disposable Linux UID65534 均12 unit PASS；私有只读cache删除、原0/37保持、外部GOPATH sentinel字节/0444保持。bash-n/ShellCheck PASS；完整C.UTF-8 smoke exit0（34 drift、197 release、1091 runtime、static）。Standards/Spec各0finding，源码在smoke后未变。详见 [回执](evidence/ci-private-cache-repair-validation.json)、[复审](evidence/ci-private-cache-two-axis-review.md)、[完整日志](evidence/ci-private-cache-repair-smoke.log.gz)。回归red和两个平台green日志保全。仍是已批准唯一manual PR的范围内CI修复；新head required CI待真实读回。旧job整体FAIL保留；安装/grant/live AC-2 NOT RUN。
