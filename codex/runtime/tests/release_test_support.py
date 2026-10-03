@@ -601,6 +601,46 @@ def update_compose_model(release_dir: Path, transform: object) -> dict[str, obje
     return value
 
 
+def install_rollback_evidence(
+    root: Path, candidate: str, rollback: str, *, database_identity: str | None = None,
+) -> Path:
+    """Operator fixture: bind raw manifests and the independently encoded DB state."""
+    root = root.resolve()
+    profile_path = root / "target-profile.json"
+    profile = json.loads(profile_path.read_text())
+    state = json.loads((root / "state" / "state.json").read_text())
+    namespace = {key: profile[key] for key in (
+        "profile_id", "environment", "expected_hostname", "compose_project", "source_repository"
+    )}
+    def identity(release: str) -> str | None:
+        manifest = json.loads((root / "releases" / release / "release.json").read_text())
+        migration = manifest.get("migration")
+        return migration["identity"] if migration else None
+    fingerprint = {"target": namespace, "database_revision": state["database_revision"],
+                   "migrations": state["migrations"]}
+    fingerprint_bytes = json.dumps(fingerprint, sort_keys=True, separators=(",", ":"),
+                                   ensure_ascii=False).encode("utf-8")
+    record = {
+        **namespace, "candidate_release": candidate, "rollback_release": rollback,
+        "candidate_manifest_sha256": sha256(root / "releases" / candidate / "release.json"),
+        "rollback_manifest_sha256": sha256(root / "releases" / rollback / "release.json"),
+        "candidate_migration_identity": identity(candidate),
+        "rollback_migration_identity": identity(rollback),
+        "database_migration_identity": database_identity or state["database_revision"]["migration_identity"],
+        "database_state_sha256": hashlib.sha256(fingerprint_bytes).hexdigest(),
+        "verified_at": "2020-01-01T00:00:00Z", "expires_at": "2099-01-01T00:00:00Z",
+        "result": "compatible", "evidence_id": "operator-fixture-317",
+    }
+    directory = root / "operator"
+    directory.mkdir(exist_ok=True, mode=0o700)
+    evidence = directory / "rollback.json"
+    write_json(evidence, {"contract_version": "docker-migration-rollback-compatibility/v1",
+                          "records": [record]}, mode=0o600)
+    profile["rollback_compatibility_file"] = str(evidence)
+    write_json(profile_path, profile, mode=0o600)
+    return evidence
+
+
 class FakeDocker:
     def __init__(self) -> None:
         self.events: list[tuple[object, ...]] = []

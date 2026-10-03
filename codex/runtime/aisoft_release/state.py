@@ -17,7 +17,7 @@ from .errors import StateError
 
 STATE_VERSION_V1 = "docker-release-state/v1"
 STATE_VERSION_V2 = "docker-release-state/v2"
-STATE_VERSION = STATE_VERSION_V2
+STATE_VERSION = "docker-release-state/v3"
 SENSITIVE_KEY = re.compile(
     r"(?:^|[_-])(?:auth|authorization|token|password|secret|credential|"
     r"connection[_-]?string|certificate|ssh[_-]?key)(?:$|[_-])",
@@ -39,6 +39,7 @@ class StateStore:
             "previous_release": None,
             "staged_releases": {},
             "migrations": {},
+            "database_revision": _untracked_revision(),
             "last_result": "never-deployed",
         }
 
@@ -60,6 +61,10 @@ class StateStore:
                 "contract_version": STATE_VERSION_V2,
                 "staged_releases": {},
             }
+        if value.get("contract_version") == STATE_VERSION_V2:
+            self._validate_v2(value)
+            value = {**value, "contract_version": STATE_VERSION,
+                     "database_revision": _untracked_revision()}
         self._validate(value)
         return value
 
@@ -109,6 +114,32 @@ class StateStore:
             raise
 
     def _validate(self, value: Mapping[str, object]) -> None:
+        if value.get("contract_version") != STATE_VERSION:
+            raise StateError("deployment state contract_version is unsupported")
+        revision = value.get("database_revision")
+        if not isinstance(revision, Mapping) or set(revision) != {
+            "status", "migration_identity", "generation"
+        }:
+            raise StateError("deployment database revision fields are invalid")
+        status = revision.get("status")
+        identity = revision.get("migration_identity")
+        generation = revision.get("generation")
+        if not isinstance(status, str) or status not in {"known", "untracked", "uncertain"}:
+            raise StateError("deployment database revision status is invalid")
+        if identity is not None and (
+            not isinstance(identity, str) or not DIGEST.fullmatch(identity)
+        ):
+            raise StateError("deployment database migration identity is invalid")
+        if status in {"known", "uncertain"} and identity is None:
+            raise StateError("tracked database revision requires a migration identity")
+        if status == "untracked" and identity is not None:
+            raise StateError("untracked database revision cannot claim a migration identity")
+        if isinstance(generation, bool) or not isinstance(generation, int) or generation < 0:
+            raise StateError("deployment database generation is invalid")
+        self._validate_v2({key: nested for key, nested in value.items()
+                           if key != "database_revision"}, version=STATE_VERSION)
+
+    def _validate_v2(self, value: Mapping[str, object], *, version: str = STATE_VERSION_V2) -> None:
         expected = {
             "contract_version",
             "profile_id",
@@ -120,7 +151,7 @@ class StateStore:
         }
         if set(value) != expected:
             raise StateError("deployment state fields do not match state contract")
-        if value.get("contract_version") != STATE_VERSION:
+        if value.get("contract_version") != version:
             raise StateError("deployment state contract_version is unsupported")
         if value.get("profile_id") != self.profile_id:
             raise StateError("deployment state profile_id does not match target")
@@ -144,7 +175,7 @@ class StateStore:
                 raise StateError("deployment state staging record is invalid")
             if record.get("status") != "completed":
                 raise StateError("deployment state staging status is invalid")
-            if record.get("transport") not in {"registry", "offline-bundle"}:
+            if not isinstance(record.get("transport"), str) or record.get("transport") not in {"registry", "offline-bundle"}:
                 raise StateError("deployment state staging transport is invalid")
             image_ids = record.get("image_ids")
             if not isinstance(image_ids, Mapping) or not image_ids:
@@ -162,7 +193,7 @@ class StateStore:
                 raise StateError("deployment state migration identity is invalid")
             if not isinstance(record, Mapping) or set(record) != {"status", "release_id"}:
                 raise StateError("deployment state migration record is invalid")
-            if record.get("status") not in {"started", "completed", "failed"}:
+            if not isinstance(record.get("status"), str) or record.get("status") not in {"started", "completed", "failed"}:
                 raise StateError("deployment state migration status is invalid")
             release = record.get("release_id")
             if not isinstance(release, str) or not GIT_SHA.fullmatch(release):
@@ -188,7 +219,11 @@ class StateStore:
             "contract_version": STATE_VERSION_V2,
             "staged_releases": {},
         }
-        self._validate(migrated)
+        self._validate_v2(migrated)
+
+
+def _untracked_revision() -> dict[str, object]:
+    return {"status": "untracked", "migration_identity": None, "generation": 0}
 
 
 class DeploymentLock:

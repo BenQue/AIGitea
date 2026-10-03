@@ -1,0 +1,44 @@
+{
+  "issue": 317,
+  "checked_at": "2026-10-03T00:19:38.154970+08:00",
+  "source_validation_head": "ed37445c9986fbff2aaac747ad41457da2a622ef",
+  "base_main_unchanged": "16beee09aefe89b5bc80a31544c59d456190ea32",
+  "changes_after_validation": "Issue #317 semantic docs/evidence only; source bytes unchanged",
+  "check_change_documents": {
+    "exit_code": 0,
+    "stdout": "PASS: change-documents\nPASS: change-pr-url\nresult: changes=151 pass=2 gap=0\n"
+  },
+  "resolved": {
+    "required_docs": [
+      "summary",
+      "spec",
+      "plan",
+      "verification"
+    ],
+    "documents": {
+      "summary": "summary-migration-rollback-guard-261002.md",
+      "spec": "spec-migration-rollback-guard-261002.md",
+      "plan": "plan-migration-rollback-guard-261002.md",
+      "verification": "verification-migration-rollback-guard-261002.md"
+    }
+  },
+  "contract": {
+    "criteria_count": 13,
+    "effective_complexity": "complex",
+    "branch": "change/317-migration-rollback-guard",
+    "frontier": "Ticket graph has no pending ticket",
+    "repair_ticket": "T05"
+  },
+  "document_review": {
+    "Standards": {
+      "hard_findings": 0,
+      "heuristic_findings": 0
+    },
+    "Spec": {
+      "findings": 0
+    },
+    "reviewers_executed_tests": false
+  },
+  "PR_CI": "NOT_RUN",
+  "pr_submission_approved": false
+}

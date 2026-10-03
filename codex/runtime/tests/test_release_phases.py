@@ -9,13 +9,14 @@ import unittest
 
 from aisoft_release.errors import ContractError, DeploymentError, StateError
 from aisoft_release.runner import ReleaseRuntime
-from aisoft_release.state import STATE_VERSION_V2, StateStore
+from aisoft_release.state import STATE_VERSION, StateStore
 
 from tests.release_test_support import (
     FakeDocker,
     SHA_A,
     SHA_B,
     create_release,
+    install_rollback_evidence,
     migration_identity,
     update_compose_model,
     write_json,
@@ -178,6 +179,7 @@ class ReleasePhaseTests(unittest.TestCase):
     def test_v2_rollback_uses_recorded_local_images_without_transport_or_migration(self) -> None:
         self.runtime.deploy(self.profile, SHA_A)
         self.runtime.deploy(self.profile, SHA_B)
+        install_rollback_evidence(self.root, SHA_B, SHA_A)
         self.docker.events.clear()
         result = self.runtime.rollback(self.profile, SHA_A)
         self.assertEqual(result["action"], "rolled-back")
@@ -189,6 +191,7 @@ class ReleasePhaseTests(unittest.TestCase):
         self.runtime.activate(self.profile, SHA_A)
         self.runtime.stage(self.profile, SHA_B)
         self.runtime.migrate(self.profile, SHA_B)
+        install_rollback_evidence(self.root, SHA_B, SHA_A)
         self.docker.events.clear()
         self.docker.unhealthy_for.add(SHA_B)
         with self.assertRaisesRegex(DeploymentError, "previous container release"):
@@ -226,6 +229,7 @@ class ReleasePhaseTests(unittest.TestCase):
             runtime = ReleaseRuntime(docker, hostname="test-host")
             runtime.deploy(profile, SHA_A)
             runtime.deploy(profile, SHA_B)
+            install_rollback_evidence(root, SHA_B, SHA_A)
             docker.events.clear()
             runtime.rollback(profile, SHA_A)
             self.assertIn("pull", [event[0] for event in docker.mutations])
@@ -248,7 +252,7 @@ class ReleaseStateMigrationTests(unittest.TestCase):
             with self.assertRaisesRegex(StateError, "sensitive field"):
                 store.save(value)
 
-    def test_v1_state_is_deterministically_loaded_as_v2(self) -> None:
+    def test_v1_state_is_deterministically_loaded_as_v3_untracked(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             root.mkdir(exist_ok=True)
@@ -266,8 +270,9 @@ class ReleaseStateMigrationTests(unittest.TestCase):
                 mode=0o600,
             )
             value = StateStore(root, "newemaint-test").load()
-            self.assertEqual(value["contract_version"], STATE_VERSION_V2)
+            self.assertEqual(value["contract_version"], STATE_VERSION)
             self.assertEqual(value["staged_releases"], {})
+            self.assertEqual(value["database_revision"], {"status": "untracked", "migration_identity": None, "generation": 0})
 
     def test_malformed_staging_receipt_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

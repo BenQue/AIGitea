@@ -1,4 +1,4 @@
-"""Issues #290/#296: pin historical evidence and independently test current source."""
+"""Issues #290/#296/#317: bind historical evidence and exact current source."""
 
 from __future__ import annotations
 
@@ -43,14 +43,47 @@ TRANSPORT = "codex/runtime/aisoft_release/transport.py"
 MATRIX = "docker-release/compatibility/image-stores-v1.json"
 ARCHITECTURE_LOCK = "architecture/reference/newemaint/target-candidate/architecture.lock.json"
 # Exact reviewed current bytes; never a path/content exemption. These pins are
-# Runtime pins advance with behavior tests and real-E2E evidence. The #288
+# advanced only with reviewed bytes and their required validation. The #288
 # architecture pin binds synthetic declaration/lock migration and static
-# reader regressions only; it does not refresh historical or real-E2E evidence.
+# reader regressions only. Historical real-E2E evidence never proves these
+# current amendments ran on a real target.
 CURRENT_SOURCE_PINS: dict[str, str] = {
     ARCHITECTURE_LOCK: "b6d39e9126b61c804b8cb188a11a3b4e1bc375236a3ffadf93909f3d49e70076",
     MATRIX: '8fb9b50660159c16f3b7cbd5cf655fc1cef9d2885dd9db143054d420fcd11b8c',
-    'codex/runtime/aisoft_release/runner.py': 'ec6e0a9e56d8139102fb2a94fc31374886cd97b38e9166fa4f9d411e710533d6',
+    'codex/runtime/aisoft_release/runner.py': 'a51abcaa2bcb9862b9a981df1d8c3efd2d32c70ae795b485678cac322f04eb4c',
     'codex/runtime/aisoft_release/transport.py': '66929752efe7515fff425c95083c6593f7eabf6b3105daf2019169d1c6c0bf95',
+    'codex/runtime/aisoft_release/contract.py': 'd0ddd948dac6793334d8d93e5d382b7f49e20ad4857c9ddef4ed420f644c1baa',
+    'codex/runtime/aisoft_release/errors.py': 'f76e0264c9480cc7a2ef70f20899d65e81bdf3ad994b9bd9b0015a36f32b28ac',
+    'codex/runtime/aisoft_release/state.py': '1350ddab013eabb7f0286ba12a6835974e221775e3a25823f38cb332445c8e2a',
+    'docker-release/schema/target-profile-v1.schema.json': 'd6174d0b78eecbba73962210720b70eea6f0558a6ed176b765e2bdb916c114e4',
+}
+CURRENT_SOURCE_ALLOWED = frozenset({
+    RUNNER, TRANSPORT, MATRIX, ARCHITECTURE_LOCK,
+    "codex/runtime/aisoft_release/contract.py",
+    "codex/runtime/aisoft_release/errors.py",
+    "codex/runtime/aisoft_release/state.py",
+    "docker-release/schema/target-profile-v1.schema.json",
+})
+# #317: new files have a separate exact scope, mode and reviewed content pin.
+# Nothing here widens the historical snapshot or exempts current source bytes.
+ADDITION_PATHS = frozenset({
+    'codex/runtime/aisoft_release/rollback_compatibility.py',
+    'docker-release/schema/state-v3.schema.json',
+    'docker-release/schema/rollback-compatibility-v1.schema.json',
+    'docker-release/contracts/migration-rollback-v1.md',
+    'docker-release/examples/rollback-compatibility-v1.example.json',
+})
+CURRENT_ADDITIONS: dict[str, tuple[str, str]] = {
+    'codex/runtime/aisoft_release/rollback_compatibility.py': ("100644",
+        '5e17685e87d04e4ab71b69de038fe4bba7e624ee7ff3024c748f25e68d1a2974'),
+    'docker-release/schema/state-v3.schema.json': ("100644",
+        '3fce0413e7cdc19ab80ecae9bb1962dfab49a48d4ca9694dd2f3be41c2c0f326'),
+    'docker-release/schema/rollback-compatibility-v1.schema.json': ("100644",
+        '94d2ea3f822b6fded55fc351546793d9334133b79baf439402f4e93c5c2ee9b2'),
+    'docker-release/contracts/migration-rollback-v1.md': ("100644",
+        '276bd342ed4c094944f8517bde9eb89a604845ee276de32cb0d680d645374070'),
+    'docker-release/examples/rollback-compatibility-v1.example.json': ("100644",
+        '3c01fa1196ae8ffe78b81afd2b0ef6b52c5ca7d6f043e18aed4e3b43ae10169d'),
 }
 CONTENT_EXEMPT = {"docker-release/README.md", "docker-release/install.sh"}
 
@@ -164,6 +197,11 @@ def disk_files(root: Path) -> set[str]:
     return files
 
 
+def is_sha256(value: object) -> bool:
+    return (isinstance(value, str) and len(value) == 64
+            and all(c in "0123456789abcdef" for c in value))
+
+
 def validate(root: Path) -> dict[str, str]:
     files = baseline_files(root)
     old_runner = files[RUNNER][1]
@@ -176,6 +214,22 @@ def validate(root: Path) -> dict[str, str]:
     if digest(files[EVIDENCE][1]) != EVIDENCE_SHA256:
         raise BoundaryError("historical evidence identity mismatch")
 
+    if not set(CURRENT_SOURCE_PINS).issubset(CURRENT_SOURCE_ALLOWED & files.keys()):
+        raise BoundaryError("current amendment exceeds its exact file scope")
+    if any(not is_sha256(value) for value in CURRENT_SOURCE_PINS.values()):
+        raise BoundaryError("current source pin is not a SHA256")
+    if set(CURRENT_ADDITIONS) != ADDITION_PATHS or set(CURRENT_ADDITIONS) & files.keys():
+        raise BoundaryError("current additions differ from their exact file scope")
+    for entry in CURRENT_ADDITIONS.values():
+        if (not isinstance(entry, tuple) or len(entry) != 2 or entry[0] != "100644"
+                or not is_sha256(entry[1])):
+            raise BoundaryError("current addition requires fixed regular mode and SHA256")
+    expected_files = {
+        name: (mode, CURRENT_SOURCE_PINS.get(name, digest(content)))
+        for name, (mode, content) in files.items()
+    }
+    expected_files.update(CURRENT_ADDITIONS)
+
     index = {}
     for entry in git(root, "ls-files", "--stage", "-z", "--", *SCOPES).split(b"\0"):
         if not entry:
@@ -185,23 +239,17 @@ def validate(root: Path) -> dict[str, str]:
         if stage != "0" or path.decode() in index:
             raise BoundaryError("unmerged or duplicate index entry")
         index[path.decode()] = (mode, oid)
-    if set(index) != set(files) or disk_files(root) != set(files):
-        raise BoundaryError("current file set differs from the fixed baseline")
+    if set(index) != set(expected_files) or disk_files(root) != set(expected_files):
+        raise BoundaryError("current file set differs from the fixed baseline plus additions")
 
-    if not set(CURRENT_SOURCE_PINS).issubset({RUNNER, TRANSPORT, MATRIX, ARCHITECTURE_LOCK}):
-        raise BoundaryError("current amendment exceeds its exact file scope")
-    if any(len(value) != 64 or any(c not in "0123456789abcdef" for c in value)
-           for value in CURRENT_SOURCE_PINS.values()):
-        raise BoundaryError("current source pin is not a SHA256")
     actual = []
-    for name, (mode, expected) in sorted(files.items()):
+    for name, (mode, expected_hash) in sorted(expected_files.items()):
         path = root / name
         disk_mode = "100755" if path.stat().st_mode & 0o111 else "100644"
         if disk_mode != mode or index[name][0] != mode:
             raise BoundaryError(f"file mode drift: {name}")
         content = path.read_bytes()
         if name not in CONTENT_EXEMPT:
-            expected_hash = CURRENT_SOURCE_PINS.get(name, digest(expected))
             if (digest(content) != expected_hash or
                     digest(git(root, "cat-file", "blob", index[name][1])) != expected_hash):
                 raise BoundaryError(f"unapproved source bytes: {name}")

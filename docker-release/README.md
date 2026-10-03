@@ -218,14 +218,26 @@ readiness → image staging receipt → migration receipt → activation/health 
 不读取 env file 且不运行 migration/up；`migrate` 不 stage/up；`activate` 不 stage/migrate。
 `deploy` 作为 backward-compatible orchestration 保留，内部沿用同一阶段原语。Wrong store、legacy
 offline 或 pre-load tamper 的 Docker mutation count 必须为 0；post-start identity mismatch 只做
-previous-container rollback，不自动恢复数据库。
+previous-container rollback，并先验证迁移兼容性，不自动恢复数据库。无兼容证明时旧镜像启动为零。
 
 ## State and rollback
 
-每个 target 使用单一进程锁和 mode `0600` 的原子 `docker-release-state/v2` JSON state。v2 记录
-每个 staged full SHA 的 transport、逐 service exact image ID、migration receipt、current/previous
-release 和 last result。合法 v1 state 以 deterministic migration 读入，下一次成功 mutation 写为
-v2；因为 v1 没有 staging evidence，不能伪造 receipt，必须重新执行显式 `stage`。
+Issue #317 已批准 [migration rollback compatibility v1](contracts/migration-rollback-v1.md)：
+所有自动/显式回退与失败后的原 current 恢复，启动旧镜像前必须证明数据库兼容性。
+目标增加 `docker-release-state/v3` 的数据库位置；未知兼容性、缺失/错误/过期依据均
+fail closed。同 identity 且可证明数据库仍在该位置可保持幂等路径；未知位置或不同
+migration identity 需 target operator 管理的 exact 兼容依据，数据库不自动 restore。
+
+本地 runtime/schema/test 已按 fresh run 实施；本票的功能、完整 smoke 与审查记录位于
+`docs/changes/317-migration-rollback-guard/`。PR CI、installed/live 状态分别记录，不能由本地
+测试推导。NewEMaint #229 只能在人工合并后采用新的 exact merged SHA；本阶段不修改应用 pin。
+
+每个 target 使用单一进程锁和 mode `0600` 的原子 `docker-release-state/v3` JSON state，保留
+staged image、migration receipt、current/previous release 和 last result，增加独立
+`database_revision`。合法 v1/v2 仅在内存读升级为 untracked/null/0，不推断迁移顺序，读操作
+不改 state bytes；后续写入使用 v3。v1 无 staging receipt，仍须显式 `stage`。
+真实 migration 前保存 uncertain、identity 与递增 generation，成功后 known；无 migration
+及 completed identity 的 no-op 不改数据库位置。容器回退不降 generation 或恢复数据库。
 
 当前 release 已精确 healthy
 时，同 SHA deploy 是 no-op。Migration service 名称来自已验证 manifest/Compose，identity 在
@@ -240,8 +252,24 @@ receipt：一个不带新 migration 的 release，identity 与上一个 release 
 执行这套 migration 的那个 release，不参与任何判据；`migration-noop` 不改写 state，所以它
 始终指向真正执行过的那次。把 `release_id` 当门会让已上线项目的绝大多数发布无法部署
 （Issue #305）。放宽只限 `completed` 这一支：`started`、`failed` 与 receipt 缺失的语义
-不变。`compose up --wait` 或 exact-release health 失败时回切旧容器，但不会执行 PostgreSQL
-restore。显式 rollback 同样不运行 migration；数据库恢复始终需要独立人工审批。
+不变。自动回退、显式 rollback、显式回退失败后的 current 恢复都使用同一 gate，且在旧
+transport prepare/up 之前执行。known 数据库/candidate/rollback 的非 null identity 全部相同，
+且 exact completed receipt 存在时可回退；uncertain 或任一 started/failed 固定拒绝。其它情况
+须 operator profile 的可选 `rollback_compatibility_file` 提供 exact 依据，不能由 CLI override。
+
+依据是 0400/0600 的独立 operator 文件，绑定 target namespace、两份 full SHA/原始 manifest
+SHA256、migration identities、完整数据库状态 fingerprint 与 UTC 有效期；严格拒绝重复/未知
+字段、过期、歧义、权限或路径错误。限 256 KiB / 128 records；fingerprint 的 canonical JSON
+为 `{"target": {profile_id, environment, expected_hostname, compose_project, source_repository},
+"database_revision": {...}, "migrations": {...}}`，UTF-8、sort_keys、紧凑分隔符后取 SHA256 hex。
+它不含容器指针、last_result 或 env 内容。Untracked 的观测来自 operator，不永久改成 known。
+带外数据库修改/restore 后必须撤销旧依据并重新验证；平台不会自动探测这类操作。
+
+Schema 见 `schema/state-v3.schema.json`、`schema/rollback-compatibility-v1.schema.json`；
+[脱敏教学 example](examples/rollback-compatibility-v1.example.json) 已过期且使用合成 hash，不能安装为放行依据。
+Consumer 使用既有 CLI，不复制状态机。无依据为 `ROLLBACK_BLOCKED`，旧容器失败为
+`ROLLBACK_FAILED`；候选失败但旧容器 restored 仍 `ACTIVATION_FAILED`，所有失败非零退出。
+State v3 不降级；源码问题用 forward fix 或保留 guard 的 revert，不恢复旧 state 绕过闸门。
 
 ## Fixed action permission gate
 

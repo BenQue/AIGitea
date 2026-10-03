@@ -1,0 +1,73 @@
+{
+  "issue": 317,
+  "ticket": "T05",
+  "recorded_at": "2026-10-03T00:10:24.457401+08:00",
+  "validated_head": "6dc9ae8a75a59bdfa5b487632bd0e554bc16ab69",
+  "base_main": "70baa3588c0504e5d81facd99c63b74741967967",
+  "host_default_UTF8_smoke": {
+    "command": "bash codex/tests/smoke.sh",
+    "LC_ALL": "C.UTF-8",
+    "bash": "3.2.57(1)-release",
+    "exit_code": 0,
+    "result": "PASS",
+    "all_runtime_tests": 1043,
+    "release_tests": 197,
+    "installed_drift_fixture_tests": 23,
+    "registry_fixture": "PASS",
+    "execution_boundary": "host execution for temporary socket fixture, no real deployment"
+  },
+  "checker": {
+    "baseline": "64f1cda0de9735f8782e64a5b07af2ce8460e4c3",
+    "commands": [
+      {
+        "argv": [
+          "bash",
+          "codex/tests/test-docker-release-v2-lifecycle-e2e-harness.sh"
+        ],
+        "exit_code": 0
+      },
+      {
+        "argv": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-B",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "codex/runtime/tests",
+          "-t",
+          "codex/runtime",
+          "-p",
+          "test_release*.py"
+        ],
+        "exit_code": 0
+      }
+    ],
+    "company_live": "NOT_RUN",
+    "current_real_e2e": "NOT_RUN",
+    "current_release_regression": "PASS",
+    "current_source_conformance": "PASS",
+    "current_source_sha256": "44460ac09797c960bb617a2ec91a864b770010f0be0b30f978fb7331a5f35444",
+    "head_sha": "6dc9ae8a75a59bdfa5b487632bd0e554bc16ab69",
+    "head_tree": "e9dc0c1c70d0029cf8e1b195461084d87bc1f2ce",
+    "historical_evidence_binding": "PASS",
+    "historical_evidence_sha256": "b58bb7b57d53a104f922e66c7dc1342bc1b5b133038f60fa8f2ace8d8dbdeb89",
+    "historical_harness_fake_regression": "PASS",
+    "historical_role_amendment_sha256": "95092fbd6deab1a536d53371444c9b9c708b538cff3bc1ac4ebbd7dae3bff195",
+    "installed": "NOT_RUN",
+    "runner_sha256": "a51abcaa2bcb9862b9a981df1d8c3efd2d32c70ae795b485678cac322f04eb4c"
+  },
+  "source_review": {
+    "standards_findings": 0,
+    "spec_findings": 0,
+    "result": "PASS",
+    "fixed_head": "6dc9ae8a75a59bdfa5b487632bd0e554bc16ab69"
+  },
+  "old_FAIL_receipts": "unchanged; superseded only for the new tested combination",
+  "PR_CI": "NOT_RUN",
+  "installed": "NOT_RUN",
+  "company_live": "NOT_RUN",
+  "real_Docker_DB": "NOT_RUN",
+  "pr_submission_approved": false,
+  "next": "latest read-only fetch found merged #289 main 16beee09aefe89b5bc80a31544c59d456190ea32; integrate and verify separately"
+}

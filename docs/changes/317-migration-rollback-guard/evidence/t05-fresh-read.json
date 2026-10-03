@@ -1,0 +1,94 @@
+{
+  "issue": 317,
+  "ticket": "T05",
+  "recorded_at": "2026-10-02T14:20:57.248910+00:00",
+  "branch": "change/317-migration-rollback-guard",
+  "worktree": "/private/tmp/issue-317-migration-rollback-guard",
+  "owner_claim": {
+    "branch": "change/317-migration-rollback-guard",
+    "created": "2026-10-02T20:03:38+08:00",
+    "issue": 317,
+    "last_push_at": null,
+    "last_push_head": null,
+    "schema_version": 1,
+    "session": "01a0fc7b-9d82-75e2-975f-d407cd23e34a",
+    "worktree": "/private/tmp/issue-317-migration-rollback-guard"
+  },
+  "issue_readback": {
+    "number": 317,
+    "title": "fix(release): 数据库迁移后容器回退须验证兼容性（NewEMaint #229 前置）",
+    "state": "open",
+    "html_url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/317",
+    "updated_at": "2026-10-02T21:41:03+08:00"
+  },
+  "labels": [
+    "approved",
+    "complexity/complex",
+    "type/bugfix"
+  ],
+  "classification_verify": "projected",
+  "shared_contract": "#320 per-push exact SHA anchors re-read from fetched main",
+  "fresh_main": "65268ee5f1e622c486fd9e354dd35e20a2900f91",
+  "integration": {
+    "method": "owner-only local rebase, never-pushed branch",
+    "prior_local_head": "90c82743c131fd19906cec9f866718029a8a1d6a",
+    "rebased_local_head": "6f894604d983a148f097ee0ca323462951689892",
+    "conflicts": false,
+    "commit_mapping": [
+      {
+        "before": "abc1adfffe6fcdc3b6053695050a5a83fd3e4830",
+        "after": "3175ef490544e21e96aaf8951709e0430835c8f7",
+        "subject": "docs: prepare migration rollback contract (#317 T01)"
+      },
+      {
+        "before": "7de1cc2516d38c2b86d667e31d92f5f4a60dfa7e",
+        "after": "062af75376ff4100a9ae4ae485dd3132400f18b3",
+        "subject": "docs: apply migration rollback governance contract (#317 T01)"
+      },
+      {
+        "before": "95ff8f30f679a1baf978774ed32b855ae4ebe70a",
+        "after": "a79bd6d12729f3b18bcdd2b0f156224a9437bb7b",
+        "subject": "docs: clarify rollback governance review findings (#317 T01)"
+      },
+      {
+        "before": "afb56af87da9911a4f00911c9609c5791840d977",
+        "after": "1141244a041f3d6b1c54e7bfb087351861880e06",
+        "subject": "docs: record T01 governance validation and stop point (#317 T01)"
+      },
+      {
+        "before": "f1c3a01249f2b870172d402477fca2a773e1c146",
+        "after": "fb5f64a799a8b64c5888ac0a61847ddfd4553ade",
+        "subject": "fix(release): gate rollback by database revision (#317 T02/T03)"
+      },
+      {
+        "before": "233a0d6fb94ce380e1418f892ef8ff5d093099e2",
+        "after": "009caa799dd79aba942acec94d252c290e1012b4",
+        "subject": "fix(release): bind evidence owner to protected profile inode (#317 T02)"
+      },
+      {
+        "before": "32b0ee524ef5ae46f986498f6c617e8e5ce8cadf",
+        "after": "1640ab354be5aac82ace89b444aab9d8d78efd1d",
+        "subject": "docs: record reviewed local guard and governance blocker (#317 T03)"
+      },
+      {
+        "before": "c183a4d0acba74f14af8124661b252f43d1b33a1",
+        "after": "9057dad4bab856996696ed22fda077512b4055d1",
+        "subject": "docs(governance): apply exact evidence amendment and stop (#317 T04)"
+      },
+      {
+        "before": "90c82743c131fd19906cec9f866718029a8a1d6a",
+        "after": "6f894604d983a148f097ee0ca323462951689892",
+        "subject": "docs: record T04 review and fresh-run handoff (#317 T04)"
+      }
+    ],
+    "historical_evidence_records": "Original hashes and receipt heads retained as historical facts; no old approval bytes rewritten."
+  },
+  "reviewed_t04_source_hashes_match": true,
+  "extra_implementation_allowlist": [
+    "codex/tests/check-release-evidence-boundary.py",
+    "codex/runtime/tests/test_release_evidence_boundary.py"
+  ],
+  "pr_submission_approved": false,
+  "remote_mutations": "none",
+  "real_docker_db": "NOT_RUN"
+}

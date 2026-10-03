@@ -1,0 +1,30 @@
+{
+  "issue": 317,
+  "session": "01a0fc7b-9d82-75e2-975f-d407cd23e34a",
+  "branch": "change/317-migration-rollback-guard",
+  "worktree": "/private/tmp/issue-317-migration-rollback-guard",
+  "policy": "manual",
+  "phase_status": "STOPPED_AFTER_GOVERNANCE_APPLY",
+  "controller_state_projection": "NOT_WRITTEN",
+  "reviewed_head": "32b0ee524ef5ae46f986498f6c617e8e5ce8cadf",
+  "source_head": "233a0d6fb94ce380e1418f892ef8ff5d093099e2",
+  "completed": "T04 contract-only amendment application",
+  "next_ticket": "T05",
+  "next_run_requirement": "fresh turn rereads AGENTS/README/spec/plan/versioned contract, main #320 contract and worktree claim",
+  "scope_approval": "RECEIVED: direct user approval, governance-amendment-approval.json",
+  "pr_submission_confirmation": "NOT_RECEIVED",
+  "pr": null,
+  "push": "NOT RUN",
+  "ci": "NOT RUN",
+  "t05_checker_tests_smoke_review": "NOT RUN",
+  "first_smoke": "FAIL: historical receipt preserved",
+  "installed_live": "NOT RUN",
+  "depends_on": [],
+  "blocks": [
+    "NewEMaint #229"
+  ],
+  "next_action": "Continue T05 under existing approval after fresh reread; no repeat approval for this scope, final exact manual PR confirmation remains required.",
+  "applied_governance_head": "c183a4d0acba74f14af8124661b252f43d1b33a1",
+  "t04_standards_review": "PASS: 0 findings",
+  "t04_spec_review": "PASS: 0 findings"
+}

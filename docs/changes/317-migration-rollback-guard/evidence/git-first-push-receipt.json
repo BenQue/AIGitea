@@ -1,0 +1,11 @@
+{
+  "checkout": "/private/tmp/issue-317-migration-rollback-guard",
+  "identity": "aisoft-platform-agent",
+  "operation": "git.push.change",
+  "previous_head": null,
+  "project": "aisoft-platform",
+  "pushed_head": "6f84adf7324a976d9cf2dbd1fe74957775384f0a",
+  "remote_name": "origin",
+  "session": "01a0fc7b-9d82-75e2-975f-d407cd23e34a",
+  "status": "PASS"
+}
