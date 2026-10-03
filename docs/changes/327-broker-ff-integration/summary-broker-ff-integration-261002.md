@@ -129,3 +129,17 @@ override_reason: ''
 T05 → T06（已具体确认；7个main治理段落与mapped summary/spec/plan已独立应用，STOP）
 → fresh T02/R01（纯基线main checkpoint，再恢复32WIP）→ T03。原single writer/branch/manual、
 AC与source touch points保留。无root/安装/Secret/remote mutation/PR/merge/deploy许可。
+
+
+## T07 固定 Python3.9 兼容补充与当前 frontier
+
+R01已完成纯 main checkpoint `4cb627d9525611bff34387830978ba5c5785863e`，原32WIP
+恢复后增加1个已在scope中的shell fixture修改，当前33项仍未提交。17治理文件保持T06 bytes。
+203项source定向通过；默认smoke/native现因main #286模块级类型别名在固定Python3.9下导入失败，
+真实FAIL保留。两个文件的四行等价候选仅在隔离副本验证，actual source未应用、未获新增范围授权。
+
+见mapped spec的T07 exact runtime新增与mapped plan的独立治理/STOP步骤；
+旧approved和T06/R01不覆盖新增两个文件，须负责人具体确认external卡后执行。
+T07（已具体确认；仅 mapped summary/spec/plan 的兼容 scope 已独立应用、提交并 STOP）
+→ fresh T02（四行恢复固定Python3.9，继续原source合同）→ T03。
+原single writer/branch/manual/AC及B01/I01/I02边界保持，无安装或远端写授权。

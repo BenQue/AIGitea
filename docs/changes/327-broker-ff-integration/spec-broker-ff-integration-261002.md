@@ -385,3 +385,38 @@ T01/T04/T05 历史、原 AC 与 source/installed 分层保留。此次仅消除�
   PR/merge/deploy 均无本补充授权。main保护、唯一manualPR、默认disabled与B01/I01/I02独立闸门保持。
 - 回退先停source活动，使用保全的 source-wip.tar、tracked-wip.patch 与完整HEAD bundle核对恢复；
   保留已产生的本地checkpoint和回执，不删共享refs、不重写历史或丢WIP。无远端变动可回退。
+
+
+## T07：canonical main 固定 Python 3.9 兼容范围补充
+
+本补充须负责人批准 external exact 卡后生效；旧 approved、T06/R01 与恢复卡 A 不授权此新增两个文件。
+Issue、exact branch、manual policy、owner、原 AC 与所有治理/安全/安装边界保持。
+
+R01 已整合 main `dc9aa468580f92a73dfa054c6f04ef5113f56694`。其中 #286 的
+`codex/runtime/aisoft_host_access/dependencies.py` 在模块加载时执行 `Dependency = int | str`，
+固定 `/usr/bin/python3` 3.9.6 实际导入失败，使 source broker 拒绝 fixture 和 native fixture FAIL。
+完整 source broker 导入链还触发既有 `profiles.py` 的模块级 Callable/PathLike union 别名同类失败。
+该别名来自原既有 profile runtime，并非 #286 新增；#327 固定解释器入口需要两处均兼容。
+不更换固定解释器、隔离参数、PATH，不移除测试硬门；最小恢复使用 `typing.Union` 保持这两处类型别名。
+
+| exact 新增 runtime 文件 | 唯一允许职责 |
+|---|---|
+| `codex/runtime/aisoft_host_access/dependencies.py` | 仅新增 `typing.Union` import，并把模块级 `Dependency = int | str` 改成 `Dependency = Union[int, str]`；不改解析、target、permission、credential、remote 或其它运行逻辑 |
+| `codex/runtime/aisoft_host_access/profiles.py` | 仅新增 `typing.Union` import，并把模块级 `Replace` 的两个 `str | os.PathLike[str]` 改为 `Union[str, os.PathLike[str]]`；不改 profile/identity/token/path 迁移、权限或其它运行逻辑 |
+
+批准绑定 source/candidate 文件与补丁 SHA256。类型别名之外的代码或主线任一文件发生漂移即停止核对，
+不借此扩展为 #286 其它修复。此两个文件的四行精确新增归原 T02，唯一最终 PR 仍绑定 #327。
+
+T07 仅独立应用本目录 mapped summary/spec/plan 三份治理合同及其中两项确定性完成投影，
+不改原14治理文件、verification 或任何 runtime WIP；文档校验、独立本地原子 commit 后立即 STOP。
+完成投影仅 plan graph 的 T07 row（pending→completed）和 summary 的 T07 frontier line；
+外部 receipt 记录批准/实际 commit，避免提交内自引用。后续 fresh run 重读合同、批准、Issue/comments、
+main/source/owner/installed，才允许 T02 应用该四行 source 修复并继续原已批准实现。
+
+实际 checkout 应用后分别重跑固定 Python3.9 导入与 deny fixture、native source fixture、
+相关 dependency/toolchain/host-access 回归和完整默认 smoke；完整 runtime 在原可信链和回归迁移完成后重跑。
+隔离副本的 47 项 unit 与 nonroot native 仅为候选证据，不能替代 actual checkout、root、installed 或 live。
+不新增 direct Git/API、force、身份、Secret、账户、安装、service、grant、image/mount、PR、merge 或部署权限。
+
+应用前保全原33 WIP 与 HEAD/index/owner。失败只撤回本次 exact doc/source bytes，保留已经完成的
+T06/R01 main checkpoint 与原 WIP，不 reset/rebase 历史、不改其它 Issue 文件；不自动回退或重建远端 ref。

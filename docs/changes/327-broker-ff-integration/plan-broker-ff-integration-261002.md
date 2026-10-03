@@ -31,7 +31,8 @@ status: approved
 | T04 | 具体补充合同经直接确认；当时独立应用原14治理文本+四角色、验证/本地commit后STOP；runtime未实施 | T01 | completed |
 | T05 | 已直接批准具体安全合同；仅原14治理文本+四角色，bootstrap/closure/resource/v2文本应用、验证/localcommit/STOP | T04 | completed |
 | T06 | exact卡确认后仅同步7个main治理段落与mapped summary/spec/plan；验证/本地commit后STOP | T05 | completed |
-| T02 | T06之后fresh重读；先纯main checkpoint再恢复WIP，续closure/bootstrap/boundedresources、authority/Controller/FF与安装漂移/回归 | T06 | in-progress |
+| T07 | 具体确认后仅补充 mapped summary/spec/plan 的固定 Python3.9 兼容 scope；文档校验/本地原子commit/STOP | T06 | completed |
+| T02 | T07后fresh重读；R01基线checkpoint已完成；四行Python3.9兼容修复，续原closure/bootstrap/resources、authority/Controller/FF与安装漂移/回归 | T07 | in-progress |
 | T03 | 集成/全量/静态/文档验收、source与installed分层、人工firstPR/安装rollback卡，准备唯一manualPR候选 | T02 | pending |
 
 本聊天负责人直接“批准”审阅卡绑定的具体安全合同；本轮仅独立T05治理应用、验证/localcommit后STOP。T01/T04历史完成保留，T05 completed仅指治理文本步骤，不指新增source/主机验收。T02 in-progress是已保全WIP；后续fresh重读新governing/批准/Issue/installed才继续，当前run不得进入runtime。
@@ -112,3 +113,17 @@ T06只应用7个main治理段落与mapped summary/spec/plan；不得混入32WIP�
 下一fresh run重读合同/具体批准/Issue/comments/source/installed，T02/R01先纯main integration checkpoint，
 再恢复未提交WIP并单独解决broker调度冲突；手工内容不混进checkpoint。保持两parent顺序、限定merge tree与历史，
 新增冲突或scope漂移停止。原T02验证门和B01/I01/I02边界保持，完成实质修复后重跑完整runtime及默认smoke。
+
+
+## T07 补充 frontier 与执行停点
+
+本补充仅为待具体确认的 exact proposal；旧 approved 不授权新 runtime 文件。新增范围与两个文件的四行等价候选
+仅见 mapped spec 的 T07 表及 external SHA256 卡，不覆盖 #286 其它变更。T06已完成/STOP，
+R01实际纯 main checkpoint `4cb627d9525611bff34387830978ba5c5785863e` 保留；T02仍in-progress。
+
+确认后 T07只应用 mapped summary/spec/plan 三份治理合同，保全33 source WIP；校验语义映射、
+精确 diff、原14治理/source/owner/index 保全后，仅把 T07 graph row 和 summary T07 frontier line
+投影完成，纳入同一本地原子commit，并立即STOP。失败保存证据并撤回本次文档增量，不能报T07完成。
+随后fresh T02重读批准与上述事实，才在本spec限定的四行范围修改 dependencies.py 与 profiles.py；
+固定Python3.9与native/相关unit/默认smoke按spec实跑，原其余source、全量回归和T03验收保持。
+所有PR/安装/服务/远端写边界保持，外部候选PASS不覆盖actualcheckout当前FAIL。
