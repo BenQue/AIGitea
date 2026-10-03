@@ -17,11 +17,11 @@ risk_flags:
 depends_on: []
 branch: change/327-broker-ff-integration
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 status: pending
 ---
 
-# #327 合同准备、T01 治理、T02 缺口与 T04 补充草案验收
+# #327 分层证据与 T05 独立治理验收
 
 ## 基线与范围
 
@@ -106,3 +106,78 @@ status: pending
 ## 遗留风险与未完成项
 
 原 T01 已完成并停止；本次具体补充已直接确认并独立应用 T04 治理，验证/local commit 后 STOP，非 runtime 或 Issue 完成；没有 runtime、push、PR、live 标签、install、credential、protection apply 或 deploy。AC-7/AC-9 在 source 合并后仍须真实闭合；自动closed不当completed。不用已知历史PASS消除当前GAP。
+
+
+## 2026-10-03 fresh T02 本地 source 实施记录（未完成、未提交）
+
+本节覆盖前文“后续 fresh T02 尚未运行”的历史状态，不覆盖 T01/T04 原验证边界。负责人本聊天直接“继续 T02”；fresh receipt 时间 `2026-10-03T00:22:16.864516+08:00`，HEAD 为 T04 `c58a864329b83c2d81fb5aa01e5871d1b178b77b`。fresh canonical main `16beee09aefe89b5bc80a31544c59d456190ea32`；Issue open/comments 空/live 仍仅 triage/needs-triage；installed Mac broker 仍旧 bytes，VM 全组件仍 NOT RUN。
+
+### 已实现的本地 source / fixture
+
+- default-disabled policy；strict grant/record/operator card/typed request；固定 Unix socket、真实 peer 读取、root-only store 与 prefix/锁/原子持久化机制。
+- hash-verified 私有 Git 对象导入、完整 first-parent/DAG/tree/delta 重算、固定 ordinary FF/pre-push 公告检查与真实临时 bare-remote 竞态 fixture；broker 两项新 typed 操作和 push 转交固定 client，旧 leased push 实现已移除。
+- verifier 每次使用新建 root-owned 只读输入副本；materialization 对重复 blob 的每条路径都计费，展开前有总量上限。integration 保留旧 Issue 文件的 ticket 来源，不用 merge ticket 重授权旧内容。
+- owner 在 begin/export/publish 前检查，marker 读取有字节/regular/no-follow/duplicate 限制；推送进入 transport 后失败保留 possible H，journal/marker 失败保留已落地 H；没有自动重试。
+- fixed installed launcher 与 inert systemd/launchd 描述仅为 source 文件，模式100644；未安装、创建 state/socket、注册 grant、启用或启动。
+
+### 检查结果与未闭合项
+
+| 检查 | 结论 | 本次实际证据 |
+|---|---|---|
+| grant/record/schema、真实 peer 与实际非 root root-store 拒绝、Git/bare-race、owner 定向 | PASS（source/local） | `/private/tmp/aisoft-327-contract-evidence/t02-current-core-tests.log`；最终数量由最新测试回执读回，不能继承旧日志数量 |
+| 两个新改 launcher 的 bash -n / ShellCheck | PASS | `t02-shellcheck.log` 为空且 exit=0；实际命令见 source receipt |
+| 首次全量 runtime discover | FAIL | `t02-all-runtime-tests.log`：1043 tests，9 failures/9 errors；旧 leased/rebase 正向预期已被新 source 拒绝，CLI 增 ticket 需更新回归；两处裸模块互导已随后修正；不可把定向绿灯升为全量 PASS |
+| 默认 locale 完整 smoke | FAIL（source staleness gate） | `t02-default-locale-smoke.log`：source 比 origin/main 落后48 commits；未执行提示中的 rebase/force/installer bypass，未宣称后续 smoke 已运行 |
+| 14 个 T04 governing 文本 | 原样保留 | source receipt 逐项 hash 比较；本 runtime run 不修改正在遵循的治理 |
+| source 新工具链完整闭包 | GAP | 当前 loaded-module pin 集不能证明 interpreter/native loader/Git transport/helper/late-import closure；`require_toolchain_closure` 无条件拒绝。prepare/apply、approve、approve-pr、restore、service 构造和 typed dispatch 均在任何新增/恢复授权或 worker 前阻断；root-only revoke 与默认只读 check 保留 |
+| Mac verifier 可写 scratch 总量边界 | GAP | 单文件 RLIMIT 不能防很多文件耗尽宿主磁盘；非空 temporary 明确 `SCRATCH_QUOTA_GAP`。Linux bounded tmpfs 仅 source 规则，真实 namespace/root/drop/isolation 仍 NOT RUN |
+| Controller / provider / verifier / progress 接线、唯一 PR/docs gate、显式 remote adoption、安装与漂移映射、完整回归 | 未完成 | 不把当前 source skeleton 当 T02 completed；SDK provider 仍 capability GAP，不启用任何 provider |
+| root/OS sandbox/installed/I01/I02/远端写/唯一 PR/CI/merge/deploy | NOT RUN | 无此阶段授权或执行；没有把 mock、普通用户 fixture 或局部 bare 测试升级为主机实证 |
+
+### 安全决策卡（只供审阅，不改变 approved spec）
+
+依据当前 `AGENTS.md`：Development Loop“遇到……安全决策……必须停止并升级给人”。本卡只针对真实缺口；普通代码选择及此前已授权的 T02 不重新确认。已批准 spec 要求完整固定工具链/库 pin 和防资源放大，但没有决定 Mac 可写 scratch 的容量/inode/lifecycle/恢复机制。若新增受管卷、disk image、挂载/卸载或 privileged resource helper，不能把它当现有 sandbox 的普通参数，必须先冻结新增 OS tool/resource 与 rollback 合同；本 run 不引入这些权限。
+
+共同必须补齐的工具链条件：固定 launcher/interpreter/stdlib/native loader/library/Git transport/helper/后续导入模块的完整依赖清单；每项 exact path/hash/mode/owner、OS 别名和缓存处理、发现/重验算法、未知依赖 fail closed；安装 provenance/drift/升级恢复映射；独立 per-host 正反向实证。不能用“当前已加载模块”或 root 所有权代替完整 closure。新机制仍 default-disabled，不能借本地 PASS 为 installed 授权。
+
+Mac 两个具体范围选择：
+
+- **A（建议）：补齐可写 scratch 的受控资源合同。** 下一步只在本 Issue 四角色准备可审阅的具体补充：固定总容量且禁止扩容、数量/生命周期边界、exact OS 工具与 root 执行参数、非 root 可写与只读输入分离、跨 generation 清理/崩溃恢复、磁盘满及卸载失败的 fail-closed 行为、before/after 与 rollback 清单。具体 OS 机制未选定前不写 runtime 或执行命令；批准后按独立治理应用/STOP/fresh runtime 顺序继续。该选择不授权实际安装、卷创建、mount、服务、账号或凭据动作。
+- **B：Mac required verifier 只读执行，任何需要 scratch 的任务明确不支持。** 不新增 privileged volume/mount 权限，但需明确修改 Mac 支持合同及 acceptance matrix；不能把大量需要 build/temp 的项目写成可用。工具链 closure 同样必须补齐，双机 AC 仍未完成。
+
+本卡不是新的 approved grant，不改变 R0、ticket graph、source policy 或安装权限。未收到范围选择前，不继续引入可写 Mac 资源机制；不把无条件 capability gate 删除来获得测试绿灯。当前所有 source 改动留在原 owner worktree 未提交，T02 in-progress，T03 pending。
+
+## 2026-10-03 T05 安全草案准备（此前，非治理应用/非实施）
+
+本节记录此前草案阶段；当前具体批准/独立应用见后节，前文T01/T04/初始T02数字均为对应历史证据。负责人直接“按建议执行”选择A，授权四角色具体draft。本轮新机制待具体确认；front matter summary/spec/plan为spec-drafting，verification pending；T01/T04 completed，T05 pending，T02 in-progress WIP且blocked by T05，T03 pending。不把路线选择登记为protected批准。
+
+- 新鲜只读 #327：open、仅triage/needs-triage、comments=[]，见外部 `t05-draft-fresh-issue.json` / `t05-draft-fresh-comments.json`。未写标签/评论/ref/PR。
+- 本轮只更改四个mapped语义文档。14个T04 governing与既有18项runtime/source WIP逐项byte/mode保持；其他tracked/untracked对象保全，before manifest见 `t05-draft-before-receipt.json`。未提交现有source、未改共享checkout。新9个source文件只是映射，不创建。
+- 草案固定64 MiB scratch、256 MiB rootGit、owned-template/device/lease生命周期、全局并发/保留/input bounds、busy/crash quarantine和Mac noexec支持范围；完整Python前置nativebootstrap/目录+native+cache+alias+lateimport closure、v2私有绑定、default-disabled registry和publish durable pending。
+- 工具文档：Context7无适配hdiutil库；只读Apple随OS手册与Apple一手网页，未运行hdiutil/mount/diskutil/root命令。本机sw_vers观察27.0.1/build26A434仅candidate，不算accepted matrix。手册hash/具体proposal校验receipt另存在外部evidence。
+- 本轮文档resolver/semantic/exact四文件/AC11/graph/保全/diff检查的实跑结果见 `t05-proposal-validation.json`；检查完成后写确切结果，不继承旧PASS。code-review双轴只读审阅冻结草案；不把review当root安全测试。
+
+| 新验收项 | 本轮结论 | 下一闭合阶段 |
+|---|---|---|
+| AC-10 完整closure/nativebootstrap/v2/OSalias/cache/late-import | NOT RUN | 草案待确认→T05→freshT02 source/build/negative→各主机I02真实pre-import/完整inventory/漂移/rollback |
+| AC-11 bounded scratch/rootGit/ownlease/ENOSPC/tinyfiles/崩溃恢复 | NOT RUN | source fixture不能证明真实mount/UID；未来exactI02实际正反向及before/afterreadback |
+| 模板create/attach/mount/detach/恢复；rootbootstrap/registry/服务/grant | NOT RUN | 本轮无具体主机执行授权；I01仅惰性文件，I02独立卡 |
+| 全量runtime/smoke | 本轮未重跑；旧FAIL保留 | 原89targeted PASS与首次1043 FAIL、staleness smoke FAIL仅历史；freshT02完成源码后再实跑 |
+| T05治理应用/新9source/remote/PR/install/merge/deploy | NOT RUN | 本轮四角色草案，不算governance完成、T02完成或Issue完成 |
+
+审批卡须绑定新spec/plan内容hash、exact Issue/branch/manual/draftcommit（如有），确认仅启动独立T05应用原14治理文本+四角色/验证/localcommit/STOP。新grant/服务/卷/安装/启用不能从此次确认继承。真实安装与root能力未闭合继续open/保全，不cleanup/归档、不报#289解锁。
+
+### 草案双轴审阅修正（此前）
+
+Spec轴初审四项：CONTEXT输入未明确总预算/回收、I01/I02 realFF阶段依赖、治理计数歧义、incoming descriptor未给exact位置。均已在本轮草案修正：所有CONTEXT/temp/复制重叠计费、全局单副本/entry深度上限/受保护清单回收/失败quarantine；I01只文件验收、完整FF/运行rollback移I02；14+4=18；incoming常量路径/FD/mode/初次native staged preflight。Standards轴初审一项同一计数歧义，亦修正。修订固定snapshot/hash与最终只读复核见外部review receipt；这些修正不执行任何主机权限动作或source。
+
+## 2026-10-03 T05 具体批准与独立治理应用（当前）
+
+负责人本聊天直接“批准”，绑定已展示审阅卡的#327/exactbranch/manual及原spec/plan SHA256；批准登记时间仅本地receipt时间，不伪造human消息ID/时间。原批准内容/hash、治理前态与18项source WIP保全见 `t05-application-approval.json` / `t05-before-governance/`。当前本节覆盖此前“草案待确认”，历史事实仍保留。
+
+- fresh canonical只读Issue open、正文与草案时一致、comments=[]，live仍triage/needs-triage；未写标签/评论/remote/PR。
+- 本次仅原14治理文件的#327活段落和四角色（共18文件），同步完整pre-Python closure/bootstrap、fixed scratch/rootGit/CONTEXT预算/own-lease/quarantine、privatev2/public不扩、pendingpublish、I01文件/I02运行与source-installed/STOP。无runtime/config/service/installer/新9source改动；既有source WIP原样不混commit。
+- summary/spec/plan approved；T01/T04/T05 completed，T02 in-progress、T03 pending。T05只指治理步骤，不将新增机制、root/OS隔离/主机或Issue写completed。
+- 本次实跑resolver/semantic、11AC/graph/技术条款保持、exact18范围、双方共享合同一致、所有非范围bytes/mode与 `git diff --check`；结果保存 `t05-application-validation.json`。检查确认后本地独立commit，exactparent/paths/sourceWIP/owner/sharedmain/lastpush与STOP读回保存 `t05-stop-receipt.json`，不在本提交自引用hash。
+- 无脚本变更，不重跑runtime/smoke并虚构PASS；旧89定向PASS、首次全量FAIL和staleness smokeFAIL保留。新bootstrap/模板create/mount/registry/grant/service/I01/I02/FF实证、远端/唯一PR/CI/merge/deploy均NOT RUN。
+- commit后STOP，后续fresh run重读完整治理、Issue/comments、具体批准和source/installed能力再T02；不凭本run新治理自授同轮runtime权限。

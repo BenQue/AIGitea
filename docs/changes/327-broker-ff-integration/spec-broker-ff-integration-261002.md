@@ -17,7 +17,7 @@ risk_flags:
 depends_on: []
 branch: change/327-broker-ff-integration
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 status: approved
 ---
 
@@ -25,7 +25,7 @@ status: approved
 
 ## 目标与原因
 
-保持 original remote tip 为每次新 head 祖先，允许严格来源限定的 fresh manifest main 整合，并经 ordinary FF push 发布；禁止 force、lease-force、任意 merge 与更宽身份 fallback。原合同和独立 T01 已由本聊天确认并提交后 STOP。补充草案 ac172e515a47357d24ff268473af6bbee5c13fe1 经本聊天直接确认；本轮只执行 T04 映射治理和四角色、验证/local commit 后 STOP，不实施 runtime、发表 PR 或安装。
+保持 original remote tip 为每次新 head 祖先，允许严格来源限定的 fresh manifest main 整合，并经 ordinary FF push 发布；禁止 force、lease-force、任意 merge 与更宽身份 fallback。原合同和独立 T01/T04 已确认、应用并 STOP；fresh T02 已有未提交 source WIP。此前“按建议执行”仅授权A草案；本聊天现直接“批准”审阅卡绑定的具体资源/工具链合同。本轮T05仅原14治理+四角色/验证/localcommit/STOP，不修改runtime或执行镜像/安装/服务动作。
 
 ## 状态、来源与信任边界
 
@@ -40,9 +40,9 @@ status: approved
 
 提交 message、author、同名 branch 和可编辑本地 receipt 都不足以证明来源。Controller 需记录每次 owner/issue/branch/base/commit/tree/scope 的验证证据；broker 独立读取 Git DAG、main 来源、批准合同与完整 delta，不把模型自述或 receipt 的 PASS 当授权。Git 对象本身没有所属分支字段，不能从 commit subject 推断 branch provenance。
 
-## 可信证据补充合同（已具体确认；T04 治理应用，T02 待 fresh run）
+## 原可信证据合同（T04 已确认并应用；历史基线）
 
-负责人先“按建议继续”准备 A 路线，在草案 ac172e515a47357d24ff268473af6bbee5c13fe1 和具体审阅卡形成后，本聊天直接“确认”。批准绑定 #327 / `change/327-broker-ff-integration` / manual / 该 draft commit 与原 spec+plan SHA256（外部 `t04-application-approval.json`）；本轮仅独立 T04 治理应用、验证/local commit 后 STOP，后续 fresh run 才 T02。原 T01 commit `061b0f3ec59869fe379d70b7d2f0455df4b8708a` 与原 FF/竞态/人工自举方向保持；新 runtime 尚未实现。具体 source 合同批准不表示 installed 权限/注册/启动已批准或执行。
+负责人先“按建议继续”准备 A 路线，在草案 ac172e515a47357d24ff268473af6bbee5c13fe1 和具体审阅卡形成后，本聊天直接“确认”。批准绑定 #327 / `change/327-broker-ff-integration` / manual / 该 draft commit 与原 spec+plan SHA256（外部 `t04-application-approval.json`）；当时仅独立 T04 治理应用并 STOP，后续 fresh T02 已产生 WIP。原 T01 commit `061b0f3ec59869fe379d70b7d2f0455df4b8708a` 与原 FF/竞态/人工自举方向保持；当时新 runtime 尚未实现；当前部分 source WIP 见 verification。原具体 source 合同批准不表示 installed 权限/注册/启动已批准或执行。
 
 ### 信任角色与特权边界
 
@@ -70,7 +70,7 @@ installer 只安装默认关闭的代码、配置及 inert service 描述，不�
 
 同 UID 的 provider 可能拥有该 UID 的普通文件权限，**仅 setuid/drop privileges 不足以隔离同 UID 的 credential/helper/环境**。能力闸门还必须在 OS 隔离边界内拒绝 provider/verifier 读取 canonical broker credential roots、root ledger、其他项目、宿主 helper 与控制端点；只允许登记 worktree、只读任务上下文、该 provider 自己经独立 onboarding 的必要资源和明确网络用途。不复制或读取 `.env`/auth/PAT 内容来创建隔离。各平台缺这个隔离实现时 capability GAP，不能声称降低 UID 已完成隔离，也不能用环境变量开关绕过。此能力需 AC-9 的真实尝试读写/exec/socket 负向验收，root 管理员本身不在不可信 provider 边界内。
 
-候选 source policy 的固定版本为 `change-verification/v1`；grant 为 `change-grant/v1`，record 为 `change-record/v1`。默认形状如下，仅是获确认的 source 形状（待 T02 实现），**没有写入 installed config**：
+原 T04 source policy 为 `change-verification/v1`；grant/record 原为 `change-grant/v1` / `change-record/v1`。新T05已确认v2私有绑定，见下文；旧批准不自动授权 v2。默认形状如下，仅是获确认的 source 形状（待 T02 实现），**没有写入 installed config**：
 
 ```json
 {"contract_version":"change-verification/v1","enabled":false,"host_bindings":{"mac":{"provider_uid":null,"provider_gid":null},"gitea-ci":{"provider_uid":null,"provider_gid":null}},"provider":"none"}
@@ -113,7 +113,7 @@ state/socket/context 路径是平台代码中上述固定常量，不由这份 c
 
 ### 运维、安装与验收闭合
 
-I01 仍为两机独立 exact 版本文件安装/字节/mode/owner/rollback；I02 新增“verification authority 注册/启动/受控验收”卡。I02 只有在源码人工合并、I01 完整读回且本份新权限合同获确认后，分别获得 **每台机器 exact** UID/GID、program/hash、state/context/socket/service 路径、grant digest、启动/关闭、真实正反向测试与恢复清单批准，才可由指定 operator 执行。不继承 #316、T01、路线 A 选择或一般 installer 许可；不启用任一 provider/profile/timer，不创建或复制 auth/PAT/账户。若将来需要新增账号/Secret或配置其他项目，那是新范围，不从本草案推导许可。
+I01为两机独立exact版本文件安装/字节/mode/owner、installer重复no-op与一次受控文件安装失败rollback；不要求未注册authority先做真实FF。AC-7的realFF/publish no-op/reject/运行权限与authority资源rollback在I01文件读回完成后的I02执行，完整验收要求不减。I02 新增“verification authority 注册/启动/受控验收”卡。I02 只有在源码人工合并、I01 完整读回且本份新权限合同获确认后，分别获得 **每台机器 exact** UID/GID、program/hash、state/context/socket/service 路径、grant digest、启动/关闭、真实正反向测试与恢复清单批准，才可由指定 operator 执行。不继承 #316、T01、路线 A 选择或一般 installer 许可；不启用任一 provider/profile/timer，不创建或复制 auth/PAT/账户。若将来需要新增账号/Secret或配置其他项目，那是新范围，不从本草案推导许可。
 
 I02 rollback：停止新 authority 写入；保全批准基线、完整 record/object snapshots 和可能已发表的 H；恢复 operator 卡列出的旧代码/配置/service/state/context/socket 前态及 mode/owner。源服务原先不存在的对象只按保存的 exact 清单移除；不删除真实 remote、不重建 original tip、不回到 leased publish。不能仅依赖 `.previous`，不通过清空 ledger 重新开始。
 
@@ -152,7 +152,7 @@ R0 一经 pin 就不改写。正常演进保持 R0→R→H 的祖先链。若远
 
 ## 治理映射与独立停止点
 
-T01 只在独立受控治理应用步骤，按已确认本 spec 精确修改以下文本，不混入 Python/runtime/install/CI 实现；commit 后立即停止。原合同准备阶段没有修改 AGENTS.md；T01 后经直接确认独立应用并已 STOP。新具体合同确认后的 T04 也只使用下表14项和四角色、应用后 STOP；原草案准备没有应用该表；本次直接确认后的 T04 仅应用该表及四角色，不混入 runtime。后续 fresh run 必须重新读取本 worktree 的治理、Issue、有效评论、spec/plan 和 installed 能力，不继承旧上下文替代读取。
+T01 只在独立受控治理应用步骤，按已确认本 spec 精确修改以下文本，不混入 Python/runtime/install/CI 实现；commit 后立即停止。原合同准备阶段没有修改 AGENTS.md；T01 后经直接确认独立应用并已 STOP。原可信根合同确认后的 T04 也只使用下表14项和四角色、应用后 STOP；原草案准备没有应用该表；当时确认后的 T04 仅应用该表及四角色，不混入 runtime。后续 fresh run 必须重新读取本 worktree 的治理、Issue、有效评论、spec/plan 和 installed 能力，不继承旧上下文替代读取。
 
 | exact 文件 | 允许的最小治理变动 |
 |---|---|
@@ -192,11 +192,11 @@ T01 只在独立受控治理应用步骤，按已确认本 spec 精确修改以�
 | `codex/tests/smoke.sh` | 只接入本 Issue 必要用例/受管 helper 检查，不删改现有硬门 |
 | `docs/changes/327-broker-ff-integration/` 的四份映射文档 | 同步批准状态、真实验收和 handoff |
 
-原已批准范围不改 operation/参数。上述可信证据补充**提议**仅增加 begin/verify 及下表 exact source 文件；在本份具体合同确认前，不授权它们，也不修改任何 manifest/runtime。`git.push.change(branch)` 与 Gitea governance 身份/权限/main/context/routine 值仍不变；无 public merge/approve operation。
+原已批准范围不改 operation/参数。T04 已确认的可信证据补充仅增加 begin/verify 及下表 exact source 文件；这些已有范围的实施历史见 verification。新安全合同另列exact增补范围，T05独立STOP及后续fresh run前不能实施它。`git.push.change(branch)` 与 Gitea governance 身份/权限/main/context/routine 值仍不变；无 public merge/approve operation。
 
 ## 可信证据 source 精确扩展（已确认，fresh T02 才实施）
 
-此表是原 runtime 映射的最小新增集合，不是目录级授权；以下文件本轮均不创建或修改。原表 installer 职责在本合同中增补为安装 authority/helper/default-disabled 配置与 inert service 描述的受管映射，仍不执行真实安装、provision 或 enable；不得改变八个 source provenance guard。
+此表是原 runtime 映射的最小新增集合，不是目录级授权；这些文件本轮均不创建或修改；既有 WIP 保留。原表 installer 职责在本合同中增补为安装 authority/helper/default-disabled 配置与 inert service 描述的受管映射，仍不执行真实安装、provision 或 enable；不得改变八个 source provenance guard。
 
 | exact 文件 | 提议的限定职责 |
 |---|---|
@@ -225,7 +225,7 @@ T01 只在独立受控治理应用步骤，按已确认本 spec 精确修改以�
 
 上述可新增 shell 源与现有 source 文件保持普通 100644；installer 如需安装为 0755 必须映射为受管 mode 且 UI bootstrap 验 exact mode。不是给新 live 可执行入口赋权限。本表与原 runtime 表的 installer/drift/smoke/测试映射共同校验；不修改 `gitea-governance.json`、受保护 main、CI context 或 routine opt-in，不泛用其他 manifests。
 
-T04 独立治理应用（本次具体确认后）仍仅原 14 个治理 exact 文件和四角色文档：在各自 #327 活段落同步 authority 的可信记录/独立重算、两项接口与仅 source 扩展、root critical 与非 root provider、default-disabled、I02 独立批准及不把 installed 缺口报 PASS；不改历史 docs 或上游 vendor，不写任何上表 runtime/config/service 文件。T04 应用验证+本地原子 commit 后停止，不能同 run 借新治理许可实施 T02。
+历史T04独立治理应用仍仅原 14 个治理 exact 文件和四角色文档：在各自 #327 活段落同步 authority 的可信记录/独立重算、两项接口与仅 source 扩展、root critical 与非 root provider、default-disabled、I02 独立批准及不把 installed 缺口报 PASS；不改历史 docs 或上游 vendor，不写任何上表 runtime/config/service 文件。T04 应用验证+本地原子 commit 后停止，不能同 run 借新治理许可实施 T02。
 
 ## 本 Issue first-PR 自举（负责人本人 UI）
 
@@ -243,33 +243,112 @@ T04 独立治理应用（本次具体确认后）仍仅原 14 个治理 exact �
 
 本路线是本 Issue 源码发表所需的人工执行卡方案；后续真实 UI tree/mode验证仍为 AC，失败就保留阻塞。它不授予 Agent ordinary Git 或 admin credential，不把 #327 设为 #289/#319 人工更新的机械前置。
 
+## 资源与工具链安全补充合同（已直接批准；T05独立治理应用）
+
+本节补齐 T02 实际发现的 `TOOLCHAIN_CLOSURE_GAP` 与 `SCRATCH_QUOTA_GAP`。负责人选择A最初只授权方案；具体草案和审阅卡完成后，本聊天直接“批准”。本节数值/路径/schema/source扩展现为已批准source合同；原spec/plan SHA256保存在外部t05-application-approval.json，不是已安装能力或主机执行许可。当前无条件 GAP 拒绝保持；不能为绿色测试删除它。本节已具体确认，以此节覆盖旧 v1/宽泛 pin/资源说明的对应项，其他 FF、R0、manual、唯一 PR、credential/main/CI/provider 边界不变。
+
+### 固定资源上限与隔离
+
+| 资源 | 已确认固定上限 | 失败行为 |
+|---|---|---|
+| Mac verifier scratch | 一个64 MiB逻辑磁盘；UDIF/UDRW，HFSX、无分区表；镜像实际大小≤72 MiB且冻结 exact st_size | 不支持此格式/容量/flags/owner 或 ENOSPC → GAP/执行失败；无扩容/宿主 tmp fallback |
+| Mac root Git 对象暂存 | 256 MiB逻辑磁盘，同一受管后端；镜像实际大小≤264 MiB；最多两个挂载对象卷（当前写入和前一只读） | fetch/对象处理需更多空间则在 remote mutation 前拒绝；不只在 fetch 后做 du |
+| 挂载并发/只读输入 | 全 authority 最多一个 scratch，最多两个对象卷；镜像 backing 总量≤600 MiB；全局同时最多一个完整只读展开副本≤256 MiB；≤4096文件/目录entries、depth≤16、单segment≤255bytes | 串行新 scratch；重复 blob 每个路径都计费；禁止跨 verifier/generation 复用 |
+| 保留 state | 所有 owned 镜像、sealed Git 对象、CONTEXT输入/平台临时文件、lease/record/metadata 合计预留≤8 GiB；平台state/context元数据总预算≤64 MiB | 创建前保护锁内预留最大 backing/输入/记录预算；余额不足停止；不自动删除历史或重置 R0 |
+
+这里的数字是产品支持上限，不证明64 MiB HFSX在任何 Mac版本都可成功创建。文件系统元数据同样占有限磁盘；不声称存在独立可配置 inode quota。大量 tiny file 测试必须实际触发有限元数据/ENOSPC；RLIMIT_FSIZE 或事后监控不能替代磁盘总量边界。kernel/global缓存不纳入该磁盘额度承诺；process/输出/时间上限与真实 descendant 终止仍独立验收。Linux 保持受限 tmpfs/namespace：scratch64 MiB、nr_inodes=4096、相同并发/展开/保留上限；root Git使用受限256 MiB tmpfs（nr_inodes=16384）并将sealed快照有界复制到protected state。Linux真实root mount/namespace/drop仍 I02 NOT RUN，不能由 Mac 模板测试推导。
+
+所有CONTEXT/readonly input和平台temporary也必须登记于同一protected预算，不能仅统计STATE。创建前按exact完整tree、逐路径regular bytes和已接受OSallocation/目录metadata上界预留（未知上界即GAP），copy期间每步受界；原子化完成前不可暴露。全局最多一个输入副本，无遗留副本时才创建下一份；generation/verifier结束且owned进程/lease均已安全终止后，依平台生成并保护的exact文件/目录清单与dirFD/no-follow逐项删除root-owned readonly input并fsync/release。不得以递归遍历user scratch替代清单。失败保留预算/清单、quarantine，不继续累积context；空generation目录、临时平台元数据也计入64 MiB上限。任何保留与暂存重叠都计费，包括Linux tmpfs中对象向sealed state复制的双份窗口。
+
+不新建或迁移整块 STATE 文件系统。STATE 保持原固定0700目录；project/verifier 不可写该目录或 backing file。所有不可信 Git 数据处理的输出、临时目录与 pack 写入必须限定于 bounded root Git 卷；Git 配置、hook、credential helper 仅来自核验的平台固定代码。protected 元数据写入有字节/条目上限和预留预算，host 本身空间不足仍必须失败、保全已知状态并如实报告可能落地 H，不能伪称零写。
+
+### Mac 模板、设备与生命周期
+
+1. **模板只由未来 I02 指定 operator 创建并登记**：`STATE/seed/blank-64m.dmg` 和 `STATE/seed/blank-256m.dmg`，root0400、regular/nlink1、父0700，冻结模板 SHA256、st_size、逻辑 sectors、文件系统/volume UUID和创建工具链。I01只安装惰性代码/空登记，不创建模板。operator 卡示例为 `/usr/bin/hdiutil create -size 64m -type UDIF -fs HFSX -layout NONE -volname AISOFTScratch -uid 0 -gid 0 -mode 0755 -noautostretch <fixed-template-path>`；对象模板只以同一固定模板将 size改256m/volname改AISOFTObjects。这是文本蓝图，本轮未执行。`-type UDIF`产生UDRW；禁止误用 `-type UDRW`。无 `-ov`、`-attach`、resize、sparse、shadow、压缩、加密或自由imagekey/plugin；模板不含项目/凭据内容。
+2. protected durable lease/nonce/容量预留先持久化，再在 `STATE/<generation>/scratch/<lease>.dmg` 以root0600建立完整预分配byte copy。禁止hardlink/symlink/reflink/sparse拷贝；核验模板与clone内容后才暴露卷。objects lease同样固定在 `STATE/<generation>/objects/`，不接受caller路径。镜像名、generation/lease由服务生成，目录FD/no-follow校验。
+3. 仅固定 `/usr/bin/hdiutil attach -nomount -plist -owners on -nobrowse -noautoopen <owned-image>`，然后 `/sbin/mount_hfs -o nodev,nosuid,noexec,nobrowse <observed-device> <fixed-mountpoint>`。不传caller设备；不 mount `/Volumes`、任意设备或更换文件系统。`hdiutil info -plist`只在内部将本服务镜像canonical路径与设备绑定，不输出其他镜像inventory。attach必须恰好一个owned设备；exit0或名字匹配不算证明。
+4. scratch mountpoint固定 `CONTEXT/<generation>/scratch`，底层root0700；挂载后卷根root:registered_gid0750，仅其 `work/` 子目录registered UID/GID0700可写。`TMPDIR/TEMP/HOME`与cache仅指向work；只读输入另置root所有的固定context，不落回宿主 `/tmp`/HOME。对象卷固定 `STATE/<generation>/objects/mount` root0700；provider/verifier不可读写。kernel statfs/getfsstat实读filesystem、FSID、容量、nodev/nosuid/noexec/nobrowse、无 MNT_IGNORE_OWNERS及actualmount/device映射；device/path/FD dev+inode+ctime/nonce均保留。任何ownership失效均拒绝。禁止root递归遍历不可信scratch以清理；mount之后的权限设置只作用已核验卷根/固定空work child。
+5. 所有 hdiutil/mount_hfs 程序、原生依赖及其系统delegate属于下节 closure/OS TCB。runtime没有格式化入口、不接受script/helper/设备参数，也无 diskutil/resize/create/recover force operation。I02模板命令需要单独exact卡批准，不由T02执行。
+6. 每 required verifier使用新lease与新空模板。先验证本服务真实进程树全部退出，再recheck镜像→设备→mount映射，然后只普通 `hdiutil detach <owned-device>`；readback确认自己卷已卸载、设备不再指向该镜像后才dirFD删除exact backing并fsync/release。busy/descendant未知/设备号复用/映射失配/权限漂移/崩溃/断电→blocked quarantine，保留lease/backing/proof、禁止下一generation或自动force/retry；不删除已挂载镜像、不动未知设备。
+7. 重启扫描仅核对protected lease及本服务设备事实；未完成generation记interrupted，不接收caller PASS，不把重启/消失的mount当作可重pin R0。恢复/人工detach/模板替换仅在每主机exact operator卡中，保留旧record/object镜像和可能已发表H。sealed对象镜像冻结为只读且保留hash以供独立重算；总保留预算耗尽不自动evict。rollback先stop/preserve再按exact own lease对象解除，不恢复旧leased publish。
+
+`noexec`意味着此首版 Mac scratch 不支持执行其中新编译的native binary；所需native test应记录能力GAP，不能放宽flag、把build产物移到宿主可执行目录或伪称一般SDK/build支持。provider自己的必要onboarding资源仍只能来自原合同已独立接受且隔离的绑定；不因scratch放宽credential/helper/其他项目/control socket边界。
+
+### Python 加载前的 bootstrap 与完整闭包
+
+- 新的固定native bootstrap源只做平台预检/角色调度，必须在任何Python平台模块导入前运行。非root deterministic build，artifact绑定source SHA、编译器/SDK/链接清单和binary hash；未来I01安装 `/usr/local/libexec/aisoft/verification-bootstrap` root0755，无setuid。bootstrap自身的native loader/OS初始化属于已冻结root/OS TCB；不虚构“main之前无任何库执行”。不在root下编译项目、下载工具或安装全局Python/Git/SDK。
+- 仅固定 daemon/operator/worker 三种角色及既有严格命令，不给caller arbitrary exec/path/argv/root/descriptor参数。特权角色实际UID0；worker实际已登记非root身份并依原OS隔离。服务描述/critical wrapper只调用installed bootstrap，没有source/PATH/未知shim fallback。env/FD清理先于Python；Python使用canonical regular final interpreter `-I -S -B`，固定root cwd，禁用户site/.pth/sitecustomize/PYTHONPATH/PYTHONHOME、DYLD/LD/Git覆盖和继承敏感FD。`-B`不保证不会读取已有pyc；所有可加载py/pyc/extension必须pin，或明确拒绝pyc加载。
+- closure来自冻结的build dependency manifest、全部相关trusted目录inventory及native静态/显式dynamic dependency解析，运行trace只是交叉核对。必须列出平台所有模块（含late import）、interpreter/全stdlib/extension/loader、Git本体/remote-https/transport/helper/固定hook与解释器、OS隔离/资源工具、非秘密trust资源和所需系统delegate。每个qualified import到exact路径/内容hash/mode/owner的binding受加载前校验；未知root import/dlopen/plugin/service delegate直接GAP，不把“当前loaded”集当完整闭包。
+- Linux递归解析ELF interpreter/needed libs及登记动态加载项；Mac递归解析Mach-O linked dylib和显式dlopen。`@rpath/@loader_path/@executable_path/$ORIGIN`只解析已冻结root-custodied目录；环境搜索/用户可写路径/未知动态目标拒绝。Mac cache-only库记录logical install name/imageUUID/cacheUUID/OSbuild/arch，并hash所有实际cache/subcache backing files；不存在独立 `.dylib` 文件不能作为漏pin理由。`/usr/bin/dyld_info -linked_dylibs/-dlopens/-uuid`可辅助但不是完整性证明，tool自身也须pin。cache或权限不可完整枚举时GAP，不hash逻辑名假装字节验证。
+- alias只允许operator登记时有限解析已验证root所有、不可写parent下的OS symlink链；每个link文本/owner和最终目标都冻结。runtime执行canonical regular target，逐次拒绝link漂移；未知shim/redirect、user Homebrew、不能解析的二次interpreter/helper拒绝，不顺着普通PATH找替代。既有合格OS工具存在与否留待I02；缺失就GAP，不借此授权安装新工具链。
+- descriptor strict：≤8 MiB、≤16384 entries、pin普通文件streaming hash总输入≤64 GiB；字节/条目/路径深度/解析时间均有上限。role表无泛命令，禁止group/other writable、可变user library、秘密内容。首次注册与每个critical prepare/apply/approve/approve-pr/restore/generation/verify/publish/worker前校验全闭包与exact role/resource digest；不能只cachemtime。只能复用独立证明仍immutable的snapshot，其他情况重hash到boundeddeadline失败即GAP；实际时延/TOCTOU/可用性纳入I02。root/OS管理员改写不在非root攻击承诺内，但漂移后新活动必须拒绝。
+- 登记只通过原private root operator `prepare --apply` + strict v2 exact卡，descriptor只从 `/usr/local/share/aisoft/verification-incoming/toolchain.json`、`/usr/local/share/aisoft/verification-incoming/resources.json` 读入；v2卡固定 `/usr/local/share/aisoft/verification-incoming/operator-card.json`。incoming父root0700、文件root0600/regular/nlink1/no-follow/实际FD与hash/≤8MiB（operator卡≤1MiB）均核验，拒绝同名替换或caller path；read-only prepare/check不建立该目录、不改文件。首次I02仅指定operator按批准card建立incoming，native bootstrap先以冻结build/I01artifact与exact staged descriptor完成全闭包校验、持有固定FD证明，再允许Python执行原prepare --apply将同一digest原子登记；不以未注册为由跑未核验Python或自动信任incoming内容。卡与descriptor缺/漂移则GAP，不新增publicapprove/路径/命令。compiled bootstrap的安装hash由独立operator与I01receipt绑定；descriptor绑定artifact hash，grant绑定descriptor hash，避免二进制自含自身hash的循环信任。无新签名密钥/PAT/Secret。
+
+### 默认登记、schema 与 publish 的持续状态
+
+新source配置仅为以下惰性形状，installed位置固定 `/usr/local/share/aisoft/verification-toolchain.json` 与 `/usr/local/share/aisoft/verification-resources.json`，root0644：
+
+```json
+{"version":"verification-toolchain/v1","enabled":false,"hosts":{"mac":null,"gitea-ci":null}}
+{"version":"verification-resources/v1","enabled":false,"hosts":{"mac":null,"gitea-ci":null}}
+```
+
+I01安装空绑定且不enable；I02分别登记具体program/closure/resource/template/OSbuild descriptor和exact hashes。public `change-verification/v1` 四key默认policy不扩字段；private grant/record/operator变为 `change-grant/v2` / `change-record/v2` / `change-operator/v2`，authority_pin必须增加toolchain/resource descriptor digest；sealed record必须绑定exact closure/execution profile/lease digest。v1历史只读保留，不能用于新授权/执行；无自动迁移、清空或revision/R0重pin，旧source fixture不能充root grant。`change-ledger/v1` envelope可保留，payload明确v2且resource lifecycle事件strict prefix/序号持久化。
+
+closure全量预检可能超出client等待窗口。既有 `git.push.change(branch)` 不增operation/参数；服务将publish作为一个持久attempt，preflight/密封检查与pending记录完成后才进入transport。断线/timeout/重启之后保持实际H、possible_write和phase；同branch重入只poll既有pending，不再次推送。未知remote必须只读取证/adoption决策，不能超时后自动retry或报告零写。publish前closure漂移则零mutation拒绝；transport已开始后发现漂移只报告真实可能落地状态并停止后续活动。begin/verify依原pending语义接线，不通过放宽RPC时限伪造成功。
+
+### T05 治理、exact source 增补与 I02 卡
+
+具体合同确认后，T05只在**原14治理表**各文件#327活段落同步bootstrap/完整closure、boundedscratch与ownlease、default-none/source-installed、schema和I02/STOP边界，不增加治理文件，不改变main/CI/routine/credentials。四角色同步批准状态/批准receipt和graph。独立治理commit后STOP；既有T02 WIP不混入commit、也不丢弃。后续fresh run重读新governing+具体批准、Issue/comments/installed才能继续T02。
+
+| exact新增source文件（均后续fresh T02；本轮不创建） | 限定职责 |
+|---|---|
+| `codex/config/verification-toolchain.json` | 上述default-disabled空host closure登记 |
+| `codex/config/verification-resources.json` | 上述default-disabled空host resource登记 |
+| `codex/runtime/aisoft_host_access/toolchain.py` | strict闭包/alias/cache/role descriptor、pin重验、pre-import binding；无发现后自动批准 |
+| `codex/runtime/aisoft_host_access/scratch.py` | 固定resource bounds/模板lease/owneddevice/mountreadback/只读objects/隔离保全；无arbitrary设备/format/create public入口 |
+| `codex/tools/verification-bootstrap.c` | 固定native pre-Python核验/清env/角色调度；无setuid/callerexec |
+| `codex/tools/build-verification-bootstrap.sh` | 仅非root确定性source build与非秘密build receipt；不安装/下载/启动 |
+| `codex/runtime/tests/test_toolchain.py` | 完整inventory/late-import/alias/缓存/v2/schema/未知依赖/漂移 source fixture |
+| `codex/runtime/tests/test_scratch.py` | 额度预留/lease/own-device/崩溃恢复/strictargv fixture；模拟不报realmount PASS |
+| `codex/tests/test-verification-bootstrap.sh` | 非rootbuild/descriptornegative/installed映射fixture；不创建实际root卷/service |
+
+原已确认 installer/drift/smoke/authority/launchers/units/contract/evidence/client/Loop测试职责仅增补本节映射、v2和pending接线。新source统一100644；native安装0755、配置0644仅是未来I01受管mode。全部八个provenance guard保持，不以新build绕staleness。新registry不是另一份Gitea manifest；不改 `gitea-governance.json` 或其他身份/权限。
+
+I02每主机exact卡必须包括：source/build artifact/OSbuild/arch/closure完整hashinventory/descriptor digest与入口role；existing UID/GID；模板logicalsectors/st_size/hash/空白proof；实际device/mountpoint/FSID/容量/flags/owner读回；retained/input/concurrency限额；start/stop、ENOSPC/tinyfiles/timeout/descendant/busy/reuseddevice/reboot/断电恢复和closure漂移/late-import/cache/aliasenv负向；credential/helper/其他项目/socket不可达；实际FF/no-op/strictR/race正反向；前态缺失项、完整保全/隔离/rollbackreadback。不记录secret。无真实可用目标就GAP，不由AI创建canary身份/Issue/PR。没有这些实际证据，AC-9/10/11和原AC-7不能闭合。
+
+技术来源：Context7检索 Apple hdiutil 未返回适配的一手库，未把无关结果作依据。已只读本机Apple随附 `hdiutil(1)`、`mount(8)`、`mount_hfs(8)`、`dyld_info(1)`、`dyld(1)` 手册；本机观察27.0.1/build26A434不作为已接受hostmatrix。另参考 [Apple磁盘镜像指南](https://support.apple.com/en-gb/guide/disk-utility/dskutl11888/mac)、[Apple dyld cache layout](https://github.com/apple-oss-distributions/dyld/blob/main/doc/CacheLayout.md) 与 [Apple动态库加载说明](https://developer.apple.com/library/archive/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/DynamicLibraryUsageGuidelines.html)。这些仅支持格式/工具和依赖模型，不能证明本设计已实现或安全；limits/lease/bootstrap为本Issue已确认source设计。所有模板/挂载/nativebootstrap/root/I02实测 NOT RUN。
+
 ## Acceptance criteria
 
-- [ ] AC-1：四角色 exact 映射、platform/complex/manual、来源/授权、单 writer与triage/分类读回可复核；准备期零 live mutation。T01/T04治理只改映射合同并分别停止；fresh run记录重读后才能runtime；A路线选择不当作具体新增合同批准。
+- [ ] AC-1：四角色 exact 映射、platform/complex/manual、来源/授权、单 writer与triage/分类读回可复核；准备期零 live mutation。T01/T04/T05治理只改映射合同并分别停止；fresh run记录重读后才能runtime；A路线选择不当作具体新增合同批准。
 - [ ] AC-2：R0/R/H、M、commit/tree/scope 全门有效；首次创建、普通FF、无冲突限定整合、重复整合、summary backfill/CI repair及no-op可完成；每次 old tip 为 new tip祖先。
 - [ ] AC-3：真实 bare remote的非FF、首创抢占、R1处于R→H之间、公告后竞态、异常删除/重建与本地HEAD移动均被拒绝或如实报告落地不明；失败不能覆盖他人历史，无force/fallback。
 - [ ] AC-4：foreign/other-Issue/反序/octopus/stale-main/tampered-tree/范围越界/driver/缺对象/不支持历史、错误project/owner/branch/dirty树均在 mutation前拒绝；原单writer与provider merge deny不弱化；历史 #298 AC-5/6覆盖有测试。
 - [ ] AC-5：逐push H/R和actual remote readback一致；不明网络失败、mark写入失败、main推进分别记录真实状态，不把已经写入写成零写；全部broker/Controller组合、完整smoke、语法/ShellCheck与文档门真实执行。
 - [ ] AC-6：本Issue人工UI首PR唯一且exact branch，local L与human H分层、tree/blob/mode等价、fresh main与CI实证；无未合并安装或directGit绕行，最终manual merge证据明确。
-- [ ] AC-7：源码merge后，Mac及gitea-ci各获exact版本安装批准，读回完整受管组件前后SHA256/mode/owner、真实FF正反向/竞态路径、重复no-op和一次受控失败rollback；旧字节仅rollback停写，不再被用于leased publish。source/local/CI不能代替installed/live。
+- [ ] AC-7：源码merge后，Mac及gitea-ci各获exact版本安装批准，I01读回完整受管组件前后SHA256/mode/owner、installer重复no-op及受控文件失败rollback；I02注册后读回真实FF正反向/竞态、publish no-op与authority/resource操作rollback；旧字节仅rollback停写，不再被用于leased publish。source/local/CI不能代替installed/live。
 - [ ] AC-8：main保护/context/身份/单writer/唯一manualPR保持；不改业务项目、不代写#289/#319或重复建PR。安装AC完成及原owner真实采用前，不声称已解锁其Agent发表；人工更新不要求等待#327。
 
 - [ ] AC-9：可信 authority 的 default-disabled、strict grant/record、固定 begin/verify、独立完整内容验证、真实 OS peer/privilege separation、防篡改/replay/未知提交/adoption/restart 与 broker 拒绝无记录均有 source/local 实证；I02 两机 exact 授权后 root custody/真实执行/启动关闭/FF与rollback均读回；未执行层保持 GAP/NOT RUN。
+
+- [ ] AC-10：完整trusted module/interpreter/native loader/library/Git/helper/OSdelegate/alias/shared-cache闭包在Python平台导入前有固定bootstrap gate；unknown/late-import/env/alias/cache/descriptor/role漂移和v1滥用全部mutation前拒绝，source fixture及每主机I02真实证据分层；未注册/default-disabled不得执行。
+- [ ] AC-11：scratch/rootGit/输入/并发/保留上限有创建前预留和真实有限filesystem证明；大量tinyfile/ENOSPC/busy/child/reuseddevice/断电重启/cleanup/rollback均保持own-lease证据，不force/resize/hosttmp/删除历史；Mac noexec能力范围如实GAP，I02未运行不报PASS。
 
 ## 风险、回滚与完成边界
 
 整合来源假冒、tree污染、hook/config注入、竞态、freshness窗口和installed差异是核心风险；对应AC-2～5/7均要求负向真实验证。source失败通过追加修复或独立revert PR，不force改历史。
 
-两机安装以合并且稳定pin的source为唯一输入；安装card明确所有变化文件及缺失前态（含新增helper）、精确owner/mode、保存的旧文件集合与hash。不能仅恢复broker.py或信任`.previous`自动完整。rollback恢复完整前态，删除仅本版本新引入的受管文件并核验列表，保留证据；回滚后禁用本新发布路径，旧lease路径不重新获得合规许可。不得为验收创建新身份/PAT、扩大保护、服务/timer或部署。
+两机安装以合并且稳定pin的source为唯一输入；安装card明确所有变化文件及缺失前态（含新增helper）、精确owner/mode、保存的旧文件集合与hash。不能仅恢复broker.py或信任`.previous`自动完整。rollback恢复完整前态，删除仅本版本新引入的受管文件并核验列表，保留证据；回滚后禁用本新发布路径，旧lease路径不重新获得合规许可。不得为验收创建新身份/PAT、扩大保护、任意服务/timer或部署；本合同authority服务仅未来exact I02明确批准的start/stop/rollback范围。
 
-安装与 authority AC 只能在源码merge后闭合，故`Closes #327`的Gitea自动closed不等于本Issue真实完成。若源码合并自动关闭而 AC-7/AC-9 尚缺，owner据已确认合同通过现有typed `gitea.issue.state.set`保持/恢复open并记录“source merged / installed acceptance pending”；不写completed、不触发runtime、不清理/归档。已有终态工具的自动source-only计划不能覆盖本合同AC。本项是该Issue的确定性验收保留，不新增通用终态机制。
+安装与 authority AC 只能在源码merge后闭合，故`Closes #327`的Gitea自动closed不等于本Issue真实完成。若源码合并自动关闭而 AC-7/AC-9/AC-10/AC-11 尚缺，owner据已确认合同通过现有typed `gitea.issue.state.set`保持/恢复open并记录“source merged / installed acceptance pending”；不写completed、不触发runtime、不清理/归档。已有终态工具的自动source-only计划不能覆盖本合同AC。本项是该Issue的确定性验收保留，不新增通用终态机制。
 
 AC实证全部满足后才terminal reconcile、文档check、精确cleanup/归档。本地L若不是merge祖先先保留可恢复bundle并验证human H等价，不能冒称已合并本地对象并强删；清理仍要对exact目标保全读回。
 
 ## 非目标
 
-合同准备不修改治理；独立 T01/T04 只按映射治理表应用并分别停止；不恢复#319 remote、不更新#289 PR、不修其业务/UTF-8范围、不操作他人worktree。不开放任意 merge、冲突解决、force 或身份/PAT/保护/context/routine 变更、应用部署或 provider 启用。新 typed source 范围仅为已确认的两项；本轮 T04 只应用映射 governing 文本，不改 operation/config/service/runtime。不批量重命名/删除历史Change或上游skills。
+合同准备不修改治理；独立 T01/T04/T05 只按映射治理表应用并分别停止；不恢复#319 remote、不更新#289 PR、不修其业务/UTF-8范围、不操作他人worktree。不开放任意 merge、冲突解决、force 或身份/PAT/保护/context/routine 变更、应用部署或 provider 启用。新 typed source 范围仅为已确认的两项；原T04只应用映射governing文本；本轮仅批准的T05 governing文本与四角色，不改operation/config/service/runtime。不批量重命名/删除历史Change或上游skills。
 
 ## 未决问题
 
-原 FF/人工自举方向与本份可信根 source 合同已直接确认；A 路线准备和具体确认是两次不同的授权。本次独立 T04 治理应用并停止，后续 fresh run 再 T02，不额外要求同一合同重复批准。local approved 不等于 live 投影或 protected grant；具体机器 I01/I02 权限动作仍须独立 exact 卡。实际 UID/GID/工具链/安装 pin/grant/启动与 rollback 目标留在每台 I02 exact operator 卡，不为通过文档门虚构数值或启动。真实 UI/字节 mode/guard/authority 实证仍是待执行 AC。
+本聊天直接“批准”审阅卡绑定的T05具体补充合同（#327/exactbranch/manual/spec+planhash），本轮仅独立T05治理应用/验证/localcommit后STOP。原批准字节与批准登记保存在外部，当前状态/证据回填不扩技术合同。无需重复确认同一source范围；后续fresh重读才能继续保全T02 WIP。I01/I02每主机仍各需exact operator卡，实际工具chain/UID/模板/OSmatrix未注册不虚构hash。新source/真实closure/quota/主机/FF/安装验收均未运行，旧FAIL和GAP真实保留；source approved不作live标签或protected grant。
