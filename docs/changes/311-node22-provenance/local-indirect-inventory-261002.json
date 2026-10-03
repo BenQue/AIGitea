@@ -1,0 +1,140 @@
+[
+  {
+    "repository": "aisoft-platform",
+    "sha": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+    "files_scanned": 332,
+    "node22_hits": [
+      {
+        "path": "codex/runtime/tests/test_architecture_lock.py",
+        "line": 86,
+        "comment": false,
+        "reference": "node22"
+      },
+      {
+        "path": "codex/runtime/tests/test_architecture_lock.py",
+        "line": 97,
+        "comment": false,
+        "reference": "node22"
+      },
+      {
+        "path": "codex/runtime/tests/test_architecture_lock.py",
+        "line": 98,
+        "comment": false,
+        "reference": "node22"
+      },
+      {
+        "path": "codex/runtime/tests/test_host_access.py",
+        "line": 319,
+        "comment": false,
+        "reference": "node22"
+      },
+      {
+        "path": "codex/runtime/tests/test_host_access.py",
+        "line": 374,
+        "comment": false,
+        "reference": "node22"
+      },
+      {
+        "path": "codex/runtime/tests/test_host_access.py",
+        "line": 382,
+        "comment": false,
+        "reference": "node22"
+      },
+      {
+        "path": "codex/runtime/tests/test_host_access.py",
+        "line": 384,
+        "comment": false,
+        "reference": "node22"
+      },
+      {
+        "path": "codex/runtime/tests/test_host_access.py",
+        "line": 386,
+        "comment": false,
+        "reference": "node22"
+      },
+      {
+        "path": "codex/runtime/tests/test_host_access.py",
+        "line": 398,
+        "comment": false,
+        "reference": "node22"
+      },
+      {
+        "path": "codex/runtime/tests/test_host_access.py",
+        "line": 5822,
+        "comment": false,
+        "reference": "node22"
+      },
+      {
+        "path": "codex/runtime/tests/test_host_access.py",
+        "line": 5845,
+        "comment": false,
+        "reference": "node22"
+      },
+      {
+        "path": "codex/tools/install-runner-flutter.sh",
+        "line": 170,
+        "comment": true,
+        "reference": "node22"
+      }
+    ],
+    "scope": "committed non-secret implementation/config text; excludes docs/archive/vendor/lock/secret files; not global non-use proof"
+  },
+  {
+    "repository": "LocalWMS",
+    "sha": "182ea7e04499f0b77162a5c95bfa3670417b04ee",
+    "files_scanned": 236,
+    "node22_hits": [],
+    "scope": "committed non-secret implementation/config text; excludes docs/archive/vendor/lock/secret files; not global non-use proof"
+  },
+  {
+    "repository": "NewEMaint",
+    "sha": "4c30573341c668826b3af515e870eb5bf9b362b0",
+    "files_scanned": 576,
+    "node22_hits": [],
+    "scope": "committed non-secret implementation/config text; excludes docs/archive/vendor/lock/secret files; not global non-use proof"
+  },
+  {
+    "repository": "SFMDigitalBoard",
+    "sha": "1be980d238c37495a808170ee8ce4a5bf04fbaf3",
+    "files_scanned": 277,
+    "node22_hits": [
+      {
+        "path": ".gitea/workflows/ci.yml",
+        "line": 31,
+        "comment": false,
+        "reference": "node22"
+      },
+      {
+        "path": ".gitea/workflows/ci.yml",
+        "line": 60,
+        "comment": true,
+        "reference": "node22"
+      },
+      {
+        "path": ".gitea/workflows/deploy.yml",
+        "line": 11,
+        "comment": true,
+        "reference": "node22"
+      },
+      {
+        "path": ".gitea/workflows/deploy.yml",
+        "line": 49,
+        "comment": true,
+        "reference": "node22"
+      },
+      {
+        "path": "sfm-board/tests/platform/run.sh",
+        "line": 50,
+        "comment": true,
+        "reference": "node22"
+      },
+      {
+        "path": "sfm-board/tests/platform/run.sh",
+        "line": 73,
+        "comment": false,
+        "reference": "node22"
+      }
+    ],
+    "scope": "committed non-secret implementation/config text; excludes docs/archive/vendor/lock/secret files; not global non-use proof"
+  }
+]
