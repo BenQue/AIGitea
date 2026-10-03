@@ -149,6 +149,16 @@ Create a coordination task only for a phase that must split, a batch of newly cr
 Issues with dependencies. Persist every dependency in the Issue body and summary `depends_on`; do not rely on task
 memory. Dispatch only unblocked Issues and keep their branches, worktrees and PRs separate.
 
+Dependency identity (#286 source/local fixtures verified; installed/live pending): legacy numeric
+`depends_on` entries refer only to the source repository. Cross-repository dependencies require exact
+`owner/repo#N`, never a bare foreign number. The new read must be manifest-bound before GET, with
+`dependency_read_targets` defaulting to local only and the sole new edge `sfm-digital-board → aisoft-platform`.
+Controller and routine merger must share identity/terminal checks; a local same-number Issue never
+satisfies a foreign dependency. Cross-repository reads use only the broker's manager-audit read-only
+route, with zero credential/ACL/direct-client fallback. An unsupported or unreadable dependency is a
+blocker; do not replace it with a number or `[]`. Document the full reference in the Issue body until the
+runtime is implemented and independently installed. A documentation example is not live enablement.
+
 ## Open-Issue sweep
 
 The coordination task's second duty. Sweep the open Issues every time the task wakes up, and again after a batch of

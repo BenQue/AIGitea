@@ -1,0 +1,219 @@
+{
+  "issue": 286,
+  "ticket": "T04",
+  "session": "01a0fc7c-1670-75b2-a61b-f47e62fc856c",
+  "branch": "change/286-dependency-references",
+  "policy": "manual",
+  "authorization": {
+    "issue": 286,
+    "branch": "change/286-dependency-references",
+    "old_head": "8c9422a40cbd4dbc92c55b9d526a55f34e150302",
+    "target": "65268ee5f1e622c486fd9e354dd35e20a2900f91",
+    "user_statement": "按你的建议继续",
+    "authorized_action": "Rebase the unpublished local branch to the exact target for independent validation before PR 325 merges.",
+    "prior_question": "是否授权提前将本票未发布的 change/286-dependency-references rebase 到 65268ee5，仅做独立验证，最终组合验收仍等 #289 合并？",
+    "exclusions": [
+      "push",
+      "PR submission",
+      "merge",
+      "installation",
+      "deployment",
+      "credentials",
+      "ACL"
+    ],
+    "combination_gate": "PR 325 must actually merge before final combination acceptance",
+    "recorded_at": "2026-10-02T15:54:27.320044+00:00"
+  },
+  "integrated_base": "65268ee5f1e622c486fd9e354dd35e20a2900f91",
+  "tested_source_head": "6fae040e92e1c8e8c494cd4260965f3ef7c3bb05",
+  "rebase": {
+    "result": "PASS",
+    "conflicts": false,
+    "commit_mapping": [
+      {
+        "before": "bf31b153ab5db253bed3cd653c0bfa4ab3c6dbe7",
+        "after": "6324ec38a0852d98f04752249cfaefe20d8af04c",
+        "patch": "unchanged"
+      },
+      {
+        "before": "74eae54b230280118f753cef8643f8e65d2fbb85",
+        "after": "97ec1ce0f963bc60317b418038a6982a7fb1272a",
+        "patch": "unchanged"
+      },
+      {
+        "before": "347586c606bed51cb75c7c7326f396de2dda580b",
+        "after": "54b0cd8d515245eefdab3da8233c17be9449f868",
+        "patch": "unchanged"
+      },
+      {
+        "before": "12dd967eb60253d7033c2c8ccb0c382b499bf1c6",
+        "after": "637e8c2fe47ede32b7a3a001b246d75e3a6f30e5",
+        "patch": "unchanged"
+      },
+      {
+        "before": "2b132c7ea40a0c89f103dd07a03b2d7e8a9d4b82",
+        "after": "c87b94e8b7da3d49136500cdbc66892f3ead7981",
+        "patch": "unchanged"
+      },
+      {
+        "before": "8c9422a40cbd4dbc92c55b9d526a55f34e150302",
+        "after": "6fae040e92e1c8e8c494cd4260965f3ef7c3bb05",
+        "patch": "unchanged"
+      }
+    ]
+  },
+  "runtime": {
+    "result": "PASS",
+    "tests": 1012,
+    "seconds": 95.253,
+    "exit_code": 0
+  },
+  "dependencies": {
+    "result": "PASS",
+    "tests": 20,
+    "seconds": 1.403,
+    "exit_code": 0
+  },
+  "full_smoke": {
+    "result": "FAIL",
+    "exit_code": 1,
+    "command": "LC_ALL=C PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh",
+    "stopped_at": "codex/tests/test-installed-drift.sh",
+    "fixture_tests": 23,
+    "fixture_failures": 16,
+    "fixture_seconds": 37.4,
+    "runtime_discover_in_smoke": "NOT RUN",
+    "reason": "Installed fixture requires aggregate exit 0, but source_identity returns GAP for legitimate managed-source differences from cached origin/main; all eight installed fixture byte surfaces PASS."
+  },
+  "first_failure_projection": {
+    "installers": [
+      {
+        "installer": "install-vm",
+        "result": "PASS"
+      },
+      {
+        "installer": "install-skills",
+        "result": "PASS"
+      },
+      {
+        "installer": "install-host-role",
+        "result": "PASS"
+      },
+      {
+        "installer": "install-host-access-broker",
+        "result": "PASS"
+      },
+      {
+        "installer": "architecture/install",
+        "result": "PASS"
+      },
+      {
+        "installer": "docker-release/install",
+        "result": "PASS"
+      },
+      {
+        "installer": "sync/install",
+        "result": "PASS"
+      },
+      {
+        "installer": "skill-for-claude/install",
+        "result": "PASS"
+      }
+    ],
+    "source": {
+      "checkout": "/private/tmp/issue-286-dependency-references",
+      "head": "6fae040e92e1c8e8c494cd4260965f3ef7c3bb05",
+      "cached_origin_main": "70baa3588c0504e5d81facd99c63b74741967967",
+      "managed_source_matches_cached_main": false,
+      "remote_freshness": "EXTERNAL_EVIDENCE_REQUIRED",
+      "result": "GAP"
+    },
+    "aggregate_result": "GAP"
+  },
+  "source_only": {
+    "result": "PASS",
+    "source": {
+      "checkout": "/private/tmp/issue-286-dependency-references",
+      "head": "6fae040e92e1c8e8c494cd4260965f3ef7c3bb05",
+      "cached_origin_main": "70baa3588c0504e5d81facd99c63b74741967967",
+      "managed_source_matches_cached_main": false,
+      "remote_freshness": "EXTERNAL_EVIDENCE_REQUIRED",
+      "result": "GAP"
+    }
+  },
+  "upstream_gate_sources_unchanged": {
+    "codex/tests/smoke.sh": "2aa0a46297563ea3cea50ecb4687c5cc07d255b53fa4ee5d51496b0a9182cbd1",
+    "codex/tools/check-installed-drift.sh": "516a2fba9439ca3a101d9355cc69d1aa2dd81d3149f91fcba7ee9bf0737e89f9",
+    "codex/tools/check-installed-drift.py": "3d626f82275b18da91e17810a33aa9afd6ac86d0336ff15ec13394b8a79cd03b",
+    "codex/tests/test-installed-drift.sh": "578a49c0b2651fd7cd6a1f795a9a65969a165ca1ff41815182ccd5240bbb5f6b",
+    "codex/tests/fixtures/installed-drift/test-installed-drift.py": "fcda29eeaf0ebbb27ff53c855128309f0f8901d5d9c7bbbc55e934dd606dc984"
+  },
+  "documents": {
+    "result": "PASS",
+    "changes": 148,
+    "gap": 0
+  },
+  "classification": {
+    "issue": 286,
+    "project": "aisoft-platform",
+    "repository": "aisoft-platform",
+    "action": "verify",
+    "applied": false,
+    "detail": "Issue #286 carries the classification its merged summary declares",
+    "result": "projected",
+    "change_type": "platform",
+    "complexity": "complex"
+  },
+  "live_contract": {
+    "result": "PASS",
+    "acceptance_criteria": 7,
+    "documents": 4,
+    "depends_on": []
+  },
+  "predecessor": {
+    "issue": 289,
+    "pr": 325,
+    "state": "open",
+    "merged": false,
+    "merge_commit_sha": null,
+    "head_sha": "2df06f204f810205ed2229983f6ec023c9f5941c"
+  },
+  "logs": {
+    "smoke": {
+      "path": "/private/tmp/issue-286-65268-smoke-host.log",
+      "sha256": "089ee190699a57ac31d966a4caf9a2f0646c9ee91d7178a5351273c9efb7e43a"
+    },
+    "runtime": {
+      "path": "/private/tmp/issue-286-65268-runtime.log",
+      "sha256": "3992309b97630ae7bcd4574048014f258c60fbd8c2f15d6210b8350bcadc3019"
+    },
+    "dependencies": {
+      "path": "/private/tmp/issue-286-65268-dependencies.log",
+      "sha256": "3a99a427b9f695c5d25aa9e23a9a90c333af72bea48712a062b874c972a74072"
+    },
+    "source_only": {
+      "path": "/private/tmp/issue-286-65268-source-only.json",
+      "sha256": "7bcadb8b06b3c29a536411d3d64a87fbb71fc2ae98ea5d9cd4431d6a565c30a3"
+    },
+    "classification": {
+      "path": "/private/tmp/issue-286-65268-classification.jsonl",
+      "sha256": "dfdaac6186ee1cac453be63140ed817a4e9581d8d93ccae4959bf9fb38598e37"
+    }
+  },
+  "remaining_gates": [
+    "Upstream #308 installed-drift fixture acceptance must work on valid unmerged branches without weakening installed provenance gates.",
+    "PR325 actual merge, then owner fresh-fetch/rebase and final dependency/document/terminal/full smoke validation."
+  ],
+  "last_push_head": null,
+  "push_pr_ci_installed_live_deployment": "NOT RUN",
+  "post_receipt_document_gate": {
+    "result": "PASS",
+    "changes": 148,
+    "gap": 0
+  },
+  "template_digest": {
+    "result": "PASS",
+    "pinned": "sha256:5077fbbed13edcf878a91f38917c14228fc95f2bf5b605da891b8093d3148430"
+  },
+  "diff_check": "PASS"
+}

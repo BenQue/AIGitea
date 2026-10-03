@@ -1,0 +1,164 @@
+{
+  "issue": 286,
+  "ticket": "T04",
+  "session": "01a0fc7c-1670-75b2-a61b-f47e62fc856c",
+  "branch": "change/286-dependency-references",
+  "policy": "manual",
+  "handoff_state": "AWAITING_PR_CONFIRMATION",
+  "integrated_base": "16beee09aefe89b5bc80a31544c59d456190ea32",
+  "tested_source_head": "36609fa975301518c4bc7daf564b1892b1ba5eb6",
+  "runtime_and_test_tree_sha256": "a10cdd25f71da4a371c753993faf1abc2f888b22660f77371726396a24834528",
+  "tree_paths": [
+    "codex/runtime",
+    "codex/tests",
+    "codex/config/host-access-broker.json"
+  ],
+  "predecessor": {
+    "issue": 289,
+    "pr": 325,
+    "merged": true,
+    "merge_commit_sha": "16beee09aefe89b5bc80a31544c59d456190ea32",
+    "merge_proven_on_origin_main": true
+  },
+  "rebase": {
+    "result": "PASS",
+    "conflicts": false,
+    "mapping": [
+      {
+        "before": "6324ec38a0852d98f04752249cfaefe20d8af04c",
+        "after": "00f29a5f0c61e5ac895d732b35d2f631d73b25da",
+        "patch": "unchanged"
+      },
+      {
+        "before": "97ec1ce0f963bc60317b418038a6982a7fb1272a",
+        "after": "f98c90ee0a34aa2c90b217c1c69a29b3be8386a7",
+        "patch": "unchanged"
+      },
+      {
+        "before": "54b0cd8d515245eefdab3da8233c17be9449f868",
+        "after": "774c74c0b0c5c186360424b301dc8f043f6fddee",
+        "patch": "unchanged"
+      },
+      {
+        "before": "637e8c2fe47ede32b7a3a001b246d75e3a6f30e5",
+        "after": "6e092b7cf65bf8831c10ae5749a0ec6a4df93101",
+        "patch": "unchanged"
+      },
+      {
+        "before": "c87b94e8b7da3d49136500cdbc66892f3ead7981",
+        "after": "63bae75179609065b505aa037926fd3d5bcd0500",
+        "patch": "unchanged"
+      },
+      {
+        "before": "6fae040e92e1c8e8c494cd4260965f3ef7c3bb05",
+        "after": "696ee405869f69cd5f7b8bf024684b8760eb3a54",
+        "patch": "unchanged"
+      },
+      {
+        "before": "f11f6fc88d4a5f32fbd3aea144783ae977cd7fa4",
+        "after": "36609fa975301518c4bc7daf564b1892b1ba5eb6",
+        "patch": "unchanged"
+      }
+    ]
+  },
+  "full_smoke": {
+    "result": "PASS",
+    "exit_code": 0,
+    "command": "LC_ALL=C PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh",
+    "context": "controlled host; isolated temporary fixtures",
+    "runtime_tests": 1042,
+    "runtime_seconds": 104.165,
+    "final_line": "Codex platform static smoke checks passed.",
+    "log": "/private/tmp/issue-286-post289-smoke-host.log",
+    "log_sha256": "ebb1755d9cbdbb48f552d8d7dba22317a6d360cac8eb23ac5862d2bcc9638bee",
+    "archived_log": "evidence/post289-smoke-host.log.gz",
+    "archived_log_sha256": "b5999675cc9ffc324f7c345b72c91af73f19ac0b714442fca4870a9be303a2d1"
+  },
+  "targeted": {
+    "result": "PASS",
+    "tests": 34,
+    "seconds": 2.86,
+    "modules": [
+      "tests.test_dependencies",
+      "tests.test_dependency_integration",
+      "tests.test_required_documents"
+    ],
+    "log_sha256": "083ff64f687eb97ed14965696473fbfcd62912a0b6b34095c5c90c093514a18a"
+  },
+  "documents": {
+    "result": "PASS",
+    "changes": 151,
+    "gap": 0,
+    "required_docs": [
+      "summary",
+      "spec",
+      "plan",
+      "verification"
+    ],
+    "live_loader_acceptance_criteria": 7
+  },
+  "classification": {
+    "issue": 286,
+    "project": "aisoft-platform",
+    "repository": "aisoft-platform",
+    "action": "verify",
+    "applied": false,
+    "detail": "Issue #286 carries the classification its merged summary declares",
+    "result": "projected",
+    "change_type": "platform",
+    "complexity": "complex"
+  },
+  "terminal_dry_run": {
+    "issue": 286,
+    "project": "aisoft-platform",
+    "repository": "aisoft-platform",
+    "action": "set-completed",
+    "applied": false,
+    "reason": "no-deployment-chain",
+    "detail": "required_docs contains verification, but aisoft-platform declares deployment_lifecycle none: nothing writes deployed there, so completed is the only reachable terminal state"
+  },
+  "review": {
+    "standards": {
+      "findings": 0,
+      "smells": 0,
+      "result": "PASS"
+    },
+    "spec": {
+      "findings": 0,
+      "result": "PASS",
+      "additional_fixture": "complete mapped documents with qualified dependency load; missing verification rejected"
+    }
+  },
+  "upstream_fixture_resolution": "Main includes isolated source-baseline fixture fix; installed provenance checks unchanged. Full smoke passed on unmerged #286 branch.",
+  "remaining_predecessor_gates": [],
+  "t04_status": "completed",
+  "final_pr_submit_authorization": "NOT GRANTED",
+  "last_push_head": null,
+  "push_pr_ci_merge_installed_live_deployment": "NOT RUN",
+  "post_delivery_status_checks": {
+    "documents": {
+      "result": "PASS",
+      "changes": 151,
+      "gap": 0
+    },
+    "template_digest": {
+      "result": "PASS",
+      "pinned": "sha256:5077fbbed13edcf878a91f38917c14228fc95f2bf5b605da891b8093d3148430"
+    },
+    "runtime_and_test_tree": "unchanged from full-smoke tested head",
+    "live_loader": "PASS, 7 AC",
+    "owner": "PASS",
+    "diff_check": "PASS",
+    "classification": {
+      "issue": 286,
+      "project": "aisoft-platform",
+      "repository": "aisoft-platform",
+      "action": "verify",
+      "applied": false,
+      "detail": "Issue #286 carries the classification its merged summary declares",
+      "result": "projected",
+      "change_type": "platform",
+      "complexity": "complex"
+    }
+  }
+}

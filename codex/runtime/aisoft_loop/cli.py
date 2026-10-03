@@ -12,7 +12,7 @@ from typing import Mapping, Optional
 
 from aisoft_change_name import ChangeName, ChangeNameError
 from aisoft_host_access.contract import AccessContractError, load_access_contract
-from aisoft_host_access.runner import RoutineMergeRunner
+from aisoft_host_access.runner import RoutineMergeRunner, DependencyReader
 from aisoft_worktree_owner import (
     SESSION_ENV, WorktreeOwnerError, caller_session, claim as claim_worktree,
 )
@@ -362,12 +362,6 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
     try:
         provider_script = select_provider_script(os.environ, agent_dir)
         branch = resolve_change_name(repo, issue).branch
-        gitea = GiteaClient(
-            os.environ["GITEA_URL"],
-            os.environ["GITEA_OWNER"],
-            os.environ["GITEA_REPO"],
-            os.environ["GITEA_TOKEN"],
-        )
         config_root = Path(__file__).parents[2] / "config"
         governance_manifest = Path(
             os.environ.get("AISOFT_GOVERNANCE_MANIFEST")
@@ -378,6 +372,14 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
             or config_root / "host-access-broker.json"
         )
         access_contract = load_access_contract(access_manifest, governance_manifest)
+        source = access_contract.project(_required_env("AISOFT_PROJECT_ID"))
+        if (os.environ["GITEA_URL"].rstrip("/") != access_contract.governance.base_url
+                or os.environ["GITEA_OWNER"] != access_contract.governance.owner
+                or os.environ["GITEA_REPO"] != source.repository):
+            raise AccessContractError("Loop source binding differs from canonical manifest")
+        gitea = GiteaClient(access_contract.governance.base_url,
+                            access_contract.governance.owner, source.repository,
+                            os.environ["GITEA_TOKEN"])
         controller = Controller(
             repo=repo,
             gitea=gitea,
@@ -393,6 +395,9 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
             max_same_root=int(os.environ.get("LOOP_MAX_SAME_ROOT", "3")),
             change_control=resolve_change_control(_required_env("GITEA_REPO")),
             routine_merger=RoutineMergeRunner(
+                access_contract, _required_env("AISOFT_PROJECT_ID")
+            ),
+            dependency_reader=DependencyReader(
                 access_contract, _required_env("AISOFT_PROJECT_ID")
             ),
             confirmation_required=True,
