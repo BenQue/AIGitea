@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Mapping
+from typing import TYPE_CHECKING, Mapping, Union
 
 if TYPE_CHECKING:
     from .contract import AccessContract, ProjectContract
 
-Dependency = int | str
+Dependency = Union[int, str]
 QUALIFIED = re.compile(r"([A-Za-z0-9][A-Za-z0-9._-]{0,63})/([A-Za-z0-9][A-Za-z0-9._-]{0,63})#([1-9][0-9]{0,17})")
 
 
