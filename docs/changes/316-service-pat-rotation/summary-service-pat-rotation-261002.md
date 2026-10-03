@@ -108,3 +108,8 @@ T04B source/local commit：875fd3043c2e6959e1c509fe276a9e60870692cf。当时 act
 ### CI fixture 修复（2026-10-03，最新本地结果）
 
 PR #332 的 head=68ce7df318fe11918274a40d088224edf0071081 / run1752 / job1951 在新增 shell fixture 返回 exit20。隔离 Linux 复现后，只修 codex/runtime/tests/rotation_cli_fixture.py：固定 manifest 用户名的测试 lookup 映射到临时文件实际 UID，未知用户名拒绝；不改生产代码/真实权限。Mac shell、34 项轮换 unit、Linux UID0/65534 black-box 和完整 C.UTF-8 smoke（34 drift、197 release、1091 runtime、static）PASS，见 [CI 修复回执](evidence/ci-fixture-repair-validation.json)。修复提交的真实 required CI 尚待运行，仍不报告 READY_FOR_REVIEW；旧 CI FAIL 保留。
+
+
+### CI 固定 model 冷缓存修复（2026-10-03，最新本地结果）
+
+head=5f3f424fd6c04bcbafb1954fa73e620bdcb417c2 的真实 run1755/job1955 已通过完整平台 smoke，随后固定 Linux helper 构建因 go list JSON 缺 Dir 失败。固定 Go1.26.3 的真实冷缓存 probe 复现；仅修改已授权 build.py/test_build.py，在 readonly graph pin 复核后显式下载 exact module@version，再验证 module/model 摘要与输入字节不变。10 项 unit、完整 smoke（34 drift、197 release、1091 runtime、static）和双轴 0 finding PASS，见 [冷缓存修复回执](evidence/ci-cold-cache-repair-validation.json)。版本、hash、go.mod/go.sum、CI/installer/权限未变；同一个 PR #332 的新 head required CI 尚待运行，人工合并和安装/grant/live AC-2 保持独立。

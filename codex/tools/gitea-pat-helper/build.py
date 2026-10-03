@@ -15,6 +15,28 @@ def run(go, args, env):
     return subprocess.check_output([str(go), *args], cwd=ROOT, env=env)
 
 
+def pinned_model_source(go, env, pin):
+    module = json.loads(run(go, ['list', '-mod=readonly', '-m', '-json', pin['module']], env))
+    expected = {'Path': pin['module'], 'Version': pin['version'], 'Sum': pin['module_sum']}
+    if any(module.get(key) != value for key, value in expected.items()) or 'Replace' in module:
+        raise SystemExit('MODEL_PIN_MISMATCH')
+    inputs = {name: (ROOT / name).read_bytes() for name in ('go.mod', 'go.sum')}
+    # go list reports the selected graph; a cold cache need not have its Dir.
+    downloaded = json.loads(run(go, ['mod', 'download', '-json',
+                                    pin['module'] + '@' + pin['version']], env))
+    if any((ROOT / name).read_bytes() != value for name, value in inputs.items()):
+        raise SystemExit('MODULE_INPUTS_CHANGED')
+    if downloaded.get('Error') or any(downloaded.get(key) != value for key, value in expected.items()):
+        raise SystemExit('MODEL_PIN_MISMATCH')
+    directory = downloaded.get('Dir')
+    if not isinstance(directory, str) or not Path(directory).is_absolute():
+        raise SystemExit('MODEL_SOURCE_UNAVAILABLE')
+    model = Path(directory) / pin['model_path']
+    if hashlib.sha256(model.read_bytes()).hexdigest() != pin['model_sha256']:
+        raise SystemExit('MODEL_BYTES_MISMATCH')
+    return model
+
+
 
 def verify_toolchain(go, archive, lock):
     """Bind the actual GOROOT bytes to an official checksum-verified archive."""
@@ -70,14 +92,8 @@ def main():
     version = run(args.go, ['version'], env).decode().split()
     if len(version) != 4 or version[2] != lock['version']:
         raise SystemExit('TOOLCHAIN_PIN_MISMATCH')
-    module = json.loads(run(args.go, ['list', '-mod=readonly', '-m', '-json',
-                                    lock['gitea']['module']], env))
     pin = lock['gitea']
-    if module.get('Version') != pin['version'] or module.get('Sum') != pin['module_sum'] or 'Replace' in module:
-        raise SystemExit('MODEL_PIN_MISMATCH')
-    model = Path(module['Dir']) / pin['model_path']
-    if hashlib.sha256(model.read_bytes()).hexdigest() != pin['model_sha256']:
-        raise SystemExit('MODEL_BYTES_MISMATCH')
+    pinned_model_source(args.go, env, pin)
     run(args.go, ['mod', 'verify'], env)
     run(args.go, ['test', '-mod=readonly', '-tags', 'sqlite,sqlite_unlock_notify', './...'], env)
     output = args.output.resolve()

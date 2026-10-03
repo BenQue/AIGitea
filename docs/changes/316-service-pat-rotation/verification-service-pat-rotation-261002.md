@@ -236,3 +236,12 @@ T04B source/local commit 为 875fd3043c2e6959e1c509fe276a9e60870692cf，工作�
 修复只在已批准的 codex/runtime/tests/rotation_cli_fixture.py 中采样 os.getuid，并对 manifest 固定 credential_owner 返回该临时文件 owner；其它用户名抛 KeyError。生产 rotate、真实 pwd lookup、root/platform 检查、grant、transport、owner/mode/no-follow 硬门及 installer/CI 都未改变。现有权限/归属负例保留，34 rotation unit PASS。Linux 无网络/read-only source/tmpfs synthetic black-box 在 UID0 与65534均 PASS；镜像无 rg，隔离 harness 明确提供 rg -q regex/file 等价接缝，未提交或安装它；主机完整 smoke 与真实 CI 仍使用真实 rg，不能把这个搜索接缝伪称工具原生验收。
 
 修复后的完整默认 C.UTF-8 smoke PASS：34 drift、197 release、1091 runtime，Codex platform static smoke checks passed，exit0；[日志](evidence/ci-fixture-repair-smoke.log.gz) 与摘要/失败 excerpt/范围见 [回执](evidence/ci-fixture-repair-validation.json)。这是已获唯一 manual PR 提交确认内的普通 CI 修复，不重复询问；提交并逐次核对 pushed_head 后，真实新 head required CI 仍须读回。安装、grant、live AC-2 NOT RUN；旧失败不能改写为通过。
+
+
+## PR CI 固定 Go model 冷缓存修复（2026-10-03）
+
+真实 head=5f3f424fd6c04bcbafb1954fa73e620bdcb417c2 / run1755 / job1955 的 Platform smoke suite PASS（1091 runtime、static）；第一项 fixture 修复已得到真实 CI 证明。后续 Pinned Linux PAT helper verification 在 build.py 读取 module Dir 时 KeyError。readonly go list 能给出匹配的 Path/Version/Sum，却不保证冷缓存已有源码；使用官方 archive 字节核验后的 Go1.26.3 和全新 module cache 实际复现 Dir 缺失。
+
+修复限于已授权 build.py/test_build.py：先拒绝 graph pin mismatch/Replace，再 go mod download exact module@version；拒绝 Error、下载 pin mismatch、缺失/相对 Dir、输入字节变化或 model hash mismatch；原 toolchain/mod verify/readonly test/build/provenance 门保留。未改 pin、CI、installer、生产权限或 Go module inputs。新增 6 项 unit（合计10项）先红后绿，覆盖冷/暖 cache 与负向拒绝；真实固定 Go 冷缓存 model PASS，go.mod/go.sum byte SHA 未变。此 probe 只证明 model source 解析，不能代替 native Linux helper build/model/race CI。
+
+完整 C.UTF-8 smoke exit0：34 drift、197 release、1091 runtime 与 static PASS。双轴只读复审 0 finding；源码在完整 smoke 后未变。失败详情、source/log digest、probe 和回滚边界见 [回执](evidence/ci-cold-cache-repair-validation.json)，[复审](evidence/ci-cold-cache-two-axis-review.md)，[日志](evidence/ci-cold-cache-repair-smoke.log.gz)。这是已批准唯一 manual PR 的范围内 CI 修复，沿用提交授权；新 head required CI 须独立读回。安装/grant/live AC-2 NOT RUN；旧失败保留。
