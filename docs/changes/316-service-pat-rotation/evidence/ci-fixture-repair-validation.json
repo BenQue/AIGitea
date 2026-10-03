@@ -1,0 +1,47 @@
+{
+  "scope": "only previously authorized synthetic shell CLI fixture",
+  "production_source_changed": false,
+  "fixed_owner_name_from_manifest": true,
+  "unknown_owner_lookup": "KeyError, fail closed",
+  "uid": "actual temporary-file owner os.getuid, sampled before root/platform patches",
+  "linux_red_exit": 20,
+  "linux_green_exit": 0,
+  "ordinary_uid_linux_green_exit": 0,
+  "mac_shell": "PASS",
+  "rotation_unit_tests": {
+    "result": "PASS",
+    "count": 34
+  },
+  "canary_search_boundary": "Disposable Linux harness supplies exact rg -q regex/file adapter because image lacks rg; local full smoke and CI use real rg. Adapter not committed or installed.",
+  "fixture_sha256": "45b3cb06b6ea10a20ecc60a049db884bdb911d7f90bc168dc9d656d7e0296405",
+  "full_smoke": {
+    "result": "PASS",
+    "exit_code": 0,
+    "locale": "C.UTF-8",
+    "drift_tests": 34,
+    "release_tests": 197,
+    "runtime_tests": 1091,
+    "static": "PASS",
+    "log": "ci-fixture-repair-smoke.log.gz",
+    "sha256": "b24390edd80e7dadaa15e8dd4f0446a2d1e722911cbbd059be51d73beab2a70b",
+    "uncompressed_sha256": "4aa84bd96cd3e644288b27b9ffdf01b536d9e7f9065c9fc77a022cc384dc9fea"
+  },
+  "issue": 316,
+  "branch": "change/316-service-pat-rotation",
+  "pr": 332,
+  "policy": "manual",
+  "authorization": "pr-submission-confirmation.json; includes in-contract CI repair",
+  "failed_head": "68ce7df318fe11918274a40d088224edf0071081",
+  "failed_run": 1752,
+  "failed_job": 1951,
+  "failed_step": "Platform smoke suite",
+  "failed_exit": 20,
+  "changed_source": "codex/runtime/tests/rotation_cli_fixture.py",
+  "root_cause": "Synthetic Mac operator fixture left fixed-owner lookup to the real Linux account database; that account can be absent or have UID different from fixture files.",
+  "real_ci_after_fix": "PENDING_NEW_HEAD",
+  "installed_grant_live": "NOT RUN",
+  "failure_log_excerpt": [
+    "2026-10-03T01:25:20.6400219Z bootstrap Gitea service account tests passed",
+    "2026-10-03T01:25:20.7579774Z ##[error]Process completed with exit code 20."
+  ]
+}

@@ -227,3 +227,12 @@ T04B source/local commit 为 875fd3043c2e6959e1c509fe276a9e60870692cf，工作�
 用户“确认提交”已绑定 #316、change/316-service-pat-rotation、manual；批准回执见 evidence/pr-submission-confirmation.json。首次 push expected/pushed_head=4658baa168838027559284bf211422e7fe5bcd21（previous_head=null），创建唯一 PR #332，head 同值。summary-only backfill commit expected/pushed_head/PR head=b6a01697024c729f7c47fcc4525fcd14dc3c083d，previous_head=4658baa168838027559284bf211422e7fe5bcd21；source bytes 未变化，documents PASS（152/2/0），worktree clean。PR readback 为 open、merged=false、mergeable=true、base=d647963bcfd6508c8c07baea8d3ef0e4e6a0e35d。
 
 发布时 exact backfill head 的 required status=pending、statuses=null、total_count=0、Actions runs=0；尚不能计为 CI PASS。后续仅本票发布文档收口提交及范围内 CI 修复沿用本次授权，每次 push 必须核对 fresh exact head，再读取该 final SHA 的 required context。最终 CI 回执在本地 handoff 单独保存，不能从旧 head 或 local smoke 推导新 head CI。人工合并、安装、operator grant、真实 PAT/live AC-2 均未执行。应用 attach_artifact 已尝试，但内网 Gitea URL 返回 unsupported，链接本身可用。
+
+
+## PR CI 内部测试 fixture 归属修复（2026-10-03）
+
+最终修复前 head=68ce7df318fe11918274a40d088224edf0071081 的真实 CI run1752/job1951 在 bootstrap suite 后的新增 rotation shell fixture exit20；日志确认 merge-preview main=d647963bcfd6508c8c07baea8d3ef0e4e6a0e35d，没有基线漂移。Linux disposable tmpfs 调整为明确 exec 后复现相同 exit20；仅替换 pwd 用户接缝就转绿。原 shell fixture 已模拟 Mac/root/operator/backend，但遗漏系统固定用户解析，Linux 可能缺该用户或其 UID 不等于 fixture 文件 owner。
+
+修复只在已批准的 codex/runtime/tests/rotation_cli_fixture.py 中采样 os.getuid，并对 manifest 固定 credential_owner 返回该临时文件 owner；其它用户名抛 KeyError。生产 rotate、真实 pwd lookup、root/platform 检查、grant、transport、owner/mode/no-follow 硬门及 installer/CI 都未改变。现有权限/归属负例保留，34 rotation unit PASS。Linux 无网络/read-only source/tmpfs synthetic black-box 在 UID0 与65534均 PASS；镜像无 rg，隔离 harness 明确提供 rg -q regex/file 等价接缝，未提交或安装它；主机完整 smoke 与真实 CI 仍使用真实 rg，不能把这个搜索接缝伪称工具原生验收。
+
+修复后的完整默认 C.UTF-8 smoke PASS：34 drift、197 release、1091 runtime，Codex platform static smoke checks passed，exit0；[日志](evidence/ci-fixture-repair-smoke.log.gz) 与摘要/失败 excerpt/范围见 [回执](evidence/ci-fixture-repair-validation.json)。这是已获唯一 manual PR 提交确认内的普通 CI 修复，不重复询问；提交并逐次核对 pushed_head 后，真实新 head required CI 仍须读回。安装、grant、live AC-2 NOT RUN；旧失败不能改写为通过。

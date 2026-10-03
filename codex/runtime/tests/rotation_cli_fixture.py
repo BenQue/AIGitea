@@ -4,6 +4,7 @@ import os
 import sys
 from pathlib import Path
 from unittest.mock import patch
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'codex/runtime'))
@@ -52,6 +53,15 @@ def grant(contract, target, issue, source, **kwargs):
                 token_kind=target.token_kind, creation_issue=213), capability=CAPABILITY)
 
 
+fixture_uid = os.getuid()
+
+
+def fixture_owner(name):
+    if name != contract.raw['mac_host']['credential_owner']:
+        raise KeyError(name)
+    return SimpleNamespace(pw_uid=fixture_uid)
+
+
 rename = os.rename
 def fault_rename(src, dst, **kwargs):
     if os.environ.get('ROTATION_FIXTURE_FAILURE') == 'write' and src == 'candidate.token':
@@ -60,6 +70,7 @@ def fault_rename(src, dst, **kwargs):
 
 
 with patch('os.geteuid', return_value=0), patch('sys.platform', 'darwin'), \
+     patch('pwd.getpwnam', side_effect=fixture_owner), \
      patch('aisoft_host_access.contract.load_access_contract', return_value=contract), \
      patch('aisoft_host_access.credential_rotation.authorization', side_effect=grant), \
      patch('aisoft_host_access.credential_rotation.SystemBackend', Backend), \

@@ -103,3 +103,8 @@ T04B source/local commit：875fd3043c2e6959e1c509fe276a9e60870692cf。当时 act
 ### 最新状态：唯一 PR #332 已创建，等待 required CI
 
 用户于 2026-10-03 以“确认提交”批准 Issue #316 / change/316-service-pat-rotation / manual。首次推送 4658baa168838027559284bf211422e7fe5bcd21 与核验候选一致，唯一 [PR #332](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/332) 创建后 summary-only 回填提交 b6a01697024c729f7c47fcc4525fcd14dc3c083d 已推送并核对 pushed_head/PR head；[发布回执](evidence/pr-publication-receipt.json) 保存两次 exact 推送。源码未变化；required CI 当前 pending，不能写成 PASS。PR open/未合并；人工合并、安装/grant/live AC-2 保持独立。
+
+
+### CI fixture 修复（2026-10-03，最新本地结果）
+
+PR #332 的 head=68ce7df318fe11918274a40d088224edf0071081 / run1752 / job1951 在新增 shell fixture 返回 exit20。隔离 Linux 复现后，只修 codex/runtime/tests/rotation_cli_fixture.py：固定 manifest 用户名的测试 lookup 映射到临时文件实际 UID，未知用户名拒绝；不改生产代码/真实权限。Mac shell、34 项轮换 unit、Linux UID0/65534 black-box 和完整 C.UTF-8 smoke（34 drift、197 release、1091 runtime、static）PASS，见 [CI 修复回执](evidence/ci-fixture-repair-validation.json)。修复提交的真实 required CI 尚待运行，仍不报告 READY_FOR_REVIEW；旧 CI FAIL 保留。
