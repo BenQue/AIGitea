@@ -32,7 +32,8 @@ status: approved
 | T05 | 已直接批准具体安全合同；仅原14治理文本+四角色，bootstrap/closure/resource/v2文本应用、验证/localcommit/STOP | T04 | completed |
 | T06 | exact卡确认后仅同步7个main治理段落与mapped summary/spec/plan；验证/本地commit后STOP | T05 | completed |
 | T07 | 具体确认后仅补充 mapped summary/spec/plan 的固定 Python3.9 兼容 scope；文档校验/本地原子commit/STOP | T06 | completed |
-| T02 | T07后fresh重读；R01基线checkpoint已完成；四行Python3.9兼容修复，续原closure/bootstrap/resources、authority/Controller/FF与安装漂移/回归 | T07 | in-progress |
+| T08 | 具体确认Mac observer安全与签名选择后仅三合同/校验/localcommit/STOP；不执行新source或host能力 | T07 | completed |
+| T02 | T08后fresh重读；T07四行实际提交已完成；续原全closure/同FD、observer/resources、authority/FF、惰性安装漂移与旧回归迁移 | T08 | in-progress |
 | T03 | 集成/全量/静态/文档验收、source与installed分层、人工firstPR/安装rollback卡，准备唯一manualPR候选 | T02 | pending |
 
 本聊天负责人直接“批准”审阅卡绑定的具体安全合同；本轮仅独立T05治理应用、验证/localcommit后STOP。T01/T04历史完成保留，T05 completed仅指治理文本步骤，不指新增source/主机验收。T02 in-progress是已保全WIP；后续fresh重读新governing/批准/Issue/installed才继续，当前run不得进入runtime。
@@ -127,3 +128,17 @@ R01实际纯 main checkpoint `4cb627d9525611bff34387830978ba5c5785863e` 保留�
 随后fresh T02重读批准与上述事实，才在本spec限定的四行范围修改 dependencies.py 与 profiles.py；
 固定Python3.9与native/相关unit/默认smoke按spec实跑，原其余source、全量回归和T03验收保持。
 所有PR/安装/服务/远端写边界保持，外部候选PASS不覆盖actualcheckout当前FAIL。
+
+## T08 候选受控治理步骤
+
+仅在负责人具体确认卡的#327/exact branch/manual、before/candidate/完成投影SHA256后，
+独立应用mapped summary/spec/plan三合同。保全卡列出的33 source WIP/owner/index与原14治理hash/mode，
+checks为resolve-documents/check-change-documents/graph与exact diff；实际成功才把T08 row和summary frontier
+投影为治理完成，独立localcommit后立即STOP。verification与runtime不混提交，不创建root对象或kernel client。
+失败撤回exact三文档/本次index项并保存证据；不reset历史、不恢复旧lease或降低硬门。
+
+后续fresh T02重读批准与新spec，仅在原exact source映射中实现macOS27+的kernel descendants observer，
+private Mac profile v2、签名artifact/closure绑定和拒绝条件。无真实签名/OS能力时不激活，不调用更宽API。
+先完成原native全闭包/同FD调度，再推进observer/资源/authority/完整内容/FF/惰性installer-drift与旧回归迁移；
+不把source模型/unsigned build/fixture PASS当root或signed/installed能力。每shell改动保持完整默认smoke/static门。
+未来I01/I02的签名来源/kernel/安装/权限必须独立exact卡；T08只批准治理和fresh source，不授权host改变。

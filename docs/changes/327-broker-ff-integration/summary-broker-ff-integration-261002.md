@@ -143,3 +143,16 @@ R01已完成纯 main checkpoint `4cb627d9525611bff34387830978ba5c5785863e`，原
 T07（已具体确认；仅 mapped summary/spec/plan 的兼容 scope 已独立应用、提交并 STOP）
 → fresh T02（四行恢复固定Python3.9，继续原source合同）→ T03。
 原single writer/branch/manual/AC及B01/I01/I02边界保持，无安装或远端写授权。
+
+## T08 候选安全选择与当前 frontier
+
+T07三合同提交/STOP及fresh T02四行source提交已实际完成，证据保存在mapped verification与external receipt。
+source loader两文件增量已核验；208项定向unit/source回归PASS，默认host smoke仍1242 tests/7 FAIL/9 ERROR。
+完整closure/资源/可信链仍GAP，T02未完成；本轮实际17治理文件保持。
+Mac缺完整后代observer，SDK的kqueue跟踪不可用；拟采用仅自身后代的macOS27+ EndpointSecurity API。
+required entitlement及冻结签名artifact是新增安全边界，不能从T07批准或本机版本事实继承权限。
+具体约束、private profile v2、exact现有source文件、签名/OS/Root权限边界见mapped spec的T08候选；
+无签名来源/accepted kernel证据即GAP，禁止全host observer与TCC/SIP/audit策略fallback。
+T08（具体确认后三合同已独立应用、校验、localcommit并STOP；仅治理完成，非observer能力）
+→ 独立三合同/校验/localcommit/STOP → fresh T02原source与新observer受控实现 → T03。
+本卡不执行签名、申请entitlement、安装、ES client或host enable；真实外部能力保持未来独立exact卡。

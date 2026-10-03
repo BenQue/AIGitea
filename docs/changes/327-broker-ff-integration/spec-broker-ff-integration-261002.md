@@ -420,3 +420,68 @@ main/source/owner/installed，才允许 T02 应用该四行 source 修复并继�
 
 应用前保全原33 WIP 与 HEAD/index/owner。失败只撤回本次 exact doc/source bytes，保留已经完成的
 T06/R01 main checkpoint 与原 WIP，不 reset/rebase 历史、不改其它 Issue 文件；不自动回退或重建远端 ref。
+
+## T08 候选：Mac 完整后代 observer 的安全与签名边界
+
+本节是待具体确认的新增安全合同，旧 T07 确认不覆盖这项选择。本节确认前不实现新后端，
+不改实际17治理合同，不调用 ES client 或改变 host 状态。当前 source loader 增量不是 observer 能力。
+现有 SDK 与 Apple XNU 都注明 kqueue NOTE_TRACK/NOTE_TRACKERR/NOTE_CHILD 自10.5起不受支持；
+PID轮询、进程组/leader退出、事后killpg或可伪造 callback 不能代替原AC-11的完整实际后代证明。
+
+### 唯一 Mac 后端选择与权限限制
+
+仅采用 macOS27+ 的 `es_new_descendants_client`，观察固定native supervisor自身与其完整后代。
+不使用可观察全host的 `es_new_client`、auditpipe、DTrace，不能通过TCC/Full Disk Access、
+系统审计策略、SIP调整或其他全局权限作为fallback。API、accepted OS/build/arch、entitlement、
+冻结签名artifact或事件完整性任何一项不具备，保持EXECUTION_TRACKING_GAP且无资源创建/执行。
+本机27.0.1与SDK声明仅为read-only事实，不证明kernel client创建、签名授权或该OS能力已接受。
+
+native bootstrap的特权daemon/operator角色在完整闭包预检后建立本角色的native supervisor；
+supervisor先获得真实kernel descendants client，再启动固定canonical Python子进程，并持有client
+直到本次活动及全部实际后代结束。worker仍是原固定已登记非root角色，不扩public角色/命令/argv，
+不把caller UID、文件、env/FD、descriptor Boolean或local receipt当成kernel observer证明。
+observer只订阅本scope必要的fork/exec/exit notify事件，使用kernel audit token的PID+pidversion与
+generation/lease nonce关联；不记录argv、env、文件内容、凭据、其他进程/项目数据或AUTH决策。
+未知默认muting、subscription不足、seq/drop/queue overflow、未知事件/身份、client中断、
+启动失败或重启一律quarantine并保留预算/objects/proof；不能以空队列或leader退出宣称全部后代结束。
+真实事件顺序、loss证明、doublefork/setsid/reparent/短命后代/exec/PID复用与上限须I02实证，
+source模型及mock只能验证解析/拒绝，不报告kernel/root PASS。
+
+### private profile、签名和闭包绑定
+
+Mac private resource profile新增 `verification-resource-profile/v2`，在原exact限额/模板字段上
+仅加exact `observer`：`backend=endpoint-security-descendants/v1`、`minimum_macos_major=27`、
+`bootstrap_sha256`、`required_entitlement=com.apple.developer.endpoint-security.client`。
+它必须绑定相同closure的bootstrap实际hash、OS matrix和resource digest；字段或类型未知则拒绝。
+public四keypolicy与registry `verification-resources/v1` 默认disabled/hosts=null保持，Linux原合同保持。
+Mac v1 profile只供历史读取与纯数据兼容，不作为新的运行/注册能力；禁止自动迁移、清空或重pin R0。
+grant/record仍使用现有v2的resource/toolchain/execution/lease digest绑定，不新增public批准接口。
+
+实际observer能力只能来自kernel成功创建及冻结签名artifact，不能用entitlement plist存在、
+证书字符串、codesign exit0、capability Boolean或未经accepted OS matrix的SDK常量替代。
+EndpointSecurity/framework/loader/Blocks runtime、SDK和签名后artifact均进入原完整build/closure清单，
+每critical仍需全闭包与同FD证明。source build可无署名、非root、重复构建并如实SOURCE_ONLY；
+这类artifact不具备I01/I02 enable资格。源阶段不签名、不获取Apple资格、不读/创建签名私钥或账户。
+未来I01需要独立exact卡接受外部operator提供的冻结签名artifact、source/compiler/SDK/link/unsigned到
+signed hash对应、公开签名身份与required entitlement，不能在root下编译或自动签名。
+未来I02需要独立exact卡接受该主机的真实client/事件完整性/隔离/资源及rollback；
+无可接受签名来源则真实GAP，不新增Secret/账号，不改TCC/SIP或部署来绕过。
+
+### exact source 与受控治理步骤
+
+后续fresh T02只在原T05已映射的这些现有文件内实现该选择：
+`codex/tools/verification-bootstrap.c`、`codex/tools/build-verification-bootstrap.sh`、
+`codex/runtime/aisoft_host_access/toolchain.py`、`codex/runtime/aisoft_host_access/scratch.py`、
+`codex/runtime/aisoft_host_access/verification_authority.py`、
+`codex/runtime/tests/test_toolchain.py`、`codex/runtime/tests/test_scratch.py`、
+`codex/runtime/tests/test_verification_authority.py`、
+`codex/tests/test-verification-bootstrap.sh`；原installer/drift映射仅接受固定签名artifact的pin/惰性安装，
+不得借此执行签名、申请entitlement、创建root registry/service/grant或更换SDK/解释器。
+原33 source WIP与新loader/verification增量须按卡逐文件hash/mode保全，不混入治理commit。
+
+T08独立步骤只修改本目录mapped summary/spec/plan三文件，检查语义映射、graph、exact diff，
+仅在实际成功时投影T08 graph row与summary frontier为治理完成，独立本地原子commit后立即STOP。
+不改AGENTS或其余14治理合同、verification、runtime/config/units；失败撤回exact三文档增量并保存证据。
+后续fresh run重读批准/合同/owner/main/source/live Issue/installed后才进入上述T02 source。
+未确认本卡前停于该新增安全边界；已完成T07/四行source提交不重问，原其它source合同保留。
+所有完整闭包、source全回归、旧13方法16cases合法迁移、B01唯一manual PR和未来I01/I02门不放宽。
