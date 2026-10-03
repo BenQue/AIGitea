@@ -1,0 +1,24 @@
+{
+  "issue": 317,
+  "branch": "change/317-migration-rollback-guard",
+  "policy": "manual",
+  "approved": true,
+  "recorded_at": "2026-10-03T00:29:47.308566+08:00",
+  "source": "direct human user message in owning chat",
+  "user_message": "确认提交",
+  "reviewed_candidate_head": "12cfaff5ec3e8dc0e86163b3bd84675b356a0b9b",
+  "source_validation_head": "ed37445c9986fbff2aaac747ad41457da2a622ef",
+  "request": "publish exact branch, create one final Closes #317 PR, backfill actual pr_url, follow required CI; in-contract CI repair may continue, then stop READY_FOR_REVIEW for human merge",
+  "required_contexts": [
+    "CI / verify (pull_request)"
+  ],
+  "not_authorized": [
+    "manual merge",
+    "force rewriting remote history",
+    "installation",
+    "deployment",
+    "credential/grant changes",
+    "NewEMaint application pin"
+  ],
+  "does_not_bind_final_head": true
+}

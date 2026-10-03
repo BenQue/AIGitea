@@ -1,0 +1,17 @@
+{
+  "issue": 286,
+  "branch": "change/286-dependency-references",
+  "policy": "manual",
+  "user_statement": "确认提交",
+  "authorized_actions": [
+    "fast-forward typed publication of owned branch",
+    "create unique final PR",
+    "in-contract CI repair and subsequent fast-forward pushes"
+  ],
+  "candidate_head_at_confirmation": "5f5b5f101183f5cdb19c039ddc8bcd8cdfa2acdb",
+  "session": "01a0fc7c-1670-75b2-a61b-f47e62fc856c",
+  "recorded_at": "2026-10-02T16:21:31.541947+00:00",
+  "merge": "human only",
+  "install_deploy_credentials_ACL": "NOT AUTHORIZED",
+  "authorization_marker": "AISoft-Submit-Authorization: issue=286; branch=change/286-dependency-references; policy=manual"
+}

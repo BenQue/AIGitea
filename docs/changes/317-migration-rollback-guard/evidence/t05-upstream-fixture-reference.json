@@ -1,0 +1,21 @@
+{
+  "recorded_at": "2026-10-02T14:35:16.770228+00:00",
+  "read_only_reference": "/private/tmp/issue-288-dockerfile-digest/docs/changes/288-dockerfile-digest/evidence/installed-fixture-amendment.patch",
+  "patch_sha256": "af73fbd48c2459b0792cc88493e08af9d7c89ae74a17026b5845271fcadecf22",
+  "mechanism": "external-temp copied source with isolated local Git fixture baseline; same root cause as our unapproved draft",
+  "issue_288_readback": {
+    "number": 288,
+    "title": "architecture: 校验器看不见构建实际用的基镜像 digest，Dockerfile 与 catalog 不一致时 fail-open（SFM #145 核出）",
+    "state": "open",
+    "updated_at": "2026-10-02T21:20:08+08:00",
+    "html_url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/288"
+  },
+  "matching_288_317_pull_readback": [],
+  "fresh_main": "65268ee5f1e622c486fd9e354dd35e20a2900f91",
+  "approved_scope_inherited": false,
+  "upstream_test_results_as_317_proof": false,
+  "upstream_patch_applied_to_317": false,
+  "hard_depends_on_added": false,
+  "preferred_next_step": "Wait for independently governed upstream merge; then fresh fetch/re-read/integrate actual bytes and revalidate #317; no new repeated scope approval now.",
+  "fallback": "Own exact one-file draft remains UNAPPROVED_NOT_APPLIED; no implementation without a specific authorized amendment."
+}

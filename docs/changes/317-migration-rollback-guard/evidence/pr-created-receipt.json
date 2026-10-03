@@ -1,0 +1,13 @@
+{
+  "number": 331,
+  "state": "open",
+  "html_url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/331",
+  "mergeable": true,
+  "merged": false,
+  "created_at": "2026-10-03T00:30:41+08:00",
+  "issue": 317,
+  "head_sha": "6f84adf7324a976d9cf2dbd1fe74957775384f0a",
+  "head_ref": "change/317-migration-rollback-guard",
+  "base_ref": "main",
+  "policy": "manual"
+}

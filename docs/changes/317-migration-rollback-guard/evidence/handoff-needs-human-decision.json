@@ -1,0 +1,28 @@
+{
+  "issue": 317,
+  "session": "01a0fc7b-9d82-75e2-975f-d407cd23e34a",
+  "branch": "change/317-migration-rollback-guard",
+  "worktree": "/private/tmp/issue-317-migration-rollback-guard",
+  "policy": "manual",
+  "handoff_state": "NEEDS_HUMAN_DECISION",
+  "controller_state_projection": "NOT_WRITTEN",
+  "source_head": "233a0d6fb94ce380e1418f892ef8ff5d093099e2",
+  "base": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+  "observed_origin_main": "11c0410d3878d5449fa61796f174ba3d2dd5e59c",
+  "release_suite": "PASS: 190 tests",
+  "standards_review": "PASS: one P1 fixed and re-reviewed",
+  "spec_review": "PASS: no new findings",
+  "smoke": "FAIL: first full run rejected fixed file set; after owner fix NOT RUN",
+  "blocker": "approved scope excludes governance checker amendment required to admit exact new source files",
+  "amendment_proposal": "evidence/governance-amendment-proposal.md",
+  "pr": null,
+  "push": "NOT RUN",
+  "pr_submission_confirmation": "NOT_RECEIVED",
+  "ci": "NOT RUN",
+  "installed_live": "NOT RUN",
+  "depends_on": [],
+  "blocks": [
+    "NewEMaint #229"
+  ],
+  "required_user_action": "Approve exact two-file governance scope amendment; independent contract-only step stops, fresh run implements bounded pins/tests and reruns full gates; final manual PR confirmation remains separate."
+}

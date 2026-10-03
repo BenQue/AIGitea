@@ -37,6 +37,7 @@
       "pattern": "^[a-z0-9][a-z0-9_-]{0,62}$"
     },
     "env_file": {"$ref": "#/$defs/absolutePath"},
+    "rollback_compatibility_file": {"$ref": "#/$defs/absolutePath"},
     "source_repository": {
       "type": "string",
       "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$",

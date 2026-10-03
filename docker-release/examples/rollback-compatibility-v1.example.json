@@ -1,0 +1,24 @@
+{
+  "contract_version": "docker-migration-rollback-compatibility/v1",
+  "records": [
+    {
+      "profile_id": "example-test",
+      "environment": "test",
+      "expected_hostname": "example-host",
+      "compose_project": "example-test",
+      "source_repository": "example/application",
+      "candidate_release": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "rollback_release": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "candidate_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "rollback_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "candidate_migration_identity": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "rollback_migration_identity": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "database_migration_identity": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "database_state_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "verified_at": "2020-01-01T00:00:00Z",
+      "expires_at": "2020-01-02T00:00:00Z",
+      "result": "compatible",
+      "evidence_id": "expired-teaching-example"
+    }
+  ]
+}

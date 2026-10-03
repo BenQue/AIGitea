@@ -1,0 +1,24 @@
+{
+  "issue": 317,
+  "branch": "change/317-migration-rollback-guard",
+  "policy": "manual",
+  "local_state": "AWAITING_PR_CONFIRMATION",
+  "controller_state_projection": "NOT_WRITTEN",
+  "validation_head": "ed37445c9986fbff2aaac747ad41457da2a622ef",
+  "base_main": "16beee09aefe89b5bc80a31544c59d456190ea32",
+  "candidate_head_binding": "external post-commit receipt /private/tmp/issue-317-final-candidate.json",
+  "title": "fix: #317 阻止迁移后无兼容依据的旧镜像回退",
+  "body_file": "final-pr-body.md",
+  "required_contexts": [
+    "CI / verify (pull_request)"
+  ],
+  "pr_submission_approved": false,
+  "push": "NOT_RUN",
+  "PR": "NOT_CREATED",
+  "PR_CI": "NOT_RUN",
+  "stop_after_CI": "READY_FOR_REVIEW",
+  "merge": "human only",
+  "installed": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "historical_failure_receipts": "preserved unchanged"
+}

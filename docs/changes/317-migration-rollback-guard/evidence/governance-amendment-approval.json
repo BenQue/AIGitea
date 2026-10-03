@@ -1,0 +1,34 @@
+{
+  "issue": 317,
+  "session": "01a0fc7b-9d82-75e2-975f-d407cd23e34a",
+  "branch": "change/317-migration-rollback-guard",
+  "policy": "manual",
+  "source": "direct-user-message",
+  "decision": "批准",
+  "recorded_at": "2026-10-02T13:29:51Z",
+  "reviewed_head": "32b0ee524ef5ae46f986498f6c617e8e5ce8cadf",
+  "reviewed_proposal": "evidence/governance-amendment-proposal.md",
+  "reviewed_proposal_sha256": "11cb51a1cd5ad8f66a1552cd9a5ad164a0060fbaea7d8ec41360822b9df7588a",
+  "prior_spec_sha256": "b246f1393afe5cce80266c914b4279f30391a9aca891822fd17a4b5dce0aebe2",
+  "authorization": "批准精确两文件治理范围修订；T04 仅应用合同、记录授权并本地提交后停止；后续 fresh run 重新读取后允许 T05 bounded checker/tests/pins 与完整验收。",
+  "additional_implementation_allowlist": [
+    "codex/tests/check-release-evidence-boundary.py",
+    "codex/runtime/tests/test_release_evidence_boundary.py"
+  ],
+  "invariants": [
+    "fixed historical BASELINE/SCOPES/CONTENT_EXEMPT/pins/evidence bytes unchanged",
+    "exact disk/index bytes and mode, fail closed",
+    "five exact current additions only",
+    "current real E2E/installed/company_live NOT_RUN"
+  ],
+  "excluded": [
+    "PR submission",
+    "push",
+    "merge",
+    "install",
+    "deploy",
+    "credentials",
+    "NewEMaint pin",
+    "unbounded path/content exemptions"
+  ]
+}
