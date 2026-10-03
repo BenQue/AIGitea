@@ -11,8 +11,10 @@ from typing import Optional, Sequence
 
 from aisoft_gitea_governance.contract import load_contract as load_governance_contract
 
+from aisoft_host_access.broker import BrokerError
+from aisoft_host_access.dependencies import Dependency, DependencyError, display, is_terminal
+
 from .contract import (
-    DELIVERY_TERMINAL_LABELS,
     Contract,
     ContractError,
     load_contract,
@@ -54,6 +56,7 @@ class Controller:
         max_same_root: int = 3,
         change_control: str = "production",
         routine_merger: object | None = None,
+        dependency_reader: object | None = None,
         confirmation_required: bool = False,
         governance_manifest: Path | str | None = None,
         repository_name: str = "",
@@ -71,6 +74,7 @@ class Controller:
         # 缺省 production，保证未接线的调用方仍走既有四份文档要求。
         self.change_control = change_control
         self.routine_merger = routine_merger
+        self.dependency_reader = dependency_reader
         self.confirmation_required = confirmation_required
         self.governance_manifest = Path(governance_manifest).resolve() if governance_manifest else None
         self.repository_name = repository_name
@@ -129,6 +133,8 @@ class Controller:
 
         try:
             contract = self._revalidate(issue_number, pr_number)
+            state["dependency_references"] = list(contract.dependencies)
+            self.state_store.save(issue_number, state)
         except ContractError as exc:
             return self._contract_failure(issue_number, state, exc)
 
@@ -189,7 +195,10 @@ class Controller:
         if pr_number and state.get("stage") in {"awaiting_ci", "awaiting_dependencies"}:
             ci = self.gitea.get_commit_status(head_sha)
             if ci == "success":
-                waiting = self._unsatisfied_dependencies(contract)
+                try:
+                    waiting = self._unsatisfied_dependencies(contract)
+                except ContractError as exc:
+                    return self._contract_failure(issue_number, state, exc, budget=budget)
                 if waiting:
                     self._save_progress(
                         issue_number,
@@ -201,10 +210,11 @@ class Controller:
                         "",
                         "awaiting_dependencies",
                     )
+                    self._record_waiting(issue_number, state, waiting)
                     return ControllerResult(
                         TerminalState.CONTINUE,
                         "PR CI passed; waiting for completed or deployed dependencies: "
-                        + ", ".join(f"#{number}" for number in waiting),
+                        + ", ".join(display(reference) for reference in waiting),
                         pr_number,
                     )
                 return self._complete_pr(
@@ -512,7 +522,10 @@ class Controller:
 
             ci = self.gitea.get_commit_status(head_sha)
             if ci == "success":
-                waiting = self._unsatisfied_dependencies(contract)
+                try:
+                    waiting = self._unsatisfied_dependencies(contract)
+                except ContractError as exc:
+                    return self._contract_failure(issue_number, state, exc, budget=budget)
                 if waiting:
                     self._save_progress(
                         issue_number,
@@ -524,10 +537,11 @@ class Controller:
                         "",
                         "awaiting_dependencies",
                     )
+                    self._record_waiting(issue_number, state, waiting)
                     return ControllerResult(
                         TerminalState.CONTINUE,
                         "local verification and PR CI passed; waiting for completed or deployed dependencies: "
-                        + ", ".join(f"#{number}" for number in waiting),
+                        + ", ".join(display(reference) for reference in waiting),
                         pr_number,
                     )
                 return self._complete_pr(
@@ -573,15 +587,42 @@ class Controller:
                 "implementing",
             )
 
+    def _dependency_source_bound(self) -> bool:
+        return self.dependency_reader is None or (
+            getattr(self.gitea, "repository_identity", None) == self.dependency_reader.source_identity
+            and getattr(self.gitea, "base_url", None) == self.dependency_reader.base_url
+        )
+
     def _revalidate(self, issue_number: int, pr_number: Optional[int]) -> Contract:
+        if not self._dependency_source_bound():
+            raise ContractError("dependency source binding differs from canonical manifest")
         issue = self.gitea.get_issue(issue_number)
         lifecycle = ("pr-open",) if pr_number is not None else ("approved",)
-        return load_contract(
+        contract = load_contract(
             self.repo,
             issue,
             allowed_lifecycle=lifecycle,
             change_control=self.change_control,
+            repository_identity=getattr(self.gitea, "repository_identity", None),
         )
+        pinned = self.state_store.load(issue_number).get("dependency_references")
+        if pinned is not None and pinned != list(contract.dependencies):
+            raise ContractError("depends_on changed after the Loop started")
+        if self.dependency_reader is not None:
+            try:
+                self.dependency_reader.validate(contract.dependencies, issue_number)
+                for reference in contract.dependencies:
+                    if isinstance(reference, str):
+                        self.dependency_reader.read(reference)
+            except BrokerError as exc:
+                raise ContractError("qualified dependency broker read unavailable",
+                                    terminal_state="BLOCKED_EXTERNAL", lifecycle_label="approved") from exc
+            except DependencyError as exc:
+                raise ContractError(str(exc)) from exc
+        elif any(isinstance(ref, str) for ref in contract.dependencies):
+            raise ContractError("qualified dependency broker is unavailable",
+                                terminal_state="BLOCKED_EXTERNAL", lifecycle_label="approved")
+        return contract
 
     def _provider_request(
         self,
@@ -732,19 +773,27 @@ class Controller:
             pr_number, budget=budget, head_sha=head_sha, comment=True,
         )
 
-    def _unsatisfied_dependencies(self, contract: Contract) -> tuple[int, ...]:
-        waiting: list[int] = []
+    def _unsatisfied_dependencies(self, contract: Contract) -> tuple[Dependency, ...]:
+        waiting: list[Dependency] = []
         for dependency in contract.dependencies:
-            issue = self.gitea.get_issue(dependency)
-            labels = {
-                str(item.get("name")) if isinstance(item, dict) else str(item)
-                for item in issue.get("labels", [])
-            }
-            if issue.get("state") != "closed" or not (
-                labels & DELIVERY_TERMINAL_LABELS
-            ):
+            try:
+                issue = (self.gitea.get_issue(dependency) if isinstance(dependency, int)
+                         else self.dependency_reader.read(dependency))
+            except (BrokerError, DependencyError) as exc:
+                raise ContractError("dependency read unavailable: " + display(dependency),
+                                    terminal_state="BLOCKED_EXTERNAL", lifecycle_label="approved") from exc
+            if not is_terminal(issue) or issue.get("pull_request") is not None:
                 waiting.append(dependency)
         return tuple(waiting)
+
+    def _record_waiting(self, issue_number: int, state: dict[str, object],
+                        waiting: tuple[Dependency, ...]) -> None:
+        references = [display(reference) for reference in waiting]
+        if state.get("waiting_dependencies") != references:
+            state["waiting_dependencies"] = references
+            self.state_store.save(issue_number, state)
+            self.gitea.comment(issue_number, "Waiting for completed or deployed dependencies: "
+                               + ", ".join(references))
 
     def _contract_failure(
         self,
@@ -762,7 +811,7 @@ class Controller:
             str(error),
             _optional_int(state.get("pr_number")),
             budget=budget,
-            comment=True,
+            comment=self._dependency_source_bound(),
         )
 
     def _save_progress(
@@ -1132,7 +1181,7 @@ def _pr_body(contract: Contract, policy: str = "manual") -> str:
         f"- {document_prefix}/{name}" for name in contract.required_docs
     )
     dependencies = (
-        "\n".join(f"- #{number}" for number in contract.dependencies)
+        "\n".join(f"- {display(reference)}" for reference in contract.dependencies)
         if contract.dependencies
         else "- None"
     )

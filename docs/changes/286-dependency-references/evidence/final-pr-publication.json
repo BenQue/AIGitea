@@ -1,0 +1,47 @@
+{
+  "issue": 286,
+  "session": "01a0fc7c-1670-75b2-a61b-f47e62fc856c",
+  "branch": "change/286-dependency-references",
+  "policy": "manual",
+  "authorization": "确认提交",
+  "candidate_head_at_confirmation": "5f5b5f101183f5cdb19c039ddc8bcd8cdfa2acdb",
+  "first_push": {
+    "checkout": "/private/tmp/issue-286-dependency-references",
+    "identity": "aisoft-platform-agent",
+    "operation": "git.push.change",
+    "previous_head": null,
+    "project": "aisoft-platform",
+    "pushed_head": "5f5b5f101183f5cdb19c039ddc8bcd8cdfa2acdb",
+    "remote_name": "origin",
+    "session": "01a0fc7c-1670-75b2-a61b-f47e62fc856c",
+    "status": "PASS"
+  },
+  "pull": {
+    "number": 330,
+    "url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/330",
+    "state": "open",
+    "merged": false,
+    "head_sha": "5f5b5f101183f5cdb19c039ddc8bcd8cdfa2acdb",
+    "head_ref": "change/286-dependency-references",
+    "base_ref": "main"
+  },
+  "ci": "PENDING fresh final-head readback",
+  "classification": "projected platform/complex",
+  "pr_url_backfill": "PASS, bounded official backfill CLI",
+  "issue_lifecycle_projection": {
+    "after": [
+      "complexity/complex",
+      "pr-open",
+      "type/platform"
+    ],
+    "before": [
+      "approved",
+      "complexity/complex",
+      "type/platform"
+    ],
+    "issue": 286,
+    "result": "updated",
+    "status": "PASS"
+  },
+  "manual_merge_install_live_deploy": "NOT RUN"
+}

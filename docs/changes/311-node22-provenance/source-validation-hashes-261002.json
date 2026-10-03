@@ -1,0 +1,13 @@
+{
+  "python_AST": "PASS",
+  "marker_payload_consistency": "PASS",
+  "approved_code_block_sha256": "8bf02fa774bc078ca9f8f19704f8d6e98abc71cff7d26ad332cae17c68cd10e7",
+  "executed_stdin_sha256": "9e332b15d09aeb8ba10877ce2f4f2d3932e842028d3dff4052653f09709cf137",
+  "executed_stdin_difference": "one final newline added when extracting the approved fenced code; no code or payload change",
+  "sources": {
+    "readonly-root-detail-proposal-261002.py": "0fe25d531ba16f50c3bf62f2114204c810736821bf593d2e6bccc16496fb9e54",
+    "readonly-runtime-metadata-261002.py": "4ed906427309209eef32e023213b7d8695b65dfe977f9470dbfbe9b9a3ce2977",
+    "readonly-host-probe-261002.py": "0b213ddd68460a9db583e4b6eace83dd776e5d4aa601a09d43a949b33d5dc5fc",
+    "readonly-profile-alias-261002.py": "88565938814288541d68f3efd4fcd4782b8e38daeeba93a973122501f4aff2b7"
+  }
+}

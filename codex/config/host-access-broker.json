@@ -67,6 +67,14 @@
       "arguments": []
     },
     {
+      "name": "gitea.dependency.read",
+      "identity_route": "manager-audit",
+      "mutating": false,
+      "arguments": [
+        "reference"
+      ]
+    },
+    {
       "name": "gitea.issue.read",
       "identity_route": "project-agent",
       "mutating": false,
@@ -398,7 +406,10 @@
       "routine_merge_agent": null,
       "git_remote_name": "gitea",
       "mac_checkout": "/Users/benque/Projects/SFMDigitalBoard",
-      "vm_profile": null
+      "vm_profile": null,
+      "dependency_read_targets": [
+        "aisoft-platform"
+      ]
     },
     {
       "project_id": "smoke-test",

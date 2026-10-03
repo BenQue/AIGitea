@@ -1,0 +1,209 @@
+{
+  "issue": 311,
+  "observed_date": "2026-10-02",
+  "scope": "local fixed Git objects only; other three remotes not fetched in this session",
+  "repositories": [
+    {
+      "repository": "aisoft-platform",
+      "local_ref": "origin/main",
+      "sha": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+      "fresh_remote_verified": true,
+      "workflows": [
+        {
+          "path": ".gitea/workflows/ci.yml",
+          "hits": [
+            {
+              "line": 13,
+              "kind": "config",
+              "text": "runs-on: ubuntu-latest"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "LocalWMS",
+      "local_ref": "origin/main",
+      "sha": "182ea7e04499f0b77162a5c95bfa3670417b04ee",
+      "fresh_remote_verified": false,
+      "workflows": [
+        {
+          "path": ".gitea/workflows/ci.yml",
+          "hits": [
+            {
+              "line": 21,
+              "kind": "config",
+              "text": "runs-on: ubuntu-latest"
+            },
+            {
+              "line": 25,
+              "kind": "config",
+              "text": "PATH: /opt/node24.18.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "NewEMaint",
+      "local_ref": "gitea/main",
+      "sha": "4c30573341c668826b3af515e870eb5bf9b362b0",
+      "fresh_remote_verified": false,
+      "workflows": [
+        {
+          "path": ".gitea/workflows/ci.yml",
+          "hits": [
+            {
+              "line": 22,
+              "kind": "config",
+              "text": "runs-on: ${{ vars.NEWEMAINT_CI_RUNNER_LABEL || 'ubuntu-latest' }}"
+            },
+            {
+              "line": 24,
+              "kind": "config",
+              "text": "PATH: /opt/node24.18.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            },
+            {
+              "line": 364,
+              "kind": "config",
+              "text": "runs-on: ${{ vars.NEWEMAINT_CI_RUNNER_LABEL || 'ubuntu-latest' }}"
+            },
+            {
+              "line": 366,
+              "kind": "config",
+              "text": "PATH: /opt/node24.18.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            }
+          ]
+        },
+        {
+          "path": ".gitea/workflows/deploy-appserver.yml",
+          "hits": [
+            {
+              "line": 18,
+              "kind": "config",
+              "text": "runs-on: ubuntu-latest"
+            },
+            {
+              "line": 20,
+              "kind": "config",
+              "text": "PATH: /opt/node24.18.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            }
+          ]
+        },
+        {
+          "path": ".gitea/workflows/deploy-company-one-click.yml",
+          "hits": [
+            {
+              "line": 23,
+              "kind": "config",
+              "text": "runs-on: newemaint-test-deploy"
+            }
+          ]
+        },
+        {
+          "path": ".gitea/workflows/deploy-company-test.yml",
+          "hits": [
+            {
+              "line": 21,
+              "kind": "config",
+              "text": "runs-on: newemaint-test-deploy"
+            }
+          ]
+        },
+        {
+          "path": ".gitea/workflows/publish-docker-release.yml",
+          "hits": [
+            {
+              "line": 15,
+              "kind": "config",
+              "text": "PATH: /opt/node24.18.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            },
+            {
+              "line": 19,
+              "kind": "config",
+              "text": "runs-on: ubuntu-latest"
+            }
+          ]
+        },
+        {
+          "path": ".github/workflows/publish-docker-release.yml",
+          "hits": [
+            {
+              "line": 16,
+              "kind": "config",
+              "text": "runs-on: ubuntu-24.04"
+            },
+            {
+              "line": 40,
+              "kind": "config",
+              "text": "- uses: actions/setup-node@v4"
+            },
+            {
+              "line": 42,
+              "kind": "config",
+              "text": "node-version: '24.18.0'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "SFMDigitalBoard",
+      "local_ref": "gitea/main",
+      "sha": "1be980d238c37495a808170ee8ce4a5bf04fbaf3",
+      "fresh_remote_verified": false,
+      "workflows": [
+        {
+          "path": ".gitea/workflows/ci.yml",
+          "hits": [
+            {
+              "line": 29,
+              "kind": "config",
+              "text": "runs-on: ubuntu-latest"
+            },
+            {
+              "line": 31,
+              "kind": "config",
+              "text": "PATH: /opt/node22/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            },
+            {
+              "line": 60,
+              "kind": "comment",
+              "text": "# 注意：job env 里的 /opt/node22/bin 管的是「runner 装的是哪个 node」，"
+            }
+          ]
+        },
+        {
+          "path": ".gitea/workflows/deploy.yml",
+          "hits": [
+            {
+              "line": 11,
+              "kind": "comment",
+              "text": "# pin /opt/node22/bin：pin 一个用不到的运行时，是在声明一个不存在的依赖。"
+            },
+            {
+              "line": 43,
+              "kind": "config",
+              "text": "runs-on: ubuntu-latest"
+            },
+            {
+              "line": 49,
+              "kind": "comment",
+              "text": "# 故不再 pin /opt/node22/bin（#173）；ci.yml 才是装依赖、跑测试与 build 的那条，"
+            }
+          ]
+        },
+        {
+          "path": ".github/workflows/release.yml",
+          "hits": [
+            {
+              "line": 40,
+              "kind": "config",
+              "text": "runs-on: ubuntu-latest"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

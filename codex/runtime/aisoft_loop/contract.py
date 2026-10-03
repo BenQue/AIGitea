@@ -10,6 +10,8 @@ from typing import Mapping, Optional
 
 from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
 
+from aisoft_host_access.dependencies import Dependency, DependencyError, parse_dependencies
+
 from .classification import CHANGE_TYPES, Classification, ClassificationError
 
 
@@ -92,7 +94,7 @@ class Contract:
     document_directory: Path
     required_docs: tuple[str, ...]
     acceptance_criteria: tuple[str, ...]
-    dependencies: tuple[int, ...]
+    dependencies: tuple[Dependency, ...]
     change_control: str = "production"
 
 
@@ -142,6 +144,7 @@ def load_contract(
     *,
     allowed_lifecycle: tuple[str, ...] = ("approved",),
     change_control: str = "production",
+    repository_identity: tuple[str, str] | None = None,
 ) -> Contract:
     repo_path = Path(repo).resolve()
     if not repo_path.is_dir():
@@ -179,7 +182,7 @@ def load_contract(
     except ChangeNameError as exc:
         raise ContractError(str(exc)) from exc
     summary_text = summary_path.read_text(encoding="utf-8")
-    dependencies = _dependencies(summary.get("depends_on", []), number)
+    dependencies = _dependencies(summary.get("depends_on", []), number, repository_identity)
     expected_branch = change_name.branch
     if _as_int(summary.get("issue")) != number:
         raise ContractError("summary issue does not match the Gitea Issue number")
@@ -666,19 +669,10 @@ def _as_int(value: object) -> Optional[int]:
         return None
 
 
-def _dependencies(value: object, issue_number: int) -> tuple[int, ...]:
-    if value in ("", None):
-        return ()
-    if not isinstance(value, list):
-        raise ContractError("summary depends_on must be a list of positive Issue numbers")
-    dependencies: list[int] = []
-    for item in value:
-        dependency = _as_int(item)
-        if dependency is None or dependency <= 0:
-            raise ContractError("summary depends_on must contain only positive Issue numbers")
-        if dependency == issue_number:
-            raise ContractError("summary depends_on must not reference its own Issue")
-        if dependency in dependencies:
-            raise ContractError(f"summary depends_on contains duplicate Issue #{dependency}")
-        dependencies.append(dependency)
-    return tuple(dependencies)
+def _dependencies(
+    value: object, issue_number: int, source: tuple[str, str] | None = None,
+) -> tuple[Dependency, ...]:
+    try:
+        return parse_dependencies(value, issue_number, source)
+    except DependencyError as exc:
+        raise ContractError(f"summary {exc}") from exc

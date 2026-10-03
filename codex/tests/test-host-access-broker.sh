@@ -13,12 +13,12 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 6 and
-  .operation_count == 37 and
+  .operation_count == 38 and
   .merge_operation_count == 1
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 37) and
+  ([.operations[].name] | length == 38) and
   ([.operations[] | select(.name == "gitea.credential.rotate")][0]
     == {"name":"gitea.credential.rotate","identity_route":"credential-operator",
         "mutating":true,"arguments":["issue","sha","token_kind"]}) and
@@ -38,6 +38,13 @@ jq -e '
     "projects/{project_id}/routine-merge-agent.token" and
   .mac_host.credential_directory_mode == "700" and
   .mac_host.credential_file_mode == "600" and
+  ([.operations[] | select(.name == "gitea.dependency.read")][0]
+    == {"name":"gitea.dependency.read","identity_route":"manager-audit",
+        "mutating":false,"arguments":["reference"]}) and
+  ([.operations[] | select(.name == "gitea.issue.read")][0].arguments == ["number"]) and
+  ([.projects[] | select(has("dependency_read_targets"))
+    | {project_id, dependency_read_targets}]
+    == [{"project_id":"sfm-digital-board","dependency_read_targets":["aisoft-platform"]}]) and
   ([.operations[] | select(.name == "gitea.issue.create")][0].arguments
     == ["title", "body", "entry_label"]) and
   ([.operations[] | select(.name == "gitea.pull.create")][0].arguments == ["issue", "title", "body"]) and
@@ -102,6 +109,24 @@ set -e
 test "$denied_status" = 20
 grep -Fq 'BLOCKED_EXTERNAL' <<<"$denied_output"
 grep -Fq 'REQUEST_DENIED' <<<"$denied_output"
+
+# #286 refuses malformed/unauthorized dependency references before any credential
+# lookup. The sole authorized production edge is pinned by the manifest check above.
+for dependency_reference in \
+  'admin/aisoft-platform#284' \
+  'other/LocalWMS#284' \
+  'http://foreign-host/repo#284' \
+  'admin/../repo#284'; do
+  set +e
+  dependency_output="$("$ROOT/codex/tools/host-access-broker.sh" \
+    --project localwms --operation gitea.dependency.read \
+    --reference "$dependency_reference" 2>&1)"
+  dependency_status=$?
+  set -e
+  test "$dependency_status" = 20
+  grep -Fq 'NEEDS_HUMAN_DECISION' <<<"$dependency_output"
+  grep -Eq 'DEPENDENCY_(TARGET_DENIED|FORMAT_INVALID)' <<<"$dependency_output"
+done
 
 # Label deletion is unreachable by construction (#108 AC-7): the provisioning
 # operations exist, the delete counterpart is not allowlisted, and asking for it

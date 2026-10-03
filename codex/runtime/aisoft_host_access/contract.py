@@ -127,6 +127,7 @@ class ProjectContract:
     git_remote_name: str
     mac_checkout: str | None
     vm_profile: VMProfileContract | None
+    dependency_read_targets: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -182,6 +183,7 @@ class AccessContract:
 EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "gitea.credential.rotate": ("credential-operator", True, ("issue", "sha", "token_kind")),
     "gitea.repo.read": ("project-agent", False, ()),
+    "gitea.dependency.read": ("manager-audit", False, ("reference",)),
     "gitea.issue.read": ("project-agent", False, ("number",)),
     # Enumerating open Issues (#222). Without it a dispatching session could only
     # read by number, so it could not check for a duplicate before opening one —
@@ -473,8 +475,8 @@ def load_access_contract(
         }
         project_keys = set(item)
         _require(
-            project_keys in {frozenset(required_project_keys),
-                             frozenset(required_project_keys | {"git_remote_name"})},
+            required_project_keys <= project_keys
+            and project_keys <= required_project_keys | {"git_remote_name", "dependency_read_targets"},
             f"projects[{index}] keys mismatch",
         )
         project_id = _identifier(item["project_id"], f"projects[{index}].project_id")
@@ -541,10 +543,17 @@ def load_access_contract(
             ) if "path_prepend" in vm_raw else ()
             vm_profile = VMProfileContract(profile_name, repo_dir, analysis, implementation,
                                            timer, path_prepend)
+        targets_raw = item.get("dependency_read_targets", [])
+        _require(isinstance(targets_raw, list), "dependency_read_targets must be a list")
+        targets = tuple(_identifier(target, "dependency_read_targets") for target in targets_raw)
+        _require(len(set(targets)) == len(targets) and project_id not in targets,
+                 "dependency_read_targets must be unique external project ids")
         projects.append(ProjectContract(project_id, repository, project_agent,
                                         routine_merge_agent, git_remote_name,
-                                        mac_checkout, vm_profile))
+                                        mac_checkout, vm_profile, targets))
 
+    _require(all(set(p.dependency_read_targets) <= project_ids for p in projects),
+             "dependency_read_targets must name canonical projects")
     _require(repositories == set(governance_by_name),
              "host access projects must exactly cover governance repositories")
     _require(

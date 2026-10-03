@@ -1,0 +1,66 @@
+{
+  "issue": 286,
+  "ticket": "T04",
+  "branch": "change/286-dependency-references",
+  "session": "01a0fc7c-1670-75b2-a61b-f47e62fc856c",
+  "policy": "manual",
+  "previous_local_head": "5de1bc6472c5550c2821c323deef827142539e8f",
+  "integrated_base": "11c0410d3878d5449fa61796f174ba3d2dd5e59c",
+  "tested_source_head": "12dd967eb60253d7033c2c8ccb0c382b499bf1c6",
+  "rebase": "PASS, owner worktree only; no conflict; no push",
+  "commit_mapping": [
+    {
+      "before": "8b532f2932cda1a0d49c39e20c553c46d815af38",
+      "after": "bf31b153ab5db253bed3cd653c0bfa4ab3c6dbe7"
+    },
+    {
+      "before": "fdb3082e8b1a680c967fc46655d0ab320faca034",
+      "after": "74eae54b230280118f753cef8643f8e65d2fbb85"
+    },
+    {
+      "before": "bb41ff26d36fb53ac84ee6fe6debf9ea3e77dfbd",
+      "after": "347586c606bed51cb75c7c7326f396de2dda580b"
+    },
+    {
+      "before": "5de1bc6472c5550c2821c323deef827142539e8f",
+      "after": "12dd967eb60253d7033c2c8ccb0c382b499bf1c6"
+    }
+  ],
+  "locale_diagnostic": {
+    "bash": "GNU bash 3.2.57(1)-release",
+    "original_locale": "C.UTF-8",
+    "original_failure": "REGISTRY followed by Chinese punctuation was read as an unbound variable; probe exit was 0",
+    "diagnostic_log_sha256": "f53a65c5658bb054a19a9c6254e5791e337be369664af877929ba942c09bee89",
+    "controlled_locale": "C",
+    "fixture_command": "LC_ALL=C PYTHONDONTWRITEBYTECODE=1 bash codex/tests/test-registry-preflight.sh",
+    "fixture_exit_code": 0,
+    "fixture_result": "PASS, all original negative assertions retained"
+  },
+  "registry_sources_unchanged": {
+    "codex/tests/test-registry-preflight.sh": "469a96475f96d975f2d77b137648308a8bb30d776e12333433f03eedba6ece5e",
+    "codex/tests/fake-npm-registry.py": "dc49c025a41f452661b73de3da6737f37066e3cb7d991935148e042114f11303",
+    "templates/project/ci/registry-preflight.sh": "076c968418a8fc5146c5a51f4dd9857d265d8ed5f9b2940db74964f11674a222"
+  },
+  "full_smoke": {
+    "command": "LC_ALL=C PYTHONDONTWRITEBYTECODE=1 bash codex/tests/smoke.sh",
+    "context": "controlled host, isolated temporary test fixtures",
+    "exit_code": 0,
+    "result": "PASS",
+    "runtime_tests": 998,
+    "runtime_seconds": 97.111,
+    "log": "/private/tmp/issue-286-resume-smoke-c-host.log",
+    "log_sha256": "a3b264783479c361cda621ff6df4592752444401b3fe3cc1b2265de2e86eaed4"
+  },
+  "predecessor": {
+    "issue": 289,
+    "pull_request": 325,
+    "state": "open",
+    "merged": false,
+    "head_sha": "15b963a4f4dab52e4a161de0d8bab29ebc7d53c5",
+    "merge_commit_sha": null
+  },
+  "remaining_gate": "#289 actual merge, then owner fresh-fetch/rebase and dependency/document/terminal validation",
+  "push": "NOT RUN",
+  "pr_creation": "NOT RUN",
+  "installed_live_deployment": "NOT RUN"
+}
