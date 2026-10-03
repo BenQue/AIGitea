@@ -96,6 +96,14 @@ public policy仍`change-verification/v1`四key、public仅begin/verify且push仅
 **并行**：一次把所有卡片派出去。
 **顺序**：只派当前无阻塞的。依赖写进 **Issue 正文**，再由 Issue 会话抄进 summary front matter 的 `depends_on`——依赖必须落在 Issue 上，不能只活在调度会话的上下文里（会话会被压缩，Issue 不会）。前置 Issue 完成时用 `send_message` 回报，调度会话再派下一张。
 
+**依赖身份（#286 source/local fixture 已验证，installed/live 尚未验收）**：旧数字只表示本仓；
+跨仓必须使用 exact `owner/repo#N`，不得填外仓裸编号。新读取必须先匹配 manifest 的
+`dependency_read_targets` 再 GET，缺省只允许本仓，唯一新增边为 `sfm-digital-board → aisoft-platform`。
+Controller 与 routine merger 共用身份/终态规则，本仓同号不能满足外仓前置。外仓仅由 broker
+manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。格式不支持或读取不可验证
+就是阻塞，不能换成数字或 `[]` 求绿。runtime 完成并独立安装前保留正文中的完整 reference；
+文档示例不表示功能已上线。
+
 ## 开放 Issue 清扫
 
 调度会话的第二项职责。每次被唤醒时，以及一批 Issue 派单完成之后，清扫一次开放 Issue。

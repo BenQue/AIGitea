@@ -116,3 +116,16 @@ override_reason: ''
 ### 缺失的 acceptance criteria 或决策
 
 原方向及 T04 可信根合同已确认；fresh T02 source WIP 发现 Mac scratch 聚合资源和完整工具链缺口，原A草案经审阅后，新增具体合同已直接批准；本轮仅T05治理/STOP。旧 approved 不授权新增机制，不作为 live 投影或 protected grant。所有真实安装、首次人工发表、回滚与新行为测试尚未运行。远端 #327 ref 是否存在的独立精确读回仍为 GAP，任何未来创建/发表前必须重新查重。
+
+
+## T06 基线同步补充与当前 frontier
+
+恢复卡 A 后的 source WIP 已增至32文件，T02仍in-progress；native/toolchain定向通过，完整能力仍GAP，
+默认smoke被 main 落后87提交的 source guard 拦住，旧runtime失败保留。为继续准备 exact T06 补充，
+见 [spec 的 T06 合同](spec-broker-ff-integration-261002.md#t06canonical-main-治理基线同步补充合同)
+与 [plan](plan-broker-ff-integration-261002.md)。本补充只有负责人确认 external exact卡后才生效；
+旧 approved、恢复卡 A 不授权该新增步骤。T01/T04/T05历史不改。
+
+T05 → T06（已具体确认；7个main治理段落与mapped summary/spec/plan已独立应用，STOP）
+→ fresh T02/R01（纯基线main checkpoint，再恢复32WIP）→ T03。原single writer/branch/manual、
+AC与source touch points保留。无root/安装/Secret/remote mutation/PR/merge/deploy许可。

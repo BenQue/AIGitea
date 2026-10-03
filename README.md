@@ -22,6 +22,7 @@
 - ✅ 安装面：#162/#171 把 installer 的 source provenance 与 staleness 闸门抽成 `codex/lib/install-source-guard.sh`，#182/#250/#254 补齐 `docker-release/`、`sync/`、`skill-for-claude/` 后 8 个 installer 全部经该闸门；Claude 侧 skills 由 `skill-for-claude/install.sh` 安装、`skill-for-claude/check-drift.sh` 核对（见 §5「技能安装与漂移核对」）
 - 🟡 项目 CI 参考：#223 提供 `templates/project/ci/`（CI workflow、merge-preview 合并预览、registry-preflight 真实取包断言）与 `aisoft-project-check.sh` 的 `ci-merge-preview`/`ci-outdated-branch`/`ci-registry-preflight` 只读回读；采纳由各项目仓自行接入并验收，本仓库不代表任何项目已采纳
 - 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
+- 🟡 #286 治理合同：`depends_on` 的旧整数只表示本仓；已批准新增 `owner/repo#N` 的 manifest 限定只读依赖，唯一新增边为 `sfm-digital-board → aisoft-platform`，Controller 与 routine merger 必须使用同一依赖规则。source runtime 与本地双闸门 fixture 已实现并验证；完整 smoke 已在 LC_ALL=C 下通过，#289 合并后组合验证已通过，installed/live **NOT RUN**。完整范围见 [03 §10](03-Issue-Spec-Plan与单闸门开发流程.md#10-依赖-issue) 与 [#286 spec](docs/changes/286-dependency-references/spec-dependency-references-261002.md)。
 - 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为历史 real complex pilot 证据，该项目自 #252 起已退出平台治理。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
 - 🟡 Linux Docker release source（Issue #22 已合并）：提供 strict manifest/profile、Registry/offline transports、host-role preflight 和 deterministic deploy/status/rollback；合同已进入 source，但具体业务 Registry/AppServer 与 production promotion 仍未验收
 - 🟡 公司两 VM 离线交付 operator 参考实现（`company-delivery/`，Issue #120–#130）：versioned/checksum-pinned operator bundle、两台公司 Linux VM 的脱敏 inventory、Stage 00–110 人工 runbook 与 strict evidence 已进入 source；真实 handoff 与公司侧各阶段由采用该路径的项目仓记录，本仓库对任何项目均为 `NOT RUN`
@@ -147,6 +148,8 @@ sequenceDiagram
 **实施状态**：Issue #208 的 source 合同不代表 routine merger 已安装、credential 已 provision、protection 已 apply 或任一 repository 已 live opt-in。现有 shared Loop pilot 与 `IMPLEMENT_PROVIDER=none` 边界不变；AISoftPlatform 本身属于 platform governance，#208 及其后续平台变更始终走 manual。PR merge 不能推导测试/生产部署授权或 `deployed` 终态。
 
 平台标签采用三个正交维度：十个 `type/*`、两个 `complexity/*` 和八个 lifecycle，共 20 个；Matt 另加两个 `triage/*` category 与五个 `triage/*` state。source manifest 共 provision 27 个标签（Issue #108 把 `type/*` 扩为 10 个并声明 `area/`、`priority/` 两个项目扩展前缀），但 `triage/ready-for-agent` 不替代平台 `approved`。`completed` 与 `deployed` 互斥，任何接入仓库都必须独立同步并读回，不能把其它仓库状态当作平台全局状态。
+
+**文档声明一致性合同（#289）**：summary front matter 的 `required_docs` 是文档义务的声明事实源，`documents` 是角色到文件的路径事实源；`route.required_docs` 只约束阶段和复杂度的最低要求，不能抹掉已经声明的角色。严格 resolver、文档检查、Loop 和终态工具须共用校验后的角色与实际文件，缺文件时不能 PASS 或写 `completed`。`verification` 表示欠一份验证记录；部署终态另由仓库 `deployment_lifecycle` 决定，平台的 `none` 保持不变。详见 [03 §3](03-Issue-Spec-Plan与单闸门开发流程.md#3-文档合同) 与 [#289 spec](docs/changes/289-required-docs-source/spec-required-docs-source-261002.md)。本段是已确认的治理合同；T01 只应用文档，runtime 实现与验证待 T02/T03，installed/live 未验收。
 
 ## 5. 文档导航
 

@@ -174,6 +174,12 @@ Verifier 必须由外层脚本独立运行，不信任模型自述。每条 acce
 
 ## 9. 终态
 
+#286 已批准的依赖治理合同见 [03 §10](03-Issue-Spec-Plan与单闸门开发流程.md#10-依赖-issue)。
+source runtime 已保留本仓数字，并由 manifest 限定的 broker resolver 读取 qualified dependency；Controller 与 routine merger 共用目标身份与终态规则。本仓同号不得替代外仓，
+非法边停 NEEDS_HUMAN_DECISION，不可验证读取停 BLOCKED_EXTERNAL，不能当成依赖满足。
+source/local 双闸门 fixture 已验证；完整 smoke 在 LC_ALL=C 下通过，#289 后组合验证已通过，installed/live NOT RUN。
+禁止新建任意跨仓 client 或降级凭据。
+
 | 终态 | 条件 |
 |---|---|
 | `AWAITING_PR_CONFIRMATION` | 本地 verifier 通过，PR candidate handoff 已固定，等待人确认提交 unique final PR 与 `manual|routine-auto` policy；重复 poll 不调用 provider 或创建 PR |

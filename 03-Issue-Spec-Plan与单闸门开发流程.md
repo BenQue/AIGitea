@@ -196,6 +196,18 @@ docs/changes/N-short-description/
 
 映射的 spec 必须定义目标、可测验收标准、接口/数据/兼容影响和非目标。映射的 plan 必须把每条验收标准映射到 `Txx` 垂直切片、`blocked_by`、预期 touch points 和验证命令。Loop 不得自行修改已经确认的 acceptance criteria 或扩大范围。
 
+### 声明与实际文件共用一个校验结果（#289）
+
+本节是 #289 已确认的治理合同。T01 仅应用本文与 README 的合同说明后停止；fresh run 重读后才实施 runtime。下述严格行为与新增命令待 T02/T03 实现和验证，不能据此声称当前 source 或 installed/live 已具备这些闸门。
+
+- summary front matter 的 `required_docs` 是文档义务的唯一声明事实源，`documents` 是新格式角色到安全 basename 的唯一路径事实源。共用受限 Python 解析器，拒绝空、未知、重复或混合角色与 legacy 文件名的列表，首项必须为 summary。
+- `route.required_docs` 给出阶段与复杂度的最低合同要求；Loop 检查声明满足这些要求，不得用路由生成的列表替换声明或丢掉额外角色。development 不强制 spec/plan，production complex 仍必须有 spec/plan；任何路由都不能让已声明 verification 的文件义务消失。
+- 新格式 `documents` 的每个显式映射均须指向本 Issue 目录内可读取的普通文件，且通过既有角色、slug、日期、front matter 与路径边界校验；即使角色不在 required_docs 里也一样。缺文件或符号链接逃逸必须报错，诊断包含 Issue/change、role 与真实 basename。required_docs 的每一项必须有映射和实际文件。
+- 公共 `resolve-documents N --repo <checkout>` 成功时保留角色到 basename 的 JSON 形状，但必须拒绝不存在的显式映射。新增只读 `resolve-required-documents N --repo <checkout>` 返回 `required_docs`（规范化语义角色数组）和 `documents`（角色映射）。`check-change-documents`、Loop 与 `mark-completed-issues.sh` 共用同一解析和校验结果；终态工具不再用 awk 独立解析原文，resolver 或 JSON 失败不能回退为成功。
+- legacy 固定映射是历史推断；未声明的可选 spec/plan/verification 不要求生成。显式 required_docs 中的历史 basename 必须有实际文件，并规范化为相应语义角色（如 `03-verification.md` → `verification`）。缺 required_docs 报明确 GAP；不新增 legacy 开关，不批量重命名或改写历史文档。
+- 合同草稿首次写入使用受限 publisher：`publish-spec`/`publish-plan` 可在 open Issue 的 exact branch 上，通过内部声明解析首次创建自己映射的目标，继续执行路径、日期、front matter 与 Ticket graph 硬门。该准备入口不向 reader 暴露通用 skip-existence 参数；草稿尚未齐全时，严格 resolver、文档检查、Loop 与终态检查仍须拒绝交付。
+- `mark-completed-issues.sh` 的 dry-run 遇无效声明或缺文件时输出可搜索的 skip 原因和诊断，apply 对该 Issue 零 broker 写入。合法合同时，再按 §11 的独立 deployment_lifecycle 判终态。文件存在与可解析不证明 verification 内每项现场动作已执行。
+
 ### 何时声明 `verification`
 
 `required_docs` 含不含 `verification` 回答的是「这次变更**欠不欠一份验证记录**」，
@@ -333,6 +345,52 @@ Issue + needs-analysis
   → unresolved input: awaiting-triage with no complexity label
 ```
 
+### 6.1 服务账号 PAT 轮换与治理阶段（#316）
+
+**scope 合同变更 = 必须轮换受影响的 PAT。** 合并 scope 声明、重装代码和 Secret 轮换是三份不同证据；
+source/local/CI PASS 或 Issue closed/completed 不证明凭据已更新。先证明 exact scope 合同已合并，
+并逐台核对安装字节，再在独立 Secret 授权下轮换；真实 identity/scope/audit 读回与第二次 no-op
+是现场验收，未运行一律 `NOT RUN`。本节是 #316 的已批准治理合同；T02 helper 本地隔离验证已完成，
+交易/typed runtime、后续安装与 live 演练尚未实施，不是现行可执行 runbook。
+
+轮换只处理 canonical manifests 已管理的 non-site-admin 服务账号，保持账号、协作者、分支保护、
+routine opt-in 和其它项目身份不变。Agent 的 live 入口须经 operator-only typed broker operation
+`gitea.credential.rotate`：目标由 manifest 派生，授权 grant 独立于 project agent、manager PAT 与
+routine merger，绑定授权 Issue、已合并 source SHA、exact project/token kind、manifest 固定 Mac store、
+VM exact helper 和有效期。缺授权、
+身份/版本/marker/路径不符或未知 schema 时零 Secret mutation；不能用环境变量自行授予权限，
+不能 fallback 到 admin HTTP 凭据、通用 SQL、任意账号/路径/shell 或更宽身份。
+
+#316 的撤销后台固定 Gitea `v1.26.4` token model，由受控 operator 路径以 Gitea service user 运行，
+先校验 exact token 的 UID/账号，再精确撤销并读回不存在。不能沿用未经真实验证的 `/api/v1/token`
+self-revoke 假设；不得为轮换升级 server、创建密码或扩大 sudoers/provider 权限。helper 构建、
+隔离数据库测试和制品 provenance 必须版本化；其安装、operator grant provision 与 live 使用另行授权。
+
+用户已批准方案 A：仅允许 manifest 固定 Mac canonical store
+`/Users/benque/Library/Application Support/AISoftPlatform/credentials` 接收轮换候选。journal、旧凭据
+隔离区、候选和原子发布均在该 store 同一受保护文件系统；核对 manifest owner、0700 目录/0600 文件，
+拒绝 symlink/逃逸。Gitea CLI/helper 在固定 VM 以现有 git service user 执行，Secret 仅经内部受控
+stdin/pipe 传递，不进入 Agent/tool 返回、用户可见 stdout/stderr、argv、日志、审计或 VM 普通临时目录。
+caller 不得用 env/path/URL 选择 store/helper；ownership markers 缺失拒绝，不擅自补建。
+
+本次单-store 发布不自动更新或清理既有 VM credential 副本；撤销后旧副本不可继续使用，需要消费
+它们的 runtime 须各自明确授权处理。Mac typed audit PASS 不能代表全部消费端验收。
+
+事务顺序固定为：preflight/单目标锁 → 隔离旧 canonical 凭据 → 在受保护交易区生成并验证候选 →
+精确撤旧并证明拒绝 → 持久保存 provenance → 最后原子发布新 canonical 凭据 → 验证并清理。
+canonical 隔离期间目标 broker 身份 fail closed，未完成不能报 rotated/no-op。同一请求重复执行
+必须验证 active identity/scope 与完成 marker 后零 mutation；中断恢复沿用已有 journal/候选，
+不盲目签发第二个 PAT。旧 PAT 撤销不可逆，撤旧后的发布失败只能恢复保留候选，不能声称恢复旧 PAT；
+撤旧前只有仍有效且符合当前 manifest 的旧凭据才可恢复。细节和验收见
+[spec](docs/changes/316-service-pat-rotation/spec-service-pat-rotation-261002.md) 与
+[06 §4.1](06-运维手册与踩坑集.md#41-服务账号-pat-轮换合同316)。
+
+治理与 runtime 必须分阶段：本票 T01 与方案 A 的 T02A 各只应用 03/06 治理合同和 mapped docs，
+作本地原子 commit 后停止本 turn；T02A 后续 fresh run 重新读取批准的 spec、plan 与治理合同后，
+可沿用本次启动批准实施 T03 broker transport、installer、测试/CI，无需重复启动确认。
+启动确认只授权合同内源码工作，不授予 PR 提交、merge、后续安装
+或实际 Secret 操作权限。AC-2 未真实达成时不声称 #316 已真正解决，不进行完成归档。
+
 ## 7. 最终 PR、提交确认与 merge policy
 
 PR 必须：
@@ -369,12 +427,37 @@ Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限�
   manual，本次治理变更不部署。
 ## 10. 依赖 Issue
 
-映射的 summary 可用可选字段 `depends_on` 声明 Issue 编号列表；缺省或 `[]`
-表示没有依赖。依赖同时是 routine hard gate 与 manual PR 就绪门，不改变分支或 CI：
+source runtime 的 summary 可用可选字段 `depends_on` 声明本仓 Issue 编号或下述仓库限定引用；缺省或 `[]`
+表示没有结构化依赖。裸数字没有外仓身份，不得把外仓编号填作本仓依赖，也不得从标题或正文猜仓库。
+依赖同时是 routine hard gate 与 manual PR 就绪门，不改变分支或 CI：
 当前 PR 的 CI 通过后，全部依赖 Issue 必须同时为 closed 且带有 `completed` 或
 `deployed` 生命周期终态，manual 才能进入 `READY_FOR_REVIEW`，routine 才能 merge。否则保存
 `awaiting_dependencies`，后续轮询只重查 CI 与依赖，不再次调用 provider、
 不创建第二个 PR，也不自动合并。
+
+### #286 依赖合同（source/local 已验证，installed/live 尚未验收）
+
+本节的 source 实现已按 [映射 spec](docs/changes/286-dependency-references/spec-dependency-references-261002.md)
+完成本地双闸门 fixture 验证；不是 installed/live 跨仓功能已生效的证明：
+
+- 旧整数及已支持的数字 scalar 保持只表示本仓；新增严格 `owner/repo#N` scalar，
+  仅支持同一 manifest-fixed Gitea host。URL、object、任意 host/owner/repo 与路径输入不支持。
+- 目标必须精确命中 canonical manifest 与 source 项目的 `dependency_read_targets`，
+  缺省只允许本仓；唯一新增跨仓边为 `sfm-digital-board → aisoft-platform`。
+  新 typed dependency read 只接受 reference，通过该映射后才构造 request；既有
+  `gitea.issue.read(number)` 不扩参数。source executable manifest 已声明此新字段；installed manifest 仍须独立验收。
+- 外仓 GET 在 broker 内使用 manager-audit 只读路由，project-agent/routine merger
+  credential 不得用于外仓；无 admin、mutation-token 或 direct-client fallback，不扩 ACL。
+- canonical identity 为 repository identity 与 Issue number。本仓整数/限定形式重合须报重复，
+  自依赖按完整身份判定；外仓同号不是自依赖。本仓同号终态不能满足外仓前置。
+- Controller 与 routine merger 共用受控读取与终态规则，返回仅包含目标身份、编号、state、
+  labels 和 reference；核身份并拒绝 PR。越界/schema 错误停 `NEEDS_HUMAN_DECISION`；
+  已授权但网络、ACL、404 或响应不可验证停 `BLOCKED_EXTERNAL`，routine 零 merge POST。
+- 依赖引用在 Issue 正文、summary、state 与 PR 展示中保留仓库身份；只在全部依赖真实终态时
+  才通过既有就绪/merge 门。轮询不重新调用 provider、不创建第二个 PR。
+
+旧 installed runtime 面对 qualified 输入应拒绝，不能降成数字或删依赖求绿。G01 已独立应用
+治理合同并停止，fresh run 已完成 source 实现；安装/凭据/ACL/live apply/部署始终独立授权。
 
 ## 11. 合批关闭与交付终态
 
@@ -438,6 +521,8 @@ PR #169 被合进 main，`origin/main~1` 于是等于 `770d527`。写错既不�
 姿态——那里没有人在读。该事实由 `codex/tests/test-mark-deployed-issues.sh` 钉住。
 
 判定是一个**合取**，两个条件都取自仓库证据，都不接受人工传入的终态判断（#163）：
+
+下表只适用于已经通过文档声明与实际文件校验的合同。#289 要求工具通过 §3 的共享 resolver 取得规范化 required_docs；缺失的 verification 不能作为“含 verification”的有效合同进入此表，不能改读原文或依据部署属性放行。该约束在 T01 仅完成治理说明，工具接入待 T02/T03 验证。
 
 | 该 Issue 映射 summary 的 `required_docs` 含 `verification` | 该项目的 `deployment_lifecycle` | 终态 |
 |---|---|---|

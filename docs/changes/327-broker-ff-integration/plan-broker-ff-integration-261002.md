@@ -30,7 +30,8 @@ status: approved
 | T01 | 独立只修改spec映射治理合同的受控本地步骤；验证范围、原子commit后停止 | - | completed |
 | T04 | 具体补充合同经直接确认；当时独立应用原14治理文本+四角色、验证/本地commit后STOP；runtime未实施 | T01 | completed |
 | T05 | 已直接批准具体安全合同；仅原14治理文本+四角色，bootstrap/closure/resource/v2文本应用、验证/localcommit/STOP | T04 | completed |
-| T02 | T05之后fresh重读；保全既有WIP，完成closure/bootstrap/boundedresources、authority/Controller/FF与安装漂移/回归 | T05 | in-progress |
+| T06 | exact卡确认后仅同步7个main治理段落与mapped summary/spec/plan；验证/本地commit后STOP | T05 | completed |
+| T02 | T06之后fresh重读；先纯main checkpoint再恢复WIP，续closure/bootstrap/boundedresources、authority/Controller/FF与安装漂移/回归 | T06 | in-progress |
 | T03 | 集成/全量/静态/文档验收、source与installed分层、人工firstPR/安装rollback卡，准备唯一manualPR候选 | T02 | pending |
 
 本聊天负责人直接“批准”审阅卡绑定的具体安全合同；本轮仅独立T05治理应用、验证/localcommit后STOP。T01/T04历史完成保留，T05 completed仅指治理文本步骤，不指新增source/主机验收。T02 in-progress是已保全WIP；后续fresh重读新governing/批准/Issue/installed才继续，当前run不得进入runtime。
@@ -100,3 +101,14 @@ AC-7/AC-9/AC-10/AC-11 未闭合保持本 Issue 实际未完成与 chat 可用；
 本次直接批准绑定前次审阅卡spec/plan SHA256、draftcommit（如有）、#327/exact branch/manual；不是安装授权。T05限定原14治理表中的#327活段落，新增内容只为spec安全补充与source-installed/I02/STOP；不得混入已存在T02 WIP或新native/config。应用前保全source18项及所有非文档tracked/untrackedbytes/mode；应用后检查exact18文件（14治理+4角色）diff、双工具一致、resolver/semantic/AC11/graph、独立localcommit路径与STOP receipt。随后fresh run重新读完整governing/批准/Issue/comments/source/installed事实，才继续T02。
 
 I02 card进一步冻结两模板创建和ownlease mount/detach、每hostOSbuild/closure/cache/alias/bootstrapartifact/role、真实quota/tinyfile/descendant/crash读回与rollback。I01不创建模板、不register/enable/start，不自动provision账户/toolchain/凭据。任何缺能力保留GAP。T03记录旧全量和smoke失败并完成修复后重跑；不为治理文本应用虚构新runtime测试或改main绕staleness。
+
+
+## T06 执行与停止点
+
+exact范围、main/source/owner pin、7治理路径、32WIP保全与回退见 mapped spec 的 T06补充及 external审阅卡。
+本补充待负责人确认，旧 approved 与恢复卡 A 不授权它；T01/T04/T05历史、原AC和source范围保持。
+T06只应用7个main治理段落与mapped summary/spec/plan；不得混入32WIP中的verification、runtime/config/service。
+校验proposal bytes/hash、文档映射/graph、governing最小diff与source保全后，提交前仅投影plan的T06状态和summary的T06 frontier两行，纳入同一独立治理原子commit；commit成功立即STOP。commit失败恢复pending投影、保全WIP并升级，不认定T06完成。
+下一fresh run重读合同/具体批准/Issue/comments/source/installed，T02/R01先纯main integration checkpoint，
+再恢复未提交WIP并单独解决broker调度冲突；手工内容不混进checkpoint。保持两parent顺序、限定merge tree与历史，
+新增冲突或scope漂移停止。原T02验证门和B01/I01/I02边界保持，完成实质修复后重跑完整runtime及默认smoke。

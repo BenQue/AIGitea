@@ -352,3 +352,36 @@ AC实证全部满足后才terminal reconcile、文档check、精确cleanup/归�
 ## 未决问题
 
 本聊天直接“批准”审阅卡绑定的T05具体补充合同（#327/exactbranch/manual/spec+planhash），本轮仅独立T05治理应用/验证/localcommit后STOP。原批准字节与批准登记保存在外部，当前状态/证据回填不扩技术合同。无需重复确认同一source范围；后续fresh重读才能继续保全T02 WIP。I01/I02每主机仍各需exact operator卡，实际工具chain/UID/模板/OSmatrix未注册不虚构hash。新source/真实closure/quota/主机/FF/安装验收均未运行，旧FAIL和GAP真实保留；source approved不作live标签或protected grant。
+
+
+## T06：canonical-main 治理基线同步补充合同
+
+本补充须由负责人确认 exact 审阅卡后生效；summary 原 approved 与恢复卡 A 不能代替本补充确认。
+T01/T04/T05 历史、原 AC 与 source/installed 分层保留。此次仅消除主线基线落后，不扩大现场授权。
+
+- exact Issue #327、branch `change/327-broker-ff-integration`、owner `01a0fcec-eb78-7790-a36a-daea917f43d2`、
+  worktree `/private/tmp/issue-327-broker-ff-integration`；原 HEAD `bba5ea1790d4f8508746acb9a59ec99d39fbd4ab`；
+  canonical main `dc9aa468580f92a73dfa054c6f04ef5113f56694`。main 或 source/owner 漂移停下重新核对，不自动换 pin。
+- T06/G01 仅同步原14治理集合中的7路径：`03-Issue-Spec-Plan与单闸门开发流程.md`、
+  `04-Agent编排与定时任务.md`、`06-运维手册与踩坑集.md`、`README.md`、
+  `codex/skills/issue-session-flow/SKILL.md`、`skill-for-claude/issue-session-flow/SKILL.md`、
+  `skill-for-codex/references/private-gitea-access.md`。只应用 external receipt 固定 patch 中
+  main 已有 #286/#289/#316 段落，保持本分支 #327 T05 段落；明确将该基线同步纳入本 complex spec。
+  不改 `AGENTS.md` 或其余7原治理文件，不改 required CI、权限、Secret、provider 或部署合同。
+- 映射 summary/spec/plan 仅追加此授权与 frontier；原角色/front matter 路径、业务目标、AC-1～11与
+  已批准 source touch points 保留。external 卡、receipt 与 proposals 保留 exact bytes/hash，无自引用 commit SHA。
+- T06 独立治理-only 本地原子 commit（仅上述7文件与mapped summary/spec/plan），原32WIP先保全，
+  source字节/index不混入该commit；验证后立即 STOP。不得在该运行继续 runtime。
+- 后续 fresh run 重读 governing、该具体批准、mapped docs、Issue/comments/source/installed 能力后，
+  T02/R01 才能先作 pinned main 的无冲突纯基线 integration checkpoint；第一 parent 为本Issue旧tip，
+  第二 parent 为 exact main，tree 必须等于限定干净 merge；保留已发表/本地历史，不 rebase/force。
+  若纯基线整合出现冲突、tree不符或scope漂移则停止，不手工改进 integration commit。
+- 基线整合后按三方 preview 恢复未提交32WIP；唯一已知 `broker.py` 冲突保留 #327 authority dispatch
+  与 upstream #286 dependency / #316 operator-only credential dispatch，随后作独立source验证/原子commit。
+  此手工修复绝不混进纯 integration checkpoint；新增冲突/权限或合同决策必须升级。
+- source既有closure/dispatch/resources/Loop与旧13methods/16cases回归继续按T02完成；旧失败如实保留，
+  不改成统一CUSTODY_GAP、skip或移除guard。完整runtime与默认locale smoke在实质修复后重跑。
+- 本地checkpoint不是发表或启用许可；I01/I02/root/安装/Secret/socket/service/image/mount、remote mutation、
+  PR/merge/deploy 均无本补充授权。main保护、唯一manualPR、默认disabled与B01/I01/I02独立闸门保持。
+- 回退先停source活动，使用保全的 source-wip.tar、tracked-wip.patch 与完整HEAD bundle核对恢复；
+  保留已产生的本地checkpoint和回执，不删共享refs、不重写历史或丢WIP。无远端变动可回退。
