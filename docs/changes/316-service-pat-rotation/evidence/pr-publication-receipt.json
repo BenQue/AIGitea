@@ -1,0 +1,41 @@
+{
+  "issue": 316,
+  "branch": "change/316-service-pat-rotation",
+  "policy": "manual",
+  "number": 332,
+  "url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/332",
+  "initial_pr_head": "4658baa168838027559284bf211422e7fe5bcd21",
+  "backfill_head": "b6a01697024c729f7c47fcc4525fcd14dc3c083d",
+  "push_receipts": [
+    {
+      "checkout": "/private/tmp/issue-316-service-pat-rotation",
+      "identity": "aisoft-platform-agent",
+      "operation": "git.push.change",
+      "previous_head": null,
+      "project": "aisoft-platform",
+      "pushed_head": "4658baa168838027559284bf211422e7fe5bcd21",
+      "remote_name": "origin",
+      "session": "01a0fc7c-3835-7322-874e-c910518c5746",
+      "status": "PASS"
+    },
+    {
+      "checkout": "/private/tmp/issue-316-service-pat-rotation",
+      "identity": "aisoft-platform-agent",
+      "operation": "git.push.change",
+      "previous_head": "4658baa168838027559284bf211422e7fe5bcd21",
+      "project": "aisoft-platform",
+      "pushed_head": "b6a01697024c729f7c47fcc4525fcd14dc3c083d",
+      "remote_name": "origin",
+      "session": "01a0fc7c-3835-7322-874e-c910518c5746",
+      "status": "PASS"
+    }
+  ],
+  "authorization_receipt": "pr-submission-confirmation.json",
+  "required_context": "CI / verify (pull_request)",
+  "ci_at_publication": "PENDING (exact backfill head has no status/run yet)",
+  "state": "PR_OPEN_AWAITING_REQUIRED_CI",
+  "merged": false,
+  "installed_grant_live": "NOT RUN",
+  "attachment_ui": "UNSUPPORTED_GITEA_URL",
+  "boundary": "Subsequent publication-document-only commit keeps source unchanged; exact final head and CI receipt read back externally."
+}

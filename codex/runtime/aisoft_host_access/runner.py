@@ -299,3 +299,35 @@ class DependencyReader:
                 or any(not isinstance(label, str) or not label for label in value["labels"])):
             raise BrokerError("DEPENDENCY_RESPONSE_INVALID", "dependency broker identity is invalid")
         return value
+
+
+class CredentialRotationRunner:
+    """Independent operator surface; never attached to project/provider runners."""
+    def __init__(self, contract, project_id, *, command_runner=_default_runner):
+        contract.project(project_id)
+        operation = contract.operation('gitea.credential.rotate')
+        if operation.identity_route != 'credential-operator':
+            raise BrokerError('CONTRACT_INVALID', 'rotation operator route is invalid')
+        self.project_id = project_id
+        self.command_runner = command_runner
+
+    def rotate(self, issue, source_sha, token_kind):
+        issue = _positive_number(issue, 'authorization Issue')
+        if not isinstance(source_sha, str) or not COMMIT_SHA_RE.fullmatch(source_sha):
+            raise BrokerError('ARGUMENT_INVALID', 'exact merged source SHA required')
+        argv = [BROKER_EXECUTABLE, '--project', self.project_id, '--operation',
+                'gitea.credential.rotate', '--issue', str(issue), '--sha', source_sha,
+                '--token-kind', token_kind]
+        try:
+            value = self.command_runner(argv, cwd=os.path.realpath(os.getcwd()))
+            if value.returncode != 0:
+                raise ValueError()
+            receipt = json.loads(value.stdout)
+            if (not isinstance(receipt, dict) or receipt.get('operation') != 'gitea.credential.rotate'
+                    or receipt.get('project_id') != self.project_id or receipt.get('issue') != issue
+                    or receipt.get('source_sha') != source_sha or receipt.get('token_kind') != token_kind
+                    or receipt.get('status') != 'PASS' or receipt.get('result') not in ('rotated', 'no-op')):
+                raise ValueError()
+            return receipt
+        except Exception:
+            raise BrokerError('HOST_BROKER_FAILED', 'operator rotation receipt unavailable') from None

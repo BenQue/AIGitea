@@ -13,12 +13,15 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 6 and
-  .operation_count == 37 and
+  .operation_count == 38 and
   .merge_operation_count == 1
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 37) and
+  ([.operations[].name] | length == 38) and
+  ([.operations[] | select(.name == "gitea.credential.rotate")][0]
+    == {"name":"gitea.credential.rotate","identity_route":"credential-operator",
+        "mutating":true,"arguments":["issue","sha","token_kind"]}) and
   all(.operations[];
     ((.name | contains("merge") | not) or .name == "gitea.pull.merge.routine") and
     (.name | contains("shell") | not) and

@@ -1,0 +1,202 @@
+{
+  "issue": 316,
+  "branch": "change/316-service-pat-rotation",
+  "session": "01a0fc7c-3835-7322-874e-c910518c5746",
+  "old_head": "077ed9adaccbbf7241ea45081dfe443ac90f5b0a",
+  "integrated_head": "094c21fda5ff7625973181a2f2c512a1e1a25b83",
+  "fresh_main": "d647963bcfd6508c8c07baea8d3ef0e4e6a0e35d",
+  "replay_mapping": [
+    {
+      "before": "0bd65897d9e531c7e597888950f04884b256f0ad",
+      "after": "7292c66fca88a44751a9b393a5fe4aadb0473e6d",
+      "subject": "docs(#316): apply service PAT rotation governance contract"
+    },
+    {
+      "before": "6767fffca52490c8a43f517ab3e9d04018bb6d54",
+      "after": "c13dec320b0a868a0bd9ad4e5a5a72824941c1f5",
+      "subject": "feat(#316): add pinned exact-token PAT revocation helper"
+    },
+    {
+      "before": "0ffe6bda169d70bd89f48fa527635aa079a23bff",
+      "after": "8317ce020e1819c4a2a65d9f20727bc27241f2fb",
+      "subject": "fix(#316): bind helper build to verified toolchain archive"
+    },
+    {
+      "before": "a4eef2aa242aecd46eb0850e091b37bbe81efbfc",
+      "after": "9053ff28a651a61466e16d3786b3f9ec6e41a521",
+      "subject": "docs(#316): approve canonical Mac credential rotation custody"
+    },
+    {
+      "before": "69bb0e914f30253888737b32cc8602a58c36b127",
+      "after": "34dd1006b578657331deaca3d5a8861f24b25263",
+      "subject": "feat(#316 T03): implement guarded service PAT rotation transaction"
+    },
+    {
+      "before": "4643c3826ca6bcede5a5e81930debfcd8df0c9c8",
+      "after": "9443134d6ec56833d7a69dcbc534253a6cb5895e",
+      "subject": "test(#316 T04): gate pinned Linux helper and rotation CI checks"
+    },
+    {
+      "before": "fdbc7e79a54a9c8584957a83427192d0d20a91fb",
+      "after": "ddb926278cd2c35fe081b929e77fd8b172d6d018",
+      "subject": "docs(#316 T04): record fresh-main drift blocker and scoped repair proposal"
+    },
+    {
+      "before": "82bab79546b298a0776dc666b4fcbb30442930d2",
+      "after": "adcfbadad1f2a31435bd315fefc7b0d28e41961f",
+      "subject": "docs(#316 T04A): apply approved installed drift repair contract"
+    },
+    {
+      "before": "875fd3043c2e6959e1c509fe276a9e60870692cf",
+      "after": "ccdbe7319ae63d918be46e9b37b5f2d6956d99e6",
+      "subject": "fix(#316 T04B): cover rotation installer surfaces in readonly drift checks"
+    },
+    {
+      "before": "077ed9adaccbbf7241ea45081dfe443ac90f5b0a",
+      "after": "094c21fda5ff7625973181a2f2c512a1e1a25b83",
+      "subject": "docs(#316 T04B): record actual branch integration conflicts"
+    }
+  ],
+  "backup_bundle": {
+    "path": "/private/tmp/issue-316-build/t04-pre-integration-077ed9ad.bundle",
+    "sha256": "e292b86367803415f1e1a306881be24ee7487735dd7ed1253939574c1dbd8508"
+  },
+  "source_equivalence": {
+    "unchanged_issue_files": 41,
+    "files_with_upstream_integration_changes": [
+      "03-Issue-Spec-Plan与单闸门开发流程.md",
+      "06-运维手册与踩坑集.md",
+      "codex/tests/smoke.sh"
+    ]
+  },
+  "scope_files": [
+    ".gitea/workflows/ci.yml",
+    "03-Issue-Spec-Plan与单闸门开发流程.md",
+    "06-运维手册与踩坑集.md",
+    "codex/config/host-access-broker.json",
+    "codex/install-host-access-broker.sh",
+    "codex/runtime/aisoft_host_access/broker.py",
+    "codex/runtime/aisoft_host_access/cli.py",
+    "codex/runtime/aisoft_host_access/contract.py",
+    "codex/runtime/aisoft_host_access/credential_rotation.py",
+    "codex/runtime/aisoft_host_access/runner.py",
+    "codex/runtime/tests/rotation_cli_fixture.py",
+    "codex/runtime/tests/test_credential_rotation.py",
+    "codex/runtime/tests/test_host_access.py",
+    "codex/tests/fixtures/installed-drift/test-installed-drift.py",
+    "codex/tests/integration/test-gitea-pat-helper-process.py",
+    "codex/tests/smoke.sh",
+    "codex/tests/test-gitea-pat-helper-linux-gates.sh",
+    "codex/tests/test-gitea-pat-helper-linux.sh",
+    "codex/tests/test-host-access-broker.sh",
+    "codex/tests/test-install-host-access-broker.sh",
+    "codex/tests/test-rotate-gitea-service-account.sh",
+    "codex/tools/check-installed-drift.py",
+    "codex/tools/gitea-pat-helper/README.md",
+    "codex/tools/gitea-pat-helper/build-lock.json",
+    "codex/tools/gitea-pat-helper/build.py",
+    "codex/tools/gitea-pat-helper/go.mod",
+    "codex/tools/gitea-pat-helper/go.sum",
+    "codex/tools/gitea-pat-helper/helper.go",
+    "codex/tools/gitea-pat-helper/helper_test.go",
+    "codex/tools/gitea-pat-helper/main.go",
+    "codex/tools/gitea-pat-helper/process_fixture_test.go",
+    "codex/tools/gitea-pat-helper/test_build.py",
+    "codex/tools/rotate-gitea-service-account.md",
+    "codex/tools/rotate-gitea-service-account.sh",
+    "docs/changes/316-service-pat-rotation/evidence/t04-fresh-main-integration-block.json",
+    "docs/changes/316-service-pat-rotation/evidence/t04-installed-drift-extension-proposal.md",
+    "docs/changes/316-service-pat-rotation/evidence/t04a-contract-extension-approval.json",
+    "docs/changes/316-service-pat-rotation/evidence/t04b-fresh-main-source-fix.patch.gz",
+    "docs/changes/316-service-pat-rotation/evidence/t04b-local-validation.json",
+    "docs/changes/316-service-pat-rotation/evidence/t04b-two-axis-review.md",
+    "docs/changes/316-service-pat-rotation/plan-service-pat-rotation-261002.md",
+    "docs/changes/316-service-pat-rotation/spec-service-pat-rotation-261002.md",
+    "docs/changes/316-service-pat-rotation/summary-service-pat-rotation-261002.md",
+    "docs/changes/316-service-pat-rotation/verification-service-pat-rotation-261002.md"
+  ],
+  "main_ancestor": true,
+  "change_merge_commits": 0,
+  "owner_matches": true,
+  "required_contexts": [
+    "CI / verify (pull_request)"
+  ],
+  "main_direct_push": false,
+  "main_force_push": false,
+  "human_merge_only": true,
+  "push_pr_authorized": false,
+  "required_ci": "NOT RUN",
+  "installed": "NOT RUN",
+  "live": "NOT RUN",
+  "phase": "CONTROLLER_LOCAL_INTEGRATION_COMPLETE",
+  "handoff_state": "AWAITING_PR_CONFIRMATION",
+  "integration_authority": {
+    "user_request": "继续下一步",
+    "role": "owning Issue session interactive Controller phase",
+    "contract_reference": "03-Issue-Spec-Plan与单闸门开发流程.md: 单会话自己的 BASE_BRANCH_STALE 处置",
+    "previous_local_history_pushed": false
+  },
+  "verified_tree": "ed0b32375b9ea0eb8688a1d45e4b84574f5ef25a",
+  "resolved_conflicts": {
+    "type": "add/add",
+    "files": [
+      "codex/tools/check-installed-drift.py",
+      "codex/tests/fixtures/installed-drift/test-installed-drift.py"
+    ],
+    "resolution": "current main bytes verified against approved baseline; apply only exact approved gzip source delta",
+    "prior_source_hashes_preserved": true
+  },
+  "checks": {
+    "complete_smoke": {
+      "result": "PASS",
+      "exit_code": 0,
+      "locale": {
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "LC_CTYPE": "C.UTF-8"
+      },
+      "drift_fixture_tests": 34,
+      "release_tests": 197,
+      "runtime_tests": 1091,
+      "static_smoke": "PASS",
+      "bash_n": "PASS",
+      "shellcheck": "PASS",
+      "log": "t04-controller-integrated-smoke.log.gz",
+      "sha256": "f2f1d0e60f9d71c6c026f3a6b83552e8a46147b76d197cb8e84009aa59e5b02b",
+      "uncompressed_sha256": "048e280ec03070fb48fd08865c725aa230a25de8e406b5712dd5653914cb0ce7"
+    },
+    "source_only": {
+      "result": "PASS",
+      "installers": 8,
+      "source_identity": "GAP (valid unmerged source differs from cached main)",
+      "installed": "NOT ASSESSED"
+    },
+    "merge_preview": {
+      "result": "PASS",
+      "exit_code": 0,
+      "tree": "ed0b32375b9ea0eb8688a1d45e4b84574f5ef25a"
+    },
+    "documents": {
+      "result": "PASS",
+      "changes": 152,
+      "pass": 2,
+      "gap": 0
+    },
+    "scope": "PASS",
+    "classification": {
+      "result": "projected",
+      "change_type": "security",
+      "complexity": "complex",
+      "applied": false
+    },
+    "open_pr_for_exact_branch": 0,
+    "main_fresh_readback": "d647963bcfd6508c8c07baea8d3ef0e4e6a0e35d"
+  },
+  "remaining": [
+    "exact Issue/branch/manual final PR submission confirmation",
+    "real required PR CI",
+    "human merge",
+    "independent installed/grant/live acceptance; AC-2 NOT RUN"
+  ],
+  "final_head_boundary": "Verified source head is recorded above; the following receipt-only commit leaves source bytes unchanged. Exact post-commit candidate head is recorded in the external final PR handoff."
+}

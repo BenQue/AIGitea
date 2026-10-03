@@ -23,7 +23,7 @@ INSTALLER_PINS = {
     "codex/install-vm.sh": "e208d941e9ac72fa89380523325070adfe0d657c83e99f9c806554c25a4e6b42",
     "codex/install-skills.sh": "d07e38ba51e4f02f57820478626c9fc4d371b10265a0053df230028daafca9c3",
     "codex/install-host-role.sh": "325e5150722e30debc115c0717d9bc4dedac44e1a7552c3a2258df14c4b27c89",
-    "codex/install-host-access-broker.sh": "685fc3eae15dbcbe1658c5bad9d926f39fd4985f67590a9b51fee38204b193a9",
+    "codex/install-host-access-broker.sh": "72df0ff5540ab1bc2a6c9a10924fdd87d8854f7fc99eb35fbaa2db62039502f2",
     "architecture/install.sh": "c8f14f0154cad1b7402e527209d0135bab2bdf3bc0024f72fd06994067aa972e",
     "docker-release/install.sh": "3580c1e23b343fe9bbe2d3f9ea1b64b0f95ef1a7ba9c023c282bf5b68a649b13",
     "sync/install.sh": "153f36ef3396a053a4e4cbb8d6022a9f163b75b6f4c25498ba27ae3217d30f10",
@@ -32,6 +32,8 @@ INSTALLER_PINS = {
 # The versioned snapshot manifest is immutable. Validate content declarations
 # below as well; changing either contract requires explicit mapping maintenance.
 MATT_MANIFEST_PIN = "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da"
+HELPER_SOURCE_INPUTS = ("go.mod", "go.sum", "build-lock.json", "build.py", "main.go", "helper.go",
+                        "helper_test.go", "process_fixture_test.go")
 CONTROL_LINE_RE = re.compile(
     r"^(?:#{1,6}\s+|\d+[.)]\s+)"
     r"|\b(?:commit|push|merge|rebase|reset|force-push|deploy|permission|"
@@ -103,7 +105,7 @@ def checked_stat(path: Path, boundary: Path, *, link=False):
     return st
 
 
-def read_bytes(path: Path, boundary: Path) -> bytes:
+def read_bytes(path: Path, boundary: Path, *, limit=None) -> bytes:
     st = checked_stat(path, boundary)
     if not stat.S_ISREG(st.st_mode):
         raise InspectionError("not-regular", path)
@@ -116,7 +118,10 @@ def read_bytes(path: Path, boundary: Path) -> bytes:
         with os.fdopen(fd, "rb") as stream:
             if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
                 raise InspectionError("not-regular", path)
-            return stream.read()
+            data = stream.read() if limit is None else stream.read(limit + 1)
+            if limit is not None and len(data) > limit:
+                raise InspectionError("document-too-large", path)
+            return data
     except OSError:
         raise InspectionError("unreadable", path) from None
 
@@ -127,6 +132,114 @@ def read_json(path: Path, boundary: Path):
     except (ValueError, UnicodeError):
         # Never emit JSON contents or an exception containing Secret-like bytes.
         raise InspectionError("invalid-json", path) from None
+
+
+def strict_document(path: Path, boundary: Path):
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result:
+                raise ValueError("duplicate key")
+            result[key] = value
+        return result
+
+    def invalid_constant(_value):
+        raise ValueError("non-JSON constant")
+
+    try:
+        return json.loads(read_bytes(path, boundary, limit=1048576),
+                          object_pairs_hook=pairs, parse_constant=invalid_constant)
+    except (ValueError, UnicodeError, RecursionError):
+        raise InspectionError("invalid-json", path) from None
+
+
+def require(condition, reason: str, path: Path):
+    if not condition:
+        raise InspectionError(reason, path)
+
+
+def file_digest(path: Path, boundary: Path):
+    return hashlib.sha256(read_bytes(path, boundary)).hexdigest()
+
+
+def sha256_value(value):
+    return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
+
+
+@dataclass
+class RotationSurface:
+    metadata: Path
+    binary: Path
+    boundary: Path
+    files: dict[str, Path]
+
+    def validate_provenance(self, repo: Path, identity, public: Path, descriptor):
+        proof = strict_document(public, Path(public.anchor))
+        fields = {"schema", "toolchain", "toolchain_input", "platform", "gitea", "sha256",
+                  "go_mod_sha256", "go_sum_sha256", "build_info", "source_commit", "source_dirty", "source_sha256"}
+        require(isinstance(proof, dict) and set(proof) == fields, "helper-provenance-schema", public)
+        helper = repo / "codex/tools/gitea-pat-helper"
+        lock = read_json(helper / "build-lock.json", repo)
+        require(proof["schema"] == "aisoft-gitea-pat-helper-build/v1"
+                and proof["source_commit"] == identity["head"] and proof["source_dirty"] is False
+                and proof["toolchain"] == lock["version"] == "go1.26.3"
+                and proof["platform"] == descriptor["platform"]
+                and proof["gitea"] == lock["gitea"]
+                and lock["gitea"]["module"] == "code.gitea.io/gitea"
+                and lock["gitea"]["version"] == "v1.26.4"
+                and proof["sha256"] == descriptor["sha256"] and isinstance(proof["build_info"], str),
+                "helper-provenance-binding", public)
+        require(proof["go_mod_sha256"] == file_digest(helper / "go.mod", repo)
+                and proof["go_sum_sha256"] == file_digest(helper / "go.sum", repo)
+                and proof["source_sha256"] == {p.name: file_digest(p, repo)
+                     for p in directory_entries(helper, repo) if p.suffix == ".go"},
+                "helper-source-differ", public)
+        pins = [item for item in lock["files"] if item["os"] + "/" + item["arch"] == descriptor["platform"]]
+        inputs = proof["toolchain_input"]
+        require(isinstance(inputs, dict) and set(inputs) == {"filename", "sha256", "extracted_tree_sha256"}
+                and len(pins) == 1 and inputs["filename"] == pins[0]["filename"]
+                and inputs["sha256"] == pins[0]["sha256"] and sha256_value(inputs["extracted_tree_sha256"]),
+                "helper-toolchain-input-differ", public)
+        require(file_digest(self.binary, self.boundary) == proof["sha256"], "helper-bytes-differ", self.binary)
+        return proof["sha256"]
+
+    def inspect(self, repo: Path, identity, public: Path | None):
+        report = {"local_helper": "NOT_VERIFIED", "capability": "NOT_ASSESSED"}
+        try:
+            record = strict_document(self.metadata, self.boundary)
+            require(isinstance(record, dict) and set(record) == {"version", "source_sha", "merged_main", "files", "helper"}
+                    and type(record["version"]) is int and record["version"] == 1
+                    and type(record["merged_main"]) is bool, "rotation-metadata-schema", self.metadata)
+            require(record["source_sha"] == identity["head"] and identity["head"] is not None
+                    and record["merged_main"] is True and identity["head_is_cached_main_ancestor"]
+                    and identity["managed_source_matches_cached_main"], "rotation-source-binding", self.metadata)
+            require(isinstance(record["files"], dict) and set(record["files"]) == set(self.files),
+                    "rotation-files-schema", self.metadata)
+            for logical, source in self.files.items():
+                require(record["files"][logical] == file_digest(source, repo)
+                        == file_digest(self.boundary / logical.lstrip("/"), self.boundary),
+                        "rotation-file-digest-differ", self.metadata)
+            descriptor = record["helper"]
+            if descriptor is None:
+                report["local_helper"] = "LOCAL_HELPER_NOT_DECLARED"
+                require(public is None, "helper-not-selected", self.metadata)
+                # The installer preserves a previously copied binary when omitted.
+                # Its existence/bytes and remote VM capability are not assessed.
+            else:
+                require(isinstance(descriptor, dict)
+                        and set(descriptor) == {"sha256", "platform", "model", "toolchain"}
+                        and sha256_value(descriptor["sha256"])
+                        and descriptor["platform"] in {"linux/arm64", "linux/amd64"}
+                        and descriptor["model"] == "1.26.4" and descriptor["toolchain"] == "go1.26.3",
+                        "rotation-helper-schema", self.metadata)
+                require(public is not None, "helper-provenance-required", self.metadata)
+                digest = self.validate_provenance(repo, identity, public, descriptor)
+                report.update(local_helper="MATCHES_DECLARED_BUILD", sha256=digest,
+                              evidence_scope="DECLARED_BUILD_RECEIPT_ONLY")
+            return report, []
+        except (InspectionError, OSError, ValueError, KeyError, TypeError) as exc:
+            return report, [{"reason": exc.reason if isinstance(exc, InspectionError) else "rotation-definition-invalid",
+                             "target": str(exc.path) if isinstance(exc, InspectionError) else str(self.metadata)}]
 
 
 def read_link(path: Path, boundary: Path):
@@ -226,6 +339,7 @@ class Surface:
     metrics: dict[str, Metric] = field(default_factory=dict)
     also_checked_by: list[str] = field(default_factory=list)
     user_owned: list[str] = field(default_factory=list)
+    rotation: RotationSurface | None = None
 
 
 def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path):
@@ -281,8 +395,20 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
                                    ("install-host-access-broker", share / "host-access-broker.json", system)]:
         json_metric(name, "operations", "codex/config/host-access-broker.json", target, boundary, "operations")
     for tool in ("host-access-broker", "git-credential-aisoft-host", "project-profile-migration",
-                 "bootstrap-gitea-service-account", "rollback-gitea-routine-pilot"):
+                 "bootstrap-gitea-service-account", "rollback-gitea-routine-pilot", "rotate-gitea-service-account"):
         add("install-host-access-broker", "codex/tools/" + tool + ".sh", libexec / tool, system)
+    rotation_files = {
+        "/usr/local/share/aisoft/host-access-broker.json": repo / "codex/config/host-access-broker.json",
+        "/usr/local/share/aisoft/gitea-governance.json": repo / "codex/config/gitea-governance.json",
+        "/usr/local/lib/aisoft-host-access/aisoft_host_access/credential_rotation.py": repo / "codex/runtime/aisoft_host_access/credential_rotation.py",
+        "/usr/local/libexec/aisoft/rotate-gitea-service-account": repo / "codex/tools/rotate-gitea-service-account.sh",
+    }
+    surfaces["install-host-access-broker"].rotation = RotationSurface(
+        share / "credential-rotation-source.json", libexec / "gitea-pat-helper", system, rotation_files)
+    metadata_sources.update(rotation_files.values())
+    helper = repo / "codex/tools/gitea-pat-helper"
+    metadata_sources.update(helper / name for name in HELPER_SOURCE_INPUTS)
+    metadata_sources.update(p for p in directory_entries(helper, repo) if p.suffix == ".go")
     surfaces["install-host-access-broker"].absent = [(libexec / name, system) for name in ("keychain-acl-audit", "keychain-acl-audit.previous")]
     tree("install-vm", "codex/agent", agent, agent, "*.sh")
     tree("install-vm", "codex/systemd", home / ".config/systemd/user", home, "aisoft-agent@.*")
@@ -422,6 +548,35 @@ def validate_source(repo: Path, surfaces: list[Surface]):
             raise InspectionError("empty-source-surface", repo)
         for source, _target, _boundary in surface.files:
             read_bytes(source, repo)
+    # These are fixed dependencies of the generated/artifact verifier, rather
+    # than a legitimate PR adding/removing an optional installed module.
+    helper = repo / "codex/tools/gitea-pat-helper"
+    for name in HELPER_SOURCE_INPUTS:
+        read_bytes(helper / name, repo)
+    lock_path = helper / "build-lock.json"
+    lock = strict_document(lock_path, repo)
+    require(isinstance(lock, dict) and set(lock) == {"version", "files", "gitea"}
+            and lock["version"] == "go1.26.3" and isinstance(lock["files"], list),
+            "helper-lock-schema", lock_path)
+    model = lock["gitea"]
+    require(isinstance(model, dict) and set(model) == {"module", "version", "module_sum", "model_path", "model_sha256"}
+            and model["module"] == "code.gitea.io/gitea" and model["version"] == "v1.26.4"
+            and model["model_path"] == "models/auth/access_token.go"
+            and isinstance(model["module_sum"], str) and model["module_sum"].startswith("h1:")
+            and sha256_value(model["model_sha256"]), "helper-model-lock-invalid", lock_path)
+    platforms = set()
+    for item in lock["files"]:
+        require(isinstance(item, dict)
+                and set(item) == {"filename", "os", "arch", "version", "sha256", "size", "kind"}
+                and isinstance(item["os"], str) and isinstance(item["arch"], str)
+                and item["version"] == "go1.26.3" and sha256_value(item["sha256"])
+                and type(item["size"]) is int and item["size"] > 0 and item["kind"] == "archive"
+                and item["filename"] == f"go1.26.3.{item['os']}-{item['arch']}.tar.gz",
+                "helper-toolchain-lock-invalid", lock_path)
+        platform = item["os"] + "/" + item["arch"]
+        require(platform not in platforms, "helper-toolchain-lock-invalid", lock_path)
+        platforms.add(platform)
+    require({"linux/arm64", "linux/amd64"} <= platforms, "helper-linux-lock-missing", lock_path)
 
 
 def source_identity(repo: Path, sources: set[Path]):
@@ -435,6 +590,7 @@ def source_identity(repo: Path, sources: set[Path]):
                            env=git_env)
         return p.returncode, p.stdout.strip()
     result = {"checkout": str(repo), "head": None, "cached_origin_main": None,
+              "head_is_cached_main_ancestor": False,
               "managed_source_matches_cached_main": False,
               "remote_freshness": "EXTERNAL_EVIDENCE_REQUIRED"}
     try:
@@ -445,12 +601,14 @@ def source_identity(repo: Path, sources: set[Path]):
         if rc == 0:
             result["cached_origin_main"] = cached
         if result["head"] and result["cached_origin_main"]:
+            result["head_is_cached_main_ancestor"] = git("merge-base", "--is-ancestor", head, cached)[0] == 0
             paths = sorted(str(p.relative_to(repo)) for p in sources)
             # Fixed tree roots also cover a wholly removed package/skill; deriving
             # roots from surviving files would silently omit that deletion.
             scopes = {"codex/runtime/" + name for name in ("aisoft_loop", "aisoft_host_access",
                       "aisoft_gitea_governance", "aisoft_architecture", "aisoft_release")}
             scopes.update({"codex/agent", "codex/systemd", "codex/skills", "skill-for-codex",
+                           "codex/tools/gitea-pat-helper",
                            "codex/vendor/mattpocock", "docker-release/schema",
                            "docker-release/compatibility", "sync/systemd"})
             scopes.update("architecture/" + name for name in ("profiles", "schemas", "templates", "decisions"))
@@ -479,7 +637,7 @@ def source_identity(repo: Path, sources: set[Path]):
     return result
 
 
-def inspect_surface(surface: Surface, repo: Path):
+def inspect_surface(surface: Surface, repo: Path, identity=None, public=None):
     gaps = []
 
     def gap(reason, path, **extra):
@@ -536,32 +694,48 @@ def inspect_surface(surface: Surface, repo: Path):
         except (InspectionError, OSError) as exc:
             gap(exc.reason if isinstance(exc, InspectionError) else "unreadable", metric.targets[0], quantity=name)
         quantities[name] = {"expected": metric.expected, "installed": actual}
+    rotation = {}
+    if surface.rotation is not None:
+        rotation, rotation_gaps = surface.rotation.inspect(repo, identity, public)
+        gaps.extend(rotation_gaps)
     return {"installer": surface.installer, "scope": "INSTALLED", "result": "GAP" if gaps else "PASS",
             "expected_files": len(surface.files), "expected_links": len(surface.links),
             "quantities": quantities, "gaps": gaps, "also_checked_by": surface.also_checked_by,
-            "user_owned_not_read": surface.user_owned}
+            "user_owned_not_read": surface.user_owned, **({"rotation": rotation} if surface.rotation else {})}
 
 
 def absolute(value: str) -> Path:
     if not Path(value).is_absolute():
         raise argparse.ArgumentTypeError("paths must be absolute")
-    return Path(value).resolve()
+    # Lexical normalization: source-only must not probe declared target roots.
+    return Path(os.path.normpath(value))
+
+
+def public_provenance(value: str) -> Path:
+    path = absolute(value)
+    if path.name != "gitea-pat-helper.provenance.json" or ".." in Path(value).parts:
+        raise argparse.ArgumentTypeError("expected absolute public gitea-pat-helper.provenance.json path")
+    return path
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=absolute, default=Path(__file__).resolve().parents[2])
-    parser.add_argument("--target-home", type=absolute, default=Path.home().resolve())
+    parser.add_argument("--target-home", type=absolute, default=Path.home())
     parser.add_argument("--install-root", type=absolute, default=Path("/"))
     parser.add_argument("--agent-dir", type=absolute)
     parser.add_argument("--architecture-prefix", type=absolute)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--source-only", action="store_true")
+    parser.add_argument("--pat-helper-provenance", type=public_provenance)
     args = parser.parse_args(argv)
     roots = {"repo": args.repo, "target_home": args.target_home, "install_root": args.install_root,
              "agent_dir": args.agent_dir or args.target_home / "agent",
              "architecture_prefix": args.architecture_prefix or args.install_root / "usr/local"}
     report = {"mode": "source-only" if args.source_only else "installed", "roots": {k: str(v) for k, v in roots.items()}, "installers": []}
+    if args.pat_helper_provenance is not None:
+        report["public_provenance"] = {"path": str(args.pat_helper_provenance),
+                                       "access": "NOT_READ_SOURCE_ONLY" if args.source_only else "DECLARED_INPUT"}
     try:
         surfaces, sources = build_surfaces(*roots.values())
         validate_source(args.repo, surfaces)
@@ -573,7 +747,7 @@ def main(argv=None):
                 report["installers"].append({"installer": surface.installer, "scope": "SOURCE", "result": "PASS",
                     "expected_files": len(surface.files), "quantities": {n: {"expected": m.expected} for n, m in surface.metrics.items()}})
         else:
-            report["installers"] = [inspect_surface(s, args.repo) for s in surfaces]
+            report["installers"] = [inspect_surface(s, args.repo, identity, args.pat_helper_provenance) for s in surfaces]
             by_name = {row["installer"]: row for row in report["installers"]}
             for surface in surfaces:
                 for dependency in surface.also_checked_by:
@@ -596,8 +770,12 @@ def main(argv=None):
     else:
         print("SOURCE " + json.dumps(report.get("source", report.get("error", {})), ensure_ascii=False))
         print("ROOTS " + json.dumps(report["roots"], ensure_ascii=False))
+        if "public_provenance" in report:
+            print("PUBLIC_PROVENANCE " + json.dumps(report["public_provenance"], ensure_ascii=False))
         for row in report["installers"]:
             print(f"{row['scope']} {row['result']}: {row['installer']} " + json.dumps(row["quantities"], ensure_ascii=False))
+            if "rotation" in row:
+                print("  ROTATION " + json.dumps(row["rotation"], ensure_ascii=False))
             for gap in row.get("gaps", []):
                 print("  GAP " + json.dumps(gap, ensure_ascii=False))
         print("RESULT " + report["result"])
