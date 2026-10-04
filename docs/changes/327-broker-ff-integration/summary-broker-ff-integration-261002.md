@@ -156,3 +156,15 @@ required entitlement及冻结签名artifact是新增安全边界，不能从T07�
 T08（具体确认后三合同已独立应用、校验、localcommit并STOP；仅治理完成，非observer能力）
 → 独立三合同/校验/localcommit/STOP → fresh T02原source与新observer受控实现 → T03。
 本卡不执行签名、申请entitlement、安装、ES client或host enable；真实外部能力保持未来独立exact卡。
+
+
+## T09 待裁决的Mac执行证明
+
+T08治理已于c9a9154436a8ae3ea277d176389f9854833a74b5独立完成并STOP；fresh T02已继续原source。
+当前新增量只绑定三provenance digest到独立held pins，并修正OS只读数据的精确mode期望。
+完整闭包/同FD调度/observer与installed能力仍GAP，T02保持in-progress，T03 pending。
+Mac interpreter的canonical执行与held FD绑定证明尚需具体安全裁决；参见mapped spec的T09候选。
+负责人可以保留严格门，也可具体审阅并决定是否接受该方案的interpreter/loader初始化窗口。
+旧T08批准不自动授权后者；source/unsigned fixture与SDK声明均不作kernel验收。
+T09（具体确认后三合同已独立应用、校验、localcommit并STOP；仅治理完成）
+→ 独立三合同/校验/localcommit/STOP → fresh T02原scope → T03；B01/I01/I02仍独立。

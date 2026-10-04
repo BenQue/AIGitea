@@ -485,3 +485,65 @@ T08独立步骤只修改本目录mapped summary/spec/plan三文件，检查语�
 后续fresh run重读批准/合同/owner/main/source/live Issue/installed后才进入上述T02 source。
 未确认本卡前停于该新增安全边界；已完成T07/四行source提交不重问，原其它source合同保留。
 所有完整闭包、source全回归、旧13方法16cases合法迁移、B01唯一manual PR和未来I01/I02门不放宽。
+
+
+## T09 候选：Mac interpreter 的执行对象与 held FD 绑定
+
+本节待负责人具体裁决，T08批准不覆盖本项。当前完整闭包/同FD调度门仍关闭；
+下述路径执行方案只形成待审合同，不是已经安全、已实现或已验收的能力。
+本机SDK未提供fexecve/execveat入口，普通用户的/dev/fd执行探针返回EACCES；
+这些仅证明已检查入口/已测试路径，不能推断所有Mac同FD技术均不可能。
+现有合同同时写canonical regular target与同FD证明，未明确解释器exec原语，
+不可将路径稳定性检查自行当成同FD执行。本节只具体化这一个新增安全选择。
+
+### 可选择的执行证明与剩余风险
+
+负责人可保持原严格门并保留Mac TOOLCHAIN_CLOSURE_GAP；这不需重复批准T08，
+也不等于T02完成。另一选择是明确接受本节的Mac限定方案：解释器通过固定canonical
+regular路径exec，同一native supervisor保留原验收FD，并将kernel NOTIFY_EXEC目标
+与held FD绑定；平台Python源码仍必须从同一已验收FD的bytes加载，不能重新从路径/pyc读取。
+Linux原FD执行要求不变。该方案不是fexecve，不能声称内核从held executable FD取像。
+
+路径exec可能先执行interpreter/loader初始化，NOTIFY_EXEC核对及seed阻塞不能追溯阻止
+这段执行；ES的stat/signing字段也不证明所有代码页已验证。原root/OS管理员主动改写
+不在非root攻击承诺内，但OS更新/管理员造成的真实漂移仍须拒绝后续活动，并报告可能
+已启动解释器/loader，不能报告零执行。若负责人不接受此窗口，或完整冻结TCB、
+immutable root目录/文件及其动态闭包无法独立成立，本方案不得实施或打开执行门。
+本节不放宽root custody、全量hash/inventory、签名来源、accepted OS matrix或资源门。
+
+### 放行前必须同时成立的条件
+
+1. native预检完成原全闭包/冻结build与dependency/OS matrix语义，持有实际FD；
+   interpreter为固定canonical regular文件，root所有、父链不可被非root改写，
+   nlink/mode/size/hash及dev/inode/mtime/ctime在launch前全部复核。未知动态加载、
+   alias/cache、snapshot immutability或文件替换均GAP，无PATH/未知shim/exec路径fallback。
+2. 只使用T08已限定的真实es_new_descendants_client、签名artifact和fork/exec/exit通知。
+   在子进程创建前建立client和完整subscription/无未知muting证明；将本次子进程实际
+   audit PID+pidversion、native生成的generation/lease nonce与FD验收状态绑定。
+   只取必要exec目标file stat与身份，不读/记录argv、env、文件内容、其它进程或AUTH数据。
+3. 固定-ISB interpreter的compiled seed在任何平台模块导入前阻塞；native只通过自己
+   创建的固定私有channel传递批准的FD表与bytes。channel不是public参数或caller FD，
+   不接受caller PID/退出码/PASS/capability Boolean；关闭其它敏感继承FD，角色和注册UID不变。
+   interpreter初始runtime/stdlib及loader仍属于先验冻结TCB，不能把seed当作main前全拦截。
+4. native核对kernel EXEC target的实际对象身份、可用stat字段及前后held FD稳定性，
+   对同一FD重hash；要求已知fork→exec身份转换、nonce与活动匹配。路径、身份、
+   截断、字段/版本未知、重复exec、订阅/sequence gap、client中断或deadline耗尽均
+   quarantine，不向seed发放行。只有这组证据与原grant/resource门全部有效才允许平台导入。
+5. 放行后每critical活动仍重验全闭包、真实observer及对象绑定；发生loss/漂移即停止
+   新活动并保留lease/budget/objects/proof，报告真实phase/possible_write。未知后代
+   不以leader退出/empty queue/killpg认定完成，不自动detach/删除/重pin R0或再次publish。
+
+上述条件的任一实现或真实能力缺口保持GAP；不能仅凭contract/model PASS放开当前无条件门。
+I02必须在原每主机exact卡下实证canonical替换/修改、exec身份与PID复用、短命/reexec、
+初始化窗口、seed前拒绝、late-import同FD bytes、loss/timeout/quarantine及资源保全。
+源码阶段只做模型、unsigned/nonroot构建与拒绝测试，不调用实际ES或改变系统权限。
+
+### exact源范围和治理STOP
+
+本补充不增加source文件，仍仅使用T08表的9个现有文件；不新增public role/argv/API/schema字段，
+private profile v2、public/registry默认关闭、Linux和既有B01/I01/I02卡边界保持。
+确认若采用本方案，T09先独立只应用mapped summary/spec/plan三合同；校验/本地原子commit后STOP，
+仅在实际成功时投影T09 row与summary frontier各一行。失败保存证据并只撤回本次三文档/index。
+随后fresh T02重新读具体批准/合同/owner/main/source/live Issue/installed，先完整闭包与本节
+对象绑定，再observer/resources/authority/FF、原installer-drift与旧回归。旧T01–T08历史不改。
+这次确认不授权ES实际调用、签名/资格/Secret、安装/注册/服务/挂载、远端push/PR/merge或部署。

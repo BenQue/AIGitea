@@ -33,7 +33,8 @@ status: approved
 | T06 | exact卡确认后仅同步7个main治理段落与mapped summary/spec/plan；验证/本地commit后STOP | T05 | completed |
 | T07 | 具体确认后仅补充 mapped summary/spec/plan 的固定 Python3.9 兼容 scope；文档校验/本地原子commit/STOP | T06 | completed |
 | T08 | 具体确认Mac observer安全与签名选择后仅三合同/校验/localcommit/STOP；不执行新source或host能力 | T07 | completed |
-| T02 | T08后fresh重读；T07四行实际提交已完成；续原全closure/同FD、observer/resources、authority/FF、惰性安装漂移与旧回归迁移 | T08 | in-progress |
+| T09 | 具体裁决Mac interpreter执行对象绑定；仅三合同校验/localcommit/STOP，不作source或host能力证明 | T08 | completed |
+| T02 | T09后fresh重读；保留原source WIP，先全closure/受控执行对象绑定，再observer/resources/authority/FF、原installer-drift与旧回归 | T09 | in-progress |
 | T03 | 集成/全量/静态/文档验收、source与installed分层、人工firstPR/安装rollback卡，准备唯一manualPR候选 | T02 | pending |
 
 本聊天负责人直接“批准”审阅卡绑定的具体安全合同；本轮仅独立T05治理应用、验证/localcommit后STOP。T01/T04历史完成保留，T05 completed仅指治理文本步骤，不指新增source/主机验收。T02 in-progress是已保全WIP；后续fresh重读新governing/批准/Issue/installed才继续，当前run不得进入runtime。
@@ -142,3 +143,14 @@ private Mac profile v2、签名artifact/closure绑定和拒绝条件。无真实
 先完成原native全闭包/同FD调度，再推进observer/资源/authority/完整内容/FF/惰性installer-drift与旧回归迁移；
 不把source模型/unsigned build/fixture PASS当root或signed/installed能力。每shell改动保持完整默认smoke/static门。
 未来I01/I02的签名来源/kernel/安装/权限必须独立exact卡；T08只批准治理和fresh source，不授权host改变。
+
+
+## T09 待裁决步骤
+
+本行依赖仅在负责人接受mapped spec T09的Mac限定执行证明后执行；保留严格门时不应用本候选，
+不把GAP改成PASS，不重复请求T08权限。采用本方案须先独立三合同治理，检查before/candidate/完成
+投影SHA及33 source WIP/17治理/owner/index保全；resolver/semantic/graph全部通过后，只投影T09 row
+与summary frontier各一行，唯一三文档本地commit并STOP。未确认不改实际合同/source执行门。
+fresh T02只用原T08的9个source文件，落实完整冻结TCB、native实际exec对象核对和平台导入前seed门；
+Linux、private/public schema、原scope及独立B01/I01/I02保持。每shell变动实跑默认smoke/static；
+模型/unsigned/nonroot证据与真实kernel/签名/安装分层，任何缺口继续fail closed。
