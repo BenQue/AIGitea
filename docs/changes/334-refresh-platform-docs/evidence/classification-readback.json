@@ -1,0 +1,11 @@
+{
+  "issue": 334,
+  "project": "aisoft-platform",
+  "repository": "aisoft-platform",
+  "action": "verify",
+  "applied": false,
+  "detail": "Issue #334 carries the classification its merged summary declares",
+  "result": "projected",
+  "change_type": "docs",
+  "complexity": "small"
+}

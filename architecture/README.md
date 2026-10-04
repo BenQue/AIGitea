@@ -68,7 +68,8 @@ CLI 与 `codex/tools/aisoft-project-check.sh` 都从**脚本所在平台 checkou
 > architecture/CLI 与 release reader 集成回归已通过；固定 release evidence 的 exact pin
 > 已在 T05 受控同步。T06 已受控应用 installed-drift fixture 基线隔离，专项测试通过；
 > fresh run 的完整 smoke/runtime 本地验收均通过（详见 #288 verification）；
-> 最终 PR/required CI/安装与部署未执行。
+> source 已随 [PR #328](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/328) 于 2026-10-02 合并；
+> 提交前验证快照保留在 #288 verification。安装、下游采用与部署仍须独立验收。
 
 容器交付 declaration 在既有 `oci-image` component 之外，必须增加非空、去重的 `dockerfiles`
 数组，列出该构建使用的全部 Dockerfile。路径以应用仓库根为基准，使用相对 POSIX 形式，例如：

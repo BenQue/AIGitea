@@ -1,6 +1,6 @@
 # 04 · Matt skills 与 Development Loop 编排
 
-> v3.6 source contract（更新 2026-08-26）。共享 controller 在 PR 提交确认前进入持久 `AWAITING_PR_CONFIRMATION`；manual 路径保持人工合并，repository opt-in 的 routine small 可经独立 merger 与 broker hard gate 合并。每项目安装、credential、live protection、CI 和部署仍分别验收。
+> v3.6 source contract（文档核对 2026-10-04；稳定源码基线与未验收边界见 [README](README.md)）。共享 controller 在 PR 提交确认前进入持久 `AWAITING_PR_CONFIRMATION`；manual 路径保持人工合并，repository opt-in 的 routine small 可经独立 merger 与 broker hard gate 合并。每项目安装、credential、live protection、CI 和部署仍分别验收。
 
 ## 1. 设计原则
 

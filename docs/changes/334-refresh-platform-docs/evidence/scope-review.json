@@ -1,0 +1,37 @@
+{
+  "baseline": "dc9aa468580f92a73dfa054c6f04ef5113f56694",
+  "changed_existing_files": [
+    "01-基础设施-VM-Gitea-Runner.md",
+    "03-Issue-Spec-Plan与单闸门开发流程.md",
+    "04-Agent编排与定时任务.md",
+    "07-内网与生产平移路线.md",
+    "08-双工具共存与实施.md",
+    "09-v3平台简化与Loop-Engineering文档改造规划.md",
+    "12-Linux-GitHub-Gitea-双服务器自动部署方案.md",
+    "README.md",
+    "architecture/README.md",
+    "codex/tools/gitea-pat-helper/README.md"
+  ],
+  "protected_paths_unchanged": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "codex/skills",
+    "skill-for-codex",
+    "skill-for-claude",
+    "codex/runtime",
+    "codex/config",
+    "codex/tests",
+    "codex/lib",
+    "templates",
+    ".gitea",
+    "docker-release",
+    "architecture/catalog.json",
+    "architecture/profiles",
+    "company-delivery",
+    "platform-bootstrap",
+    "sync"
+  ],
+  "readme_confirm_before_push": true,
+  "scope_result": "PASS",
+  "whitespace_result": "PASS"
+}
