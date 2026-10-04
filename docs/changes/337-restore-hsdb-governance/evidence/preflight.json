@@ -1,0 +1,521 @@
+{
+  "read_at": "2026-10-04T22:09:24.194545+08:00",
+  "owner_session": "01a10739-4622-7be1-ba10-0a92d8fc9905",
+  "mutation": false,
+  "credential_values_printed": false,
+  "records": [
+    {
+      "name": "platform-open-issues",
+      "command": [
+        "/usr/local/libexec/aisoft/host-access-broker",
+        "--project",
+        "aisoft-platform",
+        "--operation",
+        "gitea.issue.list",
+        "--state",
+        "open"
+      ],
+      "exit_code": 0,
+      "response": {
+        "count": 3,
+        "issues": [
+          {
+            "created_at": "2026-10-04T21:29:22+08:00",
+            "labels": [
+              "triage/needs-triage"
+            ],
+            "number": 336,
+            "state": "open",
+            "title": "feat(broker): 完整分页 PR 读取与公开 namespace 证明",
+            "updated_at": "2026-10-04T21:29:22+08:00"
+          },
+          {
+            "created_at": "2026-10-03T16:04:33+08:00",
+            "labels": [
+              "approved",
+              "complexity/complex",
+              "triage/needs-triage",
+              "type/security"
+            ],
+            "number": 333,
+            "state": "open",
+            "title": "ops(credentials): #316 源码合并后的安装与 PAT 轮换现场验收",
+            "updated_at": "2026-10-04T21:29:22+08:00"
+          },
+          {
+            "created_at": "2026-10-02T22:01:09+08:00",
+            "labels": [
+              "triage/needs-triage"
+            ],
+            "number": 327,
+            "state": "open",
+            "title": "governance(broker): 提供保留历史的 main 整合与 FF 发布路径",
+            "updated_at": "2026-10-04T21:29:22+08:00"
+          }
+        ],
+        "pull_requests_excluded": 0,
+        "state": "open"
+      },
+      "stderr": ""
+    },
+    {
+      "name": "platform-open-prs",
+      "command": [
+        "/usr/local/libexec/aisoft/host-access-broker",
+        "--project",
+        "aisoft-platform",
+        "--operation",
+        "gitea.pulls.read",
+        "--state",
+        "open"
+      ],
+      "exit_code": 0,
+      "response": [],
+      "stderr": ""
+    },
+    {
+      "name": "platform-access",
+      "command": [
+        "/usr/local/libexec/aisoft/host-access-broker",
+        "--project",
+        "aisoft-platform",
+        "--operation",
+        "host.access.audit"
+      ],
+      "exit_code": 0,
+      "response": {
+        "credential_store": {
+          "directory_mode": "700",
+          "file_mode": "600",
+          "manager_audit": {
+            "identity": "aisoft-platform-manager",
+            "kind": "protected-file",
+            "scope": "platform-manager-audit"
+          },
+          "manager_mutation": {
+            "identity": "aisoft-platform-manager",
+            "kind": "protected-file",
+            "scope": "platform-manager-mutation"
+          },
+          "path_disclosure": "DENIED",
+          "project_agent": {
+            "identity": "aisoft-platform-agent",
+            "kind": "protected-file",
+            "scope": "project:aisoft-platform"
+          },
+          "routine_merge_agent": {
+            "enabled": false,
+            "identity": null,
+            "kind": "protected-file",
+            "scope": "project:aisoft-platform:routine-merge"
+          }
+        },
+        "identities": {
+          "manager_audit": "aisoft-platform-manager",
+          "manager_mutation": "aisoft-platform-manager",
+          "project_agent": "aisoft-platform-agent"
+        },
+        "operation": "host.access.audit",
+        "project": "aisoft-platform",
+        "protection": {
+          "block_admin_merge_override": true,
+          "branch": "main",
+          "can_force_push": false,
+          "can_push": false,
+          "enable_status_check": true,
+          "merge_whitelist_usernames": [
+            "admin"
+          ],
+          "required_approvals": 0,
+          "status_check_contexts": [
+            "CI / verify (pull_request)"
+          ]
+        },
+        "repository_permission": {
+          "manager": "admin",
+          "project_agent": "write"
+        },
+        "routine_merge": {
+          "account_state": "not-enabled",
+          "actual_token_scopes": null,
+          "credential": {
+            "kind": "protected-file",
+            "path_disclosure": "DENIED",
+            "state": "not-enabled"
+          },
+          "cross_project_permissions": [],
+          "cross_project_write_violations": [],
+          "enabled": false,
+          "expected_token_scopes": [
+            "write:repository",
+            "read:user"
+          ],
+          "identity": null,
+          "merge_allowlist_state": "converged",
+          "repository_permission": "not-enabled"
+        },
+        "status": "PASS",
+        "token_scopes": {
+          "manager_audit": [
+            "read:issue",
+            "read:repository",
+            "read:user"
+          ],
+          "manager_mutation": [
+            "read:user",
+            "write:issue",
+            "write:repository"
+          ],
+          "project_agent": [
+            "read:user",
+            "write:issue",
+            "write:repository"
+          ]
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "name": "platform-onboarding",
+      "command": [
+        "/usr/local/libexec/aisoft/host-access-broker",
+        "--project",
+        "aisoft-platform",
+        "--operation",
+        "host.onboarding.check"
+      ],
+      "exit_code": 0,
+      "response": {
+        "access": {
+          "credential_store": {
+            "directory_mode": "700",
+            "file_mode": "600",
+            "manager_audit": {
+              "identity": "aisoft-platform-manager",
+              "kind": "protected-file",
+              "scope": "platform-manager-audit"
+            },
+            "manager_mutation": {
+              "identity": "aisoft-platform-manager",
+              "kind": "protected-file",
+              "scope": "platform-manager-mutation"
+            },
+            "path_disclosure": "DENIED",
+            "project_agent": {
+              "identity": "aisoft-platform-agent",
+              "kind": "protected-file",
+              "scope": "project:aisoft-platform"
+            },
+            "routine_merge_agent": {
+              "enabled": false,
+              "identity": null,
+              "kind": "protected-file",
+              "scope": "project:aisoft-platform:routine-merge"
+            }
+          },
+          "identities": {
+            "manager_audit": "aisoft-platform-manager",
+            "manager_mutation": "aisoft-platform-manager",
+            "project_agent": "aisoft-platform-agent"
+          },
+          "operation": "host.access.audit",
+          "project": "aisoft-platform",
+          "protection": {
+            "block_admin_merge_override": true,
+            "branch": "main",
+            "can_force_push": false,
+            "can_push": false,
+            "enable_status_check": true,
+            "merge_whitelist_usernames": [
+              "admin"
+            ],
+            "required_approvals": 0,
+            "status_check_contexts": [
+              "CI / verify (pull_request)"
+            ]
+          },
+          "repository_permission": {
+            "manager": "admin",
+            "project_agent": "write"
+          },
+          "routine_merge": {
+            "account_state": "not-enabled",
+            "actual_token_scopes": null,
+            "credential": {
+              "kind": "protected-file",
+              "path_disclosure": "DENIED",
+              "state": "not-enabled"
+            },
+            "cross_project_permissions": [],
+            "cross_project_write_violations": [],
+            "enabled": false,
+            "expected_token_scopes": [
+              "write:repository",
+              "read:user"
+            ],
+            "identity": null,
+            "merge_allowlist_state": "converged",
+            "repository_permission": "not-enabled"
+          },
+          "status": "PASS",
+          "token_scopes": {
+            "manager_audit": [
+              "read:issue",
+              "read:repository",
+              "read:user"
+            ],
+            "manager_mutation": [
+              "read:user",
+              "write:issue",
+              "write:repository"
+            ],
+            "project_agent": [
+              "read:user",
+              "write:issue",
+              "write:repository"
+            ]
+          }
+        },
+        "checkout": {
+          "binding": "PASS",
+          "remote_name": "origin",
+          "remote_url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform.git"
+        },
+        "operation": "host.onboarding.check",
+        "project": "aisoft-platform",
+        "status": "PASS"
+      },
+      "stderr": ""
+    },
+    {
+      "name": "hsdb-installed-denial",
+      "command": [
+        "/usr/local/libexec/aisoft/host-access-broker",
+        "--project",
+        "hsdb",
+        "--operation",
+        "gitea.repo.read"
+      ],
+      "exit_code": 20,
+      "response": "",
+      "stderr": "{\"code\": \"REQUEST_DENIED\", \"message\": \"requested project is not explicitly managed\", \"status\": \"BLOCKED_EXTERNAL\"}"
+    },
+    {
+      "name": "hsdb-repository",
+      "command": [
+        "/usr/local/bin/orb",
+        "-m",
+        "gitea-ci",
+        "-u",
+        "benque",
+        "bash",
+        "-lc",
+        "set -euo pipefail\nexport GITEA_URL=http://127.0.0.1:3000 GITEA_OWNER=admin GITEA_REPO=HSDB GITEA_EXPECT_OWNER=admin GITEA_EXPECT_REPO=HSDB GITEA_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt\n/mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/gitea-readonly.sh repo | jq '{full_name,private,archived,default_branch,default_delete_branch_after_merge,has_actions,open_issues_count,open_pr_counter}'"
+      ],
+      "exit_code": 0,
+      "response": {
+        "full_name": "admin/HSDB",
+        "private": true,
+        "archived": false,
+        "default_branch": "main",
+        "default_delete_branch_after_merge": true,
+        "has_actions": true,
+        "open_issues_count": 2,
+        "open_pr_counter": 0
+      },
+      "stderr": ""
+    },
+    {
+      "name": "hsdb-live-main",
+      "command": [
+        "/usr/local/bin/orb",
+        "-m",
+        "gitea-ci",
+        "-u",
+        "benque",
+        "bash",
+        "-lc",
+        "set -euo pipefail\nexport GITEA_URL=http://127.0.0.1:3000 GITEA_OWNER=admin GITEA_REPO=HSDB GITEA_EXPECT_OWNER=admin GITEA_EXPECT_REPO=HSDB GITEA_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt\n/mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/gitea-readonly.sh branches/main | jq '{name,commit:{id:.commit.id},protected}'"
+      ],
+      "exit_code": 0,
+      "response": {
+        "name": "main",
+        "commit": {
+          "id": "6114c912310bbaf281bbfe77743abd8cff99087d"
+        },
+        "protected": true
+      },
+      "stderr": ""
+    },
+    {
+      "name": "hsdb-main-protection",
+      "command": [
+        "/usr/local/bin/orb",
+        "-m",
+        "gitea-ci",
+        "-u",
+        "benque",
+        "bash",
+        "-lc",
+        "set -euo pipefail\nexport GITEA_URL=http://127.0.0.1:3000 GITEA_OWNER=admin GITEA_REPO=HSDB GITEA_EXPECT_OWNER=admin GITEA_EXPECT_REPO=HSDB GITEA_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt\n/mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/gitea-readonly.sh branch_protections | jq 'map({branch_name,rule_name,enable_push,enable_force_push,enable_push_whitelist,push_whitelist_usernames,enable_merge_whitelist,merge_whitelist_usernames,enable_status_check,status_check_contexts,required_approvals,block_admin_merge_override,block_on_outdated_branch})'"
+      ],
+      "exit_code": 0,
+      "response": [
+        {
+          "branch_name": "main",
+          "rule_name": "main",
+          "enable_push": false,
+          "enable_force_push": false,
+          "enable_push_whitelist": false,
+          "push_whitelist_usernames": [],
+          "enable_merge_whitelist": true,
+          "merge_whitelist_usernames": [
+            "admin"
+          ],
+          "enable_status_check": true,
+          "status_check_contexts": [
+            "CI / test (pull_request)"
+          ],
+          "required_approvals": 0,
+          "block_admin_merge_override": true,
+          "block_on_outdated_branch": false
+        }
+      ],
+      "stderr": ""
+    },
+    {
+      "name": "hsdb-agent-permission",
+      "command": [
+        "/usr/local/bin/orb",
+        "-m",
+        "gitea-ci",
+        "-u",
+        "benque",
+        "bash",
+        "-lc",
+        "set -euo pipefail\nexport GITEA_URL=http://127.0.0.1:3000 GITEA_OWNER=admin GITEA_REPO=HSDB GITEA_EXPECT_OWNER=admin GITEA_EXPECT_REPO=HSDB GITEA_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt\n/mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/gitea-readonly.sh collaborators/hsdb-agent/permission | jq '{permission,user:{login:.user.login,active:.user.active,prohibit_login:.user.prohibit_login,is_admin:.user.is_admin}}'"
+      ],
+      "exit_code": 0,
+      "response": {
+        "permission": "write",
+        "user": {
+          "login": "hsdb-agent",
+          "active": true,
+          "prohibit_login": true,
+          "is_admin": false
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "name": "hsdb-manager-permission",
+      "command": [
+        "/usr/local/bin/orb",
+        "-m",
+        "gitea-ci",
+        "-u",
+        "benque",
+        "bash",
+        "-lc",
+        "set -euo pipefail\nexport GITEA_URL=http://127.0.0.1:3000 GITEA_OWNER=admin GITEA_REPO=HSDB GITEA_EXPECT_OWNER=admin GITEA_EXPECT_REPO=HSDB GITEA_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt\n/mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/gitea-readonly.sh collaborators/aisoft-platform-manager/permission | jq '{permission,user:{login:.user.login,active:.user.active,prohibit_login:.user.prohibit_login,is_admin:.user.is_admin}}'"
+      ],
+      "exit_code": 0,
+      "response": {
+        "permission": "admin",
+        "user": {
+          "login": "aisoft-platform-manager",
+          "active": true,
+          "prohibit_login": false,
+          "is_admin": false
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "name": "hsdb-open-issues",
+      "command": [
+        "/usr/local/bin/orb",
+        "-m",
+        "gitea-ci",
+        "-u",
+        "benque",
+        "bash",
+        "-lc",
+        "set -euo pipefail\nexport GITEA_URL=http://127.0.0.1:3000 GITEA_OWNER=admin GITEA_REPO=HSDB GITEA_EXPECT_OWNER=admin GITEA_EXPECT_REPO=HSDB GITEA_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt\n/mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/gitea-readonly.sh 'issues?state=open&type=issues&limit=50' | jq 'map({number,title,state,labels:[.labels[].name]})'"
+      ],
+      "exit_code": 0,
+      "response": [
+        {
+          "number": 18,
+          "title": "ci: pull_request 改跑合并预览，关闭 ci-merge-preview GAP（平台 #223）",
+          "state": "open",
+          "labels": [
+            "awaiting-triage"
+          ]
+        },
+        {
+          "number": 15,
+          "title": "chore: 对齐 AISoftPlatform 平台合同（aisoft-project-check 首轮盘点回补）",
+          "state": "open",
+          "labels": []
+        }
+      ],
+      "stderr": ""
+    },
+    {
+      "name": "hsdb-open-prs",
+      "command": [
+        "/usr/local/bin/orb",
+        "-m",
+        "gitea-ci",
+        "-u",
+        "benque",
+        "bash",
+        "-lc",
+        "set -euo pipefail\nexport GITEA_URL=http://127.0.0.1:3000 GITEA_OWNER=admin GITEA_REPO=HSDB GITEA_EXPECT_OWNER=admin GITEA_EXPECT_REPO=HSDB GITEA_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt\n/mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/gitea-readonly.sh 'pulls?state=open&limit=50' | jq 'map({number,title,state,head:.head.sha,base:.base.sha})'"
+      ],
+      "exit_code": 0,
+      "response": [],
+      "stderr": ""
+    },
+    {
+      "name": "installed-host-access-broker.json",
+      "response": {
+        "path": "/usr/local/share/aisoft/host-access-broker.json",
+        "members": [
+          "aisoft-platform",
+          "localwms",
+          "myapp",
+          "newemaint",
+          "sfm-digital-board",
+          "smoke-test"
+        ],
+        "hsdb_registered": false
+      }
+    },
+    {
+      "name": "installed-gitea-governance.json",
+      "response": {
+        "path": "/usr/local/share/aisoft/gitea-governance.json",
+        "members": [
+          "aisoft-platform",
+          "LocalWMS",
+          "myapp",
+          "NewEMaint",
+          "SFMDigitalBoard",
+          "smoke-test"
+        ],
+        "hsdb_registered": false
+      }
+    },
+    {
+      "name": "hsdb-credential-metadata",
+      "response": {
+        "exists": true,
+        "mode": "0o600",
+        "uid": 501,
+        "content_read": false
+      }
+    }
+  ]
+}
