@@ -13,7 +13,7 @@ risk_flags:
   - security
   - shared-core
 depends_on: []
-status: approved
+status: pr-open
 branch: change/337-restore-hsdb-governance
 created: 2026-10-04
 updated: 2026-10-04
@@ -29,7 +29,7 @@ documents:
   plan: plan-restore-hsdb-governance-261004.md
   verification: verification-restore-hsdb-governance-261004.md
 override_reason: ''
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/338
 ---
 
 # Summary 恢复 HSDB 治理注册
