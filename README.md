@@ -1,6 +1,6 @@
 # 软件开发与自动化部署运维平台 · 总纲
 
-> 版本：v3.6（routine PR source contract）｜ 更新：2026-09-07 ｜ 状态：**#252 后治理集合保留 LocalWMS 与 NewEMaint，#275 起 SFMDigitalBoard 重新接入（A- 轻接入，`vm_profile: null`）；09-05 合并批次（#222/#223/#225/#228/#243/#250/#254）扩展 broker typed 操作、CI 停滞判定、项目 CI 参考模板、Issue 入口标签与 8 个 installer 共用 source guard；#208 routine small 受控合并 source 合同不变，#208、全部 complex/major/阶段完结与强制风险变更仍须人工合并，installed/live 启用仍须单独验收**
+> 版本：v3.6（平台合同；本文同步稳定源码）｜ 文档核对：2026-10-04 ｜ 源码基线：`dc9aa468580f92a73dfa054c6f04ef5113f56694`（2026-10-03 已合并 `main`）
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到最终 PR；人确认提交，manual 变更由人合并，显式 opt-in 的 routine small 只有在最终 head 全硬门通过后才可由独立 merger 合并；部署始终独立授权。**
 
@@ -8,35 +8,43 @@
 
 ---
 
-## 1. 当前状态（2026-09-06）
+## 1. 当前状态（2026-10-04 核对）
 
-- ✅ 基础设施核心：`gitea-ci` 上的 Gitea 1.26.4 + act_runner + Verdaccio + Mailpit
-- 🟡 流水线：PR CI、构建和不可变制品链已验证；历史“合并 main 后在 `gitea-ci` 启动测试应用”仅作 as-built 证据，新接入使用独立 `appserver-test` trust role，或按 #290 的 `scm-ci/test` 合同承载隔离测试应用；#290 当前仅 source/local 验证，installed/live 尚未验收
-- ✅ 邮件通知：Gitea → Mailpit（演示层），issue/PR 事件自动发信
-- ✅ provider adapters：Codex 与 Claude adapter 共用 controller/verifier/状态/终态，等价、可互换；默认 `IMPLEMENT_PROVIDER=none`，启用是每项目独立验收；真实 VM pilot 未做
-- 🟡 Matt 开发编排层：固定完整 upstream snapshot，`triage → to-spec → to-tickets → implement` 映射到现有 Gitea 合同；Agent 只在当前 exact change branch 本地提交，Controller 在提交确认后才能 push/建 PR/读取 CI；manual 路径仍只由人合并
-- 🟡 Host access broker：既有 strict typed Issue/PR/Git surface 保持；Issue #208 只允许新增 `gitea.pull.merge.routine(number, sha)`，并要求 broker 在唯一 merge POST 前 fresh 重跑合同、唯一 PR、head、protection、required CI、reviews、dependencies 与 final diff 硬门。Gitea 1.26.4 无 merge-only ACL，ordinary Git 隔离依赖 broker-exclusive credential custody 与 zero fallback；routine identity 不进入 main push/force allowlist。source 合并不等于安装、provision 或 live 启用；未获独立 live apply 授权前，现有 merge allowlist、credential 与 installed bytes 均不改变
-- 🟡 Host access broker 扩面（09-05 批次）：#222 新增 `gitea.issue.list`（分页取全、排除 PR、不带正文）与 `gitea.issue.state.set`；#225 actions 日志读投影保留头尾两端、零值时间戳（unix epoch 与 `0001-01-01`）投影为 `null`；#228 新增 `orbstack.runner.status` 只读停滞探针与 per-job 超时取值，判定与处置顺序见 [06](06-运维手册与踩坑集.md) §1.0.1/§1.0.2。typed 操作进入 source 不等于生效，仍需两台重装
-- ✅ 平台治理集合：#252 起五个项目统一退出，`gitea-governance.json`/`host-access-broker.json` 保留 LocalWMS 与 NewEMaint（仓库、历史、Issue、PR 与分支保护全程不动，退出不是删除）；**#275 起 SFMDigitalBoard 单独重新接入**（`vm_profile: null` 的 A- 轻接入，不放宽 `contract.py` 被 #252 收紧的 VM profile 集合与 timer 白名单；其余四个保持退出）；#243 起 `gitea.issue.create` 立案即带入口标签（`needs-analysis` 或 `triage/needs-triage`），调度会话按 `issue-session-flow` 清扫开放 Issue
-- ✅ 安装面：#162/#171 把 installer 的 source provenance 与 staleness 闸门抽成 `codex/lib/install-source-guard.sh`，#182/#250/#254 补齐 `docker-release/`、`sync/`、`skill-for-claude/` 后 8 个 installer 全部经该闸门；Claude 侧 skills 由 `skill-for-claude/install.sh` 安装、`skill-for-claude/check-drift.sh` 核对（见 §5「技能安装与漂移核对」）
-- 🟡 项目 CI 参考：#223 提供 `templates/project/ci/`（CI workflow、merge-preview 合并预览、registry-preflight 真实取包断言）与 `aisoft-project-check.sh` 的 `ci-merge-preview`/`ci-outdated-branch`/`ci-registry-preflight` 只读回读；采纳由各项目仓自行接入并验收，本仓库不代表任何项目已采纳
-- 🟡 v3 文档：Issue 主键、small/complex 双路径、单 PR、单合并闸门、Loop 终态和部署边界已定稿
-- 🟡 #286 治理合同：`depends_on` 的旧整数只表示本仓；已批准新增 `owner/repo#N` 的 manifest 限定只读依赖，唯一新增边为 `sfm-digital-board → aisoft-platform`，Controller 与 routine merger 必须使用同一依赖规则。source runtime 与本地双闸门 fixture 已实现并验证；完整 smoke 已在 LC_ALL=C 下通过，#289 合并后组合验证已通过，installed/live **NOT RUN**。完整范围见 [03 §10](03-Issue-Spec-Plan与单闸门开发流程.md#10-依赖-issue) 与 [#286 spec](docs/changes/286-dependency-references/spec-dependency-references-261002.md)。
-- 🟡 v3 运行：共享 Codex Loop controller 已在 VM 以 timer 停止、`IMPLEMENT_PROVIDER=none` 的方式验证；rsdesign-new Issue #8 只作为历史 real complex pilot 证据，该项目自 #252 起已退出平台治理。中央 source 现提供每项目 profile 和 systemd template，任何项目都必须独立验收后再启用
-- 🟡 Linux Docker release source（Issue #22 已合并）：提供 strict manifest/profile、Registry/offline transports、host-role preflight 和 deterministic deploy/status/rollback；合同已进入 source，但具体业务 Registry/AppServer 与 production promotion 仍未验收
-- 🟡 公司两 VM 离线交付 operator 参考实现（`company-delivery/`，Issue #120–#130）：versioned/checksum-pinned operator bundle、两台公司 Linux VM 的脱敏 inventory、Stage 00–110 人工 runbook 与 strict evidence 已进入 source；真实 handoff 与公司侧各阶段由采用该路径的项目仓记录，本仓库对任何项目均为 `NOT RUN`
-- 🟡 Gitea 隔离安装 source（Issue #126/#128/#130）：operator `1.2.0` 使用 inventory v3、transition v2 与 `greenfield-isolated-install`，只验证 `scm-ci` 独立 `aisoft-gitea` candidate；不探测、不绑定 legacy health。`legacy migration/phase-out`、切流和退役必须另建 Change。1.2.0 公司 Stage 00–50 与安装全部保持 `NOT RUN`；旧 evidence 不可投影为新 PASS
-- ⏸️ 待办：Windows Server 2022 x64 原型、内网 Runner/依赖缓存、迁移演练、生产 JEA 彩排与 [14](14-Windows部署与迁移验收清单.md) 全量验收
-- 📜 已完成条目的历史记录（v2 试点、`prod-sim` 退役、legacy 制品收口、#21/#35 基线、Windows/内网目标设计、Docker release evidence、adapter 试点）：[archive/平台状态历史-20260902.md](archive/平台状态历史-20260902.md)
+“稳定源码”指 Gitea 受保护 `main` 上已经人工合并的版本，不等于本机已安装、项目已采用或公司已部署。
+本文按上述 exact SHA 核对；完整审查与变更来源见
+[#334 verification](docs/changes/334-refresh-platform-docs/verification-refresh-platform-docs-261004.md)。
+历史现场证据保留原日期，本次没有重新验收 VM 服务、凭据或业务环境。
+
+| 领域 | 已合并能力 / 证据 | 安装与现场边界 |
+|---|---|---|
+| 基础设施与 Runner | `gitea-ci` 的 Gitea 1.26.4、act_runner、Verdaccio、Mailpit 为既有 as-built；#309 记录 Flutter 3.32.8 / unzip 验收；#311 保留 SFMDigitalBoard 在用 Node 22 并补来源记录 | Node 22 安装者、安装日期和上游 provenance 仍为 `unknown`；历史服务验收不代表今日健康，见 [01](01-基础设施-VM-Gitea-Runner.md) |
+| 治理集合与 CI | manifest 共 6 仓：AISoftPlatform、LocalWMS、NewEMaint、SFMDigitalBoard、myapp、smoke-test；#252 退出的五个业务项目中仅 SFMDigitalBoard 经 #275 重新接入，`vm_profile: null`；#312 同步 NewEMaint required contexts | 当前集合见 [manifest](codex/config/gitea-governance.json)；#299 保留平台仓 outdated-branch gate，internal-application 的关闭须具备合并预览与 push-main CI，逐仓验收 |
+| Matt / 双 provider | 固定 Matt v1.2.2 snapshot；`triage → to-spec → to-tickets → implement`；#318 修齐 Codex/Claude 会话和接入合同，#320 明确每次 push 的 SHA 核对 | adapters 等价、可互换；默认 `IMPLEMENT_PROVIDER=none`，真实 provider / 项目启用矩阵仍须独立完成，见 [08](08-双工具共存与实施.md) |
+| Worktree 与文档硬门 | #298 单写者 claim / broker 归属闸门，#304 记录两机安装；#289 严格校验 `required_docs` 声明、映射和实际文件，resolver / Loop / 终态工具共享结果 | #289 runtime 与本地验证已完成；source 之外按安装证据验收；另一会话不得代写 worktree，见 [03](03-Issue-Spec-Plan与单闸门开发流程.md) |
+| Broker / routine merge | typed Issue/PR/Actions/Git 与 #208 独立 merger 全硬门；#313 补 routine scope 的 `read:user`；#286 增 manifest 限定只读跨仓依赖，唯一新增边为 `sfm-digital-board → aisoft-platform` | AISoftPlatform `routine_auto_merge_enabled=false`，始终 manual；routine 身份、scope、protection 与真实 opt-in 逐仓读回，不能由源码存在推导启用 |
+| 安装与漂移 | 8 个 installer 共用 source guard；#308 提供 [check-installed-drift](codex/tools/check-installed-drift.sh)，按受管字节、权限、链接与可读量检查 `PASS/GAP` | checker 已进入 source；#308 基线的真实安装 GAP 保留，后续修复须独立验收；`source-only` 不是 installed PASS，见 [06](06-运维手册与踩坑集.md) |
+| 架构合同 | [architecture](architecture/README.md) 有 5 个 profiles；#284 增 `linux-node-sqlite-v1`；#287 writer 默认 V2 lock，reader 严格接受 V1/V2；#288 离线核验 Dockerfile FROM digest | catalog 固定 `2026.09.0`，不是自动追随 upstream latest；release reader 仍仅接受 V1 architecture lock，下游采用 V2 必须先解决读取链兼容 |
+| Docker release | [docker-release](docker-release/README.md) 提供 v1/v2、两种 transport 与确定性阶段；#290 支持仅 test 的 `scm-ci` 共置；#296 增 exact Docker 28.1.1 / Compose 2.35.1 classic 验证行；#305 修 migration identity；#317 增数据库兼容回退硬门 | 兼容矩阵是精确版本组合，不是 Docker 28/29 全部支持；#317 state v3 和兼容依据需目标侧采用，installed/company live 与 production promotion 不由本地测试推导 |
+| 公司平台交付 | [company-delivery](company-delivery/README.md) 当前 operator 1.3.0；#270 独立 [platform-bootstrap/v1](platform-bootstrap/README.md)；#271/#274/#278/#280/#282 提供 profile-bound 基线与原因分类诊断 | bootstrap 现场执行器仍 `unbound`；基线、诊断和应用交付是不同入口，项目现场阶段由项目仓记录，本仓不投影为公司 PASS |
+| 开发与公司传输 | #292 收口自研 main relay，采用项目明确批准的 Gitea 原生 Push Mirror；#293 对齐 `release_producer: local` 与离线交付职责，见 [07](07-内网与生产平移路线.md) | GitHub 是指定镜像/搬运层；镜像覆盖许可仅限指定目标，不延伸到公司 main；启用、同步、公司入站及部署均按项目回执确认 |
+| PAT 轮换 | #316 已合并受控 operator / 固定版本 [PAT helper](codex/tools/gitea-pat-helper/README.md)，源码与隔离验证可追溯 | 后续安装、grant、真实轮换和恢复由独立 [#333](http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/333) 现场合同验收；源码 `completed` 不等于凭据已更新 |
+
+**尚未进入稳定源码的工作**：[#327](http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/327)
+仍 open，跟踪保留历史的 main 整合与普通 FF 发布路径；当前已合并 broker 的发布约束不因此放宽。
+#333 仍 open，`approved` 仅授权其自身合同内工作；本次没有核对其现场执行结果，不宣称已完成。
+Windows Server 2022 x64、公司 AD/JEA 与 [14](14-Windows部署与迁移验收清单.md) 验收仍按原 `NOT RUN` 边界保留。
+
+历史完成条目见 [平台状态历史](archive/平台状态历史-20260902.md)；历史 Change 的 `pr-open` front matter
+和提交前 verification 快照保持原样，合并事实以 Git history / Gitea 读回为准。
 
 ## 2. 目标职责架构
 
-下图保留 PM2/SQLite **as-built legacy 试点**的交付关系，不是新 Linux 项目的默认目标。新项目
-使用受控 builder 一次构建 `linux/amd64` OCI images，由 Gitea Container Registry 或同一
-manifest 的 offline bundle 传到隔离的 test/prod trust role；`gitea-ci` 只承担 SCM 与明确
+下图展示 Linux 容器交付参考路径；PM2/SQLite **as-built legacy 试点**另见 [02](02-CI与自动部署流水线.md)。
+采用容器交付的项目使用受控 builder 一次构建 `linux/amd64` OCI images，由 Gitea Container Registry
+或同一 manifest 的 offline bundle 传到隔离的 test/prod trust role；`gitea-ci` 只承担 SCM 与明确
 批准的 CI/CD 能力。#290 增加仅测试的共置合同：受保护部署profile显式声明
 `host_role=scm-ci` 且 `environment=test` 时可承载隔离测试应用，生产仍须分离。
-详见 docker-release/README.md；#290 runtime 已完成 source/local 验证，installed/live 尚未验收。
+详见 [docker-release](docker-release/README.md)；#290 runtime 已完成 source/local 验证，installed/live 尚未验收。
 
 ```mermaid
 flowchart TB
@@ -52,7 +60,7 @@ flowchart TB
         VERD["Verdaccio<br/>npm 缓存"]
         MAIL["Mailpit<br/>邮件捕获"]
         ART["不可变制品<br/>checksum + 引用保护"]
-        GUARD["host-role guard<br/>application/DB mutation fail closed"]
+        GUARD["host-role guard<br/>仅按获批 role/environment/capability 执行"]
     end
 
     subgraph TESTHOST["🧪 本地独立 AppServer / OrbStack DockerLab · role=appserver-test"]
@@ -127,9 +135,10 @@ sequenceDiagram
         M->>G: 文档提交到同一 change/N-short-description；合同完整则 approved
     end
     A->>A: $implement frontier Txx → 本地原子 commit → verifier
-    A->>G: Controller 校验后推 change/N-short-description → 最终 PR(Closes #N) → pr-open
+    A->>A: Controller 校验候选 → AWAITING_PR_CONFIRMATION
+    U->>A: 【提交确认】绑定 Issue/branch/manual 或 routine-auto policy
+    A->>G: Controller 推 change/N-short-description → 最终 PR(Closes #N) → pr-open
     R->>G: PR CI 必须绿；失败反馈给 Loop
-    Note over U,G: 【提交确认】绑定 Issue/branch/manual 或 routine-auto policy
     alt manual 或任一强制风险
         U->>G: 人审核并合并最终 PR
     else repository opt-in 的 routine small
@@ -148,7 +157,7 @@ sequenceDiagram
 
 平台标签采用三个正交维度：十个 `type/*`、两个 `complexity/*` 和八个 lifecycle，共 20 个；Matt 另加两个 `triage/*` category 与五个 `triage/*` state。source manifest 共 provision 27 个标签（Issue #108 把 `type/*` 扩为 10 个并声明 `area/`、`priority/` 两个项目扩展前缀），但 `triage/ready-for-agent` 不替代平台 `approved`。`completed` 与 `deployed` 互斥，任何接入仓库都必须独立同步并读回，不能把其它仓库状态当作平台全局状态。
 
-**文档声明一致性合同（#289）**：summary front matter 的 `required_docs` 是文档义务的声明事实源，`documents` 是角色到文件的路径事实源；`route.required_docs` 只约束阶段和复杂度的最低要求，不能抹掉已经声明的角色。严格 resolver、文档检查、Loop 和终态工具须共用校验后的角色与实际文件，缺文件时不能 PASS 或写 `completed`。`verification` 表示欠一份验证记录；部署终态另由仓库 `deployment_lifecycle` 决定，平台的 `none` 保持不变。详见 [03 §3](03-Issue-Spec-Plan与单闸门开发流程.md#3-文档合同) 与 [#289 spec](docs/changes/289-required-docs-source/spec-required-docs-source-261002.md)。本段是已确认的治理合同；T01 只应用文档，runtime 实现与验证待 T02/T03，installed/live 未验收。
+**文档声明一致性合同（#289）**：summary front matter 的 `required_docs` 是文档义务的声明事实源，`documents` 是角色到文件的路径事实源；`route.required_docs` 只约束阶段和复杂度的最低要求，不能抹掉已经声明的角色。严格 resolver、文档检查、Loop 和终态工具须共用校验后的角色与实际文件，缺文件时不能 PASS 或写 `completed`。`verification` 表示欠一份验证记录；部署终态另由仓库 `deployment_lifecycle` 决定，平台的 `none` 保持不变。详见 [03 §3](03-Issue-Spec-Plan与单闸门开发流程.md#3-文档合同) 与 [#289 spec](docs/changes/289-required-docs-source/spec-required-docs-source-261002.md)。本段同步已合并的治理合同；T01/T02/T03 与 runtime 本地验证已完成，已随 [PR #325](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/325) 合并；installed/live 仍按各自证据验收。
 
 ## 5. 文档导航
 
@@ -159,13 +168,15 @@ sequenceDiagram
 | [03-Issue/Spec/Plan 与单闸门流程](03-Issue-Spec-Plan与单闸门开发流程.md) | small/complex 双路径、文档绑定、标签语义、最终 PR | 日常使用平台 |
 | [04-Matt 编排与 Development Loop](04-Agent编排与定时任务.md) | Matt skills、analyzer、Loop、verifier、终态、provider adapter | 调整 agent 行为 |
 | [05-通知与多人协作](05-通知与多人协作.md) | Gitea mailer、Mailpit、事件覆盖、切真实 SMTP | 配通知、加协作者 |
-| [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、私有 Gitea 访问、27 条实证踩坑、CI 停滞判定手册（§1.0.1/§1.0.2）、AI 故障包、凭据位置 | 排障必读 |
+| [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、编号实证踩坑、CI 停滞判定、八个安装面漂移核对、PAT 轮换与 AI 故障包 | 排障必读 |
 | [07-内网与生产平移路线](07-内网与生产平移路线.md) | 原型孵化、持续权威分工、备选下线切换和 Linux/Windows 双目标 | 规划内网平移 |
 | [08-双工具共存与实施](08-双工具共存与实施.md) | 共享契约、controller/adapter、provider 验证矩阵、部署边界与回滚 | 接入或切换 provider |
 | [09-v3 文档改造规划](09-v3平台简化与Loop-Engineering文档改造规划.md) | v3 决策、影响矩阵、迁移顺序、回滚边界 | 审核或实施 v3 |
 | [10-AI Issue 判级与标签计划（历史）](archive/10-AI-Issue判级与标签实施计划.md) | 2026-07 初始判级、标签和 wrapper 实施记录 | 仅作历史追溯 |
 | [11-Codex Loop runtime 计划（历史）](archive/11-Codex-Loop运行时实施计划.md) | provider-neutral runtime 首轮实施记录 | 仅作历史追溯 |
 | [公司两 VM 离线交付 operator runbook（参考实现）](company-delivery/runbook.md) | 两 VM inventory、exact handoff、Gitea/backup/restore/SCM/fixed-target Stage 00–110；交付形态由项目声明 | 逐阶段人工执行与审计 |
+| [公司平台只读接管基线](company-delivery/baseline/README.md) | v1/v2 collector、digest-bound profile、现场探针与独立 diagnostics v1/v2 | 公司基线核对，现场运行须项目独立授权 |
+| [PAT model helper](codex/tools/gitea-pat-helper/README.md) | 固定 Gitea/Go 源码与构建 provenance、隔离测试、exact token model binding | #316 source；现场安装/轮换见 #333 |
 | [独立公司平台 bootstrap v1](platform-bootstrap/README.md) | 不依赖应用 release/matrix 的确定性 handoff、脱敏采用与动作请求/回读协议；现场执行器由后续部署合同绑定 | source/local 工具，installed/company live NOT RUN |
 | [历史资料索引](archive/README.md) | 已被当前合同替代的方案、实施计划与 v2 一页 PDF | 追溯历史，不作为当前操作入口 |
 
@@ -173,7 +184,8 @@ sequenceDiagram
 
 两侧技能等价、各自安装、共用同一份 `skill-for-codex/references/`；改动 SKILL.md 或 references 后，装到本机的副本立即漂移，
 需重装并核对回 `CLEAN`。8 个 installer（含下面两个）全部经 `codex/lib/install-source-guard.sh` 做 source provenance 与 staleness 闸门，
-陈旧 checkout 或非 manifest-fixed remote 一律 fail closed。
+检测到 checkout 落后缓存 upstream 时拒绝安装。无 upstream / detached HEAD 等无法比较的情况会报告
+`staleness unchecked`，不能当作 fresh main 证明；安装前须按 broker fresh-fetch 并核对 source pin。
 
 | 侧 | 安装 | 漂移核对 | 安装目标 |
 |------|------|----------|----------|
@@ -249,7 +261,7 @@ project agent 为准：先只读 check，再一次处理一个明确仓库，回
 - **`change/N-short-description`**：Issue N 从分析到最终 PR 共用的单一 readable 分支；`short-description` 是锁定的 2–4 段 lowercase ASCII kebab-case slug
 - **`docs/changes/N-short-description/`**：与分支使用相同 `N + slug` 的文档目录；`change/N` 与 `docs/changes/N/` 仅在远端/历史证据存在时作为 legacy 维护入口
 - **Host profile**：无 Secret 的主机身份与 capability 合同；live 文件固定为 root-owned `/etc/aisoft/host-profile.json`
-- **Host access broker**：Mac host 上的 versioned/allowlisted 访问入口；把 exact project/operation 映射到 Gitea/Git/OrbStack target 与最小权限 identity，不接受任意 shell、URL、credential path 或 merge
+- **Host access broker**：Mac host 上的 versioned/allowlisted 访问入口；把 exact project/operation 映射到 Gitea/Git/OrbStack target 与最小权限 identity，不接受任意 shell、URL、credential path 或任意 merge 参数；routine merge 仅接受 number 与 exact head SHA
 - **制品**：带项目、完整 SHA 和 checksum 的不可变字节；`/opt/artifacts` 是本地 legacy staging，必须经过引用保护和 retention dry-run，不能按文件名或年龄直接删除
 - **Linux release**：新项目为 `release.json` + digest-pinned OCI images + Compose/architecture checksums；Registry 与 offline bundle 共享同一 release identity
 - **PM2 legacy 制品**：`/opt/artifacts/rsdesign-new-<sha>.tar.gz`，只代表既有试点；测过的字节 = 上线的字节

@@ -1,0 +1,1145 @@
+{
+  "date": "2026-10-04",
+  "source_baseline": "dc9aa468580f92a73dfa054c6f04ef5113f56694",
+  "active_tracked_markdown": 66,
+  "core_inventory": [
+    "README.md",
+    "01-基础设施-VM-Gitea-Runner.md",
+    "02-CI与自动部署流水线.md",
+    "03-Issue-Spec-Plan与单闸门开发流程.md",
+    "04-Agent编排与定时任务.md",
+    "05-通知与多人协作.md",
+    "06-运维手册与踩坑集.md",
+    "07-内网与生产平移路线.md",
+    "08-双工具共存与实施.md",
+    "09-v3平台简化与Loop-Engineering文档改造规划.md",
+    "12-Linux-GitHub-Gitea-双服务器自动部署方案.md",
+    "12-Windows平台自动部署方案.md",
+    "13-项目结果迁移与内网切换实施手册.md",
+    "14-Windows部署与迁移验收清单.md",
+    "15-VMware-Fusion-Windows-ARM原型实施手册.md",
+    "architecture/README.md",
+    "architecture/reference/newemaint/README.md",
+    "codex/tools/gitea-pat-helper/README.md",
+    "docker-release/README.md",
+    "company-delivery/README.md",
+    "company-delivery/runbook.md",
+    "company-delivery/baseline/README.md",
+    "platform-bootstrap/README.md",
+    "archive/README.md"
+  ],
+  "checked_files": 69,
+  "local_links_checked": 172,
+  "install_layout_references": [
+    {
+      "file": "skill-for-claude/aisoft-platform/SKILL.md",
+      "target": "references/onboarding-runbook.md",
+      "result": "INSTALL_LAYOUT_REFERENCE",
+      "source": "skill-for-codex/references/onboarding-runbook.md"
+    },
+    {
+      "file": "skill-for-claude/aisoft-platform/SKILL.md",
+      "target": "references/project-align.md",
+      "result": "INSTALL_LAYOUT_REFERENCE",
+      "source": "skill-for-codex/references/project-align.md"
+    },
+    {
+      "file": "skill-for-claude/aisoft-platform/SKILL.md",
+      "target": "references/private-gitea-access.md",
+      "result": "INSTALL_LAYOUT_REFERENCE",
+      "source": "skill-for-codex/references/private-gitea-access.md"
+    }
+  ],
+  "errors": [],
+  "files": [
+    {
+      "file": "01-基础设施-VM-Gitea-Runner.md",
+      "sha256": "47ce2a338787029c32d46c50a6186f5f11d65162b81c6a618640c2c6986e942d",
+      "lines": 413,
+      "headings": [
+        "01 · 基础设施：VM / Gitea / Runner / Verdaccio / Mailpit",
+        "1. 拓扑与端口总表",
+        "2. 账号体系（权限隔离的落点）",
+        "3. Gitea（安装要点 + as-built 配置）",
+        "4. act_runner（host 模式）",
+        "4.1 per-job 超时与并发（as-built，#228 建议已落地）",
+        "/opt/act-runner/config.yaml 全文",
+        "/etc/systemd/system/act_runner.service.d/10-config.conf（2026-09-05 22:46 创建）",
+        "配置与生效值",
+        "改动前先确认 runner 空闲——重启会杀掉正在跑的 job",
+        "期望 execution.child_count == 0",
+        "4.2 预装工具链 as-built（`/opt`，2026-09-18 实测）",
+        "4.3 Flutter SDK（runner 预装，#309）",
+        "只读核对现状，什么都不写",
+        "安装（幂等：已装且 revision 一致时第二次执行零改动，不 clone、不自举）",
+        "权限或 cache 被人改坏时，显式要求重做属主/权限/precache",
+        "以 runner 身份验证",
+        "5. Verdaccio（弱网救星）",
+        "Verdaccio 是 CI 的硬依赖（Issue #201）",
+        "6. Mailpit（邮件捕获，演示层）",
+        "7. `scm-ci` 重建/平移冒烟清单",
+        "全服务在位",
+        "host profile 安装并经独立 change 验收后：",
+        "Gitea 后台 Site Administration → Actions → Runners:gitea-ci-runner Idle",
+        "8. Versioned host profile 与 guard",
+        "9. Windows 与公司内网目标边界"
+      ]
+    },
+    {
+      "file": "02-CI与自动部署流水线.md",
+      "sha256": "c15e687c5c3e0e6f6a8130c4e192902a15a8ccfee03b571e83f58072690c781d",
+      "lines": 229,
+      "headings": [
+        "02 · CI 与自动部署流水线",
+        "0. 新 Linux 默认：Docker-first release contract",
+        "1. 目标应用的真实形态（决定一切口径）",
+        "2. 两条工作流",
+        "`.gitea/workflows/ci.yml` —— PR 检查（分支保护的硬门）",
+        "`.gitea/workflows/deploy-test.yml` —— 历史合并 main 同机部署",
+        "3. 制品（scripts/pack.sh）",
+        "4. Legacy 部署（scripts/deploy-local-test.sh）—— SQLite 约束全在这",
+        "5. 回滚",
+        "6. 历史 `prod-sim` promote（已退役）",
+        "7. 首次部署与部署变更验收",
+        "8. 观察一次部署",
+        "Actions/CI 状态——正常入口是 host access broker 的 typed 只读操作(06 §1.0)，",
+        "不再在 argv/管道中拼装 raw admin token：",
+        "无 broker 的受限环境按 06 §1.1 的 authenticated ladder 走只读 helper。",
+        "日志落盘(zstd 压缩，VM 内本地文件)",
+        "9. 部署成功后的 Issue 记账"
+      ]
+    },
+    {
+      "file": "03-Issue-Spec-Plan与单闸门开发流程.md",
+      "sha256": "397f80a90ce79bc65000daddb6eb2ee12dd7a53dba05becad3325c917f81c5a8",
+      "lines": 676,
+      "headings": [
+        "03 · Issue / Spec / Plan 与单闸门开发流程",
+        "1. 绑定模型",
+        "change worktree 的单写者归属（#298）",
+        "衍生 Issue 的正文与认领",
+        "2. AI 判级与路由",
+        "2.1 Routine small merge policy",
+        "3. 文档合同",
+        "声明与实际文件共用一个校验结果（#289）",
+        "何时声明 `verification`",
+        "模板是 vendored 副本：改动必须由上游广播（#190）",
+        "4. 平台三维标签与 Matt triage",
+        "5. 小变更路径",
+        "6. 复杂变更路径",
+        "6.1 服务账号 PAT 轮换与治理阶段（#316）",
+        "7. 最终 PR、提交确认与 merge policy",
+        "8. 升级给人的条件",
+        "9. 当前实施状态",
+        "10. 依赖 Issue",
+        "#286 依赖合同（source/local 已验证，installed/live 尚未验收）",
+        "11. 合批关闭与交付终态",
+        "谁推进 `completed`",
+        "在别的项目仓上运行时目标由 checkout 判定（#184），判定不出才需要显式 --project：",
+        "范围锚不能是会移动的 ref（#175）",
+        "「跳过等待」必须有一个会到来的写入者（#192）",
+        "哪些仓库的部署链路覆盖每一次 merge",
+        "谁投影 `type/*` 与 `complexity/*`"
+      ]
+    },
+    {
+      "file": "04-Agent编排与定时任务.md",
+      "sha256": "056a79b023572fa377018dd61d39863c68e98992390a60f3824296375b4f090f",
+      "lines": 186,
+      "headings": [
+        "04 · Matt skills 与 Development Loop 编排",
+        "1. 设计原则",
+        "2. 当前运行基线",
+        "3. 目标组件",
+        "4. Analyzer",
+        "5. Loop 启动条件",
+        "6. 每轮执行",
+        "7. Verifier",
+        "8. 重试和升级",
+        "9. 终态",
+        "10. Provider 验证矩阵",
+        "11. 安全与回滚"
+      ]
+    },
+    {
+      "file": "05-通知与多人协作.md",
+      "sha256": "1fe4649d0c27debf72e90e5248511975d4a9d43dbc25664040aef35334513594",
+      "lines": 70,
+      "headings": [
+        "05 · 通知与多人协作（邮件）",
+        "1. 事件覆盖（Gitea 自动发信）",
+        "2. as-built 配置",
+        "3. 切换真实 SMTP（内网 / 正式启用）",
+        "4. 多人协作模式",
+        "5. 可选补充：开发机即时通知"
+      ]
+    },
+    {
+      "file": "06-运维手册与踩坑集.md",
+      "sha256": "5cd1a904045e9d61a7989e1fc978c04f5b85844dbc25bf7de88580eb63950a23",
+      "lines": 639,
+      "headings": [
+        "06 · 运维手册与踩坑集",
+        "1. 日常命令速查",
+        "── 正常 Gitea/host 只读入口 ───────────────────────────",
+        "── host-role guard（只在已配置 live profile 的 host context）",
+        "1.0 Host access broker 正常路径",
+        "由 commit SHA 拿 job/step 级结论（步骤名、状态、结论、耗时），不含日志正文",
+        "由上一步返回的 job id 拿该 job 的日志（头尾双端截断 + 脱敏）",
+        "枚举 Issue（只读，分页取全，不含 body，PR 条目已排除）",
+        "关闭或重开一条 Issue",
+        "1.0.1 CI 停滞判定：区分「runner 正忙」与「runner 死了」（#228）",
+        "1.0.2 确认停滞后的处置顺序（顺序不能反，#228）",
+        "1.1 私有 Gitea 的只读检查",
+        "1.2 Gitea governance manifest 与 project-agent gate",
+        "1.3 Host-role guard 与 destructive Gate",
+        "2. 踩坑集（🕳️ 编号即正文引用号）",
+        "八个 installer 的只读漂移核对合同（#308，踩坑 20/30）",
+        "只检查源码映射；不探测 installed，不表示安装验收 PASS：",
+        "3. AI 辅助故障诊断",
+        "4. 凭据清单（位置备忘，无明文）",
+        "4.1 服务账号 PAT 轮换合同（#316）",
+        "5. 排障决策树（部署失败时）",
+        "6. 合并后仓库与本地收尾"
+      ]
+    },
+    {
+      "file": "07-内网与生产平移路线.md",
+      "sha256": "836db1d6e73f8e7943d2804c160c92ae4ce3bfd9e4e5acff416ea5f688ef9003",
+      "lines": 285,
+      "headings": [
+        "07 · 内网与生产平移路线",
+        "1. 核心决策",
+        "2. 双阶段拓扑",
+        "3. 权威分工与备选切换",
+        "3.1 备选彻底下线路径（当前不采用）",
+        "4. 编号与追踪",
+        "5. 两类目标平台",
+        "5.1 Linux 容器化交付参考与既有试点",
+        "5.2 Windows 新目标",
+        "6. 平移阶段",
+        "7. 生产边界",
+        "8. 回滚边界",
+        "9. 实施入口",
+        "10. Architecture catalog 采用门",
+        "GitHub 入站同步候选"
+      ]
+    },
+    {
+      "file": "08-双工具共存与实施.md",
+      "sha256": "dca6de184bf8217eb26e963efbb0e9790cf5592fc0ce08967b4e1b3bf91ba2c4",
+      "lines": 143,
+      "headings": [
+        "08 · Matt 编排、Development Loop 与双工具共存",
+        "1. 结论",
+        "2. 共享契约",
+        "3. 配置与认证",
+        "4. 当前 provider 基础",
+        "5. Matt skills 与平台映射",
+        "6. Loop controller 与 provider adapter",
+        "7. Provider 验证矩阵",
+        "8. 部署边界",
+        "9. 回滚"
+      ]
+    },
+    {
+      "file": "09-v3平台简化与Loop-Engineering文档改造规划.md",
+      "sha256": "06765c2ab37fdd78d469a2234ea894a7b68fd883a14594072fddcb90d76b49c1",
+      "lines": 708,
+      "headings": [
+        "09 · v3 平台简化与 Loop Engineering 文档改造规划",
+        "0. 实施状态",
+        "0.1 Issue #21 主机职责增补（2026-08-02）",
+        "0.2 落地对照（2026-09-03）",
+        "1. 规划目标",
+        "2. 非目标",
+        "3. 目标平台边界",
+        "3.1 人负责",
+        "3.2 AI 自动分析负责",
+        "3.3 开发 Loop 负责",
+        "3.4 确定性平台负责",
+        "4. 两类变更路径",
+        "4.1 小变更",
+        "4.2 复杂变更",
+        "4.3 AI 判级与优先级",
+        "5. Issue、分支与文档合同",
+        "5.1 Issue 是唯一主键",
+        "5.2 单分支模型",
+        "5.3 文档目录",
+        "5.4 最终 PR",
+        "6. 标签模型",
+        "6.1 变更类型标签",
+        "6.2 复杂度标签",
+        "6.3 八个流程状态标签",
+        "7. Development Loop 合同",
+        "7.1 Loop 输入",
+        "7.2 每轮执行",
+        "7.3 Loop 不应打断人的问题",
+        "7.4 Loop 必须升级给人的情况",
+        "7.5 Loop 终态",
+        "7.6 第一版编排原则",
+        "8. 部署生命周期中的 AI 边界",
+        "8.1 建设期和首次部署",
+        "8.2 测试环境常规部署",
+        "8.3 生产环境",
+        "8.4 生产故障修复",
+        "9. 文档影响矩阵",
+        "10. 后续文档实施顺序",
+        "Phase D1 · 权威契约",
+        "Phase D2 · 日常开发流程",
+        "Phase D3 · 部署与运维",
+        "Phase D4 · Skills 与接入说明",
+        "Phase D5 · 一致性检查",
+        "11. 文档实施验收标准",
+        "12. 迁移与回滚原则",
+        "12.1 文档迁移",
+        "12.2 运行迁移",
+        "12.3 回滚",
+        "13. 实施参数",
+        "13.1 已定决策",
+        "13.2 仍开放",
+        "14. 本规划的批准边界",
+        "15. Architecture catalog 与 Loop 的边界",
+        "16. Issue #208 · 两确认点与 routine small merge"
+      ]
+    },
+    {
+      "file": "12-Linux-GitHub-Gitea-双服务器自动部署方案.md",
+      "sha256": "45a9d41afb4778764d065f5dab96735aae4887ecd573099e84d73e74a91cd94a",
+      "lines": 1341,
+      "headings": [
+        "12 · Linux / GitHub → Gitea / 三角色职责分离自动部署方案",
+        "0. Docker-first canonical release contract",
+        "0.1 职责与拓扑",
+        "0.2 Release bytes 与 transport",
+        "0.3 Deterministic target runtime",
+        "0.4 兼容与证据边界",
+        "1. PM2 legacy 已确认决策（历史）",
+        "2. PM2 legacy 目标拓扑（历史）",
+        "2.1 事实源边界",
+        "3. PM2 legacy 服务器职责、端口和目录（历史）",
+        "3.1 服务器 A：`scm-ci`",
+        "3.2 服务器 T：`appserver-test`",
+        "3.3 服务器 B：`appserver-prod`",
+        "4. 身份和最小权限",
+        "5. 哪些内容随 Git 迁移",
+        "5.1 通过 GitHub → Gitea 迁移",
+        "5.2 PM2 legacy 必须在公司内网重建（NewEmaint 不适用）",
+        "6. 网络预检",
+        "7. Gitea 仓库一次性初始化",
+        "7.1 `main` 分支保护",
+        "8. GitHub 入站同步",
+        "8.1 配置",
+        "/etc/aisoft-sync/ai-platform.env",
+        "8.2 `reconcile` 算法",
+        "8.3 systemd",
+        "/etc/systemd/system/aisoft-inbound-sync@.service",
+        "/etc/systemd/system/aisoft-inbound-sync@.timer",
+        "9. PR CI",
+        ".gitea/workflows/ci.yml",
+        "10. 合并后构建和测试部署",
+        "11. PM2 legacy tar.gz 制品合同（历史）",
+        "12. React / Nginx",
+        "13. Node / PM2 legacy adapter（历史）",
+        "14. PostgreSQL",
+        "14.1 数据库布局",
+        "14.2 角色",
+        "14.3 网络认证",
+        "15. 目标机部署状态机",
+        "16. 生产 Promotion PR",
+        "16.1 受限 SSH",
+        "17. 备份、监控和日志",
+        "17.1 备份",
+        "17.2 监控",
+        "18. PM2 legacy 分阶段实施（历史）",
+        "Phase 0：参数和兼容性",
+        "Phase 1：服务器基础",
+        "Phase 2：Gitea bootstrap 和同步",
+        "Phase 3：CI 和制品",
+        "Phase 4：测试部署",
+        "Phase 5：生产提升",
+        "Phase 6：运维验收",
+        "19. 最小验收矩阵",
+        "20. 实施前仍需填入的环境参数",
+        "20.1 Architecture lock input",
+        "21. 参考"
+      ]
+    },
+    {
+      "file": "12-Windows平台自动部署方案.md",
+      "sha256": "a351309ab2287f39f50007aac936dc0e2085e6f5f0e2ce78ce8bb2e3ffba3ffc",
+      "lines": 310,
+      "headings": [
+        "12 · Windows 平台自动部署方案",
+        "1. 目标与适用范围",
+        "2. 已确认决策",
+        "3. 目标拓扑与信任边界",
+        "4. Change ID",
+        "5. 源码与构建布局",
+        "6. 不可变制品合同",
+        "7. 配置与运行时状态",
+        "8. 测试环境：OpenSSH",
+        "9. 生产环境：SMB + Kerberos WinRM + JEA",
+        "10. 部署状态机",
+        "11. PostgreSQL 合同",
+        "12. 监控、审计与备份",
+        "13. 非目标与实施边界",
+        "14. 参考资料"
+      ]
+    },
+    {
+      "file": "13-项目结果迁移与内网切换实施手册.md",
+      "sha256": "e1d93d73bfa1e0e2d680eb439d50cbfb9ea95c5ce4d4cc42593d388e1fa5aab7",
+      "lines": 449,
+      "headings": [
+        "13 · 项目结果迁移与内网协作实施手册",
+        "0. 内网协作模型（权威分工，总纲）",
+        "0.1 NewEmaint pilot override：两台公司 VM + 本地 test",
+        "1. 拓扑",
+        "2. 迁移与重建边界",
+        "2.1 迁移",
+        "2.2 不迁移",
+        "2.3 在公司重新建立",
+        "3. 迁移工件",
+        "4. Phase A：原型冻结",
+        "A1. 收敛工作",
+        "A2. 创建 handoff tag",
+        "A3. 保存原型历史",
+        "5. Phase B：公司内网准备",
+        "B1. 新建普通仓库",
+        "B2. 建设身份与权限",
+        "6. Phase C：一次性 Git 结果迁移",
+        "C1. 推荐传输方式",
+        "C2. Git LFS",
+        "C3. Submodule 与硬编码地址",
+        "7. Phase D：结果整理与 Change ID 切换",
+        "8. Phase E：重新配置 Gitea 与 CI",
+        "9. Phase F：Windows / 有隔离测试环境 profile 的内网重新构建与测试",
+        "10. Phase G：生产通道建设",
+        "11. Phase H：最终权威切换（备选路径，当前不采用）",
+        "H1. 最终冻结",
+        "H2. 对账",
+        "H3. Mac remote 切换",
+        "12. 回退策略",
+        "12.1 §11 备选切换的简单回退窗口",
+        "12.2 越过切换点后（仅备选的彻底切换路径适用）",
+        "12.3 应用发布回退",
+        "13. 持续协作投运完成定义"
+      ]
+    },
+    {
+      "file": "14-Windows部署与迁移验收清单.md",
+      "sha256": "a45c0b3104ffee6e44d81f21f9e2ea53529a01b1bac41d491cf67a1bdee09f19",
+      "lines": 278,
+      "headings": [
+        "14 · Windows 部署与迁移验收清单",
+        "1. 记录规则",
+        "2. 基线信息",
+        "3. Gate A：迁移基线",
+        "4. Gate B：Gitea 与 Runner",
+        "5. Gate C：Windows 构建与制品",
+        "6. Gate D：Windows 测试部署",
+        "D1. 主机预检",
+        "D2. 正常发布",
+        "D3. 故意失败",
+        "7. Gate E：PostgreSQL",
+        "8. Gate F：生产传输与 JEA",
+        "9. Gate G：持续同步与权威分工",
+        "10. Gate H：备份与灾难恢复",
+        "11. 执行结果模板",
+        "Check D-14",
+        "12. 独立 Review 要求",
+        "13. 发布批准"
+      ]
+    },
+    {
+      "file": "15-VMware-Fusion-Windows-ARM原型实施手册.md",
+      "sha256": "c64a59a85989b723a8436f36c19d103cffd799c1ab410f9bf3e223debf4bb35d",
+      "lines": 256,
+      "headings": [
+        "15 · VMware Fusion + Windows 11 ARM 快速原型实施手册",
+        "1. 定位与退出条件",
+        "2. 当前 Mac 预检记录",
+        "3. 人工下载入口与安全边界",
+        "4. 安装与 VM 建立步骤",
+        "4.1 安装 Fusion",
+        "4.2 安装 Windows 11 Pro ARM",
+        "4.3 快照策略",
+        "5. Windows 来宾机 bootstrap",
+        "6. 网络与本地服务",
+        "7. ARM 原型制品合同",
+        "8. PostgreSQL 原型策略",
+        "9. 最小验证矩阵",
+        "10. 升级到 x64 与公司环境",
+        "11. 回滚与清理",
+        "12. 官方参考"
+      ]
+    },
+    {
+      "file": "AGENTS.md",
+      "sha256": "7192cb1bcb5c4e0d87f24bbf1a1abac1ad72c08094e6a8e52f1b63217531514f",
+      "lines": 65,
+      "headings": [
+        "AGENTS.md · AISoftPlatform v3",
+        "工作原则",
+        "初始化与开发编排",
+        "目录",
+        "Git"
+      ]
+    },
+    {
+      "file": "CLAUDE.md",
+      "sha256": "812a1032801e430308a57943c765f1112081a2fda0e38e94bea7486b95bcc4c6",
+      "lines": 17,
+      "headings": [
+        "CLAUDE.md",
+        "Agent skills",
+        "Issue tracker",
+        "Triage labels",
+        "Domain docs"
+      ]
+    },
+    {
+      "file": "README.md",
+      "sha256": "6238281dd527e640a080e01a34cc53489a5a331a8b1ea987fa82bf0ae1d2008f",
+      "lines": 270,
+      "headings": [
+        "软件开发与自动化部署运维平台 · 总纲",
+        "1. 当前状态（2026-10-04 核对）",
+        "2. 目标职责架构",
+        "3. 核心设计原则（不可妥协项）",
+        "4. 端到端流程（双路径、单合并闸门）",
+        "5. 文档导航",
+        "技能安装与漂移核对",
+        "交付形态参考（按项目选用，非部署步骤事实源）",
+        "6. 关键地址速查",
+        "7. 术语"
+      ]
+    },
+    {
+      "file": "architecture/README.md",
+      "sha256": "a28e55dd61a3bf02b197b8aac8fa5ef38410720c39a06948d8abb15d6cce7925",
+      "lines": 232,
+      "headings": [
+        "AISoftPlatform architecture catalog V1",
+        "Canonical contract",
+        "CLI",
+        "Dockerfile 基镜像源码一致性合同（#288）",
+        "FROM 支持范围",
+        "稳定诊断与迁移",
+        "更新与例外",
+        "Profile checksum 与重 lock（#287 源码已实现，安装与消费者验收另行执行）",
+        "状态边界"
+      ]
+    },
+    {
+      "file": "architecture/decisions/0001-strict-json-canonical-contract.md",
+      "sha256": "c13f0d727539b659a655108f45cf1d6229f816cd861e17ba81a470122eade163",
+      "lines": 13,
+      "headings": [
+        "ADR-0001：V1 采用 strict JSON canonical contract"
+      ]
+    },
+    {
+      "file": "architecture/decisions/0002-official-lifecycle-and-state.md",
+      "sha256": "791d69f17d5f7e897428f66f31392c092680f689626917386a7d52fa37556441",
+      "lines": 14,
+      "headings": [
+        "ADR-0002：官方 lifecycle 与 catalog state"
+      ]
+    },
+    {
+      "file": "architecture/decisions/0003-profile-exception-and-ownership.md",
+      "sha256": "81c765756db9863790e7d97aef1a9cb2a38c26ef629d7b94a4637ff4d62ff2a6",
+      "lines": 16,
+      "headings": [
+        "ADR-0003：Profile、例外与 #21/#22 所有权"
+      ]
+    },
+    {
+      "file": "architecture/decisions/0004-offline-provenance-and-immutable-identity.md",
+      "sha256": "3f0b4992800bd732ef8ce07f18fea2235a6b70d1327c084b8d131a1d238ce306",
+      "lines": 14,
+      "headings": [
+        "ADR-0004：离线 provenance 与不可变 identity"
+      ]
+    },
+    {
+      "file": "architecture/decisions/0005-systemd-native-delivery-profile.md",
+      "sha256": "bf085926dd7c1cf92f2d2d19469cfe9999d018477c0b3a42b7346d927ed9a988",
+      "lines": 30,
+      "headings": [
+        "ADR-0005：systemd 原生 Node 服务 profile 与 `systemd-native/v1`"
+      ]
+    },
+    {
+      "file": "architecture/decisions/0006-node-sqlite-profile-and-as-built-drift.md",
+      "sha256": "df6cf31f7c7f6835576c2883f42cc4742f2b578f7dbba44f8705e9ec09d8e8a3",
+      "lines": 102,
+      "headings": [
+        "ADR-0006：embedded SQLite 前端 profile、按环境拆声明与 as-built 版本例外",
+        "一、新增 profile `linux-node-sqlite-v1@1.0.0`",
+        "二、`delivery_contract` 保持单值，按环境拆声明",
+        "三、as-built 版本例外",
+        "四、migration Issue 放宽为绝对 http 或 https",
+        "五、不新增 `os` category 取值"
+      ]
+    },
+    {
+      "file": "architecture/decisions/0007-profile-machine-checksum.md",
+      "sha256": "0c9a9f457a8a270877e45385d4f76307b08bf49b1271d3c64e10a96a2f5c5d02",
+      "lines": 69,
+      "headings": [
+        "ADR-0007：profile 说明字段与机器合同 checksum 分离",
+        "原因与证据",
+        "决定一：内容 hash 保留，采用明确机器投影",
+        "决定二：格式与算法不可混用",
+        "决定三：旧 V1 严格保持，显式迁移一次",
+        "决定四：version 不能替代内容检测，广播仍为独立能力",
+        "风险、回滚与实施边界"
+      ]
+    },
+    {
+      "file": "architecture/reference/newemaint/README.md",
+      "sha256": "fe1ca495fce98e2a4879969c62b9f0fe4ad623352ceecf609729f4dddcb6a196",
+      "lines": 22,
+      "headings": [
+        "NewEmaint architecture references"
+      ]
+    },
+    {
+      "file": "architecture/reference/newemaint/gap-report.md",
+      "sha256": "b0ccd7dbf38e70e6260400426bb136e33eb949da9c98b902df7bbc4ec9e2ec42",
+      "lines": 34,
+      "headings": [
+        "NewEmaint read-only architecture gap report"
+      ]
+    },
+    {
+      "file": "architecture/reference/sqlite/gap-report.md",
+      "sha256": "22fa6adb6ee72fd6a546b505fc4aeefb9e1e02904e6fe6bf724b3ff1cc35f444",
+      "lines": 6,
+      "headings": [
+        "SQLite reference dry-run"
+      ]
+    },
+    {
+      "file": "architecture/reference/windows/gap-report.md",
+      "sha256": "1c4b5de4343336e2d4c551c862d1926f8dea171150e9a45182b521bd55da1f51",
+      "lines": 6,
+      "headings": [
+        "Windows reference dry-run"
+      ]
+    },
+    {
+      "file": "archive/README.md",
+      "sha256": "5a831992ffda7ebf6c576a42ff3596d5ac5c5d1676830ea433d236ae8f558042",
+      "lines": 25,
+      "headings": [
+        "历史资料索引",
+        "已归档资料",
+        "使用规则"
+      ]
+    },
+    {
+      "file": "codex/global-AGENTS.md",
+      "sha256": "36aaf26a32d48396a72048f597ae17c5d247fe28301a1dba420fd62eb6caf0ec",
+      "lines": 38,
+      "headings": [
+        "AISoft Platform · VM Codex Global Guidance v3",
+        "Authoritative documentation",
+        "Non-negotiable rules",
+        "Skill routing"
+      ]
+    },
+    {
+      "file": "codex/skills/aisoft-matt-workflow/SKILL.md",
+      "sha256": "6c1c1ad9d27e144782a23d76aab43f5abb9898256aec1a19def79baea918ab49",
+      "lines": 52,
+      "headings": [
+        "AISoftPlatform Matt workflow adapter",
+        "Repository initialization",
+        "Per-Issue flow",
+        "Stable adapter interfaces"
+      ]
+    },
+    {
+      "file": "codex/skills/gitea-analyze-change/SKILL.md",
+      "sha256": "39bd55f7b8dadd1a631f5649073b1a38e6ee74c1ace98e088d1931dd2b954e3d",
+      "lines": 54,
+      "headings": [
+        "Analyze a Gitea change"
+      ]
+    },
+    {
+      "file": "codex/skills/gitea-development-loop/SKILL.md",
+      "sha256": "1778f717963fd724702492685ae5831c5c00568dec85574dbfe3a872a048651e",
+      "lines": 59,
+      "headings": [
+        "Run a Gitea development loop"
+      ]
+    },
+    {
+      "file": "codex/skills/gitea-implement-change/SKILL.md",
+      "sha256": "26b4554ba33c52ccdce0d54fb092129e560e5b278ee4f8de846fec0054603766",
+      "lines": 20,
+      "headings": [
+        "Implement one bounded change pass"
+      ]
+    },
+    {
+      "file": "codex/skills/gitea-platform-ops/SKILL.md",
+      "sha256": "233693956c6c3fa37793f004d6ce606d20ae281e5f75fa113179c52f550b0403",
+      "lines": 34,
+      "headings": [
+        "Operate the Gitea platform"
+      ]
+    },
+    {
+      "file": "codex/skills/gitea-spec-plan/SKILL.md",
+      "sha256": "6c07baee0e0791c09132d63d9981d52860e95252e8359e15c5e970711ea4cdcf",
+      "lines": 17,
+      "headings": [
+        "Draft the spec and plan"
+      ]
+    },
+    {
+      "file": "codex/skills/issue-session-flow/SKILL.md",
+      "sha256": "a8f62fd9da977aaa4daf6928e478b197cf206ce6d5862371c7fc28fa9cc53a3e",
+      "lines": 198,
+      "headings": [
+        "Coordinate an AISoftPlatform Issue task",
+        "Default autonomy after approval",
+        "Single-writer ownership of a change worktree",
+        "Two default confirmation points",
+        "Post-merge completion",
+        "Multi-Issue coordination",
+        "Open-Issue sweep",
+        "Invariants"
+      ]
+    },
+    {
+      "file": "codex/tools/gitea-pat-helper/README.md",
+      "sha256": "b734622b1145d2e56f9d52f446a6d12caa0dbc6eebb055be4e75f40d4c7cb57e",
+      "lines": 23,
+      "headings": [
+        "#316 固定版本 PAT model helper"
+      ]
+    },
+    {
+      "file": "codex/tools/rotate-gitea-service-account.md",
+      "sha256": "5ce1cfb872c92d36bbe0493e44c00688bc2fdbcddfafcb5379f084418778b2e2",
+      "lines": 40,
+      "headings": [
+        "服务账号 PAT 轮换：源码执行卡（#316）",
+        "固定入口与身份",
+        "独立现场授权前须形成的具体卡片",
+        "恢复与验收"
+      ]
+    },
+    {
+      "file": "company-delivery/README.md",
+      "sha256": "fca7387c197586c0020f4c57dd66d6b5306a609293b562e9c1bff639e25638d0",
+      "lines": 105,
+      "headings": [
+        "Company delivery operator bundle",
+        "固定拓扑",
+        "内容",
+        "Gitea greenfield 隔离安装合同",
+        "构建边界",
+        "验证与 evidence"
+      ]
+    },
+    {
+      "file": "company-delivery/baseline/DIAGNOSTICS-V2.md",
+      "sha256": "a95d4d8835e2efcfdf0648043c77b0f6064dae50f01410b7311170e04a2e2eac",
+      "lines": 74,
+      "headings": [
+        "Diagnostics v2 只读证据",
+        "版本与失败原因",
+        "开发侧生成与验证",
+        "现场接口（本票不执行）",
+        "离线 verify"
+      ]
+    },
+    {
+      "file": "company-delivery/baseline/DIAGNOSTICS.md",
+      "sha256": "55b5fabe1b82a87e273c36945e78acef03ffe5dd22b5224d51c70c4bdf69f9ff",
+      "lines": 45,
+      "headings": [
+        "只读诊断包 · Issue #278",
+        "开发侧准备与审阅",
+        "另行授权后才可使用的现场接口",
+        "开发侧验证回传 evidence"
+      ]
+    },
+    {
+      "file": "company-delivery/baseline/README.md",
+      "sha256": "29083090d3526c3237e6e7c27c70186e34fb20166a3fd0f7e684062435a65d1d",
+      "lines": 218,
+      "headings": [
+        "公司平台只读接管基线",
+        "原因分类诊断 v2（Issue #280）",
+        "现场探针兼容与独立诊断（Issue #278）",
+        "Profile-bound v2（Issue #274）",
+        "固定 v1（Issue #271，历史兼容）",
+        "固定目标与可信输入",
+        "当前证据与人工补充",
+        "接管决定与 B2/B3 前置卡",
+        "复跑与验证"
+      ]
+    },
+    {
+      "file": "company-delivery/runbook.md",
+      "sha256": "83fbc97feac2685c40e338f0f5712763ff4d764811cf96f941c86daf2f7d72c8",
+      "lines": 270,
+      "headings": [
+        "公司两 VM 确定性交付 operator runbook",
+        "1. 不变量与人工闸门",
+        "Evidence 文件与回流",
+        "Stage 00 — archive、handoff 与 exact release 校验",
+        "Stage 10 — 两台 VM 的只读脱敏 inventory",
+        "Stage 20 — Gitea greenfield isolated install 决策",
+        "Stage 30 — legacy backup（本合同不适用）",
+        "Stage 40 — legacy restore drill（本合同不适用）",
+        "Stage 50 — Gitea greenfield isolated install",
+        "Stage 60 — company Gitea bootstrap、保护与 company PR",
+        "Stage 70 — one-shot inbound、Runner 与 Registry 正负验收",
+        "Stage 80 — `scm-ci` artifact-only verification",
+        "Stage 90 — `appserver-prod` read-only target readiness",
+        "Stage 100 — fixed production action、验证与独立回滚",
+        "Stage 110 — evidence 脱敏、对账、回流与关闭",
+        "2. 当前状态与强制 NOT RUN"
+      ]
+    },
+    {
+      "file": "docker-release/README.md",
+      "sha256": "ae8a6003c72d3b31906d3ced057f8729df7cc064d20942eff24e9c8af82a13cd",
+      "lines": 309,
+      "headings": [
+        "AISoftPlatform Docker release contract v1/v2",
+        "Release identity",
+        "Docker capability gate",
+        "Target profile",
+        "Stable CLI",
+        "State and rollback",
+        "Fixed action permission gate",
+        "Install boundary",
+        "Pinned primary evidence"
+      ]
+    },
+    {
+      "file": "docker-release/contracts/migration-rollback-v1.md",
+      "sha256": "276bd342ed4c094944f8517bde9eb89a604845ee276de32cb0d680d645374070",
+      "lines": 140,
+      "headings": [
+        "Docker migration rollback compatibility v1",
+        "数据库位置与容器位置",
+        "判定顺序",
+        "Operator 管理的依据",
+        "失败与状态输出",
+        "Consumer、降级与证据边界",
+        "实施停止点",
+        "固定 source evidence 修订（T04 已批准合同）"
+      ]
+    },
+    {
+      "file": "docs/agents/domain.md",
+      "sha256": "ebffe37a63f5176a7e257d4a5055fa112dfa1c3d1e2f7b7fa517e352927e0a41",
+      "lines": 9,
+      "headings": [
+        "Domain docs"
+      ]
+    },
+    {
+      "file": "docs/agents/issue-tracker.md",
+      "sha256": "88510dbe4561ea1237926077e6065d1a611c409e8019ded6ccb30b31898eeea6",
+      "lines": 71,
+      "headings": [
+        "Issue tracker: AISoftPlatform Gitea",
+        "Authority and boundaries",
+        "Matt skill publication mapping",
+        "Derived Issues",
+        "Final PR candidate confirmation",
+        "Pull requests as a triage surface",
+        "Wayfinding and multi-Issue mode"
+      ]
+    },
+    {
+      "file": "docs/agents/triage-labels.md",
+      "sha256": "556e6720f11bbf8c42cd12971e31227e98d51f35530fc1c0a640cd72d0b65ea5",
+      "lines": 25,
+      "headings": [
+        "Matt triage label mapping",
+        "Category",
+        "State"
+      ]
+    },
+    {
+      "file": "docs/changes/334-refresh-platform-docs/summary-refresh-platform-docs-261004.md",
+      "sha256": "24f50ec15dbeabfc7adc2e778702d09c72aa089b028ae9de5f7f1a3715c06bcd",
+      "lines": 90,
+      "headings": [
+        "问题/需求总结",
+        "影响范围",
+        "初步方案与建议",
+        "风险",
+        "AI 判级",
+        "判级证据",
+        "缺失的 acceptance criteria 或决策",
+        "授权与归属",
+        "本地结果与 PR 候选"
+      ]
+    },
+    {
+      "file": "docs/changes/334-refresh-platform-docs/verification-refresh-platform-docs-261004.md",
+      "sha256": "80be5e68bce27a61f7c9ffeac9c3fbaf9671a9180cb3aab793e96960437d5404",
+      "lines": 139,
+      "headings": [
+        "Verification：稳定文档全面核查",
+        "主要结论与处理",
+        "全面核查清单",
+        "README 上次集中同步后的主线合并",
+        "验证记录",
+        "回滚与交付状态"
+      ]
+    },
+    {
+      "file": "platform-bootstrap/README.md",
+      "sha256": "0c9b082361db3603234dbeecf12432ed18193c4ee87dcee9dda544eaf96cb69b",
+      "lines": 53,
+      "headings": [
+        "platform-bootstrap/v1",
+        "信任与制品身份",
+        "数据与证据"
+      ]
+    },
+    {
+      "file": "platform-bootstrap/runbook.md",
+      "sha256": "304874de090003a0ea73a0ce1eefe5a9afcd8e04b97ae2b26bd0aa274b1e6eea",
+      "lines": 158,
+      "headings": [
+        "公司平台 bootstrap 操作合同 v1",
+        "00 构建与携带身份（开发侧）",
+        "10 verify-handoff（执行包内代码之前）",
+        "20 盘点、采用与停止",
+        "30 固定动作合同与 apply dry-run",
+        "40 readback 与平台 canary",
+        "50 rollback dry-run 与停止恢复",
+        "60 分层交付"
+      ]
+    },
+    {
+      "file": "skill-for-claude/aisoft-platform/SKILL.md",
+      "sha256": "4d03a86f77cae83ef14449cf0b9c404e2954ad43c1fb789caeec264ef318f4e8",
+      "lines": 67,
+      "headings": [
+        "AISoft 自托管交付平台（v3.6）",
+        "现行合同（v3.6，#208 governance source）",
+        "approved 之后默认自主推进",
+        "只在这些情况暂停",
+        "会话标准动作（Mac 交互开发，最常见）",
+        "工具分工",
+        "接入新项目 / 项目对齐 / 私有访问",
+        "Common Mistakes"
+      ]
+    },
+    {
+      "file": "skill-for-claude/issue-session-flow/SKILL.md",
+      "sha256": "7c030a2a4f17231bb26bbc29220e5fd5ba11eb9e13006ec9192343d7eb723acd",
+      "lines": 229,
+      "headings": [
+        "Issue 会话编排",
+        "何时开调度会话",
+        "change worktree 的单写者归属",
+        "两种会话",
+        "派单",
+        "开放 Issue 清扫",
+        "Issue 会话的状态",
+        "approved 之后默认自主推进",
+        "只在这些情况暂停",
+        "确认点 1：合同/启动",
+        "确认点 2：准备提交最终 PR",
+        "收尾（manual 确认已合并，或 routine receipt 后自动执行）",
+        "衍生 Issue 与琐事例外",
+        "Red Flags —— 出现这些念头说明正在偏离",
+        "Common Mistakes",
+        "平台适配"
+      ]
+    },
+    {
+      "file": "skill-for-codex/SKILL.md",
+      "sha256": "bf08aaf639d28cd57ec4d9a04d12bafe2f89270b19c130717675ee886340743c",
+      "lines": 149,
+      "headings": [
+        "AISoft self-hosted delivery platform",
+        "Read the contract",
+        "Apply the v3 workflow",
+        "Access private Gitea deterministically",
+        "Preserve the Development Loop boundary",
+        "Preserve the deployment boundary",
+        "Protect the platform"
+      ]
+    },
+    {
+      "file": "skill-for-codex/references/onboarding-runbook.md",
+      "sha256": "05353ff947d4c6f76e70fa69100984f3dfa44e5ae23ca92ab0152c78986ef992",
+      "lines": 416,
+      "headings": [
+        "新项目接入 AISoft 平台 · v3 Runbook",
+        "1. 参数与仓库",
+        "1.1 Mandatory governance manifest 与 project-agent gate",
+        "1.2 共享 `ci-bot` gate（已退役）",
+        "2. 共享项目契约",
+        "3. Mandatory host-role gate",
+        "4. CI 与部署",
+        "4.1 Linux 原生",
+        "4.2 Linux 容器化",
+        "4.3 Windows",
+        "4.4 对所有环境一致的流程不变量",
+        "4.5 项目仓必须自行声明与实现交付方案",
+        "5. Gitea 治理",
+        "6. Analyzer 接入",
+        "7. Development Loop 接入",
+        "8. 接入验收",
+        "合并后收尾",
+        "GitHub 入站项目",
+        "9. 安全回滚",
+        "9. Architecture declaration onboarding"
+      ]
+    },
+    {
+      "file": "skill-for-codex/references/private-gitea-access.md",
+      "sha256": "2f4ff463a73f01f88067c4a2040a2ed808fa0d29804527deb0dd44038bcffa7b",
+      "lines": 122,
+      "headings": [
+        "Private local Gitea access",
+        "Resolve the exact target",
+        "Use the authenticated access ladder",
+        "Helper commands",
+        "Approved #286 dependency contract — source/local verified",
+        "Mutation boundary"
+      ]
+    },
+    {
+      "file": "skill-for-codex/references/project-align.md",
+      "sha256": "8959d13e6d4017e264524c9454dbf971a16edcd2b34511ad5ef857b37861f777",
+      "lines": 62,
+      "headings": [
+        "项目对齐 · aisoft-project-align",
+        "操作循环",
+        "对齐 checklist",
+        "模板同步（第 2 行专属）",
+        "边界与工具分工"
+      ]
+    },
+    {
+      "file": "templates/docs/agents/domain.md",
+      "sha256": "ebffe37a63f5176a7e257d4a5055fa112dfa1c3d1e2f7b7fa517e352927e0a41",
+      "lines": 9,
+      "headings": [
+        "Domain docs"
+      ]
+    },
+    {
+      "file": "templates/docs/agents/issue-tracker.md",
+      "sha256": "88510dbe4561ea1237926077e6065d1a611c409e8019ded6ccb30b31898eeea6",
+      "lines": 71,
+      "headings": [
+        "Issue tracker: AISoftPlatform Gitea",
+        "Authority and boundaries",
+        "Matt skill publication mapping",
+        "Derived Issues",
+        "Final PR candidate confirmation",
+        "Pull requests as a triage surface",
+        "Wayfinding and multi-Issue mode"
+      ]
+    },
+    {
+      "file": "templates/docs/agents/triage-labels.md",
+      "sha256": "556e6720f11bbf8c42cd12971e31227e98d51f35530fc1c0a640cd72d0b65ea5",
+      "lines": 25,
+      "headings": [
+        "Matt triage label mapping",
+        "Category",
+        "State"
+      ]
+    },
+    {
+      "file": "templates/docs/changes/_template/plan.md",
+      "sha256": "593a45b4dddd96233f9f92e0b124b3eb25d7d383661423c892589bb027def92e",
+      "lines": 45,
+      "headings": [
+        "Implementation plan template",
+        "Ticket graph",
+        "Expected touch points",
+        "数据库迁移",
+        "测试与验收映射",
+        "部署与回滚"
+      ]
+    },
+    {
+      "file": "templates/docs/changes/_template/spec.md",
+      "sha256": "0646265eba8b5a2ecf58a6fd867a0f9cb33ac4cf31c2dda043287abacc8c7669",
+      "lines": 34,
+      "headings": [
+        "Spec template",
+        "目标与原因",
+        "Acceptance criteria",
+        "接口、数据与兼容性影响",
+        "风险与回滚约束",
+        "非目标",
+        "未决问题"
+      ]
+    },
+    {
+      "file": "templates/docs/changes/_template/summary.md",
+      "sha256": "c5329e67eeb82264be25588b21e0f5735acbe2e7792b9123c740ea69b636c175",
+      "lines": 78,
+      "headings": [
+        "问题/需求总结",
+        "影响范围",
+        "初步方案与建议",
+        "风险",
+        "AI 判级",
+        "判级证据",
+        "缺失的 acceptance criteria 或决策"
+      ]
+    },
+    {
+      "file": "templates/docs/changes/_template/verification.md",
+      "sha256": "1d4d30373f2c1c8fde13a2b4dcbfd0c8a6c3ef3669337247cb7dfa69813cd739",
+      "lines": 72,
+      "headings": [
+        "Verification template",
+        "基线与范围",
+        "执行结果",
+        "Acceptance criteria 结果",
+        "部署验收",
+        "制品与环境",
+        "重复部署",
+        "故意失败与回滚",
+        "遗留风险与未完成项"
+      ]
+    },
+    {
+      "file": "templates/project/AGENTS.md",
+      "sha256": "53e4dc5aacfa8b5ccf33150d3ed4cb17e2db109b22f67da1ec42141b99db8e4c",
+      "lines": 57,
+      "headings": [
+        "AGENTS.md · <项目名>",
+        "平台声明（常驻指针）",
+        "每 Issue 开发路径",
+        "工具分工",
+        "项目事实（按项目填写）"
+      ]
+    },
+    {
+      "file": "templates/project/CLAUDE.md",
+      "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49",
+      "lines": 1,
+      "headings": []
+    }
+  ],
+  "scope": "Local Markdown paths/headings only; no remote URLs, installed services, Secret, deployment or history rewrites."
+}

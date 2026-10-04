@@ -11,8 +11,11 @@
 与生产只消费同一 immutable digests/Compose/architecture identity；PM2/tar.gz 内容保留为
 已有应用的 legacy 设计证据。文件名保留早期“双服务器”提案以维持链接；当前 host-role
 合同要求 `scm-ci`、`appserver-test`、`appserver-prod` 三个隔离 trust role，但不要求三台公司机器。
-NewEmaint pilot 只有两台公司 Linux VM，`appserver-test` 位于本地 OrbStack DockerLab；任何物理放置都
-不能把业务 runtime/DB 与 Gitea/通用 Runner 重新合并。
+采用公司两 VM 参考拓扑时，`appserver-test` 位于本地 OrbStack DockerLab，生产业务 runtime/DB
+与公司 Gitea/通用 Runner 分离。2026-10-04 文档核对：后续 #290 已合并仅 test 的 `scm-ci` 共置能力，
+必须由受保护 profile 显式绑定 role/environment/capability，不能延伸到 production；当前合同和
+#296 精确 Docker 28.1.1 classic 兼容行见 [docker-release](docker-release/README.md)。本册的历史设计
+不能代替项目自己的交付声明或现场验收。
 
 现有 [01](01-基础设施-VM-Gitea-Runner.md) 和 [02](02-CI与自动部署流水线.md) 记录的是 OrbStack、Next.js、SQLite 试点的 as-built 事实；本册不修改该事实，也不能把 SQLite 脚本改名后直接用于 PostgreSQL。实施本册涉及 CI、制品、数据库迁移、权限、部署和回滚，属于 complex 变更，必须按 `AGENTS.md` 补齐 Issue、spec、plan 和 verification。
 

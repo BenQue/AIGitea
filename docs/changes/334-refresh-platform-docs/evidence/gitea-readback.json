@@ -1,0 +1,104 @@
+[
+  {
+    "operation": "git.fetch.main",
+    "exit_code": 0,
+    "receipt": {
+      "checkout": "/Users/benque/MyDocs/AISoftPlatform",
+      "identity": "aisoft-platform-agent",
+      "operation": "git.fetch.main",
+      "project": "aisoft-platform",
+      "remote_name": "origin",
+      "status": "PASS"
+    }
+  },
+  {
+    "operation": "gitea.issue.list",
+    "exit_code": 0,
+    "receipt": {
+      "count": 3,
+      "issues": [
+        {
+          "created_at": "2026-10-04T10:58:20+08:00",
+          "labels": [
+            "approved",
+            "complexity/small",
+            "triage/needs-triage",
+            "type/docs"
+          ],
+          "number": 334,
+          "state": "open",
+          "title": "docs: 全面核查并同步稳定平台文档与 README",
+          "updated_at": "2026-10-04T11:05:44+08:00"
+        },
+        {
+          "created_at": "2026-10-03T16:04:33+08:00",
+          "labels": [
+            "approved",
+            "complexity/complex",
+            "triage/needs-triage",
+            "type/security"
+          ],
+          "number": 333,
+          "state": "open",
+          "title": "ops(credentials): #316 源码合并后的安装与 PAT 轮换现场验收",
+          "updated_at": "2026-10-04T10:58:20+08:00"
+        },
+        {
+          "created_at": "2026-10-02T22:01:09+08:00",
+          "labels": [
+            "triage/needs-triage"
+          ],
+          "number": 327,
+          "state": "open",
+          "title": "governance(broker): 提供保留历史的 main 整合与 FF 发布路径",
+          "updated_at": "2026-10-02T22:01:09+08:00"
+        }
+      ],
+      "pull_requests_excluded": 0,
+      "state": "open"
+    }
+  },
+  {
+    "operation": "gitea.protection.read",
+    "exit_code": 0,
+    "receipt": {
+      "approvals_whitelist_teams": [],
+      "approvals_whitelist_username": [],
+      "block_admin_merge_override": true,
+      "block_on_official_review_requests": true,
+      "block_on_outdated_branch": true,
+      "block_on_rejected_reviews": true,
+      "branch_name": "main",
+      "created_at": "2026-07-16T17:45:03+08:00",
+      "dismiss_stale_approvals": true,
+      "enable_approvals_whitelist": false,
+      "enable_force_push": false,
+      "enable_force_push_allowlist": false,
+      "enable_merge_whitelist": true,
+      "enable_push": false,
+      "enable_push_whitelist": false,
+      "enable_status_check": true,
+      "force_push_allowlist_deploy_keys": false,
+      "force_push_allowlist_teams": [],
+      "force_push_allowlist_usernames": [],
+      "ignore_stale_approvals": false,
+      "merge_whitelist_teams": [],
+      "merge_whitelist_usernames": [
+        "admin"
+      ],
+      "priority": 1,
+      "protected_file_patterns": "",
+      "push_whitelist_deploy_keys": false,
+      "push_whitelist_teams": [],
+      "push_whitelist_usernames": [],
+      "require_signed_commits": false,
+      "required_approvals": 0,
+      "rule_name": "main",
+      "status_check_contexts": [
+        "CI / verify (pull_request)"
+      ],
+      "unprotected_file_patterns": "",
+      "updated_at": "2026-09-05T23:07:43+08:00"
+    }
+  }
+]

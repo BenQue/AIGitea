@@ -4,7 +4,7 @@
 > 日期：2026-07-16
 > 适用范围：AISoftPlatform 平台文档、平台 skills 与 agent 编排说明
 > 当前约束：本文件保留规划与决策演进，不是 live 状态表。source 能力、一次性 HOME smoke 或历史 pilot 均不能写成某项目已启用、已部署或 production 已验收；当前入口见 README、03/04/06/08。
-> 落地对照：2026-09-03，见 §0.2。
+> 落地对照：§0.2 保留 2026-09-03 对照并同步后续来源；最新稳定源码状态以 [README](README.md) 的 2026-10-04 核对为准。
 
 ## 0. 实施状态
 
@@ -62,7 +62,7 @@
 | §12 迁移与回滚原则 | §12.2 运行迁移已完成（§0 runtime source 与 VM 安装）；§12.3 回滚原则现行（`08` §9） |
 | §13 实施参数 | §13.1 七项已定；§13.2 两项**仍开放** |
 | §15 Architecture catalog | `architecture/` 已实施（Issue #23） |
-| §16 Issue #208 | source 合同已合并；routine merger 的 live apply、credential provision 与每项目 opt-in **未执行**（README §1） |
+| §16 Issue #208 | source 合同已合并；后续 #312/#313/#316 扩充 contexts/scope/轮换实现；routine merger 的安装、credential、live protection 与 opt-in 按每项目独立证据确认，当前入口见 README §1 |
 
 ## 1. 规划目标
 

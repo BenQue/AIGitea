@@ -1,0 +1,41 @@
+{
+  "command": "bash codex/tests/smoke.sh",
+  "environment": "host, default locale; no real installer or deployment requested",
+  "exit_code": 0,
+  "elapsed_seconds": 424.754,
+  "tail": [
+    "Unpushed local commits are the normal state for most of a change's ... ok",
+    "test_every_reason_is_reported_and_only_three_are_gaps (tests.test_worktree_owner.ScanTests.test_every_reason_is_reported_and_only_three_are_gaps) ... ok",
+    "test_only_change_branches_are_scanned (tests.test_worktree_owner.ScanTests.test_only_change_branches_are_scanned) ... ok",
+    "test_the_scan_writes_nothing (tests.test_worktree_owner.ScanTests.test_the_scan_writes_nothing) ... ok",
+    "",
+    "----------------------------------------------------------------------",
+    "Ran 1111 tests in 132.925s",
+    "",
+    "OK",
+    "Codex platform static smoke checks passed."
+  ],
+  "log": "smoke.log.gz",
+  "test_groups": [
+    [
+      "12",
+      "0.410"
+    ],
+    [
+      "34",
+      "114.877"
+    ],
+    [
+      "20",
+      "0.052"
+    ],
+    [
+      "197",
+      "41.709"
+    ],
+    [
+      "1111",
+      "132.925"
+    ]
+  ]
+}
