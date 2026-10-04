@@ -17,9 +17,9 @@ documents:
   summary: summary-refresh-platform-docs-261004.md
   verification: verification-refresh-platform-docs-261004.md
 depends_on: []
-status: approved
+status: pr-open
 branch: change/334-refresh-platform-docs
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/335
 created: 2026-10-04
 updated: 2026-10-04
 ---
