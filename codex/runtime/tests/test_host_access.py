@@ -118,7 +118,7 @@ class HostAccessContractTests(unittest.TestCase):
         self.contract = load_access_contract(ACCESS, GOVERNANCE)
 
     def test_exact_projects_profiles_and_no_merge_surface(self) -> None:
-        self.assertEqual(len(self.contract.projects), 6)
+        self.assertEqual(len(self.contract.projects), 7)
         profiles = {
             item.repository: item.vm_profile.name
             for item in self.contract.projects
@@ -137,6 +137,40 @@ class HostAccessContractTests(unittest.TestCase):
         self.assertFalse(any("shell" in value or "url" in value for value in names))
         with self.assertRaises(AccessContractError):
             self.contract.operation("git.push.main")
+
+    def test_restored_hsdb_is_mac_only_and_uses_its_exact_identity(self) -> None:
+        project = self.contract.project("hsdb")
+        self.assertEqual(project.repository, "HSDB")
+        self.assertEqual(project.project_agent, "hsdb-agent")
+        self.assertEqual(project.mac_checkout, "/Users/benque/Projects/HSDB")
+        self.assertEqual(project.git_remote_name, "origin")
+        self.assertIsNone(project.vm_profile)
+        self.assertIsNone(project.routine_merge_agent)
+        self.assertEqual(project.dependency_read_targets, ())
+        with self.assertRaises(AccessContractError):
+            self.contract.project_for_profile("hsdb")
+        for project_id in ("rsdesign-new", "wmpda", "sap-table-migrate"):
+            with self.subTest(project_id=project_id):
+                with self.assertRaises(AccessContractError):
+                    self.contract.project(project_id)
+
+    def test_restored_hsdb_cannot_expand_the_approved_vm_profile_set(self) -> None:
+        raw = json.loads(ACCESS.read_text())
+        next(project for project in raw["projects"]
+             if project["project_id"] == "hsdb")["vm_profile"] = {
+            "name": "hsdb",
+            "repo_dir": "work/HSDB",
+            "analysis_provider": "none",
+            "implement_provider": "none",
+            "timer_unit": None,
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "access.json"
+            path.write_text(json.dumps(raw))
+            with self.assertRaisesRegex(
+                AccessContractError, "exactly the three approved repositories"
+            ):
+                load_access_contract(path, GOVERNANCE)
 
     def test_manifest_fixed_remote_defaults_and_rejects_unsafe_names(self) -> None:
         gitea_remote_projects = {"newemaint", "sfm-digital-board"}
