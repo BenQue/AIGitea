@@ -1,0 +1,33 @@
+{
+  "surface": "mac-installed",
+  "metadata_only": true,
+  "mutation": false,
+  "manifests": [
+    {
+      "manifest": "host-access-broker.json",
+      "members": [
+        "aisoft-platform",
+        "localwms",
+        "myapp",
+        "newemaint",
+        "sfm-digital-board",
+        "smoke-test"
+      ],
+      "hsdb_registered": false
+    },
+    {
+      "manifest": "gitea-governance.json",
+      "members": [
+        "aisoft-platform",
+        "LocalWMS",
+        "myapp",
+        "NewEMaint",
+        "SFMDigitalBoard",
+        "smoke-test"
+      ],
+      "hsdb_registered": false
+    }
+  ],
+  "source_receipt_exists": false,
+  "source_sha": null
+}

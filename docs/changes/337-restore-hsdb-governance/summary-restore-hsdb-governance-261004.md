@@ -101,3 +101,9 @@ override_reason: ''
 
 本地治理切片无未决合同。最终 PR 提交、人工 merge 和受保护安装各遵循具体门禁；
 现场账号/credential readiness 与下游应用基线差异为真实 GAP。
+
+## 本地候选结果
+
+治理 commit `2aeb5b2a69ea581a64fdbc78d93cff8f2957c0da`；严格/246 targeted/full smoke/源码 rollback 本地 PASS。
+分类标签读回 projected。状态为 AWAITING_PR_CONFIRMATION；source merge、required PR CI、installed、account/Secret、UAT/部署未完成。
+最终 exact candidate receipt 在本聊天共享证据目录；[verification](verification-restore-hsdb-governance-261004.md) 保留分层事实与安装恢复卡。

@@ -25,8 +25,10 @@ updated: 2026-10-04
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 独立治理合同、manifest 原子注册、最小权限回归、源码回滚与 final manual candidate | - | in-progress |
+| T01 | 独立治理合同、manifest 原子注册、最小权限回归、源码回滚与 final manual candidate | - | done |
 | T02 | 已人工合并 source 与受保护安装后的 HSDB registration fresh readback | T01 | blocked-external |
+
+本表 T01 仅表示平台本地候选已完成；总调度的 HSDB T01 仍未完成，需 T02 外部门验收。
 
 T01 是一个完整可验证的配置切片：两份 manifest 与 seal 互相约束，不拆成无效中间树。
 T02 的 prerequisite 为用户 final PR 确认、人工合并及独立安装批准；不是待授权的应用部署。
