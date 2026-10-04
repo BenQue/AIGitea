@@ -34,7 +34,8 @@ status: approved
 | T07 | 具体确认后仅补充 mapped summary/spec/plan 的固定 Python3.9 兼容 scope；文档校验/本地原子commit/STOP | T06 | completed |
 | T08 | 具体确认Mac observer安全与签名选择后仅三合同/校验/localcommit/STOP；不执行新source或host能力 | T07 | completed |
 | T09 | 具体裁决Mac interpreter执行对象绑定；仅三合同校验/localcommit/STOP，不作source或host能力证明 | T08 | completed |
-| T02 | T09后fresh重读；保留原source WIP，先全closure/受控执行对象绑定，再observer/resources/authority/FF、原installer-drift与旧回归 | T09 | in-progress |
+| T10 | 具体选择新main目标后仅四条main治理文档与mapped三合同；校验/localcommit/STOP；R02执行不包含 | T09 | completed |
+| T02 | T10后单独明确R02 execution卡；角色能力/新字节具备后fresh重读并继续原source范围及全回归 | T10 | in-progress |
 | T03 | 集成/全量/静态/文档验收、source与installed分层、人工firstPR/安装rollback卡，准备唯一manualPR候选 | T02 | pending |
 
 本聊天负责人直接“批准”审阅卡绑定的具体安全合同；本轮仅独立T05治理应用、验证/localcommit后STOP。T01/T04历史完成保留，T05 completed仅指治理文本步骤，不指新增source/主机验收。T02 in-progress是已保全WIP；后续fresh重读新governing/批准/Issue/installed才继续，当前run不得进入runtime。
@@ -154,3 +155,16 @@ private Mac profile v2、签名artifact/closure绑定和拒绝条件。无真实
 fresh T02只用原T08的9个source文件，落实完整冻结TCB、native实际exec对象核对和平台导入前seed门；
 Linux、private/public schema、原scope及独立B01/I01/I02保持。每shell变动实跑默认smoke/static；
 模型/unsigned/nonroot证据与真实kernel/签名/安装分层，任何缺口继续fail closed。
+
+
+## T10 private 提案及 STOP
+
+本步骤须负责人审阅 external exact main 处置卡后具体选择B；原T06/T08/T09批准不授权新M。
+仅 mapped spec T10 的四条 main 治理文档与 mapped summary/spec/plan（exact7）可应用；
+先验证候选/patch before/hash/mode、原owner/HEAD/M/index、33 WIP与10其它治理完全保全。
+本卡仅做private静态字节/映射/graph检查，真实resolver/semantic/graph与Git staged/tree检查留批准后的
+治理步骤实际执行。成功仅投影T10 row与summary frontier各一行，独立localcommit G后立即STOP。
+T02仍in-progress，T03 pending；R02在本卡中只有拟议形状，不执行merge、改refs或恢复WIP。
+actual G、R02固定执行角色/程序/hash、preview/actual tree不具备就null/GAP；临时wrapper不是Controller。
+未来另有exact执行卡且角色能力合格才允许Controller构造[C,M]无冲突纯baseline；Agent/provider no-merge。
+source guard与完整原AC保留，失败不reset/force/重pin R0，不用otherIssue等待条件替代真实能力缺口。

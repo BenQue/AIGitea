@@ -547,3 +547,62 @@ private profile v2、public/registry默认关闭、Linux和既有B01/I01/I02卡�
 随后fresh T02重新读具体批准/合同/owner/main/source/live Issue/installed，先完整闭包与本节
 对象绑定，再observer/resources/authority/FF、原installer-drift与旧回归。旧T01–T08历史不改。
 这次确认不授权ES实际调用、签名/资格/Secret、安装/注册/服务/挂载、远端push/PR/merge或部署。
+
+
+## T10 待裁决：新 main 文档基线与 R02 边界
+
+本节仅为 private exact 卡的待审提案，T06/T08/T09 与旧 PASS 不授权新的 main 或整合。
+本卡准备本身不修改本 worktree 合同、source、index、branch 或批准 pin，不执行 runtime。
+保持 #327 / change/327-broker-ff-integration / manual / 原 owner session 与 worktree。
+当前 H=2271843dba6e958953db3a2c30f53a3e9faa74a0；原获准 main 为
+dc9aa468580f92a73dfa054c6f04ef5113f56694；broker 只读 fresh fetch 观察到
+M=e2edb3e08194624a6647212571c6cc866298575b，common base 仍为原 main。
+负责人若具体选择 B，只把这个 exact M 选为后续 source 基线目标并批准以下治理步骤；
+不从 observation、live label、local approved 或历史 R01 receipt 推导 runtime/grant 授权。
+
+### 独立治理的 exact 七文件
+
+先同步四条原治理路径中的 main 文档更新：03-Issue-Spec-Plan与单闸门开发流程.md、
+04-Agent编排与定时任务.md、08-双工具共存与实施.md、README.md；具体 before/candidate
+bytes、patch、hash/mode 绑定 external 卡。前三文件只替换 main 已更新且唯一匹配的
+非 #327 段落；README 保留 main 全部新内容并保留原 #327 一行治理摘要。
+主线 #289 已实现/#334 更新、提交确认顺序、source/installed 分层和导航不得退回旧措辞。
+其余 main 19路径在未来纯基线整合中继承，本步骤不修改 #334 文件或给其它 Issue 增硬依赖。
+另只追加 mapped summary/spec/plan 的本段合同和 T10 frontier；verification 属33 WIP，不混提交。
+AGENTS.md 与其余原治理路径、33 WIP、scope/AC-1～11、required CI、provider none/disabled/null、
+public/private schema 与 T09 初始化窗口选择保持，不扩 runtime/source 文件清单。
+
+应用前再核 actual H/M/branch/owner/index 与卡 SHA；任何漂移重新审阅，不自动采用更晚 main。
+治理应用限 external exact7 proposal；resolver、semantic、graph、exact diff 与全保全实际通过后，
+仅把 T10 row 与 summary T10 frontier 各一行投影完成，独立本地原子 commit G 后立即 STOP。
+proposal/projected 两状态及全部14候选/patch SHA在卡固定；未发生的 G/hash/tree 保持 null。
+失败保留 evidence，仅撤回本次七文档增量/七 index 项，不能覆写未知 bytes 或 reset 已提交历史。
+
+### R02 的拟议形状与当前能力 GAP
+
+T10完成也不自动执行 R02 或 fresh T02。本卡不授权实际 merge、merge-tree/commit-tree、
+ref/index 更新、WIP parking/恢复或新 runtime。本节只给下一受控卡的约束，不新增执行入口。
+如以后另有 exact 执行裁决，纯基线整合第一 parent 须为 actual G（或经另外明确核验的
+本 Issue 线性末端 C），第二 parent 仅 exact M；tree 必须等于受控无冲突 merge 的独立重算。
+无 actual G、preview/actual tree、qualified 固定执行程序/角色/hash，就保持 null/GAP。
+只有既定外层 Controller maintenance 可构造该对象；Agent/provider 仍只作线性 commit，
+不得改名冒充 Controller 或临时拼装 merge helper。已保留 R01 4cb627d9525611bff34387830978ba5c5785863e
+仅是旧 pin 的 source-only 历史事实，不是新授权、protected checkpoint 或安装能力。
+现有 installed broker 未提供 begin/verify，managed bootstrap 不存在，closure/observer/资源仍 GAP；
+原 R01 脚本不是已登记 authority 程序，本卡不重跑或改写它。能力不足立即停，不先装 unmerged
+代码、不启用服务/创建 grant、不新增 typed operation 或换身份绕行；不把 I01/I02 或 #333
+人工操作造成本票准备 source PR 的 product hard dependency。
+
+以后 R02 开始前必须另有 actual G 与全历史/WIP恢复包、登记且合格的固定角色程序证据和 exact卡。
+完整已批准第一父链与 R01、T07四行修复、T08/T09 commit 必须保留为祖先；R0 不被重pin。
+fresh R/ref 当前独立观察缺口，不推断 missing ref 或把 owner last_push=null 当 R0=null；
+未来发表前仍须 canonical exact-ref 查重/真实 R0/R/adoption 与 broker 独立全 DAG/tree/delta 验收。
+有冲突、多 base、对象缺失、driver/replace/graft/shallow 或 scope/来源漂移一律 STOP；
+不往 integration tree 混入手工解决或33 WIP，不 endpoint 复制旧 owner 文档覆盖 main。
+main 文档新23路径完整继承并按 blob/mode/hash 读回；本 Issue delta 与 WIP内容分别核验。
+
+未来符合精确执行卡的 R02 后，source guard 仍原样保留，先实际核新 H 的 M 祖先与新字节/mode，
+才 fresh T02 重读合同/Issue/installed 并继续原范围。实际 source 修复后重跑全 runtime discover、
+默认 host locale smoke 与适用静态门，旧失败日志完整保留；定向80 PASS不替代完整回归。
+完整closure、真实kernel/签名/installed仍 GAP；本卡无 ES/signing/资格/Secret/TCC/SIP/root、
+registry/state/socket/grant/资源/安装/service/PAT/remote push/PR/merge/label/deploy 权限。

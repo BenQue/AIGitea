@@ -168,3 +168,15 @@ Mac interpreter的canonical执行与held FD绑定证明尚需具体安全裁决�
 旧T08批准不自动授权后者；source/unsigned fixture与SDK声明均不作kernel验收。
 T09（具体确认后三合同已独立应用、校验、localcommit并STOP；仅治理完成）
 → 独立三合同/校验/localcommit/STOP → fresh T02原scope → T03；B01/I01/I02仍独立。
+
+
+## T10 待裁决：main 漂移处置
+
+T09已独立应用/校验/localcommit后STOP；actual H=2271843dba6e958953db3a2c30f53a3e9faa74a0。
+旧批准main pin仍dc9aa468580f92a73dfa054c6f04ef5113f56694；fresh只读观察M=e2edb3e08194624a6647212571c6cc866298575b，
+尚未采用该M。新增3 commits/23路径与本票4治理路径重叠，无33 WIP路径重叠；这不证明merge无冲突。
+负责人可选择A冻结原pin，或B仅批准external exact7治理同步和后续source目标M；不授权实际R02/T02。
+T10（具体选择后exact7治理已应用、校验、localcommit并STOP；目标M已在合同选择，R02未执行）
+→ 独立exact7治理/校验/localcommit/STOP → 单独明确R02执行卡与角色/程序/actual G → fresh T02 → T03。
+现有installed begin/verify/managed bootstrap缺失，R02程序/新head/tree均null/GAP；不能临时helper冒充Controller。
+33 WIP与10其它治理、旧 FAIL/GAP、T09风险选择与B01/I01/I02独立边界保持；全回归未重跑。

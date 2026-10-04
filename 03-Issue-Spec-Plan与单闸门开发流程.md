@@ -198,7 +198,7 @@ docs/changes/N-short-description/
 
 ### 声明与实际文件共用一个校验结果（#289）
 
-本节是 #289 已确认的治理合同。T01 仅应用本文与 README 的合同说明后停止；fresh run 重读后才实施 runtime。下述严格行为与新增命令待 T02/T03 实现和验证，不能据此声称当前 source 或 installed/live 已具备这些闸门。
+本节同步 #289 已合并的治理合同。T01 独立应用合同后，fresh run 的 T02/T03 已完成 runtime 实施与本地验证；[PR #325](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/325) 已进入稳定 main。下述严格行为和新增命令已在 source 实现，installed/live 仍须按实际安装与项目验收证据确认。
 
 - summary front matter 的 `required_docs` 是文档义务的唯一声明事实源，`documents` 是新格式角色到安全 basename 的唯一路径事实源。共用受限 Python 解析器，拒绝空、未知、重复或混合角色与 legacy 文件名的列表，首项必须为 summary。
 - `route.required_docs` 给出阶段与复杂度的最低合同要求；Loop 检查声明满足这些要求，不得用路由生成的列表替换声明或丢掉额外角色。development 不强制 spec/plan，production complex 仍必须有 spec/plan；任何路由都不能让已声明 verification 的文件义务消失。
@@ -522,7 +522,7 @@ PR #169 被合进 main，`origin/main~1` 于是等于 `770d527`。写错既不�
 
 判定是一个**合取**，两个条件都取自仓库证据，都不接受人工传入的终态判断（#163）：
 
-下表只适用于已经通过文档声明与实际文件校验的合同。#289 要求工具通过 §3 的共享 resolver 取得规范化 required_docs；缺失的 verification 不能作为“含 verification”的有效合同进入此表，不能改读原文或依据部署属性放行。该约束在 T01 仅完成治理说明，工具接入待 T02/T03 验证。
+下表只适用于已经通过文档声明与实际文件校验的合同。#289 要求工具通过 §3 的共享 resolver 取得规范化 required_docs；缺失的 verification 不能作为“含 verification”的有效合同进入此表，不能改读原文或依据部署属性放行。该约束与工具接入已随 #289 完成 source/local 验证并合并；不由此推导现场安装或部署完成。
 
 | 该 Issue 映射 summary 的 `required_docs` 含 `verification` | 该项目的 `deployment_lifecycle` | 终态 |
 |---|---|---|
