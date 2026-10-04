@@ -363,6 +363,14 @@
       }
     },
     {
+      "project_id": "hsdb",
+      "repository": "HSDB",
+      "project_agent": "hsdb-agent",
+      "routine_merge_agent": null,
+      "mac_checkout": "/Users/benque/Projects/HSDB",
+      "vm_profile": null
+    },
+    {
       "project_id": "localwms",
       "repository": "LocalWMS",
       "project_agent": "localwms-agent",

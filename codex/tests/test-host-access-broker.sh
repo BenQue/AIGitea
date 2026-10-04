@@ -12,7 +12,7 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_host_access.cli \
 jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
-  .project_count == 6 and
+  .project_count == 7 and
   .operation_count == 38 and
   .merge_operation_count == 1
 ' "$TMP/validate.json" >/dev/null
@@ -92,7 +92,11 @@ jq -e '
   ([.projects[] | select(has("git_remote_name")) | .git_remote_name]
     | all(. == "gitea")) and
   ([.projects[] | select(.vm_profile != null) | .repository] | sort) ==
-    ["LocalWMS", "NewEMaint", "aisoft-platform"]
+    ["LocalWMS", "NewEMaint", "aisoft-platform"] and
+  ([.projects[] | select(.project_id == "hsdb")]
+    == [{"project_id":"hsdb","repository":"HSDB","project_agent":"hsdb-agent",
+         "routine_merge_agent":null,"mac_checkout":"/Users/benque/Projects/HSDB",
+         "vm_profile":null}])
 ' "$ROOT/codex/config/host-access-broker.json" >/dev/null
 
 if rg -ni 'keychain|/usr/bin/security|find-generic-password|dump-keychain|security -A' \
