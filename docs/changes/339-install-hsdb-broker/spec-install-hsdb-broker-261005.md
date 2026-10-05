@@ -15,31 +15,60 @@ risk_flags:
   - platform-governance
 depends_on:
   - 337
-status: awaiting-triage
+status: approved
 branch: change/339-install-hsdb-broker
 created: 2026-10-05
 updated: 2026-10-05
 ---
 
-# #339 平台安装与注册识别 Spec · Revision 2
+# #339 平台安装与注册识别 Spec · Revision 2 已批准/技术验收
 
-原完整合同已批准并实际执行首次安装；新发现的installed策略差异导致STOP，真实恢复两端baseline已PASS。下面修正版尚未批准，禁止重新开窗。
+Revision2已被直接人类批准，原始记录和卡hash在/Users/benque/.codex/visualizations/2026/10/05/01a10bea-8743-7d12-bd55-addf317088bc/t01b-install-execution/window-2/authorization-339-rev2.json；以下AC按真实phase完成，旧审批前文本保留为历史，不再表示当前待批准。
 
 ## Acceptance criteria
 
-- [ ] AC-1：保留原合同授权证据；总调度审阅Revision 2后取得SFMDigitalBoard依赖只读边/完整共享面声明、Mac原生root入口和下一完整窗口的明确批准。
-- [ ] AC-2：fresh pin/current main/clean/root upstream/guard均匹配c9b5ef4e74592cbc68d6bdc6219568a1d51b6853；primary本窗口已FF，不重复伪造source动作。
-- [ ] AC-3：两端25固定目标+生成receipt完全匹配pin/mode/root owner；receipt source_sha/merged_main/four-hash/helper:null正确。
-- [ ] AC-4：七仓38操作；原六仓仅允许完整卡明确的SFMDigitalBoard依赖边及NewEMaint非目标seal变化，其余字段及原36操作定义/labels保持；HSDB Mac-only、三VM profiles、同pin第二次installer及独立字节/previous链一致。
-- [ ] AC-5：installed HSDB解析不再unknown，credential/account/onboarding阻塞保留真实GAP；本票不修Secret/账号或调用新增dependency/rotation操作。
-- [ ] AC-6：下一完整窗口同pin两端两次安装验收→本窗口新snapshot真实restore→原六仓36/字节/metadata/previous/absence/HSDB unknown→同pin再安装→最终七仓38/26目标/receipt/识别。旧窗口的安全恢复PASS仅为子证据，不替代该完整闭环。
-- [ ] AC-7：总调度fresh核T01门后单独激活T02；本票文档准备/原窗口首次安装/恢复不等于已完成注册或UAT。
+- [x] AC-1：Revision2增量读取边/完整共享面、Mac原生root入口及本完整窗口明确批准；唯一owner/tuple成立。
+- [x] AC-2：fresh current main/source root clean、HEAD=origin/main=c9b5ef4e74592cbc68d6bdc6219568a1d51b6853、exact upstream/safe.directory/guard level成立；本窗口未再执行FF。
+- [x] AC-3：两端25固定目标+生成receipt完整匹配pin/字节/mode/root owner；source_sha/merged_main=true/four-hash/helper:null正确。
+- [x] AC-4：七仓38；原六仓仅允许SFMDigitalBoard依赖边及NewEMaint非目标seal变化，原36操作定义/labels/其余字段保持；HSDB Mac-only/三VM profiles、second no-op及独立previous/字节metadata成立。
+- [x] AC-5：installed HSDB不再unknown；真实HTTP_401 account/credential/onboarding GAP保留；无Secret/账号/fallback及dependency/rotation新增操作调用。
+- [x] AC-6：两次安装→本新窗口snapshot真实restore→六仓36/原字节/metadata/previous/absence/unknown→同pin再安装→最终七仓38/26目标/receipt/识别全闭环PASS，前45分钟内完成，restore开始余量≥30分钟。
+- [ ] AC-7：总调度fresh核T01退出后单独激活T02。本owner交真实证据，不自行激活/提升access或应用UAT。
 
-## 固定工具与发布边界
+## 当前实测
 
-不改installer/runtime/governance规则，不从change branch安装；消费已有merged source无需制造本运维文档PR先merge门。最终文档仍走唯一manual PR确认/required CI/人工merge。main变化必须重审新pin及scope。
+# #339 Revision 2 安装与真实恢复验收结果
 
-## 具体执行卡
+**INSTALLED_ACCEPTANCE_PASS**。source pin/current main：c9b5ef4e74592cbc68d6bdc6219568a1d51b6853；provider保持none。唯一owner 01a10bea-8743-7d12-bd55-addf317088bc；branch/worktree change/339-install-hsdb-broker / /private/tmp/issue-339-install-hsdb-broker。
+
+人类直接批准Revision2增量范围及新窗口；同时fresh读回总调度原始“确认批准”和绑定的卡/旧文档head/body。采用更早T0=2026-10-05T22:44:23+09:00，计划截止23:29:23，限定意外恢复截止23:44:23。实际root闭环及最终读取完成22:55:38，未使用延长。
+两端source root clean main/upstream/完整pin、即时baseline、helper/receipt和新snapshots均PASS；VM→Mac首次/第二次installer exit0，第二次no-op；独立26目标/root mode-owner/receipt/七仓38/三VM profiles/已批准policy变化均PASS。
+planned restore于22:55:17开始，尚余2045.90052秒（34分05.9秒）≥30分钟。Mac/VM分别22:55:28真实恢复并清除已核本候选新建的八目标；独立读取原字节/mode/uid/gid/previous链/absence、六仓36、原SFMDigitalBoard字段absence和原HSDB unknown全部PASS。随后同pin VM→Mac再安装，22:55:37最终26目标/receipt/七仓38全部PASS，与第二次安装状态完全一致。
+
+| 结果层 | 结论 | 限制 |
+|---|---|---|
+| source/current main | PASS | final installed typed fetch后HEAD=origin/main=pin、clean；源码未改，本票文档不冒充source main |
+| 两端installed 26目标与receipt | PASS | 全SHA/mode/root uid-gid、source_sha、merged_main=true、四公开目标摘要、helper:null |
+| 同pin两次/no-op | PASS | 两端second output及独立字节/权限/previous链相同 |
+| 真实baseline restore | PASS | 新快照真实root恢复；63/75 inventory路径、34/43归档文件；absence/previous链完整 |
+| 同pin再安装/最终七仓38 | PASS | 最终与second-install状态相同，精确三VM profiles，HSDB vm_profile:null |
+| HSDB注册解析 | PASS | 两端installed三个typed只读操作不再unknown-project |
+| repo/access/onboarding | GAP | 两端各三操作均exit20 HTTP_401 / Gitea returned HTTP 401，不把它写成access PASS |
+| account/PAT根因 | GAP | HTTP401不足以区分账号停用/过期或无效token；未fallback/启用/替换/轮换 |
+| rotation helper capability | NOT VERIFIED | helper:null，无PAT helper artifact，无rotation/grant调用 |
+| previous installed source SHA | NOT VERIFIED | 真实snapshots证明observed-byte基线，不反推历史merged SHA |
+| 应用部署/UAT/公司现场 | NOT RUN | 不属本票 |
+| #339 push/PR/CI/manual merge | NOT RUN | 文档最终PR仍需独立既定门禁 |
+
+本窗口VM snapshot SHA256：bda1e3a2c66b54c79e84860455dfe990dd1abd21d21890336b8feea136b30218；Mac：755cd5c241684b58c10f99f0e4312a4dba6b66688912b7e84ae00406356677cb。均为本窗口新归档，没有复用旧压缩包。
+凭据metadata与baseline相同，未手工读取/输出值；固定installed broker仅在授权只读验收中内部使用受保护credential。没有Secret/账号/helper/grant/profile/protection/binding/labels/service/timer/provider/routine/其它installer/应用部署变更，没有push/PR/merge，没有恢复暂停监控。
+
+机读handoff及全部phase原始证据：/Users/benque/.codex/visualizations/2026/10/05/01a10bea-8743-7d12-bd55-addf317088bc/t01b-install-execution/window-2/handoff-339.json、phases.jsonl、两端install-1/install-2/restore/reinstall.json、before/restored/final.json、final-acceptance.json和registration-final*.json。原窗口STOP和获批Revision2文本分别完整保留，不将历史失败写成通过。
+T01B安装技术AC-1至AC-6 PASS；AC-7待总调度fresh核T01退出/T02单独激活，不自行激活T02，也不关闭Issue或归档现场未完成项。
+
+## 审批前冻结执行卡（历史全文）
+
+下面文本是用户批准时的Revision2原文，SHA256=2c5641464739ada0ab19a91082e632b20bd31495071747039a5cc9bdc082f641。其中“尚未批准/下一窗口”属于当时proposal；当前批准和执行结果以上方AC与verification为准。保持原卡文件字节不变，不冒充事后修订批准。
 
 # #339 安装与恢复执行卡 · Revision 2
 

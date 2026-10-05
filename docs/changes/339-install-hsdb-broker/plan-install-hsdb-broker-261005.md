@@ -15,39 +15,30 @@ risk_flags:
   - platform-governance
 depends_on:
   - 337
-status: awaiting-triage
+status: approved
 branch: change/339-install-hsdb-broker
 created: 2026-10-05
 updated: 2026-10-05
 ---
 
-# #339 安装与恢复 Plan · STOP后的下一窗口候选
+# #339 安装与恢复 Plan · 完整技术闭环完成
 
 ## Ticket graph
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 原合同授权、执行记录、完整installed差异和修正版审阅卡 | - | done |
-| T02 | 增量/新窗口获批后两端同pin首次和第二次安装、全目标/策略/识别验收 | T01 | pending |
-| T03 | 新窗口真实snapshot restore→baseline验收→同pin再安装→最终七仓交接 | T02 | pending |
+| T01 | 原及Revision2合同授权、完整差异、owner、窗口/快照准备 | - | done |
+| T02 | 两端同pin首次/第二次安装、26目标/receipt/policy/HSDB非unknown核验 | T01 | done |
+| T03 | 新window真实snapshot restore→baseline验收→同pin再安装→最终七仓及handoff | T02 | done |
 
-当前frontier：仅准备及发布Revision 2供总调度审阅；T02/T03未获新scope/窗口批准，不能重启原窗口。
+唯一source pin c9b5ef4e74592cbc68d6bdc6219568a1d51b6853，owner/tuple不变。完整动作发生于2026-10-05T22:44:23+09:00起的新45分钟窗口；planned restore22:55:17，余量34分05.9秒，最终installed/registration读取22:55:38完成；未延长窗口。
 
-## 本窗口已执行/停止
+## 已执行seam及验证
 
-primary exact FF至c9b5ef4e74592cbc68d6bdc6219568a1d51b6853；VM/Mac首次installer exit0。独立策略核验发现sfm-digital-board/dependency_read_targets absent→[aisoft-platform]，与旧卡“原六仓声明保持”不符；停止第二次installer/识别/再安装。
-Mac→VM按即时snapshots真实恢复，原字节/mode/owner/previous/absence/六仓36及HSDB unknown独立读回PASS。本窗口STOP终态，不消费剩余时间再安装；planned AC-6/最终七仓未完成。
+fresh owner/source/root能力/baseline/helper→独立新snapshot→VM→Mac安装→独立26目标/policy/receipt→同pinsecond no-op→独立metadata/previous/bytes不变→installed识别（HTTP401真实GAP）→Mac→VM真实snapshot tar恢复及八本候选新增目标清除→原六仓36/bytes/mode/root owner/previous/absence/unknown验收→VM→Mac同pin再安装→最终七仓38/26目标/receipt/HSDB非unknown→机读handoff。
+精确命令/exitcode与before/after均在window-2证据，完整AC及冻结命令卡在spec，结果在verification。没有代码/工具变更、数据库/账号/Secret/服务/应用部署或故障注入。
 
-## 下一完整窗口候选
+## 下一frontier及边界
 
-先由总调度审阅完整逐字段差异和源字段影响，再向用户询问具体增量与新45分钟窗口。确认后fresh owner/root capability/source/pin/baseline；重新备份两端非Secret安装面并核摘要；VM→Mac安装→独立26目标/完整policy核验→同pin第二次→识别读回→余量≥30分钟时Mac→VM真实snapshot restore→原六仓36/原字节/metadata/previous/absence/unknown核验→VM→Mac同pin再安装→最终七仓38/26目标/receipt/识别→总调度fresh核T01门。
-planned restore/reinstall/readback均在新45分钟内完成；≤15分钟延长只允许意外baseline恢复/读回，不授权过期再安装。能力、owner、helper/receipt/pin/baseline漂移均STOP，不能修改工具绕过或静默使用更宽身份。
-
-## Touch points与验证
-
-T01只四份文档、#339正文和本聊天artifact；T02只版本化root installer25目标+receipt；T03只批准的新window快照/八目标恢复清除/同pin再安装。完整目标和命令在spec/Revision2卡。
-验证覆盖AC-1/2授权及pin/root guard；AC-3/4固定26目标/receipt/policy/幂等；AC-5HSDB解析与真实access GAP；AC-6全闭环；AC-7fresh交接。没有schema/数据库/账号/Secret/应用部署动作，不注入runtime/PAT/服务故障，不接管#333。
-
-## 发布
-
-本地可review的文档commit，仅本票branch；未push/PR。总调度读取结果，本聊天不消息回发。文档最终唯一manual PR按既有门禁，治理/runtime源码仍零改动。
+剩余仅最终文档/正文一致性、本地文档提交和总调度fresh T01门。HSDB HTTP401 credential/account/access GAP交T02在独立adoption合同中诊断，安装批准不代替Secret/账号或canary批准；不自行激活T02。
+最终唯一manual文档PR仍未push/提交/CI，按平台既定门禁；source #337已closed，不重开或把本票installed证明冒充CI/main workflow/UAT。provider=none，#333等owner/暂停monitor不变。

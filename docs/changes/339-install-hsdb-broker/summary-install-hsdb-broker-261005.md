@@ -27,26 +27,25 @@ issue: 339
 gitea_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/339
 depends_on:
   - 337
-status: awaiting-triage
+status: approved
 branch: change/339-install-hsdb-broker
 pr_url:
 created: 2026-10-05
 updated: 2026-10-05
 ---
 
-# #339 HSDB 注册安装运维合同 · 执行后修正
+# #339 HSDB 注册安装运维合同 · 已安装验收
 
-原合同/完整卡已人类批准，本票唯一owner/branch/worktree未变。原窗口21:54:55–22:39:55已STOP；primary已exact FF至c9b5ef4e74592cbc68d6bdc6219568a1d51b6853。两端首次installer exit0，但实际installed→候选发现原卡遗漏的SFMDigitalBoard依赖读取边，停止后真实恢复两端baseline并独立验证PASS。
+原合同和Revision2增量/新窗口已批准。完成两端同pin两次安装→真实fresh snapshot restore→原baseline验收→同pin再安装→最终七仓38的完整闭环；当前 **INSTALLED_ACCEPTANCE_PASS**，不再处于STOP或待新窗口批准。
+本票唯一owner/tuple未变，source/current main=c9b5ef4e74592cbc68d6bdc6219568a1d51b6853。T01B安装AC-1至AC-6 PASS；账号/credential/access仍HTTP_401 GAP，AC-7由总调度fresh核后单独激活T02。本票不修该GAP或借安装批准运行canary/Secret步骤。
 
-当前状态：STOP_BASELINE_RESTORED / WAITING_INCREMENTAL_SCOPE_WINDOW_APPROVAL。两端installed均六仓36操作/HSDB unknown，previous installed source SHA仍NOT VERIFIED；T01B未完成，T02仍WAITING_DEPENDENCY。
-
-## 实际 installed 与候选的完整共享面差异
+## 已批准并验证的完整共享面差异
 
 比较基线是本窗口两端真实非Secret snapshots，不是旧source SHA。Mac与VM结果相同；逐字段全量比较见 `full-installed-policy-diff.json`。
 
 | 对象 | 实际 installed → exact pin 候选 | 影响/批准边界 |
 |---|---|---|
-| 原六仓 host项目项 | 仅 `sfm-digital-board/dependency_read_targets` absent → `["aisoft-platform"]` | 新增受管跨仓Issue依赖只读边；原卡遗漏，必须明确纳入修正版范围 |
+| 原六仓 host项目项 | 仅 `sfm-digital-board/dependency_read_targets` absent → `["aisoft-platform"]` | Revision2已明确批准；installed目标字节及manifest已核验，新操作未实际调用 |
 | 原36项 operations | 全部定义同字节/同字段，无删除或更改 | 既有操作声明保持 |
 | 新operations | `gitea.dependency.read`：manager-audit、mutating=false、reference；`gitea.credential.rotate`：credential-operator | 安装声明；本票不调用这两项 |
 | host顶层 | 新增 `credential_rotation_policy` | UID0、固定grant/receipt/helper/operator/Gitea路径和Gitea1.26.4约束；不创建grant/Secret、不启用轮换 |
@@ -59,9 +58,9 @@ updated: 2026-10-05
 源码 `resolve_target()` 只允许canonical owner/受管repo及显式source→target edge；`_read_dependency()` 用manager-audit，要求精确非site-admin身份、禁止redirect、限制response大小；返回repository/number/reference/state/labels，不返回Issue正文。这个字段不增加sfm-board-agent的Gitea collaborator权限、Git写入或merge/deploy授权，但确实新增broker允许的跨仓只读边，因此不能继续宣称原六仓policy完全不变。
 本窗口没有实际调用SFMDigitalBoard依赖读取，也没有调用credential rotation；上述影响来自exact pin源码和manifest，不冒充live capability验收。
 
-## 下一frontier
 
-[spec](spec-install-hsdb-broker-261005.md)包含Revision 2完整卡与AC；[plan](plan-install-hsdb-broker-261005.md)定义下一完整窗口；[verification](verification-install-hsdb-broker-261005.md)区分首次安装/真实恢复/NOT RUN。
-原批准有效且有原始人类记录；修正版新增读取边/具体root入口/新窗口尚未批准。总调度先审阅，再向用户询问具体增量和新窗口，本聊天不重开窗口或重复原scope审批。
+## 交接与生命周期
 
-只更新四份文档及Issue正文、本聊天artifact。complex/security/change/manual，IMPLEMENT_PROVIDER=none；无source/runtime/AGENTS修改，#333/#327/#336归属保留。最终唯一manual文档PR仍未push/提交/CI，需原平台门禁；若main未来变化，重新审pin，不因文档准备自行安装。
+完整实测见[verification](verification-install-hsdb-broker-261005.md)，合同AC和冻结卡见[spec](spec-install-hsdb-broker-261005.md)，已完成ticket及后续边界见[plan](plan-install-hsdb-broker-261005.md)。[机读handoff](/Users/benque/.codex/visualizations/2026/10/05/01a10bea-8743-7d12-bd55-addf317088bc/t01b-install-execution/window-2/handoff-339.json)分开source/installed/credential/现场证据。
+没有source/runtime/AGENTS改动；只写本票四份文档、#339正文和本聊天artifact。complex/security/change/manual；IMPLEMENT_PROVIDER=none。source #337保持closed，#333/#327/#336及其它owner归属不动。
+本地文档提交不等于已push/PR/CI或manual merge；最终唯一文档PR仍需既定提交确认和人审。安装结果不传递部署、账号/Secret或其它项目现场授权。live labels未投影approved/completed，Issue保持open。
