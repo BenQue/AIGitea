@@ -31,6 +31,20 @@ updated: 2026-10-05
 | T02 | 两端同pin首次/第二次安装、26目标/receipt/policy/HSDB非unknown核验 | T01 | done |
 | T03 | 新window真实snapshot restore→baseline验收→同pin再安装→最终七仓及handoff | T02 | done |
 
+## AC 与验证证据映射
+
+| AC | Ticket/责任 | 验证命令或审阅 | 已保存结果 |
+|---|---|---|---|
+| AC-1 | T01 | 核对Revision2人类授权、冻结卡hash、唯一owner/branch/worktree | window-2/authorization-339-rev2.json、owner-preflight.json |
+| AC-2 | T01 | source root读取完整HEAD/upstream/clean，检查既有installer source guard；installed typed git.fetch.main读回 | window-2/mac-root-source.json、vm-root-source.json、preflight.json |
+| AC-3 | T02 | 独立读取25固定文件及receipt，比较SHA256、mode、uid/gid、receipt四hash | window-2/mac-final-acceptance.json、vm-final-acceptance.json |
+| AC-4 | T02 | 两次既有installer输出与独立inventory比较；完整共享policy差异审阅 | window-2/*-install-2.json、*-after-install-2-acceptance.json；full-installed-policy-diff.json |
+| AC-5 | T02 | installed broker执行gitea.repo.read、host.access.audit、host.onboarding.check，区分注册解析与访问结果 | window-2/*-registration-final-*.json；注册PASS/HTTP_401 GAP |
+| AC-6 | T03 | 固定snapshot tar真实恢复及精确八路径清理；独立baseline比对；同pin既有installer再安装及final比对；核窗口时间 | window-2/baseline-acceptance.json、*-restore.json、*-reinstall.json、phases.jsonl |
+| AC-7 | 总调度；T03交接 | 总调度独立live/phase/source/CI核验，fresh审阅调度台账及明确T02激活记录 | t01b-install-delivery/coordinator-exit-readback-339.json；T02于23:08:43+09:00激活 |
+
+表中的星号仅表示保存的证据文件集合，不是执行命令；安装/恢复命令始终按冻结卡的exact路径执行。
+
 唯一source pin c9b5ef4e74592cbc68d6bdc6219568a1d51b6853，owner/tuple不变。完整动作发生于2026-10-05T22:44:23+09:00起的新45分钟窗口；planned restore22:55:17，余量34分05.9秒，最终installed/registration读取22:55:38完成；未延长窗口。
 
 ## 已执行seam及验证

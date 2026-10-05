@@ -39,6 +39,10 @@ Revision2已被直接人类批准，原始记录和卡hash在/Users/benque/.code
 
 本轮fresh读取总调度`调度台账.json`：T01 logical_stage_complete=true，T01B technical exit PASS，T02 status=ACTIVATED，dispatch时间2026-10-05T23:08:43+09:00。总调度独立核对两端25固定目标及receipt、root bytes/mode/owner、全部安装/恢复/再安装阶段与快照，阶段审计pass=true。本聊天未代其激活或实施T02。证据副本及原始文件hash见`/Users/benque/.codex/visualizations/2026/10/05/01a10bea-8743-7d12-bd55-addf317088bc/t01b-install-delivery/coordinator-exit-readback-339.json`；窗口内HTTP_401 GAP保留为带时间的访问证据，不反映或替代T02后续结果。
 
+## 未决问题
+
+无。本票安装合同的AC-1至AC-7均有对应证据；安装窗口内账号/凭据访问HTTP_401 GAP已明确交T02，不扩大或修改本票验收标准。后续标签投影、最终PR提交和人工合并是交付门禁，须按既定授权顺序办理。
+
 ## 当前实测
 
 # #339 Revision 2 安装与真实恢复验收结果
