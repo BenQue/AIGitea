@@ -27,9 +27,9 @@ issue: 339
 gitea_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/339
 depends_on:
   - 337
-status: approved
+status: pr-open
 branch: change/339-install-hsdb-broker
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/341
 created: 2026-10-05
 updated: 2026-10-05
 ---
@@ -63,6 +63,12 @@ updated: 2026-10-05
 
 完整实测见[verification](verification-install-hsdb-broker-261005.md)，合同AC和冻结卡见[spec](spec-install-hsdb-broker-261005.md)，已完成ticket及后续边界见[plan](plan-install-hsdb-broker-261005.md)。[机读handoff](/Users/benque/.codex/visualizations/2026/10/05/01a10bea-8743-7d12-bd55-addf317088bc/t01b-install-execution/window-2/handoff-339.json)分开source/installed/credential/现场证据。
 没有source/runtime/AGENTS改动；只写本票四份文档、#339正文和本聊天artifact。complex/security/change/manual；IMPLEMENT_PROVIDER=none。source #337保持closed，#333/#327/#336及其它owner归属不动。
-本地文档提交不等于已push/PR/CI或manual merge；最终唯一文档PR仍需既定提交确认和人审。安装结果不传递部署、账号/Secret或其它项目现场授权。Issue保持open；本轮fresh判级读回仍缺type/security与complexity/complex。原安装卡明确排除labels/push/PR，相关后续写入需要独立具体授权。未投影approved/completed。
+用户已明确批准本票提交卡，canonical判级投影及真实读回projected：type/security、complexity/complex；lifecycle先approved，唯一manual PR #341成功创建后转pr-open，保留triage/needs-triage。首次push创建新的remote change branch，pushed_head=40e5b3ab8e374964fb2214b2c8775afe5e11f995与批准候选完全相同，previous_head=null。安装结果不传递部署、账号/Secret或其它项目现场授权。Issue保持open，未合并或投影completed。
 
 总调度退出门与T02激活证据已fresh读回；详见verification。安装完成与Issue文档交付收尾分别核验。
+
+## 唯一文档PR交付状态
+
+[PR #341](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/341)对应本票唯一exact branch与manual policy。当前提交包含summary-only PR URL回填；后续push先fresh核owner/branch/head/clean/合同范围，再比对pushed_head。最终required context为`CI / verify (pull_request)`，必须对最终exact PR head另行fresh读回；创建时mergeable不代表CI或人工合并通过。
+
+spec/plan/verification中的安装窗口结果保持该阶段实际记录；其中push/PR/CI的NOT RUN属于窗口验收时的证据，不代表当前已创建PR的交付状态。最新提交授权、标签读回、push receipt、PR及CI证据位于`/Users/benque/.codex/visualizations/2026/10/05/01a10bea-8743-7d12-bd55-addf317088bc/t01b-install-delivery/`。required CI通过后等待人审，不自行merge、cleanup或archive。
