@@ -16,7 +16,7 @@ depends_on: []
 status: approved
 branch: change/336-complete-pull-reads
 created: 2026-10-04
-updated: 2026-10-05
+updated: 2026-10-06
 ---
 
 # #336 完整读取协议与边界
@@ -25,7 +25,7 @@ updated: 2026-10-05
 
 为固定 manifest 授权的 repository/identity 提供完整 PR 集合及 #333 精确 namespace 公开证明，使调用方能区分真实 absence、其他 slug 与读取失败。证据必须来自实际成功读取；调用方不得借 stdout 的一页数据或 transport error 推断完整集合。
 
-2026-10-05 的直接用户决定及本接收会话派发已批准 #336 / `change/336-complete-pull-reads` 的既有三路径合同启动与后续本地 Development Loop。本轮 T01 只修改四角色合同、完成实际分类/approved 投影及必要所有权记录，作本地治理 commit 后 STOP；后续 fresh turn 重新读取已固定合同后才实施本节约定的三个代码路径，不重复启动确认。不得修改当前运行所遵循的 `AGENTS.md`；本批准不包含 push/PR/merge、安装、Secret/PAT、服务、VM 或部署。
+2026-10-05 的直接用户决定及本接收会话派发已批准 #336 / `change/336-complete-pull-reads` 的既有三路径合同启动与后续本地 Development Loop。T01 已只修改四角色合同、完成实际分类/approved 投影及必要所有权记录，作本地治理 commit 后独立 STOP；2026-10-06 本轮 fresh turn 已重读固定合同并实施本节约定的三个代码路径，不重复启动确认。不得修改当前运行所遵循的 `AGENTS.md`；本批准不包含 push/PR/merge、安装、Secret/PAT、服务、VM 或部署。
 
 ## Acceptance criteria
 
@@ -128,4 +128,4 @@ stdout 保留既有 JSON array，序列化固定 `ensure_ascii=False`、`sort_ke
 
 ## 未决问题
 
-无。合同设计、三路径范围与本地启动批准已固定，无待重复确认的选择。T01 独立 STOP / T02 fresh turn 仍是强制阶段边界。正式发布路径与安装验收是后续独立 gate；#327 未发布不阻止本地垂直切片准备，不新增跨票产品硬依赖。若 fresh #327 等价能力使最终 diff 改变，应重新固定范围与回归；范围扩张或合同冲突再升级，不能绕过发布/安装闸门。
+无。合同设计、三路径范围与本地启动批准已固定，无待重复确认的选择。T01 独立 STOP / T02 fresh turn 阶段边界已履行；本轮只完成本地实现及验证，不传递发布授权。正式发布路径与安装验收是后续独立 gate；#327 未发布不阻止本地垂直切片准备，不新增跨票产品硬依赖。若 fresh #327 等价能力使最终 diff 改变，应重新固定范围与回归；范围扩张或合同冲突再升级，不能绕过发布/安装闸门。

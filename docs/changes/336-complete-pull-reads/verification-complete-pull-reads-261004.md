@@ -16,19 +16,19 @@ depends_on: []
 status: in-progress
 branch: change/336-complete-pull-reads
 created: 2026-10-04
-updated: 2026-10-05
+updated: 2026-10-06
 ---
 
-# #336 合同准备与 T01 治理固定验证记录
+# #336 合同、源实现与本地验证记录
 
 ## 基线与范围
 
-- 初始历史 HEAD / `main` / `origin/main`：`e2edb3e08194624a6647212571c6cc866298575b`；接收草案 HEAD：`992a47b324227b8af754aaa1a05346948f6d5722`；runtime 候选 Commit SHA：尚无。
+- 初始历史 HEAD / `main` / `origin/main`：`e2edb3e08194624a6647212571c6cc866298575b`；接收草案 HEAD：`992a47b324227b8af754aaa1a05346948f6d5722`；T01 governance HEAD=`3b44155ed58e43514020eccaa01f240f4c2c6db2`；T02 runtime Commit SHA=`4cf6af48463238a7f019f94da56a9e5b663aa666`，tree=`79971240660013fd91351b280b0d25b538510bb4`。
 - Branch：`change/336-complete-pull-reads`；worktree：`/private/tmp/issue-336-complete-pull-reads`。
 - 当前 owner session：`01a10c82-7f6b-7093-80d5-d389a18198c0`；原准备 owner `01a100d7-2f34-7932-923d-781f3f255e09` 已实际交回，takeover 前后保全，last push 仍为 null。
-- 当前实际范围：本目录四角色治理固定及本票分类/approved 投影；未应用三路径代码补丁。
-- 环境：本机 docs-only worktree；网络读取与投影使用既有 project-scoped typed broker。Issue/protection/lifecycle 使用 installed canonical 入口；分类工具使用已合并原基线的既有 broker（broker/CLI/parser bytes 与 installed 相同），未使用候选 runtime 自举。
-- 本阶段负责证明：独立立案的历史记录、正式接收与 T01 治理固定；AC-1～8 的最终源行为验收尚未开始。
+- 当前实际范围：T01 四角色治理固定与 #336 分类/approved 投影；T02 exact 三路径源实现；T03 本地验证和同目录结果投影。
+- 环境：本机 source worktree；网络读取与投影使用既有 project-scoped typed broker。Issue/protection/lifecycle 使用 installed canonical 入口；分类工具使用已合并原基线的既有 broker（broker/CLI/parser bytes 与 installed 相同），未使用候选 runtime 自举。
+- 本轮证明：fresh T02 源行为/失败拒绝、本地回归、冻结范围与 exact delta 恢复；T01/原型记录保留为历史。PR CI、merge、installed 与新协议 live readback 分别记录，未运行不作 PASS。
 
 ## 历史合同准备执行结果（2026-10-04）
 
@@ -88,18 +88,45 @@ updated: 2026-10-05
 
 上述公共字节观察把旧 installed36/缺字段记录标为历史；完整安装 provenance、权限、全部文件、VM 和现场验收仍为 NOT RUN，不宣称整包 installed PASS。仅有一个 exact 本地 #336 branch/worktree；远端完整 branch/PR absence 或唯一性本轮没有证明，last_push=null 也不能替代该证明。
 
+## T02/T03 fresh 源执行与本地验证（2026-10-06）
+
+本轮在既有启动批准内执行，单写者、branch 与 worktree 均未改变。证据目录为 `/Users/benque/.codex/visualizations/2026/10/05/01a10c82-7f6b-7093-80d5-d389a18198c0/issue-336-t02-261006/`；最终文档提交后的 exact HEAD/tree、clean、scope、源 bytes 等价及所有日志 hash 记录在 `t02-t03-local-receipt.json`，避免文档自引用提交 SHA。
+
+| Command / check | Result | Evidence |
+|---|---|---|
+| independent T01 predecessor / fresh owner+HEAD | PASS | 总调度独立 T01 readback SHA256=`4b5c701c4ee99cde2a6474d115d79aa32cba36c91d7d137c2d32562173dec7a4`；原 T01 HEAD/tree/four-doc/AC/protocol/STOP 检查均真，当前 claim push ledger 保持 null；`independent-t01-predecessor.json`、`fresh-start.json`、`claim-start.json` |
+| installed canonical typed `git.fetch.main`、#336/#327 Issue read、protection read | PASS，四项 exit0 | fresh main=`c9b5ef4e74592cbc68d6bdc6219568a1d51b6853`；#336 OPEN/approved/security/complex，#327 OPEN；required=`CI / verify (pull_request)`、main push/force=false、manual/admin；`fresh-host-read-results.json` 与原始 stdout/stderr |
+| canonical Gitea pin/官方接口核验 | source PASS；本站版本及新协议 live NOT RUN | manifest/parser pin=`1.26.4`；Context7 后核 [官方 v1.26.4 pull.go](https://github.com/go-gitea/gitea/blob/v1.26.4/routers/api/v1/repo/pull.go) 和 [api.go](https://github.com/go-gitea/gitea/blob/v1.26.4/services/context/api.go)：state/sort/page/limit、total 与空列表行为；当前 typed catalog 没有 version read，本轮未扩展 operation、未绕 broker 验 live API |
+| 原 patch/base/scope 预检及新实现 | PASS | 原补丁仅用作参考起点；`historical-patch-preflight.json`；PR 两扫描含空终页、严格 JSON/type、4 MiB 输入/2 MiB stdout、55 秒操作期限、禁止 redirect；#333 scoped namespace 有界读取、fetch head 与二次一致性；CLI 严格公开证明和实际 UTF-8 hash |
+| `cd codex/runtime && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v tests.test_host_access_complete_reads tests.test_host_access` | PASS，237 tests，exit0 | `affected-v4.stdout.log`、`affected-v4.stderr.log`；新夹具含 4950/100页正边界、各 state、short page、重复/raw headers、非有限 JSON/非法 UTF-8/类型、跨扫描类型变化、identity/第二扫描超时、恶意 receipt、transport framing 和真实本地子进程超限/kill |
+| repo root `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -t codex/runtime -v` | PASS，1156 tests，exit0 | `runtime-root.stdout.log`、`runtime-root.stderr.log`；既有其他 Issue 测试未修改 |
+| repo root 默认完整 `bash codex/tests/smoke.sh` | PASS，exit0，固定 T02 HEAD | `default-smoke-host.stdout.log`、`default-smoke-host.stderr.log`；同一默认命令经 host 解除隔离 loopback fixture 的 sandbox bind 限制，无 skip/bypass/换 pin；isolated installer fixtures/source checks 不代表安装端操作或验收 |
+| frozen AST/目录/治理文件 + exact runtime scope | PASS | `_push_leased`、`_remote_change_heads`、`_validated_remote`、`_validated_project_worktree`、`_verify_identity`、普通 push blocks、原 default transport/runner 与 `_request_json` AST 相同；AGENTS、catalog/manifests/parser、Controller/CI/smoke/installer 无 diff；`runtime-static-validation.json` |
+| exact 三路径 patch forward/reverse/forward | PASS，七步命令均 exit0 | `runtime-final.patch` SHA256=`d98ad88dcbebd34ceacddc6f883fa42eb934a4b238b53e17600785a27b6994c0`；`source-replay.json` 比较原基线/candidate/撤销/再次应用每一路 bytes/Git mode，新测试文件不存在→存在→不存在→存在；临时 detached 验证 worktree 最终逆向恢复 clean 并移除，没有新增 branch 或 writer |
+| T02 本地原子 commit | PASS，exit0 | `runtime-commit.json`：parent=T01，head=`4cf6af48463238a7f019f94da56a9e5b663aa666`；只含三个 runtime 路径，提交后 clean；已提交 patch 与恢复验证 patch 逐字节相同 |
+| current main ancestry/发布门 | GAP，exit1 | `git merge-base --is-ancestor origin/main HEAD`，main=`c9b5ef4e…` 不是 runtime HEAD 祖先；`release-ancestry-gap.json`；无 rebase/merge/force/push/PR，未借 #327 未合并实现 |
+| 最终文档/分类/owner/static 核验 | exact 结果见 `final-static-validation.json` | 四角色映射、approved contract loader、frontier=T03、AC1–8/完整协议不变、exact seven-path scope、diff check、runtime bytes 与已验证 commit 相同；运行后保存真实 exit code/hash |
+| 最终 PR CI / merge / installed 完整验收 / live / field | NOT RUN | 尚无最终 PR，没有 CI/merged pin；不使用候选代码操作 installed custody，无 PAT/Secret/service/VM/deploy/现场动作 |
+
+### 调用失败与 smoke 重跑记录
+
+- 第一次 affected 调用从错误 cwd 导入 `tests` 失败（尚未运行测试）；改为标准 runtime cwd 后原新源 217 项通过。新增测试后初次 CLI 夹具漏 `--state all`，以及注入页号超出六次实际调用，保留 `affected-v2`/`affected-v3`/`affected-final` 失败日志；改正夹具调用及注入位置并断言真实到达失败页，新回归 237 项真实通过，没有弱化拒绝规则。
+- 第一次全量 runtime 从 `codex/runtime` cwd 运行，两个既有 company diagnostics 模块找不到 `codex`，1114 项/两次 import error；改用 smoke 的 repo-root 标准调用，全量 1156 项 exit0。没有修改范围外测试。
+- 第一次默认 smoke 在运行过程中提交 T02，固定源身份硬门报 `source identity drifted during regression`（exit1）；原输出保留在 `default-smoke.*.log`。固定 runtime HEAD、工作区 clean 且不再改动后的 sandbox 完整重跑通过该源身份门，但随后本地 loopback fixture bind 被拒绝（PermissionError/exit1），日志保存在 `default-smoke-fixed-head.*.log`。同一已授权默认 smoke 经 host 重新完整运行，exit0，日志为 `default-smoke-host.*.log`。失败过程不被后续 PASS 删除或提升为安装证据。
+- installer fixtures 对当前无 upstream branch 给出 `staleness unchecked` warning；这是测试/source provenance 的有限观察，不能证明完整安装或发布就绪，不借此改变 source pin、跳过门或调用未合并 installer。
+
 ## Acceptance criteria 结果
 
-| AC | 结论 | 证据/待执行项 |
+| AC | 结论 | 证据/未完成项 |
 |---|---|---|
-| AC-1～4 | NOT RUN | 合同/启动已批准；T01 后 fresh turn 实现，随后执行新源夹具/回归；真实 typed 读取另记 installed 层 |
-| AC-5 | NOT RUN | 冻结范围已写入 spec；最终代码/AST/operation/既有回归尚未执行 |
-| AC-6 | NOT RUN | 不把草案文档检查或原型 217/330 提升为默认 smoke/PR CI |
-| AC-7 | NOT RUN | 原型恢复 PASS 不能替代最终 exact delta 恢复证明 |
-| AC-8 | NOT RUN | 当前仅完成合同边界声明；最终独立源交付、merged pin和安装缺口说明尚无 |
+| AC-1～4 | source/local PASS；installed/live NOT RUN | 新源接口夹具、CLI bytes/receipt、完整扫描和 namespace 正/负例；真实安装的新协议读取仍须 merged pin 与独立安装批准 |
+| AC-5 | source/local PASS | 冻结 AST/文件范围、237 项受影响回归、1156 项全量 runtime；无权限/catalog/其他 Issue 写入范围增量 |
+| AC-6 | GAP | 新夹具/affected/full runtime/固定 runtime HEAD 默认完整 smoke PASS；映射/静态门真实结果见 final receipt；exact-head required PR CI 尚无 PR，NOT RUN |
+| AC-7 | source/local PASS | 最终已提交三路径 patch 真实恢复，bytes/mode/new-file 状态全匹配；回退已合并变更仍须独立 revert/manual PR |
+| AC-8 | source 独立范围 PASS；publication GAP | 不包含 #333 五路径或 #327 未合并代码；未改其它 owner/工作区/live labels；fresh main ancestry GAP、完整 remote uniqueness 未证明、merged pin/安装缺口卡未执行 |
 
 ## 遗留风险与未完成项
 
-合同/启动已批准，runtime 尚未启动，T01 本地治理 commit 后必须 STOP。#327 合规发布能力与完整安装验收仍须在相应阶段 fresh 核验；本地三路径垂直切片准备不因此空等，不增加跨票产品依赖。本票不更改其他 owner、工作区或 live 状态。安装端、现场和 Secret 动作没有授权，不通过混装/宽身份 fallback 解阻。
+T02 实现与本地 commit 已完成。T03 本地 smoke、恢复与结果投影已推进；manual PR 审阅准备保留 GAP，不声明 `READY_FOR_REVIEW`。#327 合规整合/FF 能力、fresh 远端完整唯一性、最终 exact Issue/branch/manual/head/body 的确认和 required CI 是后续独立 gate；本轮没有发布尝试，不混装或借用未合并 broker 自举。
 
-最终验证必须补齐每个 AC 的真实命令、exit code、exact head/tree/base与 evidence hash；未执行项保留 NOT RUN。本变更未部署，按模板删除部署验收章节。
+公开 review 草案及最终状态见同证据目录的 `manual-pr-review-card.md`，它不是发布授权。观察的 main、T02 runtime HEAD、最终文档 HEAD、patch/log hashes 各自固定；文档投影之后仅作静态核验与源 bytes 等价校验，不将旧 prototype、安装 fixture 或本地 PASS 提升为 CI/installed/live。尚无真实 merged pin，未来 installed 操作仍须另备全变更字节/provenance/compatibility/权限与上一版本回退卡，并获得独立批准。

@@ -29,7 +29,7 @@ status: approved
 branch: change/336-complete-pull-reads
 pr_url:
 created: 2026-10-04
-updated: 2026-10-05
+updated: 2026-10-06
 ---
 
 # #336 完整读取合同
@@ -51,8 +51,8 @@ updated: 2026-10-05
 | Worktree | `/private/tmp/issue-336-complete-pull-reads` |
 | 单写者 | session `01a10c82-7f6b-7093-80d5-d389a18198c0`；原 owner 实际交回后，既有 `claim-worktree --takeover` 已成功；原 claim 与接管前后证据保全，last_push=null |
 | 草案基线 | `e2edb3e08194624a6647212571c6cc866298575b`，创建 worktree 时 `main` 与 `origin/main` 一致 |
-| 当前实际改动 | 本目录映射的四份合同治理固定；runtime 未修改 |
-| 后续候选代码 | `codex/runtime/aisoft_host_access/broker.py`、`codex/runtime/aisoft_host_access/cli.py`、新增 `codex/runtime/tests/test_host_access_complete_reads.py` |
+| 当前实际改动 | T01 四角色治理固定；T02 已完成下列三路径实现及本地原子 commit；T03 本地验证与结果投影已推进，发布门保留 |
+| T02 源实现 | `codex/runtime/aisoft_host_access/broker.py`、`codex/runtime/aisoft_host_access/cli.py`、新增 `codex/runtime/tests/test_host_access_complete_reads.py` |
 | 归属边界 | #327 负责保留历史的整合/FF 发布路径；#333 保留调用方治理与现场验收 |
 | Merge policy | `manual`；本平台 `routine` 固定 disabled；`IMPLEMENT_PROVIDER=none` |
 
@@ -60,9 +60,9 @@ updated: 2026-10-05
 
 按 [spec](spec-complete-pull-reads-261004.md) 固定读取协议、两个完整扫描、严格公开 receipt、所有大小/时间边界与失败拒绝规则。保留 typed operation 名称及调用参数；只改变明确声明的读结果语义。
 
-现有审阅补丁 `reader-capability-source.patch` 的 SHA256 为 `11ab13f03770725e74d75fafc2de4572b484ef3480e7f6b8bae57f441f5cd2a2`。原包保留在 `/private/tmp/issue-333-pat-rotation-acceptance/T14-readiness-proposal-261004/`，没有应用到本 worktree。其独立读取原型 217 tests 与读取/调用方组合原型 330 tests 的 PASS 均属于历史私人副本，不能替代 #336 新候选、默认 smoke、PR CI 或 installed 验收。
+现有审阅补丁 `reader-capability-source.patch` 的 SHA256 为 `11ab13f03770725e74d75fafc2de4572b484ef3480e7f6b8bae57f441f5cd2a2`。原包保留在 `/private/tmp/issue-333-pat-rotation-acceptance/T14-readiness-proposal-261004/`。T02 已核 hash/base/三路径范围后采用该补丁作为参考起点，再补严格 JSON、期限、传输/子进程有界读取及 CLI 证明校验；最终 delta 的 SHA256 为 `d98ad88dcbebd34ceacddc6f883fa42eb934a4b238b53e17600785a27b6994c0`，与旧补丁不同。其独立读取原型 217 tests 与读取/调用方组合原型 330 tests 的 PASS 均属于历史私人副本，不能替代 #336 新候选、默认 smoke、PR CI 或 installed 验收。
 
-按 [plan](plan-complete-pull-reads-261004.md) 完成本次纯治理合同固定与本地原子 commit，随后 STOP；fresh run 重新读取合同才可启动 runtime。唯一最终 PR 仍须绑定 exact Issue、branch 与 `manual` policy 单独确认。验证及未完成项见 [verification](verification-complete-pull-reads-261004.md)。
+T01 已于独立 turn 固定治理并 STOP。2026-10-06 fresh T02 已重读合同、owner、基线与真实 Issue/main protection；runtime commit 为 `4cf6af48463238a7f019f94da56a9e5b663aa666`。本轮专项/受影响回归 237 项、全量 runtime 1156 项、固定 runtime HEAD 上的完整默认 smoke 与最终三路径恢复均 PASS；结果及调用失败日志见 verification。T03 的发布审阅卡仍为 GAP：观察到的 main 不是当前候选祖先，且未证明远端完整 branch/PR 唯一性；本票不借用 #327 未合并代码。唯一最终 PR 仍须绑定 exact Issue、branch 与 `manual` policy 单独确认。验证及未完成项见 [verification](verification-complete-pull-reads-261004.md)。
 
 ## 风险
 
@@ -103,4 +103,4 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-AC 与三个 runtime 路径已经固定，合同/启动批准已取得，无待重复确认的设计选择。本次 T01 完成后必须独立 STOP；T02 由后续 fresh turn 重读合同启动。最终代码若因 fresh main 或 #327 已正式交付的等价 namespace 能力而改变，必须重新固定实际 diff 与证据；仅 main/能力事实变化不新增跨票产品依赖。本地三路径垂直切片可继续准备，真正 FF/发布/安装门各自独立，不增加或删除其他 Issue 的 live dependency。
+AC 与三个 runtime 路径已经固定，合同/启动批准已取得，无待重复确认的设计选择。T01 已独立 STOP；T02 已在 fresh turn 实现并作本地提交，T03 保留最终发布/CI 门。最终代码若因 fresh main 或 #327 已正式交付的等价 namespace 能力而改变，必须重新固定实际 diff 与证据；仅 main/能力事实变化不新增跨票产品依赖。本地三路径垂直切片可继续准备，真正 FF/发布/安装门各自独立，不增加或删除其他 Issue 的 live dependency。
