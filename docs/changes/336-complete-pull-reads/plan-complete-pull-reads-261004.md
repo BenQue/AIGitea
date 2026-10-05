@@ -13,33 +13,33 @@ risk_flags:
   - shared-core
   - platform-governance
 depends_on: []
-status: contract-drafting
+status: in-progress
 branch: change/336-complete-pull-reads
 created: 2026-10-04
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
-# #336 完整读取实施计划草案
+# #336 完整读取实施计划
 
 ## Ticket graph
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 本人确认后，只修改四角色合同的独立治理固定；验证语义映射与冻结范围，STOP | - | pending |
+| T01 | 正式接收与既有四角色合同治理固定；完成真实分类/批准投影、语义映射与冻结范围验证，本地 commit 后 STOP | - | completed |
 | T02 | fresh run 完成三路径完整 PR 读取与 #333 namespace 证明垂直切片，新正例/失败夹具及受影响回归通过 | T01 | pending |
 | T03 | fresh 最终源范围、完整默认 smoke、恢复证明和真实结果投影；准备唯一 manual PR 审阅卡 | T02 | pending |
 
-当前完成的是立案、隔离 worktree 认领和草案准备；不将其记为 T01 合同已激活。`$implement #336 T01` 只适用于随后绑定 exact 合同的确认；T01 完成必须结束运行，T02 在 fresh run 重新读取已固定合同后执行。`IMPLEMENT_PROVIDER=none`，不启动未验收 provider。
+2026-10-05 本人已通过总调度的直接决定及本会话派发批准既有三路径合同启动与后续本地 Development Loop。原 owner 实际交回后，本接收 session `01a10c82-7f6b-7093-80d5-d389a18198c0` 已使用现有 takeover 接管；本轮执行 T01，完成本地治理 commit 后必须结束运行。T02 在后续 fresh turn 重新读取已固定合同后执行，不重复启动确认。`IMPLEMENT_PROVIDER=none`，不启动未验收 provider。
 
 ## Expected touch points
 
 | Ticket | 允许的文件与职责 |
 |---|---|
-| T01 | 本目录 summary/spec/plan/verification；不修改 `AGENTS.md`、runtime、live labels 或安装端 |
+| T01 | 本目录 summary/spec/plan/verification；现有 claim-worktree takeover 及必要所有权证据；通过现有 typed projector 只投影本票 type/security、complexity/complex、approved 并真实读回。不修改 `AGENTS.md`、runtime 或安装端，不改其他 Issue 标签 |
 | T02 | `codex/runtime/aisoft_host_access/broker.py`、`codex/runtime/aisoft_host_access/cli.py`、新增 `codex/runtime/tests/test_host_access_complete_reads.py`；同一 owner 顺序实现 |
 | T03 | 运行验证、保留 private evidence、按真实结果更新本目录四角色投影；范围内失败修复限 T02 三路径，不改其他 Issues 的测试 |
 
-T02 启动先 fresh 读 main、required CI/保护与 #327 已正式交付的能力，核 branch/owner/base 和原审阅 patch hash。当前基线为 `e2edb3e08194624a6647212571c6cc866298575b`；main 或等价 namespace 能力变化时重新固定 actual diff，不直接套用旧 prototype。
+T02 启动先 fresh 读 main、required CI/保护与 #327 已正式交付的能力，核 branch/owner/base 和原审阅 patch hash。原基线为 `e2edb3e08194624a6647212571c6cc866298575b`；本次只读缓存 main/origin/main 为 `c9b5ef4e74592cbc68d6bdc6219568a1d51b6853`，没有 fetch/rebase/merge。main 或等价 namespace 能力变化时重新固定 actual diff，不直接套用旧 prototype。本地三路径垂直切片不因 #327 未发布而空等，FF/发布/安装门仍独立，不新增跨票产品依赖。
 
 候选三个路径 patch 尚未应用。`reader-capability-source.patch` SHA256=`11ab13f03770725e74d75fafc2de4572b484ef3480e7f6b8bae57f441f5cd2a2`；原审阅包 `/private/tmp/issue-333-pat-rotation-acceptance/T14-readiness-proposal-261004/` 固定历史 bytes 和失败日志。#333 五路径 `source-consumer-prototype.patch` 不得混入 #336。
 
@@ -73,7 +73,7 @@ T03 在实际合规 FF/自举通道可用后准备 exact #336/branch/manual 最�
 
 ## 停止条件与归属
 
-- 当前草案完成即停在合同审阅；未获合同/启动确认，不执行 T02。
+- 当前合同/启动已批准；本轮仍限 T01，不执行 T02。
 - T01 固定治理后 STOP；后续 fresh run 重新读取，无并行 runtime 实施。
 - 发现合同冲突、三个代码路径范围扩大、发布/安装能力缺失或重复失败，保存 exact evidence 并交本人处理； unaffected 本地准备可继续。
 - #333 保持既有 owner、T13与现场验收职责；#327 保持既有 owner及发布职责。本票不写它们的 live label、owner 或工作区。

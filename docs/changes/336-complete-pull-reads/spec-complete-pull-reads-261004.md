@@ -13,19 +13,19 @@ risk_flags:
   - shared-core
   - platform-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/336-complete-pull-reads
 created: 2026-10-04
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
-# #336 完整读取协议与边界草案
+# #336 完整读取协议与边界
 
 ## 目标与原因
 
 为固定 manifest 授权的 repository/identity 提供完整 PR 集合及 #333 精确 namespace 公开证明，使调用方能区分真实 absence、其他 slug 与读取失败。证据必须来自实际成功读取；调用方不得借 stdout 的一页数据或 transport error 推断完整集合。
 
-本 spec 当前只供审阅，未激活 runtime 权限。后续合同/启动确认必须绑定 #336 与 `change/336-complete-pull-reads`；先由只修改四角色合同的独立步骤固定治理内容并 STOP，fresh run 重新读取后才允许实施本节约定的三个代码路径。不得修改当前运行所遵循的 `AGENTS.md`。
+2026-10-05 的直接用户决定及本接收会话派发已批准 #336 / `change/336-complete-pull-reads` 的既有三路径合同启动与后续本地 Development Loop。本轮 T01 只修改四角色合同、完成实际分类/approved 投影及必要所有权记录，作本地治理 commit 后 STOP；后续 fresh turn 重新读取已固定合同后才实施本节约定的三个代码路径，不重复启动确认。不得修改当前运行所遵循的 `AGENTS.md`；本批准不包含 push/PR/merge、安装、Secret/PAT、服务、VM 或部署。
 
 ## Acceptance criteria
 
@@ -118,7 +118,7 @@ stdout 保留既有 JSON array，序列化固定 `ensure_ascii=False`、`sort_ke
 
 源回退使用最终 exact 三路径 patch，在 disposable worktree 真实校验 apply/reverse/reapply 及 bytes/mode；不得 reset/改写共享 main 或其他 owner。合并后回退使用独立 revert/manual PR，不 force history。
 
-既有 installed public parser compatibility GAP 为 `missing=['credential_rotation_policy'] extra=[]`，且旧公开 operation catalog 为 source38/installed36。安装前重新核验 merged stable pin、完整变更路径、provenance、manifest/parser compatibility、上一可恢复版本及 readback，获得独立批准后执行版本化安装流程。不得只复制 broker/CLI；本票不授权 rotation/dependency operation、PAT、服务或 VM 改动。
+旧 installed public parser compatibility GAP `missing=['credential_rotation_policy'] extra=[]` 与 source38/installed36 仅为历史观测。2026-10-05 本次 Mac 公共观察为 source38/installed38、字段存在；access manifest、broker.py、cli.py、contract.py 与当前 main source 公共 bytes 相同，不能推导整包 provenance、权限、全部文件或 VM/现场 PASS。#336 原基线 manifest 与当前 main/installed bytes 不同，后续 fresh run 如实核对。安装前重新核验 merged stable pin、完整变更路径、provenance、manifest/parser compatibility、上一可恢复版本及 readback，获得独立批准后执行版本化安装流程。不得只复制 broker/CLI；本票不授权 rotation/dependency operation、PAT、服务或 VM 改动。
 
 ## 非目标
 
@@ -128,4 +128,4 @@ stdout 保留既有 JSON array，序列化固定 `ensure_ascii=False`、`sort_ke
 
 ## 未决问题
 
-合同设计已具体化；当前待本人合同/启动确认，不是已获批准的 runtime 合同。正式发布路径与 installed compatibility 是后续待核验 gate。若 fresh #327 能力使实现方向或三个路径范围改变，应提交 exact diff 重审，不能自行绕过发布/安装闸门。
+无。合同设计、三路径范围与本地启动批准已固定，无待重复确认的选择。T01 独立 STOP / T02 fresh turn 仍是强制阶段边界。正式发布路径与安装验收是后续独立 gate；#327 未发布不阻止本地垂直切片准备，不新增跨票产品硬依赖。若 fresh #327 等价能力使最终 diff 改变，应重新固定范围与回归；范围扩张或合同冲突再升级，不能绕过发布/安装闸门。

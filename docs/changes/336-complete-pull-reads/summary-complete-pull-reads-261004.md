@@ -25,20 +25,22 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/336-complete-pull-reads
 pr_url:
 created: 2026-10-04
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
-# #336 完整读取合同草案
+# #336 完整读取合同
 
 ## 问题/需求总结
 
 #333 的下一步源交付需要完整历史 PR 集合及精确 change namespace 的公开证明。当前单页读取不足以证明不存在重复源 PR；远端读取失败也不能证明分支不存在。改动涉及共享 broker、CLI 输出协议与安全闸门，独立归属 #336，按 complex/manual 处理。
 
-2026-10-04 用户批准的范围是“独立立案和四角色合同准备”。Issue 已由 installed canonical typed broker 创建并重新读取；当前仅有 `triage/needs-triage`。本地合同仍为草案，runtime 启动、live `approved` 投影、push、最终 PR、人工合并和安装均未执行。
+2026-10-04 的“独立立案和四角色合同准备”是历史准备授权。2026-10-05 用户在总调度直接回复“按你的建议执行”，接受最小方案、独立派发及本票既有三路径合同启动与后续本地 Development Loop；本接收会话的派发指令明确本轮只完成 T01 治理固定并 STOP，T02 在后续 fresh turn 重新读取已固定合同后启动，无需重复合同/启动确认。唯一最终 PR 仍需另一次 exact #336 / branch / manual 确认；push、PR、merge、安装和现场动作均未授权。
+
+批准来源：总调度 `01a0fc77-cef9-7442-9bf9-7f6799268198` 的直接用户决定与本会话派发指令；最小方案和派发卡保存在其 `issue-333-followup-diagnosis-261005/`。本次只投影 #336 的 `type/security`、`complexity/complex` 与 lifecycle `approved`，保留其他标签；实际读回记录在 verification。`triage/needs-triage` 的历史入口标签不替代合同批准。
 
 ## 影响范围
 
@@ -47,9 +49,9 @@ updated: 2026-10-04
 | Repository / Issue | `admin/aisoft-platform` / #336 |
 | Branch | `change/336-complete-pull-reads` |
 | Worktree | `/private/tmp/issue-336-complete-pull-reads` |
-| 单写者 | session `01a100d7-2f34-7932-923d-781f3f255e09`；owner marker 已认领 |
+| 单写者 | session `01a10c82-7f6b-7093-80d5-d389a18198c0`；原 owner 实际交回后，既有 `claim-worktree --takeover` 已成功；原 claim 与接管前后证据保全，last_push=null |
 | 草案基线 | `e2edb3e08194624a6647212571c6cc866298575b`，创建 worktree 时 `main` 与 `origin/main` 一致 |
-| 当前实际改动 | 本目录映射的四份合同草案 |
+| 当前实际改动 | 本目录映射的四份合同治理固定；runtime 未修改 |
 | 后续候选代码 | `codex/runtime/aisoft_host_access/broker.py`、`codex/runtime/aisoft_host_access/cli.py`、新增 `codex/runtime/tests/test_host_access_complete_reads.py` |
 | 归属边界 | #327 负责保留历史的整合/FF 发布路径；#333 保留调用方治理与现场验收 |
 | Merge policy | `manual`；本平台 `routine` 固定 disabled；`IMPLEMENT_PROVIDER=none` |
@@ -60,13 +62,13 @@ updated: 2026-10-04
 
 现有审阅补丁 `reader-capability-source.patch` 的 SHA256 为 `11ab13f03770725e74d75fafc2de4572b484ef3480e7f6b8bae57f441f5cd2a2`。原包保留在 `/private/tmp/issue-333-pat-rotation-acceptance/T14-readiness-proposal-261004/`，没有应用到本 worktree。其独立读取原型 217 tests 与读取/调用方组合原型 330 tests 的 PASS 均属于历史私人副本，不能替代 #336 新候选、默认 smoke、PR CI 或 installed 验收。
 
-按 [plan](plan-complete-pull-reads-261004.md) 先完成纯治理合同确认与固定，随后 STOP；fresh run 重新读取合同才可启动 runtime。唯一最终 PR 仍须绑定 exact Issue、branch 与 `manual` policy 单独确认。验证及未完成项见 [verification](verification-complete-pull-reads-261004.md)。
+按 [plan](plan-complete-pull-reads-261004.md) 完成本次纯治理合同固定与本地原子 commit，随后 STOP；fresh run 重新读取合同才可启动 runtime。唯一最终 PR 仍须绑定 exact Issue、branch 与 `manual` policy 单独确认。验证及未完成项见 [verification](verification-complete-pull-reads-261004.md)。
 
 ## 风险
 
 - 两次相等的完整扫描证明观测期间稳定，不提供服务端原子 snapshot；后续 publication/merge 门必须重新读取。
 - 新成功 stderr receipt 是共享 CLI 协议变更，消费方必须验证其 schema、scope、时间与 stdout hash；#333 调用方适配由其独立治理增量负责。
-- 历史公开检查发现 source 38 / installed 36 operations 及 `credential_rotation_policy` 缺失的 compatibility GAP。该证据不是本次 installed 状态刷新；安装前必须重新核验，不能复制两个源文件形成混装，也不随本票启用 rotation/dependency 权限。
+- 旧 source38/installed36 与缺 `credential_rotation_policy` 证据保留为历史。2026-10-05 本次公共观察为 Mac source38/installed38，manifest、broker.py、cli.py、contract.py 与当前 main source 公共 bytes 相同，字段存在；#336 原基线 manifest 与当前 main/installed bytes 不同。此项只证明所查公共字节一致，完整 provenance、权限、所有文件、VM 与现场仍未验收；不能据此宣称整包 installed PASS，也不随本票启用 rotation/dependency 权限。
 - #327 技术发布能力仍须以真实交付为准。本票不写其工作区、不借用未合并代码、不使用 force/lease-force 或未合并 runtime 自举。
 - 完整度或边界条件无法证明时 fail closed；超限、transport error 和契约漂移均保留失败，不通过 fallback 制造 PASS。
 
@@ -101,4 +103,4 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-AC 已写入 spec；尚待本人确认合同/启动。最终代码若因 fresh main 或 #327 已正式交付的等价 namespace 能力而改变，必须重新固定实际 diff 与证据，再执行 T02。发布与安装前置能力是后续 gate，不阻止当前合同准备，不增加或删除其他 Issue 的 live dependency。
+AC 与三个 runtime 路径已经固定，合同/启动批准已取得，无待重复确认的设计选择。本次 T01 完成后必须独立 STOP；T02 由后续 fresh turn 重读合同启动。最终代码若因 fresh main 或 #327 已正式交付的等价 namespace 能力而改变，必须重新固定实际 diff 与证据；仅 main/能力事实变化不新增跨票产品依赖。本地三路径垂直切片可继续准备，真正 FF/发布/安装门各自独立，不增加或删除其他 Issue 的 live dependency。
