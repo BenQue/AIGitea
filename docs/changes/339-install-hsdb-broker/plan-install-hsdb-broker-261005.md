@@ -15,57 +15,39 @@ risk_flags:
   - platform-governance
 depends_on:
   - 337
-status: contract-drafting
+status: awaiting-triage
 branch: change/339-install-hsdb-broker
 created: 2026-10-05
 updated: 2026-10-05
 ---
 
-# #339 安装与恢复 Plan（未 approved）
+# #339 安装与恢复 Plan · STOP后的下一窗口候选
 
 ## Ticket graph
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 实际Issue合同、exact四角色映射、owner与可审执行卡 | - | done |
-| T02 | 获批后两端完整安装、同pin重复执行及HSDB注册readback | T01 | pending |
-| T03 | 获批真实snapshot restore、同pin再安装最终七仓与下游门交接 | T02 | pending |
+| T01 | 原合同授权、执行记录、完整installed差异和修正版审阅卡 | - | done |
+| T02 | 增量/新窗口获批后两端同pin首次和第二次安装、全目标/策略/识别验收 | T01 | pending |
+| T03 | 新窗口真实snapshot restore→baseline验收→同pin再安装→最终七仓交接 | T02 | pending |
 
-本表是草案依赖图，不授权T02/T03执行。T01完成仅指准备；合同本身仍draft。下一frontier先取得实际#339/pin/scope的安装批准。
-T03不注入共享runtime/账号/PAT/service故障，也不冒充事故或接管#333；restore/reinstall授权或排他/窗口不足即STOP并保留NOT RUN。
+当前frontier：仅准备及发布Revision 2供总调度审阅；T02/T03未获新scope/窗口批准，不能重启原窗口。
 
-## Expected touch points
+## 本窗口已执行/停止
 
-- T01：仅本目录summary/spec/plan/verification、Issue #339正文和本聊天artifact；本地branch/writer marker。
-- T02：source primary clean main FF（明确获批后），Mac/gitea-ci root 25固定目标+receipt及其previous链。exact清单在spec，不操作其他installer/profile/service。
-- T03：批准的window快照、固定snapshot restore、八个允许清除目标的ownership/absence清单、相同c9b5ef4e pin的已合并installer再安装与最终七仓readback。本票source代码零修改，root操作本轮未执行。
+primary exact FF至c9b5ef4e74592cbc68d6bdc6219568a1d51b6853；VM/Mac首次installer exit0。独立策略核验发现sfm-digital-board/dependency_read_targets absent→[aisoft-platform]，与旧卡“原六仓声明保持”不符；停止第二次installer/识别/再安装。
+Mac→VM按即时snapshots真实恢复，原字节/mode/owner/previous/absence/六仓36及HSDB unknown独立读回PASS。本窗口STOP终态，不消费剩余时间再安装；planned AC-6/最终七仓未完成。
 
-## 测试与验收映射
+## 下一完整窗口候选
 
-| AC | Ticket | 验证方式 |
-|---|---|---|
-| AC-1 | T01/T02 | Issue #339正文、四角色resolver/checker、owner marker；人类明确确认scope及执行方式/窗口，未签署不得替代 |
-| AC-2 | T02 | installed typed git.fetch.main；HEAD=origin/main=pin、clean main；两端root过程guard/provenance |
-| AC-3 | T02 | 25目标SHA256/mode/root uid-gid、receipt四摘要/source_sha/merged_main/helper null |
-| AC-4 | T02 | source集合/原六仓/seal/三VM profile比较；同pin两次installer及独立readback |
-| AC-5 | T02 | installed typed hsdb repo/access/onboarding，保存精确错误而不修Secret；检查无账号/profile/timer/部署动作 |
-| AC-6 | T03 | window snapshots→真实restore核原六仓/HSDB unknown及原字节/mode/owner/absence/previous链→同pin再安装→最终七仓/38及26目标/receipt/识别，无故障注入 |
-| AC-7 | T03 | 机读handoff将source/installed/account/restore层分开，总调度fresh确认后单独激活T02 |
+先由总调度审阅完整逐字段差异和源字段影响，再向用户询问具体增量与新45分钟窗口。确认后fresh owner/root capability/source/pin/baseline；重新备份两端非Secret安装面并核摘要；VM→Mac安装→独立26目标/完整policy核验→同pin第二次→识别读回→余量≥30分钟时Mac→VM真实snapshot restore→原六仓36/原字节/metadata/previous/absence/unknown核验→VM→Mac同pin再安装→最终七仓38/26目标/receipt/识别→总调度fresh核T01门。
+planned restore/reinstall/readback均在新45分钟内完成；≤15分钟延长只允许意外baseline恢复/读回，不授权过期再安装。能力、owner、helper/receipt/pin/baseline漂移均STOP，不能修改工具绕过或静默使用更宽身份。
 
-## 数据库迁移
+## Touch points与验证
 
-无；不访问或修改HSDB/Gitea数据库、附件或业务数据。
+T01只四份文档、#339正文和本聊天artifact；T02只版本化root installer25目标+receipt；T03只批准的新window快照/八目标恢复清除/同pin再安装。完整目标和命令在spec/Revision2卡。
+验证覆盖AC-1/2授权及pin/root guard；AC-3/4固定26目标/receipt/policy/幂等；AC-5HSDB解析与真实access GAP；AC-6全闭环；AC-7fresh交接。没有schema/数据库/账号/Secret/应用部署动作，不注入runtime/PAT/服务故障，不接管#333。
 
-## 安装、失败与恢复
+## 发布
 
-顺序：批准确认→fresh owner/source/helper/receipt核验→已授权source FF→即时独立snapshots→VM→Mac安装→同pin再跑→全目标/receipt/识别读回→真实window snapshot restore→原六仓/unknown/previous/absence读回→同pin再安装→最终七仓/26目标读回→交接。
-主机操作只在后续fresh run和明确scope内进行；guard失效、helper/receipt变化、并发owner、pin变化即STOP。
-窗口建议确认后45分钟；planned restore/reinstall/readback须在45分钟内完成，演练前保留至少30分钟，不足不开始。额外≤15分钟仅用于意外baseline恢复与读回，不授权过期再安装。不能要求人工签署者冒充执行owner，也不把sudo身份当人类授权。
-
-没有应用部署、服务迁移或生产环境操作。两次installer、真实snapshot restore和同pin再安装闭环在verification分phase记录；目前均NOT RUN。
-source回退、fixture和artifact解包不替代真实installed恢复。snapshot恢复是待明确批准的方法，previous installed source SHA继续NOT VERIFIED。
-
-## 发布与边界
-
-T01本地文档原子commit可复核；本轮不push/PR、不修改main。最终唯一manual文档PR另按平台确认和CI门。
-已有merged installer消费无需推断新增文档先merge门；一旦main确实变化则重新审pin，不能从change/339或本artifact导出源安装。
+本地可review的文档commit，仅本票branch；未push/PR。总调度读取结果，本聊天不消息回发。文档最终唯一manual PR按既有门禁，治理/runtime源码仍零改动。
