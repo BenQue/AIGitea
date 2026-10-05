@@ -37,7 +37,7 @@ updated: 2026-10-05
 # #339 HSDB 注册安装运维合同 · 已安装验收
 
 原合同和Revision2增量/新窗口已批准。完成两端同pin两次安装→真实fresh snapshot restore→原baseline验收→同pin再安装→最终七仓38的完整闭环；当前 **INSTALLED_ACCEPTANCE_PASS**，不再处于STOP或待新窗口批准。
-本票唯一owner/tuple未变，source/current main=c9b5ef4e74592cbc68d6bdc6219568a1d51b6853。T01B安装AC-1至AC-6 PASS；账号/credential/access仍HTTP_401 GAP，AC-7由总调度fresh核后单独激活T02。本票不修该GAP或借安装批准运行canary/Secret步骤。
+本票唯一owner/tuple未变，source/current main=c9b5ef4e74592cbc68d6bdc6219568a1d51b6853。T01B安装AC-1至AC-6 PASS；账号/credential/access仍HTTP_401 GAP，AC-7总调度独立核验PASS，已于2026-10-05T23:08:43+09:00单独激活T02。本票不修该GAP或借安装批准运行canary/Secret步骤。
 
 ## 已批准并验证的完整共享面差异
 
@@ -63,4 +63,6 @@ updated: 2026-10-05
 
 完整实测见[verification](verification-install-hsdb-broker-261005.md)，合同AC和冻结卡见[spec](spec-install-hsdb-broker-261005.md)，已完成ticket及后续边界见[plan](plan-install-hsdb-broker-261005.md)。[机读handoff](/Users/benque/.codex/visualizations/2026/10/05/01a10bea-8743-7d12-bd55-addf317088bc/t01b-install-execution/window-2/handoff-339.json)分开source/installed/credential/现场证据。
 没有source/runtime/AGENTS改动；只写本票四份文档、#339正文和本聊天artifact。complex/security/change/manual；IMPLEMENT_PROVIDER=none。source #337保持closed，#333/#327/#336及其它owner归属不动。
-本地文档提交不等于已push/PR/CI或manual merge；最终唯一文档PR仍需既定提交确认和人审。安装结果不传递部署、账号/Secret或其它项目现场授权。live labels未投影approved/completed，Issue保持open。
+本地文档提交不等于已push/PR/CI或manual merge；最终唯一文档PR仍需既定提交确认和人审。安装结果不传递部署、账号/Secret或其它项目现场授权。Issue保持open；本轮fresh判级读回仍缺type/security与complexity/complex。原安装卡明确排除labels/push/PR，相关后续写入需要独立具体授权。未投影approved/completed。
+
+总调度退出门与T02激活证据已fresh读回；详见verification。安装完成与Issue文档交付收尾分别核验。

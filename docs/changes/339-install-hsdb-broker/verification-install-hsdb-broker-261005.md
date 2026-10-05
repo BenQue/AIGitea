@@ -50,7 +50,11 @@ planned restore于22:55:17开始，尚余2045.90052秒（34分05.9秒）≥30分
 凭据metadata与baseline相同，未手工读取/输出值；固定installed broker仅在授权只读验收中内部使用受保护credential。没有Secret/账号/helper/grant/profile/protection/binding/labels/service/timer/provider/routine/其它installer/应用部署变更，没有push/PR/merge，没有恢复暂停监控。
 
 机读handoff及全部phase原始证据：/Users/benque/.codex/visualizations/2026/10/05/01a10bea-8743-7d12-bd55-addf317088bc/t01b-install-execution/window-2/handoff-339.json、phases.jsonl、两端install-1/install-2/restore/reinstall.json、before/restored/final.json、final-acceptance.json和registration-final*.json。原窗口STOP和获批Revision2文本分别完整保留，不将历史失败写成通过。
-T01B安装技术AC-1至AC-6 PASS；AC-7待总调度fresh核T01退出/T02单独激活，不自行激活T02，也不关闭Issue或归档现场未完成项。
+T01B安装技术AC-1至AC-6 PASS；AC-7总调度fresh独立核验PASS，已于2026-10-05T23:08:43+09:00单独激活T02。本owner只回填其证据，不实施T02；本票文档交付、最终PR与收尾尚未完成。
+
+## 总调度退出证据
+
+本轮fresh读取总调度`调度台账.json`：T01 logical_stage_complete=true，T01B technical exit PASS，T02 status=ACTIVATED，dispatch时间2026-10-05T23:08:43+09:00。总调度独立核对两端25固定目标及receipt、root bytes/mode/owner、全部安装/恢复/再安装阶段与快照，阶段审计pass=true。本聊天未代其激活或实施T02。证据副本及原始文件hash见`/Users/benque/.codex/visualizations/2026/10/05/01a10bea-8743-7d12-bd55-addf317088bc/t01b-install-delivery/coordinator-exit-readback-339.json`；窗口内HTTP_401 GAP保留为带时间的访问证据，不反映或替代T02后续结果。
 
 ## 完整安装policy差异
 

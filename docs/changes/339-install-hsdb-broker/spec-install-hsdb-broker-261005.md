@@ -33,7 +33,11 @@ Revision2已被直接人类批准，原始记录和卡hash在/Users/benque/.code
 - [x] AC-4：七仓38；原六仓仅允许SFMDigitalBoard依赖边及NewEMaint非目标seal变化，原36操作定义/labels/其余字段保持；HSDB Mac-only/三VM profiles、second no-op及独立previous/字节metadata成立。
 - [x] AC-5：installed HSDB不再unknown；真实HTTP_401 account/credential/onboarding GAP保留；无Secret/账号/fallback及dependency/rotation新增操作调用。
 - [x] AC-6：两次安装→本新窗口snapshot真实restore→六仓36/原字节/metadata/previous/absence/unknown→同pin再安装→最终七仓38/26目标/receipt/识别全闭环PASS，前45分钟内完成，restore开始余量≥30分钟。
-- [ ] AC-7：总调度fresh核T01退出后单独激活T02。本owner交真实证据，不自行激活/提升access或应用UAT。
+- [x] AC-7：总调度fresh核T01退出PASS，已于2026-10-05T23:08:43+09:00单独激活T02。本owner交真实证据，不自行激活/提升access或应用UAT。
+
+## 总调度退出证据
+
+本轮fresh读取总调度`调度台账.json`：T01 logical_stage_complete=true，T01B technical exit PASS，T02 status=ACTIVATED，dispatch时间2026-10-05T23:08:43+09:00。总调度独立核对两端25固定目标及receipt、root bytes/mode/owner、全部安装/恢复/再安装阶段与快照，阶段审计pass=true。本聊天未代其激活或实施T02。证据副本及原始文件hash见`/Users/benque/.codex/visualizations/2026/10/05/01a10bea-8743-7d12-bd55-addf317088bc/t01b-install-delivery/coordinator-exit-readback-339.json`；窗口内HTTP_401 GAP保留为带时间的访问证据，不反映或替代T02后续结果。
 
 ## 当前实测
 
@@ -64,7 +68,7 @@ planned restore于22:55:17开始，尚余2045.90052秒（34分05.9秒）≥30分
 凭据metadata与baseline相同，未手工读取/输出值；固定installed broker仅在授权只读验收中内部使用受保护credential。没有Secret/账号/helper/grant/profile/protection/binding/labels/service/timer/provider/routine/其它installer/应用部署变更，没有push/PR/merge，没有恢复暂停监控。
 
 机读handoff及全部phase原始证据：/Users/benque/.codex/visualizations/2026/10/05/01a10bea-8743-7d12-bd55-addf317088bc/t01b-install-execution/window-2/handoff-339.json、phases.jsonl、两端install-1/install-2/restore/reinstall.json、before/restored/final.json、final-acceptance.json和registration-final*.json。原窗口STOP和获批Revision2文本分别完整保留，不将历史失败写成通过。
-T01B安装技术AC-1至AC-6 PASS；AC-7待总调度fresh核T01退出/T02单独激活，不自行激活T02，也不关闭Issue或归档现场未完成项。
+T01B安装技术AC-1至AC-6 PASS；AC-7总调度fresh独立核验PASS，已于2026-10-05T23:08:43+09:00单独激活T02。本owner只回填其证据，不实施T02；本票文档交付、最终PR与收尾尚未完成。
 
 ## 审批前冻结执行卡（历史全文）
 
