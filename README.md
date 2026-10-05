@@ -31,7 +31,7 @@
 
 **尚未进入稳定源码的工作**：[#327](http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/327)
 仍 open，跟踪保留历史的 main 整合与普通 FF 发布路径；当前已合并 broker 的发布约束不因此放宽。
-- 🟡 #327 治理合同（2026-10-03，T01/T04已完成、T05独立本地应用）：保留remote历史，限定Controller两parent整合和broker独立重算后ordinary FF；default-disabled authority，新增public仅begin/verify，无publicapprove/merge。T05补齐Python导入前nativebootstrap/完整toolchain closure（含alias/sharedcache）、Mac64 MiB固定scratch/256 MiB rootGit/own-lease与所有STATE/CONTEXT预算；private v2绑定，不由local PASS授权。治理commit后STOP，fresh run才续已保全T02 WIP；I01仅惰性文件验收，I02每主机exact注册/模板/启停/真实隔离/FF与运行rollback均未验收，不自动provision/启用。first PR仍由负责人本人UI；AC-7/9/10/11未闭合不提前完成/归档。具体支持范围、精确文件与分层证据见 [#327 spec](docs/changes/327-broker-ff-integration/spec-broker-ff-integration-261002.md)。
+- 🟡 #327（2026-10-05 收缩）：仅保留历史的 main 整合、普通 FF、非法/并发漂移拒绝、required CI 与恢复。首次 main 整合由负责人本人按标准 Git 执行；首次发表仍先完成最小实现/验证与唯一 PR 第二确认。root authority、ES/kernel/signing、完整 OS 闭包与 scratch 隔离明确延期，旧 FAIL/GAP/NOT RUN 保留；不等待未交付 R02，不安装 unmerged broker。当前 scope 与精确路径见 [#327 spec](docs/changes/327-broker-ff-integration/spec-broker-ff-integration-261002.md)。
 
 #333 仍 open，`approved` 仅授权其自身合同内工作；本次没有核对其现场执行结果，不宣称已完成。
 Windows Server 2022 x64、公司 AD/JEA 与 [14](14-Windows部署与迁移验收清单.md) 验收仍按原 `NOT RUN` 边界保留。

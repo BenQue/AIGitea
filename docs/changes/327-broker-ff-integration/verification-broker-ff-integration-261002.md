@@ -17,7 +17,7 @@ risk_flags:
 depends_on: []
 branch: change/327-broker-ff-integration
 created: 2026-10-02
-updated: 2026-10-03
+updated: 2026-10-05
 status: pending
 ---
 
@@ -181,3 +181,391 @@ Spec轴初审四项：CONTEXT输入未明确总预算/回收、I01/I02 realFF阶
 - 本次实跑resolver/semantic、11AC/graph/技术条款保持、exact18范围、双方共享合同一致、所有非范围bytes/mode与 `git diff --check`；结果保存 `t05-application-validation.json`。检查确认后本地独立commit，exactparent/paths/sourceWIP/owner/sharedmain/lastpush与STOP读回保存 `t05-stop-receipt.json`，不在本提交自引用hash。
 - 无脚本变更，不重跑runtime/smoke并虚构PASS；旧89定向PASS、首次全量FAIL和staleness smokeFAIL保留。新bootstrap/模板create/mount/registry/grant/service/I01/I02/FF实证、远端/唯一PR/CI/merge/deploy均NOT RUN。
 - commit后STOP，后续fresh run重读完整治理、Issue/comments、具体批准和source/installed能力再T02；不凭本run新治理自授同轮runtime权限。
+
+
+## Fresh T02（T05 STOP 后；2026-10-03 source WIP）
+
+本段只记源码进展，不改冻结 spec/plan、治理或安装合同。fresh run 已读回 T05
+`bba5ea1790d4f8508746acb9a59ec99d39fbd4ab`、批准/STOP、14 governing + 四角色、
+原18项source保全、owner/session/branch/index。Issue/comments/protection 经既有只读typed
+broker读回，Issue仍open/triage-needs-triage且comments为空；不投影批准标签。
+
+新增9项已批准source均保持100644：两个disabled/null registry、toolchain/scratch与相应
+单元测试、native bootstrap、nonroot build脚本和bootstrap shell测试。grant/record/operator
+切换v2私有descriptor/profile绑定；v1账本payload只读保留，不能成为active授权。
+服务及privileged launcher改用fixed native entry，critical broker wrapper在任何source
+Python导入前转fixed native入口；必要shell为`/bin/bash -p`，无caller PATH/BASH_ENV启动入口。
+
+native源码目前只有bounded strict JSON/SHA-256/root-FD custody/inventory/固定角色负向入口；
+完整Mach-O/ELF/native dynamic/shared-cache metadata、held-FD descriptor/resource/card调度与
+canonical interpreter dispatch尚未完成。native和Pythonclosure gate继续拒绝，无通过字段或fixture
+开关。build receipt明确SOURCE_ONLY/dependency closure GAP/SDK freeze NOT RUN，不充I01安装凭据。
+
+resource纯schema/预算/租约/prefix/device/kernel projection已补，Mac create/attach框架未接到
+authority。真实descendant跟踪、seal/retained-object闭包、Linux bounded tmpfs、protected resource
+book和generation/verifier接线未完成；record builder只接受v2与exact lease digest，真实lease seal
+缺失时明确RESOURCE_CAPABILITY_GAP，绝不填placeholder。detach在跟踪缺失时先持久quarantine，
+保留lease/proof/预算并阻断新generation，不用caller Boolean证明后代退出。
+Apple SDK及Apple XNU `bsd/sys/event.h`表明NOTE_TRACK/NOTE_TRACKERR/NOTE_CHILD自10.5不再支持，
+不能把kqueue parent/process-group退出当全后代证明；未引入新EndpointSecurity授权。
+
+publish加入protected durable attempt/state与restart/reentry只poll语义。attempt绑定exact record/H/
+generation；generation和publication互斥；job与transport前重新核对sealed record和active grant；
+实际transport开始/返回与operator revoke串行。断线/重启保留H/phase/possible_write，不能自动再推。
+以上为source实现/fixture证据，当前closure gate使live transport始终不可达。
+
+| Check | Result | Evidence / boundary |
+|---|---|---|
+| fresh T05 approval/STOP/source/governing/owner readback | PASS | 外部`t02-after-t05-fresh-receipt.json` |
+| targeted change_evidence/toolchain/scratch/authority/main_integration/worktree_owner + CLI typed fields | PASS | 109tests；`t02-after-t05-targeted-repaired.log`；全部source/nonroot/pure或本地bare fixtures，不是root证明 |
+| native SHA-256 million-byte/vector/strict JSON duplicate/NUL/overflow/role negatives；两个source build逐byte一致；startup拒绝 | PASS | `t02-after-t05-native-repaired.log`；真实nonroot；未装或运行root角色 |
+| 4 changed shell `bash -n` + ShellCheck | PASS | source静态检查；不推导installed mode/exec能力 |
+| all runtime discover | FAIL | 最新完整run1065tests，8failures/9errors；`t02-after-t05-all-runtime.log`；旧leased-push期待与新authority拒绝边界冲突，CLI缺ticket=None expectation后来定向修正；修后未再跑完整集，不推导全量PASS |
+| required default `bash codex/tests/smoke.sh` | FAIL | `t02-after-t05-smoke.log`；source guard：architecture/install checkout behind origin/main68commits；未移除guard、自动rebase/merge或安装 |
+| parallel Spec/Standards review of fixed WIP | repair recheck PASS (limited scope) | 初次snapshot receipt `0d005fce72217d35dfac4b1ba7717570a435bce327454547638b51b9c53844eb`；record race/revoke serialization、durable quarantine、fixed shell startup、NUL strict JSON已修 |
+| native dependency/dispatch、actual tracking、resource+Loop+installer/drift接线 | GAP / pending | 已批准范围内仍未完成的source，不称外部安装阻塞，也不把schema/拒绝测试当实现闭合 |
+| I01/I02/root incoming/grant/UID/socket/service/镜像创建或挂载/PAT/provider/live remote/PR/merge/deploy | NOT RUN | 本次只有source/nonroot fixtures与只读事实 |
+
+T02仍in-progress，T03/firstPR/I01/I02均未启动；本次源码WIP未提交。HEAD仍为T05，index为空，
+零remote写。冻结spec/plan和14 governing保持T05字节；共享checkout未操作。后续在同一批准source
+范围内补齐native依赖/调度与真实OS跟踪/资源生命周期，再接Loop/install/drift并迁移旧leased-push
+测试；保留当前FAIL/GAP，不以减少硬门或fixture root PASS完成T02。
+
+
+### 本次修复复核读回
+
+Spec 与 Standards分别只读复核固定 repaired snapshot（29路径，receipt SHA256
+`0ee0f8ffc8c9be9e6dd7b120b44c341239c2ad75f3ebe8b45ce758afa8c04237`）。两个轴均确认上述
+已发现项的修复闭合、限定范围剩余新增硬项0；并明确不是T02完成验收。未重跑或声称root/remote
+验收，仍保留all-runtime/smoke FAIL和native/tracking/resource/Loop等GAP。
+
+末次installed校验明确按同一对象比较：`/usr/local/lib/aisoft-host-access/aisoft_host_access/broker.py`
+仍为fresh起始hash `2c1b05977437f16b461c8db0d41a2ad6947d9df5a929bcc3eaeadd332030da7f`、root0644。
+另一个对象launcher `/usr/local/libexec/aisoft/host-access-broker` 为
+`88c663af3a3e3b710cc271e7ff671e279d38fc357657330682a338d6ba3f4135`、root0755；两个不同对象的
+hash差异不是installed漂移证明。早前误混比较已更正。fixed native endpoint依然不存在。
+
+
+### Fresh T02 后续源码进展：Loop/client、native metadata 与受保护资源账本
+
+本节覆盖前节对“metadata尚未实现”“protected resource book未实现”的旧进度描述；
+保留当时测试结果为历史。T02仍in-progress，完整closure/dispatch、真实tracking、资源生命周期与
+Loop/provider/PR/installer/drift端到端仍未闭合。本节仅source/nonroot及纯fixture；无root或安装执行。
+
+- Loop `LocalGit` 的push改走fixed VerificationClient typed request；project必须绑定，移除普通Git push。
+  publication projection只接受exact字段；pending/失败保留H、attempt、possible_write与nullable读回，
+  客户端读回null不会覆盖证据错误或伪造零写。对应67项定向测试通过，两轴冻结scope复核新增硬项0。
+- native clock改为monotonic；16字段closure语义图、alias字节、role、public四keypolicy、resource/OS/
+  canonical toolchain digest先行校验；16384 aggregate计入cache backing与三个role imports。
+  Linux实际procfs full-identity UID-map preflight源码不声称唯一initial namespace证明；实际Linux/root NOT RUN。
+- C与Python都有有界ELF64 metadata解析，保留RPATH/RUNPATH原始语义，拒绝动态表/字符串越界、
+  u64溢出、LOAD/BSS重叠、未知audit/filter/delegate。Mac补thin64、fat32/fat64、唯一CPU slice、
+  fat/thin subtype一致、MH_BUNDLE/dyld ID、linked/rpath/UUID、segment/section/linkedit等结构。
+  未知或加密delegate拒绝；只观测文件metadata，不完成kernel page/ABI/resolution/cache/dynamic证明。
+- Python incoming reader固定三个名字；root0700父目录、root0600 regular/nlink1/no-follow、8MiB或卡1MiB，
+  FD前后stamp、同名entry和目录身份重验。private `--apply` operator卡只从固定incoming读取，不读stdin。
+  尚未完成首次注册native held-FD proof交接，不能以Pythonreader替代pre-import gate。
+- `ProtectedResources`将严格单步resource event追加到既有protected ledger，持锁拒绝stale snapshot、
+  prefix重置或profile重绑定，不增第二个可覆盖的book。纯内存store测试不证明root custody、真实quota或seal。
+- Mac backend补observer缺失的allocation前闸门：constructor完整closure gate、attach在reserve前、run在exec前
+  均拒绝未实现的observer；detach仍先durable quarantine并保留预算。未实现observer/模板/kernel接线时不分配，
+  不以leader或process group退出替代全后代证明。Linux backend与actual tracking/seal/retention仍pending。
+
+| Check | Current recorded result | Exact scope / evidence |
+|---|---|---|
+| Loop/client定向 | PASS | 67项；`t02-loop-client-tests.log`；scope receipt `7113ac0b30dfa805d5536440efd35ac91b4b655e4a1763ff47fa93a530410d08` |
+| incoming/protected resource/toolchain/controller/scratch定向 | PASS（对应冻结scope） | 103项；`t02-protected-resource-source-tests.log`；receipt `cfa1a92018f5ea56a1d0bf37b9be45f0b397664c5a83bda9da2dd0c467ea4dcb` |
+| Mach-O C native FD/parser/build与Python定向 | PASS（解析scope） | `t02-native-macho-source-final.log`与exit0 receipt；Python23项/exit0 `t02-macho-targeted-final.log`；无loader执行或root验收 |
+| Mach-O冻结两轴复核 | 新增硬项0/0，无新增实质smell | 4文件receipt `c2a5077afe7a04f527bc3c578fab62f552958c634bf1c1da5a012d40abf1c9eb`；不能投影T02完成 |
+| 全量runtime（Mach-O后、observer entry-order新增前） | FAIL | 1098项，7failures/9errors，92.150s；`t02-macho-all-runtime.log`；输入receipt `24d637fe5c9bea95cbc69c5abf8dd0a16074a27437e3395e3426a9e6013492fe`，source inputs运行中保持（progress文档除外） |
+| Mac observer allocation前拒绝定向 | PASS（纯entry-order/lifecycle） | 10项scratch测试；无root/backend constructor或mount执行；此新增后未重跑全量 |
+| required default smoke（最新） | FAIL | `t02-native-macho-smoke.log`/exit1；architecture/install source guard读回behind origin/main87commits，覆盖此前68差距读回；无merge/rebase/guard移除 |
+| changed shell bash-n/ShellCheck与diff whitespace | PASS | source静态；不证明installed executable mode或能力 |
+| governing/冻结summary-spec-plan/index/shared checkout | PASS（只读） | `t02-macho-frozen-contract-check.json`；17文件与T05逐byte一致，HEAD仍bba5ea1790d4f8508746acb9a59ec99d39fbd4ab，index empty，共享HEAD5c2cd726c9aeaee9d17541d8feb049e33881bbac |
+| 完整native graph/cache/dynamic/held-FD/dispatch、真实resource/tracking与完整Loop/provider/PR/install/drift | GAP / pending | 已批准source仍需实现，不能用拒绝或schema测试代替闭合 |
+| I01/I02/root/installed/live/remote mutation/PR/merge/deploy | NOT RUN | 无新增主机执行授权或行为；WIP未提交 |
+
+全量失败仍是旧leased-push/ownership/rebase/任意merge预期与新authority custody拒绝边界的冲突；
+后续须保持对应真实DAG、ownership、race、manifest以及publication硬门，完成可信执行链和合法回归迁移。
+不得只把旧预期改成CUSTODY_GAP、删测试或放开root fixture来制造PASS。
+
+
+### Native frozen-link解析修复与重复失败升级停点
+
+新增`native_link_targets`仅为纯解析函数，未接入native/authority或授予exec。
+冻结execution root/inventory/search顺序、ELF RPATH与RUNPATH分离、Mac path tokens、alias与
+linked manifest逐项对齐均有拒绝边界和monotonic deadline；仍需递归execution context、
+accepted loader/kernel ABI、cache/dynamic/build manifest、native pre-import与held-FD完整接线。
+
+两轴初审均发现P2：alias前的词法normpath可能将目录alias之后的`..`绑定为不同库。
+第一修复仍在PurePosixPath前遗漏alias raw `.`/末尾斜线的目录语义；最终修复在任何Path构造前
+检查原文，未证明的dot/dotdot/trailing-slash直接GAP。负例含目录alias+`..`、不存在中间目录+`..`、
+alias target三种raw dot/trailing组合。最终28tests实跑exit0；两轴限定复核hard0/0、smell0，
+receipt `8ffc644916f8e4b1206364bcf46b2c599f0f24f9c25cf5ab4530e2e3d9871257`。
+这些PASS仅pure source；未把strict拒绝、module parser或loaded-module列表当完整closure。
+
+两次完整runtime日志1096与1098tests的failure/error method+subtest逐项相同（7failures/9errors，
+13个method/16case）。依据本worktree AGENTS.md:15“遇到……重复失败时必须停止并升级给人”，
+本次修复/复核和保全后停在repeat-failure escalation；T02仍in-progress，未标完成。
+外部`/private/tmp/aisoft-327-contract-evidence/t02-repeat-failure-recovery-card.md`绑定exact
+Issue/branch/owner/HEAD和失败映射：建议A先完成已批准可信执行链，再逐项保留DAG/ownership/
+race/manifest/publication硬门迁移旧leased-push回归；B先只读核对canonical-main差距并准备整合卡。
+不改测试预期为统一CUSTODY_GAP、不删skip硬门、不自动rebase/merge或凭此启动I01/I02。
+最后修复后只重跑相关定向门；不继续重跑未修复的完整集来消耗或制造PASS。
+source WIP保全，HEAD/index/owner/共享checkout与冻结合同保持，零remote/安装/主机写。
+
+
+### 恢复卡 A 后的 native card、link 与 cache source 进展
+
+用户于本轮直接选择“按你的建议执行”，已按 exact Issue #327 / branch
+`change/327-broker-ff-integration` 记录恢复卡 A；本节覆盖前节 repeat-failure 停点的当前状态。
+原批准 source 范围继续执行，T02 仍 in-progress。恢复 receipt 为
+`/private/tmp/aisoft-327-contract-evidence/t02-recovery-a-resume.json`，绑定恢复卡 SHA256
+`9cdaba89a12b0bd3163d66aca1f84b246eaf917944b5dd7adce9e72ad23e4c6f`；无新增 root/installed/live/remote 权限。
+
+- native 固定 `--apply` 卡预检绑定 v2、operation、toolchain/resource/policy/profile 摘要；卡、policy、
+  descriptor 持有 FD 穿越有界 closure walk，并重验 held object 与 fixed 同名 entry。
+  卡完整 grant 校验仍由后续 pinned operator 承担；首次登记的同 FD dispatch 尚未完成。
+- C 解析接入冻结目录、first candidate、Mach-O tokens、ELF RPATH/RUNPATH 和 exact linked set；
+  未登记 loader 默认目录直接 GAP。C/Python schema 同步拒绝 raw alias dot/empty/trailing components。
+  两轴发现并修复 P2：Mach-O 中间位置误展开 ELF ORIGIN。负例登记原错误目标/目录/edge；
+  临时 source copy 去掉格式限制后 fixture53/exit1，当前修正版通过。冻结修复复核 hard0/0，
+  receipt `386fc756730caa0429f5f5b5cc0f747bafba78a758f54470b4d401299766ed14`。
+- native pin hash 与 ELF/Mach-O/cache 表观察改为同一 FD，随后核同名 binding；实际重复 streaming hash
+  也计入 64 GiB 总界。dyld cache 的 UUID、image-text UUID、mapping 与 24/56 字节 subcache 表从
+  held bytes 读取，不 hash logical name 冒充字节证明。固定子路径、完整 declared backing set、UUID、
+  region/VM offset、text 所属 RX mapping 和重叠拒绝已有 C/Python source fixtures。
+  cache reader compact metadata，单独对 cache pool 的内存留存和最坏 parse peak 设界；
+  这不替代 protected 文件/卷的真实额度账本；symbol-only/未知格式仍能力 GAP。
+  格式参考 [Apple dyld cache header](https://raw.githubusercontent.com/apple-oss-distributions/dyld/main/include/mach-o/dyld_cache_format.h)
+  与 [Apple cache reader](https://github.com/apple-oss-distributions/dyld/blob/main/other-tools/dsc_extractor.cpp)，
+  文档不能代替 OS/cache/root 实证。
+
+| Check | Recorded result | Evidence boundary |
+|---|---|---|
+| native card/link/cache/set 的 nonroot FD fixtures 与两次 build | PASS | `native-cache-set-source.log` / exit0；artifact 字节相同，非 root 安装或执行验收 |
+| toolchain/cache Python 定向 | PASS | `native-cache-set-python.log`：39 tests / OK；raw temporary FD + pure binding，非 actual active cache |
+| changed shell bash-n / ShellCheck / diff | PASS | `native-cache-set-exits.json`；source static scope |
+| required smoke（恢复后） | FAIL | `native-card-smoke.log` / exit1；source guard behind tracking origin/main87 commits，无 rebase/merge/guard bypass |
+| card/link/byte-cache 两轴冻结复核 | 新增 hard0/0 | card receipt `74de4ff7c1c40740c935f4f2f6613631b697d66c0d499783a8d7d21a8164e8c2`；修复 link receipt 上述；byte-cache receipt `64a27346e437fe91e8bc1474e26a233f721116dac86c29cbc11b1750a0e5bae2` |
+| 完整 backing-set 峰值修复复核 | PASS，双轴 hard 0 / 0 | fixed snapshot receipt `298ac086ef275c9add3a9fe07d0b85d12fdf3f0165c25c80882708c3c712cb56`；compact 双 arena 复制窗口与旧错误边界负例已复核闭合。不把此内存预检等同磁盘预算验收 |
+| 完整 runtime | 未重跑，最新历史 FAIL 保留 | 旧重复失败尚未迁移；仅 source 定向修复，不重复未修复 full run |
+| recursive cached Mach-O/native graph、dynamic/build、actual active cache/OS TCB、same-FD dispatch | GAP / pending | native 仍无 exec；authority complete-closure gate 未解除 |
+| observer/resource 生命周期、Loop/provider/PR/generation 与 installer/drift E2E | GAP / pending | 既有已批准 source 尚需完成 |
+| root/installed/I01/I02/service/template/mount/live/remote mutation/PR/merge/deploy | NOT RUN | 本轮 source WIP 未提交；没有使用 root 模拟验收 |
+
+本节的 PASS 仅对对应 source/fixture scope，不投影 T02 完成或 installed/live。原17 governing 与冻结
+summary/spec/plan 仍须保持 T05；共享 checkout、owner、HEAD 与 index 保持，不自动整合 main。
+
+
+### 恢复卡 A：cached Mach-O、同 FD 递归图与主线整合停点
+
+本节更新前节 cached Mach-O/native graph 尚未实现的进度，不改变完整 closure/dispatch 的 GAP。
+本次仍限 source/nonroot/pure fixture，无 root、安装或现场验收。
+
+- cached Mach-O 从实际 held cache/subcache FD 的 mapping 字节解析 header/load commands；
+  `__LINKEDIT` 的原 fileoff 通过 segment VM 映射到实际 backing，拒绝未知 command、UUID/ID 不符、
+  跨界与歧义 mapping。CacheUniverse 核对整个 descriptor 的 UUID/VM 与 aggregate 条目界。
+  negative fixture 实际改写 backing 后再次核对 FD stamp；不以 cache 表中的 logical name 替代字节。
+- closure preflight 先固定并 streaming hash 全部文件，再用同一组 PinnedFiles 做 native/cache 元数据
+  与逐 root 的静态及 declared dynamic graph，最后复核 FD 和同名 path。一次 critical 内复用已验证 FD；
+  不创建跨 critical 的 mtime 信任缓存，不解除最终 `TOOLCHAIN_CLOSURE_GAP`，仍无 Python exec。
+- C/Python 递归图使用 source 与完整 inherited search context 作为 visited identity；每个 fixed execution
+  root 独立展开，保留 ELF RPATH/RUNPATH 的传递差别、Mach-O token、late extension/interpreter context、
+  declared dynamic/delegate 与 cycle 硬门。队列/状态/元数据合计有界，生产 reader 仅读同 held FD。
+  pure Python recheck 不能替代 native custody、dynamic/build completeness 或实际 accepted loader/OS/cache。
+- 两轴发现的 deadline 错误分类与 graph resident 内存漏计 P2 已修复：helper 的 timeout 保留 GAP；
+  64 MiB graph 界计入常驻 pins/CacheUniverse/cache binding，且在分配前检查。
+  最新 fixed 4-file snapshot SHA256 为
+  `4a953abb5f1f879e5dac78218018428f6d2d52f3cef8a2d06207966307e7d77d`；
+  Spec hard0、Standards hard0；Standards 保留 1 项非阻断 judgement smell（resident 公式重复）。
+
+| Check | Latest result | Evidence boundary |
+|---|---|---|
+| native nonroot source fixtures 与重复 deterministic build | PASS | `native-held-memory-fixed.log` / exit0；fixture bytes/parser/graph/bounds，不是 root/active-cache/dispatch 验收 |
+| Python toolchain graph/cache 定向 | PASS | `native-context-python.log`：47 tests / OK；pure/temporary FD scope |
+| source-only context mutant | 负例有效 | `native-context-mutant-fixed.json`：source-only visited mutant 使 diamond context test 真失败；首次 import-error attempt 不作有效负例 |
+| bash-n / ShellCheck / diff whitespace | PASS | fixed 4-file snapshot 的静态出口均 0 |
+| 固定 snapshot 双轴复核 | hard0 / hard0 | 上述 receipt；非 T02 全量复核，1 judgement smell 保留 |
+| required default smoke | FAIL | 最新 `native-held-graph-smoke.log` / exit1；source guard 读回 behind origin/main 87，恢复后多次同一阻塞，没有 bypass |
+| 完整 runtime | 未重跑；历史 FAIL 保留 | 旧 13 methods/16 cases（7 failures/9 errors）尚待可信链完成后的合法回归迁移；不得统一改成拒绝/skip |
+| fresh canonical main typed fetch | PASS（只读） | sandbox TRANSPORT_ERROR 后，同 typed `git.fetch.main` host 路径通过；main=`dc9aa468580f92a73dfa054c6f04ef5113f56694`，没有 remote write |
+| 主线三方整合预览 | 1 内容冲突 | 只在临时 object dir/index；`broker.py` 冲突，8 个 WIP 路径与 upstream delta 重叠；实际 HEAD/index/worktree 未整合 |
+| main 中 incoming governing | 7 个文件的 proposal，NOT APPLIED | 保留 #327 T05 合同；需具体同步审批、治理-only 步骤与 STOP/fresh run，恢复卡 A 不授权 main integration |
+| 完整 native closure/dynamic/build/ABI/cache proof/同 FD dispatch，observer/resources/Loop/install-drift | GAP / pending | T02 仍 in-progress、32 个 source WIP 未提交 |
+| root/installed/I01/I02/Secret/service/image/mount/remote mutation/PR/merge/deploy | NOT RUN | 无新增现场或外部执行授权 |
+
+重复 smoke source guard 阻塞已升级到具体的 canonical-main 整合卡准备。本轮只做只读 preview、
+source WIP 保全和证据更新；原17冻结治理/summary/spec/plan、owner、HEAD 与空 index 保持。
+后续治理 proposal 或本地 main integration 必须绑定 exact source/main/patch/owner 卡确认，
+治理-only 应用后 STOP，fresh run 重读后才能 runtime；不能凭 A 自动 rebase/merge。
+
+
+### T06 实际 STOP 后的 fresh T02/R01 与固定解释器兼容停点
+
+本节覆盖上一节“主线尚未整合”的当前状态。负责人已直接批准 exact T06/R01 卡
+`a53a215d223381e131600414b9c1677d1689db408971a22af923322fdc6ca4e1`；T06 实际治理提交
+`ad305ac30f4b6bb004934ba3c5d921acd28dc162` 后已 STOP。当前是随后 fresh run，已重读合同、
+批准、Issue/comments、main/source/owner/installed；未等待其它聊天或代操作其 worktree。
+
+- canonical typed main fetch 经 host 路径成功，pin 仍为
+  `dc9aa468580f92a73dfa054c6f04ef5113f56694`。live Issue open、comments0、仅 needs-triage；
+  本地具体 source 批准不当作 live approved label 或 protected grant，投影 GAP 保留。
+- 原32 WIP 按 bytes/mode 保全、park 后，实际纯 main checkpoint 为
+  `4cb627d9525611bff34387830978ba5c5785863e`；parent 顺序为 T06 commit、上述 canonical main，
+  tree 为 `222feec17b625aa0c14b5fcf366f6057057454a1`，恰等于获批 preview。随后恢复未提交 WIP，
+  唯一 broker 调度手修恰等于获批候选，未混入 checkpoint；未 rebase/force/改写旧历史。
+- 首次整合检查因 main 中其它 Issue 的 evidence.patch 六个单空格 context 行退出，已 abort 并
+  恢复原32 WIP。保留 canonical patch bytes 后，本 Issue delta 对 main 的 whitespace 门通过，
+  第二次实际整合成功；未修改其它 Issue 证据来制造 PASS。
+- 已在原 scope 内更新 `test-host-access-broker.sh`：operation 38→40，并校验 begin/verify
+  exact shape；Keychain 静态扫描仅豁免固定文件的完整 inventory deny-list 行。
+  同行命令注入、其它文件命令、新增 secret path、deny-line drift 均真实拒绝；toolchain unit
+  增加 Keychains 路径拒绝向量。当前33 WIP 未提交，17治理文件保持 T06 bytes。
+
+| Check | 本轮实际结果 | 证据及边界 |
+|---|---|---|
+| main 后7组 source 定向 | PASS，203项 | `t02-r01-fresh/targeted-after-main.json`；pure/普通用户/临时 FD，非 root 或全量 |
+| Keychain 修复后 toolchain | PASS，47项 | `toolchain-after-keychain-fix.log`；与上行有重叠，不累计为250项 |
+| 改动 shell 的 bash-n / ShellCheck / diff | PASS | `keychain-gate-vectors.json`，5个静态正负向量；未执行 Keychain 或凭据读取 |
+| required default smoke | FAIL，exit1 | `smoke-keychain-fixed.log`；原 source guard 差距解除，停于 fixed broker fixture:131；固定 Python3.9 导入 dependencies alias 失败 |
+| actual native source fixture | FAIL，exit1 | `native-after-main.log`；同一 dependencies alias 导入失败，未替换固定解释器或删除门 |
+| 完整 runtime | 本轮 NOT RUN；历史 FAIL 保留 | 原13 methods/16cases尚未完成可信链后的合法迁移，不重复未修复全量集 |
+| 完整 closure/dispatch/resources/observer/Loop/install-drift | GAP / pending | T02仍in-progress，T03 pending；不能把 fail-closed/schema/parser 测试当能力闭合 |
+| root/installed/grant/Secret/service/image/mount/remote mutation/PR/merge/deploy | NOT RUN | owner、共享 checkout 与 installed 受管文件保持；无新增执行许可 |
+
+固定 `/usr/bin/python3` 实际为3.9.6。canonical main #286 的模块级
+`Dependency = int | str` 不能在其下加载；隔离候选先恢复此 alias 后，完整 broker 导入还触发既有
+`profiles.py` 的模块级 Callable/PathLike union alias。后者来自原 profile runtime；旧 wrapper
+使用 PATH Python，而本 Issue 固定解释器入口要求其兼容。两个原文件均不在旧 #327 exact scope，
+actual checkout 保持原 bytes，未应用未经确认的修复。
+
+只读 T07 提案仅新增这两个 exact 文件的四行等价 `typing.Union` import/alias，先应用
+mapped summary/spec/plan 的独立治理合同/localcommit/STOP，后续 fresh T02 才允许 source 修复。
+proposal、before/candidate/patch、两项已授权测试增量与负向 vectors 的 hash 绑定在
+`t02-r01-fresh/t07-compatibility-contract-proposal/receipt.json`；当前未批准、未应用。
+
+隔离双文件候选在相同固定3.9下通过65项 toolchain/profile units、broker未知 operation 的
+exit20/REQUEST_DENIED、完整 nonroot native source fixture。actual checkout 同65项在3.14通过；
+上述 candidate PASS 不覆盖 actual fixed3.9/native/smoke FAIL，也不证明完整 native dispatch。
+首次扩展 unit harness 指定 `/private/tmp` 使文件实际继承 wheel group，与调用用户组不同，
+两份源代码均真实拒绝，1failure/4errors日志保留；最终只改用现有用户临时目录的真实匹配 UID/GID，
+未改代码/测试/UID或 chown 来通过。其它不完整临时 copy/import attempt 也保留，不作有效 PASS。
+
+依据 AGENTS 的 scope 扩张与外部阻塞边界，本轮在保全与具体兼容提案完成后停下 runtime 实施，
+等待这项新范围的具体确认；原 T02 启动批准与已完成 T06/R01 均无需重复确认。
+
+### T07 实际完成后的 fresh T02：固定3.9恢复与 source loader 修复
+
+上节是确认前的历史停点，保留原 FAIL/候选证据。本聊天随后直接“确认”精确 T07 卡；
+三份治理合同独立提交 `9ea1e90f0fe129181600851e2a701bceeca6b026` 并 STOP，
+后续 fresh run 重读批准、17 governing、source/owner/index、live Issue/comments、
+canonical main 与两项 managed installed bytes。原 main pin
+`dc9aa468580f92a73dfa054c6f04ef5113f56694` 保持，live 仅 `triage/needs-triage`、comments 空，
+本地具体批准仍不作为 live approved projection 或 protected grant。
+
+四行 `typing.Union` 修复已实际应用，after bytes 与批准的两个候选 hash 完全一致，
+并独立提交 `1849735a510299b183b00edebea9a6e7e999de0b`（parent 为上述 T07 commit），
+仅 `dependencies.py` / `profiles.py` 各2行替换。提交时原33 WIP、17 governing、owner 均保持，index 空。
+实际提交、before/after、验证和保全记录在
+`/private/tmp/aisoft-327-contract-evidence/t02-after-t07-fresh/python39-source-commit-receipt.json`。
+
+随后在原 T02 的两个 exact 文件范围修复 source import seam：
+`toolchain.py` 的 loader 执行同一次接受并核验 size/hash 的源码字节，
+不让 `SourceFileLoader` 再读路径或时间戳有效的 pyc；按固定 role 限制 registered imports，
+pyc 与尚未具备 held-object 能力的 native extension 在读取/加载前拒绝。
+`test_toolchain.py` 加五项有意义的负向/实际字节替换测试，main guard 在全部类之后。
+原 loader 的同一攻击样例真实执行了替换字节，red 为3 FAIL/1 ERROR；候选与实际 source 均转绿。
+这是 pinned-reader unit seam，不能证明 root custody 或完整 bootstrap/loader 能力。
+
+| 本 fresh turn 实跑 | 结果 | 边界 |
+|---|---|---|
+| actual fixed `/usr/bin/python3 -I -S -B` 导入、65项相关 unit、unknown `shell.run` | PASS；deny exit20/REQUEST_DENIED | 四行实际 checkout；未读取 credential |
+| source loader 修复后的 fixed3.9 相关 unit | 70 tests PASS | 52项 toolchain +18项 profile；不和下面重叠项累加 |
+| 七组 source 定向回归 | 208 tests PASS | toolchain52/main-integration17/change-evidence23/authority25/controller48/owner33/scratch10 |
+| 真正临时 bare remote 的普通FF/竞态/DAG/tree/ref | 17 tests PASS | 包含在208项；仅本服务测试临时 remote，无 live target |
+| loader 候选 discover/direct 两入口 | 各52 tests PASS | 隔离副本；actual source after hash 已核对，不替代 root 验收 |
+| 四行后的 nonroot native source fixture | PASS | 编译两次字节一致；actual UID501，不模拟root，不证明完整闭包 |
+| default smoke，sandbox 路径 | FAIL | 已越过旧3.9导入故障，后被 local socket bind 权限拒绝；原日志保留 |
+| 原命令 default smoke，host 路径 | FAIL：runtime 1242 tests，7 failures/9 errors | 仍是既有13方法/16cases旧发布语义；没有统一改成 CUSTODY_GAP、删除或skip硬门 |
+| 完整 native closure/dispatch、observer/resources、其余可信链和旧回归迁移 | GAP / pending | 不把上述 unit/fixture PASS 投影为 T02 完成 |
+| root/installed grant/service/socket/镜像/签名/权限/remote mutation/PR/merge/deploy | NOT RUN | 没有从本轮确认继承这些权限 |
+
+全部日志与逐文件 hash 位于上述 `t02-after-t07-fresh/`。两轴 review 的 loader slice
+hard0 / hard0；Spec 轴发现 main guard 位置 smell，已修正并复核为0，非全 T02 review。
+新 loader 两项 WIP 与本 verification 进度是本轮 source 增量；其余原 WIP、17治理合同保持。
+
+Mac observer 的后续安全边界尚待裁决：本机 product version 实读27.0.1；现有 SDK 与 Apple XNU
+源码都明确 `NOTE_TRACK/NOTE_TRACKERR/NOTE_CHILD` 自10.5起不支持，常量存在不表示完整跟踪能力。
+SDK 的 `es_new_descendants_client` 仅27+、需要 endpoint-security.client entitlement，
+只可观察自身后代，且不要求root/TCC；没有实际创建 ES client 或查询/改变签名/TCC/审计策略。
+不能用 kqueue/PID轮询或不明签名代替完整 descendant 证明；完整闭包与 observer gate 仍关闭。
+T02保持in-progress、T03 pending；新后端或其签名/OS权限只能先明确受控合同及未来独立 I02 卡。
+
+
+### T08已完成后的fresh T02：provenance绑定、OS只读纠错与实际停点
+
+本聊天直接“确认批准”T08 exact卡。T08仅三治理合同实际于
+`c9a9154436a8ae3ea277d176389f9854833a74b5`（parent
+`1849735a510299b183b00edebea9a6e7e999de0b`）独立提交，随后STOP。
+本fresh run按原批准重读owner/17治理/33 WIP/index/installed，最初main tracking仍
+`dc9aa468580f92a73dfa054c6f04ef5113f56694`。typed Issue/comments只读body hash
+保持，Issue open、comments0、仅triage/needs-triage；live approved/classification仍GAP。
+
+既定source范围内新增量实际落到4个原WIP文件：toolchain.py/test_toolchain.py、
+verification-bootstrap.c/test-verification-bootstrap.sh。Python/C要求build receipt、
+dependency manifest、OS matrix三digest各绑定唯一、独立、非空且≤8MiB的trust数据pin；
+native hash后保留实际FD并复核稳定性。仅完成绑定前置，不验证冻结文档语义或完整闭包，
+SOURCE_ONLY不升级为accepted；原native closure/dispatch无条件GAP仍保留。
+七项Python安全测试与12项native pure JSON vectors没有替换原拒绝guard或模拟root UID。
+
+另在同一toolchain/test_toolchain纠正固定SystemVersion.plist读取的精确mode期望：
+实际只读观察为regular/root UID0/nlink1/mode0444/size604，旧源码默认0644因而拒绝。
+只显式指定0444，原root/parent/no-follow/nlink/大小/漂移检查不变；新增三OS-data seam
+测试保留异常build与custody拒绝。实际UID501读取OS tuple为27.0.0/arm64/26A434，
+仍只作observation，不是accepted OS matrix或完整root/kernel闭包证明。
+
+| 本fresh run实际执行 | 真实结果与适用快照 |
+|---|---|
+| provenance后的固定Python3.9 unit | 77 PASS：toolchain59+profile18，包含纯模型，非root能力证明 |
+| provenance后的native source fixture | UID501/unsigned/repeat build PASS；新增12 vectors，完整dispatch仍GAP |
+| 改动shell的bash-n/可用ShellCheck | PASS；固定native fixture脚本；无host安装 |
+| provenance后默认host smoke | FAIL：runtime1254 tests，7 failures/9 errors；OS mode纠错前快照 |
+| OS mode纠错后固定Python3.9 unit | 80 PASS：toolchain62+profile18；不与77或native相加 |
+| 最新默认host smoke | FAIL exit1：source guard发现origin/main推进3提交，runtime discover未到达；不得引用1254为此快照的全量结果 |
+| native完整冻结语义/同FD执行对象绑定/observer/资源/其余可信链/旧回归迁移 | GAP/pending，T02未完成，T03 pending |
+| kernel ES、签名/资格、root registry/state/service/socket/镜像、installed/remote/PR/merge/deploy | NOT RUN |
+
+两份source增量均两轴hard0/smell0，partial为明确披露的能力GAP；审阅只读，未放宽执行门。
+首次OS候选green因独立fixture漏复制config出现1error，原日志保留；补齐fixture后62 PASS，
+actual owned source再实跑80 PASS。不存在删test/skip/统一CUSTODY_GAP制造通过。
+
+期间本地tracking ref被观察到变为
+`e2edb3e08194624a6647212571c6cc866298575b`（#334/#335，新增3提交），
+本owner未执行fetch/merge/rebase/reset/改变获准pin；实际HEAD仍C9，branch ahead9/behind3。
+不遵循installer诊断输出的追main/rebase建议；当前staleness失败与Mac安全证明待裁决并列保留。
+SDK未发现fexecve/execveat声明，UID501的/dev/fd exec探针实际EACCES；这不证明所有技术均不可能。
+canonical interpreter与held FD的kernel exec核对方案仅为待审security proposal；
+不能在AGENTS:15安全决策明确前自行把事后身份核对当同FD执行，T09候选三合同未应用。
+
+当前owner worktree治理17文件/owner/index/installed两文件保持；共享checkout已从原5c2移动到
+上述e2edb3e且clean，这是本轮只读观察的外部基线变化，本owner没有对共享checkout执行写入。
+4 source增量与本节证据外，
+其余28 WIP原字节/mode保持。全部before/candidate/after hashes、red/green、smoke及备份在
+`/private/tmp/aisoft-327-contract-evidence/t02-after-t08-fresh/`，完整原33 tar/governing17 tar/C9 bundle
+已保全。无本次source commit、远端写、host enable或新批准记录。停止后续runtime推进，保留可恢复WIP。
+
+
+## 2026-10-05 本人接受收缩后的治理与保全（当前，取代旧运行前置）
+
+本人的一次定向续办明确接受最小 Git 收缩；不是 T10 批准重放。上文为原始分层历史证据，FAIL/GAP/NOT RUN 字节正文保留；root authority、R02 qualified program、ES/kernel/signing、完整 OS/解释器闭包及 scratch/resource/AC-9～11 改为明确延期，未交付、未验收，不改成 PASS。原 AC-7 两机 installed/authority 验收也延期，source 与 installed 不混淆。spec/plan/summary 的当前段落为本次范围事实源。
+
+- before HEAD `f8750441f3dce96f3b9a24a134f877ad1cf6aa35`、tree `8f6935ca1b59f13ea2c0f36b4530b18eee75c3a9`；fresh canonical main `c9b5ef4e74592cbc68d6bdc6219568a1d51b6853` 尚未整合。
+- 恢复证据根 `/Users/benque/.codex/visualizations/2026/10/02/01a0fcec-eb78-7790-a36a-daea917f43d2/issue-327-convergence-20261005`；`preservation.json` 绑定 HEAD bundle、refs objects pack/raw refs、raw index、33 WIP tar、17 治理 tar 和 5,721 个原证据条目的完整 archive/hash/mode/uid/gid。tar 每 member、独立 bare HEAD/parents/tree/ref targets 与复制 index entries 已真实 PASS；没有恢复 writer/删除/reset 原文件或 refs。
+- fresh `capability-readback.json`：repo role `aisoft-platform-agent` non-admin pull/push，manifest-fixed origin/helper 存在；main 禁直推/force，仅本人 admin merge，required `CI / verify (pull_request)`。installed broker 模块 SHA256 `c865bd757a6213673d55e39dc64be46dfb02022e9baf76065f95849cb9a78260`；仍 lease-force/blanket merge deny，begin/verify/bootstrap 缺失。旧 T10 的 installed 字节仅是当时事实，不能冒充今日状态。
+- 本次 `git.fetch.change` 为 HOST_COMMAND_FAILED；exact #327 ref、R0/R 仍 GAP，不推断 absent。只读 host transport/main fetch PASS，不表示发布能力 PASS。first manual Git transport 的既有 helper/ACL 是可用入口，guard/ordinary FF/真实发表仍须 T02/T03 与最终第二确认实证。
+- full-ref identity 实际 FAIL：观察到 unrelated #339 branch 前进及 codex turn-diffs namespace 变化；actor attribution GAP。owned #327 branch/main/tracking 与 raw index/source 当时保持，未触碰/恢复/prune 这些外部 refs；原 T10 full-ref FAIL 也保留。不宣称全部共享 Git metadata 不变。
+- 本轮只收缩原 14 活治理消费者＋四 mapped docs。verification 本来未提交的历史证据正文完整保留并随治理提交；32 个源码 WIP 仍原 bytes/mode/uid/gid，未运行 runtime/bare-remote Git feature tests/default smoke/Controller/provider/OS/root/签名/安装/服务/Secret/远端写/PR/merge/deploy，均 NOT RUN。
+- 文档/graph/staged/parent/tree 的实际执行与最终治理 G 在本证据根 `governance-stop.json` 记录；只有实际成功才报告 PASS。T02 保持 in-progress，T03 pending，本輪治理成功后 STOP。下一具体本人操作为 `human-first-main-integration.md` 中只本地的标准 Git 整合；不再等待未交付 R02。
+
+当前 AC-1 仅本轮治理/保全子项可验；AC-2～6/8 最小 Git/source/CI/首次发布尚未完成；AC-7/9～11 DEFERRED 并保留原 GAP/NOT RUN。最新 smoke 仍 staleness guard 失败、runtime NOT REACHED；旧 1254 tests/7 FAIL/9 ERROR 原样保留。延期不是 skip 原 required 门或测试通过，source/local/CI 仍不能证明 installed/live。
