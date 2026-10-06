@@ -1,0 +1,11 @@
+{
+  "operation": "gitea.issue.comments.read",
+  "project": "aisoft-platform",
+  "number": 340,
+  "result": [],
+  "sandbox": {
+    "code": "TRANSPORT_ERROR",
+    "message": "host transport failed",
+    "status": "BLOCKED_EXTERNAL"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-10-06 00:34:09 UTC",
+  "issue": {
+    "number": 340,
+    "state": "open",
+    "content_version": 0,
+    "comments": 0,
+    "labels": [
+      "triage/needs-triage"
+    ],
+    "body": "## 来源、目标项目与授权边界\n\n来源：LocalWMS Issue #333 的预检会话 `01a10bfa-fa27-7181-beb8-77c72d47ff21`。\n2026-10-05 用户在看到 #333 的 AppServer/broker 缺口与原生 systemd 推荐后回复“按推荐执行”。\n本次只立案最小平台依赖，不在 LocalWMS owner 会话实施平台变更。\n\n目标项目：`admin/aisoft-platform`。消费者：`admin/LocalWMS` Issue #333。\nLocalWMS 继续 `systemd-native/v1`；不授权 Docker 替代、VM create/start/restart、\nAppServer 软件安装/用户或权限变更、Secret 读取/写入、DB create/migrate/write、服务/代理修改或真实部署。\n平台此 Issue 的启动、source PR、安装/live 验收仍按自身合同确认点执行，立案不授权安装。\n\n## 当前实际缺口\n\n2026-10-05T13:10:02Z 复读 installed 与 source broker manifest：\n- installed `/usr/local/share/aisoft/host-access-broker.json` SHA256\n  `c8eadcdb8c445c85270410f46ba6ff0da99659b70e4806df652b74a97fd15012`；\n- source `codex/config/host-access-broker.json` SHA256\n  `509bdffb34494cbf82ef016d96e519c6bc3a17034a68ea052a516121aca4a8b9`；\n- 两份均固定 `mac_host.orbstack_machine=gitea-ci`，localwms 仅有 agent vm_profile；\n  无 AppServer target/inspection mapping，无 typed inventory 操作。\n- 现有 `orbstack.vm.status` 的真实回执 machine 是 gitea-ci，不能充当 AppServer 预检结果。\n- #333 的两路径 emergency probe 证明 AppServer 在 host 为 running、\n  metadata `ubuntu questing arm64`；sandbox 失败为 SANDBOX_PATH_BLOCKED。\n- CPU/RAM/可用盘/Node/npm/PG/端口/服务/用户/目录/Docker daemon 尚未取得。\n  这是 source 能力缺口，不是重装现有 broker 就能修复。\n\n平台 open Issue 完整 list 于本次立案前仅 #327/#333/#336/#339，无同题预检通道任务。\n\n## 最小方案\n\n增加一个 fixed-target、non-mutating typed preflight 操作。\n建议名称 `application.target.preflight.read`（最终以平台 spec 为准），参数最多为受限 target id；\n`project=localwms + target=localwms-local-test` 从 strict manifest 唯一映射大小写精确 `AppServer`。\n机器、operator、固定探针/路径/字段来源均不可由 caller 覆盖；不能传 shell、URL、任意 path、\n凭据路径、端口范围或 sudo command。先只读确认机器已经 running；停机返回 BLOCKED，不 orb exec 自动启动。\n\n使用独立只读 operator/helper，固定输出以下无 Secret 投影：\n1. hostname/machine-id、os-release 的 ID/VERSION_ID/VERSION/VERSION_CODENAME、architecture；\n2. CPU count、MemTotal/MemAvailable、root/opt/现存PG数据filesystem空间；\n3. 固定路径 Node/npm/PG18 binaries 的存在性、owner/mode、版本，不 install/source shell profiles；\n4. bounded 监听socket地址/端口/进程名，无进程argv；\n5. 固定服务 LoadState/ActiveState/MainPID，无 Environment/ExecStart/原始日志；PM2 不调用会启动daemon的CLI；\n6. exact localwms用户/组与 /etc/localwms、/opt/localwms、旧归档目录的存在性/owner/mode/symlink，\n   不读取 .env、PM2 dumps、旧配置或归档内容；\n7. AppServer内现存Docker daemon的只读 version/platform/store、bounded容器名称/状态/ports/mount-name，\n   不启动Engine、不打印Env、不pull/build/up/down/prune。Mac Engine/DockerLab不是替代目标；\n8. PG实例身份/角色能力仅通过已获准的非Secret读取途径；不可为探测provision凭据或读应用Secret。\n   无此能力时逐项BLOCKED，不伪造PASS。\n\n限制总时长、返回大小与枚举数；溢出返回可搜索GAP，不静默丢页/截断当完整结果。\n每份结果有UTC/JST时间、project/target/machine/operator、command/helper版本、\n各项 PASS/FAIL/GAP/BLOCKED/NOT RUN，以及执行零写证据边界。\n保持已有 gitea-ci VM/status/profile 操作语义和所有项目ACL/credential boundaries。\n\n## 可测验收标准\n\n- AC1：schema/CLI/broker/runner/config/typed kwargs与正反测试一致，\n  未登记 target、非localwms、任意shell/path/URL、参数增删或跨目标均 fail closed，拒绝发生在 target execution 前。\n- AC2：停止VM fixture 返回 BLOCKED，零 start/exec；running fixture仅固定只读helper，无 lifecycle/host/DB/container mutation。\n- AC3：source测试覆盖所有字段脱敏、禁止env/argv、bounded/timeouts/overflow、不偷换Mac Engine/DockerLab，\n  原有操作行为不变；缺binary/service/DBmetadata路径按实际缺失或BLOCKED报告。\n- AC4：source/manual PR合并后，若取得**单独 exact source 安装授权**，完成必要两端安装与版本/字节/权限读回，\n  不修改或复制Secret；未获安装授权则保持installed/live NOT RUN，不能将source交付写成现场PASS。\n- AC5：获准安装/live后，用 fresh task 经 localwms typed 入口实际读取 AppServer，\n  记录确切hostname/machine-id/os-release、runtime、资源、端口与占用；预检零写。\n  反向输入只在isolated fixture证明，不能用未确认live写入口试错。\n- AC6：回传可供 #333 消费的无Secret evidence目录/回执；AppServer、gitea-ci、既有容器/卷/服务未被预检改动。\n  完整对象before/after无法取得时明确NOT RUN，不靠历史清理记录证明当前保留。\n\n## 已知依赖与交接\n\n无已知 source 实现硬依赖；AppServer running 和最小只读 operator 可用性是 live 条件。\n若平台分析发现必须新增 operator/权限，先输出确切最小变动与独立授权集合，不在此只读路径静默 provision。\n本 Issue source/live能力是 LocalWMS #333 AC2/AC5 的外部前置；#333保留原分支/owner继续消费。\nOS变更、LTS测试VM创建、Secret、DB、真实部署分别不在本Issue。\n"
+  },
+  "comments": [],
+  "main_fetch": {
+    "checkout": "/private/tmp/issue-340-appserver-preflight-read",
+    "identity": "aisoft-platform-agent",
+    "operation": "git.fetch.main",
+    "project": "aisoft-platform",
+    "remote_name": "origin",
+    "status": "PASS"
+  },
+  "head": "c9b5ef4e74592cbc68d6bdc6219568a1d51b6853",
+  "origin_main": "c9b5ef4e74592cbc68d6bdc6219568a1d51b6853",
+  "owner_session": "01a10e8e-9128-7fa2-97a8-6493ee84be08",
+  "branch": "change/340-appserver-preflight-read",
+  "worktree": "/private/tmp/issue-340-appserver-preflight-read",
+  "last_push_head": null
+}
