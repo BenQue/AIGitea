@@ -1180,6 +1180,7 @@ class HostAccessBroker:
         runner: CommandRunner = _default_runner,
         invocation_cwd: str | None = None,
         label_manifest_path: str | None = None,
+        preflight_reader=None,
     ) -> None:
         self.contract = contract
         self.credentials = credentials or CredentialResolver(contract)
@@ -1189,6 +1190,7 @@ class HostAccessBroker:
         # Fixed install-time configuration, never caller input: the broker's
         # contract is that no path ever crosses its argument surface.
         self.label_manifest_path = label_manifest_path
+        self.preflight_reader = preflight_reader
 
     def execute(
         self,
@@ -1213,6 +1215,7 @@ class HostAccessBroker:
         color: str | None = None,
         description: str | None = None,
         token_kind: str | None = None,
+        target: str | None = None,
     ) -> object:
         try:
             project = self.contract.project(project_id)
@@ -1238,6 +1241,7 @@ class HostAccessBroker:
             "color": color,
             "description": description,
             "token_kind": token_kind,
+            "target": target,
         }
         supplied = {
             key for key, value in arguments.items()
@@ -1247,6 +1251,10 @@ class HostAccessBroker:
             raise BrokerError("ARGUMENT_MISMATCH", "operation arguments do not match the typed contract")
 
         try:
+            if operation_name == 'application.target.preflight.read':
+                binding = self.contract.application_target(project_id, target)
+                from .application_preflight import read_preflight
+                return read_preflight(self.contract, binding, reader=self.preflight_reader)
             if operation_name == "gitea.dependency.read":
                 assert reference is not None
                 if not isinstance(reference, str):

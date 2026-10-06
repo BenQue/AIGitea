@@ -32,12 +32,15 @@ created: 2026-10-06
 updated: 2026-10-06
 ---
 
-# #340 固定目标只读预检：已批准合同与 T01 治理 STOP
+# #340 固定目标只读预检：已批准合同与 fresh source 工作
 
-状态：T01_GOVERNANCE_STOP。本会话实际本人已确认四份合同、exact tuple 和 manual policy；
-T01 将已批准治理合同应用到 06，并形成本地原子提交后 STOP。
-本地 approved 不等于 live label projection；runtime/fixture、push/PR、安装与现场层均未执行。
-提交完整 SHA 由提交后的 STOP 回执记录，避免本提交自引用；后续 fresh run 沿原批准继续 T02–T05。
+状态：FRESH_SOURCE_IMPLEMENTING。本会话实际本人已确认四份合同、exact tuple 和 manual policy；
+T01 在 adbe53252f71474afffdd886ca7509cc75ab0842 应用治理合同并完成 STOP，当前已 fresh 重新读取。
+T02 完成 strict target/typed 通路与 no-autostart 安全拒绝切片；其余源码沿原批准继续。
+本地 approved 不等于 live label projection。自动审批审查拒绝 live 分类写入，未执行/未换入口重试；
+实际标签仍 triage/needs-triage，Controller/最终 PR 门保持 BLOCKED。
+fresh origin/main=96ba8a17baad8e9854d4e8d0397d4162b8067b09，仅新增 #339 四份文档；
+原 T01/source base 与历史保持，不静默改 pin 或重写历史。push/PR、正式安装和现场层未执行。
 
 ## 问题/需求总结
 
@@ -182,6 +185,6 @@ source 合并不能解除 LocalWMS #333 的现场前置或宣称六项整体 PAS
 > 不批准 push/PR、merge、正式安装、operator/权限变更、Secret/DB/服务/容器写入或部署；
 > 唯一最终 PR 另确认。
 
-本轮执行止于 T01 本地治理提交，不继续 runtime，不投影 live 分类/approved 标签。
-后续 fresh run 重新读取已应用合同与归属后可继续原批准的源码白名单；
+T01 run 已止于本地治理提交。当前 fresh run 已重新读取合同/归属，继续原批准源码白名单；
+live 分类/approved 标签写入未执行，禁止以本地 approved 或 synthetic labels 冒充 projected。
 唯一最终 PR 前仍停在 AWAITING_PR_CONFIRMATION，不把本次批准扩展到 push/PR 或现场操作。

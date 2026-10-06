@@ -96,6 +96,29 @@ parse_front_matter 并通过；未安装依赖。范围脚本首次将 Git 的�
 本轮治理回滚仅通过本 owner 的追加 revert commit；没有向 AppServer/gitea-ci 内部执行 helper，
 无目标写入或主机回滚。STOP 后不得在本 implementation run 接着执行 T02。
 
+## Fresh T02 源码切片
+
+fresh 起点仍为原 T01 commit；owner/branch/worktree、实际 Issue/comments 与 main 漂移见
+[fresh T02 readback](evidence/fresh-t02-start-readback.json)。main 仅新增 #339 文档，没有 runtime
+冲突；本会话未重写 T01 历史，也未静默变更批准前 pin。
+
+- source operation/manifest 新增固定 localwms/localwms-local-test→AppServer；原项目、身份、ACL、
+  credential route 与旧操作参数不变；旧 38-operation manifest 仍可读。
+- 新 CLI 严格拒绝重复/外来 flags，拒绝不回显 caller values；broker 在任何 control/credential
+  访问之前拒绝未知 target、跨项目及缺/增参数。typed runner 限额读 stdout 并验证固定拒绝回执。
+- control 只允许 orb list --format json，按 bytes/rows 限额解析；没有任何 target executor。
+  running、running→stopped 竞态仍返回 TARGET_EXECUTION_NO_START_UNPROVEN/BLOCKED、execution=0。
+- 专用测试 12 项 PASS；既有 test_host_access.py 194 项 PASS；test-host-access-broker.sh PASS，
+  其 installer 只使用临时 fake root；bash -n 与 ShellCheck PASS。
+- 完整 smoke 的 sandbox 首次在 fixture 127.0.0.1 bind 被拒，FAIL（执行权限）；
+  相同命令 host 路径复验在进行，尚无最终 PASS。最终 T05 必须冻结源码后重跑并绑定 tested bytes。
+- live classification 写入被 automatic approval review 拒绝；原因：原批准仅 source/local，
+  未含 live 标签。该写入未执行、未绕路重试，lifecycle approved/Controller 为 NOT RUN。
+  source/local 工作仍按原直接本人批准完成；最终 PR readiness 为 BLOCKED。
+
+T02 完成的是安全拒绝与 source fixture 切片，不是 no-autostart primitive/目标执行可用性证明。
+正式安装、权限与 live 层均 NOT RUN，无法据此解除消费者 #333 的现场前置。
+
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |

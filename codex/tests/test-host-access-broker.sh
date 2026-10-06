@@ -13,12 +13,19 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 7 and
-  .operation_count == 38 and
+  .operation_count == 39 and
   .merge_operation_count == 1
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 38) and
+  ([.operations[].name] | length == 39) and
+  ([.operations[] | select(.name == "application.target.preflight.read")][0]
+    == {"name":"application.target.preflight.read","identity_route":"application-preflight",
+        "mutating":false,"arguments":["target"]}) and
+  .application_targets == [{"project_id":"localwms","target_id":"localwms-local-test",
+    "machine":"AppServer","operator":"aisoft-preflight",
+    "helper":"/usr/local/libexec/aisoft/application-target-preflight",
+    "helper_version":"application-target-preflight/v1"}] and
   ([.operations[] | select(.name == "gitea.credential.rotate")][0]
     == {"name":"gitea.credential.rotate","identity_route":"credential-operator",
         "mutating":true,"arguments":["issue","sha","token_kind"]}) and
