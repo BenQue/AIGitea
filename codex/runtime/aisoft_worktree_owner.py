@@ -20,12 +20,13 @@ defend against an agent that means to forge ownership.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 import json
 import os
 from pathlib import Path
 import re
+import stat
 import tempfile
 from typing import Mapping, Optional
 
@@ -84,9 +85,11 @@ class OwnerMarker:
     created: str
     last_push_head: Optional[str]
     last_push_at: Optional[str]
+    original_remote_known: bool = False
+    original_remote_head: Optional[str] = None
 
     def as_json(self) -> dict[str, object]:
-        return {
+        value = {
             "schema_version": SCHEMA_VERSION,
             "issue": self.issue,
             "branch": self.branch,
@@ -96,6 +99,9 @@ class OwnerMarker:
             "last_push_head": self.last_push_head,
             "last_push_at": self.last_push_at,
         }
+        if self.original_remote_known:
+            value.update(original_remote_known=True, original_remote_head=self.original_remote_head)
+        return value
 
 
 def marker_path(git_dir: str | Path) -> Path:
@@ -120,7 +126,8 @@ def _validated(raw: object) -> OwnerMarker:
     if not isinstance(raw, dict):
         raise _invalid("top level value is not an object")
     keys = set(raw)
-    if keys != MARKER_KEYS:
+    remote_keys = {"original_remote_known", "original_remote_head"}
+    if keys not in (MARKER_KEYS, MARKER_KEYS | remote_keys):
         missing = sorted(MARKER_KEYS - keys)
         unknown = sorted(keys - MARKER_KEYS)
         raise _invalid(f"exact key set required; missing={missing} unknown={unknown}")
@@ -162,6 +169,12 @@ def _validated(raw: object) -> OwnerMarker:
         raise _invalid("last_push_at must be null or a non-empty string")
     if (head is None) != (at is None):
         raise _invalid("last_push_head and last_push_at must be set together")
+    original_known = raw.get("original_remote_known", False)
+    original_head = raw.get("original_remote_head")
+    if type(original_known) is not bool or (remote_keys <= keys and original_known is not True):
+        raise _invalid("original remote observation must be explicitly known")
+    if original_head is not None and (not isinstance(original_head, str) or COMMIT_SHA_RE.fullmatch(original_head) is None):
+        raise _invalid("original_remote_head must be null or an exact SHA")
 
     return OwnerMarker(
         issue=issue,
@@ -171,6 +184,8 @@ def _validated(raw: object) -> OwnerMarker:
         created=created,
         last_push_head=head,
         last_push_at=at,
+        original_remote_known=original_known,
+        original_remote_head=original_head,
     )
 
 
@@ -180,17 +195,39 @@ def read_marker(git_dir: str | Path) -> OwnerMarker:
     trusted, and conflating them would send the reader to the wrong fix."""
     path = marker_path(git_dir)
     try:
-        text = path.read_text(encoding="utf-8")
+        # Bounded regular-file reads are useful even for a cooperative marker;
+        # this does not establish root custody or immutable authorization.
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        try:
+            before = os.fstat(fd)
+            if not stat.S_ISREG(before.st_mode) or before.st_size > 16384:
+                raise _invalid("marker must be a bounded regular file")
+            data = os.read(fd, 16385)
+            after = os.fstat(fd)
+            if len(data) > 16384 or (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (
+                    after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                raise _invalid("marker changed during read")
+            text = data.decode("utf-8")
+        finally:
+            os.close(fd)
     except FileNotFoundError as exc:
         raise WorktreeOwnerError(
             CODE_UNCLAIMED,
             f"change worktree has no ownership marker at {path}; {CLAIM_HINT}",
         ) from exc
-    except OSError as exc:
+    except (OSError, UnicodeError) as exc:
         raise _invalid(f"cannot read {path}: {exc}") from exc
+    def unique(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError("duplicate marker key")
+            value[key] = item
+        return value
+
     try:
-        raw = json.loads(text)
-    except ValueError as exc:
+        raw = json.loads(text, object_pairs_hook=unique)
+    except (ValueError, RecursionError) as exc:
         raise _invalid(f"{path} is not valid JSON: {exc}") from exc
     return _validated(raw)
 
@@ -288,6 +325,8 @@ def claim(
         # hand-off carries it across instead of resetting it to null.
         last_push_head=existing.last_push_head,
         last_push_at=existing.last_push_at,
+        original_remote_known=existing.original_remote_known,
+        original_remote_head=existing.original_remote_head,
     )
     if marker == existing:
         return marker, "no-op"
@@ -326,7 +365,8 @@ def authorize_push(
 
 
 def record_push(
-    git_dir: str | Path, *, head: str, now: Optional[str] = None
+    git_dir: str | Path, *, head: str, now: Optional[str] = None,
+    expected_owner: Optional[OwnerMarker] = None,
 ) -> OwnerMarker:
     """Record a push that already succeeded. Never called on a failed push: a
     sha written here is read back as `the remote has this`, and recording one
@@ -334,6 +374,8 @@ def record_push(
     if COMMIT_SHA_RE.fullmatch(head or "") is None:
         raise _invalid("pushed head must be a 40 character lowercase sha")
     existing = read_marker(git_dir)
+    if expected_owner is not None and existing != expected_owner:
+        raise WorktreeOwnerError(CODE_OWNER_MISMATCH, "owner/ledger moved after publication")
     marker = OwnerMarker(
         issue=existing.issue,
         branch=existing.branch,
@@ -342,6 +384,27 @@ def record_push(
         created=existing.created,
         last_push_head=head,
         last_push_at=now or _now(),
+        original_remote_known=existing.original_remote_known,
+        original_remote_head=existing.original_remote_head,
     )
     write_marker(git_dir, marker)
     return marker
+
+
+def pin_original_remote(git_dir: str | Path, *, head: Optional[str],
+                        branch: str, session: str) -> OwnerMarker:
+    """Keep the first successful exact-ref observation; never infer absence.
+
+    A legacy ledger with a prior push but no original anchor remains GAP. A
+    takeover or a later push cannot replace the original observation.
+    """
+    if head is not None and COMMIT_SHA_RE.fullmatch(head) is None:
+        raise _invalid("original remote observation must be an exact SHA")
+    marker = authorize_push(git_dir, branch=branch, session=session)
+    if marker.original_remote_known:
+        return marker
+    if marker.last_push_head is not None:
+        raise WorktreeOwnerError("ORIGINAL_REMOTE_UNKNOWN", "legacy push ledger lacks verified R0; preserve it and stop")
+    updated = replace(marker, original_remote_known=True, original_remote_head=head)
+    write_marker(git_dir, updated)
+    return updated

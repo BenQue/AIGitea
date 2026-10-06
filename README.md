@@ -268,3 +268,7 @@ project agent 为准：先只读 check，再一次处理一个明确仓库，回
 - **Change ID（Windows 目标合同）**：原型 `<项目三字符代码>-NNNN`、正式 `PRD-NNNN`；用于分支、文档、制品和部署记录。现有 runtime 尚未实现该格式
 - **权威分工**：持续协作模式下本地 Gitea 是开发权威、公司 Gitea 是部署权威、私有 GitHub 是搬运中继；只有未来彻底下线本地开发平台时才执行 [13 §11](13-项目结果迁移与内网切换实施手册.md#11-phase-h最终权威切换备选路径当前不采用) 的备选权威源切换
 - **Architecture declaration/lock**：项目人工维护 `.aisoft/architecture.json`，平台工具生成 byte-identical `architecture.lock.json`；候选 lock 只证明合同可解析，不代表 migration 或 deployment 完成
+
+## 8. #327 当前变更合同（2026-10-05，尚未进入稳定源码）
+
+- 🟡 #327（2026-10-05 收缩）：仅保留历史的 main 整合、普通 FF、非法/并发漂移拒绝、required CI 与恢复。首次 main 整合由负责人本人按标准 Git 执行；首次发表仍先完成最小实现/验证与唯一 PR 第二确认。root authority、ES/kernel/signing、完整 OS 闭包与 scratch 隔离明确延期，旧 FAIL/GAP/NOT RUN 保留；不等待未交付 R02，不安装 unmerged broker。当前 scope 与精确路径见 [#327 spec](docs/changes/327-broker-ff-integration/spec-broker-ff-integration-261002.md)。
