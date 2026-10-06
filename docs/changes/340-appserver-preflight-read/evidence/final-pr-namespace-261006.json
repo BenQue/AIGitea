@@ -1,0 +1,1227 @@
+{
+  "issue": 340,
+  "branch": "change/340-appserver-preflight-read",
+  "policy": "manual",
+  "owner": "01a10e8e-9128-7fa2-97a8-6493ee84be08",
+  "browser_read_authorization": "允许 #340 owner 本次通过现有已登录 Gitea 浏览器，只读完整核对 admin/aisoft-platform 的 branches 和 open/closed PR 全部分页，补齐 change/340 namespace；仅本次 SCM 元数据补证允许 broker 之外的浏览器读取。不批准任何写入、push/PR、merge、安装、权限或目标操作；唯一最终 PR 另确认。",
+  "final_PR_submission_authorization": "确认 AISoftPlatform #340，branch=`change/340-appserver-preflight-read`，policy=`manual`。批准本 owner 回填本次完整 namespace 补证并本地提交；fresh-read 核对最终 head/base、owner、合同、分类与唯一性通过后，通过 typed broker fast-forward push 该分支，提交唯一最终 PR，包含 `Closes #340`。批准合同范围内的 CI 修复、测试、commit 和同分支 fast-forward push；required CI 全绿后 STOP 于 `READY_FOR_REVIEW`，由本人审核合并。保留 VM no-start/native Docker 的真实 GAP。不批准 merge、正式安装、operator/权限变更、Secret/DB/服务/容器写入、目标操作或部署。",
+  "reader": "cua_repl native Google Chrome AX; existing admin login; no UI writes",
+  "repository": "admin/aisoft-platform",
+  "observation_window_utc": [
+    "2026-10-06T04:28:50.903Z",
+    "2026-10-06T04:33:32.687Z"
+  ],
+  "observed_main_SHA": "96ba8a17baad8e9854d4e8d0397d4162b8067b09",
+  "branches": {
+    "live_count": 23,
+    "pages": 2,
+    "non_main_page_counts": [
+      20,
+      2
+    ],
+    "records": [
+      {
+        "name": "change/51",
+        "sha_display": "6a594b5817",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/49",
+        "sha_display": "6d6c173000",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/45",
+        "sha_display": "cb27a9c07f",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/46",
+        "sha_display": "76a2839cd7",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/43",
+        "sha_display": "d9cdc9ab47",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/41",
+        "sha_display": "a2fe8a9f45",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/37",
+        "sha_display": "fd51eaa9b6",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/38",
+        "sha_display": "a4b4a7ad79",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/35",
+        "sha_display": "7a4bbb24b8",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/33",
+        "sha_display": "b687a83bc6",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/31",
+        "sha_display": "6ca5acb54f",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/27",
+        "sha_display": "2e8e83e6f7",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/26",
+        "sha_display": "5cef2c20b7",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/21",
+        "sha_display": "c6befcd79f",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/22",
+        "sha_display": "d5c397bc11",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/23",
+        "sha_display": "dec1df1f5a",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/19",
+        "sha_display": "928a747c31",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/17",
+        "sha_display": "1146bf6e61",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/12",
+        "sha_display": "9bb187f21a",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/13",
+        "sha_display": "6663293337",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/11",
+        "sha_display": "00d9302d18",
+        "sha_is_abbreviated": true
+      },
+      {
+        "name": "change/1",
+        "sha_display": "e013bc8ae9",
+        "sha_is_abbreviated": true
+      }
+    ],
+    "deleted_records": [
+      "change/339-install-hsdb-broker",
+      "change/337-restore-hsdb-governance"
+    ],
+    "last_page_proof": "page=2; text 2 Next Last, no Next/Last link; default main separate",
+    "matches": []
+  },
+  "open_PR": {
+    "count": 0,
+    "pages": 1,
+    "url": "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls?type=all&state=open",
+    "last_page_proof": "No results; no pagination",
+    "matches": []
+  },
+  "closed_PR": {
+    "count": 162,
+    "unique_count": 162,
+    "pages": [
+      {
+        "page": 1,
+        "count": 20,
+        "records": [
+          {
+            "number": 341,
+            "base": "main",
+            "head": "change/339-install-hsdb-broker",
+            "state": "merged"
+          },
+          {
+            "number": 338,
+            "base": "main",
+            "head": "change/337-restore-hsdb-governance",
+            "state": "merged"
+          },
+          {
+            "number": 335,
+            "base": "main",
+            "head": "change/334-refresh-platform-docs",
+            "state": "merged"
+          },
+          {
+            "number": 332,
+            "base": "main",
+            "head": "change/316-service-pat-rotation",
+            "state": "merged"
+          },
+          {
+            "number": 331,
+            "base": "main",
+            "head": "change/317-migration-rollback-guard",
+            "state": "merged"
+          },
+          {
+            "number": 330,
+            "base": "main",
+            "head": "change/286-dependency-references",
+            "state": "merged"
+          },
+          {
+            "number": 329,
+            "base": "main",
+            "head": "change/311-node22-provenance",
+            "state": "merged"
+          },
+          {
+            "number": 328,
+            "base": "main",
+            "head": "change/288-dockerfile-digest",
+            "state": "merged"
+          },
+          {
+            "number": 326,
+            "base": "main",
+            "head": "change/308-installed-drift-check",
+            "state": "merged"
+          },
+          {
+            "number": 325,
+            "base": "main",
+            "head": "change/289-required-docs-source",
+            "state": "merged"
+          },
+          {
+            "number": 324,
+            "base": "main",
+            "head": "change/287-profile-semantic-lock",
+            "state": "merged"
+          },
+          {
+            "number": 323,
+            "base": "main",
+            "head": "change/319-registry-utf8-exit",
+            "state": "merged"
+          },
+          {
+            "number": 322,
+            "base": "main",
+            "head": "change/320-push-head-anchor",
+            "state": "merged"
+          },
+          {
+            "number": 321,
+            "base": "main",
+            "head": "change/318-provider-skill-parity",
+            "state": "merged"
+          },
+          {
+            "number": 315,
+            "base": "main",
+            "head": "change/313-newemaint-merger-credential",
+            "state": "merged"
+          },
+          {
+            "number": 314,
+            "base": "main",
+            "head": "change/312-governance-context-sync",
+            "state": "merged"
+          },
+          {
+            "number": 310,
+            "base": "main",
+            "head": "change/309-flutter-runner-preinstall",
+            "state": "merged"
+          },
+          {
+            "number": 307,
+            "base": "main",
+            "head": "change/305-migration-receipt-identity",
+            "state": "merged"
+          },
+          {
+            "number": 306,
+            "base": "main",
+            "head": "change/304-reinstall-worktree-owner-gate",
+            "state": "merged"
+          },
+          {
+            "number": 303,
+            "base": "main",
+            "head": "change/301-pycache-boundary-exemption",
+            "state": "merged"
+          }
+        ]
+      },
+      {
+        "page": 2,
+        "count": 20,
+        "records": [
+          {
+            "number": 302,
+            "base": "main",
+            "head": "change/299-outdated-branch-ruling",
+            "state": "merged"
+          },
+          {
+            "number": 300,
+            "base": "main",
+            "head": "change/298-worktree-single-writer",
+            "state": "merged"
+          },
+          {
+            "number": 297,
+            "base": "main",
+            "head": "change/296-docker28-classic",
+            "state": "merged"
+          },
+          {
+            "number": 295,
+            "base": "main",
+            "head": "change/292-github-main-relay",
+            "state": "merged"
+          },
+          {
+            "number": 294,
+            "base": "main",
+            "head": "change/293-delivery-producer-align",
+            "state": "merged"
+          },
+          {
+            "number": 291,
+            "base": "main",
+            "head": "change/290-scm-test-deploy",
+            "state": "merged"
+          },
+          {
+            "number": 285,
+            "base": "main",
+            "head": "change/284-node-sqlite-profile",
+            "state": "merged"
+          },
+          {
+            "number": 283,
+            "base": "main",
+            "head": "change/282-ufw-format-compat",
+            "state": "merged"
+          },
+          {
+            "number": 281,
+            "base": "main",
+            "head": "change/280-diagnostics-reason-codes",
+            "state": "merged"
+          },
+          {
+            "number": 279,
+            "base": "main",
+            "head": "change/278-baseline-probe-remediation",
+            "state": "merged"
+          },
+          {
+            "number": 277,
+            "base": "main",
+            "head": "change/274-baseline-profile-support",
+            "state": "merged"
+          },
+          {
+            "number": 276,
+            "base": "main",
+            "head": "change/275-onboard-sfmdigitalboard",
+            "state": "merged"
+          },
+          {
+            "number": 273,
+            "base": "main",
+            "head": "change/270-company-platform-bootstrap",
+            "state": "merged"
+          },
+          {
+            "number": 272,
+            "base": "main",
+            "head": "change/271-company-platform-baseline",
+            "state": "merged"
+          },
+          {
+            "number": 269,
+            "base": "main",
+            "head": "change/268-delivery-loop-roadmap",
+            "state": "merged"
+          },
+          {
+            "number": 267,
+            "base": "main",
+            "head": "change/266-readme-mermaid-semicolon",
+            "state": "merged"
+          },
+          {
+            "number": 265,
+            "base": "main",
+            "head": "change/264-sync-main-docs",
+            "state": "merged"
+          },
+          {
+            "number": 263,
+            "base": "main",
+            "head": "change/178-emaintenance-analysis-provider",
+            "state": "merged"
+          },
+          {
+            "number": 262,
+            "base": "main",
+            "head": "change/225-actions-read-projection",
+            "state": "merged"
+          },
+          {
+            "number": 261,
+            "base": "main",
+            "head": "change/222-issue-list-state-set",
+            "state": "merged"
+          }
+        ]
+      },
+      {
+        "page": 3,
+        "count": 20,
+        "records": [
+          {
+            "number": 259,
+            "base": "main",
+            "head": "change/228-runner-stall-detection",
+            "state": "merged"
+          },
+          {
+            "number": 258,
+            "base": "main",
+            "head": "change/254-claude-install-source-guard",
+            "state": "merged"
+          },
+          {
+            "number": 257,
+            "base": "main",
+            "head": "change/201-verdaccio-liveness-probe",
+            "state": "merged"
+          },
+          {
+            "number": 256,
+            "base": "main",
+            "head": "change/252-offboard-five-projects",
+            "state": "merged"
+          },
+          {
+            "number": 255,
+            "base": "main",
+            "head": "change/227-bootstrap-test-bounded-wait",
+            "state": "merged"
+          },
+          {
+            "number": 253,
+            "base": "main",
+            "head": "change/250-sync-install-source-guard",
+            "state": "merged"
+          },
+          {
+            "number": 249,
+            "base": "main",
+            "head": "change/243-issue-entry-label-sweep",
+            "state": "merged"
+          },
+          {
+            "number": 248,
+            "base": "main",
+            "head": "change/223-ci-merge-preview-gate",
+            "state": "merged"
+          },
+          {
+            "number": 247,
+            "base": "main",
+            "head": "change/154-catalog-fastify-kysely",
+            "state": "merged"
+          },
+          {
+            "number": 245,
+            "base": "main",
+            "head": "change/182-docker-release-source-guard",
+            "state": "merged"
+          },
+          {
+            "number": 244,
+            "base": "main",
+            "head": "change/180-analyzer-issue-comments",
+            "state": "merged"
+          },
+          {
+            "number": 242,
+            "base": "main",
+            "head": "change/241-platform-ops-neutral",
+            "state": "merged"
+          },
+          {
+            "number": 240,
+            "base": "main",
+            "head": "change/239-param-company-delivery",
+            "state": "merged"
+          },
+          {
+            "number": 238,
+            "base": "main",
+            "head": "change/237-deproject-company-delivery",
+            "state": "merged"
+          },
+          {
+            "number": 236,
+            "base": "main",
+            "head": "change/233-prune-stale-docs",
+            "state": "merged"
+          },
+          {
+            "number": 235,
+            "base": "main",
+            "head": "change/232-deploy-env-guidance",
+            "state": "merged"
+          },
+          {
+            "number": 234,
+            "base": "main",
+            "head": "change/231-governance-provider-parity",
+            "state": "merged"
+          },
+          {
+            "number": 230,
+            "base": "main",
+            "head": "change/229-project-label-write-path",
+            "state": "merged"
+          },
+          {
+            "number": 226,
+            "base": "main",
+            "head": "change/221-routine-partial-recovery",
+            "state": "closed"
+          },
+          {
+            "number": 220,
+            "base": "main",
+            "head": "change/219-permission-payload-compat",
+            "state": "merged"
+          }
+        ]
+      },
+      {
+        "page": 4,
+        "count": 20,
+        "records": [
+          {
+            "number": 218,
+            "base": "main",
+            "head": "change/217-governance-missing-gap",
+            "state": "merged"
+          },
+          {
+            "number": 216,
+            "base": "main",
+            "head": "change/215-routine-missing-audit",
+            "state": "merged"
+          },
+          {
+            "number": 214,
+            "base": "main",
+            "head": "change/213-routine-live-pilot",
+            "state": "merged"
+          },
+          {
+            "number": 212,
+            "base": "main",
+            "head": "change/208-routine-pr-auto-merge",
+            "state": "merged"
+          },
+          {
+            "number": 211,
+            "base": "main",
+            "head": "change/210-required-context-migration",
+            "state": "merged"
+          },
+          {
+            "number": 209,
+            "base": "main",
+            "head": "change/207-codex-primary-readiness",
+            "state": "merged"
+          },
+          {
+            "number": 206,
+            "base": "main",
+            "head": "change/205-tests-bare-import-gate",
+            "state": "merged"
+          },
+          {
+            "number": 204,
+            "base": "main",
+            "head": "change/203-test-parity-package-import",
+            "state": "merged"
+          },
+          {
+            "number": 202,
+            "base": "main",
+            "head": "change/196-null-checkout-error-code",
+            "state": "merged"
+          },
+          {
+            "number": 199,
+            "base": "main",
+            "head": "change/194-quoted-invocation-policy",
+            "state": "merged"
+          },
+          {
+            "number": 198,
+            "base": "main",
+            "head": "change/192-selective-deploy-lifecycle",
+            "state": "merged"
+          },
+          {
+            "number": 197,
+            "base": "main",
+            "head": "change/190-template-sync-broadcast",
+            "state": "merged"
+          },
+          {
+            "number": 195,
+            "base": "main",
+            "head": "change/191-rsdesign-mac-checkout",
+            "state": "merged"
+          },
+          {
+            "number": 193,
+            "base": "main",
+            "head": "change/189-quoted-terminal-status",
+            "state": "merged"
+          },
+          {
+            "number": 188,
+            "base": "main",
+            "head": "change/184-project-target-fail-closed",
+            "state": "merged"
+          },
+          {
+            "number": 187,
+            "base": "main",
+            "head": "change/186-quoted-empty-pr-url",
+            "state": "merged"
+          },
+          {
+            "number": 185,
+            "base": "main",
+            "head": "change/171-installer-source-guard",
+            "state": "merged"
+          },
+          {
+            "number": 183,
+            "base": "main",
+            "head": "change/175-pin-finishing-range",
+            "state": "merged"
+          },
+          {
+            "number": 181,
+            "base": "main",
+            "head": "change/174-analyze-change-renumber",
+            "state": "merged"
+          },
+          {
+            "number": 177,
+            "base": "main",
+            "head": "change/164-localwms-analysis-provider",
+            "state": "merged"
+          }
+        ]
+      },
+      {
+        "page": 5,
+        "count": 20,
+        "records": [
+          {
+            "number": 176,
+            "base": "main",
+            "head": "change/172-project-id-repository-lookup",
+            "state": "merged"
+          },
+          {
+            "number": 170,
+            "base": "main",
+            "head": "change/167-classification-window-gate",
+            "state": "merged"
+          },
+          {
+            "number": 169,
+            "base": "main",
+            "head": "change/168-decouple-verification-authoring",
+            "state": "merged"
+          },
+          {
+            "number": 166,
+            "base": "main",
+            "head": "change/163-declare-deployment-lifecycle",
+            "state": "merged"
+          },
+          {
+            "number": 165,
+            "base": "main",
+            "head": "change/162-installer-staleness-gate",
+            "state": "merged"
+          },
+          {
+            "number": 161,
+            "base": "main",
+            "head": "change/160-analysis-label-projection",
+            "state": "merged"
+          },
+          {
+            "number": 159,
+            "base": "main",
+            "head": "change/158-issue-session-flow",
+            "state": "merged"
+          },
+          {
+            "number": 156,
+            "base": "main",
+            "head": "change/152-localwms-vm-profile",
+            "state": "merged"
+          },
+          {
+            "number": 151,
+            "base": "main",
+            "head": "change/150-systemd-native-profile",
+            "state": "merged"
+          },
+          {
+            "number": 149,
+            "base": "main",
+            "head": "change/148-declare-change-control",
+            "state": "merged"
+          },
+          {
+            "number": 147,
+            "base": "main",
+            "head": "change/146-loop-controller-pr-url",
+            "state": "merged"
+          },
+          {
+            "number": 145,
+            "base": "main",
+            "head": "change/143-broker-actions-run-read",
+            "state": "merged"
+          },
+          {
+            "number": 144,
+            "base": "main",
+            "head": "change/142-loop-pr-url-backfill",
+            "state": "merged"
+          },
+          {
+            "number": 141,
+            "base": "main",
+            "head": "change/138-broker-issue-comments-read",
+            "state": "merged"
+          },
+          {
+            "number": 140,
+            "base": "main",
+            "head": "change/139-push-lease-doc-sync",
+            "state": "merged"
+          },
+          {
+            "number": 137,
+            "base": "main",
+            "head": "change/136-broker-force-with-lease",
+            "state": "merged"
+          },
+          {
+            "number": 135,
+            "base": "main",
+            "head": "change/134-change-control-phase",
+            "state": "merged"
+          },
+          {
+            "number": 133,
+            "base": "main",
+            "head": "change/132-localwms-manifest-onboarding",
+            "state": "merged"
+          },
+          {
+            "number": 131,
+            "base": "main",
+            "head": "change/130-greenfield-legacy-decouple",
+            "state": "merged"
+          },
+          {
+            "number": 129,
+            "base": "main",
+            "head": "change/128-gitea-port-inventory-fix",
+            "state": "merged"
+          }
+        ]
+      },
+      {
+        "page": 6,
+        "count": 20,
+        "records": [
+          {
+            "number": 127,
+            "base": "main",
+            "head": "change/126-gitea-parallel-replacement",
+            "state": "merged"
+          },
+          {
+            "number": 125,
+            "base": "main",
+            "head": "change/124-secret-scan-false-positive",
+            "state": "merged"
+          },
+          {
+            "number": 123,
+            "base": "main",
+            "head": "change/120-company-delivery-pilot",
+            "state": "merged"
+          },
+          {
+            "number": 122,
+            "base": "main",
+            "head": "change/121-matt-repository-adapter",
+            "state": "merged"
+          },
+          {
+            "number": 119,
+            "base": "main",
+            "head": "change/115-issue-labels-completed",
+            "state": "merged"
+          },
+          {
+            "number": 118,
+            "base": "main",
+            "head": "change/108-label-provisioning",
+            "state": "merged"
+          },
+          {
+            "number": 117,
+            "base": "main",
+            "head": "change/116-remote-name-declarations",
+            "state": "merged"
+          },
+          {
+            "number": 114,
+            "base": "main",
+            "head": "change/111-profile-token-file",
+            "state": "merged"
+          },
+          {
+            "number": 113,
+            "base": "main",
+            "head": "change/112-profile-path-prepend",
+            "state": "merged"
+          },
+          {
+            "number": 110,
+            "base": "main",
+            "head": "change/106-project-align-capability",
+            "state": "merged"
+          },
+          {
+            "number": 109,
+            "base": "main",
+            "head": "change/107-vm-profile-tool-install",
+            "state": "merged"
+          },
+          {
+            "number": 105,
+            "base": "main",
+            "head": "change/101-sync-stat-portability",
+            "state": "merged"
+          },
+          {
+            "number": 104,
+            "base": "main",
+            "head": "change/97-guard-error-classification",
+            "state": "merged"
+          },
+          {
+            "number": 103,
+            "base": "main",
+            "head": "change/99-skill-governance-alignment",
+            "state": "merged"
+          },
+          {
+            "number": 102,
+            "base": "main",
+            "head": "change/98-intranet-contract-cleanup",
+            "state": "merged"
+          },
+          {
+            "number": 100,
+            "base": "main",
+            "head": "change/96-host-role-test-errexit",
+            "state": "merged"
+          },
+          {
+            "number": 94,
+            "base": "main",
+            "head": "change/93-intranet-collab-model",
+            "state": "merged"
+          },
+          {
+            "number": 92,
+            "base": "main",
+            "head": "change/91-project-pointer-templates",
+            "state": "merged"
+          },
+          {
+            "number": 90,
+            "base": "main",
+            "head": "change/89-platform-repo-ci",
+            "state": "merged"
+          },
+          {
+            "number": 88,
+            "base": "main",
+            "head": "change/87-claude-skill-onboarding",
+            "state": "merged"
+          }
+        ]
+      },
+      {
+        "page": 7,
+        "count": 20,
+        "records": [
+          {
+            "number": 86,
+            "base": "main",
+            "head": "change/85-codex-skill-matt-alignment",
+            "state": "merged"
+          },
+          {
+            "number": 84,
+            "base": "main",
+            "head": "change/81-agents-directory-refresh",
+            "state": "merged"
+          },
+          {
+            "number": 83,
+            "base": "main",
+            "head": "change/82-smoke-evidence-mode-fix",
+            "state": "merged"
+          },
+          {
+            "number": 80,
+            "base": "main",
+            "head": "change/79-peripheral-docs-fixes",
+            "state": "merged"
+          },
+          {
+            "number": 78,
+            "base": "main",
+            "head": "change/77-refresh-core-docs",
+            "state": "merged"
+          },
+          {
+            "number": 76,
+            "base": "main",
+            "head": "change/75-readable-change-names",
+            "state": "merged"
+          },
+          {
+            "number": 74,
+            "base": "main",
+            "head": "change/73",
+            "state": "merged"
+          },
+          {
+            "number": 72,
+            "base": "main",
+            "head": "change/70",
+            "state": "merged"
+          },
+          {
+            "number": 71,
+            "base": "main",
+            "head": "change/65",
+            "state": "merged"
+          },
+          {
+            "number": 69,
+            "base": "main",
+            "head": "change/66",
+            "state": "merged"
+          },
+          {
+            "number": 68,
+            "base": "main",
+            "head": "change/67",
+            "state": "merged"
+          },
+          {
+            "number": 64,
+            "base": "main",
+            "head": "change/58",
+            "state": "merged"
+          },
+          {
+            "number": 63,
+            "base": "main",
+            "head": "change/61",
+            "state": "merged"
+          },
+          {
+            "number": 62,
+            "base": "main",
+            "head": "change/60",
+            "state": "merged"
+          },
+          {
+            "number": 59,
+            "base": "main",
+            "head": "change/57",
+            "state": "merged"
+          },
+          {
+            "number": 56,
+            "base": "main",
+            "head": "change/55",
+            "state": "merged"
+          },
+          {
+            "number": 54,
+            "base": "main",
+            "head": "validation/issue35-0f50bfd-aisoft-platform-",
+            "state": "closed"
+          },
+          {
+            "number": 52,
+            "base": "main",
+            "head": "change/51",
+            "state": "merged"
+          },
+          {
+            "number": 50,
+            "base": "main",
+            "head": "change/49",
+            "state": "merged"
+          },
+          {
+            "number": 48,
+            "base": "main",
+            "head": "change/45",
+            "state": "merged"
+          }
+        ]
+      },
+      {
+        "page": 8,
+        "count": 20,
+        "records": [
+          {
+            "number": 47,
+            "base": "main",
+            "head": "change/46",
+            "state": "merged"
+          },
+          {
+            "number": 44,
+            "base": "main",
+            "head": "change/43",
+            "state": "merged"
+          },
+          {
+            "number": 42,
+            "base": "main",
+            "head": "change/41",
+            "state": "merged"
+          },
+          {
+            "number": 40,
+            "base": "main",
+            "head": "change/37",
+            "state": "merged"
+          },
+          {
+            "number": 39,
+            "base": "main",
+            "head": "change/38",
+            "state": "merged"
+          },
+          {
+            "number": 36,
+            "base": "main",
+            "head": "change/35",
+            "state": "merged"
+          },
+          {
+            "number": 34,
+            "base": "main",
+            "head": "change/33",
+            "state": "merged"
+          },
+          {
+            "number": 32,
+            "base": "main",
+            "head": "change/31",
+            "state": "merged"
+          },
+          {
+            "number": 30,
+            "base": "main",
+            "head": "change/27",
+            "state": "merged"
+          },
+          {
+            "number": 29,
+            "base": "main",
+            "head": "change/26",
+            "state": "merged"
+          },
+          {
+            "number": 28,
+            "base": "main",
+            "head": "change/21",
+            "state": "merged"
+          },
+          {
+            "number": 25,
+            "base": "main",
+            "head": "change/22",
+            "state": "merged"
+          },
+          {
+            "number": 24,
+            "base": "main",
+            "head": "change/23",
+            "state": "merged"
+          },
+          {
+            "number": 20,
+            "base": "main",
+            "head": "change/19",
+            "state": "merged"
+          },
+          {
+            "number": 18,
+            "base": "main",
+            "head": "change/17",
+            "state": "merged"
+          },
+          {
+            "number": 16,
+            "base": "main",
+            "head": "change/13",
+            "state": "merged"
+          },
+          {
+            "number": 15,
+            "base": "main",
+            "head": "change/12",
+            "state": "merged"
+          },
+          {
+            "number": 14,
+            "base": "main",
+            "head": "change/11",
+            "state": "merged"
+          },
+          {
+            "number": 10,
+            "base": "main",
+            "head": "docs/parallel-session-worktree-pitfall",
+            "state": "merged"
+          },
+          {
+            "number": 9,
+            "base": "main",
+            "head": "codex/windows-deployment-docs",
+            "state": "merged"
+          }
+        ]
+      },
+      {
+        "page": 9,
+        "count": 2,
+        "records": [
+          {
+            "number": 8,
+            "base": "main",
+            "head": "change/output-normalization",
+            "state": "merged"
+          },
+          {
+            "number": 2,
+            "base": "main",
+            "head": "change/1",
+            "state": "merged"
+          }
+        ]
+      }
+    ],
+    "last_page_proof": "page=9; two rows #8/#2; text 9 Next Last, no Next/Last link",
+    "all_head_base_state_present": true,
+    "matches": []
+  },
+  "pagination_read_method": "Each full page AX returned up to 100 list children. Scroll top/bottom snapshots covered all list ranges; counts 20 x 8 + 2, unique 162. Reordered checkbox attributes handled; stale branches field corrected before final coverage assertion.",
+  "stability_end_read": {
+    "live_branches": 23,
+    "open_PR": 0,
+    "closed_PR": 162,
+    "main_unchanged": true
+  },
+  "namespace_regex": "^change/340(?:$|-)",
+  "namespace_status": "PASS; complete observed enumeration, zero matches",
+  "source_changes": "NONE",
+  "target_execution_count": 0,
+  "VM_no_start": "GAP",
+  "native_Docker_read": "GAP",
+  "installed_live": "NOT RUN",
+  "controller": "NOT RUN; Mac interactive broker submission path",
+  "push_PR_at_recording": "NOT RUN; authorization received, fresh candidate validation pending",
+  "fresh_precommit_validation": {
+    "observed_at_utc": "2026-10-06T04:43:42.955425+00:00",
+    "actual_typed_reads": [
+      "git.fetch.main",
+      "gitea.issue.read",
+      "gitea.issue.labels.read",
+      "gitea.issue.comments.read",
+      "gitea.protection.read",
+      "gitea.pulls.read(state=open)"
+    ],
+    "origin_main": "96ba8a17baad8e9854d4e8d0397d4162b8067b09",
+    "Issue_state": "open",
+    "Issue_content_version": 0,
+    "Issue_comments": 0,
+    "Issue_body_sha256": "82812dfbf2a6e31b85c5739281beaa0e27b03f10ba54e54ad46df6a8d5fb5983",
+    "labels": [
+      "approved",
+      "complexity/complex",
+      "triage/needs-triage",
+      "type/platform"
+    ],
+    "open_pulls": 0,
+    "genuine_load_contract": "PASS; six criteria",
+    "source_sha256_parity": "PASS; 9/9",
+    "owner": "PASS; same session, no prior push",
+    "main_protection": "push=false force=false admin-only merge; CI / verify (pull_request)",
+    "push_PR": "NOT RUN at recording"
+  }
+}

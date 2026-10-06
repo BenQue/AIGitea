@@ -387,15 +387,16 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
             ("install-vm", self.home / ".local/lib/aisoft-loop"),
             ("install-host-access-broker", self.system / "usr/local/lib/aisoft-host-access"),
         ]:
-            p = directory / "aisoft_worktree_owner.py"
-            renamed = p.with_name("old_other_module.py")
-            p.rename(renamed)
-            report = self.check(1)
-            row = self.row(report, installer)
-            self.assertEqual(row["result"], "GAP")
-            self.assertTrue(any(e["target"] == str(p) and e["reason"] == "missing" for e in row["gaps"]))
-            renamed.rename(p)
-            self.check()
+            for filename in ("aisoft_worktree_owner.py", "aisoft_main_integration.py"):
+                p = directory / filename
+                renamed = p.with_name("old_other_module.py")
+                p.rename(renamed)
+                report = self.check(1)
+                row = self.row(report, installer)
+                self.assertEqual(row["result"], "GAP")
+                self.assertTrue(any(e["target"] == str(p) and e["reason"] == "missing" for e in row["gaps"]))
+                renamed.rename(p)
+                self.check()
 
     def test_equal_operations_do_not_hide_old_bytes(self):
         p = self.system / "usr/local/lib/aisoft-host-access/aisoft_host_access/broker.py"

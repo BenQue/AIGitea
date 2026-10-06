@@ -1,0 +1,123 @@
+{
+  "result": "PASS",
+  "kind": "isolated-source-only",
+  "candidate_configuration_commit": "2aeb5b2a69ea581a64fdbc78d93cff8f2957c0da",
+  "baseline_source": "e2edb3e08194624a6647212571c6cc866298575b",
+  "project_counts": [
+    7,
+    6,
+    7
+  ],
+  "all_validations_passed": true,
+  "reverted_manifests_equal_baseline_bytes": true,
+  "reapplied_manifests_equal_candidate_bytes": true,
+  "scratch_removed": true,
+  "source_worktree_modified": false,
+  "installed_or_live_mutation": false,
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--shared",
+        "--no-checkout",
+        "/private/tmp/issue-337-restore-hsdb-governance",
+        "/private/tmp/hsdb-337-source-rollback-0736k_zo/checkout"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Cloning into '/private/tmp/hsdb-337-source-rollback-0736k_zo/checkout'...\ndone."
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "2aeb5b2a69ea581a64fdbc78d93cff8f2957c0da"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "HEAD is now at 2aeb5b2 platform: restore HSDB manual Mac governance registration (#337)"
+    },
+    {
+      "argv": [
+        "python3",
+        "-m",
+        "aisoft_host_access.cli",
+        "--access-manifest",
+        "codex/config/host-access-broker.json",
+        "--governance-manifest",
+        "codex/config/gitea-governance.json",
+        "validate"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"contract_version\": \"host-access-broker/v1\", \"merge_operation_count\": 1, \"operation_count\": 38, \"project_count\": 7, \"status\": \"PASS\"}",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "revert",
+        "--no-commit",
+        "2aeb5b2a69ea581a64fdbc78d93cff8f2957c0da"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-m",
+        "aisoft_host_access.cli",
+        "--access-manifest",
+        "codex/config/host-access-broker.json",
+        "--governance-manifest",
+        "codex/config/gitea-governance.json",
+        "validate"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"contract_version\": \"host-access-broker/v1\", \"merge_operation_count\": 1, \"operation_count\": 38, \"project_count\": 6, \"status\": \"PASS\"}",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "restore",
+        "--source=HEAD",
+        "--staged",
+        "--worktree",
+        "--",
+        "."
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-m",
+        "aisoft_host_access.cli",
+        "--access-manifest",
+        "codex/config/host-access-broker.json",
+        "--governance-manifest",
+        "codex/config/gitea-governance.json",
+        "validate"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"contract_version\": \"host-access-broker/v1\", \"merge_operation_count\": 1, \"operation_count\": 38, \"project_count\": 7, \"status\": \"PASS\"}",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}

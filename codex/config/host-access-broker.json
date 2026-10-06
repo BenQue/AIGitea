@@ -345,6 +345,14 @@
       "identity_route": "host-operator",
       "mutating": true,
       "arguments": []
+    },
+    {
+      "name": "application.target.preflight.read",
+      "identity_route": "application-preflight",
+      "mutating": false,
+      "arguments": [
+        "target"
+      ]
     }
   ],
   "projects": [
@@ -361,6 +369,14 @@
         "implement_provider": "none",
         "timer_unit": null
       }
+    },
+    {
+      "project_id": "hsdb",
+      "repository": "HSDB",
+      "project_agent": "hsdb-agent",
+      "routine_merge_agent": null,
+      "mac_checkout": "/Users/benque/Projects/HSDB",
+      "vm_profile": null
     },
     {
       "project_id": "localwms",
@@ -430,5 +446,15 @@
     "gitea_binary": "/usr/local/bin/gitea",
     "gitea_config": "/etc/gitea/app.ini",
     "gitea_version": "1.26.4"
-  }
+  },
+  "application_targets": [
+    {
+      "project_id": "localwms",
+      "target_id": "localwms-local-test",
+      "machine": "AppServer",
+      "operator": "aisoft-preflight",
+      "helper": "/usr/local/libexec/aisoft/application-target-preflight",
+      "helper_version": "application-target-preflight/v1"
+    }
+  ]
 }

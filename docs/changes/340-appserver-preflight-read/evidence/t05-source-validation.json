@@ -1,0 +1,126 @@
+{
+  "recorded_at_utc": "2026-10-06T01:50:09.688747+00:00",
+  "tested_source_head": "83fdd12dc93b79442aae9c0763c7e92e221344d8",
+  "tested_tree": "67f98c6a654a5559122094d6982f8d5aeed9cf51",
+  "source_and_fixture_files_sha256": {
+    "codex/config/host-access-broker.json": "1a804e24d48b59a5f24eb9f7bbd423b86936287ede6639363b86a13203da6d6d",
+    "codex/runtime/aisoft_host_access/application_preflight.py": "9bb61a2f0a737a71c834cea0255cdc1b181c3663d33f72c92921bf12b5f1c144",
+    "codex/runtime/aisoft_host_access/broker.py": "085e8ddc55ef5ebcdb227be616c46d28660c967f04bb6f8dfde5167aa9f4a470",
+    "codex/runtime/aisoft_host_access/cli.py": "4e2408e73a104dac31f1da0d2ee679b59499e9ef2b40e753c594dd66232493af",
+    "codex/runtime/aisoft_host_access/contract.py": "a0fca970dd0cab8f40a1499afb5299a6d4eb13d23db55cd75e867501db867bef",
+    "codex/runtime/aisoft_host_access/runner.py": "01a90dc0dd6c0b0d95adf35847ced9fb40a3f3c1d56c37b515d3431273e3224b",
+    "codex/runtime/tests/test_application_preflight.py": "3950ff4a8167c6b5cef96ecfc3e1ad26b64864d34e4403a55f8782964c61910e",
+    "codex/tests/test-host-access-broker.sh": "9087eee1d12f0c6153505d9e699de0b593ccc231d2792f9851dc76feccb3487a",
+    "codex/tools/application-target-preflight.py": "75f3a622b2115769c0f4f80f859aae60473abdb9778bafeac8e5d400b1f2ab4c"
+  },
+  "completed_at_utc": "2026-10-06T01:56:08.333727+00:00",
+  "source_bytes_unchanged_after_smoke": true,
+  "working_tree_clean_at_freeze": true,
+  "full_smoke": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 LC_ALL=C bash codex/tests/smoke.sh",
+    "exit_code": 0,
+    "status": "PASS",
+    "runtime_unittest_count": 1147,
+    "runtime_unittest_seconds": 97.292,
+    "log_path": "/private/tmp/issue-340-t05-frozen-smoke.log",
+    "log_sha256": "d59c4a5a43d4b9af28aeb961b3b3c05f6b8a9b940ba33fd6374c9f955bc50d9d",
+    "summary_lines": [
+      "Ran 12 tests in 0.258s",
+      "Ran 34 tests in 97.619s",
+      "Ran 20 tests in 0.045s",
+      "Ran 197 tests in 28.766s",
+      "Ran 1147 tests in 97.292s"
+    ]
+  },
+  "focused_preflight_tests": {
+    "status": "PASS",
+    "count": 33
+  },
+  "old_host_access_tests": {
+    "status": "PASS",
+    "count": 194
+  },
+  "fake_install_root": {
+    "status": "PASS",
+    "package_files_equal": 9,
+    "new_module_copied": true,
+    "AppServer_helper_auto_installed": false
+  },
+  "review": {
+    "fixed_point": "adbe53252f71474afffdd886ca7509cc75ab0842",
+    "reviewed_head": "e2250d8d6048f3640fca8310280e0412949a92cf",
+    "repair_head": "83fdd12dc93b79442aae9c0763c7e92e221344d8",
+    "Standards": {
+      "findings": 2,
+      "worst": "P2",
+      "fixed": 2
+    },
+    "Spec": {
+      "findings": 2,
+      "worst": "P1",
+      "fixed": 2
+    },
+    "distinct_defects": 2,
+    "CLI_red_test": "SystemExit(2), raw synthetic sentinel echoed",
+    "service_red_test": "expected GAP, observed PASS",
+    "repair_verification": "red then green; both reviewers checked current patches"
+  },
+  "fresh_live_issue": {
+    "number": 340,
+    "state": "open",
+    "content_version": 0,
+    "comments": [],
+    "labels": [
+      "triage/needs-triage"
+    ],
+    "body_sha256": "82812dfbf2a6e31b85c5739281beaa0e27b03f10ba54e54ad46df6a8d5fb5983",
+    "updated_at": "2026-10-05T21:16:31+08:00"
+  },
+  "fresh_origin_main": "96ba8a17baad8e9854d4e8d0397d4162b8067b09",
+  "source_base_preserved": "c9b5ef4e74592cbc68d6bdc6219568a1d51b6853",
+  "T01_preserved": "adbe53252f71474afffdd886ca7509cc75ab0842",
+  "base_ancestor_check": {
+    "exit_code": 1,
+    "status": "GAP",
+    "predicted_publish_reason": "BASE_BRANCH_STALE",
+    "published_operation": "NOT RUN"
+  },
+  "remote_namespace": {
+    "status": "GAP",
+    "basis": "fresh-t02-start-readback.json; 50 bounded PR rows; exact change fetch HOST_COMMAND_FAILED",
+    "complete": false
+  },
+  "live_classification_projection": {
+    "status": "BLOCKED",
+    "reason": "automatic approval review rejected live classification write; source/local scope only",
+    "executed": false,
+    "retry_or_indirect_workaround": false
+  },
+  "controller_candidate": "NOT RUN",
+  "PR_readiness": "BLOCKED",
+  "actual_target_execution_count": 0,
+  "VM_no_start_primitive": "GAP",
+  "native_Docker_no_start_read": "GAP",
+  "formal_install": "NOT RUN",
+  "operator_or_permission_write": "NOT RUN",
+  "live": "NOT RUN",
+  "required_CI": "NOT RUN",
+  "push_or_PR": "NOT RUN",
+  "deployment": "NOT RUN",
+  "final_document_checks": {
+    "resolve_required_documents": "PASS; four roles",
+    "check_change_documents": "PASS; changes=157 pass=2 gap=0",
+    "bash_n": "PASS",
+    "shellcheck": "PASS",
+    "JSON_scope_whitespace_owner": "PASS",
+    "ticket_graph_completed": [
+      "T01",
+      "T02",
+      "T03",
+      "T04",
+      "T05"
+    ],
+    "verification_script_initial_type_assertion": "FAIL: expected int issue; existing parse_front_matter returns string; corrected exact string 340 and passed",
+    "controller_execution": "NOT RUN"
+  }
+}
