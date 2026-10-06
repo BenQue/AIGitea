@@ -15,7 +15,7 @@ risk_flags:
 depends_on:
   - 337
   - 339
-status: contract-drafting
+status: approved
 branch: change/344-hsdb-pat-inventory
 created: 2026-10-06
 updated: 2026-10-06
@@ -90,3 +90,18 @@ HSDB是该能力消费方。HSDB一次性现场read请求、hsdb-agent凭据/fla
 - G1六路径拟议文本、patch与文件manifest在本会话仓外审阅包保存；四角色、reference和skill候选必须独立核验，实际运行结果只记仓外checks.json，不能用拟议文本预填应用PASS。
 - G1人类具体确认、repo apply、local commit/revert、Issue正文/状态/labels、runtime、push/PR/CI/merge、安装/真实read/凭据或账号/服务/部署仍NOT RUN。Q-01…Q-12只是后继设计，未执行；PAUSED监控继续保持。
 - G1执行后才追加真实命令与结果回执；本候选不提前宣称T02 done或Issue completed。旧五个公开JSON作为T01历史快照保留，不因G1文档修改更新为批准、installed或现场结果。
+
+## G1实际完成与T03 fresh读回（2026-10-06）
+
+上文T01/G1候选中的未批准/NOT RUN只描述当时阶段，以下为接续实际结果；五个evidence JSON保持历史字节。
+
+- 人类exact G1批准绑定六路径patch SHA256=`aceaf2622156ea30060c482f7020f187bb40b519c21f9bdb0b4586e76e8ff24b`。执行回执`G1-EXECUTED-STOP-344.json/.md`：apply、resolver/required-docs/document gate、6AC/Q矩阵/deps/claim/范围验证PASS；一个原子commit=`dc66b448e231edc7f8a3438fbba20152547ea101`，parent=`09084e19a8b1a3bb018f70d80e1a3b1cc3611a88`，tree=`a876ae91d91dc77d07e3603e4d37b983ecb5f080`，六文件149 insertions/9 deletions，clean后STOP。
+- T03固定installed broker `git.fetch.main`实际PASS，current manifest main=`11628709e659dac48f5cb66bade81f1617974546`。`gitea.issue.read` #344/#337/#339、#344 comments、main protection read实际PASS；#344 open且type/security、complexity/complex；deps两项closed/completed。live #344 lifecycle仍spec-drafting，与新local approved投影区分。
+- `gitea.pulls.read --state all`两次实际exit0；每次schema=`aisoft.broker.pull-collection/v1`、scan_count=2、count=server_total=165、limit=50、terminal_empty_pages=[5,5]，stdout SHA256=`0e2795d377ac021ff9493011430304071c0179017eee00ab0e305267cb22c3c0`。165个number唯一，两次完整字节一致，按#344 head namespace/独立Closes行/semantic docs路径查找无同票PR。完整清单只含仓库PR公共metadata，不是PAT清单。
+- `git.fetch.change --branch change/344-hsdb-pat-inventory`两次实际exit0/PASS，remote_known=true/head=null。已安装generic `_remote_change_heads`固定枚举`refs/heads/change/344`与`refs/heads/change/344-*`，`_change_tip`拒绝其它slug/重复ref，满足本票普通namespace检查；不声称#336专用#333 namespace receipt适用于#344。
+- actual `qualified_broker_environment()` PASS：固定wrapper SHA和7项source/installed dispatch/FF字节、loaded module与本owner session验证。#327 Mac全安装/restore/reinstall/idempotence回执先前已独立核验；本轮资格核验只证明现有普通路径，不执行安装/root/sudo。main protection=`CI / verify (pull_request)`且block_on_outdated_branch=true、main push disabled、人类admin唯一merge。
+- 原dc66 HEAD调用`GitRepository.scope`真实拒绝`mapped summary lifecycle differs`。T03仅补既有批准状态和原11路径exact scope，无扩大产品/安全授权；下游qualified整合及验证结果在仓外最终回执记录，未执行前不预填PASS。
+
+实际读取命令和stdout/stderr保存于本会话`t03-344/read_current.py`、`read-current-report.json`和逐操作文件；`preflight.json`保存完整集合哈希/计数、资格与namespace结果。源工具Q-01…Q-12、runtime、push/PR/CI/merge、安装、真实PAT读取与所有安全写入继续NOT RUN，PAUSED监控未恢复。
+
+T03本地事实投影后实际执行：`git diff --check`、`python3 -m aisoft_loop.cli resolve-documents 344 --repo <owned-WT>`、`resolve-required-documents`、`check-change-documents`全部exit0，158 changes/pass2/gap0；`bash .../apply-classification-labels.sh --repo <owned-WT> --verify 344`实际read-back=`projected`，type/security与complexity/complex。`load_contract(repo, live_issue, allowed_lifecycle=('spec-drafting',))`只读解析6AC/四角色成功；默认approved Loop门仍因live spec-drafting拒绝，未伪造live启动。原6AC、12个Q设计行、deps、reference/skill和五个JSON字节核验PASS。仓外校验脚本初次参数顺序错误已修正，未修改合同行为。

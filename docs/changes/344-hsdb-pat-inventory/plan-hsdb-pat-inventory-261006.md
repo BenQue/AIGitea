@@ -15,7 +15,7 @@ risk_flags:
 depends_on:
   - 337
   - 339
-status: contract-drafting
+status: approved
 branch: change/344-hsdb-pat-inventory
 created: 2026-10-06
 updated: 2026-10-06
@@ -28,14 +28,14 @@ updated: 2026-10-06
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | fresh inventory/dedup、唯一Issue/claim、四角色/证据、本地文档候选与审阅卡后STOP | - | done |
-| T02 | 人类具体确认exact六路径patch后，独立run应用/校验/一个本地commit/STOP | T01及G1具体确认 | blocked |
-| T03 | fresh只读审查治理候选、exact范围/required docs/分类；形成唯一manual PR候选 | T02 | blocked |
+| T02 | 人类具体确认exact六路径patch后，独立run应用/校验/一个本地commit/STOP | T01及G1具体确认 | done |
+| T03 | fresh复核治理候选，投影已批准状态/既有范围并经qualified Controller整合main；形成唯一manual PR候选 | T02 | in-progress |
 
-T01已由原owner准备完成并STOP，done只表示局部准备完成。正式接续后本轮frontier仅仓外G1/T02六路径卡准备；T02仍blocked，等待具体人类确认，Issue仍contract-drafting/open，G1和其后均未批准。T02只治理，无runtime。T03只有新的最终PR授权才remote push/create；本轮没有该授权。人工merge、exact main/终态/cleanup另按确定性平台流程，无自动merge。
+T01已由原owner准备完成并STOP，done只表示局部准备完成。G1已人类批准并应用/校验，原子commit dc66b448e231edc7f8a3438fbba20152547ea101 后STOP。fresh接续frontier为T03：必要四角色结果/已批准状态/既有路径投影、本地校验和qualified main整合。live Issue仍open/spec-drafting，仅local approved投影，不替代现场或运行批准。T02只治理，无runtime。T03只有新的最终PR授权才remote push/create；本轮没有该授权。人工merge、exact main/终态/cleanup另按确定性平台流程，无自动merge。
 
 ## Expected touch points
 
-T01：spec列明的本目录四角色与五个公开evidence JSON；external本会话artifact。T02：仅spec列明G1六治理路径，不含evidence任意扩张、AGENTS或运行代码；需实际批准后在本owner claimed WT执行，不改shared primary。T03：必要verification/summary结果投影和exact manual candidate检查；范围变化停人审。
+T01：spec列明的本目录四角色与五个公开evidence JSON；external本会话artifact。T02：仅spec列明G1六治理路径，不含evidence任意扩张、AGENTS或运行代码；需实际批准后在本owner claimed WT执行，不改shared primary。T03：四角色已批准状态/实际结果投影、spec exact git_scope（原9+G1六路径并集11）和manual candidate检查；不改共享reference或skill规范字节，不改原AC/Q矩阵/deps。qualified Controller只作本地[C,M]整合；remote发表待最终确认；新行为/路径或冲突停人审。
 
 未来fresh R/source、共享工具安装有平台独立Issue/owner/spec；HSDB消费方read有HSDB独立项目合同，编号尚null；本表不把它们作为#344运行tickets、不自动创建或dispatch，不把本治理票runtime未运行写成AC失败。
 
@@ -105,3 +105,9 @@ HSDB是该能力消费方。HSDB一次性现场read请求、hsdb-agent凭据/fla
 5. commit前失败：核六路径仍等于candidate且无其它编辑后，`git apply --reverse --check <approved-patch>`再反向应用，验证五文件旧hash、新reference缺失、HEAD不变且clean。commit后失败：HEAD必须exact等于本次G1 commit且未push/无其它编辑才对该exact commit本地revert；不reset/rebase。遇漂移则STOP保留材料。恢复不涉及PAT/账号、安装或服务。
 
 G1 card准备与隔离patch/document核验可以现在完成，不以尚无工具/TLS/human UID或#342/#343访问PASS作为前置。启动确认只审当前六路径；其它具体合同由其实际阶段处理，本轮不创建票或叠加审批链。
+
+## T03 fresh执行记录与接续责任
+
+T03 actual reads/qualification见verification；结果以仓外最终候选回执记录。原G1六路径patch及其STOP记录保持独立。本轮只提交四角色事实投影、执行本地文档gate及qualified main整合；不调用provider，不发表remote，不接管其它owner。
+
+根已指定独立源码筹备聊天 `HSDB T02D：受控凭据清单工具源码开发`（session `01a110fd-3a28-77c3-8ffc-4f0a987a9940`）。它负责后继source合同筹备和获批实现，不能写本票WT；本票不另建第二源票、不改其claim或发送消息，交接由根负责。源码合同筹备不依赖HSDB访问恢复PASS。现规则要求G1独立批准/应用/STOP后fresh读取、独立source security/complex/manual合同和启动批准；未明文要求合同草拟先等#344合并。未来用户安装必须使用clean approved merged源码；现场receipt的governance_merge_sha必须有真实main合并证据，不能用local commit填充。当前未实现工具/安装/read，各层保持NOT RUN。

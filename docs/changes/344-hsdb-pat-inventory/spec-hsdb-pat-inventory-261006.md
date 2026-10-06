@@ -15,8 +15,20 @@ risk_flags:
 depends_on:
   - 337
   - 339
-status: contract-drafting
+status: approved
 branch: change/344-hsdb-pat-inventory
+git_scope:
+  - codex/skills/gitea-platform-ops/SKILL.md
+  - docs/changes/344-hsdb-pat-inventory/evidence/api-source-evidence.json
+  - docs/changes/344-hsdb-pat-inventory/evidence/deduplication.json
+  - docs/changes/344-hsdb-pat-inventory/evidence/inputs.json
+  - docs/changes/344-hsdb-pat-inventory/evidence/installed-catalog.json
+  - docs/changes/344-hsdb-pat-inventory/evidence/manifest.json
+  - docs/changes/344-hsdb-pat-inventory/plan-hsdb-pat-inventory-261006.md
+  - docs/changes/344-hsdb-pat-inventory/spec-hsdb-pat-inventory-261006.md
+  - docs/changes/344-hsdb-pat-inventory/summary-hsdb-pat-inventory-261006.md
+  - docs/changes/344-hsdb-pat-inventory/verification-hsdb-pat-inventory-261006.md
+  - skill-for-codex/references/hsdb-current-pat-inventory.md
 created: 2026-10-06
 updated: 2026-10-06
 ---
@@ -25,7 +37,7 @@ updated: 2026-10-06
 
 ## 成功定义与批准范围
 
-本票只交付目的限定工具的治理规范。以下“必须”是待批准的未来规则，不能被当前run用于扩大授权。T01准备已完成并保留原证据；接续会话当前只准备仓外G1六路径候选。G1必须在独立受控步骤取得绑定具体差量的人类批准、应用、校验、本地commit并STOP。后继fresh run重读当前AGENTS、已生效规范及映射spec/plan后，另立唯一源实现security/complex/manual Issue，才可按其已批准合同实施runtime。不得用#333/#336未合并代码、fixture、旧安装批准或本草稿自举。
+本票只交付目的限定工具的治理规范。以下“必须”是经G1批准的治理规则，未来工具必须遵守；它们不能扩大当前运行授权。T01历史保留。G1 exact六路径patch已获人类批准并应用/校验，本地commit `dc66b448e231edc7f8a3438fbba20152547ea101` 后独立STOP；T03 fresh接续仅投影既有批准/交付事实和原11路径范围，不实现runtime。后继fresh run重读当前AGENTS、已生效规范及映射spec/plan后，另立唯一源实现security/complex/manual Issue，才可按其已批准合同实施runtime。不得用#333/#336未合并代码、fixture、旧安装批准或本草稿自举。
 
 ## 固定target/request与人类身份
 
@@ -115,7 +127,7 @@ tool提案为新的独立用户工具，**不**修改existing 38-op broker/canon
 
 本轮exact tracked allowlist：本目录四角色与`evidence/`五个JSON（installed-catalog/api-source-evidence/deduplication/inputs/manifest），无其它路径。外部审阅卡、receipt、diff/check输出只在本会话visualizations目录保存。
 
-G1 exact六路径（待实际人类批准）如下；拟议patch只有这六路径，四角色具体差量与新规范全文均须可审：
+G1 exact六路径（已获实际人类批准并独立应用/STOP，以下保留审阅范围）如下；拟议patch只有这六路径，四角色具体差量与新规范全文均须可审：
 
 | 路径 | 具体差量 |
 |---|---|
@@ -159,4 +171,8 @@ HSDB是该能力消费方。HSDB一次性现场read请求、hsdb-agent凭据/fla
 
 ## 未决问题
 
-无本票治理文档方向待决。G1实际人类批准尚未取得；future安全origin、人类UID、工具pin、后继票号及现场窗口均null/GAP，必须在各自后继具体合同绑定，不能作为本票runtime授权或替本票设置approved。本轮T01 STOP不提前验收G1应用。
+无本票治理文档方向待决。G1批准及应用已完成；future安全origin、人类UID、工具pin、后继票号及现场窗口均null/GAP，必须在各自后继具体合同绑定，不能作为本票runtime授权。local approved仅记录人类已批准的治理合同，live标签未改变。G1执行、T03候选、source/install/read层分别凭真实回执验收。
+
+## T03 Git范围投影
+
+front matter `git_scope`逐路径映射原T01九文件与G1六路径的11文件并集。原6AC、Q-01…Q-12及deps[337,339]不变；没有扩展目录通配。普通FF首次发表/主干整合只能由qualified Controller验证exact history/owner/remote/main与该范围，不授权本轮push。整合main取得的既有主干变化不属于本票新增runtime；最终审阅diff以fresh main为base。

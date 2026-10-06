@@ -27,7 +27,7 @@ override_reason: ''
 depends_on:
   - 337
   - 339
-status: contract-drafting
+status: approved
 branch: change/344-hsdb-pat-inventory
 pr_url:
 created: 2026-10-06
@@ -46,9 +46,9 @@ updated: 2026-10-06
 
 - Issue：#344；manual，routine disabled；current owner/session `01a10ecc-1a09-78b0-8e41-2b15de72df43`。原T01 owner `01a10ebe-7d29-73d0-9151-51fd09f71b49` 已HANDOFF_STOP，正式takeover和原聊天归档已在仓外HANDOFF_ACCEPTED实证；保留原准备证据。
 - tuple：`change/344-hsdb-pat-inventory` / `docs/changes/344-hsdb-pat-inventory/` / `/private/tmp/issue-344-hsdb-pat-inventory`。
-- T01历史fresh source main/base：`96ba8a17baad8e9854d4e8d0397d4162b8067b09`；shared primary仍为 `c9b5ef4e74592cbc68d6bdc6219568a1d51b6853`，未在其写合同。
-- 原T01授权只包含只读查重、唯一立案/claim、四角色合同/证据、本地文档提交与审阅卡，已完成并STOP。接续准备仅允许公共只读核验和仓外G1六路径候选/确认卡；实际G1批准、应用与本地commit仍待人类具体决定。未设置approved、未运行Loop。
-- 未来G1需人批准exact治理delta并独立应用/STOP；fresh run重新读取后才可准备/执行后继runtime合同。本草稿不能自行新增运行权限。
+- T01历史fresh source main/base：`96ba8a17baad8e9854d4e8d0397d4162b8067b09`；当时shared primary为 `c9b5ef4e74592cbc68d6bdc6219568a1d51b6853`，未在其写合同；该值仅T01历史。T03 fresh main=`11628709e659dac48f5cb66bade81f1617974546`。
+- 原T01授权只包含只读查重、唯一立案/claim、四角色合同/证据、本地文档提交与审阅卡，已完成并STOP。G1已获人类exact六路径确认，实际应用、校验及原子commit `dc66b448e231edc7f8a3438fbba20152547ea101` 完成后独立STOP。T03在fresh接续中仅整理交付事实、校验唯一manual候选和已批准路径范围；不运行provider或runtime。
+- G1批准绑定patch SHA256=`aceaf2622156ea30060c482f7020f187bb40b519c21f9bdb0b4586e76e8ff24b`，仓外执行回执为事实源。local `approved`仅投影已批准治理合同；live Issue仍open/spec-drafting，未改标签。后继源合同/安装/read各自另审，不因本票状态产生运行权限。
 
 ## 影响范围与查重
 
@@ -62,7 +62,7 @@ fixed Gitea 1.26.4，UID3/aisoft-platform-manager 和 UID5/hsdb-agent，每次�
 
 #342的AC-4原目标未达成，若要发表最终失败结果，须其原owner取得人对独立合同处置的决定，再走manual交付；本票不能改其AC/标签/终态。解除#342文档发表缺口与完成CURRENT清单能力是不同前置。
 
-后续发布如受#327普通FF/首次发表策略、#336完整唯一性证明阻塞，交回原owner并保持GAP；#336的#333-only namespace不能当作本票证明。无push/PR授权，当前不进入发布路径。
+T03实际installed read：两次全状态PR collection均165项、各内含两次完整扫描/终空页5/server total和stdout hash核验PASS，结果一致，未发现本票PR。ordinary `git.fetch.change`以#327 generic分支逻辑检查`change/344`与`change/344-*`，两次返回remote_known=true/head=null；未借#336的#333-only namespace证明。当前7项dispatch/FF source-installed bytes及wrapper qualification PASS，可使用qualified Controller本地无冲突[C,M]整合。push/PR仍待唯一最终确认，不写remote。
 
 ## AI 判级
 
@@ -91,7 +91,7 @@ override_reason: ''
 
 ## 当前GAP与最小审阅决定
 
-本次四角色合同可审。最小下一决定仅为批准本票G1的六个治理路径及T02独立应用/本地提交/STOP，或指出具体修订；不包含runtime、Git发布、安装/输入授权/read-window或凭据恢复。
+G1已完成，无需重复批准。T03校验通过后最小下一决定为绑定#344/branch/manual policy的唯一最终PR提交确认；候选卡记录实际最终HEAD/main/范围/验证。remote发表前重新fresh-read；runtime、安装、read-window与凭据恢复各自后继，不含在此确认内。
 
 非Secret现场operator UID/login、安全transport、后继Issue编号、tool source/installed pin、窗口均为null/GAP。治理规则已给出拒绝行为，不用猜值补齐。source/安装/read要各自补齐精确合同后另审；安全HTTP→TLS/身份通道若缺失，单列前置，不自行改服务或创建通道。
 
@@ -109,4 +109,4 @@ HSDB是该能力消费方。HSDB一次性现场read请求、hsdb-agent凭据/fla
 
 G1启动决定只绑定spec列出的六个路径和仓外审阅卡的exact patch SHA256；不得只按方向自动扩范围。确认后独立受控步骤执行本地应用、文档/范围校验、一个原子commit并STOP。Git发布仍待唯一最终PR确认，源工具/安装/现场读取及恢复仍按各自具体合同执行，本次不新建立案或派发。
 
-人类批准、实际应用和commit结果以仓外回执为准；本候选保留`status=contract-drafting`和空`pr_url`，不预填未运行结果，也不修改Issue正文/状态/labels。安全origin/operator UID/tool pin/read window继续null/GAP，12组未来runtime设计仍NOT RUN；这些不是G1文档准备的前置。既有evidence JSON继续作为原T01快照，G1不改写其历史。
+人类批准、实际应用和commit结果以仓外`G1-EXECUTED-STOP-344.json/.md`为准。T03将四角色local status投影为`approved`、补充spec exact 11路径`git_scope`，仅覆盖原T01九路径与G1六路径的并集；不新增治理行为或工具文件。`pr_url`仍空，Issue正文/状态/labels均未修改，未运行结果不预填。安全origin/operator UID/tool pin/read window继续null/GAP，12组未来runtime设计仍NOT RUN；这些不是G1文档准备的前置。既有evidence JSON继续作为原T01快照，G1不改写其历史。
