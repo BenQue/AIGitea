@@ -159,6 +159,26 @@ class PreflightRouteTests(unittest.TestCase):
             self.assertNotIn('FAKE_SECRET_SENTINEL', stderr.getvalue() + stdout.getvalue())
             self.assertEqual(json.loads(stderr.getvalue())['code'], 'ARGUMENT_MISMATCH')
 
+    def test_cli_parse_errors_do_not_echo_misplaced_manifest_or_missing_command(self):
+        cases = [
+            ['--access-manifest', 'unused', '--governance-manifest', 'unused',
+             '--project', 'FAKE_SECRET_SENTINEL', 'broker', '--operation',
+             'application.target.preflight.read', '--target', 'localwms-local-test'],
+            ['--access-manifest', 'unused', '--governance-manifest', 'unused',
+             'broker', '--project', 'localwms', '--operation',
+             'application.target.preflight.read', '--target', 'localwms-local-test',
+             '--label-manifest', 'FAKE_SECRET_SENTINEL'],
+        ]
+        for argv in cases:
+            stderr, stdout = io.StringIO(), io.StringIO()
+            with patch('aisoft_host_access.cli.load_access_contract') as load, \
+                 redirect_stderr(stderr), redirect_stdout(stdout):
+                rc = cli_main(argv)
+            self.assertEqual(rc, 20)
+            self.assertNotIn('FAKE_SECRET_SENTINEL', stderr.getvalue() + stdout.getvalue())
+            self.assertEqual(json.loads(stderr.getvalue())['code'], 'ARGUMENT_MISMATCH')
+            load.assert_not_called()
+
     def test_typed_adapter_binds_args_and_refuses_unknown_or_wrong_machine_reply(self):
         payload = envelope(APPLICATION_TARGET)
         runner = Mock(return_value=subprocess.CompletedProcess([], 0, json.dumps(payload), ''))
@@ -291,6 +311,27 @@ class CollectorTests(unittest.TestCase):
             '/opt/node24.18.0/lib/node_modules/npm/package.json'})
         self.assertEqual(result['items']['archive_inventory']['status'], 'GAP')
         self.assertEqual(result['preservation']['whole_machine_before_after'], 'NOT RUN')
+
+    def test_missing_unit_is_gap_instead_of_pass(self):
+        system = FixtureSystem()
+        original_command = system.command
+        system.command = lambda path, args, deadline: (
+            b'LoadState=not-found\nActiveState=inactive\nMainPID=0\n'
+            if path.endswith('/systemctl') and args[-1] == 'localwms-api.service'
+            else original_command(path, args, deadline))
+        item = self.module.collect(system)['items']['service.localwms-api.service']
+        self.assertEqual(item['status'], 'GAP')
+        self.assertEqual(item['reason'], 'MISSING')
+        self.assertFalse(item['complete'])
+
+    def test_helper_identity_limits_and_paths_match_approved_target(self):
+        from aisoft_host_access.application_preflight import LIMITS
+        self.assertEqual(self.module.HELPER, APPLICATION_TARGET['helper'])
+        self.assertEqual(self.module.LIMITS, LIMITS)
+        result = self.module.collect(FixtureSystem())
+        for response_key, target_key in [('project', 'project_id'), ('target', 'target_id'),
+                                         ('machine', 'machine'), ('helper_version', 'helper_version')]:
+            self.assertEqual(result[response_key], APPLICATION_TARGET[target_key])
 
     def test_invalid_listener_address_or_unit_value_is_not_echoed(self):
         system = FixtureSystem()

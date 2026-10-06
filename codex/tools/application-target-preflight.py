@@ -505,6 +505,8 @@ def unit_value(raw):
     if not re.fullmatch(r'[0-9]{1,10}', values['MainPID']):
         raise ProbeFailure('INVALID_VALUE', 'FAIL')
     values['MainPID'] = integer(int(values['MainPID']))
+    if values['LoadState'] == 'not-found':
+        raise ProbeFailure('MISSING', 'GAP')
     return values
 
 

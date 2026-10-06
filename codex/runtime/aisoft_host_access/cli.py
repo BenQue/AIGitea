@@ -11,8 +11,20 @@ from .contract import AccessContractError, load_access_contract
 from .profiles import ProfileMigrator
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="aisoft-host-access")
+class _PreflightArgumentsInvalid(Exception):
+    pass
+
+
+class _PreflightArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        # argparse embeds arbitrary request values in errors, including values
+        # of otherwise allowed flags supplied in the wrong position.
+        raise _PreflightArgumentsInvalid() from None
+
+
+def build_parser(*, sanitized_errors=False) -> argparse.ArgumentParser:
+    parser_type = _PreflightArgumentParser if sanitized_errors else argparse.ArgumentParser
+    parser = parser_type(prog="aisoft-host-access")
     parser.add_argument("--access-manifest", required=True)
     parser.add_argument("--governance-manifest", required=True)
     # Fixed install-time configuration supplied by the entrypoint, not a caller
@@ -81,6 +93,13 @@ def _json(value: object) -> None:
     print(json.dumps(value, ensure_ascii=False, sort_keys=True))
 
 
+def _reject_preflight_arguments():
+    print(json.dumps({'status': 'BLOCKED_EXTERNAL', 'code': 'ARGUMENT_MISMATCH',
+                      'message': 'operation arguments do not match the typed contract'}),
+          file=sys.stderr)
+    return 20
+
+
 def main(argv: list[str] | None = None) -> int:
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     preflight = ('application.target.preflight.read' in raw_argv or
@@ -111,11 +130,11 @@ def main(argv: list[str] | None = None) -> int:
                 invalid = True
                 break
         if invalid:
-            print(json.dumps({'status': 'BLOCKED_EXTERNAL', 'code': 'ARGUMENT_MISMATCH',
-                              'message': 'operation arguments do not match the typed contract'}),
-                  file=sys.stderr)
-            return 20
-    args = build_parser().parse_args(raw_argv)
+            return _reject_preflight_arguments()
+    try:
+        args = build_parser(sanitized_errors=preflight).parse_args(raw_argv)
+    except _PreflightArgumentsInvalid:
+        return _reject_preflight_arguments()
     try:
         contract = load_access_contract(args.access_manifest, args.governance_manifest)
         if args.command == "validate":
