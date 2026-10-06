@@ -16,7 +16,12 @@ depends_on:
 branch: change/342-hsdb-login-recovery
 created: 2026-10-05
 updated: 2026-10-06
-status: contract-drafting
+status: approved
+git_scope:
+  - docs/changes/342-hsdb-login-recovery/summary-hsdb-login-recovery-261005.md
+  - docs/changes/342-hsdb-login-recovery/spec-hsdb-login-recovery-261005.md
+  - docs/changes/342-hsdb-login-recovery/plan-hsdb-login-recovery-261005.md
+  - docs/changes/342-hsdb-login-recovery/verification-hsdb-login-recovery-261005.md
 ---
 
 
@@ -36,15 +41,21 @@ status: contract-drafting
 
 T02访问目标未通过，Ticket保持pending并因外部访问GAP停止；T03最终PR仍pending。账号窗口已结束，不借此票重试或修改凭据；进一步诊断/安全操作须单独确定具体scope。PR提交及人工合并仍是独立门。
 
-## 本轮文档候选的合同边界
+## 2026-10-06 文档发表合同与 exact Git scope 投影
 
-下列原批准 AC 不改变。账号尝试和失败恢复结束不等于 AC-4 访问目标已完成；本轮只记录真实结果及不可发表原因。原窗口已关闭，不允许通过本票重新启用、变更 PAT/Secret/权限或部署 HSDB。
+本轮仅接续已经获准的 #342 有界尝试文档交付准备。原执行 owner 为 `01a10c83-389d-7ab3-b364-59e108f1ca46`；原会话已 HANDOFF_STOP 并归档。根正式指定 receiver `01a10ecb-fcd0-7e10-a564-8a6cf5c83689`，并通过现有 `claim-worktree --takeover` 完成单 writer 接管。
 
-最终文档发表须满足 exact Issue/branch/docs/owner、唯一 active namespace/最终 PR、合法普通 FF 路径及独立 manual 提交确认。公开第一页面、空列表或一次失败 fetch 不能证明全历史及整个同编号 namespace 唯一。现有 installed typed read 无本票完整证明；不得用写操作探读、raw Git/API、其它身份或未合并 reader 补洞。
+原窗口已关闭，AC-4 仍 **FAIL / ACCESS_GAP**，三项 HTTP_401 与真实同 flag 恢复 PASS 保留。T02/T03 pending、depends_on [337,339] 和原 AC 不改变；#337/#339 已 closed/completed。summary/spec 的 approved 与 exact Git scope 仅投影已批准合同和当前四文档本地准备范围，不授权账号、PAT、Secret、权限、安装、部署、push/PR/merge，不启动 provider。原批准历史快照逐字保留。
 
-#327 的负责人本人首次自举例外仅属于 #327；#336 的 namespace 特化仅属于 #333。两项均不得继承为 #342 执行权限；共享能力的范围补充及合并后安装由对应平台 owner 独立处理。
+已安装普通 FF 通道和完整读取已实际核验，而非只沿用旧来源状态：`gitea.pulls.read --state all` 返回 165 条，server_total=count=165、scan_count=2、terminal_empty_pages=[5,5]，stdout digest 对应原始输出；无 #342 既有 PR。对 exact `change/342-hsdb-login-recovery` 两次 `git.fetch.change` 均 PASS、remote_known=true、remote_head=null。该普通 Git operation 会枚举 #342 legacy/semantic refs 并拒绝同编号冲突；#333 专用 namespace receipt 不是这一路径的许可前提。未用 raw API/Git、写操作探读、其它身份或未合并 runtime。
 
-HSDB 的专属接入和部署仍由项目会话主控；共享平台支持票不接管项目交付。本票保持原 AC-4 FAIL/ACCESS_GAP 与 depends_on [337,339]。如果将最终交付定义为有界尝试记录而关闭本票，须先取得明确的人类合同处置及后继目标追踪决定；此段只是未批准的处置提案，不把原目标改为 PASS。
+fresh manifest main 为 `11628709e659dac48f5cb66bade81f1617974546`。当前 Mac 28 个公共安装目标、metadata 与 generated source receipt 对应此 merge；本轮 installed 完整 pull 协议与 exact342 普通 fetch 运行 PASS。不宣称本轮新执行 installer/恢复/VM验收，也不以平台读通道证明 HSDB 登录恢复。
+
+原账号审批只绑定历史卡和旧 executor，当前没有重新执行的权限。HSDB 专属接入/恢复的残余目标由 `admin/HSDB` 的 T02/后继项目跟踪继续，实际恢复方案与安全批准仍独立；历史平台 #342 保留真实失败、回滚和批准审计。本候选仅拟发表有界尝试记录，尚未取得接受该记录票关闭及残余目标继续跟踪的明确决定，也未取得最终 PR 提交确认。human manual merge、required CI 以及 postmerge 收尾均未执行。
+
+`git_scope` 仅包含本票四个映射文档，与原 T01/T03 文档范围及本轮授权一致；没有新增 runtime/治理文件或其他 Issue 路径，也没有放宽 broker 或安全 gate。该字段只提供新版 Git verifier 所需的机器可验证本地范围，不是新账号授权。
+
+原合同失败的明确处置提案：保留 AC-4 FAIL/ACCESS_GAP，允许只交付已完成有界尝试和真实恢复记录；如果最终 PR 使用 Closes #342，用户须在本次最终确认中明确接受记录票关闭，HSDB 实际恢复目标仍 pending，并由项目 T02/后继票独立跟踪。没有该决定不得推送、创建 PR、改验收为 PASS 或自动关闭问题。
 
 ## 批准时准备记录（历史快照）
 

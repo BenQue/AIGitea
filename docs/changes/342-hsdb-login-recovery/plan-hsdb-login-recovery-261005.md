@@ -16,7 +16,7 @@ depends_on:
 branch: change/342-hsdb-login-recovery
 created: 2026-10-05
 updated: 2026-10-06
-status: contract-drafting
+status: approved
 ---
 
 
@@ -36,21 +36,29 @@ status: contract-drafting
 
 T02访问目标未通过，Ticket保持pending并因外部访问GAP停止；T03最终PR仍pending。账号窗口已结束，不借此票重试或修改凭据；进一步诊断/安全操作须单独确定具体scope。PR提交及人工合并仍是独立门。
 
-## 本轮文档候选 frontier 与外部动作点
+## 2026-10-06 文档候选 frontier 与实际动作门
 
-T02 的访问目标仍 pending/FAIL，T03 只完成本地候选准备，未满足最终发表或完成条件。原 Ticket graph 和 depends_on [337,339] 保留；#337/#339 已 closed/completed，不再空等其 merge 或安装。
+本轮仅接续已经获准的 #342 有界尝试文档交付准备。原执行 owner 为 `01a10c83-389d-7ab3-b364-59e108f1ca46`；原会话已 HANDOFF_STOP 并归档。根正式指定 receiver `01a10ecb-fcd0-7e10-a564-8a6cf5c83689`，并通过现有 `claim-worktree --takeover` 完成单 writer 接管。
 
-| 缺口 | 归属 | 本票允许的处理 |
+原窗口已关闭，AC-4 仍 **FAIL / ACCESS_GAP**，三项 HTTP_401 与真实同 flag 恢复 PASS 保留。T02/T03 pending、depends_on [337,339] 和原 AC 不改变；#337/#339 已 closed/completed。summary/spec 的 approved 与 exact Git scope 仅投影已批准合同和当前四文档本地准备范围，不授权账号、PAT、Secret、权限、安装、部署、push/PR/merge，不启动 provider。原批准历史快照逐字保留。
+
+已安装普通 FF 通道和完整读取已实际核验，而非只沿用旧来源状态：`gitea.pulls.read --state all` 返回 165 条，server_total=count=165、scan_count=2、terminal_empty_pages=[5,5]，stdout digest 对应原始输出；无 #342 既有 PR。对 exact `change/342-hsdb-login-recovery` 两次 `git.fetch.change` 均 PASS、remote_known=true、remote_head=null。该普通 Git operation 会枚举 #342 legacy/semantic refs 并拒绝同编号冲突；#333 专用 namespace receipt 不是这一路径的许可前提。未用 raw API/Git、写操作探读、其它身份或未合并 runtime。
+
+fresh manifest main 为 `11628709e659dac48f5cb66bade81f1617974546`。当前 Mac 28 个公共安装目标、metadata 与 generated source receipt 对应此 merge；本轮 installed 完整 pull 协议与 exact342 普通 fetch 运行 PASS。不宣称本轮新执行 installer/恢复/VM验收，也不以平台读通道证明 HSDB 登录恢复。
+
+原账号审批只绑定历史卡和旧 executor，当前没有重新执行的权限。HSDB 专属接入/恢复的残余目标由 `admin/HSDB` 的 T02/后继项目跟踪继续，实际恢复方案与安全批准仍独立；历史平台 #342 保留真实失败、回滚和批准审计。本候选仅拟发表有界尝试记录，尚未取得接受该记录票关闭及残余目标继续跟踪的明确决定，也未取得最终 PR 提交确认。human manual merge、required CI 以及 postmerge 收尾均未执行。
+
+| 阶段 | 本会话动作 | 状态/后继门 |
 |---|---|---|
-| 普通 FF/first-publish 合法通道 | #327 原 owner | 记录缺口和适用证明要求；不借用其本人自举特许、不调用 lease-force |
-| 完整 PR 历史公开 reader | #336 原 owner | 等待既有合同真实发表、合并和独立 installed 验收；不安装其未合并候选 |
-| #342 同编号 namespace 公开证明 | 对应平台能力 owner 协调现行覆盖范围 | #336 当前仅覆盖 #333；保留 GAP，不擅改其范围、不新建绕行工具或票 |
-| 原 AC-4 未达成后的合同终结处置 | 人类负责人 | 提供有界失败尝试候选与后继目标提案；未决定前保持 open/pending，不清依赖 |
-| 最终 manual PR 提交 | 人类负责人，在上述硬门满足后 | 才一次请求 exact #342/branch/manual 确认，随后 final-head CI；当前不发可执行提交请求 |
+| 原现场尝试 | 引用原唯一 enable/restore 和三项 HTTP_401 | 完成并已停止；原 AC-4 FAIL 不改 |
+| 完整 PR/本票 ref 读取 | 已安装 typed all pulls 与 exact342 两次 fetch | PASS，旧 FF/第一页/342 namespace 缺口解除 |
+| 本地机器范围投影 | 只回填四文档 approved 状态与 exact git_scope | 原已批准合同及本轮文档授权的投影；无新运行权限 |
+| main 整合与候选提交 | 现有 Controller LocalGit.integrate_main，只有 [候选, fresh main] 双亲 | 以外部回执记录真实 SHA/tree/clean；不得 raw rebase/force |
+| 最终记录票处置及提交 | 一次 exact #342/branch/manual 确认，同时明确保留失败和后继追踪 | 未收到；确认前零 push/PR/labels/state 写入 |
+| PR/CI/manual merge | 确认后核首推 exact H、唯一 PR、summary-only backfill 新 H、required CI | NOT RUN；人类独立审核并 merge |
+| postmerge | 核 main/Issue/docs/原失败记录及精确清理 | NOT RUN，不推导 HSDB 访问/部署完成 |
 
-本轮所有无阻塞动作仅四文档回填、角色/文档/分类/差异/claim/clean 检查、原操作及恢复 evidence 完整性复核和本票 Issue 正文回填。平台 owner 的能力动作不由本票实施或发消息催办。
-
-#343 A2/B2 已提供无历史记录的交接提案；只引用其证据，不再次索取旧记录，不启动其安全恢复或清依赖。HSDB 具体项目接入、部署和 UAT 回到项目主控；本票的文档发表缺口不自动阻塞全部项目工作。
+原批准 Ticket graph 作为历史快照保持 T02/T03 pending。本地候选准备不是恢复访问、完成原 AC 或清除依赖；新的 HSDB 目标不由本票创建重复 owner/Issue。
 
 ## 批准时准备记录（历史快照）
 

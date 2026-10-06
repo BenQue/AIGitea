@@ -36,17 +36,31 @@ status: pending
 
 T02访问目标未通过，Ticket保持pending并因外部访问GAP停止；T03最终PR仍pending。账号窗口已结束，不借此票重试或修改凭据；进一步诊断/安全操作须单独确定具体scope。PR提交及人工合并仍是独立门。
 
-## 本轮发表前置与职责读回
+## 2026-10-06 本 receiver 实际候选准备核验
 
-- fresh typed main fetch PASS，origin/main=`96ba8a17baad8e9854d4e8d0397d4162b8067b09`；#342 Issue 正文读回 SHA256=`41b7f827a644961400779d997a3d2496213b664e1f0ada0852636f6dc5419d4d`，仍 open，标签未含 approved。这是回填前快照，不冒充最终正文摘要。
-- original owner claim 与 exact branch 一致；本轮开始 head=`49d6cd985fed976bf05ce88885ec37271caf4234`，clean。新增文档提交的最终 SHA 另记外部 handoff，不能沿用旧 candidate SHA 作未来 push 锚。
-- Mac installed broker.py/cli.py/contract.py 三份公共源文件均 root-owned/mode0644，逐字等于原验收 source c9b5ef4e…和 fresh main。读取与散列仅公共源文件，credential 内容零读取/散列；整包 provenance/VM重验未运行。
-- 已安装公开 reader 仍 page1；push仍 lease-force。原 exact342 fetch 的 HOST_COMMAND_FAILED 仍不证明 absence，本轮没有重复它。没有 push/PR/CI、raw API、导入未合并 runtime 或安装动作。
-- #327 owner负责合法普通 FF；#336 owner负责完整 PR reader，namespace仅 #333。#342 覆盖仍 GAP；本票不继承 #327 本人自举或 #336 scope。原文档发表硬门不能自动投影为全部 HSDB 部署前置。
-- #343 的 A2/B2 handoff 记录 local head=`da96c0ab1cbdf7e925310d74115d9a56956fee1b`、proposal完成、旧实例归属 null/NOT VERIFIED；其 live Issue 仍是初始R1，不能当作最新提案已远端发布。旧记录不再追索，根因与实际恢复仍 NOT VERIFIED/NOT RUN。
-- 原账号/typed验收/真实同flag恢复仍引用窗口内回执，未再次操作或重跑访问验收。AC-4 FAIL/ACCESS_GAP、T02/T03 pending、depends_on [337,339] 保留；HSDB项目交付由项目主控，本票仅文档核验。
+本轮仅接续已经获准的 #342 有界尝试文档交付准备。原执行 owner 为 `01a10c83-389d-7ab3-b364-59e108f1ca46`；原会话已 HANDOFF_STOP 并归档。根正式指定 receiver `01a10ecb-fcd0-7e10-a564-8a6cf5c83689`，并通过现有 `claim-worktree --takeover` 完成单 writer 接管。
 
-当前 `LOCAL_CANDIDATE_PREPARED / BLOCKED`；最终提交确认、原合同终结决定、required PR CI、merge、清理归档均未完成。具体本地门与最终提交/正文摘要由本轮外部回执记录，不能把文档 PASS 写成访问或部署 PASS。
+原窗口已关闭，AC-4 仍 **FAIL / ACCESS_GAP**，三项 HTTP_401 与真实同 flag 恢复 PASS 保留。T02/T03 pending、depends_on [337,339] 和原 AC 不改变；#337/#339 已 closed/completed。summary/spec 的 approved 与 exact Git scope 仅投影已批准合同和当前四文档本地准备范围，不授权账号、PAT、Secret、权限、安装、部署、push/PR/merge，不启动 provider。原批准历史快照逐字保留。
+
+已安装普通 FF 通道和完整读取已实际核验，而非只沿用旧来源状态：`gitea.pulls.read --state all` 返回 165 条，server_total=count=165、scan_count=2、terminal_empty_pages=[5,5]，stdout digest 对应原始输出；无 #342 既有 PR。对 exact `change/342-hsdb-login-recovery` 两次 `git.fetch.change` 均 PASS、remote_known=true、remote_head=null。该普通 Git operation 会枚举 #342 legacy/semantic refs 并拒绝同编号冲突；#333 专用 namespace receipt 不是这一路径的许可前提。未用 raw API/Git、写操作探读、其它身份或未合并 runtime。
+
+fresh manifest main 为 `11628709e659dac48f5cb66bade81f1617974546`。当前 Mac 28 个公共安装目标、metadata 与 generated source receipt 对应此 merge；本轮 installed 完整 pull 协议与 exact342 普通 fetch 运行 PASS。不宣称本轮新执行 installer/恢复/VM验收，也不以平台读通道证明 HSDB 登录恢复。
+
+原账号审批只绑定历史卡和旧 executor，当前没有重新执行的权限。HSDB 专属接入/恢复的残余目标由 `admin/HSDB` 的 T02/后继项目跟踪继续，实际恢复方案与安全批准仍独立；历史平台 #342 保留真实失败、回滚和批准审计。本候选仅拟发表有界尝试记录，尚未取得接受该记录票关闭及残余目标继续跟踪的明确决定，也未取得最终 PR 提交确认。human manual merge、required CI 以及 postmerge 收尾均未执行。
+
+| 实际命令/检查 | 结果 | 证据边界 |
+|---|---|---|
+| sandbox typed pulls-all/issue342/repo | TRANSPORT_ERROR | 不是认证或不存在证明；同一命令在 host 边界重试 |
+| installed typed gitea.pulls.read --state all | PASS，165 条、两次完整扫描、终止空页、原始 stdout digest 一致 | 完整 PR 历史，无 #342 PR；不是 HSDB 访问验收 |
+| installed typed git.fetch.change --branch change/342-hsdb-login-recovery（两次） | PASS，remote_known=true、remote_head=null | 本票 legacy/semantic ref 命名空间无冲突；来源为 ordinary Git path |
+| installed typed git.fetch.main | PASS，origin/main=11628709e659dac48f5cb66bade81f1617974546 | 只刷新本地 tracking ref，不推送 |
+| installed typed gitea.issue.read --number 342 | PASS，open，security/complex；body SHA256=e20a95b73c9a34490455bb3e143112996dffafa6094866f9be1819e60927f34d | 没有改 Issue/body/label/lifecycle |
+| 28 公共 installed 目标与 generated source receipt 比较 | PASS | 只读公共 bytes/metadata；本轮 installer/VM/恢复验收 NOT RUN |
+| 原 47 项执行 evidence、24 项候选材料、6 项 handoff/bundles | 接收时完整性 PASS | 原失败/恢复/冻结卡不重跑、不修改 |
+| 本次受控 Controller 首次整合 | SCOPE_UNKNOWN: mapped summary lifecycle differs；HEAD 未变 | 原草拟 front matter 未投影已批准状态/exact git_scope；错误保留，不改 runtime/gate |
+| 范围投影后整合、文档/判级/diff/历史检查 | 真实结果填本 receiver 外部回执 | 不预填 PASS；没有 push/PR/CI/merge |
+
+本轮 receiver evidence：`/Users/benque/.codex/visualizations/2026/10/06/01a10ecb-fcd0-7e10-a564-8a6cf5c83689/issue342-candidate-preparation/`。账号/Secret/PAT/ACL/身份/安装/服务写入零；HSDB repo/audit/onboarding 原失败验收没有重跑；PAUSED monitor 未恢复，跨聊天消息零。
 
 ## 批准时准备记录（历史快照）
 

@@ -28,7 +28,7 @@ documents:
   plan: plan-hsdb-login-recovery-261005.md
   verification: verification-hsdb-login-recovery-261005.md
 override_reason: ''
-status: analyzed
+status: approved
 pr_url:
 ---
 
@@ -49,17 +49,19 @@ pr_url:
 
 T02访问目标未通过，Ticket保持pending并因外部访问GAP停止；T03最终PR仍pending。账号窗口已结束，不借此票重试或修改凭据；进一步诊断/安全操作须单独确定具体scope。PR提交及人工合并仍是独立门。
 
-## 本轮文档交付边界与发表缺口
+## 2026-10-06 HSDB 接续文档交付候选
 
-本轮只整理 #342 已执行尝试、真实失败恢复及文档候选，不接管 HSDB 的项目接入、业务修复、部署或 UAT。具体项目方案和现场动作仍由 HSDB 项目主控负责；AISoftPlatform 只处理共享流程与平台自身能力。平台文档的发表门槛不自动成为 HSDB 所有工作的前置。
+本轮仅接续已经获准的 #342 有界尝试文档交付准备。原执行 owner 为 `01a10c83-389d-7ab3-b364-59e108f1ca46`；原会话已 HANDOFF_STOP 并归档。根正式指定 receiver `01a10ecb-fcd0-7e10-a564-8a6cf5c83689`，并通过现有 `claim-worktree --takeover` 完成单 writer 接管。
 
-fresh main 为 `96ba8a17baad8e9854d4e8d0397d4162b8067b09`，#337/#339 已 closed/completed，原 `depends_on: [337,339]` 保留。Mac installed 的 broker.py/cli.py/contract.py 三份公共源字节与原验收 source `c9b5ef4e74592cbc68d6bdc6219568a1d51b6853` 及该 fresh main 相同；只证明这些文件，不代表新能力已安装或整包重验。
+原窗口已关闭，AC-4 仍 **FAIL / ACCESS_GAP**，三项 HTTP_401 与真实同 flag 恢复 PASS 保留。T02/T03 pending、depends_on [337,339] 和原 AC 不改变；#337/#339 已 closed/completed。summary/spec 的 approved 与 exact Git scope 仅投影已批准合同和当前四文档本地准备范围，不授权账号、PAT、Secret、权限、安装、部署、push/PR/merge，不启动 provider。原批准历史快照逐字保留。
 
-当前公开 PR reader 仍固定第一页；失败的 exact branch fetch 不证明 absence。现有 push 仍使用 lease-force，不符合普通 FF 合同。合法发表能力归 #327 owner；完整 PR reader 归 #336 owner，其 namespace 特化仅 #333，不能擅自扩为 #342。未重复失败 fetch、未调用 push 获取内部证明、未安装未合并 reader。
+已安装普通 FF 通道和完整读取已实际核验，而非只沿用旧来源状态：`gitea.pulls.read --state all` 返回 165 条，server_total=count=165、scan_count=2、terminal_empty_pages=[5,5]，stdout digest 对应原始输出；无 #342 既有 PR。对 exact `change/342-hsdb-login-recovery` 两次 `git.fetch.change` 均 PASS、remote_known=true、remote_head=null。该普通 Git operation 会枚举 #342 legacy/semantic refs 并拒绝同编号冲突；#333 专用 namespace receipt 不是这一路径的许可前提。未用 raw API/Git、写操作探读、其它身份或未合并 runtime。
 
-#343 的 A2/B2 无历史记录提案已完成，本地 head `da96c0ab1cbdf7e925310d74115d9a56956fee1b`；旧实例归属字段仍 null/NOT VERIFIED，不再索取不存在的旧记录，也不代表根因证实或恢复获批。本票不代写 #343。
+fresh manifest main 为 `11628709e659dac48f5cb66bade81f1617974546`。当前 Mac 28 个公共安装目标、metadata 与 generated source receipt 对应此 merge；本轮 installed 完整 pull 协议与 exact342 普通 fetch 运行 PASS。不宣称本轮新执行 installer/恢复/VM验收，也不以平台读通道证明 HSDB 登录恢复。
 
-本票保持 `LOCAL_CANDIDATE_PREPARED / BLOCKED`。原 AC-4 为 FAIL/ACCESS_GAP，T02/T03 pending；若拟以有界尝试记录终结，须由人明确处置原合同及后继恢复追踪，当前没有该决定或最终 PR 提交批准。不改 AC、标签或依赖制造完成；暂不实际请求提交确认。
+原账号审批只绑定历史卡和旧 executor，当前没有重新执行的权限。HSDB 专属接入/恢复的残余目标由 `admin/HSDB` 的 T02/后继项目跟踪继续，实际恢复方案与安全批准仍独立；历史平台 #342 保留真实失败、回滚和批准审计。本候选仅拟发表有界尝试记录，尚未取得接受该记录票关闭及残余目标继续跟踪的明确决定，也未取得最终 PR 提交确认。human manual merge、required CI 以及 postmerge 收尾均未执行。
+
+技术发表前置已通过，当前状态为 `LOCAL_DOCUMENT_CANDIDATE / AWAITING_EXACT_FINAL_CONFIRMATION`；PR 草案必须显式保留失败结果及后继追踪边界。候选 exact HEAD、Issue 正文摘要、四文档 hash、main 整合和验证回执记录在本 receiver 的候选审阅包，不能沿用旧 a3a218cc 值作未来 first-push 锚。
 
 ## 批准时准备记录（历史快照）
 
