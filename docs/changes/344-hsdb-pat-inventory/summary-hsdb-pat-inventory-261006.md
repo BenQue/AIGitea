@@ -44,15 +44,15 @@ updated: 2026-10-06
 
 ## 唯一归属与当前授权
 
-- Issue：#344；manual，routine disabled；owner/session `01a10ebe-7d29-73d0-9151-51fd09f71b49`。
+- Issue：#344；manual，routine disabled；current owner/session `01a10ecc-1a09-78b0-8e41-2b15de72df43`。原T01 owner `01a10ebe-7d29-73d0-9151-51fd09f71b49` 已HANDOFF_STOP，正式takeover和原聊天归档已在仓外HANDOFF_ACCEPTED实证；保留原准备证据。
 - tuple：`change/344-hsdb-pat-inventory` / `docs/changes/344-hsdb-pat-inventory/` / `/private/tmp/issue-344-hsdb-pat-inventory`。
-- fresh source main/base：`96ba8a17baad8e9854d4e8d0397d4162b8067b09`；shared primary仍为 `c9b5ef4e74592cbc68d6bdc6219568a1d51b6853`，未在其写合同。
-- 本轮授权来自总调度派发的人类顺序授权，只包含只读查重、唯一立案/claim、四角色合同/证据、本地文档提交与审阅卡。完成T01立即STOP；未设置approved、未运行Loop。
+- T01历史fresh source main/base：`96ba8a17baad8e9854d4e8d0397d4162b8067b09`；shared primary仍为 `c9b5ef4e74592cbc68d6bdc6219568a1d51b6853`，未在其写合同。
+- 原T01授权只包含只读查重、唯一立案/claim、四角色合同/证据、本地文档提交与审阅卡，已完成并STOP。接续准备仅允许公共只读核验和仓外G1六路径候选/确认卡；实际G1批准、应用与本地commit仍待人类具体决定。未设置approved、未运行Loop。
 - 未来G1需人批准exact治理delta并独立应用/STOP；fresh run重新读取后才可准备/执行后继runtime合同。本草稿不能自行新增运行权限。
 
 ## 影响范围与查重
 
-fresh open Issues为#327/#333/#336/#340/#342/#343；其正文与评论均已读，无同能力owner。#333的marker读取只限smoke-test，#336尚未发布/安装且namespace只覆盖#333，#327仍open。各owner/worktree/批准均未接管。证据见[查重](evidence/deduplication.json)、[installed catalog](evidence/installed-catalog.json)。
+T01当时fresh open Issues为#327/#333/#336/#340/#342/#343；其正文与评论均已读，无同能力owner。#333的marker读取只限smoke-test，#336尚未发布/安装且namespace只覆盖#333，#327仍open。各owner/worktree/批准均未接管。证据见[查重](evidence/deduplication.json)、[installed catalog](evidence/installed-catalog.json)。
 
 fixed Gitea 1.26.4，UID3/aisoft-platform-manager 和 UID5/hsdb-agent，每次一个target/exact request；仅安全人类身份通道GET清单，严格metadata allowlist；不读canonical token内容/hash。Mac-only、用户路径、无sudo；输入终止、源码回退、安装恢复和现场read窗口分开。
 
@@ -102,3 +102,11 @@ override_reason: ''
 HSDB是该能力消费方。HSDB一次性现场read请求、hsdb-agent凭据/flag恢复与adoption、项目本地部署、环境/配置、迁移/备份/恢复、应用健康检查、业务修复、UAT和公司试运行均由`admin/HSDB`的对应既有聊天及独立项目合同追踪；不在AISoftPlatform新建或承接，不以平台completed取代HSDB验收。共享manager-mutation影响所有平台消费者的恢复另用平台security合同，不能与HSDB agent恢复合票。
 
 本轮保留#344/owner/claim及原授权，既有#342/#343仅exact证据输入，不自行迁移/关闭/接管。未来若仅剩HSDB一次性现场处置而没有共享工具/协议/治理delta，停止该混入范围并交根拆分，不用平台票容纳项目推进。后继项目票号/owner/窗口均null；本轮不创建项目票，不使用未验收跨仓broker能力来投影项目状态。
+
+## G1/T02 六路径候选与启动边界
+
+本次具体候选把已定义的固定UID3/UID5、GET/human auth、TLS、输出allowlist、分页与资源硬门、三类恢复及仓库归属规则写入[共享reference](../../../skill-for-codex/references/hsdb-current-pat-inventory.md)，并在`codex/skills/gitea-platform-ops/SKILL.md`增加仅该规范的读取指针。四角色只同步正式接续owner、当前筹备状态、exact路径、应用/验证/恢复/STOP计划；不改变原6AC、security/complex/add/manual或deps[337,339]。
+
+G1启动决定只绑定spec列出的六个路径和仓外审阅卡的exact patch SHA256；不得只按方向自动扩范围。确认后独立受控步骤执行本地应用、文档/范围校验、一个原子commit并STOP。Git发布仍待唯一最终PR确认，源工具/安装/现场读取及恢复仍按各自具体合同执行，本次不新建立案或派发。
+
+人类批准、实际应用和commit结果以仓外回执为准；本候选保留`status=contract-drafting`和空`pr_url`，不预填未运行结果，也不修改Issue正文/状态/labels。安全origin/operator UID/tool pin/read window继续null/GAP，12组未来runtime设计仍NOT RUN；这些不是G1文档准备的前置。既有evidence JSON继续作为原T01快照，G1不改写其历史。

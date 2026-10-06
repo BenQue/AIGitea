@@ -28,10 +28,10 @@ updated: 2026-10-06
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | fresh inventory/dedup、唯一Issue/claim、四角色/证据、本地文档候选与审阅卡后STOP | - | done |
-| T02 | 新人类决定绑定G1六治理路径；独立run应用/校验、本地commit后STOP | T01 | blocked |
+| T02 | 人类具体确认exact六路径patch后，独立run应用/校验/一个本地commit/STOP | T01及G1具体确认 | blocked |
 | T03 | fresh只读审查治理候选、exact范围/required docs/分类；形成唯一manual PR候选 | T02 | blocked |
 
-T01是本轮唯一frontier；done只表示局部准备完成，Issue仍contract-drafting/open，G1和其后均未批准。T02只治理，无runtime。T03只有新的最终PR授权才remote push/create；本轮没有该授权。人工merge、exact main/终态/cleanup另按确定性平台流程，无自动merge。
+T01已由原owner准备完成并STOP，done只表示局部准备完成。正式接续后本轮frontier仅仓外G1/T02六路径卡准备；T02仍blocked，等待具体人类确认，Issue仍contract-drafting/open，G1和其后均未批准。T02只治理，无runtime。T03只有新的最终PR授权才remote push/create；本轮没有该授权。人工merge、exact main/终态/cleanup另按确定性平台流程，无自动merge。
 
 ## Expected touch points
 
@@ -95,3 +95,13 @@ future source shell修改按AGENTS运行bash -n、可用ShellCheck与完整smoke
 HSDB是该能力消费方。HSDB一次性现场read请求、hsdb-agent凭据/flag恢复与adoption、项目本地部署、环境/配置、迁移/备份/恢复、应用健康检查、业务修复、UAT和公司试运行均由`admin/HSDB`的对应既有聊天及独立项目合同追踪；不在AISoftPlatform新建或承接，不以平台completed取代HSDB验收。共享manager-mutation影响所有平台消费者的恢复另用平台security合同，不能与HSDB agent恢复合票。
 
 本轮保留#344/owner/claim及原授权，既有#342/#343仅exact证据输入，不自行迁移/关闭/接管。未来若仅剩HSDB一次性现场处置而没有共享工具/协议/治理delta，停止该混入范围并交根拆分，不用平台票容纳项目推进。后继项目票号/owner/窗口均null；本轮不创建项目票，不使用未验收跨仓broker能力来投影项目状态。
+
+## G1/T02 具体执行与恢复计划（实际批准前全部NOT RUN）
+
+1. 独立受控步骤重读本票四角色、AGENTS和已确认仓外卡；核本会话claim、exact branch、card/patch SHA256、HEAD=`09084e19a8b1a3bb018f70d80e1a3b1cc3611a88`、clean及六路径before bytes。任何漂移先STOP，不自动rebase/接管或调整patch。cached base=`96ba8a17baad8e9854d4e8d0397d4162b8067b09`只是原候选锚；后续发布fresh main另验。
+2. 先以`git apply --check <approved-patch>`核exact候选，再以`git apply <approved-patch>`只应用spec六路径。不得把仓外卡/校验脚本/fixture/receipt、evidence JSON、AGENTS、runtime或global安装面加入本票delta。
+3. 运行既有CLI `resolve-documents 344`、`resolve-required-documents 344`、`check-change-documents --repo <ownedWT>`；核`git diff --check`与包含新reference的六路径scope、各candidate文件hash及skill/reference链接。保留6AC、deps[337,339]、security/complex/add/manual和Q-01…Q-12；runtime/smoke/bash-n/ShellCheck因零shell/runtime差量仍NOT RUN。public evidence manifest保持原T01快照原字节。
+4. 只暂存六个明确路径并核staged hash/scope；创建一个本地原子commit `docs: apply issue 344 current PAT inventory governance`。写仓外实际结果/前后HEAD/tree/claim/clean/hashes/验证回执后立即STOP。实际人类确认仅此G1独立步骤，不运行Controller/provider、不写Issue标签/正文、不push/PR或派发后继。
+5. commit前失败：核六路径仍等于candidate且无其它编辑后，`git apply --reverse --check <approved-patch>`再反向应用，验证五文件旧hash、新reference缺失、HEAD不变且clean。commit后失败：HEAD必须exact等于本次G1 commit且未push/无其它编辑才对该exact commit本地revert；不reset/rebase。遇漂移则STOP保留材料。恢复不涉及PAT/账号、安装或服务。
+
+G1 card准备与隔离patch/document核验可以现在完成，不以尚无工具/TLS/human UID或#342/#343访问PASS作为前置。启动确认只审当前六路径；其它具体合同由其实际阶段处理，本轮不创建票或叠加审批链。

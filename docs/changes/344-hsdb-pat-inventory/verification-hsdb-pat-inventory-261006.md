@@ -21,7 +21,9 @@ created: 2026-10-06
 updated: 2026-10-06
 ---
 
-# #344 · T01治理准备Verification
+# #344 · T01历史证据与G1候选Verification
+
+下列T01表格和原结构核验是原owner准备时的历史证据，保留原字节含义；不表示接续会话重新运行远程读取、分类投影或现场验证。G1接续结果分列在文末。
 
 ## 基线、归属与证据层
 
@@ -80,3 +82,11 @@ HSDB是该能力消费方。HSDB一次性现场read请求、hsdb-agent凭据/fla
 `local-contract-check.json`实际PASS：classification parser/route=security/complex/add、manual/routine=false；read-only `load_contract(allowed_lifecycle=spec-drafting)`获得6AC、4roles、deps[337,339]；默认`approved`启动门真实拒绝（当前spec-drafting）；Ticket graph T01 done、T02/T03 blocked；claim本owner且last_push_head=null；精确9文件与公开evidence manifest哈希一致。该只读draft校验不是批准或Loop执行。
 
 本轮既有shell/runtime零修改，所以不重跑smoke、bash -n、ShellCheck或runtime test suites；这些为NOT RUN，未来源实现修改shell时必须按AGENTS真实运行。staged diff --check、最终document gate、clean/head/tree与primary/其它owner未变读回在仓外final-checks/handoff存实际结果，不把未提交验证预填为PASS。
+
+## 正式接续与G1证据分层
+
+- 原owner `01a10ebe-7d29-73d0-9151-51fd09f71b49` HANDOFF_STOP；current owner `01a10ecc-1a09-78b0-8e41-2b15de72df43` 已通过正式claim-worktree --takeover接管，claim读回一致；原聊天已actual archive。
+- 仓外`issue-344-reception/HANDOFF_ACCEPTED-344.json`实证：交接包hash、9文件范围/HEAD字节、patch/bundle/card hashes、old/new claim核验PASS；original HEAD=`09084e19a8b1a3bb018f70d80e1a3b1cc3611a88`、tree=`fd3b732c5f490c49aec6aa8e472ab17a9d59ffae`、clean保持。该接收不是G1批准。
+- G1六路径拟议文本、patch与文件manifest在本会话仓外审阅包保存；四角色、reference和skill候选必须独立核验，实际运行结果只记仓外checks.json，不能用拟议文本预填应用PASS。
+- G1人类具体确认、repo apply、local commit/revert、Issue正文/状态/labels、runtime、push/PR/CI/merge、安装/真实read/凭据或账号/服务/部署仍NOT RUN。Q-01…Q-12只是后继设计，未执行；PAUSED监控继续保持。
+- G1执行后才追加真实命令与结果回执；本候选不提前宣称T02 done或Issue completed。旧五个公开JSON作为T01历史快照保留，不因G1文档修改更新为批准、installed或现场结果。

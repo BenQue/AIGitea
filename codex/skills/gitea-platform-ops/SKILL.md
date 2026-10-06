@@ -32,3 +32,7 @@ description: Diagnose or improve the documented Gitea, act_runner, artifact, dep
 19. In production, allow only pre-validated artifacts and scripts. Do not generate or execute ad hoc production commands, modify scripts in place, bypass checks, or auto-retry dangerous operations.
 20. For production failures, stop/rollback first, analyze sanitized evidence, reproduce and fix in non-production, verify, and prepare a PR before a human reruns production scripts.
 21. Report observed, changed, verified, and pending separately. Never claim an unrun check passed.
+
+## Purpose-bound HSDB CURRENT PAT inventory governance
+
+For the fixed UID3/aisoft-platform-manager and UID5/hsdb-agent CURRENT metadata use case, read [the shared inventory governance reference](../../../skill-for-codex/references/hsdb-current-pat-inventory.md) before preparing its contract. This pointer records the Issue #344 governance boundary; it is not a tool entrypoint or permission to enter a PAT/Secret page, collect Basic/OTP input, call a token-list API, or use a service-account credential as a fallback. G1 applies governance only and stops; a fresh run must read the effective rules before separately scoped source, installation or consumer-read work. HSDB consumer recovery, deployment and acceptance stay in admin/HSDB; shared tool/protocol governance stays in admin/aisoft-platform. Do not resume the PAUSED monitor or reuse a closed security window.

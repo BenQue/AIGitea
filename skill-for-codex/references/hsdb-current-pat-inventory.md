@@ -1,31 +1,14 @@
----
-issue: 344
-gitea_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/344
-change_type: security
-requested_complexity: complex
-assessed_complexity: complex
-effective_complexity: complex
-contract_effect: add
-confidence: high
-risk_flags:
-  - external-contract
-  - authentication
-  - security
-  - platform-governance
-depends_on:
-  - 337
-  - 339
-status: contract-drafting
-branch: change/344-hsdb-pat-inventory
-created: 2026-10-06
-updated: 2026-10-06
----
+# HSDB CURRENT PAT inventory · 目的限定共享治理规范
 
-# #344 · 固定身份 CURRENT metadata 读取治理规范
+治理来源：`admin/aisoft-platform#344`，security/complex/add/manual，routine disabled。该source规范承接本票已审spec，G1须经具体人类确认独立应用、验证、本地commit并STOP；后续fresh run重读实际规则。本文没有工具入口或现场授权，不改变existing 38-op broker、canonical manifests、credential helper、Controller/provider或CI。
 
-## 成功定义与批准范围
+## 归属与分阶段授权
 
-本票只交付目的限定工具的治理规范。以下“必须”是待批准的未来规则，不能被当前run用于扩大授权。T01准备已完成并保留原证据；接续会话当前只准备仓外G1六路径候选。G1必须在独立受控步骤取得绑定具体差量的人类批准、应用、校验、本地commit并STOP。后继fresh run重读当前AGENTS、已生效规范及映射spec/plan后，另立唯一源实现security/complex/manual Issue，才可按其已批准合同实施runtime。不得用#333/#336未合并代码、fixture、旧安装批准或本草稿自举。
+共享CURRENT工具/协议/治理留在`admin/aisoft-platform`，范围固定UID3/aisoft-platform-manager与UID5/hsdb-agent，不扩大任意账号。HSDB消费方一次性read、hsdb-agent恢复/flag/adoption、配置/业务/迁移/备份恢复/健康检查/部署/UAT/公司试运行归`admin/HSDB`；共享manager-mutation恢复另按平台security合同。
+
+治理source声明、工具源/local/CI/merge、用户安装及现场CURRENT清单分别凭实际证据验收。G1只交付治理文本；source工具、安装和read须在各自具体阶段按既有合同门绑定目标/identity/TLS/pin/窗口。G1不创建或派发这些票，不新增helper/authority/grant，旧#342账号窗口不可复用，平台监控仍PAUSED。
+
+`depends_on=[337,339]`。#342失败结果与#343卡只是exact证据输入，不代改其AC/依赖/标签，不以其closed或HSDB访问PASS作为CURRENT合同准备前置。旧PAT provenance/canonical映射继续null/NOT VERIFIED；清单一致性不证明ownership或ACCESS_PASS。
 
 ## 固定target/request与人类身份
 
@@ -47,7 +30,7 @@ updated: 2026-10-06
 
 ## 固定版本API证据及证明边界
 
-已先Context7 `resolve-library-id`、再`query-docs`，选择`/go-gitea/gitea`；返回main内容，不能作为1.26.4版本证据。另核[官方v1.26.4路由](https://github.com/go-gitea/gitea/blob/v1.26.4/routers/api/v1/api.go)、[列表实现](https://github.com/go-gitea/gitea/blob/v1.26.4/routers/api/v1/user/app.go)、[响应字段](https://github.com/go-gitea/gitea/blob/v1.26.4/modules/structs/user_app.go)与[模型](https://github.com/go-gitea/gitea/blob/v1.26.4/models/auth/access_token.go)，复核#343 public module SHA，见[evidence](evidence/api-source-evidence.json)。
+已先Context7 `resolve-library-id`、再`query-docs`，选择`/go-gitea/gitea`；返回main内容，不能作为1.26.4版本证据。另核[官方v1.26.4路由](https://github.com/go-gitea/gitea/blob/v1.26.4/routers/api/v1/api.go)、[列表实现](https://github.com/go-gitea/gitea/blob/v1.26.4/routers/api/v1/user/app.go)、[响应字段](https://github.com/go-gitea/gitea/blob/v1.26.4/modules/structs/user_app.go)与[模型](https://github.com/go-gitea/gitea/blob/v1.26.4/models/auth/access_token.go)，复核#343 public module SHA，见[固定公开源证据](../../docs/changes/344-hsdb-pat-inventory/evidence/api-source-evidence.json)。
 
 源码结论：tokens路由要求self或site-admin及Basic或显式启用的reverse-proxy API auth；列表按ContextUser UID查询并给X-Total-Count。响应包含ID/name/scopes/created_at/last_used_at和token_last_eight，不能直接保存原响应。`sha1`即使通常为空也必须丢弃。更新时间代表服务器报告的最后使用时间，不能证明调用者、消费者、canonical绑定或当前token仍被使用。
 
@@ -102,61 +85,9 @@ tool提案为新的独立用户工具，**不**修改existing 38-op broker/canon
 - 安装恢复：未来窄用户installer只处理exact tool files/launcher/public receipt，安装前保留可验snapshot和previous pin；独立窗口真实restore/no-op验证。无previous若明确fresh install，恢复仅删除已证本候选新增文件；unknown previous STOP。restore不恢复/撤销任何PAT。
 - 实际清单失败：保留GAP和固定码，窗口关闭，不改密码/UID5 flag/ACL，不重新启用、不自动issue/revoke/rotate/PAT发布；清单成功也不授予这些动作。
 
-## AC与可审范围
 
-| AC | 本Issue治理交付标准 | 本轮状态 |
-|---|---|---|
-| AC-1 | fresh查重/唯一tuple/claim/四角色/security-complex/manual/deps[337,339]可复核 | 待最终check |
-| AC-2 | fixed UID3/5/单request/GET-only/human auth/安全transport/严格输出与Secret边界完整 | 合同已写；现场NOT RUN |
-| AC-3 | 分页/总数/重复/漂移/identity/version/time/bytes/Secret负例矩阵可执行设计 | 合同已写；runtime tests NOT RUN |
-| AC-4 | Mac-only/no-sudo/候选路径/输入/source/安装恢复独立；文档diff/scope真实检查 | 待最终check |
-| AC-5 | G1独立批准/应用/STOP与fresh R/source/install/read门分开，无自举 | 本轮只T01；其余NOT RUN |
-| AC-6 | #342发表处置和清单能力分开，不代改#343依赖，不以访问PASS作清单前置 | deps未改；后继NOT RUN |
+## 适用前提与停止
 
-本轮exact tracked allowlist：本目录四角色与`evidence/`五个JSON（installed-catalog/api-source-evidence/deduplication/inputs/manifest），无其它路径。外部审阅卡、receipt、diff/check输出只在本会话visualizations目录保存。
+当前现场operator UID/login、安全origin、工具source/installed pin及read window均未绑定（null/GAP）；实际身份输入、网络查询、PAT/Secret页面和DB均NOT RUN。缺安全transport或可信human identity时必须在输入/请求前拒绝，不能从服务账号PAT、旧grant或已登录浏览器猜测授权，也不能自动调整服务解决缺口。
 
-G1 exact六路径（待实际人类批准）如下；拟议patch只有这六路径，四角色具体差量与新规范全文均须可审：
-
-| 路径 | 具体差量 |
-|---|---|
-| `docs/changes/344-hsdb-pat-inventory/summary-hsdb-pat-inventory-261006.md` | 正式接续owner、T01历史标识、G1候选与exact批准边界 |
-| `docs/changes/344-hsdb-pat-inventory/spec-hsdb-pat-inventory-261006.md` | 六路径与应用/校验/commit/STOP、恢复要求；原接口/6AC不变 |
-| `docs/changes/344-hsdb-pat-inventory/plan-hsdb-pat-inventory-261006.md` | T02当前等待具体确认；应用、隔离核验、本地commit和恢复步骤 |
-| `docs/changes/344-hsdb-pat-inventory/verification-hsdb-pat-inventory-261006.md` | 原T01证据标识与接续/G1证据分层；实际应用与commit不预填PASS |
-| `skill-for-codex/references/hsdb-current-pat-inventory.md` | 新共享规范，完整承接本spec已定义的固定target/GET/human/TLS/输出/分页/资源/恢复及仓库边界 |
-| `codex/skills/gitea-platform-ops/SKILL.md` | 只追加目的限定的共享规范读取指针；不安装到global skills、不提供工具调用入口 |
-
-确认绑定仓外审阅卡、exact HEAD和patch SHA256；应用时仍须核current owner/HEAD/clean、五个现存路径旧字节与新reference不存在。只应用已审差量，验证scope=上述六路径、resolver/required-docs/document gate、reference/skill链接、原6AC/12组设计/deps保留，再作一个本地原子commit并STOP。执行回执记录实际前后head/tree、patch/各文件hash、命令结果和恢复材料；未执行检查保持NOT RUN。批准证据保存在仓外，不据本G1步骤改Issue正文/状态/labels或启动Controller/provider。
-
-未commit恢复只反向应用同一exact patch，要求六路径当前字节等于已审candidate且没有后续编辑；恢复后五个原文件字节相等、新reference不存在、原HEAD未变且clean。已commit时只有HEAD确为本次G1 commit且无其它编辑、未push，才对该exact commit本地revert；不reset/rebase、不改其它owner。漂移即STOP保留证据，不覆盖他人修改。此恢复仅撤销六文件文本，不处理账号/PAT/服务。
-
-不改AGENTS、evidence JSON、global安装skills、runtime/catalog/manifests。G1 commit后STOP；后续fresh run重新读取实际生效规则，不能用本run的治理变更实现runtime。
-
-未来源码提案（当前未授权、未创建Issue）独立新目录`codex/tools/hsdb-current-pat-inventory/`八路径：README.md、policy.json、query.py、authorize.py、install.sh、hsdb-current-pat-inventory.sh、tests/test_query.py、tests/test_install.py。只是待该source spec审阅的建议；不能按本proposal直接改这八文件。安全origin、人类UID、解释器/发布信任及新source Issue须实际绑定，`null`不能进入运行policy。既有 broker/runtime、Controller、CI与其它owner仍无改动许可。
-
-## 非目标与未运行层
-
-runtime/CLI/tool/manifests/AGENTS/global skill实现；push/PR/merge；install/root/sudo/helper/grant；实际PAT/Secret页面或list API/DB；canonical内容/hash；签发/撤销/轮换/发布凭据；密码/flag/ACL/保护；服务/VM/部署/UAT/后台任务；代写#327/#333/#336/#342/#343或向其它聊天发消息，全部排除。
-
-共享平台源实现和工具安装分别后继平台具体合同；HSDB read现场及hsdb-agent恢复归HSDB独立项目合同。共享manager-mutation恢复属于平台独立security合同；两者分别owner/窗口，不合票。旧ID/name/scopes/provenance=null/NOT VERIFIED，CURRENT不得推断canonical；未知旧PAT每ID保留/处置和共享audit消费者影响留给恢复合同。#344不能代解除#342 AC-4 FAIL、关闭#343、推进命名B治理或业务UAT。
-
-## 2026-10-06 人类补充的仓库归属边界
-
-人类直接补充：“当前项目具体部署的问题，不要在 aisoft 平台创建。具体项目的推进在本项目里处理。”本票据此仅保留真实**共享平台能力**：共享manager与固定受管agent的CURRENT清单工具、版本/身份/分页/Secret剔除协议及平台治理例外；工具源规范/代码和共享用户安装合同属于`admin/aisoft-platform`。首个受控用例为UID3/UID5，允许范围仍固定两者，不借“共享”扩大为任意账户读取。
-
-HSDB是该能力消费方。HSDB一次性现场read请求、hsdb-agent凭据/flag恢复与adoption、项目本地部署、环境/配置、迁移/备份/恢复、应用健康检查、业务修复、UAT和公司试运行均由`admin/HSDB`的对应既有聊天及独立项目合同追踪；不在AISoftPlatform新建或承接，不以平台completed取代HSDB验收。共享manager-mutation影响所有平台消费者的恢复另用平台security合同，不能与HSDB agent恢复合票。
-
-本轮保留#344/owner/claim及原授权，既有#342/#343仅exact证据输入，不自行迁移/关闭/接管。未来若仅剩HSDB一次性现场处置而没有共享工具/协议/治理delta，停止该混入范围并交根拆分，不用平台票容纳项目推进。后继项目票号/owner/窗口均null；本轮不创建项目票，不使用未验收跨仓broker能力来投影项目状态。
-
-## Acceptance criteria
-
-- [ ] AC-1：fresh查重/唯一Issue/claim/tuple/四角色/security-complex/manual/deps[337,339]真实验证。
-- [ ] AC-2：固定UID3/5、single request、GET/human auth、安全transport和Secret-free输出治理合同完整。
-- [ ] AC-3：Q-01…Q-12明确分页/总数/重复/漂移/身份/版本/timeout/Secret剔除与失败关闭验收设计。
-- [ ] AC-4：Mac-only/no-sudo候选路径、输入/source/install恢复独立，文档diff/scope真实PASS。
-- [ ] AC-5：G1独立批准/受控apply/STOP→fresh successor读取与source/install/read分别授权，禁止自举。
-- [ ] AC-6：#342发表处置与共享能力前置不同；不改#343依赖，不以HSDB访问PASS作清单前置；项目消费方归admin/HSDB。
-
-## 未决问题
-
-无本票治理文档方向待决。G1实际人类批准尚未取得；future安全origin、人类UID、工具pin、后继票号及现场窗口均null/GAP，必须在各自后继具体合同绑定，不能作为本票runtime授权或替本票设置approved。本轮T01 STOP不提前验收G1应用。
+规范全文及负例设计见[#344 spec](../../docs/changes/344-hsdb-pat-inventory/spec-hsdb-pat-inventory-261006.md)和[Q-01…Q-12计划](../../docs/changes/344-hsdb-pat-inventory/plan-hsdb-pat-inventory-261006.md)。它们当前是文档设计，runtime tests/真实清单均NOT RUN。若scope、identity、source pin或任何证据不一致，STOP并保留固定非Secret失败码，不自动重试、写安全状态或恢复原监控。
