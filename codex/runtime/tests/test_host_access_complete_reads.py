@@ -376,6 +376,44 @@ class CompleteNamespaceReads(unittest.TestCase):
     def read(self, broker):
         return broker.execute('aisoft-platform', 'git.fetch.change', branch='change/333-pat-rotation-acceptance')
 
+    def test_namespace_read_refuses_target_remote_or_identity_before_git(self):
+        for gate in ('_validated_project_worktree', '_validated_remote', '_verify_identity'):
+            with self.subTest(gate=gate):
+                broker = self.broker(['', ''])
+                setattr(broker, gate, Mock(side_effect=BrokerError('TARGET_MISMATCH', 'synthetic refusal')))
+                with self.assertRaises(BrokerError) as caught:
+                    self.read(broker)
+                self.assertEqual(caught.exception.code, 'TARGET_MISMATCH')
+                self.assertEqual(self.commands, [])
+                self.assertFalse(hasattr(caught.exception, 'public_receipt'))
+
+    def test_namespace_read_uses_only_the_fixed_sanitized_git_environment(self):
+        broker = self.broker(['', ''])
+        original = broker.runner
+        environments = []
+        def runner(argv, **kwargs):
+            environments.append(dict(kwargs['env']))
+            return original(argv, **kwargs)
+        broker.runner = runner
+        foreign = {'GIT_CONFIG_PARAMETERS': 'synthetic override', 'GIT_SSH_COMMAND': 'synthetic command',
+                   'PYTHONPATH': '/synthetic/foreign', 'LD_PRELOAD': '/synthetic/foreign'}
+        with patch.dict(os.environ, foreign), self.assertRaises(BrokerError) as caught:
+            self.read(broker)
+        self.assertEqual(caught.exception.code, 'REMOTE_CHANGE_ABSENT')
+        self.assertEqual(len(environments), 2)
+        for env in environments:
+            self.assertTrue(set(foreign).isdisjoint(env))
+            pairs = [(env['GIT_CONFIG_KEY_' + str(i)], env['GIT_CONFIG_VALUE_' + str(i)])
+                     for i in range(int(env['GIT_CONFIG_COUNT']))]
+            self.assertEqual(pairs[-3:], [('credential.helper', ''),
+                                         ('credential.helper', broker.contract.raw['mac_host']['credential_helper']),
+                                         ('credential.useHttpPath', 'true')])
+            self.assertIn(('core.hooksPath', '/dev/null'), pairs)
+            self.assertIn(('submodule.recurse', 'false'), pairs)
+            self.assertEqual(env['PATH'], '/usr/bin:/bin')
+            self.assertEqual(env['GIT_CONFIG_GLOBAL'], '/dev/null')
+            self.assertEqual(env['GIT_TERMINAL_PROMPT'], '0')
+
     def test_explicit_absence_keeps_nonzero_contract_with_two_empty_observations(self):
         with self.assertRaises(BrokerError) as caught:
             self.read(self.broker(['', '']))
