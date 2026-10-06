@@ -1,0 +1,26 @@
+{
+  "result": "PASS",
+  "baseline_source": "e2edb3e08194624a6647212571c6cc866298575b",
+  "approved_contract_commit": "53078bfa0ea42ce0c7fd8ce2bd7d63eaafedb2a8",
+  "only_new_project": "hsdb",
+  "only_new_repository": "HSDB",
+  "existing_access_declarations_unchanged": true,
+  "existing_governance_declarations_unchanged_except_non_target_seal": true,
+  "non_target_seal_matches_same_tree": true,
+  "protected_files_unchanged": [
+    "AGENTS.md",
+    "codex/runtime/aisoft_host_access/contract.py",
+    "codex/runtime/aisoft_gitea_governance/contract.py",
+    "codex/tests/smoke.sh",
+    ".gitea/workflows/ci.yml"
+  ],
+  "vm_profile_repositories": [
+    "LocalWMS",
+    "NewEMaint",
+    "aisoft-platform"
+  ],
+  "project_count": 7,
+  "operation_count": 38,
+  "production_runtime_changes": false,
+  "secret_values_read_or_printed": false
+}

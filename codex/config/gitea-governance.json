@@ -110,6 +110,18 @@
       "required_approvals": 0
     },
     {
+      "name": "HSDB",
+      "classification": "internal-application",
+      "visibility": "private",
+      "project_agent": "hsdb-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": null,
+      "status_check_contexts": [
+        "CI / test (pull_request)"
+      ],
+      "required_approvals": 0
+    },
+    {
       "name": "LocalWMS",
       "classification": "internal-application",
       "change_control": "development",
@@ -146,7 +158,7 @@
         "routine_source_merged_sha": "8d109b14b6e0936be30f6f287ff6050e48632e0b",
         "governance_baseline_issue": 35,
         "governance_baseline_merged_sha": "69251fd4d07665385eb6d9142038848c2b9392d7",
-        "non_target_repositories_sha256": "4969422f72782de90155881cc4a92720dfd1ee5f468e940bd30ac7a666b0df85",
+        "non_target_repositories_sha256": "d45a20abb3224a5e02b1e22c338429017c9ff88d80fd5fc597bffb97a90e9334",
         "canary_issue": 74,
         "required_contexts": [
           "CI / verify (pull_request)",

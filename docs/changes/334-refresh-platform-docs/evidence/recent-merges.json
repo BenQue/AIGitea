@@ -1,0 +1,266 @@
+[
+  {
+    "merge_sha": "dc9aa468580f92a73dfa054c6f04ef5113f56694",
+    "date": "2026-10-03",
+    "title": "Merge pull request 'feat(credentials): 增加受控、可恢复的服务账号 PAT 轮换 (#316)' (#332) from change/316-service-pat-rotation into main",
+    "issue": 316,
+    "slug": "service-pat-rotation",
+    "pr": 332
+  },
+  {
+    "merge_sha": "ee5d2ce4900496c6e9165b78d6a5b5b4447cfc71",
+    "date": "2026-10-03",
+    "title": "Merge pull request 'maintenance: #311 保留在用 node22 并补 unknown 来源记录' (#329) from change/311-node22-provenance into main",
+    "issue": 311,
+    "slug": "node22-provenance",
+    "pr": 329
+  },
+  {
+    "merge_sha": "4020765816862d4471268dcb1a745633b3e55ff4",
+    "date": "2026-10-03",
+    "title": "Merge pull request 'feat(#286): 支持 manifest 限定跨仓 Issue 依赖' (#330) from change/286-dependency-references into main",
+    "issue": 286,
+    "slug": "dependency-references",
+    "pr": 330
+  },
+  {
+    "merge_sha": "d647963bcfd6508c8c07baea8d3ef0e4e6a0e35d",
+    "date": "2026-10-03",
+    "title": "Merge pull request 'fix: #317 阻止迁移后无兼容依据的旧镜像回退' (#331) from change/317-migration-rollback-guard into main",
+    "issue": 317,
+    "slug": "migration-rollback-guard",
+    "pr": 331
+  },
+  {
+    "merge_sha": "16beee09aefe89b5bc80a31544c59d456190ea32",
+    "date": "2026-10-03",
+    "title": "Merge pull request 'fix: #289 统一 required_docs 声明与终态校验' (#325) from change/289-required-docs-source into main",
+    "issue": 289,
+    "slug": "required-docs-source",
+    "pr": 325
+  },
+  {
+    "merge_sha": "70baa3588c0504e5d81facd99c63b74741967967",
+    "date": "2026-10-02",
+    "title": "Merge pull request 'fix(ci): 修复 Bash 3.2 UTF-8 registry 预检误报 (#319)' (#323) from change/319-registry-utf8-exit into main",
+    "issue": 319,
+    "slug": "registry-utf8-exit",
+    "pr": 323
+  },
+  {
+    "merge_sha": "bd1761d99a3eb97efc73ea4d6622613d32a1b5ba",
+    "date": "2026-10-02",
+    "title": "Merge pull request 'fix(architecture): enforce Dockerfile FROM digest contract (#288)' (#328) from change/288-dockerfile-digest into main",
+    "issue": 288,
+    "slug": "dockerfile-digest",
+    "pr": 328
+  },
+  {
+    "merge_sha": "65268ee5f1e622c486fd9e354dd35e20a2900f91",
+    "date": "2026-10-02",
+    "title": "Merge pull request 'platform: add read-only drift checks for eight installer surfaces (#308)' (#326) from change/308-installed-drift-check into main",
+    "issue": 308,
+    "slug": "installed-drift-check",
+    "pr": 326
+  },
+  {
+    "merge_sha": "14bfe6edea6a78e994daac88b3615c009ae37fea",
+    "date": "2026-10-02",
+    "title": "Merge pull request 'fix(architecture): stabilize profile prose checksums with V2 locks (#287)' (#324) from change/287-profile-semantic-lock into main",
+    "issue": 287,
+    "slug": "profile-semantic-lock",
+    "pr": 324
+  },
+  {
+    "merge_sha": "11c0410d3878d5449fa61796f174ba3d2dd5e59c",
+    "date": "2026-10-02",
+    "title": "Merge pull request 'docs(governance): clarify per-push SHA anchors (#320)' (#322) from change/320-push-head-anchor into main",
+    "issue": 320,
+    "slug": "push-head-anchor",
+    "pr": 322
+  },
+  {
+    "merge_sha": "5c2cd726c9aeaee9d17541d8feb049e33881bbac",
+    "date": "2026-10-02",
+    "title": "Merge pull request 'governance(skills): 修齐 Codex/Claude 会话与接入合同 (#318)' (#321) from change/318-provider-skill-parity into main",
+    "issue": 318,
+    "slug": "provider-skill-parity",
+    "pr": 321
+  },
+  {
+    "merge_sha": "480d1d262c3e915f546049ede3f34ad7d3362f50",
+    "date": "2026-09-19",
+    "title": "Merge pull request 'security(#313): routine merger scope 合同补 read:user，修好 NewEMaint audit 的 403' (#315) from change/313-newemaint-merger-credential into main",
+    "issue": 313,
+    "slug": "newemaint-merger-credential",
+    "pr": 315
+  },
+  {
+    "merge_sha": "3ff697202623651992526df025f016eaf101eaa1",
+    "date": "2026-09-19",
+    "title": "Merge pull request 'governance(#312): 同步 NewEMaint required contexts，并让 routine pilot 声明多 context' (#314) from change/312-governance-context-sync into main",
+    "issue": 312,
+    "slug": "governance-context-sync",
+    "pr": 314
+  },
+  {
+    "merge_sha": "95c0f1912b4e224e6f1b37824312cdc2abb0574b",
+    "date": "2026-09-18",
+    "title": "Merge pull request 'infra(#309): gitea-ci 预装 Flutter 3.32.8 与 unzip，并更正 01 §4.1/§4.2 as-built' (#310) from change/309-flutter-runner-preinstall into main",
+    "issue": 309,
+    "slug": "flutter-runner-preinstall",
+    "pr": 310
+  },
+  {
+    "merge_sha": "e1290d245553a59b47450438e1d94f0be4269e00",
+    "date": "2026-09-16",
+    "title": "Merge pull request 'fix(#305): migration receipt 以 migration identity 为唯一判据，release_id 只作审计' (#307) from change/305-migration-receipt-identity into main",
+    "issue": 305,
+    "slug": "migration-receipt-identity",
+    "pr": 307
+  },
+  {
+    "merge_sha": "803fd904fda3018878392b1a93d05237290a0e84",
+    "date": "2026-09-16",
+    "title": "Merge pull request 'docs(#304): 两台主机重装 broker 使 #298 worktree 归属闸门实际生效' (#306) from change/304-reinstall-worktree-owner-gate into main",
+    "issue": 304,
+    "slug": "reinstall-worktree-owner-gate",
+    "pr": 306
+  },
+  {
+    "merge_sha": "e5ed35e860f0ae080ce605b29dc4d698df9ada75",
+    "date": "2026-09-16",
+    "title": "Merge pull request 'test(#301): release evidence boundary 豁免 Python 字节码产物并隔离回归字节码' (#303) from change/301-pycache-boundary-exemption into main",
+    "issue": 301,
+    "slug": "pycache-boundary-exemption",
+    "pr": 303
+  },
+  {
+    "merge_sha": "2667c3f93ebbc52ef30447722c8e3f6451b4eab8",
+    "date": "2026-09-16",
+    "title": "Merge pull request 'decide(governance): #299 block_on_outdated_branch 分仓裁决——internal-application 关闭、平台仓保留，检查器以合并预览为前提' (#302) from change/299-outdated-branch-ruling into main",
+    "issue": 299,
+    "slug": "outdated-branch-ruling",
+    "pr": 302
+  },
+  {
+    "merge_sha": "f6e2e50a57dec93ccec1e7ea58bf760c2309286f",
+    "date": "2026-09-16",
+    "title": "Merge pull request 'feat(loop): change worktree 单写者归属与推送归属闸门' (#300) from change/298-worktree-single-writer into main",
+    "issue": 298,
+    "slug": "worktree-single-writer",
+    "pr": 300
+  },
+  {
+    "merge_sha": "9a2fa118bb86860372e6c90e08c917641aeba563",
+    "date": "2026-09-16",
+    "title": "Merge pull request 'feat(release): 支持已验证的 Docker 28.1.1 classic 部署目标' (#297) from change/296-docker28-classic into main",
+    "issue": 296,
+    "slug": "docker28-classic",
+    "pr": 297
+  },
+  {
+    "merge_sha": "2b5ac9364795f9e9f2f3722017a47122e7672a79",
+    "date": "2026-09-16",
+    "title": "Merge pull request 'docs(delivery): 对齐本机构建-离线交付合同（12-Windows §2、07 §1、runbook §4）' (#294) from change/293-delivery-producer-align into main",
+    "issue": 293,
+    "slug": "delivery-producer-align",
+    "pr": 294
+  },
+  {
+    "merge_sha": "f0e3296e400635acb981a2ee0ee96d9dc53bc72c",
+    "date": "2026-09-16",
+    "title": "Merge pull request 'docs(sync): supersede relay by native push mirror' (#295) from change/292-github-main-relay into main",
+    "issue": 292,
+    "slug": "github-main-relay",
+    "pr": 295
+  },
+  {
+    "merge_sha": "a2f8854b69a3b6badeb11fee6fd95a3500083379",
+    "date": "2026-09-11",
+    "title": "Merge pull request 'feat(release): 允许 scm-ci 承载 test 环境部署' (#291) from change/290-scm-test-deploy into main",
+    "issue": 290,
+    "slug": "scm-test-deploy",
+    "pr": 291
+  },
+  {
+    "merge_sha": "64f1cda0de9735f8782e64a5b07af2ce8460e4c3",
+    "date": "2026-09-11",
+    "title": "Merge pull request 'architecture: 新增 linux-node-sqlite-v1 profile 并裁决 delivery_contract、版本 drift 与 migration Issue 语义' (#285) from change/284-node-sqlite-profile into main",
+    "issue": 284,
+    "slug": "node-sqlite-profile",
+    "pr": 285
+  },
+  {
+    "merge_sha": "1164318c6a1c40aa9686e9bc6b0d58a79ca714ee",
+    "date": "2026-09-10",
+    "title": "Merge pull request 'fix(diagnostics): 兼容 UFW 策略和长目标列格式' (#283) from change/282-ufw-format-compat into main",
+    "issue": 282,
+    "slug": "ufw-format-compat",
+    "pr": 283
+  },
+  {
+    "merge_sha": "27b3f1e6fdbda7e26f6d679c17de97961ca198ae",
+    "date": "2026-09-10",
+    "title": "Merge pull request 'feat(diagnostics): 区分协议字段与探针失败原因' (#281) from change/280-diagnostics-reason-codes into main",
+    "issue": 280,
+    "slug": "diagnostics-reason-codes",
+    "pr": 281
+  },
+  {
+    "merge_sha": "de4581ede598150904695a1821c5489e9cd9a6ad",
+    "date": "2026-09-08",
+    "title": "Merge pull request 'fix(baseline): 兼容现场探针并提供只读诊断包 (#278)' (#279) from change/278-baseline-probe-remediation into main",
+    "issue": 278,
+    "slug": "baseline-probe-remediation",
+    "pr": 279
+  },
+  {
+    "merge_sha": "874e7169d9f8efbfe707114e71992e5d4333138f",
+    "date": "2026-09-08",
+    "title": "Merge pull request 'platform: 重新接入 SFMDigitalBoard（A- 轻接入，#252 的部分回滚）' (#276) from change/275-onboard-sfmdigitalboard into main",
+    "issue": 275,
+    "slug": "onboard-sfmdigitalboard",
+    "pr": 276
+  },
+  {
+    "merge_sha": "a3ae327e46da0533d054f26c9e1a7d4c68c7a8ac",
+    "date": "2026-09-08",
+    "title": "Merge pull request 'feat(platform): support digest-bound baseline profiles' (#277) from change/274-baseline-profile-support into main",
+    "issue": 274,
+    "slug": "baseline-profile-support",
+    "pr": 277
+  },
+  {
+    "merge_sha": "a2dc131a65c733ff6d868bd5fd5e6b4bf13e4bb3",
+    "date": "2026-09-07",
+    "title": "Merge pull request 'feat(platform): 独立 platform-bootstrap/v1 公司平台交付包 (#270)' (#273) from change/270-company-platform-bootstrap into main",
+    "issue": 270,
+    "slug": "company-platform-bootstrap",
+    "pr": 273
+  },
+  {
+    "merge_sha": "1896b33ba6a4d21a567301cdbc6d74e269c5f103",
+    "date": "2026-09-06",
+    "title": "Merge pull request 'feat(platform): #271 新增公司平台只读接管基线' (#272) from change/271-company-platform-baseline into main",
+    "issue": 271,
+    "slug": "company-platform-baseline",
+    "pr": 272
+  },
+  {
+    "merge_sha": "2a012bd832926b210581e84fbfd74b180490ca15",
+    "date": "2026-09-06",
+    "title": "Merge pull request 'docs: #268 发布公司平台先行部署与 NewEMaint 闭环路线图' (#269) from change/268-delivery-loop-roadmap into main",
+    "issue": 268,
+    "slug": "delivery-loop-roadmap",
+    "pr": 269
+  },
+  {
+    "merge_sha": "3fb6b605a59ce492ef4fb6ddcd3ebf64ca7f223a",
+    "date": "2026-09-06",
+    "title": "Merge pull request 'docs(readme): #266 §4 时序图消息文本的半角分号改全角，恢复 Mermaid 渲染' (#267) from change/266-readme-mermaid-semicolon into main",
+    "issue": 266,
+    "slug": "readme-mermaid-semicolon",
+    "pr": 267
+  }
+]

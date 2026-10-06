@@ -1,0 +1,8 @@
+{
+  "baseline_source": "e2edb3e08194624a6647212571c6cc866298575b",
+  "formula": "repository_declarations_sha256(repositories, exclude_name='NewEMaint')",
+  "old_seal": "4969422f72782de90155881cc4a92720dfd1ee5f468e940bd30ac7a666b0df85",
+  "new_seal": "d45a20abb3224a5e02b1e22c338429017c9ff88d80fd5fc597bffb97a90e9334",
+  "only_new_repository": "HSDB",
+  "existing_declarations_changed_except_seal": false
+}

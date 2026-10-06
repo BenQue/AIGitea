@@ -1,0 +1,169 @@
+{
+  "issue": 337,
+  "owner_session": "01a10739-4622-7be1-ba10-0a92d8fc9905",
+  "recorded_at": "2026-10-04T22:57:46.121325+08:00",
+  "baseline_source": "e2edb3e08194624a6647212571c6cc866298575b",
+  "approved_contract_commit": "53078bfa0ea42ce0c7fd8ce2bd7d63eaafedb2a8",
+  "configuration_commit": "2aeb5b2a69ea581a64fdbc78d93cff8f2957c0da",
+  "configuration_parent": "53078bfa0ea42ce0c7fd8ce2bd7d63eaafedb2a8",
+  "configuration_tree": "94a045d00bd1bbf5a6173fc4d96c6bd0a813d35a",
+  "verified_git_blobs": {
+    "codex/config/gitea-governance.json": "55bde8571aac78963e2877d91d57fda465f769d8",
+    "codex/config/host-access-broker.json": "526e952068af12f64d5c60b7dd88d0020fecd5e8",
+    "codex/runtime/tests/test_host_access.py": "38fff7e291ce31276f75459dc4a705f0f7db6929",
+    "codex/runtime/tests/test_gitea_governance.py": "2e2733a75b1f0c03f749ae91953731427745af48",
+    "codex/tests/test-host-access-broker.sh": "350ca3dbb2a1fed0878015b687ce646b6bb267f1",
+    "README.md": "08e947bf582782325a7a99dfcc840fe829842907",
+    "03-Issue-Spec-Plan与单闸门开发流程.md": "ab189440081db062496fad5dad530fa3fe2f2d26"
+  },
+  "checks": [
+    {
+      "name": "strict-manifest",
+      "command": "PYTHONPATH=codex/runtime python3 -m aisoft_host_access.cli --access-manifest codex/config/host-access-broker.json --governance-manifest codex/config/gitea-governance.json validate",
+      "exit_code": 0,
+      "result": "PASS",
+      "project_count": 7,
+      "operation_count": 38,
+      "merge_operation_count": 1
+    },
+    {
+      "name": "targeted-runtime",
+      "command": "PYTHONPATH=codex/runtime:codex/runtime/tests python3 -m unittest test_host_access test_gitea_governance",
+      "exit_code": 0,
+      "result": "PASS",
+      "tests": 246,
+      "summary": [
+        "----------------------------------------------------------------------",
+        "Ran 246 tests in 8.234s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "name": "targeted-broker",
+      "command": "bash codex/tests/test-host-access-broker.sh",
+      "exit_code": 0,
+      "result": "PASS",
+      "summary": [
+        "host access broker shell and installer tests passed"
+      ]
+    },
+    {
+      "name": "shell-syntax",
+      "command": "bash -n codex/tests/test-host-access-broker.sh",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "name": "shellcheck",
+      "command": "shellcheck codex/tests/test-host-access-broker.sh",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "name": "full-smoke-sandbox-attempt",
+      "command": "LC_ALL=C bash codex/tests/smoke.sh",
+      "exit_code": 1,
+      "result": "FAIL",
+      "classification": "SANDBOX_PATH_BLOCKED",
+      "reason": "fixture socket.bind((127.0.0.1, 0)) raised PermissionError: [Errno 1] Operation not permitted",
+      "assertions_weakened": false
+    },
+    {
+      "name": "full-smoke-host",
+      "command": "LC_ALL=C bash codex/tests/smoke.sh",
+      "execution_path": "approved-host",
+      "exit_code": 0,
+      "result": "PASS",
+      "configuration_commit": "2aeb5b2a69ea581a64fdbc78d93cff8f2957c0da",
+      "last_unittest_tests": 1114,
+      "unittest_summaries": [
+        "Ran 12 tests in 0.291s",
+        "Ran 34 tests in 96.447s",
+        "Ran 20 tests in 0.044s",
+        "Ran 197 tests in 27.910s",
+        "Ran 1114 tests in 92.305s"
+      ],
+      "terminal_evidence": [
+        "----------------------------------------------------------------------",
+        "Ran 1114 tests in 92.305s",
+        "",
+        "OK",
+        "Codex platform static smoke checks passed."
+      ]
+    },
+    {
+      "name": "source-scope",
+      "command": "PYTHONPATH=codex/runtime python3 docs/changes/337-restore-hsdb-governance/evidence/check-source-scope.py",
+      "exit_code": 0,
+      "result": "PASS",
+      "evidence": "scope-check.json"
+    },
+    {
+      "name": "source-rollback",
+      "command": "python3 /private/tmp/hsdb-t01-source-rollback.py 2aeb5b2a69ea581a64fdbc78d93cff8f2957c0da",
+      "exit_code": 0,
+      "result": "PASS",
+      "project_counts": [
+        7,
+        6,
+        7
+      ],
+      "evidence": "source-rollback.json"
+    },
+    {
+      "name": "classification-readback",
+      "command": "bash codex/tools/apply-classification-labels.sh --repo . --project aisoft-platform --verify 337",
+      "exit_code": 0,
+      "result": "projected"
+    },
+    {
+      "name": "change-documents-before-evidence-sync",
+      "command": "PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo .",
+      "exit_code": 0,
+      "result": "PASS",
+      "changes": 156,
+      "gap": 0
+    },
+    {
+      "name": "diff-check",
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "name": "final-evidence-document-and-scope-check",
+      "result": "PASS",
+      "exit_code": 0,
+      "commands": [
+        "PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo .",
+        "PYTHONPATH=codex/runtime python3 docs/changes/337-restore-hsdb-governance/evidence/check-source-scope.py",
+        "git diff --check"
+      ],
+      "changes": 156,
+      "gap": 0,
+      "verified_configuration_blobs_unchanged": true
+    }
+  ],
+  "baseline_hsdb_reproduction": {
+    "tests": 3,
+    "exit_code": 1,
+    "result": "EXPECTED_BASELINE_FAILURE",
+    "reason": "HSDB not explicitly managed before restoration"
+  },
+  "layers": {
+    "source_configuration": "PASS",
+    "local": "PASS",
+    "required_pr_ci": "NOT RUN",
+    "merge": "NOT RUN",
+    "installed_registration": "GAP",
+    "hsdb_live_adoption": "NOT RUN",
+    "account_reenable": "NOT RUN",
+    "secret_mutation": "NOT RUN",
+    "uat": "NOT RUN",
+    "deployment": "NOT RUN"
+  },
+  "secret_values_or_credential_hashes_included": false,
+  "real_install_or_service_mutation": false,
+  "diagnostics_invocations": 0
+}

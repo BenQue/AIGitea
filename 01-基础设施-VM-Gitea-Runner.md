@@ -3,6 +3,7 @@
 > 基础设施 as-built 起点为 2026-07-11；本册当前状态已按 Issue #21（2026-08-04 完成）和
 > Issue #35（2026-08-09 最后回读）收口。环境事实会漂移，执行操作前仍须实时只读核对；历史细节见
 > `docs/changes/21/03-verification.md` 与 `docs/changes/35/03-verification.md`。
+> 2026-10-04 文档核对：后续 #290 的仅 test 共置、#309 Flutter 与 #311 Node 22 来源记录分别保留在对应章节；当前 manifest 范围见下方说明，不继承 #35 的旧九仓数量。
 
 ## 1. 拓扑与端口总表
 
@@ -27,7 +28,9 @@
 
 `scm-ci` 允许 checkout、build、test、package、registry/artifact publish、批准的缓存/通知
 服务和只读 retention inventory；application deploy/start、业务数据库、长驻 smoke 进程在
-任何 mutation 前一律拒绝。端口或目录存在不等于获准，必须同时检查进程、cgroup、owner、
+任何 mutation 前按 host-role guard 拒绝；#290 已合并仅 test 的共置例外，必须由受保护 profile 显式绑定
+`host_role=scm-ci`、`environment=test` 与相应 capability，production 仍分离（source 能力与现场验收分开）。
+端口或目录存在不等于获准，必须同时检查进程、cgroup、owner、
 workflow、数据和引用。
 
 > ⚠️ OrbStack 事实：`*.orb.local` 域名 Mac 与 VM 内都可解析；Mac 文件系统在 VM 内挂载于 `/mnt/mac`（root 可读，普通新建用户不一定可穿越）。VM 与 Mac 同生共死——Mac 睡眠 VM 即停，「常驻」要等内网平移才真正成立。
@@ -42,13 +45,16 @@ workflow、数据和引用。
 
 下表采用 Issue #35 最后一次 live reconciliation 与后续 broker 证据。账号、PAT 和 ACL 仍是外部状态，
 每次操作前必须通过 manifest 工具或 host access broker 重新读回。
+#35 的九仓/九 agent 是历史数量；当前 [governance manifest](codex/config/gitea-governance.json) 有 6 仓，
+其中业务治理集合为 LocalWMS、NewEMaint、SFMDigitalBoard；退出不删除原仓库或自动改变历史权限。
+下表的 live 是既有验收记录，不表示本次重新观测。
 
 | 账号/角色 | 状态 | 位置 | 用途 | 关键约束 |
 |------|------|------|------|----------|
-| `admin` | live | Gitea | 人工 break-glass、用户/仓库引导、最终 PR merge | 唯一 merge identity；不用于日常 Agent Git/API |
+| `admin` | live | Gitea | 人工 break-glass、用户/仓库引导、最终 PR merge | 平台仓 manual merge identity；routine opt-in 仓另有独立 merger，见 03；不用于日常 Agent Git/API |
 | `ci-bot` | 账号保留、manifest 仓库 collaborator 已移除 | Gitea | 仅作历史兼容证据 | 不得用于新接入、普通项目 Git/API 或 merge |
-| `aisoft-platform-manager` | live，Issue #35=`deployed` | Gitea | 跨项目读取 settings/protection/Actions，执行明确批准的 reconciliation | 不是 site admin；仅显式 9 仓库 Admin；audit/mutation PAT 分离；不得普通 Git 或 merge |
-| `<project>-agent` | live，9 个 manifest 项目逐一验证 | Gitea | 仅本项目 Issue/branch/commit/push/PR | 精确 Write；唯一项目绑定；不得跨项目 Write/Admin，不得 push/merge `main` |
+| `aisoft-platform-manager` | live，Issue #35=`deployed` | Gitea | 跨项目读取 settings/protection/Actions，执行明确批准的 reconciliation | 不是 site admin；#35 历史验收为显式 9 仓库 Admin；当前范围按 manifest 与现场 check；audit/mutation PAT 分离；不得普通 Git 或 merge |
+| `<project>-agent` | #35 历史九项目逐一验证；当前逐仓核对 | Gitea | 仅本项目 Issue/branch/commit/push/PR | 精确 Write；唯一项目绑定；不得跨项目 Write/Admin，不得 push/merge `main` |
 | `git` | live | VM 系统用户 | 跑 Gitea 进程 | 不承载 Agent 或部署身份 |
 | `gitea-runner` | live | VM 系统用户 | 跑 act_runner、构建/测试与制品发布 | 不持有平台 manager、项目 PAT 或生产管理员权限，不长期运行业务应用 |
 | `coder` | live | VM 系统用户 | 跑 analyzer/controller | 每项目 mode 600 profile/credential/state/worktree 分离；当前 Loop 未普遍启用 |
