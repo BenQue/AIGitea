@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import io
+import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -9,6 +10,10 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock
+from unittest.mock import patch
+from types import SimpleNamespace
+import os
+import time
 
 from aisoft_host_access.broker import BrokerError, HostAccessBroker
 from aisoft_host_access.contract import load_access_contract
@@ -187,6 +192,244 @@ class BoundedProbeTests(unittest.TestCase):
         with self.assertRaises(PreflightError) as caught:
             run_bounded([sys.executable, '-c', 'import time; time.sleep(10)'], timeout=0.05)
         self.assertEqual(caught.exception.reason, 'PROBE_TIMEOUT')
+
+
+class CollectorTests(unittest.TestCase):
+    def setUp(self):
+        path = ROOT / 'codex/tools/application-target-preflight.py'
+        spec = importlib.util.spec_from_file_location('application_target_collector', path)
+        self.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.module)
+
+    def test_fixed_collector_projects_only_allowed_fields_without_npm_or_db_connection(self):
+        path = ROOT / 'codex/tools/application-target-preflight.py'
+        spec = importlib.util.spec_from_file_location('application_target_collector', path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        system = FixtureSystem()
+        result = module.collect(system)
+        self.assertEqual(result['actual_operator'], 'aisoft-preflight')
+        self.assertEqual(result['items']['identity.os']['value']['ID'], 'ubuntu')
+        self.assertEqual(result['items']['runtime.npm']['value'], '11.6.0')
+        self.assertNotIn('FAKE_SECRET_SENTINEL', json.dumps(result))
+        self.assertFalse(any('npm' in event[1] for event in system.events if event[0] == 'command'))
+        self.assertEqual(result['items']['postgres.instance']['status'], 'BLOCKED')
+        self.assertEqual(result['items']['postgres.instance']['reason'], 'PG_READ_ROUTE_UNAUTHORIZED')
+
+    def test_wrong_operator_prevents_all_field_and_version_reads(self):
+        system = FixtureSystem()
+        system.operator = lambda deadline: 'root'
+        result = self.module.collect(system)
+        self.assertEqual(result['reason'], 'OPERATOR_MISMATCH')
+        self.assertEqual(result['target_execution_count'], 0)
+        self.assertEqual(system.events, [])
+
+    def test_untrusted_binary_metadata_is_never_executed(self):
+        for changed in ({'uid': 1001}, {'mode': 0o777}, {'kind': 'symlink', 'is_symlink': True}):
+            system = FixtureSystem()
+            original = system.metadata
+            def metadata(path):
+                value = original(path)
+                if path.endswith('/node'):
+                    value.update(changed)
+                return value
+            system.metadata = metadata
+            result = self.module.collect(system)
+            self.assertEqual(result['items']['runtime.node']['reason'], 'UNTRUSTED_PATH')
+            self.assertFalse(any(x[0] == 'command' and x[1].endswith('/node') for x in system.events))
+
+    def test_missing_and_permission_items_are_explicit_and_never_provision(self):
+        system = FixtureSystem()
+        system.filesystem = Mock(side_effect=FileNotFoundError())
+        system.account = Mock(side_effect=PermissionError('FAKE_SECRET_SENTINEL'))
+        result = self.module.collect(system)
+        self.assertEqual(result['items']['filesystem.pg18']['status'], 'GAP')
+        self.assertEqual(result['items']['account.localwms']['status'], 'BLOCKED')
+        self.assertNotIn('FAKE_SECRET_SENTINEL', json.dumps(result))
+
+    def test_file_socket_group_and_scalar_bounds_mark_incomplete(self):
+        system = FixtureSystem()
+        original = system.read
+        system.read = lambda path: b'x' * 65537 if path == '/proc/meminfo' else original(path)
+        result = self.module.collect(system)
+        self.assertEqual(result['items']['resources.memory']['reason'], 'LIMIT_EXCEEDED')
+        for count in (256, 257):
+            system = FixtureSystem()
+            original_command = system.command
+            system.command = lambda path, args, deadline: (
+                b'tcp LISTEN 0 128 127.0.0.1:3100 0.0.0.0:*\n' * count
+                if path.endswith('/ss') else original_command(path, args, deadline))
+            item = self.module.collect(system)['items']['sockets.listeners']
+            self.assertEqual(item['status'], 'PASS' if count == 256 else 'GAP')
+            self.assertEqual(item['complete'], count == 256)
+        system = FixtureSystem()
+        system.account = lambda user, deadline: {'uid': 1002, 'gid': 1002,
+            'groups': [{'gid': n, 'name': 'group' + str(n)} for n in range(33)]}
+        self.assertEqual(self.module.collect(system)['items']['account.localwms']['reason'], 'LIMIT_EXCEEDED')
+        system.hostname = lambda: 'x' * 257
+        self.assertEqual(self.module.collect(system)['items']['identity.hostname']['reason'], 'LIMIT_EXCEEDED')
+
+    def test_metadata_and_accounts_drop_home_env_and_configs(self):
+        system = FixtureSystem()
+        original_meta, original_account = system.metadata, system.account
+        system.metadata = lambda path: {**original_meta(path), 'Env': 'FAKE_SECRET_SENTINEL'}
+        system.account = lambda user, deadline: {**original_account(user, deadline),
+            'home': 'FAKE_SECRET_SENTINEL', 'shadow': 'FAKE_SECRET_SENTINEL'}
+        result = self.module.collect(system)
+        self.assertNotIn('FAKE_SECRET_SENTINEL', json.dumps(result))
+        self.assertEqual(len([x for x in system.events if x[0] == 'account']), 2)
+
+    def test_units_and_paths_are_exact_not_dynamic_enumerations(self):
+        system = FixtureSystem()
+        result = self.module.collect(system)
+        units = [x[2][-1] for x in system.events if x[0] == 'command' and x[1].endswith('systemctl')]
+        self.assertEqual(units, ['nginx.service', 'postgresql.service', 'postgresql@18-main.service',
+            'pm2-benque.service', 'localwms-api.service', 'localwms-worker.service'])
+        reads = {x[1] for x in system.events if x[0] == 'read'}
+        self.assertEqual(reads, {'/etc/machine-id', '/etc/os-release', '/proc/meminfo',
+            '/opt/node24.18.0/lib/node_modules/npm/package.json'})
+        self.assertEqual(result['items']['archive_inventory']['status'], 'GAP')
+        self.assertEqual(result['preservation']['whole_machine_before_after'], 'NOT RUN')
+
+    def test_invalid_listener_address_or_unit_value_is_not_echoed(self):
+        system = FixtureSystem()
+        original_command = system.command
+        system.command = lambda path, args, deadline: (
+            b'tcp LISTEN 0 128 FAKE_SECRET_SENTINEL:3100 0.0.0.0:*\n'
+            if path.endswith('/ss') else original_command(path, args, deadline))
+        result = self.module.collect(system)
+        self.assertEqual(result['items']['sockets.listeners']['reason'], 'INVALID_VALUE')
+        self.assertNotIn('FAKE_SECRET_SENTINEL', json.dumps(result))
+
+    def test_command_deadline_and_stderr_are_bounded(self):
+        with self.assertRaises(self.module.ProbeFailure) as caught:
+            self.module.bounded_command([sys.executable, '-c', 'import time; time.sleep(2)'],
+                                        deadline=time.monotonic() + 0.05)
+        self.assertEqual(caught.exception.reason, 'PROBE_TIMEOUT')
+        with self.assertRaises(self.module.ProbeFailure) as caught:
+            self.module.bounded_command([sys.executable, '-c',
+                'import os; os.write(2,b"x"*100000)'], deadline=time.monotonic() + 2)
+        self.assertEqual(caught.exception.reason, 'LIMIT_EXCEEDED')
+
+    def test_native_openat_rejects_content_and_parent_symlink_escape(self):
+        native = self.module.NativeSystem()
+        real_open = os.open
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'etc').mkdir()
+            secret = root / 'secret.env'
+            secret.write_text('FAKE_SECRET_SENTINEL')
+            (root / 'etc/machine-id').symlink_to(secret)
+            def opened(path, flags, *args, **kwargs):
+                return real_open(root if path == '/' else path, flags, *args, **kwargs)
+            real_fstat = os.fstat
+            def trusted(fd):
+                info = real_fstat(fd)
+                return SimpleNamespace(st_mode=info.st_mode, st_uid=0, st_gid=0)
+            with patch.object(self.module.os, 'open', side_effect=opened), \
+                    patch.object(self.module.os, 'fstat', side_effect=trusted):
+                with self.assertRaises(OSError):
+                    native.read('/etc/machine-id')
+                (root / 'etc/machine-id').unlink()
+                (root / 'etc').rmdir()
+                (root / 'etc').symlink_to(root)
+                with self.assertRaises(OSError):
+                    native.read('/etc/machine-id')
+                with self.assertRaises(self.module.ProbeFailure):
+                    native.read('/secret.env')
+
+    def test_native_binary_exec_uses_opened_inode_even_after_path_replacement(self):
+        native = self.module.NativeSystem()
+        real_open, real_fstat = os.open, os.fstat
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'opt/node24.18.0/bin/node'
+            path.parent.mkdir(parents=True)
+            path.write_bytes(b'\x7fELFfixture trusted binary')
+            path.chmod(0o755)
+            def opened(value, flags, *args, **kwargs):
+                return real_open(root if value == '/' else value, flags, *args, **kwargs)
+            def trusted(fd):
+                info = real_fstat(fd)
+                return SimpleNamespace(st_mode=info.st_mode, st_uid=0, st_gid=0)
+            def command(argv, **kwargs):
+                fd = kwargs['pass_fds'][0]
+                path.unlink()
+                path.write_bytes(b'FAKE_SECRET_SENTINEL')
+                self.assertEqual(os.read(fd, 128), b'\x7fELFfixture trusted binary')
+                self.assertEqual(argv, ['/opt/node24.18.0/bin/node', '--version'])
+                self.assertEqual(kwargs['executable'], '/proc/self/fd/' + str(fd))
+                return b'v24.18.0\n'
+            with patch.object(self.module.os, 'open', side_effect=opened), \
+                    patch.object(self.module.os, 'fstat', side_effect=trusted), \
+                    patch.object(self.module, 'bounded_command', side_effect=command):
+                self.assertEqual(native.command('/opt/node24.18.0/bin/node', ['--version'],
+                                                 time.monotonic() + 2), b'v24.18.0\n')
+
+    def test_native_rejects_mutating_command_vectors_before_any_file_or_process_access(self):
+        native = self.module.NativeSystem()
+        with patch.object(native, '_open') as opened:
+            for path, args in [('/usr/bin/systemctl', ['restart', 'nginx.service']),
+                ('/usr/bin/ss', ['-K']), ('/usr/lib/postgresql/18/bin/postgres', ['-D', '/tmp/data']),
+                ('/opt/node24.18.0/bin/node', ['-e', 'write()']), ('/usr/bin/id', ['root'])]:
+                with self.assertRaises(self.module.ProbeFailure):
+                    native.command(path, args, time.monotonic() + 1)
+            opened.assert_not_called()
+
+    def test_helper_cli_refuses_all_caller_arguments_without_echo(self):
+        result = subprocess.run([sys.executable, str(ROOT / 'codex/tools/application-target-preflight.py'),
+            '--target', 'FAKE_SECRET_SENTINEL'], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 20)
+        self.assertNotIn('FAKE_SECRET_SENTINEL', result.stdout + result.stderr)
+        self.assertEqual(json.loads(result.stderr)['reason'], 'ARGUMENT_MISMATCH')
+
+
+class FixtureSystem:
+    def __init__(self):
+        self.events = []
+
+    def operator(self, deadline):
+        self.events.append(('operator',))
+        return 'aisoft-preflight'
+
+    def fingerprint(self):
+        return '0' * 64
+
+    def hostname(self): return 'fixture-appserver'
+    def architecture(self): return 'aarch64'
+    def cpus(self): return 4
+
+    def read(self, path):
+        self.events.append(('read', path))
+        return {
+            '/etc/machine-id': b'0123456789abcdef0123456789abcdef\n',
+            '/etc/os-release': b'ID=ubuntu\nVERSION_ID="25.10"\nVERSION="25.10 (Questing Quokka)"\nVERSION_CODENAME=questing\nUNUSED=FAKE_SECRET_SENTINEL\n',
+            '/proc/meminfo': b'MemTotal: 8388608 kB\nMemAvailable: 4194304 kB\n',
+            '/opt/node24.18.0/lib/node_modules/npm/package.json': b'{"version":"11.6.0","Env":"FAKE_SECRET_SENTINEL"}',
+        }[path]
+
+    def metadata(self, path):
+        self.events.append(('metadata', path))
+        return {'uid': 0, 'gid': 0, 'mode': 493, 'kind': 'file', 'is_symlink': False}
+
+    def filesystem(self, path):
+        self.events.append(('filesystem', path))
+        return {'total_bytes': 1000000000, 'available_bytes': 900000000, 'free_bytes': 900000000}
+
+    def command(self, path, args, deadline):
+        self.events.append(('command', path, tuple(args)))
+        if path.endswith('node'): return b'v24.18.0\n'
+        if path.endswith(('postgres', 'psql', 'pg_dump', 'pg_restore')):
+            return (path.rsplit('/', 1)[1] + ' (PostgreSQL) 18.4\n').encode()
+        if path.endswith('ss'):
+            return b'tcp LISTEN 0 128 127.0.0.1:3100 0.0.0.0:* users:(("node",pid=123,fd=9))\n'
+        if path.endswith('systemctl'):
+            return b'LoadState=loaded\nActiveState=active\nMainPID=123\n'
+        raise AssertionError('unexpected command')
+
+    def account(self, user, deadline):
+        self.events.append(('account', user))
+        return {'uid': 1002, 'gid': 1002, 'groups': [{'gid': 1002, 'name': user}]}
 
 
 if __name__ == '__main__':

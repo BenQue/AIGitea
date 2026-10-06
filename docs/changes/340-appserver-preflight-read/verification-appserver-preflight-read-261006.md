@@ -119,6 +119,27 @@ fresh 起点仍为原 T01 commit；owner/branch/worktree、实际 Issue/comments
 T02 完成的是安全拒绝与 source fixture 切片，不是 no-autostart primitive/目标执行可用性证明。
 正式安装、权限与 live 层均 NOT RUN，无法据此解除消费者 #333 的现场前置。
 
+## Fresh T03 collector
+
+单文件 stdlib helper 按固定路径/字段采集 identity/OS/CPU/RAM/filesystems、Node/npm/PG18、
+TCP/UDP sockets、六 unit、exact users/groups 与八个目录 metadata。npm 只读 package.json version；
+PG 实例/角色仍 PG_READ_ROUTE_UNAUTHORIZED/BLOCKED，不连接或读取凭据。
+
+- native 内容/版本探针用 anchored openat + O_NOFOLLOW；每级可信 root owner/mode、regular ELF
+  校验后以 opened fd 执行，并保留真实 argv[0]，避免路径替换及 PostgreSQL 版本名错判。
+- 目录仅 no-follow metadata；os-release 仅允许固定 /usr/lib/os-release alias；没有读取未知
+  symlink target、应用配置、归档正文或 source profiles。uid/gid/mode/字段严格投影。
+- subprocess 双 pipe 在读取时限额、进程组超时取消；probe 5s/request 30s；helper 入口另有
+  Linux 30s alarm。缺 binary/path 与权限据实 GAP/BLOCKED，固定路径不动态扩大。
+- 25 个专用 source/local 测试 PASS：字段投影、Secret sentinel、max/max+1、root/mode拒绝、
+  real temporary filesystem 的 symlink escape/opened-inode 替换、fixed vectors、CLI拒绝与超时。
+  root UID 在 temporary fixture 模拟；不是现场 root/operator/权限证明。
+- T02 host smoke 复验已经运行到 1127 项，但遇到正在添加的 T03 red test（helper 尚未创建）
+  FileNotFoundError，FAIL；该测试在 helper 实现后已 green。此中途结果不作为冻结源码验证。
+  T05 在完成实现/评审修复后重跑完整 smoke，正式安装/live 仍 NOT RUN。
+
+T03 不增加任何 VM executor。真实 no-autostart/operator/helper 与最终 PR label/base 门仍待证。
+
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |
