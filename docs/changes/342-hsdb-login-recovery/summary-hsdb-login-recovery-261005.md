@@ -28,8 +28,8 @@ documents:
   plan: plan-hsdb-login-recovery-261005.md
   verification: verification-hsdb-login-recovery-261005.md
 override_reason: ''
-status: approved
-pr_url:
+status: pr-open
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/351
 ---
 
 
