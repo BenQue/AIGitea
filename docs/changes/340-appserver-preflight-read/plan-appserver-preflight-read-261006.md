@@ -22,7 +22,7 @@ updated: 2026-10-06
 # #340 实施与验证计划
 
 实际本人已确认四份合同。T01 治理提交 adbe53252f71474afffdd886ca7509cc75ab0842 后已 STOP；
-当前 fresh run 完成 T02–T03 源码切片，T04–T05 仍 pending，first frontier=T04。
+当前 fresh run 完成 T02–T04 源码/fixture 切片，T05 仍 pending，first frontier=T05。
 T01 的独立治理 STOP 是 AGENTS 强制边界；其后的 fresh run 不需要重复同范围启动确认。
 
 ## Ticket graph
@@ -32,7 +32,7 @@ T01 的独立治理 STOP 是 AGENTS 强制边界；其后的 fresh run 不需要
 | T01 | 仅 06 与本 Issue 合同落地、docs 验证、本地治理 commit 后 STOP | - | completed |
 | T02 | fresh run：strict target/CLI/typed broker/runner 与 no-autostart transport gate 正反切片 | T01 | completed |
 | T03 | 固定 identity/OS/resources/runtime/metadata/sockets/units collector 与安全路径、限额 fixture | T02 | completed |
-| T04 | AppServer-only Docker 投影、PG 无授权显式 BLOCKED、Secret/零写/竞态/overflow 回归 | T03 | pending |
+| T04 | AppServer-only Docker 投影、PG 无授权显式 BLOCKED、Secret/零写/竞态/overflow 回归 | T03 | completed |
 | T05 | 完整本地验证、source helper fingerprint/未来安装清单、证据分层与最终唯一 manual PR 确认卡 | T04 | pending |
 
 每个 Ticket commit subject 包含 #340 与 Txx；唯一 owner/branch。

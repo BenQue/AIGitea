@@ -44,7 +44,9 @@ FILESYSTEMS = {'root': '/', 'opt': '/opt', 'pg18': '/var/lib/postgresql/18/main'
 READ_PATHS = {'/etc/machine-id', '/etc/os-release', '/usr/lib/os-release',
               '/proc/meminfo', NPM_PACKAGE, HELPER}
 COMMANDS = {'/usr/bin/id', '/usr/bin/ss', '/usr/bin/systemctl', *BINARIES.values()}
-ALL_PATHS = READ_PATHS | COMMANDS | set(DIRECTORIES.values()) | set(FILESYSTEMS.values()) | {NPM_METADATA}
+ALL_PATHS = READ_PATHS | COMMANDS | set(DIRECTORIES.values()) | set(FILESYSTEMS.values()) | {
+    NPM_METADATA, '/var/run', '/var/run/docker.sock', '/run/docker.sock'}
+DOCKER_GETS = ('/version', '/info', '/containers/json?all=1&limit=129')
 SS_ARGUMENTS = ('--listening', '--tcp', '--udp', '--numeric', '--no-header', '--oneline', '--processes')
 UNIT_ARGUMENTS = ('--system', 'show', '--no-pager', '--property=LoadState,ActiveState,MainPID', '--')
 VERSION = re.compile(r'(?:v)?[0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?')
@@ -292,6 +294,99 @@ class NativeSystem:
             values.append({'gid': integer(int(entry[1])), 'name': text(entry[2])})
         return {'uid': integer(int(match[1])), 'gid': integer(int(match[2])), 'groups': values}
 
+    def docker_json(self, endpoint, deadline):
+        if endpoint not in DOCKER_GETS:
+            raise ProbeFailure('SOCKET_TRUST_UNPROVEN')
+        # The only permitted /var/run alias is the normal fixed /run directory.
+        parent, leaf = self._parent('/var/run', trusted=True)
+        try:
+            info = os.stat(leaf, dir_fd=parent, follow_symlinks=False)
+            if stat.S_ISLNK(info.st_mode):
+                if os.readlink(leaf, dir_fd=parent) != '/run':
+                    raise ProbeFailure('SOCKET_TRUST_UNPROVEN')
+                path = '/run/docker.sock'
+            else:
+                path = '/var/run/docker.sock'
+        finally:
+            os.close(parent)
+        parent, leaf = self._parent(path, trusted=True)
+        try:
+            before = os.stat(leaf, dir_fd=parent, follow_symlinks=False)
+            if not stat.S_ISSOCK(before.st_mode) or before.st_uid != 0 or before.st_mode & 0o007:
+                raise ProbeFailure('SOCKET_TRUST_UNPROVEN')
+            # An existing socket can be systemd-activated; socket metadata
+            # cannot prove that connect itself would not start the daemon.
+            raise ProbeFailure('DOCKER_NO_START_UNPROVEN')
+        finally:
+            os.close(parent)
+
+
+def docker_value(system, deadline):
+    version = bounded_json(system.docker_json(DOCKER_GETS[0], deadline))
+    info = bounded_json(system.docker_json(DOCKER_GETS[1], deadline))
+    rows = bounded_json(system.docker_json(DOCKER_GETS[2], deadline))
+    if type(version) is not dict or type(info) is not dict or type(rows) is not list:
+        raise ProbeFailure('INVALID_VALUE', 'FAIL')
+    if len(rows) > LIMITS['containers']:
+        raise ProbeFailure('LIMIT_EXCEEDED', 'GAP')
+    release, api = version.get('Version'), version.get('ApiVersion')
+    if type(release) is not str or not VERSION.fullmatch(release) or (
+            type(api) is not str or not re.fullmatch(r'[0-9]+\.[0-9]+', api)):
+        raise ProbeFailure('INVALID_VALUE', 'FAIL')
+    if version.get('Os') != 'linux' or type(version.get('Arch')) is not str or not NAME.fullmatch(version['Arch']):
+        raise ProbeFailure('INVALID_VALUE', 'FAIL')
+    driver = info.get('Driver')
+    if type(driver) is not str or not NAME.fullmatch(driver):
+        raise ProbeFailure('INVALID_VALUE', 'FAIL')
+    containers = []
+    states = {'created', 'restarting', 'running', 'removing', 'paused', 'exited', 'dead'}
+    for row in rows:
+        if type(row) is not dict or type(row.get('Names')) is not list or len(row['Names']) != 1:
+            raise ProbeFailure('INVALID_VALUE', 'FAIL')
+        name = row['Names'][0]
+        if type(name) is not str or not name.startswith('/') or not NAME.fullmatch(name[1:]):
+            raise ProbeFailure('INVALID_VALUE', 'FAIL')
+        state = row.get('State')
+        if type(state) is not str or state not in states:
+            raise ProbeFailure('INVALID_VALUE', 'FAIL')
+        ports, mounts = row.get('Ports', []), row.get('Mounts', [])
+        if type(ports) is not list or type(mounts) is not list:
+            raise ProbeFailure('INVALID_VALUE', 'FAIL')
+        if len(ports) > LIMITS['sockets'] or len(mounts) > LIMITS['containers']:
+            raise ProbeFailure('LIMIT_EXCEEDED', 'GAP')
+        projected_ports, volumes = [], []
+        for port in ports:
+            if type(port) is not dict or port.get('Type') not in ('tcp', 'udp'):
+                raise ProbeFailure('INVALID_VALUE', 'FAIL')
+            private = integer(port.get('PrivatePort'))
+            public = port.get('PublicPort')
+            if not 0 < private <= 65535 or (public is not None and not 0 < integer(public) <= 65535):
+                raise ProbeFailure('INVALID_VALUE', 'FAIL')
+            address = port.get('IP')
+            if address is not None:
+                if type(address) is not str:
+                    raise ProbeFailure('INVALID_VALUE', 'FAIL')
+                try:
+                    address = str(ipaddress.ip_address(address))
+                except ValueError:
+                    raise ProbeFailure('INVALID_VALUE', 'FAIL') from None
+            projected_ports.append({'private_port': private, 'public_port': public,
+                                    'protocol': port['Type'], 'address': address})
+        for mount in mounts:
+            if type(mount) is not dict or mount.get('Type') not in ('bind', 'volume', 'tmpfs', 'cluster', 'npipe', 'image'):
+                raise ProbeFailure('INVALID_VALUE', 'FAIL')
+            if mount['Type'] == 'volume':
+                volume = mount.get('Name')
+                if type(volume) is not str or not NAME.fullmatch(volume):
+                    raise ProbeFailure('INVALID_VALUE', 'FAIL')
+                if volume not in volumes:
+                    volumes.append(text(volume))
+        containers.append({'name': text(name[1:]), 'state': state, 'ports': projected_ports,
+                           'named_volumes': volumes})
+    return {'version': text(release), 'api_version': text(api),
+            'platform': {'os': 'linux', 'architecture': text(version['Arch'])},
+            'store': {'driver': text(driver)}, 'containers': containers}
+
 
 def os_release(raw):
     if len(raw) > LIMITS['file_bytes']:
@@ -517,7 +612,7 @@ def collect(system=None):
         item('account.' + user, lambda user=user: projected_account(system.account(user, deadline)))
     for name, path in DIRECTORIES.items():
         item('directory.' + name, lambda path=path: projected_metadata(system.metadata(path)))
-    result['items']['docker'] = unavailable('SOCKET_READ_ROUTE_UNAVAILABLE')
+    item('docker', lambda: docker_value(system, deadline))
     result['items']['postgres.instance'] = unavailable('PG_READ_ROUTE_UNAUTHORIZED')
     result['items']['archive_inventory'] = unavailable('ARCHIVE_INVENTORY_UNBOUND', 'GAP')
     result.update(status='GAP', reason='PARTIAL', duration_seconds=max(0, time.monotonic() - start))

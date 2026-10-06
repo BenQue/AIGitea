@@ -140,6 +140,26 @@ PG 实例/角色仍 PG_READ_ROUTE_UNAUTHORIZED/BLOCKED，不连接或读取凭�
 
 T03 不增加任何 VM executor。真实 no-autostart/operator/helper 与最终 PR label/base 门仍待证。
 
+## Fresh T04 Docker/PG/零写 fixture
+
+- Docker 最小投影仅 version/api version/platform/storage driver、container name/state/ports/named
+  volume names；Command/Env/labels 与 bind source/destination 均不输出、不持久化。
+  仅三个固定 GET 数据源 /version、/info、/containers/json?all=1&limit=129 的隔离 fixture，
+  128/129、64KiB、权限拒绝、异常脱敏和零 CLI/fallback 均验证。
+- Native 仅核对固定 AppServer 内 socket metadata，没有 connect/HTTP 请求能力。
+  Docker 官方 [dockerd](https://docs.docker.com/reference/cli/dockerd/) 说明支持 systemd socket
+  activation；仅 socket 存在/owner/mode 不能证明不会启动 daemon。安全默认是
+  DOCKER_NO_START_UNPROVEN/BLOCKED、zero socket connects，而非“只有 GET 所以不会启动”。
+  这是 no-Engine-start 合同下的技术 GAP；未扩展六 unit/文件白名单或新建权限/服务通道。
+- PostgreSQL 实例/角色默认 PG_READ_ROUTE_UNAUTHORIZED/BLOCKED、zero DB connections；
+  既有 PG18 --version 只执行 opened trusted ELF，既有 arch/runtime 均按观察报告。
+- 30 个专用测试 PASS；包含 timeout 取消 descendants，临时 delayed-write marker 未创建；
+  Native socket metadata 即使模拟匹配也不调用 socket.connect；native fixtures 的 UID/mode
+  仅模拟，不构成 installed/operator/whole-machine before/after 证明。
+
+AC1/AC3 的 source fixture 可以继续完成；AC2 的真实 running target/no-autostart 与 Docker
+实际只读通道仍 GAP，AC4–AC6 installed/live 为 NOT RUN。不能将六项整体标 PASS。
+
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |

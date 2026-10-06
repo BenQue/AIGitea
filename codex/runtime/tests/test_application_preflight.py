@@ -14,6 +14,7 @@ from unittest.mock import patch
 from types import SimpleNamespace
 import os
 import time
+import stat
 
 from aisoft_host_access.broker import BrokerError, HostAccessBroker
 from aisoft_host_access.contract import load_access_contract
@@ -383,6 +384,95 @@ class CollectorTests(unittest.TestCase):
         self.assertNotIn('FAKE_SECRET_SENTINEL', result.stdout + result.stderr)
         self.assertEqual(json.loads(result.stderr)['reason'], 'ARGUMENT_MISMATCH')
 
+    def test_docker_only_fixed_gets_project_names_state_ports_named_volumes(self):
+        system = FixtureSystem()
+        def docker(endpoint, deadline):
+            system.events.append(('docker_get', endpoint))
+            values = {
+                '/version': {'Version': '28.1.1', 'ApiVersion': '1.49', 'Os': 'linux', 'Arch': 'aarch64',
+                             'Env': ['FAKE_SECRET_SENTINEL']},
+                '/info': {'Driver': 'overlay2', 'DockerRootDir': '/FAKE_SECRET_SENTINEL'},
+                '/containers/json?all=1&limit=129': [
+                    {'Names': ['/localwms-old'], 'State': 'exited',
+                     'Ports': [{'PrivatePort': 3100, 'PublicPort': 3100, 'Type': 'tcp', 'IP': '127.0.0.1'}],
+                     'Mounts': [{'Type': 'volume', 'Name': 'retired-localwms-data',
+                                'Source': '/FAKE_SECRET_SENTINEL', 'Destination': '/secret'},
+                               {'Type': 'bind', 'Source': '/FAKE_SECRET_SENTINEL'}],
+                     'Env': ['FAKE_SECRET_SENTINEL'], 'Command': 'FAKE_SECRET_SENTINEL',
+                     'Labels': {'credential': 'FAKE_SECRET_SENTINEL'}}],
+            }
+            return json.dumps(values[endpoint]).encode()
+        system.docker_json = docker
+        result = self.module.collect(system)
+        self.assertEqual(result['items']['docker']['status'], 'PASS')
+        value = result['items']['docker']['value']
+        self.assertEqual(value['containers'][0]['name'], 'localwms-old')
+        self.assertEqual(value['containers'][0]['named_volumes'], ['retired-localwms-data'])
+        self.assertNotIn('FAKE_SECRET_SENTINEL', json.dumps(result))
+        self.assertEqual([x[1] for x in system.events if x[0] == 'docker_get'],
+            ['/version', '/info', '/containers/json?all=1&limit=129'])
+
+    def test_docker_container_max_plus_one_and_body_overflow_are_incomplete(self):
+        system = FixtureSystem()
+        for count in (128, 129):
+            def docker(endpoint, deadline):
+                value = ({'Version': '28.1.1', 'ApiVersion': '1.49', 'Os': 'linux', 'Arch': 'arm64'}
+                    if endpoint == '/version' else {'Driver': 'overlay2'}
+                    if endpoint == '/info' else [
+                        {'Names': ['/c' + str(n)], 'State': 'exited', 'Ports': [], 'Mounts': []}
+                        for n in range(count)])
+                return json.dumps(value).encode()
+            system.docker_json = docker
+            value = self.module.collect(system)['items']['docker']
+            self.assertEqual(value['status'], 'PASS' if count == 128 else 'GAP')
+            self.assertEqual(value['complete'], count == 128)
+        system.docker_json = lambda endpoint, deadline: b'x' * 65537
+        value = self.module.collect(system)['items']['docker']
+        self.assertEqual(value['reason'], 'LIMIT_EXCEEDED')
+        self.assertFalse(value['complete'])
+
+    def test_docker_permission_and_raw_error_never_trigger_cli_or_echo(self):
+        system = FixtureSystem()
+        result = self.module.collect(system)
+        self.assertEqual(result['items']['docker']['status'], 'BLOCKED')
+        self.assertEqual(result['items']['docker']['reason'], 'PERMISSION_DENIED')
+        system.docker_json = Mock(side_effect=RuntimeError('FAKE_SECRET_SENTINEL'))
+        result = self.module.collect(system)
+        self.assertNotIn('FAKE_SECRET_SENTINEL', json.dumps(result))
+        self.assertFalse(any(x[0] == 'command' and 'docker' in x[1] for x in system.events))
+
+    def test_native_docker_socket_cannot_connect_or_activate_even_when_metadata_matches(self):
+        native = self.module.NativeSystem()
+        with tempfile.TemporaryDirectory() as directory:
+            def parent(path, trusted):
+                return os.open(directory, os.O_RDONLY | os.O_DIRECTORY), (
+                    'run' if path == '/var/run' else 'docker.sock')
+            def info(path, **kwargs):
+                return SimpleNamespace(st_mode=(stat.S_IFLNK | 0o777) if path == 'run'
+                    else stat.S_IFSOCK | 0o660, st_uid=0)
+            with patch.object(native, '_parent', side_effect=parent), \
+                    patch.object(self.module.os, 'stat', side_effect=info), \
+                    patch.object(self.module.os, 'readlink', return_value='/run'), \
+                    patch.object(self.module.socket, 'socket') as connect:
+                with self.assertRaises(self.module.ProbeFailure) as caught:
+                    native.docker_json('/version', time.monotonic() + 1)
+                self.assertEqual(caught.exception.reason, 'DOCKER_NO_START_UNPROVEN')
+                connect.assert_not_called()
+        with patch.object(native, '_parent') as opened:
+            with self.assertRaises(self.module.ProbeFailure):
+                native.docker_json('http://example.invalid', time.monotonic() + 1)
+            opened.assert_not_called()
+
+    def test_timeout_kills_descendants_before_fixture_file_write(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / 'delayed-write'
+            child = 'import time,pathlib; time.sleep(0.25); pathlib.Path(' + repr(str(marker)) + ').write_text("unexpected")'
+            parent = 'import subprocess,sys,time; subprocess.Popen([sys.executable,"-c",' + repr(child) + ']); time.sleep(5)'
+            with self.assertRaises(self.module.ProbeFailure):
+                self.module.bounded_command([sys.executable, '-c', parent], deadline=time.monotonic() + 0.08)
+            time.sleep(0.3)
+            self.assertFalse(marker.exists())
+
 
 class FixtureSystem:
     def __init__(self):
@@ -430,6 +520,10 @@ class FixtureSystem:
     def account(self, user, deadline):
         self.events.append(('account', user))
         return {'uid': 1002, 'gid': 1002, 'groups': [{'gid': 1002, 'name': user}]}
+
+    def docker_json(self, endpoint, deadline):
+        self.events.append(('docker_get', endpoint))
+        raise PermissionError()
 
 
 if __name__ == '__main__':
