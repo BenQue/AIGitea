@@ -36,7 +36,7 @@ status: approved
 | T09 | 历史：Mac interpreter 绑定治理；能力延期未验收 | T08 | completed |
 | T10 | 历史：七文档治理 commit f8750441 后 STOP；旧 M 未整合 | T09 | completed |
 | T02 | 最小 FF/DAG/tree/strict-R/owner/Controller/受管映射完成；原样默认 smoke（runtime 1146）、Python3.9 核心 98 与 shell/source mapping PASS；固定最终本地候选见外部回执 | T10 | completed |
-| T03 | exact 最终提交批准已取得；本人首次普通 FF、实际 guard/remote/owner/main 读回 PASS；唯一 PR #346 已创建；四文档回填与同一 PR head 更新中，required CI 首次 queued；最终 head/base/CI、本人 manual merge与收尾待完成 | T02 | in-progress |
+| T03 | exact 最终提交批准已取得；本人首次普通 FF、guard/remote/owner读回 PASS；唯一 PR #346 初始CI success；pr-open scope 修复/core20/runtime1148 PASS；fresh main/base推进至000a3f73，默认smoke behind10 FAIL保留；本人新main本地整合/全门/同一PR更新/final CI/manual merge与收尾待完成 | T02 | in-progress |
 
 ## 本轮与最短后续
 
@@ -77,3 +77,9 @@ T03 保持 in-progress；下一真实人工操作为已绑定 H/M/owner/stash/bu
 上述只读入口断点为历史。本人随后已明确批准 #327 / change/327-broker-ff-integration / manual 与 exact 首次 H，并实际完成单 ref ordinary FF。原 helper 在系统 Python3.9 导入 installed `Dependency = int | str` 失败；原 GUARD_NOT_EXECUTED/possible-write 回执保留。恢复仅为同一个 manifest helper 固定现有 Homebrew Python PATH，真实 dry-run guard PASS 后再发表，不改 Secret/身份/权限、不安装。R0 已 pin known absent，恢复未重 pin；actual remote/owner.last_push=H。外部恢复入口 10 个真实 bare case 与 helper 运行时合成协议 fixture PASS，两轴 hard=0。
 
 唯一 [PR #346](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/346) 由 typed broker 创建，initial head=`f97d0d88a99373711a22c44b72d46976cd290638`、base=`96ba8a17baad8e9854d4e8d0397d4162b8067b09`；required CI run1801/job2007 当前 queued。四 mapped docs 只回填实际事实和 PR；同一确认允许合同内 CI 修复及回填，不新增 PR/确认点。更新后核 final exact head/base/required CI 到 READY_FOR_REVIEW，再由本人 manual merge；T03 不提前 completed。原 source 全门与延期/安装边界保持。
+
+## 2026-10-06 T03 PR 生命周期修复与 main 前进（最新）
+
+上段 queued 为创建断点，后续 actual initial CI 已 success。PR 回填 local commit `019cabf9bac4e456fefcf397ed503f086250882a` 保留为首次H的单parent后继；scope 的 approved-only 与既有回填器 pr-open 冲突已在原模块/测试范围修复。summary开放PR须唯一exact Issue/同仓PR URL，spec仍唯一approved；实际回填与bare FF正向、16负向、核心20/全runtime1148及两轴hard=0通过，旧失败保留。
+
+fresh main与PR实际base已到 `000a3f73cd7069f4aef0a202b1a19555014fd887`，默认smoke sourceguard behind10 FAIL，runtime未到达；暂停旧发表入口。原owner本地线性修复提交后，由本人按新固定H/M/三方tree入口做本地two-parent main整合并STOP（checkpoint bundle保全、无owner/remote写）。入口6真实Gitfixture通过，含commit落地后lostreply有限读回；实际整合尚未执行。fresh owner重读并重跑完整默认smoke/历史/文档门后再为同一PR准备普通FF与final head/base CI。原exact Issue/branch/manual确认内的修复与回填不重复询问；PR manual merge、安装/部署仍独立，未提前ready或completed。

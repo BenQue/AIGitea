@@ -287,6 +287,77 @@ class IntegrationTests(unittest.TestCase):
         with self.assertRaises(GitError):
             self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH)
 
+    def mapped_scope_fixture(self):
+        directory = self.repo / "docs/changes/327-broker-ff-integration"
+        directory.mkdir(parents=True)
+        summary = directory / "summary-broker-ff-integration-261006.md"
+        spec = directory / "spec-broker-ff-integration-261006.md"
+        paths = ("issue.txt", str(summary.relative_to(self.repo)), str(spec.relative_to(self.repo)))
+        summary_text = ("---\nissue: 327\nbranch: " + BRANCH
+                        + "\ncreated: 2026-10-06\nstatus: approved\ngitea_url: http://fixture.invalid/admin/platform/issues/327"
+                        + "\npr_url: ''\nrequired_docs:\n  - summary\n  - spec\ndocuments:\n  summary: " + summary.name
+                        + "\n  spec: " + spec.name + "\n---\n")
+        spec_text = ("---\nissue: 327\nbranch: " + BRANCH
+                     + "\ncreated: 2026-10-06\nstatus: approved\ngit_scope:\n"
+                     + "".join("  - " + name + "\n" for name in paths) + "---\n")
+        summary.write_text(summary_text)
+        spec.write_text(spec_text)
+        self.git("add", "docs")
+        self.git("commit", "-q", "-m", "#327 approved mapped fixture")
+        return summary, spec, paths, summary_text, spec_text
+
+    def test_actual_pr_backfill_keeps_approved_spec_scope_and_publishes_ff(self):
+        from aisoft_loop.documents import backfill_pr_url
+        summary, _spec, paths, _summary_text, _spec_text = self.mapped_scope_fixture()
+        initial = self.git("rev-parse", "HEAD")
+        self.assertEqual(self.repository.scope(initial, BRANCH).paths, paths)
+        self.history(scope=paths)
+        self.publish()
+        backfill_pr_url(self.repo, 327, "http://fixture.invalid/admin/platform/pulls/346")
+        self.assertIn("status: pr-open", summary.read_text())
+        self.git("add", "docs")
+        self.git("commit", "-q", "-m", "#327 actual PR backfill")
+        final = self.git("rev-parse", "HEAD")
+        self.assertEqual(self.repository.scope(final, BRANCH).paths, paths)
+        self.history(original=initial, remote=initial, scope=paths)
+        published = self.publish(initial)
+        self.assertEqual(published["previous_head"], initial)
+        self.assertEqual(self.remote_head(), final)
+        self.assertTrue(published["guard_executed"])
+
+    def test_pr_lifecycle_does_not_accept_bad_binding_or_unapproved_spec(self):
+        summary, spec, _paths, summary_text, spec_text = self.mapped_scope_fixture()
+        opened = summary_text.replace("status: approved", "status: pr-open").replace(
+            "pr_url: ''", "pr_url: http://fixture.invalid/admin/platform/pulls/346")
+        cases = (
+            (opened.replace("status: pr-open", "status: draft"), spec_text),
+            (opened.replace("status: pr-open", "status: approved\nstatus: pr-open"), spec_text),
+            (opened.replace("pr_url: http://fixture.invalid/admin/platform/pulls/346", "pr_url: ''"), spec_text),
+            (opened.replace("/pulls/346", "/pulls/0"), spec_text),
+            (opened.replace("/pulls/346", "/pulls/346\npr_url: http://fixture.invalid/admin/platform/pulls/347"), spec_text),
+            (opened.replace("pr_url: http://fixture.invalid", "pr_url: http://other.invalid"), spec_text),
+            (opened.replace("/issues/327", "/issues/328"), spec_text),
+            (opened, spec_text.replace("status: approved", "status: draft")),
+            (opened.replace("status: pr-open", "status: pr-open\nstatus:"), spec_text),
+            (opened.replace("/pulls/346", "/pulls/346\npr_url:"), spec_text),
+            (opened.replace("/issues/327", "/issues/327\ngitea_url: http://fixture.invalid/admin/platform/issues/328"), spec_text),
+            (opened.replace("/issues/327", "/issues/327\ngitea_url:"), spec_text),
+            (opened.replace("/issues/327", "/issues/327\ngitea_url: malformed"), spec_text),
+            (opened.replace("issue: 327", "issue: 327\nissue:"), spec_text),
+            (opened.replace("branch: " + BRANCH, "branch: " + BRANCH + "\nbranch:"), spec_text),
+            (opened, spec_text.replace("status: approved", "status: approved\nstatus:")),
+        )
+        for index, (bad_summary, bad_spec) in enumerate(cases):
+            with self.subTest(case=index):
+                summary.write_text(bad_summary)
+                spec.write_text(bad_spec)
+                self.git("add", "docs")
+                self.git("commit", "-q", "-m", "#327 rejected lifecycle fixture")
+                with self.assertRaises(GitError) as caught:
+                    self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH)
+                self.assertEqual(caught.exception.code, "SCOPE_UNKNOWN")
+                self.assertIsNone(self.remote_head())
+
     def test_pre_push_input_exact_one_sha_ref_and_old_id(self):
         line = (self.first + " " + self.first + " refs/heads/" + BRANCH + " " + "0" * 40 + "\n").encode()
         validate_pre_push(line, branch=BRANCH, head=self.first, remote=None)

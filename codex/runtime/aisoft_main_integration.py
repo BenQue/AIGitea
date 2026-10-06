@@ -249,9 +249,23 @@ class GitRepository:
         require(summary.startswith("---\n") and "\n---\n" in summary,
                 "summary front matter missing", "SCOPE_UNKNOWN")
         summary_front = summary.split("\n---\n", 1)[0]
-        for key, expected in (("issue", number), ("branch", branch), ("status", "approved")):
-            require(re.findall(r"^" + key + r": (.+)$", summary_front, re.M) == [expected],
-                    "mapped summary binding/status differs", "SCOPE_UNKNOWN")
+        def field(front, key):
+            values = re.findall(r"^" + key + r":[ \t]*(.*)$", front, re.M)
+            require(len(values) == 1, "mapped field missing or duplicate", "SCOPE_UNKNOWN")
+            return values[0]
+        for key, expected in (("issue", number), ("branch", branch)):
+            require(field(summary_front, key) == expected,
+                    "mapped summary binding differs", "SCOPE_UNKNOWN")
+        status = field(summary_front, "status")
+        require(status in {"approved", "pr-open"},
+                "mapped summary lifecycle differs", "SCOPE_UNKNOWN")
+        if status == "pr-open":
+            issue_url = field(summary_front, "gitea_url")
+            pull_url = field(summary_front, "pr_url")
+            require(re.fullmatch(r"https?://\S+/issues/" + number, issue_url) is not None
+                    and re.fullmatch(re.escape(issue_url.rsplit("/issues/", 1)[0])
+                                     + r"/pulls/[1-9][0-9]*", pull_url) is not None,
+                    "open PR summary lacks its exact repository URL", "SCOPE_UNKNOWN")
         spec_names = re.findall(r"^  spec: ([A-Za-z0-9._-]+)\s*$", summary_front, re.M)
         spec_name = spec_names[0] if len(spec_names) == 1 else "01-spec.md" if match[2] is None else ""
         require(spec_name and directory + spec_name in names, "exact mapped spec missing", "SCOPE_UNKNOWN")
@@ -259,7 +273,7 @@ class GitRepository:
         require(spec.startswith("---\n") and "\n---\n" in spec, "spec front matter missing", "SCOPE_UNKNOWN")
         front = spec.split("\n---\n", 1)[0]
         for key, expected in (("issue", number), ("branch", branch), ("status", "approved")):
-            require(re.findall(r"^" + key + r": (.+)$", front, re.M) == [expected],
+            require(field(front, key) == expected,
                     "mapped spec binding/status differs", "SCOPE_UNKNOWN")
         def paths(key):
             value = re.findall(r"^" + key + r":\n((?:  - [^\n]+\n?)+)", front, re.M)

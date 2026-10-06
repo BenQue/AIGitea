@@ -23,6 +23,29 @@ status: pending
 
 # #327 分层证据与 T05 独立治理验收
 
+## 2026-10-06 T03 最新：生命周期修复通过；新 main 整合待本人执行
+
+以下仅更新本轮已实际观察到的层次；下文历史 FAIL/GAP/NOT RUN 与保全对象均保留。
+
+| Check | Result | Evidence / limit |
+|---|---|---|
+| 实际首次普通FF / PR #346初始head | PASS | 本人恢复回执与实际guard已核，remote/owner.last_push=`f97d0d88a99373711a22c44b72d46976cd290638`；R0仍known absent，未重pin |
+| 初始required CI | PASS（初始head） | typed `gitea.commit.status.read`：exact `CI / verify (pull_request)` success，run1801/job2007；不覆盖后继head/new base |
+| fresh PR/main/protection | PASS（读取） | 唯一PR346 open/notmerged，head仍f97；main/base=`000a3f73cd7069f4aef0a202b1a19555014fd887`；main禁止push/force、manual/admin与required context/outdated gate保持 |
+| 实际回填提交scope预检 | FAIL（旧模块） | local `019cabf9bac4e456fefcf397ed503f086250882a`仅四mapped docs；既有回填器 summary→pr-open，旧最小Git只接approved，未执行该后继发表 |
+| 原批准模块/测试内生命周期修复 | PASS（source/local） | summary approved或pr-open；开放PR要求唯一exact Issue/同仓正数PR URL；spec仍唯一approved；先数所有原始键含空值，再验证值，拒绝合法+错误/空/畸形重复项 |
+| 实际回填器→scope/history→guarded bare FF；16负向cases | PASS（fixture） | `/usr/bin/python3` Git核心20 tests OK；最初fixture缺映射/created/required_docs的失败日志保留，修正真实fixture后通过 |
+| 全runtime | PASS（Homebrew source/local） | 1148 tests OK，167.330s；run wrapper before/after两个改动源码SHA相同，stable=true；测试日志与hash在原owner外部E |
+| 系统Python3.9全仓误用回归 | FAIL（保留） | 1011 tests，6 errors/1 failure：全仓既有其他模块的联合类型/tar filter/bytecode fixture兼容性；不把Git核心3.9 PASS提升成全仓3.9 PASS，也不扩大本票修复 |
+| 默认 `bash codex/tests/smoke.sh` | FAIL（BASE_STALE） | sourceguard发现behind origin/main 10 commits，5.6s停止，runtime NOT REACHED；源码before/after稳定；不隐藏/跳过门，不把独立runtime PASS记成smoke PASS |
+| 修复两轴审阅 | PASS（增量） | Spec hard=0/scope creep=0，Standards hard=0/new smell=0；原重复字段P2报告保留并闭合 |
+| 新main只读三方tree预演 | PASS（preview only） | 临时ODB计算，无worktree/index/ref写；实际后继固定H/tree绑定在外部入口；不当作实际整合 |
+| 人工本地main入口 | PASS（6真实Gitfixture） | 成功、main漂移、dirty、owner漂移、冲突、commit落地后lostreply：actualH/parents/tree有限读回、CREATED_OBSERVED_AFTER_ERROR且仍STOP；无重试/回退；原模板P2及fixture故障保留 |
+| 实际新main本地整合 / 同一PR后继发表 / final head-base CI | NOT RUN | 先本人按冻结H/M/tree保存checkpoint bundle并本地two-parent commit/STOP；fresh owner重跑全部默认门后才准备同PR普通FF；旧发表入口已停用 |
+| manual merge / 新broker安装 / live / 部署 | NOT RUN | source/local/initial CI不赋予安装或部署授权，T03仍in-progress |
+
+外部证据目录：`/Users/benque/.codex/visualizations/2026/10/02/01a0fcec-eb78-7790-a36a-daea917f43d2/issue-327-convergence-20261005/t02-minimal-git-fresh-20261006-5r33dgqe/`。本次局部修复不修改AGENTS/治理合同/权限/Secret；既有stash `4888c0345a90ab76560f33172dd9923f79c3a988`与其bundle、parked源码及原owner台账均保留。最终commit SHA在外部回执记录，避免文档自引用。
+
 ## 基线与范围
 
 - 时间：2026-10-02（Asia/Shanghai）；详细时间戳见 `/private/tmp/aisoft-327-contract-evidence/baseline.json`。
