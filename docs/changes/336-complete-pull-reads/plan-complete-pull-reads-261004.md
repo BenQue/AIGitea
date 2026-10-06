@@ -77,3 +77,11 @@ T03 在实际合规 FF/自举通道可用后准备 exact #336/branch/manual 最�
 - T03 本地验证/文档投影按同一 writer 顺序执行；最终发布/PR/CI 门仍独立，没有并行 runtime 实施。
 - 发现合同冲突、三个代码路径范围扩大、发布/安装能力缺失或重复失败，保存 exact evidence 并交本人处理； unaffected 本地准备可继续。
 - #333 保持既有 owner、T13与现场验收职责；#327 保持既有 owner及发布职责。本票不写它们的 live label、owner 或工作区。
+
+## Mac 前置完成后的受控范围投影（2026-10-06）
+
+#327 / PR #346 的固定 merge `1a86a0037ee76f462eac52dc7dc08d3d3fbd2ed4` 已在当前 Mac 完整安装、真实恢复、再安装和幂等复验，安装回执为 PASS。它解除本机旧 installed FF qualification 缺口，不表示 #336 新读取协议已安装或发布。
+
+本轮发现 approved spec 缺少当前 Controller 必需的 `git_scope`，先独立投影原三代码路径与四映射文档，作本地文档 commit 后 STOP。后续 fresh run 才继续 T03：重读 owner/合同/当前 main、在三路径内修复兼容性，先证明合规无冲突 main 整合，再固定实际候选执行适当回归/默认完整 smoke/真实恢复/唯一性与发布硬门。不得把私人候选套入实际 worktree 后手工解决 merge 冲突绕过 Controller。
+
+隔离预演的范围/history 前置门 PASS，但旧源与 v2 兼容候选对固定 main 均返回 `MERGE_CONFLICT`；预演未修改实际 runtime。既有私人 v2 345/1226 项结果不算最终 integrated 候选 PASS。本轮没有真实整合、push、PR 或 #336 安装。

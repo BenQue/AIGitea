@@ -130,3 +130,21 @@ updated: 2026-10-06
 T02 实现与本地 commit 已完成。T03 本地 smoke、恢复与结果投影已推进；manual PR 审阅准备保留 GAP，不声明 `READY_FOR_REVIEW`。#327 合规整合/FF 能力、fresh 远端完整唯一性、最终 exact Issue/branch/manual/head/body 的确认和 required CI 是后续独立 gate；本轮没有发布尝试，不混装或借用未合并 broker 自举。
 
 公开 review 草案及最终状态见同证据目录的 `manual-pr-review-card.md`，它不是发布授权。观察的 main、T02 runtime HEAD、最终文档 HEAD、patch/log hashes 各自固定；文档投影之后仅作静态核验与源 bytes 等价校验，不将旧 prototype、安装 fixture 或本地 PASS 提升为 CI/installed/live。尚无真实 merged pin，未来 installed 操作仍须另备全变更字节/provenance/compatibility/权限与上一版本回退卡，并获得独立批准。
+
+## Mac FF 完成后的 fresh 核对与独立范围投影（2026-10-06）
+
+证据目录：`/Users/benque/.codex/visualizations/2026/10/05/01a10c82-7f6b-7093-80d5-d389a18198c0/issue-336-post-install-261006/`。实际提交后的 HEAD/tree/scope/owner/runtime 等价与 STOP 结果保留在 `scope-projection-receipt.json`，不在本文形成自引用提交 SHA。
+
+| 检查 | 结果与边界 |
+|---|---|
+| Mac #327 / PR #346 完整安装/恢复/再安装/幂等 | PASS；固定 merge `1a86a0037ee76f462eac52dc7dc08d3d3fbd2ed4`；原回执 `execution-acceptance-receipt.json` SHA256=`d563a7c858c04d9742dbd807483db885fe9a566031c822f008f8f32f5f0916ae`，不重跑或改写原回执 |
+| fresh owner/branch/HEAD 与 installed qualification | PASS；原 HEAD=`2eb10ea18f0b6548bc60f44af1f8a1be88d0966f`、单写者精确匹配；稳定 M runtime 与实际 installed 核心 qualification 一致，`fresh-start.json` |
+| canonical `git.fetch.main` / #336 Issue read | PASS；fresh main=M，Issue OPEN/approved/security/complex；没有 remote write |
+| canonical `git.fetch.change` #336 | PASS，exit0；`remote_known=true`、`remote_head=null`，原 stdout/stderr 保留；只证明此次 typed namespace 观测，不代替完整 PR 集合唯一性 |
+| 投影前 committed scope | GAP：`SCOPE_UNKNOWN`，spec 缺 `git_scope`；本轮只投影已批准七路径，不扩大范围或放宽历史门 |
+| 隔离投影后的 scope/history 门 | PASS，预演私有 clone；`scope-and-compatibility-preview.json`，不代表实际 owner commit 或 main 整合 |
+| 隔离旧源 / v2 兼容源 merge-tree | 两者均 `MERGE_CONFLICT`；原始失败保留；actual runtime 未改，真实整合 NOT RUN |
+| 本轮文档门 / 精确本地文档提交 / STOP | 结果见 `scope-projection-receipt.json`；仅四映射文档，无 runtime/AGENTS/Controller/installer 修改；提交后独立 STOP |
+| #336 最终候选回归/smoke/恢复/PR CI/installed 新协议 | NOT RUN；旧源及私人 v2 回归结果不能提升为最终 integrated 候选证据 |
+
+Mac 安装已完成，旧“未合并 #327 / 本机安装缺口”的门只作历史记录；现有未完成项是 #336 三路径兼容与合规 main 整合、最终候选验证、完整远端唯一性、唯一 manual PR 确认及 CI。AC 和分类不变；不改其他 Issue 的 worktree、owner、live 标签、安装或凭据。

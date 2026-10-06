@@ -104,3 +104,9 @@ override_reason: ''
 ### 缺失的 acceptance criteria 或决策
 
 AC 与三个 runtime 路径已经固定，合同/启动批准已取得，无待重复确认的设计选择。T01 已独立 STOP；T02 已在 fresh turn 实现并作本地提交，T03 保留最终发布/CI 门。最终代码若因 fresh main 或 #327 已正式交付的等价 namespace 能力而改变，必须重新固定实际 diff 与证据；仅 main/能力事实变化不新增跨票产品依赖。本地三路径垂直切片可继续准备，真正 FF/发布/安装门各自独立，不增加或删除其他 Issue 的 live dependency。
+
+## 2026-10-06 Mac 前置与范围投影更新
+
+#327 / PR #346 已合并；当前 Mac 已对固定 merge `1a86a0037ee76f462eac52dc7dc08d3d3fbd2ed4` 完成完整安装、真实恢复、再安装和幂等复验，回执 `PASS_MAC_FF_INSTALL_ACCEPTANCE`，旧 installed FF qualification 缺口已解除。上述旧 source38/installed38 观察仅保留历史含义；#336 新协议仍未安装、未发布。
+
+当前 Controller 要求 committed approved spec 声明 `git_scope`，本轮仅补充原三代码路径与四映射文档的精确机器投影，并本地提交后独立 STOP。隔离兼容预演仍为 `MERGE_CONFLICT`，实际 source/main 整合尚未执行；T03 继续 in-progress，最终候选、完整唯一性、发布确认与 PR CI 仍未完成，不声明 PR ready。

@@ -14,6 +14,14 @@ risk_flags:
   - platform-governance
 depends_on: []
 status: approved
+git_scope:
+  - codex/runtime/aisoft_host_access/broker.py
+  - codex/runtime/aisoft_host_access/cli.py
+  - codex/runtime/tests/test_host_access_complete_reads.py
+  - docs/changes/336-complete-pull-reads/plan-complete-pull-reads-261004.md
+  - docs/changes/336-complete-pull-reads/spec-complete-pull-reads-261004.md
+  - docs/changes/336-complete-pull-reads/summary-complete-pull-reads-261004.md
+  - docs/changes/336-complete-pull-reads/verification-complete-pull-reads-261004.md
 branch: change/336-complete-pull-reads
 created: 2026-10-04
 updated: 2026-10-06
@@ -129,3 +137,7 @@ stdout 保留既有 JSON array，序列化固定 `ensure_ascii=False`、`sort_ke
 ## 未决问题
 
 无。合同设计、三路径范围与本地启动批准已固定，无待重复确认的选择。T01 独立 STOP / T02 fresh turn 阶段边界已履行；本轮只完成本地实现及验证，不传递发布授权。正式发布路径与安装验收是后续独立 gate；#327 未发布不阻止本地垂直切片准备，不新增跨票产品硬依赖。若 fresh #327 等价能力使最终 diff 改变，应重新固定范围与回归；范围扩张或合同冲突再升级，不能绕过发布/安装闸门。
+
+## 既有精确 Git 范围投影（2026-10-06）
+
+`git_scope` 仅机器投影既有 approved 合同的三个代码路径和本票四份映射文档，不新增产品、权限、治理实现或文件范围；不设置额外 history 放宽项。AC-1～8、读取协议及冻结安全边界保持原文。本轮只完成此文档治理投影并独立 STOP；后续 fresh run 重读合同后，才可继续原三路径内的兼容修复与 main 整合。最终 PR 确认仍单独绑定 exact Issue、branch、HEAD 与 manual policy。
