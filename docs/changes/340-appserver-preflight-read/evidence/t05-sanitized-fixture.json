@@ -1,0 +1,724 @@
+{
+  "evidence_layer": "SOURCE_FIXTURE",
+  "actual_target_execution_count": 0,
+  "fixture_helper_source_sha256": "75f3a622b2115769c0f4f80f859aae60473abdb9778bafeac8e5d400b1f2ab4c",
+  "simulated_source_fingerprint": true,
+  "collector_response": {
+    "contract_version": "application-target-preflight/v1",
+    "observed_at_utc": "2026-10-06T01:50:31.022174+00:00",
+    "observed_at_jst": "2026-10-06T10:50:31.022174+09:00",
+    "project": "localwms",
+    "target": "localwms-local-test",
+    "machine": "AppServer",
+    "actual_operator": "aisoft-preflight",
+    "helper_version": "application-target-preflight/v1",
+    "source_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+    "limits": {
+      "request_seconds": 30,
+      "probe_seconds": 5,
+      "control_bytes": 65536,
+      "helper_bytes": 262144,
+      "file_bytes": 65536,
+      "machines": 64,
+      "sockets": 256,
+      "containers": 128,
+      "units": 6,
+      "groups": 32,
+      "directories": 16,
+      "text_bytes": 256
+    },
+    "duration_seconds": 0.000520082947332412,
+    "status": "GAP",
+    "reason": "PARTIAL",
+    "complete": false,
+    "target_execution_count": 1,
+    "items": {
+      "identity.hostname": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": "fixture-appserver",
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022283+00:00"
+      },
+      "identity.machine_id": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": "0123456789abcdef0123456789abcdef",
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022301+00:00"
+      },
+      "identity.os": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "ID": "ubuntu",
+          "VERSION_ID": "25.10",
+          "VERSION": "25.10 (Questing Quokka)",
+          "VERSION_CODENAME": "questing"
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022315+00:00"
+      },
+      "identity.architecture": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": "aarch64",
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022317+00:00"
+      },
+      "resources.cpu_count": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": 4,
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022319+00:00"
+      },
+      "resources.memory": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "MemTotal": 8589934592,
+          "MemAvailable": 4294967296
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022366+00:00"
+      },
+      "filesystem.root": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "total_bytes": 1000000000,
+          "available_bytes": 900000000,
+          "free_bytes": 900000000
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022370+00:00"
+      },
+      "filesystem.opt": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "total_bytes": 1000000000,
+          "available_bytes": 900000000,
+          "free_bytes": 900000000
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022373+00:00"
+      },
+      "filesystem.pg18": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "total_bytes": 1000000000,
+          "available_bytes": 900000000,
+          "free_bytes": 900000000
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022375+00:00"
+      },
+      "runtime.node": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "metadata": {
+            "uid": 0,
+            "gid": 0,
+            "mode": 493,
+            "kind": "file",
+            "is_symlink": false
+          },
+          "version": "v24.18.0"
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022383+00:00"
+      },
+      "runtime.postgres": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "metadata": {
+            "uid": 0,
+            "gid": 0,
+            "mode": 493,
+            "kind": "file",
+            "is_symlink": false
+          },
+          "version": "postgres (PostgreSQL) 18.4"
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022432+00:00"
+      },
+      "runtime.psql": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "metadata": {
+            "uid": 0,
+            "gid": 0,
+            "mode": 493,
+            "kind": "file",
+            "is_symlink": false
+          },
+          "version": "psql (PostgreSQL) 18.4"
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022475+00:00"
+      },
+      "runtime.pg_dump": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "metadata": {
+            "uid": 0,
+            "gid": 0,
+            "mode": 493,
+            "kind": "file",
+            "is_symlink": false
+          },
+          "version": "pg_dump (PostgreSQL) 18.4"
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022513+00:00"
+      },
+      "runtime.pg_restore": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "metadata": {
+            "uid": 0,
+            "gid": 0,
+            "mode": 493,
+            "kind": "file",
+            "is_symlink": false
+          },
+          "version": "pg_restore (PostgreSQL) 18.4"
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022553+00:00"
+      },
+      "runtime.npm_metadata": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "uid": 0,
+          "gid": 0,
+          "mode": 493,
+          "kind": "file",
+          "is_symlink": false
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022555+00:00"
+      },
+      "runtime.npm": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": "11.6.0",
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022577+00:00"
+      },
+      "sockets.listeners": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": [
+          {
+            "protocol": "tcp",
+            "address": "127.0.0.1",
+            "port": 3100,
+            "pid": 123,
+            "comm": "node"
+          }
+        ],
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022629+00:00"
+      },
+      "service.nginx.service": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "LoadState": "loaded",
+          "ActiveState": "active",
+          "MainPID": 123
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022648+00:00"
+      },
+      "service.postgresql.service": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "LoadState": "loaded",
+          "ActiveState": "active",
+          "MainPID": 123
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022653+00:00"
+      },
+      "service.postgresql@18-main.service": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "LoadState": "loaded",
+          "ActiveState": "active",
+          "MainPID": 123
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022656+00:00"
+      },
+      "service.pm2-benque.service": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "LoadState": "loaded",
+          "ActiveState": "active",
+          "MainPID": 123
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022658+00:00"
+      },
+      "service.localwms-api.service": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "LoadState": "loaded",
+          "ActiveState": "active",
+          "MainPID": 123
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022661+00:00"
+      },
+      "service.localwms-worker.service": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "LoadState": "loaded",
+          "ActiveState": "active",
+          "MainPID": 123
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022663+00:00"
+      },
+      "account.localwms": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "uid": 1002,
+          "gid": 1002,
+          "groups": [
+            {
+              "gid": 1002,
+              "name": "localwms"
+            }
+          ]
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022668+00:00"
+      },
+      "account.aisoft-preflight": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "uid": 1002,
+          "gid": 1002,
+          "groups": [
+            {
+              "gid": 1002,
+              "name": "aisoft-preflight"
+            }
+          ]
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022672+00:00"
+      },
+      "directory.etc_localwms": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "uid": 0,
+          "gid": 0,
+          "mode": 493,
+          "kind": "file",
+          "is_symlink": false
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022674+00:00"
+      },
+      "directory.opt_localwms": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "uid": 0,
+          "gid": 0,
+          "mode": 493,
+          "kind": "file",
+          "is_symlink": false
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022676+00:00"
+      },
+      "directory.current": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "uid": 0,
+          "gid": 0,
+          "mode": 493,
+          "kind": "file",
+          "is_symlink": false
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022678+00:00"
+      },
+      "directory.releases": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "uid": 0,
+          "gid": 0,
+          "mode": 493,
+          "kind": "file",
+          "is_symlink": false
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022679+00:00"
+      },
+      "directory.state": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "uid": 0,
+          "gid": 0,
+          "mode": 493,
+          "kind": "file",
+          "is_symlink": false
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022681+00:00"
+      },
+      "directory.backups": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "uid": 0,
+          "gid": 0,
+          "mode": 493,
+          "kind": "file",
+          "is_symlink": false
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022682+00:00"
+      },
+      "directory.retired_app_data": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "uid": 0,
+          "gid": 0,
+          "mode": 493,
+          "kind": "file",
+          "is_symlink": false
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022684+00:00"
+      },
+      "directory.retired_nginx": {
+        "status": "PASS",
+        "reason": "OBSERVED",
+        "value": {
+          "uid": 0,
+          "gid": 0,
+          "mode": 493,
+          "kind": "file",
+          "is_symlink": false
+        },
+        "complete": true,
+        "observed_at": "2026-10-06T01:50:31.022685+00:00"
+      },
+      "docker": {
+        "status": "BLOCKED",
+        "reason": "PERMISSION_DENIED",
+        "value": null,
+        "complete": false,
+        "observed_at": "2026-10-06T01:50:31.022689+00:00"
+      },
+      "postgres.instance": {
+        "status": "BLOCKED",
+        "reason": "PG_READ_ROUTE_UNAUTHORIZED",
+        "value": null,
+        "complete": false,
+        "observed_at": "2026-10-06T01:50:31.022690+00:00"
+      },
+      "archive_inventory": {
+        "status": "GAP",
+        "reason": "ARCHIVE_INVENTORY_UNBOUND",
+        "value": null,
+        "complete": false,
+        "observed_at": "2026-10-06T01:50:31.022691+00:00"
+      }
+    },
+    "preservation": {
+      "collector_calls": "NOT RUN",
+      "os_atime_audit": "NOT RUN",
+      "whole_machine_before_after": "NOT RUN"
+    }
+  },
+  "fixture_call_spy": [
+    [
+      "operator"
+    ],
+    [
+      "read",
+      "/etc/machine-id"
+    ],
+    [
+      "read",
+      "/etc/os-release"
+    ],
+    [
+      "read",
+      "/proc/meminfo"
+    ],
+    [
+      "filesystem",
+      "/"
+    ],
+    [
+      "filesystem",
+      "/opt"
+    ],
+    [
+      "filesystem",
+      "/var/lib/postgresql/18/main"
+    ],
+    [
+      "metadata",
+      "/opt/node24.18.0/bin/node"
+    ],
+    [
+      "command",
+      "/opt/node24.18.0/bin/node",
+      [
+        "--version"
+      ]
+    ],
+    [
+      "metadata",
+      "/usr/lib/postgresql/18/bin/postgres"
+    ],
+    [
+      "command",
+      "/usr/lib/postgresql/18/bin/postgres",
+      [
+        "--version"
+      ]
+    ],
+    [
+      "metadata",
+      "/usr/lib/postgresql/18/bin/psql"
+    ],
+    [
+      "command",
+      "/usr/lib/postgresql/18/bin/psql",
+      [
+        "--version"
+      ]
+    ],
+    [
+      "metadata",
+      "/usr/lib/postgresql/18/bin/pg_dump"
+    ],
+    [
+      "command",
+      "/usr/lib/postgresql/18/bin/pg_dump",
+      [
+        "--version"
+      ]
+    ],
+    [
+      "metadata",
+      "/usr/lib/postgresql/18/bin/pg_restore"
+    ],
+    [
+      "command",
+      "/usr/lib/postgresql/18/bin/pg_restore",
+      [
+        "--version"
+      ]
+    ],
+    [
+      "metadata",
+      "/opt/node24.18.0/bin/npm"
+    ],
+    [
+      "read",
+      "/opt/node24.18.0/lib/node_modules/npm/package.json"
+    ],
+    [
+      "command",
+      "/usr/bin/ss",
+      [
+        "--listening",
+        "--tcp",
+        "--udp",
+        "--numeric",
+        "--no-header",
+        "--oneline",
+        "--processes"
+      ]
+    ],
+    [
+      "command",
+      "/usr/bin/systemctl",
+      [
+        "--system",
+        "show",
+        "--no-pager",
+        "--property=LoadState,ActiveState,MainPID",
+        "--",
+        "nginx.service"
+      ]
+    ],
+    [
+      "command",
+      "/usr/bin/systemctl",
+      [
+        "--system",
+        "show",
+        "--no-pager",
+        "--property=LoadState,ActiveState,MainPID",
+        "--",
+        "postgresql.service"
+      ]
+    ],
+    [
+      "command",
+      "/usr/bin/systemctl",
+      [
+        "--system",
+        "show",
+        "--no-pager",
+        "--property=LoadState,ActiveState,MainPID",
+        "--",
+        "postgresql@18-main.service"
+      ]
+    ],
+    [
+      "command",
+      "/usr/bin/systemctl",
+      [
+        "--system",
+        "show",
+        "--no-pager",
+        "--property=LoadState,ActiveState,MainPID",
+        "--",
+        "pm2-benque.service"
+      ]
+    ],
+    [
+      "command",
+      "/usr/bin/systemctl",
+      [
+        "--system",
+        "show",
+        "--no-pager",
+        "--property=LoadState,ActiveState,MainPID",
+        "--",
+        "localwms-api.service"
+      ]
+    ],
+    [
+      "command",
+      "/usr/bin/systemctl",
+      [
+        "--system",
+        "show",
+        "--no-pager",
+        "--property=LoadState,ActiveState,MainPID",
+        "--",
+        "localwms-worker.service"
+      ]
+    ],
+    [
+      "account",
+      "localwms"
+    ],
+    [
+      "account",
+      "aisoft-preflight"
+    ],
+    [
+      "metadata",
+      "/etc/localwms"
+    ],
+    [
+      "metadata",
+      "/opt/localwms"
+    ],
+    [
+      "metadata",
+      "/opt/localwms/current"
+    ],
+    [
+      "metadata",
+      "/opt/localwms/releases"
+    ],
+    [
+      "metadata",
+      "/opt/localwms/state"
+    ],
+    [
+      "metadata",
+      "/opt/localwms/backups"
+    ],
+    [
+      "metadata",
+      "/opt/retired-app-data-20260913"
+    ],
+    [
+      "metadata",
+      "/etc/nginx/sites-retired-20260913"
+    ],
+    [
+      "docker_get",
+      "/version"
+    ]
+  ],
+  "control_refusal": {
+    "contract_version": "application-target-preflight/v1",
+    "observed_at_utc": "2026-10-06T01:50:31.024607+00:00",
+    "observed_at_jst": "2026-10-06T10:50:31.024607+09:00",
+    "project": "localwms",
+    "target": "localwms-local-test",
+    "machine": "AppServer",
+    "actual_operator": null,
+    "helper_version": "application-target-preflight/v1",
+    "source_fingerprint": null,
+    "limits": {
+      "request_seconds": 30,
+      "probe_seconds": 5,
+      "control_bytes": 65536,
+      "helper_bytes": 262144,
+      "file_bytes": 65536,
+      "machines": 64,
+      "sockets": 256,
+      "containers": 128,
+      "units": 6,
+      "groups": 32,
+      "directories": 16,
+      "text_bytes": 256
+    },
+    "duration_seconds": 2.6374997105449438e-05,
+    "status": "BLOCKED",
+    "reason": "TARGET_EXECUTION_NO_START_UNPROVEN",
+    "complete": false,
+    "target_execution_count": 0,
+    "items": {},
+    "preservation": {
+      "collector_calls": "NOT RUN",
+      "os_atime_audit": "NOT RUN",
+      "whole_machine_before_after": "NOT RUN"
+    }
+  },
+  "installed": "NOT RUN",
+  "live": "NOT RUN",
+  "consumer_333_unblocked": false
+}

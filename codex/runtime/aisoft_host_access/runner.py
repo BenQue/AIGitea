@@ -52,6 +52,10 @@ class GovernedHostRunner:
     def issue_read(self, number: int) -> Mapping[str, object]:
         return self._call("gitea.issue.read", "--number", str(_positive_number(number, "Issue")))
 
+    def application_target_preflight_read(self, target: str) -> Mapping[str, object]:
+        self._contract.application_target(self._project_id, target)
+        return self._call('application.target.preflight.read', '--target', target)
+
     def issue_update(self, number: int, title: str, body: str) -> Mapping[str, object]:
         return self._call(
             "gitea.issue.update", "--number", str(_positive_number(number, "Issue")),
@@ -178,13 +182,25 @@ class GovernedHostRunner:
             *arguments,
         ]
         try:
-            completed = self._command_runner(argv, cwd=self._cwd)
+            if operation == 'application.target.preflight.read' and self._command_runner is _default_runner:
+                from .application_preflight import run_bounded
+                raw = run_bounded(argv, limit=262144, timeout=30)
+                completed = subprocess.CompletedProcess(argv, 0, raw.decode('utf-8'), '')
+            else:
+                completed = self._command_runner(argv, cwd=self._cwd)
         except Exception as exc:
             raise BrokerError("HOST_BROKER_UNAVAILABLE", "fixed host broker invocation failed") from exc
         if completed.returncode != 0:
             raise BrokerError("HOST_BROKER_FAILED", "fixed host broker operation failed")
         try:
-            value = json.loads(completed.stdout)
+            if operation == 'application.target.preflight.read':
+                from .application_preflight import PreflightError, strict_json, validate_control_reply
+                try:
+                    value = validate_control_reply(strict_json(completed.stdout.encode('utf-8'), 262144))
+                except PreflightError as exc:
+                    raise BrokerError(exc.reason, 'fixed preflight response was refused') from None
+            else:
+                value = json.loads(completed.stdout)
         except (TypeError, UnicodeError, json.JSONDecodeError) as exc:
             raise BrokerError("RESPONSE_SCHEMA_INVALID", "fixed host broker returned invalid JSON") from exc
         if not isinstance(value, dict):

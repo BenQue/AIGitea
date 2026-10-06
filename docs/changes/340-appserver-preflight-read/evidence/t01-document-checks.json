@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-10-06T00:38:13.875072+00:00",
+  "issue": 340,
+  "branch": "change/340-appserver-preflight-read",
+  "owner_session": "01a10e8e-9128-7fa2-97a8-6493ee84be08",
+  "worktree": "/private/tmp/issue-340-appserver-preflight-read",
+  "baseline": "c9b5ef4e74592cbc68d6bdc6219568a1d51b6853",
+  "commands": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli resolve-documents 340 --repo /private/tmp/issue-340-appserver-preflight-read",
+      "exit_code": 0,
+      "stdout": "{\"plan\": \"plan-appserver-preflight-read-261006.md\", \"spec\": \"spec-appserver-preflight-read-261006.md\", \"summary\": \"summary-appserver-preflight-read-261006.md\", \"verification\": \"verification-appserver-preflight-read-261006.md\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli resolve-required-documents 340 --repo /private/tmp/issue-340-appserver-preflight-read",
+      "exit_code": 0,
+      "stdout": "{\"documents\": {\"plan\": \"plan-appserver-preflight-read-261006.md\", \"spec\": \"spec-appserver-preflight-read-261006.md\", \"summary\": \"summary-appserver-preflight-read-261006.md\", \"verification\": \"verification-appserver-preflight-read-261006.md\"}, \"required_docs\": [\"summary\", \"spec\", \"plan\", \"verification\"]}\n",
+      "stderr": ""
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo /private/tmp/issue-340-appserver-preflight-read",
+      "exit_code": 0,
+      "stdout": "PASS: change-documents\nPASS: change-pr-url\nresult: changes=157 pass=2 gap=0\n",
+      "stderr": ""
+    }
+  ],
+  "classification_front_matter": "PASS",
+  "ticket_graph": [
+    [
+      "T01",
+      [],
+      "completed"
+    ],
+    [
+      "T02",
+      [
+        "T01"
+      ],
+      "pending"
+    ],
+    [
+      "T03",
+      [
+        "T02"
+      ],
+      "pending"
+    ],
+    [
+      "T04",
+      [
+        "T03"
+      ],
+      "pending"
+    ],
+    [
+      "T05",
+      [
+        "T04"
+      ],
+      "pending"
+    ]
+  ],
+  "first_frontier": "T02",
+  "scope": "PASS",
+  "whitespace_tracked_and_untracked": "PASS",
+  "approval_card_owner": "PASS",
+  "evidence_json": "PASS",
+  "tested_documents_sha256": {
+    "06-运维手册与踩坑集.md": "60c45f48d8b289302ee986c55989ad6a6de6b1e18e390dc190320487665ad8a4",
+    "docs/changes/340-appserver-preflight-read/summary-appserver-preflight-read-261006.md": "f0e35e45707e9a8d30453f9b15a8e8af617c94300c1ace4efb2fce8db73e1c1d",
+    "docs/changes/340-appserver-preflight-read/spec-appserver-preflight-read-261006.md": "063feeb2687a4b0fde92fdd956ac3b1170847a53394ff5343d9eb9ecf613209e",
+    "docs/changes/340-appserver-preflight-read/plan-appserver-preflight-read-261006.md": "fffdb3c3f2f2670eff0679dd986831a35089f6e59cfe96ef7dd67c7fd22e21e6",
+    "docs/changes/340-appserver-preflight-read/verification-appserver-preflight-read-261006.md": "4718d95be1f40323cee4f9f982df853c6d118e312c73b8b4c2cc47915a66b9f9"
+  },
+  "runtime_changes": 0,
+  "source_feature_tests": "NOT RUN",
+  "full_smoke": "NOT RUN",
+  "CI": "NOT RUN",
+  "live_projection": "NOT RUN",
+  "push_PR": "NOT RUN",
+  "formal_install": "NOT RUN",
+  "live": "NOT RUN",
+  "next_action": "local T01 commit then STOP"
+}

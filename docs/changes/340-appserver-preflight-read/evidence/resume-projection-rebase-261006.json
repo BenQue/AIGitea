@@ -1,0 +1,121 @@
+{
+  "observed_at_utc": "2026-10-06T02:13:23.071886+00:00",
+  "observed_at_jst": "2026-10-06T11:13:23.071886+09:00",
+  "Issue": 340,
+  "branch": "change/340-appserver-preflight-read",
+  "owner": "01a10e8e-9128-7fa2-97a8-6493ee84be08",
+  "policy": "manual",
+  "direct_human_approval": "确认 #340（change/340-appserver-preflight-read，manual）仅批准 typed broker 投影 type/platform、complexity/complex、approved 并读回；批准本 owner 保存恢复引用后，将未 push 分支本地 rebase 到 96ba8a17baad8e9854d4e8d0397d4162b8067b09，保留原 T01 并核对 source bytes 不变。不批准 push/PR、merge、安装、权限或现场操作；唯一最终 PR 另确认。",
+  "remote_metadata_writes": [
+    {
+      "operation": "gitea.issue.labels.classify",
+      "change_type": "platform",
+      "complexity": "complex",
+      "status": "PASS",
+      "executed": true
+    },
+    {
+      "operation": "gitea.issue.labels.set",
+      "lifecycle": "approved",
+      "status": "PASS",
+      "executed": true
+    }
+  ],
+  "independent_labels_readback": [
+    "approved",
+    "complexity/complex",
+    "triage/needs-triage",
+    "type/platform"
+  ],
+  "classification_verifier": {
+    "result": "projected",
+    "change_type": "platform",
+    "complexity": "complex",
+    "exit_code": 0,
+    "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/private/tmp/issue-340-appserver-preflight-read/codex/runtime bash /private/tmp/issue-340-classification-verify-flat/apply-classification-labels.sh --repo /private/tmp/issue-340-appserver-preflight-read --project aisoft-platform --verify 340",
+    "flat_verifier_copy": "three byte-identical files; no sibling broker wrapper; all remote requests used /usr/local/libexec/aisoft/host-access-broker",
+    "installed_files_changed": false
+  },
+  "issue_body_unchanged": true,
+  "issue_content_version": 0,
+  "issue_comments": 0,
+  "issue_state": "open",
+  "recovery_ref": "refs/aisoft/recovery/340/pre-main-integration",
+  "recovery_HEAD": "aba5da15fcafd65edfebab7e0a154ce069a4845f",
+  "original_T01": "adbe53252f71474afffdd886ca7509cc75ab0842",
+  "rebase_target": "96ba8a17baad8e9854d4e8d0397d4162b8067b09",
+  "rebased_HEAD_before_receipt_commit": "0797969955b454a660bedf34858670e2ed7b3c35",
+  "commit_correspondence": [
+    {
+      "original": "adbe53252f71474afffdd886ca7509cc75ab0842",
+      "rebased": "3c111c824a2e4747da0d0016ae7feb1378a5af62",
+      "range_diff": "="
+    },
+    {
+      "original": "c2e7ca7066346a16558c4dd0c9eeb54b1d06130e",
+      "rebased": "8ce7848f43b39f283217bf1d956c100cb5c58128",
+      "range_diff": "="
+    },
+    {
+      "original": "f695918552250432b8bbebad34067e437b0e91d8",
+      "rebased": "fd95b58ddd9f82b1406f66036f5de6eb73b03fc9",
+      "range_diff": "="
+    },
+    {
+      "original": "e2250d8d6048f3640fca8310280e0412949a92cf",
+      "rebased": "996f34f6a2f1b7c4c97cb45dea52130d3a8bee45",
+      "range_diff": "="
+    },
+    {
+      "original": "83fdd12dc93b79442aae9c0763c7e92e221344d8",
+      "rebased": "991d09f1bf2ac70f21542d5808647fa8c38252ea",
+      "range_diff": "="
+    },
+    {
+      "original": "aba5da15fcafd65edfebab7e0a154ce069a4845f",
+      "rebased": "0797969955b454a660bedf34858670e2ed7b3c35",
+      "range_diff": "="
+    }
+  ],
+  "main_ancestor": "PASS",
+  "merge_commit_count": 0,
+  "source_sha256_parity": "PASS; 9/9; only four Issue339 documents differ between recovered and freshly rebased trees",
+  "reused_full_smoke": {
+    "status": "PASS",
+    "tested_original_source_HEAD": "83fdd12dc93b79442aae9c0763c7e92e221344d8",
+    "runtime_count": 1147,
+    "current_source_bytes_identical": true,
+    "rerun": "NOT RUN; source unchanged, document gates rerun"
+  },
+  "genuine_live_contract_parse": {
+    "first_result": "FAIL: no canonical 独立未决问题 section in approved spec",
+    "repair": "document headings and AC mapping tokens only; six approved acceptance semantics and technical GAP unchanged; runtime hard gate unchanged",
+    "final_result": "PASS",
+    "criteria": 6,
+    "synthetic_labels": false,
+    "additional_reviewed_requirement": "plan AC1 tokens did not match existing AC-1 mapping regex; corrected same acceptance mapping shape"
+  },
+  "documents_check": {
+    "status": "PASS",
+    "changes": 158,
+    "pass": 2,
+    "gap": 0
+  },
+  "remote_namespace": {
+    "status": "GAP",
+    "PR_count": 50,
+    "PR_pages_returned": 1,
+    "operation_fixed_url_suffix": "pulls?state=all&limit=50&page=1",
+    "exact_branch_fetch_code": "HOST_COMMAND_FAILED",
+    "branch_absence_proved": false,
+    "PR_absence_proved": false,
+    "complete": false
+  },
+  "next_required_decision": "one-time explicit authorization for existing signed-in Gitea browser metadata read, as an exception to broker-only reads; or equivalent complete human-provided namespace evidence",
+  "Controller_candidate": "NOT RUN",
+  "handoff": "BLOCKED_REMOTE_NAMESPACE",
+  "push_PR_merge": "NOT RUN",
+  "formal_install_operator_permissions_target_execution_deploy": "NOT RUN",
+  "VM_no_start": "GAP",
+  "native_Docker_read": "GAP"
+}
