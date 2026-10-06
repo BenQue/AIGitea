@@ -232,43 +232,76 @@ destination/mode/SHA256 和 installer 派生 metadata 的单独约束；没有�
 | AC5 | NOT RUN（live） | 无 installed/operator/no-start ready 证据，没有 AppServer target 调用 |
 | AC6 | NOT RUN（现场交接）；source fixture PASS | 输出无 Secret 模拟回执；整个 VM/保留对象 before/after 与 #333 live 消费未取得，不宣称消费者解阻塞 |
 
+## 本轮本人确认后的标签投影与本地整合
+
+本轮实际本人确认仅 typed labels/readback 与保留恢复引用的 exact local rebase；
+原确认和全量脱敏回执见 [本轮回执](evidence/resume-projection-rebase-261006.json)。
+初次 automatic approval review 拒绝记录保留原样；这次增加了直接本人 exact 授权，
+两个 typed 写操作均成功执行，没有间接绕过、身份 fallback 或扩大权限。
+
+| 实际执行 | 结果 | 精确边界 |
+|---|---|---|
+| fresh Issue/comments/main | PASS | Issue body/content_version=0/comments=0 无漂移；main 仍 exact 96ba8a17… |
+| `gitea.issue.labels.classify` + `gitea.issue.labels.set` | PASS | platform/complex/approved；只两次明确获批 metadata 写入 |
+| independent `gitea.issue.labels.read` + classification `--verify 340` | PASS / projected | approved、complexity/complex、type/platform；triage/needs-triage 保留；不是本地 synthetic 状态 |
+| `git update-ref refs/aisoft/recovery/340/pre-main-integration` | PASS | CAS 创建到 aba5da15fcafd65edfebab7e0a154ce069a4845f；原 T01 adbe532… 为其 ancestor；未新增第二 active branch |
+| exact local rebase | PASS | main 96ba8a17baad8e9854d4e8d0397d4162b8067b09；无冲突；rebased HEAD 0797969955b454a660bedf34858670e2ed7b3c35；未写 main/远端 |
+| `range-diff` / source SHA256 / merge-base / merge count | PASS | 六 commit 全 =；九个 frozen source/fixture hash 一致；main ancestor；零 merge commit |
+| genuine `load_contract` | PASS（格式修复后） | 使用真实 fresh Issue/labels 与 exact repository_identity；六 AC；未运行 Controller |
+| required docs / `check-change-documents` | PASS | 四角色；changes=158/pass=2/gap=0（#339 随 main 整合增加一目录） |
+| `gitea.pulls.read --state all` | GAP | 仍只有 page=1/50 行，无匹配不代表不存在；installed broker 源码明确固定 page=1 |
+| exact `git.fetch.change` | BLOCKED | HOST_COMMAND_FAILED；不能当 branch absence；零 push |
+
+classification verifier 用 source checker 与两个支持脚本的字节一致 flat 临时副本；
+该目录没有 source broker wrapper，远端调用均由 existing installed typed broker 完成。
+这只选择现有 flat-layout fallback，不安装或修改工具，不伪造 classification。
+checker 输出中的 canned 文案 “merged summary” 不是合并证据，本 Issue 尚无 PR/merge。
+
+真实 live approved 后首次 `load_contract` FAIL：原 spec 合并“非目标与未决问题”一节，
+未满足现有 parser 要求的独立“未决问题”。源码核对同时确认 plan 的 AC1 token 应为 AC-1。
+本轮仅拆分两个标题、规范计划映射 token，与原 AC1–AC6 一一对应；没有改验收语义、
+未决技术 GAP 或任何 runtime 硬门。修复后使用同一真实 Issue/labels 解析 PASS。
+原批准 spec 与整合前历史完整保存在 recovery ref 的原 T01/T05，不覆盖早期证据。
+
+本轮没有 source 修改。1147 项 full smoke 结果继续绑定原 tested SHA 83fdd12…，
+全树 range-diff 加九项 hash parity 证明当前 source 相同；只重跑实际受影响的文档/合同硬门，
+没有把旧 smoke 写成 rebase 后重新运行，也没有将 source/local 提升为 CI/installed/live。
+最终 receipt-only commit 的 HEAD/tree/clean 见本会话 visualization 提交后机器回执。
+
 ## 需要本人处理的下一步
 
-source/local 已完成，当前停在 `BLOCKED_EXTERNAL_GATES`，没有运行 Controller，
-没有 `AWAITING_PR_CONFIRMATION` 或唯一 PR。当前只需要处理发表前的元数据/本地基线，
-不需要你启停 VM、授予 operator 权限或安装 helper。
+两项已批准动作均已完成，**不用再确认标签或 rebase**。当前唯一发表前补证门是
+完整远端 #340 branch/PR namespace；状态 `BLOCKED_REMOTE_NAMESPACE`，
+尚未运行 Controller、进入 AWAITING_PR_CONFIRMATION、push 或创建唯一 PR。
 
-在本 #340 会话回复下面一句即可，一次覆盖两个具体的受控步骤：
+最小可执行方案：通过现有已登录 Gitea 浏览器，一次性只读完整枚举
+admin/aisoft-platform 的 branches 和 open/closed PR 全部分页，只保留
+branch name/SHA、PR number/head/base/state 与分页完整性证据；不访问其它仓库，
+不读取或复制凭据、不做任何 UI 写入。现有 broker 的固定 page=1 没有 caller page 参数，
+fetch.change 也不能提供 complete namespace；不能为了补证给 #340 添加新的 broker operation。
 
-> 确认 AISoftPlatform #340（change/340-appserver-preflight-read，manual）仅批准 existing typed broker 投影 type/platform、complexity/complex、approved 并读回；另批准本 owner 将未 push 的本地分支 rebase 到 96ba8a17baad8e9854d4e8d0397d4162b8067b09，先以 refs/aisoft/recovery/340/pre-main-integration 保留当前 HEAD 和原 T01，核对 source bytes 不变；不批准 push/PR、merge、安装、权限、Secret 或部署，唯一最终 PR 另确认。
+所读 [issue-session-flow SKILL.md](/Users/benque/.agents/skills/issue-session-flow/SKILL.md) 明确：
+“All Gitea and remote Git access uses the project-scoped host-access broker.”
+本轮批准也限定 typed broker；因此 agent 不能自行改用浏览器。这是本次补证需要明确
+一次性读取入口例外的原因，不是额外 installation/operator/权限授权或重复启动确认。
 
-确认后的最多三个动作：
+若希望由本 owner 完成，只需在本会话回复：
 
-1. fresh 读取 Issue/comments/main；main 必须仍为上述 exact SHA，漂移则不套用旧批准。
-   通过 existing installed typed broker 投影 classification，再 lifecycle approved，保留其它标签，读回验证。
-2. 在 exact owner worktree 先将 recovery ref 固定到提交后最终 HEAD，再 local rebase exact main。
-   不写 main、不 force-push；保留原 T01 可恢复性；出现 conflict/scope 或 source 字节变化即停止，
-   必要时 abort 回原分支，不能静默修改本次受测 source。
-3. 重新核对全部 frozen source bytes、owner、docs/base 门及 remote namespace 完整性；
-   全部门可证明时才制作唯一 final manual PR 确认项。完整远端 namespace 仍 GAP，
-   不用当前 50 行或 HOST_COMMAND_FAILED 伪装不存在，也不换入口绕开 broker。
+> 允许 #340 owner 一次性通过现有已登录 Gitea 浏览器，只读完整核对 admin/aisoft-platform 的 branches 和 open/closed PR 全部分页，补齐 change/340 与 change/340-* namespace；本次仅为该 SCM 元数据补证允许 broker 之外的浏览器读取。禁止 UI 写入、凭据操作、push/PR、merge、安装、权限或目标操作；唯一最终 PR 另确认。
 
-成功后 owner 回报 live projected 实际读回、recovery ref、rebase 后 HEAD/base/source-hash parity；
-然后继续最终 PR 候选核对。PR 发表本身仍需要单独确认。若完整 namespace 仍无法证明，
-输出其具体最小补证动作，不把 #327/#336 机械挂成产品硬依赖。
+若选择本人直接补证，在 Gitea 同一 repository 最多三步：
 
-自动审批审查已拒绝 `gitea.issue.labels.classify` 的 live 写入：原实际批准仅 source/local。
-命令未执行、未间接重试；这就是需增加 exact live 元数据授权的原因，不是再次询问启动。
-本地 rebase 会重写本分支 commit SHA；所读
-[aisoft-matt-workflow SKILL.md](/Users/benque/.agents/skills/aisoft-matt-workflow/SKILL.md)
-明确写“Never deploy, rewrite history, force-push, or silently switch to a different tracker or repository.”
-它并非要求常规确认，而是禁止 history rewrite；上述本人明确批准才可覆盖该规则，
-例外只限未 push 的本 owner 分支并保存恢复引用，不延伸到他人/受保护 main/远端历史。
+1. Branches 中完整检查 change/340 与 change/340-*，记录全部匹配 name/SHA 与分页范围。
+2. Pull Requests 的 open 和 closed 全部分页中核对 head 分支，列出上述 namespace 的全部 PR number/head/base/state，不能只搜索标题或看第一页。
+3. 在本 owner 会话回报全部匹配（或明确无匹配）、分页已全部检查与核对时间；有冲突直接保留，不删除或改名。
 
-VM no-start 和 native Docker 通道的当前具体处置已落实为安全拒绝、零执行/零连接。
-本 source 候选保留 AC2/native Docker GAP；不要求人停机试错、放宽权限或批准未证明的通道。
-若未来需要 positive target observation，必须先给出新固定 primitive/最小通道的可审查设计与证明，
-再按相同 Issue 的独立安装/权限/live 卡处理，不能由本次元数据/rebase 确认替代。
+补证后 owner 验证唯一性、再次核对 exact head/base/真实 classification/owner/document gates，
+才准备唯一 final manual PR 确认项；该确认之后才能 push/PR。若出现实际同票 tuple/owner，
+立即停止并说明 exact 冲突，不改 slug、不接管。当前未对 #327/#336 增加产品 hard dependency，
+不为此新建 Issue、修改 broker/installer、授予权限或恢复 PAUSED heartbeat。
+
+VM no-start/native Docker 的具体处置继续是安全拒绝、零 target execution/零 connect。
+它们属于真实能力 GAP；浏览器只读 SCM 补证不会解除这些限制或 #333 的现场前置。
 
 ## 遗留风险与未完成项
 
@@ -278,8 +311,7 @@ VM no-start 和 native Docker 通道的当前具体处置已落实为安全拒�
    默认BLOCKED，不能把fixture正向模拟替代真实execution primitive证明。
 3. operator/helper可用性、Docker/PG获准访问是live条件；未经精确权限卡不provision或fallback。
    PG角色/旧归档/未知datadir不能从固定路径猜测完整性。
-4. 原实际本人启动批准已由 T01 STOP 与 fresh T02–T05 source/local 完成；live 分类投影仍未执行。
-   fresh main 96ba8a17… 非当前 HEAD ancestor；broker.py:3378–3392 预测 BASE_BRANCH_STALE，
-   merge commit 也被拒绝。未调用 publish 以实测该写入硬门，没有 rebase/merge 或历史重写。
+4. 原启动及本轮 exact labels/rebase 已完成；classification projected、main ancestor、source bytes 相同。
+   BASE_BRANCH_STALE 已由已批本地整合消除；未调用 publish、没有远端写入或 merge。
 5. source PR/CI后仍须将AC4–AC6未执行事实保留，source合并不等于通道installed/live ready。
    后续唯一PR确认卡必须明确source与现场边界，不能宣称六条AC整体PASS或消费者已解阻塞。

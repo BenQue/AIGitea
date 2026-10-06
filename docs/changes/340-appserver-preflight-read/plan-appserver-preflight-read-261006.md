@@ -23,7 +23,7 @@ updated: 2026-10-06
 
 实际本人已确认四份合同。T01 治理提交 adbe53252f71474afffdd886ca7509cc75ab0842 后已 STOP；
 当前 fresh run 完成 T02–T05 source/local，所有票据 completed，source frontier 已清空。
-T05 准备的是明确 BLOCKED 的交接卡；live classification/base/完整 namespace 并未通过，
+T05 交接仍明确 BLOCKED；本人另批的 live classification/base 已通过，完整 namespace 仍 GAP，
 不是 Controller AWAITING_PR_CONFIRMATION，也不是 installed/live 验收。
 T01 的独立治理 STOP 是 AGENTS 强制边界；其后的 fresh run 不需要重复同范围启动确认。
 
@@ -66,19 +66,20 @@ T02 若找不到能证明零自启的固定 execution primitive，允许以明�
 
 ## 测试与验收映射
 
-下列为各层预定命令；T01 已运行项见 verification，其余不表示已经运行或通过。
+下列 AC-N 是 contract loader 的文档映射 token，与 Issue/spec 的 ACN 一一对应；
+只规范格式，没有新增或更改验收。各阶段真实运行项见 verification；命令列出不代表已执行。
 全部从本人 worktree 执行。
 
 | Acceptance criterion | Verification command or review |
 |---|---|
-| AC1 | PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -p test_application_preflight.py -v；目标/参数增删/跨项目/root/shell/path/URL/credentialpath/port-range与调用次数断言 |
-| AC1/AC3 旧行为 | PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -p test_host_access.py -v；bash codex/tests/test-host-access-broker.sh |
-| AC2 | 专用 fixture：stopped/missing VM、running→stopped竞态、no-autostart primitive 未证明、helper不存在/版本错误；zero lifecycle、zero target execution on reject；running固定probe正向 |
-| AC3 | 专用fixture：symlink/owner/mode/路径替换、npm无config/cache、Secret/Env/argv sentinel、socket/container枚举max/max+1、bytes上限、单项/全局timeout；全路径/调用spy；旧gitea-ci与项目ACL回归 |
-| AC4 source准备 | bash codex/tests/test-install-host-access-broker.sh，限临时 fake install root；验证现有installer复制新增module/manifest，不代表正式安装。生成helper SHA256/精确文件安装清单 |
-| AC4 现场 | 单独安装卡后：绑定 exact merged SHA、Mac/gitea-ci broker必要文件、AppServer one-shot helper、mode/owner/bytes/version、真实snapshot restore与重复no-op；当前 NOT RUN |
-| AC5 | 获批 installed/live后 fresh localwms task：installed broker --project localwms --operation application.target.preflight.read --target localwms-local-test；实际target/operator/helper/limits/每项值读回。当前 NOT RUN |
-| AC6 | source sanitized fixture回执与live evidence分开；#333消费路径/回执，完整保留对象before/after若无法取得为NOT RUN；不发消息或修改消费者worktree |
+| AC-1 | PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -p test_application_preflight.py -v；目标/参数增删/跨项目/root/shell/path/URL/credentialpath/port-range与调用次数断言 |
+| AC-1 / AC-3 | PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -p test_host_access.py -v；bash codex/tests/test-host-access-broker.sh |
+| AC-2 | 专用 fixture：stopped/missing VM、running→stopped竞态、no-autostart primitive 未证明、helper不存在/版本错误；zero lifecycle、zero target execution on reject；running固定probe正向 |
+| AC-3 | 专用fixture：symlink/owner/mode/路径替换、npm无config/cache、Secret/Env/argv sentinel、socket/container枚举max/max+1、bytes上限、单项/全局timeout；全路径/调用spy；旧gitea-ci与项目ACL回归 |
+| AC-4 | source准备： bash codex/tests/test-install-host-access-broker.sh，限临时 fake install root；验证现有installer复制新增module/manifest，不代表正式安装。生成helper SHA256/精确文件安装清单 |
+| AC-4 | 现场： 单独安装卡后：绑定 exact merged SHA、Mac/gitea-ci broker必要文件、AppServer one-shot helper、mode/owner/bytes/version、真实snapshot restore与重复no-op；当前 NOT RUN |
+| AC-5 | 获批 installed/live后 fresh localwms task：installed broker --project localwms --operation application.target.preflight.read --target localwms-local-test；实际target/operator/helper/limits/每项值读回。当前 NOT RUN |
+| AC-6 | source sanitized fixture回执与live evidence分开；#333消费路径/回执，完整保留对象before/after若无法取得为NOT RUN；不发消息或修改消费者worktree |
 | 全量local | LC_ALL=C bash codex/tests/smoke.sh；其既有 unittest discovery 包含专用新测试；不得删断言/降级required context |
 | shell改动 | bash -n codex/tests/test-host-access-broker.sh；ShellCheck 若可用：shellcheck codex/tests/test-host-access-broker.sh；不可用写 NOT RUN |
 | docs/范围 | PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli resolve-required-documents 340 --repo /private/tmp/issue-340-appserver-preflight-read；同CLI check-change-documents；git diff --check；exactbranch/claim/diff allowlist |

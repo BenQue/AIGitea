@@ -34,15 +34,17 @@ updated: 2026-10-06
 
 # #340 固定目标只读预检：已批准合同与 fresh source 工作
 
-状态：SOURCE_LOCAL_COMPLETE / BLOCKED_EXTERNAL_GATES。本会话实际本人已确认四份合同、exact tuple 和 manual policy；
+状态：SOURCE_LOCAL_COMPLETE / BLOCKED_REMOTE_NAMESPACE。本会话实际本人已确认四份合同、exact tuple 和 manual policy；
 T01 在 adbe53252f71474afffdd886ca7509cc75ab0842 应用治理合同并完成 STOP，当前已 fresh 重新读取。
 T02–T05 的白名单 source/local 工作已完成；源码冻结点为
 83fdd12dc93b79442aae9c0763c7e92e221344d8，完整 smoke 1147 项通过。
 T05 只追加本 Issue 证据与交接文档；最终本地 HEAD 见提交后回执。
-本地 approved 不等于 live label projection。自动审批审查拒绝 live 分类写入，未执行/未换入口重试；
-实际标签仍 triage/needs-triage，Controller/最终 PR 门保持 BLOCKED。
-fresh origin/main=96ba8a17baad8e9854d4e8d0397d4162b8067b09，仅新增 #339 四份文档；
-原 T01/source base 与历史保持，不静默改 pin 或重写历史。push/PR、正式安装和现场层未执行。
+初次 live 写入曾被自动审批拒绝；本人本轮明确批准后，typed classification/approved 投影已执行，
+独立读回为 type/platform、complexity/complex、approved，原 triage/needs-triage 保留；verifier=projected。
+本人批准的 exact main 96ba8a17baad8e9854d4e8d0397d4162b8067b09 已 local rebase 整合，
+rebase 后 HEAD=0797969955b454a660bedf34858670e2ed7b3c35；九个 frozen source/fixture SHA256 未变。
+原 HEAD/T01 由 refs/aisoft/recovery/340/pre-main-integration 保留；六 commit range-diff 全为一致。
+完整远端同票 namespace 仍 GAP，Controller/最终 PR 门保持 BLOCKED；push/PR、安装和现场层未执行。
 
 ## 问题/需求总结
 
@@ -50,7 +52,7 @@ fresh origin/main=96ba8a17baad8e9854d4e8d0397d4162b8067b09，仅新增 #339 四�
 来源消费者为 admin/LocalWMS #333，其 owner/session 为 01a10bfa-fa27-7181-beb8-77c72d47ff21。
 它继续 systemd-native/v1；本 Issue 补齐指定 AppServer 的只读预检通道。
 
-2026-10-06 fresh installed typed broker 读取 Issue：OPEN，content_version=0，
+合同准备阶段（T01 前）的 fresh installed typed broker 读取 Issue：OPEN，content_version=0，
 仅 triage/needs-triage，comments=0；独立 comments.read 返回 []。
 合同准备时 source 与本机 installed host-access-broker.json SHA256 均为
 509bdffb34494cbf82ef016d96e519c6bc3a17034a68ea052a516121aca4a8b9，
@@ -143,7 +145,7 @@ override_reason: ''
 - 03 §1：未声明 change_control 按 production，因此四角色合同需齐备。
 - Issue AC4–AC6 涉及安装/live 和一次性真实观察，verification 必须声明。
 - canonical governance manifest 与 fresh protection：平台固定 manual，不能 routine-auto。
-- 判级是本地合同结论；live 分类投影尚未执行，不报告 projected。
+- 判级经本轮 existing typed broker 实际投影并独立 verify=projected；不等于允许 PR 或部署。
 
 ### 缺失的 acceptance criteria 或决策
 
@@ -190,7 +192,7 @@ source 合并不能解除 LocalWMS #333 的现场前置或宣称六项整体 PAS
 > 唯一最终 PR 另确认。
 
 T01 run 已止于本地治理提交。当前 fresh run 已重新读取合同/归属，继续原批准源码白名单；
-live 分类/approved 标签写入未执行，禁止以本地 approved 或 synthetic labels 冒充 projected。
-当前已完成 source/local，停在 BLOCKED_EXTERNAL_GATES；未伪造 Controller candidate。
-本地 main 整合和 live 投影待具体人处理，下一步见 verification 的“需要本人处理的下一步”。
+本轮另批的 live 分类/approved 与本地 rebase 已完成，使用真实读回，未提供 synthetic labels。
+当前已完成 source/local 与两步补齐，停在 BLOCKED_REMOTE_NAMESPACE；未伪造 Controller candidate。
+下一步仅为完整只读 namespace 补证，见 verification 的“需要本人处理的下一步”。
 唯一最终 PR 的 push/提交仍另确认，不把本次批准扩展到远端发表或现场操作。

@@ -193,10 +193,12 @@ snapshot/restore/no-op/installed readback；operator 另批最小权限、恢复
 任何 installer exit 0、源码/CI PASS 均不能替代现场字节或安全读回。
 缺权限不做宽权 fallback，超限不放宽 limits，无可靠 no-start primitive 时不调用目标。
 
-## 非目标与未决问题
+## 非目标
 
 LocalWMS 源码/ADR/lock、OS 更换/升级/降级、新 LTS VM、VM lifecycle、安装软件、
 用户/组/ACL/sudo/SSH/credential provision、服务/代理/PM2/Docker/DB写入、真实部署/UAT均不在本次。
+
+## 未决问题
 
 无待选择的产品方向：default fail closed。no-autostart transport 的具体实现证明和 operator
 现存能力是技术待证项，不能标为已解决，也不能为了它们给源合同添加机械 hard dependency。
