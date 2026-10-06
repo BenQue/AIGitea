@@ -17,7 +17,7 @@ risk_flags:
 depends_on: []
 branch: change/327-broker-ff-integration
 created: 2026-10-02
-updated: 2026-10-05
+updated: 2026-10-06
 status: approved
 ---
 
@@ -35,8 +35,8 @@ status: approved
 | T08 | 历史：Mac observer/签名治理；能力延期未验收 | T07 | completed |
 | T09 | 历史：Mac interpreter 绑定治理；能力延期未验收 | T08 | completed |
 | T10 | 历史：七文档治理 commit f8750441 后 STOP；旧 M 未整合 | T09 | completed |
-| T02 | 本轮仅收缩治理/保全/校验/commit/STOP；下一 fresh 读取、本人首次 main 整合、复用 WIP 做最小 FF/DAG/并发修复与真实回归 | T10 | in-progress |
-| T03 | exact source candidate、固定 guard、首次本人普通 FF 与唯一 PR 第二确认、required CI/manual merge/可恢复收尾 | T02 | pending |
+| T02 | 最小 FF/DAG/tree/strict-R/owner/Controller/受管映射完成；原样默认 smoke（runtime 1146）、Python3.9 核心 98 与 shell/source mapping PASS；固定最终本地候选见外部回执 | T10 | completed |
+| T03 | 已准备 source candidate/恢复和本人只读 exact-ref 入口；R0/R 成功读回 GAP，之后绑定 guard/首次普通 FF 与唯一 PR 第二确认；CI/manual merge/收尾 NOT RUN | T02 | in-progress |
 
 ## 本轮与最短后续
 
@@ -59,3 +59,15 @@ status: approved
 | AC-7、AC-9～11 | DEFERRED / GAP / NOT RUN；原安装/root/closure/scratch/observer失败原样保留，不纳入当前 source PR 前置或宣称通过 |
 
 无 schema/数据迁移、root/Secret/账号/全局安装/服务/部署或 provider 启用。source helper 映射不等于 installed；read-only transport 与 push ACL 不等于真实新 broker FF。缺实际能力给出一项标准 Git 人工操作或具体 GAP，不建设另一层执行系统。
+
+## 2026-10-06 fresh T02 计数补充前断点（历史）
+
+本人标准 Git main 整合已完成，无需再次执行旧人工卡。fixed-source runtime 1140 项、Python3.9 核心 94 项、bash-n/ShellCheck 与 actual H0 的 14 relevant commit DAG/tree/scope 均 PASS。默认 smoke 在 `test-installer-source-guard.sh` 旧数量断言停止（实际 34、预期 33）；原完整闸门保留，runtime 在该次 smoke 内 NOT REACHED，单独 runtime PASS 不覆盖 smoke FAIL。该 exact 测试文件的一行 `+2`→`+3` 补丁待本人范围补充，尚未修改或提交。
+
+获得补充后只应用已准备的一行 fixture 映射，重跑默认 smoke 和文档/范围/保全门；全部通过后做原 owner 本地单 parent 原子 commit 与最终双轴复核，再续 T03。首次真实远端 exact ref 成功读回、发表命令与唯一最终 PR 第二确认另按既定路径准备；当前不执行 push/PR/安装。
+
+## 2026-10-06 最终 source/local 进度
+
+计数补充已由本人直接确认，仅 +2→+3；未改 source guard。默认 smoke 的后续 mapping stale、sandbox localhost 权限、旧 tracker cmp 与晚到审阅前受控终止全部留档。最小接线增量修复已获两轴 hard=0；固定源码全门通过，按原授权仅本地单 parent 原子 source commit。最终 SHA/tree、完整 relevant history 和正式 fixed-head 双轴结果以外部 source candidate receipt 为准。
+
+T03 保持 in-progress；下一真实人工操作为已绑定 H/M/owner/stash/bundle/程序 hash 的只读 exact ref/main 读回。该入口只执行标准 Git ls-remote，无 fetch/push/owner 写，不构成发表批准。取得成功 R0/R 后才形成 exact-R/H publisher 和唯一最终 PR 第二确认；当前 source 不安装、不发表。

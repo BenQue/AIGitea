@@ -78,6 +78,8 @@ install_versioned "$ROOT/codex/runtime/aisoft_change_name.py" \
   "$LIB_ROOT/aisoft_change_name.py" 0644
 install_versioned "$ROOT/codex/runtime/aisoft_worktree_owner.py" \
   "$LIB_ROOT/aisoft_worktree_owner.py" 0644
+install_versioned "$ROOT/codex/runtime/aisoft_main_integration.py" \
+  "$LIB_ROOT/aisoft_main_integration.py" 0644
 install_versioned "$ROOT/codex/config/host-access-broker.json" \
   "$SHARE_ROOT/host-access-broker.json" 0644
 install_versioned "$ROOT/codex/config/gitea-governance.json" \

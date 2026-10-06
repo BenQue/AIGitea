@@ -18,7 +18,11 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 
 from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
 from aisoft_worktree_owner import (
-    WorktreeOwnerError, authorize_push, caller_session, record_push,
+    WorktreeOwnerError, authorize_push, caller_session, record_push, pin_original_remote,
+)
+
+from aisoft_main_integration import (
+    GitError, GitRepository, git_environment, ordinary_push, publication_message,
 )
 
 from .dependencies import Dependency, DependencyError, parse_dependencies, resolve_target, project_issue, is_terminal
@@ -119,7 +123,6 @@ REDACTION_PATTERNS: tuple[re.Pattern[str], ...] = (
     ),
 )
 REDACTED = "[redacted]"
-LEASE_REJECTION_MARKERS = ("stale info", "non-fast-forward", "fetch first")
 MAX_CREDENTIAL_BYTES = 4096
 COLLABORATOR_PAGE_LIMIT = 50
 COLLABORATOR_MAX_PAGES = 100
@@ -3263,11 +3266,7 @@ class HostAccessBroker:
         )
 
     def _git(
-        self,
-        project: ProjectContract,
-        operation: OperationContract,
-        *,
-        branch: str | None,
+        self, project: ProjectContract, operation: OperationContract, *, branch: str | None,
     ) -> object:
         canonical = project.mac_checkout
         if canonical is None:
@@ -3280,172 +3279,163 @@ class HostAccessBroker:
             credential = self.credentials.resolve(project, operation)
             self._verify_identity(credential)
             return self._bind_git(project, checkout, expected_remote)
-
-        safe_branch = None
-        change_name: ChangeName | None = None
-        if branch is not None:
-            safe_branch = self.contract.change_branch(branch)
-            change_name = ChangeName.parse_branch(safe_branch)
+        safe_branch = self.contract.change_branch(branch) if branch is not None else None
+        owner = None
+        git_dir = None
+        local = GitRepository(checkout, runner=self.runner)
         if operation.name == "git.push.change":
             assert safe_branch is not None
-            current = self._run(["git", "branch", "--show-current"], cwd=checkout).stdout.strip()
-            if current != safe_branch:
-                raise BrokerError("TARGET_MISMATCH", "worktree branch does not match requested change branch")
-            status = self._run(["git", "status", "--porcelain"], cwd=checkout).stdout
-            if status:
-                raise BrokerError("WORKTREE_DIRTY", "change worktree must be clean before push")
-            head = self._run(["git", "rev-parse", "HEAD"], cwd=checkout).stdout.strip()
-            branch_head = self._run(
-                ["git", "rev-parse", f"refs/heads/{safe_branch}"], cwd=checkout
-            ).stdout.strip()
-            if head != branch_head:
-                raise BrokerError("TARGET_MISMATCH", "worktree HEAD does not match its exact branch")
-            # #298: a change worktree has exactly one writer. Everything above
-            # this line is satisfied by *any* session standing in *any* linked
-            # worktree of the same repository — `git rebase` / `git commit` /
-            # `git checkout` never reach the broker at all, so ownership is the
-            # only check that can tell "the owning session" from "whoever
-            # happened to cd in here". It runs before credentials resolve, so a
-            # refusal performs no network write.
-            git_dir = self._run(
-                ["git", "rev-parse", "--absolute-git-dir"], cwd=checkout
-            ).stdout.strip()
             try:
-                owner = authorize_push(
-                    git_dir, branch=safe_branch, session=caller_session()
-                )
-            except WorktreeOwnerError as exc:
+                local.assert_supported()
+                if local.text("branch", "--show-current") != safe_branch:
+                    raise BrokerError("TARGET_MISMATCH", "worktree branch differs")
+                if local.text("status", "--porcelain"):
+                    raise BrokerError("WORKTREE_DIRTY", "change worktree must be clean")
+                head = local.text("rev-parse", "HEAD")
+                if local.text("rev-parse", "refs/heads/" + safe_branch) != head:
+                    raise BrokerError("TARGET_MISMATCH", "exact branch differs from HEAD")
+                git_dir = local.text("rev-parse", "--absolute-git-dir")
+                owner = authorize_push(git_dir, branch=safe_branch, session=caller_session())
+                if os.path.realpath(owner.worktree) != checkout:
+                    raise BrokerError("WORKTREE_OWNER_MISMATCH", "marker worktree differs")
+            except (GitError, WorktreeOwnerError) as exc:
                 raise BrokerError(exc.code, str(exc)) from exc
 
         credential = self.credentials.resolve(project, operation)
         self._verify_identity(credential)
-
         helper = self.contract.raw["mac_host"]["credential_helper"]
-        env = dict(os.environ)
-        env.update({
-            "GIT_CONFIG_COUNT": "3",
-            "GIT_CONFIG_KEY_0": "credential.helper",
-            "GIT_CONFIG_VALUE_0": "",
-            "GIT_CONFIG_KEY_1": "credential.helper",
-            "GIT_CONFIG_VALUE_1": helper,
-            "GIT_CONFIG_KEY_2": "credential.useHttpPath",
-            "GIT_CONFIG_VALUE_2": "true",
-        })
-        main_refspec = f"refs/heads/main:refs/remotes/{remote_name}/main"
-        if operation.name == "git.fetch.main":
-            argv = ["git", "fetch", remote_name, main_refspec]
-        elif operation.name == "git.fetch.change":
-            assert safe_branch is not None
-            change_refspec = (
-                f"refs/heads/{safe_branch}:refs/remotes/{remote_name}/{safe_branch}"
-            )
-            argv = ["git", "fetch", remote_name, change_refspec]
-        elif operation.name == "git.push.change":
-            assert safe_branch is not None and change_name is not None
-            self._run(
-                ["git", "fetch", remote_name, main_refspec], cwd=checkout, env=env
-            )
-            remote_heads = self._remote_change_heads(
-                remote_name, change_name.issue_number, checkout, env
-            )
-            try:
-                selected = select_change_name(
-                    change_name.issue_number,
-                    [name for name, _sha in remote_heads],
-                    required=False,
-                )
-            except ChangeNameError as exc:
-                raise BrokerError("CHANGE_NAME_CONFLICT", str(exc)) from exc
-            if selected is not None and selected != change_name:
-                raise BrokerError(
-                    "CHANGE_NAME_CONFLICT",
-                    "remote already uses another change name for this Issue",
-                )
-            if change_name.is_legacy and selected is None:
-                raise BrokerError(
-                    "LEGACY_BRANCH_MISSING",
-                    "legacy change branches may be maintained only when remote evidence exists",
-                )
-            remote_main = f"refs/remotes/{remote_name}/main"
-            ancestor = self.runner(
-                ["git", "merge-base", "--is-ancestor", remote_main, "HEAD"],
-                cwd=checkout,
-            )
-            if ancestor.returncode != 0:
-                raise BrokerError(
-                    "BASE_BRANCH_STALE",
-                    "change branch is not based on the freshly fetched manifest main",
-                )
-            merge_commits = self._run(
-                ["git", "rev-list", "--min-parents=2", f"{remote_main}..HEAD"],
-                cwd=checkout,
-            ).stdout.strip()
-            if merge_commits:
-                raise BrokerError("MERGE_COMMIT_DENIED", "change branch contains a merge commit")
-            # A rebase onto a freshly advanced main rewrites the change branch, so an
-            # already pushed branch can only move forward with force. The lease is the
-            # exact ref this push targets, read from the ls-remote above: an empty
-            # expectation asserts the branch is still absent, a sha asserts nobody else
-            # moved it. Both refuse rather than overwrite when the assertion is stale.
-            remote_sha = next(
-                (sha for name, sha in remote_heads if name.branch == safe_branch), ""
-            )
-            # The lease is exactly "what this branch pointed at on the remote
-            # before this push", so it is also the previous push's sha. The
-            # caller gets it back to compare against what it verified (#298).
-            previous_head = remote_sha or None
-            argv = [
-                "git", "push",
-                f"--force-with-lease=refs/heads/{safe_branch}:{remote_sha}",
-                remote_name,
-                f"refs/heads/{safe_branch}:refs/heads/{safe_branch}",
-            ]
-        else:
-            raise BrokerError("OPERATION_UNIMPLEMENTED", "Git operation is not implemented")
+        fixed = {"GIT_CONFIG_COUNT": "3", "GIT_CONFIG_KEY_0": "credential.helper",
+                 "GIT_CONFIG_VALUE_0": "", "GIT_CONFIG_KEY_1": "credential.helper",
+                 "GIT_CONFIG_VALUE_1": helper, "GIT_CONFIG_KEY_2": "credential.useHttpPath",
+                 "GIT_CONFIG_VALUE_2": "true"}
+        env = git_environment(fixed)
+        local = GitRepository(checkout, runner=self.runner, env=env)
         result: dict[str, object] = {
-            "status": "PASS",
-            "project": project.project_id,
-            "operation": operation.name,
-            "identity": project.project_agent,
-            "checkout": checkout,
-            "remote_name": remote_name,
+            "status": "PASS", "project": project.project_id, "operation": operation.name,
+            "identity": project.project_agent, "checkout": checkout, "remote_name": remote_name,
         }
-        if operation.name == "git.push.change":
-            self._push_leased(argv, checkout, env)
-            # Only after the push actually landed. A sha recorded here reads
-            # back as "the remote has this", and writing one that never landed
-            # would make the ownership scan report a clean worktree that is not.
+        main_ref = "refs/remotes/" + remote_name + "/main"
+        main_refspec = "refs/heads/main:" + main_ref
+        if operation.name == "git.fetch.main":
+            self._run(["git", "fetch", remote_name, main_refspec], cwd=checkout, env=env)
+            return result
+        if operation.name == "git.fetch.change":
+            assert safe_branch is not None
+            current = self._change_tip(safe_branch, remote_name, checkout, env)
+            if current is not None:
+                tracking = "refs/remotes/" + remote_name + "/" + safe_branch
+                self._run(["git", "fetch", remote_name,
+                           "refs/heads/" + safe_branch + ":" + tracking], cwd=checkout, env=env)
+                if local.text("rev-parse", tracking) != current:
+                    raise BrokerError("REMOTE_BRANCH_MOVED", "change ref moved during read")
+            result.update(remote_known=True, remote_head=current)
+            return result
+        if operation.name != "git.push.change":
+            raise BrokerError("OPERATION_UNIMPLEMENTED", "Git operation is not implemented")
+        assert safe_branch is not None and owner is not None and git_dir is not None
+        self._run(["git", "fetch", remote_name, main_refspec], cwd=checkout, env=env)
+        main = self._read_main_head(remote_name, checkout, env)
+        if local.text("rev-parse", main_ref) != main:
+            raise BrokerError("BASE_BRANCH_STALE", "main moved during fetch; re-read and verify")
+        remote = self._change_tip(safe_branch, remote_name, checkout, env)
+        if owner.last_push_head is not None and remote != owner.last_push_head:
+            raise BrokerError("REMOTE_BRANCH_MOVED", "remote differs from the last observed publication")
+        if owner.original_remote_known and owner.original_remote_head is not None and remote is None:
+            raise BrokerError("REMOTE_BRANCH_MOVED", "previously existing exact ref was deleted")
+        if owner.original_remote_known and owner.original_remote_head is None and owner.last_push_head is None and remote is not None:
+            raise BrokerError("REMOTE_BRANCH_MOVED", "originally absent ref was claimed before first publication")
+        if not owner.original_remote_known and owner.last_push_head is not None:
+            raise BrokerError("ORIGINAL_REMOTE_UNKNOWN", "legacy ledger lacks verified R0; do not re-pin")
+        if remote is not None:
+            # Fetch the exact current tip, never a caller-selected ref or force.
+            self._run(["git", "fetch", remote_name, "refs/heads/" + safe_branch], cwd=checkout, env=env)
+        original = owner.original_remote_head if owner.original_remote_known else remote
+        try:
+            if not local.ancestor(main, head):
+                raise GitError("BASE_BRANCH_STALE", "candidate does not contain freshly read manifest main")
+            scope = local.scope(head, safe_branch)
+            local.verify_history(head=head, main=main, original=original, remote=remote,
+                                 paths=scope.paths, history_head=scope.history_head,
+                                 history_paths=scope.history_paths)
+            owner = pin_original_remote(git_dir, head=remote, branch=safe_branch, session=caller_session())
+            if local.text("rev-parse", "HEAD") != head or local.text("symbolic-ref", "--short", "HEAD") != safe_branch:
+                raise GitError("HEAD_MOVED", "verified local candidate moved")
+            if local.text("status", "--porcelain"):
+                raise GitError("WORKTREE_DIRTY", "verified local worktree became dirty")
+            if self._read_main_head(remote_name, checkout, env) != main:
+                raise GitError("BASE_BRANCH_STALE", "main advanced before transport")
+            if remote == head:
+                if self._change_tip(safe_branch, remote_name, checkout, env) != head:
+                    raise GitError("REMOTE_BRANCH_MOVED", "no-op ref moved during readback")
+                local.verify_history(head=head, main=main, original=owner.original_remote_head,
+                                     remote=head, paths=scope.paths, history_head=scope.history_head,
+                                     history_paths=scope.history_paths)
+                receipt = {"head": head, "previous_head": remote, "observed_remote_head": head,
+                           "possible_write": False, "guard_executed": False, "write_status": "NOOP"}
+            else:
+                try:
+                    receipt = ordinary_push(local, remote_name=remote_name, branch=safe_branch,
+                                            head=head, remote=remote,
+                                            read_remote=lambda: self._change_tip(safe_branch, remote_name, checkout, env))
+                except GitError as exc:
+                    # A transport failure can follow an actual write. Preserve
+                    # an exact observed H before returning the truthful failure.
+                    if exc.receipt and exc.receipt.get("observed_remote_head") == head:
+                        try:
+                            record_push(git_dir, head=head, expected_owner=owner)
+                        except WorktreeOwnerError:
+                            pass
+                    raise
+            receipt.update(main=main, original_remote_head=owner.original_remote_head)
             try:
-                record_push(git_dir, head=head)
+                if owner.last_push_head != head:
+                    record_push(git_dir, head=head, expected_owner=owner)
             except WorktreeOwnerError as exc:
-                # The push already landed. Say so, or the reader will retry a
-                # push that does not need retrying and will not think to look
-                # at the marker, which is the thing that actually broke.
-                raise BrokerError(
-                    exc.code,
-                    f"push landed as {head} but the ownership marker could not be "
-                    f"updated: {exc}",
-                ) from exc
-            result["session"] = owner.session
-            result["pushed_head"] = head
-            result["previous_head"] = previous_head
-        else:
-            self._run(argv, cwd=checkout, env=env)
-        return result
+                raise GitError(exc.code, "remote observed H but marker update failed", receipt) from exc
+            try:
+                observed_main = self._read_main_head(remote_name, checkout, env)
+            except BrokerError as exc:
+                raise GitError("PUSH_READBACK_UNKNOWN", "remote H observed; post-push main read failed", receipt) from exc
+            receipt["observed_main"] = observed_main
+            if observed_main != main:
+                raise GitError("BASE_ADVANCED_AFTER_PUSH", "remote H observed; main advanced, stop PR ready", receipt)
+            if local.text("rev-parse", "HEAD") != head:
+                raise GitError("HEAD_MOVED", "remote H observed; local HEAD moved", receipt)
+            result.update(receipt, code="NOOP" if remote == head else "PUBLISHED",
+                          session=owner.session, pushed_head=head)
+            return result
+        except (GitError, WorktreeOwnerError) as exc:
+            receipt = getattr(exc, "receipt", None)
+            message = publication_message(str(exc), receipt) if receipt else str(exc)
+            error = BrokerError(exc.code, message)
+            error.publication_reference = receipt
+            raise error from exc
 
-    def _push_leased(
-        self, argv: Sequence[str], checkout: str, env: Mapping[str, str]
-    ) -> None:
-        result = self._run(argv, cwd=checkout, env=env, allow_failure=True)
-        if result.returncode == 0:
-            return
-        report = f"{result.stdout or ''}\n{result.stderr or ''}"
-        if any(marker in report for marker in LEASE_REJECTION_MARKERS):
-            raise BrokerError(
-                "REMOTE_BRANCH_MOVED",
-                "remote change branch moved after its lease was read; fetch and re-run",
-            )
-        raise BrokerError("HOST_COMMAND_FAILED", "structured host operation failed")
+    def _change_tip(self, branch: str, remote_name: str, checkout: str, env: Mapping[str, str]) -> str | None:
+        name = ChangeName.parse_branch(branch)
+        heads = self._remote_change_heads(remote_name, name.issue_number, checkout, env)
+        try:
+            selected = select_change_name(name.issue_number, [n for n, _sha in heads], required=False)
+        except ChangeNameError as exc:
+            raise BrokerError("CHANGE_NAME_CONFLICT", str(exc)) from exc
+        if selected is not None and selected != name:
+            raise BrokerError("CHANGE_NAME_CONFLICT", "remote already uses another name for this Issue")
+        if name.is_legacy and selected is None:
+            raise BrokerError("LEGACY_BRANCH_MISSING", "legacy branch requires remote evidence")
+        values = [sha for n, sha in heads if n.branch == branch]
+        if len(values) > 1:
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "duplicate exact remote ref")
+        return values[0] if values else None
+
+    def _read_main_head(self, remote_name: str, checkout: str, env: Mapping[str, str]) -> str:
+        value = self._run(["git", "ls-remote", "--heads", remote_name, "refs/heads/main"],
+                          cwd=checkout, env=env).stdout.strip().splitlines()
+        if len(value) != 1:
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "fresh manifest main unavailable")
+        fields = value[0].split("\t")
+        if len(fields) != 2 or COMMIT_SHA_RE.fullmatch(fields[0]) is None or fields[1] != "refs/heads/main":
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "invalid exact main ref")
+        return fields[0]
 
     def _remote_change_heads(
         self,
@@ -3494,13 +3484,14 @@ class HostAccessBroker:
     def _validated_remote(self, project: ProjectContract, checkout: str) -> tuple[str, str]:
         remote_name = project.git_remote_name
         expected_remote = self._expected_git_url(project)
+        env = git_environment()
         try:
             fetch = self._run(
-                ["git", "remote", "get-url", "--all", remote_name], cwd=checkout
+                ["git", "remote", "get-url", "--all", remote_name], cwd=checkout, env=env
             ).stdout.splitlines()
             push = self._run(
                 ["git", "remote", "get-url", "--push", "--all", remote_name],
-                cwd=checkout,
+                cwd=checkout, env=env,
             ).stdout.splitlines()
         except BrokerError as exc:
             raise BrokerError(
@@ -3513,15 +3504,16 @@ class HostAccessBroker:
         return remote_name, expected_remote
 
     def _validated_project_worktree(self, canonical: str, candidate: str) -> str:
+        env = git_environment()
         canonical_root = self._run(
-            ["git", "rev-parse", "--show-toplevel"], cwd=canonical
+            ["git", "rev-parse", "--show-toplevel"], cwd=canonical, env=env
         ).stdout.strip()
         candidate_root = self._run(
-            ["git", "rev-parse", "--show-toplevel"], cwd=candidate
+            ["git", "rev-parse", "--show-toplevel"], cwd=candidate, env=env
         ).stdout.strip()
 
         def common_dir(root: str) -> str:
-            raw = self._run(["git", "rev-parse", "--git-common-dir"], cwd=root).stdout.strip()
+            raw = self._run(["git", "rev-parse", "--git-common-dir"], cwd=root, env=env).stdout.strip()
             return os.path.realpath(raw if os.path.isabs(raw) else os.path.join(root, raw))
 
         if common_dir(canonical_root) != common_dir(candidate_root):

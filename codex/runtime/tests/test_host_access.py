@@ -27,7 +27,7 @@ from aisoft_host_access.contract import AccessContractError, load_access_contrac
 from aisoft_host_access.profiles import ProfileMigrator
 from aisoft_host_access.runner import GovernedHostRunner, RoutineMergeRunner
 from aisoft_worktree_owner import (
-    SESSION_ENV, claim as claim_worktree, read_marker,
+    SESSION_ENV, WorktreeOwnerError, claim as claim_worktree, read_marker,
 )
 
 
@@ -605,9 +605,24 @@ class MattRepositoryAdapterTests(unittest.TestCase):
     def test_agent_configuration_matches_canonical_templates(self) -> None:
         for name in ("issue-tracker.md", "triage-labels.md", "domain.md"):
             with self.subTest(name=name):
+                actual = ROOT / "docs/agents" / name
+                template = ROOT / "templates/docs/agents" / name
+                expected = template.read_bytes()
+                if name == "issue-tracker.md":
+                    # The approved #327 contract link is relative to each
+                    # consumer. Compare its real target and preserve the byte
+                    # equality assertion for all remaining template content.
+                    links = []
+                    for path in (actual, template):
+                        matches = re.findall(r"\[#327 spec\]\(([^)]+)\)", path.read_text())
+                        self.assertEqual(len(matches), 1)
+                        target = (path.parent / matches[0]).resolve()
+                        self.assertTrue(target.is_file())
+                        links.append(target)
+                    self.assertEqual(links[0], links[1])
+                    expected = expected.replace(b"../../../docs/changes/", b"../changes/")
                 self.assertEqual(
-                    (ROOT / "docs/agents" / name).read_bytes(),
-                    (ROOT / "templates/docs/agents" / name).read_bytes(),
+                    actual.read_bytes(), expected,
                 )
 
     def test_claude_has_one_aisoft_agent_skills_block(self) -> None:
@@ -4485,6 +4500,13 @@ class HostAccessBrokerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             checkout = Path(temporary) / "repo"
             self._git(["init", "-q", "-b", "main", str(checkout)])
+            self._git(["config", "user.name", "fixture"], cwd=checkout)
+            self._git(["config", "user.email", "fixture@localhost"], cwd=checkout)
+            (checkout / "README.md").write_text("binding fixture\n")
+            self._git(["add", "README.md"], cwd=checkout)
+            self._git(["commit", "-q", "-m", "fixture"], cwd=checkout)
+            head = self._git(["rev-parse", "HEAD"], cwd=checkout)
+            self._git(["update-ref", "refs/remotes/gitea/change/73", head], cwd=checkout)
             github = "https://github.com/BenQue/NewEmaint.git"
             gitea = "http://gitea-ci.orb.local:3000/admin/NewEMaint.git"
             self._git(["remote", "add", "origin", github], cwd=checkout)
@@ -4496,6 +4518,8 @@ class HostAccessBrokerTests(unittest.TestCase):
                 commands.append(list(argv))
                 if argv[:3] == ["git", "fetch", "gitea"]:
                     return subprocess.CompletedProcess(argv, 0, "", "")
+                if argv[:4] == ["git", "ls-remote", "--heads", "gitea"]:
+                    return subprocess.CompletedProcess(argv, 0, head + "\trefs/heads/change/73\n", "")
                 return subprocess.run(
                     list(argv), cwd=cwd, env=env, check=False, text=True,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -4677,161 +4701,50 @@ class HostAccessBrokerTests(unittest.TestCase):
                 with self.subTest(branch=branch), self.assertRaises(BrokerError):
                     broker.execute("aisoft-platform", "git.push.change", branch=branch)
 
-    def test_push_uses_current_linked_worktree_and_exact_same_change_ref(self) -> None:
+    def test_push_uses_current_linked_worktree_and_exact_same_change_ref(self):
         with tempfile.TemporaryDirectory() as temporary:
-            canonical, linked = self._linked_change_worktree(temporary)
-            contract = self._temporary_checkout_contract(canonical)
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary, "change/70")
             commands = []
-
-            def runner(argv, *, cwd=None, env=None):
-                commands.append((list(argv), cwd, dict(env or {})))
-                if argv[:3] == ["git", "fetch", "origin"]:
-                    return subprocess.CompletedProcess(argv, 0, "", "")
-                if argv[:4] == ["git", "ls-remote", "--heads", "origin"]:
-                    return subprocess.CompletedProcess(
-                        argv, 0, "a" * 40 + "\trefs/heads/change/70\n", ""
-                    )
-                if argv[:2] == ["git", "push"]:
-                    return subprocess.CompletedProcess(argv, 0, "", "")
-                return subprocess.run(
-                    list(argv), cwd=cwd, env=env, check=False, text=True,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                )
-
-            broker = HostAccessBroker(
-                contract,
-                credentials=StaticCredentials(),
-                transport=lambda method, url, headers, body: (
-                    200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
-                ),
-                runner=runner,
-                invocation_cwd=str(linked),
-            )
-            value = broker.execute(
-                "aisoft-platform", "git.push.change", branch="change/70"
-            )
+            value = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, commands)).execute(
+                "aisoft-platform", "git.push.change", branch="change/70")
+            head = self._git(["rev-parse", "HEAD"], cwd=linked)
+            pushes = [argv for argv in commands if argv[:2] == ["git", "push"]]
+            self.assertEqual(pushes, [["git", "push", "--porcelain", "origin", head + ":refs/heads/change/70"]])
             self.assertEqual(value["checkout"], os.path.realpath(linked))
-            pushes = [call for call in commands if call[0][:2] == ["git", "push"]]
-            self.assertEqual(len(pushes), 1)
-            self.assertEqual(pushes[0][0], [
-                "git", "push",
-                "--force-with-lease=refs/heads/change/70:" + "a" * 40,
-                "origin",
-                "refs/heads/change/70:refs/heads/change/70",
-            ])
-            self.assertEqual(pushes[0][1], os.path.realpath(linked))
-            tokens = [token for argv, _cwd, _env in commands for token in argv]
-            self.assertNotIn("--force", tokens)
-            self.assertNotIn("-f", tokens)
-            flattened = "\n".join(" ".join(argv) for argv, _cwd, _env in commands)
-            self.assertNotIn(":refs/heads/main", flattened)
+            self.assertEqual(value["observed_remote_head"], head)
+            self.assertTrue(value["guard_executed"])
 
-    def test_newemaint_push_uses_manifest_gitea_remote(self) -> None:
+    def test_newemaint_push_uses_manifest_gitea_remote(self):
         with tempfile.TemporaryDirectory() as temporary:
-            canonical, linked = self._linked_change_worktree(temporary)
-            self._git(["remote", "rename", "origin", "gitea"], cwd=canonical)
-            self._git([
-                "remote", "set-url", "gitea",
-                "http://gitea-ci.orb.local:3000/admin/NewEMaint.git",
-            ], cwd=canonical)
-            contract = self._temporary_project_checkout_contract("newemaint", canonical)
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            self._git(["remote", "set-url", "origin", "https://github.com/BenQue/NewEMaint.git"], cwd=canonical)
+            self._git(["remote", "add", "gitea", "http://gitea-ci.orb.local:3000/admin/NewEMaint.git"], cwd=canonical)
             commands = []
-
-            def runner(argv, *, cwd=None, env=None):
-                commands.append(list(argv))
-                if argv[:3] == ["git", "fetch", "gitea"] or argv[:2] == ["git", "push"]:
-                    return subprocess.CompletedProcess(argv, 0, "", "")
-                if argv[:4] == ["git", "ls-remote", "--heads", "gitea"]:
-                    return subprocess.CompletedProcess(
-                        argv, 0, "a" * 40 + "\trefs/heads/change/70\n", ""
-                    )
-                return subprocess.run(
-                    list(argv), cwd=cwd, env=env, check=False, text=True,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                )
-
-            broker = HostAccessBroker(
-                contract,
-                credentials=StaticCredentials(),
-                transport=lambda method, url, headers, body: (
-                    200, {}, b'{"login":"newemaint-agent","is_admin":false}'
-                ),
-                runner=runner,
-                invocation_cwd=str(linked),
-            )
-            value = broker.execute(
-                "newemaint", "git.push.change", branch="change/70"
-            )
+            broker = HostAccessBroker(self._temporary_project_checkout_contract("newemaint", canonical),
+                credentials=StaticCredentials(), transport=lambda *args: (200, {}, b'{"login":"newemaint-agent","is_admin":false}'),
+                runner=self._remote_backed_runner(remote, commands), invocation_cwd=str(linked))
+            value = broker.execute("newemaint", "git.push.change", branch=self.FF_BRANCH)
             self.assertEqual(value["remote_name"], "gitea")
-            self.assertIn([
-                "git", "fetch", "gitea",
-                "refs/heads/main:refs/remotes/gitea/main",
-            ], commands)
-            self.assertIn([
-                "git", "push",
-                "--force-with-lease=refs/heads/change/70:" + "a" * 40,
-                "gitea",
-                "refs/heads/change/70:refs/heads/change/70",
-            ], commands)
+            self.assertEqual([a[3] for a in commands if a[:2] == ["git", "push"]], ["gitea"])
+            self.assertTrue(value["guard_executed"])
+            self.assertEqual(self._git(["remote", "get-url", "origin"], cwd=canonical), "https://github.com/BenQue/NewEMaint.git")
 
-    def test_readable_first_push_is_allowed_but_conflicting_remote_name_is_rejected(self) -> None:
+    def test_readable_first_push_is_allowed_but_conflicting_remote_name_is_rejected(self):
+        branch = "change/70-readable-change-name"
         with tempfile.TemporaryDirectory() as temporary:
-            canonical, linked = self._linked_change_worktree(temporary)
-            self._git(["branch", "-m", "change/70-readable-change-name"], cwd=linked)
-            # Renaming the branch invalidates the claim on purpose: the marker
-            # names the exact change branch, so a rename has to be re-claimed
-            # rather than silently inherited.
-            self._claim(linked, "change/70-readable-change-name", takeover=True)
-            contract = self._temporary_checkout_contract(canonical)
-
-            pushes: list[list[str]] = []
-
-            def make_broker(remote_output: str):
-                def runner(argv, *, cwd=None, env=None):
-                    if argv[:3] == ["git", "fetch", "origin"]:
-                        return subprocess.CompletedProcess(argv, 0, "", "")
-                    if argv[:4] == ["git", "ls-remote", "--heads", "origin"]:
-                        return subprocess.CompletedProcess(argv, 0, remote_output, "")
-                    if argv[:2] == ["git", "push"]:
-                        pushes.append(list(argv))
-                        return subprocess.CompletedProcess(argv, 0, "", "")
-                    return subprocess.run(
-                        list(argv), cwd=cwd, env=env, check=False, text=True,
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    )
-
-                return HostAccessBroker(
-                    contract,
-                    credentials=StaticCredentials(),
-                    transport=lambda method, url, headers, body: (
-                        200, {}, b'{"login":"aisoft-platform-agent","is_admin":false}'
-                    ),
-                    runner=runner,
-                    invocation_cwd=str(linked),
-                )
-
-            value = make_broker("").execute(
-                "aisoft-platform",
-                "git.push.change",
-                branch="change/70-readable-change-name",
-            )
-            self.assertEqual(value["status"], "PASS")
-            self.assertEqual(pushes, [[
-                "git", "push",
-                "--force-with-lease=refs/heads/change/70-readable-change-name:",
-                "origin",
-                "refs/heads/change/70-readable-change-name"
-                ":refs/heads/change/70-readable-change-name",
-            ]])
-
-            conflict = "a" * 40 + "\trefs/heads/change/70-other-change-name\n"
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary, branch)
+            commands = []
+            broker = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, commands))
+            first = broker.execute("aisoft-platform", "git.push.change", branch=branch)
+            self.assertIsNone(first["previous_head"])
+            self.assertTrue(first["guard_executed"])
+            base = self._git(["rev-parse", "main"], cwd=canonical)
+            self._git(["push", "-q", str(remote), base + ":refs/heads/change/70"], cwd=canonical)
+            before = len([a for a in commands if a[:2] == ["git", "push"]])
             with self.assertRaises(BrokerError) as caught:
-                make_broker(conflict).execute(
-                    "aisoft-platform",
-                    "git.push.change",
-                    branch="change/70-readable-change-name",
-                )
+                broker.execute("aisoft-platform", "git.push.change", branch=branch)
             self.assertEqual(caught.exception.code, "CHANGE_NAME_CONFLICT")
+            self.assertEqual(before, len([a for a in commands if a[:2] == ["git", "push"]]))
 
     def test_push_rejects_wrong_common_dir_detached_dirty_and_wrong_change(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -4882,16 +4795,17 @@ class HostAccessBrokerTests(unittest.TestCase):
                 )
             self.assertEqual(wrong_change.exception.code, "TARGET_MISMATCH")
 
-    LEASE_BRANCH = "change/70-lease-regression-branch"
+    FF_BRANCH = "change/70-broker-ff-regression"
 
-    def _remote_backed_change_worktree(self, temporary: str):
+    def _remote_backed_change_worktree(self, temporary: str, branch=None):
         """Build a change worktree whose origin is a real bare repository.
 
         The manifest pins origin to an http URL, so the remote-URL binding check
         must keep seeing that URL. Only the commands that would go over the
         network are redirected onto the bare repo by ``_remote_backed_runner``,
-        which leaves git itself in charge of the lease semantics under test.
+        which leaves actual Git in charge of ordinary FF and guard semantics.
         """
+        branch = branch or self.FF_BRANCH
         remote = Path(temporary) / "remote.git"
         canonical = Path(temporary) / "canonical"
         linked = Path(temporary) / "linked"
@@ -4911,25 +4825,45 @@ class HostAccessBrokerTests(unittest.TestCase):
         ], cwd=canonical)
         self._git(["update-ref", "refs/remotes/origin/main", "HEAD"], cwd=canonical)
         self._git([
-            "worktree", "add", "-q", "-b", self.LEASE_BRANCH, str(linked),
+            "worktree", "add", "-q", "-b", branch, str(linked),
         ], cwd=canonical)
         (linked / "change.txt").write_text("change 70\n")
         self._git(["add", "change.txt"], cwd=linked)
         self._git(["commit", "-q", "-m", "change 70"], cwd=linked)
-        self._claim(linked, self.LEASE_BRANCH)
+        self._write_git_scope_fixture(linked, branch)
+        self._git(["add", "docs"], cwd=linked)
+        self._git(["commit", "-q", "-m", "#70 T02: fixture approved scope"], cwd=linked)
+        if branch == "change/70":
+            base = self._git(["rev-parse", "refs/heads/main"], cwd=canonical)
+            self._git(["push", "-q", str(remote), base + ":refs/heads/" + branch], cwd=canonical)
+        self._claim(linked, branch)
         return remote, canonical, linked
+
+    def _write_git_scope_fixture(self, linked, branch):
+        tail = branch.split("/", 1)[1]
+        directory = Path(linked) / "docs/changes" / tail
+        directory.mkdir(parents=True)
+        slug = tail.split("-", 1)[1] if "-" in tail else None
+        summary = "summary-" + slug + "-261006.md" if slug else "00-summary.md"
+        spec = "spec-" + slug + "-261006.md" if slug else "01-spec.md"
+        (directory / summary).write_text("---\nissue: 70\nbranch: " + branch + "\nstatus: approved\ndocuments:\n  spec: " + spec + "\n---\n")
+        paths = ["change.txt", "more.txt", "docs/changes/" + tail + "/" + summary,
+                 "docs/changes/" + tail + "/" + spec]
+        (directory / spec).write_text("---\nissue: 70\nbranch: " + branch + "\nstatus: approved\ngit_scope:\n"
+                                    + "".join("  - " + name + "\n" for name in paths) + "---\n")
 
     def _remote_backed_runner(self, remote: Path, commands: list, after_ls_remote=None):
         def runner(argv, *, cwd=None, env=None):
             argv = list(argv)
             commands.append(argv)
             if argv[:2] in (["git", "fetch"], ["git", "push"], ["git", "ls-remote"]):
-                argv = [str(remote) if token == "origin" else token for token in argv]
+                argv = [str(remote) if token in {"origin", "gitea"} else token for token in argv]
             result = subprocess.run(
                 argv, cwd=cwd, env=env, check=False, text=True,
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
-            if after_ls_remote is not None and argv[:2] == ["git", "ls-remote"]:
+            if (after_ls_remote is not None and argv[:2] == ["git", "ls-remote"]
+                    and any(token.startswith("refs/heads/change/") for token in argv)):
                 after_ls_remote()
             return result
 
@@ -4959,50 +4893,25 @@ class HostAccessBrokerTests(unittest.TestCase):
             "push", "-q", str(remote), "refs/heads/main:refs/heads/main",
         ], cwd=canonical)
 
-    def test_push_survives_main_advancing_and_a_rebase(self) -> None:
+    def test_non_ff_rebase_after_main_advance_is_refused(self):
         with tempfile.TemporaryDirectory() as temporary:
             remote, canonical, linked = self._remote_backed_change_worktree(temporary)
-            commands: list = []
-            broker = self._remote_backed_broker(
-                canonical, linked, self._remote_backed_runner(remote, commands)
-            )
-
-            first = broker.execute(
-                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
-            )
-            self.assertEqual(first["status"], "PASS")
-            pushed = self._remote_sha(remote, self.LEASE_BRANCH)
-            self.assertEqual(pushed, self._git(["rev-parse", "HEAD"], cwd=linked))
-
+            commands = []
+            broker = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, commands))
+            first = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
             self._advance_remote_main(remote, canonical, "other-issue-merged")
             with self.assertRaises(BrokerError) as stale:
-                broker.execute(
-                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
-                )
+                broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
             self.assertEqual(stale.exception.code, "BASE_BRANCH_STALE")
-
             self._git(["rebase", "-q", "origin/main"], cwd=linked)
-            rebased = self._git(["rev-parse", "HEAD"], cwd=linked)
-            self.assertNotEqual(rebased, pushed)
-            self.assertNotEqual(
-                subprocess.run(
-                    ["git", "merge-base", "--is-ancestor", pushed, rebased],
-                    cwd=linked, check=False,
-                ).returncode,
-                0,
-                "the rebase must make the push a genuine non-fast-forward",
-            )
+            before = len([a for a in commands if a[:2] == ["git", "push"]])
+            with self.assertRaises(BrokerError) as refused:
+                broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+            self.assertEqual(refused.exception.code, "NON_FAST_FORWARD")
+            self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), first["pushed_head"])
+            self.assertEqual(before, len([a for a in commands if a[:2] == ["git", "push"]]))
 
-            second = broker.execute(
-                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
-            )
-            self.assertEqual(second["status"], "PASS")
-            self.assertEqual(self._remote_sha(remote, self.LEASE_BRANCH), rebased)
-            tokens = [token for argv in commands for token in argv]
-            self.assertNotIn("--force", tokens)
-            self.assertNotIn("-f", tokens)
-
-    def test_remote_branch_moved_after_the_lease_was_read_is_refused(self) -> None:
+    def test_remote_branch_moved_after_exact_ref_read_is_refused(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             remote, canonical, linked = self._remote_backed_change_worktree(temporary)
             commands: list = []
@@ -5010,11 +4919,11 @@ class HostAccessBrokerTests(unittest.TestCase):
                 canonical, linked, self._remote_backed_runner(remote, commands)
             )
             broker.execute(
-                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                "aisoft-platform", "git.push.change", branch=self.FF_BRANCH
             )
 
             intruder = Path(temporary) / "intruder"
-            self._git(["clone", "-q", "--branch", self.LEASE_BRANCH, str(remote), str(intruder)])
+            self._git(["clone", "-q", "--branch", self.FF_BRANCH, str(remote), str(intruder)])
             self._git(["config", "user.name", "Someone Else"], cwd=intruder)
             self._git(["config", "user.email", "someone@example.invalid"], cwd=intruder)
             self._git(["commit", "-q", "--allow-empty", "-m", "written by someone else"], cwd=intruder)
@@ -5027,7 +4936,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 moved.append(True)
                 self._git([
                     "push", "-q", str(remote),
-                    f"refs/heads/{self.LEASE_BRANCH}:refs/heads/{self.LEASE_BRANCH}",
+                    f"refs/heads/{self.FF_BRANCH}:refs/heads/{self.FF_BRANCH}",
                 ], cwd=intruder)
 
             races: list = []
@@ -5036,23 +4945,21 @@ class HostAccessBrokerTests(unittest.TestCase):
                 linked,
                 self._remote_backed_runner(remote, races, after_ls_remote=move_remote_branch),
             )
-            leased = self._remote_sha(remote, self.LEASE_BRANCH)
             self._git(["commit", "-q", "--allow-empty", "-m", "local follow-up"], cwd=linked)
             with self.assertRaises(BrokerError) as caught:
                 racing.execute(
-                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                    "aisoft-platform", "git.push.change", branch=self.FF_BRANCH
                 )
             self.assertEqual(caught.exception.code, "REMOTE_BRANCH_MOVED")
             self.assertEqual(
-                self._remote_sha(remote, self.LEASE_BRANCH),
+                self._remote_sha(remote, self.FF_BRANCH),
                 self._git(["rev-parse", "HEAD"], cwd=intruder),
-                "the lease must refuse rather than overwrite the other writer",
+                "the advertised old-id guard must refuse the other writer",
             )
-            self.assertEqual(
-                [argv[2] for argv in races if argv[:2] == ["git", "push"]],
-                [f"--force-with-lease=refs/heads/{self.LEASE_BRANCH}:{leased}"],
-                "the refusal must come from the pre-move lease, not from luck",
-            )
+            self.assertTrue(caught.exception.publication_reference["guard_executed"])
+            self.assertFalse(caught.exception.publication_reference["possible_write"])
+            self.assertEqual([argv[2] for argv in races if argv[:2] == ["git", "push"]], ["--porcelain"])
+            self.assertNotIn("--force", " ".join(token for argv in races for token in argv))
 
     # ---- #298 single-writer ownership -----------------------------------
 
@@ -5069,7 +4976,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             )
 
             first = broker.execute(
-                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                "aisoft-platform", "git.push.change", branch=self.FF_BRANCH
             )
             first_head = self._git(["rev-parse", "HEAD"], cwd=linked)
             self.assertEqual(first["pushed_head"], first_head)
@@ -5084,7 +4991,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             self._git(["add", "more.txt"], cwd=linked)
             self._git(["commit", "-q", "-m", "more"], cwd=linked)
             second = broker.execute(
-                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                "aisoft-platform", "git.push.change", branch=self.FF_BRANCH
             )
             self.assertEqual(second["previous_head"], first_head)
             self.assertEqual(
@@ -5105,7 +5012,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 if argv[:2] == ["git", "push"]:
                     return subprocess.CompletedProcess(argv, 1, "", "rejected")
                 if argv[:2] in (["git", "fetch"], ["git", "ls-remote"]):
-                    argv = [str(remote) if token == "origin" else token for token in argv]
+                    argv = [str(remote) if token in {"origin", "gitea"} else token for token in argv]
                 return subprocess.run(
                     argv, cwd=cwd, env=env, check=False, text=True,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -5114,9 +5021,83 @@ class HostAccessBrokerTests(unittest.TestCase):
             broker = self._remote_backed_broker(canonical, linked, runner)
             with self.assertRaises(BrokerError):
                 broker.execute(
-                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                    "aisoft-platform", "git.push.change", branch=self.FF_BRANCH
                 )
             self.assertIsNone(self._owner_marker(linked).last_push_head)
+
+    def test_absent_original_ref_cannot_be_adopted_after_guard_refusal(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            claimed = []
+            def claim_remote():
+                if not claimed:
+                    claimed.append(True)
+                    self._git(["push", "-q", str(remote), "main:refs/heads/" + self.FF_BRANCH], cwd=canonical)
+            commands = []
+            racing = self._remote_backed_broker(canonical, linked,
+                self._remote_backed_runner(remote, commands, after_ls_remote=claim_remote))
+            with self.assertRaises(BrokerError) as first:
+                racing.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+            self.assertEqual(first.exception.code, "REMOTE_BRANCH_MOVED")
+            self.assertFalse(first.exception.publication_reference["possible_write"])
+            owner = self._owner_marker(linked)
+            self.assertTrue(owner.original_remote_known)
+            self.assertIsNone(owner.original_remote_head)
+            self.assertIsNone(owner.last_push_head)
+            before = len([a for a in commands if a[:2] == ["git", "push"]])
+            with self.assertRaises(BrokerError) as retry:
+                racing.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+            self.assertEqual(retry.exception.code, "REMOTE_BRANCH_MOVED")
+            self.assertEqual(before, len([a for a in commands if a[:2] == ["git", "push"]]))
+            self.assertEqual(self._owner_marker(linked), owner)
+
+    def test_post_push_main_advance_retains_actual_remote_and_ledger(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            base_runner = self._remote_backed_runner(remote, [])
+            def runner(argv, **kwargs):
+                result = base_runner(argv, **kwargs)
+                if argv[:2] == ["git", "push"] and result.returncode == 0:
+                    self._advance_remote_main(remote, canonical, "advanced-after-push")
+                return result
+            broker = self._remote_backed_broker(canonical, linked, runner)
+            with self.assertRaises(BrokerError) as caught:
+                broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+            self.assertEqual(caught.exception.code, "BASE_ADVANCED_AFTER_PUSH")
+            head = self._git(["rev-parse", "HEAD"], cwd=linked)
+            self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), head)
+            self.assertEqual(caught.exception.publication_reference["observed_remote_head"], head)
+            self.assertEqual(self._owner_marker(linked).last_push_head, head)
+
+    def test_post_push_marker_failure_preserves_actual_remote_receipt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            broker = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, []))
+            with patch.object(broker_module, "record_push", side_effect=WorktreeOwnerError("WORKTREE_CLAIM_INVALID", "marker unavailable")):
+                with self.assertRaises(BrokerError) as caught:
+                    broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+            head = self._git(["rev-parse", "HEAD"], cwd=linked)
+            self.assertEqual(caught.exception.code, "WORKTREE_CLAIM_INVALID")
+            self.assertEqual(caught.exception.publication_reference["observed_remote_head"], head)
+            self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), head)
+            self.assertIsNone(self._owner_marker(linked).last_push_head)
+
+    def test_noop_rereads_main_and_ref_without_claiming_a_write(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            commands = []
+            broker = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, commands))
+            broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+            commands.clear()
+            result = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+            self.assertEqual(result["code"], "NOOP")
+            self.assertFalse(result["possible_write"])
+            self.assertFalse(result["guard_executed"])
+            self.assertFalse(any(a[:2] == ["git", "push"] for a in commands))
+            main_reads = [a for a in commands if a[:2] == ["git", "ls-remote"] and a[-1] == "refs/heads/main"]
+            change_reads = [a for a in commands if a[:2] == ["git", "ls-remote"] and a[-1].startswith("refs/heads/change/")]
+            self.assertGreaterEqual(len(main_reads), 3)
+            self.assertGreaterEqual(len(change_reads), 2)
 
     def test_every_ownership_refusal_has_its_own_code_and_pushes_nothing(self) -> None:
         """AC-2: four distinct refusals, none of them reusing WORKTREE_DIRTY,
@@ -5158,7 +5139,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 ))
                 with self.assertRaises(BrokerError) as caught:
                     broker.execute(
-                        "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                        "aisoft-platform", "git.push.change", branch=self.FF_BRANCH
                     )
                 self.assertEqual(caught.exception.code, expected)
                 self.assertNotEqual(caught.exception.code, "WORKTREE_DIRTY")
@@ -5167,7 +5148,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     [],
                     "an ownership refusal must happen before anything reaches the remote",
                 )
-                self.assertEqual(self._remote_sha(remote, self.LEASE_BRANCH), "")
+                self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), "")
                 os.environ[SESSION_ENV] = self.OWNER_SESSION
 
     def test_a_second_session_cannot_push_from_the_worktree_it_wandered_into(self) -> None:
@@ -5180,7 +5161,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 canonical, linked, self._remote_backed_runner(remote, commands)
             )
             owner_head = broker.execute(
-                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                "aisoft-platform", "git.push.change", branch=self.FF_BRANCH
             )["pushed_head"]
 
             # B walks in: a plain local rebase, invisible to the platform.
@@ -5193,95 +5174,52 @@ class HostAccessBrokerTests(unittest.TestCase):
             os.environ[SESSION_ENV] = "intruder-session"
             with self.assertRaises(BrokerError) as caught:
                 broker.execute(
-                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                    "aisoft-platform", "git.push.change", branch=self.FF_BRANCH
                 )
             self.assertEqual(caught.exception.code, "WORKTREE_OWNER_MISMATCH")
             self.assertEqual(
-                self._remote_sha(remote, self.LEASE_BRANCH),
+                self._remote_sha(remote, self.FF_BRANCH),
                 owner_head,
                 "the remote must still hold exactly what the owner pushed",
             )
             os.environ[SESSION_ENV] = self.OWNER_SESSION
 
-    def test_a_rewrite_by_someone_else_is_detectable_in_the_push_return(self) -> None:
-        """AC-5, second half. The owner's push is *not* refused here and cannot
-        be: a foreign rebase and the owner's own rebase leave HEAD in exactly
-        the same shape, and the gate only knows identity — which is the owner in
-        both. So detection lives in the return body instead, and this test pins
-        that it is deterministic rather than incidental (spec 合同修订 260916).
-        """
+    def test_foreign_rewrite_is_refused_even_when_the_caller_is_owner(self):
         with tempfile.TemporaryDirectory() as temporary:
             remote, canonical, linked = self._remote_backed_change_worktree(temporary)
-            broker = self._remote_backed_broker(
-                canonical, linked, self._remote_backed_runner(remote, [])
-            )
-            verified = broker.execute(
-                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
-            )["pushed_head"]
-
-            # Somebody else rebases inside this worktree. No broker call at all,
-            # so the platform sees nothing happen.
+            broker = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, []))
+            first = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
             self._advance_remote_main(remote, canonical, "someone-elses-merge")
-            self._git(
-                ["fetch", "-q", str(remote), "refs/heads/main:refs/remotes/origin/main"],
-                cwd=canonical,
-            )
-            self._git(["rebase", "-q", "refs/remotes/origin/main"], cwd=linked)
-
-            landed = broker.execute(
-                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
-            )
-
-            self.assertNotEqual(
-                landed["pushed_head"], verified,
-                "this is the NewEMaint #96 shape: what landed is not what was verified",
-            )
-            self.assertEqual(
-                landed["previous_head"], verified,
-                "previous_head is the sha the caller last put there, so the pair "
-                "identifies the rewrite without another round trip",
-            )
-            self.assertEqual(
-                self._remote_sha(remote, self.LEASE_BRANCH), landed["pushed_head"]
-            )
-
-    def test_the_owner_still_rebases_and_repushes_without_reclaiming(self) -> None:
-        """AC-6: the BASE_BRANCH_STALE path is the owner's own, and ownership
-        must not add a step to it."""
-        with tempfile.TemporaryDirectory() as temporary:
-            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
-            broker = self._remote_backed_broker(
-                canonical, linked, self._remote_backed_runner(remote, [])
-            )
-            first = broker.execute(
-                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
-            )
-
-            self._advance_remote_main(remote, canonical, "someone-elses-merge")
-            with self.assertRaises(BrokerError) as stale:
-                broker.execute(
-                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
-                )
-            self.assertEqual(stale.exception.code, "BASE_BRANCH_STALE")
-
             broker.execute("aisoft-platform", "git.fetch.main")
-            self._git(["rebase", "-q", "refs/remotes/origin/main"], cwd=linked)
-            rebased = broker.execute(
-                "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
-            )
+            self._git(["rebase", "-q", "origin/main"], cwd=linked)
+            with self.assertRaises(BrokerError) as refused:
+                broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+            self.assertEqual(refused.exception.code, "NON_FAST_FORWARD")
+            self.assertEqual(self._owner_marker(linked).last_push_head, first["pushed_head"])
+            self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), first["pushed_head"])
 
-            self.assertEqual(rebased["status"], "PASS")
-            self.assertEqual(
-                rebased["previous_head"], first["pushed_head"],
-                "the rebase moved the branch, and the return body says where from",
-            )
-            self.assertEqual(
-                rebased["pushed_head"], self._git(["rev-parse", "HEAD"], cwd=linked)
-            )
-            self.assertEqual(
-                self._owner_marker(linked).session, self.OWNER_SESSION,
-                "no re-claim was needed and none happened",
-            )
+    def test_controller_integrates_main_and_owner_publishes_ff_without_reclaiming(self):
+        from aisoft_loop.controller import LocalGit
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+            broker = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, []))
+            first = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+            self._advance_remote_main(remote, canonical, "someone-elses-merge")
+            def host(operation, branch):
+                return broker.execute("aisoft-platform", operation, branch=branch)
+            local = LocalGit(linked, self.FF_BRANCH, project="aisoft-platform", host_runner=host)
+            before = local.head_sha()
+            self.assertTrue(local.integrate_main())
+            parents = self._git(["show", "-s", "--format=%P", "HEAD"], cwd=linked).split()
+            self.assertEqual(parents, [before, self._remote_sha(remote, "main")])
+            landed = local.push()
+            self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), landed)
+            self.assertEqual(self._owner_marker(linked).session, self.OWNER_SESSION)
+            self.assertEqual(local.publication_reference["previous_head"], first["pushed_head"])
+            noop = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+            self.assertEqual(noop["write_status"], "NOOP")
+            self.assertFalse(noop["possible_write"])
+            self.assertFalse(local.integrate_main())
 
     def test_stale_base_branch_is_rejected_before_the_push_runs(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -5293,37 +5231,32 @@ class HostAccessBrokerTests(unittest.TestCase):
             )
             with self.assertRaises(BrokerError) as caught:
                 broker.execute(
-                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
+                    "aisoft-platform", "git.push.change", branch=self.FF_BRANCH
                 )
             self.assertEqual(caught.exception.code, "BASE_BRANCH_STALE")
             self.assertEqual([argv for argv in commands if argv[:2] == ["git", "push"]], [])
-            self.assertEqual(self._remote_sha(remote, self.LEASE_BRANCH), "")
+            self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), "")
 
-    def test_merge_commit_is_rejected_before_the_push_runs(self) -> None:
+    def test_merge_with_extra_content_is_refused_before_push(self):
         with tempfile.TemporaryDirectory() as temporary:
             remote, canonical, linked = self._remote_backed_change_worktree(temporary)
             self._advance_remote_main(remote, canonical, "merged-elsewhere")
             self._git(["fetch", "-q", str(remote), "refs/heads/main:refs/remotes/origin/main"], cwd=linked)
-            self._git(["merge", "-q", "--no-ff", "-m", "merge main", "origin/main"], cwd=linked)
-            self.assertEqual(
-                subprocess.run(
-                    ["git", "merge-base", "--is-ancestor", "origin/main", "HEAD"],
-                    cwd=linked, check=False,
-                ).returncode,
-                0,
-                "the merge must clear the base-freshness check so the merge rule is what bites",
-            )
-            commands: list = []
-            broker = self._remote_backed_broker(
-                canonical, linked, self._remote_backed_runner(remote, commands)
-            )
-            with self.assertRaises(BrokerError) as caught:
-                broker.execute(
-                    "aisoft-platform", "git.push.change", branch=self.LEASE_BRANCH
-                )
-            self.assertEqual(caught.exception.code, "MERGE_COMMIT_DENIED")
-            self.assertEqual([argv for argv in commands if argv[:2] == ["git", "push"]], [])
-            self.assertEqual(self._remote_sha(remote, self.LEASE_BRANCH), "")
+            first = self._git(["rev-parse", "HEAD"], cwd=linked)
+            main = self._git(["rev-parse", "origin/main"], cwd=linked)
+            self._git(["merge", "-q", "--no-ff", "-m", "merge main", main], cwd=linked)
+            (linked / "injected.txt").write_text("extra merge content\n")
+            self._git(["add", "injected.txt"], cwd=linked)
+            tree = self._git(["write-tree"], cwd=linked)
+            forged = self._git(["commit-tree", tree, "-p", first, "-p", main, "-m", "#70 forged merge"], cwd=linked)
+            self._git(["update-ref", "refs/heads/" + self.FF_BRANCH, forged], cwd=linked)
+            self.assertEqual(self._git(["status", "--porcelain"], cwd=linked), "")
+            commands = []
+            broker = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, commands))
+            with self.assertRaises(BrokerError) as refused:
+                broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+            self.assertEqual(refused.exception.code, "MERGE_TREE_DENIED")
+            self.assertEqual([a for a in commands if a[:2] == ["git", "push"]], [])
 
     def test_credential_protocol_denies_cross_project_and_wrong_identity(self) -> None:
         resolver = StaticCredentials()
@@ -5635,6 +5568,11 @@ class GovernedHostRunnerTests(unittest.TestCase):
         def command_runner(argv, **kwargs):
             calls.append((list(argv), kwargs))
             payload = {"status": "PASS", "number": 70}
+            if "git.push.change" in argv:
+                from aisoft_main_integration import GitRepository
+                head = GitRepository(kwargs["cwd"]).text("rev-parse", "HEAD")
+                payload.update(operation="git.push.change", code="PUBLISHED", pushed_head=head,
+                               observed_remote_head=head, possible_write=True)
             return subprocess.CompletedProcess(argv, 0, json.dumps(payload) + "\n", "")
 
         first = GovernedHostRunner(
@@ -5661,6 +5599,36 @@ class GovernedHostRunnerTests(unittest.TestCase):
         self.assertNotIn("--url", flattened)
         self.assertNotIn("--owner", flattened)
         self.assertNotIn("--repository", flattened)
+
+    def test_runner_keeps_possible_head_for_invalid_json_partial_and_lost_reply(self):
+        from aisoft_main_integration import GitRepository
+        head = GitRepository(os.getcwd()).text("rev-parse", "HEAD")
+        for output in ("invalid-json", '{"status":"PASS","secret":"do-not-retain"}', None):
+            def command_runner(argv, **kwargs):
+                if output is None:
+                    raise OSError("fixture lost reply")
+                return subprocess.CompletedProcess(argv, 0, output, "")
+            runner = GovernedHostRunner(self.contract, "aisoft-platform", command_runner=command_runner)
+            with self.assertRaises(BrokerError) as error:
+                runner.push_change(70)
+            reference = error.exception.publication_reference
+            self.assertEqual(reference["head"], head)
+            self.assertTrue(reference["possible_write"])
+            self.assertEqual(reference["outcome"], "UNKNOWN")
+            self.assertNotIn("secret", reference)
+
+    def test_default_runner_old_surface_never_invokes_wrapper(self):
+        from unittest.mock import patch
+        from aisoft_main_integration import GitError
+        runner = GovernedHostRunner(self.contract, "aisoft-platform")
+        with patch("aisoft_host_access.runner.qualified_broker_environment",
+                   side_effect=GitError("BROKER_SURFACE_GAP", "old surface")), \
+             patch("aisoft_host_access.runner.subprocess.run") as execute:
+            with self.assertRaises(BrokerError) as error:
+                runner.push_change(70)
+            self.assertEqual(error.exception.code, "BROKER_SURFACE_GAP")
+            self.assertFalse(hasattr(error.exception, "publication_reference"))
+            execute.assert_not_called()
 
     def test_runner_has_no_merge_or_arbitrary_operation_surface(self) -> None:
         runner = GovernedHostRunner(

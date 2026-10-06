@@ -20,10 +20,10 @@ import subprocess
 import sys
 
 INSTALLER_PINS = {
-    "codex/install-vm.sh": "e208d941e9ac72fa89380523325070adfe0d657c83e99f9c806554c25a4e6b42",
+    "codex/install-vm.sh": "01bf859512149391b45c37697b850f01af05e738ae37ae73008acbb196d3fe1c",
     "codex/install-skills.sh": "d07e38ba51e4f02f57820478626c9fc4d371b10265a0053df230028daafca9c3",
     "codex/install-host-role.sh": "325e5150722e30debc115c0717d9bc4dedac44e1a7552c3a2258df14c4b27c89",
-    "codex/install-host-access-broker.sh": "72df0ff5540ab1bc2a6c9a10924fdd87d8854f7fc99eb35fbaa2db62039502f2",
+    "codex/install-host-access-broker.sh": "485ea19514c5f4b72c84d6cc9576fe0c2b65c34d084e74c8f80e2d6ad6f10897",
     "architecture/install.sh": "c8f14f0154cad1b7402e527209d0135bab2bdf3bc0024f72fd06994067aa972e",
     "docker-release/install.sh": "3580c1e23b343fe9bbe2d3f9ea1b64b0f95ef1a7ba9c023c282bf5b68a649b13",
     "sync/install.sh": "153f36ef3396a053a4e4cbb8d6022a9f163b75b6f4c25498ba27ae3217d30f10",
@@ -382,7 +382,7 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
         tree("install-vm", "codex/runtime/" + pkg, vm / pkg, home, "*.py")
     for pkg in ("aisoft_host_access", "aisoft_gitea_governance"):
         tree("install-host-access-broker", "codex/runtime/" + pkg, broker / pkg, system, "*.py")
-    for filename in ("aisoft_change_name.py", "aisoft_worktree_owner.py"):
+    for filename in ("aisoft_change_name.py", "aisoft_worktree_owner.py", "aisoft_main_integration.py"):
         add("install-vm", "codex/runtime/" + filename, vm / filename, home)
         add("install-host-access-broker", "codex/runtime/" + filename, broker / filename, system)
     surfaces["install-vm"].metrics["runtime modules"] = Metric(len(surfaces["install-vm"].files), "patterns",

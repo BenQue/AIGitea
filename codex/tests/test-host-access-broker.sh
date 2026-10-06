@@ -303,6 +303,7 @@ test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/lib/aisoft-host-access/aisof
 test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/lib/aisoft-host-access/aisoft_change_name.py"
 # #298: the broker reads the ownership marker, so the shared module must ship with it.
 test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/lib/aisoft-host-access/aisoft_worktree_owner.py"
+test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/lib/aisoft-host-access/aisoft_main_integration.py"
 test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/etc/aisoft/host-profile.json"
 test ! -d "$AISOFT_HOST_ACCESS_INSTALL_ROOT/etc/systemd"
 if find "$AISOFT_HOST_ACCESS_INSTALL_ROOT" -type f \

@@ -17,8 +17,55 @@ risk_flags:
 depends_on: []
 branch: change/327-broker-ff-integration
 created: 2026-10-02
-updated: 2026-10-05
+updated: 2026-10-06
 status: approved
+git_history_head: 3052a8a0d47a8c7333f06e073ca5a4ecc1047a90
+git_history_paths:
+  - 03-Issue-Spec-Plan与单闸门开发流程.md
+  - 04-Agent编排与定时任务.md
+  - 06-运维手册与踩坑集.md
+  - 08-双工具共存与实施.md
+  - AGENTS.md
+  - README.md
+  - codex/runtime/aisoft_host_access/dependencies.py
+  - codex/runtime/aisoft_host_access/profiles.py
+  - codex/skills/aisoft-matt-workflow/SKILL.md
+  - codex/skills/issue-session-flow/SKILL.md
+  - docs/agents/issue-tracker.md
+  - docs/changes/327-broker-ff-integration/plan-broker-ff-integration-261002.md
+  - docs/changes/327-broker-ff-integration/spec-broker-ff-integration-261002.md
+  - docs/changes/327-broker-ff-integration/summary-broker-ff-integration-261002.md
+  - docs/changes/327-broker-ff-integration/verification-broker-ff-integration-261002.md
+  - skill-for-claude/aisoft-platform/SKILL.md
+  - skill-for-claude/issue-session-flow/SKILL.md
+  - skill-for-codex/SKILL.md
+  - skill-for-codex/references/private-gitea-access.md
+  - templates/docs/agents/issue-tracker.md
+git_scope:
+  - codex/runtime/aisoft_host_access/broker.py
+  - codex/runtime/aisoft_main_integration.py
+  - codex/runtime/aisoft_loop/controller.py
+  - codex/runtime/aisoft_worktree_owner.py
+  - codex/runtime/aisoft_loop/gitea.py
+  - codex/runtime/aisoft_host_access/runner.py
+  - codex/install-host-access-broker.sh
+  - codex/install-vm.sh
+  - codex/tools/check-installed-drift.py
+  - codex/runtime/tests/test_host_access.py
+  - codex/runtime/tests/test_controller.py
+  - codex/runtime/tests/test_worktree_owner.py
+  - codex/runtime/tests/test_main_integration.py
+  - codex/tests/test-host-access-broker.sh
+  - codex/tests/test-install-host-access-broker.sh
+  - codex/tests/test-installer-source-guard.sh
+  - codex/tests/test-agent-runtime.sh
+  - codex/tests/test-installed-drift.sh
+  - codex/tests/fixtures/installed-drift/test-installed-drift.py
+  - codex/tests/smoke.sh
+  - docs/changes/327-broker-ff-integration/summary-broker-ff-integration-261002.md
+  - docs/changes/327-broker-ff-integration/spec-broker-ff-integration-261002.md
+  - docs/changes/327-broker-ff-integration/plan-broker-ff-integration-261002.md
+  - docs/changes/327-broker-ff-integration/verification-broker-ff-integration-261002.md
 ---
 
 # #327 当前最小 Git 合同（2026-10-05）
@@ -51,6 +98,8 @@ R0 是已核验的原 remote tip（未知则 GAP，不重置）；R 为本次 ex
 
 ## 精确实施范围（仅下一 fresh T02）
 
+2026-10-06 fresh T02 将下表已有批准范围投影到 front matter 的 `git_scope`，供 committed mapped summary/spec 的逐 commit exact 路径检查使用。`git_history_head=3052a8a0d47a8c7333f06e073ca5a4ecc1047a90` 固定已由本人完成的两 parent 整合；`git_history_paths` 仅承接既有 18 治理文档和历史 T07 已提交的 `dependencies.py`/`profiles.py` 四行兼容修正，共 20 路径。它们不是新的修改范围、批准根或创作证明；missing/duplicate/wildcard/跨 Issue 映射均 fail closed。原 fresh `git_scope` 为 23 路径；本人随后直接“确认”新增下述一行测试数量映射，现为 24 个允许路径，实际修改仍须为其子集。
+
 | exact 文件 | 当前允许目的 |
 |---|---|
 | `codex/runtime/aisoft_host_access/broker.py` | 恢复实际 Git push 路由，FF、完整 DAG/tree/范围、strict R guard、readback；不依赖 authority |
@@ -61,9 +110,14 @@ R0 是已核验的原 remote tip（未知则 GAP，不重置）；R 为本次 ex
 | `codex/install-host-access-broker.sh`、`codex/install-vm.sh`、`codex/tools/check-installed-drift.py` | 仅最小 Git 模块/guard 的受管安装与漂移映射，不执行安装/启用、不改 source guard |
 | `codex/runtime/tests/test_host_access.py`、`test_controller.py`、`test_worktree_owner.py`、`test_main_integration.py` | FF/DAG/竞态/owner/Controller 的真实 bare remote 与必要回归 |
 | `codex/tests/test-host-access-broker.sh`、`test-install-host-access-broker.sh`、`test-agent-runtime.sh`、`test-installed-drift.sh`、`codex/tests/fixtures/installed-drift/test-installed-drift.py`、`codex/tests/smoke.sh` | 必要 fixture/受管文件映射与新增 Git 用例，不删除、skip 或弱化既有 required 门 |
+| `codex/tests/test-installer-source-guard.sh` | 本人 2026-10-06 补充确认：仅来源数量预期 `+2`→`+3`，纳入新受管模块；来源闸门实现保持 |
 | 本 Issue 四份 mapped docs | 真实证据与唯一 PR 回填，不把声明当验收 |
 
 以上测试文件中不带完整前缀的 basename 均相对前一个相同目录，不能泛配目录。已保全 32 个源码 WIP 中与此表直接相关者复用；其余 authority/config/bootstrap/ES/toolchain/scratch 代码和测试明确延期，仍 UNDELIVERED。可在完整 bytes/mode/uid/gid 与补丁映射保全后按清单临时 park，不能 rm/reset 丢弃或 skip 原 required tests 制造 clean/PASS。更改范围外的 runtime 或新增机制必须先说明真实必要性，不能从旧宽合同继续扩张。
+
+2026-10-06 默认 smoke 实跑在既有 `codex/tests/test-installer-source-guard.sh` 的来源数量断言停止：新增受管 `aisoft_main_integration.py` 后实际数量 34，旧测试预期仍为 33。仅将测试预期加数 `+2` 改为 `+3` 的一行补丁已在外部准备；该文件尚不在上表/`git_scope`，已向本人请求补充这一 exact 文件，未应用。`codex/lib/install-source-guard.sh` 的来源、staleness 和写入前闸门保持；当前结果仍是 FAIL，不删除/skip 或改变输出来制造 PASS。
+
+上述为补充前停止记录，原失败保留。本 owner 会话随后对该一行补丁直接收到本人“确认”，已只应用 `+2`→`+3` 及受管模块说明，后续重跑默认 smoke；不继承旧 FAIL 为 PASS、不新增 push/PR/安装授权。
 
 ## 首次人工 main 整合与发布
 
@@ -96,3 +150,7 @@ fresh T02 完成最小修复并跑门 → T03 给出 exact C/M/R/H、tree/blob/m
 独立修改原 14 个 #327 活治理消费者及四 mapped docs，共 18 个文档：`AGENTS.md`、`03-Issue-Spec-Plan与单闸门开发流程.md`、`04-Agent编排与定时任务.md`、`06-运维手册与踩坑集.md`、`08-双工具共存与实施.md`、`README.md`、`codex/skills/issue-session-flow/SKILL.md`、`skill-for-claude/issue-session-flow/SKILL.md`、`codex/skills/aisoft-matt-workflow/SKILL.md`、`skill-for-claude/aisoft-platform/SKILL.md`、`skill-for-codex/SKILL.md`、`skill-for-codex/references/private-gitea-access.md`、`docs/agents/issue-tracker.md`、`templates/docs/agents/issue-tracker.md`，以及本目录 summary/spec/plan/verification 的 exact 映射 basename。
 
 只替换当前 #327 活合同与重复前置，保留无关条款、历史 #136 和原失败证据。verification 原 WIP 的历史证据正文保留并纳入本次文档提交，32 源码 WIP 原 bytes/mode/uid/gid 不动；不实现 runtime、不改 config/CI/installer、不更新全局 skills/标签、root/Secret/账号权限/服务/部署，不 push/PR/merge。治理失败只撤回本次已知文档增量及本次 index 项，留 HEAD 历史与所有恢复包；不 reset/force/覆盖他人 ref。成功实际提交后立即 STOP，原 T02 仍 in-progress、T03 pending，不新增 Ticket/Issue/系统。
+
+## 2026-10-06 最小 Git source 实施证据
+
+既有精确范围内完成相关 installed dispatch/FF 模块的只读版本绑定：固定 wrapper SHA 和本发行相关模块 bytes 比对在写调用前拒绝旧/mixed surface；这只证明 cooperative version 一致，不扩张成 root/OS/加载闭包。净化环境仅保留经格式校验的 owner session。启动后无有效回执、partial/坏JSON/坏编码/timeout 都保留有限非秘密候选 H 与 possible_write/UNKNOWN，成功 exact readback 前禁止盲重推。默认 smoke 原门保留；tracker相对链接先核相同真实目标、其余bytes仍严格一致。全门及历史FAIL按 verification 分层记录；真实首次发表仍须成功R读回与唯一最终第二确认。

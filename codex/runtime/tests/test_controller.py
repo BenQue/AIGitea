@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
 import subprocess
@@ -245,6 +247,51 @@ class LocalGitTests(unittest.TestCase):
             capture_output=True,
             text=True,
         )
+
+    def test_old_or_mixed_installed_broker_stops_before_write_invocation(self):
+        from unittest.mock import patch
+        from aisoft_main_integration import GitError
+        local = LocalGit(self.repo, "change/8", project="aisoft-platform")
+        with patch("aisoft_loop.controller.qualified_broker_environment",
+                   side_effect=GitError("BROKER_SURFACE_GAP", "old dispatch")), \
+             patch("aisoft_loop.controller.subprocess.run") as run:
+            # HEAD reads remain real; only the write call would use this mock.
+            with patch.object(local, "head_sha", return_value=self.base):
+                with self.assertRaisesRegex(ProviderError, "BROKER_SURFACE_GAP"):
+                    local.push()
+            run.assert_not_called()
+        self.assertIsNone(local.publication_reference)
+
+    def test_partial_and_invalid_receipts_keep_possible_candidate_without_secret_fields(self):
+        for value in ({"status": "PASS", "secret": "fixture-do-not-retain"}, [], None):
+            with self.subTest(value=value):
+                local = LocalGit(self.repo, "change/8", project="aisoft-platform",
+                                 host_runner=lambda *_: value)
+                with self.assertRaises(ProviderError) as error:
+                    local.push()
+                reference = error.exception.publication_reference
+                self.assertEqual(reference["head"], self.base)
+                self.assertTrue(reference["possible_write"])
+                self.assertEqual(reference["outcome"], "UNKNOWN")
+                self.assertNotIn("secret", reference)
+
+    def test_invalid_json_and_lost_reply_keep_possible_candidate(self):
+        from unittest.mock import patch
+        for completed in (subprocess.CompletedProcess([], 0, "invalid-json", ""),
+                          subprocess.TimeoutExpired("fixed-wrapper", 120),
+                          UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid fixture reply")):
+            local = LocalGit(self.repo, "change/8", project="aisoft-platform")
+            with patch("aisoft_loop.controller.qualified_broker_environment", return_value={}), \
+                 patch.object(local, "head_sha", return_value=self.base), \
+                 patch("aisoft_loop.controller.subprocess.run") as run:
+                if isinstance(completed, Exception):
+                    run.side_effect = completed
+                else:
+                    run.return_value = completed
+                with self.assertRaises(ProviderError) as error:
+                    local.push()
+                self.assertTrue(error.exception.publication_reference["possible_write"])
+                self.assertEqual(error.exception.publication_reference["head"], self.base)
 
     def test_valid_agent_commit_is_accepted(self) -> None:
         self.repo.joinpath("change.txt").write_text("done\n")
@@ -799,6 +846,48 @@ branch: change/8
         self.assertEqual(result.terminal_state, TerminalState.READY_FOR_REVIEW)
         self.assertIn("unit-test", json.dumps(provider.requests[1]))
         self.assertIn("assertion failed", json.dumps(provider.requests[1]))
+
+    def test_integrated_candidate_survives_verifier_retry_without_provider_changes(self) -> None:
+        class IntegratedGit(FakeGit):
+            def integrate_main(self):
+                if self.sha_counter == 0:
+                    self.sha_counter = 1
+                    return True
+                return False
+
+        git = IntegratedGit([(), ()])
+        controller = self.controller(
+            provider=FakeProvider([provider_result("CONTINUE", changed_files=()),
+                                   provider_result(changed_files=())]),
+            verifier=FakeVerifier([verification(False), verification(True)]),
+            git=git, gitea=FakeGitea(["success"]),
+        )
+        result = controller.run(8)
+        self.assertEqual(result.terminal_state, TerminalState.READY_FOR_REVIEW)
+        self.assertEqual(git.pushes, 2, "integration and later PR URL backfill are both published")
+        self.assertNotIn("unpublished_candidate_head", controller.state_store.load(8))
+
+    def test_unknown_publication_is_retained_and_never_retried_on_poll(self) -> None:
+        class UncertainGit(FakeGit):
+            def push(self):
+                self.pushes += 1
+                error = ProviderError("network readback unavailable")
+                error.publication_reference = {"head": self.head_sha(),
+                    "possible_write": True, "observed_remote_head": None}
+                raise error
+
+        git = UncertainGit([("src/change.txt",)])
+        controller = self.controller(
+            provider=FakeProvider([provider_result()]), verifier=FakeVerifier([verification(True)]),
+            git=git, gitea=FakeGitea(),
+        )
+        self.assertEqual(controller.run(8).terminal_state, TerminalState.BLOCKED_EXTERNAL)
+        state = controller.state_store.load(8)
+        self.assertEqual(state["publication_reference"]["head"], git.head_sha())
+        self.assertTrue(state["publication_reference"]["possible_write"])
+        self.assertEqual(state["unpublished_candidate_head"], git.head_sha())
+        self.assertEqual(controller.run(8).terminal_state, TerminalState.BLOCKED_EXTERNAL)
+        self.assertEqual(git.pushes, 1)
 
     def test_scope_expansion_stops_for_human(self) -> None:
         gitea = FakeGitea()

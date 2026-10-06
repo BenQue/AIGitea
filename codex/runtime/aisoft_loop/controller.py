@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -12,6 +13,8 @@ from typing import Optional, Sequence
 from aisoft_gitea_governance.contract import load_contract as load_governance_contract
 
 from aisoft_host_access.broker import BrokerError
+from aisoft_main_integration import GitError, GitRepository, git_environment, publication_reference, publication_projection, qualified_broker_environment
+from aisoft_worktree_owner import WorktreeOwnerError, authorize_push, caller_session, pin_original_remote
 from aisoft_host_access.dependencies import Dependency, DependencyError, display, is_terminal
 
 from .contract import (
@@ -99,6 +102,12 @@ class Controller:
                 TerminalState.BLOCKED_EXTERNAL,
                 "another Issue currently owns the Development Loop lock",
             )
+        except (ProviderError, BrokerError) as exc:
+            state = self.state_store.load(issue_number) or {}
+            reference = getattr(exc, "publication_reference", None) or publication_reference(str(exc))
+            state["publication_reference"] = reference
+            return self._finish(issue_number, state, TerminalState.BLOCKED_EXTERNAL,
+                                redact(str(exc)), _optional_int(state.get("pr_number")))
 
     def _run_locked(self, issue_number: int) -> ControllerResult:
         state = self.state_store.load(issue_number)
@@ -274,6 +283,12 @@ class Controller:
                     budget=budget,
                     comment=True,
                 )
+            integrated = False
+            if hasattr(self.git, "integrate_main"):
+                integrated = self.git.integrate_main()
+            if integrated:
+                state["unpublished_candidate_head"] = self.git.head_sha()
+                self.state_store.save(issue_number, state)
             provider_base_sha = self.git.head_sha()
             try:
                 provider_result = self.provider.run(request, self.repo)
@@ -336,6 +351,9 @@ class Controller:
                     budget=budget,
                     comment=True,
                 )
+            if actual_files:
+                state["unpublished_candidate_head"] = self.git.head_sha()
+                self.state_store.save(issue_number, state)
 
             if provider_result.status == "NEEDS_HUMAN_DECISION":
                 self._set_lifecycle(contract, "awaiting-triage")
@@ -391,8 +409,9 @@ class Controller:
                 budget.clear_failure()
             failure_evidence = ""
             failure_kind = ""
-            if actual_files and (not self.confirmation_required or pr_number is not None):
+            if state.get("unpublished_candidate_head") and (not self.confirmation_required or pr_number is not None):
                 head_sha = self.git.push()
+                state.pop("unpublished_candidate_head", None)
             else:
                 head_sha = self.git.head_sha()
 
@@ -882,9 +901,13 @@ class Controller:
 class LocalGit:
     """Git operations owned by the controller inside one isolated worktree."""
 
-    def __init__(self, repo: Path | str, branch: str) -> None:
+    def __init__(self, repo: Path | str, branch: str, *, project: str | None = None,
+                 host_runner=None) -> None:
         self.repo = Path(repo).resolve()
         self.branch = branch
+        self.project = project or os.environ.get("AISOFT_PROJECT_ID")
+        self.host_runner = host_runner
+        self.publication_reference = None
         current = self._run(("git", "branch", "--show-current")).stdout.strip()
         if current != branch:
             raise ProviderError(f"worktree branch must be {branch}, got {current or 'detached'}")
@@ -972,8 +995,120 @@ class LocalGit:
         return self.head_sha()
 
     def push(self) -> str:
-        self._run(("git", "push", "-u", "origin", self.branch))
-        return self.head_sha()
+        """Existing typed broker only, with exact H/readback and no fallback."""
+        head = self.head_sha()
+        self.publication_reference = None
+        try:
+            value = self._host("git.push.change")
+            self.publication_reference = publication_projection(value, head)
+            if (not isinstance(value, dict) or value.get("status") != "PASS" or value.get("operation") != "git.push.change"
+                    or value.get("code") not in {"PUBLISHED", "NOOP"}
+                    or value.get("pushed_head") != head or value.get("observed_remote_head") != head):
+                raise ProviderError("broker publication has no exact candidate/readback")
+            if self.head_sha() != head or self._run(("git", "branch", "--show-current")).stdout.strip() != self.branch:
+                raise ProviderError("HEAD_MOVED: broker observed remote H=" + head)
+            return head
+        except (BrokerError, ProviderError) as exc:
+            reference = getattr(exc, "publication_reference", None) or publication_reference(str(exc))
+            if reference:
+                self.publication_reference = publication_projection(reference, head)
+            error = ProviderError(str(exc))
+            error.publication_reference = self.publication_reference
+            raise error from exc
+
+    def _host(self, operation):
+        if self.host_runner is not None:
+            if operation == "git.push.change":
+                self.publication_reference = publication_projection(None, self.head_sha())
+            return self.host_runner(operation, self.branch if operation != "git.fetch.main" else None)
+        if not self.project or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", self.project):
+            raise ProviderError("canonical project binding missing; no direct Git fallback")
+        argv = ["/usr/local/libexec/aisoft/host-access-broker", "--project", self.project,
+                "--operation", operation]
+        if operation != "git.fetch.main":
+            argv.extend(("--branch", self.branch))
+        env = None
+        if operation == "git.push.change":
+            try:
+                env = qualified_broker_environment()
+            except GitError as exc:
+                raise ProviderError(exc.code + ": " + str(exc)) from exc
+            self.publication_reference = publication_projection(None, self.head_sha())
+        try:
+            r = subprocess.run(argv, cwd=self.repo, env=env, text=True,
+                               capture_output=True, check=False, timeout=120)
+        except (OSError, subprocess.TimeoutExpired, UnicodeError) as exc:
+            raise ProviderError("fixed broker invocation outcome UNKNOWN") from exc
+        if len(r.stdout.encode()) > 32768 or len(r.stderr.encode()) > 32768:
+            raise ProviderError("fixed broker receipt exceeds bound")
+        if r.returncode != 0:
+            try:
+                failure = json.loads(r.stderr)
+                message = str(failure["code"]) + ": " + str(failure["message"])
+            except (ValueError, TypeError, KeyError):
+                message = "fixed broker failed; publication outcome may require readback"
+            raise ProviderError(message)
+        try:
+            value = json.loads(r.stdout)
+        except (ValueError, TypeError) as exc:
+            raise ProviderError("fixed broker returned invalid JSON") from exc
+        if not isinstance(value, dict) or value.get("status") != "PASS":
+            raise ProviderError("fixed broker returned an invalid receipt")
+        return value
+
+    def integrate_main(self) -> bool:
+        """Qualified Controller's clean, no-conflict [C,M] local integration.
+
+        Provider validation remains linear. No remote write, rebase or history
+        rewrite occurs here; every new H goes through the normal verifier.
+        """
+        fetched = self._host("git.fetch.main")
+        remote_name = fetched.get("remote_name")
+        if not isinstance(remote_name, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", remote_name):
+            raise ProviderError("manifest main receipt is invalid")
+        local = GitRepository(self.repo)
+        first = self.head_sha()
+        main = local.text("rev-parse", "refs/remotes/" + remote_name + "/main")
+        if local.ancestor(main, first):
+            return False
+        try:
+            local.assert_supported()
+            if local.text("status", "--porcelain") or local.text("symbolic-ref", "--short", "HEAD") != self.branch:
+                raise GitError("WORKTREE_DIRTY", "integration requires the exact clean owner branch")
+            git_dir = local.text("rev-parse", "--absolute-git-dir")
+            owner = authorize_push(git_dir, branch=self.branch, session=caller_session())
+            if os.path.realpath(owner.worktree) != str(self.repo):
+                raise GitError("WORKTREE_OWNER_MISMATCH", "owner worktree differs")
+            current = self._host("git.fetch.change")
+            if current.get("remote_known") is not True:
+                raise GitError("ORIGINAL_REMOTE_UNKNOWN", "exact remote observation unavailable")
+            remote = current.get("remote_head")
+            if owner.last_push_head is not None and remote != owner.last_push_head:
+                raise GitError("REMOTE_BRANCH_MOVED", "remote differs from recorded push")
+            scope = local.scope(first, self.branch)
+            local.verify_history(head=first, main=main,
+                                 original=owner.original_remote_head if owner.original_remote_known else remote,
+                                 remote=remote, paths=scope.paths, history_head=scope.history_head,
+                                 history_paths=scope.history_paths, require_main=False)
+            pin_original_remote(git_dir, head=remote, branch=self.branch, session=caller_session())
+            expected_tree = local.merge_tree(first, main)
+            if self.head_sha() != first:
+                raise GitError("HEAD_MOVED", "candidate moved before integration")
+            merged = local.run("merge", "--no-ff", "--no-commit", "-s", "ort", main, allowed=(0, 1))
+            if merged.returncode != 0:
+                local.run("merge", "--abort")
+                raise GitError("MERGE_CONFLICT", "main integration conflicts; stopped")
+            if local.text("write-tree") != expected_tree or self.head_sha() != first:
+                local.run("merge", "--abort")
+                raise GitError("MERGE_TREE_DENIED", "integration index differs from independently computed tree")
+            number = self.branch.split("/", 1)[1].split("-", 1)[0]
+            local.run("commit", "-m", "#" + number + ": integrate verified manifest main")
+            integrated = local.commit(self.head_sha())
+            if integrated.parents != (first, main) or integrated.tree != expected_tree:
+                raise GitError("DAG_DENIED", "actual integration receipt differs; retain actual HEAD and stop")
+            return True
+        except (GitError, WorktreeOwnerError) as exc:
+            raise ProviderError(exc.code + ": " + str(exc)) from exc
 
     def head_sha(self) -> str:
         return self._run(("git", "rev-parse", "HEAD")).stdout.strip()

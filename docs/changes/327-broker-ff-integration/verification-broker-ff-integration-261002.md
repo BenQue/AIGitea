@@ -582,3 +582,57 @@ canonical interpreter与held FD的kernel exec核对方案仅为待审security pr
 授权回填（2026-10-06）：本人在本 owner 会话对“只对齐 README、回填 verification，并本地线性提交后 STOP”明确回复“确认”。本次只落实这两份文档；既有 stash/bundle 与延期边界保留。后续本人标准 Git 的 main 整合、runtime/CI/发表/安装仍 NOT RUN。
 
 两文档 checkpoint 的链接边界：完整 main README 中引用的 #337 verification 在 exact M c9b5ef4e74592cbc68d6bdc6219568a1d51b6853 中存在，当前治理 G 工作树尚未带入该文件。本次只对齐两份文档，不复制第三文件；此相对链接在本地对齐 checkpoint 暂记 GAP，待本人整合 M 后核对闭合。#327 resolver/graph 文档检查不代表 README 全部相对链接已闭合。
+
+## 2026-10-06 人工整合完成后的 fresh T02（计数补充前历史）
+
+本节覆盖前文的旧“整合/runtime 尚未运行”状态，保留原 FAIL/GAP/NOT RUN 的时间和证据。本 owner 收到本人实际整合回执并核实 HEAD `3052a8a0d47a8c7333f06e073ca5a4ecc1047a90`，parents 精确 `[1078e4aead52020b49a91cc97b118245f7d972f1,96ba8a17baad8e9854d4e8d0397d4162b8067b09]`，tree `0c5243d46a4a53006b7e50ff4acc9cc6e5b7e2a9`。后续定向续办已授权 fresh T02 到下一真实人工确认/操作点；原 owner/branch/worktree/manual 保持，没有 Agent 实际 merge/rebase/cherry-pick/reset 或真实远端写入。
+
+本轮证据根：`/Users/benque/.codex/visualizations/2026/10/02/01a0fcec-eb78-7790-a36a-daea917f43d2/issue-327-convergence-20261005/t02-minimal-git-fresh-20261006-5r33dgqe/`。`baseline.json`、`source32-reuse-deferred-map.json`、全部原 blob/补丁与 `parked-source32.tar` 可恢复；32 原源码 bytes/mode/uid/gid 全部核对 PASS，9 直接 Git WIP 复用、23 authority/ES/closure/scratch 等延期。stash `4888c0345a90ab76560f33172dd9923f79c3a988` 与原 bundle 保留，没有 pop/drop/clear 或重 pin。原 tar SHA256 `94f0044226f9a8c4c816024584d9cc322dad88bdec1a1ada105887b6fdeafee7`；首次 tar 的 uid/gid 元数据不匹配失败也另存，第二 tar 按原 metadata 核实，不覆盖失败证据。
+
+| 实际检查 | 结果 | 同证据根文件 / 边界 |
+|---|---|---|
+| fresh installed broker Issue/comments/onboarding 与 fetch main | PASS（只读） | live Issue open、comments 空、仅 triage/needs-triage；main M 仍 `96ba8a17...`；main 禁直推/force、required `CI / verify (pull_request)`、routine disabled |
+| installed `git.fetch.change` | GAP / HOST_COMMAND_FAILED | `installed-readback.json`；R0/R 未取得成功读回，未推断 absent |
+| 原 32 源码和 stash/bundle 恢复保全 | PASS | mapping/tar/原 patches，原 bundle SHA256 `8ff92fec2b6936218f8d85baa59acf7fbb1550fd07b01ba15163d6a816b62677` |
+| actual H0 relevant DAG/tree/逐 commit scope | PASS_LOCAL_HISTORY_ONLY | `actual-h0-complete-relevant-history.json`；14 commit；R0/R unknown，不当真实发布资格 |
+| 首轮 107 项 targeted Git/owner/Controller/broker | PASS | `git-owner-controller-broker-repaired.log`；真实临时 bare remote 与实际 guard/普通 push |
+| 双轴 hard 修正后的 96 项 targeted | PASS | `git-hard-review-regression.log`；R0 absent 抢占重试、pending candidate 失败重试、actual/possible 回执/no-op/main 前进 |
+| 固定源码 full runtime discover（严格 `-t codex/runtime`） | PASS，1140 tests | `runtime-discover-stable-source.log/json`；Python3.14.4；before/after 源码 hash 一致 |
+| `/usr/bin/python3` 核心回归 | PASS，94 tests | `minimum-git-python39-stable.log`；Python3.9.6；不外推全部 runtime 在 3.9 通过 |
+| 已修改 shell 的 bash-n/ShellCheck | PASS | `shell-static.log`；未执行 host 安装 |
+| 默认 `bash codex/tests/smoke.sh` | FAIL，runtime NOT REACHED | `smoke-default.log`；level/install-vm 实际 modules=34，旧测试预期=33；不 skip/改变来源闸门 |
+| Spec/Standards 双轴增量 review | hard=0 / hard=0 | 此前三项 P2 已闭合；Standards 仍有一项 nonblocking possible Duplicated Code；review 不代替测试/最终 commit 审查 |
+| source commit、T03 exact publish candidate/guard command | NOT RUN / PENDING | 待范围内全部门完成后本地原子 commit；current HEAD 仍 H0 |
+| 真实首次普通 FF、唯一 PR、新 head/base CI、本人 merge | NOT RUN | 第二确认尚未到达；没有 push/PR |
+| installed 新模块、两机 FF/root/OS/启用/服务/部署 | GAP / NOT RUN / DEFERRED | 旧 installed broker SHA256 `c865bd757a6213673d55e39dc64be46dfb02022e9baf76065f95849cb9a78260`、新模块 absent；源映射测试不代表实际安装 |
+
+最小源码已实现：committed mapped scope、完整 relevant 第一父 DAG、独立真实 merge-tree、逐 commit delta、R0 不重 pin、fresh M/R、单 SHA/单 ref ordinary FF、固定 pre-push 的实际 advertised old-id 和执行回执、server 后窗口、truthful no-op/actual/possible H 与 Controller 重试保全。测试中的 Git merge/rebase/remote writes 仅发生在临时 fixture 仓库。中文目录属性扫描使用 NUL 路径；标准 worktreeConfig 的 active 配置同样核验；`fsck --strict --no-references` 只关闭无关整个 ref-db consistency，仍验证对象/hash/连通性/缺 blob，精确分支/main 在 route/guard 单独核对。实际共享 `refs/.DS_Store` 失败、worktreeConfig 初次过拒绝与所有修正前日志保留，未删除共享 metadata。
+
+首次 full runtime 为 1137 tests / 1 FAIL / 9 ERROR，保留 `runtime-discover-default.log`：运行中源码修正触发 guard hash 漂移；另有 tracker 两 consumer 的不同相对链接与旧 byte equality 不一致。修正为先核两个链接真实目标一致、存在，再保持其余 bytes 比较；固定源码后全量重跑如上。原 1254 tests / 7 FAIL / 9 ERROR 与旧 staleness guard FAIL 继续保留，新的 PASS 只对应本节固定 source。
+
+当前真正人工断点仅为 **范围补充**：默认 smoke 的 `codex/tests/test-installer-source-guard.sh` 不在 current exact 23 路径；一行 `expected_runtime_modules +2`→`+3` 补丁已保存为 `source-guard-fixture-count.patch`，已请求本人批准新增该 exact 测试文件。未应用或修改 `codex/lib/install-source-guard.sh`，不降低其 provenance/staleness/写入前门，不把默认 smoke 报成 PASS。T02 in-progress、T03 pending、verification pending；当前源码和证据保全等待补充，不重复已完成人工 main 整合，也未请求发表/安装批准。
+
+## 2026-10-06 来源计数补充后最终 source/local 验证（当前）
+
+本人直接“确认”已绑定仅 test-installer-source-guard.sh 预期 +2→+3；补充凭据为同证据根 count-fixture-human-approval.json。24 允许路径、22 实际变更；不修改 codex/lib/install-source-guard.sh 或本轮治理消费者。
+
+当前结果（完成全门后回填）：本人已确认来源数量 +2→+3；24 允许路径、22 实际变更。新受管映射及 installer fingerprints 已同步；默认门不 skip/不放宽 source guard。tracker 比较先核两个 consumer 的真实 #327 spec target，再严格比较其余 bytes；不改治理消费者。
+
+增量双轴审阅修闭合：旧/mixed installed broker 在启动写入口前以固定 wrapper SHA 和相关 dispatch/FF 受管文件核对拒绝；仅 cooperative version binding，不声称 OS/root closure。净化环境保留经过格式校验的 owner session。LocalGit 与 typed runner 对 malformed/partial/bad-encoding/timeout 回执保留 bounded 候选 H 与 possible_write/UNKNOWN，不保留未知字段；未读回前不能盲重推。
+
+原错误持续留档：smoke 旧 count 失败；count 修正后的 installer mapping stale；sandbox localhost bind PermissionError；host runtime 1140 PASS 后旧 tracker cmp 失败；qualified v1/v2 为等待晚到审阅修正受控终止，exit -15、stable true，非 PASS。最终固定 source 的原样默认 smoke 和 Python3.9 核心结果单列；不从历史 PASS 推断当前 full gate。
+
+T03 当前准备 source candidate 与只读 R0/R entry；旧 installed broker 未更新、新模块 absent、R0/R 缺成功 exact ref 读回。唯一 open-PR 读回为 0（open 完整页）；all-history 50 条是 first-page-only GAP，不能证明全部闭合 PR 不存在。不给 #336 新硬依赖。下一真正人操作只是一条固定 SHA/read-only standard Git 精确 ref 读回，零 fetch/push/owner 写；其回执不是发表授权。得到 R0/R 后才形成 exact-R/H guard/publisher 与唯一最终 PR 第二确认。
+
+| 最终固定 source 实跑 | 结果与边界 | 同证据根 |
+|---|---|---|
+| 原样 bash codex/tests/smoke.sh（host 隔离 fixture） | PASS exit0；full runtime 1146 tests，strict -t；源码 before/after hash 一致 | smoke-default-qualified-v3.log/json |
+| /usr/bin/python3 核心回归 | PASS，98 tests，Python3.9.6；不外推完整 runtime 在3.9通过 | minimum-git-python39-qualified-v3.log |
+| mixed dispatch / partial、invalid JSON、timeout、UnicodeError | PASS；19项 dispatch 回归及坏编码 seam；实际安装与真实远端写 NOT RUN | dispatch-publication-regression.log、unicode-publication-regression.log |
+| 7 修改 shell 的 bash-n/ShellCheck | PASS | shell-static-qualified-v3.log/json |
+| 受管 source mapping | PASS；source相对main未合并仍GAP，非installed验收 | source-mapping-qualified-v3.json |
+| source 本地原子 commit/最终 H/history/双轴 review | 按原授权完成本地；exact结果在外部候选回执，未在文档自引用H | source-candidate.json、final-review-spec.txt、final-review-standards.txt |
+| T03 只读 exact ref入口 | 已准备；R0/R成功读回GAP，guard发行参数尚不能绑定R | human-next-step.md、human-read-exact-ref.sh |
+| remote发表/唯一PR/新head+base requiredCI/manualmerge/实际安装 | NOT RUN；第二确认尚未到达 | 历史失败、保护和延期边界保持 |
+
+T02仅当前source/local范围完成，T03in-progress；不把 source test/fixture 安装/普通Git模型 PASS 提升为真实 installed/live/发表。原 owner、immutable stash/bundle 与23延期源码完整保全；没有 Agent 实际 main merge/rebase/reset、远端push/API写或新安装。
