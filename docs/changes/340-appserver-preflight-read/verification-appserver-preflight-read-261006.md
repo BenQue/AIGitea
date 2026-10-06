@@ -29,8 +29,8 @@ updated: 2026-10-06
 - owner：01a10e8e-9128-7fa2-97a8-6493ee84be08，local。
 - worktree：/private/tmp/issue-340-appserver-preflight-read。
 - branch：change/340-appserver-preflight-read。
-- 本轮仅 06、本 Issue 四份 semantic docs 及自身证据；T01 本地治理提交后 STOP，
-  尚无 runtime/fixture implementation commit。
+- 本文按阶段保存事实：准备/T01 只修改治理合同并 STOP；后续 fresh T02–T05 已完成
+  白名单 source/local。下面早期 NOT RUN/失败记录是当时快照，不覆盖后续冻结验证。
 - 本记录保存 AC1–AC6 的 source/installed/live层级；不是部署报告。
 
 ## 合同准备阶段执行结果（批准前记录）
@@ -160,26 +160,126 @@ T03 不增加任何 VM executor。真实 no-autostart/operator/helper 与最终 
 AC1/AC3 的 source fixture 可以继续完成；AC2 的真实 running target/no-autostart 与 Docker
 实际只读通道仍 GAP，AC4–AC6 installed/live 为 NOT RUN。不能将六项整体标 PASS。
 
+## Fresh T05 冻结验证与交接
+
+冻结 source HEAD：`83fdd12dc93b79442aae9c0763c7e92e221344d8`，
+tree：`67f98c6a654a5559122094d6982f8d5aeed9cf51`。测试前后九个新增/修改 source、fixture 文件
+SHA256 全一致；正式安装/target/live 为 NOT RUN。T05 后续 commit 只改本 Issue 文档/证据，
+提交后 HEAD/tree/clean/owner 回执在本会话 visualization 的 `T05-source-local-stop-state.json`，
+不在 commit 内写自引用 SHA。
+
+| 实际执行 | 结论 | 限定证据 |
+|---|---|---|
+| 双轴 code-review（T01…e2250d8）+ red→green 修复 | PASS（修复后） | Standards 2 项/最严重 P2；Spec 2 项/最严重 P1；两轴的发现对应同两处缺陷，均修复于冻结 SHA |
+| `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest discover -s codex/runtime/tests -p test_application_preflight.py -q` | PASS | 33 项；strict args、错位 parser 脱敏、缺 service GAP、identity/limits parity、Secret、路径替换/限额/竞态/取消 |
+| 相同 discovery 的 `test_host_access.py` | PASS | 194 项旧行为回归；预期旧 CLI 拒绝测试的 argparse 输出不是新 route 输出 |
+| `PYTHONDONTWRITEBYTECODE=1 LC_ALL=C bash codex/tests/smoke.sh`（host，本地 fixture） | PASS | exit 0；runtime unittest 1147 项/97.292s；最终 Codex platform static smoke checks passed |
+| smoke 包含 `test-host-access-broker.sh` / `test-install-host-access-broker.sh` | PASS（fake roots） | 禁止把 fake installer PASS 解释为正式安装；本轮没有新增 installer 行为 |
+| 附加精确 fake-root module/manifest 比较 | PASS | 9 个 package 文件字节一致；新增 application_preflight.py 已复制；没有自动安装 AppServer helper、没有 token/.env |
+| smoke 的 shell syntax / ShellCheck | PASS | 涵盖修改的 test-host-access-broker.sh；可用 ShellCheck 已执行 |
+| mapped docs / scope / JSON / whitespace / owner | PASS | 四角色 resolver；changes=157/pass=2/gap=0；五票据 completed；staged/final clean 另由提交后回执读回；无 AGENTS/skills/controller/CI/installer 或应用变更 |
+
+完整 machine-readable 记录见 [source validation](evidence/t05-source-validation.json)。
+附加范围核对脚本初次将现有 parse_front_matter 的 Issue 字符串与 int 比较而 FAIL，
+按真实 parser 合同改为 exact string 340 后 PASS；这是核对脚本错误，没有修改 parser 或放宽验证。
+定位票据 parser 的首次文件搜索引用不存在的 tickets.py，随后按真实 controller.py 查到
+纯文档解析函数；没有执行 Controller 或提供 synthetic approved 标签。
+只持久化白名单输出的 [source fixture receipt](evidence/t05-sanitized-fixture.json) 是
+SOURCE_FIXTURE：36 items、37 个模拟调用，actual target execution=0，fingerprint 为明确标注的
+模拟值；真实 helper 文件 SHA256 单独绑定。它不是 #333 的现场解阻塞证据。
+
+### Standards
+
+固定 HEAD 的 `cli.py:92–119` 可在合法 flag 错位时由 argparse 回显请求值，违反
+06 的稳定/脱敏错误合同；`application-target-preflight.py:498–508` 将 not-found service
+包装为 PASS，违反 06 的缺项 GAP 合同。两项均 P2，当前补丁已修复；CLI 修复由 reviewer
+独立复测。未提出额外 smell 改造；独立 stdlib helper 与 host 的重复 bounded reader/limits
+来自单文件合同，增加 parity 测试保持一致，没有为了抽象扩大依赖。
+
+### Spec
+
+固定 HEAD 的 CLI 回显违反 spec“不能输出 raw 请求值或任意错误正文”（P1）；
+not-found service PASS 违反“缺 binary/service/metadata 明确 GAP/BLOCKED”（P2）。
+两条 red 测试分别复现 SystemExit(2)/sentinel 和 expected GAP/observed PASS；
+修复后统一 ARGUMENT_MISMATCH 且 loader 零调用，service 为 MISSING/GAP。
+未发现 scope creep，两个 reviewer 均核查当前修复；VM/Docker 安全拒绝符合已批 fail-closed 合同。
+
+Standards：2 项/最高 P2；Spec：2 项/最高 P1；两轴各自保留，发现已全部修复。
+
+### Source helper 与未来安装清单（未批准、未执行）
+
+helper：`codex/tools/application-target-preflight.py`，29508 bytes，SHA256
+`75f3a622b2115769c0f4f80f859aae60473abdb9778bafeac8e5d400b1f2ab4c`，
+version `application-target-preflight/v1`。未来目标 `/usr/local/libexec/aisoft/application-target-preflight`，
+root UID 0、0755、可信且不可 group/other 写的 ancestors；AppServer 只单独安装该文件，
+不运行完整平台 installer。正式 merged SHA、operator/既有权限、VM no-start transport、
+Docker no-start 条件、exact 必需主机集合与真实 restore 仍未绑定。
+
+[未来文件清单](evidence/t05-future-installation-inventory.json) 列出 26 个 broker source 文件的
+destination/mode/SHA256 和 installer 派生 metadata 的单独约束；没有凭据。
+它是 source 准备清单，不能直接执行。正式卡必须在 manual merge 后固定 merged SHA，
+按每个获准 host 保存旧字节/mode/owner/缺项、验证实际 restore、no-op 与 installed readback；
+未获卡批准之前不安装，不用 source revert 代替现场恢复。
+
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC1 | NOT RUN（实现） | 输入/namespace/typed合同已草拟；尚未实施、未有source正反测试 |
-| AC2 | NOT RUN（实现/live） | 停机/竞态/no-start/只读命令限制已写合同；primitive证明GAP |
-| AC3 | NOT RUN（实现） | fields/limits/Secret/trust/旧操作回归已映射fixture，尚未测试 |
-| AC4 | NOT RUN（正式安装） | 必须单独merged SHA安装卡；现有manifest读取不能替代新feature安装 |
-| AC5 | NOT RUN（live） | 未获installed/operator/no-autostart条件，不向AppServer发helper调用 |
-| AC6 | NOT RUN（现场交接） | 准备卡可评审；现场zero-write/完整保留对象证明未取得 |
+| AC1 | PASS（source/local） | strict manifest/CLI/broker/runner、正反 kwargs、拒绝先于 IO、旧路由与 38-operation 兼容回归；33+194 专用/旧测试及 full smoke |
+| AC2 | GAP（真实 running/no-start） | stopped/missing/race fixture PASS、零目标命令；running 也明确 BLOCKED，尚无可靠 no-autostart execution primitive，未实际调用 helper |
+| AC3 | PASS（source fixture）；native Docker read GAP | 字段/trust/Secret/bounds/timeout/缺项/旧行为 fixture；native Docker 仅 metadata 后 DOCKER_NO_START_UNPROVEN/BLOCKED、零 connect；PG 零连接 |
+| AC4 | NOT RUN（正式安装） | fake-root 复制/字节 PASS 和 future 清单仅 source 准备；正式 merged source 安装/实际 restore 未授权 |
+| AC5 | NOT RUN（live） | 无 installed/operator/no-start ready 证据，没有 AppServer target 调用 |
+| AC6 | NOT RUN（现场交接）；source fixture PASS | 输出无 Secret 模拟回执；整个 VM/保留对象 before/after 与 #333 live 消费未取得，不宣称消费者解阻塞 |
+
+## 需要本人处理的下一步
+
+source/local 已完成，当前停在 `BLOCKED_EXTERNAL_GATES`，没有运行 Controller，
+没有 `AWAITING_PR_CONFIRMATION` 或唯一 PR。当前只需要处理发表前的元数据/本地基线，
+不需要你启停 VM、授予 operator 权限或安装 helper。
+
+在本 #340 会话回复下面一句即可，一次覆盖两个具体的受控步骤：
+
+> 确认 AISoftPlatform #340（change/340-appserver-preflight-read，manual）仅批准 existing typed broker 投影 type/platform、complexity/complex、approved 并读回；另批准本 owner 将未 push 的本地分支 rebase 到 96ba8a17baad8e9854d4e8d0397d4162b8067b09，先以 refs/aisoft/recovery/340/pre-main-integration 保留当前 HEAD 和原 T01，核对 source bytes 不变；不批准 push/PR、merge、安装、权限、Secret 或部署，唯一最终 PR 另确认。
+
+确认后的最多三个动作：
+
+1. fresh 读取 Issue/comments/main；main 必须仍为上述 exact SHA，漂移则不套用旧批准。
+   通过 existing installed typed broker 投影 classification，再 lifecycle approved，保留其它标签，读回验证。
+2. 在 exact owner worktree 先将 recovery ref 固定到提交后最终 HEAD，再 local rebase exact main。
+   不写 main、不 force-push；保留原 T01 可恢复性；出现 conflict/scope 或 source 字节变化即停止，
+   必要时 abort 回原分支，不能静默修改本次受测 source。
+3. 重新核对全部 frozen source bytes、owner、docs/base 门及 remote namespace 完整性；
+   全部门可证明时才制作唯一 final manual PR 确认项。完整远端 namespace 仍 GAP，
+   不用当前 50 行或 HOST_COMMAND_FAILED 伪装不存在，也不换入口绕开 broker。
+
+成功后 owner 回报 live projected 实际读回、recovery ref、rebase 后 HEAD/base/source-hash parity；
+然后继续最终 PR 候选核对。PR 发表本身仍需要单独确认。若完整 namespace 仍无法证明，
+输出其具体最小补证动作，不把 #327/#336 机械挂成产品硬依赖。
+
+自动审批审查已拒绝 `gitea.issue.labels.classify` 的 live 写入：原实际批准仅 source/local。
+命令未执行、未间接重试；这就是需增加 exact live 元数据授权的原因，不是再次询问启动。
+本地 rebase 会重写本分支 commit SHA；所读
+[aisoft-matt-workflow SKILL.md](/Users/benque/.agents/skills/aisoft-matt-workflow/SKILL.md)
+明确写“Never deploy, rewrite history, force-push, or silently switch to a different tracker or repository.”
+它并非要求常规确认，而是禁止 history rewrite；上述本人明确批准才可覆盖该规则，
+例外只限未 push 的本 owner 分支并保存恢复引用，不延伸到他人/受保护 main/远端历史。
+
+VM no-start 和 native Docker 通道的当前具体处置已落实为安全拒绝、零执行/零连接。
+本 source 候选保留 AC2/native Docker GAP；不要求人停机试错、放宽权限或批准未证明的通道。
+若未来需要 positive target observation，必须先给出新固定 primitive/最小通道的可审查设计与证明，
+再按相同 Issue 的独立安装/权限/live 卡处理，不能由本次元数据/rebase 确认替代。
 
 ## 遗留风险与未完成项
 
 1. 完整远端#340命名空间证据GAP：无已发现冲突；不得将HOST_COMMAND_FAILED当不存在。
-   runtime实施/提交前重新核对；发现actual既有tuple/owner即STOP，不能第二写者/换slug。
+   已再次核对本地唯一 owner/tuple；远端完整性未通过，发现 actual 冲突即 STOP。
 2. 现有orb help无no-start参数：running前读不能证明竞态后不自启。
    默认BLOCKED，不能把fixture正向模拟替代真实execution primitive证明。
 3. operator/helper可用性、Docker/PG获准访问是live条件；未经精确权限卡不provision或fallback。
    PG角色/旧归档/未知datadir不能从固定路径猜测完整性。
-4. 实际本人已批准启动并授权本轮 T01 本地治理提交；本地 approved 不等于 live
-   type/complexity/approved 投影，live 标签仍未修改。后续源码须 fresh run，不同轮绕过治理 STOP。
+4. 原实际本人启动批准已由 T01 STOP 与 fresh T02–T05 source/local 完成；live 分类投影仍未执行。
+   fresh main 96ba8a17… 非当前 HEAD ancestor；broker.py:3378–3392 预测 BASE_BRANCH_STALE，
+   merge commit 也被拒绝。未调用 publish 以实测该写入硬门，没有 rebase/merge 或历史重写。
 5. source PR/CI后仍须将AC4–AC6未执行事实保留，source合并不等于通道installed/live ready。
    后续唯一PR确认卡必须明确source与现场边界，不能宣称六条AC整体PASS或消费者已解阻塞。

@@ -22,7 +22,9 @@ updated: 2026-10-06
 # #340 实施与验证计划
 
 实际本人已确认四份合同。T01 治理提交 adbe53252f71474afffdd886ca7509cc75ab0842 后已 STOP；
-当前 fresh run 完成 T02–T04 源码/fixture 切片，T05 仍 pending，first frontier=T05。
+当前 fresh run 完成 T02–T05 source/local，所有票据 completed，source frontier 已清空。
+T05 准备的是明确 BLOCKED 的交接卡；live classification/base/完整 namespace 并未通过，
+不是 Controller AWAITING_PR_CONFIRMATION，也不是 installed/live 验收。
 T01 的独立治理 STOP 是 AGENTS 强制边界；其后的 fresh run 不需要重复同范围启动确认。
 
 ## Ticket graph
@@ -33,7 +35,7 @@ T01 的独立治理 STOP 是 AGENTS 强制边界；其后的 fresh run 不需要
 | T02 | fresh run：strict target/CLI/typed broker/runner 与 no-autostart transport gate 正反切片 | T01 | completed |
 | T03 | 固定 identity/OS/resources/runtime/metadata/sockets/units collector 与安全路径、限额 fixture | T02 | completed |
 | T04 | AppServer-only Docker 投影、PG 无授权显式 BLOCKED、Secret/零写/竞态/overflow 回归 | T03 | completed |
-| T05 | 完整本地验证、source helper fingerprint/未来安装清单、证据分层与最终唯一 manual PR 确认卡 | T04 | pending |
+| T05 | 完整本地验证、source helper fingerprint/未来安装清单、证据分层与唯一 manual PR 的受阻交接卡 | T04 | completed |
 
 每个 Ticket commit subject 包含 #340 与 Txx；唯一 owner/branch。
 不因未来 operator、PG 或 Docker 权限不足建立 helper 层或机械子 Issue。
@@ -82,8 +84,8 @@ T02 若找不到能证明零自启的固定 execution primitive，允许以明�
 | docs/范围 | PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli resolve-required-documents 340 --repo /private/tmp/issue-340-appserver-preflight-read；同CLI check-change-documents；git diff --check；exactbranch/claim/diff allowlist |
 | CI | 唯一最终 PR 提交确认后读 final exact head/base + CI / verify (pull_request)；当前 NOT RUN |
 
-本轮只执行合同文档解析/静态一致性与归属检查，不提前跑/报 feature 测试或 full smoke。
-执行后将真实命令、时间、结果、受测 SHA 与未执行层写回 verification，
+准备/T01 阶段只执行文档静态验证；fresh source run 的 feature/full smoke 已实际运行，
+真实命令、时间、结果、冻结 source SHA 与未执行层已写回 verification，
 普通范围内失败自主修复；合同冲突、安全新决定、同因三次或外部现场缺条件 STOP。
 
 ## 部署与回滚

@@ -34,9 +34,11 @@ updated: 2026-10-06
 
 # #340 固定目标只读预检：已批准合同与 fresh source 工作
 
-状态：FRESH_SOURCE_IMPLEMENTING。本会话实际本人已确认四份合同、exact tuple 和 manual policy；
+状态：SOURCE_LOCAL_COMPLETE / BLOCKED_EXTERNAL_GATES。本会话实际本人已确认四份合同、exact tuple 和 manual policy；
 T01 在 adbe53252f71474afffdd886ca7509cc75ab0842 应用治理合同并完成 STOP，当前已 fresh 重新读取。
-T02 完成 strict target/typed 通路与 no-autostart 安全拒绝切片；其余源码沿原批准继续。
+T02–T05 的白名单 source/local 工作已完成；源码冻结点为
+83fdd12dc93b79442aae9c0763c7e92e221344d8，完整 smoke 1147 项通过。
+T05 只追加本 Issue 证据与交接文档；最终本地 HEAD 见提交后回执。
 本地 approved 不等于 live label projection。自动审批审查拒绝 live 分类写入，未执行/未换入口重试；
 实际标签仍 triage/needs-triage，Controller/最终 PR 门保持 BLOCKED。
 fresh origin/main=96ba8a17baad8e9854d4e8d0397d4162b8067b09，仅新增 #339 四份文档；
@@ -50,9 +52,11 @@ fresh origin/main=96ba8a17baad8e9854d4e8d0397d4162b8067b09，仅新增 #339 四�
 
 2026-10-06 fresh installed typed broker 读取 Issue：OPEN，content_version=0，
 仅 triage/needs-triage，comments=0；独立 comments.read 返回 []。
-source 与本机 installed host-access-broker.json 当前 SHA256 均为
+合同准备时 source 与本机 installed host-access-broker.json SHA256 均为
 509bdffb34494cbf82ef016d96e519c6bc3a17034a68ea052a516121aca4a8b9，
-均含 38 个操作、固定 mac_host.orbstack_machine=gitea-ci，均没有目标预检接口。
+当时均含 38 个操作、固定 mac_host.orbstack_machine=gitea-ci，没有目标预检接口。
+当前 source 增至 39 个操作，installed 未修改；新增接口只提供安全拒绝与隔离 fixture，
+真实 VM no-start primitive、native Docker read 仍 GAP，目标执行次数为零。
 这是本次 manifest 的精确观测，不表示整个安装面逐字节一致或 AppServer 已可读。
 
 ## 基线与归属
@@ -72,8 +76,8 @@ source 与本机 installed host-access-broker.json 当前 SHA256 均为
 | repository policy | public-platform；change_control 未声明，按 production；routine_auto_merge_enabled=false；manual |
 
 本地完整 worktree/ref、Git history/docs 和调度台账未发现第二个 #340 tuple/owner。
-installed gitea.pulls.read(state=all) 实际只返回最新 50 条（PR #341 至 #245），
-其中无 #340，唯一返回的 open PR 是别票 #341；这不是全历史/全分页完整性证明。
+准备/fresh T02 的 installed gitea.pulls.read(state=all) 只返回最新 50 条，
+其中无 #340；该有界读取不是全历史/全分页完整性证明。#341 已合入上述 fresh main。
 候选 exact branch 的 git.fetch.change 在 sandbox 为 TRANSPORT_ERROR，在 host 为
 HOST_COMMAND_FAILED；不能把该错误解释成远端无分支。完整远端同票 namespace 证明为 GAP。
 继续前 fresh 核对已有证据；任何实际 owner/同票 tuple 冲突立即 STOP，不能新造别的 slug、
@@ -161,7 +165,7 @@ source 工作不得因未来 operator 尚未授权而停止合同分析；现场
 2. 后续 fresh run 重新读取 AGENTS/skills/已应用合同后，沿同一 owner/tuple 完成 T02–T05
    的白名单源码、隔离 fixture、必要本地测试、范围内修复和原子 commit。
 3. 只使用 existing CI 的验证要求，保留 Gitea ACL、凭据、main 保护和两个 provider。
-4. 验证完成后停在 AWAITING_PR_CONFIRMATION；唯一最终 PR 的 push/提交另确认，
+4. 验证及真实 classification/base/namespace 闸门均满足后，才停在 AWAITING_PR_CONFIRMATION；唯一最终 PR 的 push/提交另确认，
    required CI 全绿后 READY_FOR_REVIEW，manual 合并由本人进行。
 
 允许源码路径、每条既有依据及禁止扩大范围详见 spec §允许修改范围。
@@ -187,4 +191,6 @@ source 合并不能解除 LocalWMS #333 的现场前置或宣称六项整体 PAS
 
 T01 run 已止于本地治理提交。当前 fresh run 已重新读取合同/归属，继续原批准源码白名单；
 live 分类/approved 标签写入未执行，禁止以本地 approved 或 synthetic labels 冒充 projected。
-唯一最终 PR 前仍停在 AWAITING_PR_CONFIRMATION，不把本次批准扩展到 push/PR 或现场操作。
+当前已完成 source/local，停在 BLOCKED_EXTERNAL_GATES；未伪造 Controller candidate。
+本地 main 整合和 live 投影待具体人处理，下一步见 verification 的“需要本人处理的下一步”。
+唯一最终 PR 的 push/提交仍另确认，不把本次批准扩展到远端发表或现场操作。
