@@ -36,7 +36,7 @@ status: approved
 | T09 | 历史：Mac interpreter 绑定治理；能力延期未验收 | T08 | completed |
 | T10 | 历史：七文档治理 commit f8750441 后 STOP；旧 M 未整合 | T09 | completed |
 | T02 | 最小 FF/DAG/tree/strict-R/owner/Controller/受管映射完成；原样默认 smoke（runtime 1146）、Python3.9 核心 98 与 shell/source mapping PASS；固定最终本地候选见外部回执 | T10 | completed |
-| T03 | 已准备 source candidate/恢复和本人只读 exact-ref 入口；R0/R 成功读回 GAP，之后绑定 guard/首次普通 FF 与唯一 PR 第二确认；CI/manual merge/收尾 NOT RUN | T02 | in-progress |
+| T03 | exact 最终提交批准已取得；本人首次普通 FF、实际 guard/remote/owner/main 读回 PASS；唯一 PR #346 已创建；四文档回填与同一 PR head 更新中，required CI 首次 queued；最终 head/base/CI、本人 manual merge与收尾待完成 | T02 | in-progress |
 
 ## 本轮与最短后续
 
@@ -71,3 +71,9 @@ status: approved
 计数补充已由本人直接确认，仅 +2→+3；未改 source guard。默认 smoke 的后续 mapping stale、sandbox localhost 权限、旧 tracker cmp 与晚到审阅前受控终止全部留档。最小接线增量修复已获两轴 hard=0；固定源码全门通过，按原授权仅本地单 parent 原子 source commit。最终 SHA/tree、完整 relevant history 和正式 fixed-head 双轴结果以外部 source candidate receipt 为准。
 
 T03 保持 in-progress；下一真实人工操作为已绑定 H/M/owner/stash/bundle/程序 hash 的只读 exact ref/main 读回。该入口只执行标准 Git ls-remote，无 fetch/push/owner 写，不构成发表批准。取得成功 R0/R 后才形成 exact-R/H publisher 和唯一最终 PR 第二确认；当前 source 不安装、不发表。
+
+## 2026-10-06 T03 首次发表与唯一 PR（最新）
+
+上述只读入口断点为历史。本人随后已明确批准 #327 / change/327-broker-ff-integration / manual 与 exact 首次 H，并实际完成单 ref ordinary FF。原 helper 在系统 Python3.9 导入 installed `Dependency = int | str` 失败；原 GUARD_NOT_EXECUTED/possible-write 回执保留。恢复仅为同一个 manifest helper 固定现有 Homebrew Python PATH，真实 dry-run guard PASS 后再发表，不改 Secret/身份/权限、不安装。R0 已 pin known absent，恢复未重 pin；actual remote/owner.last_push=H。外部恢复入口 10 个真实 bare case 与 helper 运行时合成协议 fixture PASS，两轴 hard=0。
+
+唯一 [PR #346](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/346) 由 typed broker 创建，initial head=`f97d0d88a99373711a22c44b72d46976cd290638`、base=`96ba8a17baad8e9854d4e8d0397d4162b8067b09`；required CI run1801/job2007 当前 queued。四 mapped docs 只回填实际事实和 PR；同一确认允许合同内 CI 修复及回填，不新增 PR/确认点。更新后核 final exact head/base/required CI 到 READY_FOR_REVIEW，再由本人 manual merge；T03 不提前 completed。原 source 全门与延期/安装边界保持。

@@ -129,6 +129,10 @@ fresh T02 完成最小修复并跑门 → T03 给出 exact C/M/R/H、tree/blob/m
 
 ## 验收与明确延期
 
+### 2026-10-06 首次发表履约记录（不改变合同）
+
+本人已对 #327 / change/327-broker-ff-integration / manual、首次 H=`f97d0d88a99373711a22c44b72d46976cd290638` 明确批准，并执行上述标准 Git 路径。actual fixed guard PASS、old-id全零，actual remote与owner.last_push=H，M=`96ba8a17baad8e9854d4e8d0397d4162b8067b09`；R0 known absent在原失败尝试中写入，此次恢复保持不重pin。已安装 helper 的 Python3.9 导入失败通过仅 helper 固定现有 Homebrew Python PATH 解决；没有安装/改身份/Secret/权限或新的 authority。唯一 PR #346 已经 typed broker 创建，initial required CI queued；本次回填与后续 final head/base/CI 读回继续在同一批准范围，manual merge仍由本人执行。原失败、possible H与未交付 installed/OS/root 层保留，详见 verification 最新节。
+
 | AC | 当前要求 / 历史处置 |
 |---|---|
 | AC-1 | exact 四文档/判级/授权/单 writer；本轮独立治理检查/commit/STOP，fresh 重读；live labels 未投影仍 GAP |

@@ -636,3 +636,27 @@ T03 当前准备 source candidate 与只读 R0/R entry；旧 installed broker �
 | remote发表/唯一PR/新head+base requiredCI/manualmerge/实际安装 | NOT RUN；第二确认尚未到达 | 历史失败、保护和延期边界保持 |
 
 T02仅当前source/local范围完成，T03in-progress；不把 source test/fixture 安装/普通Git模型 PASS 提升为真实 installed/live/发表。原 owner、immutable stash/bundle 与23延期源码完整保全；没有 Agent 实际 main merge/rebase/reset、远端push/API写或新安装。
+
+## 2026-10-06 T03 实际首次 ordinary FF 与 PR #346（最新）
+
+本人在根 owner 会话明确批准 #327 / change/327-broker-ff-integration / manual，以首次 H=`f97d0d88a99373711a22c44b72d46976cd290638` 执行本人 ordinary FF、owner审计和唯一 PR。批准原文及 hash 保存在本 owner 外部 `human-final-pr-approval.json`；范围内操作修复沿用原批准，派生记录不声称新增人工回复。此前“未批准/未发表/PR NOT RUN”段落均为历史快照。
+
+证据目录：`/Users/benque/.codex/visualizations/2026/10/02/01a0fcec-eb78-7790-a36a-daea917f43d2/issue-327-convergence-20261005/t02-minimal-git-fresh-20261006-5r33dgqe`。
+
+| 检查 | Result | 证据 / 边界 |
+|---|---|---|
+| exact ref 初次本人只读 | PASS | human-exact-ref-read-1791260161286000000.json：R known=true/null、M固定；不是发表批准 |
+| 首次尝试 | FAIL GUARD_NOT_EXECUTED | human-first-publication-1791261663898846000.json：guard未执行，possible_write=true保留；R0已pin known absent，lastpush未写；不盲重推 |
+| 本人诊断 | PASS 读回 / FAIL dry-run | human-publication-diagnostic-1791261870413998000.json：前后R已知null/M固定；AUTHENTICATION_UNAVAILABLE/PYTHON_RUNTIME_IMPORT_FAILURE，不推断账号或权限需修改 |
+| helper根因与最小操作修正 | PASS_LOCAL_ONLY | installed CLI 在系统3.9的 Dependency=int或str导入TypeError已复现，现有Homebrew3.14importPASS；helper-only固定PATH合成Git private protocol fixture PASS，未读真实credential/访问网络，未修改installed或source |
+| 恢复入口 bare矩阵 | PASS 10 | recovery-publication-real-fixtures.json；创建、缺确认、占用、两竞态、写后main/owner漂移、dry-run失败、helperbinary漂移、无效R0；负例保全/零写，限定临时bare层 |
+| 恢复两轴审阅 | PASS hard0/0 | recovery-review-spec-final.txt、recovery-review-standards-final.txt；原symlink P2修复后重验；Standards1个非阻断重复检查建议 |
+| 本人实际 dry-run + ordinary FF | PASS_ACTUAL | human-publication-recovery-1791262255723614000.json：dry-run guard PASS；实际单ref exact H、guard_executed=true、write_status=PUBLISHED、actual remote=H/actual M固定 |
+| 实际固定guard | PASS | recovery-publication-guard/receipt.json：nonce/hash/input绑定PASS、old-id全零；program SHA256=c8dc785df0496acb48982ceb06068ae65f63d030d8a1acb534a243681630fcf7；hook SHA256=acb665abff5ac97e21807741bc58495ef1876ae0f44f4ebdafa98b00b97ff8f0 |
+| owner审计与 typed Git只读 | PASS | R0 known=true/null未重pin；last_push_head=首次H；typed fetch.change/main PASS并读取tracking H/M；actual-publication-validated.json |
+| 唯一最终 PR | PASS_CREATED | [PR #346](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/346)，typed broker唯一active门；head=首次H/base=M/open/mergeable，actual-final-pr.json；App attach_artifact对该Gitea URL不支持，PR本身已存在 |
+| required CI | PENDING_INITIAL_HEAD | CI / verify (pull_request)，run1801/job2007 queued；PR346-status-first.stdout、PR346-actions-first.stdout；不写成PASS |
+| 四mapped docs回填 / final head | IN_PROGRESS | 本次只更新文档事实/PR URL，不改runtime；source全门1146/98/7shell保持原固定H层。文档提交更新同一PR后，final head/base/CI另以外部fresh回执验证，不用initial-H CI覆盖新head |
+| manual merge / cleanup / installed/live | NOT RUN | 本人manualmerge后按确定性流程收尾；新runtime安装/采用、OS/root/authority/23延期源码未交付，不能称已解锁其他owner |
+
+T03继续in-progress，verification pending，summary pr-open。原immutable stash/bundle、32源码保全、原FAIL/GAP/NOT RUN以及possible-write回执都保留。本次真实发表证明此本人固定入口/Git路径，不证明旧installed broker已支持新FF、root custody或同UID隔离；没有Agent direct push/API、main rewrite、force或安装。
