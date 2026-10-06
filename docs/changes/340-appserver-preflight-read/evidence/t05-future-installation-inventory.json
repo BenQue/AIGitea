@@ -1,0 +1,191 @@
+{
+  "evidence_layer": "SOURCE_INSTALLATION_INVENTORY_ONLY",
+  "source_head": "83fdd12dc93b79442aae9c0763c7e92e221344d8",
+  "merged_source_sha": null,
+  "formal_installation": "NOT RUN",
+  "authorization": "NOT APPROVED",
+  "Mac_or_gitea_ci_broker_candidate_files": [
+    {
+      "source": "codex/runtime/aisoft_host_access/__init__.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_host_access/__init__.py",
+      "mode": "0644",
+      "sha256": "b860abb49c2ea26622921f08b0a15b62773e6a6af23f1b871bc0d3b7f8e9cb90"
+    },
+    {
+      "source": "codex/runtime/aisoft_host_access/application_preflight.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_host_access/application_preflight.py",
+      "mode": "0644",
+      "sha256": "9bb61a2f0a737a71c834cea0255cdc1b181c3663d33f72c92921bf12b5f1c144"
+    },
+    {
+      "source": "codex/runtime/aisoft_host_access/broker.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_host_access/broker.py",
+      "mode": "0644",
+      "sha256": "085e8ddc55ef5ebcdb227be616c46d28660c967f04bb6f8dfde5167aa9f4a470"
+    },
+    {
+      "source": "codex/runtime/aisoft_host_access/cli.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_host_access/cli.py",
+      "mode": "0644",
+      "sha256": "4e2408e73a104dac31f1da0d2ee679b59499e9ef2b40e753c594dd66232493af"
+    },
+    {
+      "source": "codex/runtime/aisoft_host_access/contract.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_host_access/contract.py",
+      "mode": "0644",
+      "sha256": "a0fca970dd0cab8f40a1499afb5299a6d4eb13d23db55cd75e867501db867bef"
+    },
+    {
+      "source": "codex/runtime/aisoft_host_access/credential_rotation.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_host_access/credential_rotation.py",
+      "mode": "0644",
+      "sha256": "bd7fb8f3455122a74f742b05b4678df5df54db4105f4e0341e37e22ed0258410"
+    },
+    {
+      "source": "codex/runtime/aisoft_host_access/dependencies.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_host_access/dependencies.py",
+      "mode": "0644",
+      "sha256": "f84a6d22c229ef9a44c731d4a12680a87381290e4abaf91bfafaf09c3b11178a"
+    },
+    {
+      "source": "codex/runtime/aisoft_host_access/profiles.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_host_access/profiles.py",
+      "mode": "0644",
+      "sha256": "00c0dfbc9e2e9a03a9319a4d282766d21f487fb6253ab341fbfaf517dd7a27a3"
+    },
+    {
+      "source": "codex/runtime/aisoft_host_access/runner.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_host_access/runner.py",
+      "mode": "0644",
+      "sha256": "01a90dc0dd6c0b0d95adf35847ced9fb40a3f3c1d56c37b515d3431273e3224b"
+    },
+    {
+      "source": "codex/runtime/aisoft_gitea_governance/__init__.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_gitea_governance/__init__.py",
+      "mode": "0644",
+      "sha256": "7da569a4cbcc8dc4b141d0081ae175a58edba46f0c77d355ede0a65490347fa6"
+    },
+    {
+      "source": "codex/runtime/aisoft_gitea_governance/cli.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_gitea_governance/cli.py",
+      "mode": "0644",
+      "sha256": "c4326ea387f7b35c41ba279bbfaab1cb3a5235d550faccfa5fb053acddd43578"
+    },
+    {
+      "source": "codex/runtime/aisoft_gitea_governance/client.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_gitea_governance/client.py",
+      "mode": "0644",
+      "sha256": "c8d0f6858a7f3832e0b7120becc9978a2de07a642625246abe2faba6875fa7ea"
+    },
+    {
+      "source": "codex/runtime/aisoft_gitea_governance/contract.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_gitea_governance/contract.py",
+      "mode": "0644",
+      "sha256": "87bda2546fa4930403378e1026c830f5c144d52f2a6e4b6776938b79ef263fe2"
+    },
+    {
+      "source": "codex/runtime/aisoft_gitea_governance/reconcile.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_gitea_governance/reconcile.py",
+      "mode": "0644",
+      "sha256": "9b09983bf55e4c2a0d475d35d8fc79c4e80bc3fda33ef77c818bf6bf3ee271f3"
+    },
+    {
+      "source": "codex/runtime/aisoft_gitea_governance/service_policy.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_gitea_governance/service_policy.py",
+      "mode": "0644",
+      "sha256": "de0f56d78afeb92eb9d64fd792721d95e134dff6ee9f31fb200a630bcc1fbaeb"
+    },
+    {
+      "source": "codex/runtime/aisoft_change_name.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_change_name.py",
+      "mode": "0644",
+      "sha256": "bd780cb6ea403cd2d8067977dfb48a30d6632ba5fa8b1e4bbc60f844c98e204a"
+    },
+    {
+      "source": "codex/runtime/aisoft_worktree_owner.py",
+      "destination": "/usr/local/lib/aisoft-host-access/aisoft_worktree_owner.py",
+      "mode": "0644",
+      "sha256": "6d80bbbfd06744304f0eb77777a6165c494a6d101bb60e5e74e0e20fbd5e0533"
+    },
+    {
+      "source": "codex/config/host-access-broker.json",
+      "destination": "/usr/local/share/aisoft/host-access-broker.json",
+      "mode": "0644",
+      "sha256": "1a804e24d48b59a5f24eb9f7bbd423b86936287ede6639363b86a13203da6d6d"
+    },
+    {
+      "source": "codex/config/gitea-governance.json",
+      "destination": "/usr/local/share/aisoft/gitea-governance.json",
+      "mode": "0644",
+      "sha256": "b064997d13cc8c03d1d450cdff6e8420359d9b070eb9fec1c6d1c26c48182919"
+    },
+    {
+      "source": "codex/config/gitea-labels.json",
+      "destination": "/usr/local/share/aisoft/gitea-labels.json",
+      "mode": "0644",
+      "sha256": "91f74b5315ee5c0e4a97540eaef4fb2b53c93585b71dbce269bbcb7e2d5eddd8"
+    },
+    {
+      "source": "codex/tools/host-access-broker.sh",
+      "destination": "/usr/local/libexec/aisoft/host-access-broker",
+      "mode": "0755",
+      "sha256": "88c663af3a3e3b710cc271e7ff671e279d38fc357657330682a338d6ba3f4135"
+    },
+    {
+      "source": "codex/tools/git-credential-aisoft-host.sh",
+      "destination": "/usr/local/libexec/aisoft/git-credential-aisoft-host",
+      "mode": "0755",
+      "sha256": "2e386a5e64a6d3cc04213e0c19e76d48fee02ca26918119c615255e21450216c"
+    },
+    {
+      "source": "codex/tools/project-profile-migration.sh",
+      "destination": "/usr/local/libexec/aisoft/project-profile-migration",
+      "mode": "0755",
+      "sha256": "4cee3000e5242a34adba53cdd925c37e8cc6ff63bb06f46c652a298f85e84f2a"
+    },
+    {
+      "source": "codex/tools/bootstrap-gitea-service-account.sh",
+      "destination": "/usr/local/libexec/aisoft/bootstrap-gitea-service-account",
+      "mode": "0755",
+      "sha256": "eaa70c531dbf50fee8c0580855d6ab06beb1161616e14d524f2459ab906acf6f"
+    },
+    {
+      "source": "codex/tools/rollback-gitea-routine-pilot.sh",
+      "destination": "/usr/local/libexec/aisoft/rollback-gitea-routine-pilot",
+      "mode": "0755",
+      "sha256": "f602027ba2cd56837b87af636d0ed74b561e27c57614aae3d7089c6bb07fe294"
+    },
+    {
+      "source": "codex/tools/rotate-gitea-service-account.sh",
+      "destination": "/usr/local/libexec/aisoft/rotate-gitea-service-account",
+      "mode": "0755",
+      "sha256": "b9bacc038f8651ba98d124c9cec3ee2407df3205533df3d496acb73727762cc8"
+    }
+  ],
+  "derived_metadata": {
+    "destination": "/usr/local/share/aisoft/credential-rotation-source.json",
+    "source": "installer-generated metadata, omitted PAT helper stays fail closed",
+    "bytes_hash": "must bind exact installation card after merged source"
+  },
+  "AppServer_helper": {
+    "source": "codex/tools/application-target-preflight.py",
+    "destination": "/usr/local/libexec/aisoft/application-target-preflight",
+    "mode": "0755",
+    "owner_uid": 0,
+    "parent_uid": 0,
+    "ancestor_group_or_other_write": false,
+    "sha256": "75f3a622b2115769c0f4f80f859aae60473abdb9778bafeac8e5d400b1f2ab4c",
+    "helper_version": "application-target-preflight/v1",
+    "install_with_platform_installer": false
+  },
+  "still_unbound": [
+    "exact merged SHA",
+    "authorized operator and existing permission readback",
+    "no-autostart VM execution primitive",
+    "Docker no-start access",
+    "per-host full snapshot and actual restore",
+    "necessary host set, previous file bytes and missing-file restore rules"
+  ],
+  "rollback": "Separate approved card must snapshot bytes/mode/owner/missing files per exact host, execute real restore, compare hashes, and verify no-op; source revert is insufficient",
+  "no_credential_copy_or_change": true
+}

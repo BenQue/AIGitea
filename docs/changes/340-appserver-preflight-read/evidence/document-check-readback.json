@@ -1,0 +1,30 @@
+{
+  "resolve": {
+    "chunk_id": "7d1409",
+    "wall_time_seconds": 0.009205875,
+    "exit_code": 0,
+    "original_token_count": 57,
+    "output": "{\"plan\": \"plan-appserver-preflight-read-261006.md\", \"spec\": \"spec-appserver-preflight-read-261006.md\", \"summary\": \"summary-appserver-preflight-read-261006.md\", \"verification\": \"verification-appserver-preflight-read-261006.md\"}\n"
+  },
+  "required": {
+    "chunk_id": "4dbbad",
+    "wall_time_seconds": 0.000054917,
+    "exit_code": 0,
+    "original_token_count": 76,
+    "output": "{\"documents\": {\"plan\": \"plan-appserver-preflight-read-261006.md\", \"spec\": \"spec-appserver-preflight-read-261006.md\", \"summary\": \"summary-appserver-preflight-read-261006.md\", \"verification\": \"verification-appserver-preflight-read-261006.md\"}, \"required_docs\": [\"summary\", \"spec\", \"plan\", \"verification\"]}\n"
+  },
+  "audit": {
+    "chunk_id": "72280b",
+    "wall_time_seconds": 1.382264625,
+    "exit_code": 0,
+    "original_token_count": 19,
+    "output": "PASS: change-documents\nPASS: change-pr-url\nresult: changes=157 pass=2 gap=0\n"
+  },
+  "scope": {
+    "tracked_source_changes": [],
+    "contract_documents": 4,
+    "implementation": "NOT RUN",
+    "classification_projection": "NOT RUN"
+  },
+  "note": "Document checks validate contract parsing only; initial new-document trailing blank line was repaired and checked separately with no-index."
+}

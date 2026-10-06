@@ -1,0 +1,47 @@
+{
+  "observed_at": {
+    "utc": "2026-10-06T00:25:18.900446+00:00",
+    "jst": "2026-10-06T09:25:18.900446+09:00"
+  },
+  "owner_marker": {
+    "branch": "change/340-appserver-preflight-read",
+    "created": "2026-10-06T09:17:34+09:00",
+    "issue": 340,
+    "last_push_at": null,
+    "last_push_head": null,
+    "schema_version": 1,
+    "session": "01a10e8e-9128-7fa2-97a8-6493ee84be08",
+    "worktree": "/private/tmp/issue-340-appserver-preflight-read"
+  },
+  "head": "c9b5ef4e74592cbc68d6bdc6219568a1d51b6853",
+  "remote_main": "c9b5ef4e74592cbc68d6bdc6219568a1d51b6853",
+  "remote": "http://gitea-ci.orb.local:3000/admin/aisoft-platform.git",
+  "manifest_metadata": [
+    {
+      "path": "/private/tmp/issue-340-appserver-preflight-read/codex/config/host-access-broker.json",
+      "sha256": "509bdffb34494cbf82ef016d96e519c6bc3a17034a68ea052a516121aca4a8b9",
+      "operations": 38,
+      "machine": "gitea-ci",
+      "has_preflight": false
+    },
+    {
+      "path": "/usr/local/share/aisoft/host-access-broker.json",
+      "sha256": "509bdffb34494cbf82ef016d96e519c6bc3a17034a68ea052a516121aca4a8b9",
+      "operations": 38,
+      "machine": "gitea-ci",
+      "has_preflight": false
+    }
+  ],
+  "source_tracked_diff": [],
+  "implementation_authorized": false,
+  "approved_projected": false,
+  "implementation": "NOT RUN",
+  "commits_created": 0,
+  "push": "NOT RUN",
+  "PR": "NOT RUN",
+  "installation": "NOT RUN",
+  "permission_changes": "NOT RUN",
+  "live": "NOT RUN",
+  "deployment": "NOT RUN",
+  "heartbeat": "PAUSED (user boundary preserved; no monitor operation this turn)"
+}

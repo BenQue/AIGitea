@@ -10,6 +10,7 @@ from typing import Callable, Mapping, Sequence
 from .broker import BrokerError, COMMIT_SHA_RE, _positive_number
 from .contract import AccessContract
 from .dependencies import Dependency, DependencyError, parse_dependencies, resolve_target, identity
+from aisoft_main_integration import publication_reference, qualified_broker_environment, publication_projection, GitRepository, GitError
 
 
 BROKER_EXECUTABLE = "/usr/local/libexec/aisoft/host-access-broker"
@@ -19,8 +20,9 @@ CommandRunner = Callable[..., subprocess.CompletedProcess[str]]
 def _default_runner(
     argv: Sequence[str], *, cwd: str
 ) -> subprocess.CompletedProcess[str]:
+    env = qualified_broker_environment() if "git.push.change" in argv else None
     return subprocess.run(
-        list(argv), cwd=cwd, check=False, text=True,
+        list(argv), cwd=cwd, env=env, check=False, text=True,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
 
@@ -51,6 +53,10 @@ class GovernedHostRunner:
 
     def issue_read(self, number: int) -> Mapping[str, object]:
         return self._call("gitea.issue.read", "--number", str(_positive_number(number, "Issue")))
+
+    def application_target_preflight_read(self, target: str) -> Mapping[str, object]:
+        self._contract.application_target(self._project_id, target)
+        return self._call('application.target.preflight.read', '--target', target)
 
     def issue_update(self, number: int, title: str, body: str) -> Mapping[str, object]:
         return self._call(
@@ -134,9 +140,16 @@ class GovernedHostRunner:
             "--complexity", complexity,
         )
 
-    def push_change(self, issue: int) -> Mapping[str, object]:
-        number = _positive_number(issue, "Issue")
-        return self._call("git.push.change", "--branch", f"change/{number}")
+    def push_change(self, issue: int | str) -> Mapping[str, object]:
+        branch = (self._contract.change_branch(issue) if isinstance(issue, str)
+                  else f"change/{_positive_number(issue, 'Issue')}")
+        return self._call("git.push.change", "--branch", branch)
+
+    def fetch_main(self) -> Mapping[str, object]:
+        return self._call("git.fetch.main")
+
+    def fetch_change(self, branch: str) -> Mapping[str, object]:
+        return self._call("git.fetch.change", "--branch", self._contract.change_branch(branch))
 
     def pull_create(self, issue: int, title: str, body: str) -> Mapping[str, object]:
         return self._call(
@@ -170,6 +183,31 @@ class GovernedHostRunner:
         return self._call("host.onboarding.check")
 
     def _call(self, operation: str, *arguments: str) -> Mapping[str, object]:
+        if operation != "git.push.change":
+            return self._call_impl(operation, *arguments)
+        # Check qualification before starting a write; then pin H even if the
+        # invoked wrapper loses its reply or returns a partial/invalid schema.
+        try:
+            if self._command_runner is _default_runner:
+                qualified_broker_environment()
+            head = GitRepository(self._cwd).text("rev-parse", "HEAD")
+        except GitError as exc:
+            raise BrokerError(exc.code, str(exc)) from exc
+        reference = publication_projection(None, head)
+        try:
+            value = self._call_impl(operation, *arguments)
+            reference = publication_projection(value, head)
+            if reference["outcome"] == "UNKNOWN":
+                raise BrokerError("RESPONSE_SCHEMA_INVALID", "publication has no exact H/readback")
+            return value
+        except BrokerError as exc:
+            provided = getattr(exc, "publication_reference", None)
+            if provided:
+                reference = publication_projection(provided, head)
+            exc.publication_reference = reference
+            raise
+
+    def _call_impl(self, operation: str, *arguments: str) -> Mapping[str, object]:
         expected = self._contract.operation(operation)
         argv = [
             BROKER_EXECUTABLE,
@@ -178,13 +216,37 @@ class GovernedHostRunner:
             *arguments,
         ]
         try:
-            completed = self._command_runner(argv, cwd=self._cwd)
+            if operation == 'application.target.preflight.read' and self._command_runner is _default_runner:
+                from .application_preflight import run_bounded
+                raw = run_bounded(argv, limit=262144, timeout=30)
+                completed = subprocess.CompletedProcess(argv, 0, raw.decode('utf-8'), '')
+            else:
+                completed = self._command_runner(argv, cwd=self._cwd)
         except Exception as exc:
             raise BrokerError("HOST_BROKER_UNAVAILABLE", "fixed host broker invocation failed") from exc
         if completed.returncode != 0:
+            if operation in {"git.push.change", "git.fetch.main", "git.fetch.change"}:
+                try:
+                    failed = json.loads(completed.stderr)
+                    code = failed["code"]
+                    message = failed["message"]
+                    if (isinstance(code, str) and code.isupper() and len(code) <= 64
+                            and isinstance(message, str) and len(message) <= 32768):
+                        error = BrokerError(code, message)
+                        error.publication_reference = publication_reference(message)
+                        raise error
+                except (ValueError, KeyError, TypeError):
+                    pass
             raise BrokerError("HOST_BROKER_FAILED", "fixed host broker operation failed")
         try:
-            value = json.loads(completed.stdout)
+            if operation == 'application.target.preflight.read':
+                from .application_preflight import PreflightError, strict_json, validate_control_reply
+                try:
+                    value = validate_control_reply(strict_json(completed.stdout.encode('utf-8'), 262144))
+                except PreflightError as exc:
+                    raise BrokerError(exc.reason, 'fixed preflight response was refused') from None
+            else:
+                value = json.loads(completed.stdout)
         except (TypeError, UnicodeError, json.JSONDecodeError) as exc:
             raise BrokerError("RESPONSE_SCHEMA_INVALID", "fixed host broker returned invalid JSON") from exc
         if not isinstance(value, dict):

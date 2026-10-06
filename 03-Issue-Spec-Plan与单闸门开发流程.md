@@ -62,12 +62,13 @@ AISOFT_SESSION_ID=<本会话 id> PYTHONPATH=codex/runtime python3 -m aisoft_loop
 
 #### 闸门拦不到什么，以及因此必须做的一步
 
-闸门回答的是「**谁**可以推」，不是「推的**是什么**」。第三方在你的 worktree 里 rebase 之后，
-你自己再推，闸门会放行——因为它看到的身份仍然是你，而别人的改写与你自己的 rebase 在 HEAD
-上留下的形状完全相同（HEAD 不再是上次 push 的后代）。要在推送时分开这两者，就得索要一个
-「我本人打算改写」的信号，那会让每次正常 rebase 都多一步。
+#298 的归属闸门回答「谁可以推」，单独不能保证内容。历史实现允许 owner 推送被改写的 HEAD，
+再从回执检出；#327 覆盖该发布口径：已发表历史重写必须在远端写入前拒绝，不能靠事后回执追认。
+owner 标记与每次 SHA 核对仍为必要步骤；broker 还须独立复核 original/current remote tip 的祖先链、
+提交来源、完整 DAG/tree、合同范围和 fresh main。旧 installed 行为没有由文档更新自动改变，
+缺少新能力时停止，不能调用 leased rewrite。
 
-所以检出放在另外两处，而且**只在有人真的去看的时候才成立**：
+逐次检出仍保留两处：
 
 - **推送之后**：`git.push.change` 的返回体带 `pushed_head`（本次推上去的 40 位 SHA）与
   `previous_head`（该分支上一次 push 的 SHA）。**首次 push 核对 `pushed_head` 是否等于
@@ -82,8 +83,15 @@ AISOFT_SESSION_ID=<本会话 id> PYTHONPATH=codex/runtime python3 -m aisoft_loop
   `unclaimed` 与 `claim-invalid` 同样计入 GAP；`ahead`（有未推送的本地 commit）与 `unpushed`
   照列但不计——否则这条命令在整个实现期都是红的，读者会被训练成忽略它。
 
-单会话自己的 `BASE_BRANCH_STALE` 处置不受影响：`git.fetch.main` → 本地 `git rebase
-origin/main` → broker 重推照旧走得通，**不需要**在 rebase 之后重新 claim。
+### #327 当前收缩合同（2026-10-05）
+
+本票只交付保留 original/current remote tip 祖先关系的 main 整合、普通 FF、非法/并发漂移拒绝、required CI 与可恢复收尾。以 [#327 spec](docs/changes/327-broker-ff-integration/spec-broker-ff-integration-261002.md) 的当前合同为准；T01/T04–T10 为历史治理步骤，原 FAIL/GAP/NOT RUN 保留。
+
+Agent/provider 只追加本 Issue 的线性本地 commit。合格现有 Controller 可按合同整合；本票首次自举明确允许**负责人本人**用标准 Git 在原 owner worktree 临时保全/park WIP、构造 `[已核验 Issue tip, fresh manifest main]` 并留恢复证据，Agent 不代执行。它不再等待未交付 R02、root authority、OS observer 或 protected grant。仅无冲突标准整合；冲突停止并保留 stash/前态，不自动覆盖内容。
+
+最终唯一 PR 的第二确认仍绑定 exact Issue/branch/manual。确认前不发表；确认后本票可由本人使用已绑定的普通 Git credential helper、经过本票测试的固定 pre-push guard 和 exact SHA 单 ref 普通 FF 完成首次发表，不调用旧 lease-force broker、不装 unmerged broker，Agent 不借此绕 broker。来源/DAG/tree/范围、R0/R/M/H、guard 执行和真实 readback 必须核对；main 禁直推/force、required CI、本人 manual merge 不变。实际首次发表/installed 验收未运行仍为 GAP/NOT RUN。
+
+root authority、begin/verify、ES/kernel/signing、完整 OS/解释器闭包、scratch/resource 隔离及其 I01/I02/AC-9～11 延期，不作为本票当前 source 整合/PR 的前置；不宣称这些安全能力已交付，也不以本地 receipt/owner marker 证明不可伪造授权或同 UID 隔离。Mac/VM 安装均需 source 合并后另获授权。本轮仅治理文本与证据应用、校验、本地 commit 后 STOP；下一 fresh run 重读后才续 T02。
 
 ### 衍生 Issue 的正文与认领
 

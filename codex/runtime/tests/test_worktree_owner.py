@@ -21,6 +21,7 @@ from aisoft_worktree_owner import (
     marker_path,
     read_marker,
     record_push,
+    pin_original_remote,
     write_marker,
 )
 from aisoft_loop.worktree import (
@@ -87,6 +88,38 @@ class MarkerContractTests(unittest.TestCase):
             read_marker(self.git_dir)
         self.assertEqual(caught.exception.code, CODE_UNCLAIMED)
         self.assertIn("claim-worktree", str(caught.exception))
+
+    def test_original_remote_is_never_re_pinned_or_lost_on_takeover(self):
+        self._write_raw(_marker())
+        first = pin_original_remote(self.git_dir, head="a" * 40, branch=BRANCH, session=OWNER)
+        second = pin_original_remote(self.git_dir, head="b" * 40, branch=BRANCH, session=OWNER)
+        self.assertEqual(first, second)
+        recorded = record_push(self.git_dir, head="c" * 40, expected_owner=second)
+        changed, _ = claim(self.git_dir, branch=BRANCH, session=INTRUDER,
+                           worktree=recorded.worktree, takeover=True)
+        self.assertEqual(changed.original_remote_head, "a" * 40)
+        self.assertTrue(changed.original_remote_known)
+        self.assertEqual(changed.last_push_head, "c" * 40)
+
+    def test_explicit_absence_is_distinct_from_unknown_and_legacy_r0_remains_gap(self):
+        self._write_raw(_marker())
+        self.assertFalse(read_marker(self.git_dir).original_remote_known)
+        first = pin_original_remote(self.git_dir, head=None, branch=BRANCH, session=OWNER)
+        self.assertTrue(first.original_remote_known)
+        self.assertIsNone(first.original_remote_head)
+        self.assertEqual(pin_original_remote(self.git_dir, head="a" * 40, branch=BRANCH, session=OWNER), first)
+        self._write_raw(_marker(last_push_head="a" * 40, last_push_at="recorded"))
+        with self.assertRaises(WorktreeOwnerError) as caught:
+            pin_original_remote(self.git_dir, head="b" * 40, branch=BRANCH, session=OWNER)
+        self.assertEqual(caught.exception.code, "ORIGINAL_REMOTE_UNKNOWN")
+
+    def test_owner_move_after_actual_write_is_not_recorded_under_another_owner(self):
+        self._write_raw(_marker())
+        original = read_marker(self.git_dir)
+        self._write_raw(_marker(session=INTRUDER))
+        with self.assertRaises(WorktreeOwnerError):
+            record_push(self.git_dir, head="a" * 40, expected_owner=original)
+        self.assertIsNone(read_marker(self.git_dir).last_push_head)
 
     def test_malformed_json_is_claim_invalid(self) -> None:
         self._write_raw("{not json")

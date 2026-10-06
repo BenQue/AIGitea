@@ -1,0 +1,48 @@
+{
+  "operation": "gitea.protection.read",
+  "project": "aisoft-platform",
+  "result": {
+    "approvals_whitelist_teams": [],
+    "approvals_whitelist_username": [],
+    "block_admin_merge_override": true,
+    "block_on_official_review_requests": true,
+    "block_on_outdated_branch": true,
+    "block_on_rejected_reviews": true,
+    "branch_name": "main",
+    "created_at": "2026-07-16T17:45:03+08:00",
+    "dismiss_stale_approvals": true,
+    "enable_approvals_whitelist": false,
+    "enable_force_push": false,
+    "enable_force_push_allowlist": false,
+    "enable_merge_whitelist": true,
+    "enable_push": false,
+    "enable_push_whitelist": false,
+    "enable_status_check": true,
+    "force_push_allowlist_deploy_keys": false,
+    "force_push_allowlist_teams": [],
+    "force_push_allowlist_usernames": [],
+    "ignore_stale_approvals": false,
+    "merge_whitelist_teams": [],
+    "merge_whitelist_usernames": [
+      "admin"
+    ],
+    "priority": 1,
+    "protected_file_patterns": "",
+    "push_whitelist_deploy_keys": false,
+    "push_whitelist_teams": [],
+    "push_whitelist_usernames": [],
+    "require_signed_commits": false,
+    "required_approvals": 0,
+    "rule_name": "main",
+    "status_check_contexts": [
+      "CI / verify (pull_request)"
+    ],
+    "unprotected_file_patterns": "",
+    "updated_at": "2026-09-05T23:07:43+08:00"
+  },
+  "sandbox": {
+    "code": "TRANSPORT_ERROR",
+    "message": "host transport failed",
+    "status": "BLOCKED_EXTERNAL"
+  }
+}

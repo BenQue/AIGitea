@@ -8,7 +8,7 @@ import shutil
 import stat
 import tempfile
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Union
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -17,7 +17,7 @@ from .contract import AccessContract, ProjectContract
 
 
 IdentityReader = Callable[[str], str]
-Replace = Callable[[str | os.PathLike[str], str | os.PathLike[str]], None]
+Replace = Callable[[Union[str, os.PathLike[str]], Union[str, os.PathLike[str]]], None]
 
 
 def _mode(path: Path) -> int:
