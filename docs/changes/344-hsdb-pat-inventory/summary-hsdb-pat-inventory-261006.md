@@ -27,9 +27,9 @@ override_reason: ''
 depends_on:
   - 337
   - 339
-status: approved
+status: pr-open
 branch: change/344-hsdb-pat-inventory
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/350
 created: 2026-10-06
 updated: 2026-10-06
 ---
