@@ -49,6 +49,18 @@ pr_url:
 
 T02访问目标未通过，Ticket保持pending并因外部访问GAP停止；T03最终PR仍pending。账号窗口已结束，不借此票重试或修改凭据；进一步诊断/安全操作须单独确定具体scope。PR提交及人工合并仍是独立门。
 
+## 本轮文档交付边界与发表缺口
+
+本轮只整理 #342 已执行尝试、真实失败恢复及文档候选，不接管 HSDB 的项目接入、业务修复、部署或 UAT。具体项目方案和现场动作仍由 HSDB 项目主控负责；AISoftPlatform 只处理共享流程与平台自身能力。平台文档的发表门槛不自动成为 HSDB 所有工作的前置。
+
+fresh main 为 `96ba8a17baad8e9854d4e8d0397d4162b8067b09`，#337/#339 已 closed/completed，原 `depends_on: [337,339]` 保留。Mac installed 的 broker.py/cli.py/contract.py 三份公共源字节与原验收 source `c9b5ef4e74592cbc68d6bdc6219568a1d51b6853` 及该 fresh main 相同；只证明这些文件，不代表新能力已安装或整包重验。
+
+当前公开 PR reader 仍固定第一页；失败的 exact branch fetch 不证明 absence。现有 push 仍使用 lease-force，不符合普通 FF 合同。合法发表能力归 #327 owner；完整 PR reader 归 #336 owner，其 namespace 特化仅 #333，不能擅自扩为 #342。未重复失败 fetch、未调用 push 获取内部证明、未安装未合并 reader。
+
+#343 的 A2/B2 无历史记录提案已完成，本地 head `da96c0ab1cbdf7e925310d74115d9a56956fee1b`；旧实例归属字段仍 null/NOT VERIFIED，不再索取不存在的旧记录，也不代表根因证实或恢复获批。本票不代写 #343。
+
+本票保持 `LOCAL_CANDIDATE_PREPARED / BLOCKED`。原 AC-4 为 FAIL/ACCESS_GAP，T02/T03 pending；若拟以有界尝试记录终结，须由人明确处置原合同及后继恢复追踪，当前没有该决定或最终 PR 提交批准。不改 AC、标签或依赖制造完成；暂不实际请求提交确认。
+
 ## 批准时准备记录（历史快照）
 
 以下保留原准备合同内容；其中“当前未批准/账号写入0/after NOT RUN”均描述2026-10-05准备阶段，不代表上述实际执行结果。原批准文档字节可从原doc head复核。

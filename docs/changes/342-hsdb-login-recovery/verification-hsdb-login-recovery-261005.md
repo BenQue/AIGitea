@@ -36,6 +36,18 @@ status: pending
 
 T02访问目标未通过，Ticket保持pending并因外部访问GAP停止；T03最终PR仍pending。账号窗口已结束，不借此票重试或修改凭据；进一步诊断/安全操作须单独确定具体scope。PR提交及人工合并仍是独立门。
 
+## 本轮发表前置与职责读回
+
+- fresh typed main fetch PASS，origin/main=`96ba8a17baad8e9854d4e8d0397d4162b8067b09`；#342 Issue 正文读回 SHA256=`41b7f827a644961400779d997a3d2496213b664e1f0ada0852636f6dc5419d4d`，仍 open，标签未含 approved。这是回填前快照，不冒充最终正文摘要。
+- original owner claim 与 exact branch 一致；本轮开始 head=`49d6cd985fed976bf05ce88885ec37271caf4234`，clean。新增文档提交的最终 SHA 另记外部 handoff，不能沿用旧 candidate SHA 作未来 push 锚。
+- Mac installed broker.py/cli.py/contract.py 三份公共源文件均 root-owned/mode0644，逐字等于原验收 source c9b5ef4e…和 fresh main。读取与散列仅公共源文件，credential 内容零读取/散列；整包 provenance/VM重验未运行。
+- 已安装公开 reader 仍 page1；push仍 lease-force。原 exact342 fetch 的 HOST_COMMAND_FAILED 仍不证明 absence，本轮没有重复它。没有 push/PR/CI、raw API、导入未合并 runtime 或安装动作。
+- #327 owner负责合法普通 FF；#336 owner负责完整 PR reader，namespace仅 #333。#342 覆盖仍 GAP；本票不继承 #327 本人自举或 #336 scope。原文档发表硬门不能自动投影为全部 HSDB 部署前置。
+- #343 的 A2/B2 handoff 记录 local head=`da96c0ab1cbdf7e925310d74115d9a56956fee1b`、proposal完成、旧实例归属 null/NOT VERIFIED；其 live Issue 仍是初始R1，不能当作最新提案已远端发布。旧记录不再追索，根因与实际恢复仍 NOT VERIFIED/NOT RUN。
+- 原账号/typed验收/真实同flag恢复仍引用窗口内回执，未再次操作或重跑访问验收。AC-4 FAIL/ACCESS_GAP、T02/T03 pending、depends_on [337,339] 保留；HSDB项目交付由项目主控，本票仅文档核验。
+
+当前 `LOCAL_CANDIDATE_PREPARED / BLOCKED`；最终提交确认、原合同终结决定、required PR CI、merge、清理归档均未完成。具体本地门与最终提交/正文摘要由本轮外部回执记录，不能把文档 PASS 写成访问或部署 PASS。
+
 ## 批准时准备记录（历史快照）
 
 以下保留原准备合同内容；其中“当前未批准/账号写入0/after NOT RUN”均描述2026-10-05准备阶段，不代表上述实际执行结果。原批准文档字节可从原doc head复核。
