@@ -268,50 +268,47 @@ checker 输出中的 canned 文案 “merged summary” 不是合并证据，本
 没有把旧 smoke 写成 rebase 后重新运行，也没有将 source/local 提升为 CI/installed/live。
 最终 receipt-only commit 的 HEAD/tree/clean 见本会话 visualization 提交后机器回执。
 
-## 需要本人处理的下一步
+## 完整 namespace 补证与最终 PR 授权
 
-两项已批准动作均已完成，**不用再确认标签或 rebase**。当前唯一发表前补证门是
-完整远端 #340 branch/PR namespace；状态 `BLOCKED_REMOTE_NAMESPACE`，
-尚未运行 Controller、进入 AWAITING_PR_CONFIRMATION、push 或创建唯一 PR。
+本人明确批准一次性 broker 之外的已登录浏览器 SCM 元数据读取。最初 Chrome Ben profile 未登录，
+未做匿名完整性推断或 agent 登录；本人重新登录后重新绑定现有 Chrome Zhiyu 窗口，
+实际 Dashboard/admin、Profile and Settings 与 repository Unwatch 控件证明会话已登录。
+只读进入 admin/aisoft-platform 的 branch/PR 页面，没有 UI 写入、凭据、安装或现场操作。
 
-最小可执行方案：通过现有已登录 Gitea 浏览器，一次性只读完整枚举
-admin/aisoft-platform 的 branches 和 open/closed PR 全部分页，只保留
-branch name/SHA、PR number/head/base/state 与分页完整性证据；不访问其它仓库，
-不读取或复制凭据、不做任何 UI 写入。现有 broker 的固定 page=1 没有 caller page 参数，
-fetch.change 也不能提供 complete namespace；不能为了补证给 #340 添加新的 broker operation。
+2026-10-06T04:28:50.903Z–04:33:32.687Z（13:28–13:33 JST）：
+branches page 1 的 20 条与 page 2 的 2 条 live 分支，加 separate main 共 23 条；
+末页另含 #339/#337 两条 deleted records，无 #340 namespace。open 精确筛选为 0/No results；
+closed page 1–8 各 20 条、page 9 两条，共 162 个唯一 PR，逐条 head/base/state 齐全。
+AX 每次只返回最多 100 个 list children，实际逐页滚动读取顶部/底部，覆盖全部 child range；
+不能只把一次 AX 输出的前半页当完整。末页 Next/Last 为禁用文本而非 link；
+结尾 branch/PR counts 与 main SHA 保持一致。完整脱敏记录见
+[namespace 与直接本人 PR 授权](evidence/final-pr-namespace-261006.json)。
 
-所读 [issue-session-flow SKILL.md](/Users/benque/.agents/skills/issue-session-flow/SKILL.md) 明确：
-“All Gitea and remote Git access uses the project-scoped host-access broker.”
-本轮批准也限定 typed broker；因此 agent 不能自行改用浏览器。这是本次补证需要明确
-一次性读取入口例外的原因，不是额外 installation/operator/权限授权或重复启动确认。
+`^change/340(?:$|-)` 在 live/deleted branches、open/closed PR head 中均无匹配：namespace PASS。
+该证据仅证明观测窗口内 SCM 唯一性；不改变 VM no-start/native Docker 的 GAP，
+不解除消费者 #333 的 installed/live 前置。历史 broker page=1/50 与 fetch.change 失败保持原证据，
+其失败没有被误写为不存在，也未为本 Issue 扩大 broker operation。
 
-若希望由本 owner 完成，只需在本会话回复：
+本人随后逐字确认 #340 / change/340-appserver-preflight-read / manual，批准回填和本地 commit、
+fresh candidate gates 后 typed broker FF push/唯一 PR（Closes #340），以及合同内 CI 修复。
+本次采用技能允许的 Mac 交互 broker 路径，不运行 Controller、不宣称持久化 Controller 状态。
+PR 还未创建，pr_url 留空；创建后必须 summary-only pr-open/pr_url 回填 commit 并 FF push。
+每次 push 之前保存 freshly verified exact head，实际 pushed_head 必须相等。
+最终 exact head 的 CI / verify (pull_request) 全绿才停 READY_FOR_REVIEW；manual merge 仅本人执行。
 
-> 允许 #340 owner 一次性通过现有已登录 Gitea 浏览器，只读完整核对 admin/aisoft-platform 的 branches 和 open/closed PR 全部分页，补齐 change/340 与 change/340-* namespace；本次仅为该 SCM 元数据补证允许 broker 之外的浏览器读取。禁止 UI 写入、凭据操作、push/PR、merge、安装、权限或目标操作；唯一最终 PR 另确认。
-
-若选择本人直接补证，在 Gitea 同一 repository 最多三步：
-
-1. Branches 中完整检查 change/340 与 change/340-*，记录全部匹配 name/SHA 与分页范围。
-2. Pull Requests 的 open 和 closed 全部分页中核对 head 分支，列出上述 namespace 的全部 PR number/head/base/state，不能只搜索标题或看第一页。
-3. 在本 owner 会话回报全部匹配（或明确无匹配）、分页已全部检查与核对时间；有冲突直接保留，不删除或改名。
-
-补证后 owner 验证唯一性、再次核对 exact head/base/真实 classification/owner/document gates，
-才准备唯一 final manual PR 确认项；该确认之后才能 push/PR。若出现实际同票 tuple/owner，
-立即停止并说明 exact 冲突，不改 slug、不接管。当前未对 #327/#336 增加产品 hard dependency，
-不为此新建 Issue、修改 broker/installer、授予权限或恢复 PAUSED heartbeat。
-
-VM no-start/native Docker 的具体处置继续是安全拒绝、零 target execution/零 connect。
-它们属于真实能力 GAP；浏览器只读 SCM 补证不会解除这些限制或 #333 的现场前置。
+本轮未改 source/fixture，九项 SHA256 与原 frozen full smoke 相同；1147 项结果仍绑定原 tested SHA，
+不宣称本轮重新跑 smoke。回填仅本 Issue 的 summary、verification 与 namespace JSON。
+真实 AC2 no-start/native Docker GAP、AC4–AC6 installed/live NOT RUN 全部保留。
 
 ## 遗留风险与未完成项
 
-1. 完整远端#340命名空间证据GAP：无已发现冲突；不得将HOST_COMMAND_FAILED当不存在。
-   已再次核对本地唯一 owner/tuple；远端完整性未通过，发现 actual 冲突即 STOP。
+1. 完整远端 #340 namespace 已于 13:33 JST 补证 PASS；仅绑定观测窗口。
+   fresh 发布仍由 broker 重查 exact remote branches/open PR；发现 actual 冲突即 STOP。
 2. 现有orb help无no-start参数：running前读不能证明竞态后不自启。
    默认BLOCKED，不能把fixture正向模拟替代真实execution primitive证明。
 3. operator/helper可用性、Docker/PG获准访问是live条件；未经精确权限卡不provision或fallback。
    PG角色/旧归档/未知datadir不能从固定路径猜测完整性。
 4. 原启动及本轮 exact labels/rebase 已完成；classification projected、main ancestor、source bytes 相同。
-   BASE_BRANCH_STALE 已由已批本地整合消除；未调用 publish、没有远端写入或 merge。
+   BASE_BRANCH_STALE 已由已批本地整合消除；本次已获唯一 PR 提交授权，发布前再次 fresh 核对；merge 未授权。
 5. source PR/CI后仍须将AC4–AC6未执行事实保留，source合并不等于通道installed/live ready。
    后续唯一PR确认卡必须明确source与现场边界，不能宣称六条AC整体PASS或消费者已解阻塞。

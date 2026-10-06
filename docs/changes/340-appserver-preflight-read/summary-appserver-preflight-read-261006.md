@@ -34,7 +34,7 @@ updated: 2026-10-06
 
 # #340 固定目标只读预检：已批准合同与 fresh source 工作
 
-状态：SOURCE_LOCAL_COMPLETE / BLOCKED_REMOTE_NAMESPACE。本会话实际本人已确认四份合同、exact tuple 和 manual policy；
+状态：SOURCE_LOCAL_COMPLETE / PR_SUBMISSION_CONFIRMED（Mac 交互路径；尚未 push/PR）。本会话实际本人已确认四份合同、exact tuple 和 manual policy；
 T01 在 adbe53252f71474afffdd886ca7509cc75ab0842 应用治理合同并完成 STOP，当前已 fresh 重新读取。
 T02–T05 的白名单 source/local 工作已完成；源码冻结点为
 83fdd12dc93b79442aae9c0763c7e92e221344d8，完整 smoke 1147 项通过。
@@ -44,7 +44,9 @@ T05 只追加本 Issue 证据与交接文档；最终本地 HEAD 见提交后回
 本人批准的 exact main 96ba8a17baad8e9854d4e8d0397d4162b8067b09 已 local rebase 整合，
 rebase 后 HEAD=0797969955b454a660bedf34858670e2ed7b3c35；九个 frozen source/fixture SHA256 未变。
 原 HEAD/T01 由 refs/aisoft/recovery/340/pre-main-integration 保留；六 commit range-diff 全为一致。
-完整远端同票 namespace 仍 GAP，Controller/最终 PR 门保持 BLOCKED；push/PR、安装和现场层未执行。
+完整远端同票 namespace 已补证 PASS：2026-10-06 13:33 JST，23 个现存分支、2 条已删除记录、0 open PR、162 closed PR 全分页无匹配。
+本人已确认同一 branch/manual 的唯一最终 PR 提交、必要 FF push 与合同内 CI 修复；真实安装和现场层仍未授权。
+[完整 namespace 与最终 PR 授权回执](evidence/final-pr-namespace-261006.json)保留逐页脱敏元数据。
 
 ## 问题/需求总结
 
@@ -81,7 +83,8 @@ rebase 后 HEAD=0797969955b454a660bedf34858670e2ed7b3c35；九个 frozen source/
 准备/fresh T02 的 installed gitea.pulls.read(state=all) 只返回最新 50 条，
 其中无 #340；该有界读取不是全历史/全分页完整性证明。#341 已合入上述 fresh main。
 候选 exact branch 的 git.fetch.change 在 sandbox 为 TRANSPORT_ERROR，在 host 为
-HOST_COMMAND_FAILED；不能把该错误解释成远端无分支。完整远端同票 namespace 证明为 GAP。
+HOST_COMMAND_FAILED；不能把该错误解释成远端无分支。该历史 GAP 后由本人明确批准的一次性已登录浏览器读取补齐：
+branches 两页、closed PR 九页和空 open 结果全部核对，change/340 与 change/340-* 无匹配。
 继续前 fresh 核对已有证据；任何实际 owner/同票 tuple 冲突立即 STOP，不能新造别的 slug、
 接管或为此修改本 Issue 以外的 broker。尚未证明的远端唯一性不得写成 PASS。
 
@@ -150,7 +153,7 @@ override_reason: ''
 ### 缺失的 acceptance criteria 或决策
 
 没有待人选择的产品方案；安全默认是 fail closed。
-远端 namespace、no-autostart transport、operator/helper 权限是尚待取得的技术证据，
+远端 namespace 已完整核对 PASS；no-autostart transport、operator/helper 权限仍是尚待取得的技术证据，
 不是假定已通过的启动条件。无已知 source 实现硬依赖，depends_on=[]；
 没有把 #327/#336 或消费者 LocalWMS #333 挂成 AISoftPlatform 产品 hard dependency。
 source 工作不得因未来 operator 尚未授权而停止合同分析；现场调用仍须逐项真实阻断。
@@ -193,6 +196,8 @@ source 合并不能解除 LocalWMS #333 的现场前置或宣称六项整体 PAS
 
 T01 run 已止于本地治理提交。当前 fresh run 已重新读取合同/归属，继续原批准源码白名单；
 本轮另批的 live 分类/approved 与本地 rebase 已完成，使用真实读回，未提供 synthetic labels。
-当前已完成 source/local 与两步补齐，停在 BLOCKED_REMOTE_NAMESPACE；未伪造 Controller candidate。
-下一步仅为完整只读 namespace 补证，见 verification 的“需要本人处理的下一步”。
-唯一最终 PR 的 push/提交仍另确认，不把本次批准扩展到远端发表或现场操作。
+当前已完成 source/local、标签/rebase 和完整 namespace 补证；未运行或伪造 Controller candidate。
+本次实际本人已另确认唯一最终 manual PR，见 evidence/final-pr-namespace-261006.json 的逐字授权。
+采用 Mac 交互路径，fresh 验证候选后由 installed typed broker 推送同一分支并创建唯一最终 PR；
+实际 PR 创建后只在 summary 自动回填 pr_url/status 并形成一份追加本地 commit，随后核对新 head 的 required CI。
+required CI 全绿后 STOP 于 READY_FOR_REVIEW；人工 merge、正式安装、权限、Secret/DB/服务/容器写入和部署仍未授权。
