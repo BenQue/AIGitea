@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "issue": 340,
+  "branch": "change/340-appserver-preflight-read",
+  "policy": "manual",
+  "owner_session": "01a10e8e-9128-7fa2-97a8-6493ee84be08",
+  "worktree": "/private/tmp/issue-340-appserver-preflight-read",
+  "recorded_at_utc": "2026-10-06 00:34:09 UTC",
+  "authority": "direct human message in the owner session",
+  "approval_text": "确认 AISoftPlatform #340（change/340-appserver-preflight-read，manual）的四份\n> appserver-preflight-read-261006 合同，批准本会话 owner 完成 T01 治理合同本地提交后 STOP，\n> 后续 fresh run 重新读取后继续合同白名单内的 source 实现、本地 fixture/测试、修复和 commit。\n> 不批准 push/PR、merge、正式安装、operator/权限变更、Secret/DB/服务/容器写入或部署；\n> 唯一最终 PR 另确认。",
+  "approved_document_sha256": {
+    "summary-appserver-preflight-read-261006.md": "3fc0d15a68d8eaf7f5bb2ae4b0c8c38eb76d7e46e8e154d1e951fd62df37ddc8",
+    "spec-appserver-preflight-read-261006.md": "e1e1ad6df3b8a655606c86f081223b84428155e821934317b9c13c5d5d75b404",
+    "plan-appserver-preflight-read-261006.md": "caa8fbc3986349941df46692b88f1cbe1a341e31d01f0b68612755a8579fcc20",
+    "verification-appserver-preflight-read-261006.md": "458a83738c47071a474590e3d93a56ef44c89847f36c5861814c53e1ae6216ea"
+  },
+  "original_hash_comparison": "PASS",
+  "approval_card": {
+    "path": "/Users/benque/.codex/visualizations/2026/10/06/01a10e8e-9128-7fa2-97a8-6493ee84be08/Issue340-开发启动确认卡-20261006.md",
+    "sha256": "d8c7684e0e7d7002c2cd69e915ef33a740e75b82ccfc8a99af7925e6689b5d13",
+    "preserved": true
+  },
+  "current_run": {
+    "ticket": "T01",
+    "allowlist": [
+      "06-运维手册与踩坑集.md",
+      "docs/changes/340-appserver-preflight-read/"
+    ],
+    "local_commit_authorized": true,
+    "stop_after_local_commit": true
+  },
+  "fresh_run_authorization": {
+    "tickets": [
+      "T02",
+      "T03",
+      "T04",
+      "T05"
+    ],
+    "conditions": [
+      "reread AGENTS/skills/applied T01 contract",
+      "verify exact owner/branch/worktree and fresh Issue/comments",
+      "stay within approved source allowlist"
+    ],
+    "scope": [
+      "source implementation",
+      "isolated fixtures and local tests",
+      "in-scope repair",
+      "local commits"
+    ]
+  },
+  "not_authorized": [
+    "push",
+    "PR",
+    "merge",
+    "formal installation",
+    "operator or permission changes",
+    "Secret/DB/service/container writes",
+    "deployment"
+  ],
+  "local_approved": true,
+  "live_classification_projection": "NOT RUN",
+  "live_approved_projection": "NOT RUN",
+  "baseline": "c9b5ef4e74592cbc68d6bdc6219568a1d51b6853"
+}

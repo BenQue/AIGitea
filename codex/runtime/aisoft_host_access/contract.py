@@ -138,6 +138,14 @@ class AccessContract:
     operations: tuple[OperationContract, ...]
     projects: tuple[ProjectContract, ...]
 
+    def application_target(self, project_id: str, target: object) -> dict[str, str]:
+        if project_id != 'localwms' or type(target) is not str or target != 'localwms-local-test':
+            raise AccessContractError('application target is not explicitly managed')
+        targets = self.raw.get('application_targets', [])
+        if targets != [APPLICATION_TARGET]:
+            raise AccessContractError('application target binding is unavailable')
+        return dict(APPLICATION_TARGET)
+
     def project(self, project_id: str) -> ProjectContract:
         for project in self.projects:
             if project.project_id == project_id:
@@ -157,6 +165,8 @@ class AccessContract:
         raise AccessContractError("requested operation is not allowlisted")
 
     def identity_for(self, project: ProjectContract, operation: OperationContract) -> str:
+        if operation.identity_route == 'application-preflight':
+            return self.application_target(project.project_id, 'localwms-local-test')['operator']
         if operation.identity_route == "project-agent":
             return project.project_agent
         if operation.identity_route == "routine-merge-agent":
@@ -309,6 +319,17 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
 }
 
 
+APPLICATION_TARGET = {
+    'project_id': 'localwms', 'target_id': 'localwms-local-test',
+    'machine': 'AppServer', 'operator': 'aisoft-preflight',
+    'helper': '/usr/local/libexec/aisoft/application-target-preflight',
+    'helper_version': 'application-target-preflight/v1',
+}
+EXPECTED_OPERATIONS['application.target.preflight.read'] = (
+    'application-preflight', False, ('target',),
+)
+
+
 def load_access_contract(
     access_path: str | Path,
     governance_path: str | Path,
@@ -325,7 +346,7 @@ def load_access_contract(
             "contract_version", "environment", "governance_contract_version",
             "human_merge_identity", "identity_bindings", "mac_host",
             "vm_profile_policy", "credential_rotation_policy", "operations", "projects",
-        },
+        } | ({'application_targets'} if 'application_targets' in raw else set()),
         "host access manifest",
     )
     _require(raw["contract_version"] == "host-access-broker/v1",
@@ -336,6 +357,9 @@ def load_access_contract(
     _require(raw["governance_contract_version"] == "gitea-governance/v1",
              "unexpected governance contract reference")
 
+    if 'application_targets' in raw:
+        _require(raw['application_targets'] == [APPLICATION_TARGET],
+                 'application targets must use the exact approved binding')
     governance = load_governance_contract(governance_path)
     _require(raw["human_merge_identity"] == governance.human_merge_identity,
              "human merge identity does not match governance manifest")
@@ -457,7 +481,10 @@ def load_access_contract(
             mutating=expected_mutating,
             arguments=expected_args,
         ))
-    _require(names == set(EXPECTED_OPERATIONS), "operation catalog must be complete and exact")
+    expected_names = set(EXPECTED_OPERATIONS)
+    if 'application_targets' not in raw:
+        expected_names.remove('application.target.preflight.read')
+    _require(names == expected_names, "operation catalog must be complete and exact")
 
     projects_raw = raw["projects"]
     _require(isinstance(projects_raw, list), "projects must be a list")

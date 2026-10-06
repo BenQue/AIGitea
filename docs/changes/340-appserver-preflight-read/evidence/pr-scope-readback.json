@@ -1,0 +1,23 @@
+{
+  "observed_at": {
+    "utc": "2026-10-06T00:25:18.900446+00:00",
+    "jst": "2026-10-06T09:25:18.900446+09:00"
+  },
+  "operation": "gitea.pulls.read",
+  "state": "all",
+  "returned_count": 50,
+  "highest": 341,
+  "lowest": 245,
+  "same_issue_340": [],
+  "open_rows": [
+    {
+      "number": 341,
+      "head": "change/339-install-hsdb-broker",
+      "state": "open"
+    }
+  ],
+  "full_pagination_proven": false,
+  "remote_change_namespace": "GAP",
+  "exact_candidate_fetch_host": "HOST_COMMAND_FAILED",
+  "branch_absent_proven": false
+}

@@ -34,6 +34,7 @@ make_source_tree() {
   cp -R "$ROOT/codex/runtime/aisoft_gitea_governance" "$dest/codex/runtime/"
   cp "$ROOT/codex/runtime/aisoft_change_name.py" "$dest/codex/runtime/"
   cp "$ROOT/codex/runtime/aisoft_worktree_owner.py" "$dest/codex/runtime/"
+  cp "$ROOT/codex/runtime/aisoft_main_integration.py" "$dest/codex/runtime/"
   cp "$ROOT/codex/config/host-access-broker.json" "$dest/codex/config/"
   cp "$ROOT/codex/config/gitea-governance.json" "$dest/codex/config/"
   cp "$ROOT/codex/config/gitea-labels.json" "$dest/codex/config/"
