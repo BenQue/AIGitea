@@ -18,7 +18,7 @@
 | 领域 | 已合并能力 / 证据 | 安装与现场边界 |
 |---|---|---|
 | 基础设施与 Runner | `gitea-ci` 的 Gitea 1.26.4、act_runner、Verdaccio、Mailpit 为既有 as-built；#309 记录 Flutter 3.32.8 / unzip 验收；#311 保留 SFMDigitalBoard 在用 Node 22 并补来源记录 | Node 22 安装者、安装日期和上游 provenance 仍为 `unknown`；历史服务验收不代表今日健康，见 [01](01-基础设施-VM-Gitea-Runner.md) |
-| 治理集合与 CI | manifest 共 6 仓：AISoftPlatform、LocalWMS、NewEMaint、SFMDigitalBoard、myapp、smoke-test；#252 退出的五个业务项目中仅 SFMDigitalBoard 经 #275 重新接入，`vm_profile: null`；#312 同步 NewEMaint required contexts | 当前集合见 [manifest](codex/config/gitea-governance.json)；#299 保留平台仓 outdated-branch gate，internal-application 的关闭须具备合并预览与 push-main CI，逐仓验收 |
+| 治理集合与 CI | #334 核对基线为 6 仓；#337 的 source 声明恢复 HSDB 后为 7 仓：AISoftPlatform、HSDB、LocalWMS、NewEMaint、SFMDigitalBoard、myapp、smoke-test；#252 后 SFMDigitalBoard 经 #275、HSDB 经 #337 恢复，两者均 `vm_profile: null`；#312 同步 NewEMaint required contexts | 当前 source 集合见 [manifest](codex/config/gitea-governance.json)；HSDB 保持 private/manual 与 `CI / test (pull_request)`，安装、账号及 adoption 仍须独立验收，见 [#337 verification](docs/changes/337-restore-hsdb-governance/verification-restore-hsdb-governance-261004.md)；#299 保留平台仓 outdated-branch gate，internal-application 的关闭须具备合并预览与 push-main CI，逐仓验收 |
 | Matt / 双 provider | 固定 Matt v1.2.2 snapshot；`triage → to-spec → to-tickets → implement`；#318 修齐 Codex/Claude 会话和接入合同，#320 明确每次 push 的 SHA 核对 | adapters 等价、可互换；默认 `IMPLEMENT_PROVIDER=none`，真实 provider / 项目启用矩阵仍须独立完成，见 [08](08-双工具共存与实施.md) |
 | Worktree 与文档硬门 | #298 单写者 claim / broker 归属闸门，#304 记录两机安装；#289 严格校验 `required_docs` 声明、映射和实际文件，resolver / Loop / 终态工具共享结果 | #289 runtime 与本地验证已完成；source 之外按安装证据验收；另一会话不得代写 worktree，见 [03](03-Issue-Spec-Plan与单闸门开发流程.md) |
 | Broker / routine merge | typed Issue/PR/Actions/Git 与 #208 独立 merger 全硬门；#313 补 routine scope 的 `read:user`；#286 增 manifest 限定只读跨仓依赖，唯一新增边为 `sfm-digital-board → aisoft-platform` | AISoftPlatform `routine_auto_merge_enabled=false`，始终 manual；routine 身份、scope、protection 与真实 opt-in 逐仓读回，不能由源码存在推导启用 |
@@ -31,8 +31,6 @@
 
 **尚未进入稳定源码的工作**：[#327](http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/327)
 仍 open，跟踪保留历史的 main 整合与普通 FF 发布路径；当前已合并 broker 的发布约束不因此放宽。
-- 🟡 #327（2026-10-05 收缩）：仅保留历史的 main 整合、普通 FF、非法/并发漂移拒绝、required CI 与恢复。首次 main 整合由负责人本人按标准 Git 执行；首次发表仍先完成最小实现/验证与唯一 PR 第二确认。root authority、ES/kernel/signing、完整 OS 闭包与 scratch 隔离明确延期，旧 FAIL/GAP/NOT RUN 保留；不等待未交付 R02，不安装 unmerged broker。当前 scope 与精确路径见 [#327 spec](docs/changes/327-broker-ff-integration/spec-broker-ff-integration-261002.md)。
-
 #333 仍 open，`approved` 仅授权其自身合同内工作；本次没有核对其现场执行结果，不宣称已完成。
 Windows Server 2022 x64、公司 AD/JEA 与 [14](14-Windows部署与迁移验收清单.md) 验收仍按原 `NOT RUN` 边界保留。
 
@@ -270,3 +268,7 @@ project agent 为准：先只读 check，再一次处理一个明确仓库，回
 - **Change ID（Windows 目标合同）**：原型 `<项目三字符代码>-NNNN`、正式 `PRD-NNNN`；用于分支、文档、制品和部署记录。现有 runtime 尚未实现该格式
 - **权威分工**：持续协作模式下本地 Gitea 是开发权威、公司 Gitea 是部署权威、私有 GitHub 是搬运中继；只有未来彻底下线本地开发平台时才执行 [13 §11](13-项目结果迁移与内网切换实施手册.md#11-phase-h最终权威切换备选路径当前不采用) 的备选权威源切换
 - **Architecture declaration/lock**：项目人工维护 `.aisoft/architecture.json`，平台工具生成 byte-identical `architecture.lock.json`；候选 lock 只证明合同可解析，不代表 migration 或 deployment 完成
+
+## 8. #327 当前变更合同（2026-10-05，尚未进入稳定源码）
+
+- 🟡 #327（2026-10-05 收缩）：仅保留历史的 main 整合、普通 FF、非法/并发漂移拒绝、required CI 与恢复。首次 main 整合由负责人本人按标准 Git 执行；首次发表仍先完成最小实现/验证与唯一 PR 第二确认。root authority、ES/kernel/signing、完整 OS 闭包与 scratch 隔离明确延期，旧 FAIL/GAP/NOT RUN 保留；不等待未交付 R02，不安装 unmerged broker。当前 scope 与精确路径见 [#327 spec](docs/changes/327-broker-ff-integration/spec-broker-ff-integration-261002.md)。

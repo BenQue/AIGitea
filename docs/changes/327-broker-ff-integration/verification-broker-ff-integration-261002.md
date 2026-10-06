@@ -17,7 +17,7 @@ risk_flags:
 depends_on: []
 branch: change/327-broker-ff-integration
 created: 2026-10-02
-updated: 2026-10-05
+updated: 2026-10-06
 status: pending
 ---
 
@@ -569,3 +569,16 @@ canonical interpreter与held FD的kernel exec核对方案仅为待审security pr
 - 文档/graph/staged/parent/tree 的实际执行与最终治理 G 在本证据根 `governance-stop.json` 记录；只有实际成功才报告 PASS。T02 保持 in-progress，T03 pending，本輪治理成功后 STOP。下一具体本人操作为 `human-first-main-integration.md` 中只本地的标准 Git 整合；不再等待未交付 R02。
 
 当前 AC-1 仅本轮治理/保全子项可验；AC-2～6/8 最小 Git/source/CI/首次发布尚未完成；AC-7/9～11 DEFERRED 并保留原 GAP/NOT RUN。最新 smoke 仍 staleness guard 失败、runtime NOT REACHED；旧 1254 tests/7 FAIL/9 ERROR 原样保留。延期不是 skip 原 required 门或测试通过，source/local/CI 仍不能证明 installed/live。
+
+
+## 2026-10-06 人工 main 整合预检停止与 README 对齐候选
+
+- 实际 HEAD 仍为 4f7d2c29122a559c640c8d46837bd9df37a101b7，branch/owner 不变；本人 fetch main 为 c9b5ef4e74592cbc68d6bdc6219568a1d51b6853。原 32 源码 WIP 已 park 于不可变 stash 4888c0345a90ab76560f33172dd9923f79c3a988，其第一 parent 为治理 HEAD；bundle heads/verify 实际 PASS。stash 的 32 文件 bytes 与执行位已逐项匹配原保全记录，stash index 对应原治理 HEAD。原 tar 的完整 mode/uid/gid 仍为恢复事实源。
+- 原 merge-tree --write-tree 预检在 set -e 下以 1 停止，stdout 被收进变量，未显示冲突原因。实际 merge/整合 commit 尚未运行：HEAD 未变、index/工作区 clean、无 MERGE_HEAD/unmerged；clean 只表示 WIP 已 park。
+- 独立临时 object directory 中对原 G/M 连续两次复现，均 exit 1、stdout SHA256 相同。仅 README.md 的两个段落冲突：旧六仓与 main #337 恢复 HSDB 后七仓的说明、本票 #327 收缩说明。诊断期间原 index/refs/owner/worktree 未变。诊断与候选位于本 owner evidence 的 diagnostic-human-preflight-20261006-2pwsjf8z/，未修改原执行文件或旧治理 STOP receipt。
+- 未应用的 README 候选保留完整 main README，并把原 #327 收缩段正文移到独立第 8 章；包含七仓/HSDB source、private/manual/required CI/安装与 adoption 边界。第一版原位置候选的文本预检仍冲突，已保留其失败输出。编号修正前的第 7 章保留候选对共同基线与 main 的 git merge-file -p 文本预检 exit 0，输出等于该历史候选；本轮第 8 章候选亦实际文本预检 exit 0，stdout SHA256 为 ee66d6cb9d4f5dbc98b0059a336300affcdfe2cedce1c552cc743cc347466757，等于本轮 README bytes，输出保留于 alignment-current-README.text-preflight.stdout。两次结果各自只证明其文本候选，不证明完整 main 整合、runtime/CI/安装/发表。
+- 原冲突停止要求保持。候选仅 README.md 与本 verification 的真实事实回填，等待本人确认后才独立本地线性文档 commit/STOP；之后重试限定无冲突 main 整合。原 stash/bundle 保留，不重复首次 stash、不重 pin R0/R；所有旧 FAIL/GAP/NOT RUN 保留。
+
+授权回填（2026-10-06）：本人在本 owner 会话对“只对齐 README、回填 verification，并本地线性提交后 STOP”明确回复“确认”。本次只落实这两份文档；既有 stash/bundle 与延期边界保留。后续本人标准 Git 的 main 整合、runtime/CI/发表/安装仍 NOT RUN。
+
+两文档 checkpoint 的链接边界：完整 main README 中引用的 #337 verification 在 exact M c9b5ef4e74592cbc68d6bdc6219568a1d51b6853 中存在，当前治理 G 工作树尚未带入该文件。本次只对齐两份文档，不复制第三文件；此相对链接在本地对齐 checkpoint 暂记 GAP，待本人整合 M 后核对闭合。#327 resolver/graph 文档检查不代表 README 全部相对链接已闭合。
