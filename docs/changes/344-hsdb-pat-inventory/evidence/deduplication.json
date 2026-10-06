@@ -1,0 +1,130 @@
+{
+  "recorded_at": "2026-10-06T10:13:37.853304+09:00",
+  "open_issue_count": 6,
+  "source_main": "96ba8a17baad8e9854d4e8d0397d4162b8067b09",
+  "new_issue": 344,
+  "same_capability_owner_found": false,
+  "issues": [
+    {
+      "number": 327,
+      "title": "governance(broker): 提供保留历史的 main 整合与 FF 发布路径",
+      "state": "open",
+      "labels": [
+        "triage/needs-triage"
+      ],
+      "body_sha256": "2f7202d7f7e0eb2df4ad1f028d76f536b20d0905ed4f9d8906cc99c5ee577216",
+      "comments_read": true,
+      "comments_count": 0,
+      "duplicate_of": null,
+      "judgment": "different: main integration/FF; future publication prerequisite only"
+    },
+    {
+      "number": 333,
+      "title": "ops(credentials): #316 源码合并后的安装与 PAT 轮换现场验收",
+      "state": "open",
+      "labels": [
+        "approved",
+        "complexity/complex",
+        "triage/needs-triage",
+        "type/security"
+      ],
+      "body_sha256": "db602bdd99708224eaf036534d13634b82397e01422e404b6f6ccfd3590db717",
+      "comments_read": true,
+      "comments_count": 0,
+      "duplicate_of": null,
+      "judgment": "different: smoke-test protected-marker reader and rotation field contract"
+    },
+    {
+      "number": 336,
+      "title": "feat(broker): 完整分页 PR 读取与公开 namespace 证明",
+      "state": "open",
+      "labels": [
+        "approved",
+        "complexity/complex",
+        "triage/needs-triage",
+        "type/security"
+      ],
+      "body_sha256": "d40875cb8666a00d2ee039033812fbe86e9789df77633856156e2b20d1b93df7",
+      "comments_read": true,
+      "comments_count": 0,
+      "duplicate_of": null,
+      "judgment": "different: PR collection and Issue333 namespace only"
+    },
+    {
+      "number": 340,
+      "title": "feat(broker): 为 LocalWMS AppServer 增加固定目标只读预检",
+      "state": "open",
+      "labels": [
+        "triage/needs-triage"
+      ],
+      "body_sha256": "82812dfbf2a6e31b85c5739281beaa0e27b03f10ba54e54ad46df6a8d5fb5983",
+      "comments_read": true,
+      "comments_count": 0,
+      "duplicate_of": null,
+      "judgment": "different: LocalWMS AppServer preflight"
+    },
+    {
+      "number": 342,
+      "title": "ops(hsdb-access): 恢复 hsdb-agent 已有登录通道",
+      "state": "open",
+      "labels": [
+        "complexity/complex",
+        "triage/needs-triage",
+        "type/security"
+      ],
+      "body_sha256": "41b7f827a644961400779d997a3d2496213b664e1f0ada0852636f6dc5419d4d",
+      "comments_read": true,
+      "comments_count": 0,
+      "duplicate_of": null,
+      "judgment": "different: UID5 bounded login recovery; result document disposition separate"
+    },
+    {
+      "number": 343,
+      "title": "ops(hsdb-auth): 只读定位认证链路并准备精确恢复审阅卡",
+      "state": "open",
+      "labels": [
+        "complexity/complex",
+        "triage/needs-triage",
+        "type/security"
+      ],
+      "body_sha256": "8866b125e2a0a6a89aefc86c5aa4dd5cadc5cfe53421d490b76526581512593b",
+      "comments_read": true,
+      "comments_count": 0,
+      "duplicate_of": null,
+      "judgment": "different: R1 diagnosis/proposal; exact evidence input"
+    },
+    {
+      "number": 337,
+      "title": "platform(governance): 恢复 HSDB 注册并保持人工合并与自动化禁用",
+      "state": "closed",
+      "labels": [
+        "completed",
+        "complexity/complex",
+        "triage/needs-triage",
+        "type/platform"
+      ],
+      "body_sha256": "8de1b5e93adb94f89965a5cc66a3f11a5002f534810e72b695c0a8ec64c98714",
+      "comments_read": false,
+      "comments_count": 0,
+      "duplicate_of": null,
+      "judgment": "terminal source prerequisite"
+    },
+    {
+      "number": 339,
+      "title": "ops(broker): 固定版本安装 HSDB 注册并验收两端共享安装面",
+      "state": "closed",
+      "labels": [
+        "completed",
+        "complexity/complex",
+        "triage/needs-triage",
+        "type/security"
+      ],
+      "body_sha256": "5ead8e988454b248a4985b77538c4ad1e1d114949db029d6a6067ee299391639",
+      "comments_read": false,
+      "comments_count": 0,
+      "duplicate_of": null,
+      "judgment": "terminal install prerequisite"
+    }
+  ],
+  "raw_nonsecret_readback_archive": "/Users/benque/.codex/visualizations/2026/10/06/01a10ebe-7d29-73d0-9151-51fd09f71b49/hsdb-pat-inventory/issue-readback.json"
+}

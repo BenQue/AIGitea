@@ -1,0 +1,38 @@
+{
+  "version": "1.26.4",
+  "context7_library": "/go-gitea/gitea",
+  "context7_version": "main; exact version not supplied",
+  "source_files": [
+    {
+      "path": "routers/api/v1/api.go",
+      "sha256": "6d87a926cd56130c96fee79b295962a1b69fd3af925f9557e1c458c143bb17bb",
+      "official_url": "https://github.com/go-gitea/gitea/blob/v1.26.4/routers/api/v1/api.go"
+    },
+    {
+      "path": "routers/api/v1/user/app.go",
+      "sha256": "9a9999698660a80d4fce007a35dc6788456e6c95526621336494a9110362f887",
+      "official_url": "https://github.com/go-gitea/gitea/blob/v1.26.4/routers/api/v1/user/app.go"
+    },
+    {
+      "path": "modules/structs/user_app.go",
+      "sha256": "f5669cf1d4c6c2c01eaaad9aa63755bb999b4b70332e4a940e44cc2c70d2e62f",
+      "official_url": "https://github.com/go-gitea/gitea/blob/v1.26.4/modules/structs/user_app.go"
+    },
+    {
+      "path": "models/auth/access_token.go",
+      "sha256": "dcf0e3fd325fe98e91d8a2e216aedbaf08fed20625748bbbdf03f090fc1728cd",
+      "official_url": "https://github.com/go-gitea/gitea/blob/v1.26.4/models/auth/access_token.go"
+    },
+    {
+      "path": "services/context/user.go",
+      "sha256": "86fa93b775d59d3addbe22556d30d861b61002567895e14d760a2b98c8051d1c",
+      "official_url": "https://github.com/go-gitea/gitea/blob/v1.26.4/services/context/user.go"
+    },
+    {
+      "path": "services/auth/basic.go",
+      "sha256": "0a050c665cc4ac60528c91b838afa47b532528b03f8acb5e524affc4c8d748e3",
+      "official_url": "https://github.com/go-gitea/gitea/blob/v1.26.4/services/auth/basic.go"
+    }
+  ],
+  "live_API_inventory": "NOT RUN"
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "aisoft.issue344.public-evidence/v1",
+  "files": {
+    "api-source-evidence.json": "7a9fd3b1f3163451026b5feb845329f9583f9ae81c7af0d2a9b7b3b3f6b104ac",
+    "deduplication.json": "64bec94c1a481c7fb651025ac693a344f31d1bac4b949ced4f175afb71833139",
+    "inputs.json": "01bd56d2f7ca5ff89a1b3564161feaafc4de796d18bcc91df7e5d221395821e7",
+    "installed-catalog.json": "62f4b8a2953f2a7d67d2b572c93d2b02daae4aa1d580d35946b4f3461c7f39d7"
+  },
+  "secret_content_included": false,
+  "approval_G1": null,
+  "runtime": "NOT RUN"
+}

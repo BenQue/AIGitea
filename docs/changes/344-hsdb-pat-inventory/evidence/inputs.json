@@ -1,0 +1,29 @@
+{
+  "source_thread": "01a1071e-d973-71a1-99a8-da35d447d1cd",
+  "owner": "01a10ebe-7d29-73d0-9151-51fd09f71b49",
+  "input_card": "/Users/benque/.codex/visualizations/2026/10/06/01a10e9d-6181-7f22-8836-5fe05d324689/hsdb-auth-diagnosis/r1-no-records-20261006/无记录恢复交接卡-A2B2-20261006.md",
+  "input_card_sha256": "a50a2e3554caa611e9738e59ffea637a1ff241f02735bef281aaf662002bee7f",
+  "343_head": "da96c0ab1cbdf7e925310d74115d9a56956fee1b",
+  "342_head": "49d6cd985fed976bf05ce88885ec37271caf4234",
+  "342_result": "AC-4 FAIL/ACCESS_GAP; original flag restored true; window closed",
+  "343_dependencies": [
+    337,
+    339,
+    342
+  ],
+  "343_dependencies_edited": false,
+  "historical_PAT_records": "human: 没有记录或不确定",
+  "canonical_PAT_id": null,
+  "canonical_PAT_provenance": null,
+  "canonical_content_or_hash_read": false,
+  "current_inventory": "NOT RUN",
+  "future_source_issue": null,
+  "future_install_issue": null,
+  "future_read_issue": null,
+  "operator_UID": null,
+  "operator_login": null,
+  "secure_transport": null,
+  "tool_source_pin": null,
+  "tool_installed_pin": null,
+  "read_window": null
+}
