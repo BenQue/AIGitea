@@ -1,0 +1,79 @@
+{
+  "phase": "AWAITING_START_CONFIRMATION",
+  "observed_utc": "2026-10-06T00:27:57.038654+00:00",
+  "observed_jst": "2026-10-06T09:27:57.038654+09:00",
+  "issue": 340,
+  "project": "aisoft-platform",
+  "owner": "01a10e8e-9128-7fa2-97a8-6493ee84be08",
+  "branch": "change/340-appserver-preflight-read",
+  "worktree": "/private/tmp/issue-340-appserver-preflight-read",
+  "baseline": "c9b5ef4e74592cbc68d6bdc6219568a1d51b6853",
+  "head": "c9b5ef4e74592cbc68d6bdc6219568a1d51b6853",
+  "policy": "manual",
+  "change_type": "platform",
+  "effective_complexity": "complex",
+  "contract_effect": "add",
+  "change_control": "production",
+  "required_docs": [
+    "summary",
+    "spec",
+    "plan",
+    "verification"
+  ],
+  "documents": {
+    "summary": {
+      "path": "/private/tmp/issue-340-appserver-preflight-read/docs/changes/340-appserver-preflight-read/summary-appserver-preflight-read-261006.md",
+      "sha256": "3fc0d15a68d8eaf7f5bb2ae4b0c8c38eb76d7e46e8e154d1e951fd62df37ddc8"
+    },
+    "spec": {
+      "path": "/private/tmp/issue-340-appserver-preflight-read/docs/changes/340-appserver-preflight-read/spec-appserver-preflight-read-261006.md",
+      "sha256": "e1e1ad6df3b8a655606c86f081223b84428155e821934317b9c13c5d5d75b404"
+    },
+    "plan": {
+      "path": "/private/tmp/issue-340-appserver-preflight-read/docs/changes/340-appserver-preflight-read/plan-appserver-preflight-read-261006.md",
+      "sha256": "caa8fbc3986349941df46692b88f1cbe1a341e31d01f0b68612755a8579fcc20"
+    },
+    "verification": {
+      "path": "/private/tmp/issue-340-appserver-preflight-read/docs/changes/340-appserver-preflight-read/verification-appserver-preflight-read-261006.md",
+      "sha256": "458a83738c47071a474590e3d93a56ef44c89847f36c5861814c53e1ae6216ea"
+    }
+  },
+  "card": {
+    "path": "/Users/benque/.codex/visualizations/2026/10/06/01a10e8e-9128-7fa2-97a8-6493ee84be08/Issue340-开发启动确认卡-20261006.md",
+    "sha256": "d8c7684e0e7d7002c2cd69e915ef33a740e75b82ccfc8a99af7925e6689b5d13"
+  },
+  "source_tracked_changes": [],
+  "contract_preparation_only": true,
+  "start_approval": false,
+  "approved_projection": false,
+  "final_PR_approval": false,
+  "commit_count": 0,
+  "push": "NOT RUN",
+  "PR": "NOT RUN",
+  "runtime_tests": "NOT RUN",
+  "required_CI": "NOT RUN",
+  "installation": "NOT RUN",
+  "permission_changes": "NOT RUN",
+  "live": "NOT RUN",
+  "deployment": "NOT RUN",
+  "gaps": [
+    "remote same-Issue complete namespace proof",
+    "no-autostart execution primitive proof",
+    "live operator/helper/DB/Docker capabilities unverified"
+  ],
+  "heartbeat": "PAUSED; no automation operation",
+  "consumer_thread": "01a10bfa-fa27-7181-beb8-77c72d47ff21",
+  "consumer_message_sent": false,
+  "checks": {
+    "document_resolvers": "PASS",
+    "change_documents": "PASS",
+    "change_pr_url": "PASS",
+    "classification_static": "PASS",
+    "ticket_graph_static": "PASS",
+    "new_document_whitespace": "PASS",
+    "owner_tuple": "PASS",
+    "scope": "PASS"
+  },
+  "live_classification_projection": "NOT RUN",
+  "next": "本人实际启动确认；T01独立治理应用/本地commit后STOP，后续fresh run再实施runtime"
+}

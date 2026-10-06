@@ -11,8 +11,20 @@ from .contract import AccessContractError, load_access_contract
 from .profiles import ProfileMigrator
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="aisoft-host-access")
+class _PreflightArgumentsInvalid(Exception):
+    pass
+
+
+class _PreflightArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        # argparse embeds arbitrary request values in errors, including values
+        # of otherwise allowed flags supplied in the wrong position.
+        raise _PreflightArgumentsInvalid() from None
+
+
+def build_parser(*, sanitized_errors=False) -> argparse.ArgumentParser:
+    parser_type = _PreflightArgumentParser if sanitized_errors else argparse.ArgumentParser
+    parser = parser_type(prog="aisoft-host-access")
     parser.add_argument("--access-manifest", required=True)
     parser.add_argument("--governance-manifest", required=True)
     # Fixed install-time configuration supplied by the entrypoint, not a caller
@@ -25,6 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
     broker = commands.add_parser("broker")
     broker.add_argument("--project", required=True)
     broker.add_argument("--operation", required=True)
+    broker.add_argument("--target")
     broker.add_argument("--number", type=int)
     broker.add_argument("--reference")
     broker.add_argument("--state", choices=("open", "closed", "all"))
@@ -80,8 +93,48 @@ def _json(value: object) -> None:
     print(json.dumps(value, ensure_ascii=False, sort_keys=True))
 
 
+def _reject_preflight_arguments():
+    print(json.dumps({'status': 'BLOCKED_EXTERNAL', 'code': 'ARGUMENT_MISMATCH',
+                      'message': 'operation arguments do not match the typed contract'}),
+          file=sys.stderr)
+    return 20
+
+
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    preflight = ('application.target.preflight.read' in raw_argv or
+                 '--operation=application.target.preflight.read' in raw_argv)
+    if preflight:
+        # Reject duplicate/foreign flags before argparse can echo their values.
+        allowed = {'--access-manifest', '--governance-manifest', '--label-manifest',
+                   '--project', '--operation', '--target'}
+        seen, index, invalid = set(), 0, False
+        while index < len(raw_argv):
+            token = raw_argv[index]
+            flag = token.split('=', 1)[0]
+            if token in ('broker', '--help', '-h'):
+                if token in seen:
+                    invalid = True
+                seen.add(token)
+                index += 1
+                continue
+            if flag not in allowed or flag in seen:
+                invalid = True
+                break
+            seen.add(flag)
+            if '=' in token:
+                index += 1
+            elif index + 1 < len(raw_argv) and not raw_argv[index + 1].startswith('-'):
+                index += 2
+            else:
+                invalid = True
+                break
+        if invalid:
+            return _reject_preflight_arguments()
+    try:
+        args = build_parser(sanitized_errors=preflight).parse_args(raw_argv)
+    except _PreflightArgumentsInvalid:
+        return _reject_preflight_arguments()
     try:
         contract = load_access_contract(args.access_manifest, args.governance_manifest)
         if args.command == "validate":
@@ -117,6 +170,7 @@ def main(argv: list[str] | None = None) -> int:
                 color=args.color,
                 description=args.description,
                 token_kind=args.token_kind,
+                **({'target': args.target} if args.target is not None else {}),
             )
             _json(value)
             return 0
@@ -175,7 +229,7 @@ def main(argv: list[str] | None = None) -> int:
                 "DEPENDENCY_DUPLICATE", "DEPENDENCY_TARGET_DENIED",
             } else "BLOCKED_EXTERNAL",
             "code": code,
-            "message": str(exc),
+            "message": 'preflight request was refused' if preflight else str(exc),
         }, ensure_ascii=False, sort_keys=True), file=sys.stderr)
         return 20
 
