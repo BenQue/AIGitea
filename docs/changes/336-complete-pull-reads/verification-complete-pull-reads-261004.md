@@ -148,3 +148,33 @@ T02 实现与本地 commit 已完成。T03 本地 smoke、恢复与结果投影�
 | #336 最终候选回归/smoke/恢复/PR CI/installed 新协议 | NOT RUN；旧源及私人 v2 回归结果不能提升为最终 integrated 候选证据 |
 
 Mac 安装已完成，旧“未合并 #327 / 本机安装缺口”的门只作历史记录；现有未完成项是 #336 三路径兼容与合规 main 整合、最终候选验证、完整远端唯一性、唯一 manual PR 确认及 CI。AC 和分类不变；不改其他 Issue 的 worktree、owner、live 标签、安装或凭据。
+
+## 2026-10-06 fresh T03 真实修复、整合与最终本地验证
+
+本节为当前候选结果，更新此前 STOP/merge conflict 与本机安装缺口的历史状态；既有合同及其 AC 不变。证据目录：`/Users/benque/.codex/visualizations/2026/10/05/01a10c82-7f6b-7093-80d5-d389a18198c0/issue-336-t03-fresh-runtime-261006/`。
+
+| Command / gate | 真实结果 | 证据与边界 |
+|---|---|---|
+| fresh owner/contract/scope/qualification + canonical main/Issue/protection/namespace | PASS | 独立 predecessor HEAD=`7f9108dc3fc1c70d863830ee632c3ba8b2b3e45d`；固定 M 的实际 installed qualification；`fresh-start.json`、四项 `*-host` 原始输出 |
+| 隔离新兼容候选 + scope/history/merge-tree | PASS_NO_CONFLICT | `clean-integration-preview.json`；旧两项冲突日志仍保留，未用手工 conflict resolution 绕门 |
+| 两路径线性兼容修复 local commit | PASS | `fb47f37b20d578ba4c88036b9d6810f3bbd66fcc`；原测试路径当时字节不变；`actual-repair-commit.json` |
+| qualified fixed M `LocalGit.integrate_main()` | PASS | 实际 commit=`44c4651e3bb44d69a09a160b4ade94fa4aac25cf`，parents=[repair tip,M]、tree=`44ecc514176a3fb59b9c08d9af146cb616d61e06` 与独立 merge-tree 相同，history gate PASS；`actual-main-integration.json` |
+| 原第三路径新增拒绝门/Git 环境回归并本地提交 | PASS | runtime HEAD=`db40d4e3ee14313dd45e25201a1ffdf1ff9e8a21`；`gate-test-commit.json`，原源码/安全合同未扩大 |
+| 最终 runtime HEAD 的新夹具与受影响五 suites | PASS，347 tests，exit0 | repo-root `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m unittest -v codex.runtime.tests.test_host_access_complete_reads codex.runtime.tests.test_host_access codex.runtime.tests.test_main_integration codex.runtime.tests.test_controller codex.runtime.tests.test_worktree_owner`，实际 Python3.14，`affected-final.*.log` |
+| 最终固定 clean runtime HEAD 默认完整 `bash codex/tests/smoke.sh` | PASS，exit0；全量 runtime 1228 tests | `default-smoke.*.log` 与 `final-runtime-validation.json`；无 skip/bypass/运行中 commit，isolated installer/release fixtures 不代表实际安装/公司执行 |
+| final exact 三路径 patch 真实 forward/reverse/forward | PASS，七步 exit0 | `runtime-final.patch` SHA256=`ed1a5ea97363ed22862333e16ad0344d9c2155b1faafe0c7b08ae09eebdfb6b0`；`source-replay.json`，bytes/mode/new-file 状态每轮匹配，末次 reverse 恢复 M clean baseline |
+| 冻结 AST、scope、classification | PASS | `runtime-static-validation.json`；M 的完整 `_git`、`_remote_change_heads`、`_validated_remote`、`_validated_project_worktree`、`_verify_identity`、`_change_tip`、`_read_main_head`、`_request_json`、`_run` AST 相同，全部既有顶层 broker functions 不变；分类 exact --verify 为 projected/security/complex |
+| 两次 canonical installed M open PR/namespace 唯一性 | PASS | 均显式空 page1、server open_pr_counter=0、#336 remote_known=true/remote_head=null；`final-namespace-open-pr-uniqueness.json`；仅此观测窗口，不冒充新 v1 receipt 能力 |
+| 既有 Mac M 安装保全 | PASS | 28目标 bytes/mode/root:wheel 与 fixed M 安装回执一致，生成的 source receipt JSON 也完全一致；`installed-M-preservation.json`；#336 仍未安装 |
+| 结果文档投影后的 final HEAD / source 等价 / clean / owner / scope | 真实结果见 final-candidate-receipt.json | 仅 summary/plan/verification 更新；spec/AC/protocol/git_scope 不变，static 门与完整最终历史门重跑 |
+| push / 最终 PR / required PR CI / #336 installed/live / Secret / 服务 / VM / 部署 | NOT RUN | 最终 PR 必须取得绑定 exact #336/branch/manual 的确认；merge 仍由人完成，安装/部署独立授权 |
+
+### 本轮失败及修正记录
+
+首次 canonical main sandbox 读取 exit20/TRANSPORT_ERROR，不代表 main/namespace absence；原 `main.stdout.json`、`main.stderr.json` 保留，同一 typed read 经 host exit0。本轮代码应用后断言误期待三文件均 dirty，实际测试文件与既有 bytes 相同，两个源文件 dirty；保留实际状态并由 Controller 只提交精确两路径，不额外改测试制造差异。
+
+新增环境夹具首次 1 PASS/1 FAIL，原假设只有3个 credential config；fixed M 实际先加入9个 Git 安全配置，共12项。夹具改为断言安全配置、固定 helper 顺序和 caller override 被删除，生产安全配置未减弱；最终新增2项及完整347项均 PASS。Mac 保全检查首次对 generated target 查静态 sha256 导致 KeyError，改用原固定回执 digest 与 expected JSON 验证，全28项 PASS，未写 installed 文件。原失败输出及状态说明均保留，不写成首次通过。
+
+### 当前 AC 与交付状态
+
+AC-1～5、AC-7 为最终 source/local PASS；AC-6 的全部本地门 PASS，最终 exact-head required PR CI 仍 NOT RUN；AC-8 的范围、已合并/已安装 bootstrap 能力、合法整合和当前唯一性准备 PASS，源 merged pin 及新协议 installed/live 在后续层记录。本轮已具备唯一最终 manual PR 的本地审阅候选，待提交确认；不声明 READY_FOR_REVIEW、CI/merge 或 #336 installed PASS。

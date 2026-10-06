@@ -110,3 +110,15 @@ AC 与三个 runtime 路径已经固定，合同/启动批准已取得，无待�
 #327 / PR #346 已合并；当前 Mac 已对固定 merge `1a86a0037ee76f462eac52dc7dc08d3d3fbd2ed4` 完成完整安装、真实恢复、再安装和幂等复验，回执 `PASS_MAC_FF_INSTALL_ACCEPTANCE`，旧 installed FF qualification 缺口已解除。上述旧 source38/installed38 观察仅保留历史含义；#336 新协议仍未安装、未发布。
 
 当前 Controller 要求 committed approved spec 声明 `git_scope`，本轮仅补充原三代码路径与四映射文档的精确机器投影，并本地提交后独立 STOP。隔离兼容预演仍为 `MERGE_CONFLICT`，实际 source/main 整合尚未执行；T03 继续 in-progress，最终候选、完整唯一性、发布确认与 PR CI 仍未完成，不声明 PR ready。
+
+## 2026-10-06 fresh T03 最终本地候选
+
+前一轮独立 `git_scope` 投影已提交并 STOP，本轮 fresh run 已重读 committed 合同及 owner，继续既有三个代码路径。兼容修复先作线性提交，再由已合并固定 M 的 qualified Controller 完成真实无冲突 `[C,M]` main 整合；未手工解决 merge 冲突、rebase/force history 或用未合并 runtime 发布自身。
+
+最终 runtime HEAD 为 `db40d4e3ee14313dd45e25201a1ffdf1ff9e8a21`，main 为 `1a86a0037ee76f462eac52dc7dc08d3d3fbd2ed4`。原三路径内，#333 专用读取使用独立 scoped dispatch；main 的完整 `_git`、identity/remote/普通 FF 方法及 preflight 错误脱敏保持。`_push_leased` 已由上游 #327 移除，本票保持其在 fixed M 中不存在的状态，不重新引入或修改 push 权限。
+
+347 项专项/受影响回归、默认完整 smoke（其中全量 runtime 1228 项）、最终三路径 forward/reverse/forward 与 frozen AST/范围门真实 PASS。新夹具另外证明 #333 在 target/remote/identity 拒绝前不发 Git 命令，并保持 main 的安全 Git 环境和固定 credential helper 顺序。PR CI、#336 新协议 installed/live 仍 NOT RUN。
+
+真实分类读回为 `security / complex`、`projected`；routine disabled，最终 policy 固定 manual。当前 installed M 两次成功读取均为显式空 page 1、server `open_pr_counter=0`，且 exact #336 namespace `remote_known=true,remote_head=null`，完整 open PR 集合与本票 branch absence 在该观测窗口内成立。不依赖未合并 #336 新读取协议；发布时仍需重新读取。
+
+本轮只将真实结果投影到 summary/plan/verification，approved spec 的 AC、协议与 `git_scope` 不变。最终文档 HEAD、代码字节等价、clean、owner、硬门及待 PR 确认状态见本轮证据目录 `final-candidate-receipt.json`。

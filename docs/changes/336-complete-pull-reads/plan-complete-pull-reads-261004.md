@@ -85,3 +85,15 @@ T03 在实际合规 FF/自举通道可用后准备 exact #336/branch/manual 最�
 本轮发现 approved spec 缺少当前 Controller 必需的 `git_scope`，先独立投影原三代码路径与四映射文档，作本地文档 commit 后 STOP。后续 fresh run 才继续 T03：重读 owner/合同/当前 main、在三路径内修复兼容性，先证明合规无冲突 main 整合，再固定实际候选执行适当回归/默认完整 smoke/真实恢复/唯一性与发布硬门。不得把私人候选套入实际 worktree 后手工解决 merge 冲突绕过 Controller。
 
 隔离预演的范围/history 前置门 PASS，但旧源与 v2 兼容候选对固定 main 均返回 `MERGE_CONFLICT`；预演未修改实际 runtime。既有私人 v2 345/1226 项结果不算最终 integrated 候选 PASS。本轮没有真实整合、push、PR 或 #336 安装。
+
+## 2026-10-06 fresh T03 最终本地候选
+
+前一轮独立 `git_scope` 投影已提交并 STOP，本轮 fresh run 已重读 committed 合同及 owner，继续既有三个代码路径。兼容修复先作线性提交，再由已合并固定 M 的 qualified Controller 完成真实无冲突 `[C,M]` main 整合；未手工解决 merge 冲突、rebase/force history 或用未合并 runtime 发布自身。
+
+最终 runtime HEAD 为 `db40d4e3ee14313dd45e25201a1ffdf1ff9e8a21`，main 为 `1a86a0037ee76f462eac52dc7dc08d3d3fbd2ed4`。原三路径内，#333 专用读取使用独立 scoped dispatch；main 的完整 `_git`、identity/remote/普通 FF 方法及 preflight 错误脱敏保持。`_push_leased` 已由上游 #327 移除，本票保持其在 fixed M 中不存在的状态，不重新引入或修改 push 权限。
+
+347 项专项/受影响回归、默认完整 smoke（其中全量 runtime 1228 项）、最终三路径 forward/reverse/forward 与 frozen AST/范围门真实 PASS。新夹具另外证明 #333 在 target/remote/identity 拒绝前不发 Git 命令，并保持 main 的安全 Git 环境和固定 credential helper 顺序。PR CI、#336 新协议 installed/live 仍 NOT RUN。
+
+真实分类读回为 `security / complex`、`projected`；routine disabled，最终 policy 固定 manual。当前 installed M 两次成功读取均为显式空 page 1、server `open_pr_counter=0`，且 exact #336 namespace `remote_known=true,remote_head=null`，完整 open PR 集合与本票 branch absence 在该观测窗口内成立。不依赖未合并 #336 新读取协议；发布时仍需重新读取。
+
+本轮只将真实结果投影到 summary/plan/verification，approved spec 的 AC、协议与 `git_scope` 不变。最终文档 HEAD、代码字节等价、clean、owner、硬门及待 PR 确认状态见本轮证据目录 `final-candidate-receipt.json`。
