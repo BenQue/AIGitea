@@ -42,6 +42,8 @@ T02 原 source/local 候选已完成；T03 in-progress。本人已批准 exact I
 
 PR 回填后 summary 正确进入 `pr-open`，最小 Git scope 原只接受 `approved`，实际回填提交的预检因而失败。本次仅修复原批准模块和测试：summary 允许 `approved|pr-open`，开放 PR 必须有唯一 exact Issue URL 与同仓正数 PR URL；spec 仍唯一 `approved`，空/错误/畸形重复字段全部拒绝。实际回填器→scope/history→bare ordinary FF 正向与16负向 cases 包含在 Python3.9 核心20项 PASS、Homebrew full runtime1148项 PASS，源码 hash 稳定，两轴 hard=0。完整 smoke 在 source guard 的 behind10 门 FAIL，未到 runtime；错误使用系统 Python3.9 的全仓1011项 FAIL也保留。只读三方 tree 预演无冲突，人工本地整合入口6个真实Git fixture PASS；下一步本人整合固定新 main 并 STOP，随后重跑默认 smoke，再更新同一 PR。实际后续整合/发表、final head/base CI、manual merge、安装/live仍 NOT RUN；旧失败和延期能力保留。
 
+2026-10-06 最新：上段为整合前断点。本人已完成本地 main 整合 `6e901201b54a281b235345835c61aad69ae3733f`，parents 精确 `[e102a1689c736da35de2caa06c7e7208329ec65b,000a3f73cd7069f4aef0a202b1a19555014fd887]`，tree=`da93c800ae1a953a5cc86f3dbee2fde1bdc52bc2`；完整 relevant18、owner与原/新增checkpoint bundle核对 PASS。原样默认 smoke 现 PASS（430.52s，full runtime1181项，before/after源码hash稳定），Python3.9核心100项 PASS，文档/静态门已在smoke内通过；旧behind10/系统3.9错误回归FAIL保留。新main已有#340接线与本票边界复核两轴hard=0，更新入口8真实bare fixture PASS。本次仅三mapped docs事实回填为测试head的本地单parent后继，原spec仍approved；随后本人沿原exact Issue/branch/manual确认，以固定guard/非零old-id普通FF更新同一PR346。当前remote/owner.last_push仍f97、R0仍known absent；后继发表与final head/base required CI、manual merge、安装/live均NOT RUN，不提前READY_FOR_REVIEW。
+
 ## 2026-10-05 收缩治理时的摘要（历史）
 
 本人 2026-10-05 在根聊天接受诊断收缩并授权一次定向续办；这不是旧 T10 的批准重放。本轮只完成具体收缩治理、验证/本地原子 commit 后 STOP，下一 fresh run 续 T02。exact owner/branch/worktree/manual 保持，最终唯一 PR 第二确认与本人 merge 独立保留。

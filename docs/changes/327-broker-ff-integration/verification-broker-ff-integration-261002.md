@@ -23,7 +23,25 @@ status: pending
 
 # #327 分层证据与 T05 独立治理验收
 
-## 2026-10-06 T03 最新：生命周期修复通过；新 main 整合待本人执行
+## 2026-10-06 T03 最新：实际新main本地整合与完整smoke已通过
+
+| Check | Result | Evidence / limit |
+|---|---|---|
+| 本人本地two-parent main整合 | PASS（实际本地） | `human-PR346-local-main-1791264514784092000.json`；H=`6e901201b54a281b235345835c61aad69ae3733f`，parents=`e102a1689c736da35de2caa06c7e7208329ec65b 000a3f73cd7069f4aef0a202b1a19555014fd887`，tree=`da93c800ae1a953a5cc86f3dbee2fde1bdc52bc2`与独立三方tree相同 |
+| 完整relevant历史/原owner/R0/bundle | PASS（本地读回） | 18 commits，owner hash不变、last_push仍f97/R0仍known absent；原stash/bundle保全；新增checkpoint bundle SHA256=`eb614277afec75dc2e57310a1569c0140e03815c3f5aa0f06273ca0a5c73ee05` |
+| 原样默认 `bash codex/tests/smoke.sh` | PASS（source/local） | `PR346-post-main-smoke1.json/.log`：exit0、430.52s、head=实际6e、main=000a3、before/after被核所有源码hash一致stable=true；未跳过任何原门 |
+| full runtime discover（包含在默认smoke内） | PASS | 1181 tests / OK，164.877s；含main已合并#340测试及本票生命周期正反向；不是installed/live验收 |
+| 固定Python3.9核心三模块 | PASS | `PR346-post-main-python39-core.log`：main integration/controller/worktree owner，100 tests / OK，23.910s；错误测试名称的额外调用66 tests/1 error日志保留，不冒称全仓3.9 PASS |
+| 新main接线/后继更新入口两轴复核 | PASS（增量） | Spec hard0/scope creep0、Standards hard0/new smell0；#340为已有main输入，不作本票扩张 |
+| 本人更新入口临时bare remote | PASS（8fixture） | 已有ref普通FF、缺批准、ref漂移、dryrun失败、最终回填越界、默认smoke失败、测试源码摘要漂移、实际整合回执漂移；guard/owner/R0/actual remote逐项核对；实际项目更新NOT RUN |
+| fresh Issue/active PR/protection | PASS（typed读取） | Issue327 open；唯一active PR346 open/notmerged、head=f97/base000a3；required `CI / verify (pull_request)`、outdated blocking与main push/force禁令保持 |
+| 本次最后事实回填 | source/local only | 仅summary/plan/verification，原spec保持approved、runtime/配置/脚本与被测head字节相同；原owner本地单parent后继的SHA/tree/完整历史在外部回执 |
+| 本人后继普通FF / final head-base required CI / manual merge | NOT RUN | 沿原exact Issue/branch/manual批准更新同一PR346，固定非零old-id=f97、guard、smoke/source及实际整合证据；旧f97 CI success不覆盖新head，尚未READY_FOR_REVIEW |
+| installed/live/部署 | NOT RUN | 原root/OS/authority等延期与安装GAP保持；上述本地和fixture证据不投影为现场通过 |
+
+原 `PR346-lifecycle-smoke` behind10 FAIL、系统3.9误用全仓1011项6errors/1failure与全部初始发表possible-write/guard/owner记录原样保留。当前通过的是本人完成新main整合后的固定源码完整门。本轮不重pin/drop/pop旧stash、删除恢复对象、改身份/Secret/权限、安装或部署；后继发布前仍保存完整actual/possible write回执。
+
+## 2026-10-06 T03 历史断点：生命周期修复通过；当时新main整合待本人执行
 
 以下仅更新本轮已实际观察到的层次；下文历史 FAIL/GAP/NOT RUN 与保全对象均保留。
 

@@ -36,7 +36,7 @@ status: approved
 | T09 | 历史：Mac interpreter 绑定治理；能力延期未验收 | T08 | completed |
 | T10 | 历史：七文档治理 commit f8750441 后 STOP；旧 M 未整合 | T09 | completed |
 | T02 | 最小 FF/DAG/tree/strict-R/owner/Controller/受管映射完成；原样默认 smoke（runtime 1146）、Python3.9 核心 98 与 shell/source mapping PASS；固定最终本地候选见外部回执 | T10 | completed |
-| T03 | exact 最终提交批准已取得；本人首次普通 FF、guard/remote/owner读回 PASS；唯一 PR #346 初始CI success；pr-open scope 修复/core20/runtime1148 PASS；fresh main/base推进至000a3f73，默认smoke behind10 FAIL保留；本人新main本地整合/全门/同一PR更新/final CI/manual merge与收尾待完成 | T02 | in-progress |
+| T03 | 原exact提交批准保留；本人首次FF/PR346初始CI、本地新main two-parent整合PASS；原样默认smoke/runtime1181、Python3.9核心100、两轴hard=0与更新入口8barefixture PASS；本地事实回填后同一PR普通FF/final CI/manual merge与收尾待完成，旧FAIL保留 | T02 | in-progress |
 
 ## 本轮与最短后续
 
@@ -83,3 +83,11 @@ T03 保持 in-progress；下一真实人工操作为已绑定 H/M/owner/stash/bu
 上段 queued 为创建断点，后续 actual initial CI 已 success。PR 回填 local commit `019cabf9bac4e456fefcf397ed503f086250882a` 保留为首次H的单parent后继；scope 的 approved-only 与既有回填器 pr-open 冲突已在原模块/测试范围修复。summary开放PR须唯一exact Issue/同仓PR URL，spec仍唯一approved；实际回填与bare FF正向、16负向、核心20/全runtime1148及两轴hard=0通过，旧失败保留。
 
 fresh main与PR实际base已到 `000a3f73cd7069f4aef0a202b1a19555014fd887`，默认smoke sourceguard behind10 FAIL，runtime未到达；暂停旧发表入口。原owner本地线性修复提交后，由本人按新固定H/M/三方tree入口做本地two-parent main整合并STOP（checkpoint bundle保全、无owner/remote写）。入口6真实Gitfixture通过，含commit落地后lostreply有限读回；实际整合尚未执行。fresh owner重读并重跑完整默认smoke/历史/文档门后再为同一PR准备普通FF与final head/base CI。原exact Issue/branch/manual确认内的修复与回填不重复询问；PR manual merge、安装/部署仍独立，未提前ready或completed。
+
+## 2026-10-06 T03 实际新main整合与完整验证（最新）
+
+上述整合前断点保留。本人已形成 `6e901201b54a281b235345835c61aad69ae3733f` 的exact `[e102a1689c736da35de2caa06c7e7208329ec65b,000a3f73cd7069f4aef0a202b1a19555014fd887]`，三方tree/完整relevant18/clean/原owner与两bundle PASS；本地入口最终8fixture包括真实旧typed fetch回执与新字段、remote漂移拒绝，actual owner/remote write均NOT RUN。
+
+原样完整默认smoke现PASS，430.52s、full runtime1181 tests、before/after所有被核源码hash相同；Python3.9核心100项PASS。旧smokebehind10FAIL、系统3.9全仓误用FAIL、错误core测试名称调用FAIL均在外部原日志保留。新main已有接线和后继更新入口增量两轴hard=0，8真实bare更新fixture（含默认smoke失败、源码摘要漂移、整合回执漂移拒绝）PASS。
+
+只将当前事实回填summary/plan/verification，本地单parent接在测试head后，代码/配置/脚本/原approved spec不再改。固定最终H、测试源码blob与smoke回执、actual整合回执、完整DAG、R0/R/M、guard/owner保全后，给本人一条普通FF更新同一PR346命令；沿原批准不重复确认。fresh元数据只有一个active PR346，remote仍首次f97、base000a3；后继实际发表/final CI/manual merge/安装均NOT RUN，T03继续in-progress。
