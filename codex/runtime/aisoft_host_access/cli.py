@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import hashlib
 import os
 import sys
 from pathlib import Path
 
-from .broker import BrokerError, HostAccessBroker, credential_from_protocol
+from .broker import (BrokerError, HostAccessBroker, ReadCollection, credential_from_protocol,
+                     _pull_stdout, PULL_LIMIT, PULL_MAX_PAGES, PULL_MAX_COUNT,
+                     CHANGE_READ_MAX_REFS, COMMIT_SHA_RE)
+from aisoft_change_name import ChangeName, ChangeNameError
 from .contract import AccessContractError, load_access_contract
 from .profiles import ProfileMigrator
 
@@ -89,7 +93,86 @@ def build_parser(*, sanitized_errors=False) -> argparse.ArgumentParser:
     return parser
 
 
+PULL_RECEIPT_FIELDS = frozenset({
+    "schema", "status", "project", "repository", "operation", "identity", "state",
+    "count", "server_total", "scan_count", "terminal_empty_pages", "limit",
+    "max_pages_per_scan", "observed_at", "stdout_sha256",
+})
+NAMESPACE_RECEIPT_FIELDS = frozenset({
+    "schema", "status", "project", "repository", "operation", "identity", "issue",
+    "branch", "checkout", "remote_name", "scan_count", "complete", "refs",
+    "requested_head", "observed_at",
+})
+
+
+def _receipt_error() -> BrokerError:
+    return BrokerError("RESPONSE_SCHEMA_INVALID", "broker public read receipt is invalid")
+
+
+def _validate_scope(receipt, contract, project, operation):
+    if type(receipt) is not dict:
+        raise _receipt_error()
+    expected = {
+        "project": project.project_id, "repository": f"{contract.governance.owner}/{project.repository}",
+        "operation": operation, "identity": project.project_agent,
+    }
+    if any(receipt.get(key) != value for key, value in expected.items()):
+        raise _receipt_error()
+
+
+def _validate_namespace(receipt, contract, args):
+    if type(receipt) is not dict or set(receipt) != NAMESPACE_RECEIPT_FIELDS:
+        raise _receipt_error()
+    _validate_scope(receipt, contract, contract.project(args.project), "git.fetch.change")
+    if (receipt["schema"] != "aisoft.broker.change-namespace/v1" or receipt["status"] != "PASS"
+        or args.project != "aisoft-platform" or receipt["branch"] != args.branch
+        or type(receipt["issue"]) is not int or receipt["issue"] != 333
+        or type(receipt["scan_count"]) is not int or receipt["scan_count"] != 2
+        or receipt["complete"] is not True or type(receipt["observed_at"]) is not int
+        or receipt["observed_at"] <= 0 or type(receipt["checkout"]) is not str
+        or not os.path.isabs(receipt["checkout"]) or type(receipt["remote_name"]) is not str
+        or not receipt["remote_name"] or type(receipt["refs"]) is not list
+        or len(receipt["refs"]) > CHANGE_READ_MAX_REFS):
+        raise _receipt_error()
+    heads = {}
+    for item in receipt["refs"]:
+        if type(item) is not dict or set(item) != {"branch", "sha"} or type(item["branch"]) is not str or type(item["sha"]) is not str:
+            raise _receipt_error()
+        try:
+            name = ChangeName.parse_branch(item["branch"])
+        except ChangeNameError as exc:
+            raise _receipt_error() from exc
+        if name.issue_number != 333 or item["branch"] in heads or COMMIT_SHA_RE.fullmatch(item["sha"]) is None:
+            raise _receipt_error()
+        heads[item["branch"]] = item["sha"]
+    if list(heads) != sorted(heads) or receipt["requested_head"] != heads.get(args.branch):
+        raise _receipt_error()
+
+
 def _json(value: object) -> None:
+    if isinstance(value, ReadCollection):
+        raw = _pull_stdout(value)
+        receipt = value.read_receipt
+        if type(receipt) is not dict or set(receipt) != PULL_RECEIPT_FIELDS:
+            raise _receipt_error()
+        if (receipt["schema"] != "aisoft.broker.pull-collection/v1" or receipt["status"] != "PASS"
+            or any(type(receipt[k]) is not int for k in ("count", "server_total", "scan_count", "limit", "max_pages_per_scan", "observed_at"))
+            or receipt["count"] != len(value) or not 0 <= receipt["count"] <= PULL_MAX_COUNT
+            or receipt["server_total"] != receipt["count"] or receipt["scan_count"] != 2
+            or receipt["limit"] != PULL_LIMIT or receipt["max_pages_per_scan"] != PULL_MAX_PAGES
+            or receipt["observed_at"] <= 0 or type(receipt["terminal_empty_pages"]) is not list
+            or len(receipt["terminal_empty_pages"]) != 2
+            or any(type(page) is not int or not 1 <= page <= PULL_MAX_PAGES for page in receipt["terminal_empty_pages"])
+            or receipt["stdout_sha256"] != hashlib.sha256(raw).hexdigest()):
+            raise _receipt_error()
+        # Emit the exact UTF-8 bytes hashed by the broker, independent of locale.
+        stream = getattr(sys.stdout, "buffer", None)
+        if stream is None:
+            sys.stdout.write(raw.decode("utf-8"))
+        else:
+            stream.write(raw)
+        print(json.dumps(receipt, ensure_ascii=False, sort_keys=True), file=sys.stderr)
+        return
     print(json.dumps(value, ensure_ascii=False, sort_keys=True))
 
 
@@ -172,6 +255,17 @@ def main(argv: list[str] | None = None) -> int:
                 token_kind=args.token_kind,
                 **({'target': args.target} if args.target is not None else {}),
             )
+            if args.operation == "gitea.pulls.read":
+                if not isinstance(value, ReadCollection):
+                    raise _receipt_error()
+                _validate_scope(value.read_receipt, contract, contract.project(args.project), args.operation)
+                if value.read_receipt.get("state") != args.state:
+                    raise _receipt_error()
+            elif args.operation == "git.fetch.change" and args.project == "aisoft-platform" and args.branch is not None:
+                if ChangeName.parse_branch(args.branch).issue_number == 333:
+                    if type(value) is not dict or "namespace" not in value:
+                        raise _receipt_error()
+                    _validate_namespace(value["namespace"], contract, args)
             _json(value)
             return 0
         if args.command == "profile":
@@ -223,6 +317,22 @@ def main(argv: list[str] | None = None) -> int:
         raise BrokerError("COMMAND_INVALID", "unknown host access command")
     except (AccessContractError, BrokerError, OSError, ValueError) as exc:
         code = exc.code if isinstance(exc, BrokerError) else "CONTRACT_INVALID"
+        if code == "REMOTE_CHANGE_ABSENT" and isinstance(exc, BrokerError):
+            error_payload = {
+                "status": "BLOCKED_EXTERNAL", "code": code, "message": str(exc),
+            }
+            proof = getattr(exc, "public_receipt", None)
+            try:
+                _validate_namespace(proof, contract, args)
+                if proof["requested_head"] is not None:
+                    raise _receipt_error()
+            except (BrokerError, AccessContractError, AttributeError, UnboundLocalError):
+                error_payload["code"] = "RESPONSE_SCHEMA_INVALID"
+                error_payload["message"] = "broker public read receipt is invalid"
+            else:
+                error_payload["public_receipt"] = proof
+            print(json.dumps(error_payload, ensure_ascii=False, sort_keys=True), file=sys.stderr)
+            return 20
         print(json.dumps({
             "status": "NEEDS_HUMAN_DECISION" if code in {
                 "DEPENDENCY_FORMAT_INVALID", "DEPENDENCY_SELF",

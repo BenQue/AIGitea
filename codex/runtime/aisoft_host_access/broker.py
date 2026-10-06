@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import time
+import copy
+import selectors
 import base64
 import math
 import os
@@ -162,6 +166,126 @@ COLLABORATOR_USER_FIELDS = (
 COLLABORATOR_USER_REQUIRED_FIELDS = frozenset({
     "login", "username", "is_admin",
 })
+
+
+
+
+PULL_LIMIT = 50
+PULL_MAX_PAGES = 100
+PULL_MAX_COUNT = 4950
+PULL_INPUT_MAX_BYTES = 4 * 1024 * 1024
+PULL_OUTPUT_MAX_BYTES = 2 * 1024 * 1024
+PULL_TIMEOUT_SECONDS = 55
+CHANGE_READ_TIMEOUT_SECONDS = 60
+CHANGE_READ_MAX_BYTES = 65536
+CHANGE_READ_MAX_REFS = 100
+
+
+class ReadCollection(list):
+    """Legacy stdout array plus a broker-produced public coverage receipt."""
+
+    def __init__(self, values: list[object], receipt: dict[str, object]) -> None:
+        super().__init__(values)
+        self.read_receipt = receipt
+
+
+def _read_unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "duplicate JSON field")
+        result[key] = value
+    return result
+
+
+def _read_json(raw: bytes) -> object:
+    def finite_float(value: str) -> float:
+        number = float(value)
+        if not math.isfinite(number):
+            raise ValueError("non-finite JSON number")
+        return number
+
+    def reject_constant(_value: str) -> object:
+        raise ValueError("non-standard JSON constant")
+
+    try:
+        return json.loads(raw.decode("utf-8"), object_pairs_hook=_read_unique,
+                          parse_float=finite_float, parse_constant=reject_constant)
+    except BrokerError:
+        raise
+    except (UnicodeError, ValueError, OverflowError, RecursionError) as exc:
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", "pull page JSON is invalid") from exc
+
+
+def _pull_stdout(values: list[object]) -> bytes:
+    try:
+        raw = (json.dumps(values, ensure_ascii=False, sort_keys=True, allow_nan=False)
+               + "\n").encode("utf-8")
+    except (UnicodeError, ValueError, TypeError, RecursionError) as exc:
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", "pull output JSON is invalid") from exc
+    if len(raw) > PULL_OUTPUT_MAX_BYTES:
+        raise BrokerError("READ_SCAN_BOUND", "complete pull output exceeds the reader bound")
+    return raw
+
+
+def _pull_framing(headers: object, limit: int) -> tuple[tuple[tuple[str, str], ...], int | None]:
+    items = _header_items(headers)
+    lengths = [value for key, value in items if key.casefold() == "content-length"]
+    if len(lengths) > 1:
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", "pull Content-Length is ambiguous")
+    declared = None
+    if lengths:
+        declared = _bounded_ascii_decimal(lengths[0], "pull Content-Length",
+                                           max_digits=7, max_value=limit, allow_zero=True)
+    content = [value.casefold() for key, value in items if key.casefold() == "content-encoding"]
+    transfer = [value.casefold() for key, value in items if key.casefold() == "transfer-encoding"]
+    if content not in ([], ["identity"]) or transfer not in ([], ["chunked"]) or (transfer and declared is not None):
+        raise BrokerError("RESPONSE_SCHEMA_INVALID", "pull response framing is invalid")
+    return items, declared
+
+
+def _read_remaining(deadline: float) -> float:
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise BrokerError("READ_SCAN_TIME_BOUND", "read deadline exceeded")
+    return remaining
+
+
+def _pull_transport(method: str, url: str, headers: Mapping[str, str], body: bytes | None,
+                    *, response_limit: int, deadline: float) -> tuple[int, object, bytes]:
+    """Scoped reader transport; ordinary broker transports remain unchanged."""
+    request = Request(url, method=method, headers=dict(headers), data=body)
+    try:
+        with build_opener(_NoDependencyRedirect()).open(request, timeout=_read_remaining(deadline)) as response:
+            items, declared = _pull_framing(_response_header_items(response.headers), response_limit)
+            chunks: list[bytes] = []
+            size = 0
+            while True:
+                remaining = _read_remaining(deadline)
+                # urllib's HTTPResponse exposes the connected socket here. Set
+                # its remaining timeout for every read, including slow streams.
+                sock = getattr(getattr(getattr(response, "fp", None), "raw", None), "_sock", None)
+                if sock is not None:
+                    sock.settimeout(remaining)
+                chunk = response.read1(min(65536, response_limit + 1 - size))
+                _read_remaining(deadline)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                size += len(chunk)
+                if size > response_limit:
+                    raise BrokerError("READ_SCAN_BOUND", "pull response exceeds the input bound")
+            if declared is not None and size != declared:
+                raise BrokerError("RESPONSE_SCHEMA_INVALID", "pull Content-Length does not match the body")
+            return response.status, items, b"".join(chunks)
+    except HTTPError as exc:
+        code = exc.code
+        exc.close()
+        return code, (), b""
+    except BrokerError:
+        raise
+    except (TimeoutError, URLError, OSError) as exc:
+        raise BrokerError("TRANSPORT_ERROR", "pull scan transport failed") from exc
 
 
 class BrokerError(RuntimeError):
@@ -1289,6 +1413,11 @@ class HostAccessBroker:
                     color=color,
                     description=description,
                 )
+            if operation_name == "git.fetch.change" and project_id == "aisoft-platform":
+                assert branch is not None
+                safe_branch = self.contract.change_branch(branch)
+                if ChangeName.parse_branch(safe_branch).issue_number == 333:
+                    return self._git_source_change(project, operation, safe_branch)
             if operation_name.startswith("git.") or operation_name == "mac.git.bind":
                 return self._git(project, operation, branch=branch)
             if operation_name == "host.access.audit":
@@ -1714,6 +1843,7 @@ class HostAccessBroker:
         color: str | None,
         description: str | None,
     ) -> object:
+        pull_deadline = time.monotonic() + PULL_TIMEOUT_SECONDS if operation.name == "gitea.pulls.read" else None
         method = "GET"
         payload: object | None = None
         pull_change: ChangeName | None = None
@@ -1839,11 +1969,16 @@ class HostAccessBroker:
                     "complexity must be one of the complexities the label manifest declares",
                 )
         credential = self.credentials.resolve(project, operation)
-        self._verify_identity(credential)
         owner = quote(self.contract.governance.owner, safe="")
         repository = quote(project.repository, safe="")
         base = self.contract.governance.base_url
         repo_api = f"{base}/api/v1/repos/{owner}/{repository}"
+        if operation.name == "gitea.pulls.read":
+            if type(state) is not str or state not in {"open", "closed", "all"}:
+                raise BrokerError("ARGUMENT_INVALID", "pull state must be open, closed, or all")
+            assert pull_deadline is not None
+            return self._complete_pulls(project, repo_api, credential, state, pull_deadline)
+        self._verify_identity(credential)
         if operation.name == "gitea.labels.read":
             return self._labels(repo_api, credential.token)
         if operation.name == "gitea.labels.provision":
@@ -1909,10 +2044,6 @@ class HostAccessBroker:
             url = f"{repo_api}/issues/{number}"
         elif operation.name == "gitea.issue.comment":
             url = f"{repo_api}/issues/{number}/comments"
-        elif operation.name == "gitea.pulls.read":
-            if state not in {"open", "closed", "all"}:
-                raise BrokerError("ARGUMENT_INVALID", "pull state must be open, closed, or all")
-            url = f"{repo_api}/pulls?state={state}&limit=50&page=1"
         elif operation.name == "gitea.pull.create":
             assert issue is not None and pull_change is not None
             open_pulls = self._open_pulls(repo_api, credential.token)
@@ -1981,6 +2112,237 @@ class HostAccessBroker:
         else:
             raise BrokerError("OPERATION_UNIMPLEMENTED", "Gitea operation is not implemented")
         return self._request_json(url, credential.token, method=method, payload=payload)
+
+    def _complete_pulls(
+        self, project: ProjectContract, repo_api: str, credential: ResolvedCredential,
+        state: str, deadline: float,
+    ) -> ReadCollection:
+        """Two bounded complete observations, with identity checked in the same deadline."""
+        received_bytes = 0
+
+        def transport(method, url, headers, body, *, response_limit=None, follow_redirects=True):
+            _read_remaining(deadline)
+            try:
+                if self.transport is _default_transport:
+                    result = _pull_transport(method, url, headers, body,
+                                             response_limit=response_limit, deadline=deadline)
+                else:
+                    result = self.transport(method, url, headers, body,
+                                            response_limit=response_limit, follow_redirects=False)
+            except BrokerError:
+                raise
+            except Exception as exc:
+                raise BrokerError("TRANSPORT_ERROR", "pull scan transport failed") from exc
+            _read_remaining(deadline)
+            return result
+
+        # Keep the frozen identity policy and isolate the deadline transport from
+        # other reads on this broker instance, including concurrent callers.
+        reader = copy.copy(self)
+        reader.transport = transport
+        reader._verify_identity(credential, response_limit=COLLABORATOR_PAGE_MAX_BYTES,
+                                follow_redirects=False)
+
+        def scan() -> tuple[list[object], int, int]:
+            nonlocal received_bytes
+            collected: list[object] = []
+            numbers: set[int] = set()
+            expected_total = None
+            for page in range(1, PULL_MAX_PAGES + 1):
+                remaining_bytes = PULL_INPUT_MAX_BYTES - received_bytes
+                if remaining_bytes <= 0:
+                    raise BrokerError("READ_SCAN_BOUND", "pull input budget exhausted")
+                url = f"{repo_api}/pulls?state={state}&sort=oldest&limit={PULL_LIMIT}&page={page}"
+                status, headers, raw = transport(
+                    "GET", url, {"Accept": "application/json", "Authorization": f"token {credential.token}"},
+                    None, response_limit=remaining_bytes, follow_redirects=False)
+                if type(status) is not int or status != 200:
+                    code = f"HTTP_{status}" if status in (401, 403, 404) else "HTTP_ERROR"
+                    raise BrokerError(code, "pull scan did not return HTTP 200")
+                items, declared = _pull_framing(headers, remaining_bytes)
+                if not isinstance(raw, bytes):
+                    raise BrokerError("RESPONSE_SCHEMA_INVALID", "pull response body is invalid")
+                received_bytes += len(raw)
+                if received_bytes > PULL_INPUT_MAX_BYTES:
+                    raise BrokerError("READ_SCAN_BOUND", "pull input exceeds the scan bound")
+                if declared is not None and declared != len(raw):
+                    raise BrokerError("RESPONSE_SCHEMA_INVALID", "pull Content-Length does not match the body")
+                totals = [value for key, value in items if key.casefold() == "x-total-count"]
+                if len(totals) != 1 or re.fullmatch(r"0|[1-9][0-9]{0,3}", totals[0]) is None:
+                    raise BrokerError("READ_TOTAL_INVALID", "pull scan requires one bounded server total")
+                total = int(totals[0])
+                if total > PULL_MAX_COUNT:
+                    raise BrokerError("READ_SCAN_BOUND", "pull count exceeds the bounded scan")
+                if expected_total is None:
+                    expected_total = total
+                if total != expected_total:
+                    raise BrokerError("READ_COLLECTION_MOVED", "pull total changed during the scan")
+                values = _read_json(raw)
+                if type(values) is not list or len(values) > PULL_LIMIT:
+                    raise BrokerError("RESPONSE_SCHEMA_INVALID", "pull page is invalid")
+                if not values:
+                    if len(collected) != expected_total:
+                        raise BrokerError("READ_COLLECTION_INCOMPLETE", "empty page does not match server total")
+                    return collected, page, expected_total
+                for item in values:
+                    if type(item) is not dict or type(item.get("number")) is not int or item["number"] <= 0:
+                        raise BrokerError("RESPONSE_SCHEMA_INVALID", "pull number is invalid")
+                    if item["number"] in numbers:
+                        raise BrokerError("READ_COLLECTION_DUPLICATE", "pull scan contains a repeated number")
+                    if type(item.get("state")) is not str or item["state"] not in {"open", "closed"} or type(item.get("merged")) is not bool:
+                        raise BrokerError("RESPONSE_SCHEMA_INVALID", "pull state is invalid")
+                    if state != "all" and item["state"] != state:
+                        raise BrokerError("RESPONSE_SCHEMA_INVALID", "pull state does not match the requested filter")
+                    if item["merged"] and item["state"] != "closed":
+                        raise BrokerError("RESPONSE_SCHEMA_INVALID", "merged pull must be closed")
+                    base = item.get("base")
+                    if type(base) is not dict or type(base.get("repo")) is not dict or base["repo"].get("full_name") != f"{self.contract.governance.owner}/{project.repository}":
+                        raise BrokerError("RESPONSE_SCHEMA_INVALID", "pull repository does not match the manifest")
+                    numbers.add(item["number"])
+                    collected.append(item)
+                    if len(collected) > expected_total:
+                        raise BrokerError("READ_COLLECTION_INCOMPLETE", "pull entries exceed server total")
+            raise BrokerError("READ_SCAN_BOUND", "pull scan has no bounded empty terminal page")
+
+        first, first_terminal, first_total = scan()
+        first_bytes = _pull_stdout(first)
+        second, second_terminal, second_total = scan()
+        raw = _pull_stdout(second)
+        if first_total != second_total or first_bytes != raw:
+            raise BrokerError("READ_COLLECTION_MOVED", "the two complete pull scans differ")
+        _read_remaining(deadline)
+        return ReadCollection(second, {
+            "schema": "aisoft.broker.pull-collection/v1", "status": "PASS", "project": project.project_id,
+            "repository": f"{self.contract.governance.owner}/{project.repository}", "operation": "gitea.pulls.read",
+            "identity": credential.identity, "state": state, "count": len(second), "server_total": second_total,
+            "scan_count": 2, "terminal_empty_pages": [first_terminal, second_terminal],
+            "limit": PULL_LIMIT, "max_pages_per_scan": PULL_MAX_PAGES, "observed_at": int(time.time()),
+            "stdout_sha256": hashlib.sha256(raw).hexdigest()})
+
+    def _change_read_command(self, argv, checkout, env, deadline):
+        """Only the #333 read path uses bounded process IO; ordinary Git is frozen."""
+        remaining = _read_remaining(deadline)
+        try:
+            if self.runner is not _default_runner:
+                result = self.runner(argv, cwd=checkout, env=env, timeout=remaining)
+                if type(result.returncode) is not int or result.returncode != 0:
+                    raise BrokerError("TRANSPORT_ERROR", "change namespace command failed")
+                output = result.stdout
+                if type(output) is not str:
+                    raise BrokerError("RESPONSE_SCHEMA_INVALID", "change namespace output is invalid")
+                raw = output.encode("utf-8")
+            else:
+                with subprocess.Popen(list(argv), cwd=checkout, env=dict(env),
+                                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as process:
+                    try:
+                        assert process.stdout is not None
+                        with selectors.DefaultSelector() as selector:
+                            selector.register(process.stdout, selectors.EVENT_READ)
+                            chunks = []
+                            size = 0
+                            while True:
+                                if not selector.select(_read_remaining(deadline)):
+                                    raise BrokerError("READ_SCAN_TIME_BOUND", "change namespace command timed out")
+                                chunk = os.read(process.stdout.fileno(), min(65536, CHANGE_READ_MAX_BYTES + 1 - size))
+                                if not chunk:
+                                    break
+                                size += len(chunk)
+                                if size > CHANGE_READ_MAX_BYTES:
+                                    raise BrokerError("READ_SCAN_BOUND", "change namespace exceeds the byte bound")
+                                chunks.append(chunk)
+                            process.wait(timeout=_read_remaining(deadline))
+                            if process.returncode != 0:
+                                raise BrokerError("TRANSPORT_ERROR", "change namespace command failed")
+                            raw = b"".join(chunks)
+                    finally:
+                        if process.poll() is None:
+                            process.kill()
+                            process.wait()
+            _read_remaining(deadline)
+            if len(raw) > CHANGE_READ_MAX_BYTES:
+                raise BrokerError("READ_SCAN_BOUND", "change namespace exceeds the byte bound")
+            return raw.decode("utf-8")
+        except BrokerError:
+            raise
+        except (subprocess.TimeoutExpired, TimeoutError) as exc:
+            raise BrokerError("READ_SCAN_TIME_BOUND", "change namespace command timed out") from exc
+        except UnicodeError as exc:
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "change namespace output is invalid") from exc
+        except Exception as exc:
+            raise BrokerError("TRANSPORT_ERROR", "change namespace command failed") from exc
+
+    def _read_change_namespace(self, remote_name, number, checkout, env, deadline):
+        argv = ["git", "ls-remote", "--heads", remote_name,
+                f"refs/heads/change/{number}", f"refs/heads/change/{number}-*"]
+        output = self._change_read_command(argv, checkout, env, deadline)
+        heads: dict[str, str] = {}
+        # splitlines() would silently accept CR and Unicode control separators.
+        lines = output.split("\n") if output else []
+        if lines and lines[-1] == "":
+            lines.pop()
+        for line in lines:
+            fields = line.split("\t")
+            if len(fields) != 2 or COMMIT_SHA_RE.fullmatch(fields[0]) is None or not fields[1].startswith("refs/heads/"):
+                raise BrokerError("RESPONSE_SCHEMA_INVALID", "change namespace ref is invalid")
+            try:
+                name = ChangeName.parse_branch(fields[1].removeprefix("refs/heads/"))
+            except ChangeNameError as exc:
+                raise BrokerError("RESPONSE_SCHEMA_INVALID", "change namespace name is invalid") from exc
+            if name.issue_number != number or name.branch in heads:
+                raise BrokerError("RESPONSE_SCHEMA_INVALID", "change namespace has a foreign or repeated ref")
+            heads[name.branch] = fields[0]
+            if len(heads) > CHANGE_READ_MAX_REFS:
+                raise BrokerError("READ_SCAN_BOUND", "change namespace exceeds the ref bound")
+        return [{"branch": name, "sha": heads[name]} for name in sorted(heads)]
+
+    def _git_source_change(self, project, operation, safe_branch):
+        # The exact #333 read uses the same target, identity and sanitized Git
+        # environment gates as main. Ordinary Git operations stay unchanged.
+        canonical = project.mac_checkout
+        if canonical is None:
+            raise BrokerError("TARGET_UNAVAILABLE", "project has no approved Mac checkout")
+        checkout = self._validated_project_worktree(canonical, self.invocation_cwd)
+        remote_name, _expected_remote = self._validated_remote(project, checkout)
+        credential = self.credentials.resolve(project, operation)
+        self._verify_identity(credential)
+        helper = self.contract.raw["mac_host"]["credential_helper"]
+        fixed = {"GIT_CONFIG_COUNT": "3", "GIT_CONFIG_KEY_0": "credential.helper",
+                 "GIT_CONFIG_VALUE_0": "", "GIT_CONFIG_KEY_1": "credential.helper",
+                 "GIT_CONFIG_VALUE_1": helper, "GIT_CONFIG_KEY_2": "credential.useHttpPath",
+                 "GIT_CONFIG_VALUE_2": "true"}
+        return self._fetch_source_change(
+            project, checkout, remote_name, safe_branch, credential, git_environment(fixed)
+        )
+
+    def _fetch_source_change(self, project, checkout, remote_name, safe_branch, credential, env):
+        # Explicit #333 scope. Other Issues retain their existing fetch behavior.
+        deadline = time.monotonic() + CHANGE_READ_TIMEOUT_SECONDS
+        before = self._read_change_namespace(remote_name, 333, checkout, env, deadline)
+        wanted = next((ref["sha"] for ref in before if ref["branch"] == safe_branch), None)
+        if wanted is not None:
+            self._change_read_command(["git", "fetch", remote_name,
+                f"refs/heads/{safe_branch}:refs/remotes/{remote_name}/{safe_branch}"], checkout, env, deadline)
+            fetched = self._change_read_command(["git", "rev-parse", f"refs/remotes/{remote_name}/{safe_branch}"],
+                                                checkout, env, deadline)
+            if fetched.removesuffix("\n") != wanted:
+                raise BrokerError("READ_COLLECTION_MOVED", "fetched change head differs from namespace observation")
+        after = self._read_change_namespace(remote_name, 333, checkout, env, deadline)
+        if before != after:
+            raise BrokerError("READ_COLLECTION_MOVED", "change namespace changed during the read")
+        _read_remaining(deadline)
+        receipt = {"schema": "aisoft.broker.change-namespace/v1", "status": "PASS",
+                   "project": project.project_id, "repository": f"{self.contract.governance.owner}/{project.repository}",
+                   "operation": "git.fetch.change", "identity": credential.identity, "issue": 333,
+                   "branch": safe_branch, "checkout": checkout, "remote_name": remote_name,
+                   "scan_count": 2, "complete": True, "refs": after, "requested_head": wanted,
+                   "observed_at": int(time.time())}
+        if wanted is None:
+            error = BrokerError("REMOTE_CHANGE_ABSENT", "the requested branch is absent in the observed namespace")
+            error.public_receipt = receipt
+            raise error
+        return {"status": "PASS", "project": project.project_id, "operation": "git.fetch.change",
+                "identity": credential.identity, "checkout": checkout, "remote_name": remote_name,
+                "namespace": receipt}
 
     def _labels(self, repo_api: str, token: str) -> list[dict[str, object]]:
         labels: list[dict[str, object]] = []
