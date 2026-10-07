@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import html
 import json
 import os
 from pathlib import Path
@@ -21,6 +22,7 @@ from .contract import (
     Contract,
     ContractError,
     load_contract,
+    resolve_documents,
 )
 from .documents import backfill_pr_number
 from .provider import ProviderError, ProviderResult
@@ -176,7 +178,7 @@ class Controller:
                 f"fix: #{issue_number} {contract.title}",
                 contract.branch,
                 "main",
-                _pr_body(contract, policy),
+                _pr_body(contract, policy, head_sha=candidate_sha, verified_candidate=True),
             )
             pr_number = int(pr["number"])
             self._set_lifecycle(contract, "pr-open")
@@ -481,6 +483,7 @@ class Controller:
                     "message": (
                         "confirm submission of the unique final PR with policy manual"
                         + (" or routine-auto" if eligibility.eligible else "")
+                        + "\n\n" + _pr_body(contract, head_sha=self.git.head_sha(), report=report)
                     ),
                     "budget": budget.to_dict(),
                     "pr_number": None,
@@ -497,7 +500,8 @@ class Controller:
                     f"fix: #{issue_number} {contract.title}",
                     contract.branch,
                     "main",
-                    _pr_body(contract, str(state.get("merge_policy") or "manual")),
+                    _pr_body(contract, str(state.get("merge_policy") or "manual"),
+                             head_sha=head_sha, report=report),
                 )
                 pr_number = int(pr["number"])
                 self._set_lifecycle(contract, "pr-open")
@@ -1309,7 +1313,25 @@ def _verification_evidence(report: VerificationReport) -> str:
     return redact("\n".join(sections))[-12000:]
 
 
-def _pr_body(contract: Contract, policy: str = "manual") -> str:
+def _pr_excerpt(text: str, headings: tuple[str, ...]) -> str:
+    for heading in headings:
+        match = re.search(rf"^##\s+{re.escape(heading)}\s*$([\s\S]*?)(?=^##\s+|\Z)", text, re.M)
+        if match and match.group(1).strip():
+            value = redact(match.group(1).strip())
+            if len(value) > 1200:
+                value = value[:1200] + "\n[节选；完整内容见映射文档]"
+            # Document prose cannot inject a second closure or authorization marker.
+            value = html.escape(value, quote=False)
+            value = re.sub(r"\b(close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#",
+                           r"\1 &#35;", value, flags=re.I)
+            return "\n".join("> " + line for line in value.splitlines())
+    return ""
+
+
+def _pr_body(
+    contract: Contract, policy: str = "manual", *, head_sha: str = "",
+    report: VerificationReport | None = None, verified_candidate: bool = False,
+) -> str:
     document_root = contract.document_directory.parts[-3:]
     document_prefix = "/".join(document_root)
     documents = "\n".join(
@@ -1320,14 +1342,55 @@ def _pr_body(contract: Contract, policy: str = "manual") -> str:
         if contract.dependencies
         else "- None"
     )
+    mapping = resolve_documents(contract.document_directory.parents[2], contract.issue_number)
+    texts = {role: contract.document_directory.joinpath(name).read_text(encoding="utf-8")
+             for role, name in mapping.items()
+             if name in contract.required_docs or contract.document_directory.joinpath(name).is_file()}
+    summary = _pr_excerpt(texts["summary"], ("问题/需求总结",)) or "具体变化见映射 summary。"
+    verification = texts.get("verification", "")
+    before = _pr_excerpt(verification, ("Before", "变更前")) or "未提供独立 Before 执行证据。"
+    sha = head_sha if re.fullmatch(r"[0-9a-f]{40}", head_sha) else "NOT RUN（未提供已核验 SHA）"
+    evidence = f"**检查对象：** `{sha}`；层次：`local`。\n\n"
+    if report is not None and report.results:
+        evidence += "| Check | Required | Result | Exit | Timeout |\n|---|---|---|---|---|\n"
+        for result in report.results:
+            name = html.escape(redact(result.name).replace("|", "\\|").replace("\n", " "))
+            evidence += (f"| {name} | {result.required} | {'PASS' if result.passed else 'FAIL'} | "
+                         f"{result.exit_code} | {result.timed_out} |\n")
+    elif verified_candidate:
+        # Existing pr_confirmed + candidate_head_sha proves required local checks
+        # passed when this exact candidate was prepared. No new state schema and
+        # no claim that every optional check passed or that this call reran them.
+        evidence += "required local checks：PASS（上述 exact candidate 已验证；本次提交未重跑）。\n"
+    else:
+        evidence += "NOT RUN：本次没有可引用的实际 verifier report。\n"
+    evidence += "\n检查名来自 verifier result；具体命令与输出按映射记录核对，未记录的 argv 不推断。\n"
+    if "verification" in texts:
+        evidence += (f"记录与输出：[{mapping['verification']}]({document_prefix}/{mapping['verification']}) "
+                     "（source 记录；按其中的命令、SHA 和层次逐项核对）。\n")
+    else:
+        evidence += "未提供映射 verification artifact；不推断缺失的输出。\n"
+    evidence += "CI / installed / live：NOT RUN by this PR-body step；以后续各层真实验收为准。\n"
+    rollback = ""
+    for role in ("spec", "plan", "summary"):
+        rollback = _pr_excerpt(texts.get(role, ""), ("风险与回滚约束", "部署与回滚", "风险"))
+        if rollback:
+            break
+    impact = _pr_excerpt(texts["summary"], ("影响范围",)) or ", ".join(contract.risk_flags) or "未提供具体影响范围。"
+    danger = ("**Door:** 回滚/可逆性按下列合同记录核对；缺失记录须人工补充。\n\n"
+              + (rollback or "NOT RUN：未提供回滚依据，不推断可逆。")
+              + "\n\n**Blast Radius:**\n\n" + impact)
     return (
         f"Closes #{contract.issue_number}\n\n"
         f"{authorization_marker(contract.issue_number, contract.branch, policy)}\n\n"
+        "## Summary\n\n" + summary + "\n\n"
+        "## Evidence\n\n**Before:**\n\n" + before + "\n\n**After:**\n\n" + evidence + "\n"
+        "## Merge Danger\n\n" + danger + "\n\n"
         "Dependencies:\n"
         f"{dependencies}\n\n"
         "Change documents:\n"
         f"{documents}\n\n"
-        "Local deterministic verification passed. "
+        "\n"
         + (
             "Final-head required CI and every broker hard gate must pass before routine merge."
             if policy == "routine-auto"

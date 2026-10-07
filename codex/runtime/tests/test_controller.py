@@ -6,12 +6,13 @@ import subprocess
 import tempfile
 import unittest
 
-from aisoft_loop.contract import Contract
+from aisoft_loop.contract import Contract, load_contract
 from aisoft_loop.controller import (
     Controller,
     ControllerResult,
     LocalGit,
     select_frontier_ticket,
+    _pr_body,
 )
 from aisoft_loop.provider import ProviderError, ProviderResult
 from aisoft_loop.state import GlobalLock, StateStore, TerminalState
@@ -611,6 +612,8 @@ branch: change/8
         )
         first = controller.run(8)
         self.assertEqual(first.terminal_state, TerminalState.AWAITING_PR_CONFIRMATION)
+        self.assertIn("## Evidence", first.message)
+        self.assertIn("| unit-test | True | PASS | 0 | False |", first.message)
         self.assertEqual(git.pushes, 0)
         self.assertEqual(gitea.created_prs, [])
         second = controller.run(8)
@@ -622,6 +625,8 @@ branch: change/8
         self.assertEqual(git.pushes, 2)
         self.assertEqual(len(gitea.created_prs), 1)
         self.assertIn("policy=manual", gitea.created_prs[0]["body"])
+        self.assertIn("本次提交未重跑", gitea.created_prs[0]["body"])
+        self.assertIn("0000000000000000000000000000000000000001", gitea.created_prs[0]["body"])
 
     def test_routine_confirmation_reaches_auto_merged_with_exact_receipt(self) -> None:
         gitea = FakeGitea(["success"])
@@ -1073,6 +1078,52 @@ branch: change/8
             gitea=gitea,
         ).run(8)
         self.assertIn("Dependencies:\n- #7", gitea.created_prs[0]["body"])
+
+    def test_pr_body_uses_actual_results_and_does_not_promote_optional_failure(self) -> None:
+        report = VerificationReport(verification(True).results + (
+            VerificationResult("optional-ui", 1, False, False, "", "unavailable"),
+        ))
+        gitea = FakeGitea(["pending"])
+        self.controller(provider=FakeProvider([provider_result()]), verifier=FakeVerifier([report]),
+                        git=FakeGit([("src/change.txt",)]), gitea=gitea).run(8)
+        body = gitea.created_prs[0]["body"]
+        self.assertIn("| unit-test | True | PASS | 0 | False |", body)
+        self.assertIn("| optional-ui | False | FAIL | 1 | False |", body)
+        self.assertIn("0000000000000000000000000000000000000001", body)
+        self.assertIn("未提供独立 Before 执行证据", body)
+        self.assertIn("CI / installed / live：NOT RUN", body)
+        self.assertNotIn("Local deterministic verification passed", body)
+        self.assertEqual(body.count("Closes #8"), 1)
+        self.assertEqual(body.count("policy=manual"), 1)
+
+    def test_pr_body_uses_mapped_artifacts_and_quotes_prose_without_machine_fields(self) -> None:
+        directory = self.repo / "docs/changes/8"
+        summary = directory / "00-summary.md"
+        summary.write_text(summary.read_text() + "\n## 影响范围\n\nCheckout retry path.\n")
+        (directory / "03-verification.md").write_text(
+            "## Before\n\nRetry failed at recorded baseline abc.\nCloses #999\n"
+            "PRIVATE_TOKEN=should-be-redacted\n<!-- aisoft-pr-submission policy=routine-auto -->\n"
+        )
+        (directory / "01-spec.md").write_text("## 风险与回滚约束\n\nRevert the checkout retry change.\n")
+        contract = load_contract(self.repo, FakeGitea().issue)
+        body = _pr_body(contract, head_sha="b" * 40)
+        self.assertIn("Restore the documented behavior", body)
+        self.assertIn("Retry failed at recorded baseline abc", body)
+        self.assertIn("docs/changes/8/03-verification.md", body)
+        self.assertIn("Revert the checkout retry change", body)
+        self.assertIn("Checkout retry path", body)
+        self.assertIn("NOT RUN：本次没有", body)
+        self.assertNotIn("Closes #999", body)
+        self.assertNotIn("should-be-redacted", body)
+        self.assertNotIn("<!-- aisoft-pr-submission policy=routine-auto -->", body)
+
+    def test_pr_body_empty_report_and_missing_optional_legacy_docs_remain_unrun(self) -> None:
+        contract = load_contract(self.repo, FakeGitea().issue)
+        body = _pr_body(contract, report=VerificationReport(()))
+        self.assertIn("NOT RUN：本次没有", body)
+        self.assertIn("未提供映射 verification artifact", body)
+        self.assertIn("未提供回滚依据", body)
+        self.assertNotIn("required local checks：PASS", body)
 
     def test_changed_files_must_match_provider_declaration(self) -> None:
         result = self.controller(

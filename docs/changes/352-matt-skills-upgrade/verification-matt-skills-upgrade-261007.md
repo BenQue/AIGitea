@@ -94,3 +94,15 @@ T01 治理文档已经完成，本地提交成功后按治理规则 STOP。下�
 并验证旧受管链接退役；该维护服务于 AC-2/AC-7，不引入新安装面或扩大主机权限。
 GLOSSARY 和 CONTEXT 兼容规则经人工审查，未迁移任何下游文档；两 provider 静态元数据与加载路径
 可核验，真实会话发现/执行仍为 GAP/NOT RUN。T03 将继续 PR 证据生成。
+
+## T03 PR 证据生成（2026-10-07）
+
+Controller 的初次候选与 PR 创建都生成 Summary / Evidence / Merge Danger，保留唯一 Closes、
+语义文档、依赖、authorization marker 与 policy。候选正文使用实际 verifier 结果和 exact SHA；
+跨确认恢复复用已有 candidate_head_sha 的已验证事实，并明确未重跑，未新增持久 schema。
+回滚与影响范围来自映射合同，缺失信息明示；不会把 optional failure 或空 report 写成全部 PASS。
+
+`PYTHONPATH=codex/runtime python3 -m unittest tests.test_controller`：PASS，48 tests。
+初次回归发现 legacy small 的 resolver 会返回尚未要求存在的可选文档；已仅载入 required 或实际存在的
+映射文件，保留 required 文档硬门。回归同时覆盖人工确认的等待/恢复、routine 路径、唯一 PR、
+正文防重复 Closes/marker、脱敏、真实失败与缺证显示。默认完整 smoke 和远端 CI 尚待后续阶段。

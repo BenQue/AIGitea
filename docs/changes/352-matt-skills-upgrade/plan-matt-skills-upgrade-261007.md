@@ -28,7 +28,7 @@ updated: 2026-10-07
 |---|---|---|---|
 | T01 | 固定四角色治理合同、来源和授权证据；文档验证、本地 commit 后 STOP | - | completed |
 | T02 | fresh run 完成 v1.3.1 完整 source、隔离安装/回滚、术语兼容和技能来源适配 | T01 | completed |
-| T03 | PR 候选接入真实前后证据、回滚/影响范围，保留现有机器硬门 | T02 | pending |
+| T03 | PR 候选接入真实前后证据、回滚/影响范围，保留现有机器硬门 | T02 | completed |
 | T04 | 整体验证、完整 spec review 与唯一最终 PR 候选 | T03 | pending |
 
 ## Expected touch points
