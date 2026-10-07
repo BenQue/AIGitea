@@ -69,3 +69,28 @@ updated: 2026-10-07
 本地提交前检查及版本哈希收据保存在 [T01 evidence](evidence/t01-preflight.json)。本提交只封存治理合同；最终 commit SHA 和 clean 读回在 Issue 与会话 handoff 中记录，避免把未生成的 SHA 写成本提交的证据。
 
 T01 治理文档已经完成，本地提交成功后按治理规则 STOP。下一 fresh run 继续 T02；同一批准范围不再确认。source 未完成，不请求 push/PR，也不将本轮文档 commit 描述为升级完成。
+
+## T02 源码与隔离安装验收（2026-10-07）
+
+已引入完整 v1.3.1 的 109 个经固定 Git blob 校对的上游文件及 manifest，保留 v1.2.2。
+真实 installer 在隔离 HOME 中通过首次、升级、重复、退役入口、失败恢复和 N-1 回滚验证；
+新旧快照、旧锁文件、gstack 和独立 Claude 插件均按 ownership 边界处理。
+
+| 验证 | 结果 |
+|---|---|
+| Matt snapshot/install 与 repository adapter focused tests | PASS，20 tests |
+| installed-drift 八安装面 fixture | PASS，35 tests |
+| install-skills shell / agent-runtime mock | PASS |
+| bash-n / ShellCheck（3 个变更 shell） | PASS |
+| source-only drift / 文档 audit | PASS，8 surfaces / 161 Changes |
+| 新版真实 provider 会话 / 全局与 VM 安装 | NOT RUN |
+| 默认完整 smoke | NOT RUN，T04 执行 |
+
+初次失败已保留在 [T02 收据](evidence/t02-source-validation.json)：失败注入未命中临时目录别名，
+已改用 canonical path；漂移检查曾把 Python helper 混入八个 installer 集合，导致
+`installer-set-mismatch`，已拆分 helper pin，完整集合与字节硬门保持。两项均重新验证通过。
+
+安装器提取了 Python 激活逻辑，因此既有 drift checker 同步固定 helper/installer/manifest 的 hash，
+并验证旧受管链接退役；该维护服务于 AC-2/AC-7，不引入新安装面或扩大主机权限。
+GLOSSARY 和 CONTEXT 兼容规则经人工审查，未迁移任何下游文档；两 provider 静态元数据与加载路径
+可核验，真实会话发现/执行仍为 GAP/NOT RUN。T03 将继续 PR 证据生成。

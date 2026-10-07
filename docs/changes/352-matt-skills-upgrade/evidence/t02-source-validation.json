@@ -1,0 +1,82 @@
+{
+  "issue": 352,
+  "ticket": "T02",
+  "result": "PASS",
+  "scope": "source and isolated fixtures only",
+  "upstream": {
+    "tag": "v1.3.1",
+    "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888",
+    "tag_object": "0b6cee10f260a2e048279cf737bfd3e37b1fce0b",
+    "skill_count": 37,
+    "license_sha256": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5"
+  },
+  "retained_release": "v1.2.2",
+  "validation": {
+    "focused_unittest": {
+      "result": "PASS",
+      "tests": 20
+    },
+    "real_install_skills_shell": "PASS",
+    "real_install_agent_runtime_mock": "PASS",
+    "installed_drift_fixtures": {
+      "result": "PASS",
+      "tests": 35,
+      "seconds": 121.432
+    },
+    "source_only_drift_definition": {
+      "result": "PASS",
+      "installer_count": 8
+    },
+    "bash_n": "PASS",
+    "shellcheck": "PASS",
+    "document_audit": {
+      "result": "PASS",
+      "changes": 161,
+      "gap": 0
+    }
+  },
+  "repair_history": [
+    {
+      "check": "activation rollback fault injection",
+      "initial": "FAIL",
+      "cause": "temporary path alias did not match canonical current pointer",
+      "repair": "canonicalize fixture home; injected failure now executes and restores old links"
+    },
+    {
+      "check": "installed drift fixtures",
+      "initial": "FAIL installer-set-mismatch",
+      "repair": "pin Python helper separately; keep exact eight-installer inventory and full byte comparison gates"
+    }
+  ],
+  "invocation_policy": {
+    "retro": true,
+    "implement-spec": true,
+    "implement": true
+  },
+  "provider_baseline": {
+    "codex": {
+      "manifest_exists": true,
+      "version": "1.2.3",
+      "path": "/Users/benque/.codex/plugins/cache/claude-plugins-official/mattpocock-skills/1.2.3/.claude-plugin/plugin.json",
+      "fresh_session": "NOT RUN"
+    },
+    "claude": {
+      "manifest_exists": true,
+      "version": "1.2.3",
+      "path": "/Users/benque/.claude/plugins/cache/claude-plugins-official/mattpocock-skills/1.2.3/.claude-plugin/plugin.json",
+      "fresh_session": "NOT RUN"
+    }
+  },
+  "compatibility": {
+    "legacy_context": "manual inventory/preserve/conflict stop; no automatic migration or downstream writes",
+    "legacy_lock": "preserved byte for byte by fixture",
+    "gstack_retro": "preserved, warns and requires manifest-selected Matt path",
+    "claude_plugin": "unchanged"
+  },
+  "unrun": [
+    "v1.3.1 actual provider fresh session",
+    "real global/VM installation",
+    "remote push/PR/CI/merge",
+    "full smoke (T04)"
+  ]
+}

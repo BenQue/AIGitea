@@ -37,6 +37,13 @@ Windows Server 2022 x64、公司 AD/JEA 与 [14](14-Windows部署与迁移验收
 历史完成条目见 [平台状态历史](archive/平台状态历史-20260902.md)；历史 Change 的 `pr-open` front matter
 和提交前 verification 快照保持原样，合并事实以 Git history / Gitea 读回为准。
 
+## #352 Matt v1.3.1 源码候选
+
+本 Change 将受管快照固定到 v1.3.1（37 个技能），补齐隔离安装/失败恢复/N-1 回滚、
+GLOSSARY 兼容与人工 retro 边界，并改善最终 PR 的具体证据。
+这属于待审源码，未覆盖上方 2026-10-04 稳定基线；真实安装和 Claude 独立插件须另行验收。
+入口与兼容要求见 [08 §5](08-双工具共存与实施.md#5-matt-skills-与平台映射)。
+
 ## 2. 目标职责架构
 
 下图展示 Linux 容器交付参考路径；PM2/SQLite **as-built legacy 试点**另见 [02](02-CI与自动部署流水线.md)。

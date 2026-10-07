@@ -13,6 +13,14 @@
 - manual 最终 PR 只有人可以合并；routine small 仅在提交确认、repository opt-in 与最终 hard gate 全部成立时由独立 per-project routine merger 合并。
 - 生产部署不由 analyzer、Loop 或 provider 执行。
 
+### Matt v1.3.1 源码适配（#352）
+
+保持上述确定性循环。完整快照中的 `implement-spec` 默认不启用其写入编排；
+`pr` 提供 Summary/Evidence/Merge Danger 内容，提交权限仍归 Controller；
+`retro` 仅由人明确选择 Matt 来源后运行，输出待审候选，不自动改规则或持续自调用。
+新项目采用 [GLOSSARY.md](GLOSSARY.md)；旧 CONTEXT 文档按 [domain 合同](docs/agents/domain.md) 保留业务规则与引用。
+每个 ticket 按自身 AC 验证，全部完成后再做整个 spec 的完整性检查；已有合同决策不重复询问。
+
 ## 2. 当前运行基线
 
 | 组件 | 当前状态 | v3 处理 |

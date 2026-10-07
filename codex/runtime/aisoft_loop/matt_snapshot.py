@@ -5,8 +5,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
+import shutil
+import tempfile
 from typing import Mapping
 
 
@@ -265,6 +268,149 @@ def _integer(manifest: Mapping[str, object], name: str) -> int:
     return value
 
 
+def _read_snapshot(root: Path) -> dict[str, object]:
+    # A manifest describes file bytes, not symlink destinations or special files.
+    if root.is_symlink() or not root.is_dir():
+        raise SnapshotError(f"snapshot must be a real directory: {root}")
+    for path in root.rglob("*"):
+        if path.is_symlink() or not (path.is_file() or path.is_dir()):
+            raise SnapshotError(f"snapshot contains a linked or special entry: {path}")
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    verify_snapshot(root, manifest)
+    if manifest["tag"] != root.name:
+        raise SnapshotError("snapshot directory and release tag differ")
+    return manifest
+
+
+def _release_link(path: Path) -> str | None:
+    if not path.is_symlink():
+        if path.exists():
+            raise SnapshotError(f"refusing unmanaged release pointer: {path}")
+        return None
+    target = os.readlink(path)
+    if not re.fullmatch(r"releases/v[0-9]+\.[0-9]+\.[0-9]+", target):
+        raise SnapshotError(f"invalid release pointer: {path}")
+    return target
+
+
+def prepare_install(snapshot: Path, home: Path, *, rollback: bool = False) -> dict:
+    """Read-only ownership and integrity preflight, also repeated at activation."""
+    snapshot = snapshot.absolute()
+    home = home.resolve()
+    skills = home / ".agents/skills"
+    vendor = home / ".agents/vendor/mattpocock"
+    for leaf in (skills, vendor / "releases"):
+        path = home
+        for part in leaf.relative_to(home).parts:
+            path /= part
+            if path.is_symlink() or (path.exists() and not path.is_dir()):
+                raise SnapshotError(f"refusing linked or non-directory parent: {path}")
+    current = _release_link(vendor / "current")
+    previous = _release_link(vendor / "previous")
+    if previous and not current:
+        raise SnapshotError("previous exists without a current release")
+    installed = {}
+    for pointer in {p for p in (current, previous) if p}:
+        trusted = _read_snapshot(snapshot.parent / Path(pointer).name)
+        actual = _read_snapshot(vendor / pointer)
+        if actual != trusted or _directory_hash(vendor / pointer) != _directory_hash(snapshot.parent / Path(pointer).name):
+            raise SnapshotError(f"installed manifest differs from pinned source: {pointer}")
+        installed[pointer] = actual
+    if rollback:
+        if not previous:
+            raise SnapshotError("no previous Matt release is available for rollback")
+        snapshot = snapshot.parent / Path(previous).name
+    manifest = _read_snapshot(snapshot)
+    release = vendor / "releases" / str(manifest["tag"])
+    if release.exists() or release.is_symlink():
+        if _read_snapshot(release) != manifest or _directory_hash(release) != _directory_hash(snapshot):
+            raise SnapshotError("existing release differs from pinned source")
+    old = _skills_by_name(installed[current]) if current else {}
+    new = _skills_by_name(manifest)
+    changes: dict[str, str | None] = {}
+    warnings = []
+    for name in sorted(old.keys() | new.keys()):
+        target = skills / name
+        old_link = "../vendor/mattpocock/current/" + str(Path(str(old[name]["path"])).parent) if name in old else None
+        present = target.exists() or target.is_symlink()
+        owned = bool(old_link and target.is_symlink() and os.readlink(target) == old_link)
+        if name in new:
+            if present and not owned:
+                raise SnapshotError(f"refusing to overwrite unmanaged Matt skill: {target}")
+            changes[name] = "../vendor/mattpocock/current/" + str(Path(str(new[name]["path"])).parent)
+        elif owned:
+            changes[name] = None
+        elif present:
+            warnings.append(f"unmanaged retired entry preserved: {target}")
+    if (home / ".agents/.skill-lock.json").exists():
+        warnings.append("legacy skills.sh lock preserved; the pinned Matt manifest is authoritative")
+    if (skills / "gstack/retro/SKILL.md").is_file() and "retro" in new:
+        warnings.append("Matt and gstack retro coexist; use the verified Matt SKILL.md path, not bare retro")
+    return {"snapshot": str(snapshot), "home": str(home), "tag": manifest["tag"],
+            "current": current, "previous": previous, "changes": changes, "warnings": warnings}
+
+
+def _replace_link(path: Path, target: str | None) -> None:
+    if target is None:
+        path.unlink(missing_ok=True)
+        return
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    os.close(fd)
+    temp = Path(temporary)
+    try:
+        temp.unlink()
+        temp.symlink_to(target)
+        os.replace(temp, path)
+    finally:
+        temp.unlink(missing_ok=True)
+
+
+def install_snapshot(snapshot: Path, home: Path, *, rollback: bool = False) -> dict:
+    plan = prepare_install(snapshot, home, rollback=rollback)
+    source = Path(plan["snapshot"])
+    manifest = _read_snapshot(source)
+    home = Path(plan["home"])
+    vendor = home / ".agents/vendor/mattpocock"
+    skills = home / ".agents/skills"
+    release = vendor / "releases" / plan["tag"]
+    (vendor / "releases").mkdir(parents=True, exist_ok=True)
+    skills.mkdir(parents=True, exist_ok=True)
+    if not release.exists():
+        stage = Path(tempfile.mkdtemp(prefix=f".{plan['tag']}.stage.", dir=release.parent))
+        try:
+            shutil.copytree(source, stage, dirs_exist_ok=True)
+            verify_snapshot(stage, manifest)
+            for path in (stage, *stage.rglob("*")):
+                path.chmod(0o755 if path.is_dir() or path.stat().st_mode & 0o111 else 0o644)
+            os.rename(stage, release)
+        finally:
+            if stage.exists():
+                shutil.rmtree(stage)
+    # Recheck ownership after staging and before mutating any active pointer.
+    if prepare_install(snapshot, home, rollback=rollback) != plan:
+        raise SnapshotError("Matt installation changed during staging")
+    targets = {skills / name: value for name, value in plan["changes"].items()}
+    if plan["current"] and plan["current"] != f"releases/{plan['tag']}":
+        targets[vendor / "previous"] = plan["current"]
+    # Atomic current rename is the final activation step; ordinary failures restore
+    # the exact prior links. Releases and the legacy lock are never overwritten.
+    targets[vendor / "current"] = f"releases/{plan['tag']}"
+    undo: list[tuple[Path, str | None]] = []
+    try:
+        for path, target in targets.items():
+            before = os.readlink(path) if path.is_symlink() else None
+            if before == target:
+                continue
+            undo.append((path, before))
+            _replace_link(path, target)
+    except Exception:
+        for path, before in reversed(undo):
+            _replace_link(path, before)
+        raise
+    return {"tag": plan["tag"], "skill_count": manifest["skill_count"],
+            "current": f"releases/{plan['tag']}", "warnings": plan["warnings"]}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="matt-snapshot")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -274,15 +420,23 @@ def main(argv: list[str] | None = None) -> int:
     compare = subparsers.add_parser("classify")
     compare.add_argument("current", type=Path)
     compare.add_argument("candidate", type=Path)
+    for command in ("preflight-install", "install"):
+        install = subparsers.add_parser(command)
+        install.add_argument("snapshot", type=Path)
+        install.add_argument("home", type=Path)
+        install.add_argument("--rollback", action="store_true")
     args = parser.parse_args(argv)
     try:
         if args.command == "verify":
             manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
             print(json.dumps(verify_snapshot(args.snapshot, manifest), sort_keys=True))
-        else:
+        elif args.command == "classify":
             current = json.loads(args.current.read_text(encoding="utf-8"))
             candidate = json.loads(args.candidate.read_text(encoding="utf-8"))
             print(json.dumps(classify_update(current, candidate), sort_keys=True))
+        else:
+            operation = prepare_install if args.command == "preflight-install" else install_snapshot
+            print(json.dumps(operation(args.snapshot, args.home, rollback=args.rollback), sort_keys=True))
     except (OSError, UnicodeError, json.JSONDecodeError, SnapshotError) as exc:
         print(f"matt snapshot verification failed: {exc}")
         return 2

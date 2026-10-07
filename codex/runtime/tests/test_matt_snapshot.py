@@ -13,18 +13,29 @@ from aisoft_loop.matt_snapshot import (
 
 
 ROOT = Path(__file__).parents[3]
-VENDOR = ROOT / "codex" / "vendor" / "mattpocock" / "v1.2.2"
+VENDOR = ROOT / "codex" / "vendor" / "mattpocock" / "v1.3.1"
 
 
 class MattSnapshotTests(unittest.TestCase):
     def test_vendored_release_is_complete_and_matches_manifest(self) -> None:
         manifest = json.loads((VENDOR / "manifest.json").read_text())
         verified = verify_snapshot(VENDOR, manifest)
-        self.assertEqual(verified["tag"], "v1.2.2")
-        self.assertEqual(verified["commit"], "8b36d4fb2635b3c21998dcd8144439c9e5ba7302")
-        self.assertEqual(verified["skill_count"], 35)
+        self.assertEqual(verified["tag"], "v1.3.1")
+        self.assertEqual(verified["commit"], "24fe0ef7737efae15c87225755e9f6f5965e4888")
+        self.assertEqual(verified["skill_count"], 37)
         self.assertIn("triage", verified["skill_names"])
         self.assertIn("implement", verified["skill_names"])
+        self.assertEqual(manifest["tag_object"], "0b6cee10f260a2e048279cf737bfd3e37b1fce0b")
+
+    def test_old_release_retained_and_new_manual_skills_keep_invocation_policy(self):
+        previous = VENDOR.parent / "v1.2.2"
+        old = verify_snapshot(previous, json.loads((previous / "manifest.json").read_text()))
+        new = verify_snapshot(VENDOR, json.loads((VENDOR / "manifest.json").read_text()))
+        self.assertEqual(old["commit"], "8b36d4fb2635b3c21998dcd8144439c9e5ba7302")
+        self.assertEqual(set(new["skill_names"]) - set(old["skill_names"]), {"pr", "retro", "implement-spec"})
+        self.assertEqual(set(old["skill_names"]) - set(new["skill_names"]), {"resolving-merge-conflicts"})
+        for name in ("retro", "implement-spec", "implement"):
+            self.assertEqual(_skill_front_matter(VENDOR / "skills/engineering" / name / "SKILL.md"), (name, True))
 
     def test_skill_add_remove_or_critical_change_requires_complex_review(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

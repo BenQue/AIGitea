@@ -515,11 +515,22 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
         row = self.row(self.check(1), "install-skills")
         self.assertTrue(any(g["reason"] == "link-target-differ" for g in row["gaps"]))
         current.unlink()
-        current.symlink_to("releases/v1.2.2")
+        current.symlink_to("releases/v1.3.1")
         link = self.home / ".agents/skills/triage"
         link.unlink()
         link.symlink_to("../vendor/mattpocock/current/skills/engineering/implement")
         self.assertEqual(self.row(self.check(1), "install-skills")["result"], "GAP")
+
+    def test_retired_matt_link_is_gap_but_unmanaged_entry_is_preserved(self):
+        target = self.home / ".agents/skills/resolving-merge-conflicts"
+        target.symlink_to("../vendor/mattpocock/current/skills/engineering/resolving-merge-conflicts")
+        row = self.row(self.check(1), "install-skills")
+        self.assertTrue(any(g["reason"] == "retired-managed-link-present" for g in row["gaps"]))
+        target.unlink()
+        target.mkdir()
+        (target / "SKILL.md").write_text("standalone, not managed")
+        self.assertEqual(self.row(self.check(), "install-skills")["result"], "PASS")
+        self.assertEqual((target / "SKILL.md").read_text(), "standalone, not managed")
 
     def test_exact_tree_extra_and_non_managed_boundaries(self):
         extra = self.home / ".claude/skills/issue-session-flow/unexpected.md"
@@ -584,7 +595,7 @@ raise SystemExit("unexpected read through replaced parent")
 
     def test_matt_source_content_and_manifest_integrity(self):
         source = self.clone_source()
-        snapshot = source / "codex/vendor/mattpocock/v1.2.2"
+        snapshot = source / "codex/vendor/mattpocock/v1.3.1"
         manifest = snapshot / "manifest.json"
         original = manifest.read_bytes()
         for field in ("license_sha256", "sha256", "control_sha256"):
@@ -596,7 +607,7 @@ raise SystemExit("unexpected read through replaced parent")
         license_file = snapshot / "LICENSE"
         license_file.write_text("changed license")
         self.assertIn("matt-license-hash-differ", json.dumps(self.check(2, repo=source)))
-        shutil.copyfile(REPO / "codex/vendor/mattpocock/v1.2.2/LICENSE", license_file)
+        shutil.copyfile(REPO / "codex/vendor/mattpocock/v1.3.1/LICENSE", license_file)
         skill = snapshot / json.loads(original)["skills"][0]["path"]
         skill.write_text(skill.read_text() + "\nchanged source\n")
         self.assertIn("matt-skill-hash-differ", json.dumps(self.check(2, repo=source)))

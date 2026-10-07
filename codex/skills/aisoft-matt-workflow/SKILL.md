@@ -60,3 +60,39 @@ root authority、begin/verify、ES/kernel/signing、完整 OS/解释器闭包、
 
 The Matt skill, provider and project agent never merge or receive the routine merger credential. Never deploy,
 rewrite history, force-push, or silently switch to a different tracker or repository.
+
+## v1.3.1 compatibility and explicit skill selection
+
+The pinned release is v1.3.1 (`24fe0ef7737efae15c87225755e9f6f5965e4888`), with 37 unchanged upstream skill directories.
+Verify the manifest before loading a skill. In an installed Codex home it is
+`$HOME/.agents/vendor/mattpocock/current/manifest.json`; resolve the chosen manifest entry relative to that directory
+and read its exact `SKILL.md` and referenced files. In a source-only session use
+`codex/vendor/mattpocock/v1.3.1/manifest.json` in the current repository. Do not invent a slash-command alias.
+
+- **Domain docs:** read `docs/agents/domain.md`. New projects use `GLOSSARY.md` for terminology and `docs/adr/` for
+  decisions; large multi-context projects may add `GLOSSARY-MAP.md`. Existing `CONTEXT.md`/`CONTEXT-MAP.md` are read
+  alongside the new files until their terminology, business rules, decisions and inbound links are accounted for.
+  Conflicting definitions stop migration; do not rename files or discard rules automatically.
+- **pr:** use its Summary / Evidence / Merge Danger structure to prepare a candidate body. Each observation names
+  its SHA, command or artifact, and source/local/CI/installed/live layer. Missing Before evidence is explicit;
+  unexecuted checks remain `NOT RUN`. This skill grants no push, PR, merge or deployment authority.
+- **retro:** only an explicit request for Matt's retrospective authorizes loading the exact manifest-selected Matt
+  file. The request may specify a session; otherwise use only the current one. Bare `retro` is ambiguous when
+  gstack or a plugin also provides it: determine the requested source before invocation, never overwrite or rename
+  upstream skills. Read the same pinned `writing-for-agents` reference directly if the provider has no Skill tool.
+  Return evidence-based improvement candidates for human review. Prefer existing deterministic checks for
+  mechanical mistakes; reserve coding standards for judgement. Do not apply governance edits, widen access or
+  start an autonomous retrospective loop.
+- **implement-spec:** included for complete provenance, but its writing orchestration is disabled in governed
+  projects. Keep the Controller's single-writer frontier. It grants no reset, subagent merge, parallel writing,
+  early PR or ticket-state projection; a different orchestration mode requires its own complex contract.
+
+Codex's managed `.agents` snapshot and Claude's independent plugin are different installation surfaces. For Claude,
+explicitly read the verified source path when reviewing this release; do not claim the plugin or its commands are
+upgraded. Static front matter/path checks do not prove discovery or execution in either provider's fresh session.
+Report untested provider-session behavior as `GAP`/`NOT RUN` and do not enable a project provider on that basis.
+
+The installer retains the old release and restores its owned entries with
+`bash codex/install-skills.sh <target-home> --rollback`. Independent directories/plugins and the legacy skills.sh
+lock remain untouched; that lock is not the authority for this managed snapshot. Real-host installation and rollback
+still require their existing target-specific authorization; fixture success does not authorize a global update.

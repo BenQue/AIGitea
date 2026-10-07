@@ -469,8 +469,8 @@ fi
 
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$ROOT/codex/runtime" \
   python3 -m aisoft_loop.matt_snapshot verify \
-  "$ROOT/codex/vendor/mattpocock/v1.2.2" \
-  "$ROOT/codex/vendor/mattpocock/v1.2.2/manifest.json" >/dev/null
+  "$ROOT/codex/vendor/mattpocock/v1.3.1" \
+  "$ROOT/codex/vendor/mattpocock/v1.3.1/manifest.json" >/dev/null
 
 if rg -n -g '!**/tests/smoke.sh' \
   'dangerously-bypass|--yolo|danger-full-access|dangerously-skip-permissions|permission-mode +bypassPermissions' \
