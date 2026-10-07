@@ -26,9 +26,9 @@ updated: 2026-10-08
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 四角色合同、只读基线证据、清单脚本与固定提示词；文档检查与本地 commit | - | pending |
-| T02 | 阶段一：备份、安装、重复安装、N-1 回滚与 adapter 恢复、回到 v1.3.1、漂移读回 | T01 | pending |
-| T03 | Codex fresh session 四项检查；Codex 独立插件状态报告 | T02 | pending |
+| T01 | 四角色合同、只读基线证据、清单脚本与固定提示词；文档检查与本地 commit | - | completed |
+| T02 | 阶段一：备份、安装、重复安装、N-1 回滚与 adapter 恢复、回到 v1.3.1、漂移读回 | T01 | completed |
+| T03 | Codex fresh session 四项检查；Codex 独立插件状态报告 | T02 | in-progress |
 | T04 | 阶段二：按启动规则确定 P2，装入 Claude 侧技能，切换 Claude 插件到平台 pin，回滚演练 | T03 | pending |
 | T05 | Claude fresh session 检查 | T04 | pending |
 | T06 | verification 汇总、逐条 AC review、判级读回、唯一最终 PR 候选 | T05 | pending |
