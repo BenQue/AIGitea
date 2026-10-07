@@ -866,6 +866,61 @@ grep -Fq 'WORKTREE_OWNER_MISMATCH' "$ROOT/06-运维手册与踩坑集.md"
 grep -Fq '## Derived Issues' "$ROOT/docs/agents/issue-tracker.md"
 grep -Fq -- '--entry-label' "$ROOT/skill-for-claude/aisoft-platform/SKILL.md"
 
+# #355: Claude 侧外部技能包边界，三组守卫。
+# 可解析性：Claude 侧技能里以 $ 开头的技能名必须是 pin 住的 Matt 快照里真实存在的技能。
+# Claude 侧只装 skills.manifest 声明的两个技能，引用 Codex 才有的 adapter 就是悬空引用。
+claude_platform_skill="$ROOT/skill-for-claude/aisoft-platform/SKILL.md"
+matt_adapter="$ROOT/codex/skills/aisoft-matt-workflow/SKILL.md"
+matt_manifest="$ROOT/codex/vendor/mattpocock/v1.3.1/manifest.json"
+matt_skill_names="$(jq -r '.skills[].name' "$matt_manifest")"
+claude_skill_references="$(grep -ho '\$[a-z][a-z0-9-]*' "$ROOT"/skill-for-claude/*/SKILL.md | LC_ALL=C sort -u)"
+# 显式 if：bash 3.2 的 set -e 不因 [[ ]] 失败而退出，裸写在本机是静默失效的守卫。
+if [[ -z "$claude_skill_references" ]]; then
+  echo 'Claude 侧技能里没有找到任何 $ 技能引用，可解析性守卫空转（#355 AC-3）' >&2
+  exit 1
+fi
+while IFS= read -r claude_skill_reference; do
+  if ! grep -Fqx -- "${claude_skill_reference#\$}" <<<"$matt_skill_names"; then
+    echo "Claude 侧技能引用了无法解析的 $claude_skill_reference（#355 AC-3）" >&2
+    exit 1
+  fi
+done <<<"$claude_skill_references"
+# 两侧对照：同一个 pin，四条 v1.3.1 规则各有成对的锚定短语（Claude 侧中文、Codex 侧英文）。
+# 任一侧改掉其中一句，两个 provider 的合同就不再等价，在这里变红。
+matt_pin="$(jq -r '.commit' "$matt_manifest")"
+grep -Fq "$matt_pin" "$claude_platform_skill"
+grep -Fq "$matt_pin" "$matt_adapter"
+while IFS='|' read -r claude_phrase codex_phrase; do
+  if ! grep -Fq -- "$claude_phrase" "$claude_platform_skill" ||
+    ! grep -Fq -- "$codex_phrase" "$matt_adapter"; then
+    echo "两侧 Matt 规则不再成对：$claude_phrase ↔ $codex_phrase（#355 AC-5）" >&2
+    exit 1
+  fi
+done <<'MATT_RULE_PAIRS'
+不授予 push、PR、merge 或部署权限|grants no push, PR, merge or deployment authority
+记 `NOT RUN`|unexecuted checks remain `NOT RUN`
+写入编排在平台项目内禁用|writing orchestration is disabled
+保持 Controller 的单写者|Keep the Controller's single-writer frontier
+仅在人明确要求 Matt 的 retro 时加载|only an explicit request for Matt's retrospective
+不启动自主回顾循环|start an autonomous retrospective loop
+`docs/agents/domain.md`|`docs/agents/domain.md`
+定义冲突时停止|Conflicting definitions stop migration
+MATT_RULE_PAIRS
+# 落点：superpowers 的默认目录不进仓库，映射的四行都在场。
+grep -Fqx '.superpowers/' "$ROOT/.gitignore"
+if [[ -e "$ROOT/docs/superpowers" ]]; then
+  echo '设计与计划文档属于 docs/changes/N-short-description/，不得落在 docs/superpowers/（#355 AC-4）' >&2
+  exit 1
+fi
+for superpowers_anchor in \
+  'docs/superpowers/specs/' \
+  'finishing-a-development-branch' \
+  'AWAITING_PR_CONFIRMATION' \
+  '同一时刻只有一个写者'; do
+  grep -Fq -- "$superpowers_anchor" "$claude_platform_skill"
+done
+grep -Fq '外部技能包边界' "$ROOT/skill-for-claude/issue-session-flow/SKILL.md"
+
 if rg -n 'complexity_recommendation|最终 `complexity` 由人|人确认 Issue 验收标准与 complexity=small' \
   "$ROOT/AGENTS.md" "$ROOT/README.md" \
   "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md" \
