@@ -24,9 +24,10 @@ updated: 2026-10-08
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | marketplace 条目、pin 检查工具、fixture 测试与 smoke 登记 | - | pending |
-| T02 | Claude 侧技能的 Matt 四条规则与 superpowers 映射、`.gitignore`、三组 smoke 守卫 | - | pending |
-| T03 | README 与 08 的导航说明、verification 记录、全量闸门 | T01, T02 | pending |
+| T01 | marketplace 条目、pin 检查工具、fixture 测试与 smoke 登记 | - | done |
+| T02 | Claude 侧技能的 Matt 四条规则与 superpowers 映射、`.gitignore`、三组 smoke 守卫 | - | done |
+| T03 | README 与 08 的导航说明、verification 记录、全量闸门 | T01, T02, T04 | done |
+| T04 | 升级适配清单与已填写示例、两侧入口、smoke 守卫（2026-10-08 范围追加） | T02 | done |
 
 T01 与 T02 互不依赖，但同由本会话在同一 worktree 顺序实现，不并行写入。
 
@@ -37,6 +38,8 @@ T01 与 T02 互不依赖，但同由本会话在同一 worktree 顺序实现，�
   `codex/tests/smoke.sh`（`bash -n` 清单、ShellCheck 清单、`--source-only` 执行、测试执行区）。
 - **T02**：`skill-for-claude/aisoft-platform/SKILL.md`、`skill-for-claude/issue-session-flow/SKILL.md`、
   `.gitignore`、`codex/tests/smoke.sh`（可解析性、两侧对照、落点三组守卫）。
+- **T04**：`08-双工具共存与实施.md`（§5 新小节）、`skill-for-claude/aisoft-platform/SKILL.md`、
+  `skill-for-codex/SKILL.md`、`README.md`（一处导航措辞）、`codex/tests/smoke.sh`（AC-8 守卫）。
 - **T03**：`README.md`（技能安装与漂移核对）、`08-双工具共存与实施.md`（§5）、
   `docs/changes/355-claude-skill-pack-align/verification-claude-skill-pack-align-261008.md`。
 
@@ -57,6 +60,7 @@ T01 与 T02 互不依赖，但同由本会话在同一 worktree 顺序实现，�
 | AC-5 | smoke 的两侧对照守卫及其反向证明；verification 的逐条对照表 |
 | AC-6 | `bash codex/tests/smoke.sh`；`bash -n` 与 `shellcheck` 新增及改动的 shell；`resolve-documents 355`；`check-change-documents`；`git diff origin/main` 审查无删除测试或 skip |
 | AC-7 | verification 的分层表与 `NOT RUN` 清单审查 |
+| AC-8 | smoke 的清单守卫及其反向证明；08 §5 小节与两个示例的人工审查；`git diff origin/main` 审查无定时任务、自动检查或安装动作 |
 
 反向证明一律在临时副本上做：删除被钉的短语或改动 pin 后确认守卫变红，不改动工作树内的受管文件。
 

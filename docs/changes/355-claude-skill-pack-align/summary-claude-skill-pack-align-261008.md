@@ -46,12 +46,17 @@ v1.3.1 边界规则，但明确「不修改 Claude-owned plugin」。Claude 侧�
 
 本票只补 source 层。实际插件升级与两 provider fresh-session 验收属于 #354。
 
+**范围追加（2026-10-08）**：合同确认后，用户追加第 4 项——外部技能包升级后的人工适配检查清单，
+并在本会话再次确认并入本票（Issue 正文已同步范围第 4 项与 AC-8）。它不改变判级：仍是 source 层的
+文档与技能文本，不新增定时任务、自动检查工具或安装动作。
+
 ## 影响范围
 
 - 新增：仓库根 `.claude-plugin/marketplace.json`；`skill-for-claude/check-plugin-pin.sh` 与
   `check-plugin-pin.py`；`codex/tests/test-claude-plugin-pin.sh`。
 - 修改：`skill-for-claude/aisoft-platform/SKILL.md`、`skill-for-claude/issue-session-flow/SKILL.md`、
-  `.gitignore`、`codex/tests/smoke.sh`、`README.md`、`08-双工具共存与实施.md`。
+  `.gitignore`、`codex/tests/smoke.sh`、`README.md`、`08-双工具共存与实施.md`；范围追加后另含
+  `skill-for-codex/SKILL.md`（仅一段指向清单的入口）。
 - 不动：`AGENTS.md`、`codex/skills/**`、`codex/vendor/**`、`codex/install-skills.sh`、
   `skill-for-claude/skills.manifest`、`skill-for-claude/install.sh`、`skill-for-claude/check-drift.sh`、
   `codex/tools/check-installed-drift.*`、Controller、broker、main protection、required CI。

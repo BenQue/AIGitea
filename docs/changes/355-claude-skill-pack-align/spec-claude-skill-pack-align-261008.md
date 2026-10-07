@@ -128,9 +128,28 @@ updated: 2026-10-08
   Codex 侧英文，任一侧缺失即失败。
 - **落点**：仓库内不存在 `docs/superpowers/`；`.gitignore` 含 `.superpowers/`。
 
+### D5 升级适配清单写在 08 §5，两侧各一个入口
+
+2026-10-08 合同确认后追加，用户在本会话确认并入。
+
+清单是人工执行的：Matt skills 或 superpowers 任一发生大版本更新、或含技能增删的更新时，在安装或升级
+之前由人逐项核对。版本是否落后由人定期查看。
+
+- **正文**在 `08-双工具共存与实施.md` §5 新增小节「外部技能包升级后的适配检查」。08 是两个 provider
+  都读的平台分册，清单只写一份。
+- **四项检查**：技能增删；调用方式（模型可自动触发还是仅人工调用）；文件与目录约定；Git / PR / 并行
+  写入副作用。
+- **三种结论**：无影响；需要更新平台技能或 adapter（走 Issue）；明确禁用并写明边界。
+- **信息来源**：Matt 的 `CHANGELOG.md`、superpowers 的 `RELEASE-NOTES.md`。
+- **已填写的示例**：Matt 1.2.3 → 1.3.1 与 superpowers 6.4.1 → 6.4.2 各一张四行表。
+- **入口**：`skill-for-claude/aisoft-platform/SKILL.md` 与 `skill-for-codex/SKILL.md` 各加一段指向该小节的
+  文字，不复制清单正文。后者是 Codex 侧的平台技能，不是 Matt adapter；
+  `codex/skills/aisoft-matt-workflow/SKILL.md` 仍不修改。
+- **守卫**：`smoke.sh` 钉住小节标题、四项检查、三种结论、两个示例标题，以及两侧入口。
+
 ## Acceptance criteria
 
-沿用 Issue #355 的 AC-1 至 AC-7，下列为可观察的判定方式。
+沿用 Issue #355 的 AC-1 至 AC-8，下列为可观察的判定方式。
 
 - [ ] **AC-1** `.claude-plugin/marketplace.json` 存在且可解析；`check-plugin-pin.sh --source-only`
   在当前树输出 `PIN_SOURCE_OK`；把条目 `sha` 或 `ref` 改成别的值的 fixture 输出
@@ -150,6 +169,9 @@ updated: 2026-10-08
   `resolve-documents 355`、`check-change-documents` 真实通过；diff 中没有删除测试、弱化断言或 skip。
 - [ ] **AC-7** verification 按 source / local / CI 与 installed / provider-session 分层；插件升级、
   marketplace 注册、两 provider fresh-session 行为明确指向 #354 并记 `NOT RUN`。
+- [ ] **AC-8** 08 §5 存在 D5 的清单，含四项检查、三种结论与两个已填写的示例；两侧平台技能各有入口；
+  smoke 守卫通过，并对删除任一检查项、任一结论、任一示例或任一侧入口的副本变红；diff 中没有新增
+  定时任务、自动版本检查或安装动作。
 
 ## 接口、数据与兼容性影响
 
@@ -180,6 +202,8 @@ updated: 2026-10-08
 - 不为 superpowers 自建 pin；不裁剪或改写任一上游原文。
 - 不迁移下游项目的 CONTEXT 文档；不触碰 Secret、账号或权限。
 - 不把 pin 检查接入八安装面检查或任何自动修复。
+- 不为版本是否落后新增定时任务、自动检查工具或安装动作；清单只由人执行。
+- 不重装 Codex 侧技能：`skill-for-codex/SKILL.md` 变更后本机副本的同步属于 installed 层。
 
 ## 未决问题
 
