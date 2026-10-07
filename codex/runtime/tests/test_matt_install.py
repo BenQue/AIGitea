@@ -47,6 +47,13 @@ class MattInstallTests(unittest.TestCase):
         self.assertEqual(before, {p.name: os.readlink(p) for p in self.skills.iterdir() if p.is_symlink()})
         self.assertFalse((self.vendor / "previous").exists())
 
+    def test_action_without_target_is_rejected_before_any_write(self):
+        result = subprocess.run(["bash", str(ROOT / "codex/install-skills.sh"), "--rollback"],
+                                cwd=self.home.parent, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Usage:", result.stderr)
+        self.assertEqual(list(self.home.parent.iterdir()), [])
+
     def test_real_installer_upgrade_rollback_and_preserved_other_sources(self):
         matt.install_snapshot(OLD, self.home)
         lock = self.home / ".agents/.skill-lock.json"

@@ -21,7 +21,7 @@ import sys
 
 INSTALLER_PINS = {
     "codex/install-vm.sh": "01bf859512149391b45c37697b850f01af05e738ae37ae73008acbb196d3fe1c",
-    "codex/install-skills.sh": "ce2717294dd7ae31964103847c3431a788a5e4f72b153a2ef7473352367aa848",
+    "codex/install-skills.sh": "4d5d029c670636023bb68972475f616195b93637f46aa56e3d21de1805d4dd70",
     "codex/install-host-role.sh": "325e5150722e30debc115c0717d9bc4dedac44e1a7552c3a2258df14c4b27c89",
     "codex/install-host-access-broker.sh": "485ea19514c5f4b72c84d6cc9576fe0c2b65c34d084e74c8f80e2d6ad6f10897",
     "architecture/install.sh": "c8f14f0154cad1b7402e527209d0135bab2bdf3bc0024f72fd06994067aa972e",

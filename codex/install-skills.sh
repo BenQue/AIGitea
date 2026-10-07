@@ -4,7 +4,7 @@ set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 target_home="${1:-$HOME}"
 action="${2:-install}"
-[[ "$#" -le 2 && ( "$action" == install || "$action" == --rollback ) ]] || {
+[[ "$#" -le 2 && "$target_home" != -* && ( "$action" == install || "$action" == --rollback ) ]] || {
   printf '%s\n' 'Usage: install-skills.sh [target-home] [--rollback]' >&2
   exit 2
 }
