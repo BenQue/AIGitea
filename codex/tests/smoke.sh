@@ -118,6 +118,8 @@ for script in \
   "$ROOT/codex/tests/test-installed-drift.sh" \
   "$ROOT/codex/tests/test-install-runner-flutter.sh" \
   "$ROOT/codex/tests/test-codex-drift.sh" \
+  "$ROOT/skill-for-claude/check-plugin-pin.sh" \
+  "$ROOT/codex/tests/test-claude-plugin-pin.sh" \
   "$ROOT/codex/tests/test-platform-readiness.sh" \
   "$ROOT"/sync/*.sh \
   "$ROOT"/sync/tests/*.sh; do
@@ -189,6 +191,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-installed-drift.sh" \
     "$ROOT/codex/tests/test-install-runner-flutter.sh" \
     "$ROOT/codex/tests/test-codex-drift.sh" \
+    "$ROOT/skill-for-claude/check-plugin-pin.sh" \
+    "$ROOT/codex/tests/test-claude-plugin-pin.sh" \
     "$ROOT/codex/tests/test-platform-readiness.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh" \
     "$ROOT/codex/tests/test-gitea-token-lib.sh" \
@@ -241,6 +245,11 @@ bash "$ROOT/codex/tests/test-codex-drift.sh"
 bash "$ROOT/codex/tests/test-platform-readiness.sh"
 bash -n "$ROOT/skill-for-claude/install.sh" "$ROOT/skill-for-claude/check-drift.sh"
 bash "$ROOT/codex/tests/test-install-claude-skills.sh"
+# #355: the Claude-side Matt plugin must name the same release and commit as the
+# vendored snapshot. Source and fabricated homes only; the CI host's own
+# ~/.claude is never inspected.
+bash "$ROOT/skill-for-claude/check-plugin-pin.sh" --source-only
+bash "$ROOT/codex/tests/test-claude-plugin-pin.sh"
 bash "$ROOT/codex/tests/test-host-role-guard.sh"
 bash "$ROOT/codex/tests/test-install-host-role.sh"
 bash "$ROOT/codex/tests/test-host-access-broker.sh"
