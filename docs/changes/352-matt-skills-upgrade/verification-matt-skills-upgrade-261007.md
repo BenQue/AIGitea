@@ -159,3 +159,11 @@ Controller 的初次候选与 PR 创建都生成 Summary / Evidence / Merge Dang
 初次回归发现 legacy small 的 resolver 会返回尚未要求存在的可选文档；已仅载入 required 或实际存在的
 映射文件，保留 required 文档硬门。回归同时覆盖人工确认的等待/恢复、routine 路径、唯一 PR、
 正文防重复 Closes/marker、脱敏、真实失败与缺证显示。默认完整 smoke 和远端 CI 尚待后续阶段。
+
+## 最终 PR 提交确认与发布预检补充（2026-10-07）
+
+用户已直接确认 #352 / `change/352-matt-skills-upgrade` / `manual` 的唯一最终 PR 提交，并允许合同内 CI 修复；人工 merge 与实际安装边界保持。此前提交卡和 T04 的“尚未批准/NOT RUN”记录保留为当时状态，后续远端结果以 exact HEAD 的真实读回为准。
+
+只读发布预检确认已安装 broker dispatch/FF 模块与当前 source 一致；`GitRepository.scope` 对原候选 `52bbfbfe57f5e0ba33e9a432292cce710751214d` 返回 `SCOPE_UNKNOWN: approved exact Git scope missing`，尚未尝试远端写入。已将经过审查的既有改动及本收据逐文件投影到 mapped spec 的 `git_scope`（138 项），不扩大产品合同、不修改 runtime 或 AGENTS。此修复与验证文档均在本 Change 内。按原授权复核新的 exact HEAD 后继续，不重复请求相同 Issue/branch/manual 确认。
+
+确认原文、旧候选与 scope 清单见 [PR submission receipt](evidence/pr-submission.json)。完整 smoke 的代码对象仍为 `a0731966350cb20ea4805623298ecd22004776f1`；本次只有合同机器投影与证据回填，需重跑文档及发布范围校验，CI 最终按实际 PR head 验证。
