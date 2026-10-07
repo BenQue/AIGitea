@@ -920,6 +920,31 @@ for superpowers_anchor in \
   grep -Fq -- "$superpowers_anchor" "$claude_platform_skill"
 done
 grep -Fq '外部技能包边界' "$ROOT/skill-for-claude/issue-session-flow/SKILL.md"
+# 升级适配清单（AC-8）：正文与已填写的示例在 08 §5；四项检查、三种结论都在场；
+# 两侧平台技能各有一个入口，缺任一侧两个 provider 就不再对称。
+upgrade_checklist_doc="$ROOT/08-双工具共存与实施.md"
+for upgrade_checklist_anchor in \
+  '### 外部技能包升级后的适配检查（#355）' \
+  '| 1 | 技能增删 |' \
+  '| 2 | 调用方式 |' \
+  '| 3 | 文件与目录约定 |' \
+  '| 4 | Git / PR / 并行写入副作用 |' \
+  '**无影响**' \
+  '**需要更新平台技能或 adapter**' \
+  '**明确禁用并写明边界**' \
+  '**Matt 1.2.3 → 1.3.1**' \
+  '**superpowers 6.4.1 → 6.4.2**'; do
+  if ! grep -Fq -- "$upgrade_checklist_anchor" "$upgrade_checklist_doc"; then
+    echo "升级适配清单缺少：$upgrade_checklist_anchor（#355 AC-8）" >&2
+    exit 1
+  fi
+done
+for upgrade_checklist_entry in "$claude_platform_skill" "$ROOT/skill-for-codex/SKILL.md"; do
+  if ! grep -Fq '外部技能包升级后的适配检查' "$upgrade_checklist_entry"; then
+    echo "平台技能缺少升级适配清单入口：$upgrade_checklist_entry（#355 AC-8）" >&2
+    exit 1
+  fi
+done
 
 if rg -n 'complexity_recommendation|最终 `complexity` 由人|人确认 Issue 验收标准与 complexity=small' \
   "$ROOT/AGENTS.md" "$ROOT/README.md" \

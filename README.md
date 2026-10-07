@@ -207,7 +207,7 @@ Claude 侧的 Matt 插件不走上表的 installer，而由 Claude Code 自己�
 `PIN_CLEAN` / `PIN_DRIFT` / `PIN_NOT_INSTALLED` / `PIN_UNREADABLE` 之一。判定以 commit 为准，版本号只作旁证；
 已装记录的格式不认识时读出 `PIN_UNREADABLE`，不判 `PIN_CLEAN`。该检查不属于下面的八安装面，也不注册
 marketplace、不安装或升级插件：source 合并不等于本机已切换来源，实际升级与 fresh-session 验收另行授权。
-superpowers 跟随官方 marketplace，平台不自建 pin；两个技能包的平台边界见
+superpowers 跟随官方 marketplace，平台不自建 pin；两个技能包的平台边界与升级后的人工适配检查清单见
 [08 §5](08-双工具共存与实施.md#5-matt-skills-与平台映射)。
 
 Issue #308 的八安装面只读核对合同：`bash codex/tools/check-installed-drift.sh` 逐项报告

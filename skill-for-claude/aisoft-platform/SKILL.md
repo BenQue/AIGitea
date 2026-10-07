@@ -63,6 +63,10 @@ Claude Code 与 Codex 共用同一平台合同，能力等价、可互换、不�
 Codex 侧的同一组 Matt 约束写在仓库内 `codex/skills/aisoft-matt-workflow/SKILL.md`；那是对照来源，
 Claude 侧不把它当技能加载。
 
+两个技能包任一发生大版本更新、或含技能增删的更新时，安装或升级之前先按 `08-双工具共存与实施.md` §5
+「外部技能包升级后的适配检查」人工逐项核对（技能增删、调用方式、文件与目录约定、Git / PR / 并行写入
+副作用），结论写进承载该次升级的 Issue。这是人工清单，不据此设定时任务、自动检查或安装。
+
 **Matt（`mattpocock-skills`）**：本技能里以 `$` 开头的技能名，在 Claude 侧对应插件技能
 `mattpocock-skills:<技能名>`。期望来源是仓库根 `.claude-plugin/marketplace.json` 的
 `mattpocock-skills@aisoft-platform`，钉在 v1.3.1（`24fe0ef7737efae15c87225755e9f6f5965e4888`），
