@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "issue": 352,
+  "ticket": "T01",
+  "stage": "pre-commit governance-only",
+  "observed_at_utc": "2026-10-07T13:42:13+00:00",
+  "approval": {
+    "session": "01a11682-fafc-70c1-80f2-a5d0d470bca1",
+    "human_quote": "批准你的建议",
+    "scope": "v1.3.1 controlled source upgrade, glossary compatibility, PR evidence, human retro; retain deterministic Controller"
+  },
+  "baseline": {
+    "head": "11628709e659dac48f5cb66bade81f1617974546",
+    "fetched_origin_main": "11628709e659dac48f5cb66bade81f1617974546",
+    "branch": "change/352-matt-skills-upgrade",
+    "worktree": "/private/tmp/issue-352-matt-skills-upgrade"
+  },
+  "owner": {
+    "schema_version": 1,
+    "issue": 352,
+    "branch": "change/352-matt-skills-upgrade",
+    "session": "01a11682-fafc-70c1-80f2-a5d0d470bca1",
+    "worktree": "/private/tmp/issue-352-matt-skills-upgrade",
+    "created": "2026-10-07T22:31:29+09:00",
+    "last_push_head": null,
+    "last_push_at": null
+  },
+  "issue_readback": {
+    "source": "manifest-bound host-access-broker gitea.issue.read",
+    "number": 352,
+    "state": "open",
+    "labels": [
+      "approved",
+      "complexity/complex",
+      "type/platform"
+    ],
+    "title": "Matt v1.3.1 受控升级与流程适配",
+    "updated_at": "2026-10-07T21:39:34+08:00",
+    "classification_independent_verify": "projected"
+  },
+  "contract": {
+    "status": "PASS",
+    "effective_complexity": "complex",
+    "contract_effect": "change",
+    "required_docs": [
+      "summary-matt-skills-upgrade-261007.md",
+      "spec-matt-skills-upgrade-261007.md",
+      "plan-matt-skills-upgrade-261007.md",
+      "verification-matt-skills-upgrade-261007.md"
+    ],
+    "acceptance_criteria_count": 8,
+    "ac_plan_mapping_count": 8,
+    "ticket_graph": [
+      [
+        "T01",
+        [],
+        "completed"
+      ],
+      [
+        "T02",
+        [
+          "T01"
+        ],
+        "pending"
+      ],
+      [
+        "T03",
+        [
+          "T02"
+        ],
+        "pending"
+      ],
+      [
+        "T04",
+        [
+          "T03"
+        ],
+        "pending"
+      ]
+    ],
+    "next_frontier": "T02"
+  },
+  "document_checks": {
+    "document_mapping": {
+      "status": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli resolve-documents 352 --repo .",
+      "output": "{\"plan\": \"plan-matt-skills-upgrade-261007.md\", \"spec\": \"spec-matt-skills-upgrade-261007.md\", \"summary\": \"summary-matt-skills-upgrade-261007.md\", \"verification\": \"verification-matt-skills-upgrade-261007.md\"}"
+    },
+    "required_documents": {
+      "status": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli resolve-required-documents 352 --repo .",
+      "output": "{\"documents\": {\"plan\": \"plan-matt-skills-upgrade-261007.md\", \"spec\": \"spec-matt-skills-upgrade-261007.md\", \"summary\": \"summary-matt-skills-upgrade-261007.md\", \"verification\": \"verification-matt-skills-upgrade-261007.md\"}, \"required_docs\": [\"summary\", \"spec\", \"plan\", \"verification\"]}"
+    },
+    "change_document_audit": {
+      "status": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo .",
+      "output": "PASS: change-documents\nPASS: change-pr-url\nresult: changes=161 pass=2 gap=0"
+    }
+  },
+  "relative_links": {
+    "status": "PASS",
+    "links": [
+      {
+        "from": "summary-matt-skills-upgrade-261007.md",
+        "to": "spec-matt-skills-upgrade-261007.md"
+      },
+      {
+        "from": "summary-matt-skills-upgrade-261007.md",
+        "to": "plan-matt-skills-upgrade-261007.md"
+      },
+      {
+        "from": "summary-matt-skills-upgrade-261007.md",
+        "to": "verification-matt-skills-upgrade-261007.md"
+      },
+      {
+        "from": "verification-matt-skills-upgrade-261007.md",
+        "to": "evidence/t01-preflight.json"
+      }
+    ]
+  },
+  "scope": {
+    "status": "PASS",
+    "allowed_prefix": "docs/changes/352-matt-skills-upgrade/",
+    "changed_files": [
+      "docs/changes/352-matt-skills-upgrade/evidence/t01-preflight.json",
+      "docs/changes/352-matt-skills-upgrade/plan-matt-skills-upgrade-261007.md",
+      "docs/changes/352-matt-skills-upgrade/spec-matt-skills-upgrade-261007.md",
+      "docs/changes/352-matt-skills-upgrade/summary-matt-skills-upgrade-261007.md",
+      "docs/changes/352-matt-skills-upgrade/verification-matt-skills-upgrade-261007.md"
+    ],
+    "runtime_changed": false
+  },
+  "snapshot_checks": {
+    "repo_current": {
+      "tag": "v1.2.2",
+      "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302",
+      "skill_count": 35
+    },
+    "installed_current": {
+      "tag": "v1.2.2",
+      "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302",
+      "skill_count": 35
+    },
+    "candidate": {
+      "tag": "v1.3.1",
+      "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888",
+      "skill_count": 37
+    },
+    "managed_skill_directories": {
+      "ask-matt": true,
+      "code-review": true,
+      "codebase-design": true,
+      "diagnosing-bugs": true,
+      "domain-modeling": true,
+      "grill-with-docs": true,
+      "implement": true,
+      "improve-codebase-architecture": true,
+      "prototype": true,
+      "research": true,
+      "resolving-merge-conflicts": true,
+      "setup-matt-pocock-skills": true,
+      "tdd": true,
+      "to-spec": true,
+      "to-tickets": true,
+      "triage": true,
+      "wayfinder": true,
+      "wizard": true,
+      "claude-handoff": true,
+      "loop-me": true,
+      "setup-ts-deep-modules": true,
+      "writing-beats": true,
+      "writing-fragments": true,
+      "writing-shape": true,
+      "git-guardrails-claude-code": true,
+      "migrate-to-shoehorn": true,
+      "scaffold-exercises": true,
+      "setup-pre-commit": true,
+      "grill-me": true,
+      "grilling": true,
+      "handoff": true,
+      "teach": true,
+      "to-questionnaire": true,
+      "wait-what": true,
+      "writing-for-agents": true
+    },
+    "managed_skill_matches": 35,
+    "current_symlink_target": "/Users/benque/.agents/vendor/mattpocock/releases/v1.2.2",
+    "classification": {
+      "classification": "complex",
+      "reasons": [
+        "skill set changed",
+        "workflow or side-effect contract changed: ask-matt",
+        "workflow or side-effect contract changed: claude-handoff",
+        "workflow or side-effect contract changed: code-review",
+        "workflow or side-effect contract changed: diagnosing-bugs",
+        "workflow or side-effect contract changed: domain-modeling",
+        "workflow or side-effect contract changed: git-guardrails-claude-code",
+        "workflow or side-effect contract changed: grill-me",
+        "workflow or side-effect contract changed: grill-with-docs",
+        "workflow or side-effect contract changed: grilling",
+        "workflow or side-effect contract changed: handoff",
+        "workflow or side-effect contract changed: improve-codebase-architecture",
+        "workflow or side-effect contract changed: loop-me",
+        "workflow or side-effect contract changed: prototype",
+        "workflow or side-effect contract changed: research",
+        "workflow or side-effect contract changed: setup-matt-pocock-skills",
+        "critical skill changed: setup-matt-pocock-skills",
+        "workflow or side-effect contract changed: setup-pre-commit",
+        "workflow or side-effect contract changed: setup-ts-deep-modules",
+        "workflow or side-effect contract changed: tdd",
+        "workflow or side-effect contract changed: to-spec",
+        "critical skill changed: to-spec",
+        "workflow or side-effect contract changed: to-tickets",
+        "critical skill changed: to-tickets",
+        "workflow or side-effect contract changed: triage",
+        "critical skill changed: triage",
+        "workflow or side-effect contract changed: wayfinder",
+        "workflow or side-effect contract changed: wizard",
+        "workflow or side-effect contract changed: writing-beats",
+        "workflow or side-effect contract changed: writing-for-agents",
+        "workflow or side-effect contract changed: writing-fragments",
+        "workflow or side-effect contract changed: writing-shape"
+      ]
+    },
+    "candidate_upstream_blobs_matched": 109,
+    "candidate_archive_sha256": "1847b1dab968d7dc8e87fdcad6613574557fd51301b66ba423c78d306bfa157b",
+    "added_skills": [
+      "implement-spec",
+      "pr",
+      "retro"
+    ],
+    "removed_skills": [
+      "resolving-merge-conflicts"
+    ],
+    "result": "PASS"
+  },
+  "evidence_layers": {
+    "governance_contract": "PASS",
+    "candidate_provenance": "PASS",
+    "old_v1_2_2_installed_integrity": "PASS",
+    "v1_3_1_source_implementation": "NOT RUN",
+    "v1_3_1_runtime_tests": "NOT RUN",
+    "new_provider_session": "NOT RUN",
+    "real_installation": "NOT RUN",
+    "push_pr_ci_merge": "NOT RUN"
+  },
+  "next_step": "Commit this governance-only change, STOP, then fresh run re-read and continue T02 without repeating existing scope approval."
+}
