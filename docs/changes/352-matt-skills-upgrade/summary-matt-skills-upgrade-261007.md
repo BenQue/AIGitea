@@ -26,9 +26,9 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: approved
+status: pr-open
 branch: change/352-matt-skills-upgrade
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/353
 created: 2026-10-07
 updated: 2026-10-07
 ---
