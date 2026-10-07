@@ -14,7 +14,7 @@ risk_flags:
   - external-contract
 depends_on:
   - 355
-status: contract-drafting
+status: approved
 branch: change/354-matt-skills-install
 created: 2026-10-08
 updated: 2026-10-08

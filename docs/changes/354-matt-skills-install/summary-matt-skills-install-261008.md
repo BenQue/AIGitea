@@ -26,7 +26,7 @@ confidence: high
 override_reason: ''
 depends_on:
   - 355
-status: spec-review
+status: approved
 branch: change/354-matt-skills-install
 pr_url:
 created: 2026-10-08
@@ -57,6 +57,17 @@ commit，所以 Claude 插件的升级入口只能来自 #355。
 | 唯一最终 PR（T06） | 是，PR 含两阶段证据 |
 
 `depends_on` 因此声明 355。superpowers 不在本票范围。
+
+## 授权与执行记录
+
+2026-10-08 用户在会话 65e1a492-eac2-4289-b459-f4322ea932bf 的确认点 1 确认本合同并启动：
+
+- C1 执行节奏：分两阶段。现在执行阶段一，#355 合并后按启动规则执行阶段二，最后一个 PR。
+- C2 Codex 独立插件：不动，只报告。
+- C3 `SAPWMOdataPDA` 的项目级 Claude 插件记录：不动，pin 检查的那条 DRIFT 记为已知残留。
+
+确认授权合同内的备份、安装、回滚演练、fresh session 与证据记录。它不授权 push、PR、merge、
+VM 安装或合同路径清单之外的写入。
 
 ## 影响范围
 

@@ -14,7 +14,7 @@ risk_flags:
   - external-contract
 depends_on:
   - 355
-status: contract-drafting
+status: approved
 branch: change/354-matt-skills-install
 created: 2026-10-08
 updated: 2026-10-08
@@ -229,7 +229,7 @@ CLI 回滚得到官方 marketplace 当前 pin `c55ee46`，而安装前记录是 
 
 ## 待确认的选择
 
-三项都有默认值，人在确认点 1 可以改。
+三项都有默认值。2026-10-08 人在确认点 1 三项均选定默认值。
 
 | # | 选择 | 默认 | 另一选项及后果 |
 |---|---|---|---|
