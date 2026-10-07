@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "source": "https://github.com/mattpocock/skills",
+  "tag": "v1.3.1",
+  "tag_object": "0b6cee10f260a2e048279cf737bfd3e37b1fce0b",
+  "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888",
+  "license": "MIT",
+  "license_sha256": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5",
+  "adapter_contract_version": 1,
+  "critical_skills": [
+    "implement",
+    "setup-matt-pocock-skills",
+    "to-spec",
+    "to-tickets",
+    "triage"
+  ],
+  "skill_count": 37,
+  "skills": [
+    {
+      "name": "ask-matt",
+      "path": "skills/engineering/ask-matt/SKILL.md",
+      "sha256": "3faf21ba97a56ef60394937a575b32cf9e84b57d6724a3cc4c006e692426b316",
+      "control_sha256": "939963ef3c99a351052573eb40aac546d08e04d89e77affc41cba42fb34fa612",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "code-review",
+      "path": "skills/engineering/code-review/SKILL.md",
+      "sha256": "1eadb20e010f587eb3d33ccc0cb360684ebbebcc350da3aab2b362c03f2dc117",
+      "control_sha256": "bb6cf5eb2163e387de4535b0708b754712a30df74f73bd2cdfb9ddd8f3cea3a1",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "codebase-design",
+      "path": "skills/engineering/codebase-design/SKILL.md",
+      "sha256": "66900cebdea7bd0a195bcd7927f7845f691ebe3bc98e6a5e038bbf54d6b2cee6",
+      "control_sha256": "cf33b558fd462d9819612b29f2e88c29aca0d8f0e8fd950d72f155c2e453484d",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "diagnosing-bugs",
+      "path": "skills/engineering/diagnosing-bugs/SKILL.md",
+      "sha256": "5555073d12f99d33e27282282bffa449ee3a6f34f7ee1a0f23c40647a4accb46",
+      "control_sha256": "a7070f4837016ee00838e6a29f3b45b15dbfd4c9af706f281128a008f108d2af",
+      "disable_model_invocation": false,
+      "tool_files": [
+        "scripts/hitl-loop.template.sh"
+      ]
+    },
+    {
+      "name": "domain-modeling",
+      "path": "skills/engineering/domain-modeling/SKILL.md",
+      "sha256": "9b6f168f658a0bf9c0f8471fa025ac667bc7f6317b4601c8d5653ef480f5c375",
+      "control_sha256": "41ee76ecadb8029e3cbd6f822450f99a723d94a72dd9b74e2c9406c7057c3239",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "grill-with-docs",
+      "path": "skills/engineering/grill-with-docs/SKILL.md",
+      "sha256": "3a542b4242632975b919f1651f2eb72550aa44b9677fb10798c77170ec4ade9e",
+      "control_sha256": "4556452bcc835e645c8c5f265f94c9354a69aede13f959aa46c155f024d7a732",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "implement",
+      "path": "skills/engineering/implement/SKILL.md",
+      "sha256": "62581fa199b12359ce4a87e9753f9cab2dcc53e410927e52491724dbe76fec92",
+      "control_sha256": "55dc98524decfc851c169a2e3e6a6cd803d4d450b7b30d479343fd92dad2343f",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "implement-spec",
+      "path": "skills/engineering/implement-spec/SKILL.md",
+      "sha256": "bd64142b711b95e8d3fede51d77cc69edca224dcebd3e4995602d6d5a0e3b596",
+      "control_sha256": "34085923d8dcc624c736b767f6c7b5ef9fb4b5869fc51a1750fbcdee2956485a",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "improve-codebase-architecture",
+      "path": "skills/engineering/improve-codebase-architecture/SKILL.md",
+      "sha256": "69e096dea0962f3b1179abe136a0ee842c6c58c2be0456d2e401cc28877cb019",
+      "control_sha256": "99bc64eb9653a0b0db6cfec8ad16dda594317692e10d1b80cf9d2042ee8596eb",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "pr",
+      "path": "skills/engineering/pr/SKILL.md",
+      "sha256": "642840cd636a1ee7cfbcba75925520dcbc5d5e8f82967e1b9872a9f86cf4cb73",
+      "control_sha256": "8a6ee214b63a398b3b5a2bdc8d65ee8e4951645fa556eeea9607f9307308df0d",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "prototype",
+      "path": "skills/engineering/prototype/SKILL.md",
+      "sha256": "d4cd76ff623014ffdfbb09e57b42d3832fe428e7cb2a2d6e788c12a7d35167d7",
+      "control_sha256": "5ce4ec4ed7d282ab3fd7c1726912ba512c635ffdb2261dbe29df3be2620fd7a0",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "research",
+      "path": "skills/engineering/research/SKILL.md",
+      "sha256": "cf160e7102464840d61f4b7b84aa50dd22d3617842fd7eb37d3756aed2134137",
+      "control_sha256": "4ddcda83470eb22da5dfa8d96636a68c17236c95078873e0d2b32f0dfcf8edf5",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "retro",
+      "path": "skills/engineering/retro/SKILL.md",
+      "sha256": "1f3b1a784a8660a68e60e0979a05a544c6acf332455e67eb10d52b4ca7ebc731",
+      "control_sha256": "2296571990d01e859aa05cc2d9e94df3783de9f0749b9111f888c8a2ced11433",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "setup-matt-pocock-skills",
+      "path": "skills/engineering/setup-matt-pocock-skills/SKILL.md",
+      "sha256": "c2f3a072230fc3d28c5b54e1a14344537d4f70c07b1284e9a34166d9d9276297",
+      "control_sha256": "4f39fb4454ac839f2fc973d7c15febbbd25c123f3776b4f327aff3d2b67554dd",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "tdd",
+      "path": "skills/engineering/tdd/SKILL.md",
+      "sha256": "af12ff81b46e29ce3146bff9be0001d486fe0fd181ba74985346d97590fce5e2",
+      "control_sha256": "e590b59ec662f5769eb78c5718844da13dba9e010e3c6d00acdb8114686ba444",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "to-spec",
+      "path": "skills/engineering/to-spec/SKILL.md",
+      "sha256": "88e49012362db6a5d6c294d22e8692f3b12abf985d8c475cd5af7ccd2531bbfb",
+      "control_sha256": "c2778633ae7e7930b99df23c0a910b3e03fb63318efb547810fd61cf90eb0f72",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "to-tickets",
+      "path": "skills/engineering/to-tickets/SKILL.md",
+      "sha256": "f5636544f841767dc25c7d675c7deaa7cc3aaf6c0c6bcb1110335d15d60fac1c",
+      "control_sha256": "f9e367554ad2ea7774c86fc1859632cb0b4580b0620b7705f22d6ebf499b3017",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "triage",
+      "path": "skills/engineering/triage/SKILL.md",
+      "sha256": "652d12938f03614699bdf8196de5d4bfff144511ee9d8ae9ed8564df1e064e34",
+      "control_sha256": "8ca6e5008df701bb5e154ffd8f37cf6645cb643ae618a2764cef6076489fdcec",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "wayfinder",
+      "path": "skills/engineering/wayfinder/SKILL.md",
+      "sha256": "73ce7574fb4ef0d2b17d062bcd458016a2c5d22a50c18618860a7f2f567507f1",
+      "control_sha256": "7018aaeac4bff06f0c3df593ea61729357466dad04dbd9fd319499fbde06fb4a",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "wizard",
+      "path": "skills/engineering/wizard/SKILL.md",
+      "sha256": "1da2f72b3ea43dcb3ccf3b032b225f836e62699d0aff3a061d6cc3c2017a4a70",
+      "control_sha256": "79b3a24c533b690e14373400c4a955e2d54d76b5dfd77e959b8e9e79e7df9fba",
+      "disable_model_invocation": false,
+      "tool_files": [
+        "template.sh"
+      ]
+    },
+    {
+      "name": "claude-handoff",
+      "path": "skills/in-progress/claude-handoff/SKILL.md",
+      "sha256": "0c1e52067888c559d031e5f7facbb4f349994a607e3fd11e418425de91ec6641",
+      "control_sha256": "96184812e6b07d4ed0a8bc352d9f12382c9881de80ca89bd1eff4f51d32660af",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "loop-me",
+      "path": "skills/in-progress/loop-me/SKILL.md",
+      "sha256": "fb26d0e4a0dff76065e25f93a47ef2d2c8c217587dbe67a175c889088522109c",
+      "control_sha256": "28afaf3492009535c117ff3fa6051693bb17831ec6dec6ccf801c4015fdb80c9",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "setup-ts-deep-modules",
+      "path": "skills/in-progress/setup-ts-deep-modules/SKILL.md",
+      "sha256": "dd574a7773bcd67908d66a480391a7053505a4502c7bcb4aeade9cb5cef7df55",
+      "control_sha256": "17032561a5e8850d19bccde66e27b7d790faed94225bd4f45ee1071b190a1ed0",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "writing-beats",
+      "path": "skills/in-progress/writing-beats/SKILL.md",
+      "sha256": "81f3ef4ee1ab1b7dfbb7a938b6cda390ed5243bb3ca4ed5a46281dfda9d7e8fa",
+      "control_sha256": "da3dea5773374cc8c6d9cb1a16ba59a619853311a300497b867c1e15ab0cfca8",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "writing-fragments",
+      "path": "skills/in-progress/writing-fragments/SKILL.md",
+      "sha256": "9d793b743a9c099e57f8c1a431968f0b667bc57638e66a93be4de199f403205b",
+      "control_sha256": "cbd29952f240ca361ad080da61c3f65c9557bc331f70d6ca1a59c2892762bc80",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "writing-shape",
+      "path": "skills/in-progress/writing-shape/SKILL.md",
+      "sha256": "6cbffe9545610f21b5f90d40672ae1199b465e9d1bb2b789c429dfeec6de52a0",
+      "control_sha256": "390ff71a3e17619f3147fd00cd4a14a8827127eef859dbf7e18eff1f7b0cbd91",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "git-guardrails-claude-code",
+      "path": "skills/misc/git-guardrails-claude-code/SKILL.md",
+      "sha256": "c41865844970e40108906159f0895c33fbbc3df33a0d51ccffe5f05dad7ec65f",
+      "control_sha256": "5b71713e91f5c5e38f76c81170cb5fdb723126bed77937d2f1d833fa48d5d58c",
+      "disable_model_invocation": false,
+      "tool_files": [
+        "scripts/block-dangerous-git.sh"
+      ]
+    },
+    {
+      "name": "migrate-to-shoehorn",
+      "path": "skills/misc/migrate-to-shoehorn/SKILL.md",
+      "sha256": "cda65c6b0f17a4759e6f700fe4850a325e8fc0614c9ef228de0f05efab25531d",
+      "control_sha256": "9946296240411fd43acdf5db2e8ec8f2bcc1aa795026d5ab712033f510309968",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "scaffold-exercises",
+      "path": "skills/misc/scaffold-exercises/SKILL.md",
+      "sha256": "ff41da067a268a360589f241785dcdc22814a8cf11a1298b3a7ed63dd0b09f75",
+      "control_sha256": "b61eb0f46d4ddd41924b6a144b70a73785e3c0c4cf6b92594931ac6ec96097bd",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "setup-pre-commit",
+      "path": "skills/misc/setup-pre-commit/SKILL.md",
+      "sha256": "4972edbbe85b3c6f23ecb1ec7c5bd0f107103e23afdfa2c5caa1e08deff22927",
+      "control_sha256": "653fd51d9229cdc8b6fa1f0f6de1cd200f5eb0cb61221df74bcbb6ed825f4090",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "grill-me",
+      "path": "skills/productivity/grill-me/SKILL.md",
+      "sha256": "3e32ee6b3fb86d5c5b0d03554efdf213f6bba9afe333b271150e36e77daa8798",
+      "control_sha256": "bf38d0fd87f9d8a9398372ae358f97b241f4c14218d898c30c9340872155fecc",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "grilling",
+      "path": "skills/productivity/grilling/SKILL.md",
+      "sha256": "fa403ffc4c8d7b98f1b4c1e1ec2dd2fa42ccf966d7da798d2a305056f8bae103",
+      "control_sha256": "8ff9f0a340c90c78dbcd0c5c49e7f82dd800c41f579d0f03a2d0135618bba2ba",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "handoff",
+      "path": "skills/productivity/handoff/SKILL.md",
+      "sha256": "57687d5125af05ed8c7c99e31c12bb12bd88b57c52df64489635dbc366c47212",
+      "control_sha256": "a66f558c709faf43b3caf4a2fe65b0179a5899f253e14d7eb0a76c33b44494ae",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "teach",
+      "path": "skills/productivity/teach/SKILL.md",
+      "sha256": "7144fdf232b5d00464876c5a3289bbbdd18212eb127e6805c8c8464834150085",
+      "control_sha256": "4912418d642908f03f23a6a67cf206432d385dcb547b75a22a7f9fd785ae8169",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "to-questionnaire",
+      "path": "skills/productivity/to-questionnaire/SKILL.md",
+      "sha256": "48cd4c187d189b9844490d386aaf00987af7775709601c7136c4bcd707f45a1d",
+      "control_sha256": "7e0d12a9283285e30bf3d8e4efd72421a61e424e29074b13d6c8e95a6310ea17",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "wait-what",
+      "path": "skills/productivity/wait-what/SKILL.md",
+      "sha256": "b8b88ae56f64a162020902d853c67044bb2ca18b43dc2bbb6d90a5367147085a",
+      "control_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "disable_model_invocation": true,
+      "tool_files": []
+    },
+    {
+      "name": "writing-for-agents",
+      "path": "skills/productivity/writing-for-agents/SKILL.md",
+      "sha256": "2f2fd330cc1d5ef06a894573fcb221818cf1eace1cb78ce48c0fdc39fa6a81f6",
+      "control_sha256": "d81033743567afcbd5495b2b92dce9bed47189104dd18dd52bfc4867ec90f29d",
+      "disable_model_invocation": false,
+      "tool_files": []
+    }
+  ]
+}

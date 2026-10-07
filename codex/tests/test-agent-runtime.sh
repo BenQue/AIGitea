@@ -37,10 +37,10 @@ test -f "$TARGET_HOME/.local/share/aisoft/gitea-governance.json"
 test -f "$TARGET_HOME/.agents/skills/gitea-development-loop/SKILL.md"
 test -L "$TARGET_HOME/.agents/skills/triage"
 test -L "$TARGET_HOME/.agents/skills/implement"
-test "$(readlink "$TARGET_HOME/.agents/vendor/mattpocock/current")" = 'releases/v1.2.2'
+test "$(readlink "$TARGET_HOME/.agents/vendor/mattpocock/current")" = 'releases/v1.3.1'
 test ! -e "$TARGET_HOME/.agents/vendor/mattpocock/previous"
 test -f "$TARGET_HOME/.agents/vendor/mattpocock/current/manifest.json"
-test "$(jq '.skill_count' "$TARGET_HOME/.agents/vendor/mattpocock/current/manifest.json")" = 35
+test "$(jq '.skill_count' "$TARGET_HOME/.agents/vendor/mattpocock/current/manifest.json")" = 37
 test -f "$TARGET_HOME/.agents/skills/triage/SKILL.md"
 test -f "$TARGET_HOME/.config/systemd/user/aisoft-agent@.service"
 test -f "$TARGET_HOME/.config/systemd/user/aisoft-agent@.timer"

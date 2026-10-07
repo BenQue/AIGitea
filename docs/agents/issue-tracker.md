@@ -79,3 +79,14 @@ PRs as a request surface: no. An explicitly named PR may still be inspected, but
 
 Wayfinding maps or child Issues require a complex parent spec that explicitly authorizes multi-Issue mode. Otherwise
 keep decisions, spec, ticket graph, implementation and final PR bound to the original Issue.
+
+## v1.3.1 evidence and orchestration boundaries
+
+`pr` prepares Summary / Evidence / Merge Danger content for the existing final candidate. Preserve exactly one
+`Closes #N`, the mapped summary path, dependencies, authorization marker and exact Issue/branch/policy. State
+Before/After observations with their SHA, command/artifact and evidence layer; missing evidence stays explicit.
+Describe reversibility, rollback and affected users/modules. Preparing this text never submits the PR.
+
+`retro` is explicitly selected by Matt source/path through `aisoft-matt-workflow`; it returns candidates for human
+review, without automatic governance changes. `implement-spec` is not enabled for writing orchestration here.
+The deterministic Controller continues to select one frontier ticket and owns remote mutation after confirmation.

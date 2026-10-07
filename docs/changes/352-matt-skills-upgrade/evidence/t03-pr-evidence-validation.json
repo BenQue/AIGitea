@@ -1,0 +1,27 @@
+{
+  "issue": 352,
+  "ticket": "T03",
+  "focused_controller": {
+    "result": "PASS",
+    "tests": 48
+  },
+  "initial_regression": "FAIL: optional legacy document FileNotFoundError",
+  "repair": "load required or existing mapped documents; absent optional artifacts remain NOT RUN",
+  "changed_behavior": [
+    "candidate preview",
+    "actual verifier results and SHA",
+    "mapped rollback and impact excerpts",
+    "explicit missing evidence",
+    "confirmation resumes using existing candidate provenance"
+  ],
+  "unchanged_controls": [
+    "one Closes line",
+    "authorization marker and policy",
+    "dependency and document mapping",
+    "second confirmation",
+    "manual merge",
+    "no new durable state schema"
+  ],
+  "full_smoke": "NOT RUN",
+  "real_remote": "NOT RUN"
+}

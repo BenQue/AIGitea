@@ -21,7 +21,7 @@ import sys
 
 INSTALLER_PINS = {
     "codex/install-vm.sh": "01bf859512149391b45c37697b850f01af05e738ae37ae73008acbb196d3fe1c",
-    "codex/install-skills.sh": "d07e38ba51e4f02f57820478626c9fc4d371b10265a0053df230028daafca9c3",
+    "codex/install-skills.sh": "4d5d029c670636023bb68972475f616195b93637f46aa56e3d21de1805d4dd70",
     "codex/install-host-role.sh": "325e5150722e30debc115c0717d9bc4dedac44e1a7552c3a2258df14c4b27c89",
     "codex/install-host-access-broker.sh": "485ea19514c5f4b72c84d6cc9576fe0c2b65c34d084e74c8f80e2d6ad6f10897",
     "architecture/install.sh": "c8f14f0154cad1b7402e527209d0135bab2bdf3bc0024f72fd06994067aa972e",
@@ -29,9 +29,12 @@ INSTALLER_PINS = {
     "sync/install.sh": "153f36ef3396a053a4e4cbb8d6022a9f163b75b6f4c25498ba27ae3217d30f10",
     "skill-for-claude/install.sh": "0c1a6692b983fada75a11de250a269f129371880cf41714611c1d59c1a541681",
 }
+INSTALLER_HELPER_PINS = {
+    "codex/runtime/aisoft_loop/matt_snapshot.py": "32c2f6f9de89537644cc5e7a3594d61a02c41b362ace044735c4b64da7fe637e",
+}
 # The versioned snapshot manifest is immutable. Validate content declarations
 # below as well; changing either contract requires explicit mapping maintenance.
-MATT_MANIFEST_PIN = "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da"
+MATT_MANIFEST_PIN = "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd"
 HELPER_SOURCE_INPUTS = ("go.mod", "go.sum", "build-lock.json", "build.py", "main.go", "helper.go",
                         "helper_test.go", "process_fixture_test.go")
 CONTROL_LINE_RE = re.compile(
@@ -334,6 +337,7 @@ class Surface:
     installer: str
     files: list[tuple[Path, Path, Path]] = field(default_factory=list)
     links: list[tuple[Path, str, Path]] = field(default_factory=list)
+    retired_links: list[tuple[Path, str, Path]] = field(default_factory=list)
     exact_trees: list[tuple[Path, Path, bool]] = field(default_factory=list)
     absent: list[tuple[Path, Path]] = field(default_factory=list)
     metrics: dict[str, Metric] = field(default_factory=dict)
@@ -472,6 +476,11 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
         surfaces["install-skills"].links.append((skills / name, "../vendor/mattpocock/current/" + str(Path(path).parent), home))
     if {p.parent.name for p in (repo / snapshot / "skills").glob("**/SKILL.md")} != seen:
         raise InspectionError("matt-skill-set-mismatch", repo / snapshot / "manifest.json")
+    # v1.3.1 retires only the exact v1.2.2 managed entrance. An independent
+    # directory or unrelated symlink at that name remains outside our ownership.
+    surfaces["install-skills"].retired_links.append((
+        skills / "resolving-merge-conflicts",
+        "../vendor/mattpocock/current/skills/engineering/resolving-merge-conflicts", home))
 
     tree("architecture/install", "codex/runtime/aisoft_architecture", arch / "lib/aisoft-architecture/aisoft_architecture", arch, "*.py")
     add("architecture/install", "architecture/bin/aisoft-architecture", arch / "bin/aisoft-architecture", arch)
@@ -540,7 +549,7 @@ def validate_source(repo: Path, surfaces: list[Surface]):
             discovered.add(str(p.relative_to(repo)))
     if discovered != set(INSTALLER_PINS):
         raise InspectionError("installer-set-mismatch", repo)
-    for relative, pin in INSTALLER_PINS.items():
+    for relative, pin in {**INSTALLER_PINS, **INSTALLER_HELPER_PINS}.items():
         if hashlib.sha256(read_bytes(repo / relative, repo)).hexdigest() != pin:
             raise InspectionError("installer-mapping-stale", repo / relative)
     for surface in surfaces:
@@ -658,6 +667,14 @@ def inspect_surface(surface: Surface, repo: Path, identity=None, public=None):
                 gap("link-target-differ", target, expected=expected)
         except (InspectionError, OSError) as exc:
             gap(exc.reason if isinstance(exc, InspectionError) else "unreadable", target)
+    for target, retired, boundary in surface.retired_links:
+        try:
+            st = checked_stat(target, boundary, link=True)
+            if stat.S_ISLNK(st.st_mode) and read_link(target, boundary) == retired:
+                gap("retired-managed-link-present", target)
+        except (InspectionError, OSError) as exc:
+            if not isinstance(exc, InspectionError) or exc.reason != "missing":
+                gap(exc.reason if isinstance(exc, InspectionError) else "unreadable", target)
     for target, boundary in surface.absent:
         try:
             checked_stat(target, boundary, link=True)
