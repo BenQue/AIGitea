@@ -1,0 +1,169 @@
+{
+  "issue": 352,
+  "ticket": "T04",
+  "recorded_at": "2026-10-07T14:25:42.081282+00:00",
+  "branch": "change/352-matt-skills-upgrade",
+  "policy": "manual",
+  "scope": "source/local and isolated fixtures; no real installation or remote publication",
+  "verified_code_sha": "a0731966350cb20ea4805623298ecd22004776f1",
+  "fresh_main_sha": "11628709e659dac48f5cb66bade81f1617974546",
+  "full_smoke": {
+    "command": "bash codex/tests/smoke.sh",
+    "cwd": "/private/tmp/issue-352-matt-skills-upgrade",
+    "execution_boundary": "host permission for local fixture loopback",
+    "exit_code": 0,
+    "result": "PASS",
+    "log": {
+      "path": "/private/tmp/matt-review-20261007/t04-smoke-host.log",
+      "sha256": "abf0ce9f5148a356b7b6c47aed0e289f83b50b0ad59f52db240f458eb9c5e268"
+    },
+    "suite_summaries": [
+      "Ran 12 tests in 0.300s",
+      "Ran 35 tests in 117.398s",
+      "Ran 20 tests in 0.050s",
+      "Ran 197 tests in 32.988s",
+      "Ran 1241 tests in 159.197s",
+      "Ran 1 test in 0.000s"
+    ],
+    "final_line": "Codex platform static smoke checks passed.",
+    "existing_unrun_boundary": "real Docker and field E2E remain NOT RUN; fixtures are not live evidence"
+  },
+  "prior_sandbox_attempt": {
+    "code_sha": "ea67aa686d55f7c504775ddda7c5a92ac0818a58",
+    "command": "bash codex/tests/smoke.sh",
+    "exit_code": 1,
+    "result": "BLOCKED_EXTERNAL",
+    "error": "PermissionError: [Errno 1] Operation not permitted",
+    "operation": "local fixture s.bind((\"127.0.0.1\", 0))",
+    "log": {
+      "path": "/private/tmp/matt-review-20261007/t04-smoke.log",
+      "sha256": "0e8ce1f2c3dda489cb53862f328962e0a3f3b60141d50a0710b33ef2ff92a2e7"
+    },
+    "resolution": "same default command on host after in-scope CLI fix; no checks skipped"
+  },
+  "focused_controller": {
+    "result": "PASS",
+    "tests": 48,
+    "log": {
+      "path": "/private/tmp/matt-review-20261007/t03-controller-final.log",
+      "sha256": "c6cf0584db536d2dc919690a9f74ac3227cf220c55a20b83f28abb3860bc71b2"
+    }
+  },
+  "focused_installer": {
+    "result": "PASS",
+    "tests": 9,
+    "included_in_full_smoke": true
+  },
+  "shell": {
+    "bash_n": "PASS",
+    "shellcheck": "PASS"
+  },
+  "final_review": {
+    "unchanged_legacy_vendor_and_AGENTS": "PASS",
+    "upstream_git_blob_count": 109,
+    "upstream_skill_count": 37,
+    "upstream_bytes": "PASS",
+    "manual_invocation_metadata": {
+      "codex_openai_yaml": "PASS",
+      "claude_skill_front_matter": "PASS"
+    },
+    "source_adapters": "PASS",
+    "actual_provider_fresh_session": "GAP / NOT RUN",
+    "ownership_and_clean_before_smoke": "PASS",
+    "normal_exception_rollback": "PASS",
+    "process_kill_or_power_loss_recovery": "NOT RUN",
+    "repair": "reject standalone --rollback before it can be interpreted as an installation target; regression verifies no write"
+  },
+  "real_home_readonly": {
+    "result": "PASS",
+    "scope": "read-only Matt ownership preflight, no installation",
+    "target": "/Users/benque",
+    "candidate": "v1.3.1",
+    "current": "releases/v1.2.2",
+    "previous": null,
+    "planned_entries": 38,
+    "retired_entries": [
+      "resolving-merge-conflicts"
+    ],
+    "warnings": [
+      "legacy skills.sh lock preserved; the pinned Matt manifest is authoritative",
+      "Matt and gstack retro coexist; use the verified Matt SKILL.md path, not bare retro"
+    ],
+    "fresh_provider_session": "NOT RUN"
+  },
+  "real_installed_baseline": {
+    "managed_release": "v1.2.2",
+    "managed_directories_verified": 35,
+    "codex_plugin_version": "1.2.3",
+    "claude_plugin_version": "1.2.3",
+    "writes": false
+  },
+  "classification_readback": {
+    "issue": 352,
+    "project": "aisoft-platform",
+    "repository": "aisoft-platform",
+    "action": "verify",
+    "applied": false,
+    "detail": "Issue #352 carries the classification its merged summary declares",
+    "result": "projected",
+    "change_type": "platform",
+    "complexity": "complex"
+  },
+  "remote_readback": {
+    "issue": "open",
+    "lifecycle": "approved",
+    "issue_comments": 0,
+    "open_pulls": 0,
+    "required_contexts": [
+      "CI / verify (pull_request)"
+    ],
+    "direct_push": false,
+    "force_push": false,
+    "manual_merge_user": "admin"
+  },
+  "acceptance_review": {
+    "AC-1": "PASS",
+    "AC-2": "PASS (isolated fixture)",
+    "AC-3": "PASS (source and preservation review)",
+    "AC-4": "PASS",
+    "AC-5": "PARTIAL; real fresh session GAP / NOT RUN",
+    "AC-6": "PASS (source)",
+    "AC-7": "PASS",
+    "AC-8": "PASS (source handoff)"
+  },
+  "after_smoke_policy": "Only this Change documents/evidence may differ in the final candidate; revalidate document resolver/links/diff and record final head separately.",
+  "unrun": [
+    "push",
+    "PR creation",
+    "required CI",
+    "merge",
+    "real global/VM installation",
+    "provider plugin update",
+    "v1.3.1 actual provider fresh session",
+    "live/deploy"
+  ],
+  "final_document_checks": {
+    "result": "PASS",
+    "contract_required_docs": [
+      "summary-matt-skills-upgrade-261007.md",
+      "spec-matt-skills-upgrade-261007.md",
+      "plan-matt-skills-upgrade-261007.md",
+      "verification-matt-skills-upgrade-261007.md"
+    ],
+    "completed_tickets": [
+      "T01",
+      "T02",
+      "T03",
+      "T04"
+    ],
+    "relative_links": 17,
+    "old_snapshot_and_AGENTS_unchanged": true,
+    "only_this_change_docs_after_smoke": true,
+    "diff_check": "PASS",
+    "document_audit": {
+      "command": "PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo .",
+      "exit_code": 0,
+      "output": "PASS: change-documents\nPASS: change-pr-url\nresult: changes=161 pass=2 gap=0\n"
+    }
+  }
+}

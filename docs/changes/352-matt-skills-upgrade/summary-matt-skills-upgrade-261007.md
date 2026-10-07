@@ -35,9 +35,15 @@ updated: 2026-10-07
 
 ## 问题/需求总结
 
-平台与本机受管 Matt 技能仍为 v1.2.2。用户在本会话阅读版本核验与视频分析后，于 2026-10-07 直接回复“批准你的建议”。本合同承接已确认的 v1.3.1 受控升级、术语表兼容、PR 证据和人工 retro；保留确定性 Controller，并行写入编排另行评估。
+平台原固定 v1.2.2 的 35 个 Matt 技能；新版增加及移除技能后，安装入口、所有权检查与回滚需要同步适配。Controller 原 PR 正文也缺少具体前后证据、回滚方式和影响范围。
 
-本次批准允许在该范围内完成合同、source 实施、测试、修复和本地原子 commit，不重复询问相同范围。按照根 AGENTS.md 的治理约束，本轮 T01 **仅固定这四份语义合同及其审查证据，验证、本地 commit 后 STOP**；下一 fresh run 重读后实施 T02。批准不包括 push/PR、merge、全局安装、VM、Claude-owned plugin、Secret、服务或部署。最终 PR 仍保留 exact Issue/branch/manual 第二确认，安装在 source 合并后按目标和回滚单独验收。
+本变更固定完整 v1.3.1 的 37 个技能并保留旧快照，安装前核验来源和入口归属，失败恢复旧指针，支持 N-1 回滚；PR 候选引用实际验证结果、SHA、回滚和范围，缺证时如实标注。平台同时采用兼容旧 CONTEXT 的 GLOSSARY 约定，明确 Matt retro 的人工调用和来源消歧，继续使用既有确定性 Controller。源码与隔离测试完成不代表真实主机已升级。
+
+## 授权与执行记录
+
+用户于 2026-10-07 直接回复“批准你的建议”，授权本范围内合同、source 实施、测试、修复和本地原子 commit。T01 按根 AGENTS.md 独立固定四角色治理合同、验证、本地 commit 后 STOP；本轮用户“继续 #352”，fresh run 重读合同后完成 T02–T04。
+
+批准不包括 push/PR、merge、全局安装、VM、独立 provider plugin、Secret、服务或部署。最终 PR 保留 exact Issue/branch/manual 第二确认，安装在 source 合并后按目标和回滚单独验收。
 
 ## 影响范围
 
@@ -49,8 +55,8 @@ updated: 2026-10-07
 | 单写者 | Codex session 01a11682-fafc-70c1-80f2-a5d0d470bca1，已通过 claim-worktree 正式认领 |
 | fresh main / 本地基线 | 11628709e659dac48f5cb66bade81f1617974546 |
 | 上游固定目标 | v1.3.1 / 24fe0ef7737efae15c87225755e9f6f5965e4888 |
-| 当前步骤 | T01 四角色治理合同与证据；没有 runtime 变更 |
-| 后续 source | 完整 vendor、安装器及其校验、Matt adapter、domain/tracker 模板、最小 glossary、PR 正文生成和相应测试 |
+| 当前步骤 | T01–T04 source 与本地验收完成；准备唯一最终 PR，等待第二确认 |
+| 已完成 source | 完整 vendor、安装器及其校验、Matt adapter、domain/tracker 模板、最小 glossary、PR 正文生成和相应测试 |
 | Merge policy | manual；required CI 为 CI / verify (pull_request) |
 
 ## 初步方案与建议

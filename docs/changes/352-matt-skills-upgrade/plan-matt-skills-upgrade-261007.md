@@ -29,7 +29,7 @@ updated: 2026-10-07
 | T01 | 固定四角色治理合同、来源和授权证据；文档验证、本地 commit 后 STOP | - | completed |
 | T02 | fresh run 完成 v1.3.1 完整 source、隔离安装/回滚、术语兼容和技能来源适配 | T01 | completed |
 | T03 | PR 候选接入真实前后证据、回滚/影响范围，保留现有机器硬门 | T02 | completed |
-| T04 | 整体验证、完整 spec review 与唯一最终 PR 候选 | T03 | in-progress |
+| T04 | 整体验证、完整 spec review 与唯一最终 PR 候选 | T03 | completed |
 
 ## Expected touch points
 
@@ -57,7 +57,9 @@ T01 的停止用于满足治理合同与 runtime 的 fresh-run 隔离，用户�
 | AC-7 | `bash codex/tests/smoke.sh`；变更脚本 `bash -n` 和 ShellCheck；`python3 -m aisoft_loop.cli check-change-documents --repo .`；相关 focused tests |
 | AC-8 | mapped verification 分层记录；最终 exact head/base/CI 的人工 PR 卡；实际安装保持独立目标验收 |
 
-T01 本轮执行：四文档 resolver/required-docs、真实 Issue 的 load_contract、Ticket graph、文档相对链接、精确范围与 diff 检查；旧 vendor/installed/candidate 的哈希证据。没有改 shell/runtime，本轮不以其测试冒充 T02/T03 验收。
+T01 历史执行：四文档 resolver/required-docs、真实 Issue 的 load_contract、Ticket graph、文档相对链接、精确范围与 diff 检查；旧 vendor/installed/candidate 的哈希证据。该阶段没有改 shell/runtime，其检查不替代 T02/T03 验收。
+
+T04 最终 source 验收：默认完整 smoke 在代码 SHA `a0731966350cb20ea4805623298ecd22004776f1` 上退出 0，其中 runtime 1,241 tests、installed-drift 35 tests；Controller focused 48 tests。实际命令、历史失败与修复、8 项 AC review 和未运行层次见映射 verification 与 `evidence/t04-final-validation.json`。随后只回填本 Change 文档；最终提交卡另记录最终 HEAD，并证明与已测代码之间只有文档差异。
 
 ## 部署与回滚
 
