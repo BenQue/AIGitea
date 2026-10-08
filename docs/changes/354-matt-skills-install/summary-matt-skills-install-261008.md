@@ -78,6 +78,7 @@ VM 安装或合同路径清单之外的写入。
 | Worktree | /private/tmp/issue-354-matt-skills-install |
 | 单写者 | Claude Code 会话 65e1a492-eac2-4289-b459-f4322ea932bf，已 claim |
 | 平台 source pin（阶段一） | `8162fe7d71dd58b13ca80ef26467a2549973f4df`，2026-10-08 经 broker fetch 读回的 origin/main |
+| 平台 source pin（阶段二，P2） | `b356085d1d507ba0d66fe3b8d118e4a57edf7075`，#355 / PR #356 的 merge commit |
 | 上游固定目标 | v1.3.1，tag object `0b6cee10f260a2e048279cf737bfd3e37b1fce0b`，commit `24fe0ef7737efae15c87225755e9f6f5965e4888` |
 | 目标主机 | 当前 Mac，target-home `/Users/benque` |
 | 仓库内改动 | 仅 `docs/changes/354-matt-skills-install/` |

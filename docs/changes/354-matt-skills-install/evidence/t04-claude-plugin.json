@@ -1,0 +1,503 @@
+{
+ "P2": "b356085d1d507ba0d66fe3b8d118e4a57edf7075",
+ "backup": {
+  "contents": [
+   "plugins/installed_plugins.json",
+   "plugins/known_marketplaces.json",
+   "settings.json",
+   "skills/aisoft-platform",
+   "skills/issue-session-flow",
+   "codex-adapter/aisoft-platform",
+   "inventory.json"
+  ],
+  "mode": "0700",
+  "not_backed_up": "the plugin cache directory claude-plugins-official/mattpocock-skills/1.2.3; only its tree hash was recorded. See deviation D2.",
+  "path": "~/.claude/backup-issue-354-20261008T111330Z",
+  "verified": "cmp of the three files and diff -r of the three directories returned no difference before the first write"
+ },
+ "date": "2026-10-08",
+ "deviations": {
+  "D1": "claude plugin marketplace add also wrote an aisoft-platform key under extraKnownMarketplaces in ~/.claude/settings.json. The contract listed only enabledPlugins for that file. The write was made by the CLI, not by hand.",
+  "D2": "The rollback drill's reinstall of the official plugin repopulated the shared cache directory claude-plugins-official/mattpocock-skills/1.2.3 with commit c55ee46 content (38 SKILL.md, plugin.json still declares 25 skills, skills/ byte-equal to the Codex-side c55ee46 cache). Before the drill it held 2ab9580 content (35 SKILL.md). The old bytes were not backed up and the new clone is shallow, so they cannot be restored from disk. The project-scope record of <out-of-scope project> still names 2ab9580 and its installPath is this directory; that project's own settings file was not written (mtime unchanged). The contract's statement that the old cache directory stays on disk was wrong.",
+  "D3": "inventory.py now excludes .in_use and .git from plugin cache tree hashes (schema v3). Cache hashes in t01 and t02 were taken with schema v1 and are not comparable with later ones.",
+  "D4": "The six fresh claude -p processes of T05 left their own transcripts under ~/.claude/projects. That is Claude Code's session record, outside the contract's path list."
+ },
+ "diff_against_backup": {
+  "installed_plugins.json": {
+   "changed_ids": [
+    "mattpocock-skills@aisoft-platform",
+    "mattpocock-skills@claude-plugins-official"
+   ],
+   "unchanged_ids": "32 of 33"
+  },
+  "known_marketplaces.json": {
+   "added": [
+    "aisoft-platform"
+   ],
+   "other_entries_changed": []
+  },
+  "settings.json": {
+   "enabledPlugins": {
+    "mattpocock-skills@aisoft-platform": "added true",
+    "mattpocock-skills@claude-plugins-official": "removed"
+   },
+   "extraKnownMarketplaces": {
+    "aisoft-platform": "added"
+   },
+   "top_level_keys_changed": [
+    "enabledPlugins",
+    "extraKnownMarketplaces"
+   ]
+  }
+ },
+ "final_inventory": {
+  "claude": {
+   "enabled": {
+    "mattpocock-skills@aisoft-platform": true
+   },
+   "extra_known_marketplaces": [
+    "aisoft-platform",
+    "mattpocock",
+    "openai-codex"
+   ],
+   "installed_plugins_sha256": "4b18bd5e7a1d16da8c60bfb608f5663a21e89371c78b8f7d4c9bcc1044c3a670",
+   "marketplaces": {
+    "aisoft-platform": {
+     "autoUpdate": null,
+     "source": {
+      "path": "/Users/benque/MyDocs/AISoftPlatform",
+      "source": "directory"
+     }
+    },
+    "claude-plugins-official": {
+     "autoUpdate": true,
+     "source": {
+      "repo": "anthropics/claude-plugins-official",
+      "source": "github"
+     }
+    },
+    "mattpocock": {
+     "autoUpdate": true,
+     "source": {
+      "repo": "mattpocock/skills",
+      "source": "github"
+     }
+    },
+    "obsidian-skills": {
+     "autoUpdate": true,
+     "source": {
+      "repo": "kepano/obsidian-skills",
+      "source": "github"
+     }
+    },
+    "openai-codex": {
+     "autoUpdate": true,
+     "source": {
+      "repo": "openai/codex-plugin-cc",
+      "source": "github"
+     }
+    },
+    "superpowers-marketplace": {
+     "autoUpdate": true,
+     "source": {
+      "repo": "obra/superpowers-marketplace",
+      "source": "github"
+     }
+    }
+   },
+   "matt_caches": {
+    "aisoft-platform/mattpocock-skills/1.3.1": {
+     "files": 1929,
+     "skill_files": 37,
+     "tree_sha256": "2b6fe629195a9b6dbd2269f9037f0df6d0b3f93bd792ae26166152d7e79210da"
+    },
+    "claude-plugins-official/mattpocock-skills/1.2.3": {
+     "files": 1939,
+     "skill_files": 38,
+     "tree_sha256": "c1d562d8b023909aa493f328b19d45d565c1d5ba6d981fa0c4158c9d1dd62129"
+    }
+   },
+   "matt_records": [
+    {
+     "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888",
+     "id": "mattpocock-skills@aisoft-platform",
+     "scope": "user",
+     "version": "1.3.1"
+    },
+    {
+     "commit": "2ab958093e83e0ec752e6c1c5932da465bf23e0c",
+     "id": "mattpocock-skills@claude-plugins-official",
+     "scope": "project",
+     "version": "1.2.3"
+    }
+   ],
+   "platform_skills": {
+    "aisoft-platform": {
+     "files": 4,
+     "tree_sha256": "d50eff54c4f1cd1d96ac0690380a608a4e20ff2264da23a6516649d356673a6c"
+    },
+    "issue-session-flow": {
+     "files": 1,
+     "tree_sha256": "e4edfe92b240b6a4467018f48179475780057a30362beb2d7f3602ae1c8f1e12"
+    }
+   }
+  },
+  "codex_managed": {
+   "adapters": {
+    "aisoft-matt-workflow": "dbb114729974c17178433da70f336997da1852da36e640a1618a70eee86519bd",
+    "aisoft-platform": "cafeb1c3fb7ac8071dc3bde8f84382b325846aa9227aeb5864cffe8c756a10bc",
+    "gitea-analyze-change": "9fa1c3fbc2ebdf86c3e3ce3bedf49fb2aa6dac0dcaac60fab70791294d9ba18f",
+    "gitea-development-loop": "caf6d1ba66db77553ca9316e089d1d366ca5df77b3aeeedaa3ae7a4a74e99465",
+    "gitea-implement-change": "88d05f4d407e0ababc457e1d9fee56a33470607c2745fc1e4cccb3030e33ebbd",
+    "gitea-platform-ops": "528002084d786106eea2d293643397029a6b8c4876fb321a18ecbbc6f81820a8",
+    "gitea-spec-plan": "01fce78d9456da9b73c5016f9753a9c9e08acf39f5f684681c9ca4302505144b",
+    "issue-session-flow": "9953872fdf016847d8fbb9002244213f2735eaf16bee00db05a98bbc6d8c6fdb"
+   },
+   "digests": {
+    "adapters": "aa432f51cae95623fb853522103afadc0d674412da9ec4781a5d61e4716dd95b",
+    "matt_links": "6d23f95f6afb5da204b0ef71241874e93e3ee472e92c59ffa78bb005e2d805f1",
+    "unrelated": "8fefe466016a04eef30af07b873956dd72382fdfab2fe9430890efdf9cd584d5"
+   },
+   "entry_count": 162,
+   "matt_link_count": 37,
+   "pointers": {
+    "current": "releases/v1.3.1",
+    "previous": "releases/v1.2.2"
+   },
+   "releases": {
+    "v1.2.2": {
+     "equals_pinned_source": true,
+     "files": 105,
+     "gid": 20,
+     "manifest": {
+      "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302",
+      "skill_count": 35,
+      "tag": "v1.2.2",
+      "tag_object": "8651af486bb7c9e695ab1c6f44bd9a79fabb9999"
+     },
+     "mode": "0755",
+     "skills_matching_manifest": "35/35",
+     "tree_sha256": "d265471082e0f675e0a1b419cbf190ed5e408627bc981525084154fa40ccbfda",
+     "uid": 501
+    },
+    "v1.3.1": {
+     "equals_pinned_source": true,
+     "files": 110,
+     "gid": 20,
+     "manifest": {
+      "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888",
+      "skill_count": 37,
+      "tag": "v1.3.1",
+      "tag_object": "0b6cee10f260a2e048279cf737bfd3e37b1fce0b"
+     },
+     "mode": "0755",
+     "skills_matching_manifest": "37/37",
+     "tree_sha256": "a60ff12028477b25fe263fc7f67d508eaf062328c0b947c95b16b214e3ce98f4",
+     "uid": 501
+    }
+   },
+   "skill_lock_sha256": "4444d0db81edee3a1662e9e37a44a78b99728050abd50b9d912693a25f7917a0",
+   "unrelated_count": 117
+  },
+  "codex_plugin": {
+   "config_entries": {
+    "[plugins.\"mattpocock-skills@claude-plugins-official\"]": "enabled = true"
+   },
+   "matt_caches": {
+    "claude-plugins-official/mattpocock-skills/1.2.3": {
+     "files": 196,
+     "skill_files": 38,
+     "tree_sha256": "d299266d0dddea6d07d9787400d5f2a7e37c9e40c67310db95b1bd5c1d21dca6"
+    }
+   }
+  }
+ },
+ "layer": "installed",
+ "not_run": [
+  "file-level restore of the three backed-up files (only needed on failure)",
+  "any change to the direct mattpocock marketplace entry",
+  "any change to superpowers or other plugins",
+  "gitea-ci VM"
+ ],
+ "schema": "aisoft.issue-354.t04/v1",
+ "session": "65e1a492-eac2-4289-b459-f4322ea932bf",
+ "source": {
+  "checkout": "/private/tmp/aisoft-354-install-source",
+  "detached": true,
+  "head": "b356085d1d507ba0d66fe3b8d118e4a57edf7075"
+ },
+ "startup_rules": {
+  "1_issue_355_closed_and_merge_is_ancestor": {
+   "closed_at": "2026-10-08T18:48:06+08:00",
+   "issue_state": "closed",
+   "merge_commit": "b356085d1d507ba0d66fe3b8d118e4a57edf7075",
+   "pull": 356,
+   "result": "PASS"
+  },
+  "2_P2_descends_from_phase_one_pin": {
+   "phase_one_pin": "8162fe7d71dd58b13ca80ef26467a2549973f4df",
+   "result": "PASS"
+  },
+  "3_matt_snapshot_and_installer_unchanged": {
+   "command": "git diff --stat 8162fe7 b356085 -- codex/vendor/mattpocock codex/install-skills.sh codex/runtime/aisoft_loop/matt_snapshot.py",
+   "output": "empty",
+   "result": "PASS"
+  },
+  "4_marketplace_pin": {
+   "check_plugin_pin_source_only": "PIN_SOURCE_OK",
+   "entry_ref": "v1.3.1",
+   "entry_sha": "24fe0ef7737efae15c87225755e9f6f5965e4888",
+   "result": "PASS"
+  },
+  "5_upstream_tag": {
+   "result": "PASS",
+   "v1.3.1": "0b6cee10f260a2e048279cf737bfd3e37b1fce0b",
+   "v1.3.1^{}": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+  }
+ },
+ "steps": {
+  "X2": {
+   "command": "bash skill-for-claude/install.sh /Users/benque",
+   "exit": 0,
+   "readback": {
+    "boundary_section_present": true,
+    "platform_skills": {
+     "aisoft-platform": {
+      "files": 4,
+      "tree_sha256": "d50eff54c4f1cd1d96ac0690380a608a4e20ff2264da23a6516649d356673a6c"
+     },
+     "issue-session-flow": {
+      "files": 1,
+      "tree_sha256": "e4edfe92b240b6a4467018f48179475780057a30362beb2d7f3602ae1c8f1e12"
+     }
+    },
+    "skill-for-claude/check-drift.sh": "CLEAN"
+   },
+   "stderr": [
+    "WARNING: skill-for-claude/install: detached HEAD; staleness unchecked; the printed commit is the only evidence of what is being installed"
+   ],
+   "stdout": [
+    "source checkout:   /private/tmp/aisoft-354-install-source",
+    "source commit:     b356085 (detached HEAD; staleness unchecked)",
+    "source skills:     2",
+    "source references: 3",
+    "installed skill aisoft-platform in /Users/benque/.claude/skills/aisoft-platform",
+    "installed skill issue-session-flow in /Users/benque/.claude/skills/issue-session-flow",
+    "Claude skills installed from /private/tmp/aisoft-354-install-source/skill-for-claude/skills.manifest: aisoft-platform issue-session-flow",
+    "Shared references copied from skill-for-codex/references (single source).",
+    "Pruned 0 stale entries; each declared skill tree is exact.",
+    "Undeclared skills under .claude/skills were not read or modified.",
+    "No credentials, runtime, or provider state was installed."
+   ]
+  },
+  "X3": {
+   "command": "bash codex/install-skills.sh /Users/benque",
+   "exit": 0,
+   "readback": {
+    "adapters_changed": [
+     "aisoft-platform"
+    ],
+    "check-installed-drift": {
+     "install-skills": "PASS",
+     "skill-for-claude/install": "PASS"
+    },
+    "codex/check-drift.sh": "CLEAN",
+    "lock_unchanged": true,
+    "matt_pointers_links_releases_unchanged": true,
+    "unrelated_digest_unchanged": true
+   },
+   "reason": "skill-for-codex/SKILL.md changed between the phase-one pin and P2"
+  },
+  "X4": {
+   "commands": [
+    "claude plugin validate /Users/benque/MyDocs/AISoftPlatform",
+    "claude plugin marketplace add /Users/benque/MyDocs/AISoftPlatform"
+   ],
+   "exit": [
+    0,
+    0
+   ],
+   "precondition": "main checkout HEAD == P2 and clean",
+   "readback": {
+    "known_marketplaces.aisoft-platform": {
+     "path": "/Users/benque/MyDocs/AISoftPlatform",
+     "source": "directory"
+    },
+    "validate": "Validation passed"
+   }
+  },
+  "X5": {
+   "commands": [
+    "claude plugin uninstall mattpocock-skills@claude-plugins-official --scope user",
+    "claude plugin install mattpocock-skills@aisoft-platform --scope user"
+   ],
+   "exit": [
+    0,
+    0
+   ],
+   "readback": {
+    "cache_git_head": "24fe0ef7737efae15c87225755e9f6f5965e4888",
+    "cache_skill_dirs_matching_vendor_manifest": "37/37",
+    "check-plugin-pin": "PIN_DRIFT, one DRIFT line: mattpocock-skills@claude-plugins-official scope=project version=1.2.3 commit=2ab958093e83e0ec752e6c1c5932da465bf23e0c (accepted residue, choice C3)",
+    "license_sha256_equal": true,
+    "plugin_json": {
+     "declared_skills": 27,
+     "version": "1.3.1"
+    }
+   },
+   "state": {
+    "enabled": {
+     "mattpocock-skills@aisoft-platform": true
+    },
+    "extra_known_marketplaces": [
+     "aisoft-platform",
+     "mattpocock",
+     "openai-codex"
+    ],
+    "matt_caches": {
+     "aisoft-platform/mattpocock-skills/1.3.1": {
+      "files": 2036,
+      "skill_files": 37
+     },
+     "claude-plugins-official/mattpocock-skills/1.2.3": {
+      "files": 1921,
+      "skill_files": 35
+     }
+    },
+    "matt_records": [
+     {
+      "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888",
+      "id": "mattpocock-skills@aisoft-platform",
+      "scope": "user",
+      "version": "1.3.1"
+     },
+     {
+      "commit": "2ab958093e83e0ec752e6c1c5932da465bf23e0c",
+      "id": "mattpocock-skills@claude-plugins-official",
+      "scope": "project",
+      "version": "1.2.3"
+     }
+    ],
+    "platform_skills": {
+     "aisoft-platform": {
+      "files": 4,
+      "tree_sha256": "d50eff54c4f1cd1d96ac0690380a608a4e20ff2264da23a6516649d356673a6c"
+     },
+     "issue-session-flow": {
+      "files": 1,
+      "tree_sha256": "e4edfe92b240b6a4467018f48179475780057a30362beb2d7f3602ae1c8f1e12"
+     }
+    }
+   }
+  },
+  "rollback_drill": {
+   "R1_R2": {
+    "commands": [
+     "claude plugin uninstall mattpocock-skills@aisoft-platform --scope user",
+     "claude plugin install mattpocock-skills@claude-plugins-official --scope user"
+    ],
+    "note": "N-1 by CLI is the official marketplace's current pin c55ee46, version 1.2.3; not the pre-change record 2ab9580",
+    "state": {
+     "enabled": {
+      "mattpocock-skills@claude-plugins-official": true
+     },
+     "extra_known_marketplaces": [
+      "aisoft-platform",
+      "mattpocock",
+      "openai-codex"
+     ],
+     "matt_caches": {
+      "aisoft-platform/mattpocock-skills/1.3.1": {
+       "files": 2037,
+       "skill_files": 37
+      },
+      "claude-plugins-official/mattpocock-skills/1.2.3": {
+       "files": 1976,
+       "skill_files": 38
+      }
+     },
+     "matt_records": [
+      {
+       "commit": "2ab958093e83e0ec752e6c1c5932da465bf23e0c",
+       "id": "mattpocock-skills@claude-plugins-official",
+       "scope": "project",
+       "version": "1.2.3"
+      },
+      {
+       "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
+       "id": "mattpocock-skills@claude-plugins-official",
+       "scope": "user",
+       "version": "1.2.3"
+      }
+     ],
+     "platform_skills": {
+      "aisoft-platform": {
+       "files": 4,
+       "tree_sha256": "d50eff54c4f1cd1d96ac0690380a608a4e20ff2264da23a6516649d356673a6c"
+      },
+      "issue-session-flow": {
+       "files": 1,
+       "tree_sha256": "e4edfe92b240b6a4467018f48179475780057a30362beb2d7f3602ae1c8f1e12"
+      }
+     }
+    }
+   },
+   "R3_R4": {
+    "commands": [
+     "claude plugin uninstall mattpocock-skills@claude-plugins-official --scope user",
+     "claude plugin install mattpocock-skills@aisoft-platform --scope user"
+    ],
+    "readback": {
+     "cache_skill_dirs_matching_vendor_manifest": "37/37",
+     "check-plugin-pin": "PIN_DRIFT, same single DRIFT line",
+     "records_and_enabled_equal_to_X5": true
+    },
+    "state": {
+     "enabled": {
+      "mattpocock-skills@aisoft-platform": true
+     },
+     "extra_known_marketplaces": [
+      "aisoft-platform",
+      "mattpocock",
+      "openai-codex"
+     ],
+     "matt_caches": {
+      "aisoft-platform/mattpocock-skills/1.3.1": {
+       "files": 2036,
+       "skill_files": 37
+      },
+      "claude-plugins-official/mattpocock-skills/1.2.3": {
+       "files": 1976,
+       "skill_files": 38
+      }
+     },
+     "matt_records": [
+      {
+       "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888",
+       "id": "mattpocock-skills@aisoft-platform",
+       "scope": "user",
+       "version": "1.3.1"
+      },
+      {
+       "commit": "2ab958093e83e0ec752e6c1c5932da465bf23e0c",
+       "id": "mattpocock-skills@claude-plugins-official",
+       "scope": "project",
+       "version": "1.2.3"
+      }
+     ],
+     "platform_skills": {
+      "aisoft-platform": {
+       "files": 4,
+       "tree_sha256": "d50eff54c4f1cd1d96ac0690380a608a4e20ff2264da23a6516649d356673a6c"
+      },
+      "issue-session-flow": {
+       "files": 1,
+       "tree_sha256": "e4edfe92b240b6a4467018f48179475780057a30362beb2d7f3602ae1c8f1e12"
+      }
+     }
+    }
+   }
+  }
+ },
+ "target_home": "/Users/benque"
+}

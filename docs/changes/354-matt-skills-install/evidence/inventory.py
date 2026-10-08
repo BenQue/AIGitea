@@ -40,11 +40,21 @@ def matt_directory_hash(directory: Path) -> str:
     return digest.hexdigest()
 
 
-def tree(path: Path) -> dict:
-    """Bytes, permission bits and link text of everything below path."""
+def tree(path: Path, exclude: tuple[str, ...] = ()) -> dict:
+    """Bytes, permission bits and link text of everything below path.
+
+    exclude names top-level entries to skip. Plugin caches pass ".in_use" and
+    ".git". Claude Code keeps one marker per running process in ".in_use", so
+    it changes whenever a session starts or ends. ".git" is a fresh shallow
+    clone on every install, so its pack files differ between two installs of
+    the same commit. Neither says anything about plugin content.
+    """
     digest = hashlib.sha256()
     files = 0
     for current, directories, names in os.walk(path, followlinks=False):
+        if Path(current) == path:
+            directories[:] = [name for name in directories if name not in exclude]
+            names = [name for name in names if name not in exclude]
         directories.sort()
         for name in sorted(directories + names):
             entry = Path(current) / name
@@ -172,7 +182,7 @@ def claude_side(home: Path) -> dict:
     caches = {}
     for cache in sorted(plugins.glob("cache/*/mattpocock-skills/*")):
         caches[cache.relative_to(plugins / "cache").as_posix()] = {
-            **tree(cache), "skill_files": sum(1 for _ in cache.glob("skills/**/SKILL.md"))}
+            **tree(cache, exclude=(".in_use", ".git")), "skill_files": sum(1 for _ in cache.glob("skills/**/SKILL.md"))}
     result["matt_caches"] = caches
     return result
 
@@ -200,7 +210,7 @@ def main() -> int:
     home, source = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
     vendor = source / "codex/vendor/mattpocock"
     document = {
-        "schema": "aisoft.issue-354.inventory/v1",
+        "schema": "aisoft.issue-354.inventory/v3",
         "target_home": str(home),
         "source": {
             "checkout": str(source), "head": git(source, "rev-parse", "HEAD"),

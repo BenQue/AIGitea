@@ -28,13 +28,15 @@ updated: 2026-10-08
 |---|---|---|---|
 | T01 | 四角色合同、只读基线证据、清单脚本与固定提示词；文档检查与本地 commit | - | completed |
 | T02 | 阶段一：备份、安装、重复安装、N-1 回滚与 adapter 恢复、回到 v1.3.1、漂移读回 | T01 | completed |
-| T03 | Codex fresh session 四项检查；Codex 独立插件状态报告 | T02 | in-progress |
-| T04 | 阶段二：按启动规则确定 P2，装入 Claude 侧技能，切换 Claude 插件到平台 pin，回滚演练 | T03 | pending |
-| T05 | Claude fresh session 检查 | T04 | pending |
-| T06 | verification 汇总、逐条 AC review、判级读回、唯一最终 PR 候选 | T05 | pending |
+| T03 | Codex fresh session 四项检查；Codex 独立插件状态报告 | T02 | completed |
+| T04 | 阶段二：按启动规则确定 P2，装入 Claude 侧技能，切换 Claude 插件到平台 pin，回滚演练 | T03 | completed |
+| T05 | Claude fresh session 检查 | T04 | completed |
+| T06 | verification 汇总、逐条 AC review、判级读回、唯一最终 PR 候选 | T05 | in-progress |
 
 T04 另有一个本表之外的前置：#355 已合并。T02、T03 不依赖它。人在确认点 1 若选择等 #355 合并后
 一次完成，则 T02 也推迟到 #355 合并之后，顺序不变。
+
+T03 记为 completed 的含义是合同内的尝试与后备路径都已走完；其中模型回合的结论是 GAP / NOT RUN，见 verification。
 
 T01 在确认点 1 之前完成，它不写入 `~/.agents`、`~/.claude`、`~/.codex`。T02 起的每一步都要先取得确认。
 
