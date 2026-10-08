@@ -67,7 +67,7 @@ T01 在确认点 1 之前完成，它不写入 `~/.agents`、`~/.claude`、`~/.c
 | AC-5 | T03 与 T05 的固定提示词输出，逐项对照期望；未执行项记 GAP / NOT RUN |
 | AC-6 | verification 的分层结果表；受管安装、Codex 插件、Claude 插件三行分开 |
 
-本票不改 shell 或 runtime，不欠 `smoke.sh`。提交前运行
+本票不改 shell 或 runtime；为避免 required CI 意外，提交前仍完整跑一次 `smoke.sh`。另运行
 `python3 -m aisoft_loop.cli check-change-documents --repo .` 与 `resolve-documents 354`，
 并对 `evidence/inventory.py` 运行 `python3 -m py_compile`。
 

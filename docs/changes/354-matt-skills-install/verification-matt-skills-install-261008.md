@@ -168,7 +168,7 @@ change 分支已 rebase 到 P2，安装源 worktree 移到 P2。
 | T05 Claude fresh session P1、P2、P3、P5 | PASS，provider-session 层 | t05 证据 |
 | T05 Claude fresh session P4 | GAP | 会话未确认即执行，来源为未固定的检出；已中止 |
 | `check-change-documents`、`resolve-documents 354`、`py_compile inventory.py` | PASS，local 层 | 提交前运行 |
-| `bash codex/tests/smoke.sh` | NOT RUN | 本票不改 shell、runtime 或被测文档 |
+| `bash codex/tests/smoke.sh` | PASS，exit 0，local 层 | 在 `ea1171f` 上完整运行，无缩减参数；之后只有本文档这一行的回填 |
 | push / PR / required CI / merge | NOT RUN | 等确认点 2 |
 
 ## 分层结果
