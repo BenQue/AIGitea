@@ -24,9 +24,9 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: approved
+status: pr-open
 branch: change/355-claude-skill-pack-align
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/356
 created: 2026-10-08
 updated: 2026-10-08
 ---
