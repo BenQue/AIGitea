@@ -1,0 +1,1469 @@
+{
+ "claude": {
+  "enabled": {
+   "mattpocock-skills@claude-plugins-official": true
+  },
+  "extra_known_marketplaces": [
+   "mattpocock",
+   "openai-codex"
+  ],
+  "installed_plugins_sha256": "f88cf9c1c060f6eb0fd6998ebf45d55cc9ca402a0e3bea0a37d2a55eb7158b05",
+  "marketplaces": {
+   "claude-plugins-official": {
+    "autoUpdate": true,
+    "source": {
+     "repo": "anthropics/claude-plugins-official",
+     "source": "github"
+    }
+   },
+   "mattpocock": {
+    "autoUpdate": true,
+    "source": {
+     "repo": "mattpocock/skills",
+     "source": "github"
+    }
+   },
+   "obsidian-skills": {
+    "autoUpdate": true,
+    "source": {
+     "repo": "kepano/obsidian-skills",
+     "source": "github"
+    }
+   },
+   "openai-codex": {
+    "autoUpdate": true,
+    "source": {
+     "repo": "openai/codex-plugin-cc",
+     "source": "github"
+    }
+   },
+   "superpowers-marketplace": {
+    "autoUpdate": true,
+    "source": {
+     "repo": "obra/superpowers-marketplace",
+     "source": "github"
+    }
+   }
+  },
+  "matt_caches": {
+   "claude-plugins-official/mattpocock-skills/1.2.3": {
+    "files": 1926,
+    "skill_files": 35,
+    "tree_sha256": "f237c0007f3e196a6d054429b63c3201216c67a0a64447a5a20ab0ce69e169a6"
+   }
+  },
+  "matt_records": [
+   {
+    "commit": "2ab958093e83e0ec752e6c1c5932da465bf23e0c",
+    "id": "mattpocock-skills@claude-plugins-official",
+    "scope": "user",
+    "version": "1.2.3"
+   },
+   {
+    "commit": "2ab958093e83e0ec752e6c1c5932da465bf23e0c",
+    "id": "mattpocock-skills@claude-plugins-official",
+    "scope": "project",
+    "version": "1.2.3"
+   }
+  ],
+  "platform_skills": {
+   "aisoft-platform": {
+    "files": 4,
+    "tree_sha256": "e41c95afd24ec57754c8cd868b2c6d8ed9d99506a5d9887d4613186e2dcb41fa"
+   },
+   "issue-session-flow": {
+    "files": 1,
+    "tree_sha256": "8fbdb466d532df111e7274cc00571c84fc4ac0d97e845c01baa7c577e0ca865c"
+   }
+  }
+ },
+ "codex_managed": {
+  "adapters": {
+   "aisoft-matt-workflow": "b24eb4b1d4edbe450d51b7a4bea81acfc51549a3c3ee34a9126a0bce86854b27",
+   "aisoft-platform": "c63606d0c44425e44a66a723d52b9c93d241e7dcb00558964d01cd481ac51b81",
+   "gitea-analyze-change": "9fa1c3fbc2ebdf86c3e3ce3bedf49fb2aa6dac0dcaac60fab70791294d9ba18f",
+   "gitea-development-loop": "caf6d1ba66db77553ca9316e089d1d366ca5df77b3aeeedaa3ae7a4a74e99465",
+   "gitea-implement-change": "88d05f4d407e0ababc457e1d9fee56a33470607c2745fc1e4cccb3030e33ebbd",
+   "gitea-platform-ops": "528002084d786106eea2d293643397029a6b8c4876fb321a18ecbbc6f81820a8",
+   "gitea-spec-plan": "01fce78d9456da9b73c5016f9753a9c9e08acf39f5f684681c9ca4302505144b",
+   "issue-session-flow": "df90a329e7262fd140344c28a78e6bb3b54ac210f3bef1f2467318043d80f12b"
+  },
+  "agents_dir": {
+   "gid": 20,
+   "mode": "0700",
+   "uid": 501
+  },
+  "digests": {
+   "adapters": "f8e892625fb6d0b530526cf1c98f17aeb38318cd9a45083604b85c8f9161c700",
+   "matt_links": "167ac8bbf9d152b6a8a4808d8b82686f2b5a1a62066ac9d476bee1c042cb6b55",
+   "unrelated": "8fefe466016a04eef30af07b873956dd72382fdfab2fe9430890efdf9cd584d5"
+  },
+  "entries": {
+   "aisoft-matt-workflow": {
+    "class": "platform-adapter",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "b24eb4b1d4edbe450d51b7a4bea81acfc51549a3c3ee34a9126a0bce86854b27",
+    "uid": 501
+   },
+   "aisoft-platform": {
+    "class": "platform-adapter",
+    "files": 5,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "c63606d0c44425e44a66a723d52b9c93d241e7dcb00558964d01cd481ac51b81",
+    "uid": 501
+   },
+   "ask-matt": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/ask-matt",
+    "mode": "0755",
+    "uid": 501
+   },
+   "batch-grill-me": {
+    "class": "external",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "de4d3605b7c3220d222a20e87d951acd2994a91959987675603f0ff43bd1d260",
+    "uid": 501
+   },
+   "claude-handoff": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/in-progress/claude-handoff",
+    "mode": "0755",
+    "uid": 501
+   },
+   "code-review": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/code-review",
+    "mode": "0755",
+    "uid": 501
+   },
+   "codebase-design": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/codebase-design",
+    "mode": "0755",
+    "uid": 501
+   },
+   "context7-mcp": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "c487a8153a99ac96a827f0271b083fe8df8ee79c568f75c8361df4c5683fe103",
+    "uid": 501
+   },
+   "design-an-interface": {
+    "class": "external",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "1df7a9dadbdcefeb9c78047baf86a6ebfbfd107a53beafb2ea48651ffc482b42",
+    "uid": 501
+   },
+   "diagnosing-bugs": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/diagnosing-bugs",
+    "mode": "0755",
+    "uid": 501
+   },
+   "domain-modeling": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/domain-modeling",
+    "mode": "0755",
+    "uid": 501
+   },
+   "edit-article": {
+    "class": "external",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "8ff6e0c3bd4e5554d759af77169ea50dff1b1b096c592c2bb32f89b25078110f",
+    "uid": 501
+   },
+   "find-skills": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "0b152cbe91a9b2c34ce17ca2c5f04d8d845f08aa044fbd54328b597680c13225",
+    "uid": 501
+   },
+   "git-guardrails-claude-code": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/misc/git-guardrails-claude-code",
+    "mode": "0755",
+    "uid": 501
+   },
+   "gitea-analyze-change": {
+    "class": "platform-adapter",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "9fa1c3fbc2ebdf86c3e3ce3bedf49fb2aa6dac0dcaac60fab70791294d9ba18f",
+    "uid": 501
+   },
+   "gitea-development-loop": {
+    "class": "platform-adapter",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "caf6d1ba66db77553ca9316e089d1d366ca5df77b3aeeedaa3ae7a4a74e99465",
+    "uid": 501
+   },
+   "gitea-implement-change": {
+    "class": "platform-adapter",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "88d05f4d407e0ababc457e1d9fee56a33470607c2745fc1e4cccb3030e33ebbd",
+    "uid": 501
+   },
+   "gitea-platform-ops": {
+    "class": "platform-adapter",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "528002084d786106eea2d293643397029a6b8c4876fb321a18ecbbc6f81820a8",
+    "uid": 501
+   },
+   "gitea-spec-plan": {
+    "class": "platform-adapter",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "01fce78d9456da9b73c5016f9753a9c9e08acf39f5f684681c9ca4302505144b",
+    "uid": 501
+   },
+   "gitnexus-cli": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "794c1f4ec9a55fd26ebbe85565fc6e16adf460cce12760cbb28ac70de3bd2885",
+    "uid": 501
+   },
+   "gitnexus-debugging": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "45a9f3713ebf95819479c575cdfcfb2330ab8d5fa7d543e27dbdeb840f438f1c",
+    "uid": 501
+   },
+   "gitnexus-exploring": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "1dd91f8c0deb4b0cc048caa2235b799de7785e20205826749e8db7502a647180",
+    "uid": 501
+   },
+   "gitnexus-guide": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "17a317579762320ad555ddef258ffdbe68e8868f4d1fb639e465e9c7b018a38b",
+    "uid": 501
+   },
+   "gitnexus-impact-analysis": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "acbf6390dfa99e8893ab75e873c484908e19bd231a469e6d2e91912ace4cb40b",
+    "uid": 501
+   },
+   "gitnexus-pr-review": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "769eb17f8db40faab0c67befd5c0146eca98c764ddb8893f9980eef256fca877",
+    "uid": 501
+   },
+   "gitnexus-refactoring": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "e16b286d46c8343448bef6d6c2c6fb5cc1d13c4dab9eb3fbfc39018d50be4bd3",
+    "uid": 501
+   },
+   "graphify": {
+    "class": "external",
+    "files": 10,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "4a45142c511c8af9f50cfcb4f8abf94435df37d1862bce022f52ac6e4ff8a4da",
+    "uid": 501
+   },
+   "grill-me": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/productivity/grill-me",
+    "mode": "0755",
+    "uid": 501
+   },
+   "grill-with-docs": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/grill-with-docs",
+    "mode": "0755",
+    "uid": 501
+   },
+   "grilling": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/productivity/grilling",
+    "mode": "0755",
+    "uid": 501
+   },
+   "gsd-add-backlog": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "09ee01ef19493ebeb3f32c606c6ee0bc5f5c25f19765d2bcd44d82fc092b3458",
+    "uid": 501
+   },
+   "gsd-add-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "9119a840fe220aecf095cfdf192693f89e2dc9b49b2edbf07fe777db4161f636",
+    "uid": 501
+   },
+   "gsd-add-tests": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "87ac95049b532e4492221d18ee20bba9c8a2a7203a020779c61066fa185541dd",
+    "uid": 501
+   },
+   "gsd-add-todo": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "a545904f2937f89b20fbdaa63e55d18887a6234f206806b74b4ad44fd5477260",
+    "uid": 501
+   },
+   "gsd-ai-integration-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "a5632d1cc21beac238c40640a4199c8637841b7d763b492a00bf12bb19cd0164",
+    "uid": 501
+   },
+   "gsd-analyze-dependencies": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "980722d8ad91c3da93fd7f5d66a7d89bad001aa79f2dc0946283bd62054c9845",
+    "uid": 501
+   },
+   "gsd-audit-fix": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "01c22e454cf6c02ae27c680a658bf019561add3b3897430a446d6db69d2cc9c7",
+    "uid": 501
+   },
+   "gsd-audit-milestone": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "b68ec187ee21e71ca0dde25c40223f51a580359b2f556cf13f4a1b739c540606",
+    "uid": 501
+   },
+   "gsd-audit-uat": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "680ec8274cc4b7bb44f1ba10363a25ff26a2ec31042a5105b2a54a18c9a426af",
+    "uid": 501
+   },
+   "gsd-autonomous": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "cf075a6afa3a09b65ecfebd7310d861e40e3a60208580f4c27f1b543c50bc281",
+    "uid": 501
+   },
+   "gsd-check-todos": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "492a5beed89d15d4f28ff9965b2629016cc0ff225d43ad01de2b3452660c335a",
+    "uid": 501
+   },
+   "gsd-cleanup": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "03b54b9a6bffb576fc5235901babf5a030d6e0c46a89af0a4a6289175df456de",
+    "uid": 501
+   },
+   "gsd-code-review": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "0853275c3980c02243723a800112ca019e224bb136aa38f7c455e0527e988510",
+    "uid": 501
+   },
+   "gsd-code-review-fix": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "21ba545b7ef3539c77c39a766c3986172d4587bda3e63ebbc79dbe593adf1aa4",
+    "uid": 501
+   },
+   "gsd-complete-milestone": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "c6f9c6388ad4c41f47e67ef4f82e643baa62727f471e579612339900efc57fa9",
+    "uid": 501
+   },
+   "gsd-debug": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "1ec6e4ed8bbbf14f22839875b0f6f6c39407452e4c330aa99ec6f939681349f6",
+    "uid": 501
+   },
+   "gsd-discuss-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "b1f1f05ef3dc5e2ce471b10f8d5339cc821fd57ca5839d3b20ad2f9f325dd544",
+    "uid": 501
+   },
+   "gsd-do": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "44da38e2b6d8ea7066f3e3c50bfe6f5eaedbabfb80574ac7a0c5dbc4c444ce12",
+    "uid": 501
+   },
+   "gsd-docs-update": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "09437a70d8825229e0922f32931ea224aa1ce5f4b0f352ffa0e468acace58db0",
+    "uid": 501
+   },
+   "gsd-eval-review": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "03d58918b99e168060eb165e6641974bb5dab2385231bc43230bb96261509141",
+    "uid": 501
+   },
+   "gsd-execute-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "2b08ce68782e1722bb6248a00e7e1dafddb0a405e3c297c950d6d92ff328ced2",
+    "uid": 501
+   },
+   "gsd-explore": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "b94e1f2c90875f9afc228bc28f70d82ed7414643c76abbb6bc4b71609316a499",
+    "uid": 501
+   },
+   "gsd-extract_learnings": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "75584cd356bb99691a0ff892566d84b383905d376773448aadc1841b5184011e",
+    "uid": 501
+   },
+   "gsd-fast": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "6b90548db42fcf191d3d738e84dc865d8b20cd184eb1d8024b383748a38089b6",
+    "uid": 501
+   },
+   "gsd-forensics": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "f0d464824df436a3a6c1147cb4bcee6abb7593db4a5ef0bbb8e2203165d2cc2a",
+    "uid": 501
+   },
+   "gsd-from-gsd2": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "c246e5d9d1a17f32b98bfcf0b252ea889c593b5b9ee426f1c164718823466042",
+    "uid": 501
+   },
+   "gsd-graphify": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "b045d285403cfc7ce48b8edb0e59dbea772ddb2c8f4dd680ef735e0aa9b2f69b",
+    "uid": 501
+   },
+   "gsd-health": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "f3829c9fa059343b99cfff9b396969563d8ca41b2d07b069703e760c4e9c736c",
+    "uid": 501
+   },
+   "gsd-help": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "108bce9e9c2bd29e75b901dd8c7bcb4f507568ed8d116feb62682037934addd0",
+    "uid": 501
+   },
+   "gsd-import": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "45282dae9b3d4a75e6eaa718d6343efa3a2a04d6d3b5ff0ac5a409e729fbbd90",
+    "uid": 501
+   },
+   "gsd-inbox": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "075e5d91abaa5bfe84d3a334fcd7d7a21b7baf6fb59dd1db3227e33df3d182ba",
+    "uid": 501
+   },
+   "gsd-ingest-docs": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "b85a822f596c89cd5ca69e81628c08c2269d76ad9347be77004f4485452b186f",
+    "uid": 501
+   },
+   "gsd-insert-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "7bd6511c04424e156d51a6e92ee075342955ef463dc50455a0698aae2e6072e1",
+    "uid": 501
+   },
+   "gsd-intel": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "2e5d82a114c0455a433f35428caa31f537c428f2ce82aae1a127db167ff24dd2",
+    "uid": 501
+   },
+   "gsd-join-discord": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "cfd6d44a73d6e430e3f3f9b10f689ab36c2af0d76ef30c6cb4b67b4236bd4d72",
+    "uid": 501
+   },
+   "gsd-list-phase-assumptions": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "a170d6b03e521e26f21ec470c20c6c6ef1b03af19dd172b1b9ffedb91300316d",
+    "uid": 501
+   },
+   "gsd-list-workspaces": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "935aaf3ef8650339c3e63aca0a88b4a761766a7330f7eda12fd5d1ef682a8588",
+    "uid": 501
+   },
+   "gsd-manager": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "ffee23811f0c526982f10c90e05ba689c6e81604045bbfe09d79c8b70ad275ac",
+    "uid": 501
+   },
+   "gsd-map-codebase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "5dfb71113a87759df04e476e4a15f5f5695a51e2b8e3f5bba45cef11d708ae94",
+    "uid": 501
+   },
+   "gsd-milestone-summary": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "f0f1b68a1626d37a69dc8707d07b284593a1597ae6650a589dfe0cb0bd0c1396",
+    "uid": 501
+   },
+   "gsd-new-milestone": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "8e4e98166135c9323ffbbcda6bd5ce0ebd4b7432888ea88e1e3227b3f17d8301",
+    "uid": 501
+   },
+   "gsd-new-project": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "ce960f1deba535899c241f89ba7dff59b6bc7254aad0be1a4f625299b363a209",
+    "uid": 501
+   },
+   "gsd-new-workspace": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "97f6e3f60b4ccacb4a2c28912af6f6800187c0605cf410bf368f09316806806a",
+    "uid": 501
+   },
+   "gsd-next": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "7eb36ab3d812641c280648677fddb635bd3acf8669593f38b334341e80e26658",
+    "uid": 501
+   },
+   "gsd-note": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "456ed1a90c519732c2710ecdafee249a7e05f16a67f2de33ef4ac924620a986e",
+    "uid": 501
+   },
+   "gsd-pause-work": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "8ba774dfa3a3146adfb9fccf22ddee2194626789d7383e8635e6dcbdd0d9bac4",
+    "uid": 501
+   },
+   "gsd-plan-milestone-gaps": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "49f46cf02fc8ccb5aa64b5bb29cd08eb7f1bfb3399d83a5e1ba13d218d9e1b6c",
+    "uid": 501
+   },
+   "gsd-plan-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "4225fed4fcad570623f49fabee39200e2456fcec02fd41b3c6166b6eab01a328",
+    "uid": 501
+   },
+   "gsd-plan-review-convergence": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "f17d0bd3008c031c9f1e3b361f2ba9c7993ab22c2c40062609bda821b52acb6c",
+    "uid": 501
+   },
+   "gsd-plant-seed": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "58c259f8967f83400cf9494f1d5cb3add52c998b8cd10fce70d9f914432b8605",
+    "uid": 501
+   },
+   "gsd-pr-branch": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "e21250448f76120de7e57fd79d40c55e00ff28096b68b47f44cb49d4ed9f537b",
+    "uid": 501
+   },
+   "gsd-profile-user": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "6253548636e7ad5a5981775112f3d278afac619b467ca8469a319d2181b5e4d3",
+    "uid": 501
+   },
+   "gsd-progress": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "60d27512c04a4471323306cb8f6298720e07169e19c5ce4d1910acf76afc3ff2",
+    "uid": 501
+   },
+   "gsd-quick": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "8914b772fe81c38fec9e00715cd2696e768ec880c4802b3b8f3f081d9ca19c65",
+    "uid": 501
+   },
+   "gsd-reapply-patches": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "6c986b405716f144e3c53af8e6a51d296358d7d7abaaca01e182416d0538ed00",
+    "uid": 501
+   },
+   "gsd-remove-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "cde736f85a96077d6604b534c8955b1905d353f923887dc5cec14c85a2df995a",
+    "uid": 501
+   },
+   "gsd-remove-workspace": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "0009ae0e372ec431ca6dac9f064a90bc4b7797db4e75e29ef54f28a4328ea5e1",
+    "uid": 501
+   },
+   "gsd-research-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "8005746e0c534fbbb48adce4ecbc725b6415e232d739bdb8624750da2a9b379f",
+    "uid": 501
+   },
+   "gsd-resume-work": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "b132618257e9f35127b89e7d6874fe6d75c8e18ccc9d2706eb186abfeff13640",
+    "uid": 501
+   },
+   "gsd-review": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "6a922f00407b252ecdbcba2ef21831844079af2924a4fed8af049ad9d19a5557",
+    "uid": 501
+   },
+   "gsd-review-backlog": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "2664985b1e1d5c038523dec74803a91e60fd56d8962e60355d6bae112835933b",
+    "uid": 501
+   },
+   "gsd-scan": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "5687bb0a5a1f6fd662b6de51404b6e8df711418b297d79501c0a534df3d8701e",
+    "uid": 501
+   },
+   "gsd-secure-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "236108f98cd72931a0aea6b6038a332fd1d114f2bfde05fab052e3a889dcdab7",
+    "uid": 501
+   },
+   "gsd-session-report": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "afc279b83dc83dc2227e342f2909813679a453cd5ed5e7daddad679fa95502bf",
+    "uid": 501
+   },
+   "gsd-set-profile": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "307bd987eff0fe1bcdd83fa7bd1574e272d57ebbe0447e0a04fc0cdd4b1100a0",
+    "uid": 501
+   },
+   "gsd-settings": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "e44a1917b5bc7d6616dae82ae2b5632e60323a161aeee479f6c08a87d4a43298",
+    "uid": 501
+   },
+   "gsd-settings-advanced": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "60bfb794a6c007220fa615bf6af2aa9efa23a839d892932b19527a3e44e23fe1",
+    "uid": 501
+   },
+   "gsd-settings-integrations": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "dadf8c446e011aea7151d077a2804cb70f8345f4d4c9f30916fadf4baae1177d",
+    "uid": 501
+   },
+   "gsd-ship": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "8c741c6cd5896a85a62037c9d2d64f79b09959352f1c5d7f1b15d5019bf84a98",
+    "uid": 501
+   },
+   "gsd-sketch": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "b1fd732192f63db66b4cf1b1bd27e851eededcfa673a696395d8645eae139f6f",
+    "uid": 501
+   },
+   "gsd-sketch-wrap-up": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "dbbf31562fdd5820b887cac7c8388997d3415787c23e4f24f001c50fb0f30a93",
+    "uid": 501
+   },
+   "gsd-spec-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "dfd54b0c92544b473db41618882f087327b4a2121d7dd1694bf6cc179338e406",
+    "uid": 501
+   },
+   "gsd-spike": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "546a2487aa991db9101d726d42788ecdbd4bdbb3d75c837892fcb21de80f361e",
+    "uid": 501
+   },
+   "gsd-spike-wrap-up": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "0a7b10c3dce49b1fd0ec5039f3b4398f4dbe3c0b9d68bc2316e2e19d58723ccd",
+    "uid": 501
+   },
+   "gsd-stats": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "7c7e90d3d5bee798b4de7cd0de9ee29e27f56cd3b3dc65686770bcfe75d65ade",
+    "uid": 501
+   },
+   "gsd-sync-skills": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "dd6ea16e0e20c9c519469c7bd03a3518a85792ea6829ab9f65d197b17796d25d",
+    "uid": 501
+   },
+   "gsd-thread": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "a78c202fc2b116ee2ea52cfd99bbbe007cc8d159f3819e1e2fbff5ed3be60568",
+    "uid": 501
+   },
+   "gsd-ui-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "ff755765fbb4549c6c2e1dce07345e3b9f4d7d9222798d56c177e46e73d60e53",
+    "uid": 501
+   },
+   "gsd-ui-review": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "bea893ab7317fac23b54636cbe6822a48190774e571e6dadb56a5b2de6846411",
+    "uid": 501
+   },
+   "gsd-ultraplan-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "cac3170565f5a7e7bbc6b9faaff75800b61a6f65ad3e42de8d173eee9b9cb66d",
+    "uid": 501
+   },
+   "gsd-undo": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "91ace65e21af7cbca24aa86fac411a8d9ad120a8bfee98049893cb8453240d11",
+    "uid": 501
+   },
+   "gsd-update": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "73413c2499419f0f8fafd2235c0ac74ea4fb1bcbdd9ceda6a1f5d7b1d4ab927a",
+    "uid": 501
+   },
+   "gsd-validate-phase": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "7c7f29a68b58f50d2a6db9fd9db206c12a7321324c5d7e516339a12c5583af88",
+    "uid": 501
+   },
+   "gsd-verify-work": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "cf1eab0f01e4860a1d4bd80209ca677d2386c9e3ec5eebd93c1012eb99103167",
+    "uid": 501
+   },
+   "gsd-workstreams": {
+    "class": "external",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "c551f4e3d147544246363bf2c2746dcda54ebc010b8609760f7c99805395789c",
+    "uid": 501
+   },
+   "gstack": {
+    "class": "external",
+    "files": 13854,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "a797faa2cf34af74f742a552dde1eb222894127bfd87049ceaa11210c109fb15",
+    "uid": 501
+   },
+   "handoff": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/productivity/handoff",
+    "mode": "0755",
+    "uid": 501
+   },
+   "implement": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/implement",
+    "mode": "0755",
+    "uid": 501
+   },
+   "improve-codebase-architecture": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/improve-codebase-architecture",
+    "mode": "0755",
+    "uid": 501
+   },
+   "issue-session-flow": {
+    "class": "platform-adapter",
+    "files": 1,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "df90a329e7262fd140344c28a78e6bb3b54ac210f3bef1f2467318043d80f12b",
+    "uid": 501
+   },
+   "loop-me": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/in-progress/loop-me",
+    "mode": "0755",
+    "uid": 501
+   },
+   "migrate-to-shoehorn": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/misc/migrate-to-shoehorn",
+    "mode": "0755",
+    "uid": 501
+   },
+   "obsidian-vault": {
+    "class": "external",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "b97e45a9fd882277a85b0b6ebde9de228457022fa08c00431a0e33e0094dcd5c",
+    "uid": 501
+   },
+   "openspec-apply-change": {
+    "class": "external-link",
+    "gid": 20,
+    "link": "/Users/benque/.agents/skill-sources/OpenSpec/skills/openspec-apply-change/",
+    "mode": "0755",
+    "uid": 501
+   },
+   "openspec-archive-change": {
+    "class": "external-link",
+    "gid": 20,
+    "link": "/Users/benque/.agents/skill-sources/OpenSpec/skills/openspec-archive-change/",
+    "mode": "0755",
+    "uid": 501
+   },
+   "openspec-bulk-archive-change": {
+    "class": "external-link",
+    "gid": 20,
+    "link": "/Users/benque/.agents/skill-sources/OpenSpec/skills/openspec-bulk-archive-change/",
+    "mode": "0755",
+    "uid": 501
+   },
+   "openspec-continue-change": {
+    "class": "external-link",
+    "gid": 20,
+    "link": "/Users/benque/.agents/skill-sources/OpenSpec/skills/openspec-continue-change/",
+    "mode": "0755",
+    "uid": 501
+   },
+   "openspec-explore": {
+    "class": "external-link",
+    "gid": 20,
+    "link": "/Users/benque/.agents/skill-sources/OpenSpec/skills/openspec-explore/",
+    "mode": "0755",
+    "uid": 501
+   },
+   "openspec-ff-change": {
+    "class": "external-link",
+    "gid": 20,
+    "link": "/Users/benque/.agents/skill-sources/OpenSpec/skills/openspec-ff-change/",
+    "mode": "0755",
+    "uid": 501
+   },
+   "openspec-new-change": {
+    "class": "external-link",
+    "gid": 20,
+    "link": "/Users/benque/.agents/skill-sources/OpenSpec/skills/openspec-new-change/",
+    "mode": "0755",
+    "uid": 501
+   },
+   "openspec-onboard": {
+    "class": "external-link",
+    "gid": 20,
+    "link": "/Users/benque/.agents/skill-sources/OpenSpec/skills/openspec-onboard/",
+    "mode": "0755",
+    "uid": 501
+   },
+   "openspec-propose": {
+    "class": "external-link",
+    "gid": 20,
+    "link": "/Users/benque/.agents/skill-sources/OpenSpec/skills/openspec-propose/",
+    "mode": "0755",
+    "uid": 501
+   },
+   "openspec-sync-specs": {
+    "class": "external-link",
+    "gid": 20,
+    "link": "/Users/benque/.agents/skill-sources/OpenSpec/skills/openspec-sync-specs/",
+    "mode": "0755",
+    "uid": 501
+   },
+   "openspec-update-change": {
+    "class": "external-link",
+    "gid": 20,
+    "link": "/Users/benque/.agents/skill-sources/OpenSpec/skills/openspec-update-change/",
+    "mode": "0755",
+    "uid": 501
+   },
+   "openspec-verify-change": {
+    "class": "external-link",
+    "gid": 20,
+    "link": "/Users/benque/.agents/skill-sources/OpenSpec/skills/openspec-verify-change/",
+    "mode": "0755",
+    "uid": 501
+   },
+   "prototype": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/prototype",
+    "mode": "0755",
+    "uid": 501
+   },
+   "qa": {
+    "class": "external",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "875974e1c30275fb7329669dd68f427f46be61b76acae90eae7ae3b6799c2cb0",
+    "uid": 501
+   },
+   "request-refactor-plan": {
+    "class": "external",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "80d023e1d15fa997372194e7535190309f3d9b97d353b905e07c65a76c0e6070",
+    "uid": 501
+   },
+   "research": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/research",
+    "mode": "0755",
+    "uid": 501
+   },
+   "resolving-merge-conflicts": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/resolving-merge-conflicts",
+    "mode": "0755",
+    "uid": 501
+   },
+   "scaffold-exercises": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/misc/scaffold-exercises",
+    "mode": "0755",
+    "uid": 501
+   },
+   "setup-matt-pocock-skills": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/setup-matt-pocock-skills",
+    "mode": "0755",
+    "uid": 501
+   },
+   "setup-pre-commit": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/misc/setup-pre-commit",
+    "mode": "0755",
+    "uid": 501
+   },
+   "setup-ts-deep-modules": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/in-progress/setup-ts-deep-modules",
+    "mode": "0755",
+    "uid": 501
+   },
+   "tdd": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/tdd",
+    "mode": "0755",
+    "uid": 501
+   },
+   "teach": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/productivity/teach",
+    "mode": "0755",
+    "uid": 501
+   },
+   "to-questionnaire": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/productivity/to-questionnaire",
+    "mode": "0755",
+    "uid": 501
+   },
+   "to-spec": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/to-spec",
+    "mode": "0755",
+    "uid": 501
+   },
+   "to-tickets": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/to-tickets",
+    "mode": "0755",
+    "uid": 501
+   },
+   "triage": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/triage",
+    "mode": "0755",
+    "uid": 501
+   },
+   "ubiquitous-language": {
+    "class": "external",
+    "files": 2,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "990e84fa57520494a2007f359de0bc7be7653b7dd3316574bc3e58fa251eb461",
+    "uid": 501
+   },
+   "wait-what": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/productivity/wait-what",
+    "mode": "0755",
+    "uid": 501
+   },
+   "wayfinder": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/wayfinder",
+    "mode": "0755",
+    "uid": 501
+   },
+   "weekly-report": {
+    "class": "external",
+    "files": 6,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "beb9e84c13465757c3589c0882b7810e5e6c2e3978a8f0b12ba443fb8d0edd07",
+    "uid": 501
+   },
+   "wizard": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/engineering/wizard",
+    "mode": "0755",
+    "uid": 501
+   },
+   "writing-beats": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/in-progress/writing-beats",
+    "mode": "0755",
+    "uid": 501
+   },
+   "writing-for-agents": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/productivity/writing-for-agents",
+    "mode": "0755",
+    "uid": 501
+   },
+   "writing-fragments": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/in-progress/writing-fragments",
+    "mode": "0755",
+    "uid": 501
+   },
+   "writing-great-skills": {
+    "class": "external",
+    "files": 3,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "d45a1cafe3e2eda633ae231b533109cbd4685019597e7be24ac45b5533425dc0",
+    "uid": 501
+   },
+   "writing-shape": {
+    "class": "matt-managed-link",
+    "gid": 20,
+    "link": "../vendor/mattpocock/current/skills/in-progress/writing-shape",
+    "mode": "0755",
+    "uid": 501
+   }
+  },
+  "entry_count": 160,
+  "matt_link_count": 35,
+  "matt_links": {
+   "ask-matt": "../vendor/mattpocock/current/skills/engineering/ask-matt",
+   "claude-handoff": "../vendor/mattpocock/current/skills/in-progress/claude-handoff",
+   "code-review": "../vendor/mattpocock/current/skills/engineering/code-review",
+   "codebase-design": "../vendor/mattpocock/current/skills/engineering/codebase-design",
+   "diagnosing-bugs": "../vendor/mattpocock/current/skills/engineering/diagnosing-bugs",
+   "domain-modeling": "../vendor/mattpocock/current/skills/engineering/domain-modeling",
+   "git-guardrails-claude-code": "../vendor/mattpocock/current/skills/misc/git-guardrails-claude-code",
+   "grill-me": "../vendor/mattpocock/current/skills/productivity/grill-me",
+   "grill-with-docs": "../vendor/mattpocock/current/skills/engineering/grill-with-docs",
+   "grilling": "../vendor/mattpocock/current/skills/productivity/grilling",
+   "handoff": "../vendor/mattpocock/current/skills/productivity/handoff",
+   "implement": "../vendor/mattpocock/current/skills/engineering/implement",
+   "improve-codebase-architecture": "../vendor/mattpocock/current/skills/engineering/improve-codebase-architecture",
+   "loop-me": "../vendor/mattpocock/current/skills/in-progress/loop-me",
+   "migrate-to-shoehorn": "../vendor/mattpocock/current/skills/misc/migrate-to-shoehorn",
+   "prototype": "../vendor/mattpocock/current/skills/engineering/prototype",
+   "research": "../vendor/mattpocock/current/skills/engineering/research",
+   "resolving-merge-conflicts": "../vendor/mattpocock/current/skills/engineering/resolving-merge-conflicts",
+   "scaffold-exercises": "../vendor/mattpocock/current/skills/misc/scaffold-exercises",
+   "setup-matt-pocock-skills": "../vendor/mattpocock/current/skills/engineering/setup-matt-pocock-skills",
+   "setup-pre-commit": "../vendor/mattpocock/current/skills/misc/setup-pre-commit",
+   "setup-ts-deep-modules": "../vendor/mattpocock/current/skills/in-progress/setup-ts-deep-modules",
+   "tdd": "../vendor/mattpocock/current/skills/engineering/tdd",
+   "teach": "../vendor/mattpocock/current/skills/productivity/teach",
+   "to-questionnaire": "../vendor/mattpocock/current/skills/productivity/to-questionnaire",
+   "to-spec": "../vendor/mattpocock/current/skills/engineering/to-spec",
+   "to-tickets": "../vendor/mattpocock/current/skills/engineering/to-tickets",
+   "triage": "../vendor/mattpocock/current/skills/engineering/triage",
+   "wait-what": "../vendor/mattpocock/current/skills/productivity/wait-what",
+   "wayfinder": "../vendor/mattpocock/current/skills/engineering/wayfinder",
+   "wizard": "../vendor/mattpocock/current/skills/engineering/wizard",
+   "writing-beats": "../vendor/mattpocock/current/skills/in-progress/writing-beats",
+   "writing-for-agents": "../vendor/mattpocock/current/skills/productivity/writing-for-agents",
+   "writing-fragments": "../vendor/mattpocock/current/skills/in-progress/writing-fragments",
+   "writing-shape": "../vendor/mattpocock/current/skills/in-progress/writing-shape"
+  },
+  "pointers": {
+   "current": "releases/v1.2.2",
+   "previous": null
+  },
+  "releases": {
+   "v1.2.2": {
+    "equals_pinned_source": true,
+    "files": 105,
+    "gid": 20,
+    "manifest": {
+     "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302",
+     "skill_count": 35,
+     "tag": "v1.2.2",
+     "tag_object": "8651af486bb7c9e695ab1c6f44bd9a79fabb9999"
+    },
+    "mode": "0755",
+    "skills_matching_manifest": "35/35",
+    "tree_sha256": "d265471082e0f675e0a1b419cbf190ed5e408627bc981525084154fa40ccbfda",
+    "uid": 501
+   }
+  },
+  "skill_lock_sha256": "4444d0db81edee3a1662e9e37a44a78b99728050abd50b9d912693a25f7917a0",
+  "skills_dir": {
+   "gid": 20,
+   "mode": "0755",
+   "uid": 501
+  },
+  "top_level": {
+   ".skill-lock.json": {
+    "gid": 20,
+    "mode": "0644",
+    "uid": 501
+   },
+   "skill-sources": {
+    "files": 1061,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "4feaa36dd14b64e9d3f8630b24283174976aafbec19f4070d46f71383b61c416",
+    "uid": 501
+   },
+   "skills": {
+    "gid": 20,
+    "mode": "0755",
+    "uid": 501
+   },
+   "skills-unmanaged-backup-20260811": {
+    "files": 91,
+    "gid": 20,
+    "mode": "0755",
+    "tree_sha256": "8b2bce7fde09f3244954e3bac0560ea90f6d0d1959309a56044bb5004e31f76f",
+    "uid": 501
+   },
+   "vendor": {
+    "gid": 20,
+    "mode": "0755",
+    "uid": 501
+   }
+  },
+  "unrelated_count": 117
+ },
+ "codex_plugin": {
+  "config_entries": {
+   "[plugins.\"mattpocock-skills@claude-plugins-official\"]": "enabled = true"
+  },
+  "matt_caches": {
+   "claude-plugins-official/mattpocock-skills/1.2.3": {
+    "files": 196,
+    "skill_files": 38,
+    "tree_sha256": "d299266d0dddea6d07d9787400d5f2a7e37c9e40c67310db95b1bd5c1d21dca6"
+   }
+  }
+ },
+ "schema": "aisoft.issue-354.inventory/v1",
+ "source": {
+  "cached_origin_main": "8162fe7d71dd58b13ca80ef26467a2549973f4df",
+  "checkout": "/private/tmp/issue-354-matt-skills-install",
+  "head": "8162fe7d71dd58b13ca80ef26467a2549973f4df",
+  "managed_source_dirty": false,
+  "manifests": {
+   "v1.2.2": {
+    "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302",
+    "skill_count": 35,
+    "tag": "v1.2.2",
+    "tag_object": "8651af486bb7c9e695ab1c6f44bd9a79fabb9999"
+   },
+   "v1.3.1": {
+    "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888",
+    "skill_count": 37,
+    "tag": "v1.3.1",
+    "tag_object": "0b6cee10f260a2e048279cf737bfd3e37b1fce0b"
+   }
+  }
+ },
+ "target_home": "/Users/benque"
+}
