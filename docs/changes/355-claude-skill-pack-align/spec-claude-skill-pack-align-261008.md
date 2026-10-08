@@ -16,6 +16,22 @@ status: approved
 branch: change/355-claude-skill-pack-align
 created: 2026-10-08
 updated: 2026-10-08
+git_scope:
+  - .claude-plugin/marketplace.json
+  - .gitignore
+  - 08-双工具共存与实施.md
+  - README.md
+  - codex/tests/smoke.sh
+  - codex/tests/test-claude-plugin-pin.sh
+  - docs/changes/355-claude-skill-pack-align/plan-claude-skill-pack-align-261008.md
+  - docs/changes/355-claude-skill-pack-align/spec-claude-skill-pack-align-261008.md
+  - docs/changes/355-claude-skill-pack-align/summary-claude-skill-pack-align-261008.md
+  - docs/changes/355-claude-skill-pack-align/verification-claude-skill-pack-align-261008.md
+  - skill-for-claude/aisoft-platform/SKILL.md
+  - skill-for-claude/check-plugin-pin.py
+  - skill-for-claude/check-plugin-pin.sh
+  - skill-for-claude/issue-session-flow/SKILL.md
+  - skill-for-codex/SKILL.md
 ---
 
 # Spec · Claude 侧外部技能包对齐
@@ -204,6 +220,13 @@ updated: 2026-10-08
 - 不把 pin 检查接入八安装面检查或任何自动修复。
 - 不为版本是否落后新增定时任务、自动检查工具或安装动作；清单只由人执行。
 - 不重装 Codex 侧技能：`skill-for-codex/SKILL.md` 变更后本机副本的同步属于 installed 层。
+
+## 发布范围投影
+
+front matter 的 `git_scope` 是 broker 发布闸门读取的机器投影：逐条列出本票已确认合同内的 15 个文件
+（上文「设计决定」的落点、D5 追加的 `skill-for-codex/SKILL.md`，以及本目录四份映射文档），不新增文件范围，
+不设置 history 放宽项。它在确认点 2 之后、首次推送被 `SCOPE_UNKNOWN` 拒绝时补入；候选 head 因此改变，
+见 verification。
 
 ## 未决问题
 
