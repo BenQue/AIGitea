@@ -57,7 +57,6 @@
    },
    "extra_known_marketplaces": [
     "aisoft-platform",
-    "mattpocock",
     "openai-codex"
    ],
    "installed_plugins_sha256": "6c4489905f6546f21637f4d76bb761eceb2e7406c39c70763b4b7e1436c23482",
@@ -73,13 +72,6 @@
      "autoUpdate": true,
      "source": {
       "repo": "anthropics/claude-plugins-official",
-      "source": "github"
-     }
-    },
-    "mattpocock": {
-     "autoUpdate": true,
-     "source": {
-      "repo": "mattpocock/skills",
       "source": "github"
      }
     },
@@ -214,31 +206,63 @@
   "gitea-ci VM"
  ],
  "post_pr_cleanup": {
-  "command": "claude plugin uninstall mattpocock-skills@claude-plugins-official --scope project (run inside the out-of-scope project's directory)",
-  "date": "2026-10-08",
-  "output": "Successfully uninstalled plugin: mattpocock-skills (scope: project)",
-  "performed_by": "the user, in their own shell, after PR 357 was opened",
-  "readback_by_session": {
-   "cache_1.2.3": "still on disk, now carries Claude Code's .orphaned_at marker; no record references it",
-   "check-plugin-pin": "PIN_CLEAN",
-   "codex_managed_unchanged": true,
-   "codex_plugin_unchanged": true,
-   "enabled": {
-    "mattpocock-skills@aisoft-platform": true
+  "1_project_scope_uninstall": {
+   "command": "claude plugin uninstall mattpocock-skills@claude-plugins-official --scope project (run inside the out-of-scope project's directory)",
+   "date": "2026-10-08",
+   "output": "Successfully uninstalled plugin: mattpocock-skills (scope: project)",
+   "performed_by": "the user, in their own shell, after PR 357 was opened",
+   "readback_by_session": {
+    "cache_1.2.3": "still on disk, now carries Claude Code's .orphaned_at marker; no record references it",
+    "check-plugin-pin": "PIN_CLEAN",
+    "codex_managed_unchanged": true,
+    "codex_plugin_unchanged": true,
+    "enabled": {
+     "mattpocock-skills@aisoft-platform": true
+    },
+    "matt_records": [
+     {
+      "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888",
+      "id": "mattpocock-skills@aisoft-platform",
+      "scope": "user",
+      "version": "1.3.1"
+     }
+    ],
+    "out_of_scope_project_settings": "one enabledPlugins key removed by the CLI; the file is git-tracked there and the change is uncommitted in that working tree",
+    "records_pointing_at_1.2.3_cache": [],
+    "skill-for-claude/check-drift.sh": "CLEAN"
    },
-   "matt_records": [
-    {
-     "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888",
-     "id": "mattpocock-skills@aisoft-platform",
-     "scope": "user",
-     "version": "1.3.1"
-    }
-   ],
-   "out_of_scope_project_settings": "one enabledPlugins key removed by the CLI; the file is git-tracked there and the change is uncommitted in that working tree",
-   "records_pointing_at_1.2.3_cache": [],
-   "skill-for-claude/check-drift.sh": "CLEAN"
+   "supersedes": "choice C3 (leave the project-scope record untouched) and the PIN_DRIFT residue recorded above"
   },
-  "supersedes": "choice C3 (leave the project-scope record untouched) and the PIN_DRIFT residue recorded above"
+  "2_direct_marketplace_removal": {
+   "command": "claude plugin marketplace remove mattpocock",
+   "date": "2026-10-08",
+   "output": "Successfully removed marketplace: mattpocock",
+   "performed_by": "the user, in their own shell",
+   "readback_by_session": {
+    "check-plugin-pin": "PIN_CLEAN",
+    "clone_directory": "~/.claude/plugins/marketplaces/mattpocock no longer exists",
+    "codex_managed_unchanged": true,
+    "codex_plugin_unchanged": true,
+    "extra_known_marketplaces": [
+     "aisoft-platform",
+     "openai-codex"
+    ],
+    "installed_plugin_ids": 33,
+    "marketplaces": [
+     "aisoft-platform",
+     "claude-plugins-official",
+     "obsidian-skills",
+     "openai-codex",
+     "superpowers-marketplace"
+    ],
+    "matt_records_unchanged": true,
+    "plugins_installed_from_it": [],
+    "retro_SKILL_md_files_still_readable_under_~/.claude": [
+     "plugins/cache/aisoft-platform/mattpocock-skills/1.3.1/skills/engineering/retro/SKILL.md (the pinned plugin)",
+     "plugins/cache/claude-plugins-official/mattpocock-skills/1.2.3/skills/in-progress/retro/SKILL.md (orphaned cache awaiting Claude Code's collection)"
+    ]
+   }
+  }
  },
  "schema": "aisoft.issue-354.t04/v1",
  "session": "65e1a492-eac2-4289-b459-f4322ea932bf",

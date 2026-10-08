@@ -159,6 +159,14 @@ PR #357 提交后，用户改变了 C3 的选择，并在自己的终端里执�
 - 范围外项目的 `.claude/settings.json` 被 CLI 删掉一个键。该文件在那个仓库受 git 管理，改动留在其工作树中，未提交。
 - Codex 受管清单与 Codex 插件清单不变。
 
+随后用户又执行了 `claude plugin marketplace remove mattpocock`，输出为成功。读回：
+
+- 已配置的 marketplace 剩五个：`aisoft-platform`、`claude-plugins-official`、`obsidian-skills`、`openai-codex`、`superpowers-marketplace`。
+  `settings.json` 的 `extraKnownMarketplaces` 中 `mattpocock` 键已不在；检出目录 `~/.claude/plugins/marketplaces/mattpocock` 已不存在。
+- 已装插件仍为 33 个 id，Matt 记录不变，`check-plugin-pin` 仍为 `PIN_CLEAN`；Codex 两段清单不变。
+- T05 的 P4 读到的那份未固定文本因此不再存在。`~/.claude` 下仍可直接读到的 `retro` SKILL.md 有两份：固定在 `24fe0ef…` 的
+  插件缓存，以及孤立的 1.2.3 缓存里的一份，后者等待回收。`disable-model-invocation` 挡不住读文件这一点不变，P4 没有重跑。
+
 ## T05 Claude fresh session（2026-10-08）
 
 详见 [t05-claude-session.md](evidence/t05-claude-session.md)。五个提示词各用一个新进程。
@@ -213,7 +221,7 @@ PR #357 提交后，用户改变了 C3 的选择，并在自己的终端里执�
 ## 遗留风险与未完成项
 
 - 范围外项目的项目级插件记录已由用户卸载。它的 `.claude/settings.json` 有一处未提交的改动，孤立的 1.2.3 缓存目录等待 Claude Code 回收。
-- 直连 `mattpocock` marketplace 检出提供了一份未固定、可被直接读到的 Matt 技能文本，P4 中被实际读取。本票未动它。
+- 直连 `mattpocock` marketplace 已由用户移除。P4 没有在移除后重跑，`retro` 一项仍记为 GAP。
 - Codex 模型回合缺失。补法是由人在新开的 Codex 会话里发送固定提示词并回传；不回传则保持 GAP。
 - Codex 独立插件 1.2.3 与受管 v1.3.1 并存，退役的 `resolving-merge-conflicts` 仍经插件可见。按 C2 不处置。
 - `retro` 的 `disable-model-invocation` 挡不住模型直接读 SKILL.md。平台边界规则只有在 `aisoft-platform` 技能被加载时才进入上下文。
