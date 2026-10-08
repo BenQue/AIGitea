@@ -1,0 +1,20 @@
+{
+  "name": "aisoft-platform",
+  "description": "AISoftPlatform pinned sources for external Claude Code skill packs. Every entry is fixed to an exact commit by a reviewed change; nothing here tracks an upstream branch.",
+  "owner": {
+    "name": "AISoftPlatform"
+  },
+  "plugins": [
+    {
+      "name": "mattpocock-skills",
+      "description": "Matt Pocock skills pinned to v1.3.1, the same commit as codex/vendor/mattpocock/v1.3.1/manifest.json.",
+      "homepage": "https://github.com/mattpocock/skills",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/mattpocock/skills.git",
+        "ref": "v1.3.1",
+        "sha": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+      }
+    }
+  ]
+}

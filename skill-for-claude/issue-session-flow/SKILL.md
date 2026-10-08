@@ -217,6 +217,7 @@ manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；rout
 - 「推完了，PR 建出来就行」→ 先核对返回体的 `pushed_head` 是不是你核验过的那个 SHA
 - 「这个小改动不值得开 Issue」→ 它需要验收标准吗？
 - 「会话先留着，回头一起归档」
+- 「收尾技能给了菜单，我选 push 并建 PR 就行」→ 平台项目内本地 merge、`git push`、建 PR 三项都不可用；停在 `AWAITING_PR_CONFIRMATION`，见 `aisoft-platform` 的「外部技能包边界」
 
 ## Common Mistakes
 
@@ -232,6 +233,7 @@ manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；rout
 | 推送后不核对 `pushed_head` | 跳过了中途改写唯一确定性可检出的时刻，PR 带着没读过的内容进入 review |
 | 只在上下文里记依赖 | 会话一压缩，顺序关系就丢了 |
 | 靠印象填 `cwd` | 会话开在错误目录，或开在根本不存在的路径上 |
+| 让并行子代理同时写同一个 change worktree | 单写者归属被自己打破，commit 归属与验证证据不可分辨 |
 
 ## 平台适配
 

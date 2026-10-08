@@ -14,7 +14,7 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 - **可读命名元组**：新变更 = Issue `N` + 分支 `change/N-短描述` + 目录 `docs/changes/N-短描述/` + worktree `issue-N-短描述` + 唯一 PR（`Closes #N`）。编号仍是唯一主键；remote/history evidence 已存在的 `change/N`、`docs/changes/N/` 与 pre-#57 纯数字文档只作读取或维护兼容，新 writer、first push 和 first PR 不得创建。
 - **语义文档**：新文档名 `<role>-<短描述>-<YYMMDD>.md`，summary front matter 的 `documents` 字段映射 summary/spec/plan/verification 到真实文件名。解析用 `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli resolve-documents N --repo <checkout>`，不要 glob 猜。
 - **判级**：contract_effect 先行（restore/unchanged → small 候选；add/change → complex；unclear → 人工澄清）。功能新增/变更、schema/迁移、外部契约、安全、共享核心、跨模块、CI/制品/部署/回滚、Agent/治理一律强制 complex。small 还须范围局部、可简单 revert，并有可测验收标准。
-- **Matt 主路径**：每个 Issue 走 `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`（经 `$aisoft-matt-workflow` 适配；small 与 development complex 在 triage+summary+判级+`approved` 复核后跳过 spec/plan，后者使用合成 `T01`）。`triage/ready-for-agent` ≠ `approved`。
+- **Matt 主路径**：每个 Issue 走 `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`（平台适配规则见下文「外部技能包边界」；small 与 development complex 在 triage+summary+判级+`approved` 复核后跳过 spec/plan，后者使用合成 `T01`）。`triage/ready-for-agent` ≠ `approved`。
 - **27 标签四维正交**：10 `type/*`（bugfix/feature/docs/test/refactor/maintenance/platform/security/reliability/data）+ 2 `complexity/*`（AI 输出）+ 8 生命周期（`completed` 与 `deployed` 互斥终态）+ 7 `triage/*`（Matt 编排）。
 - **单闸门**：最终 PR merge 是唯一交付硬闸门。manual 只由人合并；只有 repository 显式 opt-in、required contexts 非空、提交确认授权且最终 head 全硬门通过的 routine small，才能由独立 per-project merger 合并。provider/project agent 不 merge、不直推受保护 `main`；部署需独立授权。
 - **一切 Gitea/Git/OrbStack 访问走 broker**：`/usr/local/libexec/aisoft/host-access-broker --project <manifest项目> --operation <typed操作>`（gitea.issue.create/read/update、gitea.pull.create、git.push.change --branch、host.access.audit…）。不拼 raw token、不传 URL/refspec/shell；Git push 只允许当前 checkout 同名 readable 分支。
@@ -56,6 +56,48 @@ root authority、begin/verify、ES/kernel/signing、完整 OS/解释器闭包、
 Claude Code 与 Codex 共用同一平台合同，能力等价、可互换、不分主辅；两个模型互相取长补短、目标一致，
 都不各自发明流程。自动化 provider 仍由项目 profile 的 `ANALYSIS_PROVIDER`/`IMPLEMENT_PROVIDER`
 显式选择（默认 `none`）。
+
+## 外部技能包边界（Matt / superpowers）
+
+两个技能包都由 Claude Code 以插件形式安装。平台不改写它们的原文，只在这里约束它们在平台项目内的用法。
+Codex 侧的同一组 Matt 约束写在仓库内 `codex/skills/aisoft-matt-workflow/SKILL.md`；那是对照来源，
+Claude 侧不把它当技能加载。
+
+两个技能包任一发生大版本更新、或含技能增删的更新时，安装或升级之前先按 `08-双工具共存与实施.md` §5
+「外部技能包升级后的适配检查」人工逐项核对（技能增删、调用方式、文件与目录约定、Git / PR / 并行写入
+副作用），结论写进承载该次升级的 Issue。这是人工清单，不据此设定时任务、自动检查或安装。
+
+**Matt（`mattpocock-skills`）**：本技能里以 `$` 开头的技能名，在 Claude 侧对应插件技能
+`mattpocock-skills:<技能名>`。期望来源是仓库根 `.claude-plugin/marketplace.json` 的
+`mattpocock-skills@aisoft-platform`，钉在 v1.3.1（`24fe0ef7737efae15c87225755e9f6f5965e4888`），
+与 Codex vendor 快照同一 commit。`bash skill-for-claude/check-plugin-pin.sh` 读回 `PIN_CLEAN`
+才说明已装插件就是这个 commit；读到 `PIN_DRIFT` 或 `PIN_NOT_INSTALLED` 时不要声称插件已是
+v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是需要单独授权的 installed 层动作。
+
+- **`pr`**：只生成候选正文，结构为 Summary / Evidence / Merge Danger。每条观察写明 SHA、命令或
+  制品，以及它属于 source / local / CI / installed / live 哪一层；缺少 Before 证据要明说，未执行项
+  记 `NOT RUN`。正文服从 broker `gitea.pull.create` 的正文合同（恰好一行 `Closes #N`，映射的
+  summary 路径恰好出现一次）。这个技能不授予 push、PR、merge 或部署权限，这些仍在确认点 2 之后
+  经 broker 进行。
+- **`implement-spec`**：随插件存在，但它的写入编排在平台项目内禁用。保持 Controller 的单写者
+  frontier：不 reset、不合并子代理产物、不并行写入、不提前开 PR、不投影 ticket 状态。要换编排方式，
+  先为它开一份自己的 complex 合同。
+- **`retro`**：仅在人明确要求 Matt 的 retro 时加载；人可以指定会话，否则只看当前会话。别的插件
+  也提供同名技能时，先确认要的是哪一个，不覆盖、不改名上游技能。只输出有证据的改进候选供人审查；
+  不自动修改治理文件、不扩大权限、不启动自主回顾循环。
+- **domain 文档**：读 `docs/agents/domain.md`。新项目用 `GLOSSARY.md` 记术语、`docs/adr/` 记决策；
+  既有 `CONTEXT.md` / `CONTEXT-MAP.md` 与新文件并读，直到其中的术语、业务规则、决策和入链都有着落。
+  定义冲突时停止，不自动改名文件或丢弃规则。
+
+**superpowers**：版本跟随官方 marketplace，平台不自建 pin。它的流程技能照常使用，落点与收尾
+服从平台合同：
+
+| superpowers 默认 | 平台项目内 |
+|---|---|
+| 设计写 `docs/superpowers/specs/`，计划写 `docs/superpowers/plans/` | 写进 `docs/changes/N-short-description/` 里映射的 `spec` / `plan` 角色文档；small 只有 summary，不另建设计文档 |
+| `.superpowers/` 下的工作目录 | 本地状态，已在 `.gitignore` 里，不入库、不当验收证据 |
+| `finishing-a-development-branch` 提供本地 merge、`git push`、建 PR | 三项都不可用。本地验证完成后停在 `AWAITING_PR_CONFIRMATION`；确认后远端只走 broker |
+| 并行子代理各自实现 | 一个 change worktree 同一时刻只有一个写者：子代理不得并发写入它，也不得写别的会话的 worktree；只读调查可以并行 |
 
 ## 接入新项目 / 项目对齐 / 私有访问
 
