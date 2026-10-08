@@ -129,6 +129,24 @@ commit 为主键的直接依据。
 返回非零而退出，裸写的 `[[ ! -e "$ROOT/docs/superpowers" ]]` 在本机是静默失效的守卫。已改为显式
 `if … exit 1`，上表是改后在已提交守卫上重跑的结果。
 
+### 确认点 2 之后：首次推送被发布闸门拒绝
+
+用户确认提交 head `6f37c5b6693e177a1327df0dc4ea60f3cbfd7996` 后，broker `git.push.change` 返回
+`{"code": "SCOPE_UNKNOWN", "message": "approved exact Git scope missing", "status": "BLOCKED_EXTERNAL"}`，exit 20。
+远端没有被写入。原因在 source 的 `codex/runtime/aisoft_main_integration.py`：发布闸门从映射 spec 的
+front matter 读取 `git_scope` 精确文件清单，并逐个 commit 校验改动不越出它；本票的 spec 没有这一段。
+平台现行文档、模板与两侧技能都没有提到这个字段，是照 #352 的 spec 才得知写法。
+
+处置：在 spec front matter 补入 `git_scope`，逐条列出 `git diff --name-only origin/main` 的 15 个文件，并在
+spec 末尾写明它只是既有合同的机器投影。候选 head 因此改变，未沿用旧 SHA 推送；新 head 的校验见下表，
+并重新向用户出示候选。
+
+| Command / check | 层 | Result | Evidence |
+|---|---|---|---|
+| `check-change-documents --repo .`（补入后） | source | PASS | `result: changes=162 pass=2 gap=0` |
+| 用 source runtime 离线复现闸门：`GitRepository.scope(head, branch)` 与 `verify_history(...)` | local | PASS | 在只含 spec 投影的 `c824269` 上执行：`GATE_OK … scope_paths=15 commits=8`，即 8 个 commit 的逐个改动都在 15 条路径内。这是 source runtime 的离线复现，不是已安装 broker 的回执；本记录随后提交，只改本文件 |
+| `bash codex/tests/smoke.sh`（补入后的 head） | source | NOT RUN | 相对已跑过全量 smoke 的 `56460bb`，之后只改了本目录的 verification 与 spec 两份文档；未重跑全量 smoke |
+
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |
