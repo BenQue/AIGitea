@@ -127,7 +127,7 @@ change 分支已 rebase 到 P2，安装源 worktree 移到 P2。
 | X4 | `claude plugin validate`；按目录注册 marketplace | PASS；注册前主 checkout HEAD 等于 P2 且干净 |
 | X5 | 卸载 user 作用域的官方来源，安装 `mattpocock-skills@aisoft-platform` | PASS；记录为 1.3.1 / `24fe0ef…`；缓存内 37/37 技能目录哈希等于 vendor manifest，LICENSE 哈希相等 |
 | 回滚演练 | 卸载平台来源 → 安装官方来源 → 读回 → 卸载 → 安装平台来源 → 读回 | PASS；中间态为官方 1.2.3 / `c55ee46…`；终态记录与 X5 相同，缓存仍 37/37 |
-| pin 检查 | `check-plugin-pin.sh /Users/benque` | `PIN_DRIFT`，恰一条 DRIFT：平台范围之外项目的项目级记录。按 C3 为已知残留 |
+| pin 检查 | `check-plugin-pin.sh /Users/benque` | 当时为 `PIN_DRIFT`，恰一条 DRIFT：平台范围之外项目的项目级记录。PR 提交后已变为 `PIN_CLEAN`，见「PR 提交后的清理」 |
 | 漂移检查 | `check-installed-drift` | install-skills 面与 skill-for-claude 面均为 PASS |
 
 对照备份的差异：`installed_plugins.json` 33 个插件 id 中只有两个 Matt id 变化；`known_marketplaces.json` 只新增
@@ -145,6 +145,19 @@ change 分支已 rebase 到 P2，安装源 worktree 移到 P2。
 4. **清单哈希口径变了。** 插件缓存的树哈希现在排除 `.in_use` 与 `.git`，前者随会话启停变化，后者每次安装都是新的浅克隆。
    T01、T02 中的缓存哈希按旧口径取得，与之后的不可比。
 5. **fresh session 留下了会话记录。** 六个 `claude -p` 进程在 `~/.claude/projects` 下各留一份记录，属于 Claude Code 自身的会话存档。
+
+## PR 提交后的清理（2026-10-08）
+
+PR #357 提交后，用户改变了 C3 的选择，并在自己的终端里执行了项目级卸载：
+`claude plugin uninstall mattpocock-skills@claude-plugins-official --scope project`，在范围外项目的目录内运行，输出为成功。
+本会话只做了读回：
+
+- Matt 插件记录只剩一条：`mattpocock-skills@aisoft-platform`，user 作用域，1.3.1 / `24fe0ef…`。
+- `check-plugin-pin.sh /Users/benque` 由 `PIN_DRIFT` 变为 **`PIN_CLEAN`**；`check-drift.sh` 仍为 `CLEAN`。
+- 没有任何记录再指向 `cache/claude-plugins-official/mattpocock-skills/1.2.3`。该目录仍在磁盘上，已带 Claude Code 的
+  `.orphaned_at` 标记，由它自行回收。上文「共享缓存被覆盖」的后果因此消除，但恢复方案当时没有覆盖它这一事实不变。
+- 范围外项目的 `.claude/settings.json` 被 CLI 删掉一个键。该文件在那个仓库受 git 管理，改动留在其工作树中，未提交。
+- Codex 受管清单与 Codex 插件清单不变。
 
 ## T05 Claude fresh session（2026-10-08）
 
@@ -180,7 +193,7 @@ change 分支已 rebase 到 P2，安装源 worktree 移到 P2。
 | CI | required CI | NOT RUN |
 | installed · Codex 受管快照 | `~/.agents`：current 为 v1.3.1，previous 为 v1.2.2，37 个入口 | PASS |
 | installed · Codex 独立插件 | `mattpocock-skills@claude-plugins-official` 1.2.3 / `c55ee46…`，已启用 | 按 C2 未改动；与受管 v1.3.1 并存 |
-| installed · Claude 独立插件 | `mattpocock-skills@aisoft-platform` 1.3.1 / `24fe0ef…`，user 作用域 | PASS；pin 检查因范围外项目记录为 `PIN_DRIFT` |
+| installed · Claude 独立插件 | `mattpocock-skills@aisoft-platform` 1.3.1 / `24fe0ef…`，user 作用域，唯一一条 Matt 记录 | PASS；pin 检查为 `PIN_CLEAN` |
 | installed · Claude 平台技能 | `~/.claude/skills` 两个技能，P2 | `CLEAN` |
 | provider-session · Codex | 模型回合 | GAP / NOT RUN；仅 harness 层 |
 | provider-session · Claude | 五个新进程 | 四项 PASS，`retro` 一项 GAP |
@@ -191,7 +204,7 @@ change 分支已 rebase 到 P2，安装源 worktree 移到 P2。
 | AC | 结论 | 证据 |
 |---|---|---|
 | AC-1 | PASS | T01 基线与路径清单；S0 与阶段二的执行前重读；P2 记录时点见「与合同不符之处」3 |
-| AC-2 | PARTIAL | 阶段一：备份完整，恢复在真实目标上执行并读回基线。阶段二：三个文件与技能目录已备份，但共享的 1.2.3 缓存目录未备份且被覆盖，恢复方案没有覆盖它 |
+| AC-2 | PARTIAL | 阶段一：备份完整，恢复在真实目标上执行并读回基线。阶段二：三个文件与技能目录已备份，但共享的 1.2.3 缓存目录未备份且被覆盖，恢复方案没有覆盖它。该目录在 PR 提交后已无记录引用 |
 | AC-3 | PASS | S2 断言全表、S3 前后相等、S7 与阶段二的漂移读回 |
 | AC-4 | PASS | 受管快照 N-1 往返；Claude 插件 N-1 往返。插件的 N-1 是官方当前 pin `c55ee46`，不是变更前记录的 `2ab9580` |
 | AC-5 | PARTIAL | Claude：四项 PASS，`retro` 为 GAP。Codex：harness 层 PASS，模型回合 GAP / NOT RUN |
@@ -199,7 +212,7 @@ change 分支已 rebase 到 P2，安装源 worktree 移到 P2。
 
 ## 遗留风险与未完成项
 
-- 范围外项目的项目级插件记录与它指向的缓存内容不一致：记录为 `2ab9580`，内容为 `c55ee46`。处置由人决定。
+- 范围外项目的项目级插件记录已由用户卸载。它的 `.claude/settings.json` 有一处未提交的改动，孤立的 1.2.3 缓存目录等待 Claude Code 回收。
 - 直连 `mattpocock` marketplace 检出提供了一份未固定、可被直接读到的 Matt 技能文本，P4 中被实际读取。本票未动它。
 - Codex 模型回合缺失。补法是由人在新开的 Codex 会话里发送固定提示词并回传；不回传则保持 GAP。
 - Codex 独立插件 1.2.3 与受管 v1.3.1 并存，退役的 `resolving-merge-conflicts` 仍经插件可见。按 C2 不处置。

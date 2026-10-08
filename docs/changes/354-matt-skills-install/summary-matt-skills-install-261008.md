@@ -66,6 +66,9 @@ commit，所以 Claude 插件的升级入口只能来自 #355。
 - C2 Codex 独立插件：不动，只报告。
 - C3 `SAPWMOdataPDA` 的项目级 Claude 插件记录：不动，pin 检查的那条 DRIFT 记为已知残留。
 
+2026-10-08 用户在确认点 2 确认提交 #354 / `change/354-matt-skills-install` / manual 的唯一最终 PR。提交后用户改变 C3，
+自行卸载了 `SAPWMOdataPDA` 的项目级插件记录；本会话只读回并记录。
+
 确认授权合同内的备份、安装、回滚演练、fresh session 与证据记录。它不授权 push、PR、merge、
 VM 安装或合同路径清单之外的写入。
 
