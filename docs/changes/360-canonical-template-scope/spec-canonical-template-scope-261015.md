@@ -31,12 +31,6 @@ git_scope:
   - codex/runtime/tests/test_main_integration.py
   - codex/runtime/tests/test_controller.py
   - codex/runtime/tests/test_host_access.py
-  - codex/install-host-access-broker.sh
-  - codex/install-vm.sh
-  - codex/tools/check-installed-drift.py
-  - codex/tests/test-install-host-access-broker.sh
-  - codex/tests/test-installer-source-guard.sh
-  - codex/tests/fixtures/installed-drift/test-installed-drift.py
 ---
 
 ## 目标与原因
@@ -59,11 +53,12 @@ status 必须维持 `contract-drafting`；本轮实际写入只有本票四份�
 | 同文件 `verify_history:195–233` / `delta_paths:157–167` | 所有 relevant commit；祖先/objects/第一父链；线性提交 delta；合法 `[Issue tip,main]` merge tree；changed symlink/submodule 拒绝 | add/revert 中间 delta 不能消失；`git_history_paths` 不能变宽门 |
 | `codex/runtime/aisoft_loop/controller.py:1063–1119` `LocalGit.integrate_main` | typed fresh main/change、clean exact owner、R0/R、scope、history、独立 merge-tree、HEAD 复核后整合 | 调用 shared scope；Controller 需要可信 template policy context；不赋予 provider merge 权 |
 | `codex/runtime/aisoft_host_access/broker.py:3650–3777` | owner/branch/clean、manifest remote/identity、fresh main、scope/history、复读、ordinary push、真实 readback | 同一 reader；no-op 也重验；没有独立 canonical scope 实现可替代 |
-| `codex/runtime/aisoft_main_integration.py:370–451` | ordinary single-ref push / 固定 guard；`qualified_broker_environment` 比对 wrapper 与七个 runtime 文件 | 没有校核 template policy manifest；需要扩展版本一致性覆盖，不能调用旧/mixed installed 写入口 |
-| `codex/runtime/aisoft_loop/cli.py:365–405` | load access/governance 与 project tuple；构造 `LocalGit(repo,branch)` | `LocalGit` 尚未获得 policy；禁止从候选项目文件或任意 caller path 取得放行 authority |
+| `codex/runtime/aisoft_main_integration.py:370–451` | ordinary single-ref push / 固定 guard；`qualified_broker_environment` 比对 wrapper 与七个 runtime 文件 | 复用现有模块一致性门，例外补足既有access/governance输入绑定；不新增template policy manifest，不能调用旧/mixed installed写入口 |
+| `codex/runtime/aisoft_loop/cli.py:365–405` | load access/governance 与 project tuple；构造 `LocalGit(repo,branch)` | `LocalGit` 尚未获得已验证的 holder/project 上下文；需要有限接线，禁止另造caller authority |
 | `codex/runtime/aisoft_gitea_governance/contract.py:603–619` | `vendors_change_templates` 必须 bool；缺省沿用既有 true | 可复用已解析 `RepositoryContract`，无需新增 identity、ACL 或 manifest 字段 |
-| `codex/config/change-template-sync.json` / `codex/tools/change-template-sync.sh:135–151,195–206` | 四名、source root、template digest、holder defaults、`downstream_required_check=forbidden` | 可作为可信 canonical 名单来源；digest 描述版本，不是目标候选的授权根 |
-| `codex/install-host-access-broker.sh:71–86` / `codex/install-vm.sh:49–68` | 各自复制 shared Git 模块和 access/governance manifests | 当前不复制 sync manifest；source 局部修复不会自动进入 installed |
+| `codex/config/change-template-sync.json` / `codex/tools/change-template-sync.sh:135–151,195–206` | 四名、source root、template digest、holder defaults、`downstream_required_check=forbidden` | 只读对照四资源合同；digest继续由既有模板同步工具使用，A不新增其runtime依赖 |
+| `codex/install-host-access-broker.sh:71–86` / `codex/install-vm.sh:49–68` | 已复制 shared Git/Controller/broker模块和 access/governance manifests | 足够分发A的现有文件变化；不复制sync manifest不是A的缺口，无需改installer |
+| `codex/tools/check-installed-drift.py:382–397` | 已映射上述包、shared模块、access/governance manifests | 无新增受管文件，不需新mapping或installer pin变化；使用既有fixture验证 |
 
 平台原件是 `templates/docs/changes/_template/{summary,spec,plan,verification}.md`。
 消费者副本是 `docs/changes/_template/{summary,spec,plan,verification}.md`。
@@ -79,12 +74,36 @@ Issue #360 正文记载 HSDB #15 在真实 Controller 入口收到
 
 ## D-SCOPE360-1 · 完整实施与验收卡
 
+### 必要性、最小实施包与延期项（本次复核）
+
+**有必要实施共享流程修复；没有必要承接项目部署。** 当前同一平台既要求消费者维护四份
+canonical vendored 模板，又把这些获批路径当成另一 Issue 拒绝；缺陷发生在平台通用的
+scope 判据，修正受益于所有合法模板 holder，不是为 HSDB 增加特例。
+只改消费者部署方案、只补平台说明或只删真实scope都无法修复这个判定。
+
+| 项目 | 是否必要 | 最小处置与边界 |
+|---|---|---|
+| shared reader精确分类与history检查 | 必要 | 在既有Git模块区分own docs、四个canonical资源、otherIssue docs；复用approved scope和逐commit检查，不写第二套授权引擎 |
+| `vendors_change_templates` | 必要且已有 | 直接复用`RepositoryContract`字段及既有缺省规则，不改manifest schema或新增逐项目白名单 |
+| Controller/CLI接线 | 必要 | CLI已解析project/governance但未传LocalGit；只传足以核对repo/holder的有限上下文并调用shared reader，不新增调度状态机或provider权限 |
+| broker接线 | 必要 | 用broker自己的canonical contract传入同一判据；否则Controller通过后broker仍会拒绝或两端边界不一致；不增加operation/参数/身份 |
+| 来源/漂移约束 | 必要的局部约束 | 复用现有source/installed模块一致性门及canonical access/governance来源；例外拒绝候选manifest/任意override。只对本次判据所依赖的既有输入作绑定，不新建root/signature/observer框架 |
+| 新policy manifest及分发协议 | 不必要 | 四资源身份固定在shared reader，holder已存在；不增加配置服务、动态白名单或sync manifest runtime依赖 |
+| installer源码与drift mapping变更 | 不必要，移出scope | 两个现有installer与checker已覆盖全部拟改模块和既有manifests；只验证现有复制/版本检测，不新增安装目标或改六个无关installer |
+| 平台工具的真实安装 | 后续独立授权 | 合并后按实际Mac/VM入口证明新模块已分发；这是共享工具版本交付，不是HSDB应用部署。本轮和source实施批准都不自动授权安装 |
+| 全历史模板内容锁B | 额外能力，建议延期 | 误分类修复无需版本pin/历史快照catalog/模板制品留存，不作为A启动或交付前置；用户尚未裁定 |
+| 项目PM2/库/服务/环境/UAT | 不属于本票 | 留在HSDB及其原owner的独立合同；不扩大到项目实际部署，也不把全部HSDB业务开发设成全局等待 |
+
+上一分析commit `87fa88a8fde98155ae2b7eccbb27d93632883b04` 曾将sync manifest新分发列入候选；
+本次依据既有复制/mapping源码确认可复用，撤回该非必要候选范围。
+这是实施批准前的分析收缩，不是已实施后删测试或改验收制造PASS。
+
 ### 一次需要裁定的安全语义
 
 | 选项 | 授权含义 | 影响与建议 |
 |---|---|---|
 | **A：精确资源授权（推荐）** | canonical 表示四个精确资源身份；holder + 同票 approved scope 逐项授权；保留人工合同/PR 内容审查与项目对齐的逐字节检查 | 修复原 gate 的资源误分类，不在 Git scope gate 新增全历史模板版本锁；下列完整实施范围、fixtures 与 AC 按 A 编排 |
-| B：模板内容锁 | 在 A 上增加每个相关提交的模板 bytes 必须对应获批来源快照 | 需要版本 pin、历史范围到快照的映射、快照安装/留存与旧版本升级规则；本方案不把现有 template_digest 当作这些能力。选择 B 后先修订本票 spec/plan，不能直接执行 A |
+| B：模板内容锁（额外能力，建议延期） | 在 A 上增加每个相关提交的模板 bytes 必须对应获批来源快照 | 不是修复误分类的必要项；需要版本pin/历史映射/快照留存。只有用户明确要求B时先修订本票合同，不强制把它作为A的前置 |
 
 区别会影响合法的历史模板版本与获批定制内容是否被拒绝，属于安全/架构决定。
 本轮只提出建议；等待人一次裁定并批准实施。其余实现选择由下述合同固定，不逐命令请求确认。
@@ -95,26 +114,28 @@ Issue #360 正文记载 HSDB #15 在真实 Controller 入口收到
 1. **资源集合 C 固定四项**：
    `docs/changes/_template/summary.md`、`docs/changes/_template/spec.md`、
    `docs/changes/_template/plan.md`、`docs/changes/_template/verification.md`。
-   trusted sync manifest 必须 version/root/documents 形状正确且等于既有四件套；
-   不能通过改候选 manifest 把第五个文件加进 C。上游 `templates/...` 路径不是此例外。
+   C 的四个完整路径在现有shared reader内集中定义并经fixture与既有四件套合同对照；
+   不新建dynamic policy/manifest schema，也不运行时依赖sync manifest。
+   不能通过改候选manifest或传任意列表把第五个文件加进C。上游 `templates/...` 路径不是此例外。
 2. **同票批准投影**：继续从 exact H 的 committed mapped summary/spec 读取。
    issue/branch/slug/status、唯一 summary 与 mapped spec 必须合法。
    summary 只接受 `approved` 或有效同仓 `pr-open`，spec 必须 `approved`。
    只有逐项出现在 `git_scope`（或受限历史列表）中的 C 元素才有范围资格；
    不以 holder=true、Issue 标签或目录存在代替 scope。不为用户“补上”未批准模板。
 3. **可信项目/holder**：broker 使用自己的已解析 access/governance 绑定；Controller
-   使用相同 manifest-fixed project/repository 规则与 shared policy factory。
+   使用相同 manifest-fixed project/repository 规则，将现有已验证contract的有限上下文传给shared reader。
    known repository 且 `RepositoryContract.vendors_change_templates=true` 才可使用 C；
    absent key 按既有 parser true，而 unknown repo/malformed key/unreadable manifest 均拒绝。
    holder=false 不影响该仓普通 own-doc/source scope，只拒绝其 vendored 例外。
-4. **policy 与 source provenance**：在现有 shared Git 模块内增加不可变、有限的内部 policy context；
+4. **上下文与 source provenance**：在现有 shared Git 模块内接收不可变、有限的内部上下文；
    scope reader 不依赖 `aisoft_loop` 包，从而继续可由两个 installer 分发。
    `scope(head,branch)` 无 context 时保持旧的跨票拒绝；只接受内部 validated context 才允许 C。
    生产入口不能增加 caller URL/path、任意名单、skip/legacy/force 开关。
-   trusted policy 只能来自 canonical 安装入口的 access/governance/sync 文件，
+   repo/holder上下文只能来自 canonical 安装入口的既有access/governance绑定，
    source 模式需与其版本一致；现有 env-selected manifest 即使可 parse，也不能独自赋予 C 例外。
-   Controller 与 broker 重用同一 factory，校核目标 repo 与固定 remote，不信候选 checkout 的 manifest。
-   `qualified_broker_environment` 扩展到 policy 输入的 exact bytes/版本一致性；
+   Controller与broker复用同一核对函数和现有parser，校核目标repo与固定remote，不信候选checkout的manifest。
+   复用`qualified_broker_environment`既有模块版本一致性门；仅对例外依赖的既有access/governance
+   输入补足来源/bytes一致性绑定，不新增policy文件、快照catalog或独立批准服务。
    缺失、旧或 mixed surface 返回 `BROKER_SURFACE_GAP`，不临时安装或降级旧入口。
    source 单元/fixture 可显式构造封闭测试 context；不得暴露为生产 CLI 的通用 override。
 5. **路径与类型**：按 Git tree 中大小写敏感的原始 repo-relative 字符串判断；
@@ -143,7 +164,7 @@ Issue #360 正文记载 HSDB #15 在真实 Controller 入口收到
 |---|---|
 | summary/spec/status/mapping 或 scope 结构缺失/歧义 | `SCOPE_UNKNOWN`；不把草稿或标签直接当批准 |
 | 另一 Issue docs、非 C 子路径、未批准模板、非法 path/type/holder、越界 delta | `SCOPE_DENIED`；fixture 断言零 push，远端不变 |
-| policy provenance/installed bytes 旧、混合、缺失或操作中漂移 | `BROKER_SURFACE_GAP`；固定入口前停止；不补装 |
+| 例外所需canonical上下文/source-installed bytes旧、混合、缺失或操作中漂移 | `BROKER_SURFACE_GAP`；固定入口前停止；不补装 |
 | owned WT/branch/session 不一致或 dirty | 既有 `WORKTREE_UNCLAIMED`、`WORKTREE_CLAIM_INVALID`、`WORKTREE_OWNER_MISMATCH`、`WORKTREE_DIRTY` |
 | history/objects/tree 不合法 | `NON_FAST_FORWARD`、`DAG_DENIED`、`FOREIGN_MERGE_DENIED`、`MERGE_TREE_DENIED`、`MERGE_BASE_DENIED`、`MERGE_CONFLICT` 及既有 Git capability/config/object 拒绝 |
 | H/R/M 及 first-ref/删除重建漂移 | `HEAD_MOVED`、`REMOTE_BRANCH_MOVED`、`BASE_BRANCH_STALE`；保持 exact 前态，停止 |
@@ -160,13 +181,13 @@ Issue #360 正文记载 HSDB #15 在真实 Controller 入口收到
 |---|---|
 | 本票四份 mapped docs | 合同、真实证据、后续唯一 PR summary 回填 |
 | `03-Issue-Spec-Plan与单闸门开发流程.md`、`skill-for-codex/references/project-align.md` | 独立治理 T02：补资源边界/holder/批准/source层次，不改其他全局或 provider 规则；提交后 STOP，fresh run 再读 |
-| `codex/runtime/aisoft_main_integration.py` | shared bounded policy、scope 分类、历史模板类型检查与 policy 版本一致性；保留 standard-library 固定 guard |
+| `codex/runtime/aisoft_main_integration.py` | shared scope分类、有限repo/holder上下文、历史模板类型及既有来源绑定；保留standard-library固定guard，不建新框架 |
 | `codex/runtime/aisoft_loop/{controller,cli}.py` | 从 canonical context 绑定 LocalGit，Controller 共用判断/漂移处置；不增加 agent merge 权 |
 | `codex/runtime/aisoft_host_access/broker.py` | 传入自己 manifest-bound policy、复核快照，与 Controller 同判据 |
 | `codex/runtime/tests/{test_main_integration,test_controller,test_host_access}.py` | 下表真实 Git 正负例、dispatch 与一致性回归 |
-| `codex/install-host-access-broker.sh`、`codex/install-vm.sh` | 仅受管复制 `codex/config/change-template-sync.json` 到各自 share root，保留 source guard、no-op、previous/恢复规则；写脚本不是执行安装 |
-| `codex/tools/check-installed-drift.py` | 两个 installer mapping 增加该 manifest，维护实际受影响的 installer pin，其他六面行为不改 |
-| `codex/tests/test-install-host-access-broker.sh`、`codex/tests/test-installer-source-guard.sh`、`codex/tests/fixtures/installed-drift/test-installed-drift.py` | isolated install-root/home fixture 的精确新增文件、缺失/漂移、无凭据/服务访问、原 guard 回归 |
+
+两个installer、`check-installed-drift.py`及其fixture源码仅只读复用，不在future修改allowlist。
+既有分发验收仍需运行，且不能因没有新增安装文件而宣称真实安装已完成。
 
 `codex/config/{gitea-governance,host-access-broker,change-template-sync}.json`、
 `templates/docs/changes/_template/*.md` 是只读 policy/模板来源，不属于本票修改范围。
@@ -194,7 +215,7 @@ project/manifest/identity 均为封闭 fixture。复制平台真实四模板内�
 | F10 非FF、reverse/octopus/foreign/extra-tree merge、replace/graft/shallow/缺对象/driver | 原 #327 负例保持；无 forced rewrite/guard bypass |
 | F11 owner/H/R/M/policy 在读前后/guard窗口移动、first-ref抢占/删除重建 | 同因错误、零本次覆盖或如实 possible-write；保全证据，不静默重锚 |
 | F12 三入口一致性及旧行为 | 相同 fixtures 输入 reader/Controller/broker 得相同允许/拒绝语义；无模板范围的现有消费者无需新字段，旧/mixed policy 无法获得例外 |
-| F13 两类 installer 与 drift fixture | 受管 manifest 正确复制、重复 no-op、旧/缺/伪 manifest 失败、previous 可恢复；source guard 写前拒绝仍有效；不在真实主机安装 |
+| F13 复用既有installer/drift fixture | 已有复制模式覆盖改动模块和access/governance，旧/缺/漂移模块继续被识别，原source guard仍有效；不新增sync manifest安装链，不在真实主机安装 |
 
 每个失败 fixture 都需断言拒绝阶段、实际 Git transport 调用数、remote ref 与 owned HEAD/index/marker 的
 可解释结果。不能用 mock reader success 代替真实 delta/history/transport；mock 仅限身份/network桥接与竞态注入。
@@ -205,7 +226,7 @@ project/manifest/identity 均为封闭 fixture。复制平台真实四模板内�
 - [ ] AC-2：同票 issue/branch/status/mapping、trusted project/holder/source-policy绑定、输入边界与所有别名/类型负例成立（F05–F08）。
 - [ ] AC-3：历史锚、逐提交完整 scope 与类型不被净 diff 或历史例外绕过，R0/R/M/H 祖先/objects/tree 原门保留（F09/F10）。
 - [ ] AC-4：真实 Controller `[C,M]` 整合与 ordinary FF、回填/修复/no-op成功，失败/并发/可能写入报告真实（F03/F11）。
-- [ ] AC-5：reader/Controller/broker 一致且 fail closed；旧无模板消费者不回归，分发与 drift fixture 覆盖 policy 输入（F12/F13）。
+- [ ] AC-5：reader/Controller/broker一致且fail closed；旧无模板消费者不回归，既有分发/drift fixture证明覆盖同一组模块与输入，不新建分发机制（F12/F13）。
 - [ ] AC-6：全 runtime/default smoke、适用 shell 检查、文档门和未来 exact-head required CI 均有真实记录；旧 FAIL/GAP 保留。
 - [ ] AC-7：单票/单 writer/唯一 manual PR；source merge、Mac/VM installed 与 HSDB adoption 明确分门，无未合并安装或越权消费者操作。
 
@@ -222,7 +243,7 @@ project/manifest/identity 均为封闭 fixture。复制平台真实四模板内�
    policy `/usr/local/share/aisoft/`；VM broker 同类 system 路径，Controller 实际 runtime 按执行账号盘点
    `$HOME/.local/lib/aisoft-loop/`、`$HOME/.local/share/aisoft/` 与实际启动解释器/import路径。
    核对 merged source pin、shared module/dispatch/context输入 bytes、版本与模式、wrapper、source guard receipt、
-   new sync manifest 与 policy hash、两次可重复安装/no-op和一次故意缺失/漂移拒绝及 snapshot 恢复。
+   既有access/governance绑定、两次可重复安装/no-op和一次故意缺失/漂移拒绝及snapshot恢复；不增加sync manifest安装目标。
    先完整保存前态再写；不以 install exit0 或 source fixture 证明现场成功；不复制/读取用户凭据。
    这些真实动作本次均 NOT RUN，不能为测试启动 provider/timer/服务。
 5. **HSDB 采用**：由 `admin/HSDB#15` 原 owner 在自己的授权下 fresh 核对原保留基线/资源、批准 scope、
@@ -234,7 +255,7 @@ project/manifest/identity 均为封闭 fixture。复制平台真实四模板内�
 ## 接口、数据与兼容性影响
 
 不改外部 typed operation 参数、remote/identity、业务 API 或数据库。内部 shared policy 参数只供可信调用方；
-缺省保持旧拒绝行为，不让旧消费者意外放行。新安装 manifest缺失时例外 fail closed。
+缺省保持旧拒绝行为，不让旧消费者意外放行。所需既有canonical manifest不可用时例外fail closed。
 `git_scope` 与 `git_history_paths` 仍是 exact 路径列表，A 不新增消费者 front matter key；
 因此原已批准四模板列表无需伪造路径或迁移格式。
 

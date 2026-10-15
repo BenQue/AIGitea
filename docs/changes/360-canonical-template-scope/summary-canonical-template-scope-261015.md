@@ -50,7 +50,7 @@ live Issue 保持 fresh 读回的 `open / needs-analysis`，未投影标签。
   `/private/tmp/issue-360-canonical-template-scope`。
 - 唯一分析 writer：`01a13b2a-e69a-78e2-9c6f-a00284afda90`，已正式 claim。
 - fresh manifest main / 文档起点：`afd76bf2830ecc7ddc81dc07071ae4bbd8251fc8`。
-- future reader、Controller、broker、分发/漂移映射及真实 Git fixtures 的精确路径见 mapped spec。
+- future reader、Controller、broker及真实Git fixtures的精确路径见mapped spec；分发/drift复用既有机制。
 - 当前实际 delta 只允许本目录四份文档；不写上述产品路径，不执行产品测试。
 
 ## 初步方案与建议
@@ -58,13 +58,31 @@ live Issue 保持 fresh 读回的 `open / needs-analysis`，未投影标签。
 推荐 D-SCOPE360-1 的 **A：精确资源授权**：只有 manifest 绑定项目是合法 holder、
 已提交的同票映射 summary/spec 生命周期及绑定合法、精确 scope 明列目标路径时，
 才允许四个 canonical 文件中相应的文件。未获批文件没有隐含授权。
-trusted policy 从已核对的 canonical manifests 生成，不能取目标候选中的 manifest 或环境变量替身。
+holder 复用已解析的 canonical access/governance 绑定，四模板身份收在现有 shared reader 内，
+不能取目标候选中的 manifest 或环境变量替身。
 逐提交 delta、历史锚点、R0/R/M/H 祖先、两 parent tree、普通 FF 与 guard 全部保留。
 
-**真正待裁定的安全语义**：这个例外是资源范围授权，还是还要新增“每个历史版本均须与某个
-获批平台模板快照逐字节一致”的内容锁门？A 的完整方案与验收已列好；后者为 B，会增加版本映射、
-历史来源与安装制品合同，不能用 reader 中一行 whitelist 冒充交付。
+本次必要性复核建议采用 A。B 的“每个历史版本均须与某个获批平台模板快照逐字节一致”
+不是修复误分类的必要条件，建议延期；它会增加版本映射、历史来源与安装制品合同。
+等待用户批准 A 的安全语义与完整实施范围，不把调度建议当成用户 A/B 裁决。
 本轮不代选、不启用任何一项。A 不证明人类批准不可伪造；仍是 #327 的 cooperative checks。
+
+## 2026-10-15 必要性与最小范围复核
+
+用户要求：“aisoft平台项目是流程的管理，不会具体到某个项目的部署。”
+结论：**#360 有必要修复，范围仅为平台流程判据缺陷**。现有通用对齐合同要求四份
+vendored 模板，而平台自身 reader 对它们无差别拒绝；即使消费者的批准与 exact scope 完整也失败。
+只补解释文档不能改变该判定，绕 guard、伪造路径或省略真实 delta 都不可取。
+
+最小实施包为现有 shared reader 的精确资源例外、复用现有 holder/批准投影、
+Controller/broker 必要接线及正负 fixtures；不创建新 policy 框架、typed operation 或授权系统。
+现有两个 installer 与 drift mapping 已覆盖这些模块及 access/governance manifests，
+因此本方案**移除 installer、漂移脚本及其测试源码的候选修改**；既有分发只需验证，不需另建
+sync manifest 安装链。详细逐项必要性和收缩后的 exact scope 见 D-SCOPE360-1。
+
+平台工具的后续版本分发属于共享能力交付，仍需独立安装授权；HSDB 的 PM2、数据库、服务、
+环境配置和 UAT 不在本票。#358/#360 不构成 HSDB 全部业务开发的统一前置，
+只约束实际依赖该能力的流程步骤；本票不替 HSDB 调度暂停其他已获批工作。
 
 ## 风险与依赖
 

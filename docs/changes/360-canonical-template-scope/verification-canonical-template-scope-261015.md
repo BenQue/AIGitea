@@ -37,6 +37,7 @@ updated: 2026-10-15
 - 本轮 evidence root：
   `/Users/benque/.codex/visualizations/2026/10/14/01a13b2a-e69a-78e2-9c6f-a00284afda90/scope360/evidence/`。
   final local HEAD 与提交后检查单独写此 root 的 final-local.json，避免自引用HEAD写进自己的commit。
+  该文件保留首次分析commit的收据；本次必要性补充的提交后收据另存necessity-final-local.json。
 
 读取的治理入口：实际 `AGENTS.md`、`README.md`、03、04、`codex/global-AGENTS.md`、
 `docs/agents/{issue-tracker,triage-labels,domain}.md`，实际已安装
@@ -78,6 +79,34 @@ updated: 2026-10-15
 首次文档检查因手写 `risk_flags` 使用了受限解析器不支持的 inline list 而失败
 （`unsafe YAML scalar at line 10`）；已改为既有 block-list 语法后重跑上述三门通过。
 这是文档格式修正，没有修改解析器、runtime或测试。
+
+## 2026-10-15 调度复核补充：实施必要性与最小包
+
+反馈直接引用用户：“请检查 #358、#360 的合同分析是否有真正实施的必要？记住aisoft平台项目是流程的管理，
+不会具体到某个项目的部署。”本会话只复核#360，不代写或实施#358。
+用户没有批准A/B或产品实施；当前补充继续适用原四文档范围和线性本地文档commit授权。
+
+在本WT fresh确认原分析HEAD为`87fa88a8fde98155ae2b7eccbb27d93632883b04`、工作树clean、
+branch/claim/session一致后，只读重查以下源码，没有调用产品函数或运行产品测试：
+
+| 事实 | 结论与边界 |
+|---|---|
+| `GitRepository.scope:235–291`仍在paths()无差别拒绝非own的docs/changes路径 | 存在平台通用流程误分类；修复必要性成立，不依赖HSDB具体部署或新profile |
+| governance parser已有`vendors_change_templates`且可解析缺省 | 可复用holder，不需新manifest schema/项目授权表 |
+| CLI已有access/governance project绑定；LocalGit尚无holder上下文；broker已持有自己的contract | 必要工作是有限接线和shared reader一致性，不需新controller/policy系统 |
+| 两个installer已有shared模块、runtime包和access/governance复制；drift checker已有对应mapping | A无需新增sync manifest分发；六个先前候选installer/drift相关源码路径从future scope移除 |
+| sync manifest用于既有四模板版本/digest合同 | 本轮仅对照；不变成runtime放行authority，B全历史内容锁建议延期 |
+
+源代码基线仍为已核对的`afd76bf2830ecc7ddc81dc07071ae4bbd8251fc8`；本段记录的是本地
+source静态复核，不把旧远端Issue/PR读回冒充本次重新联网核验。
+修订后的D-SCOPE360-1明确最小包、必要/非必要项、source/工具安装/项目部署分门；
+没有执行产品/治理源码、产品测试、真实安装/目标动作、push/PR/merge/deploy。
+本次实际文档检查与第二个线性文档commit以necessity-final-local.json为准，首轮证据不覆盖。
+
+本次补充已执行`resolve-documents`、`resolve-required-documents`、`check-change-documents`及
+`git diff --check`，均exit0；全仓文档结果仍为`changes=164 pass=2 gap=0`。
+十个已记录source输入的SHA256与首次分析收据一致，branch/claim仍属于本会话。
+检查原始输出独立保存在`evidence/necessity-261015/`；产品测试和真实安装继续NOT RUN。
 
 ## Acceptance criteria 结果
 
