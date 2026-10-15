@@ -41,7 +41,7 @@ updated: 2026-10-15
 `git_scope` 中也会被拒绝。Controller 和 broker 共用这个 reader。
 
 本轮状态为 **ANALYSIS_COMPLETE / NEEDS_HUMAN_DECISION**。四份映射文档和 spec 内的
-**D-SCOPE360-1 完整实施验收卡**可供一次审阅；不把本轮文档批准转换成产品 `approved`。
+**D-SCOPE360-1 最小流程修复整包审阅卡**可供一次审阅；不把本轮文档批准转换成产品 `approved`。
 live Issue 保持 fresh 读回的 `open / needs-analysis`，未投影标签。
 
 ## 影响范围
@@ -55,17 +55,16 @@ live Issue 保持 fresh 读回的 `open / needs-analysis`，未投影标签。
 
 ## 初步方案与建议
 
-推荐 D-SCOPE360-1 的 **A：精确资源授权**：只有 manifest 绑定项目是合法 holder、
+D-SCOPE360-1已收敛为**精确资源授权的最小流程修复整包**：只有manifest绑定项目是合法holder、
 已提交的同票映射 summary/spec 生命周期及绑定合法、精确 scope 明列目标路径时，
 才允许四个 canonical 文件中相应的文件。未获批文件没有隐含授权。
 holder 复用已解析的 canonical access/governance 绑定，四模板身份收在现有 shared reader 内，
 不能取目标候选中的 manifest 或环境变量替身。
 逐提交 delta、历史锚点、R0/R/M/H 祖先、两 parent tree、普通 FF 与 guard 全部保留。
 
-本次必要性复核建议采用 A。B 的“每个历史版本均须与某个获批平台模板快照逐字节一致”
-不是修复误分类的必要条件，建议延期；它会增加版本映射、历史来源与安装制品合同。
-等待用户批准 A 的安全语义与完整实施范围，不把调度建议当成用户 A/B 裁决。
-本轮不代选、不启用任何一项。A 不证明人类批准不可伪造；仍是 #327 的 cooperative checks。
+按用户已确认的收敛边界，全历史模板内容锁延期，不再提供扩大方案选项。
+唯一待审事项是是否批准这张最小整包卡的实施及所列本地验证；目前仍未批准启动。
+该资源判据不证明人类批准不可伪造；仍是#327的cooperative checks。
 
 ## 2026-10-15 必要性与最小范围复核
 
@@ -131,6 +130,8 @@ verification 是独立保留现场/归属/安装证据的义务，不代表本�
 直接批准来源：HSDB 调度 2026-10-15 用户“批准调度创建两个分析会话”；仅授权独立 WT/claim、
 合同分析文档、完整方案、文档检查及线性本地文档提交。批准记录和 fresh 证据位置见 verification。
 
-等待用户一次裁定 D-SCOPE360-1 的安全语义并批准 exact #360 的实施范围。
-若批准 A，先按 plan T02 独立应用治理合同并停止，后续 fresh run 重读后实施 T03–T05；
+用户最新直接指示已同意边界并要求“#360整理最小流程修复方案，供我一次审阅”；
+本次仅整理唯一mapped spec内的D-SCOPE360-1卡，补齐必要本地资源/停止边界与可复制批准措辞。
+卡片就绪，等待用户一次批准exact #360整包实施；不重复询问已排除的全历史内容锁。
+批准后先按plan T02独立应用治理合同并停止，后续fresh run重读后实施T03–T05；
 不把这次实施批准当成 push/最终 PR、merge、安装或 HSDB 采用授权。

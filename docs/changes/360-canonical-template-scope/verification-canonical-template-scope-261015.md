@@ -108,6 +108,21 @@ source静态复核，不把旧远端Issue/PR读回冒充本次重新联网核验
 十个已记录source输入的SHA256与首次分析收据一致，branch/claim仍属于本会话。
 检查原始输出独立保存在`evidence/necessity-261015/`；产品测试和真实安装继续NOT RUN。
 
+## 最小整包卡收尾
+
+用户现已同意收敛边界：“#358暂不实施当前大包，只评估通用声明与校验的最小适配；
+#360整理最小流程修复方案，供我一次审阅。继续推进T05和#50，现有数据保留，公司部署继续暂停。”
+本会话只整理#360；不向T05/#50或其他会话发送消息，不操作其资源。
+
+既有卡已覆盖13条exact scope、四资源/holder/committed approved scope复用、必要接线和正负fixture计划；
+本次补齐必要本地工具/独占合成fixture资源与停止保全边界，并移除仍残留的A/B待选项，
+给出唯一整包批准措辞。全历史内容锁已延期、六个installer/drift源码修改继续排除。
+这属于实质审阅缺项补齐，不新增第二张卡、Issue、会话、产品源码或确认性测试。
+
+开始时HEAD为`2c0c6d72321e8bf5f4d04a44b78695282e14babb`且clean，claim仍为本会话。
+本次文档检查/提交后exact HEAD与source不变证明另存`evidence/review-package-final-local.json`，
+保留首轮及必要性复核收据。当前产品实施/测试/安装/发表均NOT RUN；状态为整包卡就绪，仅待实施批准。
+
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |
@@ -118,11 +133,12 @@ source静态复核，不把旧远端Issue/PR读回冒充本次重新联网核验
 
 ## 遗留风险与未完成项
 
-- D-SCOPE360-1 A/B安全语义与实施批准待人裁定；summary为analyzed、spec/plan为contract-drafting，
+- D-SCOPE360-1最小整包卡就绪，仅实施批准待审；全历史内容锁延期且不再设A/B选择。
+  summary为analyzed、spec/plan为contract-drafting，
   未投影live标签，未置产品approved，未启动provider/Controller Loop。
 - 产品source、unit/integration/Gitfixtures、全runtime/smoke、PR/CI、source merge：NOT RUN。
 - Mac/VM installed入口现场盘点、安装/故意失败/快照恢复、用户身份/凭据、服务/真实库/迁移、
   HSDB采用/本机运行/部署/UAT：NOT RUN。本轮不得运行其余目标检查便利地获取证明。
 - scope projection与owner marker不能证明不可伪造授权；#327延期能力继续GAP/NOT RUN。
 - 不修改 #358、HSDB #15原资源与固定OID，不恢复已归档平台调度，不发消息给其他会话。
-- 收尾状态：ANALYSIS_COMPLETE / NEEDS_HUMAN_DECISION；需要用户一次审阅卡片、裁定并批准实施。
+- 收尾状态：ANALYSIS_COMPLETE / NEEDS_HUMAN_DECISION（整包卡就绪，仅待实施批准）；边界同意不等于启动授权。

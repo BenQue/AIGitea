@@ -22,21 +22,21 @@ updated: 2026-10-15
 # #360 实施与验收计划
 
 本计划与 mapped spec 的 D-SCOPE360-1 卡绑定。T01 是已获直接批准的本轮分析工作；
-T02–T05 仅是 A 方案候选实施顺序，目前全部未授权、NOT RUN。
-必要性复核建议A的最小流程修复；B全历史内容锁并非当前缺陷修复所必需，建议延期。
-调度建议不代替用户安全裁定或实施批准；用户若明确要求B，先修订合同。
+T02–T05是最小流程修复整包的实施顺序，目前全部未授权、NOT RUN。
+用户已同意收敛边界并要求一次审阅卡，全历史内容锁延期；不再以A/B选择设置前置。
+唯一待审事项是批准D-SCOPE360-1整包的实施及所列本地验证，边界同意不等于启动批准。
 
 ## Ticket graph
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | fresh单票/owner/source分析、四份mapped docs、D-SCOPE360-1、文档检查与线性本地文档提交 | - | completed |
-| T02 | A方案批准后独立应用最小治理合同，文档校验/local commit并STOP；为fresh runtime run提供规则 | T01 | pending |
+| T02 | 整包批准后独立应用最小治理合同，文档校验/local commit并STOP；为fresh runtime run提供规则 | T01 | pending |
 | T03 | fresh重读T02后，shared canonical policy与reader/Controller/broker一致性端到端切片，真实Git正负fixture | T02 | pending |
 | T04 | 复用既有installer/drift机制验证模块分发覆盖与版本匹配；不改installer或增加policy分发文件 | T03 | pending |
 | T05 | 全量回归/默认硬门、完整AC evidence、唯一manual最终PR候选；提交PR前停下等待第二确认 | T04 | pending |
 
-T01 完成不使 T02 自动可执行；必须先记录 D-SCOPE360-1 裁定与 #360 实施批准。
+T01完成不使T02自动可执行；必须先记录D-SCOPE360-1整包的#360实施批准。
 T02 仅治理应用后按合同 STOP；后续 fresh run 重读后才进入 T03，不要求每命令新确认。
 同票单 branch/单 WT/单 writer；不另开 child Issue、source worktree 或并行 writer。
 
@@ -107,5 +107,5 @@ source 修复/回滚只追加受控本票commit或后续revert PR；禁止reset/
 ## 本轮收尾与下一步
 
 保存准确 claim、fresh main、source事实、文档检查、仅四文档提交和最终HEAD。
-停在 `ANALYSIS_COMPLETE / NEEDS_HUMAN_DECISION`，一次提交 D-SCOPE360-1 供裁定与实施批准。
+停在`ANALYSIS_COMPLETE / NEEDS_HUMAN_DECISION`（整包卡就绪），仅提交D-SCOPE360-1供一次实施审阅。
 不请求重复启动/WT/每项检查批准，不请求最终PR，不写产品approved。

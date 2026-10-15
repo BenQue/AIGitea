@@ -72,7 +72,12 @@ Issue #360 正文记载 HSDB #15 在真实 Controller 入口收到
 这些是本轮 fresh 读回的 **Issue 报告**，本轮未重放、未读/改原 #15 WT；
 原失败完整 candidate SHA 未独立核验，保持 GAP，不补猜。
 
-## D-SCOPE360-1 · 完整实施与验收卡
+## D-SCOPE360-1 · 最小流程修复整包审阅卡
+
+**状态：整包卡就绪，仅待一次实施批准。** 用户已同意收敛边界并要求“#360整理最小流程修复方案，
+供我一次审阅”；这是方案整理授权，不是runtime实施、产品测试、安装或发表授权。
+本卡是唯一审批入口；front matter的13条exact scope、下列资源/接线/验收/停止边界共同组成整包。
+全历史模板内容锁已延期，六个非必要installer/drift源码修改继续排除，不再提出扩大方案选项。
 
 ### 必要性、最小实施包与延期项（本次复核）
 
@@ -91,25 +96,21 @@ scope 判据，修正受益于所有合法模板 holder，不是为 HSDB 增加�
 | 新policy manifest及分发协议 | 不必要 | 四资源身份固定在shared reader，holder已存在；不增加配置服务、动态白名单或sync manifest runtime依赖 |
 | installer源码与drift mapping变更 | 不必要，移出scope | 两个现有installer与checker已覆盖全部拟改模块和既有manifests；只验证现有复制/版本检测，不新增安装目标或改六个无关installer |
 | 平台工具的真实安装 | 后续独立授权 | 合并后按实际Mac/VM入口证明新模块已分发；这是共享工具版本交付，不是HSDB应用部署。本轮和source实施批准都不自动授权安装 |
-| 全历史模板内容锁B | 额外能力，建议延期 | 误分类修复无需版本pin/历史快照catalog/模板制品留存，不作为A启动或交付前置；用户尚未裁定 |
+| 全历史模板内容锁 | 已延期，不属于审阅包 | 不新增版本pin/历史快照catalog/模板制品留存，不作为本修复启动或交付前置，也不再次要求用户选项确认 |
 | 项目PM2/库/服务/环境/UAT | 不属于本票 | 留在HSDB及其原owner的独立合同；不扩大到项目实际部署，也不把全部HSDB业务开发设成全局等待 |
 
 上一分析commit `87fa88a8fde98155ae2b7eccbb27d93632883b04` 曾将sync manifest新分发列入候选；
 本次依据既有复制/mapping源码确认可复用，撤回该非必要候选范围。
 这是实施批准前的分析收缩，不是已实施后删测试或改验收制造PASS。
 
-### 一次需要裁定的安全语义
+### 已收敛语义与唯一待审事项
 
-| 选项 | 授权含义 | 影响与建议 |
-|---|---|---|
-| **A：精确资源授权（推荐）** | canonical 表示四个精确资源身份；holder + 同票 approved scope 逐项授权；保留人工合同/PR 内容审查与项目对齐的逐字节检查 | 修复原 gate 的资源误分类，不在 Git scope gate 新增全历史模板版本锁；下列完整实施范围、fixtures 与 AC 按 A 编排 |
-| B：模板内容锁（额外能力，建议延期） | 在 A 上增加每个相关提交的模板 bytes 必须对应获批来源快照 | 不是修复误分类的必要项；需要版本pin/历史映射/快照留存。只有用户明确要求B时先修订本票合同，不强制把它作为A的前置 |
+本卡只采用精确资源授权：canonical表示四个精确资源身份；复用holder与同票committed approved scope，
+保留人工合同/PR内容审查及项目对齐的逐字节检查，不增加全历史内容锁。
+唯一待审事项是**是否批准按本卡完整scope开展平台source实施及所列本地验证**。
+用户目前没有批准启动；不重复询问已确认的边界，不增加业务、部署或新安全框架的决定。
 
-区别会影响合法的历史模板版本与获批定制内容是否被拒绝，属于安全/架构决定。
-本轮只提出建议；等待人一次裁定并批准实施。其余实现选择由下述合同固定，不逐命令请求确认。
-没有新的业务规则、数据库或公司运行决定。
-
-### A 的精确合同
+### 精确合同
 
 1. **资源集合 C 固定四项**：
    `docs/changes/_template/summary.md`、`docs/changes/_template/spec.md`、
@@ -230,9 +231,23 @@ project/manifest/identity 均为封闭 fixture。复制平台真实四模板内�
 - [ ] AC-6：全 runtime/default smoke、适用 shell 检查、文档门和未来 exact-head required CI 均有真实记录；旧 FAIL/GAP 保留。
 - [ ] AC-7：单票/单 writer/唯一 manual PR；source merge、Mac/VM installed 与 HSDB adoption 明确分门，无未合并安装或越权消费者操作。
 
+### 必要本地资源、停止与保全
+
+| 资源或情况 | 整包批准后的允许用途 / 停止边界 |
+|---|---|
+| 已claim的`/private/tmp/issue-360-canonical-template-scope` | 继续同branch/同writer线性本地commit；不创建第二writer或借用HSDB WT |
+| 现有`python3`、`/usr/bin/git`、Bash及默认smoke所需既有工具 | 只用已有环境；Git须支持现有`merge-tree --write-tree`及对象检查。缺工具/不支持/依赖缺失即GAP/BLOCKED_EXTERNAL，不自行安装 |
+| 新建的本票临时fixture目录及本地bare remote | 仅在`/private/tmp/`新建本票独占临时root，放合成数据/假manifest/假身份；可重复重建自己的fixture，不能清理历史WT、用户库或他票资源；需要网络或真实凭据的验证不属于本地fixture授权 |
+| 本会话artifact证据目录 | 记录命令/exit、前后H/R/M/tree、失败及恢复结果；不把源码/fixture通过投成installed/UAT |
+| exact owner/branch/HEAD、scope/manifest来源或R/M并发漂移；冲突/历史非法/重复同因失败 | 立即停止并保全前态、实际/可能写入状态与日志；不重锚、覆盖、force、扩大scope或关闭guard |
+| 必须新增scope外文件、机制或真实目标动作 | 记录具体GAP，返回本票审阅；不得把整包批准解释成无限扩展或安装授权 |
+
+当前没有分配/创建上述产品fixture资源、没有执行产品测试。source实施后，若实际installed入口旧/缺失，
+记录具体入口和pin的后续平台工具安装需求，source合并后另获授权；不为此扩建本轮installer框架。
+
 ### 实施、source merge、installed 与 HSDB 采用的边界
 
-1. **本轮**：四份文档、检查、本地线性提交。停在安全语义与实施批准前。
+1. **本轮**：四份文档、检查、本地线性提交。整包卡就绪，停在实施批准前。
 2. **实施批准后**：T02 治理单独应用/检查/commit 后停止，fresh run 重读，继而 T03–T05 本票 source/tests；
    不触发安装或真实身份/业务目标访问。源码门完成后提出唯一最终 PR 第二确认。
 3. **source 交付**：第二确认绑定 exact #360/branch/manual 后才受控 FF 与唯一最终 PR；
@@ -251,6 +266,16 @@ project/manifest/identity 均为封闭 fixture。复制平台真实四模板内�
    保留原 refs/claim/固定 H，不缩实际 scope；原 spec 如需变更安全语义，由其 owner 获批后维护。
    不使用 #360 WT PYTHONPATH 或未合并 runtime 临时绕 gate。
    HSDB 自己的 PR/merge/本机运行/部署/UAT 继续独立授权；#358 架构 gate 独立处理。
+
+### 可直接使用的整包批准措辞
+
+> 批准admin/aisoft-platform#360按D-SCOPE360-1最小流程修复整包卡实施，绑定
+> change/360-canonical-template-scope及卡内13条exact scope；允许先完成T02独立治理步骤并停止，
+> fresh run重读后继续T03–T05范围内source、所列本地合成fixture/回归、普通修复和线性本地提交。
+> 全历史模板内容锁及六个installer/drift源码修改不纳入；push/唯一最终PR仍待第二确认，
+> manual merge、Mac/VM真实安装、HSDB采用及任何项目部署/UAT不在本次批准内。
+
+以上是待审文本，尚未收到用户批准。最终呈现同时绑定本卡实际文档HEAD；不把该引用当成已执行的确认。
 
 ## 接口、数据与兼容性影响
 
@@ -274,5 +299,5 @@ installed 回滚先保存 exact bytes/mode/owner/policy pin、在独立授权窗
 业务库、公司环境；不实现 #358，不代修 HSDB #15，不重做 R2，不恢复旧调度/monitor。
 不交付 #327 已延期的 authority/OS/解释器/资源隔离，不制造授权闭包。
 
-唯一未决方向：D-SCOPE360-1 A/B 安全语义及是否批准 A 的完整实施范围。
+唯一待审事项：是否批准D-SCOPE360-1最小流程修复整包的实施及所列本地验证；不再保留A/B选择。
 批准前本 spec 保持草稿，所有产品 AC 未验收，不启动 Development Loop。
