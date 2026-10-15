@@ -29,7 +29,7 @@ status: approved
 branch: change/360-canonical-template-scope
 pr_url:
 created: 2026-10-15
-updated: 2026-10-15
+updated: 2026-10-16
 ---
 
 ## 问题/需求总结
@@ -42,17 +42,17 @@ updated: 2026-10-15
 
 用户已直接批准`ed03008a6cfbbfbf1826501ec6a482929f2d557e`的D-SCOPE360-1最小整包，
 绑定本branch，并要求先完成T02后停止、fresh run重读后继续。
-本轮仅应用治理合同与记录批准；本地summary/spec/plan设为`approved`，不启动runtime Loop。
-live Issue fresh读回仍为`open / needs-analysis`，本轮不投影标签。
+T02已独立治理应用并STOP；本轮fresh重读后按同一批准手动完成T03–T05，不启动自动provider/Loop。
+本轮初始live Issue fresh读回为`open / needs-analysis`，后续分类与候选状态以真实回执记录。
 
 ## 影响范围
 
 - exact tuple：`change/360-canonical-template-scope`、本目录、
   `/private/tmp/issue-360-canonical-template-scope`。
-- 唯一分析 writer：`01a13b2a-e69a-78e2-9c6f-a00284afda90`，已正式 claim。
+- 唯一 writer：`01a13b2a-e69a-78e2-9c6f-a00284afda90`，已正式 claim。
 - fresh manifest main / 文档起点：`afd76bf2830ecc7ddc81dc07071ae4bbd8251fc8`。
-- future reader、Controller、broker及真实Git fixtures的精确路径见mapped spec；分发/drift复用既有机制。
-- T02实际delta仅03分册、project-align及本目录四份文档；不写runtime或测试源码，不执行产品测试。
+- reader、Controller、broker及真实Git fixtures的精确路径见mapped spec；分发/drift复用既有机制。
+- T02实际delta仅03、project-align及四文档；本轮T03–T05只增加获批的四runtime/三测试文件和本票证据。
 
 ## 初步方案与建议
 
@@ -64,7 +64,7 @@ holder 复用已解析的 canonical access/governance 绑定，四模板身份�
 逐提交 delta、历史锚点、R0/R/M/H 祖先、两 parent tree、普通 FF 与 guard 全部保留。
 
 按用户已确认的收敛边界，全历史模板内容锁延期，不再提供扩大方案选项。
-该整包的实施及所列本地验证已获直接批准，但本轮严格止于T02；T03–T05只在后续fresh run重读后推进。
+该整包的实施及所列本地验证已获直接批准；T02停止已完成，本轮fresh重读后推进T03–T05。
 该资源判据不证明人类批准不可伪造；仍是#327的cooperative checks。
 
 ## 2026-10-15 必要性与最小范围复核
@@ -89,7 +89,7 @@ sync manifest 安装链。详细逐项必要性和收缩后的 exact scope 见 D
 - 平台模板原件在 `templates/docs/changes/_template/`，下游副本在 `docs/changes/_template/`；
   两者不互换，`vendors_change_templates=false` 不得凭路径获得下游例外。
 - `git_history_paths` 同样必须核对 canonical 例外，不能用于漂白另一 Issue 或 add/revert 的中间 delta。
-- 当前 source 不含 holder/policy 检查；source、fixture、CI、两机 installed 与 HSDB adoption 分层记证。
+- 原main基线不含holder/policy检查；本票source候选与fixture结果不能替代CI、两机installed或HSDB adoption。
 - 无启动依赖。`admin/aisoft-platform#358` 独立；`admin/HSDB#15` 是受影响消费者，
   不是本票启动前置。本票不向 `depends_on` 填外仓裸编号，不修改 #358 或 #15。
 - HSDB #15 原 owner、worktree、固定 OID `82a5aba9e46a002b78e3aca9896ef9a26e4aa5cd`
@@ -135,8 +135,13 @@ verification 是独立保留现场/归属/安装证据的义务，不代表本�
 D-SCOPE360-1 最小整包卡实施及执行所列本地验证，绑定 change/360-canonical-template-scope。
 先完成 T02 并停止，fresh run 重读后继续；不含 push/PR、merge、真实安装或项目部署。”
 
-本轮仅完成T02治理应用/文档检查/线性本地提交，随后STOP。后续fresh run必须重读本branch的
-AGENTS、03、project-align及四份mapped docs，复核原批准、owner/HEAD、source事实和实际验证门，
-再继续T03–T05；不再重复索取整包启动批准。live分类/lifecycle投影按正式入口另作真实读回，
+T02已完成治理应用/文档检查/线性本地提交并STOP。本轮fresh run已重读本branch的
+AGENTS、03、project-align及四份mapped docs，复核原批准、owner/HEAD与source事实，
+继续T03–T05，不再重复索取整包启动批准。live分类/lifecycle投影按正式入口另作真实读回，
 不得以本地approved冒充live已投影或直接启动自动provider。
 最终PR仍需第二确认；merge、真实安装、HSDB采用/部署仍在各自独立边界。
+
+本轮source及合成fixtures已实施；两轴只读审阅发现的两项合同缺口均已修复并复查。
+当前额外阻断为分类投影：正式helper只读返回`projection-missing`，两个分类标签均缺失，
+随后`--apply 360`被自动审批拒绝且未执行。先完成本地验证/线性提交；
+补充精确live分类授权并读回projected之前，不进入正式最终PR确认状态。

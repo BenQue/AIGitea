@@ -16,7 +16,7 @@ depends_on: []
 status: approved
 branch: change/360-canonical-template-scope
 created: 2026-10-15
-updated: 2026-10-15
+updated: 2026-10-16
 git_scope:
   - docs/changes/360-canonical-template-scope/summary-canonical-template-scope-261015.md
   - docs/changes/360-canonical-template-scope/spec-canonical-template-scope-261015.md
@@ -39,8 +39,8 @@ git_scope:
 的文档及任何未批准路径。本票仅交付共享平台能力；下游采用、安装、业务与数据仍在各自项目。
 
 本spec为用户在本会话直接批准的合同，批准锚为`ed03008a6cfbbfbf1826501ec6a482929f2d557e`。
-`git_scope`的13项是获批整包最大范围，当前T02只可修改03、project-align及本票四文档；
-runtime/测试源码须在T02完成并STOP后，由后续fresh run重读再推进。
+`git_scope`的13项是获批整包最大范围；T02已只修改03、project-align和四文档并STOP，
+本轮fresh run重读后进入四runtime/三测试文件及本票证据的T03–T05实施，不扩大scope。
 未填写 `git_history_head/git_history_paths`：新票没有需要 grandfather 的已发表历史。
 
 ## 当前源码事实（2026-10-15 fresh main）
@@ -75,8 +75,8 @@ Issue #360 正文记载 HSDB #15 在真实 Controller 入口收到
 
 ## D-SCOPE360-1 · 最小流程修复整包审阅卡
 
-**状态：整包已批准，当前只执行T02治理步骤并停止。** 用户直接批准本卡的
-`ed03008a6cfbbfbf1826501ec6a482929f2d557e`版本及exact branch；T03–T05留待fresh run重读后继续。
+**状态：整包已批准，T02停止已完成，本轮fresh重读后执行T03–T05。** 用户直接批准本卡的
+`ed03008a6cfbbfbf1826501ec6a482929f2d557e`版本及exact branch；原批准锚保持不变。
 批准不含push/PR、merge、真实安装或项目部署。
 本卡是唯一审批入口；front matter的13条exact scope、下列资源/接线/验收/停止边界共同组成整包。
 全历史模板内容锁已延期，六个非必要installer/drift源码修改继续排除，不再提出扩大方案选项。
@@ -110,7 +110,7 @@ scope 判据，修正受益于所有合法模板 holder，不是为 HSDB 增加�
 本卡只采用精确资源授权：canonical表示四个精确资源身份；复用holder与同票committed approved scope，
 保留人工合同/PR内容审查及项目对齐的逐字节检查，不增加全历史内容锁。
 用户已批准本卡完整scope内的平台source实施及所列本地验证，但明确先执行T02并STOP。
-本轮不进入runtime实施/产品测试，不重复询问已确认边界，不增加业务、部署或新安全框架的决定。
+T02未进入runtime；本轮fresh接续执行既定实施/本地验证，不重复询问已确认边界，不增加业务、部署或新安全框架决定。
 
 ### 精确合同
 
@@ -225,13 +225,15 @@ project/manifest/identity 均为封闭 fixture。复制平台真实四模板内�
 
 ### Acceptance criteria
 
-- [ ] AC-1：canonical C 与 another-Issue docs 被准确区分；精确批准子集可用，无目录级 fallback（F01/F02/F04）。
-- [ ] AC-2：同票 issue/branch/status/mapping、trusted project/holder/source-policy绑定、输入边界与所有别名/类型负例成立（F05–F08）。
-- [ ] AC-3：历史锚、逐提交完整 scope 与类型不被净 diff 或历史例外绕过，R0/R/M/H 祖先/objects/tree 原门保留（F09/F10）。
-- [ ] AC-4：真实 Controller `[C,M]` 整合与 ordinary FF、回填/修复/no-op成功，失败/并发/可能写入报告真实（F03/F11）。
-- [ ] AC-5：reader/Controller/broker一致且fail closed；旧无模板消费者不回归，既有分发/drift fixture证明覆盖同一组模块与输入，不新建分发机制（F12/F13）。
+- [x] AC-1：canonical C 与 another-Issue docs 被准确区分；精确批准子集可用，无目录级 fallback（F01/F02/F04）。本地合成fixture PASS。
+- [x] AC-2：同票 issue/branch/status/mapping、trusted project/holder/source-policy绑定、输入边界与所有别名/类型负例成立（F05–F08）。本地合成fixture PASS。
+- [x] AC-3：历史锚、逐提交完整 scope 与类型不被净 diff 或历史例外绕过，R0/R/M/H 祖先/objects/tree 原门保留（F09/F10）。本地合成fixture PASS。
+- [x] AC-4：真实 Controller `[C,M]` 整合与 ordinary FF、回填/修复/no-op成功，失败/并发/可能写入报告真实（F03/F11）。本地合成fixture PASS。
+- [x] AC-5：reader/Controller/broker一致且fail closed；旧无模板消费者不回归，既有分发/drift fixture证明覆盖同一组模块与输入，不新建分发机制（F12/F13）。本地合成fixture及既有分发验证 PASS。
 - [ ] AC-6：全 runtime/default smoke、适用 shell 检查、文档门和未来 exact-head required CI 均有真实记录；旧 FAIL/GAP 保留。
 - [ ] AC-7：单票/单 writer/唯一 manual PR；source merge、Mac/VM installed 与 HSDB adoption 明确分门，无未合并安装或越权消费者操作。
+
+AC-6/7仍保留未完成：本轮PR/CI/source merge、真实installed与HSDB采用未执行，不能以本地PASS勾全。
 
 ### 必要本地资源、停止与保全
 
@@ -244,7 +246,7 @@ project/manifest/identity 均为封闭 fixture。复制平台真实四模板内�
 | exact owner/branch/HEAD、scope/manifest来源或R/M并发漂移；冲突/历史非法/重复同因失败 | 立即停止并保全前态、实际/可能写入状态与日志；不重锚、覆盖、force、扩大scope或关闭guard |
 | 必须新增scope外文件、机制或真实目标动作 | 记录具体GAP，返回本票审阅；不得把整包批准解释成无限扩展或安装授权 |
 
-当前没有分配/创建上述产品fixture资源、没有执行产品测试。source实施后，若实际installed入口旧/缺失，
+本轮fixture资源仅在本票独占临时root创建，实际执行记录见verification。source实施后，若实际installed入口旧/缺失，
 记录具体入口和pin的后续平台工具安装需求，source合并后另获授权；不为此扩建本轮installer框架。
 
 ### 实施、source merge、installed 与 HSDB 采用的边界
@@ -297,7 +299,7 @@ policy版本漂移会让 vendored 例外暂停，必须如实报告具体缺口�
 source 回滚使用后续受控 revert/修复 PR，不 reset 或 force 旧 refs。
 installed 回滚先保存 exact bytes/mode/owner/policy pin、在独立授权窗口恢复成套 snapshot并读回；
 混合新旧模块不可作为恢复成功。允许停止而拒绝新模板发表，不以扩大范围保服务。
-本轮没有任何 runtime/安装修改可回滚，四文档本地 commit 可审阅并保留。
+T02没有runtime变更；本轮runtime候选只保留线性本地commit，安装面未修改。回退使用后续受控修复/revert，不能reset丢弃历史。
 
 ## 非目标与后续门槛
 
@@ -306,4 +308,4 @@ installed 回滚先保存 exact bytes/mode/owner/policy pin、在独立授权窗
 不交付 #327 已延期的 authority/OS/解释器/资源隔离，不制造授权闭包。
 
 整包启动批准已收到，没有待裁定的A/B选择；产品AC仍全部未验收。
-本轮T02完成后STOP，后续fresh run重读与正式入口复核后才进入T03–T05；PR/merge/install/deploy授权未授予。
+T02已STOP且本轮fresh重读后实施T03–T05；PR/merge/install/deploy授权仍未授予。
