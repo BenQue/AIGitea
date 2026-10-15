@@ -123,7 +123,46 @@ source静态复核，不把旧远端Issue/PR读回冒充本次重新联网核验
 本次文档检查/提交后exact HEAD与source不变证明另存`evidence/review-package-final-local.json`，
 保留首轮及必要性复核收据。当前产品实施/测试/安装/发表均NOT RUN；状态为整包卡就绪，仅待实施批准。
 
-## Acceptance criteria 结果
+## T02 独立治理应用（2026-10-15）
+
+用户在本会话直接批准：
+
+> 批准 #360 按 ed03008a6cfbbfbf1826501ec6a482929f2d557e 的 D-SCOPE360-1 最小整包卡实施及执行所列本地验证，绑定 change/360-canonical-template-scope。先完成 T02 并停止，fresh run 重读后继续；不含 push/PR、merge、真实安装或项目部署。
+
+本轮起点为上述exact HEAD，branch/claim/session一致、WT clean。
+同一typed broker fresh读回#360 open/needs-analysis、评论`[]`、all-state PR170条无本票匹配、
+remote_known=true/remote_head=null；另行fetch main后`origin/main`仍为
+`afd76bf2830ecc7ddc81dc07071ae4bbd8251fc8`。原始收据另存`evidence/t02/`，不覆盖首轮证据。
+
+T02仅应用以下六份治理/合同文档：
+
+- `03-Issue-Spec-Plan与单闸门开发流程.md`：增加四canonical资源的精确scope、holder/批准投影、
+  shared reader/Controller/broker同判据、路径/历史/FF硬门及source/installed/采用边界。
+- `skill-for-codex/references/project-align.md`：第2行模板更新增加上述权威合同链接和未交付runtime边界。
+- 本票mapped summary/spec/plan：记录本次直接批准与原被审阅SHA；本地status改为approved；
+  记录T02已应用及STOP要求，T03–T05保持pending，13条整包scope不扩大。
+- 本verification：保留历史分析/审阅证据，新增本轮实际结果与未运行项。
+
+本轮不修改AGENTS、runtime、测试、installer、manifest、workflow或source guard；
+不投影live标签，不启动provider/Loop，不访问HSDB资源。本地approved只证明这次用户合同批准，
+不证明产品AC通过、远端已approved、安装成功或可发表。
+
+执行结果与本轮commit后的exact HEAD/parent、六文件范围、claim/clean、未改产品source指纹，
+单独保存到`evidence/t02/final-local.json`；本文件不自引用自身commit。
+批准记录保存在`evidence/t02/approval.json`。T02完成后STOP；后续fresh run重读本次治理合同与
+原批准，再按正式入口复核分类/文档/来源/owner后继续T03–T05，不需要再次批准同一整包。
+
+### T02 文档检查
+
+| 检查 | 本轮结果 | 证据 |
+|---|---|---|
+| exact HEAD/branch/claim、fresh Issue/PR/main/change只读核对 | PASS | 本段上述readback；evidence/t02/ |
+| resolve-documents / resolve-required-documents / check-change-documents | PASS | 全部exit0；changes=164 pass=2 gap=0；原始输出另存t02/ |
+| 四角色/13条整包scope不变/六文件实际delta/新增本地链接/原runtime指纹 | PASS（提交前） | 四角色准确；scope与批准锚一致；六文档外无delta；链接目标与标题存在；十项原source指纹不变 |
+| diff/staged whitespace与线性本地commit后clean | 提交前检查PASS；最终收据见右列 | final-local.json记录实际HEAD/parent、六文件范围、staged检查及提交后clean；不自引用HEAD |
+| 产品测试、Gitfixtures、smoke、PR/CI、真实安装、部署/UAT | NOT RUN | T02治理-only；后续步骤仍未执行 |
+
+## 产品 Acceptance criteria 结果
 
 | AC | 结论 | 证据 |
 |---|---|---|
@@ -133,12 +172,11 @@ source静态复核，不把旧远端Issue/PR读回冒充本次重新联网核验
 
 ## 遗留风险与未完成项
 
-- D-SCOPE360-1最小整包卡就绪，仅实施批准待审；全历史内容锁延期且不再设A/B选择。
-  summary为analyzed、spec/plan为contract-drafting，
-  未投影live标签，未置产品approved，未启动provider/Controller Loop。
+- 用户整包实施批准已收到，原批准锚保持为ed03008…；本地summary/spec/plan为approved，
+  live仍按本轮fresh读回needs-analysis，未投影标签或启动provider/Controller Loop。
 - 产品source、unit/integration/Gitfixtures、全runtime/smoke、PR/CI、source merge：NOT RUN。
 - Mac/VM installed入口现场盘点、安装/故意失败/快照恢复、用户身份/凭据、服务/真实库/迁移、
   HSDB采用/本机运行/部署/UAT：NOT RUN。本轮不得运行其余目标检查便利地获取证明。
 - scope projection与owner marker不能证明不可伪造授权；#327延期能力继续GAP/NOT RUN。
 - 不修改 #358、HSDB #15原资源与固定OID，不恢复已归档平台调度，不发消息给其他会话。
-- 收尾状态：ANALYSIS_COMPLETE / NEEDS_HUMAN_DECISION（整包卡就绪，仅待实施批准）；边界同意不等于启动授权。
+- T02收尾状态：T02_GOVERNANCE_APPLIED / STOP_BEFORE_T03；后续fresh run重读后才继续T03–T05。

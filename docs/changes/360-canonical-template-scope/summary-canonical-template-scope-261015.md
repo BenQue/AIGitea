@@ -25,7 +25,7 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/360-canonical-template-scope
 pr_url:
 created: 2026-10-15
@@ -40,9 +40,10 @@ updated: 2026-10-15
 `docs/changes/_template/{summary,spec,plan,verification}.md` 即使逐项列在获批 spec 的
 `git_scope` 中也会被拒绝。Controller 和 broker 共用这个 reader。
 
-本轮状态为 **ANALYSIS_COMPLETE / NEEDS_HUMAN_DECISION**。四份映射文档和 spec 内的
-**D-SCOPE360-1 最小流程修复整包审阅卡**可供一次审阅；不把本轮文档批准转换成产品 `approved`。
-live Issue 保持 fresh 读回的 `open / needs-analysis`，未投影标签。
+用户已直接批准`ed03008a6cfbbfbf1826501ec6a482929f2d557e`的D-SCOPE360-1最小整包，
+绑定本branch，并要求先完成T02后停止、fresh run重读后继续。
+本轮仅应用治理合同与记录批准；本地summary/spec/plan设为`approved`，不启动runtime Loop。
+live Issue fresh读回仍为`open / needs-analysis`，本轮不投影标签。
 
 ## 影响范围
 
@@ -51,7 +52,7 @@ live Issue 保持 fresh 读回的 `open / needs-analysis`，未投影标签。
 - 唯一分析 writer：`01a13b2a-e69a-78e2-9c6f-a00284afda90`，已正式 claim。
 - fresh manifest main / 文档起点：`afd76bf2830ecc7ddc81dc07071ae4bbd8251fc8`。
 - future reader、Controller、broker及真实Git fixtures的精确路径见mapped spec；分发/drift复用既有机制。
-- 当前实际 delta 只允许本目录四份文档；不写上述产品路径，不执行产品测试。
+- T02实际delta仅03分册、project-align及本目录四份文档；不写runtime或测试源码，不执行产品测试。
 
 ## 初步方案与建议
 
@@ -63,7 +64,7 @@ holder 复用已解析的 canonical access/governance 绑定，四模板身份�
 逐提交 delta、历史锚点、R0/R/M/H 祖先、两 parent tree、普通 FF 与 guard 全部保留。
 
 按用户已确认的收敛边界，全历史模板内容锁延期，不再提供扩大方案选项。
-唯一待审事项是是否批准这张最小整包卡的实施及所列本地验证；目前仍未批准启动。
+该整包的实施及所列本地验证已获直接批准，但本轮严格止于T02；T03–T05只在后续fresh run重读后推进。
 该资源判据不证明人类批准不可伪造；仍是#327的cooperative checks。
 
 ## 2026-10-15 必要性与最小范围复核
@@ -130,8 +131,12 @@ verification 是独立保留现场/归属/安装证据的义务，不代表本�
 直接批准来源：HSDB 调度 2026-10-15 用户“批准调度创建两个分析会话”；仅授权独立 WT/claim、
 合同分析文档、完整方案、文档检查及线性本地文档提交。批准记录和 fresh 证据位置见 verification。
 
-用户最新直接指示已同意边界并要求“#360整理最小流程修复方案，供我一次审阅”；
-本次仅整理唯一mapped spec内的D-SCOPE360-1卡，补齐必要本地资源/停止边界与可复制批准措辞。
-卡片就绪，等待用户一次批准exact #360整包实施；不重复询问已排除的全历史内容锁。
-批准后先按plan T02独立应用治理合同并停止，后续fresh run重读后实施T03–T05；
-不把这次实施批准当成 push/最终 PR、merge、安装或 HSDB 采用授权。
+用户在本会话直接批准：“批准 #360 按 ed03008a6cfbbfbf1826501ec6a482929f2d557e 的
+D-SCOPE360-1 最小整包卡实施及执行所列本地验证，绑定 change/360-canonical-template-scope。
+先完成 T02 并停止，fresh run 重读后继续；不含 push/PR、merge、真实安装或项目部署。”
+
+本轮仅完成T02治理应用/文档检查/线性本地提交，随后STOP。后续fresh run必须重读本branch的
+AGENTS、03、project-align及四份mapped docs，复核原批准、owner/HEAD、source事实和实际验证门，
+再继续T03–T05；不再重复索取整包启动批准。live分类/lifecycle投影按正式入口另作真实读回，
+不得以本地approved冒充live已投影或直接启动自动provider。
+最终PR仍需第二确认；merge、真实安装、HSDB采用/部署仍在各自独立边界。

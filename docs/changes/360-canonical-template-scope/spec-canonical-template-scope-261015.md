@@ -13,7 +13,7 @@ risk_flags:
   - cross-module
   - agent-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/360-canonical-template-scope
 created: 2026-10-15
 updated: 2026-10-15
@@ -38,8 +38,9 @@ git_scope:
 让已批准的 canonical vendored 模板更新具有可验证的精确 scope，同时持续拒绝另一 Issue
 的文档及任何未批准路径。本票仅交付共享平台能力；下游采用、安装、业务与数据仍在各自项目。
 
-本 spec 是候选合同，`git_scope` 是待批准的 future 最大范围，**本轮不生效**。
-status 必须维持 `contract-drafting`；本轮实际写入只有本票四份文档。
+本spec为用户在本会话直接批准的合同，批准锚为`ed03008a6cfbbfbf1826501ec6a482929f2d557e`。
+`git_scope`的13项是获批整包最大范围，当前T02只可修改03、project-align及本票四文档；
+runtime/测试源码须在T02完成并STOP后，由后续fresh run重读再推进。
 未填写 `git_history_head/git_history_paths`：新票没有需要 grandfather 的已发表历史。
 
 ## 当前源码事实（2026-10-15 fresh main）
@@ -74,8 +75,9 @@ Issue #360 正文记载 HSDB #15 在真实 Controller 入口收到
 
 ## D-SCOPE360-1 · 最小流程修复整包审阅卡
 
-**状态：整包卡就绪，仅待一次实施批准。** 用户已同意收敛边界并要求“#360整理最小流程修复方案，
-供我一次审阅”；这是方案整理授权，不是runtime实施、产品测试、安装或发表授权。
+**状态：整包已批准，当前只执行T02治理步骤并停止。** 用户直接批准本卡的
+`ed03008a6cfbbfbf1826501ec6a482929f2d557e`版本及exact branch；T03–T05留待fresh run重读后继续。
+批准不含push/PR、merge、真实安装或项目部署。
 本卡是唯一审批入口；front matter的13条exact scope、下列资源/接线/验收/停止边界共同组成整包。
 全历史模板内容锁已延期，六个非必要installer/drift源码修改继续排除，不再提出扩大方案选项。
 
@@ -103,12 +105,12 @@ scope 判据，修正受益于所有合法模板 holder，不是为 HSDB 增加�
 本次依据既有复制/mapping源码确认可复用，撤回该非必要候选范围。
 这是实施批准前的分析收缩，不是已实施后删测试或改验收制造PASS。
 
-### 已收敛语义与唯一待审事项
+### 已收敛语义与批准边界
 
 本卡只采用精确资源授权：canonical表示四个精确资源身份；复用holder与同票committed approved scope，
 保留人工合同/PR内容审查及项目对齐的逐字节检查，不增加全历史内容锁。
-唯一待审事项是**是否批准按本卡完整scope开展平台source实施及所列本地验证**。
-用户目前没有批准启动；不重复询问已确认的边界，不增加业务、部署或新安全框架的决定。
+用户已批准本卡完整scope内的平台source实施及所列本地验证，但明确先执行T02并STOP。
+本轮不进入runtime实施/产品测试，不重复询问已确认边界，不增加业务、部署或新安全框架的决定。
 
 ### 精确合同
 
@@ -247,8 +249,8 @@ project/manifest/identity 均为封闭 fixture。复制平台真实四模板内�
 
 ### 实施、source merge、installed 与 HSDB 采用的边界
 
-1. **本轮**：四份文档、检查、本地线性提交。整包卡就绪，停在实施批准前。
-2. **实施批准后**：T02 治理单独应用/检查/commit 后停止，fresh run 重读，继而 T03–T05 本票 source/tests；
+1. **本轮T02**：03、project-align及四份mapped docs，文档检查、本地线性提交后STOP。
+2. **后续fresh run**：重读已应用治理合同与原整包批准，复核owner/HEAD/来源后继续T03–T05本票source/tests；
    不触发安装或真实身份/业务目标访问。源码门完成后提出唯一最终 PR 第二确认。
 3. **source 交付**：第二确认绑定 exact #360/branch/manual 后才受控 FF 与唯一最终 PR；
    required `CI / verify (pull_request)` 必须 final exact head/base/merge-preview 全绿，再等待本人 manual merge。
@@ -267,7 +269,11 @@ project/manifest/identity 均为封闭 fixture。复制平台真实四模板内�
    不使用 #360 WT PYTHONPATH 或未合并 runtime 临时绕 gate。
    HSDB 自己的 PR/merge/本机运行/部署/UAT 继续独立授权；#358 架构 gate 独立处理。
 
-### 可直接使用的整包批准措辞
+### 已收到的整包批准及历史审阅措辞
+
+用户在本会话直接批准#360按本卡`ed03008a6cfbbfbf1826501ec6a482929f2d557e`版本实施及所列本地验证，
+绑定`change/360-canonical-template-scope`；先T02并停止，fresh run重读后继续；
+不含push/PR、merge、真实安装或项目部署。下方保留原整包审阅措辞以供核对，不能改变用户实际授权。
 
 > 批准admin/aisoft-platform#360按D-SCOPE360-1最小流程修复整包卡实施，绑定
 > change/360-canonical-template-scope及卡内13条exact scope；允许先完成T02独立治理步骤并停止，
@@ -275,7 +281,7 @@ project/manifest/identity 均为封闭 fixture。复制平台真实四模板内�
 > 全历史模板内容锁及六个installer/drift源码修改不纳入；push/唯一最终PR仍待第二确认，
 > manual merge、Mac/VM真实安装、HSDB采用及任何项目部署/UAT不在本次批准内。
 
-以上是待审文本，尚未收到用户批准。最终呈现同时绑定本卡实际文档HEAD；不把该引用当成已执行的确认。
+上方批准锚保留为原被审阅HEAD，不能替换成本轮新HEAD以扩大批准内容；后续普通实现commit遵循既定scope。
 
 ## 接口、数据与兼容性影响
 
@@ -293,11 +299,11 @@ installed 回滚先保存 exact bytes/mode/owner/policy pin、在独立授权窗
 混合新旧模块不可作为恢复成功。允许停止而拒绝新模板发表，不以扩大范围保服务。
 本轮没有任何 runtime/安装修改可回滚，四文档本地 commit 可审阅并保留。
 
-## 非目标与未决问题
+## 非目标与后续门槛
 
 不改 AGENTS、操作权限、Secret/identity、全局 skill、source guard、CI contexts、remote refs保护、
 业务库、公司环境；不实现 #358，不代修 HSDB #15，不重做 R2，不恢复旧调度/monitor。
 不交付 #327 已延期的 authority/OS/解释器/资源隔离，不制造授权闭包。
 
-唯一待审事项：是否批准D-SCOPE360-1最小流程修复整包的实施及所列本地验证；不再保留A/B选择。
-批准前本 spec 保持草稿，所有产品 AC 未验收，不启动 Development Loop。
+整包启动批准已收到，没有待裁定的A/B选择；产品AC仍全部未验收。
+本轮T02完成后STOP，后续fresh run重读与正式入口复核后才进入T03–T05；PR/merge/install/deploy授权未授予。

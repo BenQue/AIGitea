@@ -13,7 +13,7 @@ risk_flags:
   - cross-module
   - agent-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/360-canonical-template-scope
 created: 2026-10-15
 updated: 2026-10-15
@@ -22,21 +22,21 @@ updated: 2026-10-15
 # #360 实施与验收计划
 
 本计划与 mapped spec 的 D-SCOPE360-1 卡绑定。T01 是已获直接批准的本轮分析工作；
-T02–T05是最小流程修复整包的实施顺序，目前全部未授权、NOT RUN。
-用户已同意收敛边界并要求一次审阅卡，全历史内容锁延期；不再以A/B选择设置前置。
-唯一待审事项是批准D-SCOPE360-1整包的实施及所列本地验证，边界同意不等于启动批准。
+用户已在本会话直接批准`ed03008a6cfbbfbf1826501ec6a482929f2d557e`最小整包，绑定本branch。
+当前严格只执行T02治理应用、文档验证与本地commit并STOP；T03–T05保持pending/NOT RUN，
+后续fresh run重读后才继续。全历史内容锁延期，六个installer/drift源码修改继续排除。
 
 ## Ticket graph
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | fresh单票/owner/source分析、四份mapped docs、D-SCOPE360-1、文档检查与线性本地文档提交 | - | completed |
-| T02 | 整包批准后独立应用最小治理合同，文档校验/local commit并STOP；为fresh runtime run提供规则 | T01 | pending |
+| T02 | 整包批准后独立应用最小治理合同，文档校验/local commit并STOP；为fresh runtime run提供规则 | T01 | completed |
 | T03 | fresh重读T02后，shared canonical policy与reader/Controller/broker一致性端到端切片，真实Git正负fixture | T02 | pending |
 | T04 | 复用既有installer/drift机制验证模块分发覆盖与版本匹配；不改installer或增加policy分发文件 | T03 | pending |
 | T05 | 全量回归/默认硬门、完整AC evidence、唯一manual最终PR候选；提交PR前停下等待第二确认 | T04 | pending |
 
-T01完成不使T02自动可执行；必须先记录D-SCOPE360-1整包的#360实施批准。
+本轮T02依据用户直接整包批准执行；批准锚和正文记录见summary/spec，不能扩成发表或安装授权。
 T02 仅治理应用后按合同 STOP；后续 fresh run 重读后才进入 T03，不要求每命令新确认。
 同票单 branch/单 WT/单 writer；不另开 child Issue、source worktree 或并行 writer。
 
@@ -107,5 +107,6 @@ source 修复/回滚只追加受控本票commit或后续revert PR；禁止reset/
 ## 本轮收尾与下一步
 
 保存准确 claim、fresh main、source事实、文档检查、仅四文档提交和最终HEAD。
-停在`ANALYSIS_COMPLETE / NEEDS_HUMAN_DECISION`（整包卡就绪），仅提交D-SCOPE360-1供一次实施审阅。
-不请求重复启动/WT/每项检查批准，不请求最终PR，不写产品approved。
+T02实际文档门与commit完成后停在`T02_GOVERNANCE_APPLIED / STOP_BEFORE_T03`。
+本地合同approved记录用户直接批准；live标签不在本轮写入范围，不声称已投影。
+后续fresh run重读即可在既定授权内继续，不请求重复整包批准；最终PR仍需第二确认。
