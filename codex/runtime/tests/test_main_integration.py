@@ -366,6 +366,269 @@ class IntegrationTests(unittest.TestCase):
             with self.assertRaises(GitError):
                 validate_pre_push(data, branch=BRANCH, head=self.first, remote=None)
 
+    def canonical_context(self, holder=True):
+        import hashlib
+        from aisoft_main_integration import TemplateScopeContext
+        manifest = self.root / "canonical-manifest.json"
+        if not manifest.exists():
+            manifest.write_text('{"fixture":true}\n')
+        return TemplateScopeContext("http://fixture.invalid/admin/platform", holder,
+                                    ((manifest, hashlib.sha256(manifest.read_bytes()).hexdigest()),))
+
+    def canonical_fixture(self, selected=None):
+        summary, spec, own, _summary_text, _spec_text = self.mapped_scope_fixture()
+        templates = tuple("docs/changes/_template/" + role + ".md"
+                          for role in ("summary", "spec", "plan", "verification"))
+        paths = own + (templates if selected is None else tuple(selected))
+        spec.write_text(spec.read_text().split("git_scope:", 1)[0] + "git_scope:\n"
+                        + "".join("  - " + p + "\n" for p in paths) + "---\n")
+        source = Path(__file__).resolve().parents[3] / "templates/docs/changes/_template"
+        for path in templates:
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((source / target.name).read_bytes())
+        self.git("add", "docs")
+        self.git("commit", "-q", "-m", "#327 T03: approved vendored templates")
+        self.repository.template_context = self.canonical_context
+        return summary, spec, paths, templates
+
+    def test_canonical_approved_templates_allow_real_history_and_ordinary_ff(self):
+        summary, _spec, paths, templates = self.canonical_fixture()
+        first = self.git("rev-parse", "HEAD")
+        self.assertEqual(self.repository.scope(first, BRANCH).paths, paths)
+        self.history(scope=paths)
+        receipt = self.publish()
+        self.assertEqual(receipt["observed_remote_head"], first)
+        main = self.advance_main()
+        self.git("merge", "-q", "--no-ff", "-m", "#327 T03: main integration", main)
+        self.commit(templates[0], "approved template repair\n")
+        self.history(main, first, first, scope=paths)
+        second = self.publish(first)
+        self.assertEqual(second["observed_remote_head"], self.git("rev-parse", "HEAD"))
+        self.assertTrue(second["guard_executed"])
+        self.assertNotIn("--force", second["argv"])
+
+    def test_canonical_paths_do_not_grant_unapproved_templates_or_another_issue(self):
+        _summary, spec, paths, templates = self.canonical_fixture(selected=())
+        self.assertEqual(self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH).paths, paths)
+        with self.assertRaises(GitError) as caught:
+            self.history(scope=paths)
+        self.assertEqual(caught.exception.code, "SCOPE_DENIED")
+        text = spec.read_text()
+        for path in ("docs/changes/999-other-issue/spec.md", "docs/changes/_template/extra.md",
+                     "docs/changes/_template/sub/spec.md", "docs/changes/_template/../spec.md",
+                     "docs/changes/_template/Summary.md", "Docs/changes/_template/summary.md",
+                     "docs/changes/_template/%73ummary.md", "docs/changes/_template/summary.md/"):
+            with self.subTest(path=path):
+                self.commit(str(spec.relative_to(self.repo)), text.replace("  - issue.txt\n", "  - " + path + "\n"))
+                with self.assertRaises(GitError) as refused:
+                    self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH)
+                self.assertEqual(refused.exception.code, "SCOPE_DENIED")
+
+    def test_canonical_approved_subset_updates_only_the_selected_baseline_template(self):
+        selected = ("docs/changes/_template/summary.md",)
+        _summary, _spec, paths, templates = self.canonical_fixture(selected=selected)
+        baseline = self.git("rev-parse", "HEAD")
+        self.commit(templates[0], "approved one-template update\n")
+        scope = self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH)
+        self.assertEqual(set(scope.paths) & set(templates), set(selected))
+        self.history(baseline, scope=paths)
+        self.commit(templates[1], "unapproved sibling update\n")
+        with self.assertRaises(GitError) as refused:
+            self.history(baseline, scope=paths)
+        self.assertEqual(refused.exception.code, "SCOPE_DENIED")
+
+    def test_canonical_holder_status_source_and_worktree_drift_fail_closed(self):
+        summary, spec, _paths, _templates = self.canonical_fixture()
+        head = self.git("rev-parse", "HEAD")
+        self.repository.template_context = None
+        with self.assertRaises(GitError):
+            self.repository.scope(head, BRANCH)
+        self.repository.template_context = lambda: self.canonical_context(False)
+        with self.assertRaises(GitError) as refused:
+            self.repository.scope(head, BRANCH)
+        self.assertEqual(refused.exception.code, "SCOPE_DENIED")
+        context = self.canonical_context()
+        self.repository.template_context = lambda: context
+        context.fingerprints[0][0].write_text("drift\n")
+        with self.assertRaises(GitError) as refused:
+            self.repository.scope(head, BRANCH)
+        self.assertEqual(refused.exception.code, "BROKER_SURFACE_GAP")
+
+    def test_canonical_history_rejects_deleted_executable_symlink_and_hidden_delta(self):
+        _summary, _spec, paths, templates = self.canonical_fixture()
+        head = self.git("rev-parse", "HEAD")
+        self.assertEqual(self.repository.scope(head, BRANCH).paths, paths)
+        target = self.repo / templates[0]
+        original = target.read_bytes()
+        for kind in ("executable", "symlink", "delete"):
+            with self.subTest(kind=kind):
+                if target.exists() or target.is_symlink():
+                    target.unlink()
+                if kind == "symlink":
+                    target.symlink_to("../../../base.txt")
+                elif kind == "executable":
+                    target.write_bytes(original)
+                    target.chmod(0o755)
+                self.git("add", "docs")
+                self.git("commit", "-q", "-m", "#327 T03: invalid template kind")
+                if target.exists() or target.is_symlink():
+                    target.unlink()
+                target.write_bytes(original)
+                self.git("add", "docs")
+                self.git("commit", "-q", "-m", "#327 T03: restore final template")
+                with self.assertRaises(GitError) as refused:
+                    self.history(scope=paths)
+                self.assertEqual(refused.exception.code, "SCOPE_DENIED")
+
+    def test_canonical_history_anchor_is_exact_and_cannot_launder_other_issue(self):
+        _summary, spec, paths, templates = self.canonical_fixture()
+        anchor = self.git("rev-parse", "HEAD")
+        text = spec.read_text()
+        self.commit(str(spec.relative_to(self.repo)), text.replace("git_scope:\n",
+            "git_history_head: " + anchor + "\ngit_history_paths:\n"
+            + "".join("  - " + p + "\n" for p in paths) + "git_scope:\n"))
+        scope = self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH)
+        self.repository.verify_history(head=self.git("rev-parse", "HEAD"), main=self.base,
+            original=None, remote=None, paths=scope.paths, history_head=scope.history_head,
+            history_paths=scope.history_paths)
+        legal = spec.read_text()
+        for bad in (legal.replace(anchor, "f" * 40),
+                    legal.replace("git_history_paths:\n", "git_history_paths:\n  - docs/changes/999-other-issue/spec.md\n")):
+            self.commit(str(spec.relative_to(self.repo)), bad)
+            with self.assertRaises(GitError):
+                scope = self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH)
+                self.repository.verify_history(head=self.git("rev-parse", "HEAD"), main=self.base,
+                    original=None, remote=None, paths=scope.paths, history_head=scope.history_head,
+                    history_paths=scope.history_paths)
+
+    def test_canonical_parent_link_and_repository_binding_are_rejected(self):
+        summary, _spec, _paths, _templates = self.canonical_fixture()
+        head = self.git("rev-parse", "HEAD")
+        from dataclasses import replace
+        context = self.canonical_context()
+        self.repository.template_context = lambda: replace(context, repository_url="http://other.invalid/admin/platform")
+        with self.assertRaises(GitError) as refused:
+            self.repository.scope(head, BRANCH)
+        self.assertEqual(refused.exception.code, "SCOPE_UNKNOWN")
+        self.repository.template_context = self.canonical_context
+        parent = self.repo / "docs/changes/_template"
+        parked = self.root / "parked-template"
+        parent.rename(parked)
+        parent.symlink_to(parked, target_is_directory=True)
+        with self.assertRaises(GitError) as refused:
+            self.repository.scope(head, BRANCH)
+        self.assertEqual(refused.exception.code, "SCOPE_DENIED")
+
+    def test_canonical_scope_never_uses_uncommitted_approval_or_requires_content_lock(self):
+        summary, spec, paths, templates = self.canonical_fixture()
+        first = self.git("rev-parse", "HEAD")
+        summary.write_text(summary.read_text().replace("status: approved", "status: analyzed"))
+        self.assertEqual(self.repository.scope(first, BRANCH).paths, paths)
+        self.git("add", "docs")
+        self.git("commit", "-q", "-m", "#327 T03: unapproved summary")
+        with self.assertRaises(GitError) as refused:
+            self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH)
+        self.assertEqual(refused.exception.code, "SCOPE_UNKNOWN")
+        summary.write_text(summary.read_text().replace("status: analyzed", "status: approved"))
+        self.git("add", "docs")
+        self.git("commit", "-q", "-m", "#327 T03: restore approval")
+        self.commit(templates[0], "explicitly approved template content differs from current source\n")
+        self.history(scope=paths)
+
+    def test_canonical_identity_matches_existing_four_template_contract(self):
+        from aisoft_main_integration import CANONICAL_TEMPLATE_PATHS
+        manifest = Path(__file__).resolve().parents[3] / "codex/config/change-template-sync.json"
+        declared = json.loads(manifest.read_text())
+        self.assertEqual(CANONICAL_TEMPLATE_PATHS,
+                         {"docs/changes/_template/" + name for name in declared["documents"]})
+
+    def test_canonical_context_reuses_real_parsers_and_rejects_override_or_drift(self):
+        from dataclasses import replace
+        from unittest.mock import patch
+        from aisoft_host_access.contract import load_access_contract
+        from aisoft_main_integration import template_scope_context
+        source = Path(__file__).resolve().parents[3] / "codex/config"
+        selected = self.root / "selected"
+        installed = self.root / "installed"
+        selected.mkdir()
+        installed.mkdir()
+        paths = tuple(directory / name for directory in (selected, installed)
+                      for name in ("host-access-broker.json", "gitea-governance.json"))
+        for path in paths:
+            path.write_bytes((source / path.name).read_bytes())
+        with patch("aisoft_main_integration._template_manifest_paths", return_value=paths), \
+             patch("aisoft_main_integration.qualified_broker_environment", return_value={}) as qualified:
+            contract = load_access_contract(paths[0], paths[1])
+            self.assertFalse(template_scope_context(contract, "aisoft-platform").holder)
+            qualified.assert_called_once_with()
+            self.assertTrue(template_scope_context(contract, "hsdb").holder)
+            with self.assertRaises(GitError):
+                template_scope_context(contract, "unknown-project")
+            with self.assertRaises(GitError):
+                template_scope_context(replace(contract, path=installed / "fake.json"), "hsdb")
+            raw = json.loads(paths[1].read_text())
+            next(x for x in raw["repositories"] if x["name"] == "HSDB")["vendors_change_templates"] = False
+            from aisoft_gitea_governance.contract import repository_declarations_sha256
+            next(x for x in raw["repositories"] if x["name"] == "NewEMaint")["routine_live_pilot"][
+                "non_target_repositories_sha256"] = repository_declarations_sha256(raw["repositories"], exclude_name="NewEMaint")
+            paths[1].write_text(json.dumps(raw))
+            with self.assertRaises(GitError) as refused:
+                template_scope_context(contract, "hsdb")
+            self.assertEqual(refused.exception.code, "BROKER_SURFACE_GAP")
+            paths[3].write_bytes(paths[1].read_bytes())
+            fresh = load_access_contract(paths[0], paths[1])
+            self.assertFalse(template_scope_context(fresh, "hsdb").holder)
+            with self.assertRaises(GitError):
+                template_scope_context(contract, "hsdb")
+            context = template_scope_context(fresh, "hsdb")
+            paths[0].write_text("{}")
+            with self.assertRaises(GitError):
+                context.verify()
+
+    def test_canonical_context_rejects_old_or_mixed_runtime_before_policy_read(self):
+        from unittest.mock import patch
+        from aisoft_main_integration import template_scope_context
+        with patch("aisoft_main_integration.qualified_broker_environment",
+                   side_effect=GitError("BROKER_SURFACE_GAP", "old or mixed runtime")) as qualified, \
+             patch("aisoft_main_integration._template_manifest_paths",
+                   return_value=(self.root / "unavailable.json",) * 4) as paths:
+            with self.assertRaisesRegex(GitError, "old or mixed runtime"):
+                template_scope_context(None, "hsdb")
+            qualified.assert_called_once_with()
+            paths.assert_not_called()
+
+    def test_canonical_scope_rejects_empty_duplicate_projection_and_malformed_history_anchor(self):
+        _summary, spec, _paths, _templates = self.canonical_fixture()
+        text = spec.read_text()
+        for extra in ("git_scope:\n", "git_scope: []\n", "git_history_head: invalid\n",
+                      "git_history_paths: []\n"):
+            self.commit(str(spec.relative_to(self.repo)), text.replace("git_scope:\n", extra + "git_scope:\n"))
+            with self.subTest(extra=extra):
+                with self.assertRaises(GitError) as refused:
+                    self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH)
+                self.assertEqual(refused.exception.code, "SCOPE_UNKNOWN")
+
+    def test_canonical_intermediate_integration_tree_cannot_hide_invalid_template_mode(self):
+        _summary, _spec, paths, templates = self.canonical_fixture()
+        baseline = self.git("rev-parse", "HEAD")
+        self.git("branch", "-f", "main", baseline)
+        self.commit("issue.txt", "candidate change\n")
+        self.git("checkout", "-q", "main")
+        (self.repo / templates[0]).chmod(0o755)
+        self.git("add", "docs")
+        self.git("commit", "-q", "-m", "#327 fixture main mode change")
+        main = self.git("rev-parse", "HEAD")
+        self.git("checkout", "-q", BRANCH)
+        self.git("merge", "-q", "--no-ff", "-m", "#327 fixture standard main integration", main)
+        (self.repo / templates[0]).chmod(0o644)
+        self.git("add", "docs")
+        self.git("commit", "-q", "-m", "#327 fixture restore final mode")
+        self.assertEqual(self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH).paths, paths)
+        with self.assertRaises(GitError) as refused:
+            self.history(main, scope=paths)
+        self.assertEqual(refused.exception.code, "SCOPE_DENIED")
+
 
 
 class InstalledDispatchBindingTests(unittest.TestCase):

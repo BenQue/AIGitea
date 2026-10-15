@@ -14,7 +14,7 @@ from typing import Optional, Sequence
 from aisoft_gitea_governance.contract import load_contract as load_governance_contract
 
 from aisoft_host_access.broker import BrokerError
-from aisoft_main_integration import GitError, GitRepository, git_environment, publication_reference, publication_projection, qualified_broker_environment
+from aisoft_main_integration import GitError, GitRepository, git_environment, publication_reference, publication_projection, qualified_broker_environment, template_scope_context
 from aisoft_worktree_owner import WorktreeOwnerError, authorize_push, caller_session, pin_original_remote
 from aisoft_host_access.dependencies import Dependency, DependencyError, display, is_terminal
 
@@ -906,11 +906,12 @@ class LocalGit:
     """Git operations owned by the controller inside one isolated worktree."""
 
     def __init__(self, repo: Path | str, branch: str, *, project: str | None = None,
-                 host_runner=None) -> None:
+                 host_runner=None, access_contract=None) -> None:
         self.repo = Path(repo).resolve()
         self.branch = branch
         self.project = project or os.environ.get("AISOFT_PROJECT_ID")
         self.host_runner = host_runner
+        self.access_contract = access_contract
         self.publication_reference = None
         current = self._run(("git", "branch", "--show-current")).stdout.strip()
         if current != branch:
@@ -1070,7 +1071,8 @@ class LocalGit:
         remote_name = fetched.get("remote_name")
         if not isinstance(remote_name, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", remote_name):
             raise ProviderError("manifest main receipt is invalid")
-        local = GitRepository(self.repo)
+        local = GitRepository(self.repo, template_context=lambda: template_scope_context(
+            self.access_contract, self.project))
         first = self.head_sha()
         main = local.text("rev-parse", "refs/remotes/" + remote_name + "/main")
         if local.ancestor(main, first):
@@ -1094,10 +1096,12 @@ class LocalGit:
                                  original=owner.original_remote_head if owner.original_remote_known else remote,
                                  remote=remote, paths=scope.paths, history_head=scope.history_head,
                                  history_paths=scope.history_paths, require_main=False)
+            scope.verify()
             pin_original_remote(git_dir, head=remote, branch=self.branch, session=caller_session())
             expected_tree = local.merge_tree(first, main)
             if self.head_sha() != first:
                 raise GitError("HEAD_MOVED", "candidate moved before integration")
+            scope.verify()
             merged = local.run("merge", "--no-ff", "--no-commit", "-s", "ort", main, allowed=(0, 1))
             if merged.returncode != 0:
                 local.run("merge", "--abort")
@@ -1105,11 +1109,17 @@ class LocalGit:
             if local.text("write-tree") != expected_tree or self.head_sha() != first:
                 local.run("merge", "--abort")
                 raise GitError("MERGE_TREE_DENIED", "integration index differs from independently computed tree")
+            try:
+                scope.verify()
+            except GitError:
+                local.run("merge", "--abort")
+                raise
             number = self.branch.split("/", 1)[1].split("-", 1)[0]
             local.run("commit", "-m", "#" + number + ": integrate verified manifest main")
             integrated = local.commit(self.head_sha())
             if integrated.parents != (first, main) or integrated.tree != expected_tree:
                 raise GitError("DAG_DENIED", "actual integration receipt differs; retain actual HEAD and stop")
+            scope.verify()
             return True
         except (GitError, WorktreeOwnerError) as exc:
             raise ProviderError(exc.code + ": " + str(exc)) from exc

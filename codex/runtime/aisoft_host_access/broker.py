@@ -27,6 +27,7 @@ from aisoft_worktree_owner import (
 
 from aisoft_main_integration import (
     GitError, GitRepository, git_environment, ordinary_push, publication_message,
+    template_scope_context,
 )
 
 from .dependencies import Dependency, DependencyError, parse_dependencies, resolve_target, project_issue, is_terminal
@@ -3679,7 +3680,8 @@ class HostAccessBroker:
                  "GIT_CONFIG_VALUE_1": helper, "GIT_CONFIG_KEY_2": "credential.useHttpPath",
                  "GIT_CONFIG_VALUE_2": "true"}
         env = git_environment(fixed)
-        local = GitRepository(checkout, runner=self.runner, env=env)
+        local = GitRepository(checkout, runner=self.runner, env=env,
+                              template_context=lambda: template_scope_context(self.contract, project.project_id))
         result: dict[str, object] = {
             "status": "PASS", "project": project.project_id, "operation": operation.name,
             "identity": project.project_agent, "checkout": checkout, "remote_name": remote_name,
@@ -3727,6 +3729,7 @@ class HostAccessBroker:
             local.verify_history(head=head, main=main, original=original, remote=remote,
                                  paths=scope.paths, history_head=scope.history_head,
                                  history_paths=scope.history_paths)
+            scope.verify()
             owner = pin_original_remote(git_dir, head=remote, branch=safe_branch, session=caller_session())
             if local.text("rev-parse", "HEAD") != head or local.text("symbolic-ref", "--short", "HEAD") != safe_branch:
                 raise GitError("HEAD_MOVED", "verified local candidate moved")
@@ -3734,6 +3737,7 @@ class HostAccessBroker:
                 raise GitError("WORKTREE_DIRTY", "verified local worktree became dirty")
             if self._read_main_head(remote_name, checkout, env) != main:
                 raise GitError("BASE_BRANCH_STALE", "main advanced before transport")
+            scope.verify()
             if remote == head:
                 if self._change_tip(safe_branch, remote_name, checkout, env) != head:
                     raise GitError("REMOTE_BRANCH_MOVED", "no-op ref moved during readback")
@@ -3771,6 +3775,10 @@ class HostAccessBroker:
                 raise GitError("BASE_ADVANCED_AFTER_PUSH", "remote H observed; main advanced, stop PR ready", receipt)
             if local.text("rev-parse", "HEAD") != head:
                 raise GitError("HEAD_MOVED", "remote H observed; local HEAD moved", receipt)
+            try:
+                scope.verify()
+            except GitError as exc:
+                raise GitError(exc.code, str(exc), receipt) from exc
             result.update(receipt, code="NOOP" if remote == head else "PUBLISHED",
                           session=owner.session, pushed_head=head)
             return result
