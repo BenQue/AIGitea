@@ -325,3 +325,45 @@ AC-6/7中的未来CI/PR和后续独立边界不因此勾为全部完成。
 取得该第二确认后才可走正式发表路径；合同内CI修复随该确认继续，required context
 `CI / verify (pull_request)`须针对最终exact head/base读回全绿，随后停在READY_FOR_REVIEW，等待本人审核合并。
 本次授权与未来发表确认均不传递真实安装或部署权限。
+
+## 2026-10-16 manual 最终PR发表（首次head真实回执）
+
+用户在本会话直接确认提交`admin/aisoft-platform#360`唯一最终PR，绑定
+`change/360-canonical-template-scope`、manual policy，首次发表HEAD明确为
+`b48c6995aa832ba9a3d8f411136130c7f9d37cb4`，允许合同内CI修复；required CI全绿后停在
+READY_FOR_REVIEW，等待本人审核合并。不含merge、真实安装或部署。
+原先等待发表确认的文本均为前态快照，不覆盖这项后续直接授权。
+
+发表前重新核对exact owner/branch/clean HEAD、13条批准scope与完整历史、分类projected、
+fresh main=`afd76bf2830ecc7ddc81dc07071ae4bbd8251fc8`、精确远端ref不存在及170条all-state PR无本票。
+现有已安装broker七模块与clean merged-main字节一致，既有qualification通过；
+本票自己的scope没有canonical副本，不需要候选reader的例外即可通过现有正式入口。
+没有安装或调用本票未合并runtime绕过正式broker，也不以旧版本通过本票发表证明新canonical能力installed。
+本地只读检查脚本初次仅把session传入子进程，导致其本进程qualification报告session缺失；
+修正该脚本自身环境为正式claim session后重跑通过。此前没有远端写入，没有关闭或放宽qualification。
+
+正式typed `git.push.change`首次回执：
+
+```text
+code=PUBLISHED
+pushed_head=b48c6995aa832ba9a3d8f411136130c7f9d37cb4
+observed_remote_head=b48c6995aa832ba9a3d8f411136130c7f9d37cb4
+previous_head=null
+original_remote_head=null
+guard_executed=true
+write_status=PUBLISHED
+main=observed_main=afd76bf2830ecc7ddc81dc07071ae4bbd8251fc8
+```
+
+实际argv是单ref普通push，没有force/lease选项。已逐字比较首次`pushed_head`与用户确认的40位SHA。
+随后正式typed `gitea.pull.create`创建唯一
+[PR #361](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/361)，
+head branch/首次SHA和main/base均与上述绑定一致，body恰有一行`Closes #360`。
+正式backfill helper只回填mapped summary的`status: pr-open`与实际`pr_url`，已单独线性提交；
+本节为独立verification证据提交，不混入summary-only回填。后续普通FF前须再核对新的exact HEAD/claim/scope/文档门，
+并将新`pushed_head`与当次新HEAD逐字比较，不能沿用首次旧SHA。
+
+本节提交时PR CI尚未作为最终head通过；后续对实际最终head/base/merge-preview的required
+`CI / verify (pull_request)`收据、完整job日志与最终READY_FOR_REVIEW状态保存在会话artifact
+`evidence/publication-261016/`，不以本地1260/smoke结果代替CI。
+PR创建与文档回填不授予merge、真实安装、HSDB采用或部署，原NOT RUN边界继续保留。
