@@ -5221,6 +5221,109 @@ class HostAccessBrokerTests(unittest.TestCase):
             self.assertFalse(noop["possible_write"])
             self.assertFalse(local.integrate_main())
 
+    def _canonical_remote_fixture(self, temporary):
+        import hashlib
+        from aisoft_main_integration import TemplateScopeContext
+        remote, canonical, linked = self._remote_backed_change_worktree(temporary)
+        directory = linked / ("docs/changes/" + self.FF_BRANCH.split("/", 1)[1])
+        summary = next(directory.glob("summary-*.md"))
+        spec = next(directory.glob("spec-*.md"))
+        summary.write_text(summary.read_text().replace("status: approved\n",
+            "status: approved\ncreated: 2026-10-06\npr_url: ''\nrequired_docs:\n  - summary\n  - spec\n"
+            "gitea_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/70\n").replace(
+            "documents:\n", "documents:\n  summary: " + summary.name + "\n"))
+        spec.write_text(spec.read_text().replace("status: approved\n", "status: approved\ncreated: 2026-10-06\n"))
+        templates = tuple("docs/changes/_template/" + role + ".md"
+                          for role in ("summary", "spec", "plan", "verification"))
+        spec.write_text(spec.read_text().replace("git_scope:\n",
+            "git_scope:\n" + "".join("  - " + p + "\n" for p in templates)))
+        for path in templates:
+            target = linked / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((ROOT / "templates/docs/changes/_template" / target.name).read_bytes())
+        self._git(["add", "docs"], cwd=linked)
+        self._git(["commit", "-q", "-m", "#70 T03: approved canonical fixture"], cwd=linked)
+        public = Path(temporary) / "canonical-context.json"
+        public.write_text('{"fixture":true}\n')
+        context = TemplateScopeContext("http://gitea-ci.orb.local:3000/admin/aisoft-platform", True,
+                                     ((public, hashlib.sha256(public.read_bytes()).hexdigest()),))
+        commands = []
+        broker = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, commands))
+        return remote, canonical, linked, broker, context, commands, spec, templates
+
+    def test_canonical_controller_reader_broker_share_real_integration_ff_backfill_and_noop(self):
+        from aisoft_loop.controller import LocalGit
+        from aisoft_main_integration import GitRepository
+        from aisoft_loop.documents import backfill_pr_url
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked, broker, context, commands, spec, templates = self._canonical_remote_fixture(temporary)
+            with patch("aisoft_host_access.broker.template_scope_context", return_value=context) as broker_context, \
+                 patch("aisoft_loop.controller.template_scope_context", return_value=context) as controller_context:
+                first = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+                self._advance_remote_main(remote, canonical, "unrelated-main-change")
+                local = LocalGit(linked, self.FF_BRANCH, project="aisoft-platform", access_contract=broker.contract,
+                    host_runner=lambda operation, branch: broker.execute("aisoft-platform", operation, branch=branch))
+                before = local.head_sha()
+                self.assertTrue(local.integrate_main())
+                main = self._remote_sha(remote, "main")
+                self.assertEqual(self._git(["show", "-s", "--format=%P", "HEAD"], cwd=linked).split(), [before, main])
+                self.assertEqual(self._git(["rev-parse", "HEAD^{tree}"], cwd=linked), GitRepository(linked).merge_tree(before, main))
+                second = local.push()
+                self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), second)
+                self.assertEqual(local.publication_reference["previous_head"], first["pushed_head"])
+                backfill_pr_url(linked, 70, "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/71")
+                self._git(["add", "docs"], cwd=linked)
+                self._git(["commit", "-q", "-m", "#70 T03: actual PR summary backfill"], cwd=linked)
+                final = local.push()
+                noop = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+                self.assertEqual(noop["pushed_head"], final)
+                self.assertEqual(noop["code"], "NOOP")
+                self.assertFalse(noop["possible_write"])
+                self.assertTrue(all("--force" not in a and "--force-with-lease" not in a
+                                    for a in commands if a[:2] == ["git", "push"]))
+                broker_context.assert_called_with(broker.contract, "aisoft-platform")
+                controller_context.assert_called_with(broker.contract, "aisoft-platform")
+
+    def test_canonical_broker_rejects_holder_unapproved_history_and_context_drift_without_push(self):
+        from dataclasses import replace
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked, broker, context, commands, spec, templates = self._canonical_remote_fixture(temporary)
+            for selected, expected in ((replace(context, holder=False), "SCOPE_DENIED"), (None, "BROKER_SURFACE_GAP")):
+                with patch("aisoft_host_access.broker.template_scope_context", return_value=selected):
+                    with self.assertRaises(BrokerError) as refused:
+                        broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+                    self.assertEqual(refused.exception.code, expected)
+                    self.assertFalse(any(a[:2] == ["git", "push"] for a in commands))
+            with patch("aisoft_host_access.broker.template_scope_context", return_value=context):
+                text = spec.read_text()
+                spec.write_text(text.replace("  - " + templates[0] + "\n", ""))
+                self._git(["add", "docs"], cwd=linked)
+                self._git(["commit", "-q", "-m", "#70 T03: omit actual template history"], cwd=linked)
+                with self.assertRaises(BrokerError) as refused:
+                    broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+                self.assertEqual(refused.exception.code, "SCOPE_DENIED")
+                self.assertFalse(any(a[:2] == ["git", "push"] for a in commands))
+            self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), "")
+
+    def test_canonical_post_transport_policy_drift_preserves_actual_publication_receipt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            remote, canonical, linked, broker, context, commands, spec, templates = self._canonical_remote_fixture(temporary)
+            original_runner = broker.runner
+            def drift(argv, **kwargs):
+                result = original_runner(argv, **kwargs)
+                if list(argv)[:2] == ["git", "push"]:
+                    context.fingerprints[0][0].write_text("changed during transport\n")
+                return result
+            broker.runner = drift
+            with patch("aisoft_host_access.broker.template_scope_context", return_value=context):
+                with self.assertRaises(BrokerError) as refused:
+                    broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
+                self.assertEqual(refused.exception.code, "BROKER_SURFACE_GAP")
+                actual = self._remote_sha(remote, self.FF_BRANCH)
+                self.assertEqual(refused.exception.publication_reference["observed_remote_head"], actual)
+                self.assertTrue(refused.exception.publication_reference["possible_write"])
+                self.assertEqual(self._owner_marker(linked).last_push_head, actual)
+
     def test_stale_base_branch_is_rejected_before_the_push_runs(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             remote, canonical, linked = self._remote_backed_change_worktree(temporary)

@@ -259,6 +259,39 @@ bash codex/tools/change-template-sync.sh
 GAP 提示而不是错误的原因。约束由 `change-template-sync.json` 的
 `downstream_required_check: forbidden` 与 smoke 一起钉住：改掉它，工具停机、CI 变红。
 
+### Canonical 模板的精确 Git scope 合同（#360）
+
+以下是 [#360 已批准合同](docs/changes/360-canonical-template-scope/spec-canonical-template-scope-261015.md)
+的治理应用；T02 只更新合同文档，reader/Controller/broker 的 runtime 实施与验收尚未运行。
+文档生效不表示当前安装入口已支持模板例外；不得使用未合并候选代码绕过现有拒绝。
+
+`docs/changes/_template/summary.md`、`docs/changes/_template/spec.md`、
+`docs/changes/_template/plan.md`、`docs/changes/_template/verification.md` 是四个共享 vendored
+资源身份，与另一 Issue 的 `docs/changes/N-short-description/` 文档区分。
+平台原件仍在 `templates/docs/changes/_template/`，不自动获得这个消费者例外。
+
+只有 canonical access/governance 绑定的已知目标仓库为合法 holder
+（复用 `RepositoryContract.vendors_change_templates` 及既有未声明取 true 的规则），并且
+exact committed mapped summary/spec 的 issue、branch、status 合法、`git_scope` 明确逐项列出
+目标资源时，才允许相应模板路径。holder 或模板目录存在本身不授权任何文件；未列出的其余模板
+不得隐含加入。summary 仅接受 `approved` 或同仓合法 `pr-open`，spec 必须 `approved`。
+
+reader、Controller 和 broker 共用同一资源分类与有限项目/holder 上下文，不创建另一套 policy
+框架、动态白名单、manifest schema 或 typed operation。上下文不得来自候选项目的伪 manifest
+或任意 caller override；复用现有 canonical 来源、owner 与 source/installed 一致性检查。
+只允许四个精确路径的普通模板文件；继续拒绝 other-Issue docs、任意子目录、未批模板、
+路径穿越/别名、symlink/gitlink、非法类型或删除/越界 rename。
+
+`git_history_paths` 同样受资源分类和可达 exact history anchor 限制，逐提交完整 delta 检查保留；
+不能靠净 diff、add→revert、缩小实际 scope 或历史列表漂白越界内容。R0/R/M/H 祖先、标准
+`[Issue tip,main]` 整合/tree 验证、ordinary single-ref FF、固定 guard、no-op 重验、required CI
+与唯一 manual PR 第二确认保持。并发 owner/HEAD/remote/main/输入来源漂移时停止并保全证据。
+
+全历史模板内容锁延期，不将模板快照 catalog 或新增安装分发链作为本修复前置；既有 installer
+和 drift mapping 已覆盖所需模块及 access/governance 输入，复用后续验证。本票治理步骤完成后
+必须停止，fresh run 重读后才实施 runtime。source 合并、平台工具真实安装与项目采用分别验收、
+分别遵守其授权；平台不承接项目的服务、数据库、环境配置或 UAT，也不暂停不依赖本能力的业务开发。
+
 ## 4. 平台三维标签与 Matt triage
 
 每个 Issue 的标签分为三个正交维度：

@@ -14,15 +14,21 @@ import os
 from pathlib import Path
 import re
 import secrets
+import stat
 import subprocess
 import sys
 import tempfile
+from urllib.parse import unquote
 
 
 ZERO = "0" * 40
 SHA = re.compile(r"^[0-9a-f]{40}$")
 MAX_GIT_OUTPUT = 16 * 1024 * 1024
 MODULE_SHA256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+CANONICAL_TEMPLATE_PATHS = frozenset(
+    "docs/changes/_template/" + role + ".md"
+    for role in ("summary", "spec", "plan", "verification")
+)
 
 
 class GitError(ValueError):
@@ -91,18 +97,95 @@ class Commit:
     parents: tuple[str, ...]
 
 
+def _manifest_digest(path):
+    """Bounded public contract input, without following aliases or links."""
+    path = Path(path).absolute()
+    try:
+        require(not any(p.is_symlink() for p in (path, *path.parents)),
+                "canonical manifest is linked", "BROKER_SURFACE_GAP")
+        info = path.lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_size <= 4 * 1024 * 1024,
+                "canonical manifest is not a bounded regular file", "BROKER_SURFACE_GAP")
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise GitError("BROKER_SURFACE_GAP", "canonical manifest unavailable") from exc
+
+
+@dataclass(frozen=True)
+class TemplateScopeContext:
+    """Cooperative binding of existing manifests; never a human approval grant."""
+    repository_url: str
+    holder: bool
+    fingerprints: tuple[tuple[Path, str], ...]
+
+    def verify(self):
+        require(type(self.holder) is bool and self.fingerprints,
+                "template context missing", "BROKER_SURFACE_GAP")
+        require(all(_manifest_digest(path) == digest for path, digest in self.fingerprints),
+                "canonical template context drifted", "BROKER_SURFACE_GAP")
+
+
+def _template_manifest_paths():
+    root = Path(__file__).resolve().parent
+    system = Path("/usr/local/share/aisoft")
+    if root.name == "runtime" and root.parent.name == "codex":
+        selected = root.parent / "config"
+    elif root.name == "aisoft-loop":
+        selected = root.parent.parent / "share/aisoft"
+    else:
+        require(root == Path("/usr/local/lib/aisoft-host-access"),
+                "template runtime location is not canonical", "BROKER_SURFACE_GAP")
+        selected = system
+    return tuple(directory / name for directory in (selected, system)
+                 for name in ("host-access-broker.json", "gitea-governance.json"))
+
+
+def template_scope_context(contract, project_id):
+    """Reuse canonical access/governance parsing, with no new CLI authority."""
+    qualified_broker_environment()
+    from aisoft_host_access.contract import AccessContractError, load_access_contract
+    paths = _template_manifest_paths()
+    fingerprints = tuple((path, _manifest_digest(path)) for path in paths)
+    require(fingerprints[0][1] == fingerprints[2][1]
+            and fingerprints[1][1] == fingerprints[3][1],
+            "source/installed template manifests differ", "BROKER_SURFACE_GAP")
+    try:
+        canonical = load_access_contract(paths[0], paths[1])
+        require(contract is None or (contract.path.absolute() == paths[0].absolute()
+                                    and contract == canonical),
+                "caller contract differs from canonical template binding", "BROKER_SURFACE_GAP")
+        project = canonical.project(project_id)
+        repository = next(item for item in canonical.governance.repositories
+                          if item.name == project.repository)
+    except (AccessContractError, ValueError, StopIteration, OSError) as exc:
+        if isinstance(exc, GitError):
+            raise
+        raise GitError("BROKER_SURFACE_GAP", "template project binding unavailable") from exc
+    context = TemplateScopeContext(
+        canonical.governance.base_url.rstrip("/") + "/" + canonical.governance.owner + "/" + project.repository,
+        repository.vendors_change_templates, fingerprints)
+    context.verify()
+    return context
+
+
 @dataclass(frozen=True)
 class Scope:
     paths: tuple[str, ...]
     history_head: str | None = None
     history_paths: tuple[str, ...] = ()
+    context: TemplateScopeContext | None = None
+
+    def verify(self):
+        if self.context is not None:
+            self.context.verify()
 
 
 class GitRepository:
-    def __init__(self, repo, *, runner=None, env=None):
+    def __init__(self, repo, *, runner=None, env=None, template_context=None):
         self.repo = Path(repo).resolve()
         self.runner = runner or _runner
         self.env = git_environment(env)
+        self.template_context = template_context
 
     def run(self, *args, allowed=(0,), env=None):
         try:
@@ -164,7 +247,34 @@ class GitRepository:
             entry = self.text("ls-tree", after, "--", name)
             require(not entry or entry.startswith(("100644 blob ", "100755 blob ")),
                     "changed symlink/submodule denied", "SCOPE_DENIED")
+            if name in CANONICAL_TEMPLATE_PATHS:
+                self._template_tree(after, name, required=True)
         return paths
+
+    def _template_tree(self, head, name, *, required=False):
+        parts = name.split("/")
+        for index in range(1, len(parts) + 1):
+            path = "/".join(parts[:index])
+            entry = self.text("ls-tree", head, "--", path)
+            if not entry and not required:
+                return
+            prefix = "100644 blob " if index == len(parts) else "040000 tree "
+            require(entry.startswith(prefix), "canonical template missing or nonregular", "SCOPE_DENIED")
+
+    def _template_worktree(self, name):
+        cursor = self.repo
+        for part in name.split("/"):
+            cursor /= part
+            try:
+                info = cursor.lstat()
+            except FileNotFoundError:
+                return
+            except OSError as exc:
+                raise GitError("SCOPE_DENIED", "canonical template path unreadable") from exc
+            require(not stat.S_ISLNK(info.st_mode), "canonical template path is linked", "SCOPE_DENIED")
+            require((cursor.name == name.rsplit("/", 1)[-1] and stat.S_ISREG(info.st_mode)
+                     and not info.st_mode & 0o111) or (cursor != self.repo / name and stat.S_ISDIR(info.st_mode)),
+                    "canonical template worktree type differs", "SCOPE_DENIED")
 
     def reject_merge_attributes(self, sha):
         names = self.run("ls-tree", "-r", "-z", "--name-only", sha).stdout.split("\0")
@@ -213,9 +323,13 @@ class GitRepository:
         require(len(relevant) <= 4096, "relevant history exceeds supported bound")
         chain = []
         cursor = head
+        template_paths = (allowed | historical) & CANONICAL_TEMPLATE_PATHS
         while cursor in relevant:
             commit = self.commit(cursor)
             require(commit.parents and cursor not in {c.sha for c in chain}, "invalid first-parent chain", "DAG_DENIED")
+            for name in template_paths:
+                self._template_tree(cursor, name, required=(len(commit.parents) == 2
+                    and bool(self.text("ls-tree", commit.parents[0], "--", name))))
             if len(commit.parents) == 2:
                 first, second = commit.parents
                 require(not self.ancestor(first, main) and self.ancestor(second, main),
@@ -238,6 +352,7 @@ class GitRepository:
         This is contract data, not a grant, creator identity or approval proof.
         A missing projection fails closed; no directory-wide fallback is used.
         """
+        oid(head)
         match = re.fullmatch(r"change/([1-9][0-9]*)(?:-([a-z0-9]+(?:-[a-z0-9]+){1,3}))?", branch)
         require(match is not None, "invalid change branch", "SCOPE_UNKNOWN")
         number = match[1]
@@ -275,20 +390,42 @@ class GitRepository:
         for key, expected in (("issue", number), ("branch", branch), ("status", "approved")):
             require(field(front, key) == expected,
                     "mapped spec binding/status differs", "SCOPE_UNKNOWN")
+        context = None
         def paths(key):
+            nonlocal context
+            declarations = re.findall(r"^" + key + r":[^\n]*$", front, re.M)
+            require(len(declarations) <= 1 and (not declarations or declarations == [key + ":"]),
+                    "invalid or duplicate scope projection", "SCOPE_UNKNOWN")
             value = re.findall(r"^" + key + r":\n((?:  - [^\n]+\n?)+)", front, re.M)
-            require(len(value) <= 1, "duplicate scope projection", "SCOPE_UNKNOWN")
+            require(len(value) == len(declarations), "empty scope projection", "SCOPE_UNKNOWN")
             result = tuple(line[4:] for line in value[0].splitlines()) if value else ()
             require(len(result) <= 256 and len(result) == len(set(result)), "invalid scope projection", "SCOPE_UNKNOWN")
             for name in result:
                 valid_path(name)
-                require(not name.startswith("docs/changes/") or name.startswith(directory),
-                        "scope crosses another Issue", "SCOPE_DENIED")
+                if unquote(name).casefold().startswith("docs/changes/"):
+                    require(name.startswith(directory) or name in CANONICAL_TEMPLATE_PATHS,
+                            "scope crosses another Issue or aliases its namespace", "SCOPE_DENIED")
+                if name in CANONICAL_TEMPLATE_PATHS:
+                    require(callable(self.template_context), "canonical template context required", "SCOPE_DENIED")
+                    if context is None:
+                        context = self.template_context()
+                    require(isinstance(context, TemplateScopeContext), "invalid template context", "BROKER_SURFACE_GAP")
+                    context.verify()
+                    require(context.holder, "repository does not hold vendored templates", "SCOPE_DENIED")
+                    require(field(summary_front, "gitea_url") == context.repository_url + "/issues/" + number,
+                            "template scope repository binding differs", "SCOPE_UNKNOWN")
+                    self._template_tree(head, name)
+                    self._template_worktree(name)
             return result
         scope = paths("git_scope")
         old = re.findall(r"^git_history_head: ([0-9a-f]{40})$", front, re.M)
+        require(len(re.findall(r"^git_history_head:", front, re.M)) == len(old),
+                "invalid history head projection", "SCOPE_UNKNOWN")
         require(scope and len(old) <= 1, "approved exact Git scope missing", "SCOPE_UNKNOWN")
-        return Scope(scope, old[0] if old else None, paths("git_history_paths"))
+        historical = paths("git_history_paths")
+        result = Scope(scope, old[0] if old else None, historical, context)
+        result.verify()
+        return result
 
 
 def validate_pre_push(data, *, branch, head, remote):

@@ -263,6 +263,82 @@ class LocalGitTests(unittest.TestCase):
             run.assert_not_called()
         self.assertIsNone(local.publication_reference)
 
+    def test_canonical_context_drift_stops_controller_before_merge(self):
+        self._canonical_context_controller_failure("before_merge")
+
+    def test_canonical_context_drift_after_commit_keeps_actual_integrated_head(self):
+        self._canonical_context_controller_failure("after_commit")
+
+    def test_canonical_old_or_mixed_runtime_stops_controller_before_merge(self):
+        self._canonical_context_controller_failure("runtime_gap")
+
+    def _canonical_context_controller_failure(self, stage):
+        import hashlib
+        import os
+        from unittest.mock import patch
+        from aisoft_main_integration import GitError, GitRepository, TemplateScopeContext
+        from aisoft_worktree_owner import claim
+        self.git("branch", "main", self.base)
+        directory = self.repo / "docs/changes/8"
+        directory.mkdir(parents=True)
+        summary = "docs/changes/8/00-summary.md"
+        spec = "docs/changes/8/01-spec.md"
+        template = "docs/changes/_template/summary.md"
+        (self.repo / template).parent.mkdir(parents=True)
+        (self.repo / template).write_text("template\n")
+        (self.repo / summary).write_text("---\nissue: 8\nbranch: change/8\nstatus: approved\n"
+            "gitea_url: http://fixture.invalid/admin/platform/issues/8\n---\n")
+        (self.repo / spec).write_text("---\nissue: 8\nbranch: change/8\nstatus: approved\ngit_scope:\n"
+            + "".join("  - " + p + "\n" for p in (summary, spec, template)) + "---\n")
+        self.git("add", "docs")
+        self.git("commit", "-qm", "#8 T03: canonical fixture")
+        head = self.git("rev-parse", "HEAD").stdout.strip()
+        self.git("checkout", "-q", "main")
+        (self.repo / "main-change.txt").write_text("main\n")
+        self.git("add", "main-change.txt")
+        self.git("commit", "-qm", "main change")
+        self.git("update-ref", "refs/remotes/origin/main", "HEAD")
+        main = self.git("rev-parse", "HEAD").stdout.strip()
+        self.git("checkout", "-q", "change/8")
+        claim(self.git("rev-parse", "--absolute-git-dir").stdout.strip(), branch="change/8",
+              session="fixture-owner", worktree=str(self.repo))
+        with tempfile.TemporaryDirectory() as temporary:
+            manifest = Path(temporary) / "manifest.json"
+            manifest.write_text("{}\n")
+            context = TemplateScopeContext("http://fixture.invalid/admin/platform", True,
+                ((manifest, hashlib.sha256(manifest.read_bytes()).hexdigest()),))
+            real_merge_tree = GitRepository.merge_tree
+            expected_tree = real_merge_tree(GitRepository(self.repo), head, main)
+            def drift(repository, first, main):
+                result = real_merge_tree(repository, first, main)
+                if stage == "before_merge":
+                    manifest.write_text("changed\n")
+                return result
+            real_run = GitRepository.run
+            def drift_after_commit(repository, *args, **kwargs):
+                result = real_run(repository, *args, **kwargs)
+                if stage == "after_commit" and args[0] == "commit":
+                    manifest.write_text("changed\n")
+                return result
+            local = LocalGit(self.repo, "change/8", project="fixture", host_runner=lambda *args:
+                {"remote_name": "origin", "remote_known": True, "remote_head": None})
+            with patch.dict(os.environ, {"AISOFT_SESSION_ID": "fixture-owner"}), \
+                 patch("aisoft_loop.controller.template_scope_context", return_value=context,
+                       side_effect=GitError("BROKER_SURFACE_GAP", "old runtime")
+                       if stage == "runtime_gap" else None), \
+                 patch.object(GitRepository, "merge_tree", drift), \
+                 patch.object(GitRepository, "run", drift_after_commit):
+                with self.assertRaisesRegex(ProviderError, "BROKER_SURFACE_GAP"):
+                    local.integrate_main()
+            if stage == "after_commit":
+                integrated = GitRepository(self.repo).commit(local.head_sha())
+                self.assertEqual(integrated.parents, (head, main))
+                self.assertEqual(integrated.tree, expected_tree)
+            else:
+                self.assertEqual(local.head_sha(), head)
+            self.assertEqual(self.git("status", "--porcelain").stdout.strip(), "")
+            self.assertFalse((self.repo / ".git/MERGE_HEAD").exists())
+
     def test_partial_and_invalid_receipts_keep_possible_candidate_without_secret_fields(self):
         for value in ({"status": "PASS", "secret": "fixture-do-not-retain"}, [], None):
             with self.subTest(value=value):

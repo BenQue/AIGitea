@@ -388,7 +388,7 @@ def _run(issue: int, repo: Path, verification_config: Path) -> int:
                 timeout_seconds=int(os.environ.get("LOOP_PROVIDER_TIMEOUT", "2700")),
             ),
             verifier=Verifier.from_file(repo, verification_config),
-            git=LocalGit(repo, branch),
+            git=LocalGit(repo, branch, project=source.project_id, access_contract=access_contract),
             state_store=StateStore(state_root),
             lock=GlobalLock(state_root / "loop.lock"),
             max_rounds=int(os.environ.get("LOOP_MAX_ROUNDS", "8")),

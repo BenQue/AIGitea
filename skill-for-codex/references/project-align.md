@@ -46,6 +46,18 @@
 不带参数运行即只读现状核对，可随时重跑。**不在任何下游项目引入阻塞式 required check**
 ——那会把上游演进变成下游全部在途 PR 的阻塞。合同与理由见 `03` §3「模板是 vendored 副本」。
 
+### 模板更新的 Git scope 边界（#360）
+
+第 2 行的四份 `docs/changes/_template/{summary,spec,plan,verification}.md` 是 canonical
+共享资源，不是另一 Issue 的合同目录。其范围授权仍须复用现有 holder 与 exact committed
+approved scope，逐项授权、完整历史检查；不允许放开整个 `docs/changes/`、省略真实 delta
+或伪造 Issue 路径。唯一规则见 [03 §3「Canonical 模板的精确 Git scope 合同」](../../03-Issue-Spec-Plan与单闸门开发流程.md#canonical-模板的精确-git-scope-合同360)，
+实现和验收范围见 [#360 spec](../../docs/changes/360-canonical-template-scope/spec-canonical-template-scope-261015.md)。
+
+当前 #360 T02 仅应用治理文档，runtime/真实 installed 入口尚未验收；遇既有 `SCOPE_DENIED`
+应保留具体失败与批准 scope，不能加载未合并 reader 或关闭 guard。fresh run 实施、source 合并后
+的平台工具安装和项目采用各按自己的授权推进；本入口不增加 installer/policy 框架，也不接管项目部署。
+
 ## 边界与工具分工
 
 - 检查器只读、确定性；缺口修复始终走目标仓 Issue/单一判级 PR。project-align 不自行启用 routine
