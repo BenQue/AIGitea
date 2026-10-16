@@ -67,7 +67,7 @@ updated: 2026-10-17
 ## 本机工具安装与恢复责任
 
 直接批准已覆盖整个工具运维包；原生root认证是执行条件。接续runbook绑定固定source/原installer，包含完整snapshot、no-op、restore、再装与资格；目前仅准备，不能作为已执行证据。
-本人必须在执行命令的同一私密Mac终端认证和协调写入窗口。另一终端sudo -v不保证Codex -n可用，不向聊天提供密码。
+本人必须在执行命令的同一私密Mac终端认证和协调写入窗口。runbook恢复块可在失败shell已退出后独立重建所有exact变量，并从本窗口路径/归档hash回执核验后恢复。另一终端sudo -v不保证Codex -n可用，不向聊天提供密码。
 本session继续负责claim、正式投影、证据独立审查和文档；本人如执行root命令，需按runbook回传非敏感receipt，实际操作者明确标注human。
 
 ## 遗留风险与未完成项

@@ -130,7 +130,35 @@ Snapshot目录新建导致父目录entry/size/nlink/mtime变化是批准的snaps
 先重新校验exact archive/hash，必须与 `manual-snapshot-verified.json` 相等，不从metadata反推旧bundle来源。
 如果安装部分失败，下面的新文件guard仍适用：仅main reader `.previous` 是本次批准闭包里预期新建；任何未知残留路径只记录，STOP，不glob删除。
 
+恢复块是独立入口：即使安装子shell已因 `set -e` 退出，也可从**原私密终端**完整执行下块；不依赖上一shell的任何变量。计划内P4也执行同一入口。
+此块重新认证的作用域仍是当前实际终端，不传递给Codex。若snapshot receipt缺失/不匹配，不能尝试恢复或猜测路径；保全现场STOP。
+
 ```bash
+/bin/bash --noprofile --norc
+set -euo pipefail
+umask 077
+export PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+export PYTHONDONTWRITEBYTECODE=1
+export AISOFT_SESSION_ID=01a1457e-699f-7372-8b6a-7a21d613d407
+EVID='/Users/benque/.codex/visualizations/2026/10/16/01a1457e-699f-7372-8b6a-7a21d613d407/issue-362'
+SRC=/Users/benque/MyDocs/AISoftPlatform
+PY=/opt/homebrew/bin/python3
+CHECK="$EVID/manual-acceptance-readonly.py"
+cd "$SRC"
+SNAP="$(/bin/cat "$EVID/manual-snapshot-path.txt")"
+"$PY" -B - "$SNAP" "$EVID/manual-snapshot-verified.json" <<'PYRECOVERY'
+import sys,json,re
+from pathlib import Path
+snapshot=sys.argv[1]
+assert re.fullmatch(r'/usr/local/share/aisoft/backups/tools-362-[0-9]{8}T[0-9]{6}Z',snapshot)
+receipt=json.loads(Path(sys.argv[2]).read_text())
+assert receipt['result']=='PASS' and receipt['members']==43
+assert receipt['archive']==snapshot+'/baseline.tar.gz'
+assert re.fullmatch(r'[0-9a-f]{64}',receipt['sha256'])
+print(json.dumps({'recovery_snapshot':snapshot,'expected_archive_sha256':receipt['sha256']}))
+PYRECOVERY
+/usr/bin/sudo -v
+/usr/bin/sudo -n /usr/bin/id -u
 /usr/bin/sudo -n /usr/bin/env PYTHONDONTWRITEBYTECODE=1 "$PY" -B "$CHECK" archive "$SNAP/baseline.tar.gz" > "$EVID/manual-before-restore-archive.json"
 /usr/bin/cmp "$EVID/manual-snapshot-verified.json" "$EVID/manual-before-restore-archive.json"
 # 删除前只读guard：必须是本次独占窗口创建，且仍等于写前main reader原字节；若原absent而当前也absent则无删除。
