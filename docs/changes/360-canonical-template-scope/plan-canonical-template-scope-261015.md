@@ -34,7 +34,7 @@ T02已提交并STOP。本轮由调度在STOP后发起fresh接续，已重读治�
 | T02 | 整包批准后独立应用最小治理合同，文档校验/local commit并STOP；为fresh runtime run提供规则 | T01 | completed |
 | T03 | fresh重读T02后，shared canonical policy与reader/Controller/broker一致性端到端切片，真实Git正负fixture | T02 | completed |
 | T04 | 复用既有installer/drift机制验证模块分发覆盖与版本匹配；不改installer或增加policy分发文件 | T03 | completed |
-| T05 | 全量回归/默认硬门与本地审阅材料已完成；正式最终PR候选因live分类投影缺失而阻断，不能提前请求发表第二确认 | T04 | blocked |
+| T05 | 全量回归/默认硬门、分类projected真实读回及唯一manual最终PR确认卡准备完成；等待发表第二确认 | T04 | completed |
 
 本轮T02依据用户直接整包批准执行；批准锚和正文记录见summary/spec，不能扩成发表或安装授权。
 T02 仅治理应用后按合同 STOP；后续 fresh run 重读后才进入 T03，不要求每命令新确认。
@@ -113,6 +113,7 @@ T02的STOP已完成；本轮继续到完整本地候选，禁止再次把原T02�
 
 收尾：两项只读合同审阅发现已修复并复查，完整runtime为1260 tests OK，默认smoke exit0，
 既有分发/drift与文档门通过；准确命令、失败历史、source指纹和HEAD见verification及artifact。
-T05仅剩真实分类投影硬门：`--verify 360`仍projection-missing，`--apply`被自动审批拒绝且未执行。
-不重复索取实施批准；下一最小授权仅为#360补齐type/platform和complexity/complex，
-读回projected后再形成正式manual最终PR第二确认。不换入口绕审批，不扩大到lifecycle或发表。
+上一收尾的分类投影缺失及自动审批拒绝均保留为历史证据。
+2026-10-16用户精确补充分类授权后，正式projector仅补齐#360的type/platform、complexity/complex，
+独立`--verify 360`读回projected；完整Issue标签仍保留needs-analysis。
+T05准备工作完成，停在唯一manual最终PR提交确认；push/PR/CI、merge、安装/部署仍未执行。

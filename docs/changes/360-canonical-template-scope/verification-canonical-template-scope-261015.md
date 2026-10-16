@@ -243,7 +243,7 @@ T02两份治理规则与其已提交字节一致，未在runtime阶段重写规�
 收尾正式typed只读读回：main仍afd76bf…，Issue仍open/needs-analysis，all-state PR170条无本票，
 remote ref不存在且remote_known=true；证据`final-read/`。没有live写入。
 
-### 分类投影的真实新阻断
+### 分类投影的原阻断（补充授权前历史快照）
 
 为形成最终PR候选，使用clean的已合并main（afd76bf…）上的原分类helper作只读
 `apply-classification-labels.sh --repo <WT> --verify 360`，没有使用候选runtime绕正式入口。
@@ -261,7 +261,7 @@ remote ref不存在且remote_known=true；证据`final-read/`。没有live写入
 收尾再次经clean merged-main helper执行`--verify 360`，结果仍为`projection-missing`；
 `classification-final.jsonl`中的`applied=false`，没有重试被拒绝的写入。
 
-## 遗留风险与未完成项（本轮当前）
+## 遗留风险与未完成项（补充分类授权前快照）
 
 - 用户整包实施批准已收到，原批准锚保持为ed03008…；本地summary/spec/plan为approved，
   live仍按本轮fresh读回needs-analysis，未投影标签或启动provider/Controller Loop。
@@ -273,7 +273,7 @@ remote ref不存在且remote_known=true；证据`final-read/`。没有live写入
 - 不修改 #358、HSDB #15原资源与固定OID，不恢复已归档平台调度，不发消息给其他会话。
 - T02的停止与fresh重读已完成；本轮继续完整本地候选，live分类投影因自动审批拒绝是独立新阻断。
 
-## T05 本地收尾状态
+## T05 原本地收尾状态（补充分类授权前快照）
 
 `LOCAL_VERIFIED / BLOCKED_CLASSIFICATION_PROJECTION`：T03/T04完成，T05本地验证与审阅材料完成，
 仅正式分类投影硬门阻断。此状态不是Controller的正式AWAITING_PR_CONFIRMATION，不推导发表批准。
@@ -286,3 +286,42 @@ remote ref不存在且remote_known=true；证据`final-read/`。没有live写入
 `complexity/complex`两个分类标签；不改lifecycle/权限/provider，不包含push/PR。
 真实读回两个维度均projected后，才提交唯一manual最终PR的第二确认卡。
 当前WT/branch/claim及原HSDB#15边界保留；本轮不发表、不安装、不部署。
+
+## 2026-10-16 分类授权执行与唯一manual最终PR确认卡
+
+用户直接批准：“批准仅为 admin/aisoft-platform#360 补齐 type/platform、complexity/complex
+两个分类标签，读回确认后整理唯一 manual 最终 PR 确认卡；不含 push/PR、merge、真实安装或部署。”
+这是对先前自动审批拒绝所缺授权的精确补充；没有换identity、API或更宽权限入口。
+
+通过clean的已合并main `afd76bf2830ecc7ddc81dc07071ae4bbd8251fc8`上的正式helper执行：
+
+```text
+PYTHONDONTWRITEBYTECODE=1 bash /Users/benque/MyDocs/AISoftPlatform/codex/tools/apply-classification-labels.sh --project aisoft-platform --repo /private/tmp/issue-360-canonical-template-scope --apply 360
+PYTHONDONTWRITEBYTECODE=1 bash /Users/benque/MyDocs/AISoftPlatform/codex/tools/apply-classification-labels.sh --project aisoft-platform --repo /private/tmp/issue-360-canonical-template-scope --verify 360
+```
+
+两条命令均exit0。apply收据为`applied=true/result=updated`；随后独立verify为
+`applied=false/result=projected/change_type=platform/complexity=complex`。
+完整Issue读回确认仅有`needs-analysis`、`type/platform`、`complexity/complex`三个标签，
+仍为open；lifecycle/triage/provider/权限未写入。
+原拒绝及projection-missing证据完整保留，不把先前未执行的写入改记为成功。
+
+fresh正式typed只读核对：main仍afd76bf…，170条all-state PR无本票，精确远端branch不存在，
+remote_known=true。当前待确认branch仍为`change/360-canonical-template-scope`、policy固定manual。
+证据另存本会话artifact `evidence/classification-261016/{apply.jsonl,verify.jsonl,issue360.json,main.json,pulls-all.json,fetch360.json}`。
+
+本次仅更新本票summary/plan/verification的收尾记录，不改runtime/tests或T02治理规则；
+七个已测文件SHA256须与`reviewed-source-snapshot.json`完全一致。既有1260项runtime/default smoke
+通过继续只作为同一source snapshot的本地证明，不重复跑无变化的产品测试；本次运行文档门与diff检查。
+最终候选完整HEAD、clean WT、owner、13项exact scope/线性history、source指纹和分类收据由
+`evidence/classification-261016/manual-candidate.json`记录；唯一确认卡为同目录`manual-pr-confirmation.md`。
+
+当前会话交接状态为`AWAITING_PR_CONFIRMATION`，是本会话的manual handoff，不宣称已启动或写入
+自动Controller Loop。用户本次只批准分类和整理卡，尚未批准push/PR；继续保持唯一PR不存在。
+实际PR/CI、source merge、Mac/VM真实安装、HSDB采用/数据/服务/部署/UAT仍NOT RUN。
+AC-6/7中的未来CI/PR和后续独立边界不因此勾为全部完成。
+
+下一唯一人类动作：确认提交admin/aisoft-platform#360、上述branch、manual policy的唯一最终PR。
+取得该第二确认后才可走正式发表路径；合同内CI修复随该确认继续，required context
+`CI / verify (pull_request)`须针对最终exact head/base读回全绿，随后停在READY_FOR_REVIEW，等待本人审核合并。
+本次授权与未来发表确认均不传递真实安装或部署权限。
