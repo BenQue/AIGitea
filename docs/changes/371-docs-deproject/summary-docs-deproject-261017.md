@@ -22,9 +22,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 368
-status: approved
+status: pr-open
 branch: change/371-docs-deproject
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/372
 created: 2026-10-17
 updated: 2026-10-17
 ---
