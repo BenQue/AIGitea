@@ -15,7 +15,7 @@ risk_flags:
   - platform-governance
 depends_on:
   - 360
-status: approved
+status: pr-open
 branch: change/362-mac-broker-install-acceptance
 created: 2026-10-17
 updated: 2026-10-17
@@ -31,12 +31,12 @@ documents:
   spec: spec-mac-broker-install-acceptance-261017.md
   plan: plan-mac-broker-install-acceptance-261017.md
   verification: verification-mac-broker-install-acceptance-261017.md
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/363
 ---
 
 # #362 Mac system broker 固定版本安装与验收
 
-当前运维结果 **INSTALLED_ACCEPTANCE_PASS**。本人终端P0–P6全部通过，原owner已完成既定有界独立核验；最终停在固定pin一致的新版本。根调度已逐一RELEASE并取得全员ACK，05:08:37 UTC解除完成；当前准备唯一manual文档PR，本票未发表。
+当前运维结果 **INSTALLED_ACCEPTANCE_PASS**。本人终端P0–P6全部通过，原owner已完成既定有界独立核验；最终停在固定pin一致的新版本。根调度已逐一RELEASE并取得全员ACK，05:08:37 UTC解除完成；唯一manual文档 [PR #363](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/363) 已创建，当前等待最终HEAD的required CI。
 
 唯一owner/session `01a1457e-699f-7372-8b6a-7a21d613d407`；branch `change/362-mac-broker-install-acceptance`，WT `/private/tmp/issue-362-mac-broker-install-acceptance`；claim last_push_head=null。
 
@@ -73,7 +73,7 @@ Snapshot保留：`/usr/local/share/aisoft/backups/tools-362-20261017T013941Z/bas
 
 Mac user Loop沿用原卡GAP、VM installed NOT READ且当前路径NOT REQUIRED、architecture/lock GAP保留。没有HSDB采用/T04、live/UAT、VM安装、业务服务启停、DB/迁移、Secret/权限、provider/monitor或公司部署。
 HSDB#15固定OID/全部资源继续冻结，#32/T06 PAUSED，IMPLEMENT_PROVIDER=none；RELEASE不增加业务授权。#360保持closed/completed，不恢复旧WT/branch/claim。
-本票未push/PR/merge。正式classification此前读回projected：type/platform、complexity/complex；RELEASE后最终判级已fresh读回projected，main保护/required CI保持；manual提交确认与人类merge仍保留。
+本票已按直接人类manual确认完成首次push并创建唯一PR #363，未merge。正式classification此前读回projected：type/platform、complexity/complex；RELEASE后最终判级已fresh读回projected，main保护/required CI保持；manual提交确认与人类merge仍保留。
 
 ## AI 判级
 
@@ -105,8 +105,8 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-无新业务决策。全部运维AC已完成；协调RELEASE已完成；最终本地候选验证后一次请求manual最终PR提交确认。
+无新业务决策。全部运维AC已完成；协调RELEASE和最终本地候选核对已完成；直接人类已确认唯一manual最终PR发表，PR #363已创建，等待最终HEAD required CI与人类merge。
 
 ## 最终PR候选边界
 
-Policy manual；Issue保持open/approved，尚无本票push/PR/merge。RELEASE后formal source/main仍为固定pin，classification fresh readback projected；main push/force禁用、merge allowlist仅admin、required CI为 `CI / verify (pull_request)`。PR未创建，因此PR CI为NOT RUN；本地文档检查不冒充CI。
+Policy manual；Issue保持open，唯一PR #363已创建，未merge。RELEASE后formal source/main仍为固定pin，classification fresh readback projected；main push/force禁用、merge allowlist仅admin、required CI为 `CI / verify (pull_request)`。本次提交含summary-only真实PR URL/status回填；最终HEAD须独立核对required CI，本地文档检查不冒充CI。
