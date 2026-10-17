@@ -1,8 +1,8 @@
-# #362 本人私密 Mac 终端接续 runbook（尚未执行）
+# #362 本人私密 Mac 终端接续 runbook（辅助验收修正版；首次安装已完整恢复）
 
 本文是既有原生命令的有界操作卡，不是新installer或分发框架；唯一安装入口仍是固定pin既有installer。
-2026-10-17已批准整包；本轮执行被原生 `sudo -n` exit1/password required 阻塞，系统写入窗口未开。
-本文的可执行命令尚未用于root/安装/恢复；语法审查和只读helper baseline通过不等于现场验收。
+2026-10-17整包已批准；本人终端已在同一HOLD窗口完成首次snapshot/P1，P2辅助holder预期错误触发完整恢复PASS。当前使用末节受限 --resume-restored 复用原snapshot重试，不执行下方首次新建snapshot块。
+原版本实际执行记录、失败总回执和脚本均已保全；本修正版辅助断言及有界接续仅完成回归/语法检查，真实重试尚未运行。
 
 ## 责任与先决条件
 
@@ -20,14 +20,14 @@
 |---|---|
 | canonical source `codex/install-host-access-broker.sh` | `485ea19514c5f4b72c84d6cc9576fe0c2b65c34d084e74c8f80e2d6ad6f10897` |
 | 原审阅卡 | `3c67a0c6a3d085735d4e20aead4fd951ead4eeb716ac41323719bff85d3ed8d9` |
-| artifact `manual-acceptance-readonly.py` | `d1df20d4055441b9a66d179387f1f4313a862b29cfa3efe079c3840c30edb123` |
+| artifact `manual-acceptance-readonly.py` | `c64abb05e39afef6318c765d4e999ac3b9040d99ca8dc205db0ad65da19d14be` |
 | artifact `snapshot-relative-paths.txt` | `2c4ddf9d3ab4bd5201f5aab50b0651aa5584e5f4120757f269177c57196b62de` |
 | artifact `local-read-checks.py` | `e9f6a4eedba6f2b77a4e464356255f269b2147b19480e8008bb1cbc004c78f9e` |
 | artifact `fresh-typed.py` | `5630a61889250728d2bf280d5502b14288730ff898150794925cac74eeb8ca5a` |
 
 以上artifact都在 `/Users/benque/.codex/visualizations/2026/10/16/01a1457e-699f-7372-8b6a-7a21d613d407/issue-362`。
-`manual-acceptance-readonly.py` 仅读取exact公开target/source、metadata及所选snapshot，输出JSON，不执行root写入、网络、Git整合或凭据读取；本轮仅 `baseline` 分支已实际执行。
-其余 `installed/qualified/old-qualified/archive/root-entry` 分支尚未现场执行，不报告PASS。
+`manual-acceptance-readonly.py` 仅读取exact公开target/source、metadata及所选snapshot，输出JSON，不执行root写入、网络、Git整合或凭据读取；首版的 baseline/installed/archive/root-entry/old-qualified 已实测。
+首版 qualified 在上下文返回后因holder=False辅助断言失败；修正为canonical True后的真实资格仍待重试。修正版archive追加核对原卡已规定snapshot/parent owner-mode-link，真实root读回仍待重试。
 Snapshot列表为43公开常规文件、无目录/Secret；13原缺失路径和10目录metadata由原卡完整manifest核对。
 fixture不需要再次运行，F1/F2原实测和exact清理见 `fixtures.json`。
 
@@ -107,7 +107,7 @@ Snapshot目录新建导致父目录entry/size/nlink/mtime变化是批准的snaps
 ```
 
 `installed` 必须核对27文件及生成metadata、完整previous/absence、owner/mode/type/link；metadata exact pin/helper=null。
-`qualified` 在source pin fresh进程只调用 `template_scope_context(None,"hsdb")`，验证repository=`http://gitea-ci.orb.local:3000/admin/HSDB`、holder=false和context.verify；不构造GitRepository、不触碰HSDB#15资源。
+`qualified` 在source pin fresh进程只调用 `template_scope_context(None,"hsdb")`，验证repository=`http://gitea-ci.orb.local:3000/admin/HSDB`、holder=true和context.verify；不构造GitRepository、不触碰HSDB#15资源。
 任一步失败不要盲目再安装，转完整恢复流程。
 
 ## P3：同pin真实重复安装/no-op
@@ -233,3 +233,9 @@ owner独立检查以上所有JSON和日志；之后结束协调窗口，恢复�
 此格式目前未填写，不代表任何阶段通过。执行者保留全部 `manual-*.json/txt` 公开回执；本session独立读回再更新verification/localHEAD。
 若本人只完成认证而未执行系统命令，清楚写 `system_write=0`，不能称snapshot/安装/restore已做。
 本票不再请求整包开始批准；最终文档PR需完整结果后一次manual确认，人工merge。
+
+## 2026-10-17 P2验收辅助断言修正
+
+首次P1 installed独立验收PASS，P2辅助脚本错误硬编码holder=false；固定pin canonical contract默认holder=true，HSDB未覆盖此值。只修正本票辅助验收预期和本文说明，不改installer/runtime/manifest或权限政策。
+失败后完整snapshot恢复及原owner有界baseline逐项比较PASS，旧资格负例PASS。原始回执/脚本/日志保全于本会话artifact `attempt-20261017T013941Z-failed-p2/`。
+同一HOLD窗口的受限 `--resume-restored` 只接受此已完整恢复状态；重做来源/root/baseline，重新校验原exact snapshot及其hash，复用该snapshot后执行原P1–P6。它不运行P0新建目录/新建snapshot的命令块，不覆盖归档；native sudo/installer/restore路径保持。

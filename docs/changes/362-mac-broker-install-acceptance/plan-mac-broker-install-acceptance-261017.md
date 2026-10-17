@@ -28,7 +28,7 @@ updated: 2026-10-17
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | fresh正式Issue/合同/唯一claim/固定source和baseline | - | completed locally |
-| T02 | P0–P6：snapshot→安装→资格→no-op→完整restore/负例→再安装/最终drift | T01 | pending human terminal execution; ARMED/HOLD |
+| T02 | P0–P6：snapshot→安装→资格→no-op→完整restore/负例→再安装/最终drift | T01 | first P1 PASS / P2 auxiliary assertion failed / full recovery PASS; pending guarded retry |
 | T03 | F1/F2封闭fixture与资源清理 | T01 | completed |
 | T04 | actual evidence/local candidate/最终manual提交卡 | T02, T03 | pending |
 
@@ -58,4 +58,8 @@ updated: 2026-10-17
 仅本机Mac共享工具安装，不涉及业务应用部署。本人接续步骤见 [runbook](runbook-mac-broker-install-acceptance-261017.md)。
 P0先协调窗口并fresh核全部输入→native snapshot→P1安装→P2资格→P3no-op→P4完整恢复/旧资格负例→P5再装/P1P2→P6focused drift。
 任何步骤失败依既有完整snapshot恢复，漂移/恢复失败STOP；snapshot不删除。
-首次Agent root不可用；随后本人私密终端root核验通过，窗口协调未完成而主动退出3，系统写入窗口仍未开启；随后全员实际ACK和ARMED/HOLD已读回。后续同会话从P0 fresh核验恢复，不需要重新批准整包。
+历史准备阶段：首次Agent root不可用；随后本人私密终端root核验通过，协调前主动退出3；之后全员ACK/ARMED和首次实际安装/恢复已完成。后续同会话从P0 fresh核验恢复，不需要重新批准整包。
+
+## 当前恢复接续
+
+首次实际snapshot/P1完成，P2辅助holder预期错误触发完整恢复PASS；只修本票辅助验收和文档。原snapshot/path/hash复用，受限 --resume-restored 重做fresh P0后完成原P1–P6。根调度明确同窗口HOLD持续；真实重试和最终新版验收尚未运行。

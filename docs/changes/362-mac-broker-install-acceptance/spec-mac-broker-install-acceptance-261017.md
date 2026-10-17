@@ -97,4 +97,8 @@ HSDB#15 OID `82a5aba9e46a002b78e3aca9896ef9a26e4aa5cd`及所有资源停写；�
 
 ## 未决问题
 
-合同无未决业务问题。本人私密终端root认证与解释器核验已通过；共享工具窗口随后已实际协调并ARMED/HOLD，P0 snapshot及安装仍未执行，等待本人终端接续。Agent执行上下文认证没有重探测。
+合同无未决业务问题。本人私密终端root认证与解释器核验已通过；共享工具窗口随后已实际协调并ARMED/HOLD，首次P0 snapshot/P1安装已执行并完整恢复，等待本人按修正辅助验收和原exact snapshot接续。Agent执行上下文认证没有重探测。
+
+## 现场接续边界
+
+首次P1实际完成，P2辅助脚本holder错误已修；完整恢复及原owner独立baseline比较PASS。同窗口明确继续HOLD，仅复用原exact snapshot/path/hash、重新核source/owner/root/baseline/协调，不新建snapshot，不更改工具源码和权限。真实重试尚未执行。
