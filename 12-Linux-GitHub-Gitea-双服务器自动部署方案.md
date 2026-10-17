@@ -2,7 +2,7 @@
 
 > 定位（#232，2026-09-02）：本册是交付形态参考（按项目选用），适用环境：Linux 容器化。它不是任何项目部署步骤的事实源；平台只给环境级原则（`skill-for-codex/references/onboarding-runbook.md` §4），具体步骤、脚本、参数与环境差异由项目仓自行声明与实现。#233 判定：正文保留为参考记录；正文中「默认」「新 Linux 默认」等措辞不构成平台合同，交付形态由项目声明。
 
-> 目标方案（更新 2026-08-16）｜状态：**Docker-first source 与 disposable Engine 29.7.1/containerd/Compose 5.1.4 lifecycle evidence 已进入 protected `main`；NewEmaint 两台公司 VM operator contract 不代表业务 Registry、offline delivery、AppServer 或 production 已实施/验收**
+> 目标方案（更新 2026-08-16）｜状态：**Docker-first source 与 disposable Engine 29.7.1/containerd/Compose 5.1.4 lifecycle evidence 已进入 protected `main`；示例项目 两台公司 VM operator contract 不代表业务 Registry、offline delivery、AppServer 或 production 已实施/验收**
 > 新 Linux 默认：OCI digest + Docker Compose；PM2 仅为已有应用的 legacy adapter
 > 网络约束：POC 开发机不能访问公司内网；安装 Gitea 的 `scm-ci` 服务器可以通过 HTTPS 访问 GitHub。
 
@@ -30,7 +30,7 @@ flowchart LR
     GH["GitHub source candidate"] --> SYNC["inbound sync"]
     subgraph LOCAL["开发侧 / 本地 OrbStack"]
         PRODUCER["approved linux/amd64 producer"]
-        TEST["NewEmaint DockerLab\nrole=appserver-test"]
+        TEST["示例项目 DockerLab\nrole=appserver-test"]
         BUNDLE["versioned offline bundle\nfull SHA + SHA256SUMS"]
         PRODUCER -->|"exact docker-release/v2 bytes"| TEST
         TEST -->|"non-production PASS"| BUNDLE
@@ -63,13 +63,13 @@ flowchart LR
   `scm-ci` 复用为业务 runtime。role 隔离不等于三台公司 VM；实际 hostname/role 由 #21 host profile
   验证。
 
-NewEmaint pilot 的物理放置与职责固定如下，覆盖本册任何要求“公司另建服务器 T”的泛化表述：
+示例项目 pilot 的物理放置与职责固定如下，覆盖本册任何要求“公司另建服务器 T”的泛化表述：
 
 | 位置 | role | 允许职责 | 禁止 |
 |---|---|---|---|
-| 公司 VM 1 `gitea-ci` | `scm-ci` | Gitea、GitHub 入站、act_runner、Registry/cache、artifact-only verification、受控编排 | NewEmaint runtime、业务 DB、production Secret |
-| 本地 OrbStack NewEmaint DockerLab | `appserver-test` | 对 exact `docker-release/v2` bytes 做非生产 deploy/migration/health/rollback | 作为 company/live evidence |
-| 公司 VM 2 `appserver` | `appserver-prod` | NewEmaint runtime、PostgreSQL、Nginx、fixed target | Gitea、通用 Runner、源码 build、AI、任意 shell 发布 |
+| 公司 VM 1 `gitea-ci` | `scm-ci` | Gitea、GitHub 入站、act_runner、Registry/cache、artifact-only verification、受控编排 | 示例项目 runtime、业务 DB、production Secret |
+| 本地 OrbStack 示例项目 DockerLab | `appserver-test` | 对 exact `docker-release/v2` bytes 做非生产 deploy/migration/health/rollback | 作为 company/live evidence |
+| 公司 VM 2 `appserver` | `appserver-prod` | 示例项目 runtime、PostgreSQL、Nginx、fixed target | Gitea、通用 Runner、源码 build、AI、任意 shell 发布 |
 
 开发侧生成 versioned + checksum-pinned operator bundle，把本地已验证的 exact `docker-release/v2` bytes
 经批准介质搬入公司。公司要求内网重建且没有隔离测试环境时固定 `BLOCKED`；不同 bytes 不得沿用本地
@@ -123,14 +123,14 @@ restore 永远需要独立人工审批。
 
 ### 0.4 兼容与证据边界
 
-NewEmaint 只是首个消费模板，必须在应用仓另建 Issue/spec/plan/PR，实现自己的 Dockerfile、
+示例项目 只是首个消费模板，必须在应用仓另建 Issue/spec/plan/PR，实现自己的 Dockerfile、
 Compose、migration、CI publish、health 与 offline bundle；本平台 Change 不修改应用仓。平台
 fake Docker/installer PASS 不是 Registry、TLS、offline media、AppServer、真实 database 或
 production PASS。
 
 Issue #120 只交付 operator source、strict schema、模板与 local fake verification；两台公司 VM inventory、
 Gitea side-by-side/upgrade、backup/isolated restore、GitHub inbound、company PR/CI、Runner/Registry、真实
-NewEmaint handoff、AppServer 和 production 全部保持 `NOT RUN`。安装/首次验收时 sync timer、Actions auto
+示例项目 handoff、AppServer 和 production 全部保持 `NOT RUN`。安装/首次验收时 sync timer、Actions auto
 deploy 与 production gate 保持 disabled/inactive。
 
 Issue #126/#128/#130 将该 operator 演进至 `1.2.0`，以 `greenfield-isolated-install` 定义新
@@ -143,8 +143,8 @@ Stage 00–50 与安装全部 `NOT RUN`，旧 evidence 不能作为 1.2.0 的 PA
 以下 §1–§21 保存 2026-07 PM2/tar.gz 双服务器设计，作为已有应用的 **legacy adapter** 与
 GitHub 入站治理参考。凡与 §0 冲突之处，新 Linux 项目以 §0 和 `docker-release/` 为准；不得
 把历史 PM2 as-built 改写成 Docker 已部署，也不得在应用独立迁移验收前删除 PM2 路径。
-其中“服务器 T”“公司内网重建”和自动部署步骤只描述该 legacy 三机方案，不适用于 NewEmaint pilot；
-NewEmaint 只能使用 §0 与 `company-delivery/runbook.md` 的两台公司 VM + 本地 test 路径。
+其中“服务器 T”“公司内网重建”和自动部署步骤只描述该 legacy 三机方案，不适用于 示例项目 pilot；
+示例项目 只能使用 §0 与 `company-delivery/runbook.md` 的两台公司 VM + 本地 test 路径。
 
 ## 1. PM2 legacy 已确认决策（历史）
 
@@ -400,9 +400,9 @@ docs/
 - 无 Secret 的 Nginx、PM2、systemd 模板。
 - 运维、回滚和验收文档。
 
-### 5.2 PM2 legacy 必须在公司内网重建（NewEmaint 不适用）
+### 5.2 PM2 legacy 必须在公司内网重建（示例项目 不适用）
 
-本节只约束历史 PM2/tar.gz 三机 adapter。NewEmaint 必须携带本地 DockerLab 已验证的 exact
+本节只约束历史 PM2/tar.gz 三机 adapter。示例项目 必须携带本地 DockerLab 已验证的 exact
 `docker-release/v2` bytes；若公司政策要求内网重建，又没有隔离测试环境验证新 bytes，则固定
 `BLOCKED`，不得把新构建冒充为已测试制品。
 
