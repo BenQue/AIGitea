@@ -22,7 +22,7 @@ confidence: high
 override_reason: ''
 depends_on:
   - 366
-status: analyzed
+status: approved
 branch: change/368-project-leak-guard
 pr_url:
 created: 2026-10-17

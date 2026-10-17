@@ -12,7 +12,7 @@ risk_flags:
   - agent-governance
 depends_on:
   - 366
-status: analyzed
+status: approved
 branch: change/368-project-leak-guard
 created: 2026-10-17
 updated: 2026-10-17
@@ -26,6 +26,8 @@ git_scope:
   - codex/tests/smoke.sh
   - docs/governance/remediation-roadmap.md
 ---
+
+负责人于 2026-10-17 在项目线程“平台治理整改”确认本合同，批准锚为 `7e5ddd1`。
 
 ## 目标
 
