@@ -59,7 +59,7 @@ updated: 2026-10-17
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC1 | PARTIAL，Issue/owner/source/baseline已核；本人终端root/interpreter已通过，窗口尚未协调；Agent认证未重探测 | fresh typed/local/claim/root |
+| AC1 | PARTIAL，Issue/owner/source/baseline已核；本人终端root/interpreter已通过，窗口已ARMED/HOLD、snapshot未执行；Agent认证未重探测 | fresh typed/local/claim/root |
 | AC2 | NOT RUN | 安装未执行 |
 | AC3 | NOT RUN | P2未执行，无真实资格PASS |
 | AC4 | NOT RUN | 无真实重复安装/no-op |
@@ -75,7 +75,7 @@ updated: 2026-10-17
 
 ## 遗留风险与未完成项
 
-首次Agent sudo非交互认证缺口作为历史证据保留；随后本人实际终端认证和root解释器核验已通过。当前外部阻塞为共享工具窗口尚未完成实际协调，入口主动退出3；直接人类已授权联系HSDB根调度，已发消息等待实际避让回应。43文件/13absence/10目录再次fresh比较为零差异，结合installer/snapshot均未运行，证明本轮未改变受管工具闭包；不宣称OS级排他或不可伪造授权。
+首次Agent sudo非交互认证缺口作为历史证据保留；随后本人实际终端认证和root解释器核验已通过。当前外部阻塞为共享工具窗口尚未完成实际协调，入口主动退出3；直接人类已授权联系HSDB根调度，已读回根调度逐一实际ACK和ARMED/HOLD，协调时间01:13:11 UTC不冒充真实写入开始；等待本人终端执行，期间原owner不额外调用broker/Controller。见artifact armed-coordination-readback.json。43文件/13absence/10目录再次fresh比较为零差异，结合installer/snapshot均未运行，证明本轮未改变受管工具闭包；不宣称OS级排他或不可伪造授权。
 Mac user Loop沿用原卡GAP（本轮未重读）；VM installed NOT READ，当前路径NOT REQUIRED；architecture/lock GAP未处理。
 HSDB采用、live/UAT、VM、公司部署均NOT RUN；#15资源未访问，公司#32/T06 PAUSED。CI/push/PR/merge NOT RUN。
 协调完成后在本人实际终端用受限 --resume-prewrite 保留旧回执并重做全部P0，随后先fresh source/remote/baseline/窗口核验再进入P0；若source已前进或target漂移即STOP，不改latest/reset。
