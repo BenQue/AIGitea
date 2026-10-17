@@ -22,7 +22,7 @@ confidence: high
 override_reason: ''
 depends_on:
   - 368
-status: analyzed
+status: approved
 branch: change/371-docs-deproject
 pr_url:
 created: 2026-10-17

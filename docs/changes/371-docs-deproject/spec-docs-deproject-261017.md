@@ -12,7 +12,7 @@ risk_flags:
   - cross-module
 depends_on:
   - 368
-status: analyzed
+status: approved
 branch: change/371-docs-deproject
 created: 2026-10-17
 updated: 2026-10-17
@@ -44,6 +44,8 @@ git_scope:
   - codex/tests/smoke.sh
   - docs/governance/remediation-roadmap.md
 ---
+
+负责人于 2026-10-17 在项目线程“平台治理整改”确认本合同，批准锚为 `c47c37f`。
 
 ## 目标
 
