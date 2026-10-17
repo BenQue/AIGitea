@@ -16,6 +16,12 @@ risk_flags:
 depends_on:
   - 360
 status: approved
+git_scope:
+  - docs/changes/362-mac-broker-install-acceptance/summary-mac-broker-install-acceptance-261017.md
+  - docs/changes/362-mac-broker-install-acceptance/spec-mac-broker-install-acceptance-261017.md
+  - docs/changes/362-mac-broker-install-acceptance/plan-mac-broker-install-acceptance-261017.md
+  - docs/changes/362-mac-broker-install-acceptance/verification-mac-broker-install-acceptance-261017.md
+  - docs/changes/362-mac-broker-install-acceptance/runbook-mac-broker-install-acceptance-261017.md
 branch: change/362-mac-broker-install-acceptance
 created: 2026-10-17
 updated: 2026-10-17
@@ -102,3 +108,7 @@ HSDB#15 OID `82a5aba9e46a002b78e3aca9896ef9a26e4aa5cd`及所有资源停写；�
 ## 现场接续边界
 
 首次P1实际完成，P2辅助脚本holder错误已修；完整恢复及原owner独立baseline比较PASS。同窗口明确继续HOLD，仅复用原exact snapshot/path/hash、重新核source/owner/root/baseline/协调，不新建snapshot，不更改工具源码和权限。真实重试尚未执行。
+
+## 最终合同验收
+
+修正辅助holder预期后，同一HOLD窗口以原snapshot完成P0–P6全部实际验收，并经原owner有界独立核对。AC1–AC7完成；旧状态/失败接续段落保留阶段记录。当前new-pin，snapshot保留，最终结果见summary/verification。没有扩大source/目标/权限/项目采用合同。

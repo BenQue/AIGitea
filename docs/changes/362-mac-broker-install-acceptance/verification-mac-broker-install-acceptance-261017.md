@@ -21,7 +21,7 @@ created: 2026-10-17
 updated: 2026-10-17
 ---
 
-# #362 当前执行证据（未安装）
+# #362 执行证据（最终installed验收通过）
 
 ## 基线与范围
 
@@ -57,7 +57,7 @@ updated: 2026-10-17
 | P3真实no-op / P4完整restore+旧资格负例 | NOT RUN | 同上 |
 | P5再装 / P6最终安装验收 | NOT RUN | 同上 |
 
-## Acceptance criteria 结果
+## Acceptance criteria 结果（首次失败阶段快照；最终见末节）
 
 | AC | 结论 | 证据 |
 |---|---|---|
@@ -108,3 +108,32 @@ Snapshot：`/usr/local/share/aisoft/backups/tools-362-20261017T013941Z/baseline.
 原始失败总回执SHA256 `ee55a851b3041b7709f9aacc238d4da377e0d22600021e796cd84a923393d66b`；全部已保存于artifact `attempt-20261017T013941Z-failed-p2/`，包括旧辅助脚本/入口/runbook及分阶段JSON。总回执P1/P2分组失败把p1记为NOT RUN，但P1实际独立JSON PASS；本节区分，原回执字节不改。
 
 当前old-baseline；真实发生过安装和restore，不能再报系统写入0或整包完成。根调度已明确同窗口继续HOLD，不自动RELEASE。接续仅复用该snapshot，核source/owner/当前baseline/归档hash及协调状态，重做root/P0并完成原P1–P6。
+
+## 最终真实运维验收及原owner独立读回
+
+本人终端修正后重试：2026-10-17 05:02:53.510354 UTC开始，05:03:13.251131 UTC完成；沿用实际首写01:39:41 UTC的原snapshot。共享窗口ID HSDB-MAC-BROKER-362-20261017；根调度随后逐一RELEASE并取得全员ACK，2026-10-17 05:08:37 UTC解除完成；终端05:03:13完成与协调解除时间分开。
+
+| AC | 最终结论 | 实际与独立证据 |
+|---|---|---|
+| AC1 | PASS | exactIssue/owner/claim/source pin保持；本人P0再次formal/root/Python3.14.4/import/baseline；全员ACK/HOLD；原snapshot/hash复核 |
+| AC2 | PASS | manual-p1-installed.json、manual-p5-installed.json与当前independent-final-installed.json完全相等；27静态target+公开metadata/previous/absence/owner/mode/type/link |
+| AC3 | PASS | actual manual-p2-qualified.json及manual-p5-qualified.json：canonical HSDB、holder=True、context.verify PASS；固定source模块路径 |
+| AC4 | PASS | actual installer no-op输出；P1=P3=P5=当前独立完整安装记录，非仅exit0 |
+| AC5 | PASS | root native archive43成员/hash/owner-mode-link复核；manual-p0-baseline.json=计划P4 restored=原snapshot写前baseline；旧BROKER_SURFACE_GAP负例；P5同pin再装及资格PASS |
+| AC6 | PASS | F1/F2原实测2项OK，独占fixture根清理；辅助谓词和受限恢复接续的有限回归PASS，无真实故障注入 |
+| AC7 | PASS | actual总回执与分层independent-acceptance-362.json；原失败完整留存，所有未执行范围继续NOT RUN |
+
+现有broker-only focused checker：source pin正确，27文件、39operations、0GAP，rotation helper LOCAL_HELPER_NOT_DECLARED / capability NOT_ASSESSED，不把helper=null当作轮换能力通过。
+本人actual总回执SHA256：941a0871b522de091ae5a08d3d85df27898957acdc5207b6858f791ed6b380c7。
+本人以root读取保护snapshot并验证43成员/hash；原owner不越root目录权限，独立比较这些公开root回执、全部阶段JSON、当前公开target真实字节及owner/mode/link。原ownerHOLD期间无新增broker/Controller/资格模块调用，P2/P5资格是本人实际执行证据。
+
+Snapshot保留：/usr/local/share/aisoft/backups/tools-362-20261017T013941Z/baseline.tar.gz；SHA256 00ea2f364a7778e49984791dce5ca5f7784a7434a705e4ab6dc6d7830abefd35。snapshot原43公开成员无Secret；metadata source=06afadfca2a950ad6ebee4b90a22e9d950bc72fa、helper=null。
+
+source/local/原PR361 CI与Mac installed证据分开；legacy Mac user Loop、VM installed、architecture/lock GAP保留，HSDB采用/live/UAT及公司部署NOT RUN。没有安装其他7面、Secret/权限变更、服务/数据库操作、push/PR/merge。
+本票本地候选需在协调RELEASE后完成文档检查与classification fresh readback，最终PR仍manual确认、人类merge；本节不投影Issue completed。
+
+## RELEASE与最终本地候选
+
+根调度实际回执 `release-all-acks-362.json`：RELEASED_ALL_ACKS_RECEIVED，windowId HSDB-MAC-BROKER-362-20261017；全员ACK及根调度解除05:08:37 UTC。原owner此前已明确ACK本会话RELEASE；其他业务停点不变。
+RELEASE后使用同一正式typed broker只读核对：Issue362 open/approved、body hash一致；PR361 merged/main/base仍固定pin；classification projected/type-platform/complex；受保护main enable_push=false、enable_force_push=false、merge_allowlist=[admin]、required context CI / verify (pull_request)。见final-fresh-source-issue.json、final-protection-read.json及最终候选回执。
+映射spec补齐机器git_scope仅限本票五文档，不扩大合同；全部本地commit线性、差异限定五文档，未访问或改写其他Issue资源。文档gate最终结果和精确HEAD见 final-pr-candidate-362.json。没有修改shell脚本或runtime，未运行无关全量测试。PR未创建，required CI为NOT RUN；等待唯一manual提交确认。

@@ -36,40 +36,44 @@ pr_url:
 
 # #362 Mac system broker 固定版本安装与验收
 
-当前执行状态 **BLOCKED_EXTERNAL / HUMAN_TERMINAL_RETRY_REQUIRED**。整包合同已由直接人类批准；这不是再次等待业务批准。
-唯一 owner/session `01a1457e-699f-7372-8b6a-7a21d613d407`；worktree `/private/tmp/issue-362-mac-broker-install-acceptance`，claim 已创建，未发表。
-本票只写四份语义文档、一个本人接续 runbook 及本会话 artifact；安装来源始终是 canonical source main 的固定 pin。
-正式classification已读回 `projected`：`type/platform`、`complexity/complex`；lifecycle独立读回 `approved`，见artifact `classification-readback.json`。
+当前运维结果 **INSTALLED_ACCEPTANCE_PASS**。本人终端P0–P6全部通过，原owner已完成既定有界独立核验；最终停在固定pin一致的新版本。根调度已逐一RELEASE并取得全员ACK，05:08:37 UTC解除完成；当前准备唯一manual文档PR，本票未发表。
+
+唯一owner/session `01a1457e-699f-7372-8b6a-7a21d613d407`；branch `change/362-mac-broker-install-acceptance`，WT `/private/tmp/issue-362-mac-broker-install-acceptance`；claim last_push_head=null。
 
 ## 问题/需求总结
 
-#360 已通过 PR361 合并，但 system broker 两个模块仍旧，公开 metadata 绑定旧 source。
-安装审阅卡与正式 #362 正文已 fresh 核对；正文 SHA256 `d160cf94bca4b52e459de257ca709ed6a42e7646f921ebaa232f86ec85851bb4`。
-直接批准覆盖 snapshot、安装、no-op、完整恢复旧 baseline、再安装、实际只读资格和 F1/F2；最终文档 PR 另一次 manual 确认。
+#360/PR361已交付canonical模板scope修复，原Mac system broker仍有2模块及公开metadata未更新。本票执行直接人类已批准的独立工具运维整包，安装来源固定为已合并 `06afadfca2a950ad6ebee4b90a22e9d950bc72fa`，不消费本票文档HEAD。
 
 ## 影响范围
 
-固定 source `06afadfca2a950ad6ebee4b90a22e9d950bc72fa`，installer SHA256 `485ea19514c5f4b72c84d6cc9576fe0c2b65c34d084e74c8f80e2d6ad6f10897`。
-27 静态文件 + 1 生成公开 metadata + exact previous 链/父目录/本次临时 metadata；无 source/runtime/installer/manifest/权限政策修改。
-详细范围见 [spec](spec-mac-broker-install-acceptance-261017.md)，个人操作步骤见 [runbook](runbook-mac-broker-install-acceptance-261017.md)。
+既有 `codex/install-host-access-broker.sh`，SHA256 `485ea19514c5f4b72c84d6cc9576fe0c2b65c34d084e74c8f80e2d6ad6f10897`。
+受控闭包为27静态文件、1公开metadata、有限previous/absence及目录/临时metadata。没有installer/runtime/manifest/权限政策或AGENTS修改；本票Git提交仅四语义文档及runbook，附属证据在本会话artifact。
 
-## 初步方案与建议
+## 已完成的实际验收
 
-合同已批准，保留 `status: approved` 表示合同/启动许可；实际执行暂停由共享工具窗口协调条件决定。
-首次Agent host固定sudo探测exit1/password required保留。2026-10-17本人私密终端已通过原生sudo uid0、Python3.14.4及固定import路径核验；该认证不传递给Agent执行上下文。
-本人入口因尚未协调共享工具窗口主动退出3，受管baseline仍零差异。原始非敏感回执已按完整hash保全，见artifact `personal-terminal-prewrite-readback.json`。
-直接人类已授权联系HSDB根调度协调本次窗口，已读回逐一实际ACK和ARMED/HOLD回执：`HSDB-MAC-BROKER-362-20261017`，协调保持自2026-10-17 01:13:11 UTC开始；ARMED时实际终端写入尚未开始；随后首次执行/恢复见下。只有本人终端执行卡内P0–P6，根调度及关联会话保持避让至核验完成并明确RELEASE。
-初始阶段未写入；随后本人于2026-10-17 01:39:41 UTC实际创建snapshot并完成P1独立文件验收。P2因本票辅助脚本错误硬编码holder=false失败，终端完整恢复旧baseline和旧资格负例均PASS，原owner有界独立baseline比较PASS；当前停在old-baseline。P3/P5/P6尚未运行。F1/F2原实测PASS、临时根已清理。
-Canonical合同DEFAULT_VENDORS_CHANGE_TEMPLATES=True，HSDB未覆盖。已修正辅助预期为True，正确holder通过、错误holder/URL仍拒绝；installer/runtime/manifest/权限政策不改。原始失败总回执的P1字段NOT RUN是P1/P2分组记账，实际manual-p1-installed.json为PASS；原记录按hash完整保留，不覆盖。
-原 --resume-prewrite 仅用于之前零写入停点，本次禁止重跑。当前使用受限 --resume-restored，先fresh核pin、27 source、owner、完整baseline、root/窗口及原exact snapshot/hash，再复用snapshot完成原P1–P6。
-本人私密终端认证必须在实际执行同一终端/适用 timestamp 上下文，另一个终端 `sudo -v` 不保证 Codex `sudo -n` 可用。
+- human:benque在同一私密Mac终端以原生sudo完成P0–P6；根调度及已识别调用者实际ACK/HOLD，没有以marker声称OS隔离。
+- 27文件字节、root:wheel、mode/type/link、metadata exact pin/helper=null、完整previous/absence通过。P1=P3=P5=当前独立读回的完整记录。
+- 同pin真实no-op通过；完整restore与写前43文件/13absence/10目录owner-mode-type相等，旧资格返回BROKER_SURFACE_GAP。
+- 同pin再安装后actual canonical HSDB、holder=True、context.verify通过；broker-only focused drift为39 operations /27 files /0 GAP。
+- F1/F2原实测2项PASS，独占fixture根已清理；未对真实系统单文件造故障、调用live mutation验闸门或安装依赖。
 
-## 风险
+真实总回执 `manual-execution-receipt.json` SHA256 `941a0871b522de091ae5a08d3d85df27898957acdc5207b6858f791ed6b380c7`。
+独立验收 `independent-acceptance-362.json` 位于 `/Users/benque/.codex/visualizations/2026/10/16/01a1457e-699f-7372-8b6a-7a21d613d407/issue-362/`；证据层次与方法见[verification](verification-mac-broker-install-acceptance-261017.md)。
 
-installer 顺序写入；必须由本人协调其他 broker/Controller 使用者避开写入窗口。本地 marker/进程快照不证明排他。
-不依赖 `.previous` 单独回滚；fresh snapshot 完整保留，原缺失的新文件只有 exact 路径且字节可证时可删除。
-Mac user Loop GAP、VM installed NOT READ、architecture/lock GAP 保留；HSDB 采用/公司部署不由本票推导。
-HSDB#15 资源/OID 冻结，公司#32/T06 PAUSED，`IMPLEMENT_PROVIDER=none`。
+Snapshot保留：`/usr/local/share/aisoft/backups/tools-362-20261017T013941Z/baseline.tar.gz`，SHA256 `00ea2f364a7778e49984791dce5ca5f7784a7434a705e4ab6dc6d7830abefd35`，43公开成员。root归档由本人固定root helper读回，owner比较公开回执并核当前公开目标，不越过root目录权限。
+协调保持开始01:13:11 UTC；实际首写01:39:41 UTC；修正后重试开始05:02:53.510354 UTC，终端阶段完成05:03:13.251131 UTC（均2026-10-17）。根调度逐一RELEASE及全员ACK完成时间05:08:37 UTC，公开回执见artifact release-all-acks-362.json。
+
+## 首次失败、恢复和修正
+
+首次P1实际PASS，P2辅助脚本错误硬编码holder=False，和固定canonical默认True矛盾，触发完整恢复PASS。原始失败回执/脚本/分阶段结果在artifact `attempt-20261017T013941Z-failed-p2/` 完整保全；原总回执将P1/P2分组记为NOT RUN与实际P1 JSON PASS的差别如实记录。
+只修本票辅助validator和runbook为严格holder=True；错误holder/URL仍拒绝，有限回归通过。同一HOLD窗口只复用原exact snapshot，再次fresh核source/root/baseline后完成P1–P6。本次成功不覆盖第一次失败记录。
+[runbook](runbook-mac-broker-install-acceptance-261017.md)保留实际执行版本及其当时说明，SHA256 `ac4338ffe2730f838f189fe11725e53dce949d5118998c8639ca656350a4ba5c`；当前结果以本summary和verification为准。
+
+## 风险与保留边界
+
+Mac user Loop沿用原卡GAP、VM installed NOT READ且当前路径NOT REQUIRED、architecture/lock GAP保留。没有HSDB采用/T04、live/UAT、VM安装、业务服务启停、DB/迁移、Secret/权限、provider/monitor或公司部署。
+HSDB#15固定OID/全部资源继续冻结，#32/T06 PAUSED，IMPLEMENT_PROVIDER=none；RELEASE不增加业务授权。#360保持closed/completed，不恢复旧WT/branch/claim。
+本票未push/PR/merge。正式classification此前读回projected：type/platform、complexity/complex；RELEASE后最终判级已fresh读回projected，main保护/required CI保持；manual提交确认与人类merge仍保留。
 
 ## AI 判级
 
@@ -97,14 +101,12 @@ override_reason: ''
 
 ### 判级证据
 
-- 真实 root-owned 共享工具运维，安装、恢复和平台安全边界均属于 forced complex；policy manual。
-- 只消费已合并固定 source；本票文档 HEAD 不作为安装 source。
+本机共享工具真实root安装和恢复，属于强制complex/manual；不把本票文档或source/CI当作installed证明，installed由本人执行和原owner独立有界核验分证。
 
 ### 缺失的 acceptance criteria 或决策
 
-- 无新业务决策；本人终端root已核验，共享窗口已ARMED/HOLD，等待本人按受限接续入口执行；首次snapshot和安装/恢复已实际执行；当前等待修正后真实重试，最终新版验收未完成。
+无新业务决策。全部运维AC已完成；协调RELEASE已完成；最终本地候选验证后一次请求manual最终PR提交确认。
 
-## 首次安装失败恢复与同snapshot接续
+## 最终PR候选边界
 
-实际snapshot：`/usr/local/share/aisoft/backups/tools-362-20261017T013941Z`，SHA256 `00ea2f364a7778e49984791dce5ca5f7784a7434a705e4ab6dc6d7830abefd35`，保留。原失败记录与旧辅助脚本在artifact `attempt-20261017T013941Z-failed-p2/`。
-当前只允许受限 `--resume-restored` 接受这次已恢复旧baseline的exact失败回执；同一HOLD窗口重做P0来源/root/baseline，核原snapshot和hash后复用，不创建第二个snapshot。详见更新runbook和 `resume-restored-validation.json`。实际重试仍NOT RUN，最终PR候选未就绪。
+Policy manual；Issue保持open/approved，尚无本票push/PR/merge。RELEASE后formal source/main仍为固定pin，classification fresh readback projected；main push/force禁用、merge allowlist仅admin、required CI为 `CI / verify (pull_request)`。PR未创建，因此PR CI为NOT RUN；本地文档检查不冒充CI。
