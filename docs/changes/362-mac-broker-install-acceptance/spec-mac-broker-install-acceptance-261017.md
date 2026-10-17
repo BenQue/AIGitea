@@ -97,4 +97,4 @@ HSDB#15 OID `82a5aba9e46a002b78e3aca9896ef9a26e4aa5cd`及所有资源停写；�
 
 ## 未决问题
 
-合同无未决业务问题。实际root认证及共享窗口未就绪；P0未通过，执行状态BLOCKED_EXTERNAL。
+合同无未决业务问题。本人私密终端root认证与解释器核验已通过；共享工具窗口尚未协调，P0未完整通过，执行状态BLOCKED_EXTERNAL。Agent执行上下文认证没有重探测。

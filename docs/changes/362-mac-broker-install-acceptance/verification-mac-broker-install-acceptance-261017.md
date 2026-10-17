@@ -42,13 +42,16 @@ updated: 2026-10-17
 | source guard单独只读调用 | exit0，06afadf level with origin/main，operations38 | source-guard.txt |
 | sudo -n /usr/bin/id -u，sandbox | operation not permitted | root-preflight.json |
 | 同一sudo命令通过原生host执行 | exit1，sudo: a password is required | root-preflight.json；并非自动审批拒绝 |
+| 本人私密终端P0 root uid/interpreter/import | PASS，uid0 / Python3.14.4 / approved import paths | personal-terminal-prewrite-readback.json，原回执按hash保全 |
+| 本人入口协调停点 | exit3，shared tool window not coordinated，install_attempted=false | manual-execution-receipt.json，原副本目录见上项 |
+| 受限resume-prewrite入口 | 4项模拟guard校验PASS，拒绝已安装/snapshot/其他失败状态；系统命令0 | resume-prewrite-validation.json |
 | F1/F2两个exact unittest | exit0，Ran 2 tests / OK | fixtures.json |
 | fixture清理 | PASS，unittest临时Git资源自动删除；exact xcrun_db缓存metadata/hash留证后删除，独占根已rmdir | fixtures.json |
 | existing focused broker drift | GAP，两个bytes-differ与rotation-source-binding；source身份PASS | focused-drift.json |
 | 四角色resolver / check-change-documents | PASS，165 Changes / 2 PASS / 0 GAP | document-validation.json |
 | runbook六个bash块 / helper Python语法与真实baseline | bash -n均exit0，ast.parse通过，baseline PASS；其他root分支NOT RUN | document-validation.json / manual-helper-baseline.json |
 | shared工具写入窗口 | NOT OPENED；不能以本地marker声称排他 | 未进行写入 |
-| snapshot / P1首次安装 / P2实际资格 | NOT RUN | root阻塞在任何系统写入前 |
+| snapshot / P1首次安装 / P2实际资格 | NOT RUN | 共享工具窗口尚未协调，未发生系统写入 |
 | P3真实no-op / P4完整restore+旧资格负例 | NOT RUN | 同上 |
 | P5再装 / P6最终安装验收 | NOT RUN | 同上 |
 
@@ -56,7 +59,7 @@ updated: 2026-10-17
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC1 | PARTIAL，Issue/owner/source/baseline已核；root/窗口/root interpreter未通过 | fresh typed/local/claim/root |
+| AC1 | PARTIAL，Issue/owner/source/baseline已核；本人终端root/interpreter已通过，窗口尚未协调；Agent认证未重探测 | fresh typed/local/claim/root |
 | AC2 | NOT RUN | 安装未执行 |
 | AC3 | NOT RUN | P2未执行，无真实资格PASS |
 | AC4 | NOT RUN | 无真实重复安装/no-op |
@@ -72,8 +75,8 @@ updated: 2026-10-17
 
 ## 遗留风险与未完成项
 
-唯一已实测外部阻塞是sudo非交互认证缺口。43文件/13absence/10目录再次fresh比较为零差异，结合installer/snapshot均未运行，证明本轮未改变受管工具闭包；不宣称OS级排他或不可伪造授权。
+首次Agent sudo非交互认证缺口作为历史证据保留；随后本人实际终端认证和root解释器核验已通过。当前外部阻塞为共享工具窗口尚未完成实际协调，入口主动退出3；直接人类已授权联系HSDB根调度，已发消息等待实际避让回应。43文件/13absence/10目录再次fresh比较为零差异，结合installer/snapshot均未运行，证明本轮未改变受管工具闭包；不宣称OS级排他或不可伪造授权。
 Mac user Loop沿用原卡GAP（本轮未重读）；VM installed NOT READ，当前路径NOT REQUIRED；architecture/lock GAP未处理。
 HSDB采用、live/UAT、VM、公司部署均NOT RUN；#15资源未访问，公司#32/T06 PAUSED。CI/push/PR/merge NOT RUN。
-恢复root条件后先fresh source/remote/baseline/窗口核验再进入P0；若source已前进或target漂移即STOP，不改latest/reset。
+协调完成后在本人实际终端用受限 --resume-prewrite 保留旧回执并重做全部P0，随后先fresh source/remote/baseline/窗口核验再进入P0；若source已前进或target漂移即STOP，不改latest/reset。
 最终PR候选尚未就绪，本轮不请求发表确认。

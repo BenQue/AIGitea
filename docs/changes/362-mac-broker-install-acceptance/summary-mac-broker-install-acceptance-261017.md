@@ -36,7 +36,7 @@ pr_url:
 
 # #362 Mac system broker 固定版本安装与验收
 
-当前执行状态 **BLOCKED_EXTERNAL / ROOT_AUTHENTICATION_REQUIRED**。整包合同已由直接人类批准；这不是再次等待业务批准。
+当前执行状态 **BLOCKED_EXTERNAL / SHARED_TOOL_WINDOW_NOT_COORDINATED**。整包合同已由直接人类批准；这不是再次等待业务批准。
 唯一 owner/session `01a1457e-699f-7372-8b6a-7a21d613d407`；worktree `/private/tmp/issue-362-mac-broker-install-acceptance`，claim 已创建，未发表。
 本票只写四份语义文档、一个本人接续 runbook 及本会话 artifact；安装来源始终是 canonical source main 的固定 pin。
 正式classification已读回 `projected`：`type/platform`、`complexity/complex`；lifecycle独立读回 `approved`，见artifact `classification-readback.json`。
@@ -55,10 +55,12 @@ pr_url:
 
 ## 初步方案与建议
 
-合同已批准，保留 `status: approved` 表示合同/启动许可；实际执行暂停由 root 外部条件决定。
-固定 `/usr/bin/sudo -n /usr/bin/id -u` 在 host 真实返回 exit 1、`sudo: a password is required`。
+合同已批准，保留 `status: approved` 表示合同/启动许可；实际执行暂停由共享工具窗口协调条件决定。
+首次Agent host固定sudo探测exit1/password required保留。2026-10-17本人私密终端已通过原生sudo uid0、Python3.14.4及固定import路径核验；该认证不传递给Agent执行上下文。
+本人入口因尚未协调共享工具窗口主动退出3，受管baseline仍零差异。原始非敏感回执已按完整hash保全，见artifact `personal-terminal-prewrite-readback.json`。
+直接人类已授权联系HSDB根调度协调本次窗口，已发送正式会话消息，等待实际调用者避让回执。
 系统写入窗口未开启；snapshot 未创建；P1–P6 全部 NOT RUN。F1/F2 两项封闭 fixture 已通过且临时根清理。
-恢复入口后先 fresh 核 pin、27 source、完整 target baseline 和共享工具窗口，再执行 P0–P6；不得直接跳到 installer。
+协调完成后使用受限 `--resume-prewrite` 保留原回执并重做完整P0；接续模式拒绝任何已进入snapshot/安装或其他失败状态。随后先 fresh 核 pin、27 source、完整 target baseline 和共享工具窗口，再执行 P0–P6；不得直接跳到 installer。
 本人私密终端认证必须在实际执行同一终端/适用 timestamp 上下文，另一个终端 `sudo -v` 不保证 Codex `sudo -n` 可用。
 
 ## 风险
@@ -99,4 +101,4 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- 无新业务决策；唯一已观察执行阻塞为原生 root 认证。窗口协调和写前 snapshot 尚未运行，不能宣称 P0 通过。
+- 无新业务决策；当前执行阻塞为共享工具窗口尚未完成协调；本人终端root已核验。窗口协调和写前 snapshot 尚未运行，不能宣称 P0 通过。
