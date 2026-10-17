@@ -266,6 +266,8 @@ harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-image-store-e2
 grep -Fq 'NOT RUN: Docker image-store E2E' <<<"$harness_output"
 bash "$ROOT/codex/tests/test-docker28-classic-e2e-harness.sh"
 python3 -B "$ROOT/codex/tests/check-release-evidence-boundary.py"
+# ADR 0001 D3 (#368): project names outside allowed places may only shrink.
+python3 -B "$ROOT/codex/tests/check-project-leak.py"
 lifecycle_harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh")"
 grep -Fq 'NOT RUN: Docker release v2 lifecycle E2E requires separate Issue #65 authorization.' \
   <<<"$lifecycle_harness_output"
