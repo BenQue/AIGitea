@@ -45,8 +45,8 @@ repo-local helper drift. It is read-only and does not provision credentials or a
 `depends_on` integers mean Issues in the source repository only. The approved `owner/repo#N`
 extension must use a new typed dependency read with only a reference argument and a source project binding.
 Resolve the target through canonical `dependency_read_targets` before any GET; no caller-supplied URL,
-host, credential or arbitrary repository route. The only new cross-repository edge approved here is
-`sfm-digital-board → aisoft-platform`; all other projects default to local dependencies.
+host, credential or arbitrary repository route. Allowed cross-repository edges are exactly those the manifest
+declares; every other project defaults to local dependencies.
 
 Cross-repository reads stay inside the broker's manager-audit read-only route. Never use the source
 project-agent or routine merger credential outside its repository, and never fall back to admin,
