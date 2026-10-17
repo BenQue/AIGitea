@@ -1,0 +1,42 @@
+{
+  "retired": [
+    "rsdesign"
+  ],
+  "files": {
+    "01-基础设施-VM-Gitea-Runner.md": 19,
+    "02-CI与自动部署流水线.md": 12,
+    "03-Issue-Spec-Plan与单闸门开发流程.md": 11,
+    "04-Agent编排与定时任务.md": 4,
+    "05-通知与多人协作.md": 4,
+    "07-内网与生产平移路线.md": 7,
+    "08-双工具共存与实施.md": 3,
+    "09-v3平台简化与Loop-Engineering文档改造规划.md": 6,
+    "12-Linux-GitHub-Gitea-双服务器自动部署方案.md": 12,
+    "12-Windows平台自动部署方案.md": 2,
+    "13-项目结果迁移与内网切换实施手册.md": 11,
+    "README.md": 16,
+    "architecture/README.md": 6,
+    "architecture/catalog.json": 3,
+    "architecture/evidence/inventory.json": 3,
+    "architecture/evidence/official-sources.md": 5,
+    "architecture/reference/newemaint/README.md": 8,
+    "architecture/reference/newemaint/gap-report.md": 10,
+    "architecture/reference/newemaint/target-candidate/architecture.json": 2,
+    "architecture/reference/newemaint/target-candidate/architecture.lock.json": 1,
+    "codex/runtime/aisoft_gitea_governance/contract.py": 25,
+    "codex/runtime/aisoft_host_access/broker.py": 1,
+    "codex/runtime/aisoft_host_access/contract.py": 9,
+    "codex/skills/issue-session-flow/SKILL.md": 1,
+    "codex/tools/application-target-preflight.py": 15,
+    "codex/tools/rollback-gitea-routine-pilot.sh": 33,
+    "codex/tools/rotate-gitea-service-account.md": 1,
+    "docker-release/README.md": 7,
+    "docker-release/contracts/migration-rollback-v1.md": 2,
+    "docker-release/templates/action-grant.example.json": 3,
+    "docker-release/templates/target-profile.example.json": 7,
+    "skill-for-claude/issue-session-flow/SKILL.md": 1,
+    "skill-for-codex/references/private-gitea-access.md": 1,
+    "templates/docs/changes/_template/summary.md": 1,
+    "templates/project/ci/registry-preflight.sh": 1
+  }
+}

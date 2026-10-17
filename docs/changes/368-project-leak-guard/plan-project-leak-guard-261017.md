@@ -23,5 +23,5 @@ updated: 2026-10-17
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 分析与三份映射文档 | - | completed |
-| T02 | 检查器、基线、单测、smoke 接入与路线状态；本机 smoke 全绿 | T01 | in-progress |
+| T02 | 检查器、基线、单测、smoke 接入与路线状态；本机 smoke 全绿 | T01 | completed |
 | T03 | 判级投影与 PR 候选，等第二次确认 | T02 | pending |
