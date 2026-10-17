@@ -23,3 +23,11 @@ to AISoftPlatform `type/*`, `complexity/*` and lifecycle labels.
 Every triaged Issue carries exactly one category and one state. `triage/ready-for-agent` only means an Agent may take
 the next preparation or implementation step; Development Loop still requires a complete contract and platform
 `approved`. `triage/wontfix` closes the Issue without `completed` or `deployed`.
+
+## Platform admission question
+
+Applies only when the tracker is the AISoftPlatform repository itself (ADR 0001 D4). Before triaging a request that
+comes from a downstream project, ask: **would it still hold if that project were replaced by any other registered
+project?** If yes, triage it normally. If no, return it to the project repository, or first reduce it to a generic
+extension point (a manifest field or a project-owned profile) and triage only that extension point. If the answer is
+unclear, keep `triage/needs-info` and ask the owner.

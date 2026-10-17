@@ -503,8 +503,7 @@ grep -Fq 'namespaced Matt triage labels' "$ROOT/CLAUDE.md"
 grep -Fq 'docs/agents/triage-labels.md' "$ROOT/CLAUDE.md"
 grep -Fq 'single-context' "$ROOT/CLAUDE.md"
 grep -Fq 'docs/agents/domain.md' "$ROOT/CLAUDE.md"
-# #327 links have consumer-relative spelling. Check both real targets first;
-# all remaining bytes still match the canonical template exactly.
+# docs/agents/ must match the canonical templates byte for byte.
 PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest \
   tests.test_host_access.MattRepositoryAdapterTests.test_agent_configuration_matches_canonical_templates
 
