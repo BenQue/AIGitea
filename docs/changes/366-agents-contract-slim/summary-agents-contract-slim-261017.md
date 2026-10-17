@@ -22,7 +22,7 @@ confidence: high
 override_reason: ''
 depends_on:
   - 364
-status: analyzed
+status: approved
 branch: change/366-agents-contract-slim
 pr_url:
 created: 2026-10-17
