@@ -25,4 +25,4 @@ updated: 2026-10-17
 | T01 | 盘点与三份映射文档 | - | completed |
 | T02 | 分册、README、参考文档与归档改写；钉住短语的测试同步 | T01 | completed |
 | T03 | 技能、reference、注释改写（治理文本），基线收紧，本机 smoke 全绿后 STOP | T02 | completed |
-| T04 | 判级投影与 PR 候选（含删除清单），等第二次确认 | T03 | completed |
+| T04 | 判级投影与 PR 候选（含删除清单），等第二次确认 | T03 | in-progress |
