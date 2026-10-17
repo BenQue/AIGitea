@@ -228,7 +228,8 @@ class ProviderResultTests(unittest.TestCase):
 class LocalGitTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
-        self.repo = Path(self.tempdir.name)
+        # Resolve macOS's /var symlink; canonical manifests reject linked parents.
+        self.repo = Path(self.tempdir.name).resolve()
         self.git("init", "-b", "change/8")
         self.git("config", "user.name", "AISoft Test")
         self.git("config", "user.email", "test@example.invalid")
@@ -303,7 +304,7 @@ class LocalGitTests(unittest.TestCase):
         claim(self.git("rev-parse", "--absolute-git-dir").stdout.strip(), branch="change/8",
               session="fixture-owner", worktree=str(self.repo))
         with tempfile.TemporaryDirectory() as temporary:
-            manifest = Path(temporary) / "manifest.json"
+            manifest = Path(temporary).resolve() / "manifest.json"
             manifest.write_text("{}\n")
             context = TemplateScopeContext("http://fixture.invalid/admin/platform", True,
                 ((manifest, hashlib.sha256(manifest.read_bytes()).hexdigest()),))

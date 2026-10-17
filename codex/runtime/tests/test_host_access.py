@@ -5224,6 +5224,8 @@ class HostAccessBrokerTests(unittest.TestCase):
     def _canonical_remote_fixture(self, temporary):
         import hashlib
         from aisoft_main_integration import TemplateScopeContext
+        # Resolve macOS's /var symlink; canonical manifests reject linked parents.
+        temporary = str(Path(temporary).resolve())
         remote, canonical, linked = self._remote_backed_change_worktree(temporary)
         directory = linked / ("docs/changes/" + self.FF_BRANCH.split("/", 1)[1])
         summary = next(directory.glob("summary-*.md"))
