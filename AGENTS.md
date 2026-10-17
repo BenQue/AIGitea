@@ -1,67 +1,49 @@
-# AGENTS.md · AISoftPlatform v3
+# AGENTS.md · AISoftPlatform 平台维护层
 
-本仓库记录并维护基于 Gitea 的软件开发与自动化运维平台。Claude Code 与 Codex 共用同一套平台契约。
+本文件只写维护平台仓自身的稳定规则（上限 5 KB）。边界见 [ADR 0001](docs/adr/0001-platform-boundary.md)，流程细节见 `03`，Matt 编排见 `04`，双工具见 `08`。项目使用平台的规则不写在这里。改动前先读 `README.md` 与相关分册。
 
-## 工作原则
+## 边界
 
-- 先读 `README.md` 和与任务相关的编号分册，再修改文档或脚本。
-- Issue 是所有需求、缺陷和平台变更的追踪主键；新 Change 绑定同一个 exact `N-short-description`：branch 使用 `change/N-short-description`，semantic docs 使用 `docs/changes/N-short-description/`，worktree basename 使用 `issue-N-short-description`，并且只有一个最终 PR。编号仍是唯一主键，slug 只用于人类识别。
-- `short-description` 使用 2–4 个 lowercase ASCII kebab-case segment、最长 32 字符，并至少包含一个字母；branch、目录、worktree、文档 basename 与 front matter 的编号和 slug 必须完全一致。新 change 文档使用 `<role>-<short-description>-<YYMMDD>.md`；`summary` front matter 的 `documents` 必须把 `summary`、`spec`、`plan`、`verification` 等语义角色显式映射到真实 basename。
-- 已在 manifest-fixed remote 或 Git history 中存在的 `change/N`、`docs/changes/N/` 与 Issue #57 之前的 `00-summary.md`、`01-spec.md`、`02-plan.md`、`03-verification.md` 只作读取或维护兼容；新 writer、first push 和 first PR 不得创建纯编号名称，也不得批量重命名或删除历史对象。调用方不能用 `legacy` 开关绕过 evidence-derived compatibility。
-- AI 根据 Issue 声明、仓库证据、产品合同影响和强制风险规则判定最终有效复杂度；只有信息不足、内容冲突或风险边界无法确定时才停在 `awaiting-triage` 请求人澄清。
-- small 只适用于恢复或保持既有产品合同的候选：Bug 修复、纯文档修正、只补测试、不改变外部行为的局部重构或维护；仍须满足范围局部、可简单 revert 且不触发强制复杂规则。
-- 新增功能、功能性更改、schema/数据迁移、外部契约、认证/权限/安全、共享核心组件、跨模块/服务、CI/制品/部署/回滚，以及 Agent 或平台治理变更一律按 complex 处理。
-- `approved` 表示人已确认合同并允许启动 Development Loop，不表示批准合并或部署。日常会话默认只保留两个确认点：合同/启动确认；提交唯一最终 PR 前确认。merge 后的终态核对、文档检查、worktree/本地分支清理与会话归档按确定性流程完成，不再增加确认点。
-- Development Loop 可以在既定合同内自主实现、测试、修复和处理 CI 反馈；遇到合同冲突、范围扩张、破坏性迁移、安全决策、外部阻塞或重复失败时必须停止并升级给人。
-- 只有 complex 变更映射的 `spec` 明确授权时，才能修改 `AGENTS.md`、Agent 行为、controller、CI/部署脚本或其他治理文件。判级或普通 implementation run 不得修改本次运行正在遵循的 `AGENTS.md`；治理文件必须先由独立、只修改治理合同的受控步骤应用并停止，后续 fresh run 重新读取后才能实施 runtime。
-- AI 可以参与开发/测试环境的部署设计、首次部署、调试和回滚验收；生产环境只运行已经验证、版本化、可回滚的确定性脚本。
-- 保持受保护的 `main`、现有 CI context、测试硬门、不可变制品和可回滚流程。
-- Claude 与 Codex 配置独立保存；新增一个提供者时不得破坏或删除另一个。
-- 不提交或打印 token、密码、`.env`、`auth.json`、Git credentials 等凭据。
-- 运维变更必须说明回滚方式，并用真实命令验证；未运行的测试不得写成通过。
-- 修改 shell 脚本后运行 `bash codex/tests/smoke.sh` 和相应的 `bash -n`/ShellCheck（若环境可用）。
+- 平台只交付标准流程、自定义技能、外部技能 pin 和 ADR 0001 的五类内核代码。项目名与项目专属值只出现在 ADR D3 允许的位置。
+- 项目需求先回答：换成任意一个已注册项目还成立吗？不成立就退回项目仓，或先抽象成扩展点。
+- 本地 Gitea 与本机仓库是事实来源，GitHub 只是镜像。
+- Claude 与 Codex 对等维护平台，配置独立保存，新增提供者不得破坏另一个。complex 平台变更的最终 PR 由未参与实现的一方独立审查。
 
-## 初始化与开发编排
+## Issue 与命名
 
-- 仓库初始化先完成 AISoftPlatform onboarding，并用 `$aisoft-matt-workflow` 校验 Issue、权限、受保护 `main`、required CI、文档和部署边界；随后调用 `$setup-matt-pocock-skills`，tracker 选择 `Other`，直接使用 `templates/docs/agents/issue-tracker.md`、`templates/docs/agents/triage-labels.md` 和 `templates/docs/agents/domain.md`，不得另建一套 Gitea 模板。
-- 每个 Issue 的主要开发路径是 `$triage #N` → `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`。small 变更可按平台合同跳过 spec/plan，但仍须先完成 triage、映射的 summary、AI 判级和 `approved` 复核。
-- `$aisoft-matt-workflow` 负责把完整 Matt skills 接入平台合同。`gitea-analyze-change`、`gitea-spec-plan`、`gitea-development-loop` 和 `gitea-implement-change` 只保留为 Gitea label、语义文档 resolver/publisher、Controller 和旧调用方的兼容 adapter，不定义第二套开发方法；`gitea-platform-ops` 独立处理诊断、非生产首次部署、事件证据和回滚规划。
-- Agent 只能在 exact `change/N-short-description` 创建符合 plan frontier 的本地原子 commit；existing legacy `change/N` 只有在 Controller 读回 remote/history evidence 后才能维护。Controller 在复核编号/slug、唯一 active branch/docs/PR、提交、范围和验证后，才能普通 fast-forward push、准备唯一最终 PR、读取 CI 并投影状态；提交 PR 必须先取得绑定 exact Issue、branch 与 `manual|routine-auto` policy 的确认，范围内 CI 修复不重复询问。
-- #327 当前 Git 收缩合同（2026-10-05）：保留 original/current remote tip 的祖先关系，只普通 FF，拒绝非法 DAG/tree/范围及并发漂移；main 禁直推/force、required CI、唯一 manual PR 第二确认与本人 manual merge 保留。Agent/provider 只追加本 Issue 线性本地 commit；现有合格 Controller 可作限定两 parent 整合。本票首次自举允许负责人本人使用标准 Git 在原 owner worktree、已保全并临时 park WIP 后构造 `[已核验 Issue tip, fresh manifest main]` 的无冲突整合，Agent 不代执行。exact 操作、恢复与范围以映射 spec 为准，冲突或 owned HEAD/owner 漂移停止。
-- #327 生效与延期：旧 R02 合格程序、root authority/protected grant、begin/verify、ES/kernel/signing、完整 OS/解释器闭包、scratch/resource 隔离及对应 I01/I02/AC-9～11 明确延期，原 FAIL/GAP/NOT RUN 保留，不再作为本票首次 source 整合/发表前置。本票第二确认后，可由本人用现有 manifest 绑定 credential helper、已验证的固定 pre-push guard、exact SHA 单 ref 普通 FF 首次发表；Agent 不 direct Git/API、不调用 lease-force、不装 unmerged broker、不扩身份/Secret/权限。source/local/CI 不证明 installed 或安全隔离；两机安装仍需合并后独立授权。本轮独立治理应用/校验/local commit 后 STOP，fresh run 重读后续 T02；未完成源码与原证据必须可恢复，禁止 reset/删除/skip 制造 clean/PASS。
-- routine auto 只适用于 repository manifest 分类为 `internal-application`、显式启用、required contexts 非空且最终仍满足 `effective_complexity=small`、`contract_effect=restore|unchanged`、局部可逆、无 forced risk、非阶段/里程碑完结的 PR。`aisoft-platform`、public-platform 与 contexts 为空的仓库固定 disabled。它必须由独立 per-project routine merger 经唯一 broker typed operation 对最终 exact head SHA 重跑全部硬门后合并。complex/major、阶段或里程碑完结、安全、数据、共享核心、跨模块/服务、CI/制品/部署/回滚和 Agent/平台治理一律 manual；Issue #208 自身不得自动合并。
-- manual 最终 PR 仍只由人合并；provider、project agent、platform manager、shared bot 和 site admin 都不得成为 routine merger。Gitea 1.26.4 没有 merge-only ACL；routine identity 的 ordinary Git 禁令由 broker-exclusive credential custody、typed operation、canonical manifest binding、final-head gates 与 zero fallback 保证，且该 identity 不在 main push/force allowlist。routine hard gate 失败必须 fail closed，不能降级到更宽权限身份、force/scheduled merge 或自动 fallback。PR merge 不传递部署授权。
-- `triage/ready-for-agent` 不等于平台 `approved`。禁止直接 push 受保护的 `main`、force-push、静默安装或更新全局 skills、未经合同授权修改 live 标签，以及未经独立授权部署；生产环境不得由 AI 执行临时命令。
-- `IMPLEMENT_PROVIDER=none` 是文档、skill 工作和项目初始 profile 的默认值；每个项目必须完成自己的 acceptance matrix 后才能显式启用 provider。
+- Issue 是唯一追踪主键。新 Change 绑定 exact `change/N-short-description`、`docs/changes/N-short-description/`、worktree `issue-N-short-description` 与唯一最终 PR；新文档名 `<role>-<short-description>-<YYMMDD>.md`，summary 的 `documents` 映射语义角色（细则见 `03`）。
+- 已存在的 `change/N`、`docs/changes/N/` 和 `00-summary.md`、`01-spec.md`、`02-plan.md`、`03-verification.md` 只作读取与维护兼容，新写入不得创建。
+
+## 判级与确认
+
+- AI 依证据判级。small 只用于恢复或保持既有合同、局部且可简单 revert 的改动；新增功能、功能性更改、schema/数据迁移、外部契约、认证/权限/安全、共享核心、跨模块、CI/制品/部署/回滚、Agent 与平台治理一律 complex。信息不足或冲突时停在 `awaiting-triage`。
+- 只有两个确认点：`approved`（确认合同并启动，不批准合并或部署）与提交唯一最终 PR 前确认。`triage/ready-for-agent` 不等于 `approved`。merge 后收尾按确定性流程完成。
+- Development Loop 在合同内自主实现、测试和修 CI；遇到合同冲突、范围扩张、破坏性迁移、安全决策、外部阻塞或重复失败时停下升级。
+
+## 开发编排
+
+- 主路径 `$triage #N` → `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`；small 变更可按平台合同跳过 spec/plan。`$aisoft-matt-workflow` 把 Matt 接入平台合同；初始化调用 `$setup-matt-pocock-skills`，tracker 选择 `Other`，使用 `templates/docs/agents/issue-tracker.md`、`templates/docs/agents/triage-labels.md`、`templates/docs/agents/domain.md`。
+- `gitea-analyze-change`、`gitea-spec-plan`、`gitea-development-loop`、`gitea-implement-change` 只是兼容 adapter；`gitea-platform-ops` 处理诊断、非生产部署与回滚规划。
+- Agent 只在 exact 分支追加线性本地 commit；Controller 复核范围与验证后普通 fast-forward push 并开唯一最终 PR。
+
+## Git、合并与部署
+
+- 保持受保护 `main`、现有 CI context、测试硬门、不可变制品与可回滚流程。只提交与当前任务有关的文件；应用变更走项目自己的分支和 PR。
+- 禁止直推受保护 `main`、force-push、静默安装或更新全局 skills、未授权改 live 标签。
+- manual 最终 PR 仍只由人合并。routine auto 只适用于 manifest 显式启用的 small PR，由独立 routine merger 在最终 head 全硬门后合并，失败 fail closed（细则见 `03`）；Issue #208 自身不得自动合并。PR merge 不传递部署授权。
+- `IMPLEMENT_PROVIDER=none` 是默认值，项目完成验收矩阵后才能启用 provider。
+- AI 可参与开发/测试环境的首次部署与回滚验收；生产环境只运行已验证、版本化、可回滚的确定性脚本。
+
+## 治理文件
+
+- 只有 complex spec 明确授权才能改 `AGENTS.md`、技能、Agent 行为、controller 或 CI/部署脚本；治理文件由独立受控步骤应用后停止，fresh run 重读后再改 runtime。
+- 单张 Issue 的合同、授权与状态只写在它的 `docs/changes/` 目录，不写进本文件、技能或 `docs/agents/`。
+
+## 凭据与验证
+
+- 不提交或打印 token、密码、`.env`、`auth.json`、Git credentials。
+- 运维变更写明回滚方式并真实验证；未运行的测试不得写成通过。改 shell 后跑 `bash codex/tests/smoke.sh` 与 `bash -n`/ShellCheck。
 
 ## 目录
 
-- `01`–`07`：现有平台 as-built 文档（03 流程、04 Matt 编排与 Loop、06 运维踩坑、07 内网平移）。
-- `08-双工具共存与实施.md`：Claude Code 与 Codex 共存的共享契约、provider 验证矩阵与部署边界。
-- `09-v3平台简化与Loop-Engineering文档改造规划.md`：v3 决策、文档迁移、Loop 与部署边界。
-- 交付形态参考（按项目选用，非部署步骤事实源；环境级原则见 `skill-for-codex/references/onboarding-runbook.md` §4，步骤与细节在项目仓）：
-  - `12-Linux-GitHub-Gitea-双服务器自动部署方案.md`：Linux 容器化——GitHub 入站与三角色职责分离的参考合同（文件名保留早期「双服务器」提案以维持链接）。参考、非部署步骤事实源。
-  - `docker-release/`：Linux 容器化——Docker-first 发布合同（release manifest、transport、capability gate、CLI）的参考实现。参考、非部署步骤事实源。
-  - `company-delivery/`：Linux 容器化（两台公司 VM 离线交付）——operator bundle、脱敏 inventory、Stage 00–110 人工 runbook 与 evidence 的参考实现。参考、非部署步骤事实源。
-  - `12-Windows平台自动部署方案.md`：Windows——IIS/.NET/PostgreSQL 交付链设计（尚未实施）。参考、非部署步骤事实源。
-  - `13-项目结果迁移与内网切换实施手册.md`：全环境（内网迁移线）——结果基线迁移与内网切换手册（尚未实施）。参考、非部署步骤事实源。
-  - `14-Windows部署与迁移验收清单.md`：Windows——部署与迁移验收证据模板（全部 NOT RUN）。参考、非部署步骤事实源。
-  - `15-VMware-Fusion-Windows-ARM原型实施手册.md`：Windows（Mac 本地原型）——部署脚本快速调试层。参考、非部署步骤事实源。
-  - `architecture/`：全环境——技术架构 catalog/profiles/schemas/lock 的平台事实源与 CLI；交付形态取值由项目如实选取，部署方案在项目仓。参考、非部署步骤事实源。
-- `sync/`：GitHub 入站同步的 scm-ci 侧脚本与 systemd 单元。
-- `codex/skills/`：可部署到 `$HOME/.agents/skills/` 的 Codex 原生 skills 源（含 `aisoft-matt-workflow` 与 `issue-session-flow`）。
-- `codex/vendor/mattpocock/`：固定版本的 Matt Pocock skills 上游快照与 manifest。
-- `codex/runtime/`：`aisoft_loop`、`aisoft_release`、`aisoft_architecture`、`aisoft_host_access`、`aisoft_gitea_governance` Python 运行时与测试。
-- `codex/agent/`：VM 上与 Claude 脚本并存的 Codex agent 与 provider router。
-- `codex/tools/`、`codex/config/`：治理/运维工具与 canonical manifests（labels、gitea-governance、host-access-broker、host-role）。
-- `codex/install-vm.sh`、`codex/install-skills.sh`、`codex/install-host-role.sh`、`codex/install-host-access-broker.sh`、`architecture/install.sh`、`sync/install.sh`、`docker-release/install.sh`、`skill-for-claude/install.sh`：8 个 installer，分别安装 runtime/skills/guard/broker/architecture CLI/sync/release CLI/Claude skills，全部经 `codex/lib/install-source-guard.sh` 做 source provenance 与 staleness 闸门，不复制凭据。
-- `skill-for-codex/`：复合 `aisoft-platform` skill（Codex 版）与 onboarding/private-access references。
-- `skill-for-claude/`：Claude 侧 skills 源（`aisoft-platform`、`issue-session-flow`）与 `skills.manifest`/`install.sh`/`check-drift.sh`；references 与 Codex 侧共用 `skill-for-codex/references/`。
-- `templates/docs/changes/_template/`：v3 summary/spec/plan/verification 模板；`templates/docs/agents/`：Matt tracker/triage/domain 配置模板；`templates/agent/`、`templates/hosts/`、`templates/loop/`：profile 与 verifier 示例；`templates/project/`：项目 `AGENTS.md`/`CLAUDE.md` 指针模板与 `ci/`（CI workflow、merge-preview、registry-preflight 参考，#223）。
-- `docs/changes/`：每个 Issue 的语义文档目录（summary/spec/plan/verification）；`docs/agents/`：本仓库的 Matt tracker/triage/domain 配置（由 `templates/docs/agents/` 安装）。
-- `archive/`：历史实施记录、旧方案（含 10/11）与平台状态历史，只读参考，不作当前配置来源。
-
-## Git
-
-- 只提交与当前平台任务有关的文件。
-- 不直接修改试点应用或 Gitea 的受保护 `main`；应用变更走独立分支和 PR。
+`01`–`08` 维护层分册 · `docs/adr/` 决策 · `docs/governance/` 整改路线 · `12`–`15`、`docker-release/`、`company-delivery/` 参考实现 · `architecture/` 架构 schema 与校验 · `codex/` runtime、broker、工具、Codex 技能与 vendor 快照 · `skill-for-claude/`、`skill-for-codex/` 技能源 · `sync/`、`platform-bootstrap/` 站点引导 · `templates/` 下发给项目的模板 · `docs/changes/` 每个 Issue 的证据 · `archive/` 只读历史。完整目录见 `README.md`。

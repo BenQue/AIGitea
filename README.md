@@ -29,9 +29,7 @@
 | 开发与公司传输 | #292 收口自研 main relay，采用项目明确批准的 Gitea 原生 Push Mirror；#293 对齐 `release_producer: local` 与离线交付职责，见 [07](07-内网与生产平移路线.md) | GitHub 是指定镜像/搬运层；镜像覆盖许可仅限指定目标，不延伸到公司 main；启用、同步、公司入站及部署均按项目回执确认 |
 | PAT 轮换 | #316 已合并受控 operator / 固定版本 [PAT helper](codex/tools/gitea-pat-helper/README.md)，源码与隔离验证可追溯 | 后续安装、grant、真实轮换和恢复由独立 [#333](http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/333) 现场合同验收；源码 `completed` 不等于凭据已更新 |
 
-**尚未进入稳定源码的工作**：[#327](http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/327)
-仍 open，跟踪保留历史的 main 整合与普通 FF 发布路径；当前已合并 broker 的发布约束不因此放宽。
-#333 仍 open，`approved` 仅授权其自身合同内工作；本次没有核对其现场执行结果，不宣称已完成。
+**尚未进入稳定源码的工作**：#333 仍 open，`approved` 仅授权其自身合同内工作；本次没有核对其现场执行结果，不宣称已完成。
 Windows Server 2022 x64、公司 AD/JEA 与 [14](14-Windows部署与迁移验收清单.md) 验收仍按原 `NOT RUN` 边界保留。
 
 历史完成条目见 [平台状态历史](archive/平台状态历史-20260902.md)；历史 Change 的 `pr-open` front matter
@@ -286,7 +284,3 @@ project agent 为准：先只读 check，再一次处理一个明确仓库，回
 - **Change ID（Windows 目标合同）**：原型 `<项目三字符代码>-NNNN`、正式 `PRD-NNNN`；用于分支、文档、制品和部署记录。现有 runtime 尚未实现该格式
 - **权威分工**：持续协作模式下本地 Gitea 是开发权威、公司 Gitea 是部署权威、私有 GitHub 是搬运中继；只有未来彻底下线本地开发平台时才执行 [13 §11](13-项目结果迁移与内网切换实施手册.md#11-phase-h最终权威切换备选路径当前不采用) 的备选权威源切换
 - **Architecture declaration/lock**：项目人工维护 `.aisoft/architecture.json`，平台工具生成 byte-identical `architecture.lock.json`；候选 lock 只证明合同可解析，不代表 migration 或 deployment 完成
-
-## 8. #327 当前变更合同（2026-10-05，尚未进入稳定源码）
-
-- 🟡 #327（2026-10-05 收缩）：仅保留历史的 main 整合、普通 FF、非法/并发漂移拒绝、required CI 与恢复。首次 main 整合由负责人本人按标准 Git 执行；首次发表仍先完成最小实现/验证与唯一 PR 第二确认。root authority、ES/kernel/signing、完整 OS 闭包与 scratch 隔离明确延期，旧 FAIL/GAP/NOT RUN 保留；不等待未交付 R02，不安装 unmerged broker。当前 scope 与精确路径见 [#327 spec](docs/changes/327-broker-ff-integration/spec-broker-ff-integration-261002.md)。

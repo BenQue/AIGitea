@@ -19,7 +19,9 @@ class IntegrationTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        # macOS puts temporary directories under the /var symlink; the
+        # canonical manifest check rejects linked parents by design.
+        self.root = Path(self.temporary.name).resolve()
         self.repo = self.root / "repo"
         self.remote = self.root / "remote.git"
         self.git("init", "-q", "--bare", str(self.remote), cwd=self.root)

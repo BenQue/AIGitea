@@ -608,19 +608,6 @@ class MattRepositoryAdapterTests(unittest.TestCase):
                 actual = ROOT / "docs/agents" / name
                 template = ROOT / "templates/docs/agents" / name
                 expected = template.read_bytes()
-                if name == "issue-tracker.md":
-                    # The approved #327 contract link is relative to each
-                    # consumer. Compare its real target and preserve the byte
-                    # equality assertion for all remaining template content.
-                    links = []
-                    for path in (actual, template):
-                        matches = re.findall(r"\[#327 spec\]\(([^)]+)\)", path.read_text())
-                        self.assertEqual(len(matches), 1)
-                        target = (path.parent / matches[0]).resolve()
-                        self.assertTrue(target.is_file())
-                        links.append(target)
-                    self.assertEqual(links[0], links[1])
-                    expected = expected.replace(b"../../../docs/changes/", b"../changes/")
                 self.assertEqual(
                     actual.read_bytes(), expected,
                 )
@@ -5224,6 +5211,8 @@ class HostAccessBrokerTests(unittest.TestCase):
     def _canonical_remote_fixture(self, temporary):
         import hashlib
         from aisoft_main_integration import TemplateScopeContext
+        # Resolve macOS's /var symlink; canonical manifests reject linked parents.
+        temporary = str(Path(temporary).resolve())
         remote, canonical, linked = self._remote_backed_change_worktree(temporary)
         directory = linked / ("docs/changes/" + self.FF_BRANCH.split("/", 1)[1])
         summary = next(directory.glob("summary-*.md"))

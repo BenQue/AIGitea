@@ -83,15 +83,9 @@ owner 标记与每次 SHA 核对仍为必要步骤；broker 还须独立复核 o
   `unclaimed` 与 `claim-invalid` 同样计入 GAP；`ahead`（有未推送的本地 commit）与 `unpushed`
   照列但不计——否则这条命令在整个实现期都是红的，读者会被训练成忽略它。
 
-### #327 当前收缩合同（2026-10-05）
+### main 整合与发布（稳定规则）
 
-本票只交付保留 original/current remote tip 祖先关系的 main 整合、普通 FF、非法/并发漂移拒绝、required CI 与可恢复收尾。以 [#327 spec](docs/changes/327-broker-ff-integration/spec-broker-ff-integration-261002.md) 的当前合同为准；T01/T04–T10 为历史治理步骤，原 FAIL/GAP/NOT RUN 保留。
-
-Agent/provider 只追加本 Issue 的线性本地 commit。合格现有 Controller 可按合同整合；本票首次自举明确允许**负责人本人**用标准 Git 在原 owner worktree 临时保全/park WIP、构造 `[已核验 Issue tip, fresh manifest main]` 并留恢复证据，Agent 不代执行。它不再等待未交付 R02、root authority、OS observer 或 protected grant。仅无冲突标准整合；冲突停止并保留 stash/前态，不自动覆盖内容。
-
-最终唯一 PR 的第二确认仍绑定 exact Issue/branch/manual。确认前不发表；确认后本票可由本人使用已绑定的普通 Git credential helper、经过本票测试的固定 pre-push guard 和 exact SHA 单 ref 普通 FF 完成首次发表，不调用旧 lease-force broker、不装 unmerged broker，Agent 不借此绕 broker。来源/DAG/tree/范围、R0/R/M/H、guard 执行和真实 readback 必须核对；main 禁直推/force、required CI、本人 manual merge 不变。实际首次发表/installed 验收未运行仍为 GAP/NOT RUN。
-
-root authority、begin/verify、ES/kernel/signing、完整 OS/解释器闭包、scratch/resource 隔离及其 I01/I02/AC-9～11 延期，不作为本票当前 source 整合/PR 的前置；不宣称这些安全能力已交付，也不以本地 receipt/owner marker 证明不可伪造授权或同 UID 隔离。Mac/VM 安装均需 source 合并后另获授权。本轮仅治理文本与证据应用、校验、本地 commit 后 STOP；下一 fresh run 重读后才续 T02。
+main 整合只用普通 fast-forward，并保留 original/current remote tip 的祖先关系；非法 DAG、tree、范围和并发漂移一律拒绝，禁止 force。Agent/provider 只在本 Issue 的 exact 分支追加线性本地 commit；冲突时停止并保留前态，不自动覆盖内容。来历与延期项见 #327 的 `docs/changes/327-broker-ff-integration/`。
 
 ### 衍生 Issue 的正文与认领
 
@@ -160,6 +154,8 @@ lowercase head SHA，并在 POST 前按固定顺序 fresh 复核 authorization�
 唯一开放 PR、open/unmerged、base=`main`、head、live protection/manifest、逐 context CI、reviews、
 dependencies 与完整 final diff。任何缺失、漂移或未知 schema 都 fail closed，零 merge POST。
 
+仓库与身份限制：routine auto 只对 repository manifest 分类为 `internal-application` 的仓库开放；平台仓、public-platform 仓与 required contexts 为空的仓库固定 disabled。合并必须由独立 per-project routine merger 经唯一 broker typed operation 执行；provider、project agent、platform manager、shared bot 与 site admin 都不得成为 routine merger。
+
 ## 3. 文档合同
 
 ```text
@@ -172,7 +168,7 @@ docs/changes/N-short-description/
 
 文件名固定为 `<role>-<short-description>-<YYMMDD>.md`：slug 使用 2–4 段 lowercase ASCII `kebab-case`、至少包含一个字母、硬上限 32 字符，完整 basename 不超过 64 字符；分支、目录、worktree、文档和 front matter 必须使用同一 `(N, slug)`。slug 创建后不可修改；纠错应开新 Issue。日期等于各文件首次创建日期，普通更新只修改 `updated`，不重命名。
 
-新 worktree basename 固定为 `issue-N-short-description`。`main`、`master`、`head`、`merge`、`pull`、`pr`、`refs`、`change`、`changes`、`docs`、`worktree`、`tmp`、`temp`、`legacy` 是保留 slug，`tmp-`、`temp-`、`legacy-` 前缀同样禁止。同一 Issue 同时出现 legacy/readable 名称或多个 slug 时必须以 `CHANGE_NAME_CONFLICT` 停止。
+新 worktree basename 固定为 `issue-N-short-description`。`main`、`master`、`head`、`merge`、`pull`、`pr`、`refs`、`change`、`changes`、`docs`、`worktree`、`tmp`、`temp`、`legacy` 是保留 slug，`tmp-`、`temp-`、`legacy-` 前缀同样禁止。同一 Issue 同时出现 legacy/readable 名称或多个 slug 时必须以 `CHANGE_NAME_CONFLICT` 停止。纯编号名称只在 manifest-fixed remote 或 Git history 已有证据时作读取或维护兼容，调用方不能用 `legacy` 开关绕过这种 evidence-derived 判定，也不得批量重命名或删除历史对象。
 
 所有 change 文档的共同 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`created`、`updated`；`pr_url` 是 **summary 专属**字段，只写在 summary（#142：spec/plan/verification 里的复制品没有任何代码消费者，四份复制只会互相漂移），由 `aisoft-loop backfill-pr-url` 在 PR 建出后与 `status: pr-open` 一起写入；complex 的 spec/plan/verification 固定使用 `effective_complexity: complex`。summary 另外完整保存 analyzer schema 的 `reason`、语义 `required_docs`、`documents` 角色到真实 basename 的映射和 `override_reason`。无法安全判级时，summary 的 `assessed_complexity` 为 `needs-human-decision`，并从 front matter 与 `## AI 判级` YAML 同时省略整个 `effective_complexity` key，不保留空值或 placeholder；其他 complex 文档尚不得创建。
 
