@@ -18,7 +18,7 @@
 | 批次 | 内容 | 评审条目 | 依赖 | 涉及 NewEMaint | 状态 |
 |---|---|---|---|---|---|
 | R0 | 平台边界 ADR 与本路线 | A1、A2、D1（决定部分） | 无 | 否 | #364 进行中 |
-| R1 | 治理合同瘦身：`AGENTS.md` ≤ 5 KB 只留维护层规则；#327 单票合同移出 `AGENTS.md`、两份 `aisoft-platform` SKILL.md 与 `docs/agents/issue-tracker.md`；triage 规则加入 ADR D4 准入问题；起草“平台使用合同”初稿与项目指针模板 | A2、B1、D1 | R0 | 否 | 未开始 |
+| R1 | 治理合同瘦身：修复 macOS 上 `/var` 符号链接导致的 #360 canonical 测试失败；`AGENTS.md` ≤ 5 KB 只留维护层规则；#327 单票合同移出 `AGENTS.md`、两份 `aisoft-platform` SKILL.md 与 `docs/agents/issue-tracker.md`；triage 规则加入 ADR D4 准入问题；起草“平台使用合同”初稿与项目指针模板 | A2、B1、D1 | R0 | 否 | 未开始 |
 | R2 | 渗入守卫：smoke 从 manifest 读取已注册项目名，按 ADR D3 白名单报错；先以报告模式落地并列出现存命中，随 R3/R4 清零后转为硬门 | A3 | R0 | 否 | 未开始 |
 | R3 | 模板与通用文档去项目化：`templates/project/ci` 的 registry 改占位并标“Node 栈示例”；summary 模板、两份 `issue-session-flow`、`private-gitea-access.md` 的依赖边改为指向 manifest；`03`、`04`、`08`、`README.md` 去掉项目事故与已退出项目的 as-built 叙述；代码注释里的项目轶事；`09` 归档；技能里的站点路径收进 site profile 引用；测试改钉结构 | 2.2、2.3、B3 | R1 | 否（只动文字，不动 CI 模板的已发布行为） | 未开始 |
 | R4 | broker 与 governance 去项目化：#340 application target 改 manifest 数据，preflight 只留采集引擎；#213 routine pilot 写死项改为 manifest 自洽校验，评估退役 pilot 闸门并归档 `rollback-gitea-routine-pilot.sh`；#358 triage 时按扩展点处理（profile 由项目仓自带，平台只给 schema 与校验器） | A4 | R1 | **是**：routine merger、architecture lock | 未开始；开工前与 NewEMaint 线程核对 |

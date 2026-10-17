@@ -20,7 +20,7 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/364-platform-boundary-adr
 pr_url:
 created: 2026-10-17

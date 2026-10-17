@@ -10,7 +10,7 @@ confidence: high
 risk_flags:
   - agent-governance
 depends_on: []
-status: analyzed
+status: approved
 branch: change/364-platform-boundary-adr
 created: 2026-10-17
 updated: 2026-10-17
@@ -20,5 +20,5 @@ updated: 2026-10-17
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | ADR 0001、整改路线与三份映射文档草稿；文档检查与 smoke | - | in-progress |
-| T02 | 负责人确认合同后按意见修订、判级投影、准备唯一 manual PR 候选 | T01 | pending |
+| T01 | ADR 0001、整改路线与三份映射文档草稿；文档检查与 smoke | - | completed |
+| T02 | 负责人确认合同后按意见修订、判级投影、准备唯一 manual PR 候选 | T01 | in-progress |
