@@ -23,7 +23,7 @@ updated: 2026-10-19
 
 ## 基线与范围
 
-- 基线：`origin/main` = `a395f7a`
+- 基线：`origin/main` = `80a38dc`（R7 合并后；合同取证时为 `a395f7a`）
 - 环境：macOS（MacM4ProBQue），bash 3.2 系统 shell
 - 本记录负责证明 spec AC 1–10
 

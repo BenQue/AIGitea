@@ -34,7 +34,7 @@ git_scope:
   - 14-Windows部署与迁移验收清单.md
   - platform-bootstrap/README.md
   - platform-bootstrap/runbook.md
-  - skill-for-codex/references/onboarding-runbook.md
+  - skills/aisoft-platform/references/onboarding-runbook.md
   - usage/bundle.json
   - architecture/evidence/inventory.json
   - codex/runtime/tests/test_architecture_governance.py
@@ -179,7 +179,7 @@ git_scope:
 
 ADR 0001 D1/D5/D7：平台只交付流程、技能、外部技能 pin 与 K1–K5 内核。`docker-release`、`aisoft_release`、`company-delivery`、`aisoft_company_*` 与 `architecture/reference/newemaint` 是按某个项目实例化的参考实现，带着证据闸门、E2E harness 和一个 installer 留在 smoke 硬门里。迁出后平台对任一项目只剩 manifest 注册数据，项目对平台只剩发布包 pin。
 
-## 已核对的事实（2026-10-18/19，平台 `origin/main` `a395f7a`，NewEMaint `gitea/main` `db8b5bed`）
+## 已核对的事实（2026-10-18/19，平台 `origin/main` `a395f7a`，R7 合并后在 `80a38dc` 复核，NewEMaint `gitea/main` `db8b5bed`）
 
 1. NewEMaint 两个发布 workflow 按平台 `e1290d2` checkout 27 个发布文件；main 删除不影响取法（脱钩通知 §2）。
 2. NewEMaint company-scm 的 collector、diagnostics 与 baseline schema 按 `source_commit` `1164318` 与 SHA-256 钉住。
@@ -200,7 +200,7 @@ ADR 0001 D1/D5/D7：平台只交付流程、技能、外部技能 pin 与 K1–K
 3. installer 集合由 8 减为 7：`check-installed-drift.py` 删掉 docker-release surface 与 `aisoft_release`、docker-release 的 scope 根；`test-installer-source-guard.sh` 与漂移夹具同步；文档中的 installer 计数同步（ADR 0001 作为决策记录不改）。已安装副本不由平台删除，verification 写明 DockerLab 现状与处置建议。
 4. architecture 只留 K4 通用部分：`architecture/evidence/inventory.json` 去掉指向 `reference/newemaint` 的条目，`test_architecture_governance.py` 删除读该目录的用例；`docker-release/v1` 名称与 project-check 的 `docker-release/v2` 关键字保留（事实 7）。
 5. 活文档去掉对被删路径的链接：README、`02`、`06`、`07`、`12`–`14`、`platform-bootstrap/`、onboarding runbook、`AGENTS.md` 目录行；需要时指向迁出说明。06 踩坑表的历史行只改断链，不改事故叙述。
-6. 治理文件按路线规则 5：`AGENTS.md` 与 onboarding runbook 的修改作为第一个 commit 单独提交，提交后停止，fresh 重读再做其余改动。onboarding runbook 是使用层发布包成员，同 PR 用 `usage-bundle.sh --release` 发下一个未占用版本（R7 若先合并占 1.1.0 则取 1.2.0）。
+6. 治理文件按路线规则 5：`AGENTS.md` 与 onboarding runbook 的修改作为第一个 commit 单独提交，提交后停止，fresh 重读再做其余改动。onboarding runbook 是使用层发布包成员，同 PR 用 `usage-bundle.sh --release` 发下一个版本 1.2.0（R7 已于 2026-10-18 合并并发布 1.1.0）。
 7. 泄漏基线收紧：被删路径的基线条目移除，`project-leak` 守卫读回基线外零新增。
 8. 全仓 `git grep` 对 `docker-release/`（目录路径形式）、`company-delivery/`、`aisoft_release`、`aisoft_company`、`reference/newemaint` 只命中 `docs/changes/`、`archive/`、`docs/adr/`、`docs/governance/`、06 踩坑表与事实 7 的通用词汇。
 9. macOS 全量 `bash codex/tests/smoke.sh` 通过，`bash -n` 与 ShellCheck 覆盖改过的 shell；Codex 经 Herdr 只读独立审查通过。
