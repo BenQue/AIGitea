@@ -1,0 +1,20 @@
+# Platform skills: the single source for every provider (ADR 0001 D8, #379).
+#
+# One line per skill: <skill-name> <targets>
+#   targets = comma-separated maintainer-layer landings, a non-empty subset of
+#             claude (~/.claude/skills) and codex (~/.agents/skills)
+#
+# Each skill lives in skills/<skill-name>/. The Claude landing receives SKILL.md
+# and references/*.md; the Codex landing receives the whole directory, including
+# Codex-only metadata under agents/. Cursor is a usage-layer tool only: its
+# project-level landing comes from usage-bundle.sh --build, never from here.
+# Every installer and drift checker reads this file; a skill directory that is
+# not declared here makes them fail closed.
+aisoft-platform claude,codex
+issue-session-flow claude,codex
+aisoft-matt-workflow codex
+gitea-analyze-change codex
+gitea-spec-plan codex
+gitea-development-loop codex
+gitea-implement-change codex
+gitea-platform-ops codex

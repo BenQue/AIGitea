@@ -1,13 +1,23 @@
 ---
 name: issue-session-flow
-description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆成多个 Issue、一次新生成了多个 Issue、要同时处理多个已有 Issue、准备提交最终 PR、manual PR 等人合并、routine-auto 继续硬门、merge 后收尾、或要清理并归档一个已完成的会话。触发词：开 issue、新会话、调度会话、派单、并行、顺序、依赖、准备 PR、待合并、合并了、收尾、清理 worktree、归档会话、衍生 issue。
+description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆成多个 Issue、一次新生成了多个 Issue、要同时处理多个已有 Issue、准备提交最终 PR、manual PR 等人合并、routine-auto 继续硬门、merge 后收尾、或要清理并归档一个已完成的会话。Also use to coordinate one AISoftPlatform Issue per session through contract/start confirmation, final-PR confirmation, manual or eligible routine merge, and deterministic post-merge cleanup. 触发词：开 issue、新会话、调度会话、派单、并行、顺序、依赖、准备 PR、待合并、合并了、收尾、清理 worktree、归档会话、衍生 issue。
 ---
 
 # Issue 会话编排
 
-一个 Issue 一个会话；会话开在该 Issue 的**目标项目**里。默认人工确认只有两处：确认合同并启动 Development Loop；提交唯一最终 PR 前确认。manual PR 等人合并；eligible routine-auto 在提交确认后继续 CI 与最终硬门。merge 后终态、文档、本地清理与归档按确定性流程完成，不再询问。
+一个 Issue 一个会话；会话开在该 Issue 的**目标项目**里，全部实现都在该 Issue 的 exact 隔离 worktree 内。默认人工确认只有两处：确认合同并启动 Development Loop；提交唯一最终 PR 前确认。manual PR 等人合并；eligible routine-auto 在提交确认后继续 CI 与最终硬门。merge 后终态、文档、本地清理与归档按确定性流程完成，不再询问。
 
 **核心事实**：manual 路径由会话在人确认 merge 后主动收尾；routine-auto 成功后同一会话立即收尾。两条路径都必须完成终态标签、文档自查、worktree/本地分支清理并归档，但不为这些确定性动作增加确认点。
+
+本技能用到的会话能力按能力名描述，各工具按自己的方式提供：
+
+| 能力 | 用途 | 没有这项能力时 |
+|---|---|---|
+| 派单 | 生成一张待人点击的新会话卡片 | 把自包含的任务书交给人，由人开新会话 |
+| 会话间消息 | 前置完成、衍生 Issue 回报调度会话 | 写进 Issue 评论，或请人转达 |
+| 会话标题 | 让状态在会话列表一眼可见 | 每次回复第一行写当前状态 |
+| 归档会话 | 收尾后归档本会话 | 报告“可归档”，由人归档 |
+| 并行代理 | 只读调查并行 | 串行执行；任何时候都不并行写同一个 worktree |
 
 ## 何时开调度会话
 
@@ -59,14 +69,14 @@ PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli scan-worktrees --repo <check
 
 ## 派单
 
-`spawn_task({title, prompt, tldr, cwd})` 产出的是**待点击的卡片**，人点了才开出会话。这是刻意保留的人工闸门，不要绕过，也不要因为「反正要开」就自己在本会话里动手。
+派单产出的是**待人点击的卡片**（或交给人的任务书），人点了才开出会话。这是刻意保留的人工闸门，不要绕过，也不要因为「反正要开」就自己在本会话里动手。
 
-- `cwd` = 目标项目的本地 checkout。接入 AISoft 平台的项目从 `codex/config/host-access-broker.json` 的 `projects[].mac_checkout` 读。
+- 工作目录 = 目标项目的本地 checkout。接入 AISoft 平台的项目从 `codex/config/host-access-broker.json` 的 `projects[].mac_checkout` 读。
 - **`mac_checkout` 是 `null` 或查不到 → 停下来问人。不要拼路径、不要从别的项目类推。**
-- `prompt` 必须自包含：新会话没有本会话的上下文。至少写清 Issue 号、目标项目、可测验收标准、依赖的 Issue、以及回报地址（本调度会话的 session id）。
+- 任务书必须自包含：新会话没有本会话的上下文。至少写清 Issue 号、目标项目、可测验收标准、依赖的 Issue、以及回报地址（本调度会话的标识）。
 
-**并行**：一次把所有卡片派出去。
-**顺序**：只派当前无阻塞的。依赖写进 **Issue 正文**，再由 Issue 会话抄进 summary front matter 的 `depends_on`——依赖必须落在 Issue 上，不能只活在调度会话的上下文里（会话会被压缩，Issue 不会）。前置 Issue 完成时用 `send_message` 回报，调度会话再派下一张。
+**并行**：一次把所有无依赖的卡片派出去，各自的分支、worktree 与 PR 保持分开。
+**顺序**：只派当前无阻塞的。依赖写进 **Issue 正文**，再由 Issue 会话抄进 summary front matter 的 `depends_on`——依赖必须落在 Issue 上，不能只活在调度会话的上下文里（会话会被压缩，Issue 不会）。前置 Issue 完成时用会话间消息回报，调度会话再派下一张。
 
 **依赖身份（#286 source/local fixture 已验证，installed/live 尚未验收）**：旧数字只表示本仓；
 跨仓必须使用 exact `owner/repo#N`，不得填外仓裸编号。新读取必须先匹配 manifest 的
@@ -94,7 +104,7 @@ manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。
 
 | # | 标题 | 归属仓 | 重复于 | 判定 | 下一步 |
 |---|---|---|---|---|---|
-| N | 一句话 | 平台仓 / 项目仓 | - | 可派单 | `spawn_task` |
+| N | 一句话 | 平台仓 / 项目仓 | - | 可派单 | 派单 |
 | N | 一句话 | 项目仓 | #M | 重复 | 关闭，并注明保留哪一条 |
 | N | 一句话 | 平台仓 | - | 阻塞于 #M | 前置合并后再派 |
 | N | 一句话 | 平台仓 | - | 待裁决 | 进入下面的汇总 |
@@ -112,7 +122,7 @@ manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。
 
 ## Issue 会话的状态
 
-用 `set_session_title` 让状态在会话列表里一眼可见：
+用会话标题让状态一眼可见：
 
 ```
 #N slug · 待启动 → 进行中 → 待提交PR → manual: 待合并 / routine: 硬门 → 收尾 → 归档
@@ -121,8 +131,8 @@ manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。
 ## approved 之后默认自主推进
 
 确认点 1 通过后，直到确认点 2 之前不再增加询问：读证据与判级、补齐合同文档、合同内实现与本地原子
-commit、测试与普通修复、必需的更宽闸门、判级投影；确认点 2 通过后同样不再询问 push、唯一最终 PR
-与 PR CI 修复。ticket、测试命令、commit、CI 重试都不是确认点；合同里已定的选择不再重问。
+commit、测试与普通修复、必需的更宽闸门、判级投影。确认点 2 通过后同样不再询问 push、唯一最终 PR
+与 PR CI 修复。只有合同/启动确认不授权 push 或建 PR。ticket、测试命令、commit、CI 重试都不是确认点；合同里已定的选择不再重问。
 
 ## 只在这些情况暂停
 
@@ -144,27 +154,45 @@ Loop。确认后持久化 `approved`；它只授权合同内实现、测试和�
 ## 确认点 2：准备提交最终 PR
 
 本地验证完成后进入 `AWAITING_PR_CONFIRMATION`；重复 poll 不调用 provider、不 push、不建 PR。
-manual 与 routine-auto 都必须输出 branch、policy、真实验证、判级和未执行项。manual 明确“CI 修复后停在
-`READY_FOR_REVIEW` 等人合并”，且不得包含自动合并 marker。routine-auto 必须逐字包含：
+只给出一份与 policy 对应的候选。manual 与 routine-auto 都必须输出 branch、policy、真实验证、判级和未执行项；
+平台仓的 complex 变更另加一行交叉审查结论（由未参与实现的另一方提供者对候选 head 只读审查，见 `03` §「交叉审核」）。
+
+manual：
+
+```text
+🟠 准备提交最终 PR —— #N <标题>
+Branch: change/N-<slug>
+Policy: manual
+变更: <一句话>
+验证: <真实结果；未运行写 NOT RUN>
+判级: <classification read-back>
+交叉审查: <平台仓 complex：审查方、审查的 head、PASS/FAIL；其它写“不适用”>
+未执行: <install、credential、protection apply、deploy 等>
+
+请确认提交唯一最终 PR。确认后可继续当前合同内的 PR CI 修复；required CI 全绿后停在
+READY_FOR_REVIEW，等待你人工审核并合并。部署不在本次授权内。
+```
+
+manual 文本不得包含自动合并 marker。eligible routine-auto 的候选必须逐字包含：
 
 ```text
 当前合同内 CI 修复可继续，最终 head 的 required CI 全绿且全部硬门通过后，允许受控自动合并。
 ```
 
 routine 授权绑定 exact Issue、branch 与 policy，不绑定确认时 SHA；实际 merge 必须钉住最终 40 位
-lowercase SHA。部署不在本次授权内。routine hard gate 失败零 merge POST、零权限降级、零 fallback。
+lowercase SHA。部署不在本次授权内。routine hard gate 失败只返回一个稳定原因，零 merge POST、零权限降级、零 fallback。
 manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；routine `AUTO_MERGED` receipt
 直接进入收尾，不再询问第三次。
 
-`判级` 一行是**合并前的最后一道自查**，必须填 `codex/tools/apply-classification-labels.sh --verify N`
-的真实读回，不是印象。**不是 `projected` 就不要进入待合并**——合并把 Issue 转成 closed，
+`判级` 一行是**合并前的最后一道自查**，必须填 `codex/tools/apply-classification-labels.sh --repo <checkout> --verify N`
+的真实读回，不是印象；用 exact Issue 编号，不用 `--range`。**不是 `projected` 就不要进入待合并**——合并把 Issue 转成 closed，
 判级投影的窗口随之永久关闭，之后没有任何工具会补写 `type/*` 与 `complexity/*`（#167）。
-读到 `projection-missing` 就回去跑 `--apply`；读到 `broker-operation-missing` 就是本机 broker
-操作表陈旧，两台重装后重跑，不要往权限方向查。未接入平台的项目跳过这一行。
+读到 `projection-missing` 或 `projection-mismatch` 就修复合同内的投影（回去跑 `--apply`）并重新读回；读到 `broker-operation-missing` 就是本机 broker
+操作表陈旧，两台重装后重跑，不要往权限方向查；其它不可读结果作为 blocker 报告。`projection-window-closed` 是遗漏的证据，不是补写或覆盖的许可。未接入平台的项目跳过这一行。
 
 ## 收尾（manual 确认已合并，或 routine receipt 后自动执行）
 
-1. 取回主干，确认 merge commit **真实存在**。人说「合并了」不是证据，`git log` 才是。
+1. 取回主干，确认 merge commit **真实存在**于 `origin/main`。人说「合并了」不是证据，`git log` 才是。
 2. 终态标签先 **dry-run**：接入平台的项目跑 `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>`，验证逐 Issue 判定计划。未接入的项目确认 `Closes #N` 已把 Issue 关掉。同时对本 Issue 跑一次 `codex/tools/apply-classification-labels.sh --verify N`（**用编号，不用 `--range`**）：报 `projection-window-closed` 说明合并前那一步漏了，如实记录并按 `03` §11 处置，**不补写、不加 override**。
 
    念计划前先读第一行 `{"selector":"range",…}`：`commits` 是这个 range 实际覆盖的 merge，
@@ -180,20 +208,30 @@ manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；rout
    `deployment_lifecycle`——只有 `application-deploy`（合并即部署）会让计划显示 `skip
    requires-deployment` 去等一次必然到来的部署，`none` 与缺省的 `application-deploy-selective`
    都当场到 `completed`（#192）。两个条件都由工具读取，不要自己判断该写 `completed` 还是
-   `deployed`；计划里出现你不认识的 `reason` 时读 `detail`，它写着依据。
+   `deployed`；计划里出现你不认识的 `reason` 时读 `detail`，它写着依据，绝不推断已部署。
 4. 文档自查：接入平台的项目跑 `check-change-documents --repo <checkout>`。
 5. 清理：**先离开 worktree**，再 `git worktree remove <path>` 与 `git branch -d change/N-slug`。站在 worktree 里删自己脚下的目录会失败。
-6. 盘点衍生 Issue：有调度会话就 `send_message` 回报，没有就自己开 Issue 并派卡片。
-7. 报告 exact merge/receipt、终态、文档检查、worktree/本地分支清理与未执行项，然后直接执行
-   `archive_session("self")`。任何确定性收尾失败都必须保留会话并报告真实 blocker，不得伪报已归档。
+6. 盘点衍生 Issue：真正独立的验收标准开新 Issue，不扩展已关闭的那张；有调度会话就用会话间消息回报，没有就自己开 Issue 并派单。
+7. 报告 exact merge/receipt、终态、文档检查、worktree/本地分支清理与未执行项，然后直接归档本会话。
+   任何确定性收尾失败都必须保留会话并报告真实 blocker，不得伪报已归档。
 
-`archive_session` 清理的是 CCD 自己管的 `.claude/worktrees/`，**不是**你手建的 change worktree。第 5 步不能省。
+归档会话只清理工具自己管理的工作目录，**不是**你手建的 change worktree。第 5 步不能省。
 
 ## 衍生 Issue 与琐事例外
 
 会话中途发现新问题，默认开新 Issue。可以顺手做的**仅限**同时满足三条：不改变外部行为、不需要独立验收标准、在本 PR 已经触碰的文件内。
 
 一句话判据：**它需要写验收标准吗？需要就是新 Issue。** 这与平台 small 判级同源，不是新规则。
+
+## 不变量
+
+- 一切 Gitea 与远端 Git 访问走按项目限定的 host-access broker。
+- 一个会话不顺手实现别的 Issue。
+- 会话不在不属于自己的 change worktree 里写入；只通知或交回（#298）。
+- `pushed_head` 与已核验的 SHA 比对之前，push 不算完成。
+- `approved` 启动开发，不授权 merge 或部署。
+- 开着的 PR 不是交付，绿色 workflow 不是部署，未运行的检查永远不是 PASS。
+- 不打印凭据，不在提供者之间复制认证。
 
 ## Red Flags —— 出现这些念头说明正在偏离
 
@@ -207,6 +245,7 @@ manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；rout
 - 「推完了，PR 建出来就行」→ 先核对返回体的 `pushed_head` 是不是你核验过的那个 SHA
 - 「这个小改动不值得开 Issue」→ 它需要验收标准吗？
 - 「会话先留着，回头一起归档」
+- 「交叉审查等 PR 开了再说」→ 平台仓 complex 的审查结论是确认点 2 候选的一部分
 - 「收尾技能给了菜单，我选 push 并建 PR 就行」→ 平台项目内本地 merge、`git push`、建 PR 三项都不可用；停在 `AWAITING_PR_CONFIRMATION`，见 `aisoft-platform` 的「外部技能包边界」
 
 ## Common Mistakes
@@ -222,10 +261,10 @@ manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；rout
 | 进别人的 change worktree 代劳变基或修冲突 | 冲突解决无归属，验收证据来源不可分辨，错误跟着对方的 PR 直达唯一交付闸门（#298） |
 | 推送后不核对 `pushed_head` | 跳过了中途改写唯一确定性可检出的时刻，PR 带着没读过的内容进入 review |
 | 只在上下文里记依赖 | 会话一压缩，顺序关系就丢了 |
-| 靠印象填 `cwd` | 会话开在错误目录，或开在根本不存在的路径上 |
-| 让并行子代理同时写同一个 change worktree | 单写者归属被自己打破，commit 归属与验证证据不可分辨 |
+| 靠印象填工作目录 | 会话开在错误目录，或开在根本不存在的路径上 |
+| 让并行代理同时写同一个 change worktree | 单写者归属被自己打破，commit 归属与验证证据不可分辨 |
 
 ## 平台适配
 
-- **接入 AISoft 平台的项目**：Issue/PR/push 走 broker typed 操作；命名元组、AI 判级、语义文档合同见 `aisoft-platform` skill。
+- **接入 AISoft 平台的项目**：Issue/PR/push 走 broker typed 操作；命名元组、AI 判级、语义文档合同见 `aisoft-platform` 技能。外部技能包边界（Matt / superpowers 在平台项目内的用法）也以它为准。
 - **未接入的项目**：用该项目自己的 tracker 与 `git`/`gh` 等价物。会话模型、待合并格式、收尾 7 步不变。

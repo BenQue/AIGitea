@@ -432,6 +432,14 @@ routine 确认必须明确“当前合同内 CI 修复可继续，最终 head �
 merger 是 exact-repo Write identity，但 credential 由 broker 独占，且该 identity 不在 main push/force
 allowlist。普通 Git 禁令由 typed operation、manifest/final-head gates 与 zero fallback 共同保证。
 
+### 交叉审核（平台仓 complex，ADR 0001 D6）
+
+平台仓的 complex 变更在进入确认点 2 之前，由未参与实现的另一方提供者（Claude 实现由 Codex 审，反之亦然）
+对候选 head 做一次只读独立审查。审查方只读、不写 worktree，按 spec 的验收标准与本次 diff 给出 PASS 或 FAIL
+与发现清单；实现方修复 FAIL 项后对新 head 重审，直到 PASS 或升级给人。结论写进该 Issue 映射的
+`verification-*`：审查方、审查的 exact head、每轮结论、发现与处置。确认点 2 的候选带一行交叉审查结论。
+这一步不增加人的确认点，也不替代 required CI 与人的合并；项目仓不适用本节（项目使用层按自己的合同）。
+
 ## 8. 升级给人的条件
 
 Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限决策、缺凭据或外部服务、同一根因连续失败三次、验证不可靠或达到预算上限时才停止并请求人决定。普通编译、测试、构建和范围内 review 失败由 Loop 自主处理。
