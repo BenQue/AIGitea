@@ -12,7 +12,6 @@
     "architecture/reference/newemaint/gap-report.md": 10,
     "architecture/reference/newemaint/target-candidate/architecture.json": 2,
     "architecture/reference/newemaint/target-candidate/architecture.lock.json": 1,
-    "codex/tools/rollback-gitea-routine-pilot.sh": 33,
     "docker-release/README.md": 7,
     "docker-release/contracts/migration-rollback-v1.md": 2,
     "docker-release/templates/action-grant.example.json": 3,

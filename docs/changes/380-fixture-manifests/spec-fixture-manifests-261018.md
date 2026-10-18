@@ -43,15 +43,15 @@ git_scope:
   - codex/tests/test-project-check.sh
   - codex/tests/test-mark-completed-issues.sh
   - codex/tests/test-agent-runtime.sh
-  - codex/tests/test-sync-gitea-service-policy.sh
   - codex/tests/test-install-host-access-broker.sh
   - codex/tests/fixtures/installed-drift/test-installed-drift.py
   - codex/tests/smoke.sh
   - codex/tools/rollback-gitea-routine-pilot.sh
   - codex/tests/test-rollback-gitea-routine-pilot.sh
-  - archive/routine-pilot/rollback-gitea-routine-pilot.sh
-  - archive/routine-pilot/test-rollback-gitea-routine-pilot.sh
-  - archive/routine-pilot/README.md
+  - archive/rollback-gitea-routine-pilot.sh
+  - archive/test-rollback-gitea-routine-pilot.sh
+  - archive/README.md
+  - codex/tools/aisoft-project-check.sh
   - codex/install-host-access-broker.sh
   - codex/tools/check-installed-drift.py
   - codex/config/project-leak-baseline.json
@@ -80,10 +80,15 @@ ADR 0001 D3 只允许项目数据出现在 manifest 等登记位置；平台自�
 - [ ] AC1 合成夹具：新增 `codex/tests/fixtures/manifests/gitea-governance.json` 与 `host-access-broker.json`，由当前真实 manifest 机械生成，应用项目改为合成名字（NewEMaint→AlphaApp、LocalWMS→BetaApp、SFMDigitalBoard→GammaBoard、HSDB→DeltaDB，以及各自的 project id、agent、merger、profile 与 checkout 路径），pilot 封印摘要按夹具重算；平台与 public-test 项目保持原样。附 README 说明来源、改名表与“夹具是冻结数据，不随真实 manifest 同步”。
 - [ ] AC2 测试改读夹具：上列测试改为读夹具 manifest，断言中的项目名同步改为合成名字；改完后这些文件不再出现已注册应用项目名。smoke 新增守卫：`codex/runtime/tests/` 与 `codex/tests/` 下除允许清单（安装、校验真实 manifest 可加载、泄漏守卫自身）外，不得引用 `codex/config/gitea-governance.json` 或 `host-access-broker.json`。
 - [ ] AC3 覆盖不减：逐文件用例数（Python `Ran N tests`、shell 断言计数）改前改后相等；routine pilot 通用 schema（封印、canary 限制、live 授权门）、routine merger、凭据轮换、依赖读取、bootstrap 用例全部保留。另在候选副本上删掉真实 manifest 的一个应用项目条目，证明改后的测试不受影响（记入 verification）。
-- [ ] AC4 回滚工具退役：`rollback-gitea-routine-pilot.sh` 与其测试移入 `archive/routine-pilot/`（附 README：来源 #213、退役原因、NewEMaint 侧若需撤掉 routine merger 时的参考）；`install-host-access-broker.sh` 不再安装并删除已装副本与 `.previous`；漂移检查把它列入 `absent`；`test-install-host-access-broker.sh`、`test-host-access-broker.sh` 与漂移夹具测试同步；smoke 五处登记移除；泄漏基线删掉该条目。
+- [ ] AC4 回滚工具退役：`rollback-gitea-routine-pilot.sh` 与其测试移入 `archive/`（按 `application-target-preflight.py` 先例在 `archive/README.md` 登记：来源 #213、退役原因、项目侧撤掉 routine merger 时的参考）；`install-host-access-broker.sh` 不再安装并删除已装副本与 `.previous`；漂移检查把它列入 `absent`；`test-install-host-access-broker.sh`、`test-host-access-broker.sh` 与漂移夹具测试同步；smoke 五处登记移除；泄漏基线删掉该条目。
 - [ ] AC5 保留不变：真实 `gitea-governance.json` 与 `host-access-broker.json` 字节不变（NewEMaint 的 pilot 声明是 D3 允许的登记数据，改它会改变 live merger 行为，属 NewEMaint 侧决定）；通用 schema、governance CLI、broker、bootstrap 与 rotate 工具不改。
 - [ ] AC6 文档：`06` 中提到 pilot 回滚工具处改为指向归档与 NewEMaint 侧；整改路线 R6b 行写本票状态。
 - [ ] AC7 macOS 全量 `bash codex/tests/smoke.sh` 通过；`python3 -B codex/tests/check-project-leak.py` 只减不增；`usage-bundle.sh --verify` 通过（本票不改发布包成员）。
+
+## 实现中的调整（确认后，确认点 2 一并复核）
+
+- `aisoft-project-check.sh` 原先把治理 manifest 路径写死为本仓 `codex/config/gitea-governance.json`，测试无法换成夹具。按 `aisoft_loop/cli.py` 与 `aisoft-project-target.sh` 已有的 `AISOFT_GOVERNANCE_MANIFEST` 约定增加同名覆盖，缺省行为不变；`test-project-check.sh` 设置它指向夹具。这是一个只读诊断工具的读路径，不放宽任何写闸门。
+- broker 入口 `host-access-broker.sh` 固定读本仓或已装 manifest、刻意不接受覆盖，因此 `test-host-access-broker.sh` 中经入口的拒绝用例改用平台自有的 `smoke-test` 测试仓，不再借用应用项目。
 
 ## 接口、数据与兼容性影响
 

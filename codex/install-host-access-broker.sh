@@ -56,11 +56,15 @@ install_versioned() {
   CHANGED=1
 }
 
-remove_legacy_keychain_helper() {
+# Retired tools: keychain-acl-audit, and the routine pilot rollback that only
+# served one project's pilot (#380, archived under archive/).
+remove_retired_tools() {
   local target
   for target in \
     "$LIBEXEC_ROOT/keychain-acl-audit" \
-    "$LIBEXEC_ROOT/keychain-acl-audit.previous"; do
+    "$LIBEXEC_ROOT/keychain-acl-audit.previous" \
+    "$LIBEXEC_ROOT/rollback-gitea-routine-pilot" \
+    "$LIBEXEC_ROOT/rollback-gitea-routine-pilot.previous"; do
     if [[ -e "$target" || -L "$target" ]]; then
       rm -f -- "$target"
       CHANGED=1
@@ -94,8 +98,6 @@ install_versioned "$ROOT/codex/tools/project-profile-migration.sh" \
   "$LIBEXEC_ROOT/project-profile-migration" 0755
 install_versioned "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   "$LIBEXEC_ROOT/bootstrap-gitea-service-account" 0755
-install_versioned "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
-  "$LIBEXEC_ROOT/rollback-gitea-routine-pilot" 0755
 install_versioned "$ROOT/codex/tools/rotate-gitea-service-account.sh" \
   "$LIBEXEC_ROOT/rotate-gitea-service-account" 0755
 if [[ -n "$PAT_HELPER_ARTIFACT" ]]; then
@@ -105,7 +107,7 @@ METADATA_FILE="$(mktemp "$SHARE_ROOT/.rotation-source.XXXXXX")"
 trap 'rm -f -- "$METADATA_FILE"' EXIT
 printf '%s\n' "$ROTATION_METADATA" >"$METADATA_FILE"
 install_versioned "$METADATA_FILE" "$SHARE_ROOT/credential-rotation-source.json" 0644
-remove_legacy_keychain_helper
+remove_retired_tools
 
 if [[ "$CHANGED" == 1 ]]; then
   printf '%s\n' 'installed host-access-broker/v1 candidate'
