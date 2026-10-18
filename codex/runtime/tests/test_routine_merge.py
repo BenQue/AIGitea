@@ -62,25 +62,26 @@ def extended_permission(identity: str, permission: str) -> dict[str, object]:
 
 
 class SessionContractTests(unittest.TestCase):
-    def test_codex_and_claude_keep_only_contract_start_and_pr_confirmations(self):
-        codex = (ROOT / "skills/issue-session-flow/SKILL.md").read_text(encoding="utf-8")
-        claude = (ROOT.parent / "skill-for-claude/issue-session-flow/SKILL.md").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn("contract/start confirmation", codex)
-        self.assertIn("final-PR submission confirmation", codex)
-        self.assertIn("## 确认点 1：合同/启动", claude)
-        self.assertIn("## 确认点 2：准备提交最终 PR", claude)
+    # #379: one skill source for every provider. These pins used to exist twice
+    # (an English Codex copy and a Chinese Claude copy); they now guard the
+    # single merged text under skills/.
+    SESSION_FLOW = "skills/issue-session-flow/SKILL.md"
+    PLATFORM = "skills/aisoft-platform/SKILL.md"
+    CONFIRM_1 = "## 确认点 1：合同/启动"
+    CONFIRM_2 = "## 确认点 2：准备提交最终 PR"
+    COMPLETION = "## 收尾（manual 确认已合并，或 routine receipt 后自动执行）"
+
+    def test_session_flow_keeps_only_contract_start_and_pr_confirmations(self):
+        content = self._source(self.SESSION_FLOW)
+        self.assertIn(self.CONFIRM_1 + "\n", content)
+        self.assertIn(self.CONFIRM_2 + "\n", content)
         marker = (
             "当前合同内 CI 修复可继续，最终 head 的 required CI 全绿且全部硬门通过后，"
             "允许受控自动合并。"
         )
-        self.assertIn(marker, codex)
-        self.assertIn(marker, claude)
-        for content in (codex, claude):
-            self.assertNotIn("是否确认归档", content)
-            self.assertNotIn("confirm archival", content)
-
+        self.assertIn(marker, content)
+        self.assertNotIn("是否确认归档", content)
+        self.assertNotIn("confirm archival", content)
 
     def _source(self, relative_path):
         return (ROOT.parent / relative_path).read_text(encoding="utf-8")
@@ -95,84 +96,79 @@ class SessionContractTests(unittest.TestCase):
             self.assertIn(rule, normalized)
 
     def _assert_confirmation_permissions(self, content):
-        autonomy = self._section(content, "## Default autonomy after approval")
+        autonomy = self._section(content, "## approved 之后默认自主推进")
         self._require(
             autonomy,
-            "After final-PR submission confirmation, continue through branch push, the one final PR "
-            "and in-contract PR CI repair",
-            "Contract/start approval alone does not authorize push or PR creation.",
+            "确认点 2 通过后同样不再询问 push、唯一最终 PR 与 PR CI 修复。",
+            "只有合同/启动确认不授权 push 或建 PR。",
         )
-        before_pr_confirmation = autonomy.split("After final-PR submission confirmation", 1)[0]
+        before_pr_confirmation = autonomy.split("确认点 2 通过后", 1)[0]
         self.assertNotRegex(
-            before_pr_confirmation.lower(), r"\b(?:push|pull request|pr creation|final pr)\b"
+            before_pr_confirmation.lower(), r"push|(?<![a-z])pr(?![a-z])|pull request"
         )
-        confirmation = self._section(content, "## Two default confirmation points")
         self._require(
-            confirmation,
-            "It authorizes in-scope implementation and repair, not PR submission, merge, or deploy.",
-            "Repeated polls in that state must not call a provider, push, or create a PR.",
-            "The manual text must not contain the controlled-auto-merge marker.",
-            "A routine hard-gate failure returns one stable reason with zero merge POST and no silent fallback.",
-            "A routine `AUTO_MERGED` receipt immediately enters deterministic post-merge completion "
-            "without a third confirmation.",
+            self._section(content, self.CONFIRM_1),
+            "它只授权合同内实现、测试和修复，不授权提交 PR、merge 或 deploy。",
+        )
+        self._require(
+            self._section(content, self.CONFIRM_2),
+            "重复 poll 不调用 provider、不 push、不建 PR。",
+            "manual 文本不得包含自动合并 marker。",
+            "routine hard gate 失败只返回一个稳定原因，零 merge POST、零权限降级、零 fallback。",
+            "routine `AUTO_MERGED` receipt 直接进入收尾，不再询问第三次。",
         )
 
     def _assert_classification_readback(self, content):
-        confirmation = self._section(content, "## Two default confirmation points")
         self._require(
-            confirmation,
+            self._section(content, self.CONFIRM_2),
             "codex/tools/apply-classification-labels.sh --repo <checkout> --verify N",
-            "using the exact Issue number, never `--range`",
-            "only when both classification dimensions read back as `projected`",
-            "For `projection-missing` or `projection-mismatch`, repair the in-contract projection and re-read it",
-            "report a `broker-operation-missing` or other unreadable result as a blocker",
-            "`projection-window-closed` is evidence of an omission, never permission to backfill or override it.",
+            "用 exact Issue 编号，不用 `--range`。",
+            "不是 `projected` 就不要进入待合并",
+            "读到 `projection-missing` 或 `projection-mismatch` 就修复合同内的投影",
+            "其它不可读结果作为 blocker 报告。",
+            "`projection-window-closed` 是遗漏的证据，不是补写或覆盖的许可。",
         )
-        self._require(
-            self._section(content, "## Post-merge completion"),
-            "do not backfill closed Issues or add an override.",
-        )
+        self._require(self._section(content, self.COMPLETION), "不补写、不加 override")
 
     def _assert_terminal_apply(self, content):
-        completion = self._section(content, "## Post-merge completion")
         self._require(
-            completion,
-            "Fetch and prove that the exact merge commit is on `origin/main`.",
-            "Dry-run `codex/tools/mark-completed-issues.sh --repo <checkout> --range <range>`",
-            "Check the first `selector: range` row's `commits` and each Issue row's `commit` "
-            "against the exact merge from step 1",
-            "Stop if the plan targets another merge.",
-            "Apply the checked plan with `codex/tools/mark-completed-issues.sh --repo <checkout> --apply <pinned>`",
-            "using the plan's immutable Issue numbers; never re-use `--range` for the apply.",
-            "Let the tool decide from mapped summary `required_docs` and the manifest's `deployment_lifecycle`.",
-            "Read an unfamiliar reason's detail rather than guessing a lifecycle label; never infer deployment.",
+            self._section(content, self.COMPLETION),
+            "确认 merge commit **真实存在**于 `origin/main`。",
+            "codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>",
+            "`commits` 是这个 range 实际覆盖的 merge",
+            "逐 Issue 行的 `commit` 是产出它的那条",
+            "核对它就是第 1 步认定的那个 merge",
+            "不是就说明范围瞄错了，重跑之前不要往下走",
+            "用计划回给的 `pinned` 编号，不再传 `--range`",
+            "--apply <pinned>",
+            "`required_docs`",
+            "`deployment_lifecycle`",
+            "绝不推断已部署",
         )
 
     def _assert_backfill_paths(self, content):
-        development = self._section(content, "## Preserve the Development Loop boundary")
-        self.assertIn("In a Controller-managed run", development)
-        self.assertIn("In a Mac interactive session", development)
-        controller = development.split("In a Controller-managed run", 1)[1].split(
-            "In a Mac interactive session", 1
-        )[0]
-        interactive = development.split("In a Mac interactive session", 1)[1]
+        backfill = self._section(content, "## PR URL 回填的两条路径")
+        self.assertIn("Controller 托管的运行", backfill)
+        self.assertIn("Mac 交互会话", backfill)
+        controller = backfill.split("Controller 托管的运行", 1)[1].split("Mac 交互会话", 1)[0]
+        interactive = backfill.split("Mac 交互会话", 1)[1]
         self._require(
             controller,
-            "the Controller writes that PR's URL into the change summary's `pr_url` front matter field "
-            "and advances the summary's `status` to `pr-open`, commits exactly that one document, and pushes it",
-            "do not duplicate its backfill step or treat the extra commit as provider work",
-            "`pr_url` lives in the summary only (#142); spec, plan and verification documents do not carry it.",
-            "If the summary does not declare `pr_url`, or already declares a different one, the Controller "
-            "fails closed and returns `NEEDS_HUMAN_DECISION` rather than overwriting or skipping",
+            "把这个 PR 的 URL 写进 change summary 的 `pr_url` front matter 字段，"
+            "并把 summary 的 `status` 推进到 `pr-open`，只提交这一份文档并推送",
+            "不要重复它的回填步骤，也不要把这次额外 commit 当成 provider 的工作。",
+            "`pr_url` 只写在 summary 里（#142），spec、plan 与 verification 不带它。",
+            "summary 没有声明 `pr_url`，或已经声明了另一个值时，Controller fail closed "
+            "并返回 `NEEDS_HUMAN_DECISION`，不覆盖也不跳过",
         )
         self._require(
             interactive,
-            "creates the PR with broker `gitea.pull.create` without invoking the Controller",
-            "backfill-pr-url N --repo <checkout> --pr-url <actual PR URL>",
-            "commit exactly the mapped summary and push the same change branch through the broker.",
-            "The standalone `gitea.pull.create` call does not run the Controller's automatic backfill.",
-            "Before the PR exists, leave `pr_url` empty and keep the real pre-PR status",
-            "run `check-change-documents` on the updated checkout.",
+            "直接用 broker `gitea.pull.create` 建 PR 时",
+            "backfill-pr-url N --repo <checkout> --pr-url <实际 PR URL>",
+            "只提交映射的 summary，并经 broker 推送同一个 change 分支。",
+            "单独的 `gitea.pull.create` 调用不会运行 Controller 的自动回填。",
+            "PR 存在之前 `pr_url` 留空、保持真实的 PR 前状态",
+            "回填后对更新过的 checkout 运行 `check-change-documents`。",
         )
 
     def _assert_shared_onboarding(self, content):
@@ -226,43 +222,19 @@ class SessionContractTests(unittest.TestCase):
                 with self.assertRaises(AssertionError):
                     validator(mutated)
 
-    def test_source_skills_require_exact_classification_readback_before_pr(self):
-        codex = self._source("codex/skills/issue-session-flow/SKILL.md")
-        self._assert_confirmation_permissions(codex)
-        self._assert_classification_readback(codex)
-        claude = self._source("skill-for-claude/issue-session-flow/SKILL.md")
-        self._require(
-            self._section(claude, "## 确认点 2：准备提交最终 PR"),
-            "apply-classification-labels.sh --verify N",
-            "不是 `projected` 就不要进入待合并",
-            "窗口随之永久关闭，之后没有任何工具会补写 `type/*` 与 `complexity/*`",
-        )
-        self._require(
-            self._section(claude, "## 收尾（manual 确认已合并，或 routine receipt 后自动执行）"),
-            "projection-window-closed",
-            "不补写、不加 override",
-        )
+    def test_session_flow_requires_exact_classification_readback_before_pr(self):
+        content = self._source(self.SESSION_FLOW)
+        self._assert_confirmation_permissions(content)
+        self._assert_classification_readback(content)
 
-    def test_source_skills_pin_the_verified_merge_before_terminal_apply(self):
-        self._assert_terminal_apply(self._source("codex/skills/issue-session-flow/SKILL.md"))
-        claude = self._source("skill-for-claude/issue-session-flow/SKILL.md")
-        self._require(
-            self._section(claude, "## 收尾（manual 确认已合并，或 routine receipt 后自动执行）"),
-            "`commits` 是这个 range 实际覆盖的 merge",
-            "逐 Issue 行的 `commit` 是产出它的那条",
-            "核对它就是第 1 步认定的那个 merge",
-            "不是就说明范围瞄错了，重跑之前不要往下走",
-            "用计划回给的 `pinned` 编号，不再传 `--range`",
-            "--apply <pinned>",
-            "required_docs",
-            "deployment_lifecycle",
-        )
+    def test_session_flow_pins_the_verified_merge_before_terminal_apply(self):
+        self._assert_terminal_apply(self._source(self.SESSION_FLOW))
 
-    def test_codex_separates_controller_and_interactive_pr_backfill(self):
-        self._assert_backfill_paths(self._source("skill-for-codex/SKILL.md"))
+    def test_platform_skill_separates_controller_and_interactive_pr_backfill(self):
+        self._assert_backfill_paths(self._source(self.PLATFORM))
 
     def test_shared_onboarding_keeps_second_confirmation_and_manifest_lifecycle(self):
-        self._assert_shared_onboarding(self._source("skill-for-codex/references/onboarding-runbook.md"))
+        self._assert_shared_onboarding(self._source("skills/aisoft-platform/references/onboarding-runbook.md"))
 
     def test_shared_provider_document_requires_single_writer_claim_and_push_readback(self):
         self._assert_single_writer_push_readback(self._source("08-双工具共存与实施.md"))
@@ -270,57 +242,57 @@ class SessionContractTests(unittest.TestCase):
     def test_confirmation_contract_rejects_early_push_authorization(self):
         self._assert_rejects_mutations(
             self._assert_confirmation_permissions,
-            self._source("codex/skills/issue-session-flow/SKILL.md"),
+            self._source(self.SESSION_FLOW),
             (
-                ("- classification projection.", "- classification projection, branch push, the one final PR and PR CI repair."),
-                ("Contract/start approval alone does not authorize push or PR creation.", ""),
-                ("not PR submission, merge, or deploy.", "including PR submission, merge, and deploy."),
+                ("必需的更宽闸门、判级投影。", "必需的更宽闸门、判级投影、push 与唯一最终 PR。"),
+                ("只有合同/启动确认不授权 push 或建 PR。", ""),
+                ("不授权提交 PR、merge 或 deploy。", "也授权提交 PR、merge 与 deploy。"),
             ),
         )
 
     def test_classification_contract_rejects_unprojected_or_closed_writes(self):
         self._assert_rejects_mutations(
             self._assert_classification_readback,
-            self._source("codex/skills/issue-session-flow/SKILL.md"),
+            self._source(self.SESSION_FLOW),
             (
-                ("both classification dimensions read back as `projected`", "either dimension is readable"),
-                ("using the exact Issue number, never\n`--range`", "using a moving `--range`"),
-                ("never permission to backfill or override it.", "permission to backfill or override it."),
-                ("do not backfill closed Issues or add an override.", "backfill closed Issues with an override."),
+                ("不是 `projected` 就不要进入待合并", "任一维度可读就进入待合并"),
+                ("用 exact Issue 编号，不用 `--range`。", "用会移动的 `--range`。"),
+                ("不是补写或覆盖的许可。", "可以补写或覆盖。"),
+                ("不补写、不加 override", "补写并加 override"),
             ),
         )
 
     def test_terminal_contract_rejects_unproved_or_floating_merge(self):
         self._assert_rejects_mutations(
             self._assert_terminal_apply,
-            self._source("codex/skills/issue-session-flow/SKILL.md"),
+            self._source(self.SESSION_FLOW),
             (
-                ("row's `commits` and each Issue row's `commit`", "row's commit count"),
-                ("Stop if the plan targets another merge.", "Continue if the plan targets another merge."),
+                ("`commits` 是这个 range 实际覆盖的 merge", "commit 数量对得上即可"),
+                ("重跑之前不要往下走", "继续往下走"),
                 ("--apply <pinned>", "--apply --range <range>"),
-                ("never re-use `--range` for the apply.", "re-use `--range` for the apply."),
-                ("`required_docs`", "optional documents"),
-                ("`deployment_lifecycle`", "provider inference"),
+                ("不再传 `--range`", "仍然传 `--range`"),
+                ("`required_docs`", "可选文档"),
+                ("`deployment_lifecycle`", "provider 推断"),
             ),
         )
 
     def test_backfill_contract_rejects_ambiguous_ownership(self):
         self._assert_rejects_mutations(
             self._assert_backfill_paths,
-            self._source("skill-for-codex/SKILL.md"),
+            self._source(self.PLATFORM),
             (
-                ("commits exactly that one\ndocument", "commits every document"),
-                ("`pr_url` lives in the summary only", "`pr_url` lives in any document"),
-                ("commit exactly the mapped summary and push the same change branch through the broker.", "commit all files and push directly."),
-                ("does not run the Controller's automatic backfill.", "runs the Controller's automatic backfill."),
-                ("empty and keep the real pre-PR status", "filled and set pr-open"),
+                ("只提交这一份文档并推送", "提交所有文档并推送"),
+                ("`pr_url` 只写在 summary 里", "`pr_url` 写在任意文档里"),
+                ("只提交映射的 summary，并经 broker 推送同一个 change 分支。", "提交全部文件并直接推送。"),
+                ("不会运行 Controller 的自动回填。", "会运行 Controller 的自动回填。"),
+                ("`pr_url` 留空、保持真实的 PR 前状态", "`pr_url` 填好并设为 pr-open"),
             ),
         )
 
     def test_shared_onboarding_contract_rejects_provider_or_lifecycle_shortcuts(self):
         self._assert_rejects_mutations(
             self._assert_shared_onboarding,
-            self._source("skill-for-codex/references/onboarding-runbook.md"),
+            self._source("skills/aisoft-platform/references/onboarding-runbook.md"),
             (
                 ("第二确认点（最终 PR 提交确认）明确授权", "第一确认点明确授权"),
                 ("一侧验收不替代另一侧", "一侧验收替代另一侧"),

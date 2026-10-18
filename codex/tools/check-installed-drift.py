@@ -21,13 +21,13 @@ import sys
 
 INSTALLER_PINS = {
     "codex/install-vm.sh": "01bf859512149391b45c37697b850f01af05e738ae37ae73008acbb196d3fe1c",
-    "codex/install-skills.sh": "4d5d029c670636023bb68972475f616195b93637f46aa56e3d21de1805d4dd70",
+    "codex/install-skills.sh": "d47021706fedf45d2c5fa3ac702a054ed1a62f6ad531d4d145b284e85c918092",
     "codex/install-host-role.sh": "325e5150722e30debc115c0717d9bc4dedac44e1a7552c3a2258df14c4b27c89",
     "codex/install-host-access-broker.sh": "485ea19514c5f4b72c84d6cc9576fe0c2b65c34d084e74c8f80e2d6ad6f10897",
     "architecture/install.sh": "c8f14f0154cad1b7402e527209d0135bab2bdf3bc0024f72fd06994067aa972e",
     "docker-release/install.sh": "3580c1e23b343fe9bbe2d3f9ea1b64b0f95ef1a7ba9c023c282bf5b68a649b13",
     "sync/install.sh": "153f36ef3396a053a4e4cbb8d6022a9f163b75b6f4c25498ba27ae3217d30f10",
-    "skill-for-claude/install.sh": "0c1a6692b983fada75a11de250a269f129371880cf41714611c1d59c1a541681",
+    "skill-for-claude/install.sh": "e2b767925e31b45cb83aaa3f93bedda8122b4ffc7e60c46cd4dc639659114f77",
 }
 INSTALLER_HELPER_PINS = {
     "codex/runtime/aisoft_loop/matt_snapshot.py": "32c2f6f9de89537644cc5e7a3594d61a02c41b362ace044735c4b64da7fe637e",
@@ -346,6 +346,28 @@ class Surface:
     rotation: RotationSurface | None = None
 
 
+def read_skill_manifest(repo: Path) -> dict[str, tuple[str, ...]]:
+    """Same contract as codex/lib/skills-manifest.sh: one `<name> <targets>`
+    line per skill, targets a non-empty subset of claude and codex, and the
+    declared set equal to the skills/*/SKILL.md tree in both directions."""
+    path = repo / "skills/skills.manifest"
+    declared: dict[str, tuple[str, ...]] = {}
+    for line in read_bytes(path, repo).decode("utf-8").splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        fields = line.split()
+        targets = tuple(fields[1].split(",")) if len(fields) == 2 else ()
+        if (len(fields) != 2 or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", fields[0])
+                or fields[0] in declared or not targets
+                or any(t not in {"claude", "codex"} for t in targets)):
+            raise InspectionError("invalid-skill-manifest", path)
+        declared[fields[0]] = targets
+    actual = {p.parent.name for p in (repo / "skills").glob("*/SKILL.md")}
+    if not declared or set(declared) != actual:
+        raise InspectionError("skill-set-mismatch", path)
+    return declared
+
+
 def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path):
     names = ("install-vm", "install-skills", "install-host-role", "install-host-access-broker",
              "architecture/install", "docker-release/install", "sync/install", "skill-for-claude/install")
@@ -426,14 +448,14 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
     add("install-host-role", "templates/hosts/host-profile.example.json", system / "etc/aisoft/host-profile.example.json", system)
     json_metric("install-host-role", "capabilities", "codex/config/host-capabilities.json", share / "host-capabilities.json", system, "capabilities")
 
+    # skills/skills.manifest is the single declaration of every platform skill
+    # and its maintainer-layer landings (#379); both installers read it.
+    declared = read_skill_manifest(repo)
+    metadata_sources.add(repo / "skills/skills.manifest")
     skills = home / ".agents/skills"
-    skill_names = []
-    for p in directory_entries(repo / "codex/skills", repo):
-        if stat.S_ISDIR(checked_stat(p, repo).st_mode):
-            skill_names.append(p.name)
-            tree("install-skills", str(p.relative_to(repo)), skills / p.name, home, exact=True)
-    skill_names.append("aisoft-platform")
-    tree("install-skills", "skill-for-codex", skills / "aisoft-platform", home, exact=True)
+    skill_names = [name for name, targets in declared.items() if "codex" in targets]
+    for name in skill_names:
+        tree("install-skills", "skills/" + name, skills / name, home, exact=True)
     surfaces["install-skills"].metrics["skills"] = Metric(len(skill_names), "files", [skills / n / "SKILL.md" for n in skill_names], home)
     # Derive the fixed version from its pinned installer; never execute the script.
     text = read_bytes(repo / "codex/install-skills.sh", repo).decode("utf-8")
@@ -512,29 +534,19 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
     surfaces["sync/install"].metrics["units"] = Metric(2, "files", [system / "etc/systemd/system" / n for n in ("aisoft-inbound-sync@.service", "aisoft-inbound-sync@.timer")], system)
     surfaces["sync/install"].metrics["runtime scripts"] = Metric(2, "files", sync_targets, system)
 
-    metadata_sources.add(repo / "skill-for-claude/skills.manifest")
-    declared = {}
-    for line in read_bytes(repo / "skill-for-claude/skills.manifest", repo).decode("utf-8").splitlines():
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        fields = line.split()
-        if len(fields) != 2 or fields[1] not in {"shared", "none"} or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", fields[0]) or fields[0] in declared:
-            raise InspectionError("invalid-claude-manifest", repo / "skill-for-claude/skills.manifest")
-        declared[fields[0]] = fields[1]
-    actual = {p.parent.name for p in (repo / "skill-for-claude").glob("*/SKILL.md")}
-    if not declared or set(declared) != actual:
-        raise InspectionError("claude-skill-set-mismatch", repo / "skill-for-claude/skills.manifest")
     claude = home / ".claude/skills"
-    for name, mode in declared.items():
+    claude_names = [name for name, targets in declared.items() if "claude" in targets]
+    for name in claude_names:
         target = claude / name
-        add("skill-for-claude/install", "skill-for-claude/" + name + "/SKILL.md", target / "SKILL.md", home)
+        add("skill-for-claude/install", "skills/" + name + "/SKILL.md", target / "SKILL.md", home)
         surfaces["skill-for-claude/install"].exact_trees.append((target, home, True))
-        if mode == "shared":
-            tree("skill-for-claude/install", "skill-for-codex/references", target / "references", home, "*.md")
+        references = repo / "skills" / name / "references"
+        if references.is_dir():
+            tree("skill-for-claude/install", "skills/" + name + "/references", target / "references", home, "*.md")
             label = "references" if name == "aisoft-platform" else "references:" + name
-            surfaces["skill-for-claude/install"].metrics[label] = Metric(len(list((repo / "skill-for-codex/references").glob("*.md"))),
+            surfaces["skill-for-claude/install"].metrics[label] = Metric(len(list(references.glob("*.md"))),
                 "patterns", [target / "references"], home, pattern="*.md")
-    surfaces["skill-for-claude/install"].metrics["skills"] = Metric(len(declared), "files", [claude / n / "SKILL.md" for n in declared], home)
+    surfaces["skill-for-claude/install"].metrics["skills"] = Metric(len(claude_names), "files", [claude / n / "SKILL.md" for n in claude_names], home)
     return list(surfaces.values()), metadata_sources
 
 
@@ -616,7 +628,7 @@ def source_identity(repo: Path, sources: set[Path]):
             # roots from surviving files would silently omit that deletion.
             scopes = {"codex/runtime/" + name for name in ("aisoft_loop", "aisoft_host_access",
                       "aisoft_gitea_governance", "aisoft_architecture", "aisoft_release")}
-            scopes.update({"codex/agent", "codex/systemd", "codex/skills", "skill-for-codex",
+            scopes.update({"codex/agent", "codex/systemd", "skills",
                            "codex/tools/gitea-pat-helper",
                            "codex/vendor/mattpocock", "docker-release/schema",
                            "docker-release/compatibility", "sync/systemd"})

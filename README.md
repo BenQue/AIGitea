@@ -182,15 +182,19 @@ sequenceDiagram
 
 ### 技能安装与漂移核对
 
-两侧技能等价、各自安装、共用同一份 `skill-for-codex/references/`；改动 SKILL.md 或 references 后，装到本机的副本立即漂移，
+平台技能只有一份源 `skills/`（#379，ADR 0001 D8），由 `skills/skills.manifest` 声明每个技能装到 Claude、Codex 哪一侧，两个 installer 各自生成落点；改动 SKILL.md 或 references 后，装到本机的副本立即漂移，
 需重装并核对回 `CLEAN`。8 个 installer（含下面两个）全部经 `codex/lib/install-source-guard.sh` 做 source provenance 与 staleness 闸门，
 检测到 checkout 落后缓存 upstream 时拒绝安装。无 upstream / detached HEAD 等无法比较的情况会报告
 `staleness unchecked`，不能当作 fresh main 证明；安装前须按 broker fresh-fetch 并核对 source pin。
 
 | 侧 | 安装 | 漂移核对 | 安装目标 |
 |------|------|----------|----------|
-| Codex | `bash codex/install-skills.sh <target-home>` | `bash codex/check-drift.sh` | `~/.agents/skills/`（含 `codex/skills/` 与 vendored Matt 快照） |
-| Claude Code | `bash skill-for-claude/install.sh <target-home>` | `bash skill-for-claude/check-drift.sh`（`CLEAN` / `DRIFT` / `NOT_INSTALLED`） | `~/.claude/skills/`（`skills.manifest` 声明的 `aisoft-platform`、`issue-session-flow`） |
+| Codex | `bash codex/install-skills.sh <target-home>` | `bash codex/check-drift.sh` | `~/.agents/skills/`（`skills.manifest` 声明给 codex 的全部技能与 vendored Matt 快照） |
+| Claude Code | `bash skill-for-claude/install.sh <target-home>` | `bash skill-for-claude/check-drift.sh`（`CLEAN` / `DRIFT` / `NOT_INSTALLED`） | `~/.claude/skills/`（`skills.manifest` 声明给 claude 的 `aisoft-platform`、`issue-session-flow`，只装 SKILL.md 与 references） |
+
+Cursor 只在项目使用层：项目级 `.cursor/skills/` 与薄指针规则 `.cursor/rules/aisoft-platform.mdc` 由
+`codex/tools/usage-bundle.sh --build` 从同一份源导出，平台不往 `~/.cursor` 安装任何东西；
+本机 Cursor 插件缓存里的 Matt 与 superpowers 由 `check-external-skill-versions.sh` 只读核对。
 
 Claude 侧的 Matt 插件不走上表的 installer，而由 Claude Code 自己安装（#355）。仓库根
 [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) 是平台自有的 marketplace `aisoft-platform`，
@@ -220,7 +224,7 @@ cache 或报告，也不自动修复。`--source-only` 仅校验源码映射，�
 
 ### 交付形态参考（按项目选用，非部署步骤事实源）
 
-平台只给环境级原则（`skill-for-codex/references/onboarding-runbook.md` §4：Linux 原生 / Linux 容器化 /
+平台只给环境级原则（`skills/aisoft-platform/references/onboarding-runbook.md` §4：Linux 原生 / Linux 容器化 /
 Windows 各一段原则 + 全平台一致的流程不变量）。下列材料是项目可按自身环境选用的参考实现、设计与
 验收模板，不是任何项目部署步骤的事实源；步骤、脚本、参数与环境差异在项目仓自己的 `docs/` 或脚本
 目录声明与实现（项目 `AGENTS.md`「项目事实」写明交付形态与部署方案位置）。

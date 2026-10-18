@@ -40,7 +40,7 @@ expect_contains 'VERIFIED '
 # A minimal platform: one pointer template, one exact template, one seed, one skill.
 platform="$tmp/platform"
 mkdir -p "$platform/usage" "$platform/templates/project" "$platform/templates/docs/changes/_template" \
-  "$platform/templates/docs/agents" "$platform/skills/demo"
+  "$platform/templates/docs/agents" "$platform/skills/demo/agents" "$platform/skills/codexonly"
 cat >"$platform/templates/project/AGENTS.md" <<'MD'
 # AGENTS.md · <项目名>
 
@@ -60,6 +60,9 @@ printf 'contract v1\n' >"$platform/usage/CONTRACT.md"
 printf 'summary v1\n' >"$platform/templates/docs/changes/_template/summary.md"
 printf 'seed v1\n' >"$platform/templates/docs/agents/domain.md"
 printf 'skill v1\n' >"$platform/skills/demo/SKILL.md"
+printf 'interface: {}\n' >"$platform/skills/demo/agents/openai.yaml"
+printf 'codex only v1\n' >"$platform/skills/codexonly/SKILL.md"
+printf 'demo claude,codex\ncodexonly codex\n' >"$platform/skills/skills.manifest"
 cat >"$platform/usage/bundle.json" <<'JSON'
 {
   "contract_version": "aisoft-usage-bundle/v1",
@@ -69,7 +72,9 @@ cat >"$platform/usage/bundle.json" <<'JSON'
     {"source": "templates/project/AGENTS.md", "mode": "pointer", "target": "AGENTS.md", "check": "pointer-sections"},
     {"source": "templates/docs/changes/_template/summary.md", "mode": "exact", "target": "docs/changes/_template/summary.md", "check": "change-templates"},
     {"source": "templates/docs/agents/domain.md", "mode": "seed", "target": "docs/agents/domain.md"},
-    {"source": "skills/demo/SKILL.md", "mode": "skill"}
+    {"source": "skills/demo/SKILL.md", "mode": "skill"},
+    {"source": "skills/demo/agents/openai.yaml", "mode": "skill"},
+    {"source": "skills/codexonly/SKILL.md", "mode": "skill"}
   ],
   "releases": []
 }
@@ -116,7 +121,18 @@ run 0 "${p[@]}" --build "$tmp/build2"
 diff -r "$tmp/build1" "$tmp/build2" >/dev/null || fail 'two builds differ'
 [[ -f "$tmp/build1/project/.aisoft/platform-usage.md" ]] || fail 'contract copy missing'
 [[ -f "$tmp/build1/project/docs/agents/domain.md" ]] || fail 'seed missing'
-[[ -f "$tmp/build1/skills/skills/demo/SKILL.md" ]] || fail 'skill missing'
+# #379: one skill source, three project-level landings. Codex keeps its agents/
+# metadata; Claude and Cursor get only what their declaration allows.
+for landing in .claude/skills .agents/skills .cursor/skills; do
+  [[ -f "$tmp/build1/project/$landing/demo/SKILL.md" ]] || fail "skill missing in $landing"
+done
+[[ -f "$tmp/build1/project/.agents/skills/demo/agents/openai.yaml" ]] || fail 'codex metadata missing'
+[[ ! -e "$tmp/build1/project/.claude/skills/demo/agents" ]] || fail 'claude landing got codex metadata'
+[[ ! -e "$tmp/build1/project/.cursor/skills/demo/agents" ]] || fail 'cursor landing got codex metadata'
+[[ -f "$tmp/build1/project/.agents/skills/codexonly/SKILL.md" ]] || fail 'codex-only skill missing'
+[[ ! -e "$tmp/build1/project/.claude/skills/codexonly" ]] || fail 'codex-only skill leaked to claude'
+[[ ! -e "$tmp/build1/project/.cursor/skills/codexonly" ]] || fail 'codex-only skill leaked to cursor'
+[[ ! -e "$tmp/build1/skills" ]] || fail 'skills must land inside the project tree'
 grep -Fq '"bundle_version": "1.0.0"' "$tmp/build1/project/.aisoft/platform-usage.lock.json" || fail 'lock version'
 grep -Fq "\"bundle_digest\": \"$digest_v1\"" "$tmp/build1/project/.aisoft/platform-usage.lock.json" || fail 'lock digest'
 run 1 "${p[@]}" --build "$tmp/build1"

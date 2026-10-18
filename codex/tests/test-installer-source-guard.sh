@@ -62,18 +62,15 @@ expected_runtime_modules="$(
     -maxdepth 1 -type f -name '*.py' | wc -l | tr -d ' '
 )"
 expected_runtime_modules=$((expected_runtime_modules + 3)) # aisoft_change_name.py, aisoft_worktree_owner.py, aisoft_main_integration.py
+# Both skill installers read the single source skills/ (#379). The guard runs
+# before the manifest is parsed, so each counts every SKILL.md in it; the Claude
+# installer additionally reports the reference files it copies.
 expected_skills="$(
-  find "$ROOT/codex/skills" -maxdepth 2 -type f -name SKILL.md | wc -l | tr -d ' '
+  find "$ROOT/skills" -mindepth 2 -maxdepth 2 -type f -name SKILL.md | wc -l | tr -d ' '
 )"
-expected_skills=$((expected_skills + 1)) # skill-for-codex, installed as aisoft-platform
-# The Claude-side installer declares its own skill set and copies the shared
-# reference files into every skill declared `shared`; those two counts are the
-# whole managed tree it writes.
-expected_claude_skills="$(
-  find "$ROOT/skill-for-claude" -maxdepth 2 -type f -name SKILL.md | wc -l | tr -d ' '
-)"
+expected_claude_skills="$expected_skills"
 expected_claude_references="$(
-  find "$ROOT/skill-for-codex/references" -maxdepth 1 -type f -name '*.md' | wc -l | tr -d ' '
+  find "$ROOT/skills" -mindepth 3 -maxdepth 3 -path '*/references/*.md' -type f | wc -l | tr -d ' '
 )"
 expected_matt_version="$(
   awk -F'"' '/^matt_version=/ { print $2 }' "$ROOT/codex/install-skills.sh"
@@ -86,7 +83,7 @@ make_source_tree() {
   local dest="$1" directory
   mkdir -p "$dest"
   for directory in \
-    codex architecture docker-release templates skill-for-codex sync skill-for-claude; do
+    codex architecture docker-release templates skills sync skill-for-claude; do
     cp -R "$ROOT/$directory" "$dest/"
   done
 }

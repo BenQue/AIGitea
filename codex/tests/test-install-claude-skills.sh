@@ -48,14 +48,17 @@ second_hash="$(cd "$skills" && find . -type f -exec shasum -a 256 {} + | LC_ALL=
   fail 'shared onboarding runbook was not installed'
 [[ -f "$platform/references/private-gitea-access.md" ]] ||
   fail 'shared private-gitea-access reference was not installed'
-# A skill declared "none" gets no references directory at all.
+# A skill whose source has no references gets no references directory at all.
 [[ ! -e "$session/references" ]] ||
-  fail 'a skill declared without shared references must not get a references directory'
+  fail 'a skill without source references must not get a references directory'
+# Codex-only metadata stays out of the Claude landing (#379).
+[[ ! -e "$platform/agents" ]] ||
+  fail 'the Claude landing must not receive Codex-only agents metadata'
 
-diff -q "$root/skill-for-codex/references/onboarding-runbook.md" \
+diff -q "$root/skills/aisoft-platform/references/onboarding-runbook.md" \
   "$platform/references/onboarding-runbook.md" >/dev/null ||
   fail 'installed runbook must be byte-identical to the single source'
-diff -q "$root/skill-for-claude/issue-session-flow/SKILL.md" "$session/SKILL.md" >/dev/null ||
+diff -q "$root/skills/issue-session-flow/SKILL.md" "$session/SKILL.md" >/dev/null ||
   fail 'installed issue-session-flow must be byte-identical to the source'
 
 # The cross-reference is what keeps the two skills from being found in
@@ -101,19 +104,19 @@ set +e
 session_extra_output="$("$root/skill-for-claude/check-drift.sh" "$tmp_home" 2>&1)"
 session_extra_status=$?
 set -e
-[[ "$session_extra_status" == 1 ]] || fail 'unexpected file in a none-references skill must fail'
+[[ "$session_extra_status" == 1 ]] || fail 'unexpected file in a skill without references must fail'
 grep -Fqx 'DRIFT: issue-session-flow unexpected stray.md' <<<"$session_extra_output" ||
   fail 'check-drift must qualify unexpected files by skill'
 bash "$root/skill-for-claude/install.sh" "$tmp_home" >/dev/null
 [[ ! -e "$session/stray.md" ]] || fail 'install.sh must prune strays in every declared skill'
 
-# A references directory under a "none" skill is unmanaged content, not an
-# expected entry: it must be pruned like any other stray.
+# A references directory under a skill whose source has none is unmanaged
+# content, not an expected entry: it must be pruned like any other stray.
 mkdir -p "$session/references"
 printf '%s\n' 'nope' >"$session/references/onboarding-runbook.md"
 bash "$root/skill-for-claude/install.sh" "$tmp_home" >/dev/null
 [[ ! -e "$session/references" ]] ||
-  fail 'a references directory under a none-mode skill must be pruned'
+  fail 'a references directory under a skill without source references must be pruned'
 
 printf '%s\n' 'content-drift' >>"$platform/SKILL.md"
 set +e
@@ -149,7 +152,7 @@ bash "$root/skill-for-claude/install.sh" "$tmp_home" >/dev/null
   fail 'final exact reinstall must be CLEAN'
 
 rm -f -- "$platform/SKILL.md"
-ln -s "$root/skill-for-claude/aisoft-platform/SKILL.md" "$platform/SKILL.md"
+ln -s "$root/skills/aisoft-platform/SKILL.md" "$platform/SKILL.md"
 set +e
 skill_symlink_output="$("$root/skill-for-claude/check-drift.sh" "$tmp_home" 2>&1)"
 skill_symlink_status=$?
@@ -203,14 +206,14 @@ grep -Fqx 'keep' "$tmp_home/symlink-destination/sentinel" ||
 # install. This is the mirror of the prune rule.
 undeclared_root="$(mktemp -d)"
 cp -R "$root/skill-for-claude" "$undeclared_root/skill-for-claude"
-cp -R "$root/skill-for-codex" "$undeclared_root/skill-for-codex"
+cp -R "$root/skills" "$undeclared_root/skills"
 # install.sh sources the shared source guard out of its own checkout (#254), so
 # a partial copy needs codex/lib as well or this case fails on the missing
 # source line rather than on the undeclared skill it is about.
 mkdir -p "$undeclared_root/codex"
 cp -R "$root/codex/lib" "$undeclared_root/codex/lib"
-mkdir -p "$undeclared_root/skill-for-claude/ghost-skill"
-printf '%s\n' 'ghost' >"$undeclared_root/skill-for-claude/ghost-skill/SKILL.md"
+mkdir -p "$undeclared_root/skills/ghost-skill"
+printf '%s\n' 'ghost' >"$undeclared_root/skills/ghost-skill/SKILL.md"
 set +e
 undeclared_output="$(bash "$undeclared_root/skill-for-claude/install.sh" "$tmp_home/ghost-home" 2>&1)"
 undeclared_status=$?

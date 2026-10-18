@@ -26,8 +26,9 @@
 
    `<空目录>/project/` 下的文件按项目落点排好，含生成的 `.aisoft/platform-usage.lock.json`；
    `AGENTS.md` 是完整模板，存量仓库只同步其常驻指针两节，「项目事实」保持项目自己的内容；
-   `docs/agents/` 与 CI 示例是种子，已有的项目版本不覆盖。`<空目录>/skills/` 是同一版本的技能源，
-   供核对本机已装技能。
+   `docs/agents/` 与 CI 示例是种子，已有的项目版本不覆盖。技能从同一份源导出到三种项目级落点：
+   `.claude/skills/`、`.agents/skills/`（Codex）与 `.cursor/skills/`，项目只复制它在 profile 里选用的工具对应的落点；
+   选用 Cursor 的项目另复制种子 `.cursor/rules/aisoft-platform.mdc`，它只指向使用合同、lock 与 `AGENTS.md`，不复述规则。
 
 3. 逐条 `GAP:` 在**目标仓**建独立 Issue，由 AI 按合同影响和强制风险判级后用单一 PR
    修复（回补程序见 runbook §2；不批量脚本改写多仓）。纯合同保持型局部回补可为 small，

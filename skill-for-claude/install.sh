@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Install the Claude-side skills declared by skill-for-claude/skills.manifest.
-# Each declared skill directory is an exact managed tree: stale files inside it
-# are pruned before install. The managed boundary stops at those directories --
-# ~/.claude/skills itself is never pruned, so skills this repository does not
-# declare are left untouched.
-# References are copied from skill-for-codex/references (single source of truth).
+# Install the Claude landing of every skill skills/skills.manifest declares for
+# claude (#379: skills/ is the single source for every provider).
+# Each declared skill directory is an exact managed tree: SKILL.md plus, when
+# the source has them, references/*.md. Stale files inside it are pruned before
+# install; Codex-only metadata (agents/) is never copied here. The managed
+# boundary stops at those directories -- ~/.claude/skills itself is never
+# pruned, so skills this repository does not declare are left untouched.
 # No credentials, runtime, or provider state is installed.
 set -euo pipefail
 
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 target_home="${1:-$HOME}"
-source_root="$root/skill-for-claude"
+source_root="$root/skills"
 manifest="$source_root/skills.manifest"
-refs_source="$root/skill-for-codex/references"
 skills_root="$target_home/.claude/skills"
 
 fail() {
@@ -21,7 +21,6 @@ fail() {
 }
 
 [[ -f "$manifest" ]] || fail "missing skill manifest: $manifest"
-[[ -d "$refs_source" ]] || fail "missing shared references: $refs_source"
 
 # Source provenance and staleness gate (#162, #171, #254). Must stay before the
 # first filesystem write below; both the prune loop and the `install -d` that
@@ -35,66 +34,41 @@ fail() {
 # older manifest, and a format complaint about that manifest would send the
 # operator after the wrong defect; the gate answers first.
 #
-# skill-for-claude/ ships no version-bearing JSON, so there is no revision
-# scalar to print and the readable quantities are file counts, with the commit
-# line the guard always prints carrying which version this is. They are the two
-# halves of the managed tree: the declared skills, and the shared reference set
-# copied into every skill declared `shared`. A SKILL.md count would add nothing
-# -- the two manifest checks below make it equal to the skill count in both
-# directions -- so the second quantity is the reference set instead, which is
-# also what an operator compares against <skill>/references in the target home.
+# skills/ ships no version-bearing JSON, so there is no revision scalar to print
+# and the readable quantities are file counts, with the commit line the guard
+# always prints carrying which version this is: every SKILL.md in the single
+# source (the guard runs before the manifest is parsed, so it cannot yet know
+# which of them land on Claude) and every reference file copied into a Claude
+# landing.
 # shellcheck disable=SC1091
 source "$root/codex/lib/install-source-guard.sh"
 
 aisoft_install_source_guard skill-for-claude/install "$root" \
   skills "$(aisoft_install_source_file_count "$source_root"/*/SKILL.md)" \
-  references "$(aisoft_install_source_file_count "$refs_source"/*.md)"
+  references "$(aisoft_install_source_file_count "$source_root"/*/references/*.md)"
 
-# The manifest is the only place the skill set is written down; both this
-# installer and check-drift.sh read it rather than carrying their own copy.
-names=()
-modes=()
-while read -r name mode extra || [[ -n "$name" ]]; do
-  [[ -n "$name" && "$name" != \#* ]] || continue
-  [[ -z "$extra" ]] || fail "malformed manifest line: $name $mode $extra"
-  [[ "$name" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] || fail "invalid skill name: $name"
-  case "$mode" in
-    shared | none) ;;
-    *) fail "invalid references mode for $name: ${mode:-<empty>}" ;;
-  esac
-  [[ -f "$source_root/$name/SKILL.md" ]] || fail "missing source: $source_root/$name/SKILL.md"
-  names+=("$name")
-  modes+=("$mode")
-done <"$manifest"
-
-[[ "${#names[@]}" -gt 0 ]] || fail "no skills declared in $manifest"
-
-# Fail closed on the reverse mismatch too: a skill added to the tree but not to
-# the manifest would otherwise be silently left uninstalled.
-while IFS= read -r -d '' source_skill; do
-  candidate="$(basename -- "$(dirname -- "$source_skill")")"
-  declared=0
-  for name in "${names[@]}"; do
-    [[ "$name" == "$candidate" ]] && declared=1 && break
-  done
-  [[ "$declared" == 1 ]] || fail "undeclared skill source: $candidate (add it to $manifest)"
-done < <(find "$source_root" -mindepth 2 -maxdepth 2 -name SKILL.md -print0)
+# The manifest is the only place the skill set is written down; every
+# installer and drift checker reads it through the same parser.
+# shellcheck disable=SC1091
+source "$root/codex/lib/skills-manifest.sh"
+aisoft_skills_manifest_load "$root" claude || exit 1
+names=(${AISOFT_SKILL_NAMES[@]+"${AISOFT_SKILL_NAMES[@]}"})
+[[ "${#names[@]}" -gt 0 ]] || fail "no skills declared for claude in $manifest"
 
 is_expected_entry() {
-  local mode="$1" relative="$2" path="$3" name
+  local skill="$1" relative="$2" path="$3" name
   case "$relative" in
     SKILL.md)
       [[ -f "$path" && ! -L "$path" ]]
       return
       ;;
     references)
-      [[ "$mode" == shared && -d "$path" && ! -L "$path" ]]
+      [[ -d "$source_root/$skill/references" && -d "$path" && ! -L "$path" ]]
       return
       ;;
     references/*.md)
-      [[ "$mode" == shared ]] || return 1
       name="${relative#references/}"
-      [[ "$name" != */* && -f "$refs_source/$name" && -f "$path" && ! -L "$path" ]]
+      [[ "$name" != */* && -f "$source_root/$skill/references/$name" && -f "$path" && ! -L "$path" ]]
       return
       ;;
   esac
@@ -108,15 +82,13 @@ for name in "${names[@]}"; do
 done
 
 pruned=0
-for index in "${!names[@]}"; do
-  name="${names[$index]}"
-  mode="${modes[$index]}"
+for name in "${names[@]}"; do
   target="$skills_root/$name"
 
   install -d -m 755 "$target"
   while IFS= read -r -d '' installed_path; do
     relative="${installed_path#"$target"/}"
-    if is_expected_entry "$mode" "$relative" "$installed_path"; then
+    if is_expected_entry "$name" "$relative" "$installed_path"; then
       continue
     fi
     if [[ -f "$installed_path" || -L "$installed_path" ]]; then
@@ -134,9 +106,10 @@ for index in "${!names[@]}"; do
   done < <(find "$target" -mindepth 1 -depth -print0)
 
   install -m 644 "$source_root/$name/SKILL.md" "$target/SKILL.md"
-  if [[ "$mode" == shared ]]; then
+  if [[ -d "$source_root/$name/references" ]]; then
     install -d -m 755 "$target/references"
-    for ref in "$refs_source"/*.md; do
+    for ref in "$source_root/$name/references"/*.md; do
+      [[ -f "$ref" ]] || continue
       install -m 644 "$ref" "$target/references/$(basename -- "$ref")"
     done
   fi
@@ -144,7 +117,7 @@ for index in "${!names[@]}"; do
 done
 
 printf 'Claude skills installed from %s: %s\n' "$manifest" "${names[*]}"
-printf '%s\n' 'Shared references copied from skill-for-codex/references (single source).'
+printf '%s\n' 'Installed from the single skill source skills/ (Claude landing: SKILL.md and references).'
 printf 'Pruned %s stale entries; each declared skill tree is exact.\n' "$pruned"
 printf '%s\n' 'Undeclared skills under .claude/skills were not read or modified.'
 printf '%s\n' 'No credentials, runtime, or provider state was installed.'

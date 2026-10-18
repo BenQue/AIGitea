@@ -1,0 +1,12 @@
+---
+description: AISoft 平台使用合同指针（本仓由 AISoft 平台治理）
+alwaysApply: true
+---
+
+本仓库由 AISoft 平台治理。本规则只是指针，不复述合同：
+
+- 合同入口：`.aisoft/platform-usage.md`（平台使用合同），版本以 `.aisoft/platform-usage.lock.json` 的 `bundle_version` 为准。
+- 本仓规则与项目事实：仓库根 `AGENTS.md`。
+- 流程技能：`.cursor/skills/aisoft-platform/` 与 `.cursor/skills/issue-session-flow/`。
+
+三者冲突时以使用合同与 `AGENTS.md` 为准，并停下来说明冲突，不自行取舍。

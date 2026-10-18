@@ -46,4 +46,4 @@
 
 ## 目录
 
-`01`–`08` 维护层分册 · `docs/adr/` 决策 · `docs/governance/` 整改路线 · `12`–`15`、`docker-release/`、`company-delivery/` 参考实现 · `architecture/` 架构 schema 与校验 · `codex/` runtime、broker、工具、Codex 技能与 vendor 快照 · `skill-for-claude/`、`skill-for-codex/` 技能源 · `sync/`、`platform-bootstrap/` 站点引导 · `templates/` 下发给项目的模板 · `docs/changes/` 每个 Issue 的证据 · `archive/` 只读历史。完整目录见 `README.md`。
+`01`–`08` 维护层分册 · `docs/adr/` 决策 · `docs/governance/` 整改路线 · `12`–`15`、`docker-release/`、`company-delivery/` 参考实现 · `architecture/` 架构 schema 与校验 · `codex/` runtime、broker、工具与 vendor 快照 · `skills/` 唯一技能源 · `skill-for-claude/` Claude 侧安装脚本 · `sync/`、`platform-bootstrap/` 站点引导 · `templates/` 下发给项目的模板 · `docs/changes/` 每个 Issue 的证据 · `archive/` 只读历史。完整目录见 `README.md`。

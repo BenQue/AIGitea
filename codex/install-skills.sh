@@ -16,8 +16,19 @@ matt_source="$root/codex/vendor/mattpocock/$matt_version"
 # shellcheck disable=SC1091
 source "$root/codex/lib/install-source-guard.sh"
 aisoft_install_source_guard install-skills "$root" \
-  skills "$(aisoft_install_source_file_count "$root"/codex/skills/*/SKILL.md "$root/skill-for-codex/SKILL.md")" \
+  skills "$(aisoft_install_source_file_count "$root"/skills/*/SKILL.md)" \
   'matt snapshot' "$matt_version" action "$action"
+
+# skills/skills.manifest is the single declaration of which skills land on
+# Codex (#379); every installer and drift checker parses it the same way.
+# shellcheck disable=SC1091
+source "$root/codex/lib/skills-manifest.sh"
+aisoft_skills_manifest_load "$root" codex || exit 1
+skill_names=(${AISOFT_SKILL_NAMES[@]+"${AISOFT_SKILL_NAMES[@]}"})
+[[ "${#skill_names[@]}" -gt 0 ]] || {
+  printf '%s\n' 'no skills declared for codex in skills/skills.manifest' >&2
+  exit 1
+}
 
 matt_snapshot() {
   if [[ "$action" == --rollback ]]; then
@@ -31,10 +42,7 @@ matt_snapshot() {
 
 # Fail before copying adapters for bad source, unmanaged entries or pointer drift.
 matt_snapshot preflight-install >/dev/null
-for skill in "$root"/codex/skills/* "$root/skill-for-codex"; do
-  [[ -d "$skill" ]] || continue
-  name="$(basename "$skill")"
-  [[ "$name" != skill-for-codex ]] || name=aisoft-platform
+for name in "${skill_names[@]}"; do
   target="$target_root/$name"
   if [[ -L "$target" || ( -e "$target" && ! -d "$target" ) ]]; then
     printf 'refusing linked or non-directory adapter target: %s\n' "$target" >&2
@@ -47,12 +55,9 @@ done
 if [[ "$action" != --rollback ]]; then
   install -d -m 700 "$target_home/.agents"
   install -d -m 755 "$target_root"
-  for skill in "$root"/codex/skills/* "$root/skill-for-codex"; do
-    [[ -d "$skill" ]] || continue
-    name="$(basename "$skill")"
-    [[ "$name" != skill-for-codex ]] || name=aisoft-platform
+  for name in "${skill_names[@]}"; do
     install -d -m 755 "$target_root/$name"
-    cp -a "$skill/." "$target_root/$name/"
+    cp -a "$root/skills/$name/." "$target_root/$name/"
   done
 fi
 
