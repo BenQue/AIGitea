@@ -353,8 +353,11 @@ SKILL_LANDINGS = (
 )
 
 
+SKILL_MANIFEST = "skills/skills.manifest"
+
+
 def skill_targets(root: Path) -> dict[str, set[str]]:
-    path = root / "skills/skills.manifest"
+    path = root / SKILL_MANIFEST
     if not path.is_file():
         raise BundleError(f"缺少技能声明 {path}")
     declared: dict[str, set[str]] = {}
@@ -389,9 +392,15 @@ def build(root: Path, out: Path) -> None:
     latest = bundle["releases"][-1]
     if out.exists() and (not out.is_dir() or any(out.iterdir())):
         raise BundleError(f"--build 目录必须不存在或为空：{out}")
+    if not any(m["source"] == SKILL_MANIFEST and m["mode"] == "skill" for m in bundle["members"]):
+        raise BundleError(f"{SKILL_MANIFEST} 决定技能落点，必须是 skill 成员，否则同一版本可以导出不同目录")
     targets = skill_targets(root)
     for member in bundle["members"]:
         data = (root / member["source"]).read_bytes()
+        if member["source"] == SKILL_MANIFEST:
+            # The declaration decides every landing below; it is a member so a
+            # release digest covers it, but it has no project copy of its own.
+            continue
         if member["mode"] == "skill":
             destinations = [out / "project" / landing for landing in skill_landings(member["source"], targets)]
         else:

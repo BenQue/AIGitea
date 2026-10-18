@@ -80,6 +80,10 @@
       "target": ".cursor/rules/aisoft-platform.mdc"
     },
     {
+      "source": "skills/skills.manifest",
+      "mode": "skill"
+    },
+    {
       "source": "skills/aisoft-platform/SKILL.md",
       "mode": "skill"
     },
@@ -259,7 +263,7 @@
     {
       "version": "1.1.0",
       "released": "2026-10-18",
-      "bundle_digest": "sha256:82a6633c38226d257db2d367766c14a6143c9cf662c3567cf934f24743eec99e",
+      "bundle_digest": "sha256:926b9a4ccf71724add15dd1d2b8cd7d5f0d65be1ae13a2da117963f23bd736fd",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -354,6 +358,11 @@
           "sha256": "13eadb1c38263092c9fd36eb5fe91517620c3d9e6f5570923fbc43418fb71f61"
         },
         {
+          "source": "skills/skills.manifest",
+          "mode": "skill",
+          "sha256": "19e00378d506b6278f98d933218cc419c9dab116bd2dae7a6c0256458e5cc98e"
+        },
+        {
           "source": "skills/aisoft-platform/SKILL.md",
           "mode": "skill",
           "sha256": "ab81dfdf2900277f3001ef6e704758a66d037b827f2a88b40933345a271f8a28"
@@ -376,7 +385,7 @@
         {
           "source": "skills/aisoft-platform/references/project-align.md",
           "mode": "skill",
-          "sha256": "bfb2ce12d2837278b5ded0ae388ccb32dfc2f5b7c336eeb6fce89ee37b8ed19d"
+          "sha256": "5434602b62d498a36bfc5eba268ad4759ad1f59bdbefa2720f53d7857586bb32"
         },
         {
           "source": "skills/issue-session-flow/SKILL.md",

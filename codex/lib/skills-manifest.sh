@@ -48,6 +48,12 @@ aisoft_skills_manifest_load() {
       printf 'missing source: %s\n' "$root/skills/$name/SKILL.md" >&2
       return 2
     fi
+    # Validate the whole field before splitting: read -a drops trailing empty
+    # fields, so "claude," would otherwise pass here and fail the Python reader.
+    if [[ ! "$targets" =~ ^(claude|codex)(,(claude|codex))*$ ]]; then
+      printf 'invalid targets for %s: %s\n' "$name" "$targets" >&2
+      return 2
+    fi
     all_names+=("$name")
     declared=0
     IFS=, read -r -a target_list <<<"$targets"

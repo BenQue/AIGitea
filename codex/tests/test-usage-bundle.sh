@@ -72,6 +72,7 @@ cat >"$platform/usage/bundle.json" <<'JSON'
     {"source": "templates/project/AGENTS.md", "mode": "pointer", "target": "AGENTS.md", "check": "pointer-sections"},
     {"source": "templates/docs/changes/_template/summary.md", "mode": "exact", "target": "docs/changes/_template/summary.md", "check": "change-templates"},
     {"source": "templates/docs/agents/domain.md", "mode": "seed", "target": "docs/agents/domain.md"},
+    {"source": "skills/skills.manifest", "mode": "skill"},
     {"source": "skills/demo/SKILL.md", "mode": "skill"},
     {"source": "skills/demo/agents/openai.yaml", "mode": "skill"},
     {"source": "skills/codexonly/SKILL.md", "mode": "skill"}
@@ -133,6 +134,14 @@ done
 [[ ! -e "$tmp/build1/project/.claude/skills/codexonly" ]] || fail 'codex-only skill leaked to claude'
 [[ ! -e "$tmp/build1/project/.cursor/skills/codexonly" ]] || fail 'codex-only skill leaked to cursor'
 [[ ! -e "$tmp/build1/skills" ]] || fail 'skills must land inside the project tree'
+[[ ! -e "$tmp/build1/project/skills.manifest" ]] || fail 'the landing declaration has no project copy'
+# The declaration decides the landings, so it is a member: changing only the
+# targets without a new release must fail verify (and therefore build).
+cp "$platform/skills/skills.manifest" "$tmp/skills.manifest.saved"
+printf 'demo codex\ncodexonly codex\n' >"$platform/skills/skills.manifest"
+run 1 "${p[@]}" --verify
+run 1 "${p[@]}" --build "$tmp/build-targets-only"
+cp "$tmp/skills.manifest.saved" "$platform/skills/skills.manifest"
 grep -Fq '"bundle_version": "1.0.0"' "$tmp/build1/project/.aisoft/platform-usage.lock.json" || fail 'lock version'
 grep -Fq "\"bundle_digest\": \"$digest_v1\"" "$tmp/build1/project/.aisoft/platform-usage.lock.json" || fail 'lock digest'
 run 1 "${p[@]}" --build "$tmp/build1"

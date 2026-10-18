@@ -891,6 +891,12 @@ grep -Fq 'claim-worktree' "$session_flow_skill"
 grep -Fq 'pushed_head' "$session_flow_skill"
 grep -Fq 'scan-worktrees' "$session_flow_skill"
 grep -Fq '## change worktree 的单写者归属' "$session_flow_skill"
+# #379（ADR 0001 D6）：交叉审核是维护层固定步骤。流程正文、矩阵条目与两个技能里的入口都在场，
+# 少一处就退回成一句没有落点的原则。
+grep -Fq '### 交叉审核（平台仓 complex，ADR 0001 D6）' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
+grep -Fq '6. **交叉审核**' "$ROOT/08-双工具共存与实施.md"
+grep -Fq '交叉审查: ' "$session_flow_skill"
+grep -Fq '交叉审查，结论记入 verification' "$ROOT/skills/aisoft-platform/SKILL.md"
 grep -Fq 'WORKTREE_OWNER_MISMATCH' "$ROOT/06-运维手册与踩坑集.md"
 grep -Fq '## Derived Issues' "$ROOT/docs/agents/issue-tracker.md"
 grep -Fq -- '--entry-label' "$ROOT/skills/aisoft-platform/SKILL.md"

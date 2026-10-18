@@ -225,11 +225,15 @@ def cursor_cached_version(home: Path, plugin: str) -> str | None:
         marketplaces = sorted(base.iterdir())
         for marketplace in marketplaces:
             directory = marketplace / plugin
-            if marketplace.is_symlink() or directory.is_symlink() or not directory.is_dir():
+            if not os.path.lexists(directory):
                 continue
+            # Present but not a plain directory is a shape this reader does not
+            # recognise: UNKNOWN, never NOT_INSTALLED.
+            if marketplace.is_symlink() or directory.is_symlink() or not directory.is_dir():
+                raise Unreadable(f"a cached Cursor {plugin} entry is not a plain directory")
             for child in sorted(directory.iterdir()):
                 if child.is_symlink() or not child.is_dir():
-                    continue
+                    raise Unreadable(f"a cached Cursor {plugin} revision is not a plain directory")
                 manifest = next((child / name for name in CURSOR_MANIFESTS
                                  if (child / name).is_file() and not (child / name).is_symlink()), None)
                 if manifest is None:

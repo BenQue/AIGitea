@@ -31,6 +31,8 @@ INSTALLER_PINS = {
 }
 INSTALLER_HELPER_PINS = {
     "codex/runtime/aisoft_loop/matt_snapshot.py": "32c2f6f9de89537644cc5e7a3594d61a02c41b362ace044735c4b64da7fe637e",
+    # Both skill installers source it to decide what lands where (#379).
+    "codex/lib/skills-manifest.sh": "8cea0e4e1398d7296e1d41e9cb2844c36f2aa0ac86641e2b3bb18dee0b965321",
 }
 # The versioned snapshot manifest is immutable. Validate content declarations
 # below as well; changing either contract requires explicit mapping maintenance.
@@ -452,6 +454,7 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
     # and its maintainer-layer landings (#379); both installers read it.
     declared = read_skill_manifest(repo)
     metadata_sources.add(repo / "skills/skills.manifest")
+    metadata_sources.add(repo / "codex/lib/skills-manifest.sh")
     skills = home / ".agents/skills"
     skill_names = [name for name, targets in declared.items() if "codex" in targets]
     for name in skill_names:
@@ -628,7 +631,7 @@ def source_identity(repo: Path, sources: set[Path]):
             # roots from surviving files would silently omit that deletion.
             scopes = {"codex/runtime/" + name for name in ("aisoft_loop", "aisoft_host_access",
                       "aisoft_gitea_governance", "aisoft_architecture", "aisoft_release")}
-            scopes.update({"codex/agent", "codex/systemd", "skills",
+            scopes.update({"codex/agent", "codex/systemd", "skills", "codex/lib/skills-manifest.sh",
                            "codex/tools/gitea-pat-helper",
                            "codex/vendor/mattpocock", "docker-release/schema",
                            "docker-release/compatibility", "sync/systemd"})

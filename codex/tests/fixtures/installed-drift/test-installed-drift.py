@@ -618,6 +618,11 @@ raise SystemExit("unexpected read through replaced parent")
         p.write_text(p.read_text() + '\ninstall -m 644 new.py "$RUNTIME_DIR/new.py"\n')
         self.assertIn("installer-mapping-stale", json.dumps(self.check(2, repo=source)))
         shutil.copyfile(REPO / "codex/install-vm.sh", p)
+        # #379: the shared skill-manifest parser decides both skill installs.
+        parser = source / "codex/lib/skills-manifest.sh"
+        parser.write_text(parser.read_text() + "\nAISOFT_SKILL_NAMES=()\n")
+        self.assertIn("installer-mapping-stale", json.dumps(self.check(2, repo=source)))
+        shutil.copyfile(REPO / "codex/lib/skills-manifest.sh", parser)
         other = source / "codex/new-component/install.sh"
         other.parent.mkdir(parents=True)
         other.write_text('aisoft_install_source_guard new-component "$ROOT" operations 1\n')

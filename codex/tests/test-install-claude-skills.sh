@@ -223,4 +223,23 @@ rm -rf "$undeclared_root"
 grep -Fq 'undeclared skill source: ghost-skill' <<<"$undeclared_output" ||
   fail 'install must name the undeclared skill source'
 
+# The targets field is validated whole before it is split (#379): bash 3.2's
+# read -a would drop a trailing empty field and accept what the Python drift
+# reader rejects.
+comma_root="$(mktemp -d)"
+cp -R "$root/skill-for-claude" "$comma_root/skill-for-claude"
+cp -R "$root/skills" "$comma_root/skills"
+mkdir -p "$comma_root/codex"
+cp -R "$root/codex/lib" "$comma_root/codex/lib"
+sed -i.bak 's/^issue-session-flow claude,codex$/issue-session-flow claude,/' "$comma_root/skills/skills.manifest"
+rm -f "$comma_root/skills/skills.manifest.bak"
+set +e
+comma_output="$(bash "$comma_root/skill-for-claude/install.sh" "$tmp_home/comma-home" 2>&1)"
+comma_status=$?
+set -e
+rm -rf "$comma_root"
+[[ "$comma_status" == 1 ]] || fail 'a trailing comma in targets must make install fail closed'
+grep -Fq 'invalid targets for issue-session-flow' <<<"$comma_output" ||
+  fail 'install must name the skill with malformed targets'
+
 echo 'claude skill install tests passed'

@@ -143,7 +143,8 @@ class SessionContractTests(unittest.TestCase):
             "--apply <pinned>",
             "`required_docs`",
             "`deployment_lifecycle`",
-            "绝不推断已部署",
+            "两个条件都由工具读取，不要自己判断该写 `completed` 还是 `deployed`",
+            "计划里出现你不认识的 `reason` 时读 `detail`，它写着依据，绝不推断已部署。",
         )
 
     def _assert_backfill_paths(self, content):
@@ -273,6 +274,9 @@ class SessionContractTests(unittest.TestCase):
                 ("不再传 `--range`", "仍然传 `--range`"),
                 ("`required_docs`", "可选文档"),
                 ("`deployment_lifecycle`", "provider 推断"),
+                ("两个条件都由工具读取，不要自己判断", "两个条件由 provider 推断，自行决定"),
+                ("时读 `detail`", "时自行猜测标签"),
+                ("绝不推断已部署", "可以推断已部署"),
             ),
         )
 

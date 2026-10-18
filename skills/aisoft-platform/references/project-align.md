@@ -70,8 +70,8 @@
 第 2 行的四份 `docs/changes/_template/{summary,spec,plan,verification}.md` 是 canonical
 共享资源，不是另一 Issue 的合同目录。其范围授权仍须复用现有 holder 与 exact committed
 approved scope，逐项授权、完整历史检查；不允许放开整个 `docs/changes/`、省略真实 delta
-或伪造 Issue 路径。唯一规则见 [03 §3「Canonical 模板的精确 Git scope 合同」](../../03-Issue-Spec-Plan与单闸门开发流程.md#canonical-模板的精确-git-scope-合同360)，
-实现和验收范围见 [#360 spec](../../docs/changes/360-canonical-template-scope/spec-canonical-template-scope-261015.md)。
+或伪造 Issue 路径。唯一规则见 [03 §3「Canonical 模板的精确 Git scope 合同」](../../../03-Issue-Spec-Plan与单闸门开发流程.md#canonical-模板的精确-git-scope-合同360)，
+实现和验收范围见 [#360 spec](../../../docs/changes/360-canonical-template-scope/spec-canonical-template-scope-261015.md)。
 
 当前 #360 T02 仅应用治理文档，runtime/真实 installed 入口尚未验收；遇既有 `SCOPE_DENIED`
 应保留具体失败与批准 scope，不能加载未合并 reader 或关闭 guard。fresh run 实施、source 合并后
