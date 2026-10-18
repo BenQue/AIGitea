@@ -508,7 +508,7 @@ def _elide_log_middle(raw: bytes) -> str:
     failing step prints its error last. What it missed is that a step near the
     front of a long job then has no readable output at all — and the steps near
     the front are the ones that say which tree was checked out and what the
-    environment was. LocalWMS run 835 lost exactly that: the checkout SHA sat
+    environment was. One project's run 835 lost exactly that: the checkout SHA sat
     inside 119843 discarded leading bytes, so the run could be shown to have
     passed that step without anyone being able to say what it passed it on.
 

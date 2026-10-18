@@ -187,7 +187,7 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "gitea.issue.read": ("project-agent", False, ("number",)),
     # Enumerating open Issues (#222). Without it a dispatching session could only
     # read by number, so it could not check for a duplicate before opening one —
-    # LocalWMS produced two duplicate pairs in a single afternoon that way, each
+    # one project produced two duplicate pairs in a single afternoon that way, each
     # from a session doing exactly the right thing with the surface it had.
     #
     # Named .list rather than the plural .read that gitea.pulls.read uses: the
@@ -466,7 +466,6 @@ def load_access_contract(
     project_ids: set[str] = set()
     repositories: set[str] = set()
     profile_names: set[str] = set()
-    profile_repositories: set[str] = set()
     for index, item in enumerate(projects_raw):
         _require(isinstance(item, dict), f"projects[{index}] must be an object")
         required_project_keys = {
@@ -525,7 +524,6 @@ def load_access_contract(
             profile_name = _identifier(vm_raw["name"], f"projects[{index}].vm_profile.name")
             _require(profile_name not in profile_names, f"duplicate VM profile: {profile_name}")
             profile_names.add(profile_name)
-            profile_repositories.add(repository)
             repo_dir = _relative_path(vm_raw["repo_dir"],
                                       f"projects[{index}].vm_profile.repo_dir")
             analysis = vm_raw["analysis_provider"]
@@ -535,9 +533,8 @@ def load_access_contract(
                      "invalid implementation provider")
             _require(implementation == "none", "implementation must remain disabled during migration")
             timer = vm_raw["timer_unit"]
-            _require(timer is None or timer in {
-                "aisoft-agent@emaintenance.timer"
-            }, "timer_unit is not allowlisted")
+            _require(timer is None or timer == f"aisoft-agent@{profile_name}.timer",
+                     "timer_unit must be aisoft-agent@<profile>.timer")
             path_prepend = _path_prepend(
                 vm_raw.get("path_prepend"), f"projects[{index}].vm_profile.path_prepend"
             ) if "path_prepend" in vm_raw else ()
@@ -556,11 +553,6 @@ def load_access_contract(
              "dependency_read_targets must name canonical projects")
     _require(repositories == set(governance_by_name),
              "host access projects must exactly cover governance repositories")
-    _require(
-        profile_repositories
-        == {"aisoft-platform", "NewEMaint", "LocalWMS"},
-        "VM profile migration set must contain exactly the three approved repositories",
-    )
     _require(governance.human_merge_identity not in {
         project.project_agent for project in projects
     }, "human merge identity must never be a broker credential")

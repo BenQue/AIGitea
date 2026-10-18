@@ -327,6 +327,37 @@ class ContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "non-target repository"):
             load_contract(path)
 
+    def test_pilot_values_are_manifest_data_checked_only_for_consistency(self):
+        # #373 (ADR 0001 D3): which repository is the pilot and which Issues and
+        # SHAs it binds live in the manifest; the code only checks consistency.
+        path = self._write_mutation(
+            lambda raw: raw_pilot(raw).update({"canary_issue": 75})
+        )
+        pilot = load_contract(path).repository("NewEMaint").routine_live_pilot
+        assert pilot is not None
+        self.assertEqual(pilot.canary_issue, 75)
+
+        def drop_pilot(raw: dict[str, Any]) -> None:
+            del raw_repository(raw)["routine_live_pilot"]
+
+        contract = load_contract(self._write_mutation(drop_pilot))
+        self.assertTrue(all(
+            repository.routine_live_pilot is None
+            for repository in contract.repositories
+        ))
+
+    def test_second_routine_live_pilot_is_rejected(self):
+        def copy_pilot(raw: dict[str, Any]) -> None:
+            other = next(
+                item for item in raw["repositories"] if item["name"] == "LocalWMS"
+            )
+            other["routine_live_pilot"] = dict(raw_pilot(raw))
+            other["status_check_contexts"] = list(raw_pilot(raw)["required_contexts"])
+
+        path = self._write_mutation(copy_pilot)
+        with self.assertRaisesRegex(ContractError, "at most one routine live pilot"):
+            load_contract(path)
+
     def test_pilot_provenance_requires_issue_213_and_both_ancestor_gates(self):
         calls = []
 
