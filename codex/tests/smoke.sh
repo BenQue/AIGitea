@@ -120,6 +120,8 @@ for script in \
   "$ROOT/codex/tests/test-codex-drift.sh" \
   "$ROOT/skill-for-claude/check-plugin-pin.sh" \
   "$ROOT/codex/tests/test-claude-plugin-pin.sh" \
+  "$ROOT/codex/tools/check-external-skill-versions.sh" \
+  "$ROOT/codex/tests/test-external-skill-versions.sh" \
   "$ROOT/codex/tests/test-platform-readiness.sh" \
   "$ROOT"/sync/*.sh \
   "$ROOT"/sync/tests/*.sh; do
@@ -193,6 +195,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-codex-drift.sh" \
     "$ROOT/skill-for-claude/check-plugin-pin.sh" \
     "$ROOT/codex/tests/test-claude-plugin-pin.sh" \
+    "$ROOT/codex/tools/check-external-skill-versions.sh" \
+    "$ROOT/codex/tests/test-external-skill-versions.sh" \
     "$ROOT/codex/tests/test-platform-readiness.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh" \
     "$ROOT/codex/tests/test-gitea-token-lib.sh" \
@@ -250,6 +254,10 @@ bash "$ROOT/codex/tests/test-install-claude-skills.sh"
 # ~/.claude is never inspected.
 bash "$ROOT/skill-for-claude/check-plugin-pin.sh" --source-only
 bash "$ROOT/codex/tests/test-claude-plugin-pin.sh"
+# #375: adaptation record structure and fabricated homes only; the CI host's
+# own ~/.claude and ~/.codex are never inspected.
+bash "$ROOT/codex/tools/check-external-skill-versions.sh" --source-only
+bash "$ROOT/codex/tests/test-external-skill-versions.sh"
 bash "$ROOT/codex/tests/test-host-role-guard.sh"
 bash "$ROOT/codex/tests/test-install-host-role.sh"
 bash "$ROOT/codex/tests/test-host-access-broker.sh"
