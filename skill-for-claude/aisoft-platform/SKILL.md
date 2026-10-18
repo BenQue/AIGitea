@@ -88,6 +88,7 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 | `.superpowers/` 下的工作目录 | 本地状态，已在 `.gitignore` 里，不入库、不当验收证据 |
 | `finishing-a-development-branch` 提供本地 merge、`git push`、建 PR | 三项都不可用。本地验证完成后停在 `AWAITING_PR_CONFIRMATION`；确认后远端只走 broker |
 | 并行子代理各自实现 | 一个 change worktree 同一时刻只有一个写者：子代理不得并发写入它，也不得写别的会话的 worktree；只读调查可以并行 |
+| `brainstorming` 自己定级：快速任务直接做、小改动在聊天里确认后就做 | 它的定级与聊天内确认不替代平台判级与 `approved`；写文件前仍要有 Issue、判级与确认点 1 |
 
 ## 接入新项目 / 项目对齐 / 私有访问
 

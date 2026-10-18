@@ -120,6 +120,8 @@ for script in \
   "$ROOT/codex/tests/test-codex-drift.sh" \
   "$ROOT/skill-for-claude/check-plugin-pin.sh" \
   "$ROOT/codex/tests/test-claude-plugin-pin.sh" \
+  "$ROOT/codex/tools/check-external-skill-versions.sh" \
+  "$ROOT/codex/tests/test-external-skill-versions.sh" \
   "$ROOT/codex/tests/test-platform-readiness.sh" \
   "$ROOT"/sync/*.sh \
   "$ROOT"/sync/tests/*.sh; do
@@ -193,6 +195,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-codex-drift.sh" \
     "$ROOT/skill-for-claude/check-plugin-pin.sh" \
     "$ROOT/codex/tests/test-claude-plugin-pin.sh" \
+    "$ROOT/codex/tools/check-external-skill-versions.sh" \
+    "$ROOT/codex/tests/test-external-skill-versions.sh" \
     "$ROOT/codex/tests/test-platform-readiness.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh" \
     "$ROOT/codex/tests/test-gitea-token-lib.sh" \
@@ -250,6 +254,10 @@ bash "$ROOT/codex/tests/test-install-claude-skills.sh"
 # ~/.claude is never inspected.
 bash "$ROOT/skill-for-claude/check-plugin-pin.sh" --source-only
 bash "$ROOT/codex/tests/test-claude-plugin-pin.sh"
+# #375: adaptation record structure and fabricated homes only; the CI host's
+# own ~/.claude and ~/.codex are never inspected.
+bash "$ROOT/codex/tools/check-external-skill-versions.sh" --source-only
+bash "$ROOT/codex/tests/test-external-skill-versions.sh"
 bash "$ROOT/codex/tests/test-host-role-guard.sh"
 bash "$ROOT/codex/tests/test-install-host-role.sh"
 bash "$ROOT/codex/tests/test-host-access-broker.sh"
@@ -921,6 +929,11 @@ for superpowers_anchor in \
   grep -Fq -- "$superpowers_anchor" "$claude_platform_skill"
 done
 grep -Fq '外部技能包边界' "$ROOT/skill-for-claude/issue-session-flow/SKILL.md"
+# #375：brainstorming 的自定级不替代平台判级，两侧成对。
+# shellcheck disable=SC2016 # backticks are literal Markdown, not expansions
+grep -Fq '它的定级与聊天内确认不替代平台判级与 `approved`' "$claude_platform_skill"
+# shellcheck disable=SC2016 # backticks are literal Markdown, not expansions
+grep -Fq 'does not replace platform classification or `approved`' "$ROOT/skill-for-codex/SKILL.md"
 # 升级适配清单（AC-8）：正文与已填写的示例在 08 §5；四项检查、三种结论都在场；
 # 两侧平台技能各有一个入口，缺任一侧两个 provider 就不再对称。
 upgrade_checklist_doc="$ROOT/08-双工具共存与实施.md"
@@ -934,7 +947,8 @@ for upgrade_checklist_anchor in \
   '**需要更新平台技能或 adapter**' \
   '**明确禁用并写明边界**' \
   '**Matt 1.2.3 → 1.3.1**' \
-  '**superpowers 6.4.1 → 6.4.2**'; do
+  '**superpowers 6.4.1 → 6.4.2**' \
+  '**superpowers 6.4.2 → 7.0.0**'; do
   if ! grep -Fq -- "$upgrade_checklist_anchor" "$upgrade_checklist_doc"; then
     echo "升级适配清单缺少：$upgrade_checklist_anchor（#355 AC-8）" >&2
     exit 1
