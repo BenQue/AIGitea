@@ -586,7 +586,7 @@ class ControllerTests(unittest.TestCase):
         )
 
     def routine_governance(self) -> Path:
-        source = Path(__file__).resolve().parents[2] / "config/gitea-governance.json"
+        source = Path(__file__).resolve().parents[2] / "tests/fixtures/manifests/gitea-governance.json"
         value = json.loads(source.read_text(encoding="utf-8"))
         path = self.root / "routine-governance.json"
         path.write_text(json.dumps(value), encoding="utf-8")
@@ -718,7 +718,7 @@ branch: change/8
             confirmation_required=True,
             routine_merger=merger,
             governance_manifest=self.routine_governance(),
-            repository_name="NewEMaint",
+            repository_name="AlphaApp",
         )
         self.assertEqual(
             controller.run(8).terminal_state,
@@ -748,7 +748,7 @@ branch: change/8
             confirmation_required=True,
             routine_merger=merger,
             governance_manifest=self.routine_governance(),
-            repository_name="NewEMaint",
+            repository_name="AlphaApp",
         )
         self.assertEqual(
             controller.run(8).terminal_state,
@@ -771,7 +771,7 @@ branch: change/8
             confirmation_required=True,
             routine_merger=FakeRoutineMerger(valid=False),
             governance_manifest=self.routine_governance(),
-            repository_name="NewEMaint",
+            repository_name="AlphaApp",
         )
         self.assertEqual(
             controller.run(8).terminal_state,

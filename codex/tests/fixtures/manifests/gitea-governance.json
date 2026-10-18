@@ -1,0 +1,216 @@
+{
+  "contract_version": "gitea-governance/v1",
+  "environment": "local-orbstack",
+  "gitea_version": "1.26.4",
+  "base_url": "http://gitea-ci.orb.local:3000",
+  "owner": "admin",
+  "default_branch": "main",
+  "unknown_repository_action": "report-only",
+  "human_merge_identity": "admin",
+  "site_admin": {
+    "username": "admin",
+    "routine_automation_allowed": false,
+    "approved_bootstrap_allowed": true,
+    "break_glass_only": true
+  },
+  "platform_manager": {
+    "username": "aisoft-platform-manager",
+    "site_admin": false,
+    "repository_permission": "admin",
+    "ordinary_git_allowed": false,
+    "merge_allowed": false,
+    "audit_token_scopes": [
+      "read:issue",
+      "read:repository",
+      "read:user"
+    ],
+    "mutation_token_scopes": [
+      "write:issue",
+      "write:repository",
+      "read:user"
+    ]
+  },
+  "project_agent_policy": {
+    "repository_permission": "write",
+    "merge_allowed": false,
+    "cross_project_write_allowed": false,
+    "token_scopes": [
+      "write:issue",
+      "write:repository",
+      "read:user"
+    ]
+  },
+  "routine_merge_agent_policy": {
+    "site_admin": false,
+    "repository_permission": "write",
+    "ordinary_git_allowed": false,
+    "native_merge_only_acl": false,
+    "credential_custody": "broker-exclusive",
+    "ordinary_git_control": "credential-custody-typed-operation-manifest-final-head-zero-fallback",
+    "merge_allowed": true,
+    "cross_project_write_allowed": false,
+    "allowed_operation": "gitea.pull.merge.routine",
+    "credential_relative_path_template": "projects/{project_id}/routine-merge-agent.token",
+    "token_scopes": [
+      "write:repository",
+      "read:user"
+    ]
+  },
+  "shared_bot_migration": {
+    "username": "ci-bot",
+    "default_action": "keep",
+    "retirement_requires_project_validation": true
+  },
+  "server_policy": {
+    "disable_registration": true,
+    "default_private": "private",
+    "force_private": false,
+    "require_signin_view": false
+  },
+  "repository_policy": {
+    "default_visibility": "private",
+    "public_allowlist": [
+      "admin/aisoft-platform",
+      "admin/myapp",
+      "admin/smoke-test"
+    ],
+    "default_delete_branch_after_merge": true,
+    "protect_default_branch": true,
+    "direct_push_allowed": false,
+    "force_push_allowed": false,
+    "merge_allowlist_usernames": [
+      "admin"
+    ],
+    "block_admin_merge_override": true,
+    "preserve_unmanaged_protection_fields": true
+  },
+  "repositories": [
+    {
+      "name": "aisoft-platform",
+      "classification": "public-platform",
+      "deployment_lifecycle": "none",
+      "vendors_change_templates": false,
+      "visibility": "public",
+      "project_agent": "aisoft-platform-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": null,
+      "status_check_contexts": [
+        "CI / verify (pull_request)"
+      ],
+      "required_context_migration": {
+        "repository": "admin/aisoft-platform",
+        "context": "CI / verify (pull_request)",
+        "pull_request": 209,
+        "head_sha": "de85f1d581a4bba524e057e087a95305ff510458",
+        "actions_run": 717,
+        "commit_status_id": 3,
+        "event": "pull_request",
+        "state": "success"
+      },
+      "required_approvals": 0
+    },
+    {
+      "name": "DeltaDB",
+      "classification": "internal-application",
+      "visibility": "private",
+      "project_agent": "deltadb-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": null,
+      "status_check_contexts": [
+        "CI / test (pull_request)"
+      ],
+      "required_approvals": 0
+    },
+    {
+      "name": "BetaApp",
+      "classification": "internal-application",
+      "change_control": "development",
+      "visibility": "private",
+      "project_agent": "betaapp-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": "betaapp-routine-merger",
+      "status_check_contexts": [
+        "CI / test (pull_request)"
+      ],
+      "required_approvals": 0
+    },
+    {
+      "name": "myapp",
+      "classification": "public-test",
+      "visibility": "public",
+      "project_agent": "myapp-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": null,
+      "status_check_contexts": [],
+      "required_approvals": 0
+    },
+    {
+      "name": "AlphaApp",
+      "classification": "internal-application",
+      "visibility": "private",
+      "project_agent": "alphaapp-agent",
+      "routine_auto_merge_enabled": true,
+      "routine_merge_agent": "alphaapp-routine-merger",
+      "routine_live_pilot": {
+        "project_id": "alphaapp",
+        "rollout_issue": 213,
+        "routine_source_issue": 208,
+        "routine_source_merged_sha": "8d109b14b6e0936be30f6f287ff6050e48632e0b",
+        "governance_baseline_issue": 35,
+        "governance_baseline_merged_sha": "69251fd4d07665385eb6d9142038848c2b9392d7",
+        "non_target_repositories_sha256": "764bed75cacac4c472d68cb26e2acb81f059001433a9f6a47e03f59bdd50e3ec",
+        "canary_issue": 74,
+        "required_contexts": [
+          "CI / verify (pull_request)",
+          "CI / mobile-verify (pull_request)"
+        ],
+        "bootstrap_max": 1,
+        "apply_max": 1,
+        "canary_merge_post_max": 1
+      },
+      "status_check_contexts": [
+        "CI / verify (pull_request)",
+        "CI / mobile-verify (pull_request)"
+      ],
+      "required_approvals": 0
+    },
+    {
+      "name": "GammaBoard",
+      "classification": "internal-application",
+      "change_control": "development",
+      "visibility": "private",
+      "project_agent": "gamma-board-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": null,
+      "status_check_contexts": [
+        "CI / verify (pull_request)"
+      ],
+      "required_approvals": 0
+    },
+    {
+      "name": "smoke-test",
+      "classification": "public-test",
+      "visibility": "public",
+      "project_agent": "smoke-test-agent",
+      "routine_auto_merge_enabled": false,
+      "routine_merge_agent": null,
+      "status_check_contexts": [],
+      "required_approvals": 0
+    }
+  ],
+  "vm_identity_policy": {
+    "orbstack_lifecycle_controller": "mac-host-user-with-explicit-approval",
+    "scm_ci_operator": "platform-operator",
+    "project_deploy_identity_required": true,
+    "shared_project_deploy_identity_allowed": false,
+    "gitea_credentials_reusable_for_os_access": false,
+    "production_ai_access_allowed": false
+  },
+  "intranet_migration_policy": {
+    "visibility_strategy": "same-classification-policy",
+    "copy_local_accounts": false,
+    "copy_local_tokens_or_secrets": false,
+    "copy_local_issues_or_pull_requests": false,
+    "requires_target_inventory_and_mapping_approval": true
+  }
+}

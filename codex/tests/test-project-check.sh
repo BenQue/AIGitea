@@ -2,6 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+# Project-check reads the governance manifest; point it at the synthetic
+# fixture so these cases do not depend on any registered project (#380).
+export AISOFT_GOVERNANCE_MANIFEST="$ROOT/codex/tests/fixtures/manifests/gitea-governance.json"
 CHECKER="$ROOT/codex/tools/aisoft-project-check.sh"
 SENTINEL='PROJECT_CHECK_TOKEN_MUST_NOT_LEAK_106'
 TMP="$(mktemp -d)"
@@ -163,7 +166,7 @@ chmod +x "$TMP/bin/curl"
 cat >"$TMP/agent.env" <<EOF
 GITEA_URL=http://mock.gitea.invalid
 GITEA_OWNER=admin
-GITEA_REPO=NewEMaint
+GITEA_REPO=AlphaApp
 GITEA_TOKEN=$SENTINEL
 EOF
 chmod 600 "$TMP/agent.env"
@@ -182,13 +185,13 @@ canonical_labels >"$TMP/labels.json"
 # own governance manifest, so every fixture that expects PASS has to equal what
 # the manifest declares for that exact repository. A literal copy goes stale the
 # moment a project gains a required context, and the failure lands here rather
-# than where the manifest changed: #312 added NewEMaint's second context and
+# than where the manifest changed: #312 added AlphaApp's second context and
 # turned four unrelated cases red. Positive fixtures derive; negative ones keep
 # their literal wrong values, which is the whole point of them.
 manifest_contexts() {
   jq -ce --arg repo "$1" \
     '[.repositories[] | select(.name == $repo)] | .[0].status_check_contexts' \
-    "$ROOT/codex/config/gitea-governance.json"
+    "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json"
 }
 
 protection_fixture() {
@@ -200,7 +203,7 @@ protection_fixture() {
   }'
 }
 
-protection_fixture NewEMaint true >"$TMP/protection.json"
+protection_fixture AlphaApp true >"$TMP/protection.json"
 
 remote_check() {
   env \
@@ -238,7 +241,7 @@ chmod 600 "$TMP/agent.token"
 cat >"$TMP/agent-file.env" <<EOF
 GITEA_URL=http://mock.gitea.invalid
 GITEA_OWNER=admin
-GITEA_REPO=NewEMaint
+GITEA_REPO=AlphaApp
 GITEA_TOKEN_FILE=$TMP/agent.token
 EOF
 chmod 600 "$TMP/agent-file.env"
@@ -263,7 +266,7 @@ chmod 600 "$TMP/agent.token"
 cat >"$TMP/agent-missing.env" <<EOF
 GITEA_URL=http://mock.gitea.invalid
 GITEA_OWNER=admin
-GITEA_REPO=NewEMaint
+GITEA_REPO=AlphaApp
 EOF
 chmod 600 "$TMP/agent-missing.env"
 MOCK_ENV_FILE="$TMP/agent-missing.env" \
@@ -366,12 +369,12 @@ mv "$TMP/protection.next" "$TMP/protection.json"
 run_case 1 remote_check --repo "$labels_repo" --remote
 expect_contains 'GAP: ci-context —'
 
-protection_fixture NewEMaint true \
+protection_fixture AlphaApp true \
   | jq '.enable_push = true' >"$TMP/protection.json"
 run_case 1 remote_check --repo "$labels_repo" --remote
 expect_contains 'GAP: ci-context —'
 
-protection_fixture NewEMaint true >"$TMP/protection.json"
+protection_fixture AlphaApp true >"$TMP/protection.json"
 delivery_repo="$(copy_fixture delivery-gap)"
 sed 's|  docker-release/v2;|  <delivery-profile>;|' "$delivery_repo/AGENTS.md" \
   >"$delivery_repo/AGENTS.md.next"
@@ -419,7 +422,7 @@ make_change_repo() {
   cat >"$directory/summary-matt-flow-260808.md" <<EOF
 ---
 issue: 57
-gitea_url: http://mock.gitea.invalid/admin/NewEMaint/issues/57
+gitea_url: http://mock.gitea.invalid/admin/AlphaApp/issues/57
 required_docs:
   - summary
   - spec
@@ -469,7 +472,7 @@ expect_contains 'status 为 pr-open 但 pr_url 为空'
 
 change_pr_filled_repo="$TMP/change-pr-url-filled"
 make_change_repo "$change_pr_filled_repo" pr-open \
-  ' http://mock.gitea.invalid/admin/NewEMaint/pulls/58'
+  ' http://mock.gitea.invalid/admin/AlphaApp/pulls/58'
 run_case 0 local_check --repo "$change_pr_filled_repo"
 expect_line 'PASS: change-pr-url'
 
@@ -864,18 +867,25 @@ expect_line 'SKIP: ci-registry-preflight — 没有安装 npm 依赖的 workflow
 
 run_case 0 local_check --repo "$TMP/aligned"
 expect_line 'SKIP: ci-registry-preflight — 仓库没有 .gitea/workflows 或 .github/workflows'
+# #380: the fixture override is announced with the exact manifest bytes, and
+# the default run (no override) carries no such note.
+expect_contains "NOTE: governance-manifest — AISOFT_GOVERNANCE_MANIFEST 覆盖了治理 manifest，本次结论不是 canonical 证据：$AISOFT_GOVERNANCE_MANIFEST sha256=$(python3 -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$AISOFT_GOVERNANCE_MANIFEST")"
+run_case 0 env -u AISOFT_GOVERNANCE_MANIFEST bash "$CHECKER" --today 2026-09-12 --repo "$TMP/aligned"
+if grep -Fq 'NOTE: governance-manifest' <<<"$last_output"; then
+  fail "case $case_count printed the override note without an override"
+fi
 
 # #223 ci-outdated-branch. An expired green is still a valid green until this
 # flag is on: base moves, nothing reruns the workflow, and the merge lands on a
 # tree no run ever saw. #299 narrowed the ruling: an internal application
-# (the aligned fixture is NewEMaint) may leave the flag off once its
+# (the aligned fixture is AlphaApp) may leave the flag off once its
 # pull_request workflow checks out the merge preview, and the checker then
 # reports the value as SKIP naming the ruling — not GAP, and not a silent PASS
 # that would hide the value from a later main-red reconstruction.
 # The label mock is shared mutable state; earlier cases leave an undeclared
 # label behind, and these cases assert the whole run's exit status.
 canonical_labels >"$TMP/labels.json"
-protection_fixture NewEMaint false >"$TMP/protection-open.json"
+protection_fixture AlphaApp false >"$TMP/protection-open.json"
 preview_open_repo="$(copy_fixture outdated-with-preview)"
 mkdir -p "$preview_open_repo/.gitea/workflows" "$preview_open_repo/scripts/ci"
 cp "$ROOT/templates/project/ci/ci.yml" "$preview_open_repo/.gitea/workflows/ci.yml"
@@ -887,7 +897,7 @@ expect_line 'PASS: ci-context'
 expect_line 'SKIP: ci-outdated-branch — block_on_outdated_branch 未打开；#299 裁决已有合并预览的 internal-application 不再要求，残余风险见 06 踩坑集 #299 条目'
 
 # A missing key is not an implicit true; it reads the same as false.
-protection_fixture NewEMaint false \
+protection_fixture AlphaApp false \
   | jq 'del(.block_on_outdated_branch)' >"$TMP/protection-silent.json"
 MOCK_PROTECTION="$TMP/protection-silent.json" \
   run_case 0 remote_check --repo "$preview_open_repo" --remote
@@ -911,8 +921,8 @@ GITEA_REPO=aisoft-platform
 GITEA_TOKEN=$SENTINEL
 EOF
 chmod 600 "$TMP/agent-platform.env"
-# The platform repository declares its own contexts, which are not NewEMaint's
-# (#312); reusing NewEMaint's fixture here would read as a ci-context GAP and
+# The platform repository declares its own contexts, which are not AlphaApp's
+# (#312); reusing AlphaApp's fixture here would read as a ci-context GAP and
 # hide what these two cases are actually about.
 protection_fixture aisoft-platform false >"$TMP/protection-platform-open.json"
 protection_fixture aisoft-platform true >"$TMP/protection-platform.json"

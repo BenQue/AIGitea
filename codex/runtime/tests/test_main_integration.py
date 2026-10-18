@@ -550,7 +550,7 @@ class IntegrationTests(unittest.TestCase):
         from unittest.mock import patch
         from aisoft_host_access.contract import load_access_contract
         from aisoft_main_integration import template_scope_context
-        source = Path(__file__).resolve().parents[3] / "codex/config"
+        source = Path(__file__).resolve().parents[3] / "codex/tests/fixtures/manifests"
         selected = self.root / "selected"
         installed = self.root / "installed"
         selected.mkdir()
@@ -564,26 +564,26 @@ class IntegrationTests(unittest.TestCase):
             contract = load_access_contract(paths[0], paths[1])
             self.assertFalse(template_scope_context(contract, "aisoft-platform").holder)
             qualified.assert_called_once_with()
-            self.assertTrue(template_scope_context(contract, "hsdb").holder)
+            self.assertTrue(template_scope_context(contract, "deltadb").holder)
             with self.assertRaises(GitError):
                 template_scope_context(contract, "unknown-project")
             with self.assertRaises(GitError):
-                template_scope_context(replace(contract, path=installed / "fake.json"), "hsdb")
+                template_scope_context(replace(contract, path=installed / "fake.json"), "deltadb")
             raw = json.loads(paths[1].read_text())
-            next(x for x in raw["repositories"] if x["name"] == "HSDB")["vendors_change_templates"] = False
+            next(x for x in raw["repositories"] if x["name"] == "DeltaDB")["vendors_change_templates"] = False
             from aisoft_gitea_governance.contract import repository_declarations_sha256
-            next(x for x in raw["repositories"] if x["name"] == "NewEMaint")["routine_live_pilot"][
-                "non_target_repositories_sha256"] = repository_declarations_sha256(raw["repositories"], exclude_name="NewEMaint")
+            next(x for x in raw["repositories"] if x["name"] == "AlphaApp")["routine_live_pilot"][
+                "non_target_repositories_sha256"] = repository_declarations_sha256(raw["repositories"], exclude_name="AlphaApp")
             paths[1].write_text(json.dumps(raw))
             with self.assertRaises(GitError) as refused:
-                template_scope_context(contract, "hsdb")
+                template_scope_context(contract, "deltadb")
             self.assertEqual(refused.exception.code, "BROKER_SURFACE_GAP")
             paths[3].write_bytes(paths[1].read_bytes())
             fresh = load_access_contract(paths[0], paths[1])
-            self.assertFalse(template_scope_context(fresh, "hsdb").holder)
+            self.assertFalse(template_scope_context(fresh, "deltadb").holder)
             with self.assertRaises(GitError):
-                template_scope_context(contract, "hsdb")
-            context = template_scope_context(fresh, "hsdb")
+                template_scope_context(contract, "deltadb")
+            context = template_scope_context(fresh, "deltadb")
             paths[0].write_text("{}")
             with self.assertRaises(GitError):
                 context.verify()
@@ -596,7 +596,7 @@ class IntegrationTests(unittest.TestCase):
              patch("aisoft_main_integration._template_manifest_paths",
                    return_value=(self.root / "unavailable.json",) * 4) as paths:
             with self.assertRaisesRegex(GitError, "old or mixed runtime"):
-                template_scope_context(None, "hsdb")
+                template_scope_context(None, "deltadb")
             qualified.assert_called_once_with()
             paths.assert_not_called()
 

@@ -44,7 +44,7 @@ def manifest_contexts(repository: str) -> list[str]:
     rather than where the manifest changed (#312).
     """
     raw = json.loads(
-        (ROOT / "codex/config/gitea-governance.json").read_text(encoding="utf-8")
+        (ROOT / "codex/tests/fixtures/manifests/gitea-governance.json").read_text(encoding="utf-8")
     )
     entry = next(item for item in raw["repositories"] if item["name"] == repository)
     return list(entry["status_check_contexts"])
@@ -60,12 +60,12 @@ def manifest_routine_scopes() -> list[str]:
     that could never pass its own identity gate stayed green here (#313).
     """
     raw = json.loads(
-        (ROOT / "codex/config/gitea-governance.json").read_text(encoding="utf-8")
+        (ROOT / "codex/tests/fixtures/manifests/gitea-governance.json").read_text(encoding="utf-8")
     )
     return list(raw["routine_merge_agent_policy"]["token_scopes"])
 
-ACCESS = ROOT / "codex/config/host-access-broker.json"
-GOVERNANCE = ROOT / "codex/config/gitea-governance.json"
+ACCESS = ROOT / "codex/tests/fixtures/manifests/host-access-broker.json"
+GOVERNANCE = ROOT / "codex/tests/fixtures/manifests/gitea-governance.json"
 LABELS = ROOT / "codex/config/gitea-labels.json"
 
 
@@ -126,8 +126,8 @@ class HostAccessContractTests(unittest.TestCase):
         }
         self.assertEqual(profiles, {
             "aisoft-platform": "aisoft-platform",
-            "LocalWMS": "localwms",
-            "NewEMaint": "emaintenance",
+            "BetaApp": "betaapp",
+            "AlphaApp": "emaintenance",
         })
         names = {item.name for item in self.contract.operations}
         self.assertEqual(
@@ -138,17 +138,17 @@ class HostAccessContractTests(unittest.TestCase):
         with self.assertRaises(AccessContractError):
             self.contract.operation("git.push.main")
 
-    def test_restored_hsdb_is_mac_only_and_uses_its_exact_identity(self) -> None:
-        project = self.contract.project("hsdb")
-        self.assertEqual(project.repository, "HSDB")
-        self.assertEqual(project.project_agent, "hsdb-agent")
-        self.assertEqual(project.mac_checkout, "/Users/benque/Projects/HSDB")
+    def test_restored_deltadb_is_mac_only_and_uses_its_exact_identity(self) -> None:
+        project = self.contract.project("deltadb")
+        self.assertEqual(project.repository, "DeltaDB")
+        self.assertEqual(project.project_agent, "deltadb-agent")
+        self.assertEqual(project.mac_checkout, "/Users/benque/Projects/DeltaDB")
         self.assertEqual(project.git_remote_name, "origin")
         self.assertIsNone(project.vm_profile)
         self.assertIsNone(project.routine_merge_agent)
         self.assertEqual(project.dependency_read_targets, ())
         with self.assertRaises(AccessContractError):
-            self.contract.project_for_profile("hsdb")
+            self.contract.project_for_profile("deltadb")
         for project_id in ("rsdesign-new", "wmpda", "sap-table-migrate"):
             with self.subTest(project_id=project_id):
                 with self.assertRaises(AccessContractError):
@@ -168,19 +168,19 @@ class HostAccessContractTests(unittest.TestCase):
         def profile(timer):
             def mutate(raw):
                 next(project for project in raw["projects"]
-                     if project["project_id"] == "hsdb")["vm_profile"] = {
-                    "name": "hsdb",
-                    "repo_dir": "work/HSDB",
+                     if project["project_id"] == "deltadb")["vm_profile"] = {
+                    "name": "deltadb",
+                    "repo_dir": "work/DeltaDB",
                     "analysis_provider": "none",
                     "implement_provider": "none",
                     "timer_unit": timer,
                 }
             return mutate
 
-        for timer in (None, "aisoft-agent@hsdb.timer"):
+        for timer in (None, "aisoft-agent@deltadb.timer"):
             with self.subTest(timer=timer):
                 contract = self._load_mutated_access(profile(timer))
-                self.assertEqual(contract.project("hsdb").vm_profile.timer_unit, timer)
+                self.assertEqual(contract.project("deltadb").vm_profile.timer_unit, timer)
         for timer in ("aisoft-agent@emaintenance.timer", "evil.timer"):
             with self.subTest(timer=timer):
                 with self.assertRaisesRegex(AccessContractError, "timer_unit"):
@@ -194,7 +194,7 @@ class HostAccessContractTests(unittest.TestCase):
             )
 
     def test_manifest_fixed_remote_defaults_and_rejects_unsafe_names(self) -> None:
-        gitea_remote_projects = {"newemaint", "sfm-digital-board"}
+        gitea_remote_projects = {"alphaapp", "gamma-board"}
         remotes = {project.project_id: project.git_remote_name
                    for project in self.contract.projects}
         for project_id in gitea_remote_projects:
@@ -225,7 +225,7 @@ class HostAccessContractTests(unittest.TestCase):
                     candidate = json.loads(ACCESS.read_text())
                     next(
                         project for project in candidate["projects"]
-                        if project["project_id"] == "newemaint"
+                        if project["project_id"] == "alphaapp"
                     )["git_remote_name"] = invalid
                     path.write_text(json.dumps(candidate))
                     with self.assertRaises(AccessContractError):
@@ -267,10 +267,10 @@ class HostAccessContractTests(unittest.TestCase):
         self.assertEqual(onboarding.arguments, ())
 
     def test_identity_routes_are_least_privilege(self) -> None:
-        project = self.contract.project("newemaint")
+        project = self.contract.project("alphaapp")
         self.assertEqual(
             self.contract.identity_for(project, self.contract.operation("gitea.repo.read")),
-            "newemaint-agent",
+            "alphaapp-agent",
         )
         self.assertEqual(
             self.contract.identity_for(project, self.contract.operation("gitea.protection.read")),
@@ -327,7 +327,7 @@ class HostAccessContractTests(unittest.TestCase):
             with self.assertRaises(AccessContractError):
                 load_access_contract(path, GOVERNANCE)
             raw.pop("unexpected")
-            raw["projects"][0]["project_agent"] = "localwms-agent"
+            raw["projects"][0]["project_agent"] = "betaapp-agent"
             path.write_text(json.dumps(raw))
             with self.assertRaises(AccessContractError):
                 load_access_contract(path, GOVERNANCE)
@@ -359,18 +359,18 @@ class HostAccessContractTests(unittest.TestCase):
         with self.assertRaisesRegex(BrokerError, "explicitly managed"):
             broker.execute("unknown", "gitea.repo.read")
         with self.assertRaisesRegex(BrokerError, "allowlisted"):
-            broker.execute("localwms", "shell.run")
+            broker.execute("betaapp", "shell.run")
         with self.assertRaisesRegex(BrokerError, "arguments"):
-            broker.execute("localwms", "gitea.repo.read", state="all")
+            broker.execute("betaapp", "gitea.repo.read", state="all")
 
 
 class VmProfilePathPrependContractTests(unittest.TestCase):
     # 自 #252 五个项目退出后，生产 manifest 里没有任何项目再声明 path_prepend
-    # （唯一声明它的是已退出的 sfm-digital-board）。path_prepend 仍是 broker 的
-    # 合同面，所以这些用例改由合成夹具驱动：把声明注入 localwms 的副本，再断言
+    # （唯一声明它的是已退出的 gamma-board）。path_prepend 仍是 broker 的
+    # 合同面，所以这些用例改由合成夹具驱动：把声明注入 betaapp 的副本，再断言
     # 解析结果。生产 manifest 一侧保留一条「谁都没声明」的断言，防止悄悄回流。
-    FIXTURE_PROJECT = "localwms"
-    FIXTURE_PROFILE = "localwms"
+    FIXTURE_PROJECT = "betaapp"
+    FIXTURE_PROFILE = "betaapp"
     FIXTURE_PATH_PREPEND = ["/opt/node22/bin", "/home/coder/.local/bin"]
 
     def setUp(self) -> None:
@@ -397,8 +397,8 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
         }
         self.assertEqual(declared, {
             "aisoft-platform": None,
-            "localwms": None,
-            "newemaint": None,
+            "betaapp": None,
+            "alphaapp": None,
         })
         for project_id in declared:
             with self.subTest(project_id=project_id):
@@ -416,7 +416,7 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
         assert declared.vm_profile is not None
         self.assertEqual(declared.vm_profile.path_prepend,
                          tuple(self.FIXTURE_PATH_PREPEND))
-        for project_id in ("aisoft-platform", "newemaint"):
+        for project_id in ("aisoft-platform", "alphaapp"):
             with self.subTest(project_id=project_id):
                 project = contract.project(project_id)
                 assert project.vm_profile is not None
@@ -456,7 +456,7 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
                 load_access_contract(self._manifest(temporary, raw), GOVERNANCE)
 
     def test_profile_spec_projects_path_prepend(self) -> None:
-        for profile_name in ("aisoft-platform", "localwms", "emaintenance"):
+        for profile_name in ("aisoft-platform", "betaapp", "emaintenance"):
             with self.subTest(profile_name=profile_name):
                 buffer = io.StringIO()
                 with redirect_stdout(buffer):
@@ -516,8 +516,8 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
             "token_file": "/home/coder/.config/aisoft/credentials/aisoft-platform.token",
         })
 
-    def test_localwms_profile_is_analyzer_only_without_a_timer(self) -> None:
-        # #152 unlocks the analyzer canary for LocalWMS and nothing else: the
+    def test_betaapp_profile_is_analyzer_only_without_a_timer(self) -> None:
+        # #152 unlocks the analyzer canary for BetaApp and nothing else: the
         # Development Loop stays out of scope, so implement_provider must remain
         # disabled and timer_unit must stay unset. Installing a timer template is
         # not the same as enabling one.
@@ -529,11 +529,11 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
         # claude-analyzer.sh:13 (command -v claude || exit 2) fails on its first
         # line, while codex is the one analyzer chain with a produced artifact.
         # A provider named here must be a runtime that exists on that host.
-        project = self.contract.project("localwms")
+        project = self.contract.project("betaapp")
         self.assertIsNotNone(project.vm_profile)
         assert project.vm_profile is not None
-        self.assertEqual(project.vm_profile.name, "localwms")
-        self.assertEqual(project.vm_profile.repo_dir, "work/LocalWMS")
+        self.assertEqual(project.vm_profile.name, "betaapp")
+        self.assertEqual(project.vm_profile.repo_dir, "work/BetaApp")
         self.assertEqual(project.vm_profile.analysis_provider, "codex")
         self.assertEqual(project.vm_profile.implement_provider, "none")
         self.assertIsNone(project.vm_profile.timer_unit)
@@ -544,22 +544,22 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
             code = host_access_cli_main([
                 "--access-manifest", str(ACCESS),
                 "--governance-manifest", str(GOVERNANCE),
-                "profile-spec", "--profile-name", "localwms",
+                "profile-spec", "--profile-name", "betaapp",
             ])
         self.assertEqual(code, 0)
         payload = json.loads(buffer.getvalue())
         self.assertEqual(payload, {
             "analysis_provider": "codex",
             "gitea_url": "http://gitea-ci.orb.local:3000",
-            "identity": "localwms-agent",
+            "identity": "betaapp-agent",
             "implement_provider": "none",
             "owner": "admin",
             "path_prepend": [],
-            "profile_name": "localwms",
-            "project_id": "localwms",
-            "repo_dir": "/home/coder/work/LocalWMS",
-            "repository": "LocalWMS",
-            "token_file": "/home/coder/.config/aisoft/credentials/localwms.token",
+            "profile_name": "betaapp",
+            "project_id": "betaapp",
+            "repo_dir": "/home/coder/work/BetaApp",
+            "repository": "BetaApp",
+            "token_file": "/home/coder/.config/aisoft/credentials/betaapp.token",
         })
 
     def test_emaintenance_profile_names_no_analysis_provider(self) -> None:
@@ -573,10 +573,10 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
         # needs-analysis queue into a hard failure.
         #
         # It is deliberately none rather than codex, which is what #164 gave
-        # localwms. Naming a working provider asserts a runnable chain, and
-        # enabling one is a per-project acceptance gate: localwms earned codex
-        # with its own read-only canary (LocalWMS #66) before #164 changed the
-        # value. NewEMaint has no such artifact yet, and the assertion would
+        # betaapp. Naming a working provider asserts a runnable chain, and
+        # enabling one is a per-project acceptance gate: betaapp earned codex
+        # with its own read-only canary (BetaApp #66) before #164 changed the
+        # value. AlphaApp has no such artifact yet, and the assertion would
         # outlive today's timer state, so a future re-enable would run a chain
         # nobody ever validated. none makes provider-poll.sh:32 skip the whole
         # analysis branch, which ends the fail-closed churn without asserting
@@ -587,11 +587,11 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
         # repository calls systemctl on aisoft-agent@*.timer, so setting it to
         # null would not stop the timer, it would only make the manifest state
         # something untrue. Stopping it is a sudo action on the host.
-        project = self.contract.project("newemaint")
+        project = self.contract.project("alphaapp")
         self.assertIsNotNone(project.vm_profile)
         assert project.vm_profile is not None
         self.assertEqual(project.vm_profile.name, "emaintenance")
-        self.assertEqual(project.vm_profile.repo_dir, "work/NewEMaint")
+        self.assertEqual(project.vm_profile.repo_dir, "work/AlphaApp")
         self.assertEqual(project.vm_profile.analysis_provider, "none")
         self.assertEqual(project.vm_profile.implement_provider, "none")
         self.assertEqual(project.vm_profile.timer_unit,
@@ -610,14 +610,14 @@ class VmProfilePathPrependContractTests(unittest.TestCase):
         self.assertEqual(payload, {
             "analysis_provider": "none",
             "gitea_url": "http://gitea-ci.orb.local:3000",
-            "identity": "newemaint-agent",
+            "identity": "alphaapp-agent",
             "implement_provider": "none",
             "owner": "admin",
             "path_prepend": [],
             "profile_name": "emaintenance",
-            "project_id": "newemaint",
-            "repo_dir": "/home/coder/work/NewEMaint",
-            "repository": "NewEMaint",
+            "project_id": "alphaapp",
+            "repo_dir": "/home/coder/work/AlphaApp",
+            "repository": "AlphaApp",
             "token_file": "/home/coder/.config/aisoft/credentials/emaintenance.token",
         })
 
@@ -685,11 +685,11 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertIsNone(body)
         token = headers["Authorization"].removeprefix("token ")
         if url.endswith("/api/v1/user"):
-            login = "aisoft-platform-manager" if token == "token-manager" else "localwms-agent"
+            login = "aisoft-platform-manager" if token == "token-manager" else "betaapp-agent"
             return 200, {}, json.dumps({"login": login, "is_admin": False}).encode()
         if url.endswith("/branch_protections/main"):
             return 200, {}, b'{"branch_name":"main"}'
-        return 200, {}, b'{"name":"LocalWMS"}'
+        return 200, {}, b'{"name":"BetaApp"}'
 
     def test_project_and_manager_read_routes(self) -> None:
         broker = HostAccessBroker(
@@ -697,9 +697,9 @@ class HostAccessBrokerTests(unittest.TestCase):
             credentials=StaticCredentials(),
             transport=self.transport,
         )
-        self.assertEqual(broker.execute("localwms", "gitea.repo.read")["name"], "LocalWMS")
+        self.assertEqual(broker.execute("betaapp", "gitea.repo.read")["name"], "BetaApp")
         self.assertEqual(
-            broker.execute("localwms", "gitea.protection.read")["branch_name"], "main"
+            broker.execute("betaapp", "gitea.protection.read")["branch_name"], "main"
         )
 
     def test_commit_status_read_is_exact_sha_bound(self) -> None:
@@ -852,7 +852,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
         self.assertEqual([method for method, _url, _payload in calls if method == "PATCH"], [])
 
-        # NewEMaint-shaped fossil: caller-supplied metadata is deliberately
+        # AlphaApp-shaped fossil: caller-supplied metadata is deliberately
         # different. Define adopts the existing value and must preserve both
         # strings exactly, including the leading #, case and whitespace.
         remote[0]["color"] = "#AaBbCc"
@@ -1043,9 +1043,9 @@ class HostAccessBrokerTests(unittest.TestCase):
             "issue_url": "http://gitea-ci.orb.local:3000/y",
             "assets": [],
             "user": {
-                "login": "localwms-agent",
+                "login": "betaapp-agent",
                 "id": 13,
-                "email": "localwms-agent@aisoft.local",
+                "email": "betaapp-agent@aisoft.local",
                 "avatar_url": "http://gitea-ci.orb.local:3000/avatars/873a5ad1",
                 "is_admin": False,
             },
@@ -1061,7 +1061,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             value,
             [{
                 "id": 901,
-                "author": "localwms-agent",
+                "author": "betaapp-agent",
                 "created_at": "2026-08-22T09:44:42+08:00",
                 "body": "comment body 1",
             }],
@@ -1473,10 +1473,10 @@ class HostAccessBrokerTests(unittest.TestCase):
             "conclusion": "success",
             "started_at": "2026-08-22T09:44:42+08:00",
             "completed_at": "2026-08-22T09:44:59+08:00",
-            "html_url": "http://gitea-ci.orb.local:3000/admin/LocalWMS/actions/runs/493",
-            "repository": {"id": 9, "full_name": "admin/LocalWMS"},
-            "actor": {"login": "localwms-agent", "email": "x@aisoft.local", "is_admin": False},
-            "trigger_actor": {"login": "localwms-agent", "is_admin": False},
+            "html_url": "http://gitea-ci.orb.local:3000/admin/BetaApp/actions/runs/493",
+            "repository": {"id": 9, "full_name": "admin/BetaApp"},
+            "actor": {"login": "betaapp-agent", "email": "x@aisoft.local", "is_admin": False},
+            "trigger_actor": {"login": "betaapp-agent", "is_admin": False},
         }
 
     @staticmethod
@@ -1559,7 +1559,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         Gitea renders an unset time in the server's offset, so started_at
         arrives as "1970-01-01T08:00:00+08:00" — well-formed, and not a claim
         about 1970. Subtracting it from a real completed_at is what returned
-        1788522654 for admin/LocalWMS run 1016: the unix epoch of the end,
+        1788522654 for admin/BetaApp run 1016: the unix epoch of the end,
         dressed as a duration.
 
         The timestamp itself must go to None as well. Nulling only the derived
@@ -1761,7 +1761,7 @@ class HostAccessBrokerTests(unittest.TestCase):
 
         The first step of a long job says which tree was checked out. Under the
         tail-only rule that line was discarded with no way to ask for it, which
-        is how LocalWMS run 835 could be shown to have passed its checkout step
+        is how BetaApp run 835 could be shown to have passed its checkout step
         without anyone being able to say what it checked out.
         """
         head = "checked out 0123456789abcdef0123456789abcdef01234567\n"
@@ -2055,7 +2055,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             "id": 900,
             "name": "area/api",
             "color": "#AaBbCc",
-            "description": "  NewEMaint API fossil metadata  ",
+            "description": "  AlphaApp API fossil metadata  ",
         }
         # This definition predates the broker: define may adopt it, but must
         # never take ownership of or normalize its project-owned metadata.
@@ -2079,11 +2079,11 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertEqual(
             defined["metadata"],
             {"name": "area/api", "color": "#AaBbCc",
-             "description": "  NewEMaint API fossil metadata  "},
+             "description": "  AlphaApp API fossil metadata  "},
         )
         self.assertEqual({method for method, _url, _payload in calls}, {"GET"})
         self.assertEqual(fossil["color"], "#AaBbCc")
-        self.assertEqual(fossil["description"], "  NewEMaint API fossil metadata  ")
+        self.assertEqual(fossil["description"], "  AlphaApp API fossil metadata  ")
 
         calls.clear()
         attached_value = broker.execute(
@@ -2103,7 +2103,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertNotIn("POST", {method for method, _url, _payload in calls})
         self.assertNotIn("PATCH", {method for method, _url, _payload in calls})
         self.assertEqual(fossil["color"], "#AaBbCc")
-        self.assertEqual(fossil["description"], "  NewEMaint API fossil metadata  ")
+        self.assertEqual(fossil["description"], "  AlphaApp API fossil metadata  ")
 
     def test_issue_label_read_is_number_bound(self) -> None:
         repository = self._provisioned_labels()
@@ -3100,12 +3100,12 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertNotIn("ci-bot", flattened)
         self.assertNotIn("security", flattened)
 
-    def test_newemaint_routine_audit_covers_account_scope_write_cross_project_and_allowlist(self) -> None:
+    def test_alphaapp_routine_audit_covers_account_scope_write_cross_project_and_allowlist(self) -> None:
         class PilotCredentials(StaticCredentials):
             def resolve(self, project, operation):
                 if operation.identity_route == "routine-merge-agent":
                     return ResolvedCredential(
-                        "newemaint-routine-merger", "token-routine"
+                        "alphaapp-routine-merger", "token-routine"
                     )
                 return super().resolve(project, operation)
 
@@ -3113,9 +3113,9 @@ class HostAccessBrokerTests(unittest.TestCase):
             "enable_push": False,
             "enable_force_push": False,
             "enable_merge_whitelist": True,
-            "merge_whitelist_usernames": ["admin", "newemaint-routine-merger"],
+            "merge_whitelist_usernames": ["admin", "alphaapp-routine-merger"],
             "enable_status_check": True,
-            "status_check_contexts": manifest_contexts("NewEMaint"),
+            "status_check_contexts": manifest_contexts("AlphaApp"),
             "required_approvals": 0,
             "block_admin_merge_override": True,
         }
@@ -3134,8 +3134,8 @@ class HostAccessBrokerTests(unittest.TestCase):
                 identities = {
                     "token-manager": "aisoft-platform-manager",
                     "token-manager-mutation": "aisoft-platform-manager",
-                    "token-agent": "newemaint-agent",
-                    "token-routine": "newemaint-routine-merger",
+                    "token-agent": "alphaapp-agent",
+                    "token-routine": "alphaapp-routine-merger",
                 }
                 granted = set(scopes[token].split(","))
                 if not granted & {"read:user", "write:user"}:
@@ -3153,26 +3153,26 @@ class HostAccessBrokerTests(unittest.TestCase):
                 return 403, {}, json.dumps({
                     "message": "token scope=" + scopes[token],
                 }).encode()
-            if url.endswith("/api/v1/users/newemaint-routine-merger"):
-                return 200, {}, b'{"login":"newemaint-routine-merger","is_admin":false}'
-            if "/repos/admin/NewEMaint/" in url:
+            if url.endswith("/api/v1/users/alphaapp-routine-merger"):
+                return 200, {}, b'{"login":"alphaapp-routine-merger","is_admin":false}'
+            if "/repos/admin/AlphaApp/" in url:
                 if url.endswith("/collaborators/aisoft-platform-manager/permission"):
                     return 200, {}, json.dumps(extended_permission(
                         "aisoft-platform-manager", "admin"
                     )).encode()
-                if url.endswith("/collaborators/newemaint-agent/permission"):
+                if url.endswith("/collaborators/alphaapp-agent/permission"):
                     return 200, {}, json.dumps(extended_permission(
-                        "newemaint-agent", "write"
+                        "alphaapp-agent", "write"
                     )).encode()
-                if url.endswith("/collaborators/newemaint-routine-merger/permission"):
+                if url.endswith("/collaborators/alphaapp-routine-merger/permission"):
                     return 200, {}, json.dumps(extended_permission(
-                        "newemaint-routine-merger", "write"
+                        "alphaapp-routine-merger", "write"
                     )).encode()
                 if url.endswith("/branch_protections/main"):
                     return 200, {}, json.dumps(protection).encode()
-            if url.endswith("/collaborators/newemaint-routine-merger/permission"):
+            if url.endswith("/collaborators/alphaapp-routine-merger/permission"):
                 return 200, {}, json.dumps(extended_permission(
-                    "newemaint-routine-merger", "read"
+                    "alphaapp-routine-merger", "read"
                 )).encode()
             raise AssertionError(f"unexpected URL: {url}")
 
@@ -3181,11 +3181,11 @@ class HostAccessBrokerTests(unittest.TestCase):
             credentials=PilotCredentials(),
             transport=transport,
         )
-        value = broker.execute("newemaint", "host.access.audit")
+        value = broker.execute("alphaapp", "host.access.audit")
         self.assertEqual(value["status"], "PASS")
         self.assertEqual(value["routine_merge"], {
             "enabled": True,
-            "identity": "newemaint-routine-merger",
+            "identity": "alphaapp-routine-merger",
             "credential": {
                 "kind": "protected-file",
                 "state": "present",
@@ -3202,17 +3202,17 @@ class HostAccessBrokerTests(unittest.TestCase):
                     "permission": "read",
                 }
                 for repository in self.contract.governance.repositories
-                if repository.name != "NewEMaint"
+                if repository.name != "AlphaApp"
             ],
             "cross_project_write_violations": [],
             "merge_allowlist_state": "converged",
         })
         protection["merge_whitelist_usernames"] = ["admin"]
-        value = broker.execute("newemaint", "host.access.audit")
+        value = broker.execute("alphaapp", "host.access.audit")
         self.assertEqual(value["status"], "GAP")
         self.assertEqual(value["routine_merge"]["merge_allowlist_state"], "pre-apply")
         protection["merge_whitelist_usernames"] = [
-            "admin", "newemaint-routine-merger",
+            "admin", "alphaapp-routine-merger",
         ]
 
         schema_drifts = (
@@ -3230,9 +3230,9 @@ class HostAccessBrokerTests(unittest.TestCase):
                 def schema_drift(method, url, headers, body, *, status=status,
                                  payload=payload):
                     if (
-                        "/repos/admin/LocalWMS/" in url
+                        "/repos/admin/BetaApp/" in url
                         and url.endswith(
-                            "/collaborators/newemaint-routine-merger/permission"
+                            "/collaborators/alphaapp-routine-merger/permission"
                         )
                     ):
                         raw = b'' if payload is None else json.dumps(payload).encode()
@@ -3245,7 +3245,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     transport=schema_drift,
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    drift_broker.execute("newemaint", "host.access.audit")
+                    drift_broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
         for unsafe_permission in ("write", "admin", "owner"):
@@ -3253,9 +3253,9 @@ class HostAccessBrokerTests(unittest.TestCase):
                 def unsafe_cross_project(method, url, headers, body, *,
                                          permission=unsafe_permission):
                     if (
-                        "/repos/admin/LocalWMS/" in url
+                        "/repos/admin/BetaApp/" in url
                         and url.endswith(
-                            "/collaborators/newemaint-routine-merger/permission"
+                            "/collaborators/alphaapp-routine-merger/permission"
                         )
                     ):
                         return 200, {}, json.dumps({
@@ -3269,7 +3269,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     transport=unsafe_cross_project,
                 )
                 unsafe_value = unsafe_broker.execute(
-                    "newemaint", "host.access.audit"
+                    "alphaapp", "host.access.audit"
                 )
                 self.assertEqual(unsafe_value["status"], "GAP")
                 self.assertEqual(
@@ -3277,7 +3277,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                         "cross_project_write_violations"
                     ],
                     [{
-                        "repository": "admin/LocalWMS",
+                        "repository": "admin/BetaApp",
                         "permission": unsafe_permission,
                     }],
                 )
@@ -3301,7 +3301,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             "enable_merge_whitelist": True,
             "merge_whitelist_usernames": ["admin"],
             "enable_status_check": True,
-            "status_check_contexts": manifest_contexts("NewEMaint"),
+            "status_check_contexts": manifest_contexts("AlphaApp"),
             "required_approvals": 0,
             "block_admin_merge_override": True,
         }
@@ -3331,7 +3331,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 identities = {
                     "token-manager": "aisoft-platform-manager",
                     "token-manager-mutation": "aisoft-platform-manager",
-                    "token-agent": "newemaint-agent",
+                    "token-agent": "alphaapp-agent",
                 }
                 return 200, {}, json.dumps({
                     "login": identities[token], "is_admin": False,
@@ -3345,10 +3345,10 @@ class HostAccessBrokerTests(unittest.TestCase):
                 return 403, {}, json.dumps({
                     "message": "token scope=" + scopes[token],
                 }).encode()
-            if url.endswith("/api/v1/users/newemaint-routine-merger"):
+            if url.endswith("/api/v1/users/alphaapp-routine-merger"):
                 return 404, {}, b'{"message":"user does not exist"}'
             if (
-                "/repos/admin/NewEMaint/collaborators?limit=50&page=" in url
+                "/repos/admin/AlphaApp/collaborators?limit=50&page=" in url
             ):
                 recorded_limits.append(response_limit)
                 return response(target_inventory, (200, []), url)
@@ -3360,17 +3360,17 @@ class HostAccessBrokerTests(unittest.TestCase):
             if "/collaborators?limit=50&page=" in url:
                 recorded_limits.append(response_limit)
                 return 200, {}, b'[]'
-            if "/repos/admin/NewEMaint/" in url:
+            if "/repos/admin/AlphaApp/" in url:
                 if url.endswith("/collaborators/aisoft-platform-manager/permission"):
                     return 200, {}, b'{"permission":"admin"}'
-                if url.endswith("/collaborators/newemaint-agent/permission"):
+                if url.endswith("/collaborators/alphaapp-agent/permission"):
                     return 200, {}, b'{"permission":"write"}'
-                if url.endswith("/collaborators/newemaint-routine-merger/permission"):
+                if url.endswith("/collaborators/alphaapp-routine-merger/permission"):
                     return 404, {}, b'{"message":"not a collaborator"}'
                 if url.endswith("/branch_protections/main"):
                     return 200, {}, json.dumps(protection).encode()
             if url.endswith(
-                "/collaborators/newemaint-routine-merger/permission"
+                "/collaborators/alphaapp-routine-merger/permission"
             ):
                 if (
                     cross_project is not None
@@ -3392,7 +3392,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         calls: list[tuple[str, str]] = []
         broker = self._missing_routine_audit_broker(calls=calls)
 
-        value = broker.execute("newemaint", "host.access.audit")
+        value = broker.execute("alphaapp", "host.access.audit")
 
         self.assertEqual(value["status"], "GAP")
         routine = value["routine_merge"]
@@ -3411,12 +3411,12 @@ class HostAccessBrokerTests(unittest.TestCase):
             [
                 self.contract.governance.full_name(repository)
                 for repository in self.contract.governance.repositories
-                if repository.name != "NewEMaint"
+                if repository.name != "AlphaApp"
             ],
         )
         account_index = next(
             index for index, (_method, url) in enumerate(calls)
-            if url.endswith("/api/v1/users/newemaint-routine-merger")
+            if url.endswith("/api/v1/users/alphaapp-routine-merger")
         )
         first_cross_project_index = next(
             index for index, (_method, url) in enumerate(calls)
@@ -3435,7 +3435,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertFalse(any(
             "/repos/admin/aisoft-platform/" in url
             and url.endswith(
-                "/collaborators/newemaint-routine-merger/permission"
+                "/collaborators/alphaapp-routine-merger/permission"
             )
             for _method, url in calls
         ))
@@ -3455,7 +3455,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     cross_project_inventory=(200, payload),
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
     def test_missing_account_does_not_downgrade_auth_server_or_transport_failures(self) -> None:
@@ -3472,7 +3472,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     cross_project_inventory=cross_project,
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, expected)
 
     def test_missing_account_rejects_ambiguous_cross_project_404(self) -> None:
@@ -3490,19 +3490,19 @@ class HostAccessBrokerTests(unittest.TestCase):
                     cross_project_inventory=response,
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "HTTP_404")
 
     def test_missing_account_rejects_contradictory_collaborator_inventory(self) -> None:
         broker = self._missing_routine_audit_broker(
             cross_project=(200, {"permission": "read"}),
             cross_project_inventory=(200, [{
-                "login": "newemaint-routine-merger",
+                "login": "alphaapp-routine-merger",
             }]),
         )
 
         with self.assertRaises(BrokerError) as caught:
-            broker.execute("newemaint", "host.access.audit")
+            broker.execute("alphaapp", "host.access.audit")
 
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
@@ -3513,14 +3513,14 @@ class HostAccessBrokerTests(unittest.TestCase):
                     cross_project_inventory=(status, []),
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
     def test_missing_account_inventory_rejects_duplicate_case_and_username_drift(self) -> None:
         malformed = (
             [{"login": "alpha"}, {"login": "alpha"}],
             [{"login": "alpha"}, {"login": "Alpha"}],
-            [{"login": "NewEMaint-Routine-Merger"}],
+            [{"login": "AlphaApp-Routine-Merger"}],
             [{"login": " alpha"}],
             [{"login": "alpha "}],
             [{"login": "bad/login"}],
@@ -3532,7 +3532,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     cross_project_inventory=(200, payload),
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
     def test_missing_account_inventory_rejects_cross_page_duplicate_and_case_collision(self) -> None:
@@ -3547,7 +3547,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     cross_project_inventory=inventory,
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
     def test_missing_account_inventory_rejects_oversize_and_abnormal_pagination(self) -> None:
@@ -3574,7 +3574,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     cross_project_inventory=inventory,
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
         self.assertEqual(oversized_calls, [1])
 
@@ -3591,7 +3591,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             {"Link": f'<{endpoint}?limit=50&page=2>; rel="NEXT"'},
             {"Link": '<http://attacker.invalid/api/v1/repos/admin/aisoft-platform/collaborators?limit=50&page=2>; rel="next"'},
             {"Link": '<https://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/collaborators?limit=50&page=2>; rel="next"'},
-            {"Link": '<http://gitea-ci.orb.local:3000/api/v1/repos/admin/LocalWMS/collaborators?limit=50&page=2>; rel="next"'},
+            {"Link": '<http://gitea-ci.orb.local:3000/api/v1/repos/admin/BetaApp/collaborators?limit=50&page=2>; rel="next"'},
             {"Link": f'<{endpoint}?limit=49&page=2>; rel="next"'},
             {"Link": f'<{endpoint}?limit=50&page=3>; rel="next"'},
             {"Link": f'<{endpoint}?limit=50&page=2&cursor=x>; rel="next"'},
@@ -3615,7 +3615,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     ),
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
     def test_missing_account_inventory_accepts_canonical_encoded_pagination(self) -> None:
@@ -3652,7 +3652,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             cross_project_inventory=inventory,
         )
 
-        value = broker.execute("newemaint", "host.access.audit")
+        value = broker.execute("alphaapp", "host.access.audit")
 
         self.assertEqual(value["status"], "GAP")
         self.assertEqual(calls, [1, 2])
@@ -3692,7 +3692,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             cross_project_inventory=inventory,
         )
 
-        value = broker.execute("newemaint", "host.access.audit")
+        value = broker.execute("alphaapp", "host.access.audit")
 
         self.assertEqual(value["status"], "GAP")
 
@@ -3778,7 +3778,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     cross_project_inventory=inventory,
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
     def test_missing_account_inventory_rejects_empty_fragment_link(self) -> None:
@@ -3805,7 +3805,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             cross_project_inventory=inventory,
         )
         with self.assertRaises(BrokerError) as caught:
-            broker.execute("newemaint", "host.access.audit")
+            broker.execute("alphaapp", "host.access.audit")
 
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
@@ -3820,7 +3820,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     cross_project_inventory=(200, payload),
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
     def test_collaborator_json_rejects_nonstandard_and_unbounded_numbers(self) -> None:
@@ -3847,7 +3847,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
 
         with self.assertRaises(BrokerError) as caught:
-            broker.execute("newemaint", "host.access.audit")
+            broker.execute("alphaapp", "host.access.audit")
 
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
@@ -3875,7 +3875,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             calls=calls,
         )
         with self.assertRaises(BrokerError) as caught:
-            broker.execute("newemaint", "host.access.audit")
+            broker.execute("alphaapp", "host.access.audit")
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
         self.assertTrue(calls)
         self.assertTrue(all(method == "GET" for method, _url in calls))
@@ -3924,7 +3924,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     cross_project_inventory=(200, headers, []),
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
         for headers in (
@@ -3936,7 +3936,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     cross_project_inventory=(200, headers, []),
                 )
                 self.assertEqual(
-                    broker.execute("newemaint", "host.access.audit")["status"],
+                    broker.execute("alphaapp", "host.access.audit")["status"],
                     "GAP",
                 )
 
@@ -3954,7 +3954,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         budget = 2 * ((len(self.contract.governance.repositories) - 1) - 1)
         with patch("aisoft_host_access.broker.COLLABORATOR_AUDIT_MAX_BYTES", budget):
             with self.assertRaises(BrokerError) as caught:
-                broker.execute("newemaint", "host.access.audit")
+                broker.execute("alphaapp", "host.access.audit")
 
         inventory_calls = [
             url for _method, url in calls
@@ -3972,7 +3972,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
         with patch("aisoft_host_access.broker.COLLABORATOR_AUDIT_MAX_PAGES", 1):
             with self.assertRaises(BrokerError) as caught:
-                broker.execute("newemaint", "host.access.audit")
+                broker.execute("alphaapp", "host.access.audit")
         inventory_calls = [
             url for _method, url in calls
             if "/collaborators?limit=50&page=" in url
@@ -4004,7 +4004,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     ),
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
     def test_missing_account_inventory_rejects_response_size_and_length_drift(self) -> None:
@@ -4023,7 +4023,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     cross_project_inventory=inventory,
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
     def test_missing_account_inventory_bounds_content_length_decimal(self) -> None:
@@ -4037,7 +4037,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     ),
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("newemaint", "host.access.audit")
+                    broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
     def test_collaborator_link_rejects_path_params_and_unbounded_decimals(self) -> None:
@@ -4088,7 +4088,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
 
         with self.assertRaises(BrokerError) as caught:
-            broker.execute("newemaint", "host.access.audit")
+            broker.execute("alphaapp", "host.access.audit")
 
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
@@ -4103,7 +4103,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 broker = self._missing_routine_audit_broker()
                 with patch(f"aisoft_host_access.broker.{constant}", value):
                     with self.assertRaises(BrokerError) as caught:
-                        broker.execute("newemaint", "host.access.audit")
+                        broker.execute("alphaapp", "host.access.audit")
                 self.assertEqual(
                     caught.exception.code, "RESPONSE_SCHEMA_INVALID"
                 )
@@ -4283,7 +4283,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             cross_project_inventory=inventory,
         )
 
-        value = broker.execute("newemaint", "host.access.audit")
+        value = broker.execute("alphaapp", "host.access.audit")
 
         self.assertEqual(value["status"], "GAP")
         self.assertEqual(calls, [1, 2])
@@ -4304,7 +4304,7 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
 
         with self.assertRaises(BrokerError) as caught:
-            broker.execute("newemaint", "host.access.audit")
+            broker.execute("alphaapp", "host.access.audit")
 
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
         self.assertEqual(calls, list(range(1, 101)))
@@ -4397,7 +4397,7 @@ class HostAccessBrokerTests(unittest.TestCase):
 
         def transport(method, url, headers, body):
             calls.append(url)
-            return 200, {}, b'{"login":"localwms-agent","is_admin":false}'
+            return 200, {}, b'{"login":"betaapp-agent","is_admin":false}'
 
         broker = HostAccessBroker(
             self.contract,
@@ -4405,7 +4405,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             transport=transport,
         )
         with self.assertRaisesRegex(BrokerError, "identity"):
-            broker.execute("localwms", "gitea.repo.read")
+            broker.execute("betaapp", "gitea.repo.read")
         self.assertEqual(len(calls), 1)
 
     def test_http_401_403_404_are_nonzero_sanitized_failures(self) -> None:
@@ -4418,7 +4418,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     nonlocal calls
                     calls += 1
                     if calls == 1:
-                        return 200, {}, b'{"login":"localwms-agent","is_admin":false}'
+                        return 200, {}, b'{"login":"betaapp-agent","is_admin":false}'
                     return status, {}, secret.encode()
 
                 broker = HostAccessBroker(
@@ -4427,7 +4427,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     transport=transport,
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("localwms", "gitea.repo.read")
+                    broker.execute("betaapp", "gitea.repo.read")
                 self.assertEqual(caught.exception.code, f"HTTP_{status}")
                 self.assertNotIn(secret, str(caught.exception))
                 self.assertNotIn("token-agent", str(caught.exception))
@@ -4504,7 +4504,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             self.assertNotIn("token", config.lower())
             self.assertNotIn("keychain", config.lower())
 
-    def test_newemaint_uses_gitea_remote_and_preserves_github_origin(self) -> None:
+    def test_alphaapp_uses_gitea_remote_and_preserves_github_origin(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             checkout = Path(temporary) / "repo"
             self._git(["init", "-q", "-b", "main", str(checkout)])
@@ -4515,11 +4515,11 @@ class HostAccessBrokerTests(unittest.TestCase):
             self._git(["commit", "-q", "-m", "fixture"], cwd=checkout)
             head = self._git(["rev-parse", "HEAD"], cwd=checkout)
             self._git(["update-ref", "refs/remotes/gitea/change/73", head], cwd=checkout)
-            github = "https://github.com/BenQue/NewEmaint.git"
-            gitea = "http://gitea-ci.orb.local:3000/admin/NewEMaint.git"
+            github = "https://github.com/BenQue/AlphaApp.git"
+            gitea = "http://gitea-ci.orb.local:3000/admin/AlphaApp.git"
             self._git(["remote", "add", "origin", github], cwd=checkout)
             self._git(["remote", "add", "gitea", gitea], cwd=checkout)
-            contract = self._temporary_project_checkout_contract("newemaint", checkout)
+            contract = self._temporary_project_checkout_contract("alphaapp", checkout)
             commands = []
 
             def runner(argv, *, cwd=None, env=None):
@@ -4537,17 +4537,17 @@ class HostAccessBrokerTests(unittest.TestCase):
                 contract,
                 credentials=StaticCredentials(),
                 transport=lambda method, url, headers, body: (
-                    200, {}, b'{"login":"newemaint-agent","is_admin":false}'
+                    200, {}, b'{"login":"alphaapp-agent","is_admin":false}'
                 ),
                 runner=runner,
                 invocation_cwd=str(checkout),
             )
-            fetched = broker.execute("newemaint", "git.fetch.main")
+            fetched = broker.execute("alphaapp", "git.fetch.main")
             fetched_change = broker.execute(
-                "newemaint", "git.fetch.change", branch="change/73"
+                "alphaapp", "git.fetch.change", branch="change/73"
             )
-            first = broker.execute("newemaint", "mac.git.bind")
-            second = broker.execute("newemaint", "mac.git.bind")
+            first = broker.execute("alphaapp", "mac.git.bind")
+            second = broker.execute("alphaapp", "mac.git.bind")
 
             self.assertEqual(fetched["remote_name"], "gitea")
             self.assertEqual(fetched_change["remote_name"], "gitea")
@@ -4568,7 +4568,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                     "config", "--local", "--get",
                     f"credential.{gitea}.username",
                 ], cwd=checkout),
-                "newemaint-agent",
+                "alphaapp-agent",
             )
 
     def test_remote_fetch_or_push_url_drift_fails_before_credentials(self) -> None:
@@ -4579,14 +4579,14 @@ class HostAccessBrokerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             checkout = Path(temporary) / "repo"
             self._git(["init", "-q", "-b", "main", str(checkout)])
-            expected = "http://gitea-ci.orb.local:3000/admin/NewEMaint.git"
-            self._git(["remote", "add", "origin", "https://github.com/BenQue/NewEmaint.git"], cwd=checkout)
+            expected = "http://gitea-ci.orb.local:3000/admin/AlphaApp.git"
+            self._git(["remote", "add", "origin", "https://github.com/BenQue/AlphaApp.git"], cwd=checkout)
             self._git(["remote", "add", "gitea", expected], cwd=checkout)
             self._git([
                 "remote", "set-url", "--add", "--push", "gitea",
-                "http://attacker.invalid/admin/NewEMaint.git",
+                "http://attacker.invalid/admin/AlphaApp.git",
             ], cwd=checkout)
-            contract = self._temporary_project_checkout_contract("newemaint", checkout)
+            contract = self._temporary_project_checkout_contract("alphaapp", checkout)
             broker = HostAccessBroker(
                 contract,
                 credentials=FailIfResolved(),
@@ -4594,7 +4594,7 @@ class HostAccessBrokerTests(unittest.TestCase):
             )
             before = self._git(["config", "--local", "--list"], cwd=checkout)
             with self.assertRaises(BrokerError) as caught:
-                broker.execute("newemaint", "git.fetch.main")
+                broker.execute("alphaapp", "git.fetch.main")
             self.assertEqual(caught.exception.code, "TARGET_MISMATCH")
             self.assertEqual(self._git(["config", "--local", "--list"], cwd=checkout), before)
 
@@ -4722,20 +4722,20 @@ class HostAccessBrokerTests(unittest.TestCase):
             self.assertEqual(value["observed_remote_head"], head)
             self.assertTrue(value["guard_executed"])
 
-    def test_newemaint_push_uses_manifest_gitea_remote(self):
+    def test_alphaapp_push_uses_manifest_gitea_remote(self):
         with tempfile.TemporaryDirectory() as temporary:
             remote, canonical, linked = self._remote_backed_change_worktree(temporary)
-            self._git(["remote", "set-url", "origin", "https://github.com/BenQue/NewEMaint.git"], cwd=canonical)
-            self._git(["remote", "add", "gitea", "http://gitea-ci.orb.local:3000/admin/NewEMaint.git"], cwd=canonical)
+            self._git(["remote", "set-url", "origin", "https://github.com/BenQue/AlphaApp.git"], cwd=canonical)
+            self._git(["remote", "add", "gitea", "http://gitea-ci.orb.local:3000/admin/AlphaApp.git"], cwd=canonical)
             commands = []
-            broker = HostAccessBroker(self._temporary_project_checkout_contract("newemaint", canonical),
-                credentials=StaticCredentials(), transport=lambda *args: (200, {}, b'{"login":"newemaint-agent","is_admin":false}'),
+            broker = HostAccessBroker(self._temporary_project_checkout_contract("alphaapp", canonical),
+                credentials=StaticCredentials(), transport=lambda *args: (200, {}, b'{"login":"alphaapp-agent","is_admin":false}'),
                 runner=self._remote_backed_runner(remote, commands), invocation_cwd=str(linked))
-            value = broker.execute("newemaint", "git.push.change", branch=self.FF_BRANCH)
+            value = broker.execute("alphaapp", "git.push.change", branch=self.FF_BRANCH)
             self.assertEqual(value["remote_name"], "gitea")
             self.assertEqual([a[3] for a in commands if a[:2] == ["git", "push"]], ["gitea"])
             self.assertTrue(value["guard_executed"])
-            self.assertEqual(self._git(["remote", "get-url", "origin"], cwd=canonical), "https://github.com/BenQue/NewEMaint.git")
+            self.assertEqual(self._git(["remote", "get-url", "origin"], cwd=canonical), "https://github.com/BenQue/AlphaApp.git")
 
     def test_readable_first_push_is_allowed_but_conflicting_remote_name_is_rejected(self):
         branch = "change/70-readable-change-name"
@@ -5160,7 +5160,7 @@ class HostAccessBrokerTests(unittest.TestCase):
                 os.environ[SESSION_ENV] = self.OWNER_SESSION
 
     def test_a_second_session_cannot_push_from_the_worktree_it_wandered_into(self) -> None:
-        """AC-5: the NewEMaint #96 shape. B rebases inside A's worktree — none of
+        """AC-5: the AlphaApp #96 shape. B rebases inside A's worktree — none of
         that reaches the broker — and then tries to push it as itself."""
         with tempfile.TemporaryDirectory() as temporary:
             remote, canonical, linked = self._remote_backed_change_worktree(temporary)
@@ -5385,18 +5385,18 @@ class HostAccessBrokerTests(unittest.TestCase):
             credential_from_protocol(
                 self.contract,
                 "get",
-                "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/LocalWMS.git\nusername=newemaint-agent\n\n",
+                "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/BetaApp.git\nusername=alphaapp-agent\n\n",
                 resolver=resolver,
                 identity_verifier=lambda credential: None,
             )
         output = credential_from_protocol(
             self.contract,
             "get",
-            "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/LocalWMS.git\nusername=localwms-agent\n\n",
+            "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/BetaApp.git\nusername=betaapp-agent\n\n",
             resolver=resolver,
             identity_verifier=lambda credential: None,
         )
-        self.assertEqual(output, "username=localwms-agent\npassword=token-agent\n")
+        self.assertEqual(output, "username=betaapp-agent\npassword=token-agent\n")
 
     def test_credential_protocol_accepts_current_git_multivalue_shape(self) -> None:
         protocol_input = (
@@ -5435,8 +5435,8 @@ class HostAccessBrokerTests(unittest.TestCase):
             "future-capability[]=second\n"
             "protocol=http\n"
             "host=gitea-ci.orb.local:3000\n"
-            "path=admin/LocalWMS.git\n"
-            "username=localwms-agent\n\n"
+            "path=admin/BetaApp.git\n"
+            "username=betaapp-agent\n\n"
         )
         request = _parse_credential_protocol(protocol_input)
         self.assertEqual(
@@ -5450,24 +5450,24 @@ class HostAccessBrokerTests(unittest.TestCase):
             resolver=StaticCredentials(),
             identity_verifier=lambda credential: None,
         )
-        self.assertEqual(output, "username=localwms-agent\npassword=token-agent\n")
+        self.assertEqual(output, "username=betaapp-agent\npassword=token-agent\n")
 
     def test_unknown_duplicate_and_malformed_scalar_fields_fail_closed(self) -> None:
         valid = (
             "protocol=http\n"
             "host=gitea-ci.orb.local:3000\n"
-            "path=admin/LocalWMS.git\n"
-            "username=localwms-agent\n"
+            "path=admin/BetaApp.git\n"
+            "username=betaapp-agent\n"
         )
         cases = {
             "unknown scalar": valid + "authtype=basic\n",
             "duplicate protocol": "protocol=https\n" + valid,
             "duplicate host": valid + "host=gitea-ci.orb.local:3000\n",
-            "duplicate path": valid + "path=admin/LocalWMS.git\n",
-            "duplicate username": valid + "username=localwms-agent\n",
+            "duplicate path": valid + "path=admin/BetaApp.git\n",
+            "duplicate username": valid + "username=betaapp-agent\n",
             "missing protocol": valid.removeprefix("protocol=http\n"),
             "missing host": valid.replace("host=gitea-ci.orb.local:3000\n", ""),
-            "missing path": valid.replace("path=admin/LocalWMS.git\n", ""),
+            "missing path": valid.replace("path=admin/BetaApp.git\n", ""),
             "empty key": valid + "=value\n",
             "empty multivalue key": valid + "[]=value\n",
             "missing equals": valid + "malformed\n",
@@ -5487,10 +5487,10 @@ class HostAccessBrokerTests(unittest.TestCase):
                 raise AssertionError("credential resolution must not run")
 
         cases = (
-            "protocol=https\nhost=gitea-ci.orb.local:3000\npath=admin/LocalWMS.git\n",
-            "protocol=http\nhost=attacker.invalid\npath=admin/LocalWMS.git\n",
+            "protocol=https\nhost=gitea-ci.orb.local:3000\npath=admin/BetaApp.git\n",
+            "protocol=http\nhost=attacker.invalid\npath=admin/BetaApp.git\n",
             "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/unknown.git\n",
-            "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/LocalWMS.git\nusername=newemaint-agent\n",
+            "protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/BetaApp.git\nusername=alphaapp-agent\n",
         )
         for protocol_input in cases:
             with self.subTest(protocol_input=protocol_input), self.assertRaises(BrokerError):
@@ -5823,13 +5823,13 @@ class GovernedHostRunnerTests(unittest.TestCase):
             return subprocess.CompletedProcess(argv, 0, json.dumps(payload) + "\n", "")
 
         runner = RoutineMergeRunner(
-            self.contract, "localwms", command_runner=command_runner,
+            self.contract, "betaapp", command_runner=command_runner,
         )
         receipt = runner.merge(208, "a" * 40)
         self.assertEqual(receipt["status"], "AUTO_MERGED")
         self.assertEqual(calls[0][0], [
             "/usr/local/libexec/aisoft/host-access-broker",
-            "--project", "localwms",
+            "--project", "betaapp",
             "--operation", "gitea.pull.merge.routine",
             "--number", "208",
             "--sha", "a" * 40,
@@ -5840,7 +5840,7 @@ class GovernedHostRunnerTests(unittest.TestCase):
     def test_routine_runner_refuses_non_receipt_and_has_no_fallback(self) -> None:
         runner = RoutineMergeRunner(
             self.contract,
-            "localwms",
+            "betaapp",
             command_runner=lambda argv, **kwargs: subprocess.CompletedProcess(
                 argv, 0, '{"status":"PASS"}\n', ""
             ),
@@ -5858,8 +5858,8 @@ class ProfileMigrationTests(unittest.TestCase):
         self.home.mkdir()
         self.source.mkdir()
         self.contract = load_access_contract(ACCESS, GOVERNANCE)
-        self.project = self.contract.project("newemaint")
-        self.source_token = self.source / "newemaint-agent-project-agent.token"
+        self.project = self.contract.project("alphaapp")
+        self.source_token = self.source / "alphaapp-agent-project-agent.token"
         self.source_token.write_text("new-project-token\n")
         self.source_token.chmod(0o600)
         self.profile = self.home / ".config/aisoft/projects/emaintenance.env"
@@ -5874,7 +5874,7 @@ class ProfileMigrationTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def migrator(self, *, identity="newemaint-agent", replace_fn=os.replace):
+    def migrator(self, *, identity="alphaapp-agent", replace_fn=os.replace):
         return ProfileMigrator(
             self.contract,
             home=self.home,
@@ -5890,37 +5890,37 @@ class ProfileMigrationTests(unittest.TestCase):
         old_profile = self.profile.read_bytes()
         old_token = self.token.read_bytes()
         migrator = self.migrator()
-        result = migrator.apply("newemaint")
+        result = migrator.apply("alphaapp")
         self.assertEqual(result["result"], "applied")
         self.assertNotIn(b"new-project-token", self.profile.read_bytes())
-        self.assertIn(b"GITEA_IDENTITY=newemaint-agent", self.profile.read_bytes())
+        self.assertIn(b"GITEA_IDENTITY=alphaapp-agent", self.profile.read_bytes())
         self.assertEqual(self.token.read_text(), "new-project-token\n")
         self.assertEqual(stat.S_IMODE(self.profile.stat().st_mode), 0o600)
-        self.assertEqual(migrator.read_back("newemaint")["result"], "read-back")
-        backup = self.home / ".local/state/aisoft-profile-backups/issue-61/newemaint/latest"
+        self.assertEqual(migrator.read_back("alphaapp")["result"], "read-back")
+        backup = self.home / ".local/state/aisoft-profile-backups/issue-61/alphaapp/latest"
         metadata_before = (backup / "metadata.json").read_bytes()
-        self.assertEqual(migrator.apply("newemaint")["result"], "no-op")
+        self.assertEqual(migrator.apply("alphaapp")["result"], "no-op")
         self.assertEqual((backup / "metadata.json").read_bytes(), metadata_before)
-        self.assertEqual(migrator.rollback("newemaint")["result"], "rolled-back")
+        self.assertEqual(migrator.rollback("alphaapp")["result"], "rolled-back")
         self.assertEqual(self.profile.read_bytes(), old_profile)
         self.assertEqual(self.token.read_bytes(), old_token)
         self.assertEqual(stat.S_IMODE(self.profile.stat().st_mode), 0o400)
 
     def test_undeclared_profile_bytes_are_byte_identical_to_pre_112_shape(self) -> None:
         # The subject here is the byte shape: nine lines, no PATH tail. It drives
-        # that shape off the production newemaint entry, so the ANALYSIS_PROVIDER
+        # that shape off the production alphaapp entry, so the ANALYSIS_PROVIDER
         # literal tracks whatever that profile declares — none since #178, claude
         # before it. A diff on this line means the manifest moved, not that the
         # pre-#112 shape regressed; check the line count and ordering instead.
-        self.migrator().apply("newemaint")
+        self.migrator().apply("alphaapp")
         expected = (
-            "AISOFT_PROJECT_ID=newemaint\n"
+            "AISOFT_PROJECT_ID=alphaapp\n"
             "GITEA_URL=http://gitea-ci.orb.local:3000\n"
             "GITEA_OWNER=admin\n"
-            "GITEA_REPO=NewEMaint\n"
-            "GITEA_IDENTITY=newemaint-agent\n"
+            "GITEA_REPO=AlphaApp\n"
+            "GITEA_IDENTITY=alphaapp-agent\n"
             f"GITEA_TOKEN_FILE={self.home}/.config/aisoft/credentials/emaintenance.token\n"
-            f"AGENT_REPO_DIR={self.home}/work/NewEMaint\n"
+            f"AGENT_REPO_DIR={self.home}/work/AlphaApp\n"
             "ANALYSIS_PROVIDER=none\n"
             "IMPLEMENT_PROVIDER=none\n"
         ).encode("utf-8")
@@ -5928,11 +5928,11 @@ class ProfileMigrationTests(unittest.TestCase):
 
     def test_declared_path_prepend_is_generated_and_drift_fails_read_back(self) -> None:
         # #252 退出五个项目后，生产 manifest 里没有项目再声明 path_prepend
-        # （原来只有 sfm-digital-board 声明）。migrator 生成 PATH 行与 read-back
-        # 检测漂移仍是合同面，这里用注入了 path_prepend 的 localwms 副本驱动。
+        # （原来只有 gamma-board 声明）。migrator 生成 PATH 行与 read-back
+        # 检测漂移仍是合同面，这里用注入了 path_prepend 的 betaapp 副本驱动。
         raw = json.loads(ACCESS.read_text())
         declared = next(item for item in raw["projects"]
-                        if item["project_id"] == "localwms")
+                        if item["project_id"] == "betaapp")
         declared["vm_profile"]["path_prepend"] = [
             "/opt/node22/bin", "/home/coder/.local/bin",
         ]
@@ -5940,8 +5940,8 @@ class ProfileMigrationTests(unittest.TestCase):
         manifest.write_text(json.dumps(raw))
         contract = load_access_contract(manifest, GOVERNANCE)
 
-        source = self.source / "localwms-agent-project-agent.token"
-        source.write_text("localwms-project-token\n")
+        source = self.source / "betaapp-agent-project-agent.token"
+        source.write_text("betaapp-project-token\n")
         source.chmod(0o600)
         migrator = ProfileMigrator(
             contract,
@@ -5950,63 +5950,63 @@ class ProfileMigrationTests(unittest.TestCase):
             target_uid=os.getuid(),
             target_gid=os.getgid(),
             source_uid=os.getuid(),
-            identity_reader=lambda token: "localwms-agent",
+            identity_reader=lambda token: "betaapp-agent",
             replace=os.replace,
         )
 
-        self.assertEqual(migrator.apply("localwms")["result"], "applied")
-        profile = self.home / ".config/aisoft/projects/localwms.env"
+        self.assertEqual(migrator.apply("betaapp")["result"], "applied")
+        profile = self.home / ".config/aisoft/projects/betaapp.env"
         content = profile.read_text()
         path_line = "PATH=/opt/node22/bin:/home/coder/.local/bin:$PATH"
         self.assertTrue(content.endswith(f"IMPLEMENT_PROVIDER=none\n{path_line}\n"))
         self.assertEqual(content.count("\nPATH="), 1)
-        self.assertEqual(migrator.read_back("localwms")["result"], "read-back")
-        self.assertEqual(migrator.consume_check("localwms")["result"],
+        self.assertEqual(migrator.read_back("betaapp")["result"], "read-back")
+        self.assertEqual(migrator.consume_check("betaapp")["result"],
                          "consumer-ready")
-        self.assertEqual(migrator.apply("localwms")["result"], "no-op")
+        self.assertEqual(migrator.apply("betaapp")["result"], "no-op")
 
         profile.write_text(content.replace(path_line, "PATH=/usr/bin:$PATH"))
         with self.assertRaises(BrokerError) as caught:
-            migrator.read_back("localwms")
+            migrator.read_back("betaapp")
         self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
 
         profile.write_text(content.replace(f"{path_line}\n", ""))
         with self.assertRaises(BrokerError) as caught:
-            migrator.read_back("localwms")
+            migrator.read_back("betaapp")
         self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
 
     def test_undeclared_project_with_injected_path_line_fails_read_back(self) -> None:
         migrator = self.migrator()
-        migrator.apply("newemaint")
+        migrator.apply("alphaapp")
         self.profile.write_text(self.profile.read_text() + "PATH=/opt/evil/bin:$PATH\n")
         with self.assertRaises(BrokerError) as caught:
-            migrator.read_back("newemaint")
+            migrator.read_back("alphaapp")
         self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
 
     def test_identity_mismatch_fails_before_target_mutation(self) -> None:
         before = (self.profile.read_bytes(), self.token.read_bytes())
         with self.assertRaises(BrokerError) as caught:
-            self.migrator(identity="localwms-agent").apply("newemaint")
+            self.migrator(identity="betaapp-agent").apply("alphaapp")
         self.assertEqual(caught.exception.code, "IDENTITY_MISMATCH")
         self.assertEqual((self.profile.read_bytes(), self.token.read_bytes()), before)
 
     def test_source_mode_and_symlink_are_rejected(self) -> None:
         self.source_token.chmod(0o644)
         with self.assertRaises(BrokerError) as caught:
-            self.migrator().apply("newemaint")
+            self.migrator().apply("alphaapp")
         self.assertEqual(caught.exception.code, "CREDENTIAL_MODE_INVALID")
 
     def test_multiline_source_and_target_credentials_are_rejected(self) -> None:
         self.source_token.write_text("new-project-token\nsecond-token\n")
         with self.assertRaises(BrokerError) as caught:
-            self.migrator().apply("newemaint")
+            self.migrator().apply("alphaapp")
         self.assertEqual(caught.exception.code, "CREDENTIAL_INVALID")
 
         self.source_token.write_text("new-project-token\n")
-        self.migrator().apply("newemaint")
+        self.migrator().apply("alphaapp")
         self.token.write_text("new-project-token\nsecond-token\n")
         with self.assertRaises(BrokerError) as caught:
-            self.migrator().consume_check("newemaint")
+            self.migrator().consume_check("alphaapp")
         self.assertEqual(caught.exception.code, "CREDENTIAL_INVALID")
 
     def test_source_owner_mismatch_is_rejected(self) -> None:
@@ -6017,10 +6017,10 @@ class ProfileMigrationTests(unittest.TestCase):
             target_uid=os.getuid(),
             target_gid=os.getgid(),
             source_uid=os.getuid() + 1,
-            identity_reader=lambda token: "newemaint-agent",
+            identity_reader=lambda token: "alphaapp-agent",
         )
         with self.assertRaises(BrokerError) as caught:
-            migrator.apply("newemaint")
+            migrator.apply("alphaapp")
         self.assertEqual(caught.exception.code, "CREDENTIAL_OWNER_INVALID")
         self.source_token.unlink()
         target = self.source / "real-token"
@@ -6028,7 +6028,7 @@ class ProfileMigrationTests(unittest.TestCase):
         target.chmod(0o600)
         self.source_token.symlink_to(target)
         with self.assertRaises(BrokerError) as caught:
-            self.migrator().apply("newemaint")
+            self.migrator().apply("alphaapp")
         self.assertEqual(caught.exception.code, "CREDENTIAL_MODE_INVALID")
 
     def test_partial_replace_failure_restores_both_files(self) -> None:
@@ -6043,19 +6043,19 @@ class ProfileMigrationTests(unittest.TestCase):
             os.replace(source, target)
 
         with self.assertRaises(BrokerError) as caught:
-            self.migrator(replace_fn=fail_once).apply("newemaint")
+            self.migrator(replace_fn=fail_once).apply("alphaapp")
         self.assertEqual(caught.exception.code, "PROFILE_APPLY_FAILED")
         self.assertEqual((self.profile.read_bytes(), self.token.read_bytes()), before)
 
     def test_cross_project_source_credential_is_never_selected(self) -> None:
-        wrong = self.source / "localwms-agent-project-agent.token"
-        wrong.write_text("localwms-secret\n")
+        wrong = self.source / "betaapp-agent-project-agent.token"
+        wrong.write_text("betaapp-secret\n")
         wrong.chmod(0o600)
         self.source_token.unlink()
         with self.assertRaises(BrokerError) as caught:
-            self.migrator().apply("newemaint")
+            self.migrator().apply("alphaapp")
         self.assertEqual(caught.exception.code, "CREDENTIAL_UNAVAILABLE")
-        self.assertNotIn("localwms-secret", str(caught.exception))
+        self.assertNotIn("betaapp-secret", str(caught.exception))
 
 
 class VmProfilePreflightTests(unittest.TestCase):
@@ -6094,7 +6094,7 @@ class VmProfilePreflightTests(unittest.TestCase):
     def test_missing_vm_tool_is_reported_as_itself(self) -> None:
         runner, calls = self._recording_runner(probe_rc=1)
         with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("newemaint", "vm.profile.read-back")
+            self._broker(runner).execute("alphaapp", "vm.profile.read-back")
         self.assertEqual(caught.exception.code, "VM_TOOL_UNAVAILABLE")
         self.assertNotEqual(caught.exception.code, "HOST_COMMAND_FAILED")
         # The probe short-circuits: the privileged sudo invocation never runs.
@@ -6107,17 +6107,17 @@ class VmProfilePreflightTests(unittest.TestCase):
             return self._completed(argv, 1, "")
 
         with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("newemaint", "vm.profile.plan")
+            self._broker(runner).execute("alphaapp", "vm.profile.plan")
         message = str(caught.exception)
         self.assertIn("install-host-access-broker.sh", message)
         for secret in ("token", "GITEA_TOKEN", "command not found", "sudo:"):
             self.assertNotIn(secret, message)
 
     def test_present_vm_tool_returns_payload(self) -> None:
-        payload = {"project": "newemaint", "action": "read-back", "status": "PASS"}
+        payload = {"project": "alphaapp", "action": "read-back", "status": "PASS"}
         runner, calls = self._recording_runner(probe_rc=0, stdout=json.dumps(payload))
-        result = self._broker(runner).execute("newemaint", "vm.profile.read-back")
-        self.assertEqual(result["project"], "newemaint")
+        result = self._broker(runner).execute("alphaapp", "vm.profile.read-back")
+        self.assertEqual(result["project"], "alphaapp")
         # Probe first, then the real invocation.
         self.assertEqual(len(calls), 2)
         self.assertIn("/usr/bin/test", calls[0])
@@ -6127,7 +6127,7 @@ class VmProfilePreflightTests(unittest.TestCase):
     def test_present_vm_tool_execution_failure_stays_host_command_failed(self) -> None:
         runner, _ = self._recording_runner(probe_rc=0, run_rc=1)
         with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("newemaint", "vm.profile.read-back")
+            self._broker(runner).execute("alphaapp", "vm.profile.read-back")
         self.assertEqual(caught.exception.code, "HOST_COMMAND_FAILED")
 
     def test_profile_tool_governed_error_is_surfaced(self) -> None:
@@ -6141,7 +6141,7 @@ class VmProfilePreflightTests(unittest.TestCase):
             probe_rc=0, run_rc=1, stderr=json.dumps(tool_error)
         )
         with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("newemaint", "vm.profile.read-back")
+            self._broker(runner).execute("alphaapp", "vm.profile.read-back")
         self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
 
     def test_malformed_profile_tool_error_fails_closed(self) -> None:
@@ -6159,7 +6159,7 @@ class VmProfilePreflightTests(unittest.TestCase):
                     probe_rc=0, run_rc=1, stderr=json.dumps(payload)
                 )
                 with self.assertRaises(BrokerError) as caught:
-                    self._broker(runner).execute("newemaint", "vm.profile.read-back")
+                    self._broker(runner).execute("alphaapp", "vm.profile.read-back")
                 self.assertEqual(caught.exception.code, "HOST_COMMAND_FAILED")
 
     def test_non_json_stderr_on_failure_fails_closed(self) -> None:
@@ -6167,22 +6167,22 @@ class VmProfilePreflightTests(unittest.TestCase):
             probe_rc=0, run_rc=1, stderr="sudo: a raw diagnostic line"
         )
         with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("newemaint", "vm.profile.read-back")
+            self._broker(runner).execute("alphaapp", "vm.profile.read-back")
         self.assertEqual(caught.exception.code, "HOST_COMMAND_FAILED")
         self.assertNotIn("sudo", str(caught.exception))
 
     def test_present_vm_tool_target_mismatch_is_unchanged(self) -> None:
         runner, _ = self._recording_runner(
-            probe_rc=0, stdout=json.dumps({"project": "localwms"})
+            probe_rc=0, stdout=json.dumps({"project": "betaapp"})
         )
         with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("newemaint", "vm.profile.read-back")
+            self._broker(runner).execute("alphaapp", "vm.profile.read-back")
         self.assertEqual(caught.exception.code, "TARGET_MISMATCH")
 
     def test_present_vm_tool_invalid_json_is_unchanged(self) -> None:
         runner, _ = self._recording_runner(probe_rc=0, stdout="not json")
         with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("newemaint", "vm.profile.read-back")
+            self._broker(runner).execute("alphaapp", "vm.profile.read-back")
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
     def test_project_without_vm_profile_never_probes(self) -> None:

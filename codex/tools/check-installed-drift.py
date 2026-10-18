@@ -23,7 +23,7 @@ INSTALLER_PINS = {
     "codex/install-vm.sh": "01bf859512149391b45c37697b850f01af05e738ae37ae73008acbb196d3fe1c",
     "codex/install-skills.sh": "4d5d029c670636023bb68972475f616195b93637f46aa56e3d21de1805d4dd70",
     "codex/install-host-role.sh": "325e5150722e30debc115c0717d9bc4dedac44e1a7552c3a2258df14c4b27c89",
-    "codex/install-host-access-broker.sh": "485ea19514c5f4b72c84d6cc9576fe0c2b65c34d084e74c8f80e2d6ad6f10897",
+    "codex/install-host-access-broker.sh": "81883aace5b33fdf0200f093738db4179d861357168f026ad3bfc8ddc760866f",
     "architecture/install.sh": "c8f14f0154cad1b7402e527209d0135bab2bdf3bc0024f72fd06994067aa972e",
     "docker-release/install.sh": "3580c1e23b343fe9bbe2d3f9ea1b64b0f95ef1a7ba9c023c282bf5b68a649b13",
     "sync/install.sh": "153f36ef3396a053a4e4cbb8d6022a9f163b75b6f4c25498ba27ae3217d30f10",
@@ -399,7 +399,7 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
                                    ("install-host-access-broker", share / "host-access-broker.json", system)]:
         json_metric(name, "operations", "codex/config/host-access-broker.json", target, boundary, "operations")
     for tool in ("host-access-broker", "git-credential-aisoft-host", "project-profile-migration",
-                 "bootstrap-gitea-service-account", "rollback-gitea-routine-pilot", "rotate-gitea-service-account"):
+                 "bootstrap-gitea-service-account", "rotate-gitea-service-account"):
         add("install-host-access-broker", "codex/tools/" + tool + ".sh", libexec / tool, system)
     rotation_files = {
         "/usr/local/share/aisoft/host-access-broker.json": repo / "codex/config/host-access-broker.json",
@@ -413,7 +413,9 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
     helper = repo / "codex/tools/gitea-pat-helper"
     metadata_sources.update(helper / name for name in HELPER_SOURCE_INPUTS)
     metadata_sources.update(p for p in directory_entries(helper, repo) if p.suffix == ".go")
-    surfaces["install-host-access-broker"].absent = [(libexec / name, system) for name in ("keychain-acl-audit", "keychain-acl-audit.previous")]
+    surfaces["install-host-access-broker"].absent = [(libexec / name, system) for name in (
+        "keychain-acl-audit", "keychain-acl-audit.previous",
+        "rollback-gitea-routine-pilot", "rollback-gitea-routine-pilot.previous")]
     tree("install-vm", "codex/agent", agent, agent, "*.sh")
     tree("install-vm", "codex/systemd", home / ".config/systemd/user", home, "aisoft-agent@.*")
     for filename in ("gitea-readonly.sh", "ensure-gitea-collaborator.sh"):

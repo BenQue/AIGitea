@@ -624,10 +624,13 @@ raise SystemExit("unexpected read through replaced parent")
         self.assertIn("installer-set-mismatch", json.dumps(self.check(2, repo=source)))
 
     def test_retired_broker_target_is_gap_without_reading(self):
-        path = self.system / "usr/local/libexec/aisoft/keychain-acl-audit.previous"
-        path.write_text("retired")
-        row = self.row(self.check(1), "install-host-access-broker")
-        self.assertTrue(any(g["reason"] == "retired-target-present" and g["target"] == str(path) for g in row["gaps"]))
+        # #380 retired the routine pilot rollback the same way as the keychain helper.
+        for name in ("keychain-acl-audit.previous", "rollback-gitea-routine-pilot"):
+            path = self.system / "usr/local/libexec/aisoft" / name
+            path.write_text("retired")
+            row = self.row(self.check(1), "install-host-access-broker")
+            self.assertTrue(any(g["reason"] == "retired-target-present" and g["target"] == str(path) for g in row["gaps"]))
+            path.unlink()
 
     def test_untracked_new_source_module_not_cached_main(self):
         source = self.clone_source()

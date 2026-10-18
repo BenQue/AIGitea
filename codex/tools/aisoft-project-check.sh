@@ -8,7 +8,7 @@ set +x
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 USAGE_BUNDLE_TOOL="$ROOT/codex/tools/usage-bundle.sh"
 LABEL_MANIFEST="$ROOT/codex/config/gitea-labels.json"
-GOVERNANCE_MANIFEST="$ROOT/codex/config/gitea-governance.json"
+GOVERNANCE_MANIFEST="${AISOFT_GOVERNANCE_MANIFEST:-$ROOT/codex/config/gitea-governance.json}"
 ARCHITECTURE_CLI="$ROOT/architecture/bin/aisoft-architecture"
 
 # Shared token resolution (#111): same-directory copy first (flat VM install
@@ -1037,6 +1037,15 @@ else
   else
     gap delivery-profile 'AGENTS.md 未声明明确交付形态'
   fi
+fi
+
+# A governance manifest override (#380, for the synthetic test fixture) yields
+# a non-canonical verdict; say so next to the result with the exact bytes read.
+if [[ -n "${AISOFT_GOVERNANCE_MANIFEST:-}" ]]; then
+  governance_digest="$(python3 -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' \
+    "$GOVERNANCE_MANIFEST" 2>/dev/null || printf unreadable)"
+  printf 'NOTE: governance-manifest — AISOFT_GOVERNANCE_MANIFEST 覆盖了治理 manifest，本次结论不是 canonical 证据：%s sha256=%s\n' \
+    "$GOVERNANCE_MANIFEST" "$governance_digest"
 fi
 
 printf 'result: pass=%d gap=%d skip=%d\n' \

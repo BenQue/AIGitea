@@ -199,8 +199,8 @@ PROFILE_CREDENTIALS="$PROFILE_HOME/.config/aisoft/credentials"
 PROFILE_BIN="$PROFILE_HOME/bin"
 PROFILE_SHARE="$PROFILE_HOME/.local/share/aisoft"
 mkdir -p "$PROFILE_AGENT" "$PROFILE_CONFIG" "$PROFILE_CREDENTIALS" "$PROFILE_BIN" "$PROFILE_SHARE"
-cp "$ROOT/codex/config/host-access-broker.json" "$PROFILE_SHARE/host-access-broker.json"
-cp "$ROOT/codex/config/gitea-governance.json" "$PROFILE_SHARE/gitea-governance.json"
+cp "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" "$PROFILE_SHARE/host-access-broker.json"
+cp "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" "$PROFILE_SHARE/gitea-governance.json"
 cp "$ROOT/codex/agent/project-poll.sh" "$PROFILE_AGENT/project-poll.sh"
 cp "$ROOT/codex/agent/common.sh" "$PROFILE_AGENT/common.sh"
 cat >"$PROFILE_AGENT/provider-poll.sh" <<'EOF'
@@ -221,13 +221,13 @@ chmod 755 "$PROFILE_BIN/python3"
 printf '%s\n' 'not-a-real-token' >"$PROFILE_CREDENTIALS/emaintenance.token"
 chmod 600 "$PROFILE_CREDENTIALS/emaintenance.token"
 cat >"$PROFILE_CONFIG/emaintenance.env" <<EOF
-AISOFT_PROJECT_ID=newemaint
+AISOFT_PROJECT_ID=alphaapp
 GITEA_URL=http://gitea-ci.orb.local:3000
 GITEA_OWNER=admin
-GITEA_REPO=NewEMaint
-GITEA_IDENTITY=newemaint-agent
+GITEA_REPO=AlphaApp
+GITEA_IDENTITY=alphaapp-agent
 GITEA_TOKEN_FILE=$PROFILE_CREDENTIALS/emaintenance.token
-AGENT_REPO_DIR=$PROFILE_HOME/work/NewEMaint
+AGENT_REPO_DIR=$PROFILE_HOME/work/AlphaApp
 ANALYSIS_PROVIDER=none
 IMPLEMENT_PROVIDER=none
 EOF

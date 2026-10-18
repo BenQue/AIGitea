@@ -9,7 +9,7 @@ from aisoft_gitea_governance.contract import (
 from aisoft_loop.change_control import PHASES, resolve_change_control
 from aisoft_loop.classification import Classification, ClassificationError
 
-MANIFEST = Path(__file__).resolve().parents[3] / "codex/config/gitea-governance.json"
+MANIFEST = Path(__file__).resolve().parents[3] / "codex/tests/fixtures/manifests/gitea-governance.json"
 
 
 def _complex_classification() -> Classification:
@@ -32,7 +32,7 @@ class ChangeControlContractTests(unittest.TestCase):
 
     def test_undeclared_repositories_default_to_production(self) -> None:
         """原断言是「每个仓库都是 production」——那把「当时没有任何仓库声明过」这个事实
-        钉成了测试，Issue #148 给 LocalWMS 声明 development 时它必然变红。AC2 真正要保的是
+        钉成了测试，Issue #148 给 BetaApp 声明 development 时它必然变红。AC2 真正要保的是
         **未声明者默认 production**，因此改为只遍历未声明的仓库。"""
         raw = json.loads(MANIFEST.read_text())
         declared = {
@@ -51,29 +51,29 @@ class ChangeControlContractTests(unittest.TestCase):
         # 而测试仍然「通过」。那时兜底行为就没有任何东西守着了，必须补一个合成 fixture。
         self.assertGreater(checked, 0, "没有未声明的仓库，AC2 的兜底断言已空转")
 
-    def test_localwms_is_declared_development(self) -> None:
+    def test_betaapp_is_declared_development(self) -> None:
         """Issue #148：机制自 #134 起就在，但十个仓库无一声明，收益一直是零。
-        这条把「LocalWMS 已降到 development」钉住——它一旦被改回去，判级会静默恢复四份文档。"""
+        这条把「BetaApp 已降到 development」钉住——它一旦被改回去，判级会静默恢复四份文档。"""
         contract = load_contract(MANIFEST)
-        localwms = next(
+        betaapp = next(
             repository
             for repository in contract.repositories
-            if repository.name == "LocalWMS"
+            if repository.name == "BetaApp"
         )
-        self.assertEqual(localwms.change_control, "development")
-        self.assertTrue(localwms.in_development)
+        self.assertEqual(betaapp.change_control, "development")
+        self.assertTrue(betaapp.in_development)
 
     def test_declared_development_is_parsed(self) -> None:
         """本条要证的是「给一个仓声明 development 不会污染其它仓」。原来把「其它仓都是
-        production」写死了，这在 Issue #148 给 LocalWMS 声明之后不再成立——改为逐仓比对
+        production」写死了，这在 Issue #148 给 BetaApp 声明之后不再成立——改为逐仓比对
         manifest 里各自的声明值（缺省 production），断言的意图不变而不再依赖当时的快照。"""
         raw = json.loads(MANIFEST.read_text())
         raw["repositories"][1]["change_control"] = "development"
         next(
-            item for item in raw["repositories"] if item["name"] == "NewEMaint"
+            item for item in raw["repositories"] if item["name"] == "AlphaApp"
         )["routine_live_pilot"]["non_target_repositories_sha256"] = (
             repository_declarations_sha256(
-                raw["repositories"], exclude_name="NewEMaint"
+                raw["repositories"], exclude_name="AlphaApp"
             )
         )
         expected = {
