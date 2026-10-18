@@ -72,3 +72,5 @@ updated: 2026-10-18
 | 3 | `d7be649` | PASS | 第 2 轮 minor 确认已修复；`git_scope` 精确覆盖 `8fa4458..d7be649` 的 77 个路径（含 17 次改名前后路径），无遗漏、多余或重复；无新发现 |
 
 修复后全量 smoke：`4c9036b` 与 `d7be649` 均通过（各 1238 个用例）。最终候选只比 `d7be649` 多本记录这一处文档改动。
+
+R6b（#380，PR 382，`a395f7a`）先合并后，按 broker 的 main 集成合同把 `a395f7a` 合入本分支（merge commit，父提交为 [本 Issue 分支, main]，树等于 `git merge-tree` 结果；已推送的 `22845ed` 保留在历史里）。唯一的重叠是路线表 R6b/R7 相邻两行：先把本分支的 R7 行退回 main 原文，合并后再单独恢复。合并结果与先前在 `a395f7a` 上 rebase 的版本内容逐字节相同（`git diff` 只差本段记录），rebase 版在 macOS 全量 smoke 通过（1238 个用例）；`git_scope` 与新 diff 一致；main 没有发布新的发布包版本，1.1.0 `--verify --baseline-ref origin/main` 仍通过。
