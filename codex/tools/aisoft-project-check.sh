@@ -8,7 +8,7 @@ set +x
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 USAGE_BUNDLE_TOOL="$ROOT/codex/tools/usage-bundle.sh"
 LABEL_MANIFEST="$ROOT/codex/config/gitea-labels.json"
-GOVERNANCE_MANIFEST="$ROOT/codex/config/gitea-governance.json"
+GOVERNANCE_MANIFEST="${AISOFT_GOVERNANCE_MANIFEST:-$ROOT/codex/config/gitea-governance.json}"
 ARCHITECTURE_CLI="$ROOT/architecture/bin/aisoft-architecture"
 
 # Shared token resolution (#111): same-directory copy first (flat VM install
