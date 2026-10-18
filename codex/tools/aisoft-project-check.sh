@@ -6,9 +6,7 @@ set -euo pipefail
 set +x
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-POINTER_TEMPLATE="$ROOT/templates/project/AGENTS.md"
-CLAUDE_TEMPLATE="$ROOT/templates/project/CLAUDE.md"
-CHANGE_TEMPLATE_ROOT="$ROOT/templates/docs/changes/_template"
+USAGE_BUNDLE_TOOL="$ROOT/codex/tools/usage-bundle.sh"
 LABEL_MANIFEST="$ROOT/codex/config/gitea-labels.json"
 GOVERNANCE_MANIFEST="$ROOT/codex/config/gitea-governance.json"
 ARCHITECTURE_CLI="$ROOT/architecture/bin/aisoft-architecture"
@@ -113,51 +111,28 @@ skip() {
 # application may only leave block_on_outdated_branch off when this is PASS.
 merge_preview_verdict=''
 
-extract_pointer_sections() {
-  awk '
-    $0 == "## 平台声明（常驻指针）" {
-      in_pointer = 1
-      saw_platform = 1
-    }
-    in_pointer {
-      if ($0 == "## 每 Issue 开发路径") {
-        saw_path = 1
-      } else if (saw_path && $0 ~ /^## /) {
-        exit
-      }
-      print
-    }
-    END {
-      if (!saw_platform || !saw_path) exit 1
-    }
-  ' "$1"
-}
-
-template_pointer="$tmp_dir/template-pointer"
-repo_pointer="$tmp_dir/repo-pointer"
-if [[ -f "$repo/AGENTS.md" && -f "$repo/CLAUDE.md" ]] &&
-  extract_pointer_sections "$POINTER_TEMPLATE" >"$template_pointer" 2>/dev/null &&
-  extract_pointer_sections "$repo/AGENTS.md" >"$repo_pointer" 2>/dev/null &&
-  cmp -s "$template_pointer" "$repo_pointer" &&
-  cmp -s "$CLAUDE_TEMPLATE" "$repo/CLAUDE.md"; then
-  pass pointer-sections
+# #377: platform-pin, pointer-sections and change-templates are judged against
+# the usage bundle release the project pins in .aisoft/platform-usage.lock.json
+# (the latest release when there is no lock), so later platform commits do not
+# turn an aligned project red. A crash of the status reader is a GAP for all
+# three: "the checker did not run" must never read as "the repository is fine".
+bundle_status="$tmp_dir/usage-bundle-status"
+bundle_exit=0
+bash "$USAGE_BUNDLE_TOOL" --project-status "$repo" >"$bundle_status" 2>"$tmp_dir/usage-bundle.err" ||
+  bundle_exit=$?
+if ((bundle_exit != 0)) || [[ ! -s "$bundle_status" ]]; then
+  for bundle_check in platform-pin pointer-sections change-templates; do
+    gap "$bundle_check" "使用发布包核对未能运行（退出码 $bundle_exit）"
+  done
 else
-  gap pointer-sections '平台指针两节或 CLAUDE.md 与模板不一致'
-fi
-
-templates_match=true
-for document in summary spec plan verification; do
-  if [[ ! -f "$repo/docs/changes/_template/$document.md" ]] ||
-    ! cmp -s "$CHANGE_TEMPLATE_ROOT/$document.md" \
-      "$repo/docs/changes/_template/$document.md"; then
-    templates_match=false
-    break
-  fi
-done
-if [[ "$templates_match" == true ]]; then
-  pass change-templates
-else
-  gap change-templates 'docs/changes/_template 与平台模板不一致'
+  while IFS=$'\t' read -r bundle_check bundle_result bundle_detail; do
+    [[ -n "$bundle_check" ]] || continue
+    case "$bundle_result" in
+      PASS) pass "$bundle_check" ;;
+      NOTE) printf 'NOTE: %s — %s\n' "$bundle_check" "$bundle_detail" ;;
+      *) gap "$bundle_check" "${bundle_detail:-未给出细节}" ;;
+    esac
+  done <"$bundle_status"
 fi
 
 # Every change directory must resolve through resolve-documents, and no summary

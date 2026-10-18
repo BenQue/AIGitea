@@ -72,7 +72,7 @@ ADR 0001 D6 要求项目使用层有一份独立于维护层 `AGENTS.md` 的“�
   - `--build DIR`：在当前内容等于最新版本时，确定性导出 `DIR/project/`（`exact`、`pointer`、`seed` 成员放到项目落点，另生成 `.aisoft/platform-usage.lock.json`）与 `DIR/skills/`（`skill` 成员按 source 路径），供 project-align 复制；DIR 必须不存在或为空。
   - `--project-status REPO`：只读，供 project-check 调用，输出 `platform-pin`、`pointer-sections`、`change-templates` 三项的 PASS/GAP 与细节。
   - 回归测试 `codex/tests/test-usage-bundle.sh` 覆盖：verify 通过；成员改动未升版本失败；历史被改写或版本不递增失败；release 追加；build 产物与摘要一致且两次 build 字节相同；project-status 在 pin 当前版本、pin 旧版本、无 lock、lock 摘要不符、版本不存在时的结论。按 smoke 五处登记。
-- [ ] AC5 project-check 按 pin 核对：新增 `platform-pin` 检查（lock 存在、版本在历史中、摘要一致；落后于最新版本时 PASS 并打印 `NOTE:` 行）。`pointer-sections` 与 `change-templates` 改为对照 pin 版本的摘要；没有 lock 时对照最新版本。`test-project-check.sh` 的计数与清单同步，增加 pin 旧版本仍 PASS 的用例。
+- [ ] AC5 project-check 按 pin 核对：新增 `platform-pin` 检查（lock 存在、版本在历史中、摘要一致；落后于最新版本时 PASS 并打印 `NOTE:` 行）。`pointer-sections` 与 `change-templates` 改为对照 pin 版本的摘要；没有 lock 时对照最新版本。`test-project-check.sh` 的计数与清单同步（对齐夹具 pin 最新版本），增加缺 lock 与使用合同副本漂移的 GAP 用例；pin 旧版本仍 PASS 并打印 `NOTE:` 由 `test-usage-bundle.sh` 在伪造的平台树上覆盖（project-check 固定读真实平台仓，无法构造旧版本）。
 - [ ] AC6 `08` §7 验证矩阵拆成两层：平台维护层（技能静态、合成 Issue、自修复、升级、CI feedback；两个 provider 对等，平台仓自己验收）与项目使用层（真实 pilot、项目 profile 验收、非生产首次部署、生产负向边界；每项目每个选用工具各自验收，记在项目仓）。原有九项内容不丢，只重新归层；`04` §10 的重复清单改为指向 `08` §7。
 - [ ] AC7 R4 遗留：summary 模板删除写死的 #286 跨仓依赖边注释，改为中立说明“跨仓依赖只用 manifest 授权的引用”；刷新 `change-template-sync.json` digest；泄漏基线收紧。
 - [ ] AC8 文档：project-align 参考改写为“按发布包版本对齐”（盘点 → 复制 `--build` 产物 → 项目 Issue/PR → 复检），两侧平台技能的 project-align 指引同步一句；`03` §3 vendored 模板一节与 `README.md` 目录说明提到发布包；onboarding-runbook 的模板复制步骤指向 `--build`。
