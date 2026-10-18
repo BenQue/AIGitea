@@ -80,6 +80,8 @@ The primary per-Issue development path is the complete Matt workflow behind the 
 
 Before installing a major or skill-set-changing update of an external skill pack (Matt skills or superpowers), a human walks the manual checklist in `08-双工具共存与实施.md` §5 「外部技能包升级后的适配检查」: added or removed skills, model-invoked versus user-invoked, file and directory conventions, and Git / PR / parallel-write side effects. Record each conclusion in the Issue that carries the upgrade. It is a manual checklist: do not schedule, automate or install anything on its basis.
 
+If superpowers is loaded, its `brainstorming` sizing (do a quick task right away, build a small change after agreement in chat) does not replace platform classification or `approved`: inside a platform project, an Issue, classification and confirmation point 1 still come before writing files.
+
 Claude Code and Codex share this one platform contract as equal, interchangeable providers with no primary or secondary role; the two models complement each other toward the same goal, and neither invents its own classification, document, or delivery workflow. Automation providers are still selected explicitly by the project profile's `ANALYSIS_PROVIDER`/`IMPLEMENT_PROVIDER` (default `none`).
 
 The `gitea-*` skills are compatibility adapters, not a second development method:
