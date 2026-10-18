@@ -37,6 +37,7 @@ git_scope:
   - codex/tests/test-host-access-broker.sh
   - codex/tools/application-target-preflight.py
   - archive/application-target-preflight.py
+  - archive/README.md
   - templates/project/ci/ci.yml
   - docs/governance/remediation-roadmap.md
   - docs/adr/0001-platform-boundary.md
