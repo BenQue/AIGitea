@@ -1,4 +1,4 @@
-"""Read-only report of external skill pack versions on both providers (#375).
+"""Read-only report of external skill pack versions (#375; Cursor since #379).
 
 For the human who periodically looks at whether superpowers, Matt or the two
 CLIs moved. superpowers follows its official marketplaces and is not pinned;
@@ -11,6 +11,13 @@ reports. Nothing here installs, fetches or writes; the only processes started
 are `claude --version`, `codex --version` and that pin checker. Formats owned
 by Claude Code or Codex carry no public promise: anything unrecognised is
 UNKNOWN, never a guess.
+
+Cursor is a usage-layer tool only (ADR 0001 D6). Its marketplace caches Matt
+and superpowers outside any platform installer; this report reads the cached
+plugin manifests so the same pin and adaptation record cover it. A cached
+version says nothing about whether Cursor has it enabled, so the line reads
+`cached=`. Cursor lines inform; only REVIEW_NEEDED or UNKNOWN fails the run,
+exactly as for superpowers on the other two tools.
 """
 from __future__ import annotations
 
@@ -29,6 +36,11 @@ except ImportError:  # pragma: no cover - Python < 3.11
 ROOT = Path(__file__).resolve().parent.parent.parent
 RECORD = ROOT / "codex/config/external-skill-adaptation.json"
 PIN_CHECKER = ROOT / "skill-for-claude/check-plugin-pin.sh"
+SKILL_INSTALLER = ROOT / "codex/install-skills.sh"
+MATT_PACK = "mattpocock-skills"
+# Cursor caches each plugin as <marketplace>/<plugin>/<commit>/; the manifest
+# name varies with the plugin's packaging, first match wins.
+CURSOR_MANIFESTS = (".cursor-plugin/plugin.json", ".claude-plugin/plugin.json", "package.json")
 PACK = "superpowers"
 CLAUDE_INSTALLED_SCHEMA = 2
 
@@ -202,6 +214,62 @@ def codex_superpowers(home: Path, adapted: str) -> str:
     return f"{compare(cached, adapted)} {detail} marketplace=registered installed={cached} adapted={adapted}"
 
 
+def cursor_cached_version(home: Path, plugin: str) -> str | None:
+    base = home / ".cursor" / "plugins" / "cache"
+    if not os.path.lexists(base):
+        return None
+    if base.is_symlink() or not base.is_dir():
+        raise Unreadable("the Cursor plugin cache is not a directory")
+    versions: set[str] = set()
+    try:
+        marketplaces = sorted(base.iterdir())
+        for marketplace in marketplaces:
+            directory = marketplace / plugin
+            if not os.path.lexists(directory):
+                continue
+            # Present but not a plain directory is a shape this reader does not
+            # recognise: UNKNOWN, never NOT_INSTALLED.
+            if marketplace.is_symlink() or directory.is_symlink() or not directory.is_dir():
+                raise Unreadable(f"a cached Cursor {plugin} entry is not a plain directory")
+            for child in sorted(directory.iterdir()):
+                if child.is_symlink() or not child.is_dir():
+                    raise Unreadable(f"a cached Cursor {plugin} revision is not a plain directory")
+                manifest = next((child / name for name in CURSOR_MANIFESTS
+                                 if (child / name).is_file() and not (child / name).is_symlink()), None)
+                if manifest is None:
+                    raise Unreadable(f"a cached Cursor {plugin} has no recognised manifest")
+                data = _load_json(manifest)
+                version = data.get("version") if isinstance(data, dict) else None
+                if not isinstance(version, str):
+                    raise Unreadable(f"a cached Cursor {plugin} manifest has no version")
+                versions.add(version)
+    except (OSError, ValueError) as error:
+        raise Unreadable(f"the Cursor {plugin} cache is not readable ({type(error).__name__})") from error
+    if not versions:
+        return None
+    if len(versions) != 1:
+        raise Unreadable(f"{len(versions)} different cached Cursor {plugin} versions")
+    return next(iter(versions))
+
+
+def matt_pinned_version() -> str:
+    text = SKILL_INSTALLER.read_text(encoding="utf-8")
+    match = re.search(r'^matt_version="v([0-9.]+)"$', text, re.M)
+    if not match:
+        raise RecordInvalid("matt_version is not readable from codex/install-skills.sh")
+    return match.group(1)
+
+
+def cursor_line(home: Path, plugin: str, reference: str, label: str) -> str:
+    try:
+        cached = cursor_cached_version(home, plugin)
+    except Unreadable as error:
+        return f"UNKNOWN ({error})"
+    if cached is None:
+        return f"NOT_INSTALLED {label}={reference}"
+    return f"{compare(cached, reference)} cached={cached} {label}={reference}"
+
+
 def cli_version(name: str) -> str:
     try:
         completed = subprocess.run(
@@ -268,9 +336,17 @@ def main(argv: list[str]) -> int:
     except Unreadable as error:
         codex = f"UNKNOWN ({error})"
     matt = matt_state(home)
-    lines += [f"{PACK.upper()} claude {claude}", f"{PACK.upper()} codex {codex}", f"MATT claude {matt}"]
+    try:
+        matt_pin = matt_pinned_version()
+    except RecordInvalid as error:
+        print(f"RECORD_INVALID: {error}")
+        return 2
+    cursor_superpowers = cursor_line(home, PACK, adapted, "adapted")
+    cursor_matt = cursor_line(home, MATT_PACK, matt_pin, "pinned")
+    lines += [f"{PACK.upper()} claude {claude}", f"{PACK.upper()} codex {codex}", f"MATT claude {matt}",
+              f"{PACK.upper()} cursor {cursor_superpowers}", f"MATT cursor {cursor_matt}"]
 
-    states = [claude.split()[0], codex.split()[0], *clis]
+    states = [claude.split()[0], codex.split()[0], cursor_superpowers.split()[0], cursor_matt.split()[0], *clis]
     failing = any(state in {"REVIEW_NEEDED", "UNKNOWN"} for state in states) or matt != "PIN_CLEAN"
     lines.append("RESULT REVIEW_NEEDED" if failing else "RESULT PASS")
     print("\n".join(lines))

@@ -1,7 +1,7 @@
 # Company delivery operator bundle
 
 本目录是公司两台 Linux VM 离线 handoff 的 versioned、checksum-pinned、纯人工 operator workflow **参考实现**
-（交付形态由项目自行声明与选用，环境级原则见 `skill-for-codex/references/onboarding-runbook.md` §4）。当前
+（交付形态由项目自行声明与选用，环境级原则见 `skills/aisoft-platform/references/onboarding-runbook.md` §4）。当前
 operator `1.3.0` 把本地 OrbStack DockerLab 验证过的 exact `docker-release/v2` bytes 搬运到公司两台 Linux VM；
 它不是安装记录、部署记录或任何项目的公司环境验收结果。建立本目录的 pilot（Issue #120/#126/#128/#130）
 历史见 [`archive/company-delivery-pilot-历史-20260903.md`](../archive/company-delivery-pilot-历史-20260903.md)。

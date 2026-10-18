@@ -69,7 +69,7 @@ and read its exact `SKILL.md` and referenced files. In a source-only session use
 - **retro:** only an explicit request for Matt's retrospective authorizes loading the exact manifest-selected Matt
   file. The request may specify a session; otherwise use only the current one. Bare `retro` is ambiguous when
   gstack or a plugin also provides it: determine the requested source before invocation, never overwrite or rename
-  upstream skills. Read the same pinned `writing-for-agents` reference directly if the provider has no Skill tool.
+  upstream skills. Read the same pinned `writing-for-agents` reference directly if the provider has no skill-invocation capability.
   Return evidence-based improvement candidates for human review. Prefer existing deterministic checks for
   mechanical mistakes; reserve coding standards for judgement. Do not apply governance edits, widen access or
   start an autonomous retrospective loop.

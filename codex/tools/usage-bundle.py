@@ -14,6 +14,7 @@ history table is the version, the digests prove the copy.
                                  unchanged prefix of the current history
   --release VERSION --today D    append a release from the current contents
   --build DIR                    export the latest release for a project to copy
+                                 (skills land in .claude/, .agents/ and .cursor/)
   --project-status REPO          platform-pin / pointer-sections / change-templates
 
 Only --release writes inside the platform tree (usage/bundle.json); --build
@@ -340,19 +341,73 @@ def lock_text(bundle: dict, release_entry: dict) -> str:
     return json.dumps(lock, indent=2, ensure_ascii=False) + "\n"
 
 
+# Project-level skill landings (#379, ADR 0001 D6/D8). One source file under
+# skills/<name>/ lands once per usage-layer tool. Codex reads .agents/skills;
+# Claude and Cursor read the same SKILL.md format without Codex-only metadata
+# (agents/). A skill reaches a tool only when skills/skills.manifest declares it
+# for that provider; Cursor follows the claude declaration.
+SKILL_LANDINGS = (
+    ("codex", ".agents/skills", True),
+    ("claude", ".claude/skills", False),
+    ("claude", ".cursor/skills", False),
+)
+
+
+SKILL_MANIFEST = "skills/skills.manifest"
+
+
+def skill_targets(root: Path) -> dict[str, set[str]]:
+    path = root / SKILL_MANIFEST
+    if not path.is_file():
+        raise BundleError(f"缺少技能声明 {path}")
+    declared: dict[str, set[str]] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        fields = line.split()
+        targets = set(fields[1].split(",")) if len(fields) == 2 else set()
+        if len(fields) != 2 or not targets or not targets <= {"claude", "codex"} or fields[0] in declared:
+            raise BundleError(f"技能声明格式错误：{line!r}")
+        declared[fields[0]] = targets
+    return declared
+
+
+def skill_landings(source: str, targets: dict[str, set[str]]) -> list[str]:
+    parts = PurePosixPath(source).parts
+    if len(parts) < 3 or parts[0] != "skills":
+        raise BundleError(f"skill 成员必须位于 skills/<name>/ 下：{source}")
+    name, rest = parts[1], PurePosixPath(*parts[2:])
+    if name not in targets:
+        raise BundleError(f"skill 成员 {source} 的技能 {name} 未在 skills/skills.manifest 声明")
+    landings = []
+    for provider, base, keeps_metadata in SKILL_LANDINGS:
+        if provider not in targets[name] or (not keeps_metadata and rest.parts[0] == "agents"):
+            continue
+        landings.append(f"{base}/{name}/{rest}")
+    return landings
+
+
 def build(root: Path, out: Path) -> None:
     bundle = verify(root)
     latest = bundle["releases"][-1]
     if out.exists() and (not out.is_dir() or any(out.iterdir())):
         raise BundleError(f"--build 目录必须不存在或为空：{out}")
+    if not any(m["source"] == SKILL_MANIFEST and m["mode"] == "skill" for m in bundle["members"]):
+        raise BundleError(f"{SKILL_MANIFEST} 决定技能落点，必须是 skill 成员，否则同一版本可以导出不同目录")
+    targets = skill_targets(root)
     for member in bundle["members"]:
         data = (root / member["source"]).read_bytes()
+        if member["source"] == SKILL_MANIFEST:
+            # The declaration decides every landing below; it is a member so a
+            # release digest covers it, but it has no project copy of its own.
+            continue
         if member["mode"] == "skill":
-            destination = out / "skills" / member["source"]
+            destinations = [out / "project" / landing for landing in skill_landings(member["source"], targets)]
         else:
-            destination = out / "project" / member["target"]
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(data)
+            destinations = [out / "project" / member["target"]]
+        for destination in destinations:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(data)
     lock_destination = out / "project" / bundle["lock_path"]
     lock_destination.parent.mkdir(parents=True, exist_ok=True)
     lock_destination.write_text(lock_text(bundle, latest), encoding="utf-8")

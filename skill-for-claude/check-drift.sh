@@ -1,41 +1,25 @@
 #!/usr/bin/env bash
-# Report drift between the installed Claude skills and the repository source.
+# Report drift between the installed Claude skills and the single skill source.
 # Standalone operational tool: NOT_INSTALLED exits 0 (machine without Claude),
 # DRIFT exits 1 so a caller can gate on freshness explicitly.
 # Every DRIFT line is qualified by skill name, because more than one skill is
-# managed. Only declared skills are inspected; anything else under
-# .claude/skills is out of scope and never reported.
+# managed. Only skills skills/skills.manifest declares for claude are inspected;
+# anything else under .claude/skills is out of scope and never reported.
 set -euo pipefail
 
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 target_home="${1:-$HOME}"
-source_root="$root/skill-for-claude"
-manifest="$source_root/skills.manifest"
-refs_source="$root/skill-for-codex/references"
+source_root="$root/skills"
 skills_root="$target_home/.claude/skills"
 
-fail() {
-  printf '%s\n' "$*" >&2
+# shellcheck disable=SC1091
+source "$root/codex/lib/skills-manifest.sh"
+aisoft_skills_manifest_load "$root" claude || exit 2
+names=(${AISOFT_SKILL_NAMES[@]+"${AISOFT_SKILL_NAMES[@]}"})
+if [[ "${#names[@]}" == 0 ]]; then
+  printf 'no skills declared for claude in %s\n' "$source_root/skills.manifest" >&2
   exit 2
-}
-
-[[ -f "$manifest" ]] || fail "missing skill manifest: $manifest"
-[[ -d "$refs_source" ]] || fail "missing shared references: $refs_source"
-
-names=()
-modes=()
-while read -r name mode extra || [[ -n "$name" ]]; do
-  [[ -n "$name" && "$name" != \#* ]] || continue
-  [[ -z "$extra" ]] || fail "malformed manifest line: $name $mode $extra"
-  case "$mode" in
-    shared | none) ;;
-    *) fail "invalid references mode for $name: ${mode:-<empty>}" ;;
-  esac
-  names+=("$name")
-  modes+=("$mode")
-done <"$manifest"
-
-[[ "${#names[@]}" -gt 0 ]] || fail "no skills declared in $manifest"
+fi
 
 # NOT_INSTALLED means this machine has none of the declared skills. A partial
 # install is drift, not absence: reporting it as NOT_INSTALLED would hide the
@@ -52,26 +36,23 @@ fi
 drift=0
 
 is_expected_relative() {
-  local mode="$1" relative="$2" name
+  local skill="$1" relative="$2" name
   case "$relative" in
     SKILL.md) return 0 ;;
     references)
-      [[ "$mode" == shared ]]
+      [[ -d "$source_root/$skill/references" ]]
       return
       ;;
     references/*.md)
-      [[ "$mode" == shared ]] || return 1
       name="${relative#references/}"
-      [[ "$name" != */* && -f "$refs_source/$name" ]]
+      [[ "$name" != */* && -f "$source_root/$skill/references/$name" ]]
       return
       ;;
   esac
   return 1
 }
 
-for index in "${!names[@]}"; do
-  name="${names[$index]}"
-  mode="${modes[$index]}"
+for name in "${names[@]}"; do
   target="$skills_root/$name"
 
   if [[ -L "$target" ]]; then
@@ -96,12 +77,13 @@ for index in "${!names[@]}"; do
     drift=1
   fi
 
-  if [[ "$mode" == shared ]]; then
+  if [[ -d "$source_root/$name/references" ]]; then
     if [[ ! -d "$target/references" || -L "$target/references" ]]; then
       echo "DRIFT: $name/references"
       drift=1
     else
-      for ref in "$refs_source"/*.md; do
+      for ref in "$source_root/$name/references"/*.md; do
+        [[ -f "$ref" ]] || continue
         reference_name="$(basename -- "$ref")"
         if [[ ! -f "$target/references/$reference_name" || -L "$target/references/$reference_name" ]] ||
           ! diff -q "$ref" "$target/references/$reference_name" >/dev/null 2>&1; then
@@ -114,7 +96,7 @@ for index in "${!names[@]}"; do
 
   while IFS= read -r -d '' installed_path; do
     relative="${installed_path#"$target"/}"
-    if ! is_expected_relative "$mode" "$relative"; then
+    if ! is_expected_relative "$name" "$relative"; then
       echo "DRIFT: $name unexpected $relative"
       drift=1
     fi

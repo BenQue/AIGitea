@@ -120,6 +120,64 @@ check empty 1 "$(home empty - - -)" \
   "MATT claude PIN_NOT_INSTALLED" \
   "RESULT REVIEW_NEEDED"
 
+# #379: Cursor (usage layer only) is read from its plugin cache. Absent is
+# informational; behind is informational; newer than the record or the pin, or
+# an unrecognised cache, fails like the other tools.
+matt_pin_version="$(awk -F'"v' '/^matt_version=/ { sub(/"$/, "", $2); print $2 }' "$root/codex/install-skills.sh")"
+cursor_cache() {
+  local dir="$1" marketplace="$2" plugin="$3" manifest="$4" version="$5"
+  mkdir -p "$dir/.cursor/plugins/cache/$marketplace/$plugin/c0ffee/$(dirname "$manifest")"
+  printf '{"name": "%s", "version": "%s"}\n' "$plugin" "$version" \
+    >"$dir/.cursor/plugins/cache/$marketplace/$plugin/c0ffee/$manifest"
+}
+dir="$(home cursor-absent "$adapted" registered "$adapted")"
+check cursor-absent 0 "$dir" \
+  "SUPERPOWERS cursor NOT_INSTALLED adapted=$adapted" \
+  "MATT cursor NOT_INSTALLED pinned=$matt_pin_version" \
+  "RESULT PASS"
+dir="$(home cursor-behind "$adapted" registered "$adapted")"
+cursor_cache "$dir" cursor-public superpowers .cursor-plugin/plugin.json "$older"
+cursor_cache "$dir" mattpocock mattpocock-skills .claude-plugin/plugin.json 1.2.0
+before="$(snapshot "$dir")"
+check cursor-behind 0 "$dir" \
+  "SUPERPOWERS cursor BEHIND cached=$older adapted=$adapted" \
+  "MATT cursor BEHIND cached=1.2.0 pinned=$matt_pin_version" \
+  "RESULT PASS"
+[[ "$(snapshot "$dir")" == "$before" ]] || fail "zero-write: the Cursor cache changed during a read"
+dir="$(home cursor-current "$adapted" registered "$adapted")"
+cursor_cache "$dir" cursor-public superpowers package.json "$adapted"
+cursor_cache "$dir" mattpocock mattpocock-skills .claude-plugin/plugin.json "$matt_pin_version"
+check cursor-current 0 "$dir" \
+  "SUPERPOWERS cursor ADAPTED cached=$adapted adapted=$adapted" \
+  "MATT cursor ADAPTED cached=$matt_pin_version pinned=$matt_pin_version" \
+  "RESULT PASS"
+dir="$(home cursor-newer "$adapted" registered "$adapted")"
+cursor_cache "$dir" cursor-public superpowers .cursor-plugin/plugin.json "$newer"
+check cursor-newer 1 "$dir" \
+  "SUPERPOWERS cursor REVIEW_NEEDED cached=$newer adapted=$adapted" \
+  "RESULT REVIEW_NEEDED"
+dir="$(home cursor-no-manifest "$adapted" registered "$adapted")"
+mkdir -p "$dir/.cursor/plugins/cache/mattpocock/mattpocock-skills/c0ffee"
+check cursor-no-manifest 1 "$dir" "RESULT REVIEW_NEEDED"
+grep -q '^MATT cursor UNKNOWN (' <<<"$output" || fail "cursor-no-manifest: Matt side is not UNKNOWN: $output"
+# Present but not a plain directory is UNKNOWN, never NOT_INSTALLED.
+dir="$(home cursor-plugin-file "$adapted" registered "$adapted")"
+mkdir -p "$dir/.cursor/plugins/cache/cursor-public"
+printf 'x\n' >"$dir/.cursor/plugins/cache/cursor-public/superpowers"
+check cursor-plugin-file 1 "$dir" "RESULT REVIEW_NEEDED"
+grep -q '^SUPERPOWERS cursor UNKNOWN (' <<<"$output" || fail "cursor-plugin-file: not UNKNOWN: $output"
+dir="$(home cursor-revision-link "$adapted" registered "$adapted")"
+cursor_cache "$dir" mattpocock mattpocock-skills .claude-plugin/plugin.json "$matt_pin_version"
+ln -s "$dir/.cursor/plugins/cache/mattpocock/mattpocock-skills/c0ffee" \
+  "$dir/.cursor/plugins/cache/mattpocock/mattpocock-skills/linked"
+check cursor-revision-link 1 "$dir" "RESULT REVIEW_NEEDED"
+grep -q '^MATT cursor UNKNOWN (' <<<"$output" || fail "cursor-revision-link: not UNKNOWN: $output"
+dir="$(home cursor-two-versions "$adapted" registered "$adapted")"
+cursor_cache "$dir" cursor-public superpowers .cursor-plugin/plugin.json "$adapted"
+cursor_cache "$dir" other-market superpowers .cursor-plugin/plugin.json "$older"
+check cursor-two-versions 1 "$dir" "RESULT REVIEW_NEEDED"
+grep -q '^SUPERPOWERS cursor UNKNOWN (' <<<"$output" || fail "cursor-two-versions: not UNKNOWN: $output"
+
 dir="$(home unreadable "$adapted" registered "$adapted")"
 sed -i.bak 's/"version": 2/"version": 3/' "$dir/.claude/plugins/installed_plugins.json"
 rm -f "$dir/.claude/plugins/installed_plugins.json.bak"

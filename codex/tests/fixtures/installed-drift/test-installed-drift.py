@@ -48,7 +48,7 @@ class InstalledDriftTests(unittest.TestCase):
         cls.fixture_source = Path(cls.temp.name).resolve() / "source-baseline"
         cls.fixture_source.mkdir()
         for directory in ["codex", "architecture", "docker-release", "sync",
-                          "skill-for-codex", "skill-for-claude", "templates"]:
+                          "skills", "skill-for-claude", "templates"]:
             shutil.copytree(REPO / directory, cls.fixture_source / directory,
                             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         git_env = {key: value for key, value in os.environ.items()
@@ -126,7 +126,7 @@ class InstalledDriftTests(unittest.TestCase):
         source = self.work / "source"
         source.mkdir()
         # Only repository data; no Git metadata, user home, credentials or live files.
-        for directory in ["codex", "architecture", "docker-release", "sync", "skill-for-codex", "skill-for-claude", "templates"]:
+        for directory in ["codex", "architecture", "docker-release", "sync", "skills", "skill-for-claude", "templates"]:
             shutil.copytree(REPO / directory, source / directory,
                             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         return source
@@ -618,6 +618,11 @@ raise SystemExit("unexpected read through replaced parent")
         p.write_text(p.read_text() + '\ninstall -m 644 new.py "$RUNTIME_DIR/new.py"\n')
         self.assertIn("installer-mapping-stale", json.dumps(self.check(2, repo=source)))
         shutil.copyfile(REPO / "codex/install-vm.sh", p)
+        # #379: the shared skill-manifest parser decides both skill installs.
+        parser = source / "codex/lib/skills-manifest.sh"
+        parser.write_text(parser.read_text() + "\nAISOFT_SKILL_NAMES=()\n")
+        self.assertIn("installer-mapping-stale", json.dumps(self.check(2, repo=source)))
+        shutil.copyfile(REPO / "codex/lib/skills-manifest.sh", parser)
         other = source / "codex/new-component/install.sh"
         other.parent.mkdir(parents=True)
         other.write_text('aisoft_install_source_guard new-component "$ROOT" operations 1\n')
@@ -650,7 +655,9 @@ raise SystemExit("unexpected read through replaced parent")
         report = self.check(0, repo=source, extra=["--source-only"])
         self.assertFalse(report["source"]["managed_source_matches_cached_main"])
         shutil.copyfile(REPO / "codex/runtime/aisoft_loop/worktree.py", source / "codex/runtime/aisoft_loop/worktree.py")
-        shutil.rmtree(source / "codex/skills/issue-session-flow")
+        # A deleted file under the fixed skills/ root must still be seen; a
+        # deleted declared skill is a manifest mismatch and fails earlier.
+        (source / "skills/aisoft-platform/references/project-align.md").unlink()
         report = self.check(0, repo=source, extra=["--source-only"])
         self.assertFalse(report["source"]["managed_source_matches_cached_main"])
 

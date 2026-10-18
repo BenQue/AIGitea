@@ -84,7 +84,7 @@
 | `codex/tools/application-target-preflight.py` | K1 扩展点 | 2026-10-18 #373 裁决：无消费方，typed 操作退役，采集器归档到 `archive/` |
 | `codex/tools/install-runner-flutter.sh` | 站点 runner 能力 | 保留，在 `01` 标注为按项目需求提供的 runner 能力 |
 | `codex/tools/rollback-gitea-routine-pilot.sh` | pilot 遗留 | pilot 闸门退役后归档（#373 保留 pilot，写死项改为 manifest 自洽校验） |
-| `skill-for-claude/`、`skill-for-codex/`、`codex/skills/` | 自定义技能 | 保留；后续合并为单一来源（D8） |
+| `skill-for-claude/`、`skill-for-codex/`、`codex/skills/` | 自定义技能 | 保留；后续合并为单一来源（D8）。2026-10-18 #379 已合并为 `skills/`，`skill-for-claude/` 只留安装脚本 |
 | `codex/vendor/mattpocock/` | 外部技能 pin | 保留 |
 | `templates/` | 使用层发布物 | 保留；必须项目中立，例子用占位值 |
 | `docs/changes/`、`archive/` | 证据与历史 | 只读保留，不改写历史 |

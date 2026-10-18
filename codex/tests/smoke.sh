@@ -551,10 +551,30 @@ if rg -n -g '!**/tests/smoke.sh' \
 fi
 
 for skill in aisoft-matt-workflow gitea-analyze-change gitea-spec-plan gitea-development-loop gitea-implement-change gitea-platform-ops; do
-  [[ -f "$ROOT/codex/skills/$skill/SKILL.md" ]]
-  [[ -f "$ROOT/codex/skills/$skill/agents/openai.yaml" ]]
-  grep -Fq "\$$skill" "$ROOT/codex/skills/$skill/agents/openai.yaml"
+  [[ -f "$ROOT/skills/$skill/SKILL.md" ]]
+  [[ -f "$ROOT/skills/$skill/agents/openai.yaml" ]]
+  grep -Fq "\$$skill" "$ROOT/skills/$skill/agents/openai.yaml"
 done
+
+# #379（ADR 0001 D8）：技能只有一份源 skills/，由 skills.manifest 声明落点。旧的三处源目录
+# 不得复活，否则两份正文又会各自漂移；正文不写某一家独有的工具名，需要的能力用能力名并写降级做法。
+for retired_skill_source in "$ROOT/skill-for-codex" "$ROOT/codex/skills"; do
+  if [[ -e "$retired_skill_source" ]]; then
+    echo "技能源已合并到 skills/，不得恢复 $retired_skill_source（#379）" >&2
+    exit 1
+  fi
+done
+if find "$ROOT/skill-for-claude" -name SKILL.md -print -quit | grep -q .; then
+  echo 'skill-for-claude/ 只放脚本，技能正文属于 skills/（#379）' >&2
+  exit 1
+fi
+[[ -f "$ROOT/skills/skills.manifest" ]]
+bash -n "$ROOT/codex/lib/skills-manifest.sh"
+if rg -n 'Skill tool|Agent tool|spawn_task|spawn_agent|send_message|archive_session|set_session_title|TodoWrite|TaskCreate|AskUserQuestion|request_user_input|update_plan|apply_patch|Claude Code' \
+  "$ROOT"/skills/*/SKILL.md; then
+  echo '单一来源技能正文不得出现某一家独有的工具名，改用能力名并写降级做法（#379）' >&2
+  exit 1
+fi
 
 [[ -f "$ROOT/CLAUDE.md" ]]
 grep -Fq '@AGENTS.md' "$ROOT/CLAUDE.md"
@@ -570,27 +590,27 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest \
   tests.test_host_access.MattRepositoryAdapterTests.test_agent_configuration_matches_canonical_templates
 
 
-[[ -f "$ROOT/skill-for-codex/SKILL.md" ]]
-[[ -f "$ROOT/skill-for-codex/agents/openai.yaml" ]]
-[[ -f "$ROOT/skill-for-codex/references/private-gitea-access.md" ]]
-grep -Fq "private-repository \`404\`" "$ROOT/skill-for-codex/SKILL.md"
+[[ -f "$ROOT/skills/aisoft-platform/SKILL.md" ]]
+[[ -f "$ROOT/skills/aisoft-platform/agents/openai.yaml" ]]
+[[ -f "$ROOT/skills/aisoft-platform/references/private-gitea-access.md" ]]
+grep -Fq "private-repository \`404\`" "$ROOT/skills/aisoft-platform/SKILL.md"
 grep -Fq 'never begin with anonymous API access' \
-  "$ROOT/codex/skills/gitea-platform-ops/SKILL.md"
+  "$ROOT/skills/gitea-platform-ops/SKILL.md"
 grep -Fq 'gitea-readonly.sh' \
-  "$ROOT/skill-for-codex/references/private-gitea-access.md"
+  "$ROOT/skills/aisoft-platform/references/private-gitea-access.md"
 grep -Fq 'ensure-gitea-collaborator.sh' \
-  "$ROOT/skill-for-codex/references/onboarding-runbook.md"
+  "$ROOT/skills/aisoft-platform/references/onboarding-runbook.md"
 grep -Fq 'gitea-governance.json' \
-  "$ROOT/skill-for-codex/references/onboarding-runbook.md"
+  "$ROOT/skills/aisoft-platform/references/onboarding-runbook.md"
 grep -Fq 'gitea.labels.provision' \
-  "$ROOT/skill-for-codex/references/onboarding-runbook.md"
+  "$ROOT/skills/aisoft-platform/references/onboarding-runbook.md"
 if rg -n '建七个类型标签|建两个互斥的复杂度标签|建八个标签|建七个 Matt triage 标签' \
-  "$ROOT/skill-for-codex/references/onboarding-runbook.md"; then
+  "$ROOT/skills/aisoft-platform/references/onboarding-runbook.md"; then
   echo 'onboarding runbook §5 仍保留手工建标签散文步骤（#108 AC-6）' >&2
   exit 1
 fi
 grep -Fq 'retire-shared-bot' \
-  "$ROOT/codex/skills/gitea-platform-ops/SKILL.md"
+  "$ROOT/skills/gitea-platform-ops/SKILL.md"
 grep -Fq 'BLOCKED_EXTERNAL' \
   "$ROOT/codex/tools/ensure-gitea-collaborator.sh"
 grep -Fq 'BLOCKED_EXTERNAL' \
@@ -601,14 +621,12 @@ grep -Fq '/mnt/mac/Users/benque/MyDocs/AISoftPlatform/' "$ROOT/codex/global-AGEN
 # provider-equal. The governance set is every file that is installed as Agent
 # behaviour or copied into every downstream project; project names and
 # delivery implementations belong to each project's own profile and AGENTS.md.
-# #241 widened the two named codex/skills entries to every
-# codex/skills/*/SKILL.md (codex/vendor/ is an upstream snapshot and stays out)
+# #241 widened the two named Codex skill entries to every Codex SKILL.md, and
+# #379 moved every skill into the single source skills/ (codex/vendor/ is an
+# upstream snapshot and stays out)
 # and aligned the delivery pattern with the Issue #241 AC-1 grep.
 governance_set=(
-  "$ROOT/skill-for-claude/aisoft-platform/SKILL.md"
-  "$ROOT/skill-for-claude/issue-session-flow/SKILL.md"
-  "$ROOT/skill-for-codex/SKILL.md"
-  "$ROOT"/codex/skills/*/SKILL.md
+  "$ROOT"/skills/*/SKILL.md
   "$ROOT/codex/global-AGENTS.md"
   "$ROOT/templates/project/AGENTS.md"
   "$ROOT/usage/CONTRACT.md"
@@ -634,7 +652,7 @@ fi
 # (#233 G-01), so the project-name guard covers them too. Delivery
 # implementation names stay allowed there: runbook §4/§9 must list the
 # architecture delivery_contract values.
-references_set=("$ROOT"/skill-for-codex/references/*.md)
+references_set=("$ROOT"/skills/*/references/*.md)
 if rg -ni 'NewEMaint|SFMDigitalBoard|HSDB|WMPDA|SapTable|rsdesign|myapp|smoke-test|LocalWMS' \
   "${references_set[@]}"; then
   echo '共享 references 不得出现具体项目名（#233 G-01）' >&2
@@ -678,7 +696,7 @@ if [[ -f "$ROOT/codex/agent/common.sh" ]]; then
 else
   echo 'SKIP: optional runtime contract checks for codex/agent/common.sh.'
 fi
-grep -Fq 'READY_FOR_REVIEW' "$ROOT/codex/skills/gitea-development-loop/SKILL.md"
+grep -Fq 'READY_FOR_REVIEW' "$ROOT/skills/gitea-development-loop/SKILL.md"
 grep -Fq '生产环境只运行' "$ROOT/AGENTS.md"
 
 root_agents="$ROOT/AGENTS.md"
@@ -731,9 +749,9 @@ grep -Fq 'silently install or update global skills' "$global_agents"
 grep -Fq 'PR merge 不传递部署授权' "$root_agents"
 grep -Fq 'deploy without separate authorization' "$global_agents"
 
-analyze_skill="$ROOT/codex/skills/gitea-analyze-change/SKILL.md"
-spec_skill="$ROOT/codex/skills/gitea-spec-plan/SKILL.md"
-loop_skill="$ROOT/codex/skills/gitea-development-loop/SKILL.md"
+analyze_skill="$ROOT/skills/gitea-analyze-change/SKILL.md"
+spec_skill="$ROOT/skills/gitea-spec-plan/SKILL.md"
+loop_skill="$ROOT/skills/gitea-development-loop/SKILL.md"
 
 declared_analyzer_headings="$(
   awk '
@@ -893,18 +911,14 @@ grep -Fq 'complexity/complex' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.
 grep -Fq 'requested_complexity' "$ROOT/04-Agent编排与定时任务.md"
 grep -Fq '功能性更改' "$ROOT/AGENTS.md"
 
-# #243: 立案即落在流程入口，开放 Issue 有确定性的清扫节奏。清扫节写在两份
-# issue-session-flow 里（Codex 侧英文、Claude 侧中文），衍生 Issue 的正文要求与默认认领方
-# 写在 03 与 tracker 里。tracker 与 templates/ 下的副本由上面的 cmp 逐字节钉住，所以这里
-# 只钉活文档那一份。需裁决汇总的固定抬头两份都钉，格式漂了就在这里变红。
-grep -Fq '## 开放 Issue 清扫' "$ROOT/skill-for-claude/issue-session-flow/SKILL.md"
-grep -Fq '## Open-Issue sweep' "$ROOT/codex/skills/issue-session-flow/SKILL.md"
-for sweep_skill in \
-  "$ROOT/skill-for-claude/issue-session-flow/SKILL.md" \
-  "$ROOT/codex/skills/issue-session-flow/SKILL.md"; do
-  grep -Fq '需裁决（n 条）' "$sweep_skill"
-  grep -Fq 'gitea.issue.labels.set --number N --lifecycle needs-analysis' "$sweep_skill"
-done
+# #243: 立案即落在流程入口，开放 Issue 有确定性的清扫节奏。清扫节写在 issue-session-flow
+# 里（#379 起只有一份），衍生 Issue 的正文要求与默认认领方写在 03 与 tracker 里。tracker 与
+# templates/ 下的副本由上面的 cmp 逐字节钉住，所以这里只钉活文档那一份。需裁决汇总的固定抬头
+# 也钉住，格式漂了就在这里变红。
+session_flow_skill="$ROOT/skills/issue-session-flow/SKILL.md"
+grep -Fq '## 开放 Issue 清扫' "$session_flow_skill"
+grep -Fq '需裁决（n 条）' "$session_flow_skill"
+grep -Fq 'gitea.issue.labels.set --number N --lifecycle needs-analysis' "$session_flow_skill"
 grep -Fq '### 衍生 Issue 的正文与认领' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
 
 # #298: change worktree 的单写者归属。三样东西必须同时在场，少一样这条合同就退回成一句
@@ -913,29 +927,41 @@ grep -Fq '### 衍生 Issue 的正文与认领' "$ROOT/03-Issue-Spec-Plan与单�
 grep -Fq '### change worktree 的单写者归属（#298）' \
   "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
 grep -Fq 'aisoft-owner.json' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
-for ownership_skill in \
-  "$ROOT/skill-for-claude/issue-session-flow/SKILL.md" \
-  "$ROOT/codex/skills/issue-session-flow/SKILL.md"; do
-  grep -Fq 'claim-worktree' "$ownership_skill"
-  grep -Fq 'pushed_head' "$ownership_skill"
-  grep -Fq 'scan-worktrees' "$ownership_skill"
-done
-grep -Fq '## change worktree 的单写者归属' \
-  "$ROOT/skill-for-claude/issue-session-flow/SKILL.md"
-grep -Fq '## Single-writer ownership of a change worktree' \
-  "$ROOT/codex/skills/issue-session-flow/SKILL.md"
+grep -Fq 'claim-worktree' "$session_flow_skill"
+grep -Fq 'pushed_head' "$session_flow_skill"
+grep -Fq 'scan-worktrees' "$session_flow_skill"
+grep -Fq '## change worktree 的单写者归属' "$session_flow_skill"
+# #379（ADR 0001 D6）：交叉审核是维护层固定步骤。流程正文、矩阵条目与两个技能里的入口都在场，
+# 少一处就退回成一句没有落点的原则。
+grep -Fq '### 交叉审核（平台仓 complex，ADR 0001 D6）' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
+grep -Fq '6. **交叉审核**' "$ROOT/08-双工具共存与实施.md"
+grep -Fq '交叉审查: ' "$session_flow_skill"
+# 平台技能只钉它指向 03 小节的引用，不钉正文句子（ADR 0001 D9）。
+# shellcheck disable=SC2016 # backticks are literal Markdown, not expansions
+grep -Fq '`03` §「交叉审核」' "$ROOT/skills/aisoft-platform/SKILL.md"
 grep -Fq 'WORKTREE_OWNER_MISMATCH' "$ROOT/06-运维手册与踩坑集.md"
 grep -Fq '## Derived Issues' "$ROOT/docs/agents/issue-tracker.md"
-grep -Fq -- '--entry-label' "$ROOT/skill-for-claude/aisoft-platform/SKILL.md"
+grep -Fq -- '--entry-label' "$ROOT/skills/aisoft-platform/SKILL.md"
 
 # #355: Claude 侧外部技能包边界，三组守卫。
-# 可解析性：Claude 侧技能里以 $ 开头的技能名必须是 pin 住的 Matt 快照里真实存在的技能。
-# Claude 侧只装 skills.manifest 声明的两个技能，引用 Codex 才有的 adapter 就是悬空引用。
-claude_platform_skill="$ROOT/skill-for-claude/aisoft-platform/SKILL.md"
-matt_adapter="$ROOT/codex/skills/aisoft-matt-workflow/SKILL.md"
+# 可解析性：装到 Claude 落点的技能里以 $ 开头的技能名必须是 pin 住的 Matt 快照里真实存在的技能。
+# Claude 落点只装 skills.manifest 声明给 claude 的技能，引用 Codex 才有的 adapter 就是悬空引用。
+claude_platform_skill="$ROOT/skills/aisoft-platform/SKILL.md"
+matt_adapter="$ROOT/skills/aisoft-matt-workflow/SKILL.md"
 matt_manifest="$ROOT/codex/vendor/mattpocock/v1.3.1/manifest.json"
 matt_skill_names="$(jq -r '.skills[].name' "$matt_manifest")"
-claude_skill_references="$(grep -ho '\$[a-z][a-z0-9-]*' "$ROOT"/skill-for-claude/*/SKILL.md | LC_ALL=C sort -u)"
+claude_landing_skills=()
+while read -r claude_skill_name claude_skill_targets; do
+  [[ -n "$claude_skill_name" && "$claude_skill_name" != \#* ]] || continue
+  case ",$claude_skill_targets," in
+    *,claude,*) claude_landing_skills+=("$ROOT/skills/$claude_skill_name/SKILL.md") ;;
+  esac
+done <"$ROOT/skills/skills.manifest"
+if [[ "${#claude_landing_skills[@]}" == 0 ]]; then
+  echo 'skills.manifest 没有声明任何 Claude 落点技能，可解析性守卫空转（#379）' >&2
+  exit 1
+fi
+claude_skill_references="$(grep -ho '\$[a-z][a-z0-9-]*' "${claude_landing_skills[@]}" | LC_ALL=C sort -u)"
 # 显式 if：bash 3.2 的 set -e 不因 [[ ]] 失败而退出，裸写在本机是静默失效的守卫。
 if [[ -z "$claude_skill_references" ]]; then
   echo 'Claude 侧技能里没有找到任何 $ 技能引用，可解析性守卫空转（#355 AC-3）' >&2
@@ -981,14 +1007,12 @@ for superpowers_anchor in \
   '同一时刻只有一个写者'; do
   grep -Fq -- "$superpowers_anchor" "$claude_platform_skill"
 done
-grep -Fq '外部技能包边界' "$ROOT/skill-for-claude/issue-session-flow/SKILL.md"
-# #375：brainstorming 的自定级不替代平台判级，两侧成对。
+grep -Fq '外部技能包边界' "$session_flow_skill"
+# #375：brainstorming 的自定级不替代平台判级（#379 起两侧共用这一份平台技能）。
 # shellcheck disable=SC2016 # backticks are literal Markdown, not expansions
 grep -Fq '它的定级与聊天内确认不替代平台判级与 `approved`' "$claude_platform_skill"
-# shellcheck disable=SC2016 # backticks are literal Markdown, not expansions
-grep -Fq 'does not replace platform classification or `approved`' "$ROOT/skill-for-codex/SKILL.md"
 # 升级适配清单（AC-8）：正文与已填写的示例在 08 §5；四项检查、三种结论都在场；
-# 两侧平台技能各有一个入口，缺任一侧两个 provider 就不再对称。
+# 平台技能有一个入口。
 upgrade_checklist_doc="$ROOT/08-双工具共存与实施.md"
 for upgrade_checklist_anchor in \
   '### 外部技能包升级后的适配检查（#355）' \
@@ -1007,12 +1031,10 @@ for upgrade_checklist_anchor in \
     exit 1
   fi
 done
-for upgrade_checklist_entry in "$claude_platform_skill" "$ROOT/skill-for-codex/SKILL.md"; do
-  if ! grep -Fq '外部技能包升级后的适配检查' "$upgrade_checklist_entry"; then
-    echo "平台技能缺少升级适配清单入口：$upgrade_checklist_entry（#355 AC-8）" >&2
-    exit 1
-  fi
-done
+if ! grep -Fq '外部技能包升级后的适配检查' "$claude_platform_skill"; then
+  echo "平台技能缺少升级适配清单入口：$claude_platform_skill（#355 AC-8）" >&2
+  exit 1
+fi
 
 if rg -n 'complexity_recommendation|最终 `complexity` 由人|人确认 Issue 验收标准与 complexity=small' \
   "$ROOT/AGENTS.md" "$ROOT/README.md" \

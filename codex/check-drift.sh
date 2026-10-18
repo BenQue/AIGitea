@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Compare repository-owned Codex skills with their installed copies.
+# Compare the Codex landing of every skill skills/skills.manifest declares for
+# codex with its installed copy (#379: skills/ is the single source).
 # NOT_INSTALLED is informational (exit 0); any partial or byte-level drift exits 1.
 set -euo pipefail
 
@@ -7,15 +8,18 @@ root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 target_home="${1:-$HOME}"
 skills_root="$target_home/.agents/skills"
 
-names=()
+# shellcheck disable=SC1091
+source "$root/codex/lib/skills-manifest.sh"
+aisoft_skills_manifest_load "$root" codex || exit 2
+names=(${AISOFT_SKILL_NAMES[@]+"${AISOFT_SKILL_NAMES[@]}"})
+if [[ "${#names[@]}" == 0 ]]; then
+  echo 'no skills declared for codex in skills/skills.manifest' >&2
+  exit 2
+fi
 sources=()
-for source_path in "$root"/codex/skills/*; do
-  [[ -d "$source_path" && -f "$source_path/SKILL.md" ]] || continue
-  names+=("$(basename -- "$source_path")")
-  sources+=("$source_path")
+for name in "${names[@]}"; do
+  sources+=("$root/skills/$name")
 done
-names+=("aisoft-platform")
-sources+=("$root/skill-for-codex")
 
 present=0
 for name in "${names[@]}"; do

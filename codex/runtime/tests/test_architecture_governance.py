@@ -67,7 +67,7 @@ class ArchitectureGovernanceTests(unittest.TestCase):
             ROOT / "07-内网与生产平移路线.md": "Architecture catalog 采用门",
             ROOT / "archive/09-v3平台简化与Loop-Engineering文档改造规划.md": "Architecture catalog 与 Loop 的边界",
             ROOT / "12-Linux-GitHub-Gitea-双服务器自动部署方案.md": "Architecture lock input",
-            ROOT / "skill-for-codex/references/onboarding-runbook.md": "Architecture declaration onboarding",
+            ROOT / "skills/aisoft-platform/references/onboarding-runbook.md": "Architecture declaration onboarding",
         }
         for path, marker in required.items():
             with self.subTest(path=path.name):
