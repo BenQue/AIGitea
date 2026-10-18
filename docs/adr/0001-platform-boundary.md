@@ -81,9 +81,9 @@
 | `codex/runtime/aisoft_platform_bootstrap`、`platform-bootstrap/`、`sync/` | K5 | 保留 |
 | `codex/runtime/aisoft_release` | 参考实现 | 冻结；NewEMaint 正在 pin 它的合同字节，迁出前先有发布包（D7） |
 | `codex/runtime/aisoft_company_delivery`、`aisoft_company_baseline*.py` | 参考实现 | 冻结；NewEMaint 公司内网路线定案后裁决迁出或归档 |
-| `codex/tools/application-target-preflight.py` | K1 扩展点 | 只保留采集引擎，服务与路径清单移入项目 target profile |
+| `codex/tools/application-target-preflight.py` | K1 扩展点 | 2026-10-18 #373 裁决：无消费方，typed 操作退役，采集器归档到 `archive/` |
 | `codex/tools/install-runner-flutter.sh` | 站点 runner 能力 | 保留，在 `01` 标注为按项目需求提供的 runner 能力 |
-| `codex/tools/rollback-gitea-routine-pilot.sh` | pilot 遗留 | pilot 闸门退役后归档 |
+| `codex/tools/rollback-gitea-routine-pilot.sh` | pilot 遗留 | pilot 闸门退役后归档（#373 保留 pilot，写死项改为 manifest 自洽校验） |
 | `skill-for-claude/`、`skill-for-codex/`、`codex/skills/` | 自定义技能 | 保留；后续合并为单一来源（D8） |
 | `codex/vendor/mattpocock/` | 外部技能 pin | 保留 |
 | `templates/` | 使用层发布物 | 保留；必须项目中立，例子用占位值 |

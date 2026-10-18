@@ -30,7 +30,7 @@ CHANGE_CONTROL_PHASES = frozenset({"development", "production"})
 # 会被 mark-deployed-issues.sh 剥掉整个生命周期维度重写成 deployed，而 broker 的
 # _set_issue_lifecycle 又拒绝把已经 deployed 的 Issue 降级为 completed，所以这个方向的错
 # 有人纠正；漏写方向没有任何组件会回头补（03 §11：没有任何组件处在能观察到合并的位置上），
-# 实测就是 LocalWMS 上 5 个已合并 Issue 至今一个标签都没有（#192）。
+# 实测有项目 5 个已合并 Issue 至今一个标签都没有（#192）。
 DEPLOYMENT_LIFECYCLES = frozenset(
     {"application-deploy", "application-deploy-selective", "none"}
 )
@@ -343,7 +343,7 @@ def load_contract(path: str | Path) -> GovernanceContract:
     # The broker verifies this identity against `/api/v1/user` before it probes
     # any scope, and Gitea gates that route behind the user scope category. A
     # merge-only scope set therefore cannot pass the broker's own identity gate,
-    # which is what left NewEMaint's routine path stuck on HTTP 403 (#313).
+    # which is what left a project's routine path stuck on HTTP 403 (#313).
     # `read:user` is read-only and grants no merge or write capability, so the
     # #213 minimum-privilege intent holds: this is the smallest set the typed
     # merge operation can actually run with.
@@ -621,37 +621,13 @@ def load_contract(path: str | Path) -> GovernanceContract:
             routine_live_pilot=pilot,
         ))
 
+    # 项目数据只在 manifest（ADR 0001 D3）：pilot 是哪个仓、哪几张 Issue、哪两个 SHA
+    # 由 manifest 声明，这里只校验自洽。至多一个 pilot；封印摘要见本函数末尾。
     live_pilots = [repository for repository in repositories
                    if repository.routine_live_pilot is not None]
-    _require(len(live_pilots) == 1 and live_pilots[0].name == "NewEMaint",
-             "the only routine live pilot must be NewEMaint")
-    newemaint_pilot = live_pilots[0].routine_live_pilot
-    assert newemaint_pilot is not None
-    _require(newemaint_pilot.project_id == "newemaint",
-             "NewEMaint routine live pilot project id must be newemaint")
-    _require(newemaint_pilot.rollout_issue == 213,
-             "NewEMaint routine live pilot rollout Issue must be 213")
-    _require(newemaint_pilot.routine_source_issue == 208,
-             "NewEMaint routine source Issue must be 208")
-    _require(
-        newemaint_pilot.routine_source_merged_sha
-        == "8d109b14b6e0936be30f6f287ff6050e48632e0b",
-        "NewEMaint routine source SHA must be the merged Issue #208 SHA",
-    )
-    _require(newemaint_pilot.governance_baseline_issue == 35,
-             "NewEMaint governance baseline Issue must be 35")
-    _require(
-        newemaint_pilot.governance_baseline_merged_sha
-        == "69251fd4d07665385eb6d9142038848c2b9392d7",
-        "NewEMaint governance baseline SHA must be the merged Issue #35 SHA",
-    )
-    _require(newemaint_pilot.canary_issue == 74,
-             "NewEMaint routine canary Issue must be 74")
+    _require(len(live_pilots) <= 1, "at most one routine live pilot may be declared")
     _require(repository_policy["public_allowlist"] == public_full_names,
              "public_allowlist must exactly match public repositories in manifest order")
-    _require(set(repository_policy["public_allowlist"]) == {
-        f"{owner}/aisoft-platform", f"{owner}/myapp", f"{owner}/smoke-test"
-    }, "current public allowlist must contain only aisoft-platform, myapp, and smoke-test")
 
     vm_policy = raw["vm_identity_policy"]
     _require(isinstance(vm_policy, dict), "vm_identity_policy must be an object")
@@ -684,13 +660,16 @@ def load_contract(path: str | Path) -> GovernanceContract:
     _require(intranet["requires_target_inventory_and_mapping_approval"] is True,
              "intranet migration must require separate approval")
 
-    _require(
-        repository_declarations_sha256(
-            repositories_value, exclude_name="NewEMaint"
+    for pilot_repository in live_pilots:
+        pilot = pilot_repository.routine_live_pilot
+        assert pilot is not None
+        _require(
+            repository_declarations_sha256(
+                repositories_value, exclude_name=pilot_repository.name
+            )
+            == pilot.non_target_repositories_sha256,
+            "non-target repository declarations changed during the routine live pilot",
         )
-        == newemaint_pilot.non_target_repositories_sha256,
-        "non-target repository declarations changed during the NewEMaint pilot",
-    )
 
     return GovernanceContract(
         raw=raw,

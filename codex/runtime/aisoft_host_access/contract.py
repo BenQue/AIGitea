@@ -138,14 +138,6 @@ class AccessContract:
     operations: tuple[OperationContract, ...]
     projects: tuple[ProjectContract, ...]
 
-    def application_target(self, project_id: str, target: object) -> dict[str, str]:
-        if project_id != 'localwms' or type(target) is not str or target != 'localwms-local-test':
-            raise AccessContractError('application target is not explicitly managed')
-        targets = self.raw.get('application_targets', [])
-        if targets != [APPLICATION_TARGET]:
-            raise AccessContractError('application target binding is unavailable')
-        return dict(APPLICATION_TARGET)
-
     def project(self, project_id: str) -> ProjectContract:
         for project in self.projects:
             if project.project_id == project_id:
@@ -165,8 +157,6 @@ class AccessContract:
         raise AccessContractError("requested operation is not allowlisted")
 
     def identity_for(self, project: ProjectContract, operation: OperationContract) -> str:
-        if operation.identity_route == 'application-preflight':
-            return self.application_target(project.project_id, 'localwms-local-test')['operator']
         if operation.identity_route == "project-agent":
             return project.project_agent
         if operation.identity_route == "routine-merge-agent":
@@ -197,7 +187,7 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "gitea.issue.read": ("project-agent", False, ("number",)),
     # Enumerating open Issues (#222). Without it a dispatching session could only
     # read by number, so it could not check for a duplicate before opening one —
-    # LocalWMS produced two duplicate pairs in a single afternoon that way, each
+    # one project produced two duplicate pairs in a single afternoon that way, each
     # from a session doing exactly the right thing with the surface it had.
     #
     # Named .list rather than the plural .read that gitea.pulls.read uses: the
@@ -319,17 +309,6 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
 }
 
 
-APPLICATION_TARGET = {
-    'project_id': 'localwms', 'target_id': 'localwms-local-test',
-    'machine': 'AppServer', 'operator': 'aisoft-preflight',
-    'helper': '/usr/local/libexec/aisoft/application-target-preflight',
-    'helper_version': 'application-target-preflight/v1',
-}
-EXPECTED_OPERATIONS['application.target.preflight.read'] = (
-    'application-preflight', False, ('target',),
-)
-
-
 def load_access_contract(
     access_path: str | Path,
     governance_path: str | Path,
@@ -346,7 +325,7 @@ def load_access_contract(
             "contract_version", "environment", "governance_contract_version",
             "human_merge_identity", "identity_bindings", "mac_host",
             "vm_profile_policy", "credential_rotation_policy", "operations", "projects",
-        } | ({'application_targets'} if 'application_targets' in raw else set()),
+        },
         "host access manifest",
     )
     _require(raw["contract_version"] == "host-access-broker/v1",
@@ -357,9 +336,6 @@ def load_access_contract(
     _require(raw["governance_contract_version"] == "gitea-governance/v1",
              "unexpected governance contract reference")
 
-    if 'application_targets' in raw:
-        _require(raw['application_targets'] == [APPLICATION_TARGET],
-                 'application targets must use the exact approved binding')
     governance = load_governance_contract(governance_path)
     _require(raw["human_merge_identity"] == governance.human_merge_identity,
              "human merge identity does not match governance manifest")
@@ -481,10 +457,7 @@ def load_access_contract(
             mutating=expected_mutating,
             arguments=expected_args,
         ))
-    expected_names = set(EXPECTED_OPERATIONS)
-    if 'application_targets' not in raw:
-        expected_names.remove('application.target.preflight.read')
-    _require(names == expected_names, "operation catalog must be complete and exact")
+    _require(names == set(EXPECTED_OPERATIONS), "operation catalog must be complete and exact")
 
     projects_raw = raw["projects"]
     _require(isinstance(projects_raw, list), "projects must be a list")
@@ -493,7 +466,6 @@ def load_access_contract(
     project_ids: set[str] = set()
     repositories: set[str] = set()
     profile_names: set[str] = set()
-    profile_repositories: set[str] = set()
     for index, item in enumerate(projects_raw):
         _require(isinstance(item, dict), f"projects[{index}] must be an object")
         required_project_keys = {
@@ -552,7 +524,6 @@ def load_access_contract(
             profile_name = _identifier(vm_raw["name"], f"projects[{index}].vm_profile.name")
             _require(profile_name not in profile_names, f"duplicate VM profile: {profile_name}")
             profile_names.add(profile_name)
-            profile_repositories.add(repository)
             repo_dir = _relative_path(vm_raw["repo_dir"],
                                       f"projects[{index}].vm_profile.repo_dir")
             analysis = vm_raw["analysis_provider"]
@@ -562,9 +533,8 @@ def load_access_contract(
                      "invalid implementation provider")
             _require(implementation == "none", "implementation must remain disabled during migration")
             timer = vm_raw["timer_unit"]
-            _require(timer is None or timer in {
-                "aisoft-agent@emaintenance.timer"
-            }, "timer_unit is not allowlisted")
+            _require(timer is None or timer == f"aisoft-agent@{profile_name}.timer",
+                     "timer_unit must be aisoft-agent@<profile>.timer")
             path_prepend = _path_prepend(
                 vm_raw.get("path_prepend"), f"projects[{index}].vm_profile.path_prepend"
             ) if "path_prepend" in vm_raw else ()
@@ -583,11 +553,6 @@ def load_access_contract(
              "dependency_read_targets must name canonical projects")
     _require(repositories == set(governance_by_name),
              "host access projects must exactly cover governance repositories")
-    _require(
-        profile_repositories
-        == {"aisoft-platform", "NewEMaint", "LocalWMS"},
-        "VM profile migration set must contain exactly the three approved repositories",
-    )
     _require(governance.human_merge_identity not in {
         project.project_agent for project in projects
     }, "human merge identity must never be a broker credential")

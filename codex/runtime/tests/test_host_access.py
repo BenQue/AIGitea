@@ -154,23 +154,44 @@ class HostAccessContractTests(unittest.TestCase):
                 with self.assertRaises(AccessContractError):
                     self.contract.project(project_id)
 
-    def test_restored_hsdb_cannot_expand_the_approved_vm_profile_set(self) -> None:
+    def _load_mutated_access(self, mutate):
         raw = json.loads(ACCESS.read_text())
-        next(project for project in raw["projects"]
-             if project["project_id"] == "hsdb")["vm_profile"] = {
-            "name": "hsdb",
-            "repo_dir": "work/HSDB",
-            "analysis_provider": "none",
-            "implement_provider": "none",
-            "timer_unit": None,
-        }
+        mutate(raw)
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "access.json"
             path.write_text(json.dumps(raw))
-            with self.assertRaisesRegex(
-                AccessContractError, "exactly the three approved repositories"
-            ):
-                load_access_contract(path, GOVERNANCE)
+            return load_access_contract(path, GOVERNANCE)
+
+    def test_vm_profile_set_and_timer_are_manifest_data(self) -> None:
+        # #373 (ADR 0001 D3): the VM profile set is whatever the manifest
+        # declares; a timer may only be the agent timer of its own profile.
+        def profile(timer):
+            def mutate(raw):
+                next(project for project in raw["projects"]
+                     if project["project_id"] == "hsdb")["vm_profile"] = {
+                    "name": "hsdb",
+                    "repo_dir": "work/HSDB",
+                    "analysis_provider": "none",
+                    "implement_provider": "none",
+                    "timer_unit": timer,
+                }
+            return mutate
+
+        for timer in (None, "aisoft-agent@hsdb.timer"):
+            with self.subTest(timer=timer):
+                contract = self._load_mutated_access(profile(timer))
+                self.assertEqual(contract.project("hsdb").vm_profile.timer_unit, timer)
+        for timer in ("aisoft-agent@emaintenance.timer", "evil.timer"):
+            with self.subTest(timer=timer):
+                with self.assertRaisesRegex(AccessContractError, "timer_unit"):
+                    self._load_mutated_access(profile(timer))
+
+    def test_retired_application_targets_key_is_rejected(self) -> None:
+        # #373 retired the #340 preflight operation together with its key.
+        with self.assertRaisesRegex(AccessContractError, "host access manifest"):
+            self._load_mutated_access(
+                lambda raw: raw.update({"application_targets": []})
+            )
 
     def test_manifest_fixed_remote_defaults_and_rejects_unsafe_names(self) -> None:
         gitea_remote_projects = {"newemaint", "sfm-digital-board"}
