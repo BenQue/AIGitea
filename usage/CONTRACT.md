@@ -29,7 +29,8 @@
   revert、验收可测。
 - **编排路径。** `$triage #N` → 判级。complex 按 governance manifest 中本仓的 `change_control`：
   `production`（未声明时的默认）先 `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`；
-  `development` 不写 spec/plan，验收标准取自 Issue 正文，以合成 `T01` 实现。small 只要 summary。
+  `development` 不写 spec/plan，验收标准取自 Issue 正文，以合成 `T01` 实现。small 默认不要求
+  spec/plan。所有路由都要交付 summary `required_docs` 声明的文档（例如欠验证记录时的 `verification`）。
   三者都要 `approved` 复核后才进入实现；`triage/ready-for-agent` 不等于 `approved`。
 - **两个确认点。** 人确认 Issue 合同并启动开发；本地实现与验证完成后，人确认提交唯一最终 PR，
   并固定 exact Issue、分支与 `manual|routine-auto` 策略。两点之间 AI 在合同内自主实现、测试和

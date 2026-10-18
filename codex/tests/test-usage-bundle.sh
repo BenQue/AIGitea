@@ -272,6 +272,13 @@ printf 'contract v2\n' >"$anchored/usage/CONTRACT.md"
 run 0 "${a[@]}" --release 1.1.0 --today 2026-10-19
 run 0 "${a[@]}" --verify --baseline-ref main
 
+# The lock location is fixed by the contract version.
+sed 's#"lock_path": ".aisoft/platform-usage.lock.json"#"lock_path": ".aisoft/other-lock.json"#' \
+  "$anchored/usage/bundle.json" >"$tmp/moved.json"
+cp "$tmp/moved.json" "$anchored/usage/bundle.json"
+run 1 "${a[@]}" --verify
+expect_contains 'lock_path 在 aisoft-usage-bundle/v1 中固定为'
+
 # 17. Usage errors.
 run 64 "${p[@]}"
 run 64 "${p[@]}" --project-status "$tmp/does-not-exist"

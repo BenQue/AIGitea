@@ -34,6 +34,9 @@ DEFAULT_ROOT = Path(__file__).resolve().parent.parent.parent
 BUNDLE_PATH = "usage/bundle.json"
 BUNDLE_CONTRACT = "aisoft-usage-bundle/v1"
 LOCK_CONTRACT = "aisoft-usage-lock/v1"
+# Fixed by the v1 contract: moving it would turn every pinned project into an
+# unpinned one without any member change or new release.
+LOCK_PATH = ".aisoft/platform-usage.lock.json"
 MODES = ("exact", "pointer", "seed", "skill")
 CHECKS = ("platform-pin", "pointer-sections", "change-templates")
 VERSION_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
@@ -214,7 +217,8 @@ def parse_bundle(text: str) -> dict:
         raise BundleError(f"{BUNDLE_PATH} 的键必须恰好是 contract_version、lock_path、members、releases")
     if bundle["contract_version"] != BUNDLE_CONTRACT:
         raise BundleError(f"contract_version 不受支持：{bundle['contract_version']!r}")
-    safe_relative(bundle["lock_path"], "lock_path")
+    if bundle["lock_path"] != LOCK_PATH:
+        raise BundleError(f"lock_path 在 {BUNDLE_CONTRACT} 中固定为 {LOCK_PATH}")
     validate_member_list(bundle["members"], "members", with_sha=False)
     releases = bundle["releases"]
     if not isinstance(releases, list):
@@ -259,8 +263,11 @@ def check_baseline(root: Path, bundle: dict, ref: str) -> None:
     reappear here unchanged, in order, before any new one."""
     if git(root, "rev-parse", "--verify", "-q", f"{ref}^{{commit}}").returncode != 0:
         raise BundleError(f"基线 {ref} 不存在，无法证明历史只追加")
-    if git(root, "cat-file", "-e", f"{ref}:{BUNDLE_PATH}").returncode != 0:
-        return
+    listed = git(root, "ls-tree", "--name-only", ref, "--", BUNDLE_PATH)
+    if listed.returncode != 0:
+        raise BundleError(f"读不出基线 {ref} 的目录树，无法证明历史只追加")
+    if listed.stdout.strip() == "":
+        return  # the base has no bundle yet: this change is the first release
     shown = git(root, "show", f"{ref}:{BUNDLE_PATH}")
     if shown.returncode != 0:
         raise BundleError(f"读不出基线 {ref}:{BUNDLE_PATH}")
