@@ -1,0 +1,442 @@
+{
+  "contract_version": "host-access-broker/v1",
+  "environment": "local-orbstack",
+  "governance_contract_version": "gitea-governance/v1",
+  "human_merge_identity": "admin",
+  "identity_bindings": {
+    "manager_audit": {
+      "identity": "aisoft-platform-manager",
+      "credential_kind": "protected-file",
+      "relative_path": "manager/audit.token"
+    },
+    "manager_mutation": {
+      "identity": "aisoft-platform-manager",
+      "credential_kind": "protected-file",
+      "relative_path": "manager/mutation.token"
+    },
+    "project_agent": {
+      "credential_kind": "protected-file",
+      "relative_path_template": "projects/{project_id}/project-agent.token",
+      "account_source": "manifest-project-agent"
+    },
+    "routine_merge_agent": {
+      "credential_kind": "protected-file",
+      "relative_path_template": "projects/{project_id}/routine-merge-agent.token",
+      "account_source": "manifest-routine-merge-agent"
+    }
+  },
+  "mac_host": {
+    "credential_root": "/Users/benque/Library/Application Support/AISoftPlatform/credentials",
+    "credential_owner": "benque",
+    "credential_directory_mode": "700",
+    "credential_file_mode": "600",
+    "credential_helper": "/usr/local/libexec/aisoft/git-credential-aisoft-host",
+    "orbstack_binary": "/usr/local/bin/orb",
+    "orbstack_machine": "gitea-ci",
+    "orbstack_user": "benque",
+    "vm_profile_tool": "/usr/local/libexec/aisoft/project-profile-migration"
+  },
+  "vm_profile_policy": {
+    "runtime_user": "coder",
+    "runtime_home": "/home/coder",
+    "profile_root": ".config/aisoft/projects",
+    "token_root": ".config/aisoft/credentials",
+    "backup_root": ".local/state/aisoft-profile-backups/issue-61",
+    "source_credential_root": "/home/benque/.config/aisoft/credentials",
+    "source_credential_owner": "benque",
+    "allowed_file_modes": [
+      "400",
+      "600"
+    ]
+  },
+  "operations": [
+    {
+      "name": "gitea.credential.rotate",
+      "identity_route": "credential-operator",
+      "mutating": true,
+      "arguments": [
+        "issue",
+        "sha",
+        "token_kind"
+      ]
+    },
+    {
+      "name": "gitea.repo.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "gitea.dependency.read",
+      "identity_route": "manager-audit",
+      "mutating": false,
+      "arguments": [
+        "reference"
+      ]
+    },
+    {
+      "name": "gitea.issue.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "number"
+      ]
+    },
+    {
+      "name": "gitea.issue.list",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "state"
+      ]
+    },
+    {
+      "name": "gitea.issue.create",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "title",
+        "body",
+        "entry_label"
+      ]
+    },
+    {
+      "name": "gitea.issue.update",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "title",
+        "body"
+      ]
+    },
+    {
+      "name": "gitea.issue.state.set",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "state"
+      ]
+    },
+    {
+      "name": "gitea.issue.comment",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "comment"
+      ]
+    },
+    {
+      "name": "gitea.issue.comments.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "number"
+      ]
+    },
+    {
+      "name": "gitea.pulls.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "state"
+      ]
+    },
+    {
+      "name": "gitea.pull.create",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "issue",
+        "title",
+        "body"
+      ]
+    },
+    {
+      "name": "gitea.pull.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "number"
+      ]
+    },
+    {
+      "name": "gitea.pull.update",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "issue",
+        "title",
+        "body"
+      ]
+    },
+    {
+      "name": "gitea.pull.merge.routine",
+      "identity_route": "routine-merge-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "sha"
+      ]
+    },
+    {
+      "name": "gitea.commit.status.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "sha"
+      ]
+    },
+    {
+      "name": "gitea.actions.run.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "sha"
+      ]
+    },
+    {
+      "name": "gitea.actions.job.logs.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "job"
+      ]
+    },
+    {
+      "name": "gitea.labels.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "gitea.labels.provision",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": []
+    },
+    {
+      "name": "gitea.labels.extension.define",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "label",
+        "color",
+        "description"
+      ]
+    },
+    {
+      "name": "gitea.issue.labels.read",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "number"
+      ]
+    },
+    {
+      "name": "gitea.issue.labels.set",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "lifecycle"
+      ]
+    },
+    {
+      "name": "gitea.issue.labels.extension.set",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "label"
+      ]
+    },
+    {
+      "name": "gitea.issue.labels.classify",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "number",
+        "change_type",
+        "complexity"
+      ]
+    },
+    {
+      "name": "gitea.protection.read",
+      "identity_route": "manager-audit",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "host.access.audit",
+      "identity_route": "manager-audit",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "host.onboarding.check",
+      "identity_route": "manager-audit",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "git.fetch.main",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "git.fetch.change",
+      "identity_route": "project-agent",
+      "mutating": false,
+      "arguments": [
+        "branch"
+      ]
+    },
+    {
+      "name": "git.push.change",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": [
+        "branch"
+      ]
+    },
+    {
+      "name": "mac.git.bind",
+      "identity_route": "project-agent",
+      "mutating": true,
+      "arguments": []
+    },
+    {
+      "name": "orbstack.vm.status",
+      "identity_route": "host-operator",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "orbstack.runner.status",
+      "identity_route": "host-operator",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "vm.profile.plan",
+      "identity_route": "host-operator",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "vm.profile.apply",
+      "identity_route": "host-operator",
+      "mutating": true,
+      "arguments": []
+    },
+    {
+      "name": "vm.profile.read-back",
+      "identity_route": "host-operator",
+      "mutating": false,
+      "arguments": []
+    },
+    {
+      "name": "vm.profile.rollback",
+      "identity_route": "host-operator",
+      "mutating": true,
+      "arguments": []
+    }
+  ],
+  "projects": [
+    {
+      "project_id": "aisoft-platform",
+      "repository": "aisoft-platform",
+      "project_agent": "aisoft-platform-agent",
+      "routine_merge_agent": null,
+      "mac_checkout": "/Users/benque/MyDocs/AISoftPlatform",
+      "vm_profile": {
+        "name": "aisoft-platform",
+        "repo_dir": "work/AISoftPlatform",
+        "analysis_provider": "codex",
+        "implement_provider": "none",
+        "timer_unit": null
+      }
+    },
+    {
+      "project_id": "deltadb",
+      "repository": "DeltaDB",
+      "project_agent": "deltadb-agent",
+      "routine_merge_agent": null,
+      "mac_checkout": "/Users/benque/Projects/DeltaDB",
+      "vm_profile": null
+    },
+    {
+      "project_id": "betaapp",
+      "repository": "BetaApp",
+      "project_agent": "betaapp-agent",
+      "routine_merge_agent": "betaapp-routine-merger",
+      "mac_checkout": "/Users/benque/Projects/BetaApp",
+      "vm_profile": {
+        "name": "betaapp",
+        "repo_dir": "work/BetaApp",
+        "analysis_provider": "codex",
+        "implement_provider": "none",
+        "timer_unit": null
+      }
+    },
+    {
+      "project_id": "myapp",
+      "repository": "myapp",
+      "project_agent": "myapp-agent",
+      "routine_merge_agent": null,
+      "mac_checkout": null,
+      "vm_profile": null
+    },
+    {
+      "project_id": "alphaapp",
+      "repository": "AlphaApp",
+      "project_agent": "alphaapp-agent",
+      "routine_merge_agent": "alphaapp-routine-merger",
+      "git_remote_name": "gitea",
+      "mac_checkout": "/Users/benque/Projects/AlphaApp",
+      "vm_profile": {
+        "name": "emaintenance",
+        "repo_dir": "work/AlphaApp",
+        "analysis_provider": "none",
+        "implement_provider": "none",
+        "timer_unit": "aisoft-agent@emaintenance.timer"
+      }
+    },
+    {
+      "project_id": "gamma-board",
+      "repository": "GammaBoard",
+      "project_agent": "gamma-board-agent",
+      "routine_merge_agent": null,
+      "git_remote_name": "gitea",
+      "mac_checkout": "/Users/benque/Projects/GammaBoard",
+      "vm_profile": null,
+      "dependency_read_targets": [
+        "aisoft-platform"
+      ]
+    },
+    {
+      "project_id": "smoke-test",
+      "repository": "smoke-test",
+      "project_agent": "smoke-test-agent",
+      "routine_merge_agent": null,
+      "mac_checkout": null,
+      "vm_profile": null
+    }
+  ],
+  "credential_rotation_policy": {
+    "operator_uid": 0,
+    "grant_root": "/usr/local/etc/aisoft/credential-rotation-grants",
+    "source_receipt": "/usr/local/share/aisoft/credential-rotation-source.json",
+    "vm_helper": "/usr/local/libexec/aisoft/gitea-pat-helper",
+    "vm_operator": "/usr/local/libexec/aisoft/rotate-gitea-service-account",
+    "vm_service_user": "git",
+    "gitea_binary": "/usr/local/bin/gitea",
+    "gitea_config": "/etc/gitea/app.ini",
+    "gitea_version": "1.26.4"
+  }
+}
