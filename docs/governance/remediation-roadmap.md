@@ -25,7 +25,7 @@
 | R5 | 技能更新：superpowers 7.0.0 按 `08` §5 适配清单核对后两侧升级；核实 Codex 侧实际生效版本；重装 `aisoft-platform` 消除 project-align 漂移（负责人本人执行 installer）；只读版本核对脚本；CLI 升级后跑 provider 验收矩阵 | C1–C4 | 无 | 否 | #375 已完成（PR 376，`bcf2fd7`）：superpowers 7.0.0 适配核对、只读版本核对脚本；Codex 侧 superpowers 未生效，是否启用由负责人定 |
 | R6 | 两层分离与发布包：起草并定稿“平台使用合同”与项目指针模板，由 project-align 下发；版本化发布包与项目 pin；`08` 验证矩阵拆成两层 | D1、D2、D4 | R1 | 否（平台侧只新增发布包；NewEMaint 改为 pin 发布包是 NewEMaint 仓的 Issue） | #377 进行中（负责人 2026-10-18 决定提前开工）：`usage/CONTRACT.md`、`usage/bundle.json` 发布 1.0.0、project-check 按 pin 核对、`08` §7 两层、summary 模板依赖边已清 |
 | R6b | 测试夹具解耦：进 smoke 的测试改读自带夹具 manifest，不再断言真实 manifest 中某个项目的条目；`rollback-gitea-routine-pilot.sh` 改为按 manifest 中任意 pilot 工作的通用工具，或在 pilot 退役后归档 | A3、A4（残留） | R6 | 否（pilot 去留需负责人代 NewEMaint 侧裁决） | 未开始 |
-| R7 | 技能单一来源与 Cursor：一份 SKILL.md 由安装器生成三种落点；收编本机不受管的 Cursor 技能；`.cursor/rules` 只做薄指针；交叉审核写入维护层固定步骤 | D3、D5、D6 | R6 | 否 | #379 进行中：`skills/` 单一来源与 `skills.manifest`，两对技能合并为中文单份，两侧安装器与漂移检查改读它；发布包 1.1.0 导出 `.claude`、`.agents`、`.cursor` 三种项目级落点与 Cursor 薄指针；Cursor 的 Matt 与 superpowers 纳入只读版本核对；交叉审核写入 `03` §7 与 `08` §7.1 |
+| R7 | 技能单一来源与 Cursor：一份 SKILL.md 由安装器生成三种落点；收编本机不受管的 Cursor 技能；`.cursor/rules` 只做薄指针；交叉审核写入维护层固定步骤 | D3、D5、D6 | R6 | 否 | 未开始 |
 | R8 | 参考实现迁出：`docker-release`、`company-delivery`、`aisoft_release`、`aisoft_company_*` 移出 smoke 硬门，迁到项目仓或归档 | A1（裁决部分） | R6，NewEMaint 公司内网路线定案 | **是** | 延期 |
 | — | 证据精简（B2）不单独立批：从 R1 起每批按 ADR D9 执行 | B2 | R0 | 否 | 随各批 |
 | — | 项目范围以本地 Gitea 注册为准 | E | — | — | 已定（ADR D10） |
