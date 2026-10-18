@@ -23,12 +23,12 @@ updated: 2026-10-18
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 映射文档 | - | in-progress |
-| T02 | 治理内容：`skills/` 单一来源与合并正文、交叉审核步骤写入 `03`、`08`、`issue-session-flow`（受控步骤，应用后停止重读） | T01 | pending |
-| T03 | 安装器、漂移检查、安装来源闸门与测试改读 `skills/` | T02 | pending |
-| T04 | 发布包三种项目级落点与 Cursor 薄指针，外部技能核对 Cursor 段，发布 1.1.0 | T03 | pending |
-| T05 | smoke 路径与守卫、文档与路线、泄漏基线、全量 smoke、临时 HOME 安装读回、verification；Codex 独立审查 | T04 | pending |
-| T06 | 判级投影与 PR 候选，等确认点 2 | T05 | pending |
+| T01 | 映射文档 | - | completed |
+| T02 | 治理内容：`skills/` 单一来源与合并正文、交叉审核步骤写入 `03`、`08`、`issue-session-flow`（受控步骤，应用后停止重读） | T01 | completed |
+| T03 | 安装器、漂移检查、安装来源闸门与测试改读 `skills/` | T02 | completed |
+| T04 | 发布包三种项目级落点与 Cursor 薄指针，外部技能核对 Cursor 段，发布 1.1.0 | T03 | completed |
+| T05 | smoke 路径与守卫、文档与路线、泄漏基线、全量 smoke、临时 HOME 安装读回、verification；Codex 独立审查 | T04 | completed |
+| T06 | 判级投影与 PR 候选，等确认点 2 | T05 | in-progress |
 
 ## Expected touch points
 

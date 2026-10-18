@@ -11,7 +11,7 @@ risk_flags:
   - platform-governance
   - shared-core
 depends_on: []
-status: pending
+status: verified
 branch: change/379-skills-single-source
 created: 2026-10-18
 updated: 2026-10-18
@@ -69,6 +69,6 @@ updated: 2026-10-18
 |---|---|---|---|
 | 1 | `605c196` | FAIL | major：`skills.manifest` 决定落点却不在发布摘要内 → 作为 skill 成员纳入，`--build` 不导出它，缺成员即拒绝，补 targets-only 突变用例；major：Cursor 缓存里非普通目录被报成 `NOT_INSTALLED` → 改报 `UNKNOWN`，补两个用例；major：共享解析器 `codex/lib/skills-manifest.sh` 未进安装指纹 → 加入 `INSTALLER_HELPER_PINS`、来源集合与 scope，补篡改用例；minor：终态钉子弱于旧版 → 恢复语义钉子并加三条突变；minor：缺交叉审核结构守卫 → smoke 补 `03`、`08`、两个技能的锚；minor：bash 与 Python 对 `claude,` 解析不一致 → 拆分前整体校验，补反例；minor：project-align 两条相对链接失效 → 改为 `../../../` |
 | 2 | `4c9036b` | FAIL | 第 1 轮 7 条确认已修复；新 minor：smoke 逐字钉了平台技能里的一句正文 → 改钉它指向 `03` §「交叉审核」的引用；顺带修掉 ShellCheck SC2066（单元素 for 循环） |
-| 3 | 见下 | 待执行 | |
+| 3 | `d7be649` | PASS | 第 2 轮 minor 确认已修复；`git_scope` 精确覆盖 `8fa4458..d7be649` 的 77 个路径（含 17 次改名前后路径），无遗漏、多余或重复；无新发现 |
 
-修复后全量 smoke：`4c9036b` 通过（1238 个用例）。
+修复后全量 smoke：`4c9036b` 与 `d7be649` 均通过（各 1238 个用例）。最终候选只比 `d7be649` 多本记录这一处文档改动。
