@@ -344,12 +344,34 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_host_access.cli \
   --access-manifest "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
   --governance-manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
   validate >/dev/null
-if rg -n '(codex/config/|"config/)(gitea-governance|host-access-broker)\.json' \
-  "$ROOT/codex/runtime/tests" "$ROOT/codex/tests" \
-  --glob '!smoke.sh' --glob '!check-project-leak.py' --glob '!test_project_leak.py' \
-  --glob '!test-install-host-access-broker.sh' --glob '!test-installer-source-guard.sh' \
-  --glob '!test-sync-gitea-service-policy.sh' --glob '!test-change-template-sync.sh' \
-  --glob '!fixtures/classification/**'; then
+# The pattern covers literal paths, Path joins that name a manifest
+# ("codex" / "config" / ..., / "config" / ...) and a bare 'codex/config'
+# directory string; other config files and git's "config" do not match.
+real_manifest_ref='codex/config/(gitea-governance|host-access-broker)|["'"'"']config/(gitea-governance|host-access-broker)|["'"'"']codex/config["'"'"']|(["'"'"']codex["'"'"'] */ *["'"'"']config["'"'"']|/ *["'"'"']config["'"'"'] */).*(gitea-governance|host-access-broker)'
+real_manifest_samples="$(printf '%s\n' \
+  'ROOT / "codex/config/gitea-governance.json"' \
+  'ROOT / "codex" / "config" / "gitea-governance.json"' \
+  'ROOT / "config" / "host-access-broker.json"' \
+  "repository / 'codex/config' / name" \
+  '"$ROOT/codex/config/host-access-broker.json"' \
+  'self.git("config", "user.name", "x")' \
+  '"$ROOT/codex/tests/fixtures/manifests/gitea-governance.json"')"
+[[ "$(rg -c "$real_manifest_ref" <<<"$real_manifest_samples")" == 5 ]]
+# Allowed: smoke itself and the leak guard read the real manifests on purpose;
+# the installer tests install and count them; sync-gitea-service-policy and
+# the PAT helper process test pin their real-manifest behaviour (the helper's
+# test sources are part of its build provenance, outside #380); the
+# change-template-sync and leak-guard tests write temp trees; the
+# classification fixture only quotes the path in an Issue comment.
+if rg -n "$real_manifest_ref" "$ROOT/codex/runtime/tests" "$ROOT/codex/tests" \
+  --glob '!**/codex/tests/smoke.sh' --glob '!**/codex/tests/check-project-leak.py' \
+  --glob '!**/codex/runtime/tests/test_project_leak.py' \
+  --glob '!**/codex/tests/test-install-host-access-broker.sh' \
+  --glob '!**/codex/tests/test-installer-source-guard.sh' \
+  --glob '!**/codex/tests/test-sync-gitea-service-policy.sh' \
+  --glob '!**/codex/tests/test-change-template-sync.sh' \
+  --glob '!**/codex/tests/integration/test-gitea-pat-helper-process.py' \
+  --glob '!**/codex/tests/fixtures/classification/issue-comment-overrides-body.json'; then
   echo '测试必须读 codex/tests/fixtures/manifests/ 的合成夹具，不得读真实 manifest（#380）' >&2
   exit 1
 fi

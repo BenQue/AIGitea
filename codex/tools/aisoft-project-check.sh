@@ -1039,6 +1039,15 @@ else
   fi
 fi
 
+# A governance manifest override (#380, for the synthetic test fixture) yields
+# a non-canonical verdict; say so next to the result with the exact bytes read.
+if [[ -n "${AISOFT_GOVERNANCE_MANIFEST:-}" ]]; then
+  governance_digest="$(python3 -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' \
+    "$GOVERNANCE_MANIFEST" 2>/dev/null || printf unreadable)"
+  printf 'NOTE: governance-manifest — AISOFT_GOVERNANCE_MANIFEST 覆盖了治理 manifest，本次结论不是 canonical 证据：%s sha256=%s\n' \
+    "$GOVERNANCE_MANIFEST" "$governance_digest"
+fi
+
 printf 'result: pass=%d gap=%d skip=%d\n' \
   "$pass_count" "$gap_count" "$skip_count"
 if ((gap_count > 0)); then

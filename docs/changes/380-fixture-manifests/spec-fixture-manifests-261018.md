@@ -87,7 +87,7 @@ ADR 0001 D3 只允许项目数据出现在 manifest 等登记位置；平台自�
 
 ## 实现中的调整（确认后，确认点 2 一并复核）
 
-- `aisoft-project-check.sh` 原先把治理 manifest 路径写死为本仓 `codex/config/gitea-governance.json`，测试无法换成夹具。按 `aisoft_loop/cli.py` 与 `aisoft-project-target.sh` 已有的 `AISOFT_GOVERNANCE_MANIFEST` 约定增加同名覆盖，缺省行为不变；`test-project-check.sh` 设置它指向夹具。这是一个只读诊断工具的读路径，不放宽任何写闸门。
+- `aisoft-project-check.sh` 原先把治理 manifest 路径写死为本仓 `codex/config/gitea-governance.json`，测试无法换成夹具。按 `aisoft_loop/cli.py` 与 `aisoft-project-target.sh` 已有的 `AISOFT_GOVERNANCE_MANIFEST` 约定增加同名覆盖，缺省行为不变；`test-project-check.sh` 设置它指向夹具。这是一个只读诊断工具的读路径，不放宽任何写闸门；设置覆盖时输出在 `result:` 之前打印 `NOTE: governance-manifest` 行，写明实际路径与 sha256 并声明结论不是 canonical 证据（Codex 首轮审查 P2），未设置时输出不变。
 - broker 入口 `host-access-broker.sh` 固定读本仓或已装 manifest、刻意不接受覆盖，因此 `test-host-access-broker.sh` 中经入口的拒绝用例改用平台自有的 `smoke-test` 测试仓，不再借用应用项目。
 
 ## 接口、数据与兼容性影响

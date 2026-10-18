@@ -867,6 +867,13 @@ expect_line 'SKIP: ci-registry-preflight — 没有安装 npm 依赖的 workflow
 
 run_case 0 local_check --repo "$TMP/aligned"
 expect_line 'SKIP: ci-registry-preflight — 仓库没有 .gitea/workflows 或 .github/workflows'
+# #380: the fixture override is announced with the exact manifest bytes, and
+# the default run (no override) carries no such note.
+expect_contains "NOTE: governance-manifest — AISOFT_GOVERNANCE_MANIFEST 覆盖了治理 manifest，本次结论不是 canonical 证据：$AISOFT_GOVERNANCE_MANIFEST sha256=$(python3 -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$AISOFT_GOVERNANCE_MANIFEST")"
+run_case 0 env -u AISOFT_GOVERNANCE_MANIFEST bash "$CHECKER" --today 2026-09-12 --repo "$TMP/aligned"
+if grep -Fq 'NOTE: governance-manifest' <<<"$last_output"; then
+  fail "case $case_count printed the override note without an override"
+fi
 
 # #223 ci-outdated-branch. An expired green is still a valid green until this
 # flag is on: base moves, nothing reruns the workflow, and the merge lands on a
