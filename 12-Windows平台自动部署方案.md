@@ -2,7 +2,7 @@
 
 > 定位（#232，2026-09-02）：本册是交付形态参考（按项目选用），适用环境：Windows。它不是任何项目部署步骤的事实源；平台只给环境级原则（`skill-for-codex/references/onboarding-runbook.md` §4），具体步骤、脚本、参数与环境差异由项目仓自行声明与实现。#233 判定：正文保留为参考记录；正文中「默认」「新 Linux 默认」等措辞不构成平台合同，交付形态由项目声明。
 
-> 状态：设计已确认，尚未实施和验收。本文定义 Windows 项目的目标架构与不可变合同，不把 Linux/rsdesign-new 试点细节当作默认值。
+> 状态：设计已确认，尚未实施和验收。本文定义 Windows 项目的目标架构与不可变合同，不把 Linux 旧试点细节当作默认值。
 
 ## 1. 目标与适用范围
 
@@ -23,7 +23,7 @@
 |---|---|
 | 本地开发 | Mac 继续作为开发电脑，本地 Gitea 承载原型阶段 |
 | 源码源 | 本机 Gitea 是唯一源码源（开发权威）；公司内网 Gitea 是部署权威，只核验与独立授权部署（[07 §1](07-内网与生产平移路线.md)，2026-08-11 定案） |
-| GitHub | 私有仓是本机 Gitea 的原生 Push Mirror（源码同步，NewEMaint #80 路线）；已测试发布包以 GitHub Release 资产中转到公司；GitHub 不进入公司信任链 |
+| GitHub | 私有仓是本机 Gitea 的原生 Push Mirror（源码同步，首个示例项目的路线）；已测试发布包以 GitHub Release 资产中转到公司；GitHub 不进入公司信任链 |
 | 构建 | `release_producer: local`：正式 `win-x64` 制品在开发侧本机以钉版本 SDK 容器构建并本地测试；公司内网不联网构建。GitHub Actions windows runner 只作候选（runbook §4.5 适用条件），一个项目只能一种 producer |
 | 传输 | GitHub Release 资产（ZIP + SHA256 + manifest）→ 公司侧下载并对照 handoff 证据核验 → 公司 Gitea Generic Package / 部署控制端；介质不改变 release identity |
 | 测试部署 | OpenSSH：SCP/SFTP 传输 + SSH 执行固定 PowerShell |

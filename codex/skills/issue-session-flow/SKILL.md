@@ -153,7 +153,7 @@ memory. Dispatch only unblocked Issues and keep their branches, worktrees and PR
 Dependency identity (#286 source/local fixtures verified; installed/live pending): legacy numeric
 `depends_on` entries refer only to the source repository. Cross-repository dependencies require exact
 `owner/repo#N`, never a bare foreign number. The new read must be manifest-bound before GET, with
-`dependency_read_targets` defaulting to local only and the sole new edge `sfm-digital-board → aisoft-platform`.
+`dependency_read_targets` defaulting to local only; allowed cross-repository edges are whatever the manifest declares.
 Controller and routine merger must share identity/terminal checks; a local same-number Issue never
 satisfies a foreign dependency. Cross-repository reads use only the broker's manager-audit read-only
 route, with zero credential/ACL/direct-client fallback. An unsupported or unreadable dependency is a

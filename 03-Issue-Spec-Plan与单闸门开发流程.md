@@ -36,7 +36,7 @@ Issue #N
 
 平台此前只约束了「建」没有约束「进」：`git rebase` / `git commit` / `git checkout` 都是纯
 本地操作，根本不经过 broker，因此任何会话都能进入任意 change worktree 改写 HEAD，平台侧零
-感知。2026-09-16 NewEMaint #96 实际中招——它核验的是 `327fc06`，push 后从 `gitea.pull.read`
+感知。2026-09-16 一个下游项目实际中招（见 `06` 踩坑 28）——会话核验的是 `327fc06`，push 后从 `gitea.pull.read`
 读回的 head 却是 `b576525`，多出 61 行它没读过的内容。
 
 现在有三样东西支撑这条归属：
@@ -220,7 +220,7 @@ docs/changes/N-short-description/
 `templates/docs/changes/_template/` 是合同源，但每个接入项目在 `docs/changes/_template/`
 里持有一份**逐字节相同的副本**，`aisoft-project-check.sh` 的 `change-templates` 查的就是
 这个相等关系。八条对齐检查里只有它的判据横跨两个仓库，因此也只有它会**因为上游前进而
-自发变红**，与下游是否有任何提交无关（LocalWMS #78 / PR #81 是第一次真实复发）。
+自发变红**，与下游是否有任何提交无关（2026-09 一个下游项目的 PR 是第一次真实复发）。
 
 副本原先既没有版本号也没有依赖声明，下游无从知道自己何时过期。现在这两样都有了：
 
@@ -456,7 +456,7 @@ source runtime 的 summary 可用可选字段 `depends_on` 声明本仓 Issue �
 - 旧整数及已支持的数字 scalar 保持只表示本仓；新增严格 `owner/repo#N` scalar，
   仅支持同一 manifest-fixed Gitea host。URL、object、任意 host/owner/repo 与路径输入不支持。
 - 目标必须精确命中 canonical manifest 与 source 项目的 `dependency_read_targets`，
-  缺省只允许本仓；唯一新增跨仓边为 `sfm-digital-board → aisoft-platform`。
+  缺省只允许本仓；允许的跨仓边以 manifest 的 `dependency_read_targets` 为准。
   新 typed dependency read 只接受 reference，通过该映射后才构造 request；既有
   `gitea.issue.read(number)` 不扩参数。source executable manifest 已声明此新字段；installed manifest 仍须独立验收。
 - 外仓 GET 在 broker 内使用 manager-audit 只读路由，project-agent/routine merger
@@ -491,7 +491,7 @@ type、complexity 和非生命周期标签。最终 PR 已合并、且没有一�
 codex/tools/mark-completed-issues.sh --range 'origin/main~5..origin/main'   # 读计划
 codex/tools/mark-completed-issues.sh --apply 167 168                        # 用计划回给的 pinned 编号写入
 # 在别的项目仓上运行时目标由 checkout 判定（#184），判定不出才需要显式 --project：
-codex/tools/mark-completed-issues.sh --repo ~/Projects/LocalWMS --range '...'  
+codex/tools/mark-completed-issues.sh --repo <项目 checkout> --range '...'  
 ```
 
 默认只输出逐 Issue 的判定计划、不做任何写入；确定性验证计划瞄准 exact merge 后加 `--apply` 才经
@@ -556,7 +556,7 @@ Issue 停在原地等 `deployed`，所以真正要成立的是「会有一次部
 「合并即部署」的仓库上重合；在按需部署的仓库上分叉，落进分叉处的变更两个终态都没人写——
 `completed` 因含 `verification` 被排除，`deployed` 因这次不部署而永不写入。
 
-**这不是推演。** 缺省档下的 LocalWMS 有 15 个已合并且声明了 `verification` 的 Issue，其中 5 个
+**这不是推演。** 缺省档下的一个业务项目有 15 个已合并且声明了 `verification` 的 Issue，其中 5 个
 （#13、#23、#29、#34、#35）closed 之后一个标签都没有；另外 10 个的 `completed` 是绕过这条判定
 写上去的——当前工具对那 10 个全部判 `skip`。#192 的映射 verification 记录了逐条读回。
 
@@ -598,10 +598,8 @@ Issue 停在原地等 `deployed`，所以真正要成立的是「会有一次部
 工具报错退出而不是静默跳过——沉默恰恰是它要修的那个失败模式；只是**没有声明该键**不属此列，
 按缺省处理。
 
-`--project` 收的是 `codex/config/host-access-broker.json` 里的 **project id**（`localwms`），
-不是仓库名。governance manifest 按**仓库名**（`LocalWMS`）索引，两者只在七个项目里的三个上
-同名（#337 恢复 HSDB 前是六个里的三个，#275 重新接入 SFMDigitalBoard 前是五个里的三个，
-#252 退出五个项目前是十个里的四个），所以仓库名由 project id 反查得到、不由调用方提供（#172）——host-access manifest 已经
+`--project` 收的是 `codex/config/host-access-broker.json` 里的 **project id**（小写短横线形式），
+不是仓库名。governance manifest 按**仓库名**索引，两者在多数项目上并不同名，所以仓库名由 project id 反查得到、不由调用方提供（#172）——host-access manifest 已经
 声明了这个双射，`aisoft_host_access.contract` 也已经强制它的值都存在于 governance manifest。
 两侧任一查不到都报错退出，消息各自指名是哪一份 manifest 少了哪个键。
 
@@ -672,8 +670,8 @@ checkout，Issue 状态与标签却取自平台仓的同号 Issue。产出的不
 
 现在目标项目**由 checkout 判定**：从 `--repo` 的 Git remote URL 反查 host access manifest 的
 `projects[]`，得到 `project_id` 与 `repository`（构造方式与 broker 的 `_expected_git_url` 一致，
-所有 remote 的 fetch 与 push URL 都参与匹配——`newemaint` 的 Gitea remote
-名为 `gitea` 而非 `origin`）。四种结局：
+所有 remote 的 fetch 与 push URL 都参与匹配——有的项目 Gitea remote
+名为 `gitea` 而非 `origin`，见 manifest 的 `git_remote_name`）。四种结局：
 
 | checkout 能否判定 | 是否传 `--project` | 结果 |
 |---|---|---|
@@ -685,7 +683,7 @@ checkout，Issue 状态与标签却取自平台仓的同号 Issue。产出的不
 
 `--project` 因此从「默认」降级为「覆盖」，命名空间仍只认 broker 的 `project_id`（#172）。
 每一行 JSON 输出带 `project` 与 `repository` 两个字段，指名它在谈论哪个仓库。只有 GitHub
-remote 而没有 Gitea remote 的 checkout（`rsdesign-new`）判定不出项目，必须显式传 `--project`——
+remote 而没有 Gitea remote 的 checkout（如已退出治理的旧试点仓）判定不出项目，必须显式传 `--project`——
 这是 fail-closed 的预期形态，不是回归：在此之前它得到的是一个针对平台仓的错误结论。
 
 broker 因操作表陈旧而拒绝时，工具不再把 `REQUEST_DENIED` 原样透出，而是报

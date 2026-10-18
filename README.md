@@ -4,7 +4,7 @@
 >
 > 一句话：**Issue 定义工作，AI Loop 把明确合同做到最终 PR；人确认提交，manual 变更由人合并，显式 opt-in 的 routine small 只有在最终 head 全硬门通过后才可由独立 merger 合并；部署始终独立授权。**
 
-本文件是全貌与导航；细节在各主题分册。原始设计文档在 [archive/](archive/)，仅作历史参考。v3 的迁移决策与未实施边界见 [09](09-v3平台简化与Loop-Engineering文档改造规划.md)。
+本文件是全貌与导航；细节在各主题分册。原始设计文档在 [archive/](archive/)，仅作历史参考。平台边界见 [ADR 0001](docs/adr/0001-platform-boundary.md)，整改进度见 [整改路线](docs/governance/remediation-roadmap.md)；v3 迁移决策已归档到 [archive/09](archive/09-v3平台简化与Loop-Engineering文档改造规划.md)。
 
 ---
 
@@ -17,11 +17,11 @@
 
 | 领域 | 已合并能力 / 证据 | 安装与现场边界 |
 |---|---|---|
-| 基础设施与 Runner | `gitea-ci` 的 Gitea 1.26.4、act_runner、Verdaccio、Mailpit 为既有 as-built；#309 记录 Flutter 3.32.8 / unzip 验收；#311 保留 SFMDigitalBoard 在用 Node 22 并补来源记录 | Node 22 安装者、安装日期和上游 provenance 仍为 `unknown`；历史服务验收不代表今日健康，见 [01](01-基础设施-VM-Gitea-Runner.md) |
-| 治理集合与 CI | #334 核对基线为 6 仓；#337 的 source 声明恢复 HSDB 后为 7 仓：AISoftPlatform、HSDB、LocalWMS、NewEMaint、SFMDigitalBoard、myapp、smoke-test；#252 后 SFMDigitalBoard 经 #275、HSDB 经 #337 恢复，两者均 `vm_profile: null`；#312 同步 NewEMaint required contexts | 当前 source 集合见 [manifest](codex/config/gitea-governance.json)；HSDB 保持 private/manual 与 `CI / test (pull_request)`，安装、账号及 adoption 仍须独立验收，见 [#337 verification](docs/changes/337-restore-hsdb-governance/verification-restore-hsdb-governance-261004.md)；#299 保留平台仓 outdated-branch gate，internal-application 的关闭须具备合并预览与 push-main CI，逐仓验收 |
+| 基础设施与 Runner | `gitea-ci` 的 Gitea 1.26.4、act_runner、Verdaccio、Mailpit 为既有 as-built；#309 记录 Flutter 3.32.8 / unzip 验收；#311 保留仍有项目在用的 Node 22 并补来源记录 | Node 22 安装者、安装日期和上游 provenance 仍为 `unknown`；历史服务验收不代表今日健康，见 [01](01-基础设施-VM-Gitea-Runner.md) |
+| 治理集合与 CI | 仓库名单、分类与 required contexts 以 [governance manifest](codex/config/gitea-governance.json) 为准，本表不重复；进退记录见 #252、#275、#312、#334、#337 | 新接入仓库的安装、账号及 adoption 须逐仓独立验收（如 [#337 verification](docs/changes/337-restore-hsdb-governance/verification-restore-hsdb-governance-261004.md)）；#299 保留平台仓 outdated-branch gate，internal-application 的关闭须具备合并预览与 push-main CI，逐仓验收 |
 | Matt / 双 provider | 固定 Matt v1.2.2 snapshot；`triage → to-spec → to-tickets → implement`；#318 修齐 Codex/Claude 会话和接入合同，#320 明确每次 push 的 SHA 核对 | adapters 等价、可互换；默认 `IMPLEMENT_PROVIDER=none`，真实 provider / 项目启用矩阵仍须独立完成，见 [08](08-双工具共存与实施.md) |
 | Worktree 与文档硬门 | #298 单写者 claim / broker 归属闸门，#304 记录两机安装；#289 严格校验 `required_docs` 声明、映射和实际文件，resolver / Loop / 终态工具共享结果 | #289 runtime 与本地验证已完成；source 之外按安装证据验收；另一会话不得代写 worktree，见 [03](03-Issue-Spec-Plan与单闸门开发流程.md) |
-| Broker / routine merge | typed Issue/PR/Actions/Git 与 #208 独立 merger 全硬门；#313 补 routine scope 的 `read:user`；#286 增 manifest 限定只读跨仓依赖，唯一新增边为 `sfm-digital-board → aisoft-platform` | AISoftPlatform `routine_auto_merge_enabled=false`，始终 manual；routine 身份、scope、protection 与真实 opt-in 逐仓读回，不能由源码存在推导启用 |
+| Broker / routine merge | typed Issue/PR/Actions/Git 与 #208 独立 merger 全硬门；#313 补 routine scope 的 `read:user`；#286 增 manifest 限定只读跨仓依赖，允许的边以 manifest 的 `dependency_read_targets` 为准 | AISoftPlatform `routine_auto_merge_enabled=false`，始终 manual；routine 身份、scope、protection 与真实 opt-in 逐仓读回，不能由源码存在推导启用 |
 | 安装与漂移 | 8 个 installer 共用 source guard；#308 提供 [check-installed-drift](codex/tools/check-installed-drift.sh)，按受管字节、权限、链接与可读量检查 `PASS/GAP` | checker 已进入 source；#308 基线的真实安装 GAP 保留，后续修复须独立验收；`source-only` 不是 installed PASS，见 [06](06-运维手册与踩坑集.md) |
 | 架构合同 | [architecture](architecture/README.md) 有 5 个 profiles；#284 增 `linux-node-sqlite-v1`；#287 writer 默认 V2 lock，reader 严格接受 V1/V2；#288 离线核验 Dockerfile FROM digest | catalog 固定 `2026.09.0`，不是自动追随 upstream latest；release reader 仍仅接受 V1 architecture lock，下游采用 V2 必须先解决读取链兼容 |
 | Docker release | [docker-release](docker-release/README.md) 提供 v1/v2、两种 transport 与确定性阶段；#290 支持仅 test 的 `scm-ci` 共置；#296 增 exact Docker 28.1.1 / Compose 2.35.1 classic 验证行；#305 修 migration identity；#317 增数据库兼容回退硬门 | 兼容矩阵是精确版本组合，不是 Docker 28/29 全部支持；#317 state v3 和兼容依据需目标侧采用，installed/company live 与 production promotion 不由本地测试推导 |
@@ -34,13 +34,6 @@ Windows Server 2022 x64、公司 AD/JEA 与 [14](14-Windows部署与迁移验收
 
 历史完成条目见 [平台状态历史](archive/平台状态历史-20260902.md)；历史 Change 的 `pr-open` front matter
 和提交前 verification 快照保持原样，合并事实以 Git history / Gitea 读回为准。
-
-## #352 Matt v1.3.1 源码候选
-
-本 Change 将受管快照固定到 v1.3.1（37 个技能），补齐隔离安装/失败恢复/N-1 回滚、
-GLOSSARY 兼容与人工 retro 边界，并改善最终 PR 的具体证据。
-这属于待审源码，未覆盖上方 2026-10-04 稳定基线；真实安装和 Claude 独立插件须另行验收。
-入口与兼容要求见 [08 §5](08-双工具共存与实施.md#5-matt-skills-与平台映射)。
 
 ## 2. 目标职责架构
 
@@ -176,7 +169,8 @@ sequenceDiagram
 | [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、编号实证踩坑、CI 停滞判定、八个安装面漂移核对、PAT 轮换与 AI 故障包 | 排障必读 |
 | [07-内网与生产平移路线](07-内网与生产平移路线.md) | 原型孵化、持续权威分工、备选下线切换和 Linux/Windows 双目标 | 规划内网平移 |
 | [08-双工具共存与实施](08-双工具共存与实施.md) | 共享契约、controller/adapter、provider 验证矩阵、部署边界与回滚 | 接入或切换 provider |
-| [09-v3 文档改造规划](09-v3平台简化与Loop-Engineering文档改造规划.md) | v3 决策、影响矩阵、迁移顺序、回滚边界 | 审核或实施 v3 |
+| [ADR 0001 平台边界](docs/adr/0001-platform-boundary.md) | 平台交付物、内核代码类别、项目数据位置、两层分离 | 判断一项需求或代码能否进入平台 |
+| [整改路线](docs/governance/remediation-roadmap.md) | R0–R8 批次与状态 | 安排或推进平台清理 |
 | [10-AI Issue 判级与标签计划（历史）](archive/10-AI-Issue判级与标签实施计划.md) | 2026-07 初始判级、标签和 wrapper 实施记录 | 仅作历史追溯 |
 | [11-Codex Loop runtime 计划（历史）](archive/11-Codex-Loop运行时实施计划.md) | provider-neutral runtime 首轮实施记录 | 仅作历史追溯 |
 | [公司两 VM 离线交付 operator runbook（参考实现）](company-delivery/runbook.md) | 两 VM inventory、exact handoff、Gitea/backup/restore/SCM/fixed-target Stage 00–110；交付形态由项目声明 | 逐阶段人工执行与审计 |
@@ -244,12 +238,12 @@ Windows 各一段原则 + 全平台一致的流程不变量）。下列材料是
 
 | 入口 | 地址 |
 |------|------|
-| Gitea | http://gitea-ci.orb.local:3000；`admin/rsdesign-new` 是历史 as-built/pilot 示例，自 #252 起已退出平台治理（仓库保留），实际目标由项目 profile 指定 |
+| Gitea | http://gitea-ci.orb.local:3000；实际目标由项目 profile 指定；旧试点仓库自 #252 起已退出平台治理（仓库保留） |
 | 测试环境应用 | 由目标项目的 `appserver-test` profile 指定；历史 `gitea-ci:8091` 已在 Issue #21 收口，不得作为当前入口 |
 | Mailpit 收件箱 | http://gitea-ci.orb.local:8025 |
 | Verdaccio | http://gitea-ci.orb.local:4873 |
 | 凭据边界 | manager audit/mutation 与每项目 agent 使用 repo-external 独立 mode 600 protected credential；历史 admin/`ci-bot` 文件不是正常入口，凭据不得进入仓库、argv 或日志 |
-| Mac 工作克隆 | 由目标项目的 manifest `mac_checkout` 指定；历史 `~/Projects/rsdesign-new` 随 #252 退出治理，不再是平台入口 |
+| Mac 工作克隆 | 由目标项目的 manifest `mac_checkout` 指定 |
 
 私有仓库检查不得从匿名 API 开始。先解析目标 project profile/remote，再按 [06 §1.1](06-运维手册与踩坑集.md#11-私有-gitea-的只读检查) 使用最小权限 profile、既有 Git credential、VM-local 管理员只读 helper 或已登录浏览器；`404`/`Repository not found` 在认证与 ACL 未核对前不构成“不存在”证据。
 
@@ -280,7 +274,7 @@ project agent 为准：先只读 check，再一次处理一个明确仓库，回
 - **Host access broker**：Mac host 上的 versioned/allowlisted 访问入口；把 exact project/operation 映射到 Gitea/Git/OrbStack target 与最小权限 identity，不接受任意 shell、URL、credential path 或任意 merge 参数；routine merge 仅接受 number 与 exact head SHA
 - **制品**：带项目、完整 SHA 和 checksum 的不可变字节；`/opt/artifacts` 是本地 legacy staging，必须经过引用保护和 retention dry-run，不能按文件名或年龄直接删除
 - **Linux release**：新项目为 `release.json` + digest-pinned OCI images + Compose/architecture checksums；Registry 与 offline bundle 共享同一 release identity
-- **PM2 legacy 制品**：`/opt/artifacts/rsdesign-new-<sha>.tar.gz`，只代表既有试点；测过的字节 = 上线的字节
+- **PM2 legacy 制品**：`/opt/artifacts/<app>-<sha>.tar.gz`，只代表已退出治理的旧试点（见 [02 附录](archive/02-legacy-pilot-as-built.md)）；测过的字节 = 上线的字节
 - **Change ID（Windows 目标合同）**：原型 `<项目三字符代码>-NNNN`、正式 `PRD-NNNN`；用于分支、文档、制品和部署记录。现有 runtime 尚未实现该格式
 - **权威分工**：持续协作模式下本地 Gitea 是开发权威、公司 Gitea 是部署权威、私有 GitHub 是搬运中继；只有未来彻底下线本地开发平台时才执行 [13 §11](13-项目结果迁移与内网切换实施手册.md#11-phase-h最终权威切换备选路径当前不采用) 的备选权威源切换
 - **Architecture declaration/lock**：项目人工维护 `.aisoft/architecture.json`，平台工具生成 byte-identical `architecture.lock.json`；候选 lock 只证明合同可解析，不代表 migration 或 deployment 完成

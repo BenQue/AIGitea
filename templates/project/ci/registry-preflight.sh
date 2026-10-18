@@ -28,7 +28,7 @@ MARK_OK='AISOFT_REGISTRY_PREFLIGHT_OK'
 MARK_FAIL='AISOFT_REGISTRY_PREFLIGHT_FAIL'
 
 REGISTRY="${REGISTRY_PREFLIGHT_REGISTRY:-${NPM_CONFIG_REGISTRY:-}}"
-# 默认探测包取 fflate 0.8.3：它正是 admin/LocalWMS run 652 首次暴露本故障时
+# 默认探测包取 fflate 0.8.3：它正是一个下游项目的 CI run 首次暴露本故障时（#201）
 # 卡住的那个 tarball，2026-09-05 实测该 registry 上有 58 个版本。
 PACKAGE="${REGISTRY_PREFLIGHT_PACKAGE:-fflate}"
 VERSION="${REGISTRY_PREFLIGHT_VERSION:-0.8.3}"

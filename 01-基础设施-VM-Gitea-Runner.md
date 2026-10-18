@@ -20,8 +20,8 @@
 | 3000 | Gitea 1.26.4 / `gitea.service` | KEEP：SCM |
 | 4873 | Verdaccio / `pm2-benque.service` | KEEP：批准的 CI cache |
 | 1025 / 8025 | Mailpit SMTP / Web UI | KEEP：批准的通知辅助服务 |
-| 5432(loopback) | PostgreSQL 保留 `gitea`、`hsdb_ci`；遗留 `app_test` 已备份、恢复验证并删除 | KEEP 仅限批准的 SCM/CI 数据；新业务 DB 拒绝。`hsdb_ci` 自 #252 起随 HSDB 退出平台治理而成为孤儿库，**本次不删**，重新接入或清理前须单独立案 |
-| 3100 / 8091 | 旧 `rsdesign-new` runtime/vhost 已删除，应用转至 AppServer | ABSENT；不得恢复为 `scm-ci` 业务入口 |
+| 5432(loopback) | PostgreSQL 保留 `gitea` 与一个项目 CI 库（见 #252、#337）；遗留 `app_test` 已备份、恢复验证并删除 | KEEP 仅限批准的 SCM/CI 数据；新业务 DB 拒绝。项目 CI 库的去留随该项目在 manifest 中的治理状态单独立案处理 |
+| 3100 / 8091 | 旧试点项目 runtime/vhost 已删除，应用转至 AppServer | ABSENT；不得恢复为 `scm-ci` 业务入口 |
 | 3212 | 孤儿 smoke 进程与 15 个临时 DB 已精确清理，应用 cleanup 修复已合并/部署 | ABSENT；job 必须在成功、失败和取消路径清理 |
 | 8090 | MyApp runtime/vhost/DB 已备份、恢复验证并精确清理 | ABSENT；不得恢复历史演示部署 |
 | 6379(loopback) | Redis 无引用/连接/数据验证通过后已卸载并清理 | ABSENT；重新引入须新合同 |
@@ -45,8 +45,8 @@ workflow、数据和引用。
 
 下表采用 Issue #35 最后一次 live reconciliation 与后续 broker 证据。账号、PAT 和 ACL 仍是外部状态，
 每次操作前必须通过 manifest 工具或 host access broker 重新读回。
-#35 的九仓/九 agent 是历史数量；当前 [governance manifest](codex/config/gitea-governance.json) 有 6 仓，
-其中业务治理集合为 LocalWMS、NewEMaint、SFMDigitalBoard；退出不删除原仓库或自动改变历史权限。
+#35 的九仓/九 agent 是历史数量；当前仓库与分类以 [governance manifest](codex/config/gitea-governance.json) 为准，
+本文不重复名单；项目退出不删除原仓库或自动改变历史权限。
 下表的 live 是既有验收记录，不表示本次重新观测。
 
 | 账号/角色 | 状态 | 位置 | 用途 | 关键约束 |
@@ -69,7 +69,7 @@ workflow、数据和引用。
 
 - 单二进制 `/usr/local/bin/gitea`（1.26.4），systemd 托管，数据 `/var/lib/gitea`，DB 用本机 PostgreSQL（`gitea` 库）。
 - Actions 默认启用（1.21+）。
-- 仓库 `admin/rsdesign-new`：Issue #35 live reconciliation 后为 private；默认分支 `main`；**分支保护**：
+- 旧试点仓库（Issue #35 live reconciliation 后为 private；默认分支 `main`）的**分支保护**：
   （该仓库自 #252 起已退出平台治理。以下是保留至今的 as-built 分支保护事实，退出**不改动**它，也不删除仓库；重新接入按 onboarding runbook 走。）
   - 禁止直接 push（对所有人生效，含 admin——一切走 PR）
   - 必须状态检查通过：context = `CI / test (pull_request)`
@@ -101,7 +101,7 @@ ENABLED = true
 PROTOCOL = smtp
 SMTP_ADDR = 127.0.0.1
 SMTP_PORT = 1025
-FROM = "RSDesign Gitea" <gitea@rsdesign.local>
+FROM = "<站点名> Gitea" <gitea@<站点域名>>   # 真实值见 VM 上的 app.ini
 ```
 
 ## 4. act_runner（host 模式）
@@ -114,7 +114,7 @@ FROM = "RSDesign Gitea" <gitea@rsdesign.local>
 - 注册 token 可命令行生成：`sudo -u git gitea --config /etc/gitea/app.ini actions generate-runner-token`。
 - 工作区在 `/opt/act-runner/.cache/act/<hash>/hostexecutor`，**每个 workflow 一个哈希目录、跨 run 复用**（checkout 会清理）。
 - host executor 的成功、失败和取消路径都必须断言无残留业务 PID、监听端口、临时 DB 或
-  deleted cwd；历史 `sfm-board:3212` 已清理，其 Change 只作为此门禁的回归证据。
+  deleted cwd；历史某项目占用的 `:3212` 已清理，其 Change 只作为此门禁的回归证据。
 
 ### 4.1 per-job 超时与并发（as-built，#228 建议已落地）
 
@@ -153,7 +153,7 @@ ExecStart=/usr/local/bin/act_runner daemon -c /opt/act-runner/config.yaml
 base unit 的 `ExecStart` 仍是不带 `-c` 的原样，drop-in 先清空再重设——这是 systemd 覆盖单值
 指令的标准写法，改回去只需删掉这个 drop-in 文件并 `daemon-reload`。
 
-**为什么是 `20m`**：全平台最长合法 run 是 345s，20 分钟是它的 3.5 倍、NewEMaint p90 的 4.5 倍，
+**为什么是 `20m`**：全平台最长合法 run 是 345s，20 分钟是它的 3.5 倍、最慢项目 p90 的 4.5 倍，
 冷缓存或弱网构建仍有余量；同时把一次停滞的代价从 2026-08-29 实测的 4h19m 截到 20 分钟。
 实例级 runner ＋ `capacity: 1` 意味着任何一个仓库的任何一个 job 都独占唯一执行位，
 这也是**为什么工具链必须预装、不能在 job 内现装**（见 §4.3）。
@@ -163,8 +163,8 @@ base unit 的 `ExecStart` 仍是不带 `-c` 的原样，drop-in 先清空再重�
 | 仓库 | 样本 | 最短 | 中位 | p90 | 最长 |
 |---|---|---|---|---|---|
 | `admin/aisoft-platform` | 17 | 49s | 55s | — | 57s |
-| `admin/LocalWMS` | 26 | 61s | 66s | 127s | 345s |
-| `admin/NewEMaint` | 22 | 236s | 259s | 269s | 296s |
+| 业务项目 A | 26 | 61s | 66s | 127s | 345s |
+| 业务项目 B | 22 | 236s | 259s | 269s | 296s |
 
 **回读命令**：
 
@@ -216,9 +216,9 @@ rollback=rename-or-remove-/opt/node24.18.0; system-node-and-/opt/node22-unchange
 
 系统自带 `node` 是 `/usr/bin/node` v20.20.2，与上面三个都无关，也不被平台管理。
 `/opt/node22` 在 #309 时没有 marker；#311 于 `2026-10-02` 核对四仓当前 main 与 runner
-静态配置后保留目录并补齐 marker。已知活动消费方是 `admin/SFMDigitalBoard` 的
-`.gitea/workflows/ci.yml`（job PATH 前置 `/opt/node22/bin`），其平台测试也守卫该依赖；
-LocalWMS、NewEMaint 的当前 workflow 使用 node24，平台 workflow 无直接 node22 引用。
+静态配置后保留目录并补齐 marker。当时已知有一个业务项目的
+`.gitea/workflows/ci.yml` 在 job PATH 前置 `/opt/node22/bin`，其平台测试也守卫该依赖；
+其余项目 workflow 使用 node24，平台 workflow 无直接 node22 引用。消费方以各项目仓的 workflow 为准。
 marker 沿用 `contract=gitea-runner-node-runtime/v1` 与 key=value 形状，安装日期、安装者、
 上游来源与上游包校验字段均为 `unknown`；`recorded_at=2026-10-02` 仅表示本次记录日期，
 `observed_node_binary_sha256` 仅表示当前二进制 hash，不证明安装来源。
@@ -243,7 +243,7 @@ runner 配置元数据前后一致。回滚只删除本次且内容 hash 一致�
 | 属主 / 权限 | `gitea-runner:gitea-runner`，`a+rX` |
 | 持久 pub 缓存 | `/opt/act-runner/.pub-cache`（`gitea-runner` 属主，与既有 `.npm` 同级） |
 | 安装脚本 | `codex/tools/install-runner-flutter.sh`（幂等，带只读 `--check` 与 `--repair`） |
-| 实测占用 | SDK 1.1 GiB；pub 缓存 337 MiB（跑过一次 NewEMaint `apps/mobile` 后） |
+| 实测占用 | SDK 1.1 GiB；pub 缓存 337 MiB（跑过一次项目移动端构建后） |
 | 装于 | 2026-09-18（#309），安装后 `/opt` 使用率 23% |
 | marker | `/opt/flutter/3.32.8/.aisoft-runtime-source`，`contract=gitea-runner-flutter-runtime/v1` |
 
@@ -309,7 +309,7 @@ staging 目录里完成，失败不会留下半装的树。安装前磁盘使用
 **回滚**：`sudo rm -rf /opt/flutter/3.32.8`；pub 缓存 `sudo rm -rf /opt/act-runner/.pub-cache`。
 两者在 #309 之前都不存在，删除即回到安装前状态。`unzip` 保留。
 
-**持久缓存值多少**（2026-09-18 实测，NewEMaint `apps/mobile`，同一份干净 checkout）：
+**持久缓存值多少**（2026-09-18 实测，一个项目的 Flutter 移动端，同一份干净 checkout）：
 
 | PUB_CACHE | `flutter pub get` 耗时 | 下载量 |
 |---|---|---|
@@ -376,7 +376,7 @@ set -e
 
 负向 guard 只证明 mutation 会在入口前被拒绝；它不替代 listener/process/database inventory。
 Issue #21 已证明当时 `3100/3212/8090/8091` 等业务入口收口，并回读 Gitea、Runner、Verdaccio、
-Mailpit、HSDB CI 和有效制品消费。重建或后续运维仍须重新验证，不能把 2026-08-04 证据当作永久健康。
+Mailpit、项目 CI 和有效制品消费。重建或后续运维仍须重新验证，不能把 2026-08-04 证据当作永久健康。
 
 ## 8. Versioned host profile 与 guard
 

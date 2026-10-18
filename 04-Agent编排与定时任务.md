@@ -35,7 +35,7 @@
 | Claude adapter | `claude-provider.sh` / `claude-analyzer.sh` / `analyze-claude.sh` 已在中央 source，parity 测试通过 | 与 Codex 共用 controller、verifier、状态与终态；默认 `IMPLEMENT_PROVIDER=none`，启用仍需项目级验收 |
 | `aisoft-agent@.service/.timer` | 中央 source 提供禁用模板 | 安装不 enable/start；每个项目验收后由人显式启用对应 instance |
 
-> **profile 边界**：`~/.config/aisoft/projects/<profile>.env` 绑定一个 Gitea owner/repo、clone 和 provider；`~/.local/state/aisoft-loop/projects/<profile>/` 保存该项目的锁、Issue state 与 worktrees。rsdesign-new Issue #8 只是验证证据，不是默认 profile。AISoftPlatform 本身是平台 source/documentation 仓库，不要求应用部署。
+> **profile 边界**：`~/.config/aisoft/projects/<profile>.env` 绑定一个 Gitea owner/repo、clone 和 provider；`~/.local/state/aisoft-loop/projects/<profile>/` 保存该项目的锁、Issue state 与 worktrees。已退出治理的旧试点 Issue #8 只是验证证据，不是默认 profile。AISoftPlatform 本身是平台 source/documentation 仓库，不要求应用部署。
 
 ## 3. 目标组件
 
@@ -105,8 +105,8 @@ Wrapper 必须按强制风险规则和显式标签优先级复核结果，再执
 | `claude` | 该 VM 用 Claude Code CLI 经 `codex/agent/analyze-claude.sh` 跑 analyzer |
 | `none` | 该项目不跑自动 analyzer；判级由 Mac 上的交互式会话（Claude Code 或 Codex）按本节合同完成 |
 
-取值必须是该 VM **服务层**真实可执行的运行时——登录 shell 里能跑不算证据（#164 把 localwms 改为 `codex`、#178 把
-emaintenance 改为 `none`，都是因为 systemd 层的 `claude` 不可达）。同一 profile 的 `implement_provider` 迁移期固定 `none`，
+取值必须是该 VM **服务层**真实可执行的运行时——登录 shell 里能跑不算证据（#164、#178 曾把两个项目 profile 分别改为 `codex` 与
+`none`，都是因为 systemd 层的 `claude` 不可达）。同一 profile 的 `implement_provider` 迁移期固定 `none`，
 启用是每项目独立验收门。
 
 ## 5. Loop 启动条件
@@ -182,7 +182,7 @@ routine 任一 hard gate 失败不得自动转成更宽权限的 merge 路径。
 
 1. 静态验证 skills、metadata、sandbox 和禁止参数。
 2. 合成 Issue 验证合同读取与终态。
-3. 至少一个明确标注的真实 pilot 验证 Git/Gitea/PR/CI 集成；历史 evidence 是 rsdesign-new complex Issue #8，该项目自 #252 起已退出平台治理，其证据只作追溯。
+3. 至少一个明确标注的真实 pilot 验证 Git/Gitea/PR/CI 集成；历史 evidence 是旧试点仓库的 complex Issue #8，该项目自 #252 起已退出平台治理，其证据只作追溯。
 4. small/complex 路由、缺合同、自修复和失败反馈由共享 synthetic 覆盖；每个新 profile 再运行与本项目相符的 real small/complex acceptance。
 5. 验证 CI failure feedback。
 6. 验证升级条件和三次同因失败。
