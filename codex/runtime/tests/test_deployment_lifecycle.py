@@ -17,17 +17,17 @@ from aisoft_gitea_governance.contract import (
     repository_declarations_sha256,
 )
 
-MANIFEST = Path(__file__).resolve().parents[3] / "codex/config/gitea-governance.json"
+MANIFEST = Path(__file__).resolve().parents[3] / "codex/tests/fixtures/manifests/gitea-governance.json"
 
 
 class DeploymentLifecycleContractTests(unittest.TestCase):
     @staticmethod
     def _refresh_non_target_digest(raw: dict) -> None:
         next(
-            item for item in raw["repositories"] if item["name"] == "NewEMaint"
+            item for item in raw["repositories"] if item["name"] == "AlphaApp"
         )["routine_live_pilot"]["non_target_repositories_sha256"] = (
             repository_declarations_sha256(
-                raw["repositories"], exclude_name="NewEMaint"
+                raw["repositories"], exclude_name="AlphaApp"
             )
         )
 
@@ -46,7 +46,7 @@ class DeploymentLifecycleContractTests(unittest.TestCase):
         仓库在部署之前就被写成 completed」。#192 用两侧的可恢复性推翻了这个比较：早写的
         completed 会被 mark-deployed-issues.sh 剥掉整个生命周期维度重写成 deployed，而
         broker 又拒绝把已 deployed 的 Issue 降级为 completed；漏写方向则没有任何组件会
-        回头补——实测是 LocalWMS 上 5 个已合并 Issue 至今一个标签都没有。
+        回头补——实测是 BetaApp 上 5 个已合并 Issue 至今一个标签都没有。
         """
         self.assertEqual(
             DEFAULT_DEPLOYMENT_LIFECYCLE, "application-deploy-selective"

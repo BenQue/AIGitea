@@ -27,7 +27,7 @@ class DependencyIntegrationTests(unittest.TestCase):
             'status: analyzed', 'depends_on:\n' + ''.join(f'  - {ref}\n' for ref in values)
             + 'status: analyzed'))
         gitea = FakeGitea(['success'] * 4)
-        gitea.repository_identity = ('admin', 'SFMDigitalBoard')
+        gitea.repository_identity = ('admin', 'GammaBoard')
         gitea.base_url = access().governance.base_url
         gitea.dependency_issues[284] = {'number': 284, 'state': 'closed', 'labels': ['deployed']}
         provider = FakeProvider([provider_result()])
@@ -43,7 +43,7 @@ class DependencyIntegrationTests(unittest.TestCase):
             calls.append(list(argv))
             return subprocess.CompletedProcess(argv, 0, json.dumps(response), '')
 
-        controller.dependency_reader = DependencyReader(access(), 'sfm-digital-board',
+        controller.dependency_reader = DependencyReader(access(), 'gamma-board',
                                                        command_runner=command)
         return fixture, controller, provider, gitea, response, calls
 
@@ -98,7 +98,7 @@ class DependencyIntegrationTests(unittest.TestCase):
 
     def test_untrusted_source_cannot_read_or_comment_before_binding(self):
         from aisoft_loop.state import TerminalState
-        for source in (('other', 'SFMDigitalBoard'), ('admin', 'LocalWMS')):
+        for source in (('other', 'GammaBoard'), ('admin', 'BetaApp')):
             _, controller, provider, gitea, _, calls = self.controller_fixture(['admin/aisoft-platform#284'])
             gitea.repository_identity = source
             with self.subTest(source=source), patch.object(gitea, 'get_issue') as read:
@@ -121,14 +121,14 @@ class DependencyIntegrationTests(unittest.TestCase):
             with self.subTest(admin=admin), patch.object(b.credentials, 'resolve',
                     return_value=ResolvedCredential('audit', 'fixture-audit')):
                 with self.assertRaises(BrokerError) as caught:
-                    b.execute('sfm-digital-board', 'gitea.dependency.read', reference='admin/aisoft-platform#284')
+                    b.execute('gamma-board', 'gitea.dependency.read', reference='admin/aisoft-platform#284')
                 self.assertEqual(caught.exception.code, 'IDENTITY_MISMATCH')
                 self.assertEqual(requests, [access().governance.base_url + '/api/v1/user'])
 
     def test_denied_binding_and_canonical_alias_rejected_before_provider(self):
         from aisoft_loop.state import TerminalState
-        for values in (['admin/LocalWMS#284'], [284, 'admin/SFMDigitalBoard#284'],
-                       ['admin/SFMDigitalBoard#8']):
+        for values in (['admin/BetaApp#284'], [284, 'admin/GammaBoard#284'],
+                       ['admin/GammaBoard#8']):
             with self.subTest(values=values):
                 _, controller, provider, gitea, _, calls = self.controller_fixture(values)
                 result = controller.run(8)
@@ -158,7 +158,7 @@ class DependencyIntegrationTests(unittest.TestCase):
     def test_mac_vm_adapter_fixed_surface_and_zero_fallback(self):
         from aisoft_host_access.runner import DependencyReader, BROKER_EXECUTABLE
         from aisoft_host_access.dependencies import project_issue
-        for cwd in ('/Users/fixture/Projects/SFMDigitalBoard', '/home/fixture/SFMDigitalBoard'):
+        for cwd in ('/Users/fixture/Projects/GammaBoard', '/home/fixture/GammaBoard'):
             calls = []
 
             def command(argv, *, cwd):
@@ -166,10 +166,10 @@ class DependencyIntegrationTests(unittest.TestCase):
                 return subprocess.CompletedProcess(argv, 0, json.dumps(
                     project_issue(issue(), ('admin', 'aisoft-platform', 284))), '')
 
-            reader = DependencyReader(access(), 'sfm-digital-board', command_runner=command)
+            reader = DependencyReader(access(), 'gamma-board', command_runner=command)
             reader._cwd = cwd
             reader.read('admin/aisoft-platform#284')
-            self.assertEqual(calls, [([BROKER_EXECUTABLE, '--project', 'sfm-digital-board',
+            self.assertEqual(calls, [([BROKER_EXECUTABLE, '--project', 'gamma-board',
                                       '--operation', 'gitea.dependency.read', '--reference',
                                       'admin/aisoft-platform#284'], cwd)])
 
@@ -201,7 +201,7 @@ class DependencyIntegrationTests(unittest.TestCase):
             with self.subTest(failure=failure), patch.object(
                     b.credentials, 'resolve', return_value=ResolvedCredential('audit', 'fixture-audit')):
                 with self.assertRaises(BrokerError):
-                    b.execute('sfm-digital-board', 'gitea.dependency.read', reference='admin/aisoft-platform#284')
+                    b.execute('gamma-board', 'gitea.dependency.read', reference='admin/aisoft-platform#284')
                 self.assertTrue(all(method == 'GET' and token == 'token fixture-audit'
                                     for method, _, token, _ in requests))
 
@@ -230,14 +230,14 @@ class DependencyIntegrationTests(unittest.TestCase):
 
     def test_access_manifest_edges_reject_unknown_duplicate_self_and_non_list(self):
         import tempfile
-        for targets in (['unknown'], ['aisoft-platform'] * 2, ['sfm-digital-board'], 'aisoft-platform'):
+        for targets in (['unknown'], ['aisoft-platform'] * 2, ['gamma-board'], 'aisoft-platform'):
             with self.subTest(targets=targets), tempfile.TemporaryDirectory() as directory:
-                raw = json.loads((ROOT / 'codex/config/host-access-broker.json').read_text())
-                next(p for p in raw['projects'] if p['project_id'] == 'sfm-digital-board')['dependency_read_targets'] = targets
+                raw = json.loads((ROOT / 'codex/tests/fixtures/manifests/host-access-broker.json').read_text())
+                next(p for p in raw['projects'] if p['project_id'] == 'gamma-board')['dependency_read_targets'] = targets
                 path = Path(directory) / 'access.json'
                 path.write_text(json.dumps(raw))
                 with self.assertRaises(AccessContractError):
-                    load_access_contract(path, ROOT / 'codex/config/gitea-governance.json')
+                    load_access_contract(path, ROOT / 'codex/tests/fixtures/manifests/gitea-governance.json')
 
     def routine_fixture(self):
         from tests.test_routine_merge import RoutineBrokerTests
@@ -245,9 +245,9 @@ class DependencyIntegrationTests(unittest.TestCase):
         fixture.setUp()
         self.addCleanup(fixture.tearDown)
         # Explicit fixture-only edge on an enabled routine project. Production
-        # remains SFM -> platform only, as asserted separately above.
+        # remains Gamma -> platform only, as asserted separately above.
         fixture.contract = replace(fixture.contract, projects=tuple(
-            replace(p, dependency_read_targets=('aisoft-platform',)) if p.project_id == 'newemaint' else p
+            replace(p, dependency_read_targets=('aisoft-platform',)) if p.project_id == 'alphaapp' else p
             for p in fixture.contract.projects))
         fixture.summary = fixture.summary.replace('depends_on: []',
                                                   "depends_on:\n  - 'admin/aisoft-platform#284'")
@@ -269,9 +269,9 @@ class DependencyIntegrationTests(unittest.TestCase):
                     if failure == 'pr':
                         value['pull_request'] = {}
                     if failure == 'identity':
-                        value['repository']['full_name'] = 'admin/NewEMaint'
+                        value['repository']['full_name'] = 'admin/AlphaApp'
                     return 200, {}, b'{' if failure == 'json' else json.dumps(value).encode()
-                if url.endswith('/NewEMaint/issues/284'):
+                if url.endswith('/AlphaApp/issues/284'):
                     self.fail('local same-number terminal Issue must never be queried')
                 if url.endswith('/user') and headers['Authorization'] == 'token fixture-audit':
                     return fixture.response({'login': 'audit', 'is_admin': False})
@@ -287,26 +287,26 @@ class DependencyIntegrationTests(unittest.TestCase):
 
             with self.subTest(failure=failure), patch.object(b.credentials, 'resolve', side_effect=credential):
                 if failure == 'closed':
-                    receipt = b.execute('newemaint', 'gitea.pull.merge.routine', number=7, sha=fixture.sha)
+                    receipt = b.execute('alphaapp', 'gitea.pull.merge.routine', number=7, sha=fixture.sha)
                     self.assertEqual(receipt['dependencies'], ['admin/aisoft-platform#284'])
                     self.assertEqual(len(fixture.posts), 1)
                 else:
                     with self.assertRaises(BrokerError):
-                        b.execute('newemaint', 'gitea.pull.merge.routine', number=7, sha=fixture.sha)
+                        b.execute('alphaapp', 'gitea.pull.merge.routine', number=7, sha=fixture.sha)
                     self.assertEqual(fixture.posts, [])
                 self.assertEqual(requests, [(access().governance.base_url
                                             + '/api/v1/repos/admin/aisoft-platform/issues/284',
                                             'token fixture-audit')])
 
     def test_routine_invalid_or_denied_dependencies_never_query_target(self):
-        for values in ('  - admin/LocalWMS#284', '  - http://host/repo#284', '  - 74',
-                       '  - 284\n  - admin/NewEMaint#284'):
+        for values in ('  - admin/BetaApp#284', '  - http://host/repo#284', '  - 74',
+                       '  - 284\n  - admin/AlphaApp#284'):
             fixture = self.routine_fixture()
             fixture.summary = fixture.summary.replace("  - 'admin/aisoft-platform#284'", values)
             b = fixture.broker()
             with self.subTest(values=values), patch.object(b, '_read_dependency') as read:
                 with self.assertRaises(BrokerError):
-                    b.execute('newemaint', 'gitea.pull.merge.routine', number=7, sha=fixture.sha)
+                    b.execute('alphaapp', 'gitea.pull.merge.routine', number=7, sha=fixture.sha)
                 read.assert_not_called()
                 self.assertEqual(fixture.posts, [])
 

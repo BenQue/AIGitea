@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def access():
-    return load_access_contract(ROOT / 'codex/config/host-access-broker.json',
-                                ROOT / 'codex/config/gitea-governance.json')
+    return load_access_contract(ROOT / 'codex/tests/fixtures/manifests/host-access-broker.json',
+                                ROOT / 'codex/tests/fixtures/manifests/gitea-governance.json')
 
 
 def issue(state='open', label='completed'):
@@ -39,12 +39,12 @@ class DependencyTests(unittest.TestCase):
                          ('admin/other#142',))
 
     def test_only_canonical_manifest_edge_allowed(self):
-        c=access(); s=c.project('sfm-digital-board')
+        c=access(); s=c.project('gamma-board')
         self.assertEqual(resolve_target(c,s,'admin/aisoft-platform#284')[0].project_id,
                          'aisoft-platform')
-        for source,ref in [('localwms','admin/aisoft-platform#284'),
-                           ('sfm-digital-board','other/aisoft-platform#284'),
-                           ('sfm-digital-board','admin/AISoftPlatform#284')]:
+        for source,ref in [('betaapp','admin/aisoft-platform#284'),
+                           ('gamma-board','other/aisoft-platform#284'),
+                           ('gamma-board','admin/AISoftPlatform#284')]:
             with self.subTest(source=source,ref=ref), self.assertRaises(DependencyError):
                 resolve_target(c,c.project(source),ref)
 
@@ -62,7 +62,7 @@ class DependencyTests(unittest.TestCase):
         c=access(); b=HostAccessBroker(c)
         with patch.object(b.credentials,'resolve') as cred, patch.object(b,'_request_json') as get:
             with self.assertRaises(BrokerError) as err:
-                b.execute('localwms','gitea.dependency.read',reference='admin/aisoft-platform#284')
+                b.execute('betaapp','gitea.dependency.read',reference='admin/aisoft-platform#284')
             self.assertEqual(err.exception.code,'DEPENDENCY_TARGET_DENIED')
             cred.assert_not_called(); get.assert_not_called()
 
@@ -71,7 +71,7 @@ class DependencyTests(unittest.TestCase):
         with patch.object(b.credentials,'resolve',return_value=ResolvedCredential('audit','fixture-audit')) as cred, \
                 patch.object(b,'_request_json',return_value=issue()) as get, \
                 patch.object(b,'_verify_identity'):
-            result=b.execute('sfm-digital-board','gitea.dependency.read',reference='admin/aisoft-platform#284')
+            result=b.execute('gamma-board','gitea.dependency.read',reference='admin/aisoft-platform#284')
             self.assertEqual(cred.call_args.args[1].identity_route,'manager-audit')
             self.assertEqual(get.call_args.args[0],c.governance.base_url+'/api/v1/repos/admin/aisoft-platform/issues/284')
             self.assertEqual(get.call_args.args[1],'fixture-audit')
@@ -79,7 +79,7 @@ class DependencyTests(unittest.TestCase):
             self.assertNotIn('body',result)
 
     def test_routine_dependency_path_uses_same_target_and_terminal_rule(self):
-        c=access(); source=c.project('sfm-digital-board'); b=HostAccessBroker(c)
+        c=access(); source=c.project('gamma-board'); b=HostAccessBroker(c)
         with patch.object(b.credentials,'resolve',return_value=ResolvedCredential('audit','fixture-audit')), \
                 patch.object(b,'_request_json',return_value=issue()) as get, \
                 patch.object(b,'_verify_identity'):

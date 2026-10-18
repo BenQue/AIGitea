@@ -41,13 +41,13 @@ class Backend(FakeGitea):
         self.save()
 
 
-contract = load_access_contract(ROOT / 'codex/config/host-access-broker.json',
-                               ROOT / 'codex/config/gitea-governance.json')
+contract = load_access_contract(ROOT / 'codex/tests/fixtures/manifests/host-access-broker.json',
+                               ROOT / 'codex/tests/fixtures/manifests/gitea-governance.json')
 contract.raw['mac_host']['credential_root'] = str(store)
 
 
 def grant(contract, target, issue, source, **kwargs):
-    if issue != 316 or source != SOURCE or target.project_id != 'newemaint' or target.token_kind != 'routine-merge-agent':
+    if issue != 316 or source != SOURCE or target.project_id != 'alphaapp' or target.token_kind != 'routine-merge-agent':
         raise BrokerError('ROTATION_GRANT_INVALID', 'fixture refuses wrong target')
     return OperatorGrant(dict(issue=issue, source_sha=source, project_id=target.project_id,
                 token_kind=target.token_kind, creation_issue=213), capability=CAPABILITY)

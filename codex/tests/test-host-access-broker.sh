@@ -6,8 +6,8 @@ TMP="$(mktemp -d)"
 trap 'rm -rf -- "$TMP"' EXIT
 
 PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_host_access.cli \
-  --access-manifest "$ROOT/codex/config/host-access-broker.json" \
-  --governance-manifest "$ROOT/codex/config/gitea-governance.json" \
+  --access-manifest "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
+  --governance-manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
   validate >"$TMP/validate.json"
 jq -e '
   .status == "PASS" and
@@ -46,7 +46,7 @@ jq -e '
   ([.operations[] | select(.name == "gitea.issue.read")][0].arguments == ["number"]) and
   ([.projects[] | select(has("dependency_read_targets"))
     | {project_id, dependency_read_targets}]
-    == [{"project_id":"sfm-digital-board","dependency_read_targets":["aisoft-platform"]}]) and
+    == [{"project_id":"gamma-board","dependency_read_targets":["aisoft-platform"]}]) and
   ([.operations[] | select(.name == "gitea.issue.create")][0].arguments
     == ["title", "body", "entry_label"]) and
   ([.operations[] | select(.name == "gitea.pull.create")][0].arguments == ["issue", "title", "body"]) and
@@ -90,16 +90,16 @@ jq -e '
   ([.operations[].name] | any(test("^gitea\\.labels\\.")) ) and
   ([.operations[].name] | any(contains("delete")) | not) and
   (([.projects[] | select(has("git_remote_name")) | .project_id] | sort) ==
-    ["newemaint", "sfm-digital-board"]) and
+    ["alphaapp", "gamma-board"]) and
   ([.projects[] | select(has("git_remote_name")) | .git_remote_name]
     | all(. == "gitea")) and
   ([.projects[] | select(.vm_profile != null) | .repository] | sort) ==
-    ["LocalWMS", "NewEMaint", "aisoft-platform"] and
-  ([.projects[] | select(.project_id == "hsdb")]
-    == [{"project_id":"hsdb","repository":"HSDB","project_agent":"hsdb-agent",
-         "routine_merge_agent":null,"mac_checkout":"/Users/benque/Projects/HSDB",
+    ["AlphaApp", "BetaApp", "aisoft-platform"] and
+  ([.projects[] | select(.project_id == "deltadb")]
+    == [{"project_id":"deltadb","repository":"DeltaDB","project_agent":"deltadb-agent",
+         "routine_merge_agent":null,"mac_checkout":"/Users/benque/Projects/DeltaDB",
          "vm_profile":null}])
-' "$ROOT/codex/config/host-access-broker.json" >/dev/null
+' "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" >/dev/null
 
 if rg -ni 'keychain|/usr/bin/security|find-generic-password|dump-keychain|security -A' \
   "$ROOT/codex/runtime/aisoft_host_access"; then
@@ -109,7 +109,7 @@ fi
 
 set +e
 denied_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-  --project localwms --operation shell.run 2>&1)"
+  --project smoke-test --operation shell.run 2>&1)"
 denied_status=$?
 set -e
 test "$denied_status" = 20
@@ -120,12 +120,12 @@ grep -Fq 'REQUEST_DENIED' <<<"$denied_output"
 # lookup. The sole authorized production edge is pinned by the manifest check above.
 for dependency_reference in \
   'admin/aisoft-platform#284' \
-  'other/LocalWMS#284' \
+  'other/OtherApp#284' \
   'http://foreign-host/repo#284' \
   'admin/../repo#284'; do
   set +e
   dependency_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project localwms --operation gitea.dependency.read \
+    --project smoke-test --operation gitea.dependency.read \
     --reference "$dependency_reference" 2>&1)"
   dependency_status=$?
   set -e
@@ -143,7 +143,7 @@ for labels_delete_operation in \
   gitea.issue.labels.extension.delete; do
   set +e
   labels_delete_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project localwms --operation "$labels_delete_operation" 2>&1)"
+    --project smoke-test --operation "$labels_delete_operation" 2>&1)"
   labels_delete_status=$?
   set -e
   test "$labels_delete_status" = 20
@@ -162,7 +162,7 @@ for extension_mismatch in \
   set +e
   # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
   extension_mismatch_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project localwms $extension_mismatch 2>&1)"
+    --project smoke-test $extension_mismatch 2>&1)"
   extension_mismatch_status=$?
   set -e
   test "$extension_mismatch_status" = 20
@@ -175,7 +175,7 @@ for invalid_extension_request in \
   set +e
   # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
   invalid_extension_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project localwms $invalid_extension_request 2>&1)"
+    --project smoke-test $invalid_extension_request 2>&1)"
   invalid_extension_status=$?
   set -e
   test "$invalid_extension_status" = 20
@@ -190,7 +190,7 @@ done
 for invalid_lifecycle in bogus type/feature triage/ready-for-agent; do
   set +e
   lifecycle_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project localwms --operation gitea.issue.labels.set \
+    --project smoke-test --operation gitea.issue.labels.set \
     --number 1 --lifecycle "$invalid_lifecycle" 2>&1)"
   lifecycle_status=$?
   set -e
@@ -210,7 +210,7 @@ for invalid_classification in \
   set +e
   # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
   classify_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project localwms --operation gitea.issue.labels.classify \
+    --project smoke-test --operation gitea.issue.labels.classify \
     --number 1 $invalid_classification 2>&1)"
   classify_status=$?
   set -e
@@ -231,7 +231,7 @@ for mismatched in \
   set +e
   # shellcheck disable=SC2086  # fixed literal argument vectors, not user input
   mismatch_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-    --project localwms $mismatched 2>&1)"
+    --project smoke-test $mismatched 2>&1)"
   mismatch_status=$?
   set -e
   test "$mismatch_status" = 20
@@ -240,7 +240,7 @@ done
 
 set +e
 url_output="$("$ROOT/codex/tools/host-access-broker.sh" \
-  --project localwms --operation gitea.repo.read \
+  --project smoke-test --operation gitea.repo.read \
   --url http://attacker.invalid 2>&1)"
 url_status=$?
 set -e
@@ -280,6 +280,10 @@ printf '%s\n' legacy-helper > \
   "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/keychain-acl-audit"
 printf '%s\n' legacy-helper-previous > \
   "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/keychain-acl-audit.previous"
+printf '%s\n' retired-rollback > \
+  "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/rollback-gitea-routine-pilot"
+printf '%s\n' retired-rollback-previous > \
+  "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/rollback-gitea-routine-pilot.previous"
 first="$("$ROOT/codex/install-host-access-broker.sh")"
 grep -Fq 'no credential, Git config, project profile, token, service, timer, VM, merge, or deployment mutation' \
   <<<"$first"
@@ -298,6 +302,8 @@ diff -u "$first_manifest" "$second_manifest"
 test -x "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/host-access-broker"
 test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/keychain-acl-audit"
 test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/keychain-acl-audit.previous"
+test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/rollback-gitea-routine-pilot"
+test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/rollback-gitea-routine-pilot.previous"
 test -x "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/git-credential-aisoft-host"
 test -x "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/project-profile-migration"
 test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/share/aisoft/host-access-broker.json"

@@ -444,7 +444,7 @@ grep -Fq -- '--lifecycle completed' "$TMP/broker.log"
 grep -Fq -- '--number 502' "$TMP/broker.log"
 
 # AC-2: the undeclared repository lands in that same branch. This is the default
-# change itself, and it is why the real-manifest LocalWMS case above resolves.
+# change itself, and it is why the real-manifest BetaApp case above resolves.
 # The two verdicts are compared rather than re-asserted, so a default that later
 # drifts away from the declaration it is supposed to mean fails right here.
 undeclared_plan="$(run --project undeclared-project 502)"
@@ -552,7 +552,7 @@ for bad_case in "$TMP/absent-access-manifest.json" "$TMP/broken-access-manifest.
   grep -Fq 'mark-completed:' <<<"$bad_output"
 done
 
-# AC-1/AC-2 on the real pair. localwms -> LocalWMS is the mapping that made this
+# AC-1/AC-2 on the real pair. betaapp -> BetaApp is the mapping that made this
 # Issue: it is one of six real projects whose id differs from its repository, and
 # before #172 this exact invocation exited 1 without reaching an Issue. Only the
 # derivation and the resulting verdict are asserted here — what the real
@@ -562,19 +562,19 @@ done
 : >"$TMP/broker.log"
 real_plan="$(
   PYTHONPATH="$ROOT/codex/runtime" \
-    AISOFT_GOVERNANCE_MANIFEST="$ROOT/codex/config/gitea-governance.json" \
-    AISOFT_ACCESS_MANIFEST="$ROOT/codex/config/host-access-broker.json" \
-    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" --project localwms 501 502
+    AISOFT_GOVERNANCE_MANIFEST="$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
+    AISOFT_ACCESS_MANIFEST="$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
+    bash "$BIN/mark-completed-issues.sh" --repo "$REPO" --project betaapp 501 502
 )"
 jq -e 'select(.issue == 501) | .action == "set-completed"' <<<"$real_plan" >/dev/null
-# LocalWMS declares no deployment_lifecycle, so it is also the real-manifest case
+# BetaApp declares no deployment_lifecycle, so it is also the real-manifest case
 # for #192: before it, this exact invocation skipped #502 and nothing else ever
-# wrote a terminal label -- five merged LocalWMS Issues are closed with no label
+# wrote a terminal label -- five merged BetaApp Issues are closed with no label
 # at all because of it. The verdict is now completed, on stated grounds.
 jq -e 'select(.issue == 502)
   | .action == "set-completed" and .reason == "deployment-not-guaranteed"' \
   <<<"$real_plan" >/dev/null
-grep -Fq 'LocalWMS' <<<"$(jq -r 'select(.issue == 502) | .detail' <<<"$real_plan")"
+grep -Fq 'BetaApp' <<<"$(jq -r 'select(.issue == 502) | .detail' <<<"$real_plan")"
 [ "$(wc -l <"$TMP/broker.log" | tr -d ' ')" = 0 ]
 
 # --- #184: which repository this run is allowed to write to ------------------

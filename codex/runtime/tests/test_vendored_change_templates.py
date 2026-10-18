@@ -15,7 +15,7 @@ from aisoft_gitea_governance.contract import (
     repository_declarations_sha256,
 )
 
-MANIFEST = Path(__file__).resolve().parents[3] / "codex/config/gitea-governance.json"
+MANIFEST = Path(__file__).resolve().parents[3] / "codex/tests/fixtures/manifests/gitea-governance.json"
 
 
 class VendoredChangeTemplatesContractTests(unittest.TestCase):
@@ -63,10 +63,10 @@ class VendoredChangeTemplatesContractTests(unittest.TestCase):
         raw = json.loads(MANIFEST.read_text())
         raw["repositories"][1]["vendors_change_templates"] = False
         next(
-            item for item in raw["repositories"] if item["name"] == "NewEMaint"
+            item for item in raw["repositories"] if item["name"] == "AlphaApp"
         )["routine_live_pilot"]["non_target_repositories_sha256"] = (
             repository_declarations_sha256(
-                raw["repositories"], exclude_name="NewEMaint"
+                raw["repositories"], exclude_name="AlphaApp"
             )
         )
         expected = {

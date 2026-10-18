@@ -79,7 +79,6 @@ for script in \
   "$ROOT/codex/tools/gitea-governance.sh" \
   "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   "$ROOT/codex/tools/rotate-gitea-service-account.sh" \
-  "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
   "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
   "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
   "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
@@ -104,7 +103,6 @@ for script in \
   "$ROOT/codex/tests/test-rotate-gitea-service-account.sh" \
   "$ROOT/codex/tests/test-gitea-pat-helper-linux.sh" \
   "$ROOT/codex/tests/test-gitea-pat-helper-linux-gates.sh" \
-  "$ROOT/codex/tests/test-rollback-gitea-routine-pilot.sh" \
   "$ROOT/codex/tests/test-sync-gitea-service-policy.sh" \
   "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
   "$ROOT/codex/tests/test-cleanup-merged.sh" \
@@ -152,7 +150,6 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/gitea-governance.sh" \
     "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
     "$ROOT/codex/tools/rotate-gitea-service-account.sh" \
-    "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
     "$ROOT/codex/tools/sync-gitea-service-policy.sh" \
     "$ROOT/codex/tools/ensure-gitea-collaborator.sh" \
     "$ROOT/codex/tools/aigitea-cleanup-merged.sh" \
@@ -181,7 +178,6 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-rotate-gitea-service-account.sh" \
     "$ROOT/codex/tests/test-gitea-pat-helper-linux.sh" \
     "$ROOT/codex/tests/test-gitea-pat-helper-linux-gates.sh" \
-    "$ROOT/codex/tests/test-rollback-gitea-routine-pilot.sh" \
     "$ROOT/codex/tests/test-sync-gitea-service-policy.sh" \
     "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh" \
     "$ROOT/codex/tests/test-cleanup-merged.sh" \
@@ -240,7 +236,6 @@ bash "$ROOT/codex/tests/test-rotate-gitea-service-account.sh"
 bash "$ROOT/codex/tests/test-gitea-pat-helper-linux-gates.sh"
 # The fixed archive/tree pin negatives do not download Go or touch live Gitea.
 python3 -m unittest discover -s "$ROOT/codex/tools/gitea-pat-helper" -p test_build.py
-bash "$ROOT/codex/tests/test-rollback-gitea-routine-pilot.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-service-policy.sh"
 bash "$ROOT/codex/tests/test-ensure-gitea-collaborator.sh"
 bash "$ROOT/codex/tests/test-cleanup-merged.sh"
@@ -337,6 +332,51 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_host_access.cli \
   --governance-manifest "$ROOT/codex/config/gitea-governance.json" \
   validate >/dev/null
 jq empty "$ROOT/codex/config/host-access-broker.json"
+
+# #380 (ADR 0001 D3): tests assert the synthetic manifests under
+# codex/tests/fixtures/manifests/, never a registered project's entry in the
+# real ones. Only the files below may name the real manifests: they install
+# it, count its operations, validate that it loads, or build a temp copy.
+for fixture_manifest in gitea-governance host-access-broker; do
+  [[ -f "$ROOT/codex/tests/fixtures/manifests/$fixture_manifest.json" ]]
+done
+PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_host_access.cli \
+  --access-manifest "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
+  --governance-manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
+  validate >/dev/null
+# The pattern covers literal paths, Path joins that name a manifest
+# ("codex" / "config" / ..., / "config" / ...) and a bare 'codex/config'
+# directory string; other config files and git's "config" do not match.
+real_manifest_ref='codex/config/(gitea-governance|host-access-broker)|["'"'"']config/(gitea-governance|host-access-broker)|["'"'"']codex/config["'"'"']|(["'"'"']codex["'"'"'] */ *["'"'"']config["'"'"']|/ *["'"'"']config["'"'"'] */).*(gitea-governance|host-access-broker)'
+# The samples are literal source text; $ROOT must not expand.
+# shellcheck disable=SC2016
+real_manifest_samples="$(printf '%s\n' \
+  'ROOT / "codex/config/gitea-governance.json"' \
+  'ROOT / "codex" / "config" / "gitea-governance.json"' \
+  'ROOT / "config" / "host-access-broker.json"' \
+  "repository / 'codex/config' / name" \
+  '"$ROOT/codex/config/host-access-broker.json"' \
+  'self.git("config", "user.name", "x")' \
+  '"$ROOT/codex/tests/fixtures/manifests/gitea-governance.json"')"
+[[ "$(rg -c "$real_manifest_ref" <<<"$real_manifest_samples")" == 5 ]]
+# Allowed: smoke itself and the leak guard read the real manifests on purpose;
+# the installer tests install and count them; sync-gitea-service-policy and
+# the PAT helper process test pin their real-manifest behaviour (the helper's
+# test sources are part of its build provenance, outside #380); the
+# change-template-sync and leak-guard tests write temp trees; the
+# classification fixture only quotes the path in an Issue comment.
+if rg -n "$real_manifest_ref" "$ROOT/codex/runtime/tests" "$ROOT/codex/tests" \
+  --glob '!**/codex/tests/smoke.sh' --glob '!**/codex/tests/check-project-leak.py' \
+  --glob '!**/codex/runtime/tests/test_project_leak.py' \
+  --glob '!**/codex/tests/test-install-host-access-broker.sh' \
+  --glob '!**/codex/tests/test-installer-source-guard.sh' \
+  --glob '!**/codex/tests/test-sync-gitea-service-policy.sh' \
+  --glob '!**/codex/tests/test-change-template-sync.sh' \
+  --glob '!**/codex/tests/integration/test-gitea-pat-helper-process.py' \
+  --glob '!**/codex/tests/fixtures/classification/issue-comment-overrides-body.json'; then
+  echo '测试必须读 codex/tests/fixtures/manifests/ 的合成夹具，不得读真实 manifest（#380）' >&2
+  exit 1
+fi
 
 while IFS= read -r json_file; do
   jq empty "$json_file"

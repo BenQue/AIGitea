@@ -42,7 +42,6 @@ make_source_tree() {
   cp "$ROOT/codex/tools/git-credential-aisoft-host.sh" "$dest/codex/tools/"
   cp "$ROOT/codex/tools/project-profile-migration.sh" "$dest/codex/tools/"
   cp "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" "$dest/codex/tools/"
-  cp "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" "$dest/codex/tools/"
   cp "$ROOT/codex/tools/rotate-gitea-service-account.sh" "$dest/codex/tools/"
 }
 
@@ -90,14 +89,11 @@ assert_installed() {
     fail "$label: broker entrypoint was not installed"
   [[ -x "$install_root/usr/local/libexec/aisoft/bootstrap-gitea-service-account" ]] ||
     fail "$label: bootstrap tool was not installed"
-  [[ -x "$install_root/usr/local/libexec/aisoft/rollback-gitea-routine-pilot" ]] ||
-    fail "$label: rollback tool was not installed"
+  [[ ! -e "$install_root/usr/local/libexec/aisoft/rollback-gitea-routine-pilot" ]] ||
+    fail "$label: retired rollback tool was installed"
   cmp -s "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
     "$install_root/usr/local/libexec/aisoft/bootstrap-gitea-service-account" ||
     fail "$label: bootstrap tool bytes differ"
-  cmp -s "$ROOT/codex/tools/rollback-gitea-routine-pilot.sh" \
-    "$install_root/usr/local/libexec/aisoft/rollback-gitea-routine-pilot" ||
-    fail "$label: rollback tool bytes differ"
 }
 
 # --- level with upstream: installs, and prints what it installed -------------
