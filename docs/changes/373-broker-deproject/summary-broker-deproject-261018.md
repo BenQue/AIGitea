@@ -24,9 +24,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 371
-status: approved
+status: pr-open
 branch: change/373-broker-deproject
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/374
 created: 2026-10-18
 updated: 2026-10-18
 ---
