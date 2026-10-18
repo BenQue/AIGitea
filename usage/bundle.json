@@ -119,21 +119,22 @@
     {
       "version": "1.0.0",
       "released": "2026-10-18",
-      "bundle_digest": "sha256:1d5459d0960c012709acb897f975d6a97c1a966d7b8e69bac93eb2782afacb96",
+      "bundle_digest": "sha256:76a3d750d07c80b83770e259f57967a4e49f37e22e8e3ffd1fdc19ad0d4bc55e",
       "members": [
         {
           "source": "usage/CONTRACT.md",
           "mode": "exact",
           "target": ".aisoft/platform-usage.md",
           "check": "platform-pin",
-          "sha256": "7dd179952bfe2cd1d3861359e462b1373d462e7c107ce563c4c4f237f068ce61"
+          "sha256": "2b4c84c194076ca489c104690df6544781bf82dbb2da5ef6b3353f1f7de454a7"
         },
         {
           "source": "templates/project/AGENTS.md",
           "mode": "pointer",
           "target": "AGENTS.md",
           "check": "pointer-sections",
-          "sha256": "b4535a6ff617ffa4a713a7b91cd9c2646451fa25786795072daa01c5209e42cf"
+          "sha256": "412a5b206ad74f8f2b4408dc441273b689fdc7f8bc858fd5d9c20831605a5236",
+          "pointer_sha256": "cf31a6f2de3c2fad70e30deb375f6be541a5fc41154f1893131747107ab4081f"
         },
         {
           "source": "templates/project/CLAUDE.md",

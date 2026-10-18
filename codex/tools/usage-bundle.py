@@ -9,7 +9,9 @@ commits after that release no longer change what the project is checked
 against. Distribution needs no broker operation, Gitea release or tag: the
 history table is the version, the digests prove the copy.
 
-  --verify                       declaration, history and current contents agree
+  --verify [--baseline-ref REF]  declaration, history and current contents agree;
+                                 with REF, releases published there are an
+                                 unchanged prefix of the current history
   --release VERSION --today D    append a release from the current contents
   --build DIR                    export the latest release for a project to copy
   --project-status REPO          platform-pin / pointer-sections / change-templates
@@ -25,6 +27,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import subprocess
 import sys
 
 DEFAULT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -44,7 +47,7 @@ class BundleError(Exception):
 
 def usage() -> None:
     print(
-        "usage: usage-bundle.sh [--platform-root DIR] --verify\n"
+        "usage: usage-bundle.sh [--platform-root DIR] --verify [--baseline-ref REF]\n"
         "       usage-bundle.sh [--platform-root DIR] --release VERSION --today YYYY-MM-DD\n"
         "       usage-bundle.sh [--platform-root DIR] --build DIR\n"
         "       usage-bundle.sh [--platform-root DIR] --project-status REPO",
@@ -63,7 +66,13 @@ def extract_pointer(text: str) -> str | None:
     next level-two heading after it."""
     lines: list[str] = []
     in_pointer = saw_platform = saw_path = False
-    for line in text.splitlines():
+    # awk's default record separator is LF only: CR stays part of the line and
+    # Unicode line separators are ordinary characters. str.splitlines() would
+    # split on both and let content hide behind a U+2028 "line break".
+    records = text.split("\n")
+    if records and records[-1] == "":
+        records.pop()
+    for line in records:
         if line == POINTER_START:
             in_pointer = saw_platform = True
         if in_pointer:
@@ -77,11 +86,8 @@ def extract_pointer(text: str) -> str | None:
     return "\n".join(lines) + "\n"
 
 
-def member_digest(path: Path, mode: str) -> str:
-    data = path.read_bytes()
-    if mode != "pointer":
-        return sha256_bytes(data)
-    pointer = extract_pointer(data.decode("utf-8"))
+def pointer_digest(path: Path) -> str:
+    pointer = extract_pointer(path.read_bytes().decode("utf-8"))
     if pointer is None:
         raise BundleError(f"{path}: 缺少常驻指针两节")
     return sha256_bytes(pointer.encode("utf-8"))
@@ -92,8 +98,22 @@ def canonical_member(member: dict) -> dict:
     return {key: member[key] for key in keys if member.get(key) is not None}
 
 
+def released_member(root: Path, member: dict) -> dict:
+    """sha256 always covers every distributed byte of the source; a pointer
+    member additionally records the digest of its two pointer sections, which
+    is what a project's AGENTS.md is checked against."""
+    source = root / member["source"]
+    record = dict(canonical_member(member), sha256=sha256_bytes(source.read_bytes()))
+    if member["mode"] == "pointer":
+        record["pointer_sha256"] = pointer_digest(source)
+    return record
+
+
 def compute_bundle_digest(members: list[dict]) -> str:
-    payload = [dict(canonical_member(m), sha256=m["sha256"]) for m in members]
+    payload = [
+        {key: m[key] for key in ("source", "mode", "target", "check", "sha256", "pointer_sha256") if key in m}
+        for m in members
+    ]
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return "sha256:" + sha256_bytes(text.encode("utf-8"))
 
@@ -117,7 +137,7 @@ def safe_relative(value: object, label: str) -> str:
 def validate_member(member: object, label: str) -> dict:
     if not isinstance(member, dict):
         raise BundleError(f"{label} 必须是对象")
-    allowed = {"source", "mode", "target", "check", "sha256"}
+    allowed = {"source", "mode", "target", "check", "sha256", "pointer_sha256"}
     extra = set(member) - allowed
     if extra:
         raise BundleError(f"{label} 有未知字段：{sorted(extra)}")
@@ -134,6 +154,8 @@ def validate_member(member: object, label: str) -> dict:
         safe_relative(target, f"{label}.target")
     if mode == "pointer" and check != "pointer-sections":
         raise BundleError(f"{label}: pointer 成员必须归入 pointer-sections")
+    if mode == "exact" and check is None:
+        raise BundleError(f"{label}: exact 成员必须归入一个核对项，不能被静默跳过")
     if mode == "seed" and check is not None:
         raise BundleError(f"{label}: seed 成员不核对，不能有 check")
     if check is not None and check not in CHECKS:
@@ -156,19 +178,35 @@ def validate_member_list(members: object, label: str, with_sha: bool) -> list[di
             if target in targets:
                 raise BundleError(f"{label}: target 重复 {target}")
             targets.add(target)
+        digest_keys = ["sha256"] + (["pointer_sha256"] if member["mode"] == "pointer" else [])
         if with_sha:
-            if not isinstance(member.get("sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", member["sha256"]):
-                raise BundleError(f"{label}[{index}].sha256 不是 64 位十六进制")
-        elif "sha256" in member:
-            raise BundleError(f"{label}[{index}] 不应记录 sha256（只在 releases 里记）")
+            for key in digest_keys:
+                if not isinstance(member.get(key), str) or not re.fullmatch(r"[0-9a-f]{64}", member[key]):
+                    raise BundleError(f"{label}[{index}].{key} 不是 64 位十六进制")
+            if member["mode"] != "pointer" and "pointer_sha256" in member:
+                raise BundleError(f"{label}[{index}] 只有 pointer 成员记录 pointer_sha256")
+        elif "sha256" in member or "pointer_sha256" in member:
+            raise BundleError(f"{label}[{index}] 不应记录摘要（只在 releases 里记）")
+    covered = {member.get("check") for member in members}
+    missing = [check for check in CHECKS if check not in covered]
+    if missing:
+        raise BundleError(f"{label}: 缺少归入 {', '.join(missing)} 的成员，核对项不能为空")
     return members  # type: ignore[return-value]
 
 
 def load_bundle(root: Path) -> dict:
     path = root / BUNDLE_PATH
     try:
-        bundle = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as error:
+        text = path.read_text(encoding="utf-8")
+    except OSError as error:
+        raise BundleError(f"读不懂 {BUNDLE_PATH}：{error}") from error
+    return parse_bundle(text)
+
+
+def parse_bundle(text: str) -> dict:
+    try:
+        bundle = json.loads(text)
+    except ValueError as error:
         raise BundleError(f"读不懂 {BUNDLE_PATH}：{error}") from error
     if not isinstance(bundle, dict):
         raise BundleError(f"{BUNDLE_PATH} 必须是对象")
@@ -206,12 +244,35 @@ def current_members(root: Path, bundle: dict) -> list[dict]:
         source = root / member["source"]
         if not source.is_file():
             raise BundleError(f"成员文件缺失：{member['source']}")
-        result.append(dict(canonical_member(member), sha256=member_digest(source, member["mode"])))
+        result.append(released_member(root, member))
     return result
 
 
-def verify(root: Path) -> dict:
+def git(root: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True)
+
+
+def check_baseline(root: Path, bundle: dict, ref: str) -> None:
+    """Self-consistent digests cannot stop someone from rewriting a published
+    release and recomputing every hash. The anchor is the history the
+    protected branch already carries: whatever releases REF published must
+    reappear here unchanged, in order, before any new one."""
+    if git(root, "rev-parse", "--verify", "-q", f"{ref}^{{commit}}").returncode != 0:
+        raise BundleError(f"基线 {ref} 不存在，无法证明历史只追加")
+    if git(root, "cat-file", "-e", f"{ref}:{BUNDLE_PATH}").returncode != 0:
+        return
+    shown = git(root, "show", f"{ref}:{BUNDLE_PATH}")
+    if shown.returncode != 0:
+        raise BundleError(f"读不出基线 {ref}:{BUNDLE_PATH}")
+    published = parse_bundle(shown.stdout)["releases"]
+    if bundle["releases"][: len(published)] != published:
+        raise BundleError(f"{ref} 已发布的版本被改写或删除，历史只能追加")
+
+
+def verify(root: Path, baseline_ref: str | None = None) -> dict:
     bundle = load_bundle(root)
+    if baseline_ref is not None:
+        check_baseline(root, bundle, baseline_ref)
     if not bundle["releases"]:
         raise BundleError("还没有发布任何版本；运行 --release")
     latest = bundle["releases"][-1]
@@ -331,11 +392,14 @@ def project_status(root: Path, repo: Path) -> list[tuple[str, str, str]]:
             failures[check].append(f"{member['target']} 缺失")
             continue
         try:
-            digest = member_digest(target, member["mode"])
+            if member["mode"] == "pointer":
+                digest, expected = pointer_digest(target), member["pointer_sha256"]
+            else:
+                digest, expected = sha256_bytes(target.read_bytes()), member["sha256"]
         except (BundleError, UnicodeDecodeError):
             failures[check].append(f"{member['target']} 缺少常驻指针两节")
             continue
-        if digest != member["sha256"]:
+        if digest != expected:
             failures[check].append(f"{member['target']} 与 {reference['version']} 不一致")
     if pinned:
         if failures["platform-pin"]:
@@ -359,8 +423,8 @@ def main(argv: list[str]) -> int:
         root = Path(args[1]).resolve()
         args = args[2:]
     try:
-        if args == ["--verify"]:
-            bundle = verify(root)
+        if args == ["--verify"] or (len(args) == 3 and args[:2] == ["--verify", "--baseline-ref"]):
+            bundle = verify(root, args[2] if len(args) == 3 else None)
             latest = bundle["releases"][-1]
             print(f"VERIFIED {latest['version']} {latest['bundle_digest']}")
         elif len(args) == 4 and args[0] == "--release" and args[2] == "--today":

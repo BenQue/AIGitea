@@ -263,8 +263,12 @@ bash "$ROOT/codex/tests/test-claude-plugin-pin.sh"
 bash "$ROOT/codex/tools/check-external-skill-versions.sh" --source-only
 bash "$ROOT/codex/tests/test-external-skill-versions.sh"
 # #377: the usage bundle's members must equal its latest release; a change to
-# any member without --release turns platform CI red here.
-bash "$ROOT/codex/tools/usage-bundle.sh" --verify >/dev/null
+# any member without --release turns platform CI red here. Releases already on
+# the protected branch are the anchor for "append only": rewriting one and
+# recomputing every digest is self-consistent, so only the base ref can catch
+# it. PR CI has origin/main from the merge-preview fetch; fail closed without it.
+bash "$ROOT/codex/tools/usage-bundle.sh" --verify \
+  --baseline-ref "${AISOFT_USAGE_BASELINE_REF:-origin/main}" >/dev/null
 bash "$ROOT/codex/tests/test-usage-bundle.sh"
 bash "$ROOT/codex/tests/test-host-role-guard.sh"
 bash "$ROOT/codex/tests/test-install-host-role.sh"

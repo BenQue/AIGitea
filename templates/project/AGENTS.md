@@ -23,9 +23,10 @@
 ## 每 Issue 开发路径
 
 `$triage #N` → 映射的 summary → AI 判级。只有范围局部、可简单 revert、有可测验收且不触发
-任何强制风险的 small，在 `approved` 复核后才能跳过 spec/plan 直进实现；其余 complex 必须先
-`$to-spec #N` → `$to-tickets #N`（plan 的 Txx 依赖图），再经 `approved` 复核后
-`$implement #N Txx`。
+任何强制风险的 small，在 `approved` 复核后才能跳过 spec/plan 直进实现。complex 按 governance
+manifest 中本仓的 `change_control`：`production`（未声明时的默认）必须先 `$to-spec #N` →
+`$to-tickets #N`（plan 的 Txx 依赖图），再经 `approved` 复核后 `$implement #N Txx`；
+`development` 不写 spec/plan，验收标准取自 Issue 正文，`approved` 复核后以合成 `T01` 实现。
 普通编译/测试/CI 失败自主修复；合同冲突、范围扩张、破坏性迁移、安全决策、三次同因失败
 必须停下升级给人。
 

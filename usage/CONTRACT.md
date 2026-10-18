@@ -27,9 +27,10 @@
   说不清停在 `awaiting-triage`。功能新增或变更、schema 与数据迁移、外部契约、认证权限安全、
   共享核心、跨模块、CI/制品/部署/回滚、Agent 与治理一律 complex。small 还要范围局部、可简单
   revert、验收可测。
-- **编排路径。** `$triage #N` → production complex 先 `$to-spec #N` → `$to-tickets #N` →
-  `$implement #N Txx`；small 与 development complex 在判级和 `approved` 复核后跳过 spec/plan。
-  `triage/ready-for-agent` 不等于 `approved`。
+- **编排路径。** `$triage #N` → 判级。complex 按 governance manifest 中本仓的 `change_control`：
+  `production`（未声明时的默认）先 `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`；
+  `development` 不写 spec/plan，验收标准取自 Issue 正文，以合成 `T01` 实现。small 只要 summary。
+  三者都要 `approved` 复核后才进入实现；`triage/ready-for-agent` 不等于 `approved`。
 - **两个确认点。** 人确认 Issue 合同并启动开发；本地实现与验证完成后，人确认提交唯一最终 PR，
   并固定 exact Issue、分支与 `manual|routine-auto` 策略。两点之间 AI 在合同内自主实现、测试和
   修复 CI；合同冲突、范围扩张、破坏性迁移、安全决策、外部阻塞或同因三次失败时停下升级。

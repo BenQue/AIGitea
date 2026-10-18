@@ -63,11 +63,11 @@ ADR 0001 D6 要求项目使用层有一份独立于维护层 `AGENTS.md` 的“�
 - [ ] AC1 平台使用合同 `usage/CONTRACT.md`：项目使用层唯一合同入口，内容为流程不变量（Issue 主键与可读元组、判级、两个确认点、单闸门与 routine 边界、broker 写路径、部署流程不变量）、项目必须自行声明的扩展点（交付形态、部署方案位置、发布 producer 与 transport、禁改边界、provider 选择）与版本跟进规则（项目升版本走自己的 Issue）。只含占位值，不含项目名、主机、部署步骤；维护层规则不复制进来，维护层 `AGENTS.md` 不改。
 - [ ] AC2 项目指针模板：`templates/project/AGENTS.md` 常驻指针改为指向本仓 vendored 的 `.aisoft/platform-usage.md` 与 `.aisoft/platform-usage.lock.json` 的版本，不再把本机平台仓路径写成合同源（平台仓位置只作为安装与工具来源提及）。
 - [ ] AC3 发布包声明 `usage/bundle.json`（`contract_version: aisoft-usage-bundle/v1`）：
-  - `members` 每项 `{source, mode, target}`；`mode` 取 `exact`（项目在 `target` 持逐字节副本）、`pointer`（项目 `AGENTS.md` 的常驻指针两节，摘要按指针两节计算）、`seed`（初始化时复制，项目可改，不核对）、`skill`（安装到工具目录，无项目落点）。成员为使用合同、项目指针与 `CLAUDE.md` 模板、change 模板四件套、`docs/agents` 三件套、项目 CI 示例模板、两侧 `aisoft-platform` / `issue-session-flow` / `aisoft-matt-workflow` 技能源与共享 references。
-  - `releases` 只追加，每项 `{version, released, bundle_digest, files}`，`files` 为成员 source → sha256，`bundle_digest` 为 `files` 的规范化摘要。版本为严格递增的 `MAJOR.MINOR.PATCH`。
+  - `members` 每项 `{source, mode, target, check}`；`mode` 取 `exact`（项目在 `target` 持逐字节副本，必须归入一个核对项）、`pointer`（项目 `AGENTS.md` 的常驻指针两节）、`seed`（初始化时复制，项目可改，不核对）、`skill`（安装到工具目录，无项目落点）；`check` 取 `platform-pin`、`pointer-sections`、`change-templates`，三项都必须至少有一个成员。成员为使用合同、项目指针与 `CLAUDE.md` 模板、change 模板四件套、`docs/agents` 三件套、项目 CI 示例模板、两侧 `aisoft-platform` / `issue-session-flow` / `aisoft-matt-workflow` 技能源与共享 references。
+  - `releases` 只追加，每项 `{version, released, bundle_digest, members}`。`members` 记录发布时的成员声明与 `sha256`（源文件全部字节，所以导出的每个字节都受版本保护）；`pointer` 成员另记 `pointer_sha256`（常驻指针两节，项目按它核对）。`bundle_digest` 为 `members` 的规范化摘要。版本为严格递增的 `MAJOR.MINOR.PATCH`。（Codex 审查后由 `files` 映射调整为带落点元数据的成员数组：旧版本的项目落点与核对归属必须随版本保存。）
   - 本票发布 `1.0.0`。
 - [ ] AC4 工具 `codex/tools/usage-bundle.sh`（实现 `usage-bundle.py`，只用标准库，`PYTHONDONTWRITEBYTECODE`）：
-  - `--verify`：声明结构合法、历史只追加且版本递增、每个版本的 `bundle_digest` 可复算、当前成员文件的摘要与最新版本完全一致；成员内容变了而没有发布新版本即失败，并提示 `--release`。平台 smoke 运行它。
+  - `--verify [--baseline-ref REF]`：声明结构合法、版本递增、每个版本的 `bundle_digest` 可复算、当前成员文件的摘要与最新版本完全一致；成员内容变了而没有发布新版本即失败，并提示 `--release`。给出 REF 时，REF 上已发布的版本必须原样构成当前历史的前缀（自洽地改写旧版本并重算摘要也会被拦下）。平台 smoke 以 `origin/main` 为基线运行它，基线不存在即失败。
   - `--release VERSION --today YYYY-MM-DD`：用当前成员内容追加一个新版本（版本必须大于最新版本）。
   - `--build DIR`：在当前内容等于最新版本时，确定性导出 `DIR/project/`（`exact`、`pointer`、`seed` 成员放到项目落点，另生成 `.aisoft/platform-usage.lock.json`）与 `DIR/skills/`（`skill` 成员按 source 路径），供 project-align 复制；DIR 必须不存在或为空。
   - `--project-status REPO`：只读，供 project-check 调用，输出 `platform-pin`、`pointer-sections`、`change-templates` 三项的 PASS/GAP 与细节。
