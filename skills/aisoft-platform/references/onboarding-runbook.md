@@ -191,8 +191,8 @@ AppServer role。
   migration。
 - 运行时（Engine、编排工具、镜像存储）版本只接受项目自己用真实 E2E 证明过的组合，不得凭
   源码结论或 fake PASS 扩展。
-- 平台 `docker-release/` 目录是一份可选用的参考实现与合同，不是项目的部署步骤事实源；项目
-  采用与否、如何裁剪，在项目仓声明与实现。
+- 平台不提供任何交付形态的实现；容器发布 runtime、离线 handoff operator 等由项目仓自带并
+  维护（#383 起平台已迁出原参考实现，历史版本见 `archive/` 迁出说明）。
 - producer 宿主为 arm64 Mac 而目标为 `linux/amd64` 时，用 `docker buildx build --platform linux/amd64`
   （或 OrbStack Rosetta）交叉构建；在本地 DockerLab 以模拟 amd64 运行时得到的测试证据必须标注
   `emulated`，不得写成原生 amd64 证据。native 模块在模拟下失败是选择 GitHub Actions 候选 producer 的
