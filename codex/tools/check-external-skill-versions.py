@@ -120,8 +120,11 @@ def claude_superpowers(home: Path) -> str | None:
         raise Unreadable("installed_plugins.json plugins is not an object")
     versions: set[str] = set()
     for plugin_id, entries in plugins.items():
-        if plugin_id.partition("@")[0] != PACK:
+        name, separator, marketplace = plugin_id.partition("@")
+        if name != PACK:
             continue
+        if not separator or not ID_PART_RE.fullmatch(marketplace):
+            raise Unreadable(f"a {PACK} plugin key has an unrecognised marketplace")
         if not isinstance(entries, list):
             raise Unreadable(f"the {PACK} records are not a list")
         for entry in entries:
@@ -137,7 +140,11 @@ def _codex_cached_version(home: Path, marketplace: str) -> str | None:
     if not base.is_dir() or base.is_symlink():
         return None
     versions: set[str] = set()
-    for child in sorted(base.iterdir()):
+    try:
+        children = sorted(base.iterdir())
+    except OSError as error:
+        raise Unreadable(f"the cached {PACK} directory is not listable ({type(error).__name__})") from error
+    for child in children:
         manifest = child / ".codex-plugin" / "plugin.json"
         if child.is_symlink() or not manifest.is_file():
             continue
@@ -175,7 +182,9 @@ def codex_superpowers(home: Path, adapted: str) -> str:
             continue
         if not separator or not ID_PART_RE.fullmatch(marketplace):
             raise Unreadable(f"a {PACK} plugin key has an unrecognised marketplace")
-        if isinstance(settings, dict) and settings.get("enabled") is True:
+        if not isinstance(settings, dict) or not isinstance(settings.get("enabled", False), bool):
+            raise Unreadable(f"the {PACK} plugin setting is not a table with a boolean enabled")
+        if settings.get("enabled") is True:
             enabled.append(marketplace)
     if not enabled:
         return f"NOT_INSTALLED enabled=none adapted={adapted}"
@@ -184,6 +193,8 @@ def codex_superpowers(home: Path, adapted: str) -> str:
     marketplace = enabled[0]
     cached = _codex_cached_version(home, marketplace)
     detail = f"enabled={PACK}@{marketplace}"
+    if marketplace in marketplaces and not isinstance(marketplaces[marketplace], dict):
+        raise Unreadable("the enabled marketplace entry is not a table")
     if marketplace not in marketplaces:
         return f"NOT_LOADED {detail} marketplace=unregistered cached={cached or 'none'} adapted={adapted}"
     if cached is None:
@@ -242,7 +253,8 @@ def main(argv: list[str]) -> int:
         print(f"HOME_MISSING: {home} is not a directory", file=sys.stderr)
         return 2
 
-    lines = [f"CLI claude {cli_version('claude')}", f"CLI codex {cli_version('codex')}"]
+    clis = [cli_version("claude"), cli_version("codex")]
+    lines = [f"CLI claude {clis[0]}", f"CLI codex {clis[1]}"]
     try:
         installed = claude_superpowers(home)
         if installed is None:
@@ -258,7 +270,7 @@ def main(argv: list[str]) -> int:
     matt = matt_state(home)
     lines += [f"{PACK.upper()} claude {claude}", f"{PACK.upper()} codex {codex}", f"MATT claude {matt}"]
 
-    states = [claude.split()[0], codex.split()[0]]
+    states = [claude.split()[0], codex.split()[0], *clis]
     failing = any(state in {"REVIEW_NEEDED", "UNKNOWN"} for state in states) or matt != "PIN_CLEAN"
     lines.append("RESULT REVIEW_NEEDED" if failing else "RESULT PASS")
     print("\n".join(lines))

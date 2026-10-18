@@ -62,7 +62,7 @@ ADR 0001 与整改路线 R5：外部技能包升级要先过 `08` §5 的适配�
 - [ ] AC3 只读版本核对脚本 `codex/tools/check-external-skill-versions.sh [--home DIR] [--source-only]`：
   - 适配记录 `codex/config/external-skill-adaptation.json` 记最近一次完成适配核对的 superpowers 版本与 Issue（本票写 7.0.0 与 375）。它不是 pin，平台仍不约束 superpowers 安装版本。
   - 默认读 `$HOME`（或 `--home`）下 Claude 的 `installed_plugins.json` 与 Codex 的 `config.toml`、插件缓存，并运行 `claude --version`、`codex --version`（找不到记 `NOT_FOUND`）；Matt 状态复用 `skill-for-claude/check-plugin-pin.sh <home>` 的结果。
-  - 输出每侧一行：superpowers 版本与适配版本相等为 `ADAPTED`，更新为 `REVIEW_NEEDED`，更旧为 `BEHIND`，未安装为 `NOT_INSTALLED`，Codex 启用键的 marketplace 未注册为 `NOT_LOADED`，读不懂为 `UNKNOWN`。最后一行 `RESULT PASS` 或 `RESULT REVIEW_NEEDED`；出现 `REVIEW_NEEDED`、`UNKNOWN` 或 Matt 非 `PIN_CLEAN` 时退出码 1，否则 0。
+  - 输出每侧一行：superpowers 版本与适配版本相等为 `ADAPTED`，更新为 `REVIEW_NEEDED`，更旧为 `BEHIND`，未安装为 `NOT_INSTALLED`，Codex 启用键的 marketplace 未注册为 `NOT_LOADED`，读不懂为 `UNKNOWN`。最后一行 `RESULT PASS` 或 `RESULT REVIEW_NEEDED`；任一行（含 CLI 行）出现 `REVIEW_NEEDED`、`UNKNOWN` 或 Matt 非 `PIN_CLEAN` 时退出码 1；CLI 找不到只记 `NOT_FOUND`，不算失败，否则 0。
   - `--source-only` 只校验适配记录的结构，不读任何 home，供 CI 使用。
   - 脚本自身不安装、不联网、不写任何文件（与 `check-plugin-pin.sh` 同样设置 `PYTHONDONTWRITEBYTECODE`）。
   - 回归测试 `codex/tests/test-external-skill-versions.sh` 只用伪造的 home 与伪造的 CLI，覆盖全部状态、退出码、`--source-only`、读前后 home 字节不变；按 smoke 五处登记，smoke 只跑 `--source-only` 与该测试，从不读 CI 主机自己的 home。

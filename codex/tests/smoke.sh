@@ -930,7 +930,9 @@ for superpowers_anchor in \
 done
 grep -Fq '外部技能包边界' "$ROOT/skill-for-claude/issue-session-flow/SKILL.md"
 # #375：brainstorming 的自定级不替代平台判级，两侧成对。
+# shellcheck disable=SC2016 # backticks are literal Markdown, not expansions
 grep -Fq '它的定级与聊天内确认不替代平台判级与 `approved`' "$claude_platform_skill"
+# shellcheck disable=SC2016 # backticks are literal Markdown, not expansions
 grep -Fq 'does not replace platform classification or `approved`' "$ROOT/skill-for-codex/SKILL.md"
 # 升级适配清单（AC-8）：正文与已填写的示例在 08 §5；四项检查、三种结论都在场；
 # 两侧平台技能各有一个入口，缺任一侧两个 provider 就不再对称。

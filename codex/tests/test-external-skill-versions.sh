@@ -127,6 +127,38 @@ check unreadable 1 "$dir" "RESULT REVIEW_NEEDED"
 grep -Fq 'SUPERPOWERS claude UNKNOWN (installed_plugins.json schema is not version 2)' <<<"$output" ||
   fail "unreadable: claude side is not UNKNOWN: $output"
 
+# Malformed inputs never pass: each one is UNKNOWN and fails the run.
+unknown_case() {
+  local label="$1" side="$2" dir="$3"
+  check "$label" 1 "$dir" "RESULT REVIEW_NEEDED"
+  grep -q "^SUPERPOWERS $side UNKNOWN (" <<<"$output" || fail "$label: $side side is not UNKNOWN: $output"
+}
+dir="$(home claude-bare-key "$adapted" registered "$adapted")"
+sed -i.bak 's/"superpowers@claude-plugins-official"/"superpowers"/' "$dir/.claude/plugins/installed_plugins.json"
+rm -f "$dir/.claude/plugins/installed_plugins.json.bak"
+unknown_case claude-bare-key claude "$dir"
+dir="$(home codex-string-enabled "$adapted" registered "$adapted")"
+sed -i.bak 's/^enabled = true$/enabled = "true"/' "$dir/.codex/config.toml"
+rm -f "$dir/.codex/config.toml.bak"
+unknown_case codex-string-enabled codex "$dir"
+dir="$(home codex-scalar-setting "$adapted" registered "$adapted")"
+printf '[marketplaces.curated]\nsource = "x"\n\n[plugins]\n"superpowers@curated" = true\n' >"$dir/.codex/config.toml"
+unknown_case codex-scalar-setting codex "$dir"
+dir="$(home codex-scalar-marketplace "$adapted" registered "$adapted")"
+printf '[marketplaces]\ncurated = 42\n\n[plugins."superpowers@curated"]\nenabled = true\n' >"$dir/.codex/config.toml"
+unknown_case codex-scalar-marketplace codex "$dir"
+if [[ "$(id -u)" != 0 ]]; then
+  dir="$(home codex-unlistable-cache "$adapted" registered "$adapted")"
+  chmod 000 "$dir/.codex/plugins/cache/curated/superpowers"
+  unknown_case codex-unlistable-cache codex "$dir"
+  chmod 755 "$dir/.codex/plugins/cache/curated/superpowers"
+fi
+
+fake_cli claude 'no version here'
+check cli-unknown 1 "$(home cli-unknown "$adapted" registered "$adapted")" \
+  "CLI claude UNKNOWN" \
+  "RESULT REVIEW_NEEDED"
+
 rm -f "$bin/claude" "$bin/codex"
 check no-cli 0 "$(home no-cli "$adapted" registered "$adapted")" \
   "CLI claude NOT_FOUND" \
