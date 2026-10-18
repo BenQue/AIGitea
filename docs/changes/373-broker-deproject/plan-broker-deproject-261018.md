@@ -29,8 +29,8 @@ updated: 2026-10-18
 | T01 | 三份映射文档与 `06` 单票段落替换，本地 commit 后 STOP，重读合同 | - | completed |
 | T02 | 预检接口退役：操作、manifest 字段、runtime、测试；采集器归档 | T01 | completed |
 | T03 | 治理与 host-access 合同自洽化、注释去项目名、CI 模板注释；补拒绝用例 | T01 | completed |
-| T04 | 基线收紧、路线与 ADR 状态、全量 smoke；Codex 独立审查 | T02, T03 | in-progress |
-| T05 | 判级投影与 PR 候选（含删除清单），等第二次确认 | T04 | pending |
+| T04 | 基线收紧、路线与 ADR 状态、全量 smoke；Codex 独立审查 | T02, T03 | completed |
+| T05 | 判级投影与 PR 候选（含删除清单），等第二次确认 | T04 | in-progress |
 
 ## Expected touch points
 
