@@ -151,3 +151,6 @@ Initializing a new project and re-aligning an onboarded one are the same idempot
 operation: follow [references/project-align.md](references/project-align.md) and use the
 read-only checker `codex/tools/aisoft-project-check.sh --repo <checkout>` (PASS/GAP) to
 inventory gaps, then fix each gap through the target repository's own Issue and an AI-classified PR; never assume every alignment gap is `small`.
+Projects align to a versioned platform usage bundle: the contract entry is the project's own
+`.aisoft/platform-usage.md`, the version is whatever `.aisoft/platform-usage.lock.json` pins, and
+`codex/tools/usage-bundle.sh --build <dir>` exports the files to copy.

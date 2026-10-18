@@ -16,7 +16,6 @@
     "docker-release/README.md": 7,
     "docker-release/contracts/migration-rollback-v1.md": 2,
     "docker-release/templates/action-grant.example.json": 3,
-    "docker-release/templates/target-profile.example.json": 7,
-    "templates/docs/changes/_template/summary.md": 1
+    "docker-release/templates/target-profile.example.json": 7
   }
 }

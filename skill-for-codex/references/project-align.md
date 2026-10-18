@@ -4,6 +4,11 @@
 > 幂等的：已对齐仓库重跑为 no-op；未接入仓库首跑等价于 onboarding；漂移仓库首跑
 > 产出精确缺口清单。事实源永远是 [onboarding-runbook.md](onboarding-runbook.md) 与平台
 > `templates/`——本 checklist 只指向，不复制合同正文；两处表述冲突时以 runbook 为准。
+>
+> 对齐的对象是**一个版本的平台使用发布包**（#377）：平台 `usage/bundle.json` 声明成员与只追加的
+> 版本历史，项目复制 `usage/CONTRACT.md` 为 `.aisoft/platform-usage.md`，并在
+> `.aisoft/platform-usage.lock.json` pin `bundle_version` 与 `bundle_digest`。项目一旦 pin，
+> 平台前进不再改变它的对齐结论；升级版本是项目自己的 Issue。
 
 ## 操作循环
 
@@ -13,10 +18,21 @@
    codex/tools/aisoft-project-check.sh --repo <目标仓checkout> [--kind software|docs] [--remote]
    ```
 
-2. 逐条 `GAP:` 在**目标仓**建独立 Issue，由 AI 按合同影响和强制风险判级后用单一 PR
+2. 需要复制平台文件时（首次接入、升级版本或补齐缺失副本），先导出最新版本：
+
+   ```bash
+   codex/tools/usage-bundle.sh --build <空目录>
+   ```
+
+   `<空目录>/project/` 下的文件按项目落点排好，含生成的 `.aisoft/platform-usage.lock.json`；
+   `AGENTS.md` 是完整模板，存量仓库只同步其常驻指针两节，「项目事实」保持项目自己的内容；
+   `docs/agents/` 与 CI 示例是种子，已有的项目版本不覆盖。`<空目录>/skills/` 是同一版本的技能源，
+   供核对本机已装技能。
+
+3. 逐条 `GAP:` 在**目标仓**建独立 Issue，由 AI 按合同影响和强制风险判级后用单一 PR
    修复（回补程序见 runbook §2；不批量脚本改写多仓）。纯合同保持型局部回补可为 small，
    CI、部署、权限、Agent/治理或共享核心变化仍强制 complex。
-3. 修复合并后复检，直到无 `GAP:`。全 PASS 即对齐完成。
+4. 修复合并后复检，直到无 `GAP:`。全 PASS 即对齐完成。
 
 新仓库首次接入时，runbook §1/§1.1 的 governance manifest 与 project-agent gate 是
 一切的前置，不能被本 checklist 替代或跳过；本入口从 §2 起接管逐项对齐。
@@ -25,8 +41,9 @@
 
 | # | 查什么 | 事实源 | 机器检查 |
 |---|---|---|---|
-| 1 | AGENTS.md 常驻指针前两节 + CLAUDE.md 一行指针 | `templates/project/`；runbook §2 | `pointer-sections` |
-| 2 | 语义 change 模板四件套在位 | `templates/docs/changes/_template/`；runbook §2 | `change-templates`（唯一会因上游前进而自发变红的一行，见下方「模板同步」） |
+| 0 | 平台使用发布包已 pin：`.aisoft/platform-usage.lock.json` 的版本在平台历史中、摘要一致 | `usage/bundle.json`；`usage-bundle.sh --build` | `platform-pin`（落后最新版本时仍 PASS，另打印 `NOTE:`） |
+| 1 | AGENTS.md 常驻指针前两节 + CLAUDE.md 一行指针 | `templates/project/`；runbook §2 | `pointer-sections`（按 pin 版本的摘要核对；无 lock 时对照最新版本） |
+| 2 | 语义 change 模板四件套在位 | `templates/docs/changes/_template/`；runbook §2 | `change-templates`（同上；未 pin 的项目仍会因上游前进而自发变红，见下方「模板同步」） |
 | 3 | Matt 编排三件套已初始化 | `templates/docs/agents/`；runbook §2 | 人工核对 |
 | 4 | canonical 标签读回一致；受管命名空间无冲突取值、无仍在用的 retired 取值；其余标签须落在 manifest 声明的扩展前缀内 | `codex/config/gitea-labels.json`（`schema_version: 2`）；runbook §5 | `labels-readback`（`--remote`） |
 | 5 | required CI context 与治理清单一致 | `codex/config/gitea-governance.json`；runbook §5/§8 | `ci-context`（`--remote`） |
@@ -37,8 +54,9 @@
 
 ## 模板同步（第 2 行专属）
 
-第 2 行的模板是 vendored 副本，平台一改模板它就在每个持有副本的项目里同时变红，
-与目标仓是否有提交无关。触发同步的是**上游广播**，不是下游轮询：平台侧改模板的变更
+第 2 行的模板是 vendored 副本。项目 pin 了发布包版本后按该版本核对，不再因平台前进变红；
+未 pin 的项目对照最新版本，平台一改模板它就在每个持有副本的项目里同时变红，
+与目标仓是否有提交无关。改模板的平台变更还必须发布新的发布包版本（`usage-bundle.sh --release`）。触发同步的是**上游广播**，不是下游轮询：平台侧改模板的变更
 必须在同一次变更里跑 `bash codex/tools/change-template-sync.sh --refresh-digest`，
 否则平台自己的 required CI 变红；该命令打印按 `gitea-governance.json` 的
 `vendors_change_templates` 枚举出的完整 holder 清单。

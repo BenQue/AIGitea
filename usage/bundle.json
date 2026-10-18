@@ -1,0 +1,263 @@
+{
+  "contract_version": "aisoft-usage-bundle/v1",
+  "lock_path": ".aisoft/platform-usage.lock.json",
+  "members": [
+    {
+      "source": "usage/CONTRACT.md",
+      "mode": "exact",
+      "target": ".aisoft/platform-usage.md",
+      "check": "platform-pin"
+    },
+    {
+      "source": "templates/project/AGENTS.md",
+      "mode": "pointer",
+      "target": "AGENTS.md",
+      "check": "pointer-sections"
+    },
+    {
+      "source": "templates/project/CLAUDE.md",
+      "mode": "exact",
+      "target": "CLAUDE.md",
+      "check": "pointer-sections"
+    },
+    {
+      "source": "templates/docs/changes/_template/summary.md",
+      "mode": "exact",
+      "target": "docs/changes/_template/summary.md",
+      "check": "change-templates"
+    },
+    {
+      "source": "templates/docs/changes/_template/spec.md",
+      "mode": "exact",
+      "target": "docs/changes/_template/spec.md",
+      "check": "change-templates"
+    },
+    {
+      "source": "templates/docs/changes/_template/plan.md",
+      "mode": "exact",
+      "target": "docs/changes/_template/plan.md",
+      "check": "change-templates"
+    },
+    {
+      "source": "templates/docs/changes/_template/verification.md",
+      "mode": "exact",
+      "target": "docs/changes/_template/verification.md",
+      "check": "change-templates"
+    },
+    {
+      "source": "templates/docs/agents/domain.md",
+      "mode": "seed",
+      "target": "docs/agents/domain.md"
+    },
+    {
+      "source": "templates/docs/agents/issue-tracker.md",
+      "mode": "seed",
+      "target": "docs/agents/issue-tracker.md"
+    },
+    {
+      "source": "templates/docs/agents/triage-labels.md",
+      "mode": "seed",
+      "target": "docs/agents/triage-labels.md"
+    },
+    {
+      "source": "templates/project/ci/ci.yml",
+      "mode": "seed",
+      "target": ".gitea/workflows/ci.yml"
+    },
+    {
+      "source": "templates/project/ci/merge-preview.sh",
+      "mode": "seed",
+      "target": "scripts/ci/merge-preview.sh"
+    },
+    {
+      "source": "templates/project/ci/registry-preflight.sh",
+      "mode": "seed",
+      "target": "scripts/ci/registry-preflight.sh"
+    },
+    {
+      "source": "skill-for-claude/aisoft-platform/SKILL.md",
+      "mode": "skill"
+    },
+    {
+      "source": "skill-for-claude/issue-session-flow/SKILL.md",
+      "mode": "skill"
+    },
+    {
+      "source": "skill-for-codex/SKILL.md",
+      "mode": "skill"
+    },
+    {
+      "source": "skill-for-codex/agents/openai.yaml",
+      "mode": "skill"
+    },
+    {
+      "source": "skill-for-codex/references/onboarding-runbook.md",
+      "mode": "skill"
+    },
+    {
+      "source": "skill-for-codex/references/private-gitea-access.md",
+      "mode": "skill"
+    },
+    {
+      "source": "skill-for-codex/references/project-align.md",
+      "mode": "skill"
+    },
+    {
+      "source": "codex/skills/issue-session-flow/SKILL.md",
+      "mode": "skill"
+    },
+    {
+      "source": "codex/skills/aisoft-matt-workflow/SKILL.md",
+      "mode": "skill"
+    },
+    {
+      "source": "codex/skills/aisoft-matt-workflow/agents/openai.yaml",
+      "mode": "skill"
+    }
+  ],
+  "releases": [
+    {
+      "version": "1.0.0",
+      "released": "2026-10-18",
+      "bundle_digest": "sha256:bbff62bd1829aa2bce46fd250b51325b5dc3cc470cfa86ae191f0923b63cea8d",
+      "members": [
+        {
+          "source": "usage/CONTRACT.md",
+          "mode": "exact",
+          "target": ".aisoft/platform-usage.md",
+          "check": "platform-pin",
+          "sha256": "4741f85a29bd5d52c2d5267a9bed6ea5e992bd65b8d40db8c37b377581333713"
+        },
+        {
+          "source": "templates/project/AGENTS.md",
+          "mode": "pointer",
+          "target": "AGENTS.md",
+          "check": "pointer-sections",
+          "sha256": "412a5b206ad74f8f2b4408dc441273b689fdc7f8bc858fd5d9c20831605a5236",
+          "pointer_sha256": "cf31a6f2de3c2fad70e30deb375f6be541a5fc41154f1893131747107ab4081f"
+        },
+        {
+          "source": "templates/project/CLAUDE.md",
+          "mode": "exact",
+          "target": "CLAUDE.md",
+          "check": "pointer-sections",
+          "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
+        },
+        {
+          "source": "templates/docs/changes/_template/summary.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/summary.md",
+          "check": "change-templates",
+          "sha256": "a1433a4e52f4c5baaa0ec8d338ef0c531ba5785b343ac3680879a69593f719c0"
+        },
+        {
+          "source": "templates/docs/changes/_template/spec.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/spec.md",
+          "check": "change-templates",
+          "sha256": "0646265eba8b5a2ecf58a6fd867a0f9cb33ac4cf31c2dda043287abacc8c7669"
+        },
+        {
+          "source": "templates/docs/changes/_template/plan.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/plan.md",
+          "check": "change-templates",
+          "sha256": "593a45b4dddd96233f9f92e0b124b3eb25d7d383661423c892589bb027def92e"
+        },
+        {
+          "source": "templates/docs/changes/_template/verification.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/verification.md",
+          "check": "change-templates",
+          "sha256": "1d4d30373f2c1c8fde13a2b4dcbfd0c8a6c3ef3669337247cb7dfa69813cd739"
+        },
+        {
+          "source": "templates/docs/agents/domain.md",
+          "mode": "seed",
+          "target": "docs/agents/domain.md",
+          "sha256": "bc8031adacbbeb8100b7cf731264d3d50fc701ecd3874a0e10b802327daddd07"
+        },
+        {
+          "source": "templates/docs/agents/issue-tracker.md",
+          "mode": "seed",
+          "target": "docs/agents/issue-tracker.md",
+          "sha256": "16ee72d2b10e449d75802d25be8be5b8534bf79502d70d7e577b4b1893ddc9af"
+        },
+        {
+          "source": "templates/docs/agents/triage-labels.md",
+          "mode": "seed",
+          "target": "docs/agents/triage-labels.md",
+          "sha256": "b37c4e1ea23165b72be1166809995d992866b5f023f737dd26add05d7d7ae9e2"
+        },
+        {
+          "source": "templates/project/ci/ci.yml",
+          "mode": "seed",
+          "target": ".gitea/workflows/ci.yml",
+          "sha256": "96d77318040c6c96d76e72b2875c7fcfaf628442fcd3b0a17764e81122dded7f"
+        },
+        {
+          "source": "templates/project/ci/merge-preview.sh",
+          "mode": "seed",
+          "target": "scripts/ci/merge-preview.sh",
+          "sha256": "ad86166fd5acedd67fbef71bec11d8309c7a34d51a81e524617089e043361afb"
+        },
+        {
+          "source": "templates/project/ci/registry-preflight.sh",
+          "mode": "seed",
+          "target": "scripts/ci/registry-preflight.sh",
+          "sha256": "7cfa8c1dce796e5decdfe3f10409862ee797afaae08f285640ecb09855986f90"
+        },
+        {
+          "source": "skill-for-claude/aisoft-platform/SKILL.md",
+          "mode": "skill",
+          "sha256": "b555bd2ba997b05a0a5c0055476aa8775c5f20e7bc3f507b60bb411989afbbbe"
+        },
+        {
+          "source": "skill-for-claude/issue-session-flow/SKILL.md",
+          "mode": "skill",
+          "sha256": "216fae65d21e50783125f767b53a47d192a0b6f7d9741d350b2b79f573169196"
+        },
+        {
+          "source": "skill-for-codex/SKILL.md",
+          "mode": "skill",
+          "sha256": "7c7e745dd913eb9ef3d78e0c225fe8bc277373d70b2d6dd5310dc9436b0b3bc5"
+        },
+        {
+          "source": "skill-for-codex/agents/openai.yaml",
+          "mode": "skill",
+          "sha256": "a0f3bf4b049271ea283c4379babeea262f7dd88e1c4879f7b5161494df87c043"
+        },
+        {
+          "source": "skill-for-codex/references/onboarding-runbook.md",
+          "mode": "skill",
+          "sha256": "d81fbd1a42a483119ba4bdf99ac94db1425caebab0c7504bb57b2350ecc1fa62"
+        },
+        {
+          "source": "skill-for-codex/references/private-gitea-access.md",
+          "mode": "skill",
+          "sha256": "000e8b3751408d991da969c77df4f5ba9f7b76717ae5c52e7265763c48ff2db6"
+        },
+        {
+          "source": "skill-for-codex/references/project-align.md",
+          "mode": "skill",
+          "sha256": "c083d272d24d040e363a0d74678a97dc3b07958e54e36ed98ec72527eca38866"
+        },
+        {
+          "source": "codex/skills/issue-session-flow/SKILL.md",
+          "mode": "skill",
+          "sha256": "d87fad9f8a2c980d4218470f8d96fcb2c83f173d5d35c69eceea6ba707528c85"
+        },
+        {
+          "source": "codex/skills/aisoft-matt-workflow/SKILL.md",
+          "mode": "skill",
+          "sha256": "db091d644c3c9694b3b68986ab798e29cc326240155da27cf4eedcee751c9561"
+        },
+        {
+          "source": "codex/skills/aisoft-matt-workflow/agents/openai.yaml",
+          "mode": "skill",
+          "sha256": "ddce1024e092bdbd45b000caf547c3382e2b29ccc32695824a984d7040ab5694"
+        }
+      ]
+    }
+  ]
+}

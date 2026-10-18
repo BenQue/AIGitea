@@ -180,14 +180,10 @@ routine 任一 hard gate 失败不得自动转成更宽权限的 merge 路径。
 
 ## 10. Provider 验证矩阵
 
-1. 静态验证 skills、metadata、sandbox 和禁止参数。
-2. 合成 Issue 验证合同读取与终态。
-3. 至少一个明确标注的真实 pilot 验证 Git/Gitea/PR/CI 集成；历史 evidence 是旧试点仓库的 complex Issue #8，该项目自 #252 起已退出平台治理，其证据只作追溯。
-4. small/complex 路由、缺合同、自修复和失败反馈由共享 synthetic 覆盖；每个新 profile 再运行与本项目相符的 real small/complex acceptance。
-5. 验证 CI failure feedback。
-6. 验证升级条件和三次同因失败。
-7. 只有需要部署的应用 profile 才在开发/测试环境验证首次部署和回滚；AISoftPlatform 等文档/source 仓库不适用。
-8. 两个 provider 用同一通用矩阵做 parity 验证；项目级 enablement 仍是独立门禁。
+矩阵分平台维护层与项目使用层两层，内容与顺序以 [08 §7](08-双工具共存与实施.md#7-provider-验证矩阵) 为准：
+平台层（技能静态、合成 Issue、自修复、升级、CI feedback）由平台仓用合成夹具对两个 provider 做 parity 验证；
+项目层（真实 pilot、profile 验收、非生产首次部署、生产负向边界）由每个项目、每个选用工具在项目仓各自验收。
+历史试点仓库的 complex Issue #8 证据只作追溯，不能成为任何项目的启用依据；项目级 enablement 仍是独立门禁。
 
 ## 11. 安全与回滚
 

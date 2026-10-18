@@ -105,7 +105,9 @@ exact repository 添加 manager Admin 并写 pre/post snapshot，不修改 visib
 模板、标签、CI context、architecture 与交付形态声明可用 `aisoft-project-check.sh`
 确定性复核。存量仓库回补与新仓首配走同一清单。
 
-在仓库加入：
+在仓库加入（文件先用平台 `codex/tools/usage-bundle.sh --build <空目录>` 导出最新版本的使用发布包，
+从 `<空目录>/project/` 复制；同时提交生成的 `.aisoft/platform-usage.lock.json` 与使用合同副本
+`.aisoft/platform-usage.md`，见 [project-align.md](project-align.md)）：
 
 - 从平台 `templates/project/AGENTS.md` 复制并按项目填充的 `AGENTS.md`（前两节为平台常驻
   指针，除更新事实外不删改；「项目事实」节写真实命令、健康端点、交付形态与禁改边界——

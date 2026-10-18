@@ -6,8 +6,9 @@
 
 ## 平台声明（常驻指针）
 
-本仓库由 AISoft 平台治理（合同源：`~/MyDocs/AISoftPlatform/`，VM 侧
-`/mnt/mac/Users/benque/MyDocs/AISoftPlatform/`；会话内可调用 `aisoft-platform` 技能）。
+本仓库由 AISoft 平台治理。合同源是本仓 `.aisoft/platform-usage.md`（平台使用合同），所用版本以
+`.aisoft/platform-usage.lock.json` 的 `bundle_version` 为准；平台仓只是工具与发布包的来源，平台前进
+不改变本仓已 pin 的合同。会话内可调用 `aisoft-platform` 技能。
 
 - 任何需求、缺陷、变更先建 Gitea Issue；Issue `N` 是唯一主键。
 - 新变更使用可读元组：分支 `change/N-短描述`、目录 `docs/changes/N-短描述/`、
@@ -22,9 +23,10 @@
 ## 每 Issue 开发路径
 
 `$triage #N` → 映射的 summary → AI 判级。只有范围局部、可简单 revert、有可测验收且不触发
-任何强制风险的 small，在 `approved` 复核后才能跳过 spec/plan 直进实现；其余 complex 必须先
-`$to-spec #N` → `$to-tickets #N`（plan 的 Txx 依赖图），再经 `approved` 复核后
-`$implement #N Txx`。
+任何强制风险的 small，在 `approved` 复核后才能跳过 spec/plan 直进实现。complex 按 governance
+manifest 中本仓的 `change_control`：`production`（未声明时的默认）必须先 `$to-spec #N` →
+`$to-tickets #N`（plan 的 Txx 依赖图），再经 `approved` 复核后 `$implement #N Txx`；
+`development` 不写 spec/plan，验收标准取自 Issue 正文，`approved` 复核后以合成 `T01` 实现。
 普通编译/测试/CI 失败自主修复；合同冲突、范围扩张、破坏性迁移、安全决策、三次同因失败
 必须停下升级给人。
 
