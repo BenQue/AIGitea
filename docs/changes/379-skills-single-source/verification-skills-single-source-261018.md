@@ -21,7 +21,7 @@ updated: 2026-10-18
 
 ## 基线与范围
 
-- Commit SHA: 实现 head `daa2f96`（T03–T04）；最终候选 head 见确认点 2
+- Commit SHA: 首轮实现 head `daa2f96`；审查修复后 head 见下文「Codex 交叉审查」；最终候选 head 见确认点 2
 - 基线：`origin/main` = `8fa4458`
 - 环境: macOS 本机（bash 3.2、`/opt/homebrew/bin/rg`），Cursor 3.24.12
 - 本记录负责证明的 acceptance criteria: AC1–AC9
@@ -37,7 +37,7 @@ updated: 2026-10-18
 | `PYTHONPATH=. python3 -m unittest tests.test_routine_merge.SessionContractTests`（`codex/runtime`） | PASS | 12 个用例，中文单份正文的钉子与突变拒绝 |
 | `bash codex/tests/test-usage-bundle.sh` | PASS | 三种项目级落点；Codex 专用 `agents/` 不进 Claude/Cursor；仅 codex 的技能不进 Claude/Cursor |
 | `bash codex/tests/test-external-skill-versions.sh` | PASS | Cursor 缺失、落后、一致、超前、无清单、两版本六种情形；读取前后 home 快照不变 |
-| `bash codex/tools/usage-bundle.sh --verify --baseline-ref origin/main` | PASS | `VERIFIED 1.1.0 sha256:82a6633c…`；1.0.0 原样为前缀 |
+| `bash codex/tools/usage-bundle.sh --verify --baseline-ref origin/main` | PASS | 审查修复后重发 `VERIFIED 1.1.0 sha256:926b9a4c…`（1.1.0 未上 main，按规则清空重发同号）；1.0.0 原样为前缀 |
 | 临时 HOME 安装读回 | PASS | 两条安装命令后 `codex/check-drift.sh`、`skill-for-claude/check-drift.sh` 均 `CLEAN`；`check-installed-drift.sh --target-home` 中 `install-skills`（8/8）与 `skill-for-claude/install`（2 技能、3 references）为 `INSTALLED PASS` |
 | 本机只读 `bash codex/tools/check-external-skill-versions.sh` | PASS | `SUPERPOWERS cursor BEHIND cached=6.1.1 adapted=7.0.0`；`MATT cursor BEHIND cached=1.2.0 pinned=1.3.1`；`RESULT PASS`（落后只提示，不升级） |
 | 单家工具名守卫反向证明 | PASS | 往技能副本追加 `spawn_task` 后守卫的 `rg` 命中该行 |
@@ -63,4 +63,12 @@ updated: 2026-10-18
 
 ## Codex 交叉审查
 
-待执行。
+审查方：Codex（Herdr 只读会话，`--sandbox read-only --ask-for-approval never`），未参与实现。
+
+| 轮次 | 审查 head | 结论 | 发现与处置 |
+|---|---|---|---|
+| 1 | `605c196` | FAIL | major：`skills.manifest` 决定落点却不在发布摘要内 → 作为 skill 成员纳入，`--build` 不导出它，缺成员即拒绝，补 targets-only 突变用例；major：Cursor 缓存里非普通目录被报成 `NOT_INSTALLED` → 改报 `UNKNOWN`，补两个用例；major：共享解析器 `codex/lib/skills-manifest.sh` 未进安装指纹 → 加入 `INSTALLER_HELPER_PINS`、来源集合与 scope，补篡改用例；minor：终态钉子弱于旧版 → 恢复语义钉子并加三条突变；minor：缺交叉审核结构守卫 → smoke 补 `03`、`08`、两个技能的锚；minor：bash 与 Python 对 `claude,` 解析不一致 → 拆分前整体校验，补反例；minor：project-align 两条相对链接失效 → 改为 `../../../` |
+| 2 | `4c9036b` | FAIL | 第 1 轮 7 条确认已修复；新 minor：smoke 逐字钉了平台技能里的一句正文 → 改钉它指向 `03` §「交叉审核」的引用；顺带修掉 ShellCheck SC2066（单元素 for 循环） |
+| 3 | 见下 | 待执行 | |
+
+修复后全量 smoke：`4c9036b` 通过（1238 个用例）。

@@ -896,7 +896,9 @@ grep -Fq '## change worktree 的单写者归属' "$session_flow_skill"
 grep -Fq '### 交叉审核（平台仓 complex，ADR 0001 D6）' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
 grep -Fq '6. **交叉审核**' "$ROOT/08-双工具共存与实施.md"
 grep -Fq '交叉审查: ' "$session_flow_skill"
-grep -Fq '交叉审查，结论记入 verification' "$ROOT/skills/aisoft-platform/SKILL.md"
+# 平台技能只钉它指向 03 小节的引用，不钉正文句子（ADR 0001 D9）。
+# shellcheck disable=SC2016 # backticks are literal Markdown, not expansions
+grep -Fq '`03` §「交叉审核」' "$ROOT/skills/aisoft-platform/SKILL.md"
 grep -Fq 'WORKTREE_OWNER_MISMATCH' "$ROOT/06-运维手册与踩坑集.md"
 grep -Fq '## Derived Issues' "$ROOT/docs/agents/issue-tracker.md"
 grep -Fq -- '--entry-label' "$ROOT/skills/aisoft-platform/SKILL.md"
@@ -989,12 +991,10 @@ for upgrade_checklist_anchor in \
     exit 1
   fi
 done
-for upgrade_checklist_entry in "$claude_platform_skill"; do
-  if ! grep -Fq '外部技能包升级后的适配检查' "$upgrade_checklist_entry"; then
-    echo "平台技能缺少升级适配清单入口：$upgrade_checklist_entry（#355 AC-8）" >&2
-    exit 1
-  fi
-done
+if ! grep -Fq '外部技能包升级后的适配检查' "$claude_platform_skill"; then
+  echo "平台技能缺少升级适配清单入口：$claude_platform_skill（#355 AC-8）" >&2
+  exit 1
+fi
 
 if rg -n 'complexity_recommendation|最终 `complexity` 由人|人确认 Issue 验收标准与 complexity=small' \
   "$ROOT/AGENTS.md" "$ROOT/README.md" \

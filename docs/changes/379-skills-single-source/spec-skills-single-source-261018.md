@@ -15,6 +15,84 @@ status: approved
 branch: change/379-skills-single-source
 created: 2026-10-18
 updated: 2026-10-18
+git_scope:
+  - 02-CI与自动部署流水线.md
+  - 03-Issue-Spec-Plan与单闸门开发流程.md
+  - 07-内网与生产平移路线.md
+  - 08-双工具共存与实施.md
+  - 12-Linux-GitHub-Gitea-双服务器自动部署方案.md
+  - 12-Windows平台自动部署方案.md
+  - 13-项目结果迁移与内网切换实施手册.md
+  - 14-Windows部署与迁移验收清单.md
+  - 15-VMware-Fusion-Windows-ARM原型实施手册.md
+  - AGENTS.md
+  - README.md
+  - codex/check-drift.sh
+  - codex/install-skills.sh
+  - codex/lib/skills-manifest.sh
+  - codex/runtime/tests/test_architecture_governance.py
+  - codex/runtime/tests/test_routine_merge.py
+  - codex/skills/aisoft-matt-workflow/SKILL.md
+  - codex/skills/aisoft-matt-workflow/agents/openai.yaml
+  - codex/skills/gitea-analyze-change/SKILL.md
+  - codex/skills/gitea-analyze-change/agents/openai.yaml
+  - codex/skills/gitea-development-loop/SKILL.md
+  - codex/skills/gitea-development-loop/agents/openai.yaml
+  - codex/skills/gitea-implement-change/SKILL.md
+  - codex/skills/gitea-implement-change/agents/openai.yaml
+  - codex/skills/gitea-platform-ops/SKILL.md
+  - codex/skills/gitea-platform-ops/agents/openai.yaml
+  - codex/skills/gitea-spec-plan/SKILL.md
+  - codex/skills/gitea-spec-plan/agents/openai.yaml
+  - codex/skills/issue-session-flow/SKILL.md
+  - codex/tests/fixtures/installed-drift/test-installed-drift.py
+  - codex/tests/smoke.sh
+  - codex/tests/test-external-skill-versions.sh
+  - codex/tests/test-install-claude-skills.sh
+  - codex/tests/test-installer-source-guard.sh
+  - codex/tests/test-usage-bundle.sh
+  - codex/tools/check-external-skill-versions.py
+  - codex/tools/check-external-skill-versions.sh
+  - codex/tools/check-installed-drift.py
+  - codex/tools/usage-bundle.py
+  - company-delivery/README.md
+  - docs/adr/0001-platform-boundary.md
+  - docs/changes/379-skills-single-source/plan-skills-single-source-261018.md
+  - docs/changes/379-skills-single-source/spec-skills-single-source-261018.md
+  - docs/changes/379-skills-single-source/summary-skills-single-source-261018.md
+  - docs/changes/379-skills-single-source/verification-skills-single-source-261018.md
+  - docs/governance/remediation-roadmap.md
+  - skill-for-claude/aisoft-platform/SKILL.md
+  - skill-for-claude/check-drift.sh
+  - skill-for-claude/install.sh
+  - skill-for-claude/issue-session-flow/SKILL.md
+  - skill-for-claude/skills.manifest
+  - skill-for-codex/SKILL.md
+  - skill-for-codex/agents/openai.yaml
+  - skill-for-codex/references/onboarding-runbook.md
+  - skill-for-codex/references/private-gitea-access.md
+  - skill-for-codex/references/project-align.md
+  - skills/aisoft-matt-workflow/SKILL.md
+  - skills/aisoft-matt-workflow/agents/openai.yaml
+  - skills/aisoft-platform/SKILL.md
+  - skills/aisoft-platform/agents/openai.yaml
+  - skills/aisoft-platform/references/onboarding-runbook.md
+  - skills/aisoft-platform/references/private-gitea-access.md
+  - skills/aisoft-platform/references/project-align.md
+  - skills/gitea-analyze-change/SKILL.md
+  - skills/gitea-analyze-change/agents/openai.yaml
+  - skills/gitea-development-loop/SKILL.md
+  - skills/gitea-development-loop/agents/openai.yaml
+  - skills/gitea-implement-change/SKILL.md
+  - skills/gitea-implement-change/agents/openai.yaml
+  - skills/gitea-platform-ops/SKILL.md
+  - skills/gitea-platform-ops/agents/openai.yaml
+  - skills/gitea-spec-plan/SKILL.md
+  - skills/gitea-spec-plan/agents/openai.yaml
+  - skills/issue-session-flow/SKILL.md
+  - skills/skills.manifest
+  - templates/project/cursor/aisoft-platform.mdc
+  - usage/bundle.json
 ---
 
 # #379 spec：技能单一来源、Cursor 使用层落点与交叉审核固定步骤（R7）
