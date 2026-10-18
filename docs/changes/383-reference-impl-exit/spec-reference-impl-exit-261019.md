@@ -37,6 +37,10 @@ git_scope:
   - skills/aisoft-platform/references/onboarding-runbook.md
   - usage/bundle.json
   - architecture/evidence/inventory.json
+  - architecture/README.md
+  - codex/runtime/tests/test_architecture_cli.py
+  - codex/runtime/tests/test_architecture_lock.py
+  - codex/runtime/tests/test_import_hygiene.py
   - codex/runtime/tests/test_architecture_governance.py
   - codex/tests/smoke.sh
   - codex/tests/test-installer-source-guard.sh
@@ -205,6 +209,13 @@ ADR 0001 D1/D5/D7：平台只交付流程、技能、外部技能 pin 与 K1–K
 8. 全仓 `git grep` 对 `docker-release/`（目录路径形式）、`company-delivery/`、`aisoft_release`、`aisoft_company`、`reference/newemaint` 只命中 `docs/changes/`、`archive/`、`docs/adr/`、`docs/governance/`、06 踩坑表与事实 7 的通用词汇。
 9. macOS 全量 `bash codex/tests/smoke.sh` 通过，`bash -n` 与 ShellCheck 覆盖改过的 shell；Codex 经 Herdr 只读独立审查通过。
 10. 合并后：两侧技能 installer 重装并读回漂移 CLEAN；需要 sudo 的重装由负责人执行，未执行如实记 NOT RUN。
+
+## 实现中的调整（确认后，确认点 2 一并复核）
+
+- 2026-10-18 R7（#379）先合并：分支在未推送时 rebase 到 `80a38dc`；onboarding runbook 路径随 R7 改为 `skills/aisoft-platform/references/`，发布包版本取 1.2.0。
+- `test_architecture_cli.py`、`test_architecture_lock.py` 与 smoke 的 architecture 校验循环按目录名逐个读 `reference/<name>`，删掉 `newemaint/target-candidate` 一项（合同取证时的 grep 只匹配完整路径，漏了这三处）；`architecture/README.md`「状态边界」一节改为只描述合成参考。三个文件补进 `git_scope`。
+- `test_import_hygiene.py` 用 `release_test_support` 证明兄弟模块集合含非 `test_` 前缀的辅助模块，改为同类的 `rotation_cli_fixture`。
+- 漂移夹具原用 docker-release 的 schema 计数验证 `patterns` 类数量指标，改用 `install-vm` 的 runtime modules 指标，覆盖同一代码路径。
 
 ## 接口、数据与兼容性影响
 

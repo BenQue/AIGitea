@@ -104,7 +104,7 @@ git submodule status --recursive
 | C-14 | manifest 的 `architecture_profile_id`/`catalog_revision`/lock checksum 与 lock 精确一致 | NOT RUN | |
 
 Linux/Docker 项目的构建与部署验收不使用本清单，走各自 delivery profile 的门
-（`docker-release/` 合同与 13 §0）；本清单聚焦 Windows/IIS/ZIP 链路。
+（Docker-first release 模式见 02 §0 与 13 §0）；本清单聚焦 Windows/IIS/ZIP 链路。
 
 ## 6. Gate D：Windows 测试部署
 

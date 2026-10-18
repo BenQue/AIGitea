@@ -154,5 +154,5 @@ no-op 步骤回退也是 no-op；不能删已有仓库、改 main 或覆盖未�
 | installed | 需后续安装清单/实际 bytes/role/profile readback；本 Issue NOT RUN |
 | company live | 需现场原始事实经脱敏后的完整操作/恢复/观察证据；本 Issue NOT RUN |
 
-以上 Stage 编号属于平台 bootstrap，和 company-delivery application Stage 00–110 独立，不能互相替代 PASS。
+以上 Stage 编号属于平台 bootstrap，和项目 application operator 的 Stage 00–110 独立，不能互相替代 PASS。
 本 Issue 完成只提供 A1 source；Gate A/B 整体完成仍需依赖 Issue 合并、稳定 pin、现场绑定和实际验收。

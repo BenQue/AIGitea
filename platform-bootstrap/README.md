@@ -1,7 +1,7 @@
 # platform-bootstrap/v1
 
 独立 SCM/平台离线交付合同，工具版本 `1.0.0`。不需要 application release 或 compatibility matrix。
-`company-delivery/` 继续负责现有 application operator bundle；本入口不会安装全部八个 installer。
+application operator bundle 由采用方项目仓自带（平台原 `company-delivery/` 已由 #383 迁出）；本入口不会安装全部 installer。
 
 本版交付可执行的 builder、verify-handoff、inventory 校验、采用决策和动作请求/回读协议。
 `apply` / `rollback --dry-run` 生成固定动作合同，**不执行现场安装或 API mutation**。

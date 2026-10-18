@@ -7,14 +7,14 @@
 > 网络约束：POC 开发机不能访问公司内网；安装 Gitea 的 `scm-ci` 服务器可以通过 HTTPS 访问 GitHub。
 
 本册定义 Linux 应用从 GitHub 候选进入公司 Gitea 后的发布边界。新项目以
-[Docker release contract v1/v2](docker-release/README.md) 为默认：受控 builder 一次构建，测试
+Docker release contract v1/v2 模式（[02](02-CI与自动部署流水线.md) §0；平台原参考实现已由 #383 迁出，见 [迁出说明](archive/reference-implementations-exit-261019.md)）为默认：受控 builder 一次构建，测试
 与生产只消费同一 immutable digests/Compose/architecture identity；PM2/tar.gz 内容保留为
 已有应用的 legacy 设计证据。文件名保留早期“双服务器”提案以维持链接；当前 host-role
 合同要求 `scm-ci`、`appserver-test`、`appserver-prod` 三个隔离 trust role，但不要求三台公司机器。
 采用公司两 VM 参考拓扑时，`appserver-test` 位于本地 OrbStack DockerLab，生产业务 runtime/DB
 与公司 Gitea/通用 Runner 分离。2026-10-04 文档核对：后续 #290 已合并仅 test 的 `scm-ci` 共置能力，
 必须由受保护 profile 显式绑定 role/environment/capability，不能延伸到 production；当前合同和
-#296 精确 Docker 28.1.1 classic 兼容行见 [docker-release](docker-release/README.md)。本册的历史设计
+#296 精确 Docker 28.1.1 classic 兼容行见 [迁出说明](archive/reference-implementations-exit-261019.md) 所列的历史版本。本册的历史设计
 不能代替项目自己的交付声明或现场验收。
 
 现有 [01](01-基础设施-VM-Gitea-Runner.md) 和 [02](02-CI与自动部署流水线.md) 记录的是 OrbStack、Next.js、SQLite 试点的 as-built 事实；本册不修改该事实，也不能把 SQLite 脚本改名后直接用于 PostgreSQL。实施本册涉及 CI、制品、数据库迁移、权限、部署和回滚，属于 complex 变更，必须按 `AGENTS.md` 补齐 Issue、spec、plan 和 verification。
@@ -73,8 +73,8 @@ flowchart LR
 
 开发侧生成 versioned + checksum-pinned operator bundle，把本地已验证的 exact `docker-release/v2` bytes
 经批准介质搬入公司。公司要求内网重建且没有隔离测试环境时固定 `BLOCKED`；不同 bytes 不得沿用本地
-测试证明。完整 Stage 00–110 合同见
-[`company-delivery/runbook.md`](company-delivery/runbook.md)。
+测试证明。完整 Stage 00–110 合同由采用该路径的项目仓自带（平台原 operator 参考实现见
+[迁出说明](archive/reference-implementations-exit-261019.md)）。
 
 ### 0.2 Release bytes 与 transport
 
@@ -97,7 +97,7 @@ release/Compose/architecture/inventory/archive 和 tar member/reference allowlis
 
 ### 0.3 Deterministic target runtime
 
-Artifact CLI 只接受 absolute release root 和 40 位 release ID；target phase CLI 只接受 mode
+以下为平台原参考 CLI 的接口形态（#383 已迁出，仅作模式示例）：Artifact CLI 只接受 absolute release root 和 40 位 release ID；target phase CLI 只接受 mode
 `0400/0600` 的 target profile 和 40 位 release ID：
 
 ```text
@@ -136,15 +136,15 @@ deploy 与 production gate 保持 disabled/inactive。
 Issue #126/#128/#130 将该 operator 演进至 `1.2.0`，以 `greenfield-isolated-install` 定义新
 systemd Gitea/PostgreSQL 使用独立 `aisoft-gitea` namespace 的候选路径。Stage 10 inventory v3 只验证
 candidate isolation，Stage 20 transition v2 不读取或绑定 legacy，Stage 50 只验证 candidate post-install
-health；全部按 [`company-delivery/runbook.md`](company-delivery/runbook.md) 单独审批，Stage 30/40 保持
+health；全部按项目仓自带的 operator runbook 单独审批，Stage 30/40 保持
 `NOT RUN`。`legacy migration/phase-out`、切流、正式仓库导入和旧实例退役另建 Change；当前 1.2.0 公司
 Stage 00–50 与安装全部 `NOT RUN`，旧 evidence 不能作为 1.2.0 的 PASS。
 
 以下 §1–§21 保存 2026-07 PM2/tar.gz 双服务器设计，作为已有应用的 **legacy adapter** 与
-GitHub 入站治理参考。凡与 §0 冲突之处，新 Linux 项目以 §0 和 `docker-release/` 为准；不得
+GitHub 入站治理参考。凡与 §0 冲突之处，新 Linux 项目以 §0 为准；不得
 把历史 PM2 as-built 改写成 Docker 已部署，也不得在应用独立迁移验收前删除 PM2 路径。
 其中“服务器 T”“公司内网重建”和自动部署步骤只描述该 legacy 三机方案，不适用于 示例项目 pilot；
-示例项目 只能使用 §0 与 `company-delivery/runbook.md` 的两台公司 VM + 本地 test 路径。
+示例项目 只能使用 §0 与项目仓自带 operator runbook 的两台公司 VM + 本地 test 路径。
 
 ## 1. PM2 legacy 已确认决策（历史）
 
