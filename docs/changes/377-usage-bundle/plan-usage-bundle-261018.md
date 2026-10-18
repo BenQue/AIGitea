@@ -23,12 +23,12 @@ updated: 2026-10-18
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 映射文档 | - | in-progress |
-| T02 | 治理文档：使用合同、指针模板、summary 模板、`08` §7 两层、project-align、两侧技能、`03`、README、runbook | T01 | not-started |
-| T03 | 发布包声明与工具、回归测试、smoke 登记；发布 1.0.0 | T02 | not-started |
-| T04 | project-check 按 pin 核对与测试同步 | T03 | not-started |
-| T05 | 路线文档、泄漏基线、全量 smoke、对两个项目的只读核对、verification；Codex 独立审查 | T04 | not-started |
-| T06 | 判级投影与 PR 候选，等确认点 2 | T05 | not-started |
+| T01 | 映射文档 | - | completed |
+| T02 | 治理文档：使用合同、指针模板、summary 模板、`08` §7 两层、project-align、两侧技能、`03`、README、runbook | T01 | completed |
+| T03 | 发布包声明与工具、回归测试、smoke 登记；发布 1.0.0 | T02 | completed |
+| T04 | project-check 按 pin 核对与测试同步 | T03 | completed |
+| T05 | 路线文档、泄漏基线、全量 smoke、对两个项目的只读核对、verification；Codex 独立审查 | T04 | completed |
+| T06 | 判级投影与 PR 候选，等确认点 2 | T05 | in-progress |
 
 ## Expected touch points
 
