@@ -35,6 +35,7 @@ updated: 2026-10-19
 |---|---|---|
 | 改动前 `bash codex/tests/smoke.sh`（`3475faa`，基线 `80a38dc`） | PASS | exit 0，8 分 49 秒；runtime discover `Ran 1238 tests` |
 | 改动后 `bash codex/tests/smoke.sh`（`44f2fc0`） | PASS | exit 0，6 分 53 秒；runtime discover `Ran 849 tests`，installed-drift 夹具 `Ran 35 tests` |
+| 最终复跑 `bash codex/tests/smoke.sh`（`747af5a`，`origin/main` 仍为 `80a38dc`） | PASS | exit 0；runtime discover `Ran 849 tests`；之后只追加本行 |
 | `bash codex/tests/test-installer-source-guard.sh` | PASS | `7 installers x 3 source states` |
 | `bash codex/tools/check-installed-drift.sh --source-only` | PASS | 七个 surface 全 `SOURCE PASS`，`RESULT PASS` |
 | `bash codex/tools/usage-bundle.sh --verify --baseline-ref origin/main` | PASS | `VERIFIED 1.2.0`；1.0.0、1.1.0 未改 |
