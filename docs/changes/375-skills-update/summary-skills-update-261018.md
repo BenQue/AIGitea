@@ -22,7 +22,7 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: spec-drafting
+status: approved
 branch: change/375-skills-update
 pr_url:
 created: 2026-10-18

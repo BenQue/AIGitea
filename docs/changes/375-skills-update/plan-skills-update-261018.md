@@ -10,7 +10,7 @@ confidence: high
 risk_flags:
   - platform-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/375-skills-update
 created: 2026-10-18
 updated: 2026-10-18
@@ -22,7 +22,7 @@ updated: 2026-10-18
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 四份映射文档，本地 commit 后等确认点 1 | - | in-progress |
+| T01 | 四份映射文档，本地 commit 后等确认点 1 | - | completed |
 | T02 | 适配结论落地：`08` §5 示例与映射行、两侧平台技能规则、smoke 锚点 | T01 | pending |
 | T03 | 版本核对脚本、适配记录、回归测试与 smoke 五处登记；`08` §5 用途说明 | T01 | pending |
 | T04 | 路线文档、泄漏检查、全量 smoke、本机矩阵与 verification；Codex 独立审查 | T02, T03 | pending |

@@ -10,7 +10,7 @@ confidence: high
 risk_flags:
   - platform-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/375-skills-update
 created: 2026-10-18
 updated: 2026-10-18
@@ -32,6 +32,8 @@ git_scope:
 ---
 
 # #375 spec：技能更新（R5）
+
+负责人于 2026-10-18 在项目线程“R5 技能更新”回复“确认”，批准本合同并启动实现。
 
 ## 目标与原因
 
