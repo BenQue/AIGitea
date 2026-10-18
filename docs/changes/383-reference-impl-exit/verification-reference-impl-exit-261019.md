@@ -13,7 +13,7 @@ risk_flags:
   - platform-governance
 depends_on:
   - 380
-status: pending
+status: verified
 branch: change/383-reference-impl-exit
 created: 2026-10-19
 updated: 2026-10-19
@@ -40,6 +40,7 @@ updated: 2026-10-19
 | `bash codex/tools/usage-bundle.sh --verify --baseline-ref origin/main` | PASS | `VERIFIED 1.2.0`；1.0.0、1.1.0 未改 |
 | `python3 -B codex/tests/check-project-leak.py` | PASS | 基线收紧为 4 个文件、11 处命中（原 13 个文件），被删路径条目移除 |
 | AC8 残留扫描 `rg` 被删路径与模块名（排除 `docs/changes/`、`archive/`、`docs/adr/`、`docs/governance/`、06 踩坑表） | PASS（有说明） | 剩余命中：指向 `archive/` 的链接；`12` §0 标注为“平台原参考 CLI 接口形态示例”的两行命令；architecture 测试与夹具对 `docker-release/` 交付形态名称前缀的断言 |
+| 判级投影 `apply-classification-labels.sh --apply 383` 与 `--verify 383` | PASS | `result: projected`，`type/platform`、`complexity/complex` |
 | 删除清单核对 | PASS | 127 个文件，按目录计数写入 `archive/reference-implementations-exit-261019.md` |
 
 ## 外部影响与已安装副本（AC3、AC10）
@@ -53,3 +54,4 @@ updated: 2026-10-19
 | 轮次 | 审查方 | head | 结论 | 发现与处置 |
 |---|---|---|---|---|
 | 1 | Codex（Herdr 新会话，`--sandbox read-only`） | `44f2fc0` | FAIL | P2 本记录未填实际证据：已补。P3 README 三处“八个安装面”：改为七个。P3 `platform-bootstrap/README.md`、漂移检查 docstring、06 小节标题含被删路径文字：改为引用迁出说明或不写路径。其余项（157 个路径均在 git_scope、127 个删除与清单一致、未误删 K1–K5、保留覆盖未丢、治理 commit 隔离、旧发布版本与 pin 未变、无断链）无发现 |
+| 2 | Codex（同一只读会话） | `1deded7` | PASS | 无发现；第 1 轮三项处置复核通过，`12` §0 两行已标注的模式示例可保留 |
