@@ -559,6 +559,7 @@ governance_set=(
   "$ROOT"/codex/skills/*/SKILL.md
   "$ROOT/codex/global-AGENTS.md"
   "$ROOT/templates/project/AGENTS.md"
+  "$ROOT/usage/CONTRACT.md"
   "$ROOT/templates/project/ci/ci.yml"
   "$ROOT/templates/project/ci/merge-preview.sh"
 )

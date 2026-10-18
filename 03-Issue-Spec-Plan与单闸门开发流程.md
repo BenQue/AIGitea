@@ -255,6 +255,13 @@ bash codex/tools/change-template-sync.sh
 GAP 提示而不是错误的原因。约束由 `change-template-sync.json` 的
 `downstream_required_check: forbidden` 与 smoke 一起钉住：改掉它，工具停机、CI 变红。
 
+**版本化使用发布包（#377）。** change 模板四件套连同使用合同、项目指针与技能一起组成
+`usage/bundle.json` 声明的使用发布包。项目在 `.aisoft/platform-usage.lock.json` pin 版本后，
+`change-templates` 与 `pointer-sections` 按 pin 版本记录的摘要核对，平台前进不再让它自发变红；
+没有 lock 的项目仍对照最新版本。改动任何发布包成员的平台变更必须在同一次变更里运行
+`bash codex/tools/usage-bundle.sh --release <新版本> --today <日期>`，否则 smoke 的 `--verify` 变红。
+上面的 digest 与广播清单本批保留，二者的整合留给后续评估。
+
 ### Canonical 模板的精确 Git scope 合同（#360）
 
 以下是 [#360 已批准合同](docs/changes/360-canonical-template-scope/spec-canonical-template-scope-261015.md)
