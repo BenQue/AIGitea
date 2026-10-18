@@ -15,8 +15,8 @@ from aisoft_loop.routine_merge import evaluate_routine_eligibility
 ROOT = Path(__file__).parents[2]
 
 
-def newemaint_required_contexts() -> list[str]:
-    """What this platform declares as NewEMaint's required contexts.
+def alphaapp_required_contexts() -> list[str]:
+    """What this platform declares as AlphaApp's required contexts.
 
     The merge gate compares the live protection against the manifest and then
     demands every one of these contexts be successful at the exact head, so a
@@ -24,10 +24,10 @@ def newemaint_required_contexts() -> list[str]:
     the moment a project gains a required context (#312).
     """
     raw = json.loads(
-        (ROOT / "config/gitea-governance.json").read_text(encoding="utf-8")
+        (ROOT / "tests/fixtures/manifests/gitea-governance.json").read_text(encoding="utf-8")
     )
     entry = next(
-        item for item in raw["repositories"] if item["name"] == "NewEMaint"
+        item for item in raw["repositories"] if item["name"] == "AlphaApp"
     )
     return list(entry["status_check_contexts"])
 
@@ -43,7 +43,7 @@ def routine_token_scopes() -> list[str]:
     gate (#313). Reading the manifest keeps the contradiction visible.
     """
     raw = json.loads(
-        (ROOT / "config/gitea-governance.json").read_text(encoding="utf-8")
+        (ROOT / "tests/fixtures/manifests/gitea-governance.json").read_text(encoding="utf-8")
     )
     return list(raw["routine_merge_agent_policy"]["token_scopes"])
 
@@ -405,10 +405,10 @@ class RoutineBrokerTests(unittest.TestCase):
         root = Path(self.temporary.name)
         self.governance = root / "governance.json"
         self.governance.write_bytes(
-            (ROOT / "config/gitea-governance.json").read_bytes()
+            (ROOT / "tests/fixtures/manifests/gitea-governance.json").read_bytes()
         )
         self.access = root / "access.json"
-        self.access.write_bytes((ROOT / "config/host-access-broker.json").read_bytes())
+        self.access.write_bytes((ROOT / "tests/fixtures/manifests/host-access-broker.json").read_bytes())
         self.contract = load_access_contract(self.access, self.governance)
         self.sha = "a" * 40
         self.issue = 74
@@ -451,7 +451,7 @@ branch: {self.branch}
                         "token scope=" + ",".join(scopes)
                     ),
                 }, status=403)
-            return self.response({"login": "newemaint-routine-merger", "is_admin": False})
+            return self.response({"login": "alphaapp-routine-merger", "is_admin": False})
         if path == "/api/v1/notifications":
             return self.response({
                 "message": (
@@ -495,20 +495,20 @@ branch: {self.branch}
                 "force_push_allowlist_teams": [],
                 "force_push_allowlist_deploy_keys": False,
                 "enable_merge_whitelist": True,
-                "merge_whitelist_usernames": ["admin", "newemaint-routine-merger"],
+                "merge_whitelist_usernames": ["admin", "alphaapp-routine-merger"],
                 "enable_status_check": True,
-                "status_check_contexts": newemaint_required_contexts(),
+                "status_check_contexts": alphaapp_required_contexts(),
                 "required_approvals": 0,
                 "block_admin_merge_override": True,
             })
-        if path.endswith("/collaborators/newemaint-routine-merger/permission"):
+        if path.endswith("/collaborators/alphaapp-routine-merger/permission"):
             return self.response(extended_permission(
-                "newemaint-routine-merger", "write"
+                "alphaapp-routine-merger", "write"
             ))
         if path.endswith("/commits/" + self.sha + "/status"):
             return self.response({"statuses": [
                 {"context": context, "status": "success"}
-                for context in newemaint_required_contexts()
+                for context in alphaapp_required_contexts()
             ]})
         if path.endswith("/pulls/7/reviews"):
             return self.response([])
@@ -539,7 +539,7 @@ branch: {self.branch}
 
     def test_exact_payload_one_post_and_receipt(self):
         result = self.broker().execute(
-            "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
+            "alphaapp", "gitea.pull.merge.routine", number=7, sha=self.sha
         )
         self.assertEqual(result["status"], "AUTO_MERGED")
         self.assertEqual(len(self.posts), 1)
@@ -557,10 +557,10 @@ branch: {self.branch}
         def invalid_transport(method, url, headers, body):
             path = urlparse(url).path
             if path.endswith(
-                "/collaborators/newemaint-routine-merger/permission"
+                "/collaborators/alphaapp-routine-merger/permission"
             ):
                 payload = extended_permission(
-                    "newemaint-routine-merger", "write"
+                    "alphaapp-routine-merger", "write"
                 )
                 payload["user"] = {**payload["user"], "unknown": True}
                 return self.response(payload)
@@ -568,7 +568,7 @@ branch: {self.branch}
 
         with self.assertRaises(BrokerError) as caught:
             self.broker(transport=invalid_transport).execute(
-                "newemaint",
+                "alphaapp",
                 "gitea.pull.merge.routine",
                 number=7,
                 sha=self.sha,
@@ -585,7 +585,7 @@ branch: {self.branch}
 
         with self.assertRaises(BrokerError) as caught:
             self.broker(drift).execute(
-                "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
+                "alphaapp", "gitea.pull.merge.routine", number=7, sha=self.sha
             )
         self.assertEqual(caught.exception.code, "ROUTINE_HEAD_DRIFT")
         self.assertEqual(self.posts, [])
@@ -609,7 +609,7 @@ branch: {self.branch}
 
                 with self.assertRaises(BrokerError) as caught:
                     self.broker(unsafe_scope).execute(
-                        "newemaint", "gitea.pull.merge.routine",
+                        "alphaapp", "gitea.pull.merge.routine",
                         number=7, sha=self.sha,
                     )
                 self.assertEqual(caught.exception.code, "ROUTINE_TOKEN_SCOPE_MISMATCH")
@@ -622,7 +622,7 @@ branch: {self.branch}
 
                 def identity_drift(method, url, headers, body, *, unsafe=unsafe):
                     if urlparse(url).path == "/api/v1/user":
-                        value = {"login": "newemaint-routine-merger"}
+                        value = {"login": "alphaapp-routine-merger"}
                         if unsafe is not None:
                             value["is_admin"] = unsafe
                         return self.response(value)
@@ -630,7 +630,7 @@ branch: {self.branch}
 
                 with self.assertRaises(BrokerError) as caught:
                     self.broker(identity_drift).execute(
-                        "newemaint", "gitea.pull.merge.routine",
+                        "alphaapp", "gitea.pull.merge.routine",
                         number=7, sha=self.sha,
                     )
                 self.assertEqual(caught.exception.code, "IDENTITY_MISMATCH")
@@ -642,7 +642,7 @@ branch: {self.branch}
         try:
             with self.assertRaises(BrokerError) as caught:
                 self.broker().execute(
-                    "newemaint", "gitea.pull.merge.routine",
+                    "alphaapp", "gitea.pull.merge.routine",
                     number=7, sha=self.sha,
                 )
         finally:
@@ -664,7 +664,7 @@ branch: {self.branch}
 
         with self.assertRaises(BrokerError) as caught:
             self.broker(drift_on_final_read).execute(
-                "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
+                "alphaapp", "gitea.pull.merge.routine", number=7, sha=self.sha
             )
         self.assertEqual(caught.exception.code, "ROUTINE_HEAD_DRIFT")
         self.assertEqual(self.posts, [])
@@ -683,7 +683,7 @@ branch: {self.branch}
                 try:
                     with self.assertRaises(BrokerError) as caught:
                         self.broker().execute(
-                            "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
+                            "alphaapp", "gitea.pull.merge.routine", number=7, sha=self.sha
                         )
                 finally:
                     self.body = original
@@ -693,7 +693,7 @@ branch: {self.branch}
     def test_extra_arguments_are_rejected_before_credentials(self):
         with self.assertRaises(BrokerError) as caught:
             self.broker().execute(
-                "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha,
+                "alphaapp", "gitea.pull.merge.routine", number=7, sha=self.sha,
                 branch=self.branch,
             )
         self.assertEqual(caught.exception.code, "ARGUMENT_MISMATCH")
@@ -706,14 +706,14 @@ branch: {self.branch}
             ),
             ("merger appears in push allowlist", "ROUTINE_PROTECTION_DRIFT",
                 "/branch_protections/main",
-                {"push_whitelist_usernames": ["newemaint-routine-merger"]},
+                {"push_whitelist_usernames": ["alphaapp-routine-merger"]},
             ),
             ("merger has Admin", "ROUTINE_PROTECTION_DRIFT",
-                "/collaborators/newemaint-routine-merger/permission",
+                "/collaborators/alphaapp-routine-merger/permission",
                 {"permission": "admin"},
             ),
             # Every required context has to be green, not just the first one:
-            # #312 added NewEMaint's mobile-verify, and a gate that stopped at
+            # #312 added AlphaApp's mobile-verify, and a gate that stopped at
             # one context would have let a red mobile build merge itself.
             ("last required context failed", "ROUTINE_CI_NOT_GREEN",
                 "/commits/" + self.sha + "/status",
@@ -722,17 +722,17 @@ branch: {self.branch}
                         "context": context,
                         "status": (
                             "failure"
-                            if context == newemaint_required_contexts()[-1]
+                            if context == alphaapp_required_contexts()[-1]
                             else "success"
                         ),
                     }
-                    for context in newemaint_required_contexts()
+                    for context in alphaapp_required_contexts()
                 ]},
             ),
             ("a required context is absent", "ROUTINE_CI_NOT_GREEN",
                 "/commits/" + self.sha + "/status",
                 {"statuses": [{
-                    "context": newemaint_required_contexts()[0],
+                    "context": alphaapp_required_contexts()[0],
                     "status": "success",
                 }]},
             ),
@@ -756,7 +756,7 @@ branch: {self.branch}
 
                 with self.assertRaises(BrokerError) as caught:
                     self.broker(failing).execute(
-                        "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
+                        "alphaapp", "gitea.pull.merge.routine", number=7, sha=self.sha
                     )
                 self.assertEqual(caught.exception.code, expected)
                 self.assertEqual(self.posts, [])
@@ -773,7 +773,7 @@ branch: {self.branch}
 
         with self.assertRaises(BrokerError) as caught:
             self.broker(duplicated).execute(
-                "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
+                "alphaapp", "gitea.pull.merge.routine", number=7, sha=self.sha
             )
         self.assertEqual(caught.exception.code, "ROUTINE_PR_NOT_UNIQUE")
         self.assertEqual(self.posts, [])
@@ -792,7 +792,7 @@ branch: {self.branch}
                     return self.transport(method, url, headers, body)
 
                 result = self.broker(inactive).execute(
-                    "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
+                    "alphaapp", "gitea.pull.merge.routine", number=7, sha=self.sha
                 )
                 self.assertEqual(result["status"], "AUTO_MERGED")
                 self.assertEqual(len(self.posts), 1)
@@ -807,7 +807,7 @@ branch: {self.branch}
 
         with self.assertRaises(BrokerError) as caught:
             self.broker(dependency).execute(
-                "newemaint", "gitea.pull.merge.routine", number=7, sha=self.sha
+                "alphaapp", "gitea.pull.merge.routine", number=7, sha=self.sha
             )
         self.assertEqual(caught.exception.code, "ROUTINE_DEPENDENCY_BLOCKED")
         self.assertEqual(self.posts, [])
