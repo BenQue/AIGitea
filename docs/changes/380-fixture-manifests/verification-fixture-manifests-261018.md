@@ -24,7 +24,7 @@ updated: 2026-10-18
 ## 基线与范围
 
 - 基线：`origin/main` = `8fa4458`
-- 代码与测试的验证对象：`d2f22b5`（本记录随后的 commit 只改本目录文档与 plan 状态，最终 head 另跑全量 smoke）
+- 代码与测试的验证对象：最终 head（全量 smoke 在最终 head 上运行，见下表）
 - 环境：macOS 本机（Darwin 27.0.0，Python 3.14，`/opt/homebrew/bin/rg`）
 - 本记录负责证明的 acceptance criteria：AC1–AC7，以及 Codex 独立审查
 
@@ -42,8 +42,9 @@ updated: 2026-10-18
 | `test-installed-drift.sh` | PASS | 35 个用例；回滚工具与 keychain helper 同样报 `retired-target-present`；installer pin 更新为新文件 sha256 `81883aac…866f` |
 | `usage-bundle.sh --verify --baseline-ref origin/main` | PASS | `VERIFIED 1.0.0`，本票不改发布包成员 |
 | `python3 -B codex/tests/check-project-leak.py` | PASS | 14 个基线文件 92 处 → 13 个文件 59 处 |
-| `bash codex/tests/smoke.sh` | 见下 | 首跑（`6392047`）Python 回归 1238 个用例 OK，最后的 `check-change-documents` 因本记录尚未写入报 GAP（预期）；修复审查发现并写入本记录后在最终 head 重跑 |
-| Codex 独立审查（Herdr 只读会话） | FAIL → 待复核 | 首轮 1 个 P1、2 个 P2：守卫的 classification 排除 glob 未生效、正则漏掉 Path 拼接写法、project-check 覆盖后输出未标明来源；`d2f22b5` 修复。其余核对通过：夹具与真实 manifest 除改名与封印外字节等价，方法数逐文件一致，installer 删除与漂移 absent 对称，经 broker 入口的 13 个拒绝请求按预期原因拒绝，归档文件与原文件字节一致 |
+| `bash codex/tests/smoke.sh` | PASS | 首跑（`6392047`）Python 回归 1238 个用例 OK，结尾 `check-change-documents` 因本记录尚未写入报 GAP（预期）；`227ba04` 全量退出 0（1238 个用例 OK，`Codex platform static smoke checks passed.`）；补 SC2016 局部抑制后在最终 head 再跑一次，退出 0 |
+| ShellCheck | PASS | 改动的 6 个 shell 文件全部通过（含 `smoke.sh` 对字面量样例的局部 `disable=SC2016`） |
+| Codex 独立审查（Herdr 只读会话） | FAIL → PASS | 首轮 1 个 P1、2 个 P2：守卫的 classification 排除 glob 未生效、正则漏掉 Path 拼接写法、project-check 覆盖后输出未标明来源；`d2f22b5` 修复。其余核对通过：夹具与真实 manifest 除改名与封印外字节等价，方法数逐文件一致，installer 删除与漂移 absent 对称，经 broker 入口的 13 个拒绝请求按预期原因拒绝，归档文件与原文件字节一致。复核 PASS，另提 1 个 P3（smoke 字面量样例触发 SC2016），已加局部抑制 |
 
 ## 未执行项
 

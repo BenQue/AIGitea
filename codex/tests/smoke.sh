@@ -348,6 +348,8 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_host_access.cli \
 # ("codex" / "config" / ..., / "config" / ...) and a bare 'codex/config'
 # directory string; other config files and git's "config" do not match.
 real_manifest_ref='codex/config/(gitea-governance|host-access-broker)|["'"'"']config/(gitea-governance|host-access-broker)|["'"'"']codex/config["'"'"']|(["'"'"']codex["'"'"'] */ *["'"'"']config["'"'"']|/ *["'"'"']config["'"'"'] */).*(gitea-governance|host-access-broker)'
+# The samples are literal source text; $ROOT must not expand.
+# shellcheck disable=SC2016
 real_manifest_samples="$(printf '%s\n' \
   'ROOT / "codex/config/gitea-governance.json"' \
   'ROOT / "codex" / "config" / "gitea-governance.json"' \
