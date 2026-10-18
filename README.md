@@ -165,7 +165,7 @@ sequenceDiagram
 | [03-Issue/Spec/Plan 与单闸门流程](03-Issue-Spec-Plan与单闸门开发流程.md) | small/complex 双路径、文档绑定、标签语义、最终 PR | 日常使用平台 |
 | [04-Matt 编排与 Development Loop](04-Agent编排与定时任务.md) | Matt skills、analyzer、Loop、verifier、终态、provider adapter | 调整 agent 行为 |
 | [05-通知与多人协作](05-通知与多人协作.md) | Gitea mailer、Mailpit、事件覆盖、切真实 SMTP | 配通知、加协作者 |
-| [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、编号实证踩坑、CI 停滞判定、八个安装面漂移核对、PAT 轮换与 AI 故障包 | 排障必读 |
+| [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、编号实证踩坑、CI 停滞判定、七个安装面漂移核对、PAT 轮换与 AI 故障包 | 排障必读 |
 | [07-内网与生产平移路线](07-内网与生产平移路线.md) | 原型孵化、持续权威分工、备选下线切换和 Linux/Windows 双目标 | 规划内网平移 |
 | [08-双工具共存与实施](08-双工具共存与实施.md) | 共享契约、controller/adapter、provider 验证矩阵、部署边界与回滚 | 接入或切换 provider |
 | [平台使用合同](usage/CONTRACT.md) | 项目使用层的唯一合同入口；随版本化使用发布包（`usage/bundle.json`，`codex/tools/usage-bundle.sh`）下发，项目 pin 版本 | 项目接入、升级或核对所用平台版本 |
@@ -200,12 +200,12 @@ Claude 侧的 Matt 插件不走上表的 installer，而由 Claude Code 自己�
 `bash skill-for-claude/check-plugin-pin.sh --source-only` 校验 marketplace 条目、vendor manifest 与
 `codex/install-skills.sh` 的版本三方相等；不带参数时再只读核对本机已装插件，首行为
 `PIN_CLEAN` / `PIN_DRIFT` / `PIN_NOT_INSTALLED` / `PIN_UNREADABLE` 之一。判定以 commit 为准，版本号只作旁证；
-已装记录的格式不认识时读出 `PIN_UNREADABLE`，不判 `PIN_CLEAN`。该检查不属于下面的八安装面，也不注册
+已装记录的格式不认识时读出 `PIN_UNREADABLE`，不判 `PIN_CLEAN`。该检查不属于下面的七安装面，也不注册
 marketplace、不安装或升级插件：source 合并不等于本机已切换来源，实际升级与 fresh-session 验收另行授权。
 superpowers 跟随官方 marketplace，平台不自建 pin；两个技能包的平台边界与升级后的人工适配检查清单见
 [08 §5](08-双工具共存与实施.md#5-matt-skills-与平台映射)。
 
-Issue #308 的八安装面只读核对合同：`bash codex/tools/check-installed-drift.sh` 逐项报告
+Issue #308 的安装面只读核对合同（#383 起七个）：`bash codex/tools/check-installed-drift.sh` 逐项报告
 `PASS/GAP`、source/installed 可读量与具体缺失或字节不符的目标；可读量沿用 [06 踩坑 20](06-运维手册与踩坑集.md)。
 计数或 revision 相等不能代替文件比对。检查不运行 installer、不读取凭据、不调用 sudo、不创建临时文件、
 cache 或报告，也不自动修复。`--source-only` 仅校验源码映射，不能证明 installed 同步；

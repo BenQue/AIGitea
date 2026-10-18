@@ -1,4 +1,4 @@
-"""Credential-free, zero-write comparison of the seven installer surfaces (#308; docker-release/install retired by #383).
+"""Credential-free, zero-write comparison of the seven installer surfaces (#308; one surface retired by #383).
 
 Installer fingerprints fail closed when copy/delete semantics change. Update their
 mapping and acceptance fixtures together; never just advance a fingerprint to get
