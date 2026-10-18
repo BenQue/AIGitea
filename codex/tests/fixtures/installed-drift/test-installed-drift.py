@@ -1,4 +1,4 @@
-"""Exercise the public CLI against copies made by the eight real installers."""
+"""Exercise the public CLI against copies made by the seven real installers."""
 from __future__ import annotations
 
 import hashlib
@@ -15,7 +15,7 @@ REPO = Path(sys.argv.pop(1)).resolve()
 CHECKER = REPO / "codex/tools/check-installed-drift.sh"
 INSTALLERS = (
     "install-vm", "install-skills", "install-host-role", "install-host-access-broker",
-    "architecture/install", "docker-release/install", "sync/install", "skill-for-claude/install",
+    "architecture/install", "sync/install", "skill-for-claude/install",
 )
 
 
@@ -47,7 +47,7 @@ class InstalledDriftTests(unittest.TestCase):
         # remain unchanged; explicit source-drift cases below still fail closed.
         cls.fixture_source = Path(cls.temp.name).resolve() / "source-baseline"
         cls.fixture_source.mkdir()
-        for directory in ["codex", "architecture", "docker-release", "sync",
+        for directory in ["codex", "architecture", "sync",
                           "skills", "skill-for-claude", "templates"]:
             shutil.copytree(REPO / directory, cls.fixture_source / directory,
                             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
@@ -72,7 +72,6 @@ class InstalledDriftTests(unittest.TestCase):
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1",
                    AISOFT_HOST_ACCESS_INSTALL_ROOT=str(system),
                    AISOFT_HOST_ROLE_INSTALL_ROOT=str(system),
-                   AISOFT_DOCKER_RELEASE_INSTALL_ROOT=str(system),
                    AISOFT_SYNC_INSTALL_ROOT=str(system))
         commands = [
             ["bash", "codex/install-vm.sh", str(home), str(agent)],
@@ -80,7 +79,6 @@ class InstalledDriftTests(unittest.TestCase):
             ["bash", "codex/install-host-role.sh"],
             ["bash", "codex/install-host-access-broker.sh"],
             ["bash", "architecture/install.sh", "--prefix", str(arch)],
-            ["bash", "docker-release/install.sh"],
             ["bash", "sync/install.sh"],
             ["bash", "skill-for-claude/install.sh", str(home)],
         ]
@@ -126,7 +124,7 @@ class InstalledDriftTests(unittest.TestCase):
         source = self.work / "source"
         source.mkdir()
         # Only repository data; no Git metadata, user home, credentials or live files.
-        for directory in ["codex", "architecture", "docker-release", "sync", "skills", "skill-for-claude", "templates"]:
+        for directory in ["codex", "architecture", "sync", "skills", "skill-for-claude", "templates"]:
             shutil.copytree(REPO / directory, source / directory,
                             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         return source
@@ -375,7 +373,7 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
         lock.write_bytes(original)
         self.check(extra=["--source-only"], repo=source)
 
-    def test_all_eight_real_installer_fixtures_pass(self):
+    def test_all_seven_real_installer_fixtures_pass(self):
         report = self.check()
         self.assertEqual(tuple(r["installer"] for r in report["installers"]), INSTALLERS)
         self.assertTrue(all(r["result"] == "PASS" for r in report["installers"]))
@@ -416,7 +414,6 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
             "install-host-role": self.system / "usr/local/libexec/aisoft/verify-host-role",
             "install-host-access-broker": self.system / "usr/local/libexec/aisoft/host-access-broker",
             "architecture/install": self.arch / "share/aisoft-architecture/catalog.json",
-            "docker-release/install": self.system / "opt/aisoft-docker-release/docker-release-v1/compatibility/image-stores-v1.json",
             "sync/install": self.system / "etc/systemd/system/aisoft-inbound-sync@.timer",
             "skill-for-claude/install": self.home / ".claude/skills/aisoft-platform/references/onboarding-runbook.md",
         }
@@ -447,7 +444,6 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
     def test_catalog_matrix_revisions_and_schema_count(self):
         for name, path, key, label in [
             ("architecture/install", self.arch / "share/aisoft-architecture/catalog.json", "revision", "catalog revision"),
-            ("docker-release/install", self.system / "opt/aisoft-docker-release/docker-release-v1/compatibility/image-stores-v1.json", "matrix_revision", "matrix revision"),
         ]:
             old = path.read_bytes()
             doc = json.loads(old)
@@ -457,10 +453,10 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
             self.assertNotEqual(q["expected"], q["installed"])
             path.write_bytes(old)
             self.check()
-        path = next((self.system / "opt/aisoft-docker-release/docker-release-v1/schema").glob("*.json"))
+        path = next((self.home / ".local/lib/aisoft-loop/aisoft_loop").glob("*.py"))
         old = path.read_bytes()
         path.unlink()
-        q = self.row(self.check(1), "docker-release/install")["quantities"]["schemas"]
+        q = self.row(self.check(1), "install-vm")["quantities"]["runtime modules"]
         self.assertEqual(q["installed"], q["expected"] - 1)
         path.write_bytes(old)
         self.check()

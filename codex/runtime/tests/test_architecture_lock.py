@@ -160,7 +160,7 @@ class ArchitectureLockTests(unittest.TestCase):
         self.assertEqual(caught.exception.diagnostic.code, "SCHEMA_REQUIRED")
 
     def test_committed_reference_locks_cross_check(self) -> None:
-        for reference in ("newemaint/target-candidate", "windows", "sqlite"):
+        for reference in ("windows", "sqlite"):
             with self.subTest(reference=reference):
                 project = load_json(ARCH / "reference" / reference / "architecture.json")
                 profile = load_json(ARCH / "profiles" / f"{project['profile_id']}.json")

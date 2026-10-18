@@ -219,14 +219,9 @@ SBOM/provenance/OCI attestations，导入批准 mirror，再由人工 PR 更新 
 
 ## 状态边界
 
-`architecture/reference/` 是 read-only dry-run evidence。NewEmaint reference 明确分为：
-
-- `target-candidate/`：project ID `newemaint-target-candidate`，描述 preferred 目标；
-- current lock：本 Change 不生成；NewEmaint 实际采用 supported/preferred bytes 后，才可用
-  project ID `newemaint` 在应用 Change 中生成；
-- `gap-report.md`：记录 current facts、target 差异、umbrella tracking 与未执行边界。
+`architecture/reference/` 只保留合成的 profile 合同参考（`windows/`、`sqlite/`），不对应任何已注册项目。
+具体项目的 target-candidate、gap report 与迁移跟踪属于项目仓；原先的项目 reference 已由 #383 迁出，
+历史版本见 [迁出说明](../archive/reference-implementations-exit-261019.md)。
 
 Target lock 不能复制或重命名为 current，也不是项目已迁移、已部署或已验收的证据。
-Transition 不能规避 `prohibited`/EOL/digest/expiry/checksum。Issue #26 明确采用 target-only
-验收；NewEmaint [#52](http://gitea-ci.orb.local:3000/admin/NewEMaint/issues/52) 是唯一 umbrella
-migration tracking Issue，但它不授权实施，也不能让 unsupported Next.js 14 进入 current lock。
+Transition 不能规避 `prohibited`/EOL/digest/expiry/checksum。

@@ -9,7 +9,6 @@ command -v rg >/dev/null
 bash -n \
   "$ROOT/architecture/bin/aisoft-architecture" \
   "$ROOT/architecture/install.sh" \
-  "$ROOT/company-delivery/bin/aisoft-company-delivery" \
   "$ROOT/codex/tests/test-architecture-install.sh"
 
 optional_runtime_sources=(
@@ -24,21 +23,6 @@ optional_runtime_sources=(
   "$ROOT/codex/tools/git-credential-aisoft-host.sh"
   "$ROOT/codex/install-host-access-broker.sh"
   "$ROOT/codex/install-vm.sh"
-  "$ROOT/docker-release/bin/aisoft-docker-release"
-  "$ROOT/docker-release/bin/aisoft-docker-release-gate"
-  "$ROOT/docker-release/install.sh"
-  "$ROOT/codex/tests/test-docker-release-install.sh"
-  "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
-  "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh"
-  "$ROOT/codex/tests/test-docker-release-v2-lifecycle-e2e-harness.sh"
-  "$ROOT/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh"
-  "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/docker-wrapper.sh"
-  "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/migrate.sh"
-  "$ROOT/codex/tests/integration/test-docker28-classic-e2e.sh"
-  "$ROOT/codex/tests/integration/provision-docker28-classic-lab.sh"
-  "$ROOT/codex/tests/fixtures/docker28-classic/install-daemon.sh"
-  "$ROOT/codex/tests/fixtures/docker28-classic/migrate.sh"
-  "$ROOT/codex/tests/test-docker28-classic-e2e-harness.sh"
 )
 runtime_source_count=0
 for script in "${optional_runtime_sources[@]}"; do
@@ -129,12 +113,6 @@ for script in \
 done
 if command -v shellcheck >/dev/null; then
   shellcheck \
-    "$ROOT/codex/tests/integration/test-docker28-classic-e2e.sh" \
-    "$ROOT/codex/tests/integration/provision-docker28-classic-lab.sh" \
-    "$ROOT/codex/tests/fixtures/docker28-classic/install-daemon.sh" \
-    "$ROOT/codex/tests/fixtures/docker28-classic/migrate.sh" \
-    "$ROOT/codex/tests/test-docker28-classic-e2e-harness.sh"
-  shellcheck \
     "$ROOT"/codex/agent/*.sh \
     "$ROOT/codex/install-vm.sh" \
     "$ROOT/codex/install-host-role.sh" \
@@ -203,21 +181,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-gitea-token-consumers.sh"
   shellcheck "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh
   shellcheck \
-    "$ROOT/docker-release/bin/aisoft-docker-release" \
-    "$ROOT/docker-release/bin/aisoft-docker-release-gate" \
-    "$ROOT/docker-release/install.sh" \
-    "$ROOT/codex/tests/test-docker-release-install.sh" \
-    "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh" \
-    "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh" \
-    "$ROOT/codex/tests/test-docker-release-v2-lifecycle-e2e-harness.sh" \
-    "$ROOT/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh" \
-    "$ROOT/codex/tests/integration/test-company-delivery-real-release.sh" \
-    "$ROOT/codex/tests/test-company-delivery-real-release-harness.sh" \
-    "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/docker-wrapper.sh" \
-    "$ROOT/codex/tests/fixtures/docker-release-v2-lifecycle/migrate.sh" \
     "$ROOT/architecture/bin/aisoft-architecture" \
     "$ROOT/architecture/install.sh" \
-    "$ROOT/company-delivery/bin/aisoft-company-delivery" \
     "$ROOT/codex/tests/test-architecture-install.sh"
 fi
 bash "$ROOT/codex/tests/test-architecture-install.sh"
@@ -275,23 +240,8 @@ bash "$ROOT/codex/tests/test-installer-source-guard.sh"
 bash "$ROOT/codex/tools/check-installed-drift.sh" --source-only
 bash "$ROOT/codex/tests/test-installed-drift.sh"
 bash "$ROOT/codex/tests/test-install-runner-flutter.sh"
-bash "$ROOT/codex/tests/test-docker-release-install.sh"
-bash "$ROOT/codex/tests/test-docker-image-store-e2e-harness.sh"
-harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-image-store-e2e.sh")"
-grep -Fq 'NOT RUN: Docker image-store E2E' <<<"$harness_output"
-bash "$ROOT/codex/tests/test-docker28-classic-e2e-harness.sh"
-python3 -B "$ROOT/codex/tests/check-release-evidence-boundary.py"
 # ADR 0001 D3 (#368): project names outside allowed places may only shrink.
 python3 -B "$ROOT/codex/tests/check-project-leak.py"
-lifecycle_harness_output="$(bash "$ROOT/codex/tests/integration/test-docker-release-v2-lifecycle-e2e.sh")"
-grep -Fq 'NOT RUN: Docker release v2 lifecycle E2E requires separate Issue #65 authorization.' \
-  <<<"$lifecycle_harness_output"
-bash "$ROOT/codex/tests/test-company-delivery-real-release-harness.sh"
-company_delivery_real_output="$(
-  bash "$ROOT/codex/tests/integration/test-company-delivery-real-release.sh"
-)"
-grep -Fq 'NOT RUN: Issue #124 exact real-release regression requires explicit --execute.' \
-  <<<"$company_delivery_real_output"
 bash "$ROOT/codex/tests/test-registry-preflight.sh"
 bash "$ROOT/sync/tests/test-inbound-sync.sh"
 bash "$ROOT/sync/tests/test-install.sh"
@@ -382,73 +332,13 @@ while IFS= read -r json_file; do
   jq empty "$json_file"
 done < <(find "$ROOT/architecture" -type f -name '*.json' ! -path '*/fixtures/invalid/duplicate-key.json' | sort)
 
-while IFS= read -r json_file; do
-  jq empty "$json_file"
-done < <(
-  find "$ROOT/docker-release" "$ROOT/codex/tests/fixtures/docker-release" \
-    -type f -name '*.json' | sort
-)
-
-while IFS= read -r json_file; do
-  jq empty "$json_file"
-done < <(find "$ROOT/company-delivery" -type f -name '*.json' | sort)
-
-if rg -q -i \
-  'authorization[[:space:]]*:[[:space:]]*(bearer|token)[[:space:]]+[^<[:space:]]+|(password|passwd|pwd|token|secret|api[_-]?key)[[:space:]]*[:=][[:space:]]*[^<[:space:]]{8,}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|\bgh[pousr]_[A-Za-z0-9]{20,}\b|\b(postgres(ql)?|mysql|mongodb)://[^/[:space:]:@]+:[^@[:space:]]+@' \
-  "$ROOT/company-delivery"; then
-  echo 'company-delivery contains a concrete Secret-like value' >&2
-  exit 1
-fi
-
-jq -e '
-  .contract_version == "docker-image-store-compatibility/v1" and
-  .matrix_revision == "2026.09.1" and
-  (.rows | length == 4) and
-  ([.rows[].row_id] | sort) == [
-    "engine-28.1.1-compose-2.35.1-classic-linux-amd64",
-    "engine-29-classic-linux-amd64",
-    "engine-29-containerd-linux-amd64",
-    "engine-29.7.1-compose-5.1.4-containerd-linux-amd64"
-  ] and
-  (.rows[] | select(.row_id == "engine-29-containerd-linux-amd64") |
-    .image_store == "containerd" and
-    .status == "supported" and
-    .evidence.kind == "real-e2e" and
-    .evidence.evidence_id == "issue-27-containerd-a75181cd7209" and
-    .evidence.source == "docs/changes/27/03-verification.md") and
-  (.rows[] | select(.row_id == "engine-29-classic-linux-amd64") |
-    .image_store == "classic" and
-    .status == "rejected" and
-    .evidence == null) and
-  (.rows[] | select(.row_id == "engine-29.7.1-compose-5.1.4-containerd-linux-amd64") |
-    .engine == {"minimum": "29.7.1", "maximum_exclusive": "29.7.2"} and
-    .compose == {"minimum": "5.1.4", "maximum_exclusive": "5.1.5"} and
-    .os == "linux" and
-    .architecture == "amd64" and
-    .image_store == "containerd" and
-    .status == "supported" and
-    .evidence.kind == "real-e2e" and
-    .evidence.evidence_id == "issue-65-compose-5.1.4-97445947fff7" and
-    .evidence.source == "docs/changes/65/verification-compose-514-lifecycle-260808.md") and
-  (.rows[] | select(.row_id == "engine-28.1.1-compose-2.35.1-classic-linux-amd64") |
-    .engine == {"minimum": "28.1.1", "maximum_exclusive": "28.1.2"} and
-    .compose == {"minimum": "2.35.1", "maximum_exclusive": "2.35.2"} and
-    .os == "linux" and
-    .architecture == "amd64" and
-    .image_store == "classic" and
-    .status == "supported" and
-    .evidence.kind == "real-e2e" and
-    .evidence.evidence_id == "issue-296-docker28-classic-843672a6a6a4" and
-    .evidence.source == "docs/changes/296-docker28-classic/verification-docker28-classic-260916.md")
-' "$ROOT/docker-release/compatibility/image-stores-v1.json" >/dev/null
-
 if rg -n '(^|[[:space:]])(import yaml|from yaml)' \
   "$ROOT/codex/runtime/aisoft_architecture" "$ROOT/architecture"; then
   echo 'Architecture V1 must not introduce a YAML parser.' >&2
   exit 1
 fi
 
-for reference in newemaint/target-candidate windows sqlite; do
+for reference in windows sqlite; do
   "$ROOT/architecture/bin/aisoft-architecture" validate \
     --catalog "$ROOT/architecture/catalog.json" \
     --profiles-dir "$ROOT/architecture/profiles" \
@@ -656,15 +546,6 @@ references_set=("$ROOT"/skills/*/references/*.md)
 if rg -ni 'NewEMaint|SFMDigitalBoard|HSDB|WMPDA|SapTable|rsdesign|myapp|smoke-test|LocalWMS' \
   "${references_set[@]}"; then
   echo '共享 references 不得出现具体项目名（#233 G-01）' >&2
-  exit 1
-fi
-# company-delivery/ is a de-projected operator reference implementation
-# (#237) and ships inside every operator bundle. Since #239 the runtime binds
-# no project identifier (the compatibility matrix and the sync timer unit are
-# caller/handoff-declared), so the whole directory must stay project-neutral.
-if rg -ni 'NewEMaint|SFMDigitalBoard|HSDB|WMPDA|SapTable|rsdesign|myapp|smoke-test|LocalWMS' \
-  "$ROOT/company-delivery"; then
-  echo 'company-delivery 不得出现具体项目名（#239 AC-2）' >&2
   exit 1
 fi
 # Live documents only: archive/, docs/changes/ and codex/vendor/ are history or

@@ -111,7 +111,7 @@ class BareSiblingImportTests(unittest.TestCase):
         """兄弟集合空掉，上面的闸门就退化成一条永远绿的断言。"""
         siblings = _sibling_modules()
         self.assertIn("test_controller", siblings)
-        self.assertIn("release_test_support", siblings)
+        self.assertIn("rotation_cli_fixture", siblings)
 
     def test_tests_tree_is_flat(self) -> None:
         """扫描只覆盖 tests/*.py。真出现子包时，裸名解析规则与这里的假设不再一致，

@@ -1,4 +1,4 @@
-"""Credential-free, zero-write comparison of the eight installer surfaces (#308).
+"""Credential-free, zero-write comparison of the seven installer surfaces (#308; docker-release/install retired by #383).
 
 Installer fingerprints fail closed when copy/delete semantics change. Update their
 mapping and acceptance fixtures together; never just advance a fingerprint to get
@@ -25,7 +25,6 @@ INSTALLER_PINS = {
     "codex/install-host-role.sh": "325e5150722e30debc115c0717d9bc4dedac44e1a7552c3a2258df14c4b27c89",
     "codex/install-host-access-broker.sh": "81883aace5b33fdf0200f093738db4179d861357168f026ad3bfc8ddc760866f",
     "architecture/install.sh": "c8f14f0154cad1b7402e527209d0135bab2bdf3bc0024f72fd06994067aa972e",
-    "docker-release/install.sh": "3580c1e23b343fe9bbe2d3f9ea1b64b0f95ef1a7ba9c023c282bf5b68a649b13",
     "sync/install.sh": "153f36ef3396a053a4e4cbb8d6022a9f163b75b6f4c25498ba27ae3217d30f10",
     "skill-for-claude/install.sh": "e2b767925e31b45cb83aaa3f93bedda8122b4ffc7e60c46cd4dc639659114f77",
 }
@@ -372,7 +371,7 @@ def read_skill_manifest(repo: Path) -> dict[str, tuple[str, ...]]:
 
 def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path):
     names = ("install-vm", "install-skills", "install-host-role", "install-host-access-broker",
-             "architecture/install", "docker-release/install", "sync/install", "skill-for-claude/install")
+             "architecture/install", "sync/install", "skill-for-claude/install")
     surfaces = {name: Surface(name) for name in names}
     metadata_sources = {repo / p for p in INSTALLER_PINS}
 
@@ -516,19 +515,6 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
         tree("architecture/install", "architecture/" + dirname, arch / "share/aisoft-architecture" / dirname, arch, "*")
     for label, key, length in [("catalog revision", "revision", False), ("components", "components", True)]:
         json_metric("architecture/install", label, "architecture/catalog.json", arch / "share/aisoft-architecture/catalog.json", arch, key, length)
-    release = system / "opt/aisoft-docker-release/docker-release-v1"
-    tree("docker-release/install", "codex/runtime/aisoft_release", release / "runtime/aisoft_release", system, "*.py")
-    for dirname in ("schema", "compatibility"):
-        tree("docker-release/install", "docker-release/" + dirname, release / dirname, system, "*.json")
-    for filename in ("target-profile.example.json", "action-grant.example.json"):
-        add("docker-release/install", "docker-release/templates/" + filename,
-            system / "etc/aisoft-docker-release/examples/docker-release-v1" / filename, system)
-    for tool in ("aisoft-docker-release", "aisoft-docker-release-gate"):
-        add("docker-release/install", "docker-release/bin/" + tool, system / "usr/local/bin" / tool, system)
-    json_metric("docker-release/install", "matrix revision", "docker-release/compatibility/image-stores-v1.json",
-                release / "compatibility/image-stores-v1.json", system, "matrix_revision", False)
-    surfaces["docker-release/install"].metrics["schemas"] = Metric(len(list((repo / "docker-release/schema").glob("*.json"))),
-        "patterns", [release / "schema"], system, pattern="*.json")
     sync_targets = []
     for filename in ("inbound-sync.sh", "git-credential-token-file.sh"):
         target = system / "opt/aisoft-sync" / filename
@@ -632,11 +618,10 @@ def source_identity(repo: Path, sources: set[Path]):
             # Fixed tree roots also cover a wholly removed package/skill; deriving
             # roots from surviving files would silently omit that deletion.
             scopes = {"codex/runtime/" + name for name in ("aisoft_loop", "aisoft_host_access",
-                      "aisoft_gitea_governance", "aisoft_architecture", "aisoft_release")}
+                      "aisoft_gitea_governance", "aisoft_architecture")}
             scopes.update({"codex/agent", "codex/systemd", "skills", "codex/lib/skills-manifest.sh",
                            "codex/tools/gitea-pat-helper",
-                           "codex/vendor/mattpocock", "docker-release/schema",
-                           "docker-release/compatibility", "sync/systemd"})
+                           "codex/vendor/mattpocock", "sync/systemd"})
             scopes.update("architecture/" + name for name in ("profiles", "schemas", "templates", "decisions"))
             # Read raw tree metadata and hash worktree bytes ourselves. git diff
             # can run configured clean filters even with --no-ext-diff/textconv.

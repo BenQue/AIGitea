@@ -5,15 +5,6 @@
   "scope_authority": "Issue #23 explicitly names NewEmaint, reference projects, gitea-ci and prod-sim; no separate formal asset registry was available.",
   "projects": [
     {
-      "project_id": "newemaint",
-      "owner": "application repository owners",
-      "purpose": "enterprise maintenance application",
-      "source": "gitea/main@ecbdc674fde1f785cafdee92c6ee88c691104a34",
-      "metadata_path": "architecture/reference/newemaint/inventory.json",
-      "confidence": "high",
-      "collection_status": "complete for repository metadata; runtime/server not inferred"
-    },
-    {
       "project_id": "windows-reference-candidate",
       "owner": "platform governance",
       "purpose": "synthetic profile contract reference",
