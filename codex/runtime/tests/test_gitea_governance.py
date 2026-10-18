@@ -17,7 +17,9 @@ from aisoft_gitea_governance.cli import (
     _check, _parser, _read_token, _require_pilot_live_authorization,
     _verify_merged_contract, main as governance_cli_main,
 )
-from aisoft_gitea_governance.contract import ContractError, load_contract
+from aisoft_gitea_governance.contract import (
+    ContractError, load_contract, repository_declarations_sha256,
+)
 from aisoft_gitea_governance.reconcile import (
     apply_repository,
     audit_cross_project_writes,
@@ -345,6 +347,36 @@ class ContractTests(unittest.TestCase):
             repository.routine_live_pilot is None
             for repository in contract.repositories
         ))
+
+    def test_pilot_seal_follows_the_pilot_repository(self):
+        # #373: the non-target digest excludes whichever repository declares
+        # the pilot, not a fixed name. Moving the pilot with the old digest is
+        # rejected; recomputing it for the new pilot repository is accepted.
+        def move_pilot(recompute: bool):
+            def mutate(raw: dict[str, Any]) -> None:
+                source = raw_repository(raw)
+                other = next(
+                    item for item in raw["repositories"] if item["name"] == "LocalWMS"
+                )
+                pilot = source.pop("routine_live_pilot")
+                pilot["required_contexts"] = list(other["status_check_contexts"]) or [
+                    "CI / verify (pull_request)"
+                ]
+                other["status_check_contexts"] = list(pilot["required_contexts"])
+                other["routine_live_pilot"] = pilot
+                if recompute:
+                    pilot["non_target_repositories_sha256"] = (
+                        repository_declarations_sha256(
+                            raw["repositories"], exclude_name="LocalWMS"
+                        )
+                    )
+            return mutate
+
+        with self.assertRaisesRegex(ContractError, "non-target repository"):
+            load_contract(self._write_mutation(move_pilot(recompute=False)))
+        contract = load_contract(self._write_mutation(move_pilot(recompute=True)))
+        self.assertIsNotNone(contract.repository("LocalWMS").routine_live_pilot)
+        self.assertIsNone(contract.repository("NewEMaint").routine_live_pilot)
 
     def test_second_routine_live_pilot_is_rejected(self):
         def copy_pilot(raw: dict[str, Any]) -> None:
