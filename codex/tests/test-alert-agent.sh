@@ -32,9 +32,17 @@ case "$operation" in
     ;;
   gitea.commit.status.read)
     [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || exit 2
-    printf '{"sha":"%s","state":"%s"}\n' "$sha" "${FAKE_CI:-success}"
+    case "${FAKE_STATUS_SHAPE:-ok}" in
+      array) printf '[]\n' ;;
+      empty) printf '{}\n' ;;
+      *) printf '{"sha":"%s","state":"%s"}\n' "$sha" "${FAKE_CI:-success}" ;;
+    esac
     ;;
   orbstack.vm.units.read)
+    if [[ "${FAKE_UNITS_SHAPE:-ok}" == "bad" ]]; then
+      printf '%s\n' '{"status":"PASS","timers":[{"timer":"a.timer","enabled":true}]}'
+      exit 0
+    fi
     printf '{"status":"PASS","timers":[{"timer":"a.timer","enabled":true,"failures_24h":%s},
       {"timer":"b.timer","enabled":false,"failures_24h":9}]}\n' "${FAKE_TIMER_FAILURES:-0}"
     ;;
@@ -107,6 +115,25 @@ FAKE_CI=error FAKE_HEAD=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb FAKE_TIMER_FAIL
 run_poll >/dev/null
 FAKE_TIMER_FAILURES=1 run_poll >/dev/null
 [[ "$(notified)" == "5" ]]
+
+# A malformed but successful answer is unreadable, not healthy: the poll keeps
+# running, keeps the affected previous alerts and reports the broker once.
+state_wrong="$test_root/state-wrong"
+run_wrong() {
+  AISOFT_ALERT_NOTIFIER="$notifier" bash "$poll" --broker "$fake_broker" --state-dir "$state_wrong"
+}
+FAKE_CI=failure FAKE_TIMER_FAILURES=3 run_wrong >/dev/null
+before="$(notified)"
+expected_new=1
+for shape in array empty; do
+  out="$(FAKE_STATUS_SHAPE="$shape" FAKE_UNITS_SHAPE=bad run_wrong)"
+  grep -Fxq "ALERTS active=3 new=$expected_new broker_failures=2" <<<"$out"
+  expected_new=0
+  grep -Fq 'ci:aisoft-platform:7:' "$state_wrong/active-alerts.tsv"
+  grep -Fq 'timer:a.timer' "$state_wrong/active-alerts.tsv"
+done
+[[ "$(notified)" == "$((before + 1))" ]]
+grep -Fq 'broker unreadable: gitea.commit.status.read:RESPONSE_SCHEMA_INVALID' "$notifications"
 
 # The state file carries keys and messages only.
 refute grep -Eiq 'token|password|authorization' "$state/active-alerts.tsv"

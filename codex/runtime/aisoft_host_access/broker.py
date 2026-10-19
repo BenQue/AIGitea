@@ -60,14 +60,18 @@ SYSTEMD_TOKEN_RE = re.compile(r"^[a-z-]{1,32}$")
 # fields alone, so the failure count never depends on, or returns, message text.
 SYSTEMD_UNIT_FAILED_MESSAGE_ID = "d9b373ed55a64feb8242e02dbe79a49c"
 VM_UNIT_FAILURE_WINDOW_SECONDS = 86_400
-# A 15-minute timer fails at most 96 times a day; the bound keeps one read
-# finite even if many units fail far more often than that.
+# A 15-minute timer fails at most 96 times a day. The read is filtered to the
+# timers' own services and fails closed when it reaches this bound, so the
+# bound can only make the answer unreadable, never quietly too small.
 VM_UNIT_JOURNAL_LINES = 5000
 VM_UNIT_TIMER_LIMIT = 64
 # Plain or instantiated unit names only. Templates ("name@.timer") are skipped
 # before validation; anything escaped or unexpected fails the read closed.
 SYSTEMD_TIMER_NAME_RE = re.compile(
     r"^[A-Za-z0-9:_.-]{1,128}(?:@[A-Za-z0-9:_.-]{1,128})?\.timer$"
+)
+SYSTEMD_UNIT_NAME_RE = re.compile(
+    r"^[A-Za-z0-9:_.-]{1,128}(?:@[A-Za-z0-9:_.-]{1,128})?\.[a-z]{1,16}$"
 )
 SYSTEMD_SERVICE_NAME_RE = re.compile(
     r"^[A-Za-z0-9:_.-]{1,128}(?:@[A-Za-z0-9:_.-]{1,128})?\.service$"
@@ -4546,40 +4550,42 @@ class HostAccessBroker:
             "Id", "UnitFileState", "ActiveState", "SubState", "Triggers",
             "LastTriggerUSec",
         ))
-        services: dict[str, str] = {}
+        services: dict[str, str | None] = {}
         for name in names:
-            triggers = timers.get(name, {}).get("Triggers", "").split()
-            service = next(
+            triggers = timers[name].get("Triggers", "").split()
+            # systemd refuses a timer with nothing to trigger, so an empty or
+            # malformed list is an unreadable answer, never "no service".
+            if not triggers or not all(
+                SYSTEMD_UNIT_NAME_RE.fullmatch(item) for item in triggers
+            ):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "systemd timer trigger is unreadable"
+                )
+            services[name] = next(
                 (item for item in triggers if SYSTEMD_SERVICE_NAME_RE.fullmatch(item)),
                 None,
             )
-            if service is not None:
-                services[name] = service
+        service_names = sorted({item for item in services.values() if item is not None})
         service_states = self._user_unit_show(
-            prefix, sorted(set(services.values())),
+            prefix, service_names,
             ("Id", "ActiveState", "SubState", "Result", "ExecMainStatus"),
         )
-        failures = self._user_unit_failures(
-            prefix, observed_at - VM_UNIT_FAILURE_WINDOW_SECONDS,
-        )
+        since = observed_at - VM_UNIT_FAILURE_WINDOW_SECONDS
+        failures = self._user_unit_failures(prefix, service_names, since, observed_at)
         entries: list[dict[str, object]] = []
         for name in names:
-            fields = timers.get(name)
-            if fields is None:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID", "systemd timer state is unreadable"
-                )
+            fields = timers[name]
             unit_file_state = _systemd_token(fields.get("UnitFileState"))
             active_state = _systemd_token(fields.get("ActiveState"))
             sub_state = _systemd_token(fields.get("SubState"))
-            if active_state is None or sub_state is None:
+            if unit_file_state is None or active_state is None or sub_state is None:
                 raise BrokerError(
                     "RESPONSE_SCHEMA_INVALID", "systemd timer state is unreadable"
                 )
-            service_name = services.get(name)
+            service_name = services[name]
             service: dict[str, object] | None = None
             if service_name is not None:
-                state = service_states.get(service_name, {})
+                state = service_states[service_name]
                 status = state.get("ExecMainStatus", "")
                 service = {
                     "unit": service_name,
@@ -4588,6 +4594,10 @@ class HostAccessBroker:
                     "result": _systemd_token(state.get("Result")),
                     "exit_status": int(status) if status.isdigit() else None,
                 }
+                if None in service.values():
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID", "systemd service state is unreadable"
+                    )
             count, newest = failures.get(service_name or "", (0, None))
             entries.append({
                 "timer": name,
@@ -4638,6 +4648,7 @@ class HostAccessBroker:
     def _user_unit_show(
         self, prefix: Sequence[str], units: Sequence[str], properties: Sequence[str],
     ) -> dict[str, dict[str, str]]:
+        """Requested properties per unit; every requested unit must answer."""
         if not units:
             return {}
         result = self._run([
@@ -4654,25 +4665,50 @@ class HostAccessBroker:
             unit = fields.get("Id")
             if unit in units:
                 states[unit] = fields
+        if set(states) != set(units):
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID", "systemd unit state is unreadable"
+            )
         return states
 
     def _user_unit_failures(
-        self, prefix: Sequence[str], since: int,
+        self, prefix: Sequence[str], services: Sequence[str], since: int, until: int,
     ) -> dict[str, tuple[int, int | None]]:
+        """Failure count and newest failure per service inside [since, until].
+
+        The journal is filtered to these services' "unit failed" records, so
+        another unit failing often cannot crowd them out. A read that reaches
+        the line bound cannot prove the window is complete and fails closed
+        rather than under-count.
+        """
+        if not services:
+            return {}
         result = self._run([
             *prefix, "/usr/bin/journalctl", "--user",
-            f"MESSAGE_ID={SYSTEMD_UNIT_FAILED_MESSAGE_ID}", f"--since=@{since}",
+            f"MESSAGE_ID={SYSTEMD_UNIT_FAILED_MESSAGE_ID}",
+            *(f"USER_UNIT={item}" for item in services),
+            f"--since=@{since}", f"--until=@{until}",
             "-n", str(VM_UNIT_JOURNAL_LINES), "--output=json",
             "--output-fields=USER_UNIT", "--no-pager",
         ])
+        lines = [line for line in result.stdout.splitlines() if line.strip()]
+        if len(lines) >= VM_UNIT_JOURNAL_LINES:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID", "failure journal exceeds the read bound"
+            )
         failures: dict[str, tuple[int, int | None]] = {}
-        for line in result.stdout.splitlines():
+        for line in lines:
             entry = _decode_json(line)
-            if not isinstance(entry, dict):
-                continue
-            unit = entry.get("USER_UNIT")
-            stamp = _journal_epoch_seconds(entry.get("__REALTIME_TIMESTAMP"))
-            if not isinstance(unit, str) or stamp is None or stamp < since:
+            unit = entry.get("USER_UNIT") if isinstance(entry, dict) else None
+            stamp = (
+                _journal_epoch_seconds(entry.get("__REALTIME_TIMESTAMP"))
+                if isinstance(entry, dict) else None
+            )
+            if unit not in services or stamp is None:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "failure journal is unreadable"
+                )
+            if not since <= stamp <= until:
                 continue
             count, newest = failures.get(unit, (0, None))
             failures[unit] = (count + 1, stamp if newest is None else max(newest, stamp))

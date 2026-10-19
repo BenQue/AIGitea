@@ -45,6 +45,7 @@ case "$operation" in
         printf '%s\n' '{"code":"REQUEST_DENIED","message":"requested operation is not allowlisted","status":"BLOCKED_EXTERNAL"}' >&2
         exit 20
         ;;
+      malformed) printf '%s\n' '{"status":"PASS","timers":[{"timer":"a.timer","enabled":true}]}' ;;
       broken)
         printf '%s\n' '{"code":"HOST_COMMAND_FAILED","message":"structured host operation failed","status":"BLOCKED_EXTERNAL"}' >&2
         exit 20
@@ -70,7 +71,7 @@ none_output="$(FAKE_UNITS=none bash "$root/codex/tools/aisoft-platform-readiness
   --repo "$root" --home "$test_root/home" --broker "$fake_broker")"
 grep -Fq 'LIVE_VM_TIMERS PASS enabled=0 failing=0' <<<"$none_output"
 
-for mode in gap missing broken; do
+for mode in gap missing broken malformed; do
   set +e
   units_output="$(FAKE_UNITS="$mode" bash "$root/codex/tools/aisoft-platform-readiness.sh" \
     --repo "$root" --home "$test_root/home" --broker "$fake_broker")"
@@ -80,7 +81,7 @@ for mode in gap missing broken; do
   case "$mode" in
     gap) grep -Fq 'LIVE_VM_TIMERS GAP enabled=2 failing=a.timer:49' <<<"$units_output" ;;
     missing) grep -Fq 'LIVE_VM_TIMERS BLOCKED operation-not-installed' <<<"$units_output" ;;
-    broken) grep -Fq 'LIVE_VM_TIMERS BLOCKED unreadable' <<<"$units_output" ;;
+    broken | malformed) grep -Fq 'LIVE_VM_TIMERS BLOCKED unreadable' <<<"$units_output" ;;
   esac
 done
 

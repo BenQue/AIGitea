@@ -82,6 +82,7 @@ trap 'rm -rf -- "$work"' EXIT
 
 current="$work/current.tsv"
 : >"$current"
+: >"$work/error.json"
 broker_failures=()
 
 # Keep the previous alerts of a source that could not be read, so a broker
@@ -90,6 +91,9 @@ carry_over() {
   awk -F '\t' -v prefix="$1" 'index($1, prefix) == 1' "$state_file" >>"$current"
 }
 
+# On failure the broker's error stays in error.json and is recorded; on
+# success error.json is emptied (the broker writes receipts to stderr), so a
+# non-empty error.json after a failed check means the call itself failed.
 broker_call() {
   local operation="$1" output="$2"
   shift 2
@@ -97,19 +101,27 @@ broker_call() {
     >"$output" 2>"$work/error.json"; then
     broker_failures+=("$operation:$(jq -r '.code // "UNREADABLE"' "$work/error.json" 2>/dev/null ||
       echo UNREADABLE)")
+    [[ -s "$work/error.json" ]] || echo '{}' >"$work/error.json"
     return 1
   fi
+  : >"$work/error.json"
 }
 
 # CI on open pull requests. A new head is a new alert key, so a fresh failing
-# push notifies again while a re-read of the same failing head does not.
+# push notifies again while a re-read of the same failing head does not. A
+# response of the wrong shape counts as the broker being unreadable and keeps
+# that source's previous keys; it never reads as "no failure".
 if broker_call gitea.pulls.read "$work/pulls.json" --state open &&
-  jq -e 'type == "array"' "$work/pulls.json" >/dev/null 2>&1; then
-  ci_ok=1
+  jq -e 'type == "array" and all(.[]; type == "object")' "$work/pulls.json" >/dev/null 2>&1; then
   while IFS=$'\t' read -r number sha; do
-    [[ "$number" =~ ^[0-9]+$ && "$sha" =~ ^[0-9a-f]{40}$ ]] || continue
-    if broker_call gitea.commit.status.read "$work/status.json" --sha "$sha"; then
-      state="$(jq -r '.state // ""' "$work/status.json")"
+    if ! [[ "$number" =~ ^[0-9]+$ && "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+      broker_failures+=("gitea.pulls.read:RESPONSE_SCHEMA_INVALID")
+      carry_over "ci:$project:"
+      continue
+    fi
+    if broker_call gitea.commit.status.read "$work/status.json" --sha "$sha" &&
+      state="$(jq -er 'if type == "object" and (.state | type) == "string"
+        then .state else error("schema") end' "$work/status.json" 2>/dev/null)"; then
       case "$state" in
         failure | error)
           printf 'ci:%s:%s:%s\tPR #%s CI %s (%s)\n' \
@@ -117,22 +129,27 @@ if broker_call gitea.pulls.read "$work/pulls.json" --state open &&
           ;;
       esac
     else
-      ci_ok=0
+      [[ -s "$work/error.json" ]] ||
+        broker_failures+=("gitea.commit.status.read:RESPONSE_SCHEMA_INVALID")
+      # Only this pull request's previous key is kept; the others were read.
+      carry_over "ci:$project:$number:"
     fi
-  done < <(jq -r '.[] | [(.number | tostring), (.head.sha // "")] | @tsv' "$work/pulls.json")
-  ((ci_ok)) || carry_over "ci:$project:"
+  done < <(jq -r '.[] | [((.number // "") | tostring), (.head.sha // "")] | @tsv' "$work/pulls.json")
 else
-  [[ "${#broker_failures[@]}" -gt 0 ]] || broker_failures+=("gitea.pulls.read:RESPONSE_SCHEMA_INVALID")
+  [[ -s "$work/error.json" ]] || broker_failures+=("gitea.pulls.read:RESPONSE_SCHEMA_INVALID")
   carry_over "ci:$project:"
 fi
 
 # VM timers: an enabled timer whose service failed in the last 24 hours.
 if broker_call orbstack.vm.units.read "$work/units.json" &&
-  jq -e '(.timers | type) == "array"' "$work/units.json" >/dev/null 2>&1; then
-  jq -r '.timers[] | select(.enabled == true and (.failures_24h // 0) > 0)
+  jq -e '(.timers | type) == "array" and all(.timers[];
+    (.timer | type) == "string" and (.enabled | type) == "boolean"
+    and (.failures_24h | type) == "number")' "$work/units.json" >/dev/null 2>&1; then
+  jq -r '.timers[] | select(.enabled and .failures_24h > 0)
     | "timer:\(.timer)\t\(.timer) failed \(.failures_24h) times in 24h"' \
     "$work/units.json" >>"$current"
 else
+  [[ -s "$work/error.json" ]] || broker_failures+=("orbstack.vm.units.read:RESPONSE_SCHEMA_INVALID")
   carry_over "timer:"
 fi
 

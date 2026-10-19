@@ -120,9 +120,11 @@ else
   # even though the timer itself still reads "active (waiting)".
   if "$broker" --project "$project" --operation orbstack.vm.units.read \
     >"$temp_root/units.json" 2>"$temp_root/units.err" &&
-    jq -e '(.timers | type) == "array"' "$temp_root/units.json" >/dev/null 2>&1; then
+    jq -e '(.timers | type) == "array" and all(.timers[];
+      (.timer | type) == "string" and (.enabled | type) == "boolean"
+      and (.failures_24h | type) == "number")' "$temp_root/units.json" >/dev/null 2>&1; then
     enabled_timers="$(jq '[.timers[] | select(.enabled == true)] | length' "$temp_root/units.json")"
-    failing_timers="$(jq -r '[.timers[] | select(.enabled == true and (.failures_24h // 0) > 0)
+    failing_timers="$(jq -r '[.timers[] | select(.enabled and .failures_24h > 0)
       | "\(.timer):\(.failures_24h)"] | join(",")' "$temp_root/units.json")"
     if [[ -z "$failing_timers" ]]; then
       echo "LIVE_VM_TIMERS PASS enabled=$enabled_timers failing=0"

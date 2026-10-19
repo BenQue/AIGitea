@@ -6544,6 +6544,70 @@ class VmUnitsReadTests(unittest.TestCase):
             self._execute(runner)
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
+    def test_journal_read_is_filtered_to_the_timers_services(self) -> None:
+        runner, calls = self._runner()
+        self._execute(runner)
+        journal = next(call for call in calls if "/usr/bin/journalctl" in call)
+        units = [item for item in journal if item.startswith("USER_UNIT=")]
+        self.assertEqual(units, ["USER_UNIT=agent-poll.service", "USER_UNIT=spare.service"])
+        self.assertIn(f"--until=@{self.NOW_EPOCH}", journal)
+
+    def test_journal_at_the_read_bound_fails_closed(self) -> None:
+        # Reaching the bound means older failures may be missing; an
+        # under-count would read as healthy, so the answer is unreadable.
+        bound = broker_module.VM_UNIT_JOURNAL_LINES
+        journal = "\n".join(self._failure("agent-poll.service", 60) for _ in range(bound))
+        runner, _ = self._runner(journal=journal)
+        with self.assertRaises(BrokerError) as caught:
+            self._execute(runner)
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_malformed_journal_records_fail_closed(self) -> None:
+        for journal in (
+            "not json",
+            json.dumps({"USER_UNIT": "agent-poll.service"}),
+            json.dumps({"__REALTIME_TIMESTAMP": "1", "USER_UNIT": "other.service"}),
+            "[]",
+        ):
+            with self.subTest(journal=journal):
+                runner, _ = self._runner(journal=journal)
+                with self.assertRaises(BrokerError) as caught:
+                    self._execute(runner)
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_or_malformed_fields_never_read_as_healthy(self) -> None:
+        base = "Id=agent-poll.timer\nActiveState=active\nSubState=waiting\n"
+        cases = {
+            "no unit file state": base + "Triggers=agent-poll.service\n",
+            "no trigger": base + "UnitFileState=enabled\n",
+            "bad trigger": base + "UnitFileState=enabled\nTriggers=agent;poll.service\n",
+        }
+        for label, show in cases.items():
+            with self.subTest(case=label):
+                runner, _ = self._runner(
+                    units="", unit_files="agent-poll.timer enabled enabled\n",
+                    timer_show=show,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    self._execute(runner)
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+        for label, show in {
+            "service absent": "",
+            "no result": "Id=agent-poll.service\nActiveState=failed\nSubState=failed\n"
+                         "ExecMainStatus=20\n",
+            "bad status": "Id=agent-poll.service\nActiveState=failed\nSubState=failed\n"
+                          "Result=exit-code\nExecMainStatus=x\n",
+        }.items():
+            with self.subTest(case=label):
+                runner, _ = self._runner(
+                    units="", unit_files="agent-poll.timer enabled enabled\n",
+                    timer_show=self.TIMER_SHOW.split("\n\n")[0] + "\n",
+                    service_show=show,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    self._execute(runner)
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
     def test_host_command_failure_is_not_read_as_healthy(self) -> None:
         def runner(argv, *, cwd=None, env=None):
             if "/bin/date" in argv:
