@@ -40,7 +40,7 @@ def run_suite(binary, *, isolated=False, fixture=None):
     version = subprocess.run([str(binary), '--version'], capture_output=True, timeout=10)
     assert version.returncode == 0 and not version.stderr
     assert json.loads(version.stdout) == {'helper_version':'1', 'gitea_model_version':'1.26.4', 'toolchain':'go1.26.3'}
-    request = {'action':'inspect', 'project_id':'newemaint', 'token_kind':'routine-merge-agent', 'token':canary}
+    request = {'action':'inspect', 'project_id':'alphaapp', 'token_kind':'routine-merge-agent', 'token':canary}
     invoke(request, 'SERVICE_IDENTITY_REQUIRED')
     invoke(request, 'REQUEST_INVALID', args=('--unsupported',))
     if not isolated:
@@ -63,7 +63,7 @@ def run_suite(binary, *, isolated=False, fixture=None):
     repository = Path(__file__).resolve().parents[3]
     for name in ('host-access-broker.json', 'gitea-governance.json'):
         destination = install/name
-        destination.write_bytes((repository/'codex/config'/name).read_bytes())
+        destination.write_bytes((repository/'codex/tests/fixtures/manifests'/name).read_bytes())
         destination.chmod(0o644)
     Path('/etc/gitea').mkdir(mode=0o755)
     config = Path('/etc/gitea/app.ini')

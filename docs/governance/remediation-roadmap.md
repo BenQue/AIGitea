@@ -7,7 +7,7 @@
 ## 总规则
 
 1. **NewEMaint 优先。** NewEMaint 最小部署链（构建 → 发布制品 → 部署到 test → 健康检查 → 回滚演练）在 NewEMaint 仓推进，优先于本路线。本路线只做不阻塞它、也不改变它当前依赖的事项。
-2. **NewEMaint 当前依赖、清理时不得改变的平台能力**（2026-10-17 读 NewEMaint `gitea/main` 确认）：docker-release 合同字节（`.aisoft/docker-release-contract.bytes.json`）、architecture 声明与 lock（`.aisoft/architecture*.json`）、routine merger 与 pilot 闸门、broker typed 操作、CI workflow 模板。任何批次要动这些，先在发起线程说明并等负责人裁决。
+2. **NewEMaint 当前依赖、清理时不得改变的平台能力**（2026-10-17 读 NewEMaint `gitea/main` 确认）：docker-release 合同字节（`.aisoft/docker-release-contract.bytes.json`）、architecture 声明与 lock（`.aisoft/architecture*.json`）、routine merger 与 pilot 闸门（2026-10-19 负责人裁决退出，#385 撤下声明）、broker typed 操作、CI workflow 模板。任何批次要动这些，先在发起线程说明并等负责人裁决。
 3. **少开 Issue。** 每批一个 Issue，衍生项先并入进行中的批次。
 4. **删除清单。** 每个删除、移动或归档文件的 PR，正文列出完整路径清单与去向（`archive/` 或项目仓），并说明为什么不影响 NewEMaint。
 5. **治理文件单独应用。** 修改 `AGENTS.md`、技能、controller、CI 或 broker 的批次，先由只改治理合同的受控步骤应用并停止，fresh run 重读后再改 runtime。

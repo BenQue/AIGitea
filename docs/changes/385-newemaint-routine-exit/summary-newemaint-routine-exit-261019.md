@@ -36,7 +36,7 @@ NewEMaint 一直由负责人手动合并，负责人决定撤掉它的 routine m
 
 ## 影响范围
 
-`codex/config/gitea-governance.json` 与 `codex/config/host-access-broker.json` 的 NewEMaint 条目；`06` 中两处以该账号为 #316 首个现场对象的表述。运行时代码、测试夹具与使用层发布包不变。
+`codex/config/gitea-governance.json` 与 `codex/config/host-access-broker.json` 的 NewEMaint 条目；`06` 中两处以该账号为 #316 首个现场对象的表述。PAT helper 的 Go 绑定测试与隔离进程测试原先读真实 manifest，改为读合成夹具；整改路线总规则 2 注明退出。运行时代码、测试夹具与使用层发布包不变。
 
 ## 初步方案与建议
 
