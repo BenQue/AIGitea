@@ -27,7 +27,6 @@ INSTALLERS=(
   install-vm
   install-skills
   architecture/install
-  docker-release/install
   sync/install
   skill-for-claude/install
 )
@@ -39,12 +38,6 @@ expected_operations="$(jq '.operations | length' "$ROOT/codex/config/host-access
 expected_capabilities="$(jq '.capabilities | length' "$ROOT/codex/config/host-capabilities.json")"
 expected_components="$(jq '.components | length' "$ROOT/architecture/catalog.json")"
 expected_catalog_revision="$(jq -r '.revision' "$ROOT/architecture/catalog.json")"
-expected_matrix_revision="$(
-  jq -r '.matrix_revision' "$ROOT/docker-release/compatibility/image-stores-v1.json"
-)"
-expected_schemas="$(
-  find "$ROOT/docker-release/schema" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' '
-)"
 expected_sync_units="$(
   find "$ROOT/sync/systemd" -maxdepth 1 -type f | wc -l | tr -d ' '
 )"
@@ -83,7 +76,7 @@ make_source_tree() {
   local dest="$1" directory
   mkdir -p "$dest"
   for directory in \
-    codex architecture docker-release templates skills sync skill-for-claude; do
+    codex architecture templates skills sync skill-for-claude; do
     cp -R "$ROOT/$directory" "$dest/"
   done
 }
@@ -115,10 +108,6 @@ run_installer() {
     install-vm) bash "$checkout/codex/install-vm.sh" "$root" 2>&1 ;;
     install-skills) bash "$checkout/codex/install-skills.sh" "$root" 2>&1 ;;
     architecture/install) bash "$checkout/architecture/install.sh" --prefix "$root" 2>&1 ;;
-    docker-release/install)
-      AISOFT_DOCKER_RELEASE_INSTALL_ROOT="$root" \
-        bash "$checkout/docker-release/install.sh" 2>&1
-      ;;
     sync/install)
       AISOFT_SYNC_INSTALL_ROOT="$root" bash "$checkout/sync/install.sh" 2>&1
       ;;
@@ -137,7 +126,6 @@ installed_marker() {
     install-vm) printf '.local/lib/aisoft-loop/aisoft_loop/cli.py' ;;
     install-skills) printf '.agents/skills/aisoft-platform/SKILL.md' ;;
     architecture/install) printf 'bin/aisoft-architecture' ;;
-    docker-release/install) printf 'usr/local/bin/aisoft-docker-release' ;;
     sync/install) printf 'opt/aisoft-sync/inbound-sync.sh' ;;
     skill-for-claude/install) printf '.claude/skills/aisoft-platform/SKILL.md' ;;
     *) fail "unknown installer: $1" ;;
@@ -175,10 +163,6 @@ assert_provenance() {
     architecture/install)
       assert_source_line "$output" 'catalog revision' "$expected_catalog_revision" "$who"
       assert_source_line "$output" components "$expected_components" "$who"
-      ;;
-    docker-release/install)
-      assert_source_line "$output" 'matrix revision' "$expected_matrix_revision" "$who"
-      assert_source_line "$output" schemas "$expected_schemas" "$who"
       ;;
     sync/install)
       assert_source_line "$output" units "$expected_sync_units" "$who"

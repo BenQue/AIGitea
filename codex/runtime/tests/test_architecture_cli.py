@@ -65,7 +65,7 @@ class ArchitectureCliTests(unittest.TestCase):
         self.assertNotIn("6f7b03", result.stderr)
 
     def test_all_legacy_references_validate_without_rewriting(self) -> None:
-        for reference in ("newemaint/target-candidate", "windows", "sqlite"):
+        for reference in ("windows", "sqlite"):
             with self.subTest(reference=reference):
                 root = ARCH / "reference" / reference
                 lock = root / "architecture.lock.json"

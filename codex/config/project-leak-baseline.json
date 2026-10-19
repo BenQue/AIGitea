@@ -4,17 +4,8 @@
   ],
   "files": {
     "README.md": 2,
-    "architecture/README.md": 6,
     "architecture/catalog.json": 3,
-    "architecture/evidence/inventory.json": 3,
-    "architecture/evidence/official-sources.md": 5,
-    "architecture/reference/newemaint/README.md": 8,
-    "architecture/reference/newemaint/gap-report.md": 10,
-    "architecture/reference/newemaint/target-candidate/architecture.json": 2,
-    "architecture/reference/newemaint/target-candidate/architecture.lock.json": 1,
-    "docker-release/README.md": 7,
-    "docker-release/contracts/migration-rollback-v1.md": 2,
-    "docker-release/templates/action-grant.example.json": 3,
-    "docker-release/templates/target-profile.example.json": 7
+    "architecture/evidence/inventory.json": 1,
+    "architecture/evidence/official-sources.md": 5
   }
 }

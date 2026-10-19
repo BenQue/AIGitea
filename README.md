@@ -22,10 +22,9 @@
 | Matt / 双 provider | 固定 Matt v1.2.2 snapshot；`triage → to-spec → to-tickets → implement`；#318 修齐 Codex/Claude 会话和接入合同，#320 明确每次 push 的 SHA 核对 | adapters 等价、可互换；默认 `IMPLEMENT_PROVIDER=none`，真实 provider / 项目启用矩阵仍须独立完成，见 [08](08-双工具共存与实施.md) |
 | Worktree 与文档硬门 | #298 单写者 claim / broker 归属闸门，#304 记录两机安装；#289 严格校验 `required_docs` 声明、映射和实际文件，resolver / Loop / 终态工具共享结果 | #289 runtime 与本地验证已完成；source 之外按安装证据验收；另一会话不得代写 worktree，见 [03](03-Issue-Spec-Plan与单闸门开发流程.md) |
 | Broker / routine merge | typed Issue/PR/Actions/Git 与 #208 独立 merger 全硬门；#313 补 routine scope 的 `read:user`；#286 增 manifest 限定只读跨仓依赖，允许的边以 manifest 的 `dependency_read_targets` 为准 | AISoftPlatform `routine_auto_merge_enabled=false`，始终 manual；routine 身份、scope、protection 与真实 opt-in 逐仓读回，不能由源码存在推导启用 |
-| 安装与漂移 | 8 个 installer 共用 source guard；#308 提供 [check-installed-drift](codex/tools/check-installed-drift.sh)，按受管字节、权限、链接与可读量检查 `PASS/GAP` | checker 已进入 source；#308 基线的真实安装 GAP 保留，后续修复须独立验收；`source-only` 不是 installed PASS，见 [06](06-运维手册与踩坑集.md) |
+| 安装与漂移 | 7 个 installer 共用 source guard；#308 提供 [check-installed-drift](codex/tools/check-installed-drift.sh)，按受管字节、权限、链接与可读量检查 `PASS/GAP` | checker 已进入 source；#308 基线的真实安装 GAP 保留，后续修复须独立验收；`source-only` 不是 installed PASS，见 [06](06-运维手册与踩坑集.md) |
 | 架构合同 | [architecture](architecture/README.md) 有 5 个 profiles；#284 增 `linux-node-sqlite-v1`；#287 writer 默认 V2 lock，reader 严格接受 V1/V2；#288 离线核验 Dockerfile FROM digest | catalog 固定 `2026.09.0`，不是自动追随 upstream latest；release reader 仍仅接受 V1 architecture lock，下游采用 V2 必须先解决读取链兼容 |
-| Docker release | [docker-release](docker-release/README.md) 提供 v1/v2、两种 transport 与确定性阶段；#290 支持仅 test 的 `scm-ci` 共置；#296 增 exact Docker 28.1.1 / Compose 2.35.1 classic 验证行；#305 修 migration identity；#317 增数据库兼容回退硬门 | 兼容矩阵是精确版本组合，不是 Docker 28/29 全部支持；#317 state v3 和兼容依据需目标侧采用，installed/company live 与 production promotion 不由本地测试推导 |
-| 公司平台交付 | [company-delivery](company-delivery/README.md) 当前 operator 1.3.0；#270 独立 [platform-bootstrap/v1](platform-bootstrap/README.md)；#271/#274/#278/#280/#282 提供 profile-bound 基线与原因分类诊断 | bootstrap 现场执行器仍 `unbound`；基线、诊断和应用交付是不同入口，项目现场阶段由项目仓记录，本仓不投影为公司 PASS |
+| 参考实现迁出 | #383 把 Docker release 运行时、公司两 VM operator、公司只读基线与项目 architecture reference 迁出平台，见 [迁出说明](archive/reference-implementations-exit-261019.md)；[platform-bootstrap/v1](platform-bootstrap/README.md) 保留 | 平台不再提供任何交付形态的实现或 installer；采用方在项目仓自带副本并按自己的 pin 维护 |
 | 开发与公司传输 | #292 收口自研 main relay，采用项目明确批准的 Gitea 原生 Push Mirror；#293 对齐 `release_producer: local` 与离线交付职责，见 [07](07-内网与生产平移路线.md) | GitHub 是指定镜像/搬运层；镜像覆盖许可仅限指定目标，不延伸到公司 main；启用、同步、公司入站及部署均按项目回执确认 |
 | PAT 轮换 | #316 已合并受控 operator / 固定版本 [PAT helper](codex/tools/gitea-pat-helper/README.md)，源码与隔离验证可追溯 | 后续安装、grant、真实轮换和恢复由独立 [#333](http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/333) 现场合同验收；源码 `completed` 不等于凭据已更新 |
 
@@ -42,7 +41,7 @@ Windows Server 2022 x64、公司 AD/JEA 与 [14](14-Windows部署与迁移验收
 或同一 manifest 的 offline bundle 传到隔离的 test/prod trust role；`gitea-ci` 只承担 SCM 与明确
 批准的 CI/CD 能力。#290 增加仅测试的共置合同：受保护部署profile显式声明
 `host_role=scm-ci` 且 `environment=test` 时可承载隔离测试应用，生产仍须分离。
-详见 [docker-release](docker-release/README.md)；#290 runtime 已完成 source/local 验证，installed/live 尚未验收。
+具体发布实现由项目仓自带；平台原 Docker release 参考实现已由 #383 迁出，见 [迁出说明](archive/reference-implementations-exit-261019.md)。
 
 ```mermaid
 flowchart TB
@@ -88,8 +87,8 @@ flowchart TB
 `gitea-ci/scm-ci` 承担 Gitea、入站、Runner、Registry/cache、artifact-only verification 与受控编排；
 本地 DockerLab 承担 `appserver-test`；公司 `appserver/appserver-prod` 承担 runtime、PostgreSQL、Nginx
 与 fixed target。公司只消费本地已验证的 exact `docker-release/v2` bytes；公司要求内网重建但没有
-隔离测试环境时固定 `BLOCKED`。通用执行合同见
-[`company-delivery/runbook.md`](company-delivery/runbook.md)（参考实现，交付形态由项目声明）；本仓库或 PR
+隔离测试环境时固定 `BLOCKED`。逐阶段执行合同由采用该路径的项目仓自带（平台原 operator 参考实现
+已由 #383 迁出，见 [迁出说明](archive/reference-implementations-exit-261019.md)）；本仓库或 PR
 状态不代表任何项目的公司侧已执行，pilot 历史见 [archive](archive/company-delivery-pilot-历史-20260903.md)。
 
 ## 3. 核心设计原则（不可妥协项）
@@ -166,7 +165,7 @@ sequenceDiagram
 | [03-Issue/Spec/Plan 与单闸门流程](03-Issue-Spec-Plan与单闸门开发流程.md) | small/complex 双路径、文档绑定、标签语义、最终 PR | 日常使用平台 |
 | [04-Matt 编排与 Development Loop](04-Agent编排与定时任务.md) | Matt skills、analyzer、Loop、verifier、终态、provider adapter | 调整 agent 行为 |
 | [05-通知与多人协作](05-通知与多人协作.md) | Gitea mailer、Mailpit、事件覆盖、切真实 SMTP | 配通知、加协作者 |
-| [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、编号实证踩坑、CI 停滞判定、八个安装面漂移核对、PAT 轮换与 AI 故障包 | 排障必读 |
+| [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、编号实证踩坑、CI 停滞判定、七个安装面漂移核对、PAT 轮换与 AI 故障包 | 排障必读 |
 | [07-内网与生产平移路线](07-内网与生产平移路线.md) | 原型孵化、持续权威分工、备选下线切换和 Linux/Windows 双目标 | 规划内网平移 |
 | [08-双工具共存与实施](08-双工具共存与实施.md) | 共享契约、controller/adapter、provider 验证矩阵、部署边界与回滚 | 接入或切换 provider |
 | [平台使用合同](usage/CONTRACT.md) | 项目使用层的唯一合同入口；随版本化使用发布包（`usage/bundle.json`，`codex/tools/usage-bundle.sh`）下发，项目 pin 版本 | 项目接入、升级或核对所用平台版本 |
@@ -174,8 +173,7 @@ sequenceDiagram
 | [整改路线](docs/governance/remediation-roadmap.md) | R0–R8 批次与状态 | 安排或推进平台清理 |
 | [10-AI Issue 判级与标签计划（历史）](archive/10-AI-Issue判级与标签实施计划.md) | 2026-07 初始判级、标签和 wrapper 实施记录 | 仅作历史追溯 |
 | [11-Codex Loop runtime 计划（历史）](archive/11-Codex-Loop运行时实施计划.md) | provider-neutral runtime 首轮实施记录 | 仅作历史追溯 |
-| [公司两 VM 离线交付 operator runbook（参考实现）](company-delivery/runbook.md) | 两 VM inventory、exact handoff、Gitea/backup/restore/SCM/fixed-target Stage 00–110；交付形态由项目声明 | 逐阶段人工执行与审计 |
-| [公司平台只读接管基线](company-delivery/baseline/README.md) | v1/v2 collector、digest-bound profile、现场探针与独立 diagnostics v1/v2 | 公司基线核对，现场运行须项目独立授权 |
+| [参考实现迁出说明](archive/reference-implementations-exit-261019.md) | #383 迁出的 Docker release、公司 operator、公司基线与项目 architecture reference 的路径、最后 commit 与去向 | 追溯或复制历史参考实现 |
 | [PAT model helper](codex/tools/gitea-pat-helper/README.md) | 固定 Gitea/Go 源码与构建 provenance、隔离测试、exact token model binding | #316 source；现场安装/轮换见 #333 |
 | [独立公司平台 bootstrap v1](platform-bootstrap/README.md) | 不依赖应用 release/matrix 的确定性 handoff、脱敏采用与动作请求/回读协议；现场执行器由后续部署合同绑定 | source/local 工具，installed/company live NOT RUN |
 | [历史资料索引](archive/README.md) | 已被当前合同替代的方案、实施计划与 v2 一页 PDF | 追溯历史，不作为当前操作入口 |
@@ -183,7 +181,7 @@ sequenceDiagram
 ### 技能安装与漂移核对
 
 平台技能只有一份源 `skills/`（#379，ADR 0001 D8），由 `skills/skills.manifest` 声明每个技能装到 Claude、Codex 哪一侧，两个 installer 各自生成落点；改动 SKILL.md 或 references 后，装到本机的副本立即漂移，
-需重装并核对回 `CLEAN`。8 个 installer（含下面两个）全部经 `codex/lib/install-source-guard.sh` 做 source provenance 与 staleness 闸门，
+需重装并核对回 `CLEAN`。7 个 installer（含下面两个）全部经 `codex/lib/install-source-guard.sh` 做 source provenance 与 staleness 闸门，
 检测到 checkout 落后缓存 upstream 时拒绝安装。无 upstream / detached HEAD 等无法比较的情况会报告
 `staleness unchecked`，不能当作 fresh main 证明；安装前须按 broker fresh-fetch 并核对 source pin。
 
@@ -202,12 +200,12 @@ Claude 侧的 Matt 插件不走上表的 installer，而由 Claude Code 自己�
 `bash skill-for-claude/check-plugin-pin.sh --source-only` 校验 marketplace 条目、vendor manifest 与
 `codex/install-skills.sh` 的版本三方相等；不带参数时再只读核对本机已装插件，首行为
 `PIN_CLEAN` / `PIN_DRIFT` / `PIN_NOT_INSTALLED` / `PIN_UNREADABLE` 之一。判定以 commit 为准，版本号只作旁证；
-已装记录的格式不认识时读出 `PIN_UNREADABLE`，不判 `PIN_CLEAN`。该检查不属于下面的八安装面，也不注册
+已装记录的格式不认识时读出 `PIN_UNREADABLE`，不判 `PIN_CLEAN`。该检查不属于下面的七安装面，也不注册
 marketplace、不安装或升级插件：source 合并不等于本机已切换来源，实际升级与 fresh-session 验收另行授权。
 superpowers 跟随官方 marketplace，平台不自建 pin；两个技能包的平台边界与升级后的人工适配检查清单见
 [08 §5](08-双工具共存与实施.md#5-matt-skills-与平台映射)。
 
-Issue #308 的八安装面只读核对合同：`bash codex/tools/check-installed-drift.sh` 逐项报告
+Issue #308 的安装面只读核对合同（#383 起七个）：`bash codex/tools/check-installed-drift.sh` 逐项报告
 `PASS/GAP`、source/installed 可读量与具体缺失或字节不符的目标；可读量沿用 [06 踩坑 20](06-运维手册与踩坑集.md)。
 计数或 revision 相等不能代替文件比对。检查不运行 installer、不读取凭据、不调用 sudo、不创建临时文件、
 cache 或报告，也不自动修复。`--source-only` 仅校验源码映射，不能证明 installed 同步；
@@ -232,7 +230,6 @@ Windows 各一段原则 + 全平台一致的流程不变量）。下列材料是
 | 参考 | 适用环境 | 内容 | 性质 |
 |------|----------|------|------|
 | [12-Linux GitHub → Gitea 职责分离方案](12-Linux-GitHub-Gitea-双服务器自动部署方案.md) | Linux 容器化 | GitHub 入站候选、内网 PR、三 role 能力隔离的参考合同 | 参考、非部署步骤事实源 |
-| [docker-release/](docker-release/README.md) | Linux 容器化 | Docker-first 发布合同（release manifest、transport、capability gate、CLI）的参考实现 | 参考、非部署步骤事实源 |
 | [12-Windows 自动部署方案](12-Windows平台自动部署方案.md) | Windows | IIS/.NET/React/PostgreSQL、制品、OpenSSH、SMB/WinRM/JEA 设计 | 参考、非部署步骤事实源（尚未实施） |
 | [13-结果迁移与内网切换手册](13-项目结果迁移与内网切换实施手册.md) | 全环境（内网迁移线） | 不迁 Issue/PR 的结果基线迁移、重建和切换 runbook | 参考、非部署步骤事实源（尚未实施） |
 | [14-Windows 部署与迁移验收](14-Windows部署与迁移验收清单.md) | Windows | 构建、部署、数据库、JEA、切换和灾备证据模板 | 参考、非部署步骤事实源（全部 NOT RUN） |
