@@ -28,10 +28,18 @@ if [[ "${FAKE_BROKER_DOWN:-0}" == "1" ]]; then
 fi
 case "$operation" in
   gitea.pulls.read)
-    printf '[{"number":7,"head":{"sha":"%s"}}]\n' "${FAKE_HEAD:-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}"
+    if [[ -n "${FAKE_PULLS:-}" ]]; then
+      printf '%s\n' "$FAKE_PULLS"
+    else
+      printf '[{"number":7,"head":{"sha":"%s"}}]\n' "${FAKE_HEAD:-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}"
+    fi
     ;;
   gitea.commit.status.read)
     [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || exit 2
+    if [[ "$sha" == "${FAKE_DOWN_SHA:-}" ]]; then
+      printf '%s\n' '{"code":"HTTP_502","status":"BLOCKED_EXTERNAL"}' >&2
+      exit 20
+    fi
     case "${FAKE_STATUS_SHAPE:-ok}" in
       array) printf '[]\n' ;;
       empty) printf '{}\n' ;;
@@ -134,6 +142,29 @@ for shape in array empty; do
 done
 [[ "$(notified)" == "$((before + 1))" ]]
 grep -Fq 'broker unreadable: gitea.commit.status.read:RESPONSE_SCHEMA_INVALID' "$notifications"
+
+# A nested field of the wrong type in the PR list is unreadable too; the
+# previous CI alert survives instead of being silently cleared.
+for pulls in '[{"number":7,"head":[]}]' '[{"number":"7","head":{"sha":"x"}}]' '{"number":7}' '[1]'; do
+  FAKE_PULLS="$pulls" FAKE_STATUS_SHAPE=ok FAKE_TIMER_FAILURES=3 run_wrong >/dev/null
+  grep -Fq 'ci:aisoft-platform:7:' "$state_wrong/active-alerts.tsv"
+  grep -Fq 'broker:unavailable' "$state_wrong/active-alerts.tsv"
+done
+
+# Two failing PRs, one status read fails: only that PR's previous key is kept,
+# the other is re-read and clears once it passes.
+state_multi="$test_root/state-multi"
+run_multi() {
+  AISOFT_ALERT_NOTIFIER="$notifier" bash "$poll" --broker "$fake_broker" --state-dir "$state_multi"
+}
+two='[{"number":7,"head":{"sha":"cccccccccccccccccccccccccccccccccccccccc"}},{"number":8,"head":{"sha":"dddddddddddddddddddddddddddddddddddddddd"}}]'
+FAKE_PULLS="$two" FAKE_CI=failure run_multi >/dev/null
+grep -Fq 'ci:aisoft-platform:7:' "$state_multi/active-alerts.tsv"
+grep -Fq 'ci:aisoft-platform:8:' "$state_multi/active-alerts.tsv"
+out="$(FAKE_PULLS="$two" FAKE_CI=success FAKE_DOWN_SHA=cccccccccccccccccccccccccccccccccccccccc run_multi)"
+grep -Fxq 'ALERTS active=2 new=1 broker_failures=1' <<<"$out"
+grep -Fq 'ci:aisoft-platform:7:' "$state_multi/active-alerts.tsv"
+refute grep -Fq 'ci:aisoft-platform:8:' "$state_multi/active-alerts.tsv"
 
 # The state file carries keys and messages only.
 refute grep -Eiq 'token|password|authorization' "$state/active-alerts.tsv"

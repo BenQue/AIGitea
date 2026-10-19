@@ -111,8 +111,15 @@ broker_call() {
 # push notifies again while a re-read of the same failing head does not. A
 # response of the wrong shape counts as the broker being unreadable and keeps
 # that source's previous keys; it never reads as "no failure".
+# The list is converted to number/head pairs in one checked step, so a nested
+# field of the wrong type fails the read here instead of inside a loop feed
+# whose exit status nobody sees.
 if broker_call gitea.pulls.read "$work/pulls.json" --state open &&
-  jq -e 'type == "array" and all(.[]; type == "object")' "$work/pulls.json" >/dev/null 2>&1; then
+  jq -r 'if type != "array" then error("schema") else .[] end
+    | if type == "object" and (.number | type) == "number"
+        and (.head | type) == "object" and (.head.sha | type) == "string"
+      then [(.number | tostring), .head.sha] | @tsv
+      else error("schema") end' "$work/pulls.json" >"$work/pulls.tsv" 2>/dev/null; then
   while IFS=$'\t' read -r number sha; do
     if ! [[ "$number" =~ ^[0-9]+$ && "$sha" =~ ^[0-9a-f]{40}$ ]]; then
       broker_failures+=("gitea.pulls.read:RESPONSE_SCHEMA_INVALID")
@@ -134,7 +141,7 @@ if broker_call gitea.pulls.read "$work/pulls.json" --state open &&
       # Only this pull request's previous key is kept; the others were read.
       carry_over "ci:$project:$number:"
     fi
-  done < <(jq -r '.[] | [((.number // "") | tostring), (.head.sha // "")] | @tsv' "$work/pulls.json")
+  done <"$work/pulls.tsv"
 else
   [[ -s "$work/error.json" ]] || broker_failures+=("gitea.pulls.read:RESPONSE_SCHEMA_INVALID")
   carry_over "ci:$project:"
