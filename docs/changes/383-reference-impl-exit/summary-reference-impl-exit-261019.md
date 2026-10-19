@@ -25,9 +25,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 380
-status: approved
+status: pr-open
 branch: change/383-reference-impl-exit
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/384
 created: 2026-10-19
 updated: 2026-10-19
 ---
