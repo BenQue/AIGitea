@@ -128,6 +128,7 @@ if broker_call gitea.pulls.read "$work/pulls.json" --state open &&
     fi
     if broker_call gitea.commit.status.read "$work/status.json" --sha "$sha" &&
       state="$(jq -er 'if type == "object" and (.state | type) == "string"
+        and (.state | IN("pending", "success", "warning", "failure", "error"))
         then .state else error("schema") end' "$work/status.json" 2>/dev/null)"; then
       case "$state" in
         failure | error)

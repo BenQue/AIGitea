@@ -43,6 +43,7 @@ case "$operation" in
     case "${FAKE_STATUS_SHAPE:-ok}" in
       array) printf '[]\n' ;;
       empty) printf '{}\n' ;;
+      unknown) printf '{"sha":"%s","state":"exploded"}\n' "$sha" ;;
       *) printf '{"sha":"%s","state":"%s"}\n' "$sha" "${FAKE_CI:-success}" ;;
     esac
     ;;
@@ -133,7 +134,7 @@ run_wrong() {
 FAKE_CI=failure FAKE_TIMER_FAILURES=3 run_wrong >/dev/null
 before="$(notified)"
 expected_new=1
-for shape in array empty; do
+for shape in array empty unknown; do
   out="$(FAKE_STATUS_SHAPE="$shape" FAKE_UNITS_SHAPE=bad run_wrong)"
   grep -Fxq "ALERTS active=3 new=$expected_new broker_failures=2" <<<"$out"
   expected_new=0
