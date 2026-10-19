@@ -107,6 +107,9 @@ for script in \
   "$ROOT/codex/tools/usage-bundle.sh" \
   "$ROOT/codex/tests/test-usage-bundle.sh" \
   "$ROOT/codex/tests/test-platform-readiness.sh" \
+  "$ROOT/codex/tools/aisoft-alert-poll.sh" \
+  "$ROOT/codex/tools/install-alert-agent.sh" \
+  "$ROOT/codex/tests/test-alert-agent.sh" \
   "$ROOT"/sync/*.sh \
   "$ROOT"/sync/tests/*.sh; do
   bash -n "$script"
@@ -176,6 +179,9 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/usage-bundle.sh" \
     "$ROOT/codex/tests/test-usage-bundle.sh" \
     "$ROOT/codex/tests/test-platform-readiness.sh" \
+    "$ROOT/codex/tools/aisoft-alert-poll.sh" \
+    "$ROOT/codex/tools/install-alert-agent.sh" \
+    "$ROOT/codex/tests/test-alert-agent.sh" \
     "$ROOT/codex/tests/test-agent-runtime.sh" \
     "$ROOT/codex/tests/test-gitea-token-lib.sh" \
     "$ROOT/codex/tests/test-gitea-token-consumers.sh"
@@ -211,6 +217,8 @@ bash "$ROOT/codex/tests/test-gitea-token-consumers.sh"
 bash "$ROOT/codex/tests/test-install-skills.sh"
 bash "$ROOT/codex/tests/test-codex-drift.sh"
 bash "$ROOT/codex/tests/test-platform-readiness.sh"
+# #387: fixture broker, notifier and launchctl; never the CI host's launchd.
+bash "$ROOT/codex/tests/test-alert-agent.sh"
 bash -n "$ROOT/skill-for-claude/install.sh" "$ROOT/skill-for-claude/check-drift.sh"
 bash "$ROOT/codex/tests/test-install-claude-skills.sh"
 # #355: the Claude-side Matt plugin must name the same release and commit as the
