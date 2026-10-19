@@ -396,7 +396,7 @@
       "project_id": "newemaint",
       "repository": "NewEMaint",
       "project_agent": "newemaint-agent",
-      "routine_merge_agent": "newemaint-routine-merger",
+      "routine_merge_agent": null,
       "git_remote_name": "gitea",
       "mac_checkout": "/Users/benque/Projects/NewEmaint",
       "vm_profile": {
