@@ -12,9 +12,9 @@ usage() {
   cat <<'EOF'
 Usage: aisoft-platform-readiness.sh [--repo PATH] [--project ID] [--home PATH] [--broker PATH]
 
-Reports sanitized SOURCE, INSTALLED_CODEX, INSTALLED_CLAUDE, LIVE_REPO and
-LIVE_PROTECTION states. The command is read-only and exits 1 when any layer is
-DRIFT, GAP or BLOCKED.
+Reports sanitized SOURCE, INSTALLED_CODEX, INSTALLED_CLAUDE, LIVE_REPO,
+LIVE_PROTECTION and LIVE_VM_TIMERS states. The command is read-only and exits 1
+when any layer is DRIFT, GAP or BLOCKED.
 EOF
 }
 
@@ -88,6 +88,7 @@ skill_state INSTALLED_CLAUDE "$repo/skill-for-claude/check-drift.sh" || overall=
 if [[ ! -x "$broker" ]]; then
   echo 'LIVE_REPO BLOCKED broker-unavailable'
   echo 'LIVE_PROTECTION BLOCKED broker-unavailable'
+  echo 'LIVE_VM_TIMERS BLOCKED broker-unavailable'
   overall=1
 else
   temp_root="$(mktemp -d)"
@@ -112,6 +113,32 @@ else
     fi
   else
     echo 'LIVE_PROTECTION BLOCKED unreadable'
+    overall=1
+  fi
+
+  # #387: an enabled timer whose service failed in the last 24 hours is a GAP
+  # even though the timer itself still reads "active (waiting)".
+  if "$broker" --project "$project" --operation orbstack.vm.units.read \
+    >"$temp_root/units.json" 2>"$temp_root/units.err" &&
+    jq -e '(.timers | type) == "array" and all(.timers[];
+      (.timer | type) == "string" and (.enabled | type) == "boolean"
+      and (.failures_24h | type) == "number")' "$temp_root/units.json" >/dev/null 2>&1; then
+    enabled_timers="$(jq '[.timers[] | select(.enabled == true)] | length' "$temp_root/units.json")"
+    failing_timers="$(jq -r '[.timers[] | select(.enabled and .failures_24h > 0)
+      | "\(.timer):\(.failures_24h)"] | join(",")' "$temp_root/units.json")"
+    if [[ -z "$failing_timers" ]]; then
+      echo "LIVE_VM_TIMERS PASS enabled=$enabled_timers failing=0"
+    else
+      echo "LIVE_VM_TIMERS GAP enabled=$enabled_timers failing=$failing_timers"
+      overall=1
+    fi
+  elif jq -e '.code == "REQUEST_DENIED" and (.message | test("not allowlisted"))' \
+    "$temp_root/units.err" >/dev/null 2>&1; then
+    # The installed broker predates the operation: reinstall both hosts.
+    echo 'LIVE_VM_TIMERS BLOCKED operation-not-installed'
+    overall=1
+  else
+    echo 'LIVE_VM_TIMERS BLOCKED unreadable'
     overall=1
   fi
 fi

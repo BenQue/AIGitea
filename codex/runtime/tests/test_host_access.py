@@ -6365,5 +6365,259 @@ class ActRunnerStatusTests(unittest.TestCase):
         self.assertIsNone(result["last_task"])
 
 
+class VmUnitsReadTests(unittest.TestCase):
+    """#387: VM timer health without crossing the log boundary.
+
+    Both failing timers stayed "active (waiting)" for two months; only the
+    triggered service and its recent failure count told the truth. These tests
+    pin that pairing, the 24-hour window, the runtime-user scope and that no
+    journal text, command line or environment leaves the VM.
+    """
+
+    NOW_EPOCH = 1792421299
+    TIMER_SHOW = (
+        "Id=agent-poll.timer\nTriggers=agent-poll.service\nActiveState=active\n"
+        "SubState=waiting\nUnitFileState=enabled\nLastTriggerUSec=@1792421018\n\n"
+        "Id=spare.timer\nTriggers=spare.service\nActiveState=inactive\n"
+        "SubState=dead\nUnitFileState=disabled\nLastTriggerUSec=n/a\n"
+    )
+    SERVICE_SHOW = (
+        "Id=agent-poll.service\nActiveState=failed\nSubState=failed\n"
+        "Result=exit-code\nExecMainStatus=20\n\n"
+        "Id=spare.service\nActiveState=inactive\nSubState=dead\n"
+        "Result=success\nExecMainStatus=0\n"
+    )
+
+    def setUp(self) -> None:
+        self.contract = load_access_contract(ACCESS, GOVERNANCE)
+
+    @staticmethod
+    def _completed(argv, returncode, stdout="", stderr=""):
+        return subprocess.CompletedProcess(list(argv), returncode, stdout, stderr)
+
+    def _failure(self, unit: str, age: int, message: str = "") -> str:
+        entry = {
+            "__REALTIME_TIMESTAMP": str((self.NOW_EPOCH - age) * 1_000_000),
+            "USER_UNIT": unit,
+        }
+        if message:
+            entry["MESSAGE"] = message
+        return json.dumps(entry)
+
+    def _runner(
+        self,
+        *,
+        units="agent-poll.timer loaded active waiting Run agent poll\n",
+        unit_files=(
+            "agent-poll.timer enabled enabled\n"
+            "aisoft-agent@.timer indirect enabled\n"
+            "spare.timer disabled enabled\n"
+        ),
+        timer_show=None,
+        service_show=None,
+        journal=None,
+        clock=None,
+    ):
+        calls: list[list[str]] = []
+
+        def runner(argv, *, cwd=None, env=None):
+            calls.append(list(argv))
+            if "/bin/date" in argv:
+                text = f"{self.NOW_EPOCH}\n" if clock is None else clock
+                return self._completed(argv, 0, text)
+            if "list-units" in argv:
+                return self._completed(argv, 0, units)
+            if "list-unit-files" in argv:
+                return self._completed(argv, 0, unit_files)
+            if "show" in argv:
+                if any(item.endswith(".timer") for item in argv):
+                    text = self.TIMER_SHOW if timer_show is None else timer_show
+                else:
+                    text = self.SERVICE_SHOW if service_show is None else service_show
+                return self._completed(argv, 0, text)
+            if "/usr/bin/journalctl" in argv:
+                text = journal if journal is not None else "\n".join([
+                    self._failure("agent-poll.service", 900, "BLOCKED_EXTERNAL: secret"),
+                    self._failure("agent-poll.service", 60),
+                    # Outside the window: journald may hand back a boundary
+                    # record, and it must not be counted.
+                    self._failure("agent-poll.service", 90_000),
+                ])
+                return self._completed(argv, 0, text)
+            return self._completed(argv, 0)
+
+        return runner, calls
+
+    def _execute(self, runner):
+        broker = HostAccessBroker(
+            self.contract, credentials=StaticCredentials(), runner=runner
+        )
+        return broker.execute("aisoft-platform", "orbstack.vm.units.read")
+
+    def test_operation_is_read_only_host_operator_and_argument_free(self) -> None:
+        operation = self.contract.operation("orbstack.vm.units.read")
+        self.assertEqual(operation.identity_route, "host-operator")
+        self.assertFalse(operation.mutating)
+        self.assertEqual(tuple(operation.arguments), ())
+
+    def test_failing_service_behind_a_waiting_timer_is_counted(self) -> None:
+        runner, calls = self._runner()
+        result = self._execute(runner)
+        self.assertEqual(result["user"], "coder")
+        self.assertEqual(result["failure_window_seconds"], 86_400)
+        self.assertEqual(result["timer_count"], 2)
+        failing, spare = result["timers"]
+        self.assertEqual(failing, {
+            "timer": "agent-poll.timer",
+            "unit_file_state": "enabled",
+            "enabled": True,
+            "active_state": "active",
+            "sub_state": "waiting",
+            "last_trigger_at": "2026-10-19T14:43:38Z",
+            "service": {
+                "unit": "agent-poll.service",
+                "active_state": "failed",
+                "sub_state": "failed",
+                "result": "exit-code",
+                "exit_status": 20,
+            },
+            "failures_24h": 2,
+            "last_failure_at": "2026-10-19T14:47:19Z",
+        })
+        self.assertEqual(spare["timer"], "spare.timer")
+        self.assertFalse(spare["enabled"])
+        self.assertIsNone(spare["last_trigger_at"])
+        self.assertEqual(spare["failures_24h"], 0)
+        self.assertIsNone(spare["last_failure_at"])
+        # Every command runs as the runtime user on the VM, never as the host
+        # operator, and the journal read filters on the failure catalog id.
+        for call in calls:
+            self.assertEqual(call[:5], ["/usr/local/bin/orb", "-m", "gitea-ci", "-u", "coder"])
+        journal = next(call for call in calls if "/usr/bin/journalctl" in call)
+        self.assertIn("--user", journal)
+        self.assertIn("MESSAGE_ID=d9b373ed55a64feb8242e02dbe79a49c", journal)
+        self.assertIn(f"--since=@{self.NOW_EPOCH - 86_400}", journal)
+
+    def test_template_unit_files_are_skipped(self) -> None:
+        runner, calls = self._runner()
+        result = self._execute(runner)
+        self.assertNotIn("aisoft-agent@.timer", [t["timer"] for t in result["timers"]])
+        shows = [call for call in calls if "show" in call]
+        self.assertTrue(all("aisoft-agent@.timer" not in call for call in shows))
+
+    def test_no_journal_text_crosses_the_boundary(self) -> None:
+        runner, _ = self._runner()
+        serialised = json.dumps(self._execute(runner))
+        for fragment in ("BLOCKED_EXTERNAL", "secret", "MESSAGE", "Run agent poll"):
+            self.assertNotIn(fragment, serialised)
+
+    def test_no_timers_reads_as_an_empty_pass(self) -> None:
+        runner, calls = self._runner(units="", unit_files="")
+        result = self._execute(runner)
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["timers"], [])
+        self.assertEqual(result["timer_count"], 0)
+        self.assertFalse(any("show" in call for call in calls))
+
+    def test_unexpected_timer_name_fails_closed(self) -> None:
+        for units in ("evil;rm.timer loaded active waiting x\n",
+                      "agent\\x2dpoll.timer loaded active waiting x\n"):
+            with self.subTest(units=units):
+                runner, _ = self._runner(units=units)
+                with self.assertRaises(BrokerError) as caught:
+                    self._execute(runner)
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_unreadable_timer_state_fails_closed(self) -> None:
+        for show in ("", "Id=agent-poll.timer\nActiveState=Active\nSubState=waiting\n"):
+            with self.subTest(show=show):
+                runner, _ = self._runner(
+                    unit_files="agent-poll.timer enabled enabled\n", timer_show=show,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    self._execute(runner)
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_unreadable_vm_clock_fails_closed(self) -> None:
+        runner, _ = self._runner(clock="soon\n")
+        with self.assertRaises(BrokerError) as caught:
+            self._execute(runner)
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_journal_read_is_filtered_to_the_timers_services(self) -> None:
+        runner, calls = self._runner()
+        self._execute(runner)
+        journal = next(call for call in calls if "/usr/bin/journalctl" in call)
+        units = [item for item in journal if item.startswith("USER_UNIT=")]
+        self.assertEqual(units, ["USER_UNIT=agent-poll.service", "USER_UNIT=spare.service"])
+        self.assertIn(f"--until=@{self.NOW_EPOCH}", journal)
+
+    def test_journal_at_the_read_bound_fails_closed(self) -> None:
+        # Reaching the bound means older failures may be missing; an
+        # under-count would read as healthy, so the answer is unreadable.
+        bound = broker_module.VM_UNIT_JOURNAL_LINES
+        journal = "\n".join(self._failure("agent-poll.service", 60) for _ in range(bound))
+        runner, _ = self._runner(journal=journal)
+        with self.assertRaises(BrokerError) as caught:
+            self._execute(runner)
+        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_malformed_journal_records_fail_closed(self) -> None:
+        for journal in (
+            "not json",
+            json.dumps({"USER_UNIT": "agent-poll.service"}),
+            json.dumps({"__REALTIME_TIMESTAMP": "1", "USER_UNIT": "other.service"}),
+            "[]",
+        ):
+            with self.subTest(journal=journal):
+                runner, _ = self._runner(journal=journal)
+                with self.assertRaises(BrokerError) as caught:
+                    self._execute(runner)
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_missing_or_malformed_fields_never_read_as_healthy(self) -> None:
+        base = "Id=agent-poll.timer\nActiveState=active\nSubState=waiting\n"
+        cases = {
+            "no unit file state": base + "Triggers=agent-poll.service\n",
+            "no trigger": base + "UnitFileState=enabled\n",
+            "bad trigger": base + "UnitFileState=enabled\nTriggers=agent;poll.service\n",
+        }
+        for label, show in cases.items():
+            with self.subTest(case=label):
+                runner, _ = self._runner(
+                    units="", unit_files="agent-poll.timer enabled enabled\n",
+                    timer_show=show,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    self._execute(runner)
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+        for label, show in {
+            "service absent": "",
+            "no result": "Id=agent-poll.service\nActiveState=failed\nSubState=failed\n"
+                         "ExecMainStatus=20\n",
+            "bad status": "Id=agent-poll.service\nActiveState=failed\nSubState=failed\n"
+                          "Result=exit-code\nExecMainStatus=x\n",
+        }.items():
+            with self.subTest(case=label):
+                runner, _ = self._runner(
+                    units="", unit_files="agent-poll.timer enabled enabled\n",
+                    timer_show=self.TIMER_SHOW.split("\n\n")[0] + "\n",
+                    service_show=show,
+                )
+                with self.assertRaises(BrokerError) as caught:
+                    self._execute(runner)
+                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
+
+    def test_host_command_failure_is_not_read_as_healthy(self) -> None:
+        def runner(argv, *, cwd=None, env=None):
+            if "/bin/date" in argv:
+                return self._completed(argv, 0, f"{self.NOW_EPOCH}\n")
+            return self._completed(argv, 1)
+
+        with self.assertRaises(BrokerError) as caught:
+            self._execute(runner)
+        self.assertEqual(caught.exception.code, "HOST_COMMAND_FAILED")
+
+
 if __name__ == "__main__":
     unittest.main()

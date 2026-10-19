@@ -302,6 +302,14 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     # stuck process stays a human decision, and a typed operation would make it
     # a supported automation, exactly as the actions.* pair already refuses.
     "orbstack.runner.status": ("host-operator", False, ()),
+    # VM timer health (#387). Two agent timers failed every 15 minutes for two
+    # months and nothing on the platform could see it: vm.status only proves the
+    # machine answers and check-installed-drift compares files, not outcomes.
+    # This reads the runtime user's systemd --user timers and counts their
+    # services' failures from the journal's structured failure records, so no
+    # log text or environment crosses the boundary. Read-only and argument-free:
+    # stopping or re-enabling a timer stays a human operation on the VM.
+    "orbstack.vm.units.read": ("host-operator", False, ()),
     "vm.profile.plan": ("host-operator", False, ()),
     "vm.profile.apply": ("host-operator", True, ()),
     "vm.profile.read-back": ("host-operator", False, ()),

@@ -55,6 +55,27 @@ ACT_RUNNER_CLAIM_RE = re.compile(
     r"(?P<repository>[A-Za-z0-9._-]{1,64}/[A-Za-z0-9._-]{1,100})(?:\s|\"|$)"
 )
 SYSTEMD_TOKEN_RE = re.compile(r"^[a-z-]{1,32}$")
+# systemd's catalog id for "unit entered failed state" (#387). Filtering the
+# runtime user's journal on this id counts service failures from structured
+# fields alone, so the failure count never depends on, or returns, message text.
+SYSTEMD_UNIT_FAILED_MESSAGE_ID = "d9b373ed55a64feb8242e02dbe79a49c"
+VM_UNIT_FAILURE_WINDOW_SECONDS = 86_400
+# A 15-minute timer fails at most 96 times a day. The read is filtered to the
+# timers' own services and fails closed when it reaches this bound, so the
+# bound can only make the answer unreadable, never quietly too small.
+VM_UNIT_JOURNAL_LINES = 5000
+VM_UNIT_TIMER_LIMIT = 64
+# Plain or instantiated unit names only. Templates ("name@.timer") are skipped
+# before validation; anything escaped or unexpected fails the read closed.
+SYSTEMD_TIMER_NAME_RE = re.compile(
+    r"^[A-Za-z0-9:_.-]{1,128}(?:@[A-Za-z0-9:_.-]{1,128})?\.timer$"
+)
+SYSTEMD_UNIT_NAME_RE = re.compile(
+    r"^[A-Za-z0-9:_.-]{1,128}(?:@[A-Za-z0-9:_.-]{1,128})?\.[a-z]{1,16}$"
+)
+SYSTEMD_SERVICE_NAME_RE = re.compile(
+    r"^[A-Za-z0-9:_.-]{1,128}(?:@[A-Za-z0-9:_.-]{1,128})?\.service$"
+)
 CREDENTIAL_SCALAR_FIELDS = frozenset({"protocol", "host", "path", "username"})
 CREDENTIAL_REQUIRED_FIELDS = frozenset({"protocol", "host", "path"})
 CREDENTIAL_PROTOCOL_MAX_LINE_BYTES = 65535
@@ -551,6 +572,14 @@ def _systemd_token(value: object) -> str | None:
     """Accept a systemd state word verbatim, or nothing at all."""
     if isinstance(value, str) and SYSTEMD_TOKEN_RE.fullmatch(value):
         return value
+    return None
+
+
+def _systemd_epoch_iso(value: object) -> str | None:
+    """ISO time from systemctl --timestamp=unix ("@<seconds>"); n/a stays None."""
+    if isinstance(value, str) and value.startswith("@") and value[1:].isdigit():
+        seconds = int(value[1:])
+        return _epoch_iso(seconds) if seconds > 0 else None
     return None
 
 
@@ -1421,6 +1450,8 @@ class HostAccessBroker:
                 return self._orbstack_status(project, operation)
             if operation_name == "orbstack.runner.status":
                 return self._orbstack_runner_status(project, operation)
+            if operation_name == "orbstack.vm.units.read":
+                return self._orbstack_vm_units(project, operation)
             if operation_name.startswith("vm.profile."):
                 return self._vm_profile(project, operation)
         except AccessContractError as exc:
@@ -4488,6 +4519,200 @@ class HostAccessBroker:
             "child_count": len(elapsed),
             "oldest_child_elapsed_seconds": max(elapsed) if elapsed else None,
         }
+
+    def _orbstack_vm_units(
+        self,
+        project: ProjectContract,
+        operation: OperationContract,
+    ) -> object:
+        """Read-only health of the VM runtime user's systemd --user timers.
+
+        #387: two agent timers failed every 15 minutes from 2026-08-12 and
+        nobody knew for two months. Each timer stayed "active (waiting)", so a
+        unit-state check alone reads healthy; the failure is only visible on the
+        service it triggers and in how often that service has failed lately.
+
+        Returned per timer: unit-file state, timer state, last trigger, the
+        triggered service's state, result and exit status, and the count and
+        newest time of its failures in the last 24 hours (VM clock). Failures
+        are counted from journald's structured "unit failed" records, filtered
+        by catalog id, so no log message, command line or environment value is
+        read into this process, let alone returned.
+        """
+        mac = self.contract.raw["mac_host"]
+        user = self.contract.raw["vm_profile_policy"]["runtime_user"]
+        prefix = (
+            mac["orbstack_binary"], "-m", mac["orbstack_machine"], "-u", user,
+        )
+        observed_at = self._vm_epoch_seconds(prefix)
+        names = self._user_timer_names(prefix)
+        timers = self._user_unit_show(prefix, names, (
+            "Id", "UnitFileState", "ActiveState", "SubState", "Triggers",
+            "LastTriggerUSec",
+        ))
+        services: dict[str, str | None] = {}
+        for name in names:
+            triggers = timers[name].get("Triggers", "").split()
+            # systemd refuses a timer with nothing to trigger, so an empty or
+            # malformed list is an unreadable answer, never "no service".
+            if not triggers or not all(
+                SYSTEMD_UNIT_NAME_RE.fullmatch(item) for item in triggers
+            ):
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "systemd timer trigger is unreadable"
+                )
+            services[name] = next(
+                (item for item in triggers if SYSTEMD_SERVICE_NAME_RE.fullmatch(item)),
+                None,
+            )
+        service_names = sorted({item for item in services.values() if item is not None})
+        service_states = self._user_unit_show(
+            prefix, service_names,
+            ("Id", "ActiveState", "SubState", "Result", "ExecMainStatus"),
+        )
+        since = observed_at - VM_UNIT_FAILURE_WINDOW_SECONDS
+        failures = self._user_unit_failures(prefix, service_names, since, observed_at)
+        entries: list[dict[str, object]] = []
+        for name in names:
+            fields = timers[name]
+            unit_file_state = _systemd_token(fields.get("UnitFileState"))
+            active_state = _systemd_token(fields.get("ActiveState"))
+            sub_state = _systemd_token(fields.get("SubState"))
+            if unit_file_state is None or active_state is None or sub_state is None:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "systemd timer state is unreadable"
+                )
+            service_name = services[name]
+            service: dict[str, object] | None = None
+            if service_name is not None:
+                state = service_states[service_name]
+                status = state.get("ExecMainStatus", "")
+                service = {
+                    "unit": service_name,
+                    "active_state": _systemd_token(state.get("ActiveState")),
+                    "sub_state": _systemd_token(state.get("SubState")),
+                    "result": _systemd_token(state.get("Result")),
+                    "exit_status": int(status) if status.isdigit() else None,
+                }
+                if None in service.values():
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID", "systemd service state is unreadable"
+                    )
+            count, newest = failures.get(service_name or "", (0, None))
+            entries.append({
+                "timer": name,
+                "unit_file_state": unit_file_state,
+                "enabled": unit_file_state in ("enabled", "enabled-runtime"),
+                "active_state": active_state,
+                "sub_state": sub_state,
+                "last_trigger_at": _systemd_epoch_iso(fields.get("LastTriggerUSec")),
+                "service": service,
+                "failures_24h": count,
+                "last_failure_at": _epoch_iso(newest) if newest is not None else None,
+            })
+        return {
+            "status": "PASS",
+            "project": project.project_id,
+            "operation": operation.name,
+            "machine": mac["orbstack_machine"],
+            "user": user,
+            "observed_at": observed_at,
+            "failure_window_seconds": VM_UNIT_FAILURE_WINDOW_SECONDS,
+            "timer_count": len(entries),
+            "timers": entries,
+        }
+
+    def _user_timer_names(self, prefix: Sequence[str]) -> list[str]:
+        """Loaded timers plus installed timer files, so a disabled one still shows."""
+        names: set[str] = set()
+        for listing in ("list-units", "list-unit-files"):
+            argv = [
+                *prefix, "/usr/bin/systemctl", "--user", listing, "--type=timer",
+                "--no-legend", "--plain", "--no-pager",
+            ]
+            if listing == "list-units":
+                argv.append("--all")
+            for line in self._run(argv).stdout.splitlines():
+                parts = line.split()
+                if not parts or parts[0].endswith("@.timer"):
+                    continue
+                if not SYSTEMD_TIMER_NAME_RE.fullmatch(parts[0]):
+                    raise BrokerError(
+                        "RESPONSE_SCHEMA_INVALID", "systemd timer name is unreadable"
+                    )
+                names.add(parts[0])
+        if len(names) > VM_UNIT_TIMER_LIMIT:
+            raise BrokerError("RESPONSE_SCHEMA_INVALID", "too many systemd timers")
+        return sorted(names)
+
+    def _user_unit_show(
+        self, prefix: Sequence[str], units: Sequence[str], properties: Sequence[str],
+    ) -> dict[str, dict[str, str]]:
+        """Requested properties per unit; every requested unit must answer."""
+        if not units:
+            return {}
+        result = self._run([
+            *prefix, "/usr/bin/systemctl", "--user", "show", "--timestamp=unix",
+            *(f"--property={item}" for item in properties), "--", *units,
+        ])
+        states: dict[str, dict[str, str]] = {}
+        for block in result.stdout.split("\n\n"):
+            fields: dict[str, str] = {}
+            for line in block.splitlines():
+                key, separator, value = line.partition("=")
+                if separator and key in properties:
+                    fields[key] = value
+            unit = fields.get("Id")
+            if unit in units:
+                states[unit] = fields
+        if set(states) != set(units):
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID", "systemd unit state is unreadable"
+            )
+        return states
+
+    def _user_unit_failures(
+        self, prefix: Sequence[str], services: Sequence[str], since: int, until: int,
+    ) -> dict[str, tuple[int, int | None]]:
+        """Failure count and newest failure per service inside [since, until].
+
+        The journal is filtered to these services' "unit failed" records, so
+        another unit failing often cannot crowd them out. A read that reaches
+        the line bound cannot prove the window is complete and fails closed
+        rather than under-count.
+        """
+        if not services:
+            return {}
+        result = self._run([
+            *prefix, "/usr/bin/journalctl", "--user",
+            f"MESSAGE_ID={SYSTEMD_UNIT_FAILED_MESSAGE_ID}",
+            *(f"USER_UNIT={item}" for item in services),
+            f"--since=@{since}", f"--until=@{until}",
+            "-n", str(VM_UNIT_JOURNAL_LINES), "--output=json",
+            "--output-fields=USER_UNIT", "--no-pager",
+        ])
+        lines = [line for line in result.stdout.splitlines() if line.strip()]
+        if len(lines) >= VM_UNIT_JOURNAL_LINES:
+            raise BrokerError(
+                "RESPONSE_SCHEMA_INVALID", "failure journal exceeds the read bound"
+            )
+        failures: dict[str, tuple[int, int | None]] = {}
+        for line in lines:
+            entry = _decode_json(line)
+            unit = entry.get("USER_UNIT") if isinstance(entry, dict) else None
+            stamp = (
+                _journal_epoch_seconds(entry.get("__REALTIME_TIMESTAMP"))
+                if isinstance(entry, dict) else None
+            )
+            if unit not in services or stamp is None:
+                raise BrokerError(
+                    "RESPONSE_SCHEMA_INVALID", "failure journal is unreadable"
+                )
+            if not since <= stamp <= until:
+                continue
+            count, newest = failures.get(unit, (0, None))
+            failures[unit] = (count + 1, stamp if newest is None else max(newest, stamp))
+        return failures
 
     def _vm_profile(
         self,

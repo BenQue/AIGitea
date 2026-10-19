@@ -323,6 +323,12 @@
       "arguments": []
     },
     {
+      "name": "orbstack.vm.units.read",
+      "identity_route": "host-operator",
+      "mutating": false,
+      "arguments": []
+    },
+    {
       "name": "vm.profile.plan",
       "identity_route": "host-operator",
       "mutating": false,
