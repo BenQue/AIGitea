@@ -27,6 +27,7 @@ git_scope:
   - codex/tools/gitea-pat-helper/helper_test.go
   - codex/tools/gitea-pat-helper/process_fixture_test.go
   - codex/tests/integration/test-gitea-pat-helper-process.py
+  - codex/tests/smoke.sh
 ---
 
 # #385 spec：NewEMaint 退出 routine 合并
@@ -49,7 +50,7 @@ NewEMaint 一直由负责人手动合并，routine merger pilot 从未在用。�
 - [ ] AC1 manifest：同一个提交里，`gitea-governance.json` 的 NewEMaint 一项 `routine_auto_merge_enabled` 改 `false`、`routine_merge_agent` 改 `null`、删除整个 `routine_live_pilot`；`host-access-broker.json` 的 `newemaint` 项目 `routine_merge_agent` 改 `null`（合同要求两边逐字一致，只改一边会让 broker 全部 fail closed）。其它项目字节不变，LocalWMS 的已禁用 merger 声明不动。
 - [ ] AC2 两个 validate 对仓库 manifest PASS；`git diff` 只触及 AC1 的四个值与 `git_scope` 列出的文件。
 - [ ] AC3 `06` 第 569 行凭据表与第 606 行 #316 段把「首个现场对象为 `newemaint-routine-merger`」改为「首个现场对象待定，原定对象随 #385 退役」（该账号即将删除）；踩坑 33 是历史记录，不改。泄漏基线只降不升。
-- [ ] AC7 PAT helper 测试去项目化：`helper_test.go` 的绑定测试改读 `codex/tests/fixtures/manifests/` 并以夹具项目 `alphaapp` 为对象；`process_fixture_test.go` 的合成账号与 `test-gitea-pat-helper-process.py` 的请求对象、拷入容器的 manifest 同步改为夹具。`test-gitea-pat-helper-linux.sh` 与隔离容器进程测试在 Linux 容器里全绿。
+- [ ] AC7 PAT helper 测试去项目化：`helper_test.go` 的绑定测试改读 `codex/tests/fixtures/manifests/` 并以夹具项目 `alphaapp` 为对象；`process_fixture_test.go` 的合成账号与 `test-gitea-pat-helper-process.py` 的请求对象、拷入容器的 manifest 同步改为夹具。`test-gitea-pat-helper-linux.sh` 与隔离容器进程测试在 Linux 容器里全绿。`smoke.sh` 真实 manifest 守卫删除对该进程测试的豁免并更新注释，让它重新受守卫覆盖。
 - [ ] AC8 `docs/governance/remediation-roadmap.md` 总规则 2 注明 routine merger 与 pilot 已由负责人裁决退出。
 - [ ] AC4 macOS 本机全量 `bash codex/tests/smoke.sh` 全绿；PR required CI 绿。
 - [ ] AC5 Codex 经 Herdr 对最终 diff 做一次只读独立审查，结论记入 verification。

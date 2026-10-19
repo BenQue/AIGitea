@@ -24,14 +24,14 @@ updated: 2026-10-19
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 两份 manifest 的 NewEMaint 条目与 06 两处表述，validate 与全量 smoke 绿 | - | done |
-| T02 | PAT helper 测试改读合成夹具（Codex 首轮审查发现），roadmap 注明退出，Linux 容器跑 helper 测试 | T01 | in-progress |
-| T03 | Codex 只读复审结论记入 verification | T02 | pending |
+| T02 | PAT helper 测试改读合成夹具（Codex 首轮审查发现），roadmap 注明退出，Linux 容器跑 helper 测试 | T01 | done |
+| T03 | Codex 只读复审结论记入 verification | T02 | done |
 | T04 | 合并后两台重装、audit 与保护读回（负责人执行） | T03 | pending |
 
 ## Expected touch points
 
 - T01：`codex/config/gitea-governance.json`、`codex/config/host-access-broker.json`、`06-运维手册与踩坑集.md`、本目录四份文档。
-- T02：`codex/tools/gitea-pat-helper/helper_test.go`、`process_fixture_test.go`、`codex/tests/integration/test-gitea-pat-helper-process.py`、`docs/governance/remediation-roadmap.md`。
+- T02：`codex/tools/gitea-pat-helper/helper_test.go`、`process_fixture_test.go`、`codex/tests/integration/test-gitea-pat-helper-process.py`、`codex/tests/smoke.sh`（删死豁免，Codex 复审建议）、`docs/governance/remediation-roadmap.md`。
 - T03、T04：只改本目录 verification。
 
 ## 数据库迁移
