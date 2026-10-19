@@ -33,7 +33,7 @@ func fixture(t *testing.T) (context.Context, *auth.AccessToken, *auth.AccessToke
 	if err = e.Sync(new(user.User), new(auth.AccessToken)); err != nil {
 		t.Fatal("test schema init failed")
 	}
-	u := &user.User{ID: 11, Name: "newemaint-routine-merger", LowerName: "newemaint-routine-merger", IsActive: true}
+	u := &user.User{ID: 11, Name: "alphaapp-routine-merger", LowerName: "alphaapp-routine-merger", IsActive: true}
 	other := &user.User{ID: 12, Name: "other-agent", LowerName: "other-agent", IsActive: true}
 	if _, err = e.Insert(u, other); err != nil {
 		t.Fatal("fixture users failed")
@@ -49,7 +49,7 @@ func fixture(t *testing.T) (context.Context, *auth.AccessToken, *auth.AccessToke
 			t.Fatal("fixture token failed")
 		}
 	}
-	target := Target{ProjectID: "newemaint", Kind: "routine-merge-agent", Username: u.Name, Version: "1.26.4"}
+	target := Target{ProjectID: "alphaapp", Kind: "routine-merge-agent", Username: u.Name, Version: "1.26.4"}
 	return ctx, ts[0], ts[1], ts[2], target
 }
 func assertPresent(t *testing.T, ctx context.Context, ids ...int64) {
@@ -62,7 +62,7 @@ func assertPresent(t *testing.T, ctx context.Context, ids ...int64) {
 	}
 }
 func req(token *auth.AccessToken) Request {
-	return Request{Action: "revoke", ProjectID: "newemaint", Kind: "routine-merge-agent", Token: token.Token, ExpectedTokenID: token.ID, ExpectedUserID: token.UID, ExpectedTokenName: token.Name}
+	return Request{Action: "revoke", ProjectID: "alphaapp", Kind: "routine-merge-agent", Token: token.Token, ExpectedTokenID: token.ID, ExpectedUserID: token.UID, ExpectedTokenName: token.Name}
 }
 func TestExactRevokeAndFreshReadback(t *testing.T) {
 	ctx, old, same, other, target := fixture(t)
@@ -155,7 +155,7 @@ func TestSecretErrorsAreFixedCodes(t *testing.T) {
 }
 
 func TestStrictRequestAndBuildPins(t *testing.T) {
-	valid := `{"action":"inspect","project_id":"newemaint","token_kind":"routine-merge-agent","token":"synthetic"}`
+	valid := `{"action":"inspect","project_id":"alphaapp","token_kind":"routine-merge-agent","token":"synthetic"}`
 	if _, code := decodeRequest(strings.NewReader(valid)); code != "" {
 		t.Fatal(code)
 	}
@@ -179,21 +179,21 @@ func TestStrictRequestAndBuildPins(t *testing.T) {
 	}
 }
 func TestCanonicalManifestBindings(t *testing.T) {
-	g, err := os.ReadFile("../../config/gitea-governance.json")
+	g, err := os.ReadFile("../../tests/fixtures/manifests/gitea-governance.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	a, err := os.ReadFile("../../config/host-access-broker.json")
+	a, err := os.ReadFile("../../tests/fixtures/manifests/host-access-broker.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, kind := range []string{"project-agent", "routine-merge-agent", "manager-audit", "manager-mutation"} {
-		target, code := bindTarget(Request{ProjectID: "newemaint", Kind: kind}, g, a)
+		target, code := bindTarget(Request{ProjectID: "alphaapp", Kind: kind}, g, a)
 		if code != "" || target.Username == "" {
 			t.Fatal("canonical binding failed", kind, code)
 		}
 	}
-	for _, r := range []Request{{ProjectID: "unknown", Kind: "project-agent"}, {ProjectID: "aisoft-platform", Kind: "routine-merge-agent"}, {ProjectID: "newemaint", Kind: "admin"}} {
+	for _, r := range []Request{{ProjectID: "unknown", Kind: "project-agent"}, {ProjectID: "aisoft-platform", Kind: "routine-merge-agent"}, {ProjectID: "alphaapp", Kind: "admin"}} {
 		if _, code := bindTarget(r, g, a); code != "TARGET_UNMANAGED" {
 			t.Fatal("unmanaged target accepted")
 		}

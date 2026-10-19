@@ -39,7 +39,7 @@ func TestExportProcessFixture(t *testing.T) {
 	if e.Sync(new(user.User), new(auth.AccessToken)) != nil {
 		t.Fatal("fixture schema failed")
 	}
-	if _, err = e.Insert(&user.User{ID: 11, Name: "newemaint-routine-merger", LowerName: "newemaint-routine-merger", IsActive: true},
+	if _, err = e.Insert(&user.User{ID: 11, Name: "alphaapp-routine-merger", LowerName: "alphaapp-routine-merger", IsActive: true},
 		&user.User{ID: 12, Name: "other-agent", LowerName: "other-agent", IsActive: true}); err != nil {
 		t.Fatal("fixture account insert failed")
 	}
