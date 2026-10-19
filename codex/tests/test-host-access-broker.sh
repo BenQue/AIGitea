@@ -13,12 +13,12 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 7 and
-  .operation_count == 38 and
+  .operation_count == 39 and
   .merge_operation_count == 1
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 38) and
+  ([.operations[].name] | length == 39) and
   ([.operations[].name] | index("application.target.preflight.read") == null) and
   (has("application_targets") | not) and
   ([.operations[] | select(.name == "gitea.credential.rotate")][0]
