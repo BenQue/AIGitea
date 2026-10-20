@@ -20,7 +20,7 @@
 |---|---|
 | 五个仓库 654 条 Issue 中 small 只有 41 条（6%），complex 432 条（66%） | broker `gitea.issue.list --state all` 按标签统计 |
 | 无人值守的自治全链（Loop 自动实现 + routine 自动合并）只对 small 开放；Loop 虽也能跑 complex，但 complex 按合同有两个人工确认点、平台仓 complex 一律人合并 | `03` §7、`04` |
-| 三个 VM profile 都是 `IMPLEMENT_PROVIDER=none`；provider 安装层与会话层验收从未执行；routine merge 从未发生 | manifest `vm_profile`、`08` §7、#385 verification |
+| 三个 VM profile 都是 `IMPLEMENT_PROVIDER=none`；VM implement provider 的真实集成与项目级验收从未完成；routine merge 从未发生 | manifest `vm_profile`、`08` §7.2、#385 verification |
 | 两个 VM 定时器自 2026-08-12 起每 15 分钟失败，直到 #387 停用 | #387 verification |
 | 模型 CLI、技能、凭据、Matt 快照都在 Mac；VM 服务层 `claude`/`codex` 不可达 | `04`、#164、#178 |
 | 每条规则在 Controller 路径与会话路径各写一遍（PR URL 回填、判级投影、终态） | `aisoft_loop`、`issue-session-flow` |
