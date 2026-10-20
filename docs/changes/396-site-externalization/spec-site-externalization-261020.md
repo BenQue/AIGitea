@@ -24,6 +24,35 @@ git_scope:
   - docs/changes/396-site-externalization/spec-site-externalization-261020.md
   - docs/changes/396-site-externalization/plan-site-externalization-261020.md
   - docs/changes/396-site-externalization/verification-site-externalization-261020.md
+  - 01-基础设施-VM-Gitea-Runner.md
+  - 07-内网与生产平移路线.md
+  - 13-项目结果迁移与内网切换实施手册.md
+  - README.md
+  - codex/config/host-access-broker.json
+  - codex/config/project-leak-baseline.json
+  - codex/lib/install-source-guard.sh
+  - codex/runtime/aisoft_host_access/broker.py
+  - codex/runtime/aisoft_host_access/contract.py
+  - codex/runtime/aisoft_host_access/credential_rotation.py
+  - codex/runtime/aisoft_loop/documents.py
+  - codex/runtime/tests/rotation_cli_fixture.py
+  - codex/runtime/tests/test_credential_rotation.py
+  - codex/runtime/tests/test_host_access.py
+  - codex/runtime/tests/test_project_leak.py
+  - codex/tests/check-project-leak.py
+  - codex/tests/fixtures/manifests/README.md
+  - codex/tests/fixtures/manifests/host-access-broker.json
+  - codex/tests/test-host-access-broker.sh
+  - codex/tests/test-registry-preflight.sh
+  - codex/tools/apply-classification-labels.sh
+  - codex/tools/install-runner-flutter.sh
+  - docs/governance/remediation-roadmap.md
+  - skills/aisoft-platform/SKILL.md
+  - skills/aisoft-platform/references/onboarding-runbook.md
+  - skills/aisoft-platform/references/private-gitea-access.md
+  - templates/project/ci/ci.yml
+  - templates/project/ci/registry-preflight.sh
+  - usage/bundle.json
 ---
 
 # #396 spec：站点外置与守卫补齐（R13）
