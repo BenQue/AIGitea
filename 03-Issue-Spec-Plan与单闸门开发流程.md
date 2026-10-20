@@ -167,11 +167,11 @@ docs/changes/N-short-description/
 本节同步 #289 已合并的治理合同。T01 独立应用合同后，fresh run 的 T02/T03 已完成 runtime 实施与本地验证；[PR #325](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/325) 已进入稳定 main。下述严格行为和新增命令已在 source 实现，installed/live 仍须按实际安装与项目验收证据确认。
 
 - summary front matter 的 `required_docs` 是文档义务的唯一声明事实源，`documents` 是新格式角色到安全 basename 的唯一路径事实源。共用受限 Python 解析器，拒绝空、未知、重复或混合角色与 legacy 文件名的列表，首项必须为 summary。
-- `route.required_docs` 给出阶段与复杂度的最低合同要求；Loop 检查声明满足这些要求，不得用路由生成的列表替换声明或丢掉额外角色。development 不强制 spec/plan，production complex 仍必须有 spec/plan；任何路由都不能让已声明 verification 的文件义务消失。
+- `route.required_docs` 给出阶段与复杂度的最低合同要求；`check-change-documents` 检查声明满足这些要求，不得用路由生成的列表替换声明或丢掉额外角色。development 不强制 spec/plan，production complex 仍必须有 spec/plan；任何路由都不能让已声明 verification 的文件义务消失。
 - 新格式 `documents` 的每个显式映射均须指向本 Issue 目录内可读取的普通文件，且通过既有角色、slug、日期、front matter 与路径边界校验；即使角色不在 required_docs 里也一样。缺文件或符号链接逃逸必须报错，诊断包含 Issue/change、role 与真实 basename。required_docs 的每一项必须有映射和实际文件。
-- 公共 `resolve-documents N --repo <checkout>` 成功时保留角色到 basename 的 JSON 形状，但必须拒绝不存在的显式映射。新增只读 `resolve-required-documents N --repo <checkout>` 返回 `required_docs`（规范化语义角色数组）和 `documents`（角色映射）。`check-change-documents`、Loop 与 `mark-completed-issues.sh` 共用同一解析和校验结果；终态工具不再用 awk 独立解析原文，resolver 或 JSON 失败不能回退为成功。
+- 公共 `resolve-documents N --repo <checkout>` 成功时保留角色到 basename 的 JSON 形状，但必须拒绝不存在的显式映射。新增只读 `resolve-required-documents N --repo <checkout>` 返回 `required_docs`（规范化语义角色数组）和 `documents`（角色映射）。`check-change-documents` 与 `mark-completed-issues.sh` 共用同一解析和校验结果；终态工具不再用 awk 独立解析原文，resolver 或 JSON 失败不能回退为成功。
 - legacy 固定映射是历史推断；未声明的可选 spec/plan/verification 不要求生成。显式 required_docs 中的历史 basename 必须有实际文件，并规范化为相应语义角色（如 `03-verification.md` → `verification`）。缺 required_docs 报明确 GAP；不新增 legacy 开关，不批量重命名或改写历史文档。
-- 合同草稿首次写入使用受限 publisher：`publish-spec`/`publish-plan` 可在 open Issue 的 exact branch 上，通过内部声明解析首次创建自己映射的目标，继续执行路径、日期、front matter 与 Ticket graph 硬门。该准备入口不向 reader 暴露通用 skip-existence 参数；草稿尚未齐全时，严格 resolver、文档检查、Loop 与终态检查仍须拒绝交付。
+- 合同草稿首次写入使用受限 publisher：`publish-spec`/`publish-plan` 可在 open Issue 的 exact branch 上，通过内部声明解析首次创建自己映射的目标，继续执行路径、日期、front matter 与 Ticket graph 硬门。该准备入口不向 reader 暴露通用 skip-existence 参数；草稿尚未齐全时，严格 resolver、文档检查与终态检查仍须拒绝交付；会话在确认点 2 前运行 `check-change-documents`。
 - `mark-completed-issues.sh` 的 dry-run 遇无效声明或缺文件时输出可搜索的 skip 原因和诊断，apply 对该 Issue 零 broker 写入。合法合同时，再按 §11 的独立 deployment_lifecycle 判终态。文件存在与可解析不证明 verification 内每项现场动作已执行。
 
 ### 何时声明 `verification`
