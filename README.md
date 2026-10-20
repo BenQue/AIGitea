@@ -22,7 +22,7 @@
 | Matt / 双 provider | 固定 Matt v1.2.2 snapshot；`triage → to-spec → to-tickets → implement`；#318 修齐 Codex/Claude 会话和接入合同，#320 明确每次 push 的 SHA 核对 | adapters 等价、可互换；无人值守的实现引擎已按 ADR 0002 退出（#391），见 [08](08-双工具共存与实施.md) |
 | Worktree 与文档硬门 | #298 单写者 claim / broker 归属闸门，#304 记录两机安装；#289 严格校验 `required_docs` 声明、映射和实际文件，resolver / 会话工具 / 终态工具共享结果 | #289 runtime 与本地验证已完成；source 之外按安装证据验收；另一会话不得代写 worktree，见 [03](03-Issue-Spec-Plan与单闸门开发流程.md) |
 | Broker | typed Issue/PR/Actions/Git 操作 34 个；#286 增 manifest 限定只读跨仓依赖，允许的边以 manifest 的 `dependency_read_targets` 为准；routine 合并与 VM profile 两类操作已随 #391 退役 | 七个仓库都只由人合并；routine merger 的凭据种类与 manifest 字段留待 R16 清理，不代表可启用 |
-| 安装与漂移 | 6 个 installer 共用 source guard（`install-vm` 随 #391 退出）；#308 提供 [check-installed-drift](codex/tools/check-installed-drift.sh)，按受管字节、权限、链接与可读量检查 `PASS/GAP` | checker 已进入 source；#308 基线的真实安装 GAP 保留，后续修复须独立验收；`source-only` 不是 installed PASS，见 [06](06-运维手册与踩坑集.md) |
+| 安装与漂移 | 6 个 installer 共用 source guard（`install-vm` 随 #391 退出）；#308 提供 [check-installed-drift](codex/tools/check-installed-drift.sh)，按受管字节、权限、链接与可读量检查 `PASS/GAP` | checker 已进入 source；#397 起每个面声明适用主机（不适用报 SKIP），结果按 `codex/config/installed-drift-baseline.json` 棘轮；`source-only` 不是 installed PASS，见 [06](06-运维手册与踩坑集.md) |
 | 架构合同 | [architecture](architecture/README.md) 有 5 个 profiles；#284 增 `linux-node-sqlite-v1`；#287 writer 默认 V2 lock，reader 严格接受 V1/V2；#288 离线核验 Dockerfile FROM digest | catalog 固定 `2026.09.0`，不是自动追随 upstream latest；release reader 仍仅接受 V1 architecture lock，下游采用 V2 必须先解决读取链兼容 |
 | 参考实现迁出 | #383 把 Docker release 运行时、公司两 VM operator、公司只读基线与项目 architecture reference 迁出平台，见 [迁出说明](archive/reference-implementations-exit-261019.md)；[platform-bootstrap/v1](platform-bootstrap/README.md) 保留 | 平台不再提供任何交付形态的实现或 installer；采用方在项目仓自带副本并按自己的 pin 维护 |
 | 开发与公司传输 | #292 收口自研 main relay，采用项目明确批准的 Gitea 原生 Push Mirror；#293 对齐 `release_producer: local` 与离线交付职责，见 [07](07-内网与生产平移路线.md) | GitHub 是指定镜像/搬运层；镜像覆盖许可仅限指定目标，不延伸到公司 main；启用、同步、公司入站及部署均按项目回执确认 |
@@ -207,7 +207,7 @@ Issue #308 的安装面只读核对合同（#391 起六个）：`bash codex/tool
 cache 或报告，也不自动修复。`--source-only` 仅校验源码映射，不能证明 installed 同步；
 合法 PR 的受管源可不同于缓存 main，该来源 GAP 继续独立输出，不阻断源定义自洽门。
 
-在 Mac 和 gitea-ci 本机分别执行，输出各自的 source SHA、缓存 origin/main 与实际检查 roots；fresh main
+在 Mac 和 gitea-ci 本机分别执行（VM 上加 `--host vm`，见 [06](06-运维手册与踩坑集.md) 的适用面表），输出各自的 source SHA、缓存 origin/main 与实际检查 roots；fresh main
 证据仍由受控 broker 在检查外取得，检查本身不 fetch。`--target-home`、`--install-root`、
 `--architecture-prefix` 可指定真实已有安装位置，不能用未证实的 prefix 或缺失安装面制造 PASS。
 所有反向漂移测试只在隔离 fixture 构造，真实安装面只读。
