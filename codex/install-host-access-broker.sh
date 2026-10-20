@@ -56,15 +56,20 @@ install_versioned() {
   CHANGED=1
 }
 
-# Retired tools: keychain-acl-audit, and the routine pilot rollback that only
-# served one project's pilot (#380, archived under archive/).
+# Retired tools: keychain-acl-audit, the routine pilot rollback that only
+# served one project's pilot (#380, archived under archive/), and the VM
+# profile migration tool with its runtime module (#391, ADR 0002).
 remove_retired_tools() {
   local target
   for target in \
     "$LIBEXEC_ROOT/keychain-acl-audit" \
     "$LIBEXEC_ROOT/keychain-acl-audit.previous" \
     "$LIBEXEC_ROOT/rollback-gitea-routine-pilot" \
-    "$LIBEXEC_ROOT/rollback-gitea-routine-pilot.previous"; do
+    "$LIBEXEC_ROOT/rollback-gitea-routine-pilot.previous" \
+    "$LIBEXEC_ROOT/project-profile-migration" \
+    "$LIBEXEC_ROOT/project-profile-migration.previous" \
+    "$LIB_ROOT/aisoft_host_access/profiles.py" \
+    "$LIB_ROOT/aisoft_host_access/profiles.py.previous"; do
     if [[ -e "$target" || -L "$target" ]]; then
       rm -f -- "$target"
       CHANGED=1
@@ -94,8 +99,6 @@ install_versioned "$ROOT/codex/tools/host-access-broker.sh" \
   "$LIBEXEC_ROOT/host-access-broker" 0755
 install_versioned "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
   "$LIBEXEC_ROOT/git-credential-aisoft-host" 0755
-install_versioned "$ROOT/codex/tools/project-profile-migration.sh" \
-  "$LIBEXEC_ROOT/project-profile-migration" 0755
 install_versioned "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   "$LIBEXEC_ROOT/bootstrap-gitea-service-account" 0755
 install_versioned "$ROOT/codex/tools/rotate-gitea-service-account.sh" \

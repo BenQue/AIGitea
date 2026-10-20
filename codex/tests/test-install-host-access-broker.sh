@@ -40,7 +40,6 @@ make_source_tree() {
   cp "$ROOT/codex/config/gitea-labels.json" "$dest/codex/config/"
   cp "$ROOT/codex/tools/host-access-broker.sh" "$dest/codex/tools/"
   cp "$ROOT/codex/tools/git-credential-aisoft-host.sh" "$dest/codex/tools/"
-  cp "$ROOT/codex/tools/project-profile-migration.sh" "$dest/codex/tools/"
   cp "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" "$dest/codex/tools/"
   cp "$ROOT/codex/tools/rotate-gitea-service-account.sh" "$dest/codex/tools/"
 }

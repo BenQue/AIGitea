@@ -603,9 +603,12 @@ raise SystemExit("unexpected read through replaced parent")
         self.assertIn("installer-set-mismatch", json.dumps(self.check(2, repo=source)))
 
     def test_retired_broker_target_is_gap_without_reading(self):
-        # #380 retired the routine pilot rollback the same way as the keychain helper.
-        for name in ("keychain-acl-audit.previous", "rollback-gitea-routine-pilot"):
-            path = self.system / "usr/local/libexec/aisoft" / name
+        # #380 retired the routine pilot rollback the same way as the keychain helper;
+        # #391 retired the VM profile migration tool and its runtime module.
+        libexec = self.system / "usr/local/libexec/aisoft"
+        lib = self.system / "usr/local/lib/aisoft-host-access/aisoft_host_access"
+        for path in (libexec / "keychain-acl-audit.previous", libexec / "rollback-gitea-routine-pilot",
+                     libexec / "project-profile-migration", lib / "profiles.py"):
             path.write_text("retired")
             row = self.row(self.check(1), "install-host-access-broker")
             self.assertTrue(any(g["reason"] == "retired-target-present" and g["target"] == str(path) for g in row["gaps"]))

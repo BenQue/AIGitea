@@ -22,7 +22,7 @@ import sys
 INSTALLER_PINS = {
     "codex/install-skills.sh": "d47021706fedf45d2c5fa3ac702a054ed1a62f6ad531d4d145b284e85c918092",
     "codex/install-host-role.sh": "325e5150722e30debc115c0717d9bc4dedac44e1a7552c3a2258df14c4b27c89",
-    "codex/install-host-access-broker.sh": "81883aace5b33fdf0200f093738db4179d861357168f026ad3bfc8ddc760866f",
+    "codex/install-host-access-broker.sh": "496faaae0d5f25529187af68c4e14c458a88530eeafed78453496849db894c9c",
     "architecture/install.sh": "c8f14f0154cad1b7402e527209d0135bab2bdf3bc0024f72fd06994067aa972e",
     "sync/install.sh": "153f36ef3396a053a4e4cbb8d6022a9f163b75b6f4c25498ba27ae3217d30f10",
     "skill-for-claude/install.sh": "e2b767925e31b45cb83aaa3f93bedda8122b4ffc7e60c46cd4dc639659114f77",
@@ -411,7 +411,7 @@ def build_surfaces(repo: Path, home: Path, system: Path, arch: Path):
         add("install-host-access-broker", "codex/config/" + filename, share / filename, system)
     json_metric("install-host-access-broker", "operations", "codex/config/host-access-broker.json",
                 share / "host-access-broker.json", system, "operations")
-    for tool in ("host-access-broker", "git-credential-aisoft-host", "project-profile-migration",
+    for tool in ("host-access-broker", "git-credential-aisoft-host",
                  "bootstrap-gitea-service-account", "rotate-gitea-service-account"):
         add("install-host-access-broker", "codex/tools/" + tool + ".sh", libexec / tool, system)
     rotation_files = {
@@ -428,7 +428,9 @@ def build_surfaces(repo: Path, home: Path, system: Path, arch: Path):
     metadata_sources.update(p for p in directory_entries(helper, repo) if p.suffix == ".go")
     surfaces["install-host-access-broker"].absent = [(libexec / name, system) for name in (
         "keychain-acl-audit", "keychain-acl-audit.previous",
-        "rollback-gitea-routine-pilot", "rollback-gitea-routine-pilot.previous")]
+        "rollback-gitea-routine-pilot", "rollback-gitea-routine-pilot.previous",
+        "project-profile-migration", "project-profile-migration.previous")] + [
+        (broker / "aisoft_host_access" / name, system) for name in ("profiles.py", "profiles.py.previous")]
     add("install-host-role", "codex/tools/verify-host-role.sh", libexec / "verify-host-role", system)
     for filename in ("host-role.schema.json", "host-capabilities.json"):
         add("install-host-role", "codex/config/" + filename, share / filename, system)

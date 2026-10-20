@@ -15,7 +15,6 @@ from aisoft_change_name import ChangeName, ChangeNameError
 
 IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 GIT_REMOTE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
-PATH_PREPEND_ENTRY_RE = re.compile(r"^/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$")
 
 ROTATION_POLICY = {
     "operator_uid": 0,
@@ -73,23 +72,6 @@ def _absolute_path(value: Any, context: str) -> str:
     return value
 
 
-def _path_prepend(value: Any, context: str) -> tuple[str, ...]:
-    """Fail-closed toolchain PATH declaration: declare-or-omit, absolute, restricted."""
-    _require(isinstance(value, list) and len(value) > 0,
-             f"{context} must be a non-empty list when declared")
-    entries: list[str] = []
-    for position, entry in enumerate(value):
-        entry_context = f"{context}[{position}]"
-        _require(
-            isinstance(entry, str) and bool(PATH_PREPEND_ENTRY_RE.fullmatch(entry)),
-            f"{entry_context} must be an absolute path using only [A-Za-z0-9._/-]",
-        )
-        _absolute_path(entry, entry_context)
-        _require(entry not in entries, f"{entry_context} must not repeat an earlier entry")
-        entries.append(entry)
-    return tuple(entries)
-
-
 def _relative_path(value: Any, context: str) -> str:
     _require(isinstance(value, str) and value and not value.startswith("/"),
              f"{context} must be HOME-relative")
@@ -109,16 +91,6 @@ class OperationContract:
 
 
 @dataclass(frozen=True)
-class VMProfileContract:
-    name: str
-    repo_dir: str
-    analysis_provider: str
-    implement_provider: str
-    timer_unit: str | None
-    path_prepend: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True)
 class ProjectContract:
     project_id: str
     repository: str
@@ -126,7 +98,6 @@ class ProjectContract:
     routine_merge_agent: str | None
     git_remote_name: str
     mac_checkout: str | None
-    vm_profile: VMProfileContract | None
     dependency_read_targets: tuple[str, ...] = ()
 
 
@@ -144,12 +115,6 @@ class AccessContract:
                 return project
         raise AccessContractError("requested project is not explicitly managed")
 
-    def project_for_profile(self, profile_name: str) -> ProjectContract:
-        for project in self.projects:
-            if project.vm_profile and project.vm_profile.name == profile_name:
-                return project
-        raise AccessContractError("requested profile is not explicitly managed")
-
     def operation(self, name: str) -> OperationContract:
         for operation in self.operations:
             if operation.name == name:
@@ -159,10 +124,6 @@ class AccessContract:
     def identity_for(self, project: ProjectContract, operation: OperationContract) -> str:
         if operation.identity_route == "project-agent":
             return project.project_agent
-        if operation.identity_route == "routine-merge-agent":
-            if project.routine_merge_agent is None:
-                raise AccessContractError("project has no declared routine merger")
-            return project.routine_merge_agent
         if operation.identity_route in {"manager-audit", "manager-mutation"}:
             return self.governance.platform_manager
         if operation.identity_route == "host-operator":
@@ -231,7 +192,6 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "gitea.pull.create": ("project-agent", True, ("issue", "title", "body")),
     "gitea.pull.read": ("project-agent", False, ("number",)),
     "gitea.pull.update": ("project-agent", True, ("number", "issue", "title", "body")),
-    "gitea.pull.merge.routine": ("routine-merge-agent", True, ("number", "sha")),
     "gitea.commit.status.read": ("project-agent", False, ("sha",)),
     # Actions evidence (#143). commit.status.read stops at a context, a status
     # and a target_url that is a Web UI path nothing here can follow, so a green
@@ -310,10 +270,6 @@ EXPECTED_OPERATIONS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     # log text or environment crosses the boundary. Read-only and argument-free:
     # stopping or re-enabling a timer stays a human operation on the VM.
     "orbstack.vm.units.read": ("host-operator", False, ()),
-    "vm.profile.plan": ("host-operator", False, ()),
-    "vm.profile.apply": ("host-operator", True, ()),
-    "vm.profile.read-back": ("host-operator", False, ()),
-    "vm.profile.rollback": ("host-operator", True, ()),
 }
 
 
@@ -332,7 +288,7 @@ def load_access_contract(
         {
             "contract_version", "environment", "governance_contract_version",
             "human_merge_identity", "identity_bindings", "mac_host",
-            "vm_profile_policy", "credential_rotation_policy", "operations", "projects",
+            "vm_runtime", "credential_rotation_policy", "operations", "projects",
         },
         "host access manifest",
     )
@@ -395,7 +351,7 @@ def load_access_contract(
     _exact_keys(mac, {
         "credential_root", "credential_owner", "credential_directory_mode",
         "credential_file_mode", "credential_helper", "orbstack_binary",
-        "orbstack_machine", "orbstack_user", "vm_profile_tool",
+        "orbstack_machine", "orbstack_user",
     }, "mac_host")
     _require(
         _absolute_path(mac["credential_root"], "credential_root") ==
@@ -414,29 +370,11 @@ def load_access_contract(
              "/usr/local/bin/orb", "OrbStack binary path must be fixed")
     _require(mac["orbstack_machine"] == "gitea-ci", "OrbStack machine must be gitea-ci")
     _require(mac["orbstack_user"] == "benque", "OrbStack operator must be benque")
-    _require(_absolute_path(mac["vm_profile_tool"], "vm_profile_tool") ==
-             "/usr/local/libexec/aisoft/project-profile-migration",
-             "VM profile tool path must be fixed")
 
-    policy = raw["vm_profile_policy"]
-    _require(isinstance(policy, dict), "vm_profile_policy must be an object")
-    _exact_keys(policy, {"runtime_user", "runtime_home", "profile_root", "token_root", "backup_root",
-                         "source_credential_root", "source_credential_owner",
-                         "allowed_file_modes"},
-                "vm_profile_policy")
-    _require(policy["runtime_user"] == "coder", "VM runtime user must be coder")
-    _require(_absolute_path(policy["runtime_home"], "vm_profile_policy.runtime_home") ==
-             "/home/coder", "VM runtime HOME must be fixed")
-    for key in ("profile_root", "token_root", "backup_root"):
-        _relative_path(policy[key], f"vm_profile_policy.{key}")
-    _require(_absolute_path(policy["source_credential_root"],
-                            "vm_profile_policy.source_credential_root") ==
-             "/home/benque/.config/aisoft/credentials",
-             "source credential root must be fixed")
-    _require(policy["source_credential_owner"] == "benque",
-             "source credential owner must be benque")
-    _require(policy["allowed_file_modes"] == ["400", "600"],
-             "credential/profile modes must be exactly 400/600")
+    runtime = raw["vm_runtime"]
+    _require(isinstance(runtime, dict), "vm_runtime must be an object")
+    _exact_keys(runtime, {"runtime_user"}, "vm_runtime")
+    _require(runtime["runtime_user"] == "coder", "VM runtime user must be coder")
 
     operations_raw = raw["operations"]
     _require(isinstance(operations_raw, list), "operations must be a list")
@@ -450,9 +388,8 @@ def load_access_contract(
         _require(isinstance(name, str) and name in EXPECTED_OPERATIONS,
                  "operation is not in the fixed v1 allowlist")
         _require(name not in names, f"duplicate operation: {name}")
-        if name != "gitea.pull.merge.routine":
-            _require(not any(word in name for word in ("merge", "shell", "command", "url")),
-                     "unsafe operation surface")
+        _require(not any(word in name for word in ("merge", "shell", "command", "url")),
+                 "unsafe operation surface")
         names.add(name)
         expected_route, expected_mutating, expected_args = EXPECTED_OPERATIONS[name]
         _require(item["identity_route"] == expected_route,
@@ -473,12 +410,11 @@ def load_access_contract(
     projects: list[ProjectContract] = []
     project_ids: set[str] = set()
     repositories: set[str] = set()
-    profile_names: set[str] = set()
     for index, item in enumerate(projects_raw):
         _require(isinstance(item, dict), f"projects[{index}] must be an object")
         required_project_keys = {
             "project_id", "repository", "project_agent", "routine_merge_agent",
-            "mac_checkout", "vm_profile",
+            "mac_checkout",
         }
         project_keys = set(item)
         _require(
@@ -518,36 +454,6 @@ def load_access_contract(
         mac_checkout = item["mac_checkout"]
         if mac_checkout is not None:
             mac_checkout = _absolute_path(mac_checkout, f"projects[{index}].mac_checkout")
-        vm_raw = item["vm_profile"]
-        vm_profile: VMProfileContract | None = None
-        if vm_raw is not None:
-            _require(isinstance(vm_raw, dict), f"projects[{index}].vm_profile must be an object")
-            required_vm_keys = {"name", "repo_dir", "analysis_provider", "implement_provider",
-                                "timer_unit"}
-            _require(
-                set(vm_raw) in {frozenset(required_vm_keys),
-                                frozenset(required_vm_keys | {"path_prepend"})},
-                f"projects[{index}].vm_profile keys mismatch",
-            )
-            profile_name = _identifier(vm_raw["name"], f"projects[{index}].vm_profile.name")
-            _require(profile_name not in profile_names, f"duplicate VM profile: {profile_name}")
-            profile_names.add(profile_name)
-            repo_dir = _relative_path(vm_raw["repo_dir"],
-                                      f"projects[{index}].vm_profile.repo_dir")
-            analysis = vm_raw["analysis_provider"]
-            implementation = vm_raw["implement_provider"]
-            _require(analysis in {"claude", "codex", "none"}, "invalid analysis provider")
-            _require(implementation in {"claude", "codex", "none"},
-                     "invalid implementation provider")
-            _require(implementation == "none", "implementation must remain disabled during migration")
-            timer = vm_raw["timer_unit"]
-            _require(timer is None or timer == f"aisoft-agent@{profile_name}.timer",
-                     "timer_unit must be aisoft-agent@<profile>.timer")
-            path_prepend = _path_prepend(
-                vm_raw.get("path_prepend"), f"projects[{index}].vm_profile.path_prepend"
-            ) if "path_prepend" in vm_raw else ()
-            vm_profile = VMProfileContract(profile_name, repo_dir, analysis, implementation,
-                                           timer, path_prepend)
         targets_raw = item.get("dependency_read_targets", [])
         _require(isinstance(targets_raw, list), "dependency_read_targets must be a list")
         targets = tuple(_identifier(target, "dependency_read_targets") for target in targets_raw)
@@ -555,7 +461,7 @@ def load_access_contract(
                  "dependency_read_targets must be unique external project ids")
         projects.append(ProjectContract(project_id, repository, project_agent,
                                         routine_merge_agent, git_remote_name,
-                                        mac_checkout, vm_profile, targets))
+                                        mac_checkout, targets))
 
     _require(all(set(p.dependency_read_targets) <= project_ids for p in projects),
              "dependency_read_targets must name canonical projects")

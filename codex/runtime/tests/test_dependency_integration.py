@@ -2,7 +2,6 @@
 import json
 import subprocess
 import unittest
-from dataclasses import replace
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -111,78 +110,6 @@ class DependencyIntegrationTests(unittest.TestCase):
                 path.write_text(json.dumps(raw))
                 with self.assertRaises(AccessContractError):
                     load_access_contract(path, ROOT / 'codex/tests/fixtures/manifests/gitea-governance.json')
-
-    def routine_fixture(self):
-        from tests.test_routine_merge import RoutineBrokerTests
-        fixture = RoutineBrokerTests(methodName='runTest')
-        fixture.setUp()
-        self.addCleanup(fixture.tearDown)
-        # Explicit fixture-only edge on an enabled routine project. Production
-        # remains Gamma -> platform only, as asserted separately above.
-        fixture.contract = replace(fixture.contract, projects=tuple(
-            replace(p, dependency_read_targets=('aisoft-platform',)) if p.project_id == 'alphaapp' else p
-            for p in fixture.contract.projects))
-        fixture.summary = fixture.summary.replace('depends_on: []',
-                                                  "depends_on:\n  - 'admin/aisoft-platform#284'")
-        return fixture
-
-    def test_routine_collision_and_failure_matrix_zero_merge_post(self):
-        for failure in ('open', '403', '404', 'transport', 'json', 'pr', 'identity', 'closed'):
-            fixture = self.routine_fixture()
-            requests = []
-
-            def transport(method, url, headers, body, *, response_limit=None, follow_redirects=True):
-                if '/aisoft-platform/issues/284' in url:
-                    requests.append((url, headers['Authorization']))
-                    if failure in ('403', '404'):
-                        return int(failure), {}, b'{}'
-                    if failure == 'transport':
-                        raise OSError('fixture transport')
-                    value = issue('closed' if failure == 'closed' else 'open')
-                    if failure == 'pr':
-                        value['pull_request'] = {}
-                    if failure == 'identity':
-                        value['repository']['full_name'] = 'admin/AlphaApp'
-                    return 200, {}, b'{' if failure == 'json' else json.dumps(value).encode()
-                if url.endswith('/AlphaApp/issues/284'):
-                    self.fail('local same-number terminal Issue must never be queried')
-                if url.endswith('/user') and headers['Authorization'] == 'token fixture-audit':
-                    return fixture.response({'login': 'audit', 'is_admin': False})
-                return fixture.transport(method, url, headers, body)
-
-            b = fixture.broker(transport)
-            original_resolve = b.credentials.resolve
-
-            def credential(project, operation):
-                if operation.identity_route == 'manager-audit':
-                    return ResolvedCredential('audit', 'fixture-audit')
-                return original_resolve(project, operation)
-
-            with self.subTest(failure=failure), patch.object(b.credentials, 'resolve', side_effect=credential):
-                if failure == 'closed':
-                    receipt = b.execute('alphaapp', 'gitea.pull.merge.routine', number=7, sha=fixture.sha)
-                    self.assertEqual(receipt['dependencies'], ['admin/aisoft-platform#284'])
-                    self.assertEqual(len(fixture.posts), 1)
-                else:
-                    with self.assertRaises(BrokerError):
-                        b.execute('alphaapp', 'gitea.pull.merge.routine', number=7, sha=fixture.sha)
-                    self.assertEqual(fixture.posts, [])
-                self.assertEqual(requests, [(access().governance.base_url
-                                            + '/api/v1/repos/admin/aisoft-platform/issues/284',
-                                            'token fixture-audit')])
-
-    def test_routine_invalid_or_denied_dependencies_never_query_target(self):
-        for values in ('  - admin/BetaApp#284', '  - http://host/repo#284', '  - 74',
-                       '  - 284\n  - admin/AlphaApp#284'):
-            fixture = self.routine_fixture()
-            fixture.summary = fixture.summary.replace("  - 'admin/aisoft-platform#284'", values)
-            b = fixture.broker()
-            with self.subTest(values=values), patch.object(b, '_read_dependency') as read:
-                with self.assertRaises(BrokerError):
-                    b.execute('alphaapp', 'gitea.pull.merge.routine', number=7, sha=fixture.sha)
-                read.assert_not_called()
-                self.assertEqual(fixture.posts, [])
-
 
 if __name__ == "__main__":
     unittest.main()

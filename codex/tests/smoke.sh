@@ -13,7 +13,6 @@ bash -n \
 
 optional_runtime_sources=(
   "$ROOT/codex/tools/host-access-broker.sh"
-  "$ROOT/codex/tools/project-profile-migration.sh"
   "$ROOT/codex/tools/git-credential-aisoft-host.sh"
   "$ROOT/codex/install-host-access-broker.sh"
 )
@@ -62,7 +61,6 @@ for script in \
   "$ROOT/codex/tools/artifact-retention-dry-run.sh" \
   "$ROOT/codex/tools/verify-host-role.sh" \
   "$ROOT/codex/tools/host-access-broker.sh" \
-  "$ROOT/codex/tools/project-profile-migration.sh" \
   "$ROOT/codex/tools/aisoft-platform-readiness.sh" \
   "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
   "$ROOT/codex/tools/install-runner-flutter.sh" \
@@ -129,7 +127,6 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/artifact-retention-dry-run.sh" \
     "$ROOT/codex/tools/verify-host-role.sh" \
     "$ROOT/codex/tools/host-access-broker.sh" \
-    "$ROOT/codex/tools/project-profile-migration.sh" \
     "$ROOT/codex/tools/aisoft-platform-readiness.sh" \
     "$ROOT/codex/tools/git-credential-aisoft-host.sh" \
     "$ROOT/codex/tools/install-runner-flutter.sh" \
