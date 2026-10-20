@@ -28,9 +28,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 389
-status: approved
+status: pr-open
 branch: change/391-automation-engine-exit
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/394
 created: 2026-10-20
 updated: 2026-10-20
 ---
