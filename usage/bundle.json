@@ -872,7 +872,7 @@
     {
       "version": "1.5.0",
       "released": "2026-10-21",
-      "bundle_digest": "sha256:6b5926643cb4c004d2e3b2d473ee412936e6e0dd672709b41a8baf808c64a2bb",
+      "bundle_digest": "sha256:ab891216acbdfeceebf1f5e103df52a838c529f726ecc3d8bf42f370c59e2108",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -964,7 +964,7 @@
           "source": "templates/project/ci/deploy-notify.sh",
           "mode": "seed",
           "target": "scripts/ci/deploy-notify.sh",
-          "sha256": "0fe5e1f757360319bc9e770ce796328f91578d28ccd482e375d1e5c094ffdd54"
+          "sha256": "5f402ad90cd2858acffbb73b48cd97e8911661bd324bcd1fed24d0251a9e39d1"
         },
         {
           "source": "templates/project/cursor/aisoft-platform.mdc",
