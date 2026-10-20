@@ -13,7 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # 三方合并要找 base 与 head 的共同祖先，浅克隆找不到。
-      - uses: actions/checkout@v4
+      # #370：action 从本站 Gitea 的 actions/checkout 拉取镜像取，不再每次访问
+      # GitHub；钉 40 位 commit（上游 v4.4.0），镜像同步与否都不改变取到的内容。
+      - uses: http://gitea-ci.orb.local:3000/actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
@@ -40,8 +42,11 @@ jobs:
 
       # #316: remain in the existing required verify job. Fixed native toolchain,
       # model/SQLite/race and actual binary canaries; no helper install or live PAT.
+      # #370: Go archive and modules persist under the runner user's own HOME and
+      # are re-verified against the pins on every run.
       - name: Pinned Linux PAT helper verification
         run: |
+          AISOFT_CI_DOWNLOAD_CACHE="$HOME/.cache/aisoft-ci" \
           bash codex/tests/test-gitea-pat-helper-linux.sh \
             --output "$RUNNER_TEMP/issue-316-helper/gitea-pat-helper"
 
