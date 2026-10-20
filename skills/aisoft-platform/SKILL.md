@@ -11,7 +11,7 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 
 ## 读合同
 
-动手前先读 `README.md` 与对应分册。Mac 上权威根目录是 `~/MyDocs/AISoftPlatform/`；gitea-ci VM 上是 `/mnt/mac/Users/benque/MyDocs/AISoftPlatform/`（`benque` 与 `coder` 都可读，2026-07-19 核实）。**不是 `~/Documents/`**：macOS TCC 挡住 `/mnt/mac` 访问 `~/Documents`、`~/Desktop`、`~/Downloads`，`sudo` 也无效，仓库因此迁到 `~/MyDocs/`（见 `01` §1）。
+动手前先读 `README.md` 与对应分册。平台检出的权威根目录以 broker manifest `codex/config/host-access-broker.json` 的 `site` 段为准：Mac 上是 `site.platform_checkout_mac`，OrbStack VM 上是经 `/mnt/mac` 挂载的 `site.platform_checkout_vm`。检出**不能**放在 `~/Documents`、`~/Desktop`、`~/Downloads` 下：macOS TCC 挡住 `/mnt/mac` 访问这三个目录，`sudo` 也无效（见 `01` §1）。
 
 - `03`：Issue、判级、文档、标签与最终 PR 闸门。
 - `04`：Matt 编排、判级输出与自动化引擎迁出说明。
