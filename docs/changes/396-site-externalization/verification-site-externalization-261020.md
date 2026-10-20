@@ -47,6 +47,15 @@ updated: 2026-10-21
 | `usage-bundle.sh --verify` | PASS | `VERIFIED 1.5.0`（AC5） |
 | `bash codex/tests/smoke.sh` @ `4a7866c` | PASS | rc=0；runtime 单测 715 条 OK，`Codex platform static smoke checks passed.`；首跑（`e4f41a1` 之前）红在 `check-change-documents`，原因是本目录 verification 尚未写入，补写后 rc=0（AC5） |
 
+## 交叉审查（AC5）
+
+| 轮次 | head | 结论 | 处理 |
+|---|---|---|---|
+| 1 | `3e2a542` | CHANGES REQUESTED | P2 `//` 前导路径绕过检出隔离、P2 verification 缺 smoke 证据、P3 registry 端口未校验；三条在 `4a7866c`/`db605a5` 修复 |
+| 2 | `db605a5` | PASS | 三条均复核解决，无新增发现 |
+
+审查方 Codex（`codex exec -s read-only`），任务书与两轮原文在项目库 `codex-review-396.md`。
+
 ## 合并后（AC6，NOT RUN）
 
 负责人两台重装 broker 后，会话读回 `check-installed-drift` 的 `install-host-access-broker` 面（期望 34/34 PASS）与 `host.access.audit`（期望同上表）。
