@@ -25,6 +25,25 @@ git_scope:
   - docs/changes/397-ops-closure/spec-ops-closure-261020.md
   - docs/changes/397-ops-closure/plan-ops-closure-261020.md
   - docs/changes/397-ops-closure/verification-ops-closure-261020.md
+  - .gitea/workflows/ci.yml
+  - 05-通知与多人协作.md
+  - 06-运维手册与踩坑集.md
+  - README.md
+  - codex/config/installed-drift-baseline.json
+  - codex/tests/fixtures/installed-drift/test-installed-drift.py
+  - codex/tests/smoke.sh
+  - codex/tests/test-alert-agent.sh
+  - codex/tests/test-cleanup-merged.sh
+  - codex/tests/test-deploy-notify.sh
+  - codex/tests/test-platform-readiness.sh
+  - codex/tools/aigitea-cleanup-merged.sh
+  - codex/tools/aisoft-alert-poll.sh
+  - codex/tools/aisoft-platform-readiness.sh
+  - codex/tools/check-installed-drift.py
+  - docs/governance/remediation-roadmap.md
+  - skills/issue-session-flow/SKILL.md
+  - templates/project/ci/deploy-notify.sh
+  - usage/bundle.json
 ---
 
 # #397 spec：运维闭环第二步（R16）

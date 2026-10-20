@@ -41,14 +41,45 @@ updated: 2026-10-20
 | `git branch -r` 中 `origin/change/*` | 61（59 已并入） | 本地 remote-tracking 引用，`git.fetch.main` 不 prune，可能陈旧 |
 | `aigitea-cleanup-merged.sh` 默认 remote | `gitea` | 平台仓 remote 名为 `origin`，默认调用报 `missing gitea/main` |
 
-## 执行结果
+## 执行结果（2026-10-21，worktree 本地）
 
 | Command / check | Result | Evidence |
 |---|---|---|
-| 待执行 | NOT RUN | 待填写 |
+| `bash codex/tests/test-installed-drift.sh` | PASS | 39 tests OK；新增：主机 SKIP 不读目标、棘轮 regressed/held/tighten、基线与 applies_to 不一致报错、非 macOS 缺 `--host` 报 `host-required`、`/etc` 别名只作用于三个系统链接 |
+| Mac：worktree 内 `check-installed-drift.sh`（默认 `--host mac`） | 预期 GAP | `install-host-role` 由 GAP 变 PASS（`/etc` 别名生效）；architecture、sync 报 `SKIPPED SKIP`；剩余 GAP 只有本分支改动的 `issue-session-flow` 字节差与 rotation source 绑定（安装来自 main），合并重装后复核 |
+| VM：`orb -m gitea-ci bash /mnt/mac/private/tmp/issue-397-ops-closure/codex/tools/check-installed-drift.sh --host vm` | 预期 GAP | skills、architecture、sync 报 SKIP；host-role PASS；broker 只剩 rotation source 绑定差（同上） |
+| `bash codex/tests/test-alert-agent.sh` | PASS | 反向证明：把 `aisoft-alert-poll.sh` 换回 `HEAD~` 版本后同一测试失败，换回新版本通过 |
+| `bash codex/tests/test-cleanup-merged.sh` | PASS | 远端仓搬走后仍可运行（不联网）；detached 已合并 worktree 可删；`.git` 丢失的目录作 orphan prune；github 远端排除；两个候选远端时拒绝 |
+| `bash codex/tests/test-platform-readiness.sh` | PASS | `PAT_AGE` 回执 200 天 `OVER`、标记 10 天、无元数据 `unknown`；夹具 token 为 000 权限，未被读取 |
+| `bash codex/tests/test-deploy-notify.sh` | PASS | 失败、回滚、标题回退、五种前置缺失均退 0；token 只经 curl stdin |
+| `PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_session_contract` | PASS | 12 tests |
+| `usage-bundle.sh --release 1.5.0 --today 2026-10-21` 与 `--verify` | PASS | `VERIFIED 1.5.0 sha256:6b5926643cb4…` |
+| `bash codex/tests/smoke.sh` | PASS | exit 0（第二次红在 #380 夹具守卫：readiness 测试读了真实 manifest，已改为由输出推导计数后重跑全绿） |
+| ShellCheck（改动的 7 个 shell 文件） | PASS | 无告警 |
+
+## 本机清理（AC4，会话执行，2026-10-21）
+
+`codex/tools/aigitea-cleanup-merged.sh /Users/benque/MyDocs/AISoftPlatform --branches --apply`（新版本，先经 broker `git.fetch.main`）：
+prune 8 个残留 worktree 元数据，删除 3 个 `.claude/worktrees/*`（已合并、干净），`git branch -d` 删除 `change/308-installed-drift-check`
+与 11 个 `claude/*`。读回 `git worktree list` 只剩主检出与 #370、#395、#396、#397 四个在用 worktree。
+
+未删（需要负责人决定）：`change/333`、`342`、`343`、`344`、`347`、`349`、`358` 七个本地分支对应 Issue 均已关闭但未并入
+`main`，只能 `git branch -D`；`/private/tmp/issue-333-governance`、`/private/tmp/issue-342-hsdb-login-recovery`、
+`/private/tmp/issue-358-hsdb-stack-profile` 三个目录只剩零散文件，需要 `rm -rf`。
 
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC1–AC12 | 待填写 | 待填写 |
+| AC1 | 源码与夹具 PASS；两台真实 PASS 待合并重装后读回 | 上表 |
+| AC2 | PASS | `skills/issue-session-flow/SKILL.md` 收尾第 5 步与「本机清扫（每周）」 |
+| AC3 | PASS | alert 测试与反向证明 |
+| AC4 | PASS（含上述待决定项） | 本机清理节 |
+| AC5 | PASS | readiness 测试；`06` §4 |
+| AC6 | PASS | deploy-notify 测试；`05` §1.1 |
+| AC7 | 源码 PASS；`main` 上 push 运行待合并后读回 | `.gitea/workflows/ci.yml` |
+| AC8 | 待定 | 等负责人决定拆出还是等 R13 |
+| AC9 | PASS | 治理提交 `8a67c51` 单独提交后重读 |
+| AC10 | PASS | smoke、ShellCheck、发布包 1.5.0 |
+| AC11 | NOT RUN | Codex 审查与判级投影待执行 |
+| AC12 | NOT RUN | 合并后 |
