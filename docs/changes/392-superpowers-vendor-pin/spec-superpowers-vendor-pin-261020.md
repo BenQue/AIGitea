@@ -18,10 +18,104 @@ branch: change/392-superpowers-vendor-pin
 created: 2026-10-20
 updated: 2026-10-20
 git_scope:
-  - docs/changes/392-superpowers-vendor-pin/summary-superpowers-vendor-pin-261020.md
-  - docs/changes/392-superpowers-vendor-pin/spec-superpowers-vendor-pin-261020.md
+  - 08-双工具共存与实施.md
+  - README.md
+  - codex/config/external-skill-adaptation.json
+  - codex/runtime/aisoft_loop/matt_snapshot.py
+  - codex/runtime/tests/test_matt_snapshot.py
+  - codex/tests/smoke.sh
+  - codex/tests/test-external-skill-versions.sh
+  - codex/tests/test-usage-bundle.sh
+  - codex/tools/check-external-skill-versions.py
+  - codex/tools/check-installed-drift.py
+  - codex/tools/usage-bundle.py
+  - codex/vendor/superpowers/v7.0.0/LICENSE
+  - codex/vendor/superpowers/v7.0.0/README.md
+  - codex/vendor/superpowers/v7.0.0/RELEASE-NOTES.md
+  - codex/vendor/superpowers/v7.0.0/manifest.json
+  - codex/vendor/superpowers/v7.0.0/skills/brainstorming/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/brainstorming/builder-check-prompt.md
+  - codex/vendor/superpowers/v7.0.0/skills/brainstorming/scripts/frame-template.html
+  - codex/vendor/superpowers/v7.0.0/skills/brainstorming/scripts/helper.js
+  - codex/vendor/superpowers/v7.0.0/skills/brainstorming/scripts/server.cjs
+  - codex/vendor/superpowers/v7.0.0/skills/brainstorming/scripts/start-server.sh
+  - codex/vendor/superpowers/v7.0.0/skills/brainstorming/scripts/stop-server.sh
+  - codex/vendor/superpowers/v7.0.0/skills/brainstorming/visual-companion.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/prompts/analyst-common.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/prompts/cost-and-time.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/prompts/plan-adherence.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/prompts/quality-evidence.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/prompts/repeated-work.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/prompts/request-conflicts.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/prompts/scrub-audit.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/prompts/scrub.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/prompts/similar-session.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/prompts/skill-timeline.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/prompts/stumbles.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/references/context-safety.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/references/github-issues.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/references/redaction-policy.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/references/session-discovery.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/templates/bundle-README.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/templates/case.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/templates/issue.md
+  - codex/vendor/superpowers/v7.0.0/skills/diagnosing-superpowers/templates/report.md
+  - codex/vendor/superpowers/v7.0.0/skills/dispatching-parallel-agents/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/executing-plans/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/executing-plans/scripts/task-done
+  - codex/vendor/superpowers/v7.0.0/skills/executing-plans/scripts/task-start
+  - codex/vendor/superpowers/v7.0.0/skills/finishing-a-development-branch/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/receiving-code-review/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/requesting-code-review/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/requesting-code-review/code-reviewer.md
+  - codex/vendor/superpowers/v7.0.0/skills/subagent-driven-development/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/subagent-driven-development/implementer-prompt.md
+  - codex/vendor/superpowers/v7.0.0/skills/subagent-driven-development/re-review-prompt.md
+  - codex/vendor/superpowers/v7.0.0/skills/subagent-driven-development/scripts/review-package
+  - codex/vendor/superpowers/v7.0.0/skills/subagent-driven-development/scripts/sdd-workspace
+  - codex/vendor/superpowers/v7.0.0/skills/subagent-driven-development/scripts/task-brief
+  - codex/vendor/superpowers/v7.0.0/skills/subagent-driven-development/task-reviewer-prompt.md
+  - codex/vendor/superpowers/v7.0.0/skills/systematic-debugging/CREATION-LOG.md
+  - codex/vendor/superpowers/v7.0.0/skills/systematic-debugging/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/systematic-debugging/condition-based-waiting-example.ts
+  - codex/vendor/superpowers/v7.0.0/skills/systematic-debugging/condition-based-waiting.md
+  - codex/vendor/superpowers/v7.0.0/skills/systematic-debugging/defense-in-depth.md
+  - codex/vendor/superpowers/v7.0.0/skills/systematic-debugging/find-polluter.sh
+  - codex/vendor/superpowers/v7.0.0/skills/systematic-debugging/root-cause-tracing.md
+  - codex/vendor/superpowers/v7.0.0/skills/systematic-debugging/test-academic.md
+  - codex/vendor/superpowers/v7.0.0/skills/systematic-debugging/test-pressure-1.md
+  - codex/vendor/superpowers/v7.0.0/skills/systematic-debugging/test-pressure-2.md
+  - codex/vendor/superpowers/v7.0.0/skills/systematic-debugging/test-pressure-3.md
+  - codex/vendor/superpowers/v7.0.0/skills/test-driven-development/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/test-driven-development/writing-good-tests.md
+  - codex/vendor/superpowers/v7.0.0/skills/using-git-worktrees/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/using-superpowers/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/using-superpowers/references/antigravity-tools.md
+  - codex/vendor/superpowers/v7.0.0/skills/using-superpowers/references/claude-code-tools.md
+  - codex/vendor/superpowers/v7.0.0/skills/using-superpowers/references/codex-tools.md
+  - codex/vendor/superpowers/v7.0.0/skills/using-superpowers/references/gemini-tools.md
+  - codex/vendor/superpowers/v7.0.0/skills/using-superpowers/references/hermes-tools.md
+  - codex/vendor/superpowers/v7.0.0/skills/using-superpowers/references/muse-tools.md
+  - codex/vendor/superpowers/v7.0.0/skills/using-superpowers/references/pi-tools.md
+  - codex/vendor/superpowers/v7.0.0/skills/verification-before-completion/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/writing-plans/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/writing-skills/SKILL.md
+  - codex/vendor/superpowers/v7.0.0/skills/writing-skills/anthropic-best-practices.md
+  - codex/vendor/superpowers/v7.0.0/skills/writing-skills/examples/CLAUDE_MD_TESTING.md
+  - codex/vendor/superpowers/v7.0.0/skills/writing-skills/graphviz-conventions.dot
+  - codex/vendor/superpowers/v7.0.0/skills/writing-skills/persuasion-principles.md
+  - codex/vendor/superpowers/v7.0.0/skills/writing-skills/render-graphs.js
+  - codex/vendor/superpowers/v7.0.0/skills/writing-skills/testing-skills-with-subagents.md
+  - docs/adr/0002-deterministic-development-flow.md
   - docs/changes/392-superpowers-vendor-pin/plan-superpowers-vendor-pin-261020.md
+  - docs/changes/392-superpowers-vendor-pin/spec-superpowers-vendor-pin-261020.md
+  - docs/changes/392-superpowers-vendor-pin/summary-superpowers-vendor-pin-261020.md
   - docs/changes/392-superpowers-vendor-pin/verification-superpowers-vendor-pin-261020.md
+  - docs/governance/remediation-roadmap.md
+  - skills/aisoft-platform/SKILL.md
+  - usage/CONTRACT.md
+  - usage/bundle.json
 ---
 
 # #392 superpowers vendor pin 与三端落点
@@ -38,7 +132,7 @@ pin 的事实：`https://github.com/obra/superpowers` tag `v7.0.0`，tag object 
 
 1. **快照**：`codex/vendor/superpowers/v7.0.0/` 收 `LICENSE`、`README.md`、`RELEASE-NOTES.md`、`skills/`（15 个技能全部）与 `manifest.json`。来源是对上述 tag 的浅克隆，核对 HEAD 等于 pin commit，再与 Claude 插件缓存的 `skills/` 逐字节比对。不收 hooks 与插件清单。
 2. **校验模块不另起一份**：`matt_snapshot.py` 的 `verify`/`build_manifest` 增加技能包参数（`mattpocock` 默认、`superpowers`），每个包有自己的来源 URL 与关键技能集合。Matt 的 manifest、安装行为与命令行保持不变。superpowers 关键技能：`brainstorming`、`dispatching-parallel-agents`、`executing-plans`、`finishing-a-development-branch`、`subagent-driven-development`、`systematic-debugging`、`test-driven-development`、`using-superpowers`、`verification-before-completion`。
-3. **Claude 与 Codex 不由平台安装 superpowers**：`install-skills.sh`、`skill-for-claude/install.sh`、`check-drift.sh`、`check-installed-drift` 都不改；两端继续从官方 marketplace 同步，平台只核对版本。
+3. **Claude 与 Codex 不由平台安装 superpowers**：`install-skills.sh`、`skill-for-claude/install.sh`、`check-drift.sh` 不改，`check-installed-drift` 只同步它钉住的 `matt_snapshot.py` 指纹（安装语义不变）；两端继续从官方 marketplace 同步，平台只核对版本。
 4. **发布包**：`usage/bundle.json` 新增成员模式 `vendor`，source 是快照的 `manifest.json`（它按目录哈希钉住全部技能字节，release 摘要因此覆盖快照）。`--build` 先按 manifest 校验快照再导出：superpowers 只到 `.cursor/skills/<名>/`（项目级 `.agents/skills` 会与 Codex 官方插件形成第二来源，所以不导出）；Matt 到 `.agents/skills/<名>/` 与 `.cursor/skills/<名>/`（Matt 在 Codex 本来就走 vendor pin）。都不导出 `.claude/skills/`。发布包 1.2.0 → 1.3.0。
 5. **版本核对**：`check-external-skill-versions.sh` 对 superpowers 输出与 Matt 同形的 `PIN_CLEAN` / `PIN_DRIFT` / `PIN_NOT_INSTALLED`：Claude 看插件记录的版本与 commit；Codex 看已启用且已加载的官方插件版本，启用了但来源未注册或未缓存记 `PIN_NOT_INSTALLED`（附注原因），不再有 `NOT_LOADED`；Cursor 只有项目级落点，新增 `--repo <检出>` 按 manifest 目录哈希读该检出 `.cursor/skills/`（两包都报），不给 `--repo` 时写 `NOT_CHECKED`，用户级缓存版本降为附注。`PIN_DRIFT` 的含义是「该端版本与平台 pin 不同，先过 `08` §5 适配清单」，作为 `REVIEW_NEEDED` 计入 RESULT；`PIN_NOT_INSTALLED` 只报告。适配记录 `external-skill-adaptation.json` 的版本必须等于 pin 版本，issue 改为 392。
 6. **治理文件**：`08` §5 与 `aisoft-platform` 技能「外部技能包边界」改为「Claude/Codex 跟随官方 marketplace，平台 pin 7.0.0 作基准三端核对，Cursor 项目级由发布包导出」，加 `dispatching-parallel-agents`（只读调查可并行）、`subagent-driven-development`（顺序派发、一次一个写者）两行三端通用约束；`README.md` 两句同步。单独 commit 后停止，重读再改 runtime。路由表本身不动（R10b）。
