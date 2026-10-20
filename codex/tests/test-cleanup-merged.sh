@@ -17,6 +17,10 @@ git -C "$TMP/repo" push -u gitea main >/dev/null
 # owner (a synthetic one here); pushes keep going to the local bare repo.
 printf '{"base_url":"http://gitea.example/","owner":"admin"}\n' >"$TMP/governance.json"
 export AISOFT_GOVERNANCE_MANIFEST="$TMP/governance.json"
+jq -n --arg checkout "$TMP/repo" \
+  '{projects: [{repository: "repo", mac_checkout: $checkout}, {repository: "other", mac_checkout: "/elsewhere"}]}' \
+  >"$TMP/access.json"
+export AISOFT_HOST_ACCESS_MANIFEST="$TMP/access.json"
 git -C "$TMP/repo" config remote.gitea.pushurl "$TMP/remote.git"
 git -C "$TMP/repo" config remote.gitea.url http://gitea.example/admin/repo.git
 git -C "$TMP/repo" branch merged-local
@@ -65,21 +69,30 @@ if git -C "$TMP/repo" worktree list --porcelain | grep -Fq "$TMP/repo/.nested/wt
 fi
 # Remotes outside the manifest's Gitea owner never count, however unique.
 for other in github=https://github.com/example/mirror.git fork=http://other.example/admin/repo.git \
-  sibling=http://gitea.example/someone/repo.git; do
+  sibling=http://gitea.example/someone/repo.git backup=http://gitea.example/admin/repo-backup.git \
+  peer=http://gitea.example/admin/other.git; do
   git -C "$TMP/repo" remote add "${other%%=*}" "${other#*=}"
   git -C "$TMP/repo" update-ref "refs/remotes/${other%%=*}/main" HEAD
 done
 out="$(bash "$ROOT/codex/tools/aigitea-cleanup-merged.sh" "$TMP/repo")"
 grep -Fq 'base: gitea/main' <<<"$out"
-git -C "$TMP/repo" remote rename gitea backup
-if bash "$ROOT/codex/tools/aigitea-cleanup-merged.sh" "$TMP/repo" 2>/dev/null &&
-  git -C "$TMP/repo" remote set-url backup "$TMP/remote.git" &&
-  bash "$ROOT/codex/tools/aigitea-cleanup-merged.sh" "$TMP/repo" 2>/dev/null; then
-  echo "a remote outside the manifest was accepted as the platform remote" >&2
+# Without the exact repository, a same-owner sibling must not stand in for it.
+git -C "$TMP/repo" remote remove gitea
+if bash "$ROOT/codex/tools/aigitea-cleanup-merged.sh" "$TMP/repo" 2>/dev/null; then
+  echo "a remote other than the exact repository was accepted" >&2
   exit 1
 fi
-git -C "$TMP/repo" remote set-url backup http://gitea.example/admin/repo.git
-git -C "$TMP/repo" remote add second http://gitea.example/admin/other.git
+# An unmapped checkout cannot prove anything either.
+git -C "$TMP/repo" remote add exact http://gitea.example/admin/repo.git
+git -C "$TMP/repo" update-ref refs/remotes/exact/main HEAD
+if AISOFT_HOST_ACCESS_MANIFEST="$TMP/governance.json" \
+  bash "$ROOT/codex/tools/aigitea-cleanup-merged.sh" "$TMP/repo" 2>/dev/null; then
+  echo "an unmapped checkout inferred a remote" >&2
+  exit 1
+fi
+out="$(bash "$ROOT/codex/tools/aigitea-cleanup-merged.sh" "$TMP/repo")"
+grep -Fq 'base: exact/main' <<<"$out"
+git -C "$TMP/repo" remote add second http://gitea.example/admin/repo.git
 git -C "$TMP/repo" update-ref refs/remotes/second/main HEAD
 if bash "$ROOT/codex/tools/aigitea-cleanup-merged.sh" "$TMP/repo" 2>/dev/null; then
   echo "ambiguous platform remote was not refused" >&2

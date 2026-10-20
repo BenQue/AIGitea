@@ -6,9 +6,10 @@
 #
 # Never touches the network (#397): it compares against the cached
 # <remote>/main, so fetch main through the host-access broker first
-# (git.fetch.main). Without --remote it uses the single remote whose URL is a
-# repository under the governance manifest's Gitea base URL and owner, and
-# stops if that cannot be proved for exactly one remote. Worktrees on a branch or on a detached HEAD are removable only
+# (git.fetch.main). Without --remote it uses the single remote whose URL is
+# exactly this checkout's repository per the manifests (the access manifest's
+# mac_checkout entry under the governance base URL and owner), and stops if
+# that cannot be proved for exactly one remote. Worktrees on a branch or on a detached HEAD are removable only
 # when merged, clean and not modified within --min-age minutes.
 # --remote-branches lists merged remote-tracking change/* refs; it deletes
 # nothing, the refs may be stale, and deleting a remote branch is a human step.
@@ -40,15 +41,25 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 if [ -z "$REMOTE" ]; then
-  manifest="${AISOFT_GOVERNANCE_MANIFEST:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../config" && pwd)/gitea-governance.json}"
-  prefix="$(jq -er '"\(.base_url | rtrimstr("/"))/\(.owner)/"' "$manifest" 2>/dev/null)" ||
-    { echo "cannot read the governance manifest to prove the platform remote; pass --remote NAME" >&2; exit 2; }
+  # The exact repository comes from the access manifest entry whose Mac
+  # checkout is this one; any other repository, even under the same owner, is
+  # not proof.
+  config_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../config" && pwd)"
+  governance="${AISOFT_GOVERNANCE_MANIFEST:-$config_dir/gitea-governance.json}"
+  access="${AISOFT_HOST_ACCESS_MANIFEST:-$config_dir/host-access-broker.json}"
+  common="$(git rev-parse --git-common-dir)"
+  checkout="$(cd -- "$common/.." && pwd -P)"
+  expected="$(jq -er --arg checkout "$checkout" --slurpfile g "$governance" '
+    [.projects[] | select(.mac_checkout == $checkout) | .repository] as $repos
+    | if ($repos | length) == 1
+      then "\($g[0].base_url | rtrimstr("/"))/\($g[0].owner)/\($repos[0])" else error("unmapped") end' \
+    "$access" 2>/dev/null)" ||
+    { echo "cannot prove the platform remote from the manifests; pass --remote NAME" >&2; exit 2; }
   CANDIDATES=()
   while IFS= read -r name; do
     git rev-parse --verify -q "refs/remotes/$name/main" >/dev/null || continue
     url="$(git remote get-url "$name" 2>/dev/null || true)"
-    case "$url" in "$prefix"*) ;; *) continue ;; esac
-    [[ "${url#"$prefix"}" =~ ^[A-Za-z0-9._-]+$ ]] || continue
+    [ "$url" = "$expected" ] || [ "$url" = "$expected.git" ] || continue
     CANDIDATES+=("$name")
   done < <(git remote)
   [ "${#CANDIDATES[@]}" -eq 1 ] ||
