@@ -11,7 +11,7 @@ This skill adapts the complete vendored Matt skills to AISoftPlatform. It does n
 
 ## Repository initialization
 
-1. Finish AISoftPlatform repository onboarding first: exact Gitea profile, protected `main`, required CI, project Agent
+1. Finish AISoftPlatform repository onboarding first: exact manifest project, protected `main`, required CI, project Agent
    permission gate and the 27-label manifest must all read back successfully.
 2. Explicitly invoke `$setup-matt-pocock-skills` once. Select **Other** for the tracker and use the three files under
    `templates/docs/agents/` as the Gitea, triage and domain configuration.

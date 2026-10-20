@@ -54,7 +54,7 @@ routine 自动合并已退出（#391）：broker 没有合并操作，manifest �
 - 不要从匿名 API 请求开始。private-repository `404` 或 Git `Repository not found` 不能证明对象不存在。
 - 优先用 broker 的 exact 项目路由与最小权限身份；读 Git ref 时复用已配置的 Git credential helper。
 - 跨项目只读盘点设置与保护用独立的平台 manager audit PAT，不用变更 PAT 或普通 Git 代替。
-- 没有 profile/manager 或 ACL 挡住 exact 目标时，VM 本地管理员凭据只能用于经授权、脱敏的只读 helper 调用；不要把凭据复制到 Mac，也不要扩大 bot 权限。
+- 没有 broker route/manager 或 ACL 挡住 exact 目标时，VM 本地管理员凭据只能用于经授权、脱敏的只读 helper 调用；不要把凭据复制到 Mac，也不要扩大 bot 权限。
 - helper 不可用或需要界面证据时，已登录的浏览器会话可作只读后备。
 - 网络、凭据可用性、仓库 ACL 与对象是否存在，分别作为独立事实报告。
 

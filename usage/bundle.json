@@ -551,7 +551,7 @@
     {
       "version": "1.3.0",
       "released": "2026-10-20",
-      "bundle_digest": "sha256:5e425a2fd64d57fb854df24e51fa5e0fd4bf15298dbc4137f746a2287ec58988",
+      "bundle_digest": "sha256:72861dcc8924a25752b0d2ed924e3e764e2f0ead04e27180436bfad63b86f89a",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -653,7 +653,7 @@
         {
           "source": "skills/aisoft-platform/SKILL.md",
           "mode": "skill",
-          "sha256": "9582f6003fdb6eee72c860895d967f42daa8cc732aa97816018c3a763455ebef"
+          "sha256": "98b563bd464d77f74bda3b6f32389857ce0e95a18e22783284d56fe7841f38ba"
         },
         {
           "source": "skills/aisoft-platform/agents/openai.yaml",
@@ -673,7 +673,7 @@
         {
           "source": "skills/aisoft-platform/references/project-align.md",
           "mode": "skill",
-          "sha256": "7afbab04dda134d3d3ca0de62844be40804f429f1ac465de7049e42a24197b46"
+          "sha256": "b67e26f25c63bc0884510159588ec4e7d5956631cc2faaf32c3c55e217e3a562"
         },
         {
           "source": "skills/issue-session-flow/SKILL.md",
@@ -683,7 +683,7 @@
         {
           "source": "skills/aisoft-matt-workflow/SKILL.md",
           "mode": "skill",
-          "sha256": "269a3954c31d6624ff8d280dffe0e3a0a11fb29b78975bdd2be577b532dadb2c"
+          "sha256": "0df1a52bd7bc29a2250fefc2a20f3b09f7ff33cee0d18b59327005f48e25aa20"
         },
         {
           "source": "skills/aisoft-matt-workflow/agents/openai.yaml",
