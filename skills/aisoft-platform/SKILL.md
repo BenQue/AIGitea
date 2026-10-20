@@ -102,7 +102,7 @@ summary-only 回填会产生一个合法的新 head。在后续 push 之前，�
 - 不打印 token、密码、`.env`、认证文件或 Git 凭据。
 - 不为方便只读检查而新增 project profile 或协作者权限；账号与仓库变更只属于已合并的 governance manifest 与 exact-repository 工具。
 - Gitea manager/project PAT、OrbStack 宿主控制、VM 运维账号与各项目部署身份彼此分离。Gitea 凭据不授权 SSH、sudo、VM 生命周期、数据库或生产访问。
-- 各提供者的配置互相独立，共用外层 controller 与 verifier 合同。
+- 各工具的配置互相独立，共用同一平台合同与会话验证流程。
 
 ## 工具分工
 

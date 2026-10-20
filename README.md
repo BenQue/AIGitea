@@ -208,7 +208,7 @@ cache 或报告，也不自动修复。`--source-only` 仅校验源码映射，�
 合法 PR 的受管源可不同于缓存 main，该来源 GAP 继续独立输出，不阻断源定义自洽门。
 
 在 Mac 和 gitea-ci 本机分别执行，输出各自的 source SHA、缓存 origin/main 与实际检查 roots；fresh main
-证据仍由受控 broker 在检查外取得，检查本身不 fetch。`--target-home`、`--install-root`、`--agent-dir`、
+证据仍由受控 broker 在检查外取得，检查本身不 fetch。`--target-home`、`--install-root`、
 `--architecture-prefix` 可指定真实已有安装位置，不能用未证实的 prefix 或缺失安装面制造 PASS。
 所有反向漂移测试只在隔离 fixture 构造，真实安装面只读。
 

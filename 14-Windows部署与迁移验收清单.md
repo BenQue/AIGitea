@@ -244,7 +244,7 @@ Get-Volume
 
 ## 12. 独立 Review 要求
 
-Claude Code 与 Codex 的 provider parity 只证明两者能复用同一 controller、verifier、状态和终态，不证明 Windows 部署实现正确。任何 Windows workflow、PowerShell module、OpenSSH、SMB、WinRM/JEA 或 PostgreSQL migration 实现都必须经过独立 review。
+Claude Code 与 Codex 对等只证明两者共用同一平台合同与终态规则，不证明 Windows 部署实现正确。任何 Windows workflow、PowerShell module、OpenSSH、SMB、WinRM/JEA 或 PostgreSQL migration 实现都必须经过独立 review。
 
 | Review 层 | 必查内容 | 通过条件 |
 |---|---|---|
