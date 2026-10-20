@@ -42,6 +42,9 @@ bash -n "$ROOT/templates/project/ci/merge-preview.sh"
 # #201: the registry preflight reference ships to projects the same way.
 bash -n "$ROOT/templates/project/ci/registry-preflight.sh"
 bash -n "$ROOT/codex/tests/test-registry-preflight.sh"
+# #397: the deployment failure / rollback notifier ships the same way.
+bash -n "$ROOT/templates/project/ci/deploy-notify.sh"
+bash -n "$ROOT/codex/tests/test-deploy-notify.sh"
 for script in \
   "$ROOT/codex/install-host-role.sh" \
   "$ROOT/codex/install-host-access-broker.sh" \
@@ -135,6 +138,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/templates/project/ci/merge-preview.sh" \
     "$ROOT/templates/project/ci/registry-preflight.sh" \
     "$ROOT/codex/tests/test-registry-preflight.sh" \
+    "$ROOT/templates/project/ci/deploy-notify.sh" \
+    "$ROOT/codex/tests/test-deploy-notify.sh" \
     "$ROOT/codex/tests/test-change-template-sync.sh" \
     "$ROOT/codex/tests/test-sync-gitea-labels.sh" \
     "$ROOT/codex/tests/test-gitea-label-manifest.sh" \
@@ -238,6 +243,7 @@ bash "$ROOT/codex/tests/test-install-runner-flutter.sh"
 # ADR 0001 D3 (#368): project names outside allowed places may only shrink.
 python3 -B "$ROOT/codex/tests/check-project-leak.py"
 bash "$ROOT/codex/tests/test-registry-preflight.sh"
+bash "$ROOT/codex/tests/test-deploy-notify.sh"
 bash "$ROOT/sync/tests/test-inbound-sync.sh"
 bash "$ROOT/sync/tests/test-install.sh"
 # -t 把 top_level_dir 钉在 codex/runtime，测试模块因此被载为 tests.test_xxx，

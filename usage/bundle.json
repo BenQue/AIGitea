@@ -75,6 +75,11 @@
       "target": "scripts/ci/registry-preflight.sh"
     },
     {
+      "source": "templates/project/ci/deploy-notify.sh",
+      "mode": "seed",
+      "target": "scripts/ci/deploy-notify.sh"
+    },
+    {
       "source": "templates/project/cursor/aisoft-platform.mdc",
       "mode": "seed",
       "target": ".cursor/rules/aisoft-platform.mdc"
