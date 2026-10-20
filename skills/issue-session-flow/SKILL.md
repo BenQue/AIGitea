@@ -120,6 +120,14 @@ manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。
 
 人裁决之前不要替它选一个默认值，也不要把待裁决的 Issue 派出去。
 
+## 本机清扫（每周）
+
+调度会话的第三项职责：每周一次，清扫平台仓本机残留的 worktree 与本地分支。先 broker
+`git.fetch.main`，再跑只读的 `codex/tools/aigitea-cleanup-merged.sh <checkout> --branches`
+看计划；计划只会列出已并入 `main`、干净且不活跃的对象。逐个对照开放 Issue 与正在运行的会话，
+别的会话正在用的 worktree 不动，然后请人执行同一命令加 `--apply`，再读回 `git worktree list`
+与 `git branch`。`--remote-branches` 给出远端 `change/*` 旧分支清单，删除远端分支由人执行。
+
 ## Issue 会话的状态
 
 用会话标题让状态一眼可见：
@@ -199,12 +207,18 @@ PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge。
    都当场到 `completed`（#192）。两个条件都由工具读取，不要自己判断该写 `completed` 还是
    `deployed`；计划里出现你不认识的 `reason` 时读 `detail`，它写着依据，绝不推断已部署。
 4. 文档自查：接入平台的项目跑 `check-change-documents --repo <checkout>`。
-5. 清理：**先离开 worktree**，再 `git worktree remove <path>` 与 `git branch -d change/N-slug`。站在 worktree 里删自己脚下的目录会失败。
-6. 盘点衍生 Issue：真正独立的验收标准开新 Issue，不扩展已关闭的那张；有调度会话就用会话间消息回报，没有就自己开 Issue 并派单。
-7. 报告 exact merge、终态、文档检查、worktree/本地分支清理与未执行项，然后直接归档本会话。
+5. 重装并读回（平台仓）：merge 的 diff 触及 `codex/runtime/`、`codex/config/`、`codex/tools/`、
+   `skills/`、`architecture/`、`sync/` 或任一 installer 时，给负责人两台重装的完整命令（Mac 终端可直接
+   执行；VM 一律经 `/usr/local/bin/orb -m gitea-ci` 转发），重装是负责人的 sudo 动作，会话不代执行。
+   负责人回复后会话读回 Mac 的 `codex/tools/check-installed-drift.sh`、VM 的同一脚本加 `--host vm`
+   与 `aisoft-platform-readiness.sh`，把读回结论写一条 Issue 评论（`gitea.issue.comment`）。都没触及就在
+   报告里写「重装：不适用」。读回不是 PASS 就保留会话并报告 blocker；未运行写 NOT RUN。
+6. 清理：**先离开 worktree**，再 `git worktree remove <path>` 与 `git branch -d change/N-slug`。站在 worktree 里删自己脚下的目录会失败。
+7. 盘点衍生 Issue：真正独立的验收标准开新 Issue，不扩展已关闭的那张；有调度会话就用会话间消息回报，没有就自己开 Issue 并派单。
+8. 报告 exact merge、终态、文档检查、重装读回、worktree/本地分支清理与未执行项，然后直接归档本会话。
    任何确定性收尾失败都必须保留会话并报告真实 blocker，不得伪报已归档。
 
-归档会话只清理工具自己管理的工作目录，**不是**你手建的 change worktree。第 5 步不能省。
+归档会话只清理工具自己管理的工作目录，**不是**你手建的 change worktree。第 6 步不能省。
 
 ## 衍生 Issue 与琐事例外
 
@@ -256,4 +270,4 @@ PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge。
 ## 平台适配
 
 - **接入 AISoft 平台的项目**：Issue/PR/push 走 broker typed 操作；命名元组、AI 判级、语义文档合同见 `aisoft-platform` 技能。外部技能包边界（Matt / superpowers 在平台项目内的用法）也以它为准。
-- **未接入的项目**：用该项目自己的 tracker 与 `git`/`gh` 等价物。会话模型、待合并格式、收尾 7 步不变。
+- **未接入的项目**：用该项目自己的 tracker 与 `git`/`gh` 等价物。会话模型、待合并格式与收尾步骤不变（第 5 步重装读回只适用于平台仓）。
