@@ -35,7 +35,7 @@ updated: 2026-10-21
 |---|---|---|
 | `aisoft_host_access.cli validate`（真实与夹具 manifest） | PASS | 两份均 `operation_count: 34`、`merge_operation_count: 0`、`project_count: 7` |
 | `test_another_site_validates_without_code_changes` | PASS | 整组 `site` 换成另一台机器、账号、路径与 https Gitea 后合同 PASS，`host-operator` 身份解析为新账号；`aisoft_host_access/*.py` 不含 `benque`、`gitea-ci`、`/Users/`（AC1） |
-| `test_site_values_are_checked_by_shape_and_cross_reference` | PASS | 十种非法值逐个被拒，报错各自对应：相对路径、未规范化、文件系统根、凭据根在平台检出内、在项目检出内、`gitea_url` 与 `base_url` 不一致、机器名非标识符、registry 带凭据、带 query、模板占位；另有 owner 不一致、缺键、`mac_host` 残留旧键、平台 `mac_checkout` 不一致四种（AC1） |
+| `test_site_values_are_checked_by_shape_and_cross_reference` | PASS | 十三种非法值逐个被拒，报错各自对应：相对路径、未规范化、文件系统根、凭据根在平台检出内、在项目检出内、以 `//` 开头绕过检出判断（Codex 第 1 轮 P2）、`gitea_url` 与 `base_url` 不一致、机器名非标识符、registry 带凭据、带 query、模板占位、非数字端口与越界端口（Codex 第 1 轮 P3）；另有 owner 不一致、缺键、`mac_host` 残留旧键、平台 `mac_checkout` 不一致四种（AC1） |
 | 守卫反向证明，真实 worktree | PASS | 往 `templates/project/AGENTS.md` 追加 `smoke-test`：`1 project-name hits (baseline 0)`，rc=1；追加 `gitea-ci.orb.local`：`1 site-value hits (baseline 0)`，rc=1；还原后 `PASS: project-leak (10 baseline files, 40 hits; site 19 files, 82 hits)`，rc=0（AC2） |
 | `test_real_manifests_catch_public_test_name_and_site_host` | PASS | 同一反向证明以真实 manifest 固化为单测，删掉后恢复绿（AC2） |
 | 清零位置 | PASS | 基线 `site_files` 与 `files` 均不含 `contract.py`、`skills/`、`templates/`、四个注释文件（AC3）；`codex/tools/gitea-pat-helper/README.md` 按决定 5 的「`codex/tools` 文档」一并进基线 |
@@ -45,7 +45,7 @@ updated: 2026-10-21
 | 源码 runtime 对照已安装 broker：`orbstack.vm.units.read` | 一致 | 两边 PASS，`machine: gitea-ci`，1 个单元；证明 `site.orbstack_machine`/`orbstack_user` 的新读取路径真实可用（AC4） |
 | `codex/tests/test-registry-preflight.sh` | PASS | 新用例：模板占位未替换时落在 `stage=config` 并指出 `site.npm_registry`，不发起连接 |
 | `usage-bundle.sh --verify` | PASS | `VERIFIED 1.5.0`（AC5） |
-| `bash codex/tests/smoke.sh` | 见下文 | |
+| `bash codex/tests/smoke.sh` | 待补 | 绑定最终候选 head 补写 |
 
 ## 合并后（AC6，NOT RUN）
 

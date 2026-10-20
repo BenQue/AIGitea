@@ -76,6 +76,9 @@ def _absolute_path(value: Any, context: str) -> str:
     _require(isinstance(value, str) and value.startswith("/"), f"{context} must be absolute")
     parsed = PurePosixPath(value)
     parts = parsed.parts
+    # POSIX keeps a leading "//" as its own anchor, which would slip past the
+    # parent checks below while the broker still opens it from "/" (#396).
+    _require(parsed.anchor == "/", f"{context} must have a single leading slash")
     _require(".." not in parts and "." not in parts, f"{context} must be normalized")
     _require(str(parsed) == value, f"{context} must be normalized")
     return value
@@ -88,6 +91,10 @@ def _registry_url(value: Any, context: str) -> str:
              f"{context} must be an absolute HTTP(S) URL")
     _require(parsed.username is None and parsed.password is None,
              f"{context} must not embed credentials")
+    try:
+        parsed.port
+    except ValueError as exc:
+        raise AccessContractError(f"{context} must use a valid port") from exc
     _require(not parsed.query and not parsed.fragment,
              f"{context} must not contain query or fragment")
     return value

@@ -383,11 +383,15 @@ class HostAccessContractTests(unittest.TestCase):
             "root-in-checkout": {
                 "credential_root_mac": "/Users/ops/src/Platform/.git/credentials"},
             "root-in-project": {"credential_root_mac": "/Users/benque/Projects/AlphaApp/creds"},
+            "double-slash-root-in-checkout": {
+                "credential_root_mac": "//Users/ops/src/Platform/creds"},
             "gitea-mismatch": {"gitea_url": "https://other.example.test"},
             "machine-not-identifier": {"orbstack_machine": "ci box"},
             "registry-credentials": {"npm_registry": "https://user:pw@npm.example.test/"},
             "registry-query": {"npm_registry": "https://npm.example.test/?token=x"},
             "registry-scheme": {"npm_registry": "REPLACE_WITH_SITE_NPM_REGISTRY"},
+            "registry-port-text": {"npm_registry": "http://npm.example.test:abc/"},
+            "registry-port-range": {"npm_registry": "http://npm.example.test:99999/"},
         }
         for name, overrides in cases.items():
             with self.subTest(case=name), tempfile.TemporaryDirectory() as temporary:
