@@ -425,6 +425,11 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$ROOT/codex/runtime" \
   python3 -m aisoft_loop.matt_snapshot verify \
   "$ROOT/codex/vendor/mattpocock/v1.3.1" \
   "$ROOT/codex/vendor/mattpocock/v1.3.1/manifest.json" >/dev/null
+# #392：superpowers 的 vendor 快照是三端核对基准与 Cursor 项目级导出源。
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$ROOT/codex/runtime" \
+  python3 -m aisoft_loop.matt_snapshot verify --pack superpowers \
+  "$ROOT/codex/vendor/superpowers/v7.0.0" \
+  "$ROOT/codex/vendor/superpowers/v7.0.0/manifest.json" >/dev/null
 
 if rg -n -g '!**/tests/smoke.sh' \
   'dangerously-bypass|--yolo|danger-full-access|dangerously-skip-permissions|permission-mode +bypassPermissions' \

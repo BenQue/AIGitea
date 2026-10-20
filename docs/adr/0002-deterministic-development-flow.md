@@ -117,8 +117,8 @@ routine 自动合并退出。自动化最多止于「PR 候选」，不越过唯
   `IMPLEMENT_PROVIDER=none` 三处由 R10a 以治理文件受控步骤改写。
 - **技能**（R10b）：路由表进 `aisoft-platform` 技能，`issue-session-flow` 的确认点 1 候选与派单任务书展示路由卡，
   summary 模板加 `route:` 块，`03` §2 加「路由」小节，`08` §7 加模型档位表；发布包升版。
-- **外部技能**（R10c）：superpowers vendor pin，Codex 由安装器装、Cursor 与项目级由发布包导出，三端核对同一 commit；
-  改掉 #355「superpowers 跟随官方 marketplace、平台不自建 pin」的做法。
+- **外部技能**（R10c）：superpowers vendor pin，Cursor 与项目级由发布包导出，三端核对同一 commit；改掉 #355「平台不自建 pin」。
+  #392 确认点 1 修正：Claude 与 Codex 仍从官方 marketplace 同步、平台不安装，pin 只作核对基准。
 - **文档**：`04` 压成「候选状态与迁出说明」，`08` §4、§6 压缩（R10a）；分册全面改现行合同体归 R14。
 - **代价**：放弃从未跑通的无人值守自治全链（自动实现 + routine 自动合并）。它只对 small 开放，按事实表候选上限约 6% 的 Issue；需要时按 D3 在 Mac 上重建。
 - **不变**：两个确认点、受保护 `main`、broker 唯一写路径、平台仓 complex 的交叉审查、人工合并、独立部署授权。

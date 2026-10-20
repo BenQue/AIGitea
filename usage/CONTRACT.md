@@ -11,9 +11,11 @@
   平台仓前进不改变已 pin 版本的含义，也不让项目的对齐检查自发变红。
 - 升级到新版本是项目自己的 Issue：用平台 `codex/tools/usage-bundle.sh --build <目录>` 导出最新版本，
   按 project-align 复制到本仓，经项目自己的判级与唯一 PR 合入。
-- 发布包里的文件分四类：逐字节副本（本文件、`CLAUDE.md`、change 模板四件套）、`AGENTS.md` 的
-  常驻指针两节、初始化种子（`docs/agents/` 三件套、CI 示例，项目可改）、技能（装到各工具的
-  技能目录）。前两类由平台的对齐检查按 pin 的版本核对。
+- 发布包里的文件分五类：逐字节副本（本文件、`CLAUDE.md`、change 模板四件套）、`AGENTS.md` 的
+  常驻指针两节、初始化种子（`docs/agents/` 三件套、CI 示例，项目可改）、平台技能（装到各工具的
+  技能目录）、外部技能包快照（平台 pin 的 Matt 与 superpowers 原文：两包都到 `.cursor/skills/`，
+  Matt 另到 `.agents/skills/`；Claude 与 Codex 的 superpowers 来自各自官方 marketplace）。
+  前两类由平台的对齐检查按 pin 的版本核对；外部技能包由 `check-external-skill-versions.sh --repo` 核对。
 - 项目对平台的需求以平台 Issue 提出。平台按准入规则判断：换成任意一个已注册项目还成立才进入
   平台；不成立的留在项目仓，或先由平台抽象成扩展点，项目数据留在项目侧。
 

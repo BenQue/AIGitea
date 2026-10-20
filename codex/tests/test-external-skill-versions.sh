@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# #375: external skill pack version report. Every case runs against a
-# fabricated home, fabricated CLIs and an isolated PATH; the real ~/.claude and
-# ~/.codex are never read here.
+# #375: external skill pack version report; #392: every tool against the
+# platform pin. Every case runs against a fabricated home, fabricated CLIs,
+# fabricated project checkouts and an isolated PATH; the real ~/.claude,
+# ~/.codex and ~/.cursor are never read here.
 set -euo pipefail
 
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -13,6 +14,9 @@ adapted="$(python3 -B -c 'import json, sys; print(json.load(open(sys.argv[1]))["
   "$root/codex/config/external-skill-adaptation.json")"
 pin="$(python3 -B -c 'import json, sys; print(json.load(open(sys.argv[1]))["commit"])' \
   "$root/codex/vendor/mattpocock/v1.3.1/manifest.json")"
+sp_snapshot="$root/codex/vendor/superpowers/v$adapted"
+sp_commit="$(python3 -B -c 'import json, sys; print(json.load(open(sys.argv[1]))["commit"])' \
+  "$sp_snapshot/manifest.json")"
 
 fail() {
   printf 'FAIL: %s\n' "$1" >&2
@@ -32,15 +36,15 @@ fake_cli() {
 fake_cli claude '9.8.7 (Claude Code)'
 fake_cli codex 'codex-cli 1.2.3'
 
-# home <name> <claude superpowers version|-> <codex marketplace state: registered|unregistered|disabled|-> <codex cached version>
+# home <name> <claude superpowers version|-> <codex marketplace state: registered|unregistered|disabled|-> <codex cached version> [claude commit]
 home() {
-  local dir="$tmp/$1" claude_version="$2" codex_state="$3" cached="$4"
+  local dir="$tmp/$1" claude_version="$2" codex_state="$3" cached="$4" claude_commit="${5:-$sp_commit}"
   mkdir -p "$dir"
   if [[ "$claude_version" != "-" ]]; then
     mkdir -p "$dir/.claude/plugins"
     cat >"$dir/.claude/plugins/installed_plugins.json" <<JSON
 {"version": 2, "plugins": {
-  "superpowers@claude-plugins-official": [{"scope": "user", "version": "$claude_version"}],
+  "superpowers@claude-plugins-official": [{"scope": "user", "version": "$claude_version", "gitCommitSha": "$claude_commit"}],
   "mattpocock-skills@aisoft-platform": [{"scope": "user", "version": "1.3.1", "gitCommitSha": "$pin"}]
 }}
 JSON
@@ -59,12 +63,13 @@ JSON
   printf '%s\n' "$dir"
 }
 
-# check <label> <status> <home> <expected lines...>
+# check <label> <status> <home> <expected lines...>; set repo_args=(--repo DIR) to add a checkout
+repo_args=()
 check() {
   local label="$1" want_status="$2" dir="$3" status line
   shift 3
   set +e
-  output="$(PATH="$bin" bash "$checker" --home "$dir" 2>&1)"
+  output="$(PATH="$bin" bash "$checker" --home "$dir" ${repo_args[@]+"${repo_args[@]}"} 2>&1)"
   status=$?
   set -e
   [[ "$status" == "$want_status" ]] || fail "$label: exit $status, expected $want_status: $output"
@@ -86,43 +91,63 @@ before="$(snapshot "$dir")"
 check adapted 0 "$dir" \
   "CLI claude 9.8.7" \
   "CLI codex 1.2.3" \
-  "SUPERPOWERS claude ADAPTED installed=$adapted adapted=$adapted" \
-  "SUPERPOWERS codex ADAPTED enabled=superpowers@curated marketplace=registered installed=$adapted adapted=$adapted" \
+  "SUPERPOWERS claude PIN_CLEAN installed=$adapted commit=pinned pinned=$adapted" \
+  "SUPERPOWERS codex PIN_CLEAN enabled=superpowers@curated marketplace=registered installed=$adapted pinned=$adapted" \
   "MATT claude PIN_CLEAN" \
   "RESULT PASS"
 [[ "$(snapshot "$dir")" == "$before" ]] || fail "zero-write: the home changed during a read"
 [[ ! -e "$root/codex/tools/__pycache__" ]] || fail "zero-write: a bytecode cache appeared next to the tool"
 
+# A different version or a different commit than the pin is drift on either side.
 check claude-newer 1 "$(home claude-newer "$newer" registered "$adapted")" \
-  "SUPERPOWERS claude REVIEW_NEEDED installed=$newer adapted=$adapted" \
+  "SUPERPOWERS claude PIN_DRIFT installed=$newer commit=pinned pinned=$adapted" \
   "RESULT REVIEW_NEEDED"
-
+check claude-older 1 "$(home claude-older "$older" registered "$adapted")" \
+  "SUPERPOWERS claude PIN_DRIFT installed=$older commit=pinned pinned=$adapted" \
+  "RESULT REVIEW_NEEDED"
+check claude-other-commit 1 "$(home claude-other-commit "$adapted" registered "$adapted" "$(printf 'a%.0s' {1..40})")" \
+  "SUPERPOWERS claude PIN_DRIFT installed=$adapted commit=differs pinned=$adapted" \
+  "RESULT REVIEW_NEEDED"
 check codex-newer 1 "$(home codex-newer "$adapted" registered "$newer")" \
-  "SUPERPOWERS codex REVIEW_NEEDED enabled=superpowers@curated marketplace=registered installed=$newer adapted=$adapted" \
+  "SUPERPOWERS codex PIN_DRIFT enabled=superpowers@curated marketplace=registered installed=$newer pinned=$adapted" \
+  "RESULT REVIEW_NEEDED"
+check codex-older 1 "$(home codex-older "$adapted" registered "$older")" \
+  "SUPERPOWERS codex PIN_DRIFT enabled=superpowers@curated marketplace=registered installed=$older pinned=$adapted" \
   "RESULT REVIEW_NEEDED"
 
-check claude-behind 0 "$(home claude-behind "$older" registered "$adapted")" \
-  "SUPERPOWERS claude BEHIND installed=$older adapted=$adapted" \
-  "RESULT PASS"
-
+# Enabled from an unregistered marketplace, or registered with nothing cached:
+# Codex has no superpowers loaded. That informs, it does not fail.
 check codex-not-loaded 0 "$(home codex-not-loaded "$adapted" unregistered "$older")" \
-  "SUPERPOWERS codex NOT_LOADED enabled=superpowers@curated marketplace=unregistered cached=$older adapted=$adapted" \
+  "SUPERPOWERS codex PIN_NOT_INSTALLED enabled=superpowers@curated marketplace=unregistered cached=$older pinned=$adapted" \
   "RESULT PASS"
-
+dir="$(home codex-no-cache "$adapted" registered "$adapted")"
+rm -rf "$dir/.codex/plugins/cache/curated/superpowers/abc123"
+check codex-no-cache 0 "$dir" \
+  "SUPERPOWERS codex PIN_NOT_INSTALLED enabled=superpowers@curated marketplace=registered cached=none pinned=$adapted" \
+  "RESULT PASS"
 check codex-disabled 0 "$(home codex-disabled "$adapted" disabled "$adapted")" \
-  "SUPERPOWERS codex NOT_INSTALLED enabled=none adapted=$adapted" \
+  "SUPERPOWERS codex PIN_NOT_INSTALLED enabled=none pinned=$adapted" \
   "RESULT PASS"
 
 # Nothing installed: superpowers is simply absent, but the Matt pin is not clean.
 check empty 1 "$(home empty - - -)" \
-  "SUPERPOWERS claude NOT_INSTALLED adapted=$adapted" \
-  "SUPERPOWERS codex NOT_INSTALLED config=absent" \
+  "SUPERPOWERS claude PIN_NOT_INSTALLED pinned=$adapted" \
+  "SUPERPOWERS codex PIN_NOT_INSTALLED config=absent pinned=$adapted" \
   "MATT claude PIN_NOT_INSTALLED" \
   "RESULT REVIEW_NEEDED"
 
-# #379: Cursor (usage layer only) is read from its plugin cache. Absent is
-# informational; behind is informational; newer than the record or the pin, or
-# an unrecognised cache, fails like the other tools.
+# A superpowers record without a commit cannot be compared with the pin.
+dir="$(home claude-no-commit "$adapted" registered "$adapted")"
+sed -i.bak "s/, \"gitCommitSha\": \"$sp_commit\"//" "$dir/.claude/plugins/installed_plugins.json"
+rm -f "$dir/.claude/plugins/installed_plugins.json.bak"
+check claude-no-commit 1 "$dir" "RESULT REVIEW_NEEDED"
+grep -Fq 'SUPERPOWERS claude UNKNOWN (a superpowers record has no gitCommitSha)' <<<"$output" ||
+  fail "claude-no-commit: not UNKNOWN: $output"
+
+# #379/#392: Cursor has project-level landings only. Without --repo the lines
+# are NOT_CHECKED and the user-level plugin cache is an annotation, whatever
+# its state. With --repo the checkout's .cursor/skills is hashed against each
+# snapshot manifest.
 matt_pin_version="$(awk -F'"v' '/^matt_version=/ { sub(/"$/, "", $2); print $2 }' "$root/codex/install-skills.sh")"
 cursor_cache() {
   local dir="$1" marketplace="$2" plugin="$3" manifest="$4" version="$5"
@@ -132,51 +157,80 @@ cursor_cache() {
 }
 dir="$(home cursor-absent "$adapted" registered "$adapted")"
 check cursor-absent 0 "$dir" \
-  "SUPERPOWERS cursor NOT_INSTALLED adapted=$adapted" \
-  "MATT cursor NOT_INSTALLED pinned=$matt_pin_version" \
+  "SUPERPOWERS cursor NOT_CHECKED cache=none pinned=$adapted" \
+  "MATT cursor NOT_CHECKED cache=none pinned=$matt_pin_version" \
   "RESULT PASS"
-dir="$(home cursor-behind "$adapted" registered "$adapted")"
+dir="$(home cursor-cached "$adapted" registered "$adapted")"
 cursor_cache "$dir" cursor-public superpowers .cursor-plugin/plugin.json "$older"
 cursor_cache "$dir" mattpocock mattpocock-skills .claude-plugin/plugin.json 1.2.0
 before="$(snapshot "$dir")"
-check cursor-behind 0 "$dir" \
-  "SUPERPOWERS cursor BEHIND cached=$older adapted=$adapted" \
-  "MATT cursor BEHIND cached=1.2.0 pinned=$matt_pin_version" \
+check cursor-cached 0 "$dir" \
+  "SUPERPOWERS cursor NOT_CHECKED cache=$older pinned=$adapted" \
+  "MATT cursor NOT_CHECKED cache=1.2.0 pinned=$matt_pin_version" \
   "RESULT PASS"
 [[ "$(snapshot "$dir")" == "$before" ]] || fail "zero-write: the Cursor cache changed during a read"
-dir="$(home cursor-current "$adapted" registered "$adapted")"
-cursor_cache "$dir" cursor-public superpowers package.json "$adapted"
-cursor_cache "$dir" mattpocock mattpocock-skills .claude-plugin/plugin.json "$matt_pin_version"
-check cursor-current 0 "$dir" \
-  "SUPERPOWERS cursor ADAPTED cached=$adapted adapted=$adapted" \
-  "MATT cursor ADAPTED cached=$matt_pin_version pinned=$matt_pin_version" \
-  "RESULT PASS"
-dir="$(home cursor-newer "$adapted" registered "$adapted")"
-cursor_cache "$dir" cursor-public superpowers .cursor-plugin/plugin.json "$newer"
-check cursor-newer 1 "$dir" \
-  "SUPERPOWERS cursor REVIEW_NEEDED cached=$newer adapted=$adapted" \
-  "RESULT REVIEW_NEEDED"
-dir="$(home cursor-no-manifest "$adapted" registered "$adapted")"
-mkdir -p "$dir/.cursor/plugins/cache/mattpocock/mattpocock-skills/c0ffee"
-check cursor-no-manifest 1 "$dir" "RESULT REVIEW_NEEDED"
-grep -q '^MATT cursor UNKNOWN (' <<<"$output" || fail "cursor-no-manifest: Matt side is not UNKNOWN: $output"
-# Present but not a plain directory is UNKNOWN, never NOT_INSTALLED.
-dir="$(home cursor-plugin-file "$adapted" registered "$adapted")"
+dir="$(home cursor-cache-unreadable "$adapted" registered "$adapted")"
 mkdir -p "$dir/.cursor/plugins/cache/cursor-public"
 printf 'x\n' >"$dir/.cursor/plugins/cache/cursor-public/superpowers"
-check cursor-plugin-file 1 "$dir" "RESULT REVIEW_NEEDED"
-grep -q '^SUPERPOWERS cursor UNKNOWN (' <<<"$output" || fail "cursor-plugin-file: not UNKNOWN: $output"
-dir="$(home cursor-revision-link "$adapted" registered "$adapted")"
-cursor_cache "$dir" mattpocock mattpocock-skills .claude-plugin/plugin.json "$matt_pin_version"
-ln -s "$dir/.cursor/plugins/cache/mattpocock/mattpocock-skills/c0ffee" \
-  "$dir/.cursor/plugins/cache/mattpocock/mattpocock-skills/linked"
-check cursor-revision-link 1 "$dir" "RESULT REVIEW_NEEDED"
-grep -q '^MATT cursor UNKNOWN (' <<<"$output" || fail "cursor-revision-link: not UNKNOWN: $output"
-dir="$(home cursor-two-versions "$adapted" registered "$adapted")"
-cursor_cache "$dir" cursor-public superpowers .cursor-plugin/plugin.json "$adapted"
-cursor_cache "$dir" other-market superpowers .cursor-plugin/plugin.json "$older"
-check cursor-two-versions 1 "$dir" "RESULT REVIEW_NEEDED"
-grep -q '^SUPERPOWERS cursor UNKNOWN (' <<<"$output" || fail "cursor-two-versions: not UNKNOWN: $output"
+check cursor-cache-unreadable 0 "$dir" \
+  "SUPERPOWERS cursor NOT_CHECKED cache=unknown pinned=$adapted" \
+  "RESULT PASS"
+
+# project <name>: a checkout whose .cursor/skills holds both pinned packs.
+project() {
+  local repo="$tmp/$1" item
+  mkdir -p "$repo/.cursor/skills"
+  for item in "$sp_snapshot"/skills/*/; do
+    cp -R "${item%/}" "$repo/.cursor/skills/"
+  done
+  while IFS= read -r item; do
+    cp -R "$root/codex/vendor/mattpocock/v$matt_pin_version/$item" "$repo/.cursor/skills/"
+  done < <(python3 -B -c 'import json, sys, os
+for s in json.load(open(sys.argv[1]))["skills"]: print(os.path.dirname(s["path"]))' \
+    "$root/codex/vendor/mattpocock/v$matt_pin_version/manifest.json")
+  printf '%s\n' "$repo"
+}
+dir="$(home repo-home "$adapted" registered "$adapted")"
+sp_count="$(find "$sp_snapshot/skills" -name SKILL.md | wc -l | tr -d ' ')"
+matt_count="$(python3 -B -c 'import json, sys; print(json.load(open(sys.argv[1]))["skill_count"])' \
+  "$root/codex/vendor/mattpocock/v$matt_pin_version/manifest.json")"
+repo="$(project repo-clean)"
+before="$(snapshot "$repo")"
+repo_args=(--repo "$repo")
+check repo-clean 0 "$dir" \
+  "SUPERPOWERS cursor PIN_CLEAN skills=$sp_count cache=none pinned=$adapted" \
+  "MATT cursor PIN_CLEAN skills=$matt_count cache=none pinned=$matt_pin_version" \
+  "RESULT PASS"
+[[ "$(snapshot "$repo")" == "$before" ]] || fail "zero-write: the checkout changed during a read"
+printf '\n' >>"$repo/.cursor/skills/using-superpowers/SKILL.md"
+rm -rf "$repo/.cursor/skills/writing-skills"
+check repo-drift 1 "$dir" \
+  "SUPERPOWERS cursor PIN_DRIFT differs=using-superpowers,writing-skills cache=none pinned=$adapted" \
+  "MATT cursor PIN_CLEAN skills=$matt_count cache=none pinned=$matt_pin_version" \
+  "RESULT REVIEW_NEEDED"
+repo="$tmp/repo-empty"
+mkdir -p "$repo"
+repo_args=(--repo "$repo")
+check repo-empty 0 "$dir" \
+  "SUPERPOWERS cursor PIN_NOT_INSTALLED cache=none pinned=$adapted" \
+  "MATT cursor PIN_NOT_INSTALLED cache=none pinned=$matt_pin_version" \
+  "RESULT PASS"
+repo="$(project repo-linked)"
+mv "$repo/.cursor/skills/brainstorming" "$repo/brainstorming"
+ln -s "$repo/brainstorming" "$repo/.cursor/skills/brainstorming"
+repo_args=(--repo "$repo")
+check repo-linked 1 "$dir" \
+  "SUPERPOWERS cursor PIN_DRIFT differs=brainstorming cache=none pinned=$adapted" \
+  "RESULT REVIEW_NEEDED"
+# A checkout whose .cursor/skills is not a directory is unreadable, never absent.
+repo="$tmp/repo-file-root"
+mkdir -p "$repo/.cursor"
+printf 'x\n' >"$repo/.cursor/skills"
+repo_args=(--repo "$repo")
+check repo-file-root 1 "$dir" "RESULT REVIEW_NEEDED"
+grep -Fqx "SUPERPOWERS cursor UNKNOWN (.cursor/skills is not a directory)" <<<"$output" ||
+  fail "repo-file-root: not UNKNOWN: $output"
+repo_args=()
 
 dir="$(home unreadable "$adapted" registered "$adapted")"
 sed -i.bak 's/"version": 2/"version": 3/' "$dir/.claude/plugins/installed_plugins.json"
@@ -228,8 +282,22 @@ tree="$tmp/tree"
 mkdir -p "$tree/codex/tools" "$tree/codex/config"
 cp "$root/codex/tools/check-external-skill-versions.sh" "$root/codex/tools/check-external-skill-versions.py" "$tree/codex/tools/"
 cp "$root/codex/config/external-skill-adaptation.json" "$tree/codex/config/"
+mkdir -p "$tree/usage" "$tree/codex/vendor/superpowers/v$adapted" "$tree/codex/vendor/mattpocock/v$matt_pin_version"
+cp "$root/usage/bundle.json" "$tree/usage/"
+cp "$sp_snapshot/manifest.json" "$tree/codex/vendor/superpowers/v$adapted/"
+cp "$root/codex/vendor/mattpocock/v$matt_pin_version/manifest.json" "$tree/codex/vendor/mattpocock/v$matt_pin_version/"
+cp "$root/codex/install-skills.sh" "$tree/codex/"
 output="$(bash "$tree/codex/tools/check-external-skill-versions.sh" --source-only)"
-[[ "$output" == "RECORD_OK superpowers adapted=$adapted" ]] || fail "source-only: $output"
+[[ "$output" == "RECORD_OK superpowers adapted=$adapted pinned=$adapted commit=$sp_commit" ]] || fail "source-only: $output"
+# The record must name the pinned version.
+printf '{"schema_version": 1, "superpowers": {"adapted_version": "%s", "issue": 392}}\n' "$older" \
+  >"$tree/codex/config/external-skill-adaptation.json"
+set +e
+output="$(bash "$tree/codex/tools/check-external-skill-versions.sh" --source-only)"
+status=$?
+set -e
+[[ "$status" == 2 && "$output" == "RECORD_INVALID: superpowers.adapted_version $older is not the pinned $adapted" ]] ||
+  fail "record off the pin: exit $status: $output"
 printf '{"schema_version": 1, "superpowers": {"adapted_version": "latest", "issue": 375}}\n' \
   >"$tree/codex/config/external-skill-adaptation.json"
 set +e
@@ -245,7 +313,7 @@ status=$?
 set -e
 [[ "$status" == 2 && "$output" == RECORD_INVALID:* ]] || fail "unknown record key: exit $status: $output"
 
-for args in "--bogus" "--home" "--source-only extra"; do
+for args in "--bogus" "--home" "--source-only extra" "--repo" "--repo /x --repo /y" "--home /x --source-only"; do
   set +e
   # shellcheck disable=SC2086 # split on purpose: each entry is an argument list
   bash "$checker" $args >/dev/null 2>&1
