@@ -45,7 +45,7 @@ updated: 2026-10-21
 | 源码 runtime 对照已安装 broker：`orbstack.vm.units.read` | 一致 | 两边 PASS，`machine: gitea-ci`，1 个单元；证明 `site.orbstack_machine`/`orbstack_user` 的新读取路径真实可用（AC4） |
 | `codex/tests/test-registry-preflight.sh` | PASS | 新用例：模板占位未替换时落在 `stage=config` 并指出 `site.npm_registry`，不发起连接 |
 | `usage-bundle.sh --verify` | PASS | `VERIFIED 1.5.0`（AC5） |
-| `bash codex/tests/smoke.sh` | 待补 | 绑定最终候选 head 补写 |
+| `bash codex/tests/smoke.sh` @ `4a7866c` | PASS | rc=0；runtime 单测 715 条 OK，`Codex platform static smoke checks passed.`；首跑（`e4f41a1` 之前）红在 `check-change-documents`，原因是本目录 verification 尚未写入，补写后 rc=0（AC5） |
 
 ## 合并后（AC6，NOT RUN）
 
