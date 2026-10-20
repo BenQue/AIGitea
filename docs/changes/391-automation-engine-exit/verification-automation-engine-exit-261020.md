@@ -40,12 +40,19 @@ updated: 2026-10-20
 | 源码 runtime `host.access.audit`，候选 manifest，七个项目 | 5 PASS / 2 BLOCKED_EXTERNAL | aisoft-platform、hsdb、localwms、newemaint、sfm-digital-board：PASS，merge 白名单 `['admin']`；myapp、smoke-test：`CREDENTIAL_UNAVAILABLE`，已安装 broker 对这两个项目给出同一结果，是 Mac 上没有这两个 public 测试仓凭据的既有基线，与本变更无关 |
 | `bash codex/tools/check-installed-drift.sh --source-only` | PASS | `RESULT PASS`，六个安装面 |
 | `bash codex/tests/test-installer-source-guard.sh` | PASS | `6 installers x 3 source states` |
-| `bash codex/tools/usage-bundle.sh --verify` | PASS | `VERIFIED 1.3.0 sha256:72861dcc…`（1.3.0 未发布到 `origin/main`，审查期间按规则重发同号） |
+| `bash codex/tools/usage-bundle.sh --verify` | PASS | R10c（PR 393）先合并并发布 1.3.0；本批撤回本地未发布的 1.3.0（`f23bf1f`），以 merge commit `dba89a8` 干净集成 `149e469`，再改发 `1.4.0`，`VERIFIED 1.4.0 sha256:18aa7e2a…` |
 | `python3 codex/tests/check-project-leak.py --root .` | PASS | 4 个基线文件、11 处命中，与基线相同；`emaintenance` 随 VM profile 退出转入 `retired` |
 | `check-change-documents --repo .` | PASS | `changes=179 pass=2 gap=0` |
 | `apply-classification-labels.sh --verify 391` | projected | `type/platform` + `complexity/complex` |
 | ShellCheck / `bash -n`（改动的 shell） | PASS | smoke 内与单独运行 |
 | Codex 只读交叉审查 | PASS（第 6 轮） | 项目库 `codex-review-391.md`；第 1–5 轮共 11 条发现均为文档残留措辞，逐轮修复 |
+
+## 集成 main
+
+- R10c（#392，PR 393）在本 PR 之后先合并，`origin/main` 前进到 `149e469`。broker 要求集成 merge 的树等于 [Issue tip, main] 的纯 merge-tree，所以先以 `f23bf1f` 撤回本地未发布的 1.3.0 记录，再以 merge commit `dba89a8` 无冲突集成（不 rebase），之后在其上发布 `1.4.0`。
+- `bash codex/tests/smoke.sh` 在内容相同的树上（首次集成尝试 `f12fd4c`，与本次集成后除本文件外逐字节相同，`bundle.json` 摘要同为 `18aa7e2a…`）：rc=0；runtime 单测 710 条 OK，漂移夹具 34 条 OK。
+- Codex 只读集成审查（第 7 轮，同一树）：PASS，见项目库 `codex-review-391.md`；唯一 P3 是本节缺失，已补。
+- 集成前 head `1aa48d7` 的 PR CI `CI / verify (pull_request)`：success。
 
 ## Acceptance criteria 结果
 
@@ -58,7 +65,7 @@ updated: 2026-10-20
 | AC5 installer 为 6 | PASS | drift source-only、source guard、漂移夹具测试 |
 | AC6 文档 | PASS | README、01、03、04、05、06、08、14、GLOSSARY、技能、模板、docs/agents、usage/CONTRACT；Codex 六轮复核 |
 | AC7 治理文件受控步骤 | PASS | `0398c09` 只含 `AGENTS.md`、删除 `codex/global-AGENTS.md` 与对应 smoke 钉子，提交后重读再改 runtime |
-| AC8 smoke、泄漏、发布包 | PASS | 见上表 |
+| AC8 smoke、泄漏、发布包 | PASS | 见上表与「集成 main」 |
 | AC9 交叉审查与判级投影 | PASS | Codex 第 6 轮 PASS；`--verify 391` = projected |
 | AC10 合并后现场 | NOT RUN | 需负责人合并后执行：两台重装 broker 与技能、VM 清理、删 `localwms-routine-merger`、读回 |
 
