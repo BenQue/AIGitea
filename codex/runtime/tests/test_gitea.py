@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from aisoft_loop.gitea import GiteaClient, GiteaError
+from aisoft_loop.gitea import GiteaClient, GiteaError, redact
 
 
 class FakeTransport:
@@ -382,6 +382,22 @@ class GiteaClientTests(unittest.TestCase):
         with self.assertRaisesRegex(GiteaError, "bounded"):
             self.client(transport).list_issue_comments(8)
         self.assertEqual(len(transport.calls), 100)
+
+
+class RedactTests(unittest.TestCase):
+    def test_credentials_and_dotenv_values_are_redacted(self) -> None:
+        raw = (
+            "Authorization: token top-secret\n"
+            "GITEA_TOKEN=abc123\n"
+            "db_password=hunter2\n"
+            "API_KEY=key-value\n"
+            "normal=value\n"
+        )
+        cleaned = redact(raw)
+        for secret in ("top-secret", "abc123", "hunter2", "key-value"):
+            self.assertNotIn(secret, cleaned)
+        self.assertIn("normal=value", cleaned)
+        self.assertGreaterEqual(cleaned.count("[REDACTED]"), 4)
 
 
 if __name__ == "__main__":

@@ -3,15 +3,13 @@
 `get-issue` used to dump the raw Gitea Issue object, whose `comments` field is
 only a count; the analyzer therefore judged Issues whose scope had been revised
 in comments without knowing it was blind. The CLI now appends `issue_comments`
-(the projected thread) next to the untouched count, and `render-analysis`
-refuses a payload without it so the wrapper can never silently run on the old
-shape again.
+(the projected thread) next to the untouched count. The analyzer wrapper and
+`render-analysis` left with the VM Loop (#391); `get-issue` stays a session tool.
 """
 
 import contextlib
 import io
 import json
-import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -19,7 +17,6 @@ from unittest import mock
 
 from aisoft_loop import cli
 from aisoft_loop.gitea import GiteaError
-from tests.test_analysis import SMALL, result_payload
 
 
 ISSUE = {
@@ -91,55 +88,6 @@ class GetIssuePayloadTests(unittest.TestCase):
             self.assertEqual(cli.main(["get-issue", "8", str(output)]), 2)
             self.assertFalse(output.exists())
         self.assertIn("Gitea HTTP 500", stderr.getvalue())
-
-
-class RenderAnalysisGuardTests(unittest.TestCase):
-    def render(self, issue: dict) -> tuple[int, str, str]:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            issue_path = root / "issue.json"
-            result_path = root / "result.json"
-            output_directory = root / "summary"
-            issue_path.write_text(json.dumps(issue, ensure_ascii=False), encoding="utf-8")
-            result_path.write_text(json.dumps(result_payload(SMALL)), encoding="utf-8")
-            environment = {
-                "GITEA_URL": "http://gitea.test:3000",
-                "GITEA_OWNER": "owner",
-                "GITEA_REPO": "repo",
-                "AISOFT_GOVERNANCE_MANIFEST": str(root / "missing-manifest.json"),
-            }
-            stderr = io.StringIO()
-            with mock.patch.dict(os.environ, environment), contextlib.redirect_stdout(
-                io.StringIO()
-            ), contextlib.redirect_stderr(stderr):
-                code = cli.main(
-                    [
-                        "render-analysis",
-                        str(issue_path),
-                        str(result_path),
-                        str(output_directory),
-                    ]
-                )
-            rendered = sorted(output_directory.glob("*.md")) if output_directory.exists() else []
-            content = rendered[0].read_text(encoding="utf-8") if rendered else ""
-            return code, stderr.getvalue(), content
-
-    def test_payload_without_the_thread_fails_closed(self) -> None:
-        for issue in (dict(ISSUE), {**ISSUE, "issue_comments": 2}, {**ISSUE, "issue_comments": None}):
-            with self.subTest(issue_comments=issue.get("issue_comments")):
-                code, stderr, content = self.render(issue)
-                self.assertEqual(code, 2)
-                self.assertIn("issue_comments", stderr)
-                self.assertEqual(content, "")
-
-    def test_empty_and_populated_threads_render_the_same_summary(self) -> None:
-        silent_code, _, silent = self.render({**ISSUE, "issue_comments": []})
-        discussed_code, _, discussed = self.render({**ISSUE, "issue_comments": COMMENTS})
-        self.assertEqual((silent_code, discussed_code), (0, 0))
-        self.assertIn("issue: 8", silent)
-        self.assertIn("branch: change/8-pilot-fix", silent)
-        self.assertEqual(silent, discussed)
-        self.assertNotIn("schema 迁移", discussed)
 
 
 if __name__ == "__main__":

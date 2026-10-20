@@ -5,14 +5,12 @@ import json
 import hashlib
 import os
 import sys
-from pathlib import Path
 
 from .broker import (BrokerError, HostAccessBroker, ReadCollection, credential_from_protocol,
                      _pull_stdout, PULL_LIMIT, PULL_MAX_PAGES, PULL_MAX_COUNT,
                      CHANGE_READ_MAX_REFS, COMMIT_SHA_RE)
 from aisoft_change_name import ChangeName, ChangeNameError
 from .contract import AccessContractError, load_access_contract
-from .profiles import ProfileMigrator
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -63,17 +61,6 @@ def build_parser() -> argparse.ArgumentParser:
     broker.add_argument("--label")
     broker.add_argument("--color")
     broker.add_argument("--description")
-
-    profile = commands.add_parser("profile")
-    profile.add_argument("--project", required=True)
-    profile.add_argument("--action", required=True,
-                         choices=("plan", "apply", "read-back", "rollback"))
-
-    spec = commands.add_parser("profile-spec")
-    spec.add_argument("--profile-name", required=True)
-
-    consume = commands.add_parser("profile-consume-check")
-    consume.add_argument("--profile-name", required=True)
 
     credential = commands.add_parser("credential-helper")
     credential.add_argument("action", nargs="?", default="get")
@@ -173,7 +160,9 @@ def main(argv: list[str] | None = None) -> int:
                 "contract_version": contract.raw["contract_version"],
                 "project_count": len(contract.projects),
                 "operation_count": len(contract.operations),
-                "merge_operation_count": 1,
+                "merge_operation_count": sum(
+                    "merge" in operation.name for operation in contract.operations
+                ),
             })
             return 0
         if args.command == "broker":
@@ -213,45 +202,6 @@ def main(argv: list[str] | None = None) -> int:
                         raise _receipt_error()
                     _validate_namespace(value["namespace"], contract, args)
             _json(value)
-            return 0
-        if args.command == "profile":
-            try:
-                project = contract.project(args.project)
-            except AccessContractError as exc:
-                raise BrokerError("TARGET_DENIED", "project is not in the migration manifest") from exc
-            if project.vm_profile is None:
-                raise BrokerError("TARGET_DENIED", "project has no approved VM profile migration")
-            migrator = ProfileMigrator(
-                contract, home=contract.raw["vm_profile_policy"]["runtime_home"]
-            )
-            method = getattr(migrator, args.action.replace("-", "_"))
-            _json(method(args.project))
-            return 0
-        if args.command == "profile-spec":
-            project = contract.project_for_profile(args.profile_name)
-            assert project.vm_profile is not None
-            policy = contract.raw["vm_profile_policy"]
-            home = Path(contract.raw["vm_profile_policy"]["runtime_home"])
-            _json({
-                "project_id": project.project_id,
-                "profile_name": project.vm_profile.name,
-                "gitea_url": contract.governance.base_url,
-                "owner": contract.governance.owner,
-                "repository": project.repository,
-                "identity": project.project_agent,
-                "token_file": str(home / policy["token_root"] / f"{project.vm_profile.name}.token"),
-                "repo_dir": str(home / project.vm_profile.repo_dir),
-                "analysis_provider": project.vm_profile.analysis_provider,
-                "implement_provider": project.vm_profile.implement_provider,
-                "path_prepend": list(project.vm_profile.path_prepend),
-            })
-            return 0
-        if args.command == "profile-consume-check":
-            project = contract.project_for_profile(args.profile_name)
-            migrator = ProfileMigrator(
-                contract, home=contract.raw["vm_profile_policy"]["runtime_home"]
-            )
-            _json(migrator.consume_check(project.project_id))
             return 0
         if args.command == "credential-helper":
             if sys.stdout.isatty():

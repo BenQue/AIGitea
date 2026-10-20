@@ -27,7 +27,7 @@
    `<空目录>/project/` 下的文件按项目落点排好，含生成的 `.aisoft/platform-usage.lock.json`；
    `AGENTS.md` 是完整模板，存量仓库只同步其常驻指针两节，「项目事实」保持项目自己的内容；
    `docs/agents/` 与 CI 示例是种子，已有的项目版本不覆盖。技能从同一份源导出到三种项目级落点：
-   `.claude/skills/`、`.agents/skills/`（Codex）与 `.cursor/skills/`，项目只复制它在 profile 里选用的工具对应的落点；
+   `.claude/skills/`、`.agents/skills/`（Codex）与 `.cursor/skills/`，项目只复制它在 `AGENTS.md`「项目事实」里选用的工具对应的落点；
    选用 Cursor 的项目另复制种子 `.cursor/rules/aisoft-platform.mdc`，它只指向使用合同、lock 与 `AGENTS.md`，不复述规则。
 
 3. 逐条 `GAP:` 在**目标仓**建独立 Issue，由 AI 按合同影响和强制风险判级后用单一 PR
@@ -51,7 +51,7 @@
 | 6 | `.aisoft/architecture.json` 声明 + lock 有效 | runbook §9（Architecture declaration onboarding，含 `delivery_contract` 如实选取）；`architecture/bin/aisoft-architecture` | `architecture-lock` |
 | 7 | 交付形态（delivery profile）已显式声明，部署方案位置指向项目自己的 docs/脚本目录 | runbook §4（环境级原则，非部署步骤）；目标仓 AGENTS.md 项目事实与项目自己的部署文档 | `delivery-profile` |
 | 8 | host access / onboarding 聚合核对 | runbook §1.1；broker `host.onboarding.check` | 既有工具，非本检查器 |
-| 9 | routine auto-merge eligibility、opt-in、独立 merger 与 protection read-back | governance manifest；runbook §1.1/§5 | runtime checker/read-back；source contract 只人工核对 |
+| 9 | merge allowlist 只有人、无 routine merger 声明（#391）与 protection read-back | governance manifest；runbook §1.1/§5 | runtime checker/read-back；source contract 只人工核对 |
 
 ## 模板同步（第 2 行专属）
 
@@ -79,8 +79,7 @@ approved scope，逐项授权、完整历史检查；不允许放开整个 `docs
 
 ## 边界与工具分工
 
-- 检查器只读、确定性；缺口修复始终走目标仓 Issue/单一判级 PR。project-align 不自行启用 routine
-  merge；发现 eligibility、credential 或 protection GAP 必须走目标仓或平台治理 Issue。source
+- 检查器只读、确定性；缺口修复始终走目标仓 Issue/单一判级 PR。发现 credential 或 protection GAP 必须走目标仓或平台治理 Issue。source
   candidate、installed bytes 与 live protection 分开记录。本入口不授权合并、部署或批量改写。
 - 例外只有标签一项：第 4 行的缺失/漂移由 broker `gitea.labels.provision` 幂等对齐
   （runbook §5），因为它是把仓库收敛到已合并 manifest，不产生新合同。**修改 manifest

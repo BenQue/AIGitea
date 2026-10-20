@@ -8,7 +8,7 @@
 
 ## 1. 参数与仓库
 
-先确定唯一 profile 名称，再确定 `GITEA_URL`、`OWNER`、`REPO`、本地只读/工作克隆、技术栈、测试命令与 verifier 配置。只有应用项目才需要应用端口、Nginx 端口、健康端点、数据存储和回滚方式；纯文档或平台规范仓库不需要虚构部署流程。
+先确定唯一项目 id，再确定 `GITEA_URL`、`OWNER`、`REPO`、Mac 工作克隆、技术栈、测试命令与 required CI。只有应用项目才需要应用端口、Nginx 端口、健康端点、数据存储和回滚方式；纯文档或平台规范仓库不需要虚构部署流程。
 
 把仓库放到 Gitea，验证历史完整、默认分支正确、Mac/内网客户端可以 clone 和 push feature
 branch。随后先把 exact repository、classification、visibility、project agent 和 required status
@@ -29,19 +29,16 @@ contexts 纳入 `codex/config/gitea-governance.json` 并经平台 PR 人工合�
 5. 使用 manager mutation token 对一个 exact repository 运行 `apply`；命令必须携带 Issue #35、
    已合并 platform SHA、platform root 和独立 evidence directory。工具校准 visibility、project-agent
    Write、merge 后删分支和 `main` protection，同时保留 exact status/approval contract。
-6. 项目 profile 改用自己的 token，真实验证 private repo read、Issue/comment/label、feature push、
+6. 在 host-access manifest 登记该项目并绑定它自己的 project-agent 凭据，经 broker 真实验证 private repo read、Issue/comment/label、feature push、
    PR、main push denied、main merge denied。只有 exact JSON evidence 全 PASS 后才允许
    `retire-shared-bot`。
 
-所有 `main` 均禁止 direct/force push。未启用 routine auto 的 repository merge allowlist 只能是人工
-`admin`；只有 `classification=internal-application`、canonical `status_check_contexts` 非空且 manifest
-显式 opt-in 的 repository 才能增加该仓独立 routine merger。`aisoft-platform`、public-platform 与
-contexts 为空的仓库固定 disabled。platform manager、project agent/provider 与 legacy `ci-bot` 不得进入
-routine merge 路径。任一 credential、API、
+所有 `main` 均禁止 direct/force push，merge allowlist 只能是人工 `admin`；routine 自动合并已随 #391 退出，
+不得为任何仓库声明 routine merger。platform manager、project agent 与 legacy `ci-bot` 都不得 merge。任一 credential、API、
 permission、visibility、protection、cross-project 或 read-back 失败均终止为 `BLOCKED_EXTERNAL`。
 
 已在 host-access manifest 中的项目从 fixed broker 访问 host（#61/#70）；Mac checkout 只用
-repo-local protected-file helper，VM profile 只用 `GITEA_IDENTITY` + fixed mode 600 token file。manifest
+repo-local protected-file helper（VM `coder` project profile 已随 #391 退出）。manifest
 允许项目声明 strict `git_remote_name`（#73）；未声明兼容 `origin`，已声明的项目
 按各自 manifest 的取值（例如 `gitea`）。调用方不能传 remote name/URL/owner/repository/refspec，broker 也不创建或改写 remote。
 新项目仍必须先通过独立 AISoftPlatform Issue/PR 同时更新 governance 与 host-access manifests，再执行
@@ -60,7 +57,7 @@ repo-local protected-file helper，VM profile 只用 `GITEA_IDENTITY` + fixed mo
    exact helper binding；任一缺失或 drift 均 fail closed。
 5. `gitea.labels.provision` 以 project-agent 身份把仓库标签对齐到 canonical manifest（§5）。幂等，
    可在平台 taxonomy 演进后反复执行；无删除路径，退役取值只报告。必须早于下一步的 canary——
-   canary 会创建 Issue 并由 controller 写入生命周期标签，标签不在位则该验收无从执行。
+   canary 会创建 Issue 并由会话经 broker 写入生命周期标签，标签不在位则该验收无从执行。
 6. 最后运行本项目 fresh-session typed Issue/change/PR/required-CI canary。一个项目的 PASS 不授权另一个
    项目；每个项目使用独立 adoption Issue 与 evidence。
 
@@ -127,7 +124,7 @@ exact repository 添加 manager Admin 并写 pre/post snapshot，不修改 visib
 
 ## 3. Mandatory host-role gate
 
-Agent project profile（Gitea 坐标/provider/state）和 host profile（machine identity/capability）
+项目注册（broker manifest 的 Gitea 坐标与 project agent）和 host profile（machine identity/capability）
 是两个独立合同，不能互相代替。任何承载 SCM、CI 或应用 runtime 的 Linux 主机都必须在
 自己的 complex Change 中选择且只选择一个 role：
 
@@ -250,11 +247,6 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 - 先通过 §1.1 manifest/project-agent gate；platform manager 为 exact-repo Admin，项目 agent 为
   exact-repo Write，二者均不给 merge。
 - 保护 `main`，禁止直接 push，要求准确的 `CI / test (pull_request)` context。
-- routine merger 必须是独立 non-site-admin、非 human/manager/project-agent/shared-bot 的 per-project
-  exact-repo Write identity。Gitea 1.26.4 没有 merge-only ACL；credential 由 broker 独占，main push/force
-  allowlist 为空，ordinary Git 与 cross-project write 由 typed operation、manifest/final-head gates 和 zero fallback 禁止。
-  bootstrap、credential provision、protection allowlist apply 与 read-back 只能在 source 合并并取得独立
-  live 授权后逐仓执行；Issue #208 自身不执行这些步骤。
 - 标签由平台 provision，不手工创建（§1.1 步骤 5，与 `host.access.audit` / `mac.git.bind` /
   `host.onboarding.check` 同级）：
 
@@ -275,34 +267,26 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 - `triage/ready-for-agent` 不等于平台 `approved`。
 - 新 Change 使用单一 `change/N-short-description` 分支和最终 PR `Closes #N`（编号仍是唯一主键，slug 只用于人类识别）；已存在于 remote/history 的 `change/N` 仅作证据驱动的维护兼容。
 
-四个维度正交：`type/*` 是变更类型输入，`complexity/*` 是 AI 有效复杂度输出，八个无前缀标签是生命周期状态，`triage/*` 是 Matt 编排状态。`needs-analysis` 触发 analyzer；`approved` 启动 Loop；`spec-review` 只是可选协作状态；`pr-open` 等最终 CI/review；`completed` 表示最终 PR 已合并且明确无需部署；`deployed` 表示确定性部署和验证完成。两个交付终态互斥。
+四个维度正交：`type/*` 是变更类型输入，`complexity/*` 是 AI 有效复杂度输出，八个无前缀标签是生命周期状态，`triage/*` 是 Matt 编排状态。`needs-analysis` 进入判级；`approved` 开始实现；`spec-review` 只是可选协作状态；`pr-open` 等最终 CI/review；`completed` 表示最终 PR 已合并且明确无需部署；`deployed` 表示确定性部署和验证完成。两个交付终态互斥。
 
-## 6. Analyzer 接入
+## 6. 判级接入
 
-- 从 `templates/agent/project.env.example` 复制到 VM 的 `~/.config/aisoft/projects/<profile>.env`，填入该项目自己的 Gitea 坐标、token 和 `AGENT_REPO_DIR`，设为 mode 600；不得提交该文件。
-- 每个 profile 使用 `~/.local/state/aisoft-loop/projects/<profile>/` 保存锁、Issue state 和 worktrees，不与其他仓库共享。
-- 为项目准备只读工作克隆和依赖/索引。
+- 在 Mac 上为项目准备 checkout 与依赖/索引，登记在 broker manifest 的 `projects[].mac_checkout`。
 - 安装 `$aisoft-platform` 与 `$gitea-analyze-change`。
 - 先用低风险 Issue 验证：读取 evidence、输出五节 summary，并以 `change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`risk_flags`、`required_docs`、`confidence` 和 `override_reason` 确定性判级。
 - 用功能新增验证 `type/feature` 和 `effective_complexity: complex`；用信息不足的 Issue 验证 `needs-human-decision`、`contract_effect: unclear` 且不输出 `effective_complexity`。
-- Analyzer 不修改产品代码、Git 或 Gitea 标签/评论，不创建最终 PR、不部署；wrapper/controller 负责映射的 `summary` 文档、readable 分支、评论和标签状态变更。
-- 普通实现 worker 永远不得编辑约束本次运行的 `AGENTS.md`。complex spec 只能授权其生成治理 patch/proposal；目标文件之外的独立受控治理步骤负责应用，随后用 fresh run 验证并采用新规则。其他 protected files 仍要求 complex spec 精确列出文件、验证与回滚。
+- 判级只写映射的 `summary` 文档与 readable 分支；标签由 `apply-classification-labels.sh` 经 broker 投影，不创建最终 PR、不部署。
+- 普通实现会话永远不得编辑约束本次运行的 `AGENTS.md`。complex spec 只能授权其生成治理 patch/proposal；目标文件之外的独立受控治理步骤负责应用，随后用 fresh run 验证并采用新规则。其他 protected files 仍要求 complex spec 精确列出文件、验证与回滚。
 
-## 7. Development Loop 接入
+## 7. 会话开发接入
 
-只在平台 `08` 的共享 controller 与所选 provider 的 skills/adapter 验证完成后启用：
+VM 上的 Development Loop 已随 #391 退出（ADR 0002）；开发由 Mac 上的 Claude 或 Codex 会话按 `issue-session-flow` 进行，所选工具的技能验收完成后启用：
 
-- 使用 provider-neutral controller；不要为 Codex/Claude 复制两套 Loop。
-- 每个 active Issue 使用隔离 worktree 和锁。
-- 第一阶段只运行一个 active Issue。
-- 外层 verifier 独立运行项目命令，不信任模型自述。
+- 每个 active Issue 使用自己的隔离 worktree，并用 `claim-worktree` 绑定会话。
 - 同一根因三次失败、合同冲突、范围扩张或高风险决策时升级给人。
-- 状态包含提交前 `AWAITING_PR_CONFIRMATION`、manual `READY_FOR_REVIEW`、routine receipt
-  `AUTO_MERGED`，以及 `NEEDS_HUMAN_DECISION`、`BLOCKED_EXTERNAL`、`FAILED_LIMIT`。
-- manual PR 只有人可以合并；eligible routine-small 只有在第二确认点（最终 PR 提交确认）明确授权并通过 final-head 全硬门
-  后，才由独立 routine merger 合并。第一确认点仅批准合同/启动，不授权 push、PR、merge 或部署；
-  provider/project agent 不持有 merger credential。
-- 使用 `aisoft-agent@<profile>.service/.timer` 作为项目级 systemd 实例；安装模板不等于启用。必须显式执行 `systemctl --user enable --now aisoft-agent@<profile>.timer`，且只有该项目验收通过后才允许这样做。
+- 状态包含提交前 `AWAITING_PR_CONFIRMATION`、`READY_FOR_REVIEW`，以及 `NEEDS_HUMAN_DECISION`、`BLOCKED_EXTERNAL`、`FAILED_LIMIT`。
+- 最终 PR 只有人可以合并；push 与建 PR 只在第二确认点（最终 PR 提交确认）明确授权后经 broker 进行。
+  第一确认点仅批准合同/启动，不授权 push、PR、merge 或部署。
 
 ## 8. 接入验收
 
@@ -316,20 +300,16 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
    cross-project Write/Admin，manager/project agent/legacy bot 均不能 merge `main`。
 3. `scm-ci` 的 application start 负向 guard 证明零 mutation。
 4. 合并后由独立 `appserver-test` 确定性部署和精确 SHA health 通过。
-5. Analyzer 对真实 Issue 输出确定性分类，wrapper/controller 写入正确且互斥的标签。
-6. Small Issue 从明确合同进入 Loop 并准备绿色 PR。
+5. 判级对真实 Issue 输出确定性分类，投影工具写入正确且互斥的标签。
+6. Small Issue 从明确合同开始实现并准备绿色 PR。
 7. Production complex Issue 缺 spec/plan 时拒绝，补齐后按 plan 执行；development complex
    从 Issue 读取可测验收标准并使用合成 `T01`，不生成仪式性 spec/plan。
-8. 普通测试失败由 Loop 自修复。
+8. 普通测试失败由会话自修复。
 9. 合同冲突、外部阻塞和三次同因失败正确升级。
 10. CI failure feedback 能进入下一轮。
 11. 非生产首次部署执行两次并完成故意失败回滚。
-12. 生产负向测试证明 provider 无生产部署权限。
-13. routine positive canary 证明 exact final SHA、non-empty required contexts、reviews、dependencies、
-    final diff 与 protection read-back 全部成立时只有一次 fixed merge POST；negative matrix 证明 #208、
-    complex/major/phase/security/data/shared-core/CI/artifact/deploy/rollback/governance 和任一 live GAP 零 POST。
-
-中央 provider-neutral runtime/controller 先通过共享 synthetic；每个所选 provider 的 adapter 独立完成至少一个明确标注的真实 pilot。每个新项目仍需完成与自身技术栈、CI 和部署范围对应的 provider 验收。Codex 与 Claude 复用同一 profile、controller、verifier 和状态合同，不复制项目专用状态机；一侧验收不替代另一侧。
+12. 生产负向测试证明会话无生产部署权限。
+每个所选工具（Claude、Codex）独立完成至少一个明确标注的真实 pilot。每个新项目仍需完成与自身技术栈、CI 和部署范围对应的验收；两个工具共用同一合同，不复制项目专用状态机；一侧验收不替代另一侧。
 
 ### 合并后收尾
 
@@ -364,9 +344,7 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 
 ## 9. 安全回滚
 
-在 Loop 试点前记录当前 timer、provider、agent 脚本、工作树、开放 Issue/PR 和标签状态。保持 `IMPLEMENT_PROVIDER=none`，直到专项实施明确启用新 controller。
-
-试点失败时停止 controller，保留 analyzer，开发回到 Mac 人机交互；CI、制品和生产部署不受影响。未经单独批准，不删除旧脚本、认证或 provider 配置。
+新工具或新流程试点前记录当前开放 Issue/PR、worktree 和标签状态。试点失败时回到 Mac 人机交互开发；CI、制品和生产部署不受影响。未经单独批准，不删除旧脚本、认证或工具配置。
 
 ## 9. Architecture declaration onboarding
 

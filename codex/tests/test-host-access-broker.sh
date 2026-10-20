@@ -13,19 +13,20 @@ jq -e '
   .status == "PASS" and
   .contract_version == "host-access-broker/v1" and
   .project_count == 7 and
-  .operation_count == 39 and
-  .merge_operation_count == 1
+  .operation_count == 34 and
+  .merge_operation_count == 0
 ' "$TMP/validate.json" >/dev/null
 
 jq -e '
-  ([.operations[].name] | length == 39) and
+  ([.operations[].name] | length == 34) and
   ([.operations[].name] | index("application.target.preflight.read") == null) and
   (has("application_targets") | not) and
   ([.operations[] | select(.name == "gitea.credential.rotate")][0]
     == {"name":"gitea.credential.rotate","identity_route":"credential-operator",
         "mutating":true,"arguments":["issue","sha","token_kind"]}) and
   all(.operations[];
-    ((.name | contains("merge") | not) or .name == "gitea.pull.merge.routine") and
+    (.name | contains("merge") | not) and
+    (.name | startswith("vm.profile.") | not) and
     (.name | contains("shell") | not) and
     (.name | contains("url") | not)) and
   .human_merge_identity == "admin" and
@@ -50,9 +51,6 @@ jq -e '
   ([.operations[] | select(.name == "gitea.issue.create")][0].arguments
     == ["title", "body", "entry_label"]) and
   ([.operations[] | select(.name == "gitea.pull.create")][0].arguments == ["issue", "title", "body"]) and
-  ([.operations[] | select(.name == "gitea.pull.merge.routine")][0]
-    == {"name":"gitea.pull.merge.routine","identity_route":"routine-merge-agent",
-        "mutating":true,"arguments":["number","sha"]}) and
   ([.operations[] | select(.name == "gitea.commit.status.read")][0].arguments == ["sha"]) and
   ([.operations[] | select(.name == "git.push.change")][0].arguments == ["branch"]) and
   ([.operations[] | select(.name == "host.access.audit")][0].arguments == []) and
@@ -93,12 +91,13 @@ jq -e '
     ["alphaapp", "gamma-board"]) and
   ([.projects[] | select(has("git_remote_name")) | .git_remote_name]
     | all(. == "gitea")) and
-  ([.projects[] | select(.vm_profile != null) | .repository] | sort) ==
-    ["AlphaApp", "BetaApp", "aisoft-platform"] and
+  ([.projects[] | select(has("vm_profile"))] == []) and
+  (has("vm_profile_policy") | not) and
+  (.vm_runtime == {"runtime_user":"coder"}) and
+  (.mac_host | has("vm_profile_tool") | not) and
   ([.projects[] | select(.project_id == "deltadb")]
     == [{"project_id":"deltadb","repository":"DeltaDB","project_agent":"deltadb-agent",
-         "routine_merge_agent":null,"mac_checkout":"/Users/benque/Projects/DeltaDB",
-         "vm_profile":null}])
+         "routine_merge_agent":null,"mac_checkout":"/Users/benque/Projects/DeltaDB"}])
 ' "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" >/dev/null
 
 if rg -ni 'keychain|/usr/bin/security|find-generic-password|dump-keychain|security -A' \
@@ -247,15 +246,6 @@ set -e
 test "$url_status" = 2
 grep -Fq 'unrecognized arguments: --url' <<<"$url_output"
 
-set +e
-profile_output="$("$ROOT/codex/tools/project-profile-migration.sh" \
-  --project unknown --action plan 2>&1)"
-profile_status=$?
-set -e
-test "$profile_status" = 20
-grep -Fq 'BLOCKED_EXTERNAL' <<<"$profile_output"
-grep -Fq 'TARGET_DENIED' <<<"$profile_output"
-
 for invalid_request in \
   $'protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/aisoft-platform.git\nmalformed\n' \
   $'protocol=http\nhost=gitea-ci.orb.local:3000\npath=admin/aisoft-platform.git\nauthtype=basic\n' \
@@ -284,6 +274,11 @@ printf '%s\n' retired-rollback > \
   "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/rollback-gitea-routine-pilot"
 printf '%s\n' retired-rollback-previous > \
   "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/rollback-gitea-routine-pilot.previous"
+printf '%s\n' retired-profile-tool > \
+  "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/project-profile-migration"
+mkdir -p "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/lib/aisoft-host-access/aisoft_host_access"
+printf '%s\n' retired-profile-module > \
+  "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/lib/aisoft-host-access/aisoft_host_access/profiles.py"
 first="$("$ROOT/codex/install-host-access-broker.sh")"
 grep -Fq 'no credential, Git config, project profile, token, service, timer, VM, merge, or deployment mutation' \
   <<<"$first"
@@ -305,7 +300,8 @@ test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/keychain-ac
 test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/rollback-gitea-routine-pilot"
 test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/rollback-gitea-routine-pilot.previous"
 test -x "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/git-credential-aisoft-host"
-test -x "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/project-profile-migration"
+test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/libexec/aisoft/project-profile-migration"
+test ! -e "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/lib/aisoft-host-access/aisoft_host_access/profiles.py"
 test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/share/aisoft/host-access-broker.json"
 test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/lib/aisoft-host-access/aisoft_host_access/broker.py"
 test -f "$AISOFT_HOST_ACCESS_INSTALL_ROOT/usr/local/lib/aisoft-host-access/aisoft_change_name.py"

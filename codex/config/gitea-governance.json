@@ -128,7 +128,7 @@
       "visibility": "private",
       "project_agent": "localwms-agent",
       "routine_auto_merge_enabled": false,
-      "routine_merge_agent": "localwms-routine-merger",
+      "routine_merge_agent": null,
       "status_check_contexts": [
         "CI / test (pull_request)"
       ],

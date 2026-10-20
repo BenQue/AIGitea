@@ -45,7 +45,7 @@ R0 → R1 → R2 与 R3 → R4。R5 与 R1 并行。负责人 2026-10-18 决定�
 |---|---|---|---|
 | R9 | ADR 0002（路由合同与执行引擎分离）、第二轮路线、[平台级 E2E 验收表](platform-e2e-acceptance.md) | 无 | #389 进行中 |
 | #370 | CI 下载缓存：runner 不再依赖每次访问 GitHub 与 Go 代理；由 Codex 实现、Claude 只读审查（D7，反向审查首例） | 无 | 未开工 |
-| R10a | 自动化引擎退出：按 ADR 0002 D2 迁出 Development Loop、routine merge、`vm.profile.*` 与 `install-vm`，broker 操作 39 → 34、installer 7 → 6；清理 VM 旧单元与 LocalWMS routine merger | R9 | 未开工 |
+| R10a | 自动化引擎退出：按 ADR 0002 D2 迁出 Development Loop、routine merge、VM profile 操作与 `install-vm`，broker 操作 39 → 34、installer 7 → 6；清理 VM 旧单元与 LocalWMS routine merger | R9 | #391 进行中 |
 | R10b | 路由卡：路由表进 `aisoft-platform` 技能（只钉必用与禁用），summary `route:` 块，确认点 1 与派单任务书展示，`08` §7 模型档位表；发布包升版 | R9；Codex 侧验收依赖 R10c | 未开工 |
 | R10c | 外部技能包三端一致：superpowers vendor pin 作三端核对基准，Claude/Codex 仍走官方 marketplace，发布包导出 Cursor 项目级落点（#392 确认点 1 修正） | R9 | #392 进行中 |
 | R11 | 使用层可独立消费：随发布包交付 `aisoft` 工具入口，技能去平台检出依赖，tool-provenance 检查，三个项目批量采用（D4），发布说明（1.4.0） | R10a、R10b、R10c | 未开工 |

@@ -2,7 +2,7 @@
 
 > 版本：v3.6（平台合同；本文同步稳定源码）｜ 文档核对：2026-10-04 ｜ 源码基线：`dc9aa468580f92a73dfa054c6f04ef5113f56694`（2026-10-03 已合并 `main`）
 >
-> 一句话：**Issue 定义工作，AI Loop 把明确合同做到最终 PR；人确认提交，manual 变更由人合并，显式 opt-in 的 routine small 只有在最终 head 全硬门通过后才可由独立 merger 合并；部署始终独立授权。**
+> 一句话：**Issue 定义工作，AI 会话把明确合同做到最终 PR；人确认提交，人合并；部署始终独立授权。** VM 上的 Development Loop 与 routine 自动合并已按 [ADR 0002](docs/adr/0002-deterministic-development-flow.md) 退出（#391）。
 
 本文件是全貌与导航；细节在各主题分册。原始设计文档在 [archive/](archive/)，仅作历史参考。平台边界见 [ADR 0001](docs/adr/0001-platform-boundary.md)，整改进度见 [整改路线](docs/governance/remediation-roadmap.md)；v3 迁移决策已归档到 [archive/09](archive/09-v3平台简化与Loop-Engineering文档改造规划.md)。
 
@@ -19,10 +19,10 @@
 |---|---|---|
 | 基础设施与 Runner | `gitea-ci` 的 Gitea 1.26.4、act_runner、Verdaccio、Mailpit 为既有 as-built；#309 记录 Flutter 3.32.8 / unzip 验收；#311 保留仍有项目在用的 Node 22 并补来源记录 | Node 22 安装者、安装日期和上游 provenance 仍为 `unknown`；历史服务验收不代表今日健康，见 [01](01-基础设施-VM-Gitea-Runner.md) |
 | 治理集合与 CI | 仓库名单、分类与 required contexts 以 [governance manifest](codex/config/gitea-governance.json) 为准，本表不重复；进退记录见 #252、#275、#312、#334、#337 | 新接入仓库的安装、账号及 adoption 须逐仓独立验收（如 [#337 verification](docs/changes/337-restore-hsdb-governance/verification-restore-hsdb-governance-261004.md)）；#299 保留平台仓 outdated-branch gate，internal-application 的关闭须具备合并预览与 push-main CI，逐仓验收 |
-| Matt / 双 provider | 固定 Matt v1.2.2 snapshot；`triage → to-spec → to-tickets → implement`；#318 修齐 Codex/Claude 会话和接入合同，#320 明确每次 push 的 SHA 核对 | adapters 等价、可互换；默认 `IMPLEMENT_PROVIDER=none`，真实 provider / 项目启用矩阵仍须独立完成，见 [08](08-双工具共存与实施.md) |
-| Worktree 与文档硬门 | #298 单写者 claim / broker 归属闸门，#304 记录两机安装；#289 严格校验 `required_docs` 声明、映射和实际文件，resolver / Loop / 终态工具共享结果 | #289 runtime 与本地验证已完成；source 之外按安装证据验收；另一会话不得代写 worktree，见 [03](03-Issue-Spec-Plan与单闸门开发流程.md) |
-| Broker / routine merge | typed Issue/PR/Actions/Git 与 #208 独立 merger 全硬门；#313 补 routine scope 的 `read:user`；#286 增 manifest 限定只读跨仓依赖，允许的边以 manifest 的 `dependency_read_targets` 为准 | AISoftPlatform `routine_auto_merge_enabled=false`，始终 manual；routine 身份、scope、protection 与真实 opt-in 逐仓读回，不能由源码存在推导启用 |
-| 安装与漂移 | 7 个 installer 共用 source guard；#308 提供 [check-installed-drift](codex/tools/check-installed-drift.sh)，按受管字节、权限、链接与可读量检查 `PASS/GAP` | checker 已进入 source；#308 基线的真实安装 GAP 保留，后续修复须独立验收；`source-only` 不是 installed PASS，见 [06](06-运维手册与踩坑集.md) |
+| Matt / 双 provider | 固定 Matt v1.2.2 snapshot；`triage → to-spec → to-tickets → implement`；#318 修齐 Codex/Claude 会话和接入合同，#320 明确每次 push 的 SHA 核对 | adapters 等价、可互换；无人值守的实现引擎已按 ADR 0002 退出（#391），见 [08](08-双工具共存与实施.md) |
+| Worktree 与文档硬门 | #298 单写者 claim / broker 归属闸门，#304 记录两机安装；#289 严格校验 `required_docs` 声明、映射和实际文件，resolver / 会话工具 / 终态工具共享结果 | #289 runtime 与本地验证已完成；source 之外按安装证据验收；另一会话不得代写 worktree，见 [03](03-Issue-Spec-Plan与单闸门开发流程.md) |
+| Broker | typed Issue/PR/Actions/Git 操作 34 个；#286 增 manifest 限定只读跨仓依赖，允许的边以 manifest 的 `dependency_read_targets` 为准；routine 合并与 VM profile 两类操作已随 #391 退役 | 七个仓库都只由人合并；routine merger 的凭据种类与 manifest 字段留待 R16 清理，不代表可启用 |
+| 安装与漂移 | 6 个 installer 共用 source guard（`install-vm` 随 #391 退出）；#308 提供 [check-installed-drift](codex/tools/check-installed-drift.sh)，按受管字节、权限、链接与可读量检查 `PASS/GAP` | checker 已进入 source；#308 基线的真实安装 GAP 保留，后续修复须独立验收；`source-only` 不是 installed PASS，见 [06](06-运维手册与踩坑集.md) |
 | 架构合同 | [architecture](architecture/README.md) 有 5 个 profiles；#284 增 `linux-node-sqlite-v1`；#287 writer 默认 V2 lock，reader 严格接受 V1/V2；#288 离线核验 Dockerfile FROM digest | catalog 固定 `2026.09.0`，不是自动追随 upstream latest；release reader 仍仅接受 V1 architecture lock，下游采用 V2 必须先解决读取链兼容 |
 | 参考实现迁出 | #383 把 Docker release 运行时、公司两 VM operator、公司只读基线与项目 architecture reference 迁出平台，见 [迁出说明](archive/reference-implementations-exit-261019.md)；[platform-bootstrap/v1](platform-bootstrap/README.md) 保留 | 平台不再提供任何交付形态的实现或 installer；采用方在项目仓自带副本并按自己的 pin 维护 |
 | 开发与公司传输 | #292 收口自研 main relay，采用项目明确批准的 Gitea 原生 Push Mirror；#293 对齐 `release_producer: local` 与离线交付职责，见 [07](07-内网与生产平移路线.md) | GitHub 是指定镜像/搬运层；镜像覆盖许可仅限指定目标，不延伸到公司 main；启用、同步、公司入站及部署均按项目回执确认 |
@@ -53,7 +53,6 @@ flowchart TB
     subgraph VM1["🖥️ gitea-ci · role=scm-ci"]
         GITEA["Gitea 1.26.4<br/>仓库/issue/PR/Actions"]
         RUNNER["act_runner(host 模式)<br/>checkout/build/test/package"]
-        AGENT["coder 用户<br/>自动分析 + Development Loop（禁用式安装已验证，自动实现关闭）"]
         VERD["Verdaccio<br/>npm 缓存"]
         MAIL["Mailpit<br/>邮件捕获"]
         ART["不可变制品<br/>checksum + 引用保护"]
@@ -70,7 +69,6 @@ flowchart TB
 
     DEV -->|"git push 分支 / 开 PR"| GITEA
     BROWSER -->|"提交确认 / manual merge"| GITEA
-    AGENT -->|"分析 Issue·迭代分支·准备 PR"| GITEA
     GITEA -->|"PR/Push 事件"| RUNNER
     RUNNER --> GUARD
     GUARD -->|"允许 build/test/publish"| ART
@@ -100,10 +98,10 @@ flowchart TB
 | 3 | **新 Linux Docker-first，PM2 legacy** | builder 一次构建，test/prod 只按 digest pull 或 load；目标机不 build/install/fetch，既有 PM2 应用独立迁移验收前保持不变 |
 | 4 | **生产部署 script-only** | AI 可参与首次非生产部署；生产只执行已验证脚本和制品 |
 | 5 | **任何变更可逆** | 迁移前备份、releases 多版本保留、健康检查失败可回滚 |
-| 6 | **判级、合同与执行分离** | AI 判定有效复杂度；controller 独立校验合同；Loop 不得自行改验收标准或扩大范围 |
-| 7 | **只有一个交付闸门** | 最终 PR merge 仍是唯一交付硬闸门；manual 集合只由人合并，只有提交时明确授权且 repository opt-in 的 routine small 才能在最终 head required CI 与全部硬门通过后受控合并 |
+| 6 | **判级、合同与执行分离** | AI 判定有效复杂度；会话在两个确认点之间按合同执行，不得自行改验收标准或扩大范围；执行引擎可替换（ADR 0002） |
+| 7 | **只有一个交付闸门** | 最终 PR merge 是唯一交付硬闸门，只由人合并；routine 自动合并已按 ADR 0002 退出，自动化最多止于 PR 候选 |
 | 8 | **主机职责 fail closed** | root-owned profile 同时绑定 hostname 与 machine-id；未知 capability、身份漂移或宽松权限都必须在 mutation 前失败 |
-| 9 | **平台审计、项目写入与 routine merger 分离** | manager、project agent、provider、shared bot 都不 merge；启用仓库只额外允许一个独立 non-admin、exact-repo routine merger，未启用仓库仍为 human-only |
+| 9 | **平台审计与项目写入分离** | manager、project agent、shared bot 都不 merge；每个仓库的 merge 白名单只有人 |
 | 10 | **仓库 private 默认、public 显式例外** | 当前只允许 `aisoft-platform`、`myapp`、`smoke-test` public；内部应用 private；公司内网重建执行同一分类策略 |
 
 ## 4. 端到端流程（双路径、单合并闸门）
@@ -113,7 +111,7 @@ sequenceDiagram
     autonumber
     actor U as 你(人)
     participant G as Gitea
-    participant A as Analyzer / Loop
+    participant A as AI 会话（Claude / Codex）
     participant M as 人 + Mac 会话
     participant R as act_runner(自动)
 
@@ -121,7 +119,7 @@ sequenceDiagram
     A->>A: 判断 type 与 contract_effect，执行强制风险规则
     alt 信息不足、冲突或风险边界不明
         A->>G: 写 summary → awaiting-triage（不写 complexity 标签）
-        break 合同未明确，本次不进入 Loop
+        break 合同未明确，本次不开始实现
             U->>G: 澄清 Issue 合同 → 重新分析
         end
     else effective_complexity=small
@@ -131,16 +129,12 @@ sequenceDiagram
         U->>M: 用 to-spec/to-tickets 收敛映射的 spec-* + plan-*
         M->>G: 文档提交到同一 change/N-short-description；合同完整则 approved
     end
-    A->>A: $implement frontier Txx → 本地原子 commit → verifier
-    A->>A: Controller 校验候选 → AWAITING_PR_CONFIRMATION
-    U->>A: 【提交确认】绑定 Issue/branch/manual 或 routine-auto policy
-    A->>G: Controller 推 change/N-short-description → 最终 PR(Closes #N) → pr-open
-    R->>G: PR CI 必须绿；失败反馈给 Loop
-    alt manual 或任一强制风险
-        U->>G: 人审核并合并最终 PR
-    else repository opt-in 的 routine small
-        A->>G: 最终 head 全硬门通过后由独立 merger 合并
-    end
+    A->>A: $implement Txx → 本地原子 commit → 测试与 smoke
+    A->>A: 平台仓 complex 交叉审查 → AWAITING_PR_CONFIRMATION
+    U->>A: 【提交确认】绑定 Issue/branch
+    A->>G: broker 推 change/N-short-description → 最终 PR(Closes #N) → pr-open
+    R->>G: PR CI 必须绿；失败由同一会话修复
+    U->>G: 人审核并合并最终 PR
     G->>U: 📬 邮件通知(Mailpit)；issue 被 Closes 自动关闭
     alt 变更需要部署
         R->>R: 构建→制品→测试部署→健康检查；生产仅运行已验收脚本
@@ -150,11 +144,11 @@ sequenceDiagram
     end
 ```
 
-**实施状态**：Issue #208 的 source 合同不代表 routine merger 已安装、credential 已 provision、protection 已 apply 或任一 repository 已 live opt-in。现有 shared Loop pilot 与 `IMPLEMENT_PROVIDER=none` 边界不变；AISoftPlatform 本身属于 platform governance，#208 及其后续平台变更始终走 manual。PR merge 不能推导测试/生产部署授权或 `deployed` 终态。
+**实施状态**：VM 上的 Development Loop、`install-vm` 安装面与 routine 自动合并已随 #391 退出（[迁出说明](archive/automation-engine-exit-261020.md)）；执行引擎今后只在 Mac 上按 ADR 0002 D3 分阶段重建，产出止于 PR 候选。PR merge 不能推导测试/生产部署授权或 `deployed` 终态。
 
 平台标签采用三个正交维度：十个 `type/*`、两个 `complexity/*` 和八个 lifecycle，共 20 个；Matt 另加两个 `triage/*` category 与五个 `triage/*` state。source manifest 共 provision 27 个标签（Issue #108 把 `type/*` 扩为 10 个并声明 `area/`、`priority/` 两个项目扩展前缀），但 `triage/ready-for-agent` 不替代平台 `approved`。`completed` 与 `deployed` 互斥，任何接入仓库都必须独立同步并读回，不能把其它仓库状态当作平台全局状态。
 
-**文档声明一致性合同（#289）**：summary front matter 的 `required_docs` 是文档义务的声明事实源，`documents` 是角色到文件的路径事实源；`route.required_docs` 只约束阶段和复杂度的最低要求，不能抹掉已经声明的角色。严格 resolver、文档检查、Loop 和终态工具须共用校验后的角色与实际文件，缺文件时不能 PASS 或写 `completed`。`verification` 表示欠一份验证记录；部署终态另由仓库 `deployment_lifecycle` 决定，平台的 `none` 保持不变。详见 [03 §3](03-Issue-Spec-Plan与单闸门开发流程.md#3-文档合同) 与 [#289 spec](docs/changes/289-required-docs-source/spec-required-docs-source-261002.md)。本段同步已合并的治理合同；T01/T02/T03 与 runtime 本地验证已完成，已随 [PR #325](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/325) 合并；installed/live 仍按各自证据验收。
+**文档声明一致性合同（#289）**：summary front matter 的 `required_docs` 是文档义务的声明事实源，`documents` 是角色到文件的路径事实源；`route.required_docs` 只约束阶段和复杂度的最低要求，不能抹掉已经声明的角色。严格 resolver、文档检查与终态工具须共用校验后的角色与实际文件，缺文件时不能 PASS 或写 `completed`。`verification` 表示欠一份验证记录；部署终态另由仓库 `deployment_lifecycle` 决定，平台的 `none` 保持不变。详见 [03 §3](03-Issue-Spec-Plan与单闸门开发流程.md#3-文档合同) 与 [#289 spec](docs/changes/289-required-docs-source/spec-required-docs-source-261002.md)。本段同步已合并的治理合同；T01/T02/T03 与 runtime 本地验证已完成，已随 [PR #325](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/325) 合并；installed/live 仍按各自证据验收。
 
 ## 5. 文档导航
 
@@ -163,11 +157,11 @@ sequenceDiagram
 | [01-基础设施-VM-Gitea-Runner](01-基础设施-VM-Gitea-Runner.md) | VM/Gitea/runner/Verdaccio/Mailpit 搭建与账号体系、端口总表 | 重建环境、内网平移 |
 | [02-CI与自动部署流水线](02-CI与自动部署流水线.md) | Linux 试点 PM2/SQLite as-built 流水线证据；环境级部署原则以 onboarding-runbook §4 为准 | 改流水线、排部署问题 |
 | [03-Issue/Spec/Plan 与单闸门流程](03-Issue-Spec-Plan与单闸门开发流程.md) | small/complex 双路径、文档绑定、标签语义、最终 PR | 日常使用平台 |
-| [04-Matt 编排与 Development Loop](04-Agent编排与定时任务.md) | Matt skills、analyzer、Loop、verifier、终态、provider adapter | 调整 agent 行为 |
+| [04-Matt 编排与自动化迁出](04-Agent编排与定时任务.md) | Matt skills 接入、VM 自动化引擎的迁出说明与重建条件 | 调整 agent 行为 |
 | [05-通知与多人协作](05-通知与多人协作.md) | Gitea mailer、Mailpit、事件覆盖、切真实 SMTP | 配通知、加协作者 |
-| [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、编号实证踩坑、CI 停滞判定、七个安装面漂移核对、PAT 轮换与 AI 故障包 | 排障必读 |
+| [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 日常命令速查、编号实证踩坑、CI 停滞判定、六个安装面漂移核对、PAT 轮换与 AI 故障包 | 排障必读 |
 | [07-内网与生产平移路线](07-内网与生产平移路线.md) | 原型孵化、持续权威分工、备选下线切换和 Linux/Windows 双目标 | 规划内网平移 |
-| [08-双工具共存与实施](08-双工具共存与实施.md) | 共享契约、controller/adapter、provider 验证矩阵、部署边界与回滚 | 接入或切换 provider |
+| [08-双工具共存与实施](08-双工具共存与实施.md) | 共享契约、外部技能包映射、双工具验证矩阵、部署边界与回滚 | 接入或切换 provider |
 | [平台使用合同](usage/CONTRACT.md) | 项目使用层的唯一合同入口；随版本化使用发布包（`usage/bundle.json`，`codex/tools/usage-bundle.sh`）下发，项目 pin 版本 | 项目接入、升级或核对所用平台版本 |
 | [ADR 0001 平台边界](docs/adr/0001-platform-boundary.md) | 平台交付物、内核代码类别、项目数据位置、两层分离 | 判断一项需求或代码能否进入平台 |
 | [ADR 0002 确定性开发流程](docs/adr/0002-deterministic-development-flow.md) | 路由合同与执行引擎分离、路由卡字段、VM 执行引擎退出、重开无人值守的条件 | 判断一条 Issue 怎么开发，或讨论自动化 |
@@ -183,7 +177,7 @@ sequenceDiagram
 ### 技能安装与漂移核对
 
 平台技能只有一份源 `skills/`（#379，ADR 0001 D8），由 `skills/skills.manifest` 声明每个技能装到 Claude、Codex 哪一侧，两个 installer 各自生成落点；改动 SKILL.md 或 references 后，装到本机的副本立即漂移，
-需重装并核对回 `CLEAN`。7 个 installer（含下面两个）全部经 `codex/lib/install-source-guard.sh` 做 source provenance 与 staleness 闸门，
+需重装并核对回 `CLEAN`。6 个 installer（含下面两个）全部经 `codex/lib/install-source-guard.sh` 做 source provenance 与 staleness 闸门，
 检测到 checkout 落后缓存 upstream 时拒绝安装。无 upstream / detached HEAD 等无法比较的情况会报告
 `staleness unchecked`，不能当作 fresh main 证明；安装前须按 broker fresh-fetch 并核对 source pin。
 
@@ -202,19 +196,19 @@ Claude 侧的 Matt 插件不走上表的 installer，而由 Claude Code 自己�
 `bash skill-for-claude/check-plugin-pin.sh --source-only` 校验 marketplace 条目、vendor manifest 与
 `codex/install-skills.sh` 的版本三方相等；不带参数时再只读核对本机已装插件，首行为
 `PIN_CLEAN` / `PIN_DRIFT` / `PIN_NOT_INSTALLED` / `PIN_UNREADABLE` 之一。判定以 commit 为准，版本号只作旁证；
-已装记录的格式不认识时读出 `PIN_UNREADABLE`，不判 `PIN_CLEAN`。该检查不属于下面的七安装面，也不注册
+已装记录的格式不认识时读出 `PIN_UNREADABLE`，不判 `PIN_CLEAN`。该检查不属于下面的六安装面，也不注册
 marketplace、不安装或升级插件：source 合并不等于本机已切换来源，实际升级与 fresh-session 验收另行授权。
 superpowers 在 Claude 与 Codex 上跟随官方 marketplace，平台 pin 7.0.0 只作三端核对基准与 Cursor 项目级导出源（#392）；两个技能包的平台边界与升级后的人工适配检查清单见
 [08 §5](08-双工具共存与实施.md#5-matt-skills-与平台映射)。
 
-Issue #308 的安装面只读核对合同（#383 起七个）：`bash codex/tools/check-installed-drift.sh` 逐项报告
+Issue #308 的安装面只读核对合同（#391 起六个）：`bash codex/tools/check-installed-drift.sh` 逐项报告
 `PASS/GAP`、source/installed 可读量与具体缺失或字节不符的目标；可读量沿用 [06 踩坑 20](06-运维手册与踩坑集.md)。
 计数或 revision 相等不能代替文件比对。检查不运行 installer、不读取凭据、不调用 sudo、不创建临时文件、
 cache 或报告，也不自动修复。`--source-only` 仅校验源码映射，不能证明 installed 同步；
 合法 PR 的受管源可不同于缓存 main，该来源 GAP 继续独立输出，不阻断源定义自洽门。
 
 在 Mac 和 gitea-ci 本机分别执行，输出各自的 source SHA、缓存 origin/main 与实际检查 roots；fresh main
-证据仍由受控 broker 在检查外取得，检查本身不 fetch。`--target-home`、`--install-root`、`--agent-dir`、
+证据仍由受控 broker 在检查外取得，检查本身不 fetch。`--target-home`、`--install-root`、
 `--architecture-prefix` 可指定真实已有安装位置，不能用未证实的 prefix 或缺失安装面制造 PASS。
 所有反向漂移测试只在隔离 fixture 构造，真实安装面只读。
 
@@ -242,14 +236,14 @@ Windows 各一段原则 + 全平台一致的流程不变量）。下列材料是
 
 | 入口 | 地址 |
 |------|------|
-| Gitea | http://gitea-ci.orb.local:3000；实际目标由项目 profile 指定；旧试点仓库自 #252 起已退出平台治理（仓库保留） |
+| Gitea | http://gitea-ci.orb.local:3000；实际目标由 broker manifest 的项目指定；旧试点仓库自 #252 起已退出平台治理（仓库保留） |
 | 测试环境应用 | 由目标项目的 `appserver-test` profile 指定；历史 `gitea-ci:8091` 已在 Issue #21 收口，不得作为当前入口 |
 | Mailpit 收件箱 | http://gitea-ci.orb.local:8025 |
 | Verdaccio | http://gitea-ci.orb.local:4873 |
 | 凭据边界 | manager audit/mutation 与每项目 agent 使用 repo-external 独立 mode 600 protected credential；历史 admin/`ci-bot` 文件不是正常入口，凭据不得进入仓库、argv 或日志 |
 | Mac 工作克隆 | 由目标项目的 manifest `mac_checkout` 指定 |
 
-私有仓库检查不得从匿名 API 开始。先解析目标 project profile/remote，再按 [06 §1.1](06-运维手册与踩坑集.md#11-私有-gitea-的只读检查) 使用最小权限 profile、既有 Git credential、VM-local 管理员只读 helper 或已登录浏览器；`404`/`Repository not found` 在认证与 ACL 未核对前不构成“不存在”证据。
+私有仓库检查不得从匿名 API 开始。先解析目标 manifest 项目/remote，再按 [06 §1.1](06-运维手册与踩坑集.md#11-私有-gitea-的只读检查) 使用 broker 的最小权限路由、既有 Git credential、VM-local 管理员只读 helper 或已登录浏览器；`404`/`Repository not found` 在认证与 ACL 未核对前不构成“不存在”证据。
 
 Issue #61/#67/#70 的 broker 与 protected-file 修正已发布；Issue #73 的 manifest-fixed remote source
 已进入 protected `main`，逐项目安装/adoption 仍以各自 verification 为准。正常 host 访问统一使用
@@ -270,12 +264,12 @@ project agent 为准：先只读 check，再一次处理一个明确仓库，回
 ## 7. 术语
 
 - **Issue 合同**：Issue、有效评论、summary，以及复杂变更的 spec/plan 共同定义的执行边界
-- **Development Loop**：在合同内反复实现、验证、自修复和处理 CI 反馈，直到完成或升级给人
-- **`approved`**：合同已明确、允许启动 Loop；不授权合并或部署
+- **Development Loop**：确认点 1 之后会话在合同内反复实现、验证、自修复和处理 CI 反馈，直到完成或升级给人；VM 上的无人值守版本已随 #391 退出
+- **`approved`**：合同已明确、允许开始实现；不授权合并或部署
 - **`change/N-short-description`**：Issue N 从分析到最终 PR 共用的单一 readable 分支；`short-description` 是锁定的 2–4 段 lowercase ASCII kebab-case slug
 - **`docs/changes/N-short-description/`**：与分支使用相同 `N + slug` 的文档目录；`change/N` 与 `docs/changes/N/` 仅在远端/历史证据存在时作为 legacy 维护入口
 - **Host profile**：无 Secret 的主机身份与 capability 合同；live 文件固定为 root-owned `/etc/aisoft/host-profile.json`
-- **Host access broker**：Mac host 上的 versioned/allowlisted 访问入口；把 exact project/operation 映射到 Gitea/Git/OrbStack target 与最小权限 identity，不接受任意 shell、URL、credential path 或任意 merge 参数；routine merge 仅接受 number 与 exact head SHA
+- **Host access broker**：Mac host 上的 versioned/allowlisted 访问入口；把 exact project/operation 映射到 Gitea/Git/OrbStack target 与最小权限 identity，不接受任意 shell、URL、credential path 或任何 merge 操作
 - **制品**：带项目、完整 SHA 和 checksum 的不可变字节；`/opt/artifacts` 是本地 legacy staging，必须经过引用保护和 retention dry-run，不能按文件名或年龄直接删除
 - **Linux release**：新项目为 `release.json` + digest-pinned OCI images + Compose/architecture checksums；Registry 与 offline bundle 共享同一 release identity
 - **PM2 legacy 制品**：`/opt/artifacts/<app>-<sha>.tar.gz`，只代表已退出治理的旧试点（见 [02 附录](archive/02-legacy-pilot-as-built.md)）；测过的字节 = 上线的字节

@@ -20,7 +20,21 @@ from .contract import (
     TRIAGE_STATE_LABELS,
     TYPE_LABELS,
 )
-from .verifier import redact
+
+
+def redact(text: str) -> str:
+    cleaned = re.sub(
+        r"(?im)^(Authorization\s*:\s*(?:token|bearer)\s+)\S+",
+        r"\1[REDACTED]",
+        text,
+    )
+    cleaned = re.sub(
+        r"(?im)^([A-Z0-9_]*(?:TOKEN|PASSWORD|SECRET|API_KEY|PRIVATE_KEY|CREDENTIAL)"
+        r"[A-Z0-9_]*\s*=\s*)\S+",
+        r"\1[REDACTED]",
+        cleaned,
+    )
+    return cleaned
 
 
 class GiteaError(RuntimeError):

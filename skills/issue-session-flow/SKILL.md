@@ -1,13 +1,13 @@
 ---
 name: issue-session-flow
-description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆成多个 Issue、一次新生成了多个 Issue、要同时处理多个已有 Issue、准备提交最终 PR、manual PR 等人合并、routine-auto 继续硬门、merge 后收尾、或要清理并归档一个已完成的会话。Also use to coordinate one AISoftPlatform Issue per session through contract/start confirmation, final-PR confirmation, manual or eligible routine merge, and deterministic post-merge cleanup. 触发词：开 issue、新会话、调度会话、派单、并行、顺序、依赖、准备 PR、待合并、合并了、收尾、清理 worktree、归档会话、衍生 issue。
+description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆成多个 Issue、一次新生成了多个 Issue、要同时处理多个已有 Issue、准备提交最终 PR、PR 等人合并、merge 后收尾、或要清理并归档一个已完成的会话。Also use to coordinate one AISoftPlatform Issue per session through contract/start confirmation, final-PR confirmation, human merge, and deterministic post-merge cleanup. 触发词：开 issue、新会话、调度会话、派单、并行、顺序、依赖、准备 PR、待合并、合并了、收尾、清理 worktree、归档会话、衍生 issue。
 ---
 
 # Issue 会话编排
 
-一个 Issue 一个会话；会话开在该 Issue 的**目标项目**里，全部实现都在该 Issue 的 exact 隔离 worktree 内。默认人工确认只有两处：确认合同并启动 Development Loop；提交唯一最终 PR 前确认。manual PR 等人合并；eligible routine-auto 在提交确认后继续 CI 与最终硬门。merge 后终态、文档、本地清理与归档按确定性流程完成，不再询问。
+一个 Issue 一个会话；会话开在该 Issue 的**目标项目**里，全部实现都在该 Issue 的 exact 隔离 worktree 内。默认人工确认只有两处：确认合同并开始实现；提交唯一最终 PR 前确认。PR 由人合并（routine 自动合并已随 #391 退出）。merge 后终态、文档、本地清理与归档按确定性流程完成，不再询问。
 
-**核心事实**：manual 路径由会话在人确认 merge 后主动收尾；routine-auto 成功后同一会话立即收尾。两条路径都必须完成终态标签、文档自查、worktree/本地分支清理并归档，但不为这些确定性动作增加确认点。
+**核心事实**：会话在人确认 merge 后主动收尾，必须完成终态标签、文档自查、worktree/本地分支清理并归档，但不为这些确定性动作增加确认点。
 
 本技能用到的会话能力按能力名描述，各工具按自己的方式提供：
 
@@ -47,7 +47,7 @@ PR summary-only 回填与范围内 CI 修复的每次后续 push，则比对该�
 exact head。** 每次比较都是必做步骤，不能沿用首次旧 SHA，也不能省略读回校验。后续 push 前
 确认本会话归属、exact branch、新增 diff 在已批准合同内、必要验证通过与工作树清洁，再记录
 当前 40 位 lowercase head。`previous_head` 只作审计信息，不替代本次比较锚。
-授权仍绑定 exact Issue/branch/policy，合法回填与范围内 CI commit 不重复确认。owner标记仅核对
+授权仍绑定 exact Issue/branch，合法回填与范围内 CI commit 不重复确认。owner标记仅核对
 「谁在推」，不能替代broker的来源、祖先、完整内容与FF验证；范围扩大、他人改写或 `pushed_head` 不匹配立即停止并查明，
 不得把未知改写直接登记为新锚。首次候选在确认后改变时先停止并更新候选验证证据。
 
@@ -81,7 +81,7 @@ PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli scan-worktrees --repo <check
 **依赖身份（#286 source/local fixture 已验证，installed/live 尚未验收）**：旧数字只表示本仓；
 跨仓必须使用 exact `owner/repo#N`，不得填外仓裸编号。新读取必须先匹配 manifest 的
 `dependency_read_targets` 再 GET，缺省只允许本仓，允许的跨仓边以 manifest 为准。
-Controller 与 routine merger 共用身份/终态规则，本仓同号不能满足外仓前置。外仓仅由 broker
+会话与终态工具共用身份/终态规则，本仓同号不能满足外仓前置。外仓仅由 broker
 manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。格式不支持或读取不可验证
 就是阻塞，不能换成数字或 `[]` 求绿。runtime 完成并独立安装前保留正文中的完整 reference；
 文档示例不表示功能已上线。
@@ -125,7 +125,7 @@ manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。
 用会话标题让状态一眼可见：
 
 ```
-#N slug · 待启动 → 进行中 → 待提交PR → manual: 待合并 / routine: 硬门 → 收尾 → 归档
+#N slug · 待启动 → 进行中 → 待提交PR → 待合并 → 收尾 → 归档
 ```
 
 ## approved 之后默认自主推进
@@ -148,21 +148,18 @@ commit、测试与普通修复、必需的更宽闸门、判级投影。确认�
 
 ## 确认点 1：合同/启动
 
-triage、判级与路由要求的 semantic docs 完整后，输出 exact Issue 合同并询问是否启动 Development
-Loop。确认后持久化 `approved`；它只授权合同内实现、测试和修复，不授权提交 PR、merge 或 deploy。
+triage、判级与路由要求的 semantic docs 完整后，输出 exact Issue 合同并询问是否开始实现。
+确认后持久化 `approved`；它只授权合同内实现、测试和修复，不授权提交 PR、merge 或 deploy。
 
 ## 确认点 2：准备提交最终 PR
 
-本地验证完成后进入 `AWAITING_PR_CONFIRMATION`；重复 poll 不调用 provider、不 push、不建 PR。
-只给出一份与 policy 对应的候选。manual 与 routine-auto 都必须输出 branch、policy、真实验证、判级和未执行项；
+本地验证完成后进入 `AWAITING_PR_CONFIRMATION`；在人确认之前不 push、不建 PR。
+只给出一份候选，必须输出 branch、真实验证、判级和未执行项；
 平台仓的 complex 变更另加一行交叉审查结论（由未参与实现的另一方提供者对候选 head 只读审查，见 `03` §「交叉审核」）。
-
-manual：
 
 ```text
 🟠 准备提交最终 PR —— #N <标题>
 Branch: change/N-<slug>
-Policy: manual
 变更: <一句话>
 验证: <真实结果；未运行写 NOT RUN>
 判级: <classification read-back>
@@ -173,16 +170,8 @@ Policy: manual
 READY_FOR_REVIEW，等待你人工审核并合并。部署不在本次授权内。
 ```
 
-manual 文本不得包含自动合并 marker。eligible routine-auto 的候选必须逐字包含：
-
-```text
-当前合同内 CI 修复可继续，最终 head 的 required CI 全绿且全部硬门通过后，允许受控自动合并。
-```
-
-routine 授权绑定 exact Issue、branch 与 policy，不绑定确认时 SHA；实际 merge 必须钉住最终 40 位
-lowercase SHA。部署不在本次授权内。routine hard gate 失败只返回一个稳定原因，零 merge POST、零权限降级、零 fallback。
-manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；routine `AUTO_MERGED` receipt
-直接进入收尾，不再询问第三次。
+候选文本不得包含自动合并 marker。授权绑定 exact Issue 与 branch，不绑定确认时 SHA；部署不在本次授权内。
+PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge。
 
 `判级` 一行是**合并前的最后一道自查**，必须填 `codex/tools/apply-classification-labels.sh --repo <checkout> --verify N`
 的真实读回，不是印象；用 exact Issue 编号，不用 `--range`。**不是 `projected` 就不要进入待合并**——合并把 Issue 转成 closed，
@@ -190,7 +179,7 @@ manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；rout
 读到 `projection-missing` 或 `projection-mismatch` 就修复合同内的投影（回去跑 `--apply`）并重新读回；读到 `broker-operation-missing` 就是本机 broker
 操作表陈旧，两台重装后重跑，不要往权限方向查；其它不可读结果作为 blocker 报告。`projection-window-closed` 是遗漏的证据，不是补写或覆盖的许可。未接入平台的项目跳过这一行。
 
-## 收尾（manual 确认已合并，或 routine receipt 后自动执行）
+## 收尾（人确认已合并后执行）
 
 1. 取回主干，确认 merge commit **真实存在**于 `origin/main`。人说「合并了」不是证据，`git log` 才是。
 2. 终态标签先 **dry-run**：接入平台的项目跑 `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>`，验证逐 Issue 判定计划。未接入的项目确认 `Closes #N` 已把 Issue 关掉。同时对本 Issue 跑一次 `codex/tools/apply-classification-labels.sh --verify N`（**用编号，不用 `--range`**）：报 `projection-window-closed` 说明合并前那一步漏了，如实记录并按 `03` §11 处置，**不补写、不加 override**。
@@ -199,7 +188,7 @@ manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；rout
    逐 Issue 行的 `commit` 是产出它的那条。**核对它就是第 1 步认定的那个 merge**；
    不是就说明范围瞄错了，重跑之前不要往下走。`origin/main~N` 在工具启动那一刻求值，
    不是在你 fetch 那一刻——`#167` 收尾时它就静默指向了别人刚合并的 Issue（#175）。
-3. merge receipt 已提供终态 mutation 权限；验证计划瞄准第 1 步的 exact merge 后直接加 `--apply`，
+3. 合并已提供终态 mutation 权限；验证计划瞄准第 1 步的 exact merge 后直接加 `--apply`，
    **并且用计划回给的 `pinned` 编号，不再传 `--range`**：
    `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --apply <pinned>`。
    人点头与你敲 `--apply` 之间 `origin/main` 还会移动，同一个 `--range` 第二次解析可以
@@ -212,7 +201,7 @@ manual PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge；rout
 4. 文档自查：接入平台的项目跑 `check-change-documents --repo <checkout>`。
 5. 清理：**先离开 worktree**，再 `git worktree remove <path>` 与 `git branch -d change/N-slug`。站在 worktree 里删自己脚下的目录会失败。
 6. 盘点衍生 Issue：真正独立的验收标准开新 Issue，不扩展已关闭的那张；有调度会话就用会话间消息回报，没有就自己开 Issue 并派单。
-7. 报告 exact merge/receipt、终态、文档检查、worktree/本地分支清理与未执行项，然后直接归档本会话。
+7. 报告 exact merge、终态、文档检查、worktree/本地分支清理与未执行项，然后直接归档本会话。
    任何确定性收尾失败都必须保留会话并报告真实 blocker，不得伪报已归档。
 
 归档会话只清理工具自己管理的工作目录，**不是**你手建的 change worktree。第 5 步不能省。

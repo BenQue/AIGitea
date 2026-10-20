@@ -31,8 +31,8 @@ class ProjectLeakTests(unittest.TestCase):
             {"name": "demo", "classification": "public-test"},
         ]}))
         self.write("codex/config/host-access-broker.json", json.dumps({"projects": [
-            {"project_id": "acme-app", "repository": "AcmeApp", "vm_profile": {"name": "acme-vm"}},
-            {"project_id": "demo", "repository": "demo", "vm_profile": None},
+            {"project_id": "acme-app", "repository": "AcmeApp"},
+            {"project_id": "demo", "repository": "demo"},
         ]}))
         self.write("codex/config/project-leak-baseline.json",
                    json.dumps({"retired": ["oldproj"], "files": {"README.md": 1}}))
@@ -60,7 +60,7 @@ class ProjectLeakTests(unittest.TestCase):
 
     def test_names_come_from_manifests_only(self):
         self.assertEqual(self.checker.project_names(self.root, ["oldproj"]),
-                         ["acme-app", "acme-vm", "acmeapp", "oldproj"])
+                         ["acme-app", "acmeapp", "oldproj"])
 
     def test_baseline_matches_and_allowed_places_are_ignored(self):
         code, out, _ = self.run_checker()

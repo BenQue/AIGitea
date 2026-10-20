@@ -1,6 +1,6 @@
 # 03 · Issue / Spec / Plan 与单闸门开发流程
 
-> v3 当前文档契约（更新 2026-08-26）。Issue 是所有工作的主键；小变更允许从明确的 Issue 直接进入 Development Loop，production complex 必须先完成 spec/plan，development complex 使用 Issue 正文中的验收合同。最终 PR merge 是唯一交付硬闸门；manual 集合人工合并，只有显式 opt-in 的 routine small 可在提交确认与最终硬门后受控合并。既有固定数字路径只作证据驱动的 legacy 兼容。
+> v3 当前文档契约（更新 2026-08-26）。Issue 是所有工作的主键；小变更允许从明确的 Issue 直接进入实现，production complex 必须先完成 spec/plan，development complex 使用 Issue 正文中的验收合同。最终 PR merge 是唯一交付硬闸门，只由人合并（routine 自动合并已随 #391 退出）。既有固定数字路径只作证据驱动的 legacy 兼容。
 
 ## 1. 绑定模型
 
@@ -20,7 +20,7 @@ Issue #N
   `verification` 的取舍两个阶段完全相同（由 analyzer 决定）；它只表示本次变更欠一份
   无法由 diff review 与 required CI 重放的验证记录，不表示部署或终态。
 - `change_control=production` 的复杂变更必须有映射的 `spec` 和 `plan` 文档；development
-  complex 不生成仪式性 spec/plan，由 Controller 使用合成 `T01`。
+  complex 不生成仪式性 spec/plan，会话使用合成 `T01`。
 - 部署、迁移以及任何依赖真实环境或一次性观测的变更必须有映射的 `verification` 文档。
 - 新 Issue 从分析开始使用单一 `change/N-short-description` 分支；已有 `change/N` 与更早的 `spec/N` 只按历史证据兼容，不作为新 writer 的可选格式。
 - 文档与代码进入同一个最终 PR，不再强制独立 docs-only spec PR。
@@ -130,31 +130,17 @@ small 候选包括恢复既有明确行为的 Bug 修复、纯文档修正、只
 - 涉及认证、权限、安全、外部系统契约或共享核心组件。
 - 跨模块、跨服务或影响核心业务流程。
 - 修改 CI、制品、部署、健康检查、备份或回滚。
-- 修改 `AGENTS.md`、Agent 行为、自动化 controller 或平台治理规则。
+- 修改 `AGENTS.md`、Agent 行为、broker 合同或平台治理规则。
 - 失败后不能简单 revert，或数据/运行风险较高。
 
 Issue 作者可以显式选择复杂度，但 `complexity/small` 不能绕过强制复杂规则，`complexity/complex` 不能由 AI 自动降级。标签与实际内容冲突时，AI 依据仓库证据更正并留下理由。信息不足、内容冲突或风险边界无法确定时，Issue 保持 `awaiting-triage` 且不添加 complexity 标签。
 
-### 2.1 Routine small merge policy
+### 2.1 Routine small merge（已退出）
 
-分类与 merge policy 是两个步骤，不新增 label。只有同时满足以下条件才是 `routine-auto` 候选：
-
-- 最终 fresh 重算仍为 `effective_complexity=small`、`contract_effect=restore|unchanged`；
-- 范围局部、可简单 revert、无任何 forced-complex risk，且不是 major、阶段或里程碑完结；
-- repository manifest 显式 `routine_auto_merge_enabled=true`，声明独立 routine merger，required contexts 非空；
-- 提交 PR 前的人工确认绑定 exact Issue、`change/N-short-description` 与 `routine-auto` policy，并明确允许当前合同内 CI 修复后在最终 head required CI 全绿时受控合并。
-
-功能新增/变化、major、阶段/里程碑完结、安全、数据、共享核心、跨模块/服务、CI、制品、部署、
-健康检查、备份、回滚、Agent 与平台治理一律 `manual`。Issue #208 自身为 complex/platform，必须人工
-合并。routine hard gate 失败只返回稳定原因并停机，不自动切换到 admin、manager、project agent 或
-其他更宽权限路径。
-
-人工确认不绑定当时 SHA，避免范围内 CI repair 形成第三个确认点；merge operation 必须绑定最终 40 位
-lowercase head SHA，并在 POST 前按固定顺序 fresh 复核 authorization、summary/Gitea 分类、exact tuple、
-唯一开放 PR、open/unmerged、base=`main`、head、live protection/manifest、逐 context CI、reviews、
-dependencies 与完整 final diff。任何缺失、漂移或未知 schema 都 fail closed，零 merge POST。
-
-仓库与身份限制：routine auto 只对 repository manifest 分类为 `internal-application` 的仓库开放；平台仓、public-platform 仓与 required contexts 为空的仓库固定 disabled。合并必须由独立 per-project routine merger 经唯一 broker typed operation 执行；provider、project agent、platform manager、shared bot 与 site admin 都不得成为 routine merger。
+routine 自动合并已按 [ADR 0002](docs/adr/0002-deterministic-development-flow.md) D4 退出（#391）：broker 不再提供合并操作，
+所有仓库的最终 PR 都只由人合并，提交前确认不再区分 `manual|routine-auto` policy。分类仍是两个标签维度，不新增 merge-policy 维度。
+原合同（候选条件、最终 head 硬门与 merger 身份限制）见 Git 历史与 [迁出说明](archive/automation-engine-exit-261020.md)；
+manifest 中残留的 routine merger 字段与凭据种类在 R16 清理之前一律保持停用。
 
 ## 3. 文档合同
 
@@ -172,20 +158,20 @@ docs/changes/N-short-description/
 
 所有 change 文档的共同 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`created`、`updated`；`pr_url` 是 **summary 专属**字段，只写在 summary（#142：spec/plan/verification 里的复制品没有任何代码消费者，四份复制只会互相漂移），由 `aisoft-loop backfill-pr-url` 在 PR 建出后与 `status: pr-open` 一起写入；complex 的 spec/plan/verification 固定使用 `effective_complexity: complex`。summary 另外完整保存 analyzer schema 的 `reason`、语义 `required_docs`、`documents` 角色到真实 basename 的映射和 `override_reason`。无法安全判级时，summary 的 `assessed_complexity` 为 `needs-human-decision`，并从 front matter 与 `## AI 判级` YAML 同时省略整个 `effective_complexity` key，不保留空值或 placeholder；其他 complex 文档尚不得创建。
 
-新合同只使用 `summary`、`spec`、`plan`、`verification` 角色；Controller 严格读取 `documents` 映射并校验角色、slug、日期、目录边界和唯一性，不使用无约束 glob。没有映射的历史 summary 仅回退到 `00-summary.md`、`01-spec.md`、`02-plan.md`、`03-verification.md`，新 writer 不再生成这些名称，也不批量重命名历史文件。
+新合同只使用 `summary`、`spec`、`plan`、`verification` 角色；resolver 严格读取 `documents` 映射并校验角色、slug、日期、目录边界和唯一性，不使用无约束 glob。没有映射的历史 summary 仅回退到 `00-summary.md`、`01-spec.md`、`02-plan.md`、`03-verification.md`，新 writer 不再生成这些名称，也不批量重命名历史文件。
 
-映射的 spec 必须定义目标、可测验收标准、接口/数据/兼容影响和非目标。映射的 plan 必须把每条验收标准映射到 `Txx` 垂直切片、`blocked_by`、预期 touch points 和验证命令。Loop 不得自行修改已经确认的 acceptance criteria 或扩大范围。
+映射的 spec 必须定义目标、可测验收标准、接口/数据/兼容影响和非目标。映射的 plan 必须把每条验收标准映射到 `Txx` 垂直切片、`blocked_by`、预期 touch points 和验证命令。会话不得自行修改已经确认的 acceptance criteria 或扩大范围。
 
 ### 声明与实际文件共用一个校验结果（#289）
 
 本节同步 #289 已合并的治理合同。T01 独立应用合同后，fresh run 的 T02/T03 已完成 runtime 实施与本地验证；[PR #325](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/325) 已进入稳定 main。下述严格行为和新增命令已在 source 实现，installed/live 仍须按实际安装与项目验收证据确认。
 
 - summary front matter 的 `required_docs` 是文档义务的唯一声明事实源，`documents` 是新格式角色到安全 basename 的唯一路径事实源。共用受限 Python 解析器，拒绝空、未知、重复或混合角色与 legacy 文件名的列表，首项必须为 summary。
-- `route.required_docs` 给出阶段与复杂度的最低合同要求；Loop 检查声明满足这些要求，不得用路由生成的列表替换声明或丢掉额外角色。development 不强制 spec/plan，production complex 仍必须有 spec/plan；任何路由都不能让已声明 verification 的文件义务消失。
+- `route.required_docs` 给出阶段与复杂度的最低合同要求；`check-change-documents` 检查声明满足这些要求，不得用路由生成的列表替换声明或丢掉额外角色。development 不强制 spec/plan，production complex 仍必须有 spec/plan；任何路由都不能让已声明 verification 的文件义务消失。
 - 新格式 `documents` 的每个显式映射均须指向本 Issue 目录内可读取的普通文件，且通过既有角色、slug、日期、front matter 与路径边界校验；即使角色不在 required_docs 里也一样。缺文件或符号链接逃逸必须报错，诊断包含 Issue/change、role 与真实 basename。required_docs 的每一项必须有映射和实际文件。
-- 公共 `resolve-documents N --repo <checkout>` 成功时保留角色到 basename 的 JSON 形状，但必须拒绝不存在的显式映射。新增只读 `resolve-required-documents N --repo <checkout>` 返回 `required_docs`（规范化语义角色数组）和 `documents`（角色映射）。`check-change-documents`、Loop 与 `mark-completed-issues.sh` 共用同一解析和校验结果；终态工具不再用 awk 独立解析原文，resolver 或 JSON 失败不能回退为成功。
+- 公共 `resolve-documents N --repo <checkout>` 成功时保留角色到 basename 的 JSON 形状，但必须拒绝不存在的显式映射。新增只读 `resolve-required-documents N --repo <checkout>` 返回 `required_docs`（规范化语义角色数组）和 `documents`（角色映射）。`check-change-documents` 与 `mark-completed-issues.sh` 共用同一解析和校验结果；终态工具不再用 awk 独立解析原文，resolver 或 JSON 失败不能回退为成功。
 - legacy 固定映射是历史推断；未声明的可选 spec/plan/verification 不要求生成。显式 required_docs 中的历史 basename 必须有实际文件，并规范化为相应语义角色（如 `03-verification.md` → `verification`）。缺 required_docs 报明确 GAP；不新增 legacy 开关，不批量重命名或改写历史文档。
-- 合同草稿首次写入使用受限 publisher：`publish-spec`/`publish-plan` 可在 open Issue 的 exact branch 上，通过内部声明解析首次创建自己映射的目标，继续执行路径、日期、front matter 与 Ticket graph 硬门。该准备入口不向 reader 暴露通用 skip-existence 参数；草稿尚未齐全时，严格 resolver、文档检查、Loop 与终态检查仍须拒绝交付。
+- 合同草稿首次写入使用受限 publisher：`publish-spec`/`publish-plan` 可在 open Issue 的 exact branch 上，通过内部声明解析首次创建自己映射的目标，继续执行路径、日期、front matter 与 Ticket graph 硬门。该准备入口不向 reader 暴露通用 skip-existence 参数；草稿尚未齐全时，严格 resolver、文档检查与终态检查仍须拒绝交付；会话在确认点 2 前运行 `check-change-documents`。
 - `mark-completed-issues.sh` 的 dry-run 遇无效声明或缺文件时输出可搜索的 skip 原因和诊断，apply 对该 Issue 零 broker 写入。合法合同时，再按 §11 的独立 deployment_lifecycle 判终态。文件存在与可解析不证明 verification 内每项现场动作已执行。
 
 ### 何时声明 `verification`
@@ -317,7 +303,7 @@ Issue #108 增加的三个类型按同一套既有强制规则判定，不新增
 
 `type/security` 与 `type/data` 的强制不依赖 analyzer 是否填了对应 `risk_flags`：risk flag 是可能被遗漏的分析输出，类型标签是 Issue 上不可省略的事实，两条路径都强制才没有缝隙。`type/reliability` 刻意不强制——可用性修复常常正是「恢复既有产品行为」，一律 complex 会把真实的 small 修复挡在流程外，判定权交给 `contract_effect`。
 
-`awaiting-triage` 只表示 AI 无法安全判级、内容冲突或合同不完整，阻止自动路由。`approved` 是合同完整后的运行控制信号，不是 spec 审批闸门，也不授权合并或部署。受控 wrapper 可以在合同完整时自动写入 `approved`，但 controller 启动前必须重新验证合同，不能只信任标签。
+`awaiting-triage` 只表示 AI 无法安全判级、内容冲突或合同不完整，阻止自动路由。`approved` 是合同完整后的运行控制信号，不是 spec 审批闸门，也不授权合并或部署。受控 wrapper 可以在合同完整时自动写入 `approved`，但会话开始实现前必须重新验证合同，不能只信任标签。
 
 Matt triage 另有两个正交维度：category 使用 `triage/bug` 或 `triage/enhancement`，state 使用 `triage/needs-triage`、`triage/needs-info`、`triage/ready-for-agent`、`triage/ready-for-human`、`triage/wontfix`。每个已 triage Issue 恰好一个 category 和一个 state。`triage/ready-for-agent` 只允许 Agent 处理下一阶段，永远不替代 `approved`；`triage/wontfix` 关闭 Issue，但不得写入 `completed` 或 `deployed`。所有标签 mutation 通过同一个 projector，更新一个维度时保留其他维度和非受管标签。
 
@@ -328,12 +314,11 @@ Issue + needs-analysis
   → analyzer identifies type and contract_effect
   → forced-risk and explicit-label checks
   → complexity/small + approved（合同完整）
-  → Development Loop
+  → 会话实现与验证
   → AWAITING_PR_CONFIRMATION
-  → 人确认提交唯一最终 PR（manual 或 eligible routine-auto）
+  → 人确认提交唯一最终 PR
   → final PR + CI repair
-  → manual: READY_FOR_REVIEW → 人工合并
-  → routine-auto: final-head hard gates → AUTO_MERGED
+  → READY_FOR_REVIEW → 人工合并
   → 部署另行授权
 ```
 
@@ -347,8 +332,8 @@ Issue + needs-analysis
   → 人与 AI 完成映射的 spec + plan
   → spec-review（可选，不是硬闸门）
   → approved（合同完整）
-  → Development Loop
-  → AWAITING_PR_CONFIRMATION（Policy: manual）
+  → 会话按 Txx 实现与验证
+  → AWAITING_PR_CONFIRMATION
   → 人确认提交唯一最终 PR
   → final PR + CI → READY_FOR_REVIEW
   → 人工合并
@@ -421,16 +406,10 @@ PR 必须：
 - 说明迁移、部署和回滚影响（若适用）。
 - 通过受保护 `main` 要求的 `CI / test (pull_request)`。
 
-PR 合并是唯一交付硬闸门。Analyzer、Loop、provider wrapper 和 CI 都不得合并 PR。
-manual PR 只由人合并；routine-auto 只能由独立 exact-repository merger 经 broker operation 合并。
+PR 合并是唯一交付硬闸门，只由人合并；会话、协调者和 CI 都不得合并 PR（routine 自动合并已随 #391 退出）。
 
-提交前 handoff 固定包含 Issue、branch、`manual|routine-auto`、真实验证、判级读回和未执行项。
-manual 确认允许合同内 CI 修复，required CI 全绿后停在 `READY_FOR_REVIEW`；不得出现自动合并 marker。
-routine 确认必须明确“当前合同内 CI 修复可继续，最终 head 的 required CI 全绿且全部硬门通过后，
-允许受控自动合并”。两者都不授权部署。确认绑定 Issue/branch/policy，不绑定当时 SHA；最终 merge
-仍必须 pin exact SHA。分类标签不新增 merge-policy 维度。Gitea 1.26.4 没有 merge-only ACL；routine
-merger 是 exact-repo Write identity，但 credential 由 broker 独占，且该 identity 不在 main push/force
-allowlist。普通 Git 禁令由 typed operation、manifest/final-head gates 与 zero fallback 共同保证。
+提交前 handoff 固定包含 Issue、branch、真实验证、判级读回和未执行项。确认允许合同内 CI 修复，
+required CI 全绿后停在 `READY_FOR_REVIEW`；不授权部署。确认绑定 Issue/branch，不绑定当时 SHA。
 
 ### 交叉审核（平台仓 complex，ADR 0001 D6）
 
@@ -442,26 +421,23 @@ allowlist。普通 Git 禁令由 typed operation、manifest/final-head gates 与
 
 ## 8. 升级给人的条件
 
-Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限决策、缺凭据或外部服务、同一根因连续失败三次、验证不可靠或达到预算上限时才停止并请求人决定。普通编译、测试、构建和范围内 review 失败由 Loop 自主处理。
+会话只有在合同冲突、必须扩范围、破坏性迁移、安全/权限决策、缺凭据或外部服务、同一根因连续失败三次、验证不可靠或达到预算上限时才停止并请求人决定。普通编译、测试、构建和范围内 review 失败由会话自主处理。
 
 ## 9. 当前实施状态
 
 - Issue #57/#60 已把文档 resolver、writer、Matt triage projector、frontier ticket、Agent commit 后置校验、固定 upstream snapshot 与根级路由合并进 source；Issue #75 又统一了 readable branch/directory/worktree/PR 绑定。
 - platform canonical taxonomy 为 20 个（Issue #108 把 `type/*` 扩为 10 个），Matt 另加 7 个 namespaced `triage/*`，source manifest 共 27 个；准确集合以 `codex/config/gitea-labels.json` 的 `canonical` 为准。外部状态可能漂移，部署到每个仓库前必须用 broker `gitea.labels.provision` 同步并读回。
 - 旧 Issue 与历史文档不重命名；新 writer 只产生语义 basename，并从 Issue #75 起要求目录、branch、worktree 与同一 slug 一致。
-- Provider 默认仍为 `IMPLEMENT_PROVIDER=none`；每个项目必须在独立 profile 完成真实验收后才能启用。
-- Issue #208 governance source 定义 `AWAITING_PR_CONFIRMATION`、manual `READY_FOR_REVIEW` 和 routine
-  `AUTO_MERGED` 合同；runtime/config/credential/protection/live apply 尚未由本步骤执行。#208 自身固定
-  manual，本次治理变更不部署。
+- VM 上的 Development Loop、provider adapter 与 routine 自动合并已随 #391 退出（ADR 0002）；
+  `AWAITING_PR_CONFIRMATION` 与 `READY_FOR_REVIEW` 仍是会话流程的两个状态。
+
 ## 10. 依赖 Issue
 
 source runtime 的 summary 可用可选字段 `depends_on` 声明本仓 Issue 编号或下述仓库限定引用；缺省或 `[]`
 表示没有结构化依赖。裸数字没有外仓身份，不得把外仓编号填作本仓依赖，也不得从标题或正文猜仓库。
-依赖同时是 routine hard gate 与 manual PR 就绪门，不改变分支或 CI：
-当前 PR 的 CI 通过后，全部依赖 Issue 必须同时为 closed 且带有 `completed` 或
-`deployed` 生命周期终态，manual 才能进入 `READY_FOR_REVIEW`，routine 才能 merge。否则保存
-`awaiting_dependencies`，后续轮询只重查 CI 与依赖，不再次调用 provider、
-不创建第二个 PR，也不自动合并。
+依赖是 PR 就绪门，不改变分支或 CI：当前 PR 的 CI 通过后，会话核对全部依赖 Issue 必须同时为
+closed 且带有 `completed` 或 `deployed` 生命周期终态，才能进入 `READY_FOR_REVIEW` 等人合并。
+否则停在等待依赖，只重查 CI 与依赖，不创建第二个 PR。
 
 ### #286 依赖合同（source/local 已验证，installed/live 尚未验收）
 
@@ -474,15 +450,15 @@ source runtime 的 summary 可用可选字段 `depends_on` 声明本仓 Issue �
   缺省只允许本仓；允许的跨仓边以 manifest 的 `dependency_read_targets` 为准。
   新 typed dependency read 只接受 reference，通过该映射后才构造 request；既有
   `gitea.issue.read(number)` 不扩参数。source executable manifest 已声明此新字段；installed manifest 仍须独立验收。
-- 外仓 GET 在 broker 内使用 manager-audit 只读路由，project-agent/routine merger
+- 外仓 GET 在 broker 内使用 manager-audit 只读路由，project-agent
   credential 不得用于外仓；无 admin、mutation-token 或 direct-client fallback，不扩 ACL。
 - canonical identity 为 repository identity 与 Issue number。本仓整数/限定形式重合须报重复，
   自依赖按完整身份判定；外仓同号不是自依赖。本仓同号终态不能满足外仓前置。
-- Controller 与 routine merger 共用受控读取与终态规则，返回仅包含目标身份、编号、state、
+- 会话与终态工具共用受控读取与终态规则，返回仅包含目标身份、编号、state、
   labels 和 reference；核身份并拒绝 PR。越界/schema 错误停 `NEEDS_HUMAN_DECISION`；
-  已授权但网络、ACL、404 或响应不可验证停 `BLOCKED_EXTERNAL`，routine 零 merge POST。
-- 依赖引用在 Issue 正文、summary、state 与 PR 展示中保留仓库身份；只在全部依赖真实终态时
-  才通过既有就绪/merge 门。轮询不重新调用 provider、不创建第二个 PR。
+  已授权但网络、ACL、404 或响应不可验证停 `BLOCKED_EXTERNAL`。
+- 依赖引用在 Issue 正文、summary 与 PR 展示中保留仓库身份；只在全部依赖真实终态时
+  才通过既有就绪门。不创建第二个 PR。
 
 旧 installed runtime 面对 qualified 输入应拒绝，不能降成数字或删依赖求绿。G01 已独立应用
 治理合同并停止，fresh run 已完成 source 实现；安装/凭据/ACL/live apply/部署始终独立授权。
@@ -498,9 +474,8 @@ type、complexity 和非生命周期标签。最终 PR 已合并、且没有一�
 
 ### 谁推进 `completed`
 
-`deployed` 由应用部署链路在健康检查成功后回写（02 §9）。manual 路径由会话在人确认 merge 后
-执行终态 plan/apply；routine-auto 成功后由同一 issue session 立即执行确定性 plan/apply。两条路径
-都必须验证 exact merge，再用 pinned Issue 编号调用 `codex/tools/mark-completed-issues.sh`（#115）：
+`deployed` 由应用部署链路在健康检查成功后回写（02 §9）。会话在人确认 merge 后
+执行终态 plan/apply：必须验证 exact merge，再用 pinned Issue 编号调用 `codex/tools/mark-completed-issues.sh`（#115）：
 
 ```bash
 codex/tools/mark-completed-issues.sh --range 'origin/main~5..origin/main'   # 读计划
@@ -625,7 +600,7 @@ Issue 停在原地等 `deployed`，所以真正要成立的是「会有一次部
 ### 谁投影 `type/*` 与 `complexity/*`
 
 同一个缺口的另一半（#160）。`aisoft_loop.cli apply-analysis` 是这两个维度唯一的写入点，
-它只在 Development Loop 内运行，所以 Mac 交互会话开出的 Issue 判级只落在 summary
+它当时只在 Development Loop 内运行（Loop 已随 #391 退出），所以 Mac 交互会话开出的 Issue 判级只落在 summary
 front matter 里，标签始终为空——四维正交合同在这条路径上从来没被满足过。
 
 由人在**判级文档写好之后**运行 `codex/tools/apply-classification-labels.sh` 投影

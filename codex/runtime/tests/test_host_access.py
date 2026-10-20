@@ -24,8 +24,7 @@ from aisoft_host_access.broker import (
 )
 from aisoft_host_access.cli import main as host_access_cli_main
 from aisoft_host_access.contract import AccessContractError, load_access_contract
-from aisoft_host_access.profiles import ProfileMigrator
-from aisoft_host_access.runner import GovernedHostRunner, RoutineMergeRunner
+from aisoft_host_access.runner import GovernedHostRunner
 from aisoft_worktree_owner import (
     SESSION_ENV, WorktreeOwnerError, claim as claim_worktree, read_marker,
 )
@@ -117,23 +116,13 @@ class HostAccessContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = load_access_contract(ACCESS, GOVERNANCE)
 
-    def test_exact_projects_profiles_and_no_merge_surface(self) -> None:
+    def test_exact_projects_and_no_merge_or_vm_profile_surface(self) -> None:
         self.assertEqual(len(self.contract.projects), 7)
-        profiles = {
-            item.repository: item.vm_profile.name
-            for item in self.contract.projects
-            if item.vm_profile is not None
-        }
-        self.assertEqual(profiles, {
-            "aisoft-platform": "aisoft-platform",
-            "BetaApp": "betaapp",
-            "AlphaApp": "emaintenance",
-        })
         names = {item.name for item in self.contract.operations}
-        self.assertEqual(
-            {value for value in names if "merge" in value},
-            {"gitea.pull.merge.routine"},
-        )
+        self.assertEqual(len(names), 34)
+        # #391 (ADR 0002): routine merge and the VM profile operations left main.
+        self.assertFalse(any("merge" in value for value in names))
+        self.assertFalse(any(value.startswith("vm.profile.") for value in names))
         self.assertFalse(any("shell" in value or "url" in value for value in names))
         with self.assertRaises(AccessContractError):
             self.contract.operation("git.push.main")
@@ -144,11 +133,8 @@ class HostAccessContractTests(unittest.TestCase):
         self.assertEqual(project.project_agent, "deltadb-agent")
         self.assertEqual(project.mac_checkout, "/Users/benque/Projects/DeltaDB")
         self.assertEqual(project.git_remote_name, "origin")
-        self.assertIsNone(project.vm_profile)
         self.assertIsNone(project.routine_merge_agent)
         self.assertEqual(project.dependency_read_targets, ())
-        with self.assertRaises(AccessContractError):
-            self.contract.project_for_profile("deltadb")
         for project_id in ("rsdesign-new", "wmpda", "sap-table-migrate"):
             with self.subTest(project_id=project_id):
                 with self.assertRaises(AccessContractError):
@@ -162,29 +148,24 @@ class HostAccessContractTests(unittest.TestCase):
             path.write_text(json.dumps(raw))
             return load_access_contract(path, GOVERNANCE)
 
-    def test_vm_profile_set_and_timer_are_manifest_data(self) -> None:
-        # #373 (ADR 0001 D3): the VM profile set is whatever the manifest
-        # declares; a timer may only be the agent timer of its own profile.
-        def profile(timer):
-            def mutate(raw):
-                next(project for project in raw["projects"]
-                     if project["project_id"] == "deltadb")["vm_profile"] = {
-                    "name": "deltadb",
-                    "repo_dir": "work/DeltaDB",
-                    "analysis_provider": "none",
-                    "implement_provider": "none",
-                    "timer_unit": timer,
-                }
-            return mutate
+    def test_retired_vm_profile_keys_are_rejected(self) -> None:
+        # #391 (ADR 0002): VM profiles left with the Development Loop; only the
+        # runtime user that orbstack.vm.units.read reads remains.
+        def project_profile(raw):
+            next(project for project in raw["projects"]
+                 if project["project_id"] == "deltadb")["vm_profile"] = None
 
-        for timer in (None, "aisoft-agent@deltadb.timer"):
-            with self.subTest(timer=timer):
-                contract = self._load_mutated_access(profile(timer))
-                self.assertEqual(contract.project("deltadb").vm_profile.timer_unit, timer)
-        for timer in ("aisoft-agent@emaintenance.timer", "evil.timer"):
-            with self.subTest(timer=timer):
-                with self.assertRaisesRegex(AccessContractError, "timer_unit"):
-                    self._load_mutated_access(profile(timer))
+        def policy(raw):
+            raw["vm_profile_policy"] = {"runtime_user": "coder"}
+
+        def tool(raw):
+            raw["mac_host"]["vm_profile_tool"] = "/usr/local/libexec/aisoft/project-profile-migration"
+
+        for mutate in (project_profile, policy, tool):
+            with self.subTest(mutate=mutate.__name__):
+                with self.assertRaises(AccessContractError):
+                    self._load_mutated_access(mutate)
+        self.assertEqual(self.contract.raw["vm_runtime"], {"runtime_user": "coder"})
 
     def test_retired_application_targets_key_is_rejected(self) -> None:
         # #373 retired the #340 preflight operation together with its key.
@@ -254,8 +235,7 @@ class HostAccessContractTests(unittest.TestCase):
                 self.assertEqual(operation.arguments, arguments)
         forbidden_words = ("merge", "url", "owner", "repository", "method", "path", "json")
         for operation in self.contract.operations:
-            if operation.name != "gitea.pull.merge.routine":
-                self.assertFalse(any(word in operation.name for word in forbidden_words))
+            self.assertFalse(any(word in operation.name for word in forbidden_words))
             self.assertTrue(set(operation.arguments).isdisjoint(forbidden_words))
         audit = self.contract.operation("host.access.audit")
         self.assertEqual(audit.identity_route, "manager-audit")
@@ -362,264 +342,6 @@ class HostAccessContractTests(unittest.TestCase):
             broker.execute("betaapp", "shell.run")
         with self.assertRaisesRegex(BrokerError, "arguments"):
             broker.execute("betaapp", "gitea.repo.read", state="all")
-
-
-class VmProfilePathPrependContractTests(unittest.TestCase):
-    # 自 #252 五个项目退出后，生产 manifest 里没有任何项目再声明 path_prepend
-    # （唯一声明它的是已退出的 gamma-board）。path_prepend 仍是 broker 的
-    # 合同面，所以这些用例改由合成夹具驱动：把声明注入 betaapp 的副本，再断言
-    # 解析结果。生产 manifest 一侧保留一条「谁都没声明」的断言，防止悄悄回流。
-    FIXTURE_PROJECT = "betaapp"
-    FIXTURE_PROFILE = "betaapp"
-    FIXTURE_PATH_PREPEND = ["/opt/node22/bin", "/home/coder/.local/bin"]
-
-    def setUp(self) -> None:
-        self.contract = load_access_contract(ACCESS, GOVERNANCE)
-
-    def _raw_with_vm_profile_key(self, key: str, value: object) -> dict:
-        raw = json.loads(ACCESS.read_text())
-        project = next(item for item in raw["projects"]
-                       if item["project_id"] == self.FIXTURE_PROJECT)
-        assert project["vm_profile"] is not None
-        project["vm_profile"][key] = value
-        return raw
-
-    def _manifest(self, directory: str, raw: dict) -> Path:
-        path = Path(directory) / "access.json"
-        path.write_text(json.dumps(raw))
-        return path
-
-    def test_production_manifest_declares_path_prepend_nowhere(self) -> None:
-        raw = json.loads(ACCESS.read_text())
-        declared = {
-            project["project_id"]: project["vm_profile"].get("path_prepend")
-            for project in raw["projects"] if project["vm_profile"] is not None
-        }
-        self.assertEqual(declared, {
-            "aisoft-platform": None,
-            "betaapp": None,
-            "alphaapp": None,
-        })
-        for project_id in declared:
-            with self.subTest(project_id=project_id):
-                project = self.contract.project(project_id)
-                assert project.vm_profile is not None
-                self.assertEqual(project.vm_profile.path_prepend, ())
-
-    def test_declared_and_undeclared_projects_parse_exactly(self) -> None:
-        raw = self._raw_with_vm_profile_key("path_prepend", self.FIXTURE_PATH_PREPEND)
-        with tempfile.TemporaryDirectory() as temporary:
-            contract = load_access_contract(
-                self._manifest(temporary, raw), GOVERNANCE
-            )
-        declared = contract.project(self.FIXTURE_PROJECT)
-        assert declared.vm_profile is not None
-        self.assertEqual(declared.vm_profile.path_prepend,
-                         tuple(self.FIXTURE_PATH_PREPEND))
-        for project_id in ("aisoft-platform", "alphaapp"):
-            with self.subTest(project_id=project_id):
-                project = contract.project(project_id)
-                assert project.vm_profile is not None
-                self.assertEqual(project.vm_profile.path_prepend, ())
-
-    def test_invalid_path_prepend_declarations_fail_closed(self) -> None:
-        invalid_values = (
-            [],
-            "not-a-list",
-            {"prepend": "/opt/node22/bin"},
-            [42],
-            [""],
-            ["relative/bin"],
-            ["/opt/../bin"],
-            ["/opt/./bin"],
-            ["/opt/node:22/bin"],
-            ["/opt/node 22/bin"],
-            ["/opt/node22/bin/"],
-            ["/"],
-            ["//opt/node22/bin"],
-            ["/opt/$HOME/bin"],
-            ["/opt/node22/bin", "/opt/node22/bin"],
-        )
-        with tempfile.TemporaryDirectory() as temporary:
-            for invalid in invalid_values:
-                with self.subTest(invalid=invalid):
-                    raw = self._raw_with_vm_profile_key("path_prepend", invalid)
-                    with self.assertRaises(AccessContractError):
-                        load_access_contract(
-                            self._manifest(temporary, raw), GOVERNANCE
-                        )
-
-    def test_unknown_vm_profile_key_still_fails_closed(self) -> None:
-        raw = self._raw_with_vm_profile_key("path_append", ["/opt/node22/bin"])
-        with tempfile.TemporaryDirectory() as temporary:
-            with self.assertRaises(AccessContractError):
-                load_access_contract(self._manifest(temporary, raw), GOVERNANCE)
-
-    def test_profile_spec_projects_path_prepend(self) -> None:
-        for profile_name in ("aisoft-platform", "betaapp", "emaintenance"):
-            with self.subTest(profile_name=profile_name):
-                buffer = io.StringIO()
-                with redirect_stdout(buffer):
-                    code = host_access_cli_main([
-                        "--access-manifest", str(ACCESS),
-                        "--governance-manifest", str(GOVERNANCE),
-                        "profile-spec", "--profile-name", profile_name,
-                    ])
-                self.assertEqual(code, 0)
-                self.assertEqual(json.loads(buffer.getvalue())["path_prepend"], [])
-
-        raw = self._raw_with_vm_profile_key("path_prepend", self.FIXTURE_PATH_PREPEND)
-        with tempfile.TemporaryDirectory() as temporary:
-            manifest = self._manifest(temporary, raw)
-            buffer = io.StringIO()
-            with redirect_stdout(buffer):
-                code = host_access_cli_main([
-                    "--access-manifest", str(manifest),
-                    "--governance-manifest", str(GOVERNANCE),
-                    "profile-spec", "--profile-name", self.FIXTURE_PROFILE,
-                ])
-            self.assertEqual(code, 0)
-            self.assertEqual(json.loads(buffer.getvalue())["path_prepend"],
-                             self.FIXTURE_PATH_PREPEND)
-
-    def test_aisoft_platform_profile_is_analyzer_only(self) -> None:
-        project = self.contract.project("aisoft-platform")
-        self.assertIsNotNone(project.vm_profile)
-        assert project.vm_profile is not None
-        self.assertEqual(project.vm_profile.name, "aisoft-platform")
-        self.assertEqual(project.vm_profile.repo_dir, "work/AISoftPlatform")
-        self.assertEqual(project.vm_profile.analysis_provider, "codex")
-        self.assertEqual(project.vm_profile.implement_provider, "none")
-        self.assertIsNone(project.vm_profile.timer_unit)
-        self.assertEqual(project.vm_profile.path_prepend, ())
-
-        buffer = io.StringIO()
-        with redirect_stdout(buffer):
-            code = host_access_cli_main([
-                "--access-manifest", str(ACCESS),
-                "--governance-manifest", str(GOVERNANCE),
-                "profile-spec", "--profile-name", "aisoft-platform",
-            ])
-        self.assertEqual(code, 0)
-        payload = json.loads(buffer.getvalue())
-        self.assertEqual(payload, {
-            "analysis_provider": "codex",
-            "gitea_url": "http://gitea-ci.orb.local:3000",
-            "identity": "aisoft-platform-agent",
-            "implement_provider": "none",
-            "owner": "admin",
-            "path_prepend": [],
-            "profile_name": "aisoft-platform",
-            "project_id": "aisoft-platform",
-            "repo_dir": "/home/coder/work/AISoftPlatform",
-            "repository": "aisoft-platform",
-            "token_file": "/home/coder/.config/aisoft/credentials/aisoft-platform.token",
-        })
-
-    def test_betaapp_profile_is_analyzer_only_without_a_timer(self) -> None:
-        # #152 unlocks the analyzer canary for BetaApp and nothing else: the
-        # Development Loop stays out of scope, so implement_provider must remain
-        # disabled and timer_unit must stay unset. Installing a timer template is
-        # not the same as enabling one.
-        #
-        # analysis_provider is codex since #164. #152 picked claude by analogy
-        # with the other three internal-application profiles, not from evidence
-        # that the chain could run; the canary then proved it never had. On
-        # gitea-ci the claude CLI is off coder's PATH and unauthenticated, so
-        # claude-analyzer.sh:13 (command -v claude || exit 2) fails on its first
-        # line, while codex is the one analyzer chain with a produced artifact.
-        # A provider named here must be a runtime that exists on that host.
-        project = self.contract.project("betaapp")
-        self.assertIsNotNone(project.vm_profile)
-        assert project.vm_profile is not None
-        self.assertEqual(project.vm_profile.name, "betaapp")
-        self.assertEqual(project.vm_profile.repo_dir, "work/BetaApp")
-        self.assertEqual(project.vm_profile.analysis_provider, "codex")
-        self.assertEqual(project.vm_profile.implement_provider, "none")
-        self.assertIsNone(project.vm_profile.timer_unit)
-        self.assertEqual(project.vm_profile.path_prepend, ())
-
-        buffer = io.StringIO()
-        with redirect_stdout(buffer):
-            code = host_access_cli_main([
-                "--access-manifest", str(ACCESS),
-                "--governance-manifest", str(GOVERNANCE),
-                "profile-spec", "--profile-name", "betaapp",
-            ])
-        self.assertEqual(code, 0)
-        payload = json.loads(buffer.getvalue())
-        self.assertEqual(payload, {
-            "analysis_provider": "codex",
-            "gitea_url": "http://gitea-ci.orb.local:3000",
-            "identity": "betaapp-agent",
-            "implement_provider": "none",
-            "owner": "admin",
-            "path_prepend": [],
-            "profile_name": "betaapp",
-            "project_id": "betaapp",
-            "repo_dir": "/home/coder/work/BetaApp",
-            "repository": "BetaApp",
-            "token_file": "/home/coder/.config/aisoft/credentials/betaapp.token",
-        })
-
-    def test_emaintenance_profile_names_no_analysis_provider(self) -> None:
-        # analysis_provider is none since #178. #152 picked claude for all four
-        # internal-application profiles by analogy, not from evidence that the
-        # chain could run; on gitea-ci the claude CLI is off coder's PATH and
-        # unauthenticated, so claude-analyzer.sh:13 (command -v claude || exit 2)
-        # fails on its first line. This profile is the one where that dead
-        # declaration was also load-bearing: aisoft-agent@emaintenance.timer is
-        # active, so every 15 minutes provider-poll.sh:33 walked the whole
-        # needs-analysis queue into a hard failure.
-        #
-        # It is deliberately none rather than codex, which is what #164 gave
-        # betaapp. Naming a working provider asserts a runnable chain, and
-        # enabling one is a per-project acceptance gate: betaapp earned codex
-        # with its own read-only canary (BetaApp #66) before #164 changed the
-        # value. AlphaApp has no such artifact yet, and the assertion would
-        # outlive today's timer state, so a future re-enable would run a chain
-        # nobody ever validated. none makes provider-poll.sh:32 skip the whole
-        # analysis branch, which ends the fail-closed churn without asserting
-        # anything unproven.
-        #
-        # timer_unit stays as it is on purpose. It is a record, not a switch:
-        # profiles.py:289 never writes it into the profile and nothing in this
-        # repository calls systemctl on aisoft-agent@*.timer, so setting it to
-        # null would not stop the timer, it would only make the manifest state
-        # something untrue. Stopping it is a sudo action on the host.
-        project = self.contract.project("alphaapp")
-        self.assertIsNotNone(project.vm_profile)
-        assert project.vm_profile is not None
-        self.assertEqual(project.vm_profile.name, "emaintenance")
-        self.assertEqual(project.vm_profile.repo_dir, "work/AlphaApp")
-        self.assertEqual(project.vm_profile.analysis_provider, "none")
-        self.assertEqual(project.vm_profile.implement_provider, "none")
-        self.assertEqual(project.vm_profile.timer_unit,
-                         "aisoft-agent@emaintenance.timer")
-        self.assertEqual(project.vm_profile.path_prepend, ())
-
-        buffer = io.StringIO()
-        with redirect_stdout(buffer):
-            code = host_access_cli_main([
-                "--access-manifest", str(ACCESS),
-                "--governance-manifest", str(GOVERNANCE),
-                "profile-spec", "--profile-name", "emaintenance",
-            ])
-        self.assertEqual(code, 0)
-        payload = json.loads(buffer.getvalue())
-        self.assertEqual(payload, {
-            "analysis_provider": "none",
-            "gitea_url": "http://gitea-ci.orb.local:3000",
-            "identity": "alphaapp-agent",
-            "implement_provider": "none",
-            "owner": "admin",
-            "path_prepend": [],
-            "profile_name": "emaintenance",
-            "project_id": "alphaapp",
-            "repo_dir": "/home/coder/work/AlphaApp",
-            "repository": "AlphaApp",
-            "token_file": "/home/coder/.config/aisoft/credentials/emaintenance.token",
-        })
 
 
 class MattRepositoryAdapterTests(unittest.TestCase):
@@ -5206,29 +4928,6 @@ class HostAccessBrokerTests(unittest.TestCase):
             self.assertEqual(self._owner_marker(linked).last_push_head, first["pushed_head"])
             self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), first["pushed_head"])
 
-    def test_controller_integrates_main_and_owner_publishes_ff_without_reclaiming(self):
-        from aisoft_loop.controller import LocalGit
-        with tempfile.TemporaryDirectory() as temporary:
-            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
-            broker = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, []))
-            first = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
-            self._advance_remote_main(remote, canonical, "someone-elses-merge")
-            def host(operation, branch):
-                return broker.execute("aisoft-platform", operation, branch=branch)
-            local = LocalGit(linked, self.FF_BRANCH, project="aisoft-platform", host_runner=host)
-            before = local.head_sha()
-            self.assertTrue(local.integrate_main())
-            parents = self._git(["show", "-s", "--format=%P", "HEAD"], cwd=linked).split()
-            self.assertEqual(parents, [before, self._remote_sha(remote, "main")])
-            landed = local.push()
-            self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), landed)
-            self.assertEqual(self._owner_marker(linked).session, self.OWNER_SESSION)
-            self.assertEqual(local.publication_reference["previous_head"], first["pushed_head"])
-            noop = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
-            self.assertEqual(noop["write_status"], "NOOP")
-            self.assertFalse(noop["possible_write"])
-            self.assertFalse(local.integrate_main())
-
     def _canonical_remote_fixture(self, temporary):
         import hashlib
         from aisoft_main_integration import TemplateScopeContext
@@ -5260,39 +4959,6 @@ class HostAccessBrokerTests(unittest.TestCase):
         commands = []
         broker = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, commands))
         return remote, canonical, linked, broker, context, commands, spec, templates
-
-    def test_canonical_controller_reader_broker_share_real_integration_ff_backfill_and_noop(self):
-        from aisoft_loop.controller import LocalGit
-        from aisoft_main_integration import GitRepository
-        from aisoft_loop.documents import backfill_pr_url
-        with tempfile.TemporaryDirectory() as temporary:
-            remote, canonical, linked, broker, context, commands, spec, templates = self._canonical_remote_fixture(temporary)
-            with patch("aisoft_host_access.broker.template_scope_context", return_value=context) as broker_context, \
-                 patch("aisoft_loop.controller.template_scope_context", return_value=context) as controller_context:
-                first = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
-                self._advance_remote_main(remote, canonical, "unrelated-main-change")
-                local = LocalGit(linked, self.FF_BRANCH, project="aisoft-platform", access_contract=broker.contract,
-                    host_runner=lambda operation, branch: broker.execute("aisoft-platform", operation, branch=branch))
-                before = local.head_sha()
-                self.assertTrue(local.integrate_main())
-                main = self._remote_sha(remote, "main")
-                self.assertEqual(self._git(["show", "-s", "--format=%P", "HEAD"], cwd=linked).split(), [before, main])
-                self.assertEqual(self._git(["rev-parse", "HEAD^{tree}"], cwd=linked), GitRepository(linked).merge_tree(before, main))
-                second = local.push()
-                self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), second)
-                self.assertEqual(local.publication_reference["previous_head"], first["pushed_head"])
-                backfill_pr_url(linked, 70, "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/71")
-                self._git(["add", "docs"], cwd=linked)
-                self._git(["commit", "-q", "-m", "#70 T03: actual PR summary backfill"], cwd=linked)
-                final = local.push()
-                noop = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
-                self.assertEqual(noop["pushed_head"], final)
-                self.assertEqual(noop["code"], "NOOP")
-                self.assertFalse(noop["possible_write"])
-                self.assertTrue(all("--force" not in a and "--force-with-lease" not in a
-                                    for a in commands if a[:2] == ["git", "push"]))
-                broker_context.assert_called_with(broker.contract, "aisoft-platform")
-                controller_context.assert_called_with(broker.contract, "aisoft-platform")
 
     def test_canonical_broker_rejects_holder_unapproved_history_and_context_drift_without_push(self):
         from dataclasses import replace
@@ -5808,395 +5474,6 @@ class GovernedHostRunnerTests(unittest.TestCase):
         ])
         self.assertFalse(hasattr(runner, "execute"))
         self.assertFalse(hasattr(runner, "request"))
-
-    def test_routine_runner_exposes_only_fixed_typed_merge(self) -> None:
-        calls = []
-
-        def command_runner(argv, **kwargs):
-            calls.append((list(argv), kwargs))
-            payload = {
-                "operation": "gitea.pull.merge.routine",
-                "status": "AUTO_MERGED",
-                "pull_request": 208,
-                "head_sha": "a" * 40,
-            }
-            return subprocess.CompletedProcess(argv, 0, json.dumps(payload) + "\n", "")
-
-        runner = RoutineMergeRunner(
-            self.contract, "betaapp", command_runner=command_runner,
-        )
-        receipt = runner.merge(208, "a" * 40)
-        self.assertEqual(receipt["status"], "AUTO_MERGED")
-        self.assertEqual(calls[0][0], [
-            "/usr/local/libexec/aisoft/host-access-broker",
-            "--project", "betaapp",
-            "--operation", "gitea.pull.merge.routine",
-            "--number", "208",
-            "--sha", "a" * 40,
-        ])
-        for forbidden in ("execute", "request", "push_change", "issue_read"):
-            self.assertFalse(hasattr(runner, forbidden))
-
-    def test_routine_runner_refuses_non_receipt_and_has_no_fallback(self) -> None:
-        runner = RoutineMergeRunner(
-            self.contract,
-            "betaapp",
-            command_runner=lambda argv, **kwargs: subprocess.CompletedProcess(
-                argv, 0, '{"status":"PASS"}\n', ""
-            ),
-        )
-        with self.assertRaises(BrokerError):
-            runner.merge(208, "a" * 40)
-
-
-class ProfileMigrationTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.temporary = tempfile.TemporaryDirectory()
-        self.root = Path(self.temporary.name)
-        self.home = self.root / "home"
-        self.source = self.root / "source"
-        self.home.mkdir()
-        self.source.mkdir()
-        self.contract = load_access_contract(ACCESS, GOVERNANCE)
-        self.project = self.contract.project("alphaapp")
-        self.source_token = self.source / "alphaapp-agent-project-agent.token"
-        self.source_token.write_text("new-project-token\n")
-        self.source_token.chmod(0o600)
-        self.profile = self.home / ".config/aisoft/projects/emaintenance.env"
-        self.token = self.home / ".config/aisoft/credentials/emaintenance.token"
-        self.profile.parent.mkdir(parents=True)
-        self.token.parent.mkdir(parents=True)
-        self.profile.write_text("legacy-profile-with-inline-token\n")
-        self.token.write_text("legacy-token\n")
-        self.profile.chmod(0o400)
-        self.token.chmod(0o600)
-
-    def tearDown(self) -> None:
-        self.temporary.cleanup()
-
-    def migrator(self, *, identity="alphaapp-agent", replace_fn=os.replace):
-        return ProfileMigrator(
-            self.contract,
-            home=self.home,
-            source_credential_root=self.source,
-            target_uid=os.getuid(),
-            target_gid=os.getgid(),
-            source_uid=os.getuid(),
-            identity_reader=lambda token: identity,
-            replace=replace_fn,
-        )
-
-    def test_apply_readback_second_run_noop_and_rollback(self) -> None:
-        old_profile = self.profile.read_bytes()
-        old_token = self.token.read_bytes()
-        migrator = self.migrator()
-        result = migrator.apply("alphaapp")
-        self.assertEqual(result["result"], "applied")
-        self.assertNotIn(b"new-project-token", self.profile.read_bytes())
-        self.assertIn(b"GITEA_IDENTITY=alphaapp-agent", self.profile.read_bytes())
-        self.assertEqual(self.token.read_text(), "new-project-token\n")
-        self.assertEqual(stat.S_IMODE(self.profile.stat().st_mode), 0o600)
-        self.assertEqual(migrator.read_back("alphaapp")["result"], "read-back")
-        backup = self.home / ".local/state/aisoft-profile-backups/issue-61/alphaapp/latest"
-        metadata_before = (backup / "metadata.json").read_bytes()
-        self.assertEqual(migrator.apply("alphaapp")["result"], "no-op")
-        self.assertEqual((backup / "metadata.json").read_bytes(), metadata_before)
-        self.assertEqual(migrator.rollback("alphaapp")["result"], "rolled-back")
-        self.assertEqual(self.profile.read_bytes(), old_profile)
-        self.assertEqual(self.token.read_bytes(), old_token)
-        self.assertEqual(stat.S_IMODE(self.profile.stat().st_mode), 0o400)
-
-    def test_undeclared_profile_bytes_are_byte_identical_to_pre_112_shape(self) -> None:
-        # The subject here is the byte shape: nine lines, no PATH tail. It drives
-        # that shape off the production alphaapp entry, so the ANALYSIS_PROVIDER
-        # literal tracks whatever that profile declares — none since #178, claude
-        # before it. A diff on this line means the manifest moved, not that the
-        # pre-#112 shape regressed; check the line count and ordering instead.
-        self.migrator().apply("alphaapp")
-        expected = (
-            "AISOFT_PROJECT_ID=alphaapp\n"
-            "GITEA_URL=http://gitea-ci.orb.local:3000\n"
-            "GITEA_OWNER=admin\n"
-            "GITEA_REPO=AlphaApp\n"
-            "GITEA_IDENTITY=alphaapp-agent\n"
-            f"GITEA_TOKEN_FILE={self.home}/.config/aisoft/credentials/emaintenance.token\n"
-            f"AGENT_REPO_DIR={self.home}/work/AlphaApp\n"
-            "ANALYSIS_PROVIDER=none\n"
-            "IMPLEMENT_PROVIDER=none\n"
-        ).encode("utf-8")
-        self.assertEqual(self.profile.read_bytes(), expected)
-
-    def test_declared_path_prepend_is_generated_and_drift_fails_read_back(self) -> None:
-        # #252 退出五个项目后，生产 manifest 里没有项目再声明 path_prepend
-        # （原来只有 gamma-board 声明）。migrator 生成 PATH 行与 read-back
-        # 检测漂移仍是合同面，这里用注入了 path_prepend 的 betaapp 副本驱动。
-        raw = json.loads(ACCESS.read_text())
-        declared = next(item for item in raw["projects"]
-                        if item["project_id"] == "betaapp")
-        declared["vm_profile"]["path_prepend"] = [
-            "/opt/node22/bin", "/home/coder/.local/bin",
-        ]
-        manifest = self.root / "access-with-path-prepend.json"
-        manifest.write_text(json.dumps(raw))
-        contract = load_access_contract(manifest, GOVERNANCE)
-
-        source = self.source / "betaapp-agent-project-agent.token"
-        source.write_text("betaapp-project-token\n")
-        source.chmod(0o600)
-        migrator = ProfileMigrator(
-            contract,
-            home=self.home,
-            source_credential_root=self.source,
-            target_uid=os.getuid(),
-            target_gid=os.getgid(),
-            source_uid=os.getuid(),
-            identity_reader=lambda token: "betaapp-agent",
-            replace=os.replace,
-        )
-
-        self.assertEqual(migrator.apply("betaapp")["result"], "applied")
-        profile = self.home / ".config/aisoft/projects/betaapp.env"
-        content = profile.read_text()
-        path_line = "PATH=/opt/node22/bin:/home/coder/.local/bin:$PATH"
-        self.assertTrue(content.endswith(f"IMPLEMENT_PROVIDER=none\n{path_line}\n"))
-        self.assertEqual(content.count("\nPATH="), 1)
-        self.assertEqual(migrator.read_back("betaapp")["result"], "read-back")
-        self.assertEqual(migrator.consume_check("betaapp")["result"],
-                         "consumer-ready")
-        self.assertEqual(migrator.apply("betaapp")["result"], "no-op")
-
-        profile.write_text(content.replace(path_line, "PATH=/usr/bin:$PATH"))
-        with self.assertRaises(BrokerError) as caught:
-            migrator.read_back("betaapp")
-        self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
-
-        profile.write_text(content.replace(f"{path_line}\n", ""))
-        with self.assertRaises(BrokerError) as caught:
-            migrator.read_back("betaapp")
-        self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
-
-    def test_undeclared_project_with_injected_path_line_fails_read_back(self) -> None:
-        migrator = self.migrator()
-        migrator.apply("alphaapp")
-        self.profile.write_text(self.profile.read_text() + "PATH=/opt/evil/bin:$PATH\n")
-        with self.assertRaises(BrokerError) as caught:
-            migrator.read_back("alphaapp")
-        self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
-
-    def test_identity_mismatch_fails_before_target_mutation(self) -> None:
-        before = (self.profile.read_bytes(), self.token.read_bytes())
-        with self.assertRaises(BrokerError) as caught:
-            self.migrator(identity="betaapp-agent").apply("alphaapp")
-        self.assertEqual(caught.exception.code, "IDENTITY_MISMATCH")
-        self.assertEqual((self.profile.read_bytes(), self.token.read_bytes()), before)
-
-    def test_source_mode_and_symlink_are_rejected(self) -> None:
-        self.source_token.chmod(0o644)
-        with self.assertRaises(BrokerError) as caught:
-            self.migrator().apply("alphaapp")
-        self.assertEqual(caught.exception.code, "CREDENTIAL_MODE_INVALID")
-
-    def test_multiline_source_and_target_credentials_are_rejected(self) -> None:
-        self.source_token.write_text("new-project-token\nsecond-token\n")
-        with self.assertRaises(BrokerError) as caught:
-            self.migrator().apply("alphaapp")
-        self.assertEqual(caught.exception.code, "CREDENTIAL_INVALID")
-
-        self.source_token.write_text("new-project-token\n")
-        self.migrator().apply("alphaapp")
-        self.token.write_text("new-project-token\nsecond-token\n")
-        with self.assertRaises(BrokerError) as caught:
-            self.migrator().consume_check("alphaapp")
-        self.assertEqual(caught.exception.code, "CREDENTIAL_INVALID")
-
-    def test_source_owner_mismatch_is_rejected(self) -> None:
-        migrator = ProfileMigrator(
-            self.contract,
-            home=self.home,
-            source_credential_root=self.source,
-            target_uid=os.getuid(),
-            target_gid=os.getgid(),
-            source_uid=os.getuid() + 1,
-            identity_reader=lambda token: "alphaapp-agent",
-        )
-        with self.assertRaises(BrokerError) as caught:
-            migrator.apply("alphaapp")
-        self.assertEqual(caught.exception.code, "CREDENTIAL_OWNER_INVALID")
-        self.source_token.unlink()
-        target = self.source / "real-token"
-        target.write_text("new-project-token\n")
-        target.chmod(0o600)
-        self.source_token.symlink_to(target)
-        with self.assertRaises(BrokerError) as caught:
-            self.migrator().apply("alphaapp")
-        self.assertEqual(caught.exception.code, "CREDENTIAL_MODE_INVALID")
-
-    def test_partial_replace_failure_restores_both_files(self) -> None:
-        before = (self.profile.read_bytes(), self.token.read_bytes())
-        failed = False
-
-        def fail_once(source, target):
-            nonlocal failed
-            if Path(target) == self.profile and not failed:
-                failed = True
-                raise OSError("synthetic profile replace failure")
-            os.replace(source, target)
-
-        with self.assertRaises(BrokerError) as caught:
-            self.migrator(replace_fn=fail_once).apply("alphaapp")
-        self.assertEqual(caught.exception.code, "PROFILE_APPLY_FAILED")
-        self.assertEqual((self.profile.read_bytes(), self.token.read_bytes()), before)
-
-    def test_cross_project_source_credential_is_never_selected(self) -> None:
-        wrong = self.source / "betaapp-agent-project-agent.token"
-        wrong.write_text("betaapp-secret\n")
-        wrong.chmod(0o600)
-        self.source_token.unlink()
-        with self.assertRaises(BrokerError) as caught:
-            self.migrator().apply("alphaapp")
-        self.assertEqual(caught.exception.code, "CREDENTIAL_UNAVAILABLE")
-        self.assertNotIn("betaapp-secret", str(caught.exception))
-
-
-class VmProfilePreflightTests(unittest.TestCase):
-    """The VM profile tool is installed separately from the Mac broker entrypoint.
-
-    A missing VM installation must be reported as itself, not collapsed into the
-    generic HOST_COMMAND_FAILED that every other host failure produces.
-    """
-
-    def setUp(self) -> None:
-        self.contract = load_access_contract(ACCESS, GOVERNANCE)
-        self.tool = self.contract.raw["mac_host"]["vm_profile_tool"]
-
-    def _broker(self, runner):
-        return HostAccessBroker(
-            self.contract, credentials=StaticCredentials(), runner=runner
-        )
-
-    @staticmethod
-    def _completed(argv, returncode, stdout="", stderr=""):
-        return subprocess.CompletedProcess(list(argv), returncode, stdout, stderr)
-
-    def _recording_runner(
-        self, *, probe_rc: int, run_rc: int = 0, stdout: str = "", stderr: str = ""
-    ):
-        calls: list[list[str]] = []
-
-        def runner(argv, *, cwd=None, env=None):
-            calls.append(list(argv))
-            if "/usr/bin/test" in argv:
-                return self._completed(argv, probe_rc)
-            return self._completed(argv, run_rc, stdout, stderr)
-
-        return runner, calls
-
-    def test_missing_vm_tool_is_reported_as_itself(self) -> None:
-        runner, calls = self._recording_runner(probe_rc=1)
-        with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("alphaapp", "vm.profile.read-back")
-        self.assertEqual(caught.exception.code, "VM_TOOL_UNAVAILABLE")
-        self.assertNotEqual(caught.exception.code, "HOST_COMMAND_FAILED")
-        # The probe short-circuits: the privileged sudo invocation never runs.
-        self.assertEqual(len(calls), 1)
-        self.assertIn("/usr/bin/test", calls[0])
-        self.assertNotIn("/usr/bin/sudo", calls[0])
-
-    def test_missing_vm_tool_message_leaks_no_command_output(self) -> None:
-        def runner(argv, *, cwd=None, env=None):
-            return self._completed(argv, 1, "")
-
-        with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("alphaapp", "vm.profile.plan")
-        message = str(caught.exception)
-        self.assertIn("install-host-access-broker.sh", message)
-        for secret in ("token", "GITEA_TOKEN", "command not found", "sudo:"):
-            self.assertNotIn(secret, message)
-
-    def test_present_vm_tool_returns_payload(self) -> None:
-        payload = {"project": "alphaapp", "action": "read-back", "status": "PASS"}
-        runner, calls = self._recording_runner(probe_rc=0, stdout=json.dumps(payload))
-        result = self._broker(runner).execute("alphaapp", "vm.profile.read-back")
-        self.assertEqual(result["project"], "alphaapp")
-        # Probe first, then the real invocation.
-        self.assertEqual(len(calls), 2)
-        self.assertIn("/usr/bin/test", calls[0])
-        self.assertIn("/usr/bin/sudo", calls[1])
-        self.assertIn("read-back", calls[1])
-
-    def test_present_vm_tool_execution_failure_stays_host_command_failed(self) -> None:
-        runner, _ = self._recording_runner(probe_rc=0, run_rc=1)
-        with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("alphaapp", "vm.profile.read-back")
-        self.assertEqual(caught.exception.code, "HOST_COMMAND_FAILED")
-
-    def test_profile_tool_governed_error_is_surfaced(self) -> None:
-        tool_error = {
-            "code": "READ_BACK_MISMATCH",
-            "message": "profile read-back bytes mismatch",
-            "status": "BLOCKED_EXTERNAL",
-        }
-        # The tool writes its error contract to stderr and leaves stdout empty.
-        runner, _ = self._recording_runner(
-            probe_rc=0, run_rc=1, stderr=json.dumps(tool_error)
-        )
-        with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("alphaapp", "vm.profile.read-back")
-        self.assertEqual(caught.exception.code, "READ_BACK_MISMATCH")
-
-    def test_malformed_profile_tool_error_fails_closed(self) -> None:
-        for payload in (
-            {"code": "lowercase", "message": "x"},
-            {"code": "OK", "message": "too short a code"},
-            {"code": "VALID_CODE", "message": ""},
-            {"code": "VALID_CODE", "message": "multi\nline"},
-            {"code": "VALID_CODE", "message": "x" * 201},
-            {"code": "VALID_CODE"},
-            ["not", "a", "dict"],
-        ):
-            with self.subTest(payload=payload):
-                runner, _ = self._recording_runner(
-                    probe_rc=0, run_rc=1, stderr=json.dumps(payload)
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    self._broker(runner).execute("alphaapp", "vm.profile.read-back")
-                self.assertEqual(caught.exception.code, "HOST_COMMAND_FAILED")
-
-    def test_non_json_stderr_on_failure_fails_closed(self) -> None:
-        runner, _ = self._recording_runner(
-            probe_rc=0, run_rc=1, stderr="sudo: a raw diagnostic line"
-        )
-        with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("alphaapp", "vm.profile.read-back")
-        self.assertEqual(caught.exception.code, "HOST_COMMAND_FAILED")
-        self.assertNotIn("sudo", str(caught.exception))
-
-    def test_present_vm_tool_target_mismatch_is_unchanged(self) -> None:
-        runner, _ = self._recording_runner(
-            probe_rc=0, stdout=json.dumps({"project": "betaapp"})
-        )
-        with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("alphaapp", "vm.profile.read-back")
-        self.assertEqual(caught.exception.code, "TARGET_MISMATCH")
-
-    def test_present_vm_tool_invalid_json_is_unchanged(self) -> None:
-        runner, _ = self._recording_runner(probe_rc=0, stdout="not json")
-        with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("alphaapp", "vm.profile.read-back")
-        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_project_without_vm_profile_never_probes(self) -> None:
-        calls: list[list[str]] = []
-
-        def runner(argv, *, cwd=None, env=None):
-            calls.append(list(argv))
-            return self._completed(argv, 0)
-
-        with self.assertRaises(BrokerError) as caught:
-            self._broker(runner).execute("myapp", "vm.profile.read-back")
-        self.assertEqual(caught.exception.code, "TARGET_UNAVAILABLE")
-        self.assertEqual(calls, [])
-
 
 class ActRunnerStatusTests(unittest.TestCase):
     """#228: the one read that separates an idle runner from a stuck one.

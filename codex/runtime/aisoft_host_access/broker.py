@@ -5,7 +5,6 @@ import hashlib
 import time
 import copy
 import selectors
-import base64
 import math
 import os
 import pwd
@@ -30,7 +29,7 @@ from aisoft_main_integration import (
     template_scope_context,
 )
 
-from .dependencies import Dependency, DependencyError, parse_dependencies, resolve_target, project_issue, is_terminal
+from .dependencies import Dependency, DependencyError, resolve_target, project_issue
 
 from .contract import (
     IDENTIFIER_RE,
@@ -1413,9 +1412,6 @@ class HostAccessBroker:
                 from .credential_rotation import rotate
                 return rotate(self.contract, project_id, issue, sha, token_kind)
             if operation_name.startswith("gitea."):
-                if operation_name == "gitea.pull.merge.routine":
-                    assert number is not None and sha is not None
-                    return self._routine_merge(project, operation, number, sha)
                 return self._gitea(
                     project,
                     operation,
@@ -1452,8 +1448,6 @@ class HostAccessBroker:
                 return self._orbstack_runner_status(project, operation)
             if operation_name == "orbstack.vm.units.read":
                 return self._orbstack_vm_units(project, operation)
-            if operation_name.startswith("vm.profile."):
-                return self._vm_profile(project, operation)
         except AccessContractError as exc:
             raise BrokerError("REQUEST_DENIED", str(exc)) from exc
         except DependencyError as exc:
@@ -1481,370 +1475,6 @@ class HostAccessBroker:
                 raise BrokerError("DEPENDENCY_RESPONSE_INVALID", "local dependency is not an Issue")
             return value
         return project_issue(value, (owner, target.repository, number))
-
-    def _routine_merge(
-        self,
-        project: ProjectContract,
-        operation: OperationContract,
-        number: int,
-        sha: str,
-    ) -> dict[str, object]:
-        """Fresh, ordered, fail-closed routine merge gate and the sole merge POST."""
-        _positive_number(number, "pull request")
-        if COMMIT_SHA_RE.fullmatch(sha) is None:
-            raise BrokerError("ARGUMENT_INVALID", "routine merge requires an exact lowercase SHA-1")
-        repository_contract = self.contract.governance.repository(project.repository)
-        if (
-            not repository_contract.routine_auto_merge_enabled
-            or repository_contract.routine_merge_agent is None
-            or project.routine_merge_agent != repository_contract.routine_merge_agent
-        ):
-            raise BrokerError("ROUTINE_REPOSITORY_DISABLED", "repository routine merge is disabled")
-        credential = self.credentials.resolve(project, operation)
-        self._verify_identity(credential, require_non_admin_exact=True)
-        try:
-            actual_scopes = self._probe_token_scopes(credential)
-        except BrokerError as exc:
-            raise BrokerError(
-                "ROUTINE_TOKEN_SCOPE_MISMATCH",
-                "routine credential exact scope is unavailable or unsafe",
-            ) from exc
-        expected_scopes = set(
-            self.contract.governance.raw["routine_merge_agent_policy"]["token_scopes"]
-        )
-        if actual_scopes != expected_scopes:
-            raise BrokerError(
-                "ROUTINE_TOKEN_SCOPE_MISMATCH",
-                "routine credential scopes do not exactly match the manifest",
-            )
-        owner = quote(self.contract.governance.owner, safe="")
-        repository = quote(project.repository, safe="")
-        repo_api = f"{self.contract.governance.base_url}/api/v1/repos/{owner}/{repository}"
-
-        # 1. Submit authorization: it binds Issue/branch/policy, never a stale SHA.
-        pull = self._request_json(f"{repo_api}/pulls/{number}", credential.token)
-        if not isinstance(pull, dict) or not isinstance(pull.get("body"), str):
-            raise BrokerError("ROUTINE_AUTHORIZATION_INVALID", "pull authorization is missing")
-        markers = re.findall(
-            r"(?m)^AISoft-Submit-Authorization: issue=([1-9][0-9]*); "
-            r"branch=(change/[1-9][0-9]*-[a-z0-9-]+); policy=(manual|routine-auto)$",
-            pull["body"],
-        )
-        if len(markers) != 1 or markers[0][2] != "routine-auto":
-            raise BrokerError("ROUTINE_AUTHORIZATION_INVALID", "routine submit authorization is invalid")
-        issue_number = int(markers[0][0])
-        branch = markers[0][1]
-        closes = re.findall(r"(?mi)^Closes #([1-9][0-9]*)$", pull["body"])
-        if closes != [str(issue_number)]:
-            raise BrokerError(
-                "ROUTINE_AUTHORIZATION_INVALID",
-                "routine pull request must close exactly its authorized Issue",
-            )
-        if issue_number == 208:
-            raise BrokerError("ROUTINE_ISSUE_MANUAL_ONLY", "Issue #208 is manual-only")
-        pilot = repository_contract.routine_live_pilot
-        if pilot is not None and issue_number != pilot.canary_issue:
-            raise BrokerError(
-                "ROUTINE_CANARY_ONLY",
-                "routine live pilot is restricted to its exact canary Issue",
-            )
-        try:
-            change = ChangeName.parse_branch(branch, allow_legacy=False)
-        except ChangeNameError as exc:
-            raise BrokerError("ROUTINE_TARGET_INVALID", "routine branch is not readable") from exc
-        if change.issue_number != issue_number:
-            raise BrokerError("ROUTINE_TARGET_INVALID", "Issue and branch do not match")
-
-        # 2. Summary at the supplied final head plus current Gitea classification.
-        assert change.slug is not None
-        summary_match = re.findall(
-            rf"(?m)^- (docs/changes/{issue_number}-{re.escape(change.slug)}/"
-            rf"summary-{re.escape(change.slug)}-[0-9]{{6}}\.md)$",
-            pull["body"],
-        )
-        if len(summary_match) != 1:
-            raise BrokerError("ROUTINE_CONTRACT_INVALID", "exact semantic summary is missing")
-        summary = self._content_at_sha(repo_api, credential.token, summary_match[0], sha)
-        front = self._routine_front_matter(summary)
-        risk_flags_raw = front.get("risk_flags")
-        dependencies = front.get("depends_on", [])
-        if (
-            not isinstance(risk_flags_raw, list)
-            or any(not isinstance(item, str) or not item for item in risk_flags_raw)
-        ):
-            raise BrokerError("ROUTINE_CONTRACT_INVALID", "summary list fields are invalid")
-        dependencies = parse_dependencies(dependencies, issue_number,
-                                          (self.contract.governance.owner, project.repository))
-        for dependency in dependencies:
-            resolve_target(self.contract, project, dependency)
-        risk_flags = tuple(risk_flags_raw)
-        if (
-            front.get("issue") != issue_number
-            or front.get("branch") != branch
-            or front.get("change_type") in {"feature", "security", "data", "platform"}
-            or front.get("effective_complexity") != "small"
-            or front.get("contract_effect") not in {"restore", "unchanged"}
-            or set(risk_flags) & {
-                "functional-change", "schema-change", "data-migration", "security",
-                "shared-core", "cross-module", "cross-service", "ci-integration",
-                "ci-change", "artifact", "deployment", "deployment-boundary",
-                "rollback", "agent-governance", "platform-governance", "major",
-                "phase-completion", "milestone-completion",
-            }
-        ):
-            raise BrokerError("ROUTINE_CONTRACT_INVALID", "summary is not routine-small")
-        issue = self._request_json(f"{repo_api}/issues/{issue_number}", credential.token)
-        labels = {
-            item.get("name") for item in issue.get("labels", [])
-            if isinstance(item, dict) and isinstance(item.get("name"), str)
-        } if isinstance(issue, dict) else set()
-        type_labels = {name for name in labels if isinstance(name, str) and name.startswith("type/")}
-        complexity_labels = {
-            name for name in labels
-            if isinstance(name, str) and name.startswith("complexity/")
-        }
-        if (
-            not isinstance(issue, dict)
-            or issue.get("number") != issue_number
-            or issue.get("state") != "open"
-            or complexity_labels != {"complexity/small"}
-            or len(type_labels) != 1
-            or labels & {
-            "type/feature", "type/security", "type/data", "type/platform"
-            }
-        ):
-            raise BrokerError("ROUTINE_CONTRACT_INVALID", "Gitea classification is not routine-small")
-
-        # 3. Exact Issue/branch/docs/PR and one open PR only.
-        open_pulls = self._open_pulls(repo_api, credential.token)
-        matches = [
-            item for item in open_pulls
-            if isinstance(item, dict)
-            and isinstance(item.get("head"), dict)
-            and item["head"].get("ref") == branch
-        ]
-        same_issue = []
-        for item in open_pulls:
-            body = item.get("body") if isinstance(item, dict) else None
-            if not isinstance(body, str):
-                raise BrokerError("ROUTINE_PR_NOT_UNIQUE", "open pull inventory is invalid")
-            item_markers = re.findall(
-                r"(?m)^AISoft-Submit-Authorization: issue=([1-9][0-9]*); ", body
-            )
-            item_closes = re.findall(r"(?mi)^Closes #([1-9][0-9]*)$", body)
-            if str(issue_number) in item_markers or str(issue_number) in item_closes:
-                same_issue.append(item)
-        if (
-            len(matches) != 1
-            or matches[0].get("number") != number
-            or len(same_issue) != 1
-            or same_issue[0].get("number") != number
-        ):
-            raise BrokerError("ROUTINE_PR_NOT_UNIQUE", "exact change must have one open pull request")
-
-        # 4. Open, unmerged, main base.
-        if (
-            pull.get("state") != "open" or pull.get("merged") is True
-            or not isinstance(pull.get("base"), dict)
-            or pull["base"].get("ref") != self.contract.governance.default_branch
-            or not isinstance(pull.get("head"), dict)
-            or pull["head"].get("ref") != branch
-        ):
-            raise BrokerError("ROUTINE_PR_STATE_INVALID", "pull request state or base is invalid")
-
-        # 5. Head equals the caller-supplied final SHA.
-        if pull["head"].get("sha") != sha:
-            raise BrokerError("ROUTINE_HEAD_DRIFT", "pull request head does not match supplied SHA")
-
-        # 6. Live protection must match the enabled manifest and exact merger.
-        protection = self._request_json(
-            f"{repo_api}/branch_protections/{quote(self.contract.governance.default_branch, safe='')}",
-            credential.token,
-        )
-        permission = self._request_json(
-            f"{repo_api}/collaborators/{quote(credential.identity, safe='')}/permission",
-            credential.token,
-        )
-        permission_value = _strict_collaborator_permission(
-            permission,
-            credential.identity,
-            "routine permission response is invalid",
-        )
-        contexts = list(repository_contract.status_check_contexts)
-        expected_mergers = sorted([
-            self.contract.governance.human_merge_identity,
-            repository_contract.routine_merge_agent,
-        ])
-        if (
-            not isinstance(protection, dict)
-            or permission_value != "write"
-            or protection.get("enable_push") is not False
-            or protection.get("enable_push_whitelist") is not False
-            or protection.get("push_whitelist_usernames") != []
-            or protection.get("push_whitelist_teams") != []
-            or protection.get("push_whitelist_deploy_keys") is not False
-            or protection.get("enable_force_push") is not False
-            or protection.get("enable_force_push_allowlist") is not False
-            or protection.get("force_push_allowlist_usernames") != []
-            or protection.get("force_push_allowlist_teams") != []
-            or protection.get("force_push_allowlist_deploy_keys") is not False
-            or protection.get("enable_merge_whitelist") is not True
-            or sorted(protection.get("merge_whitelist_usernames") or []) != expected_mergers
-            or protection.get("enable_status_check") is not True
-            or sorted(protection.get("status_check_contexts") or []) != sorted(contexts)
-            or protection.get("required_approvals") != repository_contract.required_approvals
-            or protection.get("block_admin_merge_override") is not True
-        ):
-            raise BrokerError("ROUTINE_PROTECTION_DRIFT", "live protection differs from manifest")
-
-        # 7. Every canonical required context is successful for this exact SHA.
-        if not contexts:
-            raise BrokerError("ROUTINE_REQUIRED_CONTEXTS_EMPTY", "required contexts are empty")
-        combined = self._request_json(f"{repo_api}/commits/{sha}/status", credential.token)
-        statuses = combined.get("statuses") if isinstance(combined, dict) else None
-        if not isinstance(statuses, list):
-            raise BrokerError("ROUTINE_CI_INVALID", "commit status response is invalid")
-        by_context = {
-            item.get("context"): item.get("status")
-            for item in statuses if isinstance(item, dict)
-        }
-        if any(by_context.get(context) != "success" for context in contexts):
-            raise BrokerError("ROUTINE_CI_NOT_GREEN", "required CI is not green for exact head")
-
-        # 8. Any valid rejection blocks merge.
-        reviews = self._bounded_list(f"{repo_api}/pulls/{number}/reviews", credential.token)
-        for item in reviews:
-            if not isinstance(item, dict):
-                raise BrokerError("ROUTINE_REVIEW_INVALID", "pull review response is invalid")
-        if any(
-            str(item.get("state") or item.get("status") or "").upper()
-            in {"REQUEST_CHANGES", "REJECTED", "REQUESTED_CHANGES"}
-            and item.get("dismissed") is not True
-            and item.get("stale") is not True
-            for item in reviews
-        ):
-            raise BrokerError("ROUTINE_REVIEW_REJECTED", "pull request has a rejecting review")
-
-        # 9. Dependencies must be closed and completed/deployed.
-        for dependency in dependencies:
-            dep = self._read_dependency(project, dependency, local_token=credential.token)
-            if not is_terminal(dep):
-                raise BrokerError("ROUTINE_DEPENDENCY_BLOCKED", "dependency is not terminal")
-
-        # 10. Recompute conservative small scope from the complete final diff.
-        files = self._bounded_list(f"{repo_api}/pulls/{number}/files", credential.token)
-        entries: list[tuple[str, str]] = []
-        for item in files:
-            if not isinstance(item, dict) or not isinstance(item.get("filename"), str):
-                raise BrokerError("ROUTINE_SCOPE_INVALID", "pull file response is invalid")
-            status = str(item.get("status") or "modified")
-            entries.append((status, item["filename"]))
-        if not self._routine_files_are_local_reversible(entries):
-            raise BrokerError("ROUTINE_SCOPE_EXPANDED", "final diff is not local and reversible")
-
-        # 11. Last head read closes the local TOCTOU window; Gitea also checks head_commit_id.
-        final_pull = self._request_json(f"{repo_api}/pulls/{number}", credential.token)
-        if (
-            not isinstance(final_pull, dict)
-            or not isinstance(final_pull.get("head"), dict)
-            or final_pull["head"].get("sha") != sha
-        ):
-            raise BrokerError("ROUTINE_HEAD_DRIFT", "pull request head changed before merge")
-        payload = {
-            "do": "merge",
-            "head_commit_id": sha,
-            "force_merge": False,
-            "merge_when_checks_succeed": False,
-            "delete_branch_after_merge": True,
-        }
-        response = self._request_json(
-            f"{repo_api}/pulls/{number}/merge",
-            credential.token,
-            method="POST",
-            payload=payload,
-        )
-        return {
-            "operation": "gitea.pull.merge.routine",
-            "pull_request": number,
-            "head_sha": sha,
-            "status": "AUTO_MERGED",
-            "dependencies": [resolve_target(self.contract, project, ref)[2] for ref in dependencies],
-            "merge_commit_sha": (
-                response.get("sha") if isinstance(response, dict) else None
-            ),
-        }
-
-    def _content_at_sha(self, repo_api: str, token: str, path: str, sha: str) -> str:
-        value = self._request_json(
-            f"{repo_api}/contents/{quote(path, safe='/')}?ref={sha}", token
-        )
-        if not isinstance(value, dict) or value.get("encoding") != "base64" \
-                or not isinstance(value.get("content"), str):
-            raise BrokerError("ROUTINE_CONTRACT_INVALID", "summary content response is invalid")
-        try:
-            return base64.b64decode(value["content"], validate=True).decode("utf-8")
-        except (ValueError, UnicodeError) as exc:
-            raise BrokerError("ROUTINE_CONTRACT_INVALID", "summary content is invalid") from exc
-
-    @staticmethod
-    def _routine_front_matter(text: str) -> dict[str, object]:
-        if not text.startswith("---\n") or "\n---\n" not in text[4:]:
-            raise BrokerError("ROUTINE_CONTRACT_INVALID", "summary front matter is invalid")
-        block = text.split("\n---\n", 1)[0].splitlines()[1:]
-        result: dict[str, object] = {}
-        active: str | None = None
-        for line in block:
-            if line.startswith("  - ") and active in {"risk_flags", "depends_on"}:
-                values = result.setdefault(active, [])
-                assert isinstance(values, list)
-                raw = line[4:].strip().strip("\'\"")
-                values.append(int(raw) if active == "depends_on" and raw.isdigit() else raw)
-                continue
-            if line and not line.startswith(" ") and ":" in line:
-                key, raw = line.split(":", 1)
-                value = raw.strip().strip("'\"")
-                active = key if not value else None
-                result[key] = (
-                    [] if value == "[]"
-                    else int(value) if key == "issue" and value.isdigit()
-                    else value if value else []
-                )
-        return result
-
-    def _bounded_list(self, url: str, token: str) -> list[object]:
-        values: list[object] = []
-        separator = "&" if "?" in url else "?"
-        for page in range(1, 101):
-            page_value = self._request_json(
-                f"{url}{separator}limit=50&page={page}", token
-            )
-            if not isinstance(page_value, list):
-                raise BrokerError("RESPONSE_SCHEMA_INVALID", "bounded list response is invalid")
-            values.extend(page_value)
-            if len(page_value) < 50:
-                return values
-        raise BrokerError("RESPONSE_SCHEMA_INVALID", "bounded list exceeded safe limit")
-
-    @staticmethod
-    def _routine_files_are_local_reversible(entries: Sequence[tuple[str, str]]) -> bool:
-        if not entries:
-            return False
-        forbidden = (
-            ".gitea/", "codex/", "deploy/", "deployment/", "infra/",
-            "migrations/", "schema/", "scripts/deploy", "scripts/promote",
-        )
-        roots: set[str] = set()
-        for status, path in entries:
-            if path.startswith(forbidden) or PurePosixPath(path).name == "AGENTS.md":
-                return False
-            if status.lower() in {"deleted", "renamed", "copied", "unmerged"}:
-                return False
-            if PurePosixPath(path).suffix.lower() in {
-                ".sql", ".db", ".sqlite", ".bin", ".tar", ".zip",
-            }:
-                return False
-            roots.add(path.split("/", 1)[0])
-        return len(roots) == 1
 
     def _gitea(
         self,
@@ -4540,7 +4170,7 @@ class HostAccessBroker:
         read into this process, let alone returned.
         """
         mac = self.contract.raw["mac_host"]
-        user = self.contract.raw["vm_profile_policy"]["runtime_user"]
+        user = self.contract.raw["vm_runtime"]["runtime_user"]
         prefix = (
             mac["orbstack_binary"], "-m", mac["orbstack_machine"], "-u", user,
         )
@@ -4714,47 +4344,6 @@ class HostAccessBroker:
             failures[unit] = (count + 1, stamp if newest is None else max(newest, stamp))
         return failures
 
-    def _vm_profile(
-        self,
-        project: ProjectContract,
-        operation: OperationContract,
-    ) -> object:
-        if project.vm_profile is None:
-            raise BrokerError("TARGET_UNAVAILABLE", "project has no approved VM profile")
-        action = operation.name.removeprefix("vm.profile.")
-        mac = self.contract.raw["mac_host"]
-        # The profile tool is installed by codex/install-host-access-broker.sh, which must
-        # run on the VM as well as the Mac host. Probe it first so a missing installation is
-        # reported as itself instead of collapsing into an opaque HOST_COMMAND_FAILED. The
-        # probe is a fixed exit-code test, never a parse of the underlying stderr text.
-        probe = self._run([
-            mac["orbstack_binary"], "-m", mac["orbstack_machine"],
-            "-u", mac["orbstack_user"], "/usr/bin/test", "-x", mac["vm_profile_tool"],
-        ], allow_failure=True)
-        if probe.returncode != 0:
-            raise BrokerError(
-                "VM_TOOL_UNAVAILABLE",
-                "VM profile tool is not installed; run codex/install-host-access-broker.sh on the VM",
-            )
-        result = self._run([
-            mac["orbstack_binary"], "-m", mac["orbstack_machine"],
-            "-u", mac["orbstack_user"], "/usr/bin/sudo", "-n", mac["vm_profile_tool"],
-            "--project", project.project_id, "--action", action,
-        ], allow_failure=True)
-        if result.returncode != 0:
-            # The profile tool reports its own governed error contract on stderr (see
-            # aisoft_host_access.cli). Surface it instead of collapsing every profile
-            # problem into one opaque code. Only a well-formed code from that fixed
-            # vocabulary is propagated; anything else fails closed.
-            raise _profile_tool_error(_decode_json(result.stderr))
-        try:
-            payload = json.loads(result.stdout)
-        except json.JSONDecodeError as exc:
-            raise BrokerError("RESPONSE_SCHEMA_INVALID", "profile tool returned invalid JSON") from exc
-        if not isinstance(payload, dict) or payload.get("project") != project.project_id:
-            raise BrokerError("TARGET_MISMATCH", "profile tool read-back target mismatch")
-        return payload
-
     def _run(
         self,
         argv: Sequence[str],
@@ -4774,9 +4363,6 @@ class HostAccessBroker:
         return result
 
 
-_PROFILE_TOOL_ERROR_CODE = re.compile(r"^[A-Z][A-Z0-9_]{2,47}$")
-
-
 def _decode_json(text: str | None) -> object:
     if not text:
         return None
@@ -4784,27 +4370,6 @@ def _decode_json(text: str | None) -> object:
         return json.loads(text)
     except json.JSONDecodeError:
         return None
-
-
-def _profile_tool_error(payload: object) -> BrokerError:
-    """Translate the profile tool's own stdout error contract into a BrokerError.
-
-    The tool is a manifest-fixed platform component with a closed error vocabulary, so
-    its code and message are safe to surface. Anything that does not match that shape
-    degrades to the generic failure rather than forwarding unvetted text.
-    """
-    if isinstance(payload, dict):
-        code = payload.get("code")
-        message = payload.get("message")
-        if (
-            isinstance(code, str)
-            and _PROFILE_TOOL_ERROR_CODE.fullmatch(code)
-            and isinstance(message, str)
-            and 0 < len(message) <= 200
-            and "\n" not in message
-        ):
-            return BrokerError(code, message)
-    return BrokerError("HOST_COMMAND_FAILED", "structured host operation failed")
 
 
 def _parse_credential_protocol(protocol_input: str) -> CredentialProtocolRequest:

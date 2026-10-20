@@ -10,17 +10,17 @@ Use this procedure before inspecting a private repository, Issue, PR, Actions ru
    `git_remote_name` means `origin`; a declared value such as `gitea` is fixed and cannot be supplied by
    the caller.
 3. Match `GITEA_URL`, `GITEA_OWNER`, and `GITEA_REPO` to the requested repository before using credentials.
-4. Never source the generic `~/.agent.env` when an exact project profile is available. Never infer the repository from a pilot or example.
+4. Never source a generic `~/.agent.env`; use the broker's exact project. Never infer the repository from a pilot or example.
 
 ## Use the authenticated access ladder
 
-1. **Project profile API**: use the exact mode 400/600 project-agent profile as `coder` and the read-only
-   helper. This is the preferred Issue/PR/Actions path and must bind only one repository.
+1. **Typed broker**: use `host-access-broker --project <id>` read operations for the exact project. This is the
+   preferred Issue/PR/Actions path and binds only one repository. (VM `coder` project profiles left with #391.)
 2. **Configured Git credential**: use the checkout's Gitea remote for `git ls-remote`, fetch, or ancestry checks. If the host sandbox blocks `.orb.local`, retry through the approved host-network path; do not call that an authentication failure.
 3. **Platform manager audit PAT**: Issue #35 live reconciliation 后，跨项目 settings/protection inventory
    使用 manager 的独立 read-only PAT 和 `gitea-governance.sh check`；不得用 mutation PAT 或普通 Git
    代替。
-4. **VM-local admin read-only fallback**: when no project profile/manager exists or ACL blocks the exact
+4. **VM-local admin read-only fallback**: when no broker route/manager exists or ACL blocks the exact
    target, use the existing mode 600 administrator credential file only inside `gitea-ci`, through the
    read-only helper. Do not copy the token to the Mac or add bot permissions.
 5. **Authenticated browser fallback**: use an existing signed-in browser session for read-only UI evidence when the helper is unavailable or the UI itself matters.
@@ -49,9 +49,9 @@ host, credential or arbitrary repository route. Allowed cross-repository edges a
 declares; every other project defaults to local dependencies.
 
 Cross-repository reads stay inside the broker's manager-audit read-only route. Never use the source
-project-agent or routine merger credential outside its repository, and never fall back to admin,
+project-agent credential outside its repository, and never fall back to admin,
 mutation tokens, a direct GiteaClient or broader ACL. Validate repository identity/number and reject PRs;
-unverifiable or unauthorized reads never satisfy a dependency. Controller and routine merger must share
+unverifiable or unauthorized reads never satisfy a dependency. Every session tool must share
 this boundary. Source/local fixtures are verified; the full smoke and post-#289 integration pass under LC_ALL=C.
 Installed bytes and live reads are NOT RUN. Do not issue an unsupported operation against the currently installed broker.
 
@@ -77,23 +77,6 @@ Project onboarding readback takes no target overrides:
 
 The following helpers are compatibility/fallback paths, not the normal host entrypoint.
 
-With an exact project profile:
-
-```bash
-orb -m gitea-ci -u coder bash -lc '
-  AGENT_ENV_FILE=/home/coder/.config/aisoft/projects/<profile>.env \
-  GITEA_EXPECT_OWNER=<owner> \
-  GITEA_EXPECT_REPO=<repo> \
-  /home/coder/agent/gitea-readonly.sh "issues?state=all&type=issues&limit=50"
-'
-```
-
-If the installed helper is not yet present, use the authoritative mounted source:
-
-```text
-/mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/gitea-readonly.sh
-```
-
 For an authorized VM-local administrator read-only fallback:
 
 ```bash
@@ -115,8 +98,6 @@ Pipe the JSON to a narrow `jq` projection. Do not print environment files, crede
 
 `gitea-readonly.sh` only performs GET. Issue/comment/label/branch/PR 使用 exact project agent；跨项目
 settings/permissions/protection mutation 只能由已合并 Issue #35 的 purpose-built governance 命令一次
-处理一个 manifest repository。manual merge 保留给 human identity；routine merge 只允许 broker 的
-`gitea.pull.merge.routine` typed operation，调用方只传 PR number 与 exact 40-character lowercase head SHA。
-owner/repo/base/identity/method/delete-branch/force/schedule/deploy policy 全由 strict manifest 派生；普通
-project API、Git credential、manager PAT 或 admin fallback 都不得代替 routine merger。Never broaden a
+处理一个 manifest repository。merge 只保留给 human identity；broker 没有合并操作（routine 合并已随 #391
+退出），普通 project API、Git credential、manager PAT 或 admin fallback 都不得用来合并。Never broaden a
 bot's ACL merely to make inspection convenient.

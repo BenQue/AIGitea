@@ -48,10 +48,9 @@ class RotationSurfaceTests(unittest.TestCase):
                 self.assertEqual(caught.exception.code, 'ARGUMENT_MISMATCH')
                 mutation.assert_not_called()
 
-    def test_project_and_provider_runner_have_no_rotation_method(self):
-        from aisoft_host_access.runner import GovernedHostRunner, RoutineMergeRunner
+    def test_project_runner_has_no_rotation_method(self):
+        from aisoft_host_access.runner import GovernedHostRunner
         self.assertFalse(hasattr(GovernedHostRunner, 'rotate'))
-        self.assertFalse(hasattr(RoutineMergeRunner, 'rotate'))
 
 
 class GrantTests(unittest.TestCase):

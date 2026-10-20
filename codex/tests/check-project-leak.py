@@ -37,9 +37,6 @@ def project_names(root: Path, retired: list[str]) -> list[str]:
         if project.get("repository") not in repositories:
             continue
         names.add(project["project_id"])
-        profile = project.get("vm_profile") or {}
-        if profile.get("name"):
-            names.add(profile["name"])
     names.update(retired)
     return sorted({name.lower() for name in names if name})
 

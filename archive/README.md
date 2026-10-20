@@ -19,6 +19,7 @@
 | [application-target-preflight.py](application-target-preflight.py) | #340 为单个项目 AppServer 写的一次性只读采集器，从未被 installer 安装 | 对应 typed 操作只返回固定拒绝且无消费方，#373 退役；项目目标预检属于项目仓 |
 | [rollback-gitea-routine-pilot.sh](rollback-gitea-routine-pilot.sh)、[test-rollback-gitea-routine-pilot.sh](test-rollback-gitea-routine-pilot.sh) | #213 为单个项目的 routine live pilot 写的确定性回滚：撤 repository 侧授权、撤 PAT、保留或删除 merger 账号；Issue 编号与账号名写死 | 负责人 2026-10-18 裁决 pilot 从平台退役，#380 归档并由 installer 删除已装副本；通用 `routine_live_pilot` schema 与 governance `rollback` 保留，项目撤掉 routine merger 属于项目自己的 Issue（可参考本脚本，但它依赖平台当时的 runtime 路径） |
 | [参考实现迁出说明](reference-implementations-exit-261019.md) | #383 从平台 `main` 删除的 Docker release 运行时、公司两 VM operator、公司只读基线、单个项目的 architecture reference 及其测试与闸门：路径、文件数、最后 commit 与已知外部 pin | 平台只保留解决方案模式（`02` §0）与通用校验器；采用方在项目仓自带副本，历史版本从 Git 取 |
+| [自动化引擎迁出说明](automation-engine-exit-261020.md) | #391 从平台 `main` 删除的 VM Development Loop、routine 合并执行面、VM profile 迁移与 `install-vm` 安装面：路径、最后 commit、负责人清理清单与重建形状 | ADR 0002：会话按两个确认点执行，人合并；重建只在 Mac 上 |
 
 ## 使用规则
 

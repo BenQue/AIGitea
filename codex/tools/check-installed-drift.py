@@ -1,4 +1,4 @@
-"""Credential-free, zero-write comparison of the seven installer surfaces (#308; one surface retired by #383).
+"""Credential-free, zero-write comparison of the six installer surfaces (#308; retired: docker-release by #383, install-vm by #391).
 
 Installer fingerprints fail closed when copy/delete semantics change. Update their
 mapping and acceptance fixtures together; never just advance a fingerprint to get
@@ -20,10 +20,9 @@ import subprocess
 import sys
 
 INSTALLER_PINS = {
-    "codex/install-vm.sh": "01bf859512149391b45c37697b850f01af05e738ae37ae73008acbb196d3fe1c",
     "codex/install-skills.sh": "d47021706fedf45d2c5fa3ac702a054ed1a62f6ad531d4d145b284e85c918092",
     "codex/install-host-role.sh": "325e5150722e30debc115c0717d9bc4dedac44e1a7552c3a2258df14c4b27c89",
-    "codex/install-host-access-broker.sh": "81883aace5b33fdf0200f093738db4179d861357168f026ad3bfc8ddc760866f",
+    "codex/install-host-access-broker.sh": "496faaae0d5f25529187af68c4e14c458a88530eeafed78453496849db894c9c",
     "architecture/install.sh": "c8f14f0154cad1b7402e527209d0135bab2bdf3bc0024f72fd06994067aa972e",
     "sync/install.sh": "153f36ef3396a053a4e4cbb8d6022a9f163b75b6f4c25498ba27ae3217d30f10",
     "skill-for-claude/install.sh": "e2b767925e31b45cb83aaa3f93bedda8122b4ffc7e60c46cd4dc639659114f77",
@@ -369,8 +368,8 @@ def read_skill_manifest(repo: Path) -> dict[str, tuple[str, ...]]:
     return declared
 
 
-def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path):
-    names = ("install-vm", "install-skills", "install-host-role", "install-host-access-broker",
+def build_surfaces(repo: Path, home: Path, system: Path, arch: Path):
+    names = ("install-skills", "install-host-role", "install-host-access-broker",
              "architecture/install", "sync/install", "skill-for-claude/install")
     surfaces = {name: Surface(name) for name in names}
     metadata_sources = {repo / p for p in INSTALLER_PINS}
@@ -401,27 +400,18 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
             raise InspectionError("invalid-json-field-type", repo / source)
         surfaces[name].metrics[label] = Metric(expected, "json-length" if length else "json-value", [target], boundary, key)
 
-    vm = home / ".local/lib/aisoft-loop"
     broker = system / "usr/local/lib/aisoft-host-access"
     share = system / "usr/local/share/aisoft"
     libexec = system / "usr/local/libexec/aisoft"
-    for pkg in ("aisoft_loop", "aisoft_host_access", "aisoft_gitea_governance"):
-        tree("install-vm", "codex/runtime/" + pkg, vm / pkg, home, "*.py")
     for pkg in ("aisoft_host_access", "aisoft_gitea_governance"):
         tree("install-host-access-broker", "codex/runtime/" + pkg, broker / pkg, system, "*.py")
     for filename in ("aisoft_change_name.py", "aisoft_worktree_owner.py", "aisoft_main_integration.py"):
-        add("install-vm", "codex/runtime/" + filename, vm / filename, home)
         add("install-host-access-broker", "codex/runtime/" + filename, broker / filename, system)
-    surfaces["install-vm"].metrics["runtime modules"] = Metric(len(surfaces["install-vm"].files), "patterns",
-        [vm / p for p in ("aisoft_loop", "aisoft_host_access", "aisoft_gitea_governance")] + [vm], home, pattern="*.py")
-    for filename in ("host-access-broker.json", "gitea-governance.json"):
-        add("install-vm", "codex/config/" + filename, home / ".local/share/aisoft" / filename, home)
     for filename in ("host-access-broker.json", "gitea-governance.json", "gitea-labels.json"):
         add("install-host-access-broker", "codex/config/" + filename, share / filename, system)
-    for name, target, boundary in [("install-vm", home / ".local/share/aisoft/host-access-broker.json", home),
-                                   ("install-host-access-broker", share / "host-access-broker.json", system)]:
-        json_metric(name, "operations", "codex/config/host-access-broker.json", target, boundary, "operations")
-    for tool in ("host-access-broker", "git-credential-aisoft-host", "project-profile-migration",
+    json_metric("install-host-access-broker", "operations", "codex/config/host-access-broker.json",
+                share / "host-access-broker.json", system, "operations")
+    for tool in ("host-access-broker", "git-credential-aisoft-host",
                  "bootstrap-gitea-service-account", "rotate-gitea-service-account"):
         add("install-host-access-broker", "codex/tools/" + tool + ".sh", libexec / tool, system)
     rotation_files = {
@@ -438,13 +428,9 @@ def build_surfaces(repo: Path, home: Path, system: Path, agent: Path, arch: Path
     metadata_sources.update(p for p in directory_entries(helper, repo) if p.suffix == ".go")
     surfaces["install-host-access-broker"].absent = [(libexec / name, system) for name in (
         "keychain-acl-audit", "keychain-acl-audit.previous",
-        "rollback-gitea-routine-pilot", "rollback-gitea-routine-pilot.previous")]
-    tree("install-vm", "codex/agent", agent, agent, "*.sh")
-    tree("install-vm", "codex/systemd", home / ".config/systemd/user", home, "aisoft-agent@.*")
-    for filename in ("gitea-readonly.sh", "ensure-gitea-collaborator.sh"):
-        add("install-vm", "codex/tools/" + filename, agent / filename, agent)
-    surfaces["install-vm"].also_checked_by = ["install-skills"]
-    surfaces["install-vm"].user_owned = [str(home / ".codex/config.toml"), str(home / ".codex/AGENTS.md")]
+        "rollback-gitea-routine-pilot", "rollback-gitea-routine-pilot.previous",
+        "project-profile-migration", "project-profile-migration.previous")] + [
+        (broker / "aisoft_host_access" / name, system) for name in ("profiles.py", "profiles.py.previous")]
     add("install-host-role", "codex/tools/verify-host-role.sh", libexec / "verify-host-role", system)
     for filename in ("host-role.schema.json", "host-capabilities.json"):
         add("install-host-role", "codex/config/" + filename, share / filename, system)
@@ -619,7 +605,7 @@ def source_identity(repo: Path, sources: set[Path]):
             # roots from surviving files would silently omit that deletion.
             scopes = {"codex/runtime/" + name for name in ("aisoft_loop", "aisoft_host_access",
                       "aisoft_gitea_governance", "aisoft_architecture")}
-            scopes.update({"codex/agent", "codex/systemd", "skills", "codex/lib/skills-manifest.sh",
+            scopes.update({"codex/agent", "skills", "codex/lib/skills-manifest.sh",
                            "codex/tools/gitea-pat-helper",
                            "codex/vendor/mattpocock", "sync/systemd"})
             scopes.update("architecture/" + name for name in ("profiles", "schemas", "templates", "decisions"))
@@ -742,14 +728,12 @@ def main(argv=None):
     parser.add_argument("--repo", type=absolute, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--target-home", type=absolute, default=Path.home())
     parser.add_argument("--install-root", type=absolute, default=Path("/"))
-    parser.add_argument("--agent-dir", type=absolute)
     parser.add_argument("--architecture-prefix", type=absolute)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--source-only", action="store_true")
     parser.add_argument("--pat-helper-provenance", type=public_provenance)
     args = parser.parse_args(argv)
     roots = {"repo": args.repo, "target_home": args.target_home, "install_root": args.install_root,
-             "agent_dir": args.agent_dir or args.target_home / "agent",
              "architecture_prefix": args.architecture_prefix or args.install_root / "usr/local"}
     report = {"mode": "source-only" if args.source_only else "installed", "roots": {k: str(v) for k, v in roots.items()}, "installers": []}
     if args.pat_helper_provenance is not None:

@@ -1,11 +1,11 @@
 ---
 name: aisoft-platform
-description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Use when 在已接入平台的项目上开发/修复/部署、接入新项目到平台、走 Issue→triage→spec/plan→实现→PR→部署流程、检查私有 Gitea 仓库/Issue/PR/Actions/分支保护、或排查平台 CI/部署/agent 问题。Also use to operate or onboard projects on the AISoft self-hosted Gitea delivery platform: Issue analysis, small-or-complex routing, spec/plan contracts, Development Loop work, provider coexistence, CI/deployment incidents, first non-production deployments, rollback planning, production script boundaries. 触发词：AISoft、AIGitea、gitea-ci、Gitea Issue、判级、small/complex、change 分支、Development Loop、host-access broker、architecture lock、部署失败、接入平台、project-align。
+description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Use when 在已接入平台的项目上开发/修复/部署、接入新项目到平台、走 Issue→triage→spec/plan→实现→PR→部署流程、检查私有 Gitea 仓库/Issue/PR/Actions/分支保护、或排查平台 CI/部署/agent 问题。Also use to operate or onboard projects on the AISoft self-hosted Gitea delivery platform: Issue analysis, small-or-complex routing, spec/plan contracts, session implementation work, provider coexistence, CI/deployment incidents, first non-production deployments, rollback planning, production script boundaries. 触发词：AISoft、AIGitea、gitea-ci、Gitea Issue、判级、small/complex、change 分支、host-access broker、architecture lock、部署失败、接入平台、project-align。
 ---
 
 # AISoft 自托管交付平台（v3.6）
 
-自托管的「Issue → AI 分析判级 →（small 直进 / production complex 先 spec/plan / development complex 用 Issue 验收合同）→ 提交确认 → 单 PR → manual 人工合并 / eligible routine small 受控合并 → 独立部署授权」平台。核心原则：**Issue 定义工作，AI 把明确合同做到最终 PR；人确认提交，manual 由人合并，routine small 只由独立 merger 在最终 head 全硬门后合并；部署不由 merge 授权。**
+自托管的「Issue → AI 分析判级 →（small 直进 / production complex 先 spec/plan / development complex 用 Issue 验收合同）→ 提交确认 → 单 PR → 人工合并 → 独立部署授权」平台。核心原则：**Issue 定义工作，AI 会话把明确合同做到最终 PR；人确认提交，人合并；部署不由 merge 授权。** VM 上的 Development Loop 与 routine 自动合并已按 ADR 0002 退出（#391）。
 
 本技能是唯一来源，由平台安装器生成各工具的落点。文中 `$名称` 表示“调用名为该名称的技能”，各工具按自己的方式调用。
 
@@ -14,9 +14,9 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 动手前先读 `README.md` 与对应分册。Mac 上权威根目录是 `~/MyDocs/AISoftPlatform/`；gitea-ci VM 上是 `/mnt/mac/Users/benque/MyDocs/AISoftPlatform/`（`benque` 与 `coder` 都可读，2026-07-19 核实）。**不是 `~/Documents/`**：macOS TCC 挡住 `/mnt/mac` 访问 `~/Documents`、`~/Desktop`、`~/Downloads`，`sudo` 也无效，仓库因此迁到 `~/MyDocs/`（见 `01` §1）。
 
 - `03`：Issue、判级、文档、标签与最终 PR 闸门。
-- `04`：analyzer、Development Loop、verifier、终态与 provider adapter。
+- `04`：Matt 编排、判级输出与自动化引擎迁出说明。
 - `02` 与 `06`：部署与事故；`06` 另有 broker 与踩坑。
-- `08`：provider 共存、两层验证矩阵与交叉审核。
+- `08`：双工具共存、两层验证矩阵与交叉审核。
 - `architecture/` 等子合同目录以 README 目录为准。
 
 ## 现行合同（v3.6，#208 governance source）
@@ -25,36 +25,36 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 - **语义文档**：新文档名 `<role>-<短描述>-<YYMMDD>.md`，summary front matter 的 `documents` 字段映射 summary/spec/plan/verification 到真实文件名。解析用 `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli resolve-documents N --repo <checkout>`，不要 glob 猜。
 - **判级**：contract_effect 先行（restore/unchanged → small 候选；add/change → complex；unclear → 人工澄清）。功能新增/变更、schema/迁移、外部契约、安全、共享核心、跨模块、CI/制品/部署/回滚、Agent/治理一律强制 complex。small 还须范围局部、可简单 revert，并有可测验收标准。显式要求 complex 照办；要求 small 不能绕过 AI 校验与强制 complex 规则。
 - **文档要求**：production complex 必须有映射的 spec 与 plan；development complex 从 Issue 读取可测验收标准并用合成 `T01`；已验证的 small 与 development complex 不写仪式性 spec/plan。验收证据不能由 diff review 与 required CI 重放时声明 `verification`；部署与迁移总要它，但 `verification` 不等于部署。
-- **Matt 主路径**：每个 Issue 走 `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`（平台适配规则见下文「外部技能包边界」；small 与 development complex 在 triage+summary+判级+`approved` 复核后跳过 spec/plan，后者使用合成 `T01`）。`triage/ready-for-agent` ≠ `approved`；`approved` 只授权启动 Development Loop，不授权 merge 或部署。仓库初始化调用 `$setup-matt-pocock-skills`（tracker 选 `Other`），使用 `templates/docs/agents/` 的 tracker、triage、domain 三份文件；Codex 侧经 `aisoft-matt-workflow` 适配器串起这一步。
+- **Matt 主路径**：每个 Issue 走 `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`（平台适配规则见下文「外部技能包边界」；small 与 development complex 在 triage+summary+判级+`approved` 复核后跳过 spec/plan，后者使用合成 `T01`）。`triage/ready-for-agent` ≠ `approved`；`approved` 只授权开始实现，不授权 merge 或部署。仓库初始化调用 `$setup-matt-pocock-skills`（tracker 选 `Other`），使用 `templates/docs/agents/` 的 tracker、triage、domain 三份文件；Codex 侧经 `aisoft-matt-workflow` 适配器串起这一步。
 - **27 标签四维正交**：10 `type/*`（bugfix/feature/docs/test/refactor/maintenance/platform/security/reliability/data，Issue 作者输入，AI 按证据核对或更正一个主类型）+ 2 `complexity/*`（AI 输出，不是作者覆盖）+ 8 生命周期（`completed` 与 `deployed` 互斥终态；`completed` 是合并且无需部署，`deployed` 要求确定性部署与验证）+ 7 `triage/*`（Matt 编排）。
-- **单闸门**：最终 PR merge 是唯一交付硬闸门。manual 只由人合并；只有 repository 显式 opt-in、required contexts 非空、提交确认授权且最终 head 全硬门通过的 routine small，才能由独立 per-project merger 合并。provider/project agent 不 merge、不直推受保护 `main`；部署需独立授权。
+- **单闸门**：最终 PR merge 是唯一交付硬闸门，只由人合并。会话与 project agent 不 merge、不直推受保护 `main`；部署需独立授权。
 - **一切 Gitea/Git/OrbStack 访问走 broker**：`/usr/local/libexec/aisoft/host-access-broker --project <manifest项目> --operation <typed操作>`（gitea.issue.create/read/update、gitea.pull.create、git.push.change --branch、host.access.audit…）。不拼 raw token、不传 URL/refspec/shell；Git push 只允许当前 checkout 同名 readable 分支。
-- **provider 默认关**：`IMPLEMENT_PROVIDER=none` 是默认；启用是每项目独立验收门。
+- **没有无人值守引擎**：自动化最多止于 PR 候选，重建条件见 ADR 0002「重开条件」。
 - **部署边界**：流程不变量全平台一致——不可变制品、测试与生产同字节晋级、真实健康检查、可回滚、生产 script-only；AI 可参与开发/测试环境首次部署并固化为脚本（两次幂等 + 一次故意失败回滚），生产只跑已验证脚本。交付形态由项目自己的 profile 与 `AGENTS.md` 声明和实现，平台不规定。
 
 ## 目标项目与 governance manifest
 
-任何 Gitea 或 Git 写操作之前先显式选定目标项目。project profile 把一个 profile 名绑定到 `GITEA_URL`、`GITEA_OWNER`、`GITEA_REPO`、`AGENT_REPO_DIR`、provider 选择与按项目命名空间隔离的 state/worktree 根。不要从别的项目或示例推断目标仓库，也不要让两个项目共用 state 目录。
+任何 Gitea 或 Git 写操作之前先显式选定目标项目。broker manifest 的 `projects[]` 把一个项目 id 绑定到 exact 仓库、project agent 与 Mac checkout。不要从别的项目或示例推断目标仓库，也不要让两个项目共用 worktree。
 
 每个本地 Gitea 软件仓库必须先登记在严格的 `codex/config/gitea-governance.json`（Issue #35 governance 合同已生效）：校验 manifest，为一个 exact 仓库引导非 site-admin 的平台 manager，只读跑 governance `check`，再用 manifest 声明的 project agent apply 这一个仓库。未知仓库只报告；不从发现结果推断可见性、归属或权限。
 
-每次变更都要求 exact 仓库、Issue #35、字节一致的已合并平台 SHA、manager 变更凭据与新的证据目录；工具必须读回 private/public 可见性、manager=Admin、project-agent=Write、无跨项目 Write/Admin、合并后删分支与受保护 `main`。直推与 force push 关闭。未 opt-in routine 的仓库保持只有人能合并；已启用的仓库只能再加它自己的独立 exact-repository routine merger。manager、project agent、provider、共享 bot 与 site admin 都不能充当这个 merger。
+每次变更都要求 exact 仓库、Issue #35、字节一致的已合并平台 SHA、manager 变更凭据与新的证据目录；工具必须读回 private/public 可见性、manager=Admin、project-agent=Write、无跨项目 Write/Admin、合并后删分支与受保护 `main`。直推与 force push 关闭，所有仓库只有人能合并。
 
-routine opt-in 默认关闭：只有 `classification=internal-application` 且 canonical required status contexts 非空的仓库才能声明 `routine_auto_merge_enabled=true`。`aisoft-platform`、所有 public-platform 仓库与 contexts 为空的仓库一律关闭。源码声明、安装字节、凭据下发、保护规则 apply 与 live 读回是各自独立的证据，不能互相推断。
+routine 自动合并已退出（#391）：broker 没有合并操作，manifest 里残留的 routine 字段在 R16 清理前一律保持停用。源码声明、安装字节、凭据下发、保护规则 apply 与 live 读回是各自独立的证据，不能互相推断。
 
 共享 `ci-bot` collaborator 闸门已退役：`ensure-gitea-collaborator.sh` 只作历史兼容与回归测试证据，不得用于接入、修复任何项目，也不得作为 broker 的回退路径；见 `06` §「旧 `ci-bot` gate（已退役）」。
 
-不要把变更路径当检查捷径。优先用 exact project profile；跨项目的设置与保护盘点用 manager audit PAT 与 `gitea-governance.sh check`。
+不要把变更路径当检查捷径。优先用 broker 的 exact 项目路由；跨项目的设置与保护盘点用 manager audit PAT 与 `gitea-governance.sh check`。
 
 ## 私有 Gitea 的确定性访问
 
 检查私有仓库、Issue、PR、Actions run、分支保护或仓库设置之前，先读 [references/private-gitea-access.md](references/private-gitea-access.md)。
 
-- 先解析并核实 exact Gitea remote 或 project profile。
+- 先解析并核实 exact Gitea remote 或 broker manifest 项目。
 - 不要从匿名 API 请求开始。private-repository `404` 或 Git `Repository not found` 不能证明对象不存在。
-- 优先用 exact project profile 与最小权限身份；读 Git ref 时复用已配置的 Git credential helper。
+- 优先用 broker 的 exact 项目路由与最小权限身份；读 Git ref 时复用已配置的 Git credential helper。
 - 跨项目只读盘点设置与保护用独立的平台 manager audit PAT，不用变更 PAT 或普通 Git 代替。
-- 没有 profile/manager 或 ACL 挡住 exact 目标时，VM 本地管理员凭据只能用于经授权、脱敏的只读 helper 调用；不要把凭据复制到 Mac，也不要扩大 bot 权限。
+- 没有 broker route/manager 或 ACL 挡住 exact 目标时，VM 本地管理员凭据只能用于经授权、脱敏的只读 helper 调用；不要把凭据复制到 Mac，也不要扩大 bot 权限。
 - helper 不可用或需要界面证据时，已登录的浏览器会话可作只读后备。
 - 网络、凭据可用性、仓库 ACL 与对象是否存在，分别作为独立事实报告。
 
@@ -62,25 +62,23 @@ routine opt-in 默认关闭：只有 `classification=internal-application` 且 c
 
 人在确认点 1 确认合同后，以下动作不再逐项询问：证据收集与判级、合同文档补齐、合同内实现与本地原子 commit、测试与普通修复、必需的更宽闸门（smoke、required CI）、判级投影，以及确认点 2 之后的 push、唯一最终 PR 与 PR CI 修复。不要把每张 ticket、每条测试命令、每次 commit 或 CI 重试变成确认点；合同里已定下的选择不再重问。两个确认点的格式由 `issue-session-flow` 负责。
 
-Development Loop 自己处理普通的编译、lint、类型、测试、构建、浏览器与 CI 失败。受治理的状态只有 `AWAITING_PR_CONFIRMATION`、`READY_FOR_REVIEW`、`AUTO_MERGED`、`NEEDS_HUMAN_DECISION`、`BLOCKED_EXTERNAL`、`FAILED_LIMIT`。未运行的检查永远不能写成通过。
+会话自己处理普通的编译、lint、类型、测试、构建、浏览器与 CI 失败。受治理的状态只有 `AWAITING_PR_CONFIRMATION`、`READY_FOR_REVIEW`、`NEEDS_HUMAN_DECISION`、`BLOCKED_EXTERNAL`、`FAILED_LIMIT`。未运行的检查永远不能写成通过。
 
 ## 只在这些情况暂停
 
 合同冲突；范围扩张；破坏性迁移；新的安全/权限/架构决策；任何直接生产动作；外部依赖缺失（凭据、服务、权限）；验证不可靠（环境不可达、结果不可复现）；同一根因连续三次失败；达到配置的上限。宿主要求的 sandbox/网络授权是执行许可，不是新的产品决策。暂停时报告真实 blocker 并等人，不自行决定。
 
-## PR URL 回填的两条路径
+## PR URL 回填
 
-Controller 托管的运行：Controller 开出 PR 后，把这个 PR 的 URL 写进 change summary 的 `pr_url` front matter 字段，并把 summary 的 `status` 推进到 `pr-open`，只提交这一份文档并推送（#146）。这是该路径内自动完成的，不要重复它的回填步骤，也不要把这次额外 commit 当成 provider 的工作。`pr_url` 只写在 summary 里（#142），spec、plan 与 verification 不带它。summary 没有声明 `pr_url`，或已经声明了另一个值时，Controller fail closed 并返回 `NEEDS_HUMAN_DECISION`，不覆盖也不跳过——一个 change 只有一个 PR，出现第二个值说明前提已经破了。
-
-Mac 交互会话不经 Controller、直接用 broker `gitea.pull.create` 建 PR 时，会话必须运行
+会话用 broker `gitea.pull.create` 建 PR 后必须运行
 `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli backfill-pr-url N --repo <checkout> --pr-url <实际 PR URL>`，
-只提交映射的 summary，并经 broker 推送同一个 change 分支。单独的 `gitea.pull.create` 调用不会运行 Controller 的自动回填。PR 存在之前 `pr_url` 留空、保持真实的 PR 前状态；回填后对更新过的 checkout 运行 `check-change-documents`。
+把 PR 的 URL 写进映射 summary 的 `pr_url` 并把 `status` 推进到 `pr-open`，只提交这一份文档，并经 broker 推送同一个 change 分支（#142/#146）。`pr_url` 只写在 summary 里，spec、plan 与 verification 不带它；PR 存在之前留空、保持真实的 PR 前状态。summary 没有声明 `pr_url` 或已经声明了另一个值时，工具拒绝并要求人决定——一个 change 只有一个 PR。回填后对更新过的 checkout 运行 `check-change-documents`。
 
-两条路径的 summary-only 回填都会产生一个合法的新 head。在后续 push 之前，审查只含映射 summary 的实际 URL/status diff，运行文档检查，核对归属、exact branch 与干净的工作树，记录本次 fresh 验证的 exact head 并把 `pushed_head` 与它比较。范围内 CI 修复走同样的 fresh 验证与读回规则。首次 push 仍与确认点 2 已验证的候选比较。授权绑定 exact Issue/branch/policy，合法 commit 不逐个确认；范围扩大、他人改写或任何不匹配立即停止。完整比较合同见 `issue-session-flow`。检查任何 checkout 用 `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo <checkout>`。
+summary-only 回填会产生一个合法的新 head。在后续 push 之前，审查只含映射 summary 的实际 URL/status diff，运行文档检查，核对归属、exact branch 与干净的工作树，记录本次 fresh 验证的 exact head 并把 `pushed_head` 与它比较。范围内 CI 修复走同样的 fresh 验证与读回规则。首次 push 仍与确认点 2 已验证的候选比较。授权绑定 exact Issue/branch，合法 commit 不逐个确认；范围扩大、他人改写或任何不匹配立即停止。完整比较合同见 `issue-session-flow`。检查任何 checkout 用 `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo <checkout>`。
 
 ## 会话标准动作（Mac 交互开发，最常见）
 
-> **会话本身的编排**（一 Issue 一会话、合同/启动确认、提交 PR 确认、manual/routine 分流、merge 后确定性收尾与归档）见 `issue-session-flow` 技能；本段只覆盖单个会话内部到 PR candidate 为止的动作。
+> **会话本身的编排**（一 Issue 一会话、合同/启动确认、提交 PR 确认、人工合并、merge 后确定性收尾与归档）见 `issue-session-flow` 技能；本段只覆盖单个会话内部到 PR candidate 为止的动作。
 
 1. 需求/缺陷 → broker `gitea.issue.create`，必须带 `--entry-label`（`needs-analysis`，或 triage 入口 `triage/needs-triage`）；正文写可测验收标准，衍生 Issue 另写来源会话、目标项目与已知依赖（`03` §1）。
 2. `python3 -m aisoft_loop.cli change-name N <slug>` 校验命名 → `git worktree add /private/tmp/issue-N-<slug> -b change/N-<slug> origin/main`（并行会话必须各自 worktree；commit 前 `git branch --show-current` 核对——`06` 踩坑 15）。
@@ -99,21 +97,20 @@ Mac 交互会话不经 Controller、直接用 broker `gitea.pull.create` 建 PR 
 
 ## 保护平台
 
-- provider、project agent、manager 与共享 bot 都不得 merge PR。没有明确的 policy 确认、最终 exact head 钉住与 broker 全部硬门，不调用 routine merge。永远不直推受保护 `main`。
+- 会话、project agent、manager 与共享 bot 都不得 merge PR。永远不直推受保护 `main`。
 - 保住 `CI / test (pull_request)`、不可变制品、环境隔离、真实健康检查与回滚。
 - 不打印 token、密码、`.env`、认证文件或 Git 凭据。
-- 不为方便只读检查而新增 project profile 或协作者权限；账号与仓库变更只属于已合并的 governance manifest 与 exact-repository 工具。
+- 不为方便只读检查而新增凭据或协作者权限；账号与仓库变更只属于已合并的 governance manifest 与 exact-repository 工具。
 - Gitea manager/project PAT、OrbStack 宿主控制、VM 运维账号与各项目部署身份彼此分离。Gitea 凭据不授权 SSH、sudo、VM 生命周期、数据库或生产访问。
-- 各提供者的配置互相独立，共用外层 controller 与 verifier 合同。
-- 某个 provider 的 `08` 验证矩阵通过之前，不要把 v3 Loop 描述成已对它部署。
+- 各工具的配置互相独立，共用同一平台合同与会话验证流程。
 
 ## 工具分工
 
-Claude 与 Codex 在平台维护层共用同一平台合同，能力等价、可互换、不分主辅；两个模型互相取长补短、目标一致，都不各自发明判级、文档或交付流程。complex 平台变更由未参与实现的一方做交叉审核。项目使用层可按项目 profile 选用 Claude、Codex 或 Cursor，合同入口是项目内 `.aisoft/platform-usage.md`。自动化 provider 仍由项目 profile 的 `ANALYSIS_PROVIDER`/`IMPLEMENT_PROVIDER` 显式选择（默认 `none`）。
+Claude 与 Codex 在平台维护层共用同一平台合同，能力等价、可互换、不分主辅；两个模型互相取长补短、目标一致，都不各自发明判级、文档或交付流程。complex 平台变更由未参与实现的一方做交叉审核。项目使用层可按项目 `AGENTS.md` 选用 Claude、Codex 或 Cursor，合同入口是项目内 `.aisoft/platform-usage.md`。
 
 本技能需要的能力按能力名描述：**并行代理**（没有时串行执行，只读调查才可并行）、**技能调用**（没有时直接读对应 SKILL.md 照做）、**向人提问**（没有时在回复里列出选项并停下等答复）。
 
-`gitea-analyze-change`、`gitea-spec-plan`、`gitea-development-loop`、`gitea-implement-change` 只是兼容 adapter，不是第二套开发方法，仅用于 Gitea 标签投影、语义文档解析/发布、Controller 集成与旧调用方；`gitea-platform-ops` 独立负责平台证据、首次非生产部署、事故与回滚。这五个 adapter 与 `aisoft-matt-workflow` 只装在 Codex 落点。
+`gitea-analyze-change`、`gitea-spec-plan`、`gitea-development-loop`、`gitea-implement-change` 只是兼容 adapter，不是第二套开发方法，仅用于 Gitea 标签投影、语义文档解析/发布与旧调用方；`gitea-platform-ops` 独立负责平台证据、首次非生产部署、事故与回滚。这五个 adapter 与 `aisoft-matt-workflow` 只装在 Codex 落点。
 
 ## 外部技能包边界（Matt / superpowers）
 
@@ -134,7 +131,7 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
   记 `NOT RUN`。正文服从 broker `gitea.pull.create` 的正文合同（恰好一行 `Closes #N`，映射的
   summary 路径恰好出现一次）。这个技能不授予 push、PR、merge 或部署权限，这些仍在确认点 2 之后
   经 broker 进行。
-- **`implement-spec`**：随技能包存在，但它的写入编排在平台项目内禁用。保持 Controller 的单写者
+- **`implement-spec`**：随技能包存在，但它的写入编排在平台项目内禁用。保持 change worktree 的单写者
   frontier：不 reset、不合并子代理产物、不并行写入、不提前开 PR、不投影 ticket 状态。要换编排方式，
   先为它开一份自己的 complex 合同。
 - **`retro`**：仅在人明确要求 Matt 的 retro 时加载；人可以指定会话，否则只看当前会话。别的技能包
@@ -169,11 +166,11 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 
 - 用数字命名新建分支/文档（`change/N`、`00-summary.md`）——新写入会被 fail-closed 拒绝；readable 元组才是现行合同。
 - 绕过 broker 直接 `git push`/裸 token `curl`——治理写路径只认 broker typed 操作。
-- 把 `triage/ready-for-agent`、green CI 或 Issue `approved` 当成 routine 授权——提交确认、repository opt-in 与 final-head 全硬门缺一不可，部署仍需独立授权。
-- 让 provider/project agent 自己 merge，或把空 contexts/public-platform 设为 routine enabled——必须 fail closed；source merged 也不等于 credential/protection/live 已 apply。
-- 把 routine merge receipt 当成部署授权或 `deployed` 证据——merge 不调用 deploy，也不传递生产授权。
+- 把 `triage/ready-for-agent`、green CI 或 Issue `approved` 当成合并或部署授权——合并只由人做，部署仍需独立授权。
+- 让会话或 project agent 自己 merge——必须 fail closed；source merged 也不等于 credential/protection/live 已 apply。
+- 把 merge 当成部署授权或 `deployed` 证据——merge 不调用 deploy，也不传递生产授权。
 - 把判级投影留到收尾再补——窗口在合并时关闭，closed Issue 永久拒绝补写；进入待合并前必须用 `apply-classification-labels.sh --verify N` 读回 `projected`（#167）。
 - 把 broker 的 `REQUEST_DENIED / not allowlisted` 当权限问题查——那是安装期操作表陈旧，两台重装即可（`06` 踩坑 20）。
 - 在共享 checkout 并行开会话不建 worktree——HEAD 是全局可变状态，B 的 commit 会落进 A 的分支（`06` 踩坑 15）。
-- 从任何示例项目推断目标仓库/端口/部署合同——一切以显式 project profile/manifest 为准。
+- 从任何示例项目推断目标仓库/端口/部署合同——一切以显式 manifest 为准。
 - 把平台 candidate/参照实现写成业务已部署——一个项目在某个环境的证据不等于其它项目或生产完成。
