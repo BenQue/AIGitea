@@ -30,13 +30,12 @@ This skill adapts the complete vendored Matt skills to AISoftPlatform. It does n
    ceremonial spec/plan.
 4. For production complex work, run `$to-tickets #N`. Publish the approved `Txx` vertical-slice dependency graph to
    the mapped `plan` file. Development complex uses synthetic `T01`. Default mode stays inside the parent Issue.
-5. After contract validation sets `approved`, the Controller dispatches `$implement #N Txx` for one frontier ticket.
-   The Agent owns tests, review and one or more atomic local commits; the Controller owns remote mutation.
-6. Controller verification first produces the policy-specific final-PR candidate handoff and enters
-   `AWAITING_PR_CONFIRMATION`. Only after explicit confirmation may it fast-forward push and create the one final PR
-   with exact readable head, mapped summary and one `Closes #N` line, then follow required CI. Manual work ends at
-   `READY_FOR_REVIEW`; eligible routine-small work may reach `AUTO_MERGED` only through the independent merger and
-   final-head hard gates. Deployment is independent.
+5. After contract validation sets `approved`, the session runs `$implement #N Txx` for one frontier ticket at a time.
+   It owns tests, review and one or more atomic local commits in its own claimed worktree.
+6. Local verification first produces the final-PR candidate handoff and enters `AWAITING_PR_CONFIRMATION`. Only after
+   explicit confirmation may the session fast-forward push through the broker and create the one final PR with exact
+   readable head, mapped summary and one `Closes #N` line, then follow required CI. Work ends at `READY_FOR_REVIEW`;
+   a human merges. Deployment is independent. (The VM Development Loop and routine merge left main in #391.)
 
 ## Stable adapter interfaces
 
@@ -48,7 +47,7 @@ This skill adapts the complete vendored Matt skills to AISoftPlatform. It does n
 - Ticket execution: include the exact Issue and ticket in the explicit `$implement` prompt; include spec/plan paths
   only when the route requires them.
 
-The Matt skill, provider and project agent never merge or receive the routine merger credential. Never deploy,
+The Matt skill, the session and the project agent never merge. Never deploy,
 rewrite history, force-push, or silently switch to a different tracker or repository.
 
 ## v1.3.1 compatibility and explicit skill selection
@@ -74,13 +73,13 @@ and read its exact `SKILL.md` and referenced files. In a source-only session use
   mechanical mistakes; reserve coding standards for judgement. Do not apply governance edits, widen access or
   start an autonomous retrospective loop.
 - **implement-spec:** included for complete provenance, but its writing orchestration is disabled in governed
-  projects. Keep the Controller's single-writer frontier. It grants no reset, subagent merge, parallel writing,
+  projects. Keep the change worktree's single-writer frontier. It grants no reset, subagent merge, parallel writing,
   early PR or ticket-state projection; a different orchestration mode requires its own complex contract.
 
 Codex's managed `.agents` snapshot and Claude's independent plugin are different installation surfaces. For Claude,
 explicitly read the verified source path when reviewing this release; do not claim the plugin or its commands are
 upgraded. Static front matter/path checks do not prove discovery or execution in either provider's fresh session.
-Report untested provider-session behavior as `GAP`/`NOT RUN` and do not enable a project provider on that basis.
+Report untested provider-session behavior as `GAP`/`NOT RUN`.
 
 The installer retains the old release and restores its owned entries with
 `bash codex/install-skills.sh <target-home> --rollback`. Independent directories/plugins and the legacy skills.sh

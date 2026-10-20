@@ -18,17 +18,15 @@ class SessionContractTests(unittest.TestCase):
     PLATFORM = "skills/aisoft-platform/SKILL.md"
     CONFIRM_1 = "## 确认点 1：合同/启动"
     CONFIRM_2 = "## 确认点 2：准备提交最终 PR"
-    COMPLETION = "## 收尾（manual 确认已合并，或 routine receipt 后自动执行）"
+    COMPLETION = "## 收尾（人确认已合并后执行）"
 
     def test_session_flow_keeps_only_contract_start_and_pr_confirmations(self):
         content = self._source(self.SESSION_FLOW)
         self.assertIn(self.CONFIRM_1 + "\n", content)
         self.assertIn(self.CONFIRM_2 + "\n", content)
-        marker = (
-            "当前合同内 CI 修复可继续，最终 head 的 required CI 全绿且全部硬门通过后，"
-            "允许受控自动合并。"
-        )
-        self.assertIn(marker, content)
+        # #391: routine merge left main, so the auto-merge authorization marker must not return.
+        self.assertNotIn("允许受控自动合并", content)
+        self.assertNotIn("routine-auto", content)
         self.assertNotIn("是否确认归档", content)
         self.assertNotIn("confirm archival", content)
 
@@ -61,10 +59,9 @@ class SessionContractTests(unittest.TestCase):
         )
         self._require(
             self._section(content, self.CONFIRM_2),
-            "重复 poll 不调用 provider、不 push、不建 PR。",
-            "manual 文本不得包含自动合并 marker。",
-            "routine hard gate 失败只返回一个稳定原因，零 merge POST、零权限降级、零 fallback。",
-            "routine `AUTO_MERGED` receipt 直接进入收尾，不再询问第三次。",
+            "在人确认之前不 push、不建 PR。",
+            "候选文本不得包含自动合并 marker。",
+            "PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge。",
         )
 
     def _assert_classification_readback(self, content):
@@ -97,43 +94,34 @@ class SessionContractTests(unittest.TestCase):
         )
 
     def _assert_backfill_paths(self, content):
-        backfill = self._section(content, "## PR URL 回填的两条路径")
-        self.assertIn("Controller 托管的运行", backfill)
-        self.assertIn("Mac 交互会话", backfill)
-        controller = backfill.split("Controller 托管的运行", 1)[1].split("Mac 交互会话", 1)[0]
-        interactive = backfill.split("Mac 交互会话", 1)[1]
+        # #391: the Controller path left with the VM Loop; the session path is the only one.
+        backfill = self._section(content, "## PR URL 回填")
+        self.assertNotIn("Controller", backfill)
         self._require(
-            controller,
-            "把这个 PR 的 URL 写进 change summary 的 `pr_url` front matter 字段，"
-            "并把 summary 的 `status` 推进到 `pr-open`，只提交这一份文档并推送",
-            "不要重复它的回填步骤，也不要把这次额外 commit 当成 provider 的工作。",
-            "`pr_url` 只写在 summary 里（#142），spec、plan 与 verification 不带它。",
-            "summary 没有声明 `pr_url`，或已经声明了另一个值时，Controller fail closed "
-            "并返回 `NEEDS_HUMAN_DECISION`，不覆盖也不跳过",
-        )
-        self._require(
-            interactive,
-            "直接用 broker `gitea.pull.create` 建 PR 时",
+            backfill,
+            "用 broker `gitea.pull.create` 建 PR 后必须运行",
             "backfill-pr-url N --repo <checkout> --pr-url <实际 PR URL>",
-            "只提交映射的 summary，并经 broker 推送同一个 change 分支。",
-            "单独的 `gitea.pull.create` 调用不会运行 Controller 的自动回填。",
-            "PR 存在之前 `pr_url` 留空、保持真实的 PR 前状态",
+            "把 PR 的 URL 写进映射 summary 的 `pr_url` 并把 `status` 推进到 `pr-open`，只提交这一份文档",
+            "并经 broker 推送同一个 change 分支",
+            "`pr_url` 只写在 summary 里，spec、plan 与 verification 不带它",
+            "PR 存在之前留空、保持真实的 PR 前状态",
+            "summary 没有声明 `pr_url` 或已经声明了另一个值时，工具拒绝并要求人决定",
             "回填后对更新过的 checkout 运行 `check-change-documents`。",
         )
 
     def _assert_shared_onboarding(self, content):
-        development = self._section(content, "## 7. Development Loop 接入")
+        development = self._section(content, "## 7. 会话开发接入")
         self._require(
             development,
-            "所选 provider 的 skills/adapter 验证完成后启用",
-            "第二确认点（最终 PR 提交确认）明确授权并通过 final-head 全硬门",
+            "所选工具的技能验收完成后启用",
+            "push 与建 PR 只在第二确认点（最终 PR 提交确认）明确授权后经 broker 进行",
             "第一确认点仅批准合同/启动，不授权 push、PR、merge 或部署",
         )
-        self.assertNotIn("eligible routine-small 只有在第一确认点", development)
+        self.assertNotIn("routine", development)
         acceptance = self._section(content, "## 8. 接入验收")
         self._require(
             acceptance,
-            "每个所选 provider 的 adapter 独立完成至少一个明确标注的真实 pilot",
+            "每个所选工具（Claude、Codex）独立完成至少一个明确标注的真实 pilot",
             "一侧验收不替代另一侧",
         )
         completion = acceptance.split("### 合并后收尾\n", 1)[1].split("\n### ", 1)[0]
@@ -180,7 +168,7 @@ class SessionContractTests(unittest.TestCase):
     def test_session_flow_pins_the_verified_merge_before_terminal_apply(self):
         self._assert_terminal_apply(self._source(self.SESSION_FLOW))
 
-    def test_platform_skill_separates_controller_and_interactive_pr_backfill(self):
+    def test_platform_skill_has_one_session_pr_backfill_path(self):
         self._assert_backfill_paths(self._source(self.PLATFORM))
 
     def test_shared_onboarding_keeps_second_confirmation_and_manifest_lifecycle(self):
@@ -234,11 +222,11 @@ class SessionContractTests(unittest.TestCase):
             self._assert_backfill_paths,
             self._source(self.PLATFORM),
             (
-                ("只提交这一份文档并推送", "提交所有文档并推送"),
+                ("只提交这一份文档", "提交所有文档"),
                 ("`pr_url` 只写在 summary 里", "`pr_url` 写在任意文档里"),
-                ("只提交映射的 summary，并经 broker 推送同一个 change 分支。", "提交全部文件并直接推送。"),
-                ("不会运行 Controller 的自动回填。", "会运行 Controller 的自动回填。"),
-                ("`pr_url` 留空、保持真实的 PR 前状态", "`pr_url` 填好并设为 pr-open"),
+                ("并经 broker 推送同一个 change 分支", "并直接推送"),
+                ("工具拒绝并要求人决定", "工具覆盖旧值"),
+                ("PR 存在之前留空、保持真实的 PR 前状态", "PR 存在之前填好并设为 pr-open"),
             ),
         )
 
@@ -248,6 +236,7 @@ class SessionContractTests(unittest.TestCase):
             self._source("skills/aisoft-platform/references/onboarding-runbook.md"),
             (
                 ("第二确认点（最终 PR 提交确认）明确授权", "第一确认点明确授权"),
+                ("第一确认点仅批准合同/启动", "第一确认点同时授权 push"),
                 ("一侧验收不替代另一侧", "一侧验收替代另一侧"),
                 ("独立完成至少一个明确标注的真实 pilot", "继承共享 synthetic 结果"),
                 ("`deployment_lifecycle`", "provider inference"),

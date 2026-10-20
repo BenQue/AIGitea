@@ -33,16 +33,15 @@
   spec/plan。所有路由都要交付 summary `required_docs` 声明的文档（例如欠验证记录时的 `verification`）。
   三者都要 `approved` 复核后才进入实现；`triage/ready-for-agent` 不等于 `approved`。
 - **两个确认点。** 人确认 Issue 合同并启动开发；本地实现与验证完成后，人确认提交唯一最终 PR，
-  并固定 exact Issue、分支与 `manual|routine-auto` 策略。两点之间 AI 在合同内自主实现、测试和
+  并固定 exact Issue 与分支。两点之间 AI 在合同内自主实现、测试和
   修复 CI；合同冲突、范围扩张、破坏性迁移、安全决策、外部阻塞或同因三次失败时停下升级。
   merge 后的终态核对、文档检查与清理按确定性流程完成。
-- **单闸门。** 最终 PR merge 是唯一交付硬闸门。manual 由人合并；只有仓库显式启用、提交确认
-  明确授权、最终 head 全部硬门通过的 routine small，才由独立 merger 合并。会话、provider 与项目
-  agent 不 merge、不直推受保护 `main`。PR merge 不传递任何部署授权。
+- **单闸门。** 最终 PR merge 是唯一交付硬闸门，只由人合并。会话与项目 agent 不 merge、
+  不直推受保护 `main`。PR merge 不传递任何部署授权。
 - **远端写路径。** Gitea 与 Git 的写操作走 host-access broker 的 typed 操作，不拼 raw token、
   不传 URL 或 refspec。并行会话各用自己的 change worktree。
-- **provider 默认关闭。** 自动化 provider 由项目 profile 显式选择，默认 `IMPLEMENT_PROVIDER=none`；
-  启用前项目要完成自己的使用层验收（每个选用工具各自验收）。
+- **没有无人值守引擎。** 自动化最多止于 PR 候选（平台 ADR 0002）；项目选用的每个工具
+  （Claude、Codex、Cursor）各自完成使用层验收。
 
 ## 3. 部署流程不变量
 
@@ -70,7 +69,7 @@
 | 部署方案、脚本、参数与环境差异 | 项目自己的 `docs/` 或脚本目录 |
 | 发布 producer（`local` 或 `github`，只能一种）与 transport | `AGENTS.md` 项目事实 |
 | 禁改边界（受保护路径、数据、配置） | `AGENTS.md` 项目事实 |
-| provider 选择与 required CI contexts | 项目 profile 与平台 governance manifest 中本项目的注册条目 |
+| 选用的工具与 required CI contexts | `AGENTS.md` 项目事实与平台 governance manifest 中本项目的注册条目 |
 
 平台仓里的交付参考实现与各环境分册只是可选参考，不是项目部署步骤的事实源；项目采用与否、
 如何裁剪，在项目仓声明与实现，并自带所需副本，不在运行时依赖平台仓的某个提交。

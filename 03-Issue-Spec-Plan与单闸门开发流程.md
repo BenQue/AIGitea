@@ -1,6 +1,6 @@
 # 03 · Issue / Spec / Plan 与单闸门开发流程
 
-> v3 当前文档契约（更新 2026-08-26）。Issue 是所有工作的主键；小变更允许从明确的 Issue 直接进入 Development Loop，production complex 必须先完成 spec/plan，development complex 使用 Issue 正文中的验收合同。最终 PR merge 是唯一交付硬闸门；manual 集合人工合并，只有显式 opt-in 的 routine small 可在提交确认与最终硬门后受控合并。既有固定数字路径只作证据驱动的 legacy 兼容。
+> v3 当前文档契约（更新 2026-08-26）。Issue 是所有工作的主键；小变更允许从明确的 Issue 直接进入实现，production complex 必须先完成 spec/plan，development complex 使用 Issue 正文中的验收合同。最终 PR merge 是唯一交付硬闸门，只由人合并（routine 自动合并已随 #391 退出）。既有固定数字路径只作证据驱动的 legacy 兼容。
 
 ## 1. 绑定模型
 
@@ -20,7 +20,7 @@ Issue #N
   `verification` 的取舍两个阶段完全相同（由 analyzer 决定）；它只表示本次变更欠一份
   无法由 diff review 与 required CI 重放的验证记录，不表示部署或终态。
 - `change_control=production` 的复杂变更必须有映射的 `spec` 和 `plan` 文档；development
-  complex 不生成仪式性 spec/plan，由 Controller 使用合成 `T01`。
+  complex 不生成仪式性 spec/plan，会话使用合成 `T01`。
 - 部署、迁移以及任何依赖真实环境或一次性观测的变更必须有映射的 `verification` 文档。
 - 新 Issue 从分析开始使用单一 `change/N-short-description` 分支；已有 `change/N` 与更早的 `spec/N` 只按历史证据兼容，不作为新 writer 的可选格式。
 - 文档与代码进入同一个最终 PR，不再强制独立 docs-only spec PR。
@@ -135,26 +135,12 @@ small 候选包括恢复既有明确行为的 Bug 修复、纯文档修正、只
 
 Issue 作者可以显式选择复杂度，但 `complexity/small` 不能绕过强制复杂规则，`complexity/complex` 不能由 AI 自动降级。标签与实际内容冲突时，AI 依据仓库证据更正并留下理由。信息不足、内容冲突或风险边界无法确定时，Issue 保持 `awaiting-triage` 且不添加 complexity 标签。
 
-### 2.1 Routine small merge policy
+### 2.1 Routine small merge（已退出）
 
-分类与 merge policy 是两个步骤，不新增 label。只有同时满足以下条件才是 `routine-auto` 候选：
-
-- 最终 fresh 重算仍为 `effective_complexity=small`、`contract_effect=restore|unchanged`；
-- 范围局部、可简单 revert、无任何 forced-complex risk，且不是 major、阶段或里程碑完结；
-- repository manifest 显式 `routine_auto_merge_enabled=true`，声明独立 routine merger，required contexts 非空；
-- 提交 PR 前的人工确认绑定 exact Issue、`change/N-short-description` 与 `routine-auto` policy，并明确允许当前合同内 CI 修复后在最终 head required CI 全绿时受控合并。
-
-功能新增/变化、major、阶段/里程碑完结、安全、数据、共享核心、跨模块/服务、CI、制品、部署、
-健康检查、备份、回滚、Agent 与平台治理一律 `manual`。Issue #208 自身为 complex/platform，必须人工
-合并。routine hard gate 失败只返回稳定原因并停机，不自动切换到 admin、manager、project agent 或
-其他更宽权限路径。
-
-人工确认不绑定当时 SHA，避免范围内 CI repair 形成第三个确认点；merge operation 必须绑定最终 40 位
-lowercase head SHA，并在 POST 前按固定顺序 fresh 复核 authorization、summary/Gitea 分类、exact tuple、
-唯一开放 PR、open/unmerged、base=`main`、head、live protection/manifest、逐 context CI、reviews、
-dependencies 与完整 final diff。任何缺失、漂移或未知 schema 都 fail closed，零 merge POST。
-
-仓库与身份限制：routine auto 只对 repository manifest 分类为 `internal-application` 的仓库开放；平台仓、public-platform 仓与 required contexts 为空的仓库固定 disabled。合并必须由独立 per-project routine merger 经唯一 broker typed operation 执行；provider、project agent、platform manager、shared bot 与 site admin 都不得成为 routine merger。
+routine 自动合并已按 [ADR 0002](docs/adr/0002-deterministic-development-flow.md) D4 退出（#391）：broker 不再提供合并操作，
+所有仓库的最终 PR 都只由人合并，提交前确认不再区分 `manual|routine-auto` policy。分类仍是两个标签维度，不新增 merge-policy 维度。
+原合同（候选条件、最终 head 硬门与 merger 身份限制）见 Git 历史与 [迁出说明](archive/automation-engine-exit-261020.md)；
+manifest 中残留的 routine merger 字段与凭据种类在 R16 清理之前一律保持停用。
 
 ## 3. 文档合同
 
@@ -328,12 +314,11 @@ Issue + needs-analysis
   → analyzer identifies type and contract_effect
   → forced-risk and explicit-label checks
   → complexity/small + approved（合同完整）
-  → Development Loop
+  → 会话实现与验证
   → AWAITING_PR_CONFIRMATION
-  → 人确认提交唯一最终 PR（manual 或 eligible routine-auto）
+  → 人确认提交唯一最终 PR
   → final PR + CI repair
-  → manual: READY_FOR_REVIEW → 人工合并
-  → routine-auto: final-head hard gates → AUTO_MERGED
+  → READY_FOR_REVIEW → 人工合并
   → 部署另行授权
 ```
 
@@ -347,8 +332,8 @@ Issue + needs-analysis
   → 人与 AI 完成映射的 spec + plan
   → spec-review（可选，不是硬闸门）
   → approved（合同完整）
-  → Development Loop
-  → AWAITING_PR_CONFIRMATION（Policy: manual）
+  → 会话按 Txx 实现与验证
+  → AWAITING_PR_CONFIRMATION
   → 人确认提交唯一最终 PR
   → final PR + CI → READY_FOR_REVIEW
   → 人工合并
@@ -421,16 +406,10 @@ PR 必须：
 - 说明迁移、部署和回滚影响（若适用）。
 - 通过受保护 `main` 要求的 `CI / test (pull_request)`。
 
-PR 合并是唯一交付硬闸门。Analyzer、Loop、provider wrapper 和 CI 都不得合并 PR。
-manual PR 只由人合并；routine-auto 只能由独立 exact-repository merger 经 broker operation 合并。
+PR 合并是唯一交付硬闸门，只由人合并；会话、协调者和 CI 都不得合并 PR（routine 自动合并已随 #391 退出）。
 
-提交前 handoff 固定包含 Issue、branch、`manual|routine-auto`、真实验证、判级读回和未执行项。
-manual 确认允许合同内 CI 修复，required CI 全绿后停在 `READY_FOR_REVIEW`；不得出现自动合并 marker。
-routine 确认必须明确“当前合同内 CI 修复可继续，最终 head 的 required CI 全绿且全部硬门通过后，
-允许受控自动合并”。两者都不授权部署。确认绑定 Issue/branch/policy，不绑定当时 SHA；最终 merge
-仍必须 pin exact SHA。分类标签不新增 merge-policy 维度。Gitea 1.26.4 没有 merge-only ACL；routine
-merger 是 exact-repo Write identity，但 credential 由 broker 独占，且该 identity 不在 main push/force
-allowlist。普通 Git 禁令由 typed operation、manifest/final-head gates 与 zero fallback 共同保证。
+提交前 handoff 固定包含 Issue、branch、真实验证、判级读回和未执行项。确认允许合同内 CI 修复，
+required CI 全绿后停在 `READY_FOR_REVIEW`；不授权部署。确认绑定 Issue/branch，不绑定当时 SHA。
 
 ### 交叉审核（平台仓 complex，ADR 0001 D6）
 
@@ -442,17 +421,15 @@ allowlist。普通 Git 禁令由 typed operation、manifest/final-head gates 与
 
 ## 8. 升级给人的条件
 
-Loop 只有在合同冲突、必须扩范围、破坏性迁移、安全/权限决策、缺凭据或外部服务、同一根因连续失败三次、验证不可靠或达到预算上限时才停止并请求人决定。普通编译、测试、构建和范围内 review 失败由 Loop 自主处理。
+会话只有在合同冲突、必须扩范围、破坏性迁移、安全/权限决策、缺凭据或外部服务、同一根因连续失败三次、验证不可靠或达到预算上限时才停止并请求人决定。普通编译、测试、构建和范围内 review 失败由会话自主处理。
 
 ## 9. 当前实施状态
 
 - Issue #57/#60 已把文档 resolver、writer、Matt triage projector、frontier ticket、Agent commit 后置校验、固定 upstream snapshot 与根级路由合并进 source；Issue #75 又统一了 readable branch/directory/worktree/PR 绑定。
 - platform canonical taxonomy 为 20 个（Issue #108 把 `type/*` 扩为 10 个），Matt 另加 7 个 namespaced `triage/*`，source manifest 共 27 个；准确集合以 `codex/config/gitea-labels.json` 的 `canonical` 为准。外部状态可能漂移，部署到每个仓库前必须用 broker `gitea.labels.provision` 同步并读回。
 - 旧 Issue 与历史文档不重命名；新 writer 只产生语义 basename，并从 Issue #75 起要求目录、branch、worktree 与同一 slug 一致。
-- Provider 默认仍为 `IMPLEMENT_PROVIDER=none`；每个项目必须在独立 profile 完成真实验收后才能启用。
-- Issue #208 governance source 定义 `AWAITING_PR_CONFIRMATION`、manual `READY_FOR_REVIEW` 和 routine
-  `AUTO_MERGED` 合同；runtime/config/credential/protection/live apply 尚未由本步骤执行。#208 自身固定
-  manual，本次治理变更不部署。
+- VM 上的 Development Loop、provider adapter 与 routine 自动合并已随 #391 退出（ADR 0002）；
+  `AWAITING_PR_CONFIRMATION` 与 `READY_FOR_REVIEW` 仍是会话流程的两个状态。
 ## 10. 依赖 Issue
 
 source runtime 的 summary 可用可选字段 `depends_on` 声明本仓 Issue 编号或下述仓库限定引用；缺省或 `[]`

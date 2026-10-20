@@ -547,6 +547,150 @@
           "sha256": "ddce1024e092bdbd45b000caf547c3382e2b29ccc32695824a984d7040ab5694"
         }
       ]
+    },
+    {
+      "version": "1.3.0",
+      "released": "2026-10-20",
+      "bundle_digest": "sha256:0eb7afd303b8c41272c8f14d526f111512ccfefe64610e96e654abdfa4522914",
+      "members": [
+        {
+          "source": "usage/CONTRACT.md",
+          "mode": "exact",
+          "target": ".aisoft/platform-usage.md",
+          "check": "platform-pin",
+          "sha256": "af7c718ebde88bf9d2652021a4202ab4e5e70d29f17809fdbb5d77c4b36f28ad"
+        },
+        {
+          "source": "templates/project/AGENTS.md",
+          "mode": "pointer",
+          "target": "AGENTS.md",
+          "check": "pointer-sections",
+          "sha256": "0f805f19fe2c178817b24e58bcd597afef6a9e27a95c57ae45dd1ad04dac834a",
+          "pointer_sha256": "4644dd5e9e98bcc8b712427511839a6af69e60b398f02e6eb097d7f19d1a41df"
+        },
+        {
+          "source": "templates/project/CLAUDE.md",
+          "mode": "exact",
+          "target": "CLAUDE.md",
+          "check": "pointer-sections",
+          "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
+        },
+        {
+          "source": "templates/docs/changes/_template/summary.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/summary.md",
+          "check": "change-templates",
+          "sha256": "a1433a4e52f4c5baaa0ec8d338ef0c531ba5785b343ac3680879a69593f719c0"
+        },
+        {
+          "source": "templates/docs/changes/_template/spec.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/spec.md",
+          "check": "change-templates",
+          "sha256": "0646265eba8b5a2ecf58a6fd867a0f9cb33ac4cf31c2dda043287abacc8c7669"
+        },
+        {
+          "source": "templates/docs/changes/_template/plan.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/plan.md",
+          "check": "change-templates",
+          "sha256": "593a45b4dddd96233f9f92e0b124b3eb25d7d383661423c892589bb027def92e"
+        },
+        {
+          "source": "templates/docs/changes/_template/verification.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/verification.md",
+          "check": "change-templates",
+          "sha256": "1d4d30373f2c1c8fde13a2b4dcbfd0c8a6c3ef3669337247cb7dfa69813cd739"
+        },
+        {
+          "source": "templates/docs/agents/domain.md",
+          "mode": "seed",
+          "target": "docs/agents/domain.md",
+          "sha256": "bc8031adacbbeb8100b7cf731264d3d50fc701ecd3874a0e10b802327daddd07"
+        },
+        {
+          "source": "templates/docs/agents/issue-tracker.md",
+          "mode": "seed",
+          "target": "docs/agents/issue-tracker.md",
+          "sha256": "1dbc12102190283d6b083ef64f0ca9ffa5beccdcb1548c7998c5a244eb9c7b48"
+        },
+        {
+          "source": "templates/docs/agents/triage-labels.md",
+          "mode": "seed",
+          "target": "docs/agents/triage-labels.md",
+          "sha256": "a4aa8c88b644c304cae3658021031f045739593a127a5ccba5d5d3ba77461203"
+        },
+        {
+          "source": "templates/project/ci/ci.yml",
+          "mode": "seed",
+          "target": ".gitea/workflows/ci.yml",
+          "sha256": "96d77318040c6c96d76e72b2875c7fcfaf628442fcd3b0a17764e81122dded7f"
+        },
+        {
+          "source": "templates/project/ci/merge-preview.sh",
+          "mode": "seed",
+          "target": "scripts/ci/merge-preview.sh",
+          "sha256": "ad86166fd5acedd67fbef71bec11d8309c7a34d51a81e524617089e043361afb"
+        },
+        {
+          "source": "templates/project/ci/registry-preflight.sh",
+          "mode": "seed",
+          "target": "scripts/ci/registry-preflight.sh",
+          "sha256": "7cfa8c1dce796e5decdfe3f10409862ee797afaae08f285640ecb09855986f90"
+        },
+        {
+          "source": "templates/project/cursor/aisoft-platform.mdc",
+          "mode": "seed",
+          "target": ".cursor/rules/aisoft-platform.mdc",
+          "sha256": "13eadb1c38263092c9fd36eb5fe91517620c3d9e6f5570923fbc43418fb71f61"
+        },
+        {
+          "source": "skills/skills.manifest",
+          "mode": "skill",
+          "sha256": "19e00378d506b6278f98d933218cc419c9dab116bd2dae7a6c0256458e5cc98e"
+        },
+        {
+          "source": "skills/aisoft-platform/SKILL.md",
+          "mode": "skill",
+          "sha256": "00b7894d2902171966087870180183d57acd233b9768ba9ea06d0f9a62e0845c"
+        },
+        {
+          "source": "skills/aisoft-platform/agents/openai.yaml",
+          "mode": "skill",
+          "sha256": "a0f3bf4b049271ea283c4379babeea262f7dd88e1c4879f7b5161494df87c043"
+        },
+        {
+          "source": "skills/aisoft-platform/references/onboarding-runbook.md",
+          "mode": "skill",
+          "sha256": "a620a9e127c53df3750d4187b8dac80f61540d6fc7ce1f7d8043a4ebe1b54b16"
+        },
+        {
+          "source": "skills/aisoft-platform/references/private-gitea-access.md",
+          "mode": "skill",
+          "sha256": "d87f8d22f54e36822104653fd56483f5936171b143c362e6d31a534e54cbcbe7"
+        },
+        {
+          "source": "skills/aisoft-platform/references/project-align.md",
+          "mode": "skill",
+          "sha256": "7afbab04dda134d3d3ca0de62844be40804f429f1ac465de7049e42a24197b46"
+        },
+        {
+          "source": "skills/issue-session-flow/SKILL.md",
+          "mode": "skill",
+          "sha256": "bf05c8778f37192f1c78729069ef8f9f00912b0b152ceb6c9e9cb1f920a721ba"
+        },
+        {
+          "source": "skills/aisoft-matt-workflow/SKILL.md",
+          "mode": "skill",
+          "sha256": "269a3954c31d6624ff8d280dffe0e3a0a11fb29b78975bdd2be577b532dadb2c"
+        },
+        {
+          "source": "skills/aisoft-matt-workflow/agents/openai.yaml",
+          "mode": "skill",
+          "sha256": "ddce1024e092bdbd45b000caf547c3382e2b29ccc32695824a984d7040ab5694"
+        }
+      ]
     }
   ]
 }

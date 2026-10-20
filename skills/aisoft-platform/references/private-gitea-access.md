@@ -49,9 +49,9 @@ host, credential or arbitrary repository route. Allowed cross-repository edges a
 declares; every other project defaults to local dependencies.
 
 Cross-repository reads stay inside the broker's manager-audit read-only route. Never use the source
-project-agent or routine merger credential outside its repository, and never fall back to admin,
+project-agent credential outside its repository, and never fall back to admin,
 mutation tokens, a direct GiteaClient or broader ACL. Validate repository identity/number and reject PRs;
-unverifiable or unauthorized reads never satisfy a dependency. Controller and routine merger must share
+unverifiable or unauthorized reads never satisfy a dependency. Every session tool must share
 this boundary. Source/local fixtures are verified; the full smoke and post-#289 integration pass under LC_ALL=C.
 Installed bytes and live reads are NOT RUN. Do not issue an unsupported operation against the currently installed broker.
 
@@ -115,8 +115,6 @@ Pipe the JSON to a narrow `jq` projection. Do not print environment files, crede
 
 `gitea-readonly.sh` only performs GET. Issue/comment/label/branch/PR 使用 exact project agent；跨项目
 settings/permissions/protection mutation 只能由已合并 Issue #35 的 purpose-built governance 命令一次
-处理一个 manifest repository。manual merge 保留给 human identity；routine merge 只允许 broker 的
-`gitea.pull.merge.routine` typed operation，调用方只传 PR number 与 exact 40-character lowercase head SHA。
-owner/repo/base/identity/method/delete-branch/force/schedule/deploy policy 全由 strict manifest 派生；普通
-project API、Git credential、manager PAT 或 admin fallback 都不得代替 routine merger。Never broaden a
+处理一个 manifest repository。merge 只保留给 human identity；broker 没有合并操作（routine 合并已随 #391
+退出），普通 project API、Git credential、manager PAT 或 admin fallback 都不得用来合并。Never broaden a
 bot's ACL merely to make inspection convenient.

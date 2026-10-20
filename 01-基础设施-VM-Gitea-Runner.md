@@ -51,13 +51,13 @@ workflow、数据和引用。
 
 | 账号/角色 | 状态 | 位置 | 用途 | 关键约束 |
 |------|------|------|------|----------|
-| `admin` | live | Gitea | 人工 break-glass、用户/仓库引导、最终 PR merge | 平台仓 manual merge identity；routine opt-in 仓另有独立 merger，见 03；不用于日常 Agent Git/API |
+| `admin` | live | Gitea | 人工 break-glass、用户/仓库引导、最终 PR merge | 所有仓库唯一的 merge identity（routine 自动合并已随 #391 退出）；不用于日常 Agent Git/API |
 | `ci-bot` | 账号保留、manifest 仓库 collaborator 已移除 | Gitea | 仅作历史兼容证据 | 不得用于新接入、普通项目 Git/API 或 merge |
 | `aisoft-platform-manager` | live，Issue #35=`deployed` | Gitea | 跨项目读取 settings/protection/Actions，执行明确批准的 reconciliation | 不是 site admin；#35 历史验收为显式 9 仓库 Admin；当前范围按 manifest 与现场 check；audit/mutation PAT 分离；不得普通 Git 或 merge |
 | `<project>-agent` | #35 历史九项目逐一验证；当前逐仓核对 | Gitea | 仅本项目 Issue/branch/commit/push/PR | 精确 Write；唯一项目绑定；不得跨项目 Write/Admin，不得 push/merge `main` |
 | `git` | live | VM 系统用户 | 跑 Gitea 进程 | 不承载 Agent 或部署身份 |
 | `gitea-runner` | live | VM 系统用户 | 跑 act_runner、构建/测试与制品发布 | 不持有平台 manager、项目 PAT 或生产管理员权限，不长期运行业务应用 |
-| `coder` | live | VM 系统用户 | 跑 analyzer/controller | 每项目 mode 600 profile/credential/state/worktree 分离；当前 Loop 未普遍启用 |
+| `coder` | live | VM 系统用户 | 原 analyzer/controller 运行用户；`orbstack.vm.units.read` 读它的 user 单元 | Loop 已随 #391 退出；家目录旧单元、profile 与 state 由负责人清理 |
 | `benque` / platform operator | live | VM 默认用户 | 本地平台引导与运维 | 只在 purpose-built 工具和明确批准中使用 sudo/admin credential；不作为项目 deploy identity |
 | `<project>-deploy` | 每应用部署 Change target | AppServer/公司服务器 | 只操作本项目 release/runtime/data/service | 不跨项目，不复用 Gitea PAT；生产仍只运行已验证脚本且无 AI 登录 |
 
@@ -82,7 +82,7 @@ workflow、数据和引用。
   在该前缀下自定取值，受管三维仍是封闭集合。
 - 2026-07-15 的初始 16-label 在线复验为 `created=0 existing=16`；Issue #19 后续把 canonical taxonomy 扩展为 17 个。标签属于可漂移的 Gitea 外部状态，后续操作前必须重新同步并 GET 验证。
 - taxonomy 与 runtime source 已支持当前字段；每个仓库的 live 标签集合仍须单独同步并 GET 回读，
-  `IMPLEMENT_PROVIDER=none` 的默认值也不得因 source 能力存在而推定为已启用。
+  不得因 source 能力存在而推定为已同步。
 - Issue #35 live reconciliation 后，共享 `ci-bot` 已退出 manifest 仓库 collaborator。新项目必须先进入
   strict governance manifest，再创建唯一 project agent，
   使用 `gitea-governance.sh check` 做只读 diff，最后以 exact repository 单次 apply；未知仓库只
