@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-TMP="$(cd -- "$(mktemp -d)" && pwd -P)"
+# Create first and stop on failure; only a directory mktemp made may reach the
+# cleanup trap (a failed nested mktemp once resolved to the current directory).
+TMP="$(mktemp -d)"
+TMP="$(cd -- "$TMP" && pwd -P)"
+case "$TMP" in /*/*) ;; *) echo "unsafe temporary directory: $TMP" >&2; exit 1 ;; esac
 trap 'rm -rf "$TMP"' EXIT
 
 git init --bare "$TMP/remote.git" >/dev/null
@@ -85,7 +89,8 @@ fi
 # An unmapped checkout cannot prove anything either.
 git -C "$TMP/repo" remote add exact http://gitea.example/admin/repo.git
 git -C "$TMP/repo" update-ref refs/remotes/exact/main HEAD
-if AISOFT_HOST_ACCESS_MANIFEST="$TMP/governance.json" \
+jq -n '{projects: [{repository: "repo", mac_checkout: "/somewhere/else"}]}' >"$TMP/unmapped.json"
+if AISOFT_HOST_ACCESS_MANIFEST="$TMP/unmapped.json" \
   bash "$ROOT/codex/tools/aigitea-cleanup-merged.sh" "$TMP/repo" 2>/dev/null; then
   echo "an unmapped checkout inferred a remote" >&2
   exit 1
