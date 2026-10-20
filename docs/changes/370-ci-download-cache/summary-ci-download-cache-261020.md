@@ -24,7 +24,7 @@ documents:
 confidence: high
 override_reason: ''
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/370-ci-download-cache
 pr_url:
 created: 2026-10-20

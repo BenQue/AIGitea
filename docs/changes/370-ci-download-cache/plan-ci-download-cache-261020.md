@@ -12,7 +12,7 @@ risk_flags:
   - rollback
   - platform-governance
 depends_on: []
-status: contract-drafting
+status: approved
 branch: change/370-ci-download-cache
 created: 2026-10-20
 updated: 2026-10-20
