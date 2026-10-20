@@ -14,7 +14,8 @@ history table is the version, the digests prove the copy.
                                  unchanged prefix of the current history
   --release VERSION --today D    append a release from the current contents
   --build DIR                    export the latest release for a project to copy
-                                 (skills land in .claude/, .agents/ and .cursor/)
+                                 (skills land in .claude/, .agents/ and .cursor/;
+                                 vendored skill packs per VENDOR_LANDINGS)
   --project-status REPO          platform-pin / pointer-sections / change-templates
 
 Only --release writes inside the platform tree (usage/bundle.json); --build
@@ -38,7 +39,7 @@ LOCK_CONTRACT = "aisoft-usage-lock/v1"
 # Fixed by the v1 contract: moving it would turn every pinned project into an
 # unpinned one without any member change or new release.
 LOCK_PATH = ".aisoft/platform-usage.lock.json"
-MODES = ("exact", "pointer", "seed", "skill")
+MODES = ("exact", "pointer", "seed", "skill", "vendor")
 CHECKS = ("platform-pin", "pointer-sections", "change-templates")
 VERSION_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 POINTER_START = "## 平台声明（常驻指针）"
@@ -151,9 +152,11 @@ def validate_member(member: object, label: str) -> dict:
         raise BundleError(f"{label}.mode 必须是 {MODES} 之一")
     target = member.get("target")
     check = member.get("check")
-    if mode == "skill":
+    if mode in ("skill", "vendor"):
         if target is not None or check is not None:
-            raise BundleError(f"{label}: skill 成员没有项目落点，不能有 target 或 check")
+            raise BundleError(f"{label}: {mode} 成员没有项目落点，不能有 target 或 check")
+        if mode == "vendor":
+            vendor_pack(member["source"], label)
     else:
         safe_relative(target, f"{label}.target")
     if mode == "pointer" and check != "pointer-sections":
@@ -249,8 +252,50 @@ def current_members(root: Path, bundle: dict) -> list[dict]:
         source = root / member["source"]
         if not source.is_file():
             raise BundleError(f"成员文件缺失：{member['source']}")
+        if member["mode"] == "vendor":
+            vendor_snapshot(root, member["source"])
         result.append(released_member(root, member))
     return result
+
+
+# Vendored skill packs (#392). A vendor member's source is a snapshot's
+# manifest.json: it pins every skill directory by hash, so the release digest of
+# that one file covers the whole snapshot, and --verify/--build re-check the
+# snapshot bytes against it. superpowers lands only in .cursor/skills: Claude and
+# Codex take it from their official marketplaces, and a project-level
+# .agents/skills copy would be a second source next to the Codex plugin. Matt is
+# vendored on Codex anyway, so its project landing includes .agents/skills.
+VENDOR_LANDINGS = {
+    "mattpocock": (".agents/skills", ".cursor/skills"),
+    "superpowers": (".cursor/skills",),
+}
+VENDOR_SOURCE_RE = re.compile(r"^codex/vendor/([a-z0-9-]+)/(v[0-9]+\.[0-9]+\.[0-9]+)/manifest\.json$")
+
+
+def vendor_pack(source: str, label: str) -> str:
+    match = VENDOR_SOURCE_RE.match(source)
+    if not match or match.group(1) not in VENDOR_LANDINGS:
+        raise BundleError(f"{label}: vendor 成员必须是 codex/vendor/<{'|'.join(VENDOR_LANDINGS)}>/<vX.Y.Z>/manifest.json")
+    return match.group(1)
+
+
+def vendor_snapshot(root: Path, source: str) -> list[tuple[str, PurePosixPath]]:
+    """Verify the snapshot against its manifest; return (skill name, directory)."""
+    pack = vendor_pack(source, source)
+    sys.path.insert(0, str(DEFAULT_ROOT / "codex/runtime"))
+    try:
+        from aisoft_loop.matt_snapshot import SnapshotError, verify_snapshot
+    finally:
+        sys.path.pop(0)
+    snapshot = (root / source).parent
+    try:
+        manifest = json.loads((root / source).read_text(encoding="utf-8"))
+        verify_snapshot(snapshot, manifest, pack)
+    except (OSError, ValueError, SnapshotError) as error:
+        raise BundleError(f"vendor 快照与 manifest 不符：{source}：{error}") from error
+    if manifest["tag"] != snapshot.name:
+        raise BundleError(f"vendor 快照目录与 tag 不符：{source}")
+    return [(item["name"], PurePosixPath(item["path"]).parent) for item in manifest["skills"]]
 
 
 def git(root: Path, *args: str) -> subprocess.CompletedProcess:
@@ -395,7 +440,27 @@ def build(root: Path, out: Path) -> None:
     if not any(m["source"] == SKILL_MANIFEST and m["mode"] == "skill" for m in bundle["members"]):
         raise BundleError(f"{SKILL_MANIFEST} 决定技能落点，必须是 skill 成员，否则同一版本可以导出不同目录")
     targets = skill_targets(root)
+    vendored: dict[str, str] = {}
     for member in bundle["members"]:
+        if member["mode"] != "vendor":
+            continue
+        pack = vendor_pack(member["source"], member["source"])
+        snapshot = (root / member["source"]).parent
+        for name, directory in vendor_snapshot(root, member["source"]):
+            if name in targets or name in vendored:
+                raise BundleError(f"vendor 技能 {name} 与{'平台技能' if name in targets else vendored.get(name, '')}同名，落点冲突")
+            vendored[name] = pack
+            source_dir = snapshot / directory
+            for base in VENDOR_LANDINGS[pack]:
+                for path in sorted(source_dir.rglob("*")):
+                    if path.is_file():
+                        destination = out / "project" / base / name / path.relative_to(source_dir)
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        destination.write_bytes(path.read_bytes())
+                        destination.chmod(0o755 if path.stat().st_mode & 0o111 else 0o644)
+    for member in bundle["members"]:
+        if member["mode"] == "vendor":
+            continue
         data = (root / member["source"]).read_bytes()
         if member["source"] == SKILL_MANIFEST:
             # The declaration decides every landing below; it is a member so a

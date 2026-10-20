@@ -304,6 +304,75 @@ cp "$tmp/moved.json" "$anchored/usage/bundle.json"
 run 1 "${a[@]}" --verify
 expect_contains 'lock_path 在 aisoft-usage-bundle/v1 中固定为'
 
+# 18. #392: vendored skill packs. The member is the snapshot manifest; build
+# re-verifies the snapshot and lands Matt in .agents and .cursor, superpowers
+# only in .cursor, and neither in .claude.
+vplatform="$tmp/vplatform"
+cp -R "$platform" "$vplatform"
+mkdir -p "$vplatform/codex/vendor/mattpocock" "$vplatform/codex/vendor/superpowers"
+cp -R "$root/codex/vendor/mattpocock/v1.3.1" "$vplatform/codex/vendor/mattpocock/"
+cp -R "$root/codex/vendor/superpowers/v7.0.0" "$vplatform/codex/vendor/superpowers/"
+add_member() {
+  python3 -B - "$vplatform/usage/bundle.json" "$1" <<'PY'
+import json, sys
+path, member = sys.argv[1], json.loads(sys.argv[2])
+bundle = json.load(open(path))
+bundle["members"].append(member)
+open(path, "w").write(json.dumps(bundle, indent=2) + "\n")
+PY
+}
+v=(--platform-root "$vplatform")
+add_member '{"source": "codex/vendor/mattpocock/v1.3.1/manifest.json", "mode": "vendor"}'
+add_member '{"source": "codex/vendor/superpowers/v7.0.0/manifest.json", "mode": "vendor"}'
+run 0 "${v[@]}" --release 9.0.0 --today 2026-10-20
+run 0 "${v[@]}" --build "$tmp/vbuild"
+vp="$tmp/vbuild/project"
+for landing in .agents/skills .cursor/skills; do
+  [[ -f "$vp/$landing/triage/SKILL.md" ]] || fail "matt missing in $landing"
+done
+[[ -f "$vp/.cursor/skills/using-superpowers/SKILL.md" ]] || fail 'superpowers missing in .cursor/skills'
+[[ -x "$vp/.cursor/skills/brainstorming/scripts/start-server.sh" ]] || fail 'superpowers script lost its mode'
+[[ ! -e "$vp/.agents/skills/using-superpowers" ]] || fail 'superpowers must not land in .agents/skills'
+[[ ! -e "$vp/.claude/skills/using-superpowers" && ! -e "$vp/.claude/skills/triage" ]] || fail 'vendor packs must not land in .claude/skills'
+diff -r "$root/codex/vendor/superpowers/v7.0.0/skills/systematic-debugging" \
+  "$vp/.cursor/skills/systematic-debugging" >/dev/null || fail 'superpowers landing differs from the snapshot'
+[[ -f "$vp/.cursor/skills/demo/SKILL.md" ]] || fail 'platform skill landing lost'
+# A changed snapshot byte fails verify and build without a manifest change.
+printf '\n' >>"$vplatform/codex/vendor/superpowers/v7.0.0/skills/using-superpowers/SKILL.md"
+run 1 "${v[@]}" --verify
+expect_contains 'vendor 快照与 manifest 不符'
+run 1 "${v[@]}" --build "$tmp/vbuild-tampered"
+cp "$root/codex/vendor/superpowers/v7.0.0/skills/using-superpowers/SKILL.md" \
+  "$vplatform/codex/vendor/superpowers/v7.0.0/skills/using-superpowers/SKILL.md"
+run 0 "${v[@]}" --verify
+# Only known packs, only their manifest, and never a project target.
+cp "$vplatform/usage/bundle.json" "$tmp/vbundle.json"
+add_member '{"source": "codex/vendor/other/v1.0.0/manifest.json", "mode": "vendor"}'
+run 1 "${v[@]}" --verify
+expect_contains 'vendor 成员必须是'
+cp "$tmp/vbundle.json" "$vplatform/usage/bundle.json"
+add_member '{"source": "codex/vendor/superpowers/v7.0.0/LICENSE", "mode": "vendor"}'
+run 1 "${v[@]}" --verify
+expect_contains 'vendor 成员必须是'
+cp "$tmp/vbundle.json" "$vplatform/usage/bundle.json"
+python3 -B - "$vplatform/usage/bundle.json" <<'PY'
+import json, sys
+bundle = json.load(open(sys.argv[1]))
+bundle["members"][-1]["target"] = ".cursor/skills"
+open(sys.argv[1], "w").write(json.dumps(bundle, indent=2) + "\n")
+PY
+run 1 "${v[@]}" --verify
+expect_contains 'vendor 成员没有项目落点'
+cp "$tmp/vbundle.json" "$vplatform/usage/bundle.json"
+# A vendored skill may not share a name with a platform skill.
+mkdir -p "$vplatform/skills/triage"
+printf 'platform triage\n' >"$vplatform/skills/triage/SKILL.md"
+printf 'demo claude,codex\ncodexonly codex\ntriage codex\n' >"$vplatform/skills/skills.manifest"
+add_member '{"source": "skills/triage/SKILL.md", "mode": "skill"}'
+run 0 "${v[@]}" --release 9.1.0 --today 2026-10-20
+run 1 "${v[@]}" --build "$tmp/vbuild-collision"
+expect_contains '落点冲突'
+
 # 17. Usage errors.
 run 64 "${p[@]}"
 run 64 "${p[@]}" --project-status "$tmp/does-not-exist"
