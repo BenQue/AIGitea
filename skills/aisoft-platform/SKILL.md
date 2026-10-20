@@ -144,8 +144,10 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
   既有 `CONTEXT.md` / `CONTEXT-MAP.md` 与新文件并读，直到其中的术语、业务规则、决策和入链都有着落。
   定义冲突时停止，不自动改名文件或丢弃规则。
 
-**superpowers**：版本跟随官方 marketplace，平台不自建 pin，只记录最后一次走完适配清单的版本。它的流程技能照常使用，落点与收尾
-服从平台合同：
+**superpowers**：Claude 与 Codex 跟随各自的官方 marketplace 同步，平台不安装；平台 pin 在 7.0.0
+（`bb92a77741419a4ab5f06e711a283343f1ada0c3`，vendor 快照 `codex/vendor/superpowers/v7.0.0/`），作为三端核对基准，并由发布包导出到
+项目级 `.cursor/skills/`。`check-external-skill-versions.sh` 读到某端 `PIN_DRIFT` 时先过适配清单，不要声称该端已是 7.0.0。
+它的流程技能三端照常使用，落点与收尾服从平台合同：
 
 | superpowers 默认 | 平台项目内 |
 |---|---|
@@ -153,6 +155,8 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 | `.superpowers/` 下的工作目录 | 本地状态，已在 `.gitignore` 里，不入库、不当验收证据 |
 | `finishing-a-development-branch` 提供本地 merge、`git push`、建 PR | 三项都不可用。本地验证完成后停在 `AWAITING_PR_CONFIRMATION`；确认后远端只走 broker |
 | 并行子代理各自实现 | 一个 change worktree 同一时刻只有一个写者：子代理不得并发写入它，也不得写别的会话的 worktree；只读调查可以并行 |
+| `dispatching-parallel-agents` 并行派出子代理 | 只用于只读调查 |
+| `subagent-driven-development` 每个任务派一个实现子代理 | 只许顺序派发，一次一个写者，只写本 change worktree |
 | `brainstorming` 自己定级：快速任务直接做、小改动在聊天里确认后就做 | 它的定级与聊天内确认不替代平台判级与 `approved`；写文件前仍要有 Issue、判级与确认点 1 |
 
 ## 接入新项目 / 项目对齐 / 私有访问

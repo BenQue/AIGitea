@@ -194,7 +194,7 @@ sequenceDiagram
 
 Cursor 只在项目使用层：项目级 `.cursor/skills/` 与薄指针规则 `.cursor/rules/aisoft-platform.mdc` 由
 `codex/tools/usage-bundle.sh --build` 从同一份源导出，平台不往 `~/.cursor` 安装任何东西；
-本机 Cursor 插件缓存里的 Matt 与 superpowers 由 `check-external-skill-versions.sh` 只读核对。
+项目级 `.cursor/skills/` 同时收到 vendor 的 Matt 与 superpowers 快照，`check-external-skill-versions.sh --repo <检出>` 只读核对。
 
 Claude 侧的 Matt 插件不走上表的 installer，而由 Claude Code 自己安装（#355）。仓库根
 [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) 是平台自有的 marketplace `aisoft-platform`，
@@ -204,7 +204,7 @@ Claude 侧的 Matt 插件不走上表的 installer，而由 Claude Code 自己�
 `PIN_CLEAN` / `PIN_DRIFT` / `PIN_NOT_INSTALLED` / `PIN_UNREADABLE` 之一。判定以 commit 为准，版本号只作旁证；
 已装记录的格式不认识时读出 `PIN_UNREADABLE`，不判 `PIN_CLEAN`。该检查不属于下面的七安装面，也不注册
 marketplace、不安装或升级插件：source 合并不等于本机已切换来源，实际升级与 fresh-session 验收另行授权。
-superpowers 跟随官方 marketplace，平台不自建 pin；两个技能包的平台边界与升级后的人工适配检查清单见
+superpowers 在 Claude 与 Codex 上跟随官方 marketplace，平台 pin 7.0.0 只作三端核对基准与 Cursor 项目级导出源（#392）；两个技能包的平台边界与升级后的人工适配检查清单见
 [08 §5](08-双工具共存与实施.md#5-matt-skills-与平台映射)。
 
 Issue #308 的安装面只读核对合同（#383 起七个）：`bash codex/tools/check-installed-drift.sh` 逐项报告

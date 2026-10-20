@@ -29,7 +29,7 @@ INSTALLER_PINS = {
     "skill-for-claude/install.sh": "e2b767925e31b45cb83aaa3f93bedda8122b4ffc7e60c46cd4dc639659114f77",
 }
 INSTALLER_HELPER_PINS = {
-    "codex/runtime/aisoft_loop/matt_snapshot.py": "32c2f6f9de89537644cc5e7a3594d61a02c41b362ace044735c4b64da7fe637e",
+    "codex/runtime/aisoft_loop/matt_snapshot.py": "a3c924a2cb58705490bb218d3daa9c106fdd5ef38a0ff720356b3ae1444849a4",
     # Both skill installers source it to decide what lands where (#379).
     "codex/lib/skills-manifest.sh": "8cea0e4e1398d7296e1d41e9cb2844c36f2aa0ac86641e2b3bb18dee0b965321",
 }

@@ -1,23 +1,24 @@
-"""Read-only report of external skill pack versions (#375; Cursor since #379).
+"""Read-only report of external skill pack versions against the platform pin
+(#375; Cursor since #379; pinned on all three tools since #392).
 
-For the human who periodically looks at whether superpowers, Matt or the two
-CLIs moved. superpowers follows its official marketplaces and is not pinned;
-what this repository records is the last version that went through the 08 §5
-adaptation checklist (codex/config/external-skill-adaptation.json). An installed
-version newer than that record means the checklist is owed: REVIEW_NEEDED.
+superpowers is pinned by the vendored snapshot that usage/bundle.json declares
+(codex/vendor/superpowers/<tag>/). Claude and Codex keep installing it from
+their official marketplaces (#392, confirmed by the owner): this report only
+compares what they have with the pin. Matt is pinned by codex/install-skills.sh;
+its Claude state is whatever skill-for-claude/check-plugin-pin.sh reports.
+Cursor is a usage-layer tool with project-level landings only (ADR 0001 D6):
+with --repo the report hashes that checkout's .cursor/skills against each
+snapshot manifest; the user-level Cursor plugin cache is only an annotation.
 
-Matt is pinned, so its state is whatever skill-for-claude/check-plugin-pin.sh
-reports. Nothing here installs, fetches or writes; the only processes started
-are `claude --version`, `codex --version` and that pin checker. Formats owned
-by Claude Code or Codex carry no public promise: anything unrecognised is
-UNKNOWN, never a guess.
+Every pack and tool reads PIN_CLEAN, PIN_DRIFT or PIN_NOT_INSTALLED (Cursor
+without --repo: NOT_CHECKED). PIN_DRIFT means "this tool is not on the pin: go
+through the 08 §5 adaptation checklist first" and fails the run like UNKNOWN;
+PIN_NOT_INSTALLED informs. The adaptation record must name the pinned version.
 
-Cursor is a usage-layer tool only (ADR 0001 D6). Its marketplace caches Matt
-and superpowers outside any platform installer; this report reads the cached
-plugin manifests so the same pin and adaptation record cover it. A cached
-version says nothing about whether Cursor has it enabled, so the line reads
-`cached=`. Cursor lines inform; only REVIEW_NEEDED or UNKNOWN fails the run,
-exactly as for superpowers on the other two tools.
+Nothing here installs, fetches or writes; the only processes started are
+`claude --version`, `codex --version` and the Matt pin checker. Formats owned
+by Claude Code, Codex or Cursor carry no public promise: anything unrecognised
+is UNKNOWN, never a guess.
 """
 from __future__ import annotations
 
@@ -36,11 +37,14 @@ except ImportError:  # pragma: no cover - Python < 3.11
 ROOT = Path(__file__).resolve().parent.parent.parent
 RECORD = ROOT / "codex/config/external-skill-adaptation.json"
 PIN_CHECKER = ROOT / "skill-for-claude/check-plugin-pin.sh"
+BUNDLE = ROOT / "usage/bundle.json"
+VENDOR_SOURCE_RE = re.compile(r"^codex/vendor/superpowers/(v[0-9]+\.[0-9]+\.[0-9]+)/manifest\.json$")
 SKILL_INSTALLER = ROOT / "codex/install-skills.sh"
 MATT_PACK = "mattpocock-skills"
 # Cursor caches each plugin as <marketplace>/<plugin>/<commit>/; the manifest
 # name varies with the plugin's packaging, first match wins.
 CURSOR_MANIFESTS = (".cursor-plugin/plugin.json", ".claude-plugin/plugin.json", "package.json")
+CURSOR_SKILLS = ".cursor/skills"
 PACK = "superpowers"
 CLAUDE_INSTALLED_SCHEMA = 2
 
@@ -93,13 +97,29 @@ def adapted_version() -> str:
     return version
 
 
-def compare(installed: str, adapted: str) -> str:
+def superpowers_pin() -> dict:
+    """The snapshot usage/bundle.json declares; the record must name its version."""
+    try:
+        members = _load_json(BUNDLE)["members"]
+        sources = [m["source"] for m in members if m.get("mode") == "vendor" and VENDOR_SOURCE_RE.match(m["source"])]
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise RecordInvalid(f"usage/bundle.json is not readable ({type(error).__name__})") from error
+    if len(sources) != 1:
+        raise RecordInvalid(f"usage/bundle.json declares {len(sources)} {PACK} snapshots, expected 1")
+    try:
+        manifest = _load_json(ROOT / sources[0])
+        tag, commit = manifest["tag"], manifest["commit"]
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise RecordInvalid(f"the {PACK} snapshot manifest is not readable ({type(error).__name__})") from error
+    if tag != VENDOR_SOURCE_RE.match(sources[0]).group(1) or not re.fullmatch(r"[0-9a-f]{40}", str(commit)):
+        raise RecordInvalid(f"the {PACK} snapshot manifest does not match its directory")
+    return {"version": tag[1:], "commit": commit, "manifest": manifest}
+
+
+def compare(installed: str, pinned: str) -> str:
     if not VERSION_RE.fullmatch(installed):
         return "UNKNOWN"
-    have, want = _version_key(installed), _version_key(adapted)
-    if have == want:
-        return "ADAPTED"
-    return "REVIEW_NEEDED" if have > want else "BEHIND"
+    return "PIN_CLEAN" if _version_key(installed) == _version_key(pinned) else "PIN_DRIFT"
 
 
 def _single_version(versions: set[str]) -> str:
@@ -112,7 +132,7 @@ def _single_version(versions: set[str]) -> str:
     return version
 
 
-def claude_superpowers(home: Path) -> str | None:
+def claude_superpowers(home: Path) -> tuple[str, str] | None:
     path = home / ".claude" / "plugins" / "installed_plugins.json"
     if not os.path.lexists(path):
         return None
@@ -131,6 +151,7 @@ def claude_superpowers(home: Path) -> str | None:
     if not isinstance(plugins, dict):
         raise Unreadable("installed_plugins.json plugins is not an object")
     versions: set[str] = set()
+    commits: set[str] = set()
     for plugin_id, entries in plugins.items():
         name, separator, marketplace = plugin_id.partition("@")
         if name != PACK:
@@ -143,8 +164,16 @@ def claude_superpowers(home: Path) -> str | None:
             version = entry.get("version") if isinstance(entry, dict) else None
             if not isinstance(version, str):
                 raise Unreadable(f"a {PACK} record has no version")
+            commit = entry.get("gitCommitSha")
+            if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
+                raise Unreadable(f"a {PACK} record has no gitCommitSha")
             versions.add(version)
-    return _single_version(versions) if versions else None
+            commits.add(commit)
+    if not versions:
+        return None
+    if len(commits) != 1:
+        raise Unreadable(f"{len(commits)} different {PACK} commits recorded")
+    return _single_version(versions), next(iter(commits))
 
 
 def _codex_cached_version(home: Path, marketplace: str) -> str | None:
@@ -171,10 +200,10 @@ def _codex_cached_version(home: Path, marketplace: str) -> str | None:
     return _single_version(versions) if versions else None
 
 
-def codex_superpowers(home: Path, adapted: str) -> str:
+def codex_superpowers(home: Path, pinned: str) -> str:
     path = home / ".codex" / "config.toml"
     if not os.path.lexists(path):
-        return "NOT_INSTALLED config=absent"
+        return f"PIN_NOT_INSTALLED config=absent pinned={pinned}"
     if path.is_symlink() or not path.is_file():
         raise Unreadable("config.toml is not a regular file")
     if tomllib is None:
@@ -199,7 +228,7 @@ def codex_superpowers(home: Path, adapted: str) -> str:
         if settings.get("enabled") is True:
             enabled.append(marketplace)
     if not enabled:
-        return f"NOT_INSTALLED enabled=none adapted={adapted}"
+        return f"PIN_NOT_INSTALLED enabled=none pinned={pinned}"
     if len(enabled) != 1:
         raise Unreadable(f"{len(enabled)} {PACK} plugins enabled")
     marketplace = enabled[0]
@@ -207,11 +236,12 @@ def codex_superpowers(home: Path, adapted: str) -> str:
     detail = f"enabled={PACK}@{marketplace}"
     if marketplace in marketplaces and not isinstance(marketplaces[marketplace], dict):
         raise Unreadable("the enabled marketplace entry is not a table")
+    # Enabled but its marketplace unregistered: Codex does not load it (#375).
     if marketplace not in marketplaces:
-        return f"NOT_LOADED {detail} marketplace=unregistered cached={cached or 'none'} adapted={adapted}"
+        return f"PIN_NOT_INSTALLED {detail} marketplace=unregistered cached={cached or 'none'} pinned={pinned}"
     if cached is None:
-        return f"UNKNOWN {detail} marketplace=registered cached=none adapted={adapted}"
-    return f"{compare(cached, adapted)} {detail} marketplace=registered installed={cached} adapted={adapted}"
+        return f"PIN_NOT_INSTALLED {detail} marketplace=registered cached=none pinned={pinned}"
+    return f"{compare(cached, pinned)} {detail} marketplace=registered installed={cached} pinned={pinned}"
 
 
 def cursor_cached_version(home: Path, plugin: str) -> str | None:
@@ -260,14 +290,51 @@ def matt_pinned_version() -> str:
     return match.group(1)
 
 
-def cursor_line(home: Path, plugin: str, reference: str, label: str) -> str:
+def _directory_hash(directory: Path) -> str:
+    sys.path.insert(0, str(ROOT / "codex/runtime"))
     try:
-        cached = cursor_cached_version(home, plugin)
+        from aisoft_loop.matt_snapshot import _directory_hash as digest
+    finally:
+        sys.path.pop(0)
+    return digest(directory)
+
+
+def repo_pack_state(repo: Path, manifest: dict) -> str:
+    """Hash every pinned skill directory under <repo>/.cursor/skills."""
+    base = repo / CURSOR_SKILLS
+    if os.path.lexists(base) and (base.is_symlink() or not base.is_dir()):
+        raise Unreadable(f"{CURSOR_SKILLS} is not a directory")
+    present, differs = 0, []
+    for item in manifest["skills"]:
+        directory = base / item["name"]
+        if not os.path.lexists(directory):
+            differs.append(item["name"])
+            continue
+        present += 1
+        if directory.is_symlink() or not directory.is_dir() or any(
+                p.is_symlink() for p in directory.rglob("*")) or _directory_hash(directory) != item["sha256"]:
+            differs.append(item["name"])
+    if present == 0:
+        return "PIN_NOT_INSTALLED"
+    if differs:
+        return f"PIN_DRIFT differs={','.join(sorted(differs))}"
+    return f"PIN_CLEAN skills={present}"
+
+
+def cursor_line(home: Path, repo: Path | None, plugin: str, manifest: dict, pinned: str) -> str:
+    try:
+        cached = cursor_cached_version(home, plugin) or "none"
+    except Unreadable:
+        cached = "unknown"
+    if repo is None:
+        return f"NOT_CHECKED cache={cached} pinned={pinned}"
+    try:
+        state = repo_pack_state(repo, manifest)
     except Unreadable as error:
         return f"UNKNOWN ({error})"
-    if cached is None:
-        return f"NOT_INSTALLED {label}={reference}"
-    return f"{compare(cached, reference)} cached={cached} {label}={reference}"
+    except OSError as error:
+        return f"UNKNOWN ({CURSOR_SKILLS} is not readable: {type(error).__name__})"
+    return f"{state} cache={cached} pinned={pinned}"
 
 
 def cli_version(name: str) -> str:
@@ -298,27 +365,37 @@ def matt_state(home: Path) -> str:
 
 
 def main(argv: list[str]) -> int:
-    usage = "usage: check-external-skill-versions.sh [--source-only | --home <dir>]"
-    if argv == ["--source-only"]:
-        source_only, home = True, None
-    elif not argv:
-        source_only, home = False, Path.home()
-    elif len(argv) == 2 and argv[0] == "--home":
-        source_only, home = False, Path(argv[1])
-    else:
-        print(usage, file=sys.stderr)
-        return 2
+    usage = "usage: check-external-skill-versions.sh [--source-only | [--home <dir>] [--repo <checkout>]]"
+    source_only = argv == ["--source-only"]
+    options: dict[str, Path] = {}
+    if not source_only:
+        for index in range(0, len(argv), 2):
+            pair = argv[index:index + 2]
+            if len(pair) != 2 or pair[0] not in {"--home", "--repo"} or pair[0] in options:
+                print(usage, file=sys.stderr)
+                return 2
+            options[pair[0]] = Path(pair[1])
+    home, repo = options.get("--home", Path.home()), options.get("--repo")
 
     try:
         adapted = adapted_version()
-    except RecordInvalid as error:
+        pin = superpowers_pin()
+        if adapted != pin["version"]:
+            raise RecordInvalid(f"{PACK}.adapted_version {adapted} is not the pinned {pin['version']}")
+        matt_pin = matt_pinned_version()
+        matt_manifest = _load_json(ROOT / f"codex/vendor/mattpocock/v{matt_pin}/manifest.json")
+    except (RecordInvalid, OSError, ValueError) as error:
         print(f"RECORD_INVALID: {error}")
         return 2
+    pinned = pin["version"]
     if source_only:
-        print(f"RECORD_OK {PACK} adapted={adapted}")
+        print(f"RECORD_OK {PACK} adapted={adapted} pinned={pinned} commit={pin['commit']}")
         return 0
     if not home.is_dir():
         print(f"HOME_MISSING: {home} is not a directory", file=sys.stderr)
+        return 2
+    if repo is not None and not repo.is_dir():
+        print(f"REPO_MISSING: {repo} is not a directory", file=sys.stderr)
         return 2
 
     clis = [cli_version("claude"), cli_version("codex")]
@@ -326,28 +403,28 @@ def main(argv: list[str]) -> int:
     try:
         installed = claude_superpowers(home)
         if installed is None:
-            claude = f"NOT_INSTALLED adapted={adapted}"
+            claude = f"PIN_NOT_INSTALLED pinned={pinned}"
         else:
-            claude = f"{compare(installed, adapted)} installed={installed} adapted={adapted}"
+            version, commit = installed
+            state = compare(version, pinned)
+            if state == "PIN_CLEAN" and commit != pin["commit"]:
+                state = "PIN_DRIFT"
+            same = "pinned" if commit == pin["commit"] else "differs"
+            claude = f"{state} installed={version} commit={same} pinned={pinned}"
     except Unreadable as error:
         claude = f"UNKNOWN ({error})"
     try:
-        codex = codex_superpowers(home, adapted)
+        codex = codex_superpowers(home, pinned)
     except Unreadable as error:
         codex = f"UNKNOWN ({error})"
     matt = matt_state(home)
-    try:
-        matt_pin = matt_pinned_version()
-    except RecordInvalid as error:
-        print(f"RECORD_INVALID: {error}")
-        return 2
-    cursor_superpowers = cursor_line(home, PACK, adapted, "adapted")
-    cursor_matt = cursor_line(home, MATT_PACK, matt_pin, "pinned")
+    cursor_superpowers = cursor_line(home, repo, PACK, pin["manifest"], pinned)
+    cursor_matt = cursor_line(home, repo, MATT_PACK, matt_manifest, matt_pin)
     lines += [f"{PACK.upper()} claude {claude}", f"{PACK.upper()} codex {codex}", f"MATT claude {matt}",
               f"{PACK.upper()} cursor {cursor_superpowers}", f"MATT cursor {cursor_matt}"]
 
     states = [claude.split()[0], codex.split()[0], cursor_superpowers.split()[0], cursor_matt.split()[0], *clis]
-    failing = any(state in {"REVIEW_NEEDED", "UNKNOWN"} for state in states) or matt != "PIN_CLEAN"
+    failing = any(state in {"PIN_DRIFT", "UNKNOWN"} for state in states) or matt != "PIN_CLEAN"
     lines.append("RESULT REVIEW_NEEDED" if failing else "RESULT PASS")
     print("\n".join(lines))
     return 1 if failing else 0

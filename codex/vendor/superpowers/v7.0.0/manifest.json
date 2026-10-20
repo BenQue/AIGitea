@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "source": "https://github.com/obra/superpowers",
+  "tag": "v7.0.0",
+  "tag_object": "7f043e5eaf3522dc19178c673b76328de9b0c355",
+  "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3",
+  "license": "MIT",
+  "license_sha256": "a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400",
+  "adapter_contract_version": 1,
+  "critical_skills": [
+    "brainstorming",
+    "dispatching-parallel-agents",
+    "executing-plans",
+    "finishing-a-development-branch",
+    "subagent-driven-development",
+    "systematic-debugging",
+    "test-driven-development",
+    "using-superpowers",
+    "verification-before-completion"
+  ],
+  "skill_count": 15,
+  "skills": [
+    {
+      "name": "brainstorming",
+      "path": "skills/brainstorming/SKILL.md",
+      "sha256": "9cb3c7afcf23f5207263bcffe38989a5ff86727cb1fb125844dc020cacfce4b5",
+      "control_sha256": "e46afa7b122dc865d33a5de4dbe3933f704261fc4c79ce7ef0a6291bd7b07a22",
+      "disable_model_invocation": false,
+      "tool_files": [
+        "scripts/frame-template.html",
+        "scripts/helper.js",
+        "scripts/server.cjs",
+        "scripts/start-server.sh",
+        "scripts/stop-server.sh"
+      ]
+    },
+    {
+      "name": "diagnosing-superpowers",
+      "path": "skills/diagnosing-superpowers/SKILL.md",
+      "sha256": "f63547ce330f4db90388912348df377790378b97d066e030d754bffd91327142",
+      "control_sha256": "618cfbf79c7b6082a5ab6c0bd0922c1ee4d0e4181d8271ca64f710421ac70cdd",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "dispatching-parallel-agents",
+      "path": "skills/dispatching-parallel-agents/SKILL.md",
+      "sha256": "6683c2b2942084352b20d11e8d83868c9c8b475da5b0fa122047e0ecfe4f4384",
+      "control_sha256": "a72f20f4de6476759de7504bfdcc507e5fd24cbcffb0f8710b36bd178b3e662a",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "executing-plans",
+      "path": "skills/executing-plans/SKILL.md",
+      "sha256": "f7d0cd59f4361be8e8570d2f21253d2ce2672d6698dea79dfe4982e1f3ab1967",
+      "control_sha256": "35eb7ccf10ffd62495c6c0302bb38475969423e7747bf9264d7e209d76175a86",
+      "disable_model_invocation": false,
+      "tool_files": [
+        "scripts/task-done",
+        "scripts/task-start"
+      ]
+    },
+    {
+      "name": "finishing-a-development-branch",
+      "path": "skills/finishing-a-development-branch/SKILL.md",
+      "sha256": "54e448f1f7f2fa69154a503ec145f4ea762fc20aaca5d079b1d61ae4fc24328d",
+      "control_sha256": "5f4f16072a49e9d6141ac4041a5f5db0d038c7c95da0f1d661a2ac3a6770b78c",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "receiving-code-review",
+      "path": "skills/receiving-code-review/SKILL.md",
+      "sha256": "be90e53112c4cf463aa717fbc206baa14394e1f9a8404db7edab06002d479b7a",
+      "control_sha256": "24293e369080cc66530ce7c9859ef8de72e649746fbbb256c5eff028f4070b57",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "requesting-code-review",
+      "path": "skills/requesting-code-review/SKILL.md",
+      "sha256": "ee6b12da86feb32c749152d80e2b0205ba6aa51aff572aa5987e0ef21985ed90",
+      "control_sha256": "1748f74bdf6a68e791696753cc5bf97d3ec29529a6f90c6f614ff5d61072037a",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "subagent-driven-development",
+      "path": "skills/subagent-driven-development/SKILL.md",
+      "sha256": "7f8b3d678d8bf422edb40a95fccd1c9c0989356d1622c414a594cbe9d9229df3",
+      "control_sha256": "ccd585dc43e3bf3321ba23143b15f9c7370a05fe80d8750a072d8bd9faddb84f",
+      "disable_model_invocation": false,
+      "tool_files": [
+        "scripts/review-package",
+        "scripts/sdd-workspace",
+        "scripts/task-brief"
+      ]
+    },
+    {
+      "name": "systematic-debugging",
+      "path": "skills/systematic-debugging/SKILL.md",
+      "sha256": "a85181d9f682468695ba1d4b1fd26fc5c1d262d5f6a40160c81e5c733172c537",
+      "control_sha256": "32d17bb3c695133dd0dc633ef13e179ce8f9cb905689d0e50923f93738c6f5a7",
+      "disable_model_invocation": false,
+      "tool_files": [
+        "condition-based-waiting-example.ts",
+        "find-polluter.sh"
+      ]
+    },
+    {
+      "name": "test-driven-development",
+      "path": "skills/test-driven-development/SKILL.md",
+      "sha256": "543fa11ad13a08af569fb15e5bc5c04f096d45efd27f3a1181b1149096de884d",
+      "control_sha256": "190a8a9bdde08825e3f272ac3ba61115919beb4c600cf9e356e38b903bd869e4",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "using-git-worktrees",
+      "path": "skills/using-git-worktrees/SKILL.md",
+      "sha256": "aad2e543e02921b488a6656efafb4e6c03e3d1f405e61e415c71b827e3417327",
+      "control_sha256": "0ad83ee8d82e0df8b20ab767e3d8070435da7f672d0bfef6ce10ad06381653df",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "using-superpowers",
+      "path": "skills/using-superpowers/SKILL.md",
+      "sha256": "ede2324cf5b61195e3f841c3a2c1c14e0aca0f20335f41340ec4c762298fd4d8",
+      "control_sha256": "64c1de87350d603141630d093ab87e66bbdce47543fee06ccf583b424e7df1f5",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "verification-before-completion",
+      "path": "skills/verification-before-completion/SKILL.md",
+      "sha256": "a44da343ac540c5b8ee07bc4b46417c4e4be9a4f4b02eefe7888afbc80d086a8",
+      "control_sha256": "4fc10e3fae93127d0bda94bbb2f6e07236ff0034c6698e68daa902af20fb1100",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "writing-plans",
+      "path": "skills/writing-plans/SKILL.md",
+      "sha256": "6c0cccd4e8e48b184fac238e0844629c45db3c8ebadcf5a8a5d2443747cd56ad",
+      "control_sha256": "71f17640ac0dcebc18320c09a5ddde38c43a76a0ae0992908f7e5eea9e715a64",
+      "disable_model_invocation": false,
+      "tool_files": []
+    },
+    {
+      "name": "writing-skills",
+      "path": "skills/writing-skills/SKILL.md",
+      "sha256": "b81a8f0cc1f48da922d1500dbf3481a7706ef0d7656340b0b94010837ba2e35e",
+      "control_sha256": "d83f0154947ebba51eda15bd63351aed91bf9adbfb8952b145ecab980f6ad725",
+      "disable_model_invocation": false,
+      "tool_files": [
+        "render-graphs.js"
+      ]
+    }
+  ]
+}
