@@ -170,7 +170,9 @@ sequenceDiagram
 | [08-双工具共存与实施](08-双工具共存与实施.md) | 共享契约、controller/adapter、provider 验证矩阵、部署边界与回滚 | 接入或切换 provider |
 | [平台使用合同](usage/CONTRACT.md) | 项目使用层的唯一合同入口；随版本化使用发布包（`usage/bundle.json`，`codex/tools/usage-bundle.sh`）下发，项目 pin 版本 | 项目接入、升级或核对所用平台版本 |
 | [ADR 0001 平台边界](docs/adr/0001-platform-boundary.md) | 平台交付物、内核代码类别、项目数据位置、两层分离 | 判断一项需求或代码能否进入平台 |
-| [整改路线](docs/governance/remediation-roadmap.md) | R0–R8 批次与状态 | 安排或推进平台清理 |
+| [ADR 0002 确定性开发流程](docs/adr/0002-deterministic-development-flow.md) | 路由合同与执行引擎分离、路由卡字段、VM 执行引擎退出、重开无人值守的条件 | 判断一条 Issue 怎么开发，或讨论自动化 |
+| [整改路线](docs/governance/remediation-roadmap.md) | R0–R16 批次、状态与第二轮退出条件 | 安排或推进平台清理 |
+| [平台级 E2E 验收表](docs/governance/platform-e2e-acceptance.md) | 各项目按发布包版本跑通的端到端部署链与证据 | 判断平台是否真正被用起来 |
 | [10-AI Issue 判级与标签计划（历史）](archive/10-AI-Issue判级与标签实施计划.md) | 2026-07 初始判级、标签和 wrapper 实施记录 | 仅作历史追溯 |
 | [11-Codex Loop runtime 计划（历史）](archive/11-Codex-Loop运行时实施计划.md) | provider-neutral runtime 首轮实施记录 | 仅作历史追溯 |
 | [参考实现迁出说明](archive/reference-implementations-exit-261019.md) | #383 迁出的 Docker release、公司 operator、公司基线与项目 architecture reference 的路径、最后 commit 与去向 | 追溯或复制历史参考实现 |
