@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import runpy
 from pathlib import Path
 import shutil
 import subprocess
@@ -101,15 +102,15 @@ class InstalledDriftTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.work)
 
-    def args(self, repo=None):
+    def args(self, repo=None, host=None):
         repo = self.fixture_source if repo is None else repo
         return ["bash", str(CHECKER), "--repo", str(repo),
                 "--target-home", str(self.home), "--install-root", str(self.system),
-                "--architecture-prefix", str(self.arch), "--json"]
+                "--architecture-prefix", str(self.arch), "--json"] + (["--host", "all"] if host is None else ["--host", host])
 
-    def check(self, code=0, extra=(), repo=None):
+    def check(self, code=0, extra=(), repo=None, host=None):
         before = fingerprint(self.installed)
-        p = run(self.args(repo) + list(extra))
+        p = run(self.args(repo, host) + list(extra))
         self.assertEqual(p.returncode, code, p.stderr + p.stdout)
         self.assertEqual(fingerprint(self.installed), before, "checker mutated the installation surface")
         return json.loads(p.stdout)
@@ -375,6 +376,89 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
         self.assertEqual(tuple(r["installer"] for r in report["installers"]), INSTALLERS)
         self.assertTrue(all(r["result"] == "PASS" for r in report["installers"]))
         self.assertEqual(report["source"]["remote_freshness"], "EXTERNAL_EVIDENCE_REQUIRED")
+
+    def committed_source(self, baseline=None):
+        source = self.clone_source()
+        source = source.rename(Path(tempfile.mkdtemp(dir=self.work, prefix="source-")) / "repo")
+        if baseline is not None:
+            (source / "codex/config/installed-drift-baseline.json").write_text(json.dumps(baseline))
+        for args in [["git", "init", "-q", str(source)], ["git", "-C", str(source), "add", "."],
+                     ["git", "-C", str(source), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                      "-c", "core.hooksPath=/dev/null", "commit", "-qm", "fixture baseline"],
+                     ["git", "-C", str(source), "update-ref", "refs/remotes/origin/main", "HEAD"]]:
+            p = run(args)
+            self.assertEqual(p.returncode, 0, p.stderr)
+        return source
+
+    def baseline(self):
+        return json.loads((REPO / "codex/config/installed-drift-baseline.json").read_text())
+
+    def test_hosts_skip_surfaces_outside_applies_to_without_reading(self):
+        # #397: architecture and sync belong to target hosts; skills to the Mac.
+        for host, skipped in [("mac", {"architecture/install", "sync/install"}),
+                              ("vm", {"install-skills", "skill-for-claude/install",
+                                      "architecture/install", "sync/install"}),
+                              ("target", {"install-skills", "skill-for-claude/install",
+                                          "install-host-role", "install-host-access-broker"})]:
+            shutil.rmtree(self.arch / "share")  # unreadable for a SKIP, fatal otherwise
+            report = self.check(1 if host == "target" else 0, host=host)
+            self.assertEqual({r["installer"] for r in report["installers"] if r["result"] == "SKIP"}, skipped, host)
+            self.assertTrue(all(r["scope"] == "SKIPPED" and r["gaps"] == [] for r in report["installers"]
+                                if r["result"] == "SKIP"))
+            self.assertEqual(report["host"], host)
+            shutil.copytree(self.base / "custom-architecture/share", self.arch / "share", symlinks=True)
+
+    def test_ratchet_regression_hold_and_tighten(self):
+        # The rotation record binds the broker surface to the fixture source, so a
+        # second source would read GAP there anyway; host-role carries no binding.
+        target = self.system / "usr/local/share/aisoft/host-capabilities.json"
+        target.unlink()
+        self.check(0, host="target")  # host-role is SKIP there and the file is never read
+        report = self.check(1, host="vm")
+        entry = next(e for e in report["ratchet"] if e["installer"] == "install-host-role")
+        self.assertEqual(entry["status"], "regressed")
+        held = self.baseline()
+        held["hosts"]["vm"]["install-host-role"] = "GAP"
+        held["hosts"]["vm"]["install-host-access-broker"] = "GAP"
+        source = self.committed_source(held)
+        report = self.check(0, host="vm", repo=source)
+        self.assertEqual(report["result"], "PASS")
+        self.assertIn({"installer": "install-host-role", "baseline": "GAP", "result": "GAP",
+                       "status": "held"}, report["ratchet"])
+        shutil.copy2(self.base / "system/usr/local/share/aisoft/host-capabilities.json", target)
+        report = self.check(0, host="vm", repo=source)
+        self.assertIn({"installer": "install-host-role", "baseline": "GAP", "result": "PASS",
+                       "status": "tighten"}, report["ratchet"])
+
+    def test_baseline_must_match_applies_to(self):
+        for mutate in [lambda b: b["hosts"]["vm"].__setitem__("install-skills", "PASS"),
+                       lambda b: b["hosts"]["mac"].__setitem__("install-skills", "SKIP"),
+                       lambda b: b["hosts"].pop("target"),
+                       lambda b: b["hosts"]["mac"].pop("sync/install")]:
+            broken = self.baseline()
+            mutate(broken)
+            report = self.check(2, extra=["--source-only"], repo=self.committed_source(broken))
+            self.assertIn(report["error"]["reason"], {"invalid-drift-baseline", "baseline-applies-to-mismatch"})
+
+    def test_installed_mode_needs_a_host_off_macos(self):
+        p = run(self.args()[:-2])
+        if sys.platform == "darwin":
+            self.assertEqual(json.loads(p.stdout)["host"], "mac")
+        else:
+            self.assertEqual(p.returncode, 2, p.stdout)
+            self.assertEqual(json.loads(p.stdout)["error"]["reason"], "host-required")
+
+    def test_macos_system_link_alias_is_narrow(self):
+        namespace = runpy.run_path(str(REPO / "codex/tools/check-installed-drift.py"), run_name="test_seam")
+        aliases = namespace["macos_system_aliases"]
+        self.assertEqual(aliases(self.system, "mac"), {})
+        self.assertEqual(aliases(Path("/"), "vm"), {})
+        surface = namespace["Surface"]("install-host-role")
+        surface.files.append((REPO / "x", Path("/etc/aisoft/a.json"), Path("/")))
+        surface.absent.append((Path("/etcetera/b"), Path("/")))
+        namespace["apply_aliases"]([surface], {Path("/etc"): Path("/private/etc")})
+        self.assertEqual(surface.files[0][1], Path("/private/etc/aisoft/a.json"))
+        self.assertEqual(surface.absent[0][0], Path("/etcetera/b"))
 
     def test_missing_new_module_equal_count_and_restore(self):
         for installer, directory in [

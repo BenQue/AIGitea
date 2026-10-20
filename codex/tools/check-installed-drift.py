@@ -1,4 +1,4 @@
-"""Credential-free, zero-write comparison of the six installer surfaces (#308; retired: docker-release by #383, install-vm by #391).
+"""Credential-free, zero-write comparison of the six installer surfaces (#308; retired: docker-release by #383, install-vm by #391; per-host applicability and baseline ratchet by #397).
 
 Installer fingerprints fail closed when copy/delete semantics change. Update their
 mapping and acceptance fixtures together; never just advance a fingerprint to get
@@ -37,6 +37,24 @@ INSTALLER_HELPER_PINS = {
 MATT_MANIFEST_PIN = "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd"
 HELPER_SOURCE_INPUTS = ("go.mod", "go.sum", "build-lock.json", "build.py", "main.go", "helper.go",
                         "helper_test.go", "process_fixture_test.go")
+# #397: the hosts each installer surface belongs to. `target` is a project or
+# sync host outside the platform pair. A surface outside the checked host
+# reports SKIP and its targets are never read. The baseline JSON pins the same
+# table per host, so widening a SKIP needs two edits that review can see.
+APPLIES_TO = {
+    "install-skills": ("mac",),
+    "install-host-role": ("mac", "vm"),
+    "install-host-access-broker": ("mac", "vm"),
+    "architecture/install": ("target",),
+    "sync/install": ("target",),
+    "skill-for-claude/install": ("mac",),
+}
+HOSTS = ("mac", "vm", "target")
+BASELINE = "codex/config/installed-drift-baseline.json"
+# macOS keeps these top-level names as links into /private. Only these exact
+# links are resolved, only for the real root of a mac host; any other linked
+# parent stays a symlink-parent GAP.
+MACOS_SYSTEM_LINKS = ("etc", "tmp", "var")
 CONTROL_LINE_RE = re.compile(
     r"^(?:#{1,6}\s+|\d+[.)]\s+)"
     r"|\b(?:commit|push|merge|rebase|reset|force-push|deploy|permission|"
@@ -527,6 +545,71 @@ def build_surfaces(repo: Path, home: Path, system: Path, arch: Path):
     return list(surfaces.values()), metadata_sources
 
 
+def read_baseline(repo: Path):
+    path = repo / BASELINE
+    doc = strict_document(path, repo)
+    hosts = doc.get("hosts") if isinstance(doc, dict) else None
+    require(isinstance(doc, dict) and set(doc) == {"schema", "hosts"} and doc["schema"] == 1
+            and isinstance(hosts, dict) and set(hosts) == set(HOSTS), "invalid-drift-baseline", path)
+    for host, rows in hosts.items():
+        require(isinstance(rows, dict) and set(rows) == set(APPLIES_TO), "invalid-drift-baseline", path)
+        for name, value in rows.items():
+            applies = host in APPLIES_TO[name]
+            require(value in ({"PASS", "GAP"} if applies else {"SKIP"}), "baseline-applies-to-mismatch", path)
+    return hosts
+
+
+def macos_system_aliases(install_root: Path, host: str):
+    """Map /etc, /tmp and /var to /private/... when they are exactly the macOS links."""
+    if host != "mac" or install_root != Path("/"):
+        return {}
+    aliases = {}
+    for name in MACOS_SYSTEM_LINKS:
+        try:
+            if os.readlink("/" + name) == "private/" + name:
+                aliases[Path("/" + name)] = Path("/private/" + name)
+        except OSError:
+            continue
+    return aliases
+
+
+def apply_aliases(surfaces: list[Surface], aliases: dict[Path, Path]):
+    def remap(path: Path) -> Path:
+        for link, real in aliases.items():
+            if path.is_relative_to(link):
+                return real / path.relative_to(link)
+        return path
+    if not aliases:
+        return
+    for surface in surfaces:
+        surface.files = [(source, remap(target), boundary) for source, target, boundary in surface.files]
+        surface.links = [(remap(target), expected, boundary) for target, expected, boundary in surface.links]
+        surface.retired_links = [(remap(target), retired, boundary) for target, retired, boundary in surface.retired_links]
+        surface.exact_trees = [(remap(tree), boundary, dirs) for tree, boundary, dirs in surface.exact_trees]
+        surface.absent = [(remap(target), boundary) for target, boundary in surface.absent]
+        for metric in surface.metrics.values():
+            metric.targets = [remap(target) for target in metric.targets]
+
+
+def skipped_row(surface: Surface):
+    return {"installer": surface.installer, "scope": "SKIPPED", "result": "SKIP",
+            "applies_to": list(APPLIES_TO[surface.installer]), "quantities": {}, "gaps": []}
+
+
+def ratchet(rows, baseline):
+    entries = []
+    for row in rows:
+        expected, actual = baseline[row["installer"]], row["result"]
+        if expected == actual:
+            status = "held" if actual == "GAP" else "match"
+        elif expected == "GAP" and actual == "PASS":
+            status = "tighten"
+        else:
+            status = "regressed"
+        entries.append({"installer": row["installer"], "baseline": expected, "result": actual, "status": status})
+    return entries
+
+
 def validate_source(repo: Path, surfaces: list[Surface]):
     discovered = set()
     candidates = (p for p in repo.rglob("install*.sh")
@@ -732,16 +815,24 @@ def main(argv=None):
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--source-only", action="store_true")
     parser.add_argument("--pat-helper-provenance", type=public_provenance)
+    # `all` inspects every surface without the baseline; it exists for synthetic
+    # install roots that carry every installer at once.
+    parser.add_argument("--host", choices=HOSTS + ("all",))
     args = parser.parse_args(argv)
+    host = args.host or ("mac" if sys.platform == "darwin" else None)
     roots = {"repo": args.repo, "target_home": args.target_home, "install_root": args.install_root,
              "architecture_prefix": args.architecture_prefix or args.install_root / "usr/local"}
-    report = {"mode": "source-only" if args.source_only else "installed", "roots": {k: str(v) for k, v in roots.items()}, "installers": []}
+    report = {"mode": "source-only" if args.source_only else "installed", "host": host,
+              "roots": {k: str(v) for k, v in roots.items()}, "installers": []}
     if args.pat_helper_provenance is not None:
         report["public_provenance"] = {"path": str(args.pat_helper_provenance),
                                        "access": "NOT_READ_SOURCE_ONLY" if args.source_only else "DECLARED_INPUT"}
     try:
         surfaces, sources = build_surfaces(*roots.values())
         validate_source(args.repo, surfaces)
+        baseline = read_baseline(args.repo)
+        if host is None and not args.source_only:
+            raise InspectionError("host-required", Path(sys.platform))
         sources.update(source for surface in surfaces for source, _target, _boundary in surface.files)
         identity = source_identity(args.repo, sources)
         report["source"] = identity
@@ -750,9 +841,16 @@ def main(argv=None):
                 report["installers"].append({"installer": surface.installer, "scope": "SOURCE", "result": "PASS",
                     "expected_files": len(surface.files), "quantities": {n: {"expected": m.expected} for n, m in surface.metrics.items()}})
         else:
-            report["installers"] = [inspect_surface(s, args.repo, identity, args.pat_helper_provenance) for s in surfaces]
+            apply_aliases(surfaces, macos_system_aliases(args.install_root, host))
+            report["installers"] = [
+                skipped_row(s) if host != "all" and host not in APPLIES_TO[s.installer]
+                else {**inspect_surface(s, args.repo, identity, args.pat_helper_provenance),
+                      "applies_to": list(APPLIES_TO[s.installer])}
+                for s in surfaces]
             by_name = {row["installer"]: row for row in report["installers"]}
             for surface in surfaces:
+                if by_name[surface.installer]["result"] == "SKIP":
+                    continue
                 for dependency in surface.also_checked_by:
                     if by_name[dependency]["result"] == "GAP":
                         by_name[surface.installer]["result"] = "GAP"
@@ -761,8 +859,13 @@ def main(argv=None):
         # A valid PR is allowed to change managed source before merge. Source-only
         # gates definition integrity, while retaining main drift as provenance;
         # installed mode still requires that identity as well as installed bytes.
-        code = int(not args.source_only and (identity["result"] != "PASS" or
-                   any(row["result"] != "PASS" for row in report["installers"])))
+        if args.source_only:
+            code = 0
+        elif host == "all":
+            code = int(identity["result"] != "PASS" or any(row["result"] != "PASS" for row in report["installers"]))
+        else:
+            report["ratchet"] = ratchet(report["installers"], baseline[host])
+            code = int(identity["result"] != "PASS" or any(e["status"] == "regressed" for e in report["ratchet"]))
     except (InspectionError, OSError, UnicodeError, ValueError, AttributeError) as exc:
         code = 2
         report["error"] = {"reason": exc.reason if isinstance(exc, InspectionError) else "invalid-source-definition",
@@ -776,11 +879,17 @@ def main(argv=None):
         if "public_provenance" in report:
             print("PUBLIC_PROVENANCE " + json.dumps(report["public_provenance"], ensure_ascii=False))
         for row in report["installers"]:
-            print(f"{row['scope']} {row['result']}: {row['installer']} " + json.dumps(row["quantities"], ensure_ascii=False))
+            applies = " applies_to=" + ",".join(row["applies_to"]) if row["result"] == "SKIP" else ""
+            print(f"{row['scope']} {row['result']}: {row['installer']} " + json.dumps(row["quantities"], ensure_ascii=False) + applies)
             if "rotation" in row:
                 print("  ROTATION " + json.dumps(row["rotation"], ensure_ascii=False))
             for gap in row.get("gaps", []):
                 print("  GAP " + json.dumps(gap, ensure_ascii=False))
+        for entry in report.get("ratchet", []):
+            if entry["status"] in {"held", "regressed"}:
+                print(f"RATCHET {entry['status']}: {entry['installer']} baseline={entry['baseline']} result={entry['result']}")
+            elif entry["status"] == "tighten":
+                print(f"NOTE baseline can be tightened: {entry['installer']} baseline=GAP result=PASS ({BASELINE})")
         print("RESULT " + report["result"])
     return code
 
