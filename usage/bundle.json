@@ -551,7 +551,7 @@
     {
       "version": "1.3.0",
       "released": "2026-10-20",
-      "bundle_digest": "sha256:9f00cc4f8eb46bab38f92ac64b63da6d5f391205202b10dc439539585af0bcbf",
+      "bundle_digest": "sha256:5e425a2fd64d57fb854df24e51fa5e0fd4bf15298dbc4137f746a2287ec58988",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -653,7 +653,7 @@
         {
           "source": "skills/aisoft-platform/SKILL.md",
           "mode": "skill",
-          "sha256": "99c6671fb029e9f4d61cabd4f49ae0bfae09c5cb09200974834370093d14aeeb"
+          "sha256": "9582f6003fdb6eee72c860895d967f42daa8cc732aa97816018c3a763455ebef"
         },
         {
           "source": "skills/aisoft-platform/agents/openai.yaml",
@@ -663,7 +663,7 @@
         {
           "source": "skills/aisoft-platform/references/onboarding-runbook.md",
           "mode": "skill",
-          "sha256": "afc38dd5fa6defe51df1a7984e41cc7670a2d879656abe2f6f12c322fd5d78e7"
+          "sha256": "e3e1c3ab27c4e52170852f91f0a7911b6d46c86b44a8ffd62f3ee8c4c22eb302"
         },
         {
           "source": "skills/aisoft-platform/references/private-gitea-access.md",

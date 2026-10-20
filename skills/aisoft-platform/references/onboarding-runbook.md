@@ -8,7 +8,7 @@
 
 ## 1. 参数与仓库
 
-先确定唯一 profile 名称，再确定 `GITEA_URL`、`OWNER`、`REPO`、本地只读/工作克隆、技术栈、测试命令与 verifier 配置。只有应用项目才需要应用端口、Nginx 端口、健康端点、数据存储和回滚方式；纯文档或平台规范仓库不需要虚构部署流程。
+先确定唯一项目 id，再确定 `GITEA_URL`、`OWNER`、`REPO`、Mac 工作克隆、技术栈、测试命令与 required CI。只有应用项目才需要应用端口、Nginx 端口、健康端点、数据存储和回滚方式；纯文档或平台规范仓库不需要虚构部署流程。
 
 把仓库放到 Gitea，验证历史完整、默认分支正确、Mac/内网客户端可以 clone 和 push feature
 branch。随后先把 exact repository、classification、visibility、project agent 和 required status
@@ -29,7 +29,7 @@ contexts 纳入 `codex/config/gitea-governance.json` 并经平台 PR 人工合�
 5. 使用 manager mutation token 对一个 exact repository 运行 `apply`；命令必须携带 Issue #35、
    已合并 platform SHA、platform root 和独立 evidence directory。工具校准 visibility、project-agent
    Write、merge 后删分支和 `main` protection，同时保留 exact status/approval contract。
-6. 项目 profile 改用自己的 token，真实验证 private repo read、Issue/comment/label、feature push、
+6. 在 host-access manifest 登记该项目并绑定它自己的 project-agent 凭据，经 broker 真实验证 private repo read、Issue/comment/label、feature push、
    PR、main push denied、main merge denied。只有 exact JSON evidence 全 PASS 后才允许
    `retire-shared-bot`。
 

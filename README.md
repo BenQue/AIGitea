@@ -236,7 +236,7 @@ Windows 各一段原则 + 全平台一致的流程不变量）。下列材料是
 
 | 入口 | 地址 |
 |------|------|
-| Gitea | http://gitea-ci.orb.local:3000；实际目标由项目 profile 指定；旧试点仓库自 #252 起已退出平台治理（仓库保留） |
+| Gitea | http://gitea-ci.orb.local:3000；实际目标由 broker manifest 的项目指定；旧试点仓库自 #252 起已退出平台治理（仓库保留） |
 | 测试环境应用 | 由目标项目的 `appserver-test` profile 指定；历史 `gitea-ci:8091` 已在 Issue #21 收口，不得作为当前入口 |
 | Mailpit 收件箱 | http://gitea-ci.orb.local:8025 |
 | Verdaccio | http://gitea-ci.orb.local:4873 |
