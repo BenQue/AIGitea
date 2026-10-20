@@ -132,6 +132,7 @@ if broker_call gitea.pulls.read "$work/pulls.json" --state open &&
     if ! [[ "$number" =~ ^[0-9]+$ && "$sha" =~ ^[0-9a-f]{40}$ ]]; then
       broker_failures+=("gitea.pulls.read:RESPONSE_SCHEMA_INVALID")
       carry_over "ci:$project:"
+      carry_over "projection:$project:"
       continue
     fi
     if broker_call gitea.commit.status.read "$work/status.json" --sha "$sha" &&

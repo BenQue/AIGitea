@@ -168,8 +168,12 @@ targets += [("project-agent", template.format(project_id=p["project_id"])) for p
 def issued(kind, relative):
     parent = root / Path(relative).parent
     receipt = parent / (".rotation-" + kind) / "provenance.json"
+    journal = receipt.with_name("journal.json")
     try:
-        if stat.S_ISREG(os.lstat(receipt).st_mode):
+        # provenance.json is written before the transaction completes; only a
+        # journal in phase complete makes its time a finished rotation.
+        if (stat.S_ISREG(os.lstat(receipt).st_mode) and stat.S_ISREG(os.lstat(journal).st_mode)
+                and json.loads(journal.read_text(encoding="utf-8")).get("phase") == "complete"):
             value = json.loads(receipt.read_text(encoding="utf-8")).get("observed_at")
             if type(value) is int and value > 0:
                 return value, "receipt"

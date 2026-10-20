@@ -67,6 +67,20 @@ if grep -Fq -- '- run:' <<<"$body"; then
   exit 1
 fi
 
+# A valid first line cannot carry a second one; userinfo, query and fragment
+# links are dropped because that is where credentials travel.
+for bad_url in 'http://user:secret@gitea.example/run/1' 'http://gitea.example/run/1?access_token=secret' \
+  'http://gitea.example/run/1#secret' $'http://gitea.example/run/1\nsecret'; do
+  : >"$test_root/requests.log"
+  run --result failed --stage $'deploy\nsecret' --run-url "$bad_url" >/dev/null
+  body="$(head -1 "$test_root/requests.log" | cut -f2 | jq -r .body)"
+  grep -Fq -- '- stage: `unspecified`' <<<"$body"
+  if grep -Fq secret "$test_root/requests.log"; then
+    echo "unsafe text reached the request: $bad_url" >&2
+    exit 1
+  fi
+done
+
 # Subject fallback when no Closes line exists.
 : >"$test_root/requests.log"
 printf 'Merge change/77-x into main\n' >"$test_root/msg"

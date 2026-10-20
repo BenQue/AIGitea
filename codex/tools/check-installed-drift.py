@@ -834,6 +834,8 @@ def main(argv=None):
         if host is None and not args.source_only:
             raise InspectionError("host-required", Path(sys.platform))
         sources.update(source for surface in surfaces for source, _target, _boundary in surface.files)
+        # The baseline decides which GAPs are held; a local edit must not relax it.
+        sources.add(args.repo / BASELINE)
         identity = source_identity(args.repo, sources)
         report["source"] = identity
         if args.source_only:

@@ -68,6 +68,12 @@ touch -t "$(date -v-10d +%Y%m%d%H%M 2>/dev/null || date -d '10 days ago' +%Y%m%d
   "$creds/manager/audit.token-created-by-issue-1"
 printf '{"observed_at":%s}\n' "$(($(date +%s) - 200 * 86400))" \
   >"$creds/manager/.rotation-manager-mutation/provenance.json"
+printf '{"phase":"complete"}\n' >"$creds/manager/.rotation-manager-mutation/journal.json"
+# A receipt whose transaction never completed is not a rotation (provenance is
+# written before the journal reaches complete).
+mkdir -p "$creds/projects/aisoft-platform/.rotation-project-agent"
+printf '{"observed_at":%s}\n' "$(date +%s)" >"$creds/projects/aisoft-platform/.rotation-project-agent/provenance.json"
+printf '{"phase":"revoked"}\n' >"$creds/projects/aisoft-platform/.rotation-project-agent/journal.json"
 
 output="$(bash "$root/codex/tools/aisoft-platform-readiness.sh" \
   --repo "$root" --home "$test_root/home" --broker "$fake_broker" --credential-root "$creds")"

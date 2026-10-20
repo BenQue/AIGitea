@@ -430,6 +430,16 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
         self.assertIn({"installer": "install-host-role", "baseline": "GAP", "result": "PASS",
                        "status": "tighten"}, report["ratchet"])
 
+    def test_uncommitted_baseline_relaxation_is_a_source_gap(self):
+        source = self.committed_source()
+        relaxed = self.baseline()
+        relaxed["hosts"]["vm"]["install-host-role"] = "GAP"
+        (source / "codex/config/installed-drift-baseline.json").write_text(json.dumps(relaxed))
+        (self.system / "usr/local/share/aisoft/host-capabilities.json").unlink()
+        report = self.check(1, host="vm", repo=source)
+        self.assertEqual(report["source"]["result"], "GAP")
+        self.assertFalse(report["source"]["managed_source_matches_cached_main"])
+
     def test_baseline_must_match_applies_to(self):
         for mutate in [lambda b: b["hosts"]["vm"].__setitem__("install-skills", "PASS"),
                        lambda b: b["hosts"]["mac"].__setitem__("install-skills", "SKIP"),

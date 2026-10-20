@@ -209,6 +209,11 @@ unbound='[{"number":23,"head":{"sha":"1111111111111111111111111111111111111111",
 out="$(FAKE_PULLS="$unbound" run_proj)"
 grep -Fxq 'ALERTS active=1 new=1 broker_failures=0' <<<"$out"
 grep -Fq 'PR #23 names no Issue' "$notifications"
+# An invalid head SHA is an unreadable list entry: the projection key stays.
+FAKE_PULLS="$pulls" FAKE_LABELS="$unprojected" run_proj >/dev/null
+out="$(FAKE_PULLS='[{"number":21,"head":{"sha":"bad","ref":"change/397-x"}}]' run_proj)"
+grep -Fq 'broker_failures=1' <<<"$out"
+grep -Fq 'projection:aisoft-platform:21:397' "$state_proj/active-alerts.tsv"
 for shape in '{}' '[{"id":1}]' '"x"'; do
   out="$(FAKE_PULLS="$pulls" FAKE_LABELS="$unprojected" run_proj >/dev/null; FAKE_PULLS="$pulls" FAKE_LABELS="$shape" run_proj)"
   grep -Fq 'broker_failures=2' <<<"$out"

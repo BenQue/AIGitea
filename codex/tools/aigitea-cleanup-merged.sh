@@ -6,9 +6,9 @@
 #
 # Never touches the network (#397): it compares against the cached
 # <remote>/main, so fetch main through the host-access broker first
-# (git.fetch.main). Without --remote it uses the single remote that has a
-# cached main and does not point at github.com, and stops if that is not
-# exactly one. Worktrees on a branch or on a detached HEAD are removable only
+# (git.fetch.main). Without --remote it uses the single remote whose URL is a
+# repository under the governance manifest's Gitea base URL and owner, and
+# stops if that cannot be proved for exactly one remote. Worktrees on a branch or on a detached HEAD are removable only
 # when merged, clean and not modified within --min-age minutes.
 # --remote-branches lists merged remote-tracking change/* refs; it deletes
 # nothing, the refs may be stale, and deleting a remote branch is a human step.
@@ -40,10 +40,15 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 if [ -z "$REMOTE" ]; then
+  manifest="${AISOFT_GOVERNANCE_MANIFEST:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../config" && pwd)/gitea-governance.json}"
+  prefix="$(jq -er '"\(.base_url | rtrimstr("/"))/\(.owner)/"' "$manifest" 2>/dev/null)" ||
+    { echo "cannot read the governance manifest to prove the platform remote; pass --remote NAME" >&2; exit 2; }
   CANDIDATES=()
   while IFS= read -r name; do
     git rev-parse --verify -q "refs/remotes/$name/main" >/dev/null || continue
-    case "$(git remote get-url "$name" 2>/dev/null)" in *github.com*) continue ;; esac
+    url="$(git remote get-url "$name" 2>/dev/null || true)"
+    case "$url" in "$prefix"*) ;; *) continue ;; esac
+    [[ "${url#"$prefix"}" =~ ^[A-Za-z0-9._-]+$ ]] || continue
     CANDIDATES+=("$name")
   done < <(git remote)
   [ "${#CANDIDATES[@]}" -eq 1 ] ||
@@ -68,7 +73,14 @@ while IFS=$'\t' read -r wt br; do
   if [ ! -d "$wt" ]; then ORPHAN+=("$wt"); continue; fi
   # A directory whose .git link is gone is prunable too; prune drops only the
   # metadata, and whatever files remain there are left to a human.
-  if ! git -C "$wt" rev-parse --git-dir >/dev/null 2>&1; then ORPHAN+=("$wt (leftover files not removed)"); continue; fi
+  # Inside another checkout git would walk up to it, so the worktree must
+  # resolve to itself.
+  top="$(git -C "$wt" rev-parse --show-toplevel 2>/dev/null || true)"
+  if [ ! -e "$wt/.git" ] || [ -z "$top" ] ||
+    [ "$(cd -- "$top" && pwd -P)" != "$(cd -- "$wt" && pwd -P)" ]; then
+    ORPHAN+=("$wt (leftover files not removed)")
+    continue
+  fi
   dirty="$(git -C "$wt" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
   if [ "$dirty" != "0" ]; then SKIP_DIRTY+=("$wt|${bn:-detached}|$dirty"); continue; fi
   # A detached worktree is judged by its HEAD commit.

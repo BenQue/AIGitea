@@ -57,12 +57,15 @@ case "$result" in
     ;;
 esac
 # Free text never reaches the comment: the stage is a short token and the run
-# link a plain http(s) URL, otherwise they are dropped.
-if ! printf '%s' "$stage" | grep -Eqx '[A-Za-z0-9._-]{1,40}'; then
+# link a plain http(s) URL with no userinfo, query or fragment (where tokens
+# hide), otherwise they are dropped. Shell pattern matching sees the whole
+# string, so a second line cannot ride along behind a valid first one.
+stage_re='^[A-Za-z0-9._-]{1,40}$'
+url_re='^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[A-Za-z0-9._~/%-]*)?$'
+if ! [[ "$stage" =~ $stage_re ]]; then
   stage="unspecified"
 fi
-if [ "${#run_url}" -gt 300 ] ||
-  ! printf '%s' "$run_url" | grep -Eqx 'https?://[A-Za-z0-9._~:/?#@!$&()*+,;=%-]+'; then
+if [ "${#run_url}" -gt 300 ] || ! [[ "$run_url" =~ $url_re ]]; then
   run_url=""
 fi
 
