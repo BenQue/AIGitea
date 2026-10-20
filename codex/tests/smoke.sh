@@ -844,7 +844,7 @@ done <<'MATT_RULE_PAIRS'
 不授予 push、PR、merge 或部署权限|grants no push, PR, merge or deployment authority
 记 `NOT RUN`|unexecuted checks remain `NOT RUN`
 写入编排在平台项目内禁用|writing orchestration is disabled
-保持 Controller 的单写者|Keep the Controller's single-writer frontier
+保持 change worktree 的单写者|Keep the change worktree's single-writer frontier
 仅在人明确要求 Matt 的 retro 时加载|only an explicit request for Matt's retrospective
 不启动自主回顾循环|start an autonomous retrospective loop
 `docs/agents/domain.md`|`docs/agents/domain.md`
