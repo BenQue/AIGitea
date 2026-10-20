@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# #387: Mac failure alerts. Fixture broker, notifier and launchctl only; never
+# #387: Mac failure alerts; #397 adds the projection gate. Fixture broker, notifier and launchctl only; never
 # the real broker, osascript or the CI host's launchd.
 set -euo pipefail
 
@@ -14,10 +14,12 @@ cat >"$fake_broker" <<'EOF'
 set -euo pipefail
 operation=''
 sha=''
+number=''
 while (($#)); do
   case "$1" in
     --operation) operation="$2"; shift 2 ;;
     --sha) sha="$2"; shift 2 ;;
+    --number) number="$2"; shift 2 ;;
     --project | --state) shift 2 ;;
     *) exit 2 ;;
   esac
@@ -31,7 +33,7 @@ case "$operation" in
     if [[ -n "${FAKE_PULLS:-}" ]]; then
       printf '%s\n' "$FAKE_PULLS"
     else
-      printf '[{"number":7,"head":{"sha":"%s"}}]\n' "${FAKE_HEAD:-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}"
+      printf '[{"number":7,"head":{"sha":"%s","ref":"change/7-fixture"},"body":null}]\n' "${FAKE_HEAD:-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}"
     fi
     ;;
   gitea.commit.status.read)
@@ -46,6 +48,16 @@ case "$operation" in
       unknown) printf '{"sha":"%s","state":"exploded"}\n' "$sha" ;;
       *) printf '{"sha":"%s","state":"%s"}\n' "$sha" "${FAKE_CI:-success}" ;;
     esac
+    ;;
+  gitea.issue.labels.read)
+    [[ "$number" =~ ^[1-9][0-9]*$ ]] || exit 2
+    printf '%s\n' "$number" >>"${FAKE_LABEL_LOG:-/dev/null}"
+    if [[ "$number" == "${FAKE_LABELS_DOWN:-}" ]]; then
+      printf '%s\n' '{"code":"HTTP_502","status":"BLOCKED_EXTERNAL"}' >&2
+      exit 20
+    fi
+    projected='[{"name":"approved"},{"name":"type/platform"},{"name":"complexity/complex"}]'
+    printf '%s\n' "${FAKE_LABELS:-$projected}"
     ;;
   orbstack.vm.units.read)
     if [[ "${FAKE_UNITS_SHAPE:-ok}" == "bad" ]]; then
@@ -158,7 +170,7 @@ state_multi="$test_root/state-multi"
 run_multi() {
   AISOFT_ALERT_NOTIFIER="$notifier" bash "$poll" --broker "$fake_broker" --state-dir "$state_multi"
 }
-two='[{"number":7,"head":{"sha":"cccccccccccccccccccccccccccccccccccccccc"}},{"number":8,"head":{"sha":"dddddddddddddddddddddddddddddddddddddddd"}}]'
+two='[{"number":7,"head":{"sha":"cccccccccccccccccccccccccccccccccccccccc","ref":"change/7-a"}},{"number":8,"head":{"sha":"dddddddddddddddddddddddddddddddddddddddd","ref":"change/8-b"}}]'
 FAKE_PULLS="$two" FAKE_CI=failure run_multi >/dev/null
 grep -Fq 'ci:aisoft-platform:7:' "$state_multi/active-alerts.tsv"
 grep -Fq 'ci:aisoft-platform:8:' "$state_multi/active-alerts.tsv"
@@ -166,6 +178,42 @@ out="$(FAKE_PULLS="$two" FAKE_CI=success FAKE_DOWN_SHA=ccccccccccccccccccccccccc
 grep -Fxq 'ALERTS active=2 new=1 broker_failures=1' <<<"$out"
 grep -Fq 'ci:aisoft-platform:7:' "$state_multi/active-alerts.tsv"
 refute grep -Fq 'ci:aisoft-platform:8:' "$state_multi/active-alerts.tsv"
+
+# #397 reverse proof: an open PR whose Issue lacks complexity/* alerts once,
+# clears when the projection lands, and the Issue comes from the exact branch
+# name or else the single Closes line. A PR that names no Issue alerts too; a
+# labels read failure keeps that PR's previous projection key.
+state_proj="$test_root/state-projection"
+label_log="$test_root/labels.log"
+run_proj() {
+  AISOFT_ALERT_NOTIFIER="$notifier" FAKE_LABEL_LOG="$label_log" \
+    bash "$poll" --broker "$fake_broker" --state-dir "$state_proj"
+}
+unprojected='[{"name":"approved"},{"name":"type/platform"}]'
+pulls='[{"number":21,"head":{"sha":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","ref":"change/397-ops-closure"},"body":"Closes #5"},
+  {"number":22,"head":{"sha":"ffffffffffffffffffffffffffffffffffffffff","ref":"feature"},"body":"intro\nCloses #398\n"}]'
+before="$(notified)"
+out="$(FAKE_PULLS="$pulls" FAKE_LABELS="$unprojected" run_proj)"
+grep -Fxq 'ALERTS active=2 new=2 broker_failures=0' <<<"$out"
+grep -Fq 'PR #21: Issue #397 lacks type/* or complexity/*' "$notifications"
+grep -Fq 'PR #22: Issue #398 lacks type/* or complexity/*' "$notifications"
+[[ "$(sort -n "$label_log" | tr '\n' ' ')" == '397 398 ' ]]
+FAKE_PULLS="$pulls" FAKE_LABELS="$unprojected" run_proj >/dev/null
+[[ "$(notified)" == "$((before + 2))" ]]
+out="$(FAKE_PULLS="$pulls" FAKE_LABELS="$unprojected" FAKE_LABELS_DOWN=397 run_proj)"
+grep -Fxq 'ALERTS active=3 new=1 broker_failures=1' <<<"$out"
+grep -Fq 'projection:aisoft-platform:21:397' "$state_proj/active-alerts.tsv"
+out="$(FAKE_PULLS="$pulls" run_proj)"
+grep -Fxq 'ALERTS active=0 new=0 broker_failures=0' <<<"$out"
+unbound='[{"number":23,"head":{"sha":"1111111111111111111111111111111111111111","ref":"main"},"body":"Closes #1\nCloses #2"}]'
+out="$(FAKE_PULLS="$unbound" run_proj)"
+grep -Fxq 'ALERTS active=1 new=1 broker_failures=0' <<<"$out"
+grep -Fq 'PR #23 names no Issue' "$notifications"
+for shape in '{}' '[{"id":1}]' '"x"'; do
+  out="$(FAKE_PULLS="$pulls" FAKE_LABELS="$unprojected" run_proj >/dev/null; FAKE_PULLS="$pulls" FAKE_LABELS="$shape" run_proj)"
+  grep -Fq 'broker_failures=2' <<<"$out"
+  grep -Fq 'projection:aisoft-platform:21:397' "$state_proj/active-alerts.tsv"
+done
 
 # The state file carries keys and messages only.
 refute grep -Eiq 'token|password|authorization' "$state/active-alerts.tsv"

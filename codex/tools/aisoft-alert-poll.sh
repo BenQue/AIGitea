@@ -2,7 +2,8 @@
 # Read-only failure poller for the platform owner's Mac (#387, 05 §5).
 #
 # Reads, through the host-access broker only, the CI state of the platform
-# repository's open pull requests and the VM timer health, and raises a local
+# repository's open pull requests, whether each one's Issue already carries its
+# type/* and complexity/* projection (#397), and the VM timer health, and raises a local
 # notification for each failure that was not already active on the previous
 # run. Never writes to Gitea, the VM or the broker; the only state it keeps is a
 # list of active alert keys in the state directory, which holds no credentials.
@@ -21,7 +22,8 @@ usage() {
 Usage: aisoft-alert-poll.sh [--project ID] [--broker PATH] [--state-dir PATH]
 
 Raises a macOS notification for each new failure among: CI on open pull
-requests of the project, enabled VM timers whose service failed in the last
+requests of the project, an open pull request whose Issue lacks its type/* or
+complexity/* projection (or that names no Issue), enabled VM timers whose service failed in the last
 24 hours, and the broker itself being unreadable. A failure that stays active
 is notified once; it is notified again only after it clears and returns.
 Prints one summary line and exits 0 unless its own arguments or tools are
@@ -111,16 +113,22 @@ broker_call() {
 # push notifies again while a re-read of the same failing head does not. A
 # response of the wrong shape counts as the broker being unreadable and keeps
 # that source's previous keys; it never reads as "no failure".
-# The list is converted to number/head pairs in one checked step, so a nested
-# field of the wrong type fails the read here instead of inside a loop feed
-# whose exit status nobody sees.
+# The list is converted to number/head/Issue triples in one checked step, so a
+# nested field of the wrong type fails the read here instead of inside a loop
+# feed whose exit status nobody sees. The Issue comes from the exact change
+# branch name, else from the single `Closes #N` line the PR body contract
+# requires; anything else leaves it empty.
 if broker_call gitea.pulls.read "$work/pulls.json" --state open &&
   jq -r 'if type != "array" then error("schema") else .[] end
     | if type == "object" and (.number | type) == "number"
         and (.head | type) == "object" and (.head.sha | type) == "string"
-      then [(.number | tostring), .head.sha] | @tsv
+      then [(.number | tostring), .head.sha,
+            (((.head.ref // "") | tostring | capture("^change/(?<n>[1-9][0-9]*)(-|$)").n)
+             // ([(.body // "") | tostring | splits("\r?\n")
+                  | capture("^Closes #(?<n>[1-9][0-9]*)$").n] | if length == 1 then .[0] else "" end))]
+        | @tsv
       else error("schema") end' "$work/pulls.json" >"$work/pulls.tsv" 2>/dev/null; then
-  while IFS=$'\t' read -r number sha; do
+  while IFS=$'\t' read -r number sha issue; do
     if ! [[ "$number" =~ ^[0-9]+$ && "$sha" =~ ^[0-9a-f]{40}$ ]]; then
       broker_failures+=("gitea.pulls.read:RESPONSE_SCHEMA_INVALID")
       carry_over "ci:$project:"
@@ -142,10 +150,29 @@ if broker_call gitea.pulls.read "$work/pulls.json" --state open &&
       # Only this pull request's previous key is kept; the others were read.
       carry_over "ci:$project:$number:"
     fi
+    # #397: the projection closes for good when the PR merges (#167), so a PR
+    # whose Issue is still unprojected is a failure worth a notification now.
+    if [[ -z "$issue" ]]; then
+      printf 'projection:%s:%s:\tPR #%s names no Issue; projection cannot be checked\n' \
+        "$project" "$number" "$number" >>"$current"
+    elif broker_call gitea.issue.labels.read "$work/labels.json" --number "$issue" &&
+      projected="$(jq -r 'if type == "array" and all(.[]; type == "object" and (.name | type) == "string")
+        then (any(.[]; .name | startswith("type/")) and any(.[]; .name | startswith("complexity/")))
+        else error("schema") end' "$work/labels.json" 2>/dev/null)" &&
+      [[ "$projected" == "true" || "$projected" == "false" ]]; then
+      [[ "$projected" == "true" ]] ||
+        printf 'projection:%s:%s:%s\tPR #%s: Issue #%s lacks type/* or complexity/*; run apply-classification-labels before merge\n' \
+          "$project" "$number" "$issue" "$number" "$issue" >>"$current"
+    else
+      [[ -s "$work/error.json" ]] ||
+        broker_failures+=("gitea.issue.labels.read:RESPONSE_SCHEMA_INVALID")
+      carry_over "projection:$project:$number:"
+    fi
   done <"$work/pulls.tsv"
 else
   [[ -s "$work/error.json" ]] || broker_failures+=("gitea.pulls.read:RESPONSE_SCHEMA_INVALID")
   carry_over "ci:$project:"
+  carry_over "projection:$project:"
 fi
 
 # VM timers: an enabled timer whose service failed in the last 24 hours.
