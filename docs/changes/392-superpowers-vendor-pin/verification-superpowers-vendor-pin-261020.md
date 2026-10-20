@@ -86,6 +86,10 @@ Claude 插件记录的 `gitCommitSha` 与 Cursor 检出的目录哈希都对应 
 | 4 | Cursor 未运行、smoke 结果无落点 | 本节补齐 smoke；Cursor 仍如实 NOT RUN |
 | nit | 路线图 R10c 正文与括号修正矛盾 | 改写正文 |
 
+修复 head `e2db07f` 上 smoke 第 3 次：exit 0，`Codex platform static smoke checks passed.`；`test-usage-bundle.sh`、`test-external-skill-versions.sh`、`test_matt_snapshot`/`test_matt_install` 在本机全部通过。
+
+第 2 轮：head `e2db07f`，结论 `VERDICT: PASS`，无 blocker、无新增 should-fix 与 nit；四条原发现逐条关闭，`check-installed-drift.py` 指纹与实算一致（`a3c924a2…`）。审查方沙箱里三个测试套件因 `mktemp` 被拒未能运行，改用静态审查与内存验证；同一组测试由实现方在本机实跑通过（上一段）。
+
 ## `08` §5 适配清单（superpowers 7.0.0，三端各一次）
 
 | # | 检查项 | Claude（官方插件 7.0.0） | Codex（官方插件，当前未加载） | Cursor（项目级 `.cursor/skills`） |
@@ -106,7 +110,7 @@ Claude 插件记录的 `gitCommitSha` 与 Cursor 检出的目录哈希都对应 
 | AC-3 | PASS | `test-external-skill-versions.sh`：三端 `PIN_CLEAN` / `PIN_DRIFT` / `PIN_NOT_INSTALLED`，无 `NOT_LOADED`/`BEHIND` |
 | AC-4 | PASS（Codex 如实未装） | 上文三端读回 |
 | AC-5 | 部分：Codex 已记录；Cursor NOT RUN | 上文 |
-| AC-6 | 待填写 | smoke 重跑与 Codex 只读审查 |
+| AC-6 | PASS | smoke 第 3 次 exit 0（`e2db07f`）；Codex 第 2 轮 `VERDICT: PASS` |
 
 ## 遗留风险与未完成项
 
