@@ -319,6 +319,42 @@ staging 目录里完成，失败不会留下半装的树。安装前磁盘使用
 **已知限制**：pub.dev 是新的外部依赖，npm 侧 Verdaccio（§5）在 pub 侧没有等价物。
 pub.dev 不可达时 job 会红，持久 `PUB_CACHE` 只减少重复下载，不提供离线能力。
 
+### 4.4 平台仓 CI 下载缓存（#370）
+
+2026-10-17 平台仓必需检查三次红在外网断线上：`actions/checkout` 从 GitHub 克隆、PAT helper
+从 `go.dev/dl` 下载 Go 工具链、`go` 从 `proxy.golang.org` 拉模块。现在三处都走本地：
+
+| 下载 | 现在从哪取 | 校验 | 缓存未命中时 |
+|---|---|---|---|
+| `actions/checkout` | 本站 Gitea 公开组织 `actions` 下的拉取镜像 `actions/checkout`，`ci.yml` 写完整 URL 并钉 40 位 commit（上游 v4.4.0） | git 对象哈希 | 镜像里没有该 commit 时 checkout 失败；镜像与 GitHub 的同步断线不影响已有对象 |
+| Go 工具链归档 | `$HOME/.cache/aisoft-ci/go-toolchain/` | 每次先复制再按 `codex/tools/gitea-pat-helper/build-lock.json` 的 sha256 与路径规则校验复制件；不符即删（`TOOLCHAIN_CACHE_EVICTED`）并重新下载 | `curl --retry 3 --retry-all-errors`，校验通过后原子写回 |
+| Go 模块 | `$HOME/.cache/aisoft-ci/go-mod/`（`GOMODCACHE`） | `go.sum` + 每次 `go mod verify`；填充前后 `go.mod`/`go.sum` 字节不变，否则 `GO_MODULE_INPUTS_CHANGED` | 先 `GOPROXY=off` 试命中，失败才联网，最多 3 次；之后构建与测试一律 `GOPROXY=off` |
+
+`$HOME` 是 `act_runner.service` 给 `gitea-runner` 设的 `/opt/act-runner`，缓存属主就是 runner
+用户，不需要 sudo，也不改 `config.yaml`、unit 或 `app.ini`。`GOCACHE`（编译缓存）仍是每次的私有
+临时目录，不持久化。缓存目录只有平台仓的 PAT helper 步骤使用；应用项目的 workflow 不受影响。
+
+**冷缓存仍需外网**：缓存目录被删或 runner 重建后，第一次运行仍要访问 `go.dev` 与
+`proxy.golang.org`；之后的运行日志出现 `TOOLCHAIN_CACHE_HIT` 与 `GO_MODULE_CACHE_HIT`
+才说明这一步没有联网。镜像仓也一样：重建站点时要先建镜像，`ci.yml` 才取得到 action。
+
+**模块缓存被改过时 job 会红，不会自愈**：host 模式下 PR 代码以 `gitea-runner` 身份运行，
+本来就能写它家目录里的任何东西；这里的防线是 `go.sum` 与 `go mod verify`，不是目录权限。
+`go mod verify` 报 `dir has been modified` 时，在 Mac 终端执行
+`/usr/local/bin/orb -m gitea-ci sudo rm -rf /opt/act-runner/.cache/aisoft-ci/go-mod` 后 Re-run，
+下一次运行重新填充。工具链归档被改过则会被自动驱逐并重新下载。
+
+**实测**（2026-10-21，Linux arm64 容器，同一个缓存卷）：冷跑 132s、填充约 436 MiB 模块与
+61 MiB 归档；热跑 86s、两处都命中；`--network none` 下热跑通过，三次产出的二进制 sha256 相同；
+改动缓存里一个模块文件后 `go mod verify` 拒绝、job 失败。runner 上的真实运行见 #370 的 verification。
+
+**升级 checkout**：等镜像同步到新 tag 后，把 `ci.yml` 里的 commit 换成新 tag 的 40 位 SHA，
+用 `git ls-remote http://gitea-ci.orb.local:3000/actions/checkout refs/tags/<tag>` 读回核对。
+升级 Go 工具链只改 `build-lock.json`，旧归档留在缓存里不会被选中，可以手工删除。
+
+**回滚**：revert #370 的 PR 即恢复每次实时下载。缓存目录可以留着；要删就在 Mac 终端执行
+`/usr/local/bin/orb -m gitea-ci sudo rm -rf /opt/act-runner/.cache/aisoft-ci`。镜像仓留着不影响任何项目。
+
 ## 5. Verdaccio（弱网救星）
 
 - 全局安装，PM2 托管（benque 用户），监听 `0.0.0.0:4873`，上游 `https://registry.npmmirror.com/`。
