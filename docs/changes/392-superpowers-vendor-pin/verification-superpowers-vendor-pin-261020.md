@@ -41,7 +41,7 @@ updated: 2026-10-20
 | `bash codex/tools/usage-bundle.sh --verify --baseline-ref origin/main` | PASS | `VERIFIED 1.3.0 sha256:2dbfa5eb…` |
 | `bash codex/tests/test-external-skill-versions.sh` | PASS | `external skill versions tests passed` |
 | `bash codex/tests/test-installed-drift.sh` | PASS | exit 0（`matt_snapshot.py` 指纹已同步） |
-| `bash codex/tests/smoke.sh` | 见下 | 首跑除本文件缺失外全绿（`check-change-documents` 报缺 verification）；补本文件后重跑见「smoke」 |
+| `bash codex/tests/smoke.sh` | 见下 | 见「smoke」 |
 
 ### 三端读回（AC-4）
 
@@ -67,6 +67,24 @@ Claude 插件记录的 `gitCommitSha` 与 Cursor 检出的目录哈希都对应 
 ### Cursor fresh 会话（AC-5）
 
 `cursor-agent -p --mode ask --trust` 在临时检出内：NOT RUN，CLI 未登录（`Error: Authentication required. Please run 'agent login' first`），已请负责人登录。
+
+### smoke
+
+- 第 1 次（head `448a652`）：exit 1，唯一失败是 `check-change-documents` 报本文件缺失（smoke 吞掉其输出，`bash -x` 定位）；其余 867 个 runtime 单测 OK，`project-leak` PASS。
+- 第 2 次（head `5fa9633`，补本文件后）：exit 0，`Codex platform static smoke checks passed.`
+- 审查修复后的结果见「Codex 交叉审查」。
+
+### Codex 交叉审查
+
+第 1 轮：`codex exec -s read-only -C <worktree>`，head `5fa9633`，结论 `CHANGES_REQUESTED`，无 blocker。四条 should-fix 与一条 nit 及处置：
+
+| # | 发现 | 处置 |
+|---|---|---|
+| 1 | `--build` 按工作树执行位导出，而 manifest 只哈希字节，同一版本可导出不同权限 | 导出权限改由字节决定（`#!` 开头 0755，其余 0644）；`test-usage-bundle.sh` 加执行位丢失用例 |
+| 2 | `.cursor/skills` 根是普通文件时误报 `PIN_NOT_INSTALLED` 且通过 | 根不是目录记 `UNKNOWN` 并失败；加 `repo-file-root` 用例 |
+| 3 | Matt CLI 错误文案由 `matt snapshot…` 改成了 `skill snapshot…`，违反逐字节兼容 | 缺省 Matt 恢复原文案，superpowers 用 `superpowers snapshot…` |
+| 4 | Cursor 未运行、smoke 结果无落点 | 本节补齐 smoke；Cursor 仍如实 NOT RUN |
+| nit | 路线图 R10c 正文与括号修正矛盾 | 改写正文 |
 
 ## `08` §5 适配清单（superpowers 7.0.0，三端各一次）
 

@@ -222,6 +222,14 @@ repo_args=(--repo "$repo")
 check repo-linked 1 "$dir" \
   "SUPERPOWERS cursor PIN_DRIFT differs=brainstorming cache=none pinned=$adapted" \
   "RESULT REVIEW_NEEDED"
+# A checkout whose .cursor/skills is not a directory is unreadable, never absent.
+repo="$tmp/repo-file-root"
+mkdir -p "$repo/.cursor"
+printf 'x\n' >"$repo/.cursor/skills"
+repo_args=(--repo "$repo")
+check repo-file-root 1 "$dir" "RESULT REVIEW_NEEDED"
+grep -Fqx "SUPERPOWERS cursor UNKNOWN (.cursor/skills is not a directory)" <<<"$output" ||
+  fail "repo-file-root: not UNKNOWN: $output"
 repo_args=()
 
 dir="$(home unreadable "$adapted" registered "$adapted")"

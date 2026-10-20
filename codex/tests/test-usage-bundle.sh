@@ -332,6 +332,13 @@ for landing in .agents/skills .cursor/skills; do
 done
 [[ -f "$vp/.cursor/skills/using-superpowers/SKILL.md" ]] || fail 'superpowers missing in .cursor/skills'
 [[ -x "$vp/.cursor/skills/brainstorming/scripts/start-server.sh" ]] || fail 'superpowers script lost its mode'
+[[ ! -x "$vp/.cursor/skills/brainstorming/SKILL.md" ]] || fail 'a document was exported executable'
+# Modes come from the bytes, not the platform tree: a lost execute bit changes
+# neither the release digest nor what the release exports.
+chmod 644 "$vplatform/codex/vendor/superpowers/v7.0.0/skills/brainstorming/scripts/start-server.sh"
+run 0 "${v[@]}" --build "$tmp/vbuild-mode"
+[[ -x "$tmp/vbuild-mode/project/.cursor/skills/brainstorming/scripts/start-server.sh" ]] ||
+  fail 'export mode followed the platform tree instead of the release'
 [[ ! -e "$vp/.agents/skills/using-superpowers" ]] || fail 'superpowers must not land in .agents/skills'
 [[ ! -e "$vp/.claude/skills/using-superpowers" && ! -e "$vp/.claude/skills/triage" ]] || fail 'vendor packs must not land in .claude/skills'
 diff -r "$root/codex/vendor/superpowers/v7.0.0/skills/systematic-debugging" \

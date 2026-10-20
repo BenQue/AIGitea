@@ -456,8 +456,11 @@ def build(root: Path, out: Path) -> None:
                     if path.is_file():
                         destination = out / "project" / base / name / path.relative_to(source_dir)
                         destination.parent.mkdir(parents=True, exist_ok=True)
-                        destination.write_bytes(path.read_bytes())
-                        destination.chmod(0o755 if path.stat().st_mode & 0o111 else 0o644)
+                        data = path.read_bytes()
+                        destination.write_bytes(data)
+                        # The manifest hashes bytes, not modes: derive the mode
+                        # from the bytes so one release always exports the same.
+                        destination.chmod(0o755 if data.startswith(b"#!") else 0o644)
     for member in bundle["members"]:
         if member["mode"] == "vendor":
             continue

@@ -486,7 +486,8 @@ def main(argv: list[str] | None = None) -> int:
             operation = prepare_install if args.command == "preflight-install" else install_snapshot
             print(json.dumps(operation(args.snapshot, args.home, rollback=args.rollback), sort_keys=True))
     except (OSError, UnicodeError, json.JSONDecodeError, SnapshotError) as exc:
-        print(f"skill snapshot verification failed: {exc}")
+        label = "matt" if getattr(args, "pack", "mattpocock") == "mattpocock" else args.pack
+        print(f"{label} snapshot verification failed: {exc}")
         return 2
     return 0
 

@@ -302,6 +302,8 @@ def _directory_hash(directory: Path) -> str:
 def repo_pack_state(repo: Path, manifest: dict) -> str:
     """Hash every pinned skill directory under <repo>/.cursor/skills."""
     base = repo / CURSOR_SKILLS
+    if os.path.lexists(base) and (base.is_symlink() or not base.is_dir()):
+        raise Unreadable(f"{CURSOR_SKILLS} is not a directory")
     present, differs = 0, []
     for item in manifest["skills"]:
         directory = base / item["name"]
@@ -328,6 +330,8 @@ def cursor_line(home: Path, repo: Path | None, plugin: str, manifest: dict, pinn
         return f"NOT_CHECKED cache={cached} pinned={pinned}"
     try:
         state = repo_pack_state(repo, manifest)
+    except Unreadable as error:
+        return f"UNKNOWN ({error})"
     except OSError as error:
         return f"UNKNOWN ({CURSOR_SKILLS} is not readable: {type(error).__name__})"
     return f"{state} cache={cached} pinned={pinned}"
