@@ -1,6 +1,6 @@
 # AGENTS.md · AISoftPlatform 平台维护层
 
-本文件只写维护平台仓自身的稳定规则（上限 5 KB）。边界见 [ADR 0001](docs/adr/0001-platform-boundary.md)，流程细节见 `03`，Matt 编排见 `04`，双工具见 `08`。项目使用平台的规则不写在这里。改动前先读 `README.md` 与相关分册。
+本文件只写维护平台仓自身的稳定规则（上限 5 KB）。边界见 [ADR 0001](docs/adr/0001-platform-boundary.md)，路由合同与执行引擎见 [ADR 0002](docs/adr/0002-deterministic-development-flow.md)，流程细节见 `03`，Matt 编排见 `04`，双工具见 `08`。项目使用平台的规则不写在这里。改动前先读 `README.md` 与相关分册。
 
 ## 边界
 
