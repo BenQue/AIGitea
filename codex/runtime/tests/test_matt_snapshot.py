@@ -1,9 +1,11 @@
 import json
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 
 from aisoft_loop.matt_snapshot import (
+    PACKS,
     SnapshotError,
     _skill_front_matter,
     build_manifest,
@@ -14,6 +16,7 @@ from aisoft_loop.matt_snapshot import (
 
 ROOT = Path(__file__).parents[3]
 VENDOR = ROOT / "codex" / "vendor" / "mattpocock" / "v1.3.1"
+SUPERPOWERS = ROOT / "codex" / "vendor" / "superpowers" / "v7.0.0"
 
 
 class MattSnapshotTests(unittest.TestCase):
@@ -155,3 +158,55 @@ class MattSnapshotTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SuperpowersSnapshotTests(unittest.TestCase):
+    """#392: superpowers is vendored as the three-tool pin baseline."""
+
+    def manifest(self) -> dict:
+        return json.loads((SUPERPOWERS / "manifest.json").read_text())
+
+    def test_vendored_release_matches_the_pinned_upstream_tag(self) -> None:
+        manifest = self.manifest()
+        verified = verify_snapshot(SUPERPOWERS, manifest, "superpowers")
+        self.assertEqual(verified["tag"], "v7.0.0")
+        self.assertEqual(verified["commit"], "bb92a77741419a4ab5f06e711a283343f1ada0c3")
+        self.assertEqual(manifest["tag_object"], "7f043e5eaf3522dc19178c673b76328de9b0c355")
+        self.assertEqual(manifest["source"], "https://github.com/obra/superpowers")
+        self.assertEqual(verified["skill_count"], 15)
+        self.assertLessEqual(set(PACKS["superpowers"]["critical_skills"]), set(verified["skill_names"]))
+
+    def test_packs_are_not_interchangeable(self) -> None:
+        with self.assertRaises(SnapshotError):
+            verify_snapshot(SUPERPOWERS, self.manifest())
+        with self.assertRaises(SnapshotError):
+            verify_snapshot(VENDOR, json.loads((VENDOR / "manifest.json").read_text()), "superpowers")
+        with self.assertRaises(SnapshotError):
+            verify_snapshot(SUPERPOWERS, self.manifest(), "unknown")
+
+    def test_a_missing_critical_skill_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "LICENSE").write_text("MIT\n")
+            (root / "skills/brainstorming").mkdir(parents=True)
+            (root / "skills/brainstorming/SKILL.md").write_text("---\nname: brainstorming\n---\n")
+            manifest = build_manifest(root, tag="v1", commit="a" * 40, tag_object="b" * 40, pack="superpowers")
+            with self.assertRaisesRegex(SnapshotError, "critical skill"):
+                verify_snapshot(root, manifest, "superpowers")
+
+    def test_a_changed_byte_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = Path(tmp) / "v7.0.0"
+            shutil.copytree(SUPERPOWERS, copy)
+            target = copy / "skills/using-superpowers/SKILL.md"
+            target.write_text(target.read_text() + "\n")
+            with self.assertRaises(SnapshotError):
+                verify_snapshot(copy, self.manifest(), "superpowers")
+
+    def test_critical_superpowers_change_requires_complex_review(self) -> None:
+        current = self.manifest()
+        candidate = json.loads(json.dumps(current))
+        for item in candidate["skills"]:
+            if item["name"] == "executing-plans":
+                item["sha256"] = "0" * 64
+        self.assertEqual(classify_update(current, candidate)["reasons"], ["critical skill changed: executing-plans"])

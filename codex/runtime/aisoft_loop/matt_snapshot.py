@@ -1,4 +1,9 @@
-"""Deterministic integrity and update classification for vendored Matt skills."""
+"""Deterministic integrity and update classification for vendored skill packs.
+
+Matt (`mattpocock`) is vendored, verified and installed on Codex. superpowers is
+vendored and verified only (#392): Claude and Codex keep their official
+marketplaces, the snapshot is the three-tool pin baseline and the usage bundle's
+project-level export source. Installation below stays Matt-only."""
 
 from __future__ import annotations
 
@@ -24,6 +29,28 @@ CRITICAL_SKILLS = (
     "to-tickets",
     "triage",
 )
+# Per pack: upstream source and the skills whose content change forces a
+# complex review (classify_update) -- the ones the platform routes through.
+PACKS = {
+    "mattpocock": {
+        "source": "https://github.com/mattpocock/skills",
+        "critical_skills": CRITICAL_SKILLS,
+    },
+    "superpowers": {
+        "source": "https://github.com/obra/superpowers",
+        "critical_skills": (
+            "brainstorming",
+            "dispatching-parallel-agents",
+            "executing-plans",
+            "finishing-a-development-branch",
+            "subagent-driven-development",
+            "systematic-debugging",
+            "test-driven-development",
+            "using-superpowers",
+            "verification-before-completion",
+        ),
+    },
+}
 TOOL_SUFFIXES = frozenset({".js", ".mjs", ".py", ".sh", ".ts"})
 CONTROL_LINE_RE = re.compile(
     r"^(?:#{1,6}\s+|\d+[.)]\s+)"
@@ -40,10 +67,14 @@ def build_manifest(
     tag: str,
     commit: str,
     tag_object: str,
-    source: str = "https://github.com/mattpocock/skills",
+    source: str | None = None,
     license_name: str = "MIT",
     adapter_contract_version: int = 1,
+    pack: str = "mattpocock",
 ) -> dict[str, object]:
+    critical_skills = _critical_skills(pack)
+    if source is None:
+        source = str(PACKS[pack]["source"])
     root = Path(snapshot).resolve()
     if not root.is_dir() or not (root / "skills").is_dir():
         raise SnapshotError("snapshot must contain a skills directory")
@@ -91,15 +122,16 @@ def build_manifest(
         "license": license_name,
         "license_sha256": _file_hash(license_path),
         "adapter_contract_version": adapter_contract_version,
-        "critical_skills": list(CRITICAL_SKILLS),
+        "critical_skills": list(critical_skills),
         "skill_count": len(skills),
         "skills": skills,
     }
 
 
 def verify_snapshot(
-    snapshot: Path | str, manifest: Mapping[str, object]
+    snapshot: Path | str, manifest: Mapping[str, object], pack: str = "mattpocock"
 ) -> dict[str, object]:
+    critical_skills = _critical_skills(pack)
     required = {
         "schema_version",
         "source",
@@ -123,8 +155,11 @@ def verify_snapshot(
         source=_string(manifest, "source"),
         license_name=_string(manifest, "license"),
         adapter_contract_version=_integer(manifest, "adapter_contract_version"),
+        pack=pack,
     )
-    if list(manifest.get("critical_skills", [])) != list(CRITICAL_SKILLS):
+    if manifest.get("source") != PACKS[pack]["source"]:
+        raise SnapshotError(f"manifest source is not the {pack} upstream")
+    if list(manifest.get("critical_skills", [])) != list(critical_skills):
         raise SnapshotError("critical skill contract changed")
     declared_skills = manifest.get("skills")
     if not isinstance(declared_skills, list):
@@ -137,6 +172,8 @@ def verify_snapshot(
     }
     if declared_names != rebuilt_names:
         raise SnapshotError("snapshot skill set does not match manifest")
+    if not set(critical_skills) <= rebuilt_names:
+        raise SnapshotError("snapshot is missing a critical skill")
     if dict(manifest) != rebuilt:
         raise SnapshotError("snapshot content or metadata does not match manifest")
     return {
@@ -153,6 +190,10 @@ def classify_update(
     current_skills = _skills_by_name(current)
     candidate_skills = _skills_by_name(candidate)
     reasons: list[str] = []
+    # Each manifest names its own pack's critical skills; Matt's equal CRITICAL_SKILLS.
+    critical = set(current.get("critical_skills") or CRITICAL_SKILLS)
+    if current.get("critical_skills") != candidate.get("critical_skills"):
+        reasons.append("critical skill contract changed")
     if set(current_skills) != set(candidate_skills):
         reasons.append("skill set changed")
     for name in sorted(set(current_skills) & set(candidate_skills)):
@@ -166,7 +207,7 @@ def classify_update(
             reasons.append(f"tool surface changed: {name}")
         if before.get("control_sha256") != after.get("control_sha256"):
             reasons.append(f"workflow or side-effect contract changed: {name}")
-        if name in CRITICAL_SKILLS and before.get("sha256") != after.get("sha256"):
+        if name in critical and before.get("sha256") != after.get("sha256"):
             reasons.append(f"critical skill changed: {name}")
     if current.get("adapter_contract_version") != candidate.get(
         "adapter_contract_version"
@@ -176,6 +217,12 @@ def classify_update(
         "classification": "complex" if reasons else "maintenance-candidate",
         "reasons": reasons,
     }
+
+
+def _critical_skills(pack: str) -> tuple[str, ...]:
+    if pack not in PACKS:
+        raise SnapshotError(f"unknown skill pack: {pack}")
+    return tuple(PACKS[pack]["critical_skills"])
 
 
 def _skills_by_name(manifest: Mapping[str, object]) -> dict[str, Mapping[str, object]]:
@@ -417,6 +464,7 @@ def main(argv: list[str] | None = None) -> int:
     verify = subparsers.add_parser("verify")
     verify.add_argument("snapshot", type=Path)
     verify.add_argument("manifest", type=Path)
+    verify.add_argument("--pack", choices=sorted(PACKS), default="mattpocock")
     compare = subparsers.add_parser("classify")
     compare.add_argument("current", type=Path)
     compare.add_argument("candidate", type=Path)
@@ -429,7 +477,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "verify":
             manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-            print(json.dumps(verify_snapshot(args.snapshot, manifest), sort_keys=True))
+            print(json.dumps(verify_snapshot(args.snapshot, manifest, args.pack), sort_keys=True))
         elif args.command == "classify":
             current = json.loads(args.current.read_text(encoding="utf-8"))
             candidate = json.loads(args.candidate.read_text(encoding="utf-8"))
@@ -438,7 +486,7 @@ def main(argv: list[str] | None = None) -> int:
             operation = prepare_install if args.command == "preflight-install" else install_snapshot
             print(json.dumps(operation(args.snapshot, args.home, rollback=args.rollback), sort_keys=True))
     except (OSError, UnicodeError, json.JSONDecodeError, SnapshotError) as exc:
-        print(f"matt snapshot verification failed: {exc}")
+        print(f"skill snapshot verification failed: {exc}")
         return 2
     return 0
 
