@@ -44,15 +44,15 @@ routine 自动合并已退出（#391）：broker 没有合并操作，manifest �
 
 共享 `ci-bot` collaborator 闸门已退役：`ensure-gitea-collaborator.sh` 只作历史兼容与回归测试证据，不得用于接入、修复任何项目，也不得作为 broker 的回退路径；见 `06` §「旧 `ci-bot` gate（已退役）」。
 
-不要把变更路径当检查捷径。优先用 exact project profile；跨项目的设置与保护盘点用 manager audit PAT 与 `gitea-governance.sh check`。
+不要把变更路径当检查捷径。优先用 broker 的 exact 项目路由；跨项目的设置与保护盘点用 manager audit PAT 与 `gitea-governance.sh check`。
 
 ## 私有 Gitea 的确定性访问
 
 检查私有仓库、Issue、PR、Actions run、分支保护或仓库设置之前，先读 [references/private-gitea-access.md](references/private-gitea-access.md)。
 
-- 先解析并核实 exact Gitea remote 或 project profile。
+- 先解析并核实 exact Gitea remote 或 broker manifest 项目。
 - 不要从匿名 API 请求开始。private-repository `404` 或 Git `Repository not found` 不能证明对象不存在。
-- 优先用 exact project profile 与最小权限身份；读 Git ref 时复用已配置的 Git credential helper。
+- 优先用 broker 的 exact 项目路由与最小权限身份；读 Git ref 时复用已配置的 Git credential helper。
 - 跨项目只读盘点设置与保护用独立的平台 manager audit PAT，不用变更 PAT 或普通 Git 代替。
 - 没有 profile/manager 或 ACL 挡住 exact 目标时，VM 本地管理员凭据只能用于经授权、脱敏的只读 helper 调用；不要把凭据复制到 Mac，也不要扩大 bot 权限。
 - helper 不可用或需要界面证据时，已登录的浏览器会话可作只读后备。
@@ -100,7 +100,7 @@ summary-only 回填会产生一个合法的新 head。在后续 push 之前，�
 - 会话、project agent、manager 与共享 bot 都不得 merge PR。永远不直推受保护 `main`。
 - 保住 `CI / test (pull_request)`、不可变制品、环境隔离、真实健康检查与回滚。
 - 不打印 token、密码、`.env`、认证文件或 Git 凭据。
-- 不为方便只读检查而新增 project profile 或协作者权限；账号与仓库变更只属于已合并的 governance manifest 与 exact-repository 工具。
+- 不为方便只读检查而新增凭据或协作者权限；账号与仓库变更只属于已合并的 governance manifest 与 exact-repository 工具。
 - Gitea manager/project PAT、OrbStack 宿主控制、VM 运维账号与各项目部署身份彼此分离。Gitea 凭据不授权 SSH、sudo、VM 生命周期、数据库或生产访问。
 - 各工具的配置互相独立，共用同一平台合同与会话验证流程。
 
@@ -168,5 +168,5 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 - 把判级投影留到收尾再补——窗口在合并时关闭，closed Issue 永久拒绝补写；进入待合并前必须用 `apply-classification-labels.sh --verify N` 读回 `projected`（#167）。
 - 把 broker 的 `REQUEST_DENIED / not allowlisted` 当权限问题查——那是安装期操作表陈旧，两台重装即可（`06` 踩坑 20）。
 - 在共享 checkout 并行开会话不建 worktree——HEAD 是全局可变状态，B 的 commit 会落进 A 的分支（`06` 踩坑 15）。
-- 从任何示例项目推断目标仓库/端口/部署合同——一切以显式 project profile/manifest 为准。
+- 从任何示例项目推断目标仓库/端口/部署合同——一切以显式 manifest 为准。
 - 把平台 candidate/参照实现写成业务已部署——一个项目在某个环境的证据不等于其它项目或生产完成。

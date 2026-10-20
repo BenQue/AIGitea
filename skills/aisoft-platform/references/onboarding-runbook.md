@@ -38,7 +38,7 @@ contexts 纳入 `codex/config/gitea-governance.json` 并经平台 PR 人工合�
 permission、visibility、protection、cross-project 或 read-back 失败均终止为 `BLOCKED_EXTERNAL`。
 
 已在 host-access manifest 中的项目从 fixed broker 访问 host（#61/#70）；Mac checkout 只用
-repo-local protected-file helper，VM profile 只用 `GITEA_IDENTITY` + fixed mode 600 token file。manifest
+repo-local protected-file helper（VM `coder` project profile 已随 #391 退出）。manifest
 允许项目声明 strict `git_remote_name`（#73）；未声明兼容 `origin`，已声明的项目
 按各自 manifest 的取值（例如 `gitea`）。调用方不能传 remote name/URL/owner/repository/refspec，broker 也不创建或改写 remote。
 新项目仍必须先通过独立 AISoftPlatform Issue/PR 同时更新 governance 与 host-access manifests，再执行
