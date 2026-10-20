@@ -53,9 +53,10 @@ updated: 2026-10-20
 | `bash codex/tests/test-platform-readiness.sh` | PASS | `PAT_AGE` 回执 200 天 `OVER`、标记 10 天、无元数据 `unknown`；夹具 token 为 000 权限，未被读取 |
 | `bash codex/tests/test-deploy-notify.sh` | PASS | 失败、回滚、标题回退、五种前置缺失均退 0；token 只经 curl stdin |
 | `PYTHONPATH=codex/runtime python3 -m unittest codex.runtime.tests.test_session_contract` | PASS | 12 tests |
-| `usage-bundle.sh --release 1.5.0 --today 2026-10-21` 与 `--verify` | PASS | `VERIFIED 1.5.0 sha256:6b5926643cb4…` |
+| `usage-bundle.sh --release 1.5.0 --today 2026-10-21` 与 `--verify` | PASS | 最终 `VERIFIED 1.5.0 sha256:ab891216acbd…` |
 | `bash codex/tests/smoke.sh` | PASS | exit 0（第二次红在 #380 夹具守卫：readiness 测试读了真实 manifest，已改为由输出推导计数后重跑全绿） |
 | ShellCheck（改动的 7 个 shell 文件） | PASS | 无告警 |
+| Codex 交叉审查修复后 `bash codex/tests/smoke.sh`（head `80b1877`） | PASS | exit 0；期间撤回未发布的 1.5.0 记录并重发同号（`sha256:ab891216…`），因审查修复改动了 `deploy-notify.sh` |
 
 ## 本机清理（AC4，会话执行，2026-10-21）
 
@@ -81,5 +82,5 @@ prune 8 个残留 worktree 元数据，删除 3 个 `.claude/worktrees/*`（已�
 | AC8 | 待定 | 等负责人决定拆出还是等 R13 |
 | AC9 | PASS | 治理提交 `8a67c51` 单独提交后重读 |
 | AC10 | PASS | smoke、ShellCheck、发布包 1.5.0 |
-| AC11 | NOT RUN | Codex 审查与判级投影待执行 |
+| AC11 | PASS | Codex 只读审查 4 轮，第 4 轮对 `80b1877` PASS（记录：项目库 `codex-review-397.md`）；`apply-classification-labels.sh --verify 397` 读回 `projected`（type/platform、complexity/complex） |
 | AC12 | NOT RUN | 合并后 |
