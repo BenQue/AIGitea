@@ -110,7 +110,7 @@ class BareSiblingImportTests(unittest.TestCase):
     def test_sibling_set_is_not_empty(self) -> None:
         """兄弟集合空掉，上面的闸门就退化成一条永远绿的断言。"""
         siblings = _sibling_modules()
-        self.assertIn("test_controller", siblings)
+        self.assertIn("test_analysis", siblings)
         self.assertIn("rotation_cli_fixture", siblings)
 
     def test_tests_tree_is_flat(self) -> None:

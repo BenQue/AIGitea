@@ -9,7 +9,6 @@ from aisoft_host_access.broker import (
     BrokerError, HostAccessBroker, ResolvedCredential,
 )
 from aisoft_host_access.contract import load_access_contract
-from aisoft_loop.routine_merge import evaluate_routine_eligibility
 
 
 ROOT = Path(__file__).parents[2]
@@ -317,57 +316,6 @@ class SessionContractTests(unittest.TestCase):
                 ("SHA 相等，任何不匹配立即停止", "SHA 可不同，继续创建 PR"),
             ),
         )
-
-
-class EligibilityTests(unittest.TestCase):
-    def eligible(self, **overrides):
-        values = {
-            "issue_number": 44,
-            "change_type": "bugfix",
-            "effective_complexity": "small",
-            "contract_effect": "restore",
-            "local_scope": True,
-            "reversible": True,
-            "risk_flags": (),
-            "major": False,
-            "phase_or_milestone_completion": False,
-            "repository_classification": "internal-application",
-            "repository_opt_in": True,
-            "required_contexts": ("CI / test (pull_request)",),
-        }
-        values.update(overrides)
-        return evaluate_routine_eligibility(**values)
-
-    def test_positive_and_manual_failure_matrix(self):
-        self.assertTrue(self.eligible().eligible)
-        failures = (
-            {"issue_number": 208},
-            {"change_type": "feature"},
-            {"change_type": "security"},
-            {"change_type": "data"},
-            {"change_type": "platform"},
-            {"effective_complexity": "complex"},
-            {"contract_effect": "change"},
-            {"local_scope": False},
-            {"reversible": False},
-            {"risk_flags": ("security",)},
-            {"risk_flags": ("data-migration",)},
-            {"risk_flags": ("shared-core",)},
-            {"risk_flags": ("cross-module",)},
-            {"risk_flags": ("ci-change",)},
-            {"risk_flags": ("artifact",)},
-            {"risk_flags": ("deployment",)},
-            {"risk_flags": ("rollback",)},
-            {"risk_flags": ("agent-governance",)},
-            {"major": True},
-            {"phase_or_milestone_completion": True},
-            {"repository_classification": "public-platform"},
-            {"repository_opt_in": False},
-            {"required_contexts": ()},
-        )
-        for mutation in failures:
-            with self.subTest(mutation=mutation):
-                self.assertFalse(self.eligible(**mutation).eligible)
 
 
 class StaticRoutineCredential:

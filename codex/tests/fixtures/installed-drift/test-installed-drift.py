@@ -1,4 +1,4 @@
-"""Exercise the public CLI against copies made by the seven real installers."""
+"""Exercise the public CLI against copies made by the six real installers."""
 from __future__ import annotations
 
 import hashlib
@@ -14,7 +14,7 @@ import unittest
 REPO = Path(sys.argv.pop(1)).resolve()
 CHECKER = REPO / "codex/tools/check-installed-drift.sh"
 INSTALLERS = (
-    "install-vm", "install-skills", "install-host-role", "install-host-access-broker",
+    "install-skills", "install-host-role", "install-host-access-broker",
     "architecture/install", "sync/install", "skill-for-claude/install",
 )
 
@@ -67,14 +67,12 @@ class InstalledDriftTests(unittest.TestCase):
                 raise AssertionError(f"fixture source baseline failed: {args}: {p.stderr}")
         home = cls.base / "home"
         system = cls.base / "system"
-        agent = cls.base / "custom-agent"
         arch = cls.base / "custom-architecture"
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1",
                    AISOFT_HOST_ACCESS_INSTALL_ROOT=str(system),
                    AISOFT_HOST_ROLE_INSTALL_ROOT=str(system),
                    AISOFT_SYNC_INSTALL_ROOT=str(system))
         commands = [
-            ["bash", "codex/install-vm.sh", str(home), str(agent)],
             ["bash", "codex/install-skills.sh", str(home)],
             ["bash", "codex/install-host-role.sh"],
             ["bash", "codex/install-host-access-broker.sh"],
@@ -99,7 +97,6 @@ class InstalledDriftTests(unittest.TestCase):
         self.home = self.installed / "home"
         self.system = self.installed / "system"
         self.arch = self.installed / "custom-architecture"
-        self.agent = self.installed / "custom-agent"
 
     def tearDown(self):
         shutil.rmtree(self.work)
@@ -108,7 +105,7 @@ class InstalledDriftTests(unittest.TestCase):
         repo = self.fixture_source if repo is None else repo
         return ["bash", str(CHECKER), "--repo", str(repo),
                 "--target-home", str(self.home), "--install-root", str(self.system),
-                "--agent-dir", str(self.agent), "--architecture-prefix", str(self.arch), "--json"]
+                "--architecture-prefix", str(self.arch), "--json"]
 
     def check(self, code=0, extra=(), repo=None):
         before = fingerprint(self.installed)
@@ -373,16 +370,14 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
         lock.write_bytes(original)
         self.check(extra=["--source-only"], repo=source)
 
-    def test_all_seven_real_installer_fixtures_pass(self):
+    def test_all_six_real_installer_fixtures_pass(self):
         report = self.check()
         self.assertEqual(tuple(r["installer"] for r in report["installers"]), INSTALLERS)
         self.assertTrue(all(r["result"] == "PASS" for r in report["installers"]))
-        self.assertEqual(self.row(report, "install-vm")["also_checked_by"], ["install-skills"])
         self.assertEqual(report["source"]["remote_freshness"], "EXTERNAL_EVIDENCE_REQUIRED")
 
     def test_missing_new_module_equal_count_and_restore(self):
         for installer, directory in [
-            ("install-vm", self.home / ".local/lib/aisoft-loop"),
             ("install-host-access-broker", self.system / "usr/local/lib/aisoft-host-access"),
         ]:
             for filename in ("aisoft_worktree_owner.py", "aisoft_main_integration.py"):
@@ -409,7 +404,6 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
 
     def test_each_installer_reports_missing_target_and_restoration(self):
         targets = {
-            "install-vm": self.home / ".local/lib/aisoft-loop/aisoft_loop/worktree.py",
             "install-skills": self.home / ".agents/skills/issue-session-flow/SKILL.md",
             "install-host-role": self.system / "usr/local/libexec/aisoft/verify-host-role",
             "install-host-access-broker": self.system / "usr/local/libexec/aisoft/host-access-broker",
@@ -453,13 +447,6 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
             self.assertNotEqual(q["expected"], q["installed"])
             path.write_bytes(old)
             self.check()
-        path = next((self.home / ".local/lib/aisoft-loop/aisoft_loop").glob("*.py"))
-        old = path.read_bytes()
-        path.unlink()
-        q = self.row(self.check(1), "install-vm")["quantities"]["runtime modules"]
-        self.assertEqual(q["installed"], q["expected"] - 1)
-        path.write_bytes(old)
-        self.check()
 
     def test_missing_all_components_is_gap_not_skip(self):
         shutil.rmtree(self.installed)
@@ -488,12 +475,13 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
         self.check()
 
     def test_symlink_parent_is_gap_without_following(self):
-        directory = self.home / ".local/lib/aisoft-loop/aisoft_loop"
+        directory = self.system / "usr/local/lib/aisoft-host-access/aisoft_host_access"
         moved = self.work / "protected-modules"
         directory.rename(moved)
         directory.symlink_to(moved, target_is_directory=True)
         report = self.check(1)
-        self.assertTrue(any(g["reason"] == "symlink-parent" for g in self.row(report, "install-vm")["gaps"]))
+        self.assertTrue(any(g["reason"] == "symlink-parent"
+                            for g in self.row(report, "install-host-access-broker")["gaps"]))
 
     def test_zero_permission_is_gap(self):
         p = self.system / "usr/local/libexec/aisoft/verify-host-role"
@@ -549,16 +537,6 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
         self.assertTrue(all(r["scope"] == "SOURCE" for r in report["installers"]))
         self.assertNotIn("INSTALLED", json.dumps(report))
 
-    def test_default_agent_symlink_root_is_gap(self):
-        (self.home / "agent").symlink_to(self.agent, target_is_directory=True)
-        args = self.args()
-        offset = args.index("--agent-dir")
-        del args[offset:offset + 2]
-        p = run(args)
-        self.assertEqual(p.returncode, 1, p.stderr)
-        row = self.row(json.loads(p.stdout), "install-vm")
-        self.assertTrue(any(g["reason"] == "symlink-root" for g in row["gaps"]))
-
     def test_parent_replacement_cannot_read_private_target(self):
         # Deterministic replacement between the preliminary stat and open.
         # The checker is loaded but main is not invoked; only the read seam runs.
@@ -610,10 +588,10 @@ raise SystemExit("unexpected read through replaced parent")
 
     def test_installer_changes_and_new_installer_fail_source_validation(self):
         source = self.clone_source()
-        p = source / "codex/install-vm.sh"
-        p.write_text(p.read_text() + '\ninstall -m 644 new.py "$RUNTIME_DIR/new.py"\n')
+        p = source / "codex/install-host-role.sh"
+        p.write_text(p.read_text() + '\ninstall -m 644 new.json "$SHARE_DIR/new.json"\n')
         self.assertIn("installer-mapping-stale", json.dumps(self.check(2, repo=source)))
-        shutil.copyfile(REPO / "codex/install-vm.sh", p)
+        shutil.copyfile(REPO / "codex/install-host-role.sh", p)
         # #379: the shared skill-manifest parser decides both skill installs.
         parser = source / "codex/lib/skills-manifest.sh"
         parser.write_text(parser.read_text() + "\nAISOFT_SKILL_NAMES=()\n")
@@ -642,11 +620,12 @@ raise SystemExit("unexpected read through replaced parent")
                      ["git", "-C", str(source), "update-ref", "refs/remotes/origin/main", "HEAD"]]:
             p = run(args)
             self.assertEqual(p.returncode, 0, p.stderr)
-        (source / "codex/runtime/aisoft_loop/uninstalled_new_module.py").write_text("# new module\n")
+        new_module = source / "codex/runtime/aisoft_host_access/uninstalled_new_module.py"
+        new_module.write_text("# new module\n")
         report = self.check(1, repo=source)
         self.assertEqual(report["source"]["managed_source_matches_cached_main"], False)
-        self.assertEqual(self.row(report, "install-vm")["result"], "GAP")
-        (source / "codex/runtime/aisoft_loop/uninstalled_new_module.py").unlink()
+        self.assertEqual(self.row(report, "install-host-access-broker")["result"], "GAP")
+        new_module.unlink()
         (source / "codex/runtime/aisoft_loop/worktree.py").unlink()
         report = self.check(0, repo=source, extra=["--source-only"])
         self.assertFalse(report["source"]["managed_source_matches_cached_main"])

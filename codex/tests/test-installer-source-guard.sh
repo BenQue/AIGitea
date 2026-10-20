@@ -24,7 +24,6 @@ fail() {
 INSTALLERS=(
   install-host-access-broker
   install-host-role
-  install-vm
   install-skills
   architecture/install
   sync/install
@@ -47,14 +46,6 @@ expected_sync_scripts="$(
   find "$ROOT/sync" -maxdepth 1 -type f -name '*.sh' ! -name 'install.sh' |
     wc -l | tr -d ' '
 )"
-expected_runtime_modules="$(
-  find \
-    "$ROOT/codex/runtime/aisoft_loop" \
-    "$ROOT/codex/runtime/aisoft_host_access" \
-    "$ROOT/codex/runtime/aisoft_gitea_governance" \
-    -maxdepth 1 -type f -name '*.py' | wc -l | tr -d ' '
-)"
-expected_runtime_modules=$((expected_runtime_modules + 3)) # aisoft_change_name.py, aisoft_worktree_owner.py, aisoft_main_integration.py
 # Both skill installers read the single source skills/ (#379). The guard runs
 # before the manifest is parsed, so each counts every SKILL.md in it; the Claude
 # installer additionally reports the reference files it copies.
@@ -70,7 +61,7 @@ expected_matt_version="$(
 )"
 [[ -n "$expected_matt_version" ]] || fail 'could not read matt_version from install-skills.sh'
 
-# The union of what the seven installers read. Copying whole top-level directories
+# The union of what the six installers read. Copying whole top-level directories
 # is coarser than a per-file list, but the union is these directories anyway.
 make_source_tree() {
   local dest="$1" directory
@@ -105,7 +96,6 @@ run_installer() {
       AISOFT_HOST_ROLE_INSTALL_ROOT="$root" \
         bash "$checkout/codex/install-host-role.sh" 2>&1
       ;;
-    install-vm) bash "$checkout/codex/install-vm.sh" "$root" 2>&1 ;;
     install-skills) bash "$checkout/codex/install-skills.sh" "$root" 2>&1 ;;
     architecture/install) bash "$checkout/architecture/install.sh" --prefix "$root" 2>&1 ;;
     sync/install)
@@ -123,7 +113,6 @@ installed_marker() {
   case "$1" in
     install-host-access-broker) printf 'usr/local/libexec/aisoft/host-access-broker' ;;
     install-host-role) printf 'usr/local/libexec/aisoft/verify-host-role' ;;
-    install-vm) printf '.local/lib/aisoft-loop/aisoft_loop/cli.py' ;;
     install-skills) printf '.agents/skills/aisoft-platform/SKILL.md' ;;
     architecture/install) printf 'bin/aisoft-architecture' ;;
     sync/install) printf 'opt/aisoft-sync/inbound-sync.sh' ;;
@@ -151,10 +140,6 @@ assert_provenance() {
       ;;
     install-host-role)
       assert_source_line "$output" capabilities "$expected_capabilities" "$who"
-      ;;
-    install-vm)
-      assert_source_line "$output" 'runtime modules' "$expected_runtime_modules" "$who"
-      assert_source_line "$output" operations "$expected_operations" "$who"
       ;;
     install-skills)
       assert_source_line "$output" skills "$expected_skills" "$who"

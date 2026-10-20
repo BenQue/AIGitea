@@ -5206,29 +5206,6 @@ class HostAccessBrokerTests(unittest.TestCase):
             self.assertEqual(self._owner_marker(linked).last_push_head, first["pushed_head"])
             self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), first["pushed_head"])
 
-    def test_controller_integrates_main_and_owner_publishes_ff_without_reclaiming(self):
-        from aisoft_loop.controller import LocalGit
-        with tempfile.TemporaryDirectory() as temporary:
-            remote, canonical, linked = self._remote_backed_change_worktree(temporary)
-            broker = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, []))
-            first = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
-            self._advance_remote_main(remote, canonical, "someone-elses-merge")
-            def host(operation, branch):
-                return broker.execute("aisoft-platform", operation, branch=branch)
-            local = LocalGit(linked, self.FF_BRANCH, project="aisoft-platform", host_runner=host)
-            before = local.head_sha()
-            self.assertTrue(local.integrate_main())
-            parents = self._git(["show", "-s", "--format=%P", "HEAD"], cwd=linked).split()
-            self.assertEqual(parents, [before, self._remote_sha(remote, "main")])
-            landed = local.push()
-            self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), landed)
-            self.assertEqual(self._owner_marker(linked).session, self.OWNER_SESSION)
-            self.assertEqual(local.publication_reference["previous_head"], first["pushed_head"])
-            noop = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
-            self.assertEqual(noop["write_status"], "NOOP")
-            self.assertFalse(noop["possible_write"])
-            self.assertFalse(local.integrate_main())
-
     def _canonical_remote_fixture(self, temporary):
         import hashlib
         from aisoft_main_integration import TemplateScopeContext
@@ -5260,39 +5237,6 @@ class HostAccessBrokerTests(unittest.TestCase):
         commands = []
         broker = self._remote_backed_broker(canonical, linked, self._remote_backed_runner(remote, commands))
         return remote, canonical, linked, broker, context, commands, spec, templates
-
-    def test_canonical_controller_reader_broker_share_real_integration_ff_backfill_and_noop(self):
-        from aisoft_loop.controller import LocalGit
-        from aisoft_main_integration import GitRepository
-        from aisoft_loop.documents import backfill_pr_url
-        with tempfile.TemporaryDirectory() as temporary:
-            remote, canonical, linked, broker, context, commands, spec, templates = self._canonical_remote_fixture(temporary)
-            with patch("aisoft_host_access.broker.template_scope_context", return_value=context) as broker_context, \
-                 patch("aisoft_loop.controller.template_scope_context", return_value=context) as controller_context:
-                first = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
-                self._advance_remote_main(remote, canonical, "unrelated-main-change")
-                local = LocalGit(linked, self.FF_BRANCH, project="aisoft-platform", access_contract=broker.contract,
-                    host_runner=lambda operation, branch: broker.execute("aisoft-platform", operation, branch=branch))
-                before = local.head_sha()
-                self.assertTrue(local.integrate_main())
-                main = self._remote_sha(remote, "main")
-                self.assertEqual(self._git(["show", "-s", "--format=%P", "HEAD"], cwd=linked).split(), [before, main])
-                self.assertEqual(self._git(["rev-parse", "HEAD^{tree}"], cwd=linked), GitRepository(linked).merge_tree(before, main))
-                second = local.push()
-                self.assertEqual(self._remote_sha(remote, self.FF_BRANCH), second)
-                self.assertEqual(local.publication_reference["previous_head"], first["pushed_head"])
-                backfill_pr_url(linked, 70, "http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/71")
-                self._git(["add", "docs"], cwd=linked)
-                self._git(["commit", "-q", "-m", "#70 T03: actual PR summary backfill"], cwd=linked)
-                final = local.push()
-                noop = broker.execute("aisoft-platform", "git.push.change", branch=self.FF_BRANCH)
-                self.assertEqual(noop["pushed_head"], final)
-                self.assertEqual(noop["code"], "NOOP")
-                self.assertFalse(noop["possible_write"])
-                self.assertTrue(all("--force" not in a and "--force-with-lease" not in a
-                                    for a in commands if a[:2] == ["git", "push"]))
-                broker_context.assert_called_with(broker.contract, "aisoft-platform")
-                controller_context.assert_called_with(broker.contract, "aisoft-platform")
 
     def test_canonical_broker_rejects_holder_unapproved_history_and_context_drift_without_push(self):
         from dataclasses import replace

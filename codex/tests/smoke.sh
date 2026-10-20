@@ -12,17 +12,10 @@ bash -n \
   "$ROOT/codex/tests/test-architecture-install.sh"
 
 optional_runtime_sources=(
-  "$ROOT/codex/agent/analyze-codex.sh"
-  "$ROOT/codex/agent/codex-analyzer.sh"
-  "$ROOT/codex/agent/codex-provider.sh"
-  "$ROOT/codex/agent/common.sh"
-  "$ROOT/codex/agent/loop-controller.sh"
-  "$ROOT/codex/agent/provider-poll.sh"
   "$ROOT/codex/tools/host-access-broker.sh"
   "$ROOT/codex/tools/project-profile-migration.sh"
   "$ROOT/codex/tools/git-credential-aisoft-host.sh"
   "$ROOT/codex/install-host-access-broker.sh"
-  "$ROOT/codex/install-vm.sh"
 )
 runtime_source_count=0
 for script in "${optional_runtime_sources[@]}"; do
@@ -32,7 +25,7 @@ for script in "${optional_runtime_sources[@]}"; do
   fi
 done
 if ((runtime_source_count == 0)); then
-  echo 'SKIP: optional untracked codex/agent runtime sources and codex/install-vm.sh are absent.'
+  echo 'SKIP: optional untracked broker runtime sources are absent.'
 fi
 
 bash -n "$ROOT/codex/tools/sync-gitea-labels.sh"
@@ -117,7 +110,6 @@ done
 if command -v shellcheck >/dev/null; then
   shellcheck \
     "$ROOT"/codex/agent/*.sh \
-    "$ROOT/codex/install-vm.sh" \
     "$ROOT/codex/install-host-role.sh" \
     "$ROOT/codex/install-host-access-broker.sh" \
     "$ROOT/codex/install-skills.sh" \
@@ -182,7 +174,6 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tools/aisoft-alert-poll.sh" \
     "$ROOT/codex/tools/install-alert-agent.sh" \
     "$ROOT/codex/tests/test-alert-agent.sh" \
-    "$ROOT/codex/tests/test-agent-runtime.sh" \
     "$ROOT/codex/tests/test-gitea-token-lib.sh" \
     "$ROOT/codex/tests/test-gitea-token-consumers.sh"
   shellcheck "$ROOT"/sync/*.sh "$ROOT"/sync/tests/*.sh
@@ -196,7 +187,6 @@ bash "$ROOT/codex/tests/test-gitea-label-manifest.sh"
 bash "$ROOT/codex/tests/test-sync-gitea-labels.sh"
 bash "$ROOT/codex/tests/test-project-check.sh"
 bash "$ROOT/codex/tests/test-change-template-sync.sh"
-bash "$ROOT/codex/tests/test-agent-runtime.sh"
 bash "$ROOT/codex/tests/test-change-merge-range.sh"
 bash "$ROOT/codex/tests/test-mark-deployed-issues.sh"
 bash "$ROOT/codex/tests/test-mark-completed-issues.sh"
@@ -561,25 +551,21 @@ if rg -n '默认主处理者|primary handler|维护与部署|开发与设计|Cod
   exit 1
 fi
 
-if [[ -f "$ROOT/codex/agent/provider-poll.sh" ]]; then
-  grep -Fq "ANALYSIS_PROVIDER=\"\${ANALYSIS_PROVIDER:-none}\"" "$ROOT/codex/agent/provider-poll.sh"
-  grep -Fq "IMPLEMENT_PROVIDER=\"\${IMPLEMENT_PROVIDER:-none}\"" "$ROOT/codex/agent/provider-poll.sh"
-  for provider in claude codex; do
-    [[ -f "$ROOT/codex/agent/analyze-$provider.sh" ]]
-    [[ -f "$ROOT/codex/agent/$provider-analyzer.sh" ]]
-    [[ -f "$ROOT/codex/agent/$provider-provider.sh" ]]
-  done
-else
-  echo 'SKIP: optional runtime contract checks for codex/agent/provider-poll.sh.'
+if rg -n 'Authorization: token|AUTH=' "$ROOT/codex/agent"; then
+  echo 'shell runtime must not construct token-bearing auth argv' >&2
+  exit 1
 fi
-if [[ -f "$ROOT/codex/agent/common.sh" ]]; then
-  grep -Fq 'set +x' "$ROOT/codex/agent/common.sh"
-  if rg -n 'Authorization: token|AUTH=' "$ROOT/codex/agent"; then
-    echo 'shell runtime must not construct token-bearing auth argv' >&2
+# #391: the VM Development Loop left main (ADR 0002); its scripts must not return.
+for retired in analyze-claude analyze-codex claude-analyzer claude-provider codex-analyzer \
+  codex-provider common loop-controller project-poll provider-poll; do
+  if [[ -e "$ROOT/codex/agent/$retired.sh" ]]; then
+    echo "codex/agent/$retired.sh 已随 #391 退出" >&2
     exit 1
   fi
-else
-  echo 'SKIP: optional runtime contract checks for codex/agent/common.sh.'
+done
+if [[ -e "$ROOT/codex/install-vm.sh" || -e "$ROOT/codex/systemd" || -e "$ROOT/templates/agent" ]]; then
+  echo 'install-vm、codex/systemd 与 templates/agent 已随 #391 退出' >&2
+  exit 1
 fi
 grep -Fq 'READY_FOR_REVIEW' "$ROOT/skills/gitea-development-loop/SKILL.md"
 grep -Fq '生产环境只运行' "$ROOT/AGENTS.md"
@@ -928,17 +914,9 @@ if rg -n '对应闸门|三道闸门可以分派' "$ROOT/05-通知与多人协作
   exit 1
 fi
 
-test -x "$ROOT/codex/agent/project-poll.sh"
-test -f "$ROOT/codex/systemd/aisoft-agent@.service"
-test -f "$ROOT/codex/systemd/aisoft-agent@.timer"
-test -f "$ROOT/templates/agent/project.env.example"
-grep -Fq 'project-poll.sh %i' "$ROOT/codex/systemd/aisoft-agent@.service"
-grep -Fq 'IMPLEMENT_PROVIDER=none' "$ROOT/templates/agent/project.env.example"
 if rg -ni 'rsdesign' \
   "$ROOT/codex/agent" \
-  "$ROOT/codex/runtime/aisoft_loop" \
-  "$ROOT/codex/systemd" \
-  "$ROOT/templates/agent"; then
+  "$ROOT/codex/runtime/aisoft_loop"; then
   echo '通用 runtime 入口不得硬编码 rsDesign pilot' >&2
   exit 1
 fi

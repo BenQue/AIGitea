@@ -7,8 +7,6 @@ from aisoft_loop.analysis import (
     AnalysisError,
     AnalysisResult,
     analyze_route,
-    render_summary,
-    summary_filename,
 )
 
 
@@ -103,7 +101,7 @@ class AnalysisResultTests(unittest.TestCase):
         with self.assertRaisesRegex(AnalysisError, "requested_complexity"):
             analyze_route(issue, result)
 
-    def test_explicit_small_forced_complex_is_rendered_as_override(self) -> None:
+    def test_explicit_small_forced_complex_routes_complex(self) -> None:
         forced = SMALL.replace("requested_complexity: auto", "requested_complexity: small").replace(
             "risk_flags: []", "risk_flags:\n  - security"
         )
@@ -111,52 +109,6 @@ class AnalysisResultTests(unittest.TestCase):
         result = AnalysisResult.from_json(json.dumps(result_payload(forced)))
         route = analyze_route(issue, result)
         self.assertEqual(route.effective_complexity, "complex")
-        summary = render_summary(
-            issue,
-            result,
-            route,
-            "http://gitea.test",
-            "owner",
-            "repo",
-            date="2026-07-16",
-        )
-        self.assertIn("effective_complexity: complex", summary)
-        self.assertIn("forced complex", summary)
-        self.assertIn("  - spec", summary)
-
-    def test_unclear_summary_omits_every_effective_key(self) -> None:
-        result = AnalysisResult.from_json(json.dumps(result_payload(UNCLEAR)))
-        route = analyze_route(self.issue(), result)
-        summary = render_summary(
-            self.issue(),
-            result,
-            route,
-            "http://gitea.test",
-            "owner",
-            "repo",
-            date="2026-07-16",
-        )
-        self.assertNotIn("effective_complexity:", summary)
-        self.assertIn("status: awaiting-triage", summary)
-
-    def test_summary_is_bound_to_issue_and_change_branch(self) -> None:
-        result = AnalysisResult.from_json(json.dumps(result_payload(SMALL)))
-        route = analyze_route(self.issue(), result)
-        summary = render_summary(
-            self.issue(),
-            result,
-            route,
-            "http://gitea.test",
-            "owner",
-            "repo",
-            date="2026-07-16",
-        )
-        self.assertIn("issue: 8", summary)
-        self.assertIn("branch: change/8-pilot-fix", summary)
-        self.assertIn("## AI 判级", summary)
-        self.assertIn("Existing test documents", summary)
-        self.assertIn("documents:\n  summary: summary-pilot-fix-260716.md", summary)
-        self.assertEqual(summary_filename(result, "2026-07-16"), "summary-pilot-fix-260716.md")
 
     def test_document_slug_must_be_short_lowercase_kebab_case(self) -> None:
         for slug in ("one", "TOO-LONG", "one_two", "one-two-three-four-five", "x" * 33 + "-ok"):
