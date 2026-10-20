@@ -281,7 +281,7 @@ class HostAccessContractTests(unittest.TestCase):
         })
         mac = self.contract.raw["mac_host"]
         self.assertEqual(
-            mac["credential_root"],
+            self.contract.raw["site"]["credential_root_mac"],
             "/Users/benque/Library/Application Support/AISoftPlatform/credentials",
         )
         self.assertEqual(mac["credential_owner"], "benque")
@@ -317,7 +317,7 @@ class HostAccessContractTests(unittest.TestCase):
             ("identity_bindings", "manager_audit", "credential_kind", "macos-keychain"),
             ("identity_bindings", "manager_audit", "relative_path", "../audit.token"),
             ("identity_bindings", "project_agent", "relative_path_template", "{project_id}.token"),
-            ("mac_host", "credential_root", None, "/Users/benque/MyDocs/AISoftPlatform/.git/token"),
+            ("site", "credential_root_mac", None, "/Users/benque/MyDocs/AISoftPlatform/.git/token"),
             ("mac_host", "credential_directory_mode", None, "755"),
             ("mac_host", "credential_file_mode", None, "644"),
         )
@@ -333,6 +333,83 @@ class HostAccessContractTests(unittest.TestCase):
                     path.write_text(json.dumps(raw))
                     with self.assertRaises(AccessContractError):
                         load_access_contract(path, GOVERNANCE)
+
+    def _site_swapped(self, temporary: str, **site_overrides: str) -> tuple[Path, Path]:
+        """Write a manifest pair whose site is another installation entirely (#396)."""
+        site = {
+            "gitea_url": "https://forge.example.test:8443",
+            "orbstack_machine": "ci-box",
+            "orbstack_user": "ops",
+            "credential_root_mac": "/Users/ops/Library/Application Support/Forge/credentials",
+            "credential_root_vm": "/home/ops/.config/forge/credentials",
+            "platform_checkout_mac": "/Users/ops/src/Platform",
+            "platform_checkout_vm": "/mnt/mac/Users/ops/src/Platform",
+            "npm_registry": "https://npm.example.test/",
+        }
+        site.update(site_overrides)
+        raw = json.loads(ACCESS.read_text())
+        governance = json.loads(GOVERNANCE.read_text())
+        raw["site"] = site
+        raw["mac_host"]["credential_owner"] = site["orbstack_user"]
+        for project in raw["projects"]:
+            if project["repository"] == "aisoft-platform":
+                project["mac_checkout"] = site["platform_checkout_mac"]
+        governance["base_url"] = "https://forge.example.test:8443"
+        access_path = Path(temporary) / "access.json"
+        governance_path = Path(temporary) / "governance.json"
+        access_path.write_text(json.dumps(raw))
+        governance_path.write_text(json.dumps(governance))
+        return access_path, governance_path
+
+    def test_another_site_validates_without_code_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            contract = load_access_contract(*self._site_swapped(temporary))
+        self.assertEqual(contract.raw["site"]["orbstack_machine"], "ci-box")
+        host_operation = next(
+            item for item in contract.operations if item.identity_route == "host-operator")
+        self.assertEqual(contract.identity_for(contract.projects[0], host_operation), "ops")
+        runtime = "\n".join(
+            path.read_text() for path in
+            (ROOT / "codex/runtime/aisoft_host_access").glob("*.py")
+        )
+        for literal in ("benque", "gitea-ci", "/Users/"):
+            self.assertNotIn(literal, runtime)
+
+    def test_site_values_are_checked_by_shape_and_cross_reference(self) -> None:
+        cases = {
+            "relative-root": {"credential_root_vm": "home/ops/credentials"},
+            "unnormalized": {"platform_checkout_vm": "/mnt/mac/../ops"},
+            "filesystem-root": {"credential_root_vm": "/"},
+            "root-in-checkout": {
+                "credential_root_mac": "/Users/ops/src/Platform/.git/credentials"},
+            "root-in-project": {"credential_root_mac": "/Users/benque/Projects/AlphaApp/creds"},
+            "gitea-mismatch": {"gitea_url": "https://other.example.test"},
+            "machine-not-identifier": {"orbstack_machine": "ci box"},
+            "registry-credentials": {"npm_registry": "https://user:pw@npm.example.test/"},
+            "registry-query": {"npm_registry": "https://npm.example.test/?token=x"},
+            "registry-scheme": {"npm_registry": "REPLACE_WITH_SITE_NPM_REGISTRY"},
+        }
+        for name, overrides in cases.items():
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as temporary:
+                with self.assertRaises(AccessContractError):
+                    load_access_contract(*self._site_swapped(temporary, **overrides))
+        with tempfile.TemporaryDirectory() as temporary:
+            access_path, governance_path = self._site_swapped(temporary)
+            for mutate in (
+                lambda raw: raw["mac_host"].__setitem__("credential_owner", "someone"),
+                lambda raw: raw["site"].pop("npm_registry"),
+                lambda raw: raw["mac_host"].__setitem__("orbstack_machine", "ci-box"),
+                lambda raw: next(
+                    project for project in raw["projects"]
+                    if project["repository"] == "aisoft-platform"
+                ).__setitem__("mac_checkout", "/Users/ops/elsewhere"),
+            ):
+                raw = json.loads(access_path.read_text())
+                mutate(raw)
+                broken = Path(temporary) / "broken.json"
+                broken.write_text(json.dumps(raw))
+                with self.subTest(mutation=mutate), self.assertRaises(AccessContractError):
+                    load_access_contract(broken, governance_path)
 
     def test_unknown_project_operation_and_arbitrary_argument_are_denied(self) -> None:
         broker = HostAccessBroker(self.contract, credentials=StaticCredentials())
@@ -4033,7 +4110,7 @@ class HostAccessBrokerTests(unittest.TestCase):
 
     def _credential_contract(self, root: Path):
         raw = json.loads(json.dumps(self.contract.raw))
-        raw["mac_host"]["credential_root"] = str(root)
+        raw["site"]["credential_root_mac"] = str(root)
         return replace(self.contract, raw=raw)
 
     @staticmethod

@@ -1,6 +1,16 @@
 {
   "contract_version": "host-access-broker/v1",
   "environment": "local-orbstack",
+  "site": {
+    "gitea_url": "http://gitea-ci.orb.local:3000",
+    "orbstack_machine": "gitea-ci",
+    "orbstack_user": "benque",
+    "credential_root_mac": "/Users/benque/Library/Application Support/AISoftPlatform/credentials",
+    "credential_root_vm": "/home/benque/.config/aisoft/credentials",
+    "platform_checkout_mac": "/Users/benque/MyDocs/AISoftPlatform",
+    "platform_checkout_vm": "/mnt/mac/Users/benque/MyDocs/AISoftPlatform",
+    "npm_registry": "http://gitea-ci.orb.local:4873/"
+  },
   "governance_contract_version": "gitea-governance/v1",
   "human_merge_identity": "admin",
   "identity_bindings": {
@@ -26,14 +36,11 @@
     }
   },
   "mac_host": {
-    "credential_root": "/Users/benque/Library/Application Support/AISoftPlatform/credentials",
     "credential_owner": "benque",
     "credential_directory_mode": "700",
     "credential_file_mode": "600",
     "credential_helper": "/usr/local/libexec/aisoft/git-credential-aisoft-host",
-    "orbstack_binary": "/usr/local/bin/orb",
-    "orbstack_machine": "gitea-ci",
-    "orbstack_user": "benque"
+    "orbstack_binary": "/usr/local/bin/orb"
   },
   "vm_runtime": {
     "runtime_user": "coder"

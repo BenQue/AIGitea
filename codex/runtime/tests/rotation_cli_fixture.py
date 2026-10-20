@@ -43,7 +43,7 @@ class Backend(FakeGitea):
 
 contract = load_access_contract(ROOT / 'codex/tests/fixtures/manifests/host-access-broker.json',
                                ROOT / 'codex/tests/fixtures/manifests/gitea-governance.json')
-contract.raw['mac_host']['credential_root'] = str(store)
+contract.raw['site']['credential_root_mac'] = str(store)
 
 
 def grant(contract, target, issue, source, **kwargs):
