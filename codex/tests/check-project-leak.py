@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-"""ADR 0001 D3 guard: registered project names stay in their allowed places.
+"""ADR 0001 D3 guard: registered project names and site values stay in their allowed places.
 
-Project names come from the canonical manifests, never from this file. Hits
-outside the allow list may only shrink: a new file or a higher count than the
-baseline fails; a lower count only prints a note (#368).
+Project names come from the canonical manifests, never from this file: every
+registered repository except the platform itself, with its project id (#368;
+public-test repositories since #396). Site values are the broker manifest's
+site segment (#396). Hits outside the allow list may only shrink: a new file
+or a higher count than the baseline fails; a lower count only prints a note.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[2]
 GOVERNANCE = Path("codex/config/gitea-governance.json")
@@ -29,7 +33,7 @@ def project_names(root: Path, retired: list[str]) -> list[str]:
     governance = json.loads((root / GOVERNANCE).read_text(encoding="utf-8"))
     repositories = {
         entry["name"] for entry in governance["repositories"]
-        if entry.get("classification") == "internal-application"
+        if entry.get("classification") != "public-platform"
     }
     names = set(repositories)
     access = json.loads((root / ACCESS).read_text(encoding="utf-8"))
@@ -39,6 +43,16 @@ def project_names(root: Path, retired: list[str]) -> list[str]:
         names.add(project["project_id"])
     names.update(retired)
     return sorted({name.lower() for name in names if name})
+
+
+def site_values(root: Path) -> list[str]:
+    """Longest first, so a path or URL is one hit rather than one per account in it."""
+    access = json.loads((root / ACCESS).read_text(encoding="utf-8"))
+    values = set()
+    for value in access.get("site", {}).values():
+        parsed = urlparse(value)
+        values.add(parsed.netloc if parsed.scheme in {"http", "https"} else value)
+    return sorted({value.lower() for value in values if value}, key=lambda v: (-len(v), v))
 
 
 def allowed(path: str) -> bool:
@@ -57,8 +71,10 @@ def tracked_files(root: Path) -> list[str]:
     return [item.decode("utf-8") for item in output.split(b"\0") if item]
 
 
-def count_hits(root: Path, names: list[str]) -> dict[str, int]:
+def count_hits(root: Path, names: list[str], values: list[str]) -> tuple[dict[str, int], dict[str, int]]:
     hits: dict[str, int] = {}
+    site_hits: dict[str, int] = {}
+    pattern = re.compile("|".join(map(re.escape, values))) if values else None
     for path in tracked_files(root):
         if allowed(path):
             continue
@@ -69,7 +85,24 @@ def count_hits(root: Path, names: list[str]) -> dict[str, int]:
         total = sum(text.count(name) for name in names)
         if total:
             hits[path] = total
-    return hits
+        site_total = len(pattern.findall(text)) if pattern else 0
+        if site_total:
+            site_hits[path] = site_total
+    return hits, site_hits
+
+
+def compare(hits: dict[str, int], known: dict[str, int], kind: str) -> list[str]:
+    failures = []
+    for path, count in sorted(hits.items()):
+        limit = known.get(path, 0)
+        if count > limit:
+            failures.append(f"{path}: {count} {kind} hits (baseline {limit})")
+        elif count < limit:
+            print(f"NOTE: {path} dropped to {count} {kind} hits (baseline {limit}); "
+                  "tighten with --write-baseline")
+    for path in sorted(set(known) - set(hits)):
+        print(f"NOTE: {path} has no {kind} hits left; tighten with --write-baseline")
+    return failures
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -80,29 +113,25 @@ def main(argv: list[str] | None = None) -> int:
     root = args.root.resolve()
     baseline = json.loads((root / BASELINE).read_text(encoding="utf-8"))
     names = project_names(root, baseline.get("retired", []))
-    hits = count_hits(root, names)
+    hits, site_hits = count_hits(root, names, site_values(root))
     if args.write_baseline:
         baseline["files"] = dict(sorted(hits.items()))
+        baseline["site_files"] = dict(sorted(site_hits.items()))
         (root / BASELINE).write_text(
             json.dumps(baseline, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(f"project-leak baseline written: {len(hits)} files, {sum(hits.values())} hits")
+        print(f"project-leak baseline written: {len(hits)} files, {sum(hits.values())} hits; "
+              f"site {len(site_hits)} files, {sum(site_hits.values())} hits")
         return 0
-    known = baseline.get("files", {})
-    failures = []
-    for path, count in sorted(hits.items()):
-        limit = known.get(path, 0)
-        if count > limit:
-            failures.append(f"{path}: {count} project-name hits (baseline {limit})")
-        elif count < limit:
-            print(f"NOTE: {path} dropped to {count} hits (baseline {limit}); tighten with --write-baseline")
-    for path in sorted(set(known) - set(hits)):
-        print(f"NOTE: {path} has no hits left; tighten with --write-baseline")
+    failures = compare(hits, baseline.get("files", {}), "project-name")
+    failures += compare(site_hits, baseline.get("site_files", {}), "site-value")
     if failures:
-        print("FAIL: project names outside ADR 0001 D3 allowed places:", file=sys.stderr)
+        print("FAIL: project names or site values outside ADR 0001 D3 allowed places:",
+              file=sys.stderr)
         for failure in failures:
             print(f"  {failure}", file=sys.stderr)
         return 1
-    print(f"PASS: project-leak ({len(hits)} baseline files, {sum(hits.values())} hits)")
+    print(f"PASS: project-leak ({len(hits)} baseline files, {sum(hits.values())} hits; "
+          f"site {len(site_hits)} files, {sum(site_hits.values())} hits)")
     return 0
 
 
