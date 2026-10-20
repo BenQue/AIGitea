@@ -19,8 +19,8 @@
 | 事实 | 证据 |
 |---|---|
 | 五个仓库 654 条 Issue 中 small 只有 41 条（6%），complex 432 条（66%） | broker `gitea.issue.list --state all` 按标签统计 |
-| 原设计的自动实现与 routine 自动合并只对 small 开放；complex 按合同有两个人工确认点 | `03` §2、ADR 0001 D6 |
-| 三个 VM profile 都是 `IMPLEMENT_PROVIDER=none`；验收矩阵 3–9 层 NOT RUN；routine merge 从未发生 | manifest 与 `08` §7 |
+| 无人值守的自治全链（Loop 自动实现 + routine 自动合并）只对 small 开放；Loop 虽也能跑 complex，但 complex 按合同有两个人工确认点、平台仓 complex 一律人合并 | `03` §7、`04` |
+| 三个 VM profile 都是 `IMPLEMENT_PROVIDER=none`；provider 安装层与会话层验收从未执行；routine merge 从未发生 | manifest `vm_profile`、`08` §7、#385 verification |
 | 两个 VM 定时器自 2026-08-12 起每 15 分钟失败，直到 #387 停用 | #387 verification |
 | 模型 CLI、技能、凭据、Matt 快照都在 Mac；VM 服务层 `claude`/`codex` 不可达 | `04`、#164、#178 |
 | 每条规则在 Controller 路径与会话路径各写一遍（PR URL 回填、判级投影、终态） | `aisoft_loop`、`issue-session-flow` |
@@ -76,14 +76,14 @@ route:
 | small，`contract_effect` 为 restore 或 unchanged，无强制风险 | small-direct | standard / medium | debug-first 或 implement-only | targeted + required CI | human-merge |
 | complex，`change_control: development` | complex-development | frontier / high | tdd（合成 T01） | full + required CI | 项目合同决定 |
 | complex，`production`，无高风险 flag | complex-production | frontier / high | spec-plan | full（按证据来源加 verification） | 平台仓 cross-provider |
-| complex 且含高风险 flag（security、schema/data、external-contract、shared-core、CI/制品/部署/回滚、Agent 或平台治理） | complex-production（强制） | frontier / max | spec-plan | full + reverse-proof + verification | cross-provider 必须 |
+| complex 且含高风险 flag（security、schema/data、external-contract、shared-core、CI/制品/部署/回滚、Agent 或平台治理） | complex-production（强制） | frontier / max | spec-plan | full + reverse-proof + verification | 平台仓 cross-provider 必须；项目仓按项目合同，至少 Matt `code-review` 的 spec 轴 |
 | `contract_effect: unclear` 或 `confidence: low` | awaiting-triage | frontier / high（只分析） | — | — | 人裁决 |
 
 约束：
 
 - **单一来源。** 路由表只有一份，放在 `aisoft-platform` 技能的 references 内；若工具需要机器读，从同一文件生成，不维护第二份。
 - **只钉两类。** 必用（如大需求的 `grill-me`、complex-production 的 `to-spec` → `to-tickets`、收尾前的完成核验、两个确认点、平台仓 complex 的交叉审查）与禁用或限制（如 `writing-plans` 不替代 Txx 计划、并行子代理不写同一 worktree、外部技能的远端收尾动作不可用、`brainstorming` 不自行定级）。其余技能由模型按 Issue 自选。
-- **档位不是型号。** 合同只写档位；型号按工具另列在 `08` §7。初始映射：Claude Code standard = Sonnet 5.5、frontier = Opus 5.5、max = Fable 5.1；Codex standard = 默认模型、frontier 与 max = 高推理档；Cursor 由项目 profile 选。派单卡片由人按 tier 选型号。
+- **档位不是型号。** 合同只写档位；型号按工具另列一张映射表，由 R10b 写入 `08` §7（负责人已采纳的初始映射见项目库最终版计划 §2）。型号会变，合同不变。派单卡片由人按 tier 选型号。
 - **不加标签维度。** 判级投影仍是现有四维标签，不新增 `route/*`；路由卡只在 front matter 与 Issue 评论里。
 - **三端一致。** 路由卡引用的外部技能在 Claude、Codex、Cursor 上是同一 pin 版本（R10c）。
 
@@ -101,7 +101,7 @@ VM 上的 Development Loop（controller、provider adapter、verifier、state）
 
 | 阶段 | 引擎 | 触发条件 | 做什么 |
 |---|---|---|---|
-| 1（现在） | Mac 交互会话 + 协调者派单的线程 | 无 | 技能产出路由卡；确认点 1 展示；会话按卡执行；派单任务书带 process、tier、skills |
+| 1（现在） | Mac 交互会话 + 协调者派单的线程（已在用） | 无 | 按卡执行；路由卡的产出、确认点 1 展示与派单任务书字段待 R10b 落地，之前沿用现有判级与派单做法 |
 | 2（R11 之后） | 同上 + Mac 上无人值守的只读步骤 | 路由卡落地 | 判级与交叉审查用 `codex exec -s read-only` / `claude -p` 跑，只输出候选，不写远端 |
 | 3（条件触发） | Mac 上的 headless implement，只对 small-direct | 见「重开条件」 | 在 worktree 内跑到 `AWAITING_PR_CONFIRMATION`，仍由人确认提交 PR、人合并 |
 
@@ -120,7 +120,7 @@ routine 自动合并退出。自动化最多止于「PR 候选」，不越过唯
 - **外部技能**（R10c）：superpowers vendor pin，Codex 由安装器装、Cursor 与项目级由发布包导出，三端核对同一 commit；
   改掉 #355「superpowers 跟随官方 marketplace、平台不自建 pin」的做法。
 - **文档**：`04` 压成「候选状态与迁出说明」，`08` §4、§6 压缩（R10a）；分册全面改现行合同体归 R14。
-- **代价**：放弃「small 自动实现 + 自动合并」这条从未跑通的路径。按事实表，它最多覆盖 6% 的工作；需要时按 D3 在 Mac 上重建。
+- **代价**：放弃从未跑通的无人值守自治全链（自动实现 + routine 自动合并）。它只对 small 开放，按事实表候选上限约 6% 的 Issue；需要时按 D3 在 Mac 上重建。
 - **不变**：两个确认点、受保护 `main`、broker 唯一写路径、平台仓 complex 的交叉审查、人工合并、独立部署授权。
 
 ## 重开条件
