@@ -511,7 +511,6 @@ grep -Fq 'BLOCKED_EXTERNAL' \
   "$ROOT/codex/tools/ensure-gitea-collaborator.sh"
 grep -Fq 'BLOCKED_EXTERNAL' \
   "$ROOT/codex/tools/bootstrap-gitea-service-account.sh"
-grep -Fq '/mnt/mac/Users/benque/MyDocs/AISoftPlatform/' "$ROOT/codex/global-AGENTS.md"
 
 # #231: platform governance stays project-neutral, delivery-neutral and
 # provider-equal. The governance set is every file that is installed as Agent
@@ -523,7 +522,6 @@ grep -Fq '/mnt/mac/Users/benque/MyDocs/AISoftPlatform/' "$ROOT/codex/global-AGEN
 # and aligned the delivery pattern with the Issue #241 AC-1 grep.
 governance_set=(
   "$ROOT"/skills/*/SKILL.md
-  "$ROOT/codex/global-AGENTS.md"
   "$ROOT/templates/project/AGENTS.md"
   "$ROOT/usage/CONTRACT.md"
   "$ROOT/templates/project/ci/ci.yml"
@@ -587,10 +585,9 @@ grep -Fq 'READY_FOR_REVIEW' "$ROOT/skills/gitea-development-loop/SKILL.md"
 grep -Fq '生产环境只运行' "$ROOT/AGENTS.md"
 
 root_agents="$ROOT/AGENTS.md"
-global_agents="$ROOT/codex/global-AGENTS.md"
 literal_dollar='$'
 literal_backtick='`'
-for instruction in "$root_agents" "$global_agents"; do
+for instruction in "$root_agents"; do
   grep -Fq '<role>-<short-description>-<YYMMDD>.md' "$instruction"
   grep -Fq "${literal_dollar}aisoft-matt-workflow" "$instruction"
   grep -Fq "${literal_dollar}setup-matt-pocock-skills" "$instruction"
@@ -609,32 +606,21 @@ for instruction in "$root_agents" "$global_agents"; do
   grep -Fq 'triage/ready-for-agent' "$instruction"
   grep -Fq 'approved' "$instruction"
   grep -Fq "exact ${literal_backtick}change/N-short-description${literal_backtick}" "$instruction"
-  grep -Fq 'Controller' "$instruction"
-  grep -Fq 'IMPLEMENT_PROVIDER=none' "$instruction"
+  grep -Fq 'ADR 0002' "$instruction"
+  grep -Fq '自动化最多止于 PR 候选' "$instruction"
   for legacy_basename in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
     grep -Fq "$legacy_basename" "$instruction"
   done
 done
 grep -Fq "${literal_backtick}documents${literal_backtick}" "$root_agents"
-grep -Fq "documents${literal_backtick} field" "$global_agents"
 grep -Fq "tracker 选择 ${literal_backtick}Other${literal_backtick}" "$root_agents"
-grep -Fq "select tracker ${literal_backtick}Other${literal_backtick}" "$global_agents"
 grep -Fq 'small 变更可按平台合同跳过 spec/plan' "$root_agents"
-grep -Fq 'small work may skip spec/plan' "$global_agents"
 grep -Fq '兼容 adapter' "$root_agents"
-grep -Fq 'compatibility adapters' "$global_agents"
 grep -Fq 'fast-forward push' "$root_agents"
-grep -Fq 'fast-forward push' "$global_agents"
-grep -Fq 'manual 最终 PR 仍只由人合并' "$root_agents"
-grep -Fq 'A human merges every manual PR' "$global_agents"
-grep -Fq 'Issue #208 自身不得自动合并' "$root_agents"
-grep -Fq 'Issue #208 is manual' "$global_agents"
+grep -Fq '最终 PR 只由人合并' "$root_agents"
 grep -Fq 'force-push' "$root_agents"
-grep -Fq 'force-push' "$global_agents"
 grep -Fq '静默安装或更新全局 skills' "$root_agents"
-grep -Fq 'silently install or update global skills' "$global_agents"
 grep -Fq 'PR merge 不传递部署授权' "$root_agents"
-grep -Fq 'deploy without separate authorization' "$global_agents"
 
 analyze_skill="$ROOT/skills/gitea-analyze-change/SKILL.md"
 spec_skill="$ROOT/skills/gitea-spec-plan/SKILL.md"
@@ -948,7 +934,6 @@ test -f "$ROOT/codex/systemd/aisoft-agent@.timer"
 test -f "$ROOT/templates/agent/project.env.example"
 grep -Fq 'project-poll.sh %i' "$ROOT/codex/systemd/aisoft-agent@.service"
 grep -Fq 'IMPLEMENT_PROVIDER=none' "$ROOT/templates/agent/project.env.example"
-grep -Fq 'explicit project profile' "$ROOT/codex/global-AGENTS.md"
 if rg -ni 'rsdesign' \
   "$ROOT/codex/agent" \
   "$ROOT/codex/runtime/aisoft_loop" \

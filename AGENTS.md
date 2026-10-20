@@ -18,25 +18,24 @@
 
 - AI 依证据判级。small 只用于恢复或保持既有合同、局部且可简单 revert 的改动；新增功能、功能性更改、schema/数据迁移、外部契约、认证/权限/安全、共享核心、跨模块、CI/制品/部署/回滚、Agent 与平台治理一律 complex。信息不足或冲突时停在 `awaiting-triage`。
 - 只有两个确认点：`approved`（确认合同并启动，不批准合并或部署）与提交唯一最终 PR 前确认。`triage/ready-for-agent` 不等于 `approved`。merge 后收尾按确定性流程完成。
-- Development Loop 在合同内自主实现、测试和修 CI；遇到合同冲突、范围扩张、破坏性迁移、安全决策、外部阻塞或重复失败时停下升级。
+- 确认点 1 之后，会话在合同内自主实现、测试和修 CI；遇到合同冲突、范围扩张、破坏性迁移、安全决策、外部阻塞或重复失败时停下升级。
 
 ## 开发编排
 
 - 主路径 `$triage #N` → `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`；small 变更可按平台合同跳过 spec/plan。`$aisoft-matt-workflow` 把 Matt 接入平台合同；初始化调用 `$setup-matt-pocock-skills`，tracker 选择 `Other`，使用 `templates/docs/agents/issue-tracker.md`、`templates/docs/agents/triage-labels.md`、`templates/docs/agents/domain.md`。
 - `gitea-analyze-change`、`gitea-spec-plan`、`gitea-development-loop`、`gitea-implement-change` 只是兼容 adapter；`gitea-platform-ops` 处理诊断、非生产部署与回滚规划。
-- Agent 只在 exact 分支追加线性本地 commit；Controller 复核范围与验证后普通 fast-forward push 并开唯一最终 PR。
+- 会话只在 exact 分支追加线性本地 commit；确认点 2 之后复核范围与验证，经 broker 普通 fast-forward push 并开唯一最终 PR。
 
 ## Git、合并与部署
 
 - 保持受保护 `main`、现有 CI context、测试硬门、不可变制品与可回滚流程。只提交与当前任务有关的文件；应用变更走项目自己的分支和 PR。
 - 禁止直推受保护 `main`、force-push、静默安装或更新全局 skills、未授权改 live 标签。
-- manual 最终 PR 仍只由人合并。routine auto 只适用于 manifest 显式启用的 small PR，由独立 routine merger 在最终 head 全硬门后合并，失败 fail closed（细则见 `03`）；Issue #208 自身不得自动合并。PR merge 不传递部署授权。
-- `IMPLEMENT_PROVIDER=none` 是默认值，项目完成验收矩阵后才能启用 provider。
+- 最终 PR 只由人合并；routine 自动合并与 VM 上的 Development Loop 已按 ADR 0002 退出，自动化最多止于 PR 候选。PR merge 不传递部署授权。
 - AI 可参与开发/测试环境的首次部署与回滚验收；生产环境只运行已验证、版本化、可回滚的确定性脚本。
 
 ## 治理文件
 
-- 只有 complex spec 明确授权才能改 `AGENTS.md`、技能、Agent 行为、controller 或 CI/部署脚本；治理文件由独立受控步骤应用后停止，fresh run 重读后再改 runtime。
+- 只有 complex spec 明确授权才能改 `AGENTS.md`、技能、Agent 行为、broker 合同或 CI/部署脚本；治理文件由独立受控步骤应用后停止，fresh run 重读后再改 runtime。
 - 单张 Issue 的合同、授权与状态只写在它的 `docs/changes/` 目录，不写进本文件、技能或 `docs/agents/`。
 
 ## 凭据与验证
