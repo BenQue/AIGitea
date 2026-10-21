@@ -44,6 +44,7 @@ git_scope:
   - skills/aisoft-platform/references/project-align.md
   - skills/issue-session-flow/SKILL.md
   - templates/project/AGENTS.md
+  - templates/project/ci/ci.yml
   - usage/CONTRACT.md
   - usage/bundle.json
 ---
@@ -143,6 +144,19 @@ summary。每个 PR 推送前单独请负责人确认。采用会话本身就是
   （约 180 个文件），Cursor 落点按需加；三个项目目前都不用 Cursor。
 - 闸门不允许在本 Issue 目录之外删除 `docs/changes/` 下的非 canonical 文件，所以 legacy 模板不删，只打印 NOTE。
 
+### 7. CI checkout 不依赖 GitHub（2026-10-21 负责人「并入 R11」）
+
+负责人在 #370 线程决定把「应用项目 CI 与 `templates/project/ci/` 的 checkout 不依赖 GitHub」并入本票：
+- `templates/project/ci/ci.yml` 去掉 `actions/checkout@v4`，改用平台仓 #370 的手写 checkout：只和
+  `$GITHUB_SERVER_URL` 通信（不写站点地址），全量 fetch heads 与 PR head，清理复用的工作区，检出 exact head；
+  job token 写进本地 extraheader 供合并预览取 base，末尾 `if: always()` 步骤删掉。随 1.8.0 发布（种子成员）。
+  smoke 守卫：模板里不得出现 `uses:`。
+- 三个项目逐个核对 workflow：HSDB、SFM 已是手写 checkout 且无其它 GitHub action，不改；LocalWMS 用
+  `actions/checkout@v4`，在它的采用 PR 里换成同一步骤。改 CI 是强制 complex，所以 LocalWMS #335 改判
+  complex（`risk_flags: ci-change`，`change_control: development` → 路由 R2 `complex-development`），验收取 Issue
+  正文与评论，用该 PR 自己的 CI 运行证明新 checkout 可用；HSDB #70 与 SFM #184 仍是 small。
+- `--adopt` 仍不写 CI 种子；LocalWMS 的 workflow 改动是该 PR 内单独的一个提交。
+
 ## 验收标准
 
 1. AC-1：临时 HOME 且 `PATH` 不含平台检出时，一个采用项目的 small Issue 用 `.aisoft/bin/aisoft` 完成
@@ -158,6 +172,7 @@ summary。每个 PR 推送前单独请负责人确认。采用会话本身就是
 6. AC-6：`--release` 缺 `--compatibility` 或 `--notes` 拒绝；落后区间含 `major` 时 `--project-status` 记 GAP，
    patch/minor 记 NOTE；`--verify --baseline-ref origin/main` 证明已发布版本未改。
 7. AC-7：`agents-budget` 对超 2 KB 的「项目事实」报 NOTE；模板自身 ≤ 2 KB。
+9. AC-9：模板 `ci.yml` 无 `uses:`（smoke 守卫，加回一行即红）；手写 checkout 步骤在本地模拟的复用工作区里连跑两次都检出 exact head 并清掉残留；LocalWMS 采用 PR 的 CI 在新 checkout 下全绿（run 链接写进 verification）；HSDB 与 SFM 的 workflow 读回无 GitHub action。
 8. AC-8：`bash codex/tests/smoke.sh` 全绿，`usage-bundle.sh --verify` 通过，发布下一空闲版本（当前候选 1.8.0），
    `check-change-documents` gap=0，Codex 只读交叉审查 PASS。
 
