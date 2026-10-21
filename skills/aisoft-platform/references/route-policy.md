@@ -59,7 +59,8 @@ summary 的 `route:` 块只接受以下取值；`check-change-documents` 校验�
 | confirm | `2` |
 
 `skills` 写成逗号分隔的一行技能名（不带 `$`、不带包前缀）。`process` 必须与 `effective_complexity` 一致：
-`small` ↔ `small-direct`，`complex` ↔ `complex-development` 或 `complex-production`，未决 ↔ `awaiting-triage`。
+`small` ↔ `small-direct`，`complex` ↔ `complex-development` 或 `complex-production`，未决 ↔ `awaiting-triage`；
+与 R1 同序：`contract_effect: unclear` 或 `confidence: low` 时不论 `effective_complexity` 写了什么都是 `awaiting-triage`。
 
 ## summary 写法
 

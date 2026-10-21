@@ -369,6 +369,20 @@ class ContractTests(unittest.TestCase):
                 with self.assertRaisesRegex(ContractError, needle):
                     resolve_documents(self.repo, number)
 
+    def test_route_process_follows_the_unresolved_row_first(self) -> None:
+        # R1 wins over the complexity: a low-confidence or unclear summary routes
+        # to awaiting-triage even when it still carries effective_complexity.
+        self.write_new_contract(number=80, route=self.SMALL_ROUTE)
+        summary = self.repo / "docs/changes/80-bounded-fix/summary-bounded-fix-260808.md"
+        summary.write_text(summary.read_text().replace("confidence: high", "confidence: low"))
+        with self.assertRaisesRegex(ContractError, "awaiting-triage"):
+            resolve_documents(self.repo, 80)
+        triage = (self.SMALL_ROUTE.replace("process: small-direct", "process: awaiting-triage")
+                  .replace("method: debug-first", "method: none").replace("verify: targeted", "verify: none")
+                  .replace("review: human-merge", "review: none"))
+        summary.write_text(summary.read_text().replace(self.SMALL_ROUTE, triage))
+        resolve_documents(self.repo, 80)
+
     def test_route_must_be_a_mapping(self) -> None:
         self.write_new_contract(route="route: small-direct")
         with self.assertRaisesRegex(ContractError, "route must be a mapping"):

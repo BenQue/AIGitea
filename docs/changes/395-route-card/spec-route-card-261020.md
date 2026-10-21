@@ -27,7 +27,6 @@ git_scope:
   - codex/runtime/tests/test_contract.py
   - codex/runtime/tests/test_route_policy.py
   - codex/tests/smoke.sh
-  - docs/changes/392-superpowers-vendor-pin/verification-superpowers-vendor-pin-261020.md
   - docs/changes/395-route-card/plan-route-card-261020.md
   - docs/changes/395-route-card/spec-route-card-261020.md
   - docs/changes/395-route-card/summary-route-card-261020.md
@@ -94,7 +93,7 @@ ADR 0002 D1：每条 Issue 的开发方式由确定性的路由卡给出，由�
 - [ ] AC-6 smoke 有路由表结构守卫（文件存在、五行齐全、tier/effort/method/verify/review 取值闭集），删掉一行或写入闭集外取值时 smoke 变红（反向证明记 verification）。
 - [ ] AC-7 本 Issue summary 的 `route:` 通过 `check-change-documents`；实现按 plan 的 Txx 顺序用 `executing-plans` 执行，每张 ticket 的 commit 记 verification；Codex 只读会话对本 Issue 独立查表得到同一路由卡。
 - [ ] AC-8 `bash codex/tests/smoke.sh` 全绿；`usage-bundle.sh --release 1.5.0` 后 `--verify` 通过；`bash -n` 与 ShellCheck 通过；Codex 只读交叉审查 PASS；判级投影读回 `projected`。
-- [ ] AC-9 #392 verification 的 Cursor 一行改为 2026-10-20 14:48Z 实测 PASS 的事实；路线图 R10b 行更新状态。
+- [ ] AC-9 #392 Cursor 一行的更正（2026-10-20 14:48Z 实测 PASS）记在本票 verification：broker 的 Git scope 闸门不允许一个 Issue 改另一个 Issue 的 `docs/changes/` 目录（实现中由 Codex 审查发现，确认点 2 告知负责人）；路线图 R10b 行更新状态。
 
 ## 接口、数据与兼容性影响
 

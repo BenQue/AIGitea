@@ -310,9 +310,15 @@ def validate_route(front_matter: Mapping[str, object]) -> None:
     if not all(re.fullmatch(r"[a-z0-9][a-z0-9-]*", item) for item in skills):
         raise ContractError("route.skills must be a comma-separated list of skill names")
     complexity = str(front_matter.get("effective_complexity") or "")
-    if route["process"] not in ROUTE_PROCESSES.get(complexity, frozenset()):
+    # Row R1 of the routing table is checked first: an unclear or low-confidence
+    # classification is awaiting-triage whatever complexity it still carries.
+    if front_matter.get("contract_effect") == "unclear" or front_matter.get("confidence") == "low":
+        complexity = ""
+    expected = ROUTE_PROCESSES.get(complexity, frozenset())
+    if route["process"] not in expected:
         raise ContractError(
-            f"route.process={route['process']} contradicts effective_complexity={complexity or '(absent)'}"
+            f"route.process={route['process']} contradicts the classification"
+            f" (effective_complexity={complexity or 'unresolved'}); expected " + ", ".join(sorted(expected))
         )
 
 

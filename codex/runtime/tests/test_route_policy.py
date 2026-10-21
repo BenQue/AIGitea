@@ -58,7 +58,7 @@ def load_policy() -> tuple[dict[str, dict[str, object]], dict[str, str], dict[st
 
 
 def lookup(classification: Classification, *, change_control: str = "production",
-           platform_repo: bool = True) -> dict[str, str]:
+           platform_repo: bool = True, splits_into_issues: bool = False) -> dict[str, str]:
     """Walk the table top-down exactly as route-policy.md says a session does."""
     rows, rules, _ = load_policy()
     effective = classification.route(change_control=change_control).effective_complexity
@@ -90,6 +90,7 @@ def lookup(classification: Classification, *, change_control: str = "production"
         skills.append(_codes(rules["P1"])[0])
     if key in {"R3", "R4"} and (
         classification.change_type == "feature" or classification.contract_effect == "add"
+        or splits_into_issues
     ):
         skills.insert(0, _codes(rules["G1"])[0])
     route["skills"] = ", ".join(skills)
@@ -214,6 +215,11 @@ class RoutePolicyTests(unittest.TestCase):
         )
         self.assertEqual((lookup(owed)["row"], lookup(owed)["verify"]), ("R4", "full+verification"))
         self.assertEqual(lookup(classified(change_type="docs"))["method"], "implement-only")
+        stage = lookup(governance, splits_into_issues=True)
+        self.assertEqual(stage["skills"], "grill-me, " + PRODUCTION_SKILLS)
+        self.assertEqual(lookup(owed, splits_into_issues=True)["skills"].split(", ")[0], "grill-me")
+        self.assertEqual(lookup(classified(), splits_into_issues=True)["skills"],
+                         "verification-before-completion")
 
 
 if __name__ == "__main__":
