@@ -131,7 +131,7 @@ bundle_exit=0
 bash "$USAGE_BUNDLE_TOOL" --project-status "$repo" >"$bundle_status" 2>"$tmp_dir/usage-bundle.err" ||
   bundle_exit=$?
 if ((bundle_exit != 0)) || [[ ! -s "$bundle_status" ]]; then
-  for bundle_check in platform-pin pointer-sections change-templates; do
+  for bundle_check in platform-pin tool-provenance pointer-sections change-templates; do
     gap "$bundle_check" "使用发布包核对未能运行（退出码 $bundle_exit）"
   done
 else
@@ -1046,6 +1046,19 @@ else
     pass delivery-profile
   else
     gap delivery-profile 'AGENTS.md 未声明明确交付形态'
+  fi
+fi
+
+# #402: AGENTS.md「项目事实」is a fixed list of at most 2 KB; longer project
+# rules belong in the project's own documents. A hint, never a GAP: the
+# budget is a writing rule, not an alignment fact.
+if [[ -f "$repo/AGENTS.md" ]]; then
+  facts_bytes="$(awk '
+    /^## / { in_facts = ($0 ~ /^## 项目事实/) }
+    in_facts { print }
+  ' "$repo/AGENTS.md" | wc -c | tr -d ' ')"
+  if ((facts_bytes > 2048)); then
+    printf 'NOTE: agents-budget — AGENTS.md「项目事实」%d 字节，超过 2 KB；其余项目规则移到项目文档并链接\n' "$facts_bytes"
   fi
 fi
 
