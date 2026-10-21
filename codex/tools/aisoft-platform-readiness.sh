@@ -8,11 +8,13 @@ project="aisoft-platform"
 target_home="$HOME"
 broker="${AISOFT_HOST_ACCESS_BROKER:-/usr/local/libexec/aisoft/host-access-broker}"
 credential_root=""
+render_readme=0
 
 usage() {
   cat <<'EOF'
 Usage: aisoft-platform-readiness.sh [--repo PATH] [--project ID] [--home PATH] [--broker PATH]
                                     [--credential-root PATH]
+       aisoft-platform-readiness.sh --render-readme [--repo PATH]
 
 Reports sanitized SOURCE, INSTALLED_CODEX, INSTALLED_CLAUDE, LIVE_REPO,
 LIVE_PROTECTION and LIVE_VM_TIMERS states. The command is read-only and exits 1
@@ -20,6 +22,10 @@ when any layer is DRIFT, GAP or BLOCKED. PAT_AGE is a NOTE only (#397): the age
 of each manifest-declared Mac credential against the 180-day rotation period,
 from its rotation receipt or else its creation marker; it never reads a token
 and never changes the exit code.
+
+--render-readme prints the README status table from source files only (#403):
+it reads the checkout, never the broker, installed surfaces or the network, and
+exits 1 when a source fact is unreadable.
 EOF
 }
 
@@ -38,6 +44,10 @@ while (($#)); do
         --credential-root) credential_root="$2" ;;
       esac
       shift 2
+      ;;
+    --render-readme)
+      render_readme=1
+      shift
       ;;
     -h | --help)
       usage
@@ -58,6 +68,59 @@ command -v jq >/dev/null || {
   echo 'SOURCE BLOCKED jq-unavailable'
   exit 1
 }
+
+# #403: README §1 no longer hand-writes state; this table is generated from the
+# source checkout. Each row names the file it was read from.
+# shellcheck disable=SC2016 # backticks are literal Markdown, not expansions
+render_readme_table() {
+  # Every fact is read before anything is printed: the caller runs this in a
+  # command substitution where errexit is off, so each read checks itself.
+  local sha repositories operations installers labels bundle matt superpowers catalog manifests
+  # A missing key, a wrong type or an empty pin is an error, never 0 or "null".
+  # Files are slurped (-s) so a file holding two JSON documents is an error too.
+  local defs='def one: if length == 1 then .[0] else error("documents") end;
+    def str: if type == "string" and length > 0 then . else error("missing") end;
+    def list: if type == "array" and length > 0 then . else error("missing") end;
+    def pin($ref; $sha): "\($ref | str) `\($sha | str | if length >= 12 then .[0:12] else error("short") end)`";'
+  sha="$(git -C "$repo" rev-parse HEAD)" || return 1
+  repositories="$(jq -ers "$defs"' one | .repositories | list | length' \
+    "$repo/codex/config/gitea-governance.json")" || return 1
+  operations="$(jq -ers "$defs"' one | .operations | list | length' \
+    "$repo/codex/config/host-access-broker.json")" || return 1
+  installers="$(jq -ers "$defs"' one | .hosts | if type == "object" and length > 0 and all(.[]; type == "object")
+    then [.[] | keys[]] | unique | list | length else error("missing") end' \
+    "$repo/codex/config/installed-drift-baseline.json")" || return 1
+  labels="$(jq -ers "$defs"' one | .canonical | list
+    | "\(length)（type/* \([.[] | .name | str | select(startswith("type/"))] | length)）"' \
+    "$repo/codex/config/gitea-labels.json")" || return 1
+  bundle="$(jq -ers "$defs"' one | .releases | list | .[-1].version | str' "$repo/usage/bundle.json")" || return 1
+  matt="$(jq -ers "$defs"' one | [.plugins | list | .[] | select(.name == "mattpocock-skills")]
+    | if length == 1 then .[0].source | pin(.ref; .sha) else error("ambiguous") end' \
+    "$repo/.claude-plugin/marketplace.json")" || return 1
+  manifests=("$repo"/codex/vendor/superpowers/*/manifest.json)
+  if ((${#manifests[@]} != 1)) || [[ ! -f "${manifests[0]}" ]]; then
+    echo 'RENDER BLOCKED superpowers-pin-ambiguous' >&2
+    return 1
+  fi
+  superpowers="$(jq -ers "$defs"' one | pin(.tag; .commit)' "${manifests[0]}")" || return 1
+  catalog="$(jq -ers "$defs"' one | .revision | str' "$repo/architecture/catalog.json")" || return 1
+  printf '%s\n' '| 项 | 值 | 来源 |' '|---|---|---|'
+  printf '| 源码 | `%s` | `git rev-parse HEAD` |\n' "${sha:0:12}"
+  printf '| 治理仓库 | %s | `codex/config/gitea-governance.json` `.repositories` |\n' "$repositories"
+  printf '| broker typed 操作 | %s | `codex/config/host-access-broker.json` `.operations` |\n' "$operations"
+  printf '| installer 安装面 | %s | `codex/config/installed-drift-baseline.json` `.hosts` |\n' "$installers"
+  printf '| 规范标签 | %s | `codex/config/gitea-labels.json` `.canonical` |\n' "$labels"
+  printf '| 使用发布包最新版本 | %s | `usage/bundle.json` `.releases[-1]` |\n' "$bundle"
+  printf '| Matt pin | %s | `.claude-plugin/marketplace.json` |\n' "$matt"
+  printf '| superpowers pin | %s | `codex/vendor/superpowers/*/manifest.json` |\n' "$superpowers"
+  printf '| architecture catalog | %s | `architecture/catalog.json` `.revision` |\n' "$catalog"
+}
+
+if ((render_readme)); then
+  table="$(render_readme_table)" || exit 1
+  printf '%s\n' "$table"
+  exit 0
+fi
 
 overall=0
 source_sha="$(git -C "$repo" rev-parse HEAD 2>/dev/null || true)"

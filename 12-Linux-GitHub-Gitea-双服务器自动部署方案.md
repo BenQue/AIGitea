@@ -35,7 +35,7 @@ flowchart LR
         PRODUCER -->|"exact docker-release/v2 bytes"| TEST
         TEST -->|"non-production PASS"| BUNDLE
     end
-    subgraph SCM["公司 VM 1 · gitea-ci / scm-ci"]
+    subgraph SCM["公司 VM 1 · scm-ci"]
         G["Gitea PR + protected main"]
         CI["act_runner source CI"]
         REG["Registry / cache"]
@@ -67,7 +67,7 @@ flowchart LR
 
 | 位置 | role | 允许职责 | 禁止 |
 |---|---|---|---|
-| 公司 VM 1 `gitea-ci` | `scm-ci` | Gitea、GitHub 入站、act_runner、Registry/cache、artifact-only verification、受控编排 | 示例项目 runtime、业务 DB、production Secret |
+| 公司 VM 1（SCM/CI） | `scm-ci` | Gitea、GitHub 入站、act_runner、Registry/cache、artifact-only verification、受控编排 | 示例项目 runtime、业务 DB、production Secret |
 | 本地 OrbStack 示例项目 DockerLab | `appserver-test` | 对 exact `docker-release/v2` bytes 做非生产 deploy/migration/health/rollback | 作为 company/live evidence |
 | 公司 VM 2 `appserver` | `appserver-prod` | 示例项目 runtime、PostgreSQL、Nginx、fixed target | Gitea、通用 Runner、源码 build、AI、任意 shell 发布 |
 
