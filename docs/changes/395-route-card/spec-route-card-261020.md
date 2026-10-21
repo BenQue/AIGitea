@@ -92,13 +92,13 @@ ADR 0002 D1：每条 Issue 的开发方式由确定性的路由卡给出，由�
 - [ ] AC-5 `03` §2 有「路由」小节（含大需求链：`grill-me` → `to-spec` →（how 未收敛时 `brainstorming` 或 `prototype`）→ `to-tickets` → 开发，grill 与 brainstorming 都在确认点 1 之前）；`08` §5 superpowers 映射补 brainstorming、executing-plans、subagent-driven-development、verification-before-completion 四行；`08` §7 有模型档位表并写明「型号按工具映射，合同只写档位」。
 - [ ] AC-6 smoke 有路由表结构守卫（文件存在、五行齐全、tier/effort/method/verify/review 取值闭集），删掉一行或写入闭集外取值时 smoke 变红（反向证明记 verification）。
 - [ ] AC-7 本 Issue summary 的 `route:` 通过 `check-change-documents`；实现按 plan 的 Txx 顺序用 `executing-plans` 执行，每张 ticket 的 commit 记 verification；Codex 只读会话对本 Issue 独立查表得到同一路由卡。
-- [ ] AC-8 `bash codex/tests/smoke.sh` 全绿；`usage-bundle.sh --release 1.5.0` 后 `--verify` 通过；`bash -n` 与 ShellCheck 通过；Codex 只读交叉审查 PASS；判级投影读回 `projected`。
+- [ ] AC-8 `bash codex/tests/smoke.sh` 全绿；`usage-bundle.sh --release 1.6.0（1.5.0 已被 R13 占用）` 后 `--verify` 通过；`bash -n` 与 ShellCheck 通过；Codex 只读交叉审查 PASS；判级投影读回 `projected`。
 - [ ] AC-9 #392 Cursor 一行的更正（2026-10-20 14:48Z 实测 PASS）记在本票 verification：broker 的 Git scope 闸门不允许一个 Issue 改另一个 Issue 的 `docs/changes/` 目录（实现中由 Codex 审查发现，确认点 2 告知负责人）；路线图 R10b 行更新状态。
 
 ## 接口、数据与兼容性影响
 
 - front matter 合同新增一个可选映射键，旧文档不变；broker 的 `git_scope` 与 summary 读取用列 0 锚定正则，不受缩进子键影响（子键不得命名为 `spec`）。
-- 发布包成员新增 `route-policy.md`，升 1.5.0；下游项目按 pin 版本核对，不会自发变红。
+- 发布包成员新增 `route-policy.md`，升 1.6.0（1.5.0 已被 R13 占用）；下游项目按 pin 版本核对，不会自发变红。
 - 不改 broker、installer 与 manifest，合并后不需要两台重装 broker；技能需重装（`install-skills.sh`、`skill-for-claude/install.sh`）。
 
 ## 风险与回滚约束

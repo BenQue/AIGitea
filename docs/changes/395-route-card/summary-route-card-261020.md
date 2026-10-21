@@ -51,7 +51,7 @@ ADR 0002 D1 把路由合同定为产品：每条 Issue 的开发方式由确定�
 
 - 新增 `skills/aisoft-platform/references/route-policy.md`（唯一路由表），`aisoft-platform` 与 `issue-session-flow` 两个技能加路由节与候选/派单字段。
 - `templates/docs/changes/_template/summary.md` 加 `route:` 块；`codex/runtime/aisoft_loop/contract.py` 的 front matter 解析接受 `route` 映射并校验取值闭集（`check-change-documents` 由此覆盖）。
-- `03` §2、`08` §5 与 §7、路线图 R10b 行；smoke 结构守卫；发布包 1.5.0。
+- `03` §2、`08` §5 与 §7、路线图 R10b 行；smoke 结构守卫；发布包 1.6.0（1.5.0 已被 R13 占用）。
 - #392 verification 的 Cursor 一行更正记在本票 verification（broker 不允许改别的 Issue 目录）。
 
 ## 初步方案与建议

@@ -30,7 +30,7 @@ updated: 2026-10-20
 | T01 | 治理步骤：`route-policy.md`、两个技能的路由节与候选/派单字段、`03` §2 路由小节、`08` §5 四行与 §7 档位表；单独 commit 后停止，fresh 重读 | - | pending |
 | T02 | front matter 接受并校验 `route:`；summary 模板带 `route:` 并刷新模板 digest；全量 `check-change-documents` 仍 gap=0 | T01 | pending |
 | T03 | `test_route_policy.py` 五类 case 查表；smoke 路由表结构守卫与反向证明 | T01, T02 | pending |
-| T04 | 发布包 1.5.0；#392 Cursor 行更正；路线图 R10b 行；本票 verification；Codex 独立查表与只读交叉审查 | T03 | pending |
+| T04 | 发布包 1.6.0（1.5.0 已被 R13 占用）；#392 Cursor 行更正；路线图 R10b 行；本票 verification；Codex 独立查表与只读交叉审查 | T03 | pending |
 
 按 superpowers `executing-plans` 依 Txx 顺序内联执行，同一时刻一个写者；每张 ticket 至少一个原子 commit，主题含 `#395 Txx`。
 
