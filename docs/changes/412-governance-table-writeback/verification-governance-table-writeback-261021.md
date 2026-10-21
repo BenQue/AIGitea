@@ -11,7 +11,7 @@ risk_flags:
   - agent-governance
   - platform-governance
 depends_on: []
-status: pending
+status: recorded
 branch: change/412-governance-table-writeback
 created: 2026-10-21
 updated: 2026-10-21
@@ -21,7 +21,7 @@ updated: 2026-10-21
 
 ## 基线与范围
 
-- Commit SHA: 待填写
+- Commit SHA: 实现 head `07915940f0dd137218717db4faff7005c5e81a41`（T02）；本记录的提交在其后，只改本文件
 - 基线：`origin/main` = `1db191ebf83f7393baa4001d9e85d40ad7f93b40`（broker `git.fetch.main` 后读回）
 - 环境: Mac 平台检出，Claude 会话；各项目 checkout 只做 broker fetch 与临时 detached worktree，读完即删
 - 本记录负责证明的 acceptance criteria: AC-1 至 AC-6
@@ -36,9 +36,13 @@ updated: 2026-10-21
 | 各项目 main 合并 SHA 的 detached worktree 里 `.aisoft/bin/aisoft bundle status` | PASS | HSDB `673cadb`、SFM `3bb6b78`、LocalWMS `6e143fe` 各四项 PASS：platform-pin、tool-provenance、pointer-sections、change-templates，均为 1.8.0 |
 | 同上 `.aisoft/bin/aisoft check-change-documents` | 见证据 | HSDB `changes=33 gap=0`；LocalWMS `changes=161 gap=0`；SFM `changes=78 gap=1`，GAP 全部是旧编号目录与无 front matter 的旧四文档（R12 LEGACY 范围，本批不处理） |
 | LocalWMS `grep -n uses: .gitea/workflows/*` | PASS | 无输出 |
-| 反向证明：删 03 新标题后跑 smoke | NOT RUN | 待 T02 |
-| `bash codex/tests/smoke.sh` | NOT RUN | 待 T02 |
-| `wc -c AGENTS.md` | NOT RUN | 基线 4767 字节 |
+| 反向证明：把 03 的 `### 治理表回写（平台仓）` 改成 `### 治理表回写` 后跑 smoke | FAIL（预期） | `exit=1`，`缺少小节标题：治理表回写（平台仓）`；随后恢复原文件 |
+| `bash codex/tests/smoke.sh`（head `0791594`，干净工作树，`rg` 为 `/opt/homebrew/bin/rg`） | PASS | `exit=0`，`Codex platform static smoke checks passed.`，耗时约 7 分钟 |
+| `wc -c AGENTS.md` | PASS | 4767 → 4853 字节，≤ 5 KB |
+| `grep -c 'grep -Fq' codex/tests/smoke.sh`（本分支与 `origin/main`） | PASS | 89 与 89，棘轮基线不变 |
+| `aisoft check-change-documents` | PASS | `changes=190 pass=2 gap=0` |
+| `aisoft classify --verify 412` | PASS | `projected`，platform / complex |
+| `git diff --stat origin/main...HEAD` | PASS | 只含 `03`、`AGENTS.md`、`codex/tests/smoke.sh`、两张治理表与本 change 目录 |
 
 NewEMaint PR 322 正文：AC-5 的隔离比对被无关容器的重启循环误判为 FAIL，负责人以回执判过并记录例外；生产恢复仍 NOT RUN。
 
@@ -46,12 +50,12 @@ NewEMaint PR 322 正文：AC-5 的隔离比对被无关容器的重启循环误�
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | 待填写 | 待填写 |
-| AC-2 | 待填写 | 待填写 |
-| AC-3 | 待填写 | 待填写 |
-| AC-4 | 待填写 | 待填写 |
-| AC-5 | 待填写 | 待填写 |
-| AC-6 | 待填写 | 待填写 |
+| AC-1 | PASS | 路线图第二轮 11 行均按上表 PR 读回写成 `已完成（#N，PR M，SHA[，发布包 X]）`；R16 行带衍生 #406；新增本批 #412 行；推荐顺序下加现状说明 |
+| AC-2 | PASS | 验收记录新增 NewEMaint #313 行：PR 322、`dfe04df`、NewEMaint main pin 1.2.0，AC-5 例外与生产 NOT RUN 照 PR 正文与其 verification 写 |
+| AC-3 | PASS | 四行采用记录的读回换成各项目 main 合并 SHA 上的 `bundle status` 结果；LocalWMS 写无 `uses:`；SFM 文档检查 gap=1 如实写 |
+| AC-4 | PASS | `03` §7 新增小节与来历 #412 行；AGENTS.md 一行指针（4853 字节）；两张表「用法」行指向 `03` §7 |
+| AC-5 | PASS | 反向证明 FAIL（预期），恢复后全量 smoke PASS，`grep -Fq` 计数 89 不变 |
+| AC-6 | PASS | diff stat 见上；技能、runtime、broker、模板、`usage/` 无改动 |
 
 ## 交叉审查
 
