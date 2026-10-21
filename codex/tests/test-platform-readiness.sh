@@ -119,18 +119,9 @@ set -e
 [[ "$gap_status" == "1" ]]
 grep -Fq 'LIVE_PROTECTION GAP status_check=false contexts=0' <<<"$gap_output"
 
-# #403: --render-readme reads source files only. A broker that records any call
-# proves it is never consulted.
-spy_broker="$test_root/spy-broker"
-printf '#!/usr/bin/env bash\necho called >>"%s"\nexit 2\n' "$test_root/spy-calls" >"$spy_broker"
-chmod +x "$spy_broker"
-bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme \
-  --repo "$root" --broker "$spy_broker" >/dev/null
-[[ ! -e "$test_root/spy-calls" ]]
-
-# Every row, value and source is asserted on an isolated checkout built from the
-# synthetic manifests (#380), so a missing fact can be injected without touching
-# the real ones.
+# #403: --render-readme reads source files only. Every row, value and source is
+# asserted on an isolated checkout built from the synthetic manifests (#380), so
+# a missing fact can be injected without touching the real ones.
 render_repo="$test_root/render-repo"
 mkdir -p "$render_repo/codex/config" "$render_repo/usage" "$render_repo/.claude-plugin" \
   "$render_repo/codex/vendor/superpowers/v0" "$render_repo/architecture"
@@ -169,7 +160,13 @@ expected="$(
   printf '| architecture catalog | %s | `architecture/catalog.json` `.revision` |\n' \
     "$(jq -r '.revision' "$render_repo/architecture/catalog.json")"
 )"
-[[ "$(bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme --repo "$render_repo")" == "$expected" ]]
+# A broker that records any call proves it is never consulted.
+spy_broker="$test_root/spy-broker"
+printf '#!/usr/bin/env bash\necho called >>"%s"\nexit 2\n' "$test_root/spy-calls" >"$spy_broker"
+chmod +x "$spy_broker"
+[[ "$(bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme \
+  --repo "$render_repo" --broker "$spy_broker")" == "$expected" ]]
+[[ ! -e "$test_root/spy-calls" ]]
 
 # A missing key, a wrong type or a missing pin fails the render with nothing on
 # stdout -- never a row reading 0 or null.
@@ -194,13 +191,17 @@ render_must_fail codex/config/installed-drift-baseline.json '.hosts = {}'
 render_must_fail usage/bundle.json '.releases[-1].version = null'
 render_must_fail .claude-plugin/marketplace.json '(.plugins[] | select(.name == "mattpocock-skills") | .source) |= del(.sha)'
 render_must_fail architecture/catalog.json 'del(.revision)'
-mv "$render_repo/codex/vendor/superpowers/v0/manifest.json" "$test_root/superpowers-manifest.json"
-jq 'del(.commit)' "$test_root/superpowers-manifest.json" >"$render_repo/codex/vendor/superpowers/v0/manifest.json"
-set +e
-pin_output="$(bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme \
-  --repo "$render_repo" 2>/dev/null)"
-pin_status=$?
-set -e
-[[ "$pin_status" == "1" && -z "$pin_output" ]]
+render_must_fail architecture/catalog.json '.revision = ""'
+render_must_fail .claude-plugin/marketplace.json '.plugins |= map(select(.name != "mattpocock-skills"))'
+render_must_fail .claude-plugin/marketplace.json '.plugins += [.plugins[] | select(.name == "mattpocock-skills")]'
+superpowers_manifest=codex/vendor/superpowers/v0/manifest.json
+render_must_fail "$superpowers_manifest" 'del(.commit)'
+render_must_fail "$superpowers_manifest" '.tag = ""'
+# Two JSON documents in one file are two pins, not one.
+render_must_fail "$superpowers_manifest" '., .'
+# Two vendored superpowers versions are an ambiguous pin.
+mkdir -p "$render_repo/codex/vendor/superpowers/v1"
+cp "$render_repo/$superpowers_manifest" "$render_repo/codex/vendor/superpowers/v1/manifest.json"
+render_must_fail "$superpowers_manifest" '.'
 
 printf '%s\n' 'platform readiness tests passed'
