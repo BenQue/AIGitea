@@ -191,7 +191,9 @@ git -C "$flow" worktree add -q "$pr_wt" change/7-demo-change
 printf '.aisoft/lib/codex/tools/host-access-broker.sh\n' >>"$(git -C "$pr_wt" rev-parse --git-common-dir)/info/exclude"
 cat >"$pr_wt/.aisoft/lib/codex/tools/host-access-broker.sh" <<MOCK
 #!/usr/bin/env bash
-printf '%s|%s\n' "\$(pwd -P)" "\$*" >>"$TMP/broker.log"
+op="" prev=""
+for arg in "\$@"; do [[ "\$prev" == --operation ]] && op="\$arg"; prev="\$arg"; done
+printf '%s|%s\n' "\$(pwd -P)" "\$op" >>"$TMP/broker.log"
 case " \$* " in
   *" git.push.change "*) printf '{"status":"PASS"}\n' ;;
   *" gitea.pull.create "*)
@@ -235,7 +237,7 @@ grep -Fq 'pr_url: http://gitea.invalid/o/r/pulls/12' "$pr_wt/$pr_summary" || fai
 grep -Fq 'status: pr-open' "$pr_wt/$pr_summary" || fail 'open-pr did not advance status'
 [[ "$(git -C "$pr_wt" rev-list --count "$start..HEAD")" == 1 ]] || fail 'open-pr must add exactly one commit'
 [[ "$(git -C "$pr_wt" diff --name-only "$start" HEAD)" == "$pr_summary" ]] || fail 'the backfill commit touched more than the summary'
-calls="$(cut -d'|' -f2 "$TMP/broker.log" | awk '{for (i = 1; i <= NF; i++) if ($i == "--operation") print $(i + 1)}' | tr '\n' ' ')"
+calls="$(cut -d'|' -f2 "$TMP/broker.log" | tr '\n' ' ')"
 [[ "$calls" == "git.push.change gitea.pull.create git.push.change " ]] || fail "unexpected broker sequence: $calls"
 [[ "$(cut -d'|' -f1 "$TMP/broker.log" | sort -u)" == "$(cd -- "$pr_wt" && pwd -P)" ]] || fail 'the broker must run from inside the checkout'
 # A rerun is idempotent: no second commit.

@@ -2141,6 +2141,509 @@
       ],
       "notes": "随发布包交付项目内会话工具 aisoft（.aisoft/bin 与 .aisoft/lib，tool-provenance 锁定字节）、--adopt 采用批处理、技能改写为 aisoft 子命令、发布说明与兼容级别",
       "compatibility": "minor"
+    },
+    {
+      "version": "1.9.0",
+      "released": "2026-10-21",
+      "bundle_digest": "sha256:6ad0e1ba0c6ca6b7699969080b003bdad4597b58ef792daff0a2fc7d76814481",
+      "members": [
+        {
+          "source": "usage/CONTRACT.md",
+          "mode": "exact",
+          "target": ".aisoft/platform-usage.md",
+          "check": "platform-pin",
+          "sha256": "312fbc309511b36e6cd19f14d4ae52686d636b43e7734a83d69361ec9a3d0ce7"
+        },
+        {
+          "source": "templates/project/AGENTS.md",
+          "mode": "pointer",
+          "target": "AGENTS.md",
+          "check": "pointer-sections",
+          "sha256": "f32e4649fe3c4e9f6678cd0fad4e4ccdf8a7839e565494ba51d62f42534c8124",
+          "pointer_sha256": "4644dd5e9e98bcc8b712427511839a6af69e60b398f02e6eb097d7f19d1a41df"
+        },
+        {
+          "source": "templates/project/CLAUDE.md",
+          "mode": "exact",
+          "target": "CLAUDE.md",
+          "check": "pointer-sections",
+          "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
+        },
+        {
+          "source": "templates/docs/changes/_template/summary.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/summary.md",
+          "check": "change-templates",
+          "sha256": "d38277be31fa15b63ec7db22981f4a3aa379a706d6ba9411658e4dac1de236cc"
+        },
+        {
+          "source": "templates/docs/changes/_template/spec.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/spec.md",
+          "check": "change-templates",
+          "sha256": "00f67e86a2a6eefe8c05bfc3645f81ffee2653d0b3547fef3c941f11b596c11d"
+        },
+        {
+          "source": "templates/docs/changes/_template/plan.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/plan.md",
+          "check": "change-templates",
+          "sha256": "a244a192b6cc8910ff4d699a9bff7e4e83b81f92d32516c2d713d4c8089d9fae"
+        },
+        {
+          "source": "templates/docs/changes/_template/verification.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/verification.md",
+          "check": "change-templates",
+          "sha256": "0ad95e21aa5bcf13a3b3f1f3931c3155fee8c4dab54eaeec7b3e9b233716bfdd"
+        },
+        {
+          "source": "templates/docs/agents/domain.md",
+          "mode": "seed",
+          "target": "docs/agents/domain.md",
+          "sha256": "bc8031adacbbeb8100b7cf731264d3d50fc701ecd3874a0e10b802327daddd07"
+        },
+        {
+          "source": "templates/docs/agents/issue-tracker.md",
+          "mode": "seed",
+          "target": "docs/agents/issue-tracker.md",
+          "sha256": "e3bee7ec6bfe4b4521879c9b635b5a5267a836a4401158642f63476aca5cc592"
+        },
+        {
+          "source": "templates/docs/agents/triage-labels.md",
+          "mode": "seed",
+          "target": "docs/agents/triage-labels.md",
+          "sha256": "a4aa8c88b644c304cae3658021031f045739593a127a5ccba5d5d3ba77461203"
+        },
+        {
+          "source": "templates/project/ci/ci.yml",
+          "mode": "seed",
+          "target": ".gitea/workflows/ci.yml",
+          "sha256": "60d101dc20c6dbddbaebc8edc99869512c42816c0fefedf220960ce8eb7e2fc2"
+        },
+        {
+          "source": "templates/project/ci/merge-preview.sh",
+          "mode": "seed",
+          "target": "scripts/ci/merge-preview.sh",
+          "sha256": "ad86166fd5acedd67fbef71bec11d8309c7a34d51a81e524617089e043361afb"
+        },
+        {
+          "source": "templates/project/ci/registry-preflight.sh",
+          "mode": "seed",
+          "target": "scripts/ci/registry-preflight.sh",
+          "sha256": "635fa0431e2a36e0c5909025954ddb03b81d7676337aa18b28210549d2f17633"
+        },
+        {
+          "source": "templates/project/ci/deploy-notify.sh",
+          "mode": "seed",
+          "target": "scripts/ci/deploy-notify.sh",
+          "sha256": "5f402ad90cd2858acffbb73b48cd97e8911661bd324bcd1fed24d0251a9e39d1"
+        },
+        {
+          "source": "templates/project/cursor/aisoft-platform.mdc",
+          "mode": "seed",
+          "target": ".cursor/rules/aisoft-platform.mdc",
+          "sha256": "13eadb1c38263092c9fd36eb5fe91517620c3d9e6f5570923fbc43418fb71f61"
+        },
+        {
+          "source": "skills/skills.manifest",
+          "mode": "skill",
+          "sha256": "19e00378d506b6278f98d933218cc419c9dab116bd2dae7a6c0256458e5cc98e"
+        },
+        {
+          "source": "skills/aisoft-platform/SKILL.md",
+          "mode": "skill",
+          "sha256": "417fcf35ee1972370e8af0dc502ca5441576b97cef18a6b02033155638a4f814"
+        },
+        {
+          "source": "skills/aisoft-platform/agents/openai.yaml",
+          "mode": "skill",
+          "sha256": "a0f3bf4b049271ea283c4379babeea262f7dd88e1c4879f7b5161494df87c043"
+        },
+        {
+          "source": "skills/aisoft-platform/references/onboarding-runbook.md",
+          "mode": "skill",
+          "sha256": "0e764ae5c8d4e1dac1a60aa4130cd15d7e12d4c1e0129ddef31ab6243940be96"
+        },
+        {
+          "source": "skills/aisoft-platform/references/private-gitea-access.md",
+          "mode": "skill",
+          "sha256": "17b603ef7314e68484bb035cb0ea075d8c167ef7eed247e3452b7ca7ccc8110b"
+        },
+        {
+          "source": "skills/aisoft-platform/references/project-align.md",
+          "mode": "skill",
+          "sha256": "cb77a23cf1073b35157251a517b93348157ed1387332a4d2937e3923aa4a3327"
+        },
+        {
+          "source": "skills/aisoft-platform/references/route-policy.md",
+          "mode": "skill",
+          "sha256": "b382c2acb49cf377ccf91d5e257231f34668af1310a38969d639b872249abea7"
+        },
+        {
+          "source": "skills/issue-session-flow/SKILL.md",
+          "mode": "skill",
+          "sha256": "a1bd151c21e22834a40801d61c5573bd3d9a5120168663353470f49d1300e241"
+        },
+        {
+          "source": "skills/aisoft-matt-workflow/SKILL.md",
+          "mode": "skill",
+          "sha256": "4a1baad1f4f13a085851e4ed157048b4ba07334e33d273cf62a39b388126a92c"
+        },
+        {
+          "source": "skills/aisoft-matt-workflow/agents/openai.yaml",
+          "mode": "skill",
+          "sha256": "ddce1024e092bdbd45b000caf547c3382e2b29ccc32695824a984d7040ab5694"
+        },
+        {
+          "source": "codex/vendor/mattpocock/v1.3.1/manifest.json",
+          "mode": "vendor",
+          "sha256": "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd"
+        },
+        {
+          "source": "codex/vendor/superpowers/v7.0.0/manifest.json",
+          "mode": "vendor",
+          "sha256": "ad9a021021ce607b35d6aa4e54bf3fb6ef572b148e08966bdf7200293629f692"
+        },
+        {
+          "source": "codex/tools/aisoft",
+          "mode": "exact",
+          "target": ".aisoft/bin/aisoft",
+          "check": "tool-provenance",
+          "sha256": "eb470337615ccf01b8bc102b6ae17cc4e3a16b80cdc8c9175a77212ee5a40fdf"
+        },
+        {
+          "source": "codex/tools/aisoft-project-check.sh",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/tools/aisoft-project-check.sh",
+          "check": "tool-provenance",
+          "sha256": "5a321a4280ecd4cc68a523822078f95b4de2054de3bb402b4a87da95587b165c"
+        },
+        {
+          "source": "codex/tools/apply-classification-labels.sh",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/tools/apply-classification-labels.sh",
+          "check": "tool-provenance",
+          "sha256": "376b60da091879fd5518e939acaea68f926f7bc68ec6372037ae43ede0eb4890"
+        },
+        {
+          "source": "codex/tools/mark-completed-issues.sh",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/tools/mark-completed-issues.sh",
+          "check": "tool-provenance",
+          "sha256": "7d973a1c9d3b285a8b629798f39a4cd41e39286ec45fb6c54ee05bd2fe85400e"
+        },
+        {
+          "source": "codex/tools/usage-bundle.sh",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/tools/usage-bundle.sh",
+          "check": "tool-provenance",
+          "sha256": "c824869216198c867799ec9bf70b5ce7ae27980fd05b0ee25ab3ea061a06f961"
+        },
+        {
+          "source": "codex/tools/usage-bundle.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/tools/usage-bundle.py",
+          "check": "tool-provenance",
+          "sha256": "3b405746489fb0e11322bbced0af4e3f5409a2800bb1c8d5735db8e7ccca0ead"
+        },
+        {
+          "source": "codex/agent/aisoft-project-target.sh",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/agent/aisoft-project-target.sh",
+          "check": "tool-provenance",
+          "sha256": "eb0121229e8ccacd520821b0e2efc8b0ca8b456ed8e70be454556a0b55c821f9"
+        },
+        {
+          "source": "codex/agent/change-merge-range.sh",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/agent/change-merge-range.sh",
+          "check": "tool-provenance",
+          "sha256": "5e933ed50bed4f09878ea5da902073d68dac6985416ab16a0d4a939792809518"
+        },
+        {
+          "source": "codex/agent/gitea-label-manifest.sh",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/agent/gitea-label-manifest.sh",
+          "check": "tool-provenance",
+          "sha256": "3bab4fff92e291b5e5f64507e440b4a20fa15c183f9b4999b8789a14e1a71e62"
+        },
+        {
+          "source": "codex/agent/gitea-token.sh",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/agent/gitea-token.sh",
+          "check": "tool-provenance",
+          "sha256": "b03b6a47e12216ffaf8852b93e675c21c2acbbfe50cd5b98f48c3ffe1cb1418f"
+        },
+        {
+          "source": "codex/runtime/aisoft_loop/__init__.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_loop/__init__.py",
+          "check": "tool-provenance",
+          "sha256": "1f89023a28dcd24d84bb25fed0530c31a76f41467f092dca6e8961359971ebfd"
+        },
+        {
+          "source": "codex/runtime/aisoft_loop/analysis.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_loop/analysis.py",
+          "check": "tool-provenance",
+          "sha256": "4f6793156247d93f37764668f239b7c13d2553196efa78a0a647599ea8efdd7b"
+        },
+        {
+          "source": "codex/runtime/aisoft_loop/change_audit.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_loop/change_audit.py",
+          "check": "tool-provenance",
+          "sha256": "501be655335cc89e63270f640439fa2edcd37ae29aae669cfea6d035c65263e0"
+        },
+        {
+          "source": "codex/runtime/aisoft_loop/change_control.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_loop/change_control.py",
+          "check": "tool-provenance",
+          "sha256": "5d7b9a7e120b58b4891d5e2dade5bf251922c4b487d6e526ac1b6eca2aa40400"
+        },
+        {
+          "source": "codex/runtime/aisoft_loop/classification.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_loop/classification.py",
+          "check": "tool-provenance",
+          "sha256": "c49c178b4698e13ac81f02b49d192f6d7dab67a5b4d35a5cf015e82959187835"
+        },
+        {
+          "source": "codex/runtime/aisoft_loop/cli.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_loop/cli.py",
+          "check": "tool-provenance",
+          "sha256": "d721572311f9d54b9ec2fd4c0b1dcc2b0266efb4c739cd6b52d078c99c0f1793"
+        },
+        {
+          "source": "codex/runtime/aisoft_loop/contract.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_loop/contract.py",
+          "check": "tool-provenance",
+          "sha256": "51086433f60ccc51708fbb4ba94a849d3563c4422f7204a802a3266a02d64f15"
+        },
+        {
+          "source": "codex/runtime/aisoft_loop/documents.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_loop/documents.py",
+          "check": "tool-provenance",
+          "sha256": "4c3be4346e0b15e08671869715ff52eb4313b7a6fd6c12de4c8afaf442aee842"
+        },
+        {
+          "source": "codex/runtime/aisoft_loop/gitea.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_loop/gitea.py",
+          "check": "tool-provenance",
+          "sha256": "d98f2d07890779741eda99515ec0ab3dcb04ca26cda5e0faedd688ef719a36d3"
+        },
+        {
+          "source": "codex/runtime/aisoft_loop/matt_snapshot.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_loop/matt_snapshot.py",
+          "check": "tool-provenance",
+          "sha256": "a3c924a2cb58705490bb218d3daa9c106fdd5ef38a0ff720356b3ae1444849a4"
+        },
+        {
+          "source": "codex/runtime/aisoft_loop/worktree.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_loop/worktree.py",
+          "check": "tool-provenance",
+          "sha256": "db51948caa792fed02e39aab90432d195075e17d44d5e2e6b8396a5d896c3c27"
+        },
+        {
+          "source": "codex/runtime/aisoft_change_name.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_change_name.py",
+          "check": "tool-provenance",
+          "sha256": "bd780cb6ea403cd2d8067977dfb48a30d6632ba5fa8b1e4bbc60f844c98e204a"
+        },
+        {
+          "source": "codex/runtime/aisoft_worktree_owner.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_worktree_owner.py",
+          "check": "tool-provenance",
+          "sha256": "4fd8a9b58301759ef7294840efa31d1bc1839b93f758185602559a2630f55603"
+        },
+        {
+          "source": "codex/runtime/aisoft_host_access/__init__.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_host_access/__init__.py",
+          "check": "tool-provenance",
+          "sha256": "b860abb49c2ea26622921f08b0a15b62773e6a6af23f1b871bc0d3b7f8e9cb90"
+        },
+        {
+          "source": "codex/runtime/aisoft_host_access/contract.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_host_access/contract.py",
+          "check": "tool-provenance",
+          "sha256": "9b88d1b8e83fcf5dad626c25ded78fe0b5084f84c5a9c4bf02db198fe389dd5d"
+        },
+        {
+          "source": "codex/runtime/aisoft_host_access/dependencies.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_host_access/dependencies.py",
+          "check": "tool-provenance",
+          "sha256": "e966dfd3e19a27edb44e0aed070960aaf8b8e9dd727ef22d9a4e8f438842fa61"
+        },
+        {
+          "source": "codex/runtime/aisoft_gitea_governance/__init__.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_gitea_governance/__init__.py",
+          "check": "tool-provenance",
+          "sha256": "7da569a4cbcc8dc4b141d0081ae175a58edba46f0c77d355ede0a65490347fa6"
+        },
+        {
+          "source": "codex/runtime/aisoft_gitea_governance/contract.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_gitea_governance/contract.py",
+          "check": "tool-provenance",
+          "sha256": "1704ca3b29dc617bed0772c9ed32d4b2e13d5304fb7a181fca3891c73f13b7d9"
+        },
+        {
+          "source": "codex/runtime/aisoft_architecture/__init__.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_architecture/__init__.py",
+          "check": "tool-provenance",
+          "sha256": "6d549355b615c3a78e84c896e2c66edb74494502f5fbcc204c9c48498e86d20a"
+        },
+        {
+          "source": "codex/runtime/aisoft_architecture/cli.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_architecture/cli.py",
+          "check": "tool-provenance",
+          "sha256": "1db2b20d011d4b021c1a53c01ba10119cc7c9fd08dee779a772d761e2b20c455"
+        },
+        {
+          "source": "codex/runtime/aisoft_architecture/dockerfile.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_architecture/dockerfile.py",
+          "check": "tool-provenance",
+          "sha256": "78757b6ea190e3355519620e56ad4e2c676f89d78236a27b7a79469ee68d9409"
+        },
+        {
+          "source": "codex/runtime/aisoft_architecture/errors.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_architecture/errors.py",
+          "check": "tool-provenance",
+          "sha256": "70288449244d32073ef71a73dd10682ae741e1006068b749b2f2e460e12584c3"
+        },
+        {
+          "source": "codex/runtime/aisoft_architecture/jsonio.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_architecture/jsonio.py",
+          "check": "tool-provenance",
+          "sha256": "f59c4136fb30bf4aa265c09955b2dc89a06f8b1b4c2d1634a1d6945b3e7f0a5b"
+        },
+        {
+          "source": "codex/runtime/aisoft_architecture/lockfile.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_architecture/lockfile.py",
+          "check": "tool-provenance",
+          "sha256": "daab64fa25ec3698e8f50b6cd767dc3777eec0df1b17fe8d5983071f5b9e8226"
+        },
+        {
+          "source": "codex/runtime/aisoft_architecture/schema.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_architecture/schema.py",
+          "check": "tool-provenance",
+          "sha256": "bb7f13bf19a713b989da17bd05399473c4b31d0dabb66d1518efb61678f14d0c"
+        },
+        {
+          "source": "codex/runtime/aisoft_architecture/validator.py",
+          "mode": "exact",
+          "target": ".aisoft/lib/codex/runtime/aisoft_architecture/validator.py",
+          "check": "tool-provenance",
+          "sha256": "3a4f9a3f858b8ea6a2acd33fcfa740a8844d9afe87ffb1adeed83d49e001274f"
+        },
+        {
+          "source": "architecture/bin/aisoft-architecture",
+          "mode": "exact",
+          "target": ".aisoft/lib/architecture/bin/aisoft-architecture",
+          "check": "tool-provenance",
+          "sha256": "5c3ce71959ebc1f8a24b7a7995fc1e5d46071470d60bf657532cfda7c8a74940"
+        },
+        {
+          "source": "architecture/catalog.json",
+          "mode": "exact",
+          "target": ".aisoft/lib/architecture/catalog.json",
+          "check": "tool-provenance",
+          "sha256": "0ae4e87456517c4b45145b1a4e78084be58299bc975a7ab737cc2cc4d1cb8afe"
+        },
+        {
+          "source": "architecture/profiles/linux-node-postgres-v1.json",
+          "mode": "exact",
+          "target": ".aisoft/lib/architecture/profiles/linux-node-postgres-v1.json",
+          "check": "tool-provenance",
+          "sha256": "224e9318f8cc4e76475538c5cdab71f90fb25a5d322a60a0b099825867d5d132"
+        },
+        {
+          "source": "architecture/profiles/linux-node-sqlite-v1.json",
+          "mode": "exact",
+          "target": ".aisoft/lib/architecture/profiles/linux-node-sqlite-v1.json",
+          "check": "tool-provenance",
+          "sha256": "dd99570576d59aed62a96353ad1d3abf8c85f993c2e5405c980e0bba33b247ce"
+        },
+        {
+          "source": "architecture/profiles/linux-node-systemd-postgres-v1.json",
+          "mode": "exact",
+          "target": ".aisoft/lib/architecture/profiles/linux-node-systemd-postgres-v1.json",
+          "check": "tool-provenance",
+          "sha256": "4c714b7765f193b6e66961901cf82cec05b3a423966d8948566a66d7b15a3e2d"
+        },
+        {
+          "source": "architecture/profiles/small-embedded-sqlite-v1.json",
+          "mode": "exact",
+          "target": ".aisoft/lib/architecture/profiles/small-embedded-sqlite-v1.json",
+          "check": "tool-provenance",
+          "sha256": "7d7f0497a21e1e0017325cfc510c4b1d71ff05d040bf97ad87ec3003d5131af4"
+        },
+        {
+          "source": "architecture/profiles/windows-dotnet-postgres-v1.json",
+          "mode": "exact",
+          "target": ".aisoft/lib/architecture/profiles/windows-dotnet-postgres-v1.json",
+          "check": "tool-provenance",
+          "sha256": "89cc7c8729e1fe9d8768a26a8483b6edd9c843784bbee28ef3c8ac4cf7b963cb"
+        },
+        {
+          "source": "architecture/schemas/architecture-lock-v1.schema.json",
+          "mode": "exact",
+          "target": ".aisoft/lib/architecture/schemas/architecture-lock-v1.schema.json",
+          "check": "tool-provenance",
+          "sha256": "bc09a45839e3a1d12827dd1997591b4495464bd218bdea327c76e49fda107e75"
+        },
+        {
+          "source": "architecture/schemas/architecture-lock-v2.schema.json",
+          "mode": "exact",
+          "target": ".aisoft/lib/architecture/schemas/architecture-lock-v2.schema.json",
+          "check": "tool-provenance",
+          "sha256": "170ae409a036f099a57fa0d183700b51211824df0805c67e59e104c2f3d2f80b"
+        },
+        {
+          "source": "architecture/schemas/catalog-v1.schema.json",
+          "mode": "exact",
+          "target": ".aisoft/lib/architecture/schemas/catalog-v1.schema.json",
+          "check": "tool-provenance",
+          "sha256": "94a0a9df54b571455ddbcd31cc32c3416ba4ea30250a990674aefdcf89d24167"
+        },
+        {
+          "source": "architecture/schemas/profile-v1.schema.json",
+          "mode": "exact",
+          "target": ".aisoft/lib/architecture/schemas/profile-v1.schema.json",
+          "check": "tool-provenance",
+          "sha256": "6795b6cdbe3ed862ee72ae93a9c37a3bf3ecb32ccb4c404261b9d44ad5857803"
+        },
+        {
+          "source": "architecture/schemas/project-architecture-v1.schema.json",
+          "mode": "exact",
+          "target": ".aisoft/lib/architecture/schemas/project-architecture-v1.schema.json",
+          "check": "tool-provenance",
+          "sha256": "316d62b1c8ab38a911627149663b194bf8fde2cf074522fb9511f40cca9c0600"
+        }
+      ],
+      "notes": "R15：aisoft open-pr 一步建 PR 与回填；approval 只写 summary，spec/plan 模板去掉 status；verification 模板加固定交叉审查表",
+      "compatibility": "minor"
     }
   ]
 }
