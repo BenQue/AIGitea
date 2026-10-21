@@ -14,7 +14,7 @@ depends_on:
   - 391
   - 395
   - 396
-status: pending
+status: passed
 branch: change/403-docs-current-contract
 created: 2026-10-21
 updated: 2026-10-21
@@ -49,9 +49,9 @@ updated: 2026-10-21
 | AC-8 `bash codex/tools/usage-bundle.sh --verify` | PASS | `VERIFIED 1.7.0` |
 | AC-8 `bash -n`、`shellcheck` smoke、readiness、readiness 测试 | PASS | 三个文件 0 告警 |
 | AC-8 doc 相关单测 | PASS | `test_session_contract`、`test_architecture_governance`（改为钉标题）、`test_route_policy` 19 个 OK |
-| AC-8 `bash codex/tests/smoke.sh` | 见说明 | T02 head `023e2ba` PASS（5:38）；第 2 轮修复 head `c99a517` PASS（5:22）；T04 head `2b1c0de` **FAIL**：#380 守卫拦下 T03 测试直接读真实 manifest（`test-platform-readiness.sh:133–141`），已改为读合成夹具；修复后的 head 结果记在「交叉审查」节 |
-| AC-8 Codex 只读交叉审查 | 进行中 | 第 1 轮 FAIL（6 项 P2、1 项 P3）；第 2 轮 FAIL（F2、F5、F6 残余）；第 3 轮 FAIL（F5 的 `vN.N` 分支残余），处置见下节 |
-| AC-8 `apply-classification-labels.sh --verify 403` | NOT RUN | 合并前执行 |
+| AC-8 `bash codex/tests/smoke.sh` | 见说明 | T02 head `023e2ba` PASS（5:38）；第 2 轮修复 head `c99a517` PASS（5:22）；第 3 轮修复 head `5a2dfff` PASS（5:17）；T04 head `2b1c0de` **FAIL**：#380 守卫拦下 T03 测试直接读真实 manifest（`test-platform-readiness.sh:133–141`），已改为读合成夹具；修复后的 head 结果记在「交叉审查」节 |
+| AC-8 Codex 只读交叉审查 | PASS | 第 4 轮对 `5a2dfff` PASS；前三轮 FAIL 项全部修复，见下节 |
+| AC-8 `codex/tools/apply-classification-labels.sh --repo . --verify 403` | PASS | `--apply` 后读回 `result: projected`（`platform` / `complex`）；Issue 生命周期标签设为 `approved` |
 
 ## smoke 正文钉子改写清单
 
@@ -91,3 +91,6 @@ updated: 2026-10-21
 | 1 | `2b1c0de` | FAIL | F1 `03` canonical 模板节误删 source/installed 一致性、`[Issue tip,main]` 整合与 tree 验证、no-op 重验等不变量 → 恢复为一句不变量清单。F2 `06` 把 `REMOTE_BRANCH_MOVED` 写成「一定没写入」，而传输失败也返回此码且可能已写入 → 改写为看回执的 `possible_write`/`write_status`/`observed_remote_head`。F3 README 未实施清单把已完成的 marketplace 注册与来源切换列为未实施（#354 verification）→ 只列 Codex 模型回合与 Claude `retro` 残余项，`08` §5 同步，`08` 来历补 #354。F4 删掉标题里的「（#360）」断了 `project-align.md` 的片段链接 → 标题前加显式兼容锚，技能仍零 diff；全仓片段链接重扫 0 断链。F5 README 守卫的 Unicode `\b` 放过「核对日期2026-10-21更新」→ 改 ASCII 边界并补反向用例。F6 `--render-readme` 缺键渲染成 0、缺 pin 渲染成 `null` 仍 rc=0 → 每个事实先校验键、类型与非空，测试覆盖七种坏输入。P3 站点基线原值应为 82 → 已更正 |
 | 2 | `6c8b308` | FAIL | F1、F3、F4、P3 PASS。F2 残余：「每次推送都返回回执」不准确，预检拒绝没有回执 → 区分预检拒绝（无回执、无写入）与传输阶段（有回执、可能已写）。F5 残余：「Gitea1.26.4」「2026-10-21UTC」仍可绕过 → 边界只看数字，补两条反向用例。F6 残余：一个 manifest 文件写两份 JSON 时渲染出两份 pin、负向测试缺空串/缺整个 pin/重复 pin、spy 用例仍跑在真实检出上 → 每个文件 slurp 后要求恰好一个文档，测试扩到 13 种坏输入，spy 改为跑隔离 checkout |
 | 3 | `c99a517` | FAIL | F1–F4、F6、P3 PASS。F5 残余：`vN.N` 分支仍以字母为边界，「Giteav1.2」「releasev1.2」可绕过 → 改为只以数字为边界，补两条反向用例 |
+| 4 | `5a2dfff` | PASS | F5 三个分支各 16 种中文与字母紧贴组合全部被拦，当前 README 零误报；本轮 diff 无新问题；`skills/`、`templates/`、`usage/` 零 diff |
+
+本记录之后的 commit 只改本文件（记录第 4 轮与 smoke 结果），不改被审查的内容。
