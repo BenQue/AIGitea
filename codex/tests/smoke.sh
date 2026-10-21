@@ -844,6 +844,8 @@ grep -Fq '## change worktree 的单写者归属' "$session_flow_skill"
 # #379（ADR 0001 D6）：交叉审核是维护层固定步骤。流程正文、矩阵条目与两个技能里的入口都在场，
 # 少一处就退回成一句没有落点的原则。
 require_heading "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md" '交叉审核（平台仓 complex，ADR 0001 D6）'
+# #412：治理表回写是平台批次自己 PR 里的固定步骤，不再留给下一批顺手改。
+require_heading "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md" '治理表回写（平台仓）'
 require_heading "$ROOT/08-双工具共存与实施.md" '7.1 平台维护层（平台仓验收，两个 provider 对等）'
 grep -Fq '交叉审查: ' "$session_flow_skill"
 # 平台技能只钉它指向 03 小节的引用，不钉正文句子（ADR 0001 D9）。
