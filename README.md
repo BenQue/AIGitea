@@ -153,6 +153,7 @@ sequenceDiagram
 | [ADR 0002 确定性开发流程](docs/adr/0002-deterministic-development-flow.md) | 路由合同与执行引擎分离、路由卡字段、VM 执行引擎退出、重开无人值守的条件 | 判断一条 Issue 怎么开发，或讨论自动化 |
 | [整改路线](docs/governance/remediation-roadmap.md) | R0–R16 批次、状态与第二轮退出条件 | 安排或推进平台清理 |
 | [平台级 E2E 验收表](docs/governance/platform-e2e-acceptance.md) | 各项目按发布包版本跑通的端到端部署链与证据 | 判断平台是否真正被用起来 |
+| [交叉审查证据索引](docs/governance/review-evidence-index.md) | 平台仓 complex 批次的实现方、审查方、审查 head 与结论 | 复核某一批是否经过另一方审查 |
 | [10-AI Issue 判级与标签计划（历史）](archive/10-AI-Issue判级与标签实施计划.md) | 初始判级、标签和 wrapper 实施记录 | 仅作历史追溯 |
 | [11-Codex Loop runtime 计划（历史）](archive/11-Codex-Loop运行时实施计划.md) | provider-neutral runtime 首轮实施记录 | 仅作历史追溯 |
 | [参考实现迁出说明](archive/reference-implementations-exit-261019.md) | 迁出的 Docker release、公司 operator、公司基线与项目 architecture reference 的路径、最后 commit 与去向 | 追溯或复制历史参考实现 |
