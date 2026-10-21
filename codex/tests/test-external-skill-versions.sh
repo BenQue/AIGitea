@@ -335,7 +335,7 @@ skill_names() {
 }
 # installed <home>: maintainer-layer landings and the Codex Matt snapshot.
 installed() {
-  local dir="$1" name ref
+  local dir="$1" name
   for name in $(skill_names claude); do
     mkdir -p "$dir/.claude/skills/$name"
     cp "$root/skills/$name/SKILL.md" "$dir/.claude/skills/$name/"
@@ -354,7 +354,7 @@ installed() {
 }
 # cursor_project <name>: project() plus the platform skills Cursor receives.
 cursor_project() {
-  local repo name ref
+  local repo name
   repo="$(project "$1")"
   for name in $(skill_names claude); do
     mkdir -p "$repo/.cursor/skills/$name"
@@ -366,8 +366,6 @@ cursor_project() {
   done
   printf '%s\n' "$repo"
 }
-claude_count="$(skill_names claude | wc -l | tr -d ' ')"
-codex_count="$(skill_names codex | wc -l | tr -d ' ')"
 caps() {
   local label="$1" want_status="$2" dir="$3" line
   shift 3
@@ -440,8 +438,9 @@ set +e
 output="$(PATH="$bin" bash "$caps_tree/codex/tools/check-external-skill-versions.sh" --home "$dir" --repo "$repo" --capabilities 2>&1)"
 status=$?
 set -e
-[[ "$status" == 1 ]] && grep -Fq "CAPABILITY codex GAP" <<<"$output" ||
+if [[ "$status" != 1 ]] || ! grep -Fq "CAPABILITY codex GAP" <<<"$output"; then
   fail "reverse proof: an unregistered external cause must be a GAP: exit $status: $output"
+fi
 for args in "--capabilities" "--home /x --capabilities"; do
   set +e
   # shellcheck disable=SC2086 # split on purpose

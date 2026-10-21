@@ -32,7 +32,8 @@ usage: aisoft <command> [args]
   change-name N SLUG                    validate and print a new change branch
   resolve-documents N                   mapped change document names (JSON)
   check-change-documents [--porcelain]  front matter contract across the checkout
-  backfill-pr-url N --pr-url URL        record the unique PR in the mapped summary
+  open-pr N --title T --body-file F     after confirmation point 2: push, open the PR, backfill, push
+  backfill-pr-url N --pr-url URL        manual repair: record the unique PR in the mapped summary
   claim-worktree --branch B [...]       bind this change worktree to AISOFT_SESSION_ID
   scan-worktrees [--porcelain]          read-only: change worktrees left their last push
   classify N... | --apply N... | --verify N...
@@ -124,6 +125,92 @@ else:
 PY
 }
 
+# open-pr (#408): one command after confirmation point 2. The body is checked
+# against the broker's body contract before any broker call; every remote step
+# goes through the broker from inside the checkout (the broker resolves the
+# checkout by its cwd). A rerun is safe: pull.create returns the open PR of the
+# same change, and a summary that already carries that URL is not committed.
+open_pr() {
+  local issue="" title="" body_file=""
+  while (($# > 0)); do
+    case "$1" in
+      --title) (($# >= 2)) || usage; title="$2"; shift 2 ;;
+      --body-file) (($# >= 2)) || usage; body_file="$2"; shift 2 ;;
+      [0-9]*) [[ -z "$issue" && "$1" =~ ^[1-9][0-9]*$ ]] || usage; issue="$1"; shift ;;
+      *) usage ;;
+    esac
+  done
+  [[ -n "$issue" && -n "$title" && -f "$body_file" ]] || usage
+  local branch summary
+  branch="$(git -C "$repo" branch --show-current)"
+  [[ "$branch" =~ ^change/${issue}-[a-z0-9-]+$ ]] || { echo "aisoft open-pr: branch $branch is not change/$issue-<slug>" >&2; exit 2; }
+  [[ -z "$(git -C "$repo" status --porcelain)" ]] || { echo 'aisoft open-pr: the worktree is not clean' >&2; exit 2; }
+  summary="$(python3 - "$repo" "$issue" "$body_file" <<'PY'
+import re
+import sys
+from pathlib import Path
+from aisoft_loop.contract import ContractError, resolve_summary
+
+repo, issue, body = Path(sys.argv[1]), int(sys.argv[2]), Path(sys.argv[3]).read_text(encoding="utf-8")
+try:
+    path, front = resolve_summary(repo, issue)
+except (ContractError, OSError, ValueError) as error:
+    sys.exit(f"aisoft open-pr: mapped summary unreadable: {error}")
+if front.get("status") not in {"approved", "pr-open"}:
+    sys.exit(f"aisoft open-pr: summary status is {front.get('status')!r}, not approved")
+relative = Path(path).resolve().relative_to(repo.resolve()).as_posix()
+closes = [line for line in body.splitlines() if re.fullmatch(r"Closes #[0-9]+", line.strip())]
+if closes != [f"Closes #{issue}"] or [line.strip() for line in body.splitlines()].count(f"Closes #{issue}") != 1:
+    sys.exit(f"aisoft open-pr: the body must carry exactly one line 'Closes #{issue}'")
+if body.count(relative) != 1:
+    sys.exit(f"aisoft open-pr: the body must name {relative} exactly once")
+print(relative)
+PY
+)" || exit 2
+  # Same discovery as the wrapped tools: same directory first.
+  local broker
+  if [[ -x "$tools/host-access-broker.sh" ]]; then
+    broker="$tools/host-access-broker.sh"
+  elif [[ -x /usr/local/libexec/aisoft/host-access-broker ]]; then
+    broker=/usr/local/libexec/aisoft/host-access-broker
+  else
+    echo 'aisoft open-pr: host access broker is unavailable' >&2
+    exit 2
+  fi
+  local agent_lib="$root/codex/agent/aisoft-project-target.sh"
+  # shellcheck disable=SC1090
+  . "$agent_lib"
+  aisoft_resolve_project_target "$tools" "$repo" "" || { echo "aisoft open-pr: $AISOFT_PROJECT_TARGET_ERROR" >&2; exit 2; }
+  broker_call() {
+    (cd -- "$repo" && "$broker" --project "$AISOFT_PROJECT_ID" --operation "$@")
+  }
+  broker_call git.push.change --branch "$branch" >/dev/null || { echo 'aisoft open-pr: first push refused (see the broker reply above)' >&2; exit 1; }
+  local reply number
+  reply="$(broker_call gitea.pull.create --issue "$issue" --title "$title" --body "$(cat -- "$body_file")")" ||
+    { echo 'aisoft open-pr: pull.create refused (see the broker reply above)' >&2; exit 1; }
+  number="$(python3 -c 'import json,sys; n=json.loads(sys.argv[1])["number"]; assert isinstance(n,int) and n>0; print(n)' "$reply")" ||
+    { echo "aisoft open-pr: pull.create reply has no PR number: $reply" >&2; exit 1; }
+  python3 - "$repo" "$issue" "$number" <<'PY' || exit 1
+import sys
+from aisoft_loop.contract import ContractError
+from aisoft_loop.documents import backfill_pr_number
+
+try:
+    path, changed = backfill_pr_number(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))
+except ContractError as error:
+    sys.exit(f"aisoft open-pr: backfill refused: {error}")
+print(("changed " if changed else "unchanged ") + str(path))
+PY
+  if [[ -n "$(git -C "$repo" status --porcelain -- "$summary")" ]]; then
+    git -C "$repo" add -- "$summary"
+    git -C "$repo" commit -q -m "#$issue: backfill unique PR $number URL in mapped summary" -- "$summary"
+  fi
+  [[ -z "$(git -C "$repo" status --porcelain)" ]] || { echo 'aisoft open-pr: the backfill touched more than the summary' >&2; exit 1; }
+  cli check-change-documents --repo "$repo" >/dev/null || { echo 'aisoft open-pr: check-change-documents failed after the backfill' >&2; exit 1; }
+  broker_call git.push.change --branch "$branch" >/dev/null || { echo 'aisoft open-pr: second push refused (see the broker reply above)' >&2; exit 1; }
+  printf 'PR %s\t%s\n' "$number" "$(git -C "$repo" rev-parse HEAD)"
+}
+
 case "$command" in
   change-name)
     cli change-name ${args[@]+"${args[@]}"}
@@ -194,6 +281,9 @@ PY
       printf 'source_sha\t%s\n' "$(git -C "$root" rev-parse HEAD)"
       printf 'layout\tsource\n'
     fi
+    ;;
+  open-pr)
+    open_pr ${args[@]+"${args[@]}"}
     ;;
   -h | --help | help)
     usage

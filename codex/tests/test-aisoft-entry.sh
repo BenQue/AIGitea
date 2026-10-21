@@ -77,11 +77,11 @@ project="$TMP/project"
 make_project "$project"
 
 run_tool "$project" 64 --help
-for subcommand in change-name resolve-documents check-change-documents backfill-pr-url claim-worktree \
+for subcommand in change-name resolve-documents check-change-documents open-pr backfill-pr-url claim-worktree \
   scan-worktrees classify complete project-check 'bundle status' version; do
   expect_contains "  $subcommand"
 done
-for subcommand in change-name resolve-documents check-change-documents backfill-pr-url claim-worktree \
+for subcommand in change-name resolve-documents check-change-documents open-pr backfill-pr-url claim-worktree \
   scan-worktrees classify complete project-check bundle version; do
   run_tool "$project" 0 "$subcommand" --help
   expect_contains "  $subcommand"
@@ -181,6 +181,67 @@ expect_contains "\"worktree\": \"$(cd -- "$TMP/wt2" && pwd -P)\""
 git -C "$flow" worktree add -q -b change/9-third-change "$TMP/wt3" main
 run_tool "$project" 0 claim-worktree --branch change/9-third-change --session test-session --worktree="$TMP/wt3"
 expect_contains "\"worktree\": \"$(cd -- "$TMP/wt3" && pwd -P)\""
+
+# #408: open-pr pushes, opens the PR, backfills the summary and pushes again,
+# all through the broker. The mock logs every call; a flag file makes
+# pull.create fail. The mock is excluded from the worktree status so the
+# clean-worktree precondition still holds.
+pr_wt="$TMP/wt-pr"
+git -C "$flow" worktree add -q "$pr_wt" change/7-demo-change
+printf '.aisoft/lib/codex/tools/host-access-broker.sh\n' >>"$(git -C "$pr_wt" rev-parse --git-common-dir)/info/exclude"
+cat >"$pr_wt/.aisoft/lib/codex/tools/host-access-broker.sh" <<MOCK
+#!/usr/bin/env bash
+printf '%s|%s\n' "\$(pwd -P)" "\$*" >>"$TMP/broker.log"
+case " \$* " in
+  *" git.push.change "*) printf '{"status":"PASS"}\n' ;;
+  *" gitea.pull.create "*)
+    [[ -e "$TMP/fail-create" ]] && { echo '{"error":"TRANSPORT_ERROR"}' >&2; exit 1; }
+    printf '{"number":12,"state":"open"}\n' ;;
+  *) echo "unexpected broker call: \$*" >&2; exit 9 ;;
+esac
+MOCK
+chmod +x "$pr_wt/.aisoft/lib/codex/tools/host-access-broker.sh"
+run_pr() {
+  local expected="$1" status=0
+  shift
+  (cd -- "$pr_wt" && env -i HOME="$TMP/home" PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/homebrew/bin" \
+    GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.invalid GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.invalid \
+    AISOFT_ACCESS_MANIFEST="$TMP/manifests/host-access-broker.json" \
+    AISOFT_GOVERNANCE_MANIFEST="$TMP/manifests/gitea-governance.json" \
+    ${sandbox[@]+"${sandbox[@]}"} .aisoft/bin/aisoft "$@") >"$TMP/out" 2>&1 || status=$?
+  [[ "$status" == "$expected" ]] || {
+    cat "$TMP/out" >&2
+    fail "expected status $expected, got $status for: aisoft $*"
+  }
+}
+pr_summary="docs/changes/7-demo-change/summary-demo-change-261021.md"
+printf 'Demo.\n\nCloses #7\n\nSummary: %s\n' "$pr_summary" >"$TMP/body.md"
+printf 'Demo without the closing line.\n\nSummary: %s\n' "$pr_summary" >"$TMP/bad-body.md"
+start="$(git -C "$pr_wt" rev-parse HEAD)"
+: >"$TMP/broker.log"
+run_pr 2 open-pr 7 --title demo --body-file "$TMP/bad-body.md"
+expect_contains "exactly one line 'Closes #7'"
+[[ ! -s "$TMP/broker.log" ]] || fail 'open-pr called the broker with a body that breaks the contract'
+touch "$TMP/fail-create"
+run_pr 1 open-pr 7 --title demo --body-file "$TMP/body.md"
+expect_contains 'pull.create refused'
+[[ "$(git -C "$pr_wt" rev-parse HEAD)" == "$start" ]] || fail 'a failed pull.create left a commit behind'
+grep -Fq 'status: approved' "$pr_wt/$pr_summary" || fail 'a failed pull.create touched the summary'
+rm -f "$TMP/fail-create"
+: >"$TMP/broker.log"
+run_pr 0 open-pr 7 --title demo --body-file "$TMP/body.md"
+expect_contains 'PR 12'
+grep -Fq 'pr_url: http://gitea.invalid/o/r/pulls/12' "$pr_wt/$pr_summary" || fail 'open-pr did not backfill pr_url'
+grep -Fq 'status: pr-open' "$pr_wt/$pr_summary" || fail 'open-pr did not advance status'
+[[ "$(git -C "$pr_wt" rev-list --count "$start..HEAD")" == 1 ]] || fail 'open-pr must add exactly one commit'
+[[ "$(git -C "$pr_wt" diff --name-only "$start" HEAD)" == "$pr_summary" ]] || fail 'the backfill commit touched more than the summary'
+calls="$(cut -d'|' -f2 "$TMP/broker.log" | awk '{for (i = 1; i <= NF; i++) if ($i == "--operation") print $(i + 1)}' | tr '\n' ' ')"
+[[ "$calls" == "git.push.change gitea.pull.create git.push.change " ]] || fail "unexpected broker sequence: $calls"
+[[ "$(cut -d'|' -f1 "$TMP/broker.log" | sort -u)" == "$(cd -- "$pr_wt" && pwd -P)" ]] || fail 'the broker must run from inside the checkout'
+# A rerun is idempotent: no second commit.
+head="$(git -C "$pr_wt" rev-parse HEAD)"
+run_pr 0 open-pr 7 --title demo --body-file "$TMP/body.md"
+[[ "$(git -C "$pr_wt" rev-parse HEAD)" == "$head" ]] || fail 'a rerun of open-pr committed again'
 
 # Reverse proof: one shipped module gone is a failure, not a silent pass.
 broken="$TMP/broken"
