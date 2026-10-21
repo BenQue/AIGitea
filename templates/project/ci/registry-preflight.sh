@@ -3,7 +3,7 @@
 #
 # 在依赖安装之前，对 NPM_CONFIG_REGISTRY 指向的 registry 做一次**真实取包**。
 #
-# 为什么需要它：2026-08-24 起 gitea-ci 上的 Verdaccio 停止监听 4873 约 28 小时，
+# 为什么需要它：2026-08-24 起平台 VM 上的 Verdaccio 停止监听约 28 小时，
 # 期间任何需要下载缓存外新包的 CI 都以 ECONNREFUSED 失败，而只用既有依赖的 CI
 # 仍然 20 秒全绿——npm ci 命中 runner 的 _cacache 时根本不发起网络请求。
 # 故障因此静默潜伏，只在某个倒霉的 PR 恰好引入新依赖时才炸。
@@ -28,8 +28,8 @@ MARK_OK='AISOFT_REGISTRY_PREFLIGHT_OK'
 MARK_FAIL='AISOFT_REGISTRY_PREFLIGHT_FAIL'
 
 REGISTRY="${REGISTRY_PREFLIGHT_REGISTRY:-${NPM_CONFIG_REGISTRY:-}}"
-# 默认探测包取 fflate 0.8.3：它正是一个下游项目的 CI run 首次暴露本故障时（#201）
-# 卡住的那个 tarball，2026-09-05 实测该 registry 上有 58 个版本。
+# 默认探测包取 fflate 0.8.3：体积小、长期存在的公共版本，也是 #201 故障里
+# 卡住的那个 tarball；项目可用 REGISTRY_PREFLIGHT_PACKAGE/VERSION 覆盖。
 PACKAGE="${REGISTRY_PREFLIGHT_PACKAGE:-fflate}"
 VERSION="${REGISTRY_PREFLIGHT_VERSION:-0.8.3}"
 TIMEOUT="${REGISTRY_PREFLIGHT_TIMEOUT:-20}"
@@ -50,6 +50,16 @@ if [ -z "$REGISTRY" ]; then
     'NPM_CONFIG_REGISTRY 没有设置，本步骤无法判断该断言哪个 registry。' \
     '这一步不猜、也不回退到 npmjs：请在 workflow 的 env 里显式设置它。'
 fi
+
+# 平台模板出厂是占位，不是地址；没换就停在这里，不让它落进连接类故障的排查方向。
+case "$REGISTRY" in
+  http://* | https://*) ;;
+  *)
+    fail config \
+      "NPM_CONFIG_REGISTRY=$REGISTRY 不是 http(s) 地址。" \
+      '从平台模板复制的 ci.yml 要把占位换成平台 manifest 的 site.npm_registry。'
+    ;;
+esac
 
 # 去掉结尾斜杠，避免拼出 //package 这种路径。
 REGISTRY="${REGISTRY%/}"

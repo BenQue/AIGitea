@@ -9,7 +9,7 @@
 # is correct, but it answers a different question than the operator is asking,
 # which is whether the *merged* contract got installed. The two answers coincide
 # until the checkout falls behind, and then they diverge invisibly: on
-# 2026-08-23 both the Mac and the gitea-ci VM printed 'installed ... candidate'
+# 2026-08-23 both the Mac and the platform VM printed 'installed ... candidate'
 # while writing the pre-#161 29-operation manifest, because the checkout's main
 # was three commits behind origin/main and the VM mounts that same checkout
 # through /mnt/mac. Idempotence is a false positive here -- 'already current'

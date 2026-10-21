@@ -33,9 +33,11 @@ permissions:
   contents: read
 
 # registry 是 CI 的硬依赖，显式写在这里而不是散在各步骤里。
-# 换成本平台实际的 registry 地址；不要改成 registry.npmjs.org。
+# 把占位换成平台 broker manifest（codex/config/host-access-broker.json）里
+# site.npm_registry 的值；不要改成 registry.npmjs.org。占位不换时
+# registry-preflight 在安装依赖之前就失败。
 env:
-  NPM_CONFIG_REGISTRY: http://gitea-ci.orb.local:4873/
+  NPM_CONFIG_REGISTRY: REPLACE_WITH_SITE_NPM_REGISTRY
 
 jobs:
   # job key 是必需检查 context 的一部分，改名前先回读分支保护。
