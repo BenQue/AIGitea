@@ -119,4 +119,40 @@ set -e
 [[ "$gap_status" == "1" ]]
 grep -Fq 'LIVE_PROTECTION GAP status_check=false contexts=0' <<<"$gap_output"
 
+# #403: --render-readme reads source files only. A broker that records any call
+# proves it is never consulted; the rows and their sources are fixed.
+spy_broker="$test_root/spy-broker"
+printf '#!/usr/bin/env bash\necho called >>"%s"\nexit 2\n' "$test_root/spy-calls" >"$spy_broker"
+chmod +x "$spy_broker"
+render_output="$(bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme \
+  --repo "$root" --broker "$spy_broker")"
+[[ ! -e "$test_root/spy-calls" ]]
+[[ "$(sed -n 1p <<<"$render_output")" == '| 项 | 值 | 来源 |' ]]
+[[ "$(sed -E 's/^\| ([^|]+) \|.*/\1/' <<<"$render_output" | sed -n '3,$p' | tr '\n' ',')" == \
+  '源码,治理仓库,broker typed 操作,installer 安装面,规范标签,使用发布包最新版本,Matt pin,superpowers pin,architecture catalog,' ]]
+grep -Fq "| 治理仓库 | $(jq '.repositories | length' "$root/codex/config/gitea-governance.json") |" <<<"$render_output"
+grep -Fq "| broker typed 操作 | $(jq '.operations | length' "$root/codex/config/host-access-broker.json") |" <<<"$render_output"
+grep -Fq "| 使用发布包最新版本 | $(jq -r '.releases[-1].version' "$root/usage/bundle.json") |" <<<"$render_output"
+
+# An unreadable source fact fails the render instead of printing a partial table.
+render_repo="$test_root/render-repo"
+mkdir -p "$render_repo/codex/config" "$render_repo/usage" "$render_repo/.claude-plugin" \
+  "$render_repo/codex/vendor/superpowers/v0" "$render_repo/architecture"
+for file in codex/config/gitea-governance.json codex/config/host-access-broker.json \
+  codex/config/installed-drift-baseline.json codex/config/gitea-labels.json usage/bundle.json \
+  .claude-plugin/marketplace.json architecture/catalog.json; do
+  cp "$root/$file" "$render_repo/$file"
+done
+cp "$root"/codex/vendor/superpowers/*/manifest.json "$render_repo/codex/vendor/superpowers/v0/"
+git -C "$render_repo" init -q
+git -C "$render_repo" -c user.name=t -c user.email=t@example.invalid commit -q --allow-empty -m fixture
+bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme --repo "$render_repo" >/dev/null
+rm "$render_repo/architecture/catalog.json"
+set +e
+missing_output="$(bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme \
+  --repo "$render_repo" 2>/dev/null)"
+missing_status=$?
+set -e
+[[ "$missing_status" == "1" && -z "$missing_output" ]]
+
 printf '%s\n' 'platform readiness tests passed'
