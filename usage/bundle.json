@@ -1642,7 +1642,7 @@
     {
       "version": "1.8.0",
       "released": "2026-10-21",
-      "bundle_digest": "sha256:7f009150d4afed28e17f562be6a340bf3aa501b76f3ecc9c4a6d07a94d780c02",
+      "bundle_digest": "sha256:484124603540ea5a7468d55f42857024a353ece05da9c2bfeebe249b0b99969d",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -1716,7 +1716,7 @@
           "source": "templates/project/ci/ci.yml",
           "mode": "seed",
           "target": ".gitea/workflows/ci.yml",
-          "sha256": "ee704c2e0ae3e6da762e77631d87c3c1e7ed387ce8b64acb1a97b21a91514af0"
+          "sha256": "2ebcc0779624252312cc923239030be6d83de5432efad7fb497b2517440b6942"
         },
         {
           "source": "templates/project/ci/merge-preview.sh",

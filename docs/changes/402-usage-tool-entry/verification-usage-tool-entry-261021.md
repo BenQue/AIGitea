@@ -57,7 +57,7 @@ updated: 2026-10-21
 | AC-7 | PASS | 模板「项目事实」1708 字节；`test-project-check.sh` 超 2 KB 用例报 `NOTE: agents-budget` 且计数不变 |
 | AC-8 | PASS | `smoke.sh` 在本记录所在 head 复跑见下节；`usage-bundle.sh --verify --baseline-ref origin/main` VERIFIED 1.8.0；`check-change-documents` gap=0；Codex 四轮只读审查，第 4 轮 PASS（`422905d`），记录在项目库 `codex-review-402.md` |
 
-| AC-9 | 部分（LocalWMS PR CI 待推送） | 模板 `ci.yml` 无 `uses:`；smoke 守卫反向证明：模板副本加回 `uses: actions/checkout@v4` 后守卫命中（rc=0），原文件 rc=1。手写 checkout 步骤从模板原样抽出，在本地 `file://` 裸仓模拟复用工作区连跑两次：两次都检出 exact head（`de829b9`）、残留文件被清掉，extraheader 写入后可删除。HSDB、SFM workflow 读回 `uses:` 0 处，不改；LocalWMS 改用同一步骤（`43669b2`），#335 改判 maintenance / complex（`ci-change`）并读回 projected，Issue 评论记录范围变更。LocalWMS PR 的 CI 运行在推送后补记 |
+| AC-9 | 部分（LocalWMS PR CI 待推送；第 5 轮修复见下） | 模板 `ci.yml` 无 `uses:`；smoke 守卫反向证明：模板副本加回 `uses: actions/checkout@v4` 后守卫命中（rc=0），原文件 rc=1。手写 checkout 步骤从模板原样抽出，在本地 `file://` 裸仓模拟复用工作区连跑两次：两次都检出 exact head（`de829b9`）、残留文件被清掉，extraheader 写入后可删除。HSDB、SFM workflow 读回 `uses:` 0 处，不改；LocalWMS 改用同一步骤（`43669b2`），#335 改判 maintenance / complex（`ci-change`）并读回 projected，Issue 评论记录范围变更。LocalWMS PR 的 CI 运行在推送后补记 |
 
 ## 交叉审查
 
@@ -67,10 +67,17 @@ updated: 2026-10-21
 | 2 | `1093a6d` | FAIL | `--worktree=DIR` 被覆盖；子命令 `--help` 未覆盖；技能残留 `aisoft-loop` / `aisoft_loop.cli` |
 | 3 | `2a583e2` | FAIL | `git_scope` 漏列 `skills/aisoft-matt-workflow/SKILL.md`（离线复现 SCOPE_DENIED） |
 | 4 | `422905d` | PASS | 无；`git_scope` 与 diff 一致（25 条），源码推送闸门离线复现 PASS（19 个提交含 2 个 main 集成 merge） |
+| 5 | `33453e6` | FAIL | 并入 §7 后：LocalWMS list-contract 闸门钉死旧 `fetch-depth`（`CHECKOUT_DEPTH_FACT_GONE`）；#335 summary 缺项目必需的「两份清单的影响」小节；复用旧浅克隆工作区时 fetch 不补历史（合并预览 `MERGE_PREVIEW_NO_MERGE_BASE`）；smoke 守卫漏行内 `uses`；改判证据不一致 |
 
 ## 判级投影
 
-`aisoft classify --verify` 读回 **projected**：#402（platform / complex），HSDB #70、LocalWMS #335、SFM #184（maintenance / small）。
+`aisoft classify --verify` 读回 **projected**：#402（platform / complex）；HSDB #70、SFM #184（maintenance / small）；LocalWMS #335 按 §7 改判后为 maintenance / complex（`ci-change`）。
+
+## 第 5 轮修复证据
+
+- 模板与 LocalWMS 的 checkout 在 fetch 前对浅仓加 `--unshallow`：本地 `file://` 裸仓上先 `git clone --depth 1` 造出旧工作区，跑模板步骤后 `is-shallow-repository` 由 true 变 false、历史 621 个提交，再跑一次不变。
+- smoke 守卫改为识别任意位置的 `uses` 键（块项、行内映射、带引号键），并内置四个探针：三种 `uses` 写法必须命中、普通步骤不得命中。
+- LocalWMS（`253fec0`）：`list-contract-gate.mjs` 的全历史事实改钉 unshallow 判定，测试措辞同步；#335 summary 补「两份清单的影响」三问；`node scripts/ci/list-contract-gate.mjs` 绿；`node --test` 跑 list-contract、ci-merge-preview、ci-audit 三组 48 条全过，`fault-matrix-gate` 因本机未装 `typescript` 依赖起不来（改动前基线同样失败，NOT RUN，交给 PR CI）。
 
 ## 已知限制与遗留
 
@@ -79,6 +86,8 @@ updated: 2026-10-21
 - SFM 的 legacy change 目录（`0001-…` 等）在 `check-change-documents` 里是既有 GAP，归 R12；不影响 `--project-status`。
 - `aisoft_loop.cli` 的 `get-issue`、`list-issues`、`apply-analysis` 未删（要 raw token，不进 `aisoft`），后续遗留项。
 - 被工具包收录的平台文件以后改动都要发新版本。
+- 平台仓自己的 `.gitea/workflows/ci.yml`（#370）同样没有处理复用的浅仓；不在本票范围，后续遗留项。
+- `project-align.md` 里「#360 T02 仅应用治理文档、runtime 尚未验收」已过时（R14 指出），后续遗留项。
 
 ## 未运行
 
