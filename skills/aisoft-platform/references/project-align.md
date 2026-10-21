@@ -90,9 +90,9 @@ approved scope，逐项授权、完整历史检查；不允许放开整个 `docs
 或伪造 Issue 路径。唯一规则见 [03 §3「Canonical 模板的精确 Git scope 合同」](../../../03-Issue-Spec-Plan与单闸门开发流程.md#canonical-模板的精确-git-scope-合同360)，
 实现和验收范围见 [#360 spec](../../../docs/changes/360-canonical-template-scope/spec-canonical-template-scope-261015.md)。
 
-当前 #360 T02 仅应用治理文档，runtime/真实 installed 入口尚未验收；遇既有 `SCOPE_DENIED`
-应保留具体失败与批准 scope，不能加载未合并 reader 或关闭 guard。fresh run 实施、source 合并后
-的平台工具安装和项目采用各按自己的授权推进；本入口不增加 installer/policy 框架，也不接管项目部署。
+模板例外由 broker 推送闸门的 canonical 模板上下文实现：scope 列出四份模板时，闸门核对目标仓是
+holder、summary 的 Issue URL 属于该仓，再逐份核对模板内容。遇 `SCOPE_DENIED` 保留具体失败与批准 scope，
+不关闭 guard；本入口不增加 installer/policy 框架，也不接管项目部署。
 
 ## 边界与工具分工
 

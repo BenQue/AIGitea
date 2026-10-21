@@ -89,7 +89,7 @@ summary-only 回填会产生一个合法的新 head。在后续 push 之前，�
 4. 判级投影：`aisoft classify N` 看计划与路由行 → `aisoft classify --apply N` → `aisoft classify --verify N` 读回两个维度都 `projected` 才算完成；窗口在合并时关闭，closed Issue 永不补写。读到 `broker-operation-missing` 见 `06` 踩坑 20，结论与 Gitea 事实不符见踩坑 21。
 5. 平台仓的 complex 变更：进入确认点 2 之前，由未参与实现的另一方提供者对候选 head 做一次只读交叉审查，结论记入 verification（`03` §「交叉审核」）。
 6. 本地验证完成后进入 `AWAITING_PR_CONFIRMATION`（候选格式见 `issue-session-flow`）；确认后 broker `git.push.change --branch change/N-<slug>` → broker `gitea.pull.create --issue N`（正文含 `Closes #N`）→ 按上文「PR URL 回填的两条路径」回填 summary 再 commit + push，**到开 PR 为止**；`pr_url` 合同见 `03` §3。
-7. push 报 `BASE_BRANCH_STALE`：broker `git.fetch.main` → 本地 `git rebase origin/main` → broker 重推（remote 只走 broker，rebase 是本地操作）；lease 语义见 `06` §1.0。
+7. push 报 `BASE_BRANCH_STALE`：broker `git.fetch.main` → 把 `origin/main` 集成进本分支（已推送过的分支用 merge commit；从未推送的分支也可以本地 rebase）→ broker 重推（remote 只走 broker，集成是本地操作）；lease 语义见 `06` §1.0。
 8. push 报 `REMOTE_BRANCH_MOVED`：推送已被拒、远端未被覆盖，先 broker `git.fetch.change --branch change/N-<slug>` 看清远端再决定，不用更强的 force 压过去；见 `06` §1.0。
 
 ## 部署边界
