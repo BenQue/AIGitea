@@ -40,7 +40,7 @@ This skill adapts the complete vendored Matt skills to AISoftPlatform. It does n
 ## Stable adapter interfaces
 
 - Label projection: platform and Matt dimensions update independently while preserving unmanaged labels.
-- Document resolution: use `python3 -m aisoft_loop.cli resolve-documents N --repo <checkout>`; never guess with a broad
+- Document resolution: use `aisoft resolve-documents N`; never guess with a broad
   glob.
 - Spec publication: update only the mapped `spec` document and link it from the existing Issue.
 - Plan publication: update only the mapped `plan` document with `Txx`, `blocked_by`, AC and verification mappings.
