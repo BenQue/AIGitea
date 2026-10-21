@@ -53,6 +53,7 @@ git_scope:
   - codex/tests/fixtures/manifests/README.md
   - codex/tests/fixtures/manifests/gitea-governance.json
   - codex/tests/fixtures/manifests/host-access-broker.json
+  - codex/tests/integration/test-gitea-pat-helper-process.py
   - codex/tests/smoke.sh
   - codex/tests/test-alert-agent.sh
   - codex/tests/test-bootstrap-gitea-service-account.sh
@@ -67,6 +68,7 @@ git_scope:
   - codex/tools/bootstrap-gitea-service-account.sh
   - codex/tools/check-installed-drift.py
   - codex/tools/gitea-pat-helper/helper_test.go
+  - codex/tools/gitea-pat-helper/process_fixture_test.go
   - codex/tools/rotate-gitea-service-account.md
   - docs/governance/remediation-roadmap.md
   - skills/aisoft-platform/SKILL.md
