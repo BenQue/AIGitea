@@ -341,7 +341,7 @@ pub.dev 不可达时 job 会红，持久 `PUB_CACHE` 只减少重复下载，不
 **模块缓存被改过时 job 会红，不会自愈**：host 模式下 PR 代码以 `gitea-runner` 身份运行，
 本来就能写它家目录里的任何东西；这里的防线是 `go.sum` 与 `go mod verify`，不是目录权限。
 `go mod verify` 报 `dir has been modified` 时，在 Mac 终端执行
-`/usr/local/bin/orb -m gitea-ci sudo rm -rf /opt/act-runner/.cache/aisoft-ci/go-mod` 后 Re-run，
+`/usr/local/bin/orb -m <site.orbstack_machine> sudo rm -rf /opt/act-runner/.cache/aisoft-ci/go-mod` 后 Re-run，
 下一次运行重新填充。工具链归档被改过则会被自动驱逐并重新下载。
 
 **实测**（2026-10-21，Linux arm64 容器，同一个缓存卷）：冷跑 132s、填充约 436 MiB 模块与
@@ -349,11 +349,11 @@ pub.dev 不可达时 job 会红，持久 `PUB_CACHE` 只减少重复下载，不
 改动缓存里一个模块文件后 `go mod verify` 拒绝、job 失败。runner 上的真实运行见 #370 的 verification。
 
 **升级 checkout**：等镜像同步到新 tag 后，把 `ci.yml` 里的 commit 换成新 tag 的 40 位 SHA，
-用 `git ls-remote http://gitea-ci.orb.local:3000/actions/checkout refs/tags/<tag>` 读回核对。
+用 `git ls-remote <site.gitea_url>/actions/checkout refs/tags/<tag>` 读回核对。
 升级 Go 工具链只改 `build-lock.json`，旧归档留在缓存里不会被选中，可以手工删除。
 
 **回滚**：revert #370 的 PR 即恢复每次实时下载。缓存目录可以留着；要删就在 Mac 终端执行
-`/usr/local/bin/orb -m gitea-ci sudo rm -rf /opt/act-runner/.cache/aisoft-ci`。镜像仓留着不影响任何项目。
+`/usr/local/bin/orb -m <site.orbstack_machine> sudo rm -rf /opt/act-runner/.cache/aisoft-ci`。镜像仓留着不影响任何项目。
 
 ## 5. Verdaccio（弱网救星）
 
