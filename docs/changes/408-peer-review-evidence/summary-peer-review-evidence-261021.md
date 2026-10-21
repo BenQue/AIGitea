@@ -36,9 +36,9 @@ override_reason: ''
 depends_on:
   - 392
   - 402
-status: approved
+status: pr-open
 branch: change/408-peer-review-evidence
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/411
 created: 2026-10-21
 updated: 2026-10-21
 ---
