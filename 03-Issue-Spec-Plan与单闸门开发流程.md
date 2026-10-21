@@ -1,6 +1,6 @@
 # 03 · Issue / Spec / Plan 与单闸门开发流程
 
-> v3 当前文档契约（更新 2026-08-26）。Issue 是所有工作的主键；小变更允许从明确的 Issue 直接进入实现，production complex 必须先完成 spec/plan，development complex 使用 Issue 正文中的验收合同。最终 PR merge 是唯一交付硬闸门，只由人合并（routine 自动合并已随 #391 退出）。既有固定数字路径只作证据驱动的 legacy 兼容。
+> 现行合同：本册定义 Issue 到唯一最终 PR 的绑定、判级与路由、语义文档、标签、两条开发路径、最终 PR 闸门、依赖与合并后终态。Issue 是所有工作的主键；最终 PR merge 是唯一交付硬闸门，只由人合并，部署另行授权。路由取值以 `aisoft-platform` 技能的路由表为准，标签集合以 `codex/config/gitea-labels.json` 为准。
 
 ## 1. 绑定模型
 
@@ -14,18 +14,17 @@ Issue #N
 
 - 所有变更必须有 Issue 和映射的 `summary` 文档。
 - 小变更可以不写 spec/plan，但 Issue 必须有可验证的 acceptance criteria。
-- **交付阶段（Issue #134）**：manifest 的 `change_control` 为 `development` 的项目，其
-  强制 complex 变更同样不写 spec/plan，acceptance criteria 改由 Issue 正文提供——门槛
-  不变，只是来源从 spec 换成 Issue。未声明该字段的仓库一律按 `production` 处理，行为不变。
-  `verification` 的取舍两个阶段完全相同（由 analyzer 决定）；它只表示本次变更欠一份
+- **交付阶段**：manifest 的 `change_control` 为 `development` 的项目，其强制 complex 变更同样不写
+  spec/plan，acceptance criteria 改由 Issue 正文提供——门槛不变，只是来源从 spec 换成 Issue。
+  未声明该字段的仓库一律按 `production` 处理。`verification` 的取舍两个阶段相同；它只表示本次变更欠一份
   无法由 diff review 与 required CI 重放的验证记录，不表示部署或终态。
 - `change_control=production` 的复杂变更必须有映射的 `spec` 和 `plan` 文档；development
   complex 不生成仪式性 spec/plan，会话使用合成 `T01`。
 - 部署、迁移以及任何依赖真实环境或一次性观测的变更必须有映射的 `verification` 文档。
 - 新 Issue 从分析开始使用单一 `change/N-short-description` 分支；已有 `change/N` 与更早的 `spec/N` 只按历史证据兼容，不作为新 writer 的可选格式。
-- 文档与代码进入同一个最终 PR，不再强制独立 docs-only spec PR。
+- 文档与代码进入同一个最终 PR，不强制独立 docs-only spec PR。
 
-### change worktree 的单写者归属（#298）
+### change worktree 的单写者归属
 
 **一个 change worktree 的写者是且只是该 Issue 的会话。** 别的会话发现它需要变基、需要修
 冲突、需要重跑验收时，只能**通知**那个会话或**交回**给它，不得代劳——哪怕改动本身是对的。
@@ -34,12 +33,8 @@ Issue #N
 > 你正在改写一条**不属于你**的证据链：冲突怎么解的没有归属，验收在谁的环境里跑的读者分不
 > 出，而错误会跟着对方的 PR 直达 merge 这道唯一交付闸门。**通知，或者交回。**
 
-平台此前只约束了「建」没有约束「进」：`git rebase` / `git commit` / `git checkout` 都是纯
-本地操作，根本不经过 broker，因此任何会话都能进入任意 change worktree 改写 HEAD，平台侧零
-感知。2026-09-16 一个下游项目实际中招（见 `06` 踩坑 28）——会话核验的是 `327fc06`，push 后从 `gitea.pull.read`
-读回的 head 却是 `b576525`，多出 61 行它没读过的内容。
-
-现在有三样东西支撑这条归属：
+`git rebase` / `git commit` / `git checkout` 都是纯本地操作，不经过 broker，平台侧对进入别人的
+worktree 零感知（实例见 `06` 踩坑 28）。归属由三样东西支撑：
 
 | 机制 | 命令 / 位置 | 它能回答什么 |
 |---|---|---|
@@ -62,11 +57,9 @@ AISOFT_SESSION_ID=<本会话 id> PYTHONPATH=codex/runtime python3 -m aisoft_loop
 
 #### 闸门拦不到什么，以及因此必须做的一步
 
-#298 的归属闸门回答「谁可以推」，单独不能保证内容。历史实现允许 owner 推送被改写的 HEAD，
-再从回执检出；#327 覆盖该发布口径：已发表历史重写必须在远端写入前拒绝，不能靠事后回执追认。
-owner 标记与每次 SHA 核对仍为必要步骤；broker 还须独立复核 original/current remote tip 的祖先链、
-提交来源、完整 DAG/tree、合同范围和 fresh main。旧 installed 行为没有由文档更新自动改变，
-缺少新能力时停止，不能调用 leased rewrite。
+归属闸门回答「谁可以推」，单独不能保证内容。已发表历史的重写必须在远端写入前拒绝，不能靠事后
+回执追认：broker 独立复核 original/current remote tip 的祖先链、提交来源、完整 DAG/tree、合同范围和
+fresh main。已安装的 broker 缺少这些能力时停止，不调用 leased rewrite。
 
 逐次检出仍保留两处：
 
@@ -85,7 +78,7 @@ owner 标记与每次 SHA 核对仍为必要步骤；broker 还须独立复核 o
 
 ### main 整合与发布（稳定规则）
 
-main 整合只用普通 fast-forward，并保留 original/current remote tip 的祖先关系；非法 DAG、tree、范围和并发漂移一律拒绝，禁止 force。Agent/provider 只在本 Issue 的 exact 分支追加线性本地 commit；冲突时停止并保留前态，不自动覆盖内容。来历与延期项见 #327 的 `docs/changes/327-broker-ff-integration/`。
+main 整合只用普通 fast-forward，并保留 original/current remote tip 的祖先关系；非法 DAG、tree、范围和并发漂移一律拒绝，禁止 force。会话只在本 Issue 的 exact 分支追加线性本地 commit；冲突时停止并保留前态，不自动覆盖内容。
 
 ### 衍生 Issue 的正文与认领
 
@@ -99,11 +92,10 @@ main 整合只用普通 fast-forward，并保留 original/current remote tip 的
 依赖必须落在正文上。会话上下文会被压缩，Issue 不会——只活在上下文里的顺序关系一定会丢。
 
 立案时 `gitea.issue.create` 在创建的同一次写入里带上流程入口标签，取值是 `needs-analysis`
-或显式指定的 `triage/needs-triage`。Issue 因此一建出来就站在流程入口上，而不是停在一个没人
-看的收件箱里等人手工盘点。
+或显式指定的 `triage/needs-triage`。Issue 因此一建出来就站在流程入口上。
 
 **衍生 Issue 的默认认领方是调度会话**：它按「开放 Issue 清扫」逐条判定、派单，或汇总成需裁决
-项交给人。没有调度会话时，作者会话在收尾时自己开 Issue 并派卡片，不把它留给下一个偶然路过的人。
+项交给人。没有调度会话时，作者会话在收尾时自己开 Issue 并派卡片。
 
 ## 2. AI 判级与路由
 
@@ -137,12 +129,12 @@ Issue 作者可以显式选择复杂度，但 `complexity/small` 不能绕过强
 
 ### 2.1 Routine small merge（已退出）
 
-routine 自动合并已按 [ADR 0002](docs/adr/0002-deterministic-development-flow.md) D4 退出（#391）：broker 不再提供合并操作，
-所有仓库的最终 PR 都只由人合并，提交前确认不再区分 `manual|routine-auto` policy。分类仍是两个标签维度，不新增 merge-policy 维度。
-原合同（候选条件、最终 head 硬门与 merger 身份限制）见 Git 历史与 [迁出说明](archive/automation-engine-exit-261020.md)；
-其 manifest 字段与凭据种类已于 #397 删除，合同拒绝仍声明它们的 manifest。
+routine 自动合并已按 [ADR 0002](docs/adr/0002-deterministic-development-flow.md) D4 退出：broker 没有合并操作，
+所有仓库的最终 PR 都只由人合并，提交前确认不区分 merge policy。分类仍是两个标签维度，不新增 merge-policy 维度。
+routine 的 manifest 字段与凭据种类已删除，合同拒绝仍声明它们的 manifest；原合同见
+[迁出说明](archive/automation-engine-exit-261020.md)。
 
-### 2.2 路由卡（#395）
+### 2.2 路由卡
 
 判级之后，会话查 `aisoft-platform` 技能的 [路由表](skills/aisoft-platform/references/route-policy.md)
 得到路由卡，写进 summary front matter 的 `route:` 块与判级评论，在确认点 1 候选中显示为「路由」行
@@ -151,7 +143,7 @@ routine 自动合并已按 [ADR 0002](docs/adr/0002-deterministic-development-fl
 是唯一来源，取值、细化规则、必用与禁用都以它为准，本节不复述。
 
 人可以在确认点 1 覆盖任何一格，覆盖写进 `override_reason`；覆盖不能把强制 complex 降成 small。合同只写档位，
-型号见 `08` §7.3。判级投影不变：仍是四维标签，不新增 `route/*`。`route:` 目前是可选块，`check-change-documents`
+型号见 `08` §7.3。判级投影不变：仍是四维标签，不新增 `route/*`。`route:` 是可选块，`check-change-documents`
 在它存在时校验取值闭集，以及 `process` 与 `effective_complexity` 一致。
 
 **大需求链**：`change_type: feature`、`contract_effect: add`，或一个阶段要拆成多个 Issue 时，先 Matt `grill-me`
@@ -174,29 +166,27 @@ docs/changes/N-short-description/
 
 新 worktree basename 固定为 `issue-N-short-description`。`main`、`master`、`head`、`merge`、`pull`、`pr`、`refs`、`change`、`changes`、`docs`、`worktree`、`tmp`、`temp`、`legacy` 是保留 slug，`tmp-`、`temp-`、`legacy-` 前缀同样禁止。同一 Issue 同时出现 legacy/readable 名称或多个 slug 时必须以 `CHANGE_NAME_CONFLICT` 停止。纯编号名称只在 manifest-fixed remote 或 Git history 已有证据时作读取或维护兼容，调用方不能用 `legacy` 开关绕过这种 evidence-derived 判定，也不得批量重命名或删除历史对象。
 
-所有 change 文档的共同 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`created`、`updated`；`pr_url` 是 **summary 专属**字段，只写在 summary（#142：spec/plan/verification 里的复制品没有任何代码消费者，四份复制只会互相漂移），由 `aisoft-loop backfill-pr-url` 在 PR 建出后与 `status: pr-open` 一起写入；complex 的 spec/plan/verification 固定使用 `effective_complexity: complex`。summary 另外完整保存 analyzer schema 的 `reason`、语义 `required_docs`、`documents` 角色到真实 basename 的映射和 `override_reason`。无法安全判级时，summary 的 `assessed_complexity` 为 `needs-human-decision`，并从 front matter 与 `## AI 判级` YAML 同时省略整个 `effective_complexity` key，不保留空值或 placeholder；其他 complex 文档尚不得创建。
+所有 change 文档的共同 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`created`、`updated`。`pr_url` 是 **summary 专属**字段（spec/plan/verification 里的复制品没有代码消费者，只会互相漂移），由 `aisoft-loop backfill-pr-url` 在 PR 建出后与 `status: pr-open` 一起写入；complex 的 spec/plan/verification 固定使用 `effective_complexity: complex`。summary 另外完整保存 analyzer schema 的 `reason`、语义 `required_docs`、`documents` 角色到真实 basename 的映射、可选的 `route:` 与 `override_reason`。无法安全判级时，summary 的 `assessed_complexity` 为 `needs-human-decision`，并从 front matter 与 `## AI 判级` YAML 同时省略整个 `effective_complexity` key，不保留空值或 placeholder；其他 complex 文档尚不得创建。
 
 新合同只使用 `summary`、`spec`、`plan`、`verification` 角色；resolver 严格读取 `documents` 映射并校验角色、slug、日期、目录边界和唯一性，不使用无约束 glob。没有映射的历史 summary 仅回退到 `00-summary.md`、`01-spec.md`、`02-plan.md`、`03-verification.md`，新 writer 不再生成这些名称，也不批量重命名历史文件。
 
 映射的 spec 必须定义目标、可测验收标准、接口/数据/兼容影响和非目标。映射的 plan 必须把每条验收标准映射到 `Txx` 垂直切片、`blocked_by`、预期 touch points 和验证命令。会话不得自行修改已经确认的 acceptance criteria 或扩大范围。
 
-### 声明与实际文件共用一个校验结果（#289）
-
-本节同步 #289 已合并的治理合同。T01 独立应用合同后，fresh run 的 T02/T03 已完成 runtime 实施与本地验证；[PR #325](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/325) 已进入稳定 main。下述严格行为和新增命令已在 source 实现，installed/live 仍须按实际安装与项目验收证据确认。
+### 声明与实际文件共用一个校验结果
 
 - summary front matter 的 `required_docs` 是文档义务的唯一声明事实源，`documents` 是新格式角色到安全 basename 的唯一路径事实源。共用受限 Python 解析器，拒绝空、未知、重复或混合角色与 legacy 文件名的列表，首项必须为 summary。
 - `route.required_docs` 给出阶段与复杂度的最低合同要求；`check-change-documents` 检查声明满足这些要求，不得用路由生成的列表替换声明或丢掉额外角色。development 不强制 spec/plan，production complex 仍必须有 spec/plan；任何路由都不能让已声明 verification 的文件义务消失。
 - 新格式 `documents` 的每个显式映射均须指向本 Issue 目录内可读取的普通文件，且通过既有角色、slug、日期、front matter 与路径边界校验；即使角色不在 required_docs 里也一样。缺文件或符号链接逃逸必须报错，诊断包含 Issue/change、role 与真实 basename。required_docs 的每一项必须有映射和实际文件。
-- 公共 `resolve-documents N --repo <checkout>` 成功时保留角色到 basename 的 JSON 形状，但必须拒绝不存在的显式映射。新增只读 `resolve-required-documents N --repo <checkout>` 返回 `required_docs`（规范化语义角色数组）和 `documents`（角色映射）。`check-change-documents` 与 `mark-completed-issues.sh` 共用同一解析和校验结果；终态工具不再用 awk 独立解析原文，resolver 或 JSON 失败不能回退为成功。
+- `resolve-documents N --repo <checkout>` 成功时返回角色到 basename 的 JSON，并拒绝不存在的显式映射；只读 `resolve-required-documents N --repo <checkout>` 返回 `required_docs`（规范化语义角色数组）和 `documents`（角色映射）。`check-change-documents` 与 `mark-completed-issues.sh` 共用同一解析和校验结果；resolver 或 JSON 失败不能回退为成功。
 - legacy 固定映射是历史推断；未声明的可选 spec/plan/verification 不要求生成。显式 required_docs 中的历史 basename 必须有实际文件，并规范化为相应语义角色（如 `03-verification.md` → `verification`）。缺 required_docs 报明确 GAP；不新增 legacy 开关，不批量重命名或改写历史文档。
-- 合同草稿首次写入使用受限 publisher：`publish-spec`/`publish-plan` 可在 open Issue 的 exact branch 上，通过内部声明解析首次创建自己映射的目标，继续执行路径、日期、front matter 与 Ticket graph 硬门。该准备入口不向 reader 暴露通用 skip-existence 参数；草稿尚未齐全时，严格 resolver、文档检查与终态检查仍须拒绝交付；会话在确认点 2 前运行 `check-change-documents`。
-- `mark-completed-issues.sh` 的 dry-run 遇无效声明或缺文件时输出可搜索的 skip 原因和诊断，apply 对该 Issue 零 broker 写入。合法合同时，再按 §11 的独立 deployment_lifecycle 判终态。文件存在与可解析不证明 verification 内每项现场动作已执行。
+- 合同草稿首次写入使用受限 publisher：`publish-spec`/`publish-plan` 可在 open Issue 的 exact branch 上首次创建自己映射的目标，继续执行路径、日期、front matter 与 Ticket graph 硬门；不向 reader 暴露通用 skip-existence 参数。草稿尚未齐全时，严格 resolver、文档检查与终态检查仍须拒绝交付；会话在确认点 2 前运行 `check-change-documents`。
+- `mark-completed-issues.sh` 的 dry-run 遇无效声明或缺文件时输出可搜索的 skip 原因和诊断，apply 对该 Issue 零 broker 写入。合法合同时，再按 §11 的 `deployment_lifecycle` 判终态。文件存在与可解析不证明 verification 内每项现场动作已执行。
 
 ### 何时声明 `verification`
 
 `required_docs` 含不含 `verification` 回答的是「这次变更**欠不欠一份验证记录**」，
-不是「这次变更要不要部署」（§11 的合取表已经把后一个问题交给仓库属性
-`deployment_lifecycle`）。判据因此落在**验收证据的来源**上，而不是变更的题材：
+不是「这次变更要不要部署」（后一个问题由 §11 的仓库属性 `deployment_lifecycle` 回答）。
+判据落在**验收证据的来源**上，而不是变更的题材：
 
 | 全部验收标准的证据来源 | 声明 `verification` |
 |---|---|
@@ -205,30 +195,26 @@ docs/changes/N-short-description/
 
 落在第二行的典型形态：部署、迁移、安装与主机侧生效；改动前的基线观测与改动前后
 对比；故意失败与回滚的现场；required CI 不跑的确定性命令（跨仓扫描、`--dry-run`
-计划、只在本地可达的环境）。部署与迁移必然落在第二行，所以它们始终必须声明——
-但它们不是唯一落在第二行的变更，这正是旧判据（按题材）漏掉的那一半。
+计划、只在本地可达的环境）。部署与迁移必然落在第二行，所以它们始终必须声明，
+但它们不是唯一落在第二行的变更。
 
-声明 `verification` **不隐含要部署**，也不改变终态判定：合并后的终态由 §11 的
-合取表决定，声明了 `verification` 的变更在**三档 `deployment_lifecycle` 下都到得了
-终态**——不部署的仓库与按需部署的仓库当场到 `completed`，声明「合并即部署」的仓库
-等一次必然到来的部署。作者不必为了让 Issue 能收尾而少声明一份该写的验证记录
-（#163、#168、#192）。
+声明 `verification` **不隐含要部署**，也不改变终态判定：声明了 `verification` 的变更在**三档
+`deployment_lifecycle` 下都到得了终态**——不部署的仓库与按需部署的仓库当场到 `completed`，
+声明「合并即部署」的仓库等一次必然到来的部署。作者不必为了让 Issue 能收尾而少声明一份该写的验证记录。
 
 不部署时什么算合格的验证记录：每条 acceptance criterion 都有一条真实执行过的命令
 或一次真实观测支撑，命令与输出照实抄，不可达的环境与未执行项显式写明。模板见
 `templates/docs/changes/_template/verification.md`，其中 `## 部署验收` 一节只适用于
 实际部署或迁移的变更，不部署时整节删除而不是保留标题填「无」。
 
-### 模板是 vendored 副本：改动必须由上游广播（#190）
+### 模板是 vendored 副本：改动必须由上游广播
 
-`templates/docs/changes/_template/` 是合同源，但每个接入项目在 `docs/changes/_template/`
+`templates/docs/changes/_template/` 是合同源，每个接入项目在 `docs/changes/_template/`
 里持有一份**逐字节相同的副本**，`aisoft-project-check.sh` 的 `change-templates` 查的就是
-这个相等关系。八条对齐检查里只有它的判据横跨两个仓库，因此也只有它会**因为上游前进而
-自发变红**，与下游是否有任何提交无关（2026-09 一个下游项目的 PR 是第一次真实复发）。
+这个相等关系。对齐检查里只有它的判据横跨两个仓库，因此也只有它会**因为上游前进而
+自发变红**，与下游是否有任何提交无关。版本与持有者这样声明：
 
-副本原先既没有版本号也没有依赖声明，下游无从知道自己何时过期。现在这两样都有了：
-
-| 缺的东西 | 补法 |
+| 要回答的问题 | 声明位置 |
 |---|---|
 | 谁持有副本 | `gitea-governance.json` 每个仓库的 `vendors_change_templates`；未声明取 `true` |
 | 模板是哪一版 | `codex/config/change-template-sync.json` 的 `template_digest` |
@@ -243,7 +229,7 @@ bash codex/tools/change-template-sync.sh --refresh-digest
 刷新时工具打印完整的下游同步清单——按声明枚举全部 holder，本机有没有那个项目的 checkout
 都一样列出。清单里每一项走目标仓自己的 Issue → change 分支 → PR，复制覆盖即可。
 
-不带参数运行是只读的现状核对，可随时重跑，也适合将来挂成非阻塞的定期任务：
+不带参数运行是只读的现状核对，可随时重跑：
 
 ```bash
 bash codex/tools/change-template-sync.sh
@@ -254,23 +240,18 @@ bash codex/tools/change-template-sync.sh
 不表示已同步。
 
 **明确不做的事：不在任何下游项目引入阻塞式 required check。** 下游 CI 要跑这条比对就得
-每个 PR 去 clone 平台仓，等于把上游演进变成下游全部在途 PR 的阻塞——包括与模板毫不相干
-的那些——而这条 GAP 的修复代价只是一次复制覆盖。这也是 `change-templates` 至今只是一条
-GAP 提示而不是错误的原因。约束由 `change-template-sync.json` 的
-`downstream_required_check: forbidden` 与 smoke 一起钉住：改掉它，工具停机、CI 变红。
+每个 PR 去 clone 平台仓，等于把上游演进变成下游全部在途 PR 的阻塞，而这条 GAP 的修复代价
+只是一次复制覆盖。约束由 `change-template-sync.json` 的 `downstream_required_check: forbidden`
+与 smoke 一起钉住。
 
-**版本化使用发布包（#377）。** change 模板四件套连同使用合同、项目指针与技能一起组成
+**版本化使用发布包。** change 模板四件套连同使用合同、项目指针与技能一起组成
 `usage/bundle.json` 声明的使用发布包。项目在 `.aisoft/platform-usage.lock.json` pin 版本后，
 `change-templates` 与 `pointer-sections` 按 pin 版本记录的摘要核对，平台前进不再让它自发变红；
 没有 lock 的项目仍对照最新版本。改动任何发布包成员的平台变更必须在同一次变更里运行
-`bash codex/tools/usage-bundle.sh --release <新版本> --today <日期>`，否则 smoke 的 `--verify` 变红。
-上面的 digest 与广播清单本批保留，二者的整合留给后续评估。
+`bash codex/tools/usage-bundle.sh --release <新版本> --today <日期>`，否则 smoke 的 `--verify` 变红；
+`origin/main` 上已发布的版本不可改。
 
-### Canonical 模板的精确 Git scope 合同（#360）
-
-以下是 [#360 已批准合同](docs/changes/360-canonical-template-scope/spec-canonical-template-scope-261015.md)
-的治理应用；T02 只更新合同文档，reader/Controller/broker 的 runtime 实施与验收尚未运行。
-文档生效不表示当前安装入口已支持模板例外；不得使用未合并候选代码绕过现有拒绝。
+### Canonical 模板的精确 Git scope 合同
 
 `docs/changes/_template/summary.md`、`docs/changes/_template/spec.md`、
 `docs/changes/_template/plan.md`、`docs/changes/_template/verification.md` 是四个共享 vendored
@@ -278,26 +259,19 @@ GAP 提示而不是错误的原因。约束由 `change-template-sync.json` 的
 平台原件仍在 `templates/docs/changes/_template/`，不自动获得这个消费者例外。
 
 只有 canonical access/governance 绑定的已知目标仓库为合法 holder
-（复用 `RepositoryContract.vendors_change_templates` 及既有未声明取 true 的规则），并且
+（复用 `RepositoryContract.vendors_change_templates` 及未声明取 true 的规则），并且
 exact committed mapped summary/spec 的 issue、branch、status 合法、`git_scope` 明确逐项列出
 目标资源时，才允许相应模板路径。holder 或模板目录存在本身不授权任何文件；未列出的其余模板
 不得隐含加入。summary 仅接受 `approved` 或同仓合法 `pr-open`，spec 必须 `approved`。
 
-reader、Controller 和 broker 共用同一资源分类与有限项目/holder 上下文，不创建另一套 policy
-框架、动态白名单、manifest schema 或 typed operation。上下文不得来自候选项目的伪 manifest
-或任意 caller override；复用现有 canonical 来源、owner 与 source/installed 一致性检查。
+reader 与 broker 共用同一资源分类与有限项目/holder 上下文，不另建 policy 框架、动态白名单、
+manifest schema 或 typed operation。上下文不得来自候选项目的伪 manifest 或任意 caller override。
 只允许四个精确路径的普通模板文件；继续拒绝 other-Issue docs、任意子目录、未批模板、
 路径穿越/别名、symlink/gitlink、非法类型或删除/越界 rename。
 
 `git_history_paths` 同样受资源分类和可达 exact history anchor 限制，逐提交完整 delta 检查保留；
-不能靠净 diff、add→revert、缩小实际 scope 或历史列表漂白越界内容。R0/R/M/H 祖先、标准
-`[Issue tip,main]` 整合/tree 验证、ordinary single-ref FF、固定 guard、no-op 重验、required CI
-与唯一 manual PR 第二确认保持。并发 owner/HEAD/remote/main/输入来源漂移时停止并保全证据。
-
-全历史模板内容锁延期，不将模板快照 catalog 或新增安装分发链作为本修复前置；既有 installer
-和 drift mapping 已覆盖所需模块及 access/governance 输入，复用后续验证。本票治理步骤完成后
-必须停止，fresh run 重读后才实施 runtime。source 合并、平台工具真实安装与项目采用分别验收、
-分别遵守其授权；平台不承接项目的服务、数据库、环境配置或 UAT，也不暂停不依赖本能力的业务开发。
+不能靠净 diff、add→revert、缩小实际 scope 或历史列表漂白越界内容。并发 owner/HEAD/remote/main/
+输入来源漂移时停止并保全证据。source 合并、平台工具真实安装与项目采用分别验收、分别授权。
 
 ## 4. 平台三维标签与 Matt triage
 
@@ -309,9 +283,7 @@ reader、Controller 和 broker 共用同一资源分类与有限项目/holder �
 | 复杂度 | `complexity/small`、`complexity/complex` | AI 判定需要哪条流程；互斥，无法判定时都不写 |
 | 流程状态 | `needs-analysis`、`awaiting-triage`、`spec-drafting`、`spec-review`、`approved`、`pr-open`、`completed`、`deployed` | Issue 当前阶段 |
 
-类型的默认关系是：`type/bugfix`、`type/docs`、`type/test`、不改变外部行为的 `type/refactor` 是 small 候选；`type/feature` 和改变平台行为或治理合同的 `type/platform` 强制 complex；`type/maintenance` 由 AI 按实际合同影响判定。
-
-Issue #108 增加的三个类型按同一套既有强制规则判定，不新增判级规则：
+类型的默认关系是：`type/bugfix`、`type/docs`、`type/test`、不改变外部行为的 `type/refactor` 是 small 候选；`type/feature` 和改变平台行为或治理合同的 `type/platform` 强制 complex；`type/maintenance` 由 AI 按实际合同影响判定。另外三个类型按同一套强制规则判定：
 
 | 类型 | 判定证据 | 复杂度默认 |
 |---|---|---|
@@ -319,7 +291,7 @@ Issue #108 增加的三个类型按同一套既有强制规则判定，不新增
 | `type/data` | 数据模型、schema 或数据迁移变更。证据是变更改动表/字段/索引定义、迁移脚本，或既有数据的读写语义 | 强制 complex（AGENTS.md「schema/数据迁移」） |
 | `type/reliability` | 可用性、韧性或故障恢复变更。证据是变更针对超时/重试/降级/健康检查/回滚路径，或修复只在故障态下暴露的行为 | 按 `contract_effect` 判定：恢复既有行为（`restore`/`unchanged`）是 small 候选，`add`/`change` 走 complex |
 
-`type/security` 与 `type/data` 的强制不依赖 analyzer 是否填了对应 `risk_flags`：risk flag 是可能被遗漏的分析输出，类型标签是 Issue 上不可省略的事实，两条路径都强制才没有缝隙。`type/reliability` 刻意不强制——可用性修复常常正是「恢复既有产品行为」，一律 complex 会把真实的 small 修复挡在流程外，判定权交给 `contract_effect`。
+`type/security` 与 `type/data` 的强制不依赖 analyzer 是否填了对应 `risk_flags`：risk flag 是可能被遗漏的分析输出，类型标签是 Issue 上不可省略的事实，两条路径都强制才没有缝隙。`type/reliability` 刻意不强制——可用性修复常常正是「恢复既有产品行为」，判定权交给 `contract_effect`。
 
 `awaiting-triage` 只表示 AI 无法安全判级、内容冲突或合同不完整，阻止自动路由。`approved` 是合同完整后的运行控制信号，不是 spec 审批闸门，也不授权合并或部署。受控 wrapper 可以在合同完整时自动写入 `approved`，但会话开始实现前必须重新验证合同，不能只信任标签。
 
@@ -368,51 +340,22 @@ Issue + needs-analysis
   → unresolved input: awaiting-triage with no complexity label
 ```
 
-### 6.1 服务账号 PAT 轮换与治理阶段（#316）
+### 6.1 服务账号 PAT 轮换
 
 **scope 合同变更 = 必须轮换受影响的 PAT。** 合并 scope 声明、重装代码和 Secret 轮换是三份不同证据；
 source/local/CI PASS 或 Issue closed/completed 不证明凭据已更新。先证明 exact scope 合同已合并，
 并逐台核对安装字节，再在独立 Secret 授权下轮换；真实 identity/scope/audit 读回与第二次 no-op
-是现场验收，未运行一律 `NOT RUN`。本节是 #316 的已批准治理合同；T02 helper 本地隔离验证已完成，
-交易/typed runtime、后续安装与 live 演练尚未实施，不是现行可执行 runbook。
+是现场验收，未运行一律 `NOT RUN`。
 
-轮换只处理 canonical manifests 已管理的 non-site-admin 服务账号，保持账号、协作者、分支保护
-和其它项目身份不变。Agent 的 live 入口须经 operator-only typed broker operation
-`gitea.credential.rotate`：目标由 manifest 派生，授权 grant 独立于 project agent 与 manager PAT，
-绑定授权 Issue、已合并 source SHA、exact project/token kind、manifest 固定 Mac store、
-VM exact helper 和有效期。缺授权、
-身份/版本/marker/路径不符或未知 schema 时零 Secret mutation；不能用环境变量自行授予权限，
-不能 fallback 到 admin HTTP 凭据、通用 SQL、任意账号/路径/shell 或更宽身份。
+轮换只处理 canonical manifests 已管理的 non-site-admin 服务账号，保持账号、协作者、分支保护和其它项目
+身份不变，入口是 operator-only typed broker operation `gitea.credential.rotate`，授权 grant 独立于 project
+agent 与 manager PAT。缺授权、身份/版本/marker/路径不符或未知 schema 时零 Secret mutation；不能用环境变量
+自行授予权限，不能 fallback 到 admin HTTP 凭据、通用 SQL、任意账号/路径/shell 或更宽身份。目标与 grant 的
+绑定、固定 Mac canonical store（manifest `site.credential_root_mac`）与 VM helper、事务顺序和恢复表都在
+[06 §4.1](06-运维手册与踩坑集.md)，轮换周期见 `06` §4。
 
-#316 的撤销后台固定 Gitea `v1.26.4` token model，由受控 operator 路径以 Gitea service user 运行，
-先校验 exact token 的 UID/账号，再精确撤销并读回不存在。不能沿用未经真实验证的 `/api/v1/token`
-self-revoke 假设；不得为轮换升级 server、创建密码或扩大 sudoers/provider 权限。helper 构建、
-隔离数据库测试和制品 provenance 必须版本化；其安装、operator grant provision 与 live 使用另行授权。
-
-用户已批准方案 A：仅允许 manifest 固定 Mac canonical store
-`/Users/benque/Library/Application Support/AISoftPlatform/credentials` 接收轮换候选。journal、旧凭据
-隔离区、候选和原子发布均在该 store 同一受保护文件系统；核对 manifest owner、0700 目录/0600 文件，
-拒绝 symlink/逃逸。Gitea CLI/helper 在固定 VM 以现有 git service user 执行，Secret 仅经内部受控
-stdin/pipe 传递，不进入 Agent/tool 返回、用户可见 stdout/stderr、argv、日志、审计或 VM 普通临时目录。
-caller 不得用 env/path/URL 选择 store/helper；ownership markers 缺失拒绝，不擅自补建。
-
-本次单-store 发布不自动更新或清理既有 VM credential 副本；撤销后旧副本不可继续使用，需要消费
-它们的 runtime 须各自明确授权处理。Mac typed audit PASS 不能代表全部消费端验收。
-
-事务顺序固定为：preflight/单目标锁 → 隔离旧 canonical 凭据 → 在受保护交易区生成并验证候选 →
-精确撤旧并证明拒绝 → 持久保存 provenance → 最后原子发布新 canonical 凭据 → 验证并清理。
-canonical 隔离期间目标 broker 身份 fail closed，未完成不能报 rotated/no-op。同一请求重复执行
-必须验证 active identity/scope 与完成 marker 后零 mutation；中断恢复沿用已有 journal/候选，
-不盲目签发第二个 PAT。旧 PAT 撤销不可逆，撤旧后的发布失败只能恢复保留候选，不能声称恢复旧 PAT；
-撤旧前只有仍有效且符合当前 manifest 的旧凭据才可恢复。细节和验收见
-[spec](docs/changes/316-service-pat-rotation/spec-service-pat-rotation-261002.md) 与
-[06 §4.1](06-运维手册与踩坑集.md#41-服务账号-pat-轮换合同316)。
-
-治理与 runtime 必须分阶段：本票 T01 与方案 A 的 T02A 各只应用 03/06 治理合同和 mapped docs，
-作本地原子 commit 后停止本 turn；T02A 后续 fresh run 重新读取批准的 spec、plan 与治理合同后，
-可沿用本次启动批准实施 T03 broker transport、installer、测试/CI，无需重复启动确认。
-启动确认只授权合同内源码工作，不授予 PR 提交、merge、后续安装
-或实际 Secret 操作权限。AC-2 未真实达成时不声称 #316 已真正解决，不进行完成归档。
+治理合同变更与 runtime 实施分阶段：治理步骤单独 commit 后停止，fresh run 重读批准的合同后再改 runtime。
+启动确认只授权合同内源码工作，不授予 PR 提交、merge、安装或实际 Secret 操作权限。
 
 ## 7. 最终 PR、提交确认与 merge policy
 
@@ -424,7 +367,7 @@ PR 必须：
 - 说明迁移、部署和回滚影响（若适用）。
 - 通过受保护 `main` 要求的 `CI / test (pull_request)`。
 
-PR 合并是唯一交付硬闸门，只由人合并；会话、协调者和 CI 都不得合并 PR（routine 自动合并已随 #391 退出）。
+PR 合并是唯一交付硬闸门，只由人合并；会话、协调者和 CI 都不得合并 PR。
 
 提交前 handoff 固定包含 Issue、branch、真实验证、判级读回和未执行项。确认允许合同内 CI 修复，
 required CI 全绿后停在 `READY_FOR_REVIEW`；不授权部署。确认绑定 Issue/branch，不绑定当时 SHA。
@@ -441,33 +384,28 @@ required CI 全绿后停在 `READY_FOR_REVIEW`；不授权部署。确认绑定 
 
 会话只有在合同冲突、必须扩范围、破坏性迁移、安全/权限决策、缺凭据或外部服务、同一根因连续失败三次、验证不可靠或达到预算上限时才停止并请求人决定。普通编译、测试、构建和范围内 review 失败由会话自主处理。
 
-## 9. 当前实施状态
+## 9. 证据边界
 
-- Issue #57/#60 已把文档 resolver、writer、Matt triage projector、frontier ticket、Agent commit 后置校验、固定 upstream snapshot 与根级路由合并进 source；Issue #75 又统一了 readable branch/directory/worktree/PR 绑定。
-- platform canonical taxonomy 为 20 个（Issue #108 把 `type/*` 扩为 10 个），Matt 另加 7 个 namespaced `triage/*`，source manifest 共 27 个；准确集合以 `codex/config/gitea-labels.json` 的 `canonical` 为准。外部状态可能漂移，部署到每个仓库前必须用 broker `gitea.labels.provision` 同步并读回。
-- 旧 Issue 与历史文档不重命名；新 writer 只产生语义 basename，并从 Issue #75 起要求目录、branch、worktree 与同一 slug 一致。
-- VM 上的 Development Loop、provider adapter 与 routine 自动合并已随 #391 退出（ADR 0002）；
-  `AWAITING_PR_CONFIRMATION` 与 `READY_FOR_REVIEW` 仍是会话流程的两个状态。
+- 标签集合：platform 维度 20 个（10 `type/*`、2 `complexity/*`、8 生命周期），Matt 另加 7 个 namespaced `triage/*`；准确集合以 `codex/config/gitea-labels.json` 的 `canonical` 为准。外部状态可能漂移，部署到每个仓库前必须用 broker `gitea.labels.provision` 同步并读回。
+- 旧 Issue 与历史文档不重命名；新 writer 只产生语义 basename，并要求目录、branch、worktree 与同一 slug 一致。
+- `AWAITING_PR_CONFIRMATION` 与 `READY_FOR_REVIEW` 是会话流程的两个持久状态；VM 上没有无人值守的执行引擎（ADR 0002）。
+- source 合并、本机安装、项目采用与现场运行是各自独立的证据层，不能互相推断。
 
 ## 10. 依赖 Issue
 
-source runtime 的 summary 可用可选字段 `depends_on` 声明本仓 Issue 编号或下述仓库限定引用；缺省或 `[]`
+summary 可用可选字段 `depends_on` 声明本仓 Issue 编号或下述仓库限定引用；缺省或 `[]`
 表示没有结构化依赖。裸数字没有外仓身份，不得把外仓编号填作本仓依赖，也不得从标题或正文猜仓库。
 依赖是 PR 就绪门，不改变分支或 CI：当前 PR 的 CI 通过后，会话核对全部依赖 Issue 必须同时为
 closed 且带有 `completed` 或 `deployed` 生命周期终态，才能进入 `READY_FOR_REVIEW` 等人合并。
 否则停在等待依赖，只重查 CI 与依赖，不创建第二个 PR。
 
-### #286 依赖合同（source/local 已验证，installed/live 尚未验收）
+### 跨仓依赖引用
 
-本节的 source 实现已按 [映射 spec](docs/changes/286-dependency-references/spec-dependency-references-261002.md)
-完成本地双闸门 fixture 验证；不是 installed/live 跨仓功能已生效的证明：
-
-- 旧整数及已支持的数字 scalar 保持只表示本仓；新增严格 `owner/repo#N` scalar，
+- 整数及数字 scalar 只表示本仓；严格的 `owner/repo#N` scalar 表示外仓，
   仅支持同一 manifest-fixed Gitea host。URL、object、任意 host/owner/repo 与路径输入不支持。
 - 目标必须精确命中 canonical manifest 与 source 项目的 `dependency_read_targets`，
-  缺省只允许本仓；允许的跨仓边以 manifest 的 `dependency_read_targets` 为准。
-  新 typed dependency read 只接受 reference，通过该映射后才构造 request；既有
-  `gitea.issue.read(number)` 不扩参数。source executable manifest 已声明此新字段；installed manifest 仍须独立验收。
+  缺省只允许本仓。typed dependency read 只接受 reference，通过该映射后才构造 request；
+  `gitea.issue.read(number)` 不扩参数。
 - 外仓 GET 在 broker 内使用 manager-audit 只读路由，project-agent
   credential 不得用于外仓；无 admin、mutation-token 或 direct-client fallback，不扩 ACL。
 - canonical identity 为 repository identity 与 Issue number。本仓整数/限定形式重合须报重复，
@@ -476,10 +414,9 @@ closed 且带有 `completed` 或 `deployed` 生命周期终态，才能进入 `R
   labels 和 reference；核身份并拒绝 PR。越界/schema 错误停 `NEEDS_HUMAN_DECISION`；
   已授权但网络、ACL、404 或响应不可验证停 `BLOCKED_EXTERNAL`。
 - 依赖引用在 Issue 正文、summary 与 PR 展示中保留仓库身份；只在全部依赖真实终态时
-  才通过既有就绪门。不创建第二个 PR。
+  才通过就绪门。
 
-旧 installed runtime 面对 qualified 输入应拒绝，不能降成数字或删依赖求绿。G01 已独立应用
-治理合同并停止，fresh run 已完成 source 实现；安装/凭据/ACL/live apply/部署始终独立授权。
+已安装 runtime 不认 qualified 输入时拒绝，不能降成数字或删依赖求绿；安装、凭据、ACL 与 live apply 各自独立授权。
 
 ## 11. 合批关闭与交付终态
 
@@ -487,63 +424,47 @@ closed 且带有 `completed` 或 `deployed` 生命周期终态，才能进入 `R
 工具必须处理全部编号并去重，不能只从 subject 猜一个 Issue。更新标签时必须保留
 type、complexity 和非生命周期标签。最终 PR 已合并、且没有一次必然到来的部署会认领它时
 使用 `completed`；确定性部署与验证成功后使用 `deployed`，它比 `completed` 强，会覆盖
-`completed`（反向降级是人的决定，见下）。两者互斥，都不授权合并；Gitea `Closed` 本身
+`completed`（反向降级是人的决定）。两者互斥，都不授权合并；Gitea `Closed` 本身
 也不证明部署成功。
 
 ### 谁推进 `completed`
 
-`deployed` 由应用部署链路在健康检查成功后回写（02 §9）。会话在人确认 merge 后
-执行终态 plan/apply：必须验证 exact merge，再用 pinned Issue 编号调用 `codex/tools/mark-completed-issues.sh`（#115）：
+`deployed` 由应用部署链路在健康检查成功后回写（`02` §9）。会话在人确认 merge 后
+执行终态 plan/apply：先验证 exact merge，再用 pinned Issue 编号调用 `codex/tools/mark-completed-issues.sh`：
 
 ```bash
 codex/tools/mark-completed-issues.sh --range 'origin/main~5..origin/main'   # 读计划
-codex/tools/mark-completed-issues.sh --apply 167 168                        # 用计划回给的 pinned 编号写入
-# 在别的项目仓上运行时目标由 checkout 判定（#184），判定不出才需要显式 --project：
-codex/tools/mark-completed-issues.sh --repo <项目 checkout> --range '...'  
+codex/tools/mark-completed-issues.sh --apply <pinned 编号>                  # 用计划回给的编号写入
+# 在别的项目仓上运行时目标由 checkout 判定，判定不出才需要显式 --project：
+codex/tools/mark-completed-issues.sh --repo <项目 checkout> --range '...'
 ```
 
 默认只输出逐 Issue 的判定计划、不做任何写入；确定性验证计划瞄准 exact merge 后加 `--apply` 才经
 broker `gitea.issue.labels.set` 写入。已经是 `deployed` 的 Issue 不会被降级为
 `completed`。终态、文档、cleanup 与会话归档在 merge 后按确定性流程完成，不再增加人工确认点。
 
-### 范围锚不能是会移动的 ref（#175）
+### 范围锚不能是会移动的 ref
 
 `origin/main~N` 在**工具启动那一刻**求值，不是在 `git.fetch.main` 那一刻，也不是在人
-点头那一刻。于是有两个窗口，任何一个里 `origin/main` 前进一次，范围就整体后移：
+点头那一刻。于是有两个窗口，任何一个里 `origin/main` 前进一次，范围就整体后移，
+写到别人刚合并的 Issue 上而不报错：
 
-| 窗口 | 两端 |
-|---|---|
-| W1 | `git.fetch.main` → 跑计划 |
-| W2 | 跑计划 → 跑 `--apply`（中间隔着一次人工确认，窗口更长） |
+| 窗口 | 两端 | 关窗做法 |
+|---|---|---|
+| W1 | `git.fetch.main` → 跑计划 | 计划第一行 `{"selector":"range","range":<字面量>,"commits":[{"commit":<sha>,"subject":…,"issues":[N,…]}],"pinned":"N …"}`，逐 Issue 行另带 `commit`；核对 `commits` 就是自己那次 merge |
+| W2 | 跑计划 → 跑 `--apply` | `--apply` 用计划回给的 `pinned`（Issue 编号）重跑，不再传 `--range` |
 
-`#167` 收尾时实测到 W1：`git.fetch.main` 取回时 `origin/main` = `770d527`（#167 的 merge），
-下一条命令用 `--range 'origin/main~1..origin/main'` 却返回 `{"issue":168,...}`——期间
-PR #169 被合进 main，`origin/main~1` 于是等于 `770d527`。写错既不报错也不易发现：错的
-对象是别人刚合并的 Issue，而 `completed` 恰恰常常正是它该有的标签。
-
-两条确定性做法，两个窗口各关一个：
-
-- **W1**：使用 `--range` 时，计划的第一行是
-  `{"selector":"range","range":<字面量>,"commits":[{"commit":<sha>,"subject":…,"issues":[N,…]}],"pinned":"N …"}`，
-  逐 Issue 行另带 `commit`。核对 `commits` 就是自己那次 merge，不必另行 `git log` 反推。
-  范围命中 0 个 commit、或命中的 commit 一个 Issue 都不提，都是各自独立的错误，不再复用
-  「没给选择器」那句话——那句话说的是参数缺失，与事实不符。
-- **W2**：`--apply` 用计划回给的 `pinned`（就是 Issue 编号）重跑，不再传 `--range`。
-  Issue 编号不可变，`origin/main` 之后怎么动都不影响写入对象。
-
+范围命中 0 个 commit、或命中的 commit 一个 Issue 都不提，各自报独立的错误。
 `codex/tools/apply-classification-labels.sh` 的 `--range` 面同样处置，包括 `--verify`：
-一次被滑走的 `--verify` 会读回别人的 Issue 并报 `projected` 退 0，而这道闸门正是判级窗口
-永久关闭前的最后一步（#167），假绿比没有闸门更糟。**`--verify N` 一律用编号。**
+一次被滑走的 `--verify` 会读回别人的 Issue 并报 `projected` 退 0。**`--verify N` 一律用编号。**
 
-`codex/tools/mark-deployed-issues.sh` **不接受 `--range`，本次也没有给它加**：它是部署链路
-的 hook，运行在部署已经 checkout 的那个 commit 上，锚是 `HEAD` 或显式的
-`MERGE_MESSAGE_FILE`，都是钉死的对象，中间没有第二条命令让 ref 移动；而且它的姿态是任何
-缺失前提都 warn + exit 0、绝不让已成功的部署失败，给它加一份需要人读的计划会直接违反那个
-姿态——那里没有人在读。该事实由 `codex/tests/test-mark-deployed-issues.sh` 钉住。
+`codex/tools/mark-deployed-issues.sh` **不接受 `--range`**：它是部署链路的 hook，运行在部署已经
+checkout 的那个 commit 上，锚是 `HEAD` 或显式的 `MERGE_MESSAGE_FILE`；它的姿态是任何缺失前提都
+warn + exit 0、绝不让已成功的部署失败，那里没有人读计划。该事实由 `codex/tests/test-mark-deployed-issues.sh` 钉住。
 
-判定是一个**合取**，两个条件都取自仓库证据，都不接受人工传入的终态判断（#163）：
-
-下表只适用于已经通过文档声明与实际文件校验的合同。#289 要求工具通过 §3 的共享 resolver 取得规范化 required_docs；缺失的 verification 不能作为“含 verification”的有效合同进入此表，不能改读原文或依据部署属性放行。该约束与工具接入已随 #289 完成 source/local 验证并合并；不由此推导现场安装或部署完成。
+判定是一个**合取**，两个条件都取自仓库证据，都不接受人工传入的终态判断。下表只适用于已经通过
+文档声明与实际文件校验的合同：工具通过 §3 的共享 resolver 取得规范化 required_docs，缺失的
+verification 不能作为“含 verification”的有效合同进入此表。
 
 | 该 Issue 映射 summary 的 `required_docs` 含 `verification` | 该项目的 `deployment_lifecycle` | 终态 |
 |---|---|---|
@@ -552,134 +473,92 @@ PR #169 被合进 main，`origin/main~1` 于是等于 `770d527`。写错既不�
 | 是 | `application-deploy-selective`（**缺省**） | `completed`，`reason` 记为 `deployment-not-guaranteed` |
 | 是 | `none` | `completed`，`reason` 记为 `no-deployment-chain` |
 
-两个条件回答的是两个不同的问题：`required_docs` 说的是「这次变更欠不欠一份验证记录」，
+两个条件回答两个不同的问题：`required_docs` 说的是「这次变更欠不欠一份验证记录」，
 `deployment_lifecycle` 说的是「这个仓库的部署链路会不会覆盖到本次 merge」。
-#163 之前只有前一个条件，它被迫兼答后一个问题，于是声明了 `verification` 的平台变更
-两个终态都没人写——#138、#146、#148 三个已合并 closed Issue 因此长期一个标签都没有。
 
-### 「跳过等待」必须有一个会到来的写入者（#192）
+### 「跳过等待」必须有一个会到来的写入者
 
-#163 给第二个条件的问法是「这个仓库**有没有**那条链路」。那不是跳过所依赖的问题：跳过是把
-Issue 停在原地等 `deployed`，所以真正要成立的是「会有一次部署覆盖**本次 merge**」。两者只在
-「合并即部署」的仓库上重合；在按需部署的仓库上分叉，落进分叉处的变更两个终态都没人写——
-`completed` 因含 `verification` 被排除，`deployed` 因这次不部署而永不写入。
-
-**这不是推演。** 缺省档下的一个业务项目有 15 个已合并且声明了 `verification` 的 Issue，其中 5 个
-（#13、#23、#29、#34、#35）closed 之后一个标签都没有；另外 10 个的 `completed` 是绕过这条判定
-写上去的——当前工具对那 10 个全部判 `skip`。#192 的映射 verification 记录了逐条读回。
-
-因此 `application-deploy` 的含义收紧为「**每一次 merge 都会被这条链路部署**」，只有它保留
-「跳过等待」；不保证覆盖每次 merge 的仓库用 `application-deploy-selective`，终态当场写
-`completed`。**缺省取后者，因为两个方向的错并不对称**：
+跳过是把 Issue 停在原地等 `deployed`，所以要成立的是「会有一次部署覆盖**本次 merge**」。
+`application-deploy` 的含义因此是「**每一次 merge 都会被这条链路部署**」，只有它保留「跳过等待」；
+不保证覆盖每次 merge 的仓库用 `application-deploy-selective`，终态当场写 `completed`。
+**缺省取后者，因为两个方向的错并不对称**：
 
 - 写早了会被纠正：`mark-deployed-issues.sh` 剥掉 Issue 的整个生命周期维度再写 `deployed`，
   所以「先 `completed`、后来真部署了」的终点仍然是 `deployed`。
 - 写早了也盖不掉真部署：broker 的 `_set_issue_lifecycle` 对「已经 `deployed` 却要写
-  `completed`」直接 `REQUEST_DENIED`（本节开头那句「不会被降级」就是它）。
-- 漏写没人纠正：本节开头已经说了，没有任何组件处在能观察到合并的位置上。
+  `completed`」直接 `REQUEST_DENIED`。
+- 漏写没人纠正：没有任何组件处在能观察到合并的位置上。
 
-所以 §3 那句「作者不必为了让 Issue 能收尾而少声明一份该写的验证记录」对**三档都成立**：
-`application-deploy` 靠该取值自身的定义保证等待有终点，另外两档当场到 `completed`。
-反过来说，**声明 `application-deploy` 等于承诺这条链路覆盖每一次 merge**——不确定就不要声明，
-缺省不会落到它上面。
+**声明 `application-deploy` 等于承诺这条链路覆盖每一次 merge**——不确定就不要声明，缺省不会落到它上面。
 
 ### 哪些仓库的部署链路覆盖每一次 merge
 
-由 `codex/config/gitea-governance.json` 的仓库条目声明一次，不是每次变更重新回答——
-「这条链路覆盖不覆盖每一次 merge」是仓库属性：平台仓库里没有任何变更走应用部署链路。
+由 `codex/config/gitea-governance.json` 的仓库条目声明一次，是仓库属性，不是每次变更重新回答：
 
 ```json
 { "name": "aisoft-platform", "...": "...", "deployment_lifecycle": "none" }
 ```
 
 - `application-deploy`：`02` §9 的应用部署链路存在，**且每一次 merge 都会被它部署**，在健康检查
-  成功后写 `deployed`。目前没有任何仓库声明它——声明它就是承诺覆盖每一次 merge。
-- `application-deploy-selective`：链路存在，但只覆盖一部分 merge。**未声明时取此值**——可自愈的
-  一档（理由见上一节），不是最宽或最严的一档。
-- `none`：没有那条链路，`deployed` 不可达，`completed` 是唯一终态。目前只有 `aisoft-platform` 声明。
+  成功后写 `deployed`。
+- `application-deploy-selective`：链路存在，但只覆盖一部分 merge。**未声明时取此值**。
+- `none`：没有那条链路，`deployed` 不可达，`completed` 是唯一终态。平台仓声明此值。
 
-工具读到这三个取值以外的任何值都报错退出，不落进任何一档：它据此写终态标签，一个拼错的声明
-落进某一档就会读起来像一次决定。
+各仓库的实际取值以 manifest 为准。工具读到这三个取值以外的任何值都报错退出，不落进任何一档。
 
 `deployment_lifecycle` 只影响合并后的终态记账：它不触发也不抑制任何部署，不改分支保护与必需 CI，
 也不改变 `required_docs` 该不该含 `verification`。manifest 读不到或查不到条目时，
-工具报错退出而不是静默跳过——沉默恰恰是它要修的那个失败模式；只是**没有声明该键**不属此列，
-按缺省处理。
+工具报错退出而不是静默跳过；只是**没有声明该键**不属此列，按缺省处理。
 
 `--project` 收的是 `codex/config/host-access-broker.json` 里的 **project id**（小写短横线形式），
-不是仓库名。governance manifest 按**仓库名**索引，两者在多数项目上并不同名，所以仓库名由 project id 反查得到、不由调用方提供（#172）——host-access manifest 已经
-声明了这个双射，`aisoft_host_access.contract` 也已经强制它的值都存在于 governance manifest。
+不是仓库名。governance manifest 按**仓库名**索引，仓库名由 project id 反查得到、不由调用方提供；
 两侧任一查不到都报错退出，消息各自指名是哪一份 manifest 少了哪个键。
 
-> manifest 与 broker 同理：改了 `codex/config/gitea-governance.json` 之后，扁平安装
+> 改了 `codex/config/gitea-governance.json` 之后，扁平安装
 > （`/usr/local/share/aisoft/gitea-governance.json`）要重装才跟上。工具优先读仓库布局下的
 > `codex/config/gitea-governance.json`，所以从平台 checkout 跑收尾时合并即生效。
 
 ### 谁投影 `type/*` 与 `complexity/*`
 
-同一个缺口的另一半（#160）。`aisoft_loop.cli apply-analysis` 是这两个维度唯一的写入点，
-它当时只在 Development Loop 内运行（Loop 已随 #391 退出），所以 Mac 交互会话开出的 Issue 判级只落在 summary
-front matter 里，标签始终为空——四维正交合同在这条路径上从来没被满足过。
-
-由人在**判级文档写好之后**运行 `codex/tools/apply-classification-labels.sh` 投影
-（会话内的位置见 `aisoft-platform` skill 的会话标准动作）：
+`codex/tools/apply-classification-labels.sh` 在**判级文档写好之后**、合并之前投影两个维度
+（会话内的位置见 `aisoft-platform` 技能的会话标准动作）：
 
 ```bash
-codex/tools/apply-classification-labels.sh 160
-codex/tools/apply-classification-labels.sh --apply 160
+codex/tools/apply-classification-labels.sh N
+codex/tools/apply-classification-labels.sh --apply N
+codex/tools/apply-classification-labels.sh --verify N
 ```
 
 与 `mark-completed-issues.sh` 同姿态：默认只输出逐 Issue 的判定计划、不做任何写入；
-确认后加 `--apply` 才经 broker `gitea.issue.labels.classify` 写入。两个维度的取值取自该
+加 `--apply` 才经 broker `gitea.issue.labels.classify` 写入。两个维度的取值取自该
 Issue 映射 summary 的 `change_type` 与 `effective_complexity`，**不接受人工传入标签**；
-summary 没有 `effective_complexity`（`contract_effect: unclear` 的
-needs-human-decision 形态）时跳过并说明，不臆造复杂度。broker 侧再对已安装的
-label manifest 逐维校验，retired 的 `complexity/standard` 写不进去。写入替换的是这两个
-维度，生命周期标签、`triage/*` 与 `area/`、`priority/` 等项目扩展标签原样保留。
+summary 没有 `effective_complexity`（needs-human-decision 形态）时跳过并说明，不臆造复杂度。
+broker 侧再对已安装的 label manifest 逐维校验，retired 的 `complexity/standard` 写不进去。写入
+替换的是这两个维度，生命周期标签、`triage/*` 与 `area/`、`priority/` 等项目扩展标签原样保留。
 
-**已关闭的 Issue 不补写**，工具直接跳过且不提供 override 开关。依据：
-`aisoft_loop.cli list-issues` 的请求是 `state=open`，检索缺口只存在于 open Issue 上；
-判级事实已经在合并后的 summary 里且不可变；改写已经收尾的记录与「retired label
-只报告不移除」「`deployed` 不降级为 `completed`」是同一条姿态。
+**已关闭的 Issue 不补写**，工具直接跳过且不提供 override 开关：判级事实已经在合并后的 summary 里
+且不可变；改写已经收尾的记录与「retired label 只报告不移除」「`deployed` 不降级为 `completed`」是同一条姿态。
 
-> 新增 typed 操作后 broker 必须在 Mac 与 gitea-ci 两台重装才生效，
+> 新增 typed 操作后 broker 必须在 Mac 与 VM 两台重装才生效，
 > 未重装时新操作返回 `REQUEST_DENIED / not allowlisted`（`06` 踩坑 20）。
 
-#### 窗口在合并时关闭（#167）
+#### 窗口在合并时关闭
 
-「已关闭不补写」有一个直接推论：**判级投影有一个截止时间，就是合并**。#160 交付之后它仍然
-被漏掉过一次——#163 跑了计划、`--apply` 撞上未重装的 broker、PR 合并、窗口关闭——因为当时
-没有任何环节会在关闭前提醒，而工具本身也答不出「这个 Issue 现在到底有没有标签」：计划模式
-只报「我会写什么」，对已投影和从没投影过输出逐字相同。
-
-补上的是**读回与闸门**，不是补写能力：
-
-```bash
-codex/tools/apply-classification-labels.sh --verify 167
-```
-
-`--verify` 读回 Issue 当前标签并与映射 summary 比对，逐 Issue 给出
-`projected` / `projection-missing` / `projection-mismatch` / `projection-window-closed`，
-只有全部 `projected` 才退 0；读不出证据（文档缺失、判级未决、broker 不可用）一律计为失败，
-不输出「看起来没问题」。它是只读的（`gitea.issue.read` + `gitea.issue.labels.read`，都是
-既有非 mutating 操作，早于 `gitea.issue.labels.classify` 存在），永不调用写操作，与 `--apply`
-互斥。`projection-window-closed` 刻意**不给 `remedy` 字段**——没有可执行的补救就是结论本身。
+「已关闭不补写」的直接推论：**判级投影的截止时间就是合并**。`--verify` 读回 Issue 当前标签并与映射
+summary 比对，逐 Issue 给出 `projected` / `projection-missing` / `projection-mismatch` /
+`projection-window-closed`，只有全部 `projected` 才退 0；读不出证据（文档缺失、判级未决、broker
+不可用）一律计为失败。它是只读的（`gitea.issue.read` + `gitea.issue.labels.read`），永不调用写操作，
+与 `--apply` 互斥。`projection-window-closed` 刻意**不给 `remedy` 字段**——没有可执行的补救就是结论本身。
 
 会话侧的落点在 `issue-session-flow` 的待合并块：`判级:` 一行必须是这条命令的真实读回，
 不是 `projected` 就不进入待合并；收尾时再跑一次，把漏掉的情形显式报出来。
 
-#### 目标仓库由 checkout 判定（#184）
+#### 目标仓库由 checkout 判定
 
-`--verify` 只有在**读的是正确那个仓库**时才是闸门。这两个工具此前把 `--project` 默认成
-`aisoft-platform` 且从不与 `--repo` 核对：在别的项目仓上漏传 `--project`，判级值取自目标仓
-checkout，Issue 状态与标签却取自平台仓的同号 Issue。产出的不是报错，而是一个自洽、格式完好、
-**针对另一个仓库**的结论。假失败会虚报「判级已永久丢失」；假通过更致命——平台仓的同号 Issue
-只要恰好带着 `type/platform` + `complexity/complex`（那里最常见的一对组合），闸门就干净退 0。
-
-现在目标项目**由 checkout 判定**：从 `--repo` 的 Git remote URL 反查 host access manifest 的
-`projects[]`，得到 `project_id` 与 `repository`（构造方式与 broker 的 `_expected_git_url` 一致，
-所有 remote 的 fetch 与 push URL 都参与匹配——有的项目 Gitea remote
-名为 `gitea` 而非 `origin`，见 manifest 的 `git_remote_name`）。四种结局：
+`--verify` 只有在**读的是正确那个仓库**时才是闸门。目标项目**由 checkout 判定**：从 `--repo` 的
+Git remote URL 反查 host access manifest 的 `projects[]`，得到 `project_id` 与 `repository`（构造方式
+与 broker 的 `_expected_git_url` 一致，所有 remote 的 fetch 与 push URL 都参与匹配——有的项目 Gitea
+remote 名为 `gitea` 而非 `origin`，见 manifest 的 `git_remote_name`）：
 
 | checkout 能否判定 | 是否传 `--project` | 结果 |
 |---|---|---|
@@ -689,32 +568,38 @@ checkout，Issue 状态与标签却取自平台仓的同号 Issue。产出的不
 | 否 | 是 | 用传入的项目（唯一可用证据是操作者的声明） |
 | 否 | 否 | **报错退出**，提示传 `--project <project_id>` |
 
-`--project` 因此从「默认」降级为「覆盖」，命名空间仍只认 broker 的 `project_id`（#172）。
-每一行 JSON 输出带 `project` 与 `repository` 两个字段，指名它在谈论哪个仓库。只有 GitHub
-remote 而没有 Gitea remote 的 checkout（如已退出治理的旧试点仓）判定不出项目，必须显式传 `--project`——
-这是 fail-closed 的预期形态，不是回归：在此之前它得到的是一个针对平台仓的错误结论。
+`--project` 是「覆盖」不是「默认」，命名空间只认 broker 的 `project_id`。每一行 JSON 输出带 `project`
+与 `repository` 两个字段，指名它在谈论哪个仓库。只有 GitHub remote 而没有 Gitea remote 的 checkout
+判定不出项目，必须显式传 `--project`——这是 fail-closed 的预期形态。
 
-broker 因操作表陈旧而拒绝时，工具不再把 `REQUEST_DENIED` 原样透出，而是报
-`broker-operation-missing`，detail 里直接写明「这是安装期旧表，不是权限问题」与两台重装的
-命令（`06` 踩坑 20）——那句话读成权限问题，正是 #163 错过窗口的直接触发因素。
+broker 因操作表陈旧而拒绝时，工具报 `broker-operation-missing`，detail 写明「这是安装期旧表，
+不是权限问题」与两台重装的命令（`06` 踩坑 20）。
 
 #### 已经错过窗口的 Issue：处置结论
 
-| Issue | Gitea 实际标签 | 合并后 summary 的判级 |
+**接受缺 `type/*` 与 `complexity/*`，不补写、不改写、不加 override。** 判级事实在合并后的 summary 里、
+不可变、可由 `resolve-documents` 定位；为它们破例等同于承认一个 override。`--verify` 只保证**窗口关闭前**
+被提醒，不回到过去。要读任一已关闭 Issue 的判级，看它映射的 summary，或直接跑 `--verify N`——
+`projection-window-closed` 那一行本身就带着 `change_type` 与 `complexity` 两个值。已知错过窗口的 Issue
+列在下方来历表。
+
+## 来历
+
+| Issue | 合并 | 一句话 |
 |---|---|---|
-| #138 | `['completed']` | `platform` / `complex` |
-| #146 | `['completed']` | `platform` / `complex` |
-| #148 | `['completed']` | `platform` / `complex` |
-| #163 | `['completed']` | `platform` / `complex` |
-
-（2026-08-24 经 broker `gitea.issue.labels.read` 读回。）
-
-**结论：接受这四个 Issue 缺 `type/*` 与 `complexity/*`，不补写、不改写。** 依据与「已关闭的
-Issue 不补写」同源：判级事实已经在合并后的 summary 里、不可变、可由 `resolve-documents`
-定位；`list-issues` 只查 `state=open`，四维正交合同要服务的那个检索缺口在这四个 Issue 上
-已经不存在；为它们破例等同于承认一个 override，而 override 正是 #167 明确不要的东西。
-缺口的代价一次性记在这里，换的是姿态没有例外。
-
-闸门与它们的关系要说清楚：`--verify` 只保证**窗口关闭前**被提醒，不回到过去，也不试图回去。
-要读任一已关闭 Issue 的判级，看它映射的 summary，或直接跑 `--verify N`——
-`projection-window-closed` 那一行本身就带着 `change_type` 与 `complexity` 两个值。
+| #108 | `314153e` | `type/*` 扩为 10 个（加 security、reliability、data），标签共 27 个 |
+| #115 | `2a09bb6` | 会话侧 `mark-completed-issues.sh` 推进 `completed` |
+| #134 | `97878f9` | `change_control: development` 阶段：development complex 用 Issue 验收合同与合成 `T01` |
+| #142 | `74293d7` | `pr_url` 只写在 summary，由 `backfill-pr-url` 回填 |
+| #160、#167、#184 | `933323b`、`770d527`、`d73fee4` | 判级投影工具、合并前 `--verify` 闸门、目标仓库由 checkout 判定 |
+| #163、#192 | `208b2bf`、`abcfd18` | 终态合取表与 `deployment_lifecycle` 三档，缺省 selective |
+| #138、#146、#148、#163、#387 | — | 合并前漏了判级投影，按「已经错过窗口」处置，不补写 |
+| #172、#175 | `fa34944`、`ad4aaeb` | `--project` 收 project id；范围锚改为 pinned 编号 |
+| #190、#377 | `5e324ac`、`8fa4458` | 模板 digest 与下游广播；版本化使用发布包 |
+| #286 | `4020765` | `depends_on` 支持 manifest 限定的跨仓引用 |
+| #289 | `16beee0` | `required_docs` 声明与实际文件共用一个校验结果 |
+| #298、#327 | `f6e2e50`、`1a86a00` | change worktree 单写者归属；broker 普通 FF 整合与历史重写拒绝 |
+| #316 | `dc9aa46` | 服务账号 PAT 轮换合同与 `gitea.credential.rotate` |
+| #360 | `06afadf` | canonical 模板的精确 Git scope 例外 |
+| #391、#395、#397 | `08be6f4`、`86821cf`、`fb9d8c5` | routine 合并与 VM 执行引擎退出（ADR 0002）；路由卡；routine manifest 字段删除 |
+| #403 | — | 本册改为现行合同体，叙事移入本表 |
