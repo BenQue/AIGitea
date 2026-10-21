@@ -56,7 +56,7 @@ updated: 2026-10-21
 - approval 只写 summary：spec/plan 模板去掉 `status`，broker 推送闸门 `aisoft_main_integration.py` 不再读 spec 状态。
 - 会话工具新增 `aisoft open-pr`（首推、建 PR、回填、提交、再推一步完成）；技能与使用合同改写对应步骤。
 - SFM 一个项目侧 small Issue 由 Cursor 会话走完；E2E 表加「工具」列。
-- 发布包下一空闲版本（预计 1.9.0）；change 模板 digest 刷新与下游同步清单。
+- 发布包下一空闲版本（R12 先合并占用 1.9.0，本批发布 1.10.0）；change 模板 digest 刷新与下游同步清单。
 
 ## 初步方案与建议
 

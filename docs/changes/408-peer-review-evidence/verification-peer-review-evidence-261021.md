@@ -25,7 +25,7 @@ updated: 2026-10-21
 
 ## 基线与范围
 
-- 基线：`origin/main` = `cee4294979f027a132de4b3abc82108cde4d9d88`（#406 合并）；分支先 rebase 到它，从未推送过
+- 基线：`origin/main` = `cee4294979f027a132de4b3abc82108cde4d9d88`（#406 合并）；分支先 rebase 到它；Codex 第 4 轮 PASS 后以 merge commit 集成 `f169b126`（#409 R12）
 - 环境：macOS 本机（bash 3.2、`/opt/homebrew/bin/rg`），codex-cli 0.161.0，Claude Code 2.1.228，cursor-agent 2026.10.19（已登录）
 - 本记录负责证明的 acceptance criteria：AC-1–AC-7
 - 实现方 Claude（本线程），审查方 Codex（`codex exec -s read-only`）
@@ -45,7 +45,7 @@ updated: 2026-10-21
 | 反向证明：恢复旧 `scope()` | PASS | 上述用例 `FAILED (errors=2)`；还原后 OK |
 | `python3 -m unittest tests.test_session_contract` | PASS | 12 tests OK，open-pr 三条钉子与一条突变 |
 | `bash codex/tools/change-template-sync.sh --refresh-digest` | PASS | `sha256:ac1cef01… -> sha256:f59cc189…`；下游清单 holders 6，本机 HSDB、LocalWMS、NewEMaint、SFMDigitalBoard 为 stale（本机 checkout 状态），myapp、smoke-test unverified |
-| `bash codex/tools/usage-bundle.sh --verify --baseline-ref origin/main` | PASS | `VERIFIED 1.9.0 sha256:4a685fe1…`（审查修复后按规则清空重发同号） |
+| `bash codex/tools/usage-bundle.sh --verify --baseline-ref origin/main` | PASS | 分支内曾发 1.9.0（未上 main，审查修复后按规则清空重发同号）；R12（#409）先合并占用 1.9.0，集成 main `f169b126` 后改发 `VERIFIED 1.10.0 sha256:5cccc9ff…` |
 | `aisoft classify --apply 408` 与 `--verify 408` | PASS | `"result":"projected","change_type":"platform","complexity":"complex"` |
 
 ## 能力集读回（AC-1）
@@ -82,7 +82,7 @@ exit 0。合并并两台重装技能后，在主 checkout 上直接运行应得�
 | AC-4 | PASS | broker 闸门用例与反向证明（见上表） |
 | AC-5 | PASS | `test-aisoft-entry.sh` open-pr 用例；本批 PR 用 `aisoft open-pr` 开（结果见确认点 2 之后的 summary 回填提交） |
 | AC-6 | PASS | 上节；SFM PR 187 |
-| AC-7 | 见下 | 发布 1.9.0、`--verify` 与 digest PASS；最终 head 的全量 smoke 与 Codex 审查见下节 |
+| AC-7 | 见下 | 发布 1.10.0、`--verify` 与 digest PASS；最终 head 的全量 smoke 与 Codex 审查见下节 |
 
 ## 交叉审查
 
@@ -91,6 +91,7 @@ exit 0。合并并两台重装技能后，在主 checkout 上直接运行应得�
 | 1 | Claude | Codex（`codex exec -s read-only`） | `2256a105552868b805260978fe46869caa34fd02` | FAIL | major：Codex Matt 只核 manifest → 改为核对快照里每个技能的内容哈希与 `.agents/skills` 加载链接，补用例（`e3e72ef2`）；major：open-pr 本地校验与 broker 不一致（CRLF、路径边界、多条 summary、64 KiB）→ 同一字符串按 broker 规则校验后发送，补三种零请求用例；major：提交失败后无法重跑 → 只剩本 summary 的 `pr_url`/`status` 改动时允许续跑，补 hook 失败用例（`4ef731c7`）；major：AC-6 未交付 → SFM #186 与 E2E 表「工具」列；minor：本记录未填 → 本次填写；minor：`git_scope` 多一项 → E2E 表已改，复核相等；minor：索引缺合并 SHA → 补列 |
 | 2 | Claude | Codex（`codex exec -s read-only`） | `26212a0ab7f6b1a921a1b4183655ff2a58b58632` | FAIL | 第 1 轮 1、2、5、6、7 确认已修；major：续跑仍先推送，真实 broker 拒推脏工作树 → 续跑先核对 summary 已回填本仓 PR 再提交、只推一次，假 broker 也拒推脏工作树，补反向证明；major：lock 为符号链接时退回最新版本，可把 GAP 读成 PASS → 只有 lock 不存在才退回，链接/目录报 `UNKNOWN`，补用例；minor：fresh 会话未证明 `aisoft-platform` 触发 → 补第二次 fresh 会话 |
 | 3 | Claude | Codex（`codex exec -s read-only`） | `bc7e5d0ad487bfcb2245d118d5fb0fd3924ad20b` | FAIL | 第 2 轮三条确认已修；major：续跑在核对 worktree 归属前提交，别的会话能改动他人 HEAD → open-pr 第一步用 `authorize_push` 与 `caller_session` 核对归属并比对 marker 的 worktree 路径，任何写入与 broker 调用都在它之后，补「错误 session / 缺 session 续跑时 HEAD、index、summary 不变」用例与反向证明；minor：表格被空行截断 → 去掉空行 |
+| 4 | Claude | Codex（`codex exec -s read-only`） | `8bb412c8ae1dfbdf483e7e6da33c2e3336944a82` | PASS | 第 3 轮两条确认已修；无 blocker/major/minor。沙箱内不能建临时目录的两个 shell 测试与 `test_main_integration` 由 Codex 记 NOT RUN，实现方在集成 main 后的 head 上跑全量 smoke（见执行结果） |
 
 任务书与各轮原文在项目库 `codex-review-408.md`。
 
