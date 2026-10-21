@@ -26,7 +26,7 @@ updated: 2026-10-21
 
 ## 基线与范围
 
-- 基线：`origin/main` = `86821cf`；实现中 R16（#397，PR 400）与 #370（PR 401）先后合并，用 merge commit `85ddf20`、`97b48d7` 集成，`origin/main` = `fdf93c1`。发布包 1.7.0 已被 R16 占用，本票发 1.8.0（`compatibility: minor`）。
+- 基线：`origin/main` = `86821cf`；实现中 R16（#397，PR 400）、#370（PR 401）与 R14（#403，PR 404）先后合并，用 merge commit `85ddf20`、`97b48d7`、`12e6d2b` 集成（03 冲突按 R14 现行合同写法解决），`origin/main` = `b2a154d`。发布包 1.7.0 已被 R16 占用，本票发 1.8.0（`compatibility: minor`）。
 - 环境：macOS 本机（`/bin/bash` 3.2.57、Python 3、`sandbox-exec`）；已安装 broker（`/usr/local/libexec/aisoft/host-access-broker`）。
 - 本记录负责证明的 acceptance criteria：AC-1 至 AC-8。会话 id `claude-r11-402-90529a4f`。
 
@@ -68,6 +68,7 @@ updated: 2026-10-21
 | 3 | `2a583e2` | FAIL | `git_scope` 漏列 `skills/aisoft-matt-workflow/SKILL.md`（离线复现 SCOPE_DENIED） |
 | 4 | `422905d` | PASS | 无；`git_scope` 与 diff 一致（25 条），源码推送闸门离线复现 PASS（19 个提交含 2 个 main 集成 merge） |
 | 5 | `33453e6` | FAIL | 并入 §7 后：LocalWMS list-contract 闸门钉死旧 `fetch-depth`（`CHECKOUT_DEPTH_FACT_GONE`）；#335 summary 缺项目必需的「两份清单的影响」小节；复用旧浅克隆工作区时 fetch 不补历史（合并预览 `MERGE_PREVIEW_NO_MERGE_BASE`）；smoke 守卫漏行内 `uses`；改判证据不一致 |
+| 6 | `7550616` | FAIL | 第 5 轮 5 条已修；新：unshallow 参数跨重试保留，上一轮已补全历史时重试会报错；LocalWMS workflow 注释与 summary 仍写 push 为 depth 1 |
 
 ## 判级投影
 
@@ -79,6 +80,11 @@ updated: 2026-10-21
 - smoke 守卫改为识别任意位置的 `uses` 键（块项、行内映射、带引号键），并内置四个探针：三种 `uses` 写法必须命中、普通步骤不得命中。
 - LocalWMS（`253fec0`）：`list-contract-gate.mjs` 的全历史事实改钉 unshallow 判定，测试措辞同步；#335 summary 补「两份清单的影响」三问；`node scripts/ci/list-contract-gate.mjs` 绿；`node --test` 跑 list-contract、ci-merge-preview、ci-audit 三组 48 条全过，`fault-matrix-gate` 因本机未装 `typescript` 依赖起不来（改动前基线同样失败，NOT RUN，交给 PR CI）。
 
+## 第 6 轮修复与 R14 交来的更正
+
+- 模板与 LocalWMS 的 checkout 每轮 fetch 前重新判断浅仓（`4064b51`、LocalWMS `ci.yml`）；LocalWMS workflow 注释、闸门注释与 summary 改为「两条路都取全历史」。
+- R14 交接里归本票的两处技能更正（`bb22d06`）：`aisoft-platform` 会话第 7 步改为「已推送分支用 merge commit 集成 main」；`project-align.md` 的 #360 过时句改为现行的模板 scope 例外说明。路线图 R14 行改「已完成」。
+
 ## 已知限制与遗留
 
 - broker `git.push.change` 要求 small 也带映射 spec 的 `git_scope`，与「small 只有 summary」冲突；本票的采用 Issue 带只写 scope 的 spec，冲突本身交后续处理。
@@ -87,7 +93,6 @@ updated: 2026-10-21
 - `aisoft_loop.cli` 的 `get-issue`、`list-issues`、`apply-analysis` 未删（要 raw token，不进 `aisoft`），后续遗留项。
 - 被工具包收录的平台文件以后改动都要发新版本。
 - 平台仓自己的 `.gitea/workflows/ci.yml`（#370）同样没有处理复用的浅仓；不在本票范围，后续遗留项。
-- `project-align.md` 里「#360 T02 仅应用治理文档、runtime 尚未验收」已过时（R14 指出），后续遗留项。
 
 ## 未运行
 

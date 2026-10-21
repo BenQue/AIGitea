@@ -1642,7 +1642,7 @@
     {
       "version": "1.8.0",
       "released": "2026-10-21",
-      "bundle_digest": "sha256:484124603540ea5a7468d55f42857024a353ece05da9c2bfeebe249b0b99969d",
+      "bundle_digest": "sha256:581ef2521043f90912a8177ddae3b8ba6f3db0ef0695bbfc450d4bda314e295e",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -1716,7 +1716,7 @@
           "source": "templates/project/ci/ci.yml",
           "mode": "seed",
           "target": ".gitea/workflows/ci.yml",
-          "sha256": "2ebcc0779624252312cc923239030be6d83de5432efad7fb497b2517440b6942"
+          "sha256": "60d101dc20c6dbddbaebc8edc99869512c42816c0fefedf220960ce8eb7e2fc2"
         },
         {
           "source": "templates/project/ci/merge-preview.sh",
@@ -1750,7 +1750,7 @@
         {
           "source": "skills/aisoft-platform/SKILL.md",
           "mode": "skill",
-          "sha256": "09ee5d28b6ae7862b8d81811315ce2eb3f031a8ad97fb006095475563878940c"
+          "sha256": "0f10a6dff7bd57a94cd765ba6da407451841851f781a1fedc49e58e625d60594"
         },
         {
           "source": "skills/aisoft-platform/agents/openai.yaml",
@@ -1770,7 +1770,7 @@
         {
           "source": "skills/aisoft-platform/references/project-align.md",
           "mode": "skill",
-          "sha256": "86dea420cc6e228c763b7b8b860ae31e6c6188b84f765ae7e30943c637b7d9f8"
+          "sha256": "d05fb2327ebde00f5cdb8616d02b620fb24036cf23b71bd37698fc962fcbdba4"
         },
         {
           "source": "skills/aisoft-platform/references/route-policy.md",
