@@ -27,9 +27,9 @@ confidence: high
 override_reason: ''
 depends_on:
   - 391
-status: approved
+status: pr-open
 branch: change/396-site-externalization
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/398
 created: 2026-10-20
 updated: 2026-10-20
 ---
