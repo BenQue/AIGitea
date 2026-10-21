@@ -38,6 +38,9 @@ git_scope:
   - codex/runtime/tests/test_change_audit.py
   - codex/tools/aisoft-project-check.sh
   - codex/tools/check-installed-drift.py
+  - codex/config/project-leak-baseline.json
+  - codex/runtime/tests/test_architecture_dockerfile.py
+  - codex/tests/fixtures/installed-drift/test-installed-drift.py
   - codex/tools/usage-bundle.py
   - codex/tests/test-architecture-install.sh
   - codex/tests/test-project-check.sh
@@ -94,6 +97,8 @@ git_scope:
 - 失败时 GAP 文案带诊断码：`architecture-lock — <CODE>：<message>`。
 - `architecture/install.sh` 一并安装 `catalog-releases/`；发布包把快照纳入成员。`check-installed-drift.py` 的
   installer 哈希钉子与 architecture 安装面同步加上 `catalog-releases/`（实现中补入范围：改 installer 必须同步它）。
+  2026.08.3 快照原样保留当年 catalog 正文里的 3 处项目名（与当前 `catalog.json` 的 3 处相同），改写会破坏存量
+  lock 的 `catalog_sha256`，因此在 `codex/config/project-leak-baseline.json` 为该快照登记同样的 3 处（实现中补入）。
 
 ### 3. 项目自带 profile
 
