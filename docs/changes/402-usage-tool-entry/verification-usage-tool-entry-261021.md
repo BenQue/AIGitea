@@ -41,6 +41,7 @@ updated: 2026-10-21
 | T05 测试 | `beca16f` | 见下表 |
 | T06 文档 | `3bde56c` | `03`、`06` 指向 `aisoft`；路线图；E2E 表「采用记录」 |
 | 合同更正 | `ed20282`、`7e2a2f8` | 试采用撞上 broker 推送闸门三条约束（spec §6）：治理文本先单独 commit，再改 runtime 并重发 1.8.0 |
+| §7 CI checkout | `8248382`、`5b9aa4d`、`46b5866` | 负责人 2026-10-21 07:05Z 在 #370 线程回「并入 R11」（协调会话转达原话）：合同补 §7 与 AC-9 单独 commit；模板 `ci.yml` 作为治理步骤单独 commit；smoke 守卫与 1.8.0 重发在后 |
 | 审查修复 | `976ed9a`、`1093a6d`、`6f0aca9`、`2a583e2`、`422905d` | Codex 三轮共 9 条发现；技能改动各自单独 commit 在前，运行时与测试在后，每次重发 1.8.0（未发布的候选记录撤回重发） |
 
 ## 验收证据
@@ -49,12 +50,14 @@ updated: 2026-10-21
 |---|---|---|
 | AC-1 | PASS | LocalWMS #335 worktree（当时 head `cd948ab`，采用内容随后按最终 1.8.0 重生成），`sandbox-exec` 拒读平台检出与本 worktree，`env -i HOME=<临时目录> PATH=/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin`：`aisoft version`（layout project，1.8.0）→ `change-name 335 adopt-usage-bundle` → `check-change-documents` gap=0 → `classify 335`（打印路由行）→ `classify --apply 335` updated → `classify --verify 335` **projected** → `complete --project localwms --range de829b9~1..de829b9` dry-run 计划（pinned 325），全部 exit 0 |
 | AC-2 | PASS | `test-aisoft-entry.sh` 对导出的 `.claude/skills` 跑守卫：「维护层」小节外零命中；探针（会话步骤里写平台路径）被抓、维护层小节不报 |
-| AC-3 | PASS（推送待确认点 2） | `--adopt` 对 HSDB #70（`838b863`，173 个改动路径）、LocalWMS #335（`7fbc4d9`，170）、SFM #184（`6796407`，173）各跑一次（审查修复后按最终 1.8.0 重生成并 amend 本地未推送提交），`--project-status` 四项 PASS；源码 broker `GitRepository.scope` + `verify_history` 离线复现推送闸门 PASS（175/172/175 个 scope 路径，含 canonical 模板上下文）。PR 链接在确认点 2 之后写进 E2E 表 |
+| AC-3 | PASS（推送待确认点 2） | `--adopt` 对 HSDB #70（`6b2e9a4`）、LocalWMS #335（`e9a2ecc` 采用 + `43669b2` CI checkout）、SFM #184（`b30d519`）各跑一次（每次重发 1.8.0 后按最终版本重生成并 amend 本地未推送提交），`--project-status` 四项 PASS；源码 broker `GitRepository.scope` + `verify_history` 离线复现推送闸门 PASS（175/173/175 个 scope 路径，含 canonical 模板上下文）。PR 链接在确认点 2 之后写进 E2E 表 |
 | AC-4 | PASS | `test-aisoft-entry.sh`：导出到空目录、沙箱拒读平台检出，十一个子命令逐个 `--help` 与真实调用（`classify --verify` 与 `complete` dry-run 用测试副本里的 mock broker 与合成 manifest，`project-check` 含 architecture-lock）；删掉 `aisoft_change_name.py` 后 `check-change-documents` 失败、`tool-provenance` GAP |
 | AC-5 | PASS | `test-usage-bundle.sh` 20：改一个工具字节 → GAP；provenance 不符 → GAP；pin 1.0.0 → NOTE；`test-project-check.sh` 新增 tool-drift 用例 |
 | AC-6 | PASS | `test-usage-bundle.sh` 19：缺 `--compatibility`/`--notes`、非法级别、空说明均拒绝；落后含 major → `platform-pin` GAP，minor/patch → NOTE；半声明的 release 被 `--verify` 拒绝；`--verify --baseline-ref origin/main` PASS |
 | AC-7 | PASS | 模板「项目事实」1708 字节；`test-project-check.sh` 超 2 KB 用例报 `NOTE: agents-budget` 且计数不变 |
 | AC-8 | PASS | `smoke.sh` 在本记录所在 head 复跑见下节；`usage-bundle.sh --verify --baseline-ref origin/main` VERIFIED 1.8.0；`check-change-documents` gap=0；Codex 四轮只读审查，第 4 轮 PASS（`422905d`），记录在项目库 `codex-review-402.md` |
+
+| AC-9 | 部分（LocalWMS PR CI 待推送） | 模板 `ci.yml` 无 `uses:`；smoke 守卫反向证明：模板副本加回 `uses: actions/checkout@v4` 后守卫命中（rc=0），原文件 rc=1。手写 checkout 步骤从模板原样抽出，在本地 `file://` 裸仓模拟复用工作区连跑两次：两次都检出 exact head（`de829b9`）、残留文件被清掉，extraheader 写入后可删除。HSDB、SFM workflow 读回 `uses:` 0 处，不改；LocalWMS 改用同一步骤（`43669b2`），#335 改判 maintenance / complex（`ci-change`）并读回 projected，Issue 评论记录范围变更。LocalWMS PR 的 CI 运行在推送后补记 |
 
 ## 交叉审查
 
