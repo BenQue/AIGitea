@@ -95,7 +95,8 @@ git_scope:
 
 ### 3. 项目自带 profile
 
-- `--profiles-dir` 可重复；按给出顺序找 `<profile_id>.json`，先找到者胜。`profile_id` 先过 schema 的
+- 新增 `--project-profiles-dir`（实现中更正：原写「`--profiles-dir` 可重复」，但快照 pin 时平台目录要换成
+  快照的 `profiles/`，单列项目目录才能分清两者），先于平台目录查找 `<profile_id>.json`。`profile_id` 先过 schema 的
   `^[a-z0-9][a-z0-9-]+$` 再拼路径（`PROFILE_ID_INVALID`），都找不到 → `PROFILE_UNKNOWN`。
 - 检查器在 `$repo/.aisoft/profiles/` 存在时把它放在第一位，平台目录（当前或快照）在后。项目 profile 与平台
   同名时以项目的为准，检查器多出一行 NOTE 说明。

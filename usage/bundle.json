@@ -2175,14 +2175,14 @@
     {
       "version": "1.9.0",
       "released": "2026-10-21",
-      "bundle_digest": "sha256:58478c77533b757afb0bc39a78fb8e3ee20c1f15af095983936f455a90601f6e",
+      "bundle_digest": "sha256:32153db5c524a2cd5aa04489530a93d791ff427f3011d4a1204d4fff2b0c24db",
       "members": [
         {
           "source": "usage/CONTRACT.md",
           "mode": "exact",
           "target": ".aisoft/platform-usage.md",
           "check": "platform-pin",
-          "sha256": "ca7ce0f9a59e482838d3fca3adc5e1105f628668a3ba0c937efc75c131806d56"
+          "sha256": "2cf87de8e78e6cc1045675235d0053c1e868d5c27c2986e8c307fb91d3fd3cdf"
         },
         {
           "source": "templates/project/AGENTS.md",
