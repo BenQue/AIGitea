@@ -158,7 +158,7 @@ from pathlib import Path
 
 LIMIT_DAYS = 180
 manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-root = Path(sys.argv[2] or manifest["mac_host"]["credential_root"])
+root = Path(sys.argv[2] or manifest["site"]["credential_root_mac"])
 bindings = manifest["identity_bindings"]
 targets = [("manager-audit", bindings["manager_audit"]["relative_path"]),
            ("manager-mutation", bindings["manager_mutation"]["relative_path"])]
