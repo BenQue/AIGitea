@@ -50,6 +50,7 @@ NewEMaint #313 的 test 数据库恢复演练，三行采用记录停在「合�
 - `docs/governance/remediation-roadmap.md`：第二轮各行状态、推荐顺序下的现状说明、「用法」一行。
 - `docs/governance/platform-e2e-acceptance.md`：验收记录加 NewEMaint #313 行，采用记录换成 main 上的读回，「用法」一行。
 - `03-Issue-Spec-Plan与单闸门开发流程.md` §7 新增「治理表回写（平台仓）」小节与来历行；`AGENTS.md` 一行指针。
+- `docs/governance/review-evidence-index.md`：按 `03` §7 追加本批交叉审查一行。
 - `codex/tests/smoke.sh` 加一个 `require_heading` 钉住新小节（不加 `grep -Fq`，棘轮基线不变）。
 - 不改技能、runtime、broker、模板与 `usage/`，不发使用层新版本，合并后无需重装。
 
@@ -62,7 +63,7 @@ NewEMaint #313 的 test 数据库恢复演练，三行采用记录停在「合�
 
 ## 风险
 
-- 并行批次也改路线图表格，rebase 时表格冲突块不能整块取一侧，要从 `origin/main` 重建。
+- 并行批次也改路线图表格。集成按 `03` §1「main 整合与发布」；表格冲突时先停下，不整块取一侧，从 `origin/main` 重建后只补本批的行。
 - 规则只写在文档里，仍靠会话遵守；收尾读回是唯一的确定性核对。
 
 ## AI 判级

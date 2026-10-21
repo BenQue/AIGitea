@@ -31,7 +31,7 @@ updated: 2026-10-21
 - [ ] AC-3 E2E「采用记录」HSDB、LocalWMS、SFM、SFM（Cursor 落点）四行的 `--project-status` 列换成各项目 `main` 合并 SHA 上 `aisoft bundle status` 的真实读回；LocalWMS 另写 workflow 无 `uses:`；SFM 文档检查的遗留 GAP 如实写。
 - [ ] AC-4 `03` §7 新增「治理表回写（平台仓）」：本批在路线图与 E2E 表的行在本批 PR 里写成合并后状态，确认点 2 前核对，收尾读回 `origin/main`；不属于任何平台批次的项目侧事件由明确列入合同范围的批次补写，不靠顺手。`03` 来历表加 #412 行，`AGENTS.md` 一行指针且总大小仍 ≤ 5 KB，两张表的「用法」行与规则一致。
 - [ ] AC-5 smoke 用 `require_heading` 钉住新小节；删掉该标题时 smoke 失败（反向证明），恢复后 `bash codex/tests/smoke.sh` 通过；`grep -Fq` 棘轮基线不变。
-- [ ] AC-6 不改技能、runtime、broker、模板与 `usage/`；`git diff --stat origin/main` 只含上述文件与本 change 目录。
+- [ ] AC-6 `docs/governance/review-evidence-index.md` 按 `03` §7 追加本批一行；不改技能、runtime、broker、模板与 `usage/`；`git diff --stat origin/main` 只含上述文件与本 change 目录。
 
 ## 接口、数据与兼容性影响
 
@@ -39,7 +39,7 @@ updated: 2026-10-21
 
 ## 风险与回滚约束
 
-纯文档，revert 本 PR 即回滚。并行批次若先合并并改了同一张表，按 merge commit 集成 main，表格冲突从 `origin/main` 重建只补本批的行。
+纯文档，revert 本 PR 即回滚。并行批次若先合并并改了同一张表，按 `03` §1「main 整合与发布」集成；表格冲突时先停下，不整块取一侧，从 `origin/main` 重建后只补本批的行。
 
 ## 非目标
 

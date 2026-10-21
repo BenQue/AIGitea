@@ -13,7 +13,7 @@
 | 项目 | 工具 | 发布包版本 | 日期 | 覆盖阶段 | 证据 | 未覆盖 |
 |---|---|---|---|---|---|---|
 | NewEMaint（#279 M1 最小部署链演练） | Claude* | 1.2.0（NewEMaint #297 pin） | 2026-10-20 | 构建、发布、test 部署、健康 SHA、同版本 noop、回滚到上一版本、再部署；数据表与 uploads 卷保留核对 | NewEMaint PR 308（`docs/changes/279-m1-test-deploy-drill/` 的 verification，合并 `f4617aae`）；GitHub run 39118940079；Release 416386339；公司 Gitea run 6（activated）/ 10（healthy-noop）/ 13（再部署） | database restore（manual-only，NOT RUN）；生产；业务表 0 行与 uploads 空卷，保留只证明不丢表、卷未重建 |
-| NewEMaint（#313 公司 test 数据库恢复演练） | Claude | 1.2.0（NewEMaint main pin） | 2026-10-21 | database restore：一键部署备份（run 13）在一次性隔离容器恢复，32 张表行数与数据哈希、表结构、枚举、迁移清单与备份和源库一致，演练容器已删除 | NewEMaint PR 322（`docs/changes/313-test-db-restore-drill/` 的 verification，合并 `dfe04df`）；AC-1–AC-4、AC-6 PASS，AC-5 隔离比对被无关容器的重启循环误判为 FAIL，负责人以回执判过并记录例外 | 生产恢复（NOT RUN）；业务表几乎为空，耗时与体量不能外推到生产；未恢复到正式 test 库；uploads 不在范围 |
+| NewEMaint（#313 公司 test 数据库恢复演练） | Claude | 1.2.0（NewEMaint main pin） | 2026-10-21 | database restore：一键部署备份（run 13）在一次性隔离容器恢复，恢复库与备份逐表行数和排序后数据哈希一致（32 张表）；与运行中的源库比对表集合、行数、表结构、约束、枚举与迁移清单一致（未比数据哈希）；演练容器已删除 | NewEMaint PR 322（`docs/changes/313-test-db-restore-drill/` 的 verification，合并 `dfe04df`）；AC-1–AC-4、AC-6 PASS，AC-5 隔离比对被无关容器的重启循环误判为 FAIL，负责人以回执判过并记录例外 | 生产恢复（NOT RUN）；业务表几乎为空，耗时与体量不能外推到生产；未恢复到正式 test 库；uploads 不在范围 |
 
 ## 采用记录
 
