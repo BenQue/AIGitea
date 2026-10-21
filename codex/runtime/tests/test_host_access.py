@@ -37,10 +37,10 @@ def manifest_contexts(repository: str) -> list[str]:
     """The required contexts this platform declares for one exact repository.
 
     Fixtures that stand for a live branch protection have to agree with the
-    manifest, because that comparison is what the audit and the routine merge
-    gate perform. Copying the strings in by hand makes the fixture go stale the
-    moment a project gains a required context, and the red then lands here
-    rather than where the manifest changed (#312).
+    manifest, because that comparison is what the audit performs. Copying the
+    strings in by hand makes the fixture go stale the moment a project gains a
+    required context, and the red then lands here rather than where the
+    manifest changed (#312).
     """
     raw = json.loads(
         (ROOT / "codex/tests/fixtures/manifests/gitea-governance.json").read_text(encoding="utf-8")
@@ -48,20 +48,6 @@ def manifest_contexts(repository: str) -> list[str]:
     entry = next(item for item in raw["repositories"] if item["name"] == repository)
     return list(entry["status_check_contexts"])
 
-
-def manifest_routine_scopes() -> list[str]:
-    """The routine merger PAT scopes this platform declares.
-
-    The broker verifies the routine identity against `/api/v1/user` before it
-    probes any scope, and Gitea gates that route behind the user scope
-    category. A fixture that serves 200 there regardless of scope therefore
-    approves a scope set the real server rejects, which is how a routine token
-    that could never pass its own identity gate stayed green here (#313).
-    """
-    raw = json.loads(
-        (ROOT / "codex/tests/fixtures/manifests/gitea-governance.json").read_text(encoding="utf-8")
-    )
-    return list(raw["routine_merge_agent_policy"]["token_scopes"])
 
 ACCESS = ROOT / "codex/tests/fixtures/manifests/host-access-broker.json"
 GOVERNANCE = ROOT / "codex/tests/fixtures/manifests/gitea-governance.json"
@@ -120,7 +106,7 @@ class HostAccessContractTests(unittest.TestCase):
         self.assertEqual(len(self.contract.projects), 7)
         names = {item.name for item in self.contract.operations}
         self.assertEqual(len(names), 34)
-        # #391 (ADR 0002): routine merge and the VM profile operations left main.
+        # #391 (ADR 0002): the merge and VM profile operations left main.
         self.assertFalse(any("merge" in value for value in names))
         self.assertFalse(any(value.startswith("vm.profile.") for value in names))
         self.assertFalse(any("shell" in value or "url" in value for value in names))
@@ -133,7 +119,6 @@ class HostAccessContractTests(unittest.TestCase):
         self.assertEqual(project.project_agent, "deltadb-agent")
         self.assertEqual(project.mac_checkout, "/Users/benque/Projects/DeltaDB")
         self.assertEqual(project.git_remote_name, "origin")
-        self.assertIsNone(project.routine_merge_agent)
         self.assertEqual(project.dependency_read_targets, ())
         for project_id in ("rsdesign-new", "wmpda", "sap-table-migrate"):
             with self.subTest(project_id=project_id):
@@ -2876,12 +2861,6 @@ class HostAccessBrokerTests(unittest.TestCase):
                 "kind": "protected-file",
                 "scope": "project:aisoft-platform",
             },
-            "routine_merge_agent": {
-                "enabled": False,
-                "identity": None,
-                "kind": "protected-file",
-                "scope": "project:aisoft-platform:routine-merge",
-            },
             "directory_mode": "700",
             "file_mode": "600",
             "path_disclosure": "DENIED",
@@ -2903,814 +2882,24 @@ class HostAccessBrokerTests(unittest.TestCase):
         self.assertNotIn("ci-bot", flattened)
         self.assertNotIn("security", flattened)
 
-    def test_alphaapp_routine_audit_covers_account_scope_write_cross_project_and_allowlist(self) -> None:
-        class PilotCredentials(StaticCredentials):
-            def resolve(self, project, operation):
-                if operation.identity_route == "routine-merge-agent":
-                    return ResolvedCredential(
-                        "alphaapp-routine-merger", "token-routine"
-                    )
-                return super().resolve(project, operation)
-
-        protection = {
-            "enable_push": False,
-            "enable_force_push": False,
-            "enable_merge_whitelist": True,
-            "merge_whitelist_usernames": ["admin", "alphaapp-routine-merger"],
-            "enable_status_check": True,
-            "status_check_contexts": manifest_contexts("AlphaApp"),
-            "required_approvals": 0,
-            "block_admin_merge_override": True,
-        }
-
-        def transport(method, url, headers, body):
-            self.assertEqual(method, "GET")
-            self.assertIsNone(body)
-            token = headers["Authorization"].removeprefix("token ")
-            scopes = {
-                "token-manager": "read:issue,read:repository,read:user",
-                "token-manager-mutation": "write:issue,write:repository,read:user",
-                "token-agent": "write:issue,write:repository,read:user",
-                "token-routine": ",".join(manifest_routine_scopes()),
-            }
-            if url.endswith("/api/v1/user"):
-                identities = {
-                    "token-manager": "aisoft-platform-manager",
-                    "token-manager-mutation": "aisoft-platform-manager",
-                    "token-agent": "alphaapp-agent",
-                    "token-routine": "alphaapp-routine-merger",
-                }
-                granted = set(scopes[token].split(","))
-                if not granted & {"read:user", "write:user"}:
-                    # Gitea answers a missing scope category with 403 (#313).
-                    return 403, {}, json.dumps({
-                        "message": (
-                            "token does not have at least one of required "
-                            "scope(s), token scope=" + scopes[token]
-                        ),
-                    }).encode()
-                return 200, {}, json.dumps({
-                    "login": identities[token], "is_admin": False,
-                }).encode()
-            if url.endswith("/api/v1/notifications"):
-                return 403, {}, json.dumps({
-                    "message": "token scope=" + scopes[token],
-                }).encode()
-            if url.endswith("/api/v1/users/alphaapp-routine-merger"):
-                return 200, {}, b'{"login":"alphaapp-routine-merger","is_admin":false}'
-            if "/repos/admin/AlphaApp/" in url:
-                if url.endswith("/collaborators/aisoft-platform-manager/permission"):
-                    return 200, {}, json.dumps(extended_permission(
-                        "aisoft-platform-manager", "admin"
-                    )).encode()
-                if url.endswith("/collaborators/alphaapp-agent/permission"):
-                    return 200, {}, json.dumps(extended_permission(
-                        "alphaapp-agent", "write"
-                    )).encode()
-                if url.endswith("/collaborators/alphaapp-routine-merger/permission"):
-                    return 200, {}, json.dumps(extended_permission(
-                        "alphaapp-routine-merger", "write"
-                    )).encode()
-                if url.endswith("/branch_protections/main"):
-                    return 200, {}, json.dumps(protection).encode()
-            if url.endswith("/collaborators/alphaapp-routine-merger/permission"):
-                return 200, {}, json.dumps(extended_permission(
-                    "alphaapp-routine-merger", "read"
-                )).encode()
-            raise AssertionError(f"unexpected URL: {url}")
-
-        broker = HostAccessBroker(
-            self.contract,
-            credentials=PilotCredentials(),
-            transport=transport,
-        )
-        value = broker.execute("alphaapp", "host.access.audit")
-        self.assertEqual(value["status"], "PASS")
-        self.assertEqual(value["routine_merge"], {
-            "enabled": True,
-            "identity": "alphaapp-routine-merger",
-            "credential": {
-                "kind": "protected-file",
-                "state": "present",
-                "path_disclosure": "DENIED",
-            },
-            "account_state": "present-non-admin",
-            "expected_token_scopes": manifest_routine_scopes(),
-            "actual_token_scopes": sorted(manifest_routine_scopes()),
-            "repository_permission": "write",
-            "cross_project_permissions": [
-                {
-                    "repository": self.contract.governance.full_name(repository),
-                    "state": "present",
-                    "permission": "read",
-                }
-                for repository in self.contract.governance.repositories
-                if repository.name != "AlphaApp"
-            ],
-            "cross_project_write_violations": [],
-            "merge_allowlist_state": "converged",
-        })
-        protection["merge_whitelist_usernames"] = ["admin"]
-        value = broker.execute("alphaapp", "host.access.audit")
-        self.assertEqual(value["status"], "GAP")
-        self.assertEqual(value["routine_merge"]["merge_allowlist_state"], "pre-apply")
-        protection["merge_whitelist_usernames"] = [
-            "admin", "alphaapp-routine-merger",
-        ]
-
-        schema_drifts = (
-            (404, None),
-            (200, []),
-            (200, {}),
-            (200, {"permission": "read", "unexpected": True}),
-            (200, {"permission": None}),
-            (200, {"permission": True}),
-            (200, {"permission": 0}),
-            (200, {"permission": "unknown"}),
-        )
-        for status, payload in schema_drifts:
-            with self.subTest(cross_project_schema=(status, payload)):
-                def schema_drift(method, url, headers, body, *, status=status,
-                                 payload=payload):
-                    if (
-                        "/repos/admin/BetaApp/" in url
-                        and url.endswith(
-                            "/collaborators/alphaapp-routine-merger/permission"
-                        )
-                    ):
-                        raw = b'' if payload is None else json.dumps(payload).encode()
-                        return status, {}, raw
-                    return transport(method, url, headers, body)
-
-                drift_broker = HostAccessBroker(
-                    self.contract,
-                    credentials=PilotCredentials(),
-                    transport=schema_drift,
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    drift_broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-        for unsafe_permission in ("write", "admin", "owner"):
-            with self.subTest(cross_project_permission=unsafe_permission):
-                def unsafe_cross_project(method, url, headers, body, *,
-                                         permission=unsafe_permission):
-                    if (
-                        "/repos/admin/BetaApp/" in url
-                        and url.endswith(
-                            "/collaborators/alphaapp-routine-merger/permission"
-                        )
-                    ):
-                        return 200, {}, json.dumps({
-                            "permission": permission,
-                        }).encode()
-                    return transport(method, url, headers, body)
-
-                unsafe_broker = HostAccessBroker(
-                    self.contract,
-                    credentials=PilotCredentials(),
-                    transport=unsafe_cross_project,
-                )
-                unsafe_value = unsafe_broker.execute(
-                    "alphaapp", "host.access.audit"
-                )
-                self.assertEqual(unsafe_value["status"], "GAP")
-                self.assertEqual(
-                    unsafe_value["routine_merge"][
-                        "cross_project_write_violations"
-                    ],
-                    [{
-                        "repository": "admin/BetaApp",
-                        "permission": unsafe_permission,
-                    }],
-                )
-
-    def _missing_routine_audit_broker(
-        self, *, cross_project=None, cross_project_inventory=None,
-        target_inventory=None, calls=None, response_limits=None,
-    ):
-        class MissingRoutineCredentials(StaticCredentials):
-            def resolve(self, project, operation):
-                if operation.identity_route == "routine-merge-agent":
-                    raise BrokerError(
-                        "CREDENTIAL_UNAVAILABLE",
-                        "approved credential binding is unavailable",
-                    )
-                return super().resolve(project, operation)
-
-        protection = {
-            "enable_push": False,
-            "enable_force_push": False,
-            "enable_merge_whitelist": True,
-            "merge_whitelist_usernames": ["admin"],
-            "enable_status_check": True,
-            "status_check_contexts": manifest_contexts("AlphaApp"),
-            "required_approvals": 0,
-            "block_admin_merge_override": True,
-        }
-        recorded = calls if calls is not None else []
-        recorded_limits = response_limits if response_limits is not None else []
-
-        def response(scenario, default, url):
-            selected = default if scenario is None else scenario
-            if callable(selected):
-                selected = selected(url)
-            if isinstance(selected, Exception):
-                raise selected
-            if len(selected) == 2:
-                status, payload = selected
-                response_headers = {}
-            else:
-                status, response_headers, payload = selected
+    def _bounded_json_broker(self, headers, payload):
+        def transport(method, url, request_headers, body, **_options):
             raw = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
-            return status, response_headers, raw
-
-        def transport(method, url, headers, body, *, response_limit=None):
-            recorded.append((method, url))
-            self.assertEqual(method, "GET")
-            self.assertIsNone(body)
-            token = headers["Authorization"].removeprefix("token ")
-            if url.endswith("/api/v1/user"):
-                identities = {
-                    "token-manager": "aisoft-platform-manager",
-                    "token-manager-mutation": "aisoft-platform-manager",
-                    "token-agent": "alphaapp-agent",
-                }
-                return 200, {}, json.dumps({
-                    "login": identities[token], "is_admin": False,
-                }).encode()
-            if url.endswith("/api/v1/notifications"):
-                scopes = {
-                    "token-manager": "read:issue,read:repository,read:user",
-                    "token-manager-mutation": "write:issue,write:repository,read:user",
-                    "token-agent": "write:issue,write:repository,read:user",
-                }
-                return 403, {}, json.dumps({
-                    "message": "token scope=" + scopes[token],
-                }).encode()
-            if url.endswith("/api/v1/users/alphaapp-routine-merger"):
-                return 404, {}, b'{"message":"user does not exist"}'
-            if (
-                "/repos/admin/AlphaApp/collaborators?limit=50&page=" in url
-            ):
-                recorded_limits.append(response_limit)
-                return response(target_inventory, (200, []), url)
-            if (
-                "/repos/admin/aisoft-platform/collaborators?limit=50&page=" in url
-            ):
-                recorded_limits.append(response_limit)
-                return response(cross_project_inventory, (200, []), url)
-            if "/collaborators?limit=50&page=" in url:
-                recorded_limits.append(response_limit)
-                return 200, {}, b'[]'
-            if "/repos/admin/AlphaApp/" in url:
-                if url.endswith("/collaborators/aisoft-platform-manager/permission"):
-                    return 200, {}, b'{"permission":"admin"}'
-                if url.endswith("/collaborators/alphaapp-agent/permission"):
-                    return 200, {}, b'{"permission":"write"}'
-                if url.endswith("/collaborators/alphaapp-routine-merger/permission"):
-                    return 404, {}, b'{"message":"not a collaborator"}'
-                if url.endswith("/branch_protections/main"):
-                    return 200, {}, json.dumps(protection).encode()
-            if url.endswith(
-                "/collaborators/alphaapp-routine-merger/permission"
-            ):
-                if (
-                    cross_project is not None
-                    and "/repos/admin/aisoft-platform/" in url
-                ):
-                    return response(cross_project, (404, {
-                        "message": "not a collaborator",
-                    }), url)
-                return 404, {}, b'{"message":"not a collaborator"}'
-            raise AssertionError(f"unexpected URL: {url}")
+            return 200, headers, raw
 
         return HostAccessBroker(
-            self.contract,
-            credentials=MissingRoutineCredentials(),
-            transport=transport,
+            self.contract, credentials=StaticCredentials(), transport=transport,
         )
 
-    def test_missing_routine_account_projects_cross_project_404_as_absent_gap(self) -> None:
-        calls: list[tuple[str, str]] = []
-        broker = self._missing_routine_audit_broker(calls=calls)
-
-        value = broker.execute("alphaapp", "host.access.audit")
-
-        self.assertEqual(value["status"], "GAP")
-        routine = value["routine_merge"]
-        self.assertEqual(routine["account_state"], "missing")
-        self.assertEqual(routine["credential"]["state"], "missing")
-        self.assertEqual(routine["repository_permission"], "missing")
-        self.assertEqual(routine["cross_project_write_violations"], [])
-        non_target = len(self.contract.governance.repositories) - 1
-        self.assertEqual(len(routine["cross_project_permissions"]), non_target)
-        self.assertTrue(all(
-            item["state"] == "absent" and item["permission"] is None
-            for item in routine["cross_project_permissions"]
-        ))
-        self.assertEqual(
-            [item["repository"] for item in routine["cross_project_permissions"]],
-            [
-                self.contract.governance.full_name(repository)
-                for repository in self.contract.governance.repositories
-                if repository.name != "AlphaApp"
-            ],
-        )
-        account_index = next(
-            index for index, (_method, url) in enumerate(calls)
-            if url.endswith("/api/v1/users/alphaapp-routine-merger")
-        )
-        first_cross_project_index = next(
-            index for index, (_method, url) in enumerate(calls)
-            if "/repos/admin/aisoft-platform/" in url
-            and url.endswith("/collaborators?limit=50&page=1")
-        )
-        self.assertLess(account_index, first_cross_project_index)
-        self.assertEqual({method for method, _url in calls}, {"GET"})
-        self.assertEqual(
-            len([
-                url for _method, url in calls
-                if url.endswith("/collaborators?limit=50&page=1")
-            ]),
-            len(self.contract.governance.repositories),
-        )
-        self.assertFalse(any(
-            "/repos/admin/aisoft-platform/" in url
-            and url.endswith(
-                "/collaborators/alphaapp-routine-merger/permission"
-            )
-            for _method, url in calls
-        ))
-
-    def test_missing_account_requires_strict_collaborator_inventory(self) -> None:
-        malformed = (
-            {},
-            [None],
-            [{}],
-            [{"login": None}],
-            [{"login": ""}],
-        )
-        for payload in malformed:
-            with self.subTest(payload=payload):
-                broker = self._missing_routine_audit_broker(
-                    cross_project=(404, {"message": "not a collaborator"}),
-                    cross_project_inventory=(200, payload),
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_missing_account_does_not_downgrade_auth_server_or_transport_failures(self) -> None:
-        scenarios = (
-            ((401, {"message": "unauthorized"}), "HTTP_401"),
-            ((403, {"message": "forbidden"}), "HTTP_403"),
-            ((500, {"message": "server error"}), "HTTP_ERROR"),
-            (BrokerError("TRANSPORT_ERROR", "host transport failed"), "TRANSPORT_ERROR"),
-        )
-        for cross_project, expected in scenarios:
-            with self.subTest(expected=expected):
-                broker = self._missing_routine_audit_broker(
-                    cross_project=cross_project,
-                    cross_project_inventory=cross_project,
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, expected)
-
-    def test_missing_account_rejects_ambiguous_cross_project_404(self) -> None:
-        scenarios = (
-            {"message": "repository not found"},
-            {"message": "Not Found"},
-            b'{',
-            {"message": "unexpected 404"},
-        )
-        for payload in scenarios:
-            with self.subTest(payload=payload):
-                response = (404, payload)
-                broker = self._missing_routine_audit_broker(
-                    cross_project=response,
-                    cross_project_inventory=response,
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, "HTTP_404")
-
-    def test_missing_account_rejects_contradictory_collaborator_inventory(self) -> None:
-        broker = self._missing_routine_audit_broker(
-            cross_project=(200, {"permission": "read"}),
-            cross_project_inventory=(200, [{
-                "login": "alphaapp-routine-merger",
-            }]),
+    def _bounded_json(self, headers, payload):
+        broker = self._bounded_json_broker(headers, payload)
+        return broker._request_json(
+            "http://gitea-ci.orb.local:3000/api/v1/user", "token-agent",
+            response_limit=broker_module.COLLABORATOR_PAGE_MAX_BYTES,
+            follow_redirects=False,
         )
 
-        with self.assertRaises(BrokerError) as caught:
-            broker.execute("alphaapp", "host.access.audit")
-
-        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_missing_account_inventory_requires_exact_http_200(self) -> None:
-        for status in (201, 202, 204, 206):
-            with self.subTest(status=status):
-                broker = self._missing_routine_audit_broker(
-                    cross_project_inventory=(status, []),
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_missing_account_inventory_rejects_duplicate_case_and_username_drift(self) -> None:
-        malformed = (
-            [{"login": "alpha"}, {"login": "alpha"}],
-            [{"login": "alpha"}, {"login": "Alpha"}],
-            [{"login": "AlphaApp-Routine-Merger"}],
-            [{"login": " alpha"}],
-            [{"login": "alpha "}],
-            [{"login": "bad/login"}],
-            [{"login": "a" * 65}],
-        )
-        for payload in malformed:
-            with self.subTest(payload=payload):
-                broker = self._missing_routine_audit_broker(
-                    cross_project_inventory=(200, payload),
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_missing_account_inventory_rejects_cross_page_duplicate_and_case_collision(self) -> None:
-        first_page = [{"login": f"user-{index:03d}"} for index in range(50)]
-        for repeated in ("user-000", "User-000"):
-            with self.subTest(repeated=repeated):
-                def inventory(url, repeated=repeated):
-                    page = int(url.rsplit("page=", 1)[1])
-                    return (200, first_page if page == 1 else [{"login": repeated}])
-
-                broker = self._missing_routine_audit_broker(
-                    cross_project_inventory=inventory,
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_missing_account_inventory_rejects_oversize_and_abnormal_pagination(self) -> None:
-        oversized = [{"login": f"user-{index:03d}"} for index in range(51)]
-        oversized_calls: list[int] = []
-
-        def oversized_inventory(url):
-            oversized_calls.append(int(url.rsplit("page=", 1)[1]))
-            return 200, oversized
-
-        short_with_next = (
-            200,
-            {"Link": '<http://mock.invalid?page=2>; rel="next"'},
-            [{"login": "alpha"}],
-        )
-        malformed_link = (
-            200,
-            {"Link": "not-a-link"},
-            [{"login": "alpha"}],
-        )
-        for inventory in (oversized_inventory, short_with_next, malformed_link):
-            with self.subTest(inventory=inventory):
-                broker = self._missing_routine_audit_broker(
-                    cross_project_inventory=inventory,
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-        self.assertEqual(oversized_calls, [1])
-
-    def test_missing_account_inventory_strictly_validates_all_link_values(self) -> None:
-        endpoint = (
-            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
-            "aisoft-platform/collaborators"
-        )
-        invalid_links = (
-            [
-                ("Link", f'<{endpoint}?limit=50&page=2>; rel="next"'),
-                ("Link", f'<{endpoint}?page=2&limit=50>; rel="NEXT"'),
-            ],
-            {"Link": f'<{endpoint}?limit=50&page=2>; rel="NEXT"'},
-            {"Link": '<http://attacker.invalid/api/v1/repos/admin/aisoft-platform/collaborators?limit=50&page=2>; rel="next"'},
-            {"Link": '<https://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform/collaborators?limit=50&page=2>; rel="next"'},
-            {"Link": '<http://gitea-ci.orb.local:3000/api/v1/repos/admin/BetaApp/collaborators?limit=50&page=2>; rel="next"'},
-            {"Link": f'<{endpoint}?limit=49&page=2>; rel="next"'},
-            {"Link": f'<{endpoint}?limit=50&page=3>; rel="next"'},
-            {"Link": f'<{endpoint}?limit=50&page=2&cursor=x>; rel="next"'},
-            {"Link": f'<{endpoint}?limit=50&limit=50&page=2>; rel="next"'},
-            {"Link": f'<{endpoint}?limit=50&page=2>; rel="last"'},
-            {
-                "Link": (
-                    f'<{endpoint}?limit=50&page=2>; rel="next", '
-                    f'<{endpoint}?page=2&limit=50>; rel="NEXT"'
-                ),
-            },
-            {"Link": f'<{endpoint}?limit=50&page=2>; rel="unknown"'},
-        )
-        for link_headers in invalid_links:
-            with self.subTest(link_headers=link_headers):
-                broker = self._missing_routine_audit_broker(
-                    cross_project_inventory=(
-                        200,
-                        link_headers,
-                        [{"login": "alpha"}],
-                    ),
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_missing_account_inventory_accepts_canonical_encoded_pagination(self) -> None:
-        endpoint = (
-            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
-            "aisoft-platform/collaborators"
-        )
-        first_page = [{"login": f"user-{index:03d}"} for index in range(50)]
-        calls: list[int] = []
-
-        def inventory(url):
-            page = int(url.rsplit("page=", 1)[1])
-            calls.append(page)
-            if page == 1:
-                return (
-                    200,
-                    [
-                        ("Link", f'<{endpoint}?%70age=%32&%6cimit=%35%30>; rel="NEXT"'),
-                        ("Link", f'<{endpoint}?limit=50&page=2>; rel="last"'),
-                    ],
-                    first_page,
-                )
-            return (
-                200,
-                [("Link", (
-                    f'<{endpoint}?page=1&limit=50>; rel="first", '
-                    f'<{endpoint}?limit=50&page=1>; rel="prev", '
-                    f'<{endpoint}?limit=50&page=2>; rel="last"'
-                ))],
-                [],
-            )
-
-        broker = self._missing_routine_audit_broker(
-            cross_project_inventory=inventory,
-        )
-
-        value = broker.execute("alphaapp", "host.access.audit")
-
-        self.assertEqual(value["status"], "GAP")
-        self.assertEqual(calls, [1, 2])
-
-    def test_missing_account_inventory_accepts_quoted_link_parameters(self) -> None:
-        endpoint = (
-            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
-            "aisoft-platform/collaborators"
-        )
-        first_page = [{"login": f"user-{index:03d}"} for index in range(50)]
-
-        def inventory(url):
-            page = int(url.rsplit("page=", 1)[1])
-            if page == 1:
-                return (
-                    200,
-                    {"Link": (
-                        f'<{endpoint}?limit=50&page=2>; '
-                        'title="next,page;still\\\"quoted"; rel="NEXT", '
-                        f'<{endpoint}?limit=50&page=2>; '
-                        'rel="last"; title="last;page"'
-                    )},
-                    first_page,
-                )
-            return (
-                200,
-                {"Link": (
-                    f'<{endpoint}?limit=50&page=1>; rel="first", '
-                    f'<{endpoint}?limit=50&page=1>; rel="prev", '
-                    f'<{endpoint}?limit=50&page=2>; rel="last"; '
-                    'title="terminal,page"'
-                )},
-                [],
-            )
-
-        broker = self._missing_routine_audit_broker(
-            cross_project_inventory=inventory,
-        )
-
-        value = broker.execute("alphaapp", "host.access.audit")
-
-        self.assertEqual(value["status"], "GAP")
-
-    def test_missing_account_inventory_rejects_cross_page_link_state_drift(self) -> None:
-        endpoint = (
-            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
-            "aisoft-platform/collaborators"
-        )
-        first_page = [{"login": f"user-{index:03d}"} for index in range(50)]
-
-        def last_drift(url):
-            page = int(url.rsplit("page=", 1)[1])
-            if page == 1:
-                return (
-                    200,
-                    {"Link": (
-                        f'<{endpoint}?limit=50&page=2>; rel="next", '
-                        f'<{endpoint}?limit=50&page=999>; rel="last"'
-                    )},
-                    first_page,
-                )
-            return (
-                200,
-                {"Link": (
-                    f'<{endpoint}?limit=50&page=1>; rel="first", '
-                    f'<{endpoint}?limit=50&page=1>; rel="prev", '
-                    f'<{endpoint}?limit=50&page=2>; rel="last"'
-                )},
-                [],
-            )
-
-        def terminal_before_last(url):
-            page = int(url.rsplit("page=", 1)[1])
-            if page == 1:
-                return (
-                    200,
-                    {"Link": (
-                        f'<{endpoint}?limit=50&page=2>; rel="next", '
-                        f'<{endpoint}?limit=50&page=3>; rel="last"'
-                    )},
-                    first_page,
-                )
-            return 200, {}, []
-
-        def missing_reciprocal_prev(url):
-            page = int(url.rsplit("page=", 1)[1])
-            if page == 1:
-                return (
-                    200,
-                    {"Link": (
-                        f'<{endpoint}?limit=50&page=2>; rel="next", '
-                        f'<{endpoint}?limit=50&page=2>; rel="last"'
-                    )},
-                    first_page,
-                )
-            return 200, {"Link": f'<{endpoint}?limit=50&page=2>; rel="last"'}, []
-
-        def orphan_prev(url):
-            page = int(url.rsplit("page=", 1)[1])
-            if page == 1:
-                return (
-                    200,
-                    {"Link": f'<{endpoint}?limit=50&page=2>; rel="last"'},
-                    first_page,
-                )
-            return (
-                200,
-                {"Link": (
-                    f'<{endpoint}?limit=50&page=1>; rel="prev", '
-                    f'<{endpoint}?limit=50&page=2>; rel="last"'
-                )},
-                [],
-            )
-
-        for inventory in (
-            last_drift,
-            terminal_before_last,
-            missing_reciprocal_prev,
-            orphan_prev,
-        ):
-            with self.subTest(inventory=inventory):
-                broker = self._missing_routine_audit_broker(
-                    cross_project_inventory=inventory,
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_missing_account_inventory_rejects_empty_fragment_link(self) -> None:
-        endpoint = (
-            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
-            "aisoft-platform/collaborators"
-        )
-        first_page = [{"login": f"user-{index:03d}"} for index in range(50)]
-
-        def inventory(url):
-            page = int(url.rsplit("page=", 1)[1])
-            if page == 1:
-                return (
-                    200,
-                    {"Link": (
-                        f'<{endpoint}?limit=50&page=2#>; rel="next", '
-                        f'<{endpoint}?limit=50&page=2>; rel="last"'
-                    )},
-                    first_page,
-                )
-            return 200, {"Link": f'<{endpoint}?limit=50&page=2>; rel="last"'}, []
-
-        broker = self._missing_routine_audit_broker(
-            cross_project_inventory=inventory,
-        )
-        with self.assertRaises(BrokerError) as caught:
-            broker.execute("alphaapp", "host.access.audit")
-
-        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_missing_account_inventory_rejects_duplicate_json_keys_recursively(self) -> None:
-        payloads = (
-            b'[{"login":"alpha","login":"beta"}]',
-            b'[{"login":"alpha","extra":{"state":1,"state":2}}]',
-        )
-        for payload in payloads:
-            with self.subTest(payload=payload):
-                broker = self._missing_routine_audit_broker(
-                    cross_project_inventory=(200, payload),
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_collaborator_json_rejects_nonstandard_and_unbounded_numbers(self) -> None:
-        payloads = (
-            b"NaN",
-            b"Infinity",
-            b"-Infinity",
-            b"9" * 4301,
-            b"9" * 5000,
-            b"9" * 4301 + b".0",
-            b"9" * 5000 + b".0",
-            b"1e5000",
-        )
-        for payload in payloads:
-            with self.subTest(size=len(payload), prefix=payload[:16]):
-                with self.assertRaises(BrokerError) as caught:
-                    broker_module._strict_collaborator_json(payload)
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_missing_account_inventory_maps_deep_json_to_stable_schema_error(self) -> None:
-        payload = b"[" * 1500 + b'{"login":"alpha"}' + b"]" * 1500
-        broker = self._missing_routine_audit_broker(
-            cross_project_inventory=(200, payload),
-        )
-
-        with self.assertRaises(BrokerError) as caught:
-            broker.execute("alphaapp", "host.access.audit")
-
-        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_collaborator_json_rejects_extreme_depth_before_decoder(self) -> None:
-        payload = (
-            b'[{"login":"alpha","extra":'
-            + b"[" * 60_000
-            + b"0"
-            + b"]" * 60_000
-            + b"}]"
-        )
-        self.assertLess(len(payload), broker_module.COLLABORATOR_PAGE_MAX_BYTES)
-
-        with patch.object(
-            broker_module.json, "loads", wraps=json.loads
-        ) as decoder:
-            with self.assertRaises(BrokerError) as caught:
-                broker_module._strict_collaborator_json(payload)
-        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-        decoder.assert_not_called()
-
-        calls: list[tuple[str, str]] = []
-        broker = self._missing_routine_audit_broker(
-            cross_project_inventory=(200, payload),
-            calls=calls,
-        )
-        with self.assertRaises(BrokerError) as caught:
-            broker.execute("alphaapp", "host.access.audit")
-        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-        self.assertTrue(calls)
-        self.assertTrue(all(method == "GET" for method, _url in calls))
-
-    def test_collaborator_json_structure_scan_handles_strings_and_boundaries(self) -> None:
-        string_payload = br'[{"login":"alpha","extra":"[{}] \"quoted\" \\ \u005b"}]'
-        value = broker_module._strict_collaborator_json(string_payload)
-        self.assertEqual(value[0]["login"], "alpha")
-        self.assertEqual(value[0]["extra"], '[{}] "quoted" \\ [')
-
-        allowed = b"[" * 64 + b"0" + b"]" * 64
-        self.assertIsInstance(
-            broker_module._strict_collaborator_json(allowed), list
-        )
-
-        invalid = (
-            b"[" * 65 + b"0" + b"]" * 65,
-            b'[{"login":"alpha"}',
-            b"[}",
-            b'["control\x01value"]',
-        )
-        for payload in invalid:
-            with self.subTest(size=len(payload), suffix=payload[-12:]):
-                with patch.object(
-                    broker_module.json, "loads", wraps=json.loads
-                ) as decoder:
-                    with self.assertRaises(BrokerError) as caught:
-                        broker_module._strict_collaborator_json(payload)
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-                decoder.assert_not_called()
-
-    def test_missing_account_inventory_enforces_content_and_transfer_encoding(self) -> None:
+    def test_bounded_response_enforces_content_and_transfer_encoding(self) -> None:
         invalid_headers = (
             {"Content-Encoding": "gzip"},
             {"Content-Encoding": "br"},
@@ -3723,11 +2912,8 @@ class HostAccessBrokerTests(unittest.TestCase):
         )
         for headers in invalid_headers:
             with self.subTest(headers=headers):
-                broker = self._missing_routine_audit_broker(
-                    cross_project_inventory=(200, headers, []),
-                )
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
+                    self._bounded_json(headers, [])
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
         for headers in (
@@ -3735,181 +2921,34 @@ class HostAccessBrokerTests(unittest.TestCase):
             {"Transfer-Encoding": "chunked"},
         ):
             with self.subTest(accepted_headers=headers):
-                broker = self._missing_routine_audit_broker(
-                    cross_project_inventory=(200, headers, []),
-                )
-                self.assertEqual(
-                    broker.execute("alphaapp", "host.access.audit")["status"],
-                    "GAP",
-                )
+                self.assertEqual(self._bounded_json(headers, []), [])
 
-    def test_missing_account_inventory_reserves_budget_before_transport(self) -> None:
-        calls: list[tuple[str, str]] = []
-        limits: list[int | None] = []
-        broker = self._missing_routine_audit_broker(
-            calls=calls,
-            response_limits=limits,
-        )
-
-        # 每个非目标仓库消耗 2 字节预算。预算取「刚好扫不完」的值，使最后一个
-        # 仓库落在预算之外——这样断言的是预算耗尽本身，而不是某个写死的仓库数。
-        # #252 之前这里硬编码 10（对应九个非目标仓库），退出五个项目后失效。
-        budget = 2 * ((len(self.contract.governance.repositories) - 1) - 1)
-        with patch("aisoft_host_access.broker.COLLABORATOR_AUDIT_MAX_BYTES", budget):
-            with self.assertRaises(BrokerError) as caught:
-                broker.execute("alphaapp", "host.access.audit")
-
-        inventory_calls = [
-            url for _method, url in calls
-            if "/collaborators?limit=50&page=" in url
-        ]
-        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-        self.assertEqual(len(inventory_calls), budget // 2)
-        self.assertEqual(limits, list(range(budget, 0, -2)))
-
-        calls = []
-        limits = []
-        broker = self._missing_routine_audit_broker(
-            calls=calls,
-            response_limits=limits,
-        )
-        with patch("aisoft_host_access.broker.COLLABORATOR_AUDIT_MAX_PAGES", 1):
-            with self.assertRaises(BrokerError) as caught:
-                broker.execute("alphaapp", "host.access.audit")
-        inventory_calls = [
-            url for _method, url in calls
-            if "/collaborators?limit=50&page=" in url
-        ]
-        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-        self.assertEqual(len(inventory_calls), 1)
-        self.assertEqual(limits, [broker_module.COLLABORATOR_PAGE_MAX_BYTES])
-
-    def test_missing_account_inventory_rejects_malformed_quoted_link_parameters(self) -> None:
-        endpoint = (
-            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
-            "aisoft-platform/collaborators"
-        )
-        malformed = (
-            f'<{endpoint}?limit=50&page=2>; rel="next"; title="unterminated',
-            f'<{endpoint}?limit=50&page=2>; rel="next"; title="dangling\\',
-            f'<{endpoint}?limit=50&page=2>; rel="next"; title="bad\x01value"',
-            f'<{endpoint}?limit=50&page=2>; rel="next"; title="fold\r\n value"',
-            f'<{endpoint}?limit=50&page=2>; rel="next"; title="one"; title="two"',
-            f'<{endpoint}?limit=50&page=2>; rel="next"; rel="last"',
-        )
-        for link in malformed:
-            with self.subTest(link=repr(link)):
-                broker = self._missing_routine_audit_broker(
-                    cross_project_inventory=(
-                        200,
-                        {"Link": link},
-                        [{"login": "alpha"}],
-                    ),
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_missing_account_inventory_rejects_response_size_and_length_drift(self) -> None:
+    def test_bounded_response_rejects_response_size_and_length_drift(self) -> None:
         two_megabyte_extra = [{"login": "alpha", "extra": "x" * (2 * 1024 * 1024)}]
         scenarios = (
-            (200, {}, two_megabyte_extra),
-            (200, {"Content-Length": "-1"}, []),
-            (200, {"Content-Length": "not-a-number"}, []),
-            (200, [("Content-Length", "2"), ("Content-Length", "3")], []),
-            (200, {"Content-Length": "3"}, []),
-            (200, {"Content-Length": str(2 * 1024 * 1024)}, []),
+            ({}, two_megabyte_extra),
+            ({"Content-Length": "-1"}, []),
+            ({"Content-Length": "not-a-number"}, []),
+            ([("Content-Length", "2"), ("Content-Length", "3")], []),
+            ({"Content-Length": "3"}, []),
+            ({"Content-Length": str(2 * 1024 * 1024)}, []),
+            ({"Content-Length": "9" * 4301}, []),
+            ({"Content-Length": "9" * 5000}, []),
         )
-        for inventory in scenarios:
-            with self.subTest(headers=inventory[1]):
-                broker = self._missing_routine_audit_broker(
-                    cross_project_inventory=inventory,
-                )
+        for headers, payload in scenarios:
+            with self.subTest(headers=str(headers)[:80]):
                 with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
+                    self._bounded_json(headers, payload)
                 self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
 
-    def test_missing_account_inventory_bounds_content_length_decimal(self) -> None:
-        for digits in (4301, 5000):
-            with self.subTest(digits=digits):
-                broker = self._missing_routine_audit_broker(
-                    cross_project_inventory=(
-                        200,
-                        {"Content-Length": "9" * digits},
-                        [],
-                    ),
-                )
-                with self.assertRaises(BrokerError) as caught:
-                    broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_collaborator_link_rejects_path_params_and_unbounded_decimals(self) -> None:
-        endpoint = (
-            "http://gitea-ci.orb.local:3000/api/v1/repos/admin/"
-            "aisoft-platform/collaborators"
-        )
-        invalid = (
-            f"{endpoint};?limit=50&page=2",
-            f"{endpoint};v=1?limit=50&page=2",
-            f"{endpoint}?limit=50&page={'9' * 4301}",
-            f"{endpoint}?limit=50&page={'9' * 5000}",
-            f"{endpoint}?limit={'9' * 5000}&page=2",
-        )
-        for target in invalid:
-            with self.subTest(length=len(target), marker=target[len(endpoint):len(endpoint) + 12]):
-                with self.assertRaises(BrokerError) as caught:
-                    HostAccessBroker._collaborator_link_page(
-                        target,
-                        "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform",
-                    )
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_collaborator_link_maps_malformed_authority_to_schema_error(self) -> None:
-        path = "/api/v1/repos/admin/aisoft-platform/collaborators"
-        invalid = (
-            f"http://[::1{path}?limit=50&page=2",
-            f"http://gitea-ci.orb.local\uff1a3000{path}?limit=50&page=2",
-            f"http://gitea-ci.orb.local:not-a-port{path}?limit=50&page=2",
-            f"http://gitea-ci.orb.local:99999{path}?limit=50&page=2",
-        )
-        for target in invalid:
-            with self.subTest(target=target[:80]):
-                with self.assertRaises(BrokerError) as caught:
-                    HostAccessBroker._collaborator_link_page(
-                        target,
-                        "http://gitea-ci.orb.local:3000/api/v1/repos/admin/aisoft-platform",
-                    )
-                self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_missing_account_inventory_maps_abnormal_header_mapping_to_schema_error(self) -> None:
+    def test_bounded_response_maps_abnormal_header_mapping_to_schema_error(self) -> None:
         class AbnormalHeaders(dict):
             def items(self):
                 raise ValueError("untrusted mapping failed")
 
-        broker = self._missing_routine_audit_broker(
-            cross_project_inventory=(200, AbnormalHeaders(), []),
-        )
-
         with self.assertRaises(BrokerError) as caught:
-            broker.execute("alphaapp", "host.access.audit")
-
+            self._bounded_json(AbnormalHeaders(), [])
         self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-
-    def test_missing_account_inventory_enforces_audit_wide_response_budgets(self) -> None:
-        limits = (
-            ("COLLABORATOR_AUDIT_MAX_BYTES",
-             2 * ((len(self.contract.governance.repositories) - 1) - 1)),
-            ("COLLABORATOR_AUDIT_MAX_PAGES", 1),
-        )
-        for constant, value in limits:
-            with self.subTest(constant=constant):
-                broker = self._missing_routine_audit_broker()
-                with patch(f"aisoft_host_access.broker.{constant}", value):
-                    with self.assertRaises(BrokerError) as caught:
-                        broker.execute("alphaapp", "host.access.audit")
-                self.assertEqual(
-                    caught.exception.code, "RESPONSE_SCHEMA_INVALID"
-                )
 
     def test_default_transport_preserves_duplicate_headers_and_bounds_read(self) -> None:
         class Headers:
@@ -4072,45 +3111,6 @@ class HostAccessBrokerTests(unittest.TestCase):
                 self.assertEqual(
                     caught.exception.code, "RESPONSE_SCHEMA_INVALID"
                 )
-
-    def test_missing_account_inventory_reads_the_terminal_page_after_a_full_page(self) -> None:
-        calls: list[int] = []
-        first_page = [{"login": f"user-{index:03d}"} for index in range(50)]
-
-        def inventory(url):
-            page = int(url.rsplit("page=", 1)[1])
-            calls.append(page)
-            return 200, first_page if page == 1 else []
-
-        broker = self._missing_routine_audit_broker(
-            cross_project_inventory=inventory,
-        )
-
-        value = broker.execute("alphaapp", "host.access.audit")
-
-        self.assertEqual(value["status"], "GAP")
-        self.assertEqual(calls, [1, 2])
-
-    def test_missing_account_inventory_stops_at_the_page_bound(self) -> None:
-        calls: list[int] = []
-
-        def inventory(url):
-            page = int(url.rsplit("page=", 1)[1])
-            calls.append(page)
-            return 200, [
-                {"login": f"page-{page:03d}-user-{index:03d}"}
-                for index in range(50)
-            ]
-
-        broker = self._missing_routine_audit_broker(
-            cross_project_inventory=inventory,
-        )
-
-        with self.assertRaises(BrokerError) as caught:
-            broker.execute("alphaapp", "host.access.audit")
-
-        self.assertEqual(caught.exception.code, "RESPONSE_SCHEMA_INVALID")
-        self.assertEqual(calls, list(range(1, 101)))
 
     def _credential_contract(self, root: Path):
         raw = json.loads(json.dumps(self.contract.raw))

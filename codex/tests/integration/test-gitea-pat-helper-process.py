@@ -40,7 +40,7 @@ def run_suite(binary, *, isolated=False, fixture=None):
     version = subprocess.run([str(binary), '--version'], capture_output=True, timeout=10)
     assert version.returncode == 0 and not version.stderr
     assert json.loads(version.stdout) == {'helper_version':'1', 'gitea_model_version':'1.26.4', 'toolchain':'go1.26.3'}
-    request = {'action':'inspect', 'project_id':'alphaapp', 'token_kind':'routine-merge-agent', 'token':canary}
+    request = {'action':'inspect', 'project_id':'alphaapp', 'token_kind':'project-agent', 'token':canary}
     invoke(request, 'SERVICE_IDENTITY_REQUIRED')
     invoke(request, 'REQUEST_INVALID', args=('--unsupported',))
     if not isolated:
@@ -84,7 +84,7 @@ def run_suite(binary, *, isolated=False, fixture=None):
     inspected = invoke(request, result='verified', service_user=True)
     assert (inspected['token_id'], inspected['user_id'], inspected['scopes']) == (1,11,['write:repository'])
     assert ids() == [1,2,3]
-    revoke = dict(request, action='revoke', expected_token_id=1, expected_user_id=11, expected_token_name='issue-208-routine-merge-agent')
+    revoke = dict(request, action='revoke', expected_token_id=1, expected_user_id=11, expected_token_name='issue-208-project-agent')
     invoke(dict(revoke, expected_user_id=12), 'TOKEN_BINDING_MISMATCH', service_user=True)
     assert ids() == [1,2,3]
     with sqlite3.connect(database) as db:

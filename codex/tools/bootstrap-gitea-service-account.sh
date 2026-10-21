@@ -4,17 +4,13 @@ set +x
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 manifest=''
-access_manifest=''
-project_id=''
 username=''
 token_kind=''
 credential_output=''
-merged_sha=''
-platform_root=''
 
 usage() {
   printf '%s\n' \
-    "usage: $0 --manifest FILE [--access-manifest FILE --project-id ID --merged-sha SHA --platform-root DIR] --username NAME --token-kind manager-audit|manager-mutation|project-agent|routine-merge-agent --credential-output FILE" >&2
+    "usage: $0 --manifest FILE --username NAME --token-kind manager-audit|manager-mutation|project-agent --credential-output FILE" >&2
   exit 2
 }
 
@@ -118,13 +114,9 @@ compensate_unsafe_created_account() {
 while (($#)); do
   case "$1" in
     --manifest) manifest="${2:-}"; shift 2 ;;
-    --access-manifest) access_manifest="${2:-}"; shift 2 ;;
-    --project-id) project_id="${2:-}"; shift 2 ;;
     --username) username="${2:-}"; shift 2 ;;
     --token-kind) token_kind="${2:-}"; shift 2 ;;
     --credential-output) credential_output="${2:-}"; shift 2 ;;
-    --merged-sha) merged_sha="${2:-}"; shift 2 ;;
-    --platform-root) platform_root="${2:-}"; shift 2 ;;
     *) usage ;;
   esac
 done
@@ -160,56 +152,6 @@ fi
 }
 
 expected_basename="$username-$token_kind.token"
-marker_root="$credential_root"
-bound_repository=''
-if [[ "$token_kind" == routine-merge-agent ]]; then
-  [[ -n "$access_manifest" && -n "$project_id" && -n "$merged_sha" &&
-     -n "$platform_root" ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: routine merger requires access/project/merged-source binding' >&2
-    exit 2
-  }
-  [[ "$project_id" =~ ^[A-Za-z0-9._-]+$ ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: unsafe project id' >&2
-    exit 2
-  }
-  python3 -m aisoft_host_access.cli \
-    --access-manifest "$access_manifest" \
-    --governance-manifest "$manifest" validate >/dev/null || exit 2
-  binding="$(jq -cer --arg project_id "$project_id" '
-    [.projects[] | select(.project_id == $project_id)]
-    | if length == 1 and .[0].routine_merge_agent != null
-      then {identity:.[0].routine_merge_agent,repository:.[0].repository}
-      else error("missing binding") end
-  ' "$access_manifest")" || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: project has no exact routine merger binding' >&2
-    exit 2
-  }
-  bound_identity="$(jq -r '.identity' <<<"$binding")"
-  bound_repository="$(jq -r '.repository' <<<"$binding")"
-  [[ "$bound_identity" == "$username" ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: routine merger identity does not match project binding' >&2
-    exit 2
-  }
-  pilot="$(jq -cer --arg repository "$bound_repository" --arg project_id "$project_id" \
-    --arg username "$username" '
-    [.repositories[] | select(.name == $repository)]
-    | if length == 1
-         and .[0].routine_auto_merge_enabled == true
-         and .[0].routine_merge_agent == $username
-         and .[0].routine_live_pilot.project_id == $project_id
-      then .[0].routine_live_pilot
-      else error("not the enabled routine live pilot") end
-  ' "$manifest")" || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: project is not the exact enabled routine live pilot' >&2
-    exit 2
-  }
-  approval_issue="$(jq -r '.rollout_issue' <<<"$pilot")"
-  required_mode="approved-issue-$approval_issue"
-  python3 -m aisoft_gitea_governance.cli --manifest "$manifest" verify-merged \
-    --repository "$bound_repository" --issue "$approval_issue" \
-    --merged-sha "$merged_sha" --platform-root "$platform_root" >/dev/null || exit 2
-  expected_basename=routine-merge-agent.token
-fi
 [[ "${AISOFT_ACCOUNT_BOOTSTRAP_MODE:-}" == "$required_mode" ]] || {
   printf 'BLOCKED_EXTERNAL: AISOFT_ACCOUNT_BOOTSTRAP_MODE=%s is required\n' "$required_mode" >&2
   exit 2
@@ -227,20 +169,10 @@ mkdir -p "$credential_root"
 chmod 700 "$credential_root"
 credential_root="$(cd -- "$credential_root" && pwd -P)"
 marker_root="$credential_root"
-if [[ "$token_kind" == routine-merge-agent ]]; then
-  mkdir -p "$credential_root/projects/$project_id"
-  chmod 700 "$credential_root/projects" "$credential_root/projects/$project_id"
-  marker_root="$(cd -- "$credential_root/projects/$project_id" && pwd -P)"
-fi
 output_parent="$(cd -- "$(dirname -- "$credential_output")" && pwd -P)"
 [[ "$output_parent" == "$credential_root" && "$(basename -- "$credential_output")" == "$expected_basename" ]] || {
-  if [[ "$token_kind" == routine-merge-agent && "$output_parent" == "$marker_root" &&
-        "$(basename -- "$credential_output")" == "$expected_basename" ]]; then
-    :
-  else
   printf '%s\n' 'BLOCKED_EXTERNAL: credential output must use the exact managed root and filename' >&2
   exit 2
-  fi
 }
 [[ ! -L "$credential_output" ]] || {
   printf '%s\n' 'BLOCKED_EXTERNAL: credential output must not be a symlink' >&2
@@ -371,49 +303,11 @@ unset token
 validate_non_admin_identity "$identity_file" "$username" \
   'token identity read-back'
 
-observed_scopes='not-probed'
-if [[ "$token_kind" == routine-merge-agent ]]; then
-  scope_file="$tmp_dir/scope.json"
-  token="$(tr -d '\r\n' <"$credential_output")"
-  scope_status="$(printf 'header = "Authorization: token %s"\n' "$token" |
-    curl --config - --silent --show-error --output "$scope_file" \
-      --write-out '%{http_code}' "$GITEA_LOCAL_URL/api/v1/notifications")" || {
-    unset token
-    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope read-back failed' >&2
-    exit 2
-  }
-  unset token
-  [[ "$scope_status" == 403 ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope probe did not fail closed' >&2
-    exit 2
-  }
-  scope_message="$(jq -er '.message' "$scope_file")" || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope evidence is unavailable' >&2
-    exit 2
-  }
-  observed_scopes="$(sed -nE 's/.*token scope=([A-Za-z0-9:,_-]+).*/\1/p' <<<"$scope_message")"
-  # Gitea reports the granted scopes in its own order, so compare the sets, not
-  # the strings. read:user is named on its own because the broker verifies this
-  # identity against /api/v1/user before it probes any scope, and a merge-only
-  # PAT is rejected there with HTTP 403 (#313).
-  expected_scope_set="$(tr ',' '\n' <<<"$scopes" | LC_ALL=C sort | paste -sd, -)"
-  observed_scope_set="$(tr ',' '\n' <<<"$observed_scopes" | LC_ALL=C sort | paste -sd, -)"
-  [[ "$observed_scope_set" == "$expected_scope_set" &&
-     ",$observed_scope_set," == *,read:user,* &&
-     ",$observed_scope_set," == *,write:repository,* ]] || {
-    printf '%s\n' 'BLOCKED_EXTERNAL: routine PAT scope must equal the manifest set including read:user' >&2
-    exit 2
-  }
-fi
-
 jq -cn --arg username "$username" --arg token_kind "$token_kind" --arg result "$result" \
-  --arg project_id "$project_id" --arg repository "$bound_repository" \
-  --arg scopes "$observed_scopes" --argjson issue "$approval_issue" \
+  --argjson issue "$approval_issue" \
   --argjson account_mutations "$account_mutation_count" \
   --argjson pat_mutations "$pat_mutation_count" \
   '{username:$username,token_kind:$token_kind,result:$result,site_admin:false,
     credential_mode:"600",approval_issue:$issue,
-    project_id:($project_id | if length>0 then . else null end),
-    repository:($repository | if length>0 then . else null end),observed_scopes:$scopes,
     bootstrap_operation_count:1,account_mutation_count:$account_mutations,
     pat_mutation_count:$pat_mutations}'

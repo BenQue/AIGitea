@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from aisoft_gitea_governance.contract import (
-    ContractError, load_contract, repository_declarations_sha256,
+    ContractError, load_contract,
 )
 from aisoft_loop.change_control import PHASES, resolve_change_control
 from aisoft_loop.classification import Classification, ClassificationError
@@ -69,13 +69,6 @@ class ChangeControlContractTests(unittest.TestCase):
         manifest 里各自的声明值（缺省 production），断言的意图不变而不再依赖当时的快照。"""
         raw = json.loads(MANIFEST.read_text())
         raw["repositories"][1]["change_control"] = "development"
-        next(
-            item for item in raw["repositories"] if item["name"] == "AlphaApp"
-        )["routine_live_pilot"]["non_target_repositories_sha256"] = (
-            repository_declarations_sha256(
-                raw["repositories"], exclude_name="AlphaApp"
-            )
-        )
         expected = {
             entry["name"]: entry.get("change_control", "production")
             for entry in raw["repositories"]

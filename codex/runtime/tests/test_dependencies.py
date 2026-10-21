@@ -78,16 +78,5 @@ class DependencyTests(unittest.TestCase):
             self.assertEqual(result['reference'],'admin/aisoft-platform#284')
             self.assertNotIn('body',result)
 
-    def test_routine_dependency_path_uses_same_target_and_terminal_rule(self):
-        c=access(); source=c.project('gamma-board'); b=HostAccessBroker(c)
-        with patch.object(b.credentials,'resolve',return_value=ResolvedCredential('audit','fixture-audit')), \
-                patch.object(b,'_request_json',return_value=issue()) as get, \
-                patch.object(b,'_verify_identity'):
-            dep=b._read_dependency(source,'admin/aisoft-platform#284',local_token='fixture-routine')
-            self.assertFalse(is_terminal(dep))
-            self.assertEqual(get.call_args.args[1],'fixture-audit')
-            get.return_value=issue('closed')
-            self.assertTrue(is_terminal(b._read_dependency(source,'admin/aisoft-platform#284',local_token='fixture-routine')))
-
 
 if __name__=='__main__': unittest.main()

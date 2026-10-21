@@ -7,20 +7,25 @@ repo="$root"
 project="aisoft-platform"
 target_home="$HOME"
 broker="${AISOFT_HOST_ACCESS_BROKER:-/usr/local/libexec/aisoft/host-access-broker}"
+credential_root=""
 
 usage() {
   cat <<'EOF'
 Usage: aisoft-platform-readiness.sh [--repo PATH] [--project ID] [--home PATH] [--broker PATH]
+                                    [--credential-root PATH]
 
 Reports sanitized SOURCE, INSTALLED_CODEX, INSTALLED_CLAUDE, LIVE_REPO,
 LIVE_PROTECTION and LIVE_VM_TIMERS states. The command is read-only and exits 1
-when any layer is DRIFT, GAP or BLOCKED.
+when any layer is DRIFT, GAP or BLOCKED. PAT_AGE is a NOTE only (#397): the age
+of each manifest-declared Mac credential against the 180-day rotation period,
+from its rotation receipt or else its creation marker; it never reads a token
+and never changes the exit code.
 EOF
 }
 
 while (($#)); do
   case "$1" in
-    --repo | --project | --home | --broker)
+    --repo | --project | --home | --broker | --credential-root)
       (($# >= 2)) || {
         usage >&2
         exit 2
@@ -30,6 +35,7 @@ while (($#)); do
         --project) project="$2" ;;
         --home) target_home="$2" ;;
         --broker) broker="$2" ;;
+        --credential-root) credential_root="$2" ;;
       esac
       shift 2
       ;;
@@ -142,5 +148,57 @@ else
     overall=1
   fi
 fi
+
+# #397: PAT rotation period (06 §4). Ages come from non-secret metadata only:
+# the observed_at of a completed rotation receipt, else the mtime of the
+# creation marker the bootstrap wrote. Token files are never opened.
+python3 -I - "$repo/codex/config/host-access-broker.json" "$credential_root" <<'PY' || echo 'PAT_AGE NOTE unreadable'
+import json, os, stat, sys, time
+from pathlib import Path
+
+LIMIT_DAYS = 180
+manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+root = Path(sys.argv[2] or manifest["site"]["credential_root_mac"])
+bindings = manifest["identity_bindings"]
+targets = [("manager-audit", bindings["manager_audit"]["relative_path"]),
+           ("manager-mutation", bindings["manager_mutation"]["relative_path"])]
+template = bindings["project_agent"]["relative_path_template"]
+targets += [("project-agent", template.format(project_id=p["project_id"])) for p in manifest["projects"]]
+
+def issued(kind, relative):
+    parent = root / Path(relative).parent
+    receipt = parent / (".rotation-" + kind) / "provenance.json"
+    journal = receipt.with_name("journal.json")
+    try:
+        # provenance.json is written before the transaction completes; only a
+        # journal in phase complete makes its time a finished rotation.
+        if (stat.S_ISREG(os.lstat(receipt).st_mode) and stat.S_ISREG(os.lstat(journal).st_mode)
+                and json.loads(journal.read_text(encoding="utf-8")).get("phase") == "complete"):
+            value = json.loads(receipt.read_text(encoding="utf-8")).get("observed_at")
+            if type(value) is int and value > 0:
+                return value, "receipt"
+    except (OSError, ValueError):
+        pass
+    try:
+        prefix = Path(relative).name + "-created-by-issue-"
+        times = [os.lstat(entry.path).st_mtime for entry in os.scandir(parent)
+                 if entry.name.startswith(prefix) and entry.is_file(follow_symlinks=False)]
+    except OSError:
+        times = []
+    return (int(max(times)), "marker") if times else (None, "unknown")
+
+now, over, unknown, rows = time.time(), 0, 0, []
+for kind, relative in targets:
+    when, source = issued(kind, relative)
+    if when is None:
+        unknown += 1
+        rows.append(f"  PAT_AGE {relative} unknown")
+        continue
+    days = int((now - when) // 86400)
+    over += days > LIMIT_DAYS
+    rows.append(f"  PAT_AGE {relative} {days}d source={source}" + (" OVER" if days > LIMIT_DAYS else ""))
+print(f"PAT_AGE NOTE checked={len(targets)} over_{LIMIT_DAYS}d={over} unknown={unknown}")
+print("\n".join(rows))
+PY
 
 exit "$overall"

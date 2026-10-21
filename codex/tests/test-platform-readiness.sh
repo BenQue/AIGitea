@@ -57,8 +57,34 @@ esac
 EOF
 chmod +x "$fake_broker"
 
+# #397: PAT_AGE reads a fixture credential root only, never the real store,
+# and never opens a token (the fixture token is unreadable on purpose).
+creds="$test_root/credentials"
+mkdir -p "$creds/manager/.rotation-manager-mutation"
+: >"$creds/manager/audit.token"
+chmod 000 "$creds/manager/audit.token"
+printf 'issue=1\n' >"$creds/manager/audit.token-created-by-issue-1"
+touch -t "$(date -v-10d +%Y%m%d%H%M 2>/dev/null || date -d '10 days ago' +%Y%m%d%H%M)" \
+  "$creds/manager/audit.token-created-by-issue-1"
+printf '{"observed_at":%s}\n' "$(($(date +%s) - 200 * 86400))" \
+  >"$creds/manager/.rotation-manager-mutation/provenance.json"
+printf '{"phase":"complete"}\n' >"$creds/manager/.rotation-manager-mutation/journal.json"
+# A receipt whose transaction never completed is not a rotation (provenance is
+# written before the journal reaches complete).
+mkdir -p "$creds/projects/aisoft-platform/.rotation-project-agent"
+printf '{"observed_at":%s}\n' "$(date +%s)" >"$creds/projects/aisoft-platform/.rotation-project-agent/provenance.json"
+printf '{"phase":"revoked"}\n' >"$creds/projects/aisoft-platform/.rotation-project-agent/journal.json"
+
 output="$(bash "$root/codex/tools/aisoft-platform-readiness.sh" \
-  --repo "$root" --home "$test_root/home" --broker "$fake_broker")"
+  --repo "$root" --home "$test_root/home" --broker "$fake_broker" --credential-root "$creds")"
+# Two manager credentials plus one agent per project, none of which has metadata.
+note="$(grep -E '^PAT_AGE NOTE checked=[0-9]+ over_180d=1 unknown=[0-9]+$' <<<"$output")"
+checked="$(sed -E 's/.*checked=([0-9]+).*/\1/' <<<"$note")"
+unknown="$(sed -E 's/.*unknown=([0-9]+)$/\1/' <<<"$note")"
+[[ "$checked" == "$((unknown + 2))" && "$unknown" -gt 0 ]]
+grep -Eq '^  PAT_AGE manager/audit.token 1[01]d source=marker$' <<<"$output"
+grep -Eq '^  PAT_AGE manager/mutation.token 200d source=receipt OVER$' <<<"$output"
+grep -Fq '  PAT_AGE projects/aisoft-platform/project-agent.token unknown' <<<"$output"
 grep -Fq 'SOURCE PASS' <<<"$output"
 grep -Fq 'INSTALLED_CODEX PASS' <<<"$output"
 grep -Fq 'INSTALLED_CLAUDE NOT_INSTALLED' <<<"$output"
@@ -68,13 +94,13 @@ grep -Fq 'LIVE_PROTECTION PASS status_check=true contexts=1' <<<"$output"
 grep -Fq 'LIVE_VM_TIMERS PASS enabled=1 failing=0' <<<"$output"
 
 none_output="$(FAKE_UNITS=none bash "$root/codex/tools/aisoft-platform-readiness.sh" \
-  --repo "$root" --home "$test_root/home" --broker "$fake_broker")"
+  --repo "$root" --home "$test_root/home" --broker "$fake_broker" --credential-root "$creds")"
 grep -Fq 'LIVE_VM_TIMERS PASS enabled=0 failing=0' <<<"$none_output"
 
 for mode in gap missing broken malformed; do
   set +e
   units_output="$(FAKE_UNITS="$mode" bash "$root/codex/tools/aisoft-platform-readiness.sh" \
-    --repo "$root" --home "$test_root/home" --broker "$fake_broker")"
+    --repo "$root" --home "$test_root/home" --broker "$fake_broker" --credential-root "$creds")"
   units_status=$?
   set -e
   [[ "$units_status" == "1" ]]
@@ -87,7 +113,7 @@ done
 
 set +e
 gap_output="$(FAKE_PROTECTION_GAP=1 bash "$root/codex/tools/aisoft-platform-readiness.sh" \
-  --repo "$root" --home "$test_root/home" --broker "$fake_broker")"
+  --repo "$root" --home "$test_root/home" --broker "$fake_broker" --credential-root "$creds")"
 gap_status=$?
 set -e
 [[ "$gap_status" == "1" ]]

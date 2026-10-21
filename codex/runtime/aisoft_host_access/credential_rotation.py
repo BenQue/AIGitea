@@ -108,10 +108,6 @@ def rotation_target(contract: AccessContract, project_id, kind):
         username = project.project_agent
         relative = bindings['project_agent']['relative_path_template'].format(project_id=project_id)
         scopes = governance['project_agent_policy']['token_scopes']
-    elif kind == 'routine-merge-agent' and project.routine_merge_agent:
-        username = project.routine_merge_agent
-        relative = bindings['routine_merge_agent']['relative_path_template'].format(project_id=project_id)
-        scopes = governance['routine_merge_agent_policy']['token_scopes']
     else:
         blocked('ROTATION_TARGET_INVALID')
     return RotationTarget(project_id, kind, username, relative, tuple(sorted(scopes)))

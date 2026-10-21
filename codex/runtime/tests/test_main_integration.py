@@ -571,9 +571,6 @@ class IntegrationTests(unittest.TestCase):
                 template_scope_context(replace(contract, path=installed / "fake.json"), "deltadb")
             raw = json.loads(paths[1].read_text())
             next(x for x in raw["repositories"] if x["name"] == "DeltaDB")["vendors_change_templates"] = False
-            from aisoft_gitea_governance.contract import repository_declarations_sha256
-            next(x for x in raw["repositories"] if x["name"] == "AlphaApp")["routine_live_pilot"][
-                "non_target_repositories_sha256"] = repository_declarations_sha256(raw["repositories"], exclude_name="AlphaApp")
             paths[1].write_text(json.dumps(raw))
             with self.assertRaises(GitError) as refused:
                 template_scope_context(contract, "deltadb")

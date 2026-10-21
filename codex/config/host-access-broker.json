@@ -28,11 +28,6 @@
       "credential_kind": "protected-file",
       "relative_path_template": "projects/{project_id}/project-agent.token",
       "account_source": "manifest-project-agent"
-    },
-    "routine_merge_agent": {
-      "credential_kind": "protected-file",
-      "relative_path_template": "projects/{project_id}/routine-merge-agent.token",
-      "account_source": "manifest-routine-merge-agent"
     }
   },
   "mac_host": {
@@ -321,35 +316,30 @@
       "project_id": "aisoft-platform",
       "repository": "aisoft-platform",
       "project_agent": "aisoft-platform-agent",
-      "routine_merge_agent": null,
       "mac_checkout": "/Users/benque/MyDocs/AISoftPlatform"
     },
     {
       "project_id": "hsdb",
       "repository": "HSDB",
       "project_agent": "hsdb-agent",
-      "routine_merge_agent": null,
       "mac_checkout": "/Users/benque/Projects/HSDB"
     },
     {
       "project_id": "localwms",
       "repository": "LocalWMS",
       "project_agent": "localwms-agent",
-      "routine_merge_agent": null,
       "mac_checkout": "/Users/benque/Projects/LocalWMS"
     },
     {
       "project_id": "myapp",
       "repository": "myapp",
       "project_agent": "myapp-agent",
-      "routine_merge_agent": null,
       "mac_checkout": null
     },
     {
       "project_id": "newemaint",
       "repository": "NewEMaint",
       "project_agent": "newemaint-agent",
-      "routine_merge_agent": null,
       "git_remote_name": "gitea",
       "mac_checkout": "/Users/benque/Projects/NewEmaint"
     },
@@ -357,7 +347,6 @@
       "project_id": "sfm-digital-board",
       "repository": "SFMDigitalBoard",
       "project_agent": "sfm-board-agent",
-      "routine_merge_agent": null,
       "git_remote_name": "gitea",
       "mac_checkout": "/Users/benque/Projects/SFMDigitalBoard",
       "dependency_read_targets": [
@@ -368,7 +357,6 @@
       "project_id": "smoke-test",
       "repository": "smoke-test",
       "project_agent": "smoke-test-agent",
-      "routine_merge_agent": null,
       "mac_checkout": null
     }
   ],
