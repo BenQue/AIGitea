@@ -1177,7 +1177,7 @@ class CredentialResolver:
     def __init__(self, contract: AccessContract, *, expected_uid: int | None = None) -> None:
         self.contract = contract
         mac = contract.raw["mac_host"]
-        self.root = mac["credential_root"]
+        self.root = contract.raw["site"]["credential_root_mac"]
         if expected_uid is None:
             try:
                 expected_uid = pwd.getpwnam(mac["credential_owner"]).pw_uid
@@ -4001,15 +4001,16 @@ class HostAccessBroker:
         operation: OperationContract,
     ) -> object:
         mac = self.contract.raw["mac_host"]
+        site = self.contract.raw["site"]
         self._run([
-            mac["orbstack_binary"], "-m", mac["orbstack_machine"],
-            "-u", mac["orbstack_user"], "/usr/bin/true",
+            mac["orbstack_binary"], "-m", site["orbstack_machine"],
+            "-u", site["orbstack_user"], "/usr/bin/true",
         ])
         return {
             "status": "PASS",
             "project": project.project_id,
             "operation": operation.name,
-            "machine": mac["orbstack_machine"],
+            "machine": site["orbstack_machine"],
         }
 
     def _orbstack_runner_status(
@@ -4040,9 +4041,10 @@ class HostAccessBroker:
         and timestamps are returned, and the raw journal stays on the VM.
         """
         mac = self.contract.raw["mac_host"]
+        site = self.contract.raw["site"]
         prefix = (
-            mac["orbstack_binary"], "-m", mac["orbstack_machine"],
-            "-u", mac["orbstack_user"],
+            mac["orbstack_binary"], "-m", site["orbstack_machine"],
+            "-u", site["orbstack_user"],
         )
         service = self._systemd_unit_state(prefix)
         # Read the VM's own clock rather than this host's: log age is only
@@ -4054,7 +4056,7 @@ class HostAccessBroker:
             "status": "PASS",
             "project": project.project_id,
             "operation": operation.name,
-            "machine": mac["orbstack_machine"],
+            "machine": site["orbstack_machine"],
             "unit": ACT_RUNNER_UNIT,
             "observed_at": observed_at,
             "service": service,
@@ -4170,9 +4172,10 @@ class HostAccessBroker:
         read into this process, let alone returned.
         """
         mac = self.contract.raw["mac_host"]
+        site = self.contract.raw["site"]
         user = self.contract.raw["vm_runtime"]["runtime_user"]
         prefix = (
-            mac["orbstack_binary"], "-m", mac["orbstack_machine"], "-u", user,
+            mac["orbstack_binary"], "-m", site["orbstack_machine"], "-u", user,
         )
         observed_at = self._vm_epoch_seconds(prefix)
         names = self._user_timer_names(prefix)
@@ -4244,7 +4247,7 @@ class HostAccessBroker:
             "status": "PASS",
             "project": project.project_id,
             "operation": operation.name,
-            "machine": mac["orbstack_machine"],
+            "machine": site["orbstack_machine"],
             "user": user,
             "observed_at": observed_at,
             "failure_window_seconds": VM_UNIT_FAILURE_WINDOW_SECONDS,

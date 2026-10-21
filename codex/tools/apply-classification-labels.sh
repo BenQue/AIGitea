@@ -150,7 +150,7 @@ broker_failure_reason() {
   case "$broker_stderr" in
     *REQUEST_DENIED*'not allowlisted'*)
       broker_reason='broker-operation-missing'
-      broker_detail="the installed host-access-broker does not carry $1; its operation table is fixed at install time, so this is a stale install and not a permission problem. Reinstall on both Mac and gitea-ci with: sudo bash codex/install-host-access-broker.sh (06 踩坑 20), then rerun."
+      broker_detail="the installed host-access-broker does not carry $1; its operation table is fixed at install time, so this is a stale install and not a permission problem. Reinstall on both the Mac and the platform VM with: sudo bash codex/install-host-access-broker.sh (06 踩坑 20), then rerun."
       ;;
     *)
       broker_reason=""

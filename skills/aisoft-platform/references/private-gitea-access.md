@@ -21,7 +21,7 @@ Use this procedure before inspecting a private repository, Issue, PR, Actions ru
    使用 manager 的独立 read-only PAT 和 `gitea-governance.sh check`；不得用 mutation PAT 或普通 Git
    代替。
 4. **VM-local admin read-only fallback**: when no broker route/manager exists or ACL blocks the exact
-   target, use the existing mode 600 administrator credential file only inside `gitea-ci`, through the
+   target, use the existing mode 600 administrator credential file only inside the OrbStack VM (manifest `site.orbstack_machine`), through the
    read-only helper. Do not copy the token to the Mac or add bot permissions.
 5. **Authenticated browser fallback**: use an existing signed-in browser session for read-only UI evidence when the helper is unavailable or the UI itself matters.
 
@@ -77,17 +77,18 @@ Project onboarding readback takes no target overrides:
 
 The following helpers are compatibility/fallback paths, not the normal host entrypoint.
 
-For an authorized VM-local administrator read-only fallback:
+For an authorized VM-local administrator read-only fallback, take the machine, the operator account and the
+VM checkout root from the broker manifest `site` segment (`orbstack_machine`, `orbstack_user`,
+`platform_checkout_vm`); leaving `GITEA_CREDENTIAL_FILE` unset uses the helper's default VM credential file:
 
 ```bash
-orb -m gitea-ci -u benque bash -lc '
+orb -m <site.orbstack_machine> -u <site.orbstack_user> bash -lc '
   GITEA_URL=http://127.0.0.1:3000 \
   GITEA_OWNER=<owner> \
   GITEA_REPO=<repo> \
   GITEA_EXPECT_OWNER=<owner> \
   GITEA_EXPECT_REPO=<repo> \
-  GITEA_CREDENTIAL_FILE=/home/benque/gitea-ci-credentials.txt \
-  /mnt/mac/Users/benque/MyDocs/AISoftPlatform/codex/tools/gitea-readonly.sh \
+  <site.platform_checkout_vm>/codex/tools/gitea-readonly.sh \
     "issues?state=all&type=issues&limit=50"
 '
 ```

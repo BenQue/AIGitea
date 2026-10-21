@@ -662,7 +662,7 @@ def validate_grant(contract, target, issue, source_sha, grant, *, vm=False):
             or grant['operator_uid'] != 0 or grant['issue'] != issue
             or grant['source_sha'] != source_sha or grant['project_id'] != target.project_id
             or grant['token_kind'] != target.token_kind
-            or grant['credential_root'] != contract.raw['mac_host']['credential_root']
+            or grant['credential_root'] != contract.raw['site']['credential_root_mac']
             or grant['helper_path'] != ROTATION_POLICY['vm_helper']
             or type(grant['creation_issue']) is not int or grant['creation_issue'] <= 0
             or type(grant['not_before']) is not int or type(grant['expires_at']) is not int
@@ -684,8 +684,9 @@ class SystemBackend:
 
     def vm(self, action, **values):
         mac = self.contract.raw['mac_host']
-        argv = ['/usr/bin/sudo', '-n', '-H', '-u', mac['orbstack_user'], mac['orbstack_binary'],
-                '-m', mac['orbstack_machine'], '-u', ROTATION_POLICY['vm_service_user'],
+        site = self.contract.raw['site']
+        argv = ['/usr/bin/sudo', '-n', '-H', '-u', site['orbstack_user'], mac['orbstack_binary'],
+                '-m', site['orbstack_machine'], '-u', ROTATION_POLICY['vm_service_user'],
                 ROTATION_POLICY['vm_operator'], '--vm-operation']
         request = dict(action=action, project_id=self.target.project_id,
                        token_kind=self.target.token_kind, issue=self.issue,
@@ -773,7 +774,7 @@ def rotate(contract, project_id, issue, source_sha, token_kind):
         grant = authorization(contract, target, issue, source_sha)
         uid = pwd.getpwnam(contract.raw['mac_host']['credential_owner']).pw_uid
         backend = SystemBackend(contract, target, issue, source_sha, grant.capability)
-        return RotationTransaction(contract.raw['mac_host']['credential_root'], uid,
+        return RotationTransaction(contract.raw['site']['credential_root_mac'], uid,
                                    target, grant.binding, backend).run()
     except BrokerError as error:
         code = error.code if re.fullmatch(r'ROTATION_[A-Z_]{1,64}', error.code) else 'ROTATION_FAILED'
