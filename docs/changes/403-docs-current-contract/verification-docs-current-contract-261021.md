@@ -37,7 +37,7 @@ updated: 2026-10-21
 | AC-2 01–08 第三行 `> 现行合同：` 与 `## 来历` | PASS | 8 册各 1 个；来历表 SHA 逐个 `git cat-file -e`，并与 `git log --merges --first-parent` 的 Issue→merge 映射逐行比对，0 不符 |
 | AC-2 `rg -n '尚未(实施\|运行)\|尚待' 0[1-8]-*.md` | PASS | 0 命中；未实施事项集中在 README §8「未实施清单」（12 行） |
 | AC-3 README 日期版本守卫 | PASS | smoke 内 python 守卫：剥掉链接目标、跳过 §5 导航表行后无 `YYYY-MM-DD`、`vN.N`、`N.N.N` |
-| AC-3 反向证明 | PASS | 把 smoke 新增守卫逐字抽到隔离副本跑：README 末尾分别加「核对日期 2026-10-21」「核对日期2026-10-21更新」「核对日期2026-10-21UTC」「版本v1.2已发布」「Gitea 1.26.4」「Gitea1.26.4」均 rc=1；还原 rc=0。紧贴中文与紧贴字母的写法是 Codex 第 1、2 轮找出的漏检，守卫改为只以数字为边界 |
+| AC-3 反向证明 | PASS | 把 smoke 新增守卫逐字抽到隔离副本跑：README 末尾分别加「核对日期 2026-10-21」「核对日期2026-10-21更新」「核对日期2026-10-21UTC」「版本v1.2已发布」「Giteav1.2」「releasev1.2」「Gitea 1.26.4」「Gitea1.26.4」均 rc=1；还原 rc=0。紧贴中文与紧贴字母的写法是 Codex 第 1–3 轮找出的漏检，守卫三个分支都只以数字为边界 |
 | AC-4 `bash codex/tools/aisoft-platform-readiness.sh --render-readme` | PASS | 输出 9 行表：源码、治理仓库 7、broker 操作 34、installer 安装面 6、规范标签 27（type/* 10）、发布包 1.7.0、Matt v1.3.1、superpowers v7.0.0、catalog 2026.09.0，每行带来源文件 |
 | AC-4 `bash codex/tests/test-platform-readiness.sh` | PASS | spy broker 证明不调用 broker；在由合成夹具 manifest（#380）搭的隔离 checkout 上逐字比对整张 9 行表（值与来源列）；缺键、错类型、空值、缺 Matt sha、整个 Matt pin 缺失、重复 Matt pin、缺 catalog revision、空 superpowers tag、缺 superpowers commit、一个文件两份 JSON、两个 superpowers 版本目录共 13 种输入都 rc=1 且 stdout 为空；spy broker 也只对隔离 checkout 运行 |
 | AC-5 `grep -c 'grep -Fq' codex/tests/smoke.sh` 与 `smoke-pin-baseline.json` | PASS | 100 → 89，基线 89 |
@@ -49,8 +49,8 @@ updated: 2026-10-21
 | AC-8 `bash codex/tools/usage-bundle.sh --verify` | PASS | `VERIFIED 1.7.0` |
 | AC-8 `bash -n`、`shellcheck` smoke、readiness、readiness 测试 | PASS | 三个文件 0 告警 |
 | AC-8 doc 相关单测 | PASS | `test_session_contract`、`test_architecture_governance`（改为钉标题）、`test_route_policy` 19 个 OK |
-| AC-8 `bash codex/tests/smoke.sh` | 见说明 | T02 head `023e2ba` PASS（5:38）；T04 head `2b1c0de` **FAIL**：#380 守卫拦下 T03 测试直接读真实 manifest（`test-platform-readiness.sh:133–141`），已改为读合成夹具；修复后的 head 结果记在「交叉审查」节 |
-| AC-8 Codex 只读交叉审查 | 进行中 | 第 1 轮 FAIL（6 项 P2、1 项 P3）；第 2 轮 FAIL（F2、F5、F6 残余），处置见下节 |
+| AC-8 `bash codex/tests/smoke.sh` | 见说明 | T02 head `023e2ba` PASS（5:38）；第 2 轮修复 head `c99a517` PASS（5:22）；T04 head `2b1c0de` **FAIL**：#380 守卫拦下 T03 测试直接读真实 manifest（`test-platform-readiness.sh:133–141`），已改为读合成夹具；修复后的 head 结果记在「交叉审查」节 |
+| AC-8 Codex 只读交叉审查 | 进行中 | 第 1 轮 FAIL（6 项 P2、1 项 P3）；第 2 轮 FAIL（F2、F5、F6 残余）；第 3 轮 FAIL（F5 的 `vN.N` 分支残余），处置见下节 |
 | AC-8 `apply-classification-labels.sh --verify 403` | NOT RUN | 合并前执行 |
 
 ## smoke 正文钉子改写清单
@@ -90,3 +90,4 @@ updated: 2026-10-21
 |---|---|---|---|
 | 1 | `2b1c0de` | FAIL | F1 `03` canonical 模板节误删 source/installed 一致性、`[Issue tip,main]` 整合与 tree 验证、no-op 重验等不变量 → 恢复为一句不变量清单。F2 `06` 把 `REMOTE_BRANCH_MOVED` 写成「一定没写入」，而传输失败也返回此码且可能已写入 → 改写为看回执的 `possible_write`/`write_status`/`observed_remote_head`。F3 README 未实施清单把已完成的 marketplace 注册与来源切换列为未实施（#354 verification）→ 只列 Codex 模型回合与 Claude `retro` 残余项，`08` §5 同步，`08` 来历补 #354。F4 删掉标题里的「（#360）」断了 `project-align.md` 的片段链接 → 标题前加显式兼容锚，技能仍零 diff；全仓片段链接重扫 0 断链。F5 README 守卫的 Unicode `\b` 放过「核对日期2026-10-21更新」→ 改 ASCII 边界并补反向用例。F6 `--render-readme` 缺键渲染成 0、缺 pin 渲染成 `null` 仍 rc=0 → 每个事实先校验键、类型与非空，测试覆盖七种坏输入。P3 站点基线原值应为 82 → 已更正 |
 | 2 | `6c8b308` | FAIL | F1、F3、F4、P3 PASS。F2 残余：「每次推送都返回回执」不准确，预检拒绝没有回执 → 区分预检拒绝（无回执、无写入）与传输阶段（有回执、可能已写）。F5 残余：「Gitea1.26.4」「2026-10-21UTC」仍可绕过 → 边界只看数字，补两条反向用例。F6 残余：一个 manifest 文件写两份 JSON 时渲染出两份 pin、负向测试缺空串/缺整个 pin/重复 pin、spy 用例仍跑在真实检出上 → 每个文件 slurp 后要求恰好一个文档，测试扩到 13 种坏输入，spy 改为跑隔离 checkout |
+| 3 | `c99a517` | FAIL | F1–F4、F6、P3 PASS。F5 残余：`vN.N` 分支仍以字母为边界，「Giteav1.2」「releasev1.2」可绕过 → 改为只以数字为边界，补两条反向用例 |

@@ -937,7 +937,7 @@ for number, line in enumerate(text.splitlines(), 1):
         continue
     # Digit-only boundaries: letters or Chinese right next to a date or version
     # (2026-10-21UTC, Gitea1.26.4, 版本v1.2) are still hits.
-    for match in re.finditer(r"(?<![0-9])20[0-9]{2}-[0-9]{2}-[0-9]{2}(?![0-9])|(?<![0-9A-Za-z])v[0-9]+(?:\.[0-9]+)+|(?<![0-9.])[0-9]+\.[0-9]+\.[0-9]+(?![0-9])", line):
+    for match in re.finditer(r"(?<![0-9])20[0-9]{2}-[0-9]{2}-[0-9]{2}(?![0-9])|(?<![0-9])v[0-9]+(?:\.[0-9]+)+(?![0-9])|(?<![0-9.])[0-9]+\.[0-9]+\.[0-9]+(?![0-9])", line):
         hits.append(f"README.md:{number}: {match.group(0)}")
 if hits:
     print("README 出现手写日期或版本号（状态请用 readiness --render-readme）：", *hits, sep="\n", file=sys.stderr)
