@@ -48,7 +48,7 @@ R0 → R1 → R2 与 R3 → R4。R5 与 R1 并行。负责人 2026-10-18 决定�
 | R10a | 自动化引擎退出：按 ADR 0002 D2 迁出 Development Loop、routine merge、VM profile 操作与 `install-vm`，broker 操作 39 → 34、installer 7 → 6；清理 VM 旧单元与 LocalWMS routine merger | R9 | #391 进行中 |
 | R10b | 路由卡：路由表进 `aisoft-platform` 技能（只钉必用与禁用），summary `route:` 块，确认点 1 与派单任务书展示，`08` §7 模型档位表；发布包升版 | R9；Codex 侧验收依赖 R10c | #395 进行中 |
 | R10c | 外部技能包三端一致：superpowers vendor pin 作三端核对基准，Claude/Codex 仍走官方 marketplace，发布包导出 Cursor 项目级落点（#392 确认点 1 修正） | R9 | #392 进行中 |
-| R11 | 使用层可独立消费：随发布包交付 `aisoft` 工具入口，技能去平台检出依赖，tool-provenance 检查，三个项目批量采用（D4），发布说明（1.4.0） | R10a、R10b、R10c | 未开工 |
+| R11 | 使用层可独立消费：随发布包交付 `aisoft` 工具入口，技能去平台检出依赖，tool-provenance 检查，三个项目批量采用（D4），发布说明（#402，发布包 1.8.0） | R10a、R10b、R10c | 进行中（#402） |
 | R12 | 存量项目可对齐与架构扩展点：检查器 LEGACY 级、catalog 按 lock pin、profile 由项目自带（ADR 0001 D5 收口） | R11 | 未开工 |
 | R13 | 站点外置与守卫补齐：manifest `site` 段（D5），内核改结构校验，泄漏守卫覆盖站点值与全部注册仓库名 | R10a | #396 进行中 |
 | R14 | 文档现行态：分册改现行合同体，README 状态表机器生成，smoke 文档钉子棘轮 | R10a、R10b、R13 | 未开工 |

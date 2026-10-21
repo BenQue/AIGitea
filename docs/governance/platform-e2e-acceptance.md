@@ -13,3 +13,10 @@
 | 项目 | 发布包版本 | 日期 | 覆盖阶段 | 证据 | 未覆盖 |
 |---|---|---|---|---|---|
 | NewEMaint（#279 M1 最小部署链演练） | 1.2.0（NewEMaint #297 pin） | 2026-10-20 | 构建、发布、test 部署、健康 SHA、同版本 noop、回滚到上一版本、再部署；数据表与 uploads 卷保留核对 | NewEMaint PR 308（`docs/changes/279-m1-test-deploy-drill/` 的 verification，合并 `f4617aae`）；GitHub run 39118940079；Release 416386339；公司 Gitea run 6（activated）/ 10（healthy-noop）/ 13（再部署） | database restore（manual-only，NOT RUN）；生产；业务表 0 行与 uploads 空卷，保留只证明不丢表、卷未重建 |
+
+## 采用记录
+
+项目采用或升级一个发布包版本时追加一行（#402 起）；`--project-status` 写采用 PR 合并后在项目 `main` 上的读回。
+
+| 项目 | 发布包版本 | 采用 Issue | 采用 PR | `--project-status` |
+|---|---|---|---|---|

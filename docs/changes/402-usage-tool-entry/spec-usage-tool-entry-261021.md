@@ -23,14 +23,14 @@ updated: 2026-10-21
 git_scope:
   - 03-Issue-Spec-Plan与单闸门开发流程.md
   - 06-运维手册与踩坑集.md
+  - codex/runtime/tests/test_session_contract.py
   - codex/tests/smoke.sh
   - codex/tests/test-aisoft-entry.sh
-  - codex/tests/test-aisoft-project-check.sh
+  - codex/tests/test-project-check.sh
   - codex/tests/test-usage-bundle.sh
   - codex/tools/aisoft
   - codex/tools/aisoft-project-check.sh
   - codex/tools/usage-bundle.py
-  - codex/tools/usage-bundle.sh
   - docs/changes/402-usage-tool-entry/plan-usage-tool-entry-261021.md
   - docs/changes/402-usage-tool-entry/spec-usage-tool-entry-261021.md
   - docs/changes/402-usage-tool-entry/summary-usage-tool-entry-261021.md
@@ -154,6 +154,7 @@ summary。每个 PR 推送前单独请负责人确认。采用会话本身就是
 
 - 工具包把约 40 个平台文件复制进每个项目仓。它们由 `tool-provenance` 锁定为某个发布版本的字节，项目不得手改；
   升级只经 `--adopt`。
+- 被工具包收录的平台文件（`aisoft_loop`、`aisoft_host_access` 的 contract 与 dependencies、governance contract、architecture 校验器与三个被包装工具）从此也是发布包成员：以后改它们的平台变更都要同 PR 发新版本。
 - 被包装脚本改为在 `.aisoft/lib` 下运行，相对路径假设由闭包测试覆盖；平台仓内行为不变。
 - `aisoft-project-check.sh` 的结果计数被测试逐字钉死（新增 `tool-provenance` 与 `agents-budget` 两行要同步改测试）。
 - 不改 broker、installer 与 manifest，合并后不需要两台重装；技能需重装。
