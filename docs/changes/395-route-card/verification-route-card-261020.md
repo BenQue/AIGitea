@@ -66,7 +66,7 @@ updated: 2026-10-21
 ## 全量 smoke
 
 - head `531039a`（集成 R13 并发 1.6.0 之后、本记录补齐之前）：`bash codex/tests/smoke.sh` exit 0，`Codex platform static smoke checks passed.`；runtime 单测 Ran 724 tests OK。
-- 之后只改了 `docs/changes/395-route-card/` 下的 plan 与本文件；最终 head 的 smoke 见确认点 2 候选。
+- head `e0426c5`（补齐 plan 与本记录之后）：同一命令 exit 0，`Codex platform static smoke checks passed.`。此后只改本文件。
 
 ## #392 Cursor 一行的更正（AC-9）
 
@@ -87,6 +87,8 @@ updated: 2026-10-21
 
 第 2 轮（head `531039a`，只读）：`CHANGES_REQUESTED`，无代码问题。blocker 复现已消除（`GitRepository.scope` 17 个路径，11 个提交均未触及 `docs/changes/392-*`），R1 修复经 72 格矩阵验证，merge 完整保留 R13 改动，1.6.0 只追加。两条文档问题：本文件缺全量 smoke 与判级投影记录（已补上节）；plan T04 仍列 #392 路径（已改为本票 verification）。
 
+第 3 轮（head `e0426c5`，只读）：`CHANGES_REQUESTED`，两条文档问题确认已修；新指出 AC-8 在交叉审查未 PASS 前不应标 PASS，已改为分项记录。
+
 Codex 认可实现者的三项裁决（拆表保值、提前建 verification、grep 管道代替 `[[ ]]`），并核对旧解析在 692 份文档与 60 组 `documents` 边界输入上的结果与报错文本不变。
 
 ## Acceptance criteria 结果
@@ -100,7 +102,7 @@ Codex 认可实现者的三项裁决（拆表保值、提前建 verification、g
 | AC-5 | PASS | `03` §2.2、`08` §5 三行与 §7.3 |
 | AC-6 | PASS | smoke 守卫与副本反向证明 |
 | AC-7 | PASS | 本票 summary `route:` 通过检查；Txx commit 见上；Codex 独立查表一致 |
-| AC-8 | PASS | smoke exit 0；`--verify` 1.6.0；`bash -n` 与 ShellCheck；判级投影 `projected`；Codex 第 2 轮仅文档问题，见下 |
+| AC-8 | 子项 PASS；交叉审查结论见「Codex 交叉审查」最终轮 | smoke exit 0（`531039a`、`e0426c5`）；`--verify` 1.6.0；`bash -n` 与 ShellCheck；判级投影 `projected` |
 | AC-9 | PASS（按修改后的 AC-9） | 上节；路线图 R10b 行 |
 
 ## 遗留风险与未完成项
