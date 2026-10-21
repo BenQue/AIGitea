@@ -81,6 +81,6 @@ prune 8 个残留 worktree 元数据，删除 3 个 `.claude/worktrees/*`（已�
 | AC7 | 源码 PASS；`main` 上 push 运行待合并后读回 | `.gitea/workflows/ci.yml` |
 | AC8 | PASS | 负责人选「等 R13」；R13（PR 398）合并后撤回本地 1.5.0、用 merge commit `9721ca7` 集成 main，再删除 routine manifest 字段、policy、K1 routine 种类与 `aisoft-loop` 死路径（`3db58fc`、`e12901e`、`1db67ea`）；两个 `validate` 对真实与夹具 manifest PASS（34 操作、7 项目/仓库）；runtime 单测 671 个通过；Go helper 源码不变，`helper_test.go` 把 `routine-merge-agent` 从必须绑定改为必须 `TARGET_UNMANAGED`，VM 上 `test-gitea-pat-helper-linux.sh` PASS（build/model/race/process）；剩余 `routine` 命中均为历史说明、退役文件清单、拒绝旧字段的负向测试与 vendor 英文词 |
 | AC9 | PASS | 治理提交 `8a67c51` 单独提交后重读 |
-| AC10 | PASS | 集成 main 后发布包改发 1.6.0（最终 `sha256:035bf38da689…`，R13 占 1.5.0）；`10382ab` 上 smoke 全绿；本机 `golang:1.26.3` 容器内 `go vet`、`go test`、`go test -race` ok；VM 上 `test-gitea-pat-helper-linux.sh` 在 `58d8048` PASS，`10382ab` 重跑因下载 Go 工具链 TLS 失败 NOT RUN；`--isolated-container` 进程测试 NOT RUN（CI 不跑） |
+| AC10 | PASS | 集成 R13 后发 1.6.0；R10b（PR 399）合并占用 1.6.0 后撤回本地记录、用 merge commit 再次集成 main 并改发 1.7.0（`sha256:b0e24512149f…`）；`10382ab` 上 smoke 全绿；本机 `golang:1.26.3` 容器内 `go vet`、`go test`、`go test -race` ok；VM 上 `test-gitea-pat-helper-linux.sh` 在 `58d8048` PASS，`10382ab` 重跑因下载 Go 工具链 TLS 失败 NOT RUN；`--isolated-container` 进程测试 NOT RUN（CI 不跑） |
 | AC11 | PASS | Codex 只读审查 6 轮：第 4 轮对 `80b1877` PASS；集成 R13 与 AC8 后第 5 轮 FAIL（PAT helper 隔离进程测试夹具仍用 routine 种类），修复后第 6 轮对 `10382ab` PASS（记录：项目库 `codex-review-397.md`）；`apply-classification-labels.sh --verify 397` 读回 `projected` |
 | AC12 | NOT RUN | 合并后 |
