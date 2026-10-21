@@ -37,7 +37,7 @@ depends_on:
   - 391
   - 392
   - 395
-status: spec-review
+status: approved
 branch: change/402-usage-tool-entry
 pr_url:
 created: 2026-10-21

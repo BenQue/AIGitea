@@ -16,7 +16,7 @@ depends_on:
   - 391
   - 392
   - 395
-status: spec-review
+status: approved
 branch: change/402-usage-tool-entry
 created: 2026-10-21
 updated: 2026-10-21
