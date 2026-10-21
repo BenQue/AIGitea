@@ -512,6 +512,40 @@ git -C "$adopted" -c user.name=t -c user.email=t@example.invalid commit -q -m ad
 run 0 "${t[@]}" --adopt "$adopted"
 [[ -z "$(git -C "$adopted" status --porcelain)" ]] || fail 'second adopt changed the checkout'
 run 64 "${t[@]}" --adopt "$tmp/does-not-exist"
+# Codex #402 round 1: nothing is written through a symbolic link, inside the
+# checkout (a template linked to AGENTS.md) or out of it (.aisoft elsewhere).
+linked="$tmp/linked"
+mkdir -p "$linked/docs/changes/_template" "$tmp/outside"
+printf '# AGENTS.md · Linked\n\n- 技术栈：保留\n' >"$linked/AGENTS.md"
+ln -s ../../../AGENTS.md "$linked/docs/changes/_template/summary.md"
+git -C "$linked" init -q -b main
+git -C "$linked" -c user.name=t -c user.email=t@example.invalid add -A
+git -C "$linked" -c user.name=t -c user.email=t@example.invalid commit -q -m base
+cp "$linked/AGENTS.md" "$tmp/linked-agents.before"
+run 1 "${t[@]}" --adopt "$linked"
+expect_contains '--adopt 拒绝经符号链接写入：docs/changes/_template/summary.md'
+cmp -s "$linked/AGENTS.md" "$tmp/linked-agents.before" || fail 'adopt wrote through a symbolic link'
+[[ ! -e "$linked/.aisoft" ]] || fail 'adopt wrote before the symbolic link check finished'
+rm "$linked/docs/changes/_template/summary.md"
+ln -s "$tmp/outside" "$linked/.aisoft"
+git -C "$linked" -c user.name=t -c user.email=t@example.invalid add -A
+git -C "$linked" -c user.name=t -c user.email=t@example.invalid commit -q -m relink
+run 1 "${t[@]}" --adopt "$linked"
+expect_contains '--adopt 拒绝经符号链接写入：.aisoft'
+[[ -z "$(ls -A "$tmp/outside")" ]] || fail 'adopt wrote outside the checkout'
+
+# A release that shipped the session tool cannot be followed by one, or a
+# declaration, that drops every tool-provenance member.
+dropped="$tmp/dropped"
+cp -R "$tplatform" "$dropped"
+python3 -B - "$dropped/usage/bundle.json" <<'PY'
+import json, sys
+bundle = json.load(open(sys.argv[1]))
+bundle["members"] = [m for m in bundle["members"] if m.get("check") != "tool-provenance"]
+open(sys.argv[1], "w").write(json.dumps(bundle, indent=2, ensure_ascii=False) + "\n")
+PY
+run 1 --platform-root "$dropped" --verify
+expect_contains '不能整项删除 tool-provenance 成员'
 run 1 "${t[@]}" --adopt "$adopted" --tools claude,vim
 expect_contains '--tools 只能取'
 run 0 "${t[@]}" --adopt "$adopted" --tools cursor

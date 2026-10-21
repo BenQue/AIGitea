@@ -76,6 +76,11 @@ mkdir -p "$TMP/home"
 project="$TMP/project"
 make_project "$project"
 
+run_tool "$project" 64 --help
+for subcommand in change-name resolve-documents check-change-documents backfill-pr-url claim-worktree \
+  scan-worktrees classify complete project-check 'bundle status' version; do
+  expect_contains "  $subcommand"
+done
 run_tool "$project" 0 version
 expect_contains $'layout\tproject'
 version="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["releases"][-1]["version"])' "$ROOT/usage/bundle.json")"
@@ -109,6 +114,64 @@ if grep -Eq 'No such file|not found|unavailable' "$TMP/out"; then
   fail 'a wrapped tool could not find one of its own files'
 fi
 [[ -z "$(git -C "$project" status --porcelain)" ]] || fail 'the tool wrote into the project checkout'
+
+# Success paths of the two broker-backed commands. The broker is a mock placed
+# where the wrapped tools look first (the same directory), the manifests are
+# the synthetic fixtures copied out of the platform tree and named through the
+# tools' own override variables; the shipped bytes are not edited.
+mkdir -p "$TMP/manifests"
+cp "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
+  "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" "$TMP/manifests/"
+base_url="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["base_url"])' "$TMP/manifests/gitea-governance.json")"
+owner="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["owner"])' "$TMP/manifests/gitea-governance.json")"
+flow="$TMP/flow"
+make_project "$flow"
+git -C "$flow" remote add origin "$base_url/$owner/AlphaApp.git"
+git -C "$flow" checkout -q -b change/7-demo-change
+printf 'demo\n' >"$flow/demo.txt"
+git -C "$flow" -c user.name=t -c user.email=t@example.invalid add demo.txt
+git -C "$flow" -c user.name=t -c user.email=t@example.invalid commit -q -m 'demo change'
+git -C "$flow" checkout -q main
+git -C "$flow" -c user.name=t -c user.email=t@example.invalid merge -q --no-ff change/7-demo-change \
+  -m "Merge pull request 'demo' (#9) from change/7-demo-change into main"
+cat >"$flow/.aisoft/lib/codex/tools/host-access-broker.sh" <<'MOCK'
+#!/usr/bin/env bash
+case " $* " in
+  *" gitea.issue.read "*) printf '{"number":7,"state":"open"}\n' ;;
+  *" gitea.issue.labels.read "*) printf '[{"name":"type/docs"},{"name":"complexity/small"}]\n' ;;
+  *) echo "unexpected broker call: $*" >&2; exit 9 ;;
+esac
+MOCK
+chmod +x "$flow/.aisoft/lib/codex/tools/host-access-broker.sh"
+run_flow() {
+  local expected="$1" status=0
+  shift
+  (cd -- "$flow" && env -i HOME="$TMP/home" PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/homebrew/bin" \
+    AISOFT_ACCESS_MANIFEST="$TMP/manifests/host-access-broker.json" \
+    AISOFT_GOVERNANCE_MANIFEST="$TMP/manifests/gitea-governance.json" \
+    ${sandbox[@]+"${sandbox[@]}"} .aisoft/bin/aisoft "$@") >"$TMP/out" 2>&1 || status=$?
+  [[ "$status" == "$expected" ]] || {
+    cat "$TMP/out" >&2
+    fail "expected status $expected, got $status for: aisoft $*"
+  }
+}
+run_flow 0 classify --verify 7
+expect_contains '"result":"projected"'
+run_flow 0 complete --project alphaapp --range HEAD~1..HEAD
+expect_contains '"pinned":"7"'
+expect_contains '"action":"set-completed"'
+# The architecture validator travels with the tool too.
+cp "$ROOT/architecture/reference/sqlite/architecture.json" "$ROOT/architecture/reference/sqlite/architecture.lock.json" \
+  "$flow/.aisoft/"
+git -C "$flow" -c user.name=t -c user.email=t@example.invalid add .aisoft/architecture.json .aisoft/architecture.lock.json
+git -C "$flow" -c user.name=t -c user.email=t@example.invalid commit -q -m architecture
+run_flow 1 project-check --today 2026-09-12
+expect_contains 'PASS: architecture-lock'
+expect_contains 'PASS: tool-provenance'
+# claim-worktree speaks about --repo, not about the shell's directory.
+git -C "$flow" worktree add -q -b change/8-other-change "$TMP/wt2" main
+run_tool "$project" 0 --repo "$TMP/wt2" claim-worktree --branch change/8-other-change --session test-session
+expect_contains "\"worktree\": \"$(cd -- "$TMP/wt2" && pwd -P)\""
 
 # Reverse proof: one shipped module gone is a failure, not a silent pass.
 broken="$TMP/broken"

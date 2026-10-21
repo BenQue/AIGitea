@@ -260,6 +260,7 @@ def parse_bundle(text: str) -> dict:
     if not isinstance(releases, list):
         raise BundleError("releases 必须是数组")
     previous: tuple[int, int, int] | None = None
+    tool_shipped = False
     for index, release in enumerate(releases):
         label = f"releases[{index}]"
         base_keys = {"version", "released", "bundle_digest", "members"}
@@ -281,8 +282,16 @@ def parse_bundle(text: str) -> dict:
         except (TypeError, ValueError) as error:
             raise BundleError(f"{label}.released 不是 YYYY-MM-DD") from error
         validate_member_list(release["members"], f"{label}.members", with_sha=True)
+        # #402: once a release ships the session tool, no later release or the
+        # declaration may drop it; a project would lose aisoft without a GAP.
+        has_tool = any(member.get("check") == "tool-provenance" for member in release["members"])
+        if tool_shipped and not has_tool:
+            raise BundleError(f"{label}: 之前的版本已带会话工具，不能整项删除 tool-provenance 成员")
+        tool_shipped = tool_shipped or has_tool
         if compute_bundle_digest(release["members"]) != release["bundle_digest"]:
             raise BundleError(f"{label}: bundle_digest 与记录的成员摘要不符，历史被改写")
+    if tool_shipped and not any(member.get("check") == "tool-provenance" for member in bundle["members"]):
+        raise BundleError("members: 已发布的版本带会话工具，不能整项删除 tool-provenance 成员")
     return bundle
 
 
@@ -582,6 +591,16 @@ def replace_pointer(existing: str, template: str) -> str:
     return before + ("\n" if before else "") + pointer + after
 
 
+def refuse_symlinks(repo: Path, relative: str) -> None:
+    current = repo
+    for part in PurePosixPath(relative).parts:
+        current = current / part
+        if current.is_symlink():
+            raise BundleError(f"--adopt 拒绝经符号链接写入：{current.relative_to(repo).as_posix()}，先人工处理")
+        if not current.exists():
+            return
+
+
 def adopt(root: Path, repo: Path, tools: tuple[str, ...] = DEFAULT_TOOLS) -> int:
     """Write the latest release into one clean project checkout, the way a
     person following project-align would copy it, and report the result."""
@@ -606,6 +625,13 @@ def adopt(root: Path, repo: Path, tools: tuple[str, ...] = DEFAULT_TOOLS) -> int
         seeds = {member["target"] for member in latest["members"] if member["mode"] == "seed"}
         pointer_target = next(member["target"] for member in latest["members"] if member["mode"] == "pointer")
         written: list[str] = []
+        # Nothing is written through a symbolic link: a link inside the
+        # checkout would redirect a copy onto another file (CLAUDE.md ->
+        # AGENTS.md), one pointing outside would write outside the checkout.
+        # Every destination is checked before the first write.
+        for relative in exported + [f"{base}x" for base in TOOL_ROOTS]:
+            if not (skipped_landings and relative.startswith(skipped_landings)) and not relative.startswith(ADOPT_SKIPPED_SEEDS):
+                refuse_symlinks(repo, relative)
         for relative in exported:
             source = project / relative
             destination = repo / relative

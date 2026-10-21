@@ -1642,7 +1642,7 @@
     {
       "version": "1.8.0",
       "released": "2026-10-21",
-      "bundle_digest": "sha256:2a984f6badb7d9d0dd08f4b172f1a448762952e269c4662468bc17c69ff928cb",
+      "bundle_digest": "sha256:e893503aad6abb6f014534ebd28e8c8fc8b017353ca7d23d428771a1fd378e31",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -1750,7 +1750,7 @@
         {
           "source": "skills/aisoft-platform/SKILL.md",
           "mode": "skill",
-          "sha256": "4c679b3f30f7346134d1c87426cf51d9bc5d5ebe0b111d014ff93af8310feef5"
+          "sha256": "09ee5d28b6ae7862b8d81811315ce2eb3f031a8ad97fb006095475563878940c"
         },
         {
           "source": "skills/aisoft-platform/agents/openai.yaml",
@@ -1760,7 +1760,7 @@
         {
           "source": "skills/aisoft-platform/references/onboarding-runbook.md",
           "mode": "skill",
-          "sha256": "5e02fa55dc6b1ac3470680a444ff2c07b9d9b42ab4b561794e965a9bb529067e"
+          "sha256": "1394a963d682306df952cdea6ed697f7aaf66b615161209008c32a18607feb51"
         },
         {
           "source": "skills/aisoft-platform/references/private-gitea-access.md",
@@ -1807,7 +1807,7 @@
           "mode": "exact",
           "target": ".aisoft/bin/aisoft",
           "check": "tool-provenance",
-          "sha256": "f49132342d0827dad0c2fd99c0d0fa94513687382f814d446645a411cce4d1b5"
+          "sha256": "204097c2c00b5f67e3cc05c9b196ba91cf3e7744e0f53dfd1e3fdab9b3698d13"
         },
         {
           "source": "codex/tools/aisoft-project-check.sh",
@@ -1842,7 +1842,7 @@
           "mode": "exact",
           "target": ".aisoft/lib/codex/tools/usage-bundle.py",
           "check": "tool-provenance",
-          "sha256": "f134ec4858fa45050f833e5f2a8e7db27122c67a74a56a004d7ce81c958f2254"
+          "sha256": "3b405746489fb0e11322bbced0af4e3f5409a2800bb1c8d5735db8e7ccca0ead"
         },
         {
           "source": "codex/agent/aisoft-project-target.sh",

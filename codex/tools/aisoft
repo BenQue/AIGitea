@@ -111,7 +111,17 @@ case "$command" in
     cli "$command" ${args[@]+"${args[@]}"} --repo "$repo"
     ;;
   claim-worktree)
-    cli claim-worktree ${args[@]+"${args[@]}"}
+    # The worktree to claim is the checkout this run speaks about; an explicit
+    # --worktree still wins, but never a silent fallback to the shell's cwd.
+    worktree_given=false
+    for arg in ${args[@]+"${args[@]}"}; do
+      [[ "$arg" == --worktree ]] && worktree_given=true
+    done
+    if [[ "$worktree_given" == true ]]; then
+      cli claim-worktree ${args[@]+"${args[@]}"}
+    else
+      cli claim-worktree ${args[@]+"${args[@]}"} --worktree "$repo"
+    fi
     ;;
   classify)
     mode=plan
