@@ -1,9 +1,6 @@
 # 01 · 基础设施：VM / Gitea / Runner / Verdaccio / Mailpit
 
-> 基础设施 as-built 起点为 2026-07-11；本册当前状态已按 Issue #21（2026-08-04 完成）和
-> Issue #35（2026-08-09 最后回读）收口。环境事实会漂移，执行操作前仍须实时只读核对；历史细节见
-> `docs/changes/21/03-verification.md` 与 `docs/changes/35/03-verification.md`。
-> 2026-10-04 文档核对：后续 #290 的仅 test 共置、#309 Flutter 与 #311 Node 22 来源记录分别保留在对应章节；当前 manifest 范围见下方说明，不继承 #35 的旧九仓数量。
+> 现行合同：本册记录 SCM/CI 主机（Gitea、act_runner、Verdaccio、Mailpit）的 as-built 状态与主机职责边界。as-built 表里的日期是观测时间，环境事实会漂移，执行操作前仍须实时只读核对；站点值（Gitea 地址、OrbStack 机器与运维账号、检出路径、npm registry）以 broker manifest 的 `site` 段为准，仓库与分类以 governance manifest 为准。
 
 ## 1. 拓扑与端口总表
 
@@ -11,16 +8,16 @@
 
 | Machine | 域名 / IP | 当前合同与状态 |
 |----|-----------|------|
-| `gitea-ci` | gitea-ci.orb.local / 192.168.139.49（历史地址） | role=`scm-ci` 已配置；保留 Gitea、Runner、受控缓存/通知/CI 资源，业务 runtime/DB/代理已按 Issue #21 收口 |
+| `site.orbstack_machine` | `<machine>.orb.local` / 192.168.139.49（历史地址） | role=`scm-ci` 已配置；保留 Gitea、Runner、受控缓存/通知/CI 资源，业务 runtime/DB/代理已收口 |
 | `AppServer` | AppServer.orb.local / 192.168.139.212（历史地址） | role=`appserver-test`；每个应用仍须在自己的 Issue/PR 中独立部署和验收 |
-| `prod-sim` | 历史地址 192.168.139.234 | 2026-08-04 已按 name+ID、依赖、数据和可重建 Gate 精确退役；不得再作为脚本目标 |
+| `prod-sim` | 历史地址 192.168.139.234 | 已按 name+ID、依赖、数据和可重建 Gate 精确退役；不得再作为脚本目标 |
 
-| 端口（gitea-ci） | Issue #21 最终证据 | host-role 判定 |
+| 端口（SCM/CI 主机） | 收口证据 | host-role 判定 |
 |------|------|----------|
 | 3000 | Gitea 1.26.4 / `gitea.service` | KEEP：SCM |
-| 4873 | Verdaccio / `pm2-benque.service` | KEEP：批准的 CI cache |
+| 4873 | Verdaccio / `pm2-<site.orbstack_user>.service` | KEEP：批准的 CI cache |
 | 1025 / 8025 | Mailpit SMTP / Web UI | KEEP：批准的通知辅助服务 |
-| 5432(loopback) | PostgreSQL 保留 `gitea` 与一个项目 CI 库（见 #252、#337）；遗留 `app_test` 已备份、恢复验证并删除 | KEEP 仅限批准的 SCM/CI 数据；新业务 DB 拒绝。项目 CI 库的去留随该项目在 manifest 中的治理状态单独立案处理 |
+| 5432(loopback) | PostgreSQL 保留 `gitea` 与一个项目 CI 库；遗留 `app_test` 已备份、恢复验证并删除 | KEEP 仅限批准的 SCM/CI 数据；新业务 DB 拒绝。项目 CI 库的去留随该项目在 manifest 中的治理状态单独立案处理 |
 | 3100 / 8091 | 旧试点项目 runtime/vhost 已删除，应用转至 AppServer | ABSENT；不得恢复为 `scm-ci` 业务入口 |
 | 3212 | 孤儿 smoke 进程与 15 个临时 DB 已精确清理，应用 cleanup 修复已合并/部署 | ABSENT；job 必须在成功、失败和取消路径清理 |
 | 8090 | MyApp runtime/vhost/DB 已备份、恢复验证并精确清理 | ABSENT；不得恢复历史演示部署 |
@@ -28,37 +25,33 @@
 
 `scm-ci` 允许 checkout、build、test、package、registry/artifact publish、批准的缓存/通知
 服务和只读 retention inventory；application deploy/start、业务数据库、长驻 smoke 进程在
-任何 mutation 前按 host-role guard 拒绝；#290 已合并仅 test 的共置例外，必须由受保护 profile 显式绑定
+任何 mutation 前按 host-role guard 拒绝；仅 test 的共置例外必须由受保护 profile 显式绑定
 `host_role=scm-ci`、`environment=test` 与相应 capability，production 仍分离（source 能力与现场验收分开）。
 端口或目录存在不等于获准，必须同时检查进程、cgroup、owner、
 workflow、数据和引用。
 
 > ⚠️ OrbStack 事实：`*.orb.local` 域名 Mac 与 VM 内都可解析；Mac 文件系统在 VM 内挂载于 `/mnt/mac`（root 可读，普通新建用户不一定可穿越）。VM 与 Mac 同生共死——Mac 睡眠 VM 即停，「常驻」要等内网平移才真正成立。
 >
-> 🚫 **`/mnt/mac` 读不到 macOS 隐私保护目录（`~/Documents`、`~/Desktop`、`~/Downloads`）**——2026-07-19 实测：`ls /mnt/mac/Users/benque/Documents/` 返回 `Operation not permitted`，**`sudo` 提权同样失败**（这是 macOS TCC，不是 Unix 权限，故上一条的「root 可读」对这三个目录不成立）；同一时刻 `/mnt/mac/Users/benque/Projects/` 正常可读。
+> 🚫 **`/mnt/mac` 读不到 macOS 隐私保护目录（`~/Documents`、`~/Desktop`、`~/Downloads`）**：这是 macOS TCC，不是 Unix 权限，`sudo` 提权同样失败（上一条的「root 可读」对这三个目录不成立）。
 >
-> ✅ **这就是本套平台文档不放 `~/Documents` 的原因。** 权威根目录已于 2026-07-19 从 `~/Documents/AISoftPlatform/` 迁至 **`~/MyDocs/AISoftPlatform/`**，VM 内对应 `/mnt/mac/Users/benque/MyDocs/AISoftPlatform/`（已实测 `benque` 与 **`coder`** 两个身份均可读——`coder` 是 Codex 的运行身份，这一条是迁移的验收判据）。
-> **为何选迁移而非授权**：给 OrbStack 授予「文稿」权限也能解决，但那会让 VM 内的自治 agent 获得**整个 `~/Documents`** 的读权限，且属于不进版本库的机器本地设置——换机重装即复发且无痕。迁移是一次性的、自解释的。
-> **不影响推送**：应用仓库本就在 `~/Projects/` 下，挂载一直正常；平台文档库从 Mac 直接 `git push` 即可（Mac 已配凭据）。
+> ✅ **因此平台检出不能放在这三个目录下**：Mac 侧路径是 manifest 的 `site.platform_checkout_mac`，VM 内对应 `site.platform_checkout_vm`（经 `/mnt/mac` 挂载）。不用「给 OrbStack 授予文稿权限」来解决：那会让 VM 内进程获得整个 `~/Documents` 的读权限，且属于不进版本库、换机即复发的本机设置。
 
 ## 2. 账号体系（权限隔离的落点）
 
-下表采用 Issue #35 最后一次 live reconciliation 与后续 broker 证据。账号、PAT 和 ACL 仍是外部状态，
-每次操作前必须通过 manifest 工具或 host access broker 重新读回。
-#35 的九仓/九 agent 是历史数量；当前仓库与分类以 [governance manifest](codex/config/gitea-governance.json) 为准，
-本文不重复名单；项目退出不删除原仓库或自动改变历史权限。
-下表的 live 是既有验收记录，不表示本次重新观测。
+账号、PAT 和 ACL 是外部状态，每次操作前必须通过 manifest 工具或 host access broker 重新读回。
+当前仓库与分类以 [governance manifest](codex/config/gitea-governance.json) 为准，本文不重复名单；
+项目退出不删除原仓库或自动改变历史权限。下表的 live 是既有验收记录，不表示本次重新观测。
 
 | 账号/角色 | 状态 | 位置 | 用途 | 关键约束 |
 |------|------|------|------|----------|
-| `admin` | live | Gitea | 人工 break-glass、用户/仓库引导、最终 PR merge | 所有仓库唯一的 merge identity（routine 自动合并已随 #391 退出）；不用于日常 Agent Git/API |
+| `admin` | live | Gitea | 人工 break-glass、用户/仓库引导、最终 PR merge | 所有仓库唯一的 merge identity；不用于日常 Agent Git/API |
 | `ci-bot` | 账号保留、manifest 仓库 collaborator 已移除 | Gitea | 仅作历史兼容证据 | 不得用于新接入、普通项目 Git/API 或 merge |
-| `aisoft-platform-manager` | live，Issue #35=`deployed` | Gitea | 跨项目读取 settings/protection/Actions，执行明确批准的 reconciliation | 不是 site admin；#35 历史验收为显式 9 仓库 Admin；当前范围按 manifest 与现场 check；audit/mutation PAT 分离；不得普通 Git 或 merge |
-| `<project>-agent` | #35 历史九项目逐一验证；当前逐仓核对 | Gitea | 仅本项目 Issue/branch/commit/push/PR | 精确 Write；唯一项目绑定；不得跨项目 Write/Admin，不得 push/merge `main` |
+| `aisoft-platform-manager` | live | Gitea | 跨项目读取 settings/protection/Actions，执行明确批准的 reconciliation | 不是 site admin；在 manifest 列出的仓库为 Admin，范围按 manifest 与现场 check；audit/mutation PAT 分离；不得普通 Git 或 merge |
+| `<project>-agent` | 逐仓核对 | Gitea | 仅本项目 Issue/branch/commit/push/PR | 精确 Write；唯一项目绑定；不得跨项目 Write/Admin，不得 push/merge `main` |
 | `git` | live | VM 系统用户 | 跑 Gitea 进程 | 不承载 Agent 或部署身份 |
 | `gitea-runner` | live | VM 系统用户 | 跑 act_runner、构建/测试与制品发布 | 不持有平台 manager、项目 PAT 或生产管理员权限，不长期运行业务应用 |
-| `coder` | live | VM 系统用户 | 原 analyzer/controller 运行用户；`orbstack.vm.units.read` 读它的 user 单元 | Loop 已随 #391 退出；家目录旧单元、profile 与 state 由负责人清理 |
-| `benque` / platform operator | live | VM 默认用户 | 本地平台引导与运维 | 只在 purpose-built 工具和明确批准中使用 sudo/admin credential；不作为项目 deploy identity |
+| `coder` | live | VM 系统用户 | 原 analyzer/controller 运行用户；`orbstack.vm.units.read` 读它的 user 单元 | VM 执行引擎已退出（ADR 0002）；家目录旧单元、profile 与 state 由负责人清理 |
+| `site.orbstack_user` / platform operator | live | VM 默认用户 | 本地平台引导与运维 | 只在 purpose-built 工具和明确批准中使用 sudo/admin credential；不作为项目 deploy identity |
 | `<project>-deploy` | 每应用部署 Change target | AppServer/公司服务器 | 只操作本项目 release/runtime/data/service | 不跨项目，不复用 Gitea PAT；生产仍只运行已验证脚本且无 AI 登录 |
 
 > 🕳️ 踩坑 #8：Gitea 1.26.4 的 bot 创建流程可能留下 `must_change_password=true`，导致 API 403。
@@ -69,21 +62,20 @@ workflow、数据和引用。
 
 - 单二进制 `/usr/local/bin/gitea`（1.26.4），systemd 托管，数据 `/var/lib/gitea`，DB 用本机 PostgreSQL（`gitea` 库）。
 - Actions 默认启用（1.21+）。
-- 旧试点仓库（Issue #35 live reconciliation 后为 private；默认分支 `main`）的**分支保护**：
-  （该仓库自 #252 起已退出平台治理。以下是保留至今的 as-built 分支保护事实，退出**不改动**它，也不删除仓库；重新接入按 onboarding runbook 走。）
+- 旧试点仓库已退出平台治理，仓库保留、private、默认分支 `main`；as-built **分支保护**保留不动（重新接入按 onboarding runbook 走）：
   - 禁止直接 push（对所有人生效，含 admin——一切走 PR）
   - 必须状态检查通过：context = `CI / test (pull_request)`
 - 当前 canonical manifest 共定义 27 个规范标签：平台三维 20 个（十个 `type/*`、两个
   `complexity/*`、八个流程状态），加 Matt triage 维度 7 个 `triage/*`（category 2 个 + state 5 个）。
-  Issue #108 把 `type/*` 从 7 个扩为 10 个，并把 `complexity/standard` 记入 `retired`。
+  retired 标签（如 `complexity/standard`）只报告不移除。
   准确取值与语义以 `codex/config/gitea-labels.json`（`schema_version: 2`）的 `canonical` 与
   03 §4 为准，本文不再复制枚举；`triage/*` 语义另见 `templates/docs/agents/triage-labels.md`。
   manifest 同时声明 `project_extensions.allowed_prefixes`（`area/`、`priority/`），项目本地维度
   在该前缀下自定取值，受管三维仍是封闭集合。
-- 2026-07-15 的初始 16-label 在线复验为 `created=0 existing=16`；Issue #19 后续把 canonical taxonomy 扩展为 17 个。标签属于可漂移的 Gitea 外部状态，后续操作前必须重新同步并 GET 验证。
+- 标签属于可漂移的 Gitea 外部状态，操作前必须重新同步并 GET 验证。
 - taxonomy 与 runtime source 已支持当前字段；每个仓库的 live 标签集合仍须单独同步并 GET 回读，
   不得因 source 能力存在而推定为已同步。
-- Issue #35 live reconciliation 后，共享 `ci-bot` 已退出 manifest 仓库 collaborator。新项目必须先进入
+- 共享 `ci-bot` 已退出 manifest 仓库 collaborator。新项目必须先进入
   strict governance manifest，再创建唯一 project agent，
   使用 `gitea-governance.sh check` 做只读 diff，最后以 exact repository 单次 apply；未知仓库只
   report。manager/agent/visibility/protection 任一读回失败均为 `BLOCKED_EXTERNAL`。
@@ -116,13 +108,7 @@ FROM = "<站点名> Gitea" <gitea@<站点域名>>   # 真实值见 VM 上的 app
 - host executor 的成功、失败和取消路径都必须断言无残留业务 PID、监听端口、临时 DB 或
   deleted cwd；历史某项目占用的 `:3212` 已清理，其 Change 只作为此门禁的回归证据。
 
-### 4.1 per-job 超时与并发（as-built，#228 建议已落地）
-
-> **更正（2026-09-18，#309）**：本节此前记的是 #228 建议**落地之前**的快照，写着
-> `config.yaml` 不存在、`runner.timeout` 走 `3h` 内置默认。本次只读实测发现配置已经写入并生效，
-> 下表与「应用方式」两段据此更正。依据是同日在 `gitea-ci` 上的
-> `stat`/`cat /opt/act-runner/config.yaml`、`systemctl cat act_runner` 与
-> `systemctl show act_runner -p ExecStart` 输出。
+### 4.1 per-job 超时与并发（as-built）
 
 **as-built（2026-09-18 实测）**：`/opt/act-runner/config.yaml` **存在**
 （`gitea-runner:gitea-runner 644`，创建于 `2026-09-05 22:46:24 +0800`），内容只有 `runner` 段的两个键；
@@ -154,7 +140,7 @@ base unit 的 `ExecStart` 仍是不带 `-c` 的原样，drop-in 先清空再重�
 指令的标准写法，改回去只需删掉这个 drop-in 文件并 `daemon-reload`。
 
 **为什么是 `20m`**：全平台最长合法 run 是 345s，20 分钟是它的 3.5 倍、最慢项目 p90 的 4.5 倍，
-冷缓存或弱网构建仍有余量；同时把一次停滞的代价从 2026-08-29 实测的 4h19m 截到 20 分钟。
+冷缓存或弱网构建仍有余量；同时把一次停滞的代价截到 20 分钟。
 实例级 runner ＋ `capacity: 1` 意味着任何一个仓库的任何一个 job 都独占唯一执行位，
 这也是**为什么工具链必须预装、不能在 job 内现装**（见 §4.3）。
 
@@ -180,8 +166,8 @@ host-access-broker --project aisoft-platform --operation orbstack.runner.status
 **Gitea 侧的第二道超时**：`/etc/gitea/app.ini` 的 `[actions]` 只有 `ENABLED = true`，
 没有 `[cron.cleanup_actions]` 段，因此 Gitea 1.26.4 的清理 cron 走它自己的内置默认
 （调度周期与 `ZOMBIE_TASK_TIMEOUT`/`ENDLESS_TASK_TIMEOUT`）。**这些默认值本次未在本机回读**，
-只确认了「没有显式配置」。runner 侧 `20m` 已经生效，是否再显式钉住 Gitea 侧这一组值，
-留给独立评估——它决定的是「runner 侧超时失效时还有没有第二道网」。
+只确认了「没有显式配置」。是否再显式钉住 Gitea 侧这一组值（runner 侧超时失效时的第二道网）
+列在 README「未实施清单」。
 
 ### 4.2 预装工具链 as-built（`/opt`，2026-09-18 实测）
 
@@ -189,14 +175,10 @@ runner 以 host 模式执行 job，工具链因此是**主机的持久状态**�
 每个由平台安装的工具链根目录下放一份 `.aisoft-runtime-source` provenance marker，
 记录 contract、版本、来源、校验值与回滚方式。
 
-> **更正（2026-09-18，#309）**：`/opt/node24.18.0` 自 2026-08-07 起就在主机上，本文档此前
-> 没有任何记载。这是与 §4.1 同类的 as-built 漂移——主机改了，文档没跟。依据是同日
-> `cat /opt/node24.18.0/.aisoft-runtime-source`、`stat` 与 `bin/node --version` 的输出。
-
 | 路径 | 内容 | 属主 | 大小 | 装于 | marker |
 |---|---|---|---|---|---|
 | `/opt/node24.18.0` | Node `24.18.0` + npm `11.19.0` | `root:root 755` | 213 MiB | `2026-08-07`（marker 自报，与目录 mtime `2026-08-07 22:36:37 +0800` 一致） | 有，`contract=gitea-runner-node-runtime/v1` |
-| `/opt/node22` | Node `22.22.0` + npm `10.9.4` + pnpm `10.28.0` | `gitea-runner:gitea-runner` | 约 115 MiB（#309 历史实测） | `unknown`（原目录 mtime 为 `2026-07-14`，不等于安装日期） | 有（#311，`2026-10-02`）；来源与安装者仍为 `unknown` |
+| `/opt/node22` | Node `22.22.0` + npm `10.9.4` + pnpm `10.28.0` | `gitea-runner:gitea-runner` | 约 115 MiB（历史实测） | `unknown`（原目录 mtime 为 `2026-07-14`，不等于安装日期） | 有（`2026-10-02` 补齐）；来源与安装者仍为 `unknown` |
 | `/opt/flutter/3.32.8` | Flutter `3.32.8` + 自举的 Dart | `gitea-runner:gitea-runner` | 见 §4.3 | 见 §4.3 | 有，`contract=gitea-runner-flutter-runtime/v1` |
 
 `/opt/node24.18.0/.aisoft-runtime-source` 的字段形态（其余工具链沿用同一形态）：
@@ -215,7 +197,7 @@ rollback=rename-or-remove-/opt/node24.18.0; system-node-and-/opt/node22-unchange
 ```
 
 系统自带 `node` 是 `/usr/bin/node` v20.20.2，与上面三个都无关，也不被平台管理。
-`/opt/node22` 在 #309 时没有 marker；#311 于 `2026-10-02` 核对四仓当前 main 与 runner
+`/opt/node22` 原先没有 marker；`2026-10-02` 核对各仓当前 main 与 runner
 静态配置后保留目录并补齐 marker。当时已知有一个业务项目的
 `.gitea/workflows/ci.yml` 在 job PATH 前置 `/opt/node22/bin`，其平台测试也守卫该依赖；
 其余项目 workflow 使用 node24，平台 workflow 无直接 node22 引用。消费方以各项目仓的 workflow 为准。
@@ -226,14 +208,17 @@ marker 沿用 `contract=gitea-runner-node-runtime/v1` 与 key=value 形状，安
 真实创建、重复 no-op、精确 marker 回滚后重建均已验证；Node hash、非 marker 文件元数据与
 runner 配置元数据前后一致。回滚只删除本次且内容 hash 一致的 marker，保留工具链目录。
 逐仓 fixed SHA、静态读取边界与回执见
-[`#311 verification`](docs/changes/311-node22-provenance/verification-node22-provenance-261002.md)。
+[node22 来源记录](docs/changes/311-node22-provenance/verification-node22-provenance-261002.md)。
 
 **runner 不注入工具链环境变量**。`act_runner.service` 的 `Environment=PATH=` 是系统五段默认值，
 `config.yaml` 没有 `runner.envs`。消费方 workflow 自己在 job 级 `env:` 里声明需要的变量并把
 工具链的 `bin` 前置到 `PATH`。这样每个仓库对自己依赖哪条工具链是显式的，平台侧也不必为了
 某一个仓库的需要去重启四仓共用的唯一执行位。
 
-### 4.3 Flutter SDK（runner 预装，#309）
+### 4.3 Flutter SDK（按项目需求提供的 runner 能力）
+
+Flutter 是**按项目需求提供的 runner 能力，不是平台默认工具链**：平台只保证下表的固定路径存在、对 `gitea-runner`
+可读可执行；哪个项目用它、用哪个版本，由该项目自己的 workflow 声明。新的语言工具链同样按项目需求立案提供。
 
 | 项 | 值 |
 |---|---|
@@ -244,7 +229,7 @@ runner 配置元数据前后一致。回滚只删除本次且内容 hash 一致�
 | 持久 pub 缓存 | `/opt/act-runner/.pub-cache`（`gitea-runner` 属主，与既有 `.npm` 同级） |
 | 安装脚本 | `codex/tools/install-runner-flutter.sh`（幂等，带只读 `--check` 与 `--repair`） |
 | 实测占用 | SDK 1.1 GiB；pub 缓存 337 MiB（跑过一次项目移动端构建后） |
-| 装于 | 2026-09-18（#309），安装后 `/opt` 使用率 23% |
+| 装于 | 2026-09-18，安装后 `/opt` 使用率 23% |
 | marker | `/opt/flutter/3.32.8/.aisoft-runtime-source`，`contract=gitea-runner-flutter-runtime/v1` |
 
 **为什么是 clone 而不是解压官方归档**：主机是 aarch64（`uname -m` = `aarch64`，Ubuntu 26.04），
@@ -307,7 +292,7 @@ staging 目录里完成，失败不会留下半装的树。安装前磁盘使用
 正是本节要避免的那类问题。
 
 **回滚**：`sudo rm -rf /opt/flutter/3.32.8`；pub 缓存 `sudo rm -rf /opt/act-runner/.pub-cache`。
-两者在 #309 之前都不存在，删除即回到安装前状态。`unzip` 保留。
+两者在安装前都不存在，删除即回到安装前状态。`unzip` 保留。
 
 **持久缓存值多少**（2026-09-18 实测，一个项目的 Flutter 移动端，同一份干净 checkout）：
 
@@ -319,10 +304,10 @@ staging 目录里完成，失败不会留下半装的树。安装前磁盘使用
 **已知限制**：pub.dev 是新的外部依赖，npm 侧 Verdaccio（§5）在 pub 侧没有等价物。
 pub.dev 不可达时 job 会红，持久 `PUB_CACHE` 只减少重复下载，不提供离线能力。
 
-### 4.4 平台仓 CI 下载缓存（#370）
+### 4.4 平台仓 CI 下载缓存
 
-2026-10-17 平台仓必需检查三次红在外网断线上：`actions/checkout` 从 GitHub 克隆、PAT helper
-从 `go.dev/dl` 下载 Go 工具链、`go` 从 `proxy.golang.org` 拉模块。现在三处都走本地：
+平台仓 CI 原本有三处外网下载（`actions/checkout` 从 GitHub 克隆、PAT helper 从 `go.dev/dl` 下载 Go 工具链、
+`go` 从 `proxy.golang.org` 拉模块），外网断线就让必需检查变红。现在三处都走本地：
 
 | 下载 | 现在从哪取 | 校验 | 缓存未命中时 |
 |---|---|---|---|
@@ -351,32 +336,31 @@ pub.dev 不可达时 job 会红，持久 `PUB_CACHE` 只减少重复下载，不
 
 **实测**（2026-10-21，Linux arm64 容器，同一个缓存卷）：冷跑 132s、填充约 436 MiB 模块与
 61 MiB 归档；热跑 86s、两处都命中；`--network none` 下热跑通过，三次产出的二进制 sha256 相同；
-改动缓存里一个模块文件后 `go mod verify` 拒绝、job 失败。runner 上的真实运行见 #370 的 verification。
+改动缓存里一个模块文件后 `go mod verify` 拒绝、job 失败。runner 上的真实运行见来历表所列 Issue 的 verification。
 
 升级 Go 工具链只改 `build-lock.json`，旧归档留在缓存里不会被选中，可以手工删除。
 
-**回滚**：revert #370 的 PR 即恢复每次实时下载。缓存目录可以留着；要删就在 Mac 终端执行
+**回滚**：revert 引入它的 PR（见来历）即恢复每次实时下载。缓存目录可以留着；要删就在 Mac 终端执行
 `/usr/local/bin/orb -m <site.orbstack_machine> sudo rm -rf /opt/act-runner/.cache/aisoft-ci`。
 
 ## 5. Verdaccio（弱网救星）
 
-- 全局安装，PM2 托管（benque 用户），监听 `0.0.0.0:4873`，上游 `https://registry.npmmirror.com/`。
+- 全局安装，PM2 托管（`site.orbstack_user` 用户），监听 `0.0.0.0:4873`，上游 `https://registry.npmmirror.com/`。
 - 仓库根 `.npmrc`（进 git）：
 
 ```ini
-registry=http://gitea-ci.orb.local:4873/
+registry=<manifest site.npm_registry>
 fetch-retries=5
 fetch-retry-factor=2
 fetch-timeout=120000
 ```
 
-- 用 `gitea-ci.orb.local` 而非 `localhost`：**Mac 和 VM 内共用同一份配置**。内网平移时只改这一行。
+- 用 `*.orb.local` 主机名而非 `localhost`：**Mac 和 VM 内共用同一份配置**。内网平移时只改这一行。
 - Prisma 引擎二进制另有下载渠道，CI 里已设 `PRISMA_ENGINES_MIRROR=https://registry.npmmirror.com/-/binary/prisma`。
 
-### Verdaccio 是 CI 的硬依赖（Issue #201）
+### Verdaccio 是 CI 的硬依赖
 
-`4873` 一停，**所有需要下载缓存外新包的 CI 都会以 `ECONNREFUSED` 失败**。2026-08-24 起它停过
-约 28 小时，期间没有任何既有闸门报警。
+`4873` 一停，**所有需要下载缓存外新包的 CI 都会以 `ECONNREFUSED` 失败**，而既有闸门不会报警。
 
 - 🚫 **应用仓不得改自己的 `ci.yml` 去绕过 `NPM_CONFIG_REGISTRY`。** 把 registry 指向
   `registry.npmjs.org` 确实能让那条 PR 变绿，但它同时抹掉两样东西：离线安装能力，以及这条故障的
@@ -410,12 +394,11 @@ set +e
 /usr/local/libexec/aisoft/verify-host-role --action start --resource application
 test "$?" -eq 20
 set -e
-# Gitea 后台 Site Administration → Actions → Runners:gitea-ci-runner Idle
+# Gitea 后台 Site Administration → Actions → Runners：本机 runner 为 Idle
 ```
 
 负向 guard 只证明 mutation 会在入口前被拒绝；它不替代 listener/process/database inventory。
-Issue #21 已证明当时 `3100/3212/8090/8091` 等业务入口收口，并回读 Gitea、Runner、Verdaccio、
-Mailpit、项目 CI 和有效制品消费。重建或后续运维仍须重新验证，不能把 2026-08-04 证据当作永久健康。
+历史收口证据只说明当时状态，重建或后续运维仍须重新验证，不能当作永久健康。
 
 ## 8. Versioned host profile 与 guard
 
@@ -450,3 +433,17 @@ Windows 新目标使用 Windows x64 Runner、IIS、ASP.NET Core、React `wwwroot
 - [14-Windows部署与迁移验收清单](14-Windows部署与迁移验收清单.md)
 
 上述内容当前均为目标设计，未在公司环境执行；不得把 Linux 冒烟结果作为 Windows 或生产验收证据。
+
+## 来历
+
+| Issue | 合并 | 一句话 |
+|---|---|---|
+| #21 | `8d5dae9` | SCM/CI 主机业务 runtime、DB、代理收口，`prod-sim` 退役 |
+| #35 | `69251fd` | governance manifest、平台 manager 与每仓 project agent，`ci-bot` 退出 collaborator |
+| #201 | `6f6c96e` | Verdaccio 是 CI 硬依赖：registry 存活断言与禁止绕过 |
+| #228 | `a790c13` | runner per-job 超时 `20m`、`capacity: 1` |
+| #252、#337 | `9a6a9fc`、`c9b5ef4` | 旧试点仓库退出平台治理；一个项目 CI 库保留 |
+| #290 | `a2f8854` | 仅 test 的共置例外 |
+| #309、#311 | `95c0f19`、`ee5d2ce` | Flutter runner 能力与 as-built 更正；node22 marker 补齐 |
+| #370 | `fdf93c1` | 平台仓 CI 本地 checkout、Go 工具链与模块缓存 |
+| #403 | — | 本册改为现行合同体 |

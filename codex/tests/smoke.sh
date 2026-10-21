@@ -6,6 +6,15 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 command -v rg >/dev/null
 
+# R14 (#403): 分册与 README 只按小节标题钉，不钉正文句子——正文改写不该让 CI 变红。
+# 标题按整行精确匹配（去掉 1–6 个 # 与一个空格之后）。
+require_heading() {
+  if ! sed -n 's/^#\{1,6\} //p' "$1" | grep -Fqx -- "$2"; then
+    echo "缺少小节标题：$2（$1）" >&2
+    exit 1
+  fi
+}
+
 bash -n \
   "$ROOT/architecture/bin/aisoft-architecture" \
   "$ROOT/architecture/install.sh" \
@@ -278,8 +287,7 @@ bash "$ROOT/codex/tools/change-template-sync.sh" --verify-digest >/dev/null
 jq -e '.downstream_required_check == "forbidden"' \
   "$ROOT/codex/config/change-template-sync.json" >/dev/null
 jq empty "$ROOT/codex/config/change-template-sync.json"
-grep -Fq '不在任何下游项目引入阻塞式 required check' \
-  "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
+require_heading "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md" '模板是 vendored 副本：改动必须由上游广播'
 
 PYTHONPATH="$ROOT/codex/runtime" python3 -m aisoft_gitea_governance.cli \
   --manifest "$ROOT/codex/config/gitea-governance.json" validate >/dev/null
@@ -507,7 +515,7 @@ grep -Fxq '| tier | `standard`, `frontier`, `max` |' "$route_policy"
 grep -Fxq '| effort | `medium`, `high`, `max` |' "$route_policy"
 grep -Fq 'references/route-policy.md' "$ROOT/skills/aisoft-platform/SKILL.md"
 grep -Fq 'route-policy.md' "$ROOT/skills/issue-session-flow/SKILL.md"
-grep -Fq '型号按工具映射，合同只写档位' "$ROOT/08-双工具共存与实施.md"
+require_heading "$ROOT/08-双工具共存与实施.md" '7.3 模型档位'
 grep -Fq "private-repository \`404\`" "$ROOT/skills/aisoft-platform/SKILL.md"
 grep -Fq 'never begin with anonymous API access' \
   "$ROOT/skills/gitea-platform-ops/SKILL.md"
@@ -811,9 +819,8 @@ grep -Fq "\`effective_complexity:\` key from both the front matter and the \`## 
 grep -Eq '^reason:' "$summary_template"
 grep -Eq '^required_docs:' "$summary_template"
 
-grep -Fq 'type/feature' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
-grep -Fq 'complexity/complex' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
-grep -Fq 'requested_complexity' "$ROOT/04-Agent编排与定时任务.md"
+require_heading "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md" '4. 平台三维标签与 Matt triage'
+require_heading "$ROOT/04-Agent编排与定时任务.md" '2. 判级输出'
 grep -Fq '功能性更改' "$ROOT/AGENTS.md"
 
 # #243: 立案即落在流程入口，开放 Issue 有确定性的清扫节奏。清扫节写在 issue-session-flow
@@ -824,27 +831,24 @@ session_flow_skill="$ROOT/skills/issue-session-flow/SKILL.md"
 grep -Fq '## 开放 Issue 清扫' "$session_flow_skill"
 grep -Fq '需裁决（n 条）' "$session_flow_skill"
 grep -Fq 'gitea.issue.labels.set --number N --lifecycle needs-analysis' "$session_flow_skill"
-grep -Fq '### 衍生 Issue 的正文与认领' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
+require_heading "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md" '衍生 Issue 的正文与认领'
 
 # #298: change worktree 的单写者归属。三样东西必须同时在场，少一样这条合同就退回成一句
 # 无法执行的建议：归属规则本身、那条 Red Flag，以及「push 之后核对 pushed_head」这一步——
 # 闸门拦不住「别人改写了 HEAD 而你自己去推」，返回体是那个事件唯一确定性可检出的地方。
-grep -Fq '### change worktree 的单写者归属（#298）' \
-  "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
-grep -Fq 'aisoft-owner.json' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
+require_heading "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md" 'change worktree 的单写者归属'
 grep -Fq 'claim-worktree' "$session_flow_skill"
 grep -Fq 'pushed_head' "$session_flow_skill"
 grep -Fq 'scan-worktrees' "$session_flow_skill"
 grep -Fq '## change worktree 的单写者归属' "$session_flow_skill"
 # #379（ADR 0001 D6）：交叉审核是维护层固定步骤。流程正文、矩阵条目与两个技能里的入口都在场，
 # 少一处就退回成一句没有落点的原则。
-grep -Fq '### 交叉审核（平台仓 complex，ADR 0001 D6）' "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md"
-grep -Fq '6. **交叉审核**' "$ROOT/08-双工具共存与实施.md"
+require_heading "$ROOT/03-Issue-Spec-Plan与单闸门开发流程.md" '交叉审核（平台仓 complex，ADR 0001 D6）'
+require_heading "$ROOT/08-双工具共存与实施.md" '7.1 平台维护层（平台仓验收，两个 provider 对等）'
 grep -Fq '交叉审查: ' "$session_flow_skill"
 # 平台技能只钉它指向 03 小节的引用，不钉正文句子（ADR 0001 D9）。
 # shellcheck disable=SC2016 # backticks are literal Markdown, not expansions
 grep -Fq '`03` §「交叉审核」' "$ROOT/skills/aisoft-platform/SKILL.md"
-grep -Fq 'WORKTREE_OWNER_MISMATCH' "$ROOT/06-运维手册与踩坑集.md"
 grep -Fq '## Derived Issues' "$ROOT/docs/agents/issue-tracker.md"
 grep -Fq -- '--entry-label' "$ROOT/skills/aisoft-platform/SKILL.md"
 
@@ -916,26 +920,9 @@ grep -Fq '外部技能包边界' "$session_flow_skill"
 # #375：brainstorming 的自定级不替代平台判级（#379 起两侧共用这一份平台技能）。
 # shellcheck disable=SC2016 # backticks are literal Markdown, not expansions
 grep -Fq '它的定级与聊天内确认不替代平台判级与 `approved`' "$claude_platform_skill"
-# 升级适配清单（AC-8）：正文与已填写的示例在 08 §5；四项检查、三种结论都在场；
-# 平台技能有一个入口。
-upgrade_checklist_doc="$ROOT/08-双工具共存与实施.md"
-for upgrade_checklist_anchor in \
-  '### 外部技能包升级后的适配检查（#355）' \
-  '| 1 | 技能增删 |' \
-  '| 2 | 调用方式 |' \
-  '| 3 | 文件与目录约定 |' \
-  '| 4 | Git / PR / 并行写入副作用 |' \
-  '**无影响**' \
-  '**需要更新平台技能或 adapter**' \
-  '**明确禁用并写明边界**' \
-  '**Matt 1.2.3 → 1.3.1**' \
-  '**superpowers 6.4.1 → 6.4.2**' \
-  '**superpowers 6.4.2 → 7.0.0**'; do
-  if ! grep -Fq -- "$upgrade_checklist_anchor" "$upgrade_checklist_doc"; then
-    echo "升级适配清单缺少：$upgrade_checklist_anchor（#355 AC-8）" >&2
-    exit 1
-  fi
-done
+# 升级适配清单（AC-8）：清单在 08 §5，已填写的记录在 08 附录；平台技能有一个入口。
+require_heading "$ROOT/08-双工具共存与实施.md" '外部技能包升级后的适配检查'
+require_heading "$ROOT/08-双工具共存与实施.md" '附：升级适配记录'
 if ! grep -Fq '外部技能包升级后的适配检查' "$claude_platform_skill"; then
   echo "平台技能缺少升级适配清单入口：$claude_platform_skill（#355 AC-8）" >&2
   exit 1
@@ -949,11 +936,48 @@ if rg -n 'complexity_recommendation|最终 `complexity` 由人|人确认 Issue �
   exit 1
 fi
 
-grep -Fq '首次部署' "$ROOT/02-CI与自动部署流水线.md"
-grep -Fq 'READY_FOR_REVIEW' "$ROOT/05-通知与多人协作.md"
-grep -Fq '标准故障包' "$ROOT/06-运维手册与踩坑集.md"
-grep -Fq '生产环境只执行版本化、已验证、可回滚的确定性脚本，不安装或调用 AI' \
-  "$ROOT/07-内网与生产平移路线.md"
+require_heading "$ROOT/02-CI与自动部署流水线.md" '7. 首次部署与部署变更验收'
+require_heading "$ROOT/05-通知与多人协作.md" '1. 事件覆盖（Gitea 自动发信）'
+require_heading "$ROOT/06-运维手册与踩坑集.md" '3. AI 辅助故障诊断'
+require_heading "$ROOT/07-内网与生产平移路线.md" '7. 生产边界'
+
+# R14 (#403)：01–08 每册第三行是「现行合同」段、文末有「来历」表；README 除导航表与
+# 链接目标外不手写日期与版本号（状态由 aisoft-platform-readiness.sh --render-readme 生成）。
+for contract_doc in "$ROOT"/0[1-8]-*.md; do
+  if ! sed -n 3p "$contract_doc" | grep -q '^> 现行合同：'; then
+    echo "分册第三行不是「现行合同」段：$contract_doc" >&2
+    exit 1
+  fi
+  require_heading "$contract_doc" '来历'
+done
+python3 -I - "$ROOT/README.md" <<'PY'
+import re, sys
+text = re.sub(r"\]\([^)]*\)", "]", open(sys.argv[1], encoding="utf-8").read())
+section, hits = "", []
+for number, line in enumerate(text.splitlines(), 1):
+    if line.startswith("## "):
+        section = line
+    if section.startswith("## 5. 文档导航") and line.startswith("|"):
+        continue
+    # Digit-only boundaries: letters or Chinese right next to a date or version
+    # (2026-10-21UTC, Gitea1.26.4, 版本v1.2) are still hits.
+    for match in re.finditer(r"(?<![0-9])20[0-9]{2}-[0-9]{2}-[0-9]{2}(?![0-9])|(?<![0-9])v[0-9]+(?:\.[0-9]+)+(?![0-9])|(?<![0-9.])[0-9]+\.[0-9]+\.[0-9]+(?![0-9])", line):
+        hits.append(f"README.md:{number}: {match.group(0)}")
+if hits:
+    print("README 出现手写日期或版本号（状态请用 readiness --render-readme）：", *hits, sep="\n", file=sys.stderr)
+    sys.exit(1)
+PY
+
+# R14 (#403)：正文钉子棘轮。`grep -Fq` 行数只减不增；新钉子优先 require_heading，
+# 确实要加就在同一 PR 抬基线并在 PR 正文说明。
+smoke_pin_baseline="$(jq -er '.grep_fq_lines' "$ROOT/codex/tests/smoke-pin-baseline.json")"
+smoke_pin_count="$(grep -c 'grep -Fq' "$ROOT/codex/tests/smoke.sh")"
+if ((smoke_pin_count > smoke_pin_baseline)); then
+  echo "smoke 的 grep -Fq 钉子 ${smoke_pin_count} 行，超过基线 ${smoke_pin_baseline}" >&2
+  exit 1
+elif ((smoke_pin_count < smoke_pin_baseline)); then
+  echo "NOTE: smoke 的 grep -Fq 钉子降到 ${smoke_pin_count} 行（基线 ${smoke_pin_baseline}），收紧 codex/tests/smoke-pin-baseline.json"
+fi
 
 if rg -n '对应闸门|三道闸门可以分派' "$ROOT/05-通知与多人协作.md"; then
   echo '通知分册仍包含 v2 三闸门现行合同' >&2
