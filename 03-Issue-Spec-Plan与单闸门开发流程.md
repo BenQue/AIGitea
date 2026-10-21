@@ -140,7 +140,7 @@ Issue 作者可以显式选择复杂度，但 `complexity/small` 不能绕过强
 routine 自动合并已按 [ADR 0002](docs/adr/0002-deterministic-development-flow.md) D4 退出（#391）：broker 不再提供合并操作，
 所有仓库的最终 PR 都只由人合并，提交前确认不再区分 `manual|routine-auto` policy。分类仍是两个标签维度，不新增 merge-policy 维度。
 原合同（候选条件、最终 head 硬门与 merger 身份限制）见 Git 历史与 [迁出说明](archive/automation-engine-exit-261020.md)；
-manifest 中残留的 routine merger 字段与凭据种类在 R16 清理之前一律保持停用。
+其 manifest 字段与凭据种类已于 #397 删除，合同拒绝仍声明它们的 manifest。
 
 ## 3. 文档合同
 
@@ -358,10 +358,10 @@ source/local/CI PASS 或 Issue closed/completed 不证明凭据已更新。先�
 是现场验收，未运行一律 `NOT RUN`。本节是 #316 的已批准治理合同；T02 helper 本地隔离验证已完成，
 交易/typed runtime、后续安装与 live 演练尚未实施，不是现行可执行 runbook。
 
-轮换只处理 canonical manifests 已管理的 non-site-admin 服务账号，保持账号、协作者、分支保护、
-routine opt-in 和其它项目身份不变。Agent 的 live 入口须经 operator-only typed broker operation
-`gitea.credential.rotate`：目标由 manifest 派生，授权 grant 独立于 project agent、manager PAT 与
-routine merger，绑定授权 Issue、已合并 source SHA、exact project/token kind、manifest 固定 Mac store、
+轮换只处理 canonical manifests 已管理的 non-site-admin 服务账号，保持账号、协作者、分支保护
+和其它项目身份不变。Agent 的 live 入口须经 operator-only typed broker operation
+`gitea.credential.rotate`：目标由 manifest 派生，授权 grant 独立于 project agent 与 manager PAT，
+绑定授权 Issue、已合并 source SHA、exact project/token kind、manifest 固定 Mac store、
 VM exact helper 和有效期。缺授权、
 身份/版本/marker/路径不符或未知 schema 时零 Secret mutation；不能用环境变量自行授予权限，
 不能 fallback 到 admin HTTP 凭据、通用 SQL、任意账号/路径/shell 或更宽身份。
