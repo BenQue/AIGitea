@@ -15,7 +15,7 @@ depends_on:
   - 389
   - 391
   - 392
-status: contract-drafting
+status: approved
 branch: change/395-route-card
 created: 2026-10-20
 updated: 2026-10-20

@@ -36,7 +36,7 @@ depends_on:
   - 389
   - 391
   - 392
-status: analyzed
+status: approved
 branch: change/395-route-card
 pr_url:
 created: 2026-10-20
