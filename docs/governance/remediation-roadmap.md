@@ -2,7 +2,7 @@
 
 - 依据：[ADR 0001 平台边界与两层分离](../adr/0001-platform-boundary.md)、2026-10-17 平台全面评审
 - 建立：2026-10-17（Issue #364）
-- 用法：这是活文档。每批开工时只在这里更新状态和 Issue 号；批次内的合同、授权与证据写在该 Issue 的 `docs/changes/` 目录。
+- 用法：这是活文档。每批开工时在这里写 Issue 号，并在本批自己的 PR 里把本行写成合并后状态（`03` §7「治理表回写（平台仓）」）；批次内的合同、授权与证据写在该 Issue 的 `docs/changes/` 目录。
 
 ## 总规则
 
@@ -43,19 +43,22 @@ R0 → R1 → R2 与 R3 → R4。R5 与 R1 并行。负责人 2026-10-18 决定�
 
 | 批次 | 内容 | 依赖 | 状态 |
 |---|---|---|---|
-| R9 | ADR 0002（路由合同与执行引擎分离）、第二轮路线、[平台级 E2E 验收表](platform-e2e-acceptance.md) | 无 | #389 进行中 |
-| #370 | CI 下载缓存：runner 不再依赖每次访问 GitHub 与 Go 代理；由 Codex 实现、Claude 只读审查（D7，反向审查首例） | 无 | 未开工 |
-| R10a | 自动化引擎退出：按 ADR 0002 D2 迁出 Development Loop、routine merge、VM profile 操作与 `install-vm`，broker 操作 39 → 34、installer 7 → 6；清理 VM 旧单元与 LocalWMS routine merger | R9 | #391 进行中 |
-| R10b | 路由卡：路由表进 `aisoft-platform` 技能（只钉必用与禁用），summary `route:` 块，确认点 1 与派单任务书展示，`08` §7 模型档位表；发布包升版 | R9；Codex 侧验收依赖 R10c | #395 进行中 |
-| R10c | 外部技能包三端一致：superpowers vendor pin 作三端核对基准，Claude/Codex 仍走官方 marketplace，发布包导出 Cursor 项目级落点（#392 确认点 1 修正） | R9 | #392 进行中 |
-| R11 | 使用层可独立消费：随发布包交付 `aisoft` 工具入口，技能去平台检出依赖，tool-provenance 检查，三个项目批量采用（D4），发布说明（#402，发布包 1.8.0） | R10a、R10b、R10c | 进行中（#402） |
-| R12 | 存量项目可对齐与架构扩展点：检查器 LEGACY 级、catalog 按 lock pin、profile 由项目自带（ADR 0001 D5 收口） | R11 | 未开工 |
-| R13 | 站点外置与守卫补齐：manifest `site` 段（D5），内核改结构校验，泄漏守卫覆盖站点值与全部注册仓库名 | R10a | #396 进行中 |
-| R14 | 文档现行态：分册改现行合同体，README 状态表机器生成，smoke 文档钉子棘轮 | R10a、R10b、R13 | 已完成（#403，PR 404） |
-| R15 | 对等能力集与审查证据：三端能力集读回，审查证据索引与轮换规则，Cursor 使用层首次验收，`aisoft open-pr` 与 summary 单字段 approval（#408，发布包 1.10.0） | R11、R10c | 进行中（#408） |
-| R16 | 运维闭环第二步：漂移棘轮与 `applies_to`、重装进收尾、判级投影闸门、周清扫、PAT 周期、部署通知模板 | R10a | 进行中（#397） |
+| R9 | ADR 0002（路由合同与执行引擎分离）、第二轮路线、[平台级 E2E 验收表](platform-e2e-acceptance.md) | 无 | 已完成（#389，PR 390，`0192a8e`） |
+| #370 | CI 下载缓存：runner 不再依赖每次访问 GitHub 与 Go 代理；由 Codex 实现、Claude 只读审查（D7，反向审查首例） | 无 | 已完成（#370，PR 401，`fdf93c1`）；Codex 实现、Claude 审查 |
+| R10a | 自动化引擎退出：按 ADR 0002 D2 迁出 Development Loop、routine merge、VM profile 操作与 `install-vm`，broker 操作 39 → 34、installer 7 → 6；清理 VM 旧单元与 LocalWMS routine merger | R9 | 已完成（#391，PR 394，`08be6f4`，发布包 1.4.0） |
+| R10b | 路由卡：路由表进 `aisoft-platform` 技能（只钉必用与禁用），summary `route:` 块，确认点 1 与派单任务书展示，`08` §7 模型档位表；发布包升版 | R9；Codex 侧验收依赖 R10c | 已完成（#395，PR 399，`86821cf`，发布包 1.6.0） |
+| R10c | 外部技能包三端一致：superpowers vendor pin 作三端核对基准，Claude/Codex 仍走官方 marketplace，发布包导出 Cursor 项目级落点（#392 确认点 1 修正） | R9 | 已完成（#392，PR 393，`149e469`，发布包 1.3.0） |
+| R11 | 使用层可独立消费：随发布包交付 `aisoft` 工具入口，技能去平台检出依赖，tool-provenance 检查，三个项目批量采用（D4），发布说明（#402，发布包 1.8.0） | R10a、R10b、R10c | 已完成（#402，PR 405，`38ddc92`，发布包 1.8.0）；HSDB、LocalWMS、SFM 采用见 E2E 表 |
+| R12 | 存量项目可对齐与架构扩展点：检查器 LEGACY 级、catalog 按 lock pin、profile 由项目自带（ADR 0001 D5 收口） | R11 | 已完成（#409，PR 410，`f169b12`，发布包 1.9.0） |
+| R13 | 站点外置与守卫补齐：manifest `site` 段（D5），内核改结构校验，泄漏守卫覆盖站点值与全部注册仓库名 | R10a | 已完成（#396，PR 398，`43db3d0`，发布包 1.5.0） |
+| R14 | 文档现行态：分册改现行合同体，README 状态表机器生成，smoke 文档钉子棘轮 | R10a、R10b、R13 | 已完成（#403，PR 404，`b2a154d`） |
+| R15 | 对等能力集与审查证据：三端能力集读回，审查证据索引与轮换规则，Cursor 使用层首次验收，`aisoft open-pr` 与 summary 单字段 approval（#408，发布包 1.10.0） | R11、R10c | 已完成（#408，PR 411，`1db191e`，发布包 1.10.0） |
+| R16 | 运维闭环第二步：漂移棘轮与 `applies_to`、重装进收尾、判级投影闸门、周清扫、PAT 周期、部署通知模板 | R10a | 已完成（#397，PR 400，`fb9d8c5`，发布包 1.7.0）；衍生 #406 已完成（PR 407，`cee4294`） |
+| #412 | 治理表回写：第二轮路线图与 E2E 表回写到读回事实，回写定为每批本 PR 的固定步骤（`03` §7） | 无 | 已完成（#412） |
 
 推荐顺序：R9 →（#370 ∥ R10a ∥ R10c）→ R10b → R11 →（R12 ∥ R13）→ R14 → R15 → R16。项目侧的部署链演练与发布包采用不等平台，结果记入 E2E 验收表。
+
+第二轮各批已全部合并（`main` = `1db191e`，使用层 1.10.0）。下面的退出条件不随批次合并自动达成，按各条另行读回判断。
 
 ### 第二轮退出条件
 
