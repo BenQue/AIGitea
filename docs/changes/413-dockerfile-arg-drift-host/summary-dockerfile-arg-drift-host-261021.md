@@ -34,7 +34,7 @@ route:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/413-dockerfile-arg-drift-host
 pr_url:
 created: 2026-10-21
@@ -98,4 +98,4 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- T01 选「默认值展开加守卫」还是「只展开默认值」，在确认点 1 由负责人定；spec 按前者写。
+- 无。负责人 2026-10-21 确认合同并选定「默认值展开加守卫」。
