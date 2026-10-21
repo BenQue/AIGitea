@@ -299,7 +299,12 @@ class DockerfileInputTests(unittest.TestCase):
             # Codex round 1: a failed test that still ends in success.
             *(f"ARG BASE={NODE22}\nFROM ${{BASE}}\nRUN test \"${{BASE}}\" = \"{NODE22}\"{tail}\n"
               for tail in (" && echo ok || true", " && echo ok; true", " && echo ok &", " || true",
-                           " && echo ok | cat", "; true", " && echo \\\"x\\\" || true")),
+                           " && echo ok | cat", "; true", " && echo \\\"x\\\" || true",
+                           # Codex round 2: quotes nested in a substitution hide the `||`.
+                           " && echo \"$(printf '\"')\" || true #'",
+                           " && (echo \"$(printf '\"')\") || true #'",
+                           " && echo \"`printf '\"'`\" || true #'",
+                           " && echo ok # ; true", " && (echo ok)")),
             # ENV beats ARG of the same name; SHELL can skip the comparison.
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV BASE={NODE22}\n{guard}",
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV A=1 BASE {NODE22}\n{guard}",

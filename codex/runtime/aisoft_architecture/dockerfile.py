@@ -217,15 +217,47 @@ def _global_defaults(instructions: list[tuple[int, str, str]]) -> dict[str, str]
     return defaults
 
 
+GUARD_PLAIN = re.compile(r"[A-Za-z0-9 \t._/=:@%+,-]*")
+
+
 def _guard_propagates(rest: str) -> bool:
-    """After the leading test, only `&&` may chain: `||`, `;`, `&`, `|` or a
-    backslash could let a failed test end in success. Quoted spans are data."""
-    if "\\" in rest:
-        return False
-    unquoted = re.sub(r"\"[^\"]*\"|'[^']*'", "", rest)
-    if "\"" in unquoted or "'" in unquoted:
-        return False
-    return re.search(r"[|;&]", unquoted.replace("&&", " ")) is None
+    """After the leading test only `&&` may chain, so a failed test fails the RUN.
+
+    Scanned left to right without guessing: unquoted text is limited to plain
+    words and `&&`; single-quoted spans are data; double-quoted spans may hold
+    `$(plain words)` but no backtick, backslash or other substitution. Anything
+    else (`||`, `;`, `&`, `|`, `#`, subshells, nested quotes) is unprovable.
+    """
+    index, length = 0, len(rest)
+    while index < length:
+        char = rest[index]
+        if rest.startswith("&&", index):
+            index += 2
+        elif char == "'":
+            end = rest.find("'", index + 1)
+            if end < 0:
+                return False
+            index = end + 1
+        elif char == '"':
+            index += 1
+            while True:
+                if index >= length or rest[index] in "`\\":
+                    return False
+                if rest[index] == '"':
+                    index += 1
+                    break
+                if rest.startswith("$(", index):
+                    end = rest.find(")", index + 2)
+                    if end < 0 or not GUARD_PLAIN.fullmatch(rest[index + 2:end]):
+                        return False
+                    index = end + 1
+                else:
+                    index += 1
+        elif GUARD_PLAIN.fullmatch(char):
+            index += 1
+        else:
+            return False
+    return True
 
 
 def _guarded(name: str, default: str, body: list[tuple[int, str, str]]) -> bool:
