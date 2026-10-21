@@ -435,8 +435,13 @@ def cursor_platform_skills(repo: Path) -> str:
     releases = _load_json(BUNDLE)["releases"]
     reference, pin = releases[-1], "unpinned"
     lock = repo / LOCK_PATH
-    if lock.is_file() and not lock.is_symlink():
-        version = _load_json(lock).get("bundle_version")
+    # Only an absent lock falls back to the latest release; a lock that is a
+    # link, a directory or unreadable is a shape this reader does not trust.
+    if os.path.lexists(lock):
+        if lock.is_symlink() or not lock.is_file():
+            return f"UNKNOWN ({LOCK_PATH} is not a regular file)"
+        data = _load_json(lock)
+        version = data.get("bundle_version") if isinstance(data, dict) else None
         matches = [entry for entry in releases if entry["version"] == version]
         if not matches:
             return f"UNKNOWN (pinned bundle {version!r} is not in the release history)"

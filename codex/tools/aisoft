@@ -186,14 +186,31 @@ PY
 )" || exit 2
   # Clean, or resuming a run whose backfill commit failed: then the only change
   # is this summary's pr_url and status lines.
-  local dirty
-  dirty="$(git -C "$repo" status --porcelain)"
-  if [[ -n "$dirty" ]]; then
+  # The broker refuses to push a dirty worktree, so a resumed run commits the
+  # summary first and pushes after; the PR it names is the one already open.
+  local resume_number=""
+  if [[ -n "$(git -C "$repo" status --porcelain)" ]]; then
     if [[ "$(git -C "$repo" status --porcelain --untracked-files=all | sed 's/^...//')" != "$summary" ]] ||
       git -C "$repo" diff HEAD --unified=0 -- "$summary" | grep -E '^[-+][^-+]' | grep -Evq '^[-+](pr_url|status):'; then
       echo 'aisoft open-pr: the worktree is not clean' >&2
       exit 2
     fi
+    resume_number="$(python3 - "$repo" "$issue" <<'PY'
+import re
+import sys
+from aisoft_loop.contract import ContractError, resolve_summary
+
+try:
+    _, front = resolve_summary(sys.argv[1], int(sys.argv[2]))
+except (ContractError, OSError, ValueError) as error:
+    sys.exit(f"aisoft open-pr: mapped summary unreadable: {error}")
+prefix = str(front.get("gitea_url", "")).rsplit("/issues/", 1)[0] + "/pulls/"
+match = re.fullmatch(re.escape(prefix) + r"([1-9][0-9]*)", str(front.get("pr_url") or ""))
+if front.get("status") != "pr-open" or match is None:
+    sys.exit("aisoft open-pr: the uncommitted summary is not a finished backfill of this repository's PR")
+print(match.group(1))
+PY
+)" || exit 2
   fi
   # Same discovery as the wrapped tools: same directory first.
   local broker
@@ -212,12 +229,16 @@ PY
   broker_call() {
     (cd -- "$repo" && "$broker" --project "$AISOFT_PROJECT_ID" --operation "$@")
   }
-  broker_call git.push.change --branch "$branch" >/dev/null || { echo 'aisoft open-pr: first push refused (see the broker reply above)' >&2; exit 1; }
   local reply number
-  reply="$(broker_call gitea.pull.create --issue "$issue" --title "$title" --body "$body")" ||
-    { echo 'aisoft open-pr: pull.create refused (see the broker reply above)' >&2; exit 1; }
-  number="$(python3 -c 'import json,sys; n=json.loads(sys.argv[1])["number"]; assert isinstance(n,int) and n>0; print(n)' "$reply")" ||
-    { echo "aisoft open-pr: pull.create reply has no PR number: $reply" >&2; exit 1; }
+  if [[ -n "$resume_number" ]]; then
+    number="$resume_number"
+  else
+    broker_call git.push.change --branch "$branch" >/dev/null || { echo 'aisoft open-pr: first push refused (see the broker reply above)' >&2; exit 1; }
+    reply="$(broker_call gitea.pull.create --issue "$issue" --title "$title" --body "$body")" ||
+      { echo 'aisoft open-pr: pull.create refused (see the broker reply above)' >&2; exit 1; }
+    number="$(python3 -c 'import json,sys; n=json.loads(sys.argv[1])["number"]; assert isinstance(n,int) and n>0; print(n)' "$reply")" ||
+      { echo "aisoft open-pr: pull.create reply has no PR number: $reply" >&2; exit 1; }
+  fi
   python3 - "$repo" "$issue" "$number" <<'PY' || exit 1
 import sys
 from aisoft_loop.contract import ContractError

@@ -34,4 +34,4 @@ PR 编号以该批 summary 的 `pr_url` 为准，「合并」列写 `—`，合�
 
 | 批次 | Issue | PR | 合并 | 实现方 | 审查方 | 审查 head（按轮） | 各轮结论 | 来源 |
 |---|---|---|---|---|---|---|---|---|
-| R15 | #408 | 见 summary `pr_url` | — | Claude | Codex（`codex exec -s read-only`） | 1：`2256a105552868b805260978fe46869caa34fd02` | FAIL（4 major 3 minor，已修） | `docs/changes/408-peer-review-evidence/verification-peer-review-evidence-261021.md`「交叉审查」；项目库 `codex-review-408.md` |
+| R15 | #408 | 见 summary `pr_url` | — | Claude | Codex（`codex exec -s read-only`） | 1：`2256a105552868b805260978fe46869caa34fd02`；2：`26212a0ab7f6b1a921a1b4183655ff2a58b58632` | FAIL（4 major 3 minor，已修）→ FAIL（2 major 1 minor，已修） | `docs/changes/408-peer-review-evidence/verification-peer-review-evidence-261021.md`「交叉审查」；项目库 `codex-review-408.md` |

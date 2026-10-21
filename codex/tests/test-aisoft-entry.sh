@@ -195,7 +195,10 @@ op="" prev=""
 for arg in "\$@"; do [[ "\$prev" == --operation ]] && op="\$arg"; prev="\$arg"; done
 printf '%s|%s\n' "\$(pwd -P)" "\$op" >>"$TMP/broker.log"
 case " \$* " in
-  *" git.push.change "*) printf '{"status":"PASS"}\n' ;;
+  *" git.push.change "*)
+    # Like the real broker: a dirty worktree is never pushed.
+    [[ -z "\$(git status --porcelain)" ]] || { echo '{"code":"WORKTREE_DIRTY"}' >&2; exit 1; }
+    printf '{"status":"PASS"}\n' ;;
   *" gitea.pull.create "*)
     [[ -e "$TMP/fail-create" ]] && { echo '{"error":"TRANSPORT_ERROR"}' >&2; exit 1; }
     printf '{"number":12,"state":"open"}\n' ;;
@@ -239,6 +242,7 @@ expect_contains 'pull.create refused'
 [[ "$(git -C "$pr_wt" rev-parse HEAD)" == "$start" ]] || fail 'a failed pull.create left a commit behind'
 grep -Fq 'status: approved' "$pr_wt/$pr_summary" || fail 'a failed pull.create touched the summary'
 rm -f "$TMP/fail-create"
+: >"$TMP/broker.log"
 # A backfill commit that fails (here a refusing pre-commit hook) leaves only
 # the summary's pr_url and status changed; after the cause is fixed a rerun
 # finishes the job.
@@ -250,7 +254,6 @@ run_pr 1 open-pr 7 --title demo --body-file "$TMP/body.md"
 expect_contains 'committing the backfilled summary failed'
 [[ "$(git -C "$pr_wt" rev-parse HEAD)" == "$start" ]] || fail 'a refused commit moved HEAD'
 rm -f "$hook"
-: >"$TMP/broker.log"
 run_pr 0 open-pr 7 --title demo --body-file "$TMP/body.md"
 expect_contains 'PR 12'
 grep -Fq 'pr_url: http://gitea.invalid/o/r/pulls/12' "$pr_wt/$pr_summary" || fail 'open-pr did not backfill pr_url'
@@ -258,6 +261,8 @@ grep -Fq 'status: pr-open' "$pr_wt/$pr_summary" || fail 'open-pr did not advance
 [[ "$(git -C "$pr_wt" rev-list --count "$start..HEAD")" == 1 ]] || fail 'open-pr must add exactly one commit'
 [[ "$(git -C "$pr_wt" diff --name-only "$start" HEAD)" == "$pr_summary" ]] || fail 'the backfill commit touched more than the summary'
 calls="$(cut -d'|' -f2 "$TMP/broker.log" | tr '\n' ' ')"
+# First run: push and create, then the commit is refused; the rerun commits
+# first and pushes once, without a second pull.create.
 [[ "$calls" == "git.push.change gitea.pull.create git.push.change " ]] || fail "unexpected broker sequence: $calls"
 [[ "$(cut -d'|' -f1 "$TMP/broker.log" | sort -u)" == "$(cd -- "$pr_wt" && pwd -P)" ]] || fail 'the broker must run from inside the checkout'
 # A rerun is idempotent: no second commit.
