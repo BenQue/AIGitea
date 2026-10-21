@@ -41,7 +41,9 @@ updated: 2026-10-21
 | NewEMaint `gitea/main` 三份 Dockerfile（api、web、database）经 `_digests` 核验（`79042f01`） | PASS | 各引用 1 个 digest；遗留 `deploy/Server/web-service/Dockerfile` 的 `node:${NODE_VERSION}-alpine` 仍报 `DOCKERFILE_FROM_VARIABLE_UNSUPPORTED` |
 | 第 1 轮审查的回归用例跑在 `228db97e` 版 `dockerfile.py` | FAIL（预期） | `test_unguarded_or_unprovable_arg_forms_fail_closed_413` 10 处失败（`|| true`、`; true`、`&`、`| cat`、ENV 遮蔽 ×2、SHELL、反斜线与未闭合引号 ARG 等被误判 PASS），引号内 `BASE=preview` 的合规用例误报失败 |
 | 同上跑在 `79042f01` | PASS | Ran 19 tests, OK |
-| `bash codex/tools/usage-bundle.sh --verify`（`79042f01`） | PASS | `VERIFIED 1.11.0 sha256:a6d7d59b…`；只追加一个 release |
+| 第 2 轮审查的回归用例跑在 `12dd1c8d` 版 `dockerfile.py` | FAIL（预期） | `test_unguarded_or_unprovable_arg_forms_fail_closed_413` 4 处失败：命令替换里嵌套引号藏起的 `\|\| true`（3 种写法）与 `&&` 后的子 shell 被判 PASS |
+| 同上跑在 `0f729a45`；NewEMaint 三份 Dockerfile 复核 | PASS | Ran 19 tests, OK；三份各引用 1 个 digest |
+| `bash codex/tools/usage-bundle.sh --release 1.11.0`（`b2ca6972`，合并前从 main 版重发同号） | PASS | `RELEASED 1.11.0 sha256:0657500f…`；只追加一个 release |
 | `bash codex/tests/smoke.sh`（`228db97e`） | PASS | `Codex platform static smoke checks passed.` |
 
 ## Acceptance criteria 结果
@@ -61,6 +63,7 @@ updated: 2026-10-21
 | 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
 |---|---|---|---|---|---|
 | 1 | Claude | Codex（gpt-6-astra，reasoning ultra） | 228db97eb3c9f4269cf17765a0205be08dfdc0d6 | FAIL | 3 个 P1：守卫后 `||`/`;`/`&` 吞失败、ENV 遮蔽、SHELL 跳过比较；4 个 P2：引号内伪 ARG 声明、`//` 绕过根判定、反向测试会读宿主根、verification 未填。全部在 `c06a0d43`、`fe0b374a`、`79042f01` 修复并补回归；敌意基础镜像改写 `test`/shell 属构建参数信任边界，按建议在 README 写明不保证 |
+| 2 | Claude | Codex（gpt-6-astra，reasoning high） | 12dd1c8df792b1543df7119e20a9372e865e55f2 | 未出结论 | 审查中途被 OpenAI 内容过滤中止，未写 VERDICT；中止前的复现已证明一处 P1：命令替换内嵌套引号让引号剥离正则漏掉 `\|\| true`。`0f729a45` 改为严格左到右扫描并补 4 个回归 |
 
 ## 遗留风险与未完成项
 
