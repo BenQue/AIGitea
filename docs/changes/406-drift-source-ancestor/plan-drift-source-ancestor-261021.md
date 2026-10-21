@@ -23,8 +23,8 @@ updated: 2026-10-21
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 夹具先红：只改文档的提交、改轮换文件的提交、非祖先 source_sha、helper 凭证三态；检查器改为祖先判定后转绿 | - | pending |
-| T02 | 反向证明、全量 smoke、Codex 交叉审查、verification | T01 | pending |
+| T01 | 夹具先红：只改文档的提交、改轮换文件的提交、非祖先 source_sha、helper 凭证三态；检查器改为祖先判定后转绿 | - | done |
+| T02 | 反向证明、全量 smoke、Codex 交叉审查、verification | T01 | done |
 
 ## Expected touch points
 
