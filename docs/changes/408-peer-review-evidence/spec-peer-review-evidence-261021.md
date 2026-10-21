@@ -82,12 +82,12 @@ Cursor 要在使用层真实走完一个 Issue；每批固定出现的仪式性�
 | 只读审查 | `claude` CLI 可执行 | `codex` CLI 可执行（`codex exec -s read-only`） | `cursor-agent` 可执行且已登录（`--mode ask`） |
 | smoke 可跑 | 维护层：`bash`、`python3`、`jq`、`rg`、`git` 齐全 | 同左 | 不适用（Cursor 不进维护层） |
 
-读回扩展现有 `check-external-skill-versions.py`，不新建脚本：保留现有各行，末尾每端加一行
-`CAPABILITY <tool> <PASS|KNOWN_EXTERNAL|GAP> <逐项状态>`，最后的 `RESULT` 由这三行决定。
+读回扩展现有 `check-external-skill-versions.py`，不新建脚本：加 `--capabilities`（必须同时给 `--repo`），保留现有各行，末尾每端加一行
+`CAPABILITY <tool> <PASS|KNOWN_EXTERNAL|GAP> <逐项状态>`，此时最后的 `RESULT` 由这三行决定；不带 `--capabilities` 时输出与退出码不变。
 
 - `PASS`：该端每项都满足。
 - `KNOWN_EXTERNAL`：唯一的不满足项属于登记过的外部原因，行内写原因。首个登记项是 Codex superpowers
-  `PIN_NOT_INSTALLED`（官方市场尚未提供 7.0.0，#392 负责人决定不由平台安装）。登记表放在 `codex/config/external-skill-adaptation.json` 现有结构里还是脚本常量，plan 阶段按测试便利定。
+  `PIN_NOT_INSTALLED`（官方市场尚未提供 7.0.0，#392 负责人决定不由平台安装）。登记表是脚本常量 `KNOWN_EXTERNAL`（适配记录的 schema 是逐键锁死的，不扩它）。
 - `GAP`：其余任何不满足，含 `UNKNOWN` 与 `PIN_DRIFT`。
 
 只读审查一项只检查 CLI 可执行与登录状态，不发起模型回合；模型回合能否跑通由交叉审查本身证明，记入审查记录。
@@ -138,7 +138,7 @@ Cursor 会话读回 `aisoft-platform` 技能能触发。结果写进 `platform-e
 
 ## 验收标准
 
-- AC-1 `check-external-skill-versions.sh --repo <SFM checkout>` 输出三行 `CAPABILITY`；三端各自是 `PASS`，或是 `KNOWN_EXTERNAL` 且原因是已登记项；
+- AC-1 `check-external-skill-versions.sh --repo <SFM checkout> --capabilities` 输出三行 `CAPABILITY`；三端各自是 `PASS`，或是 `KNOWN_EXTERNAL` 且原因是已登记项；
   测试覆盖三种结论，反向证明：把登记项删掉，Codex 那行变 `GAP`、`RESULT` 非 PASS。
 - AC-2 `review-evidence-index.md` 覆盖 R0–R8（含 R6b）、#370、#385、#387，每行有审查 head（40 位）或明写「未记录/未做」及原因，每行有来源。
 - AC-3 verification 模板有固定「交叉审查」表；`03` §7 写明实现方 ≠ 审查方与记录位置；本批 verification 用新表记录自己的审查。
