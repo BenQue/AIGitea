@@ -70,6 +70,7 @@
 | 技术栈与安装、测试、构建、迁移命令 | `AGENTS.md` 项目事实 |
 | 健康端点 | `AGENTS.md` 项目事实 |
 | 交付形态（Linux 容器化 / Linux 原生 / Windows / 其它） | `AGENTS.md` 项目事实；`.aisoft/architecture.json` 的 `delivery_contract` |
+| 技术栈 profile（平台示例不合用时） | `.aisoft/profiles/<profile_id>.json`，平台只校验 `profile-v1` schema 与 catalog 语义 |
 | 部署方案、脚本、参数与环境差异 | 项目自己的 `docs/` 或脚本目录 |
 | 发布 producer（`local` 或 `github`，只能一种）与 transport | `AGENTS.md` 项目事实 |
 | 禁改边界（受保护路径、数据、配置） | `AGENTS.md` 项目事实 |
@@ -107,3 +108,12 @@ pin 的版本，项目不得手改；Gitea 与 Git 访问仍经本机安装的 h
 （`platform-pin`、`tool-provenance`、`pointer-sections`、`change-templates` 等）以及项目声明是否齐全；
 `AGENTS.md`「项目事实」超过 2 KB 时 `agents-budget` 提示。缺口在项目仓
 逐条建 Issue 修复；检查器不改任何状态，也不授权合并或部署。
+
+- **存量 change 目录**：有历史的项目在 `.aisoft/platform-usage.lock.json` 加一个整数键
+  `legacy_changes_before`（例如 `"legacy_changes_before": 120`）。编号小于它的 change 目录（含零填充、
+  纯数字等非可读元组的历史名）的文档问题记为 `LEGACY` 登记，不计 GAP；编号不小于它的目录照旧要求现行
+  合同。这个键只在采用支持它的版本之后写，旧版本工具会把带它的 lock 判为格式不受支持；`--adopt` 升级时保留它。
+- **architecture catalog 的 pin**：`.aisoft/architecture.json` 的 `catalog_revision` 可以停在一个已发布的历史
+  revision，检查器按随发布包分发的该 revision 快照校验并出 `NOTE`；升级到新 revision 是项目自己的 Issue。
+  快照的 `review_by` 过期只在 NOTE 里提示，组件 EOL、prohibited、例外到期仍是 GAP。
+- `architecture-lock` 失败时 GAP 写出诊断码，按诊断码修复后重新生成 lock。

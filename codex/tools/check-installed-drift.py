@@ -23,7 +23,7 @@ INSTALLER_PINS = {
     "codex/install-skills.sh": "d47021706fedf45d2c5fa3ac702a054ed1a62f6ad531d4d145b284e85c918092",
     "codex/install-host-role.sh": "325e5150722e30debc115c0717d9bc4dedac44e1a7552c3a2258df14c4b27c89",
     "codex/install-host-access-broker.sh": "496faaae0d5f25529187af68c4e14c458a88530eeafed78453496849db894c9c",
-    "architecture/install.sh": "c8f14f0154cad1b7402e527209d0135bab2bdf3bc0024f72fd06994067aa972e",
+    "architecture/install.sh": "7e725a19cb2ed765b315e828af4d7ddc256d539d10d1986d9d6aee200f0ad8cd",
     "sync/install.sh": "153f36ef3396a053a4e4cbb8d6022a9f163b75b6f4c25498ba27ae3217d30f10",
     "skill-for-claude/install.sh": "e2b767925e31b45cb83aaa3f93bedda8122b4ffc7e60c46cd4dc639659114f77",
 }
@@ -519,6 +519,9 @@ def build_surfaces(repo: Path, home: Path, system: Path, arch: Path):
     add("architecture/install", "architecture/catalog.json", arch / "share/aisoft-architecture/catalog.json", arch)
     for dirname in ("profiles", "schemas", "templates", "decisions"):
         tree("architecture/install", "architecture/" + dirname, arch / "share/aisoft-architecture" / dirname, arch, "*")
+    # Published catalog revisions a project may pin (#409): <revision>/catalog.json
+    # and <revision>/profiles/, so this one tree is recursive.
+    tree("architecture/install", "architecture/catalog-releases", arch / "share/aisoft-architecture/catalog-releases", arch)
     for label, key, length in [("catalog revision", "revision", False), ("components", "components", True)]:
         json_metric("architecture/install", label, "architecture/catalog.json", arch / "share/aisoft-architecture/catalog.json", arch, key, length)
     sync_targets = []
@@ -716,7 +719,7 @@ def source_identity(repo: Path, sources: set[Path]):
             scopes.update({"codex/agent", "skills", "codex/lib/skills-manifest.sh",
                            "codex/tools/gitea-pat-helper",
                            "codex/vendor/mattpocock", "sync/systemd"})
-            scopes.update("architecture/" + name for name in ("profiles", "schemas", "templates", "decisions"))
+            scopes.update("architecture/" + name for name in ("profiles", "schemas", "templates", "decisions", "catalog-releases"))
             # Read raw tree metadata and hash worktree bytes ourselves. git diff
             # can run configured clean filters even with --no-ext-diff/textconv.
             rc, tree = git("ls-tree", "-r", "-z", cached, "--", *sorted(set(paths) | scopes))

@@ -12,6 +12,7 @@
   `latest`、范围、package 集合漂移和同组件 package 版本不一致，且不会在 lock 生成时访问网络。
 - `profiles/*.json` 的每个 slot 保留唯一 `preferred` component，并可由 profile owner 维护同
   category 的 closed `transitions` allowlist；delivery 能力仍由 #22/应用 Change 提供。
+  平台内的 profile 是示例与存量兼容（ADR 0001 D5）；技术栈不合用的项目自带 profile，见下文「项目自带 profile」。
 - 一个 profile 的 `delivery_contracts` 可以列出多个取值，但一份 declaration 只取其中一个。
   同一个仓库的多个环境如果交付归属不同，各写一份 declaration 与一份 lock，不合并成一份；
   取值之间的互斥性因此保持不变（ADR-0006）。
@@ -61,6 +62,29 @@ CLI 与 `codex/tools/aisoft-project-check.sh` 都从**脚本所在平台 checkou
 `catalog.json` 与 `profiles/`。本地 `main` 没有 fast-forward 到最新时，新增的 profile
 解析不到，表现为 `PROFILE_UNKNOWN` 或 slot 对不上——那是 checkout 陈旧，不是声明写错。
 先 `git fetch` 并 ff 本地 `main`，再重跑。
+
+## Catalog revision pin 与项目自带 profile（#409）
+
+- **已发布 revision 不可变**。被新 revision 取代的 catalog 连同当时的 profiles 原样存为
+  `catalog-releases/<revision>/catalog.json` 与 `catalog-releases/<revision>/profiles/`，内容取自该 revision
+  在 git 中的最后一次提交，之后不再修改（`codex/runtime/tests/test_architecture_pin.py` 钉住其哈希，随发布包
+  分发）。当前 revision 仍是 `catalog.json` 与 `profiles/`。目前保留的历史 revision：`2026.08.3`；其余历史
+  revision 没有已知 lock，需要时由新 Issue 从 git 补回。
+- **pin 语义**。传 `--catalog-releases <dir>` 时，declaration 的 `catalog_revision` 若早于当前 catalog，按
+  `<dir>/<revision>/` 的快照走全部既有校验，`PROJECT_CATALOG_MISMATCH` 对所选 catalog 照旧生效；不是已发布
+  的历史 revision（未知、比当前新、格式不对）→ `CATALOG_REVISION_UNKNOWN`。不传该参数时行为与以前相同。
+  成功结果多出 `catalog_behind: {"pinned", "current"}` 与 `catalog_review_overdue`。
+- **快照会变旧**。pin 快照的 catalog 与 source `review_by` 过期不再 fail，只在 `catalog_review_overdue` 中
+  报告；组件 EOL、prohibited、exception 过期、digest、checksum 与 lock drift 仍按当天 fail closed。当前
+  catalog 的 review 过期仍是 `CATALOG_REVIEW_OVERDUE`。升级 revision 是项目自己的 Issue。
+- **项目自带 profile**。`--project-profiles-dir <dir>` 先于 `--profiles-dir`（或所选快照的 `profiles/`）
+  查找 `<profile_id>.json`，同名时项目的胜出；`profile_id` 先过 `^[a-z0-9][a-z0-9-]+$` 再拼路径
+  （`PROFILE_ID_INVALID`），都找不到 → `PROFILE_UNKNOWN`。平台对项目 profile 只做 `profile-v1` schema 与既有
+  catalog 语义校验（slot 必须是所选 catalog 的 preferred component，transition 规则不变），lock 的
+  `profile_sha256` 照旧覆盖它。结果的 `profile_source` 为 `project` 或 `platform`。合成示例见
+  `fixtures/project-profile/`。
+- **检查器**。`aisoft-project-check.sh` 总是传 `--catalog-releases`，项目有 `.aisoft/profiles/` 时传
+  `--project-profiles-dir`；落后出 `NOTE`，失败的 GAP 写出诊断码。
 
 ## Dockerfile 基镜像源码一致性合同（#288）
 

@@ -183,6 +183,28 @@ sed 's/sha256:[0-9a-f]*/sha256:0000/' "$project/.aisoft/platform-usage.lock.json
 run 0 "${p[@]}" --project-status "$unpinned"
 expect_contains '摘要与平台记录的 1.0.0 不符'
 
+# 11b. #409: the project may add legacy_changes_before; any other extra key or a
+# malformed threshold leaves the lock unsupported.
+lock_variant() {
+  python3 -B - "$project/.aisoft/platform-usage.lock.json" "$unpinned/.aisoft/platform-usage.lock.json" "$1" "$2" <<'PY'
+import json, sys
+lock = json.load(open(sys.argv[1]))
+lock[sys.argv[3]] = json.loads(sys.argv[4])
+open(sys.argv[2], "w").write(json.dumps(lock))
+PY
+}
+lock_variant legacy_changes_before 57
+run 0 "${p[@]}" --project-status "$unpinned"
+expect_contains $'platform-pin\tPASS\tpin 1.0.0'
+for bad in 0 true '"57"' 1.5; do
+  lock_variant legacy_changes_before "$bad"
+  run 0 "${p[@]}" --project-status "$unpinned"
+  expect_contains '格式不受支持'
+done
+lock_variant unknown_key 1
+run 0 "${p[@]}" --project-status "$unpinned"
+expect_contains '格式不受支持'
+
 # 12. A pinned project whose contract copy drifted fails platform-pin.
 printf 'edited\n' >"$project/.aisoft/platform-usage.md"
 run 0 "${p[@]}" --project-status "$project"
@@ -511,6 +533,20 @@ git -C "$adopted" -c user.name=t -c user.email=t@example.invalid add -A
 git -C "$adopted" -c user.name=t -c user.email=t@example.invalid commit -q -m adopt
 run 0 "${t[@]}" --adopt "$adopted"
 [[ -z "$(git -C "$adopted" status --porcelain)" ]] || fail 'second adopt changed the checkout'
+# #409: re-adoption keeps the project's legacy threshold in the lock.
+python3 -B - "$adopted/.aisoft/platform-usage.lock.json" <<'PY'
+import json, sys
+lock = json.load(open(sys.argv[1]))
+lock["legacy_changes_before"] = 42
+lock["bundle_version"] = "0.0.0"
+open(sys.argv[1], "w").write(json.dumps(lock, indent=2) + "\n")
+PY
+git -C "$adopted" -c user.name=t -c user.email=t@example.invalid commit -q -am legacy
+run 0 "${t[@]}" --adopt "$adopted"
+expect_contains 'legacy_changes_before=42'
+jq -e '.legacy_changes_before == 42 and .bundle_version != "0.0.0"' "$adopted/.aisoft/platform-usage.lock.json" >/dev/null ||
+  fail 'adopt dropped legacy_changes_before or kept the stale pin'
+git -C "$adopted" -c user.name=t -c user.email=t@example.invalid commit -q -am readopt
 run 64 "${t[@]}" --adopt "$tmp/does-not-exist"
 # Codex #402 round 1: nothing is written through a symbolic link, inside the
 # checkout (a template linked to AGENTS.md) or out of it (.aisoft elsewhere).

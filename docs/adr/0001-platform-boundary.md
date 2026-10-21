@@ -73,7 +73,7 @@
 | `01`–`08` 分册、`README.md`、`GLOSSARY.md` | 维护层文档 | 保留；去掉项目事故与已退出项目的 as-built 叙述 |
 | `09-v3…规划.md` | 已完成规划 | 归档到 `archive/` |
 | `12`–`15`、`company-delivery/`、`docker-release/` | 参考实现 | 保留为可选参考；不作硬门、不作新项目默认合同 |
-| `architecture/` | 拆分 | schema、校验器与 lock 规则属 K4；按技术栈登记的 profile 迁为项目自带 |
+| `architecture/` | 拆分 | schema、校验器与 lock 规则属 K4；按技术栈登记的 profile 迁为项目自带。2026-10-21 #409 收口：项目在 `.aisoft/profiles/` 自带 profile（#358 结论：HSDB 这类技术栈由项目自记），平台 5 个 profile 降为示例与存量兼容，已发布 catalog revision 以快照随发布包分发供项目 pin |
 | `codex/runtime/aisoft_loop`、`aisoft_change_name.py`、`aisoft_worktree_owner.py` | K3 | 保留 |
 | `codex/runtime/aisoft_host_access` | K1 | 保留；application target 改为 manifest 数据 |
 | `codex/runtime/aisoft_gitea_governance`、`aisoft_main_integration.py` | K2 | 保留；routine pilot 写死项改为 manifest 自洽校验 |
