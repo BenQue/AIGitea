@@ -244,6 +244,13 @@ def _check_change_documents(repo: Path, porcelain: bool) -> int:
             print(f"PASS: {check.name}")
         else:
             print(f"GAP: {check.name} — {detail}")
+        if check.legacy:
+            # Registered history (#409): reported, never counted as a gap.
+            registered = f"登记 {len(check.legacy)} 项：" + "; ".join(check.legacy)
+            if porcelain:
+                print(f"{check.name}\tLEGACY\t{registered}")
+            else:
+                print(f"LEGACY: {check.name} — {registered}")
     if not porcelain:
         gaps = sum(1 for check in report.checks if not check.ok)
         print(

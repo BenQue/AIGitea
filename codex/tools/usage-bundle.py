@@ -52,6 +52,20 @@ LOCK_CONTRACT = "aisoft-usage-lock/v1"
 # Fixed by the v1 contract: moving it would turn every pinned project into an
 # unpinned one without any member change or new release.
 LOCK_PATH = ".aisoft/platform-usage.lock.json"
+LOCK_KEYS = {"contract_version", "bundle_version", "bundle_digest"}
+# Optional, written by the project itself (#409): change directories numbered
+# below it are registered history. Every lock writer keeps it.
+LOCK_LEGACY_KEY = "legacy_changes_before"
+
+
+def lock_legacy_value(lock: object) -> int | None:
+    """The project's legacy threshold, or None when absent or malformed."""
+    if not isinstance(lock, dict):
+        return None
+    value = lock.get(LOCK_LEGACY_KEY)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        return None
+    return value
 MODES = ("exact", "pointer", "seed", "skill", "vendor")
 CHECKS = ("platform-pin", "tool-provenance", "pointer-sections", "change-templates")
 # Every member list must cover these; tool-provenance only exists from the
@@ -433,12 +447,14 @@ def release(root: Path, version: str, today: str, compatibility: str, notes: str
     print(f"RELEASED {version} {bundle['releases'][-1]['bundle_digest']}")
 
 
-def lock_text(bundle: dict, release_entry: dict) -> str:
+def lock_text(bundle: dict, release_entry: dict, legacy_before: int | None = None) -> str:
     lock = {
         "contract_version": LOCK_CONTRACT,
         "bundle_version": release_entry["version"],
         "bundle_digest": release_entry["bundle_digest"],
     }
+    if legacy_before is not None:
+        lock[LOCK_LEGACY_KEY] = legacy_before
     return json.dumps(lock, indent=2, ensure_ascii=False) + "\n"
 
 
@@ -644,6 +660,21 @@ def adopt(root: Path, repo: Path, tools: tuple[str, ...] = DEFAULT_TOOLS) -> int
                 print(f"KEPT\t{relative}\t种子已存在，保留项目版本")
                 continue
             destination.parent.mkdir(parents=True, exist_ok=True)
+            if relative == bundle["lock_path"] and destination.is_file():
+                # A re-adoption moves the pin but keeps the project's own
+                # legacy threshold (#409); dropping it would silently turn
+                # registered history back into gaps.
+                try:
+                    legacy_before = lock_legacy_value(json.loads(destination.read_text(encoding="utf-8")))
+                except ValueError:
+                    legacy_before = None
+                if legacy_before is not None:
+                    updated = lock_text(bundle, latest, legacy_before)
+                    if updated != destination.read_text(encoding="utf-8"):
+                        destination.write_text(updated, encoding="utf-8")
+                        written.append(relative)
+                        print(f"WROTE\t{relative}\t保留 {LOCK_LEGACY_KEY}={legacy_before}")
+                    continue
             if relative == pointer_target and destination.is_file():
                 updated = replace_pointer(destination.read_text(encoding="utf-8"), source.read_text(encoding="utf-8"))
                 if updated == destination.read_text(encoding="utf-8"):
@@ -714,7 +745,8 @@ def project_status(root: Path, repo: Path) -> list[tuple[str, str, str]]:
             lock = None
         if (
             not isinstance(lock, dict)
-            or set(lock) != {"contract_version", "bundle_version", "bundle_digest"}
+            or set(lock) - {LOCK_LEGACY_KEY} != LOCK_KEYS
+            or (LOCK_LEGACY_KEY in lock and lock_legacy_value(lock) is None)
             or lock.get("contract_version") != LOCK_CONTRACT
         ):
             lines.append(("platform-pin", "GAP", f"{bundle['lock_path']} 格式不受支持，按最新版本核对"))
