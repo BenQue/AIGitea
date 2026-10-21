@@ -187,13 +187,14 @@ func TestCanonicalManifestBindings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, kind := range []string{"project-agent", "routine-merge-agent", "manager-audit", "manager-mutation"} {
+	for _, kind := range []string{"project-agent", "manager-audit", "manager-mutation"} {
 		target, code := bindTarget(Request{ProjectID: "alphaapp", Kind: kind}, g, a)
 		if code != "" || target.Username == "" {
 			t.Fatal("canonical binding failed", kind, code)
 		}
 	}
-	for _, r := range []Request{{ProjectID: "unknown", Kind: "project-agent"}, {ProjectID: "aisoft-platform", Kind: "routine-merge-agent"}, {ProjectID: "alphaapp", Kind: "admin"}} {
+	// #397: the manifests no longer declare routine mergers, so that kind binds nothing.
+	for _, r := range []Request{{ProjectID: "unknown", Kind: "project-agent"}, {ProjectID: "aisoft-platform", Kind: "routine-merge-agent"}, {ProjectID: "alphaapp", Kind: "routine-merge-agent"}, {ProjectID: "alphaapp", Kind: "admin"}} {
 		if _, code := bindTarget(r, g, a); code != "TARGET_UNMANAGED" {
 			t.Fatal("unmanaged target accepted")
 		}
