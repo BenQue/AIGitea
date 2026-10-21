@@ -256,6 +256,66 @@ class InstalledDriftTests(unittest.TestCase):
         self.assertEqual(p.returncode, 1, p.stderr + p.stdout)
         self.assertIn("helper-not-selected", p.stdout)
 
+    def advanced_main(self, edits=None, name="advanced"):
+        """Clone the installed source commit and advance main past it by one commit (#406)."""
+        clone = self.work / name
+        p = run(["git", "clone", "-q", str(self.fixture_source), str(clone)])
+        self.assertEqual(p.returncode, 0, p.stderr)
+        for relative, suffix in (edits or {"NOTES.md": "documentation-only change\n"}).items():
+            path = clone / relative
+            path.write_bytes((path.read_bytes() if path.exists() else b"") + suffix.encode())
+        for args in [["git", "-C", str(clone), "add", "."],
+                     ["git", "-C", str(clone), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                      "-c", "core.hooksPath=/dev/null", "commit", "-qm", "advance main"],
+                     ["git", "-C", str(clone), "update-ref", "refs/remotes/origin/main", "HEAD"]]:
+            p = run(args)
+            self.assertEqual(p.returncode, 0, p.stderr)
+        return clone
+
+    def test_rotation_source_may_be_an_ancestor_of_main(self):
+        clone = self.advanced_main()
+        report = self.check(repo=clone)
+        self.assertTrue(all(r["result"] == "PASS" for r in report["installers"]))
+
+    def test_rotation_source_change_after_install_is_gap(self):
+        clone = self.advanced_main({"codex/runtime/aisoft_host_access/credential_rotation.py": "\n# changed after install\n"})
+        row = self.row(self.check(1, repo=clone), "install-host-access-broker")
+        self.assertTrue(any(g["reason"] == "rotation-file-digest-differ" for g in row["gaps"]), row["gaps"])
+
+    def test_rotation_source_outside_main_history_is_gap(self):
+        clone = self.advanced_main()
+        side = run(["git", "-C", str(clone), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                    "commit-tree", "-m", "unrelated", "HEAD^{tree}"])
+        self.assertEqual(side.returncode, 0, side.stderr)
+        path = self.rotation_record()
+        original = path.read_bytes()
+        base = json.loads(original)
+        # A real commit outside main's history, symbolic names and option-shaped values.
+        for value in [side.stdout.strip(), "HEAD", "HEAD~1", "--all", "0" * 40, "0" * 64, ""]:
+            with self.subTest(value=value):
+                path.write_text(json.dumps({**base, "source_sha": value}))
+                row = self.row(self.check(1, repo=clone), "install-host-access-broker")
+                self.assertTrue(any(g["reason"] == "rotation-source-binding" for g in row["gaps"]), row["gaps"])
+                path.write_bytes(original)
+                self.check(repo=clone)
+
+    def test_rotation_helper_build_binds_install_commit_not_head(self):
+        public, _binary = self.select_synthetic_helper()
+        extra = ["--pat-helper-provenance", str(public)]
+        clone = self.advanced_main()
+        self.assertEqual(self.row(self.check(extra=extra, repo=clone), "install-host-access-broker")["result"], "PASS")
+        original = public.read_bytes()
+        head = run(["git", "-C", str(clone), "rev-parse", "HEAD"]).stdout.strip()
+        public.write_text(json.dumps({**json.loads(original), "source_commit": head}))
+        row = self.row(self.check(1, extra=extra, repo=clone), "install-host-access-broker")
+        self.assertTrue(any(g["reason"] == "helper-provenance-binding" for g in row["gaps"]), row["gaps"])
+        public.write_bytes(original)
+        go = sorted((self.fixture_source / "codex/tools/gitea-pat-helper").glob("*.go"))[0]
+        changed = self.advanced_main({go.relative_to(self.fixture_source).as_posix(): "\n// changed after install\n"},
+                                     name="advanced-helper")
+        row = self.row(self.check(1, extra=extra, repo=changed), "install-host-access-broker")
+        self.assertTrue(any(g["reason"] == "helper-source-differ" for g in row["gaps"]), row["gaps"])
+
     def test_rotation_new_files_links_fifo_and_permissions_fail_closed(self):
         public, binary = self.select_synthetic_helper()
         extra = ["--pat-helper-provenance", str(public)]
