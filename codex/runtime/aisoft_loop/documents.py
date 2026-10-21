@@ -132,7 +132,7 @@ def backfill_pr_number(
     The Controller reaches this with a number straight out of create_pr, not a
     URL (#146). The URL is built from the summary's own gitea_url rather than
     from the response's html_url on purpose: on this platform the API renders
-    html_url against one base (gitea-ci.orb.local:3000) while the runner sees
+    html_url against the site's Gitea host name while the runner sees
     another (localhost:3000), and feeding that difference to the strict prefix
     check would escalate a healthy Loop over pure cosmetics.
     """

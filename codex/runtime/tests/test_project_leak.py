@@ -1,4 +1,4 @@
-"""#368: the ADR 0001 D3 project-name ratchet."""
+"""#368/#396: the ADR 0001 D3 project-name and site-value ratchet."""
 import contextlib
 import importlib.util
 import io
@@ -30,17 +30,25 @@ class ProjectLeakTests(unittest.TestCase):
             {"name": "AcmeApp", "classification": "internal-application"},
             {"name": "demo", "classification": "public-test"},
         ]}))
-        self.write("codex/config/host-access-broker.json", json.dumps({"projects": [
-            {"project_id": "acme-app", "repository": "AcmeApp"},
-            {"project_id": "demo", "repository": "demo"},
-        ]}))
+        self.write("codex/config/host-access-broker.json", json.dumps({
+            "site": {
+                "gitea_url": "http://forge.example.test:3000",
+                "orbstack_machine": "forge",
+                "orbstack_user": "opsuser",
+                "credential_root_mac": "/Users/opsuser/creds",
+            },
+            "projects": [
+                {"project_id": "acme-app", "repository": "AcmeApp"},
+                {"project_id": "demo", "repository": "demo"},
+            ],
+        }))
         self.write("codex/config/project-leak-baseline.json",
                    json.dumps({"retired": ["oldproj"], "files": {"README.md": 1}}))
         self.write("README.md", "Uses AcmeApp.\n")
         self.write("codex/runtime/tests/test_x.py", "AcmeApp acme-app\n")
         self.write("docs/changes/1-x/summary.md", "AcmeApp\n")
         self.write("tool_test.go", "acme-vm\n")
-        self.write("guide.md", "demo only\n")
+        self.write("guide.md", "generic only\n")
         self.git("init", "-q")
         self.git("add", "-A")
 
@@ -60,12 +68,16 @@ class ProjectLeakTests(unittest.TestCase):
 
     def test_names_come_from_manifests_only(self):
         self.assertEqual(self.checker.project_names(self.root, ["oldproj"]),
-                         ["acme-app", "acmeapp", "oldproj"])
+                         ["acme-app", "acmeapp", "demo", "oldproj"])
+
+    def test_site_values_come_from_the_site_segment_longest_first(self):
+        self.assertEqual(self.checker.site_values(self.root),
+                         ["forge.example.test:3000", "/users/opsuser/creds", "opsuser", "forge"])
 
     def test_baseline_matches_and_allowed_places_are_ignored(self):
         code, out, _ = self.run_checker()
         self.assertEqual(code, 0)
-        self.assertIn("PASS: project-leak (1 baseline files, 1 hits)", out)
+        self.assertIn("PASS: project-leak (1 baseline files, 1 hits; site 0 files, 0 hits)", out)
 
     def test_new_file_or_higher_count_fails_and_removal_recovers(self):
         self.write("templates/new.md", "oldproj\n")
@@ -82,14 +94,40 @@ class ProjectLeakTests(unittest.TestCase):
         self.write("README.md", "Uses AcmeApp.\n")
         self.assertEqual(self.run_checker()[0], 0)
 
+    def test_public_test_name_and_site_value_each_fail_a_new_file(self):
+        self.write("templates/demo.md", "see demo\n")
+        self.write("templates/site.md", "http://forge.example.test:3000/x and /Users/opsuser/creds\n")
+        self.git("add", "-A")
+        code, _, err = self.run_checker()
+        self.assertEqual(code, 1)
+        self.assertIn("templates/demo.md: 1 project-name hits (baseline 0)", err)
+        self.assertIn("templates/site.md: 2 site-value hits (baseline 0)", err)
+
+    def test_real_manifests_catch_public_test_name_and_site_host(self):
+        """#396 AC2 against the real manifests: a public-test repository and the Gitea host."""
+        for path in ("codex/config/gitea-governance.json", "codex/config/host-access-broker.json"):
+            self.write(path, (ROOT / path).read_text(encoding="utf-8"))
+        self.write("README.md", "generic\n")
+        self.write("templates/leak.md", "smoke-test\n")
+        self.write("templates/host.md", "http://gitea-ci.orb.local:3000/\n")
+        self.git("add", "-A")
+        code, _, err = self.run_checker()
+        self.assertEqual(code, 1)
+        self.assertIn("templates/leak.md: 1 project-name hits (baseline 0)", err)
+        self.assertIn("templates/host.md: 1 site-value hits (baseline 0)", err)
+        for path in ("templates/leak.md", "templates/host.md"):
+            (self.root / path).unlink()
+        self.git("add", "-A")
+        self.assertEqual(self.run_checker()[0], 0)
+
     def test_lower_count_only_notes_and_write_baseline_tightens(self):
         self.write("README.md", "generic\n")
         code, out, _ = self.run_checker()
         self.assertEqual(code, 0)
-        self.assertIn("README.md has no hits left", out)
+        self.assertIn("README.md has no project-name hits left", out)
         self.assertEqual(self.run_checker("--write-baseline")[0], 0)
         baseline = json.loads((self.root / "codex/config/project-leak-baseline.json").read_text())
-        self.assertEqual(baseline, {"retired": ["oldproj"], "files": {}})
+        self.assertEqual(baseline, {"retired": ["oldproj"], "files": {}, "site_files": {}})
 
     def test_new_manifest_project_needs_no_code_change(self):
         governance = json.loads((self.root / "codex/config/gitea-governance.json").read_text())
@@ -106,6 +144,9 @@ class ProjectLeakTests(unittest.TestCase):
         for name in self.checker.project_names(ROOT, baseline["retired"]):
             with self.subTest(name=name):
                 self.assertNotIn(name, source)
+        for value in self.checker.site_values(ROOT):
+            with self.subTest(value=value):
+                self.assertNotIn(value, source)
 
     def test_repository_matches_its_baseline(self):
         self.assertEqual(self.checker.main(["--root", str(ROOT)]), 0)

@@ -5,6 +5,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
+from urllib.parse import urlparse
 
 from aisoft_gitea_governance.contract import (
     GovernanceContract,
@@ -15,6 +16,14 @@ from aisoft_change_name import ChangeName, ChangeNameError
 
 IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 GIT_REMOTE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+# #396: every value that names this one installation lives in the manifest's
+# site segment; the loader checks its shape and cross-references, never its
+# literal values.
+SITE_KEYS = {
+    "gitea_url", "orbstack_machine", "orbstack_user", "credential_root_mac",
+    "credential_root_vm", "platform_checkout_mac", "platform_checkout_vm",
+    "npm_registry",
+}
 
 ROTATION_POLICY = {
     "operator_uid": 0,
@@ -67,9 +76,33 @@ def _absolute_path(value: Any, context: str) -> str:
     _require(isinstance(value, str) and value.startswith("/"), f"{context} must be absolute")
     parsed = PurePosixPath(value)
     parts = parsed.parts
+    # POSIX keeps a leading "//" as its own anchor, which would slip past the
+    # parent checks below while the broker still opens it from "/" (#396).
+    _require(parsed.anchor == "/", f"{context} must have a single leading slash")
     _require(".." not in parts and "." not in parts, f"{context} must be normalized")
     _require(str(parsed) == value, f"{context} must be normalized")
     return value
+
+
+def _registry_url(value: Any, context: str) -> str:
+    _require(isinstance(value, str), f"{context} must be a URL")
+    parsed = urlparse(value)
+    _require(parsed.scheme in {"http", "https"} and bool(parsed.hostname),
+             f"{context} must be an absolute HTTP(S) URL")
+    _require(parsed.username is None and parsed.password is None,
+             f"{context} must not embed credentials")
+    try:
+        parsed.port
+    except ValueError as exc:
+        raise AccessContractError(f"{context} must use a valid port") from exc
+    _require(not parsed.query and not parsed.fragment,
+             f"{context} must not contain query or fragment")
+    return value
+
+
+def _inside(path: str, root: str) -> bool:
+    candidate, parent = PurePosixPath(path), PurePosixPath(root)
+    return candidate == parent or parent in candidate.parents
 
 
 def _relative_path(value: Any, context: str) -> str:
@@ -127,7 +160,7 @@ class AccessContract:
         if operation.identity_route in {"manager-audit", "manager-mutation"}:
             return self.governance.platform_manager
         if operation.identity_route == "host-operator":
-            return self.raw["mac_host"]["orbstack_user"]
+            return self.raw["site"]["orbstack_user"]
         if operation.identity_route == "credential-operator":
             return "root"
         raise AccessContractError("operation has an unknown identity route")
@@ -286,7 +319,7 @@ def load_access_contract(
     _exact_keys(
         raw,
         {
-            "contract_version", "environment", "governance_contract_version",
+            "contract_version", "environment", "site", "governance_contract_version",
             "human_merge_identity", "identity_bindings", "mac_host",
             "vm_runtime", "credential_rotation_policy", "operations", "projects",
         },
@@ -346,19 +379,28 @@ def load_access_contract(
         "account_source": "manifest-routine-merge-agent",
     }, "routine merger must use the fixed per-project protected-file binding")
 
+    site = raw["site"]
+    _require(isinstance(site, dict), "site must be an object")
+    _exact_keys(site, SITE_KEYS, "site")
+    _require(site["gitea_url"] == governance.base_url,
+             "site.gitea_url must equal the governance base_url")
+    _identifier(site["orbstack_machine"], "site.orbstack_machine")
+    _identifier(site["orbstack_user"], "site.orbstack_user")
+    for key in ("credential_root_mac", "credential_root_vm",
+                "platform_checkout_mac", "platform_checkout_vm"):
+        _absolute_path(site[key], f"site.{key}")
+        _require(site[key] != "/", f"site.{key} must not be the filesystem root")
+    _registry_url(site["npm_registry"], "site.npm_registry")
+
     mac = raw["mac_host"]
     _require(isinstance(mac, dict), "mac_host must be an object")
     _exact_keys(mac, {
-        "credential_root", "credential_owner", "credential_directory_mode",
+        "credential_owner", "credential_directory_mode",
         "credential_file_mode", "credential_helper", "orbstack_binary",
-        "orbstack_machine", "orbstack_user",
     }, "mac_host")
-    _require(
-        _absolute_path(mac["credential_root"], "credential_root") ==
-        "/Users/benque/Library/Application Support/AISoftPlatform/credentials",
-        "credential root must be fixed outside repositories",
-    )
-    _require(mac["credential_owner"] == "benque", "credential owner must be benque")
+    # One Mac operator account both owns the credential store and runs orb.
+    _require(_identifier(mac["credential_owner"], "credential_owner") == site["orbstack_user"],
+             "credential owner must be the site OrbStack operator")
     _require(mac["credential_directory_mode"] == "700",
              "credential directories must use mode 700")
     _require(mac["credential_file_mode"] == "600",
@@ -368,8 +410,6 @@ def load_access_contract(
              "credential helper path must be fixed")
     _require(_absolute_path(mac["orbstack_binary"], "orbstack_binary") ==
              "/usr/local/bin/orb", "OrbStack binary path must be fixed")
-    _require(mac["orbstack_machine"] == "gitea-ci", "OrbStack machine must be gitea-ci")
-    _require(mac["orbstack_user"] == "benque", "OrbStack operator must be benque")
 
     runtime = raw["vm_runtime"]
     _require(isinstance(runtime, dict), "vm_runtime must be an object")
@@ -467,6 +507,15 @@ def load_access_contract(
              "dependency_read_targets must name canonical projects")
     _require(repositories == set(governance_by_name),
              "host access projects must exactly cover governance repositories")
+    platform_checkouts = {
+        project.mac_checkout for project in projects
+        if governance_by_name[project.repository].classification == "public-platform"
+    }
+    _require(platform_checkouts == {site["platform_checkout_mac"]},
+             "site.platform_checkout_mac must equal the platform project's mac_checkout")
+    checkouts = {project.mac_checkout for project in projects if project.mac_checkout}
+    _require(not any(_inside(site["credential_root_mac"], checkout) for checkout in checkouts),
+             "credential root must stay outside every repository checkout")
     _require(governance.human_merge_identity not in {
         project.project_agent for project in projects
     }, "human merge identity must never be a broker credential")

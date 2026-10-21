@@ -41,6 +41,10 @@ jq -e '
     "projects/{project_id}/routine-merge-agent.token" and
   .mac_host.credential_directory_mode == "700" and
   .mac_host.credential_file_mode == "600" and
+  ((.site | keys) == ["credential_root_mac","credential_root_vm","gitea_url","npm_registry",
+    "orbstack_machine","orbstack_user","platform_checkout_mac","platform_checkout_vm"]) and
+  ([.mac_host | has("credential_root", "orbstack_machine", "orbstack_user")] | any | not) and
+  (.mac_host.credential_owner == .site.orbstack_user) and
   ([.operations[] | select(.name == "gitea.dependency.read")][0]
     == {"name":"gitea.dependency.read","identity_route":"manager-audit",
         "mutating":false,"arguments":["reference"]}) and
