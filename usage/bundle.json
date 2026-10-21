@@ -104,6 +104,10 @@
       "mode": "skill"
     },
     {
+      "source": "skills/aisoft-platform/references/route-policy.md",
+      "mode": "skill"
+    },
+    {
       "source": "skills/issue-session-flow/SKILL.md",
       "mode": "skill"
     },
@@ -995,6 +999,165 @@
           "source": "skills/issue-session-flow/SKILL.md",
           "mode": "skill",
           "sha256": "bf05c8778f37192f1c78729069ef8f9f00912b0b152ceb6c9e9cb1f920a721ba"
+        },
+        {
+          "source": "skills/aisoft-matt-workflow/SKILL.md",
+          "mode": "skill",
+          "sha256": "0df1a52bd7bc29a2250fefc2a20f3b09f7ff33cee0d18b59327005f48e25aa20"
+        },
+        {
+          "source": "skills/aisoft-matt-workflow/agents/openai.yaml",
+          "mode": "skill",
+          "sha256": "ddce1024e092bdbd45b000caf547c3382e2b29ccc32695824a984d7040ab5694"
+        },
+        {
+          "source": "codex/vendor/mattpocock/v1.3.1/manifest.json",
+          "mode": "vendor",
+          "sha256": "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd"
+        },
+        {
+          "source": "codex/vendor/superpowers/v7.0.0/manifest.json",
+          "mode": "vendor",
+          "sha256": "ad9a021021ce607b35d6aa4e54bf3fb6ef572b148e08966bdf7200293629f692"
+        }
+      ]
+    },
+    {
+      "version": "1.6.0",
+      "released": "2026-10-21",
+      "bundle_digest": "sha256:1e721e3d7792593f23dc8ce3aee169a778ea691bcba0a6be730c42f51c93b3b3",
+      "members": [
+        {
+          "source": "usage/CONTRACT.md",
+          "mode": "exact",
+          "target": ".aisoft/platform-usage.md",
+          "check": "platform-pin",
+          "sha256": "854c989e41859a15a891bd7aec554f7a98b45a5a4aaca28b8c6cd4832b0004bf"
+        },
+        {
+          "source": "templates/project/AGENTS.md",
+          "mode": "pointer",
+          "target": "AGENTS.md",
+          "check": "pointer-sections",
+          "sha256": "0f805f19fe2c178817b24e58bcd597afef6a9e27a95c57ae45dd1ad04dac834a",
+          "pointer_sha256": "4644dd5e9e98bcc8b712427511839a6af69e60b398f02e6eb097d7f19d1a41df"
+        },
+        {
+          "source": "templates/project/CLAUDE.md",
+          "mode": "exact",
+          "target": "CLAUDE.md",
+          "check": "pointer-sections",
+          "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
+        },
+        {
+          "source": "templates/docs/changes/_template/summary.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/summary.md",
+          "check": "change-templates",
+          "sha256": "d38277be31fa15b63ec7db22981f4a3aa379a706d6ba9411658e4dac1de236cc"
+        },
+        {
+          "source": "templates/docs/changes/_template/spec.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/spec.md",
+          "check": "change-templates",
+          "sha256": "0646265eba8b5a2ecf58a6fd867a0f9cb33ac4cf31c2dda043287abacc8c7669"
+        },
+        {
+          "source": "templates/docs/changes/_template/plan.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/plan.md",
+          "check": "change-templates",
+          "sha256": "593a45b4dddd96233f9f92e0b124b3eb25d7d383661423c892589bb027def92e"
+        },
+        {
+          "source": "templates/docs/changes/_template/verification.md",
+          "mode": "exact",
+          "target": "docs/changes/_template/verification.md",
+          "check": "change-templates",
+          "sha256": "1d4d30373f2c1c8fde13a2b4dcbfd0c8a6c3ef3669337247cb7dfa69813cd739"
+        },
+        {
+          "source": "templates/docs/agents/domain.md",
+          "mode": "seed",
+          "target": "docs/agents/domain.md",
+          "sha256": "bc8031adacbbeb8100b7cf731264d3d50fc701ecd3874a0e10b802327daddd07"
+        },
+        {
+          "source": "templates/docs/agents/issue-tracker.md",
+          "mode": "seed",
+          "target": "docs/agents/issue-tracker.md",
+          "sha256": "e3bee7ec6bfe4b4521879c9b635b5a5267a836a4401158642f63476aca5cc592"
+        },
+        {
+          "source": "templates/docs/agents/triage-labels.md",
+          "mode": "seed",
+          "target": "docs/agents/triage-labels.md",
+          "sha256": "a4aa8c88b644c304cae3658021031f045739593a127a5ccba5d5d3ba77461203"
+        },
+        {
+          "source": "templates/project/ci/ci.yml",
+          "mode": "seed",
+          "target": ".gitea/workflows/ci.yml",
+          "sha256": "a7de33acc9fc75de4cc0b41a68461d422a4edf7e70cbf1d3098d37d408081327"
+        },
+        {
+          "source": "templates/project/ci/merge-preview.sh",
+          "mode": "seed",
+          "target": "scripts/ci/merge-preview.sh",
+          "sha256": "ad86166fd5acedd67fbef71bec11d8309c7a34d51a81e524617089e043361afb"
+        },
+        {
+          "source": "templates/project/ci/registry-preflight.sh",
+          "mode": "seed",
+          "target": "scripts/ci/registry-preflight.sh",
+          "sha256": "635fa0431e2a36e0c5909025954ddb03b81d7676337aa18b28210549d2f17633"
+        },
+        {
+          "source": "templates/project/cursor/aisoft-platform.mdc",
+          "mode": "seed",
+          "target": ".cursor/rules/aisoft-platform.mdc",
+          "sha256": "13eadb1c38263092c9fd36eb5fe91517620c3d9e6f5570923fbc43418fb71f61"
+        },
+        {
+          "source": "skills/skills.manifest",
+          "mode": "skill",
+          "sha256": "19e00378d506b6278f98d933218cc419c9dab116bd2dae7a6c0256458e5cc98e"
+        },
+        {
+          "source": "skills/aisoft-platform/SKILL.md",
+          "mode": "skill",
+          "sha256": "3e3be8515ad2a1082d95a6c81cf5a4938c2ee365fff6b4a7115c8447b19b8aad"
+        },
+        {
+          "source": "skills/aisoft-platform/agents/openai.yaml",
+          "mode": "skill",
+          "sha256": "a0f3bf4b049271ea283c4379babeea262f7dd88e1c4879f7b5161494df87c043"
+        },
+        {
+          "source": "skills/aisoft-platform/references/onboarding-runbook.md",
+          "mode": "skill",
+          "sha256": "e2f091f4268d804ceb87f2a1dfc62386b99ece359b073cad5cef99ca287e7cd5"
+        },
+        {
+          "source": "skills/aisoft-platform/references/private-gitea-access.md",
+          "mode": "skill",
+          "sha256": "3034c60d7bb0b4adddf4a842069ce1ecdf8420dae26fc5129fd4997db7d1de0c"
+        },
+        {
+          "source": "skills/aisoft-platform/references/project-align.md",
+          "mode": "skill",
+          "sha256": "b67e26f25c63bc0884510159588ec4e7d5956631cc2faaf32c3c55e217e3a562"
+        },
+        {
+          "source": "skills/aisoft-platform/references/route-policy.md",
+          "mode": "skill",
+          "sha256": "b382c2acb49cf377ccf91d5e257231f34668af1310a38969d639b872249abea7"
+        },
+        {
+          "source": "skills/issue-session-flow/SKILL.md",
+          "mode": "skill",
+          "sha256": "1f34a739d4e3efbfe0ca40cb0fd4f7374ed14044720d3cdbf13dbe30cece134c"
         },
         {
           "source": "skills/aisoft-matt-workflow/SKILL.md",

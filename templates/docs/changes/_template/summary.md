@@ -12,6 +12,15 @@ required_docs:
   - summary
 documents:
   summary: summary-SHORT-SLUG-YYMMDD.md
+route:
+  process: ROUTE_PROCESS
+  tier: ROUTE_TIER
+  effort: ROUTE_EFFORT
+  skills: ROUTE_SKILLS
+  method: ROUTE_METHOD
+  verify: ROUTE_VERIFY
+  review: ROUTE_REVIEW
+  confirm: 2
 confidence: CONFIDENCE
 override_reason: ''
 depends_on: []
@@ -74,3 +83,7 @@ diff review 与 required CI 复现时，再追加 `verification`（判据见 `03
 这次变更要部署——部署与迁移必然需要它，但不是只有它们需要。`documents`
 把每个角色映射到同目录的 `<role>-<short-slug>-<YYMMDD>.md`；所有角色共用
 2–4 词短 slug。
+`route:` 是路由卡：判级之后查 `aisoft-platform` 技能的 `references/route-policy.md`
+逐格填写（取值闭集与 `process` 和 `effective_complexity` 的对应都以那张表为准），
+同一段写进判级评论并在确认点 1 展示。人覆盖任何一格时把哪一格、为什么写进
+`override_reason`。

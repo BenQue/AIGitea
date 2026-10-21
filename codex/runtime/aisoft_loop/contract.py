@@ -271,6 +271,57 @@ def load_contract(
     )
 
 
+# Front matter fields written as a two-space indented mapping of scalars.
+MAPPING_FIELDS = frozenset({"documents", "route"})
+
+# The route card (ADR 0002 D1). The closed sets are copied from
+# skills/aisoft-platform/references/route-policy.md, the single routing table;
+# test_route_policy.py fails when the two drift apart.
+ROUTE_VALUES = {
+    "process": frozenset({"small-direct", "complex-development", "complex-production", "awaiting-triage"}),
+    "tier": frozenset({"standard", "frontier", "max"}),
+    "effort": frozenset({"medium", "high", "max"}),
+    "method": frozenset({"implement-only", "debug-first", "tdd", "spec-plan", "prototype-first", "none"}),
+    "verify": frozenset({"targeted", "full", "full+verification", "full+reverse-proof", "none"}),
+    "review": frozenset({"human-merge", "cross-provider", "cross-provider+security", "none"}),
+    "confirm": frozenset({"2"}),
+}
+ROUTE_KEYS = frozenset(ROUTE_VALUES) | {"skills"}
+ROUTE_PROCESSES = {
+    "small": frozenset({"small-direct"}),
+    "complex": frozenset({"complex-development", "complex-production"}),
+    "": frozenset({"awaiting-triage"}),
+}
+
+
+def validate_route(front_matter: Mapping[str, object]) -> None:
+    """Check an optional summary route card against the routing table's closed sets."""
+    if "route" not in front_matter:
+        return
+    route = front_matter["route"]
+    if not isinstance(route, dict):
+        raise ContractError("route must be a mapping")
+    if set(route) != ROUTE_KEYS:
+        raise ContractError("route keys must be exactly " + ", ".join(sorted(ROUTE_KEYS)))
+    for name, allowed in ROUTE_VALUES.items():
+        if route[name] not in allowed:
+            raise ContractError(f"route.{name}={route[name]!r} is outside " + ", ".join(sorted(allowed)))
+    skills = [item.strip() for item in str(route["skills"]).split(",")]
+    if not all(re.fullmatch(r"[a-z0-9][a-z0-9-]*", item) for item in skills):
+        raise ContractError("route.skills must be a comma-separated list of skill names")
+    complexity = str(front_matter.get("effective_complexity") or "")
+    # Row R1 of the routing table is checked first: an unclear or low-confidence
+    # classification is awaiting-triage whatever complexity it still carries.
+    if front_matter.get("contract_effect") == "unclear" or front_matter.get("confidence") == "low":
+        complexity = ""
+    expected = ROUTE_PROCESSES.get(complexity, frozenset())
+    if route["process"] not in expected:
+        raise ContractError(
+            f"route.process={route['process']} contradicts the classification"
+            f" (effective_complexity={complexity or 'unresolved'}); expected " + ", ".join(sorted(expected))
+        )
+
+
 def parse_front_matter(text: str) -> dict[str, object]:
     lines = text.splitlines()
     if not lines or lines[0] != "---":
@@ -290,8 +341,8 @@ def parse_front_matter(text: str) -> dict[str, object]:
         if raw_line.startswith("  - "):
             if active is None:
                 raise ContractError(f"list item without field at front matter line {line_number}")
-            if active == "documents":
-                raise ContractError(f"documents must be a mapping at front matter line {line_number}")
+            if active in MAPPING_FIELDS:
+                raise ContractError(f"{active} must be a mapping at front matter line {line_number}")
             if not isinstance(values[active], list):
                 if values[active] != "":
                     raise ContractError(f"invalid list field at front matter line {line_number}")
@@ -301,22 +352,22 @@ def parse_front_matter(text: str) -> dict[str, object]:
             values[active].append(item)
             continue
         if raw_line.startswith("  "):
-            if active != "documents" or ":" not in raw_line[2:]:
+            if active not in MAPPING_FIELDS or ":" not in raw_line[2:]:
                 raise ContractError(f"unsupported front matter syntax at line {line_number}")
             name, raw_value = raw_line[2:].split(":", 1)
             if not re.fullmatch(r"[a-z_]+", name):
-                raise ContractError(f"invalid documents key at line {line_number}")
+                raise ContractError(f"invalid {active} key at line {line_number}")
             if not isinstance(values[active], dict):
                 if values[active] != "":
-                    raise ContractError(f"documents must be a mapping at front matter line {line_number}")
+                    raise ContractError(f"{active} must be a mapping at front matter line {line_number}")
                 values[active] = {}
             mapping = values[active]
             assert isinstance(mapping, dict)
             if name in mapping:
-                raise ContractError(f"duplicate documents key {name}")
+                raise ContractError(f"duplicate {active} key {name}")
             value = raw_value.strip()
             if not value:
-                raise ContractError(f"empty documents value at line {line_number}")
+                raise ContractError(f"empty {active} value at line {line_number}")
             mapping[name] = _safe_scalar(value, line_number)
             continue
         if raw_line[0].isspace() or ":" not in raw_line:
@@ -375,6 +426,7 @@ def _document_context(
             path = directory / documents[role]
             text = _read_document(directory, path, role)
             parse_front_matter(text)
+        validate_route(summary)
     except ContractError as exc:
         raise ContractError(f"change {directory.name}: {exc}") from exc
     return context

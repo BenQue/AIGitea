@@ -481,6 +481,21 @@ PYTHONPATH="$ROOT/codex/runtime" python3 -m unittest \
 [[ -f "$ROOT/skills/aisoft-platform/SKILL.md" ]]
 [[ -f "$ROOT/skills/aisoft-platform/agents/openai.yaml" ]]
 [[ -f "$ROOT/skills/aisoft-platform/references/private-gitea-access.md" ]]
+# The routing table is the single source of the route card (#395, ADR 0002 D1):
+# five rows, the closed value sets, and the skills that send sessions to it.
+# test_route_policy.py checks the cells; this guard keeps the structure in place.
+route_policy="$ROOT/skills/aisoft-platform/references/route-policy.md"
+[[ -f "$route_policy" ]]
+# A pipeline, not [[ ]]: bash 3.2 does not stop on a failed [[ ]] under set -e.
+grep -cE '^\| R[1-5] \|' "$route_policy" | grep -Fxq 5
+grep -Fxq '## 取值闭集' "$route_policy"
+# shellcheck disable=SC2016 # the backticks are literal Markdown, not expansions
+grep -Fxq '| tier | `standard`, `frontier`, `max` |' "$route_policy"
+# shellcheck disable=SC2016
+grep -Fxq '| effort | `medium`, `high`, `max` |' "$route_policy"
+grep -Fq 'references/route-policy.md' "$ROOT/skills/aisoft-platform/SKILL.md"
+grep -Fq 'route-policy.md' "$ROOT/skills/issue-session-flow/SKILL.md"
+grep -Fq '型号按工具映射，合同只写档位' "$ROOT/08-双工具共存与实施.md"
 grep -Fq "private-repository \`404\`" "$ROOT/skills/aisoft-platform/SKILL.md"
 grep -Fq 'never begin with anonymous API access' \
   "$ROOT/skills/gitea-platform-ops/SKILL.md"
