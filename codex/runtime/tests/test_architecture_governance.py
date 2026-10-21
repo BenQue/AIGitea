@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 from aisoft_architecture.jsonio import load_json
@@ -44,16 +45,22 @@ class ArchitectureGovernanceTests(unittest.TestCase):
         self.assertIn("no PM2 daemon remained", notes)
 
     def test_governance_docs_keep_candidate_and_delivery_boundaries(self) -> None:
+        # Pinned by section heading, not body text (R14): rewording a section keeps it green.
         required = {
-            ROOT / "README.md": "Architecture declaration/lock",
-            ROOT / "07-内网与生产平移路线.md": "Architecture catalog 采用门",
-            ROOT / "archive/09-v3平台简化与Loop-Engineering文档改造规划.md": "Architecture catalog 与 Loop 的边界",
-            ROOT / "12-Linux-GitHub-Gitea-双服务器自动部署方案.md": "Architecture lock input",
-            ROOT / "skills/aisoft-platform/references/onboarding-runbook.md": "Architecture declaration onboarding",
+            ROOT / "README.md": "交付形态参考（按项目选用，非部署步骤事实源）",
+            ROOT / "07-内网与生产平移路线.md": "10. Architecture catalog 采用门",
+            ROOT / "archive/09-v3平台简化与Loop-Engineering文档改造规划.md": "15. Architecture catalog 与 Loop 的边界",
+            ROOT / "12-Linux-GitHub-Gitea-双服务器自动部署方案.md": "20.1 Architecture lock input",
+            ROOT / "skills/aisoft-platform/references/onboarding-runbook.md": "9. Architecture declaration onboarding",
         }
-        for path, marker in required.items():
+        for path, heading in required.items():
             with self.subTest(path=path.name):
-                self.assertIn(marker, path.read_text(encoding="utf-8"))
+                headings = {
+                    line.lstrip("#").strip()
+                    for line in path.read_text(encoding="utf-8").splitlines()
+                    if re.match(r"#{1,6} ", line)
+                }
+                self.assertIn(heading, headings)
 
 
 if __name__ == "__main__":
