@@ -128,7 +128,6 @@ class ProjectContract:
     project_id: str
     repository: str
     project_agent: str
-    routine_merge_agent: str | None
     git_remote_name: str
     mac_checkout: str | None
     dependency_read_targets: tuple[str, ...] = ()
@@ -339,8 +338,7 @@ def load_access_contract(
 
     bindings = raw["identity_bindings"]
     _require(isinstance(bindings, dict), "identity_bindings must be an object")
-    _exact_keys(bindings, {"manager_audit", "manager_mutation", "project_agent",
-                           "routine_merge_agent"},
+    _exact_keys(bindings, {"manager_audit", "manager_mutation", "project_agent"},
                 "identity_bindings")
     for key, relative_path in (
         ("manager_audit", "manager/audit.token"),
@@ -365,19 +363,6 @@ def load_access_contract(
         "relative_path_template": "projects/{project_id}/project-agent.token",
         "account_source": "manifest-project-agent",
     }, "project agents must use the fixed protected-file binding")
-    merger_binding = bindings["routine_merge_agent"]
-    _require(isinstance(merger_binding, dict),
-             "routine_merge_agent binding must be an object")
-    _exact_keys(
-        merger_binding,
-        {"credential_kind", "relative_path_template", "account_source"},
-        "routine_merge_agent binding",
-    )
-    _require(merger_binding == {
-        "credential_kind": "protected-file",
-        "relative_path_template": "projects/{project_id}/routine-merge-agent.token",
-        "account_source": "manifest-routine-merge-agent",
-    }, "routine merger must use the fixed per-project protected-file binding")
 
     site = raw["site"]
     _require(isinstance(site, dict), "site must be an object")
@@ -453,8 +438,7 @@ def load_access_contract(
     for index, item in enumerate(projects_raw):
         _require(isinstance(item, dict), f"projects[{index}] must be an object")
         required_project_keys = {
-            "project_id", "repository", "project_agent", "routine_merge_agent",
-            "mac_checkout",
+            "project_id", "repository", "project_agent", "mac_checkout",
         }
         project_keys = set(item)
         _require(
@@ -465,11 +449,6 @@ def load_access_contract(
         project_id = _identifier(item["project_id"], f"projects[{index}].project_id")
         repository = _identifier(item["repository"], f"projects[{index}].repository")
         project_agent = _identifier(item["project_agent"], f"projects[{index}].project_agent")
-        routine_merge_raw = item["routine_merge_agent"]
-        routine_merge_agent = (
-            None if routine_merge_raw is None else
-            _identifier(routine_merge_raw, f"projects[{index}].routine_merge_agent")
-        )
         git_remote_name = _git_remote_name(
             item.get("git_remote_name", "origin"),
             f"projects[{index}].git_remote_name",
@@ -481,16 +460,6 @@ def load_access_contract(
         _require(repository in governance_by_name, f"repository is absent from governance: {repository}")
         _require(project_agent == governance_by_name[repository].project_agent,
                  f"project-agent mismatch for {repository}")
-        _require(
-            routine_merge_agent == governance_by_name[repository].routine_merge_agent,
-            f"routine-merger mismatch for {repository}",
-        )
-        pilot = governance_by_name[repository].routine_live_pilot
-        if pilot is not None:
-            _require(
-                project_id == pilot.project_id,
-                f"routine live pilot project id mismatch for {repository}",
-            )
         mac_checkout = item["mac_checkout"]
         if mac_checkout is not None:
             mac_checkout = _absolute_path(mac_checkout, f"projects[{index}].mac_checkout")
@@ -500,8 +469,7 @@ def load_access_contract(
         _require(len(set(targets)) == len(targets) and project_id not in targets,
                  "dependency_read_targets must be unique external project ids")
         projects.append(ProjectContract(project_id, repository, project_agent,
-                                        routine_merge_agent, git_remote_name,
-                                        mac_checkout, targets))
+                                        git_remote_name, mac_checkout, targets))
 
     _require(all(set(p.dependency_read_targets) <= project_ids for p in projects),
              "dependency_read_targets must name canonical projects")

@@ -106,11 +106,11 @@ cat >"$TMP/bin/gitea" <<'MOCK'
 set -euo pipefail
 printf '%s\n' "$*" >>"$MOCK_ROOT/gitea-argv.log"
 case "$*" in
-  *"admin user delete --username alphaapp-routine-merger"*)
+  *"admin user delete --username alphaapp-agent"*)
     if [[ "${MOCK_COMPENSATION_DELETE_FAIL:-0}" == 1 ]]; then exit 3; fi
     if [[ "${MOCK_COMPENSATION_DELETE_LEAVES_ACCOUNT:-0}" != 1 ]]; then
-      rm -f "$MOCK_ROOT/routine-account-present" \
-        "$MOCK_ROOT/routine-must-change-password-present"
+      rm -f "$MOCK_ROOT/alpha-account-present" \
+        "$MOCK_ROOT/alpha-must-change-password-present"
     fi
     printf 'deleted one user\n'
     ;;
@@ -121,9 +121,9 @@ case "$*" in
     fi
     printf 'deleted one user\n'
     ;;
-  *"admin user create"*"--username alphaapp-routine-merger"*)
-    touch "$MOCK_ROOT/routine-account-present"
-    touch "$MOCK_ROOT/routine-must-change-password-present"
+  *"admin user create"*"--username alphaapp-agent"*)
+    touch "$MOCK_ROOT/alpha-account-present"
+    touch "$MOCK_ROOT/alpha-must-change-password-present"
     printf 'generated password: do-not-log-this-password\n'
     ;;
   *"admin user create"*)
@@ -131,16 +131,16 @@ case "$*" in
     touch "$MOCK_ROOT/must-change-password-present"
     printf 'generated password: do-not-log-this-password\n'
     ;;
-  *"admin user must-change-password --unset alphaapp-routine-merger"*)
-    rm -f "$MOCK_ROOT/routine-must-change-password-present"
+  *"admin user must-change-password --unset alphaapp-agent"*)
+    rm -f "$MOCK_ROOT/alpha-must-change-password-present"
     printf 'updated one user\n'
     ;;
   *"admin user must-change-password --unset betaapp-agent"*)
     rm -f "$MOCK_ROOT/must-change-password-present"
     printf 'updated one user\n'
     ;;
-  *"admin user generate-access-token"*"issue-213-routine-merge-agent"*)
-    printf 'sentinel-routine-token\n'
+  *"admin user generate-access-token --username alphaapp-agent "*)
+    printf 'sentinel-alpha-token\n'
     ;;
   *"admin user generate-access-token"*)
     printf 'sentinel-generated-token\n'
@@ -188,11 +188,11 @@ require_config_header() {
 }
 
 case "$endpoint" in
-  /users/alphaapp-routine-merger)
-    if [[ -f "$MOCK_ROOT/routine-account-present" ]]; then
+  /users/alphaapp-agent)
+    if [[ -f "$MOCK_ROOT/alpha-account-present" ]]; then
       [[ -n "$output" ]]
       identity="${MOCK_ACCOUNT_IDENTITY:-}"
-      [[ -n "$identity" ]] || identity='{"login":"alphaapp-routine-merger","is_admin":false}'
+      [[ -n "$identity" ]] || identity='{"login":"alphaapp-agent","is_admin":false}'
       printf '%s\n' "$identity" >"$output"
       printf 200
     else
@@ -212,22 +212,14 @@ case "$endpoint" in
     ;;
   /user)
     require_config_header
-    if [[ "$auth" == *sentinel-routine-token* ]]; then
-      [[ ! -e "$MOCK_ROOT/routine-must-change-password-present" ]]
-      printf '{"login":"alphaapp-routine-merger","is_admin":false}\n'
+    if [[ "$auth" == *sentinel-alpha-token* ]]; then
+      [[ ! -e "$MOCK_ROOT/alpha-must-change-password-present" ]]
+      printf '{"login":"alphaapp-agent","is_admin":false}\n'
     else
       [[ "$auth" == *sentinel-generated-token* ]]
       [[ ! -e "$MOCK_ROOT/must-change-password-present" ]]
       printf '{"login":"betaapp-agent","is_admin":false}\n'
     fi
-    ;;
-  /notifications)
-    require_config_header
-    [[ "$auth" == *sentinel-routine-token* ]]
-    [[ -n "$output" ]]
-    printf '{"message":"token does not have required scope, token scope=%s"}\n' \
-      "${MOCK_ROUTINE_SCOPE:?routine scope mock must be set by the caller}" >"$output"
-    printf 403
     ;;
   *)
     printf 'MOCK_CURL_UNEXPECTED_URL: %s\n' "$url" >&2
@@ -238,25 +230,8 @@ MOCK
 
 chmod +x "$TMP/bin/sudo" "$TMP/bin/gitea" "$TMP/bin/curl"
 
-cat >"$TMP/bin/git" <<'MOCK'
-#!/usr/bin/env bash
-set -euo pipefail
-case "$*" in
-  *"merge-base --is-ancestor"*) exit 0 ;;
-  *"show "*) cat "$MOCK_GOVERNANCE_MANIFEST" ;;
-  *) exec /usr/bin/git "$@" ;;
-esac
-MOCK
-chmod +x "$TMP/bin/git"
 export MOCK_ROOT="$TMP"
 export MOCK_GITEA_CONFIG="$TMP/protected-config/gitea.ini"
-export MOCK_GOVERNANCE_MANIFEST="$ROOT/codex/tests/fixtures/manifests/gitea-governance.json"
-# The routine PAT mock stands for a token Gitea actually issued, so it has to
-# follow the manifest rather than a hand-written string: a scope set that
-# cannot pass the broker identity gate must go red here too (#313).
-MANIFEST_ROUTINE_SCOPES="$(jq -r '.routine_merge_agent_policy.token_scopes | join(",")' \
-  "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json")"
-export MOCK_ROUTINE_SCOPE="$MANIFEST_ROUTINE_SCOPES"
 export PATH="$TMP/bin:$PATH"
 export AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-35
 export AISOFT_CREDENTIAL_ROOT="$TMP/credentials"
@@ -379,51 +354,44 @@ if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
 fi
 grep -Fq 'not declared' "$TMP/negative.err"
 
-export AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-213
-routine_output="$TMP/credentials/projects/alphaapp/routine-merge-agent.token"
-routine_result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+# A second declared project agent carries the account, compensation, identity
+# gate and ownership-marker matrices, so they run against a fresh identity.
+alpha_output="$TMP/credentials/alphaapp-agent-project-agent.token"
+alpha_result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
-  --access-manifest "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
-  --project-id alphaapp \
-  --username alphaapp-routine-merger \
-  --token-kind routine-merge-agent \
-  --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-  --platform-root "$ROOT" \
-  --credential-output "$routine_output")"
-[[ "$(jq -r '.result' <<<"$routine_result")" == created ]]
-[[ "$(jq -r '.approval_issue' <<<"$routine_result")" == 213 ]]
-[[ "$(jq -r '.observed_scopes' <<<"$routine_result")" == "$MANIFEST_ROUTINE_SCOPES" ]]
-[[ "$(jq -r '.account_mutation_count' <<<"$routine_result")" == 1 ]]
-[[ "$(jq -r '.pat_mutation_count' <<<"$routine_result")" == 1 ]]
-[[ "$(cat "$routine_output")" == sentinel-routine-token ]]
-[[ "$(stat -c '%a' "$routine_output" 2>/dev/null || stat -f '%Lp' "$routine_output")" == 600 ]]
-[[ -f "$TMP/credentials/projects/alphaapp/alphaapp-routine-merger.account-created-by-issue-213" ]]
-[[ -f "$routine_output-created-by-issue-213" ]]
-grep -Fq 'issue-213-routine-merge-agent' "$TMP/gitea-argv.log"
+  --username alphaapp-agent \
+  --token-kind project-agent \
+  --credential-output "$alpha_output")"
+[[ "$(jq -r '.result' <<<"$alpha_result")" == created ]]
+[[ "$(jq -r '.approval_issue' <<<"$alpha_result")" == 35 ]]
+[[ "$(jq -r '.account_mutation_count' <<<"$alpha_result")" == 1 ]]
+[[ "$(jq -r '.pat_mutation_count' <<<"$alpha_result")" == 1 ]]
+[[ "$(cat "$alpha_output")" == sentinel-alpha-token ]]
+[[ "$(stat -c '%a' "$alpha_output" 2>/dev/null || stat -f '%Lp' "$alpha_output")" == 600 ]]
+[[ -f "$TMP/credentials/alphaapp-agent.account-created-by-issue-35" ]]
+[[ -f "$alpha_output-created-by-issue-35" ]]
+grep -Fq 'generate-access-token --username alphaapp-agent --token-name issue-35-project-agent' \
+  "$TMP/gitea-argv.log"
 
-routine_result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+alpha_result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
-  --access-manifest "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
-  --project-id alphaapp \
-  --username alphaapp-routine-merger \
-  --token-kind routine-merge-agent \
-  --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-  --platform-root "$ROOT" \
-  --credential-output "$routine_output")"
-[[ "$(jq -r '.result' <<<"$routine_result")" == no-op ]]
-[[ "$(jq -r '.account_mutation_count' <<<"$routine_result")" == 0 ]]
-[[ "$(jq -r '.pat_mutation_count' <<<"$routine_result")" == 0 ]]
-[[ "$(grep -c 'issue-213-routine-merge-agent' "$TMP/gitea-argv.log")" == 1 ]]
+  --username alphaapp-agent \
+  --token-kind project-agent \
+  --credential-output "$alpha_output")"
+[[ "$(jq -r '.result' <<<"$alpha_result")" == no-op ]]
+[[ "$(jq -r '.account_mutation_count' <<<"$alpha_result")" == 0 ]]
+[[ "$(jq -r '.pat_mutation_count' <<<"$alpha_result")" == 0 ]]
+[[ "$(grep -c 'generate-access-token --username alphaapp-agent ' "$TMP/gitea-argv.log")" == 1 ]]
 
-routine_account_marker="$TMP/credentials/projects/alphaapp/alphaapp-routine-merger.account-created-by-issue-213"
-routine_token_marker="$routine_output-created-by-issue-213"
-routine_policy_marker="$TMP/credentials/projects/alphaapp/alphaapp-routine-merger.must-change-password-unset-by-issue-213"
+alpha_account_marker="$TMP/credentials/alphaapp-agent.account-created-by-issue-35"
+alpha_token_marker="$alpha_output-created-by-issue-35"
+alpha_policy_marker="$TMP/credentials/alphaapp-agent.must-change-password-unset-by-issue-35"
 
-managed_routine_state() {
+managed_alpha_state() {
   local managed_path
   for managed_path in \
-    "$routine_output" "$routine_token_marker" \
-    "$routine_account_marker" "$routine_policy_marker"; do
+    "$alpha_output" "$alpha_token_marker" \
+    "$alpha_account_marker" "$alpha_policy_marker"; do
     printf '%s %s ' "$managed_path" \
       "$(stat -c '%a' "$managed_path" 2>/dev/null || stat -f '%Lp' "$managed_path")"
     shasum -a 256 "$managed_path"
@@ -436,9 +404,8 @@ gitea_command_count() {
 }
 
 new_account_root="$TMP/new-account-credentials"
-mkdir -p "$new_account_root/projects/alphaapp"
-chmod 700 "$new_account_root" "$new_account_root/projects" \
-  "$new_account_root/projects/alphaapp"
+mkdir -p "$new_account_root"
+chmod 700 "$new_account_root"
 
 new_account_tree_state() {
   local path
@@ -456,8 +423,8 @@ assert_new_account_identity_compensated() {
   local create_before
   local delete_before
   local pat_before
-  rm -f "$TMP/routine-account-present" \
-    "$TMP/routine-must-change-password-present"
+  rm -f "$TMP/alpha-account-present" \
+    "$TMP/alpha-must-change-password-present"
   state_before="$(new_account_tree_state)"
   create_before="$(gitea_command_count 'admin user create')"
   delete_before="$(gitea_command_count 'admin user delete')"
@@ -466,13 +433,9 @@ assert_new_account_identity_compensated() {
      AISOFT_CREDENTIAL_ROOT="$new_account_root" \
      bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
       --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
-      --access-manifest "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
-      --project-id alphaapp \
-      --username alphaapp-routine-merger \
-      --token-kind routine-merge-agent \
-      --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-      --platform-root "$ROOT" \
-      --credential-output "$new_account_root/projects/alphaapp/routine-merge-agent.token" \
+      --username alphaapp-agent \
+      --token-kind project-agent \
+      --credential-output "$new_account_root/alphaapp-agent-project-agent.token" \
       >"$TMP/new-account-$variant.out" \
       2>"$TMP/new-account-$variant.err"; then
     printf 'unsafe newly created identity unexpectedly succeeded: %s\n' \
@@ -485,19 +448,19 @@ assert_new_account_identity_compensated() {
   [[ "$(gitea_command_count 'admin user delete')" == "$((delete_before + 1))" ]]
   [[ "$(gitea_command_count 'generate-access-token')" == "$pat_before" ]]
   [[ "$(new_account_tree_state)" == "$state_before" ]]
-  [[ ! -e "$TMP/routine-account-present" ]]
+  [[ ! -e "$TMP/alpha-account-present" ]]
 }
 
 assert_new_account_identity_compensated missing \
-  '{"login":"alphaapp-routine-merger"}'
+  '{"login":"alphaapp-agent"}'
 assert_new_account_identity_compensated string-false \
-  '{"login":"alphaapp-routine-merger","is_admin":"false"}'
+  '{"login":"alphaapp-agent","is_admin":"false"}'
 assert_new_account_identity_compensated number \
-  '{"login":"alphaapp-routine-merger","is_admin":0}'
+  '{"login":"alphaapp-agent","is_admin":0}'
 assert_new_account_identity_compensated list \
-  '{"login":"alphaapp-routine-merger","is_admin":[]}'
+  '{"login":"alphaapp-agent","is_admin":[]}'
 assert_new_account_identity_compensated site-admin \
-  '{"login":"alphaapp-routine-merger","is_admin":true}'
+  '{"login":"alphaapp-agent","is_admin":true}'
 assert_new_account_identity_compensated wrong-login \
   '{"login":"admin","is_admin":false}'
 assert_new_account_identity_compensated root-list '[]'
@@ -509,23 +472,19 @@ assert_compensation_failure_blocks() {
   local create_before
   local delete_before
   local pat_before
-  rm -f "$TMP/routine-account-present" \
-    "$TMP/routine-must-change-password-present"
+  rm -f "$TMP/alpha-account-present" \
+    "$TMP/alpha-must-change-password-present"
   state_before="$(new_account_tree_state)"
   create_before="$(gitea_command_count 'admin user create')"
   delete_before="$(gitea_command_count 'admin user delete')"
   pat_before="$(gitea_command_count 'generate-access-token')"
-  if env MOCK_ACCOUNT_IDENTITY='{"login":"alphaapp-routine-merger","is_admin":true}' \
+  if env MOCK_ACCOUNT_IDENTITY='{"login":"alphaapp-agent","is_admin":true}' \
      "$failure_variable=1" AISOFT_CREDENTIAL_ROOT="$new_account_root" \
      bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
       --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
-      --access-manifest "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
-      --project-id alphaapp \
-      --username alphaapp-routine-merger \
-      --token-kind routine-merge-agent \
-      --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-      --platform-root "$ROOT" \
-      --credential-output "$new_account_root/projects/alphaapp/routine-merge-agent.token" \
+      --username alphaapp-agent \
+      --token-kind project-agent \
+      --credential-output "$new_account_root/alphaapp-agent-project-agent.token" \
       >"$TMP/new-account-$variant.out" \
       2>"$TMP/new-account-$variant.err"; then
     printf 'failed account compensation unexpectedly succeeded: %s\n' \
@@ -537,25 +496,24 @@ assert_compensation_failure_blocks() {
   [[ "$(gitea_command_count 'admin user delete')" == "$((delete_before + 1))" ]]
   [[ "$(gitea_command_count 'generate-access-token')" == "$pat_before" ]]
   [[ "$(new_account_tree_state)" == "$state_before" ]]
-  [[ -e "$TMP/routine-account-present" ]]
+  [[ -e "$TMP/alpha-account-present" ]]
 }
 
 assert_compensation_failure_blocks delete-failed \
   MOCK_COMPENSATION_DELETE_FAIL
-rm -f "$TMP/routine-account-present" "$TMP/routine-must-change-password-present"
+rm -f "$TMP/alpha-account-present" "$TMP/alpha-must-change-password-present"
 assert_compensation_failure_blocks confirm-not-404 \
   MOCK_COMPENSATION_DELETE_LEAVES_ACCOUNT
-rm -f "$TMP/routine-account-present" "$TMP/routine-must-change-password-present"
+rm -f "$TMP/alpha-account-present" "$TMP/alpha-must-change-password-present"
 
 # Restore the existing-account fixture for the zero-mutation identity matrix.
-touch "$TMP/routine-account-present"
+touch "$TMP/alpha-account-present"
 
 identity_gate_root="$TMP/identity-gate-credentials"
-mkdir -p "$identity_gate_root/projects/alphaapp"
-chmod 700 "$identity_gate_root" "$identity_gate_root/projects" \
-  "$identity_gate_root/projects/alphaapp"
-identity_gate_marker="$identity_gate_root/projects/alphaapp/alphaapp-routine-merger.account-created-by-issue-213"
-printf 'issue=213\nusername=alphaapp-routine-merger\n' >"$identity_gate_marker"
+mkdir -p "$identity_gate_root"
+chmod 700 "$identity_gate_root"
+identity_gate_marker="$identity_gate_root/alphaapp-agent.account-created-by-issue-35"
+printf 'issue=35\nusername=alphaapp-agent\n' >"$identity_gate_marker"
 chmod 600 "$identity_gate_marker"
 
 identity_gate_state() {
@@ -580,13 +538,9 @@ assert_identity_gate_rejected() {
      AISOFT_CREDENTIAL_ROOT="$identity_gate_root" \
      bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
       --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
-      --access-manifest "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
-      --project-id alphaapp \
-      --username alphaapp-routine-merger \
-      --token-kind routine-merge-agent \
-      --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-      --platform-root "$ROOT" \
-      --credential-output "$identity_gate_root/projects/alphaapp/routine-merge-agent.token" \
+      --username alphaapp-agent \
+      --token-kind project-agent \
+      --credential-output "$identity_gate_root/alphaapp-agent-project-agent.token" \
       >"$TMP/identity-gate-$variant.out" \
       2>"$TMP/identity-gate-$variant.err"; then
     printf 'unsafe account identity unexpectedly generated a PAT: %s\n' \
@@ -601,15 +555,15 @@ assert_identity_gate_rejected() {
 }
 
 assert_identity_gate_rejected missing \
-  '{"login":"alphaapp-routine-merger"}'
+  '{"login":"alphaapp-agent"}'
 assert_identity_gate_rejected string-false \
-  '{"login":"alphaapp-routine-merger","is_admin":"false"}'
+  '{"login":"alphaapp-agent","is_admin":"false"}'
 assert_identity_gate_rejected number \
-  '{"login":"alphaapp-routine-merger","is_admin":0}'
+  '{"login":"alphaapp-agent","is_admin":0}'
 assert_identity_gate_rejected list \
-  '{"login":"alphaapp-routine-merger","is_admin":[]}'
+  '{"login":"alphaapp-agent","is_admin":[]}'
 assert_identity_gate_rejected site-admin \
-  '{"login":"alphaapp-routine-merger","is_admin":true}'
+  '{"login":"alphaapp-agent","is_admin":true}'
 assert_identity_gate_rejected wrong-login \
   '{"login":"admin","is_admin":false}'
 assert_identity_gate_rejected root-list '[]'
@@ -618,95 +572,54 @@ assert_corrupt_account_marker_rejected() {
   local variant="$1"
   local state_before
   local gitea_before
-  state_before="$(managed_routine_state)"
+  state_before="$(managed_alpha_state)"
   gitea_before="$(line_count "$TMP/gitea-argv.log")"
   if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
     --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
-    --access-manifest "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
-    --project-id alphaapp \
-    --username alphaapp-routine-merger \
-    --token-kind routine-merge-agent \
-    --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-    --platform-root "$ROOT" \
-    --credential-output "$routine_output" \
-    >"$TMP/routine-account-marker-$variant.out" \
-    2>"$TMP/routine-account-marker-$variant.err"; then
-    printf 'corrupt routine account marker unexpectedly succeeded: %s\n' "$variant" >&2
+    --username alphaapp-agent \
+    --token-kind project-agent \
+    --credential-output "$alpha_output" \
+    >"$TMP/alpha-account-marker-$variant.out" \
+    2>"$TMP/alpha-account-marker-$variant.err"; then
+    printf 'corrupt account marker unexpectedly succeeded: %s\n' "$variant" >&2
     exit 1
   fi
   grep -Fq 'account ownership marker content mismatch' \
-    "$TMP/routine-account-marker-$variant.err"
+    "$TMP/alpha-account-marker-$variant.err"
   [[ "$(line_count "$TMP/gitea-argv.log")" == "$gitea_before" ]]
-  [[ "$(managed_routine_state)" == "$state_before" ]]
+  [[ "$(managed_alpha_state)" == "$state_before" ]]
 }
 
-printf 'issue=213\nusername=alphaapp-routine-merger\n\n' >"$routine_account_marker"
+printf 'issue=35\nusername=alphaapp-agent\n\n' >"$alpha_account_marker"
 assert_corrupt_account_marker_rejected extra-newline
-printf 'issue=213\nusername=alphaapp-routine-merger\n' >"$routine_account_marker"
-printf '\0' >>"$routine_account_marker"
+printf 'issue=35\nusername=alphaapp-agent\n' >"$alpha_account_marker"
+printf '\0' >>"$alpha_account_marker"
 assert_corrupt_account_marker_rejected nul-suffix
-printf 'prefix\nissue=213\nusername=alphaapp-routine-merger\n' >"$routine_account_marker"
+printf 'prefix\nissue=35\nusername=alphaapp-agent\n' >"$alpha_account_marker"
 assert_corrupt_account_marker_rejected prefix
-printf 'issue=213\nusername=alphaapp-routine-merger\nsuffix\n' >"$routine_account_marker"
+printf 'issue=35\nusername=alphaapp-agent\nsuffix\n' >"$alpha_account_marker"
 assert_corrupt_account_marker_rejected suffix
-printf 'issue=213\nusername=alphaapp-routine-merger\n' >"$routine_account_marker"
+printf 'issue=35\nusername=alphaapp-agent\n' >"$alpha_account_marker"
 
-chmod 644 "$routine_token_marker"
+chmod 644 "$alpha_token_marker"
 gitea_count_before="$(line_count "$TMP/gitea-argv.log")"
 if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
-  --access-manifest "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
-  --project-id alphaapp \
-  --username alphaapp-routine-merger \
-  --token-kind routine-merge-agent \
-  --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-  --platform-root "$ROOT" \
-  --credential-output "$routine_output" \
-  >"$TMP/routine-token-marker-negative.out" 2>"$TMP/routine-token-marker-negative.err"; then
-  printf '%s\n' 'unsafe routine token ownership marker mode unexpectedly succeeded' >&2
+  --username alphaapp-agent \
+  --token-kind project-agent \
+  --credential-output "$alpha_output" \
+  >"$TMP/alpha-token-marker-negative.out" 2>"$TMP/alpha-token-marker-negative.err"; then
+  printf '%s\n' 'unsafe token ownership marker mode unexpectedly succeeded' >&2
   exit 1
 fi
-grep -Fq 'token ownership marker mode must be 400 or 600' "$TMP/routine-token-marker-negative.err"
+grep -Fq 'token ownership marker mode must be 400 or 600' "$TMP/alpha-token-marker-negative.err"
 [[ "$(line_count "$TMP/gitea-argv.log")" == "$gitea_count_before" ]]
-chmod 600 "$routine_token_marker"
+chmod 600 "$alpha_token_marker"
 
-export MOCK_ROUTINE_SCOPE=read:repository
-if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
-  --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
-  --access-manifest "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
-  --project-id alphaapp \
-  --username alphaapp-routine-merger \
-  --token-kind routine-merge-agent \
-  --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-  --platform-root "$ROOT" \
-  --credential-output "$routine_output" \
-  >"$TMP/routine-scope-negative.out" 2>"$TMP/routine-scope-negative.err"; then
-  printf '%s\n' 'unsafe routine scope unexpectedly succeeded' >&2
-  exit 1
-fi
-grep -Fq 'routine PAT scope must equal the manifest set including read:user' \
-  "$TMP/routine-scope-negative.err"
-export MOCK_ROUTINE_SCOPE="$MANIFEST_ROUTINE_SCOPES"
-
-if bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
-  --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
-  --access-manifest "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
-  --project-id betaapp \
-  --username alphaapp-routine-merger \
-  --token-kind routine-merge-agent \
-  --merged-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-  --platform-root "$ROOT" \
-  --credential-output "$TMP/credentials/projects/betaapp/routine-merge-agent.token" \
-  >"$TMP/routine-binding-negative.out" 2>"$TMP/routine-binding-negative.err"; then
-  printf '%s\n' 'cross-project routine merger binding unexpectedly succeeded' >&2
-  exit 1
-fi
-grep -Fq 'identity does not match project binding' "$TMP/routine-binding-negative.err"
-
-if grep -Fq sentinel-routine-token "$TMP/gitea-argv.log" ||
-   grep -Fq sentinel-routine-token "$TMP/curl-argv.log" ||
-   grep -Fq sentinel-routine-token <<<"$routine_result"; then
-  printf '%s\n' 'routine merger secret leaked through argv or stdout' >&2
+if grep -Fq sentinel-alpha-token "$TMP/gitea-argv.log" ||
+   grep -Fq sentinel-alpha-token "$TMP/curl-argv.log" ||
+   grep -Fq sentinel-alpha-token <<<"$alpha_result"; then
+  printf '%s\n' 'project agent secret leaked through argv or stdout' >&2
   exit 1
 fi
 

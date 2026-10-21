@@ -36,9 +36,7 @@ jq -e '
   .identity_bindings.manager_mutation.credential_kind == "protected-file" and
   .identity_bindings.project_agent.account_source == "manifest-project-agent" and
   .identity_bindings.project_agent.credential_kind == "protected-file" and
-  .identity_bindings.routine_merge_agent.account_source == "manifest-routine-merge-agent" and
-  .identity_bindings.routine_merge_agent.relative_path_template ==
-    "projects/{project_id}/routine-merge-agent.token" and
+  ((.identity_bindings | keys) == ["manager_audit","manager_mutation","project_agent"]) and
   .mac_host.credential_directory_mode == "700" and
   .mac_host.credential_file_mode == "600" and
   ((.site | keys) == ["credential_root_mac","credential_root_vm","gitea_url","npm_registry",
@@ -101,7 +99,7 @@ jq -e '
   (.mac_host | has("vm_profile_tool") | not) and
   ([.projects[] | select(.project_id == "deltadb")]
     == [{"project_id":"deltadb","repository":"DeltaDB","project_agent":"deltadb-agent",
-         "routine_merge_agent":null,"mac_checkout":"/Users/benque/Projects/DeltaDB"}])
+         "mac_checkout":"/Users/benque/Projects/DeltaDB"}])
 ' "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" >/dev/null
 
 if rg -ni 'keychain|/usr/bin/security|find-generic-password|dump-keychain|security -A' \

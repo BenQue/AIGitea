@@ -28,11 +28,6 @@
       "credential_kind": "protected-file",
       "relative_path_template": "projects/{project_id}/project-agent.token",
       "account_source": "manifest-project-agent"
-    },
-    "routine_merge_agent": {
-      "credential_kind": "protected-file",
-      "relative_path_template": "projects/{project_id}/routine-merge-agent.token",
-      "account_source": "manifest-routine-merge-agent"
     }
   },
   "mac_host": {
@@ -321,35 +316,30 @@
       "project_id": "aisoft-platform",
       "repository": "aisoft-platform",
       "project_agent": "aisoft-platform-agent",
-      "routine_merge_agent": null,
       "mac_checkout": "/Users/benque/MyDocs/AISoftPlatform"
     },
     {
       "project_id": "deltadb",
       "repository": "DeltaDB",
       "project_agent": "deltadb-agent",
-      "routine_merge_agent": null,
       "mac_checkout": "/Users/benque/Projects/DeltaDB"
     },
     {
       "project_id": "betaapp",
       "repository": "BetaApp",
       "project_agent": "betaapp-agent",
-      "routine_merge_agent": "betaapp-routine-merger",
       "mac_checkout": "/Users/benque/Projects/BetaApp"
     },
     {
       "project_id": "myapp",
       "repository": "myapp",
       "project_agent": "myapp-agent",
-      "routine_merge_agent": null,
       "mac_checkout": null
     },
     {
       "project_id": "alphaapp",
       "repository": "AlphaApp",
       "project_agent": "alphaapp-agent",
-      "routine_merge_agent": "alphaapp-routine-merger",
       "git_remote_name": "gitea",
       "mac_checkout": "/Users/benque/Projects/AlphaApp"
     },
@@ -357,7 +347,6 @@
       "project_id": "gamma-board",
       "repository": "GammaBoard",
       "project_agent": "gamma-board-agent",
-      "routine_merge_agent": null,
       "git_remote_name": "gitea",
       "mac_checkout": "/Users/benque/Projects/GammaBoard",
       "dependency_read_targets": [
@@ -368,7 +357,6 @@
       "project_id": "smoke-test",
       "repository": "smoke-test",
       "project_agent": "smoke-test-agent",
-      "routine_merge_agent": null,
       "mac_checkout": null
     }
   ],

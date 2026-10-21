@@ -14,11 +14,10 @@ from unittest.mock import patch
 
 from aisoft_gitea_governance.client import ApiError
 from aisoft_gitea_governance.cli import (
-    _check, _parser, _read_token, _require_pilot_live_authorization,
-    _verify_merged_contract, main as governance_cli_main,
+    _check, _parser, _read_token, _verify_merged_contract,
 )
 from aisoft_gitea_governance.contract import (
-    ContractError, load_contract, repository_declarations_sha256,
+    ContractError, load_contract,
 )
 from aisoft_gitea_governance.reconcile import (
     apply_repository,
@@ -40,10 +39,6 @@ def raw_repository(raw: dict[str, Any]) -> dict[str, Any]:
     return next(
         item for item in raw["repositories"] if item["name"] == "AlphaApp"
     )
-
-
-def raw_pilot(raw: dict[str, Any]) -> dict[str, Any]:
-    return raw_repository(raw)["routine_live_pilot"]
 
 
 def extended_permission(identity: str, permission: str) -> dict[str, Any]:
@@ -100,11 +95,6 @@ class FakeClient:
                 "login": repository.project_agent,
                 "is_admin": False,
             }
-            if repository.routine_merge_agent is not None:
-                self.users[repository.routine_merge_agent] = {
-                    "login": repository.routine_merge_agent,
-                    "is_admin": False,
-                }
             self.repos[full_name] = {
                 "full_name": full_name,
                 "private": repository.private,
@@ -218,9 +208,6 @@ class ContractTests(unittest.TestCase):
         self.assertTrue(repository.private)
         self.assertEqual(repository.classification, "internal-application")
         self.assertEqual(repository.project_agent, "deltadb-agent")
-        self.assertFalse(repository.routine_auto_merge_enabled)
-        self.assertIsNone(repository.routine_merge_agent)
-        self.assertIsNone(repository.routine_live_pilot)
         self.assertEqual(repository.status_check_contexts,
                          ("CI / test (pull_request)",))
         self.assertEqual(repository.required_approvals, 0)
@@ -228,169 +215,12 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(repository.deployment_lifecycle,
                          "application-deploy-selective")
         self.assertTrue(repository.vendors_change_templates)
-        self.assertEqual(repository.merge_allowlist, ())
         self.assertEqual(self.contract.raw["repository_policy"]
                          ["merge_allowlist_usernames"], ["admin"])
 
-    def test_alphaapp_is_the_only_pilot_and_other_repositories_match_pinned_bytes(self):
-        raw = self.contract.raw
-        enabled = [
-            item["name"] for item in raw["repositories"]
-            if item["routine_auto_merge_enabled"]
-        ]
-        self.assertEqual(enabled, ["AlphaApp"])
-        repository = self.contract.repository("AlphaApp")
-        pilot = repository.routine_live_pilot
-        self.assertIsNotNone(pilot)
-        assert pilot is not None
-        self.assertEqual(pilot.project_id, "alphaapp")
-        self.assertEqual(pilot.rollout_issue, 213)
-        self.assertEqual(pilot.routine_source_issue, 208)
-        self.assertEqual(pilot.governance_baseline_issue, 35)
-        self.assertEqual(pilot.canary_issue, 74)
-        self.assertEqual(pilot.required_contexts, (
-            "CI / verify (pull_request)",
-            "CI / mobile-verify (pull_request)",
-        ))
-        self.assertEqual(pilot.required_contexts, repository.status_check_contexts)
-        non_target_bytes = json.dumps(
-            [item for item in raw["repositories"] if item["name"] != "AlphaApp"],
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        ).encode("utf-8")
-        self.assertEqual(
-            hashlib.sha256(non_target_bytes).hexdigest(),
-            pilot.non_target_repositories_sha256,
-        )
-
-    def test_pilot_accepts_more_than_one_context_and_pins_every_one(self):
-        # #312: the pilot used to cap status_check_contexts at exactly one, so
-        # adding AlphaApp's second required context made the whole governance
-        # contract unloadable -- which fails every broker call for every
-        # project, not just the one whose protection moved.
-        contexts = [
-            "CI / verify (pull_request)",
-            "CI / mobile-verify (pull_request)",
-            "CI / third (pull_request)",
-        ]
-
-        def add_a_third_context(raw: dict[str, Any]) -> None:
-            raw_repository(raw)["status_check_contexts"] = list(contexts)
-            raw_pilot(raw)["required_contexts"] = list(contexts)
-
-        path = self._write_mutation(add_a_third_context)
-        pilot = load_contract(path).repository("AlphaApp").routine_live_pilot
-        assert pilot is not None
-        self.assertEqual(pilot.required_contexts, tuple(contexts))
-
-    def test_pilot_rejects_contexts_that_disagree_with_the_repository(self):
-        mutations = {
-            "pilot drops one": lambda raw: raw_pilot(raw).update({
-                "required_contexts": ["CI / verify (pull_request)"],
-            }),
-            "repository drops one": lambda raw: raw_repository(raw).update({
-                "status_check_contexts": ["CI / verify (pull_request)"],
-            }),
-            "different order": lambda raw: raw_pilot(raw).update({
-                "required_contexts": [
-                    "CI / mobile-verify (pull_request)",
-                    "CI / verify (pull_request)",
-                ],
-            }),
-            "extra context": lambda raw: raw_pilot(raw)["required_contexts"].append(
-                "CI / attacker (pull_request)"
-            ),
-            "empty list": lambda raw: raw_pilot(raw).update({"required_contexts": []}),
-            "not a list": lambda raw: raw_pilot(raw).update({
-                "required_contexts": "CI / verify (pull_request)",
-            }),
-            "empty string": lambda raw: raw_pilot(raw).update({
-                "required_contexts": ["CI / verify (pull_request)", ""],
-            }),
-            "legacy singular key": lambda raw: raw_pilot(raw).update({
-                "required_context": raw_pilot(raw).pop("required_contexts")[0],
-            }),
-        }
-        for label, mutate in mutations.items():
-            with self.subTest(label=label):
-                path = self._write_mutation(mutate)
-                with self.assertRaises(ContractError):
-                    load_contract(path)
-
-    def test_well_formed_but_wrong_non_target_digest_is_rejected(self):
-        path = self._write_mutation(
-            lambda raw: next(
-                item for item in raw["repositories"] if item["name"] == "AlphaApp"
-            )["routine_live_pilot"].update({
-                "non_target_repositories_sha256": "0" * 64,
-            })
-        )
-        with self.assertRaisesRegex(ContractError, "non-target repository"):
-            load_contract(path)
-
-    def test_pilot_values_are_manifest_data_checked_only_for_consistency(self):
-        # #373 (ADR 0001 D3): which repository is the pilot and which Issues and
-        # SHAs it binds live in the manifest; the code only checks consistency.
-        path = self._write_mutation(
-            lambda raw: raw_pilot(raw).update({"canary_issue": 75})
-        )
-        pilot = load_contract(path).repository("AlphaApp").routine_live_pilot
-        assert pilot is not None
-        self.assertEqual(pilot.canary_issue, 75)
-
-        def drop_pilot(raw: dict[str, Any]) -> None:
-            del raw_repository(raw)["routine_live_pilot"]
-
-        contract = load_contract(self._write_mutation(drop_pilot))
-        self.assertTrue(all(
-            repository.routine_live_pilot is None
-            for repository in contract.repositories
-        ))
-
-    def test_pilot_seal_follows_the_pilot_repository(self):
-        # #373: the non-target digest excludes whichever repository declares
-        # the pilot, not a fixed name. Moving the pilot with the old digest is
-        # rejected; recomputing it for the new pilot repository is accepted.
-        def move_pilot(recompute: bool):
-            def mutate(raw: dict[str, Any]) -> None:
-                source = raw_repository(raw)
-                other = next(
-                    item for item in raw["repositories"] if item["name"] == "BetaApp"
-                )
-                pilot = source.pop("routine_live_pilot")
-                pilot["required_contexts"] = list(other["status_check_contexts"]) or [
-                    "CI / verify (pull_request)"
-                ]
-                other["status_check_contexts"] = list(pilot["required_contexts"])
-                other["routine_live_pilot"] = pilot
-                if recompute:
-                    pilot["non_target_repositories_sha256"] = (
-                        repository_declarations_sha256(
-                            raw["repositories"], exclude_name="BetaApp"
-                        )
-                    )
-            return mutate
-
-        with self.assertRaisesRegex(ContractError, "non-target repository"):
-            load_contract(self._write_mutation(move_pilot(recompute=False)))
-        contract = load_contract(self._write_mutation(move_pilot(recompute=True)))
-        self.assertIsNotNone(contract.repository("BetaApp").routine_live_pilot)
-        self.assertIsNone(contract.repository("AlphaApp").routine_live_pilot)
-
-    def test_second_routine_live_pilot_is_rejected(self):
-        def copy_pilot(raw: dict[str, Any]) -> None:
-            other = next(
-                item for item in raw["repositories"] if item["name"] == "BetaApp"
-            )
-            other["routine_live_pilot"] = dict(raw_pilot(raw))
-            other["status_check_contexts"] = list(raw_pilot(raw)["required_contexts"])
-
-        path = self._write_mutation(copy_pilot)
-        with self.assertRaisesRegex(ContractError, "at most one routine live pilot"):
-            load_contract(path)
-
-    def test_pilot_provenance_requires_issue_213_and_both_ancestor_gates(self):
+    def test_verify_merged_requires_issue_35_for_every_repository(self):
+        # #397: the routine live pilot and its per-repository rollout Issue are
+        # gone, so every repository uses the one approved governance Issue.
         calls = []
 
         def git_output(root, *arguments):
@@ -401,85 +231,47 @@ class ContractTests(unittest.TestCase):
 
         with patch("aisoft_gitea_governance.cli._git_output", side_effect=git_output):
             value = _verify_merged_contract(
-                self.contract, 213, "c" * 40, str(ROOT), "AlphaApp"
+                self.contract, 35, "c" * 40, str(ROOT), "AlphaApp"
             )
-        self.assertEqual(value, "c" * 40)
-        self.assertIn((
-            "merge-base", "--is-ancestor",
-            "69251fd4d07665385eb6d9142038848c2b9392d7", "c" * 40,
-        ), calls)
-        self.assertIn((
-            "merge-base", "--is-ancestor",
-            "8d109b14b6e0936be30f6f287ff6050e48632e0b", "c" * 40,
-        ), calls)
-        with self.assertRaisesRegex(ContractError, "exact rollout Issue"):
-            _verify_merged_contract(
-                self.contract, 208, "c" * 40, str(ROOT), "AlphaApp"
+            self.assertEqual(value, "c" * 40)
+            self.assertIn(
+                ("merge-base", "--is-ancestor", "c" * 40, "origin/main"), calls
             )
-
-    def test_pilot_apply_and_rollback_require_action_specific_live_authorization(self):
-        for command in ("apply",):
-            expected = f"approved-issue-213-{command}"
-            with self.subTest(command=command, mode="missing"):
-                with patch.dict(os.environ, {}, clear=True):
-                    with self.assertRaisesRegex(ContractError, expected):
-                        _require_pilot_live_authorization(
-                            self.contract, command, "AlphaApp"
+            for issue in (213, 208):
+                with self.subTest(issue=issue):
+                    with self.assertRaisesRegex(ContractError, "Issue #35"):
+                        _verify_merged_contract(
+                            self.contract, issue, "c" * 40, str(ROOT), "AlphaApp"
                         )
-            with self.subTest(command=command, mode="exact"):
-                with patch.dict(
-                    os.environ, {"AISOFT_ROUTINE_LIVE_MODE": expected}, clear=True
-                ):
-                    _require_pilot_live_authorization(
-                        self.contract, command, "AlphaApp"
-                    )
-        disabled_path = self._write_mutation(
-            lambda raw: next(
-                item for item in raw["repositories"] if item["name"] == "AlphaApp"
-            ).update({"routine_auto_merge_enabled": False})
-        )
-        with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaisesRegex(ContractError, "approved-issue-213-rollback"):
-                _require_pilot_live_authorization(
-                    load_contract(disabled_path), "rollback", "AlphaApp"
+            with self.assertRaisesRegex(ContractError, "not explicitly managed"):
+                _verify_merged_contract(
+                    self.contract, 35, "c" * 40, str(ROOT), "UnknownApp"
                 )
-        with patch.dict(
-            os.environ,
-            {"AISOFT_ROUTINE_LIVE_MODE": "approved-issue-213-rollback"},
-            clear=True,
-        ):
-            _require_pilot_live_authorization(
-                load_contract(disabled_path), "rollback", "AlphaApp"
-            )
-        with patch.dict(os.environ, {}, clear=True):
-            _require_pilot_live_authorization(
-                self.contract, "apply", "BetaApp"
-            )
 
-    def test_direct_cli_rollback_rejects_enabled_source_before_credential_read(self):
-        stderr = io.StringIO()
-        with patch.dict(
-            os.environ,
-            {"AISOFT_ROUTINE_LIVE_MODE": "approved-issue-213-rollback"},
-            clear=True,
-        ), patch(
-            "aisoft_gitea_governance.cli._client"
-        ) as client, patch(
-            "aisoft_gitea_governance.cli.rollback_repository"
-        ) as rollback:
-            with redirect_stderr(stderr):
-                status = governance_cli_main([
-                    "--manifest", str(MANIFEST), "rollback",
-                    "--token-file", "/must-not-be-read",
-                    "--repository", "AlphaApp", "--issue", "213",
-                    "--merged-sha", "c" * 40,
-                    "--platform-root", str(ROOT),
-                    "--snapshot", "/must-not-be-read",
-                ])
-        self.assertEqual(status, 2)
-        self.assertIn("source must be disabled", stderr.getvalue())
-        client.assert_not_called()
-        rollback.assert_not_called()
+    def test_retired_routine_fields_are_rejected(self):
+        # #397: the routine auto-merge path was retired by #391; a manifest that
+        # still declares any of its fields is a stale schema, not a disabled one.
+        mutations = {
+            "site_admin flag": lambda raw: raw["site_admin"].update(
+                {"routine_automation_allowed": False}
+            ),
+            "merger policy": lambda raw: raw.update(
+                {"routine_merge_agent_policy": {}}
+            ),
+            "repository enable flag": lambda raw: raw_repository(raw).update(
+                {"routine_auto_merge_enabled": False}
+            ),
+            "repository merger": lambda raw: raw_repository(raw).update(
+                {"routine_merge_agent": None}
+            ),
+            "live pilot": lambda raw: raw_repository(raw).update(
+                {"routine_live_pilot": {}}
+            ),
+        }
+        for name, mutation in mutations.items():
+            with self.subTest(field=name):
+                with self.assertRaisesRegex(ContractError, "keys mismatch"):
+                    load_contract(self._write_mutation(mutation))
 
     def test_platform_repository_requires_its_observed_pr_context(self):
         repository = self.contract.repository("aisoft-platform")
@@ -572,28 +364,6 @@ class ContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "must not be a site admin"):
             load_contract(path)
 
-    def test_routine_merger_trust_model_is_explicit_and_strict(self):
-        policy = self.contract.raw["routine_merge_agent_policy"]
-        self.assertFalse(policy["native_merge_only_acl"])
-        self.assertEqual(policy["credential_custody"], "broker-exclusive")
-        self.assertEqual(
-            policy["ordinary_git_control"],
-            "credential-custody-typed-operation-manifest-final-head-zero-fallback",
-        )
-        for key, unsafe in (
-            ("native_merge_only_acl", True),
-            ("credential_custody", "caller-readable"),
-            ("ordinary_git_control", "native-acl"),
-        ):
-            with self.subTest(key=key):
-                path = self._write_mutation(
-                    lambda raw, key=key, unsafe=unsafe: raw[
-                        "routine_merge_agent_policy"
-                    ].update({key: unsafe})
-                )
-                with self.assertRaises(ContractError):
-                    load_contract(path)
-
     def test_token_file_requires_narrow_mode_and_raw_value(self):
         with tempfile.TemporaryDirectory() as directory:
             token_path = Path(directory) / "token"
@@ -628,84 +398,12 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(desired["merge_whitelist_usernames"], ["admin"])
         self.assertTrue(desired["block_admin_merge_override"])
 
-    def test_enabled_routine_merger_converges_exact_write_and_allowlist(self):
-        contract = self.contract
-        repository = contract.repository("AlphaApp")
-        client = FakeClient(contract)
-        full_name = contract.full_name(repository)
-        self.assertNotIn(repository.routine_merge_agent, client.collaborators[full_name])
-        snapshot = capture_snapshot(client, contract, repository)
-        plan = planned_actions(contract, repository, snapshot)
-        self.assertEqual(plan["planned_actions"], ["set-routine-merger-write"])
-        with tempfile.TemporaryDirectory() as directory:
-            result = apply_repository(client, contract, repository, Path(directory))
-        self.assertEqual(result["result"], "applied")
-        self.assertEqual(result["apply_operation_count"], 1)
-        self.assertEqual(result["api_mutation_count"], 1)
-        self.assertEqual(
-            client.collaborators[full_name][repository.routine_merge_agent], "write"
-        )
-        protection = client.protections[full_name]
-        self.assertFalse(protection["enable_push"])
-        self.assertFalse(protection["enable_push_whitelist"])
-        self.assertEqual(protection["push_whitelist_usernames"], [])
-        self.assertFalse(protection["enable_force_push"])
-        self.assertFalse(protection["enable_force_push_allowlist"])
-        self.assertEqual(protection["force_push_allowlist_usernames"], [])
-        self.assertNotIn(
-            repository.routine_merge_agent,
-            protection["push_whitelist_usernames"],
-        )
-        self.assertEqual(
-            protection["merge_whitelist_usernames"],
-            [contract.human_merge_identity, repository.routine_merge_agent],
-        )
-
-    def test_governance_check_reports_all_routine_account_states(self):
-        repository = self.contract.repository("AlphaApp")
-        assert repository.routine_merge_agent is not None
-        full_name = self.contract.full_name(repository)
-        states = (
-            ("present-non-admin", {
-                "login": repository.routine_merge_agent, "is_admin": False,
-            }),
-            ("missing", None),
-            ("present-site-admin", {
-                "login": repository.routine_merge_agent, "is_admin": True,
-            }),
-        )
-        for expected, account in states:
-            with self.subTest(expected=expected):
-                client = FakeClient(self.contract)
-                client.collaborators[full_name][repository.routine_merge_agent] = "write"
-                if account is None:
-                    client.users.pop(repository.routine_merge_agent, None)
-                else:
-                    client.users[repository.routine_merge_agent] = account
-                output = io.StringIO()
-                with redirect_stdout(output):
-                    status = _check(client, self.contract, "AlphaApp")
-                receipt = json.loads(output.getvalue())
-                self.assertEqual(receipt["routine_accounts"], [{
-                    "repository": "admin/AlphaApp",
-                    "enabled": True,
-                    "username": "alphaapp-routine-merger",
-                    "state": expected,
-                }])
-                self.assertEqual(
-                    status, 0 if expected == "present-non-admin" else 1
-                )
-
     def test_check_accepts_exact_gitea_1264_extended_permission_variant(self):
         repository = self.contract.repository("AlphaApp")
-        merger = repository.routine_merge_agent
-        assert merger is not None
-        target = self.contract.full_name(repository)
         other = self.contract.repository("BetaApp")
         other_name = self.contract.full_name(other)
         client = FakeClient(self.contract)
-        client.collaborators[target][merger] = "write"
-        client.collaborators[other_name][merger] = "read"
+        client.collaborators[other_name][repository.project_agent] = "read"
         original_get = client.get
 
         def extended_get(path, operation):
@@ -800,57 +498,6 @@ class ReconciliationTests(unittest.TestCase):
                     capture_snapshot(client, self.contract, repository)
                 self.assertTrue(all(call[0] == "GET" for call in client.calls))
 
-    def test_check_maps_exact_missing_account_permission_404_to_planned_action(self):
-        repository = self.contract.repository("AlphaApp")
-        merger = repository.routine_merge_agent
-        assert merger is not None
-        full_name = self.contract.full_name(repository)
-        endpoint = (
-            f"/repos/{self.contract.owner}/{repository.name}/collaborators/"
-            f"{merger}/permission"
-        )
-        client = FakeClient(self.contract)
-        client.users.pop(merger)
-        # Model a stale/tombstoned collaborator inventory: the identity is
-        # listed, while the exact permission endpoint proves no collaborator.
-        client.collaborators[full_name][merger] = "write"
-        original_get = client.get
-
-        def missing_permission(path, operation):
-            if path == endpoint:
-                client.calls.append(("GET", path, None))
-                raise ApiError(operation, 404)
-            return original_get(path, operation)
-
-        client.get = missing_permission
-        output = io.StringIO()
-        with redirect_stdout(output):
-            status = _check(client, self.contract, "AlphaApp")
-        receipt = json.loads(output.getvalue())
-
-        self.assertEqual(status, 1)
-        self.assertEqual(receipt["result"], "DRIFT")
-        self.assertEqual(receipt["routine_accounts"][0]["state"], "missing")
-        self.assertEqual(
-            receipt["repositories"][0]["current"]["collaborators"][merger],
-            "missing",
-        )
-        self.assertEqual(
-            receipt["repositories"][0]["planned_actions"],
-            ["set-routine-merger-write"],
-        )
-        self.assertEqual(receipt["cross_project_write_violations"], [])
-        account_read = next(
-            index for index, call in enumerate(client.calls)
-            if call[1] == f"/users/{merger}"
-        )
-        permission_read = next(
-            index for index, call in enumerate(client.calls)
-            if call[1] == endpoint
-        )
-        self.assertLess(account_read, permission_read)
-        self.assertTrue(all(call[0] == "GET" for call in client.calls))
-
     def test_check_project_agent_missing_permission_404_fails_closed(self):
         repository = self.contract.repository("AlphaApp")
         agent = repository.project_agent
@@ -887,15 +534,11 @@ class ReconciliationTests(unittest.TestCase):
 
     def test_check_shared_identity_permission_404_fails_closed(self):
         repository = self.contract.repository("AlphaApp")
-        merger = repository.routine_merge_agent
-        assert merger is not None
-        full_name = self.contract.full_name(repository)
         endpoint = (
             f"/repos/{self.contract.owner}/{repository.name}/collaborators/"
             f"{self.contract.shared_bot}/permission"
         )
         client = FakeClient(self.contract)
-        client.users.pop(merger)
         original_get = client.get
 
         def missing_permission(path, operation):
@@ -910,49 +553,17 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(raised.exception.status, 404)
         self.assertTrue(all(call[0] == "GET" for call in client.calls))
 
-    def test_snapshot_unknown_missing_identity_cannot_authorize_routine_404(self):
-        repository = self.contract.repository("AlphaApp")
-        merger = repository.routine_merge_agent
-        assert merger is not None
-        full_name = self.contract.full_name(repository)
-        endpoint = (
-            f"/repos/{self.contract.owner}/{repository.name}/collaborators/"
-            f"{merger}/permission"
-        )
-        client = FakeClient(self.contract)
-        client.collaborators[full_name][merger] = "write"
-        original_get = client.get
-
-        def missing_permission(path, operation):
-            if path == endpoint:
-                client.calls.append(("GET", path, None))
-                raise ApiError(operation, 404)
-            return original_get(path, operation)
-
-        client.get = missing_permission
-        with self.assertRaises(ApiError) as raised:
-            capture_snapshot(
-                client,
-                self.contract,
-                repository,
-                missing_routine_merge_agent="unknown-account",
-            )
-        self.assertEqual(raised.exception.status, 404)
-        self.assertTrue(all(call[0] == "GET" for call in client.calls))
-
-    def test_check_cross_project_same_routine_permission_404_fails_closed(self):
+    def test_check_cross_project_agent_permission_404_fails_closed(self):
         repository = self.contract.repository("AlphaApp")
         other = self.contract.repository("BetaApp")
-        merger = repository.routine_merge_agent
-        assert merger is not None
+        agent = repository.project_agent
         other_full_name = self.contract.full_name(other)
         endpoint = (
             f"/repos/{self.contract.owner}/{other.name}/collaborators/"
-            f"{merger}/permission"
+            f"{agent}/permission"
         )
         client = FakeClient(self.contract)
-        client.users.pop(merger)
-        client.collaborators[other_full_name][merger] = "read"
+        client.collaborators[other_full_name][agent] = "read"
         original_get = client.get
 
         def missing_permission(path, operation):
@@ -965,81 +576,19 @@ class ReconciliationTests(unittest.TestCase):
         with self.assertRaises(ApiError) as raised:
             _check(client, self.contract, "AlphaApp")
         self.assertEqual(raised.exception.status, 404)
-        account_read = next(
-            index for index, call in enumerate(client.calls)
-            if call[1] == f"/users/{merger}"
-        )
-        cross_project_read = next(
-            index for index, call in enumerate(client.calls)
-            if call[1] == endpoint
-        )
-        self.assertLess(account_read, cross_project_read)
+        self.assertIn(("GET", endpoint, None), client.calls)
         self.assertTrue(all(call[0] == "GET" for call in client.calls))
 
-    def test_check_missing_account_keeps_permission_200_schema_strict(self):
+    def test_check_permission_read_failures_fail_closed(self):
         repository = self.contract.repository("AlphaApp")
-        merger = repository.routine_merge_agent
-        assert merger is not None
-        full_name = self.contract.full_name(repository)
+        agent = repository.project_agent
         endpoint = (
             f"/repos/{self.contract.owner}/{repository.name}/collaborators/"
-            f"{merger}/permission"
+            f"{agent}/permission"
         )
-        schema_drifts = (
-            None,
-            {},
-            {"permission": "unknown"},
-            {"permission": None},
-            {"permission": True},
-            {"permission": 0},
-            {"permission": []},
-            {"permission": "read", "extra": True},
-        )
-        for response in schema_drifts:
-            with self.subTest(permission_response=response):
+        for status in (401, 403, 404, 500, 0):
+            with self.subTest(status=status):
                 client = FakeClient(self.contract)
-                client.users.pop(merger)
-                client.collaborators[full_name][merger] = "write"
-                original_get = client.get
-
-                def malformed_permission(path, operation, *, response=response):
-                    if path == endpoint:
-                        client.calls.append(("GET", path, None))
-                        return copy.deepcopy(response)
-                    return original_get(path, operation)
-
-                client.get = malformed_permission
-                with self.assertRaisesRegex(
-                    ContractError, "collaborator permission response is invalid"
-                ):
-                    _check(client, self.contract, "AlphaApp")
-                self.assertTrue(all(call[0] == "GET" for call in client.calls))
-
-    def test_check_permission_failures_other_than_evidenced_404_fail_closed(self):
-        repository = self.contract.repository("AlphaApp")
-        merger = repository.routine_merge_agent
-        assert merger is not None
-        full_name = self.contract.full_name(repository)
-        endpoint = (
-            f"/repos/{self.contract.owner}/{repository.name}/collaborators/"
-            f"{merger}/permission"
-        )
-        cases = (
-            ("missing", 401),
-            ("missing", 403),
-            ("missing", 500),
-            ("missing", 0),
-            ("present-non-admin", 404),
-            ("present-site-admin", 404),
-        )
-        for state, status in cases:
-            with self.subTest(account_state=state, status=status):
-                client = FakeClient(self.contract)
-                client.collaborators[full_name][merger] = "write"
-                if state == "missing":
-                    client.users.pop(merger)
-                elif state == "present-site-admin":
-                    client.users[merger]["is_admin"] = True
                 original_get = client.get
 
                 def failed_permission(path, operation, *, status=status):
@@ -1054,64 +603,27 @@ class ReconciliationTests(unittest.TestCase):
                 self.assertEqual(raised.exception.status, status)
                 self.assertTrue(all(call[0] == "GET" for call in client.calls))
 
-    def test_apply_does_not_accept_missing_account_permission_evidence(self):
-        contract = self.contract
-        repository = contract.repository("AlphaApp")
-        merger = repository.routine_merge_agent
-        assert merger is not None
-        full_name = contract.full_name(repository)
-        endpoint = (
-            f"/repos/{contract.owner}/{repository.name}/collaborators/"
-            f"{merger}/permission"
-        )
-        client = FakeClient(contract)
-        client.collaborators[full_name][merger] = "write"
-        original_get = client.get
-
-        def missing_permission(path, operation):
-            if path == endpoint:
-                client.calls.append(("GET", path, None))
-                raise ApiError(operation, 404)
-            return original_get(path, operation)
-
-        client.get = missing_permission
-        with tempfile.TemporaryDirectory() as directory:
-            evidence = Path(directory)
-            with self.assertRaises(ApiError) as raised:
-                apply_repository(client, contract, repository, evidence)
-            self.assertEqual(raised.exception.status, 404)
-            self.assertEqual(list(evidence.iterdir()), [])
-        self.assertEqual(
-            [call for call in client.calls if call[0] in {
-                "PUT", "PATCH", "POST", "DELETE",
-            }],
-            [],
-        )
-
-    def test_enabled_routine_merger_admin_identity_fails_closed(self):
+    def test_project_agent_admin_identity_fails_closed(self):
         contract = self.contract
         repository = contract.repository("AlphaApp")
         client = FakeClient(contract)
-        merger = repository.routine_merge_agent
-        assert merger is not None
-        client.users[merger]["is_admin"] = True
+        client.users[repository.project_agent]["is_admin"] = True
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ContractError, "site-admin"):
                 apply_repository(client, contract, repository, Path(directory))
 
-    def test_apply_rejects_routine_account_admin_schema_before_any_mutation(self):
+    def test_apply_rejects_project_agent_admin_schema_before_any_mutation(self):
         contract = self.contract
         repository = contract.repository("AlphaApp")
-        merger = repository.routine_merge_agent
-        assert merger is not None
+        agent = repository.project_agent
         unsafe_values = ("missing", True, 0, "false", [])
         for unsafe in unsafe_values:
-            with self.subTest(routine_is_admin=unsafe):
+            with self.subTest(agent_is_admin=unsafe):
                 client = FakeClient(contract)
                 if unsafe == "missing":
-                    client.users[merger].pop("is_admin")
+                    client.users[agent].pop("is_admin")
                 else:
-                    client.users[merger]["is_admin"] = unsafe
+                    client.users[agent]["is_admin"] = unsafe
                 with tempfile.TemporaryDirectory() as directory:
                     evidence = Path(directory)
                     with self.assertRaises(ContractError):
@@ -1130,12 +642,11 @@ class ReconciliationTests(unittest.TestCase):
         contract = self.contract
         repository = contract.repository("AlphaApp")
         other = contract.repository("BetaApp")
-        merger = repository.routine_merge_agent
-        assert merger is not None
+        agent = repository.project_agent
         other_full_name = contract.full_name(other)
         endpoint = (
             f"/repos/{contract.owner}/{other.name}/collaborators/"
-            f"{merger}/permission"
+            f"{agent}/permission"
         )
         schema_drifts = (
             None,
@@ -1150,7 +661,7 @@ class ReconciliationTests(unittest.TestCase):
         for response in schema_drifts:
             with self.subTest(cross_project_response=response):
                 client = FakeClient(contract)
-                client.collaborators[other_full_name][merger] = "read"
+                client.collaborators[other_full_name][agent] = "read"
                 original_get = client.get
 
                 def drift_get(path, operation, *, response=response):
@@ -1177,13 +688,13 @@ class ReconciliationTests(unittest.TestCase):
                 )
 
         safe_client = FakeClient(contract)
-        safe_client.collaborators[other_full_name][merger] = "read"
+        safe_client.collaborators[other_full_name][agent] = "read"
         self.assertEqual(audit_cross_project_writes(safe_client, contract), [])
 
         for unsafe_permission in ("write", "admin", "owner"):
             with self.subTest(cross_project_permission=unsafe_permission):
                 client = FakeClient(contract)
-                client.collaborators[other_full_name][merger] = unsafe_permission
+                client.collaborators[other_full_name][agent] = unsafe_permission
                 with tempfile.TemporaryDirectory() as directory:
                     evidence = Path(directory)
                     with self.assertRaisesRegex(ContractError, "cross-project"):
