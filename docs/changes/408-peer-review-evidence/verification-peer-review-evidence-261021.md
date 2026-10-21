@@ -25,7 +25,7 @@ updated: 2026-10-21
 
 ## 基线与范围
 
-- 基线：`origin/main` = `cee4294979f027a132de4b3abc82108cde4d9d88`（#406 合并）；分支先 rebase 到它；Codex 第 4 轮 PASS 后以 merge commit 集成 `f169b126`（#409 R12）
+- 基线：`origin/main` = `cee4294979f027a132de4b3abc82108cde4d9d88`（#406 合并）；分支先 rebase 到它；Codex 第 4 轮 PASS 后以无冲突 merge commit 集成 `f169b126`（#409 R12），再发 1.10.0
 - 环境：macOS 本机（bash 3.2、`/opt/homebrew/bin/rg`），codex-cli 0.161.0，Claude Code 2.1.228，cursor-agent 2026.10.19（已登录）
 - 本记录负责证明的 acceptance criteria：AC-1–AC-7
 - 实现方 Claude（本线程），审查方 Codex（`codex exec -s read-only`）
@@ -34,6 +34,7 @@ updated: 2026-10-21
 
 | Command / check | Result | Evidence |
 |---|---|---|
+| `bash codex/tests/smoke.sh`（集成 main 后的 tree `d65bea8cd1e3309bba84e3eb027b52b0b2d287fb`） | PASS | 在 `a427c05b` 上 exit 0，runtime `Ran 700 tests … OK`，`PASS: project-leak (10 baseline files, 41 hits; site 10 files, 37 hits)`，末行 `Codex platform static smoke checks passed.`。broker 推送拒绝了那次带冲突解决的 merge（`MERGE_CONFLICT`），按 #402 的做法先把 `usage/bundle.json` 退回合并基、无冲突 merge、再发 1.10.0，重做后的 `91f9d5a8` 与 `a427c05b` tree 相同；之后只追加本行 |
 | `bash codex/tests/smoke.sh`（`675aae2b`） | PASS | exit 0，runtime `Ran 681 tests … OK`，`PASS: project-leak (9 baseline files, 38 hits; site 10 files, 37 hits)`，末行 `Codex platform static smoke checks passed.` |
 | `bash codex/tests/test-external-skill-versions.sh` | PASS | `external skill versions tests passed`；新增 caps-pass、caps-known、caps-gap、caps-matt-content、caps-no-cursor 与 usage 用例 |
 | 反向证明：拷贝树里清空 `KNOWN_EXTERNAL` | PASS | 测试内同一 Codex 状态变成 `CAPABILITY codex GAP`、exit 1 |
