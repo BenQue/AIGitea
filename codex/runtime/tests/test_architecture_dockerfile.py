@@ -241,7 +241,7 @@ class DockerfileInputTests(unittest.TestCase):
             (f"FROM {NODE22} AS _invalid\n", "DOCKERFILE_FROM_INVALID"),
             ("FROM ubuntu\n", "DOCKERFILE_DIGEST_REQUIRED"),
             (f"FROM node//:22@{NODE22.split('@')[1]}\n", "DOCKERFILE_DIGEST_REQUIRED"),
-            (f"ARG BASE={NODE22}\nFROM ${{BASE}}\n", "DOCKERFILE_FROM_VARIABLE_UNSUPPORTED"),
+            (f"ARG BASE={NODE22}\nFROM ${{BASE}}\n", "DOCKERFILE_FROM_VARIABLE_UNSUPPORTED"),  # unguarded (#413)
             ("FROM $BASE\n", "DOCKERFILE_FROM_VARIABLE_UNSUPPORTED"),
             (f"FROM node@{NODE22.split('@')[1]}\n", "DOCKERFILE_DIGEST_REQUIRED"),
             (f"FROM {NODE22.upper()}\n", "DOCKERFILE_DIGEST_REQUIRED"),
@@ -251,6 +251,52 @@ class DockerfileInputTests(unittest.TestCase):
         for content, code in cases:
             with self.subTest(content=content):
                 self.dockerfile.write_text(content)
+                self.error(code)
+
+    def guarded(self, default: str, *forms: str) -> str:
+        """#413: global ARG default plus a per-stage RUN test that fails an override."""
+        stages = "".join(
+            f"FROM {form} AS s{index}\nARG BASE\nRUN test \"${{BASE}}\" = \"{default}\" \\\n    && echo ok\n"
+            for index, form in enumerate(forms or ("${BASE}",)))
+        return f"ARG OTHER=1 BASE={default}\n{stages}"
+
+    def test_guarded_global_arg_default_expands_413(self) -> None:
+        self.dockerfile.write_text(self.guarded(NODE22, "${BASE}", "$BASE"))
+        self.valid()
+        # The resolved digest counts as referenced: no BASE_IMAGE_UNUSED.
+        self.dockerfile.write_text(f"ARG BASE={NODE22}\nFROM scratch\nFROM ${{BASE}}\n"
+                                   f"RUN test \"${{BASE}}\" = \"{NODE22}\"\n")
+        self.valid()
+
+    def test_unguarded_or_unprovable_arg_forms_fail_closed_413(self) -> None:
+        guard = f"RUN test \"${{BASE}}\" = \"{NODE22}\"\n"
+        cases = [
+            # No guard: a build-time override would silently replace the pin.
+            f"ARG BASE={NODE22}\nFROM ${{BASE}}\n",
+            f"ARG BASE={NODE22}\nFROM $BASE\nRUN echo 'test \"${{BASE}}\" = \"{NODE22}\"'\n",
+            f"ARG BASE={NODE22}\nFROM ${{BASE}}\nRUN test \"${{BASE}}\" = \"{NODE24}\"\n",
+            f"ARG BASE={NODE22}\nFROM ${{BASE}} AS a\n{guard}FROM ${{BASE}}\n",
+            # Undeclared, no default, or declared only inside a stage.
+            f"FROM $BASE\n{guard}",
+            f"ARG BASE\nFROM ${{BASE}}\n{guard}",
+            f"FROM scratch\nARG BASE={NODE22}\nFROM ${{BASE}}\n{guard}",
+            # Defaults and tokens the checker cannot prove statically.
+            f"ARG BASE=\"{NODE22}\"\nFROM ${{BASE}}\nRUN test \"${{BASE}}\" = \"\"{NODE22}\"\"\n",
+            "ARG TAG=22\nARG BASE=node:$TAG\nFROM ${BASE}\nRUN test \"${BASE}\" = \"node:$TAG\"\n",
+            f"ARG BASE={NODE22}\nFROM ${{BASE:-{NODE22}}}\n{guard}",
+            f"ARG BASE={NODE22}\nFROM ${{BASE}}x\n{guard}",
+            "ARG V=22\nFROM node:${V}-alpine\nRUN test \"${V}\" = \"22\"\n",
+        ]
+        for content in cases:
+            with self.subTest(content=content):
+                self.dockerfile.write_text(content)
+                self.error("DOCKERFILE_FROM_VARIABLE_UNSUPPORTED")
+
+    def test_guarded_arg_default_keeps_digest_rules_413(self) -> None:
+        for default, code in (("node:22.22.3-bookworm-slim", "DOCKERFILE_DIGEST_REQUIRED"),
+                              (NODE24, "DOCKERFILE_DIGEST_MISMATCH")):
+            with self.subTest(code=code):
+                self.dockerfile.write_text(self.guarded(default))
                 self.error(code)
 
     def test_multiple_files_and_reverse_digest_coverage(self) -> None:

@@ -120,8 +120,12 @@ shell、Registry 查询或文件内容；诊断仅含稳定 code、声明字段/
   但不能以全部 scratch 绕过声明基镜像的实际引用要求。数字 FROM stage 引用不作为豁免。
 - 接受大小写不敏感指令、空白、整行注释、CRLF，以及默认反斜线或有效 `escape` directive
   指定的反引号续行。directives 仅在 Docker 规定的文件头位置生效；重复/非法 escape 拒绝。
-- 镜像 token 中有 `$` 一律拒绝，即使全局 ARG 有默认值；build-time override 能改变默认值，
-  静态展开默认值不能作为证据。其它指令内普通 ARG/ENV 不受该规则限制。
+- 镜像 token 中有 `$` 默认拒绝：build-time override 能改变默认值，静态展开默认值本身不能作为证据。
+  唯一例外（#413）：token 恰好是 `${NAME}` 或 `$NAME`，`NAME` 是第一个 FROM 之前声明、带字面量默认值
+  （不含 `$`、引号、反斜线）的全局 ARG，且同一 stage 有一条以 `test "${NAME}" = "<默认值>"` 开头
+  （单独成句或后接 `&&`）的 RUN。此时按默认值核验 tag、digest 与声明集合；override 成别的值会让该
+  stage 构建失败。修饰符、与字面量拼接、stage 内 ARG、缺守卫或守卫值不一致仍报
+  `DOCKERFILE_FROM_VARIABLE_UNSUPPORTED`。其它指令内普通 ARG/ENV 不受该规则限制。
   `--platform=$BUILDPLATFORM` 等平台变量允许，但不新增 CPU/OS 与 child/index 兼容性证明。
 - 只接受一个可选 `--platform=...`、一个 image token、可选 `AS stage` 的 FROM 形式。
   标准 `docker/dockerfile:1`/稳定 `1.x` frontend 可识别；custom frontend、labs、heredoc

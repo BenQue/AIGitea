@@ -1,7 +1,10 @@
 """Offline, fail-closed Dockerfile FROM checks for declared source inputs.
 
-This deliberately supports a conservative Dockerfile subset. It neither
-expands ARG nor loads frontends; results are not builder provenance.
+This deliberately supports a conservative Dockerfile subset. It loads no
+frontends and expands ARG in exactly one form (#413): a FROM image token that
+is a whole global ARG reference whose literal default the same stage pins
+with `RUN test "${NAME}" = "<default>"`, so a build-time override fails the
+build instead of replacing the base image. Results are not builder provenance.
 """
 
 from __future__ import annotations
@@ -25,6 +28,8 @@ INSTRUCTIONS = frozenset({
 DIRECTIVE = re.compile(r"^#\s*(syntax|escape|check)\s*=\s*(.*?)\s*$", re.I)
 STABLE_FRONTEND = re.compile(r"docker/dockerfile:1(?:\.[0-9]+){0,2}")
 STAGE = re.compile(r"[A-Za-z][A-Za-z0-9_.-]*")
+ARG_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+ARG_REFERENCE = re.compile(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))")
 NAME_COMPONENT = r"[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*"
 HOST_COMPONENT = r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
 REGISTRY = rf"{HOST_COMPONENT}(?:\.{HOST_COMPONENT})*(?::[0-9]+)?"
@@ -158,18 +163,53 @@ def _instructions(content: str, field: str) -> list[tuple[int, str, str]]:
     return result
 
 
+def _global_defaults(instructions: list[tuple[int, str, str]]) -> dict[str, str]:
+    """Literal defaults of ARGs declared before the first FROM.
+
+    A default that is quoted, references another variable or is redeclared
+    without a value is dropped, so any FROM using it stays unsupported.
+    """
+    defaults: dict[str, str] = {}
+    for _, instruction, arguments in instructions:
+        if instruction == "FROM":
+            break
+        if instruction != "ARG":
+            continue
+        for token in arguments.split():
+            name, separator, value = token.partition("=")
+            if not ARG_NAME.fullmatch(name):
+                continue
+            if separator and value and not any(char in value for char in "$\"'`\\"):
+                defaults[name] = value
+            else:
+                defaults.pop(name, None)
+    return defaults
+
+
+def _guarded(name: str, default: str, body: list[tuple[int, str, str]]) -> bool:
+    """A RUN that starts with the exact pin test, alone or before `&&`."""
+    guard = re.compile(rf'test "\$\{{{name}\}}" = "{re.escape(default)}"(?:\s*$|\s+&&\s)')
+    return any(instruction == "RUN" and guard.match(arguments) for _, instruction, arguments in body)
+
+
 def _digests(content: str, field: str, declared: set[str]) -> set[str]:
     instructions = _instructions(content, field)
-    froms = [(number, args) for number, instruction, args in instructions if instruction == "FROM"]
+    defaults = _global_defaults(instructions)
+    froms: list[tuple[int, str, list[tuple[int, str, str]]]] = []
+    for number, instruction, arguments in instructions:
+        if instruction == "FROM":
+            froms.append((number, arguments, []))
+        elif froms:
+            froms[-1][2].append((number, instruction, arguments))
     if not froms:
         fail("DOCKERFILE_FROM_REQUIRED", "每份 Dockerfile 至少需要一个 FROM。", field)
     stages = set()
     referenced = set()
     named_stages = {
-        tokens[-1].lower() for _, arguments in froms
+        tokens[-1].lower() for _, arguments, _ in froms
         if len(tokens := arguments.split()) >= 3 and tokens[-2].lower() == "as"
     }
-    for number, arguments in froms:
+    for number, arguments, body in froms:
         location = f"{field}:line[{number}]"
         tokens = arguments.split()
         if tokens and tokens[0].startswith("--platform=") and len(tokens[0]) > len("--platform="):
@@ -181,7 +221,12 @@ def _digests(content: str, field: str, declared: set[str]) -> set[str]:
         if alias is not None and (not STAGE.fullmatch(alias) or alias in stages):
             fail("DOCKERFILE_FROM_INVALID", "Stage 名称无效或重复。", location)
         if "$" in image:
-            fail("DOCKERFILE_FROM_VARIABLE_UNSUPPORTED", "镜像 token 必须为字面量 tag 与 digest。", location)
+            reference = ARG_REFERENCE.fullmatch(image)
+            name = reference and (reference[1] or reference[2])
+            if not name or name not in defaults or not _guarded(name, defaults[name], body):
+                fail("DOCKERFILE_FROM_VARIABLE_UNSUPPORTED",
+                     "镜像变量必须是带字面量默认值的全局 ARG，且本 stage 以 RUN test 守住该默认值。", location)
+            image = defaults[name]
         if image.lower() not in stages and image != "scratch":
             if image.isdecimal() or image.lower() in named_stages:
                 fail("DOCKERFILE_FROM_INVALID", "不能核验前向、自引用或数字 stage 引用。", location)
