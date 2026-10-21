@@ -291,7 +291,15 @@ class InstalledDriftTests(unittest.TestCase):
         original = path.read_bytes()
         base = json.loads(original)
         # A real commit outside main's history, symbolic names and option-shaped values.
-        for value in [side.stdout.strip(), "HEAD", "HEAD~1", "--all", "0" * 40, "0" * 64, ""]:
+        base_commit = base["source_sha"]
+        tag = run(["git", "-C", str(clone), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                   "tag", "-a", "-m", "annotated", "installed", base_commit])
+        self.assertEqual(tag.returncode, 0, tag.stderr)
+        tag_object = run(["git", "-C", str(clone), "rev-parse", "installed"]).stdout.strip()
+        tree = run(["git", "-C", str(clone), "rev-parse", f"{base_commit}^{{tree}}"]).stdout.strip()
+        self.assertNotEqual(tag_object, base_commit)
+        # merge-base would peel the tag object to its ancestor commit; the type pin must not.
+        for value in [side.stdout.strip(), tag_object, tree, "HEAD", "HEAD~1", "--all", "0" * 40, "0" * 64, ""]:
             with self.subTest(value=value):
                 path.write_text(json.dumps({**base, "source_sha": value}))
                 row = self.row(self.check(1, repo=clone), "install-host-access-broker")
@@ -314,7 +322,13 @@ class InstalledDriftTests(unittest.TestCase):
         changed = self.advanced_main({go.relative_to(self.fixture_source).as_posix(): "\n// changed after install\n"},
                                      name="advanced-helper")
         row = self.row(self.check(1, extra=extra, repo=changed), "install-host-access-broker")
-        self.assertTrue(any(g["reason"] == "helper-source-differ" for g in row["gaps"]), row["gaps"])
+        self.assertTrue(any(g["reason"] in {"helper-build-input-differ", "helper-source-differ"}
+                            for g in row["gaps"]), row["gaps"])
+        # build.py is a build input that no per-file digest in the receipt names.
+        build = self.advanced_main({"codex/tools/gitea-pat-helper/build.py": "\n# changed build input\n"},
+                                   name="advanced-build")
+        row = self.row(self.check(1, extra=extra, repo=build), "install-host-access-broker")
+        self.assertTrue(any(g["reason"] == "helper-build-input-differ" for g in row["gaps"]), row["gaps"])
 
     def test_rotation_new_files_links_fifo_and_permissions_fail_closed(self):
         public, binary = self.select_synthetic_helper()

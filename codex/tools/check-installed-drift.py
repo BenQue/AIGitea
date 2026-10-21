@@ -194,12 +194,14 @@ class RotationSurface:
     boundary: Path
     files: dict[str, Path]
 
-    def validate_provenance(self, repo: Path, source_sha, public: Path, descriptor):
+    def validate_provenance(self, repo: Path, identity, source_sha, public: Path, descriptor):
         proof = strict_document(public, Path(public.anchor))
         fields = {"schema", "toolchain", "toolchain_input", "platform", "gitea", "sha256",
                   "go_mod_sha256", "go_sum_sha256", "build_info", "source_commit", "source_dirty", "source_sha256"}
         require(isinstance(proof, dict) and set(proof) == fields, "helper-provenance-schema", public)
         helper = repo / "codex/tools/gitea-pat-helper"
+        require(same_tree_since(repo, identity, source_sha, "codex/tools/gitea-pat-helper"),
+                "helper-build-input-differ", public)
         lock = read_json(helper / "build-lock.json", repo)
         require(proof["schema"] == "aisoft-gitea-pat-helper-build/v1"
                 and proof["source_commit"] == source_sha and proof["source_dirty"] is False
@@ -254,7 +256,7 @@ class RotationSurface:
                         and descriptor["model"] == "1.26.4" and descriptor["toolchain"] == "go1.26.3",
                         "rotation-helper-schema", self.metadata)
                 require(public is not None, "helper-provenance-required", self.metadata)
-                digest = self.validate_provenance(repo, record["source_sha"], public, descriptor)
+                digest = self.validate_provenance(repo, identity, record["source_sha"], public, descriptor)
                 report.update(local_helper="MATCHES_DECLARED_BUILD", sha256=digest,
                               evidence_scope="DECLARED_BUILD_RECEIPT_ONLY")
             return report, []
@@ -675,9 +677,19 @@ def installed_from_history(repo: Path, identity, commit):
     # #406: the install commit only has to be in the checked-out main history;
     # byte comparisons, not commit equality, prove the installed bytes current.
     # The SHA shape check keeps symbolic names and option-like values out of git.
+    # cat-file pins the object type: merge-base would peel an annotated tag.
     return (isinstance(commit, str) and re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", commit) is not None
             and identity["head"] is not None
+            and read_git(repo, "cat-file", "-t", commit) == (0, "commit")
             and read_git(repo, "merge-base", "--is-ancestor", commit, identity["head"])[0] == 0)
+
+
+def same_tree_since(repo: Path, identity, commit, relative):
+    # Whole-tree identity between the install commit and cached main, whose bytes
+    # source_identity verified; covers build inputs the digests below do not name.
+    rc, before = read_git(repo, "rev-parse", "--verify", "-q", f"{commit}^{{commit}}:{relative}")
+    rc2, after = read_git(repo, "rev-parse", "--verify", "-q", f"{identity['cached_origin_main']}:{relative}")
+    return rc == 0 and rc2 == 0 and before == after != ""
 
 
 def source_identity(repo: Path, sources: set[Path]):

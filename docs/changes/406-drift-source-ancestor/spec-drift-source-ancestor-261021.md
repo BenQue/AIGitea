@@ -34,8 +34,8 @@ broker 安装面的轮换记录绑定的是安装那一刻的提交。检查器�
 
 - [ ] AC-1：安装后 main 前进一个只改文档的提交，broker 安装面 PASS。
 - [ ] AC-2：前进一个改了轮换受管文件的提交，GAP（`rotation-file-digest-differ`）。
-- [ ] AC-3：安装记录 `source_sha` 不是 HEAD 的祖先（含不存在的提交、非 SHA 字符串），GAP（`rotation-source-binding`）。
-- [ ] AC-4：声明 helper 时，凭证 `source_commit` 等于安装记录 `source_sha` 且 main 前进只改文档的提交，PASS；`source_commit` 不等于记录 `source_sha`，GAP；helper 源码之后改动，GAP（`helper-source-differ`）。
+- [ ] AC-3：安装记录 `source_sha` 不是 HEAD 的祖先（含不存在的提交、非 SHA 字符串、指向祖先的 annotated tag 对象与 tree 对象；对象类型必须是 commit），GAP（`rotation-source-binding`）。
+- [ ] AC-4：声明 helper 时，凭证 `source_commit` 等于安装记录 `source_sha` 且 main 前进只改文档的提交，PASS；`source_commit` 不等于记录 `source_sha`，GAP；`codex/tools/gitea-pat-helper` 整棵树在安装提交与缓存 main 之间有任何变化（含 `build.py` 这类凭证摘要没有覆盖的构建输入），GAP（`helper-build-input-differ`）；`.go` 摘要不符仍报 `helper-source-differ`。
 - [ ] AC-5：反向证明：把新判定临时改回「等于 HEAD」，AC-1/AC-4 的 PASS 用例变红。
 - [ ] AC-6：全量 smoke 绿；Codex 只读交叉审查通过。
 - [ ] AC-7：合并后 Mac 与 VM 重装读回 `RESULT PASS`；之后再有一次文档合并仍 PASS（取证晚于合并，记在交接里）。
