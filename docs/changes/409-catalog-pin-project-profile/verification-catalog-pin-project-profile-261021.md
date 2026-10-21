@@ -14,7 +14,7 @@ risk_flags:
   - platform-governance
 depends_on:
   - 402
-status: pending
+status: verified
 branch: change/409-catalog-pin-project-profile
 created: 2026-10-21
 updated: 2026-10-21
@@ -95,4 +95,4 @@ Dockerfile 规则跑它的已提交 V1 lock：对 2026.08.3 快照 `valid: true`
 - 修复：`ab48f91f`（漂移检查映射 `catalog-releases/` 并重钉 installer 哈希）、`86a64551`（快照文件摘要全钉、
   漂移反向测试、诊断码断言、spec 字段名）。smoke 另红在 ADR D3 项目名守卫：快照原样保留当年 catalog 的 3 处项目名
   （与当前 `catalog.json` 同样 3 处，已在基线中），`7eabd660` 在 `project-leak-baseline.json` 为快照登记同样的 3 处。
-- 第 2 轮：ROUND2
+- 第 2 轮（head `10cb21a3`）：**PASS**，无 BLOCKER/MAJOR/MINOR。Codex 逐条核销第 1 轮 4 条，临时目录中对 5 个快照安装目标逐一篡改、删除均得 GAP；复跑 architecture 全集 98 条、组合 58 条、`test-project-check.sh` 70 cases、`test-usage-bundle.sh`、漂移 `--source-only`、项目名守卫均 PASS；未跑 installer、broker 与全量 smoke（全量 smoke 由实现方在 `7eabd660` 跑过）。任务书与结论见项目库 `codex-review-409.md`。
