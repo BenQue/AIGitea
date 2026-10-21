@@ -90,4 +90,21 @@ PY
     evict) rg -q '^TOOLCHAIN_CACHE_EVICTED$' "$TMP/stderr"; [[ -e "$GATE_CURL_CALLED" ]] || fail 'evict: not re-downloaded' ;;
   esac
 done
-printf '%s\n' 'PASS: optimized Linux download checksum/path gates reject before extraction; cache hit skips download, stale cache is evicted'
+# A cache entry that is a symlink or a directory is refused before any download
+# or write-back, so nothing lands outside the cache.
+for scenario in link dir; do
+  rm -rf -- "$CACHE" "$TMP/elsewhere" "$GATE_TAR_CALLED" "$GATE_CURL_CALLED"
+  mkdir -p "$CACHE/go-toolchain" "$TMP/elsewhere"
+  case "$scenario" in
+    link) ln -s "$TMP/elsewhere" "$CACHE/go-toolchain/go1.26.3.linux-amd64.tar.gz" ;;
+    dir) mkdir "$CACHE/go-toolchain/go1.26.3.linux-amd64.tar.gz" ;;
+  esac
+  if PATH="$TMP/bin:$PATH" AISOFT_CI_DOWNLOAD_CACHE="$CACHE" \
+      bash "$TMP/repo/codex/tests/test-gitea-pat-helper-linux.sh" \
+      --output "$TMP/no-artifact" >"$TMP/stdout" 2>"$TMP/stderr"; then
+    fail "$scenario: unsafe cache entry accepted"
+  fi
+  rg -q '^DOWNLOAD_CACHE_SYMLINK$' "$TMP/stderr" || fail "$scenario: wrong refusal"
+  [[ ! -e "$GATE_CURL_CALLED" && -z "$(ls -A "$TMP/elsewhere")" ]] || fail "$scenario: wrote through the entry"
+done
+printf '%s\n' 'PASS: optimized Linux download checksum/path gates reject before extraction; cache hit skips download, stale cache is evicted, unsafe cache entries are refused'

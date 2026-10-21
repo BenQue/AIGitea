@@ -40,13 +40,16 @@ for entry in "$CACHE" "$CACHE/go-toolchain" "$CACHE/go-mod"; do
   [[ -z "$CACHE" || ! -L "$entry" ]] || { printf '%s\n' 'DOWNLOAD_CACHE_SYMLINK' >&2; exit 2; }
 done
 CACHED_ARCHIVE="${CACHE:+$CACHE/go-toolchain/$ARCHIVE}"
+# The write-back renames onto this path, so it must be absent or a regular file.
+[[ -z "$CACHE" || ! ( -L "$CACHED_ARCHIVE" || ( -e "$CACHED_ARCHIVE" && ! -f "$CACHED_ARCHIVE" ) ) ]] \
+  || { printf '%s\n' 'DOWNLOAD_CACHE_SYMLINK' >&2; exit 2; }
 fetch_toolchain() {
   curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
     --retry 3 --retry-all-errors --retry-delay 5 \
     --connect-timeout 15 --max-time 300 "https://go.dev/dl/$ARCHIVE" -o "$TMP/$ARCHIVE"
 }
 FROM_CACHE=0
-if [[ -n "$CACHE" && -f "$CACHED_ARCHIVE" && ! -L "$CACHED_ARCHIVE" ]]; then
+if [[ -n "$CACHE" && -f "$CACHED_ARCHIVE" ]]; then
   cp -- "$CACHED_ARCHIVE" "$TMP/$ARCHIVE"
   if python3 -I -c 'import hashlib,sys; sys.exit(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest()!=open(sys.argv[2]).read().strip())' \
       "$TMP/$ARCHIVE" "$TMP/pin"; then
