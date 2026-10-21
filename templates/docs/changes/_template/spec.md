@@ -9,7 +9,6 @@ contract_effect: CONTRACT_EFFECT
 confidence: CONFIDENCE
 risk_flags: []
 depends_on: []
-status: contract-drafting
 branch: change/ISSUE_NUMBER-SHORT-SLUG
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
