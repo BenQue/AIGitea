@@ -91,7 +91,8 @@ approved scope，逐项授权、完整历史检查；不允许放开整个 `docs
 实现和验收范围见 [#360 spec](../../../docs/changes/360-canonical-template-scope/spec-canonical-template-scope-261015.md)。
 
 模板例外由 broker 推送闸门的 canonical 模板上下文实现：scope 列出四份模板时，闸门核对目标仓是
-holder、summary 的 Issue URL 属于该仓，再逐份核对模板内容。遇 `SCOPE_DENIED` 保留具体失败与批准 scope，
+holder、summary 的 Issue URL 属于该仓，再逐份核对模板路径是普通文件（不是链接、目录或可执行文件）；
+模板内容是否等于所 pin 版本由 `aisoft project-check` 的 `change-templates` 核对。遇 `SCOPE_DENIED` 保留具体失败与批准 scope，
 不关闭 guard；本入口不增加 installer/policy 框架，也不接管项目部署。
 
 ## 边界与工具分工
