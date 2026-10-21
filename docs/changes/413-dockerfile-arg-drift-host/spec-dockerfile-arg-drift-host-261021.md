@@ -27,6 +27,8 @@ git_scope:
   - docs/changes/413-dockerfile-arg-drift-host/spec-dockerfile-arg-drift-host-261021.md
   - docs/changes/413-dockerfile-arg-drift-host/summary-dockerfile-arg-drift-host-261021.md
   - docs/changes/413-dockerfile-arg-drift-host/verification-dockerfile-arg-drift-host-261021.md
+  - docs/governance/remediation-roadmap.md
+  - docs/governance/review-evidence-index.md
   - usage/bundle.json
 ---
 
