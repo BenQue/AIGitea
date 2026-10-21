@@ -1026,7 +1026,7 @@
     {
       "version": "1.6.0",
       "released": "2026-10-21",
-      "bundle_digest": "sha256:4f1ac49ed722228f8619860cb149cb695c2509e8d8134cee525320bbf22c6ae0",
+      "bundle_digest": "sha256:035bf38da6898b4bdf6071a0dbdc9c9c68ad3f26536b3f12b5ec78b953076b5d",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -1159,7 +1159,7 @@
         {
           "source": "skills/issue-session-flow/SKILL.md",
           "mode": "skill",
-          "sha256": "e27a716947f38fef852592dd5407f570d370920fe32999fe8c8499a6bd074e31"
+          "sha256": "a74cddff3fed5eea84facf6b327f3eb734c71a0b3881325a15d8994065d2702e"
         },
         {
           "source": "skills/aisoft-matt-workflow/SKILL.md",
