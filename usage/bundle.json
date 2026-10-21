@@ -3250,8 +3250,8 @@
     },
     {
       "version": "1.11.0",
-      "released": "2026-10-21",
-      "bundle_digest": "sha256:95cc70806027181119a961a9b0d056bccfed0c43777df0bc773ca1253d60b387",
+      "released": "2026-10-22",
+      "bundle_digest": "sha256:271daef55b4592cf743475b04085ad6addbbbdd847fedb0af1a392beffcdbd61",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -3626,7 +3626,7 @@
           "mode": "exact",
           "target": ".aisoft/lib/codex/runtime/aisoft_architecture/dockerfile.py",
           "check": "tool-provenance",
-          "sha256": "e9c69321e996ae033a60619618ca3d5aaaf8df5daf0064b959b0d12b4b657dcb"
+          "sha256": "91bfc373e14ea51d87a89c181ed5ddc80a1db08c8c32dc01e5b1e3d48766b9c9"
         },
         {
           "source": "codex/runtime/aisoft_architecture/errors.py",
