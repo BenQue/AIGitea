@@ -26,7 +26,7 @@ updated: 2026-10-21
 
 ## 基线与范围
 
-- 基线：`origin/main` = `86821cf`；实现中 R16（#397，PR 400）、#370（PR 401）与 R14（#403，PR 404）先后合并，用 merge commit `85ddf20`、`97b48d7`、`12e6d2b` 集成（03 冲突按 R14 现行合同写法解决），`origin/main` = `b2a154d`。发布包 1.7.0 已被 R16 占用，本票发 1.8.0（`compatibility: minor`）。
+- 基线：`origin/main` = `86821cf`；实现中 R16（#397，PR 400）、#370（PR 401）与 R14（#403，PR 404）先后合并，用 merge commit `85ddf20`、`97b48d7`、`a03ab0f` 集成（R14 那次：先 `e3a3056` 把 03 暂时恢复成 main 的文本让 merge 无冲突，合并后 `84e7a2c` 按 R14 现行合同写法重新加回本票段落；推送闸门要求 merge 能无冲突重算，第 7 轮指出的冲突 merge `12e6d2b` 从未推送，已弃用），`origin/main` = `b2a154d`。发布包 1.7.0 已被 R16 占用，本票发 1.8.0（`compatibility: minor`）。
 - 环境：macOS 本机（`/bin/bash` 3.2.57、Python 3、`sandbox-exec`）；已安装 broker（`/usr/local/libexec/aisoft/host-access-broker`）。
 - 本记录负责证明的 acceptance criteria：AC-1 至 AC-8。会话 id `claude-r11-402-90529a4f`。
 
@@ -69,6 +69,7 @@ updated: 2026-10-21
 | 4 | `422905d` | PASS | 无；`git_scope` 与 diff 一致（25 条），源码推送闸门离线复现 PASS（19 个提交含 2 个 main 集成 merge） |
 | 5 | `33453e6` | FAIL | 并入 §7 后：LocalWMS list-contract 闸门钉死旧 `fetch-depth`（`CHECKOUT_DEPTH_FACT_GONE`）；#335 summary 缺项目必需的「两份清单的影响」小节；复用旧浅克隆工作区时 fetch 不补历史（合并预览 `MERGE_PREVIEW_NO_MERGE_BASE`）；smoke 守卫漏行内 `uses`；改判证据不一致 |
 | 6 | `7550616` | FAIL | 第 5 轮 5 条已修；新：unshallow 参数跨重试保留，上一轮已补全历史时重试会报错；LocalWMS workflow 注释与 summary 仍写 push 为 depth 1 |
+| 7 | `0409ff2` | FAIL | 第 6 轮两条已修；新：R14 集成 merge `12e6d2b` 带人工解冲突，源码推送闸门重算 merge 报 `MERGE_CONFLICT`（已按上文重建，冲突 merge 弃用）；project-align 把模板闸门写成「核对内容」，实际只核对路径与文件类型（已更正） |
 
 ## 判级投影
 
@@ -82,8 +83,8 @@ updated: 2026-10-21
 
 ## 第 6 轮修复与 R14 交来的更正
 
-- 模板与 LocalWMS 的 checkout 每轮 fetch 前重新判断浅仓（`4064b51`、LocalWMS `ci.yml`）；LocalWMS workflow 注释、闸门注释与 summary 改为「两条路都取全历史」。
-- R14 交接里归本票的两处技能更正（`bb22d06`）：`aisoft-platform` 会话第 7 步改为「已推送分支用 merge commit 集成 main」；`project-align.md` 的 #360 过时句改为现行的模板 scope 例外说明。路线图 R14 行改「已完成」。
+- 模板与 LocalWMS 的 checkout 每轮 fetch 前重新判断浅仓（`04bdf65`、LocalWMS `ci.yml`）；LocalWMS workflow 注释、闸门注释与 summary 改为「两条路都取全历史」。
+- R14 交接里归本票的两处技能更正（`726bd60`）：`aisoft-platform` 会话第 7 步改为「已推送分支用 merge commit 集成 main」；`project-align.md` 的 #360 过时句改为现行的模板 scope 例外说明。路线图 R14 行改「已完成」。
 
 ## 已知限制与遗留
 

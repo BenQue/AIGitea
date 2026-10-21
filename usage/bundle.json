@@ -1642,7 +1642,7 @@
     {
       "version": "1.8.0",
       "released": "2026-10-21",
-      "bundle_digest": "sha256:581ef2521043f90912a8177ddae3b8ba6f3db0ef0695bbfc450d4bda314e295e",
+      "bundle_digest": "sha256:d78022c9b96b6bd10cfa3eedad47b898a751c7909dfd3d9dd55485fa93a24e45",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -1770,7 +1770,7 @@
         {
           "source": "skills/aisoft-platform/references/project-align.md",
           "mode": "skill",
-          "sha256": "d05fb2327ebde00f5cdb8616d02b620fb24036cf23b71bd37698fc962fcbdba4"
+          "sha256": "cb77a23cf1073b35157251a517b93348157ed1387332a4d2937e3923aa4a3327"
         },
         {
           "source": "skills/aisoft-platform/references/route-policy.md",
