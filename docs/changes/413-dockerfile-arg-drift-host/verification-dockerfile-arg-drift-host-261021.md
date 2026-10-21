@@ -60,7 +60,7 @@ updated: 2026-10-21
 
 | 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
 |---|---|---|---|---|---|
-| 1 | Claude | Codex（gpt-6-astra，reasoning ultra） | 228db97e（完整 SHA 见 git log） | FAIL | 3 个 P1：守卫后 `||`/`;`/`&` 吞失败、ENV 遮蔽、SHELL 跳过比较；4 个 P2：引号内伪 ARG 声明、`//` 绕过根判定、反向测试会读宿主根、verification 未填。全部在 `c06a0d43`、`fe0b374a`、`79042f01` 修复并补回归；敌意基础镜像改写 `test`/shell 属构建参数信任边界，按建议在 README 写明不保证 |
+| 1 | Claude | Codex（gpt-6-astra，reasoning ultra） | 228db97eb3c9f4269cf17765a0205be08dfdc0d6 | FAIL | 3 个 P1：守卫后 `||`/`;`/`&` 吞失败、ENV 遮蔽、SHELL 跳过比较；4 个 P2：引号内伪 ARG 声明、`//` 绕过根判定、反向测试会读宿主根、verification 未填。全部在 `c06a0d43`、`fe0b374a`、`79042f01` 修复并补回归；敌意基础镜像改写 `test`/shell 属构建参数信任边界，按建议在 README 写明不保证 |
 
 ## 遗留风险与未完成项
 
