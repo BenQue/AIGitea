@@ -273,6 +273,7 @@ class DockerfileInputTests(unittest.TestCase):
         for content in (
             f"ARG BASE={NODE22}\nARG DESCRIPTION=\"base selection BASE=preview build\"\nFROM ${{BASE}}\n{guard}\n",
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV OTHER_BASE=1\n{guard} && node -e \"a || b; c\"\nSHELL [\"/bin/true\"]\n",
+            f"ARG BASE={NODE22}\nFROM ${{BASE}}\n{guard} && test \"$(node --version)\" = \"v22\" && echo \"${{HOME}} $HOME\"\n",
         ):
             with self.subTest(content=content):
                 self.dockerfile.write_text(content)
@@ -304,11 +305,17 @@ class DockerfileInputTests(unittest.TestCase):
                            " && echo \"$(printf '\"')\" || true #'",
                            " && (echo \"$(printf '\"')\") || true #'",
                            " && echo \"`printf '\"'`\" || true #'",
-                           " && echo ok # ; true", " && (echo ok)")),
+                           " && echo ok # ; true", " && (echo ok)",
+                           # Codex round 3: a parameter expansion can hide quotes too.
+                           " && echo \"${x:-'\"'}\" || true #'")),
             # ENV beats ARG of the same name; SHELL can skip the comparison.
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV BASE={NODE22}\n{guard}",
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV A=1 BASE {NODE22}\n{guard}",
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\nSHELL [\"/bin/true\"]\n{guard}",
+            # Codex round 3: BuildKit unquotes and unescapes ENV keys.
+            f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV \"BASE\"={NODE22}\n{guard}",
+            f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV BA\"SE\"={NODE22}\n{guard}",
+            f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV BA\\SE={NODE22}\n{guard}",
             # An ARG line that cannot be tokenized drops the names it mentions.
             f"ARG BASE={NODE22} X=a\\ b\nFROM ${{BASE}}\n{guard}",
             f"ARG BASE={NODE22} X=\"open\nFROM ${{BASE}}\n{guard}",

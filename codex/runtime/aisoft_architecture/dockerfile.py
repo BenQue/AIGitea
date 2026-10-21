@@ -251,6 +251,13 @@ def _guard_propagates(rest: str) -> bool:
                     if end < 0 or not GUARD_PLAIN.fullmatch(rest[index + 2:end]):
                         return False
                     index = end + 1
+                elif rest[index] == "$":
+                    # Only plain `$NAME`/`${NAME}`; `${x:-'"'}` can hide quotes.
+                    variable = re.match(r"\$(?:\{[A-Za-z_][A-Za-z0-9_]*\}|[A-Za-z_][A-Za-z0-9_]*|(?![{(]))",
+                                        rest[index:])
+                    if variable is None:
+                        return False
+                    index += max(len(variable[0]), 1)
                 else:
                     index += 1
         elif GUARD_PLAIN.fullmatch(char):
@@ -267,7 +274,10 @@ def _guarded(name: str, default: str, body: list[tuple[int, str, str]]) -> bool:
     guard = re.compile(rf'test "\$\{{{name}\}}" = "{re.escape(default)}"(?:\s*$|\s+&&\s+(.*))')
     shadow = re.compile(rf"(?:^|\s){name}(?:=|\s|$)")
     for _, instruction, arguments in body:
-        if instruction == "SHELL" or (instruction == "ENV" and shadow.search(arguments)):
+        # BuildKit unquotes and expands ENV keys, so any quote, escape or
+        # variable in an ENV before the guard could still name NAME.
+        if instruction == "SHELL" or (instruction == "ENV" and (
+                shadow.search(arguments) or any(char in arguments for char in "\"'`\\$"))):
             return False
         match = guard.fullmatch(arguments) if instruction == "RUN" else None
         if match and (match[1] is None or _guard_propagates(match[1])):
