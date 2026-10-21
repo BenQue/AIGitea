@@ -120,39 +120,87 @@ set -e
 grep -Fq 'LIVE_PROTECTION GAP status_check=false contexts=0' <<<"$gap_output"
 
 # #403: --render-readme reads source files only. A broker that records any call
-# proves it is never consulted; the rows and their sources are fixed.
+# proves it is never consulted.
 spy_broker="$test_root/spy-broker"
 printf '#!/usr/bin/env bash\necho called >>"%s"\nexit 2\n' "$test_root/spy-calls" >"$spy_broker"
 chmod +x "$spy_broker"
-render_output="$(bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme \
-  --repo "$root" --broker "$spy_broker")"
+bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme \
+  --repo "$root" --broker "$spy_broker" >/dev/null
 [[ ! -e "$test_root/spy-calls" ]]
-[[ "$(sed -n 1p <<<"$render_output")" == '| 项 | 值 | 来源 |' ]]
-[[ "$(sed -E 's/^\| ([^|]+) \|.*/\1/' <<<"$render_output" | sed -n '3,$p' | tr '\n' ',')" == \
-  '源码,治理仓库,broker typed 操作,installer 安装面,规范标签,使用发布包最新版本,Matt pin,superpowers pin,architecture catalog,' ]]
-grep -Fq "| 治理仓库 | $(jq '.repositories | length' "$root/codex/config/gitea-governance.json") |" <<<"$render_output"
-grep -Fq "| broker typed 操作 | $(jq '.operations | length' "$root/codex/config/host-access-broker.json") |" <<<"$render_output"
-grep -Fq "| 使用发布包最新版本 | $(jq -r '.releases[-1].version' "$root/usage/bundle.json") |" <<<"$render_output"
 
-# An unreadable source fact fails the render instead of printing a partial table.
+# Every row, value and source is asserted on an isolated checkout built from the
+# synthetic manifests (#380), so a missing fact can be injected without touching
+# the real ones.
 render_repo="$test_root/render-repo"
 mkdir -p "$render_repo/codex/config" "$render_repo/usage" "$render_repo/.claude-plugin" \
   "$render_repo/codex/vendor/superpowers/v0" "$render_repo/architecture"
-for file in codex/config/gitea-governance.json codex/config/host-access-broker.json \
-  codex/config/installed-drift-baseline.json codex/config/gitea-labels.json usage/bundle.json \
-  .claude-plugin/marketplace.json architecture/catalog.json; do
+cp "$root"/codex/tests/fixtures/manifests/*.json "$render_repo/codex/config/"
+for file in codex/config/installed-drift-baseline.json codex/config/gitea-labels.json \
+  usage/bundle.json .claude-plugin/marketplace.json architecture/catalog.json; do
   cp "$root/$file" "$render_repo/$file"
 done
 cp "$root"/codex/vendor/superpowers/*/manifest.json "$render_repo/codex/vendor/superpowers/v0/"
 git -C "$render_repo" init -q
 git -C "$render_repo" -c user.name=t -c user.email=t@example.invalid commit -q --allow-empty -m fixture
-bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme --repo "$render_repo" >/dev/null
-rm "$render_repo/architecture/catalog.json"
+config="$render_repo/codex/config"
+# The source column names files by path; only the label is built from $label so the
+# #380 guard keeps meaning "reads a real manifest".
+label=codex/config
+# shellcheck disable=SC2016 # backticks are literal Markdown, not expansions
+expected="$(
+  printf '%s\n' '| 项 | 值 | 来源 |' '|---|---|---|'
+  printf '| 源码 | `%s` | `git rev-parse HEAD` |\n' "$(git -C "$render_repo" rev-parse --short=12 HEAD)"
+  printf '| 治理仓库 | %s | `%s/gitea-governance.json` `.repositories` |\n' \
+    "$(jq '.repositories | length' "$config/gitea-governance.json")" "$label"
+  printf '| broker typed 操作 | %s | `%s/host-access-broker.json` `.operations` |\n' \
+    "$(jq '.operations | length' "$config/host-access-broker.json")" "$label"
+  printf '| installer 安装面 | %s | `codex/config/installed-drift-baseline.json` `.hosts` |\n' \
+    "$(jq '[.hosts[] | keys[]] | unique | length' "$config/installed-drift-baseline.json")"
+  printf '| 规范标签 | %s（type/* %s） | `codex/config/gitea-labels.json` `.canonical` |\n' \
+    "$(jq '.canonical | length' "$config/gitea-labels.json")" \
+    "$(jq '[.canonical[] | select(.name | startswith("type/"))] | length' "$config/gitea-labels.json")"
+  printf '| 使用发布包最新版本 | %s | `usage/bundle.json` `.releases[-1]` |\n' \
+    "$(jq -r '.releases[-1].version' "$render_repo/usage/bundle.json")"
+  printf '| Matt pin | %s | `.claude-plugin/marketplace.json` |\n' \
+    "$(jq -r '.plugins[] | select(.name == "mattpocock-skills") | .source | "\(.ref) `\(.sha[0:12])`"' \
+      "$render_repo/.claude-plugin/marketplace.json")"
+  printf '| superpowers pin | %s | `codex/vendor/superpowers/*/manifest.json` |\n' \
+    "$(jq -r '"\(.tag) `\(.commit[0:12])`"' "$render_repo"/codex/vendor/superpowers/v0/manifest.json)"
+  printf '| architecture catalog | %s | `architecture/catalog.json` `.revision` |\n' \
+    "$(jq -r '.revision' "$render_repo/architecture/catalog.json")"
+)"
+[[ "$(bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme --repo "$render_repo")" == "$expected" ]]
+
+# A missing key, a wrong type or a missing pin fails the render with nothing on
+# stdout -- never a row reading 0 or null.
+render_must_fail() {
+  local file="$1" filter="$2" saved="$test_root/render-saved.json" status output
+  cp "$render_repo/$file" "$saved"
+  jq "$filter" "$saved" >"$render_repo/$file"
+  set +e
+  output="$(bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme \
+    --repo "$render_repo" 2>/dev/null)"
+  status=$?
+  set -e
+  cp "$saved" "$render_repo/$file"
+  [[ "$status" == "1" && -z "$output" ]] || {
+    echo "render accepted $file with $filter" >&2
+    exit 1
+  }
+}
+render_must_fail "$label/host-access-broker.json" 'del(.operations)'
+render_must_fail "$label/gitea-governance.json" '.repositories = "x"'
+render_must_fail codex/config/installed-drift-baseline.json '.hosts = {}'
+render_must_fail usage/bundle.json '.releases[-1].version = null'
+render_must_fail .claude-plugin/marketplace.json '(.plugins[] | select(.name == "mattpocock-skills") | .source) |= del(.sha)'
+render_must_fail architecture/catalog.json 'del(.revision)'
+mv "$render_repo/codex/vendor/superpowers/v0/manifest.json" "$test_root/superpowers-manifest.json"
+jq 'del(.commit)' "$test_root/superpowers-manifest.json" >"$render_repo/codex/vendor/superpowers/v0/manifest.json"
 set +e
-missing_output="$(bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme \
+pin_output="$(bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme \
   --repo "$render_repo" 2>/dev/null)"
-missing_status=$?
+pin_status=$?
 set -e
-[[ "$missing_status" == "1" && -z "$missing_output" ]]
+[[ "$pin_status" == "1" && -z "$pin_output" ]]
 
 printf '%s\n' 'platform readiness tests passed'

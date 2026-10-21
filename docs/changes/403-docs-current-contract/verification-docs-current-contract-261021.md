@@ -37,20 +37,20 @@ updated: 2026-10-21
 | AC-2 01–08 第三行 `> 现行合同：` 与 `## 来历` | PASS | 8 册各 1 个；来历表 SHA 逐个 `git cat-file -e`，并与 `git log --merges --first-parent` 的 Issue→merge 映射逐行比对，0 不符 |
 | AC-2 `rg -n '尚未(实施\|运行)\|尚待' 0[1-8]-*.md` | PASS | 0 命中；未实施事项集中在 README §8「未实施清单」（12 行） |
 | AC-3 README 日期版本守卫 | PASS | smoke 内 python 守卫：剥掉链接目标、跳过 §5 导航表行后无 `YYYY-MM-DD`、`vN.N`、`N.N.N` |
-| AC-3 反向证明 | PASS | 把 smoke 新增守卫逐字抽到隔离副本跑：README 末尾加「核对日期 2026-10-21」rc=1（报 `README.md:274: 2026-10-21`）；加「Gitea 1.26.4」rc=1；还原 rc=0 |
+| AC-3 反向证明 | PASS | 把 smoke 新增守卫逐字抽到隔离副本跑：README 末尾分别加「核对日期 2026-10-21」「核对日期2026-10-21更新」「版本v1.2已发布」「Gitea 1.26.4」均 rc=1；还原 rc=0。后两种无空格中文写法是 Codex 第 1 轮 F5 找出的漏检，守卫已改用 ASCII 边界 |
 | AC-4 `bash codex/tools/aisoft-platform-readiness.sh --render-readme` | PASS | 输出 9 行表：源码、治理仓库 7、broker 操作 34、installer 安装面 6、规范标签 27（type/* 10）、发布包 1.7.0、Matt v1.3.1、superpowers v7.0.0、catalog 2026.09.0，每行带来源文件 |
-| AC-4 `bash codex/tests/test-platform-readiness.sh` | PASS | 新增：spy broker 证明不调用 broker；行集合与三项取值对照 manifest；删掉 `architecture/catalog.json` 后 rc=1 且 stdout 为空 |
+| AC-4 `bash codex/tests/test-platform-readiness.sh` | PASS | spy broker 证明不调用 broker；在由合成夹具 manifest（#380）搭的隔离 checkout 上逐字比对整张 9 行表（值与来源列）；缺键、错类型、空版本、缺 Matt sha、缺 catalog revision、缺 superpowers commit 七种输入都 rc=1 且 stdout 为空 |
 | AC-5 `grep -c 'grep -Fq' codex/tests/smoke.sh` 与 `smoke-pin-baseline.json` | PASS | 100 → 89，基线 89 |
 | AC-5 反向证明 | PASS | 隔离副本 smoke 末尾加一行 `grep -Fq` rc=1（「90 行，超过基线 89」）；`04` 的 `## 来历` 改名 rc=1；`06` 第三行改为「> 状态：」rc=1；还原 rc=0 |
 | AC-5 01–08/README 正文钉子清单 | PASS | 见下节；改写后 `grep -n 'grep -Fq' smoke.sh` 对 01–08/README 零命中 |
 | AC-6 `01` §4.3、GLOSSARY | PASS | §4.3 标题与首段写明「按项目需求提供的 runner 能力，不是平台默认工具链」；GLOSSARY 加 11 条 ADR 0002 术语，`AWAITING_PR_CONFIRMATION`、`READY_FOR_REVIEW` 改指 `03`；README、GLOSSARY、01–08 的相对链接逐个 `os.path.exists`，0 断链 |
-| AC-7 `python3 codex/tests/check-project-leak.py` | PASS | `--write-baseline` 后 site 19 文件 80 处 → 10 文件 37 处，项目名 10 文件 40 → 9 文件 38；没有任何文件计数上升（收紧前检查器 PASS） |
+| AC-7 `python3 codex/tests/check-project-leak.py` | PASS | `--write-baseline` 后 site 19 文件 82 处（R13 基线）→ 10 文件 37 处，项目名 10 文件 40 → 9 文件 38；没有任何文件计数上升（收紧前检查器 PASS） |
 | AC-8 `git diff --stat origin/main -- skills templates usage` | PASS | 空；被技能与模板引用的 `03` §1/§3/§8/§11/「交叉审核」、`06` §1.0/§1.1/踩坑号、`08` §5/§7.3 编号与标题保留 |
 | AC-8 `bash codex/tools/usage-bundle.sh --verify` | PASS | `VERIFIED 1.7.0` |
 | AC-8 `bash -n`、`shellcheck` smoke、readiness、readiness 测试 | PASS | 三个文件 0 告警 |
 | AC-8 doc 相关单测 | PASS | `test_session_contract`、`test_architecture_governance`（改为钉标题）、`test_route_policy` 19 个 OK |
-| AC-8 `bash codex/tests/smoke.sh` | PASS（T02 head `023e2ba`） | `Codex platform static smoke checks passed.`，5:38；最终 head 的全量结果见下节 |
-| AC-8 Codex 只读交叉审查 | NOT RUN | 待执行，结论记入下节 |
+| AC-8 `bash codex/tests/smoke.sh` | 见说明 | T02 head `023e2ba` PASS（5:38）；T04 head `2b1c0de` **FAIL**：#380 守卫拦下 T03 测试直接读真实 manifest（`test-platform-readiness.sh:133–141`），已改为读合成夹具；修复后的 head 结果记在「交叉审查」节 |
+| AC-8 Codex 只读交叉审查 | 进行中 | 第 1 轮 FAIL（6 项 P2、1 项 P3），处置见下节 |
 | AC-8 `apply-classification-labels.sh --verify 403` | NOT RUN | 合并前执行 |
 
 ## smoke 正文钉子改写清单
@@ -84,4 +84,8 @@ updated: 2026-10-21
 
 ## 交叉审查
 
-待执行。
+审查方 Codex（`codex exec -s read-only`），任务书与结论原文在项目库 `codex-review-403.md`。
+
+| 轮次 | 审查的 head | 结论 | 发现与处置 |
+|---|---|---|---|
+| 1 | `2b1c0de` | FAIL | F1 `03` canonical 模板节误删 source/installed 一致性、`[Issue tip,main]` 整合与 tree 验证、no-op 重验等不变量 → 恢复为一句不变量清单。F2 `06` 把 `REMOTE_BRANCH_MOVED` 写成「一定没写入」，而传输失败也返回此码且可能已写入 → 改写为看回执的 `possible_write`/`write_status`/`observed_remote_head`。F3 README 未实施清单把已完成的 marketplace 注册与来源切换列为未实施（#354 verification）→ 只列 Codex 模型回合与 Claude `retro` 残余项，`08` §5 同步，`08` 来历补 #354。F4 删掉标题里的「（#360）」断了 `project-align.md` 的片段链接 → 标题前加显式兼容锚，技能仍零 diff；全仓片段链接重扫 0 断链。F5 README 守卫的 Unicode `\b` 放过「核对日期2026-10-21更新」→ 改 ASCII 边界并补反向用例。F6 `--render-readme` 缺键渲染成 0、缺 pin 渲染成 `null` 仍 rc=0 → 每个事实先校验键、类型与非空，测试覆盖七种坏输入。P3 站点基线原值应为 82 → 已更正 |

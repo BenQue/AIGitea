@@ -264,7 +264,7 @@ fresh-session typed canary；不得把静态 file metadata 或单层 `PASS` 写�
 | change 模板 digest 广播与发布包摘要两套核对的整合；canonical 模板的全历史内容锁 | 无 | `03` §3 |
 | Gitea 侧 Actions 清理超时（`ZOMBIE_TASK_TIMEOUT` 等）是否显式钉住 | 无 | `01` §4.1 |
 | release reader 读 V2 architecture lock（目前只接受 V1，下游采用 V2 前须先解决） | 无 | [architecture](architecture/README.md) |
-| Claude marketplace 注册、本机插件切到固定来源与两 provider 的 fresh-session 验收 | 无 | `08` §5 |
+| Matt 插件 fresh-session 残余项：Codex 侧模型回合、Claude 侧 `retro`（marketplace 注册与来源切换已在本机完成，以 `check-plugin-pin.sh` 读回为准） | 无 | `08` §5 |
 | GitHub 入站同步 timer 启用（须先完成身份权限读回与 one-shot 验收） | 各项目 | `07`「GitHub 入站同步候选」 |
 | 部署失败与回滚通知的项目侧接入 | 各项目 | `05` §1.1 |
 | Windows Change ID 格式的 runtime 实现 | 无 | `07` §4 |

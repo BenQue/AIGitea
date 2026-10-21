@@ -251,6 +251,8 @@ bash codex/tools/change-template-sync.sh
 `bash codex/tools/usage-bundle.sh --release <新版本> --today <日期>`，否则 smoke 的 `--verify` 变红；
 `origin/main` 上已发布的版本不可改。
 
+<a id="canonical-模板的精确-git-scope-合同360"></a>
+
 ### Canonical 模板的精确 Git scope 合同
 
 `docs/changes/_template/summary.md`、`docs/changes/_template/spec.md`、
@@ -264,14 +266,16 @@ exact committed mapped summary/spec 的 issue、branch、status 合法、`git_sc
 目标资源时，才允许相应模板路径。holder 或模板目录存在本身不授权任何文件；未列出的其余模板
 不得隐含加入。summary 仅接受 `approved` 或同仓合法 `pr-open`，spec 必须 `approved`。
 
-reader 与 broker 共用同一资源分类与有限项目/holder 上下文，不另建 policy 框架、动态白名单、
-manifest schema 或 typed operation。上下文不得来自候选项目的伪 manifest 或任意 caller override。
+reader、会话工具与 broker 共用同一资源分类与有限项目/holder 上下文，不另建 policy 框架、动态白名单、
+manifest schema 或 typed operation。上下文不得来自候选项目的伪 manifest 或任意 caller override；
+复用现有 canonical 来源、owner 与 source/installed 一致性检查。
 只允许四个精确路径的普通模板文件；继续拒绝 other-Issue docs、任意子目录、未批模板、
 路径穿越/别名、symlink/gitlink、非法类型或删除/越界 rename。
 
 `git_history_paths` 同样受资源分类和可达 exact history anchor 限制，逐提交完整 delta 检查保留；
-不能靠净 diff、add→revert、缩小实际 scope 或历史列表漂白越界内容。并发 owner/HEAD/remote/main/
-输入来源漂移时停止并保全证据。source 合并、平台工具真实安装与项目采用分别验收、分别授权。
+不能靠净 diff、add→revert、缩小实际 scope 或历史列表漂白越界内容。R0/R/M/H 祖先、标准
+`[Issue tip,main]` 整合与 tree 验证、ordinary single-ref FF、固定 guard、no-op 重验、required CI 与唯一
+manual PR 第二确认都保持不变。并发 owner/HEAD/remote/main/输入来源漂移时停止并保全证据。source 合并、平台工具真实安装与项目采用分别验收、分别授权。
 
 ## 4. 平台三维标签与 Matt triage
 

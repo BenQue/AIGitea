@@ -76,23 +76,32 @@ render_readme_table() {
   # Every fact is read before anything is printed: the caller runs this in a
   # command substitution where errexit is off, so each read checks itself.
   local sha repositories operations installers labels bundle matt superpowers catalog manifests
+  # A missing key, a wrong type or an empty pin is an error, never 0 or "null".
+  local defs='def str: if type == "string" and length > 0 then . else error("missing") end;
+    def list: if type == "array" and length > 0 then . else error("missing") end;
+    def pin($ref; $sha): "\($ref | str) `\($sha | str | if length >= 12 then .[0:12] else error("short") end)`";'
   sha="$(git -C "$repo" rev-parse HEAD)" || return 1
-  repositories="$(jq -er '.repositories | length' "$repo/codex/config/gitea-governance.json")" || return 1
-  operations="$(jq -er '.operations | length' "$repo/codex/config/host-access-broker.json")" || return 1
-  installers="$(jq -er '[.hosts[] | keys[]] | unique | length' \
+  repositories="$(jq -er "$defs"' .repositories | list | length' \
+    "$repo/codex/config/gitea-governance.json")" || return 1
+  operations="$(jq -er "$defs"' .operations | list | length' \
+    "$repo/codex/config/host-access-broker.json")" || return 1
+  installers="$(jq -er "$defs"' .hosts | if type == "object" and length > 0 and all(.[]; type == "object")
+    then [.[] | keys[]] | unique | list | length else error("missing") end' \
     "$repo/codex/config/installed-drift-baseline.json")" || return 1
-  labels="$(jq -er '"\(.canonical | length)（type/* \([.canonical[] | select(.name | startswith("type/"))] | length)）"' \
+  labels="$(jq -er "$defs"' .canonical | list
+    | "\(length)（type/* \([.[] | .name | str | select(startswith("type/"))] | length)）"' \
     "$repo/codex/config/gitea-labels.json")" || return 1
-  bundle="$(jq -er '.releases[-1].version' "$repo/usage/bundle.json")" || return 1
-  matt="$(jq -er '.plugins[] | select(.name == "mattpocock-skills") | .source | "\(.ref) `\(.sha[0:12])`"' \
+  bundle="$(jq -er "$defs"' .releases | list | .[-1].version | str' "$repo/usage/bundle.json")" || return 1
+  matt="$(jq -er "$defs"' [.plugins | list | .[] | select(.name == "mattpocock-skills")]
+    | if length == 1 then .[0].source | pin(.ref; .sha) else error("ambiguous") end' \
     "$repo/.claude-plugin/marketplace.json")" || return 1
   manifests=("$repo"/codex/vendor/superpowers/*/manifest.json)
   if ((${#manifests[@]} != 1)) || [[ ! -f "${manifests[0]}" ]]; then
     echo 'RENDER BLOCKED superpowers-pin-ambiguous' >&2
     return 1
   fi
-  superpowers="$(jq -er '"\(.tag) `\(.commit[0:12])`"' "${manifests[0]}")" || return 1
-  catalog="$(jq -er '.revision' "$repo/architecture/catalog.json")" || return 1
+  superpowers="$(jq -er "$defs"' pin(.tag; .commit)' "${manifests[0]}")" || return 1
+  catalog="$(jq -er "$defs"' .revision | str' "$repo/architecture/catalog.json")" || return 1
   printf '%s\n' '| 项 | 值 | 来源 |' '|---|---|---|'
   printf '| 源码 | `%s` | `git rev-parse HEAD` |\n' "${sha:0:12}"
   printf '| 治理仓库 | %s | `codex/config/gitea-governance.json` `.repositories` |\n' "$repositories"
