@@ -546,6 +546,12 @@ governance_set=(
   "$ROOT/templates/project/ci/ci.yml"
   "$ROOT/templates/project/ci/merge-preview.sh"
 )
+# #402: the CI reference a project copies checks out from the job's own Gitea;
+# no step downloads an action from GitHub.
+if rg -n '^[[:space:]-]*uses[[:space:]]*:' "$ROOT/templates/project/ci/ci.yml"; then
+  echo '项目 CI 参考不得用 GitHub action（#402，checkout 只走本 job 的 Gitea）' >&2
+  exit 1
+fi
 # An unexpanded glob or a renamed file would make rg exit 2, which `if rg`
 # reads as "no match"; assert every member exists so the guard fails closed.
 for governance_file in "${governance_set[@]}"; do
