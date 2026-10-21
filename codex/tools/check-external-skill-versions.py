@@ -15,8 +15,15 @@ without --repo: NOT_CHECKED). PIN_DRIFT means "this tool is not on the pin: go
 through the 08 §5 adaptation checklist first" and fails the run like UNKNOWN;
 PIN_NOT_INSTALLED informs. The adaptation record must name the pinned version.
 
+With --capabilities (#408, 08 §7.1) the report ends with one CAPABILITY line
+per tool for the minimum capability set (platform skills, Matt pin, superpowers
+pin, read-only review CLI, smoke tools) and RESULT follows those three lines:
+PASS, KNOWN_EXTERNAL (the only unmet item is registered in KNOWN_EXTERNAL) or
+GAP. --capabilities needs --repo: Cursor is read from that checkout only.
+
 Nothing here installs, fetches or writes; the only processes started are
-`claude --version`, `codex --version` and the Matt pin checker. Formats owned
+`claude --version`, `codex --version`, the Matt pin checker and, with
+--capabilities, `cursor-agent --version` and `cursor-agent status`. Formats owned
 by Claude Code, Codex or Cursor carry no public promise: anything unrecognised
 is UNKNOWN, never a guess.
 """
@@ -24,7 +31,7 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
@@ -47,6 +54,16 @@ CURSOR_MANIFESTS = (".cursor-plugin/plugin.json", ".claude-plugin/plugin.json", 
 CURSOR_SKILLS = ".cursor/skills"
 PACK = "superpowers"
 CLAUDE_INSTALLED_SCHEMA = 2
+
+SKILL_MANIFEST = ROOT / "skills/skills.manifest"
+LOCK_PATH = ".aisoft/platform-usage.lock.json"
+SMOKE_TOOLS = ("bash", "python3", "jq", "rg", "git")
+# Unmet capability items whose cause lies outside the platform (#408). Key:
+# (tool, item, first word of the item state); value: why it is not a GAP.
+KNOWN_EXTERNAL = {
+    ("codex", "superpowers", "PIN_NOT_INSTALLED"):
+        "#392 Codex official marketplace does not offer the pinned version; the platform does not install it",
+}
 
 VERSION_RE = re.compile(r"[0-9]+(?:\.[0-9]+){1,3}")
 ID_PART_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
@@ -364,9 +381,193 @@ def matt_state(home: Path) -> str:
     return state if re.fullmatch(r"PIN_[A-Z_]+", state) else "UNKNOWN"
 
 
+def _sha256(path: Path) -> str:
+    import hashlib
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def declared_skills() -> dict[str, set[str]]:
+    declared: dict[str, set[str]] = {}
+    for line in SKILL_MANIFEST.read_text(encoding="utf-8").splitlines():
+        if line.strip() and not line.lstrip().startswith("#"):
+            name, targets = line.split()
+            declared[name] = set(targets.split(","))
+    return declared
+
+
+def _compare_files(pairs: list[tuple[Path, str]], names: dict[Path, str]) -> str:
+    """pairs: (installed path, expected sha256). Every skill missing: NOT_INSTALLED."""
+    present, differs = set(), set()
+    for path, expected in pairs:
+        name = names[path]
+        if not os.path.lexists(path):
+            differs.add(name)
+            continue
+        present.add(name)
+        if path.is_symlink() or not path.is_file() or _sha256(path) != expected:
+            differs.add(name)
+    if not present:
+        return "PIN_NOT_INSTALLED"
+    if differs:
+        return f"PIN_DRIFT differs={','.join(sorted(differs))}"
+    return f"PIN_CLEAN skills={len(set(names.values()))}"
+
+
+def maintainer_skills(home: Path, provider: str) -> str:
+    """Installed maintainer-layer landing against this checkout's skills/ source."""
+    base = home / (".claude/skills" if provider == "claude" else ".agents/skills")
+    pairs, names = [], {}
+    for name, targets in sorted(declared_skills().items()):
+        if provider not in targets:
+            continue
+        source = ROOT / "skills" / name
+        files = [source / "SKILL.md", *sorted((source / "references").glob("*.md"))] if provider == "claude" \
+            else sorted(p for p in source.rglob("*") if p.is_file())
+        for file in files:
+            target = base / name / file.relative_to(source)
+            pairs.append((target, _sha256(file)))
+            names[target] = name
+    return _compare_files(pairs, names)
+
+
+def cursor_platform_skills(repo: Path) -> str:
+    """<repo>/.cursor/skills against the bundle release the project pins (latest without a pin)."""
+    releases = _load_json(BUNDLE)["releases"]
+    reference, pin = releases[-1], "unpinned"
+    lock = repo / LOCK_PATH
+    # Only an absent lock falls back to the latest release; a lock that is a
+    # link, a directory or unreadable is a shape this reader does not trust.
+    if os.path.lexists(lock):
+        if lock.is_symlink() or not lock.is_file():
+            return f"UNKNOWN ({LOCK_PATH} is not a regular file)"
+        data = _load_json(lock)
+        version = data.get("bundle_version") if isinstance(data, dict) else None
+        matches = [entry for entry in releases if entry["version"] == version]
+        if not matches:
+            return f"UNKNOWN (pinned bundle {version!r} is not in the release history)"
+        reference, pin = matches[0], f"pin={version}"
+    declared = declared_skills()
+    pairs, names = [], {}
+    for member in reference["members"]:
+        parts = PurePosixPath(member["source"]).parts
+        if member.get("mode") != "skill" or len(parts) < 3 or parts[1] not in declared:
+            continue
+        if "claude" not in declared[parts[1]] or parts[2] == "agents":
+            continue
+        target = repo / ".cursor/skills" / PurePosixPath(*parts[1:])
+        pairs.append((target, member["sha256"]))
+        names[target] = parts[1]
+    state = _compare_files(pairs, names)
+    return f"{state} {pin}"
+
+
+def codex_matt(home: Path, pinned: str) -> str:
+    """The installed vendor snapshot, every skill in it and every load link."""
+    vendor = home / ".agents/vendor/mattpocock"
+    current = vendor / "current"
+    if not os.path.lexists(current):
+        return "PIN_NOT_INSTALLED"
+    if not current.is_symlink():
+        return "UNKNOWN (vendor/mattpocock/current is not a link)"
+    if os.readlink(current) != f"releases/v{pinned}":
+        return f"PIN_DRIFT current={os.readlink(current)}"
+    release = vendor / "releases" / f"v{pinned}"
+    source = ROOT / f"codex/vendor/mattpocock/v{pinned}/manifest.json"
+    installed = release / "manifest.json"
+    if not installed.is_file() or installed.is_symlink() or _sha256(installed) != _sha256(source):
+        return "PIN_DRIFT manifest=differs"
+    differs = []
+    for item in _load_json(source)["skills"]:
+        relative = PurePosixPath(item["path"]).parent
+        directory = release / relative
+        link = home / ".agents/skills" / item["name"]
+        if (not directory.is_dir() or directory.is_symlink() or any(p.is_symlink() for p in directory.rglob("*"))
+                or _directory_hash(directory) != item["sha256"]
+                or not link.is_symlink() or os.readlink(link) != f"../vendor/mattpocock/current/{relative}"):
+            differs.append(item["name"])
+    if differs:
+        return f"PIN_DRIFT differs={','.join(sorted(differs))}"
+    return "PIN_CLEAN"
+
+
+def cursor_review() -> str:
+    version = cli_version("cursor-agent")
+    if version in {"NOT_FOUND", "UNKNOWN"}:
+        return version
+    try:
+        completed = subprocess.run(
+            ["cursor-agent", "status"], capture_output=True, text=True,
+            timeout=CLI_TIMEOUT_SECONDS, check=False, stdin=subprocess.DEVNULL,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return "UNKNOWN"
+    return "OK" if completed.returncode == 0 and "Logged in" in completed.stdout else "NOT_LOGGED_IN"
+
+
+def capability_line(tool: str, items: list[tuple[str, str, bool]]) -> tuple[str, str]:
+    """items: (name, state, met). Returns (verdict, line)."""
+    unmet = [(name, state) for name, state, met in items if not met]
+    reasons = [KNOWN_EXTERNAL.get((tool, name, state.split()[0])) for name, state in unmet]
+    if not unmet:
+        verdict = "PASS"
+    elif all(reasons):
+        verdict = "KNOWN_EXTERNAL"
+    else:
+        verdict = "GAP"
+    # Met items show their state word; an unmet one carries its whole state.
+    detail = " ".join(f"{name}={state.split()[0] if met else '[' + state + ']'}" for name, state, met in items)
+    known = "".join(f" ({reason})" for reason in reasons if reason) if verdict == "KNOWN_EXTERNAL" else ""
+    return verdict, f"CAPABILITY {tool} {verdict} {detail}{known}"
+
+
+def capabilities(home: Path, repo: Path, superpowers: dict[str, str], matt_claude: str, matt_pin: str,
+                 clis: dict[str, str]) -> list[tuple[str, str]]:
+    import shutil
+    missing = [tool for tool in SMOKE_TOOLS if shutil.which(tool) is None]
+    smoke = "OK" if not missing else f"MISSING {','.join(missing)}"
+
+    def safe(reader, *args) -> str:
+        try:
+            return reader(*args)
+        except (Unreadable, OSError, ValueError, KeyError, TypeError) as error:
+            return f"UNKNOWN ({type(error).__name__})"
+
+    def clean(state: str) -> bool:
+        return state.split()[0] == "PIN_CLEAN"
+
+    def cli_ok(state: str) -> bool:
+        return state not in {"NOT_FOUND", "UNKNOWN"}
+
+    rows = []
+    for tool in ("claude", "codex"):
+        skills = safe(maintainer_skills, home, tool)
+        matt = matt_claude if tool == "claude" else safe(codex_matt, home, matt_pin)
+        review = "OK" if cli_ok(clis[tool]) else clis[tool]
+        rows.append(capability_line(tool, [
+            ("platform-skills", skills, clean(skills)), ("matt", matt, clean(matt)),
+            ("superpowers", superpowers[tool], clean(superpowers[tool])),
+            ("review", review, review == "OK"), ("smoke", smoke, smoke == "OK"),
+        ]))
+    cursor_skills = safe(cursor_platform_skills, repo)
+    review = cursor_review()
+    rows.append(capability_line("cursor", [
+        ("platform-skills", cursor_skills, clean(cursor_skills)), ("matt", superpowers["cursor-matt"],
+         clean(superpowers["cursor-matt"])), ("superpowers", superpowers["cursor"], clean(superpowers["cursor"])),
+        ("review", review, review == "OK"),
+    ]))
+    return rows
+
+
 def main(argv: list[str]) -> int:
-    usage = "usage: check-external-skill-versions.sh [--source-only | [--home <dir>] [--repo <checkout>]]"
+    usage = ("usage: check-external-skill-versions.sh "
+             "[--source-only | [--home <dir>] [--repo <checkout>] | [--home <dir>] --repo <checkout> --capabilities]")
     source_only = argv == ["--source-only"]
+    with_capabilities = not source_only and "--capabilities" in argv
+    if with_capabilities:
+        argv = [arg for arg in argv if arg != "--capabilities"]
+        if argv.count("--repo") != 1:
+            print(usage, file=sys.stderr)
+            return 2
     options: dict[str, Path] = {}
     if not source_only:
         for index in range(0, len(argv), 2):
@@ -422,6 +623,17 @@ def main(argv: list[str]) -> int:
     cursor_matt = cursor_line(home, repo, MATT_PACK, matt_manifest, matt_pin)
     lines += [f"{PACK.upper()} claude {claude}", f"{PACK.upper()} codex {codex}", f"MATT claude {matt}",
               f"{PACK.upper()} cursor {cursor_superpowers}", f"MATT cursor {cursor_matt}"]
+
+    if with_capabilities:
+        rows = capabilities(home, repo, {"claude": claude, "codex": codex, "cursor": cursor_superpowers,
+                                         "cursor-matt": cursor_matt}, matt, matt_pin,
+                            {"claude": clis[0], "codex": clis[1]})
+        lines += [line for _, line in rows]
+        verdicts = {verdict for verdict, _ in rows}
+        result = "GAP" if "GAP" in verdicts else "KNOWN_EXTERNAL" if "KNOWN_EXTERNAL" in verdicts else "PASS"
+        lines.append(f"RESULT {result}")
+        print("\n".join(lines))
+        return 1 if result == "GAP" else 0
 
     states = [claude.split()[0], codex.split()[0], cursor_superpowers.split()[0], cursor_matt.split()[0], *clis]
     failing = any(state in {"PIN_DRIFT", "UNKNOWN"} for state in states) or matt != "PIN_CLEAN"

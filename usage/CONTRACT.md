@@ -90,7 +90,8 @@ pin 的版本，项目不得手改；Gitea 与 Git 访问仍经本机安装的 h
 | `change-name N slug` | 校验并打印新 change 分支名 |
 | `resolve-documents N` | 解析映射的 change 文档名 |
 | `check-change-documents` | 核对全部 change 文档的 front matter 合同 |
-| `backfill-pr-url N --pr-url U` | 建 PR 后回填 summary 的 `pr_url` 与 `status` |
+| `open-pr N --title T --body-file F` | 确认点 2 之后一步完成首推、建 PR、回填 summary 与再推 |
+| `backfill-pr-url N --pr-url U` | 手工修复：建 PR 后回填 summary 的 `pr_url` 与 `status` |
 | `claim-worktree --branch B` | 把 change worktree 绑定到本会话（`AISOFT_SESSION_ID`） |
 | `scan-worktrees` | 只读扫描 change worktree 是否被改写 |
 | `classify N`、`classify --apply N`、`classify --verify N` | 判级投影：计划（含路由行）、写入、读回 |

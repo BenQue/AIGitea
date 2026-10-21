@@ -327,7 +327,25 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(self.remote_head(), final)
         self.assertTrue(published["guard_executed"])
 
-    def test_pr_lifecycle_does_not_accept_bad_binding_or_unapproved_spec(self):
+    def test_spec_without_lifecycle_status_is_scoped_by_the_summary(self):
+        # #408: the summary is the only approval record; a spec without status (or
+        # with a stale one) is scoped, an unapproved summary still is not.
+        summary, spec, paths, summary_text, spec_text = self.mapped_scope_fixture()
+        for spec_variant in (spec_text.replace("status: approved\n", ""),
+                             spec_text.replace("status: approved", "status: contract-drafting")):
+            with self.subTest(spec=spec_variant.count("status")):
+                spec.write_text(spec_variant)
+                self.git("add", "docs")
+                self.git("commit", "-q", "-m", "#327 spec without lifecycle status")
+                self.assertEqual(self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH).paths, paths)
+        summary.write_text(summary_text.replace("status: approved", "status: spec-review"))
+        self.git("add", "docs")
+        self.git("commit", "-q", "-m", "#327 unapproved summary")
+        with self.assertRaises(GitError) as caught:
+            self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH)
+        self.assertEqual(caught.exception.code, "SCOPE_UNKNOWN")
+
+    def test_pr_lifecycle_does_not_accept_bad_binding_or_unapproved_summary(self):
         summary, spec, _paths, summary_text, spec_text = self.mapped_scope_fixture()
         opened = summary_text.replace("status: approved", "status: pr-open").replace(
             "pr_url: ''", "pr_url: http://fixture.invalid/admin/platform/pulls/346")
@@ -339,7 +357,7 @@ class IntegrationTests(unittest.TestCase):
             (opened.replace("/pulls/346", "/pulls/346\npr_url: http://fixture.invalid/admin/platform/pulls/347"), spec_text),
             (opened.replace("pr_url: http://fixture.invalid", "pr_url: http://other.invalid"), spec_text),
             (opened.replace("/issues/327", "/issues/328"), spec_text),
-            (opened, spec_text.replace("status: approved", "status: draft")),
+            (opened, spec_text.replace("issue: 327", "issue: 328")),
             (opened.replace("status: pr-open", "status: pr-open\nstatus:"), spec_text),
             (opened.replace("/pulls/346", "/pulls/346\npr_url:"), spec_text),
             (opened.replace("/issues/327", "/issues/327\ngitea_url: http://fixture.invalid/admin/platform/issues/328"), spec_text),
@@ -347,7 +365,7 @@ class IntegrationTests(unittest.TestCase):
             (opened.replace("/issues/327", "/issues/327\ngitea_url: malformed"), spec_text),
             (opened.replace("issue: 327", "issue: 327\nissue:"), spec_text),
             (opened.replace("branch: " + BRANCH, "branch: " + BRANCH + "\nbranch:"), spec_text),
-            (opened, spec_text.replace("status: approved", "status: approved\nstatus:")),
+            (opened, spec_text.replace("branch: " + BRANCH, "branch: change/328-other")),
         )
         for index, (bad_summary, bad_spec) in enumerate(cases):
             with self.subTest(case=index):

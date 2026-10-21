@@ -99,6 +99,10 @@ class SessionContractTests(unittest.TestCase):
         self.assertNotIn("Controller", backfill)
         self._require(
             backfill,
+            # #408: one command opens the PR; backfill-pr-url stays for manual repair.
+            "`aisoft open-pr N --title <标题> --body-file <正文文件>`",
+            "不合格时不发任何 broker 请求",
+            "同一 change 已有开放 PR 时 broker 返回原 PR，回填已是同值时不再提交",
             "用 broker `gitea.pull.create` 建 PR 后必须运行",
             "`aisoft backfill-pr-url N --pr-url <实际 PR URL>`",
             "把 PR 的 URL 写进映射 summary 的 `pr_url` 并把 `status` 推进到 `pr-open`，只提交这一份文档",
@@ -222,6 +226,7 @@ class SessionContractTests(unittest.TestCase):
             self._assert_backfill_paths,
             self._source(self.PLATFORM),
             (
+                ("不合格时不发任何 broker 请求", "不合格时照样发请求"),
                 ("只提交这一份文档", "提交所有文档"),
                 ("`pr_url` 只写在 summary 里", "`pr_url` 写在任意文档里"),
                 ("并经 broker 推送同一个 change 分支", "并直接推送"),

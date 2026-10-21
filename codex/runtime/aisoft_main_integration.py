@@ -385,9 +385,11 @@ class GitRepository:
         spec = self.run("show", head + ":" + directory + spec_name).stdout
         require(spec.startswith("---\n") and "\n---\n" in spec, "spec front matter missing", "SCOPE_UNKNOWN")
         front = spec.split("\n---\n", 1)[0]
-        for key, expected in (("issue", number), ("branch", branch), ("status", "approved")):
+        # #408: approval lives in the summary only; the spec carries no lifecycle
+        # status and only its binding is checked.
+        for key, expected in (("issue", number), ("branch", branch)):
             require(field(front, key) == expected,
-                    "mapped spec binding/status differs", "SCOPE_UNKNOWN")
+                    "mapped spec binding differs", "SCOPE_UNKNOWN")
         context = None
         def paths(key):
             nonlocal context

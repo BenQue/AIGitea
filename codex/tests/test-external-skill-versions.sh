@@ -313,6 +313,162 @@ status=$?
 set -e
 [[ "$status" == 2 && "$output" == RECORD_INVALID:* ]] || fail "unknown record key: exit $status: $output"
 
+# #408 (08 §7.1): --capabilities adds one CAPABILITY line per tool and RESULT
+# follows them. The fixtures install every item; each case breaks one.
+fake_cli claude '9.8.7 (Claude Code)'
+fake_cli codex 'codex-cli 1.2.3'
+for tool in jq rg git; do
+  if command -v "$tool" >/dev/null; then ln -s "$(command -v "$tool")" "$bin/$tool"; fi
+done
+cat >"$bin/cursor-agent" <<'SH'
+#!/bin/sh
+case "$1" in
+  --version) echo "2026.10.19-test" ;;
+  status) if [ -e "$CURSOR_LOGGED_OUT" ]; then echo "Not logged in"; exit 1; fi; echo "Logged in as someone" ;;
+esac
+SH
+chmod +x "$bin/cursor-agent"
+export CURSOR_LOGGED_OUT="$tmp/cursor-logged-out"
+skill_names() {
+  awk -v want="$1" '!/^#/ && NF == 2 { n = split($2, t, ","); for (i = 1; i <= n; i++) if (t[i] == want) print $1 }' \
+    "$root/skills/skills.manifest"
+}
+# installed <home>: maintainer-layer landings and the Codex Matt snapshot.
+installed() {
+  local dir="$1" name
+  for name in $(skill_names claude); do
+    mkdir -p "$dir/.claude/skills/$name"
+    cp "$root/skills/$name/SKILL.md" "$dir/.claude/skills/$name/"
+    if [[ -d "$root/skills/$name/references" ]]; then
+      mkdir -p "$dir/.claude/skills/$name/references"
+      cp "$root/skills/$name/references/"*.md "$dir/.claude/skills/$name/references/"
+    fi
+  done
+  for name in $(skill_names codex); do
+    mkdir -p "$dir/.agents/skills"
+    cp -R "$root/skills/$name" "$dir/.agents/skills/"
+  done
+  mkdir -p "$dir/.agents/vendor/mattpocock/releases"
+  cp -R "$root/codex/vendor/mattpocock/v$matt_pin_version" "$dir/.agents/vendor/mattpocock/releases/"
+  ln -s "releases/v$matt_pin_version" "$dir/.agents/vendor/mattpocock/current"
+  while IFS=' ' read -r name ref; do
+    ln -s "../vendor/mattpocock/current/$ref" "$dir/.agents/skills/$name"
+  done < <(python3 -B -c 'import json, sys, os
+for s in json.load(open(sys.argv[1]))["skills"]: print(s["name"], os.path.dirname(s["path"]))' \
+    "$root/codex/vendor/mattpocock/v$matt_pin_version/manifest.json")
+}
+# cursor_project <name>: project() plus the platform skills Cursor receives.
+cursor_project() {
+  local repo name
+  repo="$(project "$1")"
+  for name in $(skill_names claude); do
+    mkdir -p "$repo/.cursor/skills/$name"
+    cp "$root/skills/$name/SKILL.md" "$repo/.cursor/skills/$name/"
+    if [[ -d "$root/skills/$name/references" ]]; then
+      mkdir -p "$repo/.cursor/skills/$name/references"
+      cp "$root/skills/$name/references/"*.md "$repo/.cursor/skills/$name/references/"
+    fi
+  done
+  printf '%s\n' "$repo"
+}
+caps() {
+  local label="$1" want_status="$2" dir="$3" line
+  shift 3
+  set +e
+  output="$(PATH="$bin" bash "$checker" --home "$dir" --repo "$repo" --capabilities 2>&1)"
+  status=$?
+  set -e
+  [[ "$status" == "$want_status" ]] || fail "$label: exit $status, expected $want_status: $output"
+  for line in "$@"; do
+    grep -Fq -- "$line" <<<"$output" || fail "$label: missing '$line' in: $output"
+  done
+}
+dir="$(home caps-pass "$adapted" registered "$adapted")"
+installed "$dir"
+repo="$(cursor_project caps-repo)"
+before="$(snapshot "$dir")$(snapshot "$repo")"
+caps caps-pass 0 "$dir" \
+  "CAPABILITY claude PASS platform-skills=PIN_CLEAN matt=PIN_CLEAN superpowers=PIN_CLEAN review=OK smoke=" \
+  "CAPABILITY codex PASS platform-skills=PIN_CLEAN matt=PIN_CLEAN superpowers=PIN_CLEAN review=OK smoke=" \
+  "CAPABILITY cursor PASS platform-skills=PIN_CLEAN matt=PIN_CLEAN superpowers=PIN_CLEAN review=OK" \
+  "RESULT "
+[[ "$(snapshot "$dir")$(snapshot "$repo")" == "$before" ]] || fail "zero-write: --capabilities changed the home or checkout"
+if [[ -x "$bin/jq" && -x "$bin/rg" && -x "$bin/git" ]]; then
+  grep -Fqx "RESULT PASS" <<<"$output" || fail "caps-pass: not RESULT PASS: $output"
+fi
+# Codex without superpowers is the registered external cause: KNOWN_EXTERNAL, not a GAP.
+dir="$(home caps-known "$adapted" - -)"
+installed "$dir"
+caps caps-known 0 "$dir" \
+  "CAPABILITY codex KNOWN_EXTERNAL platform-skills=PIN_CLEAN matt=PIN_CLEAN superpowers=[PIN_NOT_INSTALLED config=absent pinned=$adapted]" \
+  "(#392 Codex official marketplace does not offer the pinned version; the platform does not install it)"
+# Any other unmet item is a GAP: a drifted Claude landing, a drifted Codex
+# Matt link, a logged-out Cursor, a Codex superpowers off the pin.
+dir="$(home caps-gap "$adapted" registered "$newer")"
+installed "$dir"
+printf '\n' >>"$dir/.claude/skills/issue-session-flow/SKILL.md"
+ln -sfn releases/v1.2.2 "$dir/.agents/vendor/mattpocock/current"
+touch "$CURSOR_LOGGED_OUT"
+caps caps-gap 1 "$dir" \
+  "CAPABILITY claude GAP platform-skills=[PIN_DRIFT differs=issue-session-flow]" \
+  "CAPABILITY codex GAP platform-skills=PIN_CLEAN matt=[PIN_DRIFT current=releases/v1.2.2] superpowers=[PIN_DRIFT" \
+  "CAPABILITY cursor GAP platform-skills=PIN_CLEAN matt=PIN_CLEAN superpowers=PIN_CLEAN review=[NOT_LOGGED_IN]" \
+  "RESULT GAP"
+rm -f "$CURSOR_LOGGED_OUT"
+# Codex Matt is the whole snapshot plus its load links, not only the manifest.
+dir="$(home caps-matt-content "$adapted" registered "$adapted")"
+installed "$dir"
+printf '\n' >>"$dir/.agents/vendor/mattpocock/releases/v$matt_pin_version/skills/engineering/tdd/SKILL.md"
+rm "$dir/.agents/skills/grill-me"
+caps caps-matt-content 1 "$dir" "CAPABILITY codex GAP platform-skills=PIN_CLEAN matt=[PIN_DRIFT differs=grill-me,tdd]"
+# A lock that is a link is not trusted: never a silent fallback to the latest release.
+repo="$(cursor_project caps-linked-lock)"
+mkdir -p "$repo/.aisoft"
+printf '{"contract_version": 1, "bundle_version": "1.8.0", "bundle_digest": "x"}\n' >"$tmp/elsewhere-lock.json"
+ln -s "$tmp/elsewhere-lock.json" "$repo/.aisoft/platform-usage.lock.json"
+dir="$(home caps-linked-lock "$adapted" registered "$adapted")"
+installed "$dir"
+caps caps-linked-lock 1 "$dir" "CAPABILITY cursor GAP platform-skills=[UNKNOWN (.aisoft/platform-usage.lock.json is not a regular file)]"
+# A checkout without Cursor landings: every Cursor item is PIN_NOT_INSTALLED, a GAP.
+repo="$tmp/repo-empty"
+dir="$(home caps-no-cursor "$adapted" registered "$adapted")"
+installed "$dir"
+caps caps-no-cursor 1 "$dir" "CAPABILITY cursor GAP platform-skills=[PIN_NOT_INSTALLED unpinned]" "RESULT GAP"
+# Reverse proof: without the registration the same Codex state is a GAP.
+caps_tree="$tmp/caps-tree"
+mkdir -p "$caps_tree/codex/tools" "$caps_tree/codex/runtime" "$caps_tree/skill-for-claude"
+cp -R "$root/skills" "$root/usage" "$caps_tree/"
+cp -R "$root/codex/config" "$root/codex/vendor" "$caps_tree/codex/"
+cp -R "$root/codex/runtime/aisoft_loop" "$caps_tree/codex/runtime/"
+cp "$root/codex/install-skills.sh" "$caps_tree/codex/"
+cp "$root/skill-for-claude/check-plugin-pin.sh" "$caps_tree/skill-for-claude/"
+cp "$root/codex/tools/check-external-skill-versions.sh" "$caps_tree/codex/tools/"
+python3 -B - "$root/codex/tools/check-external-skill-versions.py" "$caps_tree/codex/tools/check-external-skill-versions.py" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+emptied, count = re.subn(r"KNOWN_EXTERNAL = \{\n.*?\n\}\n", "KNOWN_EXTERNAL = {}\n", text, flags=re.S)
+assert count == 1, "KNOWN_EXTERNAL block not found"
+open(sys.argv[2], "w", encoding="utf-8").write(emptied)
+PY
+repo="$(cursor_project caps-repo-reverse)"
+dir="$(home caps-reverse "$adapted" - -)"
+installed "$dir"
+set +e
+output="$(PATH="$bin" bash "$caps_tree/codex/tools/check-external-skill-versions.sh" --home "$dir" --repo "$repo" --capabilities 2>&1)"
+status=$?
+set -e
+if [[ "$status" != 1 ]] || ! grep -Fq "CAPABILITY codex GAP" <<<"$output"; then
+  fail "reverse proof: an unregistered external cause must be a GAP: exit $status: $output"
+fi
+for args in "--capabilities" "--home /x --capabilities"; do
+  set +e
+  # shellcheck disable=SC2086 # split on purpose
+  bash "$checker" $args >/dev/null 2>&1
+  status=$?
+  set -e
+  [[ "$status" == 2 ]] || fail "usage: '$args' exit $status, expected 2"
+done
+
 for args in "--bogus" "--home" "--source-only extra" "--repo" "--repo /x --repo /y" "--home /x --source-only"; do
   set +e
   # shellcheck disable=SC2086 # split on purpose: each entry is an argument list

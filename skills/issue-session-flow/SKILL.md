@@ -162,7 +162,7 @@ commit、测试与普通修复、必需的更宽闸门、判级投影。确认�
 ## 确认点 1：合同/启动
 
 triage、判级与路由要求的 semantic docs 完整后，输出 exact Issue 合同并询问是否开始实现。
-确认后持久化 `approved`；它只授权合同内实现、测试和修复，不授权提交 PR、merge 或 deploy。
+确认后只把映射 summary 的 `status` 改为 `approved`（spec、plan 不再带 `status`，#408）；它只授权合同内实现、测试和修复，不授权提交 PR、merge 或 deploy。
 
 候选里固定带一行路由，取自 summary 的 `route:`（查 `aisoft-platform` 技能的 `references/route-policy.md` 得出）：
 
@@ -170,7 +170,7 @@ triage、判级与路由要求的 semantic docs 完整后，输出 exact Issue �
 路由: <process> · <tier>/<effort> · <method> · verify <verify> · review <review> · skills <skills>
 ```
 
-人可以改任何一格；改了就把哪一格、为什么写进 summary 的 `override_reason`，再持久化 `approved`。
+人可以改任何一格；改了就把哪一格、为什么写进 summary 的 `override_reason`，再把 summary 改为 `approved`。
 
 ## 确认点 2：准备提交最终 PR
 
@@ -184,7 +184,7 @@ Branch: change/N-<slug>
 变更: <一句话>
 验证: <真实结果；未运行写 NOT RUN>
 判级: <classification read-back>
-交叉审查: <平台仓 complex：审查方、审查的 head、PASS/FAIL；其它写“不适用”>
+交叉审查: <平台仓 complex：实现方、审查方、审查的 head、PASS/FAIL；其它写“不适用”>
 未执行: <install、credential、protection apply、deploy 等>
 
 请确认提交唯一最终 PR。确认后可继续当前合同内的 PR CI 修复；required CI 全绿后停在
