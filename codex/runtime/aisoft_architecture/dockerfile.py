@@ -267,17 +267,39 @@ def _guard_propagates(rest: str) -> bool:
     return True
 
 
-def _guarded(name: str, default: str, body: list[tuple[int, str, str]]) -> bool:
+def _may_shadow(name: str, instruction: str, arguments: str) -> bool:
+    """SHELL, or an ENV that sets NAME or cannot be proven not to: BuildKit
+    unquotes and expands ENV keys, and ENV beats an ARG of the same name.
+    Quoted values are fine; only keys are compared."""
+    if instruction == "SHELL":
+        return True
+    if instruction != "ENV":
+        return False
+    words = _words(arguments)
+    if not words:
+        return True
+    if "=" not in words[0]:
+        keys = words[:1]  # legacy `ENV KEY value`
+    elif all("=" in word for word in words):
+        keys = [word.partition("=")[0] for word in words]
+    else:
+        return True
+    return any(key == name or not ARG_NAME.fullmatch(key) for key in keys)
+
+
+def _guarded(name: str, default: str, body: list[tuple[int, str, str]],
+             earlier: list[tuple[int, str, str]]) -> bool:
     """The stage runs `test "${NAME}" = "<default>"` as the first command of a
-    RUN whose failure fails the build, before any SHELL change or ENV that
-    could shadow NAME (ENV beats ARG of the same name)."""
+    RUN whose failure fails the build, with no SHELL or shadowing ENV before it.
+
+    A build argument may also name any earlier stage, which carries that
+    stage's ENV and SHELL into this one, so earlier stages must be clean too.
+    """
+    if any(_may_shadow(name, instruction, arguments) for _, instruction, arguments in earlier):
+        return False
     guard = re.compile(rf'test "\$\{{{name}\}}" = "{re.escape(default)}"(?:\s*$|\s+&&\s+(.*))')
-    shadow = re.compile(rf"(?:^|\s){name}(?:=|\s|$)")
     for _, instruction, arguments in body:
-        # BuildKit unquotes and expands ENV keys, so any quote, escape or
-        # variable in an ENV before the guard could still name NAME.
-        if instruction == "SHELL" or (instruction == "ENV" and (
-                shadow.search(arguments) or any(char in arguments for char in "\"'`\\$"))):
+        if _may_shadow(name, instruction, arguments):
             return False
         match = guard.fullmatch(arguments) if instruction == "RUN" else None
         if match and (match[1] is None or _guard_propagates(match[1])):
@@ -302,7 +324,7 @@ def _digests(content: str, field: str, declared: set[str]) -> set[str]:
         tokens[-1].lower() for _, arguments, _ in froms
         if len(tokens := arguments.split()) >= 3 and tokens[-2].lower() == "as"
     }
-    for number, arguments, body in froms:
+    for position, (number, arguments, body) in enumerate(froms):
         location = f"{field}:line[{number}]"
         tokens = arguments.split()
         if tokens and tokens[0].startswith("--platform=") and len(tokens[0]) > len("--platform="):
@@ -316,7 +338,8 @@ def _digests(content: str, field: str, declared: set[str]) -> set[str]:
         if "$" in image:
             reference = ARG_REFERENCE.fullmatch(image)
             name = reference and (reference[1] or reference[2])
-            if not name or name not in defaults or not _guarded(name, defaults[name], body):
+            if not name or name not in defaults or not _guarded(
+                    name, defaults[name], body, [item for stage in froms[:position] for item in stage[2]]):
                 fail("DOCKERFILE_FROM_VARIABLE_UNSUPPORTED",
                      "镜像变量必须是带字面量默认值的全局 ARG，且本 stage 以 RUN test 守住该默认值。", location)
             image = defaults[name]

@@ -274,6 +274,9 @@ class DockerfileInputTests(unittest.TestCase):
             f"ARG BASE={NODE22}\nARG DESCRIPTION=\"base selection BASE=preview build\"\nFROM ${{BASE}}\n{guard}\n",
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV OTHER_BASE=1\n{guard} && node -e \"a || b; c\"\nSHELL [\"/bin/true\"]\n",
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\n{guard} && test \"$(node --version)\" = \"v22\" && echo \"${{HOME}} $HOME\"\n",
+            # Earlier stages may set other keys, quoted values included.
+            f"ARG BASE={NODE22}\nFROM {NODE22} AS builder\nENV A=1 \\\n    B=\"\" C='x y'\nENV D $PATH\n"
+            f"FROM ${{BASE}}\n{guard}\n",
         ):
             with self.subTest(content=content):
                 self.dockerfile.write_text(content)
@@ -316,6 +319,9 @@ class DockerfileInputTests(unittest.TestCase):
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV \"BASE\"={NODE22}\n{guard}",
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV BA\"SE\"={NODE22}\n{guard}",
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV BA\\SE={NODE22}\n{guard}",
+            # Codex round 4: a build argument can pick an earlier stage and its ENV/SHELL.
+            f"ARG BASE={NODE22}\nFROM {NODE22} AS alternate\nENV BASE={NODE22}\nFROM ${{BASE}}\n{guard}",
+            f"ARG BASE={NODE22}\nFROM {NODE22} AS alternate\nSHELL [\"/bin/true\"]\nFROM ${{BASE}}\n{guard}",
             # An ARG line that cannot be tokenized drops the names it mentions.
             f"ARG BASE={NODE22} X=a\\ b\nFROM ${{BASE}}\n{guard}",
             f"ARG BASE={NODE22} X=\"open\nFROM ${{BASE}}\n{guard}",
