@@ -35,9 +35,9 @@ depends_on:
   - 391
   - 395
   - 396
-status: approved
+status: pr-open
 branch: change/403-docs-current-contract
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/404
 created: 2026-10-21
 updated: 2026-10-21
 ---
