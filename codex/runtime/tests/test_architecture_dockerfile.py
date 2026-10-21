@@ -179,7 +179,8 @@ class DockerfileInputTests(unittest.TestCase):
         self.assertIn("PASS: architecture-lock\n", check())
         self.dockerfile.write_text(f"FROM {NODE24}\n")
         output = check()
-        self.assertIn("GAP: architecture-lock — strict JSON 或 architecture lock 校验失败", output)
+        # #409: the GAP names the rule that fired.
+        self.assertIn("GAP: architecture-lock — DOCKERFILE_DIGEST_MISMATCH：", output)
         self.assertNotIn("PASS: architecture-lock\n", output)
 
     def test_continuation_edges_and_case_insensitive_stage_reuse(self) -> None:

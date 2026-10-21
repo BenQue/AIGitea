@@ -1,6 +1,7 @@
 """Catalog pinning by revision and project-owned profiles (#409, ADR 0001 D5)."""
 
 from pathlib import Path
+import hashlib
 import json
 import os
 import shutil
@@ -20,6 +21,16 @@ PROJECT_PROFILE = ARCH / "fixtures/project-profile"
 # pins it recorded as catalog_sha256. Changing a snapshot breaks those locks.
 PUBLISHED = {
     "2026.08.3": "00df83232ea680f6d2bde6f89467f305b561b76e8df562bce7ba058597daefca",
+}
+# Byte digests of every file in each published snapshot, profiles included.
+PUBLISHED_FILES = {
+    "2026.08.3": {
+        "catalog.json": "260c49c4028caf6004769916d12c49920f510b6ccdb0cb9fc48abf4915f173e3",
+        "profiles/linux-node-postgres-v1.json": "304e13475666de6fa834f3fce2530ef22bc8a0bf2aef591662ed77fb74ceb46a",
+        "profiles/linux-node-systemd-postgres-v1.json": "84ee27f2bf45c0307395d67cada56d51a9fcf914b8432e37f708a7a1b501f39e",
+        "profiles/small-embedded-sqlite-v1.json": "574cff3d8a3b947c241279b6ec0422cd5abf99e08174e863b11c710e87b7a360",
+        "profiles/windows-dotnet-postgres-v1.json": "517a9e5de01902c69d70f9f43c98be17d884a0f6488c0c4ccf5546260dbd79c0",
+    },
 }
 
 
@@ -72,6 +83,12 @@ class CatalogPinTests(unittest.TestCase):
                 self.assertEqual(sha256_value(catalog), digest)
                 for profile in (RELEASES / revision / "profiles").iterdir():
                     self.assertEqual(json.loads(profile.read_text())["catalog_revision"], revision)
+                root = RELEASES / revision
+                files = {
+                    path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+                    for path in root.rglob("*") if path.is_file()
+                }
+                self.assertEqual(files, PUBLISHED_FILES[revision])
 
     def test_an_older_pinned_revision_validates_and_locks_against_its_snapshot(self) -> None:
         project = self.pinned_project()

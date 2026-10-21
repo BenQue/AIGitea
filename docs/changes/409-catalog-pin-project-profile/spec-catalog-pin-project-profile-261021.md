@@ -86,9 +86,9 @@ git_scope:
 - CLI 新增可选 `--catalog-releases DIR`。declaration 的 `catalog_revision` 等于当前 catalog 时行为不变；不等时
   先校验 revision 格式，再取 `DIR/<revision>/`，不存在或比当前新 → `CATALOG_REVISION_UNKNOWN`。命中快照时
   用快照的 catalog 与 profiles 走原有全部校验（`PROJECT_CATALOG_MISMATCH` 仍对**所选** catalog 生效）。
-- pin 快照的 catalog/source `review_by` 过期不再 fail，改在结果里报 `review_overdue`；EOL、prohibited、
+- pin 快照的 catalog/source `review_by` 过期不再 fail，改在结果里报 `catalog_review_overdue`；EOL、prohibited、
   exception 过期、digest、checksum、lock drift 照旧按当天 fail closed。
-- 成功结果在落后时多出 `catalog_behind: {"pinned": …, "current": …}`（以及可能的 `review_overdue: true`）。
+- 成功结果在落后时多出 `catalog_behind: {"pinned": …, "current": …}`与 `catalog_review_overdue`（实现中统一字段名，Codex 第 1 轮指出）。
 - `aisoft-project-check.sh` 传 `--catalog-releases`；落后时 `PASS: architecture-lock` 加一行
   `NOTE: architecture-lock — catalog pin <旧>，平台当前 <新>，升级走项目 Issue`。
 - 失败时 GAP 文案带诊断码：`architecture-lock — <CODE>：<message>`。

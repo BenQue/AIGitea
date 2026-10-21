@@ -589,6 +589,20 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
                 p.write_bytes(old)
                 self.check()
 
+    def test_pinned_catalog_snapshot_is_an_architecture_target(self):
+        # #409: a project may pin an older published revision; its installed
+        # snapshot is checked byte for byte like the current catalog.
+        p = self.arch / "share/aisoft-architecture/catalog-releases/2026.08.3/profiles/linux-node-postgres-v1.json"
+        original = p.read_bytes()
+        p.write_bytes(original.replace(b"1.1.2", b"1.1.3", 1))
+        row = self.row(self.check(1), "architecture/install")
+        self.assertTrue(any(g["reason"] == "bytes-differ" and g["target"] == str(p) for g in row["gaps"]))
+        p.unlink()
+        row = self.row(self.check(1), "architecture/install")
+        self.assertTrue(any(g["reason"] == "missing" and g["target"] == str(p) for g in row["gaps"]))
+        p.write_bytes(original)
+        self.check()
+
     def test_changed_quantities_and_invalid_json(self):
         p = self.system / "usr/local/share/aisoft/host-capabilities.json"
         original = p.read_bytes()
