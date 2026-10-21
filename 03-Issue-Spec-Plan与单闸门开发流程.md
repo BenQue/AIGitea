@@ -166,7 +166,7 @@ docs/changes/N-short-description/
 
 新 worktree basename 固定为 `issue-N-short-description`。`main`、`master`、`head`、`merge`、`pull`、`pr`、`refs`、`change`、`changes`、`docs`、`worktree`、`tmp`、`temp`、`legacy` 是保留 slug，`tmp-`、`temp-`、`legacy-` 前缀同样禁止。同一 Issue 同时出现 legacy/readable 名称或多个 slug 时必须以 `CHANGE_NAME_CONFLICT` 停止。纯编号名称只在 manifest-fixed remote 或 Git history 已有证据时作读取或维护兼容，调用方不能用 `legacy` 开关绕过这种 evidence-derived 判定，也不得批量重命名或删除历史对象。
 
-所有 change 文档的共同 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`created`、`updated`。`pr_url` 是 **summary 专属**字段（spec/plan/verification 里的复制品没有代码消费者，只会互相漂移），由 `aisoft-loop backfill-pr-url` 在 PR 建出后与 `status: pr-open` 一起写入；complex 的 spec/plan/verification 固定使用 `effective_complexity: complex`。summary 另外完整保存 analyzer schema 的 `reason`、语义 `required_docs`、`documents` 角色到真实 basename 的映射、可选的 `route:` 与 `override_reason`。无法安全判级时，summary 的 `assessed_complexity` 为 `needs-human-decision`，并从 front matter 与 `## AI 判级` YAML 同时省略整个 `effective_complexity` key，不保留空值或 placeholder；其他 complex 文档尚不得创建。
+所有 change 文档的共同 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`branch`、`created`、`updated`。`status` 是 **summary 的** lifecycle 字段：确认点 1 只把 summary 改为 `approved`，spec 与 plan 模板不再带 `status`，已有文档里的 `status` 照旧合法但没有消费者；verification 的 `status` 只描述这份验证记录本身（#408）。`pr_url` 是 **summary 专属**字段（spec/plan/verification 里的复制品没有代码消费者，只会互相漂移），由 `aisoft open-pr` 在 PR 建出后与 `status: pr-open` 一起写入（手工修复用 `aisoft backfill-pr-url`）；complex 的 spec/plan/verification 固定使用 `effective_complexity: complex`。summary 另外完整保存 analyzer schema 的 `reason`、语义 `required_docs`、`documents` 角色到真实 basename 的映射、可选的 `route:` 与 `override_reason`。无法安全判级时，summary 的 `assessed_complexity` 为 `needs-human-decision`，并从 front matter 与 `## AI 判级` YAML 同时省略整个 `effective_complexity` key，不保留空值或 placeholder；其他 complex 文档尚不得创建。
 
 新合同只使用 `summary`、`spec`、`plan`、`verification` 角色；resolver 严格读取 `documents` 映射并校验角色、slug、日期、目录边界和唯一性，不使用无约束 glob。没有映射的历史 summary 仅回退到 `00-summary.md`、`01-spec.md`、`02-plan.md`、`03-verification.md`，新 writer 不再生成这些名称，也不批量重命名历史文件。
 
@@ -272,7 +272,7 @@ bash codex/tools/change-template-sync.sh
 （复用 `RepositoryContract.vendors_change_templates` 及未声明取 true 的规则），并且
 exact committed mapped summary/spec 的 issue、branch、status 合法、`git_scope` 明确逐项列出
 目标资源时，才允许相应模板路径。holder 或模板目录存在本身不授权任何文件；未列出的其余模板
-不得隐含加入。summary 仅接受 `approved` 或同仓合法 `pr-open`，spec 必须 `approved`。
+不得隐含加入。summary 仅接受 `approved` 或同仓合法 `pr-open`；spec 只核对 issue 与 branch 绑定，不读 `status`（#408）。
 
 reader、会话工具与 broker 共用同一资源分类与有限项目/holder 上下文，不另建 policy 框架、动态白名单、
 manifest schema 或 typed operation。上下文不得来自候选项目的伪 manifest 或任意 caller override；
@@ -386,11 +386,15 @@ required CI 全绿后停在 `READY_FOR_REVIEW`；不授权部署。确认绑定 
 
 ### 交叉审核（平台仓 complex，ADR 0001 D6）
 
-平台仓的 complex 变更在进入确认点 2 之前，由未参与实现的另一方提供者（Claude 实现由 Codex 审，反之亦然）
-对候选 head 做一次只读独立审查。审查方只读、不写 worktree，按 spec 的验收标准与本次 diff 给出 PASS 或 FAIL
-与发现清单；实现方修复 FAIL 项后对新 head 重审，直到 PASS 或升级给人。结论写进该 Issue 映射的
-`verification-*`：审查方、审查的 exact head、每轮结论、发现与处置。确认点 2 的候选带一行交叉审查结论。
-这一步不增加人的确认点，也不替代 required CI 与人的合并；项目仓不适用本节（项目使用层按自己的合同）。
+平台仓的 complex 变更在进入确认点 2 之前，由未参与实现的另一方提供者对候选 head 做一次只读独立审查。
+**实现方 ≠ 审查方**：当前默认 Claude 实现、Codex 只读审查（负责人 2026-10-20 决定，#408 确认）；改由 Codex 实现的批次就由
+Claude 审。审查方只读、不写 worktree，按 spec 的验收标准与本次 diff 给出 PASS 或 FAIL 与发现清单；实现方修复 FAIL 项后对新
+head 重审，直到 PASS 或升级给人。这一步不增加人的确认点，也不替代 required CI 与人的合并；项目仓不适用本节（项目使用层按自己的合同）。
+
+**记录**：每轮一行，写进该 Issue 映射 `verification-*` 的固定节 `## 交叉审查`，表头
+`| 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |`，`exact head` 写 40 位 SHA。同一批在
+`docs/governance/review-evidence-index.md` 追加一行（批次、Issue、实现方、审查方、各轮 head 与结论、来源），在本批自己的
+PR 里写，不等合并。确认点 2 的候选带一行交叉审查结论。
 
 ## 8. 升级给人的条件
 
@@ -615,3 +619,4 @@ broker 因操作表陈旧而拒绝时，工具报 `broker-operation-missing`，d
 | #360 | `06afadf` | canonical 模板的精确 Git scope 例外 |
 | #391、#395、#397 | `08be6f4`、`86821cf`、`fb9d8c5` | routine 合并与 VM 执行引擎退出（ADR 0002）；路由卡；routine manifest 字段删除 |
 | #403 | — | 本册改为现行合同体，叙事移入本表 |
+| #408 | — | approval 只写 summary；`aisoft open-pr` 一步建 PR 与回填；交叉审查固定表与审查证据索引 |

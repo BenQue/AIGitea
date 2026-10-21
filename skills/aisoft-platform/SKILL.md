@@ -73,7 +73,12 @@ routine 自动合并已退出（#391）：broker 没有合并操作，manifest �
 
 ## PR URL 回填
 
-会话用 broker `gitea.pull.create` 建 PR 后必须运行
+确认点 2 之后用一条命令开 PR：`aisoft open-pr N --title <标题> --body-file <正文文件>`（#408）。它先在本地校验正文
+（恰好一行 `Closes #N`，映射 summary 路径恰好出现一次，不合格时不发任何 broker 请求），再依次经 broker 首推 change 分支、
+`gitea.pull.create`、回填 summary 并只提交这一份、运行 `check-change-documents`、经 broker 再推同一分支。任何一步失败就停下报告；
+重跑安全：同一 change 已有开放 PR 时 broker 返回原 PR，回填已是同值时不再提交。
+
+手工修复时，会话用 broker `gitea.pull.create` 建 PR 后必须运行
 `aisoft backfill-pr-url N --pr-url <实际 PR URL>`，
 把 PR 的 URL 写进映射 summary 的 `pr_url` 并把 `status` 推进到 `pr-open`，只提交这一份文档，并经 broker 推送同一个 change 分支（#142/#146）。`pr_url` 只写在 summary 里，spec、plan 与 verification 不带它；PR 存在之前留空、保持真实的 PR 前状态。summary 没有声明 `pr_url` 或已经声明了另一个值时，工具拒绝并要求人决定——一个 change 只有一个 PR。回填后对更新过的 checkout 运行 `check-change-documents`。
 
@@ -88,7 +93,7 @@ summary-only 回填会产生一个合法的新 head。在后续 push 之前，�
 3. 按判级与 `change_control` 写映射文档（production complex 补 spec/plan；development complex 从 Issue 读取验收标准并用合成 `T01`），实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。`verification` 由证据能否经 diff review + required CI 重放决定，不等同部署。summary 此时写**真实的**前置 `status`（通常 `approved`），`pr_url` 留空——PR 还不存在。
 4. 判级投影：`aisoft classify N` 看计划与路由行 → `aisoft classify --apply N` → `aisoft classify --verify N` 读回两个维度都 `projected` 才算完成；窗口在合并时关闭，closed Issue 永不补写。读到 `broker-operation-missing` 见 `06` 踩坑 20，结论与 Gitea 事实不符见踩坑 21。
 5. 平台仓的 complex 变更：进入确认点 2 之前，由未参与实现的另一方提供者对候选 head 做一次只读交叉审查，结论记入 verification（`03` §「交叉审核」）。
-6. 本地验证完成后进入 `AWAITING_PR_CONFIRMATION`（候选格式见 `issue-session-flow`）；确认后 broker `git.push.change --branch change/N-<slug>` → broker `gitea.pull.create --issue N`（正文含 `Closes #N`）→ 按上文「PR URL 回填的两条路径」回填 summary 再 commit + push，**到开 PR 为止**；`pr_url` 合同见 `03` §3。
+6. 本地验证完成后进入 `AWAITING_PR_CONFIRMATION`（候选格式见 `issue-session-flow`）；确认后 `aisoft open-pr N --title <标题> --body-file <正文文件>` 一步完成首推、建 PR、回填与再推（见上文「PR URL 回填」），**到开 PR 为止**；`pr_url` 合同见 `03` §3。
 7. push 报 `BASE_BRANCH_STALE`：broker `git.fetch.main` → 把 `origin/main` 集成进本分支（已推送过的分支用 merge commit；从未推送的分支也可以本地 rebase）→ broker 重推（remote 只走 broker，集成是本地操作）；lease 语义见 `06` §1.0。
 8. push 报 `REMOTE_BRANCH_MOVED`：推送已被拒、远端未被覆盖，先 broker `git.fetch.change --branch change/N-<slug>` 看清远端再决定，不用更强的 force 压过去；见 `06` §1.0。
 
