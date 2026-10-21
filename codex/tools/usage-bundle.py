@@ -732,7 +732,8 @@ def tool_provenance(repo: Path, bundle: dict, reference: dict, failures: list[st
     projects run platform tools from a platform checkout, as they always did."""
     if not any(member.get("check") == "tool-provenance" for member in reference["members"]):
         return [("tool-provenance", "NOTE", f"{reference['version']} 早于会话工具，项目内没有 aisoft")]
-    problems = list(failures)
+    # A project without the tool is missing every file; name a few, count the rest.
+    problems = failures[:3] + ([f"另有 {len(failures) - 3} 个文件同样不符"] if len(failures) > 3 else [])
     history_path = repo / TOOL_HISTORY
     try:
         history = parse_bundle(history_path.read_text(encoding="utf-8"))["releases"]

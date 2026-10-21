@@ -67,7 +67,7 @@ class SessionContractTests(unittest.TestCase):
     def _assert_classification_readback(self, content):
         self._require(
             self._section(content, self.CONFIRM_2),
-            "codex/tools/apply-classification-labels.sh --repo <checkout> --verify N",
+            "`aisoft classify --verify N`",
             "用 exact Issue 编号，不用 `--range`。",
             "不是 `projected` 就不要进入待合并",
             "读到 `projection-missing` 或 `projection-mismatch` 就修复合同内的投影",
@@ -80,7 +80,7 @@ class SessionContractTests(unittest.TestCase):
         self._require(
             self._section(content, self.COMPLETION),
             "确认 merge commit **真实存在**于 `origin/main`。",
-            "codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>",
+            "`aisoft complete --project <id> --range <range>`",
             "`commits` 是这个 range 实际覆盖的 merge",
             "逐 Issue 行的 `commit` 是产出它的那条",
             "核对它就是第 1 步认定的那个 merge",
@@ -100,7 +100,7 @@ class SessionContractTests(unittest.TestCase):
         self._require(
             backfill,
             "用 broker `gitea.pull.create` 建 PR 后必须运行",
-            "backfill-pr-url N --repo <checkout> --pr-url <实际 PR URL>",
+            "`aisoft backfill-pr-url N --pr-url <实际 PR URL>`",
             "把 PR 的 URL 写进映射 summary 的 `pr_url` 并把 `status` 推进到 `pr-open`，只提交这一份文档",
             "并经 broker 推送同一个 change 分支",
             "`pr_url` 只写在 summary 里，spec、plan 与 verification 不带它",

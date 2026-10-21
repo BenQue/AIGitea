@@ -100,6 +100,8 @@ for script in \
   "$ROOT/codex/tests/test-external-skill-versions.sh" \
   "$ROOT/codex/tools/usage-bundle.sh" \
   "$ROOT/codex/tests/test-usage-bundle.sh" \
+  "$ROOT/codex/tools/aisoft" \
+  "$ROOT/codex/tests/test-aisoft-entry.sh" \
   "$ROOT/codex/tests/test-platform-readiness.sh" \
   "$ROOT/codex/tools/aisoft-alert-poll.sh" \
   "$ROOT/codex/tools/install-alert-agent.sh" \
@@ -172,6 +174,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-external-skill-versions.sh" \
     "$ROOT/codex/tools/usage-bundle.sh" \
     "$ROOT/codex/tests/test-usage-bundle.sh" \
+    "$ROOT/codex/tools/aisoft" \
+    "$ROOT/codex/tests/test-aisoft-entry.sh" \
     "$ROOT/codex/tests/test-platform-readiness.sh" \
     "$ROOT/codex/tools/aisoft-alert-poll.sh" \
     "$ROOT/codex/tools/install-alert-agent.sh" \
@@ -230,6 +234,8 @@ bash "$ROOT/codex/tests/test-external-skill-versions.sh"
 bash "$ROOT/codex/tools/usage-bundle.sh" --verify \
   --baseline-ref "${AISOFT_USAGE_BASELINE_REF:-origin/main}" >/dev/null
 bash "$ROOT/codex/tests/test-usage-bundle.sh"
+# #402: the session tool a project receives runs without the platform tree.
+bash "$ROOT/codex/tests/test-aisoft-entry.sh"
 bash "$ROOT/codex/tests/test-host-role-guard.sh"
 bash "$ROOT/codex/tests/test-install-host-role.sh"
 bash "$ROOT/codex/tests/test-host-access-broker.sh"
