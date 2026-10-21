@@ -1,0 +1,30 @@
+{
+  "$schema": "../../../schemas/profile-v1.schema.json",
+  "schema_version": "1.0",
+  "profile_id": "example-node-react-postgres-pm2-v1",
+  "version": "1.0.0",
+  "catalog_revision": "2026.09.0",
+  "status": "active",
+  "description": "Synthetic project-owned profile: Node API, React web client, PostgreSQL and PM2 delivery behind Nginx.",
+  "required_components": [
+    {"component_id": "os.ubuntu.24-04-4", "allowed_states": ["preferred"]},
+    {"component_id": "runtime.node.24", "allowed_states": ["preferred"], "transitions": [{"component_id": "runtime.node.22", "allowed_states": ["sunset"]}]},
+    {"component_id": "database.postgresql.18", "allowed_states": ["preferred"], "transitions": [{"component_id": "database.postgresql.16", "allowed_states": ["supported"]}]},
+    {"component_id": "proxy.nginx.1-30", "allowed_states": ["preferred"]},
+    {"component_id": "frontend.react.19", "allowed_states": ["preferred"]},
+    {"component_id": "toolchain.typescript.6", "allowed_states": ["preferred"], "transitions": [{"component_id": "toolchain.typescript.5", "allowed_states": ["sunset"]}]}
+  ],
+  "compatibility_rules": [
+    "The project owns this profile; the platform validates only its schema and that every slot names a preferred catalog component.",
+    "Frameworks the catalog does not carry stay pinned in the application lock file and are not architecture slots."
+  ],
+  "delivery_contracts": ["pm2-legacy"],
+  "constraints": {
+    "deployment": "pm2-legacy describes delivery ownership only and grants no deployment capability.",
+    "data_storage": "PostgreSQL data resides on approved persistent storage owned by the host.",
+    "concurrency": "Connection and worker limits are owned by each application Change.",
+    "availability": "Availability topology is declared outside this architecture lock.",
+    "backup": "A database major Change requires a verified backup before mutation.",
+    "restore_drill": "A restore drill is required before production adoption of a new PostgreSQL major."
+  }
+}

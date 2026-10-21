@@ -1,0 +1,18 @@
+{
+  "$schema": "../../schemas/project-architecture-v1.schema.json",
+  "schema_version": "1.0",
+  "project_id": "fixture-project-profile",
+  "profile_id": "example-node-react-postgres-pm2-v1",
+  "profile_version": "1.0.0",
+  "catalog_revision": "2026.09.0",
+  "delivery_contract": "pm2-legacy",
+  "components": [
+    {"component_id": "os.ubuntu.24-04-4", "version": "24.04.4"},
+    {"component_id": "runtime.node.24", "version": "24.18.0"},
+    {"component_id": "database.postgresql.18", "version": "18.4"},
+    {"component_id": "proxy.nginx.1-30", "version": "1.30.4"},
+    {"component_id": "frontend.react.19", "version": "19.2.8"},
+    {"component_id": "toolchain.typescript.6", "version": "6.0.2"}
+  ],
+  "exceptions": []
+}

@@ -23,6 +23,18 @@ cmp "$FIRST_MANIFEST" "$SECOND_MANIFEST"
   --repo-root "$PREFIX/share/aisoft-architecture" \
   --today 2026-09-05 >/dev/null
 
+# A pinned older revision resolves from the installed release snapshots (#409).
+pinned="$TEST_ROOT/pinned.json"
+sed 's/"catalog_revision": "2026.09.0"/"catalog_revision": "2026.08.3"/' \
+  "$ROOT/architecture/fixtures/valid/windows-project.json" >"$pinned"
+"$PREFIX/bin/aisoft-architecture" validate \
+  --catalog "$PREFIX/share/aisoft-architecture/catalog.json" \
+  --catalog-releases "$PREFIX/share/aisoft-architecture/catalog-releases" \
+  --profiles-dir "$PREFIX/share/aisoft-architecture/profiles" \
+  --schema-dir "$PREFIX/share/aisoft-architecture/schemas" \
+  --project "$pinned" \
+  --today 2026-10-21 | grep -Fq '"catalog_behind":{"current":"2026.09.0","pinned":"2026.08.3"}'
+
 [[ ! -e "$PREFIX/.aisoft" ]]
 [[ ! -e "$PREFIX/architecture.lock.json" ]]
 echo "architecture installer idempotence: PASS"

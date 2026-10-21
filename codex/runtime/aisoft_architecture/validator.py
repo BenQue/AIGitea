@@ -152,13 +152,42 @@ def _validate_package_release(component: dict[str, Any], today: date, path: str)
             )
 
 
-def validate_catalog(catalog: dict[str, Any], schema: dict[str, Any], today: date) -> dict[str, dict[str, Any]]:
+def revision_key(revision: str) -> tuple[int, int, int]:
+    """Order catalog revisions; callers check REVISION_RE first."""
+    year, month, number = revision.split(".")
+    return int(year), int(month), int(number)
+
+
+def catalog_review_overdue(catalog: dict[str, Any], today: date) -> bool:
+    """Whether a catalog or any of its sources is past review_by."""
+    if _as_date(catalog["review_by"], "$.review_by") < today:
+        return True
+    return any(
+        _as_date(component["provenance"]["review_by"], "$.components.provenance.review_by") < today
+        for component in catalog["components"]
+    )
+
+
+def validate_catalog(
+    catalog: dict[str, Any],
+    schema: dict[str, Any],
+    today: date,
+    *,
+    pinned: bool = False,
+) -> dict[str, dict[str, Any]]:
+    """Validate the catalog a project is checked against.
+
+    A pinned catalog is a published revision the platform has since replaced
+    (#409). It is expected to age, so its review_by dates are reported by the
+    caller instead of failing here; EOL, prohibited components, exception expiry
+    and digests are judged against today exactly as for the current catalog.
+    """
     validate_schema(catalog, schema)
     if not REVISION_RE.fullmatch(catalog["revision"]):
         fail("CATALOG_REVISION_INVALID", "Catalog revision 必须为 YYYY.MM.N。", "$.revision")
     if _as_date(catalog["published_at"], "$.published_at") > today:
         fail("CATALOG_FROM_FUTURE", "Catalog published_at 不得晚于校验日期。", "$.published_at")
-    if _as_date(catalog["review_by"], "$.review_by") < today:
+    if not pinned and _as_date(catalog["review_by"], "$.review_by") < today:
         fail("CATALOG_REVIEW_OVERDUE", "Catalog 已超过 review_by。", "$.review_by")
     components = _component_map(catalog)
     for index, component in enumerate(catalog["components"]):
@@ -198,7 +227,7 @@ def validate_catalog(catalog: dict[str, Any], schema: dict[str, Any], today: dat
         review_by = _as_date(provenance["review_by"], f"{base}.provenance.review_by")
         if retrieved > today:
             fail("SOURCE_FROM_FUTURE", "Source retrieved_at 不得晚于校验日期。", f"{base}.provenance.retrieved_at")
-        if review_by < today:
+        if not pinned and review_by < today:
             fail("SOURCE_REVIEW_OVERDUE", "Official source 已超过 review_by。", f"{base}.provenance.review_by")
         if review_by < retrieved:
             fail("SOURCE_REVIEW_ORDER", "Source review_by 不得早于 retrieved_at。", f"{base}.provenance.review_by")

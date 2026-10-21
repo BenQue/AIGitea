@@ -56,5 +56,18 @@ for directory in profiles schemas templates decisions; do
   done
 done
 
+# Published catalog revisions a project may still pin (#409): one directory per
+# revision with its catalog and the profiles of that revision.
+for release in "$ROOT/architecture/catalog-releases"/*/; do
+  [[ -d "$release" ]] || continue
+  revision="$(basename "$release")"
+  install -d -m 755 "$SHARE_DIR/catalog-releases/$revision/profiles"
+  install -m 644 "$release/catalog.json" "$SHARE_DIR/catalog-releases/$revision/catalog.json"
+  for source_file in "$release/profiles"/*; do
+    [[ -f "$source_file" ]] || continue
+    install -m 644 "$source_file" "$SHARE_DIR/catalog-releases/$revision/profiles/$(basename "$source_file")"
+  done
+done
+
 echo "Architecture validator installed in $PREFIX"
 echo "No project declaration, lock, credential, service, timer, database, image, server, or deployment was modified."

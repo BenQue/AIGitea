@@ -48,10 +48,11 @@ def build_lock(
     *,
     schema_version: str = "2.0",
     repo_root: Path | str | None = None,
+    pinned_catalog: bool = False,
 ) -> dict[str, Any]:
     # V1 is retained for the strict legacy reader and compatibility tests only.
     schema_filename = lock_schema_filename(schema_version)
-    components = validate_catalog(catalog, catalog_schema, today)
+    components = validate_catalog(catalog, catalog_schema, today, pinned=pinned_catalog)
     validate_profile(profile, profile_schema, catalog, components)
     validate_project(project, project_schema, profile, catalog, components, today)
     validate_dockerfiles(project, components, repo_root)
