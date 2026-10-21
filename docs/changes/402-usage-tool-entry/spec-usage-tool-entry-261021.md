@@ -147,7 +147,7 @@ summary。每个 PR 推送前单独请负责人确认。采用会话本身就是
 6. AC-6：`--release` 缺 `--compatibility` 或 `--notes` 拒绝；落后区间含 `major` 时 `--project-status` 记 GAP，
    patch/minor 记 NOTE；`--verify --baseline-ref origin/main` 证明已发布版本未改。
 7. AC-7：`agents-budget` 对超 2 KB 的「项目事实」报 NOTE；模板自身 ≤ 2 KB。
-8. AC-8：`bash codex/tests/smoke.sh` 全绿，`usage-bundle.sh --verify` 通过，发布下一空闲版本（当前候选 1.7.0），
+8. AC-8：`bash codex/tests/smoke.sh` 全绿，`usage-bundle.sh --verify` 通过，发布下一空闲版本（当前候选 1.8.0），
    `check-change-documents` gap=0，Codex 只读交叉审查 PASS。
 
 ## 风险与回滚约束
