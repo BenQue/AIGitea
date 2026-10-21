@@ -45,7 +45,9 @@ updated: 2026-10-21
 | 同上跑在 `0f729a45`；NewEMaint 三份 Dockerfile 复核 | PASS | Ran 19 tests, OK；三份各引用 1 个 digest |
 | 第 3 轮审查的回归用例跑在 `768db821` 版 `dockerfile.py` | FAIL（预期） | 同一测试 4 处失败：`${x:-'"'}` 藏起的 `\|\| true`，与 `ENV "BASE"=`、`ENV BA"SE"=`、`ENV BA\SE=` 三种 ENV 键遮蔽 |
 | 同上跑在 `5b136043`；NewEMaint 三份 Dockerfile 复核 | PASS | Ran 19 tests, OK；三份各引用 1 个 digest |
-| `bash codex/tools/usage-bundle.sh --release 1.11.0`（`ded11790`，合并前从 main 版重发同号） | PASS | `RELEASED 1.11.0 sha256:319fdc96…`；只追加一个 release |
+| 第 4 轮审查的回归用例跑在 `4ad321e7` 版 `dockerfile.py` | FAIL（预期） | 同一测试 2 处失败：构建参数选中前序 stage 时继承的 `ENV BASE=` 与 `SHELL` |
+| 同上跑在 `6e278a4d`；NewEMaint 三份 Dockerfile 复核 | PASS | Ran 19 tests, OK；web 的前序 builder stage 带引号值 ENV 仍通过，三份各引用 1 个 digest |
+| `bash codex/tools/usage-bundle.sh --release 1.11.0`（`deb7284c`，合并前从 main 版重发同号） | PASS | `RELEASED 1.11.0 sha256:95cc7080…`；只追加一个 release |
 | `bash codex/tests/smoke.sh`（`228db97e`） | PASS | `Codex platform static smoke checks passed.` |
 
 ## Acceptance criteria 结果
@@ -67,6 +69,7 @@ updated: 2026-10-21
 | 1 | Claude | Codex（gpt-6-astra，reasoning ultra） | 228db97eb3c9f4269cf17765a0205be08dfdc0d6 | FAIL | 3 个 P1：守卫后 `||`/`;`/`&` 吞失败、ENV 遮蔽、SHELL 跳过比较；4 个 P2：引号内伪 ARG 声明、`//` 绕过根判定、反向测试会读宿主根、verification 未填。全部在 `c06a0d43`、`fe0b374a`、`79042f01` 修复并补回归；敌意基础镜像改写 `test`/shell 属构建参数信任边界，按建议在 README 写明不保证 |
 | 2 | Claude | Codex（gpt-6-astra，reasoning high） | 12dd1c8df792b1543df7119e20a9372e865e55f2 | 未出结论 | 审查中途被 OpenAI 内容过滤中止，未写 VERDICT；中止前的复现已证明一处 P1：命令替换内嵌套引号让引号剥离正则漏掉 `\|\| true`。`0f729a45` 改为严格左到右扫描并补 4 个回归 |
 | 3 | Claude | Codex（gpt-6-astra，reasoning high） | 768db821897f946df5da6121ed3aceca46a9efde | FAIL | 2 个 P1：双引号内 `${…}` 参数展开可藏引号吞掉 `\|\| true`；ENV 键经引号或转义后仍等于 `BASE`。`5b136043` 只接受 `$NAME`/`${NAME}`，守卫前的 ENV 含引号、转义或 `$` 一律判不可证明，补 4 个回归；其余项复核无残余 |
+| 4 | Claude | Codex（gpt-6-astra，reasoning high） | 4ad321e773d89c348d1d8cf67d6d9aeedc291e12 | FAIL | 1 个 P1：`--build-arg` 选中前序 stage 时继承其 `ENV BASE=`。`6e278a4d` 对守卫 stage 之前的全部 stage 同样拒绝 SHELL 与键为 NAME 或无法解析的 ENV，ENV 按键解析以保留带引号的值，补 2 个拒绝与 1 个通过回归；其余项复核无残余 |
 
 ## 遗留风险与未完成项
 

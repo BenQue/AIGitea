@@ -124,7 +124,8 @@ shell、Registry 查询或文件内容；诊断仅含稳定 code、声明字段/
   唯一例外（#413）：token 恰好是 `${NAME}` 或 `$NAME`，`NAME` 是第一个 FROM 之前声明、带字面量默认值
   （不含 `$`、引号、反斜线）的全局 ARG，且同一 stage 有一条以 `test "${NAME}" = "<默认值>"` 开头的
   RUN：单独成句，或其后只用 `&&` 串接（引号外出现 `||`、`;`、`&`、`|` 或反斜线都不算守卫），并且守卫之前
-  本 stage 没有 SHELL、也没有给 `NAME` 赋值的 ENV（ENV 优先于同名 ARG）。此时按默认值核验 tag、digest
+  本 stage 以及所有前序 stage（构建参数可以选中前序 stage 并继承其配置）都没有 SHELL、也没有键为
+  `NAME` 或无法解析的 ENV（ENV 优先于同名 ARG）。引号外只认 `$NAME`、`${NAME}` 与只含普通字词的 `$(...)`。此时按默认值核验 tag、digest
   与声明集合。修饰符、与字面量拼接、stage 内 ARG、缺守卫或守卫值不一致仍报
   `DOCKERFILE_FROM_VARIABLE_UNSUPPORTED`。其它指令内普通 ARG/ENV 不受该规则限制。
 - 守卫在被选中的基础镜像里执行，所以它挡住的是构建参数漂移到另一个正常镜像（该 stage 构建失败），
