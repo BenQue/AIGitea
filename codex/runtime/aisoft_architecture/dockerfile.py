@@ -163,11 +163,37 @@ def _instructions(content: str, field: str) -> list[tuple[int, str, str]]:
     return result
 
 
+def _words(arguments: str) -> list[str] | None:
+    """Whitespace split that keeps quoted spans whole; None when unprovable.
+
+    Backslashes and backticks (either can be the escape character) and
+    unbalanced quotes make the instruction unprovable rather than guessed.
+    """
+    if "\\" in arguments or "`" in arguments:
+        return None
+    words, current, quote = [], "", None
+    for char in arguments:
+        if quote:
+            quote = None if char == quote else quote
+        elif char in "\"'":
+            quote = char
+        elif char in " \t":
+            if current:
+                words.append(current)
+            current = ""
+            continue
+        current += char
+    if quote:
+        return None
+    return words + [current] if current else words
+
+
 def _global_defaults(instructions: list[tuple[int, str, str]]) -> dict[str, str]:
     """Literal defaults of ARGs declared before the first FROM.
 
     A default that is quoted, references another variable or is redeclared
-    without a value is dropped, so any FROM using it stays unsupported.
+    without a value is dropped, so any FROM using it stays unsupported. An
+    ARG line that cannot be tokenized drops every name it mentions.
     """
     defaults: dict[str, str] = {}
     for _, instruction, arguments in instructions:
@@ -175,21 +201,46 @@ def _global_defaults(instructions: list[tuple[int, str, str]]) -> dict[str, str]
             break
         if instruction != "ARG":
             continue
-        for token in arguments.split():
-            name, separator, value = token.partition("=")
+        words = _words(arguments)
+        if words is None:
+            for name in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", arguments):
+                defaults.pop(name, None)
+            continue
+        for word in words:
+            name, separator, value = word.partition("=")
             if not ARG_NAME.fullmatch(name):
                 continue
-            if separator and value and not any(char in value for char in "$\"'`\\"):
+            if separator and value and not any(char in value for char in "$\"'"):
                 defaults[name] = value
             else:
                 defaults.pop(name, None)
     return defaults
 
 
+def _guard_propagates(rest: str) -> bool:
+    """After the leading test, only `&&` may chain: `||`, `;`, `&`, `|` or a
+    backslash could let a failed test end in success. Quoted spans are data."""
+    if "\\" in rest:
+        return False
+    unquoted = re.sub(r"\"[^\"]*\"|'[^']*'", "", rest)
+    if "\"" in unquoted or "'" in unquoted:
+        return False
+    return re.search(r"[|;&]", unquoted.replace("&&", " ")) is None
+
+
 def _guarded(name: str, default: str, body: list[tuple[int, str, str]]) -> bool:
-    """A RUN that starts with the exact pin test, alone or before `&&`."""
-    guard = re.compile(rf'test "\$\{{{name}\}}" = "{re.escape(default)}"(?:\s*$|\s+&&\s)')
-    return any(instruction == "RUN" and guard.match(arguments) for _, instruction, arguments in body)
+    """The stage runs `test "${NAME}" = "<default>"` as the first command of a
+    RUN whose failure fails the build, before any SHELL change or ENV that
+    could shadow NAME (ENV beats ARG of the same name)."""
+    guard = re.compile(rf'test "\$\{{{name}\}}" = "{re.escape(default)}"(?:\s*$|\s+&&\s+(.*))')
+    shadow = re.compile(rf"(?:^|\s){name}(?:=|\s|$)")
+    for _, instruction, arguments in body:
+        if instruction == "SHELL" or (instruction == "ENV" and shadow.search(arguments)):
+            return False
+        match = guard.fullmatch(arguments) if instruction == "RUN" else None
+        if match and (match[1] is None or _guard_propagates(match[1])):
+            return True
+    return False
 
 
 def _digests(content: str, field: str, declared: set[str]) -> set[str]:

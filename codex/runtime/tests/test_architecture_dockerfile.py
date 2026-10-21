@@ -267,6 +267,16 @@ class DockerfileInputTests(unittest.TestCase):
         self.dockerfile.write_text(f"ARG BASE={NODE22}\nFROM scratch\nFROM ${{BASE}}\n"
                                    f"RUN test \"${{BASE}}\" = \"{NODE22}\"\n")
         self.valid()
+        # Quoted values of other ARGs are data, not declarations; ENV of other
+        # names, SHELL after the guard and quoted `||` in later commands are fine.
+        guard = f"RUN test \"${{BASE}}\" = \"{NODE22}\""
+        for content in (
+            f"ARG BASE={NODE22}\nARG DESCRIPTION=\"base selection BASE=preview build\"\nFROM ${{BASE}}\n{guard}\n",
+            f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV OTHER_BASE=1\n{guard} && node -e \"a || b; c\"\nSHELL [\"/bin/true\"]\n",
+        ):
+            with self.subTest(content=content):
+                self.dockerfile.write_text(content)
+                self.valid()
 
     def test_unguarded_or_unprovable_arg_forms_fail_closed_413(self) -> None:
         guard = f"RUN test \"${{BASE}}\" = \"{NODE22}\"\n"
@@ -286,6 +296,17 @@ class DockerfileInputTests(unittest.TestCase):
             f"ARG BASE={NODE22}\nFROM ${{BASE:-{NODE22}}}\n{guard}",
             f"ARG BASE={NODE22}\nFROM ${{BASE}}x\n{guard}",
             "ARG V=22\nFROM node:${V}-alpine\nRUN test \"${V}\" = \"22\"\n",
+            # Codex round 1: a failed test that still ends in success.
+            *(f"ARG BASE={NODE22}\nFROM ${{BASE}}\nRUN test \"${{BASE}}\" = \"{NODE22}\"{tail}\n"
+              for tail in (" && echo ok || true", " && echo ok; true", " && echo ok &", " || true",
+                           " && echo ok | cat", "; true", " && echo \\\"x\\\" || true")),
+            # ENV beats ARG of the same name; SHELL can skip the comparison.
+            f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV BASE={NODE22}\n{guard}",
+            f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV A=1 BASE {NODE22}\n{guard}",
+            f"ARG BASE={NODE22}\nFROM ${{BASE}}\nSHELL [\"/bin/true\"]\n{guard}",
+            # An ARG line that cannot be tokenized drops the names it mentions.
+            f"ARG BASE={NODE22} X=a\\ b\nFROM ${{BASE}}\n{guard}",
+            f"ARG BASE={NODE22} X=\"open\nFROM ${{BASE}}\n{guard}",
         ]
         for content in cases:
             with self.subTest(content=content):
