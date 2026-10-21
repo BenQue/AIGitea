@@ -88,7 +88,7 @@ ADR 0001 D7 让项目按版本 pin 发布包，但发布包今天只锁文本：
 | `version` | 打印 `bundle_version`、`bundle_digest`、`source_sha`；平台仓内打印 `source-tree` 与当前 HEAD |
 
 `get-issue`、`list-issues`、`apply-analysis` 不进 `aisoft`：三者要 raw `GITEA_TOKEN`，与「Gitea 访问一律走 broker」
-冲突，且当前无调用方。`aisoft_loop.cli` 本票不删它们，删除作为遗留交 R16。
+冲突，且当前无调用方。`aisoft_loop.cli` 本票不删它们；删除连同 `gitea-analyze-change` 技能与 `03` 的引用一起，作为后续遗留项写进本票交接，由负责人另行排期。
 
 ### 3. 发布包合同
 
@@ -163,7 +163,7 @@ summary。每个 PR 推送前单独请负责人确认。采用会话本身就是
 ## 非目标
 
 不改 broker 操作；不改 legacy change 文档判定（R12）；不把 `route:` 改为必填；不从 `route-policy.md` 生成机器读
-JSON（`classify` 只显示 summary 已写的路由卡）；不删 `aisoft_loop.cli` 的三个旧子命令（交 R16）；不推 GitHub 镜像。
+JSON（`classify` 只显示 summary 已写的路由卡）；不删 `aisoft_loop.cli` 的三个旧子命令（后续遗留项）；不推 GitHub 镜像。
 
 ## 未决问题
 
