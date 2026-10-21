@@ -37,19 +37,21 @@
 
 ```bash
 codex/tools/aisoft-project-check.sh --repo <目标仓checkout> [--kind software|docs] [--remote]
-codex/tools/usage-bundle.sh --adopt <目标仓 change worktree>
+codex/tools/usage-bundle.sh --adopt <目标仓 change worktree> [--tools claude,codex,cursor]
 codex/tools/usage-bundle.sh --build <空目录>
 ```
 
 `--adopt` 要求目标是干净的 git 工作树，把最新版本的采用改动直接写进去：lock、使用合同副本、`CLAUDE.md`、
-change 模板四件套、`AGENTS.md` 常驻指针两节（就地替换，「项目事实」不动）、技能与 Matt/superpowers 的
-项目级落点、会话工具 `.aisoft/bin/aisoft` 与 `.aisoft/lib/`；`docs/agents/` 三件套与
+change 模板四件套、`AGENTS.md` 常驻指针两节（就地替换，「项目事实」不动）、`--tools` 所列工具的技能与
+Matt/superpowers 项目级落点（缺省 `claude,codex`；用 Cursor 的项目加 `cursor`）、会话工具 `.aisoft/bin/aisoft` 与 `.aisoft/lib/`；`docs/agents/` 三件套与
 `.cursor/rules/aisoft-platform.mdc` 只在缺失时写；CI 种子不写，只打印 NOTE（改 CI 不是 small）。结束时
-打印写入清单并跑一次 `--project-status`。`--build` 只导出不写目标仓：
+打印写入清单与改动路径数，并跑一次 `--project-status`。legacy 模板（`00-summary.md` 等）不删、只打印 NOTE：
+broker 的范围闸门不允许在别的 Issue 名下删除 `docs/changes/` 里的非 canonical 文件。broker 推送要求映射 spec 的
+`git_scope` 逐项列出改动路径（small 也一样，最多 256 项），采用 Issue 因此带一份只写 `git_scope` 的 spec。`--build` 只导出不写目标仓：
 `<空目录>/project/` 下的文件按项目落点排好，含生成的 `.aisoft/platform-usage.lock.json`；
 `AGENTS.md` 是完整模板，存量仓库只同步其常驻指针两节，「项目事实」保持项目自己的内容；
 `docs/agents/` 与 CI 示例是种子，已有的项目版本不覆盖。技能从同一份源导出到三种项目级落点：
-`.claude/skills/`、`.agents/skills/`（Codex）与 `.cursor/skills/`，`--adopt` 三种落点都写，三端用同一套技能；
+`.claude/skills/`、`.agents/skills/`（Codex）与 `.cursor/skills/`，`--adopt` 按 `--tools` 写落点；
 Cursor 另有种子 `.cursor/rules/aisoft-platform.mdc`，它只指向使用合同、lock 与 `AGENTS.md`，不复述规则。
 
 ## 对齐 checklist

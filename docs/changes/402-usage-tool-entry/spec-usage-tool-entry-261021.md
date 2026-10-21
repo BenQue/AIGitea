@@ -100,9 +100,9 @@ ADR 0001 D7 让项目按版本 pin 发布包，但发布包今天只锁文本：
 - `--project-status`：pin 落后最新版本时，落后区间内有 `major` 记 GAP，否则 NOTE（写明区间内最高的
   `compatibility`，旧版本无此键记 unknown）。
 - 新增 `--adopt <项目检出>`：要求目标是干净的 git 工作树；写入 lock、`.aisoft/platform-usage.md`、`CLAUDE.md`、
-  change 模板四件套、`AGENTS.md` 常驻指针两节（就地替换或插入，项目事实不动）、平台技能与 Matt/superpowers 的
-  项目级落点、`docs/agents/` 三份（仅缺失时）、`.cursor/rules/aisoft-platform.mdc`（仅缺失时）与 `.aisoft/` 工具包；
-  删除 legacy 模板（`00-summary.md` 等四件套）只在 `docs/changes/_template/` 内进行。CI 种子
+  change 模板四件套、`AGENTS.md` 常驻指针两节（就地替换或插入，项目事实不动）、`--tools` 所列工具（缺省
+  `claude,codex`，用 Cursor 的项目加 `cursor`）的平台技能与 Matt/superpowers 项目级落点、`docs/agents/` 三份（仅缺失时）、`.cursor/rules/aisoft-platform.mdc`（仅缺失时）与 `.aisoft/` 工具包；
+  legacy 模板（`00-summary.md` 等四件套）不删，只打印 NOTE（见下「实现中的合同更正」）。CI 种子
   （`ci.yml`、`merge-preview.sh`、`registry-preflight.sh`）不写，改为 NOTE：改 CI 不是 small。
   结束时打印写入清单，并对结果跑一次 `--project-status`。
 
@@ -131,6 +131,16 @@ summary。每个 PR 推送前单独请负责人确认。采用会话本身就是
 **合并顺序**：平台 PR 先合并（项目的 `--project-status` 要在平台 main 上找到所 pin 的版本），三个项目 PR 后合并。
 平台 PR 合并前若版本号被别的批次占用，按协调约定以 merge commit 集成 main、改发下一版本，并对三个项目重跑
 `--adopt` 更新它们的 PR。
+
+### 6. 实现中的合同更正（2026-10-21，试采用发现）
+
+对三个项目的 `origin/main` 试跑 `--adopt` 后，已安装 broker 的 `git.push.change` 范围闸门（#327）有三条约束与
+原设计冲突，本票在不改 broker 的前提下这样处理：
+- 闸门要求映射 spec 的 `git_scope` 逐项列出改动路径，small 也一样。采用 Issue 仍判 small，change 目录另带一份
+  只写 front matter 与 `git_scope` 的 spec；「small 只有 summary」与闸门的冲突作为后续遗留项记进交接。
+- `git_scope` 最多 256 项。三种落点全写约 355 个文件，所以 `--adopt` 增加 `--tools`，缺省 `claude,codex`
+  （约 180 个文件），Cursor 落点按需加；三个项目目前都不用 Cursor。
+- 闸门不允许在本 Issue 目录之外删除 `docs/changes/` 下的非 canonical 文件，所以 legacy 模板不删，只打印 NOTE。
 
 ## 验收标准
 
