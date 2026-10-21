@@ -3,7 +3,7 @@
 > 本 runbook 面向任意 Gitea 项目。历史试点不是默认仓库、目录、端口或部署合同。按顺序完成，每步验收后再继续；目标项目未通过自己的验收前保持 implementation disabled。
 
 初始化新项目与更新已接入项目是同一「对齐到平台当前合同」的幂等操作：操作入口见
-[project-align.md](project-align.md)，确定性核对用 `codex/tools/aisoft-project-check.sh`。
+[project-align.md](project-align.md)，确定性核对用 `aisoft project-check`。
 本 runbook 保持唯一事实源；对齐 checklist 只指向本文与 `templates/`，不另立合同。
 
 ## 1. 参数与仓库
@@ -14,7 +14,7 @@
 branch。随后先把 exact repository、classification、visibility、project agent 和 required status
 contexts 纳入 `codex/config/gitea-governance.json` 并经平台 PR 人工合并；未知仓库不能继续接入。
 
-### 1.1 Mandatory governance manifest 与 project-agent gate
+### 1.1 Mandatory governance manifest 与 project-agent gate（维护层）
 
 按顺序执行（治理合同来自 Issue #35，已 live）：
 
@@ -99,12 +99,11 @@ exact repository 添加 manager Admin 并写 pre/post snapshot，不修改 visib
 ## 2. 共享项目契约
 
 本节各项由 [project-align.md](project-align.md) 的对齐 checklist 覆盖；其中指针、语义
-模板、标签、CI context、architecture 与交付形态声明可用 `aisoft-project-check.sh`
+模板、标签、CI context、architecture 与交付形态声明可用 `aisoft project-check`
 确定性复核。存量仓库回补与新仓首配走同一清单。
 
-在仓库加入（文件先用平台 `codex/tools/usage-bundle.sh --build <空目录>` 导出最新版本的使用发布包，
-从 `<空目录>/project/` 复制；同时提交生成的 `.aisoft/platform-usage.lock.json` 与使用合同副本
-`.aisoft/platform-usage.md`，见 [project-align.md](project-align.md)）：
+在仓库加入（文件由平台维护者在平台检出里用 `usage-bundle.sh --adopt <项目检出>` 生成，含 lock、使用合同副本
+`.aisoft/platform-usage.md` 与会话工具 `.aisoft/bin/aisoft`，见 [project-align.md](project-align.md)「维护层」节）：
 
 - 从平台 `templates/project/AGENTS.md` 复制并按项目填充的 `AGENTS.md`（前两节为平台常驻
   指针，除更新事实外不删改；「项目事实」节写真实命令、健康端点、交付形态与禁改边界——
@@ -112,15 +111,15 @@ exact repository 添加 manager Admin 并写 pre/post snapshot，不修改 visib
 - 从 `templates/project/CLAUDE.md` 复制的一行 `@AGENTS.md`。
 - 需要平台 CI 参考时，从 `templates/project/ci/` 复制 `ci.yml`、`merge-preview.sh`、`registry-preflight.sh`（#223）到项目的
   `.gitea/workflows/` 与 CI 脚本目录，按项目的 required contexts 与 registry 裁剪；这是参考而不是逐字节 vendored 副本。
-  采纳情况由 `aisoft-project-check.sh` 的 `ci-merge-preview`/`ci-registry-preflight` 只读回读。
+  采纳情况由 `aisoft project-check` 的 `ci-merge-preview`/`ci-registry-preflight` 只读回读。
 - 已接入的存量仓库回补同一指针：逐仓独立 Issue + AI 判级的单一 PR（经该仓 project-agent 通道），把
   AGENTS.md 对齐模板前两节；不得批量脚本改写全部仓库。
-- 从平台仓库 `templates/docs/changes/_template/` 复制 `summary.md`、`spec.md`、`plan.md`、`verification.md` 四个语义模板。复制出来的是 vendored 副本，该仓库因此是 `gitea-governance.json` 里的 holder（`vendors_change_templates` 未声明即为 `true`），后续由上游广播 `codex/tools/change-template-sync.sh` 通知同步；确认不持有副本的仓库才显式声明 `false`。新 change 文档实名使用 `<role>-<short-description>-<YYMMDD>.md`，并在 summary front matter 的 `documents` 字段把 `summary`/`spec`/`plan`/`verification` 显式映射到真实 basename；remote/history evidence 已存在的 `change/N`、`docs/changes/N/` 与 pre-#57 纯数字文档只作读取或维护兼容，新 writer、first push 和 first PR 不得创建。
+- 从平台仓库 `templates/docs/changes/_template/` 复制 `summary.md`、`spec.md`、`plan.md`、`verification.md` 四个语义模板。复制出来的是 vendored 副本，该仓库因此是 `gitea-governance.json` 里的 holder（`vendors_change_templates` 未声明即为 `true`），后续由上游广播（平台侧 `change-template-sync.sh`）通知同步；确认不持有副本的仓库才显式声明 `false`。新 change 文档实名使用 `<role>-<short-description>-<YYMMDD>.md`，并在 summary front matter 的 `documents` 字段把 `summary`/`spec`/`plan`/`verification` 显式映射到真实 basename；remote/history evidence 已存在的 `change/N`、`docs/changes/N/` 与 pre-#57 纯数字文档只作读取或维护兼容，新 writer、first push 和 first PR 不得创建。
 - Matt 编排初始化：显式调用 `$setup-matt-pocock-skills`，tracker 选 `Other`，使用平台 `templates/docs/agents/issue-tracker.md`、`triage-labels.md`、`domain.md` 三件套（经 `$aisoft-matt-workflow` 校验平台边界后执行），不得另建第二套 Gitea 模板。
 - lockfile、包管理源和固定运行时版本。
 - 能检查关键依赖的健康端点。
 
-所有 change 文档的共同 front matter 至少包含 `issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`created` 和 `updated`。`pr_url` 是 summary 专属字段，由 `aisoft-loop backfill-pr-url` 在 PR 建出后与 `status: pr-open` 一起写入（#142）。映射的 `summary` 文档另外保存 analyzer 的 `reason`、`required_docs` 和 `override_reason`；`needs-human-decision` summary 必须在 front matter 和 `## AI 判级` YAML 中都省略 `effective_complexity`，且不得创建 complex spec/plan。
+所有 change 文档的共同 front matter 至少包含 `issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`status`、`branch`、`created` 和 `updated`。`pr_url` 是 summary 专属字段，由 `aisoft backfill-pr-url` 在 PR 建出后与 `status: pr-open` 一起写入（#142）。映射的 `summary` 文档另外保存 analyzer 的 `reason`、`required_docs` 和 `override_reason`；`needs-human-decision` summary 必须在 front matter 和 `## AI 判级` YAML 中都省略 `effective_complexity`，且不得创建 complex spec/plan。
 
 ## 3. Mandatory host-role gate
 
@@ -256,7 +255,7 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 
   幂等：缺失则创建，`color`/`description` 漂移则更新，`retired` 取值只报告不创建，任何标签都不
   删除。已对齐时为 no-op，可在平台 taxonomy 演进后反复执行——接入与对齐是同一条命令。
-  只读核对用 `--operation gitea.labels.read`，或 `aisoft-project-check.sh --remote` 的
+  只读核对用 `--operation gitea.labels.read`，或 `aisoft project-check --remote` 的
   `labels-readback`（缺失/漂移、受管命名空间冲突、退役取值在用均为 `GAP`，并附所属 Issue 清单）。
 - canonical 取值集合的唯一事实源是 `codex/config/gitea-labels.json`（`schema_version: 2`）的
   `canonical`；本文不复制枚举，复制即注定漂移。语义分工见下段四个维度。
@@ -275,7 +274,7 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 - 安装 `$aisoft-platform` 与 `$gitea-analyze-change`。
 - 先用低风险 Issue 验证：读取 evidence、输出五节 summary，并以 `change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`risk_flags`、`required_docs`、`confidence` 和 `override_reason` 确定性判级。
 - 用功能新增验证 `type/feature` 和 `effective_complexity: complex`；用信息不足的 Issue 验证 `needs-human-decision`、`contract_effect: unclear` 且不输出 `effective_complexity`。
-- 判级只写映射的 `summary` 文档与 readable 分支；标签由 `apply-classification-labels.sh` 经 broker 投影，不创建最终 PR、不部署。
+- 判级只写映射的 `summary` 文档与 readable 分支；标签由 `aisoft classify` 经 broker 投影，不创建最终 PR、不部署。
 - 普通实现会话永远不得编辑约束本次运行的 `AGENTS.md`。complex spec 只能授权其生成治理 patch/proposal；目标文件之外的独立受控治理步骤负责应用，随后用 fresh run 验证并采用新规则。其他 protected files 仍要求 complex spec 精确列出文件、验证与回滚。
 
 ## 7. 会话开发接入
@@ -291,7 +290,7 @@ VM 上的 Development Loop 已随 #391 退出（ADR 0002）；开发由 Mac 上�
 ## 8. 接入验收
 
 验收前后均可用 [project-align.md](project-align.md) 入口做幂等复核：接入完成的仓库
-`aisoft-project-check.sh` 应无 `GAP:`；平台合同演进后重跑同一入口即得回补清单。
+`aisoft project-check` 应无 `GAP:`；平台合同演进后重跑同一入口即得回补清单。
 
 按顺序验证：
 
@@ -314,21 +313,24 @@ VM 上的 Development Loop 已随 #391 退出（ADR 0002）；开发由 Mac 上�
 ### 合并后收尾
 
 1. 证明 exact merge commit 已在主干后，先运行
-   `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>`
+   `aisoft complete --project <id> --range <range>`
    读取判定计划。核对第一行 `commits` 与逐 Issue 的 `commit` 就是本次 exact merge；
    然后用计划回给的 `pinned` Issue 编号运行
-   `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --apply <pinned>`，
+   `aisoft complete --project <id> --apply <pinned>`，
    不再传 `--range`，避免主干前进后误处理别的 Issue。终态判定由工具读取映射 summary
    的 `required_docs` 与 manifest 的 `deployment_lifecycle`：只有前者含 `verification`
    且后者为 `application-deploy` 才等待部署；`none` 与缺省
    `application-deploy-selective` 到 `completed`。`verification` 不等于部署；
    已 `deployed` 的 Issue 不会被降级。规则以 `03` §11 的合取表为准。
-2. 把 `codex/tools/mark-deployed-issues.sh` 复制或以固定版本纳入应用仓库，并只在
+
+### 合并后收尾的接入配置（维护层）
+
+1. 把 `codex/tools/mark-deployed-issues.sh` 复制或以固定版本纳入应用仓库，并只在
    应用健康检查成功后调用；工具会把包括 `completed` 在内的其它 lifecycle 替换为
    唯一 `deployed`。
-3. 用显式 `GITEA_URL/GITEA_OWNER/GITEA_REPO` 运行
+2. 用显式 `GITEA_URL/GITEA_OWNER/GITEA_REPO` 运行
    `codex/tools/sync-gitea-repository-settings.sh`，读回 merge 后删除源分支为 true。
-4. 在应用自身 PR 中验证多 `Closes #N`、标签保留、API 失败 best-effort 和
+3. 在应用自身 PR 中验证多 `Closes #N`、标签保留、API 失败 best-effort 和
    `--disable` 回滚；平台仓库验证不能替代应用验收。
 
 ### GitHub 入站项目

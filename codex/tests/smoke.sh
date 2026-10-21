@@ -109,6 +109,8 @@ for script in \
   "$ROOT/codex/tests/test-external-skill-versions.sh" \
   "$ROOT/codex/tools/usage-bundle.sh" \
   "$ROOT/codex/tests/test-usage-bundle.sh" \
+  "$ROOT/codex/tools/aisoft" \
+  "$ROOT/codex/tests/test-aisoft-entry.sh" \
   "$ROOT/codex/tests/test-platform-readiness.sh" \
   "$ROOT/codex/tools/aisoft-alert-poll.sh" \
   "$ROOT/codex/tools/install-alert-agent.sh" \
@@ -181,6 +183,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-external-skill-versions.sh" \
     "$ROOT/codex/tools/usage-bundle.sh" \
     "$ROOT/codex/tests/test-usage-bundle.sh" \
+    "$ROOT/codex/tools/aisoft" \
+    "$ROOT/codex/tests/test-aisoft-entry.sh" \
     "$ROOT/codex/tests/test-platform-readiness.sh" \
     "$ROOT/codex/tools/aisoft-alert-poll.sh" \
     "$ROOT/codex/tools/install-alert-agent.sh" \
@@ -239,6 +243,8 @@ bash "$ROOT/codex/tests/test-external-skill-versions.sh"
 bash "$ROOT/codex/tools/usage-bundle.sh" --verify \
   --baseline-ref "${AISOFT_USAGE_BASELINE_REF:-origin/main}" >/dev/null
 bash "$ROOT/codex/tests/test-usage-bundle.sh"
+# #402: the session tool a project receives runs without the platform tree.
+bash "$ROOT/codex/tests/test-aisoft-entry.sh"
 bash "$ROOT/codex/tests/test-host-role-guard.sh"
 bash "$ROOT/codex/tests/test-install-host-role.sh"
 bash "$ROOT/codex/tests/test-host-access-broker.sh"
@@ -548,6 +554,24 @@ governance_set=(
   "$ROOT/templates/project/ci/ci.yml"
   "$ROOT/templates/project/ci/merge-preview.sh"
 )
+# #402: the CI reference a project copies checks out from the job's own Gitea;
+# no step downloads an action from GitHub.
+# A `uses` key anywhere a YAML key can start: block item, inline mapping, quoted.
+ci_uses_action() {
+  grep -v '^[[:space:]]*#' | grep -Eq "(^|[[:space:]{,-])[\"']?uses[\"']?[[:space:]]*:"
+}
+if ci_uses_action <"$ROOT/templates/project/ci/ci.yml"; then
+  echo '项目 CI 参考不得用 GitHub action（#402，checkout 只走本 job 的 Gitea）' >&2
+  exit 1
+fi
+for ci_uses_probe in '      - uses: actions/checkout@v4' '      - { uses: actions/checkout@v4 }' \
+  "      - 'uses': actions/checkout@v4" '      - name: x' ; do
+  if printf '%s\n' "$ci_uses_probe" | ci_uses_action; then ci_uses_hit=yes; else ci_uses_hit=no; fi
+  case "$ci_uses_probe:$ci_uses_hit" in
+    *'name: x:no' | *'uses'*':yes') ;;
+    *) echo "CI uses 守卫判错：$ci_uses_probe" >&2; exit 1 ;;
+  esac
+done
 # An unexpanded glob or a renamed file would make rg exit 2, which `if rg`
 # reads as "no match"; assert every member exists so the guard fails closed.
 for governance_file in "${governance_set[@]}"; do

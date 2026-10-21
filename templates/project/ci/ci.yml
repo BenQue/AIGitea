@@ -44,15 +44,42 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      # 三方合并要找 base 与 head 的共同祖先，浅克隆找不到，所以 pull_request 那一路
-      # 取全历史；push 那一路保持默认的 depth 1。
-      #
-      # 条件写成 `== 'push'` 而不是 `== 'pull_request'` 是刻意的：表达式里
-      # `A && 0 || 1` 永远得 1——`0` 本身是 falsy，`&&` 交出 `0` 之后 `||` 又把它丢掉。
-      # 把 truthy 的那个值放在 `&&` 右边就绕开了这个陷阱。
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: ${{ github.event_name == 'push' && 1 || 0 }}
+      # #402（沿用平台仓 #370 的做法）：不用 actions/checkout——它每次都要从 GitHub 取
+      # action 本身。这里只和本 job 已经在用的 Gitea（$GITHUB_SERVER_URL）说话，不写任何
+      # 站点地址。取全量历史（三方合并要找 base 与 head 的共同祖先，浅克隆找不到），
+      # 检出 exact head。host 模式的工作区跨 run 复用，所以先清干净再检出。job token
+      # 像 actions/checkout 默认那样写进本地 git 配置，供合并预览取 base；最后一步无论
+      # 成败都删掉。
+      - name: Check out
+        env:
+          CHECKOUT_TOKEN: ${{ github.token }}
+          CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          header_key="http.${GITHUB_SERVER_URL}/.extraheader"
+          git init -q .
+          git config --local --unset-all "$header_key" || true
+          git remote remove origin 2>/dev/null || true
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          git config --local "$header_key" \
+            "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$CHECKOUT_TOKEN" | base64 | tr -d '\n')"
+          # 复用的工作区可能是旧 actions/checkout 留下的浅克隆（push 那一路曾是 depth 1）；普通
+          # fetch 补不全历史，合并预览会找不到共同祖先，所以浅仓一律 --unshallow。每轮重试前重新
+          # 判断：上一轮可能已补全历史却因别的原因失败，对完整仓再传 --unshallow 会直接报错。
+          for attempt in 1 2 3; do
+            unshallow=()
+            if [ "$(git rev-parse --is-shallow-repository)" = true ]; then unshallow=(--unshallow); fi
+            git fetch --no-tags --prune --force ${unshallow[@]+"${unshallow[@]}"} origin \
+              '+refs/heads/*:refs/remotes/origin/*' '+refs/pull/*/head:refs/remotes/pull/*/head' && break
+            (( attempt < 3 )) || { echo '[checkout] CHECKOUT_FETCH_FAILED' >&2; exit 1; }
+            sleep 5
+          done
+          # 上一次 run 可能停在合并预览的半途（冲突、MERGE_HEAD）；先回到干净状态。
+          git merge --abort 2>/dev/null || true
+          git reset -q --hard 2>/dev/null || true
+          git checkout -q --force --detach "$CHECKOUT_SHA"
+          git clean -ffdxq
+          echo "[checkout] HEAD = $(git rev-parse HEAD)"
 
       # 本参考的本体。必须留在这个 job 内——它只是 job 里多出来的一步，
       # workflow 名、job key、事件三者一个都没动，分支保护不需要任何改动。
@@ -97,3 +124,8 @@ jobs:
       - name: Merge preview evidence
         if: always() && github.event_name == 'pull_request'
         run: cat "$RUNNER_TEMP/merge-preview.log" || echo '[ci] 没有合并预览日志'
+
+      # job token 只活在这一次 run 里；host 模式的工作区会被下一次 run 复用，所以删掉。
+      - name: Remove checkout credential
+        if: always()
+        run: git config --local --unset-all "http.${GITHUB_SERVER_URL}/.extraheader" || true
