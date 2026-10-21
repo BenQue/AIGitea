@@ -41,19 +41,29 @@ updated: 2026-10-21
 | T05 测试 | `beca16f` | 见下表 |
 | T06 文档 | `3bde56c` | `03`、`06` 指向 `aisoft`；路线图；E2E 表「采用记录」 |
 | 合同更正 | `ed20282`、`7e2a2f8` | 试采用撞上 broker 推送闸门三条约束（spec §6）：治理文本先单独 commit，再改 runtime 并重发 1.8.0 |
+| 审查修复 | `976ed9a`、`1093a6d`、`6f0aca9`、`2a583e2`、`422905d` | Codex 三轮共 9 条发现；技能改动各自单独 commit 在前，运行时与测试在后，每次重发 1.8.0（未发布的候选记录撤回重发） |
 
 ## 验收证据
 
 | AC | 结果 | 证据 |
 |---|---|---|
-| AC-1 | PASS | LocalWMS #335 worktree（head `cd948ab`），`sandbox-exec` 拒读平台检出与本 worktree，`env -i HOME=<临时目录> PATH=/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin`：`aisoft version`（layout project，1.8.0）→ `change-name 335 adopt-usage-bundle` → `check-change-documents` gap=0 → `classify 335`（打印路由行）→ `classify --apply 335` updated → `classify --verify 335` **projected** → `complete --project localwms --range de829b9~1..de829b9` dry-run 计划（pinned 325），全部 exit 0 |
+| AC-1 | PASS | LocalWMS #335 worktree（当时 head `cd948ab`，采用内容随后按最终 1.8.0 重生成），`sandbox-exec` 拒读平台检出与本 worktree，`env -i HOME=<临时目录> PATH=/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin`：`aisoft version`（layout project，1.8.0）→ `change-name 335 adopt-usage-bundle` → `check-change-documents` gap=0 → `classify 335`（打印路由行）→ `classify --apply 335` updated → `classify --verify 335` **projected** → `complete --project localwms --range de829b9~1..de829b9` dry-run 计划（pinned 325），全部 exit 0 |
 | AC-2 | PASS | `test-aisoft-entry.sh` 对导出的 `.claude/skills` 跑守卫：「维护层」小节外零命中；探针（会话步骤里写平台路径）被抓、维护层小节不报 |
-| AC-3 | PASS（推送待确认点 2） | `--adopt` 对 HSDB #70（`2cd6e93`，173 个改动路径）、LocalWMS #335（`cd948ab`，170）、SFM #184（`3a7f769`，173）各跑一次，`--project-status` 四项 PASS；源码 broker `GitRepository.scope` + `verify_history` 离线复现推送闸门 PASS（175/172/175 个 scope 路径，含 canonical 模板上下文）。PR 链接在确认点 2 之后写进 E2E 表 |
-| AC-4 | PASS | `test-aisoft-entry.sh`：导出到空目录、沙箱拒读平台检出，十个子命令真实调用；删掉 `aisoft_change_name.py` 后 `check-change-documents` 失败、`tool-provenance` GAP |
+| AC-3 | PASS（推送待确认点 2） | `--adopt` 对 HSDB #70（`838b863`，173 个改动路径）、LocalWMS #335（`7fbc4d9`，170）、SFM #184（`6796407`，173）各跑一次（审查修复后按最终 1.8.0 重生成并 amend 本地未推送提交），`--project-status` 四项 PASS；源码 broker `GitRepository.scope` + `verify_history` 离线复现推送闸门 PASS（175/172/175 个 scope 路径，含 canonical 模板上下文）。PR 链接在确认点 2 之后写进 E2E 表 |
+| AC-4 | PASS | `test-aisoft-entry.sh`：导出到空目录、沙箱拒读平台检出，十一个子命令逐个 `--help` 与真实调用（`classify --verify` 与 `complete` dry-run 用测试副本里的 mock broker 与合成 manifest，`project-check` 含 architecture-lock）；删掉 `aisoft_change_name.py` 后 `check-change-documents` 失败、`tool-provenance` GAP |
 | AC-5 | PASS | `test-usage-bundle.sh` 20：改一个工具字节 → GAP；provenance 不符 → GAP；pin 1.0.0 → NOTE；`test-project-check.sh` 新增 tool-drift 用例 |
 | AC-6 | PASS | `test-usage-bundle.sh` 19：缺 `--compatibility`/`--notes`、非法级别、空说明均拒绝；落后含 major → `platform-pin` GAP，minor/patch → NOTE；半声明的 release 被 `--verify` 拒绝；`--verify --baseline-ref origin/main` PASS |
 | AC-7 | PASS | 模板「项目事实」1708 字节；`test-project-check.sh` 超 2 KB 用例报 `NOTE: agents-budget` 且计数不变 |
-| AC-8 | 部分 | `smoke.sh` 在 `3bde56c` 全绿（680 个单测 OK，exit 0）；`7e2a2f8` 的复跑与 Codex 审查结论见下节 |
+| AC-8 | PASS | `smoke.sh` 在本记录所在 head 复跑见下节；`usage-bundle.sh --verify --baseline-ref origin/main` VERIFIED 1.8.0；`check-change-documents` gap=0；Codex 四轮只读审查，第 4 轮 PASS（`422905d`），记录在项目库 `codex-review-402.md` |
+
+## 交叉审查
+
+| 轮 | head | 结论 | 发现 |
+|---|---|---|---|
+| 1 | `6daab1e` | FAIL | `--adopt` 跟随符号链接；`claim-worktree` 忽略 `--repo`；新版本可整项删除 tool-provenance；闭包测试缺成功路径；技能残留 `apply-classification-labels.sh` |
+| 2 | `1093a6d` | FAIL | `--worktree=DIR` 被覆盖；子命令 `--help` 未覆盖；技能残留 `aisoft-loop` / `aisoft_loop.cli` |
+| 3 | `2a583e2` | FAIL | `git_scope` 漏列 `skills/aisoft-matt-workflow/SKILL.md`（离线复现 SCOPE_DENIED） |
+| 4 | `422905d` | PASS | 无；`git_scope` 与 diff 一致（25 条），源码推送闸门离线复现 PASS（19 个提交含 2 个 main 集成 merge） |
 
 ## 判级投影
 
