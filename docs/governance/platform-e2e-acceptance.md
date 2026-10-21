@@ -20,3 +20,6 @@
 
 | 项目 | 发布包版本 | 采用 Issue | 采用 PR | `--project-status` |
 |---|---|---|---|---|
+| HSDB | 1.8.0 | HSDB #70 | HSDB PR 71 | 采用分支四项 PASS；合并后在 main 上读回 |
+| LocalWMS | 1.8.0 | LocalWMS #335（含 CI checkout，complex） | LocalWMS PR 336 | 采用分支四项 PASS；合并后在 main 上读回 |
+| SFM | 1.8.0 | SFMDigitalBoard #184 | SFMDigitalBoard PR 185 | 采用分支四项 PASS；合并后在 main 上读回 |
