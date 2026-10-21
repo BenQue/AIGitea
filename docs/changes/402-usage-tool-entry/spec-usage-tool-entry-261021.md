@@ -37,6 +37,7 @@ git_scope:
   - docs/changes/402-usage-tool-entry/verification-usage-tool-entry-261021.md
   - docs/governance/platform-e2e-acceptance.md
   - docs/governance/remediation-roadmap.md
+  - skills/aisoft-matt-workflow/SKILL.md
   - skills/aisoft-platform/SKILL.md
   - skills/aisoft-platform/references/onboarding-runbook.md
   - skills/aisoft-platform/references/private-gitea-access.md
