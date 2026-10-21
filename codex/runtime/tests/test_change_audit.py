@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import tempfile
 import unittest
 
@@ -120,6 +121,70 @@ class ChangeAuditTests(unittest.TestCase):
             report = audit_change_documents(empty)
             self.assertTrue(report.ok)
             self.assertEqual(report.change_count, 0)
+
+    # R12 (#409): a project registers its history with legacy_changes_before in
+    # the usage lock; problems below the threshold are LEGACY, not GAP.
+    def declare_legacy(self, value: object) -> None:
+        lock = self.repo / ".aisoft" / "platform-usage.lock.json"
+        lock.parent.mkdir(exist_ok=True)
+        lock.write_text(json.dumps({
+            "contract_version": "aisoft-usage-lock/v1",
+            "bundle_version": "1.9.0",
+            "bundle_digest": "sha256:" + "0" * 64,
+            "legacy_changes_before": value,
+        }), encoding="utf-8")
+
+    def legacy(self) -> dict[str, tuple[str, ...]]:
+        report = audit_change_documents(self.repo)
+        return {check.name: check.legacy for check in report.checks}
+
+    def legacy_directory(self, name: str, body: str = "# no front matter\n") -> None:
+        directory = self.repo / "docs" / "changes" / name
+        directory.mkdir()
+        (directory / "01-spec.md").write_text(body, encoding="utf-8")
+
+    def test_legacy_threshold_turns_old_problems_into_registrations(self) -> None:
+        self.legacy_directory("13")
+        self.legacy_directory("0001-board-fixes")
+        self.declare_legacy(57)
+        report = audit_change_documents(self.repo)
+        self.assertTrue(report.ok)
+        legacy = self.legacy()[CHECK_DOCUMENTS]
+        self.assertEqual(len(legacy), 2)
+        self.assertTrue(any(item.startswith("0001-board-fixes") for item in legacy))
+        self.assertTrue(any(item.startswith("13/") for item in legacy))
+
+    def test_directories_at_or_above_the_threshold_still_gap(self) -> None:
+        self.write("spec-matt-flow-260808.md", "no front matter\n")
+        self.declare_legacy(57)
+        results = self.results()
+        self.assertEqual(len(results[CHECK_DOCUMENTS]), 1)
+        self.assertEqual(self.legacy()[CHECK_DOCUMENTS], ())
+
+    def test_a_pr_url_problem_below_the_threshold_is_legacy(self) -> None:
+        self.write("summary-matt-flow-260808.md", SUMMARY.replace("status: approved", "status: pr-open"))
+        self.declare_legacy(58)
+        self.assertTrue(audit_change_documents(self.repo).ok)
+        self.assertEqual(len(self.legacy()[CHECK_PR_URL]), 1)
+
+    def test_a_directory_without_a_number_is_never_legacy(self) -> None:
+        (self.repo / "docs" / "changes" / "not-a-change").mkdir()
+        self.declare_legacy(10_000)
+        self.assertEqual(len(self.results()[CHECK_DOCUMENTS]), 1)
+
+    def test_without_a_declaration_old_problems_stay_gaps(self) -> None:
+        self.legacy_directory("13")
+        self.assertFalse(audit_change_documents(self.repo).ok)
+        self.assertEqual(self.legacy()[CHECK_DOCUMENTS], ())
+
+    def test_an_invalid_threshold_is_a_gap_not_a_silent_pass(self) -> None:
+        self.legacy_directory("13")
+        for value in (0, -1, True, "57", 1.5):
+            with self.subTest(value=value):
+                self.declare_legacy(value)
+                problems = self.results()[CHECK_DOCUMENTS]
+                self.assertTrue(any("legacy_changes_before" in item for item in problems))
+                self.assertEqual(self.legacy()[CHECK_DOCUMENTS], ())
 
 
 if __name__ == "__main__":
