@@ -22,12 +22,11 @@ updated: 2026-10-21
 git_scope:
   - 03-Issue-Spec-Plan与单闸门开发流程.md
   - 08-双工具共存与实施.md
+  - README.md
   - codex/config/change-template-sync.json
   - codex/runtime/aisoft_main_integration.py
   - codex/runtime/tests/test_main_integration.py
   - codex/runtime/tests/test_session_contract.py
-  - codex/tests/smoke.sh
-  - codex/tests/smoke-pin-baseline.json
   - codex/tests/test-aisoft-entry.sh
   - codex/tests/test-external-skill-versions.sh
   - codex/tools/aisoft
@@ -41,7 +40,6 @@ git_scope:
   - docs/governance/review-evidence-index.md
   - skills/aisoft-platform/SKILL.md
   - skills/aisoft-platform/references/onboarding-runbook.md
-  - skills/gitea-development-loop/SKILL.md
   - skills/issue-session-flow/SKILL.md
   - templates/docs/changes/_template/plan.md
   - templates/docs/changes/_template/spec.md
