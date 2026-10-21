@@ -62,6 +62,7 @@ NewEMaint PR 322 正文：AC-5 的隔离比对被无关容器的重启循环误�
 | 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
 |---|---|---|---|---|---|
 | 1 | Claude | Codex（`codex exec -s read-only -m gpt-6-astra`，reasoning ultra） | `f308d3459709cbacfcb6958f0f7f3bea57072903` | FAIL | 2 条 P2：①spec 回滚段与 summary 风险段的冲突处理写法（merge commit、rebase）与 `03` §1「main 整合与发布」不一致，改为引用该节、冲突先停下；②E2E #313 行把数据哈希写成「与备份和源库一致」，NewEMaint verification 只证明恢复库与备份哈希一致，源库比的是表集合、行数、结构、枚举与迁移，已分开写 |
+| 2 | Claude | Codex（`codex exec -s read-only -m gpt-6-astra`，reasoning high，负责人澄清单批审查用 high） | `c0f2814f59a1c856c82b2e2b1ca1d06e6294c609` | PASS | 无发现；两条 P2 已核对修复，全 diff 复审无新增问题 |
 
 ## 遗留风险与未完成项
 
