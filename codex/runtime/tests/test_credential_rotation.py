@@ -61,7 +61,7 @@ class GrantTests(unittest.TestCase):
         self.target = rotation_target(self.contract, 'alphaapp', 'routine-merge-agent')
         self.grant = {'version': 1, 'operator_uid': 0, 'issue': 316, 'source_sha': SOURCE,
                       'project_id': 'alphaapp', 'token_kind': 'routine-merge-agent',
-                      'credential_root': self.contract.raw['mac_host']['credential_root'],
+                      'credential_root': self.contract.raw['site']['credential_root_mac'],
                       'helper_path': '/usr/local/libexec/aisoft/gitea-pat-helper',
                       'not_before': int(time.time()) - 10, 'expires_at': int(time.time()) + 600,
                       'creation_issue': 213, 'operator_capability': CAPABILITY}

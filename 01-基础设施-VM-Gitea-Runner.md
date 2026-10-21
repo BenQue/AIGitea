@@ -87,9 +87,9 @@ workflow、数据和引用。
   strict governance manifest，再创建唯一 project agent，
   使用 `gitea-governance.sh check` 做只读 diff，最后以 exact repository 单次 apply；未知仓库只
   report。manager/agent/visibility/protection 任一读回失败均为 `BLOCKED_EXTERNAL`。
-- visibility policy：默认 private；当前 public allowlist 只能是 `admin/aisoft-platform`、
-  `admin/myapp`、`admin/smoke-test`。内部应用即使只能在内网访问也保持 private；新 public 例外
-  必须先经独立 Issue/PR 修改 manifest。
+- visibility policy：默认 private；public allowlist 就是 governance manifest 里 `classification`
+  为 `public-platform` 或 `public-test` 的仓库，以 manifest 为准，不在本文另列。内部应用即使只能在
+  内网访问也保持 private；新 public 例外必须先经独立 Issue/PR 修改 manifest。
 - `app.ini` 追加段（邮件，详见 [05](05-通知与多人协作.md)）：
 
 ```ini

@@ -138,6 +138,17 @@ set -e
 grep -Fq 'AISOFT_REGISTRY_PREFLIGHT_FAIL stage=config' <<<"$unset_output" \
   || fail '未设置 registry 时应落在 config stage'
 
+# 7b. 模板占位没换（#396）也落在 config stage，不发起任何连接。
+set +e
+placeholder_output="$(NPM_CONFIG_REGISTRY=REPLACE_WITH_SITE_NPM_REGISTRY \
+  env -u REGISTRY_PREFLIGHT_REGISTRY "$BASH" "$SCRIPT" 2>&1)"
+placeholder_status=$?
+set -e
+[ "$placeholder_status" -eq 1 ] || fail "模板占位：期望退出 1，实际 $placeholder_status"
+grep -Fq 'AISOFT_REGISTRY_PREFLIGHT_FAIL stage=config registry=REPLACE_WITH_SITE_NPM_REGISTRY' \
+  <<<"$placeholder_output" || fail '模板占位未替换时应落在 config stage'
+grep -Fq 'site.npm_registry' <<<"$placeholder_output" || fail '模板占位失败时要指出取值来源'
+
 # 8. 断言本身不得依赖 npm、npm 缓存或进程管理器——那正是被它穿透的两层假绿。
 # 只拦「作为命令调用」：在失败提示里提到 npm ci 或 pm2 是本断言的价值所在，
 # 拦掉它反而会逼着把结论写模糊。

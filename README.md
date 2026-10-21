@@ -102,7 +102,7 @@ flowchart TB
 | 7 | **只有一个交付闸门** | 最终 PR merge 是唯一交付硬闸门，只由人合并；routine 自动合并已按 ADR 0002 退出，自动化最多止于 PR 候选 |
 | 8 | **主机职责 fail closed** | root-owned profile 同时绑定 hostname 与 machine-id；未知 capability、身份漂移或宽松权限都必须在 mutation 前失败 |
 | 9 | **平台审计与项目写入分离** | manager、project agent、shared bot 都不 merge；每个仓库的 merge 白名单只有人 |
-| 10 | **仓库 private 默认、public 显式例外** | 当前只允许 `aisoft-platform`、`myapp`、`smoke-test` public；内部应用 private；公司内网重建执行同一分类策略 |
+| 10 | **仓库 private 默认、public 显式例外** | public 例外以 governance manifest 的 `classification: public-*` 为准；内部应用 private；公司内网重建执行同一分类策略 |
 
 ## 4. 端到端流程（双路径、单合并闸门）
 

@@ -64,10 +64,10 @@ repo-local protected-file helper（VM `coder` project profile 已随 #391 退出
 平台 manifest PR 人工合并前不得创建该项目的 adoption Issue；合并后才逐项目单独完成 binding/live
 canary。其它项目不得批量启用。
 
-标准入口（只替换尖括号；token file 只写路径，不打印内容）：
+标准入口（只替换尖括号；token file 只写路径，不打印内容；VM 检出根取 broker manifest 的 `site.platform_checkout_vm`）：
 
 ```bash
-PLATFORM_ROOT=/mnt/mac/Users/benque/MyDocs/AISoftPlatform
+PLATFORM_ROOT=<site.platform_checkout_vm>
 MANIFEST="$PLATFORM_ROOT/codex/config/gitea-governance.json"
 
 "$PLATFORM_ROOT/codex/tools/gitea-governance.sh" \
@@ -153,7 +153,7 @@ writable。
 
 在 `scm-ci` 故意请求 `start/application`，必须连续两次返回 20，并证明 PID、listener、DB
 和文件无变化。应用项目必须把部署目标指向独立 `appserver-test`；不能因为旧 pilot 曾在
-`gitea-ci` 运行 PM2 就复制 legacy workflow。host profile 安装通过也不代表应用已迁移，
+平台 VM 上运行 PM2 就复制 legacy workflow。host profile 安装通过也不代表应用已迁移，
 迁移/数据/回滚仍在应用自己的 Issue、branch、PR 和 live Gate 中验收。
 
 ## 4. CI 与部署

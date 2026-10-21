@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install a pinned Flutter SDK for the gitea-ci act_runner host (Issue #309).
+# Install a pinned Flutter SDK for the platform VM's act_runner host (Issue #309).
 #
 # The host is aarch64 and Flutter publishes Linux archives for x64 only, so the
 # arm64 install path is "clone the tag, then let the SDK bootstrap its own Dart".
