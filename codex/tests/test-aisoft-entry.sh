@@ -206,10 +206,12 @@ case " \$* " in
 esac
 MOCK
 chmod +x "$pr_wt/.aisoft/lib/codex/tools/host-access-broker.sh"
+run_pr_session=pr-session
 run_pr() {
   local expected="$1" status=0
   shift
   (cd -- "$pr_wt" && env -i HOME="$TMP/home" PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/homebrew/bin" \
+    AISOFT_SESSION_ID="$run_pr_session" \
     GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.invalid GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.invalid \
     AISOFT_ACCESS_MANIFEST="$TMP/manifests/host-access-broker.json" \
     AISOFT_GOVERNANCE_MANIFEST="$TMP/manifests/gitea-governance.json" \
@@ -219,6 +221,7 @@ run_pr() {
     fail "expected status $expected, got $status for: aisoft $*"
   }
 }
+run_tool "$pr_wt" 0 claim-worktree --branch change/7-demo-change --session pr-session
 pr_summary="docs/changes/7-demo-change/summary-demo-change-261021.md"
 printf 'Demo.\n\nCloses #7\n\nSummary: %s\n' "$pr_summary" >"$TMP/body.md"
 printf 'Demo without the closing line.\n\nSummary: %s\n' "$pr_summary" >"$TMP/bad-body.md"
@@ -254,6 +257,15 @@ run_pr 1 open-pr 7 --title demo --body-file "$TMP/body.md"
 expect_contains 'committing the backfilled summary failed'
 [[ "$(git -C "$pr_wt" rev-parse HEAD)" == "$start" ]] || fail 'a refused commit moved HEAD'
 rm -f "$hook"
+# Another session (or none) may not resume someone else's run: nothing moves.
+before_state="$(git -C "$pr_wt" rev-parse HEAD)$(git -C "$pr_wt" diff HEAD)$(git -C "$pr_wt" diff --cached)"
+for run_pr_session in other-session ""; do
+  run_pr 2 open-pr 7 --title demo --body-file "$TMP/body.md"
+  expect_contains 'aisoft open-pr:'
+done
+run_pr_session=pr-session
+[[ "$(git -C "$pr_wt" rev-parse HEAD)$(git -C "$pr_wt" diff HEAD)$(git -C "$pr_wt" diff --cached)" == "$before_state" ]] ||
+  fail 'a foreign session changed the worktree before its claim was checked'
 run_pr 0 open-pr 7 --title demo --body-file "$TMP/body.md"
 expect_contains 'PR 12'
 grep -Fq 'pr_url: http://gitea.invalid/o/r/pulls/12' "$pr_wt/$pr_summary" || fail 'open-pr did not backfill pr_url'

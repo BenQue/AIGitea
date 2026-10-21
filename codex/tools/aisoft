@@ -144,6 +144,24 @@ open_pr() {
   local branch summary
   branch="$(git -C "$repo" branch --show-current)"
   [[ "$branch" =~ ^change/${issue}-[a-z0-9-]+$ ]] || { echo "aisoft open-pr: branch $branch is not change/$issue-<slug>" >&2; exit 2; }
+  # Only this worktree's single writer may run it, checked before any write or
+  # broker call (a resumed run commits before it pushes).
+  python3 - "$repo" "$branch" <<'PY' || exit 2
+import subprocess
+import sys
+from pathlib import Path
+from aisoft_worktree_owner import WorktreeOwnerError, authorize_push, caller_session
+
+repo, branch = Path(sys.argv[1]), sys.argv[2]
+try:
+    git_dir = subprocess.run(["git", "-C", str(repo), "rev-parse", "--absolute-git-dir"],
+                             capture_output=True, text=True, check=True).stdout.strip()
+    marker = authorize_push(git_dir, branch=branch, session=caller_session())
+except (WorktreeOwnerError, OSError, subprocess.CalledProcessError) as error:
+    sys.exit(f"aisoft open-pr: {error}")
+if Path(marker.worktree).resolve() != repo.resolve():
+    sys.exit(f"aisoft open-pr: this worktree's claim names {marker.worktree}, not {repo}")
+PY
   # The body is read once; the same string is checked here and sent to the
   # broker, and the check mirrors the broker's _pull_body (typed text, one
   # Closes line, exactly one semantic summary link) so a body this accepts is

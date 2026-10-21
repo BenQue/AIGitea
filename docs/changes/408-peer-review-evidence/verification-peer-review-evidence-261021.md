@@ -39,6 +39,7 @@ updated: 2026-10-21
 | 反向证明：拷贝树里清空 `KNOWN_EXTERNAL` | PASS | 测试内同一 Codex 状态变成 `CAPABILITY codex GAP`、exit 1 |
 | `bash codex/tests/test-aisoft-entry.sh` | PASS | sandbox-exec 拒读平台检出；open-pr 的不合格正文（缺 Closes、CRLF、路径粘连、两条 summary 链接）零 broker 请求，建 PR 失败不留 commit，提交被 hook 拒绝后重跑完成，broker 顺序 `git.push.change gitea.pull.create git.push.change` 且在 checkout 内运行，重跑不再提交 |
 | 反向证明：关掉 open-pr 的 Closes 检查 | PASS | `FAIL: expected status 2, got 0 … bad-body.md`；还原后 PASS |
+| 反向证明：open-pr 不核对归属（Codex 第 3 轮发现 1） | PASS | 把 `authorize_push` 换成只读 marker，别的 session 续跑 `expected status 2, got 0`；还原后 PASS |
 | 反向证明：open-pr 续跑仍先推送（Codex 第 2 轮发现 1） | PASS | 把续跑分支改成 `if false`，假 broker 拒推脏工作树，续跑 `expected status 0, got 1`；还原后 PASS |
 | `python3 -m unittest tests.test_main_integration`（`codex/runtime`） | PASS | 34 tests OK，含 `test_spec_without_lifecycle_status_is_scoped_by_the_summary` |
 | 反向证明：恢复旧 `scope()` | PASS | 上述用例 `FAILED (errors=2)`；还原后 OK |
@@ -88,8 +89,8 @@ exit 0。合并并两台重装技能后，在主 checkout 上直接运行应得�
 | 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
 |---|---|---|---|---|---|
 | 1 | Claude | Codex（`codex exec -s read-only`） | `2256a105552868b805260978fe46869caa34fd02` | FAIL | major：Codex Matt 只核 manifest → 改为核对快照里每个技能的内容哈希与 `.agents/skills` 加载链接，补用例（`e3e72ef2`）；major：open-pr 本地校验与 broker 不一致（CRLF、路径边界、多条 summary、64 KiB）→ 同一字符串按 broker 规则校验后发送，补三种零请求用例；major：提交失败后无法重跑 → 只剩本 summary 的 `pr_url`/`status` 改动时允许续跑，补 hook 失败用例（`4ef731c7`）；major：AC-6 未交付 → SFM #186 与 E2E 表「工具」列；minor：本记录未填 → 本次填写；minor：`git_scope` 多一项 → E2E 表已改，复核相等；minor：索引缺合并 SHA → 补列 |
-
 | 2 | Claude | Codex（`codex exec -s read-only`） | `26212a0ab7f6b1a921a1b4183655ff2a58b58632` | FAIL | 第 1 轮 1、2、5、6、7 确认已修；major：续跑仍先推送，真实 broker 拒推脏工作树 → 续跑先核对 summary 已回填本仓 PR 再提交、只推一次，假 broker 也拒推脏工作树，补反向证明；major：lock 为符号链接时退回最新版本，可把 GAP 读成 PASS → 只有 lock 不存在才退回，链接/目录报 `UNKNOWN`，补用例；minor：fresh 会话未证明 `aisoft-platform` 触发 → 补第二次 fresh 会话 |
+| 3 | Claude | Codex（`codex exec -s read-only`） | `bc7e5d0ad487bfcb2245d118d5fb0fd3924ad20b` | FAIL | 第 2 轮三条确认已修；major：续跑在核对 worktree 归属前提交，别的会话能改动他人 HEAD → open-pr 第一步用 `authorize_push` 与 `caller_session` 核对归属并比对 marker 的 worktree 路径，任何写入与 broker 调用都在它之后，补「错误 session / 缺 session 续跑时 HEAD、index、summary 不变」用例与反向证明；minor：表格被空行截断 → 去掉空行 |
 
 任务书与各轮原文在项目库 `codex-review-408.md`。
 
