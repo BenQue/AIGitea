@@ -33,14 +33,14 @@ func fixture(t *testing.T) (context.Context, *auth.AccessToken, *auth.AccessToke
 	if err = e.Sync(new(user.User), new(auth.AccessToken)); err != nil {
 		t.Fatal("test schema init failed")
 	}
-	u := &user.User{ID: 11, Name: "alphaapp-routine-merger", LowerName: "alphaapp-routine-merger", IsActive: true}
+	u := &user.User{ID: 11, Name: "alphaapp-agent", LowerName: "alphaapp-agent", IsActive: true}
 	other := &user.User{ID: 12, Name: "other-agent", LowerName: "other-agent", IsActive: true}
 	if _, err = e.Insert(u, other); err != nil {
 		t.Fatal("fixture users failed")
 	}
 	ctx := context.Background()
 	ts := []*auth.AccessToken{
-		{UID: u.ID, Name: "issue-208-routine-merge-agent", Scope: "write:repository"},
+		{UID: u.ID, Name: "issue-208-project-agent", Scope: "write:repository"},
 		{UID: u.ID, Name: "unrelated", Scope: "read:user"},
 		{UID: other.ID, Name: "other-token", Scope: "read:user"},
 	}
@@ -49,7 +49,7 @@ func fixture(t *testing.T) (context.Context, *auth.AccessToken, *auth.AccessToke
 			t.Fatal("fixture token failed")
 		}
 	}
-	target := Target{ProjectID: "alphaapp", Kind: "routine-merge-agent", Username: u.Name, Version: "1.26.4"}
+	target := Target{ProjectID: "alphaapp", Kind: "project-agent", Username: u.Name, Version: "1.26.4"}
 	return ctx, ts[0], ts[1], ts[2], target
 }
 func assertPresent(t *testing.T, ctx context.Context, ids ...int64) {
@@ -62,7 +62,7 @@ func assertPresent(t *testing.T, ctx context.Context, ids ...int64) {
 	}
 }
 func req(token *auth.AccessToken) Request {
-	return Request{Action: "revoke", ProjectID: "alphaapp", Kind: "routine-merge-agent", Token: token.Token, ExpectedTokenID: token.ID, ExpectedUserID: token.UID, ExpectedTokenName: token.Name}
+	return Request{Action: "revoke", ProjectID: "alphaapp", Kind: "project-agent", Token: token.Token, ExpectedTokenID: token.ID, ExpectedUserID: token.UID, ExpectedTokenName: token.Name}
 }
 func TestExactRevokeAndFreshReadback(t *testing.T) {
 	ctx, old, same, other, target := fixture(t)
@@ -116,7 +116,7 @@ func TestRejectedTargetsHaveZeroDeletion(t *testing.T) {
 			case "project":
 				r.ProjectID = "other"
 			case "kind":
-				r.Kind = "project-agent"
+				r.Kind = "manager-audit"
 			case "org":
 				_, _ = db.GetEngine(ctx).ID(old.UID).Cols("type").Update(&user.User{Type: user.UserTypeOrganization})
 			case "inactive":
@@ -155,7 +155,7 @@ func TestSecretErrorsAreFixedCodes(t *testing.T) {
 }
 
 func TestStrictRequestAndBuildPins(t *testing.T) {
-	valid := `{"action":"inspect","project_id":"alphaapp","token_kind":"routine-merge-agent","token":"synthetic"}`
+	valid := `{"action":"inspect","project_id":"alphaapp","token_kind":"project-agent","token":"synthetic"}`
 	if _, code := decodeRequest(strings.NewReader(valid)); code != "" {
 		t.Fatal(code)
 	}
