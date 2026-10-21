@@ -15,7 +15,7 @@ risk_flags:
 depends_on:
   - 392
   - 402
-status: spec-review
+status: approved
 branch: change/408-peer-review-evidence
 created: 2026-10-21
 updated: 2026-10-21
@@ -160,21 +160,9 @@ Cursor 会话读回 `aisoft-platform` 技能能触发。结果写进 `platform-e
 - 不改路由表，不加确认点，不改 broker 操作集合。
 - 不改 R12 负责的 `aisoft-project-check.sh`、`change_audit.py`、`usage-bundle.py` 的 lock 读取。
 
-## 未决问题
+## 已决问题（确认点 1，负责人 2026-10-21 12:19Z「确认」，四项均按推荐）
 
-确认点 1 一并决定：
-
-1. **反向审查批次（AC-3）。** 原计划要一个「Codex 实现、Claude 审」的批次。负责人 2026-10-20 改为线程里直接由 Claude 实现，#370 最终也是 Claude 实现、Codex 审，所以至今没有反向批次。
-   - a（推荐）：`03` §7 写「实现方 ≠ 审查方，当前默认 Claude 实现、Codex 只读审查，每批记录双方」，不安排反向批次，验收第 3 项的反向部分记为负责人取消。
-   - b：本批之外另挑一个小平台批次由 Codex 实现、Claude 审，作为反向首例。
-   - c：本批本身交给 Codex 实现，Claude 审。
-2. **能力集「三端均 PASS」（AC-1）。** Codex superpowers 在官方市场拿不到 7.0.0，强求 PASS 只能由平台替它安装，与 #392 决定冲突。
-   - a（推荐）：允许 `KNOWN_EXTERNAL`，原因必须是登记项。
-   - b：坚持三端 PASS，Codex 那格等官方市场更新后再验收，本批 AC-1 记 NOT RUN。
-3. **Cursor 会话的走法（AC-6）。** SFM 没有 Cursor 落点，也没有在途的 small 问题。
-   - a（推荐）：SFM #184 合并后，开一个 SFM small Issue「采用 Cursor 落点」，由 Cursor 会话完成，fresh Cursor 会话读回技能触发；平台 PR 在它出 PR 候选后再开。
-   - b：先由 Claude 为 SFM 补 Cursor 落点，再另找一个 SFM 真实小问题交给 Cursor。
-   - c：Cursor 验收拆成后续批次，本批不等。
-4. **P2-7 的深度。**
-   - a（推荐）：按 §3、§4 做全，含 broker 闸门改动，合并后两台重装 broker。
-   - b：只做 `aisoft open-pr`，approval 仍改 summary 与 spec 两处，不碰 broker。
+1. 反向审查批次：选 a。`03` §7 写「实现方 ≠ 审查方，默认 Claude 实现、Codex 只读审查，每批记录双方」；计划中的反向批次由负责人取消，AC-3 不含反向批次。
+2. 能力集：选 a。允许 `KNOWN_EXTERNAL`，原因必须是登记项。
+3. Cursor 会话：选 a。SFM #184 合并后开 SFM small Issue「采用 Cursor 落点」，由本机 `cursor-agent` 完成，fresh Cursor 会话读回技能触发；平台 PR 在它出 PR 候选后再开。
+4. P2-7：选 a。按 §3、§4 做全，合并后两台重装 broker。

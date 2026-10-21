@@ -36,7 +36,7 @@ override_reason: ''
 depends_on:
   - 392
   - 402
-status: spec-review
+status: approved
 branch: change/408-peer-review-evidence
 pr_url:
 created: 2026-10-21
