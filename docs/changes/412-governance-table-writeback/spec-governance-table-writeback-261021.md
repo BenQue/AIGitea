@@ -14,6 +14,17 @@ depends_on: []
 branch: change/412-governance-table-writeback
 created: 2026-10-21
 updated: 2026-10-21
+git_scope:
+  - 03-Issue-Spec-Plan与单闸门开发流程.md
+  - AGENTS.md
+  - codex/tests/smoke.sh
+  - docs/changes/412-governance-table-writeback/plan-governance-table-writeback-261021.md
+  - docs/changes/412-governance-table-writeback/spec-governance-table-writeback-261021.md
+  - docs/changes/412-governance-table-writeback/summary-governance-table-writeback-261021.md
+  - docs/changes/412-governance-table-writeback/verification-governance-table-writeback-261021.md
+  - docs/governance/platform-e2e-acceptance.md
+  - docs/governance/remediation-roadmap.md
+  - docs/governance/review-evidence-index.md
 ---
 
 # 治理表回写
