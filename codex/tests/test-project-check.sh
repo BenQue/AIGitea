@@ -68,6 +68,8 @@ make_aligned_repo() {
   # #377: the aligned fixture pins the latest usage bundle release.
   cp "$TMP/usage-build/project/.aisoft/platform-usage.md" \
     "$TMP/usage-build/project/.aisoft/platform-usage.lock.json" "$repo/.aisoft/"
+  # #402: and carries the session tool that release ships.
+  cp -R "$TMP/usage-build/project/.aisoft/bin" "$TMP/usage-build/project/.aisoft/lib" "$repo/.aisoft/"
   cp "$ROOT/architecture/reference/sqlite/architecture.json" \
     "$repo/.aisoft/architecture.json"
   cp "$ROOT/architecture/reference/sqlite/architecture.lock.json" \
@@ -231,8 +233,27 @@ run_case 0 remote_check --repo "$TMP/aligned" --remote
 for check_id in platform-pin pointer-sections change-templates architecture-lock labels-readback ci-context ci-outdated-branch delivery-profile change-documents change-pr-url; do
   expect_line "PASS: $check_id"
 done
-expect_line 'result: pass=10 gap=0 skip=2'
+expect_line 'result: pass=11 gap=0 skip=2'
 expect_contains 'DEPRECATED: inline GITEA_TOKEN is deprecated'
+expect_line 'PASS: tool-provenance'
+if grep -Fq 'agents-budget' <<<"$last_output"; then
+  fail 'the template project facts must stay inside the 2 KB budget'
+fi
+
+# #402: the session tool's bytes are the pinned release's, and project facts
+# over 2 KB are a NOTE that never changes the counts.
+cp -R "$TMP/aligned" "$TMP/tool-drift"
+printf '# drift\n' >>"$TMP/tool-drift/.aisoft/lib/codex/runtime/aisoft_loop/cli.py"
+python3 - "$TMP/tool-drift/AGENTS.md" <<'PY'
+import sys
+path = sys.argv[1]
+with open(path, "a", encoding="utf-8") as handle:
+    handle.write("".join(f"- 长规则 {index}：" + "很长的项目规则说明" * 6 + "\n" for index in range(40)))
+PY
+git -C "$TMP/tool-drift" -c user.name=t -c user.email=t@example.invalid commit -qam drift
+run_case 1 local_check --repo "$TMP/tool-drift"
+expect_contains 'GAP: tool-provenance — .aisoft/lib/codex/runtime/aisoft_loop/cli.py 与'
+expect_contains 'NOTE: agents-budget — AGENTS.md「项目事实」'
 
 # Token-file profile (#111): the remote checks must run when the env file only
 # provides GITEA_TOKEN_FILE (post-#61 migrated profile shape).
@@ -249,7 +270,7 @@ MOCK_ENV_FILE="$TMP/agent-file.env" \
   run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'PASS: labels-readback'
 expect_line 'PASS: ci-context'
-expect_line 'result: pass=10 gap=0 skip=2'
+expect_line 'result: pass=11 gap=0 skip=2'
 if grep -Fq 'DEPRECATED' <<<"$last_output"; then
   fail 'token-file profile must not print the deprecation notice'
 fi
@@ -490,13 +511,13 @@ expect_line 'SKIP: change-pr-url — 仓库尚无 docs/changes'
 run_case 0 remote_check --repo "$TMP/aligned" --kind docs --remote
 expect_line 'SKIP: architecture-lock — docs 仓库不要求 architecture lock'
 expect_line 'SKIP: delivery-profile — docs 仓库不声明交付形态'
-expect_line 'result: pass=8 gap=0 skip=4'
+expect_line 'result: pass=9 gap=0 skip=4'
 
 run_case 0 local_check --repo "$TMP/aligned"
 expect_line 'SKIP: labels-readback — 未启用 --remote'
 expect_line 'SKIP: ci-context — 未启用 --remote'
 expect_line 'SKIP: ci-outdated-branch — 未启用 --remote'
-expect_line 'result: pass=7 gap=0 skip=5'
+expect_line 'result: pass=8 gap=0 skip=5'
 
 run_case 64 bash "$CHECKER"
 expect_contains 'usage:'
@@ -513,7 +534,7 @@ expect_contains 'GAP: architecture-lock —'
 MOCK_PROTECTION_STATUS=403 run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'SKIP: ci-context — 需要 manager/audit 权限'
 expect_line 'SKIP: ci-outdated-branch — 需要 manager/audit 权限'
-expect_line 'result: pass=8 gap=0 skip=4'
+expect_line 'result: pass=9 gap=0 skip=4'
 
 # AC-4: a value under a declared extension prefix is legitimate — the platform
 # owns the dimension, the project owns the values.
@@ -524,7 +545,7 @@ canonical_labels '
 run_case 0 remote_check --repo "$TMP/aligned" --remote
 expect_line 'INFO: labels-readback — 声明扩展标签 area/web'
 expect_line 'INFO: labels-readback — 声明扩展标签 priority/p1'
-expect_line 'result: pass=10 gap=0 skip=2'
+expect_line 'result: pass=11 gap=0 skip=2'
 
 # AC-4: a near-miss of a declared prefix is undeclared, not a project dimension.
 # This is the case a prefix-only allow list would wave through.
@@ -910,7 +931,7 @@ MOCK_PROTECTION="$TMP/protection-open.json" \
   run_case 1 remote_check --repo "$TMP/aligned" --remote
 expect_line 'SKIP: ci-merge-preview — 仓库没有 .gitea/workflows 或 .github/workflows'
 expect_line 'GAP: ci-outdated-branch — block_on_outdated_branch 未打开且 pull_request 未检出合并预览，两道保证同时缺失；#299 只允许 ci-merge-preview PASS 的 internal-application 关闭'
-expect_line 'result: pass=9 gap=1 skip=2'
+expect_line 'result: pass=10 gap=1 skip=2'
 
 # The platform repository stays under the #223 requirement: its own CI only
 # runs on pull_request, so an expired green would land on main unobserved.

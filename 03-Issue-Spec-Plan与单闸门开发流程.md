@@ -248,8 +248,16 @@ bash codex/tools/change-template-sync.sh
 `usage/bundle.json` 声明的使用发布包。项目在 `.aisoft/platform-usage.lock.json` pin 版本后，
 `change-templates` 与 `pointer-sections` 按 pin 版本记录的摘要核对，平台前进不再让它自发变红；
 没有 lock 的项目仍对照最新版本。改动任何发布包成员的平台变更必须在同一次变更里运行
-`bash codex/tools/usage-bundle.sh --release <新版本> --today <日期>`，否则 smoke 的 `--verify` 变红；
+`bash codex/tools/usage-bundle.sh --release <新版本> --today <日期> --compatibility <级别> --notes <一句话>`，否则 smoke 的 `--verify` 变红；
 `origin/main` 上已发布的版本不可改。
+
+**会话工具随发布包分发（#402）。** 发布包另带项目内会话工具 `.aisoft/bin/aisoft` 与 `.aisoft/lib/`
+（平台仓同源入口 `codex/tools/aisoft`），归入核对项 `tool-provenance`：项目会话的文档检查、判级投影、
+终态与对齐检查都经 `aisoft <子命令>`，不再需要平台检出。被工具包收录的平台文件（`usage/bundle.json`
+里 `check: tool-provenance` 的成员，含 `aisoft_loop`、被包装的三个工具与 architecture 校验器）因此也是
+发布包成员，改它们同样要发新版本。`--release` 从 #402 起必须带 `--compatibility patch|minor|major` 与
+一句 `--notes`；pin 落后的项目在落后区间含 `major` 时 `platform-pin` 记 GAP，否则只 NOTE。采用新版本由
+平台维护者用 `usage-bundle.sh --adopt <项目 change worktree>` 生成改动，经项目自己的 Issue 与唯一 PR 合入。
 
 <a id="canonical-模板的精确-git-scope-合同360"></a>
 

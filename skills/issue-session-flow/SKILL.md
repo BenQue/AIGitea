@@ -42,7 +42,7 @@ description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆
 建完 worktree 立刻 claim，此后每次调 broker 推送都带同一个会话 id：
 
 ```bash
-AISOFT_SESSION_ID=<本会话 id> PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli \
+AISOFT_SESSION_ID=<本会话 id> aisoft \
   claim-worktree --branch change/N-short-description --worktree /private/tmp/issue-N-short-description
 ```
 
@@ -58,7 +58,7 @@ exact head。** 每次比较都是必做步骤，不能沿用首次旧 SHA，也
 怀疑本机有人串台时，只读扫描一次（不写任何东西）：
 
 ```bash
-PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli scan-worktrees --repo <checkout>
+aisoft scan-worktrees --repo <checkout>
 ```
 
 `rewritten`、`unclaimed`、`claim-invalid` 计入 GAP；`ahead` 与 `unpushed` 是实现期常态，照列不计。
@@ -125,7 +125,7 @@ manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。
 
 人裁决之前不要替它选一个默认值，也不要把待裁决的 Issue 派出去。
 
-## 本机清扫（每周）
+## 本机清扫（每周，维护层）
 
 调度会话的第三项职责：每周一次，清扫平台仓本机残留的 worktree 与本地分支。先 broker
 `git.fetch.main`，再跑只读的 `codex/tools/aigitea-cleanup-merged.sh <checkout> --branches`
@@ -194,7 +194,7 @@ READY_FOR_REVIEW，等待你人工审核并合并。部署不在本次授权内�
 候选文本不得包含自动合并 marker。授权绑定 exact Issue 与 branch，不绑定确认时 SHA；部署不在本次授权内。
 PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge。
 
-`判级` 一行是**合并前的最后一道自查**，必须填 `codex/tools/apply-classification-labels.sh --repo <checkout> --verify N`
+`判级` 一行是**合并前的最后一道自查**，必须填 `aisoft classify --verify N`
 的真实读回，不是印象；用 exact Issue 编号，不用 `--range`。**不是 `projected` 就不要进入待合并**——合并把 Issue 转成 closed，
 判级投影的窗口随之永久关闭，之后没有任何工具会补写 `type/*` 与 `complexity/*`（#167）。
 读到 `projection-missing` 或 `projection-mismatch` 就修复合同内的投影（回去跑 `--apply`）并重新读回；读到 `broker-operation-missing` 就是本机 broker
@@ -203,7 +203,7 @@ PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge。
 ## 收尾（人确认已合并后执行）
 
 1. 取回主干，确认 merge commit **真实存在**于 `origin/main`。人说「合并了」不是证据，`git log` 才是。
-2. 终态标签先 **dry-run**：接入平台的项目跑 `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --range <range>`，验证逐 Issue 判定计划。未接入的项目确认 `Closes #N` 已把 Issue 关掉。同时对本 Issue 跑一次 `codex/tools/apply-classification-labels.sh --verify N`（**用编号，不用 `--range`**）：报 `projection-window-closed` 说明合并前那一步漏了，如实记录并按 `03` §11 处置，**不补写、不加 override**。
+2. 终态标签先 **dry-run**：接入平台的项目跑 `aisoft complete --project <id> --range <range>`，验证逐 Issue 判定计划。未接入的项目确认 `Closes #N` 已把 Issue 关掉。同时对本 Issue 跑一次 `aisoft classify --verify N`（**用编号，不用 `--range`**）：报 `projection-window-closed` 说明合并前那一步漏了，如实记录并按 `03` §11 处置，**不补写、不加 override**。
 
    念计划前先读第一行 `{"selector":"range",…}`：`commits` 是这个 range 实际覆盖的 merge，
    逐 Issue 行的 `commit` 是产出它的那条。**核对它就是第 1 步认定的那个 merge**；
@@ -211,7 +211,7 @@ PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge。
    不是在你 fetch 那一刻——`#167` 收尾时它就静默指向了别人刚合并的 Issue（#175）。
 3. 合并已提供终态 mutation 权限；验证计划瞄准第 1 步的 exact merge 后直接加 `--apply`，
    **并且用计划回给的 `pinned` 编号，不再传 `--range`**：
-   `codex/tools/mark-completed-issues.sh --repo <checkout> --project <id> --apply <pinned>`。
+   `aisoft complete --project <id> --apply <pinned>`。
    人点头与你敲 `--apply` 之间 `origin/main` 还会移动，同一个 `--range` 第二次解析可以
    落到另一个 Issue 上；Issue 编号不会移动。**终态判定取自文档与 manifest**：summary 的
    `required_docs` 含不含 `verification`，以及该项目在 `gitea-governance.json` 里的
@@ -219,19 +219,23 @@ PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge。
    requires-deployment` 去等一次必然到来的部署，`none` 与缺省的 `application-deploy-selective`
    都当场到 `completed`（#192）。两个条件都由工具读取，不要自己判断该写 `completed` 还是
    `deployed`；计划里出现你不认识的 `reason` 时读 `detail`，它写着依据，绝不推断已部署。
-4. 文档自查：接入平台的项目跑 `check-change-documents --repo <checkout>`。
-5. 重装并读回（平台仓）：merge 的 diff 触及 `codex/runtime/`、`codex/config/`、`codex/tools/`、
-   `skills/`、`architecture/`、`sync/` 或任一 installer 时，给负责人两台重装的完整命令（Mac 终端可直接
-   执行；VM 一律经 OrbStack 转发，读回命令见 `06` 的漂移核对节），重装是负责人的 sudo 动作，会话不代执行。
-   负责人回复后会话读回 Mac 的 `codex/tools/check-installed-drift.sh`、VM 的同一脚本加 `--host vm`
-   与 `aisoft-platform-readiness.sh`，把读回结论写一条 Issue 评论（`gitea.issue.comment`）。都没触及就在
-   报告里写「重装：不适用」。读回不是 PASS 就保留会话并报告 blocker；未运行写 NOT RUN。
+4. 文档自查：接入平台的项目跑 `aisoft check-change-documents`。
+5. 重装并读回：平台仓的变更按下方「平台仓重装读回（维护层）」执行；项目仓在报告里写「重装：不适用」。
 6. 清理：**先离开 worktree**，再 `git worktree remove <path>` 与 `git branch -d change/N-slug`。站在 worktree 里删自己脚下的目录会失败。
 7. 盘点衍生 Issue：真正独立的验收标准开新 Issue，不扩展已关闭的那张；有调度会话就用会话间消息回报，没有就自己开 Issue 并派单。
 8. 报告 exact merge、终态、文档检查、重装读回、worktree/本地分支清理与未执行项，然后直接归档本会话。
    任何确定性收尾失败都必须保留会话并报告真实 blocker，不得伪报已归档。
 
 归档会话只清理工具自己管理的工作目录，**不是**你手建的 change worktree。第 6 步不能省。
+
+### 平台仓重装读回（维护层）
+
+merge 的 diff 触及 `codex/runtime/`、`codex/config/`、`codex/tools/`、
+`skills/`、`architecture/`、`sync/` 或任一 installer 时，给负责人两台重装的完整命令（Mac 终端可直接
+执行；VM 一律经 OrbStack 转发，读回命令见 `06` 的漂移核对节），重装是负责人的 sudo 动作，会话不代执行。
+负责人回复后会话读回 Mac 的 `codex/tools/check-installed-drift.sh`、VM 的同一脚本加 `--host vm`
+与 `aisoft-platform-readiness.sh`，把读回结论写一条 Issue 评论（`gitea.issue.comment`）。都没触及就在
+报告里写「重装：不适用」。读回不是 PASS 就保留会话并报告 blocker；未运行写 NOT RUN。
 
 ## 衍生 Issue 与琐事例外
 

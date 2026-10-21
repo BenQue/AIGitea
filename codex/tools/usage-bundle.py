@@ -12,14 +12,27 @@ history table is the version, the digests prove the copy.
   --verify [--baseline-ref REF]  declaration, history and current contents agree;
                                  with REF, releases published there are an
                                  unchanged prefix of the current history
-  --release VERSION --today D    append a release from the current contents
+  --release VERSION --today D --compatibility patch|minor|major --notes TEXT
+                                 append a release from the current contents
   --build DIR                    export the latest release for a project to copy
                                  (skills land in .claude/, .agents/ and .cursor/;
                                  vendored skill packs per VENDOR_LANDINGS)
-  --project-status REPO          platform-pin / pointer-sections / change-templates
+  --adopt REPO [--tools LIST]    write the latest release into a clean project
+                                 checkout (#402) and report its status; LIST picks
+                                 the tool landings (default claude,codex)
+  --project-status REPO          platform-pin / tool-provenance /
+                                 pointer-sections / change-templates
 
 Only --release writes inside the platform tree (usage/bundle.json); --build
-writes only under DIR. --project-status never writes.
+writes only under DIR and --adopt only inside REPO. --project-status never
+writes.
+
+The session tool (#402): exact members checked as tool-provenance land under
+.aisoft/bin and .aisoft/lib, a copy of the platform tree subset that
+codex/tools/aisoft wraps. This script is one of them, so inside a project it
+runs from .aisoft/lib with that directory as its platform root; --build and
+--adopt write the release history it then reads (.aisoft/lib/usage/bundle.json)
+and the provenance aisoft version reports (.aisoft/lib/provenance.json).
 """
 from __future__ import annotations
 
@@ -40,7 +53,22 @@ LOCK_CONTRACT = "aisoft-usage-lock/v1"
 # unpinned one without any member change or new release.
 LOCK_PATH = ".aisoft/platform-usage.lock.json"
 MODES = ("exact", "pointer", "seed", "skill", "vendor")
-CHECKS = ("platform-pin", "pointer-sections", "change-templates")
+CHECKS = ("platform-pin", "tool-provenance", "pointer-sections", "change-templates")
+# Every member list must cover these; tool-provenance only exists from the
+# release that first ships the session tool on (#402).
+REQUIRED_CHECKS = ("platform-pin", "pointer-sections", "change-templates")
+COMPATIBILITY = ("patch", "minor", "major")
+TOOL_HISTORY = ".aisoft/lib/usage/bundle.json"
+TOOL_PROVENANCE = ".aisoft/lib/provenance.json"
+TOOL_ROOTS = (".aisoft/bin/", ".aisoft/lib/")
+# CI seeds are never adopted: changing a project's CI is not a small change.
+ADOPT_SKIPPED_SEEDS = (".gitea/workflows/", "scripts/ci/")
+LEGACY_TEMPLATES = ("00-summary.md", "01-spec.md", "02-plan.md", "03-verification.md")
+# Tool landings --adopt writes; a project adopts the tools it uses. The broker
+# push gate allows at most this many exact paths in one change's git_scope.
+TOOL_LANDINGS = {"claude": ".claude/", "codex": ".agents/", "cursor": ".cursor/"}
+DEFAULT_TOOLS = ("claude", "codex")
+SCOPE_LIMIT = 256
 VERSION_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 POINTER_START = "## 平台声明（常驻指针）"
 POINTER_PATH = "## 每 Issue 开发路径"
@@ -53,8 +81,10 @@ class BundleError(Exception):
 def usage() -> None:
     print(
         "usage: usage-bundle.sh [--platform-root DIR] --verify [--baseline-ref REF]\n"
-        "       usage-bundle.sh [--platform-root DIR] --release VERSION --today YYYY-MM-DD\n"
+        "       usage-bundle.sh [--platform-root DIR] --release VERSION --today YYYY-MM-DD"
+        " --compatibility patch|minor|major --notes TEXT\n"
         "       usage-bundle.sh [--platform-root DIR] --build DIR\n"
+        "       usage-bundle.sh [--platform-root DIR] --adopt REPO [--tools claude,codex,cursor]\n"
         "       usage-bundle.sh [--platform-root DIR] --project-status REPO",
         file=sys.stderr,
     )
@@ -161,6 +191,8 @@ def validate_member(member: object, label: str) -> dict:
         safe_relative(target, f"{label}.target")
     if mode == "pointer" and check != "pointer-sections":
         raise BundleError(f"{label}: pointer 成员必须归入 pointer-sections")
+    if check == "tool-provenance" and (mode != "exact" or not str(target).startswith(TOOL_ROOTS)):
+        raise BundleError(f"{label}: tool-provenance 成员必须是 exact，落在 .aisoft/bin/ 或 .aisoft/lib/ 下")
     if mode == "exact" and check is None:
         raise BundleError(f"{label}: exact 成员必须归入一个核对项，不能被静默跳过")
     if mode == "seed" and check is not None:
@@ -195,7 +227,7 @@ def validate_member_list(members: object, label: str, with_sha: bool) -> list[di
         elif "sha256" in member or "pointer_sha256" in member:
             raise BundleError(f"{label}[{index}] 不应记录摘要（只在 releases 里记）")
     covered = {member.get("check") for member in members}
-    missing = [check for check in CHECKS if check not in covered]
+    missing = [check for check in REQUIRED_CHECKS if check not in covered]
     if missing:
         raise BundleError(f"{label}: 缺少归入 {', '.join(missing)} 的成员，核对项不能为空")
     return members  # type: ignore[return-value]
@@ -228,10 +260,19 @@ def parse_bundle(text: str) -> dict:
     if not isinstance(releases, list):
         raise BundleError("releases 必须是数组")
     previous: tuple[int, int, int] | None = None
+    tool_shipped = False
     for index, release in enumerate(releases):
         label = f"releases[{index}]"
-        if not isinstance(release, dict) or set(release) != {"version", "released", "bundle_digest", "members"}:
-            raise BundleError(f"{label} 的键必须恰好是 version、released、bundle_digest、members")
+        base_keys = {"version", "released", "bundle_digest", "members"}
+        # #402: notes and compatibility come together, from the release that
+        # introduced them on; published releases before it stay byte-identical.
+        if not isinstance(release, dict) or set(release) not in (base_keys, base_keys | {"notes", "compatibility"}):
+            raise BundleError(f"{label} 的键必须是 version、released、bundle_digest、members（可另带 notes 与 compatibility）")
+        if "compatibility" in release:
+            if release["compatibility"] not in COMPATIBILITY:
+                raise BundleError(f"{label}.compatibility 必须是 {'|'.join(COMPATIBILITY)}")
+            if not isinstance(release["notes"], str) or not release["notes"].strip() or "\n" in release["notes"]:
+                raise BundleError(f"{label}.notes 必须是一句非空说明")
         key = version_key(release["version"])
         if previous is not None and key <= previous:
             raise BundleError(f"{label}: 版本 {release['version']} 不大于上一个版本，历史只能追加")
@@ -241,8 +282,16 @@ def parse_bundle(text: str) -> dict:
         except (TypeError, ValueError) as error:
             raise BundleError(f"{label}.released 不是 YYYY-MM-DD") from error
         validate_member_list(release["members"], f"{label}.members", with_sha=True)
+        # #402: once a release ships the session tool, no later release or the
+        # declaration may drop it; a project would lose aisoft without a GAP.
+        has_tool = any(member.get("check") == "tool-provenance" for member in release["members"])
+        if tool_shipped and not has_tool:
+            raise BundleError(f"{label}: 之前的版本已带会话工具，不能整项删除 tool-provenance 成员")
+        tool_shipped = tool_shipped or has_tool
         if compute_bundle_digest(release["members"]) != release["bundle_digest"]:
             raise BundleError(f"{label}: bundle_digest 与记录的成员摘要不符，历史被改写")
+    if tool_shipped and not any(member.get("check") == "tool-provenance" for member in bundle["members"]):
+        raise BundleError("members: 已发布的版本带会话工具，不能整项删除 tool-provenance 成员")
     return bundle
 
 
@@ -343,7 +392,8 @@ def verify(root: Path, baseline_ref: str | None = None) -> dict:
         raise BundleError(
             f"发布包成员与最新版本 {latest['version']} 不一致：{', '.join(changed)}。"
             "改动成员的变更必须在同一次变更里运行 "
-            "bash codex/tools/usage-bundle.sh --release <新版本> --today <YYYY-MM-DD>"
+            "bash codex/tools/usage-bundle.sh --release <新版本> --today <YYYY-MM-DD> "
+            "--compatibility patch|minor|major --notes <一句话>"
         )
     return bundle
 
@@ -353,9 +403,13 @@ def write_bundle(root: Path, bundle: dict) -> None:
     (root / BUNDLE_PATH).write_text(text, encoding="utf-8")
 
 
-def release(root: Path, version: str, today: str) -> None:
+def release(root: Path, version: str, today: str, compatibility: str, notes: str) -> None:
     bundle = load_bundle(root)
     key = version_key(version)
+    if compatibility not in COMPATIBILITY:
+        raise BundleError(f"--compatibility 必须是 {'|'.join(COMPATIBILITY)}")
+    if not notes.strip() or "\n" in notes:
+        raise BundleError("--notes 必须是一句非空说明")
     try:
         datetime.date.fromisoformat(today)
     except ValueError as error:
@@ -371,6 +425,8 @@ def release(root: Path, version: str, today: str) -> None:
             "released": today,
             "bundle_digest": compute_bundle_digest(members),
             "members": members,
+            "notes": notes.strip(),
+            "compatibility": compatibility,
         }
     )
     write_bundle(root, bundle)
@@ -476,10 +532,167 @@ def build(root: Path, out: Path) -> None:
         for destination in destinations:
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(data)
+            if member.get("check") == "tool-provenance":
+                # Same rule as the vendor landings: the release hashes bytes,
+                # so the mode is derived from them and every export agrees.
+                destination.chmod(0o755 if data.startswith(b"#!") else 0o644)
     lock_destination = out / "project" / bundle["lock_path"]
     lock_destination.parent.mkdir(parents=True, exist_ok=True)
     lock_destination.write_text(lock_text(bundle, latest), encoding="utf-8")
+    if any(member.get("check") == "tool-provenance" for member in latest["members"]):
+        write_tool_metadata(root, bundle, latest, out / "project")
     print(f"BUILT {latest['version']} {latest['bundle_digest']}")
+
+
+def write_tool_metadata(root: Path, bundle: dict, latest: dict, project: Path) -> None:
+    """The two generated files next to the session tool. The history copy lets
+    a project run --project-status without the platform tree; provenance is
+    what aisoft version reports. Neither is a member: both are derived from the
+    release itself."""
+    history = dict(bundle, releases=bundle["releases"][: bundle["releases"].index(latest) + 1])
+    (project / TOOL_HISTORY).parent.mkdir(parents=True, exist_ok=True)
+    (project / TOOL_HISTORY).write_text(json.dumps(history, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    head = git(root, "rev-parse", "HEAD")
+    provenance = {
+        "bundle_version": latest["version"],
+        "bundle_digest": latest["bundle_digest"],
+        "source_sha": head.stdout.strip() if head.returncode == 0 else "unknown",
+    }
+    (project / TOOL_PROVENANCE).write_text(json.dumps(provenance, indent=2) + "\n", encoding="utf-8")
+
+
+def replace_pointer(existing: str, template: str) -> str:
+    """Swap the two pointer sections of a project's AGENTS.md for the
+    template's, keeping every other line. A file without them gets them right
+    after its title line."""
+    pointer = extract_pointer(template)
+    if pointer is None:
+        raise BundleError("AGENTS.md 模板缺少常驻指针两节")
+    records = existing.split("\n")
+    start = next((i for i, line in enumerate(records) if line == POINTER_START), None)
+    if start is None:
+        title = 1 if records and records[0].startswith("# ") else 0
+        head = "\n".join(records[:title])
+        tail = "\n".join(records[title:]).lstrip("\n")
+        return (head + "\n\n" if head else "") + pointer + tail
+    saw_path = False
+    end = len(records)
+    for index in range(start, len(records)):
+        line = records[index]
+        if line == POINTER_PATH:
+            saw_path = True
+        elif saw_path and line.startswith("## "):
+            end = index
+            break
+    if not saw_path:
+        raise BundleError("AGENTS.md 有平台声明节但缺少「每 Issue 开发路径」节，人工处理后再采用")
+    before = "\n".join(records[:start])
+    after = "\n".join(records[end:])
+    return before + ("\n" if before else "") + pointer + after
+
+
+def refuse_symlinks(repo: Path, relative: str) -> None:
+    current = repo
+    for part in PurePosixPath(relative).parts:
+        current = current / part
+        if current.is_symlink():
+            raise BundleError(f"--adopt 拒绝经符号链接写入：{current.relative_to(repo).as_posix()}，先人工处理")
+        if not current.exists():
+            return
+
+
+def adopt(root: Path, repo: Path, tools: tuple[str, ...] = DEFAULT_TOOLS) -> int:
+    """Write the latest release into one clean project checkout, the way a
+    person following project-align would copy it, and report the result."""
+    unknown = sorted(set(tools) - set(TOOL_LANDINGS))
+    if unknown or not tools:
+        raise BundleError(f"--tools 只能取 {','.join(TOOL_LANDINGS)}：{','.join(unknown) or '空'}")
+    skipped_landings = tuple(base for name, base in TOOL_LANDINGS.items() if name not in tools)
+    if git(repo, "rev-parse", "--is-inside-work-tree").stdout.strip() != "true":
+        raise BundleError(f"--adopt 目标不是 git 工作树：{repo}")
+    if git(repo, "status", "--porcelain", "--untracked-files=all").stdout.strip():
+        raise BundleError(f"--adopt 目标工作树不干净，先提交或清理：{repo}")
+    bundle = verify(root)
+    latest = bundle["releases"][-1]
+    import shutil
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as scratch:
+        export = Path(scratch) / "build"
+        build(root, export)
+        project = export / "project"
+        exported = sorted(path.relative_to(project).as_posix() for path in project.rglob("*") if path.is_file())
+        seeds = {member["target"] for member in latest["members"] if member["mode"] == "seed"}
+        pointer_target = next(member["target"] for member in latest["members"] if member["mode"] == "pointer")
+        written: list[str] = []
+        # Nothing is written through a symbolic link: a link inside the
+        # checkout would redirect a copy onto another file (CLAUDE.md ->
+        # AGENTS.md), one pointing outside would write outside the checkout.
+        # Every destination is checked before the first write.
+        for relative in exported + [f"{base}x" for base in TOOL_ROOTS]:
+            if not (skipped_landings and relative.startswith(skipped_landings)) and not relative.startswith(ADOPT_SKIPPED_SEEDS):
+                refuse_symlinks(repo, relative)
+        for relative in exported:
+            source = project / relative
+            destination = repo / relative
+            if skipped_landings and relative.startswith(skipped_landings):
+                continue
+            if relative.startswith(ADOPT_SKIPPED_SEEDS):
+                print(f"NOTE\t{relative}\tCI 种子不随采用写入（改 CI 不是 small），需要时另开 Issue")
+                continue
+            if relative in seeds and destination.exists():
+                print(f"KEPT\t{relative}\t种子已存在，保留项目版本")
+                continue
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if relative == pointer_target and destination.is_file():
+                updated = replace_pointer(destination.read_text(encoding="utf-8"), source.read_text(encoding="utf-8"))
+                if updated == destination.read_text(encoding="utf-8"):
+                    continue
+                destination.write_text(updated, encoding="utf-8")
+                written.append(relative)
+                print(f"WROTE\t{relative}\t只替换常驻指针两节")
+                continue
+            if destination.is_file() and destination.read_bytes() == source.read_bytes() and (
+                destination.stat().st_mode & 0o777 == source.stat().st_mode & 0o777
+            ):
+                continue
+            shutil.copy2(source, destination)
+            written.append(relative)
+            print(f"WROTE\t{relative}")
+        # A tool file a newer release no longer ships must not linger: the
+        # project would keep running a module nothing pins any more.
+        for base in TOOL_ROOTS:
+            directory = repo / base
+            if not directory.is_dir():
+                continue
+            for path in sorted(directory.rglob("*")):
+                relative = path.relative_to(repo).as_posix()
+                if path.is_file() and relative not in exported:
+                    path.unlink()
+                    print(f"REMOVED\t{relative}\t不在 {latest['version']} 的会话工具里")
+        # Legacy templates stay: the broker's scope gate refuses to delete a
+        # non-canonical docs/changes path outside the change's own directory.
+        template_dir = repo / "docs/changes/_template"
+        for name in LEGACY_TEMPLATES:
+            if (template_dir / name).is_file():
+                print(f"NOTE\tdocs/changes/_template/{name}\tlegacy 模板保留；语义模板四件套已就位")
+    if written:
+        ignored = subprocess.run(
+            ["git", "-C", str(repo), "check-ignore", "--no-index", "--stdin"],
+            input="\n".join(written) + "\n", capture_output=True, text=True,
+        )
+        for relative in ignored.stdout.splitlines():
+            print(f"NOTE\t{relative}\t被 .gitignore 忽略，提交前处理")
+    changed = [line for line in git(repo, "status", "--porcelain", "--untracked-files=all").stdout.splitlines() if line]
+    print(f"CHANGED\t{len(changed)}\t改动路径数（tools={','.join(tools)}）")
+    if len(changed) > SCOPE_LIMIT - 4:
+        print(f"NOTE\t{len(changed)}\t加上 change 文档后会超过 broker git_scope 的 {SCOPE_LIMIT} 项上限，减少 --tools 或拆分")
+    failures = 0
+    for check, result, detail in project_status(root, repo):
+        print(f"{check}\t{result}\t{detail}")
+        failures += result == "GAP"
+    print(f"ADOPTED {latest['version']} {latest['bundle_digest']}")
+    return 1 if failures else 0
 
 
 def project_status(root: Path, repo: Path) -> list[tuple[str, str, str]]:
@@ -532,18 +745,58 @@ def project_status(root: Path, repo: Path) -> list[tuple[str, str, str]]:
         if digest != expected:
             failures[check].append(f"{member['target']} 与 {reference['version']} 不一致")
     if pinned:
+        behind = bundle["releases"][bundle["releases"].index(reference) + 1 :]
+        levels = [entry.get("compatibility", "unknown") for entry in behind]
         if failures["platform-pin"]:
             lines.append(("platform-pin", "GAP", "；".join(failures["platform-pin"])))
+        elif "major" in levels:
+            majors = ", ".join(entry["version"] for entry in behind if entry.get("compatibility") == "major")
+            lines.append(("platform-pin", "GAP", f"已 pin {reference['version']}，落后区间含 major（{majors}），需要升级到 {latest['version']}"))
         else:
             lines.append(("platform-pin", "PASS", f"pin {reference['version']}"))
-            if reference is not latest:
-                lines.append(("platform-pin", "NOTE", f"已 pin {reference['version']}，平台最新版本 {latest['version']}"))
+            if behind:
+                highest = next((level for level in ("minor", "patch", "unknown") if level in levels), "unknown")
+                lines.append((
+                    "platform-pin", "NOTE",
+                    f"已 pin {reference['version']}，平台最新版本 {latest['version']}，落后区间最高兼容级别 {highest}",
+                ))
+    lines.extend(tool_provenance(repo, bundle, reference, failures["tool-provenance"]))
     for check in ("pointer-sections", "change-templates"):
         if failures[check]:
             lines.append((check, "GAP", "；".join(failures[check])))
         else:
             lines.append((check, "PASS", reference["version"]))
     return lines
+
+
+def tool_provenance(repo: Path, bundle: dict, reference: dict, failures: list[str]) -> list[tuple[str, str, str]]:
+    """The session tool's bytes are the reference release's (#402). Releases
+    before the tool existed have nothing to compare, which is a NOTE: those
+    projects run platform tools from a platform checkout, as they always did."""
+    if not any(member.get("check") == "tool-provenance" for member in reference["members"]):
+        return [("tool-provenance", "NOTE", f"{reference['version']} 早于会话工具，项目内没有 aisoft")]
+    # A project without the tool is missing every file; name a few, count the rest.
+    problems = failures[:3] + ([f"另有 {len(failures) - 3} 个文件同样不符"] if len(failures) > 3 else [])
+    history_path = repo / TOOL_HISTORY
+    try:
+        history = parse_bundle(history_path.read_text(encoding="utf-8"))["releases"]
+    except (OSError, BundleError) as error:
+        problems.append(f"{TOOL_HISTORY} 不可读：{error}")
+    else:
+        prefix = bundle["releases"][: bundle["releases"].index(reference) + 1]
+        if history != prefix:
+            problems.append(f"{TOOL_HISTORY} 与平台到 {reference['version']} 为止的发布历史不一致")
+    try:
+        provenance = json.loads((repo / TOOL_PROVENANCE).read_text(encoding="utf-8"))
+        if (provenance.get("bundle_version"), provenance.get("bundle_digest")) != (
+            reference["version"], reference["bundle_digest"]
+        ):
+            problems.append(f"{TOOL_PROVENANCE} 的版本与 {reference['version']} 不符")
+    except (OSError, ValueError, AttributeError):
+        problems.append(f"{TOOL_PROVENANCE} 不可读")
+    if problems:
+        return [("tool-provenance", "GAP", "；".join(problems))]
+    return [("tool-provenance", "PASS", reference["version"])]
 
 
 def main(argv: list[str]) -> int:
@@ -557,8 +810,16 @@ def main(argv: list[str]) -> int:
             bundle = verify(root, args[2] if len(args) == 3 else None)
             latest = bundle["releases"][-1]
             print(f"VERIFIED {latest['version']} {latest['bundle_digest']}")
-        elif len(args) == 4 and args[0] == "--release" and args[2] == "--today":
-            release(root, args[1], args[3])
+        elif len(args) >= 2 and args[0] == "--release":
+            if len(args) != 8 or args[2] != "--today" or args[4] != "--compatibility" or args[6] != "--notes":
+                raise BundleError("--release 必须写成 --release VERSION --today D --compatibility patch|minor|major --notes TEXT（#402 起每个版本都带说明与兼容级别）")
+            release(root, args[1], args[3], args[5], args[7])
+        elif args[:1] == ["--adopt"] and len(args) in (2, 4) and (len(args) == 2 or args[2] == "--tools"):
+            repo = Path(args[1]).resolve()
+            if not repo.is_dir():
+                usage()
+            tools = tuple(args[3].split(",")) if len(args) == 4 else DEFAULT_TOOLS
+            return adopt(root, repo, tools)
         elif len(args) == 2 and args[0] == "--build":
             build(root, Path(args[1]))
         elif len(args) == 2 and args[0] == "--project-status":

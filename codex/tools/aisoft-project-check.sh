@@ -7,8 +7,18 @@ set +x
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 USAGE_BUNDLE_TOOL="$ROOT/codex/tools/usage-bundle.sh"
-LABEL_MANIFEST="$ROOT/codex/config/gitea-labels.json"
-GOVERNANCE_MANIFEST="${AISOFT_GOVERNANCE_MANIFEST:-$ROOT/codex/config/gitea-governance.json}"
+# Inside a project the checker runs from .aisoft/lib (#402), which carries no
+# manifests: they list every registered project, so they stay with the broker
+# install, the same fallback aisoft-project-target.sh uses.
+platform_manifest() {
+  if [[ -f "$ROOT/codex/config/$1" ]]; then
+    printf '%s\n' "$ROOT/codex/config/$1"
+  else
+    printf '%s\n' "/usr/local/share/aisoft/$1"
+  fi
+}
+LABEL_MANIFEST="$(platform_manifest gitea-labels.json)"
+GOVERNANCE_MANIFEST="${AISOFT_GOVERNANCE_MANIFEST:-$(platform_manifest gitea-governance.json)}"
 ARCHITECTURE_CLI="$ROOT/architecture/bin/aisoft-architecture"
 
 # Shared token resolution (#111): same-directory copy first (flat VM install
@@ -121,7 +131,7 @@ bundle_exit=0
 bash "$USAGE_BUNDLE_TOOL" --project-status "$repo" >"$bundle_status" 2>"$tmp_dir/usage-bundle.err" ||
   bundle_exit=$?
 if ((bundle_exit != 0)) || [[ ! -s "$bundle_status" ]]; then
-  for bundle_check in platform-pin pointer-sections change-templates; do
+  for bundle_check in platform-pin tool-provenance pointer-sections change-templates; do
     gap "$bundle_check" "使用发布包核对未能运行（退出码 $bundle_exit）"
   done
 else
@@ -1036,6 +1046,19 @@ else
     pass delivery-profile
   else
     gap delivery-profile 'AGENTS.md 未声明明确交付形态'
+  fi
+fi
+
+# #402: AGENTS.md「项目事实」is a fixed list of at most 2 KB; longer project
+# rules belong in the project's own documents. A hint, never a GAP: the
+# budget is a writing rule, not an alignment fact.
+if [[ -f "$repo/AGENTS.md" ]]; then
+  facts_bytes="$(awk '
+    /^## / { in_facts = ($0 ~ /^## 项目事实/) }
+    in_facts { print }
+  ' "$repo/AGENTS.md" | wc -c | tr -d ' ')"
+  if ((facts_bytes > 2048)); then
+    printf 'NOTE: agents-budget — AGENTS.md「项目事实」%d 字节，超过 2 KB；其余项目规则移到项目文档并链接\n' "$facts_bytes"
   fi
 fi
 

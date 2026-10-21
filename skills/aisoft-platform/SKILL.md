@@ -9,6 +9,8 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 
 本技能是唯一来源，由平台安装器生成各工具的落点。文中 `$名称` 表示“调用名为该名称的技能”，各工具按自己的方式调用。
 
+文中 `aisoft <子命令>` 是随使用发布包分发的会话工具：项目内是 `.aisoft/bin/aisoft`，平台仓内是同一份源文件，不需要平台检出。`aisoft version` 自报 `bundle_version` 与源 SHA，`aisoft project-check` 的 `tool-provenance` 核对它与项目 lock 一致。子命令与合同见项目内 `.aisoft/platform-usage.md`「会话工具」。只有平台维护者在平台检出里做的步骤才写平台路径，放在标题含「维护层」的小节。
+
 ## 读合同
 
 动手前先读 `README.md` 与对应分册。平台检出的权威根目录以 broker manifest `codex/config/host-access-broker.json` 的 `site` 段为准：Mac 上是 `site.platform_checkout_mac`，OrbStack VM 上是经 `/mnt/mac` 挂载的 `site.platform_checkout_vm`。检出**不能**放在 `~/Documents`、`~/Desktop`、`~/Downloads` 下：macOS TCC 挡住 `/mnt/mac` 访问这三个目录，`sudo` 也无效（见 `01` §1）。
@@ -22,7 +24,7 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 ## 现行合同（v3.6，#208 governance source）
 
 - **可读命名元组**：新变更 = Issue `N` + 分支 `change/N-短描述` + 目录 `docs/changes/N-短描述/` + worktree `issue-N-短描述` + 唯一 PR（`Closes #N`）。编号仍是唯一主键；remote/history evidence 已存在的 `change/N`、`docs/changes/N/` 与 pre-#57 纯数字文档只作读取或维护兼容，新 writer、first push 和 first PR 不得创建。
-- **语义文档**：新文档名 `<role>-<短描述>-<YYMMDD>.md`，summary front matter 的 `documents` 字段映射 summary/spec/plan/verification 到真实文件名。解析用 `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli resolve-documents N --repo <checkout>`，不要 glob 猜。
+- **语义文档**：新文档名 `<role>-<短描述>-<YYMMDD>.md`，summary front matter 的 `documents` 字段映射 summary/spec/plan/verification 到真实文件名。解析用 `aisoft resolve-documents N`，不要 glob 猜。
 - **判级**：contract_effect 先行（restore/unchanged → small 候选；add/change → complex；unclear → 人工澄清）。功能新增/变更、schema/迁移、外部契约、安全、共享核心、跨模块、CI/制品/部署/回滚、Agent/治理一律强制 complex。small 还须范围局部、可简单 revert，并有可测验收标准。显式要求 complex 照办；要求 small 不能绕过 AI 校验与强制 complex 规则。
 - **文档要求**：production complex 必须有映射的 spec 与 plan；development complex 从 Issue 读取可测验收标准并用合成 `T01`；已验证的 small 与 development complex 不写仪式性 spec/plan。验收证据不能由 diff review 与 required CI 重放时声明 `verification`；部署与迁移总要它，但 `verification` 不等于部署。
 - **Matt 主路径**：每个 Issue 走 `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`（平台适配规则见下文「外部技能包边界」；small 与 development complex 在 triage+summary+判级+`approved` 复核后跳过 spec/plan，后者使用合成 `T01`）。`triage/ready-for-agent` ≠ `approved`；`approved` 只授权开始实现，不授权 merge 或部署。仓库初始化调用 `$setup-matt-pocock-skills`（tracker 选 `Other`），使用 `templates/docs/agents/` 的 tracker、triage、domain 三份文件；Codex 侧经 `aisoft-matt-workflow` 适配器串起这一步。
@@ -72,22 +74,22 @@ routine 自动合并已退出（#391）：broker 没有合并操作，manifest �
 ## PR URL 回填
 
 会话用 broker `gitea.pull.create` 建 PR 后必须运行
-`PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli backfill-pr-url N --repo <checkout> --pr-url <实际 PR URL>`，
+`aisoft backfill-pr-url N --pr-url <实际 PR URL>`，
 把 PR 的 URL 写进映射 summary 的 `pr_url` 并把 `status` 推进到 `pr-open`，只提交这一份文档，并经 broker 推送同一个 change 分支（#142/#146）。`pr_url` 只写在 summary 里，spec、plan 与 verification 不带它；PR 存在之前留空、保持真实的 PR 前状态。summary 没有声明 `pr_url` 或已经声明了另一个值时，工具拒绝并要求人决定——一个 change 只有一个 PR。回填后对更新过的 checkout 运行 `check-change-documents`。
 
-summary-only 回填会产生一个合法的新 head。在后续 push 之前，审查只含映射 summary 的实际 URL/status diff，运行文档检查，核对归属、exact branch 与干净的工作树，记录本次 fresh 验证的 exact head 并把 `pushed_head` 与它比较。范围内 CI 修复走同样的 fresh 验证与读回规则。首次 push 仍与确认点 2 已验证的候选比较。授权绑定 exact Issue/branch，合法 commit 不逐个确认；范围扩大、他人改写或任何不匹配立即停止。完整比较合同见 `issue-session-flow`。检查任何 checkout 用 `PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli check-change-documents --repo <checkout>`。
+summary-only 回填会产生一个合法的新 head。在后续 push 之前，审查只含映射 summary 的实际 URL/status diff，运行文档检查，核对归属、exact branch 与干净的工作树，记录本次 fresh 验证的 exact head 并把 `pushed_head` 与它比较。范围内 CI 修复走同样的 fresh 验证与读回规则。首次 push 仍与确认点 2 已验证的候选比较。授权绑定 exact Issue/branch，合法 commit 不逐个确认；范围扩大、他人改写或任何不匹配立即停止。完整比较合同见 `issue-session-flow`。检查任何 checkout 用 `aisoft check-change-documents --repo <checkout>`（缺省当前仓库）。
 
 ## 会话标准动作（Mac 交互开发，最常见）
 
 > **会话本身的编排**（一 Issue 一会话、合同/启动确认、提交 PR 确认、人工合并、merge 后确定性收尾与归档）见 `issue-session-flow` 技能；本段只覆盖单个会话内部到 PR candidate 为止的动作。
 
 1. 需求/缺陷 → broker `gitea.issue.create`，必须带 `--entry-label`（`needs-analysis`，或 triage 入口 `triage/needs-triage`）；正文写可测验收标准，衍生 Issue 另写来源会话、目标项目与已知依赖（`03` §1）。
-2. `python3 -m aisoft_loop.cli change-name N <slug>` 校验命名 → `git worktree add /private/tmp/issue-N-<slug> -b change/N-<slug> origin/main`（并行会话必须各自 worktree；commit 前 `git branch --show-current` 核对——`06` 踩坑 15）。
+2. `aisoft change-name N <slug>` 校验命名 → `git worktree add /private/tmp/issue-N-<slug> -b change/N-<slug> origin/main` → `aisoft claim-worktree`（并行会话必须各自 worktree；commit 前 `git branch --show-current` 核对——`06` 踩坑 15）。
 3. 按判级与 `change_control` 写映射文档（production complex 补 spec/plan；development complex 从 Issue 读取验收标准并用合成 `T01`），实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。`verification` 由证据能否经 diff review + required CI 重放决定，不等同部署。summary 此时写**真实的**前置 `status`（通常 `approved`），`pr_url` 留空——PR 还不存在。
-4. 判级投影：`codex/tools/apply-classification-labels.sh N` 看计划 → `--apply` → `--verify N` 读回两个维度都 `projected` 才算完成；窗口在合并时关闭，closed Issue 永不补写。读到 `broker-operation-missing` 见 `06` 踩坑 20，结论与 Gitea 事实不符见踩坑 21。
+4. 判级投影：`aisoft classify N` 看计划与路由行 → `aisoft classify --apply N` → `aisoft classify --verify N` 读回两个维度都 `projected` 才算完成；窗口在合并时关闭，closed Issue 永不补写。读到 `broker-operation-missing` 见 `06` 踩坑 20，结论与 Gitea 事实不符见踩坑 21。
 5. 平台仓的 complex 变更：进入确认点 2 之前，由未参与实现的另一方提供者对候选 head 做一次只读交叉审查，结论记入 verification（`03` §「交叉审核」）。
 6. 本地验证完成后进入 `AWAITING_PR_CONFIRMATION`（候选格式见 `issue-session-flow`）；确认后 broker `git.push.change --branch change/N-<slug>` → broker `gitea.pull.create --issue N`（正文含 `Closes #N`）→ 按上文「PR URL 回填的两条路径」回填 summary 再 commit + push，**到开 PR 为止**；`pr_url` 合同见 `03` §3。
-7. push 报 `BASE_BRANCH_STALE`：broker `git.fetch.main` → 本地 `git rebase origin/main` → broker 重推（remote 只走 broker，rebase 是本地操作）；lease 语义见 `06` §1.0。
+7. push 报 `BASE_BRANCH_STALE`：broker `git.fetch.main` → 把 `origin/main` 集成进本分支（已推送过的分支用 merge commit；从未推送的分支也可以本地 rebase）→ broker 重推（remote 只走 broker，集成是本地操作）；lease 语义见 `06` §1.0。
 8. push 报 `REMOTE_BRANCH_MOVED`：推送已被拒、远端未被覆盖，先 broker `git.fetch.change --branch change/N-<slug>` 看清远端再决定，不用更强的 force 压过去；见 `06` §1.0。
 
 ## 部署边界
@@ -125,7 +127,7 @@ Claude 与 Codex 在平台维护层共用同一平台合同，能力等价、可
 `mattpocock-skills:<技能名>`，期望来源是仓库根 `.claude-plugin/marketplace.json` 的
 `mattpocock-skills@aisoft-platform`，`bash skill-for-claude/check-plugin-pin.sh` 读回 `PIN_CLEAN`
 才说明已装插件就是这个 commit；Codex 侧由平台安装器装同一 commit 的 vendor 快照。读到 `PIN_DRIFT` 或 `PIN_NOT_INSTALLED` 时不要声称已是
-v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是需要单独授权的 installed 层动作。各工具的版本核对用 `bash codex/tools/check-external-skill-versions.sh`（只读）。
+v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是需要单独授权的 installed 层动作。各工具的版本核对是维护层动作：平台维护者在平台检出里运行只读的 `check-external-skill-versions.sh`。
 
 - **`pr`**：只生成候选正文，结构为 Summary / Evidence / Merge Danger。每条观察写明 SHA、命令或
   制品，以及它属于 source / local / CI / installed / live 哪一层；缺少 Before 证据要明说，未执行项
@@ -160,7 +162,7 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 ## 接入新项目 / 项目对齐 / 私有访问
 
 - 新项目接入：改基础设施之前先读 [references/onboarding-runbook.md](references/onboarding-runbook.md)——governance manifest + project-agent gate、host-role gate、architecture 声明、CI/部署与验收顺序都有既定约定，不得跳步。
-- 项目对齐（初始化=更新，幂等）：入口 [references/project-align.md](references/project-align.md)——checklist 盘点缺口、逐项走目标仓独立 Issue/AI 判级的单一 PR，不假设每个对齐缺口都是 small；确定性核对用 `codex/tools/aisoft-project-check.sh --repo <checkout>`（PASS/GAP，只读）。项目按版本化使用发布包对齐：合同入口是项目内 `.aisoft/platform-usage.md`，版本以 `.aisoft/platform-usage.lock.json` 为准，导出用 `codex/tools/usage-bundle.sh --build <目录>`。
+- 项目对齐（初始化=更新，幂等）：入口 [references/project-align.md](references/project-align.md)——checklist 盘点缺口、逐项走目标仓独立 Issue/AI 判级的单一 PR，不假设每个对齐缺口都是 small；确定性核对用 `aisoft project-check`（PASS/GAP，只读）。项目按版本化使用发布包对齐：合同入口是项目内 `.aisoft/platform-usage.md`，版本以 `.aisoft/platform-usage.lock.json` 为准；导出与生成采用改动是维护层动作（`project-align.md`「维护层」节）。
 - 私有 Gitea 检查：先读 [references/private-gitea-access.md](references/private-gitea-access.md)；**匿名 404 不构成不存在证据**，按 authenticated ladder 走。
 
 ## Common Mistakes
@@ -170,7 +172,7 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 - 把 `triage/ready-for-agent`、green CI 或 Issue `approved` 当成合并或部署授权——合并只由人做，部署仍需独立授权。
 - 让会话或 project agent 自己 merge——必须 fail closed；source merged 也不等于 credential/protection/live 已 apply。
 - 把 merge 当成部署授权或 `deployed` 证据——merge 不调用 deploy，也不传递生产授权。
-- 把判级投影留到收尾再补——窗口在合并时关闭，closed Issue 永久拒绝补写；进入待合并前必须用 `apply-classification-labels.sh --verify N` 读回 `projected`（#167）。
+- 把判级投影留到收尾再补——窗口在合并时关闭，closed Issue 永久拒绝补写；进入待合并前必须用 `aisoft classify --verify N` 读回 `projected`（#167）。
 - 把 broker 的 `REQUEST_DENIED / not allowlisted` 当权限问题查——那是安装期操作表陈旧，两台重装即可（`06` 踩坑 20）。
 - 在共享 checkout 并行开会话不建 worktree——HEAD 是全局可变状态，B 的 commit 会落进 A 的分支（`06` 踩坑 15）。
 - 从任何示例项目推断目标仓库/端口/部署合同——一切以显式 manifest 为准。
