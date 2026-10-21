@@ -12,12 +12,36 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      # 三方合并要找 base 与 head 的共同祖先，浅克隆找不到。
-      # #370：action 从本站 Gitea 的 actions/checkout 拉取镜像取，不再每次访问
-      # GitHub；钉 40 位 commit（上游 v4.4.0），镜像同步与否都不改变取到的内容。
-      - uses: http://gitea-ci.orb.local:3000/actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          fetch-depth: 0
+      # #370：不再用 actions/checkout——它每次都要从 GitHub 取 action 本身。这里只和
+      # 本 job 已经在用的 Gitea（$GITHUB_SERVER_URL）说话，取全量历史（三方合并要找
+      # base 与 head 的共同祖先，浅克隆找不到），检出 PR head。host 模式的工作区跨
+      # run 复用，所以先清干净再检出。job token 像 actions/checkout 默认那样写进本地
+      # git 配置供合并预览取 base，最后一步无论成败都删掉。
+      - name: Check out
+        env:
+          CHECKOUT_TOKEN: ${{ github.token }}
+          CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          header_key="http.${GITHUB_SERVER_URL}/.extraheader"
+          git init -q .
+          git config --local --unset-all "$header_key" || true
+          git remote remove origin 2>/dev/null || true
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          git config --local "$header_key" \
+            "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$CHECKOUT_TOKEN" | base64 | tr -d '\n')"
+          for attempt in 1 2 3; do
+            git fetch --no-tags --prune --force origin \
+              '+refs/heads/*:refs/remotes/origin/*' '+refs/pull/*/head:refs/remotes/pull/*/head' && break
+            (( attempt < 3 )) || { echo '[checkout] CHECKOUT_FETCH_FAILED' >&2; exit 1; }
+            sleep 5
+          done
+          # 上一次 run 可能停在合并预览的半途（冲突、MERGE_HEAD）；先回到干净状态。
+          git merge --abort 2>/dev/null || true
+          git reset -q --hard 2>/dev/null || true
+          git checkout -q --force --detach "$CHECKOUT_SHA"
+          git clean -ffdxq
+          echo "[checkout] HEAD = $(git rev-parse HEAD)"
 
       # Issue #223：本仓自己也暴露在这个盲区里——smoke 里有 operation_count 这类
       # 手工维护的常数，两个并行 PR 各加一条 typed 操作、各把 N 改成 N+1，
@@ -55,3 +79,7 @@ jobs:
       - name: Merge preview evidence
         if: always() && github.event_name == 'pull_request'
         run: cat "$RUNNER_TEMP/merge-preview.log" || echo '[ci] 没有合并预览日志'
+
+      - name: Remove checkout credential
+        if: always()
+        run: git config --local --unset-all "http.${GITHUB_SERVER_URL}/.extraheader" || true
