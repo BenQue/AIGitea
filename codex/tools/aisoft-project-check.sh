@@ -7,8 +7,18 @@ set +x
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 USAGE_BUNDLE_TOOL="$ROOT/codex/tools/usage-bundle.sh"
-LABEL_MANIFEST="$ROOT/codex/config/gitea-labels.json"
-GOVERNANCE_MANIFEST="${AISOFT_GOVERNANCE_MANIFEST:-$ROOT/codex/config/gitea-governance.json}"
+# Inside a project the checker runs from .aisoft/lib (#402), which carries no
+# manifests: they list every registered project, so they stay with the broker
+# install, the same fallback aisoft-project-target.sh uses.
+platform_manifest() {
+  if [[ -f "$ROOT/codex/config/$1" ]]; then
+    printf '%s\n' "$ROOT/codex/config/$1"
+  else
+    printf '%s\n' "/usr/local/share/aisoft/$1"
+  fi
+}
+LABEL_MANIFEST="$(platform_manifest gitea-labels.json)"
+GOVERNANCE_MANIFEST="${AISOFT_GOVERNANCE_MANIFEST:-$(platform_manifest gitea-governance.json)}"
 ARCHITECTURE_CLI="$ROOT/architecture/bin/aisoft-architecture"
 
 # Shared token resolution (#111): same-directory copy first (flat VM install

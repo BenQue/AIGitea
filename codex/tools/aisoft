@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+# aisoft: the one session entry point a project uses (#402, R11).
+#
+# One source file, two landings. In the platform repository it is
+# codex/tools/aisoft and runs the tools next to it. A project receives it as
+# .aisoft/bin/aisoft together with .aisoft/lib/, a copy of the platform tree
+# subset those tools need (usage/bundle.json lists every file; the
+# tool-provenance check pins their bytes to the project's lock). The wrapped
+# tools keep their own relative lookups because .aisoft/lib mirrors the platform
+# layout. Manifests are not part of that copy: the tools fall back to the
+# host-access broker install under /usr/local/share/aisoft, and every Gitea or
+# Git call still goes through the installed broker.
+set -euo pipefail
+set +x
+
+here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -d "$here/../lib/codex/tools" ]]; then
+  layout=project
+  root="$(cd -- "$here/../lib" && pwd)"
+else
+  layout=source
+  root="$(cd -- "$here/../.." && pwd)"
+fi
+tools="$root/codex/tools"
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH="$root/codex/runtime${PYTHONPATH:+:$PYTHONPATH}"
+
+usage() {
+  cat >&2 <<'USAGE'
+usage: aisoft <command> [args]
+
+  change-name N SLUG                    validate and print a new change branch
+  resolve-documents N                   mapped change document names (JSON)
+  check-change-documents [--porcelain]  front matter contract across the checkout
+  backfill-pr-url N --pr-url URL        record the unique PR in the mapped summary
+  claim-worktree --branch B [...]       bind this change worktree to AISOFT_SESSION_ID
+  scan-worktrees [--porcelain]          read-only: change worktrees left their last push
+  classify N... | --apply N... | --verify N...
+                                        classification projection (plan shows the route card)
+  complete --project ID (--range R | --apply N...)
+                                        terminal lifecycle after merge (dry-run without --apply)
+  project-check [--kind software|docs] [--remote] [--today D]
+  bundle status                         this checkout against its pinned bundle release
+  version                               bundle_version, bundle_digest and source SHA
+
+Every command takes --repo DIR; the default is the current git top level.
+USAGE
+  exit 64
+}
+
+# --repo is optional for the caller and mandatory for every wrapped tool: a
+# wrapped tool's own default is its install root, which inside a project is
+# .aisoft/lib and never the checkout being worked on.
+repo=""
+args=()
+while (($# > 0)); do
+  case "$1" in
+    --repo)
+      (($# >= 2)) || usage
+      repo="$2"
+      shift 2
+      ;;
+    *)
+      args+=("$1")
+      shift
+      ;;
+  esac
+done
+((${#args[@]} > 0)) || usage
+command="${args[0]}"
+args=("${args[@]:1}")
+if [[ -z "$repo" ]]; then
+  repo="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    echo 'aisoft: not inside a git checkout; pass --repo DIR' >&2
+    exit 2
+  }
+fi
+repo="$(cd -- "$repo" && pwd)"
+
+cli() {
+  python3 -m aisoft_loop.cli "$@"
+}
+
+route_card() {
+  python3 - "$repo" "$1" <<'PY'
+import sys
+from aisoft_loop.contract import ContractError, resolve_summary
+
+repo, issue = sys.argv[1], int(sys.argv[2])
+try:
+    path, front_matter = resolve_summary(repo, issue)
+except (ContractError, OSError, ValueError) as error:
+    print(f"路由 #{issue}: 读不出映射 summary：{error}")
+    sys.exit(0)
+route = front_matter.get("route")
+if not isinstance(route, dict):
+    print(f"路由 #{issue}: summary 未写 route:，按 aisoft-platform 技能的 references/route-policy.md 查表补写")
+else:
+    print(
+        f"路由 #{issue}: {route['process']} · {route['tier']}/{route['effort']} · {route['method']}"
+        f" · verify {route['verify']} · review {route['review']} · skills {route['skills']}"
+    )
+PY
+}
+
+case "$command" in
+  change-name)
+    cli change-name ${args[@]+"${args[@]}"}
+    ;;
+  resolve-documents | backfill-pr-url | check-change-documents | scan-worktrees)
+    cli "$command" ${args[@]+"${args[@]}"} --repo "$repo"
+    ;;
+  claim-worktree)
+    cli claim-worktree ${args[@]+"${args[@]}"}
+    ;;
+  classify)
+    mode=plan
+    for arg in ${args[@]+"${args[@]}"}; do
+      case "$arg" in
+        --apply | --verify) mode=write-or-read ;;
+      esac
+    done
+    if [[ "$mode" == plan ]]; then
+      for arg in ${args[@]+"${args[@]}"}; do
+        if [[ "$arg" =~ ^[0-9]+$ ]]; then
+          route_card "$arg"
+        fi
+      done
+    fi
+    bash "$tools/apply-classification-labels.sh" --repo "$repo" ${args[@]+"${args[@]}"}
+    ;;
+  complete)
+    bash "$tools/mark-completed-issues.sh" --repo "$repo" ${args[@]+"${args[@]}"}
+    ;;
+  project-check)
+    bash "$tools/aisoft-project-check.sh" --repo "$repo" ${args[@]+"${args[@]}"}
+    ;;
+  bundle)
+    [[ "${args[*]:-}" == status ]] || usage
+    bash "$tools/usage-bundle.sh" --project-status "$repo"
+    ;;
+  version)
+    ((${#args[@]} == 0)) || usage
+    if [[ "$layout" == project ]]; then
+      python3 - "$root/provenance.json" <<'PY'
+import json
+import sys
+
+try:
+    provenance = json.load(open(sys.argv[1], encoding="utf-8"))
+    for key in ("bundle_version", "bundle_digest", "source_sha"):
+        print(f"{key}\t{provenance[key]}")
+except (OSError, ValueError, KeyError) as error:
+    print(f"aisoft: provenance unreadable: {error}", file=sys.stderr)
+    sys.exit(2)
+print("layout\tproject")
+PY
+    else
+      latest="$(python3 -c 'import json,sys; r=json.load(open(sys.argv[1]))["releases"][-1]; print(r["version"]+"\t"+r["bundle_digest"])' \
+        "$root/usage/bundle.json")"
+      printf 'bundle_version\tsource-tree (latest release %s)\n' "${latest%%$'\t'*}"
+      printf 'bundle_digest\t%s\n' "${latest#*$'\t'}"
+      printf 'source_sha\t%s\n' "$(git -C "$root" rev-parse HEAD)"
+      printf 'layout\tsource\n'
+    fi
+    ;;
+  -h | --help | help)
+    usage
+    ;;
+  *)
+    echo "aisoft: unknown command: $command" >&2
+    usage
+    ;;
+esac
