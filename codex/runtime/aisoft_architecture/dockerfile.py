@@ -218,6 +218,8 @@ def _global_defaults(instructions: list[tuple[int, str, str]]) -> dict[str, str]
 
 
 GUARD_PLAIN = re.compile(r"[A-Za-z0-9 \t._/=:@%+,-]*")
+SHELL_RESERVED = frozenset({"case", "esac", "if", "then", "else", "elif", "fi", "for", "while",
+                            "until", "do", "done", "in", "select", "function", "time"})
 
 
 def _guard_propagates(rest: str) -> bool:
@@ -247,8 +249,12 @@ def _guard_propagates(rest: str) -> bool:
                     index += 1
                     break
                 if rest.startswith("$(", index):
+                    # A plain simple command only: `case` patterns are the one
+                    # plain-word syntax whose `)` would end the scan early.
                     end = rest.find(")", index + 2)
-                    if end < 0 or not GUARD_PLAIN.fullmatch(rest[index + 2:end]):
+                    command = rest[index + 2:end].split() if end >= 0 else []
+                    if (not command or not GUARD_PLAIN.fullmatch(rest[index + 2:end])
+                            or command[0] in SHELL_RESERVED):
                         return False
                     index = end + 1
                 elif rest[index] == "$":

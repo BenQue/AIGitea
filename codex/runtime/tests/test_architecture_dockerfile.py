@@ -310,7 +310,10 @@ class DockerfileInputTests(unittest.TestCase):
                            " && echo \"`printf '\"'`\" || true #'",
                            " && echo ok # ; true", " && (echo ok)",
                            # Codex round 3: a parameter expansion can hide quotes too.
-                           " && echo \"${x:-'\"'}\" || true #'")),
+                           " && echo \"${x:-'\"'}\" || true #'",
+                           # Codex round 5: a case pattern's `)` ends a naive substitution scan.
+                           " && echo \"$(case x in x) printf '\"' ;; esac)\" || true #'",
+                           " && echo \"$()\"")),
             # ENV beats ARG of the same name; SHELL can skip the comparison.
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV BASE={NODE22}\n{guard}",
             f"ARG BASE={NODE22}\nFROM ${{BASE}}\nENV A=1 BASE {NODE22}\n{guard}",
