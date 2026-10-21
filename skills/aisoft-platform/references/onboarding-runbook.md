@@ -255,7 +255,7 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 
   幂等：缺失则创建，`color`/`description` 漂移则更新，`retired` 取值只报告不创建，任何标签都不
   删除。已对齐时为 no-op，可在平台 taxonomy 演进后反复执行——接入与对齐是同一条命令。
-  只读核对用 `--operation gitea.labels.read`，或 `aisoft-project-check.sh --remote` 的
+  只读核对用 `--operation gitea.labels.read`，或 `aisoft project-check --remote` 的
   `labels-readback`（缺失/漂移、受管命名空间冲突、退役取值在用均为 `GAP`，并附所属 Issue 清单）。
 - canonical 取值集合的唯一事实源是 `codex/config/gitea-labels.json`（`schema_version: 2`）的
   `canonical`；本文不复制枚举，复制即注定漂移。语义分工见下段四个维度。
@@ -274,7 +274,7 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 - 安装 `$aisoft-platform` 与 `$gitea-analyze-change`。
 - 先用低风险 Issue 验证：读取 evidence、输出五节 summary，并以 `change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`risk_flags`、`required_docs`、`confidence` 和 `override_reason` 确定性判级。
 - 用功能新增验证 `type/feature` 和 `effective_complexity: complex`；用信息不足的 Issue 验证 `needs-human-decision`、`contract_effect: unclear` 且不输出 `effective_complexity`。
-- 判级只写映射的 `summary` 文档与 readable 分支；标签由 `apply-classification-labels.sh` 经 broker 投影，不创建最终 PR、不部署。
+- 判级只写映射的 `summary` 文档与 readable 分支；标签由 `aisoft classify` 经 broker 投影，不创建最终 PR、不部署。
 - 普通实现会话永远不得编辑约束本次运行的 `AGENTS.md`。complex spec 只能授权其生成治理 patch/proposal；目标文件之外的独立受控治理步骤负责应用，随后用 fresh run 验证并采用新规则。其他 protected files 仍要求 complex spec 精确列出文件、验证与回滚。
 
 ## 7. 会话开发接入
@@ -290,7 +290,7 @@ VM 上的 Development Loop 已随 #391 退出（ADR 0002）；开发由 Mac 上�
 ## 8. 接入验收
 
 验收前后均可用 [project-align.md](project-align.md) 入口做幂等复核：接入完成的仓库
-`aisoft-project-check.sh` 应无 `GAP:`；平台合同演进后重跑同一入口即得回补清单。
+`aisoft project-check` 应无 `GAP:`；平台合同演进后重跑同一入口即得回补清单。
 
 按顺序验证：
 

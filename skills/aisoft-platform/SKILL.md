@@ -172,7 +172,7 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 - 把 `triage/ready-for-agent`、green CI 或 Issue `approved` 当成合并或部署授权——合并只由人做，部署仍需独立授权。
 - 让会话或 project agent 自己 merge——必须 fail closed；source merged 也不等于 credential/protection/live 已 apply。
 - 把 merge 当成部署授权或 `deployed` 证据——merge 不调用 deploy，也不传递生产授权。
-- 把判级投影留到收尾再补——窗口在合并时关闭，closed Issue 永久拒绝补写；进入待合并前必须用 `apply-classification-labels.sh --verify N` 读回 `projected`（#167）。
+- 把判级投影留到收尾再补——窗口在合并时关闭，closed Issue 永久拒绝补写；进入待合并前必须用 `aisoft classify --verify N` 读回 `projected`（#167）。
 - 把 broker 的 `REQUEST_DENIED / not allowlisted` 当权限问题查——那是安装期操作表陈旧，两台重装即可（`06` 踩坑 20）。
 - 在共享 checkout 并行开会话不建 worktree——HEAD 是全局可变状态，B 的 commit 会落进 A 的分支（`06` 踩坑 15）。
 - 从任何示例项目推断目标仓库/端口/部署合同——一切以显式 manifest 为准。
