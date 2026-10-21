@@ -57,7 +57,7 @@ updated: 2026-10-21
 | AC-7 | PASS | 模板「项目事实」1708 字节；`test-project-check.sh` 超 2 KB 用例报 `NOTE: agents-budget` 且计数不变 |
 | AC-8 | PASS | `smoke.sh` 在 `c5bfff8` 从头到尾跑完 exit 0（680 个单测 OK，含 R14 文档守卫与 grep -Fq 棘轮）；`usage-bundle.sh --verify --baseline-ref origin/main` VERIFIED 1.8.0；`check-change-documents` gap=0；Codex 八轮只读审查，第 8 轮 PASS（`c5bfff8`），记录在项目库 `codex-review-402.md` |
 
-| AC-9 | 部分（LocalWMS PR CI 待推送；第 5 轮修复见下） | 模板 `ci.yml` 无 `uses:`；smoke 守卫反向证明：模板副本加回 `uses: actions/checkout@v4` 后守卫命中（rc=0），原文件 rc=1。手写 checkout 步骤从模板原样抽出，在本地 `file://` 裸仓模拟复用工作区连跑两次：两次都检出 exact head（`de829b9`）、残留文件被清掉，extraheader 写入后可删除。HSDB、SFM workflow 读回 `uses:` 0 处，不改；LocalWMS 改用同一步骤（`43669b2`），#335 改判 maintenance / complex（`ci-change`）并读回 projected，Issue 评论记录范围变更。LocalWMS PR 的 CI 运行在推送后补记 |
+| AC-9 | PASS（checkout 部分） | 模板 `ci.yml` 无 `uses:`；smoke 守卫反向证明：模板副本加回 `uses: actions/checkout@v4` 后守卫命中（rc=0），原文件 rc=1。手写 checkout 步骤从模板原样抽出，在本地 `file://` 裸仓模拟复用工作区连跑两次：两次都检出 exact head（`de829b9`）、残留文件被清掉，extraheader 写入后可删除。HSDB、SFM workflow 读回 `uses:` 0 处，不改；LocalWMS 改用同一步骤（`43669b2`），#335 改判 maintenance / complex（`ci-change`）并读回 projected，Issue 评论记录范围变更。LocalWMS PR 的 CI 运行在推送后补记 |。PR CI：平台 PR 405 绿；LocalWMS PR 336 run 2054 里新的 Check out（全量 fetch、检出 exact head）、合并预览（`MERGE_PREVIEW_ALREADY_UP_TO_DATE`）、list-contract 闸门、末尾删除凭据全部通过，job 红在与本票无关的 `gate:audit`（vite、source-map-js 新公告），负责人选择另开 LocalWMS #337 升级依赖，#337 合并后 PR 336 复跑；HSDB PR 71 绿；SFM PR 185 首次红在本仓版本闸门，升 1.3.1 后绿 |
 
 ## 交叉审查
 
