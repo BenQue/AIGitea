@@ -209,7 +209,7 @@ PR 在 required CI 全绿后停在 `READY_FOR_REVIEW` 等人 merge。
 4. 文档自查：接入平台的项目跑 `check-change-documents --repo <checkout>`。
 5. 重装并读回（平台仓）：merge 的 diff 触及 `codex/runtime/`、`codex/config/`、`codex/tools/`、
    `skills/`、`architecture/`、`sync/` 或任一 installer 时，给负责人两台重装的完整命令（Mac 终端可直接
-   执行；VM 一律经 OrbStack 转发，完整命令见 `06` 的漂移核对节），重装是负责人的 sudo 动作，会话不代执行。
+   执行；VM 一律经 OrbStack 转发，读回命令见 `06` 的漂移核对节），重装是负责人的 sudo 动作，会话不代执行。
    负责人回复后会话读回 Mac 的 `codex/tools/check-installed-drift.sh`、VM 的同一脚本加 `--host vm`
    与 `aisoft-platform-readiness.sh`，把读回结论写一条 Issue 评论（`gitea.issue.comment`）。都没触及就在
    报告里写「重装：不适用」。读回不是 PASS 就保留会话并报告 blocker；未运行写 NOT RUN。
