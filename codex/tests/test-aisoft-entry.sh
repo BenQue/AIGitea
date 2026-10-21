@@ -224,12 +224,32 @@ start="$(git -C "$pr_wt" rev-parse HEAD)"
 run_pr 2 open-pr 7 --title demo --body-file "$TMP/bad-body.md"
 expect_contains "exactly one line 'Closes #7'"
 [[ ! -s "$TMP/broker.log" ]] || fail 'open-pr called the broker with a body that breaks the contract'
+# Bodies the broker would refuse are refused before any broker call: a CR, a
+# summary link glued to other path characters, a second summary link.
+printf 'Demo.\r\n\r\nCloses #7\r\n\r\nSummary: %s\r\n' "$pr_summary" >"$TMP/crlf-body.md"
+printf 'Demo.\n\nCloses #7\n\nSummary: x%s\n' "$pr_summary" >"$TMP/glued-body.md"
+printf 'Demo.\n\nCloses #7\n\n%s\n%s\n' "$pr_summary" "docs/changes/7-demo-change/summary-demo-change-261022.md" >"$TMP/two-body.md"
+for bad in crlf-body glued-body two-body; do
+  run_pr 2 open-pr 7 --title demo --body-file "$TMP/$bad.md"
+done
+[[ ! -s "$TMP/broker.log" ]] || fail 'open-pr called the broker with a body the broker would refuse'
 touch "$TMP/fail-create"
 run_pr 1 open-pr 7 --title demo --body-file "$TMP/body.md"
 expect_contains 'pull.create refused'
 [[ "$(git -C "$pr_wt" rev-parse HEAD)" == "$start" ]] || fail 'a failed pull.create left a commit behind'
 grep -Fq 'status: approved' "$pr_wt/$pr_summary" || fail 'a failed pull.create touched the summary'
 rm -f "$TMP/fail-create"
+# A backfill commit that fails (here a refusing pre-commit hook) leaves only
+# the summary's pr_url and status changed; after the cause is fixed a rerun
+# finishes the job.
+hook="$(git -C "$pr_wt" rev-parse --git-common-dir)/hooks/pre-commit"
+mkdir -p "$(dirname "$hook")"
+printf '#!/bin/sh\nexit 1\n' >"$hook"
+chmod +x "$hook"
+run_pr 1 open-pr 7 --title demo --body-file "$TMP/body.md"
+expect_contains 'committing the backfilled summary failed'
+[[ "$(git -C "$pr_wt" rev-parse HEAD)" == "$start" ]] || fail 'a refused commit moved HEAD'
+rm -f "$hook"
 : >"$TMP/broker.log"
 run_pr 0 open-pr 7 --title demo --body-file "$TMP/body.md"
 expect_contains 'PR 12'

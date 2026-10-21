@@ -2145,7 +2145,7 @@
     {
       "version": "1.9.0",
       "released": "2026-10-21",
-      "bundle_digest": "sha256:6ad0e1ba0c6ca6b7699969080b003bdad4597b58ef792daff0a2fc7d76814481",
+      "bundle_digest": "sha256:4a685fe1e2aee8fb104f1cf23d232430c938c3950cabd66a5c4a8b2b5461a5de",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -2310,7 +2310,7 @@
           "mode": "exact",
           "target": ".aisoft/bin/aisoft",
           "check": "tool-provenance",
-          "sha256": "eb470337615ccf01b8bc102b6ae17cc4e3a16b80cdc8c9175a77212ee5a40fdf"
+          "sha256": "d147571f72c30d56d321cb758e811baac1e7985fb09d6088e15a01e1ee4cbb9a"
         },
         {
           "source": "codex/tools/aisoft-project-check.sh",
