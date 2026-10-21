@@ -29,6 +29,10 @@ description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆
 
 调度会话开在**这批 Issue 的相关项目**里，只协调不实现：不建 change worktree、不写实现代码、不碰任何 Issue 的分支。
 
+大阶段任务拆票前，先对整个阶段 `$grill-me` 一次定需求，再拆成 Issue。调度会话的产出物是一张**路线图**，
+沿用 `docs/governance/remediation-roadmap.md` 的表形：一批一行，写名称、一句话目标、判级、依赖、可与谁并行、
+状态，表下写推荐顺序。各 Issue 的路由卡由各自会话查表产出，路线图不替它们定级。
+
 ## change worktree 的单写者归属
 
 **一个 change worktree 的写者是且只是该 Issue 的会话。** 别的会话发现它需要变基、需要修冲突、
@@ -74,6 +78,7 @@ PYTHONPATH=codex/runtime python3 -m aisoft_loop.cli scan-worktrees --repo <check
 - 工作目录 = 目标项目的本地 checkout。接入 AISoft 平台的项目从 `codex/config/host-access-broker.json` 的 `projects[].mac_checkout` 读。
 - **`mac_checkout` 是 `null` 或查不到 → 停下来问人。不要拼路径、不要从别的项目类推。**
 - 任务书必须自包含：新会话没有本会话的上下文。至少写清 Issue 号、目标项目、可测验收标准、依赖的 Issue、以及回报地址（本调度会话的标识）。
+- 任务书带路由卡的 `process`、`tier`、`skills` 三项（Issue 还没判级时写 `awaiting-triage` 与 `frontier`）。卡片没有型号字段，人点卡片时按 tier 选型号，映射见 `08` §7.3；任务书里提醒一句。
 
 **并行**：一次把所有无依赖的卡片派出去，各自的分支、worktree 与 PR 保持分开。
 **顺序**：只派当前无阻塞的。依赖写进 **Issue 正文**，再由 Issue 会话抄进 summary front matter 的 `depends_on`——依赖必须落在 Issue 上，不能只活在调度会话的上下文里（会话会被压缩，Issue 不会）。前置 Issue 完成时用会话间消息回报，调度会话再派下一张。
@@ -158,6 +163,14 @@ commit、测试与普通修复、必需的更宽闸门、判级投影。确认�
 
 triage、判级与路由要求的 semantic docs 完整后，输出 exact Issue 合同并询问是否开始实现。
 确认后持久化 `approved`；它只授权合同内实现、测试和修复，不授权提交 PR、merge 或 deploy。
+
+候选里固定带一行路由，取自 summary 的 `route:`（查 `aisoft-platform` 技能的 `references/route-policy.md` 得出）：
+
+```text
+路由: <process> · <tier>/<effort> · <method> · verify <verify> · review <review> · skills <skills>
+```
+
+人可以改任何一格；改了就把哪一格、为什么写进 summary 的 `override_reason`，再持久化 `approved`。
 
 ## 确认点 2：准备提交最终 PR
 

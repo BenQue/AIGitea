@@ -251,6 +251,7 @@ class ContractTests(unittest.TestCase):
         slug: str = "bounded-fix",
         spec: bool = False,
         plan: bool = False,
+        route: str | None = None,
     ) -> Path:
         directory = self.repo / "docs" / "changes" / f"{number}-{slug}"
         directory.mkdir(parents=True)
@@ -273,7 +274,7 @@ class ContractTests(unittest.TestCase):
                 effect=effect,
                 risk_flags="[]",
                 required_docs="\n".join(required),
-                documents="\n".join(documents),
+                documents="\n".join(documents) + ("" if route is None else "\n" + route),
                 branch=f"change/{number}-{slug}",
             )
         )
@@ -332,6 +333,60 @@ class ContractTests(unittest.TestCase):
                 "plan-bounded-fix-260808.md",
             ),
         )
+
+    SMALL_ROUTE = (
+        "route:\n  process: small-direct\n  tier: standard\n  effort: medium\n"
+        "  skills: verification-before-completion\n  method: debug-first\n"
+        "  verify: targeted\n  review: human-merge\n  confirm: 2"
+    )
+
+    def test_route_block_is_accepted_and_validated(self) -> None:
+        self.write_new_contract(route=self.SMALL_ROUTE)
+        self.assertEqual(
+            resolve_documents(self.repo, 57),
+            {"summary": "summary-bounded-fix-260808.md"},
+        )
+        contract = load_contract(self.repo, self.issue(number=57))
+        self.assertEqual(contract.effective_complexity, "small")
+
+    def test_route_block_rejects_values_outside_the_closed_sets(self) -> None:
+        cases = (
+            ("tier: standard", "tier: huge", "route.tier"),
+            ("effort: medium", "effort: low", "route.effort"),
+            ("method: debug-first", "method: vibes", "route.method"),
+            ("verify: targeted", "verify: some", "route.verify"),
+            ("review: human-merge", "review: self", "route.review"),
+            ("confirm: 2", "confirm: 1", "route.confirm"),
+            ("  confirm: 2", "  confirm: 2\n  engine: daemon", "route keys"),
+            ("  confirm: 2", "", "route keys"),
+            ("skills: verification-before-completion", "skills: ''", "route.skills"),
+            ("process: small-direct", "process: complex-production", "effective_complexity"),
+        )
+        for index, (old, new, needle) in enumerate(cases):
+            with self.subTest(new=new):
+                number = 60 + index
+                self.write_new_contract(number=number, route=self.SMALL_ROUTE.replace(old, new))
+                with self.assertRaisesRegex(ContractError, needle):
+                    resolve_documents(self.repo, number)
+
+    def test_route_process_follows_the_unresolved_row_first(self) -> None:
+        # R1 wins over the complexity: a low-confidence or unclear summary routes
+        # to awaiting-triage even when it still carries effective_complexity.
+        self.write_new_contract(number=80, route=self.SMALL_ROUTE)
+        summary = self.repo / "docs/changes/80-bounded-fix/summary-bounded-fix-260808.md"
+        summary.write_text(summary.read_text().replace("confidence: high", "confidence: low"))
+        with self.assertRaisesRegex(ContractError, "awaiting-triage"):
+            resolve_documents(self.repo, 80)
+        triage = (self.SMALL_ROUTE.replace("process: small-direct", "process: awaiting-triage")
+                  .replace("method: debug-first", "method: none").replace("verify: targeted", "verify: none")
+                  .replace("review: human-merge", "review: none"))
+        summary.write_text(summary.read_text().replace(self.SMALL_ROUTE, triage))
+        resolve_documents(self.repo, 80)
+
+    def test_route_must_be_a_mapping(self) -> None:
+        self.write_new_contract(route="route: small-direct")
+        with self.assertRaisesRegex(ContractError, "route must be a mapping"):
+            resolve_documents(self.repo, 57)
 
     def test_new_named_contract_rejects_slug_and_created_date_drift(self) -> None:
         directory = self.write_new_contract()

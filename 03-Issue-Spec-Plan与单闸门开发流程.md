@@ -142,6 +142,24 @@ routine 自动合并已按 [ADR 0002](docs/adr/0002-deterministic-development-fl
 原合同（候选条件、最终 head 硬门与 merger 身份限制）见 Git 历史与 [迁出说明](archive/automation-engine-exit-261020.md)；
 其 manifest 字段与凭据种类已于 #397 删除，合同拒绝仍声明它们的 manifest。
 
+### 2.2 路由卡（#395）
+
+判级之后，会话查 `aisoft-platform` 技能的 [路由表](skills/aisoft-platform/references/route-policy.md)
+得到路由卡，写进 summary front matter 的 `route:` 块与判级评论，在确认点 1 候选中显示为「路由」行
+（[ADR 0002](docs/adr/0002-deterministic-development-flow.md) D1）。路由卡决定 process、模型档位 tier 与推理强度 effort、
+必用技能、method、verify、review，`confirm` 恒为 2。复杂度仍由本节上面的规则判定，路由表只做映射；路由表
+是唯一来源，取值、细化规则、必用与禁用都以它为准，本节不复述。
+
+人可以在确认点 1 覆盖任何一格，覆盖写进 `override_reason`；覆盖不能把强制 complex 降成 small。合同只写档位，
+型号见 `08` §7.3。判级投影不变：仍是四维标签，不新增 `route/*`。`route:` 目前是可选块，`check-change-documents`
+在它存在时校验取值闭集，以及 `process` 与 `effective_complexity` 一致。
+
+**大需求链**：`change_type: feature`、`contract_effect: add`，或一个阶段要拆成多个 Issue 时，先 Matt `grill-me`
+定需求（what），再 `to-spec`；how 仍有多个合理方案、或涉及新架构、数据模型、外部契约时，用 superpowers
+`brainstorming`（只问 how，以 grill 结论为输入，结论写进映射 spec 的「方案与决策」节），技术可行性存疑时改用
+Matt `prototype`；然后 `to-tickets` 出 Txx 计划，开发按 Txx 顺序执行。`grill-me` 与 `brainstorming` 都在确认点 1
+之前完成，它们就是形成合同的过程。
+
 ## 3. 文档合同
 
 ```text
