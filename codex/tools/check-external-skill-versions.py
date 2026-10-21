@@ -457,6 +457,7 @@ def cursor_platform_skills(repo: Path) -> str:
 
 
 def codex_matt(home: Path, pinned: str) -> str:
+    """The installed vendor snapshot, every skill in it and every load link."""
     vendor = home / ".agents/vendor/mattpocock"
     current = vendor / "current"
     if not os.path.lexists(current):
@@ -465,10 +466,22 @@ def codex_matt(home: Path, pinned: str) -> str:
         return "UNKNOWN (vendor/mattpocock/current is not a link)"
     if os.readlink(current) != f"releases/v{pinned}":
         return f"PIN_DRIFT current={os.readlink(current)}"
-    installed = vendor / "releases" / f"v{pinned}" / "manifest.json"
+    release = vendor / "releases" / f"v{pinned}"
     source = ROOT / f"codex/vendor/mattpocock/v{pinned}/manifest.json"
-    if not installed.is_file() or _sha256(installed) != _sha256(source):
+    installed = release / "manifest.json"
+    if not installed.is_file() or installed.is_symlink() or _sha256(installed) != _sha256(source):
         return "PIN_DRIFT manifest=differs"
+    differs = []
+    for item in _load_json(source)["skills"]:
+        relative = PurePosixPath(item["path"]).parent
+        directory = release / relative
+        link = home / ".agents/skills" / item["name"]
+        if (not directory.is_dir() or directory.is_symlink() or any(p.is_symlink() for p in directory.rglob("*"))
+                or _directory_hash(directory) != item["sha256"]
+                or not link.is_symlink() or os.readlink(link) != f"../vendor/mattpocock/current/{relative}"):
+            differs.append(item["name"])
+    if differs:
+        return f"PIN_DRIFT differs={','.join(sorted(differs))}"
     return "PIN_CLEAN"
 
 

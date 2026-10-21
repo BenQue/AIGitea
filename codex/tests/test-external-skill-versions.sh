@@ -348,9 +348,14 @@ installed() {
     mkdir -p "$dir/.agents/skills"
     cp -R "$root/skills/$name" "$dir/.agents/skills/"
   done
-  mkdir -p "$dir/.agents/vendor/mattpocock/releases/v$matt_pin_version"
-  cp "$root/codex/vendor/mattpocock/v$matt_pin_version/manifest.json" "$dir/.agents/vendor/mattpocock/releases/v$matt_pin_version/"
+  mkdir -p "$dir/.agents/vendor/mattpocock/releases"
+  cp -R "$root/codex/vendor/mattpocock/v$matt_pin_version" "$dir/.agents/vendor/mattpocock/releases/"
   ln -s "releases/v$matt_pin_version" "$dir/.agents/vendor/mattpocock/current"
+  while IFS=' ' read -r name ref; do
+    ln -s "../vendor/mattpocock/current/$ref" "$dir/.agents/skills/$name"
+  done < <(python3 -B -c 'import json, sys, os
+for s in json.load(open(sys.argv[1]))["skills"]: print(s["name"], os.path.dirname(s["path"]))' \
+    "$root/codex/vendor/mattpocock/v$matt_pin_version/manifest.json")
 }
 # cursor_project <name>: project() plus the platform skills Cursor receives.
 cursor_project() {
@@ -410,6 +415,12 @@ caps caps-gap 1 "$dir" \
   "CAPABILITY cursor GAP platform-skills=PIN_CLEAN matt=PIN_CLEAN superpowers=PIN_CLEAN review=[NOT_LOGGED_IN]" \
   "RESULT GAP"
 rm -f "$CURSOR_LOGGED_OUT"
+# Codex Matt is the whole snapshot plus its load links, not only the manifest.
+dir="$(home caps-matt-content "$adapted" registered "$adapted")"
+installed "$dir"
+printf '\n' >>"$dir/.agents/vendor/mattpocock/releases/v$matt_pin_version/skills/engineering/tdd/SKILL.md"
+rm "$dir/.agents/skills/grill-me"
+caps caps-matt-content 1 "$dir" "CAPABILITY codex GAP platform-skills=PIN_CLEAN matt=[PIN_DRIFT differs=grill-me,tdd]"
 # A checkout without Cursor landings: every Cursor item is PIN_NOT_INSTALLED, a GAP.
 repo="$tmp/repo-empty"
 dir="$(home caps-no-cursor "$adapted" registered "$adapted")"
