@@ -4,8 +4,13 @@
 # Issue #223 只在这个 job 里多加了两步，三者一个都没动。
 name: CI
 
+# #397：push 到 main 也跑同一个 job，合并后主干是否仍绿有了自己的记录。push 运行产生的
+# context 是 `CI / verify (push)`，不是必需检查；必需检查字符串不变。合并预览步骤本来就只在
+# pull_request 上跑。
 on:
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
 
 jobs:

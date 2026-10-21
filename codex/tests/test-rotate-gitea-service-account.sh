@@ -27,10 +27,10 @@ parent=root/'projects/alphaapp'
 parent.mkdir(parents=True)
 for p in (root,root/'projects',parent): p.chmod(0o700)
 files={
-'routine-merge-agent.token':'old-secret-canary\n',
-'alphaapp-routine-merger.account-created-by-issue-213':'issue=213\nusername=alphaapp-routine-merger\n',
-'alphaapp-routine-merger.must-change-password-unset-by-issue-213':'issue=213\nusername=alphaapp-routine-merger\npolicy=must-change-password-unset\n',
-'routine-merge-agent.token-created-by-issue-213':'issue=213\nusername=alphaapp-routine-merger\ntoken_kind=routine-merge-agent\n'}
+'project-agent.token':'old-secret-canary\n',
+'alphaapp-agent.account-created-by-issue-213':'issue=213\nusername=alphaapp-agent\n',
+'alphaapp-agent.must-change-password-unset-by-issue-213':'issue=213\nusername=alphaapp-agent\npolicy=must-change-password-unset\n',
+'project-agent.token-created-by-issue-213':'issue=213\nusername=alphaapp-agent\ntoken_kind=project-agent\n'}
 for name,data in files.items():
  p=parent/name; p.write_text(data); p.chmod(0o600)
 PY
@@ -38,7 +38,7 @@ PY
 
 run_operator() {
   PATH="$TMP/bin:$PATH" bash "$ROOT/codex/tools/rotate-gitea-service-account.sh" \
-    --project alphaapp --issue 316 --sha "$SOURCE" --token-kind routine-merge-agent \
+    --project alphaapp --issue 316 --sha "$SOURCE" --token-kind project-agent \
     >"$TMP/stdout" 2>"$TMP/stderr"
 }
 
@@ -55,7 +55,7 @@ assert_no_secret_output
 "$REAL_PYTHON" - "$ROTATION_FIXTURE_STORE" <<'PY'
 from pathlib import Path
 import sys
-transaction=Path(sys.argv[1])/'projects/alphaapp/.rotation-routine-merge-agent'
+transaction=Path(sys.argv[1])/'projects/alphaapp/.rotation-project-agent'
 for name in ('journal.json', 'provenance.json'):
  raw=(transaction/name).read_text()
  assert '1'*64 not in raw and 'operator_capability' not in raw
@@ -73,7 +73,7 @@ for scenario in revoke write; do
     exit 1
   fi
   assert_no_secret_output
-  [[ ! -e "$ROTATION_FIXTURE_STORE/projects/alphaapp/routine-merge-agent.token" ]]
+  [[ ! -e "$ROTATION_FIXTURE_STORE/projects/alphaapp/project-agent.token" ]]
   unset ROTATION_FIXTURE_FAILURE
   run_operator
   assert_no_secret_output
@@ -83,7 +83,7 @@ initialize scope
 export ROTATION_FIXTURE_FAILURE=scope
 if run_operator; then exit 1; fi
 assert_no_secret_output
-[[ ! -e "$ROTATION_FIXTURE_STORE/projects/alphaapp/routine-merge-agent.token" ]]
+[[ ! -e "$ROTATION_FIXTURE_STORE/projects/alphaapp/project-agent.token" ]]
 "$REAL_PYTHON" -c 'import json,sys; d=json.load(open(sys.argv[1])); assert (d["created"],d["deleted"])==(1,1); assert list(d["tokens"])==["old-secret-canary"]' "$ROTATION_FIXTURE_STORE/fake-gitea.json"
 unset ROTATION_FIXTURE_FAILURE
 printf '%s\n' 'PASS: isolated shell rotation/no-op/revoke-failure/scope-mismatch/write-failure/Secret-output checks'

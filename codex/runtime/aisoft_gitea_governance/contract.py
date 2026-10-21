@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -68,20 +67,6 @@ def _exact_keys(
         raise ContractError(f"{context} keys mismatch: missing={missing} extra={extra}")
 
 
-def repository_declarations_sha256(
-    repositories: list[dict[str, object]],
-    *,
-    exclude_name: str,
-) -> str:
-    canonical = json.dumps(
-        [item for item in repositories if item.get("name") != exclude_name],
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    return hashlib.sha256(canonical).hexdigest()
-
-
 def _identifier(value: Any, context: str) -> str:
     _require(isinstance(value, str) and bool(IDENTIFIER_RE.fullmatch(value)),
              f"{context} must be a safe identifier")
@@ -105,29 +90,11 @@ class RequiredContextMigration:
 
 
 @dataclass(frozen=True)
-class RoutineLivePilot:
-    project_id: str
-    rollout_issue: int
-    routine_source_issue: int
-    routine_source_merged_sha: str
-    governance_baseline_issue: int
-    governance_baseline_merged_sha: str
-    non_target_repositories_sha256: str
-    canary_issue: int
-    required_contexts: tuple[str, ...]
-    bootstrap_max: int
-    apply_max: int
-    canary_merge_post_max: int
-
-
-@dataclass(frozen=True)
 class RepositoryContract:
     name: str
     classification: str
     visibility: str
     project_agent: str
-    routine_auto_merge_enabled: bool
-    routine_merge_agent: str | None
     status_check_contexts: tuple[str, ...]
     required_approvals: int
     # 交付阶段。未在 manifest 声明时默认 "production"——缺省取更严的一档，
@@ -139,7 +106,6 @@ class RepositoryContract:
     # 是否持有 change 文档模板的 vendored 副本，见 DEFAULT_VENDORS_CHANGE_TEMPLATES。
     vendors_change_templates: bool = DEFAULT_VENDORS_CHANGE_TEMPLATES
     required_context_migration: RequiredContextMigration | None = None
-    routine_live_pilot: RoutineLivePilot | None = None
 
     @property
     def private(self) -> bool:
@@ -157,14 +123,6 @@ class RepositoryContract:
         声明的更强事实，终态判定要的正是后者（#192）。
         """
         return self.deployment_lifecycle != "none"
-
-    @property
-    def merge_allowlist(self) -> tuple[str, ...]:
-        if self.routine_auto_merge_enabled:
-            assert self.routine_merge_agent is not None
-            return (self.routine_merge_agent,)
-        return ()
-
 
 @dataclass(frozen=True)
 class GovernanceContract:
@@ -202,10 +160,6 @@ class GovernanceContract:
             accounts[repository.project_agent] = tuple(
                 self.raw["project_agent_policy"]["token_scopes"]
             )
-            if repository.routine_merge_agent is not None:
-                accounts[repository.routine_merge_agent] = tuple(
-                    self.raw["routine_merge_agent_policy"]["token_scopes"]
-                )
         return accounts
 
 
@@ -222,7 +176,6 @@ def load_contract(path: str | Path) -> GovernanceContract:
             "contract_version", "environment", "gitea_version", "base_url", "owner",
             "default_branch", "unknown_repository_action", "human_merge_identity",
             "site_admin", "platform_manager", "project_agent_policy",
-            "routine_merge_agent_policy",
             "shared_bot_migration", "server_policy", "repository_policy",
             "repositories", "vm_identity_policy", "intranet_migration_policy",
         },
@@ -249,13 +202,10 @@ def load_contract(path: str | Path) -> GovernanceContract:
 
     site_admin = raw["site_admin"]
     _require(isinstance(site_admin, dict), "site_admin must be an object")
-    _exact_keys(site_admin, {"username", "routine_automation_allowed",
-                             "approved_bootstrap_allowed", "break_glass_only"},
+    _exact_keys(site_admin, {"username", "approved_bootstrap_allowed", "break_glass_only"},
                 "site_admin")
     _require(_identifier(site_admin["username"], "site_admin.username") == human,
              "site admin and human merge identity must match")
-    _require(site_admin["routine_automation_allowed"] is False,
-             "site admin must not be available to routine automation")
     _require(site_admin["approved_bootstrap_allowed"] is True,
              "site admin must allow purpose-built approved bootstrap")
     _require(site_admin["break_glass_only"] is True, "site admin must be break-glass only")
@@ -300,57 +250,6 @@ def load_contract(path: str | Path) -> GovernanceContract:
     _exact_string_list(agent_policy["token_scopes"],
                        ["write:issue", "write:repository", "read:user"],
                        "project_agent_policy.token_scopes")
-
-    merger_policy = raw["routine_merge_agent_policy"]
-    _require(isinstance(merger_policy, dict),
-             "routine_merge_agent_policy must be an object")
-    _exact_keys(
-        merger_policy,
-        {
-            "site_admin", "repository_permission", "ordinary_git_allowed",
-            "native_merge_only_acl", "credential_custody", "ordinary_git_control",
-            "merge_allowed", "cross_project_write_allowed", "allowed_operation",
-            "credential_relative_path_template", "token_scopes",
-        },
-        "routine_merge_agent_policy",
-    )
-    _require(merger_policy["site_admin"] is False,
-             "routine merger must not be a site admin")
-    _require(merger_policy["repository_permission"] == "write",
-             "routine merger must have exact repository Write permission")
-    _require(merger_policy["ordinary_git_allowed"] is False,
-             "routine merger must not be used for ordinary Git")
-    _require(merger_policy["native_merge_only_acl"] is False,
-             "Gitea 1.26.4 does not provide a native merge-only ACL")
-    _require(merger_policy["credential_custody"] == "broker-exclusive",
-             "routine merger credential custody must be broker-exclusive")
-    _require(
-        merger_policy["ordinary_git_control"]
-        == "credential-custody-typed-operation-manifest-final-head-zero-fallback",
-        "ordinary Git isolation must use the approved custody and hard-gate model",
-    )
-    _require(merger_policy["merge_allowed"] is True,
-             "routine merger policy must allow only the broker merge operation")
-    _require(merger_policy["cross_project_write_allowed"] is False,
-             "routine merger cross-project write must be disabled")
-    _require(merger_policy["allowed_operation"] == "gitea.pull.merge.routine",
-             "routine merger must be bound to the fixed typed operation")
-    _require(
-        merger_policy["credential_relative_path_template"]
-        == "projects/{project_id}/routine-merge-agent.token",
-        "routine merger credential binding must use the fixed per-project path",
-    )
-    # The broker verifies this identity against `/api/v1/user` before it probes
-    # any scope, and Gitea gates that route behind the user scope category. A
-    # merge-only scope set therefore cannot pass the broker's own identity gate,
-    # which is what left a project's routine path stuck on HTTP 403 (#313).
-    # `read:user` is read-only and grants no merge or write capability, so the
-    # #213 minimum-privilege intent holds: this is the smallest set the typed
-    # merge operation can actually run with.
-    _exact_string_list(
-        merger_policy["token_scopes"], ["write:repository", "read:user"],
-        "routine_merge_agent_policy.token_scopes",
-    )
 
     shared = raw["shared_bot_migration"]
     _require(isinstance(shared, dict), "shared_bot_migration must be an object")
@@ -408,17 +307,14 @@ def load_contract(path: str | Path) -> GovernanceContract:
     repositories: list[RepositoryContract] = []
     names: set[str] = set()
     agents: set[str] = set()
-    mergers: set[str] = set()
     public_full_names: list[str] = []
     for index, item in enumerate(repositories_value):
         _require(isinstance(item, dict), f"repositories[{index}] must be an object")
         _exact_keys(item, {"name", "classification", "visibility", "project_agent",
-                           "routine_auto_merge_enabled", "routine_merge_agent",
                            "status_check_contexts", "required_approvals"},
                     f"repositories[{index}]",
                     optional={"change_control", "deployment_lifecycle",
-                              "vendors_change_templates", "required_context_migration",
-                              "routine_live_pilot"})
+                              "vendors_change_templates", "required_context_migration"})
         name = _identifier(item["name"], f"repositories[{index}].name")
         _require(name not in names, f"duplicate repository name: {name}")
         names.add(name)
@@ -486,110 +382,6 @@ def load_contract(path: str | Path) -> GovernanceContract:
                 event="pull_request",
                 state="success",
             )
-        routine_enabled = item["routine_auto_merge_enabled"]
-        _require(isinstance(routine_enabled, bool),
-                 f"routine_auto_merge_enabled must be a boolean for {name}")
-        merger_value = item["routine_merge_agent"]
-        merger: str | None
-        if merger_value is None:
-            merger = None
-        else:
-            merger = _identifier(merger_value, f"repositories[{index}].routine_merge_agent")
-            _require(merger not in {human, manager_name, shared_bot, agent},
-                     f"routine merger overlaps a protected identity: {merger}")
-            _require(merger not in agents and merger not in mergers,
-                     f"routine merger identity is reused: {merger}")
-            mergers.add(merger)
-        if routine_enabled:
-            _require(classification == "internal-application",
-                     f"routine auto merge requires internal-application: {name}")
-            _require(bool(contexts),
-                     f"routine auto merge requires canonical status contexts: {name}")
-            _require(merger is not None,
-                     f"routine auto merge requires a distinct merger identity: {name}")
-        pilot_value = item.get("routine_live_pilot")
-        pilot = None
-        if pilot_value is not None:
-            _require(isinstance(pilot_value, dict),
-                     f"routine_live_pilot must be an object for {name}")
-            _exact_keys(
-                pilot_value,
-                {
-                    "project_id", "rollout_issue", "routine_source_issue",
-                    "routine_source_merged_sha", "governance_baseline_issue",
-                    "governance_baseline_merged_sha", "canary_issue",
-                    "non_target_repositories_sha256", "required_contexts",
-                    "bootstrap_max", "apply_max",
-                    "canary_merge_post_max",
-                },
-                f"repositories[{index}].routine_live_pilot",
-            )
-            project_id = _identifier(
-                pilot_value["project_id"],
-                f"repositories[{index}].routine_live_pilot.project_id",
-            )
-            number_fields = (
-                "rollout_issue", "routine_source_issue",
-                "governance_baseline_issue", "canary_issue",
-            )
-            for field in number_fields:
-                value = pilot_value[field]
-                _require(
-                    isinstance(value, int) and not isinstance(value, bool) and value > 0,
-                    f"routine_live_pilot {field} must be positive for {name}",
-                )
-            for field in ("routine_source_merged_sha", "governance_baseline_merged_sha"):
-                value = pilot_value[field]
-                _require(
-                    isinstance(value, str) and bool(SHA_RE.fullmatch(value)),
-                    f"routine_live_pilot {field} must be a full lowercase SHA for {name}",
-                )
-            non_target_digest = pilot_value["non_target_repositories_sha256"]
-            _require(
-                isinstance(non_target_digest, str)
-                and bool(re.fullmatch(r"[0-9a-f]{64}", non_target_digest)),
-                f"routine_live_pilot non-target digest must be lowercase SHA-256 for {name}",
-            )
-            for field in ("bootstrap_max", "apply_max", "canary_merge_post_max"):
-                _require(
-                    pilot_value[field] == 1,
-                    f"routine_live_pilot {field} must equal 1 for {name}",
-                )
-            # 双份记账，而不是冗余：pilot 独立重述这个仓的 required contexts，
-            # 合同拒绝加载任何两处不一致的 manifest。#213 最初把它钉成「恰好一条」，
-            # 因为当时每个仓只有一条 context；#312 发现那个上限把「给 pilot 仓增加
-            # 一条 required CI」变成了全平台 broker 停摆——合同加载失败，而合同加载
-            # 是每一次 broker 调用的前置。现在上限按条目数放开，逐项有序相等取代它：
-            # 加第三条 context 仍然必须同时改这里，不能悄悄溜进去。
-            pilot_contexts = pilot_value["required_contexts"]
-            _require(
-                isinstance(pilot_contexts, list)
-                and all(isinstance(value, str) and value for value in pilot_contexts),
-                f"routine_live_pilot required_contexts must be non-empty strings for {name}",
-            )
-            _require(list(pilot_contexts) == contexts,
-                     f"routine_live_pilot required contexts mismatch for {name}")
-            _require(pilot_value["rollout_issue"] not in {
-                pilot_value["routine_source_issue"],
-                pilot_value["governance_baseline_issue"],
-                pilot_value["canary_issue"],
-            }, f"routine_live_pilot rollout Issue must be distinct for {name}")
-            pilot = RoutineLivePilot(
-                project_id=project_id,
-                rollout_issue=pilot_value["rollout_issue"],
-                routine_source_issue=pilot_value["routine_source_issue"],
-                routine_source_merged_sha=pilot_value["routine_source_merged_sha"],
-                governance_baseline_issue=pilot_value["governance_baseline_issue"],
-                governance_baseline_merged_sha=pilot_value["governance_baseline_merged_sha"],
-                non_target_repositories_sha256=non_target_digest,
-                canary_issue=pilot_value["canary_issue"],
-                required_contexts=tuple(pilot_contexts),
-                bootstrap_max=1,
-                apply_max=1,
-                canary_merge_post_max=1,
-            )
-        _require(name != "aisoft-platform" or not routine_enabled,
-                 "aisoft-platform routine auto merge is permanently disabled")
         approvals = item["required_approvals"]
         _require(isinstance(approvals, int) and not isinstance(approvals, bool) and approvals >= 0,
                  f"required_approvals must be a non-negative integer for {name}")
@@ -610,22 +402,14 @@ def load_contract(path: str | Path) -> GovernanceContract:
             classification=classification,
             visibility=visibility,
             project_agent=agent,
-            routine_auto_merge_enabled=routine_enabled,
-            routine_merge_agent=merger,
             status_check_contexts=tuple(contexts),
             required_approvals=approvals,
             change_control=change_control,
             deployment_lifecycle=deployment_lifecycle,
             vendors_change_templates=vendors_templates,
             required_context_migration=migration,
-            routine_live_pilot=pilot,
         ))
 
-    # 项目数据只在 manifest（ADR 0001 D3）：pilot 是哪个仓、哪几张 Issue、哪两个 SHA
-    # 由 manifest 声明，这里只校验自洽。至多一个 pilot；封印摘要见本函数末尾。
-    live_pilots = [repository for repository in repositories
-                   if repository.routine_live_pilot is not None]
-    _require(len(live_pilots) <= 1, "at most one routine live pilot may be declared")
     _require(repository_policy["public_allowlist"] == public_full_names,
              "public_allowlist must exactly match public repositories in manifest order")
 
@@ -659,17 +443,6 @@ def load_contract(path: str | Path) -> GovernanceContract:
         _require(intranet[key] is False, f"intranet_migration_policy.{key} must be false")
     _require(intranet["requires_target_inventory_and_mapping_approval"] is True,
              "intranet migration must require separate approval")
-
-    for pilot_repository in live_pilots:
-        pilot = pilot_repository.routine_live_pilot
-        assert pilot is not None
-        _require(
-            repository_declarations_sha256(
-                repositories_value, exclude_name=pilot_repository.name
-            )
-            == pilot.non_target_repositories_sha256,
-            "non-target repository declarations changed during the routine live pilot",
-        )
 
     return GovernanceContract(
         raw=raw,

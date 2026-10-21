@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import PurePosixPath
 from typing import Callable, Mapping, Protocol, Sequence
 from urllib.error import HTTPError, URLError
-from urllib.parse import parse_qsl, quote, urlparse, urlsplit
+from urllib.parse import quote, urlparse
 from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 
 from aisoft_change_name import ChangeName, ChangeNameError, SLUG_PATTERN, select_change_name
@@ -149,23 +149,9 @@ REDACTION_PATTERNS: tuple[re.Pattern[str], ...] = (
 )
 REDACTED = "[redacted]"
 MAX_CREDENTIAL_BYTES = 4096
-COLLABORATOR_PAGE_LIMIT = 50
-COLLABORATOR_MAX_PAGES = 100
-# A page contains at most 50 collaborator objects. 128 KiB allows roughly
-# 2.5 KiB per entry (well above the fields this audit consumes) while rejecting
-# response amplification before JSON parsing. The audit-wide bound covers all
-# canonical repositories in one host.access.audit invocation.
+# Upper bound for one bounded identity/metadata response, rejecting response
+# amplification before JSON parsing.
 COLLABORATOR_PAGE_MAX_BYTES = 128 * 1024
-COLLABORATOR_AUDIT_MAX_BYTES = 4 * 1024 * 1024
-COLLABORATOR_AUDIT_MAX_PAGES = 1000
-# Inventory JSON is identity metadata, not an arbitrary numeric data channel.
-# These bounds keep conversion deterministic before Python's process-wide
-# integer digit guard or IEEE-754 overflow can become observable behavior.
-COLLABORATOR_JSON_INTEGER_MAX_DIGITS = 19
-COLLABORATOR_JSON_INTEGER_MIN = -(2**63)
-COLLABORATOR_JSON_INTEGER_MAX = 2**63 - 1
-COLLABORATOR_JSON_FLOAT_MAX_CHARS = 64
-COLLABORATOR_JSON_MAX_DEPTH = 64
 COLLABORATOR_PERMISSIONS = frozenset({"read", "write", "admin", "owner"})
 COLLABORATOR_USER_STRING_FIELDS = frozenset({
     "login", "username", "login_name", "full_name", "email", "avatar_url",
@@ -796,132 +782,6 @@ def _validate_inventory_framing(headers: object) -> int | None:
     return declared
 
 
-def _validate_collaborator_json_structure(body: bytes) -> None:
-    if not isinstance(body, bytes):
-        raise BrokerError(
-            "RESPONSE_SCHEMA_INVALID",
-            "collaborator inventory response is invalid",
-        )
-    closing_stack: list[int] = []
-    in_string = False
-    escaped = False
-    for value in body:
-        if in_string:
-            if escaped:
-                if value < 0x20:
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "collaborator inventory response is invalid",
-                    )
-                escaped = False
-            elif value == 0x5C:  # backslash
-                escaped = True
-            elif value == 0x22:  # quote
-                in_string = False
-            elif value < 0x20:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory response is invalid",
-                )
-            continue
-        if value == 0x22:  # quote
-            in_string = True
-        elif value == 0x5B:  # [
-            closing_stack.append(0x5D)
-        elif value == 0x7B:  # {
-            closing_stack.append(0x7D)
-        elif value in {0x5D, 0x7D}:  # ] or }
-            if not closing_stack or closing_stack.pop() != value:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory response is invalid",
-                )
-        elif value < 0x20 and value not in {0x09, 0x0A, 0x0D}:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory response is invalid",
-            )
-        if len(closing_stack) > COLLABORATOR_JSON_MAX_DEPTH:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory response exceeds its JSON depth limit",
-            )
-    if in_string or escaped or closing_stack:
-        raise BrokerError(
-            "RESPONSE_SCHEMA_INVALID",
-            "collaborator inventory response is invalid",
-        )
-
-
-def _strict_collaborator_json(body: bytes) -> object:
-    def object_from_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
-        result: dict[str, object] = {}
-        for key, value in pairs:
-            if key in result:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory JSON contains duplicate keys",
-                )
-            result[key] = value
-        return result
-
-    def bounded_integer(value: str) -> int:
-        digits = value[1:] if value.startswith("-") else value
-        if (
-            len(digits) == 0
-            or len(digits) > COLLABORATOR_JSON_INTEGER_MAX_DIGITS
-            or re.fullmatch(r"(?:0|[1-9][0-9]*)", digits) is None
-        ):
-            raise ValueError("collaborator inventory JSON integer is invalid")
-        number = int(value)
-        if not (
-            COLLABORATOR_JSON_INTEGER_MIN
-            <= number
-            <= COLLABORATOR_JSON_INTEGER_MAX
-        ):
-            raise ValueError("collaborator inventory JSON integer is out of range")
-        return number
-
-    def bounded_float(value: str) -> float:
-        if (
-            len(value) == 0
-            or len(value) > COLLABORATOR_JSON_FLOAT_MAX_CHARS
-            or value.isascii() is False
-        ):
-            raise ValueError("collaborator inventory JSON float is invalid")
-        number = float(value)
-        if not math.isfinite(number):
-            raise ValueError("collaborator inventory JSON float is not finite")
-        return number
-
-    def reject_constant(_value: str) -> object:
-        raise ValueError("collaborator inventory JSON constant is invalid")
-
-    try:
-        _validate_collaborator_json_structure(body)
-        return json.loads(
-            body.decode("utf-8"),
-            object_pairs_hook=object_from_pairs,
-            parse_constant=reject_constant,
-            parse_int=bounded_integer,
-            parse_float=bounded_float,
-        )
-    except BrokerError:
-        raise
-    except (
-        UnicodeError,
-        json.JSONDecodeError,
-        TypeError,
-        ValueError,
-        OverflowError,
-        RecursionError,
-    ) as exc:
-        raise BrokerError(
-            "RESPONSE_SCHEMA_INVALID",
-            "collaborator inventory response is invalid",
-        ) from exc
-
-
 def _validate_bounded_response(
     headers: object, body: object, response_limit: int
 ) -> tuple[tuple[str, str], ...]:
@@ -1002,148 +862,6 @@ def _default_transport(
         raise BrokerError("TRANSPORT_ERROR", "host transport failed") from exc
 
 
-@dataclass
-class _CollaboratorInventoryBudget:
-    pages: int = 0
-    response_bytes: int = 0
-
-    def reserve(self) -> int:
-        if self.pages >= COLLABORATOR_AUDIT_MAX_PAGES:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory exceeds the audit response budget",
-            )
-        remaining_bytes = COLLABORATOR_AUDIT_MAX_BYTES - self.response_bytes
-        if remaining_bytes <= 0:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory exceeds the audit response budget",
-            )
-        self.pages += 1
-        return min(COLLABORATOR_PAGE_MAX_BYTES, remaining_bytes)
-
-    def commit(self, response_bytes: int) -> None:
-        next_bytes = self.response_bytes + response_bytes
-        if next_bytes > COLLABORATOR_AUDIT_MAX_BYTES:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory exceeds the audit response budget",
-            )
-        self.response_bytes = next_bytes
-
-
-@dataclass(frozen=True)
-class _CollaboratorPageLinks:
-    present: bool
-    relations: Mapping[str, int]
-
-    @property
-    def has_next(self) -> bool:
-        return "next" in self.relations
-
-
-def _split_link_field_value(value: str, delimiter: str) -> tuple[str, ...]:
-    parts: list[str] = []
-    current: list[str] = []
-    in_angle = False
-    in_quote = False
-    escaped = False
-    for character in value:
-        if escaped:
-            current.append(character)
-            escaped = False
-            continue
-        if in_quote:
-            current.append(character)
-            if character == "\\":
-                escaped = True
-            elif character == '"':
-                in_quote = False
-            continue
-        if character == '"':
-            in_quote = True
-            current.append(character)
-            continue
-        if character == "<":
-            if in_angle:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory pagination header is invalid",
-                )
-            in_angle = True
-            current.append(character)
-            continue
-        if character == ">":
-            if not in_angle:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory pagination header is invalid",
-                )
-            in_angle = False
-            current.append(character)
-            continue
-        if character == delimiter and not in_angle:
-            part = "".join(current).strip()
-            if not part:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory pagination header is invalid",
-                )
-            parts.append(part)
-            current = []
-            continue
-        current.append(character)
-    if escaped or in_quote or in_angle:
-        raise BrokerError(
-            "RESPONSE_SCHEMA_INVALID",
-            "collaborator inventory pagination header is invalid",
-        )
-    part = "".join(current).strip()
-    if not part:
-        raise BrokerError(
-            "RESPONSE_SCHEMA_INVALID",
-            "collaborator inventory pagination header is invalid",
-        )
-    parts.append(part)
-    return tuple(parts)
-
-
-def _link_parameter_value(raw_value: str) -> str:
-    if not raw_value.startswith('"'):
-        if re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", raw_value) is None:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory pagination parameter is invalid",
-            )
-        return raw_value
-    if len(raw_value) < 2 or not raw_value.endswith('"'):
-        raise BrokerError(
-            "RESPONSE_SCHEMA_INVALID",
-            "collaborator inventory pagination parameter is invalid",
-        )
-    result: list[str] = []
-    escaped = False
-    for character in raw_value[1:-1]:
-        if escaped:
-            result.append(character)
-            escaped = False
-        elif character == "\\":
-            escaped = True
-        elif character == '"':
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory pagination parameter is invalid",
-            )
-        else:
-            result.append(character)
-    if escaped:
-        raise BrokerError(
-            "RESPONSE_SCHEMA_INVALID",
-            "collaborator inventory pagination parameter is invalid",
-        )
-    return "".join(result)
-
-
 def _default_runner(
     argv: Sequence[str],
     *,
@@ -1198,22 +916,6 @@ class CredentialResolver:
         if route == "project-agent":
             binding = self.contract.raw["identity_bindings"]["project_agent"]
             identity = project.project_agent
-            relative_path = binding["relative_path_template"].format(
-                project_id=project.project_id
-            )
-        elif route == "routine-merge-agent":
-            repository = self.contract.governance.repository(project.repository)
-            if (
-                not repository.routine_auto_merge_enabled
-                or project.routine_merge_agent is None
-                or project.routine_merge_agent != repository.routine_merge_agent
-            ):
-                raise BrokerError(
-                    "ROUTINE_REPOSITORY_DISABLED",
-                    "repository is not explicitly enabled for routine merge",
-                )
-            binding = self.contract.raw["identity_bindings"]["routine_merge_agent"]
-            identity = project.routine_merge_agent
             relative_path = binding["relative_path_template"].format(
                 project_id=project.project_id
             )
@@ -1455,25 +1157,17 @@ class HostAccessBroker:
         raise BrokerError("OPERATION_UNIMPLEMENTED", "allowlisted operation has no executor")
 
     def _read_dependency(
-        self, project: ProjectContract, reference: Dependency, *, local_token: str | None = None,
+        self, project: ProjectContract, reference: Dependency,
     ) -> dict[str, object]:
         # Resolve the complete allowlisted identity before touching any credential.
         target, number, canonical = resolve_target(self.contract, project, reference)
-        local_legacy = isinstance(reference, int) and local_token is not None
-        if local_legacy:
-            token = local_token
-        else:
-            credential = self.credentials.resolve(project, self.contract.operation("gitea.dependency.read"))
-            self._verify_identity(credential, require_non_admin_exact=True, response_limit=256 * 1024,
-                                  follow_redirects=False)
-            token = credential.token
+        credential = self.credentials.resolve(project, self.contract.operation("gitea.dependency.read"))
+        self._verify_identity(credential, require_non_admin_exact=True, response_limit=256 * 1024,
+                              follow_redirects=False)
         owner = self.contract.governance.owner
         url = f"{self.contract.governance.base_url}/api/v1/repos/{owner}/{target.repository}/issues/{number}"
-        value = self._request_json(url, token, **({} if local_legacy else {"response_limit": 256 * 1024, "follow_redirects": False}))
-        if local_legacy:
-            if not isinstance(value, dict) or value.get("pull_request") is not None:
-                raise BrokerError("DEPENDENCY_RESPONSE_INVALID", "local dependency is not an Issue")
-            return value
+        value = self._request_json(url, credential.token, response_limit=256 * 1024,
+                                   follow_redirects=False)
         return project_issue(value, (owner, target.repository, number))
 
     def _gitea(
@@ -2884,7 +2578,7 @@ class HostAccessBroker:
         if require_non_admin_exact and value.get("is_admin") is not False:
             raise BrokerError(
                 "IDENTITY_MISMATCH",
-                "routine credential identity must explicitly be non-site-admin",
+                "credential identity must explicitly be non-site-admin",
             )
         if credential.identity != self.contract.governance.human_merge_identity and value.get("is_admin") is True:
             raise BrokerError("IDENTITY_MISMATCH", "automation identity unexpectedly has site-admin permission")
@@ -2926,368 +2620,6 @@ class HostAccessBroker:
             return json.loads(body.decode("utf-8"))
         except (UnicodeError, json.JSONDecodeError) as exc:
             raise BrokerError("RESPONSE_SCHEMA_INVALID", "Gitea returned invalid JSON") from exc
-
-    def _optional_json(self, url: str, token: str) -> object | None:
-        try:
-            status, _headers, body = self.transport(
-                "GET",
-                url,
-                {"Accept": "application/json", "Authorization": f"token {token}"},
-                None,
-            )
-        except BrokerError:
-            raise
-        except Exception as exc:
-            raise BrokerError("TRANSPORT_ERROR", "host transport failed") from exc
-        if status == 404:
-            return None
-        if status in {401, 403}:
-            raise BrokerError(f"HTTP_{status}", f"Gitea returned HTTP {status}")
-        if status < 200 or status >= 300:
-            raise BrokerError("HTTP_ERROR", f"Gitea returned HTTP {status}")
-        try:
-            return json.loads(body.decode("utf-8"))
-        except (UnicodeError, json.JSONDecodeError) as exc:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID", "Gitea returned invalid JSON"
-            ) from exc
-
-    def _collaborator_page(
-        self,
-        repo_api: str,
-        token: str,
-        page: int,
-        budget: _CollaboratorInventoryBudget,
-    ) -> tuple[object, _CollaboratorPageLinks]:
-        url = (
-            f"{repo_api}/collaborators?limit={COLLABORATOR_PAGE_LIMIT}"
-            f"&page={page}"
-        )
-        response_limit = budget.reserve()
-        try:
-            status, headers, body = self.transport(
-                "GET",
-                url,
-                {
-                    "Accept": "application/json",
-                    "Authorization": f"token {token}",
-                },
-                None,
-                response_limit=response_limit,
-            )
-        except BrokerError:
-            raise
-        except Exception as exc:
-            raise BrokerError("TRANSPORT_ERROR", "host transport failed") from exc
-        header_items = _validate_bounded_response(
-            headers, body, response_limit
-        )
-        budget.commit(len(body))
-        if not isinstance(status, int) or isinstance(status, bool):
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory HTTP status is invalid",
-            )
-        if status != 200:
-            if status in {401, 403, 404}:
-                raise BrokerError(f"HTTP_{status}", f"Gitea returned HTTP {status}")
-            if 200 <= status < 300:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory requires HTTP 200",
-                )
-            raise BrokerError("HTTP_ERROR", f"Gitea returned HTTP {status}")
-        value = _strict_collaborator_json(body)
-        return value, self._collaborator_links(header_items, repo_api, page)
-
-    @staticmethod
-    def _collaborator_links(
-        headers: object, repo_api: str, page: int
-    ) -> _CollaboratorPageLinks:
-        items = _header_items(headers)
-        link_values = [
-            value for key, value in items
-            if key.casefold() == "link"
-        ]
-        if not link_values:
-            return _CollaboratorPageLinks(False, {})
-        relations: dict[str, int] = {}
-        for link_value in link_values:
-            segments = _split_link_field_value(link_value, ",")
-            for segment in segments:
-                parts = _split_link_field_value(segment, ";")
-                target_match = re.fullmatch(r"<([^<>\s]+)>", parts[0])
-                if target_match is None or len(parts) < 2:
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "collaborator inventory pagination header is invalid",
-                    )
-                seen_parameters: set[str] = set()
-                relation_tokens: tuple[str, ...] | None = None
-                for parameter in parts[1:]:
-                    if "=" not in parameter:
-                        raise BrokerError(
-                            "RESPONSE_SCHEMA_INVALID",
-                            "collaborator inventory pagination header is invalid",
-                        )
-                    raw_key, raw_value = parameter.split("=", 1)
-                    key = raw_key.strip().casefold()
-                    raw_value = raw_value.strip()
-                    if (
-                        re.fullmatch(
-                            r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", key
-                        ) is None
-                        or key in seen_parameters
-                        or key not in {"rel", "title"}
-                    ):
-                        raise BrokerError(
-                            "RESPONSE_SCHEMA_INVALID",
-                            "collaborator inventory pagination header is invalid",
-                        )
-                    seen_parameters.add(key)
-                    parameter_value = _link_parameter_value(raw_value)
-                    if key == "title":
-                        continue
-                    relation = parameter_value
-                    if re.fullmatch(
-                        r"[A-Za-z][A-Za-z0-9._-]*"
-                        r"(?: [A-Za-z][A-Za-z0-9._-]*)*",
-                        relation,
-                    ) is None:
-                        raise BrokerError(
-                            "RESPONSE_SCHEMA_INVALID",
-                            "collaborator inventory pagination header is invalid",
-                        )
-                    relation_tokens = tuple(
-                        token.casefold() for token in relation.split(" ")
-                    )
-                    if len(set(relation_tokens)) != len(relation_tokens):
-                        raise BrokerError(
-                            "RESPONSE_SCHEMA_INVALID",
-                            "collaborator inventory pagination header is invalid",
-                        )
-                if relation_tokens is None:
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "collaborator inventory pagination header is invalid",
-                    )
-                target_page = HostAccessBroker._collaborator_link_page(
-                    target_match.group(1), repo_api
-                )
-                for relation in relation_tokens:
-                    if relation not in {"first", "prev", "next", "last"}:
-                        raise BrokerError(
-                            "RESPONSE_SCHEMA_INVALID",
-                            "collaborator inventory pagination relation is invalid",
-                        )
-                    if relation in relations:
-                        raise BrokerError(
-                            "RESPONSE_SCHEMA_INVALID",
-                            "collaborator inventory pagination relation is duplicated",
-                        )
-                    relations[relation] = target_page
-        if relations.get("first", 1) != 1:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory first-page link is invalid",
-            )
-        if "prev" in relations and (
-            page <= 1 or relations["prev"] != page - 1
-        ):
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory previous-page link is invalid",
-            )
-        if "next" in relations and relations["next"] != page + 1:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory next-page link is invalid",
-            )
-        if "last" in relations:
-            minimum_last = page + 1 if "next" in relations else page
-            if relations["last"] < minimum_last:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory last-page link is invalid",
-                )
-        return _CollaboratorPageLinks(True, relations)
-
-    @staticmethod
-    def _collaborator_link_page(target: str, repo_api: str) -> int:
-        try:
-            canonical = urlsplit(f"{repo_api}/collaborators")
-            candidate = urlsplit(target)
-            canonical_port = canonical.port
-            candidate_port = candidate.port
-            canonical_hostname = canonical.hostname
-            candidate_hostname = candidate.hostname
-            candidate_username = candidate.username
-            candidate_password = candidate.password
-        except (UnicodeError, ValueError) as exc:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory pagination URL is invalid",
-            ) from exc
-        if (
-            not candidate.scheme
-            or not canonical_hostname
-            or not candidate_hostname
-            or candidate_username is not None
-            or candidate_password is not None
-            or candidate.scheme.casefold() != canonical.scheme.casefold()
-            or candidate_hostname.casefold() != canonical_hostname.casefold()
-            or candidate_port != canonical_port
-            or candidate.path != canonical.path
-            or "#" in target
-            or candidate.fragment
-        ):
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory pagination URL is outside the canonical endpoint",
-            )
-        try:
-            query = parse_qsl(
-                candidate.query,
-                keep_blank_values=True,
-                strict_parsing=True,
-                separator="&",
-            )
-        except (UnicodeError, ValueError) as exc:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory pagination query is invalid",
-            ) from exc
-        if (
-            len(query) != 2
-            or {key for key, _value in query} != {"limit", "page"}
-            or len({key for key, _value in query}) != len(query)
-        ):
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory pagination query is invalid",
-            )
-        values = dict(query)
-        limit = _bounded_ascii_decimal(
-            values["limit"],
-            "collaborator inventory pagination query",
-            max_digits=len(str(COLLABORATOR_PAGE_LIMIT)),
-            max_value=COLLABORATOR_PAGE_LIMIT,
-            allow_zero=False,
-        )
-        page = _bounded_ascii_decimal(
-            values["page"],
-            "collaborator inventory pagination query",
-            max_digits=len(str(COLLABORATOR_MAX_PAGES)),
-            max_value=COLLABORATOR_MAX_PAGES,
-            allow_zero=False,
-        )
-        if limit != COLLABORATOR_PAGE_LIMIT:
-            raise BrokerError(
-                "RESPONSE_SCHEMA_INVALID",
-                "collaborator inventory pagination query is invalid",
-            )
-        return page
-
-    def _collaborator_names(
-        self,
-        repo_api: str,
-        token: str,
-        budget: _CollaboratorInventoryBudget,
-    ) -> set[str]:
-        names: set[str] = set()
-        folded_names: set[str] = set()
-        saw_links = False
-        last_page: int | None = None
-        declared_pages: list[_CollaboratorPageLinks] = []
-        for page in range(1, COLLABORATOR_MAX_PAGES + 1):
-            if last_page is not None and page > last_page:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory pagination exceeds its declared last page",
-                )
-            value, links = self._collaborator_page(
-                repo_api, token, page, budget
-            )
-            if declared_pages:
-                previous_links = declared_pages[-1]
-                previous_declares_next = previous_links.has_next
-                current_declares_prev = "prev" in links.relations
-                if previous_declares_next != current_declares_prev:
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "collaborator inventory adjacent page links are inconsistent",
-                    )
-            declared_pages.append(links)
-            saw_links = saw_links or links.present
-            declared_last = links.relations.get("last")
-            if declared_last is not None:
-                if last_page is None:
-                    last_page = declared_last
-                elif declared_last != last_page:
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "collaborator inventory last-page link drifted",
-                    )
-            if last_page is not None:
-                if page > last_page or (
-                    links.has_next
-                    and links.relations["next"] > last_page
-                ):
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "collaborator inventory pagination order is invalid",
-                    )
-            if not isinstance(value, list):
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory response is invalid",
-                )
-            if len(value) > COLLABORATOR_PAGE_LIMIT:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory page exceeds its requested limit",
-                )
-            for entry in value:
-                login = entry.get("login") if isinstance(entry, dict) else None
-                if (
-                    not isinstance(entry, dict)
-                    or not isinstance(login, str)
-                    or login != login.strip()
-                    or IDENTIFIER_RE.fullmatch(login) is None
-                ):
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "collaborator inventory response is invalid",
-                    )
-                folded = login.casefold()
-                if login in names or folded in folded_names:
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "collaborator inventory contains duplicate identity",
-                    )
-                names.add(login)
-                folded_names.add(folded)
-            if len(value) < COLLABORATOR_PAGE_LIMIT:
-                if links.has_next:
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "collaborator inventory pagination is contradictory",
-                    )
-                if saw_links and last_page != page:
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "collaborator inventory terminal page is not the declared last page",
-                    )
-                return folded_names
-            if last_page is not None and page >= last_page:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID",
-                    "collaborator inventory full page contradicts its terminal metadata",
-                )
-        raise BrokerError(
-            "RESPONSE_SCHEMA_INVALID",
-            "collaborator inventory exceeds the bounded scan",
-        )
 
     def _git(
         self, project: ProjectContract, operation: OperationContract, *, branch: str | None,
@@ -3594,7 +2926,7 @@ class HostAccessBroker:
         if not isinstance(access, dict) or access.get("status") != "PASS":
             raise BrokerError(
                 "ONBOARDING_MISMATCH",
-                "host access audit has unresolved routine pilot gaps",
+                "host access audit has unresolved gaps",
             )
         checkout = os.path.realpath(project.mac_checkout)
         try:
@@ -3721,22 +3053,15 @@ class HostAccessBroker:
             f"{repo_api}/branch_protections/{default_branch}", manager_token
         )
         expected_merge = [self.contract.governance.human_merge_identity]
-        if (repository_contract.routine_auto_merge_enabled
-                and repository_contract.routine_merge_agent is not None):
-            expected_merge.append(repository_contract.routine_merge_agent)
         expected_contexts = sorted(repository_contract.status_check_contexts)
         actual_merge = protection.get("merge_whitelist_usernames") \
             if isinstance(protection, dict) else None
-        actual_merge_tuple = tuple(actual_merge) if isinstance(actual_merge, list) else None
-        allowed_preapply_merge = [self.contract.governance.human_merge_identity]
         if (
             not isinstance(protection, dict)
             or protection.get("enable_push") is not False
             or protection.get("enable_force_push") is not False
             or protection.get("enable_merge_whitelist") is not True
-            or actual_merge_tuple not in {
-                tuple(expected_merge), tuple(allowed_preapply_merge)
-            }
+            or actual_merge != expected_merge
             or protection.get("enable_status_check") is not bool(expected_contexts)
             or sorted(protection.get("status_check_contexts", [])) != expected_contexts
             or protection.get("required_approvals") != repository_contract.required_approvals
@@ -3744,174 +3069,8 @@ class HostAccessBroker:
         ):
             raise BrokerError("PROTECTION_MISMATCH", "protected main does not match the governance boundary")
 
-        routine: dict[str, object] = {
-            "enabled": repository_contract.routine_auto_merge_enabled,
-            "identity": repository_contract.routine_merge_agent,
-            "credential": {
-                "kind": "protected-file",
-                "state": "not-enabled",
-                "path_disclosure": "DENIED",
-            },
-            "account_state": "not-enabled",
-            "expected_token_scopes": list(
-                self.contract.governance.raw["routine_merge_agent_policy"]["token_scopes"]
-            ),
-            "actual_token_scopes": None,
-            "repository_permission": "not-enabled",
-            "cross_project_permissions": [],
-            "cross_project_write_violations": [],
-            "merge_allowlist_state": (
-                "converged" if actual_merge == expected_merge else "pre-apply"
-            ),
-        }
-        routine_gap = False
-        if repository_contract.routine_auto_merge_enabled:
-            merger = repository_contract.routine_merge_agent
-            assert merger is not None
-            account = self._optional_json(
-                f"{self.contract.governance.base_url}/api/v1/users/"
-                f"{quote(merger, safe='')}", manager_token,
-            )
-            if account is None:
-                routine["account_state"] = "missing"
-                routine_gap = True
-            elif not isinstance(account, dict) or account.get("login") != merger:
-                raise BrokerError(
-                    "RESPONSE_SCHEMA_INVALID", "routine account response is invalid"
-                )
-            elif account.get("is_admin") is not False:
-                routine["account_state"] = "present-site-admin"
-                routine_gap = True
-            else:
-                routine["account_state"] = "present-non-admin"
-
-            try:
-                routine_credential = self.credentials.resolve(
-                    project,
-                    OperationContract(
-                        "host.access.audit", "routine-merge-agent", False, ()
-                    ),
-                )
-            except BrokerError as exc:
-                if exc.code != "CREDENTIAL_UNAVAILABLE":
-                    raise
-                routine["credential"] = {
-                    "kind": "protected-file",
-                    "state": "missing",
-                    "path_disclosure": "DENIED",
-                }
-                routine_gap = True
-            else:
-                self._verify_identity(
-                    routine_credential, require_non_admin_exact=True
-                )
-                actual_routine_scopes = self._probe_token_scopes(routine_credential)
-                expected_routine_scopes = set(
-                    self.contract.governance.raw[
-                        "routine_merge_agent_policy"
-                    ]["token_scopes"]
-                )
-                if actual_routine_scopes != expected_routine_scopes:
-                    raise BrokerError(
-                        "TOKEN_SCOPE_MISMATCH",
-                        "routine credential token scopes do not match the manifest",
-                    )
-                routine["credential"] = {
-                    "kind": "protected-file",
-                    "state": "present",
-                    "path_disclosure": "DENIED",
-                }
-                routine["actual_token_scopes"] = sorted(actual_routine_scopes)
-
-            account_missing = routine["account_state"] == "missing"
-            if account_missing:
-                inventory_budget = _CollaboratorInventoryBudget()
-                target_collaborators = self._collaborator_names(
-                    repo_api, manager_token, inventory_budget
-                )
-                if merger.casefold() in target_collaborators:
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "routine collaborator inventory contradicts missing account",
-                    )
-                routine["repository_permission"] = "missing"
-                routine_gap = True
-            else:
-                target_permission = self._optional_json(
-                    f"{repo_api}/collaborators/{quote(merger, safe='')}/permission",
-                    manager_token,
-                )
-                if target_permission is None:
-                    routine["repository_permission"] = "missing"
-                    routine_gap = True
-                else:
-                    permission = _strict_collaborator_permission(
-                        target_permission,
-                        merger,
-                        "routine permission response is invalid",
-                    )
-                    routine["repository_permission"] = permission
-                    if permission != "write":
-                        routine_gap = True
-
-            cross_project_permissions: list[dict[str, object]] = []
-            violations: list[dict[str, str]] = []
-            for other in self.contract.governance.repositories:
-                if other.name == repository_contract.name:
-                    continue
-                full_name = self.contract.governance.full_name(other)
-                other_api = (
-                    f"{self.contract.governance.base_url}/api/v1/repos/{owner}/"
-                    f"{quote(other.name, safe='')}"
-                )
-                if account_missing:
-                    collaborators = self._collaborator_names(
-                        other_api, manager_token, inventory_budget
-                    )
-                    if merger.casefold() in collaborators:
-                        raise BrokerError(
-                            "RESPONSE_SCHEMA_INVALID",
-                            "routine collaborator inventory contradicts missing account",
-                        )
-                    cross_project_permissions.append({
-                        "repository": full_name,
-                        "state": "absent",
-                        "permission": None,
-                    })
-                    routine_gap = True
-                    continue
-                other_permission = self._optional_json(
-                    f"{other_api}/collaborators/{quote(merger, safe='')}/permission",
-                    manager_token,
-                )
-                if other_permission is None:
-                    raise BrokerError(
-                        "RESPONSE_SCHEMA_INVALID",
-                        "cross-project routine permission response is invalid",
-                    )
-                permission = _strict_collaborator_permission(
-                    other_permission,
-                    merger,
-                    "cross-project routine permission response is invalid",
-                )
-                cross_project_permissions.append({
-                    "repository": full_name,
-                    "state": "present",
-                    "permission": permission,
-                })
-                if permission in {"write", "admin", "owner"}:
-                    violations.append({
-                        "repository": full_name,
-                        "permission": permission,
-                    })
-            routine["cross_project_permissions"] = cross_project_permissions
-            routine["cross_project_write_violations"] = violations
-            routine_gap = routine_gap or bool(violations)
-            if actual_merge != expected_merge:
-                routine_gap = True
-
         return {
-            "status": "GAP" if routine_gap else "PASS",
+            "status": "PASS",
             "project": project.project_id,
             "operation": operation.name,
             "identities": {
@@ -3920,7 +3079,6 @@ class HostAccessBroker:
             "token_scopes": token_scopes,
             "repository_permission": permissions,
             "credential_store": credential_store,
-            "routine_merge": routine,
             "protection": {
                 "branch": self.contract.governance.default_branch,
                 "can_push": False,
@@ -3981,14 +3139,6 @@ class HostAccessBroker:
                 "identity": project.project_agent,
                 "kind": "protected-file",
                 "scope": f"project:{project.project_id}",
-            },
-            "routine_merge_agent": {
-                "identity": project.routine_merge_agent,
-                "kind": "protected-file",
-                "scope": f"project:{project.project_id}:routine-merge",
-                "enabled": self.contract.governance.repository(
-                    project.repository
-                ).routine_auto_merge_enabled,
             },
             "directory_mode": self.contract.raw["mac_host"]["credential_directory_mode"],
             "file_mode": self.contract.raw["mac_host"]["credential_file_mode"],

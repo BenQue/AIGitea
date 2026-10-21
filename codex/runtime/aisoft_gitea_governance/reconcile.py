@@ -128,15 +128,7 @@ def desired_protection(
         "force_push_allowlist_usernames": [],
         "force_push_allowlist_teams": [],
         "enable_merge_whitelist": True,
-        "merge_whitelist_usernames": [
-            contract.human_merge_identity,
-            *(
-                [repository.routine_merge_agent]
-                if repository.routine_auto_merge_enabled
-                and repository.routine_merge_agent is not None
-                else []
-            ),
-        ],
+        "merge_whitelist_usernames": [contract.human_merge_identity],
         "merge_whitelist_teams": [],
         "enable_status_check": bool(repository.status_check_contexts),
         "status_check_contexts": sorted(repository.status_check_contexts),
@@ -224,18 +216,11 @@ def _read_collaborator_permission(
     username: str,
     operation: str,
     context: str,
-    *,
-    allow_missing: bool = False,
 ) -> str:
-    try:
-        permission = client.get(
-            f"{path}/collaborators/{quote(username, safe='')}/permission",
-            operation,
-        )
-    except ApiError as exc:
-        if exc.status == 404 and allow_missing:
-            return "missing"
-        raise
+    permission = client.get(
+        f"{path}/collaborators/{quote(username, safe='')}/permission",
+        operation,
+    )
     return _strict_collaborator_permission(permission, context, username)
 
 
@@ -243,15 +228,11 @@ def _explicit_permissions(
     client: GiteaClient,
     contract: GovernanceContract,
     repository: RepositoryContract,
-    *,
-    missing_routine_merge_agent: str | None = None,
 ) -> dict[str, str]:
     path = _repo_path(contract, repository)
     names = _collaborator_names(client, path, contract.full_name(repository))
     result: dict[str, str] = {}
     identities = [contract.platform_manager, repository.project_agent, contract.shared_bot]
-    if repository.routine_merge_agent is not None:
-        identities.append(repository.routine_merge_agent)
     for username in identities:
         if username not in names:
             result[username] = "missing"
@@ -262,10 +243,6 @@ def _explicit_permissions(
             username,
             f"read collaborator permission for {username}",
             "collaborator permission",
-            allow_missing=(
-                username == repository.routine_merge_agent
-                and missing_routine_merge_agent == repository.routine_merge_agent
-            ),
         )
     return result
 
@@ -293,18 +270,11 @@ def audit_cross_project_writes(
     contract: GovernanceContract,
 ) -> list[dict[str, str]]:
     agents = {repository.project_agent for repository in contract.repositories}
-    agents.update(
-        repository.routine_merge_agent
-        for repository in contract.repositories
-        if repository.routine_merge_agent is not None
-    )
     violations: list[dict[str, str]] = []
     for repository in contract.repositories:
         path = _repo_path(contract, repository)
         explicit = _collaborator_names(client, path, contract.full_name(repository))
         allowed = {repository.project_agent}
-        if repository.routine_auto_merge_enabled and repository.routine_merge_agent:
-            allowed.add(repository.routine_merge_agent)
         for agent in sorted((agents & explicit) - allowed):
             value = _read_collaborator_permission(
                 client,
@@ -326,8 +296,6 @@ def capture_snapshot(
     client: GiteaClient,
     contract: GovernanceContract,
     repository: RepositoryContract,
-    *,
-    missing_routine_merge_agent: str | None = None,
 ) -> dict[str, Any]:
     path = _repo_path(contract, repository)
     repo = client.get(path, f"read repository {contract.full_name(repository)}")
@@ -351,12 +319,7 @@ def capture_snapshot(
                 repo.get("default_delete_branch_after_merge", False)
             ),
         },
-        "collaborators": _explicit_permissions(
-            client,
-            contract,
-            repository,
-            missing_routine_merge_agent=missing_routine_merge_agent,
-        ),
+        "collaborators": _explicit_permissions(client, contract, repository),
         "protection": normalize_protection(protection),
     }
 
@@ -418,12 +381,6 @@ def planned_actions(
         actions.append("set-platform-manager-admin")
     if permissions[repository.project_agent] != "write":
         actions.append("set-project-agent-write")
-    if repository.routine_merge_agent is not None:
-        merger_permission = permissions[repository.routine_merge_agent]
-        if repository.routine_auto_merge_enabled and merger_permission != "write":
-            actions.append("set-routine-merger-write")
-        if not repository.routine_auto_merge_enabled and merger_permission != "missing":
-            actions.append("remove-disabled-routine-merger")
     if snapshot["repo"]["private"] != repository.private:
         actions.append("set-private" if repository.private else "set-public")
     if not snapshot["repo"]["default_delete_branch_after_merge"]:
@@ -451,8 +408,6 @@ def planned_actions(
             "project_agent": repository.project_agent,
             "project_agent_permission": "write",
             "shared_bot_default_action": "keep",
-            "routine_auto_merge_enabled": repository.routine_auto_merge_enabled,
-            "routine_merge_agent": repository.routine_merge_agent,
             "merge_allowlist_usernames": expected_protection["merge_whitelist_usernames"],
             "status_check_contexts": list(repository.status_check_contexts),
             "required_approvals": repository.required_approvals,
@@ -591,9 +546,6 @@ def apply_repository(
 ) -> dict[str, Any]:
     verify_token_identity(client, contract.platform_manager, require_site_admin=False)
     verify_account(client, repository.project_agent, must_be_site_admin=False)
-    if repository.routine_auto_merge_enabled:
-        assert repository.routine_merge_agent is not None
-        verify_account(client, repository.routine_merge_agent, must_be_site_admin=False)
     if audit_cross_project_writes(client, contract):
         raise ContractError("cross-project project-agent write permission must be removed before apply")
     before = capture_snapshot(client, contract, repository)
@@ -620,25 +572,6 @@ def apply_repository(
                 f"set project agent Write on {contract.full_name(repository)}",
             )
             api_mutation_count += 1
-        if repository.routine_merge_agent is not None:
-            merger_permission = before["collaborators"][repository.routine_merge_agent]
-            merger_path = (
-                f"{path}/collaborators/"
-                f"{quote(repository.routine_merge_agent, safe='')}"
-            )
-            if repository.routine_auto_merge_enabled and merger_permission != "write":
-                client.put(
-                    merger_path,
-                    {"permission": "write"},
-                    f"set routine merger Write on {contract.full_name(repository)}",
-                )
-                api_mutation_count += 1
-            elif not repository.routine_auto_merge_enabled and merger_permission != "missing":
-                client.delete(
-                    merger_path,
-                    f"remove disabled routine merger from {contract.full_name(repository)}",
-                )
-                api_mutation_count += 1
         repo_patch: dict[str, Any] = {}
         if before["repo"]["private"] != repository.private:
             repo_patch["private"] = repository.private
@@ -768,8 +701,6 @@ def rollback_repository(
         repository.project_agent,
         contract.shared_bot,
     }
-    if repository.routine_merge_agent is not None:
-        expected_collaborators.add(repository.routine_merge_agent)
     if (
         not isinstance(snapshot.get("captured_at"), str)
         or not snapshot["captured_at"]
@@ -825,8 +756,6 @@ def rollback_repository(
     # Restore project and shared identities before manager. Removing or
     # downgrading the manager last prevents a mid-rollback loss of authority.
     restore_identities = [repository.project_agent, contract.shared_bot]
-    if repository.routine_merge_agent is not None:
-        restore_identities.append(repository.routine_merge_agent)
     restore_identities.append(contract.platform_manager)
     for username in restore_identities:
         if username not in collaborators:
