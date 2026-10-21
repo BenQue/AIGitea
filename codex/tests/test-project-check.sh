@@ -336,6 +336,48 @@ printf '\n' >>"$uncommitted_lock_repo/.aisoft/architecture.lock.json"
 run_case 1 local_check --repo "$uncommitted_lock_repo"
 expect_line 'GAP: architecture-lock — .aisoft/architecture.lock.json 存在未提交变更'
 
+# #409: a declaration pinning a published older catalog revision passes with a
+# NOTE; an unpublished revision is a GAP that names its diagnostic code.
+relock_fixture() {
+  local repo="$1"
+  "$ROOT/architecture/bin/aisoft-architecture" lock \
+    --catalog "$ROOT/architecture/catalog.json" \
+    --catalog-releases "$ROOT/architecture/catalog-releases" \
+    --profiles-dir "$ROOT/architecture/profiles" \
+    --project-profiles-dir "$repo/.aisoft/profiles" \
+    --schema-dir "$ROOT/architecture/schemas" \
+    --project "$repo/.aisoft/architecture.json" \
+    --today 2026-09-12 \
+    --output "$repo/.aisoft/architecture.lock.json" >/dev/null
+  git -C "$repo" add -A
+  git -C "$repo" commit -qm relock
+}
+pinned_repo="$(copy_fixture architecture-pinned)"
+sed -i.bak 's/"catalog_revision": "2026.09.0"/"catalog_revision": "2026.08.3"/' "$pinned_repo/.aisoft/architecture.json"
+rm "$pinned_repo/.aisoft/architecture.json.bak"
+relock_fixture "$pinned_repo"
+run_case 0 local_check --repo "$pinned_repo"
+expect_line 'PASS: architecture-lock'
+expect_line 'NOTE: architecture-lock — catalog pin 2026.08.3，平台当前 2026.09.0；升级走项目 Issue'
+expect_line 'result: pass=8 gap=0 skip=5'
+
+unpublished_repo="$(copy_fixture architecture-unpublished)"
+sed -i.bak 's/"catalog_revision": "2026.09.0"/"catalog_revision": "2026.08.2"/' "$unpublished_repo/.aisoft/architecture.json"
+rm "$unpublished_repo/.aisoft/architecture.json.bak"
+git -C "$unpublished_repo" commit -qam unpublished
+run_case 1 local_check --repo "$unpublished_repo"
+expect_contains 'GAP: architecture-lock — CATALOG_REVISION_UNKNOWN：'
+
+# A project-owned profile is used first; shadowing a platform example says so.
+shadow_repo="$(copy_fixture architecture-shadow)"
+mkdir -p "$shadow_repo/.aisoft/profiles"
+jq '.constraints.backup = "Project-owned backup rule."' "$ROOT/architecture/profiles/small-embedded-sqlite-v1.json" \
+  >"$shadow_repo/.aisoft/profiles/small-embedded-sqlite-v1.json"
+relock_fixture "$shadow_repo"
+run_case 0 local_check --repo "$shadow_repo"
+expect_line 'PASS: architecture-lock'
+expect_line 'NOTE: architecture-lock — 项目自带 profile small-embedded-sqlite-v1 覆盖了平台同名示例'
+
 labels_repo="$(copy_fixture labels-gap)"
 canonical_labels '.[1:]' >"$TMP/labels.json"
 missing_label="$(jq -r '.canonical[0].name' "$ROOT/codex/config/gitea-labels.json")"
@@ -496,6 +538,35 @@ make_change_repo "$change_pr_filled_repo" pr-open \
   ' http://mock.gitea.invalid/admin/AlphaApp/pulls/58'
 run_case 0 local_check --repo "$change_pr_filled_repo"
 expect_line 'PASS: change-pr-url'
+
+# #409: legacy_changes_before in the usage lock registers history as LEGACY;
+# registrations print but never change the counts.
+set_legacy_threshold() {
+  python3 - "$1/.aisoft/platform-usage.lock.json" "$2" <<'PY'
+import json
+import sys
+
+lock = json.load(open(sys.argv[1]))
+lock["legacy_changes_before"] = int(sys.argv[2])
+open(sys.argv[1], "w").write(json.dumps(lock, indent=2) + "\n")
+PY
+}
+change_legacy_repo="$TMP/change-legacy"
+make_change_repo "$change_legacy_repo" approved ''
+printf '# spec without front matter\n' \
+  >"$change_legacy_repo/docs/changes/57-matt-flow/spec-matt-flow-260808.md"
+mkdir -p "$change_legacy_repo/docs/changes/0003-old-board"
+printf '# legacy spec\n' >"$change_legacy_repo/docs/changes/0003-old-board/01-spec.md"
+set_legacy_threshold "$change_legacy_repo" 58
+run_case 0 local_check --repo "$change_legacy_repo"
+expect_line 'PASS: change-documents'
+expect_line 'PASS: platform-pin'
+expect_contains 'LEGACY: change-documents — 登记 2 项：0003-old-board'
+expect_line 'result: pass=8 gap=0 skip=5'
+set_legacy_threshold "$change_legacy_repo" 57
+run_case 1 local_check --repo "$change_legacy_repo"
+expect_contains 'GAP: change-documents — 57-matt-flow/spec-matt-flow-260808.md'
+expect_contains 'LEGACY: change-documents — 登记 1 项：0003-old-board'
 
 # A repository without docs/changes at all is skipped rather than reported as
 # clean: "the checker found nothing to look at" and "the repository is fine" are

@@ -165,11 +165,13 @@ else
   else
     while IFS=$'\t' read -r audit_name audit_result audit_detail; do
       [[ -n "$audit_name" ]] || continue
-      if [[ "$audit_result" == PASS ]]; then
-        pass "$audit_name"
-      else
-        gap "$audit_name" "${audit_detail:-未给出细节}"
-      fi
+      case "$audit_result" in
+        PASS) pass "$audit_name" ;;
+        # #409: history below the usage lock's legacy_changes_before is
+        # registered, never counted.
+        LEGACY) printf 'LEGACY: %s — %s\n' "$audit_name" "$audit_detail" ;;
+        *) gap "$audit_name" "${audit_detail:-未给出细节}" ;;
+      esac
     done <"$change_audit"
   fi
 fi
@@ -199,10 +201,48 @@ else
     if [[ -n "$today" ]]; then
       architecture_args+=(--today "$today")
     fi
-    if "$ARCHITECTURE_CLI" "${architecture_args[@]}" >/dev/null 2>&1; then
+    # #409: the declaration's catalog_revision may pin a published older
+    # revision, and the project may carry its own profile.
+    if [[ -d "$ROOT/architecture/catalog-releases" ]]; then
+      architecture_args+=(--catalog-releases "$ROOT/architecture/catalog-releases")
+    fi
+    if [[ -d "$repo/.aisoft/profiles" ]]; then
+      architecture_args+=(--project-profiles-dir "$repo/.aisoft/profiles")
+    fi
+    architecture_out="$tmp_dir/architecture.out"
+    architecture_err="$tmp_dir/architecture.err"
+    if "$ARCHITECTURE_CLI" "${architecture_args[@]}" >"$architecture_out" 2>"$architecture_err"; then
       pass architecture-lock
+      python3 - "$architecture_out" "$ROOT/architecture/profiles" <<'PY' || true
+import json
+import sys
+from pathlib import Path
+
+try:
+    result = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+except (OSError, ValueError):
+    sys.exit(0)
+behind = result.get("catalog_behind")
+if isinstance(behind, dict):
+    overdue = "，该 revision 已过 review_by" if result.get("catalog_review_overdue") else ""
+    print(f"NOTE: architecture-lock — catalog pin {behind.get('pinned')}，平台当前 {behind.get('current')}{overdue}；升级走项目 Issue")
+profile_id = result.get("profile_id")
+if result.get("profile_source") == "project" and (Path(sys.argv[2]) / f"{profile_id}.json").is_file():
+    print(f"NOTE: architecture-lock — 项目自带 profile {profile_id} 覆盖了平台同名示例")
+PY
     else
-      gap architecture-lock 'strict JSON 或 architecture lock 校验失败'
+      # Name the diagnostic: "validation failed" alone sends the reader to
+      # re-run the CLI by hand to learn which rule fired.
+      architecture_reason="$(python3 - "$architecture_err" <<'PY' 2>/dev/null || true
+import json
+import sys
+from pathlib import Path
+
+diagnostic = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["diagnostics"][0]
+print(f"{diagnostic['code']}：{diagnostic['message']}")
+PY
+)"
+      gap architecture-lock "${architecture_reason:-strict JSON 或 architecture lock 校验失败}"
     fi
   fi
 fi
