@@ -532,6 +532,30 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
             self.assertEqual(p.returncode, 2, p.stdout)
             self.assertEqual(json.loads(p.stdout)["error"]["reason"], "host-required")
 
+    def test_vm_host_on_macos_real_root_is_refused_413(self):
+        import contextlib, io
+        from unittest import mock
+        namespace = runpy.run_path(str(REPO / "codex/tools/check-installed-drift.py"), run_name="test_seam")
+
+        def main(*extra):
+            out = io.StringIO()
+            with mock.patch.object(sys, "platform", "darwin"), contextlib.redirect_stdout(out):
+                code = namespace["main"](["--repo", str(self.fixture_source), "--json", *extra])
+            return code, json.loads(out.getvalue())
+
+        code, report = main("--host", "vm")
+        self.assertEqual((code, report["result"]), (2, "ERROR"), report)
+        self.assertEqual(report["error"]["reason"], "host-mismatch")
+        self.assertIn("/usr/local/bin/orb -m", report["error"]["detail"])
+        self.assertEqual(report["installers"], [])
+        # Synthetic roots and source-only stay valid on macOS.
+        code, report = main("--host", "vm", "--source-only")
+        self.assertEqual(code, 0, report)
+        code, report = main("--host", "vm", "--target-home", str(self.home),
+                            "--install-root", str(self.system), "--architecture-prefix", str(self.arch))
+        self.assertNotIn("error", report)
+        self.assertTrue(report["installers"])
+
     def test_macos_system_link_alias_is_narrow(self):
         namespace = runpy.run_path(str(REPO / "codex/tools/check-installed-drift.py"), run_name="test_seam")
         aliases = namespace["macos_system_aliases"]
