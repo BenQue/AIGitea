@@ -81,6 +81,11 @@ for subcommand in change-name resolve-documents check-change-documents backfill-
   scan-worktrees classify complete project-check 'bundle status' version; do
   expect_contains "  $subcommand"
 done
+for subcommand in change-name resolve-documents check-change-documents backfill-pr-url claim-worktree \
+  scan-worktrees classify complete project-check bundle version; do
+  run_tool "$project" 0 "$subcommand" --help
+  expect_contains "  $subcommand"
+done
 run_tool "$project" 0 version
 expect_contains $'layout\tproject'
 version="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["releases"][-1]["version"])' "$ROOT/usage/bundle.json")"
@@ -172,6 +177,10 @@ expect_contains 'PASS: tool-provenance'
 git -C "$flow" worktree add -q -b change/8-other-change "$TMP/wt2" main
 run_tool "$project" 0 --repo "$TMP/wt2" claim-worktree --branch change/8-other-change --session test-session
 expect_contains "\"worktree\": \"$(cd -- "$TMP/wt2" && pwd -P)\""
+# An explicit --worktree=DIR is the caller's choice and is not overridden.
+git -C "$flow" worktree add -q -b change/9-third-change "$TMP/wt3" main
+run_tool "$project" 0 claim-worktree --branch change/9-third-change --session test-session --worktree="$TMP/wt3"
+expect_contains "\"worktree\": \"$(cd -- "$TMP/wt3" && pwd -P)\""
 
 # Reverse proof: one shipped module gone is a failure, not a silent pass.
 broken="$TMP/broken"
@@ -190,7 +199,7 @@ import re
 import sys
 from pathlib import Path
 
-pattern = re.compile(r"PYTHONPATH=codex/runtime|codex/tools/")
+pattern = re.compile(r"PYTHONPATH=codex/runtime|codex/tools/|aisoft-loop |aisoft_loop\.cli")
 for root in sys.argv[1:]:
     for path in sorted(Path(root).rglob("*.md")):
         stack, fenced = [], False

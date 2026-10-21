@@ -25,8 +25,8 @@ tools="$root/codex/tools"
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH="$root/codex/runtime${PYTHONPATH:+:$PYTHONPATH}"
 
-usage() {
-  cat >&2 <<'USAGE'
+usage_text() {
+  cat <<'USAGE'
 usage: aisoft <command> [args]
 
   change-name N SLUG                    validate and print a new change branch
@@ -45,7 +45,20 @@ usage: aisoft <command> [args]
 
 Every command takes --repo DIR; the default is the current git top level.
 USAGE
+}
+
+usage() {
+  usage_text >&2
   exit 64
+}
+
+# aisoft <command> --help prints that command's lines of the usage text.
+command_help() {
+  usage_text | awk -v name="$1" '
+    $0 ~ "^  " name "( |$)" { show = 1; print; next }
+    show && /^      / { print; next }
+    { show = 0 }
+  '
 }
 
 # --repo is optional for the caller and mandatory for every wrapped tool: a
@@ -69,6 +82,14 @@ done
 ((${#args[@]} > 0)) || usage
 command="${args[0]}"
 args=("${args[@]:1}")
+for arg in ${args[@]+"${args[@]}"}; do
+  if [[ "$arg" == --help || "$arg" == -h ]]; then
+    help="$(command_help "$command")"
+    [[ -n "$help" ]] || usage
+    printf '%s\n' "$help"
+    exit 0
+  fi
+done
 if [[ -z "$repo" ]]; then
   repo="$(git rev-parse --show-toplevel 2>/dev/null)" || {
     echo 'aisoft: not inside a git checkout; pass --repo DIR' >&2
@@ -115,7 +136,7 @@ case "$command" in
     # --worktree still wins, but never a silent fallback to the shell's cwd.
     worktree_given=false
     for arg in ${args[@]+"${args[@]}"}; do
-      [[ "$arg" == --worktree ]] && worktree_given=true
+      [[ "$arg" == --worktree || "$arg" == --worktree=* ]] && worktree_given=true
     done
     if [[ "$worktree_given" == true ]]; then
       cli claim-worktree ${args[@]+"${args[@]}"}

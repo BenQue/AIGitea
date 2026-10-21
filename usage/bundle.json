@@ -1642,7 +1642,7 @@
     {
       "version": "1.8.0",
       "released": "2026-10-21",
-      "bundle_digest": "sha256:e893503aad6abb6f014534ebd28e8c8fc8b017353ca7d23d428771a1fd378e31",
+      "bundle_digest": "sha256:68bdd86c40b40dde49a0b3f22c1878322c3bab2047c144dacee3a13730fd781b",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -1760,7 +1760,7 @@
         {
           "source": "skills/aisoft-platform/references/onboarding-runbook.md",
           "mode": "skill",
-          "sha256": "1394a963d682306df952cdea6ed697f7aaf66b615161209008c32a18607feb51"
+          "sha256": "b3719faa2a52d130de8539ed733d51b1645fb4eb8af93794d4a735063973f9ba"
         },
         {
           "source": "skills/aisoft-platform/references/private-gitea-access.md",
@@ -1785,7 +1785,7 @@
         {
           "source": "skills/aisoft-matt-workflow/SKILL.md",
           "mode": "skill",
-          "sha256": "0df1a52bd7bc29a2250fefc2a20f3b09f7ff33cee0d18b59327005f48e25aa20"
+          "sha256": "4a1baad1f4f13a085851e4ed157048b4ba07334e33d273cf62a39b388126a92c"
         },
         {
           "source": "skills/aisoft-matt-workflow/agents/openai.yaml",
@@ -1807,7 +1807,7 @@
           "mode": "exact",
           "target": ".aisoft/bin/aisoft",
           "check": "tool-provenance",
-          "sha256": "204097c2c00b5f67e3cc05c9b196ba91cf3e7744e0f53dfd1e3fdab9b3698d13"
+          "sha256": "10b1f6eb4846d38a1d71bbea2c997e372be29faf0f01e536db556a1ab0acbe09"
         },
         {
           "source": "codex/tools/aisoft-project-check.sh",
