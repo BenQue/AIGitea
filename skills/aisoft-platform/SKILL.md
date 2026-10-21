@@ -41,7 +41,7 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 
 每次变更都要求 exact 仓库、Issue #35、字节一致的已合并平台 SHA、manager 变更凭据与新的证据目录；工具必须读回 private/public 可见性、manager=Admin、project-agent=Write、无跨项目 Write/Admin、合并后删分支与受保护 `main`。直推与 force push 关闭，所有仓库只有人能合并。
 
-routine 自动合并已退出（#391）：broker 没有合并操作，manifest 里残留的 routine 字段在 R16 清理前一律保持停用。源码声明、安装字节、凭据下发、保护规则 apply 与 live 读回是各自独立的证据，不能互相推断。
+routine 自动合并已退出（#391）：broker 没有合并操作，manifest 的 routine 字段已随 #397 删除，合同拒绝再声明。源码声明、安装字节、凭据下发、保护规则 apply 与 live 读回是各自独立的证据，不能互相推断。
 
 共享 `ci-bot` collaborator 闸门已退役：`ensure-gitea-collaborator.sh` 只作历史兼容与回归测试证据，不得用于接入、修复任何项目，也不得作为 broker 的回退路径；见 `06` §「旧 `ci-bot` gate（已退役）」。
 

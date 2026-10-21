@@ -130,8 +130,6 @@ def _template_manifest_paths():
     system = Path("/usr/local/share/aisoft")
     if root.name == "runtime" and root.parent.name == "codex":
         selected = root.parent / "config"
-    elif root.name == "aisoft-loop":
-        selected = root.parent.parent / "share/aisoft"
     else:
         require(root == Path("/usr/local/lib/aisoft-host-access"),
                 "template runtime location is not canonical", "BROKER_SURFACE_GAP")

@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "hosts": {
+    "mac": {
+      "install-skills": "PASS",
+      "install-host-role": "PASS",
+      "install-host-access-broker": "PASS",
+      "architecture/install": "SKIP",
+      "sync/install": "SKIP",
+      "skill-for-claude/install": "PASS"
+    },
+    "vm": {
+      "install-skills": "SKIP",
+      "install-host-role": "PASS",
+      "install-host-access-broker": "PASS",
+      "architecture/install": "SKIP",
+      "sync/install": "SKIP",
+      "skill-for-claude/install": "SKIP"
+    },
+    "target": {
+      "install-skills": "SKIP",
+      "install-host-role": "SKIP",
+      "install-host-access-broker": "SKIP",
+      "architecture/install": "PASS",
+      "sync/install": "PASS",
+      "skill-for-claude/install": "SKIP"
+    }
+  }
+}

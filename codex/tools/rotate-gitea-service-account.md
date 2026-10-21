@@ -12,7 +12,7 @@ Mac store 固定为 `/Users/benque/Library/Application Support/AISoftPlatform/cr
 
 ## 独立现场授权前须形成的具体卡片
 
-记录 Issue/source SHA、项目、token kind、canonical store、VM exact helper、制品摘要、操作窗口、原 creation Issue 及 ownership evidence 是否齐全。原 marker 内容不改、不补建；缺失拒绝。负责人若已手工轮换首个对象（manifest 中的某个 routine merger 身份），先明确专用对象，不能自动创建账号。
+记录 Issue/source SHA、项目、token kind、canonical store、VM exact helper、制品摘要、操作窗口、原 creation Issue 及 ownership evidence 是否齐全。原 marker 内容不改、不补建；缺失拒绝。负责人若已手工轮换某个对象，先明确专用对象，不能自动创建账号。
 
 Mac 与 VM 都须有 root-owned `credential-rotation-source.json`，安装器记录 exact source SHA、merged-main 证据、关键安装字节摘要与 helper 制品 pin。只有 clean source HEAD 已在 origin/main 的 ancestry 中，且当前安装字节一致，才接受该来源。VM installer 的独立 helper 安装参数是 `--pat-helper-artifact <Linux binary>`，旁边必须有固定 build.py 生成的 `.provenance.json`；校验失败在任何安装写入前拒绝。未提供制品时保持普通 broker 安装能力，轮换 fail closed。该参数不是本卡的安装授权。
 

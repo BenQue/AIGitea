@@ -32,15 +32,15 @@ class RotationSurfaceTests(unittest.TestCase):
             with self.assertRaises(BrokerError) as caught:
                 HostAccessBroker(contract).execute(
                     'alphaapp', 'gitea.credential.rotate', issue=316,
-                    sha=SOURCE, token_kind='routine-merge-agent')
+                    sha=SOURCE, token_kind='project-agent')
         self.assertEqual(caught.exception.code, 'ROTATION_OPERATOR_REQUIRED')
 
     def test_wrong_typed_arguments_are_zero_rotation_calls(self):
         contract = load_access_contract(ROOT / 'codex/tests/fixtures/manifests/host-access-broker.json',
                                         ROOT / 'codex/tests/fixtures/manifests/gitea-governance.json')
         for values in ({'issue': 316, 'sha': SOURCE},
-                       {'issue': 316, 'sha': SOURCE, 'token_kind': 'routine-merge-agent', 'body': 'override'},
-                       {'number': 316, 'sha': SOURCE, 'token_kind': 'routine-merge-agent'}):
+                       {'issue': 316, 'sha': SOURCE, 'token_kind': 'project-agent', 'body': 'override'},
+                       {'number': 316, 'sha': SOURCE, 'token_kind': 'project-agent'}):
             with patch('aisoft_host_access.credential_rotation.rotate') as mutation, \
                  patch('pwd.getpwnam', return_value=SimpleNamespace(pw_uid=501, pw_gid=20)):
                 with self.assertRaises(BrokerError) as caught:
@@ -58,9 +58,9 @@ class GrantTests(unittest.TestCase):
         from aisoft_host_access.credential_rotation import rotation_target
         self.contract = load_access_contract(ROOT / 'codex/tests/fixtures/manifests/host-access-broker.json',
                                             ROOT / 'codex/tests/fixtures/manifests/gitea-governance.json')
-        self.target = rotation_target(self.contract, 'alphaapp', 'routine-merge-agent')
+        self.target = rotation_target(self.contract, 'alphaapp', 'project-agent')
         self.grant = {'version': 1, 'operator_uid': 0, 'issue': 316, 'source_sha': SOURCE,
-                      'project_id': 'alphaapp', 'token_kind': 'routine-merge-agent',
+                      'project_id': 'alphaapp', 'token_kind': 'project-agent',
                       'credential_root': self.contract.raw['site']['credential_root_mac'],
                       'helper_path': '/usr/local/libexec/aisoft/gitea-pat-helper',
                       'not_before': int(time.time()) - 10, 'expires_at': int(time.time()) + 600,
@@ -70,7 +70,7 @@ class GrantTests(unittest.TestCase):
         from aisoft_host_access.credential_rotation import validate_grant
         validate_grant(self.contract, self.target, 316, SOURCE, self.grant)
         for key, value in {'version': True, 'operator_uid': 501, 'issue': 313, 'source_sha': 'b'*40,
-                           'project_id': 'betaapp', 'token_kind': 'project-agent',
+                           'project_id': 'betaapp', 'token_kind': 'manager-audit',
                            'credential_root': '/tmp/credentials', 'helper_path': '/tmp/helper',
                            'not_before': int(time.time()) + 10, 'expires_at': int(time.time()) - 1,
                            'creation_issue': False, 'operator_capability': 'BAD',
@@ -126,19 +126,19 @@ class GrantTests(unittest.TestCase):
                 authorization(self.contract, self.target, 316, SOURCE)
             installation.assert_called_once_with(self.contract, SOURCE, vm=False)
             reader.assert_called_once_with(
-                '/usr/local/etc/aisoft/credential-rotation-grants/alphaapp-routine-merge-agent.json', group=None)
+                '/usr/local/etc/aisoft/credential-rotation-grants/alphaapp-project-agent.json', group=None)
 
 
 class RotationVMTests(unittest.TestCase):
     def setUp(self):
         self.contract = load_access_contract(ROOT / 'codex/tests/fixtures/manifests/host-access-broker.json',
                                             ROOT / 'codex/tests/fixtures/manifests/gitea-governance.json')
-        self.common = dict(action='capabilities', project_id='alphaapp', token_kind='routine-merge-agent',
+        self.common = dict(action='capabilities', project_id='alphaapp', token_kind='project-agent',
                            issue=316, source_sha=SOURCE, operator_capability=CAPABILITY)
         self.calls = []
 
     def test_direct_service_user_without_root_capability_is_zero_commands(self):
-        name = 'issue-316-routine-merge-agent-rotation-0123456789ab'
+        name = 'issue-316-project-agent-rotation-0123456789ab'
         for proof in (None, '2'*64, hashlib.sha256(CAPABILITY.encode()).hexdigest(),
                       'A'*64, '', True, CAPABILITY+'\n'):
             request = dict(self.common, action='generate', token_name=name)
@@ -217,7 +217,7 @@ class RotationVMTests(unittest.TestCase):
         else:
             request = json.loads(kwargs['input'])
             output = json.dumps({'result': 'verified', 'token_id': 11, 'user_id': 7,
-                                 'token_name': 'issue-213-routine-merge-agent',
+                                 'token_name': 'issue-213-project-agent',
                                  'scopes': ['write:repository']}).encode()
             self.assertEqual(request['token'], 'old-secret-canary')
         return subprocess.CompletedProcess(argv, 0, stdout=output, stderr=b'candidate-secret-canary')
@@ -236,14 +236,14 @@ class RotationVMTests(unittest.TestCase):
     def test_fixed_capability_generate_and_helper_use_private_stdin_only(self):
         self.assertEqual(self.invoke(self.common)['result'], 'ready')
         self.calls.clear()
-        name = 'issue-316-routine-merge-agent-rotation-0123456789ab'
+        name = 'issue-316-project-agent-rotation-0123456789ab'
         self.assertEqual(self.invoke(dict(self.common, action='generate', token_name=name)),
                          {'token': 'candidate-secret-canary'})
         argv, values = self.calls[-1]
         self.assertEqual(argv, ['/usr/local/bin/gitea', '--config', '/etc/gitea/app.ini',
                                 'admin', 'user', 'generate-access-token', '--username',
-                                'alphaapp-routine-merger', '--token-name', name,
-                                '--scopes', 'read:user,write:repository', '--raw'])
+                                'alphaapp-agent', '--token-name', name,
+                                '--scopes', 'read:user,write:issue,write:repository', '--raw'])
         self.assertEqual(values['stderr'], subprocess.DEVNULL)
         self.calls.clear()
         result = self.invoke(dict(self.common, action='inspect', token='old-secret-canary'))
@@ -256,7 +256,7 @@ class RotationVMTests(unittest.TestCase):
     def test_vm_unknown_schema_and_missing_grant_are_zero_cli_calls(self):
         for request in (dict(self.common, url='https://override.invalid'),
                         dict(self.common, action='generate', token_name='arbitrary-name'),
-                        dict(self.common, action='generate', token_name='issue-316-routine-merge-agent-rotation-0123456789ab')):
+                        dict(self.common, action='generate', token_name='issue-316-project-agent-rotation-0123456789ab')):
             self.calls.clear()
             with self.assertRaises(BrokerError):
                 self.invoke(request, grant=False)
@@ -264,9 +264,9 @@ class RotationVMTests(unittest.TestCase):
 
     def test_canonical_mac_transport_ignores_env_and_never_uses_secret_argv(self):
         from aisoft_host_access.credential_rotation import SystemBackend, rotation_target
-        target = rotation_target(self.contract, 'alphaapp', 'routine-merge-agent')
+        target = rotation_target(self.contract, 'alphaapp', 'project-agent')
         backend = SystemBackend(self.contract, target, 316, SOURCE, CAPABILITY)
-        result = subprocess.CompletedProcess([], 0, stdout=b'{"result":"verified","token_id":11,"user_id":7,"token_name":"issue-213-routine-merge-agent","scopes":["write:repository"]}')
+        result = subprocess.CompletedProcess([], 0, stdout=b'{"result":"verified","token_id":11,"user_id":7,"token_name":"issue-213-project-agent","scopes":["write:repository"]}')
         with patch.dict(os.environ, {'GITEA_BIN':'/tmp/evil'}), patch('subprocess.run', return_value=result) as run:
             backend.inspect('old-secret-canary')
         argv = run.call_args.args[0]
@@ -283,7 +283,7 @@ class RotationVMTests(unittest.TestCase):
     def test_auth_http_cannot_follow_redirect_or_env_proxy(self):
         from aisoft_host_access.credential_rotation import SystemBackend, rotation_target, NoRedirect
         from urllib.request import ProxyHandler
-        target = rotation_target(self.contract, 'alphaapp', 'routine-merge-agent')
+        target = rotation_target(self.contract, 'alphaapp', 'project-agent')
         backend = SystemBackend(self.contract, target, 316, SOURCE, CAPABILITY)
         class Response:
             code = 401
@@ -307,9 +307,9 @@ class RotationVMTests(unittest.TestCase):
         from contextlib import redirect_stderr
         from aisoft_host_access.credential_rotation import operator_main
         for argv in (['--project','alphaapp','--issue','316','--sha',SOURCE,
-                      '--token-kind','routine-merge-agent','--path','/tmp/evil'],
+                      '--token-kind','project-agent','--path','/tmp/evil'],
                      ['--project','alphaapp','--project','betaapp','--sha',SOURCE,
-                      '--token-kind','routine-merge-agent'], ['--vm-operation']):
+                      '--token-kind','project-agent'], ['--vm-operation']):
             errors = io.StringIO()
             with redirect_stderr(errors), patch('sys.stdin.isatty', return_value=True), \
                  patch('aisoft_host_access.contract.load_access_contract') as load:
@@ -322,7 +322,7 @@ class FakeGitea:
     """External-system seam: mutations and user scope gates are independent facts."""
     def __init__(self):
         self.tokens = {'old-secret-canary': {'token_id': 11, 'user_id': 7,
-                       'token_name': 'issue-213-routine-merge-agent',
+                       'token_name': 'issue-213-project-agent',
                        'scopes': ['write:repository']}}
         self.created = self.deleted = 0
 
@@ -342,7 +342,7 @@ class FakeGitea:
         token = 'candidate-secret-canary' if self.created == 1 else f'candidate-{self.created}-secret-canary'
         self.tokens[token] = {
             'token_id': 11 + self.created, 'user_id': 7, 'token_name': name,
-            'scopes': ['read:user', 'write:repository']}
+            'scopes': ['read:user', 'write:issue', 'write:repository']}
         return token
 
     def verify(self, token, metadata, scopes):
@@ -371,23 +371,23 @@ class RotationTransactionTests(unittest.TestCase):
         self.parent.mkdir(parents=True)
         for p in (self.root, self.root / 'projects', self.parent):
             p.chmod(0o700)
-        self.token = self.parent / 'routine-merge-agent.token'
+        self.token = self.parent / 'project-agent.token'
         self.token.write_text('old-secret-canary\n')
         self.token.chmod(0o600)
         for name, data in {
-            'alphaapp-routine-merger.account-created-by-issue-213': 'issue=213\nusername=alphaapp-routine-merger\n',
-            'alphaapp-routine-merger.must-change-password-unset-by-issue-213': 'issue=213\nusername=alphaapp-routine-merger\npolicy=must-change-password-unset\n',
-            'routine-merge-agent.token-created-by-issue-213': 'issue=213\nusername=alphaapp-routine-merger\ntoken_kind=routine-merge-agent\n',
+            'alphaapp-agent.account-created-by-issue-213': 'issue=213\nusername=alphaapp-agent\n',
+            'alphaapp-agent.must-change-password-unset-by-issue-213': 'issue=213\nusername=alphaapp-agent\npolicy=must-change-password-unset\n',
+            'project-agent.token-created-by-issue-213': 'issue=213\nusername=alphaapp-agent\ntoken_kind=project-agent\n',
         }.items():
             p = self.parent / name
             p.write_text(data)
             p.chmod(0o600)
         contract = load_access_contract(ROOT / 'codex/tests/fixtures/manifests/host-access-broker.json',
                                         ROOT / 'codex/tests/fixtures/manifests/gitea-governance.json')
-        self.target = rotation_target(contract, 'alphaapp', 'routine-merge-agent')
+        self.target = rotation_target(contract, 'alphaapp', 'project-agent')
         self.backend = FakeGitea()
         self.authorization = {'issue': 316, 'source_sha': SOURCE, 'creation_issue': 213,
-                              'project_id': 'alphaapp', 'token_kind': 'routine-merge-agent'}
+                              'project_id': 'alphaapp', 'token_kind': 'project-agent'}
         self.transaction = lambda: RotationTransaction(
             self.root, os.getuid(), self.target, self.authorization, self.backend)
 
@@ -437,7 +437,7 @@ class RotationTransactionTests(unittest.TestCase):
         self.assertEqual(self.backend.created, 1)
 
     def test_scope_failure_restores_old_only_when_current_policy_is_satisfied(self):
-        self.backend.tokens['old-secret-canary']['scopes'] = ['read:user', 'write:repository']
+        self.backend.tokens['old-secret-canary']['scopes'] = ['read:user', 'write:issue', 'write:repository']
         verify = self.backend.verify
         def reject_candidate(token, *args):
             if token == 'candidate-secret-canary':
@@ -464,7 +464,7 @@ class RotationTransactionTests(unittest.TestCase):
         self.assertFalse(self.token.exists())
 
     def test_missing_marker_and_unsafe_files_are_zero_external_mutation(self):
-        marker = self.parent / 'routine-merge-agent.token-created-by-issue-213'
+        marker = self.parent / 'project-agent.token-created-by-issue-213'
         marker.unlink()
         with self.assertRaises(BrokerError):
             self.transaction().run()
@@ -499,7 +499,7 @@ class RotationTransactionTests(unittest.TestCase):
 
     def test_busy_target_is_refused_and_other_target_has_separate_lock(self):
         import fcntl
-        tx = self.parent / '.rotation-routine-merge-agent'
+        tx = self.parent / '.rotation-project-agent'
         tx.mkdir(mode=0o700)
         lock = tx / '.rotation.lock'
         lock.touch(mode=0o600)
@@ -538,7 +538,7 @@ class RotationTransactionTests(unittest.TestCase):
     def test_candidate_saved_before_journal_crash_resumes_without_new_issue(self):
         rename = os.rename
         def crash(src, dst, **kwargs):
-            if dst == 'journal.json' and (self.parent/'.rotation-routine-merge-agent/candidate.token').exists():
+            if dst == 'journal.json' and (self.parent/'.rotation-project-agent/candidate.token').exists():
                 raise OSError('synthetic journal crash')
             return rename(src, dst, **kwargs)
         with patch('os.rename', side_effect=crash):
