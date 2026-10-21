@@ -89,6 +89,8 @@ updated: 2026-10-21
 
 第 3 轮（head `e0426c5`，只读）：`CHANGES_REQUESTED`，两条文档问题确认已修；新指出 AC-8 在交叉审查未 PASS 前不应标 PASS，已改为分项记录。
 
+第 4 轮（head `7d43db2`，只读）：`VERDICT: PASS`，无未关闭问题；整体复核 `08be6f4..7d43db2` 代码与合同一致。本记录之后的 commit 只写入本轮结论。
+
 Codex 认可实现者的三项裁决（拆表保值、提前建 verification、grep 管道代替 `[[ ]]`），并核对旧解析在 692 份文档与 60 组 `documents` 边界输入上的结果与报错文本不变。
 
 ## Acceptance criteria 结果
@@ -102,7 +104,7 @@ Codex 认可实现者的三项裁决（拆表保值、提前建 verification、g
 | AC-5 | PASS | `03` §2.2、`08` §5 三行与 §7.3 |
 | AC-6 | PASS | smoke 守卫与副本反向证明 |
 | AC-7 | PASS | 本票 summary `route:` 通过检查；Txx commit 见上；Codex 独立查表一致 |
-| AC-8 | 子项 PASS；交叉审查结论见「Codex 交叉审查」最终轮 | smoke exit 0（`531039a`、`e0426c5`）；`--verify` 1.6.0；`bash -n` 与 ShellCheck；判级投影 `projected` |
+| AC-8 | PASS | Codex 第 4 轮 PASS（`7d43db2`）； smoke exit 0（`531039a`、`e0426c5`）；`--verify` 1.6.0；`bash -n` 与 ShellCheck；判级投影 `projected` |
 | AC-9 | PASS（按修改后的 AC-9） | 上节；路线图 R10b 行 |
 
 ## 遗留风险与未完成项
