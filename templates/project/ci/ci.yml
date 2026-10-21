@@ -63,8 +63,12 @@ jobs:
           git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
           git config --local "$header_key" \
             "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$CHECKOUT_TOKEN" | base64 | tr -d '\n')"
+          # 复用的工作区可能是旧 actions/checkout 留下的浅克隆（push 那一路曾是 depth 1）；普通
+          # fetch 补不全历史，合并预览会找不到共同祖先，所以浅仓一律 --unshallow。
+          unshallow=()
+          if [ "$(git rev-parse --is-shallow-repository)" = true ]; then unshallow=(--unshallow); fi
           for attempt in 1 2 3; do
-            git fetch --no-tags --prune --force origin \
+            git fetch --no-tags --prune --force ${unshallow[@]+"${unshallow[@]}"} origin \
               '+refs/heads/*:refs/remotes/origin/*' '+refs/pull/*/head:refs/remotes/pull/*/head' && break
             (( attempt < 3 )) || { echo '[checkout] CHECKOUT_FETCH_FAILED' >&2; exit 1; }
             sleep 5
