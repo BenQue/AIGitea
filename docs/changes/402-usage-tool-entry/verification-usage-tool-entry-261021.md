@@ -55,7 +55,7 @@ updated: 2026-10-21
 | AC-5 | PASS | `test-usage-bundle.sh` 20：改一个工具字节 → GAP；provenance 不符 → GAP；pin 1.0.0 → NOTE；`test-project-check.sh` 新增 tool-drift 用例 |
 | AC-6 | PASS | `test-usage-bundle.sh` 19：缺 `--compatibility`/`--notes`、非法级别、空说明均拒绝；落后含 major → `platform-pin` GAP，minor/patch → NOTE；半声明的 release 被 `--verify` 拒绝；`--verify --baseline-ref origin/main` PASS |
 | AC-7 | PASS | 模板「项目事实」1708 字节；`test-project-check.sh` 超 2 KB 用例报 `NOTE: agents-budget` 且计数不变 |
-| AC-8 | PASS | `smoke.sh` 在本记录所在 head 复跑见下节；`usage-bundle.sh --verify --baseline-ref origin/main` VERIFIED 1.8.0；`check-change-documents` gap=0；Codex 四轮只读审查，第 4 轮 PASS（`422905d`），记录在项目库 `codex-review-402.md` |
+| AC-8 | PASS | `smoke.sh` 在 `c5bfff8` 从头到尾跑完 exit 0（680 个单测 OK，含 R14 文档守卫与 grep -Fq 棘轮）；`usage-bundle.sh --verify --baseline-ref origin/main` VERIFIED 1.8.0；`check-change-documents` gap=0；Codex 八轮只读审查，第 8 轮 PASS（`c5bfff8`），记录在项目库 `codex-review-402.md` |
 
 | AC-9 | 部分（LocalWMS PR CI 待推送；第 5 轮修复见下） | 模板 `ci.yml` 无 `uses:`；smoke 守卫反向证明：模板副本加回 `uses: actions/checkout@v4` 后守卫命中（rc=0），原文件 rc=1。手写 checkout 步骤从模板原样抽出，在本地 `file://` 裸仓模拟复用工作区连跑两次：两次都检出 exact head（`de829b9`）、残留文件被清掉，extraheader 写入后可删除。HSDB、SFM workflow 读回 `uses:` 0 处，不改；LocalWMS 改用同一步骤（`43669b2`），#335 改判 maintenance / complex（`ci-change`）并读回 projected，Issue 评论记录范围变更。LocalWMS PR 的 CI 运行在推送后补记 |
 
@@ -70,6 +70,7 @@ updated: 2026-10-21
 | 5 | `33453e6` | FAIL | 并入 §7 后：LocalWMS list-contract 闸门钉死旧 `fetch-depth`（`CHECKOUT_DEPTH_FACT_GONE`）；#335 summary 缺项目必需的「两份清单的影响」小节；复用旧浅克隆工作区时 fetch 不补历史（合并预览 `MERGE_PREVIEW_NO_MERGE_BASE`）；smoke 守卫漏行内 `uses`；改判证据不一致 |
 | 6 | `7550616` | FAIL | 第 5 轮 5 条已修；新：unshallow 参数跨重试保留，上一轮已补全历史时重试会报错；LocalWMS workflow 注释与 summary 仍写 push 为 depth 1 |
 | 7 | `0409ff2` | FAIL | 第 6 轮两条已修；新：R14 集成 merge `12e6d2b` 带人工解冲突，源码推送闸门重算 merge 报 `MERGE_CONFLICT`（已按上文重建，冲突 merge 弃用）；project-align 把模板闸门写成「核对内容」，实际只核对路径与文件类型（已更正） |
+| 8 | `c5bfff8` | PASS | 无；四个分支源码推送闸门重算 PASS（平台 34 个提交含 3 个 main 集成 merge，无 `MERGE_CONFLICT`）；`backup-0409ff2` 与 `5484a73` 树相同 |
 
 ## 判级投影
 
