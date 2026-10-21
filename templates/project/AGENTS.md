@@ -40,6 +40,9 @@ Claude Code 与 Codex 共用同一平台合同，能力等价、可互换、不�
 
 ## 项目事实（按项目填写）
 
+本节固定为下列条目、不超过 2 KB（`aisoft project-check` 的 `agents-budget` 超出时提示）；其余项目规则写进项目文档，
+在「项目规则」条目链接，不在本文件展开。
+
 - 技术栈：<语言/框架/数据库>
 - 安装：`<命令>` · 测试：`<命令>` · 构建：`<命令>` · 迁移：`<命令>`
 - 健康端点：`<路径>`（返回内容含精确 release SHA）
@@ -54,3 +57,5 @@ Claude Code 与 Codex 共用同一平台合同，能力等价、可互换、不�
 - 发布传输：`transport: <github-release 或 offline-bundle 或 其它>`（已测试发布包进入公司的介质；
   公司侧只核验校验和与 release SHA 并独立授权部署，GitHub 不进入公司信任链）
 - 禁改边界：<受保护路径/数据/配置，如 migrations 历史、.env、生产脚本>
+- 选用工具与 required CI：<Claude / Codex / Cursor>；<required status contexts>
+- 项目规则：<项目文档链接，如 docs/agents/、docs/adr/、编码规范>

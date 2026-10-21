@@ -12,23 +12,16 @@
 
 ## 操作循环
 
-1. 运行确定性检查器盘点现状（只读，不改任何状态）：
+1. 在目标仓 checkout 里运行确定性检查器盘点现状（只读，不改任何状态）：
 
    ```bash
-   codex/tools/aisoft-project-check.sh --repo <目标仓checkout> [--kind software|docs] [--remote]
+   aisoft project-check [--kind software|docs] [--remote]
    ```
 
-2. 需要复制平台文件时（首次接入、升级版本或补齐缺失副本），先导出最新版本：
+   尚未采用发布包的仓库还没有 `aisoft`，由平台维护者在平台检出里对它运行同一检查器（见下文「维护层」节）。
 
-   ```bash
-   codex/tools/usage-bundle.sh --build <空目录>
-   ```
-
-   `<空目录>/project/` 下的文件按项目落点排好，含生成的 `.aisoft/platform-usage.lock.json`；
-   `AGENTS.md` 是完整模板，存量仓库只同步其常驻指针两节，「项目事实」保持项目自己的内容；
-   `docs/agents/` 与 CI 示例是种子，已有的项目版本不覆盖。技能从同一份源导出到三种项目级落点：
-   `.claude/skills/`、`.agents/skills/`（Codex）与 `.cursor/skills/`，项目只复制它在 `AGENTS.md`「项目事实」里选用的工具对应的落点；
-   选用 Cursor 的项目另复制种子 `.cursor/rules/aisoft-platform.mdc`，它只指向使用合同、lock 与 `AGENTS.md`，不复述规则。
+2. 需要复制平台文件时（首次接入、升级版本或补齐缺失副本），由平台维护者在平台检出里生成采用改动
+   （下文「维护层：导出与采用」），在目标仓的 change worktree 里提交。
 
 3. 逐条 `GAP:` 在**目标仓**建独立 Issue，由 AI 按合同影响和强制风险判级后用单一 PR
    修复（回补程序见 runbook §2；不批量脚本改写多仓）。纯合同保持型局部回补可为 small，
@@ -38,11 +31,33 @@
 新仓库首次接入时，runbook §1/§1.1 的 governance manifest 与 project-agent gate 是
 一切的前置，不能被本 checklist 替代或跳过；本入口从 §2 起接管逐项对齐。
 
+## 维护层：导出与采用
+
+以下命令只在平台检出里运行，由平台维护者执行：
+
+```bash
+codex/tools/aisoft-project-check.sh --repo <目标仓checkout> [--kind software|docs] [--remote]
+codex/tools/usage-bundle.sh --adopt <目标仓 change worktree>
+codex/tools/usage-bundle.sh --build <空目录>
+```
+
+`--adopt` 要求目标是干净的 git 工作树，把最新版本的采用改动直接写进去：lock、使用合同副本、`CLAUDE.md`、
+change 模板四件套、`AGENTS.md` 常驻指针两节（就地替换，「项目事实」不动）、技能与 Matt/superpowers 的
+项目级落点、会话工具 `.aisoft/bin/aisoft` 与 `.aisoft/lib/`；`docs/agents/` 三件套与
+`.cursor/rules/aisoft-platform.mdc` 只在缺失时写；CI 种子不写，只打印 NOTE（改 CI 不是 small）。结束时
+打印写入清单并跑一次 `--project-status`。`--build` 只导出不写目标仓：
+`<空目录>/project/` 下的文件按项目落点排好，含生成的 `.aisoft/platform-usage.lock.json`；
+`AGENTS.md` 是完整模板，存量仓库只同步其常驻指针两节，「项目事实」保持项目自己的内容；
+`docs/agents/` 与 CI 示例是种子，已有的项目版本不覆盖。技能从同一份源导出到三种项目级落点：
+`.claude/skills/`、`.agents/skills/`（Codex）与 `.cursor/skills/`，`--adopt` 三种落点都写，三端用同一套技能；
+Cursor 另有种子 `.cursor/rules/aisoft-platform.mdc`，它只指向使用合同、lock 与 `AGENTS.md`，不复述规则。
+
 ## 对齐 checklist
 
 | # | 查什么 | 事实源 | 机器检查 |
 |---|---|---|---|
-| 0 | 平台使用发布包已 pin：`.aisoft/platform-usage.lock.json` 的版本在平台历史中、摘要一致 | `usage/bundle.json`；`usage-bundle.sh --build` | `platform-pin`（落后最新版本时仍 PASS，另打印 `NOTE:`） |
+| 0 | 平台使用发布包已 pin：`.aisoft/platform-usage.lock.json` 的版本在平台历史中、摘要一致 | `usage/bundle.json`；`usage-bundle.sh --adopt` | `platform-pin`（落后最新版本时仍 PASS，另打印 `NOTE:`；落后区间含 `major` 时 GAP） |
+| 0a | 会话工具 `.aisoft/bin/aisoft` 与 `.aisoft/lib/` 的字节等于所 pin 版本的发布记录 | `usage/bundle.json` 的 `tool-provenance` 成员；`aisoft version` | `tool-provenance`（pin 早于工具包的版本记 NOTE） |
 | 1 | AGENTS.md 常驻指针前两节 + CLAUDE.md 一行指针 | `templates/project/`；runbook §2 | `pointer-sections`（按 pin 版本的摘要核对；无 lock 时对照最新版本） |
 | 2 | 语义 change 模板四件套在位 | `templates/docs/changes/_template/`；runbook §2 | `change-templates`（同上；未 pin 的项目仍会因上游前进而自发变红，见下方「模板同步」） |
 | 3 | Matt 编排三件套已初始化 | `templates/docs/agents/`；runbook §2 | 人工核对 |
@@ -53,7 +68,7 @@
 | 8 | host access / onboarding 聚合核对 | runbook §1.1；broker `host.onboarding.check` | 既有工具，非本检查器 |
 | 9 | merge allowlist 只有人、无 routine merger 声明（#391）与 protection read-back | governance manifest；runbook §1.1/§5 | runtime checker/read-back；source contract 只人工核对 |
 
-## 模板同步（第 2 行专属）
+## 模板同步（第 2 行专属，维护层）
 
 第 2 行的模板是 vendored 副本。项目 pin 了发布包版本后按该版本核对，不再因平台前进变红；
 未 pin 的项目对照最新版本，平台一改模板它就在每个持有副本的项目里同时变红，

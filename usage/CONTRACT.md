@@ -9,13 +9,15 @@
 
 - 项目使用哪一版平台合同，以本仓 `.aisoft/platform-usage.lock.json` 的 `bundle_version` 为准。
   平台仓前进不改变已 pin 版本的含义，也不让项目的对齐检查自发变红。
-- 升级到新版本是项目自己的 Issue：用平台 `codex/tools/usage-bundle.sh --build <目录>` 导出最新版本，
-  按 project-align 复制到本仓，经项目自己的判级与唯一 PR 合入。
-- 发布包里的文件分五类：逐字节副本（本文件、`CLAUDE.md`、change 模板四件套）、`AGENTS.md` 的
+- 升级到新版本是项目自己的 Issue：平台维护者用平台侧 `usage-bundle.sh --adopt` 把最新版本写进本仓的
+  change worktree，经项目自己的判级与唯一 PR 合入。每个版本带一句 `notes` 与兼容级别
+  `compatibility`（`patch`/`minor`/`major`）；落后区间含 `major` 时对齐检查记 GAP，否则只提示。
+- 发布包里的文件分六类：逐字节副本（本文件、`CLAUDE.md`、change 模板四件套）、会话工具（`.aisoft/bin/aisoft`
+  与 `.aisoft/lib/`，见 §5）、`AGENTS.md` 的
   常驻指针两节、初始化种子（`docs/agents/` 三件套、CI 示例，项目可改）、平台技能（装到各工具的
   技能目录）、外部技能包快照（平台 pin 的 Matt 与 superpowers 原文：两包都到 `.cursor/skills/`，
   Matt 另到 `.agents/skills/`；Claude 与 Codex 的 superpowers 来自各自官方 marketplace）。
-  前两类由平台的对齐检查按 pin 的版本核对；外部技能包由 `check-external-skill-versions.sh --repo` 核对。
+  逐字节副本、会话工具与指针由对齐检查按 pin 的版本核对；外部技能包由 `check-external-skill-versions.sh --repo` 核对。
 - 项目对平台的需求以平台 Issue 提出。平台按准入规则判断：换成任意一个已注册项目还成立才进入
   平台；不成立的留在项目仓，或先由平台抽象成扩展点，项目数据留在项目侧。
 
@@ -76,8 +78,31 @@
 平台仓里的交付参考实现与各环境分册只是可选参考，不是项目部署步骤的事实源；项目采用与否、
 如何裁剪，在项目仓声明与实现，并自带所需副本，不在运行时依赖平台仓的某个提交。
 
-## 5. 对齐检查
+## 5. 会话工具
 
-平台 `codex/tools/aisoft-project-check.sh --repo <checkout>` 只读核对本仓与 pin 版本的一致性
-（`platform-pin`、`pointer-sections`、`change-templates` 等）以及项目声明是否齐全。缺口在项目仓
+项目会话只用本仓的 `.aisoft/bin/aisoft`，不需要平台检出。它随发布包进仓，字节由 `tool-provenance` 锁定在
+pin 的版本，项目不得手改；Gitea 与 Git 访问仍经本机安装的 host-access broker，治理与标签 manifest 读 broker
+安装副本。
+
+| 子命令 | 用途 |
+|---|---|
+| `change-name N slug` | 校验并打印新 change 分支名 |
+| `resolve-documents N` | 解析映射的 change 文档名 |
+| `check-change-documents` | 核对全部 change 文档的 front matter 合同 |
+| `backfill-pr-url N --pr-url U` | 建 PR 后回填 summary 的 `pr_url` 与 `status` |
+| `claim-worktree --branch B` | 把 change worktree 绑定到本会话（`AISOFT_SESSION_ID`） |
+| `scan-worktrees` | 只读扫描 change worktree 是否被改写 |
+| `classify N`、`classify --apply N`、`classify --verify N` | 判级投影：计划（含路由行）、写入、读回 |
+| `complete --project ID --range R` / `--apply N…` | 合并后终态：先 dry-run，再按 pinned 编号写入 |
+| `project-check` | 对齐检查（见 §6） |
+| `bundle status` | 本仓与 pin 版本的核对结果 |
+| `version` | 自报 `bundle_version`、`bundle_digest` 与源 SHA |
+
+缺省仓库是当前 git 顶层；其余参数与平台同名工具一致。
+
+## 6. 对齐检查
+
+`aisoft project-check` 只读核对本仓与 pin 版本的一致性
+（`platform-pin`、`tool-provenance`、`pointer-sections`、`change-templates` 等）以及项目声明是否齐全；
+`AGENTS.md`「项目事实」超过 2 KB 时 `agents-budget` 提示。缺口在项目仓
 逐条建 Issue 修复；检查器不改任何状态，也不授权合并或部署。

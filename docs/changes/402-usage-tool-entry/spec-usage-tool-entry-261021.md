@@ -114,7 +114,7 @@ ADR 0001 D7 让项目按版本 pin 发布包，但发布包今天只锁文本：
   （governance apply、仓库设置同步、模板 digest 刷新、只读 helper、外部技能版本核对）保留原命令，放进标题含
   「维护层」的小节；守卫按小节豁免。
 - `usage/CONTRACT.md` 加一节「会话工具」：入口、子命令与 `tool-provenance`。
-- `templates/project/AGENTS.md`「项目事实」改为固定的八个条目、≤ 2 KB，其余项目规则链接到项目文档；
+- `templates/project/AGENTS.md`「项目事实」改为固定条目（原八项加「选用工具与 required CI」「项目规则」两项）、≤ 2 KB，其余项目规则链接到项目文档；
   `aisoft-project-check.sh` 新增 `agents-budget`：项目 `AGENTS.md` 的「项目事实」节超过 2 KB 时 NOTE（不计 GAP）。
 - `03` 与 `06` 只补一句指向 `aisoft` 的说明，维护层命令原样保留。
 - `docs/governance/platform-e2e-acceptance.md` 新增「采用记录」表（项目、版本、Issue、PR、`--project-status`），

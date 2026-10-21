@@ -38,7 +38,7 @@ For project onboarding, keep access, Secret mutation, binding, and acceptance se
 identity/scope, permission, protection/required CI, canonical checkout, manifest remote fetch/push URL, or exact
 repo-local helper drift. It is read-only and does not provision credentials or alter remotes.
 
-## Helper commands
+## Helper commands（维护层）
 
 ### Approved #286 dependency contract — source/local verified
 
