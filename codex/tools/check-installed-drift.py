@@ -834,6 +834,16 @@ def public_provenance(value: str) -> Path:
     return path
 
 
+def is_real_root(path: Path) -> bool:
+    """`/`, `//`, `/./` or a link to `/`: one stat of the root, no surface read."""
+    if os.path.normpath(str(path)).strip("/") == "":
+        return True
+    try:
+        return os.path.samefile(path, "/")
+    except OSError:
+        return False
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=absolute, default=Path(__file__).resolve().parents[2])
@@ -858,7 +868,7 @@ def main(argv=None):
     try:
         # #413: on macOS the real root is the Mac itself; reading it against the
         # VM baseline only yields false GAPs, so refuse before reading anything.
-        if host == "vm" and sys.platform == "darwin" and args.install_root == Path("/") and not args.source_only:
+        if host == "vm" and sys.platform == "darwin" and not args.source_only and is_real_root(args.install_root):
             raise InspectionError("host-mismatch", args.install_root)
         surfaces, sources = build_surfaces(*roots.values())
         validate_source(args.repo, surfaces)

@@ -537,17 +537,28 @@ raise SystemExit(namespace["main"](sys.argv[4:]))
         from unittest import mock
         namespace = runpy.run_path(str(REPO / "codex/tools/check-installed-drift.py"), run_name="test_seam")
 
-        def main(*extra):
+        seams = namespace["main"].__globals__
+
+        def main(*extra, fail_fast=False):
             out = io.StringIO()
-            with mock.patch.object(sys, "platform", "darwin"), contextlib.redirect_stdout(out):
-                code = namespace["main"](["--repo", str(self.fixture_source), "--json", *extra])
+            # A refused run must not reach the host's real installation surface,
+            # not even in the reverse proof against the unfixed checker.
+            guards = {name: mock.Mock(side_effect=AssertionError(f"{name} reached the real root"))
+                      for name in ("macos_system_aliases", "inspect_surface")} if fail_fast else {}
+            with mock.patch.object(sys, "platform", "darwin"), mock.patch.dict(seams, guards), \
+                    contextlib.redirect_stdout(out):
+                code = seams["main"](["--repo", str(self.fixture_source), "--json", *extra])
+            for guard in guards.values():
+                guard.assert_not_called()
             return code, json.loads(out.getvalue())
 
-        code, report = main("--host", "vm")
-        self.assertEqual((code, report["result"]), (2, "ERROR"), report)
-        self.assertEqual(report["error"]["reason"], "host-mismatch")
-        self.assertIn("/usr/local/bin/orb -m", report["error"]["detail"])
-        self.assertEqual(report["installers"], [])
+        for root in ("/", "//", "/./"):
+            with self.subTest(root=root):
+                code, report = main("--host", "vm", "--install-root", root, fail_fast=True)
+                self.assertEqual((code, report["result"]), (2, "ERROR"), report)
+                self.assertEqual(report["error"]["reason"], "host-mismatch")
+                self.assertIn("/usr/local/bin/orb -m", report["error"]["detail"])
+                self.assertEqual(report["installers"], [])
         # Synthetic roots and source-only stay valid on macOS.
         code, report = main("--host", "vm", "--source-only")
         self.assertEqual(code, 0, report)
