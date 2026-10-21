@@ -14,7 +14,7 @@ risk_flags:
   - platform-governance
 depends_on:
   - 402
-status: analyzed
+status: approved
 branch: change/409-catalog-pin-project-profile
 created: 2026-10-21
 updated: 2026-10-21

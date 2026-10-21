@@ -14,7 +14,7 @@ risk_flags:
   - platform-governance
 depends_on:
   - 402
-status: analyzed
+status: approved
 branch: change/409-catalog-pin-project-profile
 created: 2026-10-21
 updated: 2026-10-21
@@ -119,7 +119,7 @@ git_scope:
    `change-pr-url` 由 GAP 变为 PASS + LEGACY 登记；`architecture-lock` 不再报 `PROJECT_CATALOG_MISMATCH`，
    catalog 落后以 NOTE 出现。
 2. SFM 真实检出（同上）：`change-documents` 由 GAP 变为 PASS + LEGACY 登记。
-3. 两个项目的 `DOCKERFILE_DECLARATION_REQUIRED` 按确认点 1 的裁决处理（默认：保持 GAP，文案带诊断码）。
+3. 两个项目的 `DOCKERFILE_DECLARATION_REQUIRED` 保持 GAP，GAP 文案带诊断码（确认点 1 裁决）。
 4. HSDB 技术栈写一份项目自带 profile（放临时副本），`aisoft-architecture validate` 与 `lock` 均成功，且
    `validate --lock` 对生成的 lock PASS。
 5. 反向证明：阈值以上的坏目录仍 GAP；快照被改一字节 → NewEMaint lock `LOCK_DRIFT`；未知 revision →
@@ -135,9 +135,9 @@ git_scope:
 ## 非目标
 
 不改 catalog 内容；不替任何项目写 lock、声明或 profile；不改 `templates/docs/changes/_template/`；不改 summary/
-approval schema；不给 #288 Dockerfile 规则做按 revision 的豁免（除非确认点 1 另有裁决）。
+approval schema；不给 #288 Dockerfile 规则做按 revision 的豁免。
 
 ## 未决问题
 
-- `DOCKERFILE_DECLARATION_REQUIRED`：默认保持 GAP（真实缺口，项目补 `dockerfiles` 后重 lock）；另一选项是 lock
-  早于 #288 时降为 NOTE。请负责人在确认点 1 裁决。
+无。2026-10-21 负责人在线程回「确认」，接受合同与推荐项：`DOCKERFILE_DECLARATION_REQUIRED` 保持 GAP（真实缺口，项目补
+`dockerfiles` 后重 lock），检查器文案带诊断码。

@@ -35,7 +35,7 @@ confidence: high
 override_reason: ''
 depends_on:
   - 402
-status: analyzed
+status: approved
 branch: change/409-catalog-pin-project-profile
 pr_url:
 created: 2026-10-21
@@ -108,5 +108,4 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- SFM 与 NewEMaint 的 `DOCKERFILE_DECLARATION_REQUIRED` 是 #288 规则缺口，不是 catalog 落后；默认保持 GAP
-  （带诊断码），在确认点 1 请负责人裁决。
+- 无。`DOCKERFILE_DECLARATION_REQUIRED` 保持 GAP（带诊断码），负责人 2026-10-21 确认点 1 接受。
