@@ -26,21 +26,50 @@ git_scope:
   - docs/changes/397-ops-closure/plan-ops-closure-261020.md
   - docs/changes/397-ops-closure/verification-ops-closure-261020.md
   - .gitea/workflows/ci.yml
+  - 03-Issue-Spec-Plan与单闸门开发流程.md
   - 05-通知与多人协作.md
   - 06-运维手册与踩坑集.md
   - README.md
+  - codex/config/gitea-governance.json
+  - codex/config/host-access-broker.json
   - codex/config/installed-drift-baseline.json
+  - codex/runtime/aisoft_gitea_governance/cli.py
+  - codex/runtime/aisoft_gitea_governance/contract.py
+  - codex/runtime/aisoft_gitea_governance/reconcile.py
+  - codex/runtime/aisoft_host_access/broker.py
+  - codex/runtime/aisoft_host_access/contract.py
+  - codex/runtime/aisoft_host_access/credential_rotation.py
+  - codex/runtime/aisoft_main_integration.py
+  - codex/runtime/tests/rotation_cli_fixture.py
+  - codex/runtime/tests/test_change_control.py
+  - codex/runtime/tests/test_credential_rotation.py
+  - codex/runtime/tests/test_dependencies.py
+  - codex/runtime/tests/test_deployment_lifecycle.py
+  - codex/runtime/tests/test_gitea_governance.py
+  - codex/runtime/tests/test_host_access.py
+  - codex/runtime/tests/test_main_integration.py
+  - codex/runtime/tests/test_vendored_change_templates.py
   - codex/tests/fixtures/installed-drift/test-installed-drift.py
+  - codex/tests/fixtures/manifests/README.md
+  - codex/tests/fixtures/manifests/gitea-governance.json
+  - codex/tests/fixtures/manifests/host-access-broker.json
   - codex/tests/smoke.sh
   - codex/tests/test-alert-agent.sh
+  - codex/tests/test-bootstrap-gitea-service-account.sh
   - codex/tests/test-cleanup-merged.sh
   - codex/tests/test-deploy-notify.sh
+  - codex/tests/test-host-access-broker.sh
   - codex/tests/test-platform-readiness.sh
+  - codex/tests/test-rotate-gitea-service-account.sh
   - codex/tools/aigitea-cleanup-merged.sh
   - codex/tools/aisoft-alert-poll.sh
   - codex/tools/aisoft-platform-readiness.sh
+  - codex/tools/bootstrap-gitea-service-account.sh
   - codex/tools/check-installed-drift.py
+  - codex/tools/gitea-pat-helper/helper_test.go
+  - codex/tools/rotate-gitea-service-account.md
   - docs/governance/remediation-roadmap.md
+  - skills/aisoft-platform/SKILL.md
   - skills/issue-session-flow/SKILL.md
   - templates/project/ci/deploy-notify.sh
   - usage/bundle.json
@@ -110,4 +139,4 @@ git_scope:
 
 ## 非目标
 
-- 不新增 broker 操作；不改 Go PAT helper；不做真实 PAT 轮换；不删远端分支；不替任何项目接入部署通知；不改 `block_on_outdated_branch`；不处理 R11 的 `get-issue`/`list-issues`/`apply-analysis` 去留。
+- 不新增 broker 操作；不改 Go PAT helper 的行为（只按 manifest 变化更新它的单测期望，见 verification）；不做真实 PAT 轮换；不删远端分支；不替任何项目接入部署通知；不改 `block_on_outdated_branch`；不处理 R11 的 `get-issue`/`list-issues`/`apply-analysis` 去留。
