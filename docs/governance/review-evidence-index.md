@@ -35,3 +35,4 @@ PR 编号以该批 summary 的 `pr_url` 为准，「合并」列写 `—`，合�
 | 批次 | Issue | PR | 合并 | 实现方 | 审查方 | 审查 head（按轮） | 各轮结论 | 来源 |
 |---|---|---|---|---|---|---|---|---|
 | R15 | #408 | 见 summary `pr_url` | — | Claude | Codex（`codex exec -s read-only`） | 1：`2256a105552868b805260978fe46869caa34fd02`；2：`26212a0ab7f6b1a921a1b4183655ff2a58b58632`；3：`bc7e5d0ad487bfcb2245d118d5fb0fd3924ad20b`；4：`8bb412c8ae1dfbdf483e7e6da33c2e3336944a82` | FAIL → FAIL → FAIL（三轮共 7 major 5 minor，均已修）→ PASS | `docs/changes/408-peer-review-evidence/verification-peer-review-evidence-261021.md`「交叉审查」；项目库 `codex-review-408.md` |
+| — | #412 | 见 summary `pr_url` | — | Claude | Codex（`codex exec -s read-only -m gpt-6-astra`） | 1：`f308d3459709cbacfcb6958f0f7f3bea57072903`（ultra）；2：`c0f2814f59a1c856c82b2e2b1ca1d06e6294c609`（high） | FAIL（2 条 P2，均已修）→ PASS | `docs/changes/412-governance-table-writeback/verification-governance-table-writeback-261021.md`「交叉审查」 |
