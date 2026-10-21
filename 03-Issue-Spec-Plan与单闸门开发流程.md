@@ -266,14 +266,6 @@ GAP 提示而不是错误的原因。约束由 `change-template-sync.json` 的
 `bash codex/tools/usage-bundle.sh --release <新版本> --today <日期>`，否则 smoke 的 `--verify` 变红。
 上面的 digest 与广播清单本批保留，二者的整合留给后续评估。
 
-**会话工具随发布包分发（#402）。** 发布包另带项目内会话工具 `.aisoft/bin/aisoft` 与 `.aisoft/lib/`
-（平台仓同源入口 `codex/tools/aisoft`），归入核对项 `tool-provenance`：项目会话的文档检查、判级投影、
-终态与对齐检查都经 `aisoft <子命令>`，不再需要平台检出。被工具包收录的平台文件（`usage/bundle.json`
-里 `check: tool-provenance` 的成员，含 `aisoft_loop`、被包装的三个工具与 architecture 校验器）因此也是
-发布包成员，改它们同样要发新版本。`--release` 从 #402 起必须带 `--compatibility patch|minor|major` 与
-一句 `--notes`；pin 落后的项目在落后区间含 `major` 时 `platform-pin` 记 GAP，否则只 NOTE。采用新版本由
-平台维护者用 `usage-bundle.sh --adopt <项目 change worktree>` 生成改动，经项目自己的 Issue 与唯一 PR 合入。
-
 ### Canonical 模板的精确 Git scope 合同（#360）
 
 以下是 [#360 已批准合同](docs/changes/360-canonical-template-scope/spec-canonical-template-scope-261015.md)
