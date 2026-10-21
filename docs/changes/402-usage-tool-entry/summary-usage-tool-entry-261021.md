@@ -37,9 +37,9 @@ depends_on:
   - 391
   - 392
   - 395
-status: approved
+status: pr-open
 branch: change/402-usage-tool-entry
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/405
 created: 2026-10-21
 updated: 2026-10-21
 ---
