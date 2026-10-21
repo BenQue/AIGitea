@@ -6,7 +6,7 @@ requested_complexity: auto
 assessed_complexity: complex
 effective_complexity: complex
 contract_effect: change
-reason: 改平台仓 CI workflow 与必需检查里的 PAT helper 构建脚本，给共享 runner 引入持久下载缓存与站点级 actions 镜像，属于 CI、跨站点基础设施与平台治理文件变更
+reason: 改平台仓 CI workflow 与必需检查里的 PAT helper 构建脚本，给共享 runner 引入持久下载缓存并改写 checkout，属于 CI 与平台治理文件变更
 risk_flags:
   - ci-change
   - rollback
@@ -28,7 +28,7 @@ status: approved
 branch: change/370-ci-download-cache
 pr_url:
 created: 2026-10-20
-updated: 2026-10-20
+updated: 2026-10-21
 ---
 
 ## 问题/需求总结
@@ -37,11 +37,10 @@ updated: 2026-10-20
 
 ## 影响范围
 
-- `.gitea/workflows/ci.yml`（治理文件）：checkout 改用本站 Gitea 镜像并钉 commit SHA；PAT helper 步骤传入持久缓存目录。
+- `.gitea/workflows/ci.yml`（治理文件）：checkout 改为只从本 job 所在的 Gitea `git fetch` 的手写步骤，不再取 GitHub 上的 action；PAT helper 步骤传入持久缓存目录；末尾删除 checkout 凭据。
 - `codex/tests/test-gitea-pat-helper-linux.sh`：工具链归档与 Go 模块走可选持久缓存，命中前后都按既有 pin 校验；下载加有限重试；构建与测试在 `GOPROXY=off` 下离线运行。
 - `codex/tests/test-gitea-pat-helper-linux-gates.sh`：补缓存命中、缓存被篡改两个黑盒场景。
 - `01-基础设施-VM-Gitea-Runner.md` §4：记 as-built 与回滚。
-- 站点侧一次性前置（负责人执行）：本站 Gitea 建公开组织 `actions` 与 GitHub `actions/checkout` 的拉取镜像。
 
 ## 初步方案与建议
 
@@ -51,7 +50,7 @@ updated: 2026-10-20
 
 - act_runner 1.0.7 对 `uses:` 写完整 `http://` URL 的支持要靠真实 CI 运行证实；不支持时停下来报，不自行改 runner 配置。
 - 冷缓存第一次仍需外网，这一点写进 as-built，不伪称已离线。
-- 工作流里出现站点 Gitea 地址，与并行中的 R13（站点外置守卫）有交集，合并顺序在 PR 阶段核对。
+- 2026-10-21 合同修订：R13（#396）合并后站点值守卫禁止 `ci.yml` 写本站 Gitea 地址，镜像 URL 方案作废，改为手写 checkout（不需要站点前置）。
 
 ## AI 判级
 
@@ -61,7 +60,7 @@ requested_complexity: auto
 assessed_complexity: complex
 effective_complexity: complex
 contract_effect: change
-reason: 改平台仓 CI workflow 与必需检查里的 PAT helper 构建脚本，给共享 runner 引入持久下载缓存与站点级 actions 镜像，属于 CI、跨站点基础设施与平台治理文件变更
+reason: 改平台仓 CI workflow 与必需检查里的 PAT helper 构建脚本，给共享 runner 引入持久下载缓存并改写 checkout，属于 CI 与平台治理文件变更
 risk_flags:
   - ci-change
   - rollback
@@ -82,4 +81,4 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- 无。镜像命名与缓存位置的默认取法写在 spec，确认点 1 可调整。
+- 无。缓存位置是默认取法。
