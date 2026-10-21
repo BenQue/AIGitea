@@ -1642,7 +1642,7 @@
     {
       "version": "1.8.0",
       "released": "2026-10-21",
-      "bundle_digest": "sha256:41a39b367f6819062ca87adc33cf42a2777019b68354f3e6fc2a66d036388c5c",
+      "bundle_digest": "sha256:2a984f6badb7d9d0dd08f4b172f1a448762952e269c4662468bc17c69ff928cb",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -1770,7 +1770,7 @@
         {
           "source": "skills/aisoft-platform/references/project-align.md",
           "mode": "skill",
-          "sha256": "bec5936869ad002b7bd08c117f66358eb483405326de2ded826f3729997f12c9"
+          "sha256": "86dea420cc6e228c763b7b8b860ae31e6c6188b84f765ae7e30943c637b7d9f8"
         },
         {
           "source": "skills/aisoft-platform/references/route-policy.md",
@@ -1842,7 +1842,7 @@
           "mode": "exact",
           "target": ".aisoft/lib/codex/tools/usage-bundle.py",
           "check": "tool-provenance",
-          "sha256": "d1acd7a6c9fac288b5326980dd1f58af02461dbd3940425f878788e2706f47ac"
+          "sha256": "f134ec4858fa45050f833e5f2a8e7db27122c67a74a56a004d7ce81c958f2254"
         },
         {
           "source": "codex/agent/aisoft-project-target.sh",

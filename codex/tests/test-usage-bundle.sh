@@ -491,7 +491,8 @@ expect_contains '工作树不干净'
 rm "$adopted/untracked.txt"
 run 0 "${t[@]}" --adopt "$adopted"
 expect_contains $'REMOVED\t.aisoft/lib/codex/old/gone.py'
-expect_contains $'REMOVED\tdocs/changes/_template/00-summary.md'
+expect_contains $'NOTE\tdocs/changes/_template/00-summary.md'
+[[ -f "$adopted/docs/changes/_template/00-summary.md" ]] || fail 'adopt deleted a legacy template'
 expect_contains $'KEPT\tdocs/agents/domain.md'
 expect_contains $'WROTE\tAGENTS.md\t只替换常驻指针两节'
 expect_contains $'tool-provenance\tPASS\t1.2.0'
@@ -502,12 +503,19 @@ grep -Fq 'pointer v1' "$adopted/AGENTS.md" || fail 'adopt did not write the poin
 ! grep -Fq 'old pointer' "$adopted/AGENTS.md" || fail 'adopt kept the old pointer'
 [[ "$(cat "$adopted/docs/agents/domain.md")" == 'project domain' ]] || fail 'adopt overwrote a seed'
 [[ -x "$adopted/.aisoft/bin/aisoft" ]] || fail 'adopted tool entry not executable'
+expect_contains $'CHANGED\t'
+[[ -f "$adopted/.claude/skills/demo/SKILL.md" && -f "$adopted/.agents/skills/demo/SKILL.md" ]] || fail 'default tools are claude and codex'
+[[ ! -e "$adopted/.cursor" ]] || fail 'cursor landing written without --tools cursor'
 # Adopting the same release again on the committed result changes nothing.
 git -C "$adopted" -c user.name=t -c user.email=t@example.invalid add -A
 git -C "$adopted" -c user.name=t -c user.email=t@example.invalid commit -q -m adopt
 run 0 "${t[@]}" --adopt "$adopted"
 [[ -z "$(git -C "$adopted" status --porcelain)" ]] || fail 'second adopt changed the checkout'
 run 64 "${t[@]}" --adopt "$tmp/does-not-exist"
+run 1 "${t[@]}" --adopt "$adopted" --tools claude,vim
+expect_contains '--tools 只能取'
+run 0 "${t[@]}" --adopt "$adopted" --tools cursor
+[[ -f "$adopted/.cursor/skills/demo/SKILL.md" ]] || fail '--tools cursor did not write the cursor landing'
 
 # 17. Usage errors.
 run 64 "${p[@]}"

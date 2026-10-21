@@ -17,8 +17,9 @@ history table is the version, the digests prove the copy.
   --build DIR                    export the latest release for a project to copy
                                  (skills land in .claude/, .agents/ and .cursor/;
                                  vendored skill packs per VENDOR_LANDINGS)
-  --adopt REPO                   write the latest release into a clean project
-                                 checkout (#402) and report its status
+  --adopt REPO [--tools LIST]    write the latest release into a clean project
+                                 checkout (#402) and report its status; LIST picks
+                                 the tool landings (default claude,codex)
   --project-status REPO          platform-pin / tool-provenance /
                                  pointer-sections / change-templates
 
@@ -63,6 +64,11 @@ TOOL_ROOTS = (".aisoft/bin/", ".aisoft/lib/")
 # CI seeds are never adopted: changing a project's CI is not a small change.
 ADOPT_SKIPPED_SEEDS = (".gitea/workflows/", "scripts/ci/")
 LEGACY_TEMPLATES = ("00-summary.md", "01-spec.md", "02-plan.md", "03-verification.md")
+# Tool landings --adopt writes; a project adopts the tools it uses. The broker
+# push gate allows at most this many exact paths in one change's git_scope.
+TOOL_LANDINGS = {"claude": ".claude/", "codex": ".agents/", "cursor": ".cursor/"}
+DEFAULT_TOOLS = ("claude", "codex")
+SCOPE_LIMIT = 256
 VERSION_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 POINTER_START = "## 平台声明（常驻指针）"
 POINTER_PATH = "## 每 Issue 开发路径"
@@ -78,7 +84,7 @@ def usage() -> None:
         "       usage-bundle.sh [--platform-root DIR] --release VERSION --today YYYY-MM-DD"
         " --compatibility patch|minor|major --notes TEXT\n"
         "       usage-bundle.sh [--platform-root DIR] --build DIR\n"
-        "       usage-bundle.sh [--platform-root DIR] --adopt REPO\n"
+        "       usage-bundle.sh [--platform-root DIR] --adopt REPO [--tools claude,codex,cursor]\n"
         "       usage-bundle.sh [--platform-root DIR] --project-status REPO",
         file=sys.stderr,
     )
@@ -576,9 +582,13 @@ def replace_pointer(existing: str, template: str) -> str:
     return before + ("\n" if before else "") + pointer + after
 
 
-def adopt(root: Path, repo: Path) -> int:
+def adopt(root: Path, repo: Path, tools: tuple[str, ...] = DEFAULT_TOOLS) -> int:
     """Write the latest release into one clean project checkout, the way a
     person following project-align would copy it, and report the result."""
+    unknown = sorted(set(tools) - set(TOOL_LANDINGS))
+    if unknown or not tools:
+        raise BundleError(f"--tools 只能取 {','.join(TOOL_LANDINGS)}：{','.join(unknown) or '空'}")
+    skipped_landings = tuple(base for name, base in TOOL_LANDINGS.items() if name not in tools)
     if git(repo, "rev-parse", "--is-inside-work-tree").stdout.strip() != "true":
         raise BundleError(f"--adopt 目标不是 git 工作树：{repo}")
     if git(repo, "status", "--porcelain", "--untracked-files=all").stdout.strip():
@@ -599,6 +609,8 @@ def adopt(root: Path, repo: Path) -> int:
         for relative in exported:
             source = project / relative
             destination = repo / relative
+            if skipped_landings and relative.startswith(skipped_landings):
+                continue
             if relative.startswith(ADOPT_SKIPPED_SEEDS):
                 print(f"NOTE\t{relative}\tCI 种子不随采用写入（改 CI 不是 small），需要时另开 Issue")
                 continue
@@ -632,11 +644,12 @@ def adopt(root: Path, repo: Path) -> int:
                 if path.is_file() and relative not in exported:
                     path.unlink()
                     print(f"REMOVED\t{relative}\t不在 {latest['version']} 的会话工具里")
+        # Legacy templates stay: the broker's scope gate refuses to delete a
+        # non-canonical docs/changes path outside the change's own directory.
         template_dir = repo / "docs/changes/_template"
         for name in LEGACY_TEMPLATES:
             if (template_dir / name).is_file():
-                (template_dir / name).unlink()
-                print(f"REMOVED\tdocs/changes/_template/{name}\tlegacy 模板，由语义模板四件套取代")
+                print(f"NOTE\tdocs/changes/_template/{name}\tlegacy 模板保留；语义模板四件套已就位")
     if written:
         ignored = subprocess.run(
             ["git", "-C", str(repo), "check-ignore", "--no-index", "--stdin"],
@@ -644,6 +657,10 @@ def adopt(root: Path, repo: Path) -> int:
         )
         for relative in ignored.stdout.splitlines():
             print(f"NOTE\t{relative}\t被 .gitignore 忽略，提交前处理")
+    changed = [line for line in git(repo, "status", "--porcelain", "--untracked-files=all").stdout.splitlines() if line]
+    print(f"CHANGED\t{len(changed)}\t改动路径数（tools={','.join(tools)}）")
+    if len(changed) > SCOPE_LIMIT - 4:
+        print(f"NOTE\t{len(changed)}\t加上 change 文档后会超过 broker git_scope 的 {SCOPE_LIMIT} 项上限，减少 --tools 或拆分")
     failures = 0
     for check, result, detail in project_status(root, repo):
         print(f"{check}\t{result}\t{detail}")
@@ -771,11 +788,12 @@ def main(argv: list[str]) -> int:
             if len(args) != 8 or args[2] != "--today" or args[4] != "--compatibility" or args[6] != "--notes":
                 raise BundleError("--release 必须写成 --release VERSION --today D --compatibility patch|minor|major --notes TEXT（#402 起每个版本都带说明与兼容级别）")
             release(root, args[1], args[3], args[5], args[7])
-        elif len(args) == 2 and args[0] == "--adopt":
+        elif args[:1] == ["--adopt"] and len(args) in (2, 4) and (len(args) == 2 or args[2] == "--tools"):
             repo = Path(args[1]).resolve()
             if not repo.is_dir():
                 usage()
-            return adopt(root, repo)
+            tools = tuple(args[3].split(",")) if len(args) == 4 else DEFAULT_TOOLS
+            return adopt(root, repo, tools)
         elif len(args) == 2 and args[0] == "--build":
             build(root, Path(args[1]))
         elif len(args) == 2 and args[0] == "--project-status":
