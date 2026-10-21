@@ -96,10 +96,10 @@ Cursor 要在使用层真实走完一个 Issue；每批固定出现的仪式性�
 - `templates/docs/changes/_template/verification.md` 新增固定节 `## 交叉审查`，表头
   `| 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |`，`exact head` 写 40 位 SHA。
   项目仓不适用平台交叉审查时整节删除（与「部署验收」同一写法）。
-- 新建 `docs/governance/review-evidence-index.md`：每批一行，列「批次、Issue、PR、merge SHA、实现方、审查方、审查 head、各轮结论、来源」，
+- 新建 `docs/governance/review-evidence-index.md`：每批一行，列「批次、Issue、PR、合并 SHA、实现方、审查方、审查 head、各轮结论、来源」（新批次的行在合并前写，合并 SHA 写 `—`），
   回填 R0–R8（含 R6b）、#385、#387，另加 #370（Claude 实现、Codex 审）。仓内与 PR 正文都没有的，格子写「未记录」，不补造；
   R0–R3 写「未做交叉审查」并给 PR head。缺首轮 head 的（R5、R6、R6b）若项目库 `codex-review-*.md` 也没有，就写「未记录」。
-  此后每个平台 complex 批次合并后追加一行，由收尾步骤负责。
+  此后每个平台 complex 批次在自己的 PR 里追加一行（`03` §7）。
 - `03` §7「交叉审核」改写：实现方 ≠ 审查方；每批在 verification 的固定表和索引里记录实现方与审查方。具体方向按未决问题 1 的决定写。
 
 ### 3. approval 只写 summary（P2-7）
