@@ -172,7 +172,10 @@ class ProjectLeakTests(unittest.TestCase):
                        self.adr("README.md").replace("|---|---|", "| x | y |"),
                        self.adr("README.md").replace("| 文件 | 理由 |", "| 路径 | 理由 |"),
                        self.adr("README.md").replace("| `README.md` | reason |", "| `README.md` | |"),
-                       self.adr("README.md").replace("| `README.md` | reason |", "| `README.md` | a | b |")):
+                       self.adr("README.md").replace("| `README.md` | reason |", "| `README.md` | a | b |"),
+                       self.adr("README.md").replace("|---|---|", "|---\u00a0|---|"),
+                       self.adr("README.md").replace("| `README.md` |", "| `README.md`\u200b |"),
+                       self.adr("README.md").replace("| 文件 | 理由 |", "| 文件 |\u3000理由 |")):
             with self.subTest(broken=broken):
                 self.write("docs/adr/0001-platform-boundary.md", broken)
                 code, _, err = self.run_checker()

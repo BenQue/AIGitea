@@ -14,6 +14,7 @@ import argparse
 import json
 import re
 import subprocess
+import unicodedata
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
@@ -61,8 +62,8 @@ def site_values(root: Path) -> list[str]:
 # Anything Markdown could use to hide or fake a row. The ADR is read without
 # rendering, so instead of parsing these the whole file may not contain them.
 REGISTER_HEADER = "| 文件 | 理由 |"
-REGISTER_SEPARATOR = re.compile(r"\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|")
-REGISTER_ROW = re.compile(r"\|\s*`([^`|]+)`\s*\|[^|]*[^|\s][^|]*\|")
+REGISTER_SEPARATOR = re.compile(r"\|[ \t]*:?-{3,}:?[ \t]*\|[ \t]*:?-{3,}:?[ \t]*\|")
+REGISTER_ROW = re.compile(r"\|[ \t]*`([^`|]+)`[ \t]*\|[^|]*[^| \t][^|]*\|")
 HIDING = re.compile(r"```|~~~|<!--|-->|^ {0,3}<[A-Za-z/!?]")
 
 
@@ -87,6 +88,10 @@ def registered_exceptions(root: Path) -> set[str]:
             break
         if re.match(r"( {4}|\t)", line):
             raise ValueError(f"{ADR}: the exception register may not hold indented lines")
+        # Markdown only treats ASCII space and tab as table whitespace; any other
+        # whitespace or format character could turn a row into plain text.
+        if any(ch not in " \t" and (ch.isspace() or unicodedata.category(ch) in {"Cf", "Zs"}) for ch in line):
+            raise ValueError(f"{ADR}: the exception register may hold only ASCII spaces and tabs as whitespace")
         row = line.startswith("|")
         if row and not previous_row:
             tables.append([])
