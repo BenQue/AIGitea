@@ -12,6 +12,21 @@ risk_flags:
   - platform-governance
 depends_on: []
 branch: change/420-onboarding-guide
+git_scope:
+  - README.md
+  - docs/agents/issue-tracker.md
+  - docs/changes/420-onboarding-guide/plan-onboarding-guide-261022.md
+  - docs/changes/420-onboarding-guide/spec-onboarding-guide-261022.md
+  - docs/changes/420-onboarding-guide/summary-onboarding-guide-261022.md
+  - docs/changes/420-onboarding-guide/verification-onboarding-guide-261022.md
+  - docs/governance/review-evidence-index.md
+  - skills/aisoft-platform/SKILL.md
+  - skills/aisoft-platform/references/getting-started.md
+  - templates/docs/agents/issue-tracker.md
+  - templates/project/AGENTS.md
+  - usage/CONTRACT.md
+  - usage/USER-GUIDE.md
+  - usage/bundle.json
 created: 2026-10-22
 updated: 2026-10-22
 ---
