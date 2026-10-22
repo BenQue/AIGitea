@@ -72,7 +72,7 @@ SMOKE_PLACEHOLDER
 
 ## 交叉审查
 
-审查方 Codex（`codex exec -s read-only -m gpt-6-astra -c model_reasoning_effort="high"`），实现方 Claude。每轮在 detached 快照 worktree 上审查。
+审查方 Codex（`codex exec -s read-only -m gpt-6-astra -c model_reasoning_effort="high"`），实现方 Claude。每轮在 detached 快照 worktree 上审查；exact head 是被审查的快照，代码候选之后的 commit 只改本文件。
 
 | 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
 |---|---|---|---|---|---|
@@ -85,9 +85,9 @@ SMOKE_PLACEHOLDER
 | 全量-2 | Claude | Codex | `127e65309352539b9109b8c59f93322602ca6abd` | FAIL | P2 反引号 info string、NBSP 闭合行骗过 CommonMark 近似 → `c4a800fb`：ADR 全文禁止围栏、注释与原始 HTML，不再解析 |
 | 全量-3 | Claude | Codex | `c4a800fb6c54f192f5b153134a01d558002e4e6f` | FAIL | P2 删掉分隔行的非表格仍被登记；P3 verification 候选 head 过期 → `93578db5`：固定表头、分隔行与两列行格式 |
 | 全量-4 | Claude | Codex | `a592ea570c192e8b4b2ed4d56c98d9397e0675d7` | FAIL | P2 分隔行里的 NBSP 让表变成段落仍被登记；P3 本表未用 `03` §7 固定表头与 40 位 SHA → `25a54f53`：登记节只允许 ASCII 空格与制表符；本表改格式 |
-| 全量-5 | Claude | Codex | `25a54f534012622cc7cf93fc794dcfa8997a85b1` | FAIL | P2 `splitlines()` 把 U+2028、VT 当换行，非表格仍被登记 → `694b7bc6`：ADR 只按 LF 切行，全文除空格、制表符、LF 外的空白与控制字符一律拒绝 |
-| 全量-6 | Claude | Codex | `694b7bc63d39afd114106735740b6a20816a6d62` | FAIL | P2 带前导空格的 ATX 标题与 Setext 标题能把表划到下一节，D3 仍被当成已登记 → `82c0355e`：登记节改为允许清单（正文、空行、一张前后空行的表），其余行一律拒绝 |
-| 全量-7 | Claude | Codex | `82c0355e68442b06286ad79af9afc77d810c2af0` | REVIEW7_PLACEHOLDER |  |
+| 全量-5 | Claude | Codex | `bce9262cc65bafb3104a6156bd1a00488a571490` | FAIL | P2 `splitlines()` 把 U+2028、VT 当换行，非表格仍被登记 → `694b7bc6`：ADR 只按 LF 切行，全文除空格、制表符、LF 外的空白与控制字符一律拒绝 |
+| 全量-6 | Claude | Codex | `4be80aa34aaa17fab71f6f713175d03dbd98262d` | FAIL | P2 带前导空格的 ATX 标题与 Setext 标题能把表划到下一节，D3 仍被当成已登记 → `82c0355e`：登记节改为允许清单（正文、空行、一张前后空行的表），其余行一律拒绝 |
+| 全量-7 | Claude | Codex | `071a84de3127e6d5ac528b2948e89bf8da05c346` | REVIEW7_PLACEHOLDER |  |
 
 ## 遗留风险与未完成项
 
