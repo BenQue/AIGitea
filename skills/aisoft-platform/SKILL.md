@@ -1,6 +1,6 @@
 ---
 name: aisoft-platform
-description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Use when 在已接入平台的项目上开发/修复/部署、接入新项目到平台、走 Issue→triage→spec/plan→实现→PR→部署流程、检查私有 Gitea 仓库/Issue/PR/Actions/分支保护、或排查平台 CI/部署/agent 问题。Also use to operate or onboard projects on the AISoft self-hosted Gitea delivery platform: Issue analysis, small-or-complex routing, spec/plan contracts, session implementation work, provider coexistence, CI/deployment incidents, first non-production deployments, rollback planning, production script boundaries. 触发词：AISoft、AIGitea、平台 VM、Gitea Issue、判级、small/complex、change 分支、host-access broker、architecture lock、部署失败、接入平台、project-align。
+description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Use when 在已接入平台的项目上开发/修复/部署、接入新项目到平台、走 Issue→triage→spec/plan→实现→PR→部署流程、检查私有 Gitea 仓库/Issue/PR/Actions/分支保护、或排查平台 CI/部署/agent 问题。Also use to operate or onboard projects on the AISoft self-hosted Gitea delivery platform: Issue analysis, small-or-complex routing, spec/plan contracts, session implementation work, provider coexistence, CI/deployment incidents, first non-production deployments, rollback planning, production script boundaries. 触发词：AISoft、AIGitea、新用户上手、平台 VM、Gitea Issue、判级、small/complex、change 分支、host-access broker、architecture lock、部署失败、接入平台、project-align。
 ---
 
 # AISoft 自托管交付平台（v3.6）
@@ -27,7 +27,7 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 - **语义文档**：新文档名 `<role>-<短描述>-<YYMMDD>.md`，summary front matter 的 `documents` 字段映射 summary/spec/plan/verification 到真实文件名。解析用 `aisoft resolve-documents N`，不要 glob 猜。
 - **判级**：contract_effect 先行（restore/unchanged → small 候选；add/change → complex；unclear → 人工澄清）。功能新增/变更、schema/迁移、外部契约、安全、共享核心、跨模块、CI/制品/部署/回滚、Agent/治理一律强制 complex。small 还须范围局部、可简单 revert，并有可测验收标准。显式要求 complex 照办；要求 small 不能绕过 AI 校验与强制 complex 规则。
 - **文档要求**：production complex 必须有映射的 spec 与 plan；development complex 从 Issue 读取可测验收标准并用合成 `T01`；已验证的 small 与 development complex 不写仪式性 spec/plan。验收证据不能由 diff review 与 required CI 重放时声明 `verification`；部署与迁移总要它，但 `verification` 不等于部署。
-- **Matt 主路径**：每个 Issue 走 `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`（平台适配规则见下文「外部技能包边界」；small 与 development complex 在 triage+summary+判级+`approved` 复核后跳过 spec/plan，后者使用合成 `T01`）。`triage/ready-for-agent` ≠ `approved`；`approved` 只授权开始实现，不授权 merge 或部署。仓库初始化调用 `$setup-matt-pocock-skills`（tracker 选 `Other`），使用 `templates/docs/agents/` 的 tracker、triage、domain 三份文件；Codex 侧经 `aisoft-matt-workflow` 适配器串起这一步。
+- **Matt 主路径**：开发方式以 [路由表](references/route-policy.md) 为准。每个 Issue 走 `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → 按计划执行（Claude 与 Cursor 用 superpowers `executing-plans`，Codex 用 `$implement #N Txx`）（平台适配规则见下文「外部技能包边界」；small 与 development complex 在 triage+summary+判级+`approved` 复核后跳过 spec/plan，后者使用合成 `T01`）。`triage/ready-for-agent` ≠ `approved`；`approved` 只授权开始实现，不授权 merge 或部署。仓库初始化调用 `$setup-matt-pocock-skills`（tracker 选 `Other`），使用 `templates/docs/agents/` 的 tracker、triage、domain 三份文件；Codex 侧经 `aisoft-matt-workflow` 适配器串起这一步。
 - **路由**：`$triage #N` 与平台判级（`change_type`、`contract_effect`、`effective_complexity`、`risk_flags`、`confidence`，加仓库的 `change_control`）之后，查 [`references/route-policy.md`](references/route-policy.md) 得到路由卡 `route:`（process/tier/effort/skills/method/verify/review/confirm），写进 summary front matter 与判级评论，在确认点 1 候选中显示为「路由」行。人可以覆盖任何一格，覆盖写进 `override_reason`；不能借覆盖把强制 complex 降成 small。路由表只钉必用与禁用，其余技能按 Issue 自选并在 verification 写明；模型按 tier 选，型号映射见 `08` §7.3。
 - **27 标签四维正交**：10 `type/*`（bugfix/feature/docs/test/refactor/maintenance/platform/security/reliability/data，Issue 作者输入，AI 按证据核对或更正一个主类型）+ 2 `complexity/*`（AI 输出，不是作者覆盖）+ 8 生命周期（`completed` 与 `deployed` 互斥终态；`completed` 是合并且无需部署，`deployed` 要求确定性部署与验证）+ 7 `triage/*`（Matt 编排）。
 - **单闸门**：最终 PR merge 是唯一交付硬闸门，只由人合并。会话与 project agent 不 merge、不直推受保护 `main`；部署需独立授权。
@@ -166,6 +166,7 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 
 ## 接入新项目 / 项目对齐 / 私有访问
 
+- 新用户上手：用户要按自己所用的 AI 工具配好本机并开始第一个项目时，按 [references/getting-started.md](references/getting-started.md) 一步一步带用户走。
 - 新项目接入：改基础设施之前先读 [references/onboarding-runbook.md](references/onboarding-runbook.md)——governance manifest + project-agent gate、host-role gate、architecture 声明、CI/部署与验收顺序都有既定约定，不得跳步。
 - 项目对齐（初始化=更新，幂等）：入口 [references/project-align.md](references/project-align.md)——checklist 盘点缺口、逐项走目标仓独立 Issue/AI 判级的单一 PR，不假设每个对齐缺口都是 small；确定性核对用 `aisoft project-check`（PASS/GAP，只读）。项目按版本化使用发布包对齐：合同入口是项目内 `.aisoft/platform-usage.md`，版本以 `.aisoft/platform-usage.lock.json` 为准；导出与生成采用改动是维护层动作（`project-align.md`「维护层」节）。
 - 私有 Gitea 检查：先读 [references/private-gitea-access.md](references/private-gitea-access.md)；**匿名 404 不构成不存在证据**，按 authenticated ladder 走。
