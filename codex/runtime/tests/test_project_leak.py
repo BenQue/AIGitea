@@ -167,6 +167,17 @@ class ProjectLeakTests(unittest.TestCase):
                 code, _, err = self.run_checker()
                 self.assertEqual(code, 1)
                 self.assertIn("no fences, HTML comments or raw HTML blocks allowed", err)
+        # The register must be a real two-column table: header, separator, rows.
+        for broken in (self.adr("README.md").replace("|---|---|\n", ""),
+                       self.adr("README.md").replace("|---|---|", "| x | y |"),
+                       self.adr("README.md").replace("| 文件 | 理由 |", "| 路径 | 理由 |"),
+                       self.adr("README.md").replace("| `README.md` | reason |", "| `README.md` | |"),
+                       self.adr("README.md").replace("| `README.md` | reason |", "| `README.md` | a | b |")):
+            with self.subTest(broken=broken):
+                self.write("docs/adr/0001-platform-boundary.md", broken)
+                code, _, err = self.run_checker()
+                self.assertEqual(code, 1)
+                self.assertIn("README.md: baseline entry not registered", err)
         commented = "#### D3 登记的例外\n\n<!--\n| 文件 | 理由 |\n|---|---|\n| `README.md` | x |\n-->\n"
         self.write("docs/adr/0001-platform-boundary.md", commented)
         self.assertEqual(self.run_checker()[0], 1)

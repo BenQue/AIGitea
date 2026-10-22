@@ -60,6 +60,9 @@ def site_values(root: Path) -> list[str]:
 
 # Anything Markdown could use to hide or fake a row. The ADR is read without
 # rendering, so instead of parsing these the whole file may not contain them.
+REGISTER_HEADER = "| 文件 | 理由 |"
+REGISTER_SEPARATOR = re.compile(r"\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|")
+REGISTER_ROW = re.compile(r"\|\s*`([^`|]+)`\s*\|[^|]*[^|\s][^|]*\|")
 HIDING = re.compile(r"```|~~~|<!--|-->|^ {0,3}<[A-Za-z/!?]")
 
 
@@ -77,7 +80,8 @@ def registered_exceptions(root: Path) -> set[str]:
             raise ValueError(f"{ADR}:{number}: no fences, HTML comments or raw HTML blocks allowed")
     if lines.count(EXCEPTIONS_HEADING) != 1:
         raise ValueError(f"{ADR}: {EXCEPTIONS_HEADING!r} must appear exactly once")
-    paths, tables, previous_row = set(), 0, False
+    tables: list[list[str]] = []
+    previous_row = False
     for line in lines[lines.index(EXCEPTIONS_HEADING) + 1:]:
         if line.startswith("#"):
             break
@@ -85,13 +89,23 @@ def registered_exceptions(root: Path) -> set[str]:
             raise ValueError(f"{ADR}: the exception register may not hold indented lines")
         row = line.startswith("|")
         if row and not previous_row:
-            tables += 1
+            tables.append([])
+        if row:
+            tables[-1].append(line)
         previous_row = row
-        match = re.match(r"\|\s*`([^`]+)`\s*\|", line) if row else None
-        if match:
-            paths.add(match.group(1))
-    if tables != 1:
+    if len(tables) != 1:
         raise ValueError(f"{ADR}: the exception register must be exactly one table")
+    table = tables[0]
+    # A real two-column table: the fixed header, a separator row, then one
+    # backticked path and a non-empty reason per row.
+    if len(table) < 3 or table[0] != REGISTER_HEADER or not REGISTER_SEPARATOR.fullmatch(table[1]):
+        raise ValueError(f"{ADR}: the exception register must start with {REGISTER_HEADER!r} and a separator row")
+    paths = set()
+    for line in table[2:]:
+        match = REGISTER_ROW.fullmatch(line)
+        if not match:
+            raise ValueError(f"{ADR}: malformed exception row: {line}")
+        paths.add(match.group(1))
     return paths
 
 
