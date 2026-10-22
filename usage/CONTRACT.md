@@ -21,6 +21,11 @@
 - 项目对平台的需求以平台 Issue 提出。平台按准入规则判断：换成任意一个已注册项目还成立才进入
   平台；不成立的留在项目仓，或先由平台抽象成扩展点，项目数据留在项目侧。
 
+## 编程思想指导
+
+`aisoft-platform` 技能的 `references/engineering-principles.md` 提供纲领性指导：理解问题、简单设计、
+聚焦改动和真实验证。它辅助方案、实现与审查中的工程判断，内容随本项目 pin 的发布包版本交付。
+
 ## 2. 流程不变量
 
 - **Issue 是唯一主键。** 任何需求、缺陷、变更先建 Issue。新变更使用可读元组：分支
@@ -37,9 +42,6 @@
   `development` 不写 spec/plan，验收标准取自 Issue 正文，以合成 `T01` 实现。small 默认不要求
   spec/plan。所有路由都要交付 summary `required_docs` 声明的文档（例如欠验证记录时的 `verification`）。
   三者都要 `approved` 复核后才进入实现；`triage/ready-for-agent` 不等于 `approved`。
-- **共享工程原则。** `aisoft-platform` 技能的 `references/engineering-principles.md`
-  提供编程思想的纲领性指导：理解问题、简单设计、聚焦改动和真实验证。具体步骤沿用本项目流程，
-  不增加确认点或验证硬门；内容随本项目 pin 的发布包版本交付。
 - **两个确认点。** 人确认 Issue 合同并启动开发；本地实现与验证完成后，人确认提交唯一最终 PR，
   并固定 exact Issue 与分支。两点之间 AI 在合同内自主实现、测试和
   修复 CI；合同冲突、范围扩张、破坏性迁移、安全决策、外部阻塞或同因三次失败时停下升级。

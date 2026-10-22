@@ -38,7 +38,6 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 ## 共享工程原则
 
 方案、实现与审查参考 [共享工程原则](references/engineering-principles.md)。首次使用时阅读，本会话已读且内容未变时不重复加载。
-它是辅助工程判断的纲领性指导；具体开发步骤沿用当前 Issue 与项目流程，不增加确认点或固定检查表。
 
 ## 目标项目与 governance manifest
 

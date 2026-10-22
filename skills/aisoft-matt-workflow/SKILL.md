@@ -23,8 +23,7 @@ This skill adapts the complete vendored Matt skills to AISoftPlatform. It does n
 ## Shared engineering principles
 
 Consult the [shared engineering principles](../aisoft-platform/references/engineering-principles.md) for planning,
-implementation and review, unless already read in this session. They guide engineering judgement; concrete steps
-remain with the current Issue and project workflow. They add no interview, plan or confirmation stage.
+implementation and review. Read them on first use; do not reload if already read in this session and unchanged.
 
 ## Per-Issue flow
 

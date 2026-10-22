@@ -35,19 +35,6 @@ route:
   review: cross-provider
   confirm: 2
 override_reason: ''
-git_scope:
-  - 08-双工具共存与实施.md
-  - docs/changes/423-karpathy-principles/plan-karpathy-principles-261022.md
-  - docs/changes/423-karpathy-principles/proposals/engineering-principles.patch
-  - docs/changes/423-karpathy-principles/spec-karpathy-principles-261022.md
-  - docs/changes/423-karpathy-principles/summary-karpathy-principles-261022.md
-  - docs/changes/423-karpathy-principles/verification-karpathy-principles-261022.md
-  - skills/aisoft-matt-workflow/SKILL.md
-  - skills/aisoft-platform/SKILL.md
-  - skills/aisoft-platform/references/engineering-principles.md
-  - skills/issue-session-flow/SKILL.md
-  - usage/CONTRACT.md
-  - usage/bundle.json
 status: approved
 pr_url:
 ---
@@ -64,7 +51,7 @@ pr_url:
 
 ## 初步方案与建议
 
-先完成 T01 治理步骤并停止；fresh run 重读后完成 T02 验证与独立跨提供者审查。T01 已应用纲领性原则与发布包 1.14.0，局部检查通过；该治理步骤随本次原子提交结束。T02 使用 fresh Claude Code 只读上下文重新阅读合同并审议，完整回归和独立审议尚待完成。
+T01 已应用纲领性原则与发布包 1.14.0；原子提交后，由 fresh Claude Code 只读进程重读合同并完成首轮审议。完整 smoke 通过。现按审议修正 T01 范围内的措辞与合同清单，修订单独提交后再次由 fresh Claude Code 复审；T02 尚待最终证据归档。精确文件范围以映射 spec 的 git_scope 为准。
 
 ## 风险
 

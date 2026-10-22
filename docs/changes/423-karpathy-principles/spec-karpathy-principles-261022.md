@@ -12,6 +12,20 @@ risk_flags:
   - platform-governance
 depends_on: []
 branch: change/423-karpathy-principles
+git_scope:
+  - 08-双工具共存与实施.md
+  - docs/changes/423-karpathy-principles/plan-karpathy-principles-261022.md
+  - docs/changes/423-karpathy-principles/proposals/engineering-principles.patch
+  - docs/changes/423-karpathy-principles/spec-karpathy-principles-261022.md
+  - docs/changes/423-karpathy-principles/summary-karpathy-principles-261022.md
+  - docs/changes/423-karpathy-principles/verification-karpathy-principles-261022.md
+  - docs/governance/review-evidence-index.md
+  - skills/aisoft-matt-workflow/SKILL.md
+  - skills/aisoft-platform/SKILL.md
+  - skills/aisoft-platform/references/engineering-principles.md
+  - skills/issue-session-flow/SKILL.md
+  - usage/CONTRACT.md
+  - usage/bundle.json
 created: 2026-10-22
 updated: 2026-10-22
 ---

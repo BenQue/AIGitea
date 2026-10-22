@@ -4878,14 +4878,14 @@
     {
       "version": "1.14.0",
       "released": "2026-10-22",
-      "bundle_digest": "sha256:a38dd340826e4ed137b6568bcec370a47f162744141639c4cc99a4ad9046a1dd",
+      "bundle_digest": "sha256:7c727eb4b5bf4efe94592976bf3248c8a04612566e303df8b2cf1d1475c02bf5",
       "members": [
         {
           "source": "usage/CONTRACT.md",
           "mode": "exact",
           "target": ".aisoft/platform-usage.md",
           "check": "platform-pin",
-          "sha256": "57a655927dfd3f5bebb82887d7f86a1684d10f7a9d3fa0fee30cca9a4c5affce"
+          "sha256": "3cc1b9dfd42f3038acdee0295515f8131f018f7cf1e3a2c189d351408a27791e"
         },
         {
           "source": "templates/project/AGENTS.md",
@@ -4986,7 +4986,7 @@
         {
           "source": "skills/aisoft-platform/SKILL.md",
           "mode": "skill",
-          "sha256": "668a9280c145eef5a7518090c014a452099b1587249342f86194f91961c7a393"
+          "sha256": "01a9c14d927f09e60cc4fc12b017cbb11e867680783df5f0de076f802c726c3e"
         },
         {
           "source": "skills/aisoft-platform/agents/openai.yaml",
@@ -4996,7 +4996,7 @@
         {
           "source": "skills/aisoft-platform/references/engineering-principles.md",
           "mode": "skill",
-          "sha256": "52cb1fbfc664eaf7fa2e167a11c9a6c6d8d5f0ae5a8629ff9160e31631737f31"
+          "sha256": "4789d900d843e4884179e578e4f94db73b08966abab096ca1f80d33bd8d86ae4"
         },
         {
           "source": "skills/aisoft-platform/references/getting-started.md",
@@ -5026,12 +5026,12 @@
         {
           "source": "skills/issue-session-flow/SKILL.md",
           "mode": "skill",
-          "sha256": "58034926217d6fc8ffe19ee97719f3d2fd9edcd617b4b877c99f520528c46564"
+          "sha256": "dc1c35d9a25f92225508c46c22e10fea9c2c71f474c1acc224ba0e38e4848298"
         },
         {
           "source": "skills/aisoft-matt-workflow/SKILL.md",
           "mode": "skill",
-          "sha256": "b93eb23f579836d6fb9a6c6bf46c03a6510ac27adcb6ef194595d5f857482d95"
+          "sha256": "17d713489248b29d9479d573f5b7ffcd4247f33a0bfc6c8c4c9988aa19e3eaf3"
         },
         {
           "source": "skills/aisoft-matt-workflow/agents/openai.yaml",
