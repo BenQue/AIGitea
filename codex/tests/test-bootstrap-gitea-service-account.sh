@@ -276,8 +276,33 @@ grep -Fq 'AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-35 is required' "$TMP/una
 [[ "$(line_count "$TMP/curl-argv.log")" == "$curl_count_before" ]]
 [[ "$(line_count "$TMP/sudo-config-check.log")" == "$sudo_config_count_before" ]]
 
+# #416: with AISOFT_CREDENTIAL_ROOT unset the default root comes from the
+# broker manifest site segment beside the script, never from a literal path.
+site_layout="$TMP/site-layout"
+mkdir -p "$site_layout/codex/tools" "$site_layout/codex/config"
+cp "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" "$site_layout/codex/tools/"
+ln -s "$ROOT/codex/runtime" "$site_layout/codex/runtime"
+jq 'del(.site)' "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
+  >"$site_layout/codex/config/host-access-broker.json"
+gitea_count_before="$(line_count "$TMP/gitea-argv.log")"
+if env -u AISOFT_CREDENTIAL_ROOT bash "$site_layout/codex/tools/bootstrap-gitea-service-account.sh" \
+    --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
+    --username betaapp-agent \
+    --token-kind project-agent \
+    --credential-output "$TMP/credentials/betaapp-agent-project-agent.token" \
+    >"$TMP/no-site.out" 2>"$TMP/no-site.err"; then
+  printf '%s\n' 'bootstrap without a credential root unexpectedly succeeded' >&2
+  exit 1
+fi
+grep -Fq 'BLOCKED_EXTERNAL: credential root is unset' "$TMP/no-site.err"
+[[ "$(line_count "$TMP/gitea-argv.log")" == "$gitea_count_before" ]]
+[[ ! -e "$TMP/credentials" ]]
+jq --arg root "$TMP/credentials" '.site.credential_root_vm = $root' \
+  "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
+  >"$site_layout/codex/config/host-access-broker.json"
+
 output="$TMP/credentials/betaapp-agent-project-agent.token"
-result="$(bash "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+result="$(env -u AISOFT_CREDENTIAL_ROOT bash "$site_layout/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
   --username betaapp-agent \
   --token-kind project-agent \

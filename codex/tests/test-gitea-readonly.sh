@@ -65,6 +65,30 @@ if grep -Fq 'sentinel-admin-token' "$CAPTURE_ARGV" ||
   exit 1
 fi
 
+# #416: without GITEA_CREDENTIAL_FILE the default file is
+# $HOME/<site.orbstack_machine>-credentials.txt from the manifest beside the script.
+site_layout="$test_root/site-layout"
+mkdir -p "$site_layout/codex/tools" "$site_layout/codex/config" "$test_root/home"
+cp "$script" "$site_layout/codex/tools/gitea-readonly.sh"
+printf '%s\n' '{"site": {}}' >"$site_layout/codex/config/host-access-broker.json"
+if HOME="$test_root/home" GITEA_URL=http://127.0.0.1:3000 GITEA_OWNER=admin \
+  GITEA_REPO=private-repo "$site_layout/codex/tools/gitea-readonly.sh" repo \
+  >/dev/null 2>"$test_root/no-site.err"; then
+  echo 'missing site.orbstack_machine should fail' >&2
+  exit 1
+fi
+grep -Fq 'set GITEA_CREDENTIAL_FILE or site.orbstack_machine' "$test_root/no-site.err"
+printf '%s\n' '{"site": {"orbstack_machine": "sample-vm"}}' \
+  >"$site_layout/codex/config/host-access-broker.json"
+printf '%s\n' 'admin token: sentinel-site-token' >"$test_root/home/sample-vm-credentials.txt"
+chmod 600 "$test_root/home/sample-vm-credentials.txt"
+output="$(
+  HOME="$test_root/home" GITEA_URL=http://127.0.0.1:3000 GITEA_OWNER=admin \
+  GITEA_REPO=private-repo "$site_layout/codex/tools/gitea-readonly.sh" repo
+)"
+[[ "$output" == '{"ok":true}' ]]
+grep -Fq 'Authorization: token sentinel-site-token' "$CAPTURE_CONFIG"
+
 if AGENT_ENV_FILE="$profile" GITEA_EXPECT_REPO=wrong \
   "$script" repo >/dev/null 2>&1; then
   echo 'target mismatch should fail' >&2

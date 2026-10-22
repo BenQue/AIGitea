@@ -44,6 +44,7 @@ class ProjectLeakTests(unittest.TestCase):
         }))
         self.write("codex/config/project-leak-baseline.json",
                    json.dumps({"retired": ["oldproj"], "files": {"README.md": 1}}))
+        self.write("docs/adr/0001-platform-boundary.md", self.adr("README.md"))
         self.write("README.md", "Uses AcmeApp.\n")
         self.write("codex/runtime/tests/test_x.py", "AcmeApp acme-app\n")
         self.write("docs/changes/1-x/summary.md", "AcmeApp\n")
@@ -51,6 +52,11 @@ class ProjectLeakTests(unittest.TestCase):
         self.write("guide.md", "generic only\n")
         self.git("init", "-q")
         self.git("add", "-A")
+
+    @staticmethod
+    def adr(*paths):
+        rows = "".join(f"| `{path}` | reason |\n" for path in paths)
+        return f"### D3\n\n#### D3 登记的例外\n\n| 文件 | 理由 |\n|---|---|\n{rows}\n### D4\n\n| `later.md` | x |\n"
 
     def write(self, path, text):
         target = self.root / path
@@ -128,6 +134,22 @@ class ProjectLeakTests(unittest.TestCase):
         self.assertEqual(self.run_checker("--write-baseline")[0], 0)
         baseline = json.loads((self.root / "codex/config/project-leak-baseline.json").read_text())
         self.assertEqual(baseline, {"retired": ["oldproj"], "files": {}, "site_files": {}})
+
+    def test_baseline_entry_must_be_registered_in_the_adr(self):
+        """#416: the ratchet tolerates a baseline file only while the ADR registers it."""
+        self.write("docs/adr/0001-platform-boundary.md", self.adr("other.md"))
+        code, _, err = self.run_checker()
+        self.assertEqual(code, 1)
+        self.assertIn("README.md: baseline entry not registered", err)
+        # A row after the next heading is outside the table.
+        self.write("docs/adr/0001-platform-boundary.md", self.adr("other.md").replace("later.md", "README.md"))
+        self.assertEqual(self.run_checker()[0], 1)
+        (self.root / "docs/adr/0001-platform-boundary.md").unlink()
+        code, _, err = self.run_checker()
+        self.assertEqual(code, 1)
+        self.assertIn("exception register unreadable", err)
+        self.write("docs/adr/0001-platform-boundary.md", self.adr("README.md"))
+        self.assertEqual(self.run_checker()[0], 0)
 
     def test_new_manifest_project_needs_no_code_change(self):
         governance = json.loads((self.root / "codex/config/gitea-governance.json").read_text())

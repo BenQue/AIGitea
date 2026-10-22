@@ -6,6 +6,7 @@ registered repository except the platform itself, with its project id (#368;
 public-test repositories since #396). Site values are the broker manifest's
 site segment (#396). Hits outside the allow list may only shrink: a new file
 or a higher count than the baseline fails; a lower count only prints a note.
+Every baseline file must also be registered in the ADR's D3 exception table (#416).
 """
 from __future__ import annotations
 
@@ -21,6 +22,8 @@ ROOT = Path(__file__).resolve().parents[2]
 GOVERNANCE = Path("codex/config/gitea-governance.json")
 ACCESS = Path("codex/config/host-access-broker.json")
 BASELINE = Path("codex/config/project-leak-baseline.json")
+ADR = Path("docs/adr/0001-platform-boundary.md")
+EXCEPTIONS_HEADING = "#### D3 登记的例外"
 ALLOWED_PREFIXES = (
     "codex/config/", "codex/vendor/", "docs/changes/", "docs/adr/",
     "docs/governance/", "archive/",
@@ -53,6 +56,21 @@ def site_values(root: Path) -> list[str]:
         parsed = urlparse(value)
         values.add(parsed.netloc if parsed.scheme in {"http", "https"} else value)
     return sorted({value.lower() for value in values if value}, key=lambda v: (-len(v), v))
+
+
+def registered_exceptions(root: Path) -> set[str]:
+    """#416: the backticked paths in the first column of the ADR's D3 exception table."""
+    lines = (root / ADR).read_text(encoding="utf-8").splitlines()
+    if EXCEPTIONS_HEADING not in lines:
+        raise ValueError(f"{ADR}: missing {EXCEPTIONS_HEADING!r}")
+    paths = set()
+    for line in lines[lines.index(EXCEPTIONS_HEADING) + 1:]:
+        if line.startswith("#"):
+            break
+        match = re.match(r"\|\s*`([^`]+)`\s*\|", line)
+        if match:
+            paths.add(match.group(1))
+    return paths
 
 
 def allowed(path: str) -> bool:
@@ -124,6 +142,15 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     failures = compare(hits, baseline.get("files", {}), "project-name")
     failures += compare(site_hits, baseline.get("site_files", {}), "site-value")
+    # #416: a baseline entry is only tolerated while the ADR registers it as an exception.
+    try:
+        registered = registered_exceptions(root)
+    except (OSError, UnicodeError, ValueError) as exc:
+        registered = set()
+        failures.append(f"exception register unreadable: {exc}")
+    for path in sorted(set(baseline.get("files", {})) | set(baseline.get("site_files", {}))):
+        if path not in registered:
+            failures.append(f"{path}: baseline entry not registered in {ADR} {EXCEPTIONS_HEADING}")
     if failures:
         print("FAIL: project names or site values outside ADR 0001 D3 allowed places:",
               file=sys.stderr)

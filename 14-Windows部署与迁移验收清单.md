@@ -128,7 +128,7 @@ Get-Volume
 | D-01 | Windows Server 2022 x64 版本与资源满足基线 | NOT RUN | |
 | D-02 | IIS、Hosting Bundle 和 ASP.NET Core Module 可用 | NOT RUN | |
 | D-03 | OpenSSH 使用独立 deploy key 和来源防火墙限制 | NOT RUN | |
-| D-04 | `C:\Apps\MyApp` 权限符合最小权限 | NOT RUN | |
+| D-04 | `C:\Apps\ExampleApp` 权限符合最小权限 | NOT RUN | |
 | D-05 | 配置、Data Protection keys、日志位于 release 外 | NOT RUN | |
 | D-06 | Runner 可上传到 `incoming`，不能任意管理主机 | NOT RUN | |
 

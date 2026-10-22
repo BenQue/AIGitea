@@ -23,6 +23,7 @@ git_scope:
   - 14-Windows部署与迁移验收清单.md
   - 15-VMware-Fusion-Windows-ARM原型实施手册.md
   - codex/config/project-leak-baseline.json
+  - codex/runtime/tests/test_project_leak.py
   - codex/tests/check-project-leak.py
   - codex/tests/smoke-pin-baseline.json
   - codex/tests/smoke.sh

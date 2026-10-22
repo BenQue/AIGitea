@@ -20,7 +20,7 @@
 | 5432(loopback) | PostgreSQL 保留 `gitea` 与一个项目 CI 库；遗留 `app_test` 已备份、恢复验证并删除 | KEEP 仅限批准的 SCM/CI 数据；新业务 DB 拒绝。项目 CI 库的去留随该项目在 manifest 中的治理状态单独立案处理 |
 | 3100 / 8091 | 旧试点项目 runtime/vhost 已删除，应用转至 AppServer | ABSENT；不得恢复为 `scm-ci` 业务入口 |
 | 3212 | 孤儿 smoke 进程与 15 个临时 DB 已精确清理，应用 cleanup 修复已合并/部署 | ABSENT；job 必须在成功、失败和取消路径清理 |
-| 8090 | MyApp runtime/vhost/DB 已备份、恢复验证并精确清理 | ABSENT；不得恢复历史演示部署 |
+| 8090 | 历史演示应用 runtime/vhost/DB 已备份、恢复验证并精确清理 | ABSENT；不得恢复历史演示部署 |
 | 6379(loopback) | Redis 无引用/连接/数据验证通过后已卸载并清理 | ABSENT；重新引入须新合同 |
 
 `scm-ci` 允许 checkout、build、test、package、registry/artifact publish、批准的缓存/通知
