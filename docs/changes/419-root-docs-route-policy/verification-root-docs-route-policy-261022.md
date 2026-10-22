@@ -31,6 +31,7 @@ updated: 2026-10-22
 |---|---|---|
 | `bash codex/tests/smoke.sh`（head `5027814a`） | PASS | 退出码 0，末行 `Codex platform static smoke checks passed.`，用时 6 分 52 秒 |
 | `bash codex/tests/smoke.sh`（head `be291a61`） | PASS | 退出码 0，末行同上 |
+| `bash codex/tests/smoke.sh`（head `011f285d`） | PASS | 退出码 0，末行同上 |
 | `grep -c 'references/route-policy.md' AGENTS.md` | PASS | `1` |
 | `grep -c executing-plans AGENTS.md` | PASS | `1` |
 | `wc -c < AGENTS.md` | PASS | `5024`（≤ 5120） |
@@ -50,7 +51,7 @@ updated: 2026-10-22
 | AC-3 | PASS | README 第 149 行与 08 一级标题一致 |
 | AC-4 | PASS | §8 Matt 行只列 Codex 会话实际调用 Matt 技能与 Claude 侧 `retro`；Codex 模型回合依据 `08` §7.1「模型回合是否跑通由交叉审查记录证明」，未新增完成声明 |
 | AC-5 | PASS | smoke 的 README 日期版本检查通过；三个目录无 diff，`usage/bundle.json` 未变 |
-| AC-6 | PASS | 两次 smoke 退出码 0；反向证明变红 |
+| AC-6 | PASS | 三次 smoke 退出码 0；反向证明变红 |
 | AC-7 | PASS | 见下节；审查索引与路线图各一行 |
 
 ## 交叉审查
@@ -59,6 +60,7 @@ updated: 2026-10-22
 |---|---|---|---|---|---|
 | 1 | Claude | Codex（`codex exec -s read-only -m gpt-6-astra`，high） | `5027814a9aebff35a08d3e4554612e466bfb3a14` | FAIL | 1 条 P2：AGENTS.md「small 跳过 spec/plan」把条件豁免写成无条件；改为「small 可按合同跳过 spec/plan」（`be291a61`） |
 | 2 | Claude | Codex（同上） | `be291a6197b44d800b9fe07f3862666bc5994d8f` | FAIL | 第 1 轮 P2 确认已修，内容无其它发现；1 条 P2：本记录与审查索引仍是占位；本次提交补齐 |
+| 3 | Claude | Codex（同上） | `011f285db1debecea5621a6307f73b157f32f5e6` | PASS | 无发现；`git_scope` 精确覆盖 8 个变更文件，反向证明只读复现（原文 0，去链接 1） |
 
 ## 遗留风险与未完成项
 
