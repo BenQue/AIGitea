@@ -40,11 +40,11 @@ git_scope:
 
 ## Acceptance criteria
 
-- [ ] AC-1：原则全文与批准候选字节一致；原有引言和四部分不变；保留 Karpathy 来源并补 Anthropic 来源。
-- [ ] AC-2：新增内容只表达审查思想，不增加固定轮次、角色、字段、阈值、状态、路由、门禁、命令或工具要求；具体流程继续由现有平台和项目合同决定。
-- [ ] AC-3：bundle 历史仅追加，成员集合不变；隔离构建的 Codex / Claude / Cursor reference 均与源码字节一致；不安装到真实 HOME、不执行项目采用。
-- [ ] AC-4：精确 scope、语义文档与现有必需回归通过；下列反例逐项文本审议通过，不把文本审议称为实际模型效果或 UAT。
-- [ ] AC-5：治理受控步骤 commit 后停止；fresh Claude Code 进程重读合同，独立审查 exact head；仅形成 source/local 证据，完成后停在最终 PR 确认前。
+- [x] AC-1：原则全文与批准候选字节一致；原有引言和四部分不变；保留 Karpathy 来源并补 Anthropic 来源。
+- [x] AC-2：新增内容只表达审查思想，不增加固定轮次、角色、字段、阈值、状态、路由、门禁、命令或工具要求；具体流程继续由现有平台和项目合同决定。
+- [x] AC-3：bundle 历史仅追加，成员集合不变；隔离构建的 Codex / Claude / Cursor reference 均与源码字节一致；不安装到真实 HOME、不执行项目采用。
+- [x] AC-4：精确 scope、语义文档与现有必需回归通过；下列反例逐项文本审议通过，不把文本审议称为实际模型效果或 UAT。
+- [x] AC-5：治理受控步骤 commit 后停止；fresh Claude Code 进程重读合同，独立审查 exact head；仅形成 source/local 证据，完成后停在最终 PR 确认前。
 
 ## 场景与反例
 

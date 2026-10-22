@@ -24,8 +24,8 @@ updated: 2026-10-22
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 受控应用批准文案和 bundle 追加登记，局部核验，独立 commit 后停止治理写入 | - | pending |
-| T02 | fresh Claude Code 重读合同、只读审议；完成回归、隔离导出与证据记录，形成最终 PR 候选 | T01 | pending |
+| T01 | 受控应用批准文案和 bundle 追加登记，局部核验，独立 commit 后停止治理写入 | - | done |
+| T02 | fresh Claude Code 重读合同、只读审议；完成回归、隔离导出与证据记录，形成最终 PR 候选 | T01 | done |
 
 ## Expected touch points
 
@@ -45,6 +45,10 @@ updated: 2026-10-22
 | AC-5 | 治理 commit/停止记录；fresh Claude Code 的 exact-head 审议及既有六列表；判级投影读回；最终 PR 确认前停止 |
 
 完整 smoke 已含 Codex/Claude 安装夹具、bundle 夹具与 baseline 不变性，不无故重复通过的定向测试。不新建镜像原则文字的形式测试，不实际安装或 adopt。
+
+## 实际完成
+
+T01 在 `6550228fc2c239f860bcd923638687f43648ee10` 提交后停止；T02 已完成完整 smoke、隔离导出、六场景文本审议及 Claude Code 两轮交叉审议，最终两轴 PASS。全分支空白检查发现提案 patch 上下文格式问题，已在 `b1c6cec3e12d99b75ac708ec88ee12c3741940c8` 改成等价零上下文格式并重跑相关检查，正文/bundle 未变。发现与处置、精确 head 与未执行项见 verification。
 
 ## 部署与回滚
 

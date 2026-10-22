@@ -54,7 +54,7 @@ pr_url: ''
 
 ## 当前状态
 
-合同与启动已批准。T01 受控写入与 T02 验证/独立审议按计划执行；完成后停在 `AWAITING_PR_CONFIRMATION`。当前无 PR，不授权 push、合并或部署。
+合同与启动已批准，T01/T02 已完成。正文与包候选 `6550228fc2c239f860bcd923638687f43648ee10` 通过完整本地 smoke、三端隔离导出及 Claude Code R2 双轴审议；R1 的导航摘要分歧经原文和机制证据复议后解除阻断，完整处置见 verification。之后仅规范本 Issue 提案格式与归档证据，已审正文及 bundle 未变。当前停在 `AWAITING_PR_CONFIRMATION`，无 PR；不授权 push、合并或部署。
 
 ## AI 判级
 
