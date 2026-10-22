@@ -22,7 +22,7 @@ updated: 2026-10-22
 ## 基线与范围
 
 - 基线：`0bcc3cd863afef3425e9dcdda5e1053a3b0ad097`（`origin/main`）。
-- 代码候选 head：`93578db5`（T01 `3b7f0d84`、T02 `02f5dd8e`、T03 `096f09cf`、T04 `8f61b5a4`，其余为审查修复）。本记录之后的 commit 只写本文件与审查索引一行。
+- 代码候选 head：`25a54f53`（T01 `3b7f0d84`、T02 `02f5dd8e`、T03 `096f09cf`、T04 `8f61b5a4`，其余为审查修复）。本记录之后的 commit 只写本文件与审查索引一行。
 - 环境：macOS 本机（bash 3.2），`rg` 为真实 `/opt/homebrew/bin/rg`；VM 经 `/usr/local/bin/orb -m gitea-ci`。
 
 ## 执行结果
@@ -53,7 +53,7 @@ SMOKE_PLACEHOLDER
 | AC | 结果 | 依据 |
 |---|---|---|
 | AC-1 | PASS | 路线图里 `#377 进行中` 与 `` `main` = `1db191e` `` 均无命中；R6、#370 行与审查索引一致；索引补 R9–R14、R16 与 #406 共 10 行，head 只取仓内与 PR 正文，查不到写「未记录」 |
-| AC-2 | PASS | 清除项命中归零；ADR D3 例外表 9 个文件；`check-project-leak.py` 要求基线每个文件都在表内，且严格读表（ADR 全文出现围栏、HTML 注释或原始 HTML 块，或登记节有缩进行、第二张表、标题重复，或表缺固定表头、分隔行、行格式不对，一律失败）；基线只减不增。处置表一处更改：helper README 由清除改为例外（构建输入树，改字节使 VM 报 `helper-build-input-differ`） |
+| AC-2 | PASS | 清除项命中归零；ADR D3 例外表 9 个文件；`check-project-leak.py` 要求基线每个文件都在表内，且严格读表（ADR 全文出现围栏、HTML 注释或原始 HTML 块，或登记节有缩进行、第二张表、标题重复，或表缺固定表头、分隔行、行格式不对，或含 ASCII 空格与制表符以外的空白，一律失败）；基线只减不增。处置表一处更改：helper README 由清除改为例外（构建输入树，改字节使 VM 报 `helper-build-input-differ`） |
 | AC-3 | PASS | 见执行结果的 Mac 与 VM 两行；`06` §1、README、`issue-session-flow` 收尾节与退出条件 3 统一口径 |
 | AC-4 | PASS | 9 条 `AGENTS.md` 整句钉子与 1 条残留整句钉子删除，改为 8 个章节 `require_heading`，保留 `` `Other` `` 选项值钉子；80 < 89，基线已调 |
 | AC-5 | PASS | 路线图退出条件 4 收口句、「第二轮接受的例外」表（D6 2026-10-20、D9 2026-10-22）、#416 行 |
@@ -64,7 +64,7 @@ SMOKE_PLACEHOLDER
 
 每项都是把被测源码换回修复前版本、跑同一测试：
 
-- 例外登记核对：`check-project-leak.py` 换回基线版，`test_baseline_entry_must_be_registered_in_the_adr` FAIL；换回审查修复前的 `0e0659a0`、`6b03f01c`、`56adde62`、`127e6530`、`c4a800fb` 版，对应新增子用例 FAIL。
+- 例外登记核对：`check-project-leak.py` 换回基线版，`test_baseline_entry_must_be_registered_in_the_adr` FAIL；换回审查修复前的 `0e0659a0`、`6b03f01c`、`56adde62`、`127e6530`、`c4a800fb`、`93578db5` 版，对应新增子用例 FAIL。
 - bootstrap 默认根：脚本换回基线版，测试 exit 1；删掉 installed 回退项，测试 exit 1。
 - gitea-readonly 默认文件：脚本换回基线版，测试 exit 1。
 - readiness 主机拒绝：脚本换回基线版，测试 exit 1；换回 `02f5dd8e`（拒绝晚于 git/jq），测试 exit 1。
@@ -74,17 +74,18 @@ SMOKE_PLACEHOLDER
 
 审查方 Codex（`codex exec -s read-only -m gpt-6-astra -c model_reasoning_effort="high"`），实现方 Claude。每轮在 detached 快照 worktree 上审查。
 
-| 轮 | 范围 / head | 结论 | 发现与处置 |
-|---|---|---|---|
-| T01-1 | `6b585e89..3b7f0d84` | FAIL | P2 例外表解析读进表外行；P3 installed 回退无测试 → `0e0659a0`；同时自查发现 helper README 是构建输入，改为例外 |
-| T01-2 | `0e0659a0` | FAIL | P2 围栏内同名标题、四反引号围栏 → `6b03f01c` |
-| T01-3 | `6b03f01c` | FAIL | P2 注释与缩进行里的表；P3 #380 守卫整文件豁免 → `56adde62`（严格读表；窄守卫） |
-| T02-1 | `02f5dd8e` | FAIL | P2 拒绝晚于 git/jq；P3 合同写 BLOCKED → `fb01792d` |
-| T02-2 / T03-1 | `fb01792d` | T02 PASS；T03 FAIL | P2 删掉了 `Other` 选项值；P3 残留 `生产环境只运行` → `8f61b5a4` |
-| 全量-1 | `8f61b5a4` | FAIL | P2 标题前打开的注释或围栏包住整张表 → `127e6530`；T04 十行索引、D9 行数与 1.12.0 核对无误 |
-| 全量-2 | `127e6530` | FAIL | P2 反引号 info string、NBSP 闭合行仍能骗过 CommonMark 近似 → `c4a800fb`：改为 ADR 全文禁止围栏、注释与原始 HTML，不再解析 |
-| 全量-3 | `c4a800fb` | FAIL | P2 删掉分隔行的非表格仍被登记；P3 verification 候选 head 过期 → `93578db5`：固定表头、分隔行与两列行格式 |
-| 全量-4 | `93578db5` | REVIEW4_PLACEHOLDER | |
+| 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
+|---|---|---|---|---|---|
+| T01-1 | Claude | Codex | `3b7f0d841bed2065237db455f7d0cc4cc7e55227` | FAIL | P2 例外表解析读进表外行；P3 installed 回退无测试 → `0e0659a0`；自查发现 helper README 是构建输入，改为例外 |
+| T01-2 | Claude | Codex | `0e0659a042e9c3c976b5d498596ab6aa100f0f59` | FAIL | P2 围栏内同名标题、四反引号围栏 → `6b03f01c` |
+| T01-3 | Claude | Codex | `6b03f01c4ca1cddfd1c963119119600eeaca122c` | FAIL | P2 注释与缩进行里的表；P3 #380 守卫整文件豁免 → `56adde62`（严格读表；窄守卫） |
+| T02-1 | Claude | Codex | `02f5dd8ed1f06c0996ec76e685c8b8078e3fd74f` | FAIL | P2 拒绝晚于 git/jq；P3 合同写 BLOCKED → `fb01792d` |
+| T02-2 / T03-1 | Claude | Codex | `fb01792d7e39c81575cbfaad8be4abf46072cf4b` | T02 PASS；T03 FAIL | P2 删掉了 `Other` 选项值；P3 残留 `生产环境只运行` → `8f61b5a4` |
+| 全量-1 | Claude | Codex | `8f61b5a4ee43535c080509b44d898a8d6cea0ca2` | FAIL | P2 标题前打开的注释或围栏包住整张表 → `127e6530`；T04 十行索引、D9 行数与 1.12.0 核对无误 |
+| 全量-2 | Claude | Codex | `127e65309352539b9109b8c59f93322602ca6abd` | FAIL | P2 反引号 info string、NBSP 闭合行骗过 CommonMark 近似 → `c4a800fb`：ADR 全文禁止围栏、注释与原始 HTML，不再解析 |
+| 全量-3 | Claude | Codex | `c4a800fb6c54f192f5b153134a01d558002e4e6f` | FAIL | P2 删掉分隔行的非表格仍被登记；P3 verification 候选 head 过期 → `93578db5`：固定表头、分隔行与两列行格式 |
+| 全量-4 | Claude | Codex | `a592ea570c192e8b4b2ed4d56c98d9397e0675d7` | FAIL | P2 分隔行里的 NBSP 让表变成段落仍被登记；P3 本表未用 `03` §7 固定表头与 40 位 SHA → `25a54f53`：登记节只允许 ASCII 空格与制表符；本表改格式 |
+| 全量-5 | Claude | Codex | `25a54f534012622cc7cf93fc794dcfa8997a85b1` | REVIEW5_PLACEHOLDER |  |
 
 ## 遗留风险与未完成项
 
