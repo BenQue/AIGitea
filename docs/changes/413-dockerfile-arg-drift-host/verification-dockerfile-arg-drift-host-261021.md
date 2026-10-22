@@ -13,18 +13,18 @@ risk_flags:
   - artifact
   - platform-governance
 depends_on: []
-status: pending
+status: recorded
 branch: change/413-dockerfile-arg-drift-host
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-22
 ---
 
 # Verification
 
 ## 基线与范围
 
-- Commit SHA: 实现 head `79042f01`（下文每条记录写明自己的 SHA；最终候选 head 见交叉审查表最后一行）
-- 基线：`origin/main` = `1db191eb`
+- Commit SHA: 最终实现 head `f3fce712792b475022145061f90e304c337a98d0`（Codex 第 7 轮 PASS 与最终 smoke 均在此 head；其后只追加本记录与审查证据索引的结论行）
+- 基线：`origin/main` = `1db191eb`，确认点 2 前以 merge commit `3aad8392` 集成到 `a9890d68`（#412）
 - 环境: macOS（Darwin 27），python3，Mac 平台检出的 change worktree；未执行 Docker build
 - 本记录负责证明的 acceptance criteria: AC-1 至 AC-7
 
@@ -55,6 +55,7 @@ updated: 2026-10-21
 | 同上跑在 `1abefd6d`；NewEMaint 三份 Dockerfile 复核 | PASS | Ran 19 tests, OK；三份各引用 1 个 digest |
 | `bash codex/tools/usage-bundle.sh --release 1.11.0`（`acf98f06`，从集成后的 main 版重发同号） | PASS | `RELEASED 1.11.0 sha256:9ac445da…`；只追加一个 release |
 | `bash codex/tests/smoke.sh`（`228db97e`） | PASS | `Codex platform static smoke checks passed.` |
+| `bash codex/tests/smoke.sh`（`f3fce712`，最终候选） | PASS | `Codex platform static smoke checks passed.` |
 
 ## Acceptance criteria 结果
 
@@ -66,7 +67,7 @@ updated: 2026-10-21
 | AC-4 | PASS | `test_vm_host_on_macos_real_root_is_refused_413`（三种根写法、fail-fast seam 断言未调用）；Mac 实跑退出 2 |
 | AC-5 | PASS | 同一测试的 `--source-only` 与合成根分支；漂移夹具全量 OK |
 | AC-6 | PASS | 上表三条反向记录 |
-| AC-7 | 待最终 smoke | 1.11.0 已发布并 `--verify`；最终候选 head 的 smoke 结果补在下表之后 |
+| AC-7 | PASS | 1.11.0 已发布并 `--verify`；最终候选实现 head `f3fce712` 上 `bash codex/tests/smoke.sh` 通过 |
 
 ## 交叉审查
 
@@ -78,6 +79,7 @@ updated: 2026-10-21
 | 4 | Claude | Codex（gpt-6-astra，reasoning high） | 4ad321e773d89c348d1d8cf67d6d9aeedc291e12 | FAIL | 1 个 P1：`--build-arg` 选中前序 stage 时继承其 `ENV BASE=`。`6e278a4d` 对守卫 stage 之前的全部 stage 同样拒绝 SHELL 与键为 NAME 或无法解析的 ENV，ENV 按键解析以保留带引号的值，补 2 个拒绝与 1 个通过回归；其余项复核无残余 |
 | 5 | Claude | Codex（gpt-6-astra，reasoning high） | d4a5fbb07953ff0dcc55f343cfcae3aee4ebb591 | FAIL | 首跑被 OpenAI 内容过滤中止、未出结论，重跑得出：P1 `case` 分支模式的 `)` 让命令替换扫描提前结束，藏起 `\|\| true`；P3 README 把可展开位置写成引号外。`ed7b00be` 要求命令替换首词不是 shell 保留字且非空，README 改为只在双引号内接受展开，补 2 个回归；其余项复核无残余 |
 | 6 | Claude | Codex（gpt-6-astra，reasoning high） | 514f4ace78225d17af33531df30a9c657171607d | FAIL | 1 个 P1：前序 stage 的 `ONBUILD SHELL`/`ONBUILD ENV` 在被构建参数选中时先于本 stage 执行。`1abefd6d` 前序 stage 出现任何 ONBUILD 即判不可证明，README 同步，补 2 个回归；其余项复核无残余（首次运行因断网中断，重跑得出） |
+| 7 | Claude | Codex（gpt-6-astra，reasoning high） | f3fce712792b475022145061f90e304c337a98d0 | PASS | 无发现；47 个 ARG 用例内存复核、`/bin/sh` 与 `/bin/dash` 下参数不匹配均退出 1，bundle `--verify` 通过；审查方完整单测因只读沙箱记 NOT RUN，由实现方本地 19/19 与最终 smoke 补足 |
 
 ## 遗留风险与未完成项
 
