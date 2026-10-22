@@ -58,6 +58,35 @@ def site_values(root: Path) -> list[str]:
     return sorted({value.lower() for value in values if value}, key=lambda v: (-len(v), v))
 
 
+FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
+
+
+def hidden_at(lines: list[str], index: int) -> bool:
+    """Whether line `index` is inside a fenced block or an HTML comment opened earlier.
+
+    Fences follow CommonMark (same character, at least as long, nothing after the
+    closing run); comment markers inside fences do not count."""
+    fence, comment = None, False
+    for line in lines[:index]:
+        match = FENCE.match(line)
+        if fence is not None:
+            if match and match.group(1)[0] == fence[0] and len(match.group(1)) >= len(fence) \
+                    and not line[match.end():].strip():
+                fence = None
+            continue
+        if not comment and match:
+            fence = match.group(1)
+            continue
+        position = 0
+        while True:
+            marker = "-->" if comment else "<!--"
+            found = line.find(marker, position)
+            if found < 0:
+                break
+            comment, position = not comment, found + len(marker)
+    return fence is not None or comment
+
+
 def registered_exceptions(root: Path) -> set[str]:
     """#416: the backticked paths in the first column of the ADR's D3 exception table.
 
@@ -69,6 +98,8 @@ def registered_exceptions(root: Path) -> set[str]:
     lines = (root / ADR).read_text(encoding="utf-8").splitlines()
     if lines.count(EXCEPTIONS_HEADING) != 1:
         raise ValueError(f"{ADR}: {EXCEPTIONS_HEADING!r} must appear exactly once")
+    if hidden_at(lines, lines.index(EXCEPTIONS_HEADING)):
+        raise ValueError(f"{ADR}: {EXCEPTIONS_HEADING!r} sits inside a fence or an HTML comment")
     paths, tables, previous_row = set(), 0, False
     for line in lines[lines.index(EXCEPTIONS_HEADING) + 1:]:
         if line.startswith("#"):
