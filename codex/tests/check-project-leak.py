@@ -58,26 +58,44 @@ def site_values(root: Path) -> list[str]:
     return sorted({value.lower() for value in values if value}, key=lambda v: (-len(v), v))
 
 
+FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
+
+
+def unfenced(lines: list[str]) -> list[str | None]:
+    """The lines outside fenced code blocks, with one None where each block was.
+
+    A fence closes only on the same character, at least as long, with nothing
+    after it (CommonMark)."""
+    kept: list[str | None] = []
+    fence = None
+    for line in lines:
+        match = FENCE.match(line)
+        if fence is None:
+            if match:
+                fence = match.group(1)
+                kept.append(None)
+            else:
+                kept.append(line)
+        elif match and match.group(1)[0] == fence[0] and len(match.group(1)) >= len(fence) \
+                and not line[match.end():].strip():
+            fence = None
+    return kept
+
+
 def registered_exceptions(root: Path) -> set[str]:
-    """#416: the backticked paths in the first column of the ADR's D3 exception table."""
-    lines = (root / ADR).read_text(encoding="utf-8").splitlines()
+    """#416: the backticked paths in the first column of the ADR's D3 exception table.
+
+    Heading and table are both read outside fenced blocks; only the first table
+    under the heading counts, ending at its first non-row line, a fence or a heading."""
+    lines = unfenced((root / ADR).read_text(encoding="utf-8").splitlines())
     if EXCEPTIONS_HEADING not in lines:
         raise ValueError(f"{ADR}: missing {EXCEPTIONS_HEADING!r}")
-    # Only the first table after the heading counts: fenced blocks are skipped,
-    # and the table ends at its first non-row line or at any heading.
-    paths, in_table, in_fence = set(), False, False
+    paths, in_table = set(), False
     for line in lines[lines.index(EXCEPTIONS_HEADING) + 1:]:
-        stripped = line.strip()
-        if stripped.startswith(("```", "~~~")):
-            if in_table:
-                break
-            in_fence = not in_fence
-            continue
-        if in_fence:
-            continue
-        if stripped.startswith("#"):
+        stripped = None if line is None else line.strip()
+        if stripped is not None and stripped.startswith("#"):
             break
-        if stripped.startswith("|"):
+        if stripped is not None and stripped.startswith("|"):
             in_table = True
             match = re.match(r"\|\s*`([^`]+)`\s*\|", stripped)
             if match:

@@ -328,7 +328,8 @@ real_manifest_samples="$(printf '%s\n' \
 # the installer tests install and count them; sync-gitea-service-policy pins
 # its real-manifest behaviour (the PAT helper tests moved to the synthetic
 # fixtures in #385); the change-template-sync and leak-guard tests write temp trees; the
-# classification fixture only quotes the path in an Issue comment.
+# classification fixture only quotes the path in an Issue comment; the bootstrap
+# and gitea-readonly tests write a fixture copy into a temp layout (#416).
 if rg -n "$real_manifest_ref" "$ROOT/codex/runtime/tests" "$ROOT/codex/tests" \
   --glob '!**/codex/tests/smoke.sh' --glob '!**/codex/tests/check-project-leak.py' \
   --glob '!**/codex/runtime/tests/test_project_leak.py' \
@@ -336,6 +337,8 @@ if rg -n "$real_manifest_ref" "$ROOT/codex/runtime/tests" "$ROOT/codex/tests" \
   --glob '!**/codex/tests/test-installer-source-guard.sh' \
   --glob '!**/codex/tests/test-sync-gitea-service-policy.sh' \
   --glob '!**/codex/tests/test-change-template-sync.sh' \
+  --glob '!**/codex/tests/test-bootstrap-gitea-service-account.sh' \
+  --glob '!**/codex/tests/test-gitea-readonly.sh' \
   --glob '!**/codex/tests/fixtures/classification/issue-comment-overrides-body.json'; then
   echo '测试必须读 codex/tests/fixtures/manifests/ 的合成夹具，不得读真实 manifest（#380）' >&2
   exit 1
