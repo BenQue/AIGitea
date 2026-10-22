@@ -129,7 +129,7 @@ sequenceDiagram
     end
 ```
 
-执行引擎今后只在 Mac 上按 ADR 0002 D3 分阶段重建，产出止于 PR 候选（[迁出说明](archive/automation-engine-exit-261020.md)）。PR merge 不能推导测试/生产部署授权或 `deployed` 终态。
+路由卡查 [路由表](skills/aisoft-platform/references/route-policy.md) 得出，它也给出各工具的默认技能入口。执行引擎今后只在 Mac 上按 ADR 0002 D3 分阶段重建，产出止于 PR 候选（[迁出说明](archive/automation-engine-exit-261020.md)）。PR merge 不能推导测试/生产部署授权或 `deployed` 终态。
 
 平台标签采用三个正交维度：十个 `type/*`、两个 `complexity/*` 和八个 lifecycle；Matt 另加两个 `triage/*` category 与五个 `triage/*` state，并声明 `area/`、`priority/` 两个项目扩展前缀，准确集合以 `codex/config/gitea-labels.json` 为准。`triage/ready-for-agent` 不替代平台 `approved`。`completed` 与 `deployed` 互斥，任何接入仓库都必须独立同步并读回，不能把其它仓库状态当作平台全局状态。
 
@@ -146,11 +146,12 @@ sequenceDiagram
 | [05-通知与多人协作](05-通知与多人协作.md) | Gitea mailer、Mailpit、部署通知模板、Mac 本地失败通知 | 配通知、加协作者 |
 | [06-运维手册与踩坑集](06-运维手册与踩坑集.md) | 命令速查、broker/governance/host-role 合同、编号实证踩坑、安装面漂移核对、PAT 轮换 | 排障必读 |
 | [07-内网与生产平移路线](07-内网与生产平移路线.md) | 原型孵化、持续权威分工、备选下线切换和 Linux/Windows 双目标 | 规划内网平移 |
-| [08-双工具共存与实施](08-双工具共存与实施.md) | 共享契约、外部技能包映射与升级适配、两层验证矩阵、模型档位、部署边界与回滚 | 接入或切换 provider |
+| [08-Matt 编排与双工具共存](08-双工具共存与实施.md) | 共享契约、外部技能包映射与升级适配、两层验证矩阵、模型档位、部署边界与回滚 | 接入或切换 provider |
 | [GLOSSARY](GLOSSARY.md) | 平台术语与合同来源 | 读不懂一个词时 |
 | [平台使用合同](usage/CONTRACT.md) | 项目使用层的唯一合同入口；随版本化使用发布包（`usage/bundle.json`，`codex/tools/usage-bundle.sh`）下发，项目 pin 版本 | 项目接入、升级或核对所用平台版本 |
 | [ADR 0001 平台边界](docs/adr/0001-platform-boundary.md) | 平台交付物、内核代码类别、项目数据位置、两层分离 | 判断一项需求或代码能否进入平台 |
 | [ADR 0002 确定性开发流程](docs/adr/0002-deterministic-development-flow.md) | 路由合同与执行引擎分离、路由卡字段、VM 执行引擎退出、重开无人值守的条件 | 判断一条 Issue 怎么开发，或讨论自动化 |
+| [路由表](skills/aisoft-platform/references/route-policy.md) | 判级结果到路由卡（process、档位、方法、验证、审查、必用技能）的唯一映射，以及各工具的默认技能入口 | 给一条 Issue 定流程与技能 |
 | [整改路线](docs/governance/remediation-roadmap.md) | R0–R16 批次、状态与第二轮退出条件 | 安排或推进平台清理 |
 | [平台级 E2E 验收表](docs/governance/platform-e2e-acceptance.md) | 各项目按发布包版本跑通的端到端部署链与证据 | 判断平台是否真正被用起来 |
 | [交叉审查证据索引](docs/governance/review-evidence-index.md) | 平台仓 complex 批次的实现方、审查方、审查 head 与结论 | 复核某一批是否经过另一方审查 |
@@ -265,7 +266,7 @@ fresh-session typed canary；不得把静态 file metadata 或单层 `PASS` 写�
 | change 模板 digest 广播与发布包摘要两套核对的整合；canonical 模板的全历史内容锁 | 无 | `03` §3 |
 | Gitea 侧 Actions 清理超时（`ZOMBIE_TASK_TIMEOUT` 等）是否显式钉住 | 无 | `01` §4.1 |
 | release reader 读 V2 architecture lock（目前只接受 V1，下游采用 V2 前须先解决） | 无 | [architecture](architecture/README.md) |
-| Matt 插件 fresh-session 残余项：Codex 侧模型回合、Claude 侧 `retro`（marketplace 注册与来源切换已在本机完成，以 `check-plugin-pin.sh` 读回为准） | 无 | `08` §5 |
+| Matt 技能的 fresh-session 行为：Codex 会话实际调用 Matt 技能、Claude 侧 `retro`（Codex 模型回合本身由交叉审查记录证明；marketplace 注册与来源切换已在本机完成，以 `check-plugin-pin.sh` 读回为准） | 无 | `08` §5 |
 | GitHub 入站同步 timer 启用（须先完成身份权限读回与 one-shot 验收） | 各项目 | `07`「GitHub 入站同步候选」 |
 | 部署失败与回滚通知的项目侧接入 | 各项目 | `05` §1.1 |
 | Windows Change ID 格式的 runtime 实现 | 无 | `07` §4 |
