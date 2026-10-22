@@ -289,14 +289,14 @@ if env -u AISOFT_CREDENTIAL_ROOT bash "$site_layout/codex/tools/bootstrap-gitea-
     --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
     --username betaapp-agent \
     --token-kind project-agent \
-    --credential-output "$TMP/credentials/betaapp-agent-project-agent.token" \
+    --credential-output "$TMP/no-site-credentials/betaapp-agent-project-agent.token" \
     >"$TMP/no-site.out" 2>"$TMP/no-site.err"; then
   printf '%s\n' 'bootstrap without a credential root unexpectedly succeeded' >&2
   exit 1
 fi
 grep -Fq 'BLOCKED_EXTERNAL: credential root is unset' "$TMP/no-site.err"
 [[ "$(line_count "$TMP/gitea-argv.log")" == "$gitea_count_before" ]]
-[[ ! -e "$TMP/credentials" ]]
+[[ ! -e "$TMP/no-site-credentials" ]]
 jq --arg root "$TMP/credentials" '.site.credential_root_vm = $root' \
   "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
   >"$site_layout/codex/config/host-access-broker.json"
