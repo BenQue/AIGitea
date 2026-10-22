@@ -23,6 +23,7 @@ updated: 2026-10-22
 
 - 基线：`0bcc3cd863afef3425e9dcdda5e1053a3b0ad097`（`origin/main`）。
 - 代码候选 head：`82c0355e`（T01 `3b7f0d84`、T02 `02f5dd8e`、T03 `096f09cf`、T04 `8f61b5a4`，其余为审查修复）。本记录之后的 commit 只写本文件与审查索引一行。
+- `codex/tools/gitea-pat-helper/README.md` 在 T01 改过又在审查第 1 轮撤回，最终 diff 为零，但 broker 逐提交核对 scope，所以它留在 spec 的 `git_scope` 里（首推曾因此 `SCOPE_DENIED`）。
 - 环境：macOS 本机（bash 3.2），`rg` 为真实 `/opt/homebrew/bin/rg`；VM 经 `/usr/local/bin/orb -m gitea-ci`。
 
 ## 执行结果

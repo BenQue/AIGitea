@@ -33,6 +33,7 @@ git_scope:
   - codex/tests/test-platform-readiness.sh
   - codex/tools/aisoft-platform-readiness.sh
   - codex/tools/bootstrap-gitea-service-account.sh
+  - codex/tools/gitea-pat-helper/README.md
   - codex/tools/gitea-readonly.sh
   - codex/tools/rotate-gitea-service-account.md
   - docs/adr/0001-platform-boundary.md
