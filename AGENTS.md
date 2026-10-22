@@ -22,7 +22,7 @@
 
 ## 开发编排
 
-- 主路径 `$triage #N` → `$to-spec #N` → `$to-tickets #N` → `$implement #N Txx`；small 变更可按平台合同跳过 spec/plan。`$aisoft-matt-workflow` 把 Matt 接入平台合同；初始化调用 `$setup-matt-pocock-skills`，tracker 选择 `Other`，使用 `templates/docs/agents/issue-tracker.md`、`templates/docs/agents/triage-labels.md`、`templates/docs/agents/domain.md`。
+- 开发方式以[路由表](skills/aisoft-platform/references/route-policy.md)为准：`$triage #N` → `$to-spec #N` → `$to-tickets #N` → 按计划执行（Claude/Cursor 用 superpowers `executing-plans`，Codex 用 `$implement #N Txx`）；大需求先 `grill-me`，small 跳过 spec/plan。`$aisoft-matt-workflow` 把 Matt 接入平台合同；初始化调用 `$setup-matt-pocock-skills`，tracker 选择 `Other`，使用 `templates/docs/agents/issue-tracker.md`、`templates/docs/agents/triage-labels.md`、`templates/docs/agents/domain.md`。
 - `gitea-analyze-change`、`gitea-spec-plan`、`gitea-development-loop`、`gitea-implement-change` 只是兼容 adapter；`gitea-platform-ops` 处理诊断、非生产部署与回滚规划。
 - 会话只在 exact 分支追加线性本地 commit；确认点 2 之后复核范围与验证，经 broker 普通 fast-forward push 并开唯一最终 PR。本批在路线图与 E2E 表的行在同一 PR 写成合并后状态（`03` §7）。
 
