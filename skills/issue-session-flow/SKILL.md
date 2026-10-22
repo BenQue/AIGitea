@@ -19,6 +19,10 @@ description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆
 | 归档会话 | 收尾后归档本会话 | 报告“可归档”，由人归档 |
 | 并行代理 | 只读调查并行 | 串行执行；任何时候都不并行写同一个 worktree |
 
+## 共享工程原则
+
+方案、实现与审查参考 [共享工程原则](../aisoft-platform/references/engineering-principles.md)。首次使用时阅读，本会话已读且内容未变时不重复加载。
+
 ## 何时开调度会话
 
 只有这三种情形，其余一律直接开 Issue 会话：

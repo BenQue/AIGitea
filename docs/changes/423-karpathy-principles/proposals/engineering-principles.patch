@@ -1,0 +1,76 @@
+--- a/08-双工具共存与实施.md
++++ b/08-双工具共存与实施.md
+@@ -33,0 +34,6 @@
++
++### 共享工程原则
++
++[共享工程原则](skills/aisoft-platform/references/engineering-principles.md) 吸收 Karpathy 启发的四项思想，
++作为方案、实现与审查的纲领性指导。正文只有一份，三个平台技能提供入口，经现有发布包分发到声明的工具落点。
++原则强调按影响澄清、保留必要防护、完整修复和真实验证。
+--- a/skills/aisoft-matt-workflow/SKILL.md
++++ b/skills/aisoft-matt-workflow/SKILL.md
+@@ -21,0 +22,5 @@
++
++## Shared engineering principles
++
++Consult the [shared engineering principles](../aisoft-platform/references/engineering-principles.md) for planning,
++implementation and review. Read them on first use; do not reload if already read in this session and unchanged.
+--- a/skills/aisoft-platform/SKILL.md
++++ b/skills/aisoft-platform/SKILL.md
+@@ -36,0 +37,4 @@
++
++## 共享工程原则
++
++方案、实现与审查参考 [共享工程原则](references/engineering-principles.md)。首次使用时阅读，本会话已读且内容未变时不重复加载。
+--- /dev/null
++++ b/skills/aisoft-platform/references/engineering-principles.md
+@@ -0,0 +1,34 @@
++# 共享工程原则
++
++这是一份编程思想的纲领性指导，供方案、实现与审查中的工程判断参考。具体设计、开发步骤和验证方法由需求、项目合同与现有流程确定；本文件不规定工具、模型、命令或任务拆分，也不增加确认点、流程状态或验证硬门。
++
++## 先理解问题，显式处理重要假设
++
++- 以相关合同、现有代码和可核实的事实为依据。能自行查证的信息主动查证，不用猜测代替调查。
++- 区分事实、假设与需要人的决策，说明会影响结果的取舍；发现更简单或更合适的方案时，提出有依据的建议。
++- 对合同内低风险、可逆的细节自主判断。歧义会改变需求、范围、安全、权限或不可逆结果时，先澄清再做依赖它的操作，同时继续不依赖该决策的工作；不反复确认已批准的选择。
++
++## 选择满足当前需求的简单方案
++
++- 优先采用现有模式，新增功能、依赖、配置项和抽象应有当前需求依据，避免为假想的未来提前设计。
++- 抽象服务于真实的变化和稳定边界；简单以可理解、可验证和可维护为准，不以行数少或写法紧凑为目标。
++- 必要的输入校验、认证授权、并发与数据完整性、故障处理、回滚和审计属于完整解决问题的成本，不能以“应该不会发生”为由省略。
++
++## 让改动聚焦，并完整解决问题
++
++- 每处改动都应能解释它与目标、必要的兼容或安全要求的关系；小 diff 不能替代完整修复。
++- 尊重已有风格与上下文，避免夹带无关的格式化、重命名、重构或删除；不覆盖他人的改动。
++- 清理由本次改动直接产生的无用内容，原有无关问题另外记录；确需扩大范围时按现有合同处理。
++
++## 以可观察的结果判断完成
++
++- 对成功的理解应具体且可验证；缺陷判断应有复现或其他可靠证据，避免凭印象修改。
++- 验证应能区分目标行为的正确与错误，并与实际风险相称；优先覆盖有意义的边界和失败情形，不为简单改动制造形式化测试。项目已规定的必需验证仍须满足。
++- 根据验证结果持续修正，既有自主执行与停止边界仍适用；不能通过削弱验收标准、忽略失败或选择偶然成功来证明完成。
++- 结论忠于实际证据，未验证的明确说明；源码、局部测试、安装和实际运行的证据不能互相替代。
++
++## 来源与适配
++
++思想参考 [multica-ai/andrej-karpathy-skills 的固定版本](https://github.com/multica-ai/andrej-karpathy-skills/blob/2c606141936f1eeef17fa3043a72095b4765b9c2/skills/karpathy-guidelines/SKILL.md)，
++commit `2c606141936f1eeef17fa3043a72095b4765b9c2`。该仓库由社区根据 Andrej Karpathy 的观察整理。
++本文结合平台合同自行表述，保留四项原则，并明确按影响澄清、保留必要防护、完整修复和真实验证的边界。
+--- a/skills/issue-session-flow/SKILL.md
++++ b/skills/issue-session-flow/SKILL.md
+@@ -20,0 +21,4 @@
++
++## 共享工程原则
++
++方案、实现与审查参考 [共享工程原则](../aisoft-platform/references/engineering-principles.md)。首次使用时阅读，本会话已读且内容未变时不重复加载。
+--- a/usage/CONTRACT.md
++++ b/usage/CONTRACT.md
+@@ -120,0 +121,5 @@
++
++## 7. 编程思想指导
++
++`aisoft-platform` 技能的 `references/engineering-principles.md` 提供纲领性指导：理解问题、简单设计、
++聚焦改动和真实验证。它辅助方案、实现与审查中的工程判断，内容随本项目 pin 的发布包版本交付。

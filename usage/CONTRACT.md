@@ -118,3 +118,8 @@ pin 的版本，项目不得手改；Gitea 与 Git 访问仍经本机安装的 h
   revision，检查器按随发布包分发的该 revision 快照校验并出 `NOTE`；升级到新 revision 是项目自己的 Issue。
   快照的 `review_by` 过期只在 NOTE 里提示，组件 EOL、prohibited、例外到期仍是 GAP。
 - `architecture-lock` 失败时 GAP 写出诊断码，按诊断码修复后重新生成 lock。
+
+## 7. 编程思想指导
+
+`aisoft-platform` 技能的 `references/engineering-principles.md` 提供纲领性指导：理解问题、简单设计、
+聚焦改动和真实验证。它辅助方案、实现与审查中的工程判断，内容随本项目 pin 的发布包版本交付。
