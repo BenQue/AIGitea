@@ -834,6 +834,16 @@ def public_provenance(value: str) -> Path:
     return path
 
 
+def is_real_root(path: Path) -> bool:
+    """`/`, `//`, `/./` or a link to `/`: one stat of the root, no surface read."""
+    if os.path.normpath(str(path)).strip("/") == "":
+        return True
+    try:
+        return os.path.samefile(path, "/")
+    except OSError:
+        return False
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=absolute, default=Path(__file__).resolve().parents[2])
@@ -856,6 +866,10 @@ def main(argv=None):
         report["public_provenance"] = {"path": str(args.pat_helper_provenance),
                                        "access": "NOT_READ_SOURCE_ONLY" if args.source_only else "DECLARED_INPUT"}
     try:
+        # #413: on macOS the real root is the Mac itself; reading it against the
+        # VM baseline only yields false GAPs, so refuse before reading anything.
+        if host == "vm" and sys.platform == "darwin" and not args.source_only and is_real_root(args.install_root):
+            raise InspectionError("host-mismatch", args.install_root)
         surfaces, sources = build_surfaces(*roots.values())
         validate_source(args.repo, surfaces)
         baseline = read_baseline(args.repo)
@@ -900,6 +914,10 @@ def main(argv=None):
         code = 2
         report["error"] = {"reason": exc.reason if isinstance(exc, InspectionError) else "invalid-source-definition",
                            "source": str(exc.path) if isinstance(exc, InspectionError) else str(args.repo)}
+        if report["error"]["reason"] == "host-mismatch":
+            report["error"]["detail"] = ("--host vm reads the VM's own root; run it inside the VM, e.g. "
+                                         "/usr/local/bin/orb -m <site.orbstack_machine> bash "
+                                         "<site.platform_checkout_vm>/codex/tools/check-installed-drift.sh --host vm")
     report["result"] = "PASS" if code == 0 else "GAP" if code == 1 else "ERROR"
     if args.json:
         print(json.dumps(report, ensure_ascii=False))

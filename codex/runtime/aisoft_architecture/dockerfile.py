@@ -1,7 +1,10 @@
 """Offline, fail-closed Dockerfile FROM checks for declared source inputs.
 
-This deliberately supports a conservative Dockerfile subset. It neither
-expands ARG nor loads frontends; results are not builder provenance.
+This deliberately supports a conservative Dockerfile subset. It loads no
+frontends and expands ARG in exactly one form (#413): a FROM image token that
+is a whole global ARG reference whose literal default the same stage pins
+with `RUN test "${NAME}" = "<default>"`, so a build-time override fails the
+build instead of replacing the base image. Results are not builder provenance.
 """
 
 from __future__ import annotations
@@ -25,6 +28,8 @@ INSTRUCTIONS = frozenset({
 DIRECTIVE = re.compile(r"^#\s*(syntax|escape|check)\s*=\s*(.*?)\s*$", re.I)
 STABLE_FRONTEND = re.compile(r"docker/dockerfile:1(?:\.[0-9]+){0,2}")
 STAGE = re.compile(r"[A-Za-z][A-Za-z0-9_.-]*")
+ARG_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+ARG_REFERENCE = re.compile(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))")
 NAME_COMPONENT = r"[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*"
 HOST_COMPONENT = r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
 REGISTRY = rf"{HOST_COMPONENT}(?:\.{HOST_COMPONENT})*(?::[0-9]+)?"
@@ -158,18 +163,176 @@ def _instructions(content: str, field: str) -> list[tuple[int, str, str]]:
     return result
 
 
+def _words(arguments: str) -> list[str] | None:
+    """Whitespace split that keeps quoted spans whole; None when unprovable.
+
+    Backslashes and backticks (either can be the escape character) and
+    unbalanced quotes make the instruction unprovable rather than guessed.
+    """
+    if "\\" in arguments or "`" in arguments:
+        return None
+    words, current, quote = [], "", None
+    for char in arguments:
+        if quote:
+            quote = None if char == quote else quote
+        elif char in "\"'":
+            quote = char
+        elif char in " \t":
+            if current:
+                words.append(current)
+            current = ""
+            continue
+        current += char
+    if quote:
+        return None
+    return words + [current] if current else words
+
+
+def _global_defaults(instructions: list[tuple[int, str, str]]) -> dict[str, str]:
+    """Literal defaults of ARGs declared before the first FROM.
+
+    A default that is quoted, references another variable or is redeclared
+    without a value is dropped, so any FROM using it stays unsupported. An
+    ARG line that cannot be tokenized drops every name it mentions.
+    """
+    defaults: dict[str, str] = {}
+    for _, instruction, arguments in instructions:
+        if instruction == "FROM":
+            break
+        if instruction != "ARG":
+            continue
+        words = _words(arguments)
+        if words is None:
+            for name in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", arguments):
+                defaults.pop(name, None)
+            continue
+        for word in words:
+            name, separator, value = word.partition("=")
+            if not ARG_NAME.fullmatch(name):
+                continue
+            if separator and value and not any(char in value for char in "$\"'"):
+                defaults[name] = value
+            else:
+                defaults.pop(name, None)
+    return defaults
+
+
+GUARD_PLAIN = re.compile(r"[A-Za-z0-9 \t._/=:@%+,-]*")
+SHELL_RESERVED = frozenset({"case", "esac", "if", "then", "else", "elif", "fi", "for", "while",
+                            "until", "do", "done", "in", "select", "function", "time"})
+
+
+def _guard_propagates(rest: str) -> bool:
+    """After the leading test only `&&` may chain, so a failed test fails the RUN.
+
+    Scanned left to right without guessing: unquoted text is limited to plain
+    words and `&&`; single-quoted spans are data; double-quoted spans may hold
+    `$(plain words)` but no backtick, backslash or other substitution. Anything
+    else (`||`, `;`, `&`, `|`, `#`, subshells, nested quotes) is unprovable.
+    """
+    index, length = 0, len(rest)
+    while index < length:
+        char = rest[index]
+        if rest.startswith("&&", index):
+            index += 2
+        elif char == "'":
+            end = rest.find("'", index + 1)
+            if end < 0:
+                return False
+            index = end + 1
+        elif char == '"':
+            index += 1
+            while True:
+                if index >= length or rest[index] in "`\\":
+                    return False
+                if rest[index] == '"':
+                    index += 1
+                    break
+                if rest.startswith("$(", index):
+                    # A plain simple command only: `case` patterns are the one
+                    # plain-word syntax whose `)` would end the scan early.
+                    end = rest.find(")", index + 2)
+                    command = rest[index + 2:end].split() if end >= 0 else []
+                    if (not command or not GUARD_PLAIN.fullmatch(rest[index + 2:end])
+                            or command[0] in SHELL_RESERVED):
+                        return False
+                    index = end + 1
+                elif rest[index] == "$":
+                    # Only plain `$NAME`/`${NAME}`; `${x:-'"'}` can hide quotes.
+                    variable = re.match(r"\$(?:\{[A-Za-z_][A-Za-z0-9_]*\}|[A-Za-z_][A-Za-z0-9_]*|(?![{(]))",
+                                        rest[index:])
+                    if variable is None:
+                        return False
+                    index += max(len(variable[0]), 1)
+                else:
+                    index += 1
+        elif GUARD_PLAIN.fullmatch(char):
+            index += 1
+        else:
+            return False
+    return True
+
+
+def _may_shadow(name: str, instruction: str, arguments: str) -> bool:
+    """SHELL, or an ENV that sets NAME or cannot be proven not to: BuildKit
+    unquotes and expands ENV keys, and ENV beats an ARG of the same name.
+    Quoted values are fine; only keys are compared."""
+    if instruction == "SHELL":
+        return True
+    if instruction != "ENV":
+        return False
+    words = _words(arguments)
+    if not words:
+        return True
+    if "=" not in words[0]:
+        keys = words[:1]  # legacy `ENV KEY value`
+    elif all("=" in word for word in words):
+        keys = [word.partition("=")[0] for word in words]
+    else:
+        return True
+    return any(key == name or not ARG_NAME.fullmatch(key) for key in keys)
+
+
+def _guarded(name: str, default: str, body: list[tuple[int, str, str]],
+             earlier: list[tuple[int, str, str]]) -> bool:
+    """The stage runs `test "${NAME}" = "<default>"` as the first command of a
+    RUN whose failure fails the build, with no SHELL or shadowing ENV before it.
+
+    A build argument may also name any earlier stage, which carries that
+    stage's ENV and SHELL into this one and fires its ONBUILD triggers first,
+    so earlier stages must be clean and free of ONBUILD.
+    """
+    if any(instruction == "ONBUILD" or _may_shadow(name, instruction, arguments)
+           for _, instruction, arguments in earlier):
+        return False
+    guard = re.compile(rf'test "\$\{{{name}\}}" = "{re.escape(default)}"(?:\s*$|\s+&&\s+(.*))')
+    for _, instruction, arguments in body:
+        if _may_shadow(name, instruction, arguments):
+            return False
+        match = guard.fullmatch(arguments) if instruction == "RUN" else None
+        if match and (match[1] is None or _guard_propagates(match[1])):
+            return True
+    return False
+
+
 def _digests(content: str, field: str, declared: set[str]) -> set[str]:
     instructions = _instructions(content, field)
-    froms = [(number, args) for number, instruction, args in instructions if instruction == "FROM"]
+    defaults = _global_defaults(instructions)
+    froms: list[tuple[int, str, list[tuple[int, str, str]]]] = []
+    for number, instruction, arguments in instructions:
+        if instruction == "FROM":
+            froms.append((number, arguments, []))
+        elif froms:
+            froms[-1][2].append((number, instruction, arguments))
     if not froms:
         fail("DOCKERFILE_FROM_REQUIRED", "每份 Dockerfile 至少需要一个 FROM。", field)
     stages = set()
     referenced = set()
     named_stages = {
-        tokens[-1].lower() for _, arguments in froms
+        tokens[-1].lower() for _, arguments, _ in froms
         if len(tokens := arguments.split()) >= 3 and tokens[-2].lower() == "as"
     }
-    for number, arguments in froms:
+    for position, (number, arguments, body) in enumerate(froms):
         location = f"{field}:line[{number}]"
         tokens = arguments.split()
         if tokens and tokens[0].startswith("--platform=") and len(tokens[0]) > len("--platform="):
@@ -181,7 +344,13 @@ def _digests(content: str, field: str, declared: set[str]) -> set[str]:
         if alias is not None and (not STAGE.fullmatch(alias) or alias in stages):
             fail("DOCKERFILE_FROM_INVALID", "Stage 名称无效或重复。", location)
         if "$" in image:
-            fail("DOCKERFILE_FROM_VARIABLE_UNSUPPORTED", "镜像 token 必须为字面量 tag 与 digest。", location)
+            reference = ARG_REFERENCE.fullmatch(image)
+            name = reference and (reference[1] or reference[2])
+            if not name or name not in defaults or not _guarded(
+                    name, defaults[name], body, [item for stage in froms[:position] for item in stage[2]]):
+                fail("DOCKERFILE_FROM_VARIABLE_UNSUPPORTED",
+                     "镜像变量必须是带字面量默认值的全局 ARG，且本 stage 以 RUN test 守住该默认值。", location)
+            image = defaults[name]
         if image.lower() not in stages and image != "scratch":
             if image.isdecimal() or image.lower() in named_stages:
                 fail("DOCKERFILE_FROM_INVALID", "不能核验前向、自引用或数字 stage 引用。", location)
