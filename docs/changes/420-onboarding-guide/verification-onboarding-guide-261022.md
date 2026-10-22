@@ -36,7 +36,7 @@ updated: 2026-10-22
 | 指南引用的错误文本 `requested project is not explicitly managed`、`requested operation is not allowlisted`、`REQUEST_DENIED`、`TRANSPORT_ERROR` | PASS | 分别命中 `contract.py`、`contract.py:154`、`broker.py` |
 | 登录核对命令 `claude auth status`、`codex login status`、`cursor-agent status` 在本机可运行 | PASS | 分别读到 `"loggedIn": true`、`Logged in using ChatGPT`、`Logged in as …` |
 | 插件名 `superpowers@claude-plugins-official`、`mattpocock-skills@aisoft-platform` | PASS | 本机 Claude 已装插件记录中存在；marketplace 名取自 `.claude-plugin/marketplace.json` |
-| `bash codex/tools/check-external-skill-versions.sh` | PASS | `RESULT PASS`；Codex superpowers `PIN_NOT_INSTALLED` 属 `KNOWN_EXTERNAL` |
+| `bash codex/tools/check-external-skill-versions.sh` | PASS | 本机 `SUPERPOWERS claude` 与 `MATT claude` 为 `PIN_CLEAN`，`SUPERPOWERS codex` 为已登记的 `PIN_NOT_INSTALLED`；指南按所选工具逐行判定，不以 `RESULT` 为门槛 |
 | `bash codex/tools/usage-bundle.sh --verify --baseline-ref origin/main` | PASS | `VERIFIED 1.13.0` |
 | `bash codex/tools/usage-bundle.sh --build <临时目录>` | PASS | `project/.claude/skills/`、`project/.agents/skills/`、`project/.cursor/skills/` 三处 `aisoft-platform/references/getting-started.md` 都在 |
 | `bash codex/tests/smoke.sh`（最终修复后） | PASS | `Codex platform static smoke checks passed.`，exit 0 |
@@ -63,6 +63,7 @@ updated: 2026-10-22
 | 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
 |---|---|---|---|---|---|
 | 1 | Claude | Codex（gpt-6-astra，high，read-only） | `b228917818a2d5d831a6dcb08eed87aac941881b` | FAIL | 7 条：接入判据不足、TRANSPORT_ERROR 写操作不可盲重试、REQUEST_DENIED 归因过宽、版本读回不应可跳过、漂移核对未传同一 home、版本号不证明登录、verification 未填。前 6 条在 `6159fb3f` 修复，第 7 条随本记录补齐 |
+| 2 | Claude | Codex（gpt-6-astra，high，read-only） | `436c0d16b03ec3eea15aa2814b523940e9022cd3` | FAIL | 上轮 7 条中 6 条确认修复、1 条部分修复；新 3 条：以 `RESULT` 为门槛会阻断单工具用户、Codex 项目级 Matt 无工具核对、Cursor 核对排在采用之前。改为按所选工具逐行判定、Cursor 移到采用后、如实写 Codex 项目级 Matt 未核对 |
 
 ## 遗留风险与未完成项
 

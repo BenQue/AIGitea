@@ -61,12 +61,18 @@
    平台不往用户目录安装任何东西，开发者也不需要另装插件。
 3. 采用发布包时要带 Cursor（第 4 步的 `--tools` 含 `cursor`），否则项目里没有这些落点。
 
-### 外部技能包版本读回（必需，用平台检出里的维护层工具）
+### 本机外部技能包版本读回（必需，用平台检出里的维护层工具）
 
-在平台检出里运行 `bash codex/tools/check-external-skill-versions.sh`，项目采用发布包之后（第 4 步）再加 `--repo <项目检出>` 跑一次，
-用 Cursor 时必须带 `--repo`，因为 Cursor 的技能只在项目里。预期：最后一行 `RESULT PASS`，所选工具的 superpowers 与 Matt 行为 `PIN_CLEAN`；
-Codex 的 superpowers 读到 `PIN_NOT_INSTALLED` 是已登记的外部限制，不算失败。
-失败时：`PIN_DRIFT` 表示该工具的版本与平台 pin 不同，`UNKNOWN` 表示读不懂本机状态，两者都停下，请维护者先过 `08` §5 的适配清单再继续。
+在平台检出里运行 `bash codex/tools/check-external-skill-versions.sh`。它一次报告所有工具，只看所选工具的行，不以最后的
+`RESULT` 行作为门槛（那一行也会因为没选的工具而变成 `REVIEW_NEEDED`）。
+
+| 所选工具 | 看哪几行 | 预期 |
+|---|---|---|
+| Claude Code | `SUPERPOWERS claude`、`MATT claude` | 都是 `PIN_CLEAN` |
+| Codex | `SUPERPOWERS codex` | `PIN_CLEAN`，或已登记的 `PIN_NOT_INSTALLED`（官方市场没有 pin 版本，不阻塞） |
+| Cursor | 本步不看，技能在项目里，第 4 步采用后再核对 | - |
+
+失败时：所选工具的行出现 `PIN_DRIFT`（版本与平台 pin 不同）或 `UNKNOWN`（读不懂本机状态）就停下，请维护者先过 `08` §5 的适配清单再继续。
 
 ### 平台仓维护者附加（维护层，可选）
 
@@ -98,7 +104,9 @@ Codex 的 superpowers 读到 `PIN_NOT_INSTALLED` 是已登记的外部限制，�
    - `.aisoft/bin/aisoft version`：打印 `bundle_version`。
    - `.aisoft/bin/aisoft bundle status`：本仓与 pin 版本一致。
    - `.aisoft/bin/aisoft project-check`：没有 `GAP:` 行。有 GAP 就按行在项目里建 Issue 修复，不要手改 `.aisoft/` 下的文件。
-2. 项目 `AGENTS.md` 的「项目事实」由项目自己填写（技术栈、测试命令、健康端点、交付形态等，见 `.aisoft/platform-usage.md` §4）。
+2. 用 Cursor 时，在平台检出里加 `--repo <项目检出>` 重跑上面的版本读回，`SUPERPOWERS cursor` 与 `MATT cursor` 两行都应为 `PIN_CLEAN`；
+   不是就停下报告。用 Codex 时，项目级 `.agents/skills/` 里的 Matt 快照目前没有工具核对，如实告诉用户这一项未核对，不要声称已核对。
+3. 项目 `AGENTS.md` 的「项目事实」由项目自己填写（技术栈、测试命令、健康端点、交付形态等，见 `.aisoft/platform-usage.md` §4）。
 
 ## 第 5 步：跑通第一张 Issue（开发者）
 
