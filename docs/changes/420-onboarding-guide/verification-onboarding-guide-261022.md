@@ -55,7 +55,7 @@ updated: 2026-10-22
 | AC-4 | PASS | smoke 全绿；站点值反向证明变红 |
 | AC-5 | PASS | `--verify` 与 `--build` 结果见上表 |
 | AC-7 | PASS | 五个文件改为「以路由表为准，Claude/Cursor 用 `executing-plans`，Codex 用 `$implement #N Txx`」；`rg` 旧句零命中（剩余 `$implement` 只在 Codex 专属的 `aisoft-matt-workflow` 与 plan 模板的 ticket 说明，均不声称唯一入口）；smoke 与 `--verify` 通过 |
-| AC-6 | PASS | 第 3 轮 Codex 只读审查 PASS，见下节与 `docs/governance/review-evidence-index.md` |
+| AC-6 | PASS | 原范围第 3 轮、并入范围 B 后第 6 轮 Codex 只读审查 PASS，见下节与 `docs/governance/review-evidence-index.md` |
 
 ## 交叉审查
 
@@ -69,6 +69,7 @@ updated: 2026-10-22
 | 3 | Claude | Codex（gpt-6-astra，high，read-only） | `21ad76945efc0f14cfefe8012e6bf03595a0c4d2` | PASS | 前两轮 10 条逐条确认修复，无新发现。此后合入 main（#419）并写入审查记录；负责人确认并入范围 B 后，`8efe03ac` 修改了五个文件并重发 1.13.0，见第 4 轮 |
 | 4 | Claude | Codex（gpt-6-astra，high，read-only） | `8efe03ac7dcc4e1063fd7e75653720776db5046b` | FAIL | 范围 B 五个文件、发布包与 README 无发现；1 条 P2：本记录第 3 轮行仍称发布包未再改动且缺 AC-7。已修正本记录 |
 | 5 | Claude | Codex（gpt-6-astra，high，read-only） | `8629b94db76d4751e011a9b886034214f681d3eb` | FAIL | 第 4 轮发现确认修复；1 条 P2：审查证据索引预填了第 5 轮占位。已改为写实际 SHA 与结论 |
+| 6 | Claude | Codex（gpt-6-astra，high，read-only） | `030f2c7e12a49394efc8c795f405384ed1f54ff7` | PASS | 无发现。本行在该 head 之后补记，此后只有本记录与索引行的改动 |
 
 ## 遗留风险与未完成项
 
