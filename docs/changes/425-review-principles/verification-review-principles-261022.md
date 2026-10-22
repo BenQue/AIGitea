@@ -13,7 +13,7 @@ risk_flags:
 depends_on: []
 branch: change/425-review-principles
 created: 2026-10-22
-updated: 2026-10-22
+updated: 2026-10-23
 status: passed
 ---
 
@@ -99,5 +99,5 @@ Codex 同意 R2 的事实判断与处置。R3 Fable 5 / high 独立确认：正�
 
 ## 遗留风险与未完成项
 
-R3 无阻断缺陷及新增发现；F1 的导航概括完善只保留建议，不自动扩本批范围。当前为 `AWAITING_PR_CONFIRMATION`，summary 保持 `approved`、`pr_url` 为空。
-push、PR、required CI、全局安装、真实 provider-session 效果、项目采用、合并与部署均 NOT RUN。source/local PASS 不证明任何未执行层已生效。收到最终 PR 确认后才推进本 Issue 的普通推送与唯一 PR。
+R3 无阻断缺陷及新增发现；F1 的导航概括完善只保留建议，不自动扩本批范围。2026-10-23 负责人明确确认提交 #425 的唯一最终 PR、CI 全绿后停在待人工合并，确认点 2 已通过。发布前 fresh fetch 的 main 仍为本记录基线，完整 PR 列表未发现同分支 PR；live protection 的 required context 为 `CI / verify (pull_request)`。
+本表保留 source/local 的真实证据。PR 地址以 summary 的 `pr_url` 为准；每次推送均核对 `pushed_head`，最终 required CI 以该 PR 的当前 exact head 和 Actions/status 读回独立留证于 PR/Issue，不以本地 PASS 替代。全绿后停在 `READY_FOR_REVIEW`。全局安装、真实 provider-session 效果、项目采用、合并与部署均 NOT RUN，发布授权不传递这些权限。

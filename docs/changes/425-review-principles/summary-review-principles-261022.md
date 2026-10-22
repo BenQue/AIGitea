@@ -13,7 +13,7 @@ risk_flags:
 depends_on: []
 branch: change/425-review-principles
 created: 2026-10-22
-updated: 2026-10-22
+updated: 2026-10-23
 reason: 补充跨提供者共享工程原则中的审查思想，命中 Agent 和平台治理强制 complex；不改变具体流程。
 required_docs:
   - summary
@@ -44,7 +44,7 @@ pr_url: ''
 ## 问题与授权
 
 负责人希望从 Anthropic 的代码审查文章获取启发，写入纲领性文件，并要求 Claude Code 评价审议。负责人随后明确：只补充审查思想，具体流程仍应结合平台与项目情况。
-2026-10-22 已就收紧后的文案完成 Codex / Claude Code 讨论，Claude Code 最终 `VERDICT: ACCEPT`。负责人进一步明确：“同意，按这版文案写入《共享工程原则》，只补充审查思想，不修改现有具体流程，按平台现有治理要求推进。”本次确认覆盖本 Issue 精确文案实施、必要的发布登记与既有治理验证，不重复询问启动。负责人随后明确指定 Claude Code 评议使用 Fable 5、high；本 Issue 后续审议调用按此执行，作为调用参数记录，不修改共享路由或全局配置。
+2026-10-22 已就收紧后的文案完成 Codex / Claude Code 讨论，Claude Code 最终 `VERDICT: ACCEPT`。负责人进一步明确：“同意，按这版文案写入《共享工程原则》，只补充审查思想，不修改现有具体流程，按平台现有治理要求推进。”本次确认覆盖本 Issue 精确文案实施、必要的发布登记与既有治理验证，不重复询问启动。负责人随后明确指定 Claude Code 评议使用 Fable 5、high；本 Issue 后续审议调用按此执行，作为调用参数记录，不修改共享路由或全局配置。2026-10-23 负责人明确“确认提交 #425 的唯一最终 PR，按现有治理要求推进，CI 全绿后停在待人工合并”，确认点 2 已通过；授权本分支普通推送、唯一最终 PR 及合同内 CI 修复，合并、安装、项目采用与部署仍不在授权内。
 
 ## 影响范围
 
@@ -54,7 +54,7 @@ pr_url: ''
 
 ## 当前状态
 
-合同与启动已批准，T01/T02 已完成。完整 smoke 与三端隔离导出实跑于正文/包提交 `6550228fc2c239f860bcd923638687f43648ee10`，之后仅规范提案格式与归档证据，正文及 bundle 未变。R1/R2 的导航摘要分歧与处置保留为历史；按负责人指定，以 Fable 5 / high 对当前候选 `cfc13a64cefe1b82864a1fb75729f8d362c65ebf` 重新作 R3 独立审议，Standards 与 Spec 均 PASS，F1–F3 处置获独立认可、无新增发现。当前审议依据为 R3，详见 verification；仍停在 `AWAITING_PR_CONFIRMATION`，无 PR，不授权 push、合并或部署。
+合同与启动已批准，T01/T02 已完成。完整 smoke 与三端隔离导出实跑于正文/包提交 `6550228fc2c239f860bcd923638687f43648ee10`，之后仅规范提案格式与归档证据，正文及 bundle 未变。R1/R2 的导航摘要分歧与处置保留为历史；按负责人指定，以 Fable 5 / high 对当前候选 `cfc13a64cefe1b82864a1fb75729f8d362c65ebf` 重新作 R3 独立审议，Standards 与 Spec 均 PASS，F1–F3 处置获独立认可、无新增发现。当前审议依据为 R3，详见 verification。负责人已确认提交唯一最终 PR，本分支进入 PR 发布与 CI 验收；唯一 PR 地址以 front matter 的 `pr_url` 为准，required `CI / verify (pull_request)` 按该 PR 最新 exact head 另行读回，全绿后停在 `READY_FOR_REVIEW` 等待人工合并。
 
 ## AI 判级
 
@@ -83,4 +83,4 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-无。文案和范围已批准；最终 PR 提交仍须确认点 2。
+无。文案与范围已批准；2026-10-23 确认点 2 已通过，CI 全绿后等待人工合并。
