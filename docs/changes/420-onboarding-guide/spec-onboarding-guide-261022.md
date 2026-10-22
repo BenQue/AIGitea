@@ -46,6 +46,11 @@ updated: 2026-10-22
      模型按路由卡 tier 选，映射链接 08 §7.3。
   6. 常见卡点：只列有平台证据的几条（broker `REQUEST_DENIED` 是操作表陈旧、私有 Gitea 匿名 404 不说明不存在、
      `PIN_NOT_INSTALLED` 的含义）。
+- **范围 B（负责人 10-22 在项目频道同意从 #419 并入）**：把「`\$implement #N Txx` 是唯一实现入口」的旧写法改成与 #419 合并后
+  `AGENTS.md` 开发编排段一致——开发方式以路由表为准，按计划执行时 Claude 与 Cursor 用 superpowers `executing-plans`，Codex 用
+  `\$implement #N Txx`。涉及四处：`skills/aisoft-platform/SKILL.md` 的「Matt 主路径」条、`usage/CONTRACT.md` §2「编排路径」、
+  `templates/project/AGENTS.md` 的每 Issue 开发路径段、`templates/docs/agents/issue-tracker.md` 与平台仓自用副本
+  `docs/agents/issue-tracker.md` 的 `\$implement` 条。只改实现入口的措辞，判级、`change_control`、`approved` 与两个确认点语义不变。
 - **只写指针不复述合同**：流程合同只链接 `.aisoft/platform-usage.md` 与 `03`；命令与参数照抄现行源码。
 
 ## Acceptance criteria
@@ -55,11 +60,12 @@ updated: 2026-10-22
 - [ ] AC-3 简明手册单独成文；README 文档导航、指南与 SKILL.md 三处都能到达它或指南。
 - [ ] AC-4 两份文件不含站点值与个人路径；`bash codex/tests/smoke.sh` 全绿，反向证明：在临时副本里往指南写入站点主机名，守卫变红。
 - [ ] AC-5 `usage/bundle.json` 登记新 reference 并发布 1.13.0（带 notes 与 compatibility），`usage-bundle.sh --verify` 通过；`--build` 导出的三处项目级技能落点都含新指南。
+- [ ] AC-7 上述四处（五个文件）对实现入口的说法与 `AGENTS.md` 开发编排段一致，仍保留 `\$implement #N Txx` 作为 Codex 入口；`rg` 不再找到把它写成唯一入口的旧句；smoke 全绿，发布包 1.13.0 同时覆盖这些成员。
 - [ ] AC-6 未参与实现的 Codex 对候选 head 只读交叉审查得到 PASS，记入 verification 与 review-evidence-index。
 
 ## 接口、数据与兼容性影响
 
-只新增文件与导航行，不改合同语义、工具行为或 manifest。发布包 minor 升级（`compatibility: minor`），已 pin 的项目不变红。
+新增文件与导航行；范围 B 只校正实现入口措辞使其与已合并的 AGENTS.md 一致，不改流程语义、工具行为或 manifest。发布包 minor 升级（`compatibility: minor`），已 pin 的项目不变红。
 
 ## 风险与回滚约束
 
@@ -67,9 +73,9 @@ updated: 2026-10-22
 
 ## 非目标
 
-- 不改 onboarding-runbook、usage/CONTRACT.md 正文与 AGENTS.md。
+- 不改 onboarding-runbook 与 AGENTS.md；`usage/CONTRACT.md` 只改 §2「编排路径」一条的实现入口措辞（范围 B）。
 - 不新增上手技能、不改安装器、不注册任何 marketplace、不在任何机器上安装或重装。
-- 不改并行 README 现行性检查负责的行。
+- 不改 #419 已合并的行。
 
 ## 未决问题
 

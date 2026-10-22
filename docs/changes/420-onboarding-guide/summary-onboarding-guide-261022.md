@@ -32,7 +32,7 @@ route:
 confidence: high
 override_reason: ''
 depends_on: []
-status: approved
+status: analyzed
 branch: change/420-onboarding-guide
 pr_url:
 created: 2026-10-22
@@ -50,6 +50,7 @@ updated: 2026-10-22
 - `skills/aisoft-platform/references/` 新增上手指南；`skills/aisoft-platform/SKILL.md` 加一行入口。
 - `usage/` 新增简明用户手册（平台仓文档，不是发布包成员）。
 - `README.md` 文档导航加一行；`usage/bundle.json` 登记新 reference 并发布 1.13.0。
+- 范围 B（从 #419 并入）：`skills/aisoft-platform/SKILL.md`、`usage/CONTRACT.md` §2、`templates/project/AGENTS.md`、两份 `issue-tracker.md` 的实现入口措辞与 AGENTS.md 对齐。
 - 治理表：`docs/governance/review-evidence-index.md` 追加本批一行。
 
 ## 初步方案与建议

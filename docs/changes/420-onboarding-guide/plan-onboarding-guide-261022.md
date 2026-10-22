@@ -25,13 +25,15 @@ updated: 2026-10-22
 | T01 | AI 上手指南 `getting-started.md` 与 SKILL.md 入口行，命令逐条核对 | - | done |
 | T02 | 简明手册 `usage/USER-GUIDE.md` 与 README 导航行 | T01 | done |
 | T03 | 发布包登记新 reference、发布 1.13.0，smoke 与反向证明 | T02 | done |
-| T04 | Codex 交叉审查、verification 与 review-evidence-index 回写 | T03 | done |
+| T05 | 范围 B：四处实现入口措辞与 AGENTS.md 对齐，重发 1.13.0 | T03 | pending |
+| T04 | Codex 交叉审查、verification 与 review-evidence-index 回写 | T05 | pending |
 
 ## Expected touch points
 
 - T01：`skills/aisoft-platform/references/getting-started.md`、`skills/aisoft-platform/SKILL.md`
 - T02：`usage/USER-GUIDE.md`、`README.md`
 - T03：`usage/bundle.json`，以及 smoke 要求同步的计数或钉子（如有）
+- T05：`skills/aisoft-platform/SKILL.md`、`usage/CONTRACT.md`、`templates/project/AGENTS.md`、`templates/docs/agents/issue-tracker.md`、`docs/agents/issue-tracker.md`、`usage/bundle.json`
 - T04：本目录 verification、`docs/governance/review-evidence-index.md`
 
 ## 数据库迁移
@@ -47,6 +49,7 @@ updated: 2026-10-22
 | AC-3 | 链接检查（相对路径存在） |
 | AC-4 | `bash codex/tests/smoke.sh`；临时副本写入站点主机名后守卫变红 |
 | AC-5 | `codex/tools/usage-bundle.sh --verify`；`--build` 到临时目录后 ls 三处落点 |
+| AC-7 | `rg` 旧句为零、新句与 AGENTS.md 对照；smoke；`usage-bundle.sh --verify` |
 | AC-6 | `codex exec -s read-only -m gpt-6-astra -c model_reasoning_effort="high"` 审查候选 head |
 
 ## 部署与回滚
