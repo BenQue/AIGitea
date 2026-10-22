@@ -651,19 +651,14 @@ grep -Fq 'triage/ready-for-agent' "$instruction"
 grep -Fq 'approved' "$instruction"
 grep -Fq "exact ${literal_backtick}change/N-short-description${literal_backtick}" "$instruction"
 grep -Fq 'ADR 0002' "$instruction"
-grep -Fq '自动化最多止于 PR 候选' "$instruction"
 for legacy_basename in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
   grep -Fq "$legacy_basename" "$instruction"
 done
 grep -Fq "${literal_backtick}documents${literal_backtick}" "$root_agents"
-grep -Fq "tracker 选择 ${literal_backtick}Other${literal_backtick}" "$root_agents"
-grep -Fq 'small 变更可按平台合同跳过 spec/plan' "$root_agents"
-grep -Fq '兼容 adapter' "$root_agents"
-grep -Fq 'fast-forward push' "$root_agents"
-grep -Fq '最终 PR 只由人合并' "$root_agents"
-grep -Fq 'force-push' "$root_agents"
-grep -Fq '静默安装或更新全局 skills' "$root_agents"
-grep -Fq 'PR merge 不传递部署授权' "$root_agents"
+# #416 (ADR 0001 D9): the maintenance rules are pinned by section, not by sentence.
+for agents_section in 边界 'Issue 与命名' 判级与确认 开发编排 'Git、合并与部署' 治理文件 凭据与验证 目录; do
+  require_heading "$root_agents" "$agents_section"
+done
 
 analyze_skill="$ROOT/skills/gitea-analyze-change/SKILL.md"
 spec_skill="$ROOT/skills/gitea-spec-plan/SKILL.md"
