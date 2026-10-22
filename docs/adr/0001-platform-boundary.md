@@ -73,6 +73,7 @@
 | `architecture/decisions/0005-systemd-native-delivery-profile.md` | 决策记录的关联 Issue 链接，性质同 `docs/adr/`；该目录装到 target 主机 |
 | `architecture/decisions/0006-node-sqlite-profile-and-as-built-drift.md` | 同上 |
 | `architecture/decisions/0007-profile-machine-checksum.md` | 同上 |
+| `codex/tools/gitea-pat-helper/README.md` | helper 构建输入树的一部分；树内任何字节变化都让 VM 漂移报 `helper-build-input-differ`，需在 VM 重建 helper |
 | `codex/tools/ensure-gitea-collaborator.sh` | 已退役，只作历史兼容与回归证据（`06`），不再演进 |
 
 ### D4 项目需求的准入规则

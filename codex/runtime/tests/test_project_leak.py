@@ -144,6 +144,16 @@ class ProjectLeakTests(unittest.TestCase):
         # A row after the next heading is outside the table.
         self.write("docs/adr/0001-platform-boundary.md", self.adr("other.md").replace("later.md", "README.md"))
         self.assertEqual(self.run_checker()[0], 1)
+        # Rows in a fenced block, after the table or under an indented heading are not registered.
+        base = "### D3\n\n#### D3 登记的例外\n\n| 文件 | 理由 |\n|---|---|\n| `other.md` | x |\n"
+        for tail in ("\n```\n| `README.md` | example |\n```\n", "\nprose\n\n| `README.md` | x |\n",
+                     "   ### D4\n| `README.md` | x |\n"):
+            with self.subTest(tail=tail):
+                self.write("docs/adr/0001-platform-boundary.md", base + tail)
+                self.assertEqual(self.run_checker()[0], 1)
+        fenced_first = "#### D3 登记的例外\n\n```\n| `other.md` | x |\n```\n\n| 文件 | 理由 |\n|---|---|\n| `README.md` | x |\n"
+        self.write("docs/adr/0001-platform-boundary.md", fenced_first)
+        self.assertEqual(self.run_checker()[0], 0)
         (self.root / "docs/adr/0001-platform-boundary.md").unlink()
         code, _, err = self.run_checker()
         self.assertEqual(code, 1)

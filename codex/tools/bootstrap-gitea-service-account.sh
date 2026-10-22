@@ -136,11 +136,13 @@ GITEA_BIN="${GITEA_BIN:-/usr/local/bin/gitea}"
 GITEA_CONFIG="${GITEA_CONFIG:-/etc/gitea/app.ini}"
 GITEA_LOCAL_URL="${GITEA_LOCAL_URL:-http://127.0.0.1:3000}"
 # #416: the default credential root is the site value of the broker manifest
-# (source checkout first, then the installed copy), never a literal account path.
+# (source checkout first, then the installed copy: installed at
+# <prefix>/libexec/aisoft, ROOT is <prefix> and the manifest is in
+# <prefix>/share/aisoft), never a literal account path.
 credential_root="${AISOFT_CREDENTIAL_ROOT:-}"
 if [[ -z "$credential_root" ]]; then
   for access_manifest in "$ROOT/codex/config/host-access-broker.json" \
-    /usr/local/share/aisoft/host-access-broker.json; do
+    "$ROOT/share/aisoft/host-access-broker.json"; do
     [[ -f "$access_manifest" ]] || continue
     credential_root="$(jq -er '.site.credential_root_vm | select(type == "string" and length > 0)' \
       "$access_manifest")" || credential_root=''

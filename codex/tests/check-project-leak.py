@@ -63,13 +63,27 @@ def registered_exceptions(root: Path) -> set[str]:
     lines = (root / ADR).read_text(encoding="utf-8").splitlines()
     if EXCEPTIONS_HEADING not in lines:
         raise ValueError(f"{ADR}: missing {EXCEPTIONS_HEADING!r}")
-    paths = set()
+    # Only the first table after the heading counts: fenced blocks are skipped,
+    # and the table ends at its first non-row line or at any heading.
+    paths, in_table, in_fence = set(), False, False
     for line in lines[lines.index(EXCEPTIONS_HEADING) + 1:]:
-        if line.startswith("#"):
+        stripped = line.strip()
+        if stripped.startswith(("```", "~~~")):
+            if in_table:
+                break
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if stripped.startswith("#"):
             break
-        match = re.match(r"\|\s*`([^`]+)`\s*\|", line)
-        if match:
-            paths.add(match.group(1))
+        if stripped.startswith("|"):
+            in_table = True
+            match = re.match(r"\|\s*`([^`]+)`\s*\|", stripped)
+            if match:
+                paths.add(match.group(1))
+        elif in_table:
+            break
     return paths
 
 

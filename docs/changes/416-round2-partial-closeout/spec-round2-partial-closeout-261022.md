@@ -32,7 +32,6 @@ git_scope:
   - codex/tests/test-platform-readiness.sh
   - codex/tools/aisoft-platform-readiness.sh
   - codex/tools/bootstrap-gitea-service-account.sh
-  - codex/tools/gitea-pat-helper/README.md
   - codex/tools/gitea-readonly.sh
   - codex/tools/rotate-gitea-service-account.md
   - docs/adr/0001-platform-boundary.md
@@ -62,12 +61,12 @@ git_scope:
 | `07`、`12`、`13`、`14`、`15` 分册 | 项目名 28 | 清除 | `MyApp` 是通用示例名，碰巧与已注册测试仓同名；改为 `ExampleApp` / `example-app` |
 | `codex/tools/bootstrap-gitea-service-account.sh` | 站点 1 | 清除 | 凭据根默认值改读 manifest `site.credential_root_vm`（源 checkout 优先，否则已装 manifest），`AISOFT_CREDENTIAL_ROOT` 照旧覆盖 |
 | `codex/tools/gitea-readonly.sh` | 站点 2 | 清除 | 默认凭据文件改为 `$HOME/<site.orbstack_machine>-credentials.txt`，从同仓 manifest 读，`GITEA_CREDENTIAL_FILE` 照旧覆盖 |
-| `codex/tools/gitea-pat-helper/README.md` | 站点 2 | 清除 | PR 链接改为「PR #332」，不带主机 |
 | `codex/tools/rotate-gitea-service-account.md` | 站点 5 | 清除 | 路径、机器与账号改写成 `site.*` 键名 |
 | `architecture/catalog-releases/2026.08.3/catalog.json` | 项目名 3 | 例外 | 已发布快照不可变 |
 | `architecture/catalog.json` | 项目名 3 | 例外 | 兼容性说明记录的是观测证据；改字节就要升 catalog revision，牵动 profile、fixture 与各项目 lock，属于 NewEMaint 依赖的 architecture 合同（路线图总规则 2） |
 | `architecture/evidence/inventory.json`、`official-sources.md` | 项目名 6，站点 22 | 例外 | 观测证据记录，性质同 `docs/changes/` |
 | `architecture/decisions/0005`–`0007` | 站点各 1 | 例外 | 决策记录的关联链接，性质同 `docs/adr/`；该目录由 `architecture/install.sh` 装到 target 主机，改字节要第三台重装 |
+| `codex/tools/gitea-pat-helper/README.md` | 站点 2 | 例外 | helper 构建输入树的一部分，任何字节变化都让 VM 漂移报 `helper-build-input-differ`（`check-installed-drift.py` 的 `same_tree_since`），需在 VM 重建 helper；T01 第 1 轮审查后由清除改为例外 |
 | `codex/tools/ensure-gitea-collaborator.sh` | 站点 2 | 例外 | 已退役，只作历史兼容与回归证据（`06`），不再演进 |
 
 另把守卫已放行、ADR 未写明的 `codex/vendor/`（上游技能包原样快照）补进 D3 允许位置。

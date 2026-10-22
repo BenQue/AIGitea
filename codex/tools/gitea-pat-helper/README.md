@@ -1,6 +1,6 @@
 # #316 固定版本 PAT model helper
 
-本目录提供 #316 已合并的固定版本 helper 源码、构建入口与隔离验证。源码随 PR 332 于 2026-10-03 进入稳定 main；安装与真实 PAT 轮换由独立 #333 现场合同验收，源码合并不证明现场动作已执行。
+本目录提供 #316 已合并的固定版本 helper 源码、构建入口与隔离验证。源码随 [PR #332](http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/332) 于 2026-10-03 进入稳定 main；安装与真实 PAT 轮换由独立 [#333](http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/333) 现场合同验收，源码合并不证明现场动作已执行。
 
 依赖固定 `code.gitea.io/gitea v1.26.4`、Go `1.26.3`；`build-lock.json` 保存官方工具链归档 SHA-256、module sum 与 token model 文件摘要。`go.mod/go.sum` 固定实际依赖图，上游 compatibility replacements 显式保留。构建工具先核对官方归档摘要，再逐文件核对实际 GOROOT（拒绝额外文件与 symlink），将归档和 tree 摘要写入 provenance；随后核对 exact pin、module bytes 和 `go mod verify`，运行真实 SQLite model 测试后生成 binary SHA-256、source hashes 与 Go build info 回执。Mac 构建只证明该平台的源码/隔离 DB 行为；Linux 制品与 CI 的 T04 验证见 [#316 verification](../../../docs/changes/316-service-pat-rotation/verification-service-pat-rotation-261002.md)，不能由 Mac 结果推导。
 

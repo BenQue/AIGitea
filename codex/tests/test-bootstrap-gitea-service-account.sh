@@ -301,6 +301,29 @@ jq --arg root "$TMP/credentials" '.site.credential_root_vm = $root' \
   "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
   >"$site_layout/codex/config/host-access-broker.json"
 
+# The installed copy lives in <prefix>/libexec/aisoft and falls back to the
+# manifest in <prefix>/share/aisoft. The mode gate runs after the credential
+# root is resolved, so reaching it proves the fallback found the site value.
+installed_layout="$TMP/installed-layout"
+mkdir -p "$installed_layout/libexec/aisoft" "$installed_layout/share/aisoft"
+cp "$ROOT/codex/tools/bootstrap-gitea-service-account.sh" \
+  "$installed_layout/libexec/aisoft/bootstrap-gitea-service-account"
+jq --arg root "$TMP/installed-credentials" '.site.credential_root_vm = $root' \
+  "$ROOT/codex/tests/fixtures/manifests/host-access-broker.json" \
+  >"$installed_layout/share/aisoft/host-access-broker.json"
+if env -u AISOFT_CREDENTIAL_ROOT AISOFT_ACCOUNT_BOOTSTRAP_MODE=not-authorized \
+    bash "$installed_layout/libexec/aisoft/bootstrap-gitea-service-account" \
+    --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
+    --username betaapp-agent \
+    --token-kind project-agent \
+    --credential-output "$TMP/installed-credentials/betaapp-agent-project-agent.token" \
+    >"$TMP/installed-layout.out" 2>"$TMP/installed-layout.err"; then
+  printf '%s\n' 'installed-layout bootstrap unexpectedly succeeded' >&2
+  exit 1
+fi
+grep -Fq 'AISOFT_ACCOUNT_BOOTSTRAP_MODE=approved-issue-35 is required' "$TMP/installed-layout.err"
+[[ ! -e "$TMP/installed-credentials" ]]
+
 output="$TMP/credentials/betaapp-agent-project-agent.token"
 result="$(env -u AISOFT_CREDENTIAL_ROOT bash "$site_layout/codex/tools/bootstrap-gitea-service-account.sh" \
   --manifest "$ROOT/codex/tests/fixtures/manifests/gitea-governance.json" \
