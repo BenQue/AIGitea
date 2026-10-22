@@ -1,6 +1,6 @@
 ---
 name: aisoft-platform
-description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Use when 在已接入平台的项目上开发/修复/部署、接入新项目到平台、走 Issue→triage→spec/plan→实现→PR→部署流程、检查私有 Gitea 仓库/Issue/PR/Actions/分支保护、或排查平台 CI/部署/agent 问题。Also use to operate or onboard projects on the AISoft self-hosted Gitea delivery platform: Issue analysis, small-or-complex routing, spec/plan contracts, session implementation work, provider coexistence, CI/deployment incidents, first non-production deployments, rollback planning, production script boundaries. 触发词：AISoft、AIGitea、平台 VM、Gitea Issue、判级、small/complex、change 分支、host-access broker、architecture lock、部署失败、接入平台、project-align。
+description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Use when 在已接入平台的项目上开发/修复/部署、接入新项目到平台、走 Issue→triage→spec/plan→实现→PR→部署流程、检查私有 Gitea 仓库/Issue/PR/Actions/分支保护、或排查平台 CI/部署/agent 问题。Also use to operate or onboard projects on the AISoft self-hosted Gitea delivery platform: Issue analysis, small-or-complex routing, spec/plan contracts, session implementation work, provider coexistence, CI/deployment incidents, first non-production deployments, rollback planning, production script boundaries. 触发词：AISoft、AIGitea、新用户上手、平台 VM、Gitea Issue、判级、small/complex、change 分支、host-access broker、architecture lock、部署失败、接入平台、project-align。
 ---
 
 # AISoft 自托管交付平台（v3.6）
@@ -166,6 +166,7 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 
 ## 接入新项目 / 项目对齐 / 私有访问
 
+- 新用户上手：用户要按所用工具（Claude Code、Codex、Cursor）配好本机并开始第一个项目时，按 [references/getting-started.md](references/getting-started.md) 一步一步带用户走。
 - 新项目接入：改基础设施之前先读 [references/onboarding-runbook.md](references/onboarding-runbook.md)——governance manifest + project-agent gate、host-role gate、architecture 声明、CI/部署与验收顺序都有既定约定，不得跳步。
 - 项目对齐（初始化=更新，幂等）：入口 [references/project-align.md](references/project-align.md)——checklist 盘点缺口、逐项走目标仓独立 Issue/AI 判级的单一 PR，不假设每个对齐缺口都是 small；确定性核对用 `aisoft project-check`（PASS/GAP，只读）。项目按版本化使用发布包对齐：合同入口是项目内 `.aisoft/platform-usage.md`，版本以 `.aisoft/platform-usage.lock.json` 为准；导出与生成采用改动是维护层动作（`project-align.md`「维护层」节）。
 - 私有 Gitea 检查：先读 [references/private-gitea-access.md](references/private-gitea-access.md)；**匿名 404 不构成不存在证据**，按 authenticated ladder 走。
