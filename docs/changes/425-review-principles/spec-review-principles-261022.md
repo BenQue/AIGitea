@@ -34,7 +34,7 @@ git_scope:
 
 ## 精确候选与决定
 
-基线 `9964f740ec6b4328714c1c5244da8ea7b6d9cc8a`（fresh `origin/main`）。冻结的 [治理 patch](proposals/engineering-principles.patch) 只改现有 reference；应用后的全文 SHA-256 必须为 `07c78311875b6c99a68a131d8b1adaf5894d8faf1cb02902e9335bd19983f456`。
+基线 `9964f740ec6b4328714c1c5244da8ea7b6d9cc8a`（fresh `origin/main`）。冻结的 [治理 patch](proposals/engineering-principles.patch) 只改现有 reference（零上下文格式，应用或反向检查使用 `--unidiff-zero`）；应用后的全文 SHA-256 必须为 `07c78311875b6c99a68a131d8b1adaf5894d8faf1cb02902e9335bd19983f456`。
 保留引言和四项原有工程原则，在来源前加入“让审查发现真实问题，并促进理解与收敛”及五条正文，末尾补充来源与适用边界。此文案已由 Claude Code 审议并经负责人批准。
 沿用既有分发机制，`usage/bundle.json` 只用现有 `--release` 追加 1.15.0 / minor；成员集合与所有已发布历史保持不变。
 

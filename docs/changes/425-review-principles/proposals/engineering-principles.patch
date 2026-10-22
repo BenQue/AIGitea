@@ -1,9 +1,8 @@
+diff --git a/skills/aisoft-platform/references/engineering-principles.md b/skills/aisoft-platform/references/engineering-principles.md
+index ca13891c..a2c7a366 100644
 --- a/skills/aisoft-platform/references/engineering-principles.md
 +++ b/skills/aisoft-platform/references/engineering-principles.md
-@@ -27,8 +27,17 @@
- - 根据验证结果持续修正，既有自主执行与停止边界仍适用；不能通过削弱验收标准、忽略失败或选择偶然成功来证明完成。
- - 结论忠于实际证据，未验证的明确说明；源码、局部测试、安装和实际运行的证据不能互相替代。
- 
+@@ -29,0 +30,8 @@
 +## 让审查发现真实问题，并促进理解与收敛
 +
 +- 从变更意图、使用场景和系统上下文判断正确性与影响，帮助参与者理解关键取舍。审查的价值在于减少真实缺陷与后续维护代价，不以评论数量衡量成效，也不把个人偏好当成缺陷；既有项目标准仍须遵守。
@@ -12,10 +11,7 @@
 +- 让审查推动问题得到完整解决：关注根因与本次改动涉及的同类问题，范围外的问题另行记录；后续判断围绕修复、变化及其影响展开，避免重复提出已解决的问题或把无关改动混入当前范围。收敛不能以忽略新的可靠证据或降低验收标准为代价。
 +- 从遗漏缺陷、事故和误报中学习，辨别问题来自实现、上下文还是判断方法。反复出现且可确定判断的问题，宜按现有合同逐步转化为更早的验证或更清晰的约定；改进是否有效，应同时考虑缺陷后果与人的处理成本。
 +
- ## 来源与适配
- 
- 思想参考 [multica-ai/andrej-karpathy-skills 的固定版本](https://github.com/multica-ai/andrej-karpathy-skills/blob/2c606141936f1eeef17fa3043a72095b4765b9c2/skills/karpathy-guidelines/SKILL.md)，
- commit `2c606141936f1eeef17fa3043a72095b4765b9c2`。该仓库由社区根据 Andrej Karpathy 的观察整理。
+@@ -34 +42,2 @@ commit `2c606141936f1eeef17fa3043a72095b4765b9c2`。该仓库由社区根据 And
 -本文结合平台合同自行表述，保留四项原则，并明确按影响澄清、保留必要防护、完整修复和真实验证的边界。
 +审查思想另参考 Anthropic 的 [How the Claude Code team does code review](https://claude.dev/blog/solving-code-review-at-anthropic/)（2026-10-15）。
 +本文结合平台合同自行表述，吸收理解问题、简单设计、聚焦改动、真实验证与有效审查的思想；具体流程仍由平台和项目合同确定，不直接移植来源文章的组织机制或工具配置。
