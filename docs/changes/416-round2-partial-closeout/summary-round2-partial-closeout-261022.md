@@ -32,7 +32,7 @@ route:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/416-round2-partial-closeout
 pr_url:
 created: 2026-10-22
