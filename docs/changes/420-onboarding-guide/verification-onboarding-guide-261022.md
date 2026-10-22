@@ -68,6 +68,7 @@ updated: 2026-10-22
 | 2 | Claude | Codex（gpt-6-astra，high，read-only） | `436c0d16b03ec3eea15aa2814b523940e9022cd3` | FAIL | 上轮 7 条中 6 条确认修复、1 条部分修复；新 3 条：以 `RESULT` 为门槛会阻断单工具用户、Codex 项目级 Matt 无工具核对、Cursor 核对排在采用之前。改为按所选工具逐行判定、Cursor 移到采用后、如实写 Codex 项目级 Matt 未核对 |
 | 3 | Claude | Codex（gpt-6-astra，high，read-only） | `21ad76945efc0f14cfefe8012e6bf03595a0c4d2` | PASS | 前两轮 10 条逐条确认修复，无新发现。此后合入 main（#419）并写入审查记录；负责人确认并入范围 B 后，`8efe03ac` 修改了五个文件并重发 1.13.0，见第 4 轮 |
 | 4 | Claude | Codex（gpt-6-astra，high，read-only） | `8efe03ac7dcc4e1063fd7e75653720776db5046b` | FAIL | 范围 B 五个文件、发布包与 README 无发现；1 条 P2：本记录第 3 轮行仍称发布包未再改动且缺 AC-7。已修正本记录 |
+| 5 | Claude | Codex（gpt-6-astra，high，read-only） | `8629b94db76d4751e011a9b886034214f681d3eb` | FAIL | 第 4 轮发现确认修复；1 条 P2：审查证据索引预填了第 5 轮占位。已改为写实际 SHA 与结论 |
 
 ## 遗留风险与未完成项
 
