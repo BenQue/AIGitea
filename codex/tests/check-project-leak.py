@@ -58,54 +58,31 @@ def site_values(root: Path) -> list[str]:
     return sorted({value.lower() for value in values if value}, key=lambda v: (-len(v), v))
 
 
-FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
-
-
-def hidden_at(lines: list[str], index: int) -> bool:
-    """Whether line `index` is inside a fenced block or an HTML comment opened earlier.
-
-    Fences follow CommonMark (same character, at least as long, nothing after the
-    closing run); comment markers inside fences do not count."""
-    fence, comment = None, False
-    for line in lines[:index]:
-        match = FENCE.match(line)
-        if fence is not None:
-            if match and match.group(1)[0] == fence[0] and len(match.group(1)) >= len(fence) \
-                    and not line[match.end():].strip():
-                fence = None
-            continue
-        if not comment and match:
-            fence = match.group(1)
-            continue
-        position = 0
-        while True:
-            marker = "-->" if comment else "<!--"
-            found = line.find(marker, position)
-            if found < 0:
-                break
-            comment, position = not comment, found + len(marker)
-    return fence is not None or comment
+# Anything Markdown could use to hide or fake a row. The ADR is read without
+# rendering, so instead of parsing these the whole file may not contain them.
+HIDING = re.compile(r"```|~~~|<!--|-->|^ {0,3}<[A-Za-z/!?]")
 
 
 def registered_exceptions(root: Path) -> set[str]:
     """#416: the backticked paths in the first column of the ADR's D3 exception table.
 
-    The register is read strictly instead of rendered: the heading must appear
-    exactly once, at column 0, and its section (up to the next heading) may hold
-    only prose and one pipe table with rows at column 0. A fence, an HTML
-    comment or an indented line anywhere in the section fails closed, so no
-    hidden or example row can register a path."""
+    The register is read strictly instead of rendered: ADR 0001 may contain no
+    fence, HTML comment or raw HTML block anywhere; the heading must appear
+    exactly once, at column 0; and its section (up to the next heading) may hold
+    only prose and one pipe table with rows at column 0. Anything else fails
+    closed, so no hidden or example row can register a path."""
     lines = (root / ADR).read_text(encoding="utf-8").splitlines()
+    for number, line in enumerate(lines, 1):
+        if HIDING.search(line):
+            raise ValueError(f"{ADR}:{number}: no fences, HTML comments or raw HTML blocks allowed")
     if lines.count(EXCEPTIONS_HEADING) != 1:
         raise ValueError(f"{ADR}: {EXCEPTIONS_HEADING!r} must appear exactly once")
-    if hidden_at(lines, lines.index(EXCEPTIONS_HEADING)):
-        raise ValueError(f"{ADR}: {EXCEPTIONS_HEADING!r} sits inside a fence or an HTML comment")
     paths, tables, previous_row = set(), 0, False
     for line in lines[lines.index(EXCEPTIONS_HEADING) + 1:]:
         if line.startswith("#"):
             break
-        if re.match(r"\s*(```|~~~)|.*(<!--|-->)|( {4}|\t)", line):
-            raise ValueError(f"{ADR}: the exception register may not hold fences, comments or indented lines")
+        if re.match(r"( {4}|\t)", line):
+            raise ValueError(f"{ADR}: the exception register may not hold indented lines")
         row = line.startswith("|")
         if row and not previous_row:
             tables += 1

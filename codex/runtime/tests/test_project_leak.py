@@ -157,20 +157,16 @@ class ProjectLeakTests(unittest.TestCase):
                 code, _, err = self.run_checker()
                 self.assertEqual(code, 1)
                 self.assertIn("README.md: baseline entry not registered", err)
-        # A fence or comment opened before the heading and closed after the next one
-        # hides the whole register.
-        for opener, closer in (("<!--", "-->"), ("~~~", "~~~"), ("````", "````")):
-            with self.subTest(opener=opener):
-                wrapped = (f"### D3\n\n{opener}\n#### D3 登记的例外\n\n| 文件 | 理由 |\n|---|---|\n"
-                           f"| `README.md` | x |\n\n### D4\n{closer}\n")
-                self.write("docs/adr/0001-platform-boundary.md", wrapped)
+        # A fence, comment or raw HTML block anywhere in the ADR fails closed, even a
+        # closed one before the heading, and even the variants a renderer reads differently
+        # (a backtick info string that cannot open a fence, a closer followed by NBSP).
+        for prefix in ("<!--\n", "~~~\n", "````\n", "<!-- note -->\n", "```\n<!--\n```\n",
+                       "``` `\n<!--\n```\n", "```\n```\u00a0\n", "<pre>\n"):
+            with self.subTest(prefix=prefix):
+                self.write("docs/adr/0001-platform-boundary.md", prefix + self.adr("README.md"))
                 code, _, err = self.run_checker()
                 self.assertEqual(code, 1)
-                self.assertIn("inside a fence or an HTML comment", err)
-        # Closed comments and fences before the heading are fine.
-        self.write("docs/adr/0001-platform-boundary.md",
-                   "<!-- note -->\n```\n<!--\n```\n" + self.adr("README.md"))
-        self.assertEqual(self.run_checker()[0], 0)
+                self.assertIn("no fences, HTML comments or raw HTML blocks allowed", err)
         commented = "#### D3 登记的例外\n\n<!--\n| 文件 | 理由 |\n|---|---|\n| `README.md` | x |\n-->\n"
         self.write("docs/adr/0001-platform-boundary.md", commented)
         self.assertEqual(self.run_checker()[0], 1)
