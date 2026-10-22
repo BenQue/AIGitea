@@ -20,6 +20,12 @@ This skill adapts the complete vendored Matt skills to AISoftPlatform. It does n
    governance step.
 4. Confirm `docs/agents/issue-tracker.md`, `triage-labels.md` and `domain.md` exist before the first Issue flow.
 
+## Shared engineering principles
+
+Consult the [shared engineering principles](../aisoft-platform/references/engineering-principles.md) for planning,
+implementation and review, unless already read in this session. They guide engineering judgement; concrete steps
+remain with the current Issue and project workflow. They add no interview, plan or confirmation stage.
+
 ## Per-Issue flow
 
 1. `$triage #N` — preserve Matt's complete verify/grill/brief flow. Mutate triage labels through the platform label

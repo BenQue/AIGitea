@@ -35,6 +35,11 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 - **没有无人值守引擎**：自动化最多止于 PR 候选，重建条件见 ADR 0002「重开条件」。
 - **部署边界**：流程不变量全平台一致——不可变制品、测试与生产同字节晋级、真实健康检查、可回滚、生产 script-only；AI 可参与开发/测试环境首次部署并固化为脚本（两次幂等 + 一次故意失败回滚），生产只跑已验证脚本。交付形态由项目自己的 profile 与 `AGENTS.md` 声明和实现，平台不规定。
 
+## 共享工程原则
+
+方案、实现与审查参考 [共享工程原则](references/engineering-principles.md)。首次使用时阅读，本会话已读且内容未变时不重复加载。
+它是辅助工程判断的纲领性指导；具体开发步骤沿用当前 Issue 与项目流程，不增加确认点或固定检查表。
+
 ## 目标项目与 governance manifest
 
 任何 Gitea 或 Git 写操作之前先显式选定目标项目。broker manifest 的 `projects[]` 把一个项目 id 绑定到 exact 仓库、project agent 与 Mac checkout。不要从别的项目或示例推断目标仓库，也不要让两个项目共用 worktree。

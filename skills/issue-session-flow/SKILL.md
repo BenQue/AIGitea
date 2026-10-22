@@ -172,6 +172,9 @@ triage、判级与路由要求的 semantic docs 完整后，输出 exact Issue �
 
 人可以改任何一格；改了就把哪一格、为什么写进 summary 的 `override_reason`，再把 summary 改为 `approved`。
 
+审议改动范围与验收证据时参考 [共享工程原则](../aisoft-platform/references/engineering-principles.md)。
+它提供判断依据，沿用当前 Issue 的流程与记录，不另设开发步骤、确认点或固定检查表。
+
 ## 确认点 2：准备提交最终 PR
 
 本地验证完成后进入 `AWAITING_PR_CONFIRMATION`；在人确认之前不 push、不建 PR。
