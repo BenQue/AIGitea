@@ -20,8 +20,9 @@ exact URL, owner and repository from the platform's broker manifest or `origin`;
   existing Issue with a link and `triage/ready-for-agent`; it does not create another Issue or set `approved`.
 - `$to-tickets #N` publishes the approved vertical-slice graph to the active `plan` path. Ticket IDs are `T01`, `T02`,
   and so on; blocking edges use `blocked_by`. Default mode does not create child Issues.
-- `$implement #N Txx` implements only that frontier ticket and may commit only on the current exact readable change branch. It must not
-  push, create or merge a PR, change labels, or deploy.
+- The plan is executed as the route card says: Codex runs `$implement #N Txx`; Claude and Cursor execute the mapped plan with
+  superpowers `executing-plans`. Either way one frontier ticket at a time, committing only on the current exact readable change
+  branch, and never push, create or merge a PR, change labels, or deploy.
 
 Resolve document names with:
 

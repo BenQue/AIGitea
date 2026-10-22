@@ -4331,22 +4331,22 @@
     {
       "version": "1.13.0",
       "released": "2026-10-22",
-      "bundle_digest": "sha256:4b57133ba2f56739ce246811855f3b5f083ff42138e2d3a9e4bc385b167de561",
+      "bundle_digest": "sha256:a75006497075fe02f322c38b3aced1c6c9bfc6c63c3d12842c29e11ac00dafef",
       "members": [
         {
           "source": "usage/CONTRACT.md",
           "mode": "exact",
           "target": ".aisoft/platform-usage.md",
           "check": "platform-pin",
-          "sha256": "a6340a5cd07dbaca082e43d667350d76d7bf25c6955251adaf0946e9791262ee"
+          "sha256": "323c8478ebfd3cf46ab65b40ef4abd7548c3ea9fc23be733e2945b4c9e5d71a8"
         },
         {
           "source": "templates/project/AGENTS.md",
           "mode": "pointer",
           "target": "AGENTS.md",
           "check": "pointer-sections",
-          "sha256": "f32e4649fe3c4e9f6678cd0fad4e4ccdf8a7839e565494ba51d62f42534c8124",
-          "pointer_sha256": "4644dd5e9e98bcc8b712427511839a6af69e60b398f02e6eb097d7f19d1a41df"
+          "sha256": "cf2975797192f34150e0faa53b26bd0a511bc1d54af8ab0f1e6f6ecea83245cd",
+          "pointer_sha256": "e099cf9b720e92013e8daad30b1368ba66744b68fc0923955b8f54770a70e095"
         },
         {
           "source": "templates/project/CLAUDE.md",
@@ -4393,7 +4393,7 @@
           "source": "templates/docs/agents/issue-tracker.md",
           "mode": "seed",
           "target": "docs/agents/issue-tracker.md",
-          "sha256": "e3bee7ec6bfe4b4521879c9b635b5a5267a836a4401158642f63476aca5cc592"
+          "sha256": "2395e9ff7d10bf402d90d7bea1903aacc56b88ba6564adee1e4bde1b404be434"
         },
         {
           "source": "templates/docs/agents/triage-labels.md",
@@ -4439,7 +4439,7 @@
         {
           "source": "skills/aisoft-platform/SKILL.md",
           "mode": "skill",
-          "sha256": "82ed4d698c4113c161e9dac82a890e237aca242f49635717b95f583b87b38d12"
+          "sha256": "2bf61fc295124cab6c34e3b72b0ceff84b7d906b7021456ee314ee01d2708867"
         },
         {
           "source": "skills/aisoft-platform/agents/openai.yaml",
@@ -4868,7 +4868,7 @@
           "sha256": "316d62b1c8ab38a911627149663b194bf8fde2cf074522fb9511f40cca9c0600"
         }
       ],
-      "notes": "#420：aisoft-platform 技能新增上手指南 references/getting-started.md，按 Claude Code、Codex、Cursor 带新用户配好本机并跑通第一张 Issue",
+      "notes": "#420：aisoft-platform 技能新增上手指南 references/getting-started.md；技能、使用合同、项目 AGENTS 模板与 issue-tracker 种子的实现入口改为以路由表为准（Claude/Cursor 用 executing-plans，Codex 用 $implement #N Txx）",
       "compatibility": "minor"
     }
   ]
