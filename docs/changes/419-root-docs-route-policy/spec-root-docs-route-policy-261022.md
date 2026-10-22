@@ -13,6 +13,15 @@ depends_on: []
 branch: change/419-root-docs-route-policy
 created: 2026-10-22
 updated: 2026-10-22
+git_scope:
+  - AGENTS.md
+  - README.md
+  - docs/changes/419-root-docs-route-policy/plan-root-docs-route-policy-261022.md
+  - docs/changes/419-root-docs-route-policy/spec-root-docs-route-policy-261022.md
+  - docs/changes/419-root-docs-route-policy/summary-root-docs-route-policy-261022.md
+  - docs/changes/419-root-docs-route-policy/verification-root-docs-route-policy-261022.md
+  - docs/governance/remediation-roadmap.md
+  - docs/governance/review-evidence-index.md
 ---
 
 # 根目录文档对齐 R10b 路由表
