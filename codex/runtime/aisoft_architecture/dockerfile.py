@@ -299,9 +299,11 @@ def _guarded(name: str, default: str, body: list[tuple[int, str, str]],
     RUN whose failure fails the build, with no SHELL or shadowing ENV before it.
 
     A build argument may also name any earlier stage, which carries that
-    stage's ENV and SHELL into this one, so earlier stages must be clean too.
+    stage's ENV and SHELL into this one and fires its ONBUILD triggers first,
+    so earlier stages must be clean and free of ONBUILD.
     """
-    if any(_may_shadow(name, instruction, arguments) for _, instruction, arguments in earlier):
+    if any(instruction == "ONBUILD" or _may_shadow(name, instruction, arguments)
+           for _, instruction, arguments in earlier):
         return False
     guard = re.compile(rf'test "\$\{{{name}\}}" = "{re.escape(default)}"(?:\s*$|\s+&&\s+(.*))')
     for _, instruction, arguments in body:

@@ -325,6 +325,9 @@ class DockerfileInputTests(unittest.TestCase):
             # Codex round 4: a build argument can pick an earlier stage and its ENV/SHELL.
             f"ARG BASE={NODE22}\nFROM {NODE22} AS alternate\nENV BASE={NODE22}\nFROM ${{BASE}}\n{guard}",
             f"ARG BASE={NODE22}\nFROM {NODE22} AS alternate\nSHELL [\"/bin/true\"]\nFROM ${{BASE}}\n{guard}",
+            # Codex round 6: ONBUILD triggers of a picked earlier stage run first.
+            f"ARG BASE={NODE22}\nFROM {NODE22} AS alternate\nONBUILD SHELL [\"/bin/sh\", \"-c\", \"true\"]\nFROM ${{BASE}}\n{guard}",
+            f"ARG BASE={NODE22}\nFROM {NODE22} AS alternate\nONBUILD ENV BASE={NODE22}\nFROM ${{BASE}}\n{guard}",
             # An ARG line that cannot be tokenized drops the names it mentions.
             f"ARG BASE={NODE22} X=a\\ b\nFROM ${{BASE}}\n{guard}",
             f"ARG BASE={NODE22} X=\"open\nFROM ${{BASE}}\n{guard}",
