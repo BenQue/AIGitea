@@ -22,6 +22,7 @@ git_scope:
   - 13-项目结果迁移与内网切换实施手册.md
   - 14-Windows部署与迁移验收清单.md
   - 15-VMware-Fusion-Windows-ARM原型实施手册.md
+  - README.md
   - codex/config/project-leak-baseline.json
   - codex/runtime/tests/test_project_leak.py
   - codex/tests/check-project-leak.py

@@ -14,7 +14,7 @@ source、本机安装、项目采用与现场运行是各自独立的证据层�
 ```bash
 # 源码事实（只读源码，不调用 broker）：治理仓库数、broker 操作数、installer 数、标签数、发布包版本、外部技能包 pin
 bash codex/tools/aisoft-platform-readiness.sh --render-readme
-# 本机安装与 live 读回（只读）
+# 本机安装与 live 读回（只读，在 Mac 上跑；VM 只跑 drift --host vm，见 06 §1）
 bash codex/tools/aisoft-platform-readiness.sh
 bash codex/tools/check-installed-drift.sh
 ```

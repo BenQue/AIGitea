@@ -18,14 +18,17 @@ Usage: aisoft-platform-readiness.sh [--repo PATH] [--project ID] [--home PATH] [
 
 Reports sanitized SOURCE, INSTALLED_CODEX, INSTALLED_CLAUDE, LIVE_REPO,
 LIVE_PROTECTION and LIVE_VM_TIMERS states. The command is read-only and exits 1
-when any layer is DRIFT, GAP or BLOCKED. PAT_AGE is a NOTE only (#397): the age
+when any layer is DRIFT, GAP or BLOCKED. It runs on the Mac only (#416): the
+VM is read through the broker, and on any other host the report exits 2 with
+HOST ERROR host-mismatch before reading anything. Both hosts run
+check-installed-drift.sh; readiness runs on the Mac. PAT_AGE is a NOTE only (#397): the age
 of each manifest-declared Mac credential against the 180-day rotation period,
 from its rotation receipt or else its creation marker; it never reads a token
 and never changes the exit code.
 
 --render-readme prints the README status table from source files only (#403):
 it reads the checkout, never the broker, installed surfaces or the network, and
-exits 1 when a source fact is unreadable.
+exits 1 when a source fact is unreadable. It runs on any host.
 EOF
 }
 
@@ -120,6 +123,18 @@ if ((render_readme)); then
   table="$(render_readme_table)" || exit 1
   printf '%s\n' "$table"
   exit 0
+fi
+
+# #416: readiness is a Mac tool. Its installed layers are the Mac's skills and
+# it reads VM timers through the broker's OrbStack entry, so inside the VM every
+# layer reports a false failure. Refuse before reading anything; the VM checks
+# itself with check-installed-drift.sh --host vm.
+host_os="$(uname -s 2>/dev/null || true)"
+if [[ "$host_os" != Darwin ]]; then
+  echo "HOST ERROR host-mismatch os=${host_os:-unknown}"
+  echo 'HOST NOTE readiness runs on the Mac only (it reads the VM through the broker);' \
+    'on the VM run codex/tools/check-installed-drift.sh --host vm'
+  exit 2
 fi
 
 overall=0
