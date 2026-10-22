@@ -34,9 +34,9 @@ route:
 confidence: high
 override_reason: ''
 depends_on: []
-status: approved
+status: pr-open
 branch: change/413-dockerfile-arg-drift-host
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/415
 created: 2026-10-21
 updated: 2026-10-21
 ---
