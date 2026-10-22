@@ -22,7 +22,7 @@ updated: 2026-10-22
 ## 基线与范围
 
 - 基线：`0bcc3cd863afef3425e9dcdda5e1053a3b0ad097`（`origin/main`）。
-- 代码候选 head：`694b7bc6`（T01 `3b7f0d84`、T02 `02f5dd8e`、T03 `096f09cf`、T04 `8f61b5a4`，其余为审查修复）。本记录之后的 commit 只写本文件与审查索引一行。
+- 代码候选 head：`82c0355e`（T01 `3b7f0d84`、T02 `02f5dd8e`、T03 `096f09cf`、T04 `8f61b5a4`，其余为审查修复）。本记录之后的 commit 只写本文件与审查索引一行。
 - 环境：macOS 本机（bash 3.2），`rg` 为真实 `/opt/homebrew/bin/rg`；VM 经 `/usr/local/bin/orb -m gitea-ci`。
 
 ## 执行结果
@@ -53,7 +53,7 @@ SMOKE_PLACEHOLDER
 | AC | 结果 | 依据 |
 |---|---|---|
 | AC-1 | PASS | 路线图里 `#377 进行中` 与 `` `main` = `1db191e` `` 均无命中；R6、#370 行与审查索引一致；索引补 R9–R14、R16 与 #406 共 10 行，head 只取仓内与 PR 正文，查不到写「未记录」 |
-| AC-2 | PASS | 清除项命中归零；ADR D3 例外表 9 个文件；`check-project-leak.py` 要求基线每个文件都在表内，且严格读表（ADR 全文出现围栏、HTML 注释或原始 HTML 块，或登记节有缩进行、第二张表、标题重复，或表缺固定表头、分隔行、行格式不对，或 ADR 全文含空格、制表符、LF 以外的空白或控制字符，一律失败）；基线只减不增。处置表一处更改：helper README 由清除改为例外（构建输入树，改字节使 VM 报 `helper-build-input-differ`） |
+| AC-2 | PASS | 清除项命中归零；ADR D3 例外表 9 个文件；`check-project-leak.py` 要求基线每个文件都在表内，且严格读表（ADR 全文出现围栏、HTML 注释或原始 HTML 块，或登记节出现正文、空行与一张前后空行的表以外的行、第二张表、标题重复，或表缺固定表头、分隔行、行格式不对，或 ADR 全文含空格、制表符、LF 以外的空白或控制字符，一律失败）；基线只减不增。处置表一处更改：helper README 由清除改为例外（构建输入树，改字节使 VM 报 `helper-build-input-differ`） |
 | AC-3 | PASS | 见执行结果的 Mac 与 VM 两行；`06` §1、README、`issue-session-flow` 收尾节与退出条件 3 统一口径 |
 | AC-4 | PASS | 9 条 `AGENTS.md` 整句钉子与 1 条残留整句钉子删除，改为 8 个章节 `require_heading`，保留 `` `Other` `` 选项值钉子；80 < 89，基线已调 |
 | AC-5 | PASS | 路线图退出条件 4 收口句、「第二轮接受的例外」表（D6 2026-10-20、D9 2026-10-22）、#416 行 |
@@ -64,7 +64,7 @@ SMOKE_PLACEHOLDER
 
 每项都是把被测源码换回修复前版本、跑同一测试：
 
-- 例外登记核对：`check-project-leak.py` 换回基线版，`test_baseline_entry_must_be_registered_in_the_adr` FAIL；换回审查修复前的 `0e0659a0`、`6b03f01c`、`56adde62`、`127e6530`、`c4a800fb`、`93578db5`、`25a54f53` 版，对应新增子用例 FAIL。
+- 例外登记核对：`check-project-leak.py` 换回基线版，`test_baseline_entry_must_be_registered_in_the_adr` FAIL；换回审查修复前的 `0e0659a0`、`6b03f01c`、`56adde62`、`127e6530`、`c4a800fb`、`93578db5`、`25a54f53`、`694b7bc6` 版，对应新增子用例 FAIL。
 - bootstrap 默认根：脚本换回基线版，测试 exit 1；删掉 installed 回退项，测试 exit 1。
 - gitea-readonly 默认文件：脚本换回基线版，测试 exit 1。
 - readiness 主机拒绝：脚本换回基线版，测试 exit 1；换回 `02f5dd8e`（拒绝晚于 git/jq），测试 exit 1。
@@ -86,7 +86,8 @@ SMOKE_PLACEHOLDER
 | 全量-3 | Claude | Codex | `c4a800fb6c54f192f5b153134a01d558002e4e6f` | FAIL | P2 删掉分隔行的非表格仍被登记；P3 verification 候选 head 过期 → `93578db5`：固定表头、分隔行与两列行格式 |
 | 全量-4 | Claude | Codex | `a592ea570c192e8b4b2ed4d56c98d9397e0675d7` | FAIL | P2 分隔行里的 NBSP 让表变成段落仍被登记；P3 本表未用 `03` §7 固定表头与 40 位 SHA → `25a54f53`：登记节只允许 ASCII 空格与制表符；本表改格式 |
 | 全量-5 | Claude | Codex | `25a54f534012622cc7cf93fc794dcfa8997a85b1` | FAIL | P2 `splitlines()` 把 U+2028、VT 当换行，非表格仍被登记 → `694b7bc6`：ADR 只按 LF 切行，全文除空格、制表符、LF 外的空白与控制字符一律拒绝 |
-| 全量-6 | Claude | Codex | `694b7bc63d39afd114106735740b6a20816a6d62` | REVIEW6_PLACEHOLDER |  |
+| 全量-6 | Claude | Codex | `694b7bc63d39afd114106735740b6a20816a6d62` | FAIL | P2 带前导空格的 ATX 标题与 Setext 标题能把表划到下一节，D3 仍被当成已登记 → `82c0355e`：登记节改为允许清单（正文、空行、一张前后空行的表），其余行一律拒绝 |
+| 全量-7 | Claude | Codex | `82c0355e68442b06286ad79af9afc77d810c2af0` | REVIEW7_PLACEHOLDER |  |
 
 ## 遗留风险与未完成项
 
