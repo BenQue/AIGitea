@@ -4331,7 +4331,7 @@
     {
       "version": "1.13.0",
       "released": "2026-10-22",
-      "bundle_digest": "sha256:cd20bad5f3d0d7e0fad69a0896e2b86c9196772d5b76d237658e54fc81def4d1",
+      "bundle_digest": "sha256:9ec0d08b85869ffb45297deab6daae9350a46cf75aa0b339dde5f86f1b0631a6",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -4449,7 +4449,7 @@
         {
           "source": "skills/aisoft-platform/references/getting-started.md",
           "mode": "skill",
-          "sha256": "179f42b1ce79b05eddeccbe3b2320d55c218ace896b4cca8e788d38f046a2a95"
+          "sha256": "43852ab323514edb529a6e969469bcd6e580bac6a4ca53ea53ae4a7e24fbd255"
         },
         {
           "source": "skills/aisoft-platform/references/onboarding-runbook.md",

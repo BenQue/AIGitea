@@ -28,8 +28,9 @@
    它由维护者在平台检出里运行 `codex/install-host-access-broker.sh` 安装（需要 sudo）。
    开发者核对：`/usr/local/libexec/aisoft/host-access-broker --project <项目 id> --operation git.fetch.main`，在项目检出里运行，
    返回 JSON 的 `status` 为 `PASS`。
-   失败时：`requested project is not explicitly managed` 说明项目还没登记，转第 3 步；`REQUEST_DENIED` 或 `not allowlisted`
-   是本机操作表陈旧，请维护者重装 broker；不要往权限方向查。
+   这只证明本机能经 broker 连到该项目，不证明接入已验收（接入验收见第 3 步）。
+   失败时：把返回体的 `code` 与 `message` 原样报告。`requested project is not explicitly managed` 说明项目还没登记，转第 3 步；
+   `requested operation is not allowlisted` 是本机操作表比平台旧，请维护者重装 broker，不要往权限方向查；其它 `REQUEST_DENIED` 是合同拒绝，照原文报告。
 3. **私有 Gitea**：匿名访问得到 `404` 不说明对象不存在，不要据此下结论，一律经 broker 读取。
 
 ## 第 2 步：按所选工具准备本机
@@ -39,7 +40,7 @@
 
 ### Claude Code
 
-1. **登录**：用户在终端运行 `claude`，按提示完成登录。核对：`claude --version` 有版本输出。
+1. **登录**：用户在终端运行 `claude`，按提示完成登录。核对：`claude --version` 有版本输出（CLI 可用），`claude auth status` 读到 `"loggedIn": true`（已登录）。
 2. **superpowers**：从 Claude 官方市场安装，在 Claude Code 会话里运行 `/plugin install superpowers@claude-plugins-official`（用户执行）。
 3. **Matt 技能包**：Claude 侧由平台自有 marketplace 钉版本。用户在会话里运行
    `/plugin marketplace add <平台检出路径>`，再运行 `/plugin install mattpocock-skills@aisoft-platform`；这是本机 installed 层动作，由用户本人执行。
@@ -48,7 +49,7 @@
 
 ### Codex
 
-1. **登录**：用户在终端运行 `codex`，按提示完成登录。核对：`codex --version` 有版本输出。
+1. **登录**：用户在终端运行 `codex`，按提示完成登录。核对：`codex --version` 有版本输出（CLI 可用），`codex login status` 读到已登录。
 2. **superpowers**：从 Codex 官方插件市场安装（用户在 Codex 的插件管理里操作）。
    官方市场拿不到平台 pin 的版本时，版本核对会读到 `PIN_NOT_INSTALLED`，这是已登记的外部限制，不阻塞开发。
 3. **Matt 技能包与 `aisoft-matt-workflow`**：随发布包进入项目级 `.agents/skills/`，开发者不需另装。
@@ -60,14 +61,18 @@
    平台不往用户目录安装任何东西，开发者也不需要另装插件。
 3. 采用发布包时要带 Cursor（第 4 步的 `--tools` 含 `cursor`），否则项目里没有这些落点。
 
-### 平台检出里的附加核对（维护层，可选）
+### 外部技能包版本读回（必需，用平台检出里的维护层工具）
 
-以下命令都在平台检出里运行，普通项目开发可以跳过。
+在平台检出里运行 `bash codex/tools/check-external-skill-versions.sh`，项目采用发布包之后（第 4 步）再加 `--repo <项目检出>` 跑一次，
+用 Cursor 时必须带 `--repo`，因为 Cursor 的技能只在项目里。预期：最后一行 `RESULT PASS`，所选工具的 superpowers 与 Matt 行为 `PIN_CLEAN`；
+Codex 的 superpowers 读到 `PIN_NOT_INSTALLED` 是已登记的外部限制，不算失败。
+失败时：`PIN_DRIFT` 表示该工具的版本与平台 pin 不同，`UNKNOWN` 表示读不懂本机状态，两者都停下，请维护者先过 `08` §5 的适配清单再继续。
 
-- 只在维护平台仓时，平台技能另装到用户目录：Claude 侧 `bash skill-for-claude/install.sh <目标 home>`，读回
-  `bash skill-for-claude/check-drift.sh` 为 `CLEAN`；Codex 侧 `bash codex/install-skills.sh <目标 home>`，读回 `bash codex/check-drift.sh`。
-- 外部技能包版本：`bash codex/tools/check-external-skill-versions.sh` 逐工具报 superpowers 与 Matt 的状态；对某个项目加 `--repo <项目检出>`
-  会同时核对项目里的快照。`PIN_DRIFT` 的意思是该工具的版本与平台 pin 不同，先请维护者过 `08` §5 的适配清单，再继续使用。
+### 平台仓维护者附加（维护层，可选）
+
+只在维护平台仓本身时，把平台技能另装到某个用户目录，安装与读回传同一个目标 home：Claude 侧
+`bash skill-for-claude/install.sh <目标 home>` 后 `bash skill-for-claude/check-drift.sh <目标 home>` 读到 `CLEAN`；Codex 侧
+`bash codex/install-skills.sh <目标 home>` 后 `bash codex/check-drift.sh <目标 home>` 无漂移。普通项目开发跳过本节。
 
 ## 第 3 步：新项目登记（维护者）
 
@@ -75,7 +80,8 @@
 `codex/config/host-access-broker.json`（项目 id、仓库、Mac 检出）。这一步按 [onboarding-runbook.md](onboarding-runbook.md)
 §1 与 §5 在平台仓走自己的 Issue 与 PR，由人合并后两台重装 broker。
 
-开发者的判据只有一条：第 1 步第 2 项的 `git.fetch.main` 在项目检出里返回 `PASS`。
+完成判据由维护者给出：runbook §1.1 的接入证据齐全，并且维护者用 broker 的 `host.onboarding.check`（manager-audit 身份）对该项目读回通过。
+维护者告知完成后，开发者在项目检出里重跑第 1 步第 2 项，`git.fetch.main` 返回 `PASS` 只作为本机连通的核对。
 
 ## 第 4 步：把使用发布包采用进项目
 
@@ -114,8 +120,9 @@
 
 | 现象 | 含义 | 处理 |
 |---|---|---|
-| broker 返回 `REQUEST_DENIED` / `not allowlisted` | 本机 broker 操作表比平台旧 | 请维护者重装 broker 后重试 |
-| broker 偶发 `TRANSPORT_ERROR` | 瞬时网络问题 | 重试一次 |
+| broker 返回 `requested operation is not allowlisted` | 本机 broker 操作表比平台旧 | 请维护者重装 broker 后重试 |
+| broker 返回其它 `REQUEST_DENIED` | 合同拒绝（项目未登记、参数或标签不合法等） | 原样报告 `code` 与 `message`，不要重试或换路径 |
+| broker 偶发 `TRANSPORT_ERROR` | 传输异常，服务端是否已执行不确定 | 只读操作可重试一次；写操作（如建 Issue）先读回结果，确认没有生效再重试 |
 | `requested project is not explicitly managed` | 项目没登记 | 回第 3 步 |
 | Gitea 匿名 `404` | 私有仓库，不说明不存在 | 经 broker 读取 |
 | `PIN_DRIFT` | 外部技能包版本不是平台 pin | 维护者先过 `08` §5 适配清单 |

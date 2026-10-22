@@ -29,7 +29,7 @@
 2. 把新项目登记进平台（Gitea 仓库、project agent、required CI）。
 3. 把平台使用发布包采用进项目，并选上你用的工具。
 
-完成的标志：在项目目录里运行 `.aisoft/bin/aisoft project-check` 没有 `GAP:` 行。
+完成的标志：维护者告诉你接入验收已通过；之后你在项目目录里运行 `.aisoft/bin/aisoft project-check` 没有 `GAP:` 行，并让 AI 帮你读回一次外部技能包版本。
 
 ## 第一张 Issue 怎么走
 
