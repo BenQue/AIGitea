@@ -343,6 +343,13 @@ if rg -n "$real_manifest_ref" "$ROOT/codex/runtime/tests" "$ROOT/codex/tests" \
   echo '测试必须读 codex/tests/fixtures/manifests/ 的合成夹具，不得读真实 manifest（#380）' >&2
   exit 1
 fi
+# The two temp-layout tests above are exempt only for their own copies; they may
+# never point at the checkout's real manifests (#416).
+if rg -n '\$\{?(ROOT|root)\}?/codex/config' \
+  "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" "$ROOT/codex/tests/test-gitea-readonly.sh"; then
+  echo '临时布局测试不得引用 checkout 的真实 manifest（#416）' >&2
+  exit 1
+fi
 
 while IFS= read -r json_file; do
   jq empty "$json_file"

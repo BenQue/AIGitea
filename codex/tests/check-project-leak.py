@@ -58,50 +58,32 @@ def site_values(root: Path) -> list[str]:
     return sorted({value.lower() for value in values if value}, key=lambda v: (-len(v), v))
 
 
-FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
-
-
-def unfenced(lines: list[str]) -> list[str | None]:
-    """The lines outside fenced code blocks, with one None where each block was.
-
-    A fence closes only on the same character, at least as long, with nothing
-    after it (CommonMark)."""
-    kept: list[str | None] = []
-    fence = None
-    for line in lines:
-        match = FENCE.match(line)
-        if fence is None:
-            if match:
-                fence = match.group(1)
-                kept.append(None)
-            else:
-                kept.append(line)
-        elif match and match.group(1)[0] == fence[0] and len(match.group(1)) >= len(fence) \
-                and not line[match.end():].strip():
-            fence = None
-    return kept
-
-
 def registered_exceptions(root: Path) -> set[str]:
     """#416: the backticked paths in the first column of the ADR's D3 exception table.
 
-    Heading and table are both read outside fenced blocks; only the first table
-    under the heading counts, ending at its first non-row line, a fence or a heading."""
-    lines = unfenced((root / ADR).read_text(encoding="utf-8").splitlines())
-    if EXCEPTIONS_HEADING not in lines:
-        raise ValueError(f"{ADR}: missing {EXCEPTIONS_HEADING!r}")
-    paths, in_table = set(), False
+    The register is read strictly instead of rendered: the heading must appear
+    exactly once, at column 0, and its section (up to the next heading) may hold
+    only prose and one pipe table with rows at column 0. A fence, an HTML
+    comment or an indented line anywhere in the section fails closed, so no
+    hidden or example row can register a path."""
+    lines = (root / ADR).read_text(encoding="utf-8").splitlines()
+    if lines.count(EXCEPTIONS_HEADING) != 1:
+        raise ValueError(f"{ADR}: {EXCEPTIONS_HEADING!r} must appear exactly once")
+    paths, tables, previous_row = set(), 0, False
     for line in lines[lines.index(EXCEPTIONS_HEADING) + 1:]:
-        stripped = None if line is None else line.strip()
-        if stripped is not None and stripped.startswith("#"):
+        if line.startswith("#"):
             break
-        if stripped is not None and stripped.startswith("|"):
-            in_table = True
-            match = re.match(r"\|\s*`([^`]+)`\s*\|", stripped)
-            if match:
-                paths.add(match.group(1))
-        elif in_table:
-            break
+        if re.match(r"\s*(```|~~~)|.*(<!--|-->)|( {4}|\t)", line):
+            raise ValueError(f"{ADR}: the exception register may not hold fences, comments or indented lines")
+        row = line.startswith("|")
+        if row and not previous_row:
+            tables += 1
+        previous_row = row
+        match = re.match(r"\|\s*`([^`]+)`\s*\|", line) if row else None
+        if match:
+            paths.add(match.group(1))
+    if tables != 1:
+        raise ValueError(f"{ADR}: the exception register must be exactly one table")
     return paths
 
 

@@ -141,27 +141,25 @@ class ProjectLeakTests(unittest.TestCase):
         code, _, err = self.run_checker()
         self.assertEqual(code, 1)
         self.assertIn("README.md: baseline entry not registered", err)
-        # A row after the next heading is outside the table.
+        # A row after the next heading is outside the register.
         self.write("docs/adr/0001-platform-boundary.md", self.adr("other.md").replace("later.md", "README.md"))
         self.assertEqual(self.run_checker()[0], 1)
-        # Rows in a fenced block, after the table or under an indented heading are not registered.
+        # Anything that could hide or fake a row fails closed: a second table, a fence,
+        # an HTML comment, an indented line, or the heading appearing twice.
         base = "### D3\n\n#### D3 登记的例外\n\n| 文件 | 理由 |\n|---|---|\n| `other.md` | x |\n"
-        for tail in ("\n```\n| `README.md` | example |\n```\n", "\nprose\n\n| `README.md` | x |\n",
-                     "   ### D4\n| `README.md` | x |\n"):
+        for tail in ("\nprose\n\n| `README.md` | x |\n",
+                     "\n```\n| `README.md` | example |\n```\n",
+                     "\n<!--\n| `README.md` | x |\n-->\n",
+                     "\n    | `README.md` | x |\n",
+                     "\n```\n#### D3 登记的例外\n```\n"):
             with self.subTest(tail=tail):
                 self.write("docs/adr/0001-platform-boundary.md", base + tail)
-                self.assertEqual(self.run_checker()[0], 1)
-        # A fenced example of the heading, or a fence that a shorter one does not close,
-        # never registers anything.
-        for text in ("````\n#### D3 登记的例外\n\n| `README.md` | x |\n````\n\n#### D3 登记的例外\n\n| `other.md` | x |\n",
-                     "#### D3 登记的例外\n\n````\n```\n| `README.md` | x |\n````\n\n| `other.md` | x |\n",
-                     "#### D3 登记的例外\n\n| `other.md` | x |\n```\nx\n```\n| `README.md` | x |\n"):
-            with self.subTest(text=text):
-                self.write("docs/adr/0001-platform-boundary.md", text)
-                self.assertEqual(self.run_checker()[0], 1)
-        fenced_first = "#### D3 登记的例外\n\n```\n| `other.md` | x |\n```\n\n| 文件 | 理由 |\n|---|---|\n| `README.md` | x |\n"
-        self.write("docs/adr/0001-platform-boundary.md", fenced_first)
-        self.assertEqual(self.run_checker()[0], 0)
+                code, _, err = self.run_checker()
+                self.assertEqual(code, 1)
+                self.assertIn("README.md: baseline entry not registered", err)
+        commented = "#### D3 登记的例外\n\n<!--\n| 文件 | 理由 |\n|---|---|\n| `README.md` | x |\n-->\n"
+        self.write("docs/adr/0001-platform-boundary.md", commented)
+        self.assertEqual(self.run_checker()[0], 1)
         (self.root / "docs/adr/0001-platform-boundary.md").unlink()
         code, _, err = self.run_checker()
         self.assertEqual(code, 1)
