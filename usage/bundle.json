@@ -4878,14 +4878,14 @@
     {
       "version": "1.14.0",
       "released": "2026-10-22",
-      "bundle_digest": "sha256:7c727eb4b5bf4efe94592976bf3248c8a04612566e303df8b2cf1d1475c02bf5",
+      "bundle_digest": "sha256:d15d8aebb605668c4c2b22347750271f41f259865b720872a6a79c7c73d62ab5",
       "members": [
         {
           "source": "usage/CONTRACT.md",
           "mode": "exact",
           "target": ".aisoft/platform-usage.md",
           "check": "platform-pin",
-          "sha256": "3cc1b9dfd42f3038acdee0295515f8131f018f7cf1e3a2c189d351408a27791e"
+          "sha256": "26f753cc9aecd3ed7bfceb43bbc973b16063eb549f170f58339738fb89967510"
         },
         {
           "source": "templates/project/AGENTS.md",
@@ -5026,7 +5026,7 @@
         {
           "source": "skills/issue-session-flow/SKILL.md",
           "mode": "skill",
-          "sha256": "dc1c35d9a25f92225508c46c22e10fea9c2c71f474c1acc224ba0e38e4848298"
+          "sha256": "82708e179b2b7aa3d6e3aee325f9d7a60e72703647b3378f6adf8336e5c3d042"
         },
         {
           "source": "skills/aisoft-matt-workflow/SKILL.md",

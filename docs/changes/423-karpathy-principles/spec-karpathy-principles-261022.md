@@ -83,7 +83,7 @@ updated: 2026-10-22
 - `skills/aisoft-platform/references/engineering-principles.md`、`skills/aisoft-platform/SKILL.md`
 - `skills/aisoft-matt-workflow/SKILL.md`、`skills/issue-session-flow/SKILL.md`
 - `usage/CONTRACT.md`、`08-双工具共存与实施.md`、`usage/bundle.json`
-- `docs/changes/423-karpathy-principles/`；如登记本批，仅修改 `docs/governance/remediation-roadmap.md` 的本 Issue 行；按 03 §7 维护 `docs/governance/review-evidence-index.md` 的本 Issue 审议记录。
+- `docs/changes/423-karpathy-principles/`；按 03 §7 维护 `docs/governance/review-evidence-index.md` 的本 Issue 审议记录。本批不登记路线图，精确路径以 front matter 的 git_scope 为准。
 
 ## 接口、数据与兼容性影响
 

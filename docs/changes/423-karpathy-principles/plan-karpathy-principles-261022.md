@@ -30,7 +30,7 @@ updated: 2026-10-22
 ## Expected touch points
 
 - T01：spec 的七份治理/发布文件与本 Issue 文档；原子提交主题包含 `#423 T01`。按负责人已确认的纲领性定位收紧并应用 patch；`usage/bundle.json` 增加 reference 的 skill member，并用既有 `--release` 追加 minor release。
-- T02：仅本 Issue 验证记录、审议索引的本 Issue 行及必要的本批路线图行；发现超范围实现问题停下升级。禁止为通过检查削弱断言或改 runtime/test/CI。
+- T02：仅本 Issue 验证记录与审议索引的本 Issue 行；发现超范围实现问题停下升级。禁止为通过检查削弱断言或改 runtime/test/CI。
 - 负责人本轮已批准 T01/T02。T01 治理写入在原子 commit 后结束；T02 由 fresh Claude Code 只读进程重新读取合同后独立审议，本会话仅整理证据，不修改 runtime；不新增产品确认点。
 
 首轮 Claude Code 审议已返回；完整 smoke 在 T01 head 通过。发现的同范围文字与合同清单问题作为 T01 返修，独立提交后停止写入并交 fresh 只读复审；不借审议扩大范围。

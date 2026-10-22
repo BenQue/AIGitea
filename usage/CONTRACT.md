@@ -21,11 +21,6 @@
 - 项目对平台的需求以平台 Issue 提出。平台按准入规则判断：换成任意一个已注册项目还成立才进入
   平台；不成立的留在项目仓，或先由平台抽象成扩展点，项目数据留在项目侧。
 
-## 编程思想指导
-
-`aisoft-platform` 技能的 `references/engineering-principles.md` 提供纲领性指导：理解问题、简单设计、
-聚焦改动和真实验证。它辅助方案、实现与审查中的工程判断，内容随本项目 pin 的发布包版本交付。
-
 ## 2. 流程不变量
 
 - **Issue 是唯一主键。** 任何需求、缺陷、变更先建 Issue。新变更使用可读元组：分支
@@ -123,3 +118,8 @@ pin 的版本，项目不得手改；Gitea 与 Git 访问仍经本机安装的 h
   revision，检查器按随发布包分发的该 revision 快照校验并出 `NOTE`；升级到新 revision 是项目自己的 Issue。
   快照的 `review_by` 过期只在 NOTE 里提示，组件 EOL、prohibited、例外到期仍是 GAP。
 - `architecture-lock` 失败时 GAP 写出诊断码，按诊断码修复后重新生成 lock。
+
+## 7. 编程思想指导
+
+`aisoft-platform` 技能的 `references/engineering-principles.md` 提供纲领性指导：理解问题、简单设计、
+聚焦改动和真实验证。它辅助方案、实现与审查中的工程判断，内容随本项目 pin 的发布包版本交付。
