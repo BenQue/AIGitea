@@ -633,7 +633,6 @@ if [[ -e "$ROOT/codex/install-vm.sh" || -e "$ROOT/codex/systemd" || -e "$ROOT/te
   exit 1
 fi
 grep -Fq 'READY_FOR_REVIEW' "$ROOT/skills/gitea-development-loop/SKILL.md"
-grep -Fq '生产环境只运行' "$ROOT/AGENTS.md"
 
 root_agents="$ROOT/AGENTS.md"
 literal_dollar='$'
@@ -663,6 +662,8 @@ for legacy_basename in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; d
 done
 grep -Fq "${literal_backtick}documents${literal_backtick}" "$root_agents"
 # #416 (ADR 0001 D9): the maintenance rules are pinned by section, not by sentence.
+# The Matt setup tracker option is a value, not a sentence, so it stays pinned.
+grep -Fq "${literal_backtick}Other${literal_backtick}" "$root_agents"
 for agents_section in 边界 'Issue 与命名' 判级与确认 开发编排 'Git、合并与部署' 治理文件 凭据与验证 目录; do
   require_heading "$root_agents" "$agents_section"
 done
