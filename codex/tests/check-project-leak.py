@@ -90,18 +90,26 @@ def registered_exceptions(root: Path) -> set[str]:
     if lines.count(EXCEPTIONS_HEADING) != 1:
         raise ValueError(f"{ADR}: {EXCEPTIONS_HEADING!r} must appear exactly once")
     tables: list[list[str]] = []
-    previous_row = False
+    previous = ""
     for line in lines[lines.index(EXCEPTIONS_HEADING) + 1:]:
         if line.startswith("#"):
             break
-        if re.match(r"( {4}|\t)", line):
-            raise ValueError(f"{ADR}: the exception register may not hold indented lines")
+        # Allow-list, not a parser: a blank line, a table row, or a prose line that
+        # starts with something no Markdown block (heading, setext underline, list,
+        # quote, code, HTML, numbered item) can start with. Rows start a table only
+        # after a blank line and the table ends at a blank line.
         row = line.startswith("|")
-        if row and not previous_row:
+        if line and not row and re.match(r"[\s#=\-*+>`~<_]|[0-9]+[.)]", line):
+            raise ValueError(f"{ADR}: the exception register may hold only prose, blank lines and one table")
+        if row and not previous.startswith("|"):
+            if previous:
+                raise ValueError(f"{ADR}: the exception table must follow a blank line")
             tables.append([])
         if row:
             tables[-1].append(line)
-        previous_row = row
+        elif line and previous.startswith("|"):
+            raise ValueError(f"{ADR}: the exception table must end at a blank line")
+        previous = line
     if len(tables) != 1:
         raise ValueError(f"{ADR}: the exception register must be exactly one table")
     table = tables[0]

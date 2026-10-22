@@ -177,7 +177,12 @@ class ProjectLeakTests(unittest.TestCase):
                        self.adr("README.md").replace("| `README.md` |", "| `README.md`\u200b |"),
                        self.adr("README.md").replace("| 文件 | 理由 |", "| 文件 |\u3000理由 |"),
                        self.adr("README.md").replace("| 文件 | 理由 |\n", "| 文件 | 理由 |\u2028"),
-                       self.adr("README.md").replace("| 文件 | 理由 |\n", "| 文件 | 理由 |\x0b")):
+                       self.adr("README.md").replace("| 文件 | 理由 |\n", "| 文件 | 理由 |\x0b"),
+                       self.adr("README.md").replace("| 文件 | 理由 |\n", " ### D4\n\n| 文件 | 理由 |\n"),
+                       self.adr("README.md").replace("| 文件 | 理由 |\n", "D4\n---\n\n| 文件 | 理由 |\n"),
+                       self.adr("README.md").replace("| 文件 | 理由 |\n", "prose\n| 文件 | 理由 |\n"),
+                       self.adr("README.md").replace("| `README.md` | reason |\n", "| `README.md` | reason |\nlazy\n"),
+                       self.adr("README.md").replace("| 文件 | 理由 |\n", "> quote\n\n| 文件 | 理由 |\n")):
             with self.subTest(broken=broken):
                 self.write("docs/adr/0001-platform-boundary.md", broken)
                 code, _, err = self.run_checker()
