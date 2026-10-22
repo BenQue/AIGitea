@@ -25,7 +25,7 @@ updated: 2026-10-22
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 在独立治理步骤应用共享原则、三个入口、使用合同与发布包登记，做局部核验并 commit 后停止 | - | done |
-| T02 | fresh run 重读合同，完成导出/回归/场景评审和另一提供者独立审查，形成最终 PR 候选 | T01 | in_progress |
+| T02 | fresh run 重读合同，完成导出/回归/场景评审和另一提供者独立审查，形成最终 PR 候选 | T01 | done |
 
 ## Expected touch points
 
@@ -33,7 +33,7 @@ updated: 2026-10-22
 - T02：仅本 Issue 验证记录与审议索引的本 Issue 行；发现超范围实现问题停下升级。禁止为通过检查削弱断言或改 runtime/test/CI。
 - 负责人本轮已批准 T01/T02。T01 治理写入在原子 commit 后结束；T02 由 fresh Claude Code 只读进程重新读取合同后独立审议，本会话仅整理证据，不修改 runtime；不新增产品确认点。
 
-首轮 Claude Code 审议已返回；完整 smoke 在 T01 head 通过。发现的同范围文字与合同清单问题作为 T01 返修，独立提交后停止写入并交 fresh 只读复审；不借审议扩大范围。
+T01 同范围返修均独立提交后停止写入。T02 已完成两次完整 smoke、最终文案的定向安装/分发回归、六场景文本审议和三轮 Claude Code 双轴只读审议；R3 均 PASS。精确 head、证据与非阻断建议见 verification，后续只做记录归档。
 
 ## 数据库迁移
 

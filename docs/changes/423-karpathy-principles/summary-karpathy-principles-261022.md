@@ -49,9 +49,10 @@ pr_url:
 一份共享 reference、三个技能入口、使用合同、08 适配说明、发布包 member/minor release 与本 Issue 文档。
 合同保留两个确认点、平台安全边界、单写者、人工合并与独立安装/项目采用边界。
 
-## 初步方案与建议
+## 实施与审议结果
 
-T01 已应用纲领性原则与发布包 1.14.0；原子提交后，由 fresh Claude Code 只读进程重读合同并完成首轮审议。完整 smoke 通过。现按审议修正 T01 范围内的措辞与合同清单，修订单独提交后再次由 fresh Claude Code 复审；T02 尚待最终证据归档。精确文件范围以映射 spec 的 git_scope 为准。
+T01/T02 已完成：共享纲领正文、三个技能入口、使用合同、08 说明与 1.14.0 候选登记；精确文件范围以映射 spec 的 git_scope 为准。两次完整 smoke 与最终文案的定向回归通过。
+经过三轮 Claude Code 双轴只读审议，最终治理源码候选 `c87b66bb811add3f2556afac17d5531cb65d1b42` 在 R3 两轴均 PASS；两项不阻断文风建议及全部发现处置已记入 verification。当前处于 `AWAITING_PR_CONFIRMATION`，只回填证据，不再改已审源码；未 push、开 PR、安装或更新项目。
 
 ## 风险
 
