@@ -11,7 +11,7 @@ risk_flags:
   - agent-governance
   - platform-governance
 depends_on: []
-status: pending
+status: recorded
 branch: change/416-round2-partial-closeout
 created: 2026-10-22
 updated: 2026-10-22
@@ -46,7 +46,7 @@ updated: 2026-10-22
 
 ### smoke
 
-SMOKE_PLACEHOLDER
+在审查快照上从头跑完，均 exit 0、`Codex platform static smoke checks passed.`：T04 `8f61b5a4`（runtime 单测 704 OK）、`127e6530`、`c4a800fb`、`a592ea57`、`bce9262c`、`4be80aa3`，以及最终 `e501d4d5`（代码候选 `82c0355e` 加 verification；runtime 单测 704 OK，漂移夹具 46 OK）。一次在快照 worktree 尚未检出完时启动的运行报文件不存在（exit 127），属操作失误，同一快照重跑通过。
 
 ## Acceptance criteria 结果
 
@@ -87,7 +87,7 @@ SMOKE_PLACEHOLDER
 | 全量-4 | Claude | Codex | `a592ea570c192e8b4b2ed4d56c98d9397e0675d7` | FAIL | P2 分隔行里的 NBSP 让表变成段落仍被登记；P3 本表未用 `03` §7 固定表头与 40 位 SHA → `25a54f53`：登记节只允许 ASCII 空格与制表符；本表改格式 |
 | 全量-5 | Claude | Codex | `bce9262cc65bafb3104a6156bd1a00488a571490` | FAIL | P2 `splitlines()` 把 U+2028、VT 当换行，非表格仍被登记 → `694b7bc6`：ADR 只按 LF 切行，全文除空格、制表符、LF 外的空白与控制字符一律拒绝 |
 | 全量-6 | Claude | Codex | `4be80aa34aaa17fab71f6f713175d03dbd98262d` | FAIL | P2 带前导空格的 ATX 标题与 Setext 标题能把表划到下一节，D3 仍被当成已登记 → `82c0355e`：登记节改为允许清单（正文、空行、一张前后空行的表），其余行一律拒绝 |
-| 全量-7 | Claude | Codex | `071a84de3127e6d5ac528b2948e89bf8da05c346` | REVIEW7_PLACEHOLDER |  |
+| 全量-7 | Claude | Codex | `e501d4d5bb08af29d4272baed7a5c92caeed4ec5` | PASS | 无 P1/P2/P3；8 个旧绕过变体当前版全部拒绝，另 10 个块语法变体被拒，删除登记行正确失败 |
 
 ## 遗留风险与未完成项
 
