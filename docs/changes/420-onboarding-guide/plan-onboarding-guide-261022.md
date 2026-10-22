@@ -25,8 +25,8 @@ updated: 2026-10-22
 | T01 | AI 上手指南 `getting-started.md` 与 SKILL.md 入口行，命令逐条核对 | - | done |
 | T02 | 简明手册 `usage/USER-GUIDE.md` 与 README 导航行 | T01 | done |
 | T03 | 发布包登记新 reference、发布 1.13.0，smoke 与反向证明 | T02 | done |
-| T05 | 范围 B：四处实现入口措辞与 AGENTS.md 对齐，重发 1.13.0 | T03 | pending |
-| T04 | Codex 交叉审查、verification 与 review-evidence-index 回写 | T05 | pending |
+| T05 | 范围 B：四处实现入口措辞与 AGENTS.md 对齐，重发 1.13.0 | T03 | done |
+| T04 | Codex 交叉审查、verification 与 review-evidence-index 回写 | T05 | done |
 
 ## Expected touch points
 
