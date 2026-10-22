@@ -75,7 +75,15 @@ def registered_exceptions(root: Path) -> set[str]:
     exactly once, at column 0; and its section (up to the next heading) may hold
     only prose and one pipe table with rows at column 0. Anything else fails
     closed, so no hidden or example row can register a path."""
-    lines = (root / ADR).read_text(encoding="utf-8").splitlines()
+    text = (root / ADR).read_text(encoding="utf-8")
+    # Only LF separates lines here, and the whole ADR may hold no whitespace or
+    # control character beyond space, tab and LF (str.splitlines would silently
+    # split on U+2028 or VT, which Markdown does not).
+    for offset, ch in enumerate(text):
+        if ch not in " \t\n" and (ch.isspace() or unicodedata.category(ch) in {"Cc", "Cf", "Zs", "Zl", "Zp"}):
+            line = text.count("\n", 0, offset) + 1
+            raise ValueError(f"{ADR}:{line}: only space, tab and LF may separate text (found U+{ord(ch):04X})")
+    lines = text.split("\n")
     for number, line in enumerate(lines, 1):
         if HIDING.search(line):
             raise ValueError(f"{ADR}:{number}: no fences, HTML comments or raw HTML blocks allowed")
@@ -88,10 +96,6 @@ def registered_exceptions(root: Path) -> set[str]:
             break
         if re.match(r"( {4}|\t)", line):
             raise ValueError(f"{ADR}: the exception register may not hold indented lines")
-        # Markdown only treats ASCII space and tab as table whitespace; any other
-        # whitespace or format character could turn a row into plain text.
-        if any(ch not in " \t" and (ch.isspace() or unicodedata.category(ch) in {"Cf", "Zs"}) for ch in line):
-            raise ValueError(f"{ADR}: the exception register may hold only ASCII spaces and tabs as whitespace")
         row = line.startswith("|")
         if row and not previous_row:
             tables.append([])

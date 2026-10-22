@@ -166,7 +166,7 @@ class ProjectLeakTests(unittest.TestCase):
                 self.write("docs/adr/0001-platform-boundary.md", prefix + self.adr("README.md"))
                 code, _, err = self.run_checker()
                 self.assertEqual(code, 1)
-                self.assertIn("no fences, HTML comments or raw HTML blocks allowed", err)
+                self.assertIn("README.md: baseline entry not registered", err)
         # The register must be a real two-column table: header, separator, rows.
         for broken in (self.adr("README.md").replace("|---|---|\n", ""),
                        self.adr("README.md").replace("|---|---|", "| x | y |"),
@@ -175,7 +175,9 @@ class ProjectLeakTests(unittest.TestCase):
                        self.adr("README.md").replace("| `README.md` | reason |", "| `README.md` | a | b |"),
                        self.adr("README.md").replace("|---|---|", "|---\u00a0|---|"),
                        self.adr("README.md").replace("| `README.md` |", "| `README.md`\u200b |"),
-                       self.adr("README.md").replace("| 文件 | 理由 |", "| 文件 |\u3000理由 |")):
+                       self.adr("README.md").replace("| 文件 | 理由 |", "| 文件 |\u3000理由 |"),
+                       self.adr("README.md").replace("| 文件 | 理由 |\n", "| 文件 | 理由 |\u2028"),
+                       self.adr("README.md").replace("| 文件 | 理由 |\n", "| 文件 | 理由 |\x0b")):
             with self.subTest(broken=broken):
                 self.write("docs/adr/0001-platform-boundary.md", broken)
                 code, _, err = self.run_checker()
