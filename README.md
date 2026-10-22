@@ -139,6 +139,7 @@ sequenceDiagram
 
 | 分册 | 内容 | 读者场景 |
 |------|------|----------|
+| [新用户使用手册](usage/USER-GUIDE.md) | 三种 AI 工具各要准备什么、两个确认点怎么回、第一张 Issue 怎么走；详细步骤由 AI 按技能内的上手指南带着走 | 第一次用平台开发项目 |
 | [01-基础设施-VM-Gitea-Runner](01-基础设施-VM-Gitea-Runner.md) | VM/Gitea/runner/Verdaccio/Mailpit 搭建与账号体系、端口总表 | 重建环境、内网平移 |
 | [02-CI与自动部署流水线](02-CI与自动部署流水线.md) | Linux 交付形态参考；环境级部署原则以 onboarding-runbook §4 为准 | 改流水线、排部署问题 |
 | [03-Issue/Spec/Plan 与单闸门流程](03-Issue-Spec-Plan与单闸门开发流程.md) | small/complex 双路径、路由卡、文档绑定、标签语义、最终 PR、终态 | 日常使用平台 |
