@@ -135,7 +135,24 @@ done
 GITEA_BIN="${GITEA_BIN:-/usr/local/bin/gitea}"
 GITEA_CONFIG="${GITEA_CONFIG:-/etc/gitea/app.ini}"
 GITEA_LOCAL_URL="${GITEA_LOCAL_URL:-http://127.0.0.1:3000}"
-credential_root="${AISOFT_CREDENTIAL_ROOT:-/home/benque/.config/aisoft/credentials}"
+# #416: the default credential root is the site value of the broker manifest
+# (source checkout first, then the installed copy: installed at
+# <prefix>/libexec/aisoft, ROOT is <prefix> and the manifest is in
+# <prefix>/share/aisoft), never a literal account path.
+credential_root="${AISOFT_CREDENTIAL_ROOT:-}"
+if [[ -z "$credential_root" ]]; then
+  for access_manifest in "$ROOT/codex/config/host-access-broker.json" \
+    "$ROOT/share/aisoft/host-access-broker.json"; do
+    [[ -f "$access_manifest" ]] || continue
+    credential_root="$(jq -er '.site.credential_root_vm | select(type == "string" and length > 0)' \
+      "$access_manifest")" || credential_root=''
+    break
+  done
+fi
+[[ -n "$credential_root" ]] || {
+  printf '%s\n' 'BLOCKED_EXTERNAL: credential root is unset; set AISOFT_CREDENTIAL_ROOT or site.credential_root_vm' >&2
+  exit 2
+}
 if [[ -d "$ROOT/codex/runtime" ]]; then
   export PYTHONPATH="$ROOT/codex/runtime${PYTHONPATH:+:$PYTHONPATH}"
 else

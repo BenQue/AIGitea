@@ -7,6 +7,20 @@ trap 'rm -rf "$test_root"' EXIT
 
 bash "$root/codex/install-skills.sh" "$test_root/home" >/dev/null
 
+# #416: the live report runs on the Mac only. CI runs on Linux, so every live
+# case below sees a uname that answers Darwin; FAKE_UNAME picks another host.
+mkdir -p "$test_root/bin"
+cat >"$test_root/bin/uname" <<'EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == -s ]]; then
+  printf '%s\n' "${FAKE_UNAME:-Darwin}"
+else
+  exec /usr/bin/uname "$@"
+fi
+EOF
+chmod +x "$test_root/bin/uname"
+export PATH="$test_root/bin:$PATH"
+
 fake_broker="$test_root/fake-broker"
 cat >"$fake_broker" <<'EOF'
 #!/usr/bin/env bash
@@ -93,6 +107,37 @@ grep -Fq 'LIVE_PROTECTION PASS status_check=true contexts=1' <<<"$output"
 # A disabled timer's past failures do not count against readiness.
 grep -Fq 'LIVE_VM_TIMERS PASS enabled=1 failing=0' <<<"$output"
 
+# On any host other than the Mac the live report refuses before reading a layer:
+# the spy broker is never called and no state line is printed.
+spy_broker="$test_root/spy-broker"
+printf '#!/usr/bin/env bash\ntouch %q\nexit 2\n' "$test_root/spy-called" >"$spy_broker"
+chmod +x "$spy_broker"
+set +e
+host_output="$(FAKE_UNAME=Linux bash "$root/codex/tools/aisoft-platform-readiness.sh" \
+  --repo "$root" --home "$test_root/home" --broker "$spy_broker" --credential-root "$creds")"
+host_status=$?
+set -e
+[[ "$host_status" == "2" ]]
+grep -Fxq 'HOST ERROR host-mismatch os=Linux' <<<"$host_output"
+grep -Fq 'check-installed-drift.sh --host vm' <<<"$host_output"
+[[ "$(grep -c '' <<<"$host_output")" == 2 && ! -e "$test_root/spy-called" ]]
+# The refusal comes before the repository and jq checks, so neither turns it into exit 1.
+set +e
+FAKE_UNAME=Linux bash "$root/codex/tools/aisoft-platform-readiness.sh" --repo /dev/null \
+  --broker "$spy_broker" >"$test_root/host-norepo.out"
+norepo_status=$?
+mkdir -p "$test_root/nojq"
+ln -s "$test_root/bin/uname" "$test_root/nojq/uname"
+for tool in bash git dirname /usr/bin/env; do ln -sf "$(command -v "$tool")" "$test_root/nojq/"; done
+FAKE_UNAME=Linux PATH="$test_root/nojq" "$test_root/nojq/bash" "$root/codex/tools/aisoft-platform-readiness.sh" \
+  --repo "$root" --broker "$spy_broker" >"$test_root/host-nojq.out"
+nojq_status=$?
+set -e
+[[ "$norepo_status" == 2 && "$nojq_status" == 2 ]]
+grep -Fxq 'HOST ERROR host-mismatch os=Linux' "$test_root/host-norepo.out"
+grep -Fxq 'HOST ERROR host-mismatch os=Linux' "$test_root/host-nojq.out"
+[[ ! -e "$test_root/spy-called" ]]
+
 none_output="$(FAKE_UNITS=none bash "$root/codex/tools/aisoft-platform-readiness.sh" \
   --repo "$root" --home "$test_root/home" --broker "$fake_broker" --credential-root "$creds")"
 grep -Fq 'LIVE_VM_TIMERS PASS enabled=0 failing=0' <<<"$none_output"
@@ -164,7 +209,8 @@ expected="$(
 spy_broker="$test_root/spy-broker"
 printf '#!/usr/bin/env bash\necho called >>"%s"\nexit 2\n' "$test_root/spy-calls" >"$spy_broker"
 chmod +x "$spy_broker"
-[[ "$(bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme \
+# --render-readme reads source files only, so it runs on any host (#416).
+[[ "$(FAKE_UNAME=Linux bash "$root/codex/tools/aisoft-platform-readiness.sh" --render-readme \
   --repo "$render_repo" --broker "$spy_broker")" == "$expected" ]]
 [[ ! -e "$test_root/spy-calls" ]]
 

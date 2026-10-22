@@ -138,7 +138,7 @@ pwsh --version
 原型目录沿用正式合同：
 
 ```text
-C:\Apps\MyApp\
+C:\Apps\ExampleApp\
 ├── incoming\
 ├── releases\<commit-sha>\
 ├── current\
@@ -179,7 +179,7 @@ OpenSSH 从 Mac 或 Runner 到 Windows VM 的入口必须使用独立 key；管�
 原型允许构建：
 
 ```text
-MyApp-XXX-0001-<commit-sha>-win-arm64.zip
+ExampleApp-XXX-0001-<commit-sha>-win-arm64.zip
 ```
 
 manifest 必须明确：

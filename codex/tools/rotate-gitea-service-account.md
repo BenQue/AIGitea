@@ -6,9 +6,9 @@
 
 公开 typed operation 为 `gitea.credential.rotate(issue, sha, token_kind)`，另带 broker 的 manifest project。独立 `CredentialRotationRunner` 不连接 provider/project/普通 Git runner。Mac 必须由独立提升的 root operator 调用，普通用户直接拒绝；不修改 sudoers、不新增 provider 权限。operator 工具仅接受 `--project`、`--issue`、`--sha`、`--token-kind` 四个唯一字段，不接受 token、URL、路径、SQL、shell 或 force。
 
-Mac store 固定为 `/Users/benque/Library/Application Support/AISoftPlatform/credentials`，owner 为 benque。目录 0700、文件 0600，legacy 只读文件可读 0400；交易在同一 store/文件系统，逐级 descriptor-relative no-follow，拒绝 symlink、hardlink、错误 owner/mode。旧/候选 PAT 只在保护区与内部管道，不进入公开回执/argv/日志。既有 VM 副本不更新、不清理；撤旧后不能继续消费旧副本。
+Mac store 固定为 broker manifest 的 `site.credential_root_mac`，owner 为 `site.orbstack_user`。目录 0700、文件 0600，legacy 只读文件可读 0400；交易在同一 store/文件系统，逐级 descriptor-relative no-follow，拒绝 symlink、hardlink、错误 owner/mode。旧/候选 PAT 只在保护区与内部管道，不进入公开回执/argv/日志。既有 VM 副本不更新、不清理；撤旧后不能继续消费旧副本。
 
-固定 VM 是 gitea-ci；CLI/helper 以现有 git service user 运行。Mac root 经已有 benque OrbStack 会话发送有界 stdin JSON。VM 在任何 Gitea/helper 命令前验证独立 operator capability；公开 tuple、VM grant 的摘要或相同 git UID 不能代替授权。两端私有入口仅接受匿名 OS pipe：Linux 核对 FIFO 与 `/proc/self/fd` 的 exact pipe inode；Darwin 核对 FIFO、device/link count 为零；TTY、普通文件、具名 FIFO（含 unlink 后）拒绝，输出 Secret 前复核。Gitea 固定为 1.26.4、Go helper 固定为 go1.26.3 的对应 Linux 制品。缺安装来源或 grant 时零签发/撤销，不使用其它身份 fallback。
+固定 VM 是 `site.orbstack_machine`；CLI/helper 以现有 git service user 运行。Mac root 经已有 `site.orbstack_user` OrbStack 会话发送有界 stdin JSON。VM 在任何 Gitea/helper 命令前验证独立 operator capability；公开 tuple、VM grant 的摘要或相同 git UID 不能代替授权。两端私有入口仅接受匿名 OS pipe：Linux 核对 FIFO 与 `/proc/self/fd` 的 exact pipe inode；Darwin 核对 FIFO、device/link count 为零；TTY、普通文件、具名 FIFO（含 unlink 后）拒绝，输出 Secret 前复核。Gitea 固定为 1.26.4、Go helper 固定为 go1.26.3 的对应 Linux 制品。缺安装来源或 grant 时零签发/撤销，不使用其它身份 fallback。
 
 ## 独立现场授权前须形成的具体卡片
 
@@ -27,7 +27,7 @@ VM only: operator_capability_sha256
 
 时间是 UTC epoch 整数，窗口必须当前有效；`creation_issue` 绑定既有 account/token/password-policy marker，而不是新 rotation Issue。授权不包含 PAT。每个 exact 授权另用 CSPRNG 生成 256-bit capability，编码为 64 位 lowercase hex，原文仅存于 Mac root grant。VM 只存该 ASCII 字符串的 SHA-256 lowercase hex，不存原文；两端 strict schema 不允许互换字段。安装器不生成或 provision capability/grant。本卡不提供真实生成命令或授权。
 
-capability 是窗口内 bearer 授权，不是单次调用能力；它仅在 root 与批准的固定 transport/service process 内存及私有管道中传递，不进入 argv/env、公开 stdout/stderr、journal、provenance、审计或回执。VM 用固定长度 constant-time 摘要比较；普通 benque/Agent 直接复用 `orb -u git` 入口而无 capability 时零命令/零 Secret 返回。它不提供针对已控制 VM root/Gitea service process 的 OS 隔离。授权替换时使用新的独立 capability，旧值不再匹配。一个 exact Issue/source/project/kind 请求完成后重试为 no-op；新轮换必须另有不同的已授权请求，保留上次完成 provenance，不能 force。
+capability 是窗口内 bearer 授权，不是单次调用能力；它仅在 root 与批准的固定 transport/service process 内存及私有管道中传递，不进入 argv/env、公开 stdout/stderr、journal、provenance、审计或回执。VM 用固定长度 constant-time 摘要比较；普通 `site.orbstack_user`/Agent 直接复用 `orb -u git` 入口而无 capability 时零命令/零 Secret 返回。它不提供针对已控制 VM root/Gitea service process 的 OS 隔离。授权替换时使用新的独立 capability，旧值不再匹配。一个 exact Issue/source/project/kind 请求完成后重试为 no-op；新轮换必须另有不同的已授权请求，保留上次完成 provenance，不能 force。
 
 ## 恢复与验收
 

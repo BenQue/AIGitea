@@ -328,7 +328,8 @@ real_manifest_samples="$(printf '%s\n' \
 # the installer tests install and count them; sync-gitea-service-policy pins
 # its real-manifest behaviour (the PAT helper tests moved to the synthetic
 # fixtures in #385); the change-template-sync and leak-guard tests write temp trees; the
-# classification fixture only quotes the path in an Issue comment.
+# classification fixture only quotes the path in an Issue comment; the bootstrap
+# and gitea-readonly tests write a fixture copy into a temp layout (#416).
 if rg -n "$real_manifest_ref" "$ROOT/codex/runtime/tests" "$ROOT/codex/tests" \
   --glob '!**/codex/tests/smoke.sh' --glob '!**/codex/tests/check-project-leak.py' \
   --glob '!**/codex/runtime/tests/test_project_leak.py' \
@@ -336,8 +337,17 @@ if rg -n "$real_manifest_ref" "$ROOT/codex/runtime/tests" "$ROOT/codex/tests" \
   --glob '!**/codex/tests/test-installer-source-guard.sh' \
   --glob '!**/codex/tests/test-sync-gitea-service-policy.sh' \
   --glob '!**/codex/tests/test-change-template-sync.sh' \
+  --glob '!**/codex/tests/test-bootstrap-gitea-service-account.sh' \
+  --glob '!**/codex/tests/test-gitea-readonly.sh' \
   --glob '!**/codex/tests/fixtures/classification/issue-comment-overrides-body.json'; then
   echo '测试必须读 codex/tests/fixtures/manifests/ 的合成夹具，不得读真实 manifest（#380）' >&2
+  exit 1
+fi
+# The two temp-layout tests above are exempt only for their own copies; they may
+# never point at the checkout's real manifests (#416).
+if rg -n '\$\{?(ROOT|root)\}?/codex/config' \
+  "$ROOT/codex/tests/test-bootstrap-gitea-service-account.sh" "$ROOT/codex/tests/test-gitea-readonly.sh"; then
+  echo '临时布局测试不得引用 checkout 的真实 manifest（#416）' >&2
   exit 1
 fi
 
@@ -623,7 +633,6 @@ if [[ -e "$ROOT/codex/install-vm.sh" || -e "$ROOT/codex/systemd" || -e "$ROOT/te
   exit 1
 fi
 grep -Fq 'READY_FOR_REVIEW' "$ROOT/skills/gitea-development-loop/SKILL.md"
-grep -Fq '生产环境只运行' "$ROOT/AGENTS.md"
 
 root_agents="$ROOT/AGENTS.md"
 literal_dollar='$'
@@ -648,19 +657,16 @@ grep -Fq 'triage/ready-for-agent' "$instruction"
 grep -Fq 'approved' "$instruction"
 grep -Fq "exact ${literal_backtick}change/N-short-description${literal_backtick}" "$instruction"
 grep -Fq 'ADR 0002' "$instruction"
-grep -Fq '自动化最多止于 PR 候选' "$instruction"
 for legacy_basename in 00-summary.md 01-spec.md 02-plan.md 03-verification.md; do
   grep -Fq "$legacy_basename" "$instruction"
 done
 grep -Fq "${literal_backtick}documents${literal_backtick}" "$root_agents"
-grep -Fq "tracker 选择 ${literal_backtick}Other${literal_backtick}" "$root_agents"
-grep -Fq 'small 变更可按平台合同跳过 spec/plan' "$root_agents"
-grep -Fq '兼容 adapter' "$root_agents"
-grep -Fq 'fast-forward push' "$root_agents"
-grep -Fq '最终 PR 只由人合并' "$root_agents"
-grep -Fq 'force-push' "$root_agents"
-grep -Fq '静默安装或更新全局 skills' "$root_agents"
-grep -Fq 'PR merge 不传递部署授权' "$root_agents"
+# #416 (ADR 0001 D9): the maintenance rules are pinned by section, not by sentence.
+# The Matt setup tracker option is a value, not a sentence, so it stays pinned.
+grep -Fq "${literal_backtick}Other${literal_backtick}" "$root_agents"
+for agents_section in 边界 'Issue 与命名' 判级与确认 开发编排 'Git、合并与部署' 治理文件 凭据与验证 目录; do
+  require_heading "$root_agents" "$agents_section"
+done
 
 analyze_skill="$ROOT/skills/gitea-analyze-change/SKILL.md"
 spec_skill="$ROOT/skills/gitea-spec-plan/SKILL.md"

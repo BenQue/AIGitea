@@ -80,10 +80,10 @@ Issue title: [PRD-0001] 建设 Windows 正式部署链
 Branch:      change/PRD-0001
 Docs:        docs/changes/PRD-0001/
 PR:          Change-ID: PRD-0001 / Closes #1
-Artifact:    MyApp-PRD-0001-<sha>-win-x64.zip
+Artifact:    ExampleApp-PRD-0001-<sha>-win-x64.zip
 ```
 
-Change ID 每个项目仓库独立递增，不按年份重置，不复用。跨仓库展示时增加仓库上下文，例如 `myapp@PRD-0001`，仓库内部仍使用短编号。
+Change ID 每个项目仓库独立递增，不按年份重置，不复用。跨仓库展示时增加仓库上下文，例如 `example-app@PRD-0001`，仓库内部仍使用短编号。
 
 ## 5. 源码与构建布局
 
@@ -91,10 +91,10 @@ Change ID 每个项目仓库独立递增，不按年份重置，不复用。跨�
 
 ```text
 src/
-├── MyApp.Api/                 # ASP.NET Core
-├── MyApp.Application/
-├── MyApp.Infrastructure/
-└── MyApp.Web/                 # React
+├── ExampleApp.Api/                 # ASP.NET Core
+├── ExampleApp.Application/
+├── ExampleApp.Infrastructure/
+└── ExampleApp.Web/                 # React
 tests/
 deploy/
 ├── modules/AISoft.Deployment/
@@ -125,24 +125,24 @@ npm ci（package-lock.json 进仓库）
 ## 6. 不可变制品合同
 
 ```text
-MyApp-PRD-0001-<commit-sha>-win-x64.zip
+ExampleApp-PRD-0001-<commit-sha>-win-x64.zip
 ├── app/
-│   ├── MyApp.exe
+│   ├── ExampleApp.exe
 │   ├── web.config
 │   ├── wwwroot/
 │   └── *.dll
 ├── migrations/
-│   └── MyApp.Migrations.exe
+│   └── ExampleApp.Migrations.exe
 └── manifest.json
 
-MyApp-PRD-0001-<commit-sha>-win-x64.sha256
+ExampleApp-PRD-0001-<commit-sha>-win-x64.sha256
 ```
 
 `manifest.json` 至少包含：
 
 ```json
 {
-  "application": "MyApp",
+  "application": "ExampleApp",
   "changeId": "PRD-0001",
   "version": "1.0.0",
   "commitSha": "FULL_SHA",
@@ -168,7 +168,7 @@ React 优先使用同源 `/api`。确需环境差异时，由 ASP.NET Core 提�
 目标目录：
 
 ```text
-C:\Apps\MyApp\
+C:\Apps\ExampleApp\
 ├── incoming\
 ├── releases\<commit-sha>\
 ├── current\                    # junction
@@ -194,7 +194,7 @@ C:\Apps\MyApp\
 ```text
 部署执行端（本地测试为本机，公司测试为部署控制端）
 → 下载/读取本次制品
-→ SCP ZIP、SHA256 到 C:\Apps\MyApp\incoming
+→ SCP ZIP、SHA256 到 C:\Apps\ExampleApp\incoming
 → SSH 调用固定入口 Install-AISoftRelease.ps1
 → 读取结构化部署结果
 → HTTP health + commit SHA 校验
@@ -214,8 +214,8 @@ SSH 只是传输和远程执行通道；真正的部署逻辑必须位于版本�
 建议 AD 组与 Endpoint：
 
 ```text
-AD group: DOMAIN\GG-MyApp-Deployers
-JEA endpoint: MyApp.Deployment
+AD group: DOMAIN\GG-ExampleApp-Deployers
+JEA endpoint: ExampleApp.Deployment
 ```
 
 JEA 只暴露：
@@ -253,9 +253,9 @@ flowchart LR
 
 | 身份 | 权限 |
 |---|---|
-| `myapp_runtime` | 运行期最小 DML 权限 |
-| `myapp_migrator` | 受控 schema migration 权限 |
-| `myapp_backup` | 执行备份所需的只读权限 |
+| `example-app_runtime` | 运行期最小 DML 权限 |
+| `example-app_migrator` | 受控 schema migration 权限 |
+| `example-app_backup` | 执行备份所需的只读权限 |
 
 规则：
 

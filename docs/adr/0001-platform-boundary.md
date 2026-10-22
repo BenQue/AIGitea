@@ -52,11 +52,29 @@
 - 测试 fixture（`codex/runtime/tests/`、各 `tests/` 目录中的夹具数据）；
 - `docs/changes/` 与 `archive/`；
 - `06-运维手册与踩坑集.md` 的踩坑表（事故记录本身需要具体对象）；
-- `docs/adr/` 与 `docs/governance/` 中叙述决策背景的段落。
+- `docs/adr/` 与 `docs/governance/` 中叙述决策背景的段落；
+- `codex/vendor/` 下按 pin 原样保存的外部技能包快照（#416 补记，守卫自 #368 起放行）。
 
 平台仓自身的名称不受此限。其余位置出现项目专属值视为渗入。平台需要按项目区分行为时，做成**扩展点**：manifest 字段，
 或项目仓自带的 profile 文件，平台只提供 schema 与引擎。#340 的 application target、#213 的 pilot、
 #358 的 architecture profile 都按扩展点处理。
+
+#### D3 登记的例外
+
+以下文件不在允许位置，但由负责人接受保留现有命中（#416，2026-10-22）。泄漏守卫要求基线里的每个文件都列在本表，
+命中数仍只减不增；新增例外要走 complex Issue。守卫不渲染 Markdown、直接读这张表，所以本 ADR 全文不得出现代码围栏、HTML 注释或原始 HTML 块。
+
+| 文件 | 理由 |
+|---|---|
+| `architecture/catalog-releases/2026.08.3/catalog.json` | 已发布 catalog 快照不可变 |
+| `architecture/catalog.json` | 兼容性说明记录观测证据；改字节须升 catalog revision，牵动各项目 lock（路线图总规则 2） |
+| `architecture/evidence/inventory.json` | 主机清点的观测证据，性质同 `docs/changes/` |
+| `architecture/evidence/official-sources.md` | 版本来源核对的观测证据，性质同 `docs/changes/` |
+| `architecture/decisions/0005-systemd-native-delivery-profile.md` | 决策记录的关联 Issue 链接，性质同 `docs/adr/`；该目录装到 target 主机 |
+| `architecture/decisions/0006-node-sqlite-profile-and-as-built-drift.md` | 同上 |
+| `architecture/decisions/0007-profile-machine-checksum.md` | 同上 |
+| `codex/tools/gitea-pat-helper/README.md` | helper 构建输入树的一部分；树内任何字节变化都让 VM 漂移报 `helper-build-input-differ`，需在 VM 重建 helper |
+| `codex/tools/ensure-gitea-collaborator.sh` | 已退役，只作历史兼容与回归证据（`06`），不再演进 |
 
 ### D4 项目需求的准入规则
 

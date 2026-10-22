@@ -82,7 +82,17 @@ if [[ -z "$token" && -n "${GITEA_TOKEN_FILE:-}" ]]; then
   token="${token%%$'\n'*}"
 fi
 if [[ -z "$token" ]]; then
-  credential_file="${GITEA_CREDENTIAL_FILE:-/home/benque/gitea-ci-credentials.txt}"
+  credential_file="${GITEA_CREDENTIAL_FILE:-}"
+  if [[ -z "$credential_file" ]]; then
+    # #416: the default is $HOME/<site.orbstack_machine>-credentials.txt, read
+    # from the broker manifest of this checkout, never a literal account path.
+    access_manifest="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/codex/config/host-access-broker.json"
+    command -v jq >/dev/null || fail 'jq is required to read site.orbstack_machine; set GITEA_CREDENTIAL_FILE'
+    machine="$(jq -er '.site.orbstack_machine | select(type == "string" and test("^[A-Za-z0-9._-]+$"))' \
+      "$access_manifest" 2>/dev/null)" ||
+      fail 'no Gitea credential file: set GITEA_CREDENTIAL_FILE or site.orbstack_machine'
+    credential_file="$HOME/$machine-credentials.txt"
+  fi
   secure_mode "$credential_file"
   token="$(awk '/^admin token:/ {print $NF; exit}' "$credential_file")"
 fi

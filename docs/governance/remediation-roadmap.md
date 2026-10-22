@@ -23,7 +23,7 @@
 | R3 | 模板与通用文档去项目化：`templates/project/ci` 的 registry 改占位并标“Node 栈示例”；summary 模板、两份 `issue-session-flow`、`private-gitea-access.md` 的依赖边改为指向 manifest；`03`、`04`、`08`、`README.md` 去掉项目事故与已退出项目的 as-built 叙述；代码注释里的项目轶事；`09` 归档；技能里的站点路径收进 site profile 引用；测试改钉结构 | 2.2、2.3、B3 | R1 | 否（只动文字，不动 CI 模板的已发布行为） | #371 已完成；summary 模板的依赖边因下游 vendored 移到 R6 |
 | R4 | broker 与 governance 去项目化：#340 application target 改 manifest 数据，preflight 只留采集引擎；#213 routine pilot 写死项改为 manifest 自洽校验，评估退役 pilot 闸门并归档 `rollback-gitea-routine-pilot.sh`；#358 triage 时按扩展点处理（profile 由项目仓自带，平台只给 schema 与校验器） | A4 | R1 | **是**：routine merger、architecture lock | #373 已完成（PR 374，`c3d49ed`）：预检接口退役，pilot 保留但改 manifest 自洽校验；#358 在自身 Issue 重新 triage；summary 模板依赖边移到 R6 |
 | R5 | 技能更新：superpowers 7.0.0 按 `08` §5 适配清单核对后两侧升级；核实 Codex 侧实际生效版本；重装 `aisoft-platform` 消除 project-align 漂移（负责人本人执行 installer）；只读版本核对脚本；CLI 升级后跑 provider 验收矩阵 | C1–C4 | 无 | 否 | #375 已完成（PR 376，`bcf2fd7`）：superpowers 7.0.0 适配核对、只读版本核对脚本；Codex 侧 superpowers 未生效，是否启用由负责人定 |
-| R6 | 两层分离与发布包：起草并定稿“平台使用合同”与项目指针模板，由 project-align 下发；版本化发布包与项目 pin；`08` 验证矩阵拆成两层 | D1、D2、D4 | R1 | 否（平台侧只新增发布包；NewEMaint 改为 pin 发布包是 NewEMaint 仓的 Issue） | #377 进行中（负责人 2026-10-18 决定提前开工）：`usage/CONTRACT.md`、`usage/bundle.json` 发布 1.0.0、project-check 按 pin 核对、`08` §7 两层、summary 模板依赖边已清 |
+| R6 | 两层分离与发布包：起草并定稿“平台使用合同”与项目指针模板，由 project-align 下发；版本化发布包与项目 pin；`08` 验证矩阵拆成两层 | D1、D2、D4 | R1 | 否（平台侧只新增发布包；NewEMaint 改为 pin 发布包是 NewEMaint 仓的 Issue） | #377 已完成（PR 378，`8fa4458`，发布包 1.0.0；负责人 2026-10-18 决定提前开工）：`usage/CONTRACT.md`、`usage/bundle.json` 发布 1.0.0、project-check 按 pin 核对、`08` §7 两层、summary 模板依赖边已清 |
 | R6b | 测试夹具解耦：进 smoke 的测试改读自带夹具 manifest，不再断言真实 manifest 中某个项目的条目；`rollback-gitea-routine-pilot.sh` 改为按 manifest 中任意 pilot 工作的通用工具，或在 pilot 退役后归档 | A3、A4（残留） | R6 | 否（负责人 2026-10-18 裁决 pilot 退役） | #380 已完成（PR 382，`a395f7a`）：测试改读 `codex/tests/fixtures/manifests/` 合成夹具，smoke 守卫禁止测试读真实 manifest；回滚脚本归档、installer 删除已装副本；通用 pilot schema 与真实 manifest 声明保留 |
 | R7 | 技能单一来源与 Cursor：一份 SKILL.md 由安装器生成三种落点；收编本机不受管的 Cursor 技能；`.cursor/rules` 只做薄指针；交叉审核写入维护层固定步骤 | D3、D5、D6 | R6 | 否 | #379 已完成（PR 381，`80a38dc`）：`skills/` 单一来源与 `skills.manifest`，两对技能合并为中文单份，两侧安装器与漂移检查改读它；发布包 1.1.0 导出 `.claude`、`.agents`、`.cursor` 三种项目级落点与 Cursor 薄指针；Cursor 的 Matt 与 superpowers 纳入只读版本核对；交叉审核写入 `03` §7 与 `08` §7.1 |
 | R8 | 参考实现迁出：`docker-release`、`company-delivery`、`aisoft_release`、`aisoft_company_*` 移出 smoke 硬门，迁到项目仓或归档 | A1（裁决部分） | R6，NewEMaint 公司内网路线定案 | **是**（只删平台 main；NewEMaint 按 commit pin 取文件） | #383 已完成（PR 384）：六块互为依赖，同一 PR 迁出（含 `architecture/reference/newemaint` 与发布证据闸门），installer 8→7，发布包 1.2.0；负责人 2026-10-19 确认提交，NewEMaint 公司路线改用自有副本或按 commit 引用 |
@@ -39,12 +39,12 @@ R0 → R1 → R2 与 R3 → R4。R5 与 R1 并行。负责人 2026-10-18 决定�
 ## 第二轮（2026-10-20 起）
 
 - 依据：[ADR 0002 确定性开发流程](../adr/0002-deterministic-development-flow.md)、项目库 `platform-remediation-plan-261020-final.md`（D1–D8 已于 2026-10-20 由负责人裁决，各批任务书在其 §4）
-- 用法与总规则同第一轮；另加两条：合并前用 `apply-classification-labels.sh --verify N` 读回 `projected`；改过 broker、runtime 或技能的批次合并后由负责人两台重装并读回。
+- 用法与总规则同第一轮；另加两条：合并前用 `apply-classification-labels.sh --verify N` 读回 `projected`；改过 broker、runtime 或技能的批次合并后由负责人按 installer 的 `applies_to` 重装（技能只装在 Mac，broker 与 host-role 两台）并读回。
 
 | 批次 | 内容 | 依赖 | 状态 |
 |---|---|---|---|
 | R9 | ADR 0002（路由合同与执行引擎分离）、第二轮路线、[平台级 E2E 验收表](platform-e2e-acceptance.md) | 无 | 已完成（#389，PR 390，`0192a8e`） |
-| #370 | CI 下载缓存：runner 不再依赖每次访问 GitHub 与 Go 代理；由 Codex 实现、Claude 只读审查（D7，反向审查首例） | 无 | 已完成（#370，PR 401，`fdf93c1`）；Codex 实现、Claude 审查 |
+| #370 | CI 下载缓存：runner 不再依赖每次访问 GitHub 与 Go 代理；原定 Codex 实现、Claude 审查（D7 反向审查首例），负责人 2026-10-20 取消反向批次 | 无 | 已完成（#370，PR 401，`fdf93c1`）；Claude 实现、Codex 审查 |
 | R10a | 自动化引擎退出：按 ADR 0002 D2 迁出 Development Loop、routine merge、VM profile 操作与 `install-vm`，broker 操作 39 → 34、installer 7 → 6；清理 VM 旧单元与 LocalWMS routine merger | R9 | 已完成（#391，PR 394，`08be6f4`，发布包 1.4.0） |
 | R10b | 路由卡：路由表进 `aisoft-platform` 技能（只钉必用与禁用），summary `route:` 块，确认点 1 与派单任务书展示，`08` §7 模型档位表；发布包升版 | R9；Codex 侧验收依赖 R10c | 已完成（#395，PR 399，`86821cf`，发布包 1.6.0） |
 | R10c | 外部技能包三端一致：superpowers vendor pin 作三端核对基准，Claude/Codex 仍走官方 marketplace，发布包导出 Cursor 项目级落点（#392 确认点 1 修正） | R9 | 已完成（#392，PR 393，`149e469`，发布包 1.3.0） |
@@ -56,14 +56,22 @@ R0 → R1 → R2 与 R3 → R4。R5 与 R1 并行。负责人 2026-10-18 决定�
 | R16 | 运维闭环第二步：漂移棘轮与 `applies_to`、重装进收尾、判级投影闸门、周清扫、PAT 周期、部署通知模板 | R10a | 已完成（#397，PR 400，`fb9d8c5`，发布包 1.7.0）；衍生 #406 已完成（PR 407，`cee4294`） |
 | #412 | 治理表回写：第二轮路线图与 E2E 表回写到读回事实，回写定为每批本 PR 的固定步骤（`03` §7） | 无 | 已完成（#412） |
 | #413 | 终审 §5 第 4 项：Dockerfile FROM 接受由同 stage `RUN test` 守住的全局 ARG 默认值；漂移检查在 macOS 真实根上拒绝 `--host vm` | 无 | 已完成（#413，发布包 1.11.0） |
+| #416 | 第二轮总验收平台侧 PARTIAL：#412 回写更正、D3 残留清除或登记 ADR 例外、readiness 只在 Mac 跑、smoke 整句钉子改章节检查、D6/D9 例外登记 | 无 | 已完成（#416，发布包 1.12.0） |
 
 推荐顺序：R9 →（#370 ∥ R10a ∥ R10c）→ R10b → R11 →（R12 ∥ R13）→ R14 → R15 → R16。项目侧的部署链演练与发布包采用不等平台，结果记入 E2E 验收表。
 
-第二轮各批已全部合并（`main` = `1db191e`，使用层 1.10.0）。下面的退出条件不随批次合并自动达成，按各条另行读回判断。
+第二轮各批已全部合并（最后一批见上表）。下面的退出条件不随批次合并自动达成，按各条另行读回判断。
 
 ### 第二轮退出条件
 
 1. [平台级 E2E 验收表](platform-e2e-acceptance.md) 至少一行是当前发布包版本（构建 → 发布 → test 部署 → 健康 SHA → 同版本 noop → 回滚）。
 2. 四个应用项目中至少三个 `platform-pin` PASS，且会话工具来自发布包而不是平台检出。
-3. Mac 与 VM `check-installed-drift` 在 `applies_to` 语义下 `RESULT PASS`；readiness 全 PASS。
-4. Codex 再做一次总验收，ADR 0001 十项无 PARTIAL（或每个 PARTIAL 项各有承载 Issue）。
+3. Mac 与 VM 各跑 `check-installed-drift`（VM 加 `--host vm`），在 `applies_to` 语义下 `RESULT PASS`；readiness 只在 Mac 跑并全 PASS（它经 broker 读 VM，在 VM 内拒绝运行，#416）。
+4. Codex 再做一次总验收，ADR 0001 十项无 PARTIAL（或每个 PARTIAL 项各有承载 Issue）。**已按括号读法收口**（负责人 2026-10-22）：总验收（PIN `0bcc3cd8`，ACCEPT WITH FOLLOW-UPS）的 PARTIAL 中，平台仓侧由 #416 承载，PAT 真实轮换由 #417 承载，当前版本 E2E 与 NewEMaint 升包由 admin/NewEMaint#324 承载，其余登记为下面接受的例外。
+
+### 第二轮接受的例外
+
+| 例外 | 理由 | 负责人决定 |
+|---|---|---|
+| D6 交叉审查单向：第二轮全部批次 Claude 实现、Codex 审查，没有反向实现案例 | 反向批次（Codex 实现、Claude 审查）由负责人取消，单向审查仍满足「实现方 ≠ 审查方」；不补造反向案例 | 2026-10-20 |
+| D9 证据超预算：#385（证据 275 行 / 非证据 61 行）、#389（196/188）、#370（263/202）、#406（247/117）、#412（281/55） | 已合并的历史批次不可改写；往后由 `grep -Fq` 钉子棘轮与本表约束，新批次仍按 D9 目标 | 2026-10-22 |
