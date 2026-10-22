@@ -26,6 +26,8 @@ updated: 2026-10-22
 - `codex/tools/gitea-pat-helper/README.md` 在 T01 改过又在审查第 1 轮撤回，最终 diff 为零，但 broker 逐提交核对 scope，所以它留在 spec 的 `git_scope` 里（首推曾因此 `SCOPE_DENIED`）。
 - 环境：macOS 本机（bash 3.2），`rg` 为真实 `/opt/homebrew/bin/rg`；VM 经 `/usr/local/bin/orb -m gitea-ci`。
 
+- PR 418 的 CI：首跑 run 2100 在 `1abd0ca4` 上红在 `test-bootstrap-gitea-service-account.sh`（Linux runner 上此前用例已留下 `$TMP/credentials`，无站点值用例的「未写入」断言误报）。在 `python:3.12-bookworm` 容器里复现，`a0dde5c1` 改为只检查该用例自己的凭据路径，只改测试；Linux 容器与 Mac 均通过。run 2101 在 `a0dde5c1` 上 success（200s）。这是交叉审查 PASS 之后唯一的非文档改动。
+
 ## 执行结果
 
 | 检查 | 结果 | 证据 |
