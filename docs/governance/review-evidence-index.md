@@ -30,6 +30,23 @@ PR 编号以该批 summary 的 `pr_url` 为准，「合并」列写 `—`，合�
 计划里的「Codex 实现、Claude 审」反向批次已由负责人取消（2026-10-20 改为 Claude 实现，#408 确认点 1 记录）；
 #370 原定为反向首例，最终由 Claude 实现、Codex 审查。
 
+## 第二轮 R9–R14、R16 与 #406（#416 补记）
+
+按各批 verification 与 PR 正文补记；head 只写仓内或 PR 正文出现过的，没有的写「未记录」，不从提交历史推断。
+
+| 批次 | Issue | PR | 合并 | 实现方 | 审查方 | 审查 head（按轮） | 各轮结论 | 来源 |
+|---|---|---|---|---|---|---|---|---|
+| R9 | #389 | 390 | `0192a8e46977d9bbc0e87a1c0401e8113e36242a` | Claude | Codex（`codex exec -s read-only`） | 1：未记录；2：`5d3ed508fb93ee7bdb38050cb0e44294f9770b5a` | FAIL（2 blocker 3 nit，在 `5d3ed50` 修）→ PASS（剩余 nit 在 `bfcdd90`） | PR 390 正文；项目库 `codex-review-389.md` |
+| R10a | #391 | 394 | `08be6f44a67ddb755d840611ae249128b574b8b3` | Claude | Codex（`codex exec -s read-only`） | 1–5：未记录；6：`da3b9cadc22ff42b8289d08e7e9454193e1eaa28`；7：集成后同一树，head 未记录 | 1–5 共 11 条文档措辞发现，逐轮修复 → PASS → PASS（1 条 P3 已补） | `docs/changes/391-automation-engine-exit/verification-automation-engine-exit-261020.md`；项目库 `codex-review-391.md` |
+| R10c | #392 | 393 | `149e4694385fd0d85d021c13300450bc84d7a00f` | Claude | Codex（`codex exec -s read-only`） | 1：`5fa9633a3e22520de476cce64ddf84e1f44b6693`；2：`e2db07fa2213229ec0480cb9d433661fffa8a8a6` | CHANGES_REQUESTED（4 should-fix 1 nit，均已修）→ PASS | `docs/changes/392-superpowers-vendor-pin/verification-superpowers-vendor-pin-261020.md`「Codex 交叉审查」 |
+| R10b | #395 | 399 | `86821cfe4c48fb792c595c6eac719671c77aa6e1` | Claude | Codex（`codex exec -s read-only`） | 1：`cc698b7f4ed738a47e1efd65a7137f9e18e73fa7`；2：`531039a73a434e4217475caa68b16cd5af50d6b3`；3：`e0426c5305e900dc04db49dc297e53958b028e9a`；4：`7d43db2de2e17308c0b4cc957ac367ea1e85ec9c` | CHANGES_REQUESTED → CHANGES_REQUESTED → CHANGES_REQUESTED（均已修）→ PASS | `docs/changes/395-route-card/verification-route-card-261020.md`「Codex 交叉审查」 |
+| R13 | #396 | 398 | `43db3d09322add98548b6813a1c6d1b0405507a5` | Claude | Codex（`codex exec -s read-only`） | 1：`3e2a542a6de35ac072bc6bba9c65e46cd103be26`；2：`db605a5cc4e652cec0eec08e8776e81c4c5d762a` | CHANGES REQUESTED（2 P2 1 P3，均已修）→ PASS | `docs/changes/396-site-externalization/verification-site-externalization-261020.md`「交叉审查（AC5）」；项目库 `codex-review-396.md` |
+| R16 | #397 | 400 | `fb9d8c567c96936b01fe031df93ab78ec7b96e37` | Claude | Codex（`codex exec -s read-only`） | 1–3：未记录；4：`80b1877ea0eadb95d8ed0af9941d8e041f052fa1`；5：未记录；6：`10382abb6697f5a75773ccbebe710e2a3eb7d5bd` | 1–3 未记录 → PASS → FAIL（夹具仍用 routine 种类，已修）→ PASS | `docs/changes/397-ops-closure/verification-ops-closure-261020.md` AC11；项目库 `codex-review-397.md` |
+| — | #406 | 407 | `cee4294979f027a132de4b3abc82108cde4d9d88` | Claude | Codex（`codex exec -s read-only`） | 1：未记录；2：`01ba7cd935cb4f2db2208381ed2c8c11b6222469` | CHANGES_REQUESTED（2 条，已修）→ PASS | `docs/changes/406-drift-source-ancestor/verification-drift-source-ancestor-261021.md` AC-6 |
+| R11 | #402 | 405 | `38ddc920b87943ac69b6d614e8e25b8cfaef7ffa` | Claude | Codex（`codex exec -s read-only`） | 1：`6daab1e534c12e20fd76f05eaa0e331cc8535bca`；2：`1093a6d1dc2b1b3118b0e72aaccebee5ff186bb9`；3：`2a583e229728253ca6086953fd80a93bae389cc7`；4：`422905d4c7284db22c3681f4365c09231e3e265e`；5：`33453e652f3ae9d1f24e567f6d1da7d862284738`；6：`75506166bc6887b7276ed429044ee84ec1b0ec3c`；7：`0409ff2ba0e2f04538d0a4b51d85f6e3dfc44d44`；8：`c5bfff8da302ca55bbd15fe87d301561b94f18c2` | FAIL → FAIL → FAIL → PASS → FAIL → FAIL → FAIL（均已修）→ PASS | `docs/changes/402-usage-tool-entry/verification-usage-tool-entry-261021.md`「交叉审查」 |
+| R14 | #403 | 404 | `b2a154d56fa425375a99e401b8647150641f4ce2` | Claude | Codex（`codex exec -s read-only`） | 1：`2b1c0de1d797228e84c43e447a3715a951a6e94d`；2：`6c8b30872fa9994799af2e6463e5eef1a13a071a`；3：`c99a5178037ec419b2343ac4c6a6df75b6ba224a`；4：`5a2dfff04e1d44ea4f7750d8d898fbc7ab71c57c` | FAIL → FAIL → FAIL（均已修）→ PASS | `docs/changes/403-docs-current-contract/verification-docs-current-contract-261021.md`「交叉审查」；项目库 `codex-review-403.md` |
+| R12 | #409 | 410 | `f169b126336bf3112fd30a7c035827fbd49b1fdf` | Claude | Codex（`codex exec -s read-only`） | 1：`b0278a04cbe89f011e56229cb8da788ea68ab106`；2：`10cb21a3ef226368dc571a1a71f50c99645d7b02` | FAIL（2 MAJOR 2 MINOR，均已修）→ PASS | `docs/changes/409-catalog-pin-project-profile/verification-catalog-pin-project-profile-261021.md`「交叉审查」 |
+
 ## #408 起
 
 | 批次 | Issue | PR | 合并 | 实现方 | 审查方 | 审查 head（按轮） | 各轮结论 | 来源 |
