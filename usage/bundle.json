@@ -4331,7 +4331,7 @@
     {
       "version": "1.13.0",
       "released": "2026-10-22",
-      "bundle_digest": "sha256:5a4b7b980a8e72fd55f4869350b8ca5a85329c15432296e8b432f09be8aabae0",
+      "bundle_digest": "sha256:cd20bad5f3d0d7e0fad69a0896e2b86c9196772d5b76d237658e54fc81def4d1",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -4439,7 +4439,7 @@
         {
           "source": "skills/aisoft-platform/SKILL.md",
           "mode": "skill",
-          "sha256": "4c5d39956c7215b6b0c58daef18a84511d582787cc8a22426914876923d51174"
+          "sha256": "82ed4d698c4113c161e9dac82a890e237aca242f49635717b95f583b87b38d12"
         },
         {
           "source": "skills/aisoft-platform/agents/openai.yaml",
