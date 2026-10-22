@@ -45,7 +45,8 @@ status: passed
 | broker Issue 状态、判级、main | PASS | #423 approved；fresh `classify --verify 423` = `projected`，type/platform + complexity/complex；fresh `git.fetch.main` 后仍为上述基线 |
 | 上游排序示例的判别力复核 | PASS | 研究阶段实际运行：同分顺序不同的两个结果均通过其 score 断言，不能证明 tie-break 修复 |
 | 六场景独立文本推演 | PASS | R3 Claude Code Spec 审议将六场景逐项映射到正文，未发现缺失或越界；不是实际模型行为实验 |
-| required CI / 全局安装 / provider-session 效果 / 项目采用 / 部署 | NOT RUN | 未 push 或建 PR；后四项不在本次源码授权范围 |
+| required CI | 提交后另行核验 | 本表为 source/local 验证记录；负责人确认提交后已创建唯一 PR #424，CI 以该 PR 当前 exact head 的 required context 为准 |
+| 全局安装 / provider-session 效果 / 项目采用 / 部署 | NOT RUN | 未执行，不在本次源码与 PR 授权范围 |
 
 R2 后的变动只有入口/段落位置、重复文字、未采用的路线图条件授权及候选 digest。原则正文与所有 runtime/test/installer 均未改变，因此运行直接受影响的三项既有夹具、文档与导出检查；不把旧 head 的 full smoke 冒充最终 head 的实跑。
 
@@ -100,5 +101,5 @@ F1–F11 已经 R3 独立复核；F12 是审议明确留给归档步骤的证据
 
 ## 遗留风险与未完成项
 
-源码、隔离分发与独立文本审议完成，当前为 `AWAITING_PR_CONFIRMATION`。#423 保持 `approved`，summary 的 `pr_url` 留空；没有 push 或 PR，required CI 尚未运行。
+源码、隔离分发与独立文本审议完成后，负责人明确“确认提交”。首次 broker 推送的 `pushed_head` 与确认候选 `18c0143ad24bd6e2e15bc7b0f198f813cce1f40b` 一致，main 为 `58b06590c1539ffdeb8af9e0d5a95b78090edb6b`；唯一 PR #424 已创建，summary 已回填为 `pr-open`。提交后 required CI 按 PR 当前 exact head 独立读回，不以本表的本地 PASS 替代。
 全局安装、真实 provider-session 效果、项目采用、部署均未执行，不能从本记录推断这些层面的生效。F13/F14 是记录保留的非阻断文风建议。
