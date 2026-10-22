@@ -22,10 +22,10 @@ updated: 2026-10-22
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | AI 上手指南 `getting-started.md` 与 SKILL.md 入口行，命令逐条核对 | - | pending |
-| T02 | 简明手册 `usage/USER-GUIDE.md` 与 README 导航行 | T01 | pending |
-| T03 | 发布包登记新 reference、发布 1.13.0，smoke 与反向证明 | T02 | pending |
-| T04 | Codex 交叉审查、verification 与 review-evidence-index 回写 | T03 | pending |
+| T01 | AI 上手指南 `getting-started.md` 与 SKILL.md 入口行，命令逐条核对 | - | done |
+| T02 | 简明手册 `usage/USER-GUIDE.md` 与 README 导航行 | T01 | done |
+| T03 | 发布包登记新 reference、发布 1.13.0，smoke 与反向证明 | T02 | done |
+| T04 | Codex 交叉审查、verification 与 review-evidence-index 回写 | T03 | done |
 
 ## Expected touch points
 

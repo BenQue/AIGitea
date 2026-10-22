@@ -11,7 +11,7 @@ risk_flags:
   - agent-governance
   - platform-governance
 depends_on: []
-status: pending
+status: passed
 branch: change/420-onboarding-guide
 created: 2026-10-22
 updated: 2026-10-22
@@ -53,7 +53,7 @@ updated: 2026-10-22
 | AC-3 | PASS | README 导航第一行链到 `usage/USER-GUIDE.md`；手册链到指南；SKILL.md 入口链到指南；相对路径均存在 |
 | AC-4 | PASS | smoke 全绿；站点值反向证明变红 |
 | AC-5 | PASS | `--verify` 与 `--build` 结果见上表 |
-| AC-6 | 见下节 | 交叉审查各轮 |
+| AC-6 | PASS | 第 3 轮 Codex 只读审查 PASS，见下节与 `docs/governance/review-evidence-index.md` |
 
 ## 交叉审查
 
@@ -64,6 +64,7 @@ updated: 2026-10-22
 |---|---|---|---|---|---|
 | 1 | Claude | Codex（gpt-6-astra，high，read-only） | `b228917818a2d5d831a6dcb08eed87aac941881b` | FAIL | 7 条：接入判据不足、TRANSPORT_ERROR 写操作不可盲重试、REQUEST_DENIED 归因过宽、版本读回不应可跳过、漂移核对未传同一 home、版本号不证明登录、verification 未填。前 6 条在 `6159fb3f` 修复，第 7 条随本记录补齐 |
 | 2 | Claude | Codex（gpt-6-astra，high，read-only） | `436c0d16b03ec3eea15aa2814b523940e9022cd3` | FAIL | 上轮 7 条中 6 条确认修复、1 条部分修复；新 3 条：以 `RESULT` 为门槛会阻断单工具用户、Codex 项目级 Matt 无工具核对、Cursor 核对排在采用之前。改为按所选工具逐行判定、Cursor 移到采用后、如实写 Codex 项目级 Matt 未核对 |
+| 3 | Claude | Codex（gpt-6-astra，high，read-only） | `21ad76945efc0f14cfefe8012e6bf03595a0c4d2` | PASS | 前两轮 10 条逐条确认修复，无新发现。此后只合入 main（#419）并写入审查记录与治理索引行，指南、手册与发布包内容未再改动 |
 
 ## 遗留风险与未完成项
 
