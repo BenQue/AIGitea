@@ -35,8 +35,8 @@ route:
   review: cross-provider
   confirm: 2
 override_reason: ''
-status: approved
-pr_url: ''
+status: pr-open
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/426
 ---
 
 # Summary：共享工程原则的审查思想
