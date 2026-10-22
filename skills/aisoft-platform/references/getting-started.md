@@ -45,8 +45,6 @@
    `/plugin marketplace add <平台检出路径>`，再运行 `/plugin install mattpocock-skills@aisoft-platform`；这是本机 installed 层动作，由用户本人执行。
    核对（在平台检出里）：`bash skill-for-claude/check-plugin-pin.sh` 首行为 `PIN_CLEAN`。
    失败时：`PIN_DRIFT` 或 `PIN_NOT_INSTALLED` 不要声称已就绪，报告给用户，由用户决定是否重装。
-4. **平台维护者附加**：只在维护平台仓时，维护者另用 `bash skill-for-claude/install.sh <目标 home>` 把平台技能装到用户目录，
-   用 `bash skill-for-claude/check-drift.sh` 读回 `CLEAN`。普通项目开发跳过这一项。
 
 ### Codex
 
@@ -54,8 +52,6 @@
 2. **superpowers**：从 Codex 官方插件市场安装（用户在 Codex 的插件管理里操作）。
    官方市场拿不到平台 pin 的版本时，版本核对会读到 `PIN_NOT_INSTALLED`，这是已登记的外部限制，不阻塞开发。
 3. **Matt 技能包与 `aisoft-matt-workflow`**：随发布包进入项目级 `.agents/skills/`，开发者不需另装。
-4. **平台维护者附加**：只在维护平台仓时，维护者另用 `bash codex/install-skills.sh <目标 home>` 安装到用户目录，
-   用 `bash codex/check-drift.sh` 读回。普通项目开发跳过这一项。
 
 ### Cursor
 
@@ -64,10 +60,14 @@
    平台不往用户目录安装任何东西，开发者也不需要另装插件。
 3. 采用发布包时要带 Cursor（第 4 步的 `--tools` 含 `cursor`），否则项目里没有这些落点。
 
-### 版本核对（任一工具，在平台检出里，可选）
+### 平台检出里的附加核对（维护层，可选）
 
-`bash codex/tools/check-external-skill-versions.sh` 逐工具报 superpowers 与 Matt 的状态；对某个项目加 `--repo <项目检出>`
-会同时核对项目里的快照。`PIN_DRIFT` 的意思是该工具的版本与平台 pin 不同，先请维护者过 `08` §5 的适配清单，再继续使用。
+以下命令都在平台检出里运行，普通项目开发可以跳过。
+
+- 只在维护平台仓时，平台技能另装到用户目录：Claude 侧 `bash skill-for-claude/install.sh <目标 home>`，读回
+  `bash skill-for-claude/check-drift.sh` 为 `CLEAN`；Codex 侧 `bash codex/install-skills.sh <目标 home>`，读回 `bash codex/check-drift.sh`。
+- 外部技能包版本：`bash codex/tools/check-external-skill-versions.sh` 逐工具报 superpowers 与 Matt 的状态；对某个项目加 `--repo <项目检出>`
+  会同时核对项目里的快照。`PIN_DRIFT` 的意思是该工具的版本与平台 pin 不同，先请维护者过 `08` §5 的适配清单，再继续使用。
 
 ## 第 3 步：新项目登记（维护者）
 
@@ -77,17 +77,22 @@
 
 开发者的判据只有一条：第 1 步第 2 项的 `git.fetch.main` 在项目检出里返回 `PASS`。
 
-## 第 4 步：把使用发布包采用进项目（维护者执行，开发者读回）
+## 第 4 步：把使用发布包采用进项目
+
+### 采用（维护层）
 
 1. 维护者在项目里为这次采用开一个 Issue，建该 Issue 的 change worktree。
 2. 维护者在平台检出里运行 `bash codex/tools/usage-bundle.sh --adopt <项目 change worktree> --tools <所选工具>`，
    `--tools` 取 `claude`、`codex`、`cursor` 的逗号组合（缺省 `claude,codex`）。工作树必须干净。
 3. 项目照常判级、确认、走唯一 PR，由人合并。
-4. 开发者在合并后的项目检出里读回：
+
+### 开发者读回
+
+1. 在合并后的项目检出里读回：
    - `.aisoft/bin/aisoft version`：打印 `bundle_version`。
    - `.aisoft/bin/aisoft bundle status`：本仓与 pin 版本一致。
    - `.aisoft/bin/aisoft project-check`：没有 `GAP:` 行。有 GAP 就按行在项目里建 Issue 修复，不要手改 `.aisoft/` 下的文件。
-5. 项目 `AGENTS.md` 的「项目事实」由项目自己填写（技术栈、测试命令、健康端点、交付形态等，见 `.aisoft/platform-usage.md` §4）。
+2. 项目 `AGENTS.md` 的「项目事实」由项目自己填写（技术栈、测试命令、健康端点、交付形态等，见 `.aisoft/platform-usage.md` §4）。
 
 ## 第 5 步：跑通第一张 Issue（开发者）
 
