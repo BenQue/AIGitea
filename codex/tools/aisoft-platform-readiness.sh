@@ -63,6 +63,19 @@ while (($#)); do
   esac
 done
 
+# #416: readiness is a Mac tool. Its installed layers are the Mac's skills and
+# it reads VM timers through the broker's OrbStack entry, so inside the VM every
+# layer reports a false failure. Refuse right after argument parsing, before the
+# repository or jq checks; --render-readme reads source files only and runs
+# anywhere. The VM checks itself with check-installed-drift.sh --host vm.
+host_os="$(uname -s 2>/dev/null || true)"
+if ((render_readme == 0)) && [[ "$host_os" != Darwin ]]; then
+  echo "HOST ERROR host-mismatch os=${host_os:-unknown}"
+  echo 'HOST NOTE readiness runs on the Mac only (it reads the VM through the broker);' \
+    'on the VM run codex/tools/check-installed-drift.sh --host vm'
+  exit 2
+fi
+
 git -C "$repo" rev-parse --git-dir >/dev/null 2>&1 || {
   echo 'SOURCE BLOCKED repository-unavailable'
   exit 1
@@ -123,18 +136,6 @@ if ((render_readme)); then
   table="$(render_readme_table)" || exit 1
   printf '%s\n' "$table"
   exit 0
-fi
-
-# #416: readiness is a Mac tool. Its installed layers are the Mac's skills and
-# it reads VM timers through the broker's OrbStack entry, so inside the VM every
-# layer reports a false failure. Refuse before reading anything; the VM checks
-# itself with check-installed-drift.sh --host vm.
-host_os="$(uname -s 2>/dev/null || true)"
-if [[ "$host_os" != Darwin ]]; then
-  echo "HOST ERROR host-mismatch os=${host_os:-unknown}"
-  echo 'HOST NOTE readiness runs on the Mac only (it reads the VM through the broker);' \
-    'on the VM run codex/tools/check-installed-drift.sh --host vm'
-  exit 2
 fi
 
 overall=0

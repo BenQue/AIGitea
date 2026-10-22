@@ -79,7 +79,7 @@ git_scope:
   审查索引补 R9–R14、R16 各一行，取值来自各批 verification 或 PR 正文，查不到写「未记录」。
 - [ ] AC-2：上表「清除」各项命中归零；ADR 0001 D3 新增「登记的例外」表，列出上表「例外」各文件与理由；
   `check-project-leak.py` 在基线里出现例外表未列的文件时失败（附反向测试）；守卫 PASS，基线文件数与命中数只减不增。
-- [ ] AC-3：readiness 在非 macOS 主机上（`--render-readme` 除外）不读任何层，打印 `HOST BLOCKED host-mismatch` 与在 Mac 运行的指引，
+- [ ] AC-3：readiness 在非 macOS 主机上（`--render-readme` 除外）不读任何层，在仓库与 jq 检查之前打印 `HOST ERROR host-mismatch` 与在 Mac 运行的指引，
   退出码 2；VM 内经 `orb -m <site.orbstack_machine>` 实测如此；Mac 上运行六节 PASS、退出码 0。帮助文字、`06`、`issue-session-flow`
   收尾节与退出条件 3 统一为「两台各跑 drift，readiness 只在 Mac 跑」，收尾节写明技能只装在 Mac、broker 与 host-role 两台都装。
 - [ ] AC-4：`AGENTS.md` 的整句 `grep -Fq` 钉子改为章节标题结构检查；钉子数低于 89 并下调 `smoke-pin-baseline.json`；

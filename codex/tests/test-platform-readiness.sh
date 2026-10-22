@@ -121,6 +121,22 @@ set -e
 grep -Fxq 'HOST ERROR host-mismatch os=Linux' <<<"$host_output"
 grep -Fq 'check-installed-drift.sh --host vm' <<<"$host_output"
 [[ "$(grep -c '' <<<"$host_output")" == 2 && ! -e "$test_root/spy-called" ]]
+# The refusal comes before the repository and jq checks, so neither turns it into exit 1.
+set +e
+FAKE_UNAME=Linux bash "$root/codex/tools/aisoft-platform-readiness.sh" --repo /dev/null \
+  --broker "$spy_broker" >"$test_root/host-norepo.out"
+norepo_status=$?
+mkdir -p "$test_root/nojq"
+ln -s "$test_root/bin/uname" "$test_root/nojq/uname"
+for tool in bash git dirname /usr/bin/env; do ln -sf "$(command -v "$tool")" "$test_root/nojq/"; done
+FAKE_UNAME=Linux PATH="$test_root/nojq" "$test_root/nojq/bash" "$root/codex/tools/aisoft-platform-readiness.sh" \
+  --repo "$root" --broker "$spy_broker" >"$test_root/host-nojq.out"
+nojq_status=$?
+set -e
+[[ "$norepo_status" == 2 && "$nojq_status" == 2 ]]
+grep -Fxq 'HOST ERROR host-mismatch os=Linux' "$test_root/host-norepo.out"
+grep -Fxq 'HOST ERROR host-mismatch os=Linux' "$test_root/host-nojq.out"
+[[ ! -e "$test_root/spy-called" ]]
 
 none_output="$(FAKE_UNITS=none bash "$root/codex/tools/aisoft-platform-readiness.sh" \
   --repo "$root" --home "$test_root/home" --broker "$fake_broker" --credential-root "$creds")"
