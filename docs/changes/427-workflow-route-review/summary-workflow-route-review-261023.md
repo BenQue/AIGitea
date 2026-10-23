@@ -38,8 +38,8 @@ route:
   review: cross-provider
   confirm: 2
 override_reason: '用户要求保持现有 provider 默认；F1 修复前本票显式采用既有 Codex 默认 implement 与 issue-session-flow，替换 R3 字面列出的 executing-plans 与 verification-before-completion；其余路由格不变，随本票确认点 1 一并呈交'
-status: approved
-pr_url:
+status: pr-open
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/428
 ---
 
 # Summary：F1/F6 与必要流程适配
