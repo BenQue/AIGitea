@@ -172,3 +172,19 @@ T02 第一候选 `1052738150c2d2e9154b1bad2c5c8ad4c88b77f8` 的独立双轴发�
 - T02-Spec-1（P2）：历史 `03-verification.md` 未触发 V1。已复用原 required_roles 规范化，新增三provider与CLI历史正例。
 - T02-Standards-1（P2）：高风险类型/修饰动作未完全从 policy 读出或拒绝未知。已从 policy 提取类型、显式拒绝未知动作/闭集，并补漂移反例。
 两项先 RED 后修复；fixed 待新 HEAD 复核，未重写历史或修改治理 policy。
+
+### T02 闭合 / T03 开始前回执
+
+T02 两轴对新 HEAD `b5414a9236aebec65e8e8cbb51996da626eaeda4` 限定复核均 VERDICT PASS。Spec-1 / Standards-1 fixed，residual/new 均无。required 定向测试 65 PASS。
+
+T03 ticket_base：`b5414a9236aebec65e8e8cbb51996da626eaeda4`；开始前 staged/unstaged/untracked 均空（在更新本段前读取）。同一 owner/branch/worktree、provider=codex；固定 Matt v1.3.1 implement/tdd。原计划 raw SHA256：`67c75f364d84a56506a51b56fe1e67b3d6c60ecc0c301f12f812a21388132cd6`。本回执在实现前记录，helper 尚不存在；不冒充 helper 自举运行。继承 spec 35 条范围与原批准的测试 seam/Expected。
+
+### T03 实施与本地验证
+
+- RED：生产 seam 首次失败 ModuleNotFoundError: ticket_execution；随后 fixture 的 owner claim 参数和必填文档元数据按现合同修正，未放松合同。
+- 新 prepare-ticket 只读 Git/合同，经现 project resolver + typed gitea.issue.read 读批准状态；只写 worktree ignored cache/sdd 登记。无 add/commit、网络变更或 HOME 写入。
+- 精确 Txx 图/正文、依赖环/未知/重复/围栏伪正文/ID 混淆拒绝；派生 Task N 携带全局与本票合同；原版 SP v7.0.0 task-start→task-brief 在临时 Git/HOME 实际调用 PASS。
+- 开始回执绑定 Issue/branch/owner/provider、原始/语义摘要、source pin、scope、BASE 与三类起始状态。完成证据采用映射 verification 中 aisoft-execution JSON fence；逐 AC、验证摘要/commands/result/evidence 及真实 Git range 必须匹配。不是另建完成数据库。
+- 正常 Status/updated/指定 JSON 证据区变化可恢复；语义/owner/BASE/foreign scratch/symlink 反例失败；无关用户文件保留。development synthetic T01 不要求 production plan；small 维持原入口。
+- `PYTHONPATH=codex/runtime python3 -B -m unittest tests.test_ticket_execution tests.test_documents`：30 tests PASS；bash -n / ShellCheck wrapper、文档门、git diff --check PASS。完整 smoke/导出与终审待 T05。
+- 候选提交后派同一 BASE/HEAD 双轴；未以测试 PASS 代替审查。

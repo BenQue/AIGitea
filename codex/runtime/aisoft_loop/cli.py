@@ -60,6 +60,13 @@ def main(argv: list[str] | None = None) -> int:
     resolve_routes.add_argument("--repo", required=True, type=Path)
     resolve_routes.add_argument("--provider", required=True, choices=("codex", "claude", "cursor"))
 
+    prepare = subparsers.add_parser("prepare-ticket", help="prepare or resume an exact Txx execution view")
+    prepare.add_argument("issue", type=int)
+    prepare.add_argument("ticket")
+    prepare.add_argument("--repo", required=True, type=Path)
+    prepare.add_argument("--provider", required=True, choices=("codex", "claude", "cursor"))
+    prepare.add_argument("--resume", action="store_true")
+
     required_document_names = subparsers.add_parser(
         "resolve-required-documents", help="read validated required roles and mapped filenames"
     )
@@ -136,6 +143,15 @@ def main(argv: list[str] | None = None) -> int:
         return _apply_analysis(args.issue, args.result_json, args.summary_url)
     if args.command == "resolve-documents":
         return _resolve_documents(args.repo, args.issue)
+    if args.command == "prepare-ticket":
+        from .ticket_execution import prepare_ticket
+        try:
+            result = prepare_ticket(args.repo, args.issue, args.ticket, args.provider, resume=args.resume)
+        except (ContractError, WorktreeOwnerError, WorktreeError, OSError, ValueError) as exc:
+            print(f"ticket preparation refused: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+        return 0
     if args.command == "resolve-route":
         from .route_policy import resolve_issue_route
         try:
