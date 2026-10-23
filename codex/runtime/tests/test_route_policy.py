@@ -237,6 +237,44 @@ class ExecutableRouteTests(unittest.TestCase):
             with self.assertRaisesRegex(ContractError, 'condition'):
                 resolve_route(classified(), provider='codex', policy=p)
 
+    def test_legacy_verification_obligation_survives_resolution(self):
+        for provider in ('codex', 'claude', 'cursor'):
+            c = classified(change_type='maintenance', requested_complexity='complex', effective_complexity='complex',
+                required_docs='\n  - 00-summary.md\n  - 01-spec.md\n  - 02-plan.md\n  - 03-verification.md')
+            self.assertEqual(lookup(c, provider=provider)['verify'], 'full+verification')
+
+    def test_cli_preserves_legacy_verification(self):
+        import subprocess, json
+        from tests.test_contract import ContractTests
+        fixture = ContractTests(); fixture.setUp()
+        try:
+            directory = fixture.write_contract(complexity='complex', change_type='maintenance', spec=True, plan=True)
+            summary = directory / '00-summary.md'
+            summary.write_text(summary.read_text().replace('  - 02-plan.md', '  - 02-plan.md\n  - 03-verification.md'))
+            (directory / '03-verification.md').write_text('---\nissue: 12\n---\n')
+            before = summary.read_bytes()
+            for provider in ('codex', 'claude', 'cursor'):
+                run = subprocess.run([str(POLICY.parents[3] / 'codex/tools/aisoft'), 'resolve-route', '12',
+                                      '--provider', provider, '--repo', str(fixture.repo)], capture_output=True, text=True)
+                self.assertEqual(run.returncode, 0, run.stderr)
+                self.assertEqual(json.loads(run.stdout)['route']['verify'], 'full+verification')
+            self.assertEqual(summary.read_bytes(), before)
+        finally:
+            fixture.tearDown()
+
+    def test_unknown_modifier_action_fails_and_risk_types_are_read(self):
+        from aisoft_loop.route_policy import resolve_route
+        from aisoft_loop.contract import ContractError
+        import tempfile
+        c = classified(change_type='reliability', requested_complexity='complex', effective_complexity='complex', required_docs=COMPLEX_DOCS)
+        with tempfile.TemporaryDirectory() as temp:
+            p = Path(temp) / 'policy.md'
+            p.write_text(POLICY.read_text().replace('`change_type` 为 `security` 或\n`data`', '`change_type` 为 `security`、`reliability` 或\n`data`'))
+            self.assertEqual(resolve_route(c, provider='codex', policy=p)['matched_rules'][0], 'R3')
+            p.write_text(POLICY.read_text().replace('skills 末尾加', 'skills 最前面加'))
+            with self.assertRaisesRegex(ContractError, 'modifier action'):
+                resolve_route(c, provider='codex', policy=p)
+
     def test_cli_resolves_historical_summary_without_rewriting(self):
         import tempfile, subprocess, json
         from tests.test_contract import NEW_SUMMARY

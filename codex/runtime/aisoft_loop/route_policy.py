@@ -109,7 +109,10 @@ def resolve_route(classification: Classification, *, provider: str,
         raise ContractError('missing policy risk definitions') from exc
     effective = classification.route(change_control=change_control).effective_complexity
     flags = set(classification.risk_flags)
-    risky = bool(flags & high_risk) or classification.change_type in {'security', 'data'}
+    type_rule = re.search(r'`change_type` 为 (.*?) 视同含高风险 flag', text, re.S)
+    if type_rule is None or not _codes(type_rule[1]):
+        raise ContractError('unsupported policy risk type definition')
+    risky = bool(flags & high_risk) or classification.change_type in _codes(type_rule[1])
     row_index = (0 if effective is None else 1 if effective == 'complex' and change_control == 'development'
                  else 2 if effective == 'complex' and risky else 3 if effective == 'complex' else 4)
     row = rows[row_index]
@@ -125,13 +128,25 @@ def resolve_route(classification: Classification, *, provider: str,
     obligations = dict(zip(('@plan','@completion'), [_codes(c)[0] for c in mapping[1:]]))
     skills = [obligations.get(s, s) for s in cells[-1]]
     rules = [row[0]]
+    actions = [re.sub(r'`[^`]+`', 'VALUE', r[2]) for r in refinements]
+    if actions != ['method 改为 VALUE', 'verify 改为 VALUE', 'review 改为 VALUE',
+                   'skills 末尾加 VALUE（Matt 两轴审查，至少 spec 轴）', 'skills 最前面加 VALUE']:
+        raise ContractError('unsupported policy modifier action')
+    security_type = re.search(r'\*\*安全类\*\*：(.*?)任一 flag，或 `change_type: ([a-z-]+)`。', text, re.S)
+    if security_type is None:
+        raise ContractError('unsupported policy security type definition')
+    from .contract import _required_roles, ROUTE_VALUES
+    roles = _required_roles(list(classification.required_docs))
+    closed = {r[0]: frozenset(_codes(r[1])) for r in _table(text, '## 取值闭集', 2)}
+    if closed != ROUTE_VALUES:
+        raise ContractError('unsupported policy closed sets; update contract validator')
     modifiers = {r[0]: _codes(r[2]) for r in refinements}
     if any(len(v) != 1 for v in modifiers.values()):
         raise ContractError('invalid policy modifier values')
     for key, applies, field in (
         ('M1', row_index == 4 and classification.change_type == 'bugfix', 'method'),
-        ('V1', row_index == 3 and 'verification' in classification.required_docs, 'verify'),
-        ('S1', row_index == 2 and platform_repo and (bool(flags & security) or classification.change_type == 'security'), 'review'),
+        ('V1', row_index == 3 and 'verification' in roles, 'verify'),
+        ('S1', row_index == 2 and platform_repo and (bool(flags & security) or classification.change_type == security_type[2]), 'review'),
         ('P1', row_index == 2 and not platform_repo, 'append'),
         ('G1', row_index in (2,3) and (classification.change_type == 'feature' or classification.contract_effect == 'add' or splits_into_issues), 'prepend'),
     ):

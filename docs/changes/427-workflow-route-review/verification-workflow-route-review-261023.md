@@ -167,3 +167,8 @@ Standards / Spec 分别由独立 Codex 只读子代理对 `5b16b9a706e9e79fc69df
 - 文档门、bash -n、ShellCheck、git diff --check PASS。完整 smoke 留到 T05；新模块分发资产亦在 T05 注册，不宣称已安装。
 
 T02 required targeted suite：62 tests PASS；scope/branch/owner 本地复核 PASS。候选先提交后派两轴，固定 HEAD 在后续证据记录。
+
+T02 第一候选 `1052738150c2d2e9154b1bad2c5c8ad4c88b77f8` 的独立双轴发现：
+- T02-Spec-1（P2）：历史 `03-verification.md` 未触发 V1。已复用原 required_roles 规范化，新增三provider与CLI历史正例。
+- T02-Standards-1（P2）：高风险类型/修饰动作未完全从 policy 读出或拒绝未知。已从 policy 提取类型、显式拒绝未知动作/闭集，并补漂移反例。
+两项先 RED 后修复；fixed 待新 HEAD 复核，未重写历史或修改治理 policy。
