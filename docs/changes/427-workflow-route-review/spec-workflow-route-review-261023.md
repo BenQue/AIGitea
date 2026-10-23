@@ -111,14 +111,14 @@ Standards/Spec 接收相同 BASE/HEAD、commit 清单、spec/plan 和规范来�
 
 ## Acceptance criteria
 
-- [ ] AC-1：R1–R5 × 三 provider × 平台/项目 × production/development 组合按 D1 输出具体技能；优先级/修饰规则/两个确认点不变。缺失/未知 provider、空/重复/未知技能或冲突卡不得静默 PASS；历史卡保持只读兼容。
-- [ ] AC-2：D2 的有效两票依赖图能生成原版 SP task-start/task-brief 消费的 Task N，AC/Expected/约束无损；重复 ID、未知依赖、环、缺正文、代码围栏内伪标题、T01/T010 混淆均拒绝。development complex 继续 synthetic T01。
-- [ ] AC-3：仅 frontier 可启动；BASE 在改动前持久记录；恢复校验 Issue/branch/owner/计划语义摘要/祖先与完成证据，正常状态/补证变化可恢复而语义变更拒绝；错身份或只写 complete 不能跳票；失败或 NOT RUN 的必要验证不能完成票。
-- [ ] AC-4：候选涵盖本票全部 commit/真实成果；缺 BASE、非祖先、空净 diff、相关 staged/unstaged/untracked 遗漏均阻断完整性声明；既有无关脏文件保留，ignored 不自动豁免，语义未知不虚构通过。
-- [ ] AC-5：两轴使用共同 BASE/HEAD；移动 HEAD/branch/owner 或修复追加提交使旧结论失效；最终 change_base 覆盖第一票；保留平台 complex 另一 provider 实际最终 HEAD 审查且不以局部审查代替。
-- [ ] AC-6：复用现有文档关联 AC→Txx→测试边界/实际结果→commit→review/finding，记录实际来源、模型与配置强度、上下文/范围；重要裁决可见，small/SP 不增加 Matt 每票义务。
-- [ ] AC-7：治理 STOP/fresh run 真实留证；共同入口、template mirror/digest、source bundle 与适配版本记录一致；vendor 原文/pin、现默认、权限/CI context、既有两确认点不变；无真实安装/采用。
-- [ ] AC-8：规定正负向 fixture、文档/范围检查与完整 smoke 通过，最终另一 provider exact-head 审查通过；所有结果按 source/local/CI/installed/session/live 分层，未知或未运行不得变 PASS。
+- [x] AC-1：R1–R5 × 三 provider × 平台/项目 × production/development 组合按 D1 输出具体技能；优先级/修饰规则/两个确认点不变。缺失/未知 provider、空/重复/未知技能或冲突卡不得静默 PASS；历史卡保持只读兼容。
+- [x] AC-2：D2 的有效两票依赖图能生成原版 SP task-start/task-brief 消费的 Task N，AC/Expected/约束无损；重复 ID、未知依赖、环、缺正文、代码围栏内伪标题、T01/T010 混淆均拒绝。development complex 继续 synthetic T01。
+- [x] AC-3：仅 frontier 可启动；BASE 在改动前持久记录；恢复校验 Issue/branch/owner/计划语义摘要/祖先与完成证据，正常状态/补证变化可恢复而语义变更拒绝；错身份或只写 complete 不能跳票；失败或 NOT RUN 的必要验证不能完成票。
+- [x] AC-4：候选涵盖本票全部 commit/真实成果；缺 BASE、非祖先、空净 diff、相关 staged/unstaged/untracked 遗漏均阻断完整性声明；既有无关脏文件保留，ignored 不自动豁免，语义未知不虚构通过。
+- [x] AC-5：两轴使用共同 BASE/HEAD；移动 HEAD/branch/owner 或修复追加提交使旧结论失效；最终 change_base 覆盖第一票；保留平台 complex 另一 provider 实际最终 HEAD 审查且不以局部审查代替。
+- [x] AC-6：复用现有文档关联 AC→Txx→测试边界/实际结果→commit→review/finding，记录实际来源、模型与配置强度、上下文/范围；重要裁决可见，small/SP 不增加 Matt 每票义务。
+- [x] AC-7：治理 STOP/fresh run 真实留证；共同入口、template mirror/digest、source bundle 与适配版本记录一致；vendor 原文/pin、现默认、权限/CI context、既有两确认点不变；无真实安装/采用。
+- [x] AC-8：规定正负向 fixture、文档/范围检查与完整 smoke 通过，最终另一 provider exact-head 审查通过；所有结果按 source/local/CI/installed/session/live 分层，未知或未运行不得变 PASS。
 
 ## 反向证明矩阵
 

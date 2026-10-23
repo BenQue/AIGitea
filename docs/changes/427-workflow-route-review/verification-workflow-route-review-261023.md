@@ -16,7 +16,7 @@ depends_on: []
 branch: change/427-workflow-route-review
 created: 2026-10-23
 updated: 2026-10-23
-status: pending
+status: verified
 ---
 
 # Verification：合同准备、T01 治理与后续实施证据
@@ -25,7 +25,7 @@ status: pending
 
 - Issue：`admin/aisoft-platform#427`。
 - source base / change_base：`dc1da41c6e6a51f85b1ec0464a97640a3ddb570e`。
-- 当前阶段：T01 独立治理提交后 STOP；用户 fresh-run 接续，T02–T04 已完成且双轴 PASS。T05 source/local 检查部分通过，唯一旧 fixture 范围补正已获用户明确授权，正在完成补正后验证；完整 smoke 与 Claude 最终评议未完成。历史准备/治理检查保留为审计，不冒充整体完成。
+- 当前阶段：T01治理STOP后fresh run完成T02–T05；746项runtime完整smoke及Claude R2实际PASS，全部AC source/local闭合。最后仅证据提交的实际HEAD将做限定复核并归同Issue回执，再停原确认点2。无push/PR/merge/安装/部署。历史NOT RUN/FAIL保留为审计，最终结果以本节和末尾交叉审查为准。
 - 环境：Mac Codex；唯一 writer/worktree 见 summary；当前源码 Matt v1.3.1 / SP v7.0.0。
 - 本记录承接 AC-1–AC-8 的实现证据，另保存无法靠最终 diff/CI 重放的原始调用来源、治理交接和审查范围。
 
@@ -55,10 +55,10 @@ status: pending
 | AC-2 | PASS（source/local） | T03 原版 SP task-start/task-brief 无损消费及 parser 负例；固定 vendor 不变 |
 | AC-3 | PASS（source/local） | T03 实际 Git frontier/receipt/resume；T05 明确 scope 增补保留开始快照正负例 |
 | AC-4 | PASS（source/local） | T04 实际 Git 多提交、遗漏/净空diff/起始脏文件/必要ignored负例；实际 wrapper/broker 候选链 |
-| AC-5 | PENDING | T04 双轴包/新HEAD/整批范围回归 PASS；T05整批另一provider终审待完成 |
-| AC-6 | PENDING | 已记录逐票 BASE/HEAD、双轴 findings fixed/residual/new；待 T05 指定模型实际终审 |
+| AC-5 | PASS（source/local） | T04双轴/整批范围回归与T05实际Claude R2新HEAD复核PASS；最后证据HEAD回执归同Issue |
+| AC-6 | PASS（source/local） | 逐票BASE/HEAD与真实双轴回执；Claude Fable5/high实际session和F1–F3 fixed账目已记录 |
 | AC-7 | PASS（source/local） | T01治理STOP后fresh-run真实重读；mirror/digest、1.16.0三端导出及旧release/vendor保持检查通过；无安装采用 |
-| AC-8 | NOT RUN | T05 待实施 |
+| AC-8 | PASS（source/local） | 最终746项runtime完整smoke、46项installed-drift fixture、静态门、bundle、文档、分类与Claude R2均PASS；CI/真实安装/部署NOT RUN |
 
 ## 每票执行与范围证据
 
@@ -736,14 +736,14 @@ T03 在 56e5503fa23fd9f78a780380ca8ecada5b865582 两轴均 PASS；T03-1/2/3 fixe
         "model_configuration": "not observed by helper; caller records actual model/effort in verification"
       },
       "base": "ac689e5210a12709b1e59bc6ccafe7d9f9b0b9b5",
-      "head": "5f0ebd37f13bc5b43ba5896137a122fd490222b9",
+      "head": "c2e865536cd649d2dcae240f4c116a8904b8476b",
       "semantic_hash": "19e3f170c9828c917bd0084f74fff81847c3ea3ec2b4bbe4d56e478ba7f7c934",
       "validation_sha256": "2204dce50ce35eddff7cd44b43289359a02996341a9276416b447e582a6b8178",
       "ac": {
-        "AC-5": "PENDING_REVIEW",
-        "AC-6": "PENDING_REVIEW",
-        "AC-7": "PENDING_REVIEW",
-        "AC-8": "PENDING_REVIEW"
+        "AC-5": "PASS",
+        "AC-6": "PASS",
+        "AC-7": "PASS",
+        "AC-8": "PASS"
       },
       "checks": [
         {
@@ -760,6 +760,11 @@ T03 在 56e5503fa23fd9f78a780380ca8ecada5b865582 两轴均 PASS；T03-1/2/3 fixe
           "command": "bash -n",
           "result": "PASS",
           "evidence": "Actually executed on this source candidate; full smoke also covers shell syntax; see T05 local validation ledger"
+        },
+        {
+          "command": "Claude Code --model claude-fable-5 --effort high (read-only R2)",
+          "result": "PASS",
+          "evidence": "Actual session 26623890-683f-49d0-8607-c4c6271d8f92; HEAD c2e865536cd649d2dcae240f4c116a8904b8476b; F1/F2/F3 fixed, residual/new zero; init and modelUsage claude-fable-5"
         }
       ]
     }
@@ -930,3 +935,14 @@ T04 在 ac689e5210a12709b1e59bc6ccafe7d9f9b0b9b5 双轴 PASS，T04-1/2/3 fixed�
 F3修复后的完整命令 `AISOFT_USAGE_BASELINE_REF=dc1da41c6e6a51f85b1ec0464a97640a3ddb570e LC_ALL=C bash codex/tests/smoke.sh` exit 0：746项runtime测试、46项installed-drift临时fixture和全静态门均PASS。source runtime/bundle字节与5f0ebd37f13bc5b43ba5896137a122fd490222b9一致；仅证据提交不会改变这些字节。日志sha256：01aac02c3a1e91393e0cf42c683244dad30bcb94afebd2d180aec1085ecbb0cc。完整日志已归本会话附件427-t05-validation/smoke-claude-fixes.log；这是本地/临时fixture证据，不是实际安装或CI。
 
 F2/F3 在5f0ebd37上两轴复核均PASS，package 41f8cb4bd237c9253aebdeda3f5d9f77aa715628736deab42b95db58fbd41ab8；已用fresh候选校验实际回执。F1必要本地验证和结构化checks现已补齐。T05图状态仍pending、结构化AC为PENDING_REVIEW，唯一待收尾项是Claude对新HEAD的复核，未宣告完成/进入确认点2。R2通过后才把AC和T05改done，再审仅证据delta，并将实际最终HEAD回执归同Issue；不要求本次尚未产生的回执先写入自身HEAD。
+
+### R2 实际结论 / T05 完成
+
+Claude Code Fable 5/high，session `26623890-683f-49d0-8607-c4c6271d8f92`，对0c879cec3c53b77cfd2f75ff14996ad284575e02→c2e865536cd649d2dcae240f4c116a8904b8476b的F1–F3修复delta实际返回 `VERDICT: PASS`。整批BASE仍dc1da41c6e6a51f85b1ec0464a97640a3ddb570e，未变源码结论沿用R1。init.model与result.modelUsage均claude-fable-5，effort high由实际invocation记录；同Read/Glob/Grep安全边界。报告在本会话附件review-427-c2e865536cd6/review.md。
+
+- fixed：F1必要验证/结构化checks完整、F2索引行连续、F3混合围栏明确拒绝且普通围栏保真；3项全部采纳并结清。
+- residual：无；new：无。
+- 同HEAD Standards/Spec仅证据delta均PASS，包1a365e1f80cd679d698b71b9492bc59b8dffb88fce7bb8a71b8d19feff7a13be，经fresh candidate校验回执。
+- 此后才将T05图状态改done、AC-5–AC-8改PASS，结构化head绑定已审c2e86553，原start/base不改。整个计划语义摘要保持19e3f170c9828c917bd0084f74fff81847c3ea3ec2b4bbe4d56e478ba7f7c934。
+
+最后一步是仅证据delta的实际新HEAD限定复核；回执以同Issue评论归档，不用新提交追写自己的SHA。新的runtime、技能或bundle变化会使已有审查失效。实际开发技能安装后调用、Cursor现场、项目采用、部署/UAT与PR required CI均NOT RUN；本票的Claude只读审查session是实际运行，两者不能混淆。只有原确认点2通过后才普通fast-forward push并开唯一最终PR，最终仍由人合并。

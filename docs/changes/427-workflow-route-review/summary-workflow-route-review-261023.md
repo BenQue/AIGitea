@@ -113,7 +113,7 @@ override_reason: '用户要求保持现有 provider 默认；F1 修复前本票�
 
 来源是用户认可的最终方案与当前源码核实，合同中已自包含全部实施决定，不依赖外部研究附件才能执行。方案评议：Claude Code `claude-fable-5 --effort high`，session `2dab0571-22c1-466e-84a6-b1ca2540e121`，SUPPORT。被审候选 SHA256：`edcc92c21327a9a2cc9c54d908570312b33960cd8a4115c0ade3ef2370f61a2c`。这是研究方案评议，不是 #427 实现审查。
 
-2026-10-23：确认点 1 已通过；T01 已独立治理提交并 STOP，用户明确 fresh run 接续。T02–T04 已完成实现与固定 HEAD 双轴复核；T05 正在完成 1.16.0 源分发、完整 smoke 与 Claude Code Fable 5/high 终审。
+2026-10-23：确认点 1 已通过；T01 已独立治理提交并 STOP，用户明确 fresh run 接续。T02–T04 已完成实现与固定 HEAD 双轴复核；T05 已完成 1.16.0 源分发、最终746项runtime完整smoke与Claude Code Fable 5/high R2终审。
 最终仍停在 AWAITING_PR_CONFIRMATION；本次不 push/PR/merge，不安装或部署。逐票 BASE、原始证据与 findings 见 verification。
 
-当前执行状态：`IMPLEMENTING`（T05）。用户已批准唯一一行旧入口 fixture 范围补正（35→36项），正在沿用原批准完成验证与指定 Claude 终审，尚未到确认点2。
+当前实现与验收：T01–T05 done，AC-1–AC-8 source/local PASS；Claude R1 F1/F2/F3全部采纳并修复，R2 PASS。最后仅证据提交的实际HEAD需限定复核并以同Issue回执归档，通过后停在原 `AWAITING_PR_CONFIRMATION`。原始scope35条回执不改，唯一获批fixture补正使当前scope36条。不push/开PR/合并/安装/部署；CI在原确认点2之后。
