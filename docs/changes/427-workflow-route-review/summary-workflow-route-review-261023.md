@@ -27,6 +27,7 @@ documents:
   spec: spec-workflow-route-review-261023.md
   plan: plan-workflow-route-review-261023.md
   verification: verification-workflow-route-review-261023.md
+route_provider: codex
 route:
   process: complex-production
   tier: frontier

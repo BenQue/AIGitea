@@ -55,6 +55,11 @@ def main(argv: list[str] | None = None) -> int:
     resolve_document_names.add_argument("issue", type=int)
     resolve_document_names.add_argument("--repo", required=True, type=Path)
 
+    resolve_routes = subparsers.add_parser("resolve-route", help="resolve concrete provider skills from the policy")
+    resolve_routes.add_argument("issue", type=int)
+    resolve_routes.add_argument("--repo", required=True, type=Path)
+    resolve_routes.add_argument("--provider", required=True, choices=("codex", "claude", "cursor"))
+
     required_document_names = subparsers.add_parser(
         "resolve-required-documents", help="read validated required roles and mapped filenames"
     )
@@ -131,6 +136,15 @@ def main(argv: list[str] | None = None) -> int:
         return _apply_analysis(args.issue, args.result_json, args.summary_url)
     if args.command == "resolve-documents":
         return _resolve_documents(args.repo, args.issue)
+    if args.command == "resolve-route":
+        from .route_policy import resolve_issue_route
+        try:
+            result = resolve_issue_route(args.repo, args.issue, args.provider)
+        except (ContractError, OSError, ValueError) as exc:
+            print(f"route resolution failed: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+        return 0
     if args.command == "resolve-required-documents":
         try:
             resolved = resolve_required_documents(args.repo, args.issue)

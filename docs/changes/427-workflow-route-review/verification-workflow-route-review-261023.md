@@ -142,3 +142,28 @@ T01 独立治理提交包含本记录和 plan 的 done；提交后只读回 Git 
 - triage 标签 mutation 缺少现有 typed 入口，语义结论与未投影事实均已保留。不得以 needs-analysis/spec-review/approved 冒充 triage 状态；该既有工具缺口不夹带为本票 broker 扩权。
 - fixture 可以证明固定源码调用链，不能证明当前 Codex 6.4.2 插件与平台 7.0.0 等价；实际来源必须分层。
 - 本轮不部署，故无部署验收章节；后续未运行的实现/CI/真实会话项保持 NOT RUN。
+
+## Fresh run 接收与 T02 开始
+
+- 用户明确要求本轮以 fresh run 接续 T02–T05，沿用原批准。已重读 AGENTS/README、四合同、T01 diff、当前源码三个平台技能、route-policy/execution-adapter、03/04/08、ADR 0002 与工程原则；不依赖旧安装副本。
+- 承接 session：`01a16423-3e17-73b0-a723-76adc045218e`，与原 owner 相同，原认领保持。
+- fresh broker Issue read：open / approved / complexity/complex / type/platform。第一次两项读操作在执行前自动许可审核超时，各按工具许可重试一次后 PASS。
+- fresh origin/main：`dc1da41c6e6a51f85b1ec0464a97640a3ddb570e`；T02 ticket_base：`9e03f834456b3e684ef921b8e91b5da8538befde`；起始 staged/unstaged/untracked 均空。
+- 映射 plan：`docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md`；开始原始 SHA256：`67c75f364d84a56506a51b56fe1e67b3d6c60ecc0c301f12f812a21388132cd6`。T03 helper 尚未实现，此记录是开始前人工审计证据。
+- 执行入口：固定 Matt v1.3.1 implement / tdd（目录摘要已核对）；测试 seam 和 Expected 取已批准 plan T02，无新增确认。provider=Codex；本会话模型/推理沿当前宿主配置，不将档位等同未读回的具体型号。
+- 授权最大集合：spec.git_scope 35 条；T02 仅路由 runtime/CLI、必要合同检查、对应测试与本票证据。
+
+### T01 提交后补充双轴审查
+
+Standards / Spec 分别由独立 Codex 只读子代理对 `5b16b9a706e9e79fc69dff27a119b9b4ca351954...9e03f834456b3e684ef921b8e91b5da8538befde` 复核；唯一 commit 9e03f83，两轴均 VERDICT PASS、零 findings。上下文为已提交 diff、AGENTS/工程原则、映射 spec/plan 与 T01 阶段边界；不是 Claude 终审。
+
+### T02 实施记录
+
+- RED：新增生产 resolver seam 首次执行失败 `ModuleNotFoundError: aisoft_loop.route_policy`。
+- GREEN：引入同一 policy 的薄解释器，接 resolve-route CLI 与 provider-aware summary 校验；历史无 provider 只读兼容，显式重新解析输出差异，不写文档。已批准覆盖保留且具体字段须在 override_reason 中可识别。
+- 单测覆盖 policy 字节变化影响运行结果与摘要、三 provider/两环境/两仓库角色、R1–R5 与 M1/V1/S1/P1/G1、未知/空/重复/未展开技能、新卡冲突、历史 CLI 只读。
+- 一次矩阵测试 fixture 自身违反旧 classifier 的 unclear 必须省略 effective_complexity 条款，修正 fixture，分类器未改。
+- 本票 summary 仅补显式 route_provider=codex；运行输出 R3 / frontier-max / 两确认点，与原已批准具体技能一致（differences={}）。
+- 文档门、bash -n、ShellCheck、git diff --check PASS。完整 smoke 留到 T05；新模块分发资产亦在 T05 注册，不宣称已安装。
+
+T02 required targeted suite：62 tests PASS；scope/branch/owner 本地复核 PASS。候选先提交后派两轴，固定 HEAD 在后续证据记录。

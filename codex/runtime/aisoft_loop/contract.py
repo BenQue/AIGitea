@@ -297,6 +297,8 @@ ROUTE_PROCESSES = {
 def validate_route(front_matter: Mapping[str, object]) -> None:
     """Check an optional summary route card against the routing table's closed sets."""
     if "route" not in front_matter:
+        if "route_provider" in front_matter:
+            raise ContractError("route_provider requires a route card")
         return
     route = front_matter["route"]
     if not isinstance(route, dict):
@@ -320,6 +322,10 @@ def validate_route(front_matter: Mapping[str, object]) -> None:
             f"route.process={route['process']} contradicts the classification"
             f" (effective_complexity={complexity or 'unresolved'}); expected " + ", ".join(sorted(expected))
         )
+
+    if "route_provider" in front_matter:
+        from .route_policy import validate_provider_route
+        validate_provider_route(front_matter)
 
 
 def parse_front_matter(text: str) -> dict[str, object]:

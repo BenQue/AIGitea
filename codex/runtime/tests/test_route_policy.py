@@ -17,12 +17,6 @@ COLUMNS = (
     "process", "tier", "effort", "method", "verify",
     "review_platform", "review_project", "skills",
 )
-HIGH_RISK = frozenset({
-    "security", "authentication", "authorization", "schema-change", "data-migration",
-    "external-contract", "shared-core", "ci-integration", "ci-change", "artifact",
-    "deployment", "deployment-boundary", "rollback", "agent-governance", "platform-governance",
-})
-SECURITY = frozenset({"security", "authentication", "authorization"})
 
 
 def _section(text: str, heading: str) -> list[str]:
@@ -57,46 +51,12 @@ def load_policy() -> tuple[dict[str, dict[str, object]], dict[str, str], dict[st
     return rows, rules, closed
 
 
-def lookup(classification: Classification, *, change_control: str = "production",
-           platform_repo: bool = True, splits_into_issues: bool = False) -> dict[str, str]:
-    """Walk the table top-down exactly as route-policy.md says a session does."""
-    rows, rules, _ = load_policy()
-    effective = classification.route(change_control=change_control).effective_complexity
-    flags = set(classification.risk_flags)
-    high_risk = bool(flags & HIGH_RISK) or classification.change_type in {"security", "data"}
-    if effective is None:
-        key = "R1"
-    elif effective == "complex" and change_control == "development":
-        key = "R2"
-    elif effective == "complex" and high_risk:
-        key = "R3"
-    elif effective == "complex":
-        key = "R4"
-    else:
-        key = "R5"
-    row = dict(rows[key])
-    skills = list(row.pop("skills"))  # type: ignore[arg-type]
-    route = {name: str(value) for name, value in row.items()}
-    route["review"] = route.pop("review_platform" if platform_repo else "review_project")
-    route.pop("review_project" if platform_repo else "review_platform")
-    if key == "R5" and classification.change_type == "bugfix":
-        route["method"] = _codes(rules["M1"])[0]
-    if key == "R4" and "verification" in classification.required_docs:
-        route["verify"] = _codes(rules["V1"])[0]
-    security = bool(flags & SECURITY) or classification.change_type == "security"
-    if key == "R3" and platform_repo and security:
-        route["review"] = _codes(rules["S1"])[0]
-    if key == "R3" and not platform_repo:
-        skills.append(_codes(rules["P1"])[0])
-    if key in {"R3", "R4"} and (
-        classification.change_type == "feature" or classification.contract_effect == "add"
-        or splits_into_issues
-    ):
-        skills.insert(0, _codes(rules["G1"])[0])
-    route["skills"] = ", ".join(skills)
-    route["confirm"] = "2"
-    route["row"] = key
-    return route
+def lookup(classification, *, change_control="production", platform_repo=True,
+           splits_into_issues=False, provider="claude"):
+    from aisoft_loop.route_policy import resolve_route
+    result = resolve_route(classification, provider=provider, change_control=change_control,
+                           platform_repo=platform_repo, splits_into_issues=splits_into_issues)
+    return {**result["route"], "row": result["matched_rules"][0]}
 
 
 def classified(**overrides: str) -> Classification:
@@ -190,6 +150,11 @@ class RoutePolicyTests(unittest.TestCase):
                 self.assertEqual({key: route[key] for key in expected}, expected)
                 self.assertEqual(route["confirm"], "2")
 
+    def test_codex_concrete_default(self):
+        route = lookup(classified(requested_complexity="complex", effective_complexity="complex",
+                                  required_docs=COMPLEX_DOCS), provider="codex")
+        self.assertEqual(route["skills"], "to-spec, to-tickets, implement, issue-session-flow")
+
     def test_refinements_and_the_other_rows(self) -> None:
         risky = dict(
             change_type="platform", assessed_complexity="complex", effective_complexity="complex",
@@ -220,6 +185,95 @@ class RoutePolicyTests(unittest.TestCase):
         self.assertEqual(lookup(owed, splits_into_issues=True)["skills"].split(", ")[0], "grill-me")
         self.assertEqual(lookup(classified(), splits_into_issues=True)["skills"],
                          "verification-before-completion")
+
+
+class ExecutableRouteTests(unittest.TestCase):
+    def test_provider_matrix_retains_priority_and_obligations(self):
+        from aisoft_loop.route_policy import resolve_route
+        samples = [classified(), classified(assessed_complexity="needs-human-decision", effective_complexity=None, contract_effect="unclear", confidence="low"),
+                   classified(requested_complexity="complex", effective_complexity="complex", required_docs=COMPLEX_DOCS),
+                   classified(change_type="security", requested_complexity="complex", effective_complexity="complex", required_docs=COMPLEX_DOCS)]
+        for provider in ('codex', 'claude', 'cursor'):
+            for phase in ('production', 'development'):
+                for platform in (True, False):
+                    for c in samples:
+                        with self.subTest(provider=provider, phase=phase, platform=platform, type=c.change_type):
+                            r = resolve_route(c, provider=provider, change_control=phase, platform_repo=platform)
+                            skills = r['route']['skills'].split(', ')
+                            self.assertEqual(r['route']['confirm'], '2')
+                            self.assertNotIn('@', r['route']['skills'])
+                            if r['matched_rules'][0] == 'R1':
+                                self.assertEqual(skills, ['triage'])
+                                continue
+                            self.assertIn('issue-session-flow' if provider == 'codex' else 'verification-before-completion', skills)
+                            if r['matched_rules'][0] in ('R3', 'R4'):
+                                self.assertIn('implement' if provider == 'codex' else 'executing-plans', skills)
+                            else:
+                                self.assertNotIn('implement', skills)
+                                self.assertNotIn('executing-plans', skills)
+                            if phase == 'development' and c.effective_complexity == 'complex':
+                                self.assertEqual(r['matched_rules'][0], 'R2')
+
+    def test_provider_required_no_fallback(self):
+        from aisoft_loop.route_policy import resolve_route
+        from aisoft_loop.contract import ContractError
+        for provider in ('', None, 'other'):
+            with self.subTest(provider=provider), self.assertRaises(ContractError):
+                resolve_route(classified(), provider=provider)
+
+    def test_policy_values_drive_runtime_and_digest(self):
+        from aisoft_loop.route_policy import resolve_route
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            p = Path(temp) / 'policy.md'
+            p.write_text(POLICY.read_text().replace('| codex | `implement` | `issue-session-flow` |',
+                                                   '| codex | `implement` | `verification-before-completion` |'))
+            original = resolve_route(classified(), provider='codex')
+            altered = resolve_route(classified(), provider='codex', policy=p)
+            self.assertEqual(altered['route']['skills'], 'verification-before-completion')
+            self.assertNotEqual(original['policy_sha256'], altered['policy_sha256'])
+            p.write_text(p.read_text().replace('complex 且 `change_control: development`', 'unknown condition'))
+            from aisoft_loop.contract import ContractError
+            with self.assertRaisesRegex(ContractError, 'condition'):
+                resolve_route(classified(), provider='codex', policy=p)
+
+    def test_cli_resolves_historical_summary_without_rewriting(self):
+        import tempfile, subprocess, json
+        from tests.test_contract import NEW_SUMMARY
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            directory = repo / 'docs/changes/57-matt-flow'; directory.mkdir(parents=True)
+            summary = directory / 'summary-matt-flow-260808.md'
+            text = NEW_SUMMARY.format(number=57, change_type='bugfix', complexity='small', effect='restore',
+                risk_flags='[]', required_docs='  - summary', documents='  summary: summary-matt-flow-260808.md', branch='change/57-matt-flow')
+            summary.write_text(text)
+            wrapper = POLICY.parents[3] / 'codex/tools/aisoft'
+            run = subprocess.run([str(wrapper), 'resolve-route', '57', '--provider', 'codex', '--repo', str(repo)], text=True, capture_output=True)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            self.assertEqual(json.loads(run.stdout)['route']['skills'], 'issue-session-flow')
+            self.assertTrue(json.loads(run.stdout)['historical_card'])
+            self.assertEqual(summary.read_text(), text)
+            missing = subprocess.run([str(wrapper), 'resolve-route', '57', '--repo', str(repo)], capture_output=True)
+            self.assertNotEqual(missing.returncode, 0)
+
+    def test_new_cards_validate_concrete_provider_and_explicit_overrides(self):
+        from dataclasses import asdict
+        from aisoft_loop.contract import validate_route, ContractError
+        from aisoft_loop.route_policy import resolve_route
+        c = classified()
+        front = asdict(c)
+        front['risk_flags'], front['required_docs'] = list(c.risk_flags), list(c.required_docs)
+        front['gitea_url'] = 'http://gitea.test/owner/repo/issues/12'
+        front.update(route_provider='codex', route=resolve_route(c, provider='codex', platform_repo=False)['route'])
+        validate_route(front)
+        for skills in ('', 'unknown', '@completion', 'issue-session-flow, issue-session-flow', 'verification-before-completion'):
+            with self.subTest(skills=skills), self.assertRaises(ContractError):
+                validate_route({**front, 'route': {**front['route'], 'skills': skills}})
+        validate_route({**front, 'route': {**front['route'], 'tier': 'frontier'}, 'override_reason': 'tier: approved stronger model'})
+        with self.assertRaises(ContractError):
+            validate_route({**front, 'route_provider': 'unknown'})
+        legacy = dict(front); legacy.pop('route_provider')
+        validate_route(legacy)
 
 
 if __name__ == "__main__":
