@@ -20,9 +20,17 @@ exact URL, owner and repository from the platform's broker manifest or `origin`;
   existing Issue with a link and `triage/ready-for-agent`; it does not create another Issue or set `approved`.
 - `$to-tickets #N` publishes the approved vertical-slice graph to the active `plan` path. Ticket IDs are `T01`, `T02`,
   and so on; blocking edges use `blocked_by`. Default mode does not create child Issues.
-- The plan is executed as the route card says: Codex runs `$implement #N Txx`; Claude and Cursor execute the mapped plan with
-  superpowers `executing-plans`. Either way one frontier ticket at a time, committing only on the current exact readable change
-  branch, and never push, create or merge a PR, change labels, or deploy.
+- Resolve concrete skills from the platform route-policy with an explicit provider, stored as summary `route_provider`.
+  Codex keeps `$implement #N Txx`; Claude/Cursor keep superpowers `executing-plans`. Follow the shared
+  `aisoft-platform/references/execution-adapter.md`: canonical Txx is the only task contract; SP consumes a derived Task N view
+  with the same dependencies, AC, Expected results and constraints. Do not feed an incompatible Txx file directly to task-brief.
+- One frontier ticket and one writer at a time. Record BASE before implementation, preserve resume identity and semantic plan
+  digest, and retain real completion evidence. Matt candidates are committed locally before both axes review the same fixed
+  BASE/HEAD; check omitted staged/unstaged/untracked work without committing or deleting unrelated user files.
+  The final change BASE and platform complex cross-provider review remain separate from per-ticket review.
+- Task completion, findings and cleanup use the shared execution adapter; small/SP gain no new Matt per-ticket review duty.
+  Ticket helpers never push, create/merge PRs, change labels or deploy. Only the existing session flow performs authorized
+  broker mutations. Governance commits stop for a fresh run; the approved contract continues without another start confirmation.
 
 Resolve document names with:
 

@@ -137,14 +137,17 @@ routine 的 manifest 字段与凭据种类已删除，合同拒绝仍声明它�
 ### 2.2 路由卡
 
 判级之后，会话查 `aisoft-platform` 技能的 [路由表](skills/aisoft-platform/references/route-policy.md)
-得到路由卡，写进 summary front matter 的 `route:` 块与判级评论，在确认点 1 候选中显示为「路由」行
+按显式 provider 展开具体技能，得到路由卡，写进 summary front matter 的 `route:` 块和顶层 `route_provider`
+及判级评论，在确认点 1 候选中显示为「路由」行
 （[ADR 0002](docs/adr/0002-deterministic-development-flow.md) D1）。路由卡决定 process、模型档位 tier 与推理强度 effort、
 必用技能、method、verify、review，`confirm` 恒为 2。复杂度仍由本节上面的规则判定，路由表只做映射；路由表
 是唯一来源，取值、细化规则、必用与禁用都以它为准，本节不复述。
 
 人可以在确认点 1 覆盖任何一格，覆盖写进 `override_reason`；覆盖不能把强制 complex 降成 small。合同只写档位，
-型号见 `08` §7.3。判级投影不变：仍是四维标签，不新增 `route/*`。`route:` 是可选块，`check-change-documents`
-在它存在时校验取值闭集，以及 `process` 与 `effective_complexity` 一致。
+型号见 `08` §7.3。判级投影不变：仍是四维标签，不新增 `route/*`。新卡必须保存
+`route_provider: codex|claude|cursor`，route 内仍为八键；历史缺 route/provider 的文档只读兼容，
+执行时显式指定 provider 重算并报告差异，不批改历史或静默选择 SP。既有文档形状检查不能证明新 provider
+语义已由 runtime 校验；具体消费者能力须真实验证。合同内一致重算不新增确认点。
 
 **大需求链**：`change_type: feature`、`contract_effect: add`，或一个阶段要拆成多个 Issue 时，先 Matt `grill-me`
 定需求（what），再 `to-spec`；how 仍有多个合理方案、或涉及新架构、数据模型、外部契约时，用 superpowers
@@ -166,11 +169,17 @@ docs/changes/N-short-description/
 
 新 worktree basename 固定为 `issue-N-short-description`。`main`、`master`、`head`、`merge`、`pull`、`pr`、`refs`、`change`、`changes`、`docs`、`worktree`、`tmp`、`temp`、`legacy` 是保留 slug，`tmp-`、`temp-`、`legacy-` 前缀同样禁止。同一 Issue 同时出现 legacy/readable 名称或多个 slug 时必须以 `CHANGE_NAME_CONFLICT` 停止。纯编号名称只在 manifest-fixed remote 或 Git history 已有证据时作读取或维护兼容，调用方不能用 `legacy` 开关绕过这种 evidence-derived 判定，也不得批量重命名或删除历史对象。
 
-所有 change 文档的共同 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`branch`、`created`、`updated`。`status` 是 **summary 的** lifecycle 字段：确认点 1 只把 summary 改为 `approved`，spec 与 plan 模板不再带 `status`，已有文档里的 `status` 照旧合法但没有消费者；verification 的 `status` 只描述这份验证记录本身（#408）。`pr_url` 是 **summary 专属**字段（spec/plan/verification 里的复制品没有代码消费者，只会互相漂移），由 `aisoft open-pr` 在 PR 建出后与 `status: pr-open` 一起写入（手工修复用 `aisoft backfill-pr-url`）；complex 的 spec/plan/verification 固定使用 `effective_complexity: complex`。summary 另外完整保存 analyzer schema 的 `reason`、语义 `required_docs`、`documents` 角色到真实 basename 的映射、可选的 `route:` 与 `override_reason`。无法安全判级时，summary 的 `assessed_complexity` 为 `needs-human-decision`，并从 front matter 与 `## AI 判级` YAML 同时省略整个 `effective_complexity` key，不保留空值或 placeholder；其他 complex 文档尚不得创建。
+所有 change 文档的共同 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`branch`、`created`、`updated`。`status` 是 **summary 的** lifecycle 字段：确认点 1 只把 summary 改为 `approved`，spec 与 plan 模板不再带 `status`，已有文档里的 `status` 照旧合法但没有消费者；verification 的 `status` 只描述这份验证记录本身（#408）。`pr_url` 是 **summary 专属**字段（spec/plan/verification 里的复制品没有代码消费者，只会互相漂移），由 `aisoft open-pr` 在 PR 建出后与 `status: pr-open` 一起写入（手工修复用 `aisoft backfill-pr-url`）；complex 的 spec/plan/verification 固定使用 `effective_complexity: complex`。summary 另外完整保存 analyzer schema 的 `reason`、语义 `required_docs`、`documents` 角色到真实 basename 的映射、`route:`、显式 `route_provider` 与 `override_reason`（历史文档保持读取兼容）。无法安全判级时，summary 的 `assessed_complexity` 为 `needs-human-decision`，并从 front matter 与 `## AI 判级` YAML 同时省略整个 `effective_complexity` key，不保留空值或 placeholder；其他 complex 文档尚不得创建。
 
 新合同只使用 `summary`、`spec`、`plan`、`verification` 角色；resolver 严格读取 `documents` 映射并校验角色、slug、日期、目录边界和唯一性，不使用无约束 glob。没有映射的历史 summary 仅回退到 `00-summary.md`、`01-spec.md`、`02-plan.md`、`03-verification.md`，新 writer 不再生成这些名称，也不批量重命名历史文件。
 
-映射的 spec 必须定义目标、可测验收标准、接口/数据/兼容影响和非目标。映射的 plan 必须把每条验收标准映射到 `Txx` 垂直切片、`blocked_by`、预期 touch points 和验证命令。会话不得自行修改已经确认的 acceptance criteria 或扩大范围。
+映射的 spec 必须定义目标、可测验收标准、接口/数据/兼容影响和非目标。映射的 plan 必须把每条验收标准映射到
+`Txx` 垂直切片、`blocked_by`、预期 touch points 和验证命令；每票正文还须写明交付/范围、AC、Expected、
+接口/全局约束和停止条件。Txx 是唯一任务身份，SP 的 Task N 仅为派生视图。
+会话不得自行修改已经确认的 acceptance criteria 或扩大范围。
+执行视图、语义摘要/正常状态恢复、BASE/HEAD、证据与治理 STOP/fresh-run 统一遵循
+[execution-adapter](skills/aisoft-platform/references/execution-adapter.md)；small 不增票图，
+development complex 仍使用 Issue AC + synthetic T01。
 
 ### 声明与实际文件共用一个校验结果
 

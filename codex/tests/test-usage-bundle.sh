@@ -591,4 +591,45 @@ run 0 "${t[@]}" --adopt "$adopted" --tools cursor
 run 64 "${p[@]}"
 run 64 "${p[@]}" --project-status "$tmp/does-not-exist"
 
+# #427: each provider landing works without any other provider or global HOME.
+run 0 --build "$tmp/workflow-export"
+python3 -B - "$root" "$tmp/workflow-export/project" <<'PY_WORKFLOW'
+import json, os, shutil, subprocess, sys
+from pathlib import Path
+source, export = map(Path,sys.argv[1:])
+sys.path.insert(0,str(source/'codex/runtime'))
+from tests.test_ticket_execution import GitFixture
+for tool in ('.agents','.claude','.cursor'):
+    for name in ('route-policy.md','execution-adapter.md'):
+        assert (export/tool/'skills/aisoft-platform/references'/name).read_bytes() == (source/'skills/aisoft-platform/references'/name).read_bytes()
+for landing, provider in [('.claude','claude'),('.agents','codex'),('.cursor','cursor')]:
+    f=GitFixture(); f.setUp()
+    try:
+        shutil.copytree(export/'.aisoft',f.repo/'.aisoft')
+        shutil.copytree(export/landing,f.repo/landing)
+        f.run_git('add','.aisoft',landing);f.run_git('commit','-m','fixture imported source bundle')
+        cmd=[str(f.repo/'.aisoft/bin/aisoft'),'resolve-route','57','--provider',provider,'--repo',str(f.repo)]
+        result=subprocess.run(cmd,capture_output=True,text=True)
+        assert result.returncode==0,(provider,result.stderr)
+        route=json.loads(result.stdout)
+        assert route['route_provider']==provider
+        env=dict(os.environ,PYTHONPATH=str(f.repo/'.aisoft/lib/codex/runtime'))
+        script='import json,sys; from pathlib import Path; from aisoft_loop.ticket_execution import prepare_ticket; r=prepare_ticket(Path(sys.argv[1]),57,"T01",sys.argv[2],issue=json.loads(sys.argv[3])); print(r["ticket_base"])'
+        result=subprocess.run([sys.executable,'-B','-c',script,str(f.repo),provider,json.dumps(f.issue)],env=env,capture_output=True,text=True)
+        assert result.returncode==0,(provider,result.stderr)
+        assert result.stdout.strip()==f.run_git('rev-parse','HEAD').strip()
+        assert f.run_git('status','--porcelain')==''
+        # A copied policy must remain the released source, not an arbitrary
+        # skill allow-list edited inside a project.
+        policy=f.repo/landing/'skills/aisoft-platform/references/route-policy.md'
+        unknown=subprocess.run([sys.executable,'-B','-c', 'from aisoft_loop.route_policy import concrete_skills; concrete_skills("invented-unknown-skill")'],env=env,capture_output=True,text=True)
+        assert unknown.returncode!=0 and 'route.skills unknown' in unknown.stderr
+        policy.write_text(policy.read_text()+'\nfixture drift\n')
+        refused=subprocess.run(cmd,capture_output=True,text=True)
+        assert refused.returncode!=0 and 'released source digest' in refused.stderr
+    finally:
+        f.doCleanups()
+print('three provider exports / route CLI / prepare API: PASS; source fixture only')
+PY_WORKFLOW
+
 echo 'test-usage-bundle: PASS'

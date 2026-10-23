@@ -4,7 +4,8 @@
 
 ## 1. 设计原则
 
-- Matt `triage → to-spec → to-tickets → implement` 保持原始技能语义，通过 Gitea tracker adapter 对齐平台阶段。
+- Matt `triage → to-spec → to-tickets` 对齐平台需求与计划阶段，执行入口由 [路由表](skills/aisoft-platform/references/route-policy.md)
+  的显式 provider 映射决定，保持现有默认分工。上游技能原文不改，平台合同通过 adapter 约束其副作用。
 - Issue、summary 与路由要求的 spec/plan 是会话不可擅自改写的执行合同；`approved` 只授权开始实现。
 - 会话按 frontier `Txx` 在 exact `change/N-short-description` 创建本地原子 commit；push、PR 与判级投影走 broker，确认点 2 之前不推送。
 - Claude Code 与 Codex 对等，共用同一合同；平台仓 complex 由未参与实现的一方只读交叉审查。
@@ -21,6 +22,10 @@
 `retro` 仅由人明确选择 Matt 来源后运行，输出待审候选，不自动改规则或持续自调用。
 新项目采用 [GLOSSARY.md](GLOSSARY.md)；旧 CONTEXT 文档按 [domain 合同](docs/agents/domain.md) 保留业务规则与引用。
 每个 ticket 按自身 AC 验证，全部完成后再做整个 spec 的完整性检查；已有合同决策不重复询问。
+Txx 执行视图、frontier 与恢复、Matt 本地候选提交后的固定范围审查及整批 change_base，
+统一见 [execution-adapter](skills/aisoft-platform/references/execution-adapter.md)。
+它不把每票 Matt 双轴义务扩给 small/SP，也不替代平台 complex 最终另一 provider 的实际新 HEAD 审查。
+治理独立提交后停止，fresh run 重读后继续同一批准范围，不增加启动确认。
 
 ## 2. 判级输出
 
