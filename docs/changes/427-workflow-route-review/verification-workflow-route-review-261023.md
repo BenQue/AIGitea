@@ -644,7 +644,124 @@ T03 在 56e5503fa23fd9f78a780380ca8ecada5b865582 两轴均 PASS；T03-1/2/3 fixe
       "dirty_dispositions": {
         "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md": "本writer将T04闭合与T05开始证据随最终候选提交，无用户成果。",
         "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md": "仅推进T04 Status=done；本writer本Issue执行记录。"
-      }
+      },
+      "start": {
+        "identity": {
+          "issue": 427,
+          "branch": "change/427-workflow-route-review",
+          "owner": "01a16423-3e17-73b0-a723-76adc045218e",
+          "worktree": "/Users/benque/MyDocs/AISoftPlatform/worktrees/issue-427-workflow-route-review",
+          "provider": "codex",
+          "plan_path": "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md",
+          "semantic_hash": "19e3f170c9828c917bd0084f74fff81847c3ea3ec2b4bbe4d56e478ba7f7c934"
+        },
+        "ticket": "T05",
+        "ticket_base": "ac689e5210a12709b1e59bc6ccafe7d9f9b0b9b5",
+        "raw_plan_sha256": "fe1a5f1b7d89e2b6ef7eed9cfd4508007db52d997e15879df069e1309305a801",
+        "scope": [
+          "docs/changes/427-workflow-route-review/summary-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/spec-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md",
+          "skills/aisoft-platform/references/route-policy.md",
+          "skills/aisoft-platform/references/execution-adapter.md",
+          "skills/aisoft-platform/SKILL.md",
+          "skills/aisoft-matt-workflow/SKILL.md",
+          "skills/issue-session-flow/SKILL.md",
+          "03-Issue-Spec-Plan与单闸门开发流程.md",
+          "04-Agent编排与定时任务.md",
+          "08-双工具共存与实施.md",
+          "templates/docs/agents/issue-tracker.md",
+          "docs/agents/issue-tracker.md",
+          "templates/docs/changes/_template/summary.md",
+          "templates/docs/changes/_template/plan.md",
+          "codex/config/change-template-sync.json",
+          "codex/config/external-skill-adaptation.json",
+          "codex/runtime/aisoft_loop/route_policy.py",
+          "codex/runtime/aisoft_loop/ticket_execution.py",
+          "codex/runtime/aisoft_loop/review_candidate.py",
+          "codex/runtime/aisoft_loop/contract.py",
+          "codex/runtime/aisoft_loop/documents.py",
+          "codex/runtime/aisoft_loop/cli.py",
+          "codex/tools/aisoft",
+          "codex/runtime/tests/test_route_policy.py",
+          "codex/runtime/tests/test_contract.py",
+          "codex/runtime/tests/test_documents.py",
+          "codex/runtime/tests/test_ticket_execution.py",
+          "codex/runtime/tests/test_review_candidate.py",
+          "codex/runtime/tests/test_session_contract.py",
+          "codex/tests/smoke.sh",
+          "codex/tests/test-usage-bundle.sh",
+          "usage/bundle.json",
+          "docs/governance/review-evidence-index.md"
+        ],
+        "initial_state": {
+          "staged": {},
+          "unstaged": {
+            "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md": "fe1a5f1b7d89e2b6ef7eed9cfd4508007db52d997e15879df069e1309305a801",
+            "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md": "1533de8676c99fbb4ae567d0adbb050c5069a0144eba9e48b3b69ab3a87778c9"
+          },
+          "untracked": {}
+        },
+        "derived_plan": ".superpowers/aisoft/427/issue-427-558cfcdc81c21745-19e3f170c9828c91.md",
+        "scratch": ".superpowers/sdd/issue-427-558cfcdc81c21745-19e3f170c9828c91",
+        "policy_sha256": "184608fd3d3553e7a688712adb99ba98f62e81e9e919e96233f422126486ff40",
+        "route": {
+          "process": "complex-production",
+          "tier": "frontier",
+          "effort": "max",
+          "skills": "to-spec, to-tickets, implement, issue-session-flow",
+          "method": "spec-plan",
+          "verify": "full+reverse-proof",
+          "review": "cross-provider",
+          "confirm": "2"
+        },
+        "source_evidence": {
+          "codex/vendor/mattpocock/v1.2.2/manifest.json": {
+            "sha256": "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da",
+            "tag": "v1.2.2",
+            "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302"
+          },
+          "codex/vendor/mattpocock/v1.3.1/manifest.json": {
+            "sha256": "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd",
+            "tag": "v1.3.1",
+            "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+          },
+          "codex/vendor/superpowers/v7.0.0/manifest.json": {
+            "sha256": "ad9a021021ce607b35d6aa4e54bf3fb6ef572b148e08966bdf7200293629f692",
+            "tag": "v7.0.0",
+            "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3"
+          }
+        },
+        "model_configuration": "not observed by helper; caller records actual model/effort in verification"
+      },
+      "base": "ac689e5210a12709b1e59bc6ccafe7d9f9b0b9b5",
+      "head": "5f0ebd37f13bc5b43ba5896137a122fd490222b9",
+      "semantic_hash": "19e3f170c9828c917bd0084f74fff81847c3ea3ec2b4bbe4d56e478ba7f7c934",
+      "validation_sha256": "2204dce50ce35eddff7cd44b43289359a02996341a9276416b447e582a6b8178",
+      "ac": {
+        "AC-5": "PENDING_REVIEW",
+        "AC-6": "PENDING_REVIEW",
+        "AC-7": "PENDING_REVIEW",
+        "AC-8": "PENDING_REVIEW"
+      },
+      "checks": [
+        {
+          "command": "git diff --check",
+          "result": "PASS",
+          "evidence": "Actually executed on this source candidate; full smoke also covers shell syntax; see T05 local validation ledger"
+        },
+        {
+          "command": "AISOFT_USAGE_BASELINE_REF=dc1da41c6e6a51f85b1ec0464a97640a3ddb570e LC_ALL=C bash codex/tests/smoke.sh",
+          "result": "PASS",
+          "evidence": "Full smoke after F3 exit 0: 746 runtime tests, 46 installed-drift fixtures, static checks; sha256 01aac02c3a1e91393e0cf42c683244dad30bcb94afebd2d180aec1085ecbb0cc"
+        },
+        {
+          "command": "bash -n",
+          "result": "PASS",
+          "evidence": "Actually executed on this source candidate; full smoke also covers shell syntax; see T05 local validation ledger"
+        }
+      ]
     }
   },
   "scope_amendments": [
@@ -807,3 +924,9 @@ T04 在 ac689e5210a12709b1e59bc6ccafe7d9f9b0b9b5 双轴 PASS，T04-1/2/3 fixed�
 | F3 | RED证实混合围栏可静默转换；派生前识别原围栏状态，任何内部非合法结束分隔符均按既有 unsupported 路径拒绝。覆盖两种混合方向和短于外层的分隔符；普通tilde/backtick围栏保持可用。45项 ticket/review/session PASS，额外普通围栏正例PASS。 | 已修，待新HEAD复核 |
 
 该修复不改治理文本/计划语义/vendor，不新增确认点。尚未发布的1.16.0源候选在本地线性追加提交中重建，未重写Git历史；已发布1.15.0及更早release不变。本次新摘要22476c52a747e7de9150bb7f5ac0b599bb77c053b5b7e7da657714211a586749。F3后完整smoke正在进行；T05保留pending直到实际另一provider复核通过。最终审查回执自身不嵌入被审HEAD，避免SHA自引用；先记录已有结果，最后证据提交做限定复核并在同Issue归档实际HEAD。
+
+### R2 提交前：F1 的实际验证证据补齐
+
+F3修复后的完整命令 `AISOFT_USAGE_BASELINE_REF=dc1da41c6e6a51f85b1ec0464a97640a3ddb570e LC_ALL=C bash codex/tests/smoke.sh` exit 0：746项runtime测试、46项installed-drift临时fixture和全静态门均PASS。source runtime/bundle字节与5f0ebd37f13bc5b43ba5896137a122fd490222b9一致；仅证据提交不会改变这些字节。日志sha256：01aac02c3a1e91393e0cf42c683244dad30bcb94afebd2d180aec1085ecbb0cc。完整日志已归本会话附件427-t05-validation/smoke-claude-fixes.log；这是本地/临时fixture证据，不是实际安装或CI。
+
+F2/F3 在5f0ebd37上两轴复核均PASS，package 41f8cb4bd237c9253aebdeda3f5d9f77aa715628736deab42b95db58fbd41ab8；已用fresh候选校验实际回执。F1必要本地验证和结构化checks现已补齐。T05图状态仍pending、结构化AC为PENDING_REVIEW，唯一待收尾项是Claude对新HEAD的复核，未宣告完成/进入确认点2。R2通过后才把AC和T05改done，再审仅证据delta，并将实际最终HEAD回执归同Issue；不要求本次尚未产生的回执先写入自身HEAD。
