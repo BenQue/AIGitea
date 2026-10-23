@@ -789,3 +789,21 @@ T04 在 ac689e5210a12709b1e59bc6ccafe7d9f9b0b9b5 双轴 PASS，T04-1/2/3 fixed�
 完整 smoke 原样受控运行 exit 0，含744项 runtime测试（124.131s）、三端导出、真实入口沙箱隔离、安装器临时fixture及全部静态门，日志 /private/tmp/aisoft-427-smoke-final.log。随后最终核对发现 AC-5–AC-8 区间只取端点；新增故意失败fixture并修复为有界区间展开，倒序与超大范围拒绝。T05实际AC现完整包含AC-5/6/7/8，canonical plan语义摘要未改变；历史T01–T04均为枚举不受影响。修复后44项 ticket/review/session 测试PASS。未知技能负例改为在policy篡改前检查明确unknown错误，单项bundle suite及bash-n/ShellCheck PASS。
 
 区间修复后的未发布1.16.0最终源候选摘要为 9dd1b42bae18cae0dea3231ff27764c8d7e1cc754d0f401d0e256c1f7a9cbfc0；旧release未改。对这版完整smoke正在重新执行，候选固定后继续双轴与Claude实际终审。之前744项结果不冒充最终745项结果。
+
+## 交叉审查
+
+### R1：Claude Code Fable 5 / high（实际调用）
+
+- 整批 BASE dc1da41c6e6a51f85b1ec0464a97640a3ddb570e → HEAD 0c879cec3c53b77cfd2f75ff14996ad284575e02。session `6e3a7fe3-3c42-438a-8a2e-6d2326541a9a`；init.model 与 result.modelUsage 均为 claude-fable-5；命令指定 --effort high。safe-mode / Read,Glob,Grep / dontAsk / 禁hooks/MCP；对固定Git blob导出快照只读。未参与实现，不运行测试。
+- 实际 verdict FAIL：F1(P1) 被审HEAD的最终smoke/T05补证未闭合；F2(P2) 索引新增行前空行断表；F3(P2) 反引号/波浪线混合围栏转换可能泄漏示例内容。完整报告与stream在本会话附件 review-427-0c879cec3c53/。
+- 双轴：同票 BASE ac689e5210a12709b1e59bc6ccafe7d9f9b0b9b5 → 同HEAD，package 49950f55d4b9564caca6e56cae408f68bdb3263908dc36c2ee6ee8d93da9a4f8，Standards/Spec均PASS，已用 validate_reviews + fresh broker读回校验。不是本次Claude终审的替代。
+
+### R1 finding 处理
+
+| ID | 处理 | 当前状态 |
+|---|---|---|
+| F1 | 接受最终证据必须入候选。0c879 源码实际完整smoke已在审查期间完成：745 runtime + 46 installed-drift fixture + 全静态门PASS，日志sha256 8ea8758f1501bf82185ca29596f37f8cf81871a9afc142661f6461cafba35c8c。本票未提前宣告完成/进入确认点2。F3修复后再跑完整smoke并记录新结果，待下一固定HEAD复核。 | 待最终补证 |
+| F2 | 仅删除 #427 行前本票新增空行，保留其他行。 | 已修，待新HEAD复核 |
+| F3 | RED证实混合围栏可静默转换；派生前识别原围栏状态，任何内部非合法结束分隔符均按既有 unsupported 路径拒绝。覆盖两种混合方向和短于外层的分隔符；普通tilde/backtick围栏保持可用。45项 ticket/review/session PASS，额外普通围栏正例PASS。 | 已修，待新HEAD复核 |
+
+该修复不改治理文本/计划语义/vendor，不新增确认点。尚未发布的1.16.0源候选在本地线性追加提交中重建，未重写Git历史；已发布1.15.0及更早release不变。本次新摘要22476c52a747e7de9150bb7f5ac0b599bb77c053b5b7e7da657714211a586749。F3后完整smoke正在进行；T05保留pending直到实际另一provider复核通过。最终审查回执自身不嵌入被审HEAD，避免SHA自引用；先记录已有结果，最后证据提交做限定复核并在同Issue归档实际HEAD。

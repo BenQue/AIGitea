@@ -380,6 +380,21 @@ def _render(ctx: dict) -> str:
         # task-brief recognizes only backtick fences. Convert fence delimiters in
         # a copy; all content, including fake headings inside fences, is retained.
         text = ctx['plan']['global'] + '\n' + task['body']
+        # The pinned awk toggles on delimiters even inside an unlike fence.
+        # Reject any inner delimiter that is not the canonical closing fence
+        # before converting tildes, so example text can never escape its block.
+        fence = None
+        for line in text.splitlines():
+            marker = re.match(r'^ {0,3}(`{3,}|~{3,})(.*)$', line)
+            if not marker:
+                continue
+            delimiter, tail = marker.groups()
+            if fence is None:
+                fence = delimiter
+            elif delimiter[0] == fence[0] and len(delimiter) >= len(fence) and not tail.strip():
+                fence = None
+            else:
+                raise ContractError('fence form unsupported by pinned task-brief; nested delimiter')
         text = re.sub(r'^ {0,3}~{3,}(.*)$', r'```\1', text, flags=re.M)
         # The pinned awk toggles on every column-zero backtick delimiter. Reject
         # Markdown fence forms it cannot represent faithfully instead of truncating.

@@ -5996,7 +5996,7 @@
     {
       "version": "1.16.0",
       "released": "2026-10-23",
-      "bundle_digest": "sha256:9dd1b42bae18cae0dea3231ff27764c8d7e1cc754d0f401d0e256c1f7a9cbfc0",
+      "bundle_digest": "sha256:22476c52a747e7de9150bb7f5ac0b599bb77c053b5b7e7da657714211a586749",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -6554,7 +6554,7 @@
           "mode": "exact",
           "target": ".aisoft/lib/codex/runtime/aisoft_loop/ticket_execution.py",
           "check": "tool-provenance",
-          "sha256": "281c9875843c04e7d32f529128c613127f93e9ac8af96608fd1d3a2cbfed8a6b"
+          "sha256": "d405084ca1f7cafe6006af7c426360f1b412df8b3e4ea56441ae9e82904f8659"
         },
         {
           "source": "codex/runtime/aisoft_loop/review_candidate.py",

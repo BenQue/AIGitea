@@ -342,3 +342,17 @@ class AcceptanceRangeTests(unittest.TestCase):
         for value in ('AC-8–AC-5', 'AC-1–AC-999999999999'):
             with self.assertRaises(ContractError):
                 parse_plan(PLAN.replace('**AC**: AC-1', '**AC**: '+value))
+
+class NestedFenceTests(unittest.TestCase):
+    def test_pinned_brief_rejects_mixed_and_nonclosing_inner_delimiters(self):
+        from aisoft_loop.ticket_execution import _render
+        for example in ('~~~md\n```\nexample instructions\n```\n~~~\n',
+                        '```md\n~~~\nexample instructions\n~~~\n```\n',
+                        '~~~~md\n~~~\nexample instructions\n~~~\n~~~~\n'):
+            with self.subTest(example=example):
+                parsed = parse_plan(PLAN.replace('Global constraint:', example+'\nGlobal constraint:'))
+                with self.assertRaisesRegex(ContractError, 'fence form unsupported'):
+                    _render({'plan': parsed})
+        for example in ('~~~md\nexample instructions\n~~~\n', '```md\nexample instructions\n```\n'):
+            parsed = parse_plan(PLAN.replace('Global constraint:', example+'\nGlobal constraint:'))
+            self.assertIn('```md\nexample instructions\n```', _render({'plan': parsed}))
