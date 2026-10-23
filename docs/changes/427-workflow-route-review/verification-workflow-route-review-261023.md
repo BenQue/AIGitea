@@ -25,7 +25,7 @@ status: pending
 
 - Issue：`admin/aisoft-platform#427`。
 - source base / change_base：`dc1da41c6e6a51f85b1ec0464a97640a3ddb570e`。
-- 当前阶段：用户已批准合同，T01 治理交付及规定本地检查完成，独立提交后 STOP；T02–T05 未执行。准备检查与治理文本检查不冒充 runtime 验收。
+- 当前阶段：T01 独立治理提交后 STOP；用户 fresh-run 接续，T02–T04 已完成且双轴 PASS。T05 source/local 检查部分通过，唯一旧 fixture 范围补正已获用户明确授权，正在完成补正后验证；完整 smoke 与 Claude 最终评议未完成。历史准备/治理检查保留为审计，不冒充整体完成。
 - 环境：Mac Codex；唯一 writer/worktree 见 summary；当前源码 Matt v1.3.1 / SP v7.0.0。
 - 本记录承接 AC-1–AC-8 的实现证据，另保存无法靠最终 diff/CI 重放的原始调用来源、治理交接和审查范围。
 
@@ -51,13 +51,13 @@ status: pending
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | NOT RUN | T01 已改规则源；生产解析与矩阵测试待 T02 |
-| AC-2 | NOT RUN | T03 待实施 |
-| AC-3 | NOT RUN | T03 待实施 |
-| AC-4 | NOT RUN | T04 待实施 |
-| AC-5 | NOT RUN | T04/T05 待实施 |
-| AC-6 | NOT RUN | T01 已明确证据协议；真实逐票运行和终审待 T03/T04/T05 |
-| AC-7 | NOT RUN | T01 源码/模板检查已完成；fresh run 与发布验收待后续完成 |
+| AC-1 | PASS（source/local） | T02 provider/policy 矩阵、legacy/V1/风险漂移负例；65 route/contract/doc tests 与三端独立导出 CLI |
+| AC-2 | PASS（source/local） | T03 原版 SP task-start/task-brief 无损消费及 parser 负例；固定 vendor 不变 |
+| AC-3 | PASS（source/local） | T03 实际 Git frontier/receipt/resume；T05 明确 scope 增补保留开始快照正负例 |
+| AC-4 | PASS（source/local） | T04 实际 Git 多提交、遗漏/净空diff/起始脏文件/必要ignored负例；实际 wrapper/broker 候选链 |
+| AC-5 | PENDING | T04 双轴包/新HEAD/整批范围回归 PASS；T05整批另一provider终审待完成 |
+| AC-6 | PENDING | 已记录逐票 BASE/HEAD、双轴 findings fixed/residual/new；待 T05 指定模型实际终审 |
+| AC-7 | PASS（source/local） | T01治理STOP后fresh-run真实重读；mirror/digest、1.16.0三端导出及旧release/vendor保持检查通过；无安装采用 |
 | AC-8 | NOT RUN | T05 待实施 |
 
 ## 每票执行与范围证据
@@ -532,9 +532,201 @@ T03 在 56e5503fa23fd9f78a780380ca8ecada5b865582 两轴均 PASS；T03-1/2/3 fixe
       "dirty_dispositions": {
         "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md": "本writer将T03补证及T04开始事实随本票提交；起始已记录，无用户成果。",
         "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md": "仅推进T03 Status=done；本writer必要执行状态，随本票提交。"
+      },
+      "base": "56e5503fa23fd9f78a780380ca8ecada5b865582",
+      "head": "ac689e5210a12709b1e59bc6ccafe7d9f9b0b9b5",
+      "start": {
+        "identity": {
+          "issue": 427,
+          "branch": "change/427-workflow-route-review",
+          "owner": "01a16423-3e17-73b0-a723-76adc045218e",
+          "worktree": "/Users/benque/MyDocs/AISoftPlatform/worktrees/issue-427-workflow-route-review",
+          "provider": "codex",
+          "plan_path": "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md",
+          "semantic_hash": "19e3f170c9828c917bd0084f74fff81847c3ea3ec2b4bbe4d56e478ba7f7c934"
+        },
+        "ticket": "T04",
+        "ticket_base": "56e5503fa23fd9f78a780380ca8ecada5b865582",
+        "raw_plan_sha256": "b86ceb77a1e1fc502258a3225a206c21dbb806dfdec61722c06ece982db1847f",
+        "scope": [
+          "docs/changes/427-workflow-route-review/summary-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/spec-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md",
+          "skills/aisoft-platform/references/route-policy.md",
+          "skills/aisoft-platform/references/execution-adapter.md",
+          "skills/aisoft-platform/SKILL.md",
+          "skills/aisoft-matt-workflow/SKILL.md",
+          "skills/issue-session-flow/SKILL.md",
+          "03-Issue-Spec-Plan与单闸门开发流程.md",
+          "04-Agent编排与定时任务.md",
+          "08-双工具共存与实施.md",
+          "templates/docs/agents/issue-tracker.md",
+          "docs/agents/issue-tracker.md",
+          "templates/docs/changes/_template/summary.md",
+          "templates/docs/changes/_template/plan.md",
+          "codex/config/change-template-sync.json",
+          "codex/config/external-skill-adaptation.json",
+          "codex/runtime/aisoft_loop/route_policy.py",
+          "codex/runtime/aisoft_loop/ticket_execution.py",
+          "codex/runtime/aisoft_loop/review_candidate.py",
+          "codex/runtime/aisoft_loop/contract.py",
+          "codex/runtime/aisoft_loop/documents.py",
+          "codex/runtime/aisoft_loop/cli.py",
+          "codex/tools/aisoft",
+          "codex/runtime/tests/test_route_policy.py",
+          "codex/runtime/tests/test_contract.py",
+          "codex/runtime/tests/test_documents.py",
+          "codex/runtime/tests/test_ticket_execution.py",
+          "codex/runtime/tests/test_review_candidate.py",
+          "codex/runtime/tests/test_session_contract.py",
+          "codex/tests/smoke.sh",
+          "codex/tests/test-usage-bundle.sh",
+          "usage/bundle.json",
+          "docs/governance/review-evidence-index.md"
+        ],
+        "initial_state": {
+          "staged": {},
+          "unstaged": {
+            "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md": "b86ceb77a1e1fc502258a3225a206c21dbb806dfdec61722c06ece982db1847f",
+            "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md": "f32e5b5e2d293a288994b46bb60195fed77b5ad4837cd4215a813a7f03dc3605"
+          },
+          "untracked": {}
+        },
+        "derived_plan": ".superpowers/aisoft/427/issue-427-558cfcdc81c21745-19e3f170c9828c91.md",
+        "scratch": ".superpowers/sdd/issue-427-558cfcdc81c21745-19e3f170c9828c91",
+        "policy_sha256": "184608fd3d3553e7a688712adb99ba98f62e81e9e919e96233f422126486ff40",
+        "route": {
+          "process": "complex-production",
+          "tier": "frontier",
+          "effort": "max",
+          "skills": "to-spec, to-tickets, implement, issue-session-flow",
+          "method": "spec-plan",
+          "verify": "full+reverse-proof",
+          "review": "cross-provider",
+          "confirm": "2"
+        },
+        "source_evidence": {
+          "codex/vendor/mattpocock/v1.2.2/manifest.json": {
+            "sha256": "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da",
+            "tag": "v1.2.2",
+            "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302"
+          },
+          "codex/vendor/mattpocock/v1.3.1/manifest.json": {
+            "sha256": "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd",
+            "tag": "v1.3.1",
+            "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+          },
+          "codex/vendor/superpowers/v7.0.0/manifest.json": {
+            "sha256": "ad9a021021ce607b35d6aa4e54bf3fb6ef572b148e08966bdf7200293629f692",
+            "tag": "v7.0.0",
+            "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3"
+          }
+        },
+        "model_configuration": "not observed by helper; caller records actual model/effort in verification"
+      },
+      "semantic_hash": "19e3f170c9828c917bd0084f74fff81847c3ea3ec2b4bbe4d56e478ba7f7c934",
+      "validation_sha256": "7e8345e4b45beda5367d549870fcb8f7394da7780427e2ecf2b76f84a28c2b10",
+      "ac": {
+        "AC-4": "PASS",
+        "AC-5": "PASS",
+        "AC-6": "PASS"
+      },
+      "checks": [
+        {
+          "command": "PYTHONPATH=codex/runtime python3 -B -m unittest tests.test_review_candidate tests.test_ticket_execution tests.test_session_contract",
+          "result": "PASS",
+          "evidence": "41 required tests PASS; same candidate Standards/Spec PASS; actual wrapper/broker candidate package digest b6c8e831abc426aa06039fd073439ec6fc1cb862f75057bc94499bb56e0f665f"
+        }
+      ]
+    },
+    "T05": {
+      "dirty_dispositions": {
+        "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md": "本writer将T04闭合与T05开始证据随最终候选提交，无用户成果。",
+        "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md": "仅推进T04 Status=done；本writer本Issue执行记录。"
       }
     }
-  }
+  },
+  "scope_amendments": [
+    {
+      "from_scope": [
+        "docs/changes/427-workflow-route-review/summary-workflow-route-review-261023.md",
+        "docs/changes/427-workflow-route-review/spec-workflow-route-review-261023.md",
+        "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md",
+        "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md",
+        "skills/aisoft-platform/references/route-policy.md",
+        "skills/aisoft-platform/references/execution-adapter.md",
+        "skills/aisoft-platform/SKILL.md",
+        "skills/aisoft-matt-workflow/SKILL.md",
+        "skills/issue-session-flow/SKILL.md",
+        "03-Issue-Spec-Plan与单闸门开发流程.md",
+        "04-Agent编排与定时任务.md",
+        "08-双工具共存与实施.md",
+        "templates/docs/agents/issue-tracker.md",
+        "docs/agents/issue-tracker.md",
+        "templates/docs/changes/_template/summary.md",
+        "templates/docs/changes/_template/plan.md",
+        "codex/config/change-template-sync.json",
+        "codex/config/external-skill-adaptation.json",
+        "codex/runtime/aisoft_loop/route_policy.py",
+        "codex/runtime/aisoft_loop/ticket_execution.py",
+        "codex/runtime/aisoft_loop/review_candidate.py",
+        "codex/runtime/aisoft_loop/contract.py",
+        "codex/runtime/aisoft_loop/documents.py",
+        "codex/runtime/aisoft_loop/cli.py",
+        "codex/tools/aisoft",
+        "codex/runtime/tests/test_route_policy.py",
+        "codex/runtime/tests/test_contract.py",
+        "codex/runtime/tests/test_documents.py",
+        "codex/runtime/tests/test_ticket_execution.py",
+        "codex/runtime/tests/test_review_candidate.py",
+        "codex/runtime/tests/test_session_contract.py",
+        "codex/tests/smoke.sh",
+        "codex/tests/test-usage-bundle.sh",
+        "usage/bundle.json",
+        "docs/governance/review-evidence-index.md"
+      ],
+      "to_scope": [
+        "docs/changes/427-workflow-route-review/summary-workflow-route-review-261023.md",
+        "docs/changes/427-workflow-route-review/spec-workflow-route-review-261023.md",
+        "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md",
+        "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md",
+        "skills/aisoft-platform/references/route-policy.md",
+        "skills/aisoft-platform/references/execution-adapter.md",
+        "skills/aisoft-platform/SKILL.md",
+        "skills/aisoft-matt-workflow/SKILL.md",
+        "skills/issue-session-flow/SKILL.md",
+        "03-Issue-Spec-Plan与单闸门开发流程.md",
+        "04-Agent编排与定时任务.md",
+        "08-双工具共存与实施.md",
+        "templates/docs/agents/issue-tracker.md",
+        "docs/agents/issue-tracker.md",
+        "templates/docs/changes/_template/summary.md",
+        "templates/docs/changes/_template/plan.md",
+        "codex/config/change-template-sync.json",
+        "codex/config/external-skill-adaptation.json",
+        "codex/runtime/aisoft_loop/route_policy.py",
+        "codex/runtime/aisoft_loop/ticket_execution.py",
+        "codex/runtime/aisoft_loop/review_candidate.py",
+        "codex/runtime/aisoft_loop/contract.py",
+        "codex/runtime/aisoft_loop/documents.py",
+        "codex/runtime/aisoft_loop/cli.py",
+        "codex/tools/aisoft",
+        "codex/runtime/tests/test_route_policy.py",
+        "codex/runtime/tests/test_contract.py",
+        "codex/runtime/tests/test_documents.py",
+        "codex/runtime/tests/test_ticket_execution.py",
+        "codex/runtime/tests/test_review_candidate.py",
+        "codex/runtime/tests/test_session_contract.py",
+        "codex/tests/smoke.sh",
+        "codex/tests/test-usage-bundle.sh",
+        "codex/tests/test-aisoft-entry.sh",
+        "usage/bundle.json",
+        "docs/governance/review-evidence-index.md"
+      ],
+      "authorization": "2026-10-23 本会话用户回答 call_240eb83c17174d81bea82acd9eea5fcf：允许这一项范围补正，继续完成 T05。仅 test-aisoft-entry.sh 一行 ROUTE_PROVIDER → claude；原启动批准和两个确认点不变。"
+    }
+  ]
 }
 ```
 
@@ -555,3 +747,45 @@ T04 首轮 4f88de42ba745502d523ea335df5023b632b5974 双轴 FAIL，三项 P1 已�
 - T04-2：传入包改 axes/BASE 可保留旧摘要。现先重算 payload 摘要，再以 fresh 共同包作为审查字段事实源。
 - T04-3：丢前票证据可截短 change_base。现重新核对已完成票的原开始证据，当前依赖状态倒退也拒绝；不能只循环幸存记录。
 `review/ticket/session/route` 54 tests PASS，另执行入口区分正例 1 PASS；git diff --check PASS。修复线性追加，fixed 待新 HEAD 复核。
+
+### T04 闭合 / T05 开始
+
+T04 在 ac689e5210a12709b1e59bc6ccafe7d9f9b0b9b5 双轴 PASS，T04-1/2/3 fixed、无 residual/new。41 required tests PASS；真实 wrapper/broker/candidate 链 PASS。T05 在任何发布/适配修改前开始，当前 BASE 同该 HEAD；只有本 writer 的 plan Status/verification 补证，按本 Issue 必要执行记录承接。
+
+### T05 分发与检查进展
+
+- fresh fetch 后 origin/main 仍为 dc1da41c6e6a51f85b1ec0464a97640a3ddb570e，已发布最新 1.15.0；新增 1.16.0 minor source bundle，digest `9e62624a85c2df021e3b707e6ea53f6a028aeb29f1f34a1e9f061c73a6833dd0`，保留所有旧 release。新增 execution-adapter reference 与三个 runtime 模块的分发成员。
+- 真实独立导出反例：Claude-only 项目缺少本来由官方插件提供的必用 skills，旧 known_skills 拒绝合法 route。已使用发布包锁定摘要的 policy 词汇补齐必用技能名称，额外技能仍需可见 SKILL 或源 manifest；不查询 HOME，不冒充安装/调用验证。
+- 三个独立单端项目：route CLI 与 prepare-ticket API（隔离 Issue fixture）PASS；三端 shared reference 字节一致；已篡改导出 policy 的摘要反例拒绝。完整源码固定 SP task-start→task-brief 已在 T03 真实临时 Git/HOME 验证。
+- 必需本地检查包括 65 route/contract/doc tests PASS，bash -n/ShellCheck 通过。完整 smoke 第一次停在既有 sandbox-exec 嵌套沙箱限制（sandbox_apply Operation not permitted），保留失败日志；原样同命令在受控环境重跑，结果待回读。
+- 本票不改变 vendor/pin、broker、AGENTS/CLAUDE、既有 CI context，不安装/采用/部署。真实 provider session、Cursor现场、CI、live 仍为 NOT RUN。
+
+### T05 当前阻塞：精确 git_scope 漏列旧入口 fixture
+
+- 受控环境原样完整 smoke 已排除嵌套沙箱限制；实际随后失败：`change 7-demo-change: route_provider requires a concrete provider and route card`。根因是 codex/tests/test-aisoft-entry.sh 的模板实例化漏替换新 ROUTE_PROVIDER；不是生产 validator 应放松的条件。
+- 最小修复是在 make_project 的 sed 增加 `-e 's/ROUTE_PROVIDER/claude/'`，与其已有 SP verification-before-completion 路由一致。该文件不在本 spec.git_scope 35 项内，因此实际工作树保持未改，未扩大合同。已通过异步问题请求仅补正这一项，原启动批准/两个普通确认点保持。
+- 隔离源码副本应用该一行补丁后，整项 test-aisoft-entry PASS（含原生 sandbox-exec 拒绝读取平台仓的检查）；这是 proposed fixture 证据，不能冒充实际工作树完整 smoke PASS。补丁在本会话附件 427-fixture-scope-correction.patch。
+- 完整 runtime unittest discover：742 tests PASS（110.204s）。bundle --verify --baseline-ref dc1da41c6e6a51f85b1ec0464a97640a3ddb570e：VERIFIED 1.16.0。完整 smoke 仍 FAIL；其余未走到的 shell/static 项不能被这两项替代。
+- T05 当前未提交；HEAD 仍 ac689e5210a12709b1e59bc6ccafe7d9f9b0b9b5。Claude Code Fable 5/high 最终实际 HEAD 审查仍 NOT RUN；不生成假 PASS 或提前请求 PR 确认。没有 push/PR/merge/安装/部署。
+
+### T05 已批准的唯一范围补正
+
+2026-10-23 用户明确回复“允许这一项范围补正，继续完成 T05”。spec.git_scope 从35条增加为36条，新增的 test-aisoft-entry.sh 仅改变一行 provider fixture；未新增普通确认点。历史开始回执不改写，T05原始BASE仍ac689e5210a12709b1e59bc6ccafe7d9f9b0b9b5。结构化证据 scope_amendments 同时保存精确旧/新范围与授权来源；helper只接受有此记录的严格增补，未记录漂移/缩减仍拒绝，不把文字记录称为自动批准证明。原回执与缓存逐字保留；相关恢复/历史完成/候选回归已补。
+
+本地未发布的1.16.0候选因必要 runtime 修正重新生成；从main已发布的1.15.0及更早release保持字节语义不变。早先预览摘要只描述当时工作副本，最终有效摘要以下次真实verify为准。
+
+### T05 补正后本地核实
+
+- 实际 prepare-ticket 427 T05 --provider codex --resume：prepared，ticket_base 保持 ac689e5210a12709b1e59bc6ccafe7d9f9b0b9b5，原 receipt.scope 仍35条；当前 spec 36条由有界授权记录衔接。
+- check-change-documents --porcelain：change-documents / change-pr-url PASS。classify --verify 427：projected，type/platform + complexity/complex，applied=false；该工具固定的 merged-summary 文案不证明本分支已合并。
+- shell bash -n / ShellCheck 通过；git diff --check 通过。已发布 release 历史与基线完全相同，vendor diff 为空。
+- 本地未发布 source bundle 1.16.0 重建摘要：9af59dcad1e39f5d1e474b08031ba80a65036f452ebffa5c4895d161b365ceb6。导出是源验证，不是installed/live。
+- 进展评论尝试被宿主自动审批拒绝（其将目标视为未明确受信任、担心内部元数据外发）；未通过其他身份/API/通道绕过。用户授权范围已在本Issue文档保留。只读 broker 恢复/分类调用正常。
+
+上述评论审批问题已解决：只读核对受治理 manifest 的本地 Gitea URL、aisoft-platform repo/checkout 映射与 origin 完全一致后，将同一 typed broker 操作重新送审，获准并成功写入。未更换通道或身份。授权增补的同票证据：<http://gitea-ci.orb.local:3000/admin/aisoft-platform/issues/427#issuecomment-15369>。
+
+### T05 首轮完整 smoke 与区间修复
+
+完整 smoke 原样受控运行 exit 0，含744项 runtime测试（124.131s）、三端导出、真实入口沙箱隔离、安装器临时fixture及全部静态门，日志 /private/tmp/aisoft-427-smoke-final.log。随后最终核对发现 AC-5–AC-8 区间只取端点；新增故意失败fixture并修复为有界区间展开，倒序与超大范围拒绝。T05实际AC现完整包含AC-5/6/7/8，canonical plan语义摘要未改变；历史T01–T04均为枚举不受影响。修复后44项 ticket/review/session 测试PASS。未知技能负例改为在policy篡改前检查明确unknown错误，单项bundle suite及bash-n/ShellCheck PASS。
+
+区间修复后的未发布1.16.0最终源候选摘要为 9dd1b42bae18cae0dea3231ff27764c8d7e1cc754d0f401d0e256c1f7a9cbfc0；旧release未改。对这版完整smoke正在重新执行，候选固定后继续双轴与Claude实际终审。之前744项结果不冒充最终745项结果。

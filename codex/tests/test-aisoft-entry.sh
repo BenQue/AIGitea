@@ -28,6 +28,7 @@ make_project() {
     -e 's/CHANGE_TYPE/docs/' -e 's/ASSESSED_COMPLEXITY/small/' -e 's/EFFECTIVE_COMPLEXITY/small/' \
     -e 's/CONTRACT_EFFECT/restore/' -e 's/CLASSIFICATION_REASON/合成测试/' \
     -e 's/SHORT-SLUG-YYMMDD/demo-change-261021/' -e 's/SHORT-SLUG/demo-change/' \
+    -e 's/ROUTE_PROVIDER/claude/' \
     -e 's/ROUTE_PROCESS/small-direct/' -e 's/ROUTE_TIER/standard/' -e 's/ROUTE_EFFORT/medium/' \
     -e 's/ROUTE_SKILLS/verification-before-completion/' -e 's/ROUTE_METHOD/implement-only/' \
     -e 's/ROUTE_VERIFY/targeted/' -e 's/ROUTE_REVIEW/human-merge/' -e 's/CONFIDENCE/high/' \

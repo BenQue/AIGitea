@@ -50,6 +50,7 @@ git_scope:
   - codex/runtime/tests/test_session_contract.py
   - codex/tests/smoke.sh
   - codex/tests/test-usage-bundle.sh
+  - codex/tests/test-aisoft-entry.sh
   - usage/bundle.json
   - docs/governance/review-evidence-index.md
 ---
@@ -137,7 +138,7 @@ Standards/Spec 接收相同 BASE/HEAD、commit 清单、spec/plan 和规范来�
 新增 summary.route_provider 为本期有界元数据扩展；route 内仍八键，旧历史文档读取不迁移。新本地适配 CLI 使用现 aisoft 入口；只产本地派生物，语法和失败输出在 T01 共享 reference 锁定。无数据库/业务 API 变更；无凭据/主机/broker 扩权。现 triage mutation 工具缺口记录为 GAP，不夹带修复。
 
 front matter 的 git_scope 是最大允许路径，未实际需要的路径不改。T01 实测平台不持有 change 模板 mirror，
-据此从初版最大范围收窄两条无效的 `docs/changes/_template/` 路径；保留 35 条精确路径。
+据此从初版最大范围收窄两条无效的 `docs/changes/_template/` 路径；原保留 35 条精确路径。2026-10-23 用户明确批准唯一范围补正：追加 codex/tests/test-aisoft-entry.sh，现为 36 条；该文件仅允许 make_project 增加 ROUTE_PROVIDER → claude 的一行 fixture 替换。原批准、默认分工与两个确认点不变。
 不创建 mirror、不改 holder 声明或 git scope guard，不授权其他 Issue 文档。
 review-evidence-index 只追加本 Issue 行，无路线图/E2E 批次或项目采用事件。
 

@@ -185,3 +185,28 @@ class RangeTests(GitFixture):
         self.assertEqual(execution_entry({'skills':'issue-session-flow'}, 'codex'),'implement')
         self.assertEqual(execution_entry({'skills':'verification-before-completion'}, 'claude'),'executing-plans')
         self.assertEqual(execution_entry({'skills':'executing-plans, verification-before-completion'}, 'codex'),'executing-plans')
+
+    def test_approved_scope_expansion_keeps_historical_base_and_candidate(self):
+        receipt = self.prepare()
+        original = (self.repo / receipt['receipt']).read_bytes()
+        self.commit('first implementation')
+        entry = self.completion()
+        spec = self.directory / 'spec-ticket-adapter-261023.md'
+        extra = str(spec.relative_to(self.repo))
+        old_scope = entry['start']['scope']
+        new_scope = old_scope[:1] + [extra] + old_scope[1:]
+        spec.write_text(spec.read_text().replace('  - src.txt\n', '  - src.txt\n  - '+extra+'\n'))
+        self.plan.write_text(PLAN.replace('| - | pending |', '| - | done |'))
+        data = {'change_base': self.base, 'tickets': {'T01': entry}, 'scope_amendments': [
+            {'from_scope': old_scope, 'to_scope': new_scope, 'authorization': 'fixture user approved exact scope addition'}]}
+        self.write_evidence(data)
+        self.run_git('add', '.')
+        self.run_git('commit', '-m', 'record approved scope addition and completion')
+        package = self.candidate()
+        self.assertEqual(package['ticket_range']['base'], receipt['ticket_base'])
+        self.assertEqual((self.repo / receipt['receipt']).read_bytes(), original)
+        self.assertEqual(self.prepare('T02')['ticket_base'], self.run_git('rev-parse', 'HEAD').strip())
+        data.pop('scope_amendments')
+        self.write_evidence(data)
+        with self.assertRaisesRegex(ContractError, 'scope no longer matches'):
+            self.candidate()

@@ -8,7 +8,7 @@ from pathlib import Path
 from .contract import ContractError
 from .route_policy import concrete_skills, execution_entry
 from .ticket_execution import (SHA, TICKET, completed, context, digest, git, identity,
-                               receipt_identity, safe_path, working_state)
+                               receipt_identity, safe_path, scope_matches, working_state)
 from .worktree import head_sha, is_ancestor
 
 
@@ -26,7 +26,7 @@ def started(repo: Path, number: int, tid: str, issue: dict | None = None) -> tup
     provider = start.get('identity', {}).get('provider')
     ctx = context(repo, number, provider, issue)
     if (start.get('identity') != receipt_identity(ctx) or start.get('ticket') != tid
-            or tid not in ctx['plan']['tickets'] or start.get('scope') != ctx['scope']
+            or tid not in ctx['plan']['tickets'] or not scope_matches(ctx, start)
             or start.get('route') != ctx['route'] or start.get('policy_sha256') != ctx['policy_sha256']):
         raise ContractError('start identity/plan/route/scope no longer matches')
     base = start.get('ticket_base')

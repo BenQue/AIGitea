@@ -153,7 +153,13 @@ def parse_plan(text: str) -> dict:
         if deps != rows[tid]['deps'] or tid in deps or set(deps) - rows.keys():
             raise ContractError('body/graph dependency mismatch or unknown dependency')
         scope = field(body, '交付/范围|scope')
-        ac = sorted(set(re.findall(r'\bAC-[0-9]+\b', field(body, 'AC'))))
+        ac_ids = set()
+        for first, last in re.findall(r'\bAC-([0-9]+)\b(?:\s*[-–—]\s*AC-([0-9]+)\b)?', field(body, 'AC')):
+            begin_ac, end_ac = int(first), int(last or first)
+            if end_ac < begin_ac or end_ac - begin_ac > 1000:
+                raise ContractError('invalid or excessive AC range; enumerate criteria explicitly')
+            ac_ids.update(f'AC-{n}' for n in range(begin_ac, end_ac + 1))
+        ac = sorted(ac_ids)
         validation = field(body, '验证|validation')
         expected = field(body, 'Expected')
         constraints = field(body, '约束/停止|停止条件|constraints')
@@ -202,7 +208,7 @@ def records(text: str) -> dict:
         data = json.loads(matches[0])
     except ValueError as exc:
         raise ContractError('invalid execution evidence JSON') from exc
-    if not isinstance(data, dict) or set(data) - {'change_base', 'tickets'} or not isinstance(data.get('tickets', {}), dict):
+    if not isinstance(data, dict) or set(data) - {'change_base', 'tickets', 'scope_amendments'} or not isinstance(data.get('tickets', {}), dict):
         raise ContractError('invalid execution evidence structure')
     return data
 
@@ -309,6 +315,27 @@ def receipt_identity(ctx: dict) -> dict:
             'semantic_hash': ctx['plan']['semantic_hash']}
 
 
+def scope_matches(ctx: dict, start: dict) -> bool:
+    """Preserve the original receipt across an explicitly recorded expansion.
+
+    The existing approved contract remains authoritative. This audit reference
+    records the caller's human authorization; it is not a new approval engine.
+    Unrecorded drift or removal of any original path still fails closed.
+    """
+    original, current = start.get('scope'), ctx['scope']
+    if original == current:
+        return True
+    if (not isinstance(original, list) or not all(isinstance(p, str) for p in original)
+            or not set(original) < set(current)):
+        return False
+    amendments = ctx['evidence'].get('scope_amendments', [])
+    if not isinstance(amendments, list):
+        return False
+    return any(isinstance(a, dict) and a.get('from_scope') == original and a.get('to_scope') == current
+               and isinstance(a.get('authorization'), str) and bool(a['authorization'].strip())
+               for a in amendments)
+
+
 def completed(repo: Path, ctx: dict, tid: str) -> bool:
     entry = ctx['evidence'].get('tickets', {}).get(tid)
     task = ctx['plan']['tickets'][tid]
@@ -323,7 +350,7 @@ def completed(repo: Path, ctx: dict, tid: str) -> bool:
     # their historical owner. Resuming an unfinished ticket stays exact-owner.
     expected_identity['owner'] = historical_owner
     if (not isinstance(start, dict) or start.get('identity') != expected_identity
-            or start.get('ticket') != tid or start.get('scope') != ctx['scope']
+            or start.get('ticket') != tid or not scope_matches(ctx, start)
             or start.get('policy_sha256') != ctx['policy_sha256'] or start.get('route') != ctx['route']
             or not isinstance(start.get('initial_state'), dict) or not start.get('raw_plan_sha256')):
         raise ContractError(f'{tid}: completion needs matching persisted start receipt')
@@ -408,7 +435,7 @@ def prepare_ticket(repo: Path, number: int, tid: str, provider: str, *, resume: 
         if not receipt.is_file():
             raise ContractError('start receipt missing; never infer BASE from HEAD~1')
         saved = json.loads(receipt.read_text())
-        if (saved.get('identity') != key or saved.get('ticket') != tid or saved.get('scope') != ctx['scope']
+        if (saved.get('identity') != key or saved.get('ticket') != tid or not scope_matches(ctx, saved)
                 or saved.get('policy_sha256') != ctx['policy_sha256'] or saved.get('route') != ctx['route']):
             raise ContractError('resume identity/semantic contract mismatch')
         base = saved.get('ticket_base', '')

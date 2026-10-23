@@ -58,6 +58,29 @@ def known_skills() -> set[str]:
         project = ROOT.parent.parent
         for tool in ('.agents', '.claude', '.cursor'):
             names.update(p.parent.name for p in (project / tool / 'skills').glob('*/SKILL.md'))
+        # Claude's official plugins are intentionally not copied into its project
+        # landing. The released policy declares their required route vocabulary;
+        # verify its shipped digest rather than inspecting HOME or mistaking a
+        # missing project copy for an unknown plugin. This proves source names,
+        # never installation or actual invocation. Extra skills still need a
+        # visible SKILL.md or the source vendor manifest.
+        history = ROOT / 'usage/bundle.json'
+        if not history.is_file():
+            raise ContractError('released route vocabulary unavailable')
+        bundle = json.loads(history.read_text())
+        released = next((m for m in bundle['releases'][-1]['members']
+                         if m['source'] == str(POLICY_RELATIVE)), None)
+        path = policy_path()
+        if not released or hashlib.sha256(path.read_bytes()).hexdigest() != released['sha256']:
+            raise ContractError('exported policy differs from its released source digest')
+        text = path.read_text()
+        for row in _table(text, '## 推导表', 10):
+            names.update(s for s in _codes(row[-1]) if not s.startswith('@'))
+        for row in _table(text, '## Provider 映射', 3):
+            names.update(_codes(' '.join(row[1:])))
+        for row in _table(text, '## 细化规则', 3):
+            if row[2].startswith('skills '):
+                names.update(_codes(row[2]))
     return names
 
 

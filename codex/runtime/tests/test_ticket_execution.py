@@ -304,3 +304,41 @@ class HandoffTests(GitFixture):
             with self.assertRaises(ContractError):
                 self.prepare(resume=True)
         self.assertEqual(records(self.verification.read_text())['tickets']['T01']['start']['identity']['owner'], 'fixture-owner')
+
+
+class ScopeAmendmentTests(GitFixture):
+    def test_expansion_requires_explicit_exact_audit_and_preserves_start(self):
+        receipt = self.prepare()
+        cache = self.repo / receipt['receipt']
+        original = cache.read_bytes()
+        spec = self.directory / 'spec-ticket-adapter-261023.md'
+        spec.write_text(spec.read_text().replace('  - src.txt\n', '  - src.txt\n  - added.txt\n'))
+        with self.assertRaises(ContractError):
+            self.prepare(resume=True)
+        old_scope = json.loads(original)['scope']
+        new_scope = old_scope[:1] + ['added.txt'] + old_scope[1:]
+        amendment = {'from_scope': old_scope, 'to_scope': new_scope,
+                     'authorization': 'fixture user explicitly approved added.txt only'}
+        def evidence(value):
+            self.verification.write_text('---\nissue: 57\nbranch: change/57-ticket-adapter\ncreated: 2026-10-23\n---\n# Verification\n```aisoft-execution\n'+json.dumps({'tickets': {}, 'scope_amendments': [value]})+'\n```\n')
+        evidence(amendment)
+        self.assertEqual(self.prepare(resume=True)['ticket_base'], self.base)
+        self.assertEqual(cache.read_bytes(), original)
+        for invalid in [dict(amendment, authorization=''), dict(amendment, to_scope=old_scope),
+                        dict(amendment, from_scope=['wrong.txt'])]:
+            evidence(invalid)
+            with self.assertRaises(ContractError):
+                self.prepare(resume=True)
+        spec.write_text(spec.read_text().replace('  - src.txt\n', ''))
+        evidence(dict(amendment, to_scope=new_scope[1:]))
+        with self.assertRaises(ContractError):
+            self.prepare(resume=True)
+
+class AcceptanceRangeTests(unittest.TestCase):
+    def test_acceptance_range_keeps_middle_criteria_and_rejects_bad_ranges(self):
+        for dash in ('-', '–', '—'):
+            plan = PLAN.replace('**AC**: AC-1', '**AC**: AC-5'+dash+'AC-8')
+            self.assertEqual(parse_plan(plan)['tickets']['T01']['ac'], ['AC-5','AC-6','AC-7','AC-8'])
+        for value in ('AC-8–AC-5', 'AC-1–AC-999999999999'):
+            with self.assertRaises(ContractError):
+                parse_plan(PLAN.replace('**AC**: AC-1', '**AC**: '+value))
