@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 
 from .contract import ContractError
-from .route_policy import concrete_skills
-from .ticket_execution import (SHA, TICKET, context, digest, git, identity,
+from .route_policy import concrete_skills, execution_entry
+from .ticket_execution import (SHA, TICKET, completed, context, digest, git, identity,
                                receipt_identity, safe_path, working_state)
 from .worktree import head_sha, is_ancestor
 
@@ -65,6 +65,12 @@ def review_candidate(repo: Path, number: int, tid: str, head: str, *,
         raise ContractError('persisted change_base missing; never use the last ticket BASE')
     if not is_ancestor(repo, change_base, start['ticket_base']):
         raise ContractError('change_base omits the current ticket start')
+    for dep in ctx['plan']['tickets'][tid]['deps']:
+        if ctx['plan']['tickets'][dep]['status'] != 'done':
+            raise ContractError('candidate dependency is no longer complete: ' + dep)
+    for done, task in ctx['plan']['tickets'].items():
+        if task['status'] == 'done':
+            completed(repo, ctx, done)
     for previous in evidence.get('tickets', {}).values():
         if isinstance(previous, dict) and 'base' in previous:
             base = previous['base']
@@ -125,7 +131,9 @@ def review_candidate(repo: Path, number: int, tid: str, head: str, *,
                'policy_sha256': ctx['policy_sha256'], 'route': ctx['route'],
                'initial_state': before, 'current_state': after, 'dirty_dispositions': dispositions,
                'necessary_ignored': declared, 'source_evidence': start.get('source_evidence'),
-               'review_axes': ['Standards', 'Spec'] if 'implement' in concrete_skills(ctx['route']['skills']) else [],
+               'resolved_execution_entry': execution_entry(ctx['route'], ctx['provider']),
+               'review_axes': ['Standards', 'Spec'] if (execution_entry(ctx['route'], ctx['provider']) == 'implement'
+                    or 'code-review' in concrete_skills(ctx['route']['skills'])) else [],
                'mechanical_checks': 'PASS', 'semantic_scope_review': 'NOT REVIEWED',
                'unsaved_editor_content': 'UNKNOWN', 'review_verdict': 'NOT REVIEWED'}
     package['package_sha256'] = digest(json.dumps(package, ensure_ascii=False, sort_keys=True))
@@ -138,10 +146,14 @@ def review_candidate(repo: Path, number: int, tid: str, head: str, *,
 
 def validate_reviews(repo: Path, package: dict, reviews: list[dict], *, issue: dict | None = None) -> None:
     """Check declared review receipts, without creating or persisting a PASS."""
+    payload = {key: value for key, value in package.items() if key != 'package_sha256'}
+    if digest(json.dumps(payload, ensure_ascii=False, sort_keys=True)) != package.get('package_sha256'):
+        raise ContractError('supplied candidate payload does not match its digest')
     fresh = review_candidate(repo, package['identity']['issue'], package['ticket'],
                              package['ticket_range']['head'], issue=issue)
     if fresh['package_sha256'] != package['package_sha256']:
         raise ContractError('candidate package changed; old reviews do not apply')
+    package = fresh
     axes = package['review_axes']
     if len(reviews) != len(axes) or {r.get('axis') for r in reviews} != set(axes):
         raise ContractError('review axes must match this route, with no duplicate review')

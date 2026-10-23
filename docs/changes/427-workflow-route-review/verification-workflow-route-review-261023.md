@@ -549,3 +549,9 @@ T04 在实现前实际运行 prepare-ticket，开始 BASE `56e5503fa23fd9f78a780
 - Standards/Spec 绑定共同 package digest/base/head；追加修复、移动HEAD或身份变化后旧声明失效。语义范围 NOT REVIEWED、未保存编辑器内容 UNKNOWN；不把机械 PASS 称审查通过。SP route axes=[]，small仍不进入票适配。
 - `PYTHONPATH=codex/runtime python3 -B -m unittest tests.test_review_candidate tests.test_ticket_execution tests.test_session_contract`：37 tests PASS；N5–N7 含真实 Git 故意失败；整个fixture只写临时目录。
 - source/local evidence；最终 Claude、完整 smoke、bundle/installed/CI仍按T05和非目标分层。候选提交后对实际 #427 运行新检查器，再派双轴。
+
+T04 首轮 4f88de42ba745502d523ea335df5023b632b5974 双轴 FAIL，三项 P1 已补 RED 并修复：
+- T04-1：P1 项目路由 code-review 义务未进入 axes。现覆盖 Matt implement/code-review；实际默认入口另从同 policy provider 映射读取，不把 R2 必用集合当入口。普通 SP 无新增双轴，显式执行覆盖保留。
+- T04-2：传入包改 axes/BASE 可保留旧摘要。现先重算 payload 摘要，再以 fresh 共同包作为审查字段事实源。
+- T04-3：丢前票证据可截短 change_base。现重新核对已完成票的原开始证据，当前依赖状态倒退也拒绝；不能只循环幸存记录。
+`review/ticket/session/route` 54 tests PASS，另执行入口区分正例 1 PASS；git diff --check PASS。修复线性追加，fixed 待新 HEAD 复核。

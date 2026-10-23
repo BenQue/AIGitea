@@ -152,3 +152,36 @@ class RangeTests(GitFixture):
         package=self.candidate()
         self.assertEqual(package['review_axes'],[])
         validate_reviews(self.repo, package, [], issue=self.issue)
+
+    def test_supplied_package_tampering_cannot_keep_old_digest(self):
+        self.prepare(); self.commit(); package=self.candidate()
+        altered=json.loads(json.dumps(package)); altered['review_axes']=[]
+        with self.assertRaises(ContractError):
+            validate_reviews(self.repo,altered,[],issue=self.issue)
+        altered=json.loads(json.dumps(package)); altered['ticket_range']['base']='0'*40
+        with self.assertRaises(ContractError):
+            validate_reviews(self.repo,altered,self.review_receipts(altered),issue=self.issue)
+
+    def test_project_p1_matt_review_survives_sp_execution(self):
+        self.summary.write_text(self.summary.read_text().replace('risk_flags: []','risk_flags:\n  - security'))
+        self.run_git('add',str(self.summary.relative_to(self.repo)));self.run_git('commit','-m','fixture approved high risk')
+        self.write_evidence({'change_base': self.run_git('rev-parse','HEAD').strip(), 'tickets': {}})
+        self.run_git('add',str(self.verification.relative_to(self.repo)));self.run_git('commit','-m','fixture new change base')
+        self.prepare(provider='claude');self.commit()
+        self.assertEqual(self.candidate()['review_axes'],['Standards','Spec'])
+
+    def test_missing_completed_dependency_cannot_truncate_batch_range(self):
+        self.prepare();self.commit('first')
+        self.evidence(self.completion());self.plan.write_text(PLAN.replace('| - | pending |','| - | done |'))
+        self.run_git('add',str(self.directory.relative_to(self.repo)));self.run_git('commit','-m','first completed')
+        start=self.prepare('T02');self.commit('second')
+        self.write_evidence({'change_base':start['ticket_base'],'tickets':{}})
+        self.run_git('add',str(self.verification.relative_to(self.repo)));self.run_git('commit','-m','fixture erased first evidence')
+        with self.assertRaises(ContractError):
+            self.candidate('T02')
+
+    def test_development_required_set_does_not_erase_execution_default(self):
+        from aisoft_loop.route_policy import execution_entry
+        self.assertEqual(execution_entry({'skills':'issue-session-flow'}, 'codex'),'implement')
+        self.assertEqual(execution_entry({'skills':'verification-before-completion'}, 'claude'),'executing-plans')
+        self.assertEqual(execution_entry({'skills':'executing-plans, verification-before-completion'}, 'codex'),'executing-plans')

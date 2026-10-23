@@ -174,6 +174,18 @@ def repository_context(summary: Mapping[str, object]) -> tuple[str, bool]:
     return resolve_change_control(name), (owner, name) == ('admin', 'aisoft-platform')
 
 
+def execution_entry(route: Mapping[str, str], provider: str) -> str:
+    """Required skills and the provider's execution default are different facts."""
+    mappings = _table(policy_path().read_text(), '## Provider 映射', 3)
+    engines = {_codes(row[1])[0] for row in mappings}
+    selected = set(concrete_skills(route['skills'])) & engines
+    if len(selected) > 1:
+        raise ContractError('execution entry is ambiguous; concrete route contains multiple plan engines')
+    if selected:
+        return selected.pop()
+    return _codes(next(row[1] for row in mappings if row[0] == provider))[0]
+
+
 def validate_provider_route(summary: Mapping[str, object], *, change_control: str | None = None,
                             platform_repo: bool | None = None) -> None:
     """Provider-aware cards are strict; historical cards remain read-only compatible."""
