@@ -31,6 +31,7 @@ usage: aisoft <command> [args]
 
   change-name N SLUG                    validate and print a new change branch
   resolve-documents N                   mapped change document names (JSON)
+  review-candidate N Txx --head SHA      fixed candidate completeness (JSON)
   prepare-ticket N Txx --provider P [--resume]  prepare exact execution view
   resolve-route N --provider P           concrete route with policy digest (JSON)
   check-change-documents [--porcelain]  front matter contract across the checkout
@@ -287,7 +288,7 @@ case "$command" in
   change-name)
     cli change-name ${args[@]+"${args[@]}"}
     ;;
-  prepare-ticket | resolve-route | resolve-documents | backfill-pr-url | check-change-documents | scan-worktrees)
+  review-candidate | prepare-ticket | resolve-route | resolve-documents | backfill-pr-url | check-change-documents | scan-worktrees)
     cli "$command" ${args[@]+"${args[@]}"} --repo "$repo"
     ;;
   claim-worktree)

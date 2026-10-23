@@ -67,6 +67,13 @@ def main(argv: list[str] | None = None) -> int:
     prepare.add_argument("--provider", required=True, choices=("codex", "claude", "cursor"))
     prepare.add_argument("--resume", action="store_true")
 
+    candidate = subparsers.add_parser("review-candidate", help="inspect a fixed local ticket review candidate")
+    candidate.add_argument("issue", type=int)
+    candidate.add_argument("ticket")
+    candidate.add_argument("--repo", required=True, type=Path)
+    candidate.add_argument("--head", required=True)
+    candidate.add_argument("--necessary-ignored", action="append", default=[])
+
     required_document_names = subparsers.add_parser(
         "resolve-required-documents", help="read validated required roles and mapped filenames"
     )
@@ -143,6 +150,16 @@ def main(argv: list[str] | None = None) -> int:
         return _apply_analysis(args.issue, args.result_json, args.summary_url)
     if args.command == "resolve-documents":
         return _resolve_documents(args.repo, args.issue)
+    if args.command == "review-candidate":
+        from .review_candidate import review_candidate
+        try:
+            result = review_candidate(args.repo, args.issue, args.ticket, args.head,
+                                      necessary_ignored=tuple(args.necessary_ignored))
+        except (ContractError, WorktreeOwnerError, WorktreeError, OSError, ValueError) as exc:
+            print(f"review candidate refused: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+        return 0
     if args.command == "prepare-ticket":
         from .ticket_execution import prepare_ticket
         try:

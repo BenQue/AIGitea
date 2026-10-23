@@ -30,7 +30,7 @@ T01 只落实治理合同；提交后停止，T02–T05 交由 fresh run 继续�
 |---|---|---|---|
 | T01 | 三端可见的路由/执行/候选治理合同，独立 commit 后 STOP | - | done |
 | T02 | F1 显式 provider 路由解析、合同校验与历史兼容的可运行切片 | T01 | done |
-| T03 | F2 Txx→Task N 无损执行、frontier、开始前 BASE 与恢复切片 | T02 | pending |
+| T03 | F2 Txx→Task N 无损执行、frontier、开始前 BASE 与恢复切片 | T02 | done |
 | T04 | F6 固定候选、遗漏检测与双轴/整批范围证据切片 | T03 | pending |
 | T05 | 发布一致性、全量验证、最终独立审查与唯一 PR 候选 | T04 | pending |
 

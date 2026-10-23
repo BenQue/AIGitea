@@ -195,3 +195,357 @@ T03 首轮双轴对 `9d08506a48e6165b0e1a544ab22549b2b7cfbf01` 均发现同两�
 修复未动治理；required targeted suite 33 tests PASS。fixed 待追加提交后的同 HEAD 复核。
 
 T03 修复复核：原 T03-1/2 两轴均 fixed；Standards 新报 T03-3（P2）：整体 identity 对比会阻塞合法 successor 消费前 owner 的已完成依赖。已以真实 claim/takeover fixture 复现并修复：依赖保留历史合法 owner，当前调用仍须通过 owner marker；当前票 resume 不放松 exact owner。34 tests PASS。真实 #427 的 context→现项目解析→typed broker Issue read 也已 PASS；无远端写入。
+
+### T03 闭合与结构化旧记录承接
+
+T03 在 56e5503fa23fd9f78a780380ca8ecada5b865582 两轴均 PASS；T03-1/2/3 fixed，无 residual/new。以下将已在开始前记录的 T01–T03 BASE/身份/起始干净状态与实际结果转换为 helper 可读结构。原始开始事实来自上文；plan/route 元数据在 T03 后按批准现合同补齐，不宣称旧票曾运行尚不存在的 helper。AC PASS 仅表示对应票的已批准切片。
+
+```aisoft-execution
+{
+  "change_base": "dc1da41c6e6a51f85b1ec0464a97640a3ddb570e",
+  "tickets": {
+    "T01": {
+      "base": "5b16b9a706e9e79fc69dff27a119b9b4ca351954",
+      "head": "9e03f834456b3e684ef921b8e91b5da8538befde",
+      "start": {
+        "identity": {
+          "issue": 427,
+          "branch": "change/427-workflow-route-review",
+          "owner": "01a16423-3e17-73b0-a723-76adc045218e",
+          "worktree": "/Users/benque/MyDocs/AISoftPlatform/worktrees/issue-427-workflow-route-review",
+          "provider": "codex",
+          "plan_path": "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md",
+          "semantic_hash": "19e3f170c9828c917bd0084f74fff81847c3ea3ec2b4bbe4d56e478ba7f7c934"
+        },
+        "ticket": "T01",
+        "ticket_base": "5b16b9a706e9e79fc69dff27a119b9b4ca351954",
+        "scope": [
+          "docs/changes/427-workflow-route-review/summary-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/spec-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md",
+          "skills/aisoft-platform/references/route-policy.md",
+          "skills/aisoft-platform/references/execution-adapter.md",
+          "skills/aisoft-platform/SKILL.md",
+          "skills/aisoft-matt-workflow/SKILL.md",
+          "skills/issue-session-flow/SKILL.md",
+          "03-Issue-Spec-Plan与单闸门开发流程.md",
+          "04-Agent编排与定时任务.md",
+          "08-双工具共存与实施.md",
+          "templates/docs/agents/issue-tracker.md",
+          "docs/agents/issue-tracker.md",
+          "templates/docs/changes/_template/summary.md",
+          "templates/docs/changes/_template/plan.md",
+          "codex/config/change-template-sync.json",
+          "codex/config/external-skill-adaptation.json",
+          "codex/runtime/aisoft_loop/route_policy.py",
+          "codex/runtime/aisoft_loop/ticket_execution.py",
+          "codex/runtime/aisoft_loop/review_candidate.py",
+          "codex/runtime/aisoft_loop/contract.py",
+          "codex/runtime/aisoft_loop/documents.py",
+          "codex/runtime/aisoft_loop/cli.py",
+          "codex/tools/aisoft",
+          "codex/runtime/tests/test_route_policy.py",
+          "codex/runtime/tests/test_contract.py",
+          "codex/runtime/tests/test_documents.py",
+          "codex/runtime/tests/test_ticket_execution.py",
+          "codex/runtime/tests/test_review_candidate.py",
+          "codex/runtime/tests/test_session_contract.py",
+          "codex/tests/smoke.sh",
+          "codex/tests/test-usage-bundle.sh",
+          "usage/bundle.json",
+          "docs/governance/review-evidence-index.md"
+        ],
+        "policy_sha256": "184608fd3d3553e7a688712adb99ba98f62e81e9e919e96233f422126486ff40",
+        "route": {
+          "process": "complex-production",
+          "tier": "frontier",
+          "effort": "max",
+          "skills": "to-spec, to-tickets, implement, issue-session-flow",
+          "method": "spec-plan",
+          "verify": "full+reverse-proof",
+          "review": "cross-provider",
+          "confirm": "2"
+        },
+        "initial_state": {
+          "staged": {},
+          "unstaged": {},
+          "untracked": {}
+        },
+        "raw_plan_sha256": "9bbb98488e771b052003cd7c97b22ba147478a4bb1bbe5821de8e9108970ae21",
+        "source_evidence": {
+          "codex/vendor/mattpocock/v1.2.2/manifest.json": {
+            "sha256": "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da",
+            "tag": "v1.2.2",
+            "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302"
+          },
+          "codex/vendor/mattpocock/v1.3.1/manifest.json": {
+            "sha256": "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd",
+            "tag": "v1.3.1",
+            "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+          },
+          "codex/vendor/superpowers/v7.0.0/manifest.json": {
+            "sha256": "ad9a021021ce607b35d6aa4e54bf3fb6ef572b148e08966bdf7200293629f692",
+            "tag": "v7.0.0",
+            "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3"
+          }
+        },
+        "origin": "manual-pre-helper: BASE/state contemporaneously recorded above; structured contract metadata reconstructed after T03, not a claim of earlier helper execution"
+      },
+      "semantic_hash": "19e3f170c9828c917bd0084f74fff81847c3ea3ec2b4bbe4d56e478ba7f7c934",
+      "validation_sha256": "89fded3eb6a106fe8857669bbb8fb90e2f287f7c576000e8934ea4de8705c91d",
+      "ac": {
+        "AC-1": "PASS",
+        "AC-6": "PASS",
+        "AC-7": "PASS"
+      },
+      "checks": [
+        {
+          "command": "git diff --check",
+          "result": "PASS",
+          "evidence": "T01 actual checks and fixed/residual/new ledger above; AC PASS here is this ticket slice, not whole-Issue acceptance"
+        },
+        {
+          "command": "codex/tools/aisoft check-change-documents --porcelain",
+          "result": "PASS",
+          "evidence": "T01 actual checks and fixed/residual/new ledger above; AC PASS here is this ticket slice, not whole-Issue acceptance"
+        },
+        {
+          "command": "cmp",
+          "result": "PASS",
+          "evidence": "T01 actual checks and fixed/residual/new ledger above; AC PASS here is this ticket slice, not whole-Issue acceptance"
+        },
+        {
+          "command": "--verify-digest",
+          "result": "PASS",
+          "evidence": "T01 actual checks and fixed/residual/new ledger above; AC PASS here is this ticket slice, not whole-Issue acceptance"
+        }
+      ]
+    },
+    "T02": {
+      "base": "9e03f834456b3e684ef921b8e91b5da8538befde",
+      "head": "b5414a9236aebec65e8e8cbb51996da626eaeda4",
+      "start": {
+        "identity": {
+          "issue": 427,
+          "branch": "change/427-workflow-route-review",
+          "owner": "01a16423-3e17-73b0-a723-76adc045218e",
+          "worktree": "/Users/benque/MyDocs/AISoftPlatform/worktrees/issue-427-workflow-route-review",
+          "provider": "codex",
+          "plan_path": "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md",
+          "semantic_hash": "19e3f170c9828c917bd0084f74fff81847c3ea3ec2b4bbe4d56e478ba7f7c934"
+        },
+        "ticket": "T02",
+        "ticket_base": "9e03f834456b3e684ef921b8e91b5da8538befde",
+        "scope": [
+          "docs/changes/427-workflow-route-review/summary-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/spec-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md",
+          "skills/aisoft-platform/references/route-policy.md",
+          "skills/aisoft-platform/references/execution-adapter.md",
+          "skills/aisoft-platform/SKILL.md",
+          "skills/aisoft-matt-workflow/SKILL.md",
+          "skills/issue-session-flow/SKILL.md",
+          "03-Issue-Spec-Plan与单闸门开发流程.md",
+          "04-Agent编排与定时任务.md",
+          "08-双工具共存与实施.md",
+          "templates/docs/agents/issue-tracker.md",
+          "docs/agents/issue-tracker.md",
+          "templates/docs/changes/_template/summary.md",
+          "templates/docs/changes/_template/plan.md",
+          "codex/config/change-template-sync.json",
+          "codex/config/external-skill-adaptation.json",
+          "codex/runtime/aisoft_loop/route_policy.py",
+          "codex/runtime/aisoft_loop/ticket_execution.py",
+          "codex/runtime/aisoft_loop/review_candidate.py",
+          "codex/runtime/aisoft_loop/contract.py",
+          "codex/runtime/aisoft_loop/documents.py",
+          "codex/runtime/aisoft_loop/cli.py",
+          "codex/tools/aisoft",
+          "codex/runtime/tests/test_route_policy.py",
+          "codex/runtime/tests/test_contract.py",
+          "codex/runtime/tests/test_documents.py",
+          "codex/runtime/tests/test_ticket_execution.py",
+          "codex/runtime/tests/test_review_candidate.py",
+          "codex/runtime/tests/test_session_contract.py",
+          "codex/tests/smoke.sh",
+          "codex/tests/test-usage-bundle.sh",
+          "usage/bundle.json",
+          "docs/governance/review-evidence-index.md"
+        ],
+        "policy_sha256": "184608fd3d3553e7a688712adb99ba98f62e81e9e919e96233f422126486ff40",
+        "route": {
+          "process": "complex-production",
+          "tier": "frontier",
+          "effort": "max",
+          "skills": "to-spec, to-tickets, implement, issue-session-flow",
+          "method": "spec-plan",
+          "verify": "full+reverse-proof",
+          "review": "cross-provider",
+          "confirm": "2"
+        },
+        "initial_state": {
+          "staged": {},
+          "unstaged": {},
+          "untracked": {}
+        },
+        "raw_plan_sha256": "67c75f364d84a56506a51b56fe1e67b3d6c60ecc0c301f12f812a21388132cd6",
+        "source_evidence": {
+          "codex/vendor/mattpocock/v1.2.2/manifest.json": {
+            "sha256": "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da",
+            "tag": "v1.2.2",
+            "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302"
+          },
+          "codex/vendor/mattpocock/v1.3.1/manifest.json": {
+            "sha256": "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd",
+            "tag": "v1.3.1",
+            "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+          },
+          "codex/vendor/superpowers/v7.0.0/manifest.json": {
+            "sha256": "ad9a021021ce607b35d6aa4e54bf3fb6ef572b148e08966bdf7200293629f692",
+            "tag": "v7.0.0",
+            "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3"
+          }
+        },
+        "origin": "manual-pre-helper: BASE/state contemporaneously recorded above; structured contract metadata reconstructed after T03, not a claim of earlier helper execution"
+      },
+      "semantic_hash": "19e3f170c9828c917bd0084f74fff81847c3ea3ec2b4bbe4d56e478ba7f7c934",
+      "validation_sha256": "bf5840bdb056d28c6092a76327e7de401648a3e46fc55a570c9b80fd1283f632",
+      "ac": {
+        "AC-1": "PASS",
+        "AC-6": "PASS",
+        "AC-7": "PASS"
+      },
+      "checks": [
+        {
+          "command": "PYTHONPATH=codex/runtime python3 -B -m unittest tests.test_route_policy tests.test_contract tests.test_documents",
+          "result": "PASS",
+          "evidence": "T02 actual checks and fixed/residual/new ledger above; AC PASS here is this ticket slice, not whole-Issue acceptance"
+        }
+      ]
+    },
+    "T03": {
+      "base": "b5414a9236aebec65e8e8cbb51996da626eaeda4",
+      "head": "56e5503fa23fd9f78a780380ca8ecada5b865582",
+      "start": {
+        "identity": {
+          "issue": 427,
+          "branch": "change/427-workflow-route-review",
+          "owner": "01a16423-3e17-73b0-a723-76adc045218e",
+          "worktree": "/Users/benque/MyDocs/AISoftPlatform/worktrees/issue-427-workflow-route-review",
+          "provider": "codex",
+          "plan_path": "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md",
+          "semantic_hash": "19e3f170c9828c917bd0084f74fff81847c3ea3ec2b4bbe4d56e478ba7f7c934"
+        },
+        "ticket": "T03",
+        "ticket_base": "b5414a9236aebec65e8e8cbb51996da626eaeda4",
+        "scope": [
+          "docs/changes/427-workflow-route-review/summary-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/spec-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md",
+          "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md",
+          "skills/aisoft-platform/references/route-policy.md",
+          "skills/aisoft-platform/references/execution-adapter.md",
+          "skills/aisoft-platform/SKILL.md",
+          "skills/aisoft-matt-workflow/SKILL.md",
+          "skills/issue-session-flow/SKILL.md",
+          "03-Issue-Spec-Plan与单闸门开发流程.md",
+          "04-Agent编排与定时任务.md",
+          "08-双工具共存与实施.md",
+          "templates/docs/agents/issue-tracker.md",
+          "docs/agents/issue-tracker.md",
+          "templates/docs/changes/_template/summary.md",
+          "templates/docs/changes/_template/plan.md",
+          "codex/config/change-template-sync.json",
+          "codex/config/external-skill-adaptation.json",
+          "codex/runtime/aisoft_loop/route_policy.py",
+          "codex/runtime/aisoft_loop/ticket_execution.py",
+          "codex/runtime/aisoft_loop/review_candidate.py",
+          "codex/runtime/aisoft_loop/contract.py",
+          "codex/runtime/aisoft_loop/documents.py",
+          "codex/runtime/aisoft_loop/cli.py",
+          "codex/tools/aisoft",
+          "codex/runtime/tests/test_route_policy.py",
+          "codex/runtime/tests/test_contract.py",
+          "codex/runtime/tests/test_documents.py",
+          "codex/runtime/tests/test_ticket_execution.py",
+          "codex/runtime/tests/test_review_candidate.py",
+          "codex/runtime/tests/test_session_contract.py",
+          "codex/tests/smoke.sh",
+          "codex/tests/test-usage-bundle.sh",
+          "usage/bundle.json",
+          "docs/governance/review-evidence-index.md"
+        ],
+        "policy_sha256": "184608fd3d3553e7a688712adb99ba98f62e81e9e919e96233f422126486ff40",
+        "route": {
+          "process": "complex-production",
+          "tier": "frontier",
+          "effort": "max",
+          "skills": "to-spec, to-tickets, implement, issue-session-flow",
+          "method": "spec-plan",
+          "verify": "full+reverse-proof",
+          "review": "cross-provider",
+          "confirm": "2"
+        },
+        "initial_state": {
+          "staged": {},
+          "unstaged": {},
+          "untracked": {}
+        },
+        "raw_plan_sha256": "67c75f364d84a56506a51b56fe1e67b3d6c60ecc0c301f12f812a21388132cd6",
+        "source_evidence": {
+          "codex/vendor/mattpocock/v1.2.2/manifest.json": {
+            "sha256": "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da",
+            "tag": "v1.2.2",
+            "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302"
+          },
+          "codex/vendor/mattpocock/v1.3.1/manifest.json": {
+            "sha256": "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd",
+            "tag": "v1.3.1",
+            "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+          },
+          "codex/vendor/superpowers/v7.0.0/manifest.json": {
+            "sha256": "ad9a021021ce607b35d6aa4e54bf3fb6ef572b148e08966bdf7200293629f692",
+            "tag": "v7.0.0",
+            "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3"
+          }
+        },
+        "origin": "manual-pre-helper: BASE/state contemporaneously recorded above; structured contract metadata reconstructed after T03, not a claim of earlier helper execution"
+      },
+      "semantic_hash": "19e3f170c9828c917bd0084f74fff81847c3ea3ec2b4bbe4d56e478ba7f7c934",
+      "validation_sha256": "ee9e4bd128d602f28e617e2c35f64d3e698de9a3e57b81358aa79aa30950c495",
+      "ac": {
+        "AC-2": "PASS",
+        "AC-3": "PASS",
+        "AC-6": "PASS"
+      },
+      "checks": [
+        {
+          "command": "PYTHONPATH=codex/runtime python3 -B -m unittest tests.test_ticket_execution tests.test_documents",
+          "result": "PASS",
+          "evidence": "T03 actual checks and fixed/residual/new ledger above; AC PASS here is this ticket slice, not whole-Issue acceptance"
+        }
+      ]
+    },
+    "T04": {
+      "dirty_dispositions": {
+        "docs/changes/427-workflow-route-review/verification-workflow-route-review-261023.md": "本writer将T03补证及T04开始事实随本票提交；起始已记录，无用户成果。",
+        "docs/changes/427-workflow-route-review/plan-workflow-route-review-261023.md": "仅推进T03 Status=done；本writer必要执行状态，随本票提交。"
+      }
+    }
+  }
+}
+```
+
+### T04 开始
+
+T04 在实现前实际运行 prepare-ticket，开始 BASE `56e5503fa23fd9f78a780380ca8ecada5b865582`；回执位于 `.superpowers/aisoft/427/T04.json`。起始仅 plan 状态和 verification 补证两项本 writer 文档改动，已保留在 initial_state；它们属于本票必要证据，后续仅随本 Issue 提交。无用户无关脏文件。来源/pin/范围/摘要/身份随回执；沿用原批准。
+
+### T04 实施与验证
+
+- RED：review_candidate 生产 seam 缺失。新增生产 CLI/helper 不执行 add/commit/stash/push，只读 Git/合同并输出 JSON 包。
+- 必须使用开始回执的全 SHA BASE 与当前完整 HEAD；祖先/非空净 diff/线性 history；全部 commit 与独立 change_base 范围。原始三类工作树变化、范围外提交、相关遗漏与必要 ignored 处置按确定性条件拒绝；无关原脏文件保留。
+- Standards/Spec 绑定共同 package digest/base/head；追加修复、移动HEAD或身份变化后旧声明失效。语义范围 NOT REVIEWED、未保存编辑器内容 UNKNOWN；不把机械 PASS 称审查通过。SP route axes=[]，small仍不进入票适配。
+- `PYTHONPATH=codex/runtime python3 -B -m unittest tests.test_review_candidate tests.test_ticket_execution tests.test_session_contract`：37 tests PASS；N5–N7 含真实 Git 故意失败；整个fixture只写临时目录。
+- source/local evidence；最终 Claude、完整 smoke、bundle/installed/CI仍按T05和非目标分层。候选提交后对实际 #427 运行新检查器，再派双轴。
