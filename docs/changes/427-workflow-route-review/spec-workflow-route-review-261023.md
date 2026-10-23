@@ -33,8 +33,6 @@ git_scope:
   - docs/agents/issue-tracker.md
   - templates/docs/changes/_template/summary.md
   - templates/docs/changes/_template/plan.md
-  - docs/changes/_template/summary.md
-  - docs/changes/_template/plan.md
   - codex/config/change-template-sync.json
   - codex/config/external-skill-adaptation.json
   - codex/runtime/aisoft_loop/route_policy.py
@@ -94,7 +92,7 @@ canonical plan 继续 Txx。每票正文须有本票交付/范围、blocked_by�
 适用使用 Matt implement/code-review 的执行单元。顺序固定：
 记录 ticket_base → 实现和必要验证 → 唯一写者仅提交本票 → 固定 candidate_head → 检查范围/遗漏 → Standards 与 Spec 双轴 → 修复/重验/追加 commit → 按现合同复核新 HEAD。
 
-candidate 必须有有效完整 SHA、BASE 为 HEAD 祖先、非空净 diff，包含本票全部 commit；不使用 HEAD~1 猜基线。最终整批另存 change_base，不能复用最后一票 BASE。非空提交历史而净 diff 为空不应派审并记 PASS。
+candidate 必须有有效完整 SHA、BASE 为 HEAD 祖先、非空净 diff，包含本票全部 commit；不使用 HEAD~1 猜基线。最终整批另存 change_base，不能复用最后一票 BASE。非空提交历史而净 diff 为空也必须拒绝候选，不派审、不得记 PASS。
 
 候选检查保存 staged/unstaged/untracked 及相关 diff，结合起始状态、AC/范围和实际变更判定遗漏；原有无关文件保留，不能自动 add/stash/delete。同一脏文件被本票继续修改、范围外实际修改、必要 ignored 成果或归属不明，必须明确处置，不能默认无关。检查器仅证明确定性条件，不声称从路径自动理解所有语义或发现编辑器未保存内容。
 
@@ -104,7 +102,7 @@ Standards/Spec 接收相同 BASE/HEAD、commit 清单、spec/plan 和规范来�
 
 新 helper 只读取 Git/合同并生成本地执行缓存/候选包，不 add/commit/stash/reset/push、改 Issue 标签、开 PR、merge 或安装。提交和现平台状态流仍由唯一写者/已有入口负责；不新增 broker operation、owner schema 或调度服务。
 
-共同规则放入 Claude/Codex 都能读取的 aisoft-platform / issue-session-flow 和共享 reference；Matt 入口仅引用同一合同，不复制第二套。保持源模板与平台 mirror 一致；修改 summary/plan 两个 canonical 模板要同批更新摘要，不触碰 spec/verification 模板。
+共同规则放入 Claude/Codex 都能读取的 aisoft-platform / issue-session-flow 和共享 reference；Matt 入口仅引用同一合同，不复制第二套。保持 tracker 源模板与实际平台 mirror 一致；修改 summary/plan 两个 canonical 模板要同批更新摘要，不触碰 spec/verification 模板。平台仓是模板源，vendors_change_templates=false，未持有 docs/changes/_template 副本；不创建无消费者的 mirror，下游同步另走项目合同。
 
 明确授权的治理文件只可在 T01 独立受控步骤应用，commit 后 STOP。下一 fresh run 重新读取批准合同、治理 diff、当前规则、exact worktree/owner/HEAD 再执行 runtime。原批准持续有效，不再请求启动。若需要治理返修，同样受控提交/停止/fresh run；不在 runtime 步骤偷偷改技能来让测试通过。
 
@@ -138,7 +136,10 @@ Standards/Spec 接收相同 BASE/HEAD、commit 清单、spec/plan 和规范来�
 
 新增 summary.route_provider 为本期有界元数据扩展；route 内仍八键，旧历史文档读取不迁移。新本地适配 CLI 使用现 aisoft 入口；只产本地派生物，语法和失败输出在 T01 共享 reference 锁定。无数据库/业务 API 变更；无凭据/主机/broker 扩权。现 triage mutation 工具缺口记录为 GAP，不夹带修复。
 
-front matter 的 git_scope 是最大允许路径，未实际需要的路径不改。两个 `docs/changes/_template/` mirror 是 canonical 资源例外，按现 holder/scope 合同精确授权，不允许其他 Issue 文档或任意模板；不改 git scope guard。review-evidence-index 只追加本 Issue 行，无路线图/E2E 批次或项目采用事件。
+front matter 的 git_scope 是最大允许路径，未实际需要的路径不改。T01 实测平台不持有 change 模板 mirror，
+据此从初版最大范围收窄两条无效的 `docs/changes/_template/` 路径；保留 35 条精确路径。
+不创建 mirror、不改 holder 声明或 git scope guard，不授权其他 Issue 文档。
+review-evidence-index 只追加本 Issue 行，无路线图/E2E 批次或项目采用事件。
 
 ## 风险与回滚约束
 
@@ -153,4 +154,4 @@ front matter 的 git_scope 是最大允许路径，未实际需要的路径不�
 
 ## 未决问题
 
-无影响实现方向的未决问题。当前请求仅先形成合同与计划；等待原确认点 1 的合同/启动，不添加新确认。
+无影响实现方向的未决问题。用户于 2026-10-23 明确确认本合同并启动 T01；T01 提交后停止并交接 fresh run，后续沿用本次批准，不重复启动确认。验收标准、范围与非目标不变。

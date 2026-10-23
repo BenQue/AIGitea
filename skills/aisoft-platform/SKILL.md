@@ -28,7 +28,8 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 - **判级**：contract_effect 先行（restore/unchanged → small 候选；add/change → complex；unclear → 人工澄清）。功能新增/变更、schema/迁移、外部契约、安全、共享核心、跨模块、CI/制品/部署/回滚、Agent/治理一律强制 complex。small 还须范围局部、可简单 revert，并有可测验收标准。显式要求 complex 照办；要求 small 不能绕过 AI 校验与强制 complex 规则。
 - **文档要求**：production complex 必须有映射的 spec 与 plan；development complex 从 Issue 读取可测验收标准并用合成 `T01`；已验证的 small 与 development complex 不写仪式性 spec/plan。验收证据不能由 diff review 与 required CI 重放时声明 `verification`；部署与迁移总要它，但 `verification` 不等于部署。
 - **Matt 主路径**：开发方式以 [路由表](references/route-policy.md) 为准。每个 Issue 走 `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → 按计划执行（Claude 与 Cursor 用 superpowers `executing-plans`，Codex 用 `$implement #N Txx`）（平台适配规则见下文「外部技能包边界」；small 与 development complex 在 triage+summary+判级+`approved` 复核后跳过 spec/plan，后者使用合成 `T01`）。`triage/ready-for-agent` ≠ `approved`；`approved` 只授权开始实现，不授权 merge 或部署。仓库初始化调用 `$setup-matt-pocock-skills`（tracker 选 `Other`），使用 `templates/docs/agents/` 的 tracker、triage、domain 三份文件；Codex 侧经 `aisoft-matt-workflow` 适配器串起这一步。
-- **路由**：`$triage #N` 与平台判级（`change_type`、`contract_effect`、`effective_complexity`、`risk_flags`、`confidence`，加仓库的 `change_control`）之后，查 [`references/route-policy.md`](references/route-policy.md) 得到路由卡 `route:`（process/tier/effort/skills/method/verify/review/confirm），写进 summary front matter 与判级评论，在确认点 1 候选中显示为「路由」行。人可以覆盖任何一格，覆盖写进 `override_reason`；不能借覆盖把强制 complex 降成 small。路由表只钉必用与禁用，其余技能按 Issue 自选并在 verification 写明；模型按 tier 选，型号映射见 `08` §7.3。
+- **路由**：`$triage #N` 与平台判级之后，显式指定 provider，查 [route-policy](references/route-policy.md) 得到八键 `route:` 与 summary 顶层 `route_provider`，把执行/核验义务展开为具体技能再写入合同与判级评论。历史卡只读兼容，执行时重新解析，不猜 provider。确认点 1 展示具体路由；人覆盖某格写入 `override_reason`，不能把强制 complex 降为 small。默认分工不变，其余技能按 Issue 选择并记录；模型按 tier 选，型号映射见 `08` §7.3。
+- **执行与审查适配**：按 [execution-adapter](references/execution-adapter.md) 处理 Txx→Task N、frontier/恢复、开始前 BASE、本地提交后的固定候选与实际新 HEAD 审查。small/SP 不增加 Matt 每票双轴义务。新 helper 的接口合同不是运行可用证明，缺能力如实报告 GAP。
 - **27 标签四维正交**：10 `type/*`（bugfix/feature/docs/test/refactor/maintenance/platform/security/reliability/data，Issue 作者输入，AI 按证据核对或更正一个主类型）+ 2 `complexity/*`（AI 输出，不是作者覆盖）+ 8 生命周期（`completed` 与 `deployed` 互斥终态；`completed` 是合并且无需部署，`deployed` 要求确定性部署与验证）+ 7 `triage/*`（Matt 编排）。
 - **单闸门**：最终 PR merge 是唯一交付硬闸门，只由人合并。会话与 project agent 不 merge、不直推受保护 `main`；部署需独立授权。
 - **一切 Gitea/Git/OrbStack 访问走 broker**：`/usr/local/libexec/aisoft/host-access-broker --project <manifest项目> --operation <typed操作>`（gitea.issue.create/read/update、gitea.pull.create、git.push.change --branch、host.access.audit…）。不拼 raw token、不传 URL/refspec/shell；Git push 只允许当前 checkout 同名 readable 分支。
@@ -68,6 +69,9 @@ routine 自动合并已退出（#391）：broker 没有合并操作，manifest �
 ## approved 之后默认自主推进
 
 人在确认点 1 确认合同后，以下动作不再逐项询问：证据收集与判级、合同文档补齐、合同内实现与本地原子 commit、测试与普通修复、必需的更宽闸门（smoke、required CI）、判级投影，以及确认点 2 之后的 push、唯一最终 PR 与 PR CI 修复。不要把每张 ticket、每条测试命令、每次 commit 或 CI 重试变成确认点；合同里已定下的选择不再重问。两个确认点的格式由 `issue-session-flow` 负责。
+
+治理变更按获批 complex 合同独立受控应用、commit 后 STOP；fresh run 重读合同、治理 diff、当前规则与
+worktree/owner/HEAD 后继续。原批准持续有效，不重复启动确认；具体交接遵循 execution-adapter。
 
 会话自己处理普通的编译、lint、类型、测试、构建、浏览器与 CI 失败。受治理的状态只有 `AWAITING_PR_CONFIRMATION`、`READY_FOR_REVIEW`、`NEEDS_HUMAN_DECISION`、`BLOCKED_EXTERNAL`、`FAILED_LIMIT`。未运行的检查永远不能写成通过。
 
@@ -167,6 +171,8 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 | `dispatching-parallel-agents` 并行派出子代理 | 只用于只读调查 |
 | `subagent-driven-development` 每个任务派一个实现子代理 | 只许顺序派发，一次一个写者，只写本 change worktree |
 | `brainstorming` 自己定级：快速任务直接做、小改动在聊天里确认后就做 | 它的定级与聊天内确认不替代平台判级与 `approved`；写文件前仍要有 Issue、判级与确认点 1 |
+| `executing-plans` / task-start 按 Task N 读取计划 | canonical Txx 保持唯一合同，通过 execution-adapter 生成派生视图；不直接把 Txx 文件当兼容 Task N |
+| task-done、一次修复裁决、清理 scratch | 依 execution-adapter 校验 AC/提交/真实结果并保全证据；局部 complete 不替代平台最终另一 provider 新 HEAD 审查 |
 
 ## 接入新项目 / 项目对齐 / 私有访问
 

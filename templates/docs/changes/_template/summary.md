@@ -12,6 +12,7 @@ required_docs:
   - summary
 documents:
   summary: summary-SHORT-SLUG-YYMMDD.md
+route_provider: ROUTE_PROVIDER
 route:
   process: ROUTE_PROCESS
   tier: ROUTE_TIER
@@ -83,7 +84,9 @@ diff review 与 required CI 复现时，再追加 `verification`（判据见 `03
 这次变更要部署——部署与迁移必然需要它，但不是只有它们需要。`documents`
 把每个角色映射到同目录的 `<role>-<short-slug>-<YYMMDD>.md`；所有角色共用
 2–4 词短 slug。
-`route:` 是路由卡：判级之后查 `aisoft-platform` 技能的 `references/route-policy.md`
-逐格填写（取值闭集与 `process` 和 `effective_complexity` 的对应都以那张表为准），
-同一段写进判级评论并在确认点 1 展示。人覆盖任何一格时把哪一格、为什么写进
-`override_reason`。
+`route_provider` 是 summary 顶层字段，显式填写 `codex`、`claude` 或 `cursor`，不加入
+`## AI 判级` YAML 或 route 八键。`route:` 从 `aisoft-platform/references/route-policy.md`
+取规则并按 provider 展开；`skills` 只写具体技能名，不保留义务引用或空/重复/未知项。
+provider 与 route 同写判级评论，在确认点 1 展示。人覆盖某格时把哪一格、为什么写进
+`override_reason`。历史缺 provider 的文档只读兼容，不批改；执行时显式重新解析，不能猜成 SP。
+现有格式检查 PASS 不代表新增 provider 语义或 helper 已实现；实际能力与证据按执行适配合同记录。

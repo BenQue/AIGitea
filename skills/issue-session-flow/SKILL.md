@@ -151,6 +151,14 @@ manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。
 commit、测试与普通修复、必需的更宽闸门、判级投影。确认点 2 通过后同样不再询问 push、唯一最终 PR
 与 PR CI 修复。只有合同/启动确认不授权 push 或建 PR。ticket、测试命令、commit、CI 重试都不是确认点；合同里已定的选择不再重问。
 
+逐票执行与固定候选使用 [共享执行适配](../aisoft-platform/references/execution-adapter.md)：
+保留 provider 默认，Txx 是唯一合同，开始前记录 BASE；Matt 候选先本地提交再审同一 HEAD，
+最后另以 change_base 核对整批。局部 complete 不能替代合同验收与平台最终 cross-provider 审查。
+
+治理文件由获批 complex 合同的独立受控步骤应用，commit 后 STOP。fresh run 重读批准合同、治理 diff、
+当前规则及 exact worktree/owner/HEAD 后继续；原批准持续有效，不重复询问启动。
+新增 helper 的接口文档不等于运行可用，缺实现/实际证据不得写 PASS。
+
 ## 只在这些情况暂停
 
 - 合同冲突，或实现必须扩范围
@@ -168,7 +176,8 @@ commit、测试与普通修复、必需的更宽闸门、判级投影。确认�
 triage、判级与路由要求的 semantic docs 完整后，输出 exact Issue 合同并询问是否开始实现。
 确认后只把映射 summary 的 `status` 改为 `approved`（spec、plan 不再带 `status`，#408）；它只授权合同内实现、测试和修复，不授权提交 PR、merge 或 deploy。
 
-候选里固定带一行路由，取自 summary 的 `route:`（查 `aisoft-platform` 技能的 `references/route-policy.md` 得出）：
+候选里固定带一行路由，取自 summary 的 `route:`（查 `aisoft-platform` 技能的 `references/route-policy.md` 得出），
+同时展示显式 `route_provider`；旧卡执行时重新解析而不猜 provider。最终 skills 必须是展开后的具体技能：
 
 ```text
 路由: <process> · <tier>/<effort> · <method> · verify <verify> · review <review> · skills <skills>

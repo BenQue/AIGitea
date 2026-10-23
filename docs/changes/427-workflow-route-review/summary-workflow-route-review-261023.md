@@ -37,7 +37,7 @@ route:
   review: cross-provider
   confirm: 2
 override_reason: '用户要求保持现有 provider 默认；F1 修复前本票显式采用既有 Codex 默认 implement 与 issue-session-flow，替换 R3 字面列出的 executing-plans 与 verification-before-completion；其余路由格不变，随本票确认点 1 一并呈交'
-status: spec-review
+status: approved
 pr_url:
 ---
 
@@ -45,7 +45,7 @@ pr_url:
 
 ## 问题/需求总结
 
-用户已认可 2026-10-23 双方合并方案，并授权建立第一阶段 complex Issue、形成合同与实施计划。当前交付只到合同候选，未把方向认可冒充本 Issue 的 approved，未开始实现。
+用户于 2026-10-23 明确确认 #427 合同并启动 T01：保持现有技能默认分工和两个确认点；T01 提交后停止并交接 fresh run，后续在本次批准范围内继续，不重复请求启动确认。批准对象是准备提交 `5b16b9a706e9e79fc69dff27a119b9b4ca351954` 中的四份合同文档。
 
 F1：路由表 R2–R5 的全局技能义务与 provider 默认不一致。F6：Matt implement 先 review 后 commit，而 code-review 读取提交 diff，可能漏掉本票未提交实现。必要关联范围仅 F2 的 Txx/SP 执行兼容、F3 的局部与整批审查区分、F5 的执行与 finding 证据。F4 保持禁用原版 implement-spec 写入编排。
 
@@ -106,10 +106,11 @@ override_reason: '用户要求保持现有 provider 默认；F1 修复前本票�
 
 ### 缺失的 acceptance criteria 或决策
 
-无方向性未决；AC-1–AC-8 与技术选择已写入 spec。现有确认点 1 仍待确认启动；triage 标签投影缺口如实记录，不作为新增人确认点。
+无方向性未决；AC-1–AC-8 与技术选择已写入 spec。确认点 1 已通过；triage 标签投影缺口如实记录，不作为新增人确认点。
 
 ## 来源与状态
 
 来源是用户认可的最终方案与当前源码核实，合同中已自包含全部实施决定，不依赖外部研究附件才能执行。方案评议：Claude Code `claude-fable-5 --effort high`，session `2dab0571-22c1-466e-84a6-b1ca2540e121`，SUPPORT。被审候选 SHA256：`edcc92c21327a9a2cc9c54d908570312b33960cd8a4115c0ade3ef2370f61a2c`。这是研究方案评议，不是 #427 实现审查。
 
-目前仅创建 Issue、认领 worktree、形成合同/计划。T01–T05 全部 pending；未改技能、runtime、模板、vendor、安装状态；未 push/PR/merge。批准合同后才开始 T01。
+2026-10-23：确认点 1 已通过；T01 治理合同、模板与本地检查完成，随本独立治理提交进入 STOP。
+T02–T05 由 fresh run 沿用本批准执行；本次不 push/PR/merge，不安装或部署。T01 的基线、实际证据与交接见 verification。

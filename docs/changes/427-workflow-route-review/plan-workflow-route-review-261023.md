@@ -20,13 +20,15 @@ updated: 2026-10-23
 
 # Plan：F1/F6 与必要流程适配
 
-本轮仅形成计划。以下命令中标注“新增”的接口属于本 Issue 的计划，不表示当前已存在。T01–T05 均 pending。同一 claimed worktree、同一 writer 顺序执行；只读子代理可调查/审查，不写本分支。
+用户已确认本合同并启动 T01。下列新增接口仍是计划，不表示 runtime 已存在。
+T01 只落实治理合同；提交后停止，T02–T05 交由 fresh run 继续原批准。同一 claimed worktree、同一 writer 顺序执行；
+只读子代理可调查/审查，不写本分支。
 
 ## Ticket graph
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 三端可见的路由/执行/候选治理合同，独立 commit 后 STOP | - | pending |
+| T01 | 三端可见的路由/执行/候选治理合同，独立 commit 后 STOP | - | done |
 | T02 | F1 显式 provider 路由解析、合同校验与历史兼容的可运行切片 | T01 | pending |
 | T03 | F2 Txx→Task N 无损执行、frontier、开始前 BASE 与恢复切片 | T02 | pending |
 | T04 | F6 固定候选、遗漏检测与双轴/整批范围证据切片 | T03 | pending |
@@ -38,8 +40,8 @@ updated: 2026-10-23
 - **交付/范围**：把 spec D1–D4 写进唯一 route-policy 与共同 execution-adapter reference；入口只引用共享规则，Matt/Claude/Cursor 都能读到。明确 review 与 commit 顺序、SP 的 completion/裁决/清理条款受平台约束、两确认点不变。
 - **AC**：AC-1、AC-6、AC-7；此票是治理切片，不宣称新 runtime 可用。
 - **新接口合同**：`aisoft resolve-route N --provider codex|claude|cursor` 输出具体 route、provider、命中规则/摘要，读取映射 summary/仓库 change_control；`aisoft prepare-ticket N Txx --provider ... [--resume]` 生成/恢复绑定身份的派生视图与开始回执；`aisoft review-candidate N Txx --head <40位SHA>` 校验并输出固定范围包。统一使用现 `--repo` 入口/项目解析方式，不新增任意远端/凭据参数。完成/审查结论仍写已有文档，helper 不自行标 done。
-- **模板**：summary 新增 route_provider；plan 新增可执行 Txx 正文结构（scope、blocked_by、AC、验证/Expected、约束），Txx 仍唯一身份；mirror 与 digest 同批。不给历史文档强制新格式。
-- **验证**：`git diff --check`；`codex/tools/aisoft check-change-documents --porcelain`；对照批准 spec 逐条检查默认、两个确认点、STOP/fresh run、无 vendor/pin 修改；canonical mirrors `cmp`。治理文本的新行为 fixture 将在 fresh run T02–T04 实现，不用旧测试绿色掩盖待适配项。
+- **模板**：summary 新增 route_provider；plan 新增可执行 Txx 正文结构（scope、blocked_by、AC、验证/Expected、约束），Txx 仍唯一身份；刷新 canonical digest，tracker 源与已有 mirror 同步。平台不持有 change 模板副本，不新增 docs/changes/_template。不给历史文档强制新格式。
+- **验证**：`git diff --check`；`codex/tools/aisoft check-change-documents --porcelain`；对照批准 spec 逐条检查默认、两个确认点、STOP/fresh run、无 vendor/pin 修改；tracker mirror `cmp` 与 change-template `--verify-digest`。治理文本的新行为 fixture 将在 fresh run T02–T04 实现，不用旧测试绿色掩盖待适配项。
 - **Expected**：治理 diff 完全在 spec.git_scope；只有有意识的新合同差异；无 runtime 功能实现；模板摘要正确；未引入第三确认点。
 - **停止条件**：本票原子本地 commit 后 STOP。记录 exact HEAD 与应用文件。下一 fresh run 重读当前 AGENTS/技能、approved 合同、T01 diff、owner/branch/HEAD 后继续；原批准延续，不再请求启动。
 - **返修**：若后续必须改已生效治理，回到独立受控应用步骤并再次 STOP/fresh run；不靠修测试顺带改控制自己的规则。
@@ -93,7 +95,7 @@ updated: 2026-10-23
 
 精确最大集合见 spec.git_scope；未需要的文件不改。下面按交付分配，不能据此扩 scope：
 
-- T01：三个共同技能入口、route-policy、新 execution-adapter reference、03/04/08 的必要一致性说明、tracker template+mirror、summary/plan template+mirror、change-template digest、适配 provenance。
+- T01：三个共同技能入口、route-policy、新 execution-adapter reference、03/04/08 的必要一致性说明、tracker template+mirror、canonical summary/plan template、change-template digest、适配 provenance。平台自身不持有 change 模板 mirror，初版两条无效 scope 已收窄。
 - T02：aisoft_loop/route_policy.py、contract.py、cli.py、aisoft wrapper、route/contract/doc tests；本 Issue summary 补新 provider 元数据。
 - T03：ticket_execution.py、documents.py/cli.py/wrapper 必要接口、ticket/doc tests；仅本 Issue 的执行记录。
 - T04：review_candidate.py 与复用 ticket 接口、review/ticket/session tests。
@@ -123,5 +125,9 @@ updated: 2026-10-23
 
 ## 计划状态与交接
 
-本轮合同准备完成后停在原确认点 1，summary=spec-review。五票未实施、未产生实现验收结果。
+确认点 1 已通过，summary=approved。T01 提交后按治理边界 STOP；fresh run 重读后继续 T02，
+沿用本次启动批准，不再次请求确认。后续 runtime、完整 smoke、发布与最终审查仍未完成。
 当前 triage 语义结论已记录；typed broker 缺少 triage 标签 mutation 的既有缺口不通过新 API/身份绕过，也不扩成本票 broker 开发范围。确认点数量不受它影响。
+
+T01 的 done 随本治理提交生效，仅表示本票治理交付及规定的本地检查完成；不代表新 helper、
+provider 语义校验、三端发布或 #427 整体通过。开始基线、两位只读预检、实际检查与 fresh-run 交接见 verification。

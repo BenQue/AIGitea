@@ -35,8 +35,10 @@ implementation and review. Read them on first use; do not reload if already read
    ceremonial spec/plan.
 4. For production complex work, run `$to-tickets #N`. Publish the approved `Txx` vertical-slice dependency graph to
    the mapped `plan` file. Development complex uses synthetic `T01`. Default mode stays inside the parent Issue.
-5. After contract validation sets `approved`, the session runs `$implement #N Txx` for one frontier ticket at a time.
-   It owns tests, review and one or more atomic local commits in its own claimed worktree.
+5. After contract validation sets `approved`, the Codex session runs `$implement #N Txx` for one frontier ticket at a time.
+   Follow the shared [execution adapter](../aisoft-platform/references/execution-adapter.md): record the ticket BASE before
+   implementation, test, commit only this ticket locally, pin HEAD and check omissions, then review the same fixed candidate
+   on both axes. Fixes append commits and revalidate the new HEAD under the existing contract.
 6. Local verification first produces the final-PR candidate handoff and enters `AWAITING_PR_CONFIRMATION`. Only after
    explicit confirmation may the session fast-forward push through the broker and create the one final PR with exact
    readable head, mapped summary and one `Closes #N` line, then follow required CI. Work ends at `READY_FOR_REVIEW`;
@@ -51,6 +53,11 @@ implementation and review. Read them on first use; do not reload if already read
 - Plan publication: update only the mapped `plan` document with `Txx`, `blocked_by`, AC and verification mappings.
 - Ticket execution: include the exact Issue and ticket in the explicit `$implement` prompt; include spec/plan paths
   only when the route requires them.
+- Route selection: explicitly bind the provider and expand concrete skills using
+  [route-policy](../aisoft-platform/references/route-policy.md). Claude/Cursor keep their SP default;
+  small does not acquire a ticket graph or Matt two-axis review merely by using this adapter.
+- Execution views, resume receipts, final change BASE, findings and governance STOP/fresh-run use the shared execution
+  adapter above. Its helper interfaces require runtime support; source text alone does not prove command availability.
 
 The Matt skill, the session and the project agent never merge. Never deploy,
 rewrite history, force-push, or silently switch to a different tracker or repository.

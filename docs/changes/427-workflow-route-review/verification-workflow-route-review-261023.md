@@ -19,17 +19,17 @@ updated: 2026-10-23
 status: pending
 ---
 
-# Verification：合同准备与后续实施证据
+# Verification：合同准备、T01 治理与后续实施证据
 
 ## 基线与范围
 
 - Issue：`admin/aisoft-platform#427`。
 - source base / change_base：`dc1da41c6e6a51f85b1ec0464a97640a3ddb570e`。
-- 当前阶段：合同/计划准备。未执行 T01–T05，下面准备检查不是实现验收。
+- 当前阶段：用户已批准合同，T01 治理交付及规定本地检查完成，独立提交后 STOP；T02–T05 未执行。准备检查与治理文本检查不冒充 runtime 验收。
 - 环境：Mac Codex；唯一 writer/worktree 见 summary；当前源码 Matt v1.3.1 / SP v7.0.0。
 - 本记录承接 AC-1–AC-8 的实现证据，另保存无法靠最终 diff/CI 重放的原始调用来源、治理交接和审查范围。
 
-## 执行结果
+## 合同准备历史结果
 
 | Command / check | Result | Evidence |
 |---|---|---|
@@ -43,21 +43,21 @@ status: pending
 | check-change-documents --porcelain / resolve-documents 427 | PASS | change-documents、change-pr-url 均 PASS；四个映射 basename 正确 |
 | type/platform + complexity/complex 投影与独立读回 | PASS | classify plan→--apply→--verify，result=projected；wrapper 的 merged summary 固定措辞不表示本地草稿已合并 |
 | broker lifecycle set spec-review | PASS | after=[complexity/complex,spec-review,type/platform]；未设 approved |
-| AC/Txx/精确范围预检 | PASS | 8 AC、5 pending tickets、线性依赖、37 个唯一 git_scope；exact Issue/branch、四文档映射与两确认点一致 |
-| T01–T05 实现测试 / 完整 smoke | NOT RUN | 本轮未实施 |
+| AC/Txx/范围声明预检 | PASS | 准备时 8 AC、5 pending tickets、37 个唯一 git_scope；只校验形状/唯一性，未验证 canonical holder；T01 实测后收窄至 35 条 |
+| 准备阶段 T01–T05 实现测试 / 完整 smoke | NOT RUN | 准备阶段未实施；T01 本轮结果见下节 |
 | required CI / installed / live / provider fresh session | NOT RUN | 未 push、安装或现场执行 |
 
 ## Acceptance criteria 结果
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | NOT RUN | T02 待实施 |
+| AC-1 | NOT RUN | T01 已改规则源；生产解析与矩阵测试待 T02 |
 | AC-2 | NOT RUN | T03 待实施 |
 | AC-3 | NOT RUN | T03 待实施 |
 | AC-4 | NOT RUN | T04 待实施 |
 | AC-5 | NOT RUN | T04/T05 待实施 |
-| AC-6 | NOT RUN | T01/T03/T04/T05 待实施 |
-| AC-7 | NOT RUN | T01/T05 待实施 |
+| AC-6 | NOT RUN | T01 已明确证据协议；真实逐票运行和终审待 T03/T04/T05 |
+| AC-7 | NOT RUN | T01 源码/模板检查已完成；fresh run 与发布验收待后续完成 |
 | AC-8 | NOT RUN | T05 待实施 |
 
 ## 每票执行与范围证据
@@ -68,7 +68,55 @@ Issue/Txx、provider/实际入口及 pin、branch/owner、plan 摘要、ticket_b
 Standards/Spec 的共同 BASE/HEAD、实际模型/强度/上下文和 findings 的 fixed/residual/new。
 缓存仅辅助恢复，不能凭 complete 文本宣告验收。整批审查另用 change_base。
 
-T01 治理提交与 STOP：NOT RUN。fresh run 重读与 session/head：NOT RUN。
+T01 独立治理提交包含本记录和 plan 的 done；提交后只读回 Git 并交接，不接续 runtime。
+实际 40 位提交 SHA 由本次 Issue 交接评论记录；可用 `git log -1 --format=%H -- skills/aisoft-platform/references/execution-adapter.md`
+在交接时读回。fresh run 的重读 session/head 仍为 NOT RUN，承接者执行后在此追加。
+
+## T01 实际执行与验证（2026-10-23）
+
+- 用户批准原文：“确认 #427 合同，启动 T01，保持现有技能默认分工和两个确认点。T01 提交后按治理规则停止并交接 fresh run，后续在本次批准范围内继续推进，不重复请求启动确认。”
+- 批准对象 / ticket_base：`5b16b9a706e9e79fc69dff27a119b9b4ca351954`。开始前 staged/unstaged/untracked 均空。
+- change_base / fresh origin/main：`dc1da41c6e6a51f85b1ec0464a97640a3ddb570e`。
+- branch：`change/427-workflow-route-review`；owner：`01a16423-3e17-73b0-a723-76adc045218e`，沿用原认领，未 takeover 其他 worktree。
+- 实际执行：Codex 唯一写者，读取并校验固定 Matt v1.3.1 implement / code-review；仅按批准的 T01 治理步骤写入，
+  没有调用未实现的 helper。两位 Codex 子代理只读预检不是 Matt 固定候选双轴终审或 Claude cross-provider 验收。
+
+| 实际检查 | 结果 | 证据与边界 |
+|---|---|---|
+| broker read #427 / git.fetch.main / owner read_marker | PASS | Issue open，基线未前进，owner/branch/worktree 匹配 |
+| summary=approved / broker lifecycle approved | PASS | 原确认点 1 已明确通过；after=[approved,complexity/complex,type/platform] |
+| `aisoft classify --verify 427` | PASS | projected；未修改 triage category/state |
+| Matt implement / code-review 目录摘要 | PASS | 当前 vendored manifest 的 _directory_hash 匹配；没有修改 vendor |
+| `change-template-sync.sh --refresh-digest --today 2026-10-23` | PASS（刷新）；GAP（下游） | 新摘要 sha256:fe938bc1bad625dd6e5b0290273547f30a1c4dfc4cfb76ba07d3aa6a3f1b3862；退出 3 来自 4 stale / 2 unverified holders，只广播、未写项目 |
+| `change-template-sync.sh --verify-digest` | PASS | pinned 与 canonical 四模板聚合摘要相同 |
+| tracker 源/mirror `cmp` | PASS | templates/docs/agents/issue-tracker.md 与 docs/agents/issue-tracker.md 字节一致 |
+| 平台 change 模板 mirror | N/A | git ls-tree 无此目录；governance.vendors_change_templates=false；不新建无消费者副本 |
+| `check-change-documents --porcelain` / `resolve-documents 427` | PASS | 四角色正确、change-documents/change-pr-url PASS；只证明现有格式检查 |
+| Git 空白与范围预检 | PASS | git diff --check；NUL 分隔路径对照 35 条 scope；所有修改均在范围内 |
+| R1–R5 与版本/权限边界 | PASS（源码比较） | 非技能列逐格与基线相同；保留 G1 OR 语义；runtime/vendor/AGENTS/CLAUDE/bundle 未改；SP adapted_version 仍 7.0.0 |
+| 新接口行为 / 完整 smoke / bundle release/build | NOT RUN | T02–T05；当前未发布内容与旧 bundle 摘要未闭合，不宣称发布或全量通过 |
+| 安装 / 真实 provider session / CI / 部署 | NOT RUN | 本阶段非目标或后续 PR 时执行 |
+
+| 本轮 finding | 处置 | 复核 |
+|---|---|---|
+| T01-1：初版假设平台有 change 模板 mirror | fixed | 证实非 holder；spec.git_scope 从 37 收窄至 35，仅 canonical + 实际 tracker mirror；未改 guard/holder |
+| T01-2：“空净 diff 不派审并记 PASS”文字歧义 | fixed | shared reference/spec 明确“拒绝候选，不派审、不得记 PASS”；两位只读审查者限定复核均 PASS，无残留阻断 |
+
+## Fresh run 交接
+
+1. 只承接 `admin/aisoft-platform#427`，worktree 为 `/Users/benque/MyDocs/AISoftPlatform/worktrees/issue-427-workflow-route-review`，
+   branch 与 owner 如上；T01 当前 writer 在独立提交后停止并将本票交回 fresh run。
+   同一会话恢复保持 owner；不同会话承接时仅对这个明确交回的 worktree 使用既有 claim/takeover 流程，不能跳过归属校验。
+2. 先读用户本次批准、AGENTS/README、四份映射合同、T01 治理 diff、当前三个技能/route-policy/execution-adapter；
+   typed broker fresh-read #427 与主干，核对 exact HEAD、干净状态及原批准范围。写入前记录承接 session/HEAD。
+3. 原批准已涵盖 T01–T05，不再问启动；下一任务 T02，从单一 policy 解析 provider 到具体技能，保留风险顺序与旧卡兼容。
+   按计划再执行 T03/T04/T05，保持唯一写者和线性 commit。
+4. 三个新 CLI 尚未实现；当前文档 PASS 不证明 provider 语义生效。新 reference 尚未加入 usage bundle，
+   T05 必须显式注册三端 skill 成员并追加新 minor、验证导出，不能提前安装或批量 adopt。
+   外部适配记录 issue=427 目前只表示治理来源，SP 7.0.0 运行适配待 T02–T05，不是安装证明。
+5. 下游模板广播 4 stale / 2 unverified 仅为本次 source 盘点，不操作这些项目；triage mutation 缺口仍 GAP。
+6. T01 后的固定提交范围审查与最终 Fable 5/high 终审尚未做；不能把本轮提交前文案预检当成它们。
+   最终按平台 complex 对真实新 HEAD 独立审查；确认点 2 前不 push/PR，人合并、部署独立。
 
 ## 合同准备只读预检
 
@@ -90,7 +138,7 @@ T01 治理提交与 STOP：NOT RUN。fresh run 重读与 session/head：NOT RUN�
 
 ## 遗留风险与未完成项
 
-- 本轮只交付合同候选，未证明任何新 runtime 行为或安装采用。
+- 本轮交付 T01 治理源码，未证明任何新 runtime 行为或安装采用；整体 AC 仍待 T02–T05 闭合。
 - triage 标签 mutation 缺少现有 typed 入口，语义结论与未投影事实均已保留。不得以 needs-analysis/spec-review/approved 冒充 triage 状态；该既有工具缺口不夹带为本票 broker 扩权。
 - fixture 可以证明固定源码调用链，不能证明当前 Codex 6.4.2 插件与平台 7.0.0 等价；实际来源必须分层。
 - 本轮不部署，故无部署验收章节；后续未运行的实现/CI/真实会话项保持 NOT RUN。
