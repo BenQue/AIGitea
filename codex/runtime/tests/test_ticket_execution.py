@@ -133,6 +133,7 @@ documents:
         parsed = parse_plan(self.plan.read_text())
         task = parsed['tickets'][tid]
         return {'base': base or self.base, 'head': head or self.run_git('rev-parse', 'HEAD').strip(),
+                'start': json.loads((self.repo/'.superpowers/aisoft/57'/f'{tid}.json').read_text()),
                 'semantic_hash': parsed['semantic_hash'], 'validation_sha256': digest(task['validation']),
                 'ac': {ac: 'PASS' for ac in task['ac']},
                 'checks': [{'command': c, 'result': 'PASS', 'evidence': 'fixture observed exit 0'} for c in task['commands']]}
@@ -145,9 +146,9 @@ class ParserTests(unittest.TestCase):
     def test_preserves_contract_and_ignores_only_bounded_audit_changes(self):
         p = parse_plan(PLAN)
         updated = PLAN.replace('updated: 2026-10-23', 'updated: 2026-10-24').replace('| - | pending |', '| - | done |')
-        updated += '\n' + START + '\n```aisoft-execution\n{"tickets": {}}\n```\n' + END + '\n'
+        updated += '\n## 执行证据\n' + START + '\n```aisoft-execution\n{"tickets": {}}\n```\n' + END + '\n'
         # The intentionally added blank lines remain semantic; use the same envelope.
-        original = PLAN + '\n\n'
+        original = PLAN + '\n## 执行证据\n\n'
         self.assertEqual(parse_plan(original)['semantic_hash'], parse_plan(updated)['semantic_hash'])
         self.assertNotEqual(p['raw_hash'], parse_plan(updated)['raw_hash'])
         for old, new in [('AC-1', 'AC-99'), ('first passes', 'different expected'), ('no network writes', 'network allowed')]:
@@ -248,3 +249,44 @@ class ExecutionTests(GitFixture):
             self.assertIn('AC-1: works', (self.repo/r['derived_plan']).read_text())
         with patch('aisoft_loop.ticket_execution.resolve_issue_route', return_value={'route': {'process': 'small'}}), self.assertRaises(ContractError):
             self.prepare()
+
+
+class CompletionBindingTests(GitFixture):
+    def test_prior_ticket_range_cannot_complete_current_ticket(self):
+        old_base = self.base
+        prior_head = self.commit('prior ticket')
+        self.prepare()
+        entry = self.completion(base=old_base, head=prior_head)
+        self.evidence(entry)
+        self.plan.write_text(PLAN.replace('| - | pending |', '| - | done |'))
+        with self.assertRaisesRegex(ContractError, 'BASE is not this ticket start'):
+            self.prepare('T02')
+        entry['base'] = prior_head
+        self.evidence(entry)
+        with self.assertRaisesRegex(ContractError, 'invalid completion commit range'):
+            self.prepare('T02')
+
+    def test_missing_or_wrong_start_receipt_never_unlocks_frontier(self):
+        self.prepare()
+        self.commit()
+        original = self.completion()
+        self.plan.write_text(PLAN.replace('| - | pending |', '| - | done |'))
+        for key in ['start', 'checks']:
+            entry = dict(original); entry.pop(key)
+            self.evidence(entry)
+            with self.assertRaises(ContractError):
+                self.prepare('T02')
+        original['start']['identity']['owner'] = 'another-owner'
+        self.evidence(original)
+        with self.assertRaises(ContractError):
+            self.prepare('T02')
+
+    def test_canonical_markers_allow_plain_audit_updates(self):
+        canonical = PLAN + '\n## 执行证据\n\n' + START + '\nNOT RUN; see verification\n' + END + '\n'
+        self.plan.write_text(canonical)
+        self.prepare()
+        self.plan.write_text(canonical.replace('NOT RUN;', 'PASS;'))
+        self.assertEqual(self.prepare(resume=True)['ticket_base'], self.base)
+        wrapped = PLAN.replace('Global constraint:', START+'\nGlobal constraint:').replace('## Ticket graph', END+'\n## Ticket graph')
+        with self.assertRaises(ContractError):
+            parse_plan(wrapped)

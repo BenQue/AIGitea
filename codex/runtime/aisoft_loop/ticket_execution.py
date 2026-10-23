@@ -21,8 +21,8 @@ from .worktree import current_branch, head_sha, is_ancestor, resolve_git_dir
 
 SHA = re.compile(r'[0-9a-f]{40}')
 TICKET = re.compile(r'T(?:0[1-9]|[1-9][0-9]+)')
-START = '<!-- aisoft-execution-evidence:start -->'
-END = '<!-- aisoft-execution-evidence:end -->'
+START = '<!-- execution-evidence:start -->'
+END = '<!-- execution-evidence:end -->'
 
 
 def digest(value: str | bytes) -> str:
@@ -97,10 +97,14 @@ def _without_evidence(text: str) -> str:
     if END not in rest:
         raise ContractError('reversed execution evidence markers')
     evidence, after = rest.split(END)
-    # Only a JSON audit payload can be excluded, never contract prose/headings.
-    if not re.fullmatch(r'\s*```aisoft-execution\n.*?\n```\s*', evidence, re.S):
-        raise ContractError('evidence region may contain only an aisoft-execution JSON fence')
-    records(evidence)
+    # The explicit region is allowed only directly inside its standalone audit
+    # section. It cannot start halfway through a ticket or global constraint.
+    visible_before = ''.join(visible_lines(before))
+    if not re.search(r'^## (?:执行证据|Execution evidence)\s*\Z', visible_before, re.M):
+        raise ContractError('evidence markers must directly follow the execution evidence heading')
+    visible_evidence = ''.join(visible_lines(evidence))
+    if re.search(r'^#{1,6} |^\||^- \*\*', visible_evidence, re.M):
+        raise ContractError('evidence markers cannot enclose graph, task, fields or constraints')
     return before + after
 
 
@@ -300,12 +304,28 @@ def context(repo: Path, number: int, provider: str, issue: dict | None = None) -
             'evidence_path': str(evidence_path.relative_to(repo)), 'summary_path': str(summary_path.relative_to(repo))}
 
 
+def receipt_identity(ctx: dict) -> dict:
+    return {**{k: ctx[k] for k in ('issue', 'branch', 'owner', 'worktree', 'provider', 'plan_path')},
+            'semantic_hash': ctx['plan']['semantic_hash']}
+
+
 def completed(repo: Path, ctx: dict, tid: str) -> bool:
     entry = ctx['evidence'].get('tickets', {}).get(tid)
     task = ctx['plan']['tickets'][tid]
     if not isinstance(entry, dict):
         raise ContractError(f'{tid}: completion requires commit and validation evidence')
+    start = entry.get('start')
+    if (not isinstance(start, dict) or start.get('identity') != receipt_identity(ctx)
+            or start.get('ticket') != tid or start.get('scope') != ctx['scope']
+            or start.get('policy_sha256') != ctx['policy_sha256'] or start.get('route') != ctx['route']
+            or not isinstance(start.get('initial_state'), dict) or not start.get('raw_plan_sha256')):
+        raise ContractError(f'{tid}: completion needs matching persisted start receipt')
+    cached = safe_path(repo, f'.superpowers/aisoft/{ctx["issue"]}/{tid}.json')
+    if cached.exists() and json.loads(cached.read_text()) != start:
+        raise ContractError(f'{tid}: completion disagrees with original start receipt')
     base, head = entry.get('base', ''), entry.get('head', '')
+    if base != start.get('ticket_base'):
+        raise ContractError(f'{tid}: completion BASE is not this ticket start')
     if (not isinstance(base, str) or not isinstance(head, str) or not SHA.fullmatch(base) or not SHA.fullmatch(head)
             or base == head or not is_ancestor(repo, base, head) or not is_ancestor(repo, head, head_sha(repo))
             or not git(repo, 'diff', '--name-only', base, head)):
@@ -362,8 +382,7 @@ def prepare_ticket(repo: Path, number: int, tid: str, provider: str, *, resume: 
     for done, task in tasks.items():
         if task['status'] == 'done':
             completed(repo, ctx, done)
-    key = {k: ctx[k] for k in ('issue', 'branch', 'owner', 'worktree', 'provider', 'plan_path')}
-    key['semantic_hash'] = ctx['plan']['semantic_hash']
+    key = receipt_identity(ctx)
     cache = safe_path(repo, f'.superpowers/aisoft/{number}')
     receipt = safe_path(repo, str(cache.relative_to(repo) / (tid + '.json')))
     slug = f'issue-{number}-{digest(ctx["owner"])[:16]}-{ctx["plan"]["semantic_hash"][:16]}'

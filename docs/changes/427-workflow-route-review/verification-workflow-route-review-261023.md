@@ -188,3 +188,8 @@ T03 ticket_base：`b5414a9236aebec65e8e8cbb51996da626eaeda4`；开始前 staged/
 - 正常 Status/updated/指定 JSON 证据区变化可恢复；语义/owner/BASE/foreign scratch/symlink 反例失败；无关用户文件保留。development synthetic T01 不要求 production plan；small 维持原入口。
 - `PYTHONPATH=codex/runtime python3 -B -m unittest tests.test_ticket_execution tests.test_documents`：30 tests PASS；bash -n / ShellCheck wrapper、文档门、git diff --check PASS。完整 smoke/导出与终审待 T05。
 - 候选提交后派同一 BASE/HEAD 双轴；未以测试 PASS 代替审查。
+
+T03 首轮双轴对 `9d08506a48e6165b0e1a544ab22549b2b7cfbf01` 均发现同两项：
+- T03-1（P1）：完成范围未绑定开始回执，可能把旧票 range 当成本票。已要求持久 start 回执包含同票 identity/semantic/scope/BASE，且有缓存时须与原回执完全一致；无回执、旧票 range、HEAD=本票起点、错 owner 负例拒绝。
+- T03-2（P2）：marker 与 T01 canonical 不一致。runtime 采用批准的 `execution-evidence` 成对标记，支持模板普通审计文本；只允许独立执行证据区，不能包任务/图/约束；正常 NOT RUN→PASS 补证 resume 正例通过。
+修复未动治理；required targeted suite 33 tests PASS。fixed 待追加提交后的同 HEAD 复核。
