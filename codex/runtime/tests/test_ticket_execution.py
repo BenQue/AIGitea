@@ -290,3 +290,17 @@ class CompletionBindingTests(GitFixture):
         wrapped = PLAN.replace('Global constraint:', START+'\nGlobal constraint:').replace('## Ticket graph', END+'\n## Ticket graph')
         with self.assertRaises(ContractError):
             parse_plan(wrapped)
+
+class HandoffTests(GitFixture):
+    def test_claimed_successor_keeps_prior_owner_evidence_but_cannot_resume_old_ticket(self):
+        self.prepare()
+        self.commit()
+        self.evidence(self.completion())
+        self.plan.write_text(PLAN.replace('| - | pending |', '| - | done |'))
+        claim(self.repo / '.git', branch='change/57-ticket-adapter', session='successor', worktree=self.repo, takeover=True)
+        with patch.dict(os.environ, {'AISOFT_SESSION_ID': 'successor'}):
+            next_ticket = self.prepare('T02')
+            self.assertEqual(next_ticket['identity']['owner'], 'successor')
+            with self.assertRaises(ContractError):
+                self.prepare(resume=True)
+        self.assertEqual(records(self.verification.read_text())['tickets']['T01']['start']['identity']['owner'], 'fixture-owner')

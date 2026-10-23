@@ -13,7 +13,7 @@ from pathlib import Path
 import re
 import subprocess
 
-from aisoft_worktree_owner import caller_session, read_marker
+from aisoft_worktree_owner import SESSION_RE, caller_session, read_marker
 from .contract import (ContractError, _acceptance_criteria, _label_names,
                        parse_front_matter, resolve_documents, resolve_summary)
 from .route_policy import ROOT, repository_context, resolve_issue_route
@@ -315,7 +315,14 @@ def completed(repo: Path, ctx: dict, tid: str) -> bool:
     if not isinstance(entry, dict):
         raise ContractError(f'{tid}: completion requires commit and validation evidence')
     start = entry.get('start')
-    if (not isinstance(start, dict) or start.get('identity') != receipt_identity(ctx)
+    expected_identity = receipt_identity(ctx)
+    historical_owner = start.get('identity', {}).get('owner') if isinstance(start, dict) and isinstance(start.get('identity'), dict) else None
+    if not isinstance(historical_owner, str) or not SESSION_RE.fullmatch(historical_owner):
+        raise ContractError(f'{tid}: historical execution owner is missing')
+    # A claimed successor may consume completed dependencies without rewriting
+    # their historical owner. Resuming an unfinished ticket stays exact-owner.
+    expected_identity['owner'] = historical_owner
+    if (not isinstance(start, dict) or start.get('identity') != expected_identity
             or start.get('ticket') != tid or start.get('scope') != ctx['scope']
             or start.get('policy_sha256') != ctx['policy_sha256'] or start.get('route') != ctx['route']
             or not isinstance(start.get('initial_state'), dict) or not start.get('raw_plan_sha256')):

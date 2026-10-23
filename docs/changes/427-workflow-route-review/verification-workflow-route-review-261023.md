@@ -193,3 +193,5 @@ T03 首轮双轴对 `9d08506a48e6165b0e1a544ab22549b2b7cfbf01` 均发现同两�
 - T03-1（P1）：完成范围未绑定开始回执，可能把旧票 range 当成本票。已要求持久 start 回执包含同票 identity/semantic/scope/BASE，且有缓存时须与原回执完全一致；无回执、旧票 range、HEAD=本票起点、错 owner 负例拒绝。
 - T03-2（P2）：marker 与 T01 canonical 不一致。runtime 采用批准的 `execution-evidence` 成对标记，支持模板普通审计文本；只允许独立执行证据区，不能包任务/图/约束；正常 NOT RUN→PASS 补证 resume 正例通过。
 修复未动治理；required targeted suite 33 tests PASS。fixed 待追加提交后的同 HEAD 复核。
+
+T03 修复复核：原 T03-1/2 两轴均 fixed；Standards 新报 T03-3（P2）：整体 identity 对比会阻塞合法 successor 消费前 owner 的已完成依赖。已以真实 claim/takeover fixture 复现并修复：依赖保留历史合法 owner，当前调用仍须通过 owner marker；当前票 resume 不放松 exact owner。34 tests PASS。真实 #427 的 context→现项目解析→typed broker Issue read 也已 PASS；无远端写入。
