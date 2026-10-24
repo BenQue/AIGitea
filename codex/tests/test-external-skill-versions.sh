@@ -78,6 +78,12 @@ check() {
   done
 }
 
+unknown_case() {
+  local label="$1" side="$2" dir="$3"
+  check "$label" 1 "$dir" "RESULT REVIEW_NEEDED"
+  grep -q "^SUPERPOWERS $side UNKNOWN (" <<<"$output" || fail "$label: $side side is not UNKNOWN: $output"
+}
+
 snapshot() {
   (cd "$1" && find . -print0 | LC_ALL=C sort -z | xargs -0 ls -ld | awk '{print $1, $5, $NF}'
    find . -type f -print0 | LC_ALL=C sort -z | xargs -0 cat | cksum)
@@ -128,6 +134,152 @@ check codex-no-cache 0 "$dir" \
 check codex-disabled 0 "$(home codex-disabled "$adapted" disabled "$adapted")" \
   "SUPERPOWERS codex PIN_NOT_INSTALLED enabled=none pinned=$adapted" \
   "RESULT PASS"
+
+# #429: the official remote marketplace uses a new directory while the enable
+# declaration can still name openai-curated. An old cache is not the new install.
+remote_home() {
+  local dir version="$2" marketplace="${3:-openai-curated}"
+  dir="$(home "$1" "$adapted" - -)"
+  mkdir -p "$dir/.codex/plugins/cache/openai-curated-remote/superpowers/$version/.codex-plugin"
+  printf '{"schema_version":1,"remote_plugin_id":"fixture-superpowers"}\n' \
+    >"$dir/.codex/plugins/cache/openai-curated-remote/superpowers/.codex-remote-plugin-install.json"
+  printf '[plugins."superpowers@%s"]\nenabled = true\n' "$marketplace" >"$dir/.codex/config.toml"
+  printf '{"name":"superpowers","version":"%s"}\n' "$version" \
+    >"$dir/.codex/plugins/cache/openai-curated-remote/superpowers/$version/.codex-plugin/plugin.json"
+  printf '%s\n' "$dir"
+}
+dir="$(remote_home codex-remote-newer "$newer")"
+mkdir -p "$dir/.codex/plugins/cache/openai-curated/superpowers/old/.codex-plugin"
+printf '{"name":"superpowers","version":"5.1.3"}\n' \
+  >"$dir/.codex/plugins/cache/openai-curated/superpowers/old/.codex-plugin/plugin.json"
+before="$(snapshot "$dir")"
+check codex-remote-newer 1 "$dir" \
+  "SUPERPOWERS codex PIN_DRIFT enabled=superpowers@openai-curated marketplace=builtin layout=openai-curated-remote installed=$newer pinned=$adapted" \
+  "RESULT REVIEW_NEEDED"
+[[ "$(snapshot "$dir")" == "$before" ]] || fail "zero-write: remote plugin state changed"
+
+for marketplace in openai-curated openai-curated-remote; do
+  dir="$(remote_home "remote-clean-$marketplace" "$adapted" "$marketplace")"
+  check "remote-clean-$marketplace" 0 "$dir" \
+    "SUPERPOWERS codex PIN_CLEAN enabled=superpowers@$marketplace marketplace=builtin layout=openai-curated-remote installed=$adapted pinned=$adapted" \
+    "RESULT PASS"
+done
+# The installation marker is metadata, never a version or a linked read target.
+for state in linked directory; do
+  dir="$(remote_home "remote-marker-$state" "$adapted")"
+  path="$dir/.codex/plugins/cache/openai-curated-remote/superpowers/.codex-remote-plugin-install.json"
+  rm "$path"
+  case "$state" in
+    linked) ln -s "$tmp/not-a-marker" "$path" ;;
+    directory) mkdir "$path" ;;
+  esac
+  unknown_case "remote-marker-$state" codex "$dir"
+done
+# A cache is insufficient without an explicit, valid enable declaration.
+for state in disabled undeclared absent; do
+  dir="$(remote_home "remote-$state" "$adapted")"
+  expected="enabled=none"
+  case "$state" in
+    disabled) printf '[plugins."superpowers@openai-curated"]\nenabled = false\n' >"$dir/.codex/config.toml" ;;
+    undeclared) printf '[plugins]\n' >"$dir/.codex/config.toml" ;;
+    absent) rm "$dir/.codex/config.toml"; expected="config=absent" ;;
+  esac
+  check "remote-$state" 0 "$dir" \
+    "SUPERPOWERS codex PIN_NOT_INSTALLED $expected pinned=$adapted" "RESULT PASS"
+done
+dir="$(remote_home remote-other-market "$adapted" other-market)"
+check remote-other-market 0 "$dir" \
+  "SUPERPOWERS codex PIN_NOT_INSTALLED enabled=superpowers@other-market marketplace=unregistered cached=none pinned=$adapted" \
+  "RESULT PASS"
+# Missing remote layout still accepts the registered legacy marketplace.
+dir="$(remote_home remote-legacy-fallback "$adapted")"
+mv "$dir/.codex/plugins/cache/openai-curated-remote" "$dir/.codex/plugins/cache/openai-curated"
+printf '[marketplaces.openai-curated]\nsource = "x"\n[plugins."superpowers@openai-curated"]\nenabled = true\n' >"$dir/.codex/config.toml"
+check remote-legacy-fallback 0 "$dir" \
+  "SUPERPOWERS codex PIN_CLEAN enabled=superpowers@openai-curated marketplace=registered installed=$adapted pinned=$adapted" \
+  "RESULT PASS"
+
+# Present but ambiguous or invalid remote metadata cannot fall back to an old
+# clean cache, and must never choose the highest version.
+dir="$(remote_home remote-multiple "$adapted")"
+release="$dir/.codex/plugins/cache/openai-curated-remote/superpowers"
+mkdir -p "$release/$newer/.codex-plugin"
+printf '{"name":"superpowers","version":"%s"}\n' "$newer" >"$release/$newer/.codex-plugin/plugin.json"
+unknown_case remote-multiple codex "$dir"
+dir="$(remote_home remote-empty "$adapted")"
+rm -rf "$dir/.codex/plugins/cache/openai-curated-remote/superpowers/$adapted"
+unknown_case remote-empty codex "$dir"
+dir="$(remote_home remote-nonnumeric "$adapted")"
+mv "$dir/.codex/plugins/cache/openai-curated-remote/superpowers/$adapted" \
+  "$dir/.codex/plugins/cache/openai-curated-remote/superpowers/latest"
+unknown_case remote-nonnumeric codex "$dir"
+metadata_cases=(
+  'not-json' '[]' '{}' '{"version":"7.0.0"}' '{"name":"elsewhere","version":"7.0.0"}'
+  '{"name":"superpowers"}' '{"name":"superpowers","version":true}'
+  '{"name":"superpowers","version":"latest"}'
+  "{\"name\":\"superpowers\",\"version\":\"$older\"}"
+  "{\"name\":\"superpowers\",\"version\":\"$adapted\",\"version\":\"$adapted\"}"
+)
+for index in "${!metadata_cases[@]}"; do
+  dir="$(remote_home "remote-bad-json-$index" "$adapted")"
+  printf '%s\n' "${metadata_cases[$index]}" \
+    >"$dir/.codex/plugins/cache/openai-curated-remote/superpowers/$adapted/.codex-plugin/plugin.json"
+  mkdir -p "$dir/.codex/plugins/cache/openai-curated/superpowers/old/.codex-plugin"
+  printf '{"name":"superpowers","version":"%s"}\n' "$adapted" \
+    >"$dir/.codex/plugins/cache/openai-curated/superpowers/old/.codex-plugin/plugin.json"
+  printf '[marketplaces.openai-curated]\nsource = "x"\n' >>"$dir/.codex/config.toml"
+  unknown_case "remote-bad-json-$index" codex "$dir"
+done
+# Every component of the new plugin path is checked before metadata is read.
+remote_parts=(
+  .codex .codex/plugins .codex/plugins/cache .codex/plugins/cache/openai-curated-remote
+  .codex/plugins/cache/openai-curated-remote/superpowers
+  ".codex/plugins/cache/openai-curated-remote/superpowers/$adapted"
+  ".codex/plugins/cache/openai-curated-remote/superpowers/$adapted/.codex-plugin"
+  ".codex/plugins/cache/openai-curated-remote/superpowers/$adapted/.codex-plugin/plugin.json"
+)
+for index in "${!remote_parts[@]}"; do
+  dir="$(remote_home "remote-linked-$index" "$adapted")"
+  path="$dir/${remote_parts[$index]}"
+  target="$tmp/remote-link-target-$index"
+  mkdir -p "$target"
+  mv "$path" "$target/content"
+  ln -s "$target/content" "$path"
+  before="$(snapshot "$target")"
+  unknown_case "remote-linked-$index" codex "$dir"
+  [[ "$(snapshot "$target")" == "$before" ]] ||
+    fail "zero-write: linked remote target changed"
+done
+for state in missing directory fifo; do
+  dir="$(remote_home "remote-metadata-$state" "$adapted")"
+  path="$dir/.codex/plugins/cache/openai-curated-remote/superpowers/$adapted/.codex-plugin/plugin.json"
+  rm "$path"
+  case "$state" in
+    directory) mkdir "$path" ;;
+    fifo) mkfifo "$path" ;;
+  esac
+  unknown_case "remote-metadata-$state" codex "$dir"
+done
+dir="$(remote_home remote-file-parent "$adapted")"
+rm -rf "$dir/.codex/plugins/cache/openai-curated-remote/superpowers"
+printf 'x\n' >"$dir/.codex/plugins/cache/openai-curated-remote/superpowers"
+unknown_case remote-file-parent codex "$dir"
+for config in '[broken' '[plugins."superpowers@openai-curated"]\nenabled = "true"' \
+  '[marketplaces]\nopenai-curated = 42\n[plugins."superpowers@openai-curated"]\nenabled = true' \
+  '[plugins."superpowers@openai-curated"]\nenabled = true\n[plugins."superpowers@openai-curated-remote"]\nenabled = true'; do
+  dir="$(remote_home remote-bad-config "$adapted")"
+  printf '%b\n' "$config" >"$dir/.codex/config.toml"
+  unknown_case remote-bad-config codex "$dir"
+done
+if [[ "$(id -u)" != 0 ]]; then
+  for part in "superpowers" "superpowers/$adapted/.codex-plugin/plugin.json"; do
+    dir="$(remote_home remote-unreadable "$adapted")"
+    path="$dir/.codex/plugins/cache/openai-curated-remote/$part"
+    chmod 000 "$path"
+    unknown_case remote-unreadable codex "$dir"
+    chmod u+rwx "$path"
+  done
+fi
 
 # Nothing installed: superpowers is simply absent, but the Matt pin is not clean.
 check empty 1 "$(home empty - - -)" \
@@ -240,11 +392,6 @@ grep -Fq 'SUPERPOWERS claude UNKNOWN (installed_plugins.json schema is not versi
   fail "unreadable: claude side is not UNKNOWN: $output"
 
 # Malformed inputs never pass: each one is UNKNOWN and fails the run.
-unknown_case() {
-  local label="$1" side="$2" dir="$3"
-  check "$label" 1 "$dir" "RESULT REVIEW_NEEDED"
-  grep -q "^SUPERPOWERS $side UNKNOWN (" <<<"$output" || fail "$label: $side side is not UNKNOWN: $output"
-}
 dir="$(home claude-bare-key "$adapted" registered "$adapted")"
 sed -i.bak 's/"superpowers@claude-plugins-official"/"superpowers"/' "$dir/.claude/plugins/installed_plugins.json"
 rm -f "$dir/.claude/plugins/installed_plugins.json.bak"
@@ -402,6 +549,12 @@ installed "$dir"
 caps caps-known 0 "$dir" \
   "CAPABILITY codex KNOWN_EXTERNAL platform-skills=PIN_CLEAN matt=PIN_CLEAN superpowers=[PIN_NOT_INSTALLED config=absent pinned=$adapted]" \
   "(#392 Codex official marketplace does not offer the pinned version; the platform does not install it)"
+# The new official layout's actual drift must not inherit the absence exemption.
+dir="$(remote_home caps-remote-gap "$newer")"
+installed "$dir"
+caps caps-remote-gap 1 "$dir" \
+  "CAPABILITY codex GAP platform-skills=PIN_CLEAN matt=PIN_CLEAN superpowers=[PIN_DRIFT enabled=superpowers@openai-curated marketplace=builtin layout=openai-curated-remote installed=$newer pinned=$adapted]" \
+  "RESULT GAP"
 # Any other unmet item is a GAP: a drifted Claude landing, a drifted Codex
 # Matt link, a logged-out Cursor, a Codex superpowers off the pin.
 dir="$(home caps-gap "$adapted" registered "$newer")"

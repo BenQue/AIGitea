@@ -14,6 +14,7 @@ branch: change/429-codex-plugin-layout
 created: 2026-10-24
 updated: 2026-10-24
 git_scope:
+  - docs/governance/review-evidence-index.md
   - codex/tools/check-external-skill-versions.py
   - codex/tests/test-external-skill-versions.sh
   - docs/changes/429-codex-plugin-layout/summary-codex-plugin-layout-261024.md
@@ -41,6 +42,8 @@ git_scope:
 沿用现有命令及 --home 测试边界。官方目录映射只接受观测到的 openai-curated / openai-curated-remote 身份，目标目录固定 openai-curated-remote。保留显式 enabled=true 要求和现有多启用声明歧义拒绝。先验证 config 结构，不能用新缓存掩盖坏配置。
 
 新布局由闭集身份及有效目录联合识别，不要求它另出现在旧 marketplaces 表。路径逐级 lstat，不穿过符号链接。有效候选必须是一个目录名与 plugin.json version 完全一致的 dotted numeric version，name 恰为 superpowers。若新目录缺失，调用现有旧布局逻辑；若新目录存在但坏掉，则 UNKNOWN，不降级回旧缓存获得 PASS。没有活动版本清单时，多版本保留 UNKNOWN。
+
+实机目录另含官方安装标记 .codex-remote-plugin-install.json（schema_version、remote_plugin_id）。它必须是常规文件，只按文件类型排除出版本候选，不解析内容、不作为活动版本证据；链接或目录形式仍为 UNKNOWN。测试包含该实际目录结构。
 
 ## 验证边界
 

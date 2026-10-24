@@ -55,11 +55,11 @@ pr_url:
 
 ## 范围与非目标
 
-检查器、对应回归测试、本票文档。保持平台 pin 7.0.0、适配记录和两侧插件不变。没有 Claude 更新、插件安装、配置修改、网络调用、凭据读取、全局技能更新、部署或自动合并。
+检查器、对应回归测试、本票文档，以及03要求的本票审查索引记录。保持平台 pin 7.0.0、适配记录和两侧插件不变。没有 Claude 更新、插件安装、配置修改、网络调用、凭据读取、全局技能更新、部署或自动合并。
 
 ## 判级与状态
 
 triage：bug / ready-for-agent；公开开放 Issue 只有无关的 #417，无重复票。没有 .out-of-scope 拒绝记录。本票按 external-contract 强制 complex，R3/codex。实际标签投影和执行证据见 verification。
 
-T01 pending；完成后对固定候选双轴审查及另一 provider 交叉审查，停在 AWAITING_PR_CONFIRMATION。
+T01 已实现，定向回归和本机只读核验通过；完整 smoke 与固定候选审查完成后进入 AWAITING_PR_CONFIRMATION。
 
