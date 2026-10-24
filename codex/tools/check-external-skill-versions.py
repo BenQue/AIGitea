@@ -267,7 +267,16 @@ def _codex_remote_version(home: Path) -> str | None:
 
 
 def codex_superpowers(home: Path, pinned: str) -> str:
-    path = home / ".codex" / "config.toml"
+    directory = home / ".codex"
+    try:
+        mode = directory.lstat().st_mode
+    except FileNotFoundError:
+        return f"PIN_NOT_INSTALLED config=absent pinned={pinned}"
+    except OSError as error:
+        raise Unreadable(f".codex is not readable ({type(error).__name__})") from error
+    if not stat.S_ISDIR(mode):
+        raise Unreadable(".codex is not a real directory")
+    path = directory / "config.toml"
     if not os.path.lexists(path):
         return f"PIN_NOT_INSTALLED config=absent pinned={pinned}"
     if path.is_symlink() or not path.is_file():

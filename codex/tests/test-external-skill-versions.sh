@@ -250,6 +250,37 @@ for index in "${!remote_parts[@]}"; do
   [[ "$(snapshot "$target")" == "$before" ]] ||
     fail "zero-write: linked remote target changed"
 done
+# Reject a linked .codex before opening its config. UNKNOWN/zero-write alone
+# would miss a read that happened before the later plugin-path validation.
+dir="$(remote_home remote-root-link-no-read "$adapted")"
+mv "$dir/.codex" "$tmp/outside-codex"
+ln -s "$tmp/outside-codex" "$dir/.codex"
+PATH="$bin" python3 -B - "${checker%.sh}.py" "$dir" "$tmp/outside-codex/config.toml" <<'PY' >"$tmp/root-link-audit.out"
+import os
+import runpy
+import sys
+
+checker, home, forbidden = sys.argv[1:]
+forbidden = os.path.realpath(forbidden)
+opened = []
+
+def audit(event, args):
+    if event == "open" and isinstance(args[0], (str, bytes)) and os.path.realpath(args[0]) == forbidden:
+        opened.append(args[0])
+        raise AssertionError("linked Codex config must never be opened")
+
+sys.addaudithook(audit)
+sys.argv = [checker, "--home", home]
+try:
+    runpy.run_path(checker, run_name="__main__")
+except SystemExit as result:
+    assert result.code == 1, result.code
+else:
+    raise AssertionError("checker did not report UNKNOWN")
+assert not opened, opened
+PY
+grep -Fqx 'SUPERPOWERS codex UNKNOWN (.codex is not a real directory)' "$tmp/root-link-audit.out" ||
+  fail "remote-root-link-no-read: parent link not rejected"
 for state in missing directory fifo; do
   dir="$(remote_home "remote-metadata-$state" "$adapted")"
   path="$dir/.codex/plugins/cache/openai-curated-remote/superpowers/$adapted/.codex-plugin/plugin.json"
