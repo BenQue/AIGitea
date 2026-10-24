@@ -61,4 +61,4 @@ pr_url:
 
 triage：bug / ready-for-agent；公开开放 Issue 只有无关的 #417，无重复票。没有 .out-of-scope 拒绝记录。本票按 external-contract 强制 complex，R3/codex。实际标签投影和执行证据见 verification。
 
-T01 已实现；R1两轴发现的同一P2已修，定向回归与实机核验再次通过，修复后的最终完整smoke已通过，两轴复审待固定新HEAD。Claude独立审查被自动审批拒绝，需明确外部审查授权；不能把当前状态写成AWAITING_PR_CONFIRMATION或READY_FOR_REVIEW。
+T01 已实现；R1两轴发现的同一P2已修，定向回归与实机核验再次通过，修复后的最终完整smoke已通过，02a4c604a89fa4695057f023c76ead799be4ce9c两轴复审均PASS（fixed=1、residual=0、new=0）。Claude独立审查被自动审批拒绝，需明确外部审查授权；不能把当前状态写成AWAITING_PR_CONFIRMATION或READY_FOR_REVIEW。

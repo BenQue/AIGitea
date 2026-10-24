@@ -56,5 +56,5 @@ T01：检查器 Python、现有 shell 回归和本票四份文档。
 
 
 <!-- execution-evidence:start -->
-T01 已开始；原始 ticket_base=3715f09b89b18291f0765f826ea88616bc2f8e0f。RED/GREEN、实机安装标记发现和本机核验见映射 verification；graph 在完整验证和审查完成前保持 pending。
+T01 已开始；原始 ticket_base=3715f09b89b18291f0765f826ea88616bc2f8e0f。RED/GREEN、实机安装标记发现和本机核验见映射 verification；最终完整smoke及Codex两轴复审均PASS，graph因Claude独立审查尚未获外发授权而保持pending；不记完整交付通过。
 <!-- execution-evidence:end -->

@@ -65,9 +65,11 @@ RESULT REVIEW_NEEDED
 | R1 | Standards | Codex 子代理 review429_standards，继承模型配置 | FAIL（1项P2） | F1：.codex父目录为链接时，在拒绝链接前先读取了链接外config；此为新合同未兑现，不称为新引入的任意读取漏洞 |
 | R1 | Spec | Codex 子代理 review429_spec，继承模型配置 | FAIL（1项P2） | 同一F1违反AC-3；两个轴独立报告、没有以一个轴覆盖另一个 |
 
-F1 已将 .codex lstat 检查前移至任何配置读取之前。新增顶层执行路径的 Python audit hook 反例：旧候选真实尝试打开链接外配置并触发 AssertionError；修复后 UNKNOWN且无该open事件。未改真实HOME。定向回归、bash -n、ShellCheck及实机复核再次通过；该修复后的完整smoke已在宿主授权环境原样重跑PASS / exit 0（746项runtime及46项installed drift、其它脚本门均通过），日志 /private/tmp/issue-429-smoke-r2.log；尾部Codex platform static smoke checks passed。待固定新HEAD后两轴复审，不能沿用R1结论。
+F1 已将 .codex lstat 检查前移至任何配置读取之前。新增顶层执行路径的 Python audit hook 反例：旧候选真实尝试打开链接外配置并触发 AssertionError；修复后 UNKNOWN且无该open事件。未改真实HOME。定向回归、bash -n、ShellCheck及实机复核再次通过；该修复后的完整smoke已在宿主授权环境原样重跑PASS / exit 0（746项runtime及46项installed drift、其它脚本门均通过），日志 /private/tmp/issue-429-smoke-r2.log；尾部Codex platform static smoke checks passed。R2固定HEAD 02a4c604a89fa4695057f023c76ead799be4ce9c 的两轴复审已完成，独立探针均得到UNKNOWN且files_read=[]；Standards PASS、Spec PASS，各轴fixed=1、residual=0、new=0。R1完整审查加R2全部增量覆盖原始T01及整批BASE到该HEAD。未将R1结论直接沿用。
 
 另修复整批 git diff --check 发现的三处EOF空白行。plan只把证据区之后的空白移到证据标记之前，清除证据区后的完整语义文本及SHA256保持不变；原回执仍有效。
+
+R2机械候选包sha256=34d04870eb26fc3e70872196cb7edfde5776a78b33e746578d181aab0c10c42c；原回执/owner/branch、任务语义摘要均一致，工作区干净，整批diff --check通过。两轴回执保存于 /private/tmp/issue-429-local-reviews-r2.json，并在下面持久化。最终证据提交后只读检查文档增量，代码和测试与该已验证候选相同；最终HEAD回执将在取得后保存到 /private/tmp/issue-429-local-reviews-final.json。
 
 ## 交叉审查
 
@@ -146,7 +148,35 @@ F1 已将 .codex lstat 检查前移至任何配置读取之前。新增顶层执
         "model_configuration": "not observed by helper; caller records actual model/effort in verification"
       },
       "base": "3715f09b89b18291f0765f826ea88616bc2f8e0f",
-      "semantic_hash": "50c578826c83ea824e1ac8ea28ebfdb97cbb951b1799c399477cea34fce59eb2"
+      "semantic_hash": "50c578826c83ea824e1ac8ea28ebfdb97cbb951b1799c399477cea34fce59eb2",
+      "local_candidate_head": "02a4c604a89fa4695057f023c76ead799be4ce9c",
+      "local_reviews": [
+        {
+          "axis": "Standards",
+          "base": "3715f09b89b18291f0765f826ea88616bc2f8e0f",
+          "head": "02a4c604a89fa4695057f023c76ead799be4ce9c",
+          "package_sha256": "34d04870eb26fc3e70872196cb7edfde5776a78b33e746578d181aab0c10c42c",
+          "verdict": "PASS",
+          "reviewer": "Codex review429_standards",
+          "evidence": "R1完整范围加R2全部增量；F1临时反例复验UNKNOWN且无配置读取；fixed=1,residual=0,new=0"
+        },
+        {
+          "axis": "Spec",
+          "base": "3715f09b89b18291f0765f826ea88616bc2f8e0f",
+          "head": "02a4c604a89fa4695057f023c76ead799be4ce9c",
+          "package_sha256": "34d04870eb26fc3e70872196cb7edfde5776a78b33e746578d181aab0c10c42c",
+          "verdict": "PASS",
+          "reviewer": "Codex review429_spec",
+          "evidence": "R1完整范围加R2全部增量；F1临时反例复验UNKNOWN且无配置读取；fixed=1,residual=0,new=0"
+        }
+      ],
+      "ac": {
+        "AC-1": "PASS",
+        "AC-2": "PASS",
+        "AC-3": "PASS",
+        "AC-4": "PASS",
+        "AC-5": "PARTIAL: Claude cross-provider review NOT RUN"
+      }
     }
   },
   "scope_amendments": [
