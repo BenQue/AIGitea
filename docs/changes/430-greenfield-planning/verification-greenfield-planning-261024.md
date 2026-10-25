@@ -35,7 +35,7 @@ updated: 2026-10-25
 | 草稿结构检查（修订前） | PASS（已过时） | 修订前一次性本地校验：15 个唯一 scope 路径、11 个 AC 均映射、3 个 pending Txx、10 个场景；非 summary 无 status/pr_url。该校验未运行平台 parse_plan，修订后由下方「plan 可执行性」行取代 |
 | 判级与生命周期读回 | PASS | `classify --apply 430` 后另行 `classify --verify 430`；broker fresh-read 返回 open，且恰有 type/platform、complexity/complex、spec-drafting 三标签，没有 approved |
 | Issue 完整正文读回 | PASS | 已通过 broker 回填完整 summary/spec/plan、精确路径/摘要与 Claude 委托，再 fresh-read 逐字相等；初次完整发布 36280 bytes，SHA256 `a6e5355b52e28569df89c1e070b972a83c34047262b3870be97273a0c87d546e`，标签仍为 spec-drafting；此摘要仅指该次发布，不冒充随后提交信息回填后的正文摘要 |
-| 新方法实现 / T01–T03 | NOT RUN | 负责人已确认修订合同；先同步 Issue、读回并投影 approved，再准备 T01；当前全部 pending |
+| 新方法实现 / T01–T03 | NOT RUN | 修订已提交、Issue 同步读回且已 approved；尚未 prepare-ticket，当前全部 pending |
 | 完整 smoke / 隔离发布包 / 场景核验 | NOT RUN | 属于实施后的验收，本轮不把基线测试冒充新功能验证 |
 | Claude 内部材料评估 | PASS | 2026-10-24 初评；2026-10-25 反证复核（7 个只读核对：4 组逐条反驳、3 个补查视角）与修订稿复核（4 个只读核对：覆盖、一致性、精简度、可执行性），结论发在负责人的项目线程；评估本身只读。复核发现原 plan 不能被平台 parse_plan 解析（缺 T02「验证」字段），另有写入路径、恢复锚点、技能边界等问题 |
 | 合同修订 | 已起草，未提交 | 负责人 2026-10-25 在项目线程要求按 Claude 意见直接修订（项目消息 02:24 与 02:26 UTC），并说明最终确认后交 Codex 侧实施。Claude 会话 `63a7ad7e-1b6f-4272-b7a6-a3b5baa39523` 按此在本 worktree 起草修订，只改本票四份文档，未提交、未改 owner marker、未 push、未改 Issue、未设 approved。这是负责人授权的单写者例外，限于起草；修订交回 owner 会话 `01a16e1b-1085-7712-b5a8-c100d9f74629` 审阅 3800ec2d 之上的未提交 diff 后提交。主要修订：plan 票型改为可解析（T02 补「验证」字段、命令逐条行内、每票逐条列 AC、AC-11 拆出 AC-12、T02 承接 AC-3/5/7/11 的场景与 fresh run 证据、执行证据加成对标记、T01 commit 前跑完整 smoke、版本在 prepare-ticket 前定、T03 补 classify 与固定 FRESH_MAIN 的 bundle verify）；场景改为 S1–S11（新增 S11，改写 S1、S5、S6、S8、S9）；spec 补规划资料写入路径（实现 Issue 不改规划资料）、AGENTS「项目规则」恢复锚点及其治理步骤、技能边界（只用 §5 表列技能）、wayfinder 位置、访谈深度收口、接入前边界、决定落点、子 Issue 路由以 resolve-route 为准、调整以评论记到受影响 Issue、smoke 守卫清单、未决问题节；去掉里程碑层；git_scope 由 15 收窄为 13（去掉 04 与 aisoft-matt-workflow） |
@@ -44,7 +44,9 @@ updated: 2026-10-25
 | 修订后文档与路由 | PASS | 修订后 `git diff --check` 无输出；`aisoft check-change-documents --porcelain`：change-documents、change-pr-url 均 PASS；`aisoft resolve-route 430 --provider codex`：R3 + G1，differences={}，policy SHA256 `184608fd3d3553e7a688712adb99ba98f62e81e9e919e96233f422126486ff40` 不变 |
 | 路由必用技能满足情况 | 已补跑，合同现已确认 | 路由 skills 含 grill-me、to-spec、to-tickets。to-spec 与 to-tickets 经平台 publisher 发布映射文档（见上方「受限 publisher」行）。2026-10-25 负责人明确选择补跑 grill-me 并沿用已有结论；owner 会话按平台 pin 的 grill-me → grilling 核对一次决策树，新增问题为 0，未伪造新的用户回答，详见下节。保留 route.skills，不申请豁免；批准来自后续明确确认，不来自技能记录 |
 | 确认点 1 | 已明确确认 | 负责人于 2026-10-25 明确指示：“确认 #430 修订合同。提交修订、同步 Issue 并读回核对，设为 approved 后启动 T01；治理文件提交后停止，交 fresh run 继续。确认点 2 前不 push、不建 PR。”批准范围为本票 13 个文件、12 条 AC 与 T01–T03；当前执行到 T01 治理 commit 为止 |
-| Issue 正文同步 | NOT RUN | 已授权同步；先提交修订，再经 broker 回填完整合同并 fresh-read 核对，随后投影 approved；成功后补真实回执 |
+| 修订提交与 Issue 正文同步 | PASS | 修订提交 `a847e70889e0abcd3cd565620e38e13372c2eec5`；broker 回填四份完整合同后 fresh-read 逐字一致，正文 56415 bytes，SHA256 `edc4b4a909c844be4fdeb582a86fe4ee3fb7ce93432f001c95e937fcce9222c0`。远端正文作为该次合同快照保留，后续执行证据不改写获批 spec/plan 语义 |
+| approved 投影与读回 | PASS | 完整合同同步读回成功后，broker 设置 approved 并再次读取；真实标签恰为 approved、complexity/complex、type/platform，Issue open，正文未变；本地 summary 随后同步 approved |
+| T01 发布基线 | PASS | broker fresh-fetch main 后固定 RELEASE_BASE=`2454b0c2519b0145aca4f1d289efb09ed8ac46d8`，main 与本分支最新发布包均 1.16.0；NEXT_MINOR=1.17.0，RELEASE_DATE=2026-10-25。main 新增 #429 的核对代码/测试、合同、索引，不涉及 T01 触点；未重写历史或导入无关修改 |
 | 最终实现独立审查 / PR CI | NOT RUN | 没有实施提交或 PR |
 | 全局安装 / 下游项目采用 / live / 部署 / UAT | NOT RUN | 不在本票实施范围 |
 
@@ -73,3 +75,5 @@ updated: 2026-10-25
 本票仅准备合同，未发最终 PR，也未授予任何部署或安装权限。修订前的完整 spec/plan 已放入同一 Issue 正文；2026-10-25 的修订只在本地分支，Issue 正文待最终确认后回填（见「Issue 正文同步」行）。3800ec2d 提交后已回填 exact candidate commit 与文档摘要，并经 broker fresh-read 核对正文和标签；修订稿的 Issue 回填见「Issue 正文同步」行（完整 spec/plan 回填，fresh-read 后再写 approved）。最终回执保留在本次准备证据目录，交付报告引用实际结果。
 
 本次准备证据目录：`/private/tmp/aisoft-greenfield-contract-261024-h029jbgw`。其中 broker 响应与一次性校验结果是本地辅助证据，不是需要下游安装的制品；Issue 正文和本票文件是评估所需的正式内容。
+
+2026-10-25 启动与 T01 原始回执目录：`/private/tmp/aisoft-430-t01-261025-4qzk18d6`。已保存合同提交、正文同步及读回、approved 投影及读回、fresh-fetch 与版本依据。重要执行事实继续回填本票文档，临时目录不替代持久证据。

@@ -36,7 +36,7 @@ route:
   review: cross-provider
   confirm: 2
 override_reason: ''
-status: spec-drafting
+status: approved
 pr_url: ''
 ---
 
@@ -46,7 +46,7 @@ pr_url: ''
 
 负责人于 2026-10-24 明确要求建立 complex Issue、完善 spec/plan 供确认，并自行交 Claude 侧结合内部材料深入评估。已认可的方向是：保留 Matt 与现有路线图为基线，按项目情况选择合适技能，**当前阶段详细，下一阶段有轮廓，远期保留方向**。
 
-负责人于 2026-10-25 明确确认本票修订合同，授权提交修订、同步 Issue 并读回核对，设为 approved 后启动 T01；治理文件提交后立即停止，由 fresh run 在同一合同授权内继续。确认点 2 前不 push、不建 PR。本地生命周期先保持 spec-drafting，远端合同读回一致后再投影 approved；这项授权不包含安装新技能包、合并或部署。
+负责人于 2026-10-25 明确确认本票修订合同，授权提交修订、同步 Issue 并读回核对，设为 approved 后启动 T01；治理文件提交后立即停止，由 fresh run 在同一合同授权内继续。确认点 2 前不 push、不建 PR。修订已固定为 `a847e70889e0abcd3cd565620e38e13372c2eec5`，完整正文同步后逐字读回一致，远端与本地均已投影 approved；这项授权不包含安装新技能包、合并或部署。
 
 ## 范围与方案
 
@@ -62,7 +62,8 @@ pr_url: ''
 - worktree：`/private/tmp/issue-430-greenfield-planning`。
 - 唯一 writer session：`01a16e1b-1085-7712-b5a8-c100d9f74629`。
 - 2026-10-24 broker fresh-fetch 后基线：`08aac8d5b9af4d334c53bcf34029870f09e50bf0`。
-- #429 与 #417 是独立在途事项，不作为依赖，也不修改其文件、分支或 worktree。未来实施前重新读取 main 和使用发布包版本，避免版本号冲突。
+- #429 与 #417 不作为本票依赖，也不修改其文件、分支或 worktree。T01 前 broker fresh-fetch main 得到 `2454b0c2519b0145aca4f1d289efb09ed8ac46d8`（RELEASE_BASE），最新发布包仍为 1.16.0，本批 NEXT_MINOR 固定为 1.17.0，RELEASE_DATE 为 2026-10-25。
+- fresh main 相对原始基线只增加 #429 的外部技能版本核对代码/测试、其合同和审查索引；不影响 T01 的方法、路由、运行适配或发布包输入。T01 保持本分支线性提交，不改写既有提交或回放无关文件。T03 按计划重新读取 main 并处理最终候选整合。
 
 ## 实施分段与停点
 
