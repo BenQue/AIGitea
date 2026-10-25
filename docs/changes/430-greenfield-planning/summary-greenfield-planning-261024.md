@@ -36,8 +36,8 @@ route:
   review: cross-provider
   confirm: 2
 override_reason: ''
-status: approved
-pr_url: ''
+status: pr-open
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/432
 ---
 
 # Summary：全新项目需求发现与滚动阶段规划
