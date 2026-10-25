@@ -35,8 +35,8 @@ updated: 2026-10-25
 | 草稿结构检查（修订前） | PASS（已过时） | 修订前一次性本地校验：15 个唯一 scope 路径、11 个 AC 均映射、3 个 pending Txx、10 个场景；非 summary 无 status/pr_url。该校验未运行平台 parse_plan，修订后由下方「plan 可执行性」行取代 |
 | 判级与生命周期读回 | PASS | `classify --apply 430` 后另行 `classify --verify 430`；broker fresh-read 返回 open，且恰有 type/platform、complexity/complex、spec-drafting 三标签，没有 approved |
 | Issue 完整正文读回 | PASS | 已通过 broker 回填完整 summary/spec/plan、精确路径/摘要与 Claude 委托，再 fresh-read 逐字相等；初次完整发布 36280 bytes，SHA256 `a6e5355b52e28569df89c1e070b972a83c34047262b3870be97273a0c87d546e`，标签仍为 spec-drafting；此摘要仅指该次发布，不冒充随后提交信息回填后的正文摘要 |
-| 新方法实现 / T01–T03 | T01 重新准备中 | 首次 T01 因 BASE_STALE 中止；用户已明确授权基线恢复，3 笔未推送提交已逐字重放到固定 main；新回执及重新验证待完成。T02/T03 pending |
-| 完整 smoke / 隔离发布包 / 场景核验 | BLOCKED / NOT RUN | T01 完整 smoke 原样运行，在 installer source guard 因落后 main 7 commits 退出（BASE_STALE）；其后测试未到达。隔离分发与 S1–S11 属于 T02，尚未运行；不以独立检查代替完整 smoke |
+| 新方法实现 / T01–T03 | T01 in-progress（恢复后） | 新 prepare-ticket 在干净基线 `817f988ddd59d507cfcfa2437747c7f96d9c33b0` 成功；已恢复原 8 个实现触点，1.17.0 重发、文档/路由与完整 smoke 全部通过；本次治理提交后 STOP，T02/T03 pending |
+| 完整 smoke / 隔离发布包 / 场景核验 | PASS（恢复后 smoke）/ NOT RUN（T02） | 首次 BASE_STALE 失败保留；恢复后原样完整 smoke exit 0，383.62s，含 746 项 runtime 测试（110.909s）、project-leak 与最终静态门。隔离分发字节核对与 S1–S11 属于 T02，尚未运行 |
 | Claude 内部材料评估 | PASS | 2026-10-24 初评；2026-10-25 反证复核（7 个只读核对：4 组逐条反驳、3 个补查视角）与修订稿复核（4 个只读核对：覆盖、一致性、精简度、可执行性），结论发在负责人的项目线程；评估本身只读。复核发现原 plan 不能被平台 parse_plan 解析（缺 T02「验证」字段），另有写入路径、恢复锚点、技能边界等问题 |
 | 合同修订（交接历史） | 已由 owner 审阅并提交 | 负责人 2026-10-25 在项目线程要求按 Claude 意见直接修订（项目消息 02:24 与 02:26 UTC），并说明最终确认后交 Codex 侧实施。Claude 会话 `63a7ad7e-1b6f-4272-b7a6-a3b5baa39523` 按此在本 worktree 起草修订，只改本票四份文档，未提交、未改 owner marker、未 push、未改 Issue、未设 approved。这是负责人授权的单写者例外，限于起草；修订交回 owner 会话 `01a16e1b-1085-7712-b5a8-c100d9f74629` 审阅 3800ec2d 之上的未提交 diff 后提交。主要修订：plan 票型改为可解析（T02 补「验证」字段、命令逐条行内、每票逐条列 AC、AC-11 拆出 AC-12、T02 承接 AC-3/5/7/11 的场景与 fresh run 证据、执行证据加成对标记、T01 commit 前跑完整 smoke、版本在 prepare-ticket 前定、T03 补 classify 与固定 FRESH_MAIN 的 bundle verify）；场景改为 S1–S11（新增 S11，改写 S1、S5、S6、S8、S9）；spec 补规划资料写入路径（实现 Issue 不改规划资料）、AGENTS「项目规则」恢复锚点及其治理步骤、技能边界（只用 §5 表列技能）、wayfinder 位置、访谈深度收口、接入前边界、决定落点、子 Issue 路由以 resolve-route 为准、调整以评论记到受影响 Issue、smoke 守卫清单、未决问题节；去掉里程碑层；git_scope 由 15 收窄为 13（去掉 04 与 aisoft-matt-workflow） |
 | plan 可执行性 | PASS | 修订后以 worktree 内 `codex/runtime` 的 parse_plan 只读解析本 plan：T01 AC-3/5/7/11，T02 AC-1 至 AC-11（逐条列出），T03 AC-12；依赖 T01→T02→T03；必跑命令 6/6/5 条，均为完整命令行，无代码围栏碎片。修订前的 plan 在同一解析器上报 `ticket missing field: 验证|validation`。只证明计划可被现行 runtime 解析，不证明实施结果 |
@@ -46,8 +46,8 @@ updated: 2026-10-25
 | 确认点 1 | 已明确确认 | 负责人于 2026-10-25 明确指示：“确认 #430 修订合同。提交修订、同步 Issue 并读回核对，设为 approved 后启动 T01；治理文件提交后停止，交 fresh run 继续。确认点 2 前不 push、不建 PR。”批准范围为本票 13 个文件、12 条 AC 与 T01–T03；当前执行到 T01 治理 commit 为止 |
 | 修订提交与 Issue 正文同步 | PASS | 修订提交 `a847e70889e0abcd3cd565620e38e13372c2eec5`；broker 回填四份完整合同后 fresh-read 逐字一致，正文 56415 bytes，SHA256 `edc4b4a909c844be4fdeb582a86fe4ee3fb7ce93432f001c95e937fcce9222c0`。远端正文作为该次合同快照保留，后续执行证据不改写获批 spec/plan 语义 |
 | approved 投影与读回 | PASS | 完整合同同步读回成功后，broker 设置 approved 并再次读取；真实标签恰为 approved、complexity/complex、type/platform，Issue open，正文未变；本地 summary 随后同步 approved |
-| T01 发布基线 | PASS | broker fresh-fetch main 后固定 RELEASE_BASE=`2454b0c2519b0145aca4f1d289efb09ed8ac46d8`，main 与本分支最新发布包均 1.16.0；NEXT_MINOR=1.17.0，RELEASE_DATE=2026-10-25。main 新增 #429 的核对代码/测试、合同、索引，不涉及 T01 触点；未重写历史或导入无关修改 |
-| 最终实现独立审查 / PR CI | NOT RUN | 没有实施提交或 PR |
+| 首次 T01 发布基线（历史） | PASS | broker fresh-fetch main 后固定 RELEASE_BASE=`2454b0c2519b0145aca4f1d289efb09ed8ac46d8`，main 与本分支最新发布包均 1.16.0；NEXT_MINOR=1.17.0，RELEASE_DATE=2026-10-25。main 新增 #429 的核对代码/测试、合同、索引，不涉及 T01 触点；该次准备尚未整合 main，后因 source guard 阻断获得明确恢复授权，见下节 |
+| 最终实现独立审查 / PR CI | NOT RUN | 最终实现独立审查留待 T03，T01 提交不等于独立审查；确认点 2 前没有 push 或 PR |
 | 全局安装 / 下游项目采用 / live / 部署 / UAT | NOT RUN | 不在本票实施范围 |
 
 ## grill-me 补跑记录
@@ -234,11 +234,136 @@ updated: 2026-10-25
 
 基线恢复记录已通过 broker 回填同一 Issue 并 fresh-read 逐字核对：正文 57790 bytes，SHA256 `cda8dfd36b87ceb80634e0afb93dcce9981a09ed3301a1d7259a23cb31edb829`；标签仍恰为 approved、complexity/complex、type/platform，Issue open。原获批正文完整保留，新增内容仅为恢复授权与 SHA 对应关系。
 
-### 当前执行记录
+### 当前执行记录（恢复后）
+
+新 prepare-ticket 返回 prepared，ticket_base=`817f988ddd59d507cfcfa2437747c7f96d9c33b0`，起始 staged/unstaged/untracked 均为空；原始回执如下。T01 尚未完成；治理 commit 后必须 STOP，fresh run 才能固定该提交、执行双轴审查并补写 AC/head/Status。
 
 ```aisoft-execution
 {
   "change_base": "2454b0c2519b0145aca4f1d289efb09ed8ac46d8",
-  "tickets": {}
+  "tickets": {
+    "T01": {
+      "start": {
+        "identity": {
+          "issue": 430,
+          "branch": "change/430-greenfield-planning",
+          "owner": "01a16e1b-1085-7712-b5a8-c100d9f74629",
+          "worktree": "/private/tmp/issue-430-greenfield-planning",
+          "provider": "codex",
+          "plan_path": "docs/changes/430-greenfield-planning/plan-greenfield-planning-261024.md",
+          "semantic_hash": "02f0716d1747f4971f3bfa07868bee5861c6cc698b615a5735585a194e383aea"
+        },
+        "ticket": "T01",
+        "ticket_base": "817f988ddd59d507cfcfa2437747c7f96d9c33b0",
+        "raw_plan_sha256": "cba4ec14b5b1969e738150eacab814e1a8757bf326771e5d5ed9dbe9a207afb0",
+        "scope": [
+          "docs/changes/430-greenfield-planning/summary-greenfield-planning-261024.md",
+          "docs/changes/430-greenfield-planning/spec-greenfield-planning-261024.md",
+          "docs/changes/430-greenfield-planning/plan-greenfield-planning-261024.md",
+          "docs/changes/430-greenfield-planning/verification-greenfield-planning-261024.md",
+          "skills/aisoft-platform/references/greenfield-planning.md",
+          "skills/aisoft-platform/SKILL.md",
+          "skills/issue-session-flow/SKILL.md",
+          "skills/aisoft-platform/references/getting-started.md",
+          "usage/USER-GUIDE.md",
+          "usage/CONTRACT.md",
+          "03-Issue-Spec-Plan与单闸门开发流程.md",
+          "usage/bundle.json",
+          "docs/governance/review-evidence-index.md"
+        ],
+        "initial_state": {
+          "staged": {},
+          "unstaged": {},
+          "untracked": {}
+        },
+        "derived_plan": ".superpowers/aisoft/430/issue-430-358643271815a468-02f0716d1747f497.md",
+        "scratch": ".superpowers/sdd/issue-430-358643271815a468-02f0716d1747f497",
+        "policy_sha256": "184608fd3d3553e7a688712adb99ba98f62e81e9e919e96233f422126486ff40",
+        "route": {
+          "process": "complex-production",
+          "tier": "frontier",
+          "effort": "max",
+          "skills": "grill-me, to-spec, to-tickets, implement, issue-session-flow",
+          "method": "spec-plan",
+          "verify": "full+reverse-proof",
+          "review": "cross-provider",
+          "confirm": "2"
+        },
+        "source_evidence": {
+          "codex/vendor/mattpocock/v1.2.2/manifest.json": {
+            "sha256": "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da",
+            "tag": "v1.2.2",
+            "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302"
+          },
+          "codex/vendor/mattpocock/v1.3.1/manifest.json": {
+            "sha256": "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd",
+            "tag": "v1.3.1",
+            "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+          },
+          "codex/vendor/superpowers/v7.0.0/manifest.json": {
+            "sha256": "ad9a021021ce607b35d6aa4e54bf3fb6ef572b148e08966bdf7200293629f692",
+            "tag": "v7.0.0",
+            "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3"
+          }
+        },
+        "model_configuration": "not observed by helper; caller records actual model/effort in verification"
+      },
+      "base": "817f988ddd59d507cfcfa2437747c7f96d9c33b0",
+      "semantic_hash": "02f0716d1747f4971f3bfa07868bee5861c6cc698b615a5735585a194e383aea",
+      "validation_sha256": "82078592a279b0942451537d94531ff6c7cf9be8b96f66086e741cd047720137",
+      "checks": [
+        {
+          "command": "git diff --check",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T05:34:41.491195+00:00; duration=0.02s; log=/private/tmp/aisoft-430-t01-261025-4qzk18d6/T01-check-1-restarted.log; log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": "bash codex/tools/aisoft check-change-documents --porcelain",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T05:34:41.491198+00:00; duration=1.55s; log=/private/tmp/aisoft-430-t01-261025-4qzk18d6/T01-check-2-restarted.log; log_sha256=b5ab2d302d4234ab51dbe58b5e1ab9ec654b961057d21a4ba3e7c3d337dc2683; change-documents=PASS; change-pr-url=PASS"
+        },
+        {
+          "command": "bash codex/tools/aisoft resolve-route 430 --provider codex",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T05:34:41.491189+00:00; duration=0.11s; log=/private/tmp/aisoft-430-t01-261025-4qzk18d6/T01-check-3-restarted.log; log_sha256=5fa974d984df330913a2b47a52a827ac7f21a5811ed85bef666f25e1b6b124d1; R3+G1; differences={}; policy_sha256=184608fd3d3553e7a688712adb99ba98f62e81e9e919e96233f422126486ff40"
+        },
+        {
+          "command": "bash codex/tools/usage-bundle.sh --release \"$NEXT_MINOR\" --today \"$RELEASE_DATE\" --compatibility minor --notes '新增全新项目需求发现与滚动阶段规划方法及入口'",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T05:34:24.772515+00:00; duration=0.1s; log=/private/tmp/aisoft-430-t01-261025-4qzk18d6/T01-check-4-restarted.log; log_sha256=17f132fadda66c4bedbddcab6e84ce5b525fcedfd68cbd5755a900f2501dfb42; RELEASE_BASE=2454b0c2519b0145aca4f1d289efb09ed8ac46d8; NEXT_MINOR=1.17.0; RELEASE_DATE=2026-10-25; release_digest=sha256:499d72a5a8c15e26bb766cc58793d38fef8e74628f9f76b7add33f243f710137"
+        },
+        {
+          "command": "bash codex/tools/usage-bundle.sh --verify --baseline-ref \"$RELEASE_BASE\"",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T05:34:41.491191+00:00; duration=0.13s; log=/private/tmp/aisoft-430-t01-261025-4qzk18d6/T01-check-5-restarted.log; log_sha256=860971d9f11e6dd3d466cd92595996a820bf4896da01ef287d0bbf30a35e4adb; RELEASE_BASE=2454b0c2519b0145aca4f1d289efb09ed8ac46d8; NEXT_MINOR=1.17.0; RELEASE_DATE=2026-10-25; release_digest=sha256:499d72a5a8c15e26bb766cc58793d38fef8e74628f9f76b7add33f243f710137"
+        },
+        {
+          "command": "AISOFT_USAGE_BASELINE_REF=\"$RELEASE_BASE\" LC_ALL=C bash codex/tests/smoke.sh",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T05:34:49.098024+00:00; duration=383.62s; log=/private/tmp/aisoft-430-t01-261025-4qzk18d6/T01-check-6-restarted.log; log_sha256=be3e0c1bb7af2caba655453629b71389ebdca5a6b76da22463605dd50734197b; RELEASE_BASE=2454b0c2519b0145aca4f1d289efb09ed8ac46d8; NEXT_MINOR=1.17.0; RELEASE_DATE=2026-10-25; full smoke PASS; 746 runtime tests OK (110.909s); project-leak PASS; Codex platform static smoke checks passed; temporary fixtures only"
+        }
+      ]
+    }
+  }
 }
 ```
+
+## T01 提交前结果与 fresh run 交接
+
+恢复后的六条计划命令均为 PASS；当前机器记录保留计划中的完整命令字符串，实际变量和原始日志 SHA256 见各 checks.evidence。smoke 于 2026-10-25T05:34:49.098024+00:00 开始，383.62s 后 exit 0，输出 `Ran 746 tests in 110.909s` / `OK`、`PASS: project-leak` 与 `Codex platform static smoke checks passed.`；日志 SHA256 `be3e0c1bb7af2caba655453629b71389ebdca5a6b76da22463605dd50734197b`。旧 BASE_STALE 结果没有覆盖或删除，新 PASS 不表示真实安装、采用、CI、部署或 UAT。
+
+本次 source/local 核对：
+
+| T01 对应 AC | 已观察的实现与本地证据 | 尚待后续切片 |
+|---|---|---|
+| AC-3 | reference §2、§7 明确唯一入口、可合并三种资料、规划/收口 Issue 写入、实现 Issue 只链接；11 个实际改动文件均在 13 路径允许集合内 | T02 S2/S8/S11 与固定候选审查 |
+| AC-5 | reference §4 回链现行路由；当前 resolve-route 返回 R3+G1、differences={}，policy 字节未变 | T02 S5 三 provider/路由场景 |
+| AC-7 | reference §6 限定已有技能入口与 wayfinder 位置；实际 diff 未改任何 vendor、pin、manifest、runtime 或安装器 | T02 S9 与最终独立复核 |
+| AC-11 | 治理提交前六命令通过，完整 smoke 包含已跟踪的新 reference；恢复后的发布包成员与恢复前逐字一致 | 本次独立治理 commit 与 STOP 由 fresh run 核实，再补 T01 完成记录；T02 证明 fresh run 切片 |
+
+1. 本次仅提交 T01 方法、入口、1.17.0 发布包及本票证据，随后立即 STOP；不在当前 run 执行 T02 或 review-candidate。
+2. fresh run 先重读 AGENTS、批准 spec/plan、变更后的两个技能与新 reference、verification；核对 exact branch/worktree/owner、真实 HEAD 和本次治理 diff。原合同授权继续有效。
+3. 当前整批 change_base=`2454b0c2519b0145aca4f1d289efb09ed8ac46d8`，真实 T01 ticket_base=`817f988ddd59d507cfcfa2437747c7f96d9c33b0`；候选 HEAD 取本次治理 commit 的完整 SHA，不用 HEAD~1 推断起点。旧 `89aef55c` 回执只作已中止尝试的历史证据。
+4. 使用真实治理 commit 执行 `review-candidate 430 T01 --head <完整 SHA>`，按现行执行适配完成同一固定候选的 Standards/Spec 两轴核对，记录 commit/STOP/遗漏/AC 证据；需要治理修复时再次受控提交并 STOP。
+5. fresh run 才把 T01 的 Status 改 done，并在上方当前 aisoft-execution 中补齐 head、AC 与相应完成证据，再 prepare-ticket 430 T02。这里故意不预写 head 或 AC 全通过，避免在 commit/STOP 前伪造完成。T02 的 S1–S11、独立隔离分发核对和 T03 的 Claude 最终审查仍 NOT RUN。
+6. 备份 bundle、patch 与 owner 的专用 stash 保留用于恢复，不动其它会话数据。确认点 2 前不 push、不建 PR；本票没有安装新技能或修改真实项目。

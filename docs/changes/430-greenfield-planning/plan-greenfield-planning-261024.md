@@ -35,7 +35,7 @@ updated: 2026-10-25
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 通用方法、最小模板、现有入口衔接与使用包版本；独立治理提交后 STOP | - | pending |
+| T01 | 通用方法、最小模板、现有入口衔接与使用包版本；独立治理提交后 STOP | - | in-progress |
 | T02 | fresh run 场景核验、隔离分发与现有回归证据 | T01 | pending |
 | T03 | 实际实现的独立评议、finding 收口及最终 PR 候选 | T02 | pending |
 
@@ -134,5 +134,5 @@ Txx 是唯一任务身份。后续 provider 使用执行视图时只从本 canon
 ## 执行证据
 
 <!-- execution-evidence:start -->
-2026-10-25 负责人确认完整合同；修订已同步 Issue、读回并设 approved。首次 T01 检查因 BASE_STALE 中止。负责人另行明确允许将尚未推送的三笔提交重放到已核对 main 并重建开始回执；重放完成且各提交 diff 字节相同。当前准备在恢复后的干净基线上重新 prepare-ticket，旧回执作为历史保留，不冒充当前启动或完成证据。T02/T03 尚未启动；T01 治理提交后立即 STOP。
+2026-10-25 负责人已确认合同，修订同步并读回 approved。首次 T01 因 BASE_STALE 中止后，经负责人明确授权完成基线恢复；新 prepare-ticket 成功，ticket_base=817f988ddd59d507cfcfa2437747c7f96d9c33b0，开始工作树干净。新旧原始回执分别保存于 verification，旧检查只作历史，恢复后六条计划命令均 PASS（完整 smoke 383.62s，746 项 runtime 测试通过）。本次提交治理实现与证据后 STOP，T01 暂保持 in-progress，待 fresh run 核对真实提交/STOP 和固定候选后补齐完成记录。T02/T03 尚未启动；T01 治理提交后立即 STOP，fresh run 核对并补齐完成证据后才准备 T02。
 <!-- execution-evidence:end -->

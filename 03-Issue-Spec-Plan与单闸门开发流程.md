@@ -155,6 +155,8 @@ routine 的 manifest 字段与凭据种类已删除，合同拒绝仍声明它�
 Matt `prototype`；然后 `to-tickets` 出 Txx 计划，开发按 Txx 顺序执行。`grill-me` 与 `brainstorming` 都在确认点 1
 之前完成，它们就是形成合同的过程。
 
+全新项目的需求发现、阶段深度与规划资料归属见 [滚动阶段规划](skills/aisoft-platform/references/greenfield-planning.md)，各 Issue 继续按本节路由形成合同。
+
 ## 3. 文档合同
 
 ```text

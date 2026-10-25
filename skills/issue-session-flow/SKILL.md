@@ -34,8 +34,10 @@ description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆
 调度会话开在**这批 Issue 的相关项目**里，只协调不实现：不建 change worktree、不写实现代码、不碰任何 Issue 的分支。
 
 大阶段任务拆票前，先对整个阶段 `$grill-me` 一次定需求，再拆成 Issue。调度会话的产出物是一张**路线图**，
-沿用 `docs/governance/remediation-roadmap.md` 的表形：一批一行，写名称、一句话目标、判级、依赖、可与谁并行、
+表形为一批一行，写名称、一句话目标、判级、依赖、可与谁并行、
 状态，表下写推荐顺序。各 Issue 的路由卡由各自会话查表产出，路线图不替它们定级。
+
+全新项目先按 [滚动阶段规划](../aisoft-platform/references/greenfield-planning.md) 确定当前阶段和规划资料的写入归属，再使用本节调度。
 
 ## change worktree 的单写者归属
 

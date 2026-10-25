@@ -1,6 +1,6 @@
 ---
 name: aisoft-platform
-description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Use when 在已接入平台的项目上开发/修复/部署、接入新项目到平台、走 Issue→triage→spec/plan→实现→PR→部署流程、检查私有 Gitea 仓库/Issue/PR/Actions/分支保护、或排查平台 CI/部署/agent 问题。Also use to operate or onboard projects on the AISoft self-hosted Gitea delivery platform: Issue analysis, small-or-complex routing, spec/plan contracts, session implementation work, provider coexistence, CI/deployment incidents, first non-production deployments, rollback planning, production script boundaries. 触发词：AISoft、AIGitea、新用户上手、平台 VM、Gitea Issue、判级、small/complex、change 分支、host-access broker、architecture lock、部署失败、接入平台、project-align。
+description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Use when 在已接入平台的项目上开发/修复/部署、接入新项目到平台、走 Issue→triage→spec/plan→实现→PR→部署流程、检查私有 Gitea 仓库/Issue/PR/Actions/分支保护、或排查平台 CI/部署/agent 问题。Also use to operate or onboard projects on the AISoft self-hosted Gitea delivery platform: Issue analysis, small-or-complex routing, spec/plan contracts, session implementation work, provider coexistence, CI/deployment incidents, first non-production deployments, rollback planning, production script boundaries. 触发词：AISoft、AIGitea、新用户上手、全新项目、新项目规划、阶段路线图、平台 VM、Gitea Issue、判级、small/complex、change 分支、host-access broker、architecture lock、部署失败、接入平台、project-align。
 ---
 
 # AISoft 自托管交付平台（v3.6）
@@ -132,6 +132,8 @@ Claude 与 Codex 在平台维护层共用同一平台合同，能力等价、可
 
 平台不改写两个技能包的原文，只在这里约束它们在平台项目内的用法。Matt 的同一组约束在 Codex 侧由 `aisoft-matt-workflow` 技能承载（源文件 `skills/aisoft-matt-workflow/SKILL.md`），与本节逐条对照。
 
+全新项目的阶段规划入口与技能分工见 [滚动阶段规划](references/greenfield-planning.md)。
+
 两个技能包任一发生大版本更新、或含技能增删的更新时，安装或升级之前先按 `08-双工具共存与实施.md` §5
 「外部技能包升级后的适配检查」人工逐项核对（技能增删、调用方式、文件与目录约定、Git / PR / 并行写入
 副作用），结论写进承载该次升级的 Issue。这是人工清单，不据此设定时任务、自动检查或安装。
@@ -177,6 +179,7 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 ## 接入新项目 / 项目对齐 / 私有访问
 
 - 新用户上手：用户要按自己所用的 AI 工具配好本机并开始第一个项目时，按 [references/getting-started.md](references/getting-started.md) 一步一步带用户走。
+- 全新项目规划：登记与采用完成后，按 [references/greenfield-planning.md](references/greenfield-planning.md) 做需求发现与滚动阶段规划，再进入各 Issue 的既有流程。
 - 新项目接入：改基础设施之前先读 [references/onboarding-runbook.md](references/onboarding-runbook.md)——governance manifest + project-agent gate、host-role gate、architecture 声明、CI/部署与验收顺序都有既定约定，不得跳步。
 - 项目对齐（初始化=更新，幂等）：入口 [references/project-align.md](references/project-align.md)——checklist 盘点缺口、逐项走目标仓独立 Issue/AI 判级的单一 PR，不假设每个对齐缺口都是 small；确定性核对用 `aisoft project-check`（PASS/GAP，只读）。项目按版本化使用发布包对齐：合同入口是项目内 `.aisoft/platform-usage.md`，版本以 `.aisoft/platform-usage.lock.json` 为准；导出与生成采用改动是维护层动作（`project-align.md`「维护层」节）。
 - 私有 Gitea 检查：先读 [references/private-gitea-access.md](references/private-gitea-access.md)；**匿名 404 不构成不存在证据**，按 authenticated ladder 走。

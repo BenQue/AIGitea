@@ -106,7 +106,13 @@
    - `.aisoft/bin/aisoft project-check`：没有 `GAP:` 行。有 GAP 就按行在项目里建 Issue 修复，不要手改 `.aisoft/` 下的文件。
 2. 用 Cursor 时，在平台检出里加 `--repo <项目检出>` 重跑上面的版本读回，`SUPERPOWERS cursor` 与 `MATT cursor` 两行都应为 `PIN_CLEAN`；
    不是就停下报告。用 Codex 时，项目级 `.agents/skills/` 里的 Matt 快照目前没有工具核对，如实告诉用户这一项未核对，不要声称已核对。
-3. 项目 `AGENTS.md` 的「项目事实」由项目自己填写（技术栈、测试命令、健康端点、交付形态等，见 `.aisoft/platform-usage.md` §4）。
+3. 项目 `AGENTS.md` 的「项目事实」由项目自己填写（技术栈、测试命令、健康端点、交付形态等，见 `.aisoft/platform-usage.md` §4）；全新项目在「项目规则」登记唯一规划入口，按 [滚动阶段规划](greenfield-planning.md) 处理。
+
+### 全新项目先规划（登记与采用后）
+
+已有想法或需求材料、尚无可维护实现时，按 [需求发现与滚动阶段规划](greenfield-planning.md) 显式启动 Matt `grill-me`，
+形成项目简报、浅层路线图与当前阶段记录，再进入第 5 步。当前阶段详细，下一阶段有轮廓，远期保留方向。
+已有代码走项目对齐或增量 Issue。尚未登记与采用时只整理用户本地笔记，先完成上面的接入步骤。
 
 ## 第 5 步：跑通第一张 Issue（开发者）
 
