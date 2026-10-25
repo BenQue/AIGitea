@@ -35,7 +35,7 @@ updated: 2026-10-25
 | 草稿结构检查（修订前） | PASS（已过时） | 修订前一次性本地校验：15 个唯一 scope 路径、11 个 AC 均映射、3 个 pending Txx、10 个场景；非 summary 无 status/pr_url。该校验未运行平台 parse_plan，修订后由下方「plan 可执行性」行取代 |
 | 判级与生命周期读回 | PASS | `classify --apply 430` 后另行 `classify --verify 430`；broker fresh-read 返回 open，且恰有 type/platform、complexity/complex、spec-drafting 三标签，没有 approved |
 | Issue 完整正文读回 | PASS | 已通过 broker 回填完整 summary/spec/plan、精确路径/摘要与 Claude 委托，再 fresh-read 逐字相等；初次完整发布 36280 bytes，SHA256 `a6e5355b52e28569df89c1e070b972a83c34047262b3870be97273a0c87d546e`，标签仍为 spec-drafting；此摘要仅指该次发布，不冒充随后提交信息回填后的正文摘要 |
-| 新方法实现 / T01–T03 | T01 in-progress（恢复后） | 新 prepare-ticket 在干净基线 `817f988ddd59d507cfcfa2437747c7f96d9c33b0` 成功；已恢复原 8 个实现触点，1.17.0 重发、文档/路由与完整 smoke 全部通过；本次治理提交后 STOP，T02/T03 pending |
+| 新方法实现 / T01–T03 | T01 done；T02/T03 pending | 治理 commit `2e54d7e0c85810cbcff2d5878d82c849e76b6144` 后前一轮已停止；本轮 fresh run 重读并核对，固定候选机械检查、Standards/Spec 两轴均 PASS；T01 完成证据已补齐，准备 T02 |
 | 完整 smoke / 隔离发布包 / 场景核验 | PASS（恢复后 smoke）/ NOT RUN（T02） | 首次 BASE_STALE 失败保留；恢复后原样完整 smoke exit 0，383.62s，含 746 项 runtime 测试（110.909s）、project-leak 与最终静态门。隔离分发字节核对与 S1–S11 属于 T02，尚未运行 |
 | Claude 内部材料评估 | PASS | 2026-10-24 初评；2026-10-25 反证复核（7 个只读核对：4 组逐条反驳、3 个补查视角）与修订稿复核（4 个只读核对：覆盖、一致性、精简度、可执行性），结论发在负责人的项目线程；评估本身只读。复核发现原 plan 不能被平台 parse_plan 解析（缺 T02「验证」字段），另有写入路径、恢复锚点、技能边界等问题 |
 | 合同修订（交接历史） | 已由 owner 审阅并提交 | 负责人 2026-10-25 在项目线程要求按 Claude 意见直接修订（项目消息 02:24 与 02:26 UTC），并说明最终确认后交 Codex 侧实施。Claude 会话 `63a7ad7e-1b6f-4272-b7a6-a3b5baa39523` 按此在本 worktree 起草修订，只改本票四份文档，未提交、未改 owner marker、未 push、未改 Issue、未设 approved。这是负责人授权的单写者例外，限于起草；修订交回 owner 会话 `01a16e1b-1085-7712-b5a8-c100d9f74629` 审阅 3800ec2d 之上的未提交 diff 后提交。主要修订：plan 票型改为可解析（T02 补「验证」字段、命令逐条行内、每票逐条列 AC、AC-11 拆出 AC-12、T02 承接 AC-3/5/7/11 的场景与 fresh run 证据、执行证据加成对标记、T01 commit 前跑完整 smoke、版本在 prepare-ticket 前定、T03 补 classify 与固定 FRESH_MAIN 的 bundle verify）；场景改为 S1–S11（新增 S11，改写 S1、S5、S6、S8、S9）；spec 补规划资料写入路径（实现 Issue 不改规划资料）、AGENTS「项目规则」恢复锚点及其治理步骤、技能边界（只用 §5 表列技能）、wayfinder 位置、访谈深度收口、接入前边界、决定落点、子 Issue 路由以 resolve-route 为准、调整以评论记到受影响 Issue、smoke 守卫清单、未决问题节；去掉里程碑层；git_scope 由 15 收窄为 13（去掉 04 与 aisoft-matt-workflow） |
@@ -342,7 +342,14 @@ updated: 2026-10-25
           "result": "PASS",
           "evidence": "exit=0; UTC=2026-10-25T05:34:49.098024+00:00; duration=383.62s; log=/private/tmp/aisoft-430-t01-261025-4qzk18d6/T01-check-6-restarted.log; log_sha256=be3e0c1bb7af2caba655453629b71389ebdca5a6b76da22463605dd50734197b; RELEASE_BASE=2454b0c2519b0145aca4f1d289efb09ed8ac46d8; NEXT_MINOR=1.17.0; RELEASE_DATE=2026-10-25; full smoke PASS; 746 runtime tests OK (110.909s); project-leak PASS; Codex platform static smoke checks passed; temporary fixtures only"
         }
-      ]
+      ],
+      "head": "2e54d7e0c85810cbcff2d5878d82c849e76b6144",
+      "ac": {
+        "AC-3": "PASS",
+        "AC-5": "PASS",
+        "AC-7": "PASS",
+        "AC-11": "PASS"
+      }
     }
   }
 }
@@ -367,3 +374,23 @@ updated: 2026-10-25
 4. 使用真实治理 commit 执行 `review-candidate 430 T01 --head <完整 SHA>`，按现行执行适配完成同一固定候选的 Standards/Spec 两轴核对，记录 commit/STOP/遗漏/AC 证据；需要治理修复时再次受控提交并 STOP。
 5. fresh run 才把 T01 的 Status 改 done，并在上方当前 aisoft-execution 中补齐 head、AC 与相应完成证据，再 prepare-ticket 430 T02。这里故意不预写 head 或 AC 全通过，避免在 commit/STOP 前伪造完成。T02 的 S1–S11、独立隔离分发核对和 T03 的 Claude 最终审查仍 NOT RUN。
 6. 备份 bundle、patch 与 owner 的专用 stash 保留用于恢复，不动其它会话数据。确认点 2 前不 push、不建 PR；本票没有安装新技能或修改真实项目。
+
+## 2026-10-25 fresh run：T01 完成核对
+
+负责人在上一轮治理提交与明确 STOP 后发送“继续”。本轮重新读取 AGENTS、README 相关合同、execution-adapter、aisoft-matt-workflow、两个受改技能、新 reference、获批 spec/plan 和实际治理 diff。HEAD=`2e54d7e0c85810cbcff2d5878d82c849e76b6144`，branch/worktree/owner 与原回执相同，工作树干净；与上一轮停止回执逐项相符。Matt v1.3.1 snapshot 再次通过 verify_snapshot，未加载新技能包或真实安装。
+
+真实 `review-candidate 430 T01 --head 2e54d7e0c85810cbcff2d5878d82c849e76b6144` 返回机械 PASS，候选包摘要 `29efaa732eeff9be6b4ec6a3e621d5b0f712810d1fa27ee384ba31b13c87d1fe`。ticket range=`817f988ddd59d507cfcfa2437747c7f96d9c33b0..2e54d7e0c85810cbcff2d5878d82c849e76b6144`，唯一提交为该治理提交，11 文件；ticket diff SHA256 `9574234214d3d827462fcd5695ed3c8a27403b5d145a0907ff39dc26e423fe0f`。整批 range 仍从 `2454b0c2519b0145aca4f1d289efb09ed8ac46d8` 起，12 文件，diff SHA256 `f88620845e4ff5994b4f8a601bae2c94326640b649ac3e63f5ab14ca4041c5f6`。没有 staged/unstaged/untracked 遗漏；原始辅助日志已按 SHA 存入 verification 的 checks，未依赖被忽略成果补足交付。编辑器未保存缓冲无法由工具证明，保持 UNKNOWN。
+
+按 Matt code-review 明确要求，两个只读子代理同时接收相同固定 BASE/HEAD 与提交清单。执行 provider 为 Codex（实际模型/强度未暴露），这两项是逐票审查，不代替 T03 Claude 跨 provider 审查。
+
+### Standards
+
+审查者 `/root/t01_standards`：PASS，明确规范违规 0、启发性问题 0。reference 保持 Issue/Txx、两确认点、单写者及治理 STOP/fresh run 边界；项目事实与阶段决定留在项目侧。技能、指南与合同使用薄指针，未形成第二套授权或执行状态。正文与模板的适度重复有用途，未发现需处理的重复或分散改动问题。证据保留失败与获准恢复过程，未将 source/local 提升为 T02/T03、安装、部署或 UAT 结果。
+
+### Spec
+
+审查者 `/root/t01_spec`：缺失/部分满足 0、越界 0、实现错误 0。方法、三个模板、入口、技能边界、资料所有权与滚动规则符合 spec。1.17.0 与新参考已入发布清单，历史不变。专项核对 USER-GUIDE 不在发布包成员内，其链接在维护仓有效；CONTRACT 下发指针没有错误的 Markdown 路径。结论只覆盖 T01 源文件语义，T02 隔离导出和场景、T03 Claude 独立审查仍待执行。
+
+两轴总计各 0 finding，无待修复项。T01 的 AC-3/5/7 仅完成其 source/local 切片；AC-11 完成提交前检查、独立治理 commit 与 STOP 切片。所需 head、四条 AC 和既有六条 checks 已写入当前 aisoft-execution，Status 改 done；T02 继续覆盖场景与 fresh run 证据。
+
+本轮证据目录：`/private/tmp/aisoft-430-t02-261025-eobeoqs9`。
