@@ -35,8 +35,8 @@ updated: 2026-10-25
 | 草稿结构检查（修订前） | PASS（已过时） | 修订前一次性本地校验：15 个唯一 scope 路径、11 个 AC 均映射、3 个 pending Txx、10 个场景；非 summary 无 status/pr_url。该校验未运行平台 parse_plan，修订后由下方「plan 可执行性」行取代 |
 | 判级与生命周期读回 | PASS | `classify --apply 430` 后另行 `classify --verify 430`；broker fresh-read 返回 open，且恰有 type/platform、complexity/complex、spec-drafting 三标签，没有 approved |
 | Issue 完整正文读回 | PASS | 已通过 broker 回填完整 summary/spec/plan、精确路径/摘要与 Claude 委托，再 fresh-read 逐字相等；初次完整发布 36280 bytes，SHA256 `a6e5355b52e28569df89c1e070b972a83c34047262b3870be97273a0c87d546e`，标签仍为 spec-drafting；此摘要仅指该次发布，不冒充随后提交信息回填后的正文摘要 |
-| 新方法实现 / T01–T03 | T01 done；T02/T03 pending | 治理 commit `2e54d7e0c85810cbcff2d5878d82c849e76b6144` 后前一轮已停止；本轮 fresh run 重读并核对，固定候选机械检查、Standards/Spec 两轴均 PASS；T01 完成证据已补齐，准备 T02 |
-| 完整 smoke / 隔离发布包 / 场景核验 | PASS（恢复后 smoke）/ NOT RUN（T02） | 首次 BASE_STALE 失败保留；恢复后原样完整 smoke exit 0，383.62s，含 746 项 runtime 测试（110.909s）、project-leak 与最终静态门。隔离分发字节核对与 S1–S11 属于 T02，尚未运行 |
+| 新方法实现 / T01–T03 | T01 done；T02 验证通过、待固定候选审查；T03 pending | 治理 commit `2e54d7e0c85810cbcff2d5878d82c849e76b6144` 后前一轮已停止；本轮 fresh run 重读并核对，固定候选机械检查、Standards/Spec 两轴均 PASS；T01 完成证据已补齐；T02 六命令、S1–S11 与隔离导出通过，固定候选审查待提交后进行 |
+| 完整 smoke / 隔离发布包 / 场景核验 | PASS（source/local） | 首次 BASE_STALE 失败保留；恢复后原样完整 smoke exit 0，383.62s，含 746 项 runtime 测试（110.909s）、project-leak 与最终静态门。T02 另行运行完整 smoke 并通过，隔离分发字节/链接与 S1–S11 均已核对，见 T02 结果 |
 | Claude 内部材料评估 | PASS | 2026-10-24 初评；2026-10-25 反证复核（7 个只读核对：4 组逐条反驳、3 个补查视角）与修订稿复核（4 个只读核对：覆盖、一致性、精简度、可执行性），结论发在负责人的项目线程；评估本身只读。复核发现原 plan 不能被平台 parse_plan 解析（缺 T02「验证」字段），另有写入路径、恢复锚点、技能边界等问题 |
 | 合同修订（交接历史） | 已由 owner 审阅并提交 | 负责人 2026-10-25 在项目线程要求按 Claude 意见直接修订（项目消息 02:24 与 02:26 UTC），并说明最终确认后交 Codex 侧实施。Claude 会话 `63a7ad7e-1b6f-4272-b7a6-a3b5baa39523` 按此在本 worktree 起草修订，只改本票四份文档，未提交、未改 owner marker、未 push、未改 Issue、未设 approved。这是负责人授权的单写者例外，限于起草；修订交回 owner 会话 `01a16e1b-1085-7712-b5a8-c100d9f74629` 审阅 3800ec2d 之上的未提交 diff 后提交。主要修订：plan 票型改为可解析（T02 补「验证」字段、命令逐条行内、每票逐条列 AC、AC-11 拆出 AC-12、T02 承接 AC-3/5/7/11 的场景与 fresh run 证据、执行证据加成对标记、T01 commit 前跑完整 smoke、版本在 prepare-ticket 前定、T03 补 classify 与固定 FRESH_MAIN 的 bundle verify）；场景改为 S1–S11（新增 S11，改写 S1、S5、S6、S8、S9）；spec 补规划资料写入路径（实现 Issue 不改规划资料）、AGENTS「项目规则」恢复锚点及其治理步骤、技能边界（只用 §5 表列技能）、wayfinder 位置、访谈深度收口、接入前边界、决定落点、子 Issue 路由以 resolve-route 为准、调整以评论记到受影响 Issue、smoke 守卫清单、未决问题节；去掉里程碑层；git_scope 由 15 收窄为 13（去掉 04 与 aisoft-matt-workflow） |
 | plan 可执行性 | PASS | 修订后以 worktree 内 `codex/runtime` 的 parse_plan 只读解析本 plan：T01 AC-3/5/7/11，T02 AC-1 至 AC-11（逐条列出），T03 AC-12；依赖 T01→T02→T03；必跑命令 6/6/5 条，均为完整命令行，无代码围栏碎片。修订前的 plan 在同一解析器上报 `ticket missing field: 验证|validation`。只证明计划可被现行 runtime 解析，不证明实施结果 |
@@ -350,6 +350,108 @@ updated: 2026-10-25
         "AC-7": "PASS",
         "AC-11": "PASS"
       }
+    },
+    "T02": {
+      "start": {
+        "identity": {
+          "issue": 430,
+          "branch": "change/430-greenfield-planning",
+          "owner": "01a16e1b-1085-7712-b5a8-c100d9f74629",
+          "worktree": "/private/tmp/issue-430-greenfield-planning",
+          "provider": "codex",
+          "plan_path": "docs/changes/430-greenfield-planning/plan-greenfield-planning-261024.md",
+          "semantic_hash": "02f0716d1747f4971f3bfa07868bee5861c6cc698b615a5735585a194e383aea"
+        },
+        "ticket": "T02",
+        "ticket_base": "b2ab5720773b374319b80117960c67667f66100f",
+        "raw_plan_sha256": "10c8b673006e3ddade498d1d7d306b4aa15bba3d7fa5801bf1f67857256c4be2",
+        "scope": [
+          "docs/changes/430-greenfield-planning/summary-greenfield-planning-261024.md",
+          "docs/changes/430-greenfield-planning/spec-greenfield-planning-261024.md",
+          "docs/changes/430-greenfield-planning/plan-greenfield-planning-261024.md",
+          "docs/changes/430-greenfield-planning/verification-greenfield-planning-261024.md",
+          "skills/aisoft-platform/references/greenfield-planning.md",
+          "skills/aisoft-platform/SKILL.md",
+          "skills/issue-session-flow/SKILL.md",
+          "skills/aisoft-platform/references/getting-started.md",
+          "usage/USER-GUIDE.md",
+          "usage/CONTRACT.md",
+          "03-Issue-Spec-Plan与单闸门开发流程.md",
+          "usage/bundle.json",
+          "docs/governance/review-evidence-index.md"
+        ],
+        "initial_state": {
+          "staged": {},
+          "unstaged": {},
+          "untracked": {}
+        },
+        "derived_plan": ".superpowers/aisoft/430/issue-430-358643271815a468-02f0716d1747f497.md",
+        "scratch": ".superpowers/sdd/issue-430-358643271815a468-02f0716d1747f497",
+        "policy_sha256": "184608fd3d3553e7a688712adb99ba98f62e81e9e919e96233f422126486ff40",
+        "route": {
+          "process": "complex-production",
+          "tier": "frontier",
+          "effort": "max",
+          "skills": "grill-me, to-spec, to-tickets, implement, issue-session-flow",
+          "method": "spec-plan",
+          "verify": "full+reverse-proof",
+          "review": "cross-provider",
+          "confirm": "2"
+        },
+        "source_evidence": {
+          "codex/vendor/mattpocock/v1.2.2/manifest.json": {
+            "sha256": "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da",
+            "tag": "v1.2.2",
+            "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302"
+          },
+          "codex/vendor/mattpocock/v1.3.1/manifest.json": {
+            "sha256": "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd",
+            "tag": "v1.3.1",
+            "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+          },
+          "codex/vendor/superpowers/v7.0.0/manifest.json": {
+            "sha256": "ad9a021021ce607b35d6aa4e54bf3fb6ef572b148e08966bdf7200293629f692",
+            "tag": "v7.0.0",
+            "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3"
+          }
+        },
+        "model_configuration": "not observed by helper; caller records actual model/effort in verification"
+      },
+      "base": "b2ab5720773b374319b80117960c67667f66100f",
+      "semantic_hash": "02f0716d1747f4971f3bfa07868bee5861c6cc698b615a5735585a194e383aea",
+      "validation_sha256": "0c7a555a240f90866eff277988cce54231115c72b9ff2dd0731fb3a7efb73116",
+      "checks": [
+        {
+          "command": "git diff --check",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T07:02:33.495416+00:00; duration=0.02s; log=/private/tmp/aisoft-430-t02-261025-eobeoqs9/T02-check-1.log; log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; RELEASE_BASE=2454b0c2519b0145aca4f1d289efb09ed8ac46d8"
+        },
+        {
+          "command": "bash codex/tools/aisoft check-change-documents --porcelain",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T07:02:33.495317+00:00; duration=1.86s; log=/private/tmp/aisoft-430-t02-261025-eobeoqs9/T02-check-2.log; log_sha256=b5ab2d302d4234ab51dbe58b5e1ab9ec654b961057d21a4ba3e7c3d337dc2683; RELEASE_BASE=2454b0c2519b0145aca4f1d289efb09ed8ac46d8"
+        },
+        {
+          "command": "bash codex/tools/aisoft resolve-route 430 --provider codex",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T07:02:33.494883+00:00; duration=0.11s; log=/private/tmp/aisoft-430-t02-261025-eobeoqs9/T02-check-3.log; log_sha256=5fa974d984df330913a2b47a52a827ac7f21a5811ed85bef666f25e1b6b124d1; RELEASE_BASE=2454b0c2519b0145aca4f1d289efb09ed8ac46d8"
+        },
+        {
+          "command": "bash codex/tools/usage-bundle.sh --verify --baseline-ref \"$RELEASE_BASE\"",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T07:02:33.494866+00:00; duration=0.15s; log=/private/tmp/aisoft-430-t02-261025-eobeoqs9/T02-check-4.log; log_sha256=860971d9f11e6dd3d466cd92595996a820bf4896da01ef287d0bbf30a35e4adb; RELEASE_BASE=2454b0c2519b0145aca4f1d289efb09ed8ac46d8; version=1.17.0; bundle_digest=sha256:499d72a5a8c15e26bb766cc58793d38fef8e74628f9f76b7add33f243f710137"
+        },
+        {
+          "command": "bash codex/tools/usage-bundle.sh --build \"$ISOLATED_BUNDLE\"",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T07:02:05.020511+00:00; duration=0.21s; log=/private/tmp/aisoft-430-t02-261025-eobeoqs9/T02-check-5.log; log_sha256=2bf530d7254c134dc7828f63a25e510f6a1b7115d4f6beefc8ef59d32d32ca98; RELEASE_BASE=2454b0c2519b0145aca4f1d289efb09ed8ac46d8; version=1.17.0; bundle_digest=sha256:499d72a5a8c15e26bb766cc58793d38fef8e74628f9f76b7add33f243f710137; ISOLATED_BUNDLE=/private/tmp/aisoft-430-t02-261025-eobeoqs9/isolated-bundle; 12 files byte-equal; 42 links resolve; 3 provider reference copies equal"
+        },
+        {
+          "command": "AISOFT_USAGE_BASELINE_REF=\"$RELEASE_BASE\" LC_ALL=C bash codex/tests/smoke.sh",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T07:02:09.429481+00:00; duration=425.08s; log=/private/tmp/aisoft-430-t02-261025-eobeoqs9/T02-check-6.log; log_sha256=6787a42c6cfa2e65f1001df5ac3dfe47a5708a383d0b77d4845c8c3ca8f94501; RELEASE_BASE=2454b0c2519b0145aca4f1d289efb09ed8ac46d8; full smoke PASS; 746 runtime tests OK (134.060s); static/project-leak PASS; fixture evidence only"
+        }
+      ]
     }
   }
 }
@@ -394,3 +496,55 @@ updated: 2026-10-25
 两轴总计各 0 finding，无待修复项。T01 的 AC-3/5/7 仅完成其 source/local 切片；AC-11 完成提交前检查、独立治理 commit 与 STOP 切片。所需 head、四条 AC 和既有六条 checks 已写入当前 aisoft-execution，Status 改 done；T02 继续覆盖场景与 fresh run 证据。
 
 本轮证据目录：`/private/tmp/aisoft-430-t02-261025-eobeoqs9`。
+
+## T02 开始
+
+T01 的真实 --resume 返回 done-evidence-verified，完成补证提交为 `b2ab5720773b374319b80117960c67667f66100f`。其后真实 prepare-ticket 430 T02 返回 prepared，ticket_base 为同一 SHA，staged/unstaged/untracked 均为空，owner/路由/plan 语义与 T01 一致。当前只保存开始回执，不提前声明 T02 完成。
+
+## T02 场景与隔离分发实际结果
+
+证据层次为 source/local/isolated export。以下场景是明确输入的静态推演或临时夹具检查，不声称真实 provider 新会话执行、真实项目采用、live、安装或 UAT。S6 没有给其它 Issue 实际发送评论。所有生成材料均在本票临时证据目录，未进入真实项目或技能目录。
+
+| 场景 | 输入 | 观察与位置 | 反例核对 | 层次 / 结果 |
+|---|---|---|---|---|
+| S1 | 未接入的 Codex 用户仅有一句想法 | 沿 reference §1 与 getting-started，输出本地笔记并进入登记/采用；不启动本方法或 tracker | 反例：直接运行 to-spec/triage/wayfinder、写 .scratch 地图；被 §1 的明确前置条件排除 | source 静态推演 / PASS |
+| S2 | 单阶段且一张 Issue 足够 | reference §2/§7 允许三类资料合成一文件、该 Issue 兼任规划者；恢复夹具 README 示范合并入口与简报 | 反例：强制三文档、调度会话或阶段批准；文本未设这些要求 | source + local 合成资料 / PASS |
+| S3 | 当前身份/核心数据，下一业务流程，远期分析 | §3 深度表和 §7 模板把当前边界/退出证据展开；夹具 P2 仅轮廓与待补证据、P3 仅方向；远期访谈停在假设 | 反例：P2 详细工期/任务及 P3 已承诺顺序；§3 明确排除 | source + local 合成路线图 / PASS |
+| S4 | 分别输入既有需求材料与已有实现 | §1 前者复用事实、冲突与缺口；后者链接 project-align 或增量 Issue；没有重建/覆盖旧资料的步骤 | 反例：把已有代码当空项目重新初始化；被入口分流排除 | source 静态推演 / PASS |
+| S5 | production/development、small/complex、三 provider；阶段内 maintenance+change 子 Issue | 12 格 resolver 读取通过；3 provider 的真实 CLI resolve-route 与文档检查共6条 PASS；R4 无自动 G1，忠实沿用输出；3 个擅加 grill-me 反例均产生拒绝/差异 | 反例：按阶段背景手填 G1、要求 development 生成 plan、同时选两个执行器；记录的当前政策与 actual route 排除 | local 临时 Git 夹具 + 静态政策核对 / PASS |
+| S6 | 新发现影响某 approved Issue 的 AC | §5 明确经评论记录，由该 Issue owner 停止受影响部分并处理合同；无关工作可继续；此处只推演，不写真实 Issue | 反例：调度者改 approved 正文或他人 worktree；§5 明确禁止 | source 静态推演 / PASS |
+| S7 | 取消远期集成，当前阶段独立 | §3/§5 要保留阶段 ID、原因、证据及依赖影响；更新后续方向，不自动阻断独立当前工作 | 反例：重批全项目或为了远期未知停止独立阶段；对应文本排除 | source 静态推演 / PASS |
+| S8 | 仅给合成项目 AGENTS.md，不给原聊天 | 实际路径追踪 AGENTS→docs/planning/README→roadmap/current，恢复 P1/P2/P3、当前未知/缺证与规划 Issue 701 归属；S8-recovery-traversal.json 记录访问顺序 | 反例：只靠聊天、专有缓存或阶段级 Txx 表恢复；夹具只使用文件链接，当前目标仍未证实 | local 合成路径追踪 / PASS |
+| S9 | 本机存在会自建阶段状态的其他技能包 | §6 仅允许表内已有入口；wayfinder 明确不是入口，其余包另立适配 Issue；USER-GUIDE 显式 Matt grill-me | 反例：可见即调用、自动安装或用其他计划状态覆盖 Issue；范围 diff 无 pin/vendor/runtime 改动 | source 静态推演 + 范围读取 / PASS |
+| S10 | Issue 已合并，但集成/业务观察未提供 | §5 按 Issue、集成、阶段观察、假设四方面核对；只能记录目标未证实和证据缺口 | 反例：将 merge/CI/可达当 UAT 或阶段成功；§5 明确区分 | source 静态推演 / PASS |
+| S11 | 两张并行实现 Issue 都发现路线图要改 | §2/§5 指定两实现者在自己的 Issue 记录发现，只链接规划资料；调度者起草，由单一规划/收口 Issue 范围持有人写入 | 反例：两实现者并行改路线图或 dispatcher 进入其 worktree；写入归属明确排除 | source 静态推演 / PASS |
+
+S5 临时 Git 仓为 `/private/tmp/aisoft-430-t02-261025-eobeoqs9/route-fixture`，合成 `change/701-routing-sample` / `example.invalid/fixture/fixture-project/issues/701`，使用专属临时 governance manifest 的 production 声明；没有创建远端 Issue。对 codex/claude/cursor 分别运行当前真实 CLI resolve-route 与 check-change-documents，6 条 exit 0，正向 route.differences 均为空；错误地插入 grill-me 的 3 个反例均被拒绝或返回 differences。该 maintenance/change 子 Issue 得到 R4，不根据阶段背景手填 G1。另只读调用现行 resolver 核对 12 格 production/development × small/complex × provider：small 保持 small-direct，development complex 保持 complex-development 且不追加 to-tickets，各格 confirm=2。development 文档不另造计划，按政策静态核对 Issue AC / 合成 T01 的约定。
+
+S8 合成项目从唯一给定的 AGENTS.md 读取「项目规则」，实际访问顺序为 AGENTS.md → docs/planning/README.md → roadmap.md / current.md；恢复 P1 身份/核心数据、P2 业务流程轮廓、P3 分析方向、数据来源假设和缺失的完成证据；规划 Issue 701 拥有资料，其他实现 Issue 只链接。本记录不把文件遍历等同于真实新模型会话行为。
+
+### 隔离发布包
+
+`usage-bundle --build` 在空目录 `/private/tmp/aisoft-430-t02-261025-eobeoqs9/isolated-bundle` 成功导出 1.17.0，摘要 `sha256:499d72a5a8c15e26bb766cc58793d38fef8e74628f9f76b7add33f243f710137`。新 reference 的三份落点如下，均与源逐字相等，SHA256 均为 `fca0193e1bf04eb22a0b76ab8b473eceb3fd330e83ab455c3d0c8a91e621271e`：
+
+- project/.agents/skills/aisoft-platform/references/greenfield-planning.md
+- project/.claude/skills/aisoft-platform/references/greenfield-planning.md
+- project/.cursor/skills/aisoft-platform/references/greenfield-planning.md
+
+同时按现有 skills.manifest 的实际映射，核对新 reference、两个受改 SKILL 和 getting-started 的三端合计 12 文件字节及 42 个相关链接（含 runbook §6 锚点），均 PASS。导出的 `.aisoft/platform-usage.md` 与 CONTRACT 字节相等；Codex/Cursor 的显式 grill-me 路径存在。USER-GUIDE 不是发布包成员，源码内新链接有效；Claude 独立插件是否已安装和实际发现不在该导出证明内。发布历史 verify 使用固定 RELEASE_BASE，原已发布条目未改。
+
+### 完整回归与范围
+
+T02 六条命令均 exit 0。完整 smoke 于 2026-10-25T07:02:09.429481+00:00 开始，425.08s 完成，含 746 项 runtime 测试（134.060s）和最终静态/项目泄漏检查；日志 SHA256 `6787a42c6cfa2e65f1001df5ac3dfe47a5708a383d0b77d4845c8c3ca8f94501`。T02 未改方法、技能、发布成员、runtime、shell、CI、模板或真实项目，只追加本票计划状态及执行证据。
+
+T02 的 AC-1..AC-11 source/local 切片均已有上表与导出/命令证据；完成标记与实际候选 head 留待本次证据提交、固定范围两轴审查后再写入。最终 AC-12 仍须 T03 Claude 审查，当前 NOT RUN。
+
+辅助证据摘要（正式观察已写在上文，不以临时路径代替结论）：
+
+| 文件 | SHA256 |
+|---|---|
+| T02-scenarios.json | `6a65b1bdbec14e2fde43f46158ab7ade53b69111835c3544675d6303c92aead6` |
+| T02-isolated-export.json | `0dc3bf1d63a1d4dc9071190865a420971485f71842a29ab92f361f53d0aa7b1c` |
+| S5-routing-results.json | `ef33db82d9c1892214cb6afdf1041dfeea4039f71ae0273ef56addd5aea14604` |
+| S5-route-matrix.json | `075c057c63ac649b387927b736f8425c6eee4f03e3c0f01c74ad94a65c4d2e6b` |
+| S8-recovery-traversal.json | `ec6dd9ddb45db2851c1005baa684ca9134ed9e7bab72866e2e5c5edb8b547e96` |
