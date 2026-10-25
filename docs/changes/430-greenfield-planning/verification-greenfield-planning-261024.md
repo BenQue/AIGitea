@@ -466,6 +466,103 @@ updated: 2026-10-25
         "AC-8": "PASS",
         "AC-9": "PASS"
       }
+    },
+    "T03": {
+      "start": {
+        "identity": {
+          "issue": 430,
+          "branch": "change/430-greenfield-planning",
+          "owner": "01a16e1b-1085-7712-b5a8-c100d9f74629",
+          "worktree": "/private/tmp/issue-430-greenfield-planning",
+          "provider": "codex",
+          "plan_path": "docs/changes/430-greenfield-planning/plan-greenfield-planning-261024.md",
+          "semantic_hash": "02f0716d1747f4971f3bfa07868bee5861c6cc698b615a5735585a194e383aea"
+        },
+        "ticket": "T03",
+        "ticket_base": "bca09f38bc1730781b6cf2fd6b14ff7558fac1ee",
+        "raw_plan_sha256": "f37c2a4ac68a17018a397e74e0e59603a01358edf433e21c401b4cb7b7dd8483",
+        "scope": [
+          "docs/changes/430-greenfield-planning/summary-greenfield-planning-261024.md",
+          "docs/changes/430-greenfield-planning/spec-greenfield-planning-261024.md",
+          "docs/changes/430-greenfield-planning/plan-greenfield-planning-261024.md",
+          "docs/changes/430-greenfield-planning/verification-greenfield-planning-261024.md",
+          "skills/aisoft-platform/references/greenfield-planning.md",
+          "skills/aisoft-platform/SKILL.md",
+          "skills/issue-session-flow/SKILL.md",
+          "skills/aisoft-platform/references/getting-started.md",
+          "usage/USER-GUIDE.md",
+          "usage/CONTRACT.md",
+          "03-Issue-Spec-Plan与单闸门开发流程.md",
+          "usage/bundle.json",
+          "docs/governance/review-evidence-index.md"
+        ],
+        "initial_state": {
+          "staged": {},
+          "unstaged": {},
+          "untracked": {}
+        },
+        "derived_plan": ".superpowers/aisoft/430/issue-430-358643271815a468-02f0716d1747f497.md",
+        "scratch": ".superpowers/sdd/issue-430-358643271815a468-02f0716d1747f497",
+        "policy_sha256": "184608fd3d3553e7a688712adb99ba98f62e81e9e919e96233f422126486ff40",
+        "route": {
+          "process": "complex-production",
+          "tier": "frontier",
+          "effort": "max",
+          "skills": "grill-me, to-spec, to-tickets, implement, issue-session-flow",
+          "method": "spec-plan",
+          "verify": "full+reverse-proof",
+          "review": "cross-provider",
+          "confirm": "2"
+        },
+        "source_evidence": {
+          "codex/vendor/mattpocock/v1.2.2/manifest.json": {
+            "sha256": "a7e1ccccdc1ccc3d0c9af8ec0e7788cf3ac7bc0c308aaaa011ccc493c5d216da",
+            "tag": "v1.2.2",
+            "commit": "8b36d4fb2635b3c21998dcd8144439c9e5ba7302"
+          },
+          "codex/vendor/mattpocock/v1.3.1/manifest.json": {
+            "sha256": "7cbdaa40307eed3258eddc1019db7f0927864b70d48cd382e202be1e7214e3dd",
+            "tag": "v1.3.1",
+            "commit": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+          },
+          "codex/vendor/superpowers/v7.0.0/manifest.json": {
+            "sha256": "ad9a021021ce607b35d6aa4e54bf3fb6ef572b148e08966bdf7200293629f692",
+            "tag": "v7.0.0",
+            "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3"
+          }
+        },
+        "model_configuration": "not observed by helper; caller records actual model/effort in verification"
+      },
+      "base": "bca09f38bc1730781b6cf2fd6b14ff7558fac1ee",
+      "semantic_hash": "02f0716d1747f4971f3bfa07868bee5861c6cc698b615a5735585a194e383aea",
+      "validation_sha256": "f7246bba97c82d6c677b559b78d1e49a53976dd8dc28ce484036e116e534a974",
+      "checks": [
+        {
+          "command": "git status --short",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T07:17:33.969606+00:00; duration=0.03s; log=/private/tmp/aisoft-430-t03-261025-rrt78t2u/T03-check-1.log; log_sha256=af988d0bce46d0a5c5499de734e6fb22dbb9ac5530b562c10b0a1da855ebd9d8; FRESH_MAIN=2454b0c2519b0145aca4f1d289efb09ed8ac46d8; only 3 owned evidence documents modified before candidate commit; post-commit clean state must be checked separately"
+        },
+        {
+          "command": "git diff --check",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T07:17:33.969513+00:00; duration=0.02s; log=/private/tmp/aisoft-430-t03-261025-rrt78t2u/T03-check-2.log; log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; FRESH_MAIN=2454b0c2519b0145aca4f1d289efb09ed8ac46d8"
+        },
+        {
+          "command": "bash codex/tools/aisoft check-change-documents --porcelain",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T07:17:33.968723+00:00; duration=1.77s; log=/private/tmp/aisoft-430-t03-261025-rrt78t2u/T03-check-3.log; log_sha256=b5ab2d302d4234ab51dbe58b5e1ab9ec654b961057d21a4ba3e7c3d337dc2683; FRESH_MAIN=2454b0c2519b0145aca4f1d289efb09ed8ac46d8"
+        },
+        {
+          "command": "bash codex/tools/aisoft classify --verify 430",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T07:17:36.718141+00:00; duration=0.47s; log=/private/tmp/aisoft-430-t03-261025-rrt78t2u/T03-check-4.log; log_sha256=d6133d38c0acf38cc510f456cd29e9cb6ddb03096ea01b20f37fde6fe6c27e16; FRESH_MAIN=2454b0c2519b0145aca4f1d289efb09ed8ac46d8; projected platform/complex; applied=false; remote readback, not merge proof"
+        },
+        {
+          "command": "bash codex/tools/usage-bundle.sh --verify --baseline-ref \"$FRESH_MAIN\"",
+          "result": "PASS",
+          "evidence": "exit=0; UTC=2026-10-25T07:17:33.973150+00:00; duration=0.14s; log=/private/tmp/aisoft-430-t03-261025-rrt78t2u/T03-check-5.log; log_sha256=860971d9f11e6dd3d466cd92595996a820bf4896da01ef287d0bbf30a35e4adb; FRESH_MAIN=2454b0c2519b0145aca4f1d289efb09ed8ac46d8"
+        }
+      ]
     }
   }
 }
@@ -576,3 +673,13 @@ Codex 只读子代理 `/root/t01_standards`：PASS，明确规范违规 0、启�
 Codex 只读子代理 `/root/t01_spec`：PASS，漏项 0、部分覆盖 0、范围蔓延 0、错误 0。S1–S11 有输入、观察位置与反例，覆盖 AC-1..AC-11 的 T02 切片；三端导出、42 个链接及 S5 路由正反例、S8 路径可复核。六条命令与原始摘要一致，仅三份本票证据文档变化，没有把 source/local 结果提升为安装、项目采用或 UAT。
 
 两轴均审查同一 BASE/HEAD，未重跑测试、未改文件。执行 provider 为 Codex，实际模型/强度未暴露；该逐票审查不代替 T03 的 Claude 最终审查。已补齐 T02 head、AC-1..AC-11 PASS 和 done 状态，原始开始回执及计划语义保持不变；T03 尚未开始。
+
+## T03 开始与最终审查基线
+
+T02 的真实 prepare-ticket --resume 返回 done-evidence-verified，完成证据提交为 `bca09f38bc1730781b6cf2fd6b14ff7558fac1ee`。其后真实 prepare-ticket 430 T03 返回 prepared，ticket_base 为同一 SHA，初始 staged/unstaged/untracked 均为空，原始回执完整保存在上方。当前尚未给 T03 写入 head 或 AC-12 PASS。
+
+本次经已安装 typed broker 执行 git.fetch.main 返回 PASS，fresh-read origin/main 仍为 `2454b0c2519b0145aca4f1d289efb09ed8ac46d8`；固定 FRESH_MAIN 为该值，与 RELEASE_BASE 相同，没有新的基线整合或发布版本调整。T03 证据目录为 `/private/tmp/aisoft-430-t03-261025-rrt78t2u`。
+
+最终审查使用该 change_base 到实际候选 HEAD 的完整 diff、当前合同、治理规范和 T01/T02 证据。Claude 只读审查，原前置合同评估不作为 AC-12 证据；所请求模型为负责人指定的 Opus 5.5 / high，实际可用性和返回身份须从调用回执确认，不自动改用其它模型。确认点 2 仍未通过。
+
+T03 五条计划检查均 exit 0：起始状态只含本票三份待提交证据文档，diff/check-change-documents 通过；classify --verify 读回 result=projected、platform/complex、applied=false；包验证在固定 FRESH_MAIN 上仍为 1.17.0、摘要未变。判级工具的通用 detail 中含 merged 字样，不将其解释为本票已合并。尚未执行 Claude 审查，因此 AC-12、T03 完成和最终确认点 2 候选仍未成立。

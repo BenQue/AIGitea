@@ -37,7 +37,7 @@ updated: 2026-10-25
 |---|---|---|---|
 | T01 | 通用方法、最小模板、现有入口衔接与使用包版本；独立治理提交后 STOP | - | done |
 | T02 | fresh run 场景核验、隔离分发与现有回归证据 | T01 | done |
-| T03 | 实际实现的独立评议、finding 收口及最终 PR 候选 | T02 | pending |
+| T03 | 实际实现的独立评议、finding 收口及最终 PR 候选 | T02 | in-progress |
 
 Txx 是唯一任务身份。后续 provider 使用执行视图时只从本 canonical plan 派生，不维护另一份 Task 清单。
 
@@ -134,5 +134,5 @@ Txx 是唯一任务身份。后续 provider 使用执行视图时只从本 canon
 ## 执行证据
 
 <!-- execution-evidence:start -->
-2026-10-25 T01 治理 commit 2e54d7e0c85810cbcff2d5878d82c849e76b6144 后已 STOP。本次 fresh run 重读并核对相同 worktree/owner/HEAD，固定候选机械检查与两轴只读审查均 PASS，已补齐 T01 的实际完成记录并改为 done。T02 已在干净起点 b2ab5720773b374319b80117960c67667f66100f 经 prepare-ticket 准备，六条命令、S1–S11 与隔离导出均通过，证据候选 2fcd7f4753dfdfade13734551b53819fd9693815 的机械检查与两轴审查也已 PASS，T02 完成；T03 pending；原批准持续有效，确认点 2 前不 push、不建 PR。
+2026-10-25 T01 治理 commit 2e54d7e0c85810cbcff2d5878d82c849e76b6144 后已 STOP。本次 fresh run 重读并核对相同 worktree/owner/HEAD，固定候选机械检查与两轴只读审查均 PASS，已补齐 T01 的实际完成记录并改为 done。T02 已在干净起点 b2ab5720773b374319b80117960c67667f66100f 经 prepare-ticket 准备，六条命令、S1–S11 与隔离导出均通过，证据候选 2fcd7f4753dfdfade13734551b53819fd9693815 的机械检查与两轴审查也已 PASS，T02 完成；T03 已从 bca09f38bc1730781b6cf2fd6b14ff7558fac1ee 正式准备，最终审查待运行；原批准持续有效，确认点 2 前不 push、不建 PR。
 <!-- execution-evidence:end -->
