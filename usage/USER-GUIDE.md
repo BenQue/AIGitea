@@ -31,6 +31,22 @@
 
 完成的标志：维护者告诉你接入验收已通过；之后你在项目目录里运行 `.aisoft/bin/aisoft project-check` 没有 `GAP:` 行，并让 AI 帮你读回一次外部技能包版本。
 
+## 新项目先规划
+
+完成登记与发布包采用后，如果项目还没有可维护实现，先显式启动 Matt `grill-me`，从已有想法或需求材料整理项目简报、
+路线图和当前阶段。已有回答直接沿用：**当前阶段详细，下一阶段有轮廓，远期保留方向**。
+
+| 所用工具 | 在项目会话中显式启动 |
+|---|---|
+| Claude Code | 指定插件技能：`请使用 mattpocock-skills:grill-me，按平台滚动阶段规划方法梳理这个新项目。` |
+| Codex | 输入：`$grill-me 按平台滚动阶段规划方法梳理这个新项目，沿用已有材料。` |
+| Cursor | 指定项目技能：`请使用项目 .cursor/skills/grill-me/SKILL.md，按平台滚动阶段规划方法梳理这个新项目。` |
+
+规划入口登记在项目 AGENTS 的「项目规则」，建议为 `docs/planning/README.md`；小项目可把三份资料合成一个文件。
+资料由规划 Issue 写入，多 Issue 阶段的实现会话只链接它；只有一张 Issue 时由该 Issue 兼任。
+详细方法与最小模板见 [滚动阶段规划](../skills/aisoft-platform/references/greenfield-planning.md)。已有代码继续走项目对齐或增量 Issue。
+尚未登记与采用时先整理本地笔记，再完成接入；规划资料不代替每张 Issue 的合同与两次确认。
+
 ## 第一张 Issue 怎么走
 
 1. 把需求写成 Issue，写清怎么算做完。

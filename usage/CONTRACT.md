@@ -123,3 +123,8 @@ pin 的版本，项目不得手改；Gitea 与 Git 访问仍经本机安装的 h
 
 `aisoft-platform` 技能的 `references/engineering-principles.md` 提供纲领性指导：理解问题、简单设计、
 聚焦改动和真实验证。它辅助方案、实现与审查中的工程判断，内容随本项目 pin 的发布包版本交付。
+
+## 8. 全新项目规划
+
+登记并采用后，通过 `aisoft-platform` 技能的 `references/greenfield-planning.md` 做需求发现与滚动阶段规划。
+项目 AGENTS 的「项目规则」链接唯一规划入口；阶段资料由所属 Issue 写入，交付仍遵守本合同的既有流程。
