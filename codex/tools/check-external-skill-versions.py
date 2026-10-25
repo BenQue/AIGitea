@@ -33,6 +33,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import stat
 import subprocess
 import sys
 
@@ -217,8 +218,65 @@ def _codex_cached_version(home: Path, marketplace: str) -> str | None:
     return _single_version(versions) if versions else None
 
 
+def _codex_remote_version(home: Path) -> str | None:
+    """Read the official remote layout, never infer activation from a cache.
+
+    The caller requires an explicit enabled declaration. No active-version
+    pointer is available here: more than one version is unknown, not 'latest'.
+    A missing pack permits legacy fallback; a present but invalid pack does not.
+    """
+    base = home
+    try:
+        for part in (".codex", "plugins", "cache", "openai-curated-remote", PACK):
+            base /= part
+            try:
+                mode = base.lstat().st_mode
+            except FileNotFoundError:
+                return None
+            if not stat.S_ISDIR(mode):
+                raise Unreadable("the Codex remote plugin path contains a link or non-directory")
+        versions = []
+        for child in sorted(base.iterdir()):
+            # The official cache keeps this installation marker next to the
+            # version directories. It is not an active-version pointer.
+            if child.name == ".codex-remote-plugin-install.json":
+                if not stat.S_ISREG(child.lstat().st_mode):
+                    raise Unreadable("the Codex remote install marker is not a regular file")
+                continue
+            versions.append(child)
+        if len(versions) != 1:
+            raise Unreadable(f"{len(versions)} Codex remote plugin versions recorded")
+        release = versions[0]
+        if not VERSION_RE.fullmatch(release.name):
+            raise Unreadable("the Codex remote plugin directory is not a numeric version")
+        for directory in (release, release / ".codex-plugin"):
+            if not stat.S_ISDIR(directory.lstat().st_mode):
+                raise Unreadable("the Codex remote plugin version contains a link or non-directory")
+        metadata = release / ".codex-plugin/plugin.json"
+        if not stat.S_ISREG(metadata.lstat().st_mode):
+            raise Unreadable("the Codex remote plugin.json is not a regular file")
+        data = _load_json(metadata)
+        if not isinstance(data, dict) or data.get("name") != PACK:
+            raise Unreadable("the Codex remote plugin.json name is not superpowers")
+        version = data.get("version")
+        if not isinstance(version, str) or not VERSION_RE.fullmatch(version) or version != release.name:
+            raise Unreadable("the Codex remote plugin version does not match its directory")
+        return version
+    except (OSError, ValueError) as error:
+        raise Unreadable(f"the Codex remote plugin is not readable ({type(error).__name__})") from error
+
+
 def codex_superpowers(home: Path, pinned: str) -> str:
-    path = home / ".codex" / "config.toml"
+    directory = home / ".codex"
+    try:
+        mode = directory.lstat().st_mode
+    except FileNotFoundError:
+        return f"PIN_NOT_INSTALLED config=absent pinned={pinned}"
+    except OSError as error:
+        raise Unreadable(f".codex is not readable ({type(error).__name__})") from error
+    if not stat.S_ISDIR(mode):
+        raise Unreadable(".codex is not a real directory")
+    path = directory / "config.toml"
     if not os.path.lexists(path):
         return f"PIN_NOT_INSTALLED config=absent pinned={pinned}"
     if path.is_symlink() or not path.is_file():
@@ -249,10 +307,17 @@ def codex_superpowers(home: Path, pinned: str) -> str:
     if len(enabled) != 1:
         raise Unreadable(f"{len(enabled)} {PACK} plugins enabled")
     marketplace = enabled[0]
-    cached = _codex_cached_version(home, marketplace)
     detail = f"enabled={PACK}@{marketplace}"
     if marketplace in marketplaces and not isinstance(marketplaces[marketplace], dict):
         raise Unreadable("the enabled marketplace entry is not a table")
+    # Codex's built-in remote marketplace need not be registered in the legacy
+    # marketplaces table. The configured id was retained when its cache moved.
+    if marketplace in {"openai-curated", "openai-curated-remote"}:
+        remote = _codex_remote_version(home)
+        if remote is not None:
+            return (f"{compare(remote, pinned)} {detail} marketplace=builtin "
+                    f"layout=openai-curated-remote installed={remote} pinned={pinned}")
+    cached = _codex_cached_version(home, marketplace)
     # Enabled but its marketplace unregistered: Codex does not load it (#375).
     if marketplace not in marketplaces:
         return f"PIN_NOT_INSTALLED {detail} marketplace=unregistered cached={cached or 'none'} pinned={pinned}"
