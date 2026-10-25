@@ -451,7 +451,21 @@ updated: 2026-10-25
           "result": "PASS",
           "evidence": "exit=0; UTC=2026-10-25T07:02:09.429481+00:00; duration=425.08s; log=/private/tmp/aisoft-430-t02-261025-eobeoqs9/T02-check-6.log; log_sha256=6787a42c6cfa2e65f1001df5ac3dfe47a5708a383d0b77d4845c8c3ca8f94501; RELEASE_BASE=2454b0c2519b0145aca4f1d289efb09ed8ac46d8; full smoke PASS; 746 runtime tests OK (134.060s); static/project-leak PASS; fixture evidence only"
         }
-      ]
+      ],
+      "head": "2fcd7f4753dfdfade13734551b53819fd9693815",
+      "ac": {
+        "AC-1": "PASS",
+        "AC-10": "PASS",
+        "AC-11": "PASS",
+        "AC-2": "PASS",
+        "AC-3": "PASS",
+        "AC-4": "PASS",
+        "AC-5": "PASS",
+        "AC-6": "PASS",
+        "AC-7": "PASS",
+        "AC-8": "PASS",
+        "AC-9": "PASS"
+      }
     }
   }
 }
@@ -548,3 +562,17 @@ T02 的 AC-1..AC-11 source/local 切片均已有上表与导出/命令证据；�
 | S5-routing-results.json | `ef33db82d9c1892214cb6afdf1041dfeea4039f71ae0273ef56addd5aea14604` |
 | S5-route-matrix.json | `075c057c63ac649b387927b736f8425c6eee4f03e3c0f01c74ad94a65c4d2e6b` |
 | S8-recovery-traversal.json | `ec6dd9ddb45db2851c1005baa684ca9134ed9e7bab72866e2e5c5edb8b547e96` |
+
+## T02 固定候选完成核对
+
+固定范围为 `b2ab5720773b374319b80117960c67667f66100f..2fcd7f4753dfdfade13734551b53819fd9693815`，唯一提交为该 HEAD，只改本票 summary/plan/verification。真实 review-candidate 返回 mechanical_checks=PASS，ticket diff SHA256 `45a90d069120a7adca31518a57d7e009563cee7be7be71aa607640230ce5986d`，package SHA256 `b46835721d9f18225aef50ddbc38e6ba5820731affeda243a27044380ba2a056`；staged/unstaged/untracked 均为空，未保存编辑器内容仍 UNKNOWN。
+
+### Standards
+
+Codex 只读子代理 `/root/t01_standards`：PASS，明确规范违规 0、启发性建议 0。计划只改状态和成对证据区；S5/S8 明确区分静态推演、临时夹具与实际 provider 会话。六份检查日志和五份辅助证据摘要与所记一致，12 份导出文件与固定 HEAD 相等，746 项测试与最终静态门有原日志支持。T03/AC-12 没有提前写成完成。
+
+### Spec
+
+Codex 只读子代理 `/root/t01_spec`：PASS，漏项 0、部分覆盖 0、范围蔓延 0、错误 0。S1–S11 有输入、观察位置与反例，覆盖 AC-1..AC-11 的 T02 切片；三端导出、42 个链接及 S5 路由正反例、S8 路径可复核。六条命令与原始摘要一致，仅三份本票证据文档变化，没有把 source/local 结果提升为安装、项目采用或 UAT。
+
+两轴均审查同一 BASE/HEAD，未重跑测试、未改文件。执行 provider 为 Codex，实际模型/强度未暴露；该逐票审查不代替 T03 的 Claude 最终审查。已补齐 T02 head、AC-1..AC-11 PASS 和 done 状态，原始开始回执及计划语义保持不变；T03 尚未开始。
