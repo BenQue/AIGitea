@@ -35,8 +35,8 @@ route:
   verify: full+reverse-proof
   review: cross-provider
   confirm: 2
-status: approved
-pr_url:
+status: pr-open
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/431
 ---
 
 # Codex 官方插件目录识别修复
@@ -61,4 +61,4 @@ pr_url:
 
 triage：bug / ready-for-agent；公开开放 Issue 只有无关的 #417，无重复票。没有 .out-of-scope 拒绝记录。本票按 external-contract 强制 complex，R3/codex。实际标签投影和执行证据见 verification。
 
-T01 done；最终代码已通过完整smoke、Codex双轴及Claude Code claude-fable-5-1/high独立交叉审查（08ef62fcc41f6b2876d92dbe11e55a70219c9fd1，PASS，0阻断）。用户2026-10-25明确授权的源码外发审查已执行；3条非阻断备注已在verification登记并补证。核对证据回填后的最终完整HEAD，随后进入AWAITING_PR_CONFIRMATION；尚未获得最终PR提交确认，未push/建PR/merge。
+T01 done；最终代码已通过完整smoke、Codex双轴及Claude Code claude-fable-5-1/high独立交叉审查（08ef62fcc41f6b2876d92dbe11e55a70219c9fd1，PASS，0阻断）。用户2026-10-25明确授权的源码外发审查已执行；3条非阻断备注已在verification登记并补证。确认点2候选为0db380f97b9a6622686c8c32c634305efb678171，Codex双轴与Claude最终复核均PASS。用户2026-10-25确认提交本票唯一最终PR并跟进CI；该候选已经broker普通fast-forward push，pushed_head逐字匹配，并创建PR #431。本提交仅回填summary的PR地址、状态与上述授权事实；实现代码和测试不变。后续核验最终HEAD的required CI，全部通过后停在READY_FOR_REVIEW等待人工审核合并。
