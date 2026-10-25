@@ -13,7 +13,7 @@ risk_flags:
 depends_on: []
 branch: change/430-greenfield-planning
 created: 2026-10-24
-updated: 2026-10-24
+updated: 2026-10-25
 reason: 新增全新项目需求发现与滚动阶段规划的通用方法并衔接现有 Agent 治理入口
 required_docs:
   - summary
@@ -46,7 +46,7 @@ pr_url: ''
 
 负责人于 2026-10-24 明确要求建立 complex Issue、完善 spec/plan 供确认，并自行交 Claude 侧结合内部材料深入评估。已认可的方向是：保留 Matt 与现有路线图为基线，按项目情况选择合适技能，**当前阶段详细，下一阶段有轮廓，远期保留方向**。
 
-本轮授权仅为合同准备与 Issue 内容发布。尚未达到 `approved`，没有启动实施，没有安装或接入新技能包。路线图方向获得认可不等于本票实施合同已经批准。用户送审 Claude 的结果也不自动授予实施、最终 PR、合并或部署权限。
+负责人于 2026-10-25 明确确认本票修订合同，授权提交修订、同步 Issue 并读回核对，设为 approved 后启动 T01；治理文件提交后立即停止，由 fresh run 在同一合同授权内继续。确认点 2 前不 push、不建 PR。本地生命周期先保持 spec-drafting，远端合同读回一致后再投影 approved；这项授权不包含安装新技能包、合并或部署。
 
 ## 范围与方案
 
@@ -72,12 +72,12 @@ T01 涉及治理技能，须独立 commit 后 STOP，由 fresh run 重读获批�
 
 ## AI 判级与路由
 
-新增平台方法和 Agent 行为约束，属于 `platform / complex / add`；证据充分，不使用 small。当前合同准备 provider 是 `codex`，命中现行 R3 + G1，具体路由见 front matter。
+新增平台方法和 Agent 行为约束，属于 `platform / complex / add`；证据充分，不使用 small。实施 provider 是 `codex`，命中现行 R3 + G1，具体路由见 front matter。
 
 Claude 本次是负责人组织的合同评估方，不因此更换实施 provider。若后来明确由 Claude 实施，按同一 route policy 显式重新解析并记录 provider 差异，最终审查改由未参与实现的另一方承担；不静默沿用 Codex 的技能展开值。
 
-## 评估与待确认
+## 评估与确认
 
-当前没有需要重新询问的产品方向选择。Claude 可按 spec 的内部材料清单检查边界、可执行性和最小范围；发现真实缺口时回填本票合同，保留版本变化依据。
+Claude 已完成两轮内部评估。2026-10-25 负责人要求按评估意见直接修订，Claude 会话据此在本 worktree 起草修订（只改本票四份文档，owner marker 与实施 provider 不变），交回 owner 会话审阅；修订映射见 verification「合同修订」行。负责人随后明确选择补跑 grill-me，并要求已有结论直接沿用、只问修订后尚未明确的决策。owner 会话已按平台 pin 的 grill-me → grilling 核对决策树，新增待决项为 0；来源和逐项沿用记录见 verification「grill-me 补跑记录」。没有豁免或改写 route.skills；负责人现已最终确认完整合同。
 
-负责人确认的是本票完整 spec、plan 和 exact scope；确认前维持 `spec-drafting`。不将此前通用建议的模型评议当成本票内部合同审查或最终实现审查通过证据。
+负责人确认的是本票完整 spec、plan 和 exact scope（13 个文件、12 条 AC、T01–T03）。Codex 先固定修订并回填 Issue，fresh-read 一致后设置 approved，再准备 T01。不将此前通用建议的模型评议当成本票内部合同审查或最终实现审查通过证据。
