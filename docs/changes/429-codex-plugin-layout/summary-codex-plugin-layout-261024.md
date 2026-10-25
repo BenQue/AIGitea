@@ -12,7 +12,7 @@ risk_flags:
 depends_on: []
 branch: change/429-codex-plugin-layout
 created: 2026-10-24
-updated: 2026-10-24
+updated: 2026-10-25
 reason: 恢复已安装版本的准确诊断；需要兼容新版官方插件目录及元数据，按外部契约判 complex
 override_reason: ''
 required_docs:
@@ -61,4 +61,4 @@ pr_url:
 
 triage：bug / ready-for-agent；公开开放 Issue 只有无关的 #417，无重复票。没有 .out-of-scope 拒绝记录。本票按 external-contract 强制 complex，R3/codex。实际标签投影和执行证据见 verification。
 
-T01 已实现；R1两轴发现的同一P2已修，定向回归与实机核验再次通过，修复后的最终完整smoke已通过，02a4c604a89fa4695057f023c76ead799be4ce9c两轴复审均PASS（fixed=1、residual=0、new=0）。Claude独立审查被自动审批拒绝，需明确外部审查授权；不能把当前状态写成AWAITING_PR_CONFIRMATION或READY_FOR_REVIEW。
+T01 done；最终代码已通过完整smoke、Codex双轴及Claude Code claude-fable-5-1/high独立交叉审查（08ef62fcc41f6b2876d92dbe11e55a70219c9fd1，PASS，0阻断）。用户2026-10-25明确授权的源码外发审查已执行；3条非阻断备注已在verification登记并补证。核对证据回填后的最终完整HEAD，随后进入AWAITING_PR_CONFIRMATION；尚未获得最终PR提交确认，未push/建PR/merge。

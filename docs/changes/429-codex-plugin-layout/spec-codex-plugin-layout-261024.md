@@ -12,7 +12,7 @@ risk_flags:
 depends_on: []
 branch: change/429-codex-plugin-layout
 created: 2026-10-24
-updated: 2026-10-24
+updated: 2026-10-25
 git_scope:
   - docs/governance/review-evidence-index.md
   - codex/tools/check-external-skill-versions.py
@@ -31,11 +31,11 @@ git_scope:
 
 ## Acceptance criteria
 
-- [ ] AC-1：启用 superpowers@openai-curated 或 superpowers@openai-curated-remote 时，识别 openai-curated-remote/superpowers/<version>/.codex-plugin/plugin.json；单一有效版本与 pin 相等为 PIN_CLEAN，不同为 PIN_DRIFT / REVIEW_NEEDED / exit 1。输出实际布局来源和版本。新版明确存在时不用旧缓存 5.1.3 覆盖它。
-- [ ] AC-2：无配置、未启用或禁用时，不凭残留新缓存推导已启用；不受支持的 marketplace 保持旧逻辑。新目录不存在时保持原布局兼容。未启用项不因无关旧缓存制造失败。
-- [ ] AC-3：新路径父目录、版本目录、元数据目录/文件的符号链接和异常类型、缺少/错误名称或版本、目录/元数据版本不一致、重复 JSON key、多个候选版本、不可读或畸形内容一律 UNKNOWN，并汇总到失败退出；不读取链接外文件、不选最大版本。
-- [ ] AC-4：保留 Claude、Cursor、Matt、CLI 状态与既有结果汇总语义；不改 pin、插件配置或全局安装，不读 Secret，不网络访问，不写入 HOME 或 pyc。
-- [ ] AC-5：新真实缺陷 fixture 在旧实现先失败，修复后新/旧回归、bash -n、ShellCheck、完整 smoke 通过。实机只读报告准确给出 Codex 7.0.1 对平台 7.0.0 的 PIN_DRIFT；这证明诊断修复，不代表版本差异消失。独立审查覆盖完整固定 BASE..HEAD。
+- [x] AC-1：启用 superpowers@openai-curated 或 superpowers@openai-curated-remote 时，识别 openai-curated-remote/superpowers/<version>/.codex-plugin/plugin.json；单一有效版本与 pin 相等为 PIN_CLEAN，不同为 PIN_DRIFT / REVIEW_NEEDED / exit 1。输出实际布局来源和版本。新版明确存在时不用旧缓存 5.1.3 覆盖它。
+- [x] AC-2：无配置、未启用或禁用时，不凭残留新缓存推导已启用；不受支持的 marketplace 保持旧逻辑。新目录不存在时保持原布局兼容。未启用项不因无关旧缓存制造失败。
+- [x] AC-3：新路径父目录、版本目录、元数据目录/文件的符号链接和异常类型、缺少/错误名称或版本、目录/元数据版本不一致、重复 JSON key、多个候选版本、不可读或畸形内容一律 UNKNOWN，并汇总到失败退出；不读取链接外文件、不选最大版本。
+- [x] AC-4：保留 Claude、Cursor、Matt、CLI 状态与既有结果汇总语义；不改 pin、插件配置或全局安装，不读 Secret，不网络访问，不写入 HOME 或 pyc。
+- [x] AC-5：新真实缺陷 fixture 在旧实现先失败，修复后新/旧回归、bash -n、ShellCheck、完整 smoke 通过。实机只读报告准确给出 Codex 7.0.1 对平台 7.0.0 的 PIN_DRIFT；这证明诊断修复，不代表版本差异消失。独立审查覆盖完整固定 BASE..HEAD。
 
 ## 实现决定、接口与兼容性
 

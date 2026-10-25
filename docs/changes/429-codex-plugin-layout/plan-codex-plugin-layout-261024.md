@@ -12,7 +12,7 @@ risk_flags:
 depends_on: []
 branch: change/429-codex-plugin-layout
 created: 2026-10-24
-updated: 2026-10-24
+updated: 2026-10-25
 ---
 
 # 实施计划
@@ -25,7 +25,7 @@ updated: 2026-10-24
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 新旧 Codex 插件布局的端到端版本诊断、失败语义及完整验证 | - | pending |
+| T01 | 新旧 Codex 插件布局的端到端版本诊断、失败语义及完整验证 | - | done |
 
 ## T01：修复 Codex 官方新插件布局
 
@@ -56,5 +56,5 @@ T01：检查器 Python、现有 shell 回归和本票四份文档。
 
 
 <!-- execution-evidence:start -->
-T01 已开始；原始 ticket_base=3715f09b89b18291f0765f826ea88616bc2f8e0f。RED/GREEN、实机安装标记发现和本机核验见映射 verification；最终完整smoke及Codex两轴复审均PASS，graph因Claude独立审查尚未获外发授权而保持pending；不记完整交付通过。
+T01 done；ticket_base=3715f09b89b18291f0765f826ea88616bc2f8e0f，完整已审查head=08ef62fcc41f6b2876d92dbe11e55a70219c9fd1。RED/GREEN、完整smoke、实机复核、Codex双轴与Claude实际交叉审查均PASS，证据和P3处置见映射verification。2026-10-25外发授权已取得；最终PR仍待确认点2。
 <!-- execution-evidence:end -->

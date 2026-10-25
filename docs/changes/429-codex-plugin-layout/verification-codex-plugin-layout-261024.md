@@ -12,7 +12,7 @@ risk_flags:
 depends_on: []
 branch: change/429-codex-plugin-layout
 created: 2026-10-24
-updated: 2026-10-24
+updated: 2026-10-25
 ---
 
 # 验证记录
@@ -39,7 +39,7 @@ T01 使用原始开始回执，ticket_base 为 3715f09b89b18291f0765f826ea88616b
 | shellcheck codex/tests/test-external-skill-versions.sh | PASS / exit 0 |
 | bash codex/tests/smoke.sh（R1候选） | PASS / exit 0；宿主授权环境原样完整重跑，含746项runtime、46项installed drift及其它脚本检查，最终Codex platform static smoke checks passed。日志 /private/tmp/issue-429-smoke-final.log。首次嵌套沙箱中止仅为执行环境失败，不记通过 |
 | bash codex/tools/check-external-skill-versions.sh --home /Users/benque | PASS（符合预期的诊断结果，命令 exit 1）；日志 /private/tmp/issue-429-live-verification.json |
-| 文档、判级与diff检查 | check-change-documents两项PASS；classify --verify读回bugfix/complex、applied=false；git diff --check PASS。fixed candidate与独立审查待提交后运行 |
+| 文档、判级与diff检查 | check-change-documents两项PASS；classify --verify读回bugfix/complex、applied=false；git diff --check PASS。固定候选、Codex双轴与Claude独立审查均已实际通过，详见下方对应HEAD记录 |
 
 实机 After：
 
@@ -69,15 +69,30 @@ F1 已将 .codex lstat 检查前移至任何配置读取之前。新增顶层执
 
 另修复整批 git diff --check 发现的三处EOF空白行。plan只把证据区之后的空白移到证据标记之前，清除证据区后的完整语义文本及SHA256保持不变；原回执仍有效。
 
-R2机械候选包sha256=34d04870eb26fc3e70872196cb7edfde5776a78b33e746578d181aab0c10c42c；原回执/owner/branch、任务语义摘要均一致，工作区干净，整批diff --check通过。两轴回执保存于 /private/tmp/issue-429-local-reviews-r2.json，并在下面持久化。最终证据提交后只读检查文档增量，代码和测试与该已验证候选相同；最终HEAD回执将在取得后保存到 /private/tmp/issue-429-local-reviews-final.json。
+R2机械候选包sha256=34d04870eb26fc3e70872196cb7edfde5776a78b33e746578d181aab0c10c42c；原回执/owner/branch、任务语义摘要均一致，工作区干净，整批diff --check通过。两轴回执保存于 /private/tmp/issue-429-local-reviews-r2.json，并在下面持久化。08ef62fcc41f6b2876d92dbe11e55a70219c9fd1 的最终三份文档增量已由原两轴复核，均PASS（fixed=1、residual=0、new=0）；代码和测试与R2相同。/private/tmp/issue-429-local-reviews-final.json 已取得并经validate_reviews绑定候选包94bba3c533db6e111ee2d661bcf39c405ff6cb1262aa27aa304b22d5fde19ad6，本节结构化证据同步持久化这份最终回执。
 
 ## 交叉审查
 
 | 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
 |---|---|---|---|---|---|
 | 请求1 | Codex | Claude Code（未实际调用） | 994c2db9f5edce400ccaa631159cb1fba27ced1d | NOT RUN | 自动审批在进程启动前拒绝：完整diff含非公开源码，缺少向该外部模型服务发送本批材料的明确授权。未发送、未换通道重试，不当成review FAIL或PASS；需用户明确授权后继续 |
+| R1 | Codex | Claude Code（claude-fable-5-1 / high，fresh，只读） | 08ef62fcc41f6b2876d92dbe11e55a70219c9fd1 | PASS | 0阻断；3条P3观察已登记边界并补证，代码无需变更；结果与session见下文 |
 
-尚未完成cross-provider gate，不推进到AWAITING_PR_CONFIRMATION，不push/建PR。该记录只证明审查请求受阻，Claude CLI可执行和Codex两轴均不替代真实Claude审查。
+2026-10-25，用户明确授权：“同意，授权将 #429 的 diff 和相关规范发送给本机配置的 Claude Code 模型服务，继续只读交叉审查及必要复审。”同一服务调用重新送审后获准，未更换目的地或绕过审批。最终PR提交仍保留确认点2。
+
+R1实际调用沿用本机模型配置fable[1m]，请求effort=high；实际返回model=claude-fable-5-1，session=dcb1a530-f92f-4f68-bd12-1984199473f6，duration_ms=223534，num_turns=20，is_error=false，permission_denials=[]。调用采用safe-mode、禁用skills/plugins/hooks、仅Read/Glob/Grep、plan权限、无会话持久化。结果原文：/private/tmp/issue-429-claude-r1.json；审查完整change BASE 08aac8d5b9af4d334c53bcf34029870f09e50bf0到上述HEAD，含所有四个提交，不限HEAD~1。
+
+Standards PASS、Spec PASS、总PASS；0阻断，3条非阻断P3观察的处置如下：
+
+1. 额外非标记条目（如.DS_Store）会参与候选计数并使目录UNKNOWN；“versions recorded”诊断文字可能把非版本条目也计为版本。这是当前保守识别边界，记录而不扩大过滤规则，未变更代码。
+2. .codex本身为链接时，旧marketplace路径同样被拒绝为UNKNOWN。这是AC-3有意要求的读取边界收紧；配置读取前即拒绝，不穿透链接。
+3. 将08ef62fc的Codex两轴回执写入本节结构化证据，补齐其只存于临时文件的记录。历史02a4c604结果仍保留在正文，避免混用不同HEAD。
+
+2026-10-25另以08ef62fc原样运行真实HOME只读核验，Codex仍准确PIN_DRIFT 7.0.1 / pin7.0.0、Claude PIN_CLEAN7.0.0，命令exit 1为预期版本差异；四份配置/元数据hash前后相等。回执：/private/tmp/issue-429-live-verification-261025.json。该实机结果由实现方取得；Claude本轮没有执行测试、Git或真实HOME检查，不能把其代码审查称作独立重跑。
+
+完成证据回填后，prepare-ticket --resume实际返回done-evidence-verified；原ticket_base不变，plan语义SHA256不变；文档两项门再次PASS。
+
+本轮审查已经解除外发授权阻塞，T01全部AC完成；证据/状态/索引回填后核对最终完整HEAD，再进入AWAITING_PR_CONFIRMATION。最终仅证据HEAD的只读复核回执归本Issue，避免为回写自身SHA而不断追加提交。未推送、未建PR，CI/安装/部署/merge仍NOT RUN。
 
 
 ## 范围记录补齐
@@ -149,25 +164,25 @@ R2机械候选包sha256=34d04870eb26fc3e70872196cb7edfde5776a78b33e746578d181aab
       },
       "base": "3715f09b89b18291f0765f826ea88616bc2f8e0f",
       "semantic_hash": "50c578826c83ea824e1ac8ea28ebfdb97cbb951b1799c399477cea34fce59eb2",
-      "local_candidate_head": "02a4c604a89fa4695057f023c76ead799be4ce9c",
+      "local_candidate_head": "08ef62fcc41f6b2876d92dbe11e55a70219c9fd1",
       "local_reviews": [
         {
           "axis": "Standards",
           "base": "3715f09b89b18291f0765f826ea88616bc2f8e0f",
-          "head": "02a4c604a89fa4695057f023c76ead799be4ce9c",
-          "package_sha256": "34d04870eb26fc3e70872196cb7edfde5776a78b33e746578d181aab0c10c42c",
+          "head": "08ef62fcc41f6b2876d92dbe11e55a70219c9fd1",
+          "package_sha256": "94bba3c533db6e111ee2d661bcf39c405ff6cb1262aa27aa304b22d5fde19ad6",
           "verdict": "PASS",
-          "reviewer": "Codex review429_standards",
-          "evidence": "R1完整范围加R2全部增量；F1临时反例复验UNKNOWN且无配置读取；fixed=1,residual=0,new=0"
+          "reviewer": "/root/review429_standards",
+          "evidence": "R1整批+R2修复复审+最终3份文档增量；代码/测试与R2相同；fixed=1,residual=0,new=0；Claude NOT RUN，AC5仍PARTIAL。"
         },
         {
           "axis": "Spec",
           "base": "3715f09b89b18291f0765f826ea88616bc2f8e0f",
-          "head": "02a4c604a89fa4695057f023c76ead799be4ce9c",
-          "package_sha256": "34d04870eb26fc3e70872196cb7edfde5776a78b33e746578d181aab0c10c42c",
+          "head": "08ef62fcc41f6b2876d92dbe11e55a70219c9fd1",
+          "package_sha256": "94bba3c533db6e111ee2d661bcf39c405ff6cb1262aa27aa304b22d5fde19ad6",
           "verdict": "PASS",
-          "reviewer": "Codex review429_spec",
-          "evidence": "R1完整范围加R2全部增量；F1临时反例复验UNKNOWN且无配置读取；fixed=1,residual=0,new=0"
+          "reviewer": "/root/review429_spec",
+          "evidence": "R1整批+R2修复复审+最终3份文档增量；代码/测试与R2相同；fixed=1,residual=0,new=0；Claude NOT RUN，AC5仍PARTIAL。"
         }
       ],
       "ac": {
@@ -175,7 +190,62 @@ R2机械候选包sha256=34d04870eb26fc3e70872196cb7edfde5776a78b33e746578d181aab
         "AC-2": "PASS",
         "AC-3": "PASS",
         "AC-4": "PASS",
-        "AC-5": "PARTIAL: Claude cross-provider review NOT RUN"
+        "AC-5": "PASS"
+      },
+      "head": "08ef62fcc41f6b2876d92dbe11e55a70219c9fd1",
+      "validation_sha256": "403860adbc6da9acb07aa22ac4e47da452e3d7a6879d17a121cde3025a82d8e0",
+      "checks": [
+        {
+          "command": "bash codex/tests/test-external-skill-versions.sh",
+          "result": "PASS",
+          "evidence": "PASS after F1 fix; RED/GREEN and zero-read audit proof recorded above"
+        },
+        {
+          "command": "bash -n codex/tests/test-external-skill-versions.sh",
+          "result": "PASS",
+          "evidence": "exit 0 after final shell change"
+        },
+        {
+          "command": "shellcheck codex/tests/test-external-skill-versions.sh",
+          "result": "PASS",
+          "evidence": "exit 0 after final shell change"
+        },
+        {
+          "command": "bash codex/tests/smoke.sh",
+          "result": "PASS",
+          "evidence": "/private/tmp/issue-429-smoke-r2.log; exit 0; 746 runtime and 46 installed-drift tests; code/test bytes identical through reviewed HEAD"
+        },
+        {
+          "command": "bash codex/tools/check-external-skill-versions.sh --home /Users/benque",
+          "result": "PASS",
+          "evidence": "/private/tmp/issue-429-live-verification-261025.json; expected exit 1 and PIN_DRIFT 7.0.1 / 7.0.0; checked files unchanged"
+        },
+        {
+          "command": "bash codex/tools/aisoft check-change-documents --porcelain --repo /private/tmp/issue-429-codex-plugin-layout",
+          "result": "PASS",
+          "evidence": "both document gates PASS for reviewed candidate"
+        },
+        {
+          "command": "bash codex/tools/aisoft review-candidate 429 T01 --head 08ef62fcc41f6b2876d92dbe11e55a70219c9fd1 --repo /private/tmp/issue-429-codex-plugin-layout",
+          "result": "PASS",
+          "evidence": "/private/tmp/issue-429-cross-review-candidate-r1.json; mechanical PASS; same original ticket/change BASE"
+        },
+        {
+          "command": "claude --safe-mode --disable-slash-commands --strict-mcp-config --tools Read,Glob,Grep --allowedTools Read,Glob,Grep --permission-mode plan --permission-prompts none --no-session-persistence --output-format json --effort high -p < /private/tmp/issue-429-claude-r1.prompt > /private/tmp/issue-429-claude-r1.json",
+          "result": "PASS",
+          "evidence": "independent cross-provider PASS on 08ef62fcc41f6b2876d92dbe11e55a70219c9fd1; claude-fable-5-1/high; session dcb1a530-f92f-4f68-bd12-1984199473f6"
+        }
+      ],
+      "cross_provider_review": {
+        "provider": "claude",
+        "head": "08ef62fcc41f6b2876d92dbe11e55a70219c9fd1",
+        "model": "claude-fable-5-1",
+        "effort": "high",
+        "session_id": "dcb1a530-f92f-4f68-bd12-1984199473f6",
+        "verdict": "PASS",
+        "blocking_findings": 0,
+        "nonblocking_observations": 3,
+        "evidence": "verification cross-provider table and /private/tmp/issue-429-claude-r1.json"
       }
     }
   },
