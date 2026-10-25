@@ -134,5 +134,5 @@ Txx 是唯一任务身份。后续 provider 使用执行视图时只从本 canon
 ## 执行证据
 
 <!-- execution-evidence:start -->
-2026-10-25 T01 治理 commit 2e54d7e0c85810cbcff2d5878d82c849e76b6144 后已 STOP。本次 fresh run 重读并核对相同 worktree/owner/HEAD，固定候选机械检查与两轴只读审查均 PASS，已补齐 T01 的实际完成记录并改为 done。T02 已在干净起点 b2ab5720773b374319b80117960c67667f66100f 经 prepare-ticket 准备，六条命令、S1–S11 与隔离导出均通过，证据候选 2fcd7f4753dfdfade13734551b53819fd9693815 的机械检查与两轴审查也已 PASS，T02 完成；T03 已从 bca09f38bc1730781b6cf2fd6b14ff7558fac1ee 正式准备，最终审查待运行；原批准持续有效，确认点 2 前不 push、不建 PR。
+2026-10-25 T01 治理 commit 2e54d7e0c85810cbcff2d5878d82c849e76b6144 后已 STOP。本次 fresh run 重读并核对相同 worktree/owner/HEAD，固定候选机械检查与两轴只读审查均 PASS，已补齐 T01 的实际完成记录并改为 done。T02 已在干净起点 b2ab5720773b374319b80117960c67667f66100f 经 prepare-ticket 准备，六条命令、S1–S11 与隔离导出均通过，证据候选 2fcd7f4753dfdfade13734551b53819fd9693815 的机械检查与两轴审查也已 PASS，T02 完成；T03 已从 bca09f38bc1730781b6cf2fd6b14ff7558fac1ee 正式准备，R1 Claude Opus 5.5/high 对 f6b6066640a5652ea5c57060010ef0dbf2234250 两轴 PASS、2 Low；F1/F2 已修复、同版本重发及完整 smoke/隔离导出通过，本次治理修复提交后立即 STOP，新 HEAD 待 fresh run 复审；原批准持续有效，确认点 2 前不 push、不建 PR。
 <!-- execution-evidence:end -->
