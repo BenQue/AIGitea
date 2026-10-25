@@ -134,5 +134,5 @@ Txx 是唯一任务身份。后续 provider 使用执行视图时只从本 canon
 ## 执行证据
 
 <!-- execution-evidence:start -->
-当前 T01–T03 全部 pending；本轮检查只针对合同候选本身，见 verification。未开始的任务不得记录为完成。
+2026-10-25 负责人确认完整合同；修订已同步 Issue、读回并设 approved。首次 T01 检查因 BASE_STALE 中止。负责人另行明确允许将尚未推送的三笔提交重放到已核对 main 并重建开始回执；重放完成且各提交 diff 字节相同。当前准备在恢复后的干净基线上重新 prepare-ticket，旧回执作为历史保留，不冒充当前启动或完成证据。T02/T03 尚未启动；T01 治理提交后立即 STOP。
 <!-- execution-evidence:end -->
