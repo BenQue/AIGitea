@@ -7,7 +7,14 @@ assessed_complexity: complex
 effective_complexity: complex
 contract_effect: change
 confidence: high
-risk_flags: []
+risk_flags:
+  - authorization
+  - authentication
+  - shared-core
+  - agent-governance
+  - platform-governance
+  - external-contract
+  - artifact
 depends_on: []
 status: pending
 branch: change/434-decouple-adoption-from-registry
@@ -17,9 +24,40 @@ updated: 2026-10-27
 
 # Verification：通用流程采用与中央项目登记解耦
 
-<!-- TEMPLATE_CONDITIONAL:
-`## 交叉审查` 一节只适用于平台仓 complex 变更，项目仓整节删除。
-`## 遗留风险与未完成项
+## 基线与范围
+
+- Commit SHA:
+- 基线：`origin/main` =
+- 环境:
+- 本记录负责证明的 acceptance criteria:
+
+## 执行结果
+
+| Command / check | Result | Evidence |
+|---|---|---|
+| 待执行 | NOT RUN | 待填写 |
+
+命令与输出照实抄。改动前才观测得到的证据（基线状态、改动前后对比、先看着测试红）
+只有写在这里才留得下来——改动合并后就无法重放。
+
+## Acceptance criteria 结果
+
+| AC | 结论 | 证据 |
+|---|---|---|
+| AC-1 | 待填写 | 待填写 |
+
+## 交叉审查
+
+仅平台仓 complex 变更保留本节（`03` §7「交叉审核」）；项目仓整节删除。每轮一行，`exact head` 写 40 位 SHA，
+实现方与审查方不能是同一提供者。
+
+| 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
+|---|---|---|---|---|---|
+| 合同 1 | claude | codex（gpt-6-astra，high，只读） | f2f24f022ebd670224583c20ababe2270a64a1fd | REJECT | 3 BLOCKER（direct 写入前无身份硬门；无登记后项目策略无机读来源；installer 约束自相矛盾）、9 MAJOR、1 MINOR。处置：放弃另写 direct 传输，改为同一 broker 引擎加项目自声明来源（spec D3–D7），治理先行（plan T01），补全入口清单、反例、回滚与未验证边界，修复本文件模板残片 |
+| 实现 | 待填写 | 待填写 | 待填写 | NOT RUN | 待填写 |
+
+
+## 遗留风险与未完成项
 
 合格标准：每条 acceptance criterion 都有一条真实执行过的命令或一次真实观测支撑；
 不得把 `NOT RUN` 改写为通过；不可达的环境与未执行项在此显式写明。

@@ -9,9 +9,12 @@ contract_effect: change
 confidence: high
 risk_flags:
   - authorization
+  - authentication
+  - shared-core
   - agent-governance
   - platform-governance
   - external-contract
+  - artifact
 depends_on: []
 branch: change/434-decouple-adoption-from-registry
 created: 2026-10-27
@@ -22,16 +25,13 @@ updated: 2026-10-27
 
 ## 目标与原因
 
-平台交付的是方法、流程、模板与通用工具。项目自主导入这些东西，项目参数与采用记录留在项目自身。
+平台交付的是方法、流程、模板与通用工具，由项目自主导入，项目参数与采用记录留在项目自身。
 
-一个项目要采用通用流程，所需的只有三样：使用发布包、技能，以及项目检出里的 `aisoft` 工具。它不需要在平台仓新增任何记录。
+一个项目要采用通用流程，只需要三样东西：使用发布包、技能，以及项目检出里的 `aisoft` 工具。它不需要往平台仓新增任何记录。
 
-平台两份 manifest 里的项目登记保留，但含义改为可选的 **broker 加固访问**：
+平台两份 manifest 里的项目登记保留下来，但含义改为可选的**站点加固访问**：凭据放在受保护文件里，会话拿不到；由 manager 校准权限与保护规则。
 
-- 想把 Git/Gitea 凭据与会话隔离开的项目，才去登记。
-- 登记后，远端操作经 broker 进行。
-
-这样做直接消除接入既有项目时的三类问题：
+这样做直接消除接入既有项目时出现的三类问题：
 
 - 项目内容误立到平台仓。
 - 登记前没有路由，只能走 admin 例外。
@@ -41,95 +41,151 @@ updated: 2026-10-27
 
 | 层 | 内容 | 归属 | 是否需要平台登记 |
 |---|---|---|---|
-| 通用流程采用 | 使用发布包、技能、`aisoft` 工具、change 命名与文档、判级、两个确认点、人工合并 | 平台提供，项目采用 | 否 |
-| 项目自身配置 | 仓库与默认分支、受保护 `main`、required CI、标签集合、项目身份与凭据、runner 依赖、`AGENTS.md` 项目事实、`.aisoft/access.json` | 项目 | 否 |
-| 可选运行环境访问控制 | broker、governance manifest、manager 校准、project-agent 凭据隔离、host-role 闸门 | 平台站点 | 是，仅限选用者 |
+| 通用流程采用 | 使用发布包、技能、`aisoft` 工具、typed 操作引擎、change 命名与文档、判级、两个确认点、人工合并 | 平台提供，项目采用 | 否 |
+| 项目自身配置 | 仓库与默认分支、受保护 `main`、required CI、标签集合、项目身份与凭据、runner 依赖、`AGENTS.md` 项目事实、`.aisoft/project.json` | 项目 | 否 |
+| 可选站点加固访问 | 已安装 broker、两份平台 manifest、受保护凭据文件、manager 校准、host-role 闸门 | 平台站点 | 是，仅限选用者 |
 
-## 已批准决定
+## 决定
 
-- **D1 注册表位置**：留在平台仓 `codex/config/` 的两份 manifest，不迁站点本地，不做项目自注册（负责人选方案 A）。
-- **D2 解耦**：登记不再是采用前置。会话工具支持两种传输，broker 与 direct（负责人选 A+，2026-10-27）。
-- **D3 传输选择**：由项目侧文件 `.aisoft/access.json` 声明。
-  - 合法形状只有两种：`{"transport": "direct"}`，以及 `{"transport": "broker", "project_id": "<id>"}`。
-  - 未知键或未知取值一律拒绝。
-  - 文件缺失时走兼容路径：按现有 `aisoft-project-target.sh` 从 manifest 解析。解析成功即用 broker；解析失败时报错，并提示两种声明写法，不自动降级成 direct。
-- **D4 同一组 typed 操作**：两种传输实现同一个闭集，取会话工具今天实际调用的 broker 操作，名称与参数照搬 broker：
-  - Git：`git.fetch.main`、`git.push.change`。
-  - Issue：`gitea.issue.read`、`gitea.issue.create`、`gitea.issue.comment`。
-  - Issue 标签：`gitea.issue.labels.read`、`gitea.issue.labels.classify`、`gitea.issue.labels.set`。
-  - 仓库标签：`gitea.labels.read`、`gitea.labels.provision`。
-  - PR：`gitea.pulls.read`、`gitea.pull.create`。
-  - 保护规则：`gitea.protection.read`。
-  
-  闭集里没有 merge、没有对 `main` 的 push、没有 force。本地前置校验共用一份实现，两种传输行为一致：
-  - exact `change/N-slug` 分支等于当前分支；
-  - 工作树干净；
-  - PR 正文合同；
-  - 标签属于 canonical 集合。
-- **D5 direct 传输的凭据边界**：
-  - Git 远端用检出里已配置的 remote（缺省 `origin`，可由 `access.json` 的 `git_remote_name` 指定）和本机已配置的 Git 凭据助手。
-  - Gitea API 的 token 由 `git credential fill` 针对该 remote 的 exact URL 取得，只在进程内使用。它经 mode 600 临时文件或 stdin 交给 HTTP 客户端，不进命令行、环境变量、日志或输出。
-  - 工具不读 `.env`，不接受 token 参数。
-  - Gitea base URL 与 owner/repo 只从 remote URL 推出，调用方不能传。
-- **D6 保护规则由服务端承担，工具读回**：
-  - direct 模式下，直推 `main`、强推与合并的拦截只能靠仓库自己的保护规则。
-  - `aisoft project-check` 新增 `access` 检查：
-    - 读回 `main` 受保护、禁止直推与强推、合并 allowlist 不含所用项目身份；
-    - 读回 required CI context 存在；
-    - 读不到或不满足时一律报 GAP。
-  - 技能要求 direct 模式使用非管理员的项目身份。
-- **D7 已登记项目不动**：现有 manifest 条目、凭据与保护不改不删。没有 `access.json` 的已登记项目继续按兼容路径走 broker。迁移是可选的，由各项目自行决定。
-- **D8 接入既有项目**：onboarding 参考拆成两部分。
-  - 「采用（项目自主）」：项目仓自己的 Issue 承载私有仓迁移或历史导入核对、首个 CI 与 runner 依赖、标签对齐、首个 canary。
-  - 「可选 broker 加固访问（维护层）」：保留现有 §1.1 流程。
-  - 平台仓 Issue 只用于两件事：登记 broker，或者在采用中发现通用能力缺陷。
+### 已由负责人裁决
+
+- **D1 注册表位置**：留在平台仓 `codex/config/` 的两份 manifest。不迁到站点本地，也不做项目自注册（方案 A）。
+- **D2 解耦方向**：登记不再是采用前置，项目可以用自己的 Git 凭据跑完整流程（A+，2026-10-27）。
+
+### 待确认点 1 一并确认
+
+- **D3 同一个引擎，两种来源**：不另写一套 direct 传输，而是给现有 broker 引擎 `codex/runtime/aisoft_host_access` 增加「项目自声明」来源，现有的「站点登记」来源保持不变。
+  - 两种来源跑同一份校验代码：worktree 归属与会话、fresh main、fetch/push URL 核对、完整历史与 `git_scope`、写后读回、身份读回、PR 正文合同、标签集合。
+  - 项目自声明来源下，引擎随使用发布包装进 `.aisoft/lib`，以当前用户身份非特权运行。
+  - 站点登记来源仍是 root 安装的 `/usr/local/libexec/aisoft/host-access-broker`。
+- **D4 项目自声明文件 `.aisoft/project.json`**：这个文件归项目所有，不是发布包成员；发布包只提供模板与 schema。
+  - 内容是一个项目条目，字段取引擎今天从两份 manifest 读取的项目级值：
+    - `repository`（`owner/name`）
+    - `git_remote_name`（缺省 `origin`）
+    - `default_branch`
+    - `project_agent`（项目身份的登录名）
+    - `deployment_lifecycle`
+    - `change_control`（缺省 `production`）
+    - `status_check_contexts`
+  - Gitea base URL 从 remote URL 推出，调用方不能传。
+  - schema 是精确键集合。未知键、缺键或取值越界一律拒绝。
+  - 站点级值（manager、site admin、human merge identity）不进这个文件。
+- **D5 来源选择**：
+  - 检出里有 `.aisoft/project.json` 时，用项目自声明来源。
+  - 没有这个文件时，按现有 `aisoft-project-target.sh` 从已安装 manifest 解析，即站点登记来源。
+  - 两者都没有时报错，并提示两种写法；不降级，也不猜。
+  - 同一检出两种来源都命中、但仓库不同时，停止。
+- **D6 项目自声明来源的凭据边界**：
+  - **remote**：只接受 `http(s)` URL，并且同时满足：
+    - fetch 与 push URL 相同，且只有一个；
+    - 不含 userinfo；
+    - 不受 `insteadOf` / `pushInsteadOf` 改写；
+    - 推出的 `owner/name` 等于 `repository`。
+    
+    SSH remote 不支持，因为 API 凭据要按 exact URL 取得。每次写操作前重新核对，操作期间配置漂移即停止。
+  - **token**：经 `git credential fill` 针对 exact remote URL 取得，只在进程内使用：
+    - 不进 argv、环境变量、日志和输出；
+    - 子进程禁用 `GIT_TRACE*` 与 curl verbose；
+    - 错误回显脱敏；
+    - 不跟随跨主机重定向；
+    - 不落临时文件；必须落盘时用 mode 600，并在 finally 中删除。
+  - **身份读回**：每次写操作前，经 `/user` 和仓库 permissions 读回身份。下列任一情况都拒绝写入，规则与站点登记来源一致，取现有 `require_non_admin_exact` 语义：
+    - 登录名与 `project_agent` 不一致；
+    - `is_admin` 为真；
+    - 仓库 permissions 的 `admin` 为真。
+  - **操作闭集**：项目自声明来源只开放现有 project-agent 身份的项目级操作。闭集按「调用入口 → 操作」表确定，由 verification 列出。以下维护层操作一律拒绝：
+    - `host.*`、`orbstack.*`
+    - `mac.git.bind`
+    - `gitea.credential.rotate`
+    - `gitea.labels.extension.define`
+    - `gitea.protection.read`（属于 manager-audit 身份）
+- **D7 保护规则证据**：
+  - Write 级的项目身份读不到 Gitea 分支保护，引擎也不为此提升权限。
+  - 保护规则包括：受保护 `main`、禁止直推与强推、合并只许人、required CI 启用。采用时由人用自己的管理员会话读回一次，证据留在项目仓的采用 Issue。
+  - 项目自声明来源下，`aisoft project-check` 报告两项：
+    - 身份是否非管理员：可以机读，不满足就报 GAP；
+    - 保护证据的位置：没有登记证据位置就报 GAP。
+  - 这是 A+ 的固有取舍：
+    - 站点加固访问下，会话拿不到凭据，裸 `git push` 也会失败；
+    - 项目自声明来源下，本机凭据助手对任何 git 命令都可用，最后一道防线是服务端保护。
+    
+    确认点 1 需要确认这一取舍。
+- **D8 已登记项目不动**：现有 manifest 条目、凭据与保护规则不改、不删。没有 `project.json` 的已登记项目继续走站点登记来源；要不要迁移，由各项目自愿决定。
+- **D9 接入既有项目**：onboarding 参考拆成两部分。
+  - 「采用（项目自主）」：由项目仓自己的 Issue 承载，包括私有仓迁移或历史导入核对、首个 CI 与 runner 依赖、标签对齐、保护证据、首个 canary。
+  - 「可选站点加固访问（维护层）」：保留现有 §1.1。
+  - 平台仓 Issue 只在两种情形下使用：登记站点加固访问；在采用中发现通用能力缺陷。
+- **D10 范围承接**：Issue #434 正文把本票限定为调查与方案讨论。确认点 1 的「确认」把本票扩展为按本 spec 实施，扩展记录写在 summary。确认之前不实施。
 
 ## Acceptance criteria
 
-- [ ] **AC-1 职责界定**：新 ADR 0003 写明上表三层职责与 D1–D8。技能 `aisoft-platform` 的「现行合同」「目标项目与 governance manifest」两节，以及 getting-started 与 onboarding-runbook 的对应段落，与 ADR 一致。任何活文档都不再把平台登记写成采用前置。
-- [ ] **AC-2 入口清单与自主采用**：verification 列出本批前所有要求中央登记的入口及其处置，至少包括：`aisoft open-pr`、`aisoft classify`、`aisoft complete`、`aisoft project-check` 远端段、`aisoft-project-target.sh`、getting-started 第 3 步、runbook §1.1、技能里「一切访问走 broker」。每个入口要么改为传输无关，要么明确标为仅 broker 模式。
-- [ ] **AC-3 无平台记录即可走完流程**：一个合成样例项目在平台 manifest 里没有任何条目，平台仓也没有任何 diff。它采用使用发布包并声明 `{"transport": "direct"}` 后，在合成 Gitea 上依次走通八步：
-  1. 标签对齐；
-  2. 建 Issue；
-  3. 读 Issue；
-  4. 判级投影 apply 与 verify；
-  5. 推 change 分支；
-  6. `aisoft open-pr`；
-  7. summary 回填；
-  8. 再推。
-  
-  同时必须证明三项拒绝：推 `main`、推非当前分支、正文不合合同。token 不出现在任何输出、argv 或环境变量里。
+- [ ] **AC-1 职责界定**：
+  - 新 ADR 0003 写明三层职责与 D3–D9，并列出它取代的旧条款。
+  - 下列活文档与 ADR 一致：技能 `aisoft-platform`、`execution-adapter`、getting-started、onboarding-runbook、project-align，以及 `issue-session-flow`、`usage/CONTRACT.md`、`usage/USER-GUIDE.md`、`templates/project/AGENTS.md`。
+  - 没有任何活文档再把平台登记写成采用前置。
+- [ ] **AC-2 入口清单**：verification 列出「调用入口 → 操作 → 来源」表，每一行都写明处置：两种来源通用，或者仅站点。至少覆盖：
+  - `aisoft open-pr`、`aisoft classify`、`aisoft complete`、`aisoft project-check --remote`
+  - `prepare-ticket` / `review-candidate`（经 `ticket_execution.read_issue`）
+  - `aisoft-project-target.sh`
+  - 技能与 `issue-session-flow` 里调用的 `gitea.issue.list`、`git.fetch.change`、`gitea.pull.read`、`gitea.commit.status.read`、`gitea.actions.run.read`、`gitea.actions.job.logs.read`
+- [ ] **AC-3 无平台记录即可走完流程**：
+  - 前提：合成样例项目只在项目侧有 `.aisoft/project.json`，合成夹具 manifest 里没有它；运行环境没有平台检出、没有已安装 broker、没有 `.agent.env`。
+  - 用导出的项目工具包，在合成 Gitea 上依次走通：
+    1. 标签对齐；
+    2. 建 Issue 并读回；
+    3. `prepare-ticket`；
+    4. 判级投影的 apply 与 verify；
+    5. `aisoft open-pr`（首推、建 PR、回填、再推）；
+    6. 读 PR head 与 commit status；
+    7. `aisoft complete` 的 dry-run，用 `deployment_lifecycle` 判定终态。
+  - 测试断言全程没有访问平台安装面。
 - [ ] **AC-4 安全验证保留**：
-  - broker 模式的现有回归全部保持通过。
-  - direct 模式下 `project-check` 的 `access` 检查对四种缺失分别报 GAP：无保护、允许直推、允许强推、所用身份在合并 allowlist。
-  - 闭集之外的操作在两种传输下都被拒绝。
-- [ ] **AC-5 兼容迁移**：
-  - 没有 `access.json` 的已登记项目（用合成夹具 manifest 表示）行为与本批前一致，仍走 broker。
-  - 非法 `access.json` 被拒绝。
-  - verification 给出现有使用者的迁移说明：不需要动作；可选择改为 direct，并给出改法与回退方法。
-- [ ] **AC-6 接入既有项目一节**：onboarding 参考新增「接入既有项目」，按序列出项目仓 Issue 应承载的步骤，并写明平台仓 Issue 的两种适用情形（D8）。上手指南的新项目路径不再要求先改平台 manifest。
-- [ ] **AC-7 发布**：使用发布包包含 `access.json` 模板与 canonical 标签集合，并按发布规则升版本。`aisoft version` 与 `project-check` 的 `tool-provenance` 读回新版本。
+  - 站点登记来源的现有回归全部通过。
+  - 项目自声明来源下，下列每种情形各有一个反例，并且都被拒绝：
+    - 身份问题：管理员身份、仓库 admin 权限、登录名不符；
+    - remote 问题：fetch/push URL 分离、多个 pushurl、`insteadOf` 改写、userinfo、SSH remote；
+    - 推送问题：推 `main`、推非当前分支、越界历史、归属错误；
+    - 其他：闭集外操作、正文不合合同、跨主机重定向。
+  - 哨兵 token 在 stdout、stderr、argv、环境变量、git trace 和残留临时文件里都零命中。
+- [ ] **AC-5 兼容与回滚**：
+  - 没有 `project.json` 的已登记夹具项目，行为与本批之前一致。
+  - verification 写出迁移与回滚说明：
+    - 已登记项目：删除 `project.json` 即回到站点来源；
+    - 未登记项目：恢复上一版兼容工具包，无法恢复时停止远端写入；
+    - 已创建的正常 Issue/PR 不撤销。
+- [ ] **AC-6 接入既有项目一节**：
+  - onboarding 参考新增「接入既有项目」，按顺序列出由项目仓 Issue 承载的步骤，并写明平台仓 Issue 的两种适用情形（D9）。
+  - getting-started 的新项目路径不再要求先改平台 manifest。
+- [ ] **AC-7 发布**：
+  - 引擎、schema 与 `project.json` 模板进入 `usage/bundle.json` 的成员清单；成员变更与发布记录放在同一切片里完成。
+  - `aisoft version` 与 `project-check` 的 `tool-provenance` 都读回新版本。
+- [ ] **AC-8 未验证边界如实记录**：
+  - 合成 Gitea 桩通过，不能表述为真实 Gitea 上可用。
+  - verification 单独列出以下各项，写明证据或 NOT RUN：
+    - 真实 Gitea 版本下 `/user` 与 permissions 响应形状的兼容证据；
+    - 已安装 broker 的重装；
+    - live 读回。
 
 ## 接口、数据与兼容性影响
 
-- 新文件 `.aisoft/access.json` 归项目所有，不属于发布包成员。发布包只提供模板和 schema。
-- `aisoft` 子命令的参数不变。新增的只有 `aisoft labels-provision`；它在 broker 模式下转调现有 `gitea.labels.provision`。
-- broker 的 manifest、操作表与安装字节都不变，所以不需要重装 broker。这是本批的刻意约束：凡需要改 broker 的设计，先停下升级。
-- direct 传输只调用 Gitea 公共 REST API，最低版本以 governance manifest 的 `gitea_version` 为准。
+- 引擎增加来源选择与项目条目加载。站点登记来源的 manifest schema、操作表与校验都不变。
+- 引擎代码字节变化后，已安装 broker 与源码会不一致，所以合并后需要两台重装 broker；重装之前，漂移检查会报差异。重装由维护者执行，本批记为 NOT RUN。
+- 使用发布包新增成员，按发布规则升版本。已 pin 旧版本的项目在主动升级之前不受影响。
+- `aisoft` 子命令的参数不变。如果需要新增公开子命令（例如标签对齐、建 Issue），只做薄包装，参数与 broker 同名操作保持一致。
 
 ## 风险与回滚约束
 
-- 安全取舍（D5/D6）：direct 模式下，会话进程能用到项目凭据。服务端保护缺失时，误操作可能直推 `main`。缓解有三点：闭集里没有危险操作；`access` 检查把缺失保护报成 GAP；技能要求非管理员身份。broker 模式的隔离保持不变，供需要的项目选用。
-- 回滚：revert 本批 PR 即可，因为不改 manifest、不改 broker、不迁移数据。已改用 direct 的项目删除 `access.json` 就回到兼容路径。
+- 安全取舍见 D7。站点加固访问的隔离保持不变，供需要的项目选用。
+- 共享核心改动：来源选择有缺陷时，可能波及站点登记来源。缓解办法是站点来源的现有回归全量必跑，并对来源选择单独做反向证明。
+- 回滚：revert 本批 PR，由维护者把 broker 重装回 revert 后的字节；项目侧按 AC-5 处理。
 
 ## 非目标
 
-- 不把注册表移出平台仓，不实现项目自注册，不改 broker manifest 或已登记项目的条目。
-- 不新建或轮换任何凭据，不改 live 标签或保护规则，不安装任何东西。
-- 不清理 #433 的遗留分支与 worktree，也不处理已移交项目仓的那张 Issue，由负责人另行决定。
-- 不改 governance 工具与 manager 校准流程。
-- 不改部署合同。
+- 不把注册表移出平台仓，不实现项目自注册，不改已登记项目的 manifest 条目。
+- 不新建或轮换凭据，不改 live 标签或保护规则。安装与重装由维护者执行。
+- 不清理 #433 的遗留分支与 worktree，也不处理已移交项目仓的那张 Issue。
+- 不改 governance 工具与 manager 校准流程，不改部署合同，不改 readiness 的维护层检查。
 
 ## 未决问题
 
-- 无。
+- 无。D3–D9 待确认点 1 确认。

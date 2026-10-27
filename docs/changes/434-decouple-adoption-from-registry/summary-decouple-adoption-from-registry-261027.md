@@ -9,9 +9,12 @@ contract_effect: change
 reason: 把通用流程采用与中央项目登记解耦，登记降为可选的 broker 加固访问，涉及访问控制规则与 Agent 治理入口
 risk_flags:
   - authorization
+  - authentication
+  - shared-core
   - agent-governance
   - platform-governance
   - external-contract
+  - artifact
 required_docs:
   - summary
   - spec
@@ -69,8 +72,8 @@ Issue #434 要求平台只提供方法、流程、模板与通用工具，项目
 ## 影响范围
 
 - 会话工具：`codex/tools/aisoft` 及其包装的 `apply-classification-labels.sh`、`mark-completed-issues.sh`、`codex/agent/aisoft-project-target.sh`。
-- 新增一条 direct 传输：复用项目检出的 Git remote 与本机 Git 凭据助手，不经平台 manifest。
-- 使用发布包：增加项目侧访问声明模板与标签集合，按发布规则升版本。
+- broker 引擎 `codex/runtime/aisoft_host_access`：在现有站点登记来源之外，新增项目自声明来源，读取项目侧 `.aisoft/project.json` 与本机 Git 凭据助手。站点来源的行为不变。会话工具其余调用方：`ticket_execution.read_issue`、`aisoft project-check --remote`。
+- 使用发布包：引擎、`project.json` 模板与 schema 进入成员清单，按发布规则升版本。合并后由维护者重装两台 broker。
 - 合同文档：
   - 新增 ADR 0003。
   - `aisoft-platform` 技能及其 getting-started、onboarding-runbook、project-align 参考。
@@ -82,12 +85,18 @@ Issue #434 要求平台只提供方法、流程、模板与通用工具，项目
 
 见映射 spec 与 plan。
 
-要点是把远端操作收成一组 typed 操作，broker 与 direct 两种传输实现同一组操作，且执行同一套本地前置校验。传输由项目侧声明选择；没有声明时按现有行为解析 manifest，以保持兼容。
+要点是不另写传输，而是让同一个 broker 引擎接受两种项目来源：站点登记（现有 manifest，root 安装）和项目自声明（项目仓 `.aisoft/project.json`，随发布包非特权运行）。两种来源共用全部校验。没有 `project.json` 时行为与现在一致。
+
+第 1 版合同提出另写一套 direct 传输，Codex 交叉评审判为 REJECT，理由是需要重写 broker 的全部推送闸门，并且项目策略没有机读来源。第 2 版据此改为上述设计，评审记录见 verification。
+
+## 范围承接
+
+Issue #434 正文把本票限定为调查与方案讨论。负责人在确认点 1「确认」后，本票扩展为按映射 spec 实施；确认之前只有合同文档，没有任何实现。
 
 ## 风险
 
-- direct 传输下，Git 凭据由项目自管，平台失去「会话拿不到凭据」这一层隔离。直推 `main`、强推与合并的拦截只能落在仓库服务端保护上。缓解方式是：工具里没有 merge 操作；`aisoft project-check` 读回保护规则，缺失时报 GAP；技能要求使用非管理员的项目身份。这是一项需要负责人在确认点 1 认可的安全取舍。
-- 两条传输的行为可能漂移。缓解方式是共用一份前置校验实现，并用同一组回归用例跑两条传输。
+- 项目自声明来源下，Git 凭据由项目自管，平台失去「会话拿不到凭据」这一层隔离，直推 `main`、强推与合并只能靠仓库服务端保护拦截。缓解措施有四条：每次写操作前读回身份，管理员身份拒绝写入；操作闭集不含 merge 与维护层操作；保护证据在采用时由人读回；`project-check` 在缺失时报 GAP。这一安全取舍（spec D7）需要负责人在确认点 1 认可。
+- 共享核心改动可能波及已登记项目。缓解方式是站点来源的回归全量必跑，并对来源选择单独做反向证明。
 - 改动牵涉多份活文档，runtime 单测钉了活文档短语，需要逐票跑全量 smoke。
 
 ## AI 判级
@@ -101,9 +110,12 @@ contract_effect: change
 reason: 把通用流程采用与中央项目登记解耦，登记降为可选的 broker 加固访问，涉及访问控制规则与 Agent 治理入口
 risk_flags:
   - authorization
+  - authentication
+  - shared-core
   - agent-governance
   - platform-governance
   - external-contract
+  - artifact
 required_docs:
   - summary
   - spec
@@ -115,12 +127,13 @@ override_reason: ''
 
 ### 判级证据
 
-- 改变「一切 Gitea/Git 访问走 broker」的访问控制规则，属于 authorization 与安全决策，强制 complex。
+- 改变「一切 Gitea/Git 访问走 broker」的访问控制规则，并新增凭据获取与身份读回路径，属于 authorization、authentication 与安全决策，强制 complex。
+- 改 broker 引擎这一共享核心，并改动使用发布包成员（artifact）。
 - 改技能、ADR 与项目 `AGENTS.md` 模板，属于 Agent 与平台治理。
 - 使用发布包与会话工具的行为变化是项目侧外部契约。
-- direct 传输的端到端证据要求真实或合成仓库上的读回，不能只靠 diff review 与 required CI 重放，所以声明 `verification`。
+- 项目自声明来源的端到端证据要求合成仓库上的读回，以及真实 Gitea 兼容性的单独记录，不能只靠 diff review 与 required CI 重放，所以声明 `verification`。
 - 路由按 route-policy 取 R3，再应用 S1（平台仓、安全类）。`contract_effect: change` 不触发 G1。需求已在本线程经两轮讨论收敛，不另跑 grill-me。
 
 ### 缺失的 acceptance criteria 或决策
 
-- 无。注册表归属（方案 A）与解耦（A+）已由负责人裁决。direct 传输的安全取舍写在 spec，由确认点 1 一并认可。
+- 无。注册表归属（方案 A）与解耦（A+）已由负责人裁决。项目自声明来源的安全取舍写在 spec D7，由确认点 1 一并认可。

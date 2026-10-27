@@ -9,9 +9,12 @@ contract_effect: change
 confidence: high
 risk_flags:
   - authorization
+  - authentication
+  - shared-core
   - agent-governance
   - platform-governance
   - external-contract
+  - artifact
 depends_on: []
 branch: change/434-decouple-adoption-from-registry
 created: 2026-10-27
@@ -22,132 +25,125 @@ updated: 2026-10-27
 
 ## 全局约束与接口
 
-- spec 的 D1–D8 是已批准决定，执行中不再重议。
-- 不改 broker：manifest、操作表、`codex/runtime/aisoft_host_access` 与 installer 的字节一律不动。哪张票发现必须改 broker，就停下升级。
-- 不改已登记项目的 manifest 条目，不改 live 标签与保护规则，不新建凭据，不安装。
-- 测试只用合成样例：
-  - 本地 bare 仓库，加一个进程内 Gitea API 桩，地址是 `127.0.0.1` 上的随机端口；
-  - 合成夹具 manifest 放在 `codex/tests/fixtures/manifests`。
-  
-  不连 live Gitea，不借真实项目。
-- token 卫生：凡是测试 direct 传输的用例，都断言哨兵 token 不出现在 stdout、stderr、子进程 argv 和环境变量里。
-- 治理文件（技能、ADR、`templates/project/AGENTS.md`）放在 T04，单独 commit 后 STOP；fresh run 重读后再做 T05。
-- 每张票完成后跑 `bash codex/tests/smoke.sh`，改过的 shell 跑 `bash -n` 与 ShellCheck。
-- 执行入口：Claude 用 superpowers `executing-plans`，Txx 是唯一任务身份。
+- 依据：spec 的 D1、D2 是负责人已裁决的事项；D3–D10 经确认点 1 确认后，成为本计划的约束。
+- 站点登记来源（引擎）：manifest schema、操作表与全部校验保持不变，回归必须全量通过。哪张票要改站点来源的行为，就停下来升级。
+- 站点登记来源（manifest 与凭据）：已登记项目的 manifest 条目不改；不改 live 标签与保护规则；不新建凭据；不安装、不重装。
+- 测试只用合成样例：本地 bare 仓库，加上 `127.0.0.1` 随机端口上的进程内 Gitea API 桩，以及 `codex/tests/fixtures/manifests` 下的合成夹具 manifest。不连 live Gitea，不借用真实项目。
+- 无平台环境的测试：在临时 HOME 中运行，PATH 里没有平台检出，没有 `/usr/local` broker，也没有 `.agent.env`。断言全程未读这些路径。
+- 发布包：凡是改动发布包成员的票，必须在同一票内运行 `usage-bundle.sh --release`，让该票的全量 smoke 能通过。整批尽量只发一个版本：先发版，后续票如果又改成员，按「合并前可重发同号」覆盖。
+- 治理步骤：T01 是独立的治理步骤，commit 后 STOP；fresh run 重读合同、治理 diff 与当前规则后，再做 T02。
+- 每张票完成后运行 `bash codex/tests/smoke.sh`；改过的 shell 跑 `bash -n` 与 ShellCheck；改 runtime 前先 rg 测试目录，查看被钉住的活文档短语。
+- 执行入口：Claude 使用 superpowers `executing-plans`，Txx 是唯一任务身份。
 
 ## Ticket graph
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 传输层：共用前置校验 + direct 传输实现 13 个 typed 操作，合成样例回归 | - | pending |
-| T02 | 会话工具接入传输选择：`access.json` 解析、open-pr/classify/complete/labels-provision、兼容路径 | T01 | pending |
-| T03 | `project-check` 的 `access` 检查与使用发布包发版 | T02 | pending |
-| T04 | 治理文档：ADR 0003、技能、上手指南、onboarding「接入既有项目」、项目 AGENTS 模板 | T03 | pending |
-| T05 | 端到端回归与入口清单：无平台记录的样例走完流程，兼容夹具不变，verification 收口 | T04 | pending |
+| T01 | 治理先行：ADR 0003 与全部活文档、技能、使用合同、项目模板改为三层职责 | - | pending |
+| T02 | 引擎项目自声明来源：`project.json` schema、来源选择、remote 与凭据边界、身份读回、操作闭集，合成回归 | T01 | pending |
+| T03 | 会话工具接线与发版：全部入口改为经来源选择调用引擎，引擎与模板进入发布包 | T02 | pending |
+| T04 | 端到端回归与收口：无平台环境走完流程、兼容夹具、反向证明、verification | T03 | pending |
 
-## T01：传输层
+## T01：治理先行
 
 - **交付/范围**：
-  - 在 `codex/runtime/` 新增一个传输模块：一份前置校验，以及 broker 与 direct 两个实现。
-  - broker 实现只是转调已安装的 broker，参数与回执形状保持原样。
-  - direct 实现用 `git` 与 Gitea REST，并按 D5 取凭据。
-  - 不包含工具接线。
+  - 新增 `docs/adr/0003-adoption-access-decoupling.md`，写明三层职责与 D3–D9，并列出取代的旧条款。
+  - 按 ADR 修改以下文件：
+    - `skills/aisoft-platform/SKILL.md`
+    - 该技能的 references：`execution-adapter.md`、`getting-started.md`、`onboarding-runbook.md`（拆成两部分，新增「接入既有项目」）、`project-align.md`
+    - `skills/issue-session-flow/SKILL.md`
+    - `usage/CONTRACT.md`、`usage/USER-GUIDE.md`
+    - `templates/project/AGENTS.md`（在项目事实中写明访问来源与保护证据位置）
+  - 本票不改代码。
 - **blocked_by**：无。
-- **AC**：AC-3（传输部分）、AC-4（闭集拒绝）。
-- **接口/约束**：
-  - D4 闭集与 D5 凭据边界。
-  - 回执形状与 broker 同一操作的 JSON 一致，上层工具不区分传输。
-  - 新共享 runtime 模块按「共享 runtime 模块 6 处清单」同步两个 installer 与相关测试。如果这么做要改 broker installer，就先停下。
-- **验证**：新增 `codex/runtime/tests/test_access_transport.py`，用合成 bare 仓库与 API 桩逐个操作覆盖成功与拒绝；跑全量 smoke。
-- **Expected**：
-  - 13 个操作在 direct 下成功。
-  - 推 `main`、推非当前分支、脏工作树、闭集外操作都被拒绝。
-  - 哨兵 token 零命中。
-  - 不覆盖真实 Gitea 的版本差异。
-- **停止条件**：需要改 broker 或 installer；Gitea REST 无法在不传 token 参数的前提下完成某个操作。
-
-## T02：会话工具接入传输选择
-
-- **交付/范围**：
-  - 新增 `.aisoft/access.json` 的 schema 与解析（D3）。
-  - `codex/tools/aisoft` 的 `open-pr`，`apply-classification-labels.sh`，`mark-completed-issues.sh` 改为经传输模块调用。
-  - 新增 `aisoft labels-provision`。
-  - `aisoft-project-target.sh` 只在 broker 模式下使用。
-- **blocked_by**：T01。
-- **AC**：AC-2（工具入口）、AC-5。
-- **接口/约束**：
-  - 子命令参数不变。
-  - 没有 `access.json` 时走兼容路径，manifest 解析失败报错，不降级成 direct。
-  - 非法 `access.json` 一律拒绝。
-- **验证**：扩展现有 open-pr、classify、complete 的测试，三种情形各跑一遍：direct、显式 broker、缺省兼容；合成夹具 manifest 承担兼容情形。
-- **Expected**：
-  - 缺省兼容情形的输出与本批前逐字节一致，对照现有测试的期望值。
-  - direct 情形走 API 桩。
-  - 不覆盖已安装 broker 的 live 行为。
-- **停止条件**：兼容情形出现任何行为差异；需要改 broker 参数。
-
-## T03：`access` 检查与发版
-
-- **交付/范围**：
-  - `aisoft project-check` 新增 `access` 检查：读回保护规则、直推/强推、合并 allowlist、required CI context，经传输层 `gitea.protection.read` 取得。
-  - 使用发布包加入 `access.json` 模板与 canonical 标签集合，按 `usage-bundle.sh --release` 升版本。
-- **blocked_by**：T02。
-- **AC**：AC-4（GAP 报告）、AC-7。
-- **接口/约束**：
-  - 遵守「project-check 新增检查项清单」：计数字符串与 mock 变量都要同步。
-  - 发布包成员改动必须升版本。
-- **验证**：`test-project-check.sh` 新增四种缺失各一例与一个全满足例；发版后跑 `aisoft version`，`tool-provenance` 读回新版本；跑全量 smoke。
-- **Expected**：四种缺失各报 GAP，全满足例报 PASS，版本读回一致。
-- **停止条件**：发版规则要求改已发布版本。
-
-## T04：治理文档
-
-- **交付/范围**：
-  - 新增 `docs/adr/0003-adoption-access-decoupling.md`。
-  - 改 `skills/aisoft-platform/SKILL.md` 的「现行合同」「目标项目与 governance manifest」「私有 Gitea 的确定性访问」「会话标准动作」。
-  - getting-started：第 3 步改为可选的 broker 加固访问，新项目路径不改平台 manifest。
-  - onboarding-runbook：拆成「采用（项目自主）」与「可选 broker 加固访问」两部分，新增「接入既有项目」。
-  - `project-align.md`。
-  - `issue-session-flow` 中涉及 broker 的步骤。
-  - `templates/project/AGENTS.md`：在项目事实里写明访问方式。
-  - 本 spec 授权改动这些治理文件。
-- **blocked_by**：T03。
 - **AC**：AC-1、AC-6。
 - **接口/约束**：
-  - 先用 rg 搜 `codex/runtime/tests` 与 smoke，找出被钉住的活文档短语，同步更新。
-  - 不手写 README 日期版本。
   - ADR 正文不得出现代码围栏、HTML 注释或原始 HTML 块（D3 守卫）。
   - 不写任何项目名。
-  - 技能改动牵动发布包时，并入 T03 的版本，或在本票再发一次版。
+  - 不手写 README 的日期与版本。
+  - 技能与使用合同属于发布包成员，本票按全局约束发版。
 - **验证**：
-  - 跑全量 smoke 与 D3 泄漏守卫。
-  - 跑 `rg -n "先.*登记|登记.*前置|一切.*走 broker"`，人工逐条核对，确认没有残留的「登记是采用前置」表述。
-- **Expected**：守卫绿，残留表述清单为空或逐条注明「仅 broker 模式」。
-- **停止条件**：治理文件 commit 后 STOP，fresh run 重读合同、治理 diff 与当前规则后再继续 T05。
+  - 运行全量 smoke 与 D3 泄漏守卫。
+  - 用 rg 逐项列出所有包含「登记」「注册」「broker」「manifest」的活文档行，人工判定每一行属于以下三类之一：已改为三层职责、仅限站点加固访问、历史证据保持原样。判定结果写进 verification。
+- **Expected**：守卫为绿；每一处残留表述都有判定。本票不覆盖代码行为。
+- **停止条件**：治理文件 commit 后 STOP，fresh run。
 
-## T05：端到端回归与收口
+## T02：引擎项目自声明来源
+
+- **交付/范围**：在 `codex/runtime/aisoft_host_access` 中实现以下四部分：
+  - `project.json` 的精确 schema 加载（D4）。
+  - 来源选择（D5）。
+  - 项目自声明来源下的 remote 校验与凭据获取（D6）：经现有 git credential 协议取得凭据，保持 token 卫生。
+  - 身份读回，以及项目级操作闭集与维护层操作拒绝。
+  
+  站点登记来源的代码路径保持原样，不改。
+- **blocked_by**：T01。
+- **AC**：AC-4、AC-5（引擎部分）。
+- **接口/约束**：
+  - 回执 JSON 形状与站点来源同一操作保持一致，上层工具不区分来源。
+  - 不新增调用方参数，不接受 URL、token 或路径输入。
+- **验证**：
+  - 新增 `codex/runtime/tests/test_project_declared_source.py`，用合成 bare 仓库与 API 桩，覆盖 AC-4 列出的全部反例和闭集内全部操作的成功路径，并加入哨兵 token 断言。
+  - 运行站点来源的现有 runtime 测试全集与全量 smoke。
+- **Expected**：反例逐个被拒绝，成功路径通过，哨兵零命中，站点来源回归无差异。本票不覆盖真实 Gitea 的响应形状。
+- **停止条件**：
+  - 必须改变站点来源的行为；
+  - 某个操作无法在不传 token 参数的前提下完成；
+  - Write 级身份无法读到 `/user` 或仓库 permissions。
+
+## T03：会话工具接线与发版
+
+- **交付/范围**：以下入口改为经来源选择调用引擎：
+  - `codex/tools/aisoft` 的 `open-pr`；
+  - `apply-classification-labels.sh`；
+  - `mark-completed-issues.sh`，其中 `deployment_lifecycle` 改为从当前来源读取；
+  - `ticket_execution.read_issue`；
+  - `aisoft project-check --remote`：改走引擎的读操作，不再 source `.agent.env`，并加入 D7 的身份与保护证据检查。
+  
+  `aisoft-project-target.sh` 只在站点来源下使用。必要的薄包装子命令按 spec「接口」一节处理。引擎、schema 与 `project.json` 模板进入 `usage/bundle.json`，同票发版。
+- **blocked_by**：T02。
+- **AC**：AC-2（工具入口）、AC-5、AC-7。
+- **接口/约束**：
+  - 子命令参数不变。
+  - 没有 `project.json` 时，行为与本批之前逐字节一致。
+  - 新增 `project-check` 检查项时，按项目已记录的「新增检查项清单」同步计数字符串与 mock 变量。
+- **验证**：
+  - 扩展现有 open-pr、classify、complete、prepare-ticket、project-check 的测试，每个入口覆盖三种情形：项目自声明、站点来源、两者冲突。
+  - 发版后运行 `aisoft version`，确认 `tool-provenance` 读回新版本。
+  - 运行全量 smoke。
+- **Expected**：
+  - 站点来源的期望输出不变；
+  - 项目自声明来源走 API 桩；
+  - 冲突时停止；
+  - 版本读回一致。
+- **停止条件**：站点来源出现任何行为差异；发版规则要求改动已发布的版本。
+
+## T04：端到端回归与收口
 
 - **交付/范围**：
-  - 新增一条端到端测试：合成样例项目，平台夹具 manifest 里没有它的条目，声明 direct，然后依次走完 spec AC-3 的八步。
-  - 同一条测试再证明兼容夹具项目仍走 broker 路径。
-  - 在 verification 里写入口清单表（AC-2）、迁移说明（AC-5）与执行结果。
-- **blocked_by**：T04。
-- **AC**：AC-2、AC-3、AC-5。
-- **接口/约束**：测试登记进 smoke，按「smoke 登记新工具的 5 处」清单走，最容易漏的是第 5 处「测试执行区」。
-- **验证**：跑端到端测试、全量 smoke，对改过的 shell 跑 `bash -n` 与 ShellCheck；再对删掉关键闸门的情形做一次反向证明（`full+reverse-proof`）。
+  - 新增端到端测试：用导出的项目工具包，在无平台环境中按 spec AC-3 的七步走完流程；同一测试中再证明已登记夹具项目仍走站点来源。
+  - 在 verification 中写入：入口清单表（AC-2）、迁移与回滚说明（AC-5）、未验证边界（AC-8），以及执行结果。
+- **blocked_by**：T03。
+- **AC**：AC-2、AC-3、AC-5、AC-8。
+- **接口/约束**：把测试登记进 smoke，按项目已记录的「smoke 登记新工具的 5 处」清单逐处同步，最容易漏的是测试执行区。
+- **验证**：
+  - 运行端到端测试与全量 smoke；
+  - 做反向证明：分别删掉 admin 身份拒绝、推 `main` 拦截与 token 卫生断言，确认对应测试变红后再恢复。
 - **Expected**：
-  - 端到端测试绿。
-  - 反向证明分别让推 `main` 拦截与 token 卫生断言变红。
-  - 不覆盖 live Gitea，也不覆盖已安装 broker，这两项在 verification 记为 NOT RUN 并说明原因。
+  - 端到端测试为绿；
+  - 三个反向证明各自变红；
+  - 以下三项在 verification 中记为 NOT RUN 并写明原因：真实 Gitea 兼容、broker 重装、live 读回。
 - **停止条件**：同一根因连续三次失败。
 
 ## Expected touch points
 
-- T01：`codex/runtime/` 新传输模块及其测试；两个 installer 的源文件清单（只加文件，不改 broker 安装字节；如果做不到就停下）。
-- T02：`codex/tools/aisoft`、`apply-classification-labels.sh`、`mark-completed-issues.sh`、`codex/agent/aisoft-project-target.sh` 的调用方，以及相关测试。
-- T03：`project-check` 实现与 `test-project-check.sh`、`usage-bundle.sh` 发布清单与新版本目录。
-- T04：`docs/adr/0003-*`、`skills/aisoft-platform/**`、`skills/issue-session-flow/**`、`templates/project/AGENTS.md`，以及被钉住短语的测试。
-- T05：端到端测试、`codex/tests/smoke.sh`、本目录的 verification。
+- T01：`docs/adr/0003-*`、`skills/aisoft-platform/**`、`skills/issue-session-flow/**`、`usage/CONTRACT.md`、`usage/USER-GUIDE.md`、`templates/project/AGENTS.md`、`usage/bundle.json` 与发布记录、被钉住短语的测试。
+- T02：`codex/runtime/aisoft_host_access/*`、新测试文件、合成夹具。
+- T03：
+  - 工具：`codex/tools/aisoft`、`apply-classification-labels.sh`、`mark-completed-issues.sh`、`aisoft-project-check.sh` 与 `test-project-check.sh`、`codex/agent/aisoft-project-target.sh`
+  - runtime：`codex/runtime/aisoft_loop/ticket_execution.py`
+  - 发布：`usage/bundle.json` 与发布记录、`project.json` 模板与 schema
+- T04：端到端测试、`codex/tests/smoke.sh`、本目录的 verification。
 
 ## 数据库迁移
 
@@ -157,13 +153,14 @@ updated: 2026-10-27
 
 | Acceptance criterion | Verification command or review |
 |---|---|
-| AC-1 | T04 文档 diff review，加 ADR 0003 与技能一致性核对 |
-| AC-2 | T05 verification 入口清单表，加 T04 残留表述 rg |
-| AC-3 | T01 `test_access_transport.py`，加 T05 端到端测试 |
-| AC-4 | 现有 broker 回归、T03 `access` 检查四例、T01 闭集拒绝 |
-| AC-5 | T02 三情形测试、T05 兼容夹具、verification 迁移说明 |
-| AC-6 | T04 onboarding 与 getting-started diff review |
-| AC-7 | T03 发版，加 `aisoft version` 与 `tool-provenance` 读回 |
+| AC-1 | T01 文档 diff review、残留表述判定表 |
+| AC-2 | T04 verification 入口清单表、T03 入口测试 |
+| AC-3 | T04 端到端测试 |
+| AC-4 | T02 `test_project_declared_source.py`、站点来源现有回归、T04 反向证明 |
+| AC-5 | T03 三情形测试、T04 兼容夹具、verification 迁移与回滚说明 |
+| AC-6 | T01 onboarding 与 getting-started 的 diff review |
+| AC-7 | T03 发版，以及 `aisoft version` 与 `tool-provenance` 读回 |
+| AC-8 | T04 verification 未验证边界一节 |
 
 ## 执行证据
 
@@ -178,4 +175,7 @@ AC/依赖/命令/Expected/约束变化必须报告，不能静默续跑。具体
 
 ## 部署与回滚
 
-无部署影响。回滚方式是 revert 本批 PR；已改用 direct 的项目删除 `.aisoft/access.json` 即回到兼容路径。
+本批不涉及应用部署。
+
+- 合并后，需要由维护者在两台机器上重装 broker，使已安装引擎与源码一致。本批不执行重装，记为 NOT RUN。
+- 回滚：revert 本批 PR，并由维护者按 revert 后的字节重装 broker。项目侧按 spec AC-5 处理。
