@@ -185,6 +185,21 @@ class ReviewFindingsToolsTest(ProjectSourceToolsCase):
         self.assertIn("refusing to pick one", checked.stdout + checked.stderr)
         self.assertNotIn("PASS: access-identity", checked.stdout)
 
+    def test_ambiguous_site_match_stops_instead_of_falling_back(self) -> None:
+        fixtures = ROOT / "codex" / "tests" / "fixtures" / "manifests"
+        governance = json.loads((fixtures / "gitea-governance.json").read_text())
+        access = json.loads((fixtures / "host-access-broker.json").read_text())
+        prefix = f"{governance['base_url'].rstrip('/')}/{governance['owner']}"
+        for index, project in enumerate(access["projects"][:2]):
+            git(["remote", "add", f"site{index}", f"{prefix}/{project['repository']}.git"], cwd=self.canonical)
+        self.env.update(AISOFT_ACCESS_MANIFEST=str(fixtures / "host-access-broker.json"),
+                        AISOFT_GOVERNANCE_MANIFEST=str(fixtures / "gitea-governance.json"))
+        result = self.run_tool("labels-provision", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("more than one manifest project", result.stderr)
+        self.assertEqual(self.gitea.labels, [])
+        self.assertEqual(self.gitea.requests, [])
+
     def test_site_open_pr_runs_the_broker_inside_the_target_checkout(self) -> None:
         platform = Path(self.temporary.name) / "platform"
         (platform / "codex/tools").mkdir(parents=True)

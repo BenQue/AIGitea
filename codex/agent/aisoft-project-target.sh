@@ -153,9 +153,16 @@ aisoft_resolve_project_target() {
     AISOFT_PROJECT_TARGET_ERROR="$repo/.aisoft/project.json declares $declared_full but remote $declared_remote is ${declared_url:-missing}; refusing to pick one"
     return 1
   fi
-  if aisoft_resolve_site_target "$tool_dir" "$repo" "" && [ "$AISOFT_PROJECT_TARGET_URL" != "$declared_url" ]; then
+  if aisoft_resolve_site_target "$tool_dir" "$repo" ""; then
+    if [ "$AISOFT_PROJECT_TARGET_URL" != "$declared_url" ]; then
+      # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
+      AISOFT_PROJECT_TARGET_ERROR="$repo is claimed by .aisoft/project.json ($declared_url) and by site project $AISOFT_PROJECT_ID ($AISOFT_PROJECT_TARGET_URL); refusing to pick one"
+      return 1
+    fi
+  elif [ -z "$AISOFT_PROJECT_TARGET_MISS" ]; then
+    # An ambiguous or unreadable site answer is not "unclaimed" (#434 review).
     # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
-    AISOFT_PROJECT_TARGET_ERROR="$repo is claimed by .aisoft/project.json ($declared_url) and by site project $AISOFT_PROJECT_ID ($AISOFT_PROJECT_TARGET_URL); refusing to pick one"
+    AISOFT_PROJECT_TARGET_ERROR="$AISOFT_PROJECT_TARGET_ERROR; .aisoft/project.json is present, refusing to pick one"
     return 1
   fi
   if ! entry="$(aisoft_access_entry_path "$tool_dir")"; then
@@ -195,6 +202,10 @@ aisoft_resolve_site_target() {
   local tool_dir="$1" repo="$2" explicit="$3"
   # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
   AISOFT_PROJECT_TARGET_URL=""
+  # Set only when the site source plainly does not claim this checkout: no
+  # manifests here, or no remote matches. Every other failure is an answer.
+  # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
+  AISOFT_PROJECT_TARGET_MISS=""
   # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
   AISOFT_PROJECT_ID=""
   # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
@@ -215,10 +226,14 @@ aisoft_resolve_site_target() {
   )"
   if [ ! -f "$access" ]; then
     # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
+    AISOFT_PROJECT_TARGET_MISS=1
+    # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
     AISOFT_PROJECT_TARGET_ERROR="host access manifest not found: $access"
     return 1
   fi
   if [ ! -f "$governance" ]; then
+    # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
+    AISOFT_PROJECT_TARGET_MISS=1
     # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
     AISOFT_PROJECT_TARGET_ERROR="governance manifest not found: $governance"
     return 1
@@ -309,6 +324,8 @@ CANDIDATES
   # would be a guess that reads as a fact, and the tools have no way to notice
   # they guessed wrong.
   if [ "$derived_count" -eq 0 ]; then
+    # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
+    AISOFT_PROJECT_TARGET_MISS=1
     # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
     AISOFT_PROJECT_TARGET_ERROR="cannot determine the target project from $repo: none of its Git remotes matches a project in $access. Pass --project <project_id> to name the target explicitly"
     return 1

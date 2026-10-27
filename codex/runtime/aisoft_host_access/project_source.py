@@ -205,6 +205,11 @@ def _validated_remote_config(checkout: str, remote_name: str) -> str:
     push = _git_text(["git", "config", "--get-all", f"remote.{remote_name}.pushurl"], checkout)
     if push is not None and push.splitlines() != urls:
         raise BrokerError("TARGET_MISMATCH", "declared Git remote has a separate push URL")
+    # The engine pins http.followRedirects=false; a URL-specific value in the
+    # checkout would win over it, so none is accepted (#434 review).
+    overrides = _git_text(["git", "config", "--get-regexp", r"^http\..*\.followredirects$"], checkout)
+    if overrides:
+        raise BrokerError("TARGET_MISMATCH", "URL-specific http.followRedirects is not allowed for the project source")
     # Read with the user's own configuration, global and system included: a
     # rewrite anywhere that covers the declared URL is refused (#434 review).
     result = subprocess.run(["git", "config", "--get-regexp", r"^url\..*\.(pushinsteadof|insteadof)$"],

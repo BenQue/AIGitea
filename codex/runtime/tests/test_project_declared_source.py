@@ -270,6 +270,10 @@ class ReviewFindingsTest(ProjectSourceCase):
         with patch.dict(os.environ, {"HOME": str(home), "XDG_CONFIG_HOME": str(home)}):
             load_project_declaration(str(self.linked))
 
+    def test_url_specific_redirect_override_is_refused(self) -> None:
+        git(["config", f"http.{BASE}/.followRedirects", "true"], cwd=self.canonical)
+        self.assertRefused("TARGET_MISMATCH", lambda: load_project_declaration(str(self.linked)))
+
     def test_entry_refuses_abbreviated_internal_options(self) -> None:
         entry = ROOT / "codex/tools/aisoft-access"
         result = subprocess.run([str(entry), "--label-m", "/tmp/other.json", "--operation",
