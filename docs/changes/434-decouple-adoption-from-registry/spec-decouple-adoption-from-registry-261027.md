@@ -122,7 +122,7 @@ updated: 2026-10-27
 
 | 调用入口 | 操作 |
 |---|---|
-| `aisoft open-pr` | `git.push.change`、`gitea.pull.create`（同 change 已有开放 PR 时返回原 PR）；建完用 `gitea.pulls.read` 读回编号 |
+| `aisoft open-pr` | `git.push.change`、`gitea.pull.create`（编号取自回执；同 change 已有开放 PR 时返回原 PR） |
 | `aisoft classify`（`apply-classification-labels.sh`） | `gitea.issue.read`、`gitea.issue.labels.read`、`gitea.issue.labels.classify` |
 | `aisoft complete`（`mark-completed-issues.sh`） | `gitea.issue.labels.set` |
 | `prepare-ticket` / `review-candidate` | `gitea.issue.read` |
@@ -176,7 +176,7 @@ updated: 2026-10-27
     6. `aisoft open-pr`（首推、建 PR、回填、再推）；
     7. 读 PR head 与 commit status；
     8. 在 API 桩中把 PR 置为已合并的夹具状态，然后执行 `aisoft complete --apply`，读回标签，并重复执行一次，验证幂等；`deployment_lifecycle` 取 `none` 与需部署两个分支各跑一遍；
-    9. 声明 `change_control: development` 的样例，`prepare-ticket` 的路由读回为 `complex-development`。
+    9. 声明 `change_control: development` 的样例，`prepare-ticket` 的路由读回为 `complex-development`。这一步只证明项目侧的 `change_control` 被路由消费；推送闸门仍要求映射 spec，这是既有边界，本票不改。
   - 测试断言全程没有访问平台安装面。
 - [ ] **AC-4 安全验证保留**：
   - 站点登记来源的现有回归全部通过。
@@ -219,7 +219,7 @@ updated: 2026-10-27
 - 引擎增加来源选择与项目条目加载。站点登记来源的 manifest schema、操作表与校验都不变。
 - 引擎代码字节变化后，已安装 broker 与源码会不一致，所以合并后需要两台重装 broker；重装之前，漂移检查会报差异。重装由维护者执行，本批记为 NOT RUN。
 - 使用发布包新增成员，按发布规则升版本。已 pin 旧版本的项目在主动升级之前不受影响。
-- `aisoft` 子命令的参数不变。如果需要新增公开子命令（例如标签对齐、建 Issue），只做薄包装，参数与 broker 同名操作保持一致。
+- `aisoft` 子命令的参数不变。新增的公开子命令只有 `aisoft labels-provision`；建 Issue 等其余操作经 `aisoft-access` 调用，不再另加包装。
 
 ## 风险与回滚约束
 

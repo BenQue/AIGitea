@@ -103,7 +103,7 @@ updated: 2026-10-27
   - `aisoft project-check --remote`：站点来源保持现有行为，包括 `.agent.env`；项目来源改走 `aisoft-access` 的读操作，按 spec D7 输出身份检查、`MANUAL` 与 GAP。
   - 路由上下文：`route_policy` 与 `change_control` 在项目来源下从 `project.json` 读取 `change_control`。
   
-  `aisoft-project-target.sh` 只在站点来源下使用。必要的薄包装子命令按 spec「接口」一节处理。引擎、schema 与 `project.json` 模板进入 `usage/bundle.json`，同票发版。
+  `aisoft-project-target.sh` 只在站点来源下使用。新增子命令只有 `aisoft labels-provision`。引擎、schema 与 `project.json` 模板进入 `usage/bundle.json`，同票发版。
 - **blocked_by**：T02。
 - **AC**：AC-2（工具入口）、AC-5、AC-7。
 - **接口/约束**：
