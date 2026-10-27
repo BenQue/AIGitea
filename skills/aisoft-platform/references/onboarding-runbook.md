@@ -75,7 +75,7 @@ repo-local protected-file helper（VM `coder` project profile 已随 #391 退出
 本节的账号/权限流程。项目自主采用不走本节（§0）。
 `orbstack-access-diagnostics` 不得作为接入前置，只在 broker failure 且真实状态仍矛盾时 emergency 使用。
 
-平台 manifest PR 人工合并并安装后，逐项目按以下顺序接入：
+选用站点加固访问时，平台 manifest PR 人工合并并安装后，逐项目按以下顺序接入：
 
 1. `host.access.audit` 只读核对 protected-file metadata、token identity/scope、repository permission 与
    protected `main`/required CI。
@@ -91,7 +91,7 @@ repo-local protected-file helper（VM `coder` project profile 已随 #391 退出
 6. 最后运行本项目 fresh-session typed Issue/change/PR/required-CI canary。一个项目的 PASS 不授权另一个
    项目；每个项目使用独立 adoption Issue 与 evidence。
 
-平台 manifest PR 人工合并前不得创建该项目的 adoption Issue；合并后才逐项目单独完成 binding/live
+站点加固访问的平台 manifest PR 人工合并前，不得创建该项目的站点 adoption Issue（项目自主采用的 Issue 见 §0.1，不受此限）；合并后才逐项目单独完成 binding/live
 canary。其它项目不得批量启用。
 
 标准入口（只替换尖括号；token file 只写路径，不打印内容；VM 检出根取 broker manifest 的 `site.platform_checkout_vm`）：

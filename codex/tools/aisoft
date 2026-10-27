@@ -255,7 +255,7 @@ PY
   fi
   resolve_access open-pr
   broker_call() {
-    aisoft_access_invoke "$broker" --operation "$@"
+    (cd -- "$repo" && aisoft_access_invoke "$broker" --operation "$@")
   }
   local reply number
   if [[ -n "$resume_number" ]]; then

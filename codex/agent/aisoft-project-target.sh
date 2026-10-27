@@ -90,16 +90,18 @@ aisoft_project_target_remote_urls() {
 #
 # Sets AISOFT_ACCESS_SOURCE (project or site), AISOFT_ACCESS_ENTRY and
 # AISOFT_ACCESS_CHECKOUT in addition to the AISOFT_PROJECT_* values.
+# Prints the declared repository name and the remote it is reached through.
 aisoft_project_declared_repository() {
   local repo="$1"
   python3 -I - "$repo/.aisoft/project.json" <<'PY_DECLARED' 2>/dev/null
 import json, sys
 value = json.load(open(sys.argv[1], encoding="utf-8"))
 repository = value.get("repository") if isinstance(value, dict) else None
+remote = value.get("git_remote_name", "origin") if isinstance(value, dict) else None
 parts = repository.split("/") if isinstance(repository, str) else []
-if len(parts) != 2 or not all(parts):
+if len(parts) != 2 or not all(parts) or not isinstance(remote, str) or not remote:
     raise SystemExit(1)
-print(parts[1])
+print(parts[1] + "\t" + remote + "\t" + repository)
 PY_DECLARED
 }
 
@@ -127,20 +129,33 @@ aisoft_resolve_project_target() {
     aisoft_resolve_site_target "$tool_dir" "$repo" "$explicit"
     return
   fi
-  local declared entry
+  local declared declared_remote declared_url entry
   if ! declared="$(aisoft_project_declared_repository "$repo")"; then
     # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
     AISOFT_PROJECT_TARGET_ERROR="$repo/.aisoft/project.json does not declare repository as owner/name"
     return 1
   fi
+  local declared_full
+  declared_full="${declared##*$'\t'}"
+  declared_remote="${declared#*$'\t'}"
+  declared_remote="${declared_remote%%$'\t'*}"
+  declared="${declared%%$'\t'*}"
   if [ -n "$explicit" ]; then
     # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
     AISOFT_PROJECT_TARGET_ERROR="$repo declares its own project in .aisoft/project.json; --project names a site-registered project and does not apply here"
     return 1
   fi
-  if aisoft_resolve_site_target "$tool_dir" "$repo" "" && [ "$AISOFT_PROJECT_REPOSITORY" != "$declared" ]; then
+  # Compared as full targets (origin, owner and name), never by short name: two
+  # repositories called widget on two hosts are two repositories.
+  declared_url="$(aisoft_project_target_normalize_url "$(git -C "$repo" remote get-url "$declared_remote" 2>/dev/null || true)")"
+  if [ "${declared_url%/"$declared_full"}" = "$declared_url" ] || [ -z "$declared_url" ]; then
     # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
-    AISOFT_PROJECT_TARGET_ERROR="$repo is claimed by .aisoft/project.json ($declared) and by site project $AISOFT_PROJECT_ID ($AISOFT_PROJECT_REPOSITORY); refusing to pick one"
+    AISOFT_PROJECT_TARGET_ERROR="$repo/.aisoft/project.json declares $declared_full but remote $declared_remote is ${declared_url:-missing}; refusing to pick one"
+    return 1
+  fi
+  if aisoft_resolve_site_target "$tool_dir" "$repo" "" && [ "$AISOFT_PROJECT_TARGET_URL" != "$declared_url" ]; then
+    # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
+    AISOFT_PROJECT_TARGET_ERROR="$repo is claimed by .aisoft/project.json ($declared_url) and by site project $AISOFT_PROJECT_ID ($AISOFT_PROJECT_TARGET_URL); refusing to pick one"
     return 1
   fi
   if ! entry="$(aisoft_access_entry_path "$tool_dir")"; then
@@ -178,6 +193,8 @@ aisoft_access_invoke() {
 # The site resolution, unchanged from #184.
 aisoft_resolve_site_target() {
   local tool_dir="$1" repo="$2" explicit="$3"
+  # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
+  AISOFT_PROJECT_TARGET_URL=""
   # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
   AISOFT_PROJECT_ID=""
   # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
@@ -317,5 +334,7 @@ CANDIDATES
   AISOFT_PROJECT_REPOSITORY="$repository"
   # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
   AISOFT_PROJECT_SOURCE=checkout
+  # shellcheck disable=SC2034  # consumed by sourcing tools, not by this library
+  AISOFT_PROJECT_TARGET_URL="$(aisoft_project_target_normalize_url "$prefix/$repository")"
   return 0
 }

@@ -69,7 +69,7 @@ Cursor 另有种子 `.cursor/rules/aisoft-platform.mdc`，它只指向使用合�
 | 6 | `.aisoft/architecture.json` 声明 + lock 有效 | runbook §9（Architecture declaration onboarding，含 `delivery_contract` 如实选取）；`architecture/bin/aisoft-architecture` | `architecture-lock` |
 | 7 | 交付形态（delivery profile）已显式声明，部署方案位置指向项目自己的 docs/脚本目录 | runbook §4（环境级原则，非部署步骤）；目标仓 AGENTS.md 项目事实与项目自己的部署文档 | `delivery-profile` |
 | 8 | host access / onboarding 聚合核对 | runbook §1.1；broker `host.onboarding.check` | 既有工具，非本检查器 |
-| 9 | merge allowlist 只有人、无 routine merger 声明（#391）与 protection read-back | governance manifest；runbook §1.1/§5 | runtime checker/read-back；source contract 只人工核对 |
+| 9 | merge allowlist 只有人、无 routine merger 声明（#391）与 protection read-back | governance manifest；runbook §1.1/§5；项目来源为采用 Issue 中的人工保护证据（ADR 0003） | runtime checker/read-back；项目来源下 `project-check` 记 `MANUAL`；source contract 只人工核对 |
 
 ## 模板同步（第 2 行专属，维护层）
 

@@ -658,18 +658,25 @@ manual_count=0
 protection_evidence=''
 if [[ "$remote" == true && -f "$repo/.aisoft/project.json" ]]; then
   access_mode=project
-  if [[ -x "$TOOL_DIR/aisoft-access" ]]; then
-    access_entry="$TOOL_DIR/aisoft-access"
-  elif [[ -x "$TOOL_DIR/../../../bin/aisoft-access" ]]; then
-    access_entry="$(cd -- "$TOOL_DIR/../../../bin" && pwd)/aisoft-access"
+  # Same resolver as every other session tool, so a checkout that two sources
+  # claim for different repositories stops here too.
+  if [[ -f "$TOOL_DIR/aisoft-project-target.sh" ]]; then
+    # shellcheck disable=SC1090,SC1091
+    source "$TOOL_DIR/aisoft-project-target.sh"
+  else
+    # shellcheck disable=SC1090,SC1091
+    source "$TOOL_DIR/../agent/aisoft-project-target.sh"
   fi
   protection_evidence="$(jq -r '.protection_evidence // empty | select(type == "number")' \
     "$repo/.aisoft/project.json" 2>/dev/null || true)"
-  if [[ -z "$access_entry" ]]; then
+  if ! aisoft_resolve_project_target "$TOOL_DIR" "$repo" ""; then
+    remote_reason="$AISOFT_PROJECT_TARGET_ERROR"
+  elif [[ "$AISOFT_ACCESS_SOURCE" != project ]]; then
     remote_reason='aisoft-access 入口缺失'
   elif ! command -v jq >/dev/null; then
     remote_reason='远程检查需要 jq'
   else
+    access_entry="$AISOFT_ACCESS_ENTRY"
     remote_ready=true
     API=project
   fi

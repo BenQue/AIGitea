@@ -157,6 +157,133 @@ class ClosedSetTest(ProjectSourceCase):
         self.assertEqual(self.gitea.requests, [])
 
 
+class ReviewFindingsTest(ProjectSourceCase):
+    """Implementation cross-review findings (#434 round 1), each pinned here."""
+
+    def test_pulls_read_is_outside_the_closed_set(self) -> None:
+        self.assertNotIn("gitea.pulls.read", PROJECT_OPERATIONS)
+
+    def test_injected_helper_refuses_any_other_target(self) -> None:
+        broker = self.broker()
+        credential = broker.credentials.resolve(broker.contract.projects[0],
+                                                broker.contract.operation("git.push.change"))
+        env = broker._git_credential_environment(credential)
+        try:
+            for request in ("protocol=http\nhost=evil.test:3000\npath=acme/widget.git\n\n",
+                            "protocol=https\nhost=gitea.test:3000\npath=acme/widget.git\n\n",
+                            "protocol=http\nhost=gitea.test:3000\npath=acme/other.git\n\n"):
+                with self.subTest(request):
+                    result = subprocess.run(["git", "credential", "fill"], cwd=self.linked, env=env,
+                                            text=True, input=request, capture_output=True, check=False)
+                    self.assertNotIn(SENTINEL, result.stdout)
+            self.assertIn(("http.followRedirects", "false"), git_config_pairs(env))
+        finally:
+            broker._drop_credential_file()
+
+    def test_helper_path_with_shell_metacharacters_stays_inert(self) -> None:
+        marker = self.linked / "injected"
+        hostile = Path(self.temporary.name) / "it's $(touch injected); `touch injected`"
+        hostile.mkdir()
+        broker = self.broker()
+        credential = broker.credentials.resolve(broker.contract.projects[0],
+                                                broker.contract.operation("git.push.change"))
+        with patch.object(project_source.tempfile, "mkdtemp", lambda prefix: str(hostile)):
+            env = broker._git_credential_environment(credential)
+        try:
+            result = subprocess.run(["git", "credential", "fill"], cwd=self.linked, env=env, text=True,
+                                    input="protocol=http\nhost=gitea.test:3000\npath=acme/widget.git\n\n",
+                                    capture_output=True, check=False)
+            self.assertFalse(marker.exists())
+            self.assertIn(f"password={SENTINEL}", result.stdout)
+        finally:
+            broker._drop_credential_file()
+
+    def test_credential_fill_asks_for_the_exact_repository_path(self) -> None:
+        record = Path(self.temporary.name) / "helper-request"
+        git(["config", "credential.helper",
+             f"!f() {{ cat > '{record}'; printf 'username={AGENT}\\npassword={SENTINEL}\\n'; }}; f"],
+            cwd=self.canonical)
+        username, token = project_source.credential_fill(load_project_declaration(str(self.linked)))
+        self.assertEqual((username, token), (AGENT, SENTINEL))
+        self.assertIn("path=acme/widget.git", record.read_text())
+
+    def test_git_redirect_never_carries_the_credential(self) -> None:
+        import http.server
+        import threading
+        seen: list[str] = []
+
+        class Challenge(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *_args):
+                return
+
+            def do_GET(self):
+                seen.append(self.headers.get("Authorization", ""))
+                self.send_response(401)
+                self.send_header("WWW-Authenticate", 'Basic realm="x"')
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+
+        target = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Challenge)
+        port = target.server_address[1]
+
+        class Redirect(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *_args):
+                return
+
+            def do_GET(self):
+                self.send_response(302)
+                self.send_header("Location", f"http://127.0.0.1:{port}{self.path}")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+
+        origin = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Redirect)
+        for server in (target, origin):
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            self.addCleanup(server.server_close)
+            self.addCleanup(server.shutdown)
+        url = f"http://127.0.0.1:{origin.server_address[1]}/acme/widget.git"
+        git(["remote", "set-url", "origin", url], cwd=self.canonical)
+        declared = load_project_declaration(str(self.linked))
+        broker = ProjectSourceBroker(declared, credentials=ProjectCredentials(declared, fill=static_fill()),
+                                     transport=self.gitea_for(declared.base_url),
+                                     label_manifest_path=str(LABELS), invocation_cwd=str(self.linked))
+        with self.assertRaises(BrokerError):
+            broker.execute(None, "git.fetch.main")
+        self.assertFalse(any(value for value in seen), seen)
+
+    def gitea_for(self, base):
+        gitea = FakeGitea(base=base)
+
+        def transport(method, url, headers, body, **options):
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            return gitea(method, "http://gitea.test:3000" + parsed.path, headers, body, **options)
+        return transport
+
+    def test_global_rewrite_of_the_declared_remote_is_refused(self) -> None:
+        home = Path(self.temporary.name) / "home"
+        home.mkdir()
+        (home / ".gitconfig").write_text(f'[url "{BASE}/elsewhere/"]\n\tinsteadOf = {BASE}/acme/\n')
+        with patch.dict(os.environ, {"HOME": str(home), "XDG_CONFIG_HOME": str(home)}):
+            self.assertRefused("TARGET_MISMATCH", lambda: load_project_declaration(str(self.linked)))
+        (home / ".gitconfig").write_text('[url "https://mirror.invalid/"]\n\tinsteadOf = https://github.com/\n')
+        with patch.dict(os.environ, {"HOME": str(home), "XDG_CONFIG_HOME": str(home)}):
+            load_project_declaration(str(self.linked))
+
+    def test_entry_refuses_abbreviated_internal_options(self) -> None:
+        entry = ROOT / "codex/tools/aisoft-access"
+        result = subprocess.run([str(entry), "--label-m", "/tmp/other.json", "--operation",
+                                 "gitea.labels.read"], cwd=self.linked, text=True,
+                                capture_output=True, check=False)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("unrecognized arguments", result.stderr)
+
+
+def git_config_pairs(env):
+    count = int(env.get("GIT_CONFIG_COUNT", "0"))
+    return [(env[f"GIT_CONFIG_KEY_{i}"], env[f"GIT_CONFIG_VALUE_{i}"]) for i in range(count)]
+
+
 class IdentityTest(ProjectSourceCase):
     def test_identity_is_read_back_before_any_request(self) -> None:
         cases = {
@@ -254,8 +381,7 @@ class OperationsTest(ProjectSourceCase):
         self.assertEqual(same["number"], created["number"])
         self.assertEqual(broker.execute(None, "gitea.pull.read", number=created["number"])["number"],
                          created["number"])
-        listed = broker.execute(None, "gitea.pulls.read", state="open")
-        self.assertEqual([item["number"] for item in listed], [created["number"]])
+        self.assertRefused("REQUEST_DENIED", lambda: broker.execute(None, "gitea.pulls.read", state="open"))
 
     def test_git_credential_reaches_git_only_through_the_injected_helper(self) -> None:
         broker = self.broker()
@@ -265,7 +391,7 @@ class OperationsTest(ProjectSourceCase):
             self.assertFalse(any(SENTINEL in value for value in env.values()))
             self.assertFalse(any(key.startswith("GIT_TRACE") for key in env))
         helpers = {value for _argv, env in self.commands for value in env.values()
-                   if value.startswith("!f() {")}
+                   if value.startswith("!") and "project_git_helper.py" in value}
         self.assertEqual(len(helpers), 1)
         self.assertIn("aisoft-access-", helpers.pop())
         leftovers = [path for path in Path(tempfile.gettempdir()).glob("aisoft-access-*")]

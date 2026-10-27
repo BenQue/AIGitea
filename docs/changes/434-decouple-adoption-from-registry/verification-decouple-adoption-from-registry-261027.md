@@ -74,7 +74,7 @@ T01 残留表述判定：
 | AC-4 | PASS | T02 声明、remote、身份、闭集、推送拒绝与 token 卫生测试；站点回归在 T02、T03、T04 三次全量 smoke 中通过；T04 反向证明 |
 | AC-5 | PASS | T03 冲突与 `--project` 拒绝测试；站点来源既有回归不变；下文「迁移与回滚」 |
 | AC-6 | PASS | T01：onboarding-runbook §0、§0.1「接入既有项目」八步；getting-started 第 3 步改为可选 |
-| AC-7 | PASS | 发布包 1.18.0（T01 文档）、1.19.0（T02 引擎闭包、入口、schema、模板、标签集合）、1.20.0（T03 工具接线）；T04 用 `--adopt` 导出的包跑通即证明闭包齐全。`aisoft version` 在项目布局读 provenance，由既有 smoke 覆盖 |
+| AC-7 | PASS | 发布包 1.18.0（T01 文档）、1.19.0（T02 引擎闭包、入口、schema、模板、标签集合）、1.20.0（T03 工具接线）、1.21.0（交叉审查修复）；T04 用 `--adopt` 导出的包跑通即证明闭包齐全。`aisoft version` 在项目布局读 provenance，由既有 smoke 覆盖 |
 | AC-8 | 已记录 | 下文「未验证边界」 |
 
 ### 入口清单（AC-2）
@@ -121,6 +121,7 @@ T01 残留表述判定：
 | 合同 1 | claude | codex（gpt-6-astra，high，只读） | f2f24f022ebd670224583c20ababe2270a64a1fd | REJECT | 3 BLOCKER（direct 写入前无身份硬门；无登记后项目策略无机读来源；installer 约束自相矛盾）、10 MAJOR、1 MINOR，共 14 条。处置：放弃另写 direct 传输，改为同一 broker 引擎加项目自声明来源（spec D3–D7），治理先行（plan T01），补全入口清单、反例、回滚与未验证边界，修复本文件模板残片 |
 | 合同 2 | claude | codex（gpt-6-astra，high，只读） | fcd5eacfbe0bd63260f5e8a2216837416ae74a63 | REJECT | 第 1 轮 14 条：6 RESOLVED、8 PARTIAL。新发现 1 BLOCKER（单项目来源最小合同与站点入口边界未定）、6 MAJOR（路由 change_control 与模板 git_scope 消费者；身份检查只在项目来源且绑定同一凭据；project-check 站点不变与项目分支冲突；发布包依赖闭包与入口表；complete 只 dry-run；不存在的同号重发）、2 MINOR（D7 证据格式；轮 1 计数笔误）。处置：spec 新增项目上下文映射表与入口操作闭集表，站点 wrapper 固定站点来源、新增项目入口 aisoft-access；身份检查限项目来源、同一内存凭据经注入助手供 Git 写入、按完整 origin 判重定向、写明 PAT scope；project-check 两来源分支与 MANUAL 结果值；路由读项目 change_control，模板持有路径在项目来源拒绝；AC-3 增 review-candidate、complete --apply 幂等与 development 路由；AC-7 列依赖闭包；发版改为逐票递增；D7 证据字段与 protection_evidence；更正计数 |
 | 合同 3 | claude | codex（gpt-6-astra，high，只读） | dd50967aa5b12130e3019c123e8e7f48c8d9a372 | ACCEPT WITH CHANGES | 第 2 轮 9 条全部 RESOLVED；无 BLOCKER、无 MAJOR。3 条 MINOR 已处置：AC-3 第 9 步注明只证明路由消费、推送仍要求 spec；open-pr 编号沿用 pull.create 回执，删去 pulls.read；删去开放式薄包装预留，只保留 labels-provision |
+| 实现 1 | claude | codex（gpt-6-astra，high，只读） | ed5d1f4853ee92df61af4904849373500ff3dde4 | REJECT | 2 BLOCKER、8 MAJOR、2 MINOR，逐条核实成立，一次修复，每条先有会红的测试：B1 Git 跟随重定向，凭据会发往新 origin：Git 环境加 `http.followRedirects=false`，注入助手只回应声明的 protocol/host/path（`test_git_redirect_never_carries_the_credential`、`test_injected_helper_refuses_any_other_target` 红→绿）；B2 助手路径 shell 注入：改为随包的 `project_git_helper.py`，参数全部 `shlex.quote`（`test_helper_path_with_shell_metacharacters_stays_inert` 红→绿，并对旧实现单独复红）；M3 参数缩写覆盖标签清单：`allow_abbrev=False`，并删去 `--label-manifest` 参数，路径固定在 runtime 旁（`test_entry_refuses_abbreviated_internal_options`）；M4 凭据未按仓库路径取：`git -c credential.useHttpPath=true credential fill`（`test_credential_fill_asks_for_the_exact_repository_path`）；M5 站点 `open-pr --repo` 丢了 cwd：恢复 `cd $repo`（`test_site_open_pr_runs_the_broker_inside_the_target_checkout`）；M6 冲突只比短名：改为比较完整目标 URL，并要求声明的 `owner/name` 与 remote 一致，`project-check` 也走共享解析（`test_same_short_name_under_another_owner_and_host_is_a_conflict`）；M7 闭集多开了 `gitea.pulls.read`：删除（`test_pulls_read_is_outside_the_closed_set`）；M8 残留登记前置表述：issue-session-flow 派单、使用合同 `change_control` 与 §8、route-policy 查表输入、project-align 第 9 行、onboarding §1.1 两句、CI 模板注释；M9 E2E 的 PR head 与 status 假绿：桩改为读 bare remote 的真实 tip，断言最终 HEAD、remote tip、PR head 三者一致，旧 SHA 的 status 为 `HTTP_404`；M10 development 缺成功路径：新增 `test_development_project_prepares_the_synthetic_ticket`，`resolve-route` 无差异且 `prepare-ticket` 得 `complex-development`；m11 全局 URL 改写：改用用户自己的全局与系统配置检查，只拒绝覆盖声明 URL 的改写（`test_global_rewrite_of_the_declared_remote_is_refused`）；m12 计数更正。修复后发布包 1.21.0，smoke 789 tests 全绿 |
 | 实现 | 待填写 | 待填写 | 待填写 | NOT RUN | 待填写 |
 
 
@@ -128,16 +129,16 @@ T01 残留表述判定：
 
 - T02 Ruling：`project.json` 增加 `schema_version: 1` 必填键。映射表未列，但精确键集合没有版本键就无法演进。代价：多一个键。
 - T02 Ruling：项目来源对每次调用都读回身份，读操作也读回。spec 只要求写前读回；这样更严，且同一份凭据只取一次。代价：每次调用多两次 GET。
-- T02 Ruling：项目来源一律不跟随重定向。spec 只要求 origin 变化时拒绝；一律不跟随更严，也更简单。代价：Gitea 前置代理若对同源做 3xx 改写，会被拒绝。
+- T02 Ruling：项目来源一律不跟随重定向，REST 与 Git 都如此（Git 一侧经交叉审查补上 `http.followRedirects=false`）。spec 只要求 origin 变化时拒绝；一律不跟随更严，也更简单。代价：Gitea 前置代理若对同源做 3xx 改写，会被拒绝。
 - T02 Ruling：站点来源抽出 `_git_credential_environment` 与 `_template_context` 两个钩子，供项目来源覆盖，行为逐字节不变，由 240 条站点回归与全量 smoke 证明。代价：站点代码多两层间接调用。
-- T02 Ruling：凭据交给 Git 的方式，是 mode 700 临时目录里一个 mode 600 文件，由注入助手 `cat` 读出，调用结束即删除。spec 首选管道，允许落盘时用 600 并删除；Git 不向 helper 传递额外 fd。代价：进程被强杀时，文件可能残留到系统清理临时目录。
+- T02 Ruling：凭据交给 Git 的方式，是 mode 700 临时目录里一个 mode 600 文件，由随包的 `project_git_helper.py` 只在请求与声明目标完全一致时读出，调用结束即删除。spec 首选管道，允许落盘时用 600 并删除；Git 不向 helper 传递额外 fd。代价：进程被强杀时，文件可能残留到系统清理临时目录。
 - T03 Ruling：来源选择放在共享库 `aisoft-project-target.sh` 的 `aisoft_resolve_project_target` 里，新增 `aisoft_access_invoke`；三个 shell 工具与 `read_issue` 都经它分派，不各自判断。代价：这个库多了一条项目分支。
 - T03 Ruling：`project-check --remote` 在项目来源下用 `api_get_project` 把标签与 Issue 两类 REST 读取映射到 `gitea.labels.read`、`gitea.issue.list`，`check_remote_labels` 的判断逻辑原样复用；新增 `access-identity` 检查行，`MANUAL` 只在项目来源出现，`result:` 行只在 `manual>0` 时追加计数。代价：分页由一次全量读取模拟。
 - T03 Ruling：`complete --apply` 的真实终态写入链放到 T04 端到端测试中验证（它需要合并后的主干状态）。T03 只覆盖 `--project` 拒绝与来源分派。
 - T04 Ruling：新测试都在 `codex/runtime/tests` 下，由 smoke 的 `unittest discover` 自动执行（日志里能看到 11 条），不需要再在 smoke 里单独登记。
 - T04 Ruling：端到端测试用真实 `--adopt` 导出（`--tools claude`），而不是手工复制 `.aisoft/` 成员。手工复制漏掉了技能里的 route-policy 落点，路由会失败，所以这次导出本身就是闭包证据。
 - T04 Ruling：「未访问平台安装面」由 `sandbox-exec` 拒读来证明。没有 `sandbox-exec` 的平台只剩环境变量隔离，证据较弱。
-- 收口 Ruling：spec front matter 补上 `git_scope`（36 个文件，取自 `git diff --name-only 74dc5808`），这是推送闸门需要的范围投影，不改变任何决定或 AC。代价：如果交叉审查后的修复又碰到新文件，要同步扩充并在此记录。
+- 收口 Ruling：spec front matter 补上 `git_scope`（取自 `git diff --name-only 74dc5808`；首版 35 个文件，交叉审查修复后为 38 个），这是推送闸门需要的范围投影，不改变任何决定或 AC。代价：如果交叉审查后的修复又碰到新文件，要同步扩充并在此记录。
 - T02 Ruling：发布包另带 `project_cli.py` 与 `codex/config/project-declaration.schema.json`（schema 由测试钉成与加载器一致）。
 
 ## 遗留风险与未完成项

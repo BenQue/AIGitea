@@ -81,8 +81,8 @@ aisoft scan-worktrees --repo <checkout>
 
 派单产出的是**待人点击的卡片**（或交给人的任务书），人点了才开出会话。这是刻意保留的人工闸门，不要绕过，也不要因为「反正要开」就自己在本会话里动手。
 
-- 工作目录 = 目标项目的本地 checkout。接入 AISoft 平台的项目从 `codex/config/host-access-broker.json` 的 `projects[].mac_checkout` 读。
-- **`mac_checkout` 是 `null` 或查不到 → 停下来问人。不要拼路径、不要从别的项目类推。**
+- 工作目录 = 目标项目的本地 checkout。登记了站点加固访问的项目，从 `codex/config/host-access-broker.json` 的 `projects[].mac_checkout` 读；只用 `.aisoft/project.json` 的项目没有平台记录，checkout 路径由人在派单时给出，或取自调度会话已经核实过的、含该 `project.json` 的检出（ADR 0003）。
+- **两处都没有确定路径 → 停下来问人。不要拼路径、不要从别的项目类推。**
 - 任务书必须自包含：新会话没有本会话的上下文。至少写清 Issue 号、目标项目、可测验收标准、依赖的 Issue、以及回报地址（本调度会话的标识）。
 - 任务书带路由卡的 `process`、`tier`、`skills` 三项（Issue 还没判级时写 `awaiting-triage` 与 `frontier`）。卡片没有型号字段，人点卡片时按 tier 选型号，映射见 `08` §7.3；任务书里提醒一句。
 

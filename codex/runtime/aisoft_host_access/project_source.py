@@ -14,7 +14,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import shutil
+import sys
 import subprocess
 import tempfile
 from dataclasses import dataclass, field
@@ -57,7 +59,7 @@ PROJECT_OPERATIONS = (
     "gitea.issue.comment", "gitea.issue.comments.read",
     "gitea.issue.labels.read", "gitea.issue.labels.set", "gitea.issue.labels.classify",
     "gitea.labels.read", "gitea.labels.provision",
-    "gitea.pulls.read", "gitea.pull.create", "gitea.pull.read",
+    "gitea.pull.create", "gitea.pull.read",
     "gitea.commit.status.read", "gitea.actions.run.read", "gitea.actions.job.logs.read",
 )
 
@@ -203,9 +205,15 @@ def _validated_remote_config(checkout: str, remote_name: str) -> str:
     push = _git_text(["git", "config", "--get-all", f"remote.{remote_name}.pushurl"], checkout)
     if push is not None and push.splitlines() != urls:
         raise BrokerError("TARGET_MISMATCH", "declared Git remote has a separate push URL")
-    rewrites = _git_text(["git", "config", "--get-regexp", r"^url\..*\.(pushinsteadof|insteadof)$"], checkout)
-    if rewrites:
-        raise BrokerError("TARGET_MISMATCH", "URL rewrites are not allowed for the project source")
+    # Read with the user's own configuration, global and system included: a
+    # rewrite anywhere that covers the declared URL is refused (#434 review).
+    result = subprocess.run(["git", "config", "--get-regexp", r"^url\..*\.(pushinsteadof|insteadof)$"],
+                            cwd=checkout, env=_helper_environment(), text=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
+    for line in result.stdout.splitlines():
+        _key, _, pattern = line.partition(" ")
+        if pattern and urls[0].lower().startswith(pattern.lower()):
+            raise BrokerError("TARGET_MISMATCH", "a URL rewrite covers the declared remote")
     return urls[0]
 
 
@@ -237,7 +245,8 @@ def credential_fill(declaration: ProjectDeclaration) -> tuple[str | None, str]:
     request = (f"protocol={parsed.scheme}\nhost={parsed.netloc}\n"
                f"path={parsed.path.lstrip('/')}\n\n")
     try:
-        result = subprocess.run(["git", "credential", "fill"], cwd=declaration.checkout,
+        result = subprocess.run(["git", "-c", "credential.useHttpPath=true", "credential", "fill"],
+                                cwd=declaration.checkout,
                                 env=_helper_environment(), input=request, text=True,
                                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                 timeout=60, check=False)
@@ -341,11 +350,15 @@ class ProjectSourceBroker(HostAccessBroker):
         descriptor = os.open(secret, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
         with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
             handle.write(f"username={credential.identity}\npassword={credential.token}\n")
-        helper = f"!f() {{ test \"$1\" = get && cat '{secret}'; }}; f"
-        fixed = {"GIT_CONFIG_COUNT": "3", "GIT_CONFIG_KEY_0": "credential.helper",
+        parsed = urlparse(self.declaration.remote_url)
+        program = os.path.join(os.path.dirname(os.path.abspath(__file__)), "project_git_helper.py")
+        helper = "!" + " ".join(shlex.quote(part) for part in (
+            sys.executable, "-I", program, secret, parsed.scheme, parsed.netloc, parsed.path.lstrip("/")))
+        fixed = {"GIT_CONFIG_COUNT": "4", "GIT_CONFIG_KEY_0": "credential.helper",
                  "GIT_CONFIG_VALUE_0": "", "GIT_CONFIG_KEY_1": "credential.helper",
                  "GIT_CONFIG_VALUE_1": helper, "GIT_CONFIG_KEY_2": "credential.useHttpPath",
-                 "GIT_CONFIG_VALUE_2": "true"}
+                 "GIT_CONFIG_VALUE_2": "true", "GIT_CONFIG_KEY_3": "http.followRedirects",
+                 "GIT_CONFIG_VALUE_3": "false"}
         return git_environment(fixed)
 
     def _drop_credential_file(self) -> None:

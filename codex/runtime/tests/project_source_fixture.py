@@ -104,8 +104,10 @@ def remote_runner(remote: Path, commands: list):
 class FakeGitea:
     """In-memory REST answers for exactly one repository."""
 
-    def __init__(self, *, user=None, permissions=None, base=BASE):
+    def __init__(self, *, user=None, permissions=None, base=BASE, remote: Path | None = None):
         self.base = base
+        # With a bare remote, PR heads and commit statuses follow its real tips.
+        self.remote = remote
         self.user = user if user is not None else {"login": AGENT, "is_admin": False}
         self.permissions = permissions if permissions is not None else {
             "admin": False, "push": True, "pull": True}
@@ -116,6 +118,10 @@ class FakeGitea:
         self.requests: list[tuple[str, str, dict, bytes | None]] = []
         self.options: list[dict] = []
         self._next = 1
+
+    def _tips(self) -> set[str]:
+        lines = git(["for-each-ref", "--format=%(objectname)", "refs/heads"], cwd=self.remote)
+        return set(lines.split())
 
     def _id(self) -> int:
         self._next += 1
@@ -221,8 +227,13 @@ class FakeGitea:
             values = [item for item in self.pulls.values() if state in {"all", item["state"]}]
             return 200, values if page == 1 else []
         if match := re.fullmatch(r"pulls/(\d+)", rest):
-            return 200, self.pulls[int(match.group(1))]
+            pull = self.pulls[int(match.group(1))]
+            if self.remote is not None:
+                pull["head"]["sha"] = git(["rev-parse", pull["head"]["ref"]], cwd=self.remote)
+            return 200, pull
         if match := re.fullmatch(r"commits/([0-9a-f]{40})/status", rest):
+            if self.remote is not None and match.group(1) not in self._tips():
+                return 404, {}
             return 200, {"state": "success", "sha": match.group(1), "statuses": []}
         if rest.startswith("actions/runs") and "jobs" not in rest:
             return 200, {"workflow_runs": [], "total_count": 0}
@@ -350,10 +361,17 @@ def export_tool_kit(checkout: Path) -> None:
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
-def contract_documents(issue_url: str, *, verification: bool = False):
-    """Full complex change documents for Issue 7, built from the shipped templates."""
+def contract_documents(issue_url: str, *, verification: bool = False, development: bool = False):
+    """Full complex change documents for Issue 7, built from the shipped templates.
+
+    development=True is the change_control: development shape: summary only, the
+    git_scope on the summary, and the R2 route card.
+    """
     slug, date = "demo-change", "261027"
-    roles = ("summary", "spec", "plan", "verification") if verification else ("summary", "spec", "plan")
+    if development:
+        roles: tuple[str, ...] = ("summary",)
+    else:
+        roles = ("summary", "spec", "plan", "verification") if verification else ("summary", "spec", "plan")
     names = {role: f"{role}-{slug}-{date}.md" for role in roles}
     scope = ["change.txt", *(f"docs/changes/7-demo-change/{name}" for name in names.values())]
     values = {
@@ -362,8 +380,9 @@ def contract_documents(issue_url: str, *, verification: bool = False):
         "CONTRACT_EFFECT": "change", "CLASSIFICATION_REASON": "synthetic project source fixture",
         "CONFIDENCE": "high", "ROUTE_PROVIDER": "claude", "ROUTE_PROCESS": "complex-production",
         "ROUTE_TIER": "frontier", "ROUTE_EFFORT": "high",
-        "ROUTE_SKILLS": "to-spec, to-tickets, executing-plans, verification-before-completion",
-        "ROUTE_METHOD": "spec-plan", "ROUTE_VERIFY": "full+verification" if verification else "full",
+        "ROUTE_SKILLS": ("verification-before-completion" if development
+                         else "to-spec, to-tickets, executing-plans, verification-before-completion"),
+        "ROUTE_METHOD": "tdd" if development else "spec-plan", "ROUTE_VERIFY": "full+verification" if verification else "full",
         "ROUTE_REVIEW": "human-merge",
         "SHORT-SLUG": slug, "YYYY-MM-DD": "2026-10-27", "YYMMDD": date,
     }
@@ -384,6 +403,12 @@ def contract_documents(issue_url: str, *, verification: bool = False):
                                   "required_docs:\n" + "".join(f"  - {role}\n" for role in roles)
                                   + "confidence")
         summary = summary.replace("- CLASSIFICATION_EVIDENCE", "- synthetic")
+        if development:
+            summary = summary.replace("process: complex-production", "process: complex-development")
+            summary = summary.replace("depends_on: []\n", "depends_on: []\ngit_scope:\n"
+                                      + "".join(f"  - {path}\n" for path in scope), 1)
+            (directory / names["summary"]).write_text(summary, encoding="utf-8")
+            return
         (directory / names["summary"]).write_text(summary, encoding="utf-8")
         spec = fill((TEMPLATES / "spec.md").read_text(encoding="utf-8"))
         spec = spec.replace("depends_on: []\n", "depends_on: []\ngit_scope:\n"

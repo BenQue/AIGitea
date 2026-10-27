@@ -27,4 +27,4 @@ done
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH="$root/codex/runtime"
 exec python3 -I -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); from aisoft_host_access.project_cli import main; raise SystemExit(main())' \
-  "$root/codex/runtime" --label-manifest "$root/codex/config/gitea-labels.json" "$@"
+  "$root/codex/runtime" "$@"

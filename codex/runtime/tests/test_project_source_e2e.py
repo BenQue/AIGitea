@@ -23,19 +23,22 @@ from tests.test_project_source_tools import tool_path
 
 
 class ProjectSourceEndToEndTest(unittest.TestCase):
-    def build(self, *, lifecycle: str = "none", verification: bool = False) -> None:
+    def build(self, *, lifecycle: str = "none", verification: bool = False,
+              change_control: str = "production") -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.gitea = FakeGitea()
         self.server = GiteaServer(self.temporary.name, self.gitea)
         self.addCleanup(self.server.close)
         self.gitea.base = self.server.url
+        self.gitea.remote = self.server.project_root / OWNER / f"{NAME}.git"
         self.issue_url = f"{self.server.url}/{OWNER}/{NAME}/issues/7"
-        write, self.names = contract_documents(self.issue_url, verification=verification)
+        write, self.names = contract_documents(self.issue_url, verification=verification,
+                                               development=change_control == "development")
 
         def prepare(canonical: Path) -> None:
             export_tool_kit(canonical)
-            write_declaration(canonical, deployment_lifecycle=lifecycle)
+            write_declaration(canonical, deployment_lifecycle=lifecycle, change_control=change_control)
 
         self.remote, self.canonical, self.linked = build_project(
             self.temporary.name, remote_url=f"{self.server.url}/{OWNER}/{NAME}.git",
@@ -118,13 +121,20 @@ class ProjectSourceEndToEndTest(unittest.TestCase):
         self.run_kit("aisoft", "open-pr", "7", "--title", "demo", "--body-file", str(body))
         pull = next(iter(self.gitea.pulls.values()))
         self.assertEqual(git(["rev-parse", BRANCH], cwd=self.remote), git(["rev-parse", "HEAD"], cwd=self.linked))
-        # 7. PR head and commit status
-        self.assertEqual(json.loads(self.run_kit("aisoft-access", "--operation", "gitea.pull.read",
-                                                 "--number", str(pull["number"])).stdout)["number"],
-                         pull["number"])
+        # 7. PR head and commit status, both for the final published head: the
+        # backfill commit moved HEAD past the reviewed candidate.
+        final = git(["rev-parse", "HEAD"], cwd=self.linked)
+        self.assertNotEqual(final, head)
+        self.assertEqual(git(["rev-parse", BRANCH], cwd=self.remote), final)
+        read_pull = json.loads(self.run_kit("aisoft-access", "--operation", "gitea.pull.read",
+                                            "--number", str(pull["number"])).stdout)
+        self.assertEqual(read_pull["head"]["sha"], final)
         status = json.loads(self.run_kit("aisoft-access", "--operation", "gitea.commit.status.read",
-                                         "--sha", head).stdout)
-        self.assertEqual(status["state"], "success")
+                                         "--sha", final).stdout)
+        self.assertEqual((status["sha"], status["state"]), (final, "success"))
+        stale = self.run_kit("aisoft-access", "--operation", "gitea.commit.status.read", "--sha", head,
+                             check=False)
+        self.assertEqual(json.loads(stale.stderr)["code"], "HTTP_404")
         # 8. merged: completed is written once and the rerun is a no-op
         pull.update(state="closed", merged=True)
         self.run_kit("aisoft", "complete", "--apply", "7")
@@ -148,6 +158,20 @@ class ProjectSourceEndToEndTest(unittest.TestCase):
         write_declaration(self.linked, change_control="development")
         refused = self.run_kit("aisoft", "resolve-route", "7", "--provider", "claude", check=False)
         self.assertIn("route contradicts provider/policy", refused.stderr)
+
+    def test_development_project_prepares_the_synthetic_ticket(self) -> None:
+        """AC-3 step 9: a declared development project reaches complex-development."""
+        self.build(change_control="development")
+        self.run_kit("aisoft", "labels-provision")
+        self.gitea.add_issue(7, "demo change", labels=("approved",))
+        self.gitea.issues[7]["body"] = "## Acceptance criteria\n\n- [ ] AC-1 the demo works\n"
+        route = json.loads(self.run_kit("aisoft", "resolve-route", "7", "--provider", "claude").stdout)
+        self.assertEqual(route["route"]["process"], "complex-development")
+        self.assertEqual(route["differences"], {})
+        prepared = json.loads(self.run_kit("aisoft", "prepare-ticket", "7", "T01",
+                                           "--provider", "claude").stdout)
+        self.assertEqual(prepared["route"]["process"], "complex-development")
+        self.assertEqual(prepared["identity"]["plan_path"], "issue:" + self.issue_url)
 
 
 if __name__ == "__main__":

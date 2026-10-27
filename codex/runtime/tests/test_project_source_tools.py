@@ -158,5 +158,59 @@ class ProjectSourceToolsTest(ProjectSourceToolsCase):
         self.assertIn("refusing to pick one", result.stderr + result.stdout)
 
 
+class ReviewFindingsToolsTest(ProjectSourceToolsCase):
+    """Implementation cross-review findings (#434 round 1) on the shell entries."""
+
+    def site_manifests(self, *, base: str, owner: str, repository: str) -> Path:
+        manifests = Path(self.temporary.name) / "manifests"
+        manifests.mkdir(exist_ok=True)
+        access = json.loads((ROOT / "codex/tests/fixtures/manifests/host-access-broker.json").read_text())
+        governance = json.loads((ROOT / "codex/tests/fixtures/manifests/gitea-governance.json").read_text())
+        governance["base_url"] = base
+        governance["owner"] = owner
+        access["projects"][0]["repository"] = repository
+        (manifests / "host-access-broker.json").write_text(json.dumps(access))
+        (manifests / "gitea-governance.json").write_text(json.dumps(governance))
+        return manifests
+
+    def test_same_short_name_under_another_owner_and_host_is_a_conflict(self) -> None:
+        git(["remote", "add", "mirror", "http://mirror.invalid/elsewhere/widget.git"], cwd=self.canonical)
+        manifests = self.site_manifests(base="http://mirror.invalid", owner="elsewhere", repository=NAME)
+        self.env.update(AISOFT_ACCESS_MANIFEST=str(manifests / "host-access-broker.json"),
+                        AISOFT_GOVERNANCE_MANIFEST=str(manifests / "gitea-governance.json"))
+        result = self.run_tool("classify", "--verify", "7", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("refusing to pick one", result.stderr + result.stdout)
+        checked = self.run_tool("project-check", "--remote", check=False)
+        self.assertIn("refusing to pick one", checked.stdout + checked.stderr)
+        self.assertNotIn("PASS: access-identity", checked.stdout)
+
+    def test_site_open_pr_runs_the_broker_inside_the_target_checkout(self) -> None:
+        platform = Path(self.temporary.name) / "platform"
+        (platform / "codex/tools").mkdir(parents=True)
+        (platform / "codex" / "config").mkdir()
+        shutil.copy2(ROOT / "codex/tools/aisoft", platform / "codex/tools/aisoft")
+        for name in ("agent", "runtime"):
+            (platform / "codex" / name).symlink_to(ROOT / "codex" / name)
+        record = Path(self.temporary.name) / "broker-cwd"
+        stub = platform / "codex/tools/host-access-broker.sh"
+        stub.write_text(f"#!/bin/sh\npwd -P > '{record}'\nexit 1\n")
+        stub.chmod(0o755)
+        manifests = self.site_manifests(base=self.server.url, owner=OWNER, repository=NAME)
+        for name in ("host-access-broker.json", "gitea-governance.json"):
+            shutil.copy2(manifests / name, platform / "codex" / "config" / name)
+        (self.linked / ".aisoft/project.json").unlink()
+        git(["commit", "-q", "-am", "#7 T01: site-registered checkout"], cwd=self.linked)
+        body = Path(self.temporary.name) / "body.md"
+        body.write_text(f"Closes #7\n\nSummary: docs/changes/7-demo-change/{self.names['summary']}\n")
+        elsewhere = Path(self.temporary.name) / "elsewhere"
+        elsewhere.mkdir()
+        result = subprocess.run([str(platform / "codex/tools/aisoft"), "--repo", str(self.linked), "open-pr",
+                                 "7", "--title", "demo", "--body-file", str(body)], cwd=elsewhere,
+                                env=self.env, text=True, capture_output=True, check=False)
+        self.assertIn("first push refused", result.stderr)
+        self.assertEqual(record.read_text().strip(), os.path.realpath(self.linked))
+
+
 if __name__ == "__main__":
     unittest.main()

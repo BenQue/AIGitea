@@ -21,6 +21,7 @@ git_scope:
   - codex/config/project-declaration.schema.json
   - codex/runtime/aisoft_host_access/broker.py
   - codex/runtime/aisoft_host_access/project_cli.py
+  - codex/runtime/aisoft_host_access/project_git_helper.py
   - codex/runtime/aisoft_host_access/project_source.py
   - codex/runtime/aisoft_loop/change_control.py
   - codex/runtime/aisoft_loop/contract.py
@@ -46,9 +47,11 @@ git_scope:
   - skills/aisoft-platform/references/greenfield-planning.md
   - skills/aisoft-platform/references/onboarding-runbook.md
   - skills/aisoft-platform/references/project-align.md
+  - skills/aisoft-platform/references/route-policy.md
   - skills/issue-session-flow/SKILL.md
   - templates/project/AGENTS.md
   - templates/project/aisoft-project.json
+  - templates/project/ci/ci.yml
   - usage/CONTRACT.md
   - usage/USER-GUIDE.md
   - usage/bundle.json

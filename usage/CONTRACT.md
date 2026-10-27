@@ -31,7 +31,7 @@
   说不清停在 `awaiting-triage`。功能新增或变更、schema 与数据迁移、外部契约、认证权限安全、
   共享核心、跨模块、CI/制品/部署/回滚、Agent 与治理一律 complex。small 还要范围局部、可简单
   revert、验收可测。
-- **编排路径。** `$triage #N` → 判级。complex 按 governance manifest 中本仓的 `change_control`：
+- **编排路径。** `$triage #N` → 判级。complex 按本仓的 `change_control`（有 `.aisoft/project.json` 时取自它，否则取自 governance manifest 中本仓的登记条目）：
   `production`（未声明时的默认）先 `$to-spec #N` → `$to-tickets #N` → 按计划执行（开发方式以路由表为准：Claude 与 Cursor
   用 superpowers `executing-plans`，Codex 用 `$implement #N Txx`）；
   `development` 不写 spec/plan，验收标准取自 Issue 正文，以合成 `T01` 实现。small 默认不要求
@@ -127,7 +127,7 @@ pin 的版本，项目不得手改。Gitea 与 Git 访问经 §6 选定的来源
 
 ## 8. 全新项目规划
 
-登记并采用后，通过 `aisoft-platform` 技能的 `references/greenfield-planning.md` 做需求发现与滚动阶段规划。
+采用后，通过 `aisoft-platform` 技能的 `references/greenfield-planning.md` 做需求发现与滚动阶段规划。
 项目 AGENTS 的「项目规则」链接唯一规划入口；阶段资料由所属 Issue 写入，交付仍遵守本合同的既有流程。
 
 ## 6. 访问来源
