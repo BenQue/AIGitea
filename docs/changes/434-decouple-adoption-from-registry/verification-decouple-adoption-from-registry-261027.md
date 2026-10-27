@@ -36,6 +36,11 @@ updated: 2026-10-27
 | Command / check | Result | Evidence |
 |---|---|---|
 | T01 `bash codex/tests/smoke.sh`（发版 1.18.0 后） | PASS | 尾行 `Codex platform static smoke checks passed.`。首轮依次红在发布包成员不一致、导出技能在非维护层节点名平台路径、站点值渗入守卫（`gitea-ci`），逐项修正后转绿 |
+| T02 `python3 -m unittest tests.test_project_declared_source`（`codex/runtime`） | PASS | 22 tests OK：声明 schema 12 种拒绝、remote 7 种拒绝（userinfo、SSH、他仓、子路径、分离 push URL、多 URL、insteadOf）、身份 7 种拒绝、闭集外操作在取凭据前拒绝、闭集 21 个操作全部成功、推送闸门（无分支、`main`、他 Issue、脏树、越界 scope、会话不符）、哨兵 token 不进 argv 与 env、注入助手文件 600/目录 700 且调用后删除、重定向一律不跟随、站点 broker 无视 `project.json`、入口拒绝 `--project` |
+| T02 站点来源回归 `python3 -m unittest tests.test_host_access tests.test_host_access_complete_reads tests.test_main_integration` | PASS | 抽出两个钩子方法后 240 tests OK |
+| T02 `bash codex/tests/smoke.sh`（发版 1.19.0 后） | PASS | runtime 全集 768 tests OK，新测试在其中；尾行 `Codex platform static smoke checks passed.` |
+| T02 导出工具包依赖闭包：按 `usage/bundle.json` 只复制 `.aisoft/` 成员到空检出，`env -i` 运行 `.aisoft/bin/aisoft-access --operation gitea.issue.read --number 1` | PASS | 导入链完整，停在凭据阶段 `CREDENTIAL_UNAVAILABLE`、exit 20；未访问平台检出或 `/usr/local` |
+| T02 `shellcheck` 与 `bash -n codex/tools/aisoft-access` | PASS | 无输出 |
 | T01 残留表述 rg（`登记与采用|先.{0,6}登记|必须先登记|新项目登记|登记新项目|已注册项目|登记进平台`，排除 `docs/changes`、`archive`、`codex/vendor`、`usage/releases`） | 已判定 | 见下表 |
 
 T01 残留表述判定：
@@ -71,6 +76,15 @@ T01 残留表述判定：
 | 合同 3 | claude | codex（gpt-6-astra，high，只读） | dd50967aa5b12130e3019c123e8e7f48c8d9a372 | ACCEPT WITH CHANGES | 第 2 轮 9 条全部 RESOLVED；无 BLOCKER、无 MAJOR。3 条 MINOR 已处置：AC-3 第 9 步注明只证明路由消费、推送仍要求 spec；open-pr 编号沿用 pull.create 回执，删去 pulls.read；删去开放式薄包装预留，只保留 labels-provision |
 | 实现 | 待填写 | 待填写 | 待填写 | NOT RUN | 待填写 |
 
+
+## 执行裁决
+
+- T02 Ruling：`project.json` 增加 `schema_version: 1` 必填键。映射表未列，但精确键集合没有版本键就无法演进。代价：多一个键。
+- T02 Ruling：项目来源对每次调用都读回身份，读操作也读回。spec 只要求写前读回；这样更严，且同一份凭据只取一次。代价：每次调用多两次 GET。
+- T02 Ruling：项目来源一律不跟随重定向。spec 只要求 origin 变化时拒绝；一律不跟随更严，也更简单。代价：Gitea 前置代理若对同源做 3xx 改写，会被拒绝。
+- T02 Ruling：站点来源抽出 `_git_credential_environment` 与 `_template_context` 两个钩子，供项目来源覆盖，行为逐字节不变，由 240 条站点回归与全量 smoke 证明。代价：站点代码多两层间接调用。
+- T02 Ruling：凭据交给 Git 的方式，是 mode 700 临时目录里一个 mode 600 文件，由注入助手 `cat` 读出，调用结束即删除。spec 首选管道，允许落盘时用 600 并删除；Git 不向 helper 传递额外 fd。代价：进程被强杀时，文件可能残留到系统清理临时目录。
+- T02 Ruling：发布包另带 `project_cli.py` 与 `codex/config/project-declaration.schema.json`（schema 由测试钉成与加载器一致）。
 
 ## 遗留风险与未完成项
 

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# aisoft-access: project-declared entry of the typed access engine (#434, ADR 0003).
+#
+# One source file, two landings, like aisoft: codex/tools/aisoft-access in the
+# platform repository, .aisoft/bin/aisoft-access in a project next to
+# .aisoft/lib/. It always uses the project-declared source: the current
+# checkout's .aisoft/project.json names the project, and the credential comes
+# from the user's own Git credential helper. The installed site broker never
+# runs through here, and this entry never reads the platform manifests.
+set -euo pipefail
+set +x
+
+here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -d "$here/../lib/codex/runtime" ]]; then
+  root="$(cd -- "$here/../lib" && pwd)"
+else
+  root="$(cd -- "$here/../.." && pwd)"
+fi
+for arg in "$@"; do
+  case "$arg" in
+    --project|--project=*|--label-manifest|--label-manifest=*)
+      echo '{"code": "ARGUMENT_MISMATCH", "message": "aisoft-access takes no --project or --label-manifest", "status": "BLOCKED_EXTERNAL"}' >&2
+      exit 20
+      ;;
+  esac
+done
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH="$root/codex/runtime"
+exec python3 -I -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); from aisoft_host_access.project_cli import main; raise SystemExit(main())' \
+  "$root/codex/runtime" --label-manifest "$root/codex/config/gitea-labels.json" "$@"

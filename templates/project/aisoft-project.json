@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "repository": "<owner>/<repository>",
+  "git_remote_name": "origin",
+  "project_agent": "<non-admin project login>",
+  "deployment_lifecycle": "application-deploy-selective",
+  "change_control": "production",
+  "classification": "internal-application",
+  "status_check_contexts": ["CI / test (pull_request)"],
+  "protection_evidence": 1
+}
