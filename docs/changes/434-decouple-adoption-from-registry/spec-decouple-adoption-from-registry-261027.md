@@ -59,22 +59,42 @@ updated: 2026-10-27
   - 项目自声明来源下，引擎随使用发布包装进 `.aisoft/lib`，以当前用户身份非特权运行。
   - 站点登记来源仍是 root 安装的 `/usr/local/libexec/aisoft/host-access-broker`。
 - **D4 项目自声明文件 `.aisoft/project.json`**：这个文件归项目所有，不是发布包成员；发布包只提供模板与 schema。
-  - 内容是一个项目条目，字段取引擎今天从两份 manifest 读取的项目级值：
-    - `repository`（`owner/name`）
-    - `git_remote_name`（缺省 `origin`）
-    - `default_branch`
-    - `project_agent`（项目身份的登录名）
-    - `deployment_lifecycle`
-    - `change_control`（缺省 `production`）
-    - `status_check_contexts`
-  - Gitea base URL 从 remote URL 推出，调用方不能传。
+  - 内容是一个项目条目。字段、派生值与消费者见下文「项目上下文映射」。
   - schema 是精确键集合。未知键、缺键或取值越界一律拒绝。
-  - 站点级值（manager、site admin、human merge identity）不进这个文件。
-- **D5 来源选择**：
-  - 检出里有 `.aisoft/project.json` 时，用项目自声明来源。
-  - 没有这个文件时，按现有 `aisoft-project-target.sh` 从已安装 manifest 解析，即站点登记来源。
-  - 两者都没有时报错，并提示两种写法；不降级，也不猜。
-  - 同一检出两种来源都命中、但仓库不同时，停止。
+  - 站点级值（manager、site admin、human merge identity、visibility）不进这个文件，项目来源也不使用依赖它们的模型。
+- **D5 两个入口，来源固定**：
+  - 已安装的站点 wrapper `/usr/local/libexec/aisoft/host-access-broker` 永远只用站点登记来源；cwd 里有没有 `project.json` 都不切换。
+  - 项目工具入口新增 `.aisoft/bin/aisoft-access`，随发布包分发，只用项目自声明来源，并要求检出里有 `project.json`。
+  - `aisoft` 会话工具选择入口的规则：
+    - 检出有 `project.json`，调项目入口；
+    - 没有时，按现有 `aisoft-project-target.sh` 解析，调站点 wrapper；
+    - 两者都不成立，报错并提示两种写法，不降级，不猜；
+    - 两种来源都命中但仓库不同，停止。
+  - 引擎为项目来源新增一个单项目加载函数，按映射表构造项目上下文。站点来源的 `load_access_contract` 与 manifest 交叉校验不改。不做通用来源插件框架。
+### 项目上下文映射
+
+项目来源下，引擎需要的每个值都按下表取得。表外的站点值，项目来源一律不读。
+
+| 值 | 输入或派生 | 消费者 | 拒绝条件 |
+|---|---|---|---|
+| `repository` | `project.json` 输入，形如 `owner/name` | Gitea API 路径、remote 核对 | 不是恰好两段，或任一段不合 Gitea 名称规则 |
+| owner、仓库名 | 由 `repository` 拆出。引擎的仓库字段沿用「只放仓库名」的现有形状 | `ProjectContract.repository`、API 路径 | 同上 |
+| `project_id` | 等于仓库名。只用于回执与日志，不参与授权 | 回执 | 无 |
+| base URL | 由 remote URL 推出 `scheme://host[:port]`。路径必须恰好是 `/owner/name` 或 `/owner/name.git`，不支持子路径部署 | API 请求、凭据请求 | 非 `http(s)`；路径不符；与 `repository` 不一致 |
+| canonical checkout | 调用时 `git rev-parse --git-common-dir` 所在仓库的主工作树，每次调用现取 | worktree 归属、cwd 核对 | cwd 不在该仓库或其已登记 worktree 内 |
+| `git_remote_name` | `project.json` 输入，缺省 `origin` | Git 远端操作 | remote 不存在，或不满足 D6 |
+| 默认分支 | 固定 `main`，与引擎现状一致。本票不支持其它默认分支，`project.json` 不设此键 | fetch main、推送基线 | 远端没有 `main` |
+| `project_agent` | `project.json` 输入，项目身份的登录名 | 身份读回 | 与读回登录名不一致 |
+| `deployment_lifecycle` | `project.json` 输入，取值闭集同 governance manifest | `aisoft complete` 判终态 | 越界 |
+| `change_control` | `project.json` 输入，缺省 `production`，取值闭集同 governance manifest | 路由（`route_policy`、`change_control`） | 越界 |
+| `classification` | `project.json` 输入，取值闭集同 governance manifest | `project-check` | 越界 |
+| `status_check_contexts` | `project.json` 输入，非空字符串列表 | `project-check` 的 CI 检查、人工保护证据比对 | 空列表或重复 |
+| `protection_evidence` | `project.json` 输入，项目仓 Issue 编号，记录人工保护读回（D7） | `project-check` | 不是正整数 |
+| 标签集合 | 发布包内的 canonical `gitea-labels.json` | 标签对齐、判级投影、终态 | 文件缺失或校验失败 |
+| `git_scope` | 不进 `project.json`。沿用现有来源，即候选 HEAD 中映射 spec 的 `git_scope` | 推送闸门 | 沿用现有规则 |
+
+`git_scope` 里有一个模板持有特例：推送 canonical 模板路径时，需要核对安装面与两份 manifest。项目来源不支持这个特例，遇到时报错并说明「模板持有变更只能走站点来源」，不静默放行。
+
 - **D6 项目自声明来源的凭据边界**：
   - **remote**：只接受 `http(s)` URL，并且同时满足：
     - fetch 与 push URL 相同，且只有一个；
@@ -83,28 +103,45 @@ updated: 2026-10-27
     - 推出的 `owner/name` 等于 `repository`。
     
     SSH remote 不支持，因为 API 凭据要按 exact URL 取得。每次写操作前重新核对，操作期间配置漂移即停止。
-  - **token**：经 `git credential fill` 针对 exact remote URL 取得，只在进程内使用：
-    - 不进 argv、环境变量、日志和输出；
-    - 子进程禁用 `GIT_TRACE*` 与 curl verbose；
-    - 错误回显脱敏；
-    - 不跟随跨主机重定向；
-    - 不落临时文件；必须落盘时用 mode 600，并在 finally 中删除。
-  - **身份读回**：每次写操作前，经 `/user` 和仓库 permissions 读回身份。下列任一情况都拒绝写入，规则与站点登记来源一致，取现有 `require_non_admin_exact` 语义：
+  - **token**：每次调用只取一次，经本机 `git credential fill` 针对 exact remote URL 取得，只放在内存里。
+    - **同一份凭据**：身份读回、API 写入和 Git 写入用的是同一份内存凭据。
+    - **Git 子进程**：仍按现有隔离环境运行，禁用全局 Git 配置。引擎只给它注入一个自带的凭据助手，助手从继承的管道读出同一份凭据，因此 Git 写入不会另行询问本机助手。
+    - **不外泄**：token 不进 argv、环境变量、日志与输出；子进程禁用 `GIT_TRACE*` 与 curl verbose；错误回显先脱敏。
+    - **不落盘**：不落临时文件。必须落盘时用 mode 600，并在 finally 中删除。
+    - **重定向**：完整 origin（scheme、host、port）一变就拒绝，降级到 http 也拒绝。
+  - **PAT scope**：项目凭据至少需要 `read:user`、`write:issue`、`write:repository`。scope 不足时，Gitea 返回的错误照原文报告。`usage/USER-GUIDE.md` 写明这一要求。
+  - **身份读回**：只在项目来源下执行，每次写操作前经 `/user` 与 `GET /repos/{owner}/{name}` 读回。以下任一情况都拒绝写入：
     - 登录名与 `project_agent` 不一致；
-    - `is_admin` 为真；
-    - 仓库 permissions 的 `admin` 为真。
-  - **操作闭集**：项目自声明来源只开放现有 project-agent 身份的项目级操作。闭集按「调用入口 → 操作」表确定，由 verification 列出。以下维护层操作一律拒绝：
-    - `host.*`、`orbstack.*`
-    - `mac.git.bind`
-    - `gitea.credential.rotate`
-    - `gitea.labels.extension.define`
-    - `gitea.protection.read`（属于 manager-audit 身份）
+    - `is_admin` 不是 `False`；
+    - `permissions.admin` 不是 `False`；
+    - `permissions.push` 不是 `True`；
+    - 字段缺失、类型不符或读取失败。
+    
+    站点来源的现有身份校验保持原样，不叠加这组检查。依据是 Gitea 1.26.4 源码：Write 级身份可以读 `/user` 与仓库 permissions，这一点 live 尚未验收，见 AC-8。
+  - **操作闭集**：项目来源只开放下表中的操作，其余操作一律拒绝，包括 `host.*`、`orbstack.*`、`mac.git.bind`、`gitea.credential.rotate`、`gitea.labels.extension.define`、`gitea.issue.labels.extension.set`、`gitea.protection.read`。
+
+| 调用入口 | 操作 |
+|---|---|
+| `aisoft open-pr` | `git.push.change`、`gitea.pull.create`（同 change 已有开放 PR 时返回原 PR）；建完用 `gitea.pulls.read` 读回编号 |
+| `aisoft classify`（`apply-classification-labels.sh`） | `gitea.issue.read`、`gitea.issue.labels.read`、`gitea.issue.labels.classify` |
+| `aisoft complete`（`mark-completed-issues.sh`） | `gitea.issue.labels.set` |
+| `prepare-ticket` / `review-candidate` | `gitea.issue.read` |
+| `aisoft project-check --remote`（项目来源；站点来源保持现有 `.agent.env` 直读） | `gitea.repo.read`、`gitea.labels.read` |
+| 新增 `aisoft labels-provision` | `gitea.labels.read`、`gitea.labels.provision` |
+| 技能直接调用：`aisoft-access` | `gitea.issue.create`、`gitea.issue.read`、`gitea.issue.list`、`gitea.issue.comment`、`gitea.issue.comments.read`、`gitea.issue.update`、`git.fetch.main`、`git.fetch.change`、`git.push.change`、`gitea.pull.read`、`gitea.commit.status.read`、`gitea.actions.run.read`、`gitea.actions.job.logs.read` |
+
+  `aisoft-access` 的参数与站点 wrapper 的 `--operation` 形式一致，但不接受 `--project`，项目由 `project.json` 决定。闭集以本表为准，T02 的成功路径测试逐行覆盖。表里各入口的实际调用如果与源码核对不一致，以源码为准修订本表，并在 verification 记录差异。
 - **D7 保护规则证据**：
   - Write 级的项目身份读不到 Gitea 分支保护，引擎也不为此提升权限。
-  - 保护规则包括：受保护 `main`、禁止直推与强推、合并只许人、required CI 启用。采用时由人用自己的管理员会话读回一次，证据留在项目仓的采用 Issue。
-  - 项目自声明来源下，`aisoft project-check` 报告两项：
-    - 身份是否非管理员：可以机读，不满足就报 GAP；
-    - 保护证据的位置：没有登记证据位置就报 GAP。
+  - 保护规则包括：受保护 `main`、禁止直推与强推、合并只许人、required CI 启用。采用时由人用自己的管理员会话读回一次，证据写成项目仓采用 Issue 中的一条评论，`project.json` 的 `protection_evidence` 指向这个 Issue。
+  - 证据至少记录：仓库完整地址、分支、项目身份、观测时间、required contexts、合并 allowlist 是否启用及其用户与团队授权、是否禁止直推与强推。项目身份或保护规则变化后要重新读回。
+  - `aisoft project-check` 两种来源分开处理：
+    - **站点来源**：行为与本批前完全一致，包括继续读取 `.agent.env` 和现有保护检查。
+    - **项目来源**：
+      - 身份非管理员这一项可以机读，按 D6 判 PASS 或 GAP。
+      - 依赖保护 API 的检查（`main-protection`、`ci-context`、`ci-outdated-branch` 等）一律输出新结果值 `MANUAL`，附 `protection_evidence` 引用；没有引用时报 GAP。
+      - `MANUAL` 不计入 PASS，汇总行单独计数。
+      - 工具只报告「人工证据已登记」或「缺失」，不声称实时有效。
   - 这是 A+ 的固有取舍：
     - 站点加固访问下，会话拿不到凭据，裸 `git push` 也会失败；
     - 项目自声明来源下，本机凭据助手对任何 git 命令都可用，最后一道防线是服务端保护。
@@ -135,14 +172,19 @@ updated: 2026-10-27
     2. 建 Issue 并读回；
     3. `prepare-ticket`；
     4. 判级投影的 apply 与 verify；
-    5. `aisoft open-pr`（首推、建 PR、回填、再推）；
-    6. 读 PR head 与 commit status；
-    7. `aisoft complete` 的 dry-run，用 `deployment_lifecycle` 判定终态。
+    5. `review-candidate`；
+    6. `aisoft open-pr`（首推、建 PR、回填、再推）；
+    7. 读 PR head 与 commit status；
+    8. 在 API 桩中把 PR 置为已合并的夹具状态，然后执行 `aisoft complete --apply`，读回标签，并重复执行一次，验证幂等；`deployment_lifecycle` 取 `none` 与需部署两个分支各跑一遍；
+    9. 声明 `change_control: development` 的样例，`prepare-ticket` 的路由读回为 `complex-development`。
   - 测试断言全程没有访问平台安装面。
 - [ ] **AC-4 安全验证保留**：
   - 站点登记来源的现有回归全部通过。
   - 项目自声明来源下，下列每种情形各有一个反例，并且都被拒绝：
-    - 身份问题：管理员身份、仓库 admin 权限、登录名不符；
+    - 身份问题：管理员身份、仓库 admin 权限、无 push 权限、登录名不符、身份字段缺失或读取失败；
+    - 入口问题：站点 wrapper 在含 `project.json` 的 cwd 下仍走站点来源；项目入口在没有 `project.json` 时拒绝；
+    - 模板持有路径推送在项目来源下被拒绝；
+    - 跨 origin 或降级重定向；
     - remote 问题：fetch/push URL 分离、多个 pushurl、`insteadOf` 改写、userinfo、SSH remote；
     - 推送问题：推 `main`、推非当前分支、越界历史、归属错误；
     - 其他：闭集外操作、正文不合合同、跨主机重定向。
@@ -157,7 +199,13 @@ updated: 2026-10-27
   - onboarding 参考新增「接入既有项目」，按顺序列出由项目仓 Issue 承载的步骤，并写明平台仓 Issue 的两种适用情形（D9）。
   - getting-started 的新项目路径不再要求先改平台 manifest。
 - [ ] **AC-7 发布**：
-  - 引擎、schema 与 `project.json` 模板进入 `usage/bundle.json` 的成员清单；成员变更与发布记录放在同一切片里完成。
+  - 运行依赖闭包全部进入 `usage/bundle.json` 的成员清单，包括：
+    - `aisoft_host_access` 的 `broker.py`、`cli.py`，以及已在包内的 `contract.py`、`dependencies.py`；
+    - `aisoft_main_integration.py`、`aisoft_worktree_owner.py`，以及已在包内的 `aisoft_change_name.py`；
+    - canonical `gitea-labels.json`；
+    - `.aisoft/bin/aisoft-access` 入口；
+    - `project.json` 模板与 schema。
+  - 每张改动成员的票，都在同票内按现有工具发一个递增版本，不重发同号。
   - `aisoft version` 与 `project-check` 的 `tool-provenance` 都读回新版本。
 - [ ] **AC-8 未验证边界如实记录**：
   - 合成 Gitea 桩通过，不能表述为真实 Gitea 上可用。

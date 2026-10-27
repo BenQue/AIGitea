@@ -30,7 +30,7 @@ updated: 2026-10-27
 - 站点登记来源（manifest 与凭据）：已登记项目的 manifest 条目不改；不改 live 标签与保护规则；不新建凭据；不安装、不重装。
 - 测试只用合成样例：本地 bare 仓库，加上 `127.0.0.1` 随机端口上的进程内 Gitea API 桩，以及 `codex/tests/fixtures/manifests` 下的合成夹具 manifest。不连 live Gitea，不借用真实项目。
 - 无平台环境的测试：在临时 HOME 中运行，PATH 里没有平台检出，没有 `/usr/local` broker，也没有 `.agent.env`。断言全程未读这些路径。
-- 发布包：凡是改动发布包成员的票，必须在同一票内运行 `usage-bundle.sh --release`，让该票的全量 smoke 能通过。整批尽量只发一个版本：先发版，后续票如果又改成员，按「合并前可重发同号」覆盖。
+- 发布包：凡是改动发布包成员的票，都在同一票内用 `usage-bundle.sh --release` 发一个递增的新版本，让该票的全量 smoke 能通过。现有工具拒绝不大于最新的版本号，所以不重发同号，整批允许出现多个版本。
 - 治理步骤：T01 是独立的治理步骤，commit 后 STOP；fresh run 重读合同、治理 diff 与当前规则后，再做 T02。
 - 每张票完成后运行 `bash codex/tests/smoke.sh`；改过的 shell 跑 `bash -n` 与 ShellCheck；改 runtime 前先 rg 测试目录，查看被钉住的活文档短语。
 - 执行入口：Claude 使用 superpowers `executing-plans`，Txx 是唯一任务身份。
@@ -40,7 +40,7 @@ updated: 2026-10-27
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
 | T01 | 治理先行：ADR 0003 与全部活文档、技能、使用合同、项目模板改为三层职责 | - | pending |
-| T02 | 引擎项目自声明来源：`project.json` schema、来源选择、remote 与凭据边界、身份读回、操作闭集，合成回归 | T01 | pending |
+| T02 | 引擎项目来源：单项目加载与映射表、项目入口 `aisoft-access`、remote 与同一凭据绑定、身份读回、操作闭集，合成回归，同票发版 | T01 | pending |
 | T03 | 会话工具接线与发版：全部入口改为经来源选择调用引擎，引擎与模板进入发布包 | T02 | pending |
 | T04 | 端到端回归与收口：无平台环境走完流程、兼容夹具、反向证明、verification | T03 | pending |
 
@@ -70,11 +70,12 @@ updated: 2026-10-27
 
 ## T02：引擎项目自声明来源
 
-- **交付/范围**：在 `codex/runtime/aisoft_host_access` 中实现以下四部分：
-  - `project.json` 的精确 schema 加载（D4）。
-  - 来源选择（D5）。
-  - 项目自声明来源下的 remote 校验与凭据获取（D6）：经现有 git credential 协议取得凭据，保持 token 卫生。
-  - 身份读回，以及项目级操作闭集与维护层操作拒绝。
+- **交付/范围**：在 `codex/runtime/aisoft_host_access` 中实现以下各项：
+  - `project.json` 的精确 schema，以及按 spec「项目上下文映射」构造单项目上下文的加载函数（D4、D5）。
+  - 项目入口 `.aisoft/bin/aisoft-access`；站点 wrapper 保持固定使用站点来源（D5）。
+  - remote 校验；同一份内存凭据同时供 API 与 Git 写入使用，Git 写入经引擎注入的凭据助手；token 卫生；按完整 origin 判定重定向（D6）。
+  - 项目来源专属的身份读回、spec 闭集表与模板持有路径拒绝。
+  - 运行依赖闭包进入发布包，同票发版（AC-7）。
   
   站点登记来源的代码路径保持原样，不改。
 - **blocked_by**：T01。
@@ -83,7 +84,8 @@ updated: 2026-10-27
   - 回执 JSON 形状与站点来源同一操作保持一致，上层工具不区分来源。
   - 不新增调用方参数，不接受 URL、token 或路径输入。
 - **验证**：
-  - 新增 `codex/runtime/tests/test_project_declared_source.py`，用合成 bare 仓库与 API 桩，覆盖 AC-4 列出的全部反例和闭集内全部操作的成功路径，并加入哨兵 token 断言。
+  - 新增 `codex/runtime/tests/test_project_declared_source.py`，用合成 bare 仓库与 API 桩，覆盖 AC-4 列出的全部反例，并逐行覆盖 spec 闭集表中所有操作的成功路径，同时加入哨兵 token 断言。
+  - 用导出的项目工具包，在无平台环境中运行 `aisoft-access` 的一个读操作，确认依赖闭包齐全。
   - 运行站点来源的现有 runtime 测试全集与全量 smoke。
 - **Expected**：反例逐个被拒绝，成功路径通过，哨兵零命中，站点来源回归无差异。本票不覆盖真实 Gitea 的响应形状。
 - **停止条件**：
@@ -98,7 +100,8 @@ updated: 2026-10-27
   - `apply-classification-labels.sh`；
   - `mark-completed-issues.sh`，其中 `deployment_lifecycle` 改为从当前来源读取；
   - `ticket_execution.read_issue`；
-  - `aisoft project-check --remote`：改走引擎的读操作，不再 source `.agent.env`，并加入 D7 的身份与保护证据检查。
+  - `aisoft project-check --remote`：站点来源保持现有行为，包括 `.agent.env`；项目来源改走 `aisoft-access` 的读操作，按 spec D7 输出身份检查、`MANUAL` 与 GAP。
+  - 路由上下文：`route_policy` 与 `change_control` 在项目来源下从 `project.json` 读取 `change_control`。
   
   `aisoft-project-target.sh` 只在站点来源下使用。必要的薄包装子命令按 spec「接口」一节处理。引擎、schema 与 `project.json` 模板进入 `usage/bundle.json`，同票发版。
 - **blocked_by**：T02。
@@ -108,7 +111,9 @@ updated: 2026-10-27
   - 没有 `project.json` 时，行为与本批之前逐字节一致。
   - 新增 `project-check` 检查项时，按项目已记录的「新增检查项清单」同步计数字符串与 mock 变量。
 - **验证**：
-  - 扩展现有 open-pr、classify、complete、prepare-ticket、project-check 的测试，每个入口覆盖三种情形：项目自声明、站点来源、两者冲突。
+  - 扩展现有 open-pr、classify、complete、prepare-ticket、review-candidate、project-check 的测试，每个入口覆盖三种情形：项目自声明、站点来源、两者冲突。
+  - 路由测试覆盖项目来源声明 `development`。
+  - `project-check` 覆盖 `MANUAL` 计数与缺失证据时的 GAP。
   - 发版后运行 `aisoft version`，确认 `tool-provenance` 读回新版本。
   - 运行全量 smoke。
 - **Expected**：
@@ -121,7 +126,7 @@ updated: 2026-10-27
 ## T04：端到端回归与收口
 
 - **交付/范围**：
-  - 新增端到端测试：用导出的项目工具包，在无平台环境中按 spec AC-3 的七步走完流程；同一测试中再证明已登记夹具项目仍走站点来源。
+  - 新增端到端测试：用导出的项目工具包，在无平台环境中按 spec AC-3 的九步走完流程；同一测试中再证明已登记夹具项目仍走站点来源。
   - 在 verification 中写入：入口清单表（AC-2）、迁移与回滚说明（AC-5）、未验证边界（AC-8），以及执行结果。
 - **blocked_by**：T03。
 - **AC**：AC-2、AC-3、AC-5、AC-8。
@@ -138,10 +143,10 @@ updated: 2026-10-27
 ## Expected touch points
 
 - T01：`docs/adr/0003-*`、`skills/aisoft-platform/**`、`skills/issue-session-flow/**`、`usage/CONTRACT.md`、`usage/USER-GUIDE.md`、`templates/project/AGENTS.md`、`usage/bundle.json` 与发布记录、被钉住短语的测试。
-- T02：`codex/runtime/aisoft_host_access/*`、新测试文件、合成夹具。
+- T02：`codex/runtime/aisoft_host_access/*`、`.aisoft/bin/aisoft-access` 的源文件、新测试文件、合成夹具、`usage/bundle.json` 与发布记录。
 - T03：
   - 工具：`codex/tools/aisoft`、`apply-classification-labels.sh`、`mark-completed-issues.sh`、`aisoft-project-check.sh` 与 `test-project-check.sh`、`codex/agent/aisoft-project-target.sh`
-  - runtime：`codex/runtime/aisoft_loop/ticket_execution.py`
+  - runtime：`codex/runtime/aisoft_loop/ticket_execution.py`、`route_policy.py`、`change_control.py`
   - 发布：`usage/bundle.json` 与发布记录、`project.json` 模板与 schema
 - T04：端到端测试、`codex/tests/smoke.sh`、本目录的 verification。
 
