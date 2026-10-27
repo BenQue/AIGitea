@@ -24,7 +24,7 @@ aisoft review-candidate N Txx --head <40位SHA> --repo <checkout>
 - 正常成功返回可审计的结构化产物；缺输入、无效身份、规则/范围不完整时非零退出并写具体原因。
   失败不推进 ticket/Issue 状态。所有 SHA 固定为完整 lowercase 40 位 Git commit id，内容摘要用 SHA256。
 - helper 只读取 Git/合同，写当前 worktree 的本地缓存/派生物；不 add、commit、stash、reset、push、
-  执行任意测试命令、改标签、开 PR、merge、安装或操作真实 HOME。远端读写继续使用现 broker。
+  执行任意测试命令、改标签、开 PR、merge、安装或操作真实 HOME。远端读写继续使用当前来源的 typed 操作入口：项目来源是 `aisoft-access`，站点来源是 broker（ADR 0003）。
 
 ## Txx 与执行视图
 
@@ -91,7 +91,7 @@ FAIL 修复后按平台合同复核新 HEAD，此规则优先于 SP 的“一次
 
 SP 的自主裁决、completion 文本、临时目录清理或 finishing 菜单均不能替代平台授权/证据：
 合同冲突按既有升级规则处理；重要裁决、驳回/延期的 finding 必须可见；
-清理前保全证据；仍停在 AWAITING_PR_CONFIRMATION，确认点 2 后远端只走 broker，人合并。
+清理前保全证据；仍停在 AWAITING_PR_CONFIRMATION，确认点 2 后远端只走当前来源的 typed 操作入口，人合并。
 
 ## 持久证据与治理交接
 

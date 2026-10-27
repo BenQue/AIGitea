@@ -32,7 +32,11 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 - **执行与审查适配**：按 [execution-adapter](references/execution-adapter.md) 处理 Txx→Task N、frontier/恢复、开始前 BASE、本地提交后的固定候选与实际新 HEAD 审查。small/SP 不增加 Matt 每票双轴义务。新 helper 的接口合同不是运行可用证明，缺能力如实报告 GAP。
 - **27 标签四维正交**：10 `type/*`（bugfix/feature/docs/test/refactor/maintenance/platform/security/reliability/data，Issue 作者输入，AI 按证据核对或更正一个主类型）+ 2 `complexity/*`（AI 输出，不是作者覆盖）+ 8 生命周期（`completed` 与 `deployed` 互斥终态；`completed` 是合并且无需部署，`deployed` 要求确定性部署与验证）+ 7 `triage/*`（Matt 编排）。
 - **单闸门**：最终 PR merge 是唯一交付硬闸门，只由人合并。会话与 project agent 不 merge、不直推受保护 `main`；部署需独立授权。
-- **一切 Gitea/Git/OrbStack 访问走 broker**：`/usr/local/libexec/aisoft/host-access-broker --project <manifest项目> --operation <typed操作>`（gitea.issue.create/read/update、gitea.pull.create、git.push.change --branch、host.access.audit…）。不拼 raw token、不传 URL/refspec/shell；Git push 只允许当前 checkout 同名 readable 分支。
+- **一切 Gitea/Git 远端访问走 typed 操作引擎，来源二选一**（[ADR 0003](../../docs/adr/0003-adoption-access-decoupling.md)）：
+  - 项目自声明：检出里有 `.aisoft/project.json` 时，用 `.aisoft/bin/aisoft-access --operation <typed操作>`，以当前用户身份运行，凭据取自本机 Git 凭据助手。这是新项目的默认路径，不需要平台登记。
+  - 站点加固访问：已登记项目用 `/usr/local/libexec/aisoft/host-access-broker --project <manifest项目> --operation <typed操作>`。OrbStack 与 `host.*` 维护层操作只走这条路。
+  
+  两种来源跑同一份校验：不拼 raw token，不传 URL/refspec/shell；Git push 只允许当前 checkout 同名的 readable 分支；没有 merge 操作。
 - **没有无人值守引擎**：自动化最多止于 PR 候选，重建条件见 ADR 0002「重开条件」。
 - **部署边界**：流程不变量全平台一致——不可变制品、测试与生产同字节晋级、真实健康检查、可回滚、生产 script-only；AI 可参与开发/测试环境首次部署并固化为脚本（两次幂等 + 一次故意失败回滚），生产只跑已验证脚本。交付形态由项目自己的 profile 与 `AGENTS.md` 声明和实现，平台不规定。
 
@@ -42,9 +46,14 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 
 ## 目标项目与 governance manifest
 
-任何 Gitea 或 Git 写操作之前先显式选定目标项目。broker manifest 的 `projects[]` 把一个项目 id 绑定到 exact 仓库、project agent 与 Mac checkout。不要从别的项目或示例推断目标仓库，也不要让两个项目共用 worktree。
+任何 Gitea 或 Git 写操作之前，先显式选定目标项目。
 
-每个本地 Gitea 软件仓库必须先登记在严格的 `codex/config/gitea-governance.json`（Issue #35 governance 合同已生效）：校验 manifest，为一个 exact 仓库引导非 site-admin 的平台 manager，只读跑 governance `check`，再用 manifest 声明的 project agent apply 这一个仓库。未知仓库只报告；不从发现结果推断可见性、归属或权限。
+- 项目自声明来源：`.aisoft/project.json` 把检出绑定到 exact 仓库与项目身份。
+- 站点来源：broker manifest 的 `projects[]` 把一个项目 id 绑定到 exact 仓库、project agent 与 Mac checkout。
+
+不要从别的项目或示例推断目标仓库，也不要让两个项目共用 worktree。
+
+采用通用流程不需要平台登记（ADR 0003）。项目选用站点加固访问时，才把仓库登记进严格的 `codex/config/gitea-governance.json`（Issue #35 governance 合同已生效）。登记流程是：校验 manifest，为一个 exact 仓库引导非 site-admin 的平台 manager，只读跑 governance `check`，再用 manifest 声明的 project agent apply 这一个仓库。未知仓库只报告；不从发现结果推断可见性、归属或权限。
 
 每次变更都要求 exact 仓库、Issue #35、字节一致的已合并平台 SHA、manager 变更凭据与新的证据目录；工具必须读回 private/public 可见性、manager=Admin、project-agent=Write、无跨项目 Write/Admin、合并后删分支与受保护 `main`。直推与 force push 关闭，所有仓库只有人能合并。
 
@@ -58,9 +67,9 @@ routine 自动合并已退出（#391）：broker 没有合并操作，manifest �
 
 检查私有仓库、Issue、PR、Actions run、分支保护或仓库设置之前，先读 [references/private-gitea-access.md](references/private-gitea-access.md)。
 
-- 先解析并核实 exact Gitea remote 或 broker manifest 项目。
+- 先解析并核实 exact Gitea remote，以及当前来源：`project.json` 或 broker manifest 项目。
 - 不要从匿名 API 请求开始。private-repository `404` 或 Git `Repository not found` 不能证明对象不存在。
-- 优先用 broker 的 exact 项目路由与最小权限身份；读 Git ref 时复用已配置的 Git credential helper。
+- 优先用 typed 操作引擎的 exact 项目路由与最小权限身份：项目来源用 `aisoft-access`，站点来源用 broker。读 Git ref 时复用已配置的 Git credential helper。
 - 跨项目只读盘点设置与保护用独立的平台 manager audit PAT，不用变更 PAT 或普通 Git 代替。
 - 没有 broker route/manager 或 ACL 挡住 exact 目标时，VM 本地管理员凭据只能用于经授权、脱敏的只读 helper 调用；不要把凭据复制到 Mac，也不要扩大 bot 权限。
 - helper 不可用或需要界面证据时，已登录的浏览器会话可作只读后备。
@@ -95,6 +104,8 @@ summary-only 回填会产生一个合法的新 head。在后续 push 之前，�
 ## 会话标准动作（Mac 交互开发，最常见）
 
 > **会话本身的编排**（一 Issue 一会话、合同/启动确认、提交 PR 确认、人工合并、merge 后确定性收尾与归档）见 `issue-session-flow` 技能；本段只覆盖单个会话内部到 PR candidate 为止的动作。
+
+本段与上文「PR URL 回填」里的「broker」，指当前来源的 typed 操作入口：项目来源是 `.aisoft/bin/aisoft-access`（不带 `--project`），站点来源是已安装的 broker。`aisoft` 子命令会自动选择来源。
 
 1. 需求/缺陷 → broker `gitea.issue.create`，必须带 `--entry-label`（`needs-analysis`，或 triage 入口 `triage/needs-triage`）；正文写可测验收标准，衍生 Issue 另写来源会话、目标项目与已知依赖（`03` §1）。
 2. `aisoft change-name N <slug>` 校验命名 → `git worktree add /private/tmp/issue-N-<slug> -b change/N-<slug> origin/main` → `aisoft claim-worktree`（并行会话必须各自 worktree；commit 前 `git branch --show-current` 核对——`06` 踩坑 15）。
@@ -179,8 +190,12 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 ## 接入新项目 / 项目对齐 / 私有访问
 
 - 新用户上手：用户要按自己所用的 AI 工具配好本机并开始第一个项目时，按 [references/getting-started.md](references/getting-started.md) 一步一步带用户走。
-- 全新项目规划：登记与采用完成后，按 [references/greenfield-planning.md](references/greenfield-planning.md) 做需求发现与滚动阶段规划，再进入各 Issue 的既有流程。
-- 新项目接入：改基础设施之前先读 [references/onboarding-runbook.md](references/onboarding-runbook.md)——governance manifest + project-agent gate、host-role gate、architecture 声明、CI/部署与验收顺序都有既定约定，不得跳步。
+- 全新项目规划：采用完成后，按 [references/greenfield-planning.md](references/greenfield-planning.md) 做需求发现与滚动阶段规划，再进入各 Issue 的既有流程。
+- 新项目接入，包括导入既有项目：改基础设施之前先读 [references/onboarding-runbook.md](references/onboarding-runbook.md)。它分两部分：
+  - 「采用（项目自主）」：由项目仓 Issue 承载私有仓迁移、首个 CI、runner 依赖、标签对齐与保护证据。
+  - 「可选站点加固访问」：governance manifest + project-agent gate。
+  
+  host-role gate、architecture 声明、CI/部署与验收顺序都有既定约定，不得跳步。平台仓 Issue 只用于登记站点加固访问，或报告通用能力缺陷。
 - 项目对齐（初始化=更新，幂等）：入口 [references/project-align.md](references/project-align.md)——checklist 盘点缺口、逐项走目标仓独立 Issue/AI 判级的单一 PR，不假设每个对齐缺口都是 small；确定性核对用 `aisoft project-check`（PASS/GAP，只读）。项目按版本化使用发布包对齐：合同入口是项目内 `.aisoft/platform-usage.md`，版本以 `.aisoft/platform-usage.lock.json` 为准；导出与生成采用改动是维护层动作（`project-align.md`「维护层」节）。
 - 私有 Gitea 检查：先读 [references/private-gitea-access.md](references/private-gitea-access.md)；**匿名 404 不构成不存在证据**，按 authenticated ladder 走。
 

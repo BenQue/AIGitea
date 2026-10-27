@@ -26,16 +26,29 @@ updated: 2026-10-27
 
 ## 基线与范围
 
-- Commit SHA:
-- 基线：`origin/main` =
-- 环境:
-- 本记录负责证明的 acceptance criteria:
+- Commit SHA：逐票记录在下表
+- 基线：`origin/main` = `74dc5808`
+- 环境：Mac 交互会话（Claude），平台源码 runtime；不连 live Gitea，不重装 broker
+- 本记录负责证明的 acceptance criteria：AC-1 至 AC-8
 
 ## 执行结果
 
 | Command / check | Result | Evidence |
 |---|---|---|
-| 待执行 | NOT RUN | 待填写 |
+| T01 `bash codex/tests/smoke.sh`（发版 1.18.0 后） | PASS | 尾行 `Codex platform static smoke checks passed.`。首轮依次红在发布包成员不一致、导出技能在非维护层节点名平台路径、站点值渗入守卫（`gitea-ci`），逐项修正后转绿 |
+| T01 残留表述 rg（`登记与采用|先.{0,6}登记|必须先登记|新项目登记|登记新项目|已注册项目|登记进平台`，排除 `docs/changes`、`archive`、`codex/vendor`、`usage/releases`） | 已判定 | 见下表 |
+
+T01 残留表述判定：
+
+| 位置 | 判定 |
+|---|---|
+| `AGENTS.md:8`「换成任意一个已注册项目还成立吗」 | 保留：平台维护层的准入问法，与 ADR 0001 D4 同源，不构成采用前置；本 spec 未授权改 `AGENTS.md` |
+| `docs/adr/0001-platform-boundary.md:49`、`:81` | 历史决策原文保持；ADR 0003 补充而不撤销 |
+| `docs/governance/remediation-roadmap.md:22` | 历史整改路线证据，保持原样 |
+| `architecture/README.md:250` | 描述 reference profile 不对应任何项目，与登记前置无关 |
+| `docs/adr/0003-*` 命中 | 本 ADR 引述被取代的旧条款 |
+| `greenfield-planning.md:12`、`:18` | 已改为「采用」，去掉登记前置 |
+| 技能、getting-started、onboarding-runbook、project-align、execution-adapter、issue-session-flow、使用合同、用户手册、项目 AGENTS 模板 | 已改为三层职责；保留的 broker 表述均限定为站点来源或「当前来源的 typed 操作入口」 |
 
 命令与输出照实抄。改动前才观测得到的证据（基线状态、改动前后对比、先看着测试红）
 只有写在这里才留得下来——改动合并后就无法重放。

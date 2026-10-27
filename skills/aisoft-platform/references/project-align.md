@@ -28,10 +28,11 @@
    CI、部署、权限、Agent/治理或共享核心变化仍强制 complex。
 4. 修复合并后复检，直到无 `GAP:`。全 PASS 即对齐完成。
 
-新仓库首次接入时，runbook §1/§1.1 的 governance manifest 与 project-agent gate 是
-一切的前置，不能被本 checklist 替代或跳过；本入口从 §2 起接管逐项对齐。
+新仓库首次接入时，先完成 runbook §0.1「接入既有项目」的采用步骤（项目自主，不需要平台登记）。选用站点加固访问的项目，还要先通过 §1.1 的 governance manifest 与 project-agent gate。两者都不能被本 checklist 替代或跳过，本入口从 §2 起接管逐项对齐。
 
 ## 维护层：导出与采用
+
+首次采用时，项目里还没有 `.aisoft/bin/aisoft-access`。这时在项目 change worktree 内运行平台检出里同一份 `codex/tools/aisoft-access`，它按该 worktree 的 `.aisoft/project.json` 走项目自声明来源，完成首推与建 PR（ADR 0003）。
 
 以下命令只在平台检出里运行，由平台维护者执行：
 
