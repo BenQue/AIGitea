@@ -109,7 +109,8 @@ fi
 # reports whether each Issue is still open, and an Issue's state is only
 # knowable through it. A plan that listed an Issue this tool would then refuse
 # to write would be worse than no plan.
-[ -n "$broker" ] || fail 'host access broker is unavailable; it is needed to read Issue state'
+[ -n "$broker" ] || [ "$AISOFT_ACCESS_SOURCE" = project ] ||
+  fail 'host access broker is unavailable; it is needed to read Issue state'
 
 broker_stderr_file="$(mktemp)"
 trap 'rm -f -- "$broker_stderr_file"' EXIT
@@ -131,7 +132,7 @@ run_broker() {
   broker_detail=""
   : >"$broker_stderr_file"
   broker_stdout="$(
-    "$broker" --project "$AISOFT_PROJECT_ID" --operation "$operation" "$@" 2>"$broker_stderr_file"
+    aisoft_access_invoke "$broker" --operation "$operation" "$@" 2>"$broker_stderr_file"
   )" || status=1
   broker_stderr="$(cat "$broker_stderr_file")"
   if [ "$status" -ne 0 ]; then

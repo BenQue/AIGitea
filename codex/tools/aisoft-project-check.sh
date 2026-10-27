@@ -649,7 +649,32 @@ check_ci_registry_preflight
 
 remote_ready=false
 remote_reason=''
-if [[ "$remote" == true ]]; then
+# Project-declared source (#434, ADR 0003): a checkout with .aisoft/project.json
+# is read through its own aisoft-access entry with the project's own credential.
+# The site path below, .agent.env included, is untouched for every other checkout.
+access_mode=site
+access_entry=''
+manual_count=0
+protection_evidence=''
+if [[ "$remote" == true && -f "$repo/.aisoft/project.json" ]]; then
+  access_mode=project
+  if [[ -x "$TOOL_DIR/aisoft-access" ]]; then
+    access_entry="$TOOL_DIR/aisoft-access"
+  elif [[ -x "$TOOL_DIR/../../../bin/aisoft-access" ]]; then
+    access_entry="$(cd -- "$TOOL_DIR/../../../bin" && pwd)/aisoft-access"
+  fi
+  protection_evidence="$(jq -r '.protection_evidence // empty | select(type == "number")' \
+    "$repo/.aisoft/project.json" 2>/dev/null || true)"
+  if [[ -z "$access_entry" ]]; then
+    remote_reason='aisoft-access 入口缺失'
+  elif ! command -v jq >/dev/null; then
+    remote_reason='远程检查需要 jq'
+  else
+    remote_ready=true
+    API=project
+  fi
+fi
+if [[ "$remote" == true && "$access_mode" == site ]]; then
   ENV_FILE="${AGENT_ENV_FILE:-$HOME/.agent.env}"
   if [[ ! -f "$ENV_FILE" ]]; then
     remote_reason='AGENT_ENV_FILE 缺失'
@@ -686,8 +711,45 @@ if [[ "$remote" == true ]]; then
   fi
 fi
 
+# The two REST reads check_remote_labels makes, answered through the typed
+# project operations: labels.read returns the whole set and issue.list the whole
+# state=all list, so page 1 carries everything and later pages are empty.
+api_get_project() {
+  local url="$1" output_file="$2" page label reply
+  page="$(sed -n 's/.*[?&]page=\([0-9][0-9]*\).*/\1/p' <<<"$url")"
+  if [[ "${page:-1}" != 1 ]]; then
+    printf '[]' >"$output_file"
+    printf '200'
+    return 0
+  fi
+  case "$url" in
+    project/labels\?*)
+      reply="$(cd -- "$repo" && "$access_entry" --operation gitea.labels.read 2>/dev/null)" || return 1
+      printf '%s' "$reply" >"$output_file"
+      ;;
+    project/issues\?*)
+      label="$(sed -n 's/.*[?&]labels=\([^&]*\).*/\1/p' <<<"$url")"
+      label="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.argv[1]))' "$label")"
+      reply="$(cd -- "$repo" && "$access_entry" --operation gitea.issue.list --state all 2>/dev/null)" || return 1
+      jq --arg label "$label" '[.issues[] | select(.labels | index($label)) | {number}]' \
+        <<<"$reply" >"$output_file" || return 1
+      ;;
+    *) return 1 ;;
+  esac
+  printf '200'
+}
+
+manual() {
+  printf 'MANUAL: %s — %s\n' "$1" "$2"
+  manual_count=$((manual_count + 1))
+}
+
 api_get() {
   local url="$1" output_file="$2" http_status curl_status
+  if [[ "$access_mode" == project ]]; then
+    api_get_project "$url" "$output_file"
+    return
+  fi
   set +e
   http_status="$(
     printf 'header = "Authorization: token %s"\n' "$GITEA_TOKEN" |
@@ -1024,6 +1086,25 @@ elif [[ "$remote_ready" != true ]]; then
   gap labels-readback "$remote_reason"
   gap ci-context "$remote_reason"
   gap ci-outdated-branch "$remote_reason"
+elif [[ "$access_mode" == project ]]; then
+  check_remote_labels
+  # Identity is read back by the engine itself on every call: non-admin,
+  # repository non-admin, push granted, login as declared.
+  access_reply=''
+  if access_reply="$(cd -- "$repo" && "$access_entry" --operation gitea.repo.read 2>&1 >/dev/null)"; then
+    pass access-identity
+  else
+    gap access-identity "$(jq -r '"\(.code): \(.message)"' <<<"$access_reply" 2>/dev/null || printf '读取失败')"
+  fi
+  # A Write-level project identity cannot read branch protection; these rest on
+  # the evidence a human recorded at adoption (ADR 0003 D5), never on a live read.
+  for protected_check in ci-context ci-outdated-branch; do
+    if [[ -n "$protection_evidence" ]]; then
+      manual "$protected_check" "人工保护证据已登记：Issue #$protection_evidence（工具不声称实时有效）"
+    else
+      gap "$protected_check" '.aisoft/project.json 未登记 protection_evidence'
+    fi
+  done
 else
   check_remote_labels
   check_ci_context
@@ -1111,8 +1192,13 @@ if [[ -n "${AISOFT_GOVERNANCE_MANIFEST:-}" ]]; then
     "$GOVERNANCE_MANIFEST" "$governance_digest"
 fi
 
-printf 'result: pass=%d gap=%d skip=%d\n' \
-  "$pass_count" "$gap_count" "$skip_count"
+if ((manual_count > 0)); then
+  printf 'result: pass=%d gap=%d skip=%d manual=%d\n' \
+    "$pass_count" "$gap_count" "$skip_count" "$manual_count"
+else
+  printf 'result: pass=%d gap=%d skip=%d\n' \
+    "$pass_count" "$gap_count" "$skip_count"
+fi
 if ((gap_count > 0)); then
   exit 1
 fi

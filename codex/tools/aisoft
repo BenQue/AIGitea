@@ -41,9 +41,10 @@ usage: aisoft <command> [args]
   scan-worktrees [--porcelain]          read-only: change worktrees left their last push
   classify N... | --apply N... | --verify N...
                                         classification projection (plan shows the route card)
-  complete --project ID (--range R | --apply N...)
+  complete [--project ID] (--range R | --apply N...)
                                         terminal lifecycle after merge (dry-run without --apply)
   project-check [--kind software|docs] [--remote] [--today D]
+  labels-provision                      align repository labels to the canonical set (idempotent)
   bundle status                         this checkout against its pinned bundle release
   version                               bundle_version, bundle_digest and source SHA
 
@@ -104,6 +105,25 @@ repo="$(cd -- "$repo" && pwd)"
 
 cli() {
   python3 -m aisoft_loop.cli "$@"
+}
+
+# Which typed access source serves this checkout (#434, ADR 0003): the
+# project-declared aisoft-access entry when .aisoft/project.json exists, else the
+# installed site broker, same directory first like the wrapped tools.
+resolve_access() {
+  broker=""
+  if [[ -x "$tools/host-access-broker.sh" ]]; then
+    broker="$tools/host-access-broker.sh"
+  elif [[ -x /usr/local/libexec/aisoft/host-access-broker ]]; then
+    broker=/usr/local/libexec/aisoft/host-access-broker
+  fi
+  # shellcheck disable=SC1090,SC1091
+  . "$root/codex/agent/aisoft-project-target.sh"
+  aisoft_resolve_project_target "$tools" "$repo" "" || { echo "aisoft $1: $AISOFT_PROJECT_TARGET_ERROR" >&2; exit 2; }
+  if [[ "$AISOFT_ACCESS_SOURCE" != project && -z "$broker" ]]; then
+    echo "aisoft $1: host access broker is unavailable" >&2
+    exit 2
+  fi
 }
 
 route_card() {
@@ -233,22 +253,9 @@ print(match.group(1))
 PY
 )" || exit 2
   fi
-  # Same discovery as the wrapped tools: same directory first.
-  local broker
-  if [[ -x "$tools/host-access-broker.sh" ]]; then
-    broker="$tools/host-access-broker.sh"
-  elif [[ -x /usr/local/libexec/aisoft/host-access-broker ]]; then
-    broker=/usr/local/libexec/aisoft/host-access-broker
-  else
-    echo 'aisoft open-pr: host access broker is unavailable' >&2
-    exit 2
-  fi
-  local agent_lib="$root/codex/agent/aisoft-project-target.sh"
-  # shellcheck disable=SC1090
-  . "$agent_lib"
-  aisoft_resolve_project_target "$tools" "$repo" "" || { echo "aisoft open-pr: $AISOFT_PROJECT_TARGET_ERROR" >&2; exit 2; }
+  resolve_access open-pr
   broker_call() {
-    (cd -- "$repo" && "$broker" --project "$AISOFT_PROJECT_ID" --operation "$@")
+    aisoft_access_invoke "$broker" --operation "$@"
   }
   local reply number
   if [[ -n "$resume_number" ]]; then
@@ -357,6 +364,11 @@ PY
     ;;
   open-pr)
     open_pr ${args[@]+"${args[@]}"}
+    ;;
+  labels-provision)
+    ((${#args[@]} == 0)) || usage
+    resolve_access labels-provision
+    aisoft_access_invoke "$broker" --operation gitea.labels.provision
     ;;
   -h | --help | help)
     usage

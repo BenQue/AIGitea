@@ -188,13 +188,16 @@ def resolve_route(classification: Classification, *, provider: str,
             'policy_sha256': hashlib.sha256(data).hexdigest(), 'policy_path': str(path)}
 
 
-def repository_context(summary: Mapping[str, object]) -> tuple[str, bool]:
-    from .change_control import resolve_change_control
+def repository_context(summary: Mapping[str, object], repo: Path | None = None) -> tuple[str, bool]:
+    from .change_control import declared_change_control, resolve_change_control
     path = urlsplit(str(summary.get('gitea_url', ''))).path.strip('/').split('/')
     if len(path) < 4 or path[-2] != 'issues':
         raise ContractError('route context requires an exact repository Issue URL')
     owner, name = path[-4:-2]
-    return resolve_change_control(name), (owner, name) == ('admin', 'aisoft-platform')
+    # A project-declared checkout carries its own change_control (#434).
+    declared = declared_change_control(repo, f'{owner}/{name}') if repo is not None else None
+    phase = declared if declared is not None else resolve_change_control(name)
+    return phase, (owner, name) == ('admin', 'aisoft-platform')
 
 
 def execution_entry(route: Mapping[str, str], provider: str) -> str:
@@ -210,7 +213,7 @@ def execution_entry(route: Mapping[str, str], provider: str) -> str:
 
 
 def validate_provider_route(summary: Mapping[str, object], *, change_control: str | None = None,
-                            platform_repo: bool | None = None) -> None:
+                            platform_repo: bool | None = None, repo: Path | None = None) -> None:
     """Provider-aware cards are strict; historical cards remain read-only compatible."""
     if 'route_provider' not in summary:
         return
@@ -219,7 +222,7 @@ def validate_provider_route(summary: Mapping[str, object], *, change_control: st
         raise ContractError('route_provider requires a concrete provider and route card')
     from .contract import _classification_from_front_matter
     if change_control is None or platform_repo is None:
-        change_control, platform_repo = repository_context(summary)
+        change_control, platform_repo = repository_context(summary, repo)
     expected = resolve_route(_classification_from_front_matter(summary), provider=provider,
                              change_control=change_control, platform_repo=platform_repo)['route']
     actual = summary['route']
@@ -236,7 +239,7 @@ def resolve_issue_route(repo: Path, number: int, provider: str) -> dict:
     _, summary = resolve_summary(repo, number)
     if 'route_provider' in summary and summary['route_provider'] != provider:
         raise ContractError('explicit provider conflicts with summary.route_provider')
-    phase, platform = repository_context(summary)
+    phase, platform = repository_context(summary, repo)
     result = resolve_route(_classification_from_front_matter(summary), provider=provider,
                            change_control=phase, platform_repo=platform)
     existing = summary.get('route') or {}

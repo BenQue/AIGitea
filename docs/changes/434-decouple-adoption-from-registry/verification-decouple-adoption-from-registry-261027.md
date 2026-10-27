@@ -41,6 +41,9 @@ updated: 2026-10-27
 | T02 `bash codex/tests/smoke.sh`（发版 1.19.0 后） | PASS | runtime 全集 768 tests OK，新测试在其中；尾行 `Codex platform static smoke checks passed.` |
 | T02 导出工具包依赖闭包：按 `usage/bundle.json` 只复制 `.aisoft/` 成员到空检出，`env -i` 运行 `.aisoft/bin/aisoft-access --operation gitea.issue.read --number 1` | PASS | 导入链完整，停在凭据阶段 `CREDENTIAL_UNAVAILABLE`、exit 20；未访问平台检出或 `/usr/local` |
 | T02 `shellcheck` 与 `bash -n codex/tools/aisoft-access` | PASS | 无输出 |
+| T03 `python3 -m unittest tests.test_project_source_tools`（真实 HTTP：FakeGitea REST 加 `git http-backend`，只认项目凭据） | PASS | 8 tests OK：`labels-provision` 空仓对齐且幂等；`classify --apply/--verify` 投影并读回 projected；`open-pr` 首推、建 PR、回填 `pr_url`/`pr-open`、再推，Git 端 Basic 认证全部来自注入助手（无 other）；`prepare-ticket` 的 `read_issue` 走项目入口；`resolve-route` 读项目声明的 `change_control`（声明 development 后旧卡被判冲突，声明他仓被拒）；`project-check --remote` 输出 `PASS: access-identity`、两条 `MANUAL` 与 `manual=2`，管理员身份时 `GAP: access-identity`；声明检出上 `--project` 被拒；两种来源指向不同仓库时停止 |
+| T03 `python3 -m unittest tests.test_project_declared_source tests.test_route_policy tests.test_change_control tests.test_ticket_execution` | PASS | 67 tests OK |
+| T03 `bash codex/tests/smoke.sh`（发版 1.20.0 后） | PASS | runtime 全集 776 tests OK；站点来源的 open-pr、classify、complete、project-check 既有回归全部通过，`result:` 行在无 MANUAL 时与本批前同形 |
 | T01 残留表述 rg（`登记与采用|先.{0,6}登记|必须先登记|新项目登记|登记新项目|已注册项目|登记进平台`，排除 `docs/changes`、`archive`、`codex/vendor`、`usage/releases`） | 已判定 | 见下表 |
 
 T01 残留表述判定：
@@ -84,6 +87,9 @@ T01 残留表述判定：
 - T02 Ruling：项目来源一律不跟随重定向。spec 只要求 origin 变化时拒绝；一律不跟随更严，也更简单。代价：Gitea 前置代理若对同源做 3xx 改写，会被拒绝。
 - T02 Ruling：站点来源抽出 `_git_credential_environment` 与 `_template_context` 两个钩子，供项目来源覆盖，行为逐字节不变，由 240 条站点回归与全量 smoke 证明。代价：站点代码多两层间接调用。
 - T02 Ruling：凭据交给 Git 的方式，是 mode 700 临时目录里一个 mode 600 文件，由注入助手 `cat` 读出，调用结束即删除。spec 首选管道，允许落盘时用 600 并删除；Git 不向 helper 传递额外 fd。代价：进程被强杀时，文件可能残留到系统清理临时目录。
+- T03 Ruling：来源选择放在共享库 `aisoft-project-target.sh` 的 `aisoft_resolve_project_target` 里，新增 `aisoft_access_invoke`；三个 shell 工具与 `read_issue` 都经它分派，不各自判断。代价：这个库多了一条项目分支。
+- T03 Ruling：`project-check --remote` 在项目来源下用 `api_get_project` 把标签与 Issue 两类 REST 读取映射到 `gitea.labels.read`、`gitea.issue.list`，`check_remote_labels` 的判断逻辑原样复用；新增 `access-identity` 检查行，`MANUAL` 只在项目来源出现，`result:` 行只在 `manual>0` 时追加计数。代价：分页由一次全量读取模拟。
+- T03 Ruling：`complete --apply` 的真实终态写入链放到 T04 端到端测试中验证（它需要合并后的主干状态）。T03 只覆盖 `--project` 拒绝与来源分派。
 - T02 Ruling：发布包另带 `project_cli.py` 与 `codex/config/project-declaration.schema.json`（schema 由测试钉成与加载器一致）。
 
 ## 遗留风险与未完成项

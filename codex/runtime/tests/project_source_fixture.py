@@ -46,9 +46,10 @@ def write_declaration(checkout: Path, **overrides) -> None:
     (checkout / ".aisoft/project.json").write_text(json.dumps(declaration(**overrides)) + "\n")
 
 
-def build_project(temporary: str, *, remote_url: str = REMOTE_URL, with_declaration: bool = True):
+def build_project(temporary: str, *, remote_url: str = REMOTE_URL, with_declaration: bool = True,
+                  remote_path: Path | None = None, documents=None):
     """Canonical checkout, linked change worktree with an approved git_scope, bare remote."""
-    remote = Path(temporary) / "remote.git"
+    remote = remote_path or Path(temporary) / "remote.git"
     canonical = Path(temporary) / "canonical"
     linked = Path(temporary) / "linked"
     git(["init", "-q", "--bare", "-b", "main", str(remote)])
@@ -67,12 +68,15 @@ def build_project(temporary: str, *, remote_url: str = REMOTE_URL, with_declarat
     (linked / "change.txt").write_text("change 7\n")
     directory = linked / "docs/changes/7-demo-change"
     directory.mkdir(parents=True)
-    summary, spec = "summary-demo-change-261027.md", "spec-demo-change-261027.md"
-    paths = ["change.txt", f"docs/changes/7-demo-change/{summary}", f"docs/changes/7-demo-change/{spec}"]
-    (directory / summary).write_text(f"---\nissue: 7\nbranch: {BRANCH}\nstatus: approved\n"
-                                     f"documents:\n  spec: {spec}\n---\n")
-    (directory / spec).write_text(f"---\nissue: 7\nbranch: {BRANCH}\nstatus: approved\ngit_scope:\n"
-                                  + "".join(f"  - {path}\n" for path in paths) + "---\n")
+    if documents is not None:
+        documents(directory)
+    else:
+        summary, spec = "summary-demo-change-261027.md", "spec-demo-change-261027.md"
+        paths = ["change.txt", f"docs/changes/7-demo-change/{summary}", f"docs/changes/7-demo-change/{spec}"]
+        (directory / summary).write_text(f"---\nissue: 7\nbranch: {BRANCH}\nstatus: approved\n"
+                                         f"documents:\n  spec: {spec}\n---\n")
+        (directory / spec).write_text(f"---\nissue: 7\nbranch: {BRANCH}\nstatus: approved\ngit_scope:\n"
+                                      + "".join(f"  - {path}\n" for path in paths) + "---\n")
     git(["add", "-A"], cwd=linked)
     git(["commit", "-q", "-m", "#7 T01: demo change"], cwd=linked)
     claim_worktree(git(["rev-parse", "--absolute-git-dir"], cwd=linked), branch=BRANCH,
@@ -95,7 +99,8 @@ def remote_runner(remote: Path, commands: list):
 class FakeGitea:
     """In-memory REST answers for exactly one repository."""
 
-    def __init__(self, *, user=None, permissions=None):
+    def __init__(self, *, user=None, permissions=None, base=BASE):
+        self.base = base
         self.user = user if user is not None else {"login": AGENT, "is_admin": False}
         self.permissions = permissions if permissions is not None else {
             "admin": False, "push": True, "pull": True}
@@ -116,6 +121,8 @@ class FakeGitea:
             "number": number, "title": title, "body": "AC", "state": "open",
             "created_at": "2026-10-27T00:00:00Z", "updated_at": "2026-10-27T00:00:00Z",
             "labels": [self._label(name) for name in labels], "pull_request": None,
+            "html_url": f"{self.base}/{OWNER}/{NAME}/issues/{number}",
+            "repository": {"name": NAME, "owner": OWNER, "full_name": f"{OWNER}/{NAME}"},
         }
 
     def _label(self, name: str) -> dict[str, object]:
@@ -200,7 +207,7 @@ class FakeGitea:
                 number = max([*self.issues, *self.pulls, 0]) + 1
                 pull = {"number": number, "title": payload["title"], "body": payload["body"],
                         "state": "open", "merged": False,
-                        "html_url": f"{BASE}/{OWNER}/{NAME}/pulls/{number}",
+                        "html_url": f"{self.base}/{OWNER}/{NAME}/pulls/{number}",
                         "head": {"ref": payload["head"], "sha": "0" * 40},
                         "base": {"ref": payload["base"], "repo": {"full_name": f"{OWNER}/{NAME}"}}}
                 self.pulls[number] = pull
@@ -217,3 +224,156 @@ class FakeGitea:
         if match := re.fullmatch(r"actions/jobs/(\d+)/logs", rest):
             return 200, b"log line\n"
         return 404, {}
+
+
+class GiteaServer:
+    """FakeGitea plus smart-HTTP Git (git http-backend) on 127.0.0.1.
+
+    Both halves insist on the project credential: the REST half on the token
+    header, the Git half on Basic auth, so a passing run proves the credential
+    actually reached each of them through the engine.
+    """
+
+    def __init__(self, temporary: str, gitea: FakeGitea) -> None:
+        import http.server
+        import threading
+
+        self.gitea = gitea
+        self.project_root = Path(temporary) / "git-root"
+        (self.project_root / OWNER).mkdir(parents=True)
+        self.git_auth: list[str] = []
+        server = self
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *_args):
+                return
+
+            def _body(self) -> bytes:
+                length = int(self.headers.get("Content-Length") or 0)
+                return self.rfile.read(length) if length else b""
+
+            def _git(self, method: str) -> None:
+                import base64
+                expected = "Basic " + base64.b64encode(f"{AGENT}:{SENTINEL}".encode()).decode()
+                auth = self.headers.get("Authorization", "")
+                server.git_auth.append("ok" if auth == expected else ("other" if auth else "none"))
+                if auth != expected:
+                    self.send_response(401)
+                    self.send_header("WWW-Authenticate", 'Basic realm="git"')
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
+                path, _, query = self.path.partition("?")
+                env = {"GIT_PROJECT_ROOT": str(server.project_root), "GIT_HTTP_EXPORT_ALL": "1",
+                       "PATH_INFO": path, "QUERY_STRING": query, "REQUEST_METHOD": method,
+                       "CONTENT_TYPE": self.headers.get("Content-Type", ""), "REMOTE_USER": AGENT,
+                       "REMOTE_ADDR": "127.0.0.1", "PATH": "/usr/bin:/bin",
+                       "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "http.receivepack",
+                       "GIT_CONFIG_VALUE_0": "true"}
+                body = self._body()
+                if self.headers.get("Content-Encoding") == "gzip":
+                    import gzip
+                    body = gzip.decompress(body)
+                result = subprocess.run(["git", "http-backend"], input=body, env=env,
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+                head, _, payload = result.stdout.partition(b"\r\n\r\n")
+                status = 200
+                headers = []
+                for line in head.decode("latin-1").split("\r\n"):
+                    key, _, value = line.partition(":")
+                    if key.lower() == "status":
+                        status = int(value.strip().split()[0])
+                    elif key:
+                        headers.append((key, value.strip()))
+                self.send_response(status)
+                for key, value in headers:
+                    self.send_header(key, value)
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+            def _api(self, method: str) -> None:
+                body = self._body() or None
+                if self.headers.get("Authorization") != f"token {SENTINEL}":
+                    status, headers, payload = 401, (), b"{}"
+                else:
+                    url = f"{BASE}{self.path}"
+                    status, headers, payload = server.gitea(method, url, dict(self.headers), body)
+                self.send_response(status)
+                for key, value in headers:
+                    self.send_header(key, value)
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+            def _dispatch(self, method: str) -> None:
+                if self.path.startswith(f"/{OWNER}/{NAME}.git/"):
+                    self._git(method)
+                else:
+                    self._api(method)
+
+            def do_GET(self):
+                self._dispatch("GET")
+
+            def do_POST(self):
+                self._dispatch("POST")
+
+            def do_PUT(self):
+                self._dispatch("PUT")
+
+            def do_PATCH(self):
+                self._dispatch("PATCH")
+
+        self.httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.port = self.httpd.server_address[1]
+        self.url = f"http://127.0.0.1:{self.port}"
+        self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
+        self.thread.start()
+
+    def close(self) -> None:
+        self.httpd.shutdown()
+        self.httpd.server_close()
+
+
+TEMPLATES = ROOT / "templates/docs/changes/_template"
+
+
+def contract_documents(issue_url: str):
+    """Full complex change documents for Issue 7, built from the shipped templates."""
+    slug, date = "demo-change", "261027"
+    names = {role: f"{role}-{slug}-{date}.md" for role in ("summary", "spec", "plan")}
+    scope = ["change.txt", *(f"docs/changes/7-demo-change/{name}" for name in names.values())]
+    values = {
+        "ISSUE_NUMBER": "7", "ISSUE_URL": issue_url, "CHANGE_TYPE": "refactor",
+        "ASSESSED_COMPLEXITY": "complex", "EFFECTIVE_COMPLEXITY": "complex",
+        "CONTRACT_EFFECT": "change", "CLASSIFICATION_REASON": "synthetic project source fixture",
+        "CONFIDENCE": "high", "ROUTE_PROVIDER": "claude", "ROUTE_PROCESS": "complex-production",
+        "ROUTE_TIER": "frontier", "ROUTE_EFFORT": "high",
+        "ROUTE_SKILLS": "to-spec, to-tickets, executing-plans, verification-before-completion",
+        "ROUTE_METHOD": "spec-plan", "ROUTE_VERIFY": "full", "ROUTE_REVIEW": "human-merge",
+        "SHORT-SLUG": slug, "YYYY-MM-DD": "2026-10-27", "YYMMDD": date,
+    }
+
+    def fill(text: str) -> str:
+        for key, value in values.items():
+            text = text.replace(key, value)
+        return text
+
+    def write(directory: Path) -> None:
+        summary = fill((TEMPLATES / "summary.md").read_text(encoding="utf-8"))
+        summary = summary.replace("status: analyzed", "status: approved")
+        summary = summary.replace(
+            "required_docs:\n  - summary\ndocuments:\n  summary: summary-demo-change-261027.md\n",
+            "required_docs:\n  - summary\n  - spec\n  - plan\ndocuments:\n"
+            + "".join(f"  {role}: {name}\n" for role, name in names.items()))
+        summary = summary.replace("required_docs:\n  - summary\nconfidence",
+                                  "required_docs:\n  - summary\n  - spec\n  - plan\nconfidence")
+        summary = summary.replace("- CLASSIFICATION_EVIDENCE", "- synthetic")
+        (directory / names["summary"]).write_text(summary, encoding="utf-8")
+        spec = fill((TEMPLATES / "spec.md").read_text(encoding="utf-8"))
+        spec = spec.replace("depends_on: []\n", "depends_on: []\ngit_scope:\n"
+                            + "".join(f"  - {path}\n" for path in scope), 1)
+        (directory / names["spec"]).write_text(spec, encoding="utf-8")
+        (directory / names["plan"]).write_text(fill((TEMPLATES / "plan.md").read_text(encoding="utf-8")),
+                                               encoding="utf-8")
+    return write, names

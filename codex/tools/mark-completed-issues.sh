@@ -141,8 +141,15 @@ fi
 # header states for every other prerequisite. A manifest that simply does not
 # declare the key is not an error: absence is a fourth answer handled with the
 # three declared ones below.
-[ -f "$manifest" ] || fail "governance manifest not found: $manifest"
 declared_lifecycle=""
+if [ "$AISOFT_ACCESS_SOURCE" = project ]; then
+  # A project-declared checkout carries the declaration itself (#434).
+  manifest="$repo/.aisoft/project.json"
+  if ! declared_lifecycle="$(jq -er '.deployment_lifecycle' "$manifest" 2>&1)"; then
+    fail "cannot read deployment_lifecycle from $manifest: $declared_lifecycle"
+  fi
+else
+[ -f "$manifest" ] || fail "governance manifest not found: $manifest"
 if ! declared_lifecycle="$(
   jq -er --arg name "$repository" '
     [.repositories[] | select(.name == $name)] as $entries
@@ -153,6 +160,7 @@ if ! declared_lifecycle="$(
   ' "$manifest" 2>&1
 )"; then
   fail "cannot read deployment_lifecycle for repository $repository (project $project) from $manifest: $declared_lifecycle"
+fi
 fi
 
 # What the declaration answers is not "does this repository deploy" but "will its
@@ -302,10 +310,11 @@ for issue in "${issues[@]}"; do
     emit "$issue" set-completed "$completed_reason" "$completed_detail" false ''
     continue
   fi
-  [ -n "$broker" ] || fail 'host access broker is unavailable; --apply needs it to write'
+  [ -n "$broker" ] || [ "$AISOFT_ACCESS_SOURCE" = project ] ||
+    fail 'host access broker is unavailable; --apply needs it to write'
   written=""
   if ! written="$(
-    "$broker" --project "$project" --operation gitea.issue.labels.set \
+    aisoft_access_invoke "$broker" --operation gitea.issue.labels.set \
       --number "$issue" --lifecycle completed
   )"; then
     emit "$issue" set-completed broker-refused \
