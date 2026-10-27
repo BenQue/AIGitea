@@ -47,7 +47,7 @@ def write_declaration(checkout: Path, **overrides) -> None:
 
 
 def build_project(temporary: str, *, remote_url: str = REMOTE_URL, with_declaration: bool = True,
-                  remote_path: Path | None = None, documents=None):
+                  remote_path: Path | None = None, documents=None, prepare_main=None):
     """Canonical checkout, linked change worktree with an approved git_scope, bare remote."""
     remote = remote_path or Path(temporary) / "remote.git"
     canonical = Path(temporary) / "canonical"
@@ -57,10 +57,15 @@ def build_project(temporary: str, *, remote_url: str = REMOTE_URL, with_declarat
     git(["config", "user.name", "Project Source Test"], cwd=canonical)
     git(["config", "user.email", "project-source@example.invalid"], cwd=canonical)
     (canonical / "README.md").write_text("baseline\n")
+    (canonical / ".gitignore").write_text(".superpowers/\n")
     if with_declaration:
         write_declaration(canonical)
     git(["add", "-A"], cwd=canonical)
     git(["commit", "-q", "-m", "baseline"], cwd=canonical)
+    if prepare_main is not None:
+        prepare_main(canonical)
+        git(["add", "-A"], cwd=canonical)
+        git(["commit", "-q", "-m", "adopt the usage bundle"], cwd=canonical)
     git(["remote", "add", "origin", remote_url], cwd=canonical)
     git(["push", "-q", str(remote), "refs/heads/main:refs/heads/main"], cwd=canonical)
     git(["update-ref", "refs/remotes/origin/main", "HEAD"], cwd=canonical)
@@ -338,10 +343,18 @@ class GiteaServer:
 TEMPLATES = ROOT / "templates/docs/changes/_template"
 
 
-def contract_documents(issue_url: str):
+def export_tool_kit(checkout: Path) -> None:
+    """Adopt the latest usage bundle release into a clean checkout, as a maintainer would."""
+    subprocess.run(["bash", str(ROOT / "codex/tools/usage-bundle.sh"), "--adopt", str(checkout),
+                    "--tools", "claude"], check=True, text=True,
+                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
+def contract_documents(issue_url: str, *, verification: bool = False):
     """Full complex change documents for Issue 7, built from the shipped templates."""
     slug, date = "demo-change", "261027"
-    names = {role: f"{role}-{slug}-{date}.md" for role in ("summary", "spec", "plan")}
+    roles = ("summary", "spec", "plan", "verification") if verification else ("summary", "spec", "plan")
+    names = {role: f"{role}-{slug}-{date}.md" for role in roles}
     scope = ["change.txt", *(f"docs/changes/7-demo-change/{name}" for name in names.values())]
     values = {
         "ISSUE_NUMBER": "7", "ISSUE_URL": issue_url, "CHANGE_TYPE": "refactor",
@@ -350,7 +363,8 @@ def contract_documents(issue_url: str):
         "CONFIDENCE": "high", "ROUTE_PROVIDER": "claude", "ROUTE_PROCESS": "complex-production",
         "ROUTE_TIER": "frontier", "ROUTE_EFFORT": "high",
         "ROUTE_SKILLS": "to-spec, to-tickets, executing-plans, verification-before-completion",
-        "ROUTE_METHOD": "spec-plan", "ROUTE_VERIFY": "full", "ROUTE_REVIEW": "human-merge",
+        "ROUTE_METHOD": "spec-plan", "ROUTE_VERIFY": "full+verification" if verification else "full",
+        "ROUTE_REVIEW": "human-merge",
         "SHORT-SLUG": slug, "YYYY-MM-DD": "2026-10-27", "YYMMDD": date,
     }
 
@@ -364,10 +378,11 @@ def contract_documents(issue_url: str):
         summary = summary.replace("status: analyzed", "status: approved")
         summary = summary.replace(
             "required_docs:\n  - summary\ndocuments:\n  summary: summary-demo-change-261027.md\n",
-            "required_docs:\n  - summary\n  - spec\n  - plan\ndocuments:\n"
+            "required_docs:\n" + "".join(f"  - {role}\n" for role in roles) + "documents:\n"
             + "".join(f"  {role}: {name}\n" for role, name in names.items()))
         summary = summary.replace("required_docs:\n  - summary\nconfidence",
-                                  "required_docs:\n  - summary\n  - spec\n  - plan\nconfidence")
+                                  "required_docs:\n" + "".join(f"  - {role}\n" for role in roles)
+                                  + "confidence")
         summary = summary.replace("- CLASSIFICATION_EVIDENCE", "- synthetic")
         (directory / names["summary"]).write_text(summary, encoding="utf-8")
         spec = fill((TEMPLATES / "spec.md").read_text(encoding="utf-8"))
@@ -376,4 +391,7 @@ def contract_documents(issue_url: str):
         (directory / names["spec"]).write_text(spec, encoding="utf-8")
         (directory / names["plan"]).write_text(fill((TEMPLATES / "plan.md").read_text(encoding="utf-8")),
                                                encoding="utf-8")
+        if verification:
+            (directory / names["verification"]).write_text(
+                fill((TEMPLATES / "verification.md").read_text(encoding="utf-8")), encoding="utf-8")
     return write, names

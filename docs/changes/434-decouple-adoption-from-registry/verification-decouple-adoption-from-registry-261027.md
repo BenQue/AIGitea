@@ -44,6 +44,9 @@ updated: 2026-10-27
 | T03 `python3 -m unittest tests.test_project_source_tools`（真实 HTTP：FakeGitea REST 加 `git http-backend`，只认项目凭据） | PASS | 8 tests OK：`labels-provision` 空仓对齐且幂等；`classify --apply/--verify` 投影并读回 projected；`open-pr` 首推、建 PR、回填 `pr_url`/`pr-open`、再推，Git 端 Basic 认证全部来自注入助手（无 other）；`prepare-ticket` 的 `read_issue` 走项目入口；`resolve-route` 读项目声明的 `change_control`（声明 development 后旧卡被判冲突，声明他仓被拒）；`project-check --remote` 输出 `PASS: access-identity`、两条 `MANUAL` 与 `manual=2`，管理员身份时 `GAP: access-identity`；声明检出上 `--project` 被拒；两种来源指向不同仓库时停止 |
 | T03 `python3 -m unittest tests.test_project_declared_source tests.test_route_policy tests.test_change_control tests.test_ticket_execution` | PASS | 67 tests OK |
 | T03 `bash codex/tests/smoke.sh`（发版 1.20.0 后） | PASS | runtime 全集 776 tests OK；站点来源的 open-pr、classify、complete、project-check 既有回归全部通过，`result:` 行在无 MANUAL 时与本批前同形 |
+| T04 `python3 -m unittest tests.test_project_source_e2e` | PASS | 3 tests OK。真实 `usage-bundle.sh --adopt --tools claude` 导出工具包，项目只有 `.aisoft/project.json`；平台 manifest 环境变量指向不存在的路径，无 `.agent.env`；每次调用都套 `sandbox-exec`，拒读平台检出与 `/usr/local/{libexec,share,lib,etc}` 下的 aisoft 安装面。依次走通：`labels-provision`；`aisoft-access` 建 Issue、读 Issue；`classify --apply/--verify`；生命周期 `approved`；`prepare-ticket`；ticket commit 后 `review-candidate`；`open-pr`（首推、建 PR、回填、再推）；`gitea.pull.read`；`gitea.commit.status.read`；PR 置为已合并后 `complete --apply` 写 `completed`，重跑 `no-op`。`application-deploy` 加 verification 分支为 `requires-deployment`，不写 completed；声明 `development` 后路由按声明重算。Git 端 Basic 认证全部来自注入助手 |
+| T04 反向证明（逐项临时改源码，跑对应测试后 `git checkout --` 复原） | PASS | 删去 site-admin 拒绝：`IdentityTest` 2 failures；删去 repo-admin 拒绝：2 failures；在 Git 环境里注入 token：`test_git_credential_reaches_git_only_through_the_injected_helper` 1 failure；让 `change_branch` 接受 `main`：`test_push_refusals_still_apply` 1 failure；同时删去入口闭集检查并把声明合同扩成全部操作：`ClosedSetTest` 7 failures、4 errors。只删入口检查时仍 OK，因为声明合同本身只含闭集，这是第二道闸门 |
+| T04 `bash codex/tests/smoke.sh` | PASS | runtime 全集 779 tests OK（含 11 条新 E2E/工具测试）；尾行 `Codex platform static smoke checks passed.` |
 | T01 残留表述 rg（`登记与采用|先.{0,6}登记|必须先登记|新项目登记|登记新项目|已注册项目|登记进平台`，排除 `docs/changes`、`archive`、`codex/vendor`、`usage/releases`） | 已判定 | 见下表 |
 
 T01 残留表述判定：
@@ -65,7 +68,48 @@ T01 残留表述判定：
 
 | AC | 结论 | 证据 |
 |---|---|---|
-| AC-1 | 待填写 | 待填写 |
+| AC-1 | PASS | T01：ADR 0003 写明三层职责与 D3–D9，并列出取代的旧条款；技能、execution-adapter、getting-started、onboarding-runbook、project-align、issue-session-flow、使用合同、用户手册、项目模板已同步；残留表述逐条判定见上表 |
+| AC-2 | PASS | 下文「入口清单」；T03/T04 测试覆盖每个工具入口 |
+| AC-3 | PASS（合成环境） | T04 端到端测试 |
+| AC-4 | PASS | T02 声明、remote、身份、闭集、推送拒绝与 token 卫生测试；站点回归在 T02、T03、T04 三次全量 smoke 中通过；T04 反向证明 |
+| AC-5 | PASS | T03 冲突与 `--project` 拒绝测试；站点来源既有回归不变；下文「迁移与回滚」 |
+| AC-6 | PASS | T01：onboarding-runbook §0、§0.1「接入既有项目」八步；getting-started 第 3 步改为可选 |
+| AC-7 | PASS | 发布包 1.18.0（T01 文档）、1.19.0（T02 引擎闭包、入口、schema、模板、标签集合）、1.20.0（T03 工具接线）；T04 用 `--adopt` 导出的包跑通即证明闭包齐全。`aisoft version` 在项目布局读 provenance，由既有 smoke 覆盖 |
+| AC-8 | 已记录 | 下文「未验证边界」 |
+
+### 入口清单（AC-2）
+
+本批之前要求中央登记的入口，以及处置方式：
+
+| 调用入口 | 操作 | 来源处置 |
+|---|---|---|
+| `aisoft open-pr` | `git.push.change`、`gitea.pull.create` | 两种来源通用（`resolve_access` → `aisoft_access_invoke`） |
+| `aisoft classify`（`apply-classification-labels.sh`） | `gitea.issue.read`、`gitea.issue.labels.read`、`gitea.issue.labels.classify` | 两种来源通用 |
+| `aisoft complete`（`mark-completed-issues.sh`） | `gitea.issue.labels.set` | 两种来源通用；项目来源从 `project.json` 读取 `deployment_lifecycle` |
+| `aisoft project-check --remote` | 项目来源：`gitea.labels.read`、`gitea.issue.list`、`gitea.repo.read`；站点来源：`.agent.env` 直读，不变 | 分支处理；保护相关检查在项目来源下输出 `MANUAL` |
+| `prepare-ticket` / `review-candidate`（`ticket_execution.read_issue`） | `gitea.issue.read` | 两种来源通用 |
+| 路由（`route_policy.repository_context`、`change_control`） | 无远端 | 项目来源读取 `project.json` 的 `change_control` |
+| `aisoft-project-target.sh` | 无远端 | 先看 `project.json`；站点解析原样保留，只用于冲突判定 |
+| 新增 `aisoft labels-provision` | `gitea.labels.provision` | 两种来源通用 |
+| 技能直接调用（`gitea.issue.create/list/comment/comments.read/update`、`git.fetch.main/change`、`gitea.pull.read`、`gitea.commit.status.read`、`gitea.actions.*`） | 同左 | 项目来源经 `.aisoft/bin/aisoft-access`，站点来源经 broker |
+| getting-started 第 3 步、runbook §1.1、技能「一切访问走 broker」 | — | T01 改写；§1.1 只适用于站点加固访问 |
+| `host.*`、`orbstack.*`、`mac.git.bind`、`gitea.credential.rotate`、`gitea.protection.read`、`gitea.dependency.read`、`gitea.labels.extension.define`、`gitea.issue.labels.extension.set`、`gitea.issue.state.set`、`gitea.pull.update` | — | 仅站点来源。按源码核对，技能、模板、使用合同与会话工具里没有调用后四个项目级写操作；`gitea.protection.read` 只出现在维护层盘点里 |
+
+源码核对与 spec D6 表的差异：`aisoft open-pr` 的编号取自 `gitea.pull.create` 的回执（第 3 轮评审 MINOR 已删去 `pulls.read`）；`aisoft complete` 只调用 `gitea.issue.labels.set`；`project-check` 在项目来源下另需 `gitea.issue.list`，用于 Issue 引用清单，该操作已在闭集内。
+
+### 迁移与回滚（AC-5）
+
+- **已登记项目**：不需要任何动作。没有 `project.json` 时，所有工具的行为与本批之前相同（站点回归全量通过）。合并后由维护者在 Mac 与 OrbStack VM 两台重装 broker，已登记项目才会用上新引擎字节；重装之前，漂移检查报差异属于预期。
+- **已登记项目改用项目来源（可选）**：先按 runbook §0.1 第 2、3 步准备非管理员项目身份与保护证据，再写 `project.json`。回退方法是删除该文件，自动回到站点来源。
+- **未登记项目**：采用 1.20.0 及以后的发布包并写 `project.json`。回退方法是用 `--adopt` 恢复上一版兼容工具包；恢复不了就停止远端写入。已经正常创建的 Issue 与 PR 不撤销。
+- **平台回滚**：revert 本批 PR，由维护者按 revert 后的字节重装两台 broker。
+
+### 未验证边界（AC-8）
+
+- 真实 Gitea 1.26.4 下 `/user` 与 `GET /repos/{owner}/{name}` 的 `permissions` 响应形状：NOT RUN。只有源码依据（第 2 轮评审引用的官方路由与 convert），没有 live 读回。
+- 已安装 broker 的两台重装：NOT RUN。需要 sudo，由维护者执行。
+- 真实项目上的 live 采用与 canary：NOT RUN，不在本票范围。
+- 合成 Gitea 桩与 `git http-backend` 通过，只证明本平台代码路径成立，不证明真实 Gitea 上可用。
 
 ## 交叉审查
 
@@ -90,6 +134,10 @@ T01 残留表述判定：
 - T03 Ruling：来源选择放在共享库 `aisoft-project-target.sh` 的 `aisoft_resolve_project_target` 里，新增 `aisoft_access_invoke`；三个 shell 工具与 `read_issue` 都经它分派，不各自判断。代价：这个库多了一条项目分支。
 - T03 Ruling：`project-check --remote` 在项目来源下用 `api_get_project` 把标签与 Issue 两类 REST 读取映射到 `gitea.labels.read`、`gitea.issue.list`，`check_remote_labels` 的判断逻辑原样复用；新增 `access-identity` 检查行，`MANUAL` 只在项目来源出现，`result:` 行只在 `manual>0` 时追加计数。代价：分页由一次全量读取模拟。
 - T03 Ruling：`complete --apply` 的真实终态写入链放到 T04 端到端测试中验证（它需要合并后的主干状态）。T03 只覆盖 `--project` 拒绝与来源分派。
+- T04 Ruling：新测试都在 `codex/runtime/tests` 下，由 smoke 的 `unittest discover` 自动执行（日志里能看到 11 条），不需要再在 smoke 里单独登记。
+- T04 Ruling：端到端测试用真实 `--adopt` 导出（`--tools claude`），而不是手工复制 `.aisoft/` 成员。手工复制漏掉了技能里的 route-policy 落点，路由会失败，所以这次导出本身就是闭包证据。
+- T04 Ruling：「未访问平台安装面」由 `sandbox-exec` 拒读来证明。没有 `sandbox-exec` 的平台只剩环境变量隔离，证据较弱。
+- 收口 Ruling：spec front matter 补上 `git_scope`（36 个文件，取自 `git diff --name-only 74dc5808`），这是推送闸门需要的范围投影，不改变任何决定或 AC。代价：如果交叉审查后的修复又碰到新文件，要同步扩充并在此记录。
 - T02 Ruling：发布包另带 `project_cli.py` 与 `codex/config/project-declaration.schema.json`（schema 由测试钉成与加载器一致）。
 
 ## 遗留风险与未完成项

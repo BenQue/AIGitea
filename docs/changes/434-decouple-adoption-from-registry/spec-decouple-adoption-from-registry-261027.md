@@ -16,6 +16,42 @@ risk_flags:
   - external-contract
   - artifact
 depends_on: []
+git_scope:
+  - codex/agent/aisoft-project-target.sh
+  - codex/config/project-declaration.schema.json
+  - codex/runtime/aisoft_host_access/broker.py
+  - codex/runtime/aisoft_host_access/project_cli.py
+  - codex/runtime/aisoft_host_access/project_source.py
+  - codex/runtime/aisoft_loop/change_control.py
+  - codex/runtime/aisoft_loop/contract.py
+  - codex/runtime/aisoft_loop/route_policy.py
+  - codex/runtime/aisoft_loop/ticket_execution.py
+  - codex/runtime/tests/project_source_fixture.py
+  - codex/runtime/tests/test_project_declared_source.py
+  - codex/runtime/tests/test_project_source_e2e.py
+  - codex/runtime/tests/test_project_source_tools.py
+  - codex/tools/aisoft
+  - codex/tools/aisoft-access
+  - codex/tools/aisoft-project-check.sh
+  - codex/tools/apply-classification-labels.sh
+  - codex/tools/mark-completed-issues.sh
+  - docs/adr/0003-adoption-access-decoupling.md
+  - docs/changes/434-decouple-adoption-from-registry/plan-decouple-adoption-from-registry-261027.md
+  - docs/changes/434-decouple-adoption-from-registry/spec-decouple-adoption-from-registry-261027.md
+  - docs/changes/434-decouple-adoption-from-registry/summary-decouple-adoption-from-registry-261027.md
+  - docs/changes/434-decouple-adoption-from-registry/verification-decouple-adoption-from-registry-261027.md
+  - skills/aisoft-platform/SKILL.md
+  - skills/aisoft-platform/references/execution-adapter.md
+  - skills/aisoft-platform/references/getting-started.md
+  - skills/aisoft-platform/references/greenfield-planning.md
+  - skills/aisoft-platform/references/onboarding-runbook.md
+  - skills/aisoft-platform/references/project-align.md
+  - skills/issue-session-flow/SKILL.md
+  - templates/project/AGENTS.md
+  - templates/project/aisoft-project.json
+  - usage/CONTRACT.md
+  - usage/USER-GUIDE.md
+  - usage/bundle.json
 branch: change/434-decouple-adoption-from-registry
 created: 2026-10-27
 updated: 2026-10-27
