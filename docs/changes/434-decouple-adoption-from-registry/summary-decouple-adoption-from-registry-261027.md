@@ -38,7 +38,7 @@ route:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/434-decouple-adoption-from-registry
 pr_url:
 created: 2026-10-27
@@ -92,6 +92,8 @@ Issue #434 要求平台只提供方法、流程、模板与通用工具，项目
 ## 范围承接
 
 Issue #434 正文把本票限定为调查与方案讨论。负责人在确认点 1「确认」后，本票扩展为按映射 spec 实施；确认之前只有合同文档，没有任何实现。
+
+确认点 1：负责人 2026-10-27 13:44（UTC）在项目线程回复「了解了，确认你的方案」，确认对象是合同第 3 版（HEAD `8f5e0e329c322c860c360cb846e93919090382ce`，Codex 第 3 轮 ACCEPT WITH CHANGES 且 MINOR 已处置），包括 spec D3–D10 与 D7 安全取舍，以及合并后由负责人在 Mac 与 gitea-ci VM 重装 broker。13:26 的一次「确认」针对的是已被推翻的第 1 版描述，负责人随后撤回，不作为授权。确认只授权按合同实施，不授权合并或部署。
 
 ## 风险
 
