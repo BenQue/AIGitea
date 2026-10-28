@@ -28,10 +28,11 @@
    CI、部署、权限、Agent/治理或共享核心变化仍强制 complex。
 4. 修复合并后复检，直到无 `GAP:`。全 PASS 即对齐完成。
 
-新仓库首次接入时，runbook §1/§1.1 的 governance manifest 与 project-agent gate 是
-一切的前置，不能被本 checklist 替代或跳过；本入口从 §2 起接管逐项对齐。
+新仓库首次接入时，先完成 runbook §0.1「接入既有项目」的采用步骤（项目自主，不需要平台登记）。选用站点加固访问的项目，还要先通过 §1.1 的 governance manifest 与 project-agent gate。两者都不能被本 checklist 替代或跳过，本入口从 §2 起接管逐项对齐。
 
 ## 维护层：导出与采用
+
+首次采用时，项目里还没有 `.aisoft/bin/aisoft-access`。这时在项目 change worktree 内运行平台检出里同一份 `codex/tools/aisoft-access`，它按该 worktree 的 `.aisoft/project.json` 走项目自声明来源，完成首推与建 PR（ADR 0003）。
 
 以下命令只在平台检出里运行，由平台维护者执行：
 
@@ -68,7 +69,7 @@ Cursor 另有种子 `.cursor/rules/aisoft-platform.mdc`，它只指向使用合�
 | 6 | `.aisoft/architecture.json` 声明 + lock 有效 | runbook §9（Architecture declaration onboarding，含 `delivery_contract` 如实选取）；`architecture/bin/aisoft-architecture` | `architecture-lock` |
 | 7 | 交付形态（delivery profile）已显式声明，部署方案位置指向项目自己的 docs/脚本目录 | runbook §4（环境级原则，非部署步骤）；目标仓 AGENTS.md 项目事实与项目自己的部署文档 | `delivery-profile` |
 | 8 | host access / onboarding 聚合核对 | runbook §1.1；broker `host.onboarding.check` | 既有工具，非本检查器 |
-| 9 | merge allowlist 只有人、无 routine merger 声明（#391）与 protection read-back | governance manifest；runbook §1.1/§5 | runtime checker/read-back；source contract 只人工核对 |
+| 9 | merge allowlist 只有人、无 routine merger 声明（#391）与 protection read-back | governance manifest；runbook §1.1/§5；项目来源为采用 Issue 中的人工保护证据（ADR 0003） | runtime checker/read-back；项目来源下 `project-check` 记 `MANUAL`；source contract 只人工核对 |
 
 ## 模板同步（第 2 行专属，维护层）
 

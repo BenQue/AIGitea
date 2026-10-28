@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aisoft-project-declaration-v1",
+  "title": "AISoft project declaration (.aisoft/project.json)",
+  "description": "Project-declared source of the typed access engine (ADR 0003). The engine's loader in aisoft_host_access/project_source.py is authoritative; this schema documents the same exact key set.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "repository", "project_agent", "deployment_lifecycle", "classification", "status_check_contexts", "protection_evidence"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "repository": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,99}/[A-Za-z0-9][A-Za-z0-9._-]{0,99}$"},
+    "git_remote_name": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$", "default": "origin"},
+    "project_agent": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$"},
+    "deployment_lifecycle": {"enum": ["none", "application-deploy", "application-deploy-selective"]},
+    "change_control": {"enum": ["development", "production"], "default": "production"},
+    "classification": {"enum": ["public-platform", "public-test", "internal-application"]},
+    "status_check_contexts": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "protection_evidence": {"type": "integer", "minimum": 1}
+  }
+}

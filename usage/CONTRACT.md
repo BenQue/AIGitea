@@ -18,7 +18,7 @@
   技能目录）、外部技能包快照（平台 pin 的 Matt 与 superpowers 原文：两包都到 `.cursor/skills/`，
   Matt 另到 `.agents/skills/`；Claude 与 Codex 的 superpowers 来自各自官方 marketplace）。
   逐字节副本、会话工具与指针由对齐检查按 pin 的版本核对；外部技能包由 `check-external-skill-versions.sh --repo` 核对。
-- 项目对平台的需求以平台 Issue 提出。平台按准入规则判断：换成任意一个已注册项目还成立才进入
+- 项目对平台的需求以平台 Issue 提出。平台按准入规则判断：换成任意一个采用平台的项目还成立才进入
   平台；不成立的留在项目仓，或先由平台抽象成扩展点，项目数据留在项目侧。
 
 ## 2. 流程不变量
@@ -31,7 +31,7 @@
   说不清停在 `awaiting-triage`。功能新增或变更、schema 与数据迁移、外部契约、认证权限安全、
   共享核心、跨模块、CI/制品/部署/回滚、Agent 与治理一律 complex。small 还要范围局部、可简单
   revert、验收可测。
-- **编排路径。** `$triage #N` → 判级。complex 按 governance manifest 中本仓的 `change_control`：
+- **编排路径。** `$triage #N` → 判级。complex 按本仓的 `change_control`（有 `.aisoft/project.json` 时取自它，否则取自 governance manifest 中本仓的登记条目）：
   `production`（未声明时的默认）先 `$to-spec #N` → `$to-tickets #N` → 按计划执行（开发方式以路由表为准：Claude 与 Cursor
   用 superpowers `executing-plans`，Codex 用 `$implement #N Txx`）；
   `development` 不写 spec/plan，验收标准取自 Issue 正文，以合成 `T01` 实现。small 默认不要求
@@ -43,8 +43,8 @@
   merge 后的终态核对、文档检查与清理按确定性流程完成。
 - **单闸门。** 最终 PR merge 是唯一交付硬闸门，只由人合并。会话与项目 agent 不 merge、
   不直推受保护 `main`。PR merge 不传递任何部署授权。
-- **远端写路径。** Gitea 与 Git 的写操作走 host-access broker 的 typed 操作，不拼 raw token、
-  不传 URL 或 refspec。并行会话各用自己的 change worktree。
+- **远端写路径。** Gitea 与 Git 的写操作走 typed 操作引擎，不拼 raw token、
+  不传 URL 或 refspec。来源二选一，见 §6。并行会话各用自己的 change worktree。
 - **没有无人值守引擎。** 自动化最多止于 PR 候选（平台 ADR 0002）；项目选用的每个工具
   （Claude、Codex、Cursor）各自完成使用层验收。
 
@@ -75,7 +75,8 @@
 | 部署方案、脚本、参数与环境差异 | 项目自己的 `docs/` 或脚本目录 |
 | 发布 producer（`local` 或 `github`，只能一种）与 transport | `AGENTS.md` 项目事实 |
 | 禁改边界（受保护路径、数据、配置） | `AGENTS.md` 项目事实 |
-| 选用的工具与 required CI contexts | `AGENTS.md` 项目事实与平台 governance manifest 中本项目的注册条目 |
+| 选用的工具与 required CI contexts | `AGENTS.md` 项目事实与 `.aisoft/project.json`；选用站点加固访问的项目读平台 governance manifest 中的登记条目 |
+| 访问来源、项目身份、`deployment_lifecycle`、`change_control`、保护证据位置 | `.aisoft/project.json`（项目自声明来源，见 §6） |
 
 平台仓里的交付参考实现与各环境分册只是可选参考，不是项目部署步骤的事实源；项目采用与否、
 如何裁剪，在项目仓声明与实现，并自带所需副本，不在运行时依赖平台仓的某个提交。
@@ -83,7 +84,7 @@
 ## 5. 会话工具
 
 项目会话只用本仓的 `.aisoft/bin/aisoft`，不需要平台检出。它随发布包进仓，字节由 `tool-provenance` 锁定在
-pin 的版本，项目不得手改；Gitea 与 Git 访问仍经本机安装的 host-access broker，治理与标签 manifest 读 broker
+pin 的版本，项目不得手改。Gitea 与 Git 访问经 §6 选定的来源；项目来源读随包的标签集合与 `project.json`，站点来源读 broker
 安装副本。
 
 | 子命令 | 用途 |
@@ -126,5 +127,18 @@ pin 的版本，项目不得手改；Gitea 与 Git 访问仍经本机安装的 h
 
 ## 8. 全新项目规划
 
-登记并采用后，通过 `aisoft-platform` 技能的 `references/greenfield-planning.md` 做需求发现与滚动阶段规划。
+采用后，通过 `aisoft-platform` 技能的 `references/greenfield-planning.md` 做需求发现与滚动阶段规划。
 项目 AGENTS 的「项目规则」链接唯一规划入口；阶段资料由所属 Issue 写入，交付仍遵守本合同的既有流程。
+
+## 6. 访问来源
+
+采用本合同不需要在平台仓登记项目（平台 ADR 0003）。Gitea 与 Git 的远端访问走同一个 typed 操作引擎，来源二选一：
+
+- **项目自声明（默认）**：项目仓有 `.aisoft/project.json`，入口是 `.aisoft/bin/aisoft-access`。
+  - 凭据由本机 Git 凭据助手按项目 remote 的 exact `http(s)` URL 提供，必须是非管理员的 Write 项目身份。PAT scope 至少要有 `read:user`、`write:issue`、`write:repository`。
+  - 每次写操作之前读回身份。身份不符、是管理员、缺少 push 权限或读取失败，都会拒绝写入。
+  - 只开放项目级 typed 操作，没有 merge。
+  - 受保护 `main`、禁止直推与强推、合并只许人、required CI，由仓库服务端保护规则承担。采用时由人读回并在项目 Issue 留证，`project.json` 的 `protection_evidence` 指向该 Issue；`aisoft project-check` 对这些检查输出 `MANUAL`，不计入 PASS。
+- **站点加固访问（可选）**：项目登记在平台两份 manifest 里，入口是已安装的 host-access broker，凭据放在会话读不到的受保护文件里。项目需要这一层隔离时，经平台仓 Issue/PR 登记。
+
+`aisoft` 子命令按 `project.json` 是否存在自动选择来源。两种来源都命中但仓库不同时，子命令停止。

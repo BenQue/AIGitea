@@ -216,13 +216,18 @@ def records(text: str) -> dict:
 def read_issue(repo: Path, number: int) -> dict:
     """Use the existing project resolver and the one typed broker operation."""
     library = ROOT / 'codex/agent/aisoft-project-target.sh'
-    script = 'source "$1"; aisoft_resolve_project_target "$2" "$3" "" || { printf "%s\\n" "$AISOFT_PROJECT_TARGET_ERROR" >&2; exit 2; }; printf "%s\\n%s\\n" "$AISOFT_PROJECT_ID" "$AISOFT_PROJECT_REPOSITORY"'
+    script = 'source "$1"; aisoft_resolve_project_target "$2" "$3" "" || { printf "%s\\n" "$AISOFT_PROJECT_TARGET_ERROR" >&2; exit 2; }; printf "%s\\n%s\\n%s\\n%s\\n" "$AISOFT_PROJECT_ID" "$AISOFT_PROJECT_REPOSITORY" "$AISOFT_ACCESS_SOURCE" "$AISOFT_ACCESS_ENTRY"'
     result = subprocess.run(['bash', '-c', script, 'aisoft-ticket', str(library), str(ROOT/'codex/tools'), str(repo)], capture_output=True, text=True)
     if result.returncode:
         raise ContractError('project resolution failed: ' + result.stderr.strip())
-    project, repository = result.stdout.strip().splitlines()
-    result = subprocess.run(['/usr/local/libexec/aisoft/host-access-broker', '--project', project,
-                             '--operation', 'gitea.issue.read', '--number', str(number)], capture_output=True, text=True)
+    project, repository, source, entry = (result.stdout.rstrip('\n').split('\n') + ['', ''])[:4]
+    if source == 'project':
+        # Project-declared source (#434): the entry reads .aisoft/project.json from its cwd.
+        result = subprocess.run([entry, '--operation', 'gitea.issue.read', '--number', str(number)],
+                                cwd=repo, capture_output=True, text=True)
+    else:
+        result = subprocess.run(['/usr/local/libexec/aisoft/host-access-broker', '--project', project,
+                                 '--operation', 'gitea.issue.read', '--number', str(number)], capture_output=True, text=True)
     if result.returncode:
         raise ContractError('typed Issue read failed: ' + result.stderr.strip())
     issue = json.loads(result.stdout)
@@ -277,7 +282,7 @@ def context(repo: Path, number: int, provider: str, issue: dict | None = None) -
     ident = identity(repo, number, str(summary['branch']))
     documents = resolve_documents(repo, number)
     directory = summary_path.parent
-    phase, _ = repository_context(summary)
+    phase, _ = repository_context(summary, repo)
     if phase == 'development':
         body = str(issue.get('body') or '')
         ac = _acceptance_criteria(body)

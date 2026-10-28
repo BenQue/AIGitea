@@ -1653,13 +1653,9 @@ class HostAccessBroker:
         remote_name, _expected_remote = self._validated_remote(project, checkout)
         credential = self.credentials.resolve(project, operation)
         self._verify_identity(credential)
-        helper = self.contract.raw["mac_host"]["credential_helper"]
-        fixed = {"GIT_CONFIG_COUNT": "3", "GIT_CONFIG_KEY_0": "credential.helper",
-                 "GIT_CONFIG_VALUE_0": "", "GIT_CONFIG_KEY_1": "credential.helper",
-                 "GIT_CONFIG_VALUE_1": helper, "GIT_CONFIG_KEY_2": "credential.useHttpPath",
-                 "GIT_CONFIG_VALUE_2": "true"}
         return self._fetch_source_change(
-            project, checkout, remote_name, safe_branch, credential, git_environment(fixed)
+            project, checkout, remote_name, safe_branch, credential,
+            self._git_credential_environment(credential)
         )
 
     def _fetch_source_change(self, project, checkout, remote_name, safe_branch, credential, env):
@@ -2659,14 +2655,9 @@ class HostAccessBroker:
 
         credential = self.credentials.resolve(project, operation)
         self._verify_identity(credential)
-        helper = self.contract.raw["mac_host"]["credential_helper"]
-        fixed = {"GIT_CONFIG_COUNT": "3", "GIT_CONFIG_KEY_0": "credential.helper",
-                 "GIT_CONFIG_VALUE_0": "", "GIT_CONFIG_KEY_1": "credential.helper",
-                 "GIT_CONFIG_VALUE_1": helper, "GIT_CONFIG_KEY_2": "credential.useHttpPath",
-                 "GIT_CONFIG_VALUE_2": "true"}
-        env = git_environment(fixed)
+        env = self._git_credential_environment(credential)
         local = GitRepository(checkout, runner=self.runner, env=env,
-                              template_context=lambda: template_scope_context(self.contract, project.project_id))
+                              template_context=lambda: self._template_context(project))
         result: dict[str, object] = {
             "status": "PASS", "project": project.project_id, "operation": operation.name,
             "identity": project.project_agent, "checkout": checkout, "remote_name": remote_name,
@@ -2773,6 +2764,20 @@ class HostAccessBroker:
             error = BrokerError(exc.code, message)
             error.publication_reference = receipt
             raise error from exc
+
+    def _git_credential_environment(self, credential: ResolvedCredential) -> dict[str, str]:
+        # The site source points Git at the installed helper, which re-reads the
+        # protected credential file itself. A project-declared source (#434)
+        # overrides this to hand Git the credential it already verified.
+        helper = self.contract.raw["mac_host"]["credential_helper"]
+        fixed = {"GIT_CONFIG_COUNT": "3", "GIT_CONFIG_KEY_0": "credential.helper",
+                 "GIT_CONFIG_VALUE_0": "", "GIT_CONFIG_KEY_1": "credential.helper",
+                 "GIT_CONFIG_VALUE_1": helper, "GIT_CONFIG_KEY_2": "credential.useHttpPath",
+                 "GIT_CONFIG_VALUE_2": "true"}
+        return git_environment(fixed)
+
+    def _template_context(self, project: ProjectContract) -> object:
+        return template_scope_context(self.contract, project.project_id)
 
     def _change_tip(self, branch: str, remote_name: str, checkout: str, env: Mapping[str, str]) -> str | None:
         name = ChangeName.parse_branch(branch)

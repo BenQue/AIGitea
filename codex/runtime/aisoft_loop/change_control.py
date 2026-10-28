@@ -40,3 +40,30 @@ def resolve_change_control(repository: str, *, manifest: Path | str | None = Non
         phase = entry.get("change_control", PRODUCTION)
         return phase if phase in PHASES else PRODUCTION
     return PRODUCTION
+
+
+PROJECT_DECLARATION = ".aisoft/project.json"
+
+
+def declared_change_control(repo: Path | str, repository: str) -> str | None:
+    """项目自声明来源（#434）：检出里有 .aisoft/project.json 时以它为准。
+
+    没有这个文件时返回 None，调用方照旧查 governance manifest。文件存在但读不出、
+    声明的是别的仓库、或取值越界时直接报错：这些都是项目侧的合同错误，回落到
+    production 会把一个明确的声明悄悄换成另一个答案。
+    """
+    from .contract import ContractError
+
+    path = Path(repo) / PROJECT_DECLARATION
+    if not path.is_file():
+        return None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ContractError(f"{PROJECT_DECLARATION} is not readable JSON") from exc
+    if not isinstance(raw, dict) or raw.get("repository") != repository:
+        raise ContractError(f"{PROJECT_DECLARATION} does not declare {repository}")
+    phase = raw.get("change_control", PRODUCTION)
+    if phase not in PHASES:
+        raise ContractError(f"{PROJECT_DECLARATION} change_control is out of range")
+    return phase

@@ -6,15 +6,45 @@
 [project-align.md](project-align.md)，确定性核对用 `aisoft project-check`。
 本 runbook 保持唯一事实源；对齐 checklist 只指向本文与 `templates/`，不另立合同。
 
+## 0. 两部分：采用与可选站点加固访问
+
+本 runbook 分两部分（[ADR 0003](../../../docs/adr/0003-adoption-access-decoupling.md)）：
+
+- **采用（项目自主）**：任何项目都走这一部分。采用通用流程不需要往平台仓新增项目记录：项目参数写在项目仓的 `.aisoft/project.json` 与 `AGENTS.md` 项目事实里，远端访问经项目入口 `.aisoft/bin/aisoft-access`，凭据是项目自己的非管理员身份。
+- **可选站点加固访问（维护层）**：只适用于需要「会话拿不到凭据」这一层隔离的项目，即 §1.1 的 governance manifest、project-agent gate 与已安装 broker。这一部分才需要平台仓 Issue/PR 登记，人合并后在 Mac 与 OrbStack VM 两台重装 broker。
+
+平台仓 Issue 只用于两种情形：登记站点加固访问；在采用中发现通用能力缺陷。项目自己的接入工作一律开在项目仓里。
+
+### 0.1 接入既有项目（项目自主）
+
+已有代码与历史的项目按下面的顺序接入。每一步都是项目仓里的 Issue（或同一张采用 Issue 的一个 ticket），按平台流程判级、确认、走唯一 PR：
+
+1. **仓库落位**：仓库迁入本地 Gitea 并保持 private。核对历史完整（commit 数、tag、默认分支 `main`），确认 Mac 客户端可以 clone 并推 feature 分支。从别处导入时，记录源地址、导入时间与核对结果，不改写历史。
+2. **项目身份与凭据**：建一个非管理员的项目身份，作为该仓库的 Write 协作者，PAT scope 至少要有 `read:user`、`write:issue`、`write:repository`。用户在自己的终端里把它配进 Git 凭据助手，并让它对应项目 remote 的 exact `http(s)` URL。AI 不代填 token。
+3. **保护规则与证据**：设置受保护 `main`：禁止直推与强推，合并只许人，required CI context 启用。维护者用自己的管理员会话读回一次，在采用 Issue 写一条证据评论，至少记录：
+   - 仓库完整地址、分支、项目身份、观测时间；
+   - required contexts；
+   - 合并 allowlist 是否启用，以及授权了哪些用户与团队；
+   - 是否禁止直推与强推。
+   
+   身份或规则变化后要重新读回。
+4. **采用使用发布包**：维护者运行 `usage-bundle.sh --adopt`（见 [project-align.md](project-align.md)「维护层」），在同一个 change 里写入 `.aisoft/project.json`。`protection_evidence` 指向第 3 步的 Issue。项目里还没有 `.aisoft/bin/aisoft-access` 时，首推与建 PR 的做法见 project-align.md「维护层」；合并后一律用项目内的 `.aisoft/bin/aisoft-access`。
+5. **标签对齐**：运行 `.aisoft/bin/aisoft labels-provision`，按 canonical 标签集合对齐。这一步幂等，可以反复运行。
+6. **首个 CI 与 runner 依赖**：项目自己的 CI 配置，加上 runner 上的语言运行时、SDK 与构建工具，都由项目 Issue 声明并验证。平台只提供 `templates/project/ci` 参考与 §4 的流程不变量，不替项目选型。runner 缺依赖时，在项目 Issue 里写清所需版本与安装方式；涉及共享 runner 主机时，交给维护者执行。
+7. **对齐与 canary**：先运行 `.aisoft/bin/aisoft project-check`。它对依赖保护 API 的检查输出 `MANUAL`，引用第 3 步的证据；其余检查应当没有 `GAP:` 行。然后用一张低风险 Issue 走完 Issue → 判级 → 确认 → 唯一 PR → 人工合并 → 收尾。
+8. **部署范围**：只有应用项目才继续 §4 与 §8 的首次非生产部署，纯文档或规范仓库不虚构部署流程。
+
+以上任何一步需要平台通用能力而当前没有时，才在平台仓开 Issue，并且只写成「换成任意项目都成立」的通用缺陷，不写项目专属值。
+
 ## 1. 参数与仓库
 
 先确定唯一项目 id，再确定 `GITEA_URL`、`OWNER`、`REPO`、Mac 工作克隆、技术栈、测试命令与 required CI。只有应用项目才需要应用端口、Nginx 端口、健康端点、数据存储和回滚方式；纯文档或平台规范仓库不需要虚构部署流程。
 
 把仓库放到 Gitea，验证历史完整、默认分支正确、Mac/内网客户端可以 clone 和 push feature
-branch。随后先把 exact repository、classification、visibility、project agent 和 required status
-contexts 纳入 `codex/config/gitea-governance.json` 并经平台 PR 人工合并；未知仓库不能继续接入。
+branch。项目自主采用按 §0.1 继续。选用站点加固访问时，再把 exact repository、classification、visibility、project agent 和 required status
+contexts 纳入 `codex/config/gitea-governance.json` 并经平台 PR 人工合并；未登记的仓库不能使用站点来源。
 
-### 1.1 Mandatory governance manifest 与 project-agent gate（维护层）
+### 1.1 站点加固访问：governance manifest 与 project-agent gate（维护层，可选）
 
 按顺序执行（治理合同来自 Issue #35，已 live）：
 
@@ -41,11 +71,11 @@ permission、visibility、protection、cross-project 或 read-back 失败均终�
 repo-local protected-file helper（VM `coder` project profile 已随 #391 退出）。manifest
 允许项目声明 strict `git_remote_name`（#73）；未声明兼容 `origin`，已声明的项目
 按各自 manifest 的取值（例如 `gitea`）。调用方不能传 remote name/URL/owner/repository/refspec，broker 也不创建或改写 remote。
-新项目仍必须先通过独立 AISoftPlatform Issue/PR 同时更新 governance 与 host-access manifests，再执行
-本节的账号/权限流程。
+选用站点加固访问的项目，必须先通过独立 AISoftPlatform Issue/PR 同时更新 governance 与 host-access manifests，再执行
+本节的账号/权限流程。项目自主采用不走本节（§0）。
 `orbstack-access-diagnostics` 不得作为接入前置，只在 broker failure 且真实状态仍矛盾时 emergency 使用。
 
-平台 manifest PR 人工合并并安装后，逐项目按以下顺序接入：
+选用站点加固访问时，平台 manifest PR 人工合并并安装后，逐项目按以下顺序接入：
 
 1. `host.access.audit` 只读核对 protected-file metadata、token identity/scope、repository permission 与
    protected `main`/required CI。
@@ -61,7 +91,7 @@ repo-local protected-file helper（VM `coder` project profile 已随 #391 退出
 6. 最后运行本项目 fresh-session typed Issue/change/PR/required-CI canary。一个项目的 PASS 不授权另一个
    项目；每个项目使用独立 adoption Issue 与 evidence。
 
-平台 manifest PR 人工合并前不得创建该项目的 adoption Issue；合并后才逐项目单独完成 binding/live
+站点加固访问的平台 manifest PR 人工合并前，不得创建该项目的站点 adoption Issue（项目自主采用的 Issue 见 §0.1，不受此限）；合并后才逐项目单独完成 binding/live
 canary。其它项目不得批量启用。
 
 标准入口（只替换尖括号；token file 只写路径，不打印内容；VM 检出根取 broker manifest 的 `site.platform_checkout_vm`）：
@@ -243,8 +273,8 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 
 ## 5. Gitea 治理
 
-- 先通过 §1.1 manifest/project-agent gate；platform manager 为 exact-repo Admin，项目 agent 为
-  exact-repo Write，二者均不给 merge。
+- 站点来源：先通过 §1.1 manifest/project-agent gate；platform manager 为 exact-repo Admin，项目 agent 为
+  exact-repo Write，二者均不给 merge。项目来源：项目身份为非管理员 Write，保护规则由人读回并留证（§0.1 第 3 步）。
 - 保护 `main`，禁止直接 push，要求准确的 `CI / test (pull_request)` context。
 - 标签由平台 provision，不手工创建（§1.1 步骤 5，与 `host.access.audit` / `mac.git.bind` /
   `host.onboarding.check` 同级）：
@@ -252,6 +282,8 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
   ```bash
   /usr/local/libexec/aisoft/host-access-broker --project <project-id> --operation gitea.labels.provision
   ```
+
+  项目来源用 `.aisoft/bin/aisoft labels-provision`，效果相同。
 
   幂等：缺失则创建，`color`/`description` 漂移则更新，`retired` 取值只报告不创建，任何标签都不
   删除。已对齐时为 no-op，可在平台 taxonomy 演进后反复执行——接入与对齐是同一条命令。
@@ -270,11 +302,11 @@ Windows Server 承载的 Web/服务运行时（例如 IIS 站点）。原则：
 
 ## 6. 判级接入
 
-- 在 Mac 上为项目准备 checkout 与依赖/索引，登记在 broker manifest 的 `projects[].mac_checkout`。
+- 在 Mac 上为项目准备 checkout 与依赖/索引。站点来源把它登记在 broker manifest 的 `projects[].mac_checkout`；项目来源以调用时所在的仓库为准，不登记。
 - 安装 `$aisoft-platform` 与 `$gitea-analyze-change`。
 - 先用低风险 Issue 验证：读取 evidence、输出五节 summary，并以 `change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`risk_flags`、`required_docs`、`confidence` 和 `override_reason` 确定性判级。
 - 用功能新增验证 `type/feature` 和 `effective_complexity: complex`；用信息不足的 Issue 验证 `needs-human-decision`、`contract_effect: unclear` 且不输出 `effective_complexity`。
-- 判级只写映射的 `summary` 文档与 readable 分支；标签由 `aisoft classify` 经 broker 投影，不创建最终 PR、不部署。
+- 判级只写映射的 `summary` 文档与 readable 分支；标签由 `aisoft classify` 经当前来源的 typed 操作入口投影，不创建最终 PR、不部署。
 - 普通实现会话永远不得编辑约束本次运行的 `AGENTS.md`。complex spec 只能授权其生成治理 patch/proposal；目标文件之外的独立受控治理步骤负责应用，随后用 fresh run 验证并采用新规则。其他 protected files 仍要求 complex spec 精确列出文件、验证与回滚。
 
 ## 7. 会话开发接入
@@ -286,6 +318,7 @@ VM 上的 Development Loop 已随 #391 退出（ADR 0002）；开发由 Mac 上�
 - 状态包含提交前 `AWAITING_PR_CONFIRMATION`、`READY_FOR_REVIEW`，以及 `NEEDS_HUMAN_DECISION`、`BLOCKED_EXTERNAL`、`FAILED_LIMIT`。
 - 最终 PR 只有人可以合并；push 与建 PR 只在第二确认点（最终 PR 提交确认）明确授权后经 broker 进行。
   第一确认点仅批准合同/启动，不授权 push、PR、merge 或部署。
+  这里的 broker 指当前来源的 typed 操作入口：项目来源是 `aisoft-access`，站点来源是已安装 broker。
 
 ## 8. 接入验收
 
@@ -322,6 +355,7 @@ VM 上的 Development Loop 已随 #391 退出（ADR 0002）；开发由 Mac 上�
    且后者为 `application-deploy` 才等待部署；`none` 与缺省
    `application-deploy-selective` 到 `completed`。`verification` 不等于部署；
    已 `deployed` 的 Issue 不会被降级。规则以 `03` §11 的合取表为准。
+   项目来源下，`deployment_lifecycle` 取自 `.aisoft/project.json`，`aisoft complete` 不带 `--project`。
 
 ### 合并后收尾的接入配置（维护层）
 

@@ -294,7 +294,7 @@ ROUTE_PROCESSES = {
 }
 
 
-def validate_route(front_matter: Mapping[str, object]) -> None:
+def validate_route(front_matter: Mapping[str, object], repo: Path | None = None) -> None:
     """Check an optional summary route card against the routing table's closed sets."""
     if "route" not in front_matter:
         if "route_provider" in front_matter:
@@ -325,7 +325,7 @@ def validate_route(front_matter: Mapping[str, object]) -> None:
 
     if "route_provider" in front_matter:
         from .route_policy import validate_provider_route
-        validate_provider_route(front_matter)
+        validate_provider_route(front_matter, repo=repo)
 
 
 def parse_front_matter(text: str) -> dict[str, object]:
@@ -432,7 +432,7 @@ def _document_context(
             path = directory / documents[role]
             text = _read_document(directory, path, role)
             parse_front_matter(text)
-        validate_route(summary)
+        validate_route(summary, directory.parent.parent.parent)
     except ContractError as exc:
         raise ContractError(f"change {directory.name}: {exc}") from exc
     return context

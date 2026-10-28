@@ -8,7 +8,7 @@
 ## 查表输入
 
 summary front matter 的 `effective_complexity`、`change_type`、`contract_effect`、`risk_flags`、`confidence`、
-`required_docs`；仓库在 governance manifest 里的 `change_control`（缺省 `production`）；仓库角色（平台仓
+`required_docs`；仓库的 `change_control`（缺省 `production`；有 `.aisoft/project.json` 时取自它，否则取自 governance manifest）；仓库角色（平台仓
 `admin/aisoft-platform` 或项目仓）；显式执行 provider（`codex`、`claude`、`cursor`）。
 provider 写入 summary 顶层 `route_provider`，不加入 route 八键或 analyzer 的 AI 判级字段。
 不得根据安装目录、技能包可见性或模型名猜 provider。

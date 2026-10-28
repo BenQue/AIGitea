@@ -7,7 +7,7 @@
 
 - **一次一步**：每步先说要做什么、谁来做，执行或请用户执行，再跑核对命令，读到预期结果才进入下一步。
 - **读不到预期就停**：把命令、实际输出和本步的「失败时」一栏报告给用户，不换别的办法绕过去。
-- **分清谁做**：标着「维护者」的步骤需要 sudo、改平台 manifest 或注册 marketplace，AI 不代执行，只把命令交给用户或维护者，等对方回复后再读回。
+- **分清谁做**：标着「维护者」的步骤需要 sudo、改平台 manifest、注册 marketplace 或用管理员会话读回保护规则，AI 不代执行，只把命令交给用户或维护者，等对方回复后再读回。
 - **不碰凭据**：不打印、不复制 token、密码、`.env`、认证文件；登录由用户在工具自己的界面里完成。
 - **先问清工具**：开始前问用户用哪一种（Claude Code、Codex、Cursor，可以多选），后面只走所选工具的小节。
 
@@ -15,7 +15,7 @@
 
 | 角色 | 负责 | 本指南中的标记 |
 |---|---|---|
-| 平台维护者 | 安装 host-access broker、在平台 manifest 里登记新项目、把使用发布包采用进项目 | 维护者 |
+| 平台维护者 | 把使用发布包采用进项目、读回仓库保护规则；选用站点加固访问时安装 broker 并在平台 manifest 登记 | 维护者 |
 | 开发者 | 本机登录所选工具、核对技能与版本、在项目里开 Issue 和开发 | 开发者 |
 
 一个人可以同时是两种角色；即便如此，维护者步骤也由用户本人执行。
@@ -24,14 +24,14 @@
 
 1. **命令行工具**：`bash`、`python3`、`jq`、`rg`、`git` 都能找到。核对：`command -v bash python3 jq rg git`，五行路径都有输出。
    失败时：报告缺哪个，请用户自行安装后重跑。
-2. **host-access broker（维护者）**：一切 Gitea 与 Git 远端访问都经 `/usr/local/libexec/aisoft/host-access-broker`。
-   它由维护者在平台检出里运行 `codex/install-host-access-broker.sh` 安装（需要 sudo）。
-   开发者核对：`/usr/local/libexec/aisoft/host-access-broker --project <项目 id> --operation git.fetch.main`，在项目检出里运行，
-   返回 JSON 的 `status` 为 `PASS`。
-   这只证明本机能经 broker 连到该项目，不证明接入已验收（接入验收见第 3 步）。
-   失败时：把返回体的 `code` 与 `message` 原样报告。`requested project is not explicitly managed` 说明项目还没登记，转第 3 步；
-   `requested operation is not allowlisted` 是本机操作表比平台旧，请维护者重装 broker，不要往权限方向查；其它 `REQUEST_DENIED` 是合同拒绝，照原文报告。
-3. **私有 Gitea**：匿名访问得到 `404` 不说明对象不存在，不要据此下结论，一律经 broker 读取。
+2. **项目凭据（开发者）**：一切 Gitea 与 Git 远端访问都走 typed 操作引擎，有两种来源（ADR 0003）。
+   - **新项目默认用项目自声明来源**：凭据由本机 Git 凭据助手按项目 remote 的 exact `http(s)` URL 提供。
+     - 凭据必须是非管理员的项目身份，PAT scope 至少要有 `read:user`、`write:issue`、`write:repository`。
+     - 用户在自己的终端里配置凭据助手，AI 不代填 token。
+     - 核对在第 4 步之后：在项目检出里运行 `.aisoft/bin/aisoft-access --operation git.fetch.main`，返回 JSON 的 `status` 为 `PASS`。
+   - **已登记站点加固访问的项目**：用已安装的 `/usr/local/libexec/aisoft/host-access-broker --project <项目 id> --operation git.fetch.main` 核对。
+   - 失败时，把返回体的 `code` 与 `message` 原样报告。各类拒绝的含义见文末「常见卡点」。
+3. **私有 Gitea**：匿名访问得到 `404` 不说明对象不存在，不要据此下结论，一律经 typed 操作引擎读取。
 
 ## 第 2 步：按所选工具准备本机
 
@@ -80,14 +80,16 @@
 `bash skill-for-claude/install.sh <目标 home>` 后 `bash skill-for-claude/check-drift.sh <目标 home>` 读到 `CLEAN`；Codex 侧
 `bash codex/install-skills.sh <目标 home>` 后 `bash codex/check-drift.sh <目标 home>` 无漂移。普通项目开发跳过本节。
 
-## 第 3 步：新项目登记（维护者）
+## 第 3 步：仓库与保护规则（维护者）
 
-新项目要先进平台的两份 manifest：`codex/config/gitea-governance.json`（仓库、可见性、project agent、required CI）与
-`codex/config/host-access-broker.json`（项目 id、仓库、Mac 检出）。这一步按 [onboarding-runbook.md](onboarding-runbook.md)
-§1 与 §5 在平台仓走自己的 Issue 与 PR，由人合并后两台重装 broker。
+新项目不需要在平台仓登记。按 [onboarding-runbook.md](onboarding-runbook.md)「采用（项目自主）」准备仓库：
+- 仓库在本地 Gitea 上，`main` 受保护，禁止直推与强推，合并只许人；
+- required CI 已启用；
+- 项目身份是非管理员的 Write 协作者。
 
-完成判据由维护者给出：runbook §1.1 的接入证据齐全，并且维护者用 broker 的 `host.onboarding.check`（manager-audit 身份）对该项目读回通过。
-维护者告知完成后，开发者在项目检出里重跑第 1 步第 2 项，`git.fetch.main` 返回 `PASS` 只作为本机连通的核对。
+维护者用自己的管理员会话读回保护规则，把读回结果写成项目采用 Issue 的一条评论。第 4 步的 `project.json` 会引用这个 Issue。
+
+**可选：站点加固访问。** 需要「会话拿不到凭据」这一层隔离的项目，按 runbook「可选站点加固访问」§1.1 在平台仓走 Issue 与 PR 登记，人合并后两台重装 broker。完成判据是 runbook §1.1 的接入证据齐全，并且 broker 的 `host.onboarding.check` 读回通过。
 
 ## 第 4 步：把使用发布包采用进项目
 
@@ -96,7 +98,10 @@
 1. 维护者在项目里为这次采用开一个 Issue，建该 Issue 的 change worktree。
 2. 维护者在平台检出里运行 `bash codex/tools/usage-bundle.sh --adopt <项目 change worktree> --tools <所选工具>`，
    `--tools` 取 `claude`、`codex`、`cursor` 的逗号组合（缺省 `claude,codex`）。工作树必须干净。
-3. 项目照常判级、确认、走唯一 PR，由人合并。
+3. 同一个 change 写入项目侧 `.aisoft/project.json`。
+   - 字段按 `.aisoft/` 下随包的模板填写：仓库、remote、项目身份、`deployment_lifecycle`、`change_control`、required CI contexts、`protection_evidence`（第 3 步的 Issue 编号）。
+   - 选用站点加固访问的项目不写这个文件。
+4. 项目照常判级、确认、走唯一 PR，由人合并。项目里还没有 `.aisoft/bin/aisoft-access` 时，首推与建 PR 在项目 change worktree 内运行平台检出里的同一份 `codex/tools/aisoft-access`。
 
 ### 开发者读回
 
@@ -108,18 +113,18 @@
    不是就停下报告。用 Codex 时，项目级 `.agents/skills/` 里的 Matt 快照目前没有工具核对，如实告诉用户这一项未核对，不要声称已核对。
 3. 项目 `AGENTS.md` 的「项目事实」由项目自己填写（技术栈、测试命令、健康端点、交付形态等，见 `.aisoft/platform-usage.md` §4）；全新项目在「项目规则」登记唯一规划入口，按 [滚动阶段规划](greenfield-planning.md) 处理。
 
-### 全新项目先规划（登记与采用后）
+### 全新项目先规划（采用后）
 
 已有想法或需求材料、尚无可维护实现时，按 [需求发现与滚动阶段规划](greenfield-planning.md) 显式启动 Matt `grill-me`，
 先形成项目简报、浅层路线图与当前阶段记录的草稿；第 5 步的首张 Issue 承载规划，将规划文件列入其 `git_scope` 后按合同写入。
 当前阶段详细，下一阶段有轮廓，远期保留方向。
-已有代码走项目对齐或增量 Issue。尚未登记与采用时只整理用户本地笔记，先完成上面的接入步骤。
+已有代码走项目对齐或增量 Issue。尚未采用时只整理用户本地笔记，先完成上面的接入步骤。
 
 ## 第 5 步：跑通第一张 Issue（开发者）
 
 先读项目内 `.aisoft/platform-usage.md` §2，再带用户走一遍。
 
-1. **开 Issue**：把需求写成可测的验收标准，经 broker `gitea.issue.create`（带 `--entry-label triage/needs-triage`）创建。
+1. **开 Issue**：把需求写成可测的验收标准，经 `.aisoft/bin/aisoft-access --operation gitea.issue.create`（站点来源用 broker，带 `--entry-label triage/needs-triage`）创建。
 2. **判级与路由**：运行 `$triage #N`，输出判级并查路由表（[route-policy.md](route-policy.md)）得到路由卡；
    模型按路由卡的 `tier` 选，各工具的型号映射见平台 `08` §7.3。
 3. **建工作区**：`.aisoft/bin/aisoft change-name N <短描述>` 得到分支名，建 change worktree，
@@ -135,11 +140,13 @@
 
 | 现象 | 含义 | 处理 |
 |---|---|---|
-| broker 返回 `requested operation is not allowlisted` | 本机 broker 操作表比平台旧 | 请维护者重装 broker 后重试 |
-| broker 返回其它 `REQUEST_DENIED` | 合同拒绝（项目未登记、参数或标签不合法等） | 原样报告 `code` 与 `message`，不要重试或换路径 |
+| broker 返回 `requested operation is not allowlisted` | 本机已安装 broker 的操作表比平台旧 | 请维护者重装 broker 后重试 |
+| `aisoft-access` 拒绝闭集外操作 | 维护层操作只走站点来源 | 不换路径；确需该操作时请维护者处理 |
+| `aisoft-access` 报身份或 remote 不符 | 凭据是管理员身份或不是声明的项目身份，或 remote 被改写、分离或带 userinfo | 换成声明的非管理员项目身份，或修正 remote，不要绕过 |
+| 其它 `REQUEST_DENIED` | 合同拒绝（参数或标签不合法、项目未声明等） | 原样报告 `code` 与 `message`，不要重试或换路径 |
 | broker 偶发 `TRANSPORT_ERROR` | 传输异常，服务端是否已执行不确定 | 只读操作可重试一次；写操作（如建 Issue）先读回结果，确认没有生效再重试 |
-| `requested project is not explicitly managed` | 项目没登记 | 回第 3 步 |
-| Gitea 匿名 `404` | 私有仓库，不说明不存在 | 经 broker 读取 |
+| `requested project is not explicitly managed` | 调了站点 broker，但项目没登记站点加固访问 | 改用项目来源（第 4 步的 `project.json`），或按第 3 步的可选项登记 |
+| Gitea 匿名 `404` | 私有仓库，不说明不存在 | 经 typed 操作引擎读取 |
 | `PIN_DRIFT` | 外部技能包版本不是平台 pin | 维护者先过 `08` §5 适配清单 |
 | Codex superpowers `PIN_NOT_INSTALLED` | 官方市场没有 pin 版本，已登记 | 不阻塞，照常开发 |
 | `project-check` 有 `GAP:` | 项目与 pin 版本不一致或项目声明缺项 | 按行在项目里建 Issue 修复 |

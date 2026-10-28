@@ -17,13 +17,13 @@
   first PR 不得创建。
 - 最终 PR merge 是唯一交付硬闸门，只由人合并。会话与 project agent 自身不 merge、
   不直推受保护 `main`、不擅自部署。
-- Gitea/Git 写操作走 host-access broker 的 typed 操作，不拼 raw token、不绕过治理通道。
+- Gitea/Git 写操作走 typed 操作引擎（项目来源 `.aisoft/bin/aisoft-access`，或已登记的站点 broker），不拼 raw token、不绕过治理通道。
 
 ## 每 Issue 开发路径
 
 `$triage #N` → 映射的 summary → AI 判级。只有范围局部、可简单 revert、有可测验收且不触发
-任何强制风险的 small，在 `approved` 复核后才能跳过 spec/plan 直进实现。complex 按 governance
-manifest 中本仓的 `change_control`：`production`（未声明时的默认）必须先 `$to-spec #N` →
+任何强制风险的 small，在 `approved` 复核后才能跳过 spec/plan 直进实现。complex 按本仓的 `change_control`（项目来源取自 `.aisoft/project.json`，站点来源取自 governance
+manifest）：`production`（未声明时的默认）必须先 `$to-spec #N` →
 `$to-tickets #N`（plan 的 Txx 依赖图），再经 `approved` 复核后按计划执行（开发方式以路由表为准：Claude 与 Cursor 用
 superpowers `executing-plans`，Codex 用 `$implement #N Txx`）；
 `development` 不写 spec/plan，验收标准取自 Issue 正文，`approved` 复核后以合成 `T01` 实现。
@@ -59,4 +59,5 @@ Claude Code 与 Codex 共用同一平台合同，能力等价、可互换、不�
   公司侧只核验校验和与 release SHA 并独立授权部署，GitHub 不进入公司信任链）
 - 禁改边界：<受保护路径/数据/配置，如 migrations 历史、.env、生产脚本>
 - 选用工具与 required CI：<Claude / Codex / Cursor>；<required status contexts>
+- 访问来源：<项目自声明（`.aisoft/project.json`） | 站点加固访问>；保护规则证据：<采用 Issue 编号>
 - 项目规则：<项目文档链接，如 docs/agents/、docs/adr/、编码规范>

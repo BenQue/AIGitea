@@ -81,8 +81,8 @@ aisoft scan-worktrees --repo <checkout>
 
 派单产出的是**待人点击的卡片**（或交给人的任务书），人点了才开出会话。这是刻意保留的人工闸门，不要绕过，也不要因为「反正要开」就自己在本会话里动手。
 
-- 工作目录 = 目标项目的本地 checkout。接入 AISoft 平台的项目从 `codex/config/host-access-broker.json` 的 `projects[].mac_checkout` 读。
-- **`mac_checkout` 是 `null` 或查不到 → 停下来问人。不要拼路径、不要从别的项目类推。**
+- 工作目录 = 目标项目的本地 checkout。登记了站点加固访问的项目，从 `codex/config/host-access-broker.json` 的 `projects[].mac_checkout` 读；只用 `.aisoft/project.json` 的项目没有平台记录，checkout 路径由人在派单时给出，或取自调度会话已经核实过的、含该 `project.json` 的检出（ADR 0003）。
+- **两处都没有确定路径 → 停下来问人。不要拼路径、不要从别的项目类推。**
 - 任务书必须自包含：新会话没有本会话的上下文。至少写清 Issue 号、目标项目、可测验收标准、依赖的 Issue、以及回报地址（本调度会话的标识）。
 - 任务书带路由卡的 `process`、`tier`、`skills` 三项（Issue 还没判级时写 `awaiting-triage` 与 `frontier`）。卡片没有型号字段，人点卡片时按 tier 选型号，映射见 `08` §7.3；任务书里提醒一句。
 
@@ -93,7 +93,7 @@ aisoft scan-worktrees --repo <checkout>
 跨仓必须使用 exact `owner/repo#N`，不得填外仓裸编号。新读取必须先匹配 manifest 的
 `dependency_read_targets` 再 GET，缺省只允许本仓，允许的跨仓边以 manifest 为准。
 会话与终态工具共用身份/终态规则，本仓同号不能满足外仓前置。外仓仅由 broker
-manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。格式不支持或读取不可验证
+manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。项目来源没有 manager-audit 路由，只支持本仓依赖，跨仓依赖报不可验证。格式不支持或读取不可验证
 就是阻塞，不能换成数字或 `[]` 求绿。runtime 完成并独立安装前保留正文中的完整 reference；
 文档示例不表示功能已上线。
 
@@ -263,7 +263,7 @@ blocker；未运行写 NOT RUN。
 
 ## 不变量
 
-- 一切 Gitea 与远端 Git 访问走按项目限定的 host-access broker。
+- 一切 Gitea 与远端 Git 访问走按项目限定的 typed 操作入口：项目来源是 `.aisoft/bin/aisoft-access`，站点来源是 host-access broker（ADR 0003）。
 - 一个会话不顺手实现别的 Issue。
 - 会话不在不属于自己的 change worktree 里写入；只通知或交回（#298）。
 - `pushed_head` 与已核验的 SHA 比对之前，push 不算完成。
@@ -304,5 +304,5 @@ blocker；未运行写 NOT RUN。
 
 ## 平台适配
 
-- **接入 AISoft 平台的项目**：Issue/PR/push 走 broker typed 操作；命名元组、AI 判级、语义文档合同见 `aisoft-platform` 技能。外部技能包边界（Matt / superpowers 在平台项目内的用法）也以它为准。
+- **采用 AISoft 平台的项目**（包括只用 `.aisoft/project.json`、未在平台登记的项目）：Issue/PR/push 走当前来源的 typed 操作；命名元组、AI 判级、语义文档合同见 `aisoft-platform` 技能。外部技能包边界（Matt / superpowers 在平台项目内的用法）也以它为准。
 - **未接入的项目**：用该项目自己的 tracker 与 `git`/`gh` 等价物。会话模型、待合并格式与收尾步骤不变（第 5 步重装读回只适用于平台仓）。
