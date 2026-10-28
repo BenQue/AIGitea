@@ -26,5 +26,7 @@ for arg in "$@"; do
 done
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH="$root/codex/runtime"
-exec python3 -I -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); from aisoft_host_access.project_cli import main; raise SystemExit(main())' \
+# -I drops PYTHONDONTWRITEBYTECODE along with every other PYTHON* variable, so
+# -B is what keeps bytecode out of the project checkout's .aisoft/lib.
+exec python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); from aisoft_host_access.project_cli import main; raise SystemExit(main())' \
   "$root/codex/runtime" "$@"

@@ -47,6 +47,7 @@ updated: 2026-10-27
 | T04 `python3 -m unittest tests.test_project_source_e2e` | PASS | 3 tests OK。真实 `usage-bundle.sh --adopt --tools claude` 导出工具包，项目只有 `.aisoft/project.json`；平台 manifest 环境变量指向不存在的路径，无 `.agent.env`；每次调用都套 `sandbox-exec`，拒读平台检出与 `/usr/local/{libexec,share,lib,etc}` 下的 aisoft 安装面。依次走通：`labels-provision`；`aisoft-access` 建 Issue、读 Issue；`classify --apply/--verify`；生命周期 `approved`；`prepare-ticket`；ticket commit 后 `review-candidate`；`open-pr`（首推、建 PR、回填、再推）；`gitea.pull.read`；`gitea.commit.status.read`；PR 置为已合并后 `complete --apply` 写 `completed`，重跑 `no-op`。`application-deploy` 加 verification 分支为 `requires-deployment`，不写 completed；声明 `development` 后路由按声明重算。Git 端 Basic 认证全部来自注入助手 |
 | T04 反向证明（逐项临时改源码，跑对应测试后 `git checkout --` 复原） | PASS | 删去 site-admin 拒绝：`IdentityTest` 2 failures；删去 repo-admin 拒绝：2 failures；在 Git 环境里注入 token：`test_git_credential_reaches_git_only_through_the_injected_helper` 1 failure；让 `change_branch` 接受 `main`：`test_push_refusals_still_apply` 1 failure；同时删去入口闭集检查并把声明合同扩成全部操作：`ClosedSetTest` 7 failures、4 errors。只删入口检查时仍 OK，因为声明合同本身只含闭集，这是第二道闸门 |
 | T04 `bash codex/tests/smoke.sh` | PASS | runtime 全集 779 tests OK（含 11 条新 E2E/工具测试）；尾行 `Codex platform static smoke checks passed.` |
+| PR CI 第 1 次（head `5790d40c`，run 2221） | FAIL→修复 | `CI / verify (pull_request)` 红在 `test_whole_flow_without_any_platform_record`：`aisoft open-pr: the worktree is not clean`。根因：`aisoft-access` 以 `python3 -I` 运行，`-I` 会丢掉 `PYTHONDONTWRITEBYTECODE`，CI 的 python3 把 `__pycache__` 写进项目检出的 `.aisoft/lib`。本机测试的 PATH 把 `/usr/bin` 的 3.9 排在前面，所以没有暴露。处置：入口改为 `python3 -I -B`；测试 PATH 改为与运行测试的解释器一致，本机先复现红，修复后转绿；发布包 1.21.2；本机 smoke 791 tests 全绿。后续的 `Pinned Linux PAT helper verification` 只是因前一步失败而被跳过 |
 | T01 残留表述 rg（`登记与采用|先.{0,6}登记|必须先登记|新项目登记|登记新项目|已注册项目|登记进平台`，排除 `docs/changes`、`archive`、`codex/vendor`、`usage/releases`） | 已判定 | 见下表 |
 
 T01 残留表述判定：
@@ -74,7 +75,7 @@ T01 残留表述判定：
 | AC-4 | PASS | T02 声明、remote、身份、闭集、推送拒绝与 token 卫生测试；站点回归在 T02、T03、T04 三次全量 smoke 中通过；T04 反向证明 |
 | AC-5 | PASS | T03 冲突与 `--project` 拒绝测试；站点来源既有回归不变；下文「迁移与回滚」 |
 | AC-6 | PASS | T01：onboarding-runbook §0、§0.1「接入既有项目」八步；getting-started 第 3 步改为可选 |
-| AC-7 | PASS | 发布包 1.18.0（T01 文档）、1.19.0（T02 引擎闭包、入口、schema、模板、标签集合）、1.20.0（T03 工具接线）、1.21.0 与 1.21.1（交叉审查修复）；T04 用 `--adopt` 导出的包跑通即证明闭包齐全。`aisoft version` 在项目布局读 provenance，由既有 smoke 覆盖 |
+| AC-7 | PASS | 发布包 1.18.0（T01 文档）、1.19.0（T02 引擎闭包、入口、schema、模板、标签集合）、1.20.0（T03 工具接线）、1.21.0 与 1.21.1（交叉审查修复）、1.21.2（PR CI 修复）；T04 用 `--adopt` 导出的包跑通即证明闭包齐全。`aisoft version` 在项目布局读 provenance，由既有 smoke 覆盖 |
 | AC-8 | 已记录 | 下文「未验证边界」 |
 
 ### 入口清单（AC-2）

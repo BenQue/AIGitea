@@ -11,6 +11,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -22,11 +23,14 @@ from tests.project_source_fixture import (
 
 
 def tool_path() -> str:
-    directories = ["/usr/bin", "/bin"]
+    # The interpreter running this suite comes first, so the tools see the same
+    # python3 CI does rather than whatever /usr/bin happens to carry.
+    directories = [os.path.dirname(sys.executable)]
     for binary in ("jq", "python3"):
         found = shutil.which(binary)
         if found:
             directories.append(os.path.dirname(found))
+    directories += ["/usr/bin", "/bin"]
     return ":".join(dict.fromkeys(directories))
 
 
