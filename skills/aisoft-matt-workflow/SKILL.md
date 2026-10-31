@@ -30,11 +30,11 @@ implementation and review. Read them on first use; do not reload if already read
 1. `$triage #N` — preserve Matt's complete verify/grill/brief flow. Mutate triage labels through the platform label
    projector; `ready-for-agent` never implies `approved`.
 2. Run the platform analyzer. It validates one immutable slug and creates the exact `change/N-short-description`, `docs/changes/N-short-description/`, `issue-N-short-description` tuple plus mapped summary. Existing legacy names are discovered from evidence, never selected by a caller flag.
-3. For production complex work, run `$to-spec #N`. Publish to the mapped `spec` file and keep lifecycle `spec-drafting`
-   until the complete contract is validated. Development complex uses measurable Issue acceptance criteria and skips
-   ceremonial spec/plan.
-4. For production complex work, run `$to-tickets #N`. Publish the approved `Txx` vertical-slice dependency graph to
-   the mapped `plan` file. Development complex uses synthetic `T01`. Default mode stays inside the parent Issue.
+3. Run `$to-spec #N` for every Issue and publish to the mapped `spec` file; small and development complex without a
+   high-risk flag get the short form (goal, scope and non-scope, acceptance, needed risk, `git_scope`). Production complex
+   keeps lifecycle `spec-drafting` until the complete contract is validated.
+4. Where the route policy's `文档义务` table requires a plan, run `$to-tickets #N` and publish the approved `Txx`
+   vertical-slice dependency graph to the mapped `plan` file. Development complex without a plan uses synthetic `T01`. Default mode stays inside the parent Issue.
 5. After contract validation sets `approved`, the Codex session runs `$implement #N Txx` for one frontier ticket at a time.
    Follow the shared [execution adapter](../aisoft-platform/references/execution-adapter.md): record the ticket BASE before
    implementation, test, commit only this ticket locally, pin HEAD and check omissions, then review the same fixed candidate

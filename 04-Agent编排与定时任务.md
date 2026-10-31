@@ -48,10 +48,10 @@ override_reason:
 
 会话（或任何判级工具）必须按强制风险规则和显式标签优先级复核结果，再执行互斥标签变更：
 
-- 明确 small：只保留一个 `type/*` 和 `complexity/small`；合同完整时写入 `approved`，否则进入 `awaiting-triage`。
+- 明确 small：只保留一个 `type/*` 和 `complexity/small`；简版 spec 与文档预检完整时写入 `approved`，否则进入 `awaiting-triage`。
 - 明确 complex：只保留一个 `type/*` 和 `complexity/complex`；production 进入 `spec-drafting`，
-  spec/plan 合同完整后才可写入 `approved`；development 由 Issue 正文提供可测验收标准，
-  不生成 spec/plan，合同完整后可写入 `approved`。
+  spec 与路由表「文档义务」要求的 plan 完整、文档预检 OK 后才可写入 `approved`；development 同样
+  先写 spec，plan 按「文档义务」，合同完整后可写入 `approved`。
 - `assessed_complexity: needs-human-decision`、`contract_effect: unclear`、低置信度冲突或风险边界不明：移除两个 complexity 标签，保持 `awaiting-triage`。
 - Issue 显式要求 `complexity/complex` 时不得降级；显式 `complexity/small` 触发强制复杂规则时必须覆盖为 complex，并在 summary 和 Issue 评论记录 `override_reason`。
 

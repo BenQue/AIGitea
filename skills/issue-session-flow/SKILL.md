@@ -175,7 +175,7 @@ commit、测试与普通修复、必需的更宽闸门、判级投影。确认�
 
 ## 确认点 1：合同/启动
 
-triage、判级与路由要求的 semantic docs 完整后，输出 exact Issue 合同并询问是否开始实现。
+triage、判级与路由要求的 semantic docs 完整、`aisoft classify N` 的「文档预检」为 OK 后，输出 exact Issue 合同并询问是否开始实现。预检不是 OK 就按它给的补齐办法补文档，不进入确认点 1。
 确认后只把映射 summary 的 `status` 改为 `approved`（spec、plan 不再带 `status`，#408）；它只授权合同内实现、测试和修复，不授权提交 PR、merge 或 deploy。
 
 候选里固定带一行路由，取自 summary 的 `route:`（查 `aisoft-platform` 技能的 `references/route-policy.md` 得出），

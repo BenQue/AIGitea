@@ -6,7 +6,7 @@ description: Turn a production-phase complex analyzed Gitea Issue into its mappe
 # Draft the spec and plan
 
 1. Read `AGENTS.md`, the Issue and valid comments, then resolve the one evidence-backed `docs/changes/<N>-<short-description>/` and its `documents` mapping. Stop on legacy/readable or multi-slug conflict. Only use a numeric directory and the four fixed legacy basenames when repository/remote history proves a legacy contract.
-2. Require the analyzed metadata to contain `effective_complexity: complex` and the repository route to require `spec` plus `plan`. Reject validated `small` and development-phase complex work instead of generating ceremonial documents; development takes measurable acceptance criteria from the Issue and uses synthetic `T01`.
+2. Every Issue gets a mapped spec (#436). Look up the route policy's `文档义务` table: for small and development complex without a high-risk flag write only the short spec (goal, scope and non-scope, measurable acceptance, needed risk and rollback, `git_scope`) and no plan; otherwise write the full spec below and the plan.
 3. Ask one decision-focused question at a time when a material choice remains.
 4. Keep the run document-only. Do not change product code, schema, workflows, deployment scripts, labels, or PR state.
 5. Write the mapped `spec-<short-slug>-<YYMMDD>.md` with goal, rationale, measurable acceptance criteria, interface/data/migration/compatibility effects, risks, and explicit non-goals.

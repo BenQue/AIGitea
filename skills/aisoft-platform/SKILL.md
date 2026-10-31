@@ -5,7 +5,7 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 
 # AISoft 自托管交付平台（v3.6）
 
-自托管的「Issue → AI 分析判级 →（small 直进 / production complex 先 spec/plan / development complex 用 Issue 验收合同）→ 提交确认 → 单 PR → 人工合并 → 独立部署授权」平台。核心原则：**Issue 定义工作，AI 会话把明确合同做到最终 PR；人确认提交，人合并；部署不由 merge 授权。** VM 上的 Development Loop 与 routine 自动合并已按 ADR 0002 退出（#391）。
+自托管的「Issue → AI 分析判级 →（每个 Issue 先写 spec：small/development 简版、plan 按风险）→ 提交确认 → 单 PR → 人工合并 → 独立部署授权」平台。核心原则：**Issue 定义工作，AI 会话把明确合同做到最终 PR；人确认提交，人合并；部署不由 merge 授权。** VM 上的 Development Loop 与 routine 自动合并已按 ADR 0002 退出（#391）。
 
 本技能是唯一来源，由平台安装器生成各工具的落点。文中 `$名称` 表示“调用名为该名称的技能”，各工具按自己的方式调用。
 
@@ -26,8 +26,8 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 - **可读命名元组**：新变更 = Issue `N` + 分支 `change/N-短描述` + 目录 `docs/changes/N-短描述/` + worktree `issue-N-短描述` + 唯一 PR（`Closes #N`）。编号仍是唯一主键；remote/history evidence 已存在的 `change/N`、`docs/changes/N/` 与 pre-#57 纯数字文档只作读取或维护兼容，新 writer、first push 和 first PR 不得创建。
 - **语义文档**：新文档名 `<role>-<短描述>-<YYMMDD>.md`，summary front matter 的 `documents` 字段映射 summary/spec/plan/verification 到真实文件名。解析用 `aisoft resolve-documents N`，不要 glob 猜。
 - **判级**：contract_effect 先行（restore/unchanged → small 候选；add/change → complex；unclear → 人工澄清）。功能新增/变更、schema/迁移、外部契约、安全、共享核心、跨模块、CI/制品/部署/回滚、Agent/治理一律强制 complex。small 还须范围局部、可简单 revert，并有可测验收标准。显式要求 complex 照办；要求 small 不能绕过 AI 校验与强制 complex 规则。
-- **文档要求**：production complex 必须有映射的 spec 与 plan；development complex 从 Issue 读取可测验收标准并用合成 `T01`；已验证的 small 与 development complex 不写仪式性 spec/plan。验收证据不能由 diff review 与 required CI 重放时声明 `verification`；部署与迁移总要它，但 `verification` 不等于部署。
-- **Matt 主路径**：开发方式以 [路由表](references/route-policy.md) 为准。每个 Issue 走 `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → 按计划执行（Claude 与 Cursor 用 superpowers `executing-plans`，Codex 用 `$implement #N Txx`）（平台适配规则见下文「外部技能包边界」；small 与 development complex 在 triage+summary+判级+`approved` 复核后跳过 spec/plan，后者使用合成 `T01`）。`triage/ready-for-agent` ≠ `approved`；`approved` 只授权开始实现，不授权 merge 或部署。仓库初始化调用 `$setup-matt-pocock-skills`（tracker 选 `Other`），使用 `templates/docs/agents/` 的 tracker、triage、domain 三份文件；Codex 侧经 `aisoft-matt-workflow` 适配器串起这一步。
+- **文档要求**：每个 Issue 都有映射的 summary（短索引）与 spec；简版/完整版与 plan 是否必须查 [路由表](references/route-policy.md)「文档义务」：small 与无高风险的 development complex 用简版 spec、不写 plan（后者用 spec AC 合成 `T01`），其余 complex 用完整版 spec 加 plan。spec 的 `git_scope` 是推送守卫的唯一范围来源；确认点 1 前 `aisoft classify N` 的「文档预检」须为 OK。验收证据不能由 diff review 与 required CI 重放时声明 `verification`；部署与迁移总要它，但 `verification` 不等于部署。
+- **Matt 主路径**：开发方式以 [路由表](references/route-policy.md) 为准。每个 Issue 走 `$triage #N` → production complex `$to-spec #N` → `$to-tickets #N` → 按计划执行（Claude 与 Cursor 用 superpowers `executing-plans`，Codex 用 `$implement #N Txx`）（平台适配规则见下文「外部技能包边界」；`$to-spec` 对每个 Issue 都产出 spec，small 与无高风险的 development complex 出简版并跳过 `$to-tickets`，后者使用合成 `T01`）。`triage/ready-for-agent` ≠ `approved`；`approved` 只授权开始实现，不授权 merge 或部署。仓库初始化调用 `$setup-matt-pocock-skills`（tracker 选 `Other`），使用 `templates/docs/agents/` 的 tracker、triage、domain 三份文件；Codex 侧经 `aisoft-matt-workflow` 适配器串起这一步。
 - **路由**：`$triage #N` 与平台判级之后，显式指定 provider，查 [route-policy](references/route-policy.md) 得到八键 `route:` 与 summary 顶层 `route_provider`，把执行/核验义务展开为具体技能再写入合同与判级评论。历史卡只读兼容，执行时重新解析，不猜 provider。确认点 1 展示具体路由；人覆盖某格写入 `override_reason`，不能把强制 complex 降为 small。默认分工不变，其余技能按 Issue 选择并记录；模型按 tier 选，型号映射见 `08` §7.3。
 - **执行与审查适配**：按 [execution-adapter](references/execution-adapter.md) 处理 Txx→Task N、frontier/恢复、开始前 BASE、本地提交后的固定候选与实际新 HEAD 审查。small/SP 不增加 Matt 每票双轴义务。新 helper 的接口合同不是运行可用证明，缺能力如实报告 GAP。
 - **27 标签四维正交**：10 `type/*`（bugfix/feature/docs/test/refactor/maintenance/platform/security/reliability/data，Issue 作者输入，AI 按证据核对或更正一个主类型）+ 2 `complexity/*`（AI 输出，不是作者覆盖）+ 8 生命周期（`completed` 与 `deployed` 互斥终态；`completed` 是合并且无需部署，`deployed` 要求确定性部署与验证）+ 7 `triage/*`（Matt 编排）。
@@ -109,7 +109,7 @@ summary-only 回填会产生一个合法的新 head。在后续 push 之前，�
 
 1. 需求/缺陷 → broker `gitea.issue.create`，必须带 `--entry-label`（`needs-analysis`，或 triage 入口 `triage/needs-triage`）；正文写可测验收标准，衍生 Issue 另写来源会话、目标项目与已知依赖（`03` §1）。
 2. `aisoft change-name N <slug>` 校验命名 → `git worktree add /private/tmp/issue-N-<slug> -b change/N-<slug> origin/main` → `aisoft claim-worktree`（并行会话必须各自 worktree；commit 前 `git branch --show-current` 核对——`06` 踩坑 15）。
-3. 按判级与 `change_control` 写映射文档（production complex 补 spec/plan；development complex 从 Issue 读取验收标准并用合成 `T01`），实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。`verification` 由证据能否经 diff review + required CI 重放决定，不等同部署。summary 此时写**真实的**前置 `status`（通常 `approved`），`pr_url` 留空——PR 还不存在。
+3. 按判级、`change_control` 与路由表「文档义务」写映射文档（每个 Issue 都写 spec 并列全 `git_scope`；要求时补 plan，否则 development 用 spec AC 合成 `T01`），先跑 `aisoft classify N` 看「文档预检」为 OK，实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。`verification` 由证据能否经 diff review + required CI 重放决定，不等同部署。summary 此时写**真实的**前置 `status`（通常 `approved`），`pr_url` 留空——PR 还不存在。
 4. 判级投影：`aisoft classify N` 看计划与路由行 → `aisoft classify --apply N` → `aisoft classify --verify N` 读回两个维度都 `projected` 才算完成；窗口在合并时关闭，closed Issue 永不补写。读到 `broker-operation-missing` 见 `06` 踩坑 20，结论与 Gitea 事实不符见踩坑 21。
 5. 平台仓的 complex 变更：进入确认点 2 之前，由未参与实现的另一方提供者对候选 head 做一次只读交叉审查，结论记入 verification（`03` §「交叉审核」）。
 6. 本地验证完成后进入 `AWAITING_PR_CONFIRMATION`（候选格式见 `issue-session-flow`）；确认后 `aisoft open-pr N --title <标题> --body-file <正文文件>` 一步完成首推、建 PR、回填与再推（见上文「PR URL 回填」），**到开 PR 为止**；`pr_url` 合同见 `03` §3。

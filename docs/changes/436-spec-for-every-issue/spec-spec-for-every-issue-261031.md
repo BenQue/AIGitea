@@ -50,6 +50,7 @@ git_scope:
   - skills/aisoft-platform/references/route-policy.md
   - skills/gitea-analyze-change/SKILL.md
   - skills/gitea-development-loop/SKILL.md
+  - skills/gitea-spec-plan/SKILL.md
   - skills/issue-session-flow/SKILL.md
   - templates/docs/changes/_template/spec.md
   - templates/docs/changes/_template/summary.md

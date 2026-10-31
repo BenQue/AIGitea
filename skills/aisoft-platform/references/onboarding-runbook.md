@@ -334,8 +334,8 @@ VM 上的 Development Loop 已随 #391 退出（ADR 0002）；开发由 Mac 上�
 4. 合并后由独立 `appserver-test` 确定性部署和精确 SHA health 通过。
 5. 判级对真实 Issue 输出确定性分类，投影工具写入正确且互斥的标签。
 6. Small Issue 从明确合同开始实现并准备绿色 PR。
-7. Production complex Issue 缺 spec/plan 时拒绝，补齐后按 plan 执行；development complex
-   从 Issue 读取可测验收标准并使用合成 `T01`，不生成仪式性 spec/plan。
+7. 任何 Issue 缺 spec，或缺路由表「文档义务」要求的 plan 时拒绝，补齐后执行；不写 plan 的
+   development complex 从 spec 读取可测验收标准并使用合成 `T01`。
 8. 普通测试失败由会话自修复。
 9. 合同冲突、外部阻塞和三次同因失败正确升级。
 10. CI failure feedback 能进入下一轮。

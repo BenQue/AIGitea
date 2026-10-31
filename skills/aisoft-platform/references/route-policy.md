@@ -47,7 +47,7 @@ R2 仍先于 R3：development 即使有高风险 flag 也保持现有命中顺�
 | cursor | `executing-plans` | `verification-before-completion` |
 
 这是计划执行与完成核验的唯一 provider 映射。skills 是必用集合；R2/R5 不含 `@plan`，
-不据此强制 spec/plan、完整 SP 循环或 Matt 每票双轴。development complex 的合成 T01 按既有 provider 默认执行。
+不据此强制完整 SP 循环或 Matt 每票双轴；文档义务见下文「文档义务」。development complex 的合成 T01 按既有 provider 默认执行。
 未知/缺失 provider、未展开引用、空/重复/不存在的具体技能或与 provider 矛盾的组合不得静默通过。
 R1 不因 provider 合法而获得实施权限。已批准的显式覆盖仍走 override_reason，不把默认当成不可覆盖的品牌选择。
 
@@ -62,6 +62,26 @@ R1 不因 provider 合法而获得实施权限。已批准的显式覆盖仍走 
 | S1 | R3、平台仓、安全类 | review 改为 `cross-provider+security` |
 | P1 | R3、项目仓 | skills 末尾加 `code-review`（Matt 两轴审查，至少 spec 轴） |
 | G1 | R3 或 R4，且（`change_type: feature` 或 `contract_effect: add` 或一个阶段要拆成多个 Issue） | skills 最前面加 `grill-me` |
+
+## 文档义务
+
+每个 Issue 都交付映射的 summary 与 spec（#436）。summary 只作短索引与机器元信息，需求、范围、验收与风险只写在 spec。
+按推导表命中的行查文档义务，自上而下取第一行命中：
+
+| 行 | 命中 | spec | plan |
+|---|---|---|---|
+| D1 | R1 | `none` | `none` |
+| D2 | R2 且含高风险 flag | `full` | `required` |
+| D3 | R2 | `lite` | `none` |
+| D4 | R3 或 R4 | `full` | `required` |
+| D5 | R5 | `lite` | `none` |
+
+`lite`（简版）：front matter 绑定 exact `issue`/`branch` 并声明 `git_scope`，正文写目标、范围与非范围、可测验收，需要时加风险与回退。
+`full`（完整版）在此之上写接口/数据/兼容影响与「未决问题」，`approved` 前未决问题须清空。`git_scope` 必须列出本 Issue
+全部映射文档与所有将提交的文件，推送守卫只从已提交的 spec 读取它。`plan: none` 时不写 plan：development 的合成 `T01`
+取 spec 的验收标准，small 直接按 spec 验收实现；`required` 时按 plan 的 Txx 执行，D2 的 route 卡不变，执行入口用本文件
+「Provider 映射」的 `@plan`。`verification` 不由本表决定（见 `03` §3）。确认点 1 之前 `aisoft classify N` 的「文档预检」行
+必须是 OK。
 
 ## 取值闭集
 

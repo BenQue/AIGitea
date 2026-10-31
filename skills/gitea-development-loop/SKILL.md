@@ -1,15 +1,15 @@
 ---
 name: gitea-development-loop
-description: Drive a contract-ready Gitea Issue through a bounded implement-verify-repair loop until its final-PR candidate is ready or it must escalate. Use after approved for small Issues, production complex Issues with complete spec/plan, or development complex Issues with measurable Issue acceptance criteria; handle ordinary test and CI failures autonomously, but never change the contract, choose merge policy, merge, or deploy.
+description: Drive a contract-ready Gitea Issue through a bounded implement-verify-repair loop until its final-PR candidate is ready or it must escalate. Use after approved for any Issue whose mapped spec, and the plan the route policy requires, are complete; handle ordinary test and CI failures autonomously, but never change the contract, choose merge policy, merge, or deploy.
 ---
 
 # Run a Gitea development loop
 
-1. Read `AGENTS.md`, the Issue and valid comments, resolve the active summary from its strict name and `documents` mapping, and read the session's own progress notes. For production complex work, also read the mapped spec and plan in full before making any edit. For development complex work, read measurable acceptance criteria from the Issue. Fall back to fixed legacy basenames only for legacy summaries.
+1. Read `AGENTS.md`, the Issue and valid comments, resolve the active summary from its strict name and `documents` mapping, and read the session's own progress notes. Read the mapped spec in full before making any edit, and the mapped plan whenever the route policy's `文档义务` table requires one. Fall back to fixed legacy basenames only for legacy summaries.
 2. Validate the contract before editing:
-   - require measurable Issue acceptance criteria for `small`;
+   - require a mapped spec bound to the exact issue/branch with a non-empty `git_scope` and measurable acceptance criteria for every route (`aisoft classify N` prints the document preflight);
    - for production `complex`, require both mapped `spec` and `plan`; validate that their metadata says `effective_complexity: complex`, the spec has measurable acceptance criteria and no unresolved material decisions, and the plan maps in-scope tasks and deterministic verification to those criteria;
-   - for development `complex`, require measurable acceptance criteria in the Issue and no mapped spec/plan; use synthetic `T01` while keeping every forced-complex safety rule;
+   - for development `complex`, require a plan only when it carries a high-risk flag; without a plan use synthetic `T01` built from the spec acceptance criteria while keeping every forced-complex safety rule;
    - require mapped `verification` work whenever the mapped summary's `required_docs` includes that role; declaring it means the change owes a verification record, not that the change deploys, so never re-derive the requirement from deployment scope;
    - stop if the Issue, summary, route-required documents, or plan conflict, omit required scope, or contain unresolved material decisions.
 3. Before every edit, recompute `contract_effect` and all forced-complex risk conditions from the current Issue contract and repository evidence. Do not trust a stale `complexity/small` label or summary field.

@@ -22,11 +22,11 @@
 ## 每 Issue 开发路径
 
 `$triage #N` → 映射的 summary → AI 判级。只有范围局部、可简单 revert、有可测验收且不触发
-任何强制风险的 small，在 `approved` 复核后才能跳过 spec/plan 直进实现。complex 按本仓的 `change_control`（项目来源取自 `.aisoft/project.json`，站点来源取自 governance
+任何强制风险的 small，写简版 spec、`approved` 复核后不写 plan 直进实现。每个 Issue 都交付 spec（#436）。complex 按本仓的 `change_control`（项目来源取自 `.aisoft/project.json`，站点来源取自 governance
 manifest）：`production`（未声明时的默认）必须先 `$to-spec #N` →
 `$to-tickets #N`（plan 的 Txx 依赖图），再经 `approved` 复核后按计划执行（开发方式以路由表为准：Claude 与 Cursor 用
 superpowers `executing-plans`，Codex 用 `$implement #N Txx`）；
-`development` 不写 spec/plan，验收标准取自 Issue 正文，`approved` 复核后以合成 `T01` 实现。
+`development` 先写 spec，含高风险 flag 时另写 plan，否则 `approved` 复核后以合成 `T01` 实现 spec 的验收标准。
 普通编译/测试/CI 失败自主修复；合同冲突、范围扩张、破坏性迁移、安全决策、三次同因失败
 必须停下升级给人。
 
