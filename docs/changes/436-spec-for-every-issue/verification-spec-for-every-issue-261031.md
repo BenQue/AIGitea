@@ -32,7 +32,7 @@ updated: 2026-10-31
 
 | Command / check | Result | Evidence |
 |---|---|---|
-| `python3 -m unittest discover -s tests -t .`（codex/runtime） | PASS | 805 个用例；新增：small/development 缺 spec、small spec 复杂度不符、D2 含高风险缺 plan 与有 plan、spec AC 合成 T01、development 有 plan 走 Txx、文档义务表五行与篡改 fail closed、预检四类缺口、模板产出的简版 spec 通过 `scope()` 与旧 summary-only 形状被拒 |
+| `python3 -m unittest discover -s tests -t .`（codex/runtime） | PASS | 807 个用例；新增：small/development 缺 spec、执行入口拒绝高风险缺 plan、预检拒绝 summary 与 spec 一致写错的分支、legacy 推断的可选文档不算义务、small spec 复杂度不符、D2 含高风险缺 plan 与有 plan、spec AC 合成 T01、development 有 plan 走 Txx、文档义务表五行与篡改 fail closed、预检四类缺口、模板产出的简版 spec 通过 `scope()` 与旧 summary-only 形状被拒 |
 | `bash codex/tests/smoke.sh` | PASS | 含 test-aisoft-entry（简版 spec fixture）、test-usage-bundle、模板 digest 校验 |
 | 反向证明 | PASS（各自变红） | 去掉 small 的 spec 义务 → 4 例红；去掉 D2 风险分支 → 高风险缺 plan 用例红；去掉 git_scope 覆盖检查 → 预检用例红；合成 T01 改回 Issue 正文 → T01 用例红；恢复后工作树干净 |
 | `aisoft classify 436` | PASS | 打印路由行与「文档预检 #436: OK」 |
@@ -47,3 +47,4 @@ updated: 2026-10-31
 
 | 轮次 | 实现方 | 审查方 | exact head | 结论 | 发现与处置 |
 |---|---|---|---|---|---|
+| 1 | Claude | Codex（`codex exec -s read-only -m gpt-6-astra -c model_reasoning_effort="high"`） | `f7951980cad94f437d7f6ccfdd06b79033bd09e0` | FAIL（1 P1、4 P2） | P1 执行入口在 development 无 plan 时直接合成 T01，绕过 D2 → 执行前按文档义务校验并补用例；P2 预检只比 spec 与 summary 的 branch → 由目录名推导 exact branch；P2 legacy 推断的四份文档被当成义务 → 新增 `declared_documents`；P2 `gitea-spec-plan` 与 `AGENTS.md` 措辞漏 D2 → 改写；P2 1.22.0 迁移说明未分风险 → 重发同号分列步骤。均已修 |
