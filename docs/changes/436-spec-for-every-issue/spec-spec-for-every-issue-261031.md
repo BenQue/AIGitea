@@ -34,6 +34,7 @@ git_scope:
   - codex/runtime/tests/test_route_policy.py
   - codex/runtime/tests/test_ticket_execution.py
   - codex/runtime/tests/test_vendored_change_templates.py
+  - codex/tests/fixtures/classification/small.yaml
   - codex/tests/smoke.sh
   - codex/tests/test-aisoft-entry.sh
   - codex/tools/aisoft

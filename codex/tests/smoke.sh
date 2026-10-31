@@ -674,7 +674,7 @@ loop_skill="$ROOT/skills/gitea-development-loop/SKILL.md"
 
 declared_analyzer_headings="$(
   awk '
-    /Produce exactly these five level-two Markdown sections/ {
+    /Produce exactly these two level-two Markdown sections/ {
       in_output_section_list = 1
       next
     }
@@ -686,14 +686,11 @@ declared_analyzer_headings="$(
 )"
 expected_analyzer_headings="$(
   printf '%s\n' \
-    '## 问题/需求总结' \
-    '## 影响范围' \
-    '## 初步方案与建议' \
-    '## 风险' \
+    '## 索引' \
     '## AI 判级'
 )"
 if [[ "$declared_analyzer_headings" != "$expected_analyzer_headings" ]]; then
-  echo 'Analyzer 输出节列表必须且只能按规定顺序包含五个二级标题' >&2
+  echo 'Analyzer 输出节列表必须且只能按规定顺序包含两个二级标题' >&2
   exit 1
 fi
 if grep -Fq '## 复杂度建议' "$analyze_skill"; then
@@ -798,7 +795,7 @@ if grep -Eq '^effective_complexity:' "$unclear_fixture"; then
   exit 1
 fi
 grep -Fxq 'contract_effect: unclear' "$unclear_fixture"
-[[ "$(fixture_required_docs "$small_fixture")" == 'summary' ]]
+[[ "$(fixture_required_docs "$small_fixture")" == $'summary\nspec' ]]
 [[ "$(fixture_required_docs "$unclear_fixture")" == 'summary' ]]
 [[ "$(fixture_required_docs "$complex_fixture")" == $'summary\nspec\nplan' ]]
 
