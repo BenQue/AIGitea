@@ -164,14 +164,16 @@ class ProjectSourceEndToEndTest(unittest.TestCase):
         self.build(change_control="development")
         self.run_kit("aisoft", "labels-provision")
         self.gitea.add_issue(7, "demo change", labels=("approved",))
-        self.gitea.issues[7]["body"] = "## Acceptance criteria\n\n- [ ] AC-1 the demo works\n"
+        # #436: the synthetic T01 reads the spec AC; the Issue body is not the contract.
+        self.gitea.issues[7]["body"] = "no acceptance criteria here"
         route = json.loads(self.run_kit("aisoft", "resolve-route", "7", "--provider", "claude").stdout)
         self.assertEqual(route["route"]["process"], "complex-development")
         self.assertEqual(route["differences"], {})
         prepared = json.loads(self.run_kit("aisoft", "prepare-ticket", "7", "T01",
                                            "--provider", "claude").stdout)
         self.assertEqual(prepared["route"]["process"], "complex-development")
-        self.assertEqual(prepared["identity"]["plan_path"], "issue:" + self.issue_url)
+        self.assertEqual(prepared["identity"]["plan_path"],
+                         "spec:docs/changes/7-demo-change/spec-demo-change-261027.md")
 
 
 if __name__ == "__main__":
