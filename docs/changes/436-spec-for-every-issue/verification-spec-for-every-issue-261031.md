@@ -38,7 +38,7 @@ updated: 2026-10-31
 | `aisoft classify 436` | PASS | 打印路由行与「文档预检 #436: OK」 |
 | `aisoft classify --verify 436` | PASS | `projected`（type/platform、complexity/complex） |
 | `rg` 旧说法（AC-1） | PASS | 平台仓非历史文本不再有「small/development 不写 spec」类句子；剩余命中只在 `03` 来历表 #134 行、已合并 change 目录与历史 fixture |
-| `usage-bundle.sh --release 1.22.0`（AC-5） | PASS | `sha256:dad1a15ce9466647a42a064d4724fd7da035eae0d66e35d504feb6825bcb0034`，notes 写迁移方式 |
+| `usage-bundle.sh --release 1.22.0`（AC-5） | PASS | `sha256:f39066dcf344bd7a7cd5fc412681b8647327533d4203997fe38106db9ee7eb46`，notes 写迁移方式 |
 | `change-template-sync.sh --refresh-digest` | PASS | digest 已刷新；4 个持有副本的项目为 stale，需各自 Issue 同步（既有广播机制） |
 | typed `git.push.change` / `open-pr` 实推 | NOT RUN | 确认点 2 之后执行；守卫逻辑未改，由 `test_main_integration` 与 project-source 工具用例覆盖 |
 | 下游项目采用 1.22.0 | NOT RUN | 不在本票范围 |

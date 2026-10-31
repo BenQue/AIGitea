@@ -11023,7 +11023,7 @@
     {
       "version": "1.22.0",
       "released": "2026-10-31",
-      "bundle_digest": "sha256:dad1a15ce9466647a42a064d4724fd7da035eae0d66e35d504feb6825bcb0034",
+      "bundle_digest": "sha256:f39066dcf344bd7a7cd5fc412681b8647327533d4203997fe38106db9ee7eb46",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -11649,14 +11649,14 @@
           "mode": "exact",
           "target": ".aisoft/lib/codex/runtime/aisoft_loop/route_policy.py",
           "check": "tool-provenance",
-          "sha256": "06a34b7220aa73554e8f6761d2f5b09ccf4c6072700cf62d5779449ac2bcc0d7"
+          "sha256": "ee78350e67ea40a21eafb2d86cabfacfdb9e99448976b0ed9cc3df407edbac21"
         },
         {
           "source": "codex/runtime/aisoft_loop/ticket_execution.py",
           "mode": "exact",
           "target": ".aisoft/lib/codex/runtime/aisoft_loop/ticket_execution.py",
           "check": "tool-provenance",
-          "sha256": "af0097b9312265bfa1fe556e46b907e8988413a8b73ffb8341506611972b886a"
+          "sha256": "5a337978490cf8b6882771393297bcc54dfae6797a950ae80b1b327b0acd8eaf"
         },
         {
           "source": "codex/runtime/aisoft_loop/review_candidate.py",
@@ -11666,7 +11666,7 @@
           "sha256": "66404e2440f16170372bb523df2749305e5ec3eb0681b54081ed2c40372deb15"
         }
       ],
-      "notes": "所有 Issue 交付 spec（#436）：small 与无高风险 development 用简版 spec、不写 plan，development 含高风险 flag 必须有 plan；summary 收为短索引；aisoft classify 加确认点 1 文档预检。迁移：在途的 small/development 变更补一份含 git_scope 的简版 spec 并把 spec 加进 summary 的 required_docs/documents；已合并的 change 目录不追溯；同步 docs/changes/_template",
+      "notes": "所有 Issue 交付 spec（#436）：small 与无高风险 development 用简版 spec、不写 plan；development 含高风险 flag 用完整版 spec 并必须有 plan；summary 收为短索引；aisoft classify 加确认点 1 文档预检。迁移：在途 small 与无高风险 development 变更补一份含 git_scope 的简版 spec；在途含高风险 flag 的 development 变更补完整版 spec 与 plan；两者都把新文档加进 summary 的 required_docs 与 documents，并让 git_scope 列全映射文档；已合并的 change 目录不追溯；同步 docs/changes/_template",
       "compatibility": "minor"
     }
   ]
