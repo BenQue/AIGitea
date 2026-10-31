@@ -421,6 +421,27 @@ class DocumentObligationTests(unittest.TestCase):
             spec = directory / names["spec"]
             spec.write_text(spec.read_text().replace("branch: change/57-matt-flow", "branch: change/58-other"))
             self.assertIn("spec 的 issue/branch", document_preflight(repo, 57)[0])
+        with tempfile.TemporaryDirectory() as temp:
+            # Summary and spec agreeing on a wrong branch is still wrong: the directory names it.
+            repo, directory, names = self.preflight_repo(temp)
+            for name in names.values():
+                path = directory / name
+                path.write_text(path.read_text().replace("branch: change/57-matt-flow", "branch: change/57-wrong-branch"))
+            self.assertEqual(document_preflight(repo, 57), [
+                "summary 的 branch 必须是 change/57-matt-flow",
+                "spec 的 issue/branch 必须是 57 与 change/57-matt-flow"])
+
+    def test_legacy_inferred_optional_documents_are_not_obligations(self):
+        """A legacy summary infers four basenames; only its declared required_docs are present."""
+        from aisoft_loop.route_policy import declared_documents
+        inferred = {"summary": "00-summary.md", "spec": "01-spec.md", "plan": "02-plan.md",
+                    "verification": "03-verification.md"}
+        legacy = {"required_docs": ["00-summary.md", "01-spec.md"]}
+        self.assertEqual(declared_documents(legacy, inferred),
+                         {"summary": "00-summary.md", "spec": "01-spec.md"})
+        explicit = {"required_docs": ["summary", "spec"], "documents": {"summary": "s.md", "spec": "p.md"}}
+        self.assertEqual(declared_documents(explicit, {"summary": "s.md", "spec": "p.md"}),
+                         {"summary": "s.md", "spec": "p.md"})
 
 
 if __name__ == "__main__":

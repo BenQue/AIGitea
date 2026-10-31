@@ -144,6 +144,20 @@ def document_obligations(classification: Classification, *, change_control: str 
     return {'row': rows[row][0], 'spec': spec, 'plan': plan, 'required_docs': roles}
 
 
+def declared_documents(summary: Mapping[str, object], documents: Mapping[str, str]) -> dict:
+    """The documents a change really carries.
+
+    An explicit `documents` mapping is taken as written. A legacy summary has no
+    mapping and the resolver infers all four fixed basenames, so only its declared
+    required_docs count; otherwise an optional legacy plan would look present.
+    """
+    if isinstance(summary.get('documents'), Mapping):
+        return dict(documents)
+    from .contract import _required_roles
+    roles = _required_roles(summary.get('required_docs'))
+    return {role: name for role, name in documents.items() if role in roles}
+
+
 def document_preflight(repo: Path, number: int) -> list[str]:
     """Confirmation point 1 check of the mapped documents (#436); returns the gaps.
 
@@ -166,17 +180,24 @@ def document_preflight(repo: Path, number: int) -> list[str]:
         return [f'summary required_docs 缺 {role}：在 required_docs 与 documents 里加上它并创建 '
                 f'{role}-<slug>-<YYMMDD>.md（文档义务 {obligations["row"]}）' for role in missing]
     try:
-        documents = resolve_documents(repo, number)
+        documents = declared_documents(summary, resolve_documents(repo, number))
     except ContractError as error:
         return [f'映射文档不完整：{error}']
     directory = summary_path.parent
+    from aisoft_change_name import ChangeName, ChangeNameError
+    try:
+        expected = ChangeName.parse_directory(directory.name, issue_number=number).branch
+    except ChangeNameError as error:
+        return [f'change 目录名不合法：{error}']
     try:
         spec = parse_front_matter((directory / documents['spec']).read_text(encoding='utf-8'))
     except (ContractError, OSError, KeyError) as error:
         return [f'spec 读不出 front matter：{error}']
     gaps = []
-    if str(spec.get('issue')) != str(number) or spec.get('branch') != summary.get('branch'):
-        gaps.append(f'spec 的 issue/branch 必须是 {number} 与 {summary.get("branch")}')
+    if summary.get('branch') != expected:
+        gaps.append(f'summary 的 branch 必须是 {expected}')
+    if str(spec.get('issue')) != str(number) or spec.get('branch') != expected:
+        gaps.append(f'spec 的 issue/branch 必须是 {number} 与 {expected}')
     scope = spec.get('git_scope')
     if not isinstance(scope, list) or not scope:
         gaps.append('spec 缺 git_scope：在 spec front matter 写 git_scope 列表，列出全部映射文档与将提交的文件')

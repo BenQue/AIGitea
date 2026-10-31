@@ -260,6 +260,16 @@ class ExecutionTests(GitFixture):
             r = self.prepare()
         self.assertEqual(r['identity']['plan_path'], 'docs/changes/57-ticket-adapter/plan-ticket-adapter-261023.md')
 
+    def test_high_risk_development_without_a_plan_is_not_synthesized(self):
+        """#436 D2 on the execution entry: a high-risk development complex owes its plan."""
+        with patch('aisoft_loop.ticket_execution.repository_context', return_value=('development', False)):
+            self.summary.write_text(self.summary.read_text()
+                                    .replace('risk_flags: []', 'risk_flags:\n  - deployment')
+                                    .replace('  - plan\n', '').replace('  plan: plan-ticket-adapter-261023.md\n', ''))
+            self.plan.unlink()
+            with self.assertRaisesRegex(ContractError, 'requires a mapped plan .文档义务 D2'):
+                self.prepare()
+
     def test_development_without_spec_ac_is_rejected(self):
         with patch('aisoft_loop.ticket_execution.repository_context', return_value=('development', False)):
             self.summary.write_text(self.summary.read_text().replace('  - plan\n', '').replace('  plan: plan-ticket-adapter-261023.md\n', ''))
