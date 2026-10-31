@@ -79,16 +79,16 @@ updated: 2026-10-31
   |---|---|---|---|
   | R5 small | 短索引 | 简版 | 不写 |
   | R2 development complex，无高风险 flag | 短索引 | 简版 | 不写，合成 `T01` 取 spec 的验收 |
-  | R2 development complex，含高风险 flag | 短索引 | 完整版 | 见 D2 |
+  | R2 development complex，含高风险 flag | 短索引 | 完整版 | 必须（D2） |
   | R3/R4 production complex | 短索引 | 完整版 | 必须（不变） |
 
   「高风险 flag」沿用 route-policy 已有定义（含 `change_type: security|data`）。`verification` 规则不变。
 - **简版 spec**：front matter（issue/branch 绑定、`git_scope`）+ 目标、范围与非范围、Acceptance criteria，需要时
   加风险与回退。**完整版**另加接口/数据/兼容影响与「未决问题」（approved 前须清空），即现行模板。两者共用一份
   模板，模板注释标出哪些节简版可删。不设行数硬上限。
-- **D2（待负责人选）**：development complex 含高风险 flag 时 plan 是否必须。
-  - 选项 A（推荐，对应「复杂任务按风险决定」）：必须有 plan，按 Txx 执行；无高风险的 development complex 仍免 plan。
-  - 选项 B：development complex 一律免 plan，只要求完整版 spec；R2 行为与现在相同。
+- **D2（负责人 2026-10-31 选 A）**：development complex 含高风险 flag 时必须有 plan，按 Txx 执行；
+  无高风险的 development complex 仍免 plan。路由卡八键不变（R2 的 method 仍是 `tdd`），plan 是文档义务；
+  `ticket_execution` 有映射 plan 时读 plan，没有时才合成 `T01`。
 - **D3 summary 短索引**：正文只留 `## 索引`（Issue、状态、文档、PR 指针）与 `## AI 判级` YAML；front matter 机器字段不变。
   analyzer 输出节同步改为这两节。存量 summary 只读兼容，不改写。
 - **D4 验收来源统一为 spec**：small 与 development 的合同验收、合成 `T01` 都从映射 spec 读取，不再读 Issue 正文。
@@ -113,7 +113,7 @@ updated: 2026-10-31
   `rg` 不再出现「small/development 不写 spec」类说法（来历表与已合并 change 目录除外）。
 - [ ] AC-2 small 与无高风险 development complex 在「短 summary + 简版 spec（含 `git_scope`）+ 无 plan」时：
   合同校验通过，预检 OK，`scope()` 通过；`open-pr` 首推/建 PR/回填路径有测试覆盖。含高风险的 development complex
-  按 D2 的选择分别测试。
+  必须有 plan，缺 plan 时预检与合同校验拒绝，分别测试。
 - [ ] AC-3 负向用例继续拒绝：缺 spec；spec 缺 `git_scope` 或绑定不符；提交超出 `git_scope`；错误 Issue/branch；
   main 漂移；非 owner；远端分支移动（新增缺 spec 的 small/development 用例，其余以现有测试读回）。
 - [ ] AC-4 production complex 现有行为（spec+plan、Txx）不回退，原有测试全部通过，`bash codex/tests/smoke.sh` 绿。
@@ -127,4 +127,4 @@ updated: 2026-10-31
 
 ## 未决问题
 
-- D2 待负责人在确认点 1 选择。
+无。

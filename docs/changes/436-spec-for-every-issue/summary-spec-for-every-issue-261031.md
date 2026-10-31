@@ -35,7 +35,7 @@ route:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/436-spec-for-every-issue
 pr_url:
 created: 2026-10-31
@@ -79,4 +79,4 @@ override_reason: ''
 
 ### 缺失的 acceptance criteria 或决策
 
-- 一项待负责人在确认点 1 选择：development complex 含高风险 flag 时是否必须有 plan（见 spec「方案与决策」D2）。
+- 无；D2 由负责人 2026-10-31 选 A（development complex 含高风险 flag 时必须有 plan）。
