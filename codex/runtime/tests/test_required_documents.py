@@ -132,11 +132,14 @@ created: 2026-08-08
     def test_undeclared_minimum_is_rejected_in_production(self):
         with self.assertRaisesRegex(contract.ContractError, "route minimum.*spec.*plan"):
             contract.load_contract(self.repo, self.issue())
-        self.assertEqual(contract.load_contract(self.repo, self.issue(), change_control="development").required_docs,
-                         (self.summary.name,))
+        # #436: development owes the spec too, and shared-core is a high-risk flag (D2).
+        with self.assertRaisesRegex(contract.ContractError, "route minimum roles: spec, plan"):
+            contract.load_contract(self.repo, self.issue(), change_control="development")
 
     def test_development_keeps_declared_roles_and_terminal_json(self):
         # verification deliberately isn't last: it must not disappear from the route.
+        # cross-module forces complex without being high-risk, so no plan is owed (D3).
+        self.summary.write_text(self.summary.read_text().replace("  - shared-core", "  - cross-module"))
         self.declare("verification")
         self.declare("spec")
         classification = contract._classification_from_front_matter(
@@ -155,7 +158,10 @@ created: 2026-08-08
         text = text.replace("risk_flags:\n  - shared-core", "risk_flags: []")
         self.summary.write_text(text)
         classification = contract._classification_from_front_matter(contract.parse_front_matter(text))
-        self.assertEqual(classification.route().required_docs, ("summary", "verification"))
+        self.assertEqual(classification.route().required_docs, ("summary", "spec", "verification"))
+        self.declare("spec")
+        spec = self.directory / "spec-docs-source-260808.md"
+        spec.write_text(spec.read_text().replace(": complex", ": small"))
         issue = self.issue()
         issue["labels"] = ["type/bugfix", "complexity/small", "approved"]
         self.assertIn("verification-docs-source-260808.md", contract.load_contract(self.repo, issue).required_docs)

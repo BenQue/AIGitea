@@ -364,12 +364,12 @@ def export_tool_kit(checkout: Path) -> None:
 def contract_documents(issue_url: str, *, verification: bool = False, development: bool = False):
     """Full complex change documents for Issue 7, built from the shipped templates.
 
-    development=True is the change_control: development shape: summary only, the
-    git_scope on the summary, and the R2 route card.
+    development=True is the change_control: development shape (#436): summary and
+    the lite spec that carries the git_scope, no plan, and the R2 route card.
     """
     slug, date = "demo-change", "261027"
     if development:
-        roles: tuple[str, ...] = ("summary",)
+        roles: tuple[str, ...] = ("summary", "spec")
     else:
         roles = ("summary", "spec", "plan", "verification") if verification else ("summary", "spec", "plan")
     names = {role: f"{role}-{slug}-{date}.md" for role in roles}
@@ -396,24 +396,24 @@ def contract_documents(issue_url: str, *, verification: bool = False, developmen
         summary = fill((TEMPLATES / "summary.md").read_text(encoding="utf-8"))
         summary = summary.replace("status: analyzed", "status: approved")
         summary = summary.replace(
-            "required_docs:\n  - summary\ndocuments:\n  summary: summary-demo-change-261027.md\n",
+            "required_docs:\n  - summary\n  - spec\ndocuments:\n  summary: summary-demo-change-261027.md\n"
+            "  spec: spec-demo-change-261027.md\n",
             "required_docs:\n" + "".join(f"  - {role}\n" for role in roles) + "documents:\n"
             + "".join(f"  {role}: {name}\n" for role, name in names.items()))
-        summary = summary.replace("required_docs:\n  - summary\nconfidence",
+        summary = summary.replace("required_docs:\n  - summary\n  - spec\nconfidence",
                                   "required_docs:\n" + "".join(f"  - {role}\n" for role in roles)
                                   + "confidence")
         summary = summary.replace("- CLASSIFICATION_EVIDENCE", "- synthetic")
         if development:
             summary = summary.replace("process: complex-production", "process: complex-development")
-            summary = summary.replace("depends_on: []\n", "depends_on: []\ngit_scope:\n"
-                                      + "".join(f"  - {path}\n" for path in scope), 1)
-            (directory / names["summary"]).write_text(summary, encoding="utf-8")
-            return
         (directory / names["summary"]).write_text(summary, encoding="utf-8")
         spec = fill((TEMPLATES / "spec.md").read_text(encoding="utf-8"))
-        spec = spec.replace("depends_on: []\n", "depends_on: []\ngit_scope:\n"
+        spec = spec.replace("git_scope:\n  - GIT_SCOPE_PATH\n", "git_scope:\n"
                             + "".join(f"  - {path}\n" for path in scope), 1)
+        spec = spec.replace("- [ ] 每项使用可观察、可验证的结果表述。", "- [ ] AC-1 the demo works")
         (directory / names["spec"]).write_text(spec, encoding="utf-8")
+        if development:
+            return
         (directory / names["plan"]).write_text(fill((TEMPLATES / "plan.md").read_text(encoding="utf-8")),
                                                encoding="utf-8")
         if verification:

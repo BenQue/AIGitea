@@ -117,10 +117,11 @@ class ChangeControlRouteTests(unittest.TestCase):
         self.assertEqual(route.effective_complexity, "complex")
         self.assertEqual(route.required_docs, ("summary", "spec", "plan", "verification"))
 
-    def test_development_keeps_only_summary_and_verification(self) -> None:
+    def test_development_keeps_summary_spec_and_verification(self) -> None:
+        """#436: development drops only the plan; the spec stays the git_scope source."""
         route = _complex_classification().route(change_control="development")
         self.assertEqual(route.effective_complexity, "complex")
-        self.assertEqual(route.required_docs, ("summary", "verification"))
+        self.assertEqual(route.required_docs, ("summary", "spec", "verification"))
 
     def test_verification_stays_conditional_in_development(self) -> None:
         """required_docs 含 verification 说的是「这次变更欠一份验证记录」，
@@ -148,7 +149,7 @@ class ChangeControlRouteTests(unittest.TestCase):
                     "verification", non_shipping.route(change_control=phase).required_docs
                 )
         self.assertEqual(
-            non_shipping.route(change_control="development").required_docs, ("summary",)
+            non_shipping.route(change_control="development").required_docs, ("summary", "spec")
         )
 
     def test_default_is_production(self) -> None:
@@ -175,14 +176,14 @@ class ChangeControlRouteTests(unittest.TestCase):
             confidence="high",
             reason="restores existing behaviour",
             risk_flags=(),
-            required_docs=("summary",),
+            required_docs=("summary", "spec"),
             override_reason="",
         )
         for phase in sorted(PHASES):
             with self.subTest(phase=phase):
                 route = small.route(change_control=phase)
                 self.assertEqual(route.effective_complexity, "small")
-                self.assertEqual(route.required_docs, ("summary",))
+                self.assertEqual(route.required_docs, ("summary", "spec"))
 
     def test_unsupported_phase_fails_closed(self) -> None:
         with self.assertRaisesRegex(ClassificationError, "change_control"):

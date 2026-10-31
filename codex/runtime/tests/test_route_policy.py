@@ -314,5 +314,114 @@ class ExecutableRouteTests(unittest.TestCase):
         validate_route(legacy)
 
 
+
+class DocumentObligationTests(unittest.TestCase):
+    """#436: the 文档义务 table, its D2 risk split, and the confirmation point 1 preflight."""
+
+    def obligations(self, classification, change_control="production", policy=None):
+        from aisoft_loop.route_policy import document_obligations
+        return document_obligations(classification, change_control=change_control, policy=policy)
+
+    def test_every_route_owes_a_spec_and_the_plan_follows_risk(self):
+        small = classified(required_docs="\n  - summary\n  - spec")
+        complex_ = classified(change_type="feature", assessed_complexity="complex",
+                              effective_complexity="complex", contract_effect="add", required_docs=COMPLEX_DOCS)
+        risky = classified(change_type="feature", assessed_complexity="complex", effective_complexity="complex",
+                           contract_effect="add", risk_flags="\n  - platform-governance", required_docs=COMPLEX_DOCS)
+        data = classified(change_type="data", assessed_complexity="complex", effective_complexity="complex",
+                          contract_effect="change", required_docs=COMPLEX_DOCS)
+        unresolved = classified(contract_effect="unclear", effective_complexity=None)
+        cases = [
+            (small, "production", "D5", "lite", "none", ["summary", "spec"]),
+            (small, "development", "D5", "lite", "none", ["summary", "spec"]),
+            (complex_, "development", "D3", "lite", "none", ["summary", "spec"]),
+            (risky, "development", "D2", "full", "required", ["summary", "spec", "plan"]),
+            (data, "development", "D2", "full", "required", ["summary", "spec", "plan"]),
+            (complex_, "production", "D4", "full", "required", ["summary", "spec", "plan"]),
+            (risky, "production", "D4", "full", "required", ["summary", "spec", "plan"]),
+            (unresolved, "production", "D1", "none", "none", ["summary"]),
+        ]
+        for classification, phase, row, spec, plan, roles in cases:
+            with self.subTest(row=row, phase=phase, type=classification.change_type):
+                got = self.obligations(classification, phase)
+                self.assertEqual((got["row"], got["spec"], got["plan"], got["required_docs"]),
+                                 (row, spec, plan, roles))
+
+    def test_declared_verification_is_kept(self):
+        small = classified(required_docs="\n  - summary\n  - spec\n  - verification")
+        self.assertEqual(self.obligations(small)["required_docs"], ["summary", "spec", "verification"])
+
+    def test_route_resolution_reports_the_obligation(self):
+        from aisoft_loop.route_policy import resolve_route
+        result = resolve_route(classified(), provider="claude")
+        self.assertEqual(result["documents"]["row"], "D5")
+
+    def test_edited_obligation_rows_fail_closed(self):
+        import tempfile
+        from aisoft_loop.contract import ContractError
+        text = POLICY.read_text(encoding="utf-8")
+        for old, new, message in (
+            ("| D3 | R2 | `lite` | `none` |", "| D3 | R2 或 R3 | `lite` | `none` |", "document obligation rows"),
+            ("| D5 | R5 | `lite` | `none` |", "| D5 | R5 | `brief` | `none` |", "document obligation values"),
+            ("| D4 | R3 或 R4 | `full` | `required` |", "| D4 | R3 或 R4 | `full` | `optional` |", "document obligation values"),
+        ):
+            with self.subTest(new=new), tempfile.TemporaryDirectory() as temp:
+                self.assertIn(old, text)
+                policy = Path(temp) / "route-policy.md"
+                policy.write_text(text.replace(old, new), encoding="utf-8")
+                with self.assertRaisesRegex(ContractError, message):
+                    self.obligations(classified(), policy=policy)
+
+    def preflight_repo(self, temp, *, spec_front="git_scope:\n  - change.txt\n  - {summary}\n  - {spec}\n"):
+        repo = Path(temp)
+        directory = repo / "docs/changes/57-matt-flow"
+        directory.mkdir(parents=True)
+        names = {"summary": "summary-matt-flow-260808.md", "spec": "spec-matt-flow-260808.md"}
+        from tests.test_contract import NEW_SUMMARY
+        (directory / names["summary"]).write_text(NEW_SUMMARY.format(
+            number=57, change_type="bugfix", complexity="small", effect="restore", risk_flags="[]",
+            required_docs="  - summary\n  - spec",
+            documents=f"  summary: {names['summary']}\n  spec: {names['spec']}", branch="change/57-matt-flow"))
+        paths = {role: f"docs/changes/57-matt-flow/{name}" for role, name in names.items()}
+        (directory / names["spec"]).write_text(
+            "---\nissue: 57\nbranch: change/57-matt-flow\neffective_complexity: small\ncreated: 2026-08-08\n"
+            + spec_front.format(**paths) + "---\n\n## Acceptance criteria\n\n- [ ] AC-1 works\n")
+        return repo, directory, names
+
+    def test_preflight_passes_a_complete_lite_contract(self):
+        import tempfile
+        from aisoft_loop.route_policy import document_preflight
+        with tempfile.TemporaryDirectory() as temp:
+            repo, _, _ = self.preflight_repo(temp)
+            self.assertEqual(document_preflight(repo, 57), [])
+
+    def test_preflight_names_each_gap_and_its_remedy(self):
+        """#436 AC-6: missing spec, missing git_scope and a git_scope that omits a mapped document."""
+        import tempfile
+        from aisoft_loop.route_policy import document_preflight
+        with tempfile.TemporaryDirectory() as temp:
+            repo, directory, names = self.preflight_repo(temp, spec_front="")
+            self.assertEqual(len(document_preflight(repo, 57)), 1)
+            self.assertIn("spec 缺 git_scope", document_preflight(repo, 57)[0])
+        with tempfile.TemporaryDirectory() as temp:
+            repo, directory, names = self.preflight_repo(temp, spec_front="git_scope:\n  - change.txt\n  - {spec}\n")
+            self.assertEqual(document_preflight(repo, 57),
+                             [f"spec 的 git_scope 漏了映射文档 docs/changes/57-matt-flow/{names['summary']}"])
+        with tempfile.TemporaryDirectory() as temp:
+            repo, directory, names = self.preflight_repo(temp)
+            summary = directory / names["summary"]
+            summary.write_text(summary.read_text().replace("  - spec\n", "").replace(f"  spec: {names['spec']}\n", ""))
+            (directory / names["spec"]).unlink()
+            gaps = document_preflight(repo, 57)
+            self.assertEqual(len(gaps), 1)
+            self.assertIn("summary required_docs 缺 spec", gaps[0])
+            self.assertIn("文档义务 D5", gaps[0])
+        with tempfile.TemporaryDirectory() as temp:
+            repo, directory, names = self.preflight_repo(temp)
+            spec = directory / names["spec"]
+            spec.write_text(spec.read_text().replace("branch: change/57-matt-flow", "branch: change/58-other"))
+            self.assertIn("spec 的 issue/branch", document_preflight(repo, 57)[0])
+
+
 if __name__ == "__main__":
     unittest.main()
