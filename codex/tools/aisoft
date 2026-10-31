@@ -136,11 +136,11 @@ try:
     path, front_matter = resolve_summary(repo, issue)
 except (ContractError, OSError, ValueError) as error:
     print(f"路由 #{issue}: 读不出映射 summary：{error}")
-    sys.exit(0)
+    front_matter = {}
 route = front_matter.get("route")
-if not isinstance(route, dict):
+if front_matter and not isinstance(route, dict):
     print(f"路由 #{issue}: summary 未写 route:，按 aisoft-platform 技能的 references/route-policy.md 查表补写")
-else:
+elif front_matter:
     print(
         f"路由 #{issue}: {route['process']} · {route['tier']}/{route['effort']} · {route['method']}"
         f" · verify {route['verify']} · review {route['review']} · skills {route['skills']}"

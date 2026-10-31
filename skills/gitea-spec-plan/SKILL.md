@@ -1,6 +1,6 @@
 ---
 name: gitea-spec-plan
-description: Turn a production-phase complex analyzed Gitea Issue into its mapped testable spec and ordered plan documents on the shared readable change branch. Use when the deterministic route requires spec and plan; keep the run document-only and do not create a separate spec PR or implement code.
+description: Turn an analyzed Gitea Issue into its mapped testable spec, and the ordered plan where the route policy's 文档义务 table requires one, on the shared readable change branch. Use for every classified Issue; keep the run document-only and do not create a separate spec PR or implement code.
 ---
 
 # Draft the spec and plan

@@ -168,6 +168,9 @@ def document_preflight(repo: Path, number: int) -> list[str]:
                            resolve_documents, resolve_summary)
     try:
         summary_path, summary = resolve_summary(repo, number)
+    except (ContractError, OSError, ValueError) as error:
+        return [f'映射文档不完整：{error}；创建 summary documents 里声明的文件，或改正映射']
+    try:
         phase, _ = repository_context(summary, repo)
         obligations = document_obligations(_classification_from_front_matter(summary), change_control=phase)
         declared = _required_roles(summary.get('required_docs'))

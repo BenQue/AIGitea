@@ -5,7 +5,7 @@ description: AISoft 自托管交付平台（v3.6）的合同与操作入口。Us
 
 # AISoft 自托管交付平台（v3.6）
 
-自托管的「Issue → AI 分析判级 →（每个 Issue 先写 spec：small/development 简版、plan 按风险）→ 提交确认 → 单 PR → 人工合并 → 独立部署授权」平台。核心原则：**Issue 定义工作，AI 会话把明确合同做到最终 PR；人确认提交，人合并；部署不由 merge 授权。** VM 上的 Development Loop 与 routine 自动合并已按 ADR 0002 退出（#391）。
+自托管的「Issue → AI 分析判级 →（每个 Issue 先写 spec，简版/完整版与 plan 按路由表「文档义务」）→ 提交确认 → 单 PR → 人工合并 → 独立部署授权」平台。核心原则：**Issue 定义工作，AI 会话把明确合同做到最终 PR；人确认提交，人合并；部署不由 merge 授权。** VM 上的 Development Loop 与 routine 自动合并已按 ADR 0002 退出（#391）。
 
 本技能是唯一来源，由平台安装器生成各工具的落点。文中 `$名称` 表示“调用名为该名称的技能”，各工具按自己的方式调用。
 
@@ -177,7 +177,7 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 
 | superpowers 默认 | 平台项目内 |
 |---|---|
-| 设计写 `docs/superpowers/specs/`，计划写 `docs/superpowers/plans/` | 写进 `docs/changes/N-short-description/` 里映射的 `spec` / `plan` 角色文档；small 只有 summary，不另建设计文档 |
+| 设计写 `docs/superpowers/specs/`，计划写 `docs/superpowers/plans/` | 写进 `docs/changes/N-short-description/` 里映射的 `spec` / `plan` 角色文档；small 与无高风险的 development 只写简版 spec、不写 plan，其余按路由表「文档义务」写完整版 spec 与 plan；不另建设计文档 |
 | `.superpowers/` 下的工作目录 | 本地状态，已在 `.gitignore` 里，不入库、不当验收证据 |
 | `finishing-a-development-branch` 提供本地 merge、`git push`、建 PR | 三项都不可用。本地验证完成后停在 `AWAITING_PR_CONFIRMATION`；确认后远端只走 broker |
 | 并行子代理各自实现 | 一个 change worktree 同一时刻只有一个写者：子代理不得并发写入它，也不得写别的会话的 worktree；只读调查可以并行 |

@@ -431,6 +431,26 @@ class DocumentObligationTests(unittest.TestCase):
                 "summary 的 branch 必须是 change/57-matt-flow",
                 "spec 的 issue/branch 必须是 57 与 change/57-matt-flow"])
 
+    def test_preflight_and_classify_report_a_missing_mapped_file(self):
+        """Round 2: a mapped spec whose file is missing still yields a GAP, also from the CLI."""
+        import subprocess, tempfile
+        from aisoft_loop.route_policy import document_preflight
+        with tempfile.TemporaryDirectory() as temp:
+            repo, directory, names = self.preflight_repo(temp)
+            (directory / names["spec"]).unlink()
+            gaps = document_preflight(repo, 57)
+            self.assertEqual(len(gaps), 1)
+            self.assertIn("映射文档不完整", gaps[0])
+            self.assertIn(names["spec"], gaps[0])
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            wrapper = POLICY.parents[3] / "codex/tools/aisoft"
+            # classify continues into the broker step, which this fixture has no access to;
+            # only the route card lines it prints first are asserted.
+            run = subprocess.run([str(wrapper), "classify", "57", "--repo", str(repo)], text=True,
+                                 capture_output=True)
+            self.assertIn("文档预检 #57: GAP", run.stdout)
+            self.assertIn("映射文档不完整", run.stdout)
+
     def test_legacy_inferred_optional_documents_are_not_obligations(self):
         """A legacy summary infers four basenames; only its declared required_docs are present."""
         from aisoft_loop.route_policy import declared_documents

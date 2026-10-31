@@ -11023,7 +11023,7 @@
     {
       "version": "1.22.0",
       "released": "2026-10-31",
-      "bundle_digest": "sha256:f39066dcf344bd7a7cd5fc412681b8647327533d4203997fe38106db9ee7eb46",
+      "bundle_digest": "sha256:3870be04af65769786f0afe2a613b4a36336fab4a83c92cf2e075f4eaed31e16",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -11131,7 +11131,7 @@
         {
           "source": "skills/aisoft-platform/SKILL.md",
           "mode": "skill",
-          "sha256": "07928199e0f2706db6de074efefb9cb76a6fe574eda0855c43b55194213722ea"
+          "sha256": "8038622fe6a24cbfa347bb530e3a35bcf93988c0b8ce4046e45b40618533df93"
         },
         {
           "source": "skills/aisoft-platform/agents/openai.yaml",
@@ -11203,7 +11203,7 @@
           "mode": "exact",
           "target": ".aisoft/bin/aisoft",
           "check": "tool-provenance",
-          "sha256": "f8628f28902fbcfa5f9cdeda0aaa9c73aa395ad41458c1d8490f3904eb58c0b0"
+          "sha256": "140acad1241c114bf3a618667d8f5fd9cedf4a826e7bd89239fa6f880f40e5af"
         },
         {
           "source": "codex/tools/aisoft-access",
@@ -11649,7 +11649,7 @@
           "mode": "exact",
           "target": ".aisoft/lib/codex/runtime/aisoft_loop/route_policy.py",
           "check": "tool-provenance",
-          "sha256": "ee78350e67ea40a21eafb2d86cabfacfdb9e99448976b0ed9cc3df407edbac21"
+          "sha256": "08456d29b7fcc5e6c2eddb1ef7bbcdeddcd45a8f0c1f1b689f62479ad93a9702"
         },
         {
           "source": "codex/runtime/aisoft_loop/ticket_execution.py",
