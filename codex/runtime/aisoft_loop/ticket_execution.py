@@ -283,20 +283,24 @@ def context(repo: Path, number: int, provider: str, issue: dict | None = None) -
     documents = resolve_documents(repo, number)
     directory = summary_path.parent
     phase, _ = repository_context(summary, repo)
-    if phase == 'development':
-        body = str(issue.get('body') or '')
-        ac = _acceptance_criteria(body)
+    if phase == 'development' and 'plan' not in documents:
+        # #436: without a plan the synthetic T01 executes the mapped spec's AC.
+        if 'spec' not in documents:
+            raise ContractError('development complex requires a mapped spec')
+        spec_file = safe_path(repo, str((directory / documents['spec']).relative_to(repo)))
+        spec_text = spec_file.read_text()
+        ac = _acceptance_criteria(spec_text)
         if not ac:
-            raise ContractError('development complex requires Issue acceptance criteria')
-        # Keep all Issue constraints, not just the bullet identifiers.
+            raise ContractError('development complex requires spec acceptance criteria')
+        # Keep all spec constraints, not just the bullet identifiers.
         synthetic = ('## Ticket graph\n\n| Ticket | Delivers | Blocked by | Status |\n|---|---|---|---|\n'
-                     '| T01 | Issue AC | - | pending |\n\n## T01: Issue execution\n'
-                     '- **blocked_by**: none\n- **scope**: Issue AC\n- **AC**: ' + ', '.join(f'AC-{i+1}' for i in range(len(ac))) +
-                     '\n- **validation**: Check every Issue AC and record actual results\n- **Expected**: All AC pass\n'
-                     '- **constraints**: Original Issue body below; original approval and two confirmation points apply\n\n')
-        # Issue headings are quoted so they cannot become synthetic plan headings.
-        text = synthetic + '\n'.join('> '+line for line in body.splitlines()) + '\n'
-        plan_path = 'issue:' + str(summary['gitea_url'])
+                     '| T01 | Spec AC | - | pending |\n\n## T01: Spec execution\n'
+                     '- **blocked_by**: none\n- **scope**: Spec AC\n- **AC**: ' + ', '.join(f'AC-{i+1}' for i in range(len(ac))) +
+                     '\n- **validation**: Check every spec AC and record actual results\n- **Expected**: All AC pass\n'
+                     '- **constraints**: Mapped spec below; original approval and two confirmation points apply\n\n')
+        # Spec headings are quoted so they cannot become synthetic plan headings.
+        text = synthetic + '\n'.join('> '+line for line in spec_text.splitlines()) + '\n'
+        plan_path = 'spec:' + str(spec_file.relative_to(repo))
     else:
         plan = safe_path(repo, str((directory / documents['plan']).relative_to(repo)))
         text = plan.read_text()

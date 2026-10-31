@@ -214,7 +214,15 @@ def load_contract(
         )
 
     declared_roles = _required_roles(summary.get("required_docs"))
-    minimum_roles = _required_roles(list(route.required_docs))
+    # The 文档义务 table owns the minimum (#436): every route owes a spec, and a
+    # high-risk development complex also owes a plan.
+    from .route_policy import document_obligations
+
+    try:
+        obligations = document_obligations(classification, change_control=change_control)
+    except ClassificationError as exc:
+        raise ContractError(f"summary classification is invalid: {exc}") from exc
+    minimum_roles = tuple(obligations["required_docs"])
     missing_roles = [role for role in minimum_roles if role not in declared_roles]
     if missing_roles:
         raise ContractError(
@@ -225,35 +233,31 @@ def load_contract(
 
     body = str(issue.get("body") or "")
     _reject_governing_self_modification(body)
-    spec_required = change_control == "production" and route.effective_complexity == "complex"
-    if route.effective_complexity == "small":
-        criteria = _acceptance_criteria(body)
-        if not criteria:
-            raise ContractError("small Issue requires measurable acceptance criteria")
-    elif not spec_required:
-        # development 阶段的 complex 没有 spec，验收标准改由 Issue 正文提供。
-        # 「必须有可测验收」这条门槛不随阶段放宽——它正是 verification 得以成立的前提。
-        criteria = _acceptance_criteria(body)
-        if not criteria:
-            raise ContractError(
-                "development-phase complex Issue requires measurable acceptance criteria in the Issue body"
-            )
-    else:
-        spec_name = documents["spec"]
-        plan_name = documents["plan"]
-        spec_text = directory.joinpath(spec_name).read_text(encoding="utf-8")
-        plan_text = directory.joinpath(plan_name).read_text(encoding="utf-8")
-        _validate_complex_document_front_matter(spec_text, number, expected_branch, spec_name)
-        _validate_complex_document_front_matter(plan_text, number, expected_branch, plan_name)
-        criteria = _acceptance_criteria(spec_text)
-        if not criteria:
-            raise ContractError("01-spec.md requires measurable acceptance criteria")
+    # Acceptance criteria come from the mapped spec on every route (#436); the full
+    # form also clears its open questions, and a required plan maps every AC.
+    spec_name = documents["spec"]
+    spec_text = directory.joinpath(spec_name).read_text(encoding="utf-8")
+    _validate_change_document_front_matter(
+        spec_text, number, expected_branch, spec_name, route.effective_complexity
+    )
+    criteria = _acceptance_criteria(spec_text)
+    if not criteria:
+        raise ContractError(f"{spec_name} requires measurable acceptance criteria")
+    governed_text = spec_text
+    if obligations["spec"] == "full":
         unresolved = _section(spec_text, "未决问题")
         if not unresolved or not re.match(r"^(无|没有|none\b)", unresolved.strip(), re.IGNORECASE):
-            raise ContractError("01-spec.md 未决问题 must be resolved before approved")
+            raise ContractError(f"{spec_name} 未决问题 must be resolved before approved")
+    if obligations["plan"] == "required":
+        plan_name = documents["plan"]
+        plan_text = directory.joinpath(plan_name).read_text(encoding="utf-8")
+        _validate_change_document_front_matter(
+            plan_text, number, expected_branch, plan_name, route.effective_complexity
+        )
         if not re.search(r"\|\s*AC-\d+\s*\|", plan_text, re.IGNORECASE):
-            raise ContractError("02-plan.md must map each AC to a verification command or review")
-        _reject_governing_self_modification(spec_text + "\n" + plan_text)
+            raise ContractError(f"{plan_name} must map each AC to a verification command or review")
+        governed_text += "\n" + plan_text
+    _reject_governing_self_modification(governed_text)
 
     return Contract(
         issue_number=number,
@@ -635,16 +639,16 @@ def _classification_from_front_matter(front_matter: Mapping[str, object]) -> Cla
     return Classification.from_yaml("\n".join(output) + "\n")
 
 
-def _validate_complex_document_front_matter(
-    text: str, number: int, branch: str, filename: str
+def _validate_change_document_front_matter(
+    text: str, number: int, branch: str, filename: str, complexity: str
 ) -> None:
     front_matter = parse_front_matter(text)
     if _as_int(front_matter.get("issue")) != number:
         raise ContractError(f"{filename} issue does not match")
     if front_matter.get("branch") != branch:
         raise ContractError(f"{filename} branch must be {branch}")
-    if front_matter.get("effective_complexity") != "complex":
-        raise ContractError(f"{filename} must declare effective_complexity: complex")
+    if front_matter.get("effective_complexity") != complexity:
+        raise ContractError(f"{filename} must declare effective_complexity: {complexity}")
 
 
 def _label_names(raw_labels: object) -> set[str]:

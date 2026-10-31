@@ -145,6 +145,14 @@ else:
         f"路由 #{issue}: {route['process']} · {route['tier']}/{route['effort']} · {route['method']}"
         f" · verify {route['verify']} · review {route['review']} · skills {route['skills']}"
     )
+# #436: confirmation point 1 learns now what the typed push would refuse last.
+from pathlib import Path
+from aisoft_loop.route_policy import document_preflight
+
+gaps = document_preflight(Path(repo), issue)
+print(f"文档预检 #{issue}: " + ("OK" if not gaps else "GAP"))
+for gap in gaps:
+    print(f"  - {gap}")
 PY
 }
 

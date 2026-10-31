@@ -96,6 +96,97 @@ def concrete_skills(value: object) -> list[str]:
     return skills
 
 
+def _risky(text: str, classification: Classification, high_risk: set[str]) -> bool:
+    type_rule = re.search(r'`change_type` 为 (.*?) 视同含高风险 flag', text, re.S)
+    if type_rule is None or not _codes(type_rule[1]):
+        raise ContractError('unsupported policy risk type definition')
+    return bool(set(classification.risk_flags) & high_risk) or classification.change_type in _codes(type_rule[1])
+
+
+def _row_index(effective: str | None, change_control: str, risky: bool) -> int:
+    """Index into R1..R5, first match from the top."""
+    return (0 if effective is None else 1 if effective == 'complex' and change_control == 'development'
+            else 2 if effective == 'complex' and risky else 3 if effective == 'complex' else 4)
+
+
+# The 文档义务 table (#436). Its conditions are pinned like the route rows: a prose
+# edit to their meaning needs an interpreter update, never a silent pass.
+DOCUMENT_ROWS = [('D1', 'R1'), ('D2', 'R2 且含高风险 flag'), ('D3', 'R2'), ('D4', 'R3 或 R4'), ('D5', 'R5')]
+
+
+def document_obligations(classification: Classification, *, change_control: str = 'production',
+                         policy: Path | None = None) -> dict:
+    """Which spec form and whether a plan this classification owes, read from the policy."""
+    if change_control not in ('production', 'development'):
+        raise ContractError('unsupported change_control')
+    text = (policy or policy_path()).read_text(encoding='utf-8')
+    rows = _table(text, '## 文档义务', 4)
+    if [(r[0], r[1]) for r in rows] != DOCUMENT_ROWS:
+        raise ContractError('unsupported document obligation rows; revalidate interpreter')
+    values = [(_codes(r[2]), _codes(r[3])) for r in rows]
+    if any(spec not in (['none'], ['lite'], ['full']) or plan not in (['none'], ['required'])
+           for spec, plan in values):
+        raise ContractError('invalid document obligation values')
+    try:
+        high_risk = set(_codes(text.split('**高风险 flag**：', 1)[1].split('。', 1)[0]))
+    except IndexError as exc:
+        raise ContractError('missing policy risk definitions') from exc
+    effective = classification.route(change_control=change_control).effective_complexity
+    risky = _risky(text, classification, high_risk)
+    index = _row_index(effective, change_control, risky)
+    row = (0, 1 if risky else 2, 3, 3, 4)[index]
+    spec, plan = values[row][0][0], values[row][1][0]
+    from .contract import _required_roles
+    declared = _required_roles(list(classification.required_docs))
+    roles = ['summary'] + (['spec'] if spec != 'none' else []) + (['plan'] if plan == 'required' else [])
+    if 'verification' in declared:
+        roles.append('verification')
+    return {'row': rows[row][0], 'spec': spec, 'plan': plan, 'required_docs': roles}
+
+
+def document_preflight(repo: Path, number: int) -> list[str]:
+    """Confirmation point 1 check of the mapped documents (#436); returns the gaps.
+
+    It answers early what the typed push answers last: the spec exists, is bound to
+    this change and carries a git_scope that covers every mapped document.
+    """
+    from .contract import (_classification_from_front_matter, _required_roles, parse_front_matter,
+                           resolve_documents, resolve_summary)
+    try:
+        summary_path, summary = resolve_summary(repo, number)
+        phase, _ = repository_context(summary, repo)
+        obligations = document_obligations(_classification_from_front_matter(summary), change_control=phase)
+        declared = _required_roles(summary.get('required_docs'))
+    except (ContractError, OSError, ValueError) as error:
+        return [f'summary 读不出判级或文档声明：{error}']
+    if obligations['spec'] == 'none':
+        return ['判级未决（文档义务 D1），先完成判级再写 spec']
+    missing = [role for role in obligations['required_docs'] if role not in declared]
+    if missing:
+        return [f'summary required_docs 缺 {role}：在 required_docs 与 documents 里加上它并创建 '
+                f'{role}-<slug>-<YYMMDD>.md（文档义务 {obligations["row"]}）' for role in missing]
+    try:
+        documents = resolve_documents(repo, number)
+    except ContractError as error:
+        return [f'映射文档不完整：{error}']
+    directory = summary_path.parent
+    try:
+        spec = parse_front_matter((directory / documents['spec']).read_text(encoding='utf-8'))
+    except (ContractError, OSError, KeyError) as error:
+        return [f'spec 读不出 front matter：{error}']
+    gaps = []
+    if str(spec.get('issue')) != str(number) or spec.get('branch') != summary.get('branch'):
+        gaps.append(f'spec 的 issue/branch 必须是 {number} 与 {summary.get("branch")}')
+    scope = spec.get('git_scope')
+    if not isinstance(scope, list) or not scope:
+        gaps.append('spec 缺 git_scope：在 spec front matter 写 git_scope 列表，列出全部映射文档与将提交的文件')
+    else:
+        prefix = directory.resolve().relative_to(Path(repo).resolve()).as_posix() + '/'
+        absent = sorted(prefix + name for name in documents.values() if prefix + name not in scope)
+        gaps.extend(f'spec 的 git_scope 漏了映射文档 {path}' for path in absent)
+    return gaps
+
+
 def resolve_route(classification: Classification, *, provider: str,
                   change_control: str = 'production', platform_repo: bool = True,
                   splits_into_issues: bool = False, policy: Path | None = None) -> dict:
@@ -132,12 +223,8 @@ def resolve_route(classification: Classification, *, provider: str,
         raise ContractError('missing policy risk definitions') from exc
     effective = classification.route(change_control=change_control).effective_complexity
     flags = set(classification.risk_flags)
-    type_rule = re.search(r'`change_type` 为 (.*?) 视同含高风险 flag', text, re.S)
-    if type_rule is None or not _codes(type_rule[1]):
-        raise ContractError('unsupported policy risk type definition')
-    risky = bool(flags & high_risk) or classification.change_type in _codes(type_rule[1])
-    row_index = (0 if effective is None else 1 if effective == 'complex' and change_control == 'development'
-                 else 2 if effective == 'complex' and risky else 3 if effective == 'complex' else 4)
+    risky = _risky(text, classification, high_risk)
+    row_index = _row_index(effective, change_control, risky)
     row = rows[row_index]
     cells = [_codes(c) for c in row[2:]]
     if any(len(c) != 1 for c in cells[:-1]) or not cells[-1]:
@@ -184,7 +271,8 @@ def resolve_route(classification: Classification, *, provider: str,
     from .contract import validate_route
     validate_route({'route': route, 'effective_complexity': effective,
                     'contract_effect': classification.contract_effect, 'confidence': classification.confidence})
-    return {'route_provider': provider, 'route': route, 'matched_rules': rules,
+    documents = document_obligations(classification, change_control=change_control, policy=path)
+    return {'route_provider': provider, 'route': route, 'matched_rules': rules, 'documents': documents,
             'policy_sha256': hashlib.sha256(data).hexdigest(), 'policy_path': str(path)}
 
 
