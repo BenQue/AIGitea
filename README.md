@@ -241,7 +241,7 @@ fresh-session typed canary；不得把静态 file metadata 或单层 `PASS` 写�
 
 完整术语表见 [GLOSSARY](GLOSSARY.md)；下面是读本文必需的几个。
 
-- **Issue 合同**：Issue、有效评论、summary，以及复杂变更的 spec/plan 共同定义的执行边界
+- **Issue 合同**：Issue、有效评论、summary、spec，以及路由要求的 plan 共同定义的执行边界
 - **Development Loop**：确认点 1 之后会话在合同内反复实现、验证、自修复和处理 CI 反馈，直到完成或升级给人；没有无人值守的版本
 - **`approved`**：合同已明确、允许开始实现；不授权合并或部署
 - **`change/N-short-description`**：Issue N 从分析到最终 PR 共用的单一 readable 分支；`short-description` 是锁定的 2–4 段 lowercase ASCII kebab-case slug

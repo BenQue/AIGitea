@@ -239,16 +239,43 @@ class ExecutionTests(GitFixture):
         self.assertEqual((self.repo/'notes.txt').read_text(), 'user notes')
         self.assertEqual(self.run_git('diff', '--cached'), '')
 
-    def test_small_rejected_and_development_uses_issue_without_plan(self):
+    def test_small_rejected_and_development_uses_spec_without_plan(self):
+        """#436: without a plan the synthetic T01 executes the spec AC, not the Issue body."""
+        spec = self.directory / 'spec-ticket-adapter-261023.md'
         with patch('aisoft_loop.ticket_execution.repository_context', return_value=('development', False)):
-            self.summary.write_text(self.summary.read_text().replace('  - plan\n', '').replace('  plan: plan-ticket-adapter-261023.md\n', '').replace('  - spec\n', '').replace('  spec: spec-ticket-adapter-261023.md\n', ''))
+            self.summary.write_text(self.summary.read_text().replace('  - plan\n', '').replace('  plan: plan-ticket-adapter-261023.md\n', ''))
             self.plan.unlink()
-            (self.directory / 'spec-ticket-adapter-261023.md').unlink()
+            spec.write_text(spec.read_text() + '\n## Acceptance criteria\n\n- [ ] AC-1: spec works\n')
             r = self.prepare()
-            self.assertTrue(r['identity']['plan_path'].startswith('issue:'))
-            self.assertIn('AC-1: works', (self.repo/r['derived_plan']).read_text())
+            self.assertEqual(r['identity']['plan_path'], 'spec:docs/changes/57-ticket-adapter/spec-ticket-adapter-261023.md')
+            derived = (self.repo/r['derived_plan']).read_text()
+            self.assertIn('AC-1: spec works', derived)
+            self.assertNotIn('AC-1: works', derived)
         with patch('aisoft_loop.ticket_execution.resolve_issue_route', return_value={'route': {'process': 'small'}}), self.assertRaises(ContractError):
             self.prepare()
+
+    def test_development_with_a_plan_executes_its_tickets(self):
+        """#436 D2: a high-risk development complex carries a plan, and the plan wins."""
+        with patch('aisoft_loop.ticket_execution.repository_context', return_value=('development', False)):
+            r = self.prepare()
+        self.assertEqual(r['identity']['plan_path'], 'docs/changes/57-ticket-adapter/plan-ticket-adapter-261023.md')
+
+    def test_high_risk_development_without_a_plan_is_not_synthesized(self):
+        """#436 D2 on the execution entry: a high-risk development complex owes its plan."""
+        with patch('aisoft_loop.ticket_execution.repository_context', return_value=('development', False)):
+            self.summary.write_text(self.summary.read_text()
+                                    .replace('risk_flags: []', 'risk_flags:\n  - deployment')
+                                    .replace('  - plan\n', '').replace('  plan: plan-ticket-adapter-261023.md\n', ''))
+            self.plan.unlink()
+            with self.assertRaisesRegex(ContractError, 'requires a mapped plan .文档义务 D2'):
+                self.prepare()
+
+    def test_development_without_spec_ac_is_rejected(self):
+        with patch('aisoft_loop.ticket_execution.repository_context', return_value=('development', False)):
+            self.summary.write_text(self.summary.read_text().replace('  - plan\n', '').replace('  plan: plan-ticket-adapter-261023.md\n', ''))
+            self.plan.unlink()
+            with self.assertRaisesRegex(ContractError, 'spec acceptance criteria'):
+                self.prepare()
 
 
 class CompletionBindingTests(GitFixture):

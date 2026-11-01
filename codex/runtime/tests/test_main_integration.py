@@ -308,6 +308,42 @@ class IntegrationTests(unittest.TestCase):
         self.git("commit", "-q", "-m", "#327 approved mapped fixture")
         return summary, spec, paths, summary_text, spec_text
 
+    def test_lite_spec_from_the_shipped_templates_is_scoped_without_a_plan(self):
+        """#436 AC-2/AC-3: short summary + lite spec passes; the old summary-only shape does not."""
+        templates = Path(__file__).resolve().parents[3] / "templates/docs/changes/_template"
+        directory = self.repo / "docs/changes/327-broker-ff-integration"
+        directory.mkdir(parents=True)
+        names = {role: f"{role}-broker-ff-integration-261006.md" for role in ("summary", "spec")}
+        paths = ("issue.txt", *(f"docs/changes/327-broker-ff-integration/{n}" for n in names.values()))
+        values = {"ISSUE_NUMBER": "327", "ISSUE_URL": "http://fixture.invalid/admin/platform/issues/327",
+                  "EFFECTIVE_COMPLEXITY": "small", "SHORT-SLUG": "broker-ff-integration",
+                  "YYYY-MM-DD": "2026-10-06", "YYMMDD": "261006"}
+
+        def fill(role):
+            text = (templates / f"{role}.md").read_text(encoding="utf-8")
+            for key, value in values.items():
+                text = text.replace(key, value)
+            return text
+        summary = fill("summary").replace("status: analyzed", "status: approved")
+        spec = fill("spec").replace("git_scope:\n  - GIT_SCOPE_PATH\n",
+                                    "git_scope:\n" + "".join(f"  - {p}\n" for p in paths))
+        (directory / names["summary"]).write_text(summary)
+        (directory / names["spec"]).write_text(spec)
+        self.git("add", "docs")
+        self.git("commit", "-q", "-m", "#327 lite contract")
+        self.assertEqual(self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH).paths, paths)
+
+        # The pre-#436 development shape: git_scope on the summary and no spec.
+        (directory / names["spec"]).unlink()
+        (directory / names["summary"]).write_text(
+            summary.replace("  spec: " + names["spec"] + "\n", "")
+            .replace("depends_on: []\n", "depends_on: []\ngit_scope:\n  - issue.txt\n"))
+        self.git("add", "-A", "docs")
+        self.git("commit", "-q", "-m", "#327 summary-only contract")
+        with self.assertRaises(GitError) as caught:
+            self.repository.scope(self.git("rev-parse", "HEAD"), BRANCH)
+        self.assertIn("exact mapped spec missing", str(caught.exception))
+
     def test_actual_pr_backfill_keeps_approved_spec_scope_and_publishes_ff(self):
         from aisoft_loop.documents import backfill_pr_url
         summary, _spec, paths, _summary_text, _spec_text = self.mapped_scope_fixture()

@@ -12,14 +12,14 @@ Issue #N
   ↔ commit / CI / deployment SHA
 ```
 
-- 所有变更必须有 Issue 和映射的 `summary` 文档。
-- 小变更可以不写 spec/plan，但 Issue 必须有可验证的 acceptance criteria。
-- **交付阶段**：manifest 的 `change_control` 为 `development` 的项目，其强制 complex 变更同样不写
-  spec/plan，acceptance criteria 改由 Issue 正文提供——门槛不变，只是来源从 spec 换成 Issue。
-  未声明该字段的仓库一律按 `production` 处理。`verification` 的取舍两个阶段相同；它只表示本次变更欠一份
-  无法由 diff review 与 required CI 重放的验证记录，不表示部署或终态。
-- `change_control=production` 的复杂变更必须有映射的 `spec` 和 `plan` 文档；development
-  complex 不生成仪式性 spec/plan，会话使用合成 `T01`。
+- 所有变更必须有 Issue、映射的 `summary` 与映射的 `spec`（#436）。summary 是短索引与机器元信息；需求、范围、
+  acceptance criteria 与风险只写在 spec。
+- spec 分简版与完整版，plan 是否必须，都按路由表「[文档义务](skills/aisoft-platform/references/route-policy.md)」查：
+  small 与无高风险 flag 的 development complex 用简版 spec、不写 plan；development complex 含高风险 flag 与
+  production complex 用完整版 spec 并必须有 plan。本册不复述那张表。
+- **交付阶段**：`change_control` 为 `development` 的仓库（项目来源取自 `.aisoft/project.json`，站点来源取自 manifest），
+  不写 plan 时会话用合成 `T01`，验收取自 spec。未声明该字段的仓库一律按 `production` 处理。`verification` 的取舍
+  两个阶段相同；它只表示本次变更欠一份无法由 diff review 与 required CI 重放的验证记录，不表示部署或终态。
 - 部署、迁移以及任何依赖真实环境或一次性观测的变更必须有映射的 `verification` 文档。
 - 新 Issue 从分析开始使用单一 `change/N-short-description` 分支；已有 `change/N` 与更早的 `spec/N` 只按历史证据兼容，不作为新 writer 的可选格式。
 - 文档与代码进入同一个最终 PR，不强制独立 docs-only spec PR。
@@ -162,8 +162,8 @@ Matt `prototype`；然后 `to-tickets` 出 Txx 计划，开发按 Txx 顺序执�
 ```text
 docs/changes/N-short-description/
 ├── summary-<slug>-YYMMDD.md       # 必须
-├── spec-<slug>-YYMMDD.md          # complex 必须（change_control=production）
-├── plan-<slug>-YYMMDD.md          # complex 必须（change_control=production）
+├── spec-<slug>-YYMMDD.md          # 必须；简版或完整版按路由表「文档义务」
+├── plan-<slug>-YYMMDD.md          # 按路由表「文档义务」
 └── verification-<slug>-YYMMDD.md  # 按下方「何时声明 `verification`」判定
 ```
 
@@ -171,22 +171,24 @@ docs/changes/N-short-description/
 
 新 worktree basename 固定为 `issue-N-short-description`。`main`、`master`、`head`、`merge`、`pull`、`pr`、`refs`、`change`、`changes`、`docs`、`worktree`、`tmp`、`temp`、`legacy` 是保留 slug，`tmp-`、`temp-`、`legacy-` 前缀同样禁止。同一 Issue 同时出现 legacy/readable 名称或多个 slug 时必须以 `CHANGE_NAME_CONFLICT` 停止。纯编号名称只在 manifest-fixed remote 或 Git history 已有证据时作读取或维护兼容，调用方不能用 `legacy` 开关绕过这种 evidence-derived 判定，也不得批量重命名或删除历史对象。
 
-所有 change 文档的共同 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`branch`、`created`、`updated`。`status` 是 **summary 的** lifecycle 字段：确认点 1 只把 summary 改为 `approved`，spec 与 plan 模板不再带 `status`，已有文档里的 `status` 照旧合法但没有消费者；verification 的 `status` 只描述这份验证记录本身（#408）。`pr_url` 是 **summary 专属**字段（spec/plan/verification 里的复制品没有代码消费者，只会互相漂移），由 `aisoft open-pr` 在 PR 建出后与 `status: pr-open` 一起写入（手工修复用 `aisoft backfill-pr-url`）；complex 的 spec/plan/verification 固定使用 `effective_complexity: complex`。summary 另外完整保存 analyzer schema 的 `reason`、语义 `required_docs`、`documents` 角色到真实 basename 的映射、`route:`、显式 `route_provider` 与 `override_reason`（历史文档保持读取兼容）。无法安全判级时，summary 的 `assessed_complexity` 为 `needs-human-decision`，并从 front matter 与 `## AI 判级` YAML 同时省略整个 `effective_complexity` key，不保留空值或 placeholder；其他 complex 文档尚不得创建。
+所有 change 文档的共同 front matter 至少包含：`issue`、`gitea_url`、`change_type`、`requested_complexity`、`assessed_complexity`、`effective_complexity`、`contract_effect`、`confidence`、`risk_flags`、`branch`、`created`、`updated`。`status` 是 **summary 的** lifecycle 字段：确认点 1 只把 summary 改为 `approved`，spec 与 plan 模板不再带 `status`，已有文档里的 `status` 照旧合法但没有消费者；verification 的 `status` 只描述这份验证记录本身（#408）。`pr_url` 是 **summary 专属**字段（spec/plan/verification 里的复制品没有代码消费者，只会互相漂移），由 `aisoft open-pr` 在 PR 建出后与 `status: pr-open` 一起写入（手工修复用 `aisoft backfill-pr-url`）；spec/plan/verification 的 `effective_complexity` 与 summary 相同。summary 另外完整保存 analyzer schema 的 `reason`、语义 `required_docs`、`documents` 角色到真实 basename 的映射、`route:`、显式 `route_provider` 与 `override_reason`（历史文档保持读取兼容）。无法安全判级时，summary 的 `assessed_complexity` 为 `needs-human-decision`，并从 front matter 与 `## AI 判级` YAML 同时省略整个 `effective_complexity` key，不保留空值或 placeholder；其他 complex 文档尚不得创建。
 
 新合同只使用 `summary`、`spec`、`plan`、`verification` 角色；resolver 严格读取 `documents` 映射并校验角色、slug、日期、目录边界和唯一性，不使用无约束 glob。没有映射的历史 summary 仅回退到 `00-summary.md`、`01-spec.md`、`02-plan.md`、`03-verification.md`，新 writer 不再生成这些名称，也不批量重命名历史文件。
 
-映射的 spec 必须定义目标、可测验收标准、接口/数据/兼容影响和非目标。映射的 plan 必须把每条验收标准映射到
+简版 spec 定义目标、范围与非范围、可测验收标准，需要时加风险与回退；完整版另加接口/数据/兼容影响与清空的未决问题。
+两者的 front matter 都绑定 exact `issue`/`branch` 并声明 `git_scope`（推送守卫只从已提交的 spec 读取它）。映射的 plan 必须把每条验收标准映射到
 `Txx` 垂直切片、`blocked_by`、预期 touch points 和验证命令；每票正文还须写明交付/范围、AC、Expected、
 接口/全局约束和停止条件。Txx 是唯一任务身份，SP 的 Task N 仅为派生视图。
 会话不得自行修改已经确认的 acceptance criteria 或扩大范围。
 执行视图、语义摘要/正常状态恢复、BASE/HEAD、证据与治理 STOP/fresh-run 统一遵循
 [execution-adapter](skills/aisoft-platform/references/execution-adapter.md)；small 不增票图，
-development complex 仍使用 Issue AC + synthetic T01。
+不写 plan 的 development complex 使用 spec AC + synthetic T01。
 
 ### 声明与实际文件共用一个校验结果
 
 - summary front matter 的 `required_docs` 是文档义务的唯一声明事实源，`documents` 是新格式角色到安全 basename 的唯一路径事实源。共用受限 Python 解析器，拒绝空、未知、重复或混合角色与 legacy 文件名的列表，首项必须为 summary。
-- `route.required_docs` 给出阶段与复杂度的最低合同要求；`check-change-documents` 检查声明满足这些要求，不得用路由生成的列表替换声明或丢掉额外角色。development 不强制 spec/plan，production complex 仍必须有 spec/plan；任何路由都不能让已声明 verification 的文件义务消失。
+- `route.required_docs` 给出阶段与复杂度的最低合同要求；`check-change-documents` 检查声明满足这些要求，不得用路由生成的列表替换声明或丢掉额外角色。每条路由都至少要求 summary 与 spec，plan 按路由表「文档义务」；任何路由都不能让已声明 verification 的文件义务消失。
+- **存量兼容**：`check-change-documents` 只校验声明与实际文件一致，不按新义务追溯已合并的 change；新义务由确认点 1 的 `aisoft classify N`「文档预检」与推送守卫施加于新变更，不批改历史文档。
 - 新格式 `documents` 的每个显式映射均须指向本 Issue 目录内可读取的普通文件，且通过既有角色、slug、日期、front matter 与路径边界校验；即使角色不在 required_docs 里也一样。缺文件或符号链接逃逸必须报错，诊断包含 Issue/change、role 与真实 basename。required_docs 的每一项必须有映射和实际文件。
 - `resolve-documents N --repo <checkout>` 成功时返回角色到 basename 的 JSON，并拒绝不存在的显式映射；只读 `resolve-required-documents N --repo <checkout>` 返回 `required_docs`（规范化语义角色数组）和 `documents`（角色映射）。`check-change-documents` 与 `mark-completed-issues.sh` 共用同一解析和校验结果；resolver 或 JSON 失败不能回退为成功。
 - legacy 固定映射是历史推断；未声明的可选 spec/plan/verification 不要求生成。显式 required_docs 中的历史 basename 必须有实际文件，并规范化为相应语义角色（如 `03-verification.md` → `verification`）。缺 required_docs 报明确 GAP；不新增 legacy 开关，不批量重命名或改写历史文档。
@@ -326,7 +328,7 @@ Matt triage 另有两个正交维度：category 使用 `triage/bug` 或 `triage/
 Issue + needs-analysis
   → analyzer identifies type and contract_effect
   → forced-risk and explicit-label checks
-  → complexity/small + approved（合同完整）
+  → complexity/small + 简版 spec（含 git_scope）+ 文档预检 OK + approved
   → 会话实现与验证
   → AWAITING_PR_CONFIRMATION
   → 人确认提交唯一最终 PR
@@ -342,7 +344,7 @@ Issue + needs-analysis
   → analyzer identifies type and contract_effect
   → forced-risk and explicit-label checks
   → complexity/complex + spec-drafting
-  → 人与 AI 完成映射的 spec + plan
+  → 人与 AI 完成映射的 spec，plan 按路由表「文档义务」，文档预检 OK
   → spec-review（可选，不是硬闸门）
   → approved（合同完整）
   → 会话按 Txx 实现与验证
@@ -643,3 +645,4 @@ broker 因操作表陈旧而拒绝时，工具报 `broker-operation-missing`，d
 | #403 | — | 本册改为现行合同体，叙事移入本表 |
 | #408 | — | approval 只写 summary；`aisoft open-pr` 一步建 PR 与回填；交叉审查固定表与审查证据索引 |
 | #412 | — | 平台批次在本批 PR 里回写路线图与 E2E 表的行，收尾读回 `origin/main` |
+| #436 | — | 所有 Issue 交付 spec，small/development 用简版；plan 按路由表「文档义务」；summary 收为短索引；确认点 1 文档预检 |

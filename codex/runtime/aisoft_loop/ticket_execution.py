@@ -14,9 +14,10 @@ import re
 import subprocess
 
 from aisoft_worktree_owner import SESSION_RE, caller_session, read_marker
-from .contract import (ContractError, _acceptance_criteria, _label_names,
+from .contract import (ContractError, _acceptance_criteria, _classification_from_front_matter, _label_names,
                        parse_front_matter, resolve_documents, resolve_summary)
-from .route_policy import ROOT, repository_context, resolve_issue_route
+from .route_policy import (ROOT, declared_documents, document_obligations, repository_context,
+                           resolve_issue_route)
 from .worktree import current_branch, head_sha, is_ancestor, resolve_git_dir
 
 SHA = re.compile(r'[0-9a-f]{40}')
@@ -283,20 +284,30 @@ def context(repo: Path, number: int, provider: str, issue: dict | None = None) -
     documents = resolve_documents(repo, number)
     directory = summary_path.parent
     phase, _ = repository_context(summary, repo)
-    if phase == 'development':
-        body = str(issue.get('body') or '')
-        ac = _acceptance_criteria(body)
+    # #436: the 文档义务 table decides whether a plan is owed; a high-risk
+    # development complex without one never reaches a synthetic T01.
+    obligations = document_obligations(_classification_from_front_matter(summary), change_control=phase)
+    present = declared_documents(summary, documents)
+    if 'spec' not in present:
+        raise ContractError('complex execution requires a mapped spec')
+    if obligations['plan'] == 'required' and 'plan' not in present:
+        raise ContractError(f"route policy requires a mapped plan (文档义务 {obligations['row']})")
+    if 'plan' not in present:
+        # Without a plan the synthetic T01 executes the mapped spec's AC.
+        spec_file = safe_path(repo, str((directory / documents['spec']).relative_to(repo)))
+        spec_text = spec_file.read_text()
+        ac = _acceptance_criteria(spec_text)
         if not ac:
-            raise ContractError('development complex requires Issue acceptance criteria')
-        # Keep all Issue constraints, not just the bullet identifiers.
+            raise ContractError('development complex requires spec acceptance criteria')
+        # Keep all spec constraints, not just the bullet identifiers.
         synthetic = ('## Ticket graph\n\n| Ticket | Delivers | Blocked by | Status |\n|---|---|---|---|\n'
-                     '| T01 | Issue AC | - | pending |\n\n## T01: Issue execution\n'
-                     '- **blocked_by**: none\n- **scope**: Issue AC\n- **AC**: ' + ', '.join(f'AC-{i+1}' for i in range(len(ac))) +
-                     '\n- **validation**: Check every Issue AC and record actual results\n- **Expected**: All AC pass\n'
-                     '- **constraints**: Original Issue body below; original approval and two confirmation points apply\n\n')
-        # Issue headings are quoted so they cannot become synthetic plan headings.
-        text = synthetic + '\n'.join('> '+line for line in body.splitlines()) + '\n'
-        plan_path = 'issue:' + str(summary['gitea_url'])
+                     '| T01 | Spec AC | - | pending |\n\n## T01: Spec execution\n'
+                     '- **blocked_by**: none\n- **scope**: Spec AC\n- **AC**: ' + ', '.join(f'AC-{i+1}' for i in range(len(ac))) +
+                     '\n- **validation**: Check every spec AC and record actual results\n- **Expected**: All AC pass\n'
+                     '- **constraints**: Mapped spec below; original approval and two confirmation points apply\n\n')
+        # Spec headings are quoted so they cannot become synthetic plan headings.
+        text = synthetic + '\n'.join('> '+line for line in spec_text.splitlines()) + '\n'
+        plan_path = 'spec:' + str(spec_file.relative_to(repo))
     else:
         plan = safe_path(repo, str((directory / documents['plan']).relative_to(repo)))
         text = plan.read_text()

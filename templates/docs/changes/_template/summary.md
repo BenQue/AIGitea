@@ -10,8 +10,10 @@ reason: CLASSIFICATION_REASON
 risk_flags: []
 required_docs:
   - summary
+  - spec
 documents:
   summary: summary-SHORT-SLUG-YYMMDD.md
+  spec: spec-SHORT-SLUG-YYMMDD.md
 route_provider: ROUTE_PROVIDER
 route:
   process: ROUTE_PROCESS
@@ -39,18 +41,16 @@ YAML block before writing the document. Otherwise require exactly one safe
 value: small or complex. Do not leave an empty key or placeholder behind.
 -->
 
-## 问题/需求总结
+## 索引
+
+- Issue：ISSUE_URL
+- 状态：见 front matter `status`；PR：见 `pr_url`
+- 文档：见 front matter `documents`。需求、范围、验收与风险只写在 spec，本文件不重复。
 
 <!-- depends_on: a bare number always means an Issue in this repository. A
 cross-repository dependency may only use a reference that the platform governance
 manifest authorizes for this repository; never substitute a foreign bare number or
 clear a dependency to bypass a gate. -->
-
-## 影响范围
-
-## 初步方案与建议
-
-## 风险
 
 ## AI 判级
 
@@ -64,6 +64,7 @@ reason: CLASSIFICATION_REASON
 risk_flags: []
 required_docs:
   - summary
+  - spec
 confidence: CONFIDENCE
 override_reason: ''
 ```
@@ -77,8 +78,9 @@ override_reason: ''
 - 无；如有则逐项列出。
 
 `## AI 判级` YAML 使用 analyzer 的唯一字段集合和顺序。
-`required_docs` 使用语义角色：`small` 和 unresolved 只包含 `summary`；
-`complex` 必须依次包含 `summary`、`spec`、`plan`；当本次变更的验收证据不能由
+summary 是短索引：正文只有 `## 索引` 与 `## AI 判级` 两节。
+`required_docs` 使用语义角色：unresolved 只包含 `summary`；其余路由至少包含
+`summary`、`spec`，路由表「文档义务」要求 plan 时再加 `plan`；当本次变更的验收证据不能由
 diff review 与 required CI 复现时，再追加 `verification`（判据见 `03` §3
 「何时声明 `verification`」）。追加它表示这次变更**欠一份验证记录**，不表示
 这次变更要部署——部署与迁移必然需要它，但不是只有它们需要。`documents`

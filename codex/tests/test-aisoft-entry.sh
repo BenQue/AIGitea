@@ -34,6 +34,13 @@ make_project() {
     -e 's/ROUTE_VERIFY/targeted/' -e 's/ROUTE_REVIEW/human-merge/' -e 's/CONFIDENCE/high/' \
     -e 's/^status: analyzed$/status: approved/' -e 's/YYYY-MM-DD/2026-10-21/g' \
     "$repo/docs/changes/_template/summary.md" >"$repo/docs/changes/7-demo-change/summary-demo-change-261021.md"
+  # #436: the summary maps a lite spec, and the spec carries the git_scope.
+  sed -e 's/ISSUE_NUMBER/7/g' -e 's#ISSUE_URL#http://gitea.invalid/o/r/issues/7#' \
+    -e 's/CHANGE_TYPE/docs/' -e 's/ASSESSED_COMPLEXITY/small/' -e 's/EFFECTIVE_COMPLEXITY/small/' \
+    -e 's/CONTRACT_EFFECT/restore/' -e 's/CONFIDENCE/high/' -e 's/SHORT-SLUG/demo-change/' \
+    -e 's#GIT_SCOPE_PATH#docs/changes/7-demo-change/summary-demo-change-261021.md#' \
+    -e 's/YYYY-MM-DD/2026-10-21/g' \
+    "$repo/docs/changes/_template/spec.md" >"$repo/docs/changes/7-demo-change/spec-demo-change-261021.md"
   git -C "$repo" init -q -b main
   git -C "$repo" -c user.name=t -c user.email=t@example.invalid add -A
   git -C "$repo" -c user.name=t -c user.email=t@example.invalid commit -q -m base

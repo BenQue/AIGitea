@@ -184,16 +184,15 @@ class Classification:
             raise ClassificationError(f"unsupported change_control: {change_control!r}")
         role_based = self.required_docs[0] == "summary"
         unresolved_docs = ("summary",) if role_based else ("00-summary.md",)
-        # development 阶段的强制 complex 去掉 spec/plan：它们的内容在交互开发中
-        # 已即时产生并执行，而 summary（改了什么、如何判级）是事后唯一可查的证据。
-        # verification 不在此处决定——它沿用下方与 production 完全相同的条件
-        # （analyzer 是否要求）。#163 之前它还兼答「该变更要部署，终态是 deployed
-        # 而非 completed」；那半边语义已经移出去了：现在由 governance manifest 的
-        # deployment_lifecycle 回答，因为那是仓库属性而不是单次变更的属性
-        # （见 mark-completed-issues.sh 与 03 §11）。这里只剩「欠不欠验证记录」，
-        # change_control 不改变它。缺省 production，保持既有四份行为。
+        # 每条已判级路由都至少要 summary 与 spec（#436）：推送守卫只从已提交的 spec
+        # 读取 git_scope。development 的 complex 这里不要求 plan；含高风险 flag 时
+        # 必须有 plan 由路由表「文档义务」决定（route_policy.document_obligations），
+        # 因为高风险的定义只在那份表里。verification 不在此处决定——它沿用 analyzer
+        # 是否要求；#163 起「要不要部署」由 governance manifest 的 deployment_lifecycle
+        # 回答（见 mark-completed-issues.sh 与 03 §11），change_control 不改变它。
+        lite_docs = ("summary", "spec") if role_based else ("00-summary.md", "01-spec.md")
         if change_control == "development":
-            complex_docs = ("summary",) if role_based else ("00-summary.md",)
+            complex_docs = lite_docs
         else:
             complex_docs = (
                 ("summary", "spec", "plan")
@@ -203,6 +202,7 @@ class Classification:
         verification = "verification" if role_based else "03-verification.md"
         if verification in self.required_docs:
             complex_docs += (verification,)
+            lite_docs += (verification,)
         if (
             self.assessed_complexity == "needs-human-decision"
             or self.contract_effect == "unclear"
@@ -248,7 +248,7 @@ class Classification:
             "small",
             "approved",
             "complexity/small",
-            self.required_docs,
+            lite_docs,
             self.override_reason,
         )
 

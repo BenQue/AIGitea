@@ -7,5 +7,6 @@ reason: 恢复已经明确的既有行为
 risk_flags: []
 required_docs:
   - summary
+  - spec
 confidence: high
 override_reason: ''

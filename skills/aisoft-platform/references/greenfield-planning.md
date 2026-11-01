@@ -79,7 +79,7 @@
 建仓、批量建 Issue、派发新会话、实施或部署权限。各 Issue 会话先读取阶段记录，再独立判级、形成合同与查路由。
 
 - production complex 按 Matt `to-spec → to-tickets` 形成映射 spec/plan；`to-tickets` 只作用于一张已存在的 Issue。
-- small 与 development complex 保持现行简化规则；development 使用 Issue AC 与合成 T01，不产生 plan 文件。
+- small 与 development complex 按路由表「文档义务」写简版或完整版 spec；不写 plan 时 development 使用 spec AC 与合成 T01。
 - 子 Issue 路由卡以 `aisoft resolve-route` 输出为准。当前工具不读取 G1 的第三个条件；G1 语义仍以路由表为准，
   需要澄清时另立 Issue，不在本方法内改写。执行与完成核验直接读取路由表的 provider 映射。
 

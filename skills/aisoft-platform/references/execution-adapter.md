@@ -34,8 +34,8 @@ blocked_by、AC、验证命令与 Expected、共享接口/全局约束及停止�
 
 SP 的 Task N 只是从 canonical Txx 生成的可再生视图，保留原 Txx 与全部约束。
 不能把映射 Txx plan 直接传给只识 Task N 的上游脚本，也不能人工维护第二份 plan。
-Matt 继续接收 exact Issue/Txx 与所需合同路径。development complex 使用 Issue AC 与合成 T01；
-small 按 small-direct 执行，不因这些接口增加 spec、票图或双轴审查。
+Matt 继续接收 exact Issue/Txx 与所需合同路径。不写 plan 的 development complex 使用 spec AC 与合成 T01；
+small 按 small-direct 执行简版 spec，不因这些接口增加票图或双轴审查。
 
 平台派生视图/回执放在 `.superpowers/aisoft/<Issue>/`，原版 SP scratch 放在
 `.superpowers/sdd/<派生plan-basename>/`。派生 basename 带 Issue、owner 和语义摘要的稳定标识；
@@ -54,7 +54,7 @@ small 按 small-direct 执行，不因这些接口增加 spec、票图或双轴�
 `<!-- execution-evidence:start -->` / `<!-- execution-evidence:end -->` 包围的执行证据区。
 标记必须成对、唯一、不可嵌套，且不得包住任务图、任务正文或约束；恶意标记不能隐藏语义变更。
 不得按任意标题或词语启发式删段。旧格式不能无损解析时明确报告缺口，不自行编造任务正文。
-原始全文摘要用于审计，不拿正常 Status/补证变化误判任务变更。无正式 plan 时规范化 Issue AC 与约束。
+原始全文摘要用于审计，不拿正常 Status/补证变化误判任务变更。无正式 plan 时规范化 spec AC 与约束。
 
 每次只选依赖已完成且验证证据齐全的 frontier。恢复时重新核对身份、语义摘要、BASE 祖先关系、
 实际提交和验证结果；普通补证/合法状态推进可恢复，语义变更不能静默沿用原回执。

@@ -49,7 +49,7 @@ Bounded change.
 SPEC = """---
 issue: {number}
 change_type: feature
-effective_complexity: complex
+effective_complexity: {complexity}
 branch: change/{number}
 ---
 
@@ -188,16 +188,17 @@ class ContractTests(unittest.TestCase):
         effect: str = "restore",
         risk_flags: str = "[]",
         branch: str | None = None,
-        spec: bool = False,
+        spec: bool = True,
         plan: bool = False,
         depends_on: str | None = None,
         development: bool = False,
     ) -> Path:
         directory = self.repo / "docs" / "changes" / str(number)
         directory.mkdir(parents=True)
-        required = ["  - 00-summary.md"]
+        # #436: every route owes the spec; only production complex owes the plan here.
+        required = ["  - 00-summary.md", "  - 01-spec.md"]
         if complexity == "complex" and not development:
-            required.extend(("  - 01-spec.md", "  - 02-plan.md"))
+            required.append("  - 02-plan.md")
         summary = SUMMARY.format(
                 number=number,
                 complexity=complexity,
@@ -213,7 +214,7 @@ class ContractTests(unittest.TestCase):
             )
         directory.joinpath("00-summary.md").write_text(summary)
         if spec:
-            directory.joinpath("01-spec.md").write_text(SPEC.format(number=number))
+            directory.joinpath("01-spec.md").write_text(SPEC.format(number=number, complexity=complexity))
         if plan:
             directory.joinpath("02-plan.md").write_text(PLAN.format(number=number))
         subprocess.run(("git", "add", directory.relative_to(self.repo)), cwd=self.repo, check=True)
@@ -249,23 +250,18 @@ class ContractTests(unittest.TestCase):
         change_type: str = "bugfix",
         effect: str = "restore",
         slug: str = "bounded-fix",
-        spec: bool = False,
+        spec: bool = True,
         plan: bool = False,
         route: str | None = None,
     ) -> Path:
         directory = self.repo / "docs" / "changes" / f"{number}-{slug}"
         directory.mkdir(parents=True)
         summary_name = f"summary-{slug}-260808.md"
-        required = ["  - summary"]
-        documents = [f"  summary: {summary_name}"]
+        required = ["  - summary", "  - spec"]
+        documents = [f"  summary: {summary_name}", f"  spec: spec-{slug}-260808.md"]
         if complexity == "complex":
-            required.extend(("  - spec", "  - plan"))
-            documents.extend(
-                (
-                    f"  spec: spec-{slug}-260808.md",
-                    f"  plan: plan-{slug}-260808.md",
-                )
-            )
+            required.append("  - plan")
+            documents.append(f"  plan: plan-{slug}-260808.md")
         directory.joinpath(summary_name).write_text(
             NEW_SUMMARY.format(
                 number=number,
@@ -280,7 +276,7 @@ class ContractTests(unittest.TestCase):
         )
         if spec:
             directory.joinpath(f"spec-{slug}-260808.md").write_text(
-                SPEC.format(number=number)
+                SPEC.format(number=number, complexity=complexity)
                 .replace(f"branch: change/{number}", f"branch: change/{number}-{slug}")
                 .replace("---\n\n# Spec", "created: 2026-08-08\n---\n\n# Spec")
             )
@@ -300,17 +296,18 @@ class ContractTests(unittest.TestCase):
         contract = load_contract(self.repo, self.issue())
         self.assertEqual(contract.issue_number, 12)
         self.assertEqual(contract.effective_complexity, "small")
-        self.assertEqual(contract.required_docs, ("00-summary.md",))
+        self.assertEqual(contract.required_docs, ("00-summary.md", "01-spec.md"))
         self.assertEqual(contract.dependencies, ())
 
     def test_new_named_small_contract_is_resolved_from_explicit_mapping(self) -> None:
         self.write_new_contract()
         self.assertEqual(
             resolve_documents(self.repo, 57),
-            {"summary": "summary-bounded-fix-260808.md"},
+            {"summary": "summary-bounded-fix-260808.md", "spec": "spec-bounded-fix-260808.md"},
         )
         contract = load_contract(self.repo, self.issue(number=57))
-        self.assertEqual(contract.required_docs, ("summary-bounded-fix-260808.md",))
+        self.assertEqual(contract.required_docs,
+                         ("summary-bounded-fix-260808.md", "spec-bounded-fix-260808.md"))
 
     def test_new_named_complex_contract_is_resolved_from_explicit_mapping(self) -> None:
         self.write_new_contract(
@@ -344,7 +341,7 @@ class ContractTests(unittest.TestCase):
         self.write_new_contract(route=self.SMALL_ROUTE)
         self.assertEqual(
             resolve_documents(self.repo, 57),
-            {"summary": "summary-bounded-fix-260808.md"},
+            {"summary": "summary-bounded-fix-260808.md", "spec": "spec-bounded-fix-260808.md"},
         )
         contract = load_contract(self.repo, self.issue(number=57))
         self.assertEqual(contract.effective_complexity, "small")
@@ -437,40 +434,81 @@ class ContractTests(unittest.TestCase):
                     load_contract(self.repo, self.issue())
 
     def test_small_contract_requires_measurable_acceptance(self) -> None:
-        self.write_contract()
+        """#436: the acceptance criteria come from the lite spec, not the Issue body."""
+        directory = self.write_contract()
+        directory.joinpath("01-spec.md").write_text(
+            SPEC.format(number=12, complexity="small").split("## Acceptance criteria")[0]
+        )
         with self.assertRaisesRegex(ContractError, "acceptance criteria") as caught:
-            load_contract(self.repo, self.issue(body="Please fix the bug."))
+            load_contract(self.repo, self.issue())
         self.assertEqual(caught.exception.terminal_state, "NEEDS_HUMAN_DECISION")
 
+    def test_small_contract_requires_a_spec(self) -> None:
+        """#436 AC-3: a small change without a spec has no git_scope source."""
+        self.write_contract(spec=False)
+        with self.assertRaisesRegex(ContractError, "01-spec.md"):
+            load_contract(self.repo, self.issue())
+
+    def test_small_spec_must_declare_its_own_complexity(self) -> None:
+        directory = self.write_contract()
+        directory.joinpath("01-spec.md").write_text(SPEC.format(number=12, complexity="complex"))
+        with self.assertRaisesRegex(ContractError, "effective_complexity: small"):
+            load_contract(self.repo, self.issue())
+
     def test_complex_contract_requires_spec_and_plan(self) -> None:
-        self.write_contract(complexity="complex", change_type="feature", effect="add")
+        self.write_contract(complexity="complex", change_type="feature", effect="add", spec=False)
         issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
         for missing in ("01-spec.md", "02-plan.md"):
             with self.subTest(missing=missing), self.assertRaisesRegex(ContractError, missing):
                 load_contract(self.repo, issue)
 
-    def test_development_phase_complex_contract_needs_no_spec_or_plan(self) -> None:
-        """AC4：development 项目的强制 complex 不因缺 spec/plan 被拒。"""
+    def test_development_phase_complex_contract_needs_spec_but_no_plan(self) -> None:
+        """#436 D3：无高风险 flag 的 development complex 只要 summary 与 spec。"""
         self.write_contract(complexity="complex", change_type="feature", effect="add", development=True)
         issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
         contract = load_contract(self.repo, issue, change_control="development")
         self.assertEqual(contract.effective_complexity, "complex")
-        self.assertEqual(contract.required_docs, ("00-summary.md",))
+        self.assertEqual(contract.required_docs, ("00-summary.md", "01-spec.md"))
         self.assertEqual(contract.change_control, "development")
 
+    def test_development_phase_complex_without_spec_is_rejected(self) -> None:
+        self.write_contract(complexity="complex", change_type="feature", effect="add",
+                            development=True, spec=False)
+        issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
+        with self.assertRaisesRegex(ContractError, "01-spec.md"):
+            load_contract(self.repo, issue, change_control="development")
+
+    def test_high_risk_development_complex_requires_a_plan(self) -> None:
+        """#436 D2（负责人选 A）：含高风险 flag 的 development complex 必须有 plan。"""
+        self.write_contract(complexity="complex", change_type="feature", effect="add",
+                            risk_flags="\n  - deployment", development=True)
+        issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
+        with self.assertRaisesRegex(ContractError, "route minimum roles: plan"):
+            load_contract(self.repo, issue, change_control="development")
+
+    def test_high_risk_development_complex_with_plan_is_accepted(self) -> None:
+        directory = self.write_contract(complexity="complex", change_type="feature", effect="add",
+                                        risk_flags="\n  - deployment", development=True, plan=True)
+        summary = directory / "00-summary.md"
+        summary.write_text(summary.read_text().replace("  - 01-spec.md\n", "  - 01-spec.md\n  - 02-plan.md\n", 1))
+        issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
+        contract = load_contract(self.repo, issue, change_control="development")
+        self.assertEqual(contract.required_docs, ("00-summary.md", "01-spec.md", "02-plan.md"))
+
     def test_development_phase_still_requires_measurable_acceptance(self) -> None:
-        """没有 spec 时验收标准改由 Issue 正文提供，但门槛本身不放宽。"""
-        self.write_contract(complexity="complex", change_type="feature", effect="add", development=True)
-        issue = self.issue(
-            labels=["type/feature", "complexity/complex", "approved"],
-            body="这个变更很重要，做完就知道了。",
+        """验收标准来自 spec（#436），门槛不随阶段放宽。"""
+        directory = self.write_contract(complexity="complex", change_type="feature", effect="add",
+                                        development=True)
+        directory.joinpath("01-spec.md").write_text(
+            SPEC.format(number=12, complexity="complex").split("## Acceptance criteria")[0]
         )
+        issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
         with self.assertRaisesRegex(ContractError, "acceptance criteria"):
             load_contract(self.repo, issue, change_control="development")
 
     def test_production_phase_still_rejects_missing_spec_and_plan(self) -> None:
         """AC4 的对照：production 的行为完全不变，缺省亦然。"""
-        self.write_contract(complexity="complex", change_type="feature", effect="add")
+        self.write_contract(complexity="complex", change_type="feature", effect="add", spec=False)
         issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
         for missing in ("01-spec.md", "02-plan.md"):
             with self.subTest(missing=missing):
@@ -501,7 +539,7 @@ class ContractTests(unittest.TestCase):
             complexity="complex", change_type="feature", effect="add", spec=True, plan=True
         )
         directory.joinpath("01-spec.md").write_text(
-            SPEC.format(number=12).replace("无。", "需要决定是否改变 public API。")
+            SPEC.format(number=12, complexity="complex").replace("无。", "需要决定是否改变 public API。")
         )
         issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])
         with self.assertRaisesRegex(ContractError, "未决问题"):
@@ -552,7 +590,7 @@ class ContractTests(unittest.TestCase):
             complexity="complex", change_type="feature", effect="add", spec=True, plan=True
         )
         directory.joinpath("01-spec.md").write_text(
-            SPEC.format(number=12)
+            SPEC.format(number=12, complexity="complex")
             + "\n普通 implementation worker 永远不得编辑本运行 governing `AGENTS.md`。\n"
         )
         issue = self.issue(labels=["type/feature", "complexity/complex", "approved"])

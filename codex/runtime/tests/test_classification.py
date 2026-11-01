@@ -165,7 +165,8 @@ class ClassificationTests(unittest.TestCase):
 
     def test_required_docs_follow_effective_route(self) -> None:
         parsed = Classification.from_yaml(classification_text())
-        self.assertEqual(parsed.route().required_docs, ("summary",))
+        # #436: even small owes the spec that carries its git_scope.
+        self.assertEqual(parsed.route().required_docs, ("summary", "spec"))
         forced = Classification.from_yaml(
             classification_text(risk_flags="\n  - deployment")
         )
