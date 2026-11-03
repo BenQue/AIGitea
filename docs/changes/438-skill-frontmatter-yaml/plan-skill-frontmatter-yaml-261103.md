@@ -29,9 +29,9 @@ updated: 2026-11-03
 
 | Ticket | Delivers | Blocked by | Status |
 |---|---|---|---|
-| T01 | 检查器 + 测试，拦下当前 main 的 `SKILL.md` | - | pending |
-| T02 | 修 `SKILL.md`、smoke 登记、发布 1.22.1，smoke 全绿 | T01 | pending |
-| T03 | 证据、交叉审查、证据索引行 | T02 | pending |
+| T01 | 检查器 + 测试，拦下当前 main 的 `SKILL.md` | - | done |
+| T02 | 修 `SKILL.md`、smoke 登记、发布 1.22.1，smoke 全绿 | T01 | done |
+| T03 | 证据、交叉审查、证据索引行 | T02 | done |
 
 ## T01：检查器与测试
 
@@ -86,7 +86,7 @@ updated: 2026-11-03
 ## 执行证据
 
 <!-- execution-evidence:start -->
-尚未执行。实际记录见本 Issue 映射 verification。
+T01–T03 已完成；ticket_base `7bd38270`，candidate_head `95d22b71`，验证结果与审查记录见本 Issue 映射 verification。
 <!-- execution-evidence:end -->
 
 语义摘要仅排除图中的 Status 单元、updated 与这段成对标识的执行证据；原始全文摘要另存审计。
