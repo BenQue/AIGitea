@@ -152,6 +152,19 @@ for backend in "${backends[@]}"; do
   printf 'interface:\n  display_name: "Alpha\n' >"$bad/skills/alpha/agents/openai.yaml"
   expect "$backend" "$bad" 1 'skills/alpha/agents/openai.yaml'
 
+  # Content after an explicit document end is a second document: never skipped.
+  bad="$(tree "docend-$backend")"
+  printf -- '---\nname: alpha\ndescription: valid\n...\nbad: unquoted: colon\n---\n' >"$bad/skills/alpha/SKILL.md"
+  expect "$backend" "$bad" 1 'skills/alpha/SKILL.md'
+
+  bad="$(tree "agentsmulti-$backend")"
+  printf 'interface:\n  display_name: "Alpha"\n---\nbad: unquoted: colon\n' >"$bad/skills/alpha/agents/openai.yaml"
+  expect "$backend" "$bad" 1 'skills/alpha/agents/openai.yaml'
+
+  bad="$(tree "agentsmultivalid-$backend")"
+  printf 'interface:\n  display_name: "Alpha"\n---\nother: value\n' >"$bad/skills/alpha/agents/openai.yaml"
+  expect "$backend" "$bad" 1 'skills/alpha/agents/openai.yaml'
+
   bad="$(tree "agentslist-$backend")"
   printf -- '- one\n- two\n' >"$bad/skills/alpha/agents/openai.yaml"
   expect "$backend" "$bad" 1 'skills/alpha/agents/openai.yaml'

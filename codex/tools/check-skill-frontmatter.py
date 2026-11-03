@@ -25,7 +25,12 @@ import sys
 BACKENDS = ("python", "ruby")
 RUBY_PARSE = (
     'require "yaml"; require "json"; '
-    "begin; v = YAML.safe_load($stdin.read); "
+    "begin; s = $stdin.read; "
+    # safe_load reads only the first document; a second one, valid or not,
+    # would otherwise go unparsed (PyYAML's safe_load already refuses it).
+    "n = YAML.parse_stream(s).children.length; "
+    'raise "expected a single document in the stream, found #{n}" if n > 1; '
+    "v = YAML.safe_load(s); "
     'puts JSON.generate({"ok" => true, "value" => v}); '
     "rescue Exception => e; "
     'puts JSON.generate({"ok" => false, "error" => e.message.lines.first.to_s.strip}); end'
