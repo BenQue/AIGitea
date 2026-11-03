@@ -107,6 +107,8 @@ for script in \
   "$ROOT/codex/tests/test-claude-plugin-pin.sh" \
   "$ROOT/codex/tools/check-external-skill-versions.sh" \
   "$ROOT/codex/tests/test-external-skill-versions.sh" \
+  "$ROOT/codex/tools/check-skill-frontmatter.sh" \
+  "$ROOT/codex/tests/test-skill-frontmatter.sh" \
   "$ROOT/codex/tools/usage-bundle.sh" \
   "$ROOT/codex/tests/test-usage-bundle.sh" \
   "$ROOT/codex/tools/aisoft" \
@@ -181,6 +183,8 @@ if command -v shellcheck >/dev/null; then
     "$ROOT/codex/tests/test-claude-plugin-pin.sh" \
     "$ROOT/codex/tools/check-external-skill-versions.sh" \
     "$ROOT/codex/tests/test-external-skill-versions.sh" \
+    "$ROOT/codex/tools/check-skill-frontmatter.sh" \
+    "$ROOT/codex/tests/test-skill-frontmatter.sh" \
     "$ROOT/codex/tools/usage-bundle.sh" \
     "$ROOT/codex/tests/test-usage-bundle.sh" \
     "$ROOT/codex/tools/aisoft" \
@@ -235,6 +239,10 @@ bash "$ROOT/codex/tests/test-claude-plugin-pin.sh"
 # own ~/.claude and ~/.codex are never inspected.
 bash "$ROOT/codex/tools/check-external-skill-versions.sh" --source-only
 bash "$ROOT/codex/tests/test-external-skill-versions.sh"
+# #438: every platform skill's frontmatter must parse as strict YAML (PyYAML,
+# else Ruby Psych; neither is a red run, never a hand-written fallback).
+bash "$ROOT/codex/tools/check-skill-frontmatter.sh"
+bash "$ROOT/codex/tests/test-skill-frontmatter.sh"
 # #377: the usage bundle's members must equal its latest release; a change to
 # any member without --release turns platform CI red here. Releases already on
 # the protected branch are the anchor for "append only": rewriting one and
