@@ -99,7 +99,7 @@
 2. 维护者在平台检出里运行 `bash codex/tools/usage-bundle.sh --adopt <项目 change worktree> --tools <所选工具>`，
    `--tools` 取 `claude`、`codex`、`cursor` 的逗号组合（缺省 `claude,codex`）。工作树必须干净。
 3. 同一个 change 写入项目侧 `.aisoft/project.json`。
-   - 字段按 `.aisoft/` 下随包的模板填写：仓库、remote、项目身份、`deployment_lifecycle`、`change_control`、required CI contexts、`protection_evidence`（第 3 步的 Issue 编号）。
+   - 字段按 `.aisoft/` 下随包的模板填写：仓库、remote、项目身份、`deployment_lifecycle`、`change_control`、required CI contexts、`protection_evidence`（第 3 步的 Issue 编号）。尚未首次生产发布的新项目把 `change_control` 写成 `development`（开发阶段：批次 Issue、只有确认点 1）；首次生产发布前再经一张切换 Issue 改为 `production`。
    - 选用站点加固访问的项目不写这个文件。
 4. 项目照常判级、确认、走唯一 PR，由人合并。项目里还没有 `.aisoft/bin/aisoft-access` 时，首推与建 PR 在项目 change worktree 内运行平台检出里的同一份 `codex/tools/aisoft-access`。
 
@@ -131,7 +131,7 @@
    再 `.aisoft/bin/aisoft claim-worktree --branch <分支>` 绑定本会话。
 4. **确认点 1**：把合同与路由行给用户看，用户回「确认」后才开始实现。它只授权实现，不授权 PR、合并或部署。
 5. **实现与验证**：在合同内实现、测试、修复；`.aisoft/bin/aisoft classify --apply N` 后用 `--verify N` 读回 `projected`。
-6. **确认点 2**：本地验证完成后给出唯一最终 PR 的候选，用户回「开」后才用 `.aisoft/bin/aisoft open-pr N --title <标题> --body-file <正文>` 建 PR。
+6. **确认点 2**：本地验证完成后给出唯一最终 PR 的候选，用户回「开」后才用 `.aisoft/bin/aisoft open-pr N --title <标题> --body-file <正文>` 建 PR。开发阶段（route 卡 `confirm: 1`）没有这一步：本地验证与判级读回完成后直接建 PR 并通知用户。
 7. **人合并**：PR 只由人合并；合并不等于部署。合并后按 `issue-session-flow` 收尾（`aisoft complete` 先 dry-run 再 `--apply`）。
 
 用户读到这里时，告诉他们后面的每张 Issue 都是第 5 步的重复。

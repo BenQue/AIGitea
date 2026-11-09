@@ -43,6 +43,11 @@
   并固定 exact Issue 与分支。两点之间 AI 在合同内自主实现、测试和
   修复 CI；合同冲突、范围扩张、破坏性迁移、安全决策、外部阻塞或同因三次失败时停下升级。
   merge 后的终态核对、文档检查与清理按确定性流程完成。
+- **开发阶段（首次生产发布前）。** `change_control: development` 的仓库：一张批次 Issue 承载一个功能或一组相关
+  改动，spec 用条目列出各项与验收，同一目标内的新改动追加为条目而不算范围扩张；不同的功能与含高风险 flag 的
+  重大变更单独开 Issue，零散 small 修复并入当前批次。route 卡为 `confirm: 1`，只有确认点 1：`approved` 同时授权
+  本 Issue 分支的 push 与唯一最终 PR，本地验证与判级读回完成后直接开 PR。单闸门不变。尚未首次生产发布的新项目
+  采用时声明 `development`。
 - **单闸门。** 最终 PR merge 是唯一交付硬闸门，只由人合并。会话与项目 agent 不 merge、
   不直推受保护 `main`。PR merge 不传递任何部署授权。
 - **远端写路径。** Gitea 与 Git 的写操作走 typed 操作引擎，不拼 raw token、
@@ -59,6 +64,7 @@
 - 测试与生产同字节晋级：生产只消费测试环境验收过的同一制品，不重新构建。
 - 部署前备份，migration 向后兼容，migration 与应用启动分离。
 - 健康检查返回精确 release SHA。
+- 首次生产发布之前，`change_control` 必须已经由一张合并的切换 Issue 改为 `production`；之后不切回 `development`。
 - 回滚路径是版本化脚本的一部分，并已实测。
 - 生产 script-only：生产只运行已验证、版本化、可回滚的确定性脚本，不安装或调用 AI。
 - AI 只参与非生产首次部署：把成功步骤固化为脚本，连续两次幂等加一次故意失败回滚，真实结果
@@ -94,7 +100,7 @@ pin 的版本，项目不得手改。Gitea 与 Git 访问经 §6 选定的来源
 | `change-name N slug` | 校验并打印新 change 分支名 |
 | `resolve-documents N` | 解析映射的 change 文档名 |
 | `check-change-documents` | 核对全部 change 文档的 front matter 合同 |
-| `open-pr N --title T --body-file F` | 确认点 2 之后一步完成首推、建 PR、回填 summary 与再推 |
+| `open-pr N --title T --body-file F` | 确认点 2 之后（`confirm: 1` 时在本地验证之后）一步完成首推、建 PR、回填 summary 与再推 |
 | `backfill-pr-url N --pr-url U` | 手工修复：建 PR 后回填 summary 的 `pr_url` 与 `status` |
 | `claim-worktree --branch B` | 把 change worktree 绑定到本会话（`AISOFT_SESSION_ID`） |
 | `scan-worktrees` | 只读扫描 change worktree 是否被改写 |

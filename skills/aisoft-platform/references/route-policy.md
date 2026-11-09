@@ -32,7 +32,7 @@ provider 写入 summary 顶层 `route_provider`，不加入 route 八键或 anal
 | R4 | complex，`production`，无高风险 flag | `complex-production` | `frontier` | `high` | `spec-plan` | `full` | `cross-provider` | `human-merge` | `to-spec`, `to-tickets`, `@plan`, `@completion` |
 | R5 | small | `small-direct` | `standard` | `medium` | `implement-only` | `targeted` | `human-merge` | `human-merge` | `@completion` |
 
-`confirm` 恒为 `2`：合同/启动，与提交最终 PR 前。R1 的 tier/effort 只用于分析，`triage` 之外在 Issue 说不清时加 `grill-me`。
+`confirm` 缺省为 `2`：合同/启动，与提交最终 PR 前；细化规则 C1 把开发阶段（`change_control: development`）改为 `1`，只保留合同/启动，`approved` 同时授权本 Issue exact 分支的 push 与唯一最终 PR（`03` §1「开发阶段」）。R1 的 tier/effort 只用于分析，`triage` 之外在 Issue 说不清时加 `grill-me`。
 R2 仍先于 R3：development 即使有高风险 flag 也保持现有命中顺序；R2 不因此新增整套计划执行技能义务。
 
 ## Provider 映射
@@ -62,6 +62,7 @@ R1 不因 provider 合法而获得实施权限。已批准的显式覆盖仍走 
 | S1 | R3、平台仓、安全类 | review 改为 `cross-provider+security` |
 | P1 | R3、项目仓 | skills 末尾加 `code-review`（Matt 两轴审查，至少 spec 轴） |
 | G1 | R3 或 R4，且（`change_type: feature` 或 `contract_effect: add` 或一个阶段要拆成多个 Issue） | skills 最前面加 `grill-me` |
+| C1 | `change_control: development` | confirm 改为 `1` |
 
 ## 文档义务
 
@@ -97,11 +98,12 @@ summary 的 `route:` 块仍为 process/tier/effort/skills/method/verify/review/c
 | method | `implement-only`, `debug-first`, `tdd`, `spec-plan`, `prototype-first`, `none` |
 | verify | `targeted`, `full`, `full+verification`, `full+reverse-proof`, `none` |
 | review | `human-merge`, `cross-provider`, `cross-provider+security`, `none` |
-| confirm | `2` |
+| confirm | `1`, `2` |
 
 `skills` 写成逗号分隔的一行技能名（不带 `$`、不带包前缀）。`process` 必须与 `effective_complexity` 一致：
 `small` ↔ `small-direct`，`complex` ↔ `complex-development` 或 `complex-production`，未决 ↔ `awaiting-triage`；
 与 R1 同序：`contract_effect: unclear` 或 `confidence: low` 时不论 `effective_complexity` 写了什么都是 `awaiting-triage`。
+`complex-production` 只能配 `confirm: 2`。
 
 ## summary 写法
 
@@ -128,7 +130,7 @@ route:
 
 ## 必用与禁用
 
-推导表经 provider 展开后的 skills 只列**必用**项，另有两条全局必用：两个确认点；平台仓 complex 由未参与实现的另一方提供者只读交叉审查。
+推导表经 provider 展开后的 skills 只列**必用**项，另有两条全局必用：route 卡 `confirm` 规定的确认点（`2` 为两个，开发阶段 `1` 为一个）；平台仓 complex 由未参与实现的另一方提供者只读交叉审查。
 
 **禁用与限制**（所有 process）：
 

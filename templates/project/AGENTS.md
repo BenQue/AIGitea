@@ -31,7 +31,9 @@ superpowers `executing-plans`，Codex 用 `$implement #N Txx`）；
 必须停下升级给人。
 
 日常会话默认只有两个确认点：确认 Issue 合同并开始实现；本地实现与验证完成后确认
-提交唯一最终 PR，并固定 exact Issue/branch。merge 后的终态核对、文档检查、
+提交唯一最终 PR，并固定 exact Issue/branch。`development`（首次生产发布前）只有第一个确认点：
+一张批次 Issue 承载一个功能或一组相关改动，同目标的改动追加为 spec 条目；不同功能与含高风险 flag 的重大变更
+单独开 Issue；本地验证完成后直接开唯一最终 PR（平台 `03` §1「开发阶段」）。merge 后的终态核对、文档检查、
 worktree/本地分支清理与归档按确定性流程完成，不再询问。PR merge 不传递任何部署授权。
 
 ## 工具分工

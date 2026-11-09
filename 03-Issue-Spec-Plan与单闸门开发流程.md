@@ -24,6 +24,22 @@ Issue #N
 - 新 Issue 从分析开始使用单一 `change/N-short-description` 分支；已有 `change/N` 与更早的 `spec/N` 只按历史证据兼容，不作为新 writer 的可选格式。
 - 文档与代码进入同一个最终 PR，不强制独立 docs-only spec PR。
 
+### 开发阶段（首次生产发布前）
+
+`change_control: development` 就是「开发阶段」，`production` 就是「生产阶段」，不另设字段；未声明或读取失败按
+`production`。尚未首次生产发布的新项目在采用时声明 `development`。开发阶段与生产阶段只有下面三处不同，其余合同相同：
+
+- **批次 Issue。** 一张 Issue 承载一个功能或一组相关改动（批次），spec 用「条目」列出各项，每项有自己的验收。
+  实现中发现的同一目标内的改动，先在 spec 追加条目、验收与 `git_scope` 并 commit，再实现；这不算范围扩张。
+  不同的功能（能独立验收、独立回退）与重大变更（含高风险 flag，照旧完整版 spec + plan）必须单独开 Issue。
+  零散 small 修复并入当前进行中的批次；没有进行中的批次时才单独开 small Issue。一张批次 Issue 仍对应一条 exact
+  分支与一个最终 PR。
+- **只有确认点 1。** 路由表细化规则 C1 让开发阶段的 route 卡 `confirm: 1`：`approved` 同时授权本 Issue exact 分支的
+  push 与唯一最终 PR。本地验证完成、`aisoft classify --verify N` 读回 `projected` 后，会话直接 `aisoft open-pr`，
+  把 §7 的 handoff 字段写进 PR 通知，不再等确认点 2。PR 仍只由人合并，merge 不传递部署授权，§8 的升级条件不变。
+- **单向切换到生产。** 首次生产发布之前，先合并一张把 `change_control` 改为 `production` 的切换 Issue（按 complex
+  判级）。切换前合并或关闭在途批次；切换后仍在途的 Issue 重新解析路由。之后不切回 `development`。
+
 ### change worktree 的单写者归属
 
 **一个 change worktree 的写者是且只是该 Issue 的会话。** 别的会话发现它需要变基、需要修
@@ -394,7 +410,7 @@ PR 必须：
 
 PR 合并是唯一交付硬闸门，只由人合并；会话、协调者和 CI 都不得合并 PR。
 
-提交前 handoff 固定包含 Issue、branch、真实验证、判级读回和未执行项。确认允许合同内 CI 修复，
+提交前 handoff 固定包含 Issue、branch、真实验证、判级读回和未执行项（route 卡 `confirm: 1` 时写进 PR 通知，不等确认，见 §1「开发阶段」）。确认允许合同内 CI 修复，
 required CI 全绿后停在 `READY_FOR_REVIEW`；不授权部署。确认绑定 Issue/branch，不绑定当时 SHA。
 
 ### 交叉审核（平台仓 complex，ADR 0001 D6）
@@ -646,3 +662,4 @@ broker 因操作表陈旧而拒绝时，工具报 `broker-operation-missing`，d
 | #408 | — | approval 只写 summary；`aisoft open-pr` 一步建 PR 与回填；交叉审查固定表与审查证据索引 |
 | #412 | — | 平台批次在本批 PR 里回写路线图与 E2E 表的行，收尾读回 `origin/main` |
 | #436 | — | 所有 Issue 交付 spec，small/development 用简版；plan 按路由表「文档义务」；summary 收为短索引；确认点 1 文档预检 |
+| #440 | — | 开发阶段（首次生产发布前）：批次 Issue、路由 C1 `confirm: 1` 只留确认点 1、单向切换到生产 |

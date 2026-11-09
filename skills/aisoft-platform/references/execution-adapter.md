@@ -102,4 +102,4 @@ source/local、CI、installed、真实 provider session、live 分开。未执�
 治理文件必须由获批 complex 合同的独立受控步骤应用，commit 后停止。
 fresh run 重读批准合同、治理 diff、当前规则、exact worktree/owner/HEAD 后继续。
 原批准在合同内持续有效，fresh run、ticket、测试、普通修复、本地 commit 都不是新的人工确认点。
-只有现有合同/启动和最终 PR 前两个确认点；merge 与部署权限边界不变。
+只有路由卡 `confirm` 规定的确认点：`2` 为合同/启动和最终 PR 前两个，开发阶段 `1` 只有合同/启动；merge 与部署权限边界不变。

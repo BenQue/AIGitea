@@ -33,7 +33,8 @@ description: Use when 开 Issue 解决问题、需要把一个大阶段任务拆
 
 调度会话开在**这批 Issue 的相关项目**里，只协调不实现：不建 change worktree、不写实现代码、不碰任何 Issue 的分支。
 
-大阶段任务拆票前，先对整个阶段 `$grill-me` 一次定需求，再拆成 Issue。调度会话的产出物是一张**路线图**，
+大阶段任务拆票前，先对整个阶段 `$grill-me` 一次定需求，再拆成 Issue。开发阶段（`change_control: development`）
+按批次拆：一个功能或一组相关改动一张 Issue，不同功能与含高风险 flag 的重大变更才分开，规则见平台 `03` §1「开发阶段」。调度会话的产出物是一张**路线图**，
 表形为一批一行，写名称、一句话目标、判级、依赖、可与谁并行、
 状态，表下写推荐顺序。各 Issue 的路由卡由各自会话查表产出，路线图不替它们定级。
 
@@ -151,7 +152,7 @@ manager-audit 只读路由读取，无凭据、ACL 或 direct-client fallback。
 
 确认点 1 通过后，直到确认点 2 之前不再增加询问：读证据与判级、补齐合同文档、合同内实现与本地原子
 commit、测试与普通修复、必需的更宽闸门、判级投影。确认点 2 通过后同样不再询问 push、唯一最终 PR
-与 PR CI 修复。只有合同/启动确认不授权 push 或建 PR。ticket、测试命令、commit、CI 重试都不是确认点；合同里已定的选择不再重问。
+与 PR CI 修复。只有合同/启动确认不授权 push 或建 PR。例外是开发阶段：route 卡 `confirm: 1` 时 `approved` 同时授权本 Issue exact 分支的 push 与唯一最终 PR，见下方「确认点 2」节。ticket、测试命令、commit、CI 重试都不是确认点；合同里已定的选择不再重问。
 
 逐票执行与固定候选使用 [共享执行适配](../aisoft-platform/references/execution-adapter.md)：
 保留 provider 默认，Txx 是唯一合同，开始前记录 BASE；Matt 候选先本地提交再审同一 HEAD，
@@ -188,6 +189,10 @@ triage、判级与路由要求的 semantic docs 完整、`aisoft classify N` 的
 人可以改任何一格；改了就把哪一格、为什么写进 summary 的 `override_reason`，再把 summary 改为 `approved`。
 
 ## 确认点 2：准备提交最终 PR
+
+**开发阶段跳过本节**：route 卡 `confirm: 1`（`change_control: development`，首次生产发布前）时没有确认点 2。
+本地验证完成、`aisoft classify --verify N` 读回 `projected` 后直接 `aisoft open-pr`，把下面候选的字段写进给人的
+PR 通知（不问「是否提交」），然后停在 `READY_FOR_REVIEW` 等人合并。其余规则照旧适用。
 
 本地验证完成后进入 `AWAITING_PR_CONFIRMATION`；在人确认之前不 push、不建 PR。
 只给出一份候选，必须输出 branch、真实验证、判级和未执行项；

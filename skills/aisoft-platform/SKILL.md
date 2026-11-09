@@ -77,7 +77,7 @@ routine 自动合并已退出（#391）：broker 没有合并操作，manifest �
 
 ## approved 之后默认自主推进
 
-人在确认点 1 确认合同后，以下动作不再逐项询问：证据收集与判级、合同文档补齐、合同内实现与本地原子 commit、测试与普通修复、必需的更宽闸门（smoke、required CI）、判级投影，以及确认点 2 之后的 push、唯一最终 PR 与 PR CI 修复。不要把每张 ticket、每条测试命令、每次 commit 或 CI 重试变成确认点；合同里已定下的选择不再重问。两个确认点的格式由 `issue-session-flow` 负责。
+人在确认点 1 确认合同后，以下动作不再逐项询问：证据收集与判级、合同文档补齐、合同内实现与本地原子 commit、测试与普通修复、必需的更宽闸门（smoke、required CI）、判级投影，以及确认点 2 之后的 push、唯一最终 PR 与 PR CI 修复。不要把每张 ticket、每条测试命令、每次 commit 或 CI 重试变成确认点；合同里已定下的选择不再重问。两个确认点的格式由 `issue-session-flow` 负责。开发阶段（`change_control: development`，首次生产发布前）route 卡为 `confirm: 1`：用批次 Issue，`approved` 同时授权 push 与唯一最终 PR，见平台 `03` §1「开发阶段」。
 
 治理变更按获批 complex 合同独立受控应用、commit 后 STOP；fresh run 重读合同、治理 diff、当前规则与
 worktree/owner/HEAD 后继续。原批准持续有效，不重复启动确认；具体交接遵循 execution-adapter。
@@ -90,7 +90,7 @@ worktree/owner/HEAD 后继续。原批准持续有效，不重复启动确认；
 
 ## PR URL 回填
 
-确认点 2 之后用一条命令开 PR：`aisoft open-pr N --title <标题> --body-file <正文文件>`（#408）。它先在本地校验正文
+确认点 2 之后（`confirm: 1` 时本地验证与判级读回之后）用一条命令开 PR：`aisoft open-pr N --title <标题> --body-file <正文文件>`（#408）。它先在本地校验正文
 （恰好一行 `Closes #N`，映射 summary 路径恰好出现一次，不合格时不发任何 broker 请求），再依次经 broker 首推 change 分支、
 `gitea.pull.create`、回填 summary 并只提交这一份、运行 `check-change-documents`、经 broker 再推同一分支。任何一步失败就停下报告；
 重跑安全：同一 change 已有开放 PR 时 broker 返回原 PR，回填已是同值时不再提交。
