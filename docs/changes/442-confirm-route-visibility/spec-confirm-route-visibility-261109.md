@@ -12,6 +12,7 @@ risk_flags:
   - external-contract
 depends_on: []
 git_scope:
+  - codex/config/change-template-sync.json
   - codex/runtime/aisoft_loop/classification.py
   - codex/runtime/aisoft_loop/contract.py
   - codex/runtime/aisoft_loop/route_policy.py
@@ -52,6 +53,8 @@ updated: 2026-11-09
   不新增 flow 列表语法。`contract._safe_scalar` 与 `classification._parse_scalar` 在值以 `[` 开头时，把错误信息改为
   写明「不支持 YAML flow 列表；列表用块列表，`route.skills` 写逗号分隔一行，例 `skills: to-spec, executing-plans`」；
   其它不安全字符的报错保持原样。summary 模板在 `route:` 上方的 HTML 注释里写同一提示（front matter 内不加 YAML 注释）。
+- **D3a 模板 digest。** 模板一改，`codex/config/change-template-sync.json` 钉住的 digest 同 PR 用
+  `change-template-sync.sh --refresh-digest` 刷新（smoke 硬门）；下游副本随项目采用 1.23.1 同步，不在本票改下游。
 - **D4 发布包 1.23.1（patch）。** `codex/tools/aisoft`、`route_policy.py`、`contract.py`、`classification.py` 与 summary 模板
   都是 exact 成员；按发布规则同 PR `usage-bundle.sh --release 1.23.1 --compatibility patch`，notes 写明仅输出与提示变化。
 
