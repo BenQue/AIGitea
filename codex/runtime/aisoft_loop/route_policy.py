@@ -374,5 +374,7 @@ def resolve_issue_route(repo: Path, number: int, provider: str) -> dict:
         result['route'] = dict(existing)
         result['override_reason'] = summary.get('override_reason', '')
     result['historical_card'] = 'route_provider' not in summary
+    # #442: say which phase the route was resolved under (project.json first).
+    result['change_control'] = phase
     result['issue'] = number
     return result

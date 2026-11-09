@@ -34,6 +34,10 @@ created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---
 
+<!-- route: copy the card that `aisoft resolve-route N --provider P` prints. Write
+`skills` as one comma-separated line (`skills: to-spec, executing-plans`); the
+front matter parser rejects YAML flow lists such as `[to-spec, executing-plans]`. -->
+
 <!-- WRAPPER_CONDITIONAL:
 When assessed_complexity == needs-human-decision, delete every
 `effective_complexity:` key from both the front matter and the `## AI 判级`

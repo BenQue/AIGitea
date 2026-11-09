@@ -619,5 +619,27 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(caught.exception.terminal_state, "BLOCKED_EXTERNAL")
 
 
+
+class FlowListHintTests(unittest.TestCase):
+    """#442: route.skills written as [a, b] stays rejected, with the supported spelling."""
+
+    def test_nested_flow_list_names_the_comma_separated_form(self) -> None:
+        from aisoft_loop.contract import parse_front_matter
+        with self.assertRaisesRegex(ContractError, r"flow list.*skills: to-spec, executing-plans"):
+            parse_front_matter("---\nissue: 1\nroute:\n  skills: [to-spec, executing-plans]\n---\n")
+
+    def test_top_level_flow_list_is_rejected_with_the_hint(self) -> None:
+        from aisoft_loop.contract import parse_front_matter
+        with self.assertRaisesRegex(ContractError, r"flow list"):
+            parse_front_matter("---\nissue: 1\nrisk_flags: [shared-core]\n---\n")
+        self.assertEqual(parse_front_matter("---\nrisk_flags: []\n---\n")["risk_flags"], [])
+
+    def test_other_unsafe_scalars_keep_the_original_message(self) -> None:
+        from aisoft_loop.contract import parse_front_matter
+        with self.assertRaises(ContractError) as caught:
+            parse_front_matter("---\nreason: &anchor value\n---\n")
+        self.assertIn("unsafe YAML scalar at line 2", str(caught.exception))
+        self.assertNotIn("flow list", str(caught.exception))
+
 if __name__ == "__main__":
     unittest.main()

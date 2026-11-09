@@ -295,6 +295,14 @@ class ExecutableRouteTests(unittest.TestCase):
             self.assertEqual(run.returncode, 0, run.stderr)
             self.assertEqual(json.loads(run.stdout)['route']['skills'], 'issue-session-flow')
             self.assertTrue(json.loads(run.stdout)['historical_card'])
+            # #442: the phase the route was resolved under is part of the output.
+            self.assertEqual(json.loads(run.stdout)['change_control'], 'production')
+            from unittest.mock import patch
+            from aisoft_loop.route_policy import resolve_issue_route
+            with patch('aisoft_loop.route_policy.repository_context', return_value=('development', False)):
+                development = resolve_issue_route(repo, 57, 'codex')
+            self.assertEqual(development['change_control'], 'development')
+            self.assertEqual(development['route']['confirm'], '1')
             self.assertEqual(summary.read_text(), text)
             missing = subprocess.run([str(wrapper), 'resolve-route', '57', '--repo', str(repo)], capture_output=True)
             self.assertNotEqual(missing.returncode, 0)

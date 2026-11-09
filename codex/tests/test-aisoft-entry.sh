@@ -119,6 +119,8 @@ grep -Fq 'status: pr-open' "$TMP/wt/docs/changes/7-demo-change/summary-demo-chan
 # synthetic project is not registered, so the tool itself must refuse by name.
 run_tool "$project" 1 classify 7
 expect_contains '路由 #7: small-direct · standard/medium · implement-only'
+# #442: the confirmation-point count is part of the route line.
+expect_contains ' · confirm 2'
 expect_contains 'ERROR: apply-classification:'
 run_tool "$project" 1 complete --project demo --range HEAD~1..HEAD
 expect_contains 'ERROR:'
