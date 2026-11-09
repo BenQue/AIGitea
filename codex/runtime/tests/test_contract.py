@@ -353,7 +353,7 @@ class ContractTests(unittest.TestCase):
             ("method: debug-first", "method: vibes", "route.method"),
             ("verify: targeted", "verify: some", "route.verify"),
             ("review: human-merge", "review: self", "route.review"),
-            ("confirm: 2", "confirm: 1", "route.confirm"),
+            ("confirm: 2", "confirm: 3", "route.confirm"),
             ("  confirm: 2", "  confirm: 2\n  engine: daemon", "route keys"),
             ("  confirm: 2", "", "route keys"),
             ("skills: verification-before-completion", "skills: ''", "route.skills"),
@@ -365,6 +365,21 @@ class ContractTests(unittest.TestCase):
                 self.write_new_contract(number=number, route=self.SMALL_ROUTE.replace(old, new))
                 with self.assertRaisesRegex(ContractError, needle):
                     resolve_documents(self.repo, number)
+
+    def test_route_confirm_one_is_the_development_phase_only(self) -> None:
+        # #440: confirm 1 (development, C1) is legal for small/development routes;
+        # a production complex card must keep both confirmation points.
+        from aisoft_loop.contract import validate_route
+        small = {"effective_complexity": "small", "contract_effect": "restore", "confidence": "high",
+                 "route": {"process": "small-direct", "tier": "standard", "effort": "medium",
+                           "skills": "verification-before-completion", "method": "implement-only",
+                           "verify": "targeted", "review": "human-merge", "confirm": "1"}}
+        validate_route(small)
+        production = {**small, "effective_complexity": "complex",
+                      "route": {**small["route"], "process": "complex-production"}}
+        with self.assertRaisesRegex(ContractError, "complex-production"):
+            validate_route(production)
+        validate_route({**production, "route": {**production["route"], "confirm": "2"}})
 
     def test_route_process_follows_the_unresolved_row_first(self) -> None:
         # R1 wins over the complexity: a low-confidence or unclear summary routes

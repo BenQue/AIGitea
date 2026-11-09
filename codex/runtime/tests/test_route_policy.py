@@ -85,7 +85,7 @@ class RoutePolicyTests(unittest.TestCase):
     def test_policy_has_five_rows_five_rules_and_the_closed_sets(self) -> None:
         rows, rules, closed = load_policy()
         self.assertEqual(sorted(rows), ["R1", "R2", "R3", "R4", "R5"])
-        self.assertEqual(sorted(rules), ["G1", "M1", "P1", "S1", "V1"])
+        self.assertEqual(sorted(rules), ["C1", "G1", "M1", "P1", "S1", "V1"])
         self.assertEqual(set(closed), ROUTE_KEYS - {"skills"})
 
     def test_contract_closed_sets_are_the_policy_closed_sets(self) -> None:
@@ -174,6 +174,10 @@ class RoutePolicyTests(unittest.TestCase):
         self.assertEqual((project["review"], project["skills"]),
                          ("human-merge", PRODUCTION_SKILLS + ", code-review"))
         self.assertEqual(lookup(governance, change_control="development")["row"], "R2")
+        # #440 C1: the development phase keeps only confirmation point 1.
+        self.assertEqual(lookup(governance, change_control="development")["confirm"], "1")
+        self.assertEqual(lookup(classified(), change_control="development")["confirm"], "1")
+        self.assertEqual(lookup(classified())["confirm"], "2")
         owed = classified(
             change_type="maintenance", requested_complexity="complex", effective_complexity="complex",
             required_docs=COMPLEX_DOCS + "\n  - verification",
@@ -200,7 +204,8 @@ class ExecutableRouteTests(unittest.TestCase):
                         with self.subTest(provider=provider, phase=phase, platform=platform, type=c.change_type):
                             r = resolve_route(c, provider=provider, change_control=phase, platform_repo=platform)
                             skills = r['route']['skills'].split(', ')
-                            self.assertEqual(r['route']['confirm'], '2')
+                            self.assertEqual(r['route']['confirm'], '1' if phase == 'development' else '2')
+                            self.assertEqual('C1' in r['matched_rules'], phase == 'development')
                             self.assertNotIn('@', r['route']['skills'])
                             if r['matched_rules'][0] == 'R1':
                                 self.assertEqual(skills, ['triage'])
