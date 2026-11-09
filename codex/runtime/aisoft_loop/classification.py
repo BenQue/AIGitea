@@ -303,6 +303,13 @@ def _parse_restricted_yaml(text: str) -> tuple[dict[str, object], list[str]]:
 
 
 def _parse_scalar(value: str, line_number: int) -> str:
+    if value.startswith("["):
+        # #442: name the supported spelling instead of a bare refusal.
+        raise ClassificationError(
+            f"unsafe YAML scalar at line {line_number}: YAML flow lists are not supported; "
+            "use a block list, and write route.skills as one comma-separated line, "
+            "e.g. 'skills: to-spec, executing-plans'"
+        )
     if any(marker in value for marker in ("&", "*", "!", "{", "}", "[", "]")):
         raise ClassificationError(f"unsafe YAML scalar at line {line_number}")
     if value.startswith(("'", '"')):

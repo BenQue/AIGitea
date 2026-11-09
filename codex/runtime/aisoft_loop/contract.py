@@ -718,6 +718,13 @@ def _reject_governing_self_modification(text: str) -> None:
 
 
 def _safe_scalar(value: str, line_number: int) -> str:
+    if value.startswith("["):
+        # #442: name the supported spelling instead of a bare refusal.
+        raise ContractError(
+            f"unsafe YAML scalar at line {line_number}: YAML flow lists are not supported; "
+            "use a block list, and write route.skills as one comma-separated line, "
+            "e.g. 'skills: to-spec, executing-plans'"
+        )
     if any(marker in value for marker in ("&", "*", "!", "{", "}", "[", "]")):
         raise ContractError(f"unsafe YAML scalar at line {line_number}")
     if value.startswith(("'", '"')):

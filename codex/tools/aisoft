@@ -144,6 +144,7 @@ elif front_matter:
     print(
         f"路由 #{issue}: {route['process']} · {route['tier']}/{route['effort']} · {route['method']}"
         f" · verify {route['verify']} · review {route['review']} · skills {route['skills']}"
+        f" · confirm {route.get('confirm', '?')}"
     )
 # #436: confirmation point 1 learns now what the typed push would refuse last.
 from pathlib import Path

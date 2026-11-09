@@ -163,6 +163,14 @@ class ClassificationTests(unittest.TestCase):
             with self.subTest(text=text), self.assertRaises(ClassificationError):
                 Classification.from_yaml(text)
 
+    def test_flow_list_is_rejected_with_the_supported_spelling(self) -> None:
+        """#442: a YAML flow list stays fail-closed but says how to write it."""
+        with self.assertRaisesRegex(ClassificationError, r"flow list.*comma-separated"):
+            Classification.from_yaml(classification_text(reason="[a, b]"))
+        with self.assertRaises(ClassificationError) as caught:
+            Classification.from_yaml(classification_text(reason="{nested: value}"))
+        self.assertNotIn("flow list", str(caught.exception))
+
     def test_required_docs_follow_effective_route(self) -> None:
         parsed = Classification.from_yaml(classification_text())
         # #436: even small owes the spec that carries its git_scope.
