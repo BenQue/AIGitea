@@ -318,6 +318,7 @@ VM 上的 Development Loop 已随 #391 退出（ADR 0002）；开发由 Mac 上�
 - 状态包含提交前 `AWAITING_PR_CONFIRMATION`、`READY_FOR_REVIEW`，以及 `NEEDS_HUMAN_DECISION`、`BLOCKED_EXTERNAL`、`FAILED_LIMIT`。
 - 最终 PR 只有人可以合并；push 与建 PR 只在第二确认点（最终 PR 提交确认）明确授权后经 broker 进行。
   第一确认点仅批准合同/启动，不授权 push、PR、merge 或部署。
+  例外：route 卡 `confirm: 1`（开发阶段，`change_control: development`）没有第二确认点，`approved` 同时授权本 Issue 分支的 push 与唯一最终 PR，仍不授权 merge 或部署。
   这里的 broker 指当前来源的 typed 操作入口：项目来源是 `aisoft-access`，站点来源是已安装 broker。
 
 ## 8. 接入验收

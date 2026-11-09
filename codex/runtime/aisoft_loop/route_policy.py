@@ -224,7 +224,7 @@ def resolve_route(classification: Classification, *, provider: str,
     rows = _table(text, '## 推导表', 10)
     mappings = _table(text, '## Provider 映射', 3)
     refinements = _table(text, '## 细化规则', 3)
-    if [r[0] for r in rows] != ['R1', 'R2', 'R3', 'R4', 'R5'] or [r[0] for r in refinements] != ['M1','V1','S1','P1','G1']:
+    if [r[0] for r in rows] != ['R1', 'R2', 'R3', 'R4', 'R5'] or [r[0] for r in refinements] != ['M1','V1','S1','P1','G1','C1']:
         raise ContractError('unsupported route policy row/rule order')
     if [m[0] for m in mappings] != list(PROVIDERS):
         raise ContractError('unsupported provider mapping')
@@ -237,7 +237,8 @@ def resolve_route(classification: Classification, *, provider: str,
     ]
     rule_conditions = ['R5 且 `change_type: bugfix`', 'R4 且 `required_docs` 含 `verification`',
                        'R3、平台仓、安全类', 'R3、项目仓',
-                       'R3 或 R4，且（`change_type: feature` 或 `contract_effect: add` 或一个阶段要拆成多个 Issue）']
+                       'R3 或 R4，且（`change_type: feature` 或 `contract_effect: add` 或一个阶段要拆成多个 Issue）',
+                       '`change_control: development`']
     if [r[1] for r in rows] != row_conditions or [r[1] for r in refinements] != rule_conditions:
         raise ContractError('unsupported route policy condition; revalidate interpreter')
     try:
@@ -264,7 +265,8 @@ def resolve_route(classification: Classification, *, provider: str,
     rules = [row[0]]
     actions = [re.sub(r'`[^`]+`', 'VALUE', r[2]) for r in refinements]
     if actions != ['method 改为 VALUE', 'verify 改为 VALUE', 'review 改为 VALUE',
-                   'skills 末尾加 VALUE（Matt 两轴审查，至少 spec 轴）', 'skills 最前面加 VALUE']:
+                   'skills 末尾加 VALUE（Matt 两轴审查，至少 spec 轴）', 'skills 最前面加 VALUE',
+                   'confirm 改为 VALUE']:
         raise ContractError('unsupported policy modifier action')
     security_type = re.search(r'\*\*安全类\*\*：(.*?)任一 flag，或 `change_type: ([a-z-]+)`。', text, re.S)
     if security_type is None:
@@ -277,21 +279,26 @@ def resolve_route(classification: Classification, *, provider: str,
     modifiers = {r[0]: _codes(r[2]) for r in refinements}
     if any(len(v) != 1 for v in modifiers.values()):
         raise ContractError('invalid policy modifier values')
+    confirm = '2'
     for key, applies, field in (
         ('M1', row_index == 4 and classification.change_type == 'bugfix', 'method'),
         ('V1', row_index == 3 and 'verification' in roles, 'verify'),
         ('S1', row_index == 2 and platform_repo and (bool(flags & security) or classification.change_type == security_type[2]), 'review'),
         ('P1', row_index == 2 and not platform_repo, 'append'),
         ('G1', row_index in (2,3) and (classification.change_type == 'feature' or classification.contract_effect == 'add' or splits_into_issues), 'prepend'),
+        # #440: the development phase (before the first production release) keeps
+        # only confirmation point 1.
+        ('C1', change_control == 'development', 'confirm'),
     ):
         if applies:
             value = modifiers[key][0]
-            if field == 'append': skills.append(value)
+            if field == 'confirm': confirm = value
+            elif field == 'append': skills.append(value)
             elif field == 'prepend': skills.insert(0, value)
             else: route[field] = value
             rules.append(key)
     route['skills'] = ', '.join(concrete_skills(', '.join(skills)))
-    route['confirm'] = '2'
+    route['confirm'] = confirm
     from .contract import validate_route
     validate_route({'route': route, 'effective_complexity': effective,
                     'contract_effect': classification.contract_effect, 'confidence': classification.confidence})
@@ -340,6 +347,11 @@ def validate_provider_route(summary: Mapping[str, object], *, change_control: st
     actual = summary['route']
     concrete_skills(actual.get('skills'))
     differences = [key for key in expected if actual.get(key) != expected[key]]
+    # #440: a card written before C1 keeps confirm 2 where the policy now says 1.
+    # Two confirmation points are strictly more than the policy asks, so the
+    # stored card stays valid and resolve-route reports the difference instead.
+    if actual.get('confirm') == '2' and expected.get('confirm') == '1':
+        differences = [key for key in differences if key != 'confirm']
     reason = str(summary.get('override_reason') or '')
     # A stale classification override is not blanket authority to change skills.
     if differences and any(not re.search(r'\b' + key + r'\b', reason) for key in differences):

@@ -85,7 +85,7 @@ class RoutePolicyTests(unittest.TestCase):
     def test_policy_has_five_rows_five_rules_and_the_closed_sets(self) -> None:
         rows, rules, closed = load_policy()
         self.assertEqual(sorted(rows), ["R1", "R2", "R3", "R4", "R5"])
-        self.assertEqual(sorted(rules), ["G1", "M1", "P1", "S1", "V1"])
+        self.assertEqual(sorted(rules), ["C1", "G1", "M1", "P1", "S1", "V1"])
         self.assertEqual(set(closed), ROUTE_KEYS - {"skills"})
 
     def test_contract_closed_sets_are_the_policy_closed_sets(self) -> None:
@@ -174,6 +174,10 @@ class RoutePolicyTests(unittest.TestCase):
         self.assertEqual((project["review"], project["skills"]),
                          ("human-merge", PRODUCTION_SKILLS + ", code-review"))
         self.assertEqual(lookup(governance, change_control="development")["row"], "R2")
+        # #440 C1: the development phase keeps only confirmation point 1.
+        self.assertEqual(lookup(governance, change_control="development")["confirm"], "1")
+        self.assertEqual(lookup(classified(), change_control="development")["confirm"], "1")
+        self.assertEqual(lookup(classified())["confirm"], "2")
         owed = classified(
             change_type="maintenance", requested_complexity="complex", effective_complexity="complex",
             required_docs=COMPLEX_DOCS + "\n  - verification",
@@ -200,7 +204,8 @@ class ExecutableRouteTests(unittest.TestCase):
                         with self.subTest(provider=provider, phase=phase, platform=platform, type=c.change_type):
                             r = resolve_route(c, provider=provider, change_control=phase, platform_repo=platform)
                             skills = r['route']['skills'].split(', ')
-                            self.assertEqual(r['route']['confirm'], '2')
+                            self.assertEqual(r['route']['confirm'], '1' if phase == 'development' else '2')
+                            self.assertEqual('C1' in r['matched_rules'], phase == 'development')
                             self.assertNotIn('@', r['route']['skills'])
                             if r['matched_rules'][0] == 'R1':
                                 self.assertEqual(skills, ['triage'])
@@ -466,3 +471,37 @@ class DocumentObligationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PreC1CardTests(unittest.TestCase):
+    """#440: development cards written before rule C1 still carry confirm 2."""
+
+    SUMMARY = {
+        "change_type": "feature", "requested_complexity": "auto", "assessed_complexity": "complex",
+        "effective_complexity": "complex", "contract_effect": "change", "reason": "synthetic",
+        "risk_flags": [], "required_docs": ["summary", "spec"], "confidence": "high",
+        "override_reason": "", "route_provider": "claude",
+    }
+
+    def card(self, phase, **changes):
+        from aisoft_loop.route_policy import resolve_route
+        from aisoft_loop.contract import _classification_from_front_matter
+        route = resolve_route(_classification_from_front_matter(self.SUMMARY), provider="claude",
+                              change_control=phase, platform_repo=False)["route"]
+        return {**self.SUMMARY, "route": {**route, **changes}}
+
+    def test_stored_confirm_2_stays_valid_in_development(self):
+        from aisoft_loop.route_policy import validate_provider_route
+        validate_provider_route(self.card("development", confirm="2"),
+                                change_control="development", platform_repo=False)
+        validate_provider_route(self.card("development"), change_control="development", platform_repo=False)
+
+    def test_confirm_1_is_never_accepted_where_policy_says_2(self):
+        from aisoft_loop.contract import ContractError
+        from aisoft_loop.route_policy import validate_provider_route
+        dev_card = self.card("development")
+        self.assertEqual(dev_card["route"]["confirm"], "1")
+        # The same development card read under production keeps failing closed.
+        with self.assertRaisesRegex(ContractError, "confirm"):
+            validate_provider_route({**dev_card, "route": {**self.card("production")["route"], "confirm": "1"}},
+                                    change_control="production", platform_repo=False)

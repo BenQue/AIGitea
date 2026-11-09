@@ -288,7 +288,7 @@ ROUTE_VALUES = {
     "method": frozenset({"implement-only", "debug-first", "tdd", "spec-plan", "prototype-first", "none"}),
     "verify": frozenset({"targeted", "full", "full+verification", "full+reverse-proof", "none"}),
     "review": frozenset({"human-merge", "cross-provider", "cross-provider+security", "none"}),
-    "confirm": frozenset({"2"}),
+    "confirm": frozenset({"1", "2"}),
 }
 ROUTE_KEYS = frozenset(ROUTE_VALUES) | {"skills"}
 ROUTE_PROCESSES = {
@@ -326,6 +326,9 @@ def validate_route(front_matter: Mapping[str, object], repo: Path | None = None)
             f"route.process={route['process']} contradicts the classification"
             f" (effective_complexity={complexity or 'unresolved'}); expected " + ", ".join(sorted(expected))
         )
+    # #440: confirm 1 is the development phase (rule C1); production complex keeps both points.
+    if route["process"] == "complex-production" and route["confirm"] != "2":
+        raise ContractError("route.confirm must be 2 for complex-production")
 
     if "route_provider" in front_matter:
         from .route_policy import validate_provider_route

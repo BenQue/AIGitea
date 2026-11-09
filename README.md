@@ -83,7 +83,7 @@ release bytes；公司要求内网重建但没有隔离测试环境时固定 `BL
 | 3 | **新 Linux Docker-first，PM2 legacy** | builder 一次构建，test/prod 只按 digest pull 或 load；目标机不 build/install/fetch，既有 PM2 应用独立迁移验收前保持不变 |
 | 4 | **生产部署 script-only** | AI 可参与首次非生产部署；生产只执行已验证脚本和制品 |
 | 5 | **任何变更可逆** | 迁移前备份、releases 多版本保留、健康检查失败可回滚 |
-| 6 | **判级、合同与执行分离** | AI 判定有效复杂度；会话在两个确认点之间按合同执行，不得自行改验收标准或扩大范围；执行引擎可替换（ADR 0002） |
+| 6 | **判级、合同与执行分离** | AI 判定有效复杂度；会话在确认点之间按合同执行（生产阶段两个，开发阶段只有确认点 1），不得自行改验收标准或扩大范围；执行引擎可替换（ADR 0002） |
 | 7 | **只有一个交付闸门** | 最终 PR merge 是唯一交付硬闸门，只由人合并；自动化最多止于 PR 候选 |
 | 8 | **主机职责 fail closed** | root-owned profile 同时绑定 hostname 与 machine-id；未知 capability、身份漂移或宽松权限都必须在 mutation 前失败 |
 | 9 | **平台审计与项目写入分离** | manager、project agent、shared bot 都不 merge；每个仓库的 merge 白名单只有人 |

@@ -77,7 +77,7 @@ routine 自动合并已退出（#391）：broker 没有合并操作，manifest �
 
 ## approved 之后默认自主推进
 
-人在确认点 1 确认合同后，以下动作不再逐项询问：证据收集与判级、合同文档补齐、合同内实现与本地原子 commit、测试与普通修复、必需的更宽闸门（smoke、required CI）、判级投影，以及确认点 2 之后的 push、唯一最终 PR 与 PR CI 修复。不要把每张 ticket、每条测试命令、每次 commit 或 CI 重试变成确认点；合同里已定下的选择不再重问。两个确认点的格式由 `issue-session-flow` 负责。
+人在确认点 1 确认合同后，以下动作不再逐项询问：证据收集与判级、合同文档补齐、合同内实现与本地原子 commit、测试与普通修复、必需的更宽闸门（smoke、required CI）、判级投影，以及确认点 2 之后的 push、唯一最终 PR 与 PR CI 修复。不要把每张 ticket、每条测试命令、每次 commit 或 CI 重试变成确认点；合同里已定下的选择不再重问。两个确认点的格式由 `issue-session-flow` 负责。开发阶段（`change_control: development`，首次生产发布前）route 卡为 `confirm: 1`：用批次 Issue，`approved` 同时授权 push 与唯一最终 PR，见平台 `03` §1「开发阶段」。
 
 治理变更按获批 complex 合同独立受控应用、commit 后 STOP；fresh run 重读合同、治理 diff、当前规则与
 worktree/owner/HEAD 后继续。原批准持续有效，不重复启动确认；具体交接遵循 execution-adapter。
@@ -90,7 +90,7 @@ worktree/owner/HEAD 后继续。原批准持续有效，不重复启动确认；
 
 ## PR URL 回填
 
-确认点 2 之后用一条命令开 PR：`aisoft open-pr N --title <标题> --body-file <正文文件>`（#408）。它先在本地校验正文
+确认点 2 之后（`confirm: 1` 时本地验证与判级读回之后）用一条命令开 PR：`aisoft open-pr N --title <标题> --body-file <正文文件>`（#408）。它先在本地校验正文
 （恰好一行 `Closes #N`，映射 summary 路径恰好出现一次，不合格时不发任何 broker 请求），再依次经 broker 首推 change 分支、
 `gitea.pull.create`、回填 summary 并只提交这一份、运行 `check-change-documents`、经 broker 再推同一分支。任何一步失败就停下报告；
 重跑安全：同一 change 已有开放 PR 时 broker 返回原 PR，回填已是同值时不再提交。
@@ -112,7 +112,7 @@ summary-only 回填会产生一个合法的新 head。在后续 push 之前，�
 3. 按判级、`change_control` 与路由表「文档义务」写映射文档（每个 Issue 都写 spec 并列全 `git_scope`；要求时补 plan，否则 development 用 spec AC 合成 `T01`），先跑 `aisoft classify N` 看「文档预检」为 OK，实现 + 测试全绿（改 shell 后跑 `bash codex/tests/smoke.sh`）。`verification` 由证据能否经 diff review + required CI 重放决定，不等同部署。summary 此时写**真实的**前置 `status`（通常 `approved`），`pr_url` 留空——PR 还不存在。
 4. 判级投影：`aisoft classify N` 看计划与路由行 → `aisoft classify --apply N` → `aisoft classify --verify N` 读回两个维度都 `projected` 才算完成；窗口在合并时关闭，closed Issue 永不补写。读到 `broker-operation-missing` 见 `06` 踩坑 20，结论与 Gitea 事实不符见踩坑 21。
 5. 平台仓的 complex 变更：进入确认点 2 之前，由未参与实现的另一方提供者对候选 head 做一次只读交叉审查，结论记入 verification（`03` §「交叉审核」）。
-6. 本地验证完成后进入 `AWAITING_PR_CONFIRMATION`（候选格式见 `issue-session-flow`）；确认后 `aisoft open-pr N --title <标题> --body-file <正文文件>` 一步完成首推、建 PR、回填与再推（见上文「PR URL 回填」），**到开 PR 为止**；`pr_url` 合同见 `03` §3。
+6. 本地验证完成后进入 `AWAITING_PR_CONFIRMATION`（候选格式见 `issue-session-flow`；route 卡 `confirm: 1`（开发阶段，`change_control: development`）不进入，判级读回 `projected` 后直接开 PR）；确认后 `aisoft open-pr N --title <标题> --body-file <正文文件>` 一步完成首推、建 PR、回填与再推（见上文「PR URL 回填」），**到开 PR 为止**；`pr_url` 合同见 `03` §3。
 7. push 报 `BASE_BRANCH_STALE`：broker `git.fetch.main` → 把 `origin/main` 集成进本分支（已推送过的分支用 merge commit；从未推送的分支也可以本地 rebase）→ broker 重推（remote 只走 broker，集成是本地操作）；lease 语义见 `06` §1.0。
 8. push 报 `REMOTE_BRANCH_MOVED`：推送已被拒、远端未被覆盖，先 broker `git.fetch.change --branch change/N-<slug>` 看清远端再决定，不用更强的 force 压过去；见 `06` §1.0。
 
@@ -179,7 +179,7 @@ v1.3.1，也不要自行注册 marketplace、安装或升级插件——那是�
 |---|---|
 | 设计写 `docs/superpowers/specs/`，计划写 `docs/superpowers/plans/` | 写进 `docs/changes/N-short-description/` 里映射的 `spec` / `plan` 角色文档；small 与无高风险的 development 只写简版 spec、不写 plan，其余按路由表「文档义务」写完整版 spec 与 plan；不另建设计文档 |
 | `.superpowers/` 下的工作目录 | 本地状态，已在 `.gitignore` 里，不入库、不当验收证据 |
-| `finishing-a-development-branch` 提供本地 merge、`git push`、建 PR | 三项都不可用。本地验证完成后停在 `AWAITING_PR_CONFIRMATION`；确认后远端只走 broker |
+| `finishing-a-development-branch` 提供本地 merge、`git push`、建 PR | 三项都不可用。本地验证完成后停在 `AWAITING_PR_CONFIRMATION`（`confirm: 1` 时直接 `aisoft open-pr`）；确认后远端只走 broker |
 | 并行子代理各自实现 | 一个 change worktree 同一时刻只有一个写者：子代理不得并发写入它，也不得写别的会话的 worktree；只读调查可以并行 |
 | `dispatching-parallel-agents` 并行派出子代理 | 只用于只读调查 |
 | `subagent-driven-development` 每个任务派一个实现子代理 | 只许顺序派发，一次一个写者，只写本 change worktree |

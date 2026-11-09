@@ -39,7 +39,9 @@ implementation and review. Read them on first use; do not reload if already read
    Follow the shared [execution adapter](../aisoft-platform/references/execution-adapter.md): record the ticket BASE before
    implementation, test, commit only this ticket locally, pin HEAD and check omissions, then review the same fixed candidate
    on both axes. Fixes append commits and revalidate the new HEAD under the existing contract.
-6. Local verification first produces the final-PR candidate handoff and enters `AWAITING_PR_CONFIRMATION`. Only after
+6. Local verification first produces the final-PR candidate handoff and enters `AWAITING_PR_CONFIRMATION`. In the
+   development phase (route card `confirm: 1`, #440) there is no second confirmation: after the classification read-back
+   is `projected` the session opens the PR directly with `aisoft open-pr`. Otherwise, only after
    explicit confirmation may the session fast-forward push through the broker and create the one final PR with exact
    readable head, mapped summary and one `Closes #N` line, then follow required CI. Work ends at `READY_FOR_REVIEW`;
    a human merges. Deployment is independent. (The VM Development Loop and routine merge left main in #391.)

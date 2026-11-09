@@ -30,6 +30,22 @@ class SessionContractTests(unittest.TestCase):
         self.assertNotIn("是否确认归档", content)
         self.assertNotIn("confirm archival", content)
 
+    def test_development_phase_keeps_only_confirmation_point_1(self):
+        # #440: route confirm 1 (change_control development) skips confirmation point 2.
+        content = self._source(self.SESSION_FLOW)
+        self._require(
+            self._section(content, self.CONFIRM_2),
+            "**开发阶段跳过本节**：route 卡 `confirm: 1`",
+            "读回 `projected` 后直接 `aisoft open-pr`",
+        )
+        self._require(
+            self._section(content, self.CONFIRM_1),
+            "开发阶段 route 卡 `confirm: 1` 时它另外授权本 Issue exact 分支的 push 与唯一最终 PR，仍不授权 merge 或 deploy。",
+        )
+        policy = self._source("skills/aisoft-platform/references/route-policy.md")
+        self._require(policy, "| C1 | `change_control: development` | confirm 改为 `1` |",
+                      "`complex-production` 只能配 `confirm: 2`。")
+
     def _source(self, relative_path):
         return (ROOT.parent / relative_path).read_text(encoding="utf-8")
 
@@ -120,6 +136,7 @@ class SessionContractTests(unittest.TestCase):
             "所选工具的技能验收完成后启用",
             "push 与建 PR 只在第二确认点（最终 PR 提交确认）明确授权后经 broker 进行",
             "第一确认点仅批准合同/启动，不授权 push、PR、merge 或部署",
+            "没有第二确认点，`approved` 同时授权本 Issue 分支的 push 与唯一最终 PR，仍不授权 merge 或部署",
         )
         self.assertNotIn("routine", development)
         acceptance = self._section(content, "## 8. 接入验收")

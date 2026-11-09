@@ -406,6 +406,8 @@ def contract_documents(issue_url: str, *, verification: bool = False, developmen
         summary = summary.replace("- CLASSIFICATION_EVIDENCE", "- synthetic")
         if development:
             summary = summary.replace("process: complex-production", "process: complex-development")
+            # #440 C1: the development phase keeps only confirmation point 1.
+            summary = summary.replace("  confirm: 2\n", "  confirm: 1\n")
         (directory / names["summary"]).write_text(summary, encoding="utf-8")
         spec = fill((TEMPLATES / "spec.md").read_text(encoding="utf-8"))
         spec = spec.replace("git_scope:\n  - GIT_SCOPE_PATH\n", "git_scope:\n"
