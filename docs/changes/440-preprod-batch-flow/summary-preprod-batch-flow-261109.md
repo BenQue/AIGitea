@@ -35,7 +35,7 @@ route:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/440-preprod-batch-flow
 pr_url:
 created: 2026-11-09
