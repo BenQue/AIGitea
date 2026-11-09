@@ -45,7 +45,8 @@ updated: 2026-11-09
 ## 方案与决策
 
 - **D1 classify 路由行带 confirm。** `codex/tools/aisoft` 的 `route_card` 在路由行末尾追加 `· confirm <值>`，
-  值取 summary `route.confirm`。卡上没有 `confirm` 键（不合合同的卡）时显示 `confirm ?`，不猜缺省值。
+  值取 summary `route.confirm`。缺 `confirm` 的卡在 `resolve_summary` 的合同校验处就被拒绝（路由行改为「读不出映射
+  summary」并给出 `route keys must be exactly …`），所以展示层不设兜底、不猜缺省值（交叉审查 R1 P2）。
 - **D2 resolve-route 输出 change_control。** `route_policy.resolve_issue_route` 在结果里加顶层 `change_control`，
   值就是 `repository_context` 实际交给 `resolve_route` 的那个阶段（`project.json` 声明优先，否则按仓库名解析）。
   只加字段，不改已有字段。
