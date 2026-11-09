@@ -91,7 +91,7 @@ FAIL 修复后按平台合同复核新 HEAD，此规则优先于 SP 的“一次
 
 SP 的自主裁决、completion 文本、临时目录清理或 finishing 菜单均不能替代平台授权/证据：
 合同冲突按既有升级规则处理；重要裁决、驳回/延期的 finding 必须可见；
-清理前保全证据；仍停在 AWAITING_PR_CONFIRMATION，确认点 2 后远端只走当前来源的 typed 操作入口，人合并。
+清理前保全证据；仍停在 AWAITING_PR_CONFIRMATION（route 卡 `confirm: 1` 时不停，直接开 PR），确认点 2 后远端只走当前来源的 typed 操作入口，人合并。
 
 ## 持久证据与治理交接
 

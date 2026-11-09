@@ -7,7 +7,7 @@
 - Matt `triage → to-spec → to-tickets` 对齐平台需求与计划阶段，执行入口由 [路由表](skills/aisoft-platform/references/route-policy.md)
   的显式 provider 映射决定，保持现有默认分工。上游技能原文不改，平台合同通过 adapter 约束其副作用。
 - Issue、summary 与路由要求的 spec/plan 是会话不可擅自改写的执行合同；`approved` 只授权开始实现。
-- 会话按 frontier `Txx` 在 exact `change/N-short-description` 创建本地原子 commit；push、PR 与判级投影走 broker，确认点 2 之前不推送。
+- 会话按 frontier `Txx` 在 exact `change/N-short-description` 创建本地原子 commit；push、PR 与判级投影走 broker，确认点 2 之前不推送（route 卡 `confirm: 1` 的开发阶段在本地验证后直接推送并开 PR）。
 - Claude Code 与 Codex 对等，共用同一合同；平台仓 complex 由未参与实现的一方只读交叉审查。
 - 最终 PR 只由人合并；生产部署不由任何会话执行。
 

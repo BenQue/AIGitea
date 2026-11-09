@@ -137,7 +137,7 @@ route:
 - superpowers `writing-plans` 不替代 Matt `to-tickets` 的 Txx 计划。
 - `brainstorming` 不自行定级，只在 how 未收敛时用、只问 how，以 `grill-me` 的结论为输入，结论写进映射 spec 的「方案与决策」节；`grill-me` 与 `brainstorming` 都在确认点 1 之前完成。
 - `subagent-driven-development` 只许顺序派发，同一时刻一个写者；`dispatching-parallel-agents` 只做只读调查；并行子代理不写同一 change worktree。
-- `finishing-a-development-branch` 的本地 merge、`git push`、建 PR 不可用，停在 `AWAITING_PR_CONFIRMATION`。
+- `finishing-a-development-branch` 的本地 merge、`git push`、建 PR 不可用，停在 `AWAITING_PR_CONFIRMATION`（`confirm: 1` 时改用 `aisoft open-pr` 直接开 PR）。
 
 ## 默认入口（不是硬规则）
 

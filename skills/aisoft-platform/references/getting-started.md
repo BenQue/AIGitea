@@ -129,7 +129,7 @@
    模型按路由卡的 `tier` 选，各工具的型号映射见平台 `08` §7.3。
 3. **建工作区**：`.aisoft/bin/aisoft change-name N <短描述>` 得到分支名，建 change worktree，
    再 `.aisoft/bin/aisoft claim-worktree --branch <分支>` 绑定本会话。
-4. **确认点 1**：把合同与路由行给用户看，用户回「确认」后才开始实现。它只授权实现，不授权 PR、合并或部署。
+4. **确认点 1**：把合同与路由行给用户看，用户回「确认」后才开始实现。它只授权实现，不授权 PR、合并或部署；开发阶段（route 卡 `confirm: 1`）另外授权开唯一最终 PR，仍不授权合并或部署。
 5. **实现与验证**：在合同内实现、测试、修复；`.aisoft/bin/aisoft classify --apply N` 后用 `--verify N` 读回 `projected`。
 6. **确认点 2**：本地验证完成后给出唯一最终 PR 的候选，用户回「开」后才用 `.aisoft/bin/aisoft open-pr N --title <标题> --body-file <正文>` 建 PR。开发阶段（route 卡 `confirm: 1`）没有这一步：本地验证与判级读回完成后直接建 PR 并通知用户。
 7. **人合并**：PR 只由人合并；合并不等于部署。合并后按 `issue-session-flow` 收尾（`aisoft complete` 先 dry-run 再 `--apply`）。

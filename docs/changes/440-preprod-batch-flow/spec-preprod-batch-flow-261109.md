@@ -15,7 +15,10 @@ risk_flags:
 depends_on: []
 git_scope:
   - 03-Issue-Spec-Plan与单闸门开发流程.md
+  - 04-Agent编排与定时任务.md
+  - 08-双工具共存与实施.md
   - GLOSSARY.md
+  - README.md
   - codex/runtime/aisoft_loop/contract.py
   - codex/runtime/aisoft_loop/route_policy.py
   - codex/runtime/tests/project_source_fixture.py
@@ -27,10 +30,12 @@ git_scope:
   - docs/changes/440-preprod-batch-flow/summary-preprod-batch-flow-261109.md
   - docs/changes/440-preprod-batch-flow/verification-preprod-batch-flow-261109.md
   - docs/governance/review-evidence-index.md
+  - skills/aisoft-matt-workflow/SKILL.md
   - skills/aisoft-platform/SKILL.md
   - skills/aisoft-platform/references/execution-adapter.md
   - skills/aisoft-platform/references/getting-started.md
   - skills/aisoft-platform/references/greenfield-planning.md
+  - skills/aisoft-platform/references/onboarding-runbook.md
   - skills/aisoft-platform/references/route-policy.md
   - skills/issue-session-flow/SKILL.md
   - templates/project/AGENTS.md

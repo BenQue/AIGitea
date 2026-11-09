@@ -471,3 +471,37 @@ class DocumentObligationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PreC1CardTests(unittest.TestCase):
+    """#440: development cards written before rule C1 still carry confirm 2."""
+
+    SUMMARY = {
+        "change_type": "feature", "requested_complexity": "auto", "assessed_complexity": "complex",
+        "effective_complexity": "complex", "contract_effect": "change", "reason": "synthetic",
+        "risk_flags": [], "required_docs": ["summary", "spec"], "confidence": "high",
+        "override_reason": "", "route_provider": "claude",
+    }
+
+    def card(self, phase, **changes):
+        from aisoft_loop.route_policy import resolve_route
+        from aisoft_loop.contract import _classification_from_front_matter
+        route = resolve_route(_classification_from_front_matter(self.SUMMARY), provider="claude",
+                              change_control=phase, platform_repo=False)["route"]
+        return {**self.SUMMARY, "route": {**route, **changes}}
+
+    def test_stored_confirm_2_stays_valid_in_development(self):
+        from aisoft_loop.route_policy import validate_provider_route
+        validate_provider_route(self.card("development", confirm="2"),
+                                change_control="development", platform_repo=False)
+        validate_provider_route(self.card("development"), change_control="development", platform_repo=False)
+
+    def test_confirm_1_is_never_accepted_where_policy_says_2(self):
+        from aisoft_loop.contract import ContractError
+        from aisoft_loop.route_policy import validate_provider_route
+        dev_card = self.card("development")
+        self.assertEqual(dev_card["route"]["confirm"], "1")
+        # The same development card read under production keeps failing closed.
+        with self.assertRaisesRegex(ContractError, "confirm"):
+            validate_provider_route({**dev_card, "route": {**self.card("production")["route"], "confirm": "1"}},
+                                    change_control="production", platform_repo=False)

@@ -347,6 +347,11 @@ def validate_provider_route(summary: Mapping[str, object], *, change_control: st
     actual = summary['route']
     concrete_skills(actual.get('skills'))
     differences = [key for key in expected if actual.get(key) != expected[key]]
+    # #440: a card written before C1 keeps confirm 2 where the policy now says 1.
+    # Two confirmation points are strictly more than the policy asks, so the
+    # stored card stays valid and resolve-route reports the difference instead.
+    if actual.get('confirm') == '2' and expected.get('confirm') == '1':
+        differences = [key for key in differences if key != 'confirm']
     reason = str(summary.get('override_reason') or '')
     # A stale classification override is not blanket authority to change skills.
     if differences and any(not re.search(r'\b' + key + r'\b', reason) for key in differences):

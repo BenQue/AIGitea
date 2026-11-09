@@ -12321,7 +12321,7 @@
     {
       "version": "1.23.0",
       "released": "2026-11-09",
-      "bundle_digest": "sha256:7901e96af15c08afcf93db91c4c96badc0ff3f72c675a9d0c79b92d0fb995654",
+      "bundle_digest": "sha256:064add28b47cd25200469a91377d2894f0edb502034e09a8d4286c37558608fb",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -12429,7 +12429,7 @@
         {
           "source": "skills/aisoft-platform/SKILL.md",
           "mode": "skill",
-          "sha256": "ef54185eb2ad73991c2358f9e287c549ec5c416e922cc7978c8f3462475fe274"
+          "sha256": "3b43f2e06933ce9ca1c9986798a03c8e566342f8b99e54e1c2cce699853fbfb4"
         },
         {
           "source": "skills/aisoft-platform/agents/openai.yaml",
@@ -12449,12 +12449,12 @@
         {
           "source": "skills/aisoft-platform/references/getting-started.md",
           "mode": "skill",
-          "sha256": "57c768c9d9a1fa8d5f9254516321a17cf06033308f38578e7fe2af619877e5e3"
+          "sha256": "70a908ebd9f3465ea4b536754875c4780ce5efb3e51cfab6551714d8426047b6"
         },
         {
           "source": "skills/aisoft-platform/references/onboarding-runbook.md",
           "mode": "skill",
-          "sha256": "eaf205bf5d46dac2a914e63f535b66f9bf40ca74d35190df18fc38bc311db719"
+          "sha256": "c508e86e5a6c80ca226bb5cf0e2e1378aa1f9e04eb94ce25387cec9d38553527"
         },
         {
           "source": "skills/aisoft-platform/references/private-gitea-access.md",
@@ -12469,7 +12469,7 @@
         {
           "source": "skills/aisoft-platform/references/route-policy.md",
           "mode": "skill",
-          "sha256": "83490d00faf74b9d9c92c3705fdc88f2ab3c8ef0b90a5b41b20f4855c8436ecb"
+          "sha256": "3b2b7f8b63ed0ce9594ba0b267ec7e5463e75780a1b0f2dbe8fb59d7c584d3b6"
         },
         {
           "source": "skills/issue-session-flow/SKILL.md",
@@ -12479,7 +12479,7 @@
         {
           "source": "skills/aisoft-matt-workflow/SKILL.md",
           "mode": "skill",
-          "sha256": "08bcd57493a5a8cf8fb7329dcef434013c3f4b668255094a7b5a28954729e4f8"
+          "sha256": "66181e1eeed8eea9dcca4b4a6d2005947c4c47b0932076a025929c5f49b455f5"
         },
         {
           "source": "skills/aisoft-matt-workflow/agents/openai.yaml",
@@ -12940,14 +12940,14 @@
         {
           "source": "skills/aisoft-platform/references/execution-adapter.md",
           "mode": "skill",
-          "sha256": "f955d24433f32cbcd2eb7f13cde78538c48a93a2ea5e751fb6a0b78a68aa5299"
+          "sha256": "2c661d2cfbf73ae2c8c39f62d7fbe7774a3497eae657e81102a74473f095b805"
         },
         {
           "source": "codex/runtime/aisoft_loop/route_policy.py",
           "mode": "exact",
           "target": ".aisoft/lib/codex/runtime/aisoft_loop/route_policy.py",
           "check": "tool-provenance",
-          "sha256": "0cd525666352544f03147a09c0e54bfb32785cce92b5b39dc633f156611c75b4"
+          "sha256": "6f802e6833dfbf7a358fb00d04c2ffa1c447044aea8cab2219c9de96d4ab8ebc"
         },
         {
           "source": "codex/runtime/aisoft_loop/ticket_execution.py",

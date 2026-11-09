@@ -136,6 +136,7 @@ class SessionContractTests(unittest.TestCase):
             "所选工具的技能验收完成后启用",
             "push 与建 PR 只在第二确认点（最终 PR 提交确认）明确授权后经 broker 进行",
             "第一确认点仅批准合同/启动，不授权 push、PR、merge 或部署",
+            "没有第二确认点，`approved` 同时授权本 Issue 分支的 push 与唯一最终 PR，仍不授权 merge 或部署",
         )
         self.assertNotIn("routine", development)
         acceptance = self._section(content, "## 8. 接入验收")
