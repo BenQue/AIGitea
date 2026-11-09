@@ -33,7 +33,7 @@ route:
 confidence: high
 override_reason: ''
 depends_on: []
-status: analyzed
+status: approved
 branch: change/442-confirm-route-visibility
 pr_url:
 created: 2026-11-09
