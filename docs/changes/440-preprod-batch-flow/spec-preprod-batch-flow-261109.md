@@ -18,6 +18,7 @@ git_scope:
   - GLOSSARY.md
   - codex/runtime/aisoft_loop/contract.py
   - codex/runtime/aisoft_loop/route_policy.py
+  - codex/runtime/tests/project_source_fixture.py
   - codex/runtime/tests/test_contract.py
   - codex/runtime/tests/test_route_policy.py
   - codex/runtime/tests/test_session_contract.py
