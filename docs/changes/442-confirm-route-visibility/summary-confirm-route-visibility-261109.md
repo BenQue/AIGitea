@@ -33,9 +33,9 @@ route:
 confidence: high
 override_reason: ''
 depends_on: []
-status: approved
+status: pr-open
 branch: change/442-confirm-route-visibility
-pr_url:
+pr_url: http://gitea-ci.orb.local:3000/admin/aisoft-platform/pulls/443
 created: 2026-11-09
 updated: 2026-11-09
 ---
