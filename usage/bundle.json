@@ -12970,7 +12970,7 @@
     {
       "version": "1.23.1",
       "released": "2026-11-09",
-      "bundle_digest": "sha256:c9cef60a5e0540084229767d1e53f8570ae8680bc4139d5be8036de4be467084",
+      "bundle_digest": "sha256:eecd6c1111b0f3825a6b1cf91acf70754bf63edbe009b7edb44f6aa0f7eb7553",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -13150,7 +13150,7 @@
           "mode": "exact",
           "target": ".aisoft/bin/aisoft",
           "check": "tool-provenance",
-          "sha256": "ea09eea1f70bb3cb03e731372ef8104c550b04c32ba38f417b6718319606cf54"
+          "sha256": "daf1cf9e56fb27c191e349060469d91a93f6c4a84a409c6bcf7f4eec46a67d42"
         },
         {
           "source": "codex/tools/aisoft-access",
