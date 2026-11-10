@@ -125,6 +125,33 @@ class TemplateScopeContext:
                 "canonical template context drifted", "BROKER_SURFACE_GAP")
 
 
+@dataclass(frozen=True)
+class ExistingMainTemplateContext:
+    """Project-source binding (#445): update a template only where a freshly
+    read target main already holds it as a canonical regular file.
+
+    The main entry proves only that the path exists; it never proves content
+    trust, origin or human approval. read_main repeats the fresh remote read so
+    every verify() refuses a moved main; the client read and the server receive
+    remain non-atomic.
+    """
+    repository_url: str
+    main: str
+    read_main: object
+
+    def verify(self):
+        oid(self.main)
+        require(callable(self.read_main), "template baseline reader missing", "BROKER_SURFACE_GAP")
+        try:
+            current = self.read_main()
+        except GitError:
+            raise
+        except Exception as exc:  # a broker refusal must keep any publication receipt
+            raise GitError("BASE_BRANCH_STALE", "fresh main unavailable for the template baseline") from exc
+        require(current == self.main, "main moved after the template baseline was read",
+                "BASE_BRANCH_STALE")
+
+
 def _template_manifest_paths():
     root = Path(__file__).resolve().parent
     system = Path("/usr/local/share/aisoft")
@@ -409,9 +436,20 @@ class GitRepository:
                     require(callable(self.template_context), "canonical template context required", "SCOPE_DENIED")
                     if context is None:
                         context = self.template_context()
-                    require(isinstance(context, TemplateScopeContext), "invalid template context", "BROKER_SURFACE_GAP")
+                    require(isinstance(context, (TemplateScopeContext, ExistingMainTemplateContext)),
+                            "invalid template context", "BROKER_SURFACE_GAP")
                     context.verify()
-                    require(context.holder, "repository does not hold vendored templates", "SCOPE_DENIED")
+                    if isinstance(context, TemplateScopeContext):
+                        require(context.holder, "repository does not hold vendored templates", "SCOPE_DENIED")
+                    else:
+                        # #445: update only; a first-time add is never granted here.
+                        require(self.ancestor(context.main, head),
+                                "candidate does not contain the fresh template baseline", "BASE_BRANCH_STALE")
+                        try:
+                            self._template_tree(context.main, name, required=True)
+                        except GitError as exc:
+                            raise GitError("SCOPE_DENIED", "project source updates only a template "
+                                           "already canonical on fresh main") from exc
                     require(field(summary_front, "gitea_url") == context.repository_url + "/issues/" + number,
                             "template scope repository binding differs", "SCOPE_UNKNOWN")
                     self._template_tree(head, name)
@@ -423,6 +461,11 @@ class GitRepository:
                 "invalid history head projection", "SCOPE_UNKNOWN")
         require(scope and len(old) <= 1, "approved exact Git scope missing", "SCOPE_UNKNOWN")
         historical = paths("git_history_paths")
+        if isinstance(context, ExistingMainTemplateContext):
+            # #445: a history anchor never widens the project-source template
+            # set; every template it names must stay in the current exact scope.
+            require(set(historical) & CANONICAL_TEMPLATE_PATHS <= set(scope),
+                    "project-source history template is outside the current exact scope", "SCOPE_DENIED")
         result = Scope(scope, old[0] if old else None, historical, context)
         result.verify()
         return result
