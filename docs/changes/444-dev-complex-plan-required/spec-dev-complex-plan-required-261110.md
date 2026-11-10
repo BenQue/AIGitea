@@ -69,7 +69,7 @@ spec 全部验收标准。批次 Issue（#440）往往覆盖多个功能点，�
   确认点 1 文档预检、`ticket_execution` 的 plan 判定随之变化。
 - 已批准、尚未完成且按旧规则未写 plan 的 D3 change 不被追溯阻塞（见未决问题 c）。
 - 分册、技能、模板、使用合同、GLOSSARY 中「无高风险 flag 的 development complex 免 plan / 合成 T01」措辞同步；
-  随使用发布包分发的成员改动发布 bundle 1.23.2。
+  随使用发布包分发的成员改动发布 bundle 1.24.0。
 
 非范围：
 
@@ -90,14 +90,14 @@ spec 全部验收标准。批次 Issue（#440）往往覆盖多个功能点，�
   却缺文件的仍拒绝。均有单测，并做一次反向证明（去掉兼容分支后对应测试变红）。
 - [ ] AC-5：git_scope 列出的分册、技能、模板、使用合同与 GLOSSARY 中不再有「无高风险 flag 的 development complex
   不写 plan」的现行规则表述；合成 `T01` 只作为 D3 旧合同兼容路径描述。
-- [ ] AC-6：`usage/bundle.json` 发布 1.23.2（`usage-bundle.sh --release`），bundle 校验通过。
+- [ ] AC-6：`usage/bundle.json` 发布 1.24.0（`usage-bundle.sh --release`），bundle 校验通过。
 - [ ] AC-7：`python3 -m unittest discover codex/runtime/tests` 与 `bash codex/tests/smoke.sh` 通过；未运行的写 NOT RUN。
 - [ ] AC-8：平台仓 complex 交叉审查（Codex，未参与实现）对候选 head PASS，结论写进 verification 与
   `docs/governance/review-evidence-index.md`。
 
 ## 风险与回滚约束
 
-- 已批准的 D3 旧合同若不加兼容会在执行入口被拒；AC-4 覆盖。项目只有升级到 1.23.2 后才受新规则约束。
+- 已批准的 D3 旧合同若不加兼容会在执行入口被拒；AC-4 覆盖。项目只有升级到 1.24.0 后才受新规则约束。
 - 回滚：revert 本 PR 并重新发布下一个 bundle 版本；已按新规则写的 plan 在旧规则下只是多出的可选文档，不阻塞。
 
 ## 接口、数据与兼容性影响
@@ -105,7 +105,7 @@ spec 全部验收标准。批次 Issue（#440）往往覆盖多个功能点，�
 - `resolve-route` / `classify` 的 `documents` 输出对 D3 从 `plan: none` 变为 `required`，`required_docs` 多出 `plan`。
 - `Classification.route(change_control="development")` 的 complex 最小文档从 summary+spec 变为 summary+spec+plan。
 - 兼容判据只看已有字段（summary `status: approved` 与 `required_docs`），不新增 front matter 字段、不改模板。
-- 使用发布包 1.23.1 → 1.23.2；项目升包后新开的 development complex 需要 plan。
+- 使用发布包 1.23.1 → 1.24.0（minor：新开的 development complex 多欠一份 plan）；项目升包后新开的 development complex 需要 plan。
 
 ## 已定决策（确认点 1，2026-11-10 负责人「确认」全按建议）
 

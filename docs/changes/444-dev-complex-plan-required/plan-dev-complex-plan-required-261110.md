@@ -32,7 +32,7 @@ updated: 2026-11-10
 |---|---|---|---|
 | T01 | 路由表与全部文档措辞改为开发阶段 complex 要求 plan | - | pending |
 | T02 | runtime 文档义务、旧合同兼容与测试 | T01 | pending |
-| T03 | 发布 bundle 1.23.2、全量验证与交叉审查证据 | T02 | pending |
+| T03 | 发布 bundle 1.24.0、全量验证与交叉审查证据 | T02 | pending |
 
 ## T01：路由表与文档措辞
 
@@ -56,11 +56,11 @@ updated: 2026-11-10
 
 ## T03：发布与验证
 
-- **交付/范围**：`usage-bundle.sh --release` 发 1.23.2；`bash codex/tests/smoke.sh`；Codex 交叉审查；verification 与 review-evidence-index 行。
+- **交付/范围**：`usage-bundle.sh --release` 发 1.24.0；`bash codex/tests/smoke.sh`；Codex 交叉审查；verification 与 review-evidence-index 行。
 - **blocked_by**：T02
 - **AC**：AC-6、AC-7、AC-8
 - **接口/约束**：未运行写 NOT RUN。
-- **验证**：smoke 退出码 0；bundle status 读回 1.23.2。
+- **验证**：smoke 退出码 0；bundle status 读回 1.24.0。
 - **Expected**：PASS；交叉审查 PASS。
 - **停止条件**：同上。
 
