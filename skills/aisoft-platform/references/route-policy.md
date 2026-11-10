@@ -33,7 +33,7 @@ provider 写入 summary 顶层 `route_provider`，不加入 route 八键或 anal
 | R5 | small | `small-direct` | `standard` | `medium` | `implement-only` | `targeted` | `human-merge` | `human-merge` | `@completion` |
 
 `confirm` 缺省为 `2`：合同/启动，与提交最终 PR 前；细化规则 C1 把开发阶段（`change_control: development`）改为 `1`，只保留合同/启动，`approved` 同时授权本 Issue exact 分支的 push 与唯一最终 PR（`03` §1「开发阶段」）。R1 的 tier/effort 只用于分析，`triage` 之外在 Issue 说不清时加 `grill-me`。
-R2 仍先于 R3：development 即使有高风险 flag 也保持现有命中顺序；R2 不因此新增整套计划执行技能义务。
+R2 仍先于 R3：development 即使有高风险 flag 也保持现有命中顺序；R2 不因此新增整套计划执行技能义务（plan 由「文档义务」要求，#444）。
 
 ## Provider 映射
 
@@ -47,7 +47,8 @@ R2 仍先于 R3：development 即使有高风险 flag 也保持现有命中顺�
 | cursor | `executing-plans` | `verification-before-completion` |
 
 这是计划执行与完成核验的唯一 provider 映射。skills 是必用集合；R2/R5 不含 `@plan`，
-不据此强制完整 SP 循环或 Matt 每票双轴；文档义务见下文「文档义务」。development complex 的合成 T01 按既有 provider 默认执行。
+不据此强制完整 SP 循环或 Matt 每票双轴；文档义务见下文「文档义务」。R2 的 plan 按 provider 默认的 `@plan` 执行；
+只有 #444 之前已批准、未声明 plan 的 D3 旧合同仍用合成 T01。
 未知/缺失 provider、未展开引用、空/重复/不存在的具体技能或与 provider 矛盾的组合不得静默通过。
 R1 不因 provider 合法而获得实施权限。已批准的显式覆盖仍走 override_reason，不把默认当成不可覆盖的品牌选择。
 
@@ -73,15 +74,16 @@ R1 不因 provider 合法而获得实施权限。已批准的显式覆盖仍走 
 |---|---|---|---|
 | D1 | R1 | `none` | `none` |
 | D2 | R2 且含高风险 flag | `full` | `required` |
-| D3 | R2 | `lite` | `none` |
+| D3 | R2 | `lite` | `required` |
 | D4 | R3 或 R4 | `full` | `required` |
 | D5 | R5 | `lite` | `none` |
 
 `lite`（简版）：front matter 绑定 exact `issue`/`branch` 并声明 `git_scope`，正文写目标、范围与非范围、可测验收，需要时加风险与回退。
 `full`（完整版）在此之上写接口/数据/兼容影响与「未决问题」，`approved` 前未决问题须清空。`git_scope` 必须列出本 Issue
-全部映射文档与所有将提交的文件，推送守卫只从已提交的 spec 读取它。`plan: none` 时不写 plan：development 的合成 `T01`
-取 spec 的验收标准，small 直接按 spec 验收实现；`required` 时按 plan 的 Txx 执行，D2 的 route 卡不变，执行入口用本文件
-「Provider 映射」的 `@plan`。`verification` 不由本表决定（见 `03` §3）。确认点 1 之前 `aisoft classify N` 的「文档预检」行
+全部映射文档与所有将提交的文件，推送守卫只从已提交的 spec 读取它。`plan: none` 时不写 plan，small 直接按 spec 验收实现；
+`required` 时按 plan 的 Txx 执行，D2/D3 的 route 卡不变，执行入口用本文件「Provider 映射」的 `@plan`。开发阶段 complex
+一律要 plan（#444）；不追溯：#444 之前已 `approved`、summary `required_docs` 未声明 plan 的 D3 旧合同，执行入口
+仍以合成 `T01` 取 spec 的验收标准，D2 缺 plan 照旧拒绝。`verification` 不由本表决定（见 `03` §3）。确认点 1 之前 `aisoft classify N` 的「文档预检」行
 必须是 OK。
 
 ## 取值闭集

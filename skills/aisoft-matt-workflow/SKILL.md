@@ -34,7 +34,7 @@ implementation and review. Read them on first use; do not reload if already read
    high-risk flag get the short form (goal, scope and non-scope, acceptance, needed risk, `git_scope`). Production complex
    keeps lifecycle `spec-drafting` until the complete contract is validated.
 4. Where the route policy's `文档义务` table requires a plan, run `$to-tickets #N` and publish the approved `Txx`
-   vertical-slice dependency graph to the mapped `plan` file. Development complex without a plan uses synthetic `T01`. Default mode stays inside the parent Issue.
+   vertical-slice dependency graph to the mapped `plan` file. Every development complex owes a plan (#444); only a contract approved before #444 without one uses synthetic `T01`. Default mode stays inside the parent Issue.
 5. After contract validation sets `approved`, the Codex session runs `$implement #N Txx` for one frontier ticket at a time.
    Follow the shared [execution adapter](../aisoft-platform/references/execution-adapter.md): record the ticket BASE before
    implementation, test, commit only this ticket locally, pin HEAD and check omissions, then review the same fixed candidate
