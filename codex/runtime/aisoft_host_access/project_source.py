@@ -25,7 +25,7 @@ from typing import Callable, Mapping, Sequence
 from urllib.parse import quote, urlparse
 
 from aisoft_gitea_governance.contract import CHANGE_CONTROL_PHASES, DEPLOYMENT_LIFECYCLES
-from aisoft_main_integration import git_environment
+from aisoft_main_integration import ExistingMainTemplateContext, git_environment
 
 from .broker import (
     BrokerError, HostAccessBroker, ResolvedCredential, TOKEN_RE, MAX_CREDENTIAL_BYTES,
@@ -313,6 +313,7 @@ class ProjectSourceBroker(HostAccessBroker):
                          label_manifest_path=label_manifest_path, **options)
         self.declaration = declaration
         self._credential_dir: str | None = None
+        self._git_env: dict[str, str] | None = None
 
     def execute(self, project_id: str | None, operation_name: str, **arguments) -> object:
         if operation_name not in PROJECT_OPERATIONS:
@@ -364,12 +365,31 @@ class ProjectSourceBroker(HostAccessBroker):
                  "GIT_CONFIG_VALUE_1": helper, "GIT_CONFIG_KEY_2": "credential.useHttpPath",
                  "GIT_CONFIG_VALUE_2": "true", "GIT_CONFIG_KEY_3": "http.followRedirects",
                  "GIT_CONFIG_VALUE_3": "false"}
-        return git_environment(fixed)
+        self._git_env = git_environment(fixed)
+        return self._git_env
 
     def _drop_credential_file(self) -> None:
+        self._git_env = None
         if self._credential_dir is not None:
             shutil.rmtree(self._credential_dir, ignore_errors=True)
             self._credential_dir = None
 
     def _template_context(self, project: ProjectContract) -> object:
-        raise BrokerError("SCOPE_DENIED", "template-owning changes are only available through the site source")
+        """#445: existing-template updates bound to a freshly read target main.
+
+        Neither the declaration, git_scope nor the summary status is a grant;
+        the context only lets the shared scope check require each declared
+        template to exist on fresh main as a canonical regular file.
+        """
+        env = self._git_env
+        if env is None:
+            raise BrokerError("SCOPE_DENIED", "template scope needs a verified project Git operation")
+        remote_name = self.declaration.git_remote_name
+        checkout = self.declaration.checkout
+
+        def read_main() -> str:
+            return self._read_main_head(remote_name, checkout, env)
+
+        repository_url = "/".join((self.declaration.base_url, self.declaration.owner,
+                                   self.declaration.repository))
+        return ExistingMainTemplateContext(repository_url, read_main(), read_main)
