@@ -104,9 +104,12 @@ spec 全部验收标准。批次 Issue（#440）往往覆盖多个功能点，�
 - 兼容判据只看已有字段（summary `status: approved` 与 `required_docs`），不新增 front matter 字段、不改模板。
 - 使用发布包 1.23.1 → 1.23.2；项目升包后新开的 development complex 需要 plan。
 
+## 已定决策（确认点 1，2026-11-10 负责人「确认」全按建议）
+
+- a. 无高风险 flag 的 development complex 继续写简版 spec，只把 plan 改为 `required`。
+- b. R2 必用技能不变，不加 `to-tickets` 与 `@plan`；plan 按文档义务写，执行入口按 provider 默认落到 `@plan`。
+- c. 不追溯：已 approved 且 `required_docs` 未声明 plan 的 D3 旧合同按 AC-4 继续以合成 `T01` 执行。
+
 ## 未决问题
 
-- a. 无高风险 flag 的 development complex 写简版还是完整版 spec？建议：简版（只改 plan，最小变更）。
-- b. R2 必用技能是否加 `to-tickets` 与 `@plan`？建议：不加。plan 按文档义务写，执行入口已按 provider 默认落到
-  `@plan`；改技能会让已批准的 development route 卡与重新解析结果不一致。
-- c. 是否追溯已批准、未写 plan 的 development complex？建议：不追溯（AC-4 的兼容路径）。
+无。
