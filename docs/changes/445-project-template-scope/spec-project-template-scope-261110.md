@@ -26,6 +26,7 @@ git_scope:
   - codex/runtime/tests/test_project_source_e2e.py
   - codex/runtime/tests/project_source_fixture.py
   - usage/bundle.json
+  - docs/governance/review-evidence-index.md
 branch: change/445-project-template-scope
 created: 2026-11-10
 updated: 2026-11-10
