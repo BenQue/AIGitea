@@ -364,8 +364,9 @@ def export_tool_kit(checkout: Path) -> None:
 def contract_documents(issue_url: str, *, verification: bool = False, development: bool = False):
     """Full complex change documents for Issue 7, built from the shipped templates.
 
-    development=True is the change_control: development shape (#436): summary and
-    the lite spec that carries the git_scope, no plan, and the R2 route card.
+    development=True is the change_control: development shape approved before #444
+    (#436): summary and the lite spec that carries the git_scope, no plan, and the R2
+    route card; the execution entry keeps its synthetic T01 (not retroactive).
     """
     slug, date = "demo-change", "261027"
     if development:

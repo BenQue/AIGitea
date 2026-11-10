@@ -22,7 +22,10 @@ git_scope:
   - codex/runtime/aisoft_loop/contract.py
   - codex/runtime/aisoft_loop/route_policy.py
   - codex/runtime/aisoft_loop/ticket_execution.py
+  - codex/runtime/tests/project_source_fixture.py
+  - codex/runtime/tests/test_change_control.py
   - codex/runtime/tests/test_classification.py
+  - codex/runtime/tests/test_required_documents.py
   - codex/runtime/tests/test_contract.py
   - codex/runtime/tests/test_route_policy.py
   - codex/runtime/tests/test_ticket_execution.py

@@ -117,11 +117,11 @@ class ChangeControlRouteTests(unittest.TestCase):
         self.assertEqual(route.effective_complexity, "complex")
         self.assertEqual(route.required_docs, ("summary", "spec", "plan", "verification"))
 
-    def test_development_keeps_summary_spec_and_verification(self) -> None:
-        """#436: development drops only the plan; the spec stays the git_scope source."""
+    def test_development_keeps_all_four_documents(self) -> None:
+        """#444: development complex owes the plan too; the spec stays the git_scope source."""
         route = _complex_classification().route(change_control="development")
         self.assertEqual(route.effective_complexity, "complex")
-        self.assertEqual(route.required_docs, ("summary", "spec", "verification"))
+        self.assertEqual(route.required_docs, ("summary", "spec", "plan", "verification"))
 
     def test_verification_stays_conditional_in_development(self) -> None:
         """required_docs 含 verification 说的是「这次变更欠一份验证记录」，
@@ -149,7 +149,7 @@ class ChangeControlRouteTests(unittest.TestCase):
                     "verification", non_shipping.route(change_control=phase).required_docs
                 )
         self.assertEqual(
-            non_shipping.route(change_control="development").required_docs, ("summary", "spec")
+            non_shipping.route(change_control="development").required_docs, ("summary", "spec", "plan")
         )
 
     def test_default_is_production(self) -> None:

@@ -138,19 +138,21 @@ created: 2026-08-08
 
     def test_development_keeps_declared_roles_and_terminal_json(self):
         # verification deliberately isn't last: it must not disappear from the route.
-        # cross-module forces complex without being high-risk, so no plan is owed (D3).
+        # cross-module forces complex without being high-risk (D3); #444: the plan is owed anyway.
         self.summary.write_text(self.summary.read_text().replace("  - shared-core", "  - cross-module"))
         self.declare("verification")
         self.declare("spec")
+        self.declare("plan")
         classification = contract._classification_from_front_matter(
             contract.parse_front_matter(self.summary.read_text())
         )
         self.assertIn("verification", classification.route(change_control="development").required_docs)
         loaded = contract.load_contract(self.repo, self.issue(), change_control="development")
-        self.assertEqual(set(loaded.required_docs), {self.summary.name, "spec-docs-source-260808.md", "verification-docs-source-260808.md"})
+        self.assertEqual(set(loaded.required_docs), {self.summary.name, "spec-docs-source-260808.md", "plan-docs-source-260808.md",
+                                                   "verification-docs-source-260808.md"})
         result = self.cli("resolve-required-documents", "57")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout)["required_docs"], ["summary", "verification", "spec"])
+        self.assertEqual(json.loads(result.stdout)["required_docs"], ["summary", "verification", "spec", "plan"])
 
     def test_small_route_also_preserves_declared_verification(self):
         self.declare("verification")

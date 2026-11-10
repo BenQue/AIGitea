@@ -185,20 +185,17 @@ class Classification:
         role_based = self.required_docs[0] == "summary"
         unresolved_docs = ("summary",) if role_based else ("00-summary.md",)
         # 每条已判级路由都至少要 summary 与 spec（#436）：推送守卫只从已提交的 spec
-        # 读取 git_scope。development 的 complex 这里不要求 plan；含高风险 flag 时
-        # 必须有 plan 由路由表「文档义务」决定（route_policy.document_obligations），
-        # 因为高风险的定义只在那份表里。verification 不在此处决定——它沿用 analyzer
+        # 读取 git_scope。complex 在两个阶段都要 plan（#444）；spec 简版还是完整版由
+        # 路由表「文档义务」决定（route_policy.document_obligations），因为高风险的
+        # 定义只在那份表里。verification 不在此处决定——它沿用 analyzer
         # 是否要求；#163 起「要不要部署」由 governance manifest 的 deployment_lifecycle
         # 回答（见 mark-completed-issues.sh 与 03 §11），change_control 不改变它。
         lite_docs = ("summary", "spec") if role_based else ("00-summary.md", "01-spec.md")
-        if change_control == "development":
-            complex_docs = lite_docs
-        else:
-            complex_docs = (
-                ("summary", "spec", "plan")
-                if role_based
-                else ("00-summary.md", "01-spec.md", "02-plan.md")
-            )
+        complex_docs = (
+            ("summary", "spec", "plan")
+            if role_based
+            else ("00-summary.md", "01-spec.md", "02-plan.md")
+        )
         verification = "verification" if role_based else "03-verification.md"
         if verification in self.required_docs:
             complex_docs += (verification,)
