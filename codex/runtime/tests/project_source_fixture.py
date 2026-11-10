@@ -394,7 +394,8 @@ def export_tool_kit(checkout: Path) -> None:
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
-def contract_documents(issue_url: str, *, verification: bool = False, development: bool = False):
+def contract_documents(issue_url: str, *, verification: bool = False, development: bool = False,
+                       templates=()):
     """Full complex change documents for Issue 7, built from the shipped templates.
 
     development=True is the change_control: development shape (#436): summary and
@@ -406,7 +407,7 @@ def contract_documents(issue_url: str, *, verification: bool = False, developmen
     else:
         roles = ("summary", "spec", "plan", "verification") if verification else ("summary", "spec", "plan")
     names = {role: f"{role}-{slug}-{date}.md" for role in roles}
-    scope = ["change.txt", *(f"docs/changes/7-demo-change/{name}" for name in names.values())]
+    scope = ["change.txt", *(f"docs/changes/7-demo-change/{name}" for name in names.values()), *templates]
     values = {
         "ISSUE_NUMBER": "7", "ISSUE_URL": issue_url, "CHANGE_TYPE": "refactor",
         "ASSESSED_COMPLEXITY": "complex", "EFFECTIVE_COMPLEXITY": "complex",
@@ -426,6 +427,11 @@ def contract_documents(issue_url: str, *, verification: bool = False, developmen
         return text
 
     def write(directory: Path) -> None:
+        # #445: update vendored templates the adopted main already holds.
+        for path in templates:
+            target = directory.parents[2] / path
+            target.write_text(target.read_text(encoding="utf-8") + "\n<!-- #445 template update -->\n",
+                              encoding="utf-8")
         summary = fill((TEMPLATES / "summary.md").read_text(encoding="utf-8"))
         summary = summary.replace("status: analyzed", "status: approved")
         summary = summary.replace(

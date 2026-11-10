@@ -24,7 +24,7 @@ from tests.test_project_source_tools import tool_path
 
 class ProjectSourceEndToEndTest(unittest.TestCase):
     def build(self, *, lifecycle: str = "none", verification: bool = False,
-              change_control: str = "production") -> None:
+              change_control: str = "production", templates=()) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.gitea = FakeGitea()
@@ -34,7 +34,8 @@ class ProjectSourceEndToEndTest(unittest.TestCase):
         self.gitea.remote = self.server.project_root / OWNER / f"{NAME}.git"
         self.issue_url = f"{self.server.url}/{OWNER}/{NAME}/issues/7"
         write, self.names = contract_documents(self.issue_url, verification=verification,
-                                               development=change_control == "development")
+                                               development=change_control == "development",
+                                               templates=templates)
 
         def prepare(canonical: Path) -> None:
             export_tool_kit(canonical)
@@ -144,6 +145,62 @@ class ProjectSourceEndToEndTest(unittest.TestCase):
         self.assertIn('"result":"no-op"', again.stdout.replace(" ", ""))
         self.assertIn("ok", self.server.git_auth)
         self.assertNotIn("other", self.server.git_auth)
+
+    def test_open_pr_publishes_an_update_of_adopted_templates(self) -> None:
+        """#445 AC-4: first push, PR de-duplication, backfill and a later push."""
+        templates = ("docs/changes/_template/spec.md", "docs/changes/_template/summary.md")
+        self.build(templates=templates)
+        for path in templates:
+            self.assertEqual(git(["cat-file", "-t", f"main:{path}"], cwd=self.canonical), "blob")
+            self.assertEqual(git(["ls-tree", "main", "--", path], cwd=self.canonical).split()[0], "100644")
+        self.run_kit("aisoft", "labels-provision")
+        self.gitea.add_issue(7, "demo change", labels=("approved",))
+        self.run_kit("aisoft", "classify", "--apply", "7")
+        body = Path(self.temporary.name) / "body.md"
+        body.write_text(f"Closes #7\n\nSummary: docs/changes/7-demo-change/{self.names['summary']}\n")
+        self.run_kit("aisoft", "open-pr", "7", "--title", "demo", "--body-file", str(body))
+        self.assertEqual(len(self.gitea.pulls), 1)
+        final = git(["rev-parse", "HEAD"], cwd=self.linked)
+        self.assertEqual(git(["rev-parse", BRANCH], cwd=self.remote), final)
+        summary = git(["show", f"{BRANCH}:docs/changes/7-demo-change/{self.names['summary']}"], cwd=self.remote)
+        self.assertIn("status: pr-open", summary)
+        for path in templates:
+            self.assertIn("#445 template update", git(["show", f"{BRANCH}:{path}"], cwd=self.remote))
+        # The PR is found again, not duplicated.
+        again = self.run_kit("aisoft-access", "--operation", "gitea.pull.create", "--issue", "7",
+                             "--title", "demo", "--body", body.read_text(), check=False)
+        self.assertEqual(again.returncode, 0, again.stdout + again.stderr)
+        self.assertEqual(json.loads(again.stdout)["number"], next(iter(self.gitea.pulls)))
+        self.assertEqual(len(self.gitea.pulls), 1)
+        # A later in-scope template update is an ordinary second push.
+        target = self.linked / templates[0]
+        target.write_text(target.read_text() + "second update\n")
+        git(["commit", "-q", "-am", "#7 T01: second template update"], cwd=self.linked)
+        pushed = json.loads(self.run_kit("aisoft-access", "--operation", "git.push.change",
+                                         "--branch", BRANCH).stdout)
+        self.assertEqual(pushed["code"], "PUBLISHED")
+        self.assertEqual(git(["rev-parse", BRANCH], cwd=self.remote), git(["rev-parse", "HEAD"], cwd=self.linked))
+
+    def test_open_pr_refuses_a_first_time_template_add(self) -> None:
+        """#445: a template main does not hold is never added through the project source."""
+        self.build()
+        git(["rm", "-q", "docs/changes/_template/plan.md"], cwd=self.canonical)
+        git(["commit", "-q", "-m", "drop plan template"], cwd=self.canonical)
+        git(["push", "-q", str(self.remote), "HEAD:refs/heads/main"], cwd=self.canonical)
+        git(["merge", "-q", "--no-edit", "--no-ff", "main", "-m", "#7 merge main"], cwd=self.linked)
+        directory = self.linked / "docs/changes/7-demo-change"
+        spec = directory / self.names["spec"]
+        spec.write_text(spec.read_text().replace("git_scope:\n", "git_scope:\n  - docs/changes/_template/plan.md\n", 1))
+        (self.linked / "docs/changes/_template/plan.md").write_text("re-added\n")
+        git(["add", "-A"], cwd=self.linked)
+        git(["commit", "-q", "-m", "#7 T01: re-add plan template"], cwd=self.linked)
+        refused = self.run_kit("aisoft-access", "--operation", "git.push.change", "--branch", BRANCH,
+                               check=False)
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertEqual(json.loads(refused.stderr)["code"], "SCOPE_DENIED", refused.stderr)
+        self.assertIn("already canonical on fresh main", refused.stderr)
+        self.assertEqual(subprocess.run(["git", "rev-parse", "--verify", "-q", BRANCH], cwd=self.remote,
+                                        capture_output=True, text=True).stdout.strip(), "")
 
     def test_complete_waits_for_deployment_when_every_merge_deploys(self) -> None:
         self.build(lifecycle="application-deploy", verification=True)
