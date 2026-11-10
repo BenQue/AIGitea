@@ -13619,7 +13619,7 @@
     {
       "version": "1.23.2",
       "released": "2026-11-10",
-      "bundle_digest": "sha256:6af9d3e4e2a46acc31d6261930abf5db33fc01121e234de87f07875872c29fbc",
+      "bundle_digest": "sha256:908047ad679fe8e24faa43879498776efe72ed97795688fa99ccc7693f7c8987",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -14023,7 +14023,7 @@
           "mode": "exact",
           "target": ".aisoft/lib/codex/runtime/aisoft_main_integration.py",
           "check": "tool-provenance",
-          "sha256": "6e994b281aa4c83bcc8eec1ec2172bc416d550e77db70e10a549a11fade0cc95"
+          "sha256": "48e6972f1f7e5d8cc4e0e75e27adb870b66b8a1d29ef4eb8b83719d3c5a2c1fb"
         },
         {
           "source": "codex/config/gitea-labels.json",

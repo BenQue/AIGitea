@@ -589,6 +589,47 @@ class ProjectTemplateScopeTest(unittest.TestCase):
                 self.assertIn(caught.exception.code, {"SCOPE_DENIED", "GIT_OBJECT_DENIED"})
                 self.assertEqual(self.remote_branch(), "")
 
+    def test_main_baseline_type_is_checked_even_when_head_is_canonical(self) -> None:
+        """Review R1 P2: HEAD repairs the type, so only the fresh-main check can refuse."""
+        def executable(canonical: Path) -> None:
+            template_main()(canonical)
+            (canonical / self.SUMMARY).chmod(0o755)
+
+        def linked_file(canonical: Path) -> None:
+            template_main(("spec", "plan", "verification"))(canonical)
+            (canonical / self.SUMMARY).symlink_to("spec.md")
+
+        for name, prepare in (("executable", executable), ("symlink", linked_file)):
+            with self.subTest(main=name):
+                self.build(selected=(self.SUMMARY,), prepare_main=prepare, changed=())
+                target = self.linked / self.SUMMARY
+                target.unlink()
+                target.write_text("canonical regular template\n")
+                target.chmod(0o644)
+                self.commit("#7 T02: repair template type")
+                self.assertEqual(git(["ls-tree", "HEAD", "--", self.SUMMARY], cwd=self.linked).split()[0],
+                                 "100644")
+                error = self.refused("SCOPE_DENIED")
+                self.assertIn("already canonical on fresh main", str(error))
+                self.assertFalse(any(argv[:2] == ["git", "push"] for argv, _env in self.commands))
+                self.assertEqual(self.remote_branch(), "")
+
+    def test_history_paths_cannot_carry_a_template_outside_the_current_scope(self) -> None:
+        """Review R1 P1: git_history_paths never widens the project-source template set."""
+        self.build(selected=(self.SUMMARY,))
+        anchor = git(["rev-parse", "HEAD"], cwd=self.linked)
+        spec = self.linked / "docs/changes/7-demo-change/spec-demo-change-261027.md"
+        text = spec.read_text()
+        own = [line for line in text.split("git_scope:\n", 1)[1].split("---\n", 1)[0].splitlines()
+               if self.SUMMARY not in line]
+        spec.write_text(text.split("git_scope:\n", 1)[0] + f"git_history_head: {anchor}\n"
+                        + "git_history_paths:\n" + text.split("git_scope:\n", 1)[1].split("---\n", 1)[0]
+                        + "git_scope:\n" + "".join(line + "\n" for line in own) + "---\n")
+        self.commit("#7 T02: move the template into history only")
+        error = self.refused("SCOPE_DENIED")
+        self.assertIn("outside the current exact scope", str(error))
+        self.assertEqual(self.remote_branch(), "")
+
     def test_undeclared_template_change_is_refused(self) -> None:
         self.build(selected=(self.SUMMARY,), changed=(self.SUMMARY, self.SPEC))
         self.refused("SCOPE_DENIED")

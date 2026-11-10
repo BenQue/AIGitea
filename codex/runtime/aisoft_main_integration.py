@@ -461,6 +461,11 @@ class GitRepository:
                 "invalid history head projection", "SCOPE_UNKNOWN")
         require(scope and len(old) <= 1, "approved exact Git scope missing", "SCOPE_UNKNOWN")
         historical = paths("git_history_paths")
+        if isinstance(context, ExistingMainTemplateContext):
+            # #445: a history anchor never widens the project-source template
+            # set; every template it names must stay in the current exact scope.
+            require(set(historical) & CANONICAL_TEMPLATE_PATHS <= set(scope),
+                    "project-source history template is outside the current exact scope", "SCOPE_DENIED")
         result = Scope(scope, old[0] if old else None, historical, context)
         result.verify()
         return result
