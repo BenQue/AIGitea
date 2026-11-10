@@ -13619,7 +13619,7 @@
     {
       "version": "1.24.0",
       "released": "2026-11-10",
-      "bundle_digest": "sha256:cf91c5337e69ba8dfc916ba31c5b71d345db8238a7dbaa580ab2b634e670a376",
+      "bundle_digest": "sha256:1847c2fbb3f21cd7165ed962f37dae68e6ecc3aa3413cc8870301c6660b19a06",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -13767,7 +13767,7 @@
         {
           "source": "skills/aisoft-platform/references/route-policy.md",
           "mode": "skill",
-          "sha256": "adca9214453c5fb1bac50fdefbdfd439b00362db127eb9e61338ce829ecb1f26"
+          "sha256": "850b91ae60b311eb6a48e52f372d0bfe1945ba60d9ff5da7bc540ff59183885d"
         },
         {
           "source": "skills/issue-session-flow/SKILL.md",
@@ -14252,7 +14252,7 @@
           "mode": "exact",
           "target": ".aisoft/lib/codex/runtime/aisoft_loop/ticket_execution.py",
           "check": "tool-provenance",
-          "sha256": "aee4a1f1c7cde189a1aab51ba876ca22a53418e2039d7703b395056ebfc5eead"
+          "sha256": "3332d112e72cb086efac81aa06b4deed31c96ff0d5d6499bcf7a62e585a3eeb2"
         },
         {
           "source": "codex/runtime/aisoft_loop/review_candidate.py",
@@ -14262,7 +14262,7 @@
           "sha256": "66404e2440f16170372bb523df2749305e5ec3eb0681b54081ed2c40372deb15"
         }
       ],
-      "notes": "开发阶段 complex 一律要 plan：路由表文档义务 D3 的 plan 改为 required，无高风险 flag 时仍用简版 spec；summary created 不晚于 2026-11-10、已批准且未声明 plan 的 D3 旧合同继续用合成 T01（#444）",
+      "notes": "开发阶段 complex 一律要 plan：路由表文档义务 D3 的 plan 改为 required，无高风险 flag 时仍用简版 spec；已批准且 required_docs 未声明 plan 的 D3 旧合同继续用合成 T01，不追溯（#444）",
       "compatibility": "minor"
     }
   ]

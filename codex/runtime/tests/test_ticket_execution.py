@@ -254,14 +254,13 @@ class ExecutionTests(GitFixture):
         with patch('aisoft_loop.ticket_execution.resolve_issue_route', return_value={'route': {'process': 'small'}}), self.assertRaises(ContractError):
             self.prepare()
 
-    def test_pre_444_compat_is_bounded_by_the_summary_created_day(self):
-        """#444 R1: a D3 contract opened after the rule change never gets the synthetic T01."""
-        from aisoft_loop.ticket_execution import PRE_444_CUTOFF, _pre_444_d3
+    def test_pre_444_compat_reads_only_the_approved_summary_fields(self):
+        """#444 R2 (owner chose option 1): status and required_docs decide; no date cutoff."""
+        from aisoft_loop.ticket_execution import _pre_444_d3
         d3 = {'row': 'D3'}
-        old = {'status': 'approved', 'required_docs': ['summary', 'spec'], 'created': PRE_444_CUTOFF}
+        old = {'status': 'approved', 'required_docs': ['summary', 'spec'], 'created': '2027-01-01'}
         self.assertTrue(_pre_444_d3(old, d3))
-        for change in ({'created': '2026-11-11'}, {'created': '2027-01-01'}, {'created': None},
-                       {'created': '20261101'}, {'status': 'analyzed'},
+        for change in ({'status': 'analyzed'}, {'status': 'pr-open'},
                        {'required_docs': ['summary', 'spec', 'plan']}):
             with self.subTest(change=change):
                 self.assertFalse(_pre_444_d3({**old, **change}, d3))

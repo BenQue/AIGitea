@@ -82,8 +82,8 @@ R1 不因 provider 合法而获得实施权限。已批准的显式覆盖仍走 
 `full`（完整版）在此之上写接口/数据/兼容影响与「未决问题」，`approved` 前未决问题须清空。`git_scope` 必须列出本 Issue
 全部映射文档与所有将提交的文件，推送守卫只从已提交的 spec 读取它。`plan: none` 时不写 plan，small 直接按 spec 验收实现；
 `required` 时按 plan 的 Txx 执行，D2/D3 的 route 卡不变，执行入口用本文件「Provider 映射」的 `@plan`。开发阶段 complex
-一律要 plan（#444）；不追溯：summary `created` 不晚于 2026-11-10、已 `approved` 且 `required_docs` 未声明 plan 的 D3 旧合同，
-执行入口仍以合成 `T01` 取 spec 的验收标准；之后新开的 D3 与 D2 缺 plan 一律拒绝。`verification` 不由本表决定（见 `03` §3）。确认点 1 之前 `aisoft classify N` 的「文档预检」行
+一律要 plan（#444）；不追溯：已 `approved` 且 summary `required_docs` 未声明 plan 的 D3 旧合同，执行入口仍以合成 `T01`
+取 spec 的验收标准；新 D3 由确认点 1 的文档预检拦在批准之前，D2 缺 plan 照旧拒绝。`verification` 不由本表决定（见 `03` §3）。确认点 1 之前 `aisoft classify N` 的「文档预检」行
 必须是 OK。
 
 ## 取值闭集

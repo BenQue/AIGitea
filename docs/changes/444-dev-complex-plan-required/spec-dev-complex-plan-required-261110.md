@@ -85,8 +85,8 @@ spec 全部验收标准。批次 Issue（#440）往往覆盖多个功能点，�
 - [ ] AC-2：确认点 1 文档预检对未声明 plan 的新 development complex 报「summary required_docs 缺 plan（文档义务 D3）」；
   声明并创建 plan 后为 OK。
 - [ ] AC-3：development small 的文档义务仍为 D5、`plan: none`，相关测试不变绿。
-- [ ] AC-4：`ticket_execution` 对 status 已为 `approved`、文档义务为 D3、summary `created` 不晚于 2026-11-10、
-  `required_docs` 未声明 plan 的旧合同仍以合成 `T01` 执行（不追溯）；`created` 更晚的 D3 合同缺 plan 拒绝；对 D2 含高风险 flag 缺 plan 仍拒绝（#436 行为不变）；对声明了 plan
+- [ ] AC-4：`ticket_execution` 对 status 已为 `approved`、文档义务为 D3、summary `required_docs` 未声明 plan 的
+  旧合同仍以合成 `T01` 执行（不追溯）；对 D2 含高风险 flag 缺 plan 仍拒绝（#436 行为不变）；对声明了 plan
   却缺文件的仍拒绝。均有单测，并做一次反向证明（去掉兼容分支后对应测试变红）。
 - [ ] AC-5：git_scope 列出的分册、技能、模板、使用合同与 GLOSSARY 中不再有「无高风险 flag 的 development complex
   不写 plan」的现行规则表述；合成 `T01` 只作为 D3 旧合同兼容路径描述。
@@ -104,17 +104,18 @@ spec 全部验收标准。批次 Issue（#440）往往覆盖多个功能点，�
 
 - `resolve-route` / `classify` 的 `documents` 输出对 D3 从 `plan: none` 变为 `required`，`required_docs` 多出 `plan`。
 - `Classification.route(change_control="development")` 的 complex 最小文档从 summary+spec 变为 summary+spec+plan。
-- 兼容判据只看已有字段（summary `status: approved`、`required_docs` 与 `created`，`created` 被文件名日期钉住），
-  截止日 2026-11-10，不新增 front matter 字段、不改模板。截止日之后才升级发布包的项目里，截止日之后新开、
-  未写 plan 的在途 D3 合同升级后须补 plan。
+- 兼容判据只看已有字段（summary `status: approved` 与 `required_docs`），不新增 front matter 字段、不改模板。
+  已知取舍：平台没有可核验的批准时间，执行入口不能单独区分新旧 D3；新 D3 不写 plan 只能靠跳过确认点 1 的
+  文档预检，预检是流程必经步骤（负责人在交叉审查 R2 后选定，见已定决策 c）。
 - 使用发布包 1.23.1 → 1.24.0（minor：新开的 development complex 多欠一份 plan）；项目升包后新开的 development complex 需要 plan。
 
 ## 已定决策（确认点 1，2026-11-10 负责人「确认」全按建议）
 
 - a. 无高风险 flag 的 development complex 继续写简版 spec，只把 plan 改为 `required`。
 - b. R2 必用技能不变，不加 `to-tickets` 与 `@plan`；plan 按文档义务写，执行入口按 provider 默认落到 `@plan`。
-- c. 不追溯：已 approved 且 `required_docs` 未声明 plan 的 D3 旧合同按 AC-4 继续以合成 `T01` 执行；交叉审查 R1
-  指出仅凭这两个字段分不清新旧合同，按决策本意补上 summary `created` 不晚于 2026-11-10 的边界。
+- c. 不追溯：已 approved 且 `required_docs` 未声明 plan 的 D3 旧合同按 AC-4 继续以合成 `T01` 执行。交叉审查 R1
+  指出仅凭字段分不清新旧合同，R2 指出 `created` 日期截止又会部分追溯；2026-11-10 负责人选「只看字段」，
+  新 D3 由确认点 1 文档预检拦截。
 
 ## 未决问题
 
