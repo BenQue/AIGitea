@@ -13619,7 +13619,7 @@
     {
       "version": "1.24.0",
       "released": "2026-11-10",
-      "bundle_digest": "sha256:4ff6db14523acfe8cc54704e5af6ca3826fa48987bdf5069fce23d8f724c87ba",
+      "bundle_digest": "sha256:cf91c5337e69ba8dfc916ba31c5b71d345db8238a7dbaa580ab2b634e670a376",
       "members": [
         {
           "source": "usage/CONTRACT.md",
@@ -13727,7 +13727,7 @@
         {
           "source": "skills/aisoft-platform/SKILL.md",
           "mode": "skill",
-          "sha256": "0db9043fcfd3430069298437a0a425f08da8f20ea6e178a166a33050b93d1dcf"
+          "sha256": "97dee173e7d16752ec482c05352dbd13c54958b3ab630270444f5ba07630aa47"
         },
         {
           "source": "skills/aisoft-platform/agents/openai.yaml",
@@ -13767,7 +13767,7 @@
         {
           "source": "skills/aisoft-platform/references/route-policy.md",
           "mode": "skill",
-          "sha256": "c0e2c81072111dd58341f487f60b75fca3f926b200ecb0c6f3af6253f073c6b8"
+          "sha256": "adca9214453c5fb1bac50fdefbdfd439b00362db127eb9e61338ce829ecb1f26"
         },
         {
           "source": "skills/issue-session-flow/SKILL.md",
@@ -14252,7 +14252,7 @@
           "mode": "exact",
           "target": ".aisoft/lib/codex/runtime/aisoft_loop/ticket_execution.py",
           "check": "tool-provenance",
-          "sha256": "7b71993ac30a880b71b1f31603cfcdfd7cd30877378dc45e368b252e1f48b77e"
+          "sha256": "aee4a1f1c7cde189a1aab51ba876ca22a53418e2039d7703b395056ebfc5eead"
         },
         {
           "source": "codex/runtime/aisoft_loop/review_candidate.py",
@@ -14262,7 +14262,7 @@
           "sha256": "66404e2440f16170372bb523df2749305e5ec3eb0681b54081ed2c40372deb15"
         }
       ],
-      "notes": "开发阶段 complex 一律要 plan：路由表文档义务 D3 的 plan 改为 required，无高风险 flag 时仍用简版 spec；#444 之前已批准、未声明 plan 的 D3 旧合同继续用合成 T01（#444）",
+      "notes": "开发阶段 complex 一律要 plan：路由表文档义务 D3 的 plan 改为 required，无高风险 flag 时仍用简版 spec；summary created 不晚于 2026-11-10、已批准且未声明 plan 的 D3 旧合同继续用合成 T01（#444）",
       "compatibility": "minor"
     }
   ]

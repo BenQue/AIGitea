@@ -267,15 +267,23 @@ def working_state(repo: Path) -> dict:
     return state
 
 
-def _pre_444_d3(summary: dict, obligations: dict) -> bool:
-    """A D3 contract approved before #444 keeps its synthetic T01 (not retroactive).
+# Last summary `created` day that still ran under the D3 `plan: none` rule (#444).
+PRE_444_CUTOFF = '2026-11-10'
 
-    Only the approved summary's own required_docs can say a plan was never owed;
-    confirmation point 1's document preflight stops a new D3 contract from
-    reaching approval without declaring one. D2 stays strict (#436).
+
+def _pre_444_d3(summary: dict, obligations: dict) -> bool:
+    """A D3 contract opened before #444 keeps its synthetic T01 (not retroactive).
+
+    The summary's `created` day is the boundary: it is pinned to the document's
+    file name, so a contract opened after the rule change cannot claim to be old.
+    Only an approved summary whose required_docs never declared a plan qualifies;
+    D2 stays strict (#436).
     """
     from .contract import _required_roles
+    created = summary.get('created')
     return (obligations['row'] == 'D3' and summary.get('status') == 'approved'
+            and isinstance(created, str) and re.fullmatch(r'\d{4}-\d{2}-\d{2}', created) is not None
+            and created <= PRE_444_CUTOFF
             and 'plan' not in _required_roles(summary.get('required_docs')))
 
 

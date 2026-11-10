@@ -459,6 +459,15 @@ class DocumentObligationTests(unittest.TestCase):
             self.assertEqual(len(gaps), 1)
             self.assertIn("summary required_docs 缺 plan", gaps[0])
             self.assertIn("文档义务 D3", gaps[0])
+            # Declaring, mapping and covering the plan clears the gap.
+            plan_name = "plan-matt-flow-260808.md"
+            summary.write_text(summary.read_text().replace("  - spec\n", "  - spec\n  - plan\n", 1)
+                               .replace(f"  spec: {names['spec']}\n", f"  spec: {names['spec']}\n  plan: {plan_name}\n", 1))
+            (directory / plan_name).write_text("---\nissue: 57\nbranch: change/57-matt-flow\ncreated: 2026-08-08\n---\n\n# Plan\n")
+            spec = directory / names["spec"]
+            spec.write_text(spec.read_text().replace("git_scope:\n", f"git_scope:\n  - docs/changes/57-matt-flow/{plan_name}\n", 1))
+            with patch("aisoft_loop.route_policy.repository_context", return_value=("development", False)):
+                self.assertEqual(document_preflight(repo, 57), [])
 
     def test_preflight_and_classify_report_a_missing_mapped_file(self):
         """Round 2: a mapped spec whose file is missing still yields a GAP, also from the CLI."""
